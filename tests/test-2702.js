@@ -125,7 +125,7 @@ vrai('les raccourcis clavier n\'écoutent QUE l\'arbre du module (sr.addEventLis
 console.log('\n4. Le contrat de l\'adaptateur : ce que le module appelle est écrit en tête du fichier, et inversement');
 const TETE = MOD.slice(0, MOD.indexOf('(function () {'));
 const appelles = Array.from(new Set(Array.from(CODE.matchAll(/\bSRC\.(\w+)/g)).map(m => m[1]))).sort();
-const documentes = ['ajouterBoite', 'boites', 'capacites', 'deplacer', 'envoyer', 'lire', 'lireMX', 'marquer', 'messages', 'retirerBoite', 'simuler'];
+const documentes = ['ajouterBoite', 'boites', 'capacites', 'deplacer', 'envois', 'envoyer', 'lire', 'lireMX', 'marquer', 'messages', 'piece', 'retirerBoite', 'simuler', 'suivi'];
 v('(population) les méthodes de la source appelées par le module', appelles, documentes);
 v('⛔ chacune est DÉCRITE dans le contrat, en tête du fichier', documentes.filter(m => !new RegExp('\\b' + m + '\\(').test(TETE)), []);
 v('les options documentées sont celles que le module lit (source, cotes, cote, cleStockage, theme, titre, onCompter, titreDocument, intervalle)', ['source', 'cotes', 'cote', 'cleStockage', 'theme', 'titre', 'onCompter', 'titreDocument', 'intervalle'].filter(o => !new RegExp('\\b' + o + '\\b').test(TETE) || !new RegExp('opt\\.' + o + '\\b').test(CODE)), []);
@@ -181,7 +181,10 @@ function bac(stock) {
 
 /* ═════════════════════════════ 6. LES FONCTIONS QUI TRADUISENT LA SOURCE ═════════════════════════════ */
 console.log('\n6. Ce que la source rend, tel que le module le lit');
-const FN = ['msgErr', 'paragraphes', 'texteDe', 'folderOfStrict', 'depuisSource', 'surOver', 'dossierServeur', 'firstLine'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 40); return f; }).join('\n');
+const SUIVI_VAR = (MOD.match(/  var SUIVI_ETATS=\[[^;]*;/) || [''])[0];
+vrai('(tranche trouvée) la liste des trois états du suivi', SUIVI_VAR.length > 60);
+const FN = [SUIVI_VAR, 'msgErr', 'paragraphes', 'texteDe', 'folderOfStrict', 'attDe', 'suiviDe', 'depuisSource', 'surOver', 'dossierServeur', 'firstLine'].map(n => { if (n.startsWith('  var')) return n; const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 40); return f; }).join('\n');
+
 const bacTraduction = () => { const sb = { FOLDERS: [{ id: 'inbox' }, { id: 'sent' }, { id: 'archive' }, { id: 'junk' }, { id: 'trash' }], OVER: {}, CAP: { marquage: false, deplacement: false }, isCat: (c) => c === 'notif', String, Array, Date };
   vm.createContext(sb); vm.runInContext(FN + '\n;this.depuisSource=depuisSource; this.paragraphes=paragraphes; this.surOver=surOver; this.dossierServeur=dossierServeur; this.msgErr=msgErr;', sb); return sb; };
 { const sb = bacTraduction();
@@ -214,11 +217,11 @@ const bacTraduction = () => { const sb = { FOLDERS: [{ id: 'inbox' }, { id: 'sen
 /* l'ENVOI : la vraie `expedier` — « envoyé » ne s'écrit qu'APRÈS la réponse de la source, un échec remet le message dans les brouillons et le dit */
 console.log('\n   L\'envoi : la vraie expedier');
 { const EXP = ['expedier', 'courrierDe', 'msgErr', 'bodyText'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 30); return f; }).join('\n');
-  const joue = async (envoyer) => {
+  const joue = async (envoyer, extra) => {
     const notes = []; const sb = { vivant: true, SRC: { envoyer }, acctOf: () => ({ sid: 'b1', email: 'a@x.fr', name: 'A' }), learnContacts: () => notes.push('contacts'), renderAll: () => notes.push('rendu'), persist: () => notes.push('persist'),
-      toast: (t) => notes.push('toast:' + t), Date, Array, String, Promise, setTimeout };
+      charger: () => notes.push('charger'), toast: (t) => notes.push('toast:' + t), Date, Array, String, Promise, setTimeout };
     vm.createContext(sb); vm.runInContext(EXP + '\n;this.expedier=expedier;', sb);
-    const m = { id: 'm1', acct: 'b1', to: 'c@x.fr', subject: 'S', body: ['Bonjour'], folder: 'outbox', _files: ['f'], sendAt: 5 }; let fin = null;
+    const m = Object.assign({ id: 'm1', acct: 'b1', to: 'c@x.fr', subject: 'S', body: ['Bonjour'], folder: 'outbox', _files: ['f'], sendAt: 5 }, extra || {}); let fin = null;
     sb.expedier(m, false, (ok) => { fin = ok; }); await new Promise(r => setTimeout(r, 20));
     return { m, fin, notes, sb }; };
   const a = await joue(async (mail) => { if (mail.boite !== 'b1' || mail.a !== 'c@x.fr' || mail.objet !== 'S' || mail.texte !== 'Bonjour') throw new Error('courrier mal formé'); });
@@ -226,7 +229,159 @@ console.log('\n   L\'envoi : la vraie expedier');
   const b = await joue(async () => { throw new Error('refusé par le serveur (essai)'); });
   v('⛔ envoi REFUSÉ : le message retourne dans les BROUILLONS (jamais « Envoyé »), l\'erreur de la source est DITE', [b.m.folder, b.fin, b.notes.filter(x => /^toast:/.test(x))], ['drafts', false, ['toast:Envoi impossible : refusé par le serveur (essai) — le message est dans Brouillons']]);
   const c = await joue(async () => { throw 'texte brut'; });
-  vrai('un échec qui n\'est pas une Error ne jette pas non plus (il se dit « échec »)', c.m.folder === 'drafts' && /Envoi impossible : /.test(c.notes.join('|'))); }
+  vrai('un échec qui n\'est pas une Error ne jette pas non plus (il se dit « échec »)', c.m.folder === 'drafts' && /Envoi impossible : /.test(c.notes.join('|')));
+  /* répondre dans le fil : la source reçoit l'identifiant du message auquel on répond, un nouveau message n'en porte pas */
+  let recu = null;
+  const r1 = await joue(async (mail) => { recu = mail; }, { repA: 's7' });
+  v('⛔ une RÉPONSE porte enReponseA (l\'identifiant du message de la source), et la marque est lâchée après l\'envoi', [recu.enReponseA, 'repA' in r1.m, r1.notes.includes('charger')], ['s7', false, true]);
+  let recu2 = null; const r2 = await joue(async (mail) => { recu2 = mail; });
+  vrai('⛔ un NOUVEAU message ne porte aucun enReponseA (la clé n\'existe même pas : la source n\'invente pas de fil)', !('enReponseA' in JSON.parse(JSON.stringify(recu2))) && !r2.notes.includes('charger'));
+  const r3 = await joue(async () => { throw new Error('refusé'); }, { repA: 's7' });
+  vrai('…et un envoi REFUSÉ garde la marque (le brouillon rouvert répond toujours dans le fil)', r3.m.repA === 's7' && r3.m.folder === 'drafts'); }
+
+
+/* ═════════════════════════════ 8. LES QUATRE GESTES D'AVANT : ENVOIS TEAMOP, PIÈCE REÇUE, SUIVI, RÉPONSE DANS LE FIL ═════════════════════════════ */
+console.log('\n8. Envois TeamOP, télécharger une pièce, suivi d\'une demande, répondre dans le fil');
+const attente = (ms) => new Promise(r => setTimeout(r, ms || 15));
+{ /* les déclarations : faux tant que la source ne dit pas vrai ET n'a pas la méthode */
+  const AC = fonction(MOD, 'appliquerCapacites');
+  vrai('(tranche trouvée) appliquerCapacites', AC.length > 200);
+  const joueCap = (c, src) => { const sb = { CAP: { dossiers: ['inbox'] }, SRC: src, state: { folder: 'envois' }, folderOfStrict: (d) => ({ id: d, journal: d === 'envois' }), Array }; vm.createContext(sb);
+    vm.runInContext(AC + '\n;this.ap=appliquerCapacites;', sb); sb.ap(c); return sb; };
+  const r0 = joueCap({ journalEnvois: true, telechargerPiece: true, suivi: true }, {});
+  v('⛔ déclarés SANS la méthode correspondante, les trois gestes restent éteints (le module ne promet rien qu\'il ne sait pas appeler)', [r0.CAP.journalEnvois, r0.CAP.telechargerPiece, r0.CAP.suivi], [false, false, false]);
+  v('…et un dossier « envois » mémorisé retombe sur la Réception quand le journal n\'existe pas', r0.state.folder, 'inbox');
+  const r1 = joueCap({ journalEnvois: true, telechargerPiece: true, suivi: true }, { envois() {}, piece() {}, suivi() {} });
+  v('⛔ déclarés ET méthodes présentes : allumés', [r1.CAP.journalEnvois, r1.CAP.telechargerPiece, r1.CAP.suivi, r1.state.folder], [true, true, true, 'envois']);
+  const r2 = joueCap({ journalEnvois: 'oui', telechargerPiece: 1, suivi: {} }, { envois() {}, piece() {}, suivi() {} });
+  v('…jamais sur une valeur « truthy » (=== true)', [r2.CAP.journalEnvois, r2.CAP.telechargerPiece, r2.CAP.suivi], [false, false, false]);
+  const r3 = joueCap({ journalEnvois: true, dossiers: ['inbox', 'envois', 'sent'] }, { envois() {} });
+  v('⛔ « envois » n\'est JAMAIS un dossier que la source remplit (le module ne lui demande pas ses messages)', r3.CAP.dossiers, ['inbox', 'sent']);
+}
+{ /* le journal : la vraie chargerJournal et la vraie depuisJournal */
+  const F = ['paragraphes', 'texteDe', 'firstLine', 'msgErr', 'depuisJournal', 'chargerJournal'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 40); return f; }).join('\n');
+  const bacJ = (src, cap) => { const sb = { CAP: { journalEnvois: cap !== false }, SRC: src, MESSAGES: [{ id: 's:b1:1', src: true, folder: 'inbox' }], LOAD: { envois: '', envErr: '' }, Promise, Array, String, Error }; vm.createContext(sb); vm.runInContext(F + '\n;this.chargerJournal=chargerJournal;', sb); return sb; };
+  const sb = bacJ({ envois: async () => [{ id: 'a-1', a: 'x@y.fr', objet: 'Code', corps: 'Votre code.\n\nMerci', date: 5000, etat: 'echec' }, { id: 'a-1', a: 'doublon', objet: 'D' }, { id: 'b-1', a: 'z@y.fr', objet: 'Invitation', date: 4000, etat: 'bizarre' }, null, { a: 'sans id' }] });
+  await sb.chargerJournal();
+  const jr = sb.MESSAGES.filter(m => m.jr);
+  v('⛔ chargerJournal : chaque ligne du serveur devient un message en LECTURE SEULE du dossier « envois », sans boîte ni expéditeur ; les doublons et lignes sans identifiant sont écartés', jr.map(m => [m.id, m.folder, m.acct, m.from, m.to, m.subject, m.read, m.flagged, m.at, m.etat]),
+    [['j:a-1', 'envois', '', null, 'x@y.fr', 'Code', true, false, 5000, 'echec'], ['j:b-1', 'envois', '', null, 'z@y.fr', 'Invitation', true, false, 4000, '']]);
+  v('…le texte devient des paragraphes, l\'aperçu est sa première ligne', [JSON.parse(JSON.stringify(jr[0].body)), jr[0].preview], [['Votre code.', 'Merci'], 'Votre code. Merci']);
+  vrai('…et les messages des boîtes ne sont pas touchés', sb.MESSAGES.some(m => m.id === 's:b1:1') && sb.LOAD.envois === 'ok');
+  let fails = true; const sb2 = bacJ({ envois: async () => { if (fails) throw new Error('journal en panne'); return []; } });
+  sb2.MESSAGES.push({ id: 'j:vieux', jr: true, folder: 'envois' });
+  await sb2.chargerJournal();
+  v('⛔ un journal qui ne répond pas est « ko » et se DIT ; ce qu\'on avait lu reste (jamais « aucun envoi »)', [sb2.LOAD.envois, sb2.LOAD.envErr, sb2.MESSAGES.filter(m => m.jr).length], ['ko', 'journal en panne', 1]);
+  fails = false; await sb2.chargerJournal();
+  v('…et quand il répond VIDE, le journal est vide (et lu : « ok »)', [sb2.LOAD.envois, sb2.MESSAGES.filter(m => m.jr).length], ['ok', 0]);
+  const sb3 = bacJ({ envois: async () => ({}) }); await sb3.chargerJournal();
+  v('une réponse qui n\'est pas une liste est une panne, pas un journal vide', sb3.LOAD.envois, 'ko');
+  let appele = 0; const sb4 = bacJ({ envois: async () => { appele++; return []; } }, false); sb4.MESSAGES.push({ id: 'j:x', jr: true });
+  await sb4.chargerJournal();
+  v('⛔ source qui ne déclare pas le journal : AUCUN appel, et aucune ligne de journal ne subsiste', [appele, sb4.MESSAGES.filter(m => m.jr).length], [0, 0]);
+}
+{ /* la page de lecture d'un envoi : texte échappé, rien d'exécuté, aucun geste de rangement */
+  const F = ['journalHtml', 'initials', 'fmtFull', 'fmtDate', 'tsOf'].map(n => fonction(MOD, n)).join('\n');
+  const sb = { H: (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])), I: { warn: '<svg>W</svg>', sent: '<svg>S</svg>' }, String, Date, Array };
+  vm.createContext(sb); vm.runInContext('function cap(s){return s}\nfunction initials(n){return String(n||"?").slice(0,2).toUpperCase()}\nfunction fmtFull(t){return "F"+t}\nfunction fmtDate(t){return "D"+t}\nfunction tsOf(m){return m.at}\n' + fonction(MOD, 'journalHtml') + '\n;this.j=journalHtml;', sb);
+  void F;
+  const h = sb.j({ subject: '<img src=x onerror=alert(1)>', to: 'a"b@y.fr', at: 9, etat: '', body: ['<script>alert(2)</script>\nligne'] });
+  vrai('⛔ le journal est écrit comme du TEXTE : ni balise, ni gestionnaire d\'événement qui survive', !/<img|<script|onerror=alert/.test(h.replace(/&lt;[^]*?&gt;/g, '')) && h.includes('&lt;script&gt;alert(2)&lt;/script&gt;'));
+  vrai('…aucun bouton de rangement ni de réponse (lecture seule), aucun lien', !/<button|<a |data-act|data-quick|href=/.test(h));
+  vrai('…un envoi qui n\'est pas parti le DIT, un envoi sans texte aussi', /Non parti/.test(sb.j({ subject: 's', to: 'a', at: 1, etat: 'echec', body: [] })) && /aperçu non conservé/.test(sb.j({ subject: 's', to: 'a', at: 1, etat: '', body: [] })) && /Pas encore parti/.test(sb.j({ subject: 's', to: 'a', at: 1, etat: 'retard', body: ['x'] })));
+}
+{ /* l'état de la liste : un journal ne se trie pas, ne se marque pas, ne reçoit pas de réponse */
+  const dA = fonction(MOD, 'doAct'); vrai('(tranche trouvée) doAct', dA.length > 500);
+  vrai('⛔ doAct ne fait RIEN sur une ligne du journal (jr) : première instruction, avant tout geste', /var m=id\?msgById\(id\):msgById\(state\.selected\); if\(!m\|\|m\.jr\) return;/.test(dA));
+  const RA = fonction(MOD, 'readActsHtml'), RT = fonction(MOD, 'readToolsHtml');
+  vrai('⛔ …les barres d\'actions d\'un journal ne portent que la navigation précédent / suivant', /if\(m&&m\.jr\) return nav;/.test(RA) && /if\(!m\|\|m\.jr\) return '';/.test(RT));
+  const SM = fonction(MOD, 'setMulti');
+  vrai('…et la sélection multiple y est refusée (dite)', /folderOf\(state\.folder\)\.journal\)\{ toast\(/.test(SM));
+  vrai('…inScopeOf laisse passer une ligne du journal quelle que soit la vue (Pro, Perso, une boîte) — elle n\'a pas de boîte', /function inScopeOf\(m,sc\)\{ if\(sc==="all"\|\|m\.jr\) return true;/.test(CODE));
+}
+{ /* télécharger une pièce */
+  const NOM = fonction(MOD, 'nomFichierSur'), TEL = fonction(MOD, 'telechargerPiece');
+  vrai('(tranche trouvée) nomFichierSur et telechargerPiece', NOM.length > 200 && TEL.length > 600);
+  const sbn = {}; vm.createContext(sbn); vm.runInContext(NOM + '\n;this.n=nomFichierSur;', sbn);
+  const N = (x) => sbn.n(x);
+  v('⛔ nomFichierSur : un chemin n\'en est pas un (../, \\, :, *, ?, <, >, |, ") — il ne sort jamais du dossier de téléchargement', [N('../../etc/passwd'), N('C:\\Windows\\x.dll'), N('a<b>c|d?e*f".pdf')], ['_.._etc_passwd', 'C_Windows_x.dll', 'a_b_c_d_e_f_.pdf']);
+  v('…ni point ni espace au début ou à la fin (fichier caché, extension masquée)', [N('..bashrc'), N('  rapport.pdf. '), N('.hidden')], ['bashrc', 'rapport.pdf', 'hidden']);
+  v('⛔ …un caractère de contrôle ou une INVERSION de sens d\'écriture (U+202E : « fdp.exe » qui se lit « exe.pdf ») est retiré', [N('facture\u202Eexe.pdf'), N('a\u0000b\u001f.txt'), N('x\u200b\u2066y.doc')], ['factureexe.pdf', 'ab.txt', 'xy.doc']);
+  v('…un nom réservé de Windows (CON, NUL, COM1, LPT9, AUX…) est préfixé', [N('CON'), N('nul.txt'), N('com1.pdf'), N('aux')], ['_CON', '_nul.txt', '_com1.pdf', '_aux']);
+  v('…vide, ou fait de points : « piece-jointe », jamais un nom vide', [N(''), N(null), N('...'), N(undefined)], ['piece-jointe', 'piece-jointe', 'piece-jointe', 'piece-jointe']);
+  const long = N('a'.repeat(300) + '.pdf');
+  vrai('…un nom trop long est raccourci en gardant son extension', long.length === 120 && long.endsWith('.pdf'), long.length);
+  v('un nom ordinaire (accents, espaces) ne change pas', N('Devis été 2026 (v2).pdf'), 'Devis été 2026 (v2).pdf');
+  /* le geste, avec la vraie fonction */
+  const bacT = (src, cap) => { const notes = [], liens = [];
+    const sb = { CAP: { telechargerPiece: cap !== false }, SRC: src, vivant: true, Promise, Blob, String, Error, setTimeout: () => 0, URL: { createObjectURL: (b) => { notes.push('url:' + b.type + ':' + b.size); return 'blob:essai'; }, revokeObjectURL() {} },
+      document: { createElement: () => { const l = { click() { liens.push({ href: l.href, download: l.download, rel: l.rel, hidden: l.hidden }); } }; return l; } }, sr: { appendChild() {}, removeChild() {} },
+      toast: (t) => notes.push('toast:' + t), msgErr: (e, d) => (e && e.message) || d, nomFichierSur: N };
+    vm.createContext(sb); vm.runInContext(TEL + '\n;this.tel=telechargerPiece;', sb); return { sb, notes, liens }; };
+  const piece = { id: '0', name: '../facture\u202Eexe.pdf', size: '2 Ko', kind: 'doc' }, msg = { sid: 'b|1|INBOX', src: true, att: [piece] };
+  let demandes = []; const T = bacT({ piece: async (id, p) => { demandes.push([id, p]); return new Blob(['%PDF contenu'], { type: 'text/html' }); } });
+  T.sb.tel(msg, 0, null); await attente();
+  v('⛔ telechargerPiece : demande (message, pièce) à la source, enregistre sous un nom ASSAINI', [demandes, T.liens.map(l => l.download)], [[['b|1|INBOX', '0']], ['_factureexe.pdf']]);
+  vrai('⛔ …le contenu est rendu NEUTRE (octet-stream) : un « text/html » de la source ne devient jamais une page ; lien masqué, sans opener', T.notes.includes('url:application/octet-stream:12') && T.liens[0].hidden === true && T.liens[0].rel === 'noopener' && T.liens[0].href === 'blob:essai', T.notes);
+  vrai('…et la personne est prévenue', T.notes.some(n => /^toast:Pièce téléchargée : /.test(n)));
+  const T2 = bacT({ piece: async () => { await attente(30); return new Blob(['x']); } }); const m2 = { sid: 'i', src: true, att: [{ id: '3', name: 'a.txt' }] };
+  T2.sb.tel(m2, 0, null); T2.sb.tel(m2, 0, null); await attente(60);
+  v('⛔ un double clic ne télécharge qu\'UNE fois (la pièce est marquée en cours)', T2.liens.length, 1);
+  T2.sb.tel(m2, 0, null); await attente(60);
+  v('…et on peut la retélécharger ensuite', T2.liens.length, 2);
+  const T3 = bacT({ piece: async () => { throw new Error('pièce introuvable'); } }); T3.sb.tel({ sid: 'i', src: true, att: [{ id: '3', name: 'a' }] }, 0, null); await attente();
+  v('⛔ un refus de la source se DIT (« Téléchargement impossible »), aucun fichier', [T3.notes.filter(n => /^toast:/.test(n)), T3.liens.length], [['toast:Téléchargement impossible : pièce introuvable'], 0]);
+  const T4 = bacT({ piece: async () => 'pas un blob' }); T4.sb.tel({ sid: 'i', src: true, att: [{ id: '3', name: 'a' }] }, 0, null); await attente();
+  v('⛔ ce qui n\'est pas un Blob est refusé (jamais écrit comme un fichier)', [T4.liens.length, T4.notes.filter(n => /^toast:/.test(n))], [0, ['toast:Téléchargement impossible : pièce illisible']]);
+  let n5 = 0; const T5 = bacT({ piece: async () => { n5++; return new Blob(['x']); } }, false); T5.sb.tel({ sid: 'i', src: true, att: [{ id: '3', name: 'a' }] }, 0, null); await attente();
+  const T6 = bacT({ piece: async () => { n5++; return new Blob(['x']); } }); T6.sb.tel({ sid: 'i', src: true, att: [{ name: 'sans identifiant' }] }, 0, null); T6.sb.tel({ sid: 'i', src: false, att: [{ id: '1', name: 'écrit ici' }] }, 0, null); await attente();
+  v('⛔ source qui ne déclare pas le geste, pièce sans identifiant, message écrit ici : AUCUN appel à la source', n5, 0);
+  const RD = fonction(MOD, 'renderReading');
+  vrai('⛔ le bouton n\'est dessiné QUE si la source sait télécharger ET que la pièce a un identifiant (dlOk && a.id != null), sur un message de la source', /var dlOk=!!m\.src&&CAP\.telechargerPiece&&typeof SRC\.piece==="function";/.test(RD) && /\(dlOk&&a\.id!=null\?'<button type="button" class="att-dl"/.test(RD));
+  vrai('…et le nom de la pièce est ÉCHAPPÉ dans le libellé du bouton', /aria-label="Télécharger '\+H\(a\.name\)\+'"/.test(RD));
+}
+{ /* le suivi d'une demande */
+  const SH = fonction(MOD, 'suiviHtml'), CS = fonction(MOD, 'changerSuivi'), SU = fonction(MOD, 'suiviDe');
+  vrai('(tranche trouvée) suiviHtml, changerSuivi, suiviDe', SH.length > 300 && CS.length > 500 && SU.length > 100);
+  const H = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const bacS = (cap, src) => { const notes = []; const sb = { CAP: { suivi: cap !== false }, SRC: src, SUIVI_ETATS: [['aTraiter', 'À traiter'], ['enCours', 'En cours'], ['resolu', 'Résolu']], H, vivant: true, Promise, String, Error, notes,
+      repeindreSuivi: (m, f) => notes.push('repeint:' + m.suivi.statut + ':' + m.suivi.assigne + ':' + (f || '')), toast: (t) => notes.push('toast:' + t), msgErr: (e, d) => (e && e.message) || d };
+    vm.createContext(sb); vm.runInContext(SU + '\n' + SH + '\n' + CS + '\n;this.sh=suiviHtml; this.cs=changerSuivi; this.sd=suiviDe;', sb); return sb; };
+  const base = () => ({ id: 's:b:1', sid: 'b|1|INBOX', src: true, folder: 'inbox', suivi: { statut: 'aTraiter', assigne: 'Léa "<b>"', par: 'Patron' } });
+  const S1 = bacS(true, { suivi() {} });
+  const h = S1.sh(base());
+  vrai('⛔ suiviHtml : trois états, le courant est « pressé », la personne et le dernier geste y sont — ÉCHAPPÉS', (h.match(/data-suivi="/g) || []).length === 3 && /data-suivi="aTraiter" aria-pressed="true"/.test(h) && /data-suivi="resolu" aria-pressed="false"/.test(h) && h.includes('Léa &quot;&lt;b&gt;&quot;') && /Dernier geste : Patron/.test(h) && !/<b>/.test(h));
+  v('⛔ …rien sans CAP.suivi, rien sur un message écrit ici, rien hors de la Réception, rien sans suivi connu (jamais un faux « à traiter »)', [bacS(false, { suivi() {} }).sh(base()), S1.sh(Object.assign(base(), { src: false })), S1.sh(Object.assign(base(), { folder: 'archive' })), S1.sh(Object.assign(base(), { suivi: null })), bacS(true, {}).sh(base())], ['', '', '', '', '']);
+  v('suiviDe : trois états seulement, le reste n\'est pas un suivi', [S1.sd({ statut: 'enCours', assigne: 'x', par: 'y' }), S1.sd({ statut: 'inventé' }), S1.sd(null), S1.sd('resolu')], [{ statut: 'enCours', assigne: 'x', par: 'y' }, null, null, null]);
+  /* le geste : appliqué d'abord, confirmé ou défait ensuite */
+  let rendre = null; const S2 = bacS(true, { suivi: (id, p) => new Promise((ok) => { rendre = () => ok({ statut: 'resolu', assigne: 'Zoé', par: 'Agent' }); }) }); const m = base();
+  S2.cs(m, { statut: 'resolu' }); await attente();
+  v('⛔ changerSuivi : l\'état s\'applique AVANT la réponse (le doigt n\'attend pas le serveur), le focus revient sur le bouton touché', [m.suivi.statut, S2.notes], ['resolu', ['repeint:resolu:Léa "<b>":resolu']]);
+  rendre(); await attente();
+  v('…puis la réponse du serveur fait foi (personne et dernier geste compris)', m.suivi, { statut: 'resolu', assigne: 'Zoé', par: 'Agent' });
+  const S3 = bacS(true, { suivi: async () => { throw new Error('serveur en panne'); } }); const m3 = base(); S3.cs(m3, { statut: 'enCours' }); await attente();
+  v('⛔ un refus DÉFAIT le geste et le dit (l\'écran ne ment pas sur ce que le serveur a retenu)', [m3.suivi.statut, S3.notes.filter(n => /^toast/.test(n))], ['aTraiter', ['toast:Suivi non enregistré : serveur en panne']]);
+  let appels = 0; const S4 = bacS(true, { suivi: async () => { appels++; return {}; } }); const m4 = base();
+  S4.cs(m4, { statut: 'aTraiter' }); S4.cs(m4, { assigne: 'Léa "<b>"' }); S4.cs(Object.assign(base(), { src: false }), { statut: 'resolu' }); S4.cs(Object.assign(base(), { suivi: null }), { statut: 'resolu' }); bacS(false, { suivi: async () => { appels++; return {}; } }).cs(base(), { statut: 'resolu' }); await attente();
+  v('⛔ rien ne part si rien ne change, ni sur un message écrit ici, ni sans suivi connu, ni sans CAP.suivi', appels, 0);
+  const S5 = bacS(true, { suivi: async (id, p) => { S5.recu = [id, p]; return { statut: 'aTraiter', assigne: 'Max', par: 'P' }; } }); const m5 = base(); S5.cs(m5, { assigne: 'Max' }); await attente();
+  v('…la personne seule part SANS statut (le serveur ne touche pas à ce qu\'on ne lui dit pas)', S5.recu, ['b|1|INBOX', { assigne: 'Max' }]);
+  const RD = fonction(MOD, 'renderReading');
+  vrai('⛔ la ligne de suivi est posée dans la lecture d\'un message reçu (catLine += suiviHtml(m))', /catLine\+=suiviHtml\(m\);/.test(RD));
+}
+{ /* répondre dans le fil */
+  const RM = fonction(MOD, 'replyModel'), CD = fonction(MOD, 'courrierDe');
+  vrai('(tranche trouvée) replyModel et courrierDe', RM.length > 300 && CD.length > 100);
+  const sb = { acctOf: () => ({ email: 'moi@x.fr', sid: 'b1', name: 'Moi' }), quoteOf: () => '> citation', emailOf: (m) => m.from.email, bodyText: () => 'texte', Array, String };
+  vm.createContext(sb); vm.runInContext(RM + '\n' + CD + '\n;this.rm=replyModel; this.cd=courrierDe;', sb);
+  const recu = { src: true, sid: 's7', acct: 'b1', from: { name: 'C', email: 'c@x.fr' }, subject: 'Question', folder: 'inbox', rcpt: [] };
+  v('⛔ replyModel : répondre à un message de la source garde SON identifiant (enReponseA) — Répondre comme Répondre à tous', [sb.rm(recu, false).enReponseA, sb.rm(recu, true).enReponseA], ['s7', 's7']);
+  v('…répondre à un message écrit ici (envoyé, brouillon) ne référence rien', sb.rm({ src: false, acct: 'b1', from: null, to: 'a@x.fr', subject: 'S', folder: 'sent' }, false).enReponseA, null);
+  v('courrierDe : la marque du brouillon (repA) devient enReponseA ; sans marque, la clé est absente de ce que la source reçoit', [sb.cd({ acct: 'b1', to: 'a@x.fr', subject: 'S', repA: 's7' }).enReponseA, 'enReponseA' in JSON.parse(JSON.stringify(sb.cd({ acct: 'b1', to: 'a@x.fr', subject: 'S' })))], ['s7', false]);
+  const OC = fonction(MOD, 'openCompose'), FM = fonction(MOD, 'fillMsg'), DA = fonction(MOD, 'doAct');
+  vrai('⛔ le composeur retient enReponseA, le rend avec les champs, le brouillon (fillMsg) le garde (repA) et le rouvre', /state\.compose=\{[^}]*enReponseA:model\.enReponseA\|\|null/.test(OC) && /enReponseA:state\.compose\.enReponseA\}; \}/.test(OC) && /if\(d\.enReponseA\) m\.repA=String\(d\.enReponseA\); else delete m\.repA;/.test(FM) && /enReponseA:m\.repA\|\|null\}\);/.test(DA));
+  vrai('…la réponse rapide aussi répond dans le fil', /enReponseA:rm\?rm\.enReponseA:null\}\); \}/.test(CODE));
+}
 
 /* ═════════════════════════════ 7. LE SITE ET LES SONDES ═════════════════════════════ */
 console.log('\n7. Dans le site assemblé, et gardé');

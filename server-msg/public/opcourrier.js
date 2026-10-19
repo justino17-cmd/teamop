@@ -27,14 +27,21 @@
    Toutes les méthodes sont asynchrones (elles rendent une promesse). Un échec = un rejet avec un Error dont le message est lisible : le module le DIT à l'écran.
    « Liste vide » et « on n'a pas pu savoir » ne se confondent jamais : un rejet n'est PAS un tableau vide.
      capacites()                 → { oauth, programmeServeur, signature, marquage, deplacement, reglagesServeur, simulation : booléens (faux par défaut),
+                                     journalEnvois (le dossier « Envois TeamOP », lu par envois()), telechargerPiece (le bouton sur chaque pièce reçue, via piece()),
+                                     suivi (le suivi d'une demande, via suivi()) : booléens, faux par défaut — le module ne promet RIEN qu'une source ne déclare pas,
                                      dossiers : ['inbox', …] les dossiers que la source remplit (les autres restent sur l'appareil),
                                      destinataires : nombre maximal par message, pj : { nombre, octets } }
      boites()                    → [ { id, email, nom, cote?:'pro'|'perso', fournisseur? } ]
      messages({boite, dossier})  → [ { id, dossier?, de:{nom,email}, a, objet, apercu?, corps:string|[paragraphes] (absent : lire(id) à l'ouverture),
                                        date:ms, lu, drapeau, pj:[{nom,taille,type}], desinscription?, vip?, destinataires?:[email] } ]
-     lire(id)                    → { corps, pj? }                                  (facultatif)
+     lire(id)                    → { corps, pj?:[{nom,taille,type,id?}], suivi? }  (facultatif ; pj[].id = l'identifiant de la pièce pour piece() ; suivi = { statut, assigne, par? })
      marquer(id,{lu,drapeau})    et   deplacer(id,dossier)                         (appelés seulement si capacites().marquage / .deplacement ; sinon l'état reste sur l'appareil)
-     envoyer(mail)               → rien ; mail = { boite, de, nom, a, objet, texte, pieces:[File] }
+     envoyer(mail)               → rien ; mail = { boite, de, nom, a, objet, texte, pieces:[File], enReponseA? }
+                                     enReponseA = l'identifiant (celui de messages()) du message auquel on répond (Répondre, Répondre à tous, réponse rapide) : la source en fait les en-têtes
+                                     In-Reply-To / References pour que le fil se reforme chez le destinataire. Absent pour un nouveau message ou un transfert.
+     envois()                    → [ { id, a, objet, corps, date:ms, etat?:'echec'|'retard' } ]   (seulement avec capacites().journalEnvois : le journal des e-mails que le SERVEUR envoie, lecture seule)
+     piece(idMessage, idPiece)   → Blob                                            (seulement avec capacites().telechargerPiece ; le nom est assaini ici, rien n'est ouvert ni exécuté)
+     suivi(id,{statut?,assigne?})→ { statut:'aTraiter'|'enCours'|'resolu', assigne, par? }  (seulement avec capacites().suivi)
      ajouterBoite(params)        → { id, email, … } ; params = { email, nom, mdp, fournisseur, cote, serveurs }
      retirerBoite(id)
      lireMX(domaine)             → [serveurs]                                      (facultatif : sans lui, jamais d'appel réseau pour reconnaître un domaine d'entreprise)
@@ -392,7 +399,7 @@ var CSS = `
   .opc .sic.tile{width:24px;height:24px;border-radius:7px;color:#fff;background:var(--tc,#8e8e93);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08),0 1px 1.5px rgba(0,0,0,.12)}
   .opc .sic.tile svg{width:15px;height:15px;stroke-width:2.1}
   .opc .f-inbox{--tc:linear-gradient(180deg,#3d6bd6,#2a4a9c)} .opc .f-flagged{--tc:linear-gradient(180deg,#ffb340,#ff9500)} .opc .f-drafts{--tc:linear-gradient(180deg,#a1a1a6,#7c7c82)}
-  .opc .f-scheduled{--tc:linear-gradient(180deg,#7a78e8,#5856d6)} .opc .f-sign{--tc:linear-gradient(180deg,#2f9a55,#17602a)} .opc .f-sent{--tc:linear-gradient(180deg,#4fc3d9,#1e9bb5)} .opc .f-archive{--tc:linear-gradient(180deg,#b8996f,#957852)}
+  .opc .f-scheduled{--tc:linear-gradient(180deg,#7a78e8,#5856d6)} .opc .f-sign{--tc:linear-gradient(180deg,#2f9a55,#17602a)} .opc .f-sent{--tc:linear-gradient(180deg,#4fc3d9,#1e9bb5)} .opc .f-envois{--tc:linear-gradient(180deg,#8e8e93,#636366)} .opc .f-archive{--tc:linear-gradient(180deg,#b8996f,#957852)}
   .opc .f-junk{--tc:linear-gradient(180deg,#ff6a5f,#e8362b)} .opc .f-trash{--tc:linear-gradient(180deg,#7d7d83,#58585e)}
   .opc .ptile{flex:none;width:18px;height:18px;border-radius:5px;display:grid;place-items:center;color:#fff;font-size:10.5px;font-weight:800;line-height:1;background:var(--tint)}
   .opc .ptile svg{width:12px;height:12px}
@@ -553,6 +560,12 @@ var CSS = `
   .opc .att .ic svg{width:18px;height:18px}
   .opc .att .fn{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .opc .att .fs{font-size:11px;color:var(--label-2)}
+  .opc .att .att-dl{flex:none;width:30px;height:30px;margin:-4px -6px -4px 0;border:0;border-radius:50%;background:none;color:var(--tint);display:grid;place-items:center;cursor:pointer}
+  .opc .att .att-dl svg{width:17px;height:17px}
+  .opc .att .att-dl:hover{background:var(--fill)}
+  .opc .att .att-dl:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
+  .opc .att .att-dl[aria-busy="true"]{opacity:.45;pointer-events:none}
+  @media (pointer:coarse){ .opc .att .att-dl{width:44px;height:44px;margin:-9px -11px -9px 0} }
   .opc .rquick{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:30px}
   .opc .rq-lbl{display:none}
   .opc .rquick button{font-size:13px;font-weight:500;color:var(--tint);background:var(--tint-soft);padding:6px 13px;border-radius:999px;transition:background-color .12s}
@@ -839,6 +852,17 @@ var CSS = `
   .opc .rcat{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:14px 0 0 52px}
   .opc .cat-chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px 0 6px;border-radius:6px;background:var(--fill-2);font-size:12px;font-weight:600;color:var(--label);white-space:nowrap}
   .opc .cat-chip svg{width:14px;height:14px;color:var(--cat-c)}
+  /* Le suivi d'une demande : un groupe de trois états et le nom de qui s'en charge — sur la même rangée que la catégorie (mêmes réglages de mise en page) */
+  .opc .rsuivi{align-items:center}
+  .opc .rs-l{font-size:12px;font-weight:600;color:var(--label-2)}
+  .opc .rs-seg{display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:var(--fill-2)}
+  .opc .rs-b{min-height:26px;padding:0 10px;border:0;border-radius:7px;background:none;color:var(--label);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+  .opc .rs-b[aria-pressed="true"]{background:var(--tint);color:var(--on-tint);font-weight:600}
+  .opc .rs-b:focus-visible,.opc .rs-a input:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
+  .opc .rs-a{display:inline-flex;align-items:center;gap:6px}
+  .opc .rs-a input{width:140px;min-height:26px;padding:0 8px;border:0;border-radius:7px;background:var(--fill-2);color:var(--label);font:inherit;font-size:12px}
+  .opc .rs-par{font-size:11px;color:var(--label-2)}
+  @media (pointer:coarse){ .opc .rs-b{min-height:44px;padding:0 14px;font-size:14px} .opc .rs-a input{min-height:44px;font-size:16px;width:160px} }
   .opc .lnk{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--tint);border-radius:4px;white-space:nowrap}
   @media (hover:hover) { .opc .lnk:hover{text-decoration:underline;text-underline-offset:2px} }
   .opc .mv-short{display:none}
@@ -1514,6 +1538,7 @@ var MARKUP = `
     archive:S('<rect x="2.75" y="4" width="18.5" height="5" rx="1.25"/><path d="M4.5 9v9.25c0 .97.78 1.75 1.75 1.75h11.5c.97 0 1.75-.78 1.75-1.75V9"/><path d="M9.75 13h4.5"/>'),
     junk:S('<rect x="3" y="4.25" width="18" height="4.5" rx="1.25"/><path d="M4.5 8.75v9.5c0 .97.78 1.75 1.75 1.75h11.5c.97 0 1.75-.78 1.75-1.75v-9.5"/><path d="m10 11.75 4 4m0-4-4 4"/>'),
     trash:S('<path d="M3.75 6.5h16.5"/><path d="M9 6.5V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v1.5"/><path d="m5.75 6.5.95 12.4a1.75 1.75 0 0 0 1.75 1.6h7.1a1.75 1.75 0 0 0 1.75-1.6l.95-12.4"/><path d="M10 10.5v6M14 10.5v6"/>'),
+    down:S('<path d="M12 4v11"/><path d="m7.5 11 4.5 4.5 4.5-4.5"/><path d="M5 19.5h14"/>'),
     attach:S('<path d="m20.25 11.25-7.9 7.9a5 5 0 0 1-7.07-7.07l8.3-8.3a3.35 3.35 0 0 1 4.74 4.74l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.45-7.45"/>'),
     doc:S('<path d="M13.75 3H7a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7 21h10a2.25 2.25 0 0 0 2.25-2.25V8.5Z"/><path d="M13.75 3v5.5h5.5"/>'),
     img:S('<rect x="3" y="4.5" width="18" height="15" rx="2.25"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m21 16-5-5-8.5 8.5"/>'),
@@ -1583,6 +1608,7 @@ var MARKUP = `
     {id:"scheduled",name:"Programmés",       icon:"clock",   fav:true},
     {id:"sent",   name:"Envoyés",            icon:"sent",    fav:true},
     {id:"sign",   name:"Signatures",         icon:"sign",    fav:true, pro:true},
+    {id:"envois", name:"Envois TeamOP",      icon:"sent",    fav:true, journal:true},   // le journal des e-mails que le SERVEUR envoie : lecture seule, présent seulement si la source le déclare
     {id:"archive",name:"Archive",            icon:"archive"},
     {id:"junk",   name:"Indésirables",       icon:"junk"},
     {id:"trash",  name:"Corbeille",          icon:"trash"}
@@ -1603,13 +1629,18 @@ var MARKUP = `
 
   // ---------- Ce que la source sait faire (SRC.capacites()) ----------
   // Tout est FAUX tant que la source ne dit pas le contraire : ce qu'elle ne sait pas faire, l'interface le dit (« Bientôt : … ») au lieu de faire semblant.
-  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,
+  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,journalEnvois:false,telechargerPiece:false,suivi:false,
     dossiers:["inbox"],destinataires:50,pj:{nombre:99,octets:25*1024*1024}};
   function appliquerCapacites(c){
     c=c&&typeof c==="object"?c:{};
     ["oauth","programmeServeur","signature","marquage","deplacement","simulation","reglagesServeur"].forEach(function(k){ CAP[k]=c[k]===true; });
     CAP.mx=typeof SRC.lireMX==="function";
-    CAP.dossiers=Array.isArray(c.dossiers)&&c.dossiers.length?c.dossiers.filter(function(d){ return !!folderOfStrict(d); }):["inbox"];
+    // Trois gestes qui exigent une MÉTHODE de la source en plus de la déclaration : sans elle, le module ne promet rien.
+    CAP.journalEnvois=c.journalEnvois===true&&typeof SRC.envois==="function";
+    CAP.telechargerPiece=c.telechargerPiece===true&&typeof SRC.piece==="function";
+    CAP.suivi=c.suivi===true&&typeof SRC.suivi==="function";
+    if(!CAP.journalEnvois&&state.folder==="envois") state.folder="inbox";
+    CAP.dossiers=Array.isArray(c.dossiers)&&c.dossiers.length?c.dossiers.filter(function(d){ var f=folderOfStrict(d); return !!f&&!f.journal; }):["inbox"];
     if(!CAP.dossiers.length) CAP.dossiers=["inbox"];
     CAP.destinataires=c.destinataires>0?Math.floor(c.destinataires):50;
     CAP.pj={nombre:c.pj&&c.pj.nombre>0?c.pj.nombre:99,octets:c.pj&&c.pj.octets>0?c.pj.octets:25*1024*1024};
@@ -1619,7 +1650,7 @@ var MARKUP = `
   // ---------- Chargement : trois états, jamais deux ----------
   // LOAD.boites : "wait" (on ne sait pas encore) | "ok" (la liste est LUE — éventuellement vide) | "ko" (on n'a PAS pu savoir).
   // Une liste vide et une liste illisible ne se confondent pas : on ne propose de connecter une boîte que quand on SAIT qu'il n'y en a aucune.
-  var LOAD={boites:"wait",err:"",msgs:{},msgErr:{},vu:{},t:0,essai:0};
+  var LOAD={boites:"wait",err:"",msgs:{},msgErr:{},vu:{},t:0,essai:0,envois:"",envErr:""};
   var GONE=[];          // identifiants de messages reçus supprimés pour de bon (le serveur les rendra encore)
   var OVER={};          // état gardé SUR L'APPAREIL des messages reçus : {id:{a:compte,read,flagged,folder,co,uj,aj}}
   var SAVED={kinds:{},names:{},sigs:{}};   // choix de la personne sur ses boîtes (côté, nom affiché, signature)
@@ -1631,12 +1662,24 @@ var MARKUP = `
     if(Array.isArray(c)) return c.map(function(p){ return Array.isArray(p)?p:String(p); });
     var t=String(c==null?"":c).replace(/\r\n?/g,"\n").trim(); return t?t.split(/\n{2,}/):[]; }
   function texteDe(body){ return (body||[]).map(function(p){ return Array.isArray(p)?p[1]:p; }).join(" "); }
+  // Une pièce de la source -> la forme interne ; `id` (facultatif) est ce que piece() attend pour la télécharger.
+  function attDe(p){ return {name:String(p.nom||"pièce jointe"),size:String(p.taille||""),kind:p.type==="img"?"img":"doc",id:p.id!=null?String(p.id):null}; }
+  // Le suivi d'une demande tel que la source le dit ; autre chose qu'un des trois états = pas de suivi.
+  var SUIVI_ETATS=[["aTraiter","À traiter"],["enCours","En cours"],["resolu","Résolu"]];
+  function suiviDe(x){ if(!x||typeof x!=="object") return null;
+    for(var i=0;i<SUIVI_ETATS.length;i++) if(SUIVI_ETATS[i][0]===x.statut) return {statut:x.statut,assigne:String(x.assigne||""),par:String(x.par||"")};
+    return null; }
+  // Une ligne du journal des envois du serveur -> un « message » en lecture seule (jr), rangé dans le dossier « envois », sans boîte ni expéditeur.
+  function depuisJournal(r){
+    var corps=r.corps==null?"":r.corps, body=paragraphes(corps);
+    return {id:"j:"+r.id,jr:true,folder:"envois",acct:"",from:null,to:String(r.a||""),subject:String(r.objet||""),body:body,preview:firstLine(texteDe(body)),
+      read:true,flagged:false,vip:false,att:[],at:+r.date||0,etat:r.etat==="echec"||r.etat==="retard"?r.etat:""}; }
   // Un message de la source -> la forme interne de l'interface
   function depuisSource(r,acct,dossier){
     var de=r.de||null, m={id:"s:"+acct+":"+r.id,sid:String(r.id),src:true,acct:acct,folder:folderOfStrict(r.dossier)?r.dossier:(dossier||"inbox"),
       from:de?{name:String(de.nom||de.email||""),email:String(de.email||"")}:null,to:String(r.a||""),subject:String(r.objet||""),
       read:!!r.lu,flagged:!!r.drapeau,vip:!!r.vip,unsub:!!r.desinscription,ancien:!!r.ancien,at:+r.date||0,rcpt:Array.isArray(r.destinataires)?r.destinataires.map(String):undefined,
-      att:(r.pj||[]).map(function(p){ return {name:String(p.nom||"pièce jointe"),size:String(p.taille||""),kind:p.type==="img"?"img":"doc"}; })};
+      att:(r.pj||[]).map(attDe),suivi:suiviDe(r.suivi)};
     if(r.corps!=null){ m.body=paragraphes(r.corps); m.preview=firstLine(r.apercu||texteDe(m.body)); }
     else { m.body=null; m.preview=firstLine(r.apercu||""); }   // corps pas encore lu : SRC.lire(id) à l'ouverture
     m._srv={lu:m.read,dr:m.flagged,dos:m.folder};
@@ -1690,7 +1733,19 @@ var MARKUP = `
       LOAD.msgs[a.id]="ok"; delete LOAD.msgErr[a.id];
     },function(e){ LOAD.msgs[a.id]="ko"; LOAD.msgErr[a.id]=msgErr(e,"réception indisponible"); });
   }
-  function empreinte(){ return ACCOUNTS.map(function(a){ return a.id+(LOAD.msgs[a.id]||""); }).join(",")+"|"+MESSAGES.map(function(m){ return m.src?m.id+(m.read?1:0)+m.folder:""; }).join("")+"|"+LOAD.boites; }
+  // Le journal des envois du SERVEUR (seulement si la source le déclare) : indépendant des boîtes, il se lit même quand aucune n'est connectée.
+  // Un échec se DIT (LOAD.envois "ko") et ne vide pas ce qu'on avait lu ; jamais « aucun envoi » à la place de « on n'a pas pu savoir ».
+  function chargerJournal(){
+    if(!CAP.journalEnvois){ LOAD.envois=""; for(var i=MESSAGES.length-1;i>=0;i--) if(MESSAGES[i].jr) MESSAGES.splice(i,1); return null; }
+    return Promise.resolve().then(function(){ return SRC.envois(); }).then(function(l){
+      if(!Array.isArray(l)) throw new Error("réponse illisible");
+      var vus={}, neufs=[];
+      l.forEach(function(r){ if(!r||r.id==null||vus[r.id]) return; vus[r.id]=1; neufs.push(depuisJournal(r)); });
+      for(var i=MESSAGES.length-1;i>=0;i--) if(MESSAGES[i].jr) MESSAGES.splice(i,1);
+      neufs.forEach(function(m){ MESSAGES.push(m); });
+      LOAD.envois="ok"; LOAD.envErr="";
+    }).catch(function(e){ LOAD.envois="ko"; LOAD.envErr=msgErr(e,"journal indisponible"); }); }   // .catch et non le 2e argument de then : une réponse illisible, jetée plus haut, est aussi une panne
+  function empreinte(){ return ACCOUNTS.map(function(a){ return a.id+(LOAD.msgs[a.id]||""); }).join(",")+"|"+MESSAGES.map(function(m){ return m.src?m.id+(m.read?1:0)+m.folder:m.jr?m.id+m.etat:""; }).join("")+"|"+LOAD.boites+LOAD.envois; }
   // Lire la source : capacités, boîtes, puis les messages de chaque boîte. Un échec se DIT (LOAD) ; il n'efface jamais ce qu'on avait déjà lu.
   function charger(silencieux){
     if(chargement) return chargement;
@@ -1704,6 +1759,7 @@ var MARKUP = `
         LOAD.boites="ok"; LOAD.err=""; majBoites(liste);
         return Promise.all(ACCOUNTS.map(chargerBoite)); },
         function(e){ LOAD.boites="ko"; LOAD.err=msgErr(e,"Impossible de lire vos boîtes mail."); return null; })
+      .then(chargerJournal)
       .then(function(){ chargement=null; LOAD.t=Date.now(); finCharge(avant,silencieux); },
             function(){ chargement=null; finCharge(avant,silencieux); });
     return chargement; }
@@ -1878,7 +1934,7 @@ var MARKUP = `
   function senderName(m){ return m.from? m.from.name : acctOf(m.acct).name; }
   function senderEmail(m){ return m.from? m.from.email : acctOf(m.acct).email; }
   // Vue : toutes les boîtes, tout l'univers pro, tout l'univers perso, ou un seul compte.
-  function inScopeOf(m,sc){ if(sc==="all") return true; if(sc==="pro"||sc==="perso") return kindOf(acctOf(m.acct))===sc; return m.acct===sc; }
+  function inScopeOf(m,sc){ if(sc==="all"||m.jr) return true; if(sc==="pro"||sc==="perso") return kindOf(acctOf(m.acct))===sc; return m.acct===sc; }
   function inScope(m){ return inScopeOf(m,state.scope); }
   function inFolder(m,fid){ if(fid==="flagged") return m.flagged&&m.folder!=="trash"&&m.folder!=="outbox"; return m.folder===fid; }
   // Brouillon ou message programmé encore modifiable (pas déjà parti entre-temps)
@@ -1980,7 +2036,7 @@ var MARKUP = `
           '<span class="sic tile f-'+f.id+'" aria-hidden="true">'+I[f.icon]+'</span><span class="sl"><span class="sn">'+H(f.name)+'</span></span>'+badge+
           '<span class="chev" aria-hidden="true">'+I.chevR+'</span></button>';
       }); return s+'</div></section>'; }
-    h+=sect("hFav","Favoris",FOLDERS.filter(function(f){return f.fav&&(!f.pro||cote==="pro");}));
+    h+=sect("hFav","Favoris",FOLDERS.filter(function(f){return f.fav&&(!f.pro||cote==="pro")&&(!f.journal||CAP.journalEnvois);}));
     h+=sect("hOther","Autres dossiers",FOLDERS.filter(function(f){return !f.fav;}));
     h+='<div class="side-foot"><div class="glist"><button type="button" class="srow add" data-addaccount="1"><span class="sic" aria-hidden="true">'+I.plusCircle+'</span><span class="sl"><span class="sn">Ajouter un compte</span></span></button>'+
       '<button type="button" class="srow add" data-settings="1"><span class="sic" aria-hidden="true">'+I.gear+'</span><span class="sl"><span class="sn">Réglages</span></span></button></div></div>';
@@ -2001,6 +2057,10 @@ var MARKUP = `
   // Ce qu'on dit quand la liste est vide : jamais « Aucun message » quand la vérité est « on n'a pas pu savoir ».
   function etatVide(f,cl,ko){
     var pied=function(btn){ return btn?'<button type="button" class="btn'+btn[0]+'" '+btn[1]+' style="margin-top:12px">'+btn[2]+'</button>':''; };
+    if(f.journal){
+      if(LOAD.envois==="ko") return '<div class="empty" role="alert">'+I.warn+'<b>Envois illisibles</b><span>'+H(LOAD.envErr||"On n’a pas pu lire le journal des envois.")+'</span>'+pied([""," data-retry=\"1\"","Réessayer"])+'</div>';
+      if(LOAD.envois!=="ok") return '<div class="empty" role="status">'+I.sent+'<b>Chargement des envois…</b></div>';
+      return '<div class="empty">'+I.sent+'<b>Aucun e-mail envoyé par TeamOP</b><span>Le journal se remplit à chaque envoi du serveur (codes, invitations, avis).</span></div>'; }
     if(!ACCOUNTS.length){
       if(LOAD.boites==="wait") return '<div class="empty" role="status">'+I.mail+'<b>Chargement de vos boîtes…</b></div>';
       if(LOAD.boites==="ko") return '<div class="empty" role="alert">'+I.warn+'<b>Boîtes mail illisibles</b><span>'+H(LOAD.err||"On n’a pas pu savoir si une boîte est connectée.")+'</span>'+pied([""," data-retry=\"1\"","Réessayer"])+'</div>';
@@ -2063,7 +2123,7 @@ var MARKUP = `
     fb.setAttribute("aria-label",state.filter==="all"?"Filtrer les messages":"Filtrer les messages (actif : "+FILTER_NAMES[state.filter]+")");
     renderCats();
     paintStatus();
-    var ko=boitesEnEchec(), banniere=ko.length&&msgs.length?'<div class="loaderr" role="alert"><span>Réception indisponible pour '+H(ko.map(function(a){ return a.email; }).join(", "))+'.</span><button type="button" class="lnk" data-retry="1">Réessayer</button></div>':'';
+    var ko=f.journal?[]:boitesEnEchec(), banniere=ko.length&&msgs.length?'<div class="loaderr" role="alert"><span>Réception indisponible pour '+H(ko.map(function(a){ return a.email; }).join(", "))+'.</span><button type="button" class="lnk" data-retry="1">Réessayer</button></div>':'';
     if(!msgs.length){
       $("#rows").innerHTML=etatVide(f,cl,ko);
       if(state.multi) state.multi=[]; renderSelBar();
@@ -2073,11 +2133,11 @@ var MARKUP = `
     // Liste à sélection (listbox) : un seul arrêt de tabulation (la ligne sélectionnée, sinon la première), flèches / Origine / Fin pour naviguer.
     var stop=msgs.some(function(m){ return m.id===state.selected; })?state.selected:msgs[0].id, multi=viewAccounts()>1, TC=threadCounts();
     $("#rows").innerHTML=banniere+msgs.map(function(m){
-      var own=(m.folder==="sent"||m.folder==="drafts"||m.folder==="scheduled"||!!m.sign);
+      var own=(m.folder==="sent"||m.folder==="drafts"||m.folder==="scheduled"||!!m.sign||!!m.jr);
       var who=own?("À : "+(m.sign?m.sign.signers.map(function(x){return x.name||x.email;}).join(", "):(m.to||""))):senderName(m);
       var date=m.folder==="drafts"?"Brouillon":m.folder==="scheduled"?fmtSchedShort(m.sendAt):fmtDate(tsOf(m));
       // Vues Toutes / Pro / Perso : compte nommé pour les lecteurs d'écran ; point de couleur seulement si la vue réunit plusieurs comptes
-      var a=acctOf(m.acct), sel=state.selected===m.id, all=state.scope==="all"||state.scope==="pro"||state.scope==="perso";
+      var a=acctOf(m.acct), sel=state.selected===m.id, all=!m.jr&&(state.scope==="all"||state.scope==="pro"||state.scope==="perso");
       var pk=!!state.multi&&state.multi.indexOf(m.id)>=0;
       return '<div class="msg'+(m.read?"":" unread")+(m.flagged?" flagged":"")+(sel&&!state.multi?" sel":"")+(pk?" picked":"")+'" data-id="'+m.id+'" tabindex="'+(m.id===stop?0:-1)+'" role="option" aria-selected="'+(state.multi?pk:sel)+'">'+
         (state.multi?'<span class="selbox" aria-hidden="true">'+I.check+'</span>':'')+
@@ -2092,11 +2152,11 @@ var MARKUP = `
         '<span class="m-prev">'+H(m.preview)+'</span>'+
         (all?'<span class="sr">, compte '+H(a.email)+'</span>':'')+
         // Raccourcis de survol (souris) : hors de l'arbre d'accessibilité et du Tab — au clavier, f / e / Suppr et la barre d'outils font la même chose.
-        '<span class="quick" aria-hidden="true">'+
+        (m.jr?'':'<span class="quick" aria-hidden="true">'+
           '<button type="button" tabindex="-1" data-q="flag" data-id="'+m.id+'" title="'+(m.flagged?"Retirer le drapeau":"Marquer")+'" aria-label="'+(m.flagged?"Retirer le drapeau":"Marquer")+'">'+I.flag+'</button>'+
           '<button type="button" tabindex="-1" data-q="archive" data-id="'+m.id+'" title="Archiver (E)" aria-label="Archiver">'+I.archive+'</button>'+
           '<button type="button" tabindex="-1" class="dng" data-q="trash" data-id="'+m.id+'" title="Supprimer (Suppr)" aria-label="Supprimer">'+I.trash+'</button>'+
-        '</span></div>';
+        '</span>')+'</div>';
     }).join("");
     renderSelBar();
   }
@@ -2115,7 +2175,8 @@ var MARKUP = `
       b("trash",I.trash,inTrash?"Supprimer définitivement":"Supprimer","dng");
   }
   function pickedMsgs(){ return (state.multi||[]).map(msgById).filter(Boolean); }
-  function setMulti(on,firstId){ state.multi=on?(firstId?[firstId]:[]):null; if(on){ state.selected=null; } renderList(); renderReading(); }
+  function setMulti(on,firstId){ if(on&&folderOf(state.folder).journal){ toast("Le journal des envois est en lecture seule"); return; }
+    state.multi=on?(firstId?[firstId]:[]):null; if(on){ state.selected=null; } renderList(); renderReading(); }
   function togglePick(id){ var i=state.multi.indexOf(id); if(i>=0) state.multi.splice(i,1); else state.multi.push(id); renderList();
     var r=$('.msg[data-id="'+id+'"]'); if(r) r.focus({preventScroll:true}); }
   function multiAct(act){
@@ -2150,6 +2211,7 @@ var MARKUP = `
     var msgs=listMessages(), idx=-1; if(m) for(var i=0;i<msgs.length;i++) if(msgs[i].id===m.id){idx=i;break;}
     var nav='<div class="acts-nav"><button type="button" class="tb" data-nav="-1" aria-label="Message précédent" title="Message précédent"'+(idx>0?'':' disabled')+'>'+I.chevU+'</button>'+
       '<button type="button" class="tb" data-nav="1" aria-label="Message suivant" title="Message suivant"'+(idx>=0&&idx<msgs.length-1?'':' disabled')+'>'+I.chevD+'</button></div>';
+    if(m&&m.jr) return nav;
     var dis=m?"":" disabled";
     var isSched=!!m&&m.folder==="scheduled", isDraft=!!m&&(m.folder==="drafts"||isSched), fl=!!m&&m.flagged;
     var flagLbl=fl?"Retirer le drapeau":"Marquer d’un drapeau";
@@ -2173,7 +2235,7 @@ var MARKUP = `
     return nav+mac+touch;
   }
   function readToolsHtml(m){
-    if(!m) return '';
+    if(!m||m.jr) return '';
     var isDraft=m.folder==="drafts"||m.folder==="scheduled";
     return '<button type="button" class="tbtn'+(m.flagged?" on-flag":"")+'" data-act="flag" aria-pressed="'+m.flagged+'" aria-label="Drapeau">'+(m.flagged?I.flagFill:I.flag)+'</button>'+
       tbtn("archive",I.archive,"Archiver")+tbtn("trash",I.trash,"Supprimer")+
@@ -2188,10 +2250,23 @@ var MARKUP = `
     Promise.resolve().then(function(){ return SRC.lire(m.sid); }).then(function(r){
       m.lisant=false; if(!r||r.corps==null) throw new Error("message vide");
       m.body=paragraphes(r.corps); if(!m.preview) m.preview=firstLine(texteDe(m.body));
-      if(Array.isArray(r.pj)) m.att=r.pj.map(function(p){ return {name:String(p.nom||"pièce jointe"),size:String(p.taille||""),kind:p.type==="img"?"img":"doc"}; });
+      if(Array.isArray(r.pj)) m.att=r.pj.map(attDe);
+      if(r.suivi!==undefined){ var sv=suiviDe(r.suivi); if(sv) m.suivi=sv; }
       if(state.selected===m.id) renderReading();
     },function(e){ m.lisant=false; m.body=["Le contenu de ce message n’a pas pu être lu ("+msgErr(e,"échec")+")."]; if(state.selected===m.id) renderReading(); });
   }
+  // Une ligne du journal des envois du serveur : lue, jamais exécutée (texte seul, échappé), sans geste de rangement ni de réponse.
+  function journalHtml(m){
+    var etat=m.etat, titre=etat==="echec"?"Non parti":etat==="retard"?"Pas encore parti":"Envoyé par TeamOP";
+    var corps=(m.body||[]).map(function(p){ return "<p>"+H(Array.isArray(p)?p[1]:p).replace(/\n/g,"<br>")+"</p>"; }).join("")||'<p class="lecture">(aperçu non conservé pour ce message)</p>';
+    return '<article class="rpad">'+
+      '<h1 class="rsubj" tabindex="-1">'+H(m.subject||"(Sans objet)")+'</h1>'+
+      '<div class="sched-banner'+(etat?" junk":"")+'" role="note"><span class="ic" aria-hidden="true">'+(etat?I.warn:I.sent)+'</span>'+
+        '<div class="tx"><b>'+titre+'</b><span>Journal des e-mails que le serveur TeamOP envoie lui-même — lecture seule.</span></div></div>'+
+      '<div class="rhead"><span class="ravatar" aria-hidden="true">'+H(initials(m.to))+'</span>'+
+        '<div class="rident"><div class="rline"><span class="rname">'+H(m.to||"—")+'</span><span class="rdate"><span class="d-long">'+H(fmtFull(tsOf(m)))+'</span><span class="d-short">'+H(fmtDate(tsOf(m)))+'</span></span></div>'+
+          '<div class="rmeta">Destinataire</div></div></div>'+
+      '<div class="rsep"></div><div class="rbody">'+corps+'</div></article>'; }
   function renderReading(){
     var r=$("#readScroll");
     syncCat();
@@ -2206,13 +2281,15 @@ var MARKUP = `
     }
     $("#readActs").innerHTML=readActsHtml(m);
     $("#readTools").innerHTML=readToolsHtml(m);
+    if(m.jr){ r.innerHTML=journalHtml(m); r.scrollTop=0; return; }
     var isSched=m.folder==="scheduled";
     var isDraft=m.folder==="drafts"||isSched;
     var who=senderName(m), acc=acctOf(m.acct), k0=kindOf(acc);
     if(m.src&&m.body===null) lireCorps(m);
     var bodyHtml=m.body===null?'<p class="lecture">Chargement du message…</p>':(m.body||[]).map(function(p){ if(Array.isArray(p)&&p[0]==="quote") return '<div class="quote">'+H(p[1]).replace(/\n/g,"<br>")+'</div>'; return "<p>"+H(p).replace(/\n/g,"<br>")+"</p>"; }).join("");
     var canSign=!m.sign&&k0==="pro"&&m.att.some(function(a){ return a.kind!=="img"; })&&m.folder!=="junk"&&m.folder!=="trash";
-    var att=m.att.length?'<div class="attbar">'+m.att.map(function(a){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span></div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn" data-act="signFrom">'+I.sign+'<span>Faire signer</span></button>':'')+'</div>':'';
+    var dlOk=!!m.src&&CAP.telechargerPiece&&typeof SRC.piece==="function";
+    var att=m.att.length?'<div class="attbar">'+m.att.map(function(a,i){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(dlOk&&a.id!=null?'<button type="button" class="att-dl" data-dl="'+i+'" aria-label="Télécharger '+H(a.name)+'" title="Télécharger">'+I.down+'</button>':'')+'</div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn" data-act="signFrom">'+I.sign+'<span>Faire signer</span></button>':'')+'</div>':'';
     var vip=m.vip?'<span class="vip" title="VIP">'+I.star+'<span class="sr">VIP</span></span>':'';
     // Pas de réponse rapide à un indésirable (on ne répond pas à une arnaque d'un clic),
     // ni à un envoi automatique (notification, reçu, voyage, publicité, adresse « no-reply »)
@@ -2236,6 +2313,7 @@ var MARKUP = `
         '<button type="button" class="lnk" data-act="moveCat" aria-haspopup="dialog" aria-label="Déplacer vers…">'+I.moveTo+'<span class="mv-long">Déplacer vers…</span><span class="mv-short">Déplacer…</span></button></div>'+
         '<div class="why" id="whyPanel"'+(open?'':' hidden')+'><p class="why-t">Rangé dans '+H(catName(cid))+' :</p><ul>'+whyOf(m).map(function(x){ return '<li>'+H(cap(x))+'</li>'; }).join("")+'</ul>'+
         '<p class="why-note">'+I.info+'<span>Tri fait sur cet appareil, d’après l’expéditeur et le contenu. Bientôt : vérification de l’authenticité des expéditeurs (SPF, DKIM, DMARC).</span></p></div>'; }
+    catLine+=suiviHtml(m);
     var k=kindOf(acc);
     // « via » seulement si le destinataire affiché n'est pas déjà l'adresse de la boîte (le badge Pro / Perso nomme la boîte)
     var rto='À : '+(m.sign?m.sign.signers.map(function(x){return x.email;}).join(", "):(m.to||acc.name))+(String(m.to||"").toLowerCase().indexOf(String(acc.email).toLowerCase())>=0?'':' · via '+acc.email);
@@ -2249,6 +2327,49 @@ var MARKUP = `
     r.scrollTop=0;
   }
 
+  // Le suivi d'une demande (À traiter / En cours / Résolu, et qui s'en charge) : seulement sur un message reçu dont la source dit le suivi, et si elle sait l'enregistrer.
+  function suiviHtml(m){
+    if(!CAP.suivi||typeof SRC.suivi!=="function"||!m.src||m.folder!=="inbox"||!m.suivi) return "";
+    var s=m.suivi;
+    return '<div class="rcat rsuivi" role="group" aria-label="Suivi de la demande"><span class="rs-l">Suivi</span>'+
+      '<span class="rs-seg">'+SUIVI_ETATS.map(function(e){ return '<button type="button" class="rs-b" data-suivi="'+e[0]+'" aria-pressed="'+(s.statut===e[0])+'">'+e[1]+'</button>'; }).join("")+'</span>'+
+      '<label class="rs-a"><span class="rs-l">Assigné à</span><input type="text" id="suiviAssigne" maxlength="60" autocomplete="off" placeholder="Personne" value="'+H(s.assigne)+'"></label>'+
+      (s.par?'<span class="rs-par">Dernier geste : '+H(s.par)+'</span>':'')+'</div>'; }
+  function repeindreSuivi(m,focus){
+    if(!m||state.selected!==m.id) return; var el=$("#readScroll .rsuivi"); if(!el) return;
+    el.outerHTML=suiviHtml(m).replace(/^\s+/,"");
+    if(focus){ var b=$('#readScroll .rsuivi [data-suivi="'+focus+'"]'); if(b) b.focus({preventScroll:true}); } }
+  function changerSuivi(m,patch){
+    if(!m||!m.src||!m.suivi||!CAP.suivi||typeof SRC.suivi!=="function") return;
+    var avant=m.suivi, neuf={statut:patch.statut||avant.statut,assigne:patch.assigne!==undefined?patch.assigne:avant.assigne,par:avant.par};
+    if(neuf.statut===avant.statut&&neuf.assigne===avant.assigne) return;
+    m.suivi=neuf; repeindreSuivi(m,patch.statut||"");   // l'état s'applique d'abord ; le serveur le confirme (ou le refuse, et l'état d'avant revient)
+    Promise.resolve().then(function(){ return SRC.suivi(m.sid,patch); }).then(function(r){
+      var sv=suiviDe(r); if(sv) m.suivi=sv; if(vivant) repeindreSuivi(m);
+    },function(e){ m.suivi=avant; if(vivant){ repeindreSuivi(m); toast("Suivi non enregistré : "+msgErr(e,"échec")); } }); }
+  // Le fichier d'une pièce reçue : son nom vient de l'expéditeur, donc d'un inconnu — il ne sort jamais du dossier de téléchargement, ne cache pas son extension
+  // derrière une inversion de sens d'écriture, ne porte aucun caractère de contrôle ni nom réservé de Windows, et reste d'une longueur raisonnable.
+  function nomFichierSur(nom){
+    var n=String(nom==null?"":nom).normalize("NFC")
+      .replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g,"")
+      .replace(/[\\\/:*?"<>|]+/g,"_").replace(/^[\s.]+|[\s.]+$/g,"");
+    if(/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i.test(n)) n="_"+n;
+    if(n.length>120){ var d=n.lastIndexOf("."), ext=d>0&&n.length-d<=12?n.slice(d):""; n=n.slice(0,120-ext.length)+ext; }
+    return n||"piece-jointe"; }
+  function telechargerPiece(m,i,btn){
+    var a=m&&m.att&&m.att[i];
+    if(!a||a.id==null||!m.src||!CAP.telechargerPiece||typeof SRC.piece!=="function"||a.dl) return;
+    a.dl=true; if(btn) btn.setAttribute("aria-busy","true");
+    var fin=function(){ a.dl=false; if(btn) btn.removeAttribute("aria-busy"); };
+    Promise.resolve().then(function(){ return SRC.piece(m.sid,a.id); }).then(function(b){
+      fin(); if(!vivant) return;
+      if(!b||typeof b.size!=="number"||typeof b.slice!=="function") throw new Error("pièce illisible");
+      // Le contenu n'est jamais ouvert ici : un Blob neutre (octet-stream) enregistré sous un nom assaini, sans aperçu ni lien externe.
+      var nom=nomFichierSur(a.name), url=URL.createObjectURL(new Blob([b],{type:"application/octet-stream"})), l=document.createElement("a");
+      l.href=url; l.download=nom; l.rel="noopener"; l.hidden=true; sr.appendChild(l); l.click(); sr.removeChild(l);
+      setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },30000);
+      toast("Pièce téléchargée : "+nom);
+    }).catch(function(e){ fin(); if(vivant) toast("Téléchargement impossible : "+msgErr(e,"échec")); }); }
   // Le tri est recalculé à chaque rendu complet : nouveaux messages, règles apprises et contacts (Envoyés) sont toujours à jour.
   function threadHtml(m){
     var t=threadOf(m); if(t.length<2) return "";
@@ -2334,7 +2455,7 @@ var MARKUP = `
   }
 
   function doAct(act,id){
-    var m=id?msgById(id):msgById(state.selected); if(!m) return;
+    var m=id?msgById(id):msgById(state.selected); if(!m||m.jr) return;   // le journal des envois se lit, il ne se range pas, ne se marque pas, ne reçoit pas de réponse
     if(act==="flag"){ m.flagged=!m.flagged; renderAll(); persist(); toast(m.flagged?"Message marqué":"Drapeau retiré"); }
     else if(act==="unread"){ m.read=false; state.selected=null; backToListMobile(); renderAll(); persist(); toast("Marqué comme non lu"); }
     else if(act==="archive") moveTo(m,"archive","Message archivé");
@@ -2345,7 +2466,7 @@ var MARKUP = `
     else if(act==="reply") openCompose(replyModel(m,false));
     else if(act==="replyAll") openCompose(replyModel(m,true));
     else if(act==="forward") openCompose(forwardModel(m));
-    else if(act==="editDraft") openCompose({to:m.to,subject:m.subject,body:bodyText(m),acct:m.acct,att:(m.att||[]).slice(),draftId:m.id,scheduled:m.folder==="scheduled",noTrust:m.noTrust||null});
+    else if(act==="editDraft") openCompose({to:m.to,subject:m.subject,body:bodyText(m),acct:m.acct,att:(m.att||[]).slice(),draftId:m.id,scheduled:m.folder==="scheduled",noTrust:m.noTrust||null,enReponseA:m.repA||null});
     else if(act==="sendNow"){ m.folder="outbox"; state.selected=null; backToListMobile(); renderAll(); commitOutbox(m,false); }
     else if(act==="unschedule"){ m.folder="drafts"; delete m.sendAt; m.at=Date.now(); m.user=true; state.selected=null; backToListMobile(); renderAll(); persist(); toast("Envoi annulé — le message est dans les brouillons"); }
     else if(act==="reschedule") openReschedule(m);
@@ -2361,7 +2482,8 @@ var MARKUP = `
       if(all) (m.rcpt||[]).forEach(function(a){ var l=a.toLowerCase(); if(l!==me&&low.indexOf(l)<0){ list.push(a); low.push(l); } });
       to=list.join(", "); }
     // Répondre à un message rangé dans Indésirables ne fait pas de son expéditeur un contact de confiance.
-    return {to:to,subject:subj,body:quoteOf(m),acct:m.acct,noTrust:m.from&&m.folder==="junk"?[emailOf(m)]:null}; }
+    // enReponseA : le message reçu auquel on répond (celui de la source) — la source en fait les en-têtes du fil ; un message écrit ici n'en a pas.
+    return {to:to,subject:subj,body:quoteOf(m),acct:m.acct,enReponseA:m.src?m.sid:null,noTrust:m.from&&m.folder==="junk"?[emailOf(m)]:null}; }
   function forwardModel(m){ var subj=/^(tr|fwd?)\s*:/i.test(m.subject)?m.subject:"Tr: "+m.subject; return {to:"",subject:subj,body:quoteOf(m),acct:m.acct,att:(m.att||[]).slice()}; }
 
   // ---------- Feuilles, menus : socle commun ----------
@@ -2789,10 +2911,10 @@ var MARKUP = `
       '<div class="sched-pop" id="cSchedWrap" role="region" aria-label="Programmer l’envoi" hidden>'+schedPanel("cSchedPanel")+'</div>'+
     '</div>';
     placeSheetChrome();
-    state.compose={draftId:model.draftId||null,scheduled:!!model.scheduled,noTrust:model.noTrust||null,att:(model.att||[]).slice()};
+    state.compose={draftId:model.draftId||null,scheduled:!!model.scheduled,noTrust:model.noTrust||null,enReponseA:model.enReponseA||null,att:(model.att||[]).slice()};
     var toEl=$("#cTo"); (model.to?$("#cBody"):toEl).focus();
     if(body0){ try{$("#cBody").setSelectionRange(0,0);}catch(e){} $("#cBody").scrollTop=0; }
-    function fields(){ return {acct:$("#cFrom").value,to:$("#cTo").value.trim(),subject:$("#cSub").value.trim()||"(Sans objet)",body:$("#cBody").value,att:state.compose.att.slice(),draftId:state.compose.draftId,noTrust:state.compose.noTrust}; }
+    function fields(){ return {acct:$("#cFrom").value,to:$("#cTo").value.trim(),subject:$("#cSub").value.trim()||"(Sans objet)",body:$("#cBody").value,att:state.compose.att.slice(),draftId:state.compose.draftId,noTrust:state.compose.noTrust,enReponseA:state.compose.enReponseA}; }
     function snap(){ return [$("#cFrom").value,$("#cTo").value,$("#cSub").value,$("#cBody").value,state.compose.att.map(function(a){return a.name;}).join("|")].join("\u0000"); }
     var initial=snap();
     function changed(){ return snap()!==initial; }
@@ -3027,7 +3149,8 @@ var MARKUP = `
   // Le message est écrit tout de suite dans une boîte d'envoi persistée (dossier interne « outbox », jamais affiché) :
   // ni un autre toast, ni un second envoi, ni un rechargement ou un onglet fermé pendant les 5 s ne peuvent le perdre.
   function fillMsg(m,d){ if(d.att) m.att=d.att.map(function(a){ return {name:a.name,size:a.size,kind:a.kind,bytes:a.bytes}; }); m.acct=d.acct; m.to=d.to; m.subject=d.subject; m.body=splitBody(d.body); m.preview=firstLine(d.body); m.read=true; m.user=true; m.at=Date.now();
-    if(d.noTrust&&d.noTrust.length) m.noTrust=d.noTrust.slice(); else delete m.noTrust; }
+    if(d.noTrust&&d.noTrust.length) m.noTrust=d.noTrust.slice(); else delete m.noTrust;
+    if(d.enReponseA) m.repA=String(d.enReponseA); else delete m.repA; }
   function sendWithUndo(d){
     var m=liveDraft(d.draftId), prev=m?{folder:m.folder,sendAt:m.sendAt}:null;
     if(!m){ m=mk({acct:d.acct,folder:"outbox",from:null}); MESSAGES.push(m); }
@@ -3046,13 +3169,15 @@ var MARKUP = `
   function commitOutbox(m,quiet){ if(!m||m.folder!=="outbox"||m.sending) return false;
     expedier(m,quiet,function(ok){ if(ok&&!quiet) notify("Message envoyé"); }); return true; }
   // Ce que la source reçoit à envoyer : la boîte, l'expéditeur, le destinataire, l'objet, le texte, les pièces (File)
-  function courrierDe(m){ var a=acctOf(m.acct); return {boite:a.sid,de:a.email,nom:a.name,a:m.to,objet:m.subject,texte:bodyText(m),pieces:(m._files||[]).slice()}; }
+  function courrierDe(m){ var a=acctOf(m.acct); return {boite:a.sid,de:a.email,nom:a.name,a:m.to,objet:m.subject,texte:bodyText(m),pieces:(m._files||[]).slice(),enReponseA:m.repA||undefined}; }
   // L'envoi se FAIT (ou échoue) chez la source : « Message envoyé » ne s'écrit qu'après sa réponse, un échec remet le message dans les brouillons et le dit.
   function expedier(m,quiet,fin){
     if(m.sending) return; m.sending=true;
     Promise.resolve().then(function(){ return SRC.envoyer(courrierDe(m)); }).then(function(){
+      var enfil=!!m.repA; delete m.repA;
       m.sending=false; m.folder="sent"; m.at=Date.now(); delete m.sendAt; m.user=true; delete m._files; learnContacts(m);
       if(!quiet) renderAll(); persist(); if(fin) fin(true);
+      if(enfil&&!quiet&&vivant) charger(true);   // répondre peut changer le suivi de la demande (la source le dit) : on relit sans bruit
     },function(e){
       m.sending=false; m.folder="drafts"; delete m.sendAt; m.at=Date.now(); m.user=true;
       if(vivant){ renderAll(); persist(); toast("Envoi impossible : "+msgErr(e,"échec")+" — le message est dans Brouillons"); } if(fin) fin(false); }); }
@@ -3519,15 +3644,19 @@ var MARKUP = `
     else if((e.key==="Enter"||e.key===" ")&&e.target.classList.contains("msg")){ e.preventDefault(); selectMessage(e.target.getAttribute("data-id"),true); }
   });
 
+  $("#reading").addEventListener("change",function(e){ if(e.target&&e.target.id==="suiviAssigne") changerSuivi(msgById(state.selected),{assigne:e.target.value.trim()}); });
+  $("#reading").addEventListener("keydown",function(e){ if(e.key==="Enter"&&e.target&&e.target.id==="suiviAssigne"){ e.preventDefault(); e.target.blur(); } });
   $("#reading").addEventListener("click",function(e){
     if(e.target.closest("#btnBack")){ state.selected=null; go("list"); renderReading(); return; }
     var wb=e.target.closest("#whyBtn"); if(wb){ var open=wb.getAttribute("aria-expanded")!=="true", sm=msgById(state.selected);
       wb.setAttribute("aria-expanded",String(open)); $("#whyPanel").hidden=!open; state.whyOpen=open&&sm?sm.id:null; return; }
     var n=e.target.closest("[data-nav]"); if(n){ moveSelection(+n.getAttribute("data-nav")); return; }
+    var dl=e.target.closest("[data-dl]"); if(dl){ telechargerPiece(msgById(state.selected),+dl.getAttribute("data-dl"),dl); return; }
+    var sv=e.target.closest("[data-suivi]"); if(sv){ changerSuivi(msgById(state.selected),{statut:sv.getAttribute("data-suivi")}); return; }
     if(e.target.closest("[data-signnew]")){ openSignRequest(); return; }
     var a=e.target.closest("[data-act]"); if(a){ var act=a.getAttribute("data-act"); if(act==="replyMenu") openReplyMenu(a); else doAct(act); return; }
     var op=e.target.closest("[data-open]"); if(op){ var x=msgById(op.getAttribute("data-open")); if(x){ state.folder=x.folder; renderAll(); selectMessage(x.id); } return; }
-    var qk=e.target.closest("[data-quick]"); if(qk){ var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",body:qk.getAttribute("data-quick"),acct:m?m.acct:null,noTrust:rm?rm.noTrust:null}); }
+    var qk=e.target.closest("[data-quick]"); if(qk){ var m=msgById(state.selected), rm=m?replyModel(m,false):null; openCompose({to:rm?rm.to:"",subject:rm?rm.subject:"",body:qk.getAttribute("data-quick"),acct:m?m.acct:null,noTrust:rm?rm.noTrust:null,enReponseA:rm?rm.enReponseA:null}); }
   });
 
   $("#btnCompose").onclick=function(){ if(state.folder==="sign") openSignRequest(); else openCompose(); };

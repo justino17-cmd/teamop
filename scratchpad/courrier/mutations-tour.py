@@ -29,7 +29,7 @@ M = [
  ("l'accueil relit des messages", "if(MSG.nonLus>0) G.push", "var _m=MSG.messages; if(MSG.nonLus>0) G.push"),
  ("la pastille ne suit plus le module", "onCompter:function(n){ MSG.nonLus=n; setBdg('bdg-supp',n); },", ""),
  ("le module se charge au démarrage", "<script>\n", "<script src=\"opcourrier.js\"></script>\n<script>\n", ),
- ("version non montée", "var TOUR_VERSION='v2.90'", "var TOUR_VERSION='v2.89'"),
+ ("version non montée", "var TOUR_VERSION='v2.91'", "var TOUR_VERSION='v2.90'"),
  ("l'ancien envoi par le support", "'/api/monitor/mail/envoyer',{boite:m.boite", "'/api/monitor/support/envoyer',{boite:m.boite"),
  ("une règle de l'ancien écran survit", ".courrier-zone{min-height:360px", ".mail-rows{overflow-y:auto;flex:1}\n.courrier-zone{min-height:360px"),
  ("le relevé écrase le chiffre du module", "if(!COUR.inst){ MSG.nonLus=", "if(true){ MSG.nonLus="),

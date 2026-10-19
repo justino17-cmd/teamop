@@ -2778,7 +2778,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.90</div>
+    <div class="lg-pied">console interne · v2.91</div>
   </div>
 </div>
 
@@ -2820,7 +2820,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.90</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.91</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2832,7 +2832,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.90</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.91</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3130,7 +3130,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.90';
+var TOUR_VERSION='v2.91';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -6986,14 +6986,24 @@ function courrierSource(){
   function erreurDe(r,defaut){ return r.json().catch(function(){ return {}; }).then(function(d){
     return new Error((d&&d.error)||(r.status===403?'Réservé au patron — ton compte n’a pas cet accès.':defaut+' (HTTP '+r.status+')')); }); }
   /* un refus se LIT sur le code d'abord (401 : la session a fini ; 4xx/5xx : le message du serveur), et un corps qui n'est pas du JSON ne passe jamais pour une réponse */
-  function appel(url,corps,defaut){
+  function requete(url,corps,defaut){
     var o={headers:hAuth()}; if(corps!==undefined){ o.method='POST'; o.body=JSON.stringify(corps); }
     return fetch(API+url,o).then(function(r){ srvEtat(r.status<500); return r; },function(){ srvEtat(false); throw new Error(INJOIGNABLE); })
       .then(function(r){
         if(r.status===401){ doLogout(); throw new Error('Session expirée — reconnectez-vous.'); }
         if(!r.ok) return erreurDe(r,defaut).then(function(e){ throw e; });
-        return r.json().catch(function(){ throw new Error('réponse du serveur illisible'); }); }); }
+        return r; }); }
+  function appel(url,corps,defaut){
+    return requete(url,corps,defaut).then(function(r){ return r.json().catch(function(){ throw new Error('réponse du serveur illisible'); }); }); }
   function oublier(){ D=null; listes={}; }
+  /* l'identifiant d'un message pour le module est `boîte|uid|dossier` ; le fil et le suivi, eux, se repèrent par son Message-ID (`mid`), que le serveur rend dans la liste et dans la lecture */
+  var MIDS={};
+  function midDe(id){
+    if(MIDS[id]) return Promise.resolve(MIDS[id]);
+    var r=ref(id);
+    return appel('/api/monitor/mail/message?boite='+encodeURIComponent(r.boite)+'&dossier='+encodeURIComponent(r.dossier)+'&uid='+r.uid,undefined,'Lecture du message refusée').then(function(m){
+      if(m&&m.mid) MIDS[id]=String(m.mid); return MIDS[id]||''; }); }
+  function suiviDe(s){ return s&&typeof s==='object'?{statut:s.statut,assigne:s.assigne||'',par:s.par||''}:null; }
   /* UNE lecture des dossiers par relevé, partagée par tous les dossiers de toutes les boîtes (le serveur interroge l'IMAP de chaque boîte) */
   function dossiers(){
     var t=Date.now(); if(D&&t-D.t<30000) return D.p;
@@ -7012,8 +7022,9 @@ function courrierSource(){
     if(i<0||j<0) throw new Error('message introuvable'); return {boite:s.slice(0,i),uid:parseInt(s.slice(i+1,j),10),dossier:s.slice(j+1)}; }
   function ligne(m,dossier){
     var pj=[]; for(var i=0;i<(m.pieces||0);i++) pj.push({nom:'Pièce jointe',taille:''});   /* la liste ne donne que le nombre ; les noms arrivent à l'ouverture */
-    return {id:m.boite+'|'+m.uid+'|'+m.dossier,dossier:dossier,de:{nom:m.deNom||'',email:m.de||''},a:(m.pour&&m.pour[0])||'',objet:m.objet||'',
-      date:+m.ts||0,lu:!!m.lu,drapeau:!!m.marque,pj:pj}; }
+    var id=m.boite+'|'+m.uid+'|'+m.dossier; if(m.mid) MIDS[id]=String(m.mid);
+    return {id:id,dossier:dossier,de:{nom:m.deNom||'',email:m.de||''},a:(m.pour&&m.pour[0])||'',objet:m.objet||'',
+      date:+m.ts||0,lu:!!m.lu,drapeau:!!m.marque,pj:pj,suivi:suiviDe(m.suivi)}; }
   function pages(boite,ch,n){
     var tout=[];
     var lire=function(p){ return appel('/api/monitor/mail/liste?page='+p+'&boite='+encodeURIComponent(boite)+'&dossier='+encodeURIComponent(ch),undefined,'Lecture du dossier refusée').then(function(d){
@@ -7024,7 +7035,8 @@ function courrierSource(){
     r.onload=function(){ var s=String(r.result); ok(s.slice(s.indexOf(',')+1)); }; r.onerror=function(){ ko(new Error('pièce illisible : '+f.name)); }; r.readAsDataURL(f); }); }
   return {
     capacites:function(){ return Promise.resolve({oauth:false,programmeServeur:false,signature:false,marquage:true,deplacement:true,reglagesServeur:true,simulation:false,
-      dossiers:['inbox','drafts','sent','archive','junk','trash'],destinataires:20,pj:{nombre:12,octets:12*1024*1024}}); },
+      dossiers:['inbox','drafts','sent','archive','junk','trash'],destinataires:20,pj:{nombre:12,octets:12*1024*1024},
+      journalEnvois:true,telechargerPiece:true,suivi:true}); },
     boites:function(){
       return appel('/api/monitor/mail/boites',undefined,'Lecture des boîtes refusée').then(function(d){
         if(!d||!Array.isArray(d.boites)) throw new Error('réponse du serveur illisible');
@@ -7040,7 +7052,9 @@ function courrierSource(){
       var r=ref(id);
       return appel('/api/monitor/mail/message?boite='+encodeURIComponent(r.boite)+'&dossier='+encodeURIComponent(r.dossier)+'&uid='+r.uid,undefined,'Lecture du message refusée').then(function(m){
         if(!m||typeof m.texte!=='string') throw new Error('réponse du serveur illisible');
-        return {corps:m.texte,pj:(m.pieces||[]).map(function(p){ return {nom:p.nom,taille:taille(p.taille),type:/^image\//.test(p.type||'')?'img':'doc'}; })}; }); },
+        if(m.mid) MIDS[id]=String(m.mid);
+        return {corps:m.texte,suivi:suiviDe(m.suivi),
+          pj:(m.pieces||[]).map(function(p){ return {id:p.idx,nom:p.nom,taille:taille(p.taille),type:/^image\//.test(p.type||'')?'img':'doc'}; })}; }); },
     marquer:function(id,e){
       var r=ref(id); oublier();
       return appel('/api/monitor/mail/flag',{boite:r.boite,dossier:r.dossier,uid:r.uid,lu:e.lu,marque:e.drapeau},'Marquage refusé').then(function(){}); },
@@ -7049,9 +7063,32 @@ function courrierSource(){
       if(!ROLE[vers]) return Promise.reject(new Error('dossier inconnu'));
       return appel('/api/monitor/mail/deplacer',{boite:r.boite,dossier:r.dossier,uid:r.uid,role:ROLE[vers]},'Déplacement refusé').then(function(){}); },
     envoyer:function(m){
-      return Promise.all((m.pieces||[]).map(function(f){ return base64(f).then(function(b){ return {nom:f.name,type:f.type||'',b64:b}; }); })).then(function(pieces){
+      /* répondre dans le fil : le serveur veut le Message-ID (In-Reply-To / References) et, pour marquer « répondu », la place du message ; hors de SA boîte, le Message-ID seul */
+      var rep=m.enReponseA?midDe(m.enReponseA).then(function(mid){
+        if(!mid) return null; var r=ref(m.enReponseA);
+        return r.boite===m.boite?{mid:mid,dossier:r.dossier,uid:r.uid}:{mid:mid}; }):Promise.resolve(null);
+      return Promise.all([rep,Promise.all((m.pieces||[]).map(function(f){ return base64(f).then(function(b){ return {nom:f.name,type:f.type||'',b64:b}; }); }))]).then(function(t){
         oublier();
-        return appel('/api/monitor/mail/envoyer',{boite:m.boite,a:m.a,objet:m.objet,texte:m.texte,pieces:pieces},'Envoi refusé'); }).then(function(){}); },
+        var corps={boite:m.boite,a:m.a,objet:m.objet,texte:m.texte,pieces:t[1]}; if(t[0]) corps.enReponseA=t[0];
+        return appel('/api/monitor/mail/envoyer',corps,'Envoi refusé'); }).then(function(){}); },
+    /* « Envois TeamOP » : le journal des e-mails que le SERVEUR envoie (codes, invitations, avis), en lecture seule */
+    envois:function(){
+      return appel('/api/monitor/mails',undefined,'Lecture des envois refusée').then(function(d){
+        if(!d||!Array.isArray(d.mails)) throw new Error('réponse du serveur illisible');
+        var n={}; return d.mails.map(function(e){ var t=+e.ts||0, k=n[t]=(n[t]||0)+1;
+          return {id:t+'-'+k,a:e.a||'',objet:e.sujet||'',corps:e.txt||'',date:t,etat:e.echec?'echec':(e.retard?'retard':'')}; }); }); },
+    /* une pièce reçue : le serveur la rend en octets (Content-Disposition: attachment) — jamais interprétée ici, le module la range sous un nom assaini */
+    piece:function(id,idPiece){
+      var r=ref(id), n=parseInt(idPiece,10); if(!(n>=0)) return Promise.reject(new Error('pièce introuvable'));
+      return requete('/api/monitor/mail/piece?boite='+encodeURIComponent(r.boite)+'&dossier='+encodeURIComponent(r.dossier)+'&uid='+r.uid+'&idx='+n,undefined,'Téléchargement refusé')
+        .then(function(x){ return x.blob(); }); },
+    /* le suivi d'une demande (À traiter / En cours / Résolu, et qui s'en charge) : par Message-ID */
+    suivi:function(id,e){
+      return midDe(id).then(function(mid){
+        if(!mid) throw new Error('ce message n’a pas d’identifiant : le suivi n’est pas possible');
+        var corps={mid:mid}; if(e&&e.statut!==undefined) corps.statut=e.statut; if(e&&e.assigne!==undefined) corps.assigne=e.assigne;
+        return appel('/api/monitor/mail/suivi',corps,'Suivi refusé'); }).then(function(d){
+          oublier(); if(!d||!d.suivi) throw new Error('réponse du serveur illisible'); return suiviDe(d.suivi); }); },
     ajouterBoite:function(p){
       var s=p.serveurs||{}, corps={email:String(p.email||'').trim(),pass:p.mdp,nom:p.nom};
       if(s.imap){ corps.imapHost=s.imap; corps.imapPort=s.imapPort; } if(s.smtp){ corps.smtpHost=s.smtp; corps.smtpPort=s.smtpPort; }

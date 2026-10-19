@@ -10,6 +10,9 @@
         vide au départ, la boîte se connecte PAR le geste, chaque dossier arrive de sa vraie boîte, lu / marqué / déplacé / envoyé tiennent côté serveur ;
      3. LE REFUS EST UNE PANNE : un refus (403 patron, 401 session, 502 boîte en panne, serveur éteint) est une ERREUR qui se dit — jamais une liste vide qui dirait « Aucune boîte » à quelqu'un
         dont la boîte marche (la règle de `_mailboxes`, CLAUDE.md).
+   4. LES QUATRE GESTES QUE L'ANCIEN ÉCRAN FAISAIT ET QUE LE PREMIER BRANCHEMENT AVAIT PERDUS (v2.91, Justin : « fais-les ») : le journal « Envois TeamOP » (`/api/monitor/mails`), le
+      téléchargement d'une pièce reçue (`/mail/piece`), le suivi d'une demande (`/mail/suivi`), la réponse qui référence le message (`enReponseA` → In-Reply-To / References, « répondu »,
+      suivi « en cours »). Chacun est joué par la VRAIE fonction de la page contre le VRAI serveur, et le module ne les promet que si la source les DÉCLARE.
    Rien ne sort d'ici : 127.0.0.1, configuration et données jetables. */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto'), net = require('net'), vm = require('vm');
@@ -60,7 +63,7 @@ console.log('\n── 2704 · 1. La page : l\'ancien Courrier n\'existe plus, OP
   vrai('« Écrire à… » d\'une fiche ouvre un nouveau message dans le module (ecrire), sans composeur maison', /function courrierEcrire\([\s\S]*?COUR\.inst\.ecrire\(/.test(BRUT) && (CODE.match(/courrierEcrire\(/g) || []).length >= 3);
   vrai('l\'accueil ne lit plus de messages (il n\'en a plus) : il compte les non lus et mène au Courrier', !/MSG\.messages/.test(CODE) && /nMot\(MSG\.nonLus,'message non lu'/.test(CODE));
   vrai('le relevé des compteurs (chargerMail) ne touche plus au chiffre quand le module est monté — la pastille ne saute pas entre deux manières de compter', /if\(!COUR\.inst\)\{ MSG\.nonLus=/.test(corps(BRUT, 'function chargerMail(')));
-  vrai('⛔ la version de la Tour est montée (v2.90)', /var TOUR_VERSION='v2\.90'/.test(BRUT));
+  vrai('⛔ la version de la Tour est montée (v2.91)', /var TOUR_VERSION='v2\.91'/.test(BRUT));
   vrai('(population) opcourrier.js existe à la racine, sert `ecrire`, et n\'appelle jamais le réseau', fs.existsSync(path.join(RACINE, 'opcourrier.js')) && /ecrire:function/.test(fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8')) && !/\bfetch\(|XMLHttpRequest/.test(nu(fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8'))));
 }
 
@@ -97,6 +100,13 @@ function facteur() {
   const BX = 'tour@banc-2704.fr', B2 = 'froide@banc-2704.fr', BAD = 'casse@banc-2704.fr', MDP = 'mot-de-passe-du-banc-2704', MDP2 = 'mot-de-passe-agent-2704', PROTEGE = '0123456789abcdef0123456789abcdef.securite@banc-2704.fr';
   const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
   fs.writeFileSync(path.join(D, 'mails-proteges.json'), JSON.stringify([PROTEGE]));
+  /* le journal des e-mails que le SERVEUR envoie : trois entrées, dont une qui n'est pas partie et une qui n'est pas encore partie ; deux au même instant (l'identifiant reste unique) */
+  const TJ = Date.now() - 3600000;
+  fs.writeFileSync(path.join(D, 'mails-envoyes.json'), JSON.stringify([
+    { ts: TJ + 3000, a: 'neuf@exemple-2704.fr', sujet: 'Bienvenue sur OP GESTION', txt: 'Votre espace est prêt.\n\nÀ bientôt.' },
+    { ts: TJ + 2000, a: 'rate@exemple-2704.fr', sujet: '⚠️ NON PARTI — Invitation', txt: 'Invitation', echec: 1 },
+    { ts: TJ + 1000, a: 'lent@exemple-2704.fr', sujet: '⚠️ PAS ENCORE PARTI — Avis', txt: '', retard: 1 },
+    { ts: TJ + 1000, a: 'jumeau@exemple-2704.fr', sujet: 'Même instant', txt: 'x' }]));
   fs.writeFileSync(path.join(banc, 'monitor.json'), JSON.stringify({ users: [
     { id: 'u-patron', nom: 'Patron', email: '', hash: sha(MDP), role: 'patron', actif: true, ts: Date.now() },
     { id: 'u-agent', nom: 'Agent', email: '', hash: sha(MDP2), role: 'collaborateur', actif: true, ts: Date.now() }] }));
@@ -150,6 +160,7 @@ function facteur() {
 
   const cap = await s.capacites();
   v('⛔ ce que la Tour sait faire est DIT : lu/non lu, déplacement et réglages de serveur oui ; Google/Microsoft, envoi programmé, signature non', [cap.marquage, cap.deplacement, cap.reglagesServeur, cap.oauth, cap.programmeServeur, cap.signature, cap.simulation], [true, true, true, false, false, false, false]);
+  v('⛔ …et les TROIS gestes de l\'ancien écran sont déclarés : journal des envois, pièce reçue, suivi d\'une demande', [cap.journalEnvois, cap.telechargerPiece, cap.suivi], [true, true, true]);
   v('…les six dossiers que le serveur sait lire', cap.dossiers, ['inbox', 'drafts', 'sent', 'archive', 'junk', 'trash']);
   v('⛔ VIDE au départ : le serveur n\'a aucune boîte, la liste est LUE et vide (pas une panne)', await s.boites(), []);
 
@@ -179,7 +190,7 @@ function facteur() {
   const doc = await s.lire(m1.id);
   v('⛔ lire(id) rend le corps du message ouvert', doc.corps, 'Bonjour, ma facture de mars.');
   const doc2 = await s.lire(inbox.find(m => m.objet === 'Devis signé').id);
-  v('…et les pièces jointes avec leur nom et leur taille lisible', doc2.pj, [{ nom: 'devis.pdf', taille: '2 Ko', type: 'doc' }]);
+  v('…et les pièces jointes avec leur nom, leur taille lisible ET leur place (pour les télécharger)', doc2.pj, [{ id: 0, nom: 'devis.pdf', taille: '2 Ko', type: 'doc' }]);
   const docH = await s.lire(inbox.find(m => m.objet === 'Avec HTML').id);
   v('⛔ …le corps est le TEXTE du message, jamais son HTML (le module l\'écrit comme du texte)', docH.corps, 'Texte brut du message');
   vrai('…ouvrir marque le message lu CÔTÉ SERVEUR (comme une vraie messagerie)', lireEtat().boites[BX].messages.find(m => m.dossier === 'INBOX' && m.uid === 1).flags.includes('\\Seen'));
@@ -215,6 +226,87 @@ function facteur() {
   const refusAdr = await rejette(s.envoyer({ boite: b.id, a: 'pas-une-adresse', objet: 'x', texte: 'texte', pieces: [] }));
   vrai('…ni une adresse invalide', /destinataire/.test(refusAdr || ''), refusAdr);
 
+
+  /* ── 2 bis. les quatre gestes de l'ancien écran ── */
+  console.log('\n── 2704 · 2 bis. Envois TeamOP, pièce reçue, suivi d\'une demande, réponse dans le fil ──');
+  const ecrireEtat = (e) => { fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e)); fs.renameSync(IMAP + '.tmp', IMAP); };
+  const CONTENU = '%PDF-1.4 contenu de la pièce 2704 ✓';
+  { const e6 = lireEtat(); const nI = Math.max.apply(null, e6.boites[BX].messages.filter(m => m.dossier === 'INBOX').map(m => m.uid)) + 1;
+    e6.boites[BX].messages.push({ dossier: 'INBOX', uid: nI, messageId: '<fil-2704@banc-2704>', from: 'client@exemple-2704.fr', fromNom: 'Client Fil', to: BX, subject: 'Question du client', text: 'Pouvez-vous me rappeler ?',
+      ts: Date.now() - 60000, flags: [], pieces: [{ nom: '../../Re:pport*final?.pdf', type: 'application/pdf', b64: Buffer.from(CONTENU).toString('base64') }] });
+    ecrireEtat(e6); }
+  s = S();
+
+  /* 1. Envois TeamOP */
+  const env = await s.envois();
+  v('⛔ envois(): le journal du SERVEUR, du plus récent au plus ancien, avec destinataire, objet, texte, date', env.map(e => [e.a, e.objet, e.corps, e.date > 0]),
+    [['neuf@exemple-2704.fr', 'Bienvenue sur OP GESTION', 'Votre espace est prêt.\n\nÀ bientôt.', true], ['rate@exemple-2704.fr', '⚠️ NON PARTI — Invitation', 'Invitation', true], ['lent@exemple-2704.fr', '⚠️ PAS ENCORE PARTI — Avis', '', true], ['jumeau@exemple-2704.fr', 'Même instant', 'x', true]]);
+  v('…un envoi qui n\'est pas parti le DIT (etat), un envoi en retard aussi, les autres rien', env.map(e => e.etat), ['', 'echec', 'retard', '']);
+  vrai('…chaque ligne a un identifiant UNIQUE, même pour deux envois au même instant (la sélection du module en dépend)', new Set(env.map(e => e.id)).size === env.length && env.length === 4, env.map(e => e.id));
+  jeton = TA;
+  vrai('…un collaborateur le lit aussi (la route est celle de l\'écran d\'avant)', (await S().envois()).length === 4);
+  jeton = TP;
+
+  /* 2. Télécharger une pièce reçue */
+  const lm = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Question du client');
+  vrai('(population) le message à pièce jointe est dans la Réception', !!lm, lm);
+  const dFil = await s.lire(lm.id);
+  v('⛔ lire(): la pièce porte sa place (id) et son nom TEL QUE L\'EXPÉDITEUR L\'A ÉCRIT (l\'assainissement est l\'affaire du module)', dFil.pj.map(p => [p.id, p.nom, p.type]), [[0, '../../Re:pport*final?.pdf', 'doc']]);
+  const blob = await s.piece(lm.id, dFil.pj[0].id);
+  vrai('⛔ piece(): un Blob, et les OCTETS exacts de la pièce (relus du serveur, pas reconstitués)', typeof blob.arrayBuffer === 'function' && Buffer.from(await blob.arrayBuffer()).toString() === CONTENU, blob && blob.size);
+  const rPiece = await rejette(s.piece(lm.id, 7));
+  vrai('⛔ une pièce qui n\'existe pas est une ERREUR dite — jamais un fichier vide', /pièce introuvable/.test(rPiece || ''), rPiece);
+  const rPieceX = await rejette(s.piece(lm.id, '../1'));
+  vrai('…un identifiant de pièce qui n\'est pas un nombre est refusé AVANT d\'interroger le serveur', /pièce introuvable/.test(rPieceX || ''), rPieceX);
+
+  /* 3. Suivi d'une demande */
+  v('⛔ ouvrir un message reçu OUVRE son suivi côté serveur : « à traiter », personne', dFil.suivi, { statut: 'aTraiter', assigne: '', par: '' });
+  const sv1 = await s.suivi(lm.id, { statut: 'enCours', assigne: 'Léa' });
+  v('⛔ suivi(): le statut ET la personne tiennent côté serveur, avec QUI a fait le geste', sv1, { statut: 'enCours', assigne: 'Léa', par: 'Patron' });
+  const sv1b = (await S().messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Question du client').suivi;
+  v('…la liste suivante le montre (la mémoire de la source est oubliée après le geste)', sv1b, { statut: 'enCours', assigne: 'Léa', par: '' });
+  const sv2 = await s.suivi(lm.id, { statut: 'resolu' });
+  v('…changer le statut seul ne touche pas à la personne', [sv2.statut, sv2.assigne], ['resolu', 'Léa']);
+  const sv3 = await s.suivi(lm.id, { statut: 'nimporte-quoi' });
+  v('⛔ un statut inventé ne change RIEN (le serveur ne connaît que trois états)', sv3.statut, 'resolu');
+  const sv4 = await s.suivi(lm.id, { assigne: '' });
+  v('…et on peut retirer la personne', [sv4.statut, sv4.assigne], ['resolu', '']);
+  jeton = TA;
+  v('…un collaborateur le fait aussi, et la trace dit QUI', (await S().suivi(lm.id, { statut: 'aTraiter' })).par, 'Agent');
+  jeton = TP;
+  const rSv = await rejette(S().suivi('b00000000|1|INBOX', { statut: 'resolu' }));
+  vrai('⛔ le suivi d\'un message que le serveur ne connaît pas est une ERREUR dite', /introuvable/.test(rSv || ''), rSv);
+  const pj0 = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Avis de sécurité');
+  vrai('…un message jamais ouvert n\'a PAS de suivi (null, pas un faux « à traiter »)', pj0.suivi === null, pj0.suivi);
+
+  /* 4. Répondre dans le fil */
+  const avantFil = facteurSrv.recus.length;
+  await s.envoyer({ boite: b.id, de: BX, nom: 'Support', a: 'client@exemple-2704.fr', objet: 'Re: Question du client', texte: 'Je vous rappelle demain.', pieces: [], enReponseA: lm.id });
+  const lFil = facteurSrv.recus.length === avantFil + 1 ? await require(path.join(RACINE, 'server', 'node_modules', 'mailparser')).simpleParser(facteurSrv.recus[avantFil].replace(/\n/g, '\r\n')) : null;
+  v('⛔ envoyer({enReponseA}): le message part avec In-Reply-To ET References sur le Message-ID du message auquel on répond — le fil se reforme chez le destinataire', lFil && [lFil.inReplyTo, [].concat(lFil.references)], ['<fil-2704@banc-2704>', ['<fil-2704@banc-2704>']]);
+  const orig = lireEtat().boites[BX].messages.find(m => m.messageId === '<fil-2704@banc-2704>');
+  vrai('…le message d\'origine passe en « répondu » côté serveur', orig.flags.includes('\\Answered'), orig.flags);
+  v('…et son suivi passe « en cours », confié à qui a répondu (le serveur le fait, la liste le relit)', (({ statut, assigne }) => ({ statut, assigne }))((await S().messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Question du client').suivi), { statut: 'enCours', assigne: 'Patron' });
+  const avantSans = facteurSrv.recus.length;
+  await s.envoyer({ boite: b.id, de: BX, nom: 'Support', a: 'client@exemple-2704.fr', objet: 'Nouveau sujet', texte: 'Sans fil.', pieces: [] });
+  const lSans = await require(path.join(RACINE, 'server', 'node_modules', 'mailparser')).simpleParser(facteurSrv.recus[avantSans].replace(/\n/g, '\r\n'));
+  vrai('⛔ un NOUVEAU message ne référence rien (pas d\'In-Reply-To inventé)', !lSans.inReplyTo && !lSans.references, [lSans.inReplyTo, lSans.references]);
+  /* répondre depuis une AUTRE boîte : le fil se reforme (Message-ID), mais le message d'origine n'est pas marqué « répondu » dans une boîte qui n'est pas la sienne */
+  /* la boîte voisine porte, au MÊME numéro et dans le MÊME dossier, un message qui n'a rien à voir : si l'envoi lui passait la place du message d'origine, c'est LUI qui serait marqué */
+  { const e7 = lireEtat(); const uidLm = parseInt(lm.id.split('|')[1], 10);
+    e7.boites[B2] = { messages: [{ dossier: 'INBOX', uid: uidLm, messageId: '<voisin-2704@banc-2704>', from: 'autre@exemple-2704.fr', to: B2, subject: 'Sans rapport', text: 'x', ts: Date.now() - 90000, flags: [] }], actions: [] }; ecrireEtat(e7); }
+  const bAutre = await S().ajouterBoite({ email: B2, mdp: MDP, nom: 'Autre', serveurs: { imap: '127.0.0.1', imapPort: 993, smtp: '127.0.0.1', smtpPort: portSmtp } });
+  { const e8 = lireEtat(); e8.boites[BX].messages.find(m => m.messageId === '<fil-2704@banc-2704>').flags = e8.boites[BX].messages.find(m => m.messageId === '<fil-2704@banc-2704>').flags.filter(f => f !== '\\Answered'); ecrireEtat(e8); }
+  const avantAutre = facteurSrv.recus.length;
+  await S().envoyer({ boite: bAutre.id, de: B2, nom: 'Autre', a: 'client@exemple-2704.fr', objet: 'Re: Question du client', texte: 'Depuis une autre boîte.', pieces: [], enReponseA: lm.id });
+  const lAutre = await require(path.join(RACINE, 'server', 'node_modules', 'mailparser')).simpleParser(facteurSrv.recus[avantAutre].replace(/\n/g, '\r\n'));
+  vrai('⛔ …depuis une AUTRE boîte : le fil se reforme quand même', lAutre.inReplyTo === '<fil-2704@banc-2704>', lAutre.inReplyTo);
+  vrai('…et le message d\'origine n\'est PAS marqué « répondu » (ce n\'est pas sa boîte qui a répondu, et son dossier n\'est pas celui de l\'autre)', !lireEtat().boites[BX].messages.find(m => m.messageId === '<fil-2704@banc-2704>').flags.includes('\\Answered'));
+  vrai('…ni le message du MÊME numéro de l\'autre boîte', !lireEtat().boites[B2].messages[0].flags.includes('\\Answered'), lireEtat().boites[B2].messages[0].flags);
+  await S().retirerBoite(bAutre.id);
+  const rFil = await rejette(S().envoyer({ boite: b.id, a: 'client@exemple-2704.fr', objet: 'x', texte: 'texte', pieces: [], enReponseA: 'b00000000|1|INBOX' }));
+  vrai('⛔ répondre à un message que le serveur ne retrouve pas est une ERREUR dite — le message ne part pas sans son fil', /introuvable/.test(rFil || '') && facteurSrv.recus.length === avantAutre + 1, rFil);
+
   /* ── 3. LE REFUS EST UNE PANNE ── */
   console.log('\n── 2704 · 3. Un refus est une panne, jamais une liste vide ──');
   const e0 = deconnexions; jeton = 'a'.repeat(48);
@@ -223,6 +315,10 @@ function facteur() {
   jeton = '';
   const rAnon = await rejette(S().messages({ boite: b.id, dossier: 'sent' }));
   vrai('⛔ sans session, lire un dossier est une ERREUR (jamais « Rien dans ce dossier »)', rAnon !== null, rAnon);
+  const rEnv = await rejette(S().envois());
+  vrai('⛔ sans session, le journal des envois est une ERREUR (jamais « aucun e-mail envoyé »)', rEnv !== null, rEnv);
+  const rPie = await rejette(S().piece(lm.id, 0));
+  vrai('⛔ …et la pièce reçue aussi (jamais un fichier vide)', rPie !== null, rPie);
   jeton = TP;
   /* une boîte qui ne répond pas */
   const boitesEtat = JSON.parse(fs.readFileSync(path.join(D, 'mail-boites.json'), 'utf8'));
