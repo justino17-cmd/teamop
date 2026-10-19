@@ -304,9 +304,9 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
 /* ══ 7. test-728 CONNAÎT LE TROISIÈME APPELANT ═════════════════════════════════════════════════════════ */
 {
   const t728 = lire('tests', 'test-728.js');
-  vrai('test-728 attend exactement les trois workflows qui lancent le compteur', /\['ci\.yml', 'deploiement-messages\.yml', 'deploiement\.yml'\]/.test(t728));
+  vrai('test-728 attend exactement les workflows qui lancent le compteur (dont celui d\'OP Courrier)', /\['ci\.yml', 'deploiement-courrier\.yml', 'deploiement-messages\.yml', 'deploiement\.yml'\]/.test(t728));
   const appelants = fs.readdirSync(WF).filter(f => /\.ya?ml$/.test(f) && /bancs-ci\.sh/.test(fs.readFileSync(path.join(WF, f), 'utf8').replace(/^\s*#.*$/gm, ''))).sort();   // le CODE, pas les commentaires (test-728)
-  v('   et c\'est ce que le dépôt contient', appelants, ['ci.yml', 'deploiement-messages.yml', 'deploiement.yml']);
+  v('   et c\'est ce que le dépôt contient', appelants, ['ci.yml', 'deploiement-courrier.yml', 'deploiement-messages.yml', 'deploiement.yml']);
 }
 
 t.fin();

@@ -248,6 +248,21 @@ Serveur seulement — la Tour qui l'appelle est la v2.88 (entrée ci-dessus) ; l
 
 ---
 
+# ⏳ 19 OCTOBRE 2026 — OP COURRIER : LA PREMIÈRE BRIQUE DU SERVEUR (SIGNATURE YOUSIGN) — code repris sur `main` par la demande de fusion n° 151 (jamais déployé par GitHub : le workflow reste éteint, le VPS s'installe à la main)
+
+Justin : « ça serait bien qu'on active le système de signature » ; second VPS IONOS, à part (ni `server/` ni `server-msg/`).
+- **Ce qui existe** : `server-courrier/` (Node 22 + Express, une seule dépendance), `install-courrier.sh`, `configurer-yousign.js` (saisie masquée), `deployer-courrier.sh`,
+  `LISEZMOI.md` (la marche de Justin pas à pas), `.github/workflows/deploiement-courrier.yml` (ÉTEINT : `workflow_dispatch` + `COURRIER_ACTIF`), `scripts/bancs-courrier.liste`,
+  bancs `tests/test-1670.js` (le vrai service contre un faux Yousign avec état) et `test-1671.js` (installeur, saisie des clés, workflow, séparation).
+- **Auth** : le service demande à `api.teamop.fr` (`GET /api/monitor/moi`) qui est le porteur du jeton de la Tour ; rôle `patron` seulement ; `server/` intact.
+- **Ouvert** : (1) les chemins de l'API Yousign sont écrits de mémoire dans `server-courrier/yousign.js` (marqués VÉRIFIER) — à confronter à la documentation avant le 1er essai réel ;
+  (2) la page : source `signature` de `courrierSource` dans `tour.html` (branche `courrier/beta`), à brancher une fois le serveur en ligne ; `opcourrier.js` ne l'appelle pas encore
+  (avec `CAP.signature` vrai il fabrique aujourd'hui un suivi local) ; (3) le VPS, le DNS, le compte Yousign : à Justin ; (4) `registre-traitements.html` / `sous-traitance.html` à mettre à jour avant de vrais clients.
+
+---
+
+---
+
 # ⏳ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
 
 Justin : « je voudrais qu'ils partent du site internet comme s'ils commandaient l'application […] je veux un
