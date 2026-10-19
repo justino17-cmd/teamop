@@ -7112,7 +7112,7 @@ function courrierSource(){
     envoyer:function(dem,fichiers){
       if(!fichiers||!fichiers.length) return Promise.reject(new Error('Ajoutez le PDF à signer.'));
       var id=null;
-      var corps={titre:dem.titre,type:dem.type,niveau:dem.niveau,jours:dem.jours,relances:dem.relances!==false,signataires:dem.signataires};
+      var corps={titre:dem.titre,type:dem.type,niveau:dem.niveau,jours:dem.jours,relances:dem.relances!==false,signataires:dem.signataires,expediteur:dem.expediteur};
       if(dem.contresignature) corps.contresignature=dem.contresignature;
       return sigRequete('POST','/demandes',{corps:corps,json:true}).then(sigVue).then(function(v){
         id=v.id;
@@ -7201,7 +7201,7 @@ function courrierSource(){
 function courrierCharger(){
   if(window.OPCourrier) return Promise.resolve();
   if(COUR.chargement) return COUR.chargement;
-  COUR.chargement=new Promise(function(ok,ko){ var s=document.createElement('script'); s.src='opcourrier.js?v='+encodeURIComponent(TOUR_VERSION);
+  COUR.chargement=new Promise(function(ok,ko){ var s=document.createElement('script'); s.src='apercu/opcourrier.js?v='+encodeURIComponent(TOUR_VERSION);
     s.onload=function(){ ok(); }; s.onerror=function(){ COUR.chargement=null; ko(new Error('opcourrier.js')); }; document.head.appendChild(s); });
   return COUR.chargement;
 }

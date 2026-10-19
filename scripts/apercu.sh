@@ -71,6 +71,17 @@ s = s.replace('</body>', ruban + '</body>', 1) if '</body>' in s else s + ruban
 io.open(dst, 'w', encoding='utf-8').write(s)
 print(f"{dst}  ({len(s)//1024} Ko)")
 PY
+  # La Tour charge `opcourrier.js` (le module du courrier, où vit la signature) : l'aperçu en porte SA copie, sinon il chargerait celle de la page en service — plus vieille que lui.
+  if [ "$1" = "tour.html" ]; then
+    cp opcourrier.js "$SORTIE/opcourrier.js"
+    python3 - "$dst" <<'PY2'
+import sys, io
+p = sys.argv[1]; s = io.open(p, encoding="utf-8").read()
+a = "s.src='opcourrier.js?v="
+assert a in s, 'tour.html ne charge plus opcourrier.js comme prévu'
+s = s.replace(a, "s.src='apercu/opcourrier.js?v=", 1); io.open(p, 'w', encoding='utf-8').write(s)
+PY2
+  fi
 }
 
 [ $# -eq 0 ] && set -- tour.html
