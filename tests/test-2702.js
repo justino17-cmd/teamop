@@ -418,7 +418,7 @@ console.log('\n6 ter. Trois boîtes de même nom, le clic sur une boîte, la cat
 console.log('\n6 quater. Signature sans prestataire (« Prête — en attente de Yousign »), niveau « Code SMS / Code e-mail », automatique du serveur');
 {
   vrai('⛔ le niveau de signature ne propose que « Code SMS » (adv) et « Code e-mail » (simple) — les valeurs internes ne bougent pas, le défaut suit toujours le type',
-    /<option value="adv"'\+\(pre\.level!=="simple"\?' selected':''\)\+'>Code SMS<\/option><option value="simple"'\+\(pre\.level==="simple"\?' selected':''\)\+'>Code e-mail<\/option>/.test(CODE) && !/Avancée — code par SMS|Simple — code par e-mail/.test(CODE));
+    /<option value="adv"'\+\(pre\.level==="adv"\?' selected':''\)\+'>Code SMS<\/option><option value="simple"'\+\(pre\.level!=="adv"\?' selected':''\)\+'>Code e-mail<\/option>/.test(CODE) && !/Avancée — code par SMS|Simple — code par e-mail/.test(CODE));
   const env = tranche('le bouton Envoyer de la demande de signature', 'var a=$("#sgFrom").value, now=Date.now(), body=$("#sgMsg").value;', 'var m=mk({acct:a,folder:"sign"', CODE);
   vrai('⛔ sans prestataire, « Envoyer » RANGE la demande (état « ready », fenêtre fermée, message dans Signatures) — aucune fausse signature, aucun faux envoi (pas d\'apprentissage de contact, pas d\'événement « Envoyé à »)',
     /if\(!CAP\.signature\)\{/.test(env) && /st:"ready"/.test(env) && /closeOverlay\(\)/.test(env) && /state\.folder="sign"/.test(env) && /return; \}/.test(env) && !/learnContacts|Envoyé à/.test(env), env);

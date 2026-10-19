@@ -2928,6 +2928,21 @@ var MARKUP = `
   function signSrv(m){ return !!(m&&m.sign&&m.sign.srv); }
   function signIndisponible(){ toast("Le service de signature n’est pas joignable pour l’instant — réessayez dans un instant."); }
   // Range la VUE que rend la source dans la demande. Rend vrai si quelque chose a changé (état, signataire, historique).
+  // ⛔ Les liens du moteur INTERNE (`vue.liens`, rendus une seule fois) partent PAR LA BOÎTE DU PRO : c'est le courriel de TeamOP-signature qui porte le CODE, celui-ci porte le LIEN.
+  // Chaque envoi se dit : un lien qui n'est pas parti n'est jamais annoncé comme parti, et la demande, elle, existe — « Relancer » renvoie les liens.
+  function signLiensEnvoyer(acctId,titre,vue,relance){
+    var liens=(vue&&Array.isArray(vue.liens))?vue.liens:[]; if(!liens.length) return Promise.resolve({n:0,echecs:[]});
+    var me=acctOf(acctId), echecs=[];
+    return liens.reduce(function(p,l){ return p.then(function(){
+      var texte="Bonjour"+(l.nom?" "+l.nom:"")+",\n\n"+(me.name||me.email)+(l.contre?" vous invite à contresigner":" vous invite à signer")+" le document « "+titre+" ».\n\n"+
+        "Pour le lire et le signer :\n"+l.url+"\n\nVous recevrez ensuite un code par e-mail pour confirmer votre signature. Ce lien est personnel : ne le transmettez pas.\n\nCordialement,\n"+(me.name||me.email);
+      return Promise.resolve().then(function(){ return SRC.envoyer({boite:me.sid,de:me.email,nom:me.name,a:l.email,objet:(relance?"Rappel — ":"")+"Document à signer : "+titre,texte:texte,pieces:[]}); })
+        .catch(function(e){ echecs.push(l.email||("signataire "+l.n)); }); }); },Promise.resolve())
+      .then(function(){ return {n:liens.length,echecs:echecs}; }); }
+  function signLiensDire(r,relance){
+    if(!vivant||!r||!r.n) return;
+    if(r.echecs.length) toast("Demande créée, mais le lien n’est pas parti pour "+r.echecs.join(", ")+" — utilisez « Relancer » pour le renvoyer.");
+    else toast((relance?"Lien renvoyé":"Lien envoyé")+(r.n>1?" aux "+r.n+" signataires":" au signataire")+" par votre boîte"); }
   function signAppliquer(m,vue){
     if(!m||!m.sign||!vue||typeof vue!=="object"||!SIGN_DEPUIS_SRV[vue.etat]||typeof vue.id!=="string") throw new Error("Réponse du service de signature illisible.");
     var g=m.sign, avant=JSON.stringify(g), now=Date.now();
@@ -2983,7 +2998,7 @@ var MARKUP = `
     if(!CAP.signatureReelle){ signIndisponible(); return; }
     if(m._occupe) return; m._occupe=true; var fin=function(){ m._occupe=false; };
     var appliquer=function(vue){ fin(); if(!vivant||!msgById(m.id)) return false; signAppliquer(m,vue); return true; };
-    if(a==="signRemind") Promise.resolve().then(function(){ return SRC.signature.relancer(g.srv); }).then(function(vue){ if(appliquer(vue)){ renderAll(); persist(); toast("Relance envoyée"); } }).catch(function(e){ fin(); if(vivant) toast("Relance impossible : "+msgErr(e,"échec")); });
+    if(a==="signRemind") Promise.resolve().then(function(){ return SRC.signature.relancer(g.srv); }).then(function(vue){ var chg=appliquer(vue); if(chg){ renderAll(); persist(); toast("Relance envoyée"); } return signLiensEnvoyer(m.acct,m.subject,vue,true).then(function(r){ signLiensDire(r,true); }); }).catch(function(e){ fin(); if(vivant) toast("Relance impossible : "+msgErr(e,"échec")); });
     else if(a==="signCancel") Promise.resolve().then(function(){ return SRC.signature.annuler(g.srv); }).then(function(vue){ if(appliquer(vue)){ fichiersEffacer(fichiersDe(m)); renderAll(); persist(); toast("Demande annulée"); } }).catch(function(e){ fin(); if(vivant) toast("Annulation impossible : "+msgErr(e,"échec")); });
     else if(a==="signDl"||a==="signProof"){
       var preuve=a==="signProof", d=(g.docs||[]).filter(function(x){ return x.n===k; })[0], x=(g.preuves||[]).filter(function(y){ return y.n===k; })[0];
@@ -3074,7 +3089,7 @@ var MARKUP = `
           '<label class="swrow" for="sgCounter"><span class="swl">Je contresigne après le client</span><input type="checkbox" class="switch" id="sgCounter" role="switch"'+(pre.counter?" checked":"")+'></label></div>'+
         '<div class="ghead">Options</div><div class="gcard">'+
           '<div class="sgfld"><label for="sgFrom">Envoyé depuis</label><select id="sgFrom">'+pros.map(function(a){ return '<option value="'+a.id+'"'+(a.id===from?' selected':'')+'>'+H(nomPartage(a)?a.email:a.name)+(nomPartage(a)?'':' · '+H(a.email))+'</option>'; }).join("")+'</select></div>'+
-          '<div class="sgfld"><label for="sgLevel">Niveau de signature</label><select id="sgLevel"><option value="adv"'+(pre.level!=="simple"?' selected':'')+'>Code SMS</option><option value="simple"'+(pre.level==="simple"?' selected':'')+'>Code e-mail</option></select></div>'+
+          '<div class="sgfld"><label for="sgLevel">Niveau de signature</label><select id="sgLevel"><option value="adv"'+(pre.level==="adv"?' selected':'')+'>Code SMS</option><option value="simple"'+(pre.level!=="adv"?' selected':'')+'>Code e-mail</option></select></div>'+
           '<div class="sgfld"><label for="sgDays">À signer avant</label><select id="sgDays"><option value="7">7 jours</option><option value="15" selected>15 jours</option><option value="30">30 jours</option></select></div>'+
           '<label class="swrow" for="sgRemind"><span class="swl">Relances automatiques tous les 2 jours</span><input type="checkbox" class="switch" id="sgRemind" role="switch" checked></label>'+
           '<div class="sgfld" id="sgMeRow" hidden><label for="sgMe">Votre mobile (pour votre contre-signature par SMS)</label><input id="sgMe" type="tel" inputmode="tel" autocomplete="tel" value="'+H(SETTINGS.mobile||"")+'" placeholder="06 12 34 56 78"></div>'+
@@ -3161,6 +3176,7 @@ var MARKUP = `
       var dem={titre:title,niveau:level==="adv"?"avance":"simple",jours:+$("#sgDays").value,relances:$("#sgRemind").checked,
         signataires:signers.map(function(x){ return {nom:x.name,email:x.email,telephone:x.phone}; })};
       if(contre) dem.contresignature={nom:me.name,email:me.email,telephone:mob};
+      dem.expediteur=me.name||me.email;
       envoi=true; dit(""); var go=$("#sgGo"); go.disabled=true; go.setAttribute("aria-busy","true");
       var libre=function(){ envoi=false; go.disabled=false; go.removeAttribute("aria-busy"); };
       Promise.all(docs.map(function(d){ return d.file?Promise.resolve(d.file):fichierLire(d.fid).then(function(b){ if(!b||typeof b.size!=="number") throw new Error("« "+d.name+" » n’est plus gardé sur cet appareil : choisissez-le de nouveau."); return b; }); }))
@@ -3177,7 +3193,7 @@ var MARKUP = `
           if(pre.remplace) removeMsg(pre.remplace,true);
           MESSAGES.push(m); learnContacts(m); envoi=false;
           closeOverlay(); if(app.classList.contains("nav-open")) closeDrawer();
-          state.folder="sign"; renderAll(); selectMessage(m.id); persist(); toast("Demande de signature envoyée"); })
+          state.folder="sign"; renderAll(); selectMessage(m.id); persist(); toast("Demande de signature envoyée"); return signLiensEnvoyer(a,title,vue,false).then(function(r){ signLiensDire(r,false); }); })
         .catch(function(e){ if(!vivant) return; libre(); var t=msgErr(e,"échec de l’envoi"); dit("Rien n’est parti : "+t); toast("Rien n’est parti : "+t); }); }
     setTimeout(function(){ (docs.length?$("#sgN0"):$("#sgName")).focus(); },30);
   }

@@ -7112,7 +7112,7 @@ function courrierSource(){
     envoyer:function(dem,fichiers){
       if(!fichiers||!fichiers.length) return Promise.reject(new Error('Ajoutez le PDF à signer.'));
       var id=null;
-      var corps={titre:dem.titre,type:dem.type,niveau:dem.niveau,jours:dem.jours,relances:dem.relances!==false,signataires:dem.signataires};
+      var corps={titre:dem.titre,type:dem.type,niveau:dem.niveau,jours:dem.jours,relances:dem.relances!==false,signataires:dem.signataires,expediteur:dem.expediteur};
       if(dem.contresignature) corps.contresignature=dem.contresignature;
       return sigRequete('POST','/demandes',{corps:corps,json:true}).then(sigVue).then(function(v){
         id=v.id;
