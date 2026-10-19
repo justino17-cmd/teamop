@@ -94,7 +94,7 @@ function facteur() {
   console.log('\n── 2704 · 2. L\'adaptateur : la VRAIE courrierSource contre le VRAI serveur (fausse boîte IMAP, faux relais SMTP) ──');
   facteurSrv = facteur();
   const portSmtp = await new Promise(res => facteurSrv.s.listen(0, '127.0.0.1', () => res(facteurSrv.s.address().port)));
-  const BX = 'tour@banc-2704.fr', BAD = 'casse@banc-2704.fr', MDP = 'mot-de-passe-du-banc-2704', MDP2 = 'mot-de-passe-agent-2704', PROTEGE = '0123456789abcdef0123456789abcdef.securite@banc-2704.fr';
+  const BX = 'tour@banc-2704.fr', B2 = 'froide@banc-2704.fr', BAD = 'casse@banc-2704.fr', MDP = 'mot-de-passe-du-banc-2704', MDP2 = 'mot-de-passe-agent-2704', PROTEGE = '0123456789abcdef0123456789abcdef.securite@banc-2704.fr';
   const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
   fs.writeFileSync(path.join(D, 'mails-proteges.json'), JSON.stringify([PROTEGE]));
   fs.writeFileSync(path.join(banc, 'monitor.json'), JSON.stringify({ users: [
@@ -109,6 +109,7 @@ function facteur() {
   poser('INBOX', { objet: 'Facture mars', nom: 'Anne Durand', texte: 'Bonjour, ma facture de mars.' });
   poser('INBOX', { objet: 'Devis signé', lu: true, pieces: [{ nom: 'devis.pdf', type: 'application/pdf', taille: 2345 }] });
   poser('INBOX', { objet: 'Avis de sécurité', mid: '<' + PROTEGE + '>', de: 'banc@teamop.fr' });
+  poser('INBOX', { objet: 'Avec HTML', texte: 'Texte brut du message', html: '<p>Version <b>HTML</b> du message</p>', lu: true });
   poser('Envoyés', { de: BX, a: 'client@exemple-2704.fr', objet: 'Votre facture', lu: true });
   poser('Brouillons', { de: BX, a: 'x@exemple-2704.fr', objet: 'Brouillon A', lu: true });
   poser('Archives', { objet: 'Archive 1', lu: true });
@@ -169,7 +170,7 @@ function facteur() {
 
   /* lire, dossier par dossier */
   const inbox = await s.messages({ boite: b.id, dossier: 'inbox' });
-  v('⛔ la Réception de CETTE boîte : trois messages, du plus récent au plus ancien', inbox.map(m => m.objet), ['Avis de sécurité', 'Devis signé', 'Facture mars']);
+  v('⛔ la Réception de CETTE boîte : quatre messages, du plus récent au plus ancien', inbox.map(m => m.objet), ['Avec HTML', 'Avis de sécurité', 'Devis signé', 'Facture mars']);
   const m1 = inbox.find(m => m.objet === 'Facture mars');
   v('un message porte ce que le module lit : expéditeur, date, lu, drapeau, dossier', [m1.de, typeof m1.date, m1.lu, m1.drapeau, m1.dossier, m1.id.startsWith(b.id + '|1|INBOX')], [{ nom: 'Anne Durand', email: 'client@exemple-2704.fr' }, 'number', false, false, 'inbox', true]);
   v('…le nombre de pièces jointes vient de la liste (leurs noms, à l\'ouverture)', inbox.find(m => m.objet === 'Devis signé').pj.length, 1);
@@ -179,6 +180,8 @@ function facteur() {
   v('⛔ lire(id) rend le corps du message ouvert', doc.corps, 'Bonjour, ma facture de mars.');
   const doc2 = await s.lire(inbox.find(m => m.objet === 'Devis signé').id);
   v('…et les pièces jointes avec leur nom et leur taille lisible', doc2.pj, [{ nom: 'devis.pdf', taille: '2 Ko', type: 'doc' }]);
+  const docH = await s.lire(inbox.find(m => m.objet === 'Avec HTML').id);
+  v('⛔ …le corps est le TEXTE du message, jamais son HTML (le module l\'écrit comme du texte)', docH.corps, 'Texte brut du message');
   vrai('…ouvrir marque le message lu CÔTÉ SERVEUR (comme une vraie messagerie)', lireEtat().boites[BX].messages.find(m => m.dossier === 'INBOX' && m.uid === 1).flags.includes('\\Seen'));
 
   /* écrire côté serveur */
@@ -188,7 +191,10 @@ function facteur() {
   const apres = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Facture mars');
   v('…et la liste suivante le montre (la mémoire de la source est oubliée à chaque geste)', [apres.lu, apres.drapeau], [false, true]);
   await s.deplacer(m1.id, 'archive');
-  v('⛔ deplacer(archive) : le message quitte la Réception et arrive dans les Archives du serveur', [(await s.messages({ boite: b.id, dossier: 'inbox' })).map(m => m.objet), (await s.messages({ boite: b.id, dossier: 'archive' })).map(m => m.objet).sort()], [['Avis de sécurité', 'Devis signé'], ['Archive 1', 'Facture mars']]);
+  v('⛔ deplacer(archive) : le message quitte la Réception et arrive dans les Archives du serveur', [(await s.messages({ boite: b.id, dossier: 'inbox' })).map(m => m.objet), (await s.messages({ boite: b.id, dossier: 'archive' })).map(m => m.objet).sort()], [['Avec HTML', 'Avis de sécurité', 'Devis signé'], ['Archive 1', 'Facture mars']]);
+  const iAvis = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Devis signé'), iHtml = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Avec HTML');
+  await s.deplacer(iAvis.id, 'junk'); await s.deplacer(iHtml.id, 'trash');
+  v('⛔ deplacer(junk) et deplacer(trash) : chaque dossier reçoit le sien (Indésirables, Corbeille), pas toujours les Archives', [(await s.messages({ boite: b.id, dossier: 'junk' })).map(m => m.objet).sort(), (await s.messages({ boite: b.id, dossier: 'trash' })).map(m => m.objet).sort(), (await s.messages({ boite: b.id, dossier: 'archive' })).map(m => m.objet).sort()], [['Devis signé', 'Gagnez'], ['Avec HTML', 'Jeté'], ['Archive 1', 'Facture mars']]);
   const refusDossier = await rejette(s.deplacer(m1.id, 'flagged'));
   vrai('un dossier que le serveur ne connaît pas est refusé (rien n\'est envoyé)', /dossier inconnu/.test(refusDossier || ''), refusDossier);
   const prot = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Avis de sécurité');
@@ -225,6 +231,13 @@ function facteur() {
   s = S();
   const rPanne = await rejette(s.messages({ boite: b.id, dossier: 'inbox' }));
   vrai('⛔ une boîte qui ne répond pas (IMAP refusé) est une ERREUR qui le dit — pas une Réception vide', rPanne !== null && /ne répond pas|injoignable|Connection/.test(rPanne) && !rPanne.includes(BX), rPanne);
+  /* une SECONDE boîte, connectée puis jamais lue, qui tombe en panne : le serveur n'a rien en mémoire de ses dossiers, il dit `erreur` — « on ne sait pas où est son dossier Envoyés » n'est pas « elle n'a pas de dossier Envoyés » */
+  const e4 = lireEtat(); e4.boites[B2] = { messages: [], actions: [] }; fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e4)); fs.renameSync(IMAP + '.tmp', IMAP);
+  const b2 = await S().ajouterBoite({ email: B2, mdp: MDP, nom: 'Froide', serveurs: { imap: '127.0.0.1', imapPort: 993, smtp: '127.0.0.1', smtpPort: portSmtp } });
+  const e5 = lireEtat(); e5.pannes[B2] = 'Connection refused pour ' + B2; fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e5)); fs.renameSync(IMAP + '.tmp', IMAP);
+  const rPanneEnv = await rejette(S().messages({ boite: b2.id, dossier: 'sent' }));
+  vrai('⛔ …et pas davantage un dossier Envoyés VIDE : la même panne, dite (la boîte qu\'on n\'a jamais pu lire n\'a pas « zéro dossier »)', rPanneEnv !== null && /ne répond pas/.test(rPanneEnv) && !rPanneEnv.includes(B2), rPanneEnv);
+  await S().retirerBoite(b2.id);
   const e3 = lireEtat(); delete e3.pannes[BX]; fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e3)); fs.renameSync(IMAP + '.tmp', IMAP);
   const rInconnue = await rejette(S().messages({ boite: 'b00000000', dossier: 'inbox' }));
   vrai('une boîte que le serveur ne connaît pas est une erreur', /introuvable/.test(rInconnue || ''), rInconnue);
