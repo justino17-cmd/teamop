@@ -160,10 +160,26 @@ async function jouer(J, K, o) {
 
   await passe('Tour : la demande est acceptée (espace, formule, métier)', async (e) => {
     tour.etape = 'Tour : accepter';
-    await tour.toucher({ texte: 'Entreprises', exact: true });
-    const vue = await tour.attendre(async () => (await tour.texte()).includes(C.entreprise), 10000);
+    /* La Tour v2.87 a son écran « Demandes » : la carte de la demande, un champ pour l'identifiant de départ, et
+       « Accepter et ouvrir l'espace ». C'est le chemin de Justin ; l'ancien (la fiche d'une entreprise de la liste)
+       reste joué pour une Tour d'avant. */
+    let parDemandes = false;
+    if (await tour.toucher({ texte: 'Demandes', exact: true }, 4000)) {
+      const carte = await tour.attendre(async () => (await tour.texte()).includes(C.entreprise) && /Accepter et ouvrir/.test(await tour.texte()), 10000);
+      if (carte) {
+        const paye = /payé ·/.test(await tour.texte());
+        e.note('écran Demandes : la demande y est' + (paye ? ', marquée « payé »' : ', SANS la marque « payé »'));
+        if (!paye) K.constat('défaut', 'Tour : la demande d\'une cliente qui a payé n\'est pas marquée « payé »', 'Stripe porte l\'abonnement à son adresse', 'Tour');
+        await tour.taper('[id^="dem-id-"]', 'camille');
+        e.capture(await tour.capture('tour-demandes'));
+        parDemandes = !!(await tour.toucher({ texte: 'Accepter et ouvrir l’espace' }));
+      } else e.note('écran Demandes ouvert, mais la demande n\'y est pas');
+    }
+    if (!parDemandes) await tour.toucher({ texte: 'Entreprises', exact: true });
+    const vue = parDemandes || await tour.attendre(async () => (await tour.texte()).includes(C.entreprise), 10000);
     let fiche = false, parFonction = false;
-    if (vue) {
+    if (parDemandes) { /* acceptée depuis la carte */ }
+    else if (vue) {
       await tour.toucher({ texte: C.entreprise, exact: true }) || await tour.toucher(C.entreprise);
       fiche = await tour.attendre(async () => /Accepter la demande/.test(await tour.texte()), 8000);
     } else {
@@ -179,14 +195,15 @@ async function jouer(J, K, o) {
         'qui ne lit que l\'annuaire et les connexions (server/index.js, /api/monitor/entreprises). Seul détour : ouvrir d\'abord un espace à son adresse (Accès › « Accès à la version publique »), ' +
         'pour que l\'entreprise paraisse, puis l\'accepter depuis sa fiche — deux gestes, et rien ne l\'indique.', 'Tour');
     }
-    tour.repondreDialogue('camille');   // la fenêtre « identifiant » de l'acceptation
-    if (fiche) await tour.toucher({ texte: 'Accepter la demande' });
+    tour.repondreDialogue('camille');   // la fenêtre « identifiant » de l'acceptation (Tour d'avant)
+    if (parDemandes) { /* déjà parti */ }
+    else if (fiche) await tour.toucher({ texte: 'Accepter la demande' });
     else { parFonction = true; e.note('fiche introuvable au doigt : acceptation jouée par tourAccepterDemande()');
       await tour.ev(`(async()=>{ if(typeof chargerClients==='function') chargerClients(); await new Promise(r=>setTimeout(r,800)); tourAccepterDemande(${JSON.stringify(C.email)}, ${JSON.stringify(C.entreprise)}); return 1; })()`); }
     const esp = await J.attendreEspace(C.email, 15000);
     if (!esp) { e.note('aucun espace créé dans l\'annuaire'); return false; }
     etat.slug = esp.cle; etat.espace = esp.e;
-    e.note('espace « ' + esp.cle + ' » · formule ' + (esp.e.formule || '—') + ' · métier ' + (esp.e.metier || '—') + (parFonction ? ' (par la fonction)' : ''));
+    e.note('espace « ' + esp.cle + ' » · formule ' + (esp.e.formule || '—') + ' · métier ' + (esp.e.metier || '—') + (parDemandes ? ' (depuis l\'écran Demandes)' : parFonction ? ' (par la fonction)' : ''));
     if (esp.e.formule !== C.formule) K.constat('défaut', 'La formule posée par la Tour n\'est pas celle demandée', 'demandée ' + C.formule + ', posée ' + esp.e.formule, 'Tour');
     if ((esp.e.metier || '') !== C.metier) K.constat('défaut', 'Le métier demandé n\'arrive pas sur l\'espace', 'demandé ' + C.metier + ', posé ' + (esp.e.metier || 'rien'), 'Tour');
     e.capture(await tour.capture('tour-acceptee'));
@@ -235,6 +252,12 @@ async function jouer(J, K, o) {
     if (!b) { e.note('bouton d\'enregistrement introuvable'); return false; }
     const ferme = await p.attendre(async () => !(await p.ev(`!!(document.querySelector('#fp-p1')&&document.querySelector('#fp-p1').getClientRects().length)`)), 8000);
     if (!ferme) e.note('la fenêtre reste ouverte : ' + (await p.texte()).slice(0, 200));
+    /* le compte qu'elle a reçu porte-t-il SON nom ? La demande le disait (prénom, nom) */
+    const nom = await p.ev(`typeof currentUser!=='undefined'&&currentUser ? ((currentUser.prenom||'')+' '+(currentUser.nom||'')).trim() : ''`).catch(() => '');
+    e.note('compte : « ' + nom + ' »');
+    if (nom && nom !== C.prenom + ' ' + C.nom) K.constat('à regarder', 'Le compte de la cliente ne porte pas son nom : « ' + nom + ' »',
+      'La demande disait « ' + C.prenom + ' ' + C.nom + ' ». Le compte de départ d\'un espace neuf naît « OP Admin » (app.html, ESPACE NEUF) et rien ne le renomme : ' +
+      'elle se voit « ' + nom + ' » dans son application, son journal et ses documents.', 'mot de passe');
     return ferme;
   });
 

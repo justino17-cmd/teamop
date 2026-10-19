@@ -70,11 +70,127 @@ Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `s
 
 ---
 
-# ⏳ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
+# ⏳ 17 OCTOBRE 2026 (NUIT) — LA TOUR v2.88 REPRISE DE A À Z : DEUX CONSOLES SÉPARÉES, UNE VRAIE BOÎTE MAIL — RIEN SUR `main`
+
+Justin : « refais toute la Tour de A à Z […] sépare bien les demandes d'OP GESTION et d'OP MESSAGES […] la Tour contrôle
+OP GESTION et l'autre côté contrôle OP MESSAGES […] une vraie boîte mail intégrée » ; puis « revois toutes les catégories,
+corrige les bugs, améliore et simplifie-la ». Ses réponses : OP MESSAGES **par un relais d'`api.teamop.fr`** ; le courrier
+**« mêmes boîtes, triées »** ; le ménage du menu **fait** ; le module d'OP MESSAGES **sur sa branche**.
+
+**Ce qui est fait, sur `claude/tour-refonte` (Tour v2.88 + serveur) :**
+- **menu** : dix entrées → huit (Équipe en onglet d'Accès, Sauvegardes en onglet de « Système »/Journal ; Connexions et
+  Devis IA en onglets d'Entreprises et d'Abonnements ; les anciennes adresses y mènent encore) ;
+- **Demandes** (OP GESTION seul) : payé lu chez Stripe, accepter LA demande de la carte, refus et attente dits (`test-1014`) ;
+- **console OP MESSAGES branchée sur son serveur** : Comptes, Espaces, Abonnements, Service (état + journal), instance
+  Publique/Bêta — par `GET /api/monitor/messages/admin/*` (relais en boucle locale, `test-1016`) ;
+- **Courrier dans les deux consoles, trié** : HTML isolé, pièces, répondre/à tous/transférer, écrire (copie, cci, pièces),
+  brouillon, déplacer, supprimer, ranger une adresse ou un domaine, pages, relève toutes les 2 min (`test-1018`,
+  `scratchpad/sonde-courrier.js` : 27 ✓ au bureau, 27 ✓ au téléphone, contre le vrai serveur et une boîte IMAP de banc) ;
+- **Journal des gestes noté par le serveur** (`MON_GESTES`, `test-1015` : 78 routes POST classées, `poser()` compris) ;
+- **la revue des catégories** : une trentaine de défauts réels corrigés (relectures, puis `test-1017`), dont : onglets restés
+  en squelette, fiche invisible derrière un onglet, recherche qui perdait le champ, Stripe en panne lu « 0 € », factures
+  annulées comptées « refusées », graphique trié faux dès novembre, note de Surveillance effacée chaque minute, faux
+  « Accès supprimé », deux codes envoyés à un client sur un double clic, Journal qui mentait sur lui-même, « Accepter » de
+  la fiche qui pouvait rétrograder une cliente qui paie ;
+- **fusionnée** : `claude/tour-courrier-serveur` (le serveur du courrier trié, `test-1012`).
+Toutes les contre-épreuves de ces bancs mordent (scripts `scratchpad/mut-10*.py`).
+- **relecture `gardien` du serveur** (journal, relais, courrier) : aucun bloquant ; quatre points corrigés — ranger tout un
+  DOMAINE réservé au patron (un compte du Courrier faisait disparaître en silence « @gmail.com » de la vue GESTION), 30
+  brouillons par heure et par compte (à part des envois), adresse masquée dans la cible d'un geste (identifiant de connexion,
+  règle de tri), réponse du relais comptée en octets pendant la lecture (`test-1012`, `test-1015`, `test-1016` ; 8 mutations
+  sur 8 mordent, `scratchpad/mut-gardien.py`). Vérifié et écarté : `adresses`/`id` du relais ne portent aucune adresse
+  (oui|non, identifiant opaque) — rien de personnel au journal d'accès de nginx.
+- **passe de clics sur la Tour finale** (`scratchpad/sonde-tour-clics.js`, jumeau, bureau + téléphone, deux consoles) :
+  44 écrans, 114 gestes touchés pour de vrai, aucune erreur JavaScript, aucune page figée. Un défaut réel : « ↻ Actualiser »
+  (Comptes du site, Connexions) ne montrait rien sur une liste relue à l'identique — il le dit désormais (`test-1017` § 6 bis).
+  ⚠️ Le « gel » des deux premières passes était la SONDE : « Ouvrir dans Stripe » ouvrait un onglet qui passait devant la
+  Tour, dont la page ne se peignait plus (rAF arrêté) — vu par une pause du débogueur (`scratchpad/sonde-fige.js`). La sonde
+  neutralise `window.open`, borne chaque appel au navigateur, remet filtres et sous-onglets à leur départ entre deux gestes
+  et n'attribue à la Tour que les appels de SON onglet. Restent attendus : les 503 « relais non configuré » d'OP MESSAGES.
+- **toute la suite** (`bash scripts/bancs-ci.sh`) : 323 suites vertes — `test-968` et `test-1003` sautaient leur partie
+  service faute de `server-msg/node_modules` dans la copie de travail ; installées, 63 ✓ et 72 ✓.
+
+**Les autres branches :**
+| branche | contenu | ce qu'il lui faut |
+|---|---|---|
+| `claude/correctifs-controle` | `X-Powered-By` retiré (`test-1011`), polices du site chez nous, cibles au doigt du site | **phrase de Justin** (serveur + site) |
+| `claude/app-correctifs-controle` | sur la ligne **v768** : Organilog, langue, polices, nom du compte de départ (`test-1013`) | part AVEC la v768 (bêta d'abord) |
+| `claude/msg-admin` | `server-msg/admin.js` + `configurer-admin.js` (`test-2690`, `test-2691`) | part avec OP MESSAGES (son déploiement, son approbation) |
+
+**⛔ L'ORDRE DE MISE EN LIGNE (rien ne part sans la phrase de Justin) :**
+1. **le serveur d'abord** (`server/` de `claude/tour-refonte` sur `main` = déploiement du VPS). Il est rétrocompatible avec la
+   Tour en ligne : champs ajoutés seulement, la liste du courrier sans `console` rend tout comme avant. Sur le VPS, hors dépôt :
+   **nginx doit laisser passer 20 Mo** sur `/api/monitor/mail/envoyer` et `/brouillon` (`client_max_body_size`) ;
+2. **essai de la Tour** par Justin sur `teamop.fr/apercu/tour.html` (v2.88) — contre l'ancien serveur, l'aperçu ne montre
+   ni le tri du courrier, ni le Journal des gestes, ni OP MESSAGES : c'est pour ça que le serveur passe avant ;
+3. puis `tour.html` sur `main` ;
+4. le relais vers OP MESSAGES s'allume quand les DEUX côtés ont le même secret, en saisie masquée :
+   `node /opt/teamop/repo/server/configurer-relais-messages.js beta` (api) et `configurer-admin.js` (OP MESSAGES) — les deux
+   disent la même empreinte courte. Jusque-là la console OP MESSAGES dit « relais non configuré », avec ces deux gestes.
+5. **la boîte mail que Justin crée** (« tu auras juste à l'ajouter dans la Tour ») : Courrier → **Relier une boîte** — adresse,
+   mot de passe TAPÉ DANS LA TOUR (jamais dans une conversation), serveurs OVH par défaut. Le serveur en ligne a déjà la route
+   (`POST /api/monitor/mail/boites`, patron) ; c'est le FORMULAIRE qui n'existe que dans la v2.88 — l'aperçu suffit.
+
+**⏸ PASSATION (17 octobre 2026, nuit)** — Justin reprend tout dans UNE conversation, celle d'**OP Courrier** (l'interface mail
+qu'il fait faire à part et qu'il voulait « juste ajouter dans la Tour » : le Courrier de la v2.88 fait DOUBLON avec elle). Après la
+reprise de la mise en ligne : `test-900` (« server/ ne nomme pas OP MESSAGES », arrivée avec main) corrigé en `2b2132d` ; la
+préparation a été ARRÊTÉE à nouveau avant la fin de la suite complète — rien sur `main`. À décider : retirer le Courrier de la v2.88
+au profit d'OP Courrier, ou le garder en attendant ; les routes `server/mail.js` (boîtes IMAP, tri par console) peuvent servir de
+moteur à OP Courrier.
+
+**⏸ MISE EN LIGNE ARRÊTÉE (17 octobre 2026, à la demande de Justin, « on va arrêter »)** — il avait dit « serveur + aperçu ».
+RIEN n'est parti sur `main`. Où on en était : `main` fusionné dans la branche (`264f27e`) ; `scripts/preparer-deploiement-serveur.sh`
+reçoit `TOUR_EN_SERVICE=garder` (le serveur et l'APERÇU de la Tour partent, la Tour en service reste celle de main) ; la porte a
+REFUSÉ le premier commit préparé : `test-834` et `test-1012` lancent le serveur avec `tests/faux-imap.js`, absent de l'arbre de
+déploiement (une aide de test, pas une suite). Le script emporte désormais les aides que les suites chargent (§ 1 ter) — ⚠️ cette
+dernière retouche n'a PAS encore été rejouée par la porte : relancer `TOUR_EN_SERVICE=garder bash scripts/preparer-deploiement-serveur.sh`
+(retirer d'abord l'arbre `scratchpad/deploiement-serveur` par `git worktree remove --force`), puis pousser sur la phrase de Justin.
+
+**À trancher par Justin :**
+- l'administration d'OP MESSAGES (comptes et leurs adresses « courriel ») est lisible par TOUT compte de la console OP
+  MESSAGES, pas le seul patron — comme les Demandes d'OP GESTION pour ses opérateurs. Resserrer = `monPatronStrict` sur
+  `/api/monitor/messages/admin/:route` (relecture `gardien`) ;
+- un compte de la Tour qui n'a QUE la console OP MESSAGES ne voit pas le Courrier (le serveur range `mail/*` dans OP GESTION :
+  la boîte porte les liens de connexion des entreprises) — le lui ouvrir, filtré côté serveur, est un chantier de plus ;
+- l'identifiant public « Prénom#1234 » sort par l'administration d'OP MESSAGES (seul moyen de retrouver un compte par
+  téléphone sans son numéro) ;
+- `app.html` charge encore Leaflet, pdf.js, jsPDF et Tesseract chez des CDN — et les tuiles de carte viennent d'un serveur
+  de cartes : une décision de sous-traitance, pas un correctif.
+✅ Écarté après lecture : la fenêtre « Photo de profil » au rechargement est VOULUE (`maybeProfilePhoto`).
+
+---
+
+# ⏳ 17 OCTOBRE 2026 (SOIR) — LE COURRIER DE LA TOUR : « MÊMES BOÎTES, TRIÉES » — LE SERVEUR (fusionné dans `claude/tour-refonte`, que la Tour v2.88 appelle)
+
+Justin : la Tour a deux consoles (OP GESTION, OP MESSAGES) et, pour le courrier, « mêmes boîtes, triées ». Branche
+`claude/tour-courrier-serveur` — **pas sur `main`** (un push de `server/` sur `main` déploie le VPS : il attend sa phrase).
+Serveur seulement — la Tour qui l'appelle est la v2.88 (entrée ci-dessus) ; la Tour en ligne marche sans changement.
+
+- **Fait** (`server/mail.js`, `server/index.js`, `tests/test-1012.js`, `tests/faux-imap.js`) : chaque message de `/mail/liste` et
+  `/mail/message` porte `console` ('gestion' | 'messages' | 'atrier') et `interlocuteur` ; `/mail/liste?console=` rend la console demandée
+  ET les messages à trier ; `POST /mail/regle` pose une règle par adresse ou par domaine (`GET /mail/regles` les liste) ; l'envoi et le
+  brouillon ont leur analyseur de 20 Mo (les autres routes gardent 6 Mo) et l'envoi 60 messages par heure et par compte ; `/mail/dossiers`
+  rend les non-lus de CHAQUE dossier (STATUS, gardés 20 s, oubliés à chaque geste) ; les erreurs ne recopient plus d'adresse ; la relève du
+  support importe toujours mais ne marque plus « lu » une boîte que la Messagerie relève.
+- **⚠️ À faire avant que la Tour s'en serve** : (1) nginx de l'API doit laisser passer ≥ 20 Mo sur `/api/monitor/mail/envoyer` et
+  `/brouillon` (`client_max_body_size`, hors dépôt : à lire sur le VPS — les 6 Mo d'avant en supposaient déjà ≥ 6) ; (2) la Tour doit lire
+  `console`, `interlocuteur`, `nonLus` par dossier et appeler `/mail/regle` ; (3) ⛔ **les comptes limités à OP MESSAGES n'atteignent PAS le
+  courrier** (`ROUTES_COMMUNES`/`monAppDeRoute` : tout `mail/*` est GESTION — la boîte contient les liens de connexion des entreprises). « Mêmes
+  boîtes pour les deux consoles » demande à Justin ce que voit un compte OP MESSAGES seul : rien (état actuel), ou seulement `console=messages`
+  — ce qui exige de sortir `liste` et `message` de la table, et de filtrer côté serveur plutôt que de croire la Tour.
+- **Le crochet d'OP MESSAGES** : `adresseConnueMessages` (`server/index.js`) rend faux. Le jour où OP MESSAGES a son serveur, c'est elle qu'on branche
+  (une requête à délai court, repli sur « faux »). D'ici là, ce qu'OP MESSAGES réclame se range par règle.
+- **Limites connues** : le filtre par console examine les 1 500 messages les plus récents d'un dossier (`tronque: true` au-delà) ; monté sans
+  `quotaOk`, l'envoi répond 503 plutôt que de partir sans limite ; une règle ne se retire que par `POST /mail/regle … console:null` ; les
+  non-lus d'un dossier sont `null` quand le serveur IMAP n'a pas su répondre (« on ne sait pas » n'est pas « zéro »).
+
+---
+
+# ✅ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
 
 Justin : « je voudrais qu'ils partent du site internet comme s'ils commandaient l'application […] je veux un
-contrôle ». Branche `claude/controle-client-mystere` — **pas sur `main`** (attend sa phrase ; rien de servi ne
-change : `scripts/controle/`, `.claude/`, `CLAUDE.md`, ce fichier).
+contrôle ». **Fusionné sur `main` le 17 octobre au soir** (`9fd78c3`, phrase de Justin) — rien de servi ne change :
+`scripts/controle/`, `.claude/`, `CLAUDE.md`, ce fichier. Les correctifs de ce qu'il a trouvé : entrée ci-dessus.
 
 - **Ce qui existe** : `node scripts/controle/controle.js <sortie>` (skill `/controle`, agent `client-mystere`).
   Un JUMEAU sur 127.0.0.1 — le site assemblé servi sous ses vraies adresses, le vrai `server/index.js` isolé,

@@ -82,6 +82,8 @@ try{
   .mdp-oeil[aria-pressed="true"]{color:var(--m-link)}
   /* au doigt, l'œil prend les 44 px que le champ (48) lui laisse */
   @media (pointer:coarse){.mdp-oeil{width:44px;height:44px;right:2px}}
+  /* un lien seul sur sa ligne répond sur 44 px au doigt (il en faisait 16 à 20 — contrôle client mystère, 17 octobre 2026) */
+  @media (pointer:coarse){a.lien-geste,.liens a{display:inline-flex;align-items:center;min-height:44px}}
   /* Le remplissage automatique de Safari peint les champs en jaune : on repeint par-dessous avec le fond du
      champ et l'encre du thème, dans les deux modes. */
   input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:var(--m-text);caret-color:var(--m-text);-webkit-box-shadow:0 0 0 1000px var(--m-tile) inset;box-shadow:0 0 0 1000px var(--m-tile) inset;transition:background-color 9999s ease-out 0s}
@@ -137,7 +139,7 @@ try{
   <div class="bloc" id="etape-connexion" style="display:none">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px">
       <span class="chip">🏢 <span id="cx-adr">teamop.fr/…</span></span>
-      <a href="/apercu/connexion.html" style="color:var(--m-link);font-size:13px;text-decoration:none">ce n'est pas mon entreprise</a>
+      <a href="/apercu/connexion.html" class="lien-geste" style="color:var(--m-link);font-size:13px;text-decoration:none">ce n'est pas mon entreprise</a>
     </div>
     <div class="titre">Connexion</div>
     <div class="aide">Ton identifiant et ton mot de passe — les mêmes que dans l'application, sur n'importe quel appareil.</div>
@@ -459,7 +461,7 @@ try{
       <span class="fleche">›</span>
     </a>
   </div>
-  <div id="lien-espace-client" style="margin-top:18px;display:none"><a href="/apercu/espace.html" style="color:var(--m-link);font-size:14px;text-decoration:none">👤 Espace client TeamOP (abonnement, factures)</a></div>
+  <div id="lien-espace-client" style="margin-top:18px;display:none"><a href="/apercu/espace.html" class="lien-geste" style="color:var(--m-link);font-size:14px;text-decoration:none">👤 Espace client TeamOP (abonnement, factures)</a></div>
   <div class="note">💡 Chaque entreprise a son adresse : <b>teamop.fr/e/son-nom</b>. Donne-la à tes équipes — identifiant et mot de passe suffisent, sur n'importe quel téléphone.<br><a href="/apercu/site/index.html?hub=1">← Revenir au site TeamOP</a> · <a href="/apercu/connexion.html?choix=1">Changer d'application</a></div>
 <div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
 </html>

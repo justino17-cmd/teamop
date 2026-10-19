@@ -32,7 +32,7 @@ function bloc(motif) {
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'esc', 'jsq', 'ini', 'fmtJour', 'fmtDate', 'fmtHeure', 'fmtAgo', 'videTour', 'nMot',
-  'appDe', 'appVisible', 'incDeLaConsole', 'incOuverts', 'incToutIgnorer', 'nbEntSurveillees', 'entQ', 'chargerIncidents', 'chargerJournal', 'chargerEquipe',
+  'appDe', 'appVisible', 'incDeLaConsole', 'incOuverts', 'incToutIgnorer', 'nbEntSurveillees', 'entQ', 'incNoteEnCours', 'chargerIncidents', 'chargerJournal', 'chargerEquipe',
   'vuesDe', 'vuePermise', 'vues', 'vueJournal', 'jrGroupe', 'teteListe', 'vueEquipe', 'eqNoteCollaborateur', 'libsPatronSeul', 'appsDuCompte', 'enPhrase', 'acSquel'];
 const VARS = ['MENU', 'PATRON_SEUL', 'APPS_TOUR', 'APP_TEINTE', 'INJOIGNABLE', 'INC', 'JR', 'EQ', 'ENT', 'CLI'];
 const SRC = NOMS.map(bloc), SRCV = VARS.map(bloc);
@@ -123,8 +123,8 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     await fetch(B + '/api/beta/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '203.0.113.9' }, body: JSON.stringify({ login: 'intrus-979', pass: 'mauvais', app: 'messages' }) });
     TG.run('chargerJournal()'); TM.run('chargerJournal()');
     vrai('population : le journal du serveur est lu, et porte les deux actions', (await TG.attendre('JR.loaded&&JR.cnx.some(function(j){ return /messages-beta/.test(j.motif); })&&JR.cnx.some(function(j){ return /gestion-beta/.test(j.motif); })')) && (await TM.attendre('JR.loaded')));
-    TG.run("JR.actions=[{ts:Date.now(),app:'gestion',tx:'Geste fait dans OP GESTION'},{ts:Date.now(),app:'messages',tx:'Geste fait dans OP MESSAGES'}]");
-    TM.run("JR.actions=[{ts:Date.now(),app:'gestion',tx:'Geste fait dans OP GESTION'},{ts:Date.now(),app:'messages',tx:'Geste fait dans OP MESSAGES'}]");
+    TG.run("JR.serveur=[{ts:Date.now(),app:'gestion',tx:'Geste fait dans OP GESTION'},{ts:Date.now(),app:'messages',tx:'Geste fait dans OP MESSAGES'}]");   // v2.88 : les gestes viennent du serveur (JR.serveur), la page n'en garde plus de copie
+    TM.run("JR.serveur=[{ts:Date.now(),app:'gestion',tx:'Geste fait dans OP GESTION'},{ts:Date.now(),app:'messages',tx:'Geste fait dans OP MESSAGES'}]");   // v2.88 : les gestes viennent du serveur (JR.serveur), la page n'en garde plus de copie
     TG.run("JR.f='tout'"); TM.run("JR.f='tout'");
     const jg = texte(TG.run('vueJournal()')), jm = texte(TM.run('vueJournal()'));
     v('⛔ Journal d\'OP GESTION : son geste, pas celui d\'OP MESSAGES', [/Geste fait dans OP GESTION/.test(jg), /Geste fait dans OP MESSAGES/.test(jg)], [true, false]);
@@ -142,7 +142,8 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     v('⛔ console OP MESSAGES : le patron, Mona et Dora ; Gaston à part', [gM['Accès ouverts'], gM['Sans accès à la Tour OP MESSAGES']], [['Patron', 'Mona', 'Dora'], ['Gaston']]);
     vrai('le formulaire coche la console ouverte, pas l\'autre', /id="eq-app-messages" checked/.test(TM.run('vueEquipe()')) && !/id="eq-app-gestion" checked/.test(TM.run('vueEquipe()')) && /id="eq-app-gestion" checked/.test(TG.run('vueEquipe()')));
     vrai('⛔ plus de « (en travaux) » à côté d\'OP MESSAGES', !/en travaux/.test(TM.run('vueEquipe()')));
-    vrai('la note du collaborateur décrit SA console : dans OP MESSAGES, pas d\'Abonnements ni de Courrier', !/Abonnements|Courrier/.test(TM.run('eqNoteCollaborateur()')) && /Courrier/.test(TG.run('eqNoteCollaborateur()')));
+    /* v2.88 : OP MESSAGES a SES Comptes et SES Abonnements (lus sur son serveur) ; le Courrier et les Demandes restent à OP GESTION */
+    vrai('la note du collaborateur décrit SA console : dans OP MESSAGES, ses Comptes, pas de Courrier ni de Demandes', !/Courrier|Demandes/.test(TM.run('eqNoteCollaborateur()')) && /Comptes/.test(TM.run('eqNoteCollaborateur()')) && /Courrier/.test(TG.run('eqNoteCollaborateur()')));
 
     console.log('\n── 979 · 6. Entreprises ──');
     /* une erreur d'OP GESTION et deux d'OP MESSAGES, chez la même entreprise */
