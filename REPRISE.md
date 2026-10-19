@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# ⏳ OP COURRIER — UN MODULE PARTAGÉ, MONTÉ DANS LES TROIS HÔTES : OP GESTION (BÊTA), LA TOUR v2.90, OP MESSAGES PRO (BÊTA) (18 octobre 2026)
+# ⏳ OP COURRIER — UN MODULE PARTAGÉ, MONTÉ DANS LES TROIS HÔTES : OP GESTION (BÊTA), LA TOUR v2.91, OP MESSAGES PRO (BÊTA) (18 octobre 2026)
 
 Justin a validé la maquette d'**OP Courrier** (messagerie e-mail de TeamOP : côtés Pro et Perso, tri automatique, signature électronique), puis changé d'avis sur sa forme :
 « je veux pas que ça soit une application à part ; je veux que ça remplace Mail, qui est actuel dans OP GESTION et dans la Tour, et que tu l'ajoutes au côté Pro d'OP MESSAGES » ;
@@ -23,7 +23,7 @@ Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `s
 
 - **L'ÉTAT RÉEL DES TROIS HÔTES (fin de la moitié 2)**
   · **OP GESTION** (`beta.html` seulement, `BETA_ESSAI`) : voir « moitié 1 » ci-dessous — la production garde la vue d'avant, octet pour octet.
-  · **La TOUR v2.90** (`tour.html`, branche seulement — le `tour.html` EN SERVICE ne change qu'à la phrase de Justin ; `apercu/tour.html` régénéré). **Le Courrier d'avant est RETIRÉ** (`vueSupport` et ses 800 lignes : trois volets,
+  · **La TOUR v2.91** (`tour.html`, branche seulement — le `tour.html` EN SERVICE ne change qu'à la phrase de Justin ; `apercu/tour.html` régénéré). **Le Courrier d'avant est RETIRÉ** (`vueSupport` et ses 800 lignes : trois volets,
     rangement par entreprise, composeur, « Envois TeamOP » ; ses règles de feuille et ses vues de transition) : la vue monte `OPCourrier` (`courrierMonter`, chargé à l'ouverture seulement, démonté en quittant la vue, thème de la
     Tour suivi en direct, clé `tour_courrier` vidée par `doLogout`), branché par `courrierSource` sur les VRAIES routes de `server/mail.js` (`/api/monitor/mail/boites|dossiers|liste|message|flag|deplacer|envoyer`, même
     jeton que l'écran d'avant). Marquer, déplacer (Archive, Indésirables, Corbeille), envoyer avec pièces, réglages de serveur : branchés ; Google/Microsoft, envoi programmé, signature : « Bientôt », dits par le module.
@@ -31,11 +31,21 @@ Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `s
     ⚠️ **MAIS LE SERVEUR DE PRODUCTION DÉTIENT DÉJÀ SES BOÎTES** (`mail-boites.json` : support@, controle@, contact@ — il reprend même l'ancienne boîte unique `support-box.json` au démarrage) : l'adaptateur relit ce que le
     serveur détient, il n'efface rien. Pour « repartir vide » comme Justin l'a dit, il faut RETIRER chaque boîte (module : « Retirer » → `/boites/retirer`) puis les REAJOUTER par l'interface ; sinon la Tour s'ouvre avec ses
     boîtes déjà là (les réglages, brouillons et tris appris du module, eux, partent bien de zéro). Décision de Justin à prendre.
-    ⚠️ Perdu avec l'ancien écran, sans remplaçant : « Envois TeamOP » (le journal des e-mails que le SERVEUR envoie : codes, invitations — la route `/api/monitor/mails` existe toujours), le rattachement d'un courriel à une
-    entreprise (le tri `console` du serveur existe, la Tour ne l'utilisait pas non plus), le téléchargement d'une pièce reçue (`/api/monitor/mail/piece` : le module n'a pas de contrat pour ça), le suivi d'une demande
-    (`/mail/suivi`) et la réponse qui référence le message (`enReponseA` : le contrat de `envoyer` n'a pas de champ pour ça — le fil de discussion ne se reforme pas chez le destinataire). Gardes : `test-2704`
-    (la page, la VRAIE `courrierSource` contre le VRAI serveur isolé avec fausse boîte IMAP, 58 contrôles), `test-671` (le contrat serveur ↔ Tour, réécrit), sonde `scratchpad/courrier/sonde-tour.js` (34),
-    mutations `scratchpad/courrier/mutations-tour.py` (28, toutes tombent). `test-670` est retiré (il gardait le texte de l'ancien écran) ; 681, 830, 979, 1019 adaptés.
+    ✅ **v2.91 (19 octobre 2026, Justin : « fais-les ») — les quatre fonctions de l'ancien Courrier de la Tour sont RENDUES.** Le contrat de la source gagne trois capacités, déclarées (`=== true`) ET portées par une
+    méthode (sinon le module ne promet rien) : `journalEnvois` (`envois()`), `telechargerPiece` (`piece(idMessage, idPiece)` → Blob), `suivi` (`suivi(id,{statut,assigne})`) ; et `envoyer(mail)` reçoit `enReponseA`.
+    ① **Envois TeamOP** : un dossier en lecture seule (lignes `jr`, jamais rangées, marquées ni répondues ; pas de sélection multiple), présent seulement si la source le déclare, lu même SANS boîte connectée
+      (`/api/monitor/mails`) ; un journal illisible est « ko » et se dit — jamais « aucun envoi » ; un envoi qui n'est pas parti (`echec`) ou pas encore (`retard`) le dit. ② **Pièce reçue** : un bouton sur chaque pièce
+      qui porte un identifiant (`/mail/piece?idx=`) ; Blob rendu NEUTRE (octet-stream : un « text/html » de l'expéditeur n'est jamais ouvert), nom assaini (séparateurs de chemin, contrôles, inversion de sens U+202E,
+      noms réservés de Windows, 120 signes en gardant l'extension). ③ **Suivi d'une demande** : l'ancien écran ne le montrait pas (il ne lisait que `lu`) — le serveur le tient pourtant (À traiter / En cours /
+      Résolu, qui s'en charge, qui a fait le geste, par Message-ID) : le module le montre sur un message reçu de la Réception dont la source dit le suivi, l'applique AVANT la réponse et le défait si le serveur refuse,
+      sur place (la réponse ne vole pas le focus). ④ **Répondre dans le fil** : Répondre, Répondre à tous et réponses rapides portent `enReponseA` ; la Tour envoie `{mid, dossier, uid}` depuis la boîte du message,
+      `{mid}` seul depuis une autre boîte (sinon c'est le message du MÊME numéro de l'autre boîte qui serait marqué « répondu » — mesuré) ; le serveur en fait In-Reply-To / References, « répondu » et suivi « en cours ».
+    OP GESTION et OP MESSAGES ne déclarent rien : RIEN ne change chez eux (`/api/sendmail` ne porte pas `enReponseA` — vérifié ; la source d'OP GESTION l'ignore). **Aucune route serveur n'a manqué** : `server/` n'est pas touché.
+    ⚠️ Perdu avec l'ancien écran, sans remplaçant (inchangé) : le rattachement d'un courriel à une entreprise (le tri `console` du serveur existe, la Tour ne l'utilisait pas non plus) et les noms d'entreprise sur
+    les lignes d'« Envois TeamOP ». Gardes : `test-2704` (la VRAIE `courrierSource` contre le VRAI serveur isolé avec fausse boîte IMAP, 88 contrôles), `test-2702` (le module, 164), `test-671` (le contrat serveur ↔ Tour),
+    sonde `scratchpad/courrier/sonde-tour.js` (59 : quatre gestes au navigateur, bureau et 390 px, jour et nuit, cibles de 44 px, un fichier réellement téléchargé), mutations `scratchpad/courrier/mutations-tour.py`
+    (43, toutes tombent) et `mutations-module.py` (série G, 28, `FILTRE='^G[0-9]'`, toutes tombent). Deux défauts attrapés PAR les bancs en route : un `.then(ok, ko)` qui ne rattrapait pas sa propre exception (le journal
+    d'une réponse illisible jetait au lieu de se dire), et un suivi repeint en remplaçant la ligne (le focus partait à l'arrivée de la réponse du serveur). `test-670` est retiré ; 681, 830, 979, 1019 adaptés.
   · **OP MESSAGES PRO** (bêta seulement) : une rubrique « Courrier » à la suite de l'Agenda, **côté Pro seulement** (le menu et la barre d'onglets ne la portent pas côté Perso ; passer côté Perso depuis elle ramène aux
     Messages) et **seulement si le SERVICE dit être la bêta** (`source.courrierOuvert()` lit `instance` de `/api/config` : `prod` → rien ; configuration illisible → rien). Le module est copié par `scripts/opmsg-public.js` dans
     `server-msg/public/opcourrier.js` (même origine, dans l'empreinte de version, refusé s'il appelait un réseau) et chargé à l'ouverture de la rubrique. **L'adaptateur est VIDE** (`courrierSource()` de
