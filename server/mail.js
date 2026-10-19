@@ -552,6 +552,20 @@ module.exports = function monterMessagerie(app, ctx) {
   });
 
   /* ═════════════════════ DÉPLACER / CORBEILLE ═════════════════════ */
+  const CREABLES = { archives: 'Archives', indesirables: 'Junk', corbeille: 'Trash' };
+  async function creerDossier(b, nom) {
+    const chemin = await avecImap(b, async client => {
+      const essais = [nom];
+      try { const l = await client.list(); const i = l.find(x => String(x.path).toUpperCase() === 'INBOX'); if (i && i.delimiter) essais.push('INBOX' + i.delimiter + nom); } catch (_) {}
+      for (const c of essais) {
+        try { const r = await client.mailboxCreate(c); return (r && r.path) || c; }
+        catch (e) { if (e && /exist/i.test(String(e.responseText || e.message || ''))) return c; }
+      }
+      return '';
+    });
+    cacheDossiers.delete(b.id);
+    return chemin;
+  }
   app.post('/api/monitor/mail/deplacer', monAdmin, async (req, res) => {
     const b = trouve((req.body || {}).boite);
     if (!b) return res.status(404).json({ error: 'boîte introuvable' });
@@ -560,7 +574,12 @@ module.exports = function monterMessagerie(app, ctx) {
     const u = parseInt((req.body || {}).uid, 10);
     if (!u) return res.status(400).json({ error: 'message introuvable' });
     try {
-      if ((req.body || {}).role) dest = (await cheminRole(b, monStr((req.body || {}).role, 20))) || dest;
+      const role = monStr((req.body || {}).role, 20);
+      if (role) dest = (await cheminRole(b, role)) || dest;
+      // La boîte n'a pas ce dossier (beaucoup de boîtes OVH n'ont pas d'« Archives ») : on le CRÉE,
+      // comme Apple Mail, plutôt que de refuser le geste. Seulement pour ces trois rôles, au nom
+      // usuel, à la racine puis sous INBOX (serveurs à espace personnel « INBOX. »).
+      if (!dest && CREABLES[role]) dest = await creerDossier(b, CREABLES[role]);
       if (!dest) return res.status(400).json({ error: 'dossier de destination introuvable' });
       if (dest === src) return res.json({ ok: true, deja: true });
       await avecImap(b, async client => {

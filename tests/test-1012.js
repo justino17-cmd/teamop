@@ -487,6 +487,18 @@ console.log('\n── 1012 · la Messagerie de la Tour, triée entre OP GESTION 
     r = await post('/api/monitor/mail/deplacer', { boite: 'b-a', dossier: 'INBOX', uid: 11, vers: 'Archives' });
     d = await dos();
     v('⛔ déplacer vers les Archives : idem', [r.s, parRole(d.j.boites.find(x => x.boite.id === 'b-a')).archives], [200, nonLusOracle(BA, 'Archives')]);
+    {
+      // Une boîte SANS dossier d'archives (beaucoup de boîtes OVH) : archiver le CRÉE au lieu de refuser.
+      const e = JSON.parse(fs.readFileSync(IMAP, 'utf8')); const pB = e.boites[BB];
+      pB.dossiers = [{ chemin: 'INBOX' }, { chemin: 'Envoyés', specialUse: '\\Sent' }, { chemin: 'Corbeille', specialUse: '\\Trash' }];
+      const uB = (pB.messages.find(m => (m.dossier || 'INBOX') === 'INBOX') || {}).uid; ecrireEtat(e);
+      await dos('?frais=1');
+      const rA = await post('/api/monitor/mail/deplacer', { boite: 'b-b', dossier: 'INBOX', uid: uB, role: 'archives' });
+      const e2 = JSON.parse(fs.readFileSync(IMAP, 'utf8')).boites[BB];
+      v('⛔ archiver dans une boîte sans « Archives » : le dossier est créé et le message y part', [!!uB, rA.s, rA.j && rA.j.vers, e2.dossiers.some(x => x.chemin === 'Archives'), (e2.messages.find(m => m.dossier === 'Archives') ? 1 : 0)], [true, 200, 'Archives', true, 1]);
+      const e3 = JSON.parse(fs.readFileSync(IMAP, 'utf8')); delete e3.boites[BB].dossiers; e3.boites[BB].messages.forEach(m => { if (m.dossier === 'Archives') m.dossier = 'INBOX'; }); ecrireEtat(e3);
+      d = await dos('?frais=1');
+    }
     v('POPULATION : les non-lus de la boîte B (Réception 2, Archives 0 sur 1 600 messages lus)', (() => { const b = d.j.boites.find(x => x.boite.id === 'b-b'); const o = parRole(b); return [o.inbox, o.archives]; })(), [nonLusOracle(BB, 'INBOX'), 0]);
 
     /* ══ 6. AUCUNE ADRESSE DANS UNE ERREUR ═══════════════════════════════════════════════════════════════════ */

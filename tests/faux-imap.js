@@ -227,6 +227,13 @@ class ImapFlow {
       m.dossier = dest;
     }, 'deplace');
   }
+  async mailboxCreate(chemin) {
+    const etat = lireEtat(); const p = partie(etat, this.user);
+    if (!Array.isArray(p.dossiers) || !p.dossiers.length) p.dossiers = DOSSIERS.map(d => Object.assign({}, d));
+    if (p.dossiers.some(d => d.chemin === chemin)) throw Object.assign(new Error('Mailbox already exists'), { responseText: 'ALREADYEXISTS' });
+    p.dossiers.push({ chemin: String(chemin) }); (p.actions = p.actions || []).push({ t: 'cree', chemin: String(chemin) });
+    ecrireEtat(etat); return { path: String(chemin), created: true };
+  }
   async messageDelete(plage, o) { return this._agir(plage, o, m => { m.dossier = '(supprimé)'; }, 'supprime'); }
   async append(chemin, contenu, flags) {
     const etat = lireEtat(); const p = partie(etat, this.user);
