@@ -181,7 +181,7 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
   vrai('ni Firebase ni Firestore', fichiers.every((f) => !/firebase|firestore|googleapis/i.test(src[f])));
   v('`fetch(` n\'est écrit que dans yousign.js et auth.js', fichiers.filter((f) => /\bfetch\(|fetchImpl\(/.test(src[f])).sort(), ['auth.js', 'yousign.js']);
   v('les chemins de l\'API Yousign ne sont écrits que dans yousign.js', fichiers.filter((f) => /signature_requests/.test(src[f])), ['yousign.js']);
-  v('seuls index.js (démarrage refusé, mode débogage) et configurer-yousign.js écrivent à la console', fichiers.filter((f) => /console\.(log|error|warn)\(/.test(src[f])).sort(), ['configurer-yousign.js', 'index.js']);
+  v('seuls index.js (démarrage refusé, mode débogage) et les deux scripts de configuration écrivent à la console', fichiers.filter((f) => /console\.(log|error|warn)\(/.test(src[f])).sort(), ['configurer-signature.js', 'configurer-yousign.js', 'index.js']);
   vrai('X-Powered-By retiré, trust proxy 1', /app\.disable\('x-powered-by'\)/.test(src['index.js']) && /app\.set\('trust proxy', 1\)/.test(src['index.js']));
   vrai('l\'adresse réseau vient de req.ip, jamais d\'un en-tête brut', /req\.ip/.test(src['index.js']) && !/headers\[['"]x-forwarded-for['"]\]/i.test(src['index.js']));
   vrai('le HMAC se compare en temps constant', /timingSafeEqual/.test(src['index.js']));
