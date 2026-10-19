@@ -341,7 +341,8 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
         localStorage: { getItem: k => (k in stock ? stock[k] : null), setItem: (k, x) => { stock[k] = String(x); }, removeItem: k => { delete stock[k]; } },
         prompt: (q) => { prompts.push(q); return ''; }, confirm: (q) => { confirms.push(q); return true; }, toast: (t) => { toasts.push(t); } };
       vm.createContext(ctx);
-      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + ';\n' + src.join('\n'), ctx);
+      /* v2.87 : tourEspaceDe lit les comptes du site (CLI) pour faire voyager le prénom et le nom de la demande dans le code */
+      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + ';\nvar CLI={list:' + JSON.stringify([{ email: 'neuf@exemple-833.fr', prenom: 'Omicron', nomFam: 'Neuve' }]) + '};\n' + src.join('\n'), ctx);
       return { ctx, stock, confirms, toasts, prompts, posts };
     };
     const oublie = (x) => { try { return Object.keys(JSON.parse(x.stock.tour_liens || '{}')).length; } catch (e) { return -1; } };
@@ -355,6 +356,9 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
     E = espaceDe({});
     res = await E.ctx.tourEspaceDe('neuf@exemple-833.fr', 'Omicron Neuve', 'omicron', 'Mdp-833', false, 'tour');
     v('un nom que le serveur ne connaît pas, rien de gardé : un espace NEUF, sans aucune question', [E.prompts.length, E.confirms.length, E.posts.length, !!(res && res.slug)], [0, 0, 1, true]);
+    /* v2.87 : son code porte le prénom et le nom de la demande (« p », « f ») — le compte de départ portera SON nom (test-1013) */
+    const codeNeuf = (() => { try { return JSON.parse(Buffer.from(String((E.posts[0] || {}).code || ''), 'base64').toString('utf8')); } catch (e) { return {}; } })();
+    v('le code d\'un espace neuf porte le prénom et le nom de la demande', [codeNeuf.p, codeNeuf.f], ['Omicron', 'Neuve']);
     E = espaceDe(garde('kappa@exemple-833.fr', 't-kappa-832', 'cle-propre-t-kappa-832'));
     res = await E.ctx.tourEspaceDe('kappa@exemple-833.fr', 'Kappa Services Bis', 'kappa', 'Mdp-833', false, 'tour');
     v('le lien gardé À JOUR (la clé de la référence) : aucune question, un seul envoi, enregistré', [E.prompts.length, E.confirms.length, E.posts.length, !!(res && res.slug)], [0, 0, 1, true]);
