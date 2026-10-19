@@ -76,9 +76,13 @@ vrai('…ni l\'identité d\'un client, seulement un numéro de dossier', !/@/.te
 
 console.log('\n3. Retirer une version');
 r = M1.appeler('POST /api/monitor/contrats/retirer', { body: { type: T, n: 2 } });
-v('retirer la version 2 remet la 1 en vigueur', [r.code, M1.m.enVigueur(T).n], [200, 1]);
+v('⛔ retirer la dernière version est refusé : elle remettrait la 1 en vigueur sans nouvelle validation', [r.code, M1.m.enVigueur(T).n], [409, 2]);
+v('on retire d\'abord la plus ancienne, puis la dernière', [M1.appeler('POST /api/monitor/contrats/retirer', { body: { type: T, n: 1 } }).code, M1.m.enVigueur(T).n, M1.appeler('POST /api/monitor/contrats/retirer', { body: { type: T, n: 2 } }).code], [200, 2, 200]);
 v('un brouillon ne se « retire » pas', [M1.m.brouillon(T, 'x', 'a') && M1.appeler('POST /api/monitor/contrats/retirer', { body: { type: T, n: 3 } }).code], [409]);
-M1.appeler('POST /api/monitor/contrats/retirer', { body: { type: T, n: 1 } });
+v('⛔ __proto__ et constructor ne sont pas des types', [M1.m.brouillon('__proto__', 'a', 'x').code, M1.m.brouillon('constructor', 'a', 'x').code], [400, 400]);
+v('les variantes du marqueur bloquent aussi', ['[A CONFIRMER x]', '[à confirmer]', '[ À  CONFIRMER]', '[À VÉRIFIER]'].map(t => { const X = monter('mv' + t.length); X.m.brouillon(T, 'Texte ' + t, 'x'); return X.m.valider(T, 1, 'J').code; }), [409, 409, 409, 409]);
+const H = monter('h', { fichiers: { 'contrats-clients.json': '[{"id":"a","dossier":"DOS-000001","type":"t","version":1}]' } });
+v('⛔ des contrats de clients sans registre de textes : illisible, on ne repart pas de zéro', [H.m.estIllisible(), H.m.brouillon(T, 'x', 'a').code], [true, 503]);
 v('plus aucune version : retour à « rien ne part »', [M1.m.enVigueur(T), M1.m.creerPourClient('DOS-000009', T).raison], [null, 'aucune_version_validee']);
 
 console.log('\n4. Les pannes');

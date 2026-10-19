@@ -1,6 +1,7 @@
 CONDITIONS DE LA SIGNATURE ÉLECTRONIQUE
 
 Article 1 — Principe
+[À CONFIRMER : le parcours d'acceptation en ligne et l'envoi de la copie par courriel ne sont pas encore en service ; l'adresse confirmée n'est pas encore conservée avec l'acceptation. Ne valider qu'une fois branché.]
 Le Client accepte son contrat en ligne, par une signature électronique simple : il ouvre le lien reçu à l'adresse électronique confirmée de son compte, lit les documents du contrat, puis exprime son accord par un geste explicite (« J'accepte »).
 
 Article 2 — Ce que TEAM OP conserve

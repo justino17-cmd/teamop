@@ -42,7 +42,8 @@ const PAQUETS = {
   'op_messages:business_premium': ['conditions_generales', 'conditions_op_messages', 'cp_op_messages_business_premium', 'dpa', 'signature_electronique'],
 };
 /* Un texte qui porte encore un point à confirmer ne se valide pas : le tampon dirait que tout est relu. */
-const MARQUEUR = /\[À (?:CONFIRMER|COMPLÉTER)/;
+const MARQUEUR = /\[\s*[AÀ]\s+(?:CONFIRMER|COMPLÉTER|VÉRIFIER|RENSEIGNER)/i;
+const connu = t => typeof t === 'string' && Object.prototype.hasOwnProperty.call(TYPES, t);
 const TEXTE_MAX = 80000, NOTE_MAX = 300;
 const DOS = /^DOS-\d{6}$/;
 const sha = t => crypto.createHash('sha256').update(String(t), 'utf8').digest('hex');
@@ -65,7 +66,9 @@ module.exports = function contrats(app, ctx) {
     catch (e) { console.error(nom + ' non écrit :', e.message); return false; }
   }
   let docs = charger(F_DOCS, {});          // { type: [ {n, ts, auteur, texte, statut, note, validePar?, valideLe?, empreinte?} ] }
-  let clients = charger(F_CLIENTS, []);    // [ {id, dossier, type, version, empreinte, envoyeLe, accepteLe} ]
+  let clients = charger(F_CLIENTS, []);
+  /* Des contrats de clients sans registre de textes : volume restauré à moitié. On ne repart pas de zéro (les numéros de version pointeraient ailleurs). */
+  if (clients.length && !fs.existsSync(path.join(DATA_DIR, F_DOCS))) illisibles.add(F_DOCS);    // [ {id, dossier, type, version, empreinte, envoyeLe, accepteLe} ]
   let enSemis = false;
   const noter = (a, o) => { if (!enSemis && agents && agents.noter) { try { agents.noter('systeme', a, o); } catch (e) {} } };
   const illisible = () => illisibles.has(F_DOCS) || illisibles.has(F_CLIENTS);
@@ -80,7 +83,7 @@ module.exports = function contrats(app, ctx) {
   const vueVersion = (v, avecTexte) => { const o = { n: v.n, ts: v.ts, auteur: v.auteur, statut: v.statut, note: v.note || '', longueur: String(v.texte || '').length }; if (v.statut === 'valide' || v.statut === 'retire') { o.validePar = v.validePar; o.valideLe = v.valideLe; o.empreinte = v.empreinte; } if (avecTexte) o.texte = v.texte; return o; };
 
   function brouillon(type, texte, auteur, note) {
-    if (!TYPES[type]) return { code: 400, error: 'Type de document inconnu' };
+    if (!connu(type)) return { code: 400, error: 'Type de document inconnu' };
     if (illisibles.has(F_DOCS)) return { code: 503, error: 'Le registre des contrats est illisible' };
     const t = typeof texte === 'string' ? texte.replace(/\r\n/g, '\n').trim() : '';
     if (!t) return { code: 400, error: 'Texte vide' };
@@ -94,13 +97,13 @@ module.exports = function contrats(app, ctx) {
   }
   /* Le tampon. Seul chemin vers « validé » ; `qui` vient de la session de la Tour, jamais du corps de la requête. */
   function valider(type, n, qui) {
-    if (!TYPES[type]) return { code: 400, error: 'Type de document inconnu' };
+    if (!connu(type)) return { code: 400, error: 'Type de document inconnu' };
     if (illisibles.has(F_DOCS)) return { code: 503, error: 'Le registre des contrats est illisible' };
     const liste = versions(type), i = liste.findIndex(x => x.n === n);
     if (i < 0) return { code: 404, error: 'Version inconnue' };
     if (liste[i].statut !== 'brouillon') return { code: 409, error: 'Cette version est déjà ' + (liste[i].statut === 'valide' ? 'validée' : 'retirée') };
     if (!qui) return { code: 400, error: 'Personne nommée manquante' };
-    if (MARQUEUR.test(liste[i].texte)) return { code: 409, error: 'Ce texte porte encore des points « À CONFIRMER » : les trancher dans un nouveau brouillon avant de valider' };
+    if (MARQUEUR.test(String(liste[i].texte).normalize('NFC'))) return { code: 409, error: 'Ce texte porte encore des points « À CONFIRMER » : les trancher dans un nouveau brouillon avant de valider' };
     const copie = liste.map(x => Object.assign({}, x));
     Object.assign(copie[i], { statut: 'valide', validePar: String(qui).slice(0, 60), valideLe: maintenant(), empreinte: sha(copie[i].texte) });
     const avant = docs[type]; docs[type] = copie;
@@ -109,11 +112,12 @@ module.exports = function contrats(app, ctx) {
     return { code: 200, version: copie[i] };
   }
   function retirer(type, n, qui) {
-    if (!TYPES[type]) return { code: 400, error: 'Type de document inconnu' };
+    if (!connu(type)) return { code: 400, error: 'Type de document inconnu' };
     if (illisibles.has(F_DOCS)) return { code: 503, error: 'Le registre des contrats est illisible' };
     const liste = versions(type), i = liste.findIndex(x => x.n === n);
     if (i < 0) return { code: 404, error: 'Version inconnue' };
     if (liste[i].statut !== 'valide') return { code: 409, error: 'Seule une version validée se retire' };
+    if (liste.some(x => x.statut === 'valide' && x.n < liste[i].n) && !liste.some(x => x.statut === 'valide' && x.n > liste[i].n)) return { code: 409, error: 'Retirer cette version remettrait en vigueur une version plus ancienne : la retirer d’abord' };
     const copie = liste.map(x => Object.assign({}, x)); copie[i].statut = 'retire';
     const avant = docs[type]; docs[type] = copie;
     if (!ecrire(F_DOCS, docs)) { docs[type] = avant; return { code: 503, error: 'Retrait non enregistré' }; }
@@ -124,7 +128,7 @@ module.exports = function contrats(app, ctx) {
   /* Le contrat d'UN client : la version en vigueur aujourd'hui, figée. Un dossier qui a déjà ce type de contrat n'en reçoit pas un second. */
   function creerPourClient(dossier, type) {
     if (!DOS.test(String(dossier))) return { ok: false, raison: 'dossier' };
-    if (!TYPES[type]) return { ok: false, raison: 'type' };
+    if (!connu(type)) return { ok: false, raison: 'type' };
     if (illisible()) return { ok: false, raison: 'registre_illisible' };
     const deja = clients.find(c => c.dossier === dossier && c.type === type);
     if (deja) return { ok: true, deja: true, contrat: Object.assign({}, deja) };
@@ -183,13 +187,13 @@ module.exports = function contrats(app, ctx) {
   /* ── les routes (le patron seul écrit ; l'administrateur lit) ── */
   app.get('/api/monitor/contrats', monAdmin, (req, res) => {
     if (illisible()) return res.status(503).json({ error: 'Le registre des contrats est illisible' });
-    res.json({ ok: true, groupes: GROUPES, paquets: Object.keys(PAQUETS).map(k => ({ cle: k, pieces: PAQUETS[k], manquantes: paquetManquant(k) })), types: Object.keys(TYPES).map(t => ({ type: t, libelle: TYPES[t], aConfirmer: versions(t).some(x => x.statut === 'brouillon' && MARQUEUR.test(x.texte)), enVigueur: (() => { const v = enVigueur(t); return v ? { n: v.n, validePar: v.validePar, valideLe: v.valideLe, empreinte: v.empreinte } : null; })(), versions: versions(t).map(x => vueVersion(x, false)).reverse() })),
+    res.json({ ok: true, groupes: GROUPES, paquets: Object.keys(PAQUETS).map(k => ({ cle: k, pieces: PAQUETS[k], manquantes: paquetManquant(k) })), types: Object.keys(TYPES).map(t => ({ type: t, libelle: TYPES[t], aConfirmer: versions(t).some(x => x.statut === 'brouillon' && MARQUEUR.test(String(x.texte).normalize('NFC'))), enVigueur: (() => { const v = enVigueur(t); return v ? { n: v.n, validePar: v.validePar, valideLe: v.valideLe, empreinte: v.empreinte } : null; })(), versions: versions(t).map(x => vueVersion(x, false)).reverse() })),
       clients: { total: clients.length, envoyes: clients.filter(c => c.envoyeLe).length, acceptes: clients.filter(c => c.accepteLe).length, enAttente: clients.filter(c => c.envoyeLe && !c.accepteLe).length } });
   });
   app.get('/api/monitor/contrats/version', monAdmin, (req, res) => {
     if (illisibles.has(F_DOCS)) return res.status(503).json({ error: 'Le registre des contrats est illisible' });
     const t = String(req.query.type || ''), n = parseInt(req.query.n, 10);
-    const v = TYPES[t] && versions(t).find(x => x.n === n);
+    const v = connu(t) && versions(t).find(x => x.n === n);
     if (!v) return res.status(404).json({ error: 'Version inconnue' });
     res.json({ ok: true, version: vueVersion(v, true) });
   });

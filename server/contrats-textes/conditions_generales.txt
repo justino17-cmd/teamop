@@ -13,18 +13,18 @@ Le service est réservé aux professionnels (entreprises, artisans, micro-entrep
 Article 3 — Compte et accès
 Un compte TEAM OP est nécessaire pour souscrire. L'adresse électronique du compte doit être confirmée : c'est ce qui rattache chaque abonnement à la personne qui l'a souscrite et à son entreprise.
 Chaque abonnement ouvre un compte utilisateur nominatif. Les identifiants sont personnels ; le Client répond de l'usage qui en est fait par ses utilisateurs et prévient TEAM OP sans délai de toute utilisation non autorisée. Le Client administre lui-même les droits de ses utilisateurs.
-Les accès à l'application sont envoyés après l'acceptation du contrat.
+Les accès à l'application sont envoyés après l'acceptation du contrat. [À CONFIRMER : ce parcours (lien d'acceptation, envoi des accès à l'acceptation) n'est pas encore en service ; ne valider qu'une fois branché.]
 
 Article 4 — Prix, commande et paiement
 Les formules et leurs prix sont affichés sur teamop.fr/tarifs.html et rappelés dans les conditions particulières. Les prix sont en euros, par utilisateur et par mois, TVA non applicable (article 293 B du CGI).
 Le paiement s'effectue par carte bancaire via Stripe, chaque mois ou chaque année (deux mois offerts sur l'année), avec reconduction tacite à chaque période. Le Client reçoit une facture et ses reçus par courriel.
-Des codes promotionnels peuvent donner droit à une période offerte. Un code ne peut être utilisé qu'une fois par entreprise. Souscrire pendant une période offerte ne déclenche aucun prélèvement avant la fin de cette période.
+Des codes promotionnels peuvent donner droit à une période offerte. Un code ne peut être utilisé qu'une fois par entreprise. Souscrire pendant une période offerte ne déclenche aucun prélèvement avant la fin de cette période lorsque l'adresse du compte désigne l'entreprise seule, que la fin de la période est comprise entre 48 heures et deux ans, et qu'aucun abonnement n'existe déjà ; sinon la facturation commence immédiatement.
 
 Article 5 — Changement de formule, places utilisateur
 Le Client peut changer de formule, ajouter ou retirer des abonnements (un abonnement = un utilisateur) à tout moment, sur simple demande au support ou depuis son espace. Les modalités de facturation du changement sont décrites dans les conditions particulières.
 
 Article 6 — Durée et résiliation
-L'abonnement est sans engagement de durée. Le Client peut résilier à tout moment depuis son espace client ou en écrivant à contact@teamop.fr. L'accès se poursuit jusqu'à la fin de la période déjà réglée ; l'application est ensuite suspendue jusqu'à un nouvel abonnement. Aucune somme déjà versée pour une période entamée n'est remboursée, sauf geste commercial de TEAM OP.
+L'abonnement est sans engagement de durée. Le Client peut résilier à tout moment depuis le Support de son espace client ou en écrivant à contact@teamop.fr. L'accès se poursuit jusqu'à la fin de la période déjà réglée ; l'application est ensuite suspendue jusqu'à un nouvel abonnement. [À CONFIRMER : non-remboursement d'une période entamée — absent des pages publiques actuelles ; l'y ajouter ou le retirer ici.]
 TEAM OP peut résilier en cas de manquement grave du Client (usage frauduleux, atteinte à la sécurité du service, contenus illicites), après un courriel restant sans effet.
 
 Article 7 — Défaut de paiement
@@ -43,7 +43,7 @@ Article 10 — État du service : ce qui fonctionne et ce qui n'est pas encore d
 TEAM OP indique clairement ce qui est disponible. Les fonctions listées dans les conditions particulières d'une formule sont celles qui sont ouvertes au jour de la souscription. OP MESSAGES n'est pas encore ouvert : ses formules ne sont pas facturées tant qu'il n'est pas disponible. Une fonction annoncée « bientôt disponible » ne fait pas partie de l'abonnement tant qu'elle n'est pas ouverte, et ne peut justifier aucune réclamation avant son ouverture.
 
 Article 11 — Assistant de rédaction de devis (intelligence artificielle)
-L'assistant de devis, optionnel, transmet à notre sous-traitant Anthropic PBC (États-Unis) le texte de la demande du Client et le nom, l'adresse et la ville des clients concernés, sans conservation par TEAM OP. Les données du Client ne servent pas à entraîner des modèles d'intelligence artificielle. Le Client qui ne souhaite pas ce transfert n'utilise pas l'assistant : le reste du service fonctionne sans lui. Le Client relit et valide chaque document généré avant de l'envoyer.
+L'assistant de devis, optionnel, transmet à notre sous-traitant Anthropic PBC (États-Unis) le texte de la demande du Client et le nom, l'adresse et la ville des clients concernés, sans conservation par TEAM OP. [À CONFIRMER : engagement que les données ne servent pas à entraîner des modèles — ne le garder que s'il est vérifié auprès d'Anthropic et repris dans sous-traitance.html.] Le Client qui ne souhaite pas ce transfert n'utilise pas l'assistant : le reste du service fonctionne sans lui. Le Client relit et valide chaque document généré avant de l'envoyer.
 
 Article 12 — Obligations du Client
 Le Client utilise le service conformément à la loi, ne saisit que des données qu'il a le droit de traiter et informe les personnes concernées. Il ne tente pas de contourner les protections du service, ne le revend pas et n'en extrait pas le contenu autrement que par les fonctions d'export.
