@@ -84,7 +84,8 @@ console.log('\n── 2704 · le panneau Agents de la Tour : ses vraies fonction
     fs.writeFileSync(path.join(D, 'agents-validations.json'), JSON.stringify([
       { id: 'val-a1', ts: maintenant - 3600000, agent: 'hugo', type: 'creer_espace', resume: 'Créer l’espace de Delta Propreté', params: { espace: 'delta-proprete', formule: 'pro' }, statut: 'en_attente' },
       { id: 'val-a2', ts: maintenant - 1800000, agent: 'hugo', type: 'suspendre_acces', resume: 'Suspendre Zeta (impayé)', params: { espace: 'zeta-vapeur', motif: 'impaye' }, statut: 'en_attente' },
-      { id: 'val-a3', ts: maintenant - 7200000, agent: 'hugo', type: 'creer_espace', resume: 'Créer l’espace de Beta', params: { espace: 'beta', formule: 'pro' }, statut: 'accepte', decideTs: maintenant - 3600000, decidePar: 'Patron' }]));
+      { id: 'val-a3', ts: maintenant - 7200000, agent: 'hugo', type: 'creer_espace', resume: 'Créer l’espace de Beta', params: { espace: 'beta', formule: 'pro' }, statut: 'accepte', decideTs: maintenant - 3600000, decidePar: 'Patron' },
+      { id: 'val-a4', ts: maintenant - 900000, agent: 'hugo', type: 'creer_espace', resume: 'Créer l’espace de Kappa', params: { espace: 'kappa', formule: 'pro' }, statut: 'en_attente' }]));
     fs.writeFileSync(path.join(D, 'agents-taches.json'), JSON.stringify([{ id: 'tch-1', ts: maintenant - 60000, de: 'hugo', vers: 'max', type: 'verifier_paiement', params: { espace: 'delta-proprete' }, statut: 'attente' }]));
   });
   const T = tour(S.B, S.jeton, 'patron');
@@ -95,7 +96,7 @@ console.log('\n── 2704 · le panneau Agents de la Tour : ses vraies fonction
   vrai('les quatre lectures aboutissent', await att(() => T.ctx.AG.loaded && T.ctx.AG.lec.validations === 1 && T.ctx.AG.lec.journal === 1 && T.ctx.AG.lec.taches === 1));
   v('seize agents lus', T.ctx.AG.agents.length, 16);
   v('tous à l’arrêt au départ', T.ctx.AG.agents.every(a => a.mode === 'arret'), true);
-  v('trois demandes lues, avec celle déjà décidée (statut=tout)', T.ctx.AG.validations.length, 3);
+  v('quatre demandes lues, avec celle déjà décidée (statut=tout)', T.ctx.AG.validations.length, 4);
   let h = T.ctx.vueAgents();
   vrai('« à l’arrêt » est celui qui est allumé sur une carte', /data-m="arret" class="on"/.test(h));
   vrai('« Auto » est refusé tant que l’agent est à l’arrêt (désactivé)', /data-m="auto" class=""[^>]*disabled/.test(h));
@@ -129,25 +130,41 @@ console.log('\n── 2704 · le panneau Agents de la Tour : ses vraies fonction
   console.log('\n4. Décider d’une demande');
   await att(() => !T.ctx.AG.busy);
   h = T.ctx.vueAgents(); T.ctx.agSec('valid'); h = T.etat.html;
-  vrai('deux demandes à valider, avec « Valider » et « Refuser »', (h.match(/Valider<\/button>/g) || []).length === 2 && (h.match(/Refuser<\/button>/g) || []).length === 2);
+  vrai('trois demandes à valider, avec « Valider » et « Refuser »', (h.match(/Valider<\/button>/g) || []).length === 3 && (h.match(/Refuser<\/button>/g) || []).length === 3);
   vrai('la demande déjà décidée se lit « acceptée » sans bouton', /acceptée/.test(h));
-  vrai('le compteur de l’onglet dit 2', /ag-n">2</.test(T.ctx.vueAgents()));
+  vrai('le compteur de l’onglet dit 3', /ag-n">3</.test(T.ctx.vueAgents()));
   T.ctx.agDecider('val-a1', 'refuser');
   vrai('le serveur a refusé val-a1', await att(() => ((S.lire('agents-validations.json') || []).find(x => x.id === 'val-a1') || {}).statut === 'refuse'));
   T.ctx.agDecider('val-a2', 'accepter');
   vrai('le serveur a accepté val-a2, signée « Patron »', await att(() => { const x = (S.lire('agents-validations.json') || []).find(y => y.id === 'val-a2') || {}; return x.statut === 'accepte' && x.decidePar === 'Patron'; }));
-  await att(() => T.ctx.AG.validations.filter(x => x.statut === 'en_attente').length === 0);
-  vrai('plus aucun bouton « Valider » : les trois demandes sont décidées et restent lisibles', T.ctx.AG.lec.validations === 1 && (T.ctx.agSec('valid'), !/Valider<\/button>/.test(T.etat.html)) && /refusée/.test(T.etat.html) && (T.etat.html.match(/acceptée/g) || []).length >= 2);
+  await att(() => T.ctx.AG.validations.filter(x => x.statut === 'en_attente').length === 1);
+  vrai('il ne reste que val-a4 à valider', (T.ctx.agSec('valid'), (T.etat.html.match(/Valider<\/button>/g) || []).length === 1) && /refusée/.test(T.etat.html));
   const deuxFois = await S.post('/api/monitor/agents/validations/decider', { id: 'val-a1', decision: 'accepter' }, S.jeton);
   v('re-décider une demande déjà refusée : 409', deuxFois.s, 409);
 
   console.log('\n5. Un collaborateur ne peut rien écrire (et la page ne l’y invite pas)');
-  const CO = tour(S.B, 'jeton-qui-n-existe-pas', 'collaborateur');
+  /* ⛔ le PIÈGE : un collaborateur avec le VRAI jeton du patron (le serveur dirait oui) — c'est la page qui doit refuser */
+  const CO = tour(S.B, S.jeton, 'collaborateur');
   CO.ctx.chargerAgents(); await dormir(300);
-  v('un patron-factice (MYROLE collaborateur) n’écrit rien : la page refuse avant d’appeler', (CO.ctx.agMode_('hugo', 'arret'), CO.ctx.agPause(true), CO.ctx.agDecider('val-a1', 'refuser'), CO.etat.confirmations), 0);
+  v('un patron-factice (MYROLE collaborateur) n’écrit rien : la page refuse avant d’appeler', (CO.ctx.agMode_('hugo', 'arret'), CO.ctx.agPause(true), CO.ctx.agDecider('val-a4', 'refuser'), CO.etat.confirmations), 0);
+  await dormir(400);
+  v('…et le serveur n’a rien reçu : val-a4 est toujours à valider, Hugo n’a pas bougé', [((S.lire('agents-validations.json') || []).find(x => x.id === 'val-a4') || {}).statut, ((S.lire('agents-etat.json') || {}).pause || {}).actif], ['en_attente', false]);
   vrai('…et l’écran dit « Réservé au patron »', /Réservé au patron/.test(CO.ctx.vueAgents()));
   const sans = await fetch(S.B + '/api/monitor/agents/pause', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer faux' }, body: JSON.stringify({ pause: true }) });
   vrai('le serveur refuse sans jeton valable (401/403)', sans.status === 401 || sans.status === 403);
+
+  /* ⛔ « Valider » demande confirmation : Annuler = rien d'écrit */
+  const NON = tour(S.B, S.jeton, 'patron', false); NON.ctx.chargerAgents(); await att(() => NON.ctx.AG.loaded);
+  NON.ctx.agDecider('val-a4', 'accepter'); await dormir(400);
+  v('« Annuler » à la confirmation de « Valider » : val-a4 reste à valider', ((S.lire('agents-validations.json') || []).find(x => x.id === 'val-a4') || {}).statut, 'en_attente');
+  T.ctx.agDecider('val-a4', 'refuser');
+  vrai('…puis refusée : plus rien à valider, les quatre demandes restent lisibles', await att(() => ((S.lire('agents-validations.json') || []).find(x => x.id === 'val-a4') || {}).statut === 'refuse')
+    && await att(() => T.ctx.AG.validations.every(x => x.statut !== 'en_attente')) && (T.ctx.agSec('valid'), !/Valider<\/button>/.test(T.etat.html)));
+  /* un 200 SANS la liste (serveur d'avant, relais) n'est pas une liste vide */
+  const ANC = tour(S.B, S.jeton, 'patron'); const f0 = ANC.ctx.fetch;
+  ANC.ctx.fetch = (u, o) => /agents\/taches/.test(u) ? Promise.resolve({ status: 200, ok: true, json: () => Promise.resolve({ ok: true }) }) : f0(u, o);
+  ANC.ctx.chargerAgents(); await att(() => ANC.ctx.AG.lec.journal === 1); await dormir(300);
+  v('un 200 sans « taches » se lit « on ne sait pas » (−1), pas « aucune tâche »', ANC.ctx.AG.lec.taches, -1);
 
   console.log('\n6. Un fichier illisible ne se dessine JAMAIS « rien à faire »');
   const M = await serveur('abime', D => {
