@@ -19,8 +19,8 @@ const { Refus } = require('./demandes');
 
 const MIN = 60000;
 const CODE_VALIDE_MS = 10 * MIN, ESSAIS_MAX = 5, ENVOIS_MAX = 5, DELAI_RENVOI_MS = 60000;
-const VERSION_CONSENTEMENT = '2026-10-19-1';
-const consentementTexte = (titre) => 'Je reconnais avoir lu le document « ' + titre + ' » et j\'en approuve le contenu. En saisissant le code de vérification que je viens de recevoir, je signe électroniquement ce document. Je comprends qu\'il s\'agit d\'une signature électronique simple et que TeamOP conserve les preuves de ma signature (date et heure, adresse réseau, navigateur).';
+const VERSION_CONSENTEMENT = '2026-10-19-2';
+const consentementTexte = (titre) => 'J\'ai eu la possibilité de consulter le document « ' + titre + ' » ci-dessus et j\'en approuve le contenu. En saisissant le code de vérification que je viens de recevoir, je signe électroniquement ce document. Je comprends qu\'il s\'agit d\'une signature électronique simple et que TeamOP conserve les preuves de ma signature (date et heure, adresse réseau, navigateur).';
 const RE_ID = /^[0-9a-f]{24}$/, RE_JETON = /^[A-Za-z0-9_-]{43}$/;
 const sha = chaine.sha;
 const shaOctets = (b) => crypto.createHash('sha256').update(b).digest('hex');

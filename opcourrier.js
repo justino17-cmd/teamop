@@ -2913,7 +2913,7 @@ var MARKUP = `
     else if(st==="ready") acts='<button type="button" class="btn primary" data-act="signSend">Renvoyer</button><button type="button" class="btn danger" data-act="signDrop">Annuler</button>';
     else acts='<button type="button" class="btn primary" data-act="signResend">Renvoyer une demande</button>';
     return '<div class="sign-card" role="region" aria-label="Suivi de la signature">'+
-      '<div class="sg-head">'+signChip(m)+'<span>'+(g.level==="adv"?"signature avancée (code SMS)":"signature simple (code e-mail)")+'</span><span>'+(live?'Échéance le '+H(fmtDay(g.expires))+(g.remind?' · relances auto tous les 2 jours':''):st==="ready"?(CAP.signatureReelle?'Rien n’est parti : « Renvoyer » l’envoie maintenant':'Rien n’est parti : la demande partira quand Yousign sera branché'):(g.srv&&st==="counter"?'Le client a signé':''))+'</span></div>'+
+      '<div class="sg-head">'+signChip(m)+'<span>'+(g.level==="adv"?"signature par code SMS":"signature simple (code e-mail)")+'</span><span>'+(live?'Échéance le '+H(fmtDay(g.expires))+(g.remind?' · relances auto tous les 2 jours':''):st==="ready"?(CAP.signatureReelle?'Rien n’est parti : « Renvoyer » l’envoie maintenant':'Rien n’est parti : la demande partira quand Yousign sera branché'):(g.srv&&st==="counter"?'Le client a signé':''))+'</span></div>'+
       '<ul class="sg-signers">'+rows+'</ul><div class="sg-acts">'+acts+'</div>'+
       '<ol class="sg-tl" aria-label="Historique">'+g.events.map(function(ev){ return '<li>'+H(fmtFull(ev.t))+' — '+H(ev.x)+'</li>'; }).join("")+'</ol>'+
       '</div>';

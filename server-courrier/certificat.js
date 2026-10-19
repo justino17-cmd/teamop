@@ -101,7 +101,7 @@ const fmtTaille = (n) => n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',
 function certificat(d) {
   const b = [];
   const foc = d.focus ? d.signataires.find((s) => s.n === d.focus) : null;
-  b.push({ t: 'h1', texte: 'Certificat de signature électronique' });
+  b.push({ t: 'h1', texte: 'Dossier de preuve de signature électronique' });
   b.push({ t: 'p', texte: 'TeamOP - signature électronique simple' });
   if (foc) b.push({ t: 'p', texte: 'Dossier de preuve - signataire n°' + foc.n + ' : ' + foc.nom });
   b.push({ t: 'esp', h: 6 }, { t: 'h2', texte: 'La demande' });
@@ -132,6 +132,7 @@ function certificat(d) {
   if (d.termine) b.push({ t: 'p', texte: 'Sceau de la demande (SHA-256 de la dernière empreinte du journal et des documents) :' }, { t: 'mono', texte: d.termine.sceau, indent: 10 });
   b.push({ t: 'esp' }, { t: 'h2', texte: 'Ce que ce certificat atteste' });
   b.push({ t: 'p', texte: 'Ce certificat consigne les événements enregistrés par le service de signature de TeamOP. La signature est une signature électronique simple : elle manifeste le consentement d\'une personne joignable à l\'adresse e-mail (et, le cas échéant, au numéro de mobile) indiqués. Elle n\'est ni une signature avancée ni une signature qualifiée au sens du règlement européen eIDAS ; en cas de contestation, sa fiabilité se démontre par les éléments ci-dessus.' });
+  b.push({ t: 'p', texte: 'Limites : l\'identité des signataires est déclarée par l\'expéditeur et n\'a pas été vérifiée par TeamOP. Les heures sont celles de l\'horloge du serveur de TeamOP, sans horodatage par un tiers, et le journal est tenu par TeamOP seul ; son intégrité se vérifie par la chaîne d\'empreintes. Les données de preuve sont conservées 90 jours après la fin de la demande : l\'expéditeur doit télécharger et conserver ce dossier.' });
   return pdf(b, 'TeamOP - certificat ' + d.id);
 }
 module.exports = { certificat, pdf, winansi, couper, fmtUTC };

@@ -92,7 +92,7 @@ const lire = (f) => fs.readFileSync(path.join(F.RACINE, 'public', f), 'utf8');
   const code = mail && (mail.texte.match(/Subject: Votre code de signature : (\d{6})/) || [])[1];
   vrai('…avec le code à 6 chiffres dans l\'objet', /^\d{6}$/.test(code || ''), mail && mail.texte.slice(0, 400));
   vrai('…et une consigne claire (valable 10 minutes, ne le communiquez à personne)', /10 minutes/.test(mail.texte.replace(/=\r?\n/g, '')) && /communiquez/.test(mail.texte.replace(/=\r?\n/g, '')));
-  r = await req(S.url, 'POST', '/api/signer/' + lien + '/signer', { json: { code, consentement: true, version: '2026-10-19-1' } });
+  r = await req(S.url, 'POST', '/api/signer/' + lien + '/signer', { json: { code, consentement: true, version: '2026-10-19-2' } });
   v('signer avec le code reçu : signé et terminé (un seul signataire)', [r.s, r.j.signe, r.j.termine], [200, true, true]);
   r = await req(S.url, 'GET', '/api/signature/demandes/' + id, { token: T_A });
   v('le patron voit « signé » et un dossier de preuve', [r.j.etat, r.j.preuves], ['signe', 1]);

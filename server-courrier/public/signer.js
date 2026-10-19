@@ -112,12 +112,12 @@
       signer.disabled = true; dire('', true);
       api('POST', '/signer', { code: code.value.trim(), consentement: true, version: v.consentement.version }).then(function (r) {
         if (!r.ok) { dire(texteErreur(r), false); majBoutons(); return; }
-        ecran('Document signé', r.j.termine ? 'Merci. Tous les signataires ont signé : l’expéditeur reçoit le document signé et son dossier de preuve.' : 'Merci. Votre signature est enregistrée. L’expéditeur est prévenu.', true);
+        ecran('Signature enregistrée', r.j.termine ? 'Merci. Tous les signataires ont signé.' : 'Merci. Votre signature est enregistrée.', true);
       }).catch(function () { dire(MSG.erreur_interne, false); majBoutons(); });
     });
     app.appendChild(h('section', { class: 'carte' }, h('h2', { text: 'Votre accord' }),
       h('div', { class: 'consent' }, coche, h('label', { for: 'consent', text: v.consentement.texte })),
-      h('p', { class: 'petit', text: 'Ce que nous conservons avec la preuve : la date et l’heure, l’adresse réseau et le navigateur utilisés pour signer.' }),
+      h('p', { class: 'petit', text: 'Données personnelles : pour établir la preuve de votre signature, nous conservons la date et l’heure, votre adresse e-mail (ou votre mobile), votre adresse réseau (IP) et votre navigateur. Elles sont traitées par l’expéditeur du document et par TeamOP, qui exploite ce service, et conservées 90 jours après la fin de la demande. Vous pouvez demander l’accès, la rectification ou l’effacement de ces données et vous opposer à leur traitement en écrivant à contact@teamop.fr ; vous pouvez aussi saisir la CNIL. Détails : teamop.fr, page « Confidentialité ».' }),
       h('div', { class: 'code' }, demander, renvoi), zoneCode, msg));
     if (v.codeEnvoye) { zoneCode.hidden = false; demander.hidden = true; renvoi.hidden = false; renvoi.disabled = false; dire('Un code vous a déjà été envoyé par ' + canal + ' à ' + v.signataire.destination + '. Saisissez-le, ou demandez-en un nouveau.', true); }
   }
@@ -125,8 +125,8 @@
   function vue(v) {
     var e = v.etat;
     if (e === 'a_signer' || e === 'attente_autres') return signature(v);
-    if (e === 'signe') return ecran('Vous avez signé', 'Votre signature est enregistrée. L’expéditeur est prévenu.', true);
-    if (e === 'terminee') return ecran('Document signé', 'Ce document a été signé par toutes les parties.', true);
+    if (e === 'signe') return ecran('Vous avez signé', 'Votre signature est enregistrée.', true);
+    if (e === 'terminee') return ecran('Signatures terminées', 'Ce document a été signé par toutes les parties.', true);
     if (e === 'annulee') return ecran('Demande annulée', 'L’expéditeur a annulé cette demande : ce lien ne permet plus de signer.', false);
     if (e === 'expiree') return ecran('Délai dépassé', 'Le délai pour signer est écoulé. Demandez à l’expéditeur de vous renvoyer une demande.', false);
     if (e === 'refusee') return ecran('Demande refusée', 'Cette demande a été refusée.', false);
