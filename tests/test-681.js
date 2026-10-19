@@ -34,15 +34,12 @@ console.log('\n── 681 · Courrier au téléphone : l\'en-tête ne recouvre p
       devenue inutile et incomprise. */
 v('le décalage de 56 px du bloc téléphone est toujours là', /\.reg-tete\{top:56px\}/.test(tour), true);
 
-/* 2. `.mail-rows` défile toujours tout seul. Si ce n'était plus le cas, l'en-tête collerait
-      de nouveau à la page et le rattrapage deviendrait faux dans l'autre sens. */
-v('.mail-rows est toujours son propre conteneur de défilement',
-  /\.mail-rows\{overflow-y:auto;flex:1\}/.test(tour), true);
-
-/* 3. Le rattrapage est posé, et sa spécificité BAT celle du bloc téléphone — c'est le point
-      qui compte : deux classes contre une, donc l'ordre des règles n'y change rien. */
-v('l\'en-tête colle à 0 à l\'intérieur de la liste de courrier',
-  /\.mail-rows \.reg-tete\{top:0\}/.test(tour), true);
+/* 2. (18 octobre 2026) L'ancien Courrier a été remplacé par OP Courrier : un MODULE dans un arbre d'ombre, qui n'a plus ni `.mail-rows` ni `.reg-tete` à la portée
+      de la feuille de la Tour. Le rattrapage `.mail-rows .reg-tete{top:0}` n'a donc plus rien à viser et a été retiré avec l'écran ; ce banc garde qu'il est parti
+      (une règle qui ne vise plus rien se prend pour une garde) et que la zone du module, elle, existe. */
+const code = tour.replace(/\/\*[\s\S]*?\*\//g, ' ');
+v('l\'ancien conteneur de défilement du Courrier (.mail-rows) et son rattrapage ne survivent pas à l\'écran', /\.mail-rows|\.mail-lect/.test(code), false);
+v('la zone du module existe (.courrier-zone) et c\'est elle qui reçoit la hauteur', /\.courrier-zone\{[^}]*min-height/.test(code) && /function courrierAjuster\(/.test(code), true);
 
 /* ⛔ Le rattrapage doit rester PLUS SPÉCIFIQUE, jamais réécrit en `.reg-tete{top:0}` tout
    court : posé à égalité, il annulerait le décalage sur TOUTE la Tour et les titres de
@@ -51,15 +48,6 @@ v('l\'en-tête colle à 0 à l\'intérieur de la liste de courrier',
    est précédé d'une ESPACE (« .mail-rows .reg-tete »). C'est ce qui les distingue. */
 const resets = (tour.match(/[}\n;]\s*\.reg-tete\{top:0\}/g) || []).length;
 v('⛔ aucun `.reg-tete{top:0}` nu (il casserait les neuf autres écrans)', resets, 0);
-
-/* 4. Ce qui N'EST PAS un défaut, et qu'on ne doit pas « corriger » par erreur : un message
-      non lu déroule son objet sur deux lignes, les autres le tronquent. C'est voulu, et
-      `-webkit-line-clamp` n'agit que parce que `.reg-l2` porte `overflow:hidden` — la même
-      étourderie que celle qui a fait déborder l'en-tête. */
-v('un message non lu montre son objet sur deux lignes',
-  /\.reg-l\.cli\.att \.reg-l2\{white-space:normal;display:-webkit-box;-webkit-line-clamp:2/.test(tour), true);
-v('… et le clamp tient parce que .reg-l2 masque son débordement',
-  /\.reg-l2\{[^}]*overflow:hidden[^}]*\}/.test(tour), true);
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
