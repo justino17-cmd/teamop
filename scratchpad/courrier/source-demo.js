@@ -835,6 +835,8 @@ function creer(o) {
     if (mode !== "differe") c.corps = m.corps; return c; }
   api.capacites = function () {
     note("capacites");
+    if (mode === "signature")   // v2.95 : la source sait signer pour de vrai (faux service piloté par la sonde : window.__sigServeur)
+      return Promise.resolve({ signature: true, dossiers: ["inbox"], destinataires: 1, pj: { nombre: 3, octets: 4 * 1024 * 1024 } });
     if (mode === "reel" || mode === "vide" || mode === "panne" || mode === "panne-messages" || mode === "refus" || mode === "differe")
       return Promise.resolve({ dossiers: ["inbox"], destinataires: 1, pj: { nombre: 3, octets: 4 * 1024 * 1024 } });
     return Promise.resolve({ oauth: true, programmeServeur: true, signature: true, reglagesServeur: true, simulation: true,
@@ -865,6 +867,28 @@ function creer(o) {
     garder(); return Promise.resolve(b); };
   api.retirerBoite = function (id) { note("retirerBoite:" + id); etat.retirees.push(id); etat.ajoutees = etat.ajoutees.filter(function (b) { return b.id !== id; }); garder(); return Promise.resolve(); };
   /* le service MX n'existe que dans le mode de démonstration : le serveur d'OP GESTION n'en offre pas (mode=reel → aucun appel réseau pour un domaine d'entreprise) */
+  if (mode === "signature") {
+    var SRV = window.__sigServeur = { demandes: {}, echec: {}, appels: [], n: 0,
+      fixer: function (id, patch) { Object.assign(SRV.demandes[id].vue, patch); } };
+    var PDFX = function (m) { return new Blob(["%PDF-1.4\n% " + m + "\n%%EOF\n"], { type: "application/pdf" }); };
+    var vueDe = function (id) { return JSON.parse(JSON.stringify(SRV.demandes[id].vue)); };
+    var trouve = function (id) { if (!SRV.demandes[id]) return Promise.reject(new Error("Demande introuvable (elle a peut-être été effacée du service).")); return null; };
+    var refus = function (quoi) { return SRV.echec[quoi] ? Promise.reject(new Error(SRV.echec[quoi])) : null; };
+    api.signature = {
+      envoyer: function (dem, fichiers) { SRV.appels.push("envoyer"); var r = refus("envoyer"); if (r) return r;
+        var id = ("d" + (++SRV.n) + "0000000000000000000000").slice(0, 24).replace(/[^0-9a-f]/g, "a");
+        var liste = dem.signataires.map(function (x) { return { nom: x.nom, email: x.email, contre: false, etat: "pending" }; });
+        if (dem.contresignature) liste.push({ nom: dem.contresignature.nom, email: dem.contresignature.email, contre: true, etat: "pending" });
+        SRV.demandes[id] = { dem: dem, fichiers: fichiers.map(function (f) { return { nom: f.nom, taille: f.blob.size }; }),
+          vue: { id: id, etat: "en_attente", echeance: Date.now() + dem.jours * DAY, signataires: liste, documents: fichiers.map(function (f, i) { return { n: i + 1, nom: f.nom, taille: f.blob.size, signe: false }; }), preuves: 0, evenements: [{ t: Date.now(), x: "Demande préparée" }, { t: Date.now(), x: "Envoyé à " + dem.signataires.map(function (x) { return x.nom; }).join(", ") }] } };
+        return Promise.resolve(vueDe(id)); },
+      etat: function (id) { SRV.appels.push("etat"); return trouve(id) || refus("etat") || Promise.resolve(vueDe(id)); },
+      relancer: function (id) { SRV.appels.push("relancer"); return trouve(id) || refus("relancer") || (SRV.demandes[id].vue.evenements.push({ t: Date.now(), x: "Relance envoyée" }), Promise.resolve(vueDe(id))); },
+      annuler: function (id) { SRV.appels.push("annuler"); return trouve(id) || refus("annuler") || (SRV.demandes[id].vue.etat = "annule", Promise.resolve(vueDe(id))); },
+      signe: function (id, n) { SRV.appels.push("signe:" + n); return trouve(id) || refus("signe") || Promise.resolve(PDFX("SIGNE " + id + " " + n)); },
+      preuve: function (id, i) { SRV.appels.push("preuve:" + i); return trouve(id) || refus("preuve") || Promise.resolve(PDFX("PREUVE " + id + " " + i)); }
+    };
+  }
   if (mode === "demo") api.lireMX = function (d) { note("lireMX:" + d);
     var essai = function (url, headers) { return new Promise(function (ok, ko) {
       var ctl = typeof AbortController !== "undefined" ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); ko(new Error("délai")); }, 3500);
