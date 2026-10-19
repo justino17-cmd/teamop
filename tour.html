@@ -2310,6 +2310,15 @@ body.plans .reg-l.cli::before{display:none}
 .ag-etiq.ok{background:var(--accBg);color:var(--acc-txt)}
 .ag-etiq.ko{color:var(--red)}
 .ag-act{display:flex;gap:8px;flex-wrap:wrap}
+.ag-fil{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.ag-msg{max-width:min(560px,92%);align-self:flex-start;padding:10px 14px;border-radius:var(--r-3);border:1px solid var(--line);background:var(--inset)}
+.ag-msg.moi{align-self:flex-end;border-color:var(--acc)}
+.ag-msg.important{border-left:3px solid var(--org,#d97706)}
+.ag-msg.urgent{border-left:3px solid var(--red,#dc2626)}
+.ag-msg.tache{align-self:center;max-width:100%;background:transparent;border-style:dashed;color:var(--muted)}
+.ag-msg b{display:block;font-size:13px}
+.ag-msg p{margin:4px 0 6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ag-msg span{display:block;font-size:11.5px;color:var(--muted);margin-top:6px}
 @media (max-width:560px){.ag-ligne{flex-wrap:wrap}.ag-act{width:100%}.ag-act button{flex:1}}
 </style>
 <style id="theme-tour">
@@ -10021,7 +10030,8 @@ function vueJournal(){
    que ce dépôt a déjà payée deux fois (CLAUDE.md, `_mailboxes`). Et rien ne se change à l'écran avant que le serveur ait dit oui :
    un mode ne s'affiche pas « Auto » parce qu'on l'a demandé, mais parce que le serveur l'a écrit. */
 var AG={loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false,
-  dos:{q:'',lec:0,liste:[],total:0,ouvert:'',fiche:null,ficheLec:0}};
+  dos:{q:'',lec:0,liste:[],total:0,ouvert:'',fiche:null,ficheLec:0},
+  cv:{lec:0,fils:[],nonLus:0,ouvert:'',msgs:[],msgLec:0,brouillon:'',envoi:false}};
 var AG_MODES=[['arret','À l’arrêt'],['brouillon','Brouillon'],['auto','Auto']];
 var AG_TYPES={creer_espace:'Créer un espace',suspendre_acces:'Suspendre un accès',envoyer_mail:'Envoyer un courriel',publier:'Publier',repondre_avis:'Répondre à un avis',correctif:'Proposer un correctif',
   verifier_paiement:'Vérifier un paiement',preparer_espace:'Préparer un espace',escalade_humain:'Passer la main à une personne',signaler_erreur:'Signaler une erreur',relire_envoi:'Relire un envoi'};
@@ -10037,6 +10047,7 @@ function chargerAgents(){
     AG.agents=d.agents||[]; AG.illisible=d.illisible===true; AG.pause=d.pause||null; AG.enAttente=Number(d.enAttente)||0; AG.loaded=true; AG.err='';
     if(TAB==='agents') render();
   }).catch(function(e){ AG.err=msgErreur(e); AG.loaded=true; if(TAB==='agents') render(); });
+  agCvCharger();
   ['validations','journal','taches'].forEach(function(k){
     apiGet('/api/monitor/agents/'+k+(k==='validations'?'?statut=tout':'')).then(function(d){ if(!d) return;
       if(Array.isArray(d[k])){ AG[k]=d[k]; AG.lec[k]=1; } else { AG.lec[k]=-1; }
@@ -10045,6 +10056,66 @@ function chargerAgents(){
   });
 }
 function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); render(); }
+/* ── les CONVERSATIONS : un fil privé par agent, un fil « Équipe » ; trois états comme partout (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
+function agCvCharger(){
+  apiGet('/api/monitor/conversations').then(function(d){ if(!d) return;
+    if(Array.isArray(d.fils)){ AG.cv.fils=d.fils; AG.cv.nonLus=Number(d.nonLus)||0; AG.cv.lec=1; } else { AG.cv.lec=-1; }
+    if(TAB==='agents') render();
+  }).catch(function(){ AG.cv.lec=-1; if(TAB==='agents') render(); });
+}
+function agCvOuvrir(fil){
+  AG.cv.ouvert=String(fil||''); AG.cv.msgs=[]; AG.cv.msgLec=0; render();
+  apiGet('/api/monitor/conversations/'+encodeURIComponent(AG.cv.ouvert)).then(function(d){ if(!d) return;
+    if(AG.cv.ouvert!==String(fil||'')) return;   /* une réponse tardive ne remplace pas le fil ouvert depuis */
+    if(Array.isArray(d.messages)){ AG.cv.msgs=d.messages; AG.cv.msgLec=1; } else { AG.cv.msgLec=-1; }
+    if(TAB==='agents') render();
+    if(AG.cv.msgLec===1&&d.messages.some(function(m){ return m.lu===false; })){   /* « lu » seulement APRÈS l’affichage : un fil non lu à l’écran reste non lu */
+      apiPost('/api/monitor/conversations/lire',{fil:String(fil)}).then(function(x){ if(x.ok) agCvCharger(); });
+    }
+  }).catch(function(){ if(AG.cv.ouvert===String(fil||'')){ AG.cv.msgLec=-1; if(TAB==='agents') render(); } });
+}
+function agCvFermer(){ AG.cv.ouvert=''; AG.cv.msgs=[]; AG.cv.msgLec=0; agCvCharger(); render(); }
+function agCvEnvoyer(){
+  if(AG.cv.envoi||MYROLE!=='patron') return;
+  var t=String(AG.cv.brouillon||'').trim(); if(!t) return;
+  var fil=AG.cv.ouvert; AG.cv.envoi=true; render();
+  apiPost('/api/monitor/conversations/envoyer',{fil:fil,texte:t}).then(function(x){
+    AG.cv.envoi=false;
+    if(x.ok){ AG.cv.brouillon=''; toast('Message envoyé'); if(AG.cv.ouvert===fil) agCvOuvrir(fil); else render(); }
+    else { toast((x.d&&x.d.error)||'Message non envoyé'); render(); }
+  }).catch(function(){ AG.cv.envoi=false; toast('Message non envoyé — serveur injoignable'); render(); });
+}
+function agCvDossier(n){ AG.sec='dossiers'; agDosOuvrir(n); }
+function agCvMessage(m){
+  var moi=m.de==='justin';
+  return '<div class="ag-msg'+(moi?' moi':'')+(m.niveau==='urgent'?' urgent':m.niveau==='important'?' important':'')+'"><b>'+esc(m.nom||agNom(m.de))+(m.niveau!=='info'?' · '+(m.niveau==='urgent'?'urgent':'important'):'')+'</b><p>'+esc(m.texte)+'</p>'+
+    (m.dossier?'<button type="button" class="ag-btn ok" onclick="agCvDossier(\''+esc(m.dossier)+'\')">Ouvrir le dossier '+esc(m.dossier)+'</button>':'')+'<span>'+esc(fmtDate(m.ts))+' '+esc(fmtHeure(m.ts))+'</span></div>';
+}
+function agCvVue(){
+  var C=AG.cv, h='';
+  if(!C.ouvert){
+    if(C.lec===0) return acSquel();
+    if(C.lec!==1) return agIllisible('Les conversations n’ont pas pu être lues — on ne sait pas si un agent t’a écrit. Réessaie dans un instant.');
+    h+='<div class="ag-liste" style="margin-top:14px">'+C.fils.map(function(f){
+      return '<div class="ag-ligne"><div class="tx"><b>'+esc(f.nom)+(f.fil==='equipe'?' · groupe':'')+(f.nonLus?' <span class="ag-n">'+f.nonLus+'</span>':'')+'</b><span>'+(f.dernier?esc((f.dernier.de==='justin'?'Toi : ':'')+f.dernier.texte)+' · '+esc(fmtDate(f.dernier.ts)):'Aucun message')+'</span></div><div class="ag-act"><button type="button" class="ag-btn" onclick="agCvOuvrir(\''+esc(f.fil)+'\')">Ouvrir</button></div></div>'; }).join('')+'</div>';
+    h+='<div class="note" style="margin-top:12px;color:var(--muted);font-size:12.5px">Un agent n’écrit que s’il est allumé. Pour écrire à un agent qui n’a rien dit, ouvre son fil :</div><div class="ag-barre" style="margin-top:8px">'+
+      AG.agents.filter(function(a){ return !C.fils.some(function(f){ return f.fil===a.id; }); }).map(function(a){ return '<button type="button" class="ag-btn" onclick="agCvOuvrir(\''+esc(a.id)+'\')">'+esc(a.nom)+'</button>'; }).join('')+'</div>';
+    return h;
+  }
+  h+='<div style="margin-top:14px"><button type="button" class="ag-btn" onclick="agCvFermer()">← Toutes les conversations</button> <b style="margin-left:10px">'+esc(C.ouvert==='equipe'?'Équipe':agNom(C.ouvert))+'</b></div>';
+  if(C.msgLec===0) h+=acSquel();
+  else if(C.msgLec!==1) h+=agIllisible('Ce fil n’a pas pu être lu. Réessaie dans un instant.');
+  else {
+    var lignes=C.msgs.map(function(m){ return {ts:m.ts,h:agCvMessage(m)}; });
+    if(C.ouvert==='equipe'&&AG.lec.taches===1) AG.taches.forEach(function(k){ lignes.push({ts:k.ts,h:'<div class="ag-msg tache"><b>'+esc(agNom(k.de))+' → '+esc(agNom(k.vers))+'</b><p>'+esc(AG_TYPES[k.type]||k.type)+' · '+esc(AG_STATUTS[k.statut]||k.statut)+'</p><span>'+esc(fmtDate(k.ts))+' '+esc(fmtHeure(k.ts))+'</span></div>'}); });
+    lignes.sort(function(a,b){ return a.ts-b.ts; });
+    h+=lignes.length?'<div class="ag-fil">'+lignes.map(function(l){ return l.h; }).join('')+'</div>':'<div class="vide">Aucun message dans ce fil.</div>';
+  }
+  h+='<div class="ag-barre" style="margin-top:12px;align-items:flex-end"><textarea id="ag-cv-t" rows="2" maxlength="1000" placeholder="Écrire dans ce fil" aria-label="Ton message" oninput="AG.cv.brouillon=this.value" style="flex:1;min-width:160px;padding:10px 12px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--inset);color:var(--text);font:inherit">'+esc(C.brouillon)+'</textarea>'+
+    '<button type="button" class="ag-btn ok" '+(C.envoi?'disabled ':'')+'onclick="agCvEnvoyer()">Envoyer</button></div>'+
+    '<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ton message est gardé dans le fil. Les agents ne le lisent pas encore et n’y répondent pas : il ne déclenche aucun geste.</div>';
+  return h;
+}
 /* ── les DOSSIERS clients : un numéro (DOS-000123) par client, la fiche est composée par le serveur ; trois états (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
 function agDosCharger(q){
   AG.dos.q=String(q||'').slice(0,80); AG.dos.lec=0;
@@ -10056,7 +10127,7 @@ function agDosCharger(q){
 function agDosOuvrir(n){
   AG.dos.ouvert=String(n||''); AG.dos.fiche=null; AG.dos.ficheLec=0; render();
   apiGet('/api/monitor/dossiers/'+encodeURIComponent(AG.dos.ouvert)).then(function(d){ if(!d) return;
-    if(AG.dos.ouvert!==String(n||'')) return;   /* une réponse tardive ne remplace pas le dossier qu'on a ouvert depuis */
+    if(AG.dos.ouvert!==String(n||'')) return;   /* une réponse tardive ne remplace pas le dossier ouvert depuis */
     if(d.dossier&&typeof d.dossier==='object'){ AG.dos.fiche=d.dossier; AG.dos.ficheLec=1; } else { AG.dos.ficheLec=-1; }
     if(TAB==='agents') render();
   }).catch(function(){ if(AG.dos.ouvert===String(n||'')){ AG.dos.ficheLec=-1; if(TAB==='agents') render(); } });
@@ -10141,9 +10212,9 @@ function vueAgents(){
     ' · '+allumes+' allumé'+(allumes>1?'s':'')+' sur '+AG.agents.length+'</b>'+
     (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
   var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
-  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['taches','Tâches entre agents'],['dossiers','Dossiers']].map(function(o){
+  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers']].map(function(o){
     return '<button type="button" role="tab" class="'+(AG.sec===o[0]?'on':'')+'" aria-selected="'+(AG.sec===o[0])+'" onclick="agSec(\''+o[0]+'\')">'+o[1]+
-      (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+'</button>'; }).join('')+'</div>';
+      (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
     var c='';
     AG.agents.forEach(function(a){
@@ -10174,6 +10245,8 @@ function vueAgents(){
     else h+='<div class="ag-liste">'+AG.journal.map(function(e){
       return '<div class="ag-ligne"><span class="ag-etiq'+(e.resultat==='ok'?' ok':e.resultat==='erreur'||e.resultat==='refuse'?' ko':'')+'">'+esc(e.resultat||'')+'</span><div class="tx"><b>'+esc(agNom(e.agent))+' · '+esc(e.action)+'</b><span>'+
         (e.cible?esc(e.cible)+' · ':'')+(e.detail?esc(e.detail)+' · ':'')+(e.qui?'par '+esc(e.qui)+' · ':'')+esc(fmtDate(e.ts))+'</span></div></div>'; }).join('')+'</div>';
+  } else if(AG.sec==='conv'){
+    h+=agCvVue();
   } else if(AG.sec==='dossiers'){
     h+=AG.dos.ouvert?agDosFiche():agDosListe();
   } else {
