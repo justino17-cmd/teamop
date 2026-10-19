@@ -2067,6 +2067,7 @@ const MON_GESTES = {
   /* l'équipe d'agents (agents.js) : le patron seul allume, éteint, arrête et décide */
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
+  'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
@@ -4413,6 +4414,7 @@ function supprDest() { return String(config.securiteEmail || config.notifDemande
 function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
+let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
 function supprDestLisible() {
@@ -10052,11 +10054,14 @@ try {
         return { etat: ((im && im.surs) || []).length ? 'impaye' : 'aucun' };
       } });
     console.log('dossiers : ' + Object.keys(clientsData).length + ' client(s) examiné(s)');
+    /* LES CONVERSATIONS : un fil privé par agent, un fil « Équipe ». Un agent y parle par `parler` / `rappelClient`, jamais par une route. */
+    conversationsMod = require('./conversations')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, sansAdresses, pousseNotif,
+      formeDossier: dossiersMod.FORME, dossierExiste: n => dossiersMod.existe(n) });
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
     agentHugo = require('./agent-hugo')({
-      agents: agentsMod, slug: espSlug,
+      agents: agentsMod, conversations: conversationsMod, slug: espSlug,
       clients: () => Object.values(clientsData || {}).map(c => ({ email: c && c.email, entreprise: c && c.entreprise })),
       espaceExiste: (email, sl) => !!espacesReg[sl] || Object.values(espacesReg).some(x => x && String(x.email || '').toLowerCase() === String(email).toLowerCase()),
       /* ⛔ `stripeListe` rend `[]` quand la lecture a échoué et qu'aucune liste n'a jamais été lue (une minute d'attente après un échec) :

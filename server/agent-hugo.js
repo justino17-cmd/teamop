@@ -27,8 +27,11 @@ const MOTS_MAX = 6;           // clients examinés par passage
 
 module.exports = function hugo(ctx) {
   const { agents, clients, espaceExiste, stripeListe, paiement, slug } = ctx;
+  const conv = ctx.conversations && typeof ctx.conversations.parler === 'function' ? ctx.conversations : null;
   const ID = 'hugo';
   let enCours = false;
+  let stripeHS = false;   // une panne de Stripe se DIT une fois, pas à chaque passage (toutes les 15 minutes)
+  const dire = (texte, niveau) => { if (!conv) return; try { conv.parler(ID, ID, texte, { niveau }); } catch (e) {} };
 
   /* Un passage. Rend un compte-rendu COURT (jamais d'adresse) : `{saute}` (n'a pas le droit d'agir), `{stripe:false}` (on ne sait
      pas), ou `{examines, proposes, doutes}`. */
@@ -40,7 +43,12 @@ module.exports = function hugo(ctx) {
       if (!p.ok) return { saute: p.raison };
       let liste;
       try { liste = await stripeListe(); } catch (e) { liste = null; }
-      if (!Array.isArray(liste)) { agents.noter(ID, 'relire Stripe', { cible: 'abonnements', resultat: 'erreur', detail: 'Stripe illisible : aucune demande déposée' }); return { stripe: false }; }
+      if (!Array.isArray(liste)) {
+        agents.noter(ID, 'relire Stripe', { cible: 'abonnements', resultat: 'erreur', detail: 'Stripe illisible : aucune demande déposée' });
+        if (!stripeHS) { stripeHS = true; dire('Je n’arrive pas à lire Stripe : je ne peux pas vérifier les paiements, donc je ne propose aucune création d’espace tant que ça dure.', 'important'); }
+        return { stripe: false };
+      }
+      if (stripeHS) { stripeHS = false; dire('Stripe répond de nouveau : je reprends la relecture des paiements.', 'info'); }
       let lus;
       try { lus = clients(); } catch (e) { lus = null; }
       if (!Array.isArray(lus)) { agents.noter(ID, 'lire les clients', { cible: 'clients', resultat: 'erreur', detail: 'liste des clients illisible' }); return { stripe: true, clients: false }; }
@@ -63,6 +71,7 @@ module.exports = function hugo(ctx) {
         if (r.ok) proposes++;
         else if (r.raison === 'file_pleine' || r.raison === 'ecriture') break;
       }
+      if (proposes > 0) dire('J’ai déposé ' + proposes + ' demande' + (proposes > 1 ? 's' : '') + ' de création d’espace (paiement relevé sur Stripe) : elle' + (proposes > 1 ? 's attendent' : ' attend') + ' ta validation dans « Validations ».', 'important');
       return { examines, proposes, doutes };
     } finally { enCours = false; }
   }

@@ -113,7 +113,9 @@ module.exports = function monterDossiers(app, ctx) {
     } catch (e) { console.error('dossier :', e.message); res.status(500).json({ error: 'Dossier non lu' }); }
   });
 
+  /* Ce numéro est-il attribué À UN CLIENT QUI EXISTE ? (sans rien lire d'autre) */
+  const existe = n => FORME.test(String(n || '')) && !!etat.parNumero[n] && !!emailDe(n);
   attribuerTous();
-  return { numeroDe, attribuerTous, fiche, FORME, estIllisible: () => illisible };
+  return { numeroDe, attribuerTous, fiche, existe, FORME, estIllisible: () => illisible };
 };
 module.exports.FORME = FORME;
