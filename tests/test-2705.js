@@ -40,6 +40,8 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
   v('⛔ l\'adresse du service de signature de la bêta', decl && decl[1], 'https://courrier-beta.teamop.fr');
   const CODE = BRUT.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   vrai('⛔ aucune autre adresse du service écrite en dur dans la page (toutes les routes passent par la constante)', (CODE.match(/courrier-beta\.teamop\.fr/g) || []).length === 1);
+  /* la valeur DÉCLARÉE ne dit pas où la page appelle : une seconde affectation plus loin la réadresse sans toucher à la déclaration (mutation « joint ailleurs ») */
+  vrai('⛔ aucune autre affectation de COURRIER_SRV dans le code : rien ne réadresse le service plus loin', (CODE.match(/\bCOURRIER_SRV\s*=(?!=)/g) || []).length === 1);
   const src = corps(BRUT, 'function courrierSource(');
   vrai('(population) courrierSource est trouvée, avec son objet signature', src.length > 6000 && /var signature=\{/.test(src), src.length);
 
