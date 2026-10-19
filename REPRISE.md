@@ -15,6 +15,19 @@ de ligne du tout.
 
 # ⏳ 19 OCTOBRE 2026 — L'ÉQUIPE D'AGENTS IA : LE SOCLE EST POSÉ, AUCUN AGENT N'EXISTE ENCORE — BRANCHE `claude/equipe-agents`
 
+> **Hugo, premier agent réel (19 octobre 2026, branche seulement).** `server/agent-hugo.js` : toutes les 15 minutes (et à la demande : bouton
+> « Relire Stripe maintenant » sur sa carte, `POST /api/monitor/agents/hugo/passer`, patron seul), il relit Stripe et, pour un client SANS espace
+> dont l'abonnement est payé SÛREMENT à lui (`espaceStripeDans`, `formulePayee` du serveur — aucune seconde règle), il DÉPOSE une demande
+> « creer_espace » ; Justin valide. **Hugo ne crée rien** : accepter une demande ne fait que l'enregistrer (aucun exécuteur branché) — l'espace
+> se crée encore à la main dans la Tour. Il n'appelle pas Claude et ne lit aucun texte de client : un nom d'entreprise hors forme (phrase,
+> signes, plus de 6 mots) est laissé à un humain, la demande ne porte que le nom d'accès et la formule. Un refus ne revient jamais ; une demande
+> expirée (7 jours) peut être refaite. Stripe illisible = rien proposé (`stripeListe` rendait `[]` sur une panne sans liste lue : le fil de
+> Hugo la traite comme `null`). `tests/test-2705.js` : 30 vérifications, 11 mutations sur 12 détectées.
+> ⚠️ Non couvert : la branche « abonnement douteux » de `paiement` (index.js) — aucun scénario Stripe du banc ne la joue encore.
+> ⚠️ Un client dont l'espace a été fermé exprès et qui a un abonnement vivant serait re-proposé (le refus de Justin, lui, tient).
+> Ce qui reste pour Hugo : l'exécuteur (créer l'espace à l'acceptation), la suspension d'accès sur impayé, le courriel d'accueil.
+
+
 > **Panneau « Agents » dans la Tour (v2.90, 19 octobre 2026, branche seulement).** Onglet réservé au patron (`PATRON_SEUL`) : seize cartes à
 > trois modes (arrêt / brouillon / auto, « auto » refusé tant que l'agent est à l'arrêt et confirmé), bandeau de pause générale,
 > validations (Valider / Refuser, confirmation avant d'accepter), journal, tâches entre agents. Trois états par liste (0 pas lu, 1 lu,

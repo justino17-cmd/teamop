@@ -35,7 +35,7 @@ function fonction(nom) {
 /* `esc` tient sur UNE ligne et porte une apostrophe et un guillemet dans une expression régulière : le compteur d'accolades la prendrait pour des chaînes */
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'acSquel', 'fmtDate', 'agParId', 'agNom', 'agMode', 'agParams', 'agEnPause',
-  'chargerAgents', 'agSec', 'agMode_', 'agPause', 'agDecider', 'agIllisible', 'vueAgents'];
+  'chargerAgents', 'agSec', 'agMode_', 'agPause', 'agDecider', 'agHugo', 'agIllisible', 'vueAgents'];
 const i0 = CODE.indexOf('var AG={'), i1 = CODE.indexOf('\nfunction agParId(');
 vrai('le bloc des agents est trouvé dans la Tour', i0 > 0 && i1 > i0);
 vrai('chaque fonction du panneau existe', ESC && NOMS.every(n => fonction(n)));
@@ -117,6 +117,14 @@ console.log('\n── 2704 · le panneau Agents de la Tour : ses vraies fonction
   v('« Annuler » à la confirmation : rien n’est écrit, Max reste en brouillon', (S.lire('agents-etat.json') || { modes: {} }).modes.max, 'brouillon');
   const saut = await S.post('/api/monitor/agents/mode', { agent: 'nina', mode: 'auto' }, S.jeton);
   v('le serveur refuse le saut arrêt → auto (409) — la page ne le propose pas non plus', saut.s, 409);
+
+  console.log('\n2 bis. Hugo : « Relire Stripe maintenant »');
+  h = T.ctx.vueAgents();
+  vrai('le bouton n’existe que sur la carte de Hugo, une fois allumé', (h.match(/Relire Stripe maintenant/g) || []).length === 1);
+  const avantH = T.toasts.length; T.ctx.agHugo();
+  vrai('le passage répond : le serveur de banc n’a pas de Stripe, la page dit « Stripe illisible »', await att(() => T.toasts.slice(avantH).some(t => /Stripe illisible/.test(t))));
+  await att(() => !T.ctx.AG.busy);
+  vrai('un collaborateur ne le fait pas passer (la page refuse avant d’appeler)', (() => { const c = tour(S.B, S.jeton, 'collaborateur'); const n0 = c.toasts.length; c.ctx.agHugo(); return c.toasts.length === n0 && c.etat.rendus === 0; })());
 
   console.log('\n3. Pause générale : arrête tout, et seul « Reprendre » reprend');
   T.ctx.agPause(true);

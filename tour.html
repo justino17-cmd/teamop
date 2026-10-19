@@ -10073,6 +10073,18 @@ function agDecider(id,decision){
     chargerAgents();
   }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
 }
+/* Hugo relit Stripe À LA DEMANDE (il le fait aussi seul, toutes les 15 minutes) : le verdict se dit tel que le serveur l'a rendu */
+function agHugo(){
+  if(AG.busy||MYROLE!=='patron') return;
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/hugo/passer',{}).then(function(r){
+    AG.busy=false; var d=r.d||{};
+    toast(!r.ok?(d.error||'Passage refusé'):d.saute?'Hugo ne peut pas agir ('+({arret:'à l’arrêt',pause:'pause générale',etat_illisible:'état illisible',deja_en_cours:'déjà en route'}[d.saute]||d.saute)+')':
+      d.stripe===false?'Stripe illisible : rien n’a été proposé.':d.clients===false?'Liste des clients illisible : rien n’a été proposé.':
+      (Number(d.proposes)||0)+' demande'+((Number(d.proposes)||0)>1?'s':'')+' déposée'+((Number(d.proposes)||0)>1?'s':'')+' · '+(Number(d.examines)||0)+' client'+((Number(d.examines)||0)>1?'s':'')+' sans espace examiné'+((Number(d.examines)||0)>1?'s':''));
+    chargerAgents();
+  }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
 function agIllisible(txt){ return '<div class="encart bloc"><div class="tx" style="margin-top:0">'+esc(txt)+'</div></div>'; }
 function vueAgents(){
   var tete=enTete('Agents','Les agents IA qui gèrent Team OP. Tu décides ce que chacun a le droit de faire : à l’arrêt, il ne fait rien ; en brouillon, il prépare et tu relis ; en auto, il agit seul dans ses droits.');
@@ -10098,7 +10110,8 @@ function vueAgents(){
         '<div class="ag-seg" role="group" aria-label="Mode de '+esc(a.nom)+'">'+AG_MODES.map(function(x){
           var off=AG.busy||(x[0]==='auto'&&m==='arret');
           return '<button type="button" data-m="'+x[0]+'" class="'+(m===x[0]?'on':'')+'" aria-pressed="'+(m===x[0])+'"'+(off?' disabled':'')+(x[0]==='auto'&&m==='arret'?' title="Passe d’abord par brouillon"':'')+' onclick="agMode_(\''+esc(a.id)+'\',\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>'+
-        '<div class="ag-pied"><span>Plafond mensuel</span><b>'+esc(a.plafondUsd)+' $</b></div></article>';
+        '<div class="ag-pied"><span>Plafond mensuel</span><b>'+esc(a.plafondUsd)+' $</b></div>'+
+        (a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+'</article>';
     });
     if(c) h+='</div>';
     h+='<div class="encart bloc" style="margin-top:16px"><div class="tx" style="margin-top:0">Un agent neuf est à l’arrêt. Il passe par « brouillon » avant « auto ». Les dépenses ne se lisent pas ici : voir la Console Anthropic (espace « Agents Team OP », limite 195 $).</div></div>';
