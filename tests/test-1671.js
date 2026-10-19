@@ -70,6 +70,22 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
     v('refusé avant toute action (code 2) : ' + t, [r.status, /refusé/.test(r.stdout)], [2, true]);
   }
   const iKek = code.indexOf('openssl rand'), iRefus = code.indexOf('contient des données mais la clé maître');
+  // la garde de la clé maître est EXÉCUTÉE (la section 4 du script, dans un bac à sable), pas seulement lue
+  const bloc = SH.slice(SH.indexOf('echo "── 4. La clé maître"'), SH.indexOf('echo "── 5.')).replace('chown root:root "$KEK"', 'true');
+  vrai('population : la section « clé maître » est trouvée', bloc.length > 300 && /openssl rand/.test(bloc));
+  const bac = (garni, avecCle) => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'opcourrier-kek-')), kek = path.join(d, 'kek-beta'), don = path.join(d, 'data'); fs.mkdirSync(don);
+    if (garni) fs.writeFileSync(path.join(don, 'courrier.db'), 'x');
+    if (avecCle) fs.writeFileSync(kek, 'ANCIENNE-CLE\n', { mode: 0o600 });
+    const r = spawnSync('bash', ['-c', 'set -euo pipefail\nKEK="$1"; DONNEES="$2"\n' + bloc, 'x', kek, don], { encoding: 'utf8' });
+    return { code: r.status, sortie: r.stdout + r.stderr, kek: fs.existsSync(kek) ? fs.readFileSync(kek, 'utf8') : null, mode: fs.existsSync(kek) ? (fs.statSync(kek).mode & 0o777).toString(8) : null };
+  };
+  let k = bac(true, false);
+  v('des données SANS clé maître : REFUS (code 1) et aucune clé neuve', [k.code, k.kek], [1, null]);
+  k = bac(true, true); v('des données AVEC leur clé : la clé est gardée telle quelle', [k.code, k.kek], [0, 'ANCIENNE-CLE\n']);
+  k = bac(false, false);
+  vrai('rien du tout : une clé de 64 hexadécimaux est tirée, en 0600…', k.code === 0 && /^[0-9a-f]{64}\n$/.test(k.kek || '') && k.mode === '600');
+  vrai('…et elle n\'est écrite NULLE PART dans la sortie', k.kek && !k.sortie.includes(k.kek.trim()));
   vrai('la clé maître n\'est tirée qu\'APRÈS le refus « des données sans clé »', iRefus > 0 && iKek > iRefus);
   vrai('…et jamais affichée (tirée vers un fichier, aucun « cat » ni « echo » de la clé)', /openssl rand -hex 32 > "\$KEK"/.test(code) && !/cat\s+"?\$KEK/.test(code) && !/echo[^\n]*\$\(?\s*cat/.test(code));
   vrai('le service reçoit la clé par credential systemd (pas par variable)', /LoadCredential=kek:\$KEK/.test(code) && !/Environment=OPCOURRIER_KEK/.test(code));

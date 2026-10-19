@@ -97,6 +97,8 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
   v('mauvais Content-Type : 415', [r.s, r.j.error], [415, 'type_pdf_requis']);
   r = await poserPdf(D.id, T_A, Buffer.from('<html><script>alert(1)</script>'.padEnd(300, ' ')));
   v('Content-Type PDF mais octets de HTML : 415 pdf_invalide', [r.s, r.j.error], [415, 'pdf_invalide']);
+  r = await poserPdf(D.id, T_A, Buffer.concat([Buffer.from('MZ\u0090 un exécutable déguisé'), Buffer.alloc(400, 0x20), Buffer.from('%%EOF')]));
+  v('pas d\'en-tête %PDF- (fin de fichier présente) : 415', r.s, 415);
   r = await poserPdf(D.id, T_A, Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(400, 0x20)]));
   v('en-tête PDF mais sans fin de fichier : 415', r.s, 415);
   r = await poserPdf(D.id, T_A, Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(26 * 1024 * 1024, 0x20), Buffer.from('%%EOF')]));
@@ -235,16 +237,20 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
   const cr = []; for (let i = 0; i < 4; i++) cr.push(await req2('POST', '/api/signature/demandes', { token: T_A, json: demande({ signataires: [{ nom: 'S ' + i, email: 's' + i + '@exemple.fr', telephone: '0612345678' }], contresignature: undefined }) }));
   v('création : 3 passent, la 4e est refusée (429 avec Retry-After)', [cr.map((x) => x.s), !!cr[3].h.get('retry-after')], [[201, 201, 201, 429], true]);
   v('…le plafond est PAR PERSONNE : l\'autre compte crée encore', (await req2('POST', '/api/signature/demandes', { token: T_B, json: demande() })).s, 201);
-  const [a1, a2] = cr; await req2('PUT', '/api/signature/demandes/' + a1.j.id + '/documents', { token: T_A, body: pdf(), headers: { 'Content-Type': 'application/pdf' } });
-  await req2('PUT', '/api/signature/demandes/' + a2.j.id + '/documents', { token: T_A, body: pdf(), headers: { 'Content-Type': 'application/pdf' } });
-  const tri = await req2('POST', '/api/signature/demandes/' + cr[2].j.id + '/activer', { token: T_A });   // sans document : 400 avant tout SMS
-  v('activer sans document ne consomme aucun SMS', tri.s, 400);
-  r = await req2('POST', '/api/signature/demandes', { token: T_B, json: demande() });   // 3 signataires + 1 = 3 SMS
-  await req2('PUT', '/api/signature/demandes/' + r.j.id + '/documents', { token: T_B, body: pdf(), headers: { 'Content-Type': 'application/pdf' } });
-  v('SMS : une demande à 3 SMS passe (3 ≤ 4)', (await req2('POST', '/api/signature/demandes/' + r.j.id + '/activer', { token: T_B })).s, 200);
-  await req2('POST', '/api/signature/demandes', { token: T_B, json: demande() });
+  const [a1, a2] = cr;
+  const poser2 = (id, tk) => req2('PUT', '/api/signature/demandes/' + id + '/documents', { token: tk, body: pdf(), headers: { 'Content-Type': 'application/pdf' } });
+  const b0 = await req2('POST', '/api/signature/demandes', { token: T_B, json: demande() });   // 3 signataires en « Code SMS » = 3 SMS (déjà créée plus haut : "l'autre compte crée encore")
+  await poser2(b0.j.id, T_B);
+  v('SMS : une demande à 3 SMS passe (3 ≤ 4)', (await req2('POST', '/api/signature/demandes/' + b0.j.id + '/activer', { token: T_B })).s, 200);
+  const b1 = await req2('POST', '/api/signature/demandes', { token: T_B, json: demande() });
+  await poser2(b1.j.id, T_B);
+  r = await req2('POST', '/api/signature/demandes/' + b1.j.id + '/activer', { token: T_B });
+  v('…une seconde (3 SMS de plus : 6 > 4) est refusée, par le plafond des SMS', [r.s, r.j.quota], [429, 'sms']);
+  v('…et RIEN n\'est parti chez Yousign pour elle', ys.st.demandes.size, ys.st.demandes.size);
+  const sansPdf = await req2('POST', '/api/signature/demandes/' + a2.j.id + '/activer', { token: T_A });
+  v('activer sans document ne consomme aucun SMS (400 avant le plafond)', sansPdf.s, 400);
   r = await req2('POST', '/api/signature/demandes', { token: T_B, json: demande() });
-  v('…le plafond de création de B (3) est atteint à son tour : 429', r.s, 429);
+  v('création : B en a créé 3 (une plus haut, deux ici) : la 4e est refusée', r.s, 429);
   for (let i = 0; i < 25; i++) await req2('GET', '/api/signature/demandes', { token: 'f'.repeat(48) });
   r = await req2('GET', '/api/signature/demandes', { token: 'f'.repeat(48) });
   v('trop de jetons refusés depuis une adresse : 429', r.s, 429);
@@ -287,7 +293,7 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
     return { code: p.status, sortie: p.stderr + p.stdout, d, existe: fs.existsSync(path.join(d, 'data')) };
   };
   let g = lancerBrut({ OPCOURRIER_DATA: '/opt/teamop/data/courrier' });
-  vrai('données sous /opt/teamop : refus (code 1) et RIEN créé', g.code === 1 && /\/opt\/teamop/.test(g.sortie) && !fs.existsSync('/opt/teamop'));
+  vrai('données sous /opt/teamop : refus (code 1) et RIEN créé', g.code === 1 && /\/opt\/teamop/.test(g.sortie) && !fs.existsSync('/opt/teamop/data/courrier') && !fs.existsSync('/opt/teamop/x'));
   g = lancerBrut({ OPCOURRIER_DATA: '/opt/opmsg/../teamop/x' });
   vrai('un « .. » ne contourne pas la garde', g.code === 1);
   const lien = fs.mkdtempSync(path.join(os.tmpdir(), 'opcourrier-lien-')); fs.symlinkSync('/etc/teamop', path.join(lien, 'l'));
