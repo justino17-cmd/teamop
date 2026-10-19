@@ -93,7 +93,21 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
   vrai('nginx : l\'adresse transmise est celle vue par nginx (le client ne peut pas la forger)', /proxy_set_header X-Forwarded-For \\\$remote_addr;/.test(code) && !/proxy_add_x_forwarded_for/.test(code));
   vrai('nginx : 25 Mo + marge, et seules /health et /api/signature/ sont servies', /client_max_body_size 26m;/.test(code) && /location = \/health/.test(code) && /location \/api\/signature\//.test(code) && /location \/ \{ return 404; \}/.test(code));
   vrai('le service tourne sous un utilisateur dédié, durci, et le code lui est en lecture seule', /User=opcourrier/.test(code) && /ProtectSystem=strict/.test(code) && /NoNewPrivileges=true/.test(code) && /ReadWritePaths=\$DONNEES/.test(code));
-  vrai('Node 22 par le dépôt apt SIGNÉ, jamais « curl | bash »', /signed-by=/.test(code) && !/\|\s*(ba)?sh\b/.test(code));
+  // COHABITATION avec teamop-api et OP MESSAGES sur le même VPS
+  const ecritNginx = [...code.matchAll(/(?:>|cp |mv |rm -f |ln -sfn )[^\n]*\/etc\/nginx[^\n]*/g)].map((m) => m[0]).join('\n') + '\n' + code.match(/SITE="[^"]*"/)[0];
+  vrai('nginx : le SEUL fichier posé est sites-available/courrier-<instance> (+ son lien) — ni nginx.conf, ni conf.d, ni un site existant', /SITE="\/etc\/nginx\/sites-available\/courrier-\$INSTANCE"/.test(code) && /LIEN="\/etc\/nginx\/sites-enabled\/courrier-\$INSTANCE"/.test(code) && !/nginx\.conf|conf\.d|sites-available\/(default|api|opmsg)/.test(code) && !/>\s*\/etc\/nginx\/(?!sites)/.test(code));
+  const iT = code.indexOf('nginx -t >/dev/null'), iR = code.indexOf('systemctl reload nginx');
+  vrai('`nginx -t` AVANT tout rechargement, et sur refus : fichier retiré, exit 1, aucun reload', iT > 0 && iR > iT && /rm -f "\$SITE" "\$LIEN"/.test(code) && code.slice(iT, iR).includes('exit 1'));
+  vrai('Node, nginx, les autres certificats : ni installés, ni mis à jour, ni apt upgrade', !/nodesource|apt(-get)? +(upgrade|dist-upgrade|full-upgrade)|install[^\n]*\s(nodejs|nginx)\b/.test(code) && /Node 22\.5 minimum/.test(code) && /nginx n'est pas actif/.test(code));
+  vrai('certbot : CE domaine seulement (jamais renew, delete, --expand ni -d d\'un autre)', (code.match(/certbot --nginx -d "\$DOMAINE" --cert-name "\$DOMAINE"/g) || []).length === 1 && !/certbot +(renew|delete|revoke)|--expand/.test(code) && (code.match(/certbot[^\n]*-d "/g) || []).length === 1);
+  vrai('pare-feu : rien n\'est ouvert (ni ufw, ni iptables, ni nft, ni firewall-cmd)', !/\b(ufw|iptables|ip6tables|nft|firewall-cmd)\b/.test(code));
+  vrai('le port est refusé s\'il appartient à un autre service du VPS, et vérifié libre (ss)', /8080\|8090\|8091\|7880\|7881\|3478\|5349/.test(code) && /ss -ltnH/.test(code));
+  vrai('le service n\'écoute que sur 127.0.0.1', /listen\(config\.port, '127\.0\.0\.1'/.test(sansCommJs(lire('server-courrier/index.js'))) && /proxy_pass http:\/\/127\.0\.0\.1:\$PORT/.test(code));
+  // le contrôle de port, EXÉCUTÉ
+  for (const [port, attendu] of [['8080', 2], ['8090', 2], ['8091', 2], ['7880', 2], ['3478', 2], ['443', 2], ['abc', 2]]) {
+    const rr = spawnSync('bash', [inst, 'beta', 'courrier-beta.teamop.fr', '--email', 'a@b.fr'], { encoding: 'utf8', env: { PATH: process.env.PATH, OPCOURRIER_PORT: port }, timeout: 10000 });
+    v('port ' + port + ' refusé avant toute action', [rr.status, /refusé/.test(rr.stdout)], [attendu, true]);
+  }
   vrai('rien ne touche à OP GESTION ni OP MESSAGES (aucun chemin /opt/teamop, /etc/teamop, /opt/opmsg, /etc/opmsg dans le code exécuté)', !/\/(opt|etc)\/(teamop|opmsg)/.test(code));
   vrai('aucun `set -x` (il afficherait les commandes)', !/set -[a-z]*x/.test(code));
   vrai('le certificat attend que le DNS pointe ici', code.indexOf('getent ahostsv4') > 0 && code.indexOf('getent ahostsv4') < code.indexOf('certbot --nginx'));
@@ -143,7 +157,7 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
   const suites = L.split('\n').filter((l) => /^tests\/test-\d+\.js$/.test(l.trim()));
   vrai('la liste nomme ses suites, et elles existent', suites.length >= 2 && suites.every((s) => fs.existsSync(path.join(RAC, s.trim()))));
   vrai('un plancher de vérifications est posé (les suites sautent sans `npm ci`)', /^#plancher \d+/m.test(L));
-  vrai('LISEZMOI.md existe et nomme les gestes de Justin (DNS, installeur, clé, webhook)', (() => { const t = lire('server-courrier/LISEZMOI.md'); return ['courrier-beta.teamop.fr', 'install-courrier.sh', 'configurer-yousign.js', 'kek', 'webhook/yousign', 'OVH', 'IONOS'].every((m) => t.includes(m)); })());
+  vrai('LISEZMOI.md existe et nomme les gestes de Justin (DNS, installeur, clé, webhook)', (() => { const t = lire('server-courrier/LISEZMOI.md'); return ['courrier-beta.teamop.fr', 'install-courrier.sh', 'configurer-yousign.js', 'kek', 'webhook/yousign', '217.154.6.139'].every((m) => t.includes(m)); })());
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);

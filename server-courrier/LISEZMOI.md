@@ -1,11 +1,12 @@
 # OP Courrier — le serveur de signature (Yousign)
 
 Un service **à part** : ni le serveur d'OP GESTION (`server/`, `api.teamop.fr`), ni celui d'OP MESSAGES (`server-msg/`).
-Il tourne sur **son propre VPS** (IONOS) et fait signer des documents par Yousign pour le module OP Courrier.
+Il tourne sur le VPS existant et fait signer des documents par Yousign pour le module OP Courrier.
 Première brique : la signature. La lecture des boîtes viendra dans le même service.
 
-- `courrier-beta.teamop.fr` : l'instance bêta, **bac à sable Yousign** (rien de légal, aucun vrai signataire prévenu)
-- `courrier.teamop.fr` : la production (plus tard, avec la clé de production Yousign)
+- Il s'installe sur le **VPS existant** (217.154.6.139), à côté de `teamop-api` et d'OP MESSAGES, **sans rien toucher d'eux** (voir « Cohabitation »).
+- `courrier-beta.teamop.fr` : l'instance bêta, **bac à sable Yousign** (rien de légal, aucun vrai signataire prévenu) — DNS déjà posé.
+- `courrier.teamop.fr` : la production (plus tard, avec la clé de production Yousign).
 
 ## Comment ça marche, en dix lignes
 
@@ -26,60 +27,59 @@ Première brique : la signature. La lecture des boîtes viendra dans le même se
 
 > ⛔ **Aucun secret ne s'affiche jamais sur le VPS, et aucun ne se colle dans la conversation.** Une clé va du site de Yousign à ton gestionnaire de mots de passe, puis au VPS en **saisie masquée** (on ne voit rien en tapant, c'est normal).
 
-### 1. Créer le VPS (IONOS)
-Ubuntu **24.04**, 1 vCPU / 2 Go suffisent. Ajoute ta clé SSH à la création. Note l'**adresse IPv4**. (Ce VPS ne sert qu'à OP Courrier : n'y mets rien d'autre.)
-
-### 2. Le DNS (OVH)
-Dans la zone `teamop.fr`, ajoute un enregistrement **A** :
-`courrier-beta` → l'adresse IPv4 du VPS (et plus tard `courrier` → la même adresse pour la production).
-Attends que `getent hosts courrier-beta.teamop.fr` rende cette adresse (quelques minutes à quelques heures). L'installeur refuse de continuer sinon.
-
-### 3. Lancer l'installeur (sur le VPS, en root)
+### 1. Lancer l'installeur (sur le VPS, en root)
 ```bash
-ssh root@<adresse du VPS>
-apt-get update && apt-get install -y git
+ssh root@217.154.6.139
 git clone --depth 1 --branch courrier/serveur https://github.com/justino17-cmd/teamop.git /root/depot-courrier
 bash /root/depot-courrier/server-courrier/install-courrier.sh beta courrier-beta.teamop.fr --email <ton adresse> --branche courrier/serveur
 ```
 (Quand la branche sera fusionnée, retire `--branche …` et `--branch …` : c'est `main` par défaut.)
-Il installe Node 22, nginx, le certificat HTTPS (Let's Encrypt), l'utilisateur `opcourrier`, le service `opcourrier-beta`, tire au sort la **clé maître** (sans l'afficher), et dit à la fin l'adresse du webhook.
-Il est rejouable : ce qui existe est gardé. ⛔ S'il trouve des données **sans** clé maître, il refuse : une clé neuve rendrait tout illisible.
+Il vérifie ce qu'il doit (Node 22.5+, nginx actif, port libre), crée l'utilisateur `opcourrier`, le service `opcourrier-beta` (127.0.0.1, port 8192), **ajoute** un site nginx `courrier-beta`, obtient le certificat de ce domaine seulement, tire au sort la **clé maître** (sans l'afficher) et dit à la fin l'adresse du webhook.
+Rejouable : ce qui existe est gardé. ⛔ S'il trouve des données **sans** clé maître, il refuse : une clé neuve rendrait tout illisible. ⛔ Si `nginx -t` refuse, il retire son fichier et ne recharge rien.
 
-### 4. Sauvegarder la clé maître (sans l'afficher)
-Sans elle, perdre le VPS = perdre les PDF signés. **De ton Mac** (pas dans une session partagée) :
+### 2. Sauvegarder la clé maître (sans l'afficher)
+Sans elle, perdre le VPS = perdre les PDF signés. **De ton Mac** :
 ```bash
-scp root@<adresse du VPS>:/etc/opcourrier/kek-beta ~/kek-beta.txt
+scp root@217.154.6.139:/etc/opcourrier/kek-beta ~/kek-beta.txt
 ```
-Ouvre le fichier **dans ton gestionnaire de mots de passe** (nouvelle note « OP Courrier kek beta »), puis supprime-le : `rm -P ~/kek-beta.txt`. Ne le colle nulle part.
+Mets le contenu **dans ton gestionnaire de mots de passe** (note « OP Courrier kek beta »), puis `rm -P ~/kek-beta.txt`. Ne le colle nulle part.
 
-### 5. Créer la clé API Yousign (bac à sable)
+### 3. Créer la clé API Yousign (bac à sable)
 1. Crée ton compte sur Yousign et ouvre l'espace **bac à sable** (« sandbox »).
-2. *Développeurs → Clés API → Créer* : donne-lui un nom (« OP Courrier beta »), copie la clé **directement dans ton gestionnaire de mots de passe**.
-3. Dans le gestionnaire, fabrique aussi un **mot de passe aléatoire de 32 caractères ou plus** : ce sera le **secret du webhook**.
+2. *Développeurs → Clés API → Créer* (« OP Courrier beta ») : copie la clé **directement dans ton gestionnaire de mots de passe**.
+3. Dans le gestionnaire, fabrique un **mot de passe aléatoire de 32 caractères ou plus** : le **secret du webhook**.
 
-### 6. Poser les deux valeurs sur le VPS (saisie masquée)
+### 4. Poser les deux valeurs sur le VPS (saisie masquée)
 ```bash
 cd /opt/opcourrier/repo/server-courrier
-sudo node configurer-yousign.js beta
+node configurer-yousign.js beta
 ```
-Il demande : l'environnement (`sandbox`), la clé API (deux fois), le secret du webhook (deux fois) — masqués, jamais réaffichés — puis redémarre le service. Pour **comparer** une copie sans rien afficher : `sudo node configurer-yousign.js beta verifier` (« identique » ou « DIFFÉRENTE »). Pour vérifier que Yousign accepte la clé : `sudo node configurer-yousign.js beta tester`.
+Il demande l'environnement (`sandbox`), la clé API (deux fois), le secret du webhook (deux fois) — masqués, jamais réaffichés — puis redémarre le service. `node configurer-yousign.js beta verifier` compare une copie sans rien afficher ; `… tester` vérifie que Yousign accepte la clé.
 
-### 7. Déclarer le webhook chez Yousign
+### 5. Déclarer le webhook chez Yousign
 *Développeurs → Webhooks → Créer* :
 - **URL** : `https://courrier-beta.teamop.fr/api/signature/webhook/yousign`
-- **Clé secrète** : le secret de l'étape 5 (colle-le depuis le gestionnaire)
+- **Clé secrète** : le secret de l'étape 3 (colle-le depuis le gestionnaire)
 - **Événements** : tous ceux de `signature_request` et de `signer` (activée, terminée, refusée, expirée, annulée ; lien ouvert, signé, refusé).
 
-### 8. Contrôler
+### 6. Contrôler
 `https://courrier-beta.teamop.fr/health` doit répondre `"signature":{"pret":true,"sandbox":true}`. Dis-le à Claude : il branche la page (voir plus bas) et fait un essai de bout en bout contre le bac à sable.
 
 ### Plus tard : la production
-Même chose avec `courrier.teamop.fr` et `install-courrier.sh prod courrier.teamop.fr …` (port et service distincts, **autre** clé maître, **autre** clé API Yousign de production, **autre** webhook). Vérifie d'abord les prix de Yousign. Mets à jour `registre-traitements.html` et `sous-traitance.html` (hébergeur IONOS, Yousign sous-traitant) **avant** d'ouvrir à de vrais clients.
+Même chose avec `courrier.teamop.fr` (DNS à poser chez OVH vers 217.154.6.139) et `install-courrier.sh prod courrier.teamop.fr …` (port 8193 et service distincts, **autre** clé maître, **autre** clé API Yousign de production, **autre** webhook). Vérifie d'abord les prix de Yousign. Mets à jour `registre-traitements.html` et `sous-traitance.html` (Yousign sous-traitant) **avant** d'ouvrir à de vrais clients.
 
 ### Le déploiement automatique (facultatif, plus tard)
 `.github/workflows/deploiement-courrier.yml` ne part qu'à la main et reste éteint tant que la variable de dépôt `COURRIER_ACTIF` ne vaut pas « oui ». Il exige : les secrets `VPS_SSH_KEY_COURRIER_BETA` / `_PROD` (clés dont la ligne `authorized_keys` du VPS est `command="/opt/opcourrier/deployer.sh",restrict …`), les variables `COURRIER_HOTE` et `COURRIER_EMPREINTE_HOTE` (la clé publique d'hôte, `ssh-keyscan -t ed25519`), et l'environnement `courrier-prod` avec toi comme relecteur obligatoire.
 
 ---
+
+## Cohabitation avec teamop-api et OP MESSAGES
+
+- nginx : seul `/etc/nginx/sites-available/courrier-<instance>` (+ son lien) est ajouté ; `nginx.conf`, `conf.d` et les sites existants ne sont jamais réécrits ; `nginx -t` passe AVANT le rechargement, sinon tout est retiré.
+- Port local libre vérifié (8192 beta, 8193 prod ; jamais 8080, 8090, 8091, 7880, 7881, 3478, 5349), sur 127.0.0.1 seulement.
+- Certificat : `certbot --nginx -d <ce domaine>` seulement. Node, nginx, les autres certificats : ni installés ni mis à jour ; aucun `apt upgrade`. Pare-feu : rien d'ouvert.
+- Dossiers à part : `/opt/opcourrier`, `/etc/opcourrier`, utilisateur `opcourrier`, unité `opcourrier-<instance>` ; le service refuse de démarrer sous `/opt/teamop`, `/etc/teamop`, `/opt/opmsg`, `/etc/opmsg`.
+- Retirer OP Courrier : `systemctl disable --now opcourrier-beta`, supprimer le site nginx `courrier-beta` (+ lien) puis `nginx -t && systemctl reload nginx`.
 
 ## Côté page
 

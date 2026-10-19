@@ -14,7 +14,8 @@ else
 fi
 [[ "$CIBLE" =~ ^(beta|prod)$ ]] || { echo "refusé : beta ou prod"; exit 2; }
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "refusé : SHA complet (40 hexadécimaux)"; exit 2; }
-case "$CIBLE" in beta) PORT=8092 ;; prod) PORT=8093 ;; esac
+PORT="$(sed -n "s/^Environment=PORT=//p" "/etc/systemd/system/opcourrier-$CIBLE.service" 2>/dev/null | head -1)"
+[[ "$PORT" =~ ^[0-9]{4,5}$ ]] || { echo "refusé : $CIBLE n est pas installé (unité introuvable)"; exit 2; }
 MIROIR=/opt/opcourrier/repo; UNITE="opcourrier-$CIBLE"
 exec 9>/var/lock/opcourrier-deploiement; flock -n 9 || { echo "refusé : un déploiement est déjà en cours"; exit 3; }
 AVANT="$(git -C "$MIROIR" rev-parse HEAD)"
