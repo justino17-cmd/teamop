@@ -51,6 +51,9 @@ SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "── 1. Ce qui doit déjà être là (rien n'est mis à jour)"
 node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=5)?0:1)' 2>/dev/null || { echo "✗ Node 22.5 minimum est nécessaire (node:sqlite) ; ce script ne l'installe ni ne le met à jour"; exit 1; }
+# le chemin RÉEL de node, pour l'unité systemd (ExecStart) : le service tourne sous `opcourrier`, qui ne lit ni /root ni /home
+NODE="$(readlink -f "$(command -v node)")"
+case "$NODE" in /root/*|/home/*) echo "✗ node est installé sous $NODE : le compte du service ne peut pas le lire ; installe Node pour tout le système (/usr/bin, /usr/local/bin, /opt)"; exit 1;; esac
 # le proxy qui tient 80/443 : nginx OU Caddy (OPCOURRIER_PROXY force le choix) ; on s'ajoute à lui, on ne l'installe pas
 actif() { systemctl is-active --quiet "$1"; }
 if [ -n "${OPCOURRIER_PROXY:-}" ]; then

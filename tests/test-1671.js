@@ -202,6 +202,17 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
   vrai('un plancher de vérifications est posé (les suites sautent sans `npm ci`)', /^#plancher \d+/m.test(L));
   vrai('LISEZMOI.md existe et nomme les gestes de Justin (DNS, installeur, clé, webhook)', (() => { const t = lire('server-courrier/LISEZMOI.md'); return ['courrier-beta.teamop.fr', 'install-courrier.sh', 'configurer-yousign.js', 'kek', 'webhook/yousign', '217.154.6.139'].every((m) => t.includes(m)); })());
 
+  /* Pris sur le vrai VPS (19 octobre 2026) : `NODE: unbound variable` à la ligne de l'unité systemd — une variable
+     employée dans l'installeur qui n'y est jamais affectée. Chaque $MAJUSCULE employée doit être affectée (ou venir de l'environnement nommé). */
+  {
+    const t = lire('server-courrier/install-courrier.sh').replace(/^\s*#.*$/gm, '');
+    const employees = new Set([...t.matchAll(/\$\{?([A-Z][A-Z0-9_]+)/g)].map((m) => m[1]));
+    const affectees = new Set([...t.matchAll(/(?:^|[\s;(])(?:local\s+|export\s+|readonly\s+)?([A-Z][A-Z0-9_]+)=/gm)].map((m) => m[1]).concat([...t.matchAll(/\bfor\s+([A-Z][A-Z0-9_]*)\s+in\b/g)].map((m) => m[1])).concat([...t.matchAll(/\bread\s+(?:-[a-z]+\s+)*([A-Z][A-Z0-9_]+)/g)].map((m) => m[1])));
+    const env = ['BASH_SOURCE', 'EUID', 'HOME', 'PATH', 'OPCOURRIER_PROXY', 'OPCOURRIER_RACINE', 'PWD', 'RANDOM', 'UID'];
+    const orphelines = [...employees].filter((x) => !affectees.has(x) && !env.includes(x) && !/^[0-9]/.test(x));
+    v('⛔ installeur : aucune variable employée sans être affectée (le « NODE: unbound variable » du vrai VPS)', orphelines, []);
+  }
+
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
 })();
