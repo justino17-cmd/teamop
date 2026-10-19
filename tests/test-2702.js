@@ -128,6 +128,7 @@ const appelles = Array.from(new Set(Array.from(CODE.matchAll(/\bSRC\.(\w+)/g)).m
 const documentes = ['ajouterBoite', 'boites', 'capacites', 'deplacer', 'envois', 'envoyer', 'lire', 'lireMX', 'marquer', 'messages', 'piece', 'retirerBoite', 'simuler', 'suivi'];
 v('(population) les méthodes de la source appelées par le module', appelles, documentes);
 v('⛔ chacune est DÉCRITE dans le contrat, en tête du fichier', documentes.filter(m => !new RegExp('\\b' + m + '\\(').test(TETE)), []);
+v('⛔ …et les trois méthodes des gestes d\'avant (envois, piece, suivi) ont leur PROPRE ligne de contrat (une simple mention au passage ne suffit pas)', ['envois', 'piece', 'suivi'].filter(m => !new RegExp('^     ' + m + '\\(', 'm').test(TETE)), []);
 v('les options documentées sont celles que le module lit (source, cotes, cote, cleStockage, theme, titre, onCompter, titreDocument, intervalle)', ['source', 'cotes', 'cote', 'cleStockage', 'theme', 'titre', 'onCompter', 'titreDocument', 'intervalle'].filter(o => !new RegExp('\\b' + o + '\\b').test(TETE) || !new RegExp('opt\\.' + o + '\\b').test(CODE)), []);
 vrai('la valeur rendue : { demonter, cote, rafraichir }', /return \{\s*demonter:demonter,[\s\S]*?cote:function\(c\)[\s\S]*?rafraichir:function\(o\)/.test(CODE));
 vrai('monter exige une source (message clair) et un conteneur', /l’option « source » \(l’adaptateur de données\) est obligatoire/.test(CODE));
