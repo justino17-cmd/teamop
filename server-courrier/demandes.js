@@ -85,10 +85,12 @@ function creerDemandes({ stockage, yousign, config, horloge = Date.now, journal 
       if (niveau === 'avance') { telephone = telNormalise(x.telephone); if (!telephone) throw new Refus(400, 'signataire_invalide', { n: i + 1, champ: 'telephone' }); }
       return { n: i + 1, nom, email, telephone, contre: !!x.contre, ysId: null, etat: 'pending' };
     });
+    /* Le moteur interne dit s'il sait envoyer le code de CE niveau (SMS : pas encore). On refuse ICI, avant d'enregistrer quoi que ce soit, et le message propose l'autre canal. */
+    if (yousign && typeof yousign.canalDisponible === 'function' && !yousign.canalDisponible(niveau)) throw new Refus(400, 'canal_indisponible', { niveau });
     const now = horloge();
     const rec = {
       id: crypto.randomBytes(12).toString('hex'), proprio, ysId: null, etat: 'brouillon', cree: now, purge: now + config.brouillonJours * J,
-      titre, type: net(b.type, 60) || 'Autre', niveau, jours, relances: b.relances !== false, ordonne: !!contre, echeance: 0,
+      titre, type: net(b.type, 60) || 'Autre', expediteur: net(b.expediteur, 100), niveau, jours, relances: b.relances !== false, ordonne: !!contre, echeance: 0,
       documents: [], signataires, evenements: [], relancesFaites: 0, derniereRelance: 0, recupere: false, preuves: 0,
     };
     trace(rec, 'Demande préparée'); ecrire(rec); jr('demande_creee', rec);
@@ -119,9 +121,12 @@ function creerDemandes({ stockage, yousign, config, horloge = Date.now, journal 
     const rec = charger(proprio, id);
     if (rec.etat !== 'brouillon') throw new Refus(409, 'deja_activee');
     if (!rec.documents.length) throw new Refus(400, 'document_requis');
+    const interne = typeof y.canalDisponible === 'function';
+    if (interne && !(config.signature && config.signature.urlPublique)) throw new Refus(503, 'url_publique_manquante');
     rec.etat = 'activation'; ecrire(rec);   // verrou : un second « activer » pendant l'aller-retour est refusé ci-dessus
+    let act = null;
     try {
-      const d = await y.creerDemande({ nom: rec.titre, jours: rec.jours, relances: rec.relances, ordonne: rec.ordonne });
+      const d = await y.creerDemande({ nom: rec.titre, jours: rec.jours, relances: rec.relances, ordonne: rec.ordonne, idInterne: rec.id, expediteur: rec.expediteur });
       rec.ysId = d.id; ecrire(rec);
       for (const doc of rec.documents) {
         const pdf = stockage.pieceLire(rec.id, 'src' + doc.n);
@@ -132,9 +137,9 @@ function creerDemandes({ stockage, yousign, config, horloge = Date.now, journal 
       for (const s of rec.signataires) {
         const i = s.n - 1, nm = decouperNom(s.nom);
         const zones = rec.documents.map((doc) => ({ document: doc.ysId, page: doc.pages, x: 40 + (i % 2) * 270, y: 640 - Math.floor(i / 2) * 80, largeur: 200, hauteur: 60 }));
-        s.ysId = (await y.ajouterSignataire(rec.ysId, { prenom: nm.prenom, nom: nm.nom, email: s.email, telephone: s.telephone, niveau: rec.niveau, zones })).id;
+        s.ysId = (await y.ajouterSignataire(rec.ysId, { prenom: nm.prenom, nom: nm.nom, nomComplet: s.nom, email: s.email, telephone: s.telephone, niveau: rec.niveau, zones })).id;
       }
-      await y.activer(rec.ysId);
+      act = await y.activer(rec.ysId);
     } catch (e) {
       jr('activation_echec', rec, { etape: e && e.etape, statut: e && e.statut, champ: e && e.champ || undefined });
       if (rec.ysId) { try { await y.supprimerBrouillon(rec.ysId); } catch (e2) { /* brouillon Yousign laissé : sans effet, personne n'est prévenu */ } }
@@ -146,7 +151,13 @@ function creerDemandes({ stockage, yousign, config, horloge = Date.now, journal 
     rec.etat = 'en_attente'; rec.echeance = now + rec.jours * J; rec.purge = rec.echeance + config.retentionAnnuleJours * J;
     trace(rec, 'Envoyé à ' + rec.signataires.filter((s) => !s.contre).map((s) => s.nom).join(', '));
     ecrire(rec); jr('activee', rec);
-    return vue(rec);
+    return Object.assign(vue(rec), liensDe(rec, act && act.liens));
+  }
+  /* Les liens de signature du moteur interne : rendus UNE seule fois, au patron authentifié (activer, relancer), pour qu'il les envoie PAR LA BOÎTE DU PRO. Jamais relus ensuite (on n'en garde que l'empreinte). */
+  function liensDe(rec, liens) {
+    if (!Array.isArray(liens) || !liens.length) return {};
+    const base = String(config.signature && config.signature.urlPublique || '').replace(/\/+$/, '');
+    return { liens: liens.map((l) => { const s = rec.signataires.find((x) => x.n === l.n); return { n: l.n, nom: s ? s.nom : '', email: s ? s.email : '', contre: !!(s && s.contre), url: base + '/signer/' + l.jeton }; }) };
   }
 
   function recalculer(rec) {
@@ -222,11 +233,12 @@ function creerDemandes({ stockage, yousign, config, horloge = Date.now, journal 
     const cibles = rec.ordonne ? restants.slice(0, 1) : restants;
     if (!cibles.length) throw new Refus(409, 'pas_en_cours');
     rec.derniereRelance = now;
-    try { for (const s of cibles) await y.relancer(rec.ysId, s.ysId); }
+    const liens = [];
+    try { for (const s of cibles) { const r = await y.relancer(rec.ysId, s.ysId); if (r && r.jeton) liens.push({ n: s.n, jeton: r.jeton }); } }
     catch (e) { ecrire(rec); jr('relance_echec', rec, { statut: e && e.statut || 0 }); throw new Refus(502, 'yousign_refuse', { etape: 'relancer', statut: e && e.statut || 0 }); }
     rec.relancesFaites++; trace(rec, 'Relance envoyée à ' + cibles.map((s) => nomDe(rec, s)).join(', '));
     ecrire(rec); jr('relancee', rec);
-    return vue(rec);
+    return Object.assign(vue(rec), liensDe(rec, liens));
   }
 
   async function annuler(proprio, id) {
@@ -279,6 +291,13 @@ function creerDemandes({ stockage, yousign, config, horloge = Date.now, journal 
     for (const id of stockage.signees()) {
       let rec; try { rec = stockage.lire(id); } catch (e) { continue; }
       if (rec && !rec.recupere && yousign) { try { await recuperer(rec); } catch (e) { jr('recuperation_echec', rec, { statut: e && e.statut || 0 }); } }
+    }
+    /* Une demande dont l'échéance est PASSÉE expire d'elle-même (le prestataire le faisait pour nous ; le moteur interne, non). Le lien cesse alors de fonctionner. */
+    for (const id of stockage.actives()) {
+      let rec; try { rec = stockage.lire(id); } catch (e) { continue; }
+      if (rec && rec.echeance && now > rec.echeance && rec.ysId) {
+        try { await appliquerEvenement({ event_name: 'signature_request.expired', data: { signature_request: { id: rec.ysId } } }); } catch (e) { jr('expiration_echec', rec, { statut: 0 }); }
+      }
     }
     stockage.evenementsPurger(now - 30 * J);
   }

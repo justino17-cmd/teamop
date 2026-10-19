@@ -13,6 +13,9 @@
  *   origines    ["https://teamop.fr"]   les pages qui ont le droit d'appeler ce service depuis un navigateur (CORS). Absent : aucune.
  *   gestion     {url, timeoutMs}        OP GESTION, qui dit QUI est la personne (`GET /api/monitor/moi`). `https://` obligatoire, sauf boucle locale (bancs).
  *   yousign     {cleApi, secretWebhook, sandbox, urlApi?}   posés par `configurer-yousign.js` (saisie masquée). `sandbox` vaut true par DÉFAUT.
+ *   signature   {moteur:'yousign'|'interne', urlPublique, smtp:{host,port,secure,user,pass,from}}   `moteur` vaut 'yousign' par DÉFAUT : le moteur interne (signature maison) est livré ÉTEINT
+ *               et ne s'allume que par ce réglage. `urlPublique` : l'adresse que les signataires voient dans leur lien (https, ou boucle locale pour les bancs).
+ *               `smtp` : la boîte TeamOP qui envoie le code à usage unique (saisie masquée : `configurer-signature.js`).
  *   retentionJours (90) / retentionAnnuleJours (30) / brouillonJours (7)   combien de temps une demande finie / annulée / jamais activée est gardée.
  *   quotas      {nom:{max,fenetreMs}}   surcharge des plafonds (bancs).
  */
@@ -80,8 +83,15 @@ function charger(env = process.env) {
     if (u !== urlApiOfficielle && !boucleLocale(new URL(u).hostname)) throw new Error('yousign.urlApi : seules les adresses officielles ou la boucle locale sont admises');
     urlApi = u;
   }
+  const sg = brut.signature || {}, sm = sg.smtp && typeof sg.smtp === 'object' ? sg.smtp : null;
+  const signature = {
+    moteur: sg.moteur === 'interne' ? 'interne' : 'yousign',
+    urlPublique: sg.urlPublique ? urlValide(sg.urlPublique, 'signature.urlPublique', true) : '',
+    smtp: sm && typeof sm.host === 'string' && sm.host && typeof sm.from === 'string' && /@/.test(sm.from)
+      ? { host: sm.host, port: Number(sm.port) || 0, secure: !!sm.secure, user: typeof sm.user === 'string' ? sm.user : '', pass: typeof sm.pass === 'string' ? sm.pass : '', from: sm.from } : null,
+  };
   return {
-    instance, kek,
+    instance, kek, signature,
     data: path.resolve(env.OPCOURRIER_DATA),
     port: Number(env.PORT) || 8092,
     sha: /^[0-9a-f]{7,40}$/.test(env.OPCOURRIER_SHA || '') ? env.OPCOURRIER_SHA : '',

@@ -186,7 +186,10 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
   vrai('l\'adresse réseau vient de req.ip, jamais d\'un en-tête brut', /req\.ip/.test(src['index.js']) && !/headers\[['"]x-forwarded-for['"]\]/i.test(src['index.js']));
   vrai('le HMAC se compare en temps constant', /timingSafeEqual/.test(src['index.js']));
   const pk = JSON.parse(lire('server-courrier/package.json'));
-  v('une seule dépendance de production (express) — chaque dépendance est une surface d\'attaque', Object.keys(pk.dependencies), ['express']);
+  /* Deux, et c'est DÉCIDÉ : express, et nodemailer (le même paquet, la même version majeure que `server/`) pour envoyer le code à usage unique de la signature maison.
+     Une troisième se justifie par écrit ici, avec sa raison — chaque dépendance est une surface d'attaque. */
+  v('deux dépendances de production, nommées (express ; nodemailer pour le code de la signature maison)', Object.keys(pk.dependencies).sort(), ['express', 'nodemailer']);
+  vrai('…nodemailer est de la même version majeure que celui de server/ (un seul paquet à surveiller)', String(pk.dependencies.nodemailer).replace(/^\D+/, '').split('.')[0] === String(JSON.parse(lire('server/package.json')).dependencies.nodemailer).replace(/^\D+/, '').split('.')[0]);
 
   console.log('\n── 5. La couture avec OP GESTION (ce que la porte lit) ──');
   const GES = sansCommJs(lire('server/index.js'));

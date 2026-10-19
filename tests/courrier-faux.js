@@ -1,6 +1,7 @@
 /* Les faux et le lanceur des bancs d'OP Courrier (server-courrier/). Tout se passe sur 127.0.0.1 : un FAUX OP GESTION (qui dit qui est la personne),
    un FAUX Yousign AVEC ÉTAT (demandes, documents, signataires, activation, annulation, relances, téléchargements) et le VRAI serveur lancé en processus. */
 'use strict';
+const net = require('net');
 const http = require('http'), fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto'), { spawn } = require('child_process');
 const RACINE = path.join(__dirname, '..', 'server-courrier');
 
@@ -96,4 +97,33 @@ async function lancer(gestionUrl, yousignUrl, option = {}) {
   };
 }
 
-module.exports = { fauxGestion, fauxYousign, lancer, PDF, RACINE, attendre: (ms) => new Promise((r) => setTimeout(r, ms)) };
+/* Un SMTP minimal (RFC 5321 : EHLO, MAIL, RCPT, DATA, QUIT), sans STARTTLS ni AUTH : ce que reçoit « la boîte de TeamOP ». */
+function fauxSmtp() {
+  const recus = [];
+  const srv = net.createServer((s) => {
+    let courant = { de: '', a: [], texte: '' }, enData = false, tampon = '';
+    s.write('220 faux-smtp ESMTP\r\n');
+    s.on('data', (d) => {
+      tampon += d.toString('latin1');
+      let i;
+      while ((i = tampon.indexOf('\r\n')) >= 0) {
+        const ligne = tampon.slice(0, i); tampon = tampon.slice(i + 2);
+        if (enData) {
+          if (ligne === '.') { enData = false; recus.push(courant); courant = { de: '', a: [], texte: '' }; s.write('250 2.0.0 queued\r\n'); } else courant.texte += (ligne.startsWith('..') ? ligne.slice(1) : ligne) + '\n';
+          continue;
+        }
+        const c = ligne.toUpperCase();
+        if (c.startsWith('EHLO') || c.startsWith('HELO')) s.write('250-faux-smtp\r\n250 8BITMIME\r\n');
+        else if (c.startsWith('MAIL FROM')) { courant.de = ligne.slice(10); s.write('250 ok\r\n'); }
+        else if (c.startsWith('RCPT TO')) { courant.a.push(ligne.replace(/^RCPT TO:\s*<?|>?\s*$/gi, '')); s.write('250 ok\r\n'); }
+        else if (c === 'DATA') { enData = true; s.write('354 go\r\n'); }
+        else if (c === 'QUIT') { s.write('221 bye\r\n'); s.end(); }
+        else s.write('250 ok\r\n');
+      }
+    });
+    s.on('error', () => {});
+  });
+  return new Promise((r) => srv.listen(0, '127.0.0.1', () => r({ port: srv.address().port, recus, fermer: () => srv.close() })));
+}
+
+module.exports = { fauxGestion, fauxYousign, fauxSmtp, lancer, PDF, RACINE, attendre: (ms) => new Promise((r) => setTimeout(r, ms)) };

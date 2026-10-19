@@ -21,6 +21,9 @@ const { creerYousign } = require('./yousign');
 const { creerAuth } = require('./auth');
 const { creerLimiteur } = require('./limites');
 const { creerDemandes, Refus, MAX_PDF } = require('./demandes');
+const { creerMoteurInterne } = require('./moteur-interne');
+const { creerCanaux } = require('./canaux');
+const { creerSignataire } = require('./signataire');
 
 const MIN = 60000, H = 3600000, JOUR = 24 * H;
 const QUOTAS = {
@@ -32,6 +35,10 @@ const QUOTAS = {
   sms: { max: 50, fenetreMs: JOUR },                // SMS (signataires en niveau avancé) par personne et par jour
   relance: { max: 30, fenetreMs: JOUR },
   webhook: { max: 600, fenetreMs: MIN },
+  // la page publique du signataire (par adresse réseau) : lire, demander un code (un SMS coûte), tenter de signer
+  lecture: { max: 120, fenetreMs: MIN },
+  code: { max: 20, fenetreMs: H },
+  essai: { max: 30, fenetreMs: 15 * MIN },
 };
 
 /* Une ligne de journal : un objet à clés BLANCHES (jamais une adresse, un nom, un téléphone, une IP). */
@@ -42,14 +49,17 @@ function ecrireJournal(evt, champs) {
   process.stdout.write(JSON.stringify(o) + '\n');
 }
 
-function creerApp({ config, fetchImpl = fetch, horloge = Date.now, journal = ecrireJournal }) {
+function creerApp({ config, fetchImpl = fetch, horloge = Date.now, journal = ecrireJournal, canaux }) {
   const scelle = creerScelle(config.kek);
   const stockage = ouvrirStockage({ data: config.data, scelle, horloge });
   const yousign = config.yousign.cleApi ? creerYousign({ cleApi: config.yousign.cleApi, urlApi: config.yousign.urlApi, fetchImpl }) : null;
   const auth = creerAuth({ gestionUrl: config.gestion.url, timeoutMs: config.gestion.timeoutMs, fetchImpl, horloge });
   const lim = creerLimiteur(horloge);
   const q = (nom) => Object.assign({}, QUOTAS[nom], (config.quotas || {})[nom]);
-  const demandes = creerDemandes({ stockage, yousign, config, horloge, journal });
+  const moteur = config.signature && config.signature.moteur === 'interne'
+    ? creerMoteurInterne({ stockage, horloge, canaux: canaux || creerCanaux({ smtp: config.signature.smtp }), journal }) : null;
+  const demandes = creerDemandes({ stockage, yousign: moteur || yousign, config, horloge, journal });
+  if (moteur) moteur.lier(demandes);
   const secretWebhook = config.yousign.secretWebhook;
 
   const app = express();
@@ -69,7 +79,9 @@ function creerApp({ config, fetchImpl = fetch, horloge = Date.now, journal = ecr
   });
 
   app.get('/health', (req, res) => {
-    res.json({ ok: true, service: 'opcourrier', instance: config.instance, sha: config.sha, signature: { pret: !!(yousign && secretWebhook), sandbox: config.yousign.sandbox } });
+    res.json({ ok: true, service: 'opcourrier', instance: config.instance, sha: config.sha, signature: moteur
+      ? { pret: !!(config.signature.urlPublique), moteur: 'interne', canaux: { email: moteur.canalDisponible('simple'), sms: moteur.canalDisponible('avance') } }
+      : { pret: !!(yousign && secretWebhook), moteur: 'yousign', sandbox: config.yousign.sandbox } });
   });
 
   /* ── Le webhook Yousign : corps BRUT (le HMAC se calcule sur les octets reçus), idempotent ── */
@@ -89,6 +101,8 @@ function creerApp({ config, fetchImpl = fetch, horloge = Date.now, journal = ecr
     try { const r = await demandes.appliquerEvenement(ev); journal('webhook', { nom: String(ev.event_name || '').slice(0, 60), raison: r.raison || 'traite' }); res.json({ ok: true }); }
     catch (e) { stockage.evenementOter(eid); journal('webhook_echec', { nom: String(ev.event_name || '').slice(0, 60) }); res.status(500).json({ error: 'echec' }); }   // oublié : Yousign réessaiera
   });
+
+  if (moteur) app.use(creerSignataire({ moteur, lim, q, journal }));   // la page et l'API publiques du signataire : seulement avec le moteur interne
 
   /* ── Tout le reste : la personne d'abord (avant d'avaler un seul octet de corps) ── */
   const api = express.Router();
@@ -156,7 +170,7 @@ function creerApp({ config, fetchImpl = fetch, horloge = Date.now, journal = ecr
 
   let minuterie = null;
   return {
-    app, demandes, stockage, auth, limiteur: lim,
+    app, demandes, stockage, auth, limiteur: lim, moteur,
     demarrerMenage(ms = 10 * MIN) { minuterie = setInterval(() => { demandes.balayer().catch(() => journal('menage_echec', {})); }, ms); minuterie.unref(); },
     fermer() { if (minuterie) clearInterval(minuterie); stockage.fermer(); },
   };

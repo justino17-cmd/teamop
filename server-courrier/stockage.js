@@ -15,7 +15,9 @@ function ouvrirStockage({ data, scelle, horloge = Date.now }) {
     CREATE TABLE IF NOT EXISTS demandes (id TEXT PRIMARY KEY, proprio TEXT NOT NULL, ys_id TEXT, etat TEXT NOT NULL, cree INTEGER NOT NULL, purge INTEGER NOT NULL, corps BLOB NOT NULL);
     CREATE INDEX IF NOT EXISTS demandes_proprio ON demandes(proprio, cree);
     CREATE INDEX IF NOT EXISTS demandes_ys ON demandes(ys_id);
-    CREATE TABLE IF NOT EXISTS evenements (id TEXT PRIMARY KEY, recu INTEGER NOT NULL);`);
+    CREATE TABLE IF NOT EXISTS evenements (id TEXT PRIMARY KEY, recu INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS jetons (h TEXT PRIMARY KEY, id TEXT NOT NULL, n INTEGER NOT NULL);
+    CREATE INDEX IF NOT EXISTS jetons_id ON jetons(id);`);
   const q = {
     lire: db.prepare('SELECT corps FROM demandes WHERE id=?'),
     ecrire: db.prepare('INSERT INTO demandes(id,proprio,ys_id,etat,cree,purge,corps) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET ys_id=excluded.ys_id, etat=excluded.etat, purge=excluded.purge, corps=excluded.corps'),
@@ -28,10 +30,15 @@ function ouvrirStockage({ data, scelle, horloge = Date.now }) {
     evtOter: db.prepare('DELETE FROM evenements WHERE id=?'),
     evtVieux: db.prepare('DELETE FROM evenements WHERE recu<?'),
     compte: db.prepare('SELECT COUNT(*) AS n FROM demandes'),
+    jetonPoser: db.prepare('INSERT OR REPLACE INTO jetons(h,id,n) VALUES(?,?,?)'),
+    jetonLire: db.prepare('SELECT id, n FROM jetons WHERE h=?'),
+    jetonsDe: db.prepare('DELETE FROM jetons WHERE id=? AND n=?'),
+    jetonsTous: db.prepare('DELETE FROM jetons WHERE id=?'),
+    actives: db.prepare("SELECT id FROM demandes WHERE etat IN ('en_attente','ouvert','a_contresigner')"),
   };
   const fichier = (id, genre) => path.join(data, 'pieces', id + '.' + genre);
   const sain = (s, re) => { if (!re.test(s)) throw new Error('nom interne refusé'); return s; };
-  const ID = /^[0-9a-f]{24}$/, GENRE = /^(src|sig|preuve)[0-9]{0,2}$/;
+  const ID = /^[0-9a-f]{24}$/, GENRE = /^(src|sig|preuve|ev)[0-9]{0,2}$/;
 
   return {
     lire(id) { const r = q.lire.get(sain(id, ID)); return r ? scelle.ouvrirJSON(Buffer.from(r.corps), id) : null; },
@@ -40,6 +47,12 @@ function ouvrirStockage({ data, scelle, horloge = Date.now }) {
     idParYs: (ysId) => { const r = q.parYs.get(String(ysId)); return r ? r.id : null; },
     echues: (now) => q.echues.all(now).map((r) => r.id),
     signees: () => q.aRecuperer.all().map((r) => r.id),
+    actives: () => q.actives.all().map((r) => r.id),
+    /* LES LIENS DE SIGNATURE : on ne retient JAMAIS le lien, seulement son empreinte SHA-256 (hexadécimal). Un lien se retrouve par son empreinte ; qui lirait la base ne pourrait signer à la place de personne. */
+    jetonPoser(h, id, n) { sain(id, ID); if (!/^[0-9a-f]{64}$/.test(h)) throw new Error('empreinte refusée'); q.jetonPoser.run(h, id, n); },
+    jetonLire(h) { if (!/^[0-9a-f]{64}$/.test(String(h))) return null; const r = q.jetonLire.get(h); return r ? { id: r.id, n: r.n } : null; },
+    jetonEffacer(id, n) { q.jetonsDe.run(sain(id, ID), n); },
+    jetonsEffacer(id) { q.jetonsTous.run(sain(id, ID)); },
     compter: () => q.compte.get().n,
     pieceEcrire(id, genre, buf) {
       const f = fichier(sain(id, ID), sain(genre, GENRE)), t = f + '.tmp' + process.pid;
@@ -53,7 +66,7 @@ function ouvrirStockage({ data, scelle, horloge = Date.now }) {
       sain(id, ID);
       for (const f of fs.readdirSync(path.join(data, 'pieces'))) if (f.startsWith(id + '.') && (!prefixe || f.slice(id.length + 1).startsWith(prefixe))) fs.rmSync(path.join(data, 'pieces', f), { force: true });
     },
-    supprimer(id) { sain(id, ID); this.piecesEffacer(id); q.supprimer.run(id); },
+    supprimer(id) { sain(id, ID); this.piecesEffacer(id); q.jetonsTous.run(id); q.supprimer.run(id); },
     /* idempotence du webhook : vrai si l'événement est NEUF (et le retient), faux s'il a déjà été vu */
     evenementNeuf: (eid) => q.evt.run(String(eid), horloge()).changes === 1,
     evenementOter: (eid) => q.evtOter.run(String(eid)),
