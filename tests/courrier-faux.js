@@ -26,7 +26,7 @@ async function fauxGestion() {
 const PDF = (marque, n = 200) => Buffer.from('%PDF-1.4\n% ' + marque + '\n' + 'x'.repeat(n) + '\n%%EOF\n');
 
 async function fauxYousign(cle = 'CLE-YOUSIGN-DE-BANC') {
-  const st = { demandes: new Map(), appels: [], echecs: new Map(), n: 0, telechargements: 0 };
+  const st = { demandes: new Map(), appels: [], echecs: new Map(), refusCreer: null, n: 0, telechargements: 0 };
   const echoue = (etape) => { const v = st.echecs.get(etape); if (v) { if (v.fois !== undefined && --v.fois <= 0) st.echecs.delete(etape); return true; } return false; };
   const srv = http.createServer(async (req, res) => {
     const b = await corps(req);
@@ -37,7 +37,7 @@ async function fauxYousign(cle = 'CLE-YOUSIGN-DE-BANC') {
     let m;
     if (req.method === 'GET' && p === '/v3/signature_requests') return echoue('tester') ? rep(403) : rep(200, { data: [] });
     if (req.method === 'POST' && p === '/v3/signature_requests') {
-      if (echoue('creer')) return rep(500);
+      if (echoue('creer')) return rep(st.refusCreer ? st.refusCreer.statut : 500, st.refusCreer && st.refusCreer.corps);
       const j = JSON.parse(b.toString()); const id = 'sr_' + (++st.n);
       st.demandes.set(id, { id, corps: j, docs: [], signers: [], etat: 'draft', rappels: [], annulee: false, supprimee: false });
       return rep(201, { id, status: 'draft' });

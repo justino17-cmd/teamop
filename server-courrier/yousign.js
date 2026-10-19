@@ -20,13 +20,36 @@
  * corps { event_id, event_name, event_time, data:{ signature_request:{id}, signer:{id} } } ; événements signature_request.activated / .done /
  * .declined / .expired / .canceled et signer.link_opened / .signed / .declined — VÉRIFIER (voir demandes.js).
  *
- * ⛔ Une erreur de ce module ne porte JAMAIS le corps de la réponse de Yousign (il peut citer une adresse ou un nom) : seulement le statut
- * HTTP et l'étape. C'est ce qui peut se journaliser.
+ * ⛔ Une erreur de ce module ne porte JAMAIS le corps de la réponse de Yousign (il peut citer une adresse ou un nom) : le statut HTTP, l'étape, et — depuis le
+ * premier vrai essai (19 octobre 2026 : un 400 muet à « creer ») — le NOM du champ refusé (`champ`, jamais sa valeur) et une phrase NETTOYÉE (`raison`).
+ * Seuls l'étape, le statut et le NOM du champ peuvent se journaliser ; la phrase ne va qu'au patron connecté, dans la réponse, jamais dans un journal :
+ * elle peut reprendre ce qu'on a saisi (un prénom, une adresse), et `lireRefus` ne fait que retirer ce qu'il sait reconnaître.
  */
 'use strict';
 
 class YousignErreur extends Error {
-  constructor(etape, statut) { super('yousign:' + etape + ':' + (statut || 'reseau')); this.etape = etape; this.statut = statut || 0; }
+  constructor(etape, statut, detail) {
+    super('yousign:' + etape + ':' + (statut || 'reseau')); this.etape = etape; this.statut = statut || 0;
+    this.champ = (detail && detail.champ) || ''; this.raison = (detail && detail.raison) || '';
+  }
+}
+
+/* Le corps d'un refus de Yousign → { champ, raison } SÛRS, ou vides. On ne lit que le JSON, on ne garde du CHAMP que son nom (un chemin de propriété, jamais une valeur),
+   et la phrase perd tout ce qui ressemble à une adresse e-mail, à un numéro (4 chiffres d'affilée), et tout signe hors lettres, chiffres et ponctuation courante. */
+function lireRefus(texte) {
+  let j; try { j = JSON.parse(String(texte || '').slice(0, 8192)); } catch (e) { return { champ: '', raison: '' }; }
+  if (!j || typeof j !== 'object') return { champ: '', raison: '' };
+  const liste = Array.isArray(j.violations) ? j.violations : Array.isArray(j.errors) ? j.errors : [];
+  const champs = [];
+  for (const v of liste.slice(0, 5)) {
+    const c = v && (v.propertyPath || v.property_path || v.field || v.path || v.property);
+    if (typeof c === 'string' && /^[A-Za-z0-9_.\[\]-]{1,60}$/.test(c)) champs.push(c);
+  }
+  const brut = (liste[0] && (liste[0].message || liste[0].detail)) || j.detail || j.message || j.title || '';
+  const raison = typeof brut === 'string'
+    ? brut.replace(/\S+@\S+/g, '…').replace(/\d{4,}/g, '…').replace(/[^\p{L}\p{N} _.,:;'’()\/-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 140)
+    : '';
+  return { champ: champs.join(','), raison };
 }
 
 function creerYousign({ cleApi, urlApi, fetchImpl = fetch, timeoutMs = 20000 }) {
@@ -39,7 +62,10 @@ function creerYousign({ cleApi, urlApi, fetchImpl = fetch, timeoutMs = 20000 }) 
     let r;
     try { r = await fetchImpl(base + chemin, { method: methode, headers: entetes, body: corps, signal: AbortSignal.timeout(timeoutMs), redirect: 'error' }); }
     catch (e) { throw new YousignErreur(etape, 0); }
-    if (!r.ok) { try { await r.arrayBuffer(); } catch (e) { /* vidé, jamais lu */ } throw new YousignErreur(etape, r.status); }
+    if (!r.ok) {
+      let texte = ''; try { texte = Buffer.from(await r.arrayBuffer()).toString('utf8'); } catch (e) { /* illisible : pas de détail, le statut suffit */ }
+      throw new YousignErreur(etape, r.status, lireRefus(texte));
+    }
     if (binaire) return Buffer.from(await r.arrayBuffer());
     if (r.status === 204) return {};
     try { return await r.json(); } catch (e) { return {}; }
@@ -84,4 +110,4 @@ function creerYousign({ cleApi, urlApi, fetchImpl = fetch, timeoutMs = 20000 }) 
     async tester() { await appel('tester', 'GET', '/signature_requests?limit=1'); return true; },
   };
 }
-module.exports = { creerYousign, YousignErreur };
+module.exports = { creerYousign, YousignErreur, lireRefus };

@@ -117,6 +117,18 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
   r = await req('GET', '/api/signature/demandes/' + D.id, { token: T_A });
   v('…et la demande reste un brouillon qu\'on peut rejouer', r.j.etat, 'brouillon');
   ys.st.echecs.clear();
+  /* ⛔ PREMIER VRAI ESSAI (19 octobre 2026) : Yousign refusait « creer » en 400 et le service ne disait pas POURQUOI (il jetait le corps, avec raison : il peut citer un nom ou une adresse).
+     Il dit maintenant LE CHAMP refusé (son nom, jamais sa valeur) et une phrase nettoyée — à celui qui est connecté seulement : le JOURNAL ne reçoit que le nom du champ (§ 9 relit tout le journal). */
+  ys.st.refusCreer = { statut: 400, corps: { title: 'Bad Request', violations: [
+    { propertyPath: 'reminder_settings.max_occurrences', message: 'Valeur trop haute pour jean.dupont@exemple.fr 0612345678 Léa Roux' },
+    { propertyPath: 'jean.dupont@exemple.fr', message: 'ne doit jamais sortir' }] } };
+  ys.st.echecs.set('creer', { fois: 1 });
+  r = await req('POST', '/api/signature/demandes/' + D.id + '/activer', { token: T_A });
+  v('⛔ un refus 400 de Yousign à « creer » : le CHAMP refusé est nommé (et lui seul — un « champ » qui n\'est pas un nom de propriété est écarté)', [r.s, r.j.error, r.j.etape, r.j.statut, r.j.champ], [502, 'yousign_refuse', 'creer', 400, 'reminder_settings.max_occurrences']);
+  vrai('…la phrase utile reste', /Valeur trop haute/.test(r.j.raison || ''), r.j.raison);
+  vrai('…sans adresse e-mail ni numéro de téléphone', !/@|0612|\d{4}/.test(r.j.raison || ''), r.j.raison);
+  vrai('…et rien du refus n\'est resté sur le service (brouillon rejouable)', (await req('GET', '/api/signature/demandes/' + D.id, { token: T_A })).j.etat === 'brouillon');
+  ys.st.refusCreer = null; ys.st.echecs.clear();
   r = await req('POST', '/api/signature/demandes/' + D.id + '/activer', { token: T_A });
   v('rejouée : activée, « en attente »', [r.s, r.j.etat], [200, 'en_attente']);
   const R = ys.derniere();

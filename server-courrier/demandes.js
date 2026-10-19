@@ -136,11 +136,11 @@ function creerDemandes({ stockage, yousign, config, horloge = Date.now, journal 
       }
       await y.activer(rec.ysId);
     } catch (e) {
-      jr('activation_echec', rec, { etape: e && e.etape, statut: e && e.statut });
+      jr('activation_echec', rec, { etape: e && e.etape, statut: e && e.statut, champ: e && e.champ || undefined });
       if (rec.ysId) { try { await y.supprimerBrouillon(rec.ysId); } catch (e2) { /* brouillon Yousign laissé : sans effet, personne n'est prévenu */ } }
       rec.ysId = null; rec.etat = 'brouillon'; rec.signataires.forEach((s) => { s.ysId = null; }); rec.documents.forEach((d) => { d.ysId = null; });
       ecrire(rec);
-      throw new Refus(502, 'yousign_refuse', { etape: e && e.etape, statut: e && e.statut || 0 });
+      throw new Refus(502, 'yousign_refuse', { etape: e && e.etape, statut: e && e.statut || 0, champ: e && e.champ || undefined, raison: e && e.raison || undefined });
     }
     const now = horloge();
     rec.etat = 'en_attente'; rec.echeance = now + rec.jours * J; rec.purge = rec.echeance + config.retentionAnnuleJours * J;
