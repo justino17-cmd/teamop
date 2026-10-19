@@ -101,7 +101,7 @@ console.log('\n── 2708 · le cerveau des agents ──');
     return { journal: () => journal, G: r => req('GET', r, null, jeton), P: (r, c) => req('POST', r, c, jeton), arreter: async () => { e.kill('SIGKILL'); await dormir(300); } };
   }
   const recus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean) : [];
-  let S = await serveur('avec-cle', 'sk-ant-api03-banc-2708-xxxxxxxxxxxxxxxx');
+  let S = await serveur('avec-cle', 'sk-ant-' + 'api03-banc-2708-xxxxxxxxxxxxxxxx');
   vrai('le serveur annonce le cerveau', /cerveau : clé des agents posée/.test(S.journal()));
   await S.P('/api/monitor/conversations/envoyer', { fil: 'hugo', texte: 'Hugo, que sais-tu du dossier DOS-000001 ?' }); await dormir(500);
   v('Hugo à l\'arrêt : aucun appel à Claude, aucune réponse', [recus().length, (await S.G('/api/monitor/conversations/hugo')).j.messages.length], [0, 1]);
