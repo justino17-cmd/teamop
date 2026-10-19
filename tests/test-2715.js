@@ -66,6 +66,8 @@ v('le paquet complet se crée, cinq pièces figées', [r.ok, r.contrat.pieces.le
 v('un second appel rend le même contrat', [Q.m.creerPaquet('DOS-000002', 'op_gestion', 'pro').deja, Q.m.creerPaquet('DOS-000002', 'op_gestion', 'pro').contrat.id], [true, r.contrat.id]);
 Q.m.brouillon('cp_op_gestion_pro', 'Texte corrigé', 'x'); Q.m.valider('cp_op_gestion_pro', 2, 'Justin');
 v('⛔ une pièce corrigée ensuite ne change pas le contrat déjà créé', Q.m.creerPaquet('DOS-000002', 'op_gestion', 'pro').contrat.pieces.find(p => p.type === 'cp_op_gestion_pro').version, 1);
+const r2 = Q.m.creerPaquet('DOS-000005', 'op_gestion', 'pro').contrat.pieces.find(p => p.type === 'cp_op_gestion_pro');
+v('⛔ un NOUVEAU client reçoit la version en vigueur (2) avec l\'empreinte du texte exact', [r2.version, r2.empreinte], [2, mod.sha('Texte corrigé')]);
 v('une formule inconnue, un dossier mal formé : refus', [Q.m.creerPaquet('DOS-000002', 'op_gestion', 'inventee').raison, Q.m.creerPaquet('X', 'op_gestion', 'pro').raison], ['formule', 'dossier']);
 v('la formule Business n\'est pas couverte par la pièce Pro', Q.m.creerPaquet('DOS-000003', 'op_gestion', 'business').manquantes, ['cp_op_gestion_business']);
 v('envoyé puis accepté, comme tout contrat', [Q.m.marquerAccepte(r.contrat.id).raison, Q.m.marquerEnvoye(r.contrat.id).ok, Q.m.marquerAccepte(r.contrat.id).ok], ['pas_envoye', true, true]);
