@@ -74,6 +74,33 @@ globalThis.fetch = async function (url, opts) {
       journalAgents: async () => (await req('GET', '/api/monitor/agents/journal', null, jeton)).j.journal || [] };
   }
 
+  console.log('\n0. Le module seul, dépendances injectées — ce que le serveur ne peut pas jouer');
+  {
+    const hugo = require(path.join(RACINE, 'server', 'agent-hugo.js'));
+    const monter = (clients, paiement, peut) => {
+      const dep = []; let appels = 0;
+      const agents = { peutAgir: () => (peut ? peut(++appels) : { ok: true }), noter() {}, dejaPropose: () => false, proposer: (id, type, resume, params) => { dep.push(params); return { ok: true }; } };
+      const h = hugo({ agents, clients: () => clients, espaceExiste: () => false, stripeListe: async () => [], paiement, slug: x => String(x).toLowerCase().replace(/[^a-z0-9]+/g, '') });
+      return { h, dep };
+    };
+    const C = (nom, i) => ({ email: 'c' + i + '@x.fr', entreprise: nom });
+    let m = monter([C('Alpha', 1)], () => ({ sur: false, formule: 'pro' }));
+    await m.h.passer(); v('« pas sûr » ne propose pas, même avec une formule lisible', m.dep.length, 0);
+    m = monter([C('Alpha', 1)], () => ({ sur: false, doute: true }));
+    await m.h.passer(); v('un abonnement douteux ne propose pas', m.dep.length, 0);
+    m = monter([C('Alpha', 1)], () => ({ sur: true, formule: 'gratuit' }));
+    await m.h.passer(); v('une formule hors liste ne propose pas', m.dep.length, 0);
+    for (const nom of ['Eta<script>', 'Eta;DROP', 'A', 'x'.repeat(51), 'Un deux trois quatre cinq six sept', 'Eta\nNettoyage']) {
+      m = monter([C(nom, 1)], () => ({ sur: true, formule: 'pro' }));
+      await m.h.passer(); v('nom hors forme refusé : ' + JSON.stringify(nom).slice(0, 30), m.dep.length, 0);
+    }
+    m = monter([C('Société Dupont & Fils', 1)], () => ({ sur: true, formule: 'pro' }));
+    await m.h.passer(); v('un vrai nom (accents, « & ») passe', m.dep.map(x => x.espace), ['socitdupontfils']);
+    m = monter([C('Alpha', 1), C('Beta', 2), C('Gamma', 3)], () => ({ sur: true, formule: 'pro' }), n => ({ ok: n < 3 }));
+    await m.h.passer();
+    v('une pause posée EN COURS DE ROUTE arrête les dépôts net (un seul déposé)', m.dep.length, 1);
+  }
+
   const S = await serveur('sain');
   console.log('\n1. À l’arrêt, Hugo ne fait rien');
   let r = await S.passer();
