@@ -15,6 +15,16 @@ de ligne du tout.
 
 # ⏳ 19 OCTOBRE 2026 — L'ÉQUIPE D'AGENTS IA : LE SOCLE EST POSÉ, AUCUN AGENT N'EXISTE ENCORE — BRANCHE `claude/equipe-agents`
 
+> **Panneau « Agents » dans la Tour (v2.90, 19 octobre 2026, branche seulement).** Onglet réservé au patron (`PATRON_SEUL`) : seize cartes à
+> trois modes (arrêt / brouillon / auto, « auto » refusé tant que l'agent est à l'arrêt et confirmé), bandeau de pause générale,
+> validations (Valider / Refuser, confirmation avant d'accepter), journal, tâches entre agents. Trois états par liste (0 pas lu, 1 lu,
+> −1 « on n'a pas pu savoir ») : un fichier `agents-*.json` illisible répond maintenant **503** côté serveur (il répondait `[]`, donc
+> « rien à valider » — défaut trouvé en écrivant le banc). Aucun montant de dépense affiché : le serveur ne les suit pas (Console
+> Anthropic, espace « Agents Team OP », limite 195 $). `tests/test-2704.js` : les vraies fonctions de `tour.html` contre le vrai serveur,
+> 47 vérifications, 11 mutations sur 11 détectées. Il lit `tour.html` de la branche : il n'entre PAS dans `scripts/bancs-serveur.liste`
+> (il tomberait contre la Tour de `main`). `test-828`, `829` passent à douze vues. Rien n'est sur `main`.
+
+
 Justin : une équipe de seize agents IA (l'API Claude), chacun avec un prénom, qui gère Team OP pour lui et lui rend compte —
 dans la Tour d'abord, par OP MESSAGES Pro le jour où l'application sera finie. Le plan complet vit dans le document
 « Équipe d'agents Team OP » (claude.ai) : Victor (chef d'orchestre), Inès (contrôle qualité), Camille (courrier et support :
