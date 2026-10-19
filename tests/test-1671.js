@@ -101,14 +101,14 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
   vrai('Node, nginx, les autres certificats : ni installés, ni mis à jour, ni apt upgrade', !/nodesource|apt(-get)? +(upgrade|dist-upgrade|full-upgrade)|install[^\n]*\s(nodejs|nginx)\b/.test(code) && /Node 22\.5 minimum/.test(code) && /nginx n'est pas actif/.test(code));
   vrai('certbot : CE domaine seulement (jamais renew, delete, --expand ni -d d\'un autre)', (code.match(/certbot --nginx -d "\$DOMAINE" --cert-name "\$DOMAINE"/g) || []).length === 1 && !/certbot +(renew|delete|revoke)|--expand/.test(code) && (code.match(/certbot[^\n]*-d "/g) || []).length === 1);
   vrai('pare-feu : rien n\'est ouvert (ni ufw, ni iptables, ni nft, ni firewall-cmd)', !/\b(ufw|iptables|ip6tables|nft|firewall-cmd)\b/.test(code));
-  vrai('le port est refusé s\'il appartient à un autre service du VPS, et vérifié libre (ss)', /8080\|8090\|8091\|7880\|7881\|3478\|5349/.test(code) && /ss -ltnH/.test(code));
+  vrai('le port est refusé s\'il appartient à un autre service du VPS, et vérifié libre (ss)', /8080\|8090\|8091\|7880\|7881\|3478\|5349/.test(code) && /\/dev\/tcp\/127\.0\.0\.1/.test(code));
   vrai('le service n\'écoute que sur 127.0.0.1', /listen\(config\.port, '127\.0\.0\.1'/.test(sansCommJs(lire('server-courrier/index.js'))) && /proxy_pass http:\/\/127\.0\.0\.1:\$PORT/.test(code));
   // la vérification « port libre » (section 1 bis) EXÉCUTÉE contre un vrai port occupé
   const blocPort = SH.slice(SH.indexOf('echo "── 1 bis.'), SH.indexOf('echo "── 2.'));
   const occupe = require('net').createServer(); await new Promise((r2) => occupe.listen(0, '127.0.0.1', r2));
   const pOcc = occupe.address().port; const pLibre = await new Promise((r2) => { const t = require('net').createServer(); t.listen(0, '127.0.0.1', () => { const q = t.address().port; t.close(() => r2(q)); }); });
   const essai = (port) => spawnSync('bash', ['-c', 'set -euo pipefail\nINSTANCE=beta; PORT="$1"\n' + blocPort, 'x', String(port)], { encoding: 'utf8', timeout: 10000 });
-  vrai('population : la section « port » est trouvée', blocPort.length > 100 && /ss -ltnH/.test(blocPort));
+  vrai('population : la section « port » est trouvée', blocPort.length > 100 && /\/dev\/tcp\/127\.0\.0\.1/.test(blocPort));
   v('un port déjà écouté par un autre service : REFUS (code 1)', essai(pOcc).status, 1);
   v('un port libre : accepté', essai(pLibre).status, 0);
   occupe.close();

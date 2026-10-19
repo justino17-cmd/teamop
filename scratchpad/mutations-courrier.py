@@ -60,7 +60,7 @@ M = [
  ('installeur: reload avant nginx -t', [(S+'install-courrier.sh', "if ! nginx -t >/dev/null 2>&1; then\n  echo \"✗ nginx refuse", "systemctl reload nginx\nif ! nginx -t >/dev/null 2>&1; then\n  echo \"✗ nginx refuse")], 1671),
  ('installeur: nginx -t refusé mais on continue', [(S+'install-courrier.sh', "nginx -t 2>&1 | head -5 || true\n  exit 1", "nginx -t 2>&1 | head -5 || true")], 1671),
  ('installeur: port d\'un autre service accepté', [(S+'install-courrier.sh', "8080|8090|8091|7880|7881|3478|5349|80|443|22)", "80|443|22)")], 1671),
- ('installeur: port occupé non vérifié', [(S+'install-courrier.sh', "ss -ltnH", "true ss -ltnH")], 1671),
+ ('installeur: port occupé non vérifié', [(S+'install-courrier.sh', "if (exec 3<>\"/dev/tcp/127.0.0.1/$PORT\") 2>/dev/null; then OCCUPE=1; fi", "true")], 1671),
  ('installeur: certbot renew global', [(S+'install-courrier.sh', "--keep-until-expiring >/dev/null 2>&1; then", "--keep-until-expiring >/dev/null 2>&1 || certbot renew; then")], 1671),
  ('installeur: apt upgrade', [(S+'install-courrier.sh', "echo \"── 1 bis.", "apt-get upgrade -y\necho \"── 1 bis.")], 1671),
  ('installeur: pare-feu ouvert', [(S+'install-courrier.sh', "echo \"── 1 bis.", "ufw allow 443\necho \"── 1 bis.")], 1671),

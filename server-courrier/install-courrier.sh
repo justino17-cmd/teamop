@@ -58,8 +58,12 @@ manquants=""; for c in git curl openssl; do command -v "$c" >/dev/null || manqua
 # seulement ce qui MANQUE, sans mise à jour du reste
 [ -z "$manquants" ] || { apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $manquants >/dev/null; }
 echo "── 1 bis. Le port local $PORT"
-if ss -ltnH 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$PORT\$"; then
-  if ! systemctl is-active --quiet "opcourrier-$INSTANCE" 2>/dev/null; then echo "✗ le port $PORT est déjà pris par un autre service : choisis-en un libre (OPCOURRIER_PORT=…)"; exit 1; fi
+# sonde directe (aucun outil à installer) : si quelque chose écoute déjà sur 127.0.0.1:$PORT, la connexion aboutit
+OCCUPE=0
+if (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then OCCUPE=1; fi
+if [ "$OCCUPE" = 0 ] && command -v ss >/dev/null && ss -ltnH 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$PORT\$"; then OCCUPE=1; fi
+if [ "$OCCUPE" = 1 ] && ! systemctl is-active --quiet "opcourrier-$INSTANCE" 2>/dev/null; then
+  echo "✗ le port $PORT est déjà pris par un autre service : choisis-en un libre (OPCOURRIER_PORT=…)"; exit 1
 fi
 
 echo "── 2. L'utilisateur et les dossiers"
