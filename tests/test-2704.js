@@ -63,7 +63,29 @@ console.log('\n── 2704 · 1. La page : l\'ancien Courrier n\'existe plus, OP
   vrai('« Écrire à… » d\'une fiche ouvre un nouveau message dans le module (ecrire), sans composeur maison', /function courrierEcrire\([\s\S]*?COUR\.inst\.ecrire\(/.test(BRUT) && (CODE.match(/courrierEcrire\(/g) || []).length >= 3);
   vrai('l\'accueil ne lit plus de messages (il n\'en a plus) : il compte les non lus et mène au Courrier', !/MSG\.messages/.test(CODE) && /nMot\(MSG\.nonLus,'message non lu'/.test(CODE));
   vrai('le relevé des compteurs (chargerMail) ne touche plus au chiffre quand le module est monté — la pastille ne saute pas entre deux manières de compter', /if\(!COUR\.inst\)\{ MSG\.nonLus=/.test(corps(BRUT, 'function chargerMail(')));
-  vrai('⛔ la version de la Tour est montée (v2.93)', /var TOUR_VERSION='v2\.93'/.test(BRUT));
+  vrai('⛔ la version de la Tour est montée (v2.94)', /var TOUR_VERSION='v2\.94'/.test(BRUT));
+  /* v2.94 — le son du Courrier HORS de l'écran Courrier : la VRAIE `courrierSonner` et la VRAIE `courrierSonActif`, rejouées (la Tour n'a de relève de fond que par la pastille) */
+  { const vm = require('vm');
+    const fSon = ['courrierSonActif', 'courrierSonner'].map(n => { const i0 = BRUT.indexOf('function ' + n + '('); vrai('(tranche trouvée) ' + n, i0 > 0); return i0 > 0 ? corps(BRUT, 'function ' + n + '(') : ''; }).join('\n');
+    vrai('(tranche non vide) les deux fonctions du son', fSon.length > 300);
+    const jouer = (o) => { const jour = []; const stock = o.stock === undefined ? null : o.stock;
+      const sb = { MSG: { sonRef: o.ref }, COUR_SON: null, navigator: o.nav || {}, localStorage: { getItem: () => stock }, JSON, Audio: function (u) { jour.push('nouveau:' + u); this.play = () => { jour.push('play'); return o.refuse ? Promise.reject(new Error('NotAllowedError')) : Promise.resolve(); }; } };
+      vm.createContext(sb); vm.runInContext('var COUR_SON=null;\n' + fSon + '\n;this.sonner=courrierSonner;', sb);
+      o.suite.forEach(n => sb.sonner(n)); return { jour, ordre: jour }; };
+    v('⛔ premier relevé (`sonRef` vide) : AUCUN son — jamais pour ce qui était déjà là', jouer({ ref: null, suite: [5] }).jour, []);
+    v('⛔ le nombre de non lus MONTE : le son retentit, UNE fois pour un lot de plusieurs mails', jouer({ ref: 2, suite: [6] }).jour, ['nouveau:sons/courrier.mp3', 'play']);
+    v('…le nombre n\'a pas bougé ou a baissé (un mail lu) : silence', jouer({ ref: 4, suite: [4, 3] }).jour, []);
+    v('⛔ « Son des nouveaux mails » éteint dans le module (rangé dans tour_courrier) : silence', jouer({ ref: 1, suite: [3], stock: JSON.stringify({ settings: { son: false } }) }).jour, []);
+    v('…activé par défaut : un instantané sans ce réglage, ou illisible, laisse sonner', [jouer({ ref: 1, suite: [3], stock: JSON.stringify({ settings: { notif: false } }) }).jour.length, jouer({ ref: 1, suite: [3], stock: '{pas du json' }).jour.length], [2, 2]);
+    const amb = { audioSession: { type: 'auto' } }; jouer({ ref: 1, suite: [3], nav: amb });
+    v('⛔ Safari iOS : `audioSession.type = "ambient"` AVANT de jouer — le son suit l\'interrupteur silencieux', amb.audioSession.type, 'ambient');
+    v('⛔ le navigateur refuse la lecture (aucun geste encore) : rien ne casse, rien n\'est dit', (() => { try { return jouer({ ref: 1, suite: [3], refuse: true }).jour; } catch (e) { return 'a jeté'; } })(), ['nouveau:sons/courrier.mp3', 'play']);
+    const ch = corps(BRUT, 'function chargerMail(');
+    vrai('⛔ la relève de fond ne sonne QUE si le module n\'est pas monté (c\'est lui qui sonne alors), et tient le chiffre du serveur à jour dans les deux cas', /if\(!COUR\.inst\)\{[^}]*courrierSonner\(srv\)[^}]*\}\s*MSG\.sonRef=srv;/.test(ch));
+    vrai('⛔ démonter le module REMET le chiffre de référence à zéro (il a sonné pour ce qu\'il a relevé : la relève de fond ne sonne pas une seconde fois)', /function courrierDemonter\(\)\{[^]*?COUR\.inst=null; MSG\.sonRef=null;/.test(BRUT));
+    vrai('⛔ une relève de la pastille toutes les minutes, page visible, hors module, seulement pour qui voit OP GESTION — le rythme du module, pas plus', /MYAPPS\.indexOf\('gestion'\)>=0\) setInterval\(function\(\)\{ if\(document\.visibilityState==='visible'&&!COUR\.inst&&MSG\.loaded\) chargerMail\(\); \},60000\)/.test(CODE));
+    vrai('la déconnexion efface aussi les fichiers gardés par le module (IndexedDB tour_courrier_fichiers)', /function doLogout\(\)\{[^]*?indexedDB\.deleteDatabase\('tour_courrier_fichiers'\)/.test(BRUT));
+    vrai('le son est celui du dépôt (sons/courrier.mp3), servi par le site assemblé', fs.existsSync(path.join(RACINE, 'sons', 'courrier.mp3')) && fs.statSync(path.join(RACINE, 'sons', 'courrier.mp3')).size > 5000); }
   vrai('(population) opcourrier.js existe à la racine, sert `ecrire`, et n\'appelle jamais le réseau', fs.existsSync(path.join(RACINE, 'opcourrier.js')) && /ecrire:function/.test(fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8')) && !/\bfetch\(|XMLHttpRequest/.test(nu(fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8'))));
 }
 
@@ -207,6 +229,16 @@ function facteur() {
   const iAvis = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Devis signé'), iHtml = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Avec HTML');
   await s.deplacer(iAvis.id, 'junk'); await s.deplacer(iHtml.id, 'trash');
   v('⛔ deplacer(junk) et deplacer(trash) : chaque dossier reçoit le sien (Indésirables, Corbeille), pas toujours les Archives', [(await s.messages({ boite: b.id, dossier: 'junk' })).map(m => m.objet).sort(), (await s.messages({ boite: b.id, dossier: 'trash' })).map(m => m.objet).sort(), (await s.messages({ boite: b.id, dossier: 'archive' })).map(m => m.objet).sort()], [['Devis signé', 'Gagnez'], ['Avec HTML', 'Jeté'], ['Archive 1', 'Facture mars']]);
+  /* Désarchiver (19 octobre 2026) : `deplacer(id, 'inbox')` ramène le message dans la Réception de SA boîte — le rôle `inbox` est celui que le serveur résout (jamais un nom deviné) */
+  { const avantInbox = (await s.messages({ boite: b.id, dossier: 'inbox' })).map(m => m.objet).sort();
+    const gagnez = (await s.messages({ boite: b.id, dossier: 'junk' })).find(m => m.objet === 'Gagnez');
+    vrai('(population) le message à remettre existe dans les Indésirables du serveur', !!gagnez);
+    await s.deplacer(gagnez.id, 'inbox');
+    const reception = (await s.messages({ boite: b.id, dossier: 'inbox' })).map(m => m.objet).sort();
+    v('⛔ deplacer(inbox) : le message quitte les Indésirables et réapparaît dans la Réception de SA boîte (et pas ailleurs)', [reception, (await s.messages({ boite: b.id, dossier: 'junk' })).map(m => m.objet).includes('Gagnez')], [avantInbox.concat(['Gagnez']).sort(), false]);
+    const retour = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Gagnez');
+    await s.deplacer(retour.id, 'junk');   // le décor est rendu tel qu'il était
+    v('…et le geste inverse (« Annuler ») le renvoie où il était', (await s.messages({ boite: b.id, dossier: 'inbox' })).map(m => m.objet).sort(), avantInbox); }
   const refusDossier = await rejette(s.deplacer(m1.id, 'flagged'));
   vrai('un dossier que le serveur ne connaît pas est refusé (rien n\'est envoyé)', /dossier inconnu/.test(refusDossier || ''), refusDossier);
   const prot = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Avis de sécurité');

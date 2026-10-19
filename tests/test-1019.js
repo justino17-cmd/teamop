@@ -26,7 +26,7 @@ function bloc(nom) {
 console.log('\n── test-1019 : la Tour rangée par sujet ──');
 
 /* ── 1. la fiche d'une entreprise ── */
-const NOMS = ['esc', 'jsq', 'sigle', 'svg', 'nMot', 'fmtJour', 'fmtDate', 'ficheChiffrement', 'ficheEntreprise', 'gestionClientParts', 'carteSi', 'joursRestants', 'metDemande'];
+const NOMS = ['esc', 'nomTechnique', 'jsq', 'sigle', 'svg', 'nMot', 'fmtJour', 'fmtDate', 'ficheChiffrement', 'ficheEntreprise', 'gestionClientParts', 'carteSi', 'joursRestants', 'metDemande'];
 const SRCS = NOMS.map(bloc);
 vrai('(population) les fonctions de la fiche sont trouvées dans tour.html', SRCS.every(Boolean), NOMS.filter((n, i) => !SRCS[i]).join(', '));
 function fiche(o, avecCompte, pblCharge) {
@@ -44,6 +44,14 @@ function fiche(o, avecCompte, pblCharge) {
 }
 const O = { t: 'boulmartin-7k2q', nom: 'Boulangerie Martin', slug: 'boulmartin', email: 'contact@bm.test', formule: 'business', origine: 'site', cleEtat: 'propre', opMessages: true };
 const H = fiche(O, true);
+/* v2.94 — Justin : « tout ça avec écrit elan gestion, tu supprimes » : le pavé « 3 espaces techniques — jamais des entreprises » sous la liste Entreprises est RETIRÉ, et aucun
+   identifiant « elan-gestion… » ne s'affiche plus (l'AFFICHAGE seulement : l'identifiant du code, lui, ne change pas). Les espaces techniques restent NON comptés comme entreprises. */
+{ const TOUR = fs.readFileSync(path.join(__dirname, '..', 'tour.html'), 'utf8'), NU = TOUR.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  vrai('⛔ le pavé des espaces techniques n\'est plus construit sous la liste Entreprises (ni `var pave`, ni ses boutons vers entSel)', !/var pave\b/.test(NU) && !/class="reg-tech-l" onclick="entSel\(/.test(NU) && !/ — jamais des entreprises\.<\/b>/.test(NU));
+  vrai('⛔ les espaces techniques ne sont PAS comptés comme entreprises : aucun des groupes de la liste (clientes, à identifier, essais) n\'est « technique », et la liste ne se rend que sur les groupes', (NU.match(/var GROUPES=\[([\s\S]*?)\n  \];/) || ['', ''])[1].match(/\{cle:'/g).length === 3 && !/\{cle:'technique'/.test((NU.match(/var GROUPES=\[([\s\S]*?)\n  \];/) || ['', ''])[1]) && /var liste=groupes\? '<div class="reg">'\+groupes\+'<\/div>'/.test(NU));
+  vrai('⛔ aucun identifiant brut ne s\'affiche plus pour un espace technique : le nom, jamais « elan-gestion » (infobulle, fiche, Connexions, Équipes devis, suppression)', !/esc\(CNX\.sel\)\+'<\/div><\/div><\/div>'/.test(NU) && !/title="'\+esc\(x\.t\)\+'"/.test(NU) && !/<span class="mono">'\+esc\(t\)\+'<\/span>/.test(NU) && !/espace '\+esc\(o\.t\)\+'/.test(NU));
+  const T = fiche({ t: 'elan-gestion', nom: '', slug: '', email: 'x@y.fr', formule: 'business', origine: 'site', cleEtat: 'propre' }, false, false);
+  vrai('(rendu) la fiche d\'un espace technique dit « Espace par défaut — TEAM OP », pas son identifiant (le TEXTE rendu : l\'attribut du bouton garde l\'identifiant du code)', T.includes('Espace par défaut') && !/elan-gestion/.test(T.replace(/<[^>]*>/g, ' '))); }
 const secs = [...H.matchAll(/class="sec">([^<]*)</g)].map(m => m[1].replace(/&amp;/g, '&').trim());
 v('⛔ la fiche : une carte par sujet, dans cet ordre',
   secs, ['FORMULE ET PAIEMENT', '[acces]', 'ABONNEMENT', '[utilisateurs]', '[espace]', 'MÉTIER', 'APPLICATIONS ET CHIFFREMENT', '[dossier]', 'CONNEXIONS', 'ACTIVITÉ PAR ONGLET & PROBLÈMES', 'CONTACT', 'DEMANDES DU SITE', '[comptes]', '[supprimer]']);

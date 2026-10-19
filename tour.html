@@ -2778,7 +2778,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.93</div>
+    <div class="lg-pied">console interne · v2.94</div>
   </div>
 </div>
 
@@ -2820,7 +2820,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.93</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.94</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2832,7 +2832,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.93</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.94</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3130,7 +3130,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.93';
+var TOUR_VERSION='v2.94';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -3169,7 +3169,7 @@ function doLogin(){
     })
     .catch(function(){ _loginEnCours=false; $('lg-err').textContent='Serveur injoignable — réessayez dans un instant.'; });
 }
-function doLogout(){ try{ courrierDemonter(); localStorage.removeItem('tour_courrier'); }catch(e){} try{ sessionStorage.removeItem('tour_token'); localStorage.removeItem('tour_token'); localStorage.removeItem('tour_nom'); localStorage.removeItem('tour_role'); sessionStorage.removeItem('tour_apps'); localStorage.removeItem('tour_apps'); }catch(e){} location.hash=''; location.reload(); }
+function doLogout(){ try{ courrierDemonter(); localStorage.removeItem('tour_courrier'); }catch(e){} try{ indexedDB.deleteDatabase('tour_courrier_fichiers'); }catch(e){} try{ sessionStorage.removeItem('tour_token'); localStorage.removeItem('tour_token'); localStorage.removeItem('tour_nom'); localStorage.removeItem('tour_role'); sessionStorage.removeItem('tour_apps'); localStorage.removeItem('tour_apps'); }catch(e){} location.hash=''; location.reload(); }
 
 function entrer(){
   var lh=lireHash(), t=lh.tab; APP=lh.app; document.body.dataset.app=APP;
@@ -3196,6 +3196,8 @@ function entrer(){
   if(document.startViewTransition&&!sobre) document.startViewTransition(suite); else suite();
   chargerTout();
   setInterval(function(){ if(document.visibilityState==='visible') chargerIncidents(); },60000);
+  /* la relève de la pastille Courrier (v2.94) : seulement quand le module ne tourne pas — monté, il relève lui-même au même rythme */
+  if(MYAPPS.indexOf('gestion')>=0) setInterval(function(){ if(document.visibilityState==='visible'&&!COUR.inst&&MSG.loaded) chargerMail(); },60000);
 }
 window.addEventListener('hashchange',function(){
   var h=lireHash();
@@ -3949,7 +3951,7 @@ function incEcart(ms){
 var CNX_VIA_L={adresse:'l’adresse de son entreprise',identifiants:'identifiant + mot de passe',
   session:'une session déjà ouverte',email:'un lien reçu par e-mail',sms:'un lien reçu par SMS'};
 /* Le Courrier lui-même vit dans le module (opcourrier.js) ; la Tour n'en garde que ce que l'accueil et la pastille du menu lisent. */
-var MSG={boites:[],nonLus:0,loaded:false,busy:false,err:''};
+var MSG={boites:[],nonLus:0,sonRef:null,loaded:false,busy:false,err:''};
 var CLI={list:[],total:0,loaded:false,err:'',sel:null,q:''};
 var ABO={abos:[],paiements:[],mrr:0,actifs:0,impayes:0,echecs:0,configured:false,loaded:false,err:'',f:''};
 var EQ={users:[],loaded:false,err:'',nom:'',pass:'',role:'collaborateur'};
@@ -4402,7 +4404,7 @@ function vueConnexions(){
          voir nomTechnique(). Le nom brut « (espace hors annuaire) elan-gestion » laissait
          croire à une entreprise cliente, et il portait le nom d'un client sur un espace qui
          ne lui appartient pas. */
-      '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.t)+'">'+esc(x.technique===true?nomTechnique(x.t):nomEspace(x.nom,x.t))+'</span>'+
+      '<span class="reg-txt"><span class="reg-t1" title="'+esc(x.technique===true?nomTechnique(x.t):nomEspace(x.nom,x.t))+'">'+esc(x.technique===true?nomTechnique(x.t):nomEspace(x.nom,x.t))+'</span>'+
         '<span class="reg-l2">'+muet+'</span></span>'+
       '<span class="reg-fin"><span class="reg-alertes">'+alertes+'</span>'+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>';
@@ -4468,7 +4470,7 @@ function vueConnexions(){
       '<div class="carte p24">'+
       '<div class="fiche-tete"><span class="av-gd">'+esc(sigle(e.nom||CNX.sel))+'</span>'+
         '<div class="fiche-id"><div class="fiche-nom">'+esc(e.nom||CNX.sel)+'</div>'+
-        '<div class="fiche-sous mono">espace '+esc(CNX.sel)+'</div></div></div>'+
+        '<div class="fiche-sous mono">espace '+esc(nomTechnique(CNX.sel))+'</div></div></div>'+
       (CNX.detErr?'<div class="sous-sec">'+videTour('Détail illisible',esc(CNX.detErr),
           '<button type="button" class="btn-fant" onclick="cnxSel(\''+jsq(CNX.sel)+'\')">Réessayer</button>')+'</div>'
        :(!CNX.det?'<div class="sous-sec">'+squelListe(4)+'</div>':
@@ -4606,7 +4608,7 @@ function vueDevisIA(){
       return '<button type="button" role="radio" aria-checked="'+(offre===o[0])+'" onclick="diaMoteur(\''+jsq(t)+'\',\''+o[0]+'\')">'+o[1]+'</button>'; }).join('');
     var l2=e.n?('<b>'+e.n+' devis</b>'+(e.dernier?' · dernier le '+esc(e.dernier):''))
               :('<b>Aucun devis généré</b>'+(e.depuis?' · activé le '+esc(e.depuis):''));
-    var f3=['<span class="mono">'+esc(t)+'</span>'];
+    var f3=['<span class="mono">'+esc(nomTechnique(t))+'</span>'];
     if(e.depuis&&e.n) f3.push('activé le '+esc(e.depuis));
     f3.push(x.vu==null?'aucune connexion remontée depuis l’activation':'vu le '+esc(fmtJour(x.vu)));
     return '<div class="dia-carte"><div class="dia-haut">'+
@@ -4625,8 +4627,8 @@ function vueDevisIA(){
     var t=x.t, aRetirer=!!DIA.equipes[t];
     return '<div class="reg-l eqp-l'+(morte?' off':'')+'">'+
       (x.vu==null?'<span class="reg-av sans">?</span>':'<span class="reg-av gris">'+esc(sigle(x.nom||t))+'</span>')+
-      '<span class="reg-txt"><span class="reg-t1'+(x.nom?'':' ident')+'" title="'+esc(x.nom||t)+'">'+esc(x.nom||t)+'</span>'+
-      '<span class="reg-l2"><span class="mono">'+esc(t)+'</span>'+(x.vu?' · vu le '+esc(fmtJour(x.vu)):'')+'</span></span>'+
+      '<span class="reg-txt"><span class="reg-t1'+(x.nom?'':' ident')+'" title="'+esc(x.nom||nomTechnique(t))+'">'+esc(x.nom||nomTechnique(t))+'</span>'+
+      '<span class="reg-l2"><span class="mono">'+esc(nomTechnique(t))+'</span>'+(x.vu?' · vu le '+esc(fmtJour(x.vu)):'')+'</span></span>'+
       '<span class="reg-fin">'+
       '<button type="button" class="eqp-act rou dia-act" onclick="diaToggle(\''+jsq(t)+'\',true)">✨ Activer</button>'+
       (aRetirer?'<button type="button" class="eqp-act sup dia-act" onclick="diaRetirer(\''+jsq(t)+'\')">Retirer de la liste</button>':'')+
@@ -5485,6 +5487,20 @@ function chargerJournal(){
     if(TAB==='journal'||TAB==='accueil') render();
   }).catch(function(e){ JR.err=msgErreur(e); JR.loaded=true; if(TAB==='journal') render(); });
 }
+/* v2.94 (Justin : « je voudrais ce son quand on reçoit un mail… boîte mail ouverte ou autre, ça sonne quand même ») — LE SON DU COURRIER HORS DE L'ÉCRAN COURRIER.
+   Le module ne vit que sur l'onglet Courrier et joue le son des nouveaux mails qu'il relève ; ailleurs dans la Tour, la relève de la pastille (ci-dessous, même rythme : une minute, le
+   serveur garde les compteurs 20 s) joue le MÊME son quand le nombre de non lus a MONTÉ. Jamais au premier relevé (`sonRef` encore vide), jamais pendant que le module est monté (c'est lui qui
+   sonne : le chiffre du serveur est seulement tenu à jour), un seul son pour un lot. Le réglage est celui du module (« Son des nouveaux mails », rangé dans `tour_courrier`) : lu
+   dans son instantané, activé par défaut. Le navigateur peut refuser tant que rien n'a été touché dans la page : on n'en dit rien, le mail suivant réessaie. */
+var COUR_SON=null;
+function courrierSonActif(){ try{ var r=localStorage.getItem('tour_courrier'); var o=r?JSON.parse(r):null; return !(o&&o.settings&&o.settings.son===false); }catch(e){ return true; } }
+function courrierSonner(srv){
+  if(MSG.sonRef==null||!(srv>MSG.sonRef)||!courrierSonActif()) return;
+  try{ try{ if(navigator.audioSession) navigator.audioSession.type='ambient'; }catch(e){}   /* Safari iOS 16.4+ : le son suit l'interrupteur silencieux (sans cela il joue quand même) */
+    if(!COUR_SON){ COUR_SON=new Audio('sons/courrier.mp3'); COUR_SON.preload='auto'; }
+    try{ COUR_SON.currentTime=0; }catch(e){}
+    var p=COUR_SON.play(); if(p&&typeof p.catch==='function') p.catch(function(){}); }catch(e){}
+}
 /* Les compteurs seuls : la pastille du menu et l'accueil les lisent avant qu'on ait ouvert le Courrier. Le module, une fois monté, les tient (`onCompter`) :
    ce relevé ne touche alors plus au chiffre, sinon la pastille sauterait entre deux manières de compter. */
 function chargerMail(frais){
@@ -5493,7 +5509,9 @@ function chargerMail(frais){
     MSG.busy=false; MSG.loaded=true;
     if(!d){ MSG.err=INJOIGNABLE; if(TAB==='accueil') render(); return; }
     MSG.err=''; MSG.boites=d.boites||[];
-    if(!COUR.inst){ MSG.nonLus=MSG.boites.reduce(function(n,b){ return n+(Number(b.nonLus)||0); },0); setBdg('bdg-supp',MSG.nonLus); }
+    var srv=MSG.boites.reduce(function(n,b){ return n+(Number(b.nonLus)||0); },0);
+    if(!COUR.inst){ MSG.nonLus=srv; setBdg('bdg-supp',MSG.nonLus); courrierSonner(srv); }
+    MSG.sonRef=srv;
     if(TAB==='accueil') render();
   }).catch(function(){ MSG.busy=false; MSG.loaded=true; MSG.err=INJOIGNABLE; if(TAB==='accueil') render(); });
 }
@@ -7133,7 +7151,7 @@ function courrierVeiller(){
   try{ window.addEventListener('resize',courrierAjusterPlus); window.addEventListener('orientationchange',courrierAjusterPlus); }catch(e){}
   try{ if(typeof ResizeObserver==='function'){ var ro=new ResizeObserver(courrierAjusterPlus); ro.observe($('vue')); ro.observe(document.body); } }catch(e){}
 }
-function courrierDemonter(){ if(COUR.inst){ try{ COUR.inst.demonter(); }catch(e){} COUR.inst=null; } }
+function courrierDemonter(){ if(COUR.inst){ try{ COUR.inst.demonter(); }catch(e){} COUR.inst=null; MSG.sonRef=null; /* le module a sonné pour ce qu'il a relevé : la relève de fond repart d'un chiffre neuf, sinon elle sonnerait une seconde fois */ } }
 function vueCourrier(){ return '<div id="courrier-zone" class="courrier-zone"></div>'; }
 function courrierMonter(){
   var zone=$('courrier-zone'); if(!zone) return;
@@ -7470,20 +7488,14 @@ function vueEntreprises(){
       dedans.map(function(o){ return ligneReg(o,g.cle); }).join('')+'</div></div>';
   });
 
-  /* Les espaces techniques quittent la liste : ce ne sont pas des entreprises. Tout appareil
-     qui n'a rejoint aucun espace signale là — y compris un visiteur qui rate une connexion.
-     Ils restent atteignables, ils ne sont simplement plus comptés comme des clientes. */
-  var tech=l.filter(function(o){ return entNature(o)==='technique'; });
-  var pave=tech.length? '<div class="reg-tech"><b>'+tech.length+' espace'+(tech.length>1?'s':'')+' technique'+(tech.length>1?'s':'')+' — jamais des entreprises.</b> '+
-    'Ce sont les espaces de TEAM OP, pas des clientes. Tout appareil qui n’a rejoint aucun espace y signale ses connexions — '+
-    'l’espace par défaut pour l’application, la bêta pour les essais — y compris un visiteur qui rate une connexion sur teamop.fr.<div>'+
-    tech.map(function(o){ return '<button type="button" class="reg-tech-l" onclick="entSel(\''+jsq(o.t)+'\')">'+esc(nomTechnique(o.t))+' <span class="mono" style="opacity:.55;margin-left:6px">'+esc(o.t)+'</span></button>'; }).join('')+
-    '</div></div>' : '';
-
+  /* Les espaces techniques quittent la liste : ce ne sont pas des entreprises (entNature(o)==='technique', écartés plus haut des groupes). v2.94 — Justin, capture du pavé « 3 espaces
+     techniques — jamais des entreprises » : « tout ça avec écrit elan gestion, tu supprimes ». Le pavé est RETIRÉ : ils ne sont ni listés ni comptés ici, et aucun identifiant
+     « elan-gestion… » ne s'affiche plus (nomTechnique() en tient lieu partout où un identifiant se lisait). Les espaces restent atteignables par Connexions clients, où ils sont nommés
+     par ce qu'ils SONT. ⚠️ C'est l'AFFICHAGE seulement : l'identifiant reste celui du code (ESPACES_TECHNIQUES, ESPACES_INTOUCHABLES, le chiffrement). */
   /* Deux vides différents, deux phrases différentes : « rien ne correspond » suppose une
      recherche ou un filtre. Sans l'un ni l'autre, c'est qu'aucune entreprise n'est encore
      connue — et là il faut dire d'où elles viennent, pas laisser croire à un filtre. */
-  var liste=(groupes||pave)? '<div class="reg">'+groupes+'</div>'+pave
+  var liste=groupes? '<div class="reg">'+groupes+'</div>'
     : (ENT.q||ENT.filtre)
       ? videTour('Aucune entreprise ne correspond à cette recherche','Essayez un autre mot, ou retirez le filtre posé.',
           (ENT.filtre?'<button type="button" class="btn-fant" onclick="entFiltre(\''+ENT.filtre+'\')">Retirer le filtre</button>':''))
@@ -7631,7 +7643,7 @@ function entSupprimer(t,nm){
         '💬 <b>OP MESSAGES n’est pas touché, et c’est voulu.</b> L’application est encore en développement : '+
         'elle ne se supprime pas. Ses conversations vivent dans un espace séparé d’OP GESTION et y restent.</div>'
       : '';
-    var sous='<span class="mono">'+esc(t)+'</span>';
+    var sous='<span class="mono">'+esc(nomTechnique(t))+'</span>';
     /* Rien à perdre : pas de question à poser, l'aperçu le dit et s'arrête là. */
     if(rien){ tourPanneau('<div class="suppr-titre">🗑 Supprimer « '+esc(nm)+' » partout</div><div class="suppr-sous">'+sous+'</div>'+
       '<div class="suppr-txt" style="margin-top:16px">Il ne reste rien à supprimer pour cet espace.</div>'+reste+alerte+msg); return; }
@@ -7702,11 +7714,11 @@ function ficheEntreprise(){
       '<span class="av-gd">'+esc(sigle(nm))+'</span>'+
       '<div class="fiche-id">'+
         '<div class="fiche-nom">'+esc(nm)+'</div>'+
-        '<div class="fiche-sous mono">'+esc(o.email||o.t)+'</div>'+
+        '<div class="fiche-sous mono">'+esc(o.email||nomTechnique(o.t))+'</div>'+
         /* L'identifiant d'espace n'apparaissait NULLE PART sur la fiche d'une entreprise qui a
            une adresse : « o.email || o.t » montrait l'un OU l'autre. C'est pourtant lui qui dit
            où vivent ses données. Il s'affiche maintenant TOUJOURS, avec ce qu'il signifie. */
-        ((o.email&&!PBL.loaded)?'<div class="fiche-sous mono">espace '+esc(o.t)+'</div>':'')+
+        ((o.email&&!PBL.loaded)?'<div class="fiche-sous mono">espace '+esc(nomTechnique(o.t))+'</div>':'')+
       '</div>'+
       '<div class="fiche-etats">'+
         (o.suspendu?'<span class="past p-rouge">⏸ Suspendue</span>':'')+

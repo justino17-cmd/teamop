@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'a31cded44945';
+  const OPMSG_BUILD = '273547d29b00';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 252;
+  const OPMSG_VERSION = 254;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6561,7 +6561,7 @@
     const zone = $('courrier-zone'); courrierDemonter(); courrierAjuster();
     courrierCharger().then(() => {
       if (!zone.isConnected || !etat.route || etat.route.vue !== 'courrier') return;
-      COUR.inst = window.OPCourrier.monter(zone, { source: source.courrierSource(), cotes: ['pro'], cote: 'pro', cleStockage: 'opmsg_courrier', titre: 'OP Courrier', titreDocument: false });      // jour / nuit : sans réglage de l'hôte, le module suit l'appareil — comme cette page (aucun prefers-color-scheme en JavaScript ici)
+      COUR.inst = window.OPCourrier.monter(zone, { source: source.courrierSource(), cotes: ['pro'], cote: 'pro', cleStockage: 'opmsg_courrier', titre: 'OP Courrier', son: 'courrier.mp3', titreDocument: false });      // jour / nuit : sans réglage de l'hôte, le module suit l'appareil — comme cette page (aucun prefers-color-scheme en JavaScript ici)
       courrierAjuster();
     }, () => { if (zone.isConnected) zone.innerHTML = '<p class="info-erreur" role="alert">Le module de messagerie n\'a pas pu être chargé. <button type="button" class="mini" id="courrier-reessayer">Réessayer</button></p>'; const b = $('courrier-reessayer'); if (b) b.addEventListener('click', () => entrerCourrier()); });
   }
