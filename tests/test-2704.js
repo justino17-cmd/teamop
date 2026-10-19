@@ -230,10 +230,10 @@ function facteur() {
   /* ── 2 bis. les quatre gestes de l'ancien écran ── */
   console.log('\n── 2704 · 2 bis. Envois TeamOP, pièce reçue, suivi d\'une demande, réponse dans le fil ──');
   const ecrireEtat = (e) => { fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e)); fs.renameSync(IMAP + '.tmp', IMAP); };
-  const CONTENU = '%PDF-1.4 contenu de la pièce 2704 ✓';
+  const CONTENU = '%PDF-1.4 contenu de la pièce 2704 ✓', CONTENU2 = 'deuxième pièce, un autre contenu';
   { const e6 = lireEtat(); const nI = Math.max.apply(null, e6.boites[BX].messages.filter(m => m.dossier === 'INBOX').map(m => m.uid)) + 1;
     e6.boites[BX].messages.push({ dossier: 'INBOX', uid: nI, messageId: '<fil-2704@banc-2704>', from: 'client@exemple-2704.fr', fromNom: 'Client Fil', to: BX, subject: 'Question du client', text: 'Pouvez-vous me rappeler ?',
-      ts: Date.now() - 60000, flags: [], pieces: [{ nom: '../../Re:pport*final?.pdf', type: 'application/pdf', b64: Buffer.from(CONTENU).toString('base64') }] });
+      ts: Date.now() - 60000, flags: [], pieces: [{ nom: '../../Re:pport*final?.pdf', type: 'application/pdf', b64: Buffer.from(CONTENU).toString('base64') }, { nom: 'second.txt', type: 'text/plain', b64: Buffer.from(CONTENU2).toString('base64') }] });
     ecrireEtat(e6); }
   s = S();
 
@@ -251,9 +251,11 @@ function facteur() {
   const lm = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Question du client');
   vrai('(population) le message à pièce jointe est dans la Réception', !!lm, lm);
   const dFil = await s.lire(lm.id);
-  v('⛔ lire(): la pièce porte sa place (id) et son nom TEL QUE L\'EXPÉDITEUR L\'A ÉCRIT (l\'assainissement est l\'affaire du module)', dFil.pj.map(p => [p.id, p.nom, p.type]), [[0, '../../Re:pport*final?.pdf', 'doc']]);
+  v('⛔ lire(): la pièce porte sa place (id) et son nom TEL QUE L\'EXPÉDITEUR L\'A ÉCRIT (l\'assainissement est l\'affaire du module)', dFil.pj.map(p => [p.id, p.nom, p.type]), [[0, '../../Re:pport*final?.pdf', 'doc'], [1, 'second.txt', 'doc']]);
   const blob = await s.piece(lm.id, dFil.pj[0].id);
   vrai('⛔ piece(): un Blob, et les OCTETS exacts de la pièce (relus du serveur, pas reconstitués)', typeof blob.arrayBuffer === 'function' && Buffer.from(await blob.arrayBuffer()).toString() === CONTENU, blob && blob.size);
+  const blob2 = await s.piece(lm.id, dFil.pj[1].id);
+  vrai('⛔ …et la SECONDE pièce est la seconde (la place de la pièce est celle que le serveur a numérotée, pas toujours la première)', Buffer.from(await blob2.arrayBuffer()).toString() === CONTENU2);
   const rPiece = await rejette(s.piece(lm.id, 7));
   vrai('⛔ une pièce qui n\'existe pas est une ERREUR dite — jamais un fichier vide', /pièce introuvable/.test(rPiece || ''), rPiece);
   const rPieceX = await rejette(s.piece(lm.id, '../1'));
@@ -263,8 +265,8 @@ function facteur() {
   v('⛔ ouvrir un message reçu OUVRE son suivi côté serveur : « à traiter », personne', dFil.suivi, { statut: 'aTraiter', assigne: '', par: '' });
   const sv1 = await s.suivi(lm.id, { statut: 'enCours', assigne: 'Léa' });
   v('⛔ suivi(): le statut ET la personne tiennent côté serveur, avec QUI a fait le geste', sv1, { statut: 'enCours', assigne: 'Léa', par: 'Patron' });
-  const sv1b = (await S().messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Question du client').suivi;
-  v('…la liste suivante le montre (la mémoire de la source est oubliée après le geste)', sv1b, { statut: 'enCours', assigne: 'Léa', par: '' });
+  const sv1b = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Question du client').suivi;
+  v('…la liste suivante le montre, par la MÊME source (sa mémoire est oubliée après le geste)', sv1b, { statut: 'enCours', assigne: 'Léa', par: '' });
   const sv2 = await s.suivi(lm.id, { statut: 'resolu' });
   v('…changer le statut seul ne touche pas à la personne', [sv2.statut, sv2.assigne], ['resolu', 'Léa']);
   const sv3 = await s.suivi(lm.id, { statut: 'nimporte-quoi' });
