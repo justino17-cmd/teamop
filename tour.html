@@ -10020,7 +10020,8 @@ function vueJournal(){
    -1 « on n'a pas pu savoir ». Une liste illisible ne se dessine jamais comme « rien à valider » : c'est la confusion
    que ce dépôt a déjà payée deux fois (CLAUDE.md, `_mailboxes`). Et rien ne se change à l'écran avant que le serveur ait dit oui :
    un mode ne s'affiche pas « Auto » parce qu'on l'a demandé, mais parce que le serveur l'a écrit. */
-var AG={loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false};
+var AG={loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false,
+  dos:{q:'',lec:0,liste:[],total:0,ouvert:'',fiche:null,ficheLec:0}};
 var AG_MODES=[['arret','À l’arrêt'],['brouillon','Brouillon'],['auto','Auto']];
 var AG_TYPES={creer_espace:'Créer un espace',suspendre_acces:'Suspendre un accès',envoyer_mail:'Envoyer un courriel',publier:'Publier',repondre_avis:'Répondre à un avis',correctif:'Proposer un correctif',
   verifier_paiement:'Vérifier un paiement',preparer_espace:'Préparer un espace',escalade_humain:'Passer la main à une personne',signaler_erreur:'Signaler une erreur',relire_envoi:'Relire un envoi'};
@@ -10043,7 +10044,49 @@ function chargerAgents(){
     }).catch(function(){ AG.lec[k]=-1; if(TAB==='agents') render(); });
   });
 }
-function agSec(s){ AG.sec=s; render(); }
+function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); render(); }
+/* ── les DOSSIERS clients : un numéro (DOS-000123) par client, la fiche est composée par le serveur ; trois états (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
+function agDosCharger(q){
+  AG.dos.q=String(q||'').slice(0,80); AG.dos.lec=0;
+  apiGet('/api/monitor/dossiers?q='+encodeURIComponent(AG.dos.q)).then(function(d){ if(!d) return;
+    if(Array.isArray(d.dossiers)){ AG.dos.liste=d.dossiers; AG.dos.total=Number(d.total)||d.dossiers.length; AG.dos.lec=1; } else { AG.dos.lec=-1; }
+    if(TAB==='agents') render();
+  }).catch(function(){ AG.dos.lec=-1; if(TAB==='agents') render(); });
+}
+function agDosOuvrir(n){
+  AG.dos.ouvert=String(n||''); AG.dos.fiche=null; AG.dos.ficheLec=0; render();
+  apiGet('/api/monitor/dossiers/'+encodeURIComponent(AG.dos.ouvert)).then(function(d){ if(!d) return;
+    if(AG.dos.ouvert!==String(n||'')) return;   /* une réponse tardive ne remplace pas le dossier qu'on a ouvert depuis */
+    if(d.dossier&&typeof d.dossier==='object'){ AG.dos.fiche=d.dossier; AG.dos.ficheLec=1; } else { AG.dos.ficheLec=-1; }
+    if(TAB==='agents') render();
+  }).catch(function(){ if(AG.dos.ouvert===String(n||'')){ AG.dos.ficheLec=-1; if(TAB==='agents') render(); } });
+}
+function agDosFermer(){ AG.dos.ouvert=''; AG.dos.fiche=null; AG.dos.ficheLec=0; render(); }
+function agDosPaiement(p){ var e=p&&p.etat; return e==='paye'?'Payé'+(p.formule?' · '+esc(p.formule):''):e==='impaye'?'Impayé':e==='aucun'?'Aucun abonnement trouvé':'On ne sait pas (Stripe illisible)'; }
+function agDosFiche(){
+  var f=AG.dos.fiche, h='<div style="margin-top:14px"><button type="button" class="ag-btn" onclick="agDosFermer()">← Tous les dossiers</button></div>';
+  if(AG.dos.ficheLec===0) return h+acSquel();
+  if(AG.dos.ficheLec!==1||!f) return h+agIllisible('Ce dossier n’a pas pu être lu — on ne sait pas ce qu’il contient. Réessaie dans un instant.');
+  if(f.supprime) return h+agIllisible('Dossier '+esc(f.numero)+' : le client a été supprimé. Le numéro reste attribué, il ne sera jamais réutilisé.');
+  var c=f.client||{}, e=f.espace||{}, tel=String(c.tel||'').replace(/[^+0-9]/g,'');
+  return h+'<div class="ag-liste"><div class="ag-ligne"><div class="tx"><b style="font-size:17px">'+esc(f.numero)+' · '+esc(c.entreprise||'(sans nom)')+'</b><span>Inscrit le '+esc(fmtDate(c.inscrit))+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Contact</b><span>'+esc(((c.prenom||'')+' '+(c.nom||'')).trim()||'—')+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Téléphone</b><span>'+(tel?'<a href="tel:'+esc(tel)+'">'+esc(c.tel)+'</a>':'non renseigné')+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Adresse e-mail</b><span>'+(c.email?'<a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a>':'—')+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Espace</b><span>'+(e.existe?esc(e.slug)+' · formule '+esc(e.formule||'—')+' · créé le '+esc(fmtDate(e.creeLe)):'Pas encore d’espace')+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Paiement</b><span>'+agDosPaiement(f.paiement)+'</span></div></div>'+
+    ((f.demandes||[]).length?'<div class="ag-ligne"><div class="tx"><b>Demandes</b><span>'+f.demandes.map(function(d){ return esc(d.app)+(d.formule?' ('+esc(d.formule)+')':'')+' · '+esc(d.statut||'—'); }).join(' · ')+'</span></div></div>':'')+
+    (c.note?'<div class="ag-ligne"><div class="tx"><b>Note interne</b><span>'+esc(c.note)+'</span></div></div>':'')+'</div>'+
+    '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Donne ce numéro à un agent : il retrouve ce dossier. Seul toi vois ces coordonnées ici.</div>';
+}
+function agDosListe(){
+  var D=AG.dos, h='<div class="ag-barre" style="margin-top:14px"><input type="search" id="ag-dos-q" value="'+esc(D.q)+'" placeholder="Numéro ou nom d’entreprise" aria-label="Chercher un dossier" style="flex:1;min-width:160px;min-height:44px;padding:0 12px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--inset);color:var(--text)" onkeydown="if(event.key===\'Enter\') agDosCharger(this.value)"><button type="button" class="ag-btn ok" onclick="agDosCharger(document.getElementById(\'ag-dos-q\').value)">Chercher</button></div>';
+  if(D.lec===0) return h+acSquel();
+  if(D.lec!==1) return h+agIllisible('Les dossiers n’ont pas pu être lus — on ne sait pas s’il y en a. Réessaie dans un instant.');
+  if(!D.liste.length) return h+'<div class="vide">'+(D.q?'Aucun dossier ne correspond.':'Aucun client pour l’instant.')+'</div>';
+  return h+'<div class="ag-liste">'+D.liste.map(function(l){ return '<div class="ag-ligne"><span class="ag-etiq">'+esc(l.numero)+'</span><div class="tx"><b>'+esc(l.entreprise||'(sans nom)')+'</b><span>Inscrit le '+esc(fmtDate(l.inscrit))+' · '+(l.espace?'espace ouvert':'pas d’espace')+'</span></div><div class="ag-act"><button type="button" class="ag-btn" onclick="agDosOuvrir(\''+esc(l.numero)+'\')">Ouvrir</button></div></div>'; }).join('')+'</div>'+
+    (D.total>D.liste.length?'<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">'+D.total+' dossiers : affine la recherche pour voir les autres.</div>':'');
+}
 function agMode_(id,mode){
   if(AG.busy||MYROLE!=='patron') return;
   var a=agParId(id); if(!a||agMode(a)===mode) return;
@@ -10098,7 +10141,7 @@ function vueAgents(){
     ' · '+allumes+' allumé'+(allumes>1?'s':'')+' sur '+AG.agents.length+'</b>'+
     (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
   var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
-  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['taches','Tâches entre agents']].map(function(o){
+  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['taches','Tâches entre agents'],['dossiers','Dossiers']].map(function(o){
     return '<button type="button" role="tab" class="'+(AG.sec===o[0]?'on':'')+'" aria-selected="'+(AG.sec===o[0])+'" onclick="agSec(\''+o[0]+'\')">'+o[1]+
       (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
@@ -10131,6 +10174,8 @@ function vueAgents(){
     else h+='<div class="ag-liste">'+AG.journal.map(function(e){
       return '<div class="ag-ligne"><span class="ag-etiq'+(e.resultat==='ok'?' ok':e.resultat==='erreur'||e.resultat==='refuse'?' ko':'')+'">'+esc(e.resultat||'')+'</span><div class="tx"><b>'+esc(agNom(e.agent))+' · '+esc(e.action)+'</b><span>'+
         (e.cible?esc(e.cible)+' · ':'')+(e.detail?esc(e.detail)+' · ':'')+(e.qui?'par '+esc(e.qui)+' · ':'')+esc(fmtDate(e.ts))+'</span></div></div>'; }).join('')+'</div>';
+  } else if(AG.sec==='dossiers'){
+    h+=AG.dos.ouvert?agDosFiche():agDosListe();
   } else {
     if(AG.lec.taches!==1) h+=AG.lec.taches===0?acSquel():agIllisible('Les tâches n’ont pas pu être lues.');
     else if(!AG.taches.length) h+='<div class="vide">Aucune tâche entre agents.</div>';

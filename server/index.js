@@ -4412,6 +4412,7 @@ function adrNue(s) { const m = /<([^<>]*)>\s*$/.exec(String(s || '')); return St
 function supprDest() { return String(config.securiteEmail || config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').trim(); }
 function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
+let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
 function supprDestLisible() {
@@ -9419,6 +9420,7 @@ app.post('/api/clients/sync', async (req, res) => {
     demandesTraitees: prev.demandesTraitees || {}
   };
   cliSave();
+  try { if (dossiersMod) dossiersMod.numeroDe(email); } catch (e) {}   // le numéro de dossier naît avec le client
   /* Un code promo activé sur le SITE se relaie à l'espace de l'application : l'app se
      débloque toute seule à sa prochaine vérification.
 
@@ -10036,6 +10038,20 @@ try {
   try {
     agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif });
     console.log('agents : socle chargé');
+    /* LES DOSSIERS : un numéro par client (`DOS-000123`), la fiche pour le patron, la même fiche pour un agent à qui il le donne. */
+    dossiersMod = require('./dossiers')(app, { DATA_DIR, monPatronStrict, clients: () => clientsData,
+      espaceDe: (email) => { const m = String(email).toLowerCase(); const sl = Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').toLowerCase() === m); return sl ? Object.assign({ slug: sl }, espacesReg[sl]) : null; },
+      paiement: async (email) => {
+        if (!(config.stripe && config.stripe.secretKey)) return { etat: 'inconnu' };
+        let liste; try { liste = await stripeListe(); } catch (e) { return { etat: 'inconnu' }; }
+        if (!(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return { etat: 'inconnu' };
+        const e = { slug: '', email: String(email).toLowerCase(), nom: '', formule: '' };
+        const st = espaceStripeDans(e, liste), surs = (st && st.surs) || [];
+        if (surs.length) return { etat: 'paye', formule: formulePayee(e, surs) };
+        const im = espaceStripeDans(e, liste, STATUTS_IMPAYES);
+        return { etat: ((im && im.surs) || []).length ? 'impaye' : 'aucun' };
+      } });
+    console.log('dossiers : ' + Object.keys(clientsData).length + ' client(s) examiné(s)');
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
