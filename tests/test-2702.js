@@ -128,9 +128,9 @@ vrai('les raccourcis clavier n\'écoutent QUE l\'arbre du module (sr.addEventLis
 console.log('\n4. Le contrat de l\'adaptateur : ce que le module appelle est écrit en tête du fichier, et inversement');
 const TETE = MOD.slice(0, MOD.indexOf('(function () {'));
 const appelles = Array.from(new Set(Array.from(CODE.matchAll(/\bSRC\.(\w+)/g)).map(m => m[1]))).sort();
-const documentes = ['ajouterBoite', 'boites', 'capacites', 'deplacer', 'envois', 'envoyer', 'lire', 'lireMX', 'marquer', 'messages', 'piece', 'retirerBoite', 'simuler', 'suivi'];
+const documentes = ['ajouterBoite', 'boites', 'capacites', 'deplacer', 'envois', 'envoyer', 'lire', 'lireMX', 'marquer', 'messages', 'piece', 'retirerBoite', 'signature', 'simuler', 'suivi'];
 v('(population) les méthodes de la source appelées par le module', appelles, documentes);
-v('⛔ chacune est DÉCRITE dans le contrat, en tête du fichier', documentes.filter(m => !new RegExp('\\b' + m + '\\(').test(TETE)), []);
+v('⛔ chacune est DÉCRITE dans le contrat, en tête du fichier', documentes.filter(m => !(m === 'signature' ? /^     signature\s+→/m : new RegExp('\\b' + m + '\\(')).test(TETE)), []);
 v('⛔ …et les trois méthodes des gestes d\'avant (envois, piece, suivi) ont leur PROPRE ligne de contrat (une simple mention au passage ne suffit pas)', ['envois', 'piece', 'suivi'].filter(m => !new RegExp('^     ' + m + '\\(', 'm').test(TETE)), []);
 v('les options documentées sont celles que le module lit (source, cotes, cote, cleStockage, theme, titre, onCompter, titreDocument, intervalle)', ['source', 'cotes', 'cote', 'cleStockage', 'theme', 'titre', 'onCompter', 'titreDocument', 'intervalle'].filter(o => !new RegExp('\\b' + o + '\\b').test(TETE) || !new RegExp('opt\\.' + o + '\\b').test(CODE)), []);
 vrai('la valeur rendue : { demonter, cote, rafraichir }', /return \{\s*demonter:demonter,[\s\S]*?cote:function\(c\)[\s\S]*?rafraichir:function\(o\)/.test(CODE));
@@ -620,7 +620,7 @@ console.log('\n6 nonies. Le fichier est gardé sur l\'appareil, l\'aperçu l\'ou
     vrai('⛔ le PDF s\'affiche dans un cadre dont l\'adresse est un `blob:` fabriqué ici (type FORCÉ à application/pdf : jamais lu comme une page), aucune origine externe — et SANS `sandbox` : Chromium refuse d\'y afficher un PDF (mesuré, « blocked by Chromium »)', !/sandbox/.test(CODE.replace(/\/\/[^\n]*/g, '')) && /URL\.createObjectURL\(new Blob\(\[blob\],\{type:"application\/pdf"\}\)\)/.test(AP) && !/https?:/.test(AP));
     vrai('…Fermer (bouton et Échap) et Télécharger ; l\'adresse est RÉVOQUÉE à la fermeture ; sur un appareil qui n\'affiche pas les PDF dans une page, le repli est « Télécharger »', /data-pv="close"/.test(AP) && /data-pv="dl"/.test(AP) && /e\.key==="Escape"/.test(AP) && /navigator\.pdfViewerEnabled!==false/.test(AP) && /pdfv-repli/.test(AP) && /revokeObjectURL/.test(fonction(MOD, 'fermerApercu')));
     vrai('⛔ fermer une feuille ferme la visionneuse (closeOverlay), et le démontage aussi', /function closeOverlay\(\)\{\s*fermerApercu\(\);/.test(CODE) && /finis\.push\(fermerApercu\)/.test(CODE));
-    vrai('⛔ la fenêtre « Envoyer pour signature » : un bouton Aperçu sur chaque PDF, le fichier est GARDÉ à l\'envoi (les deux branches), borné à la limite d\'un message', /data-dpv/.test(CODE) && (CODE.match(/att:docsGardes\(\)/g) || []).length === 2 && /tot\+f\.size>CAP\.pj\.octets/.test(CODE) && /fichierPoser\(fid,d\.file\)/.test(CODE));
+    vrai('⛔ la fenêtre « Envoyer pour signature » : un bouton Aperçu sur chaque PDF, le fichier est GARDÉ à l\'envoi (les trois branches : prête, locale, réelle), borné à la limite d\'un message', /data-dpv/.test(CODE) && (CODE.match(/att:docsGardes\(\)/g) || []).length === 3 && /tot\+f\.size>CAP\.pj\.octets/.test(CODE) && /fichierPoser\(fid,d\.file\)/.test(CODE));
     vrai('…la pièce n\'emporte que sa clé `fid` (jamais le fichier : il irait dans localStorage et dans la synchro)', /var o=\{name:d\.name,size:d\.size,kind:"doc"\}; if\(fid\) o\.fid=fid;/.test(CODE));
     vrai('…la demande ANNULÉE efface ses fichiers, la demande retirée aussi ; au démarrage, ce qu\'aucune pièce ne désigne s\'efface', /act==="signCancel"\)\{ g\.st="cancelled"; fichiersEffacer\(fichiersDe\(m\)\);/.test(CODE) && /restore\(\);\s*fichiersBalayer\(\);/.test(CODE));
     vrai('…la demande dans le dossier Signatures (la lecture) propose Aperçu sur ses PDF, et un message en rédaction aussi (data-pv-c)', /m\.sign&&estPDF\(a\)\?boutonApercu\(i,"data-pv-att"\)/.test(CODE) && /estPDF\(a\)\?boutonApercu\(i,"data-pv-c"\)/.test(CODE));
@@ -656,6 +656,113 @@ console.log('\n6 decies. Remettre dans la Réception (Archive, Indésirables, Co
   vrai('⛔ la barre de sélection multiple propose « Remettre dans la Réception » dans Archive, Indésirables et Corbeille (et Archiver ailleurs) ; l\'action ne déplace que des messages reçus', /state\.folder==="archive"\|\|state\.folder==="junk"\|\|inTrash\?b\("toInbox",I\.inbox,REMETTRE\):b\("archive",I\.archive,"Archiver"\)/.test(CODE) && /if\(act==="toInbox"\) sel=sel\.filter\(peutRemettre\)/.test(MA) && /act==="toInbox"\?"inbox"/.test(MA));
   vrai('⛔ le bouton de la barre de lecture (Mac, tactile, outils), la ligne au survol et le clic droit passent par peutRemettre', (CODE.match(/peutRemettre\(m\)/g) || []).length >= 7 && /id:"toInbox",label:REMETTRE,icon:I\.inbox/.test(CODE) && /data-q="toInbox"/.test(CODE) && /data-act="toInbox"/.test(CODE));
   vrai('…le libellé est « Remettre dans la Réception » et l\'icône celle de la boîte de réception', /var REMETTRE="Remettre dans la Réception"/.test(CODE));
+}
+
+
+/* ═════════════════════════════ 6 decies. LA VRAIE SIGNATURE (v2.95) : la source sait signer ═════════════════════════════ */
+console.log('\n6 undecies. La vraie signature : capacité, état du serveur, relance, annulation, PDF signé, preuve — et toute erreur se DIT');
+{
+  const TETE_C = MOD.slice(0, MOD.indexOf('(function () {'));
+  vrai('⛔ le contrat en tête décrit l\'objet `signature` et ses cinq autres méthodes (etat, relancer, annuler, signe, preuve) et la vue qu\'envoyer() rend',
+    /^     signature\s+→ \{ envoyer, etat, relancer, annuler, signe, preuve \}/m.test(TETE_C) && /envoyer\(demande, fichiers\)/.test(TETE_C) && /etat\(id\) · relancer\(id\) · annuler\(id\)/.test(TETE_C) && /signe\(id, n\) → Blob/.test(TETE_C) && /preuve\(id, i\) → Blob/.test(TETE_C));
+  /* la capacité : la déclaration ET les six méthodes */
+  const AC = fonction(MOD, 'appliquerCapacites'); vrai('(tranche trouvée) appliquerCapacites', AC.length > 300);
+  const six = { envoyer() {}, etat() {}, relancer() {}, annuler() {}, signe() {}, preuve() {} };
+  const cap = (c, sg) => { const sb = { CAP: { pj: {} }, SRC: { signature: sg }, state: { folder: 'inbox' }, folderOfStrict: () => ({}), Array, Math }; vm.createContext(sb); vm.runInContext(AC + '\n;this.f=appliquerCapacites;', sb); sb.f(c); return [sb.CAP.signature, sb.CAP.signatureReelle]; };
+  v('⛔ déclarée + les six méthodes → la signature RÉELLE ; déclarée sans objet → l\'ancien parcours (signature vraie, pas réelle)', [cap({ signature: true }, six), cap({ signature: true }, undefined), cap({ signature: true }, { envoyer() {} })], [[true, true], [true, false], [true, false]]);
+  v('⛔ des méthodes SANS déclaration, ou une déclaration « truthy » : rien', [cap({}, six), cap({ signature: 'oui' }, six), cap(null, six)], [[false, false], [false, false], [false, false]]);
+  /* le bloc : les fonctions de la vraie signature, EXTRAITES et jouées avec un faux SRC.signature */
+  const BLOC = tranche('le bloc de la vraie signature', '  // ---------- La VRAIE signature', '  function signAct(act,m){', MOD);
+  const SS = fonction(MOD, 'signState'), SP = fonction(MOD, 'signPreview'), ME = fonction(MOD, 'msgErr'), NF = fonction(MOD, 'nomFichierSur'); vrai('(tranche trouvée) signState, signPreview, msgErr, nomFichierSur', SS.length > 60 && SP.length > 100 && ME.length > 60 && NF.length > 200);
+  const vue = (o) => Object.assign({ id: 'd1', etat: 'en_attente', echeance: Date.now() + 15 * 864e5, signataires: [{ nom: 'Marie', email: 'm@x.fr', contre: false, etat: 'pending' }, { nom: 'Justin', email: 'j@x.fr', contre: true, etat: 'pending' }], documents: [{ n: 1, nom: 'Contrat.pdf', taille: 10, signe: false }], preuves: 0, evenements: [{ t: 1, x: 'Envoyé à Marie' }] }, o || {});
+  const demande = () => ({ id: 'm1', subject: 'Contrat', folder: 'sign', sign: { type: 'Contrat', level: 'adv', counter: true, remind: true, expires: 0, st: 'pending', signers: [{ name: 'Marie', email: 'm@x.fr', phone: '', st: 'pending' }], events: [] } });
+  function bacS(sg, extra) {
+    const notes = [], sb = Object.assign({ CAP: { signatureReelle: true }, SRC: { signature: sg }, MESSAGES: [], state: { folder: 'sign' }, vivant: true, toast: (t) => notes.push('toast:' + t), notes, Promise, JSON, Date, Math, Array, Error, Blob, String,
+      msgById: (id) => sb.MESSAGES.filter((m) => m.id === id)[0] || null, renderAll: () => notes.push('rendu'), persist: () => notes.push('persist'), H: (x) => String(x), fichiersEffacer: () => notes.push('fichiers-effaces'), fichiersDe: () => [],
+      document: { createElement: () => ({ click() { notes.push('clic:' + this.download); }, set href(x) {}, set rel(x) {}, set hidden(x) {} }) }, sr: { appendChild() {}, removeChild() {} }, URL: { createObjectURL: () => 'blob:x', revokeObjectURL() {} }, setTimeout: () => 0, fmtDay: String, firstLine: String }, extra || {});
+    vm.createContext(sb);
+    vm.runInContext(['var SIGN_RAF;', ME, NF, SS, SP, BLOC].join('\n') + '\n;this.api={signAppliquer,signEnCours,signRafraichir,signOuverture,signActSrv,signTelechargements,signEnregistrer,SIGN_RAF,signVue:()=>signVue};', sb);
+    return sb;
+  }
+  const attendre = (ms) => new Promise((r) => setTimeout(r, ms || 5));
+  /* 1. signAppliquer : l'état du serveur fait foi */
+  { const S = bacS(six), m = demande(); S.MESSAGES.push(m);
+    vrai('⛔ une vue → l\'état, l\'échéance, l\'historique, l\'identifiant du serveur (`sign.srv`) ; rend VRAI si quelque chose a changé', S.api.signAppliquer(m, vue()) === true && m.sign.srv === 'd1' && m.sign.st === 'pending' && m.sign.expires > Date.now() && m.sign.events[0].x === 'Envoyé à Marie');
+    v('…la MÊME vue une seconde fois ne change rien (pas de rendu inutile à chaque relevé)', S.api.signAppliquer(m, vue({ echeance: m.sign.expires })), false);
+    S.api.signAppliquer(m, vue({ etat: 'ouvert', signataires: [{ nom: 'Marie', email: 'm@x.fr', contre: false, etat: 'viewed' }, { nom: 'Justin', email: 'j@x.fr', contre: true, etat: 'pending' }] }));
+    v('⛔ « ouvert » : le signataire est « ouvert, pas encore signé »', [m.sign.st, m.sign.signers[0].st], ['viewed', 'viewed']);
+    S.api.signAppliquer(m, vue({ etat: 'a_contresigner', signataires: [{ nom: 'Marie', email: 'm@x.fr', contre: false, etat: 'signed' }, { nom: 'Justin', email: 'j@x.fr', contre: true, etat: 'pending' }] }));
+    v('⛔ « à contresigner » : le client a signé, pas la contre-signature', [m.sign.st, m.sign.signers[0].st, !!m.sign.me], ['counter', 'signed', false]);
+    m.read = true; S.api.signAppliquer(m, vue({ etat: 'signe', preuves: 2, signataires: [{ nom: 'Marie', email: 'm@x.fr', contre: false, etat: 'signed' }, { nom: 'Justin', email: 'j@x.fr', contre: true, etat: 'signed' }], documents: [{ n: 1, nom: 'Contrat.pdf', signe: true }] }));
+    v('⛔ « signé » : la demande l\'est, la contre-signature aussi, les téléchargements sont connus, le message repasse NON LU', [m.sign.st, !!m.sign.me, m.sign.docs, m.sign.preuves, m.read], ['signed', true, [{ n: 1, nom: 'Contrat.pdf' }], [{ n: 1, nom: 'Marie' }, { n: 2, nom: 'Justin' }], false]);
+    v('⛔ chaque état du serveur a son état d\'écran (refuse, annule, expire…)', Object.entries({ refuse: 'declined', annule: 'cancelled', expire: 'expired', brouillon: 'ready' }).map(([k, st]) => { const mm = demande(); S.api.signAppliquer(mm, vue({ etat: k })); return mm.sign.st === st; }), [true, true, true, true]);
+    let jette = null; try { S.api.signAppliquer(m, { etat: 'inventé', id: 'x' }); } catch (e) { jette = e.message; } vrai('⛔ un état que le serveur n\'a pas le droit de dire : ERREUR « illisible », l\'état n\'est pas touché', /illisible/.test(jette || '') && m.sign.st === 'signed', jette);
+    const g2 = demande(); let j2 = null; try { S.api.signAppliquer(g2, null); } catch (e) { j2 = e.message; } vrai('…et pas de vue du tout : la même erreur', /illisible/.test(j2 || ''), j2);
+    const cd = S.api.signTelechargements(m.sign);
+    vrai('⛔ la carte d\'une demande signée : un bouton par PDF signé (data-act="signDl:n") et un par preuve, nommés', /data-act="signDl:1">Télécharger le PDF signé</.test(cd) && /data-act="signProof:1">Preuve — Marie</.test(cd) && /data-act="signProof:2">Preuve — Justin</.test(cd), cd); }
+  /* 2. le relevé : en cours seulement, un échec se dit (une fois en fond, toujours à l'ouverture), jamais un tableau vide pris pour une réponse */
+  { let reponses = {}, appels = []; const sg = Object.assign({}, six, { etat: (id) => { appels.push(id); return reponses[id] instanceof Error ? Promise.reject(reponses[id]) : Promise.resolve(reponses[id]); } });
+    const S = bacS(sg); const a = demande(); a.id = 'a'; a.sign.srv = 'idA'; const b = demande(); b.id = 'b'; b.sign.srv = 'idB'; b.sign.st = 'signed'; const c = demande(); c.id = 'c'; /* local : pas de srv */ S.MESSAGES.push(a, b, c);
+    v('(population) une demande en cours, une signée, une locale', [S.api.signEnCours(), S.MESSAGES.length], [true, 3]);
+    reponses.idA = vue({ id: 'idA', etat: 'signe' });
+    {
+      await S.api.signRafraichir(true);
+      v('⛔ le relevé ne questionne QUE les demandes du serveur encore en cours (ni la signée, ni la locale)', appels, ['idA']);
+      v('…l\'état arrive, l\'écran est repeint et rangé, et le changement est ANNONCÉ', [a.sign.st, S.notes.includes('rendu'), S.notes.includes('persist'), S.notes.filter((n) => /toast:Document signé par tous/.test(n)).length], ['signed', true, true, 1]);
+      v('…plus rien en cours : plus de relevé', [S.api.signEnCours(), (await S.api.signRafraichir(true), appels.length)], [false, 1]);
+      const S2 = bacS(Object.assign({}, six, { etat: () => Promise.reject(new Error('Le service de signature est injoignable')) })); const e1 = demande(); e1.id = 'e'; e1.sign.srv = 'idE'; S2.MESSAGES.push(e1);
+      await S2.api.signRafraichir(false); await S2.api.signRafraichir(false);
+      v('⛔ échec du service en TÂCHE DE FOND : dit UNE fois (pas toutes les 60 s) avec la raison, l\'état reste celui d\'avant (jamais un faux « signé »)', [S2.notes.filter((n) => /L’état des signatures n’a pas pu être relu : Le service de signature est injoignable/.test(n)).length, e1.sign.st], [1, 'pending']);
+      await S2.api.signRafraichir(true);
+      v('…mais à l\'OUVERTURE de Signatures il se dit chaque fois', S2.notes.filter((n) => /n’a pas pu être relu/.test(n)).length, 2);
+      const S3 = bacS(six, { CAP: { signatureReelle: false } }); const e3 = demande(); e3.id = 'f'; e3.sign.srv = 'idF'; S3.MESSAGES.push(e3);
+      v('⛔ la source ne sait plus signer (service éteint) : le relevé ne fait rien et ne prétend rien', [S3.api.signEnCours(), await S3.api.signRafraichir(true), S3.notes], [false, undefined, []]);
+      /* l'ouverture du dossier : un relevé par ouverture */
+      let n = 0; const S4 = bacS(Object.assign({}, six, { etat: () => { n++; return Promise.resolve(vue({ id: 'idG' })); } })); const g = demande(); g.id = 'g'; g.sign.srv = 'idG'; S4.MESSAGES.push(g);
+      S4.api.signOuverture(); S4.api.signOuverture(); await attendre(20); S4.state.folder = 'inbox'; S4.api.signOuverture(); S4.state.folder = 'sign'; S4.api.signOuverture(); await attendre(20);
+      v('⛔ ouvrir Signatures relit l\'état UNE fois ; le quitter puis y revenir le relit', n, 2);
+      await suite();
+    }
+  }
+  async function suite() {
+    /* 3. relancer, annuler, télécharger */
+    let rep = null; const sg = Object.assign({}, six, { relancer: (id) => rep(id), annuler: (id) => rep(id), signe: (id, n) => rep(id, n), preuve: (id, i) => rep(id, i) });
+    const mk3 = (S) => { const m = demande(); m.sign.srv = 'idR'; S.MESSAGES.push(m); return m; };
+    { const S = bacS(sg), m = mk3(S); rep = () => Promise.resolve(vue({ id: 'idR', evenements: [{ t: 2, x: 'Relance envoyée à Marie' }] }));
+      S.api.signActSrv('signRemind', m); await attendre(); v('⛔ Relancer : le serveur est appelé, l\'historique du serveur arrive, « Relance envoyée »', [m.sign.events[0].x, S.notes.includes('toast:Relance envoyée')], ['Relance envoyée à Marie', true]);
+      rep = () => Promise.reject(new Error('Une relance vient de partir — patientez dix minutes.')); S.api.signActSrv('signRemind', m); await attendre();
+      vrai('⛔ le serveur REFUSE la relance : le refus se DIT avec sa raison, jamais « Relance envoyée » (une seule annonce de succès au total)', S.notes.includes('toast:Relance impossible : Une relance vient de partir — patientez dix minutes.') && S.notes.filter((x) => x === 'toast:Relance envoyée').length === 1, S.notes.join(' | ')); }
+    { const S = bacS(sg), m = mk3(S); let k = 0; rep = () => { k++; return new Promise((ok) => setTimeout(() => ok(vue({ id: 'idR', etat: 'annule' })), 20)); };
+      S.api.signActSrv('signCancel', m); S.api.signActSrv('signCancel', m); await attendre(40);
+      v('⛔ Annuler : une demande à la fois (le double clic n\'appelle le serveur qu\'UNE fois), état « annulé », fichiers de l\'appareil effacés', [k, m.sign.st, S.notes.includes('fichiers-effaces'), S.notes.includes('toast:Demande annulée')], [1, 'cancelled', true, true]);
+      const S2 = bacS(Object.assign({}, sg, { annuler: () => Promise.reject(new Error('Le prestataire de signature (Yousign) a refusé la demande.')) })), m2 = mk3(S2); S2.api.signActSrv('signCancel', m2); await attendre();
+      vrai('⛔ le serveur refuse l\'annulation : la demande reste EN COURS, les fichiers restent, le refus est dit', m2.sign.st === 'pending' && !S2.notes.includes('fichiers-effaces') && S2.notes.some((x) => /Annulation impossible : Le prestataire/.test(x)), S2.notes.join(' | ')); }
+    { const S = bacS(sg), m = mk3(S); m.sign.docs = [{ n: 1, nom: 'Contrat 2027.pdf' }]; m.sign.preuves = [{ n: 1, nom: 'Marie' }]; const dem = [];
+      rep = (id, n) => { dem.push([id, n]); return Promise.resolve(new Blob(['%PDF-1.4 x'])); };
+      S.api.signActSrv('signDl:1', m); await attendre(); S.api.signActSrv('signProof:1', m); await attendre();
+      v('⛔ « PDF signé » et « Dossier de preuve » : le bon document (n) et le bon signataire (i) sont demandés ; le fichier est enregistré sous un nom lisible', [dem, S.notes.filter((x) => /^clic:/.test(x))], [[['idR', 1], ['idR', 1]], ['clic:Contrat 2027 (signé).pdf', 'clic:Dossier de preuve — Marie.pdf']]);
+      S.api.signActSrv('signDl:9', m); await attendre(); vrai('…un document qui n\'existe pas : « introuvable », aucun appel au serveur', dem.length === 2 && S.notes.includes('toast:Fichier introuvable.'));
+      rep = () => Promise.reject(new Error('Le PDF signé se prépare — réessayez dans un instant.')); S.api.signActSrv('signDl:1', m); await attendre();
+      vrai('⛔ le serveur ne l\'a pas encore : le refus se dit (« se prépare »), aucun téléchargement', S.notes.some((x) => /Téléchargement impossible : Le PDF signé se prépare/.test(x)) && S.notes.filter((x) => /^clic:/.test(x)).length === 2);
+      rep = () => Promise.resolve(new Blob([])); S.api.signActSrv('signDl:1', m); await attendre();
+      vrai('⛔ un fichier VIDE n\'est pas un PDF signé : refus lisible, pas de téléchargement fantôme', S.notes.some((x) => /Téléchargement impossible : Le service de signature a rendu un fichier vide/.test(x)) && S.notes.filter((x) => /^clic:/.test(x)).length === 2); }
+    { const S = bacS(six, { CAP: { signatureReelle: false } }), m = mk3(S); S.api.signActSrv('signRemind', m); S.api.signActSrv('signDl:1', m); await attendre();
+      v('⛔ le service n\'est plus joignable (capacité retirée) : relancer / télécharger le DISENT, ne font rien', S.notes.filter((x) => /n’est pas joignable/.test(x)).length, 2); }
+    /* 4. le formulaire : le bouton Envoyer de la vraie signature */
+    const env = tranche('l\'envoi réel', '    function envoyerReel(a,title,level,body){', '    setTimeout(function(){ (docs.length?$("#sgN0")', CODE);
+    vrai('⛔ « Envoyer » avec la vraie signature appelle SRC.signature.envoyer, et ne RANGE la demande (mk, MESSAGES.push, toast « envoyée ») que DANS la réponse du serveur', env.indexOf('SRC.signature.envoyer(') > 0 && env.indexOf('SRC.signature.envoyer(') < env.indexOf('mk({acct:a') && env.indexOf('mk({acct:a') < env.indexOf('MESSAGES.push(m)') && env.indexOf('MESSAGES.push(m)') < env.indexOf('Demande de signature envoyée'));
+    vrai('⛔ …l\'échec du serveur laisse la fenêtre OUVERTE, rend le bouton, dit « Rien n\'est parti » dans la fenêtre ET en toast ; jamais de closeOverlay avant la réponse', /function\(e\)\{ if\(!vivant\) return; libre\(\); var t=msgErr\(e,"échec de l’envoi"\); dit\("Rien n’est parti : "\+t\); toast\("Rien n’est parti : "\+t\); \}/.test(env) && env.indexOf('closeOverlay()') > env.indexOf('SRC.signature.envoyer('));
+    vrai('…un seul envoi à la fois (le double clic ne crée pas deux demandes), le bouton est désactivé et marqué occupé', /if\(envoi\) return;/.test(env) && /go\.disabled=true; go\.setAttribute\("aria-busy","true"\)/.test(env));
+    vrai('⛔ le niveau « Code SMS » devient `avance`, « Code e-mail » `simple` (les mots du serveur) ; la contre-signature est l\'expéditeur (sa boîte), avec SON mobile', /niveau:level==="adv"\?"avance":"simple"/.test(env) && /dem\.contresignature=\{nom:me\.name,email:me\.email,telephone:mob\}/.test(env));
+    vrai('⛔ le mobile de l\'expéditeur est exigé avant d\'appeler le service (Code SMS + contre-signature) ; un modèle sans fichier est refusé avec sa raison', /contre&&level==="adv"&&!\/\^\\\+\?\[\\d\\s\.-\]\{9,\}\$\/\.test\(mob\)/.test(env) && /est un modèle sans fichier/.test(env));
+    vrai('…les PDF viennent du fichier choisi OU de celui gardé sur l\'appareil (IndexedDB), et s\'ils ont disparu l\'envoi le dit', /d\.file\?Promise\.resolve\(d\.file\):fichierLire\(d\.fid\)/.test(env) && /n’est plus gardé sur cet appareil/.test(env));
+    vrai('…le branchement : la vraie signature passe AVANT le rangement « Prête » ; sans elle, ce rangement reste intact', /if\(CAP\.signatureReelle\)\{ envoyerReel\(a,title,level,body\); return; \}\s*if\(!CAP\.signature\)\{/.test(CODE));
+    vrai('une demande « Prête » déjà rangée peut être envoyée par « Renvoyer » : le formulaire rempli passe par le même envoi, et remplace la demande rangée', /if\(pre\.remplace\) removeMsg\(pre\.remplace,true\)/.test(env));
+    vrai('la carte d\'une demande du serveur : contre-signature par le LIEN reçu par e-mail (pas de tracé local), relancer / annuler passent par le serveur ; une demande « Prête » dit que « Renvoyer » l\'envoie', /g\.srv\?'<b>À vous de signer<\/b> — lien reçu par e-mail'/.test(fonction(MOD, 'signCardHtml')) && /Rien n’est parti : « Renvoyer » l’envoie maintenant/.test(CODE) && /if\(g\.srv&&\/\^sign\(Remind\|Cancel\|Dl\|Proof\)\(:\|\$\)\/\.test\(act\)\)\{ signActSrv\(act,m\); return; \}/.test(fonction(MOD, 'signAct')));
+    vrai('le relevé automatique : toutes les 60 s tant qu\'une demande est en cours, à l\'ouverture du dossier (renderAll)', /Date\.now\(\)-SIGN_RAF\.t>=60000-100&&signEnCours\(\)\) signRafraichir\(false\)/.test(CODE) && /paintTitle\(\); signOuverture\(\); \}/.test(CODE));
+    vrai('le mobile de l\'expéditeur est gardé sur l\'appareil (réglages) et relu', /if\(contre&&level==="adv"\) SETTINGS\.mobile=mob/.test(env) && /SETTINGS\.mobile=snap\.settings\.mobile\.slice\(0,30\)/.test(CODE));
+    vrai('⛔ le module ne sort toujours JAMAIS du réseau : aucun fetch, tout passe par SRC.signature', !/\bfetch\s*\(/.test(CODE) && !/XMLHttpRequest/.test(CODE));
+  }
 }
 
 /* ═════════════════════════════ 7. LE SITE ET LES SONDES ═════════════════════════════ */
