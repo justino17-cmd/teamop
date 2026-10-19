@@ -13,13 +13,36 @@ de ligne du tout.
 
 ---
 
-# ⏳ OP COURRIER — UN MODULE PARTAGÉ, MONTÉ DANS OP GESTION (BÊTA) ; LA TOUR ET OP MESSAGES PRO SUIVENT (18 octobre 2026)
+# ⏳ OP COURRIER — UN MODULE PARTAGÉ, MONTÉ DANS LES TROIS HÔTES : OP GESTION (BÊTA), LA TOUR v2.90, OP MESSAGES PRO (BÊTA) (18 octobre 2026)
 
 Justin a validé la maquette d'**OP Courrier** (messagerie e-mail de TeamOP : côtés Pro et Perso, tri automatique, signature électronique), puis changé d'avis sur sa forme :
 « je veux pas que ça soit une application à part ; je veux que ça remplace Mail, qui est actuel dans OP GESTION et dans la Tour, et que tu l'ajoutes au côté Pro d'OP MESSAGES » ;
 « tu remplaces tous les systèmes de mail qu'on avait créés par celui-là » ; « la maquette c'était pour tester, quand tu l'intègres dans les applications c'est VIDE, les gens doivent se
 connecter à leur mail, comme nous dans la Tour — on devra se reconnecter au mail de la Tour ».
 Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `server/` n'est PAS touché (aucune route neuve : ce que le serveur d'aujourd'hui ne sait pas faire est dit « Bientôt »).
+
+- **L'ÉTAT RÉEL DES TROIS HÔTES (fin de la moitié 2)**
+  · **OP GESTION** (`beta.html` seulement, `BETA_ESSAI`) : voir « moitié 1 » ci-dessous — la production garde la vue d'avant, octet pour octet.
+  · **La TOUR v2.90** (`tour.html`, branche seulement — le `tour.html` EN SERVICE ne change qu'à la phrase de Justin ; `apercu/tour.html` régénéré). **Le Courrier d'avant est RETIRÉ** (`vueSupport` et ses 800 lignes : trois volets,
+    rangement par entreprise, composeur, « Envois TeamOP » ; ses règles de feuille et ses vues de transition) : la vue monte `OPCourrier` (`courrierMonter`, chargé à l'ouverture seulement, démonté en quittant la vue, thème de la
+    Tour suivi en direct, clé `tour_courrier` vidée par `doLogout`), branché par `courrierSource` sur les VRAIES routes de `server/mail.js` (`/api/monitor/mail/boites|dossiers|liste|message|flag|deplacer|envoyer`, même
+    jeton que l'écran d'avant). Marquer, déplacer (Archive, Indésirables, Corbeille), envoyer avec pièces, réglages de serveur : branchés ; Google/Microsoft, envoi programmé, signature : « Bientôt », dits par le module.
+    « Ajouter une boîte mail » appelle `POST /api/monitor/mail/boites` (réservé au patron, éprouve le SMTP ET l'IMAP avant de ranger) : **aucune route serveur n'est à écrire pour reconnecter la boîte de la Tour.**
+    ⚠️ **MAIS LE SERVEUR DE PRODUCTION DÉTIENT DÉJÀ SES BOÎTES** (`mail-boites.json` : support@, controle@, contact@ — il reprend même l'ancienne boîte unique `support-box.json` au démarrage) : l'adaptateur relit ce que le
+    serveur détient, il n'efface rien. Pour « repartir vide » comme Justin l'a dit, il faut RETIRER chaque boîte (module : « Retirer » → `/boites/retirer`) puis les REAJOUTER par l'interface ; sinon la Tour s'ouvre avec ses
+    boîtes déjà là (les réglages, brouillons et tris appris du module, eux, partent bien de zéro). Décision de Justin à prendre.
+    ⚠️ Perdu avec l'ancien écran, sans remplaçant : « Envois TeamOP » (le journal des e-mails que le SERVEUR envoie : codes, invitations — la route `/api/monitor/mails` existe toujours), le rattachement d'un courriel à une
+    entreprise (le tri `console` du serveur existe, la Tour ne l'utilisait pas non plus), le téléchargement d'une pièce reçue (`/api/monitor/mail/piece` : le module n'a pas de contrat pour ça), le suivi d'une demande
+    (`/mail/suivi`) et la réponse qui référence le message (`enReponseA` : le contrat de `envoyer` n'a pas de champ pour ça — le fil de discussion ne se reforme pas chez le destinataire). Gardes : `test-2704`
+    (la page, la VRAIE `courrierSource` contre le VRAI serveur isolé avec fausse boîte IMAP, 58 contrôles), `test-671` (le contrat serveur ↔ Tour, réécrit), sonde `scratchpad/courrier/sonde-tour.js` (34),
+    mutations `scratchpad/courrier/mutations-tour.py` (28, toutes tombent). `test-670` est retiré (il gardait le texte de l'ancien écran) ; 681, 830, 979, 1019 adaptés.
+  · **OP MESSAGES PRO** (bêta seulement) : une rubrique « Courrier » à la suite de l'Agenda, **côté Pro seulement** (le menu et la barre d'onglets ne la portent pas côté Perso ; passer côté Perso depuis elle ramène aux
+    Messages) et **seulement si le SERVICE dit être la bêta** (`source.courrierOuvert()` lit `instance` de `/api/config` : `prod` → rien ; configuration illisible → rien). Le module est copié par `scripts/opmsg-public.js` dans
+    `server-msg/public/opcourrier.js` (même origine, dans l'empreinte de version, refusé s'il appelait un réseau) et chargé à l'ouverture de la rubrique. **L'adaptateur est VIDE** (`courrierSource()` de
+    `source-serveur.js` : `capacites()` tout à faux, aucune boîte, aucun message, aucun appel réseau) : « Ajouter une boîte mail » répond « Bientôt : la connexion de vos boîtes arrive avec le serveur d'OP Courrier ».
+    ⚠️ La politique de contenu de la page rejoint l'en-tête du service (`img-src 'self' blob: data:`) : le module dessine deux icônes en `data:image/svg+xml`, que la copie plus stricte de la page refusait.
+    Gardes : `test-2705` (33 : la page, la VRAIE source contre un service bêta ET un service de production, `opcourrier.js` servi par le service), `test-941` (le générateur : sept fichiers, ses refus), `test-900` (la
+    huitième exception, jugée sur la structure du code), sonde `scratchpad/courrier/sonde-opmsg.js` (28), mutations `scratchpad/courrier/mutations-opmsg.py` (18, toutes tombent).
 
 - **Ce qui est fait (moitié 1 : le module et OP GESTION bêta)**
   · **`opcourrier.js`** (racine, donc dans le site assemblé) : `OPCourrier.monter(conteneur, options)` → `{demonter(), cote(c), rafraichir()}`. Le contrat des options et de l'ADAPTATEUR de données est
@@ -51,7 +74,7 @@ Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `s
   états). Sondes navigateur sous `scratchpad/courrier/` (lancer : voir l'en-tête de `pilote.js` — `playwright-core` HORS dépôt, `NODE_PATH`) : `ctx_check` 16, `miss_check` 50, `sign_check` 48,
   `audit_contrast` (AA, 6 combinaisons), `sonde-module` 118 (isolement dans les deux sens, format sur le conteneur, calque, côtés, « Bientôt » et toutes les fonctions présentes, états, MX, stockage, démontage),
   `sonde-gestion` 41 (sur `beta.html` : la vue, le menu, jour/nuit, 390 px et bureau, la feuille au-dessus de la barre).
-- **À FAIRE (moitié 2, un autre agent) : la Tour et OP MESSAGES Pro**, avec le MÊME module. Chacun écrit SON adaptateur (contrat en tête d'`opcourrier.js`) et monte :
+- **FAIT (moitié 2) : la Tour et OP MESSAGES Pro**, avec le MÊME module (le texte d'origine de la consigne, pour mémoire). Chacun écrit SON adaptateur (contrat en tête d'`opcourrier.js`) et monte :
   `OPCourrier.monter(zone, {source: maSource, cotes:['pro'], cleStockage:'<clé propre à cette application>', theme:()=>…, onCompter:n=>…})`. OP MESSAGES Pro : `cotes:['pro']` (ou les deux si Perso y
   vit aussi) ; la Tour : `cotes:['pro']`. ⛔ Les deux PARTENT VIDES : on ne reprend PAS en silence l'ancienne configuration de la boîte de la Tour — la personne se reconnecte à sa messagerie par
   l'interface (« Ajouter une boîte mail »). OP MESSAGES garde SON serveur et ses comptes de PERSONNES (décision du 22 septembre) : ne pas le rebrancher sur le socle d'OP GESTION. Hôte avec une barre
@@ -62,7 +85,7 @@ Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `s
 - **Dettes et doutes connus**
   · ⚠️ **`/api/mailbox/connect`, `/disconnect` et `/api/sendmail` ne sont qu'OBSERVÉES (`cleEquipeObserve`) : seules `/api/replies` et `/api/mailboxes` EXIGENT la preuve de clé.** Connaître le `teamId`
     suffit à envoyer depuis la boîte d'une entreprise ou à la retirer. Hors de ce chantier (aucune route touchée) — à fermer côté serveur ; l'adaptateur présente déjà la preuve partout (`test-2703`).
-  · `onCompter(n)` est reçu par OP GESTION (`window._courrierNonLus`) mais aucune pastille de menu ne l'affiche encore.
+  · `onCompter(n)` est reçu par OP GESTION (`window._courrierNonLus`) mais aucune pastille de menu ne l'affiche encore (la Tour, elle, l'affiche : pastille « Courrier » du menu ; OP MESSAGES Pro : pas de pastille, l'adaptateur est vide).
   · `/api/replies` ne rend ni état lu, ni pièces jointes, ni dossier : le « lu » est local, une pièce jointe reçue ne se voit pas, le texte est celui que le serveur a gardé (2 000 signes).
   · Safari / un vrai appareil : le Chromium de l'image rend DejaVu (plus large que SF Pro) et n'a pas de popover tactile réel ; l'iPad portrait et l'iPhone sont mesurés à largeur de conteneur, pas sur un appareil.
   · les mutations : `python3 scratchpad/courrier/mutations-module.py` (19 défauts remis un par un, TOUS tombent ; `--navigateur` : 5 de plus, que seules les sondes voient). La première passe en a laissé
