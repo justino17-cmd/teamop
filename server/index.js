@@ -2064,6 +2064,10 @@ const MON_GESTES = {
   'op/double': 'a réglé la double écriture d’une entreprise', 'op/lecture': 'a basculé la lecture d’une entreprise',
   'op/revenir': 'a demandé le code ou appliqué un retour en arrière d’une entreprise', 'op/ouvrir': 'a ouvert une lecture de diagnostic d’une entreprise',
   'op/couper': 'a coupé le stockage d’une entreprise',
+  /* l'équipe d'agents (agents.js) : le patron seul allume, éteint, arrête et décide */
+  'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
+  'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
+  'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
@@ -2071,7 +2075,8 @@ const MON_ACTIONS_MAX = 500;
 function monGesteCible(b) {
   b = b && typeof b === 'object' ? b : {};
   // un identifiant de connexion PEUT être une adresse : elle passe masquée, comme `email`
-  for (const k of ['nom', 'slug', 'login', 'teamId', 't', 'id']) { const x = b[k]; if (typeof x === 'string' && x.trim()) return x.includes('@') ? masqueMail(x.trim()) : monStr(x.trim(), 60); }
+  // `agent` en DERNIER : le prénom (identifiant) d'un agent de l'équipe (`agents.js`) — il ne passe devant aucun champ des routes d'avant
+  for (const k of ['nom', 'slug', 'login', 'teamId', 't', 'id', 'agent']) { const x = b[k]; if (typeof x === 'string' && x.trim()) return x.includes('@') ? masqueMail(x.trim()) : monStr(x.trim(), 60); }
   if (typeof b.email === 'string' && b.email.trim()) return masqueMail(b.email);
   // la règle de tri du Courrier : un domaine (« @exemple.fr ») n'est personne, il s'écrit tel quel ; une adresse, masquée
   if (typeof b.adresse === 'string' && b.adresse.trim()) { const x = b.adresse.trim(); return x[0] === '@' ? monStr(x, 60) : masqueMail(x); }
@@ -4408,6 +4413,10 @@ function adrNue(s) { const m = /<([^<>]*)>\s*$/.exec(String(s || '')); return St
 function supprDest() { return String(config.securiteEmail || config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').trim(); }
 function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
+let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
+let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
+let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
+let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
 function supprDestLisible() {
   const d = adrNue(supprDest()); if (!d) return false;
   try { if (supportBox && adrNue(supportBox.email) === d) return true; } catch (e) {}
@@ -9413,6 +9422,7 @@ app.post('/api/clients/sync', async (req, res) => {
     demandesTraitees: prev.demandesTraitees || {}
   };
   cliSave();
+  try { if (dossiersMod) dossiersMod.numeroDe(email); } catch (e) {}   // le numéro de dossier naît avec le client
   /* Un code promo activé sur le SITE se relaie à l'espace de l'application : l'app se
      débloque toute seule à sa prochaine vérification.
 
@@ -10024,6 +10034,68 @@ try {
   messagerieTour = require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege,
     quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages });
   console.log('messagerie : module chargé');
+  /* L'ÉQUIPE D'AGENTS (`agents.js`) : son socle seulement — registre, journal, validations, pause, tâches. Monté DANS ce bloc parce
+     que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
+     emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
+  try {
+    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif });
+    console.log('agents : socle chargé');
+    /* LES DOSSIERS : un numéro par client (`DOS-000123`), la fiche pour le patron, la même fiche pour un agent à qui il le donne. */
+    dossiersMod = require('./dossiers')(app, { DATA_DIR, monPatronStrict, clients: () => clientsData,
+      espaceDe: (email) => { const m = String(email).toLowerCase(); const sl = Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').toLowerCase() === m); return sl ? Object.assign({ slug: sl }, espacesReg[sl]) : null; },
+      paiement: async (email) => {
+        if (!(config.stripe && config.stripe.secretKey)) return { etat: 'inconnu' };
+        let liste; try { liste = await stripeListe(); } catch (e) { return { etat: 'inconnu' }; }
+        if (!(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return { etat: 'inconnu' };
+        const e = { slug: '', email: String(email).toLowerCase(), nom: '', formule: '' };
+        const st = espaceStripeDans(e, liste), surs = (st && st.surs) || [];
+        if (surs.length) return { etat: 'paye', formule: formulePayee(e, surs) };
+        const im = espaceStripeDans(e, liste, STATUTS_IMPAYES);
+        return { etat: ((im && im.surs) || []).length ? 'impaye' : 'aucun' };
+      } });
+    console.log('dossiers : ' + Object.keys(clientsData).length + ' client(s) examiné(s)');
+    /* LES CONVERSATIONS : un fil privé par agent, un fil « Équipe ». Un agent y parle par `parler` / `rappelClient`, jamais par une route. */
+    conversationsMod = require('./conversations')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, sansAdresses, pousseNotif,
+      formeDossier: dossiersMod.FORME, dossierExiste: n => dossiersMod.existe(n),
+      surMessagePatron: (fil, t) => (fil === 'hugo' && agentHugo) ? agentHugo.repondre(t) : null });
+    /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
+    const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '' });
+    console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
+    /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
+       abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
+       (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
+    agentHugo = require('./agent-hugo')({
+      agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, slug: espSlug,
+      /* ce que Hugo peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note */
+      faits: async (n) => { const f = await dossiersMod.fiche(n); if (!f) return { numero: n, existe: false }; if (f.supprime) return { numero: n, supprime: true };
+        return { numero: n, inscritDepuis_jours: f.client.inscrit ? Math.floor((Date.now() - f.client.inscrit) / 86400000) : null, espace: f.espace.existe ? { existe: true, formule: f.espace.formule } : { existe: false },
+          paiement: f.paiement, formuleDemandee: ['pro', 'business', 'premium'].includes(String(f.client.plan).toLowerCase()) ? String(f.client.plan).toLowerCase() : '',
+          /* ⛔ des valeurs d'une LISTE : ce que le client a écrit n'entre jamais dans le prompt */
+          demandes: f.demandes.map(d => ({ app: ['OP GESTION', 'OP MESSAGES'].includes(d.app) ? d.app : 'autre', formule: ['pro', 'business', 'premium'].includes(String(d.formule).toLowerCase()) ? String(d.formule).toLowerCase() : '', statut: ['en attente', 'traitée', 'classée'].includes(d.statut) ? d.statut : 'autre' })) }; },
+      clients: () => Object.values(clientsData || {}).map(c => ({ email: c && c.email, entreprise: c && c.entreprise })),
+      espaceExiste: (email, sl) => !!espacesReg[sl] || Object.values(espacesReg).some(x => x && String(x.email || '').toLowerCase() === String(email).toLowerCase()),
+      /* ⛔ `stripeListe` rend `[]` quand la lecture a échoué et qu'aucune liste n'a jamais été lue (une minute d'attente après un échec) :
+         pour Hugo, une panne ne doit JAMAIS se lire « aucun abonnement ». Sans liste LUE, ou une liste de plus de trois fois l'âge du
+         cache, c'est `null` : « on ne sait pas », aucune demande. */
+      stripeListe: async () => {
+        if (!(config.stripe && config.stripe.secretKey)) return null;
+        const l = await stripeListe();
+        return (espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS) ? l : null;
+      },
+      paiement: (c, sl, liste) => {
+        const e = { slug: sl, email: String(c.email).toLowerCase(), nom: '', formule: '' };
+        const st = espaceStripeDans(e, liste);
+        const surs = (st && st.surs) || [];
+        if (!surs.length) return { sur: false };
+        if ((st.douteux || []).length) return { sur: false, doute: true };
+        return { sur: true, formule: formulePayee(e, surs) };
+      } });
+    app.post('/api/monitor/agents/hugo/passer', monPatronStrict, async (req, res) => {
+      try { res.json(Object.assign({ ok: true }, await agentHugo.passer())); }
+      catch (e) { console.error('hugo :', e.message); res.status(500).json({ error: 'Passage non traité' }); }
+    });
+    setInterval(() => { agentHugo.passer().catch(e => console.error('hugo :', e.message)); }, 15 * 60000).unref();
+  } catch (e) { console.error('agents indisponibles :', e.message); }
 } catch (e) { console.error('messagerie indisponible :', e.message); }
 
 /* ══════════ DEVIS IA — génération de devis par Claude ══════════

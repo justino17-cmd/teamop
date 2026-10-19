@@ -408,6 +408,13 @@ main{width:100%;max-width:1200px;margin:0 auto;padding:28px 20px 96px;flex:1;min
      là où elle compte — les paragraphes de description ont déjà leur propre max-width. */
   main{grid-column:2;max-width:none;padding:40px clamp(24px,3vw,56px) 96px}
   .pied{grid-column:2}
+  /* v2.97 (Justin, 19 octobre 2026 : « que dans la Tour la boîte mail prenne toute la page ») : le Courrier est un écran de
+     travail qui se lit en largeur — il prend toute la place à droite du menu et jusqu'au bas de la fenêtre, sans marge ni pied.
+     Bureau seulement : au téléphone la barre du bas a besoin de la réserve de `main`. La hauteur, elle, reste posée par
+     `courrierAjuster`, qui compte les marges et rembourrages des ancêtres — à zéro, il rend toute la hauteur. */
+  body.plein-courrier main{padding:0}
+  body.plein-courrier .pied{display:none}
+  body.plein-courrier .courrier-zone{border-radius:0}
 }
 @media(max-width:640px){ .hbadge,.hqui{display:none} .hbar{padding:10px 14px} main{padding:22px 14px 76px} .ttl-page{font-size:26px} }
 /* Sur telephone, les quatre compteurs empiles coutaient 409 px — la moitie de l'ecran
@@ -2098,6 +2105,55 @@ body.plans .reg-l.cli::before{display:none}
   .ac-aside{ flex:0 1 340px }
 }
 
+/* ══ AGENTS (v2.90) ══ l'équipe d'agents IA : modes, pause générale, demandes à valider, journal. Jetons de la Tour uniquement. */
+.ag-barre{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:12px 14px;margin-top:16px}
+.ag-barre .ag-pt{width:10px;height:10px;border-radius:50%;background:var(--acc);flex:none}
+.ag-barre.stop .ag-pt{background:var(--red)}
+.ag-barre b{flex:1;min-width:180px}
+.ag-btn{min-height:44px;padding:0 16px;border-radius:var(--r-3);font-weight:650;border:0;background:var(--inset);color:var(--text)}
+.ag-btn.ok{background:var(--acc-fill);color:var(--on-acc)}
+.ag-btn.danger{color:var(--red)}
+.ag-btn[disabled]{opacity:.45;cursor:not-allowed}
+.ag-onglets{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-top:18px;overflow-x:auto}
+.ag-onglets button{min-height:44px;padding:0 14px;color:var(--muted);font-weight:600;white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent}
+.ag-onglets button.on{color:var(--text);border-bottom-color:var(--acc)}
+.ag-n{display:inline-block;min-width:20px;margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--acc-fill);color:var(--on-acc);font-size:11.5px;font-weight:700;text-align:center}
+.ag-couche{margin:18px 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.ag-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.ag-carte{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:14px;display:flex;flex-direction:column;gap:12px}
+.ag-haut{display:flex;gap:12px;align-items:center}
+.ag-av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--accBg);color:var(--acc-txt);flex:none}
+.ag-carte[data-etat=arret] .ag-av{background:var(--inset);color:var(--muted)}
+.ag-haut h3{margin:0;font-size:15px}
+.ag-role{color:var(--muted);font-size:13px}
+.ag-vague{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--inset);padding:3px 8px;border-radius:99px;white-space:nowrap}
+.ag-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--inset);border-radius:var(--r-3);padding:3px}
+.ag-seg button{min-height:44px;border-radius:9px;font-weight:600;color:var(--muted);background:none;border:0}
+.ag-seg button.on{background:var(--surface);color:var(--text)}
+.ag-seg button[data-m=auto].on{background:var(--acc-fill);color:var(--on-acc)}
+.ag-seg button[data-m=brouillon].on{background:var(--accBg);color:var(--acc-txt)}
+.ag-seg button[disabled]{opacity:.4;cursor:not-allowed}
+.ag-pied{display:flex;justify-content:space-between;color:var(--muted);font-size:12.5px}
+.ag-liste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-top:14px}
+.ag-ligne{display:flex;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.ag-ligne:first-child{border-top:0}
+.ag-ligne .tx{flex:1;min-width:0}
+.ag-ligne .tx b{display:block}
+.ag-ligne .tx span{color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
+.ag-etiq{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;background:var(--inset);color:var(--muted)}
+.ag-etiq.ok{background:var(--accBg);color:var(--acc-txt)}
+.ag-etiq.ko{color:var(--red)}
+.ag-act{display:flex;gap:8px;flex-wrap:wrap}
+.ag-fil{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.ag-msg{max-width:min(560px,92%);align-self:flex-start;padding:10px 14px;border-radius:var(--r-3);border:1px solid var(--line);background:var(--inset)}
+.ag-msg.moi{align-self:flex-end;border-color:var(--acc)}
+.ag-msg.important{border-left:3px solid var(--org,#d97706)}
+.ag-msg.urgent{border-left:3px solid var(--red,#dc2626)}
+.ag-msg.tache{align-self:center;max-width:100%;background:transparent;border-style:dashed;color:var(--muted)}
+.ag-msg b{display:block;font-size:13px}
+.ag-msg p{margin:4px 0 6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ag-msg span{display:block;font-size:11.5px;color:var(--muted);margin-top:6px}
+@media (max-width:560px){.ag-ligne{flex-wrap:wrap}.ag-act{width:100%}.ag-act button{flex:1}}
 </style>
 <style id="theme-tour">
 /* ══ THÈME DE LA TOUR ═══ maquette « TeamOp Tour HIG », validée par Justin (26 septembre 2026) ══════════
@@ -2778,7 +2834,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.96</div>
+    <div class="lg-pied">console interne · v2.97</div>
   </div>
 </div>
 
@@ -2820,7 +2876,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.96</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.97</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2832,7 +2888,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.96</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.97</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2888,7 +2944,7 @@ var MENU=[
   /* v2.88 — le 5ᵉ champ RATTACHE une vue à une autre : elle quitte le menu et la barre du bas, et paraît en onglet en tête
      de sa vue de tête (Justin, 17 octobre 2026 : « améliore et simplifie-la »). Équipe est « qui peut entrer », comme Accès ;
      les Sauvegardes et le Journal sont les deux écrans de contrôle qu'on ouvre rarement. Dix entrées deviennent huit. */
-  {section:'Administration',vues:[['essais','Accès','gestion messages'],['equipe','Équipe','gestion messages','','essais'],['journal','Journal','gestion messages'],['donnees','Sauvegardes','gestion','','journal']]}
+  {section:'Administration',vues:[['essais','Accès','gestion messages'],['equipe','Équipe','gestion messages','','essais'],['journal','Journal','gestion messages'],['agents','Agents','gestion'],['donnees','Sauvegardes','gestion','','journal']]}
 ];
 /* le nom que porte la tête d'un groupe au MENU quand il a au moins deux écrans dans la console ouverte (OP MESSAGES n'a pas
    de Sauvegardes : son « Journal » reste « Journal ») */
@@ -2903,11 +2959,11 @@ function groupeDe(t){ var tete=PARENT_DE[t]||t, l=[];
   return l; }
 function groupeOnglets(t){ var l=groupeDe(t); if(l.length<2) return '';
   return '<div class="sous-onglets">'+teteListe('','Choisir l’écran',l,t,'setTab(')+'</div>'; }
-/* ⛔ CE QUI EST AU PATRON SEUL, ET LE SERVEUR LE DIT AUSSI : Accès, Équipe, Journal et Sauvegardes
+/* ⛔ CE QUI EST AU PATRON SEUL, ET LE SERVEUR LE DIT AUSSI : Accès, Équipe, Journal, Agents et Sauvegardes
    répondent « Réservé au patron » à tout autre compte (monPatronStrict). Le Journal et les Sauvegardes
    restaient pourtant au menu d'un collaborateur, pour n'y montrer qu'un refus ; et une adresse tapée à
    la main (#gestion/equipe) ouvrait un écran retiré du menu. La liste sert au menu ET à la navigation. */
-var PATRON_SEUL=['essais','equipe','journal','donnees'];
+var PATRON_SEUL=['essais','equipe','journal','agents','donnees'];
 /* ⛔ v2.87 (17 octobre 2026, Justin : « les catégories qui servent à quelque chose, les autres qui servent à rien —
    je range ») : Connexions et Devis IA quittent le menu, rien ne se perd. Connexions devient un onglet d'Entreprises
    (elle doublait la fiche et les compteurs d'Entreprises), Devis IA un onglet d'Abonnements (c'est une option qu'on
@@ -3130,7 +3186,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.96';
+var TOUR_VERSION='v2.97';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -3213,6 +3269,7 @@ var IC={
   support:'<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path>',
   entreprises:'<rect x="5" y="4" width="14" height="16" rx="1"></rect><path d="M10 20v-4h4v4"></path><path d="M9 8h2M13 8h2M9 12h2M13 12h2"></path>',
   abonnements:'<rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path>',
+  agents:'<rect x="5" y="8" width="14" height="10" rx="3"></rect><path d="M12 8V5"></path><circle cx="12" cy="4" r="1"></circle><circle cx="9.5" cy="13" r="1"></circle><circle cx="14.5" cy="13" r="1"></circle>',
   equipe:'<circle cx="9" cy="9" r="3"></circle><path d="M4 19c0-3 2.2-5 5-5s5 2 5 5"></path><circle cx="17" cy="10" r="2.4"></circle><path d="M15.5 14.6c2.8.2 4.5 2 4.5 4.4"></path>',
   journal:'<path d="M8 6h12M8 12h12M8 18h12"></path><path d="M4 6h.5M4 12h.5M4 18h.5"></path>',
   connexions:'<circle cx="12" cy="8" r="3.5"></circle><path d="M5 20a7 7 0 0 1 14 0"></path><path d="M17 4l3 3-3 3"></path>',
@@ -3314,7 +3371,7 @@ var BAS=BAS_DEFAUT.slice(0,BAS_MAX);
 /* Un nom qui tient sous l'icône, dans une colonne d'une soixantaine de pixels. Le nom COMPLET reste
    dans `aria-label` : un lecteur d'écran ne lit pas des abréviations. */
 var BAS_LIB={comptes:'Comptes',accueil:'Accueil',surveillance:'Surveill.',demandes:'Demandes',entreprises:'Entreprises',essais:'Accès',
-  abonnements:'Abonn.',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal'};
+  abonnements:'Abonn.',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal',agents:'Agents'};
 /* Les vues que CE compte voit dans CETTE console, à plat, dans l'ordre du menu, avec leur compteur. */
 function barreDispo(){
   var l=[]; menuVisible().forEach(function(g){ g.vues.forEach(function(x){ l.push({t:x[0],lib:x[1],bdg:x[3]||''}); }); });
@@ -3897,6 +3954,8 @@ function setTab(t,sansAnim){
   if(t==='abonnements'){ if(!ABO.loaded||ABO.err) chargerAbos(); if(!PRO.loaded||PRO.err) chargerPromos(); }
   if(t==='equipe'&&(!EQ.loaded||EQ.err)) chargerEquipe();   /* v2.88 : un échec au chargement figeait l'écran pour toute la séance */
   if(t==='journal') chargerJournal();
+  /* les agents se relisent à CHAQUE ouverture : un mode ou une demande a pu changer depuis un autre appareil */
+  if(t==='agents') chargerAgents();
   window.scrollTo(0,0);
   tiroirRafraichir();
 }
@@ -5620,6 +5679,7 @@ function sousOnglet(vue,s){ SOUS[vue]=s; if(vue==='entreprises') ENT.sel=null;
   ecrireHash(); render(); }
 function renderVue(v){
   if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
+  document.body.classList.toggle('plein-courrier',TAB==='support');   /* v2.97 : le Courrier prend toute la page (bureau) */
   if(TAB!=='support') courrierDemonter();   /* quitter le Courrier démonte le module (sa zone disparaît avec la vue) */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
   if(TAB==='accueil') v.innerHTML=(APP==='messages')?vueAccueilMsg():vueAccueil();
@@ -5638,6 +5698,7 @@ function renderVue(v){
   else if(TAB==='donnees') v.innerHTML=groupeOnglets('donnees')+vueDonnees();
   else if(TAB==='equipe') v.innerHTML=groupeOnglets('equipe')+vueEquipe();
   else if(TAB==='journal') v.innerHTML=groupeOnglets('journal')+vueJournal();
+  else if(TAB==='agents') v.innerHTML=vueAgents();
   if(v.classList.contains('entre')) compterKpi(v);
   /* ICI et pas dans render() : renderAnime() appelle renderVue() directement, sans passer par
      render(). Accroché à render(), le pliage ne s'appliquait donc jamais lors d'un changement
@@ -9733,6 +9794,242 @@ function vueJournal(){
     kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length],['echecs','Refusées',ko.length],['actions','Actions',A.length]],f,'jrFiltrePoser(')+
     '<div class="reg">'+bloc+'</div>'+
     '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console et les 500 derniers gestes ; les plus anciens laissent la place aux nouveaux.</div>';
+}
+
+/* ══ AGENTS ══ — l'équipe d'agents IA (server/agents.js). Patron seul : lire ET écrire (le serveur le dit aussi).
+   ⛔ TROIS ÉTATS, JAMAIS DEUX — pour chaque liste : 0 « pas encore lu », 1 « lu » (une liste vide est une VRAIE réponse),
+   -1 « on n'a pas pu savoir ». Une liste illisible ne se dessine jamais comme « rien à valider » : c'est la confusion
+   que ce dépôt a déjà payée deux fois (CLAUDE.md, `_mailboxes`). Et rien ne se change à l'écran avant que le serveur ait dit oui :
+   un mode ne s'affiche pas « Auto » parce qu'on l'a demandé, mais parce que le serveur l'a écrit. */
+var AG={loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false,
+  dos:{q:'',lec:0,liste:[],total:0,ouvert:'',fiche:null,ficheLec:0},
+  cv:{lec:0,fils:[],nonLus:0,ouvert:'',msgs:[],msgLec:0,brouillon:'',envoi:false}};
+var AG_MODES=[['arret','À l’arrêt'],['brouillon','Brouillon'],['auto','Auto']];
+var AG_TYPES={creer_espace:'Créer un espace',suspendre_acces:'Suspendre un accès',envoyer_mail:'Envoyer un courriel',publier:'Publier',repondre_avis:'Répondre à un avis',correctif:'Proposer un correctif',
+  verifier_paiement:'Vérifier un paiement',preparer_espace:'Préparer un espace',escalade_humain:'Passer la main à une personne',signaler_erreur:'Signaler une erreur',relire_envoi:'Relire un envoi'};
+var AG_STATUTS={en_attente:'à valider',accepte:'acceptée',refuse:'refusée',expire:'expirée',attente:'en attente',prise:'en cours',faite:'terminée',echec:'échec',expiree:'expirée'};
+function agParId(id){ for(var i=0;i<AG.agents.length;i++) if(AG.agents[i].id===id) return AG.agents[i]; return null; }
+function agNom(id){ var a=agParId(id); return a?a.nom:(id==='systeme'?'Système':String(id||'')); }
+function agMode(a){ return a&&AG_MODES.some(function(m){ return m[0]===a.mode; })?a.mode:'arret'; }   /* un mode inconnu se lit « à l'arrêt » : la direction sûre */
+function agParams(p){ if(!p||typeof p!=='object') return ''; return Object.keys(p).map(function(k){ return esc(k)+' : '+esc(p[k]); }).join(' · '); }
+function agEnPause(){ return AG.illisible||(AG.pause&&AG.pause.actif===true); }
+function chargerAgents(){
+  if(MYROLE!=='patron'){ AG.agents=[]; AG.loaded=true; AG.err='Réservé au patron — les agents ne se règlent que par lui.'; if(TAB==='agents') render(); return; }
+  apiGet('/api/monitor/agents').then(function(d){ if(!d) return;
+    AG.agents=d.agents||[]; AG.illisible=d.illisible===true; AG.pause=d.pause||null; AG.enAttente=Number(d.enAttente)||0; AG.loaded=true; AG.err='';
+    if(TAB==='agents') render();
+  }).catch(function(e){ AG.err=msgErreur(e); AG.loaded=true; if(TAB==='agents') render(); });
+  agCvCharger();
+  ['validations','journal','taches'].forEach(function(k){
+    apiGet('/api/monitor/agents/'+k+(k==='validations'?'?statut=tout':'')).then(function(d){ if(!d) return;
+      if(Array.isArray(d[k])){ AG[k]=d[k]; AG.lec[k]=1; } else { AG.lec[k]=-1; }
+      if(TAB==='agents') render();
+    }).catch(function(){ AG.lec[k]=-1; if(TAB==='agents') render(); });
+  });
+}
+function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); render(); }
+/* ── les CONVERSATIONS : un fil privé par agent, un fil « Équipe » ; trois états comme partout (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
+function agCvCharger(){
+  apiGet('/api/monitor/conversations').then(function(d){ if(!d) return;
+    if(Array.isArray(d.fils)){ AG.cv.fils=d.fils; AG.cv.nonLus=Number(d.nonLus)||0; AG.cv.lec=1; } else { AG.cv.lec=-1; }
+    if(TAB==='agents') render();
+  }).catch(function(){ AG.cv.lec=-1; if(TAB==='agents') render(); });
+}
+function agCvOuvrir(fil){
+  AG.cv.ouvert=String(fil||''); AG.cv.msgs=[]; AG.cv.msgLec=0; render();
+  apiGet('/api/monitor/conversations/'+encodeURIComponent(AG.cv.ouvert)).then(function(d){ if(!d) return;
+    if(AG.cv.ouvert!==String(fil||'')) return;   /* une réponse tardive ne remplace pas le fil ouvert depuis */
+    if(Array.isArray(d.messages)){ AG.cv.msgs=d.messages; AG.cv.msgLec=1; } else { AG.cv.msgLec=-1; }
+    if(TAB==='agents') render();
+    if(AG.cv.msgLec===1&&d.messages.some(function(m){ return m.lu===false; })){   /* « lu » seulement APRÈS l’affichage : un fil non lu à l’écran reste non lu */
+      apiPost('/api/monitor/conversations/lire',{fil:String(fil)}).then(function(x){ if(x.ok) agCvCharger(); });
+    }
+  }).catch(function(){ if(AG.cv.ouvert===String(fil||'')){ AG.cv.msgLec=-1; if(TAB==='agents') render(); } });
+}
+function agCvFermer(){ AG.cv.ouvert=''; AG.cv.msgs=[]; AG.cv.msgLec=0; agCvCharger(); render(); }
+function agCvEnvoyer(){
+  if(AG.cv.envoi||MYROLE!=='patron') return;
+  var t=String(AG.cv.brouillon||'').trim(); if(!t) return;
+  var fil=AG.cv.ouvert; AG.cv.envoi=true; render();
+  apiPost('/api/monitor/conversations/envoyer',{fil:fil,texte:t}).then(function(x){
+    AG.cv.envoi=false;
+    if(x.ok){ AG.cv.brouillon=''; toast('Message envoyé'); if(AG.cv.ouvert===fil) agCvOuvrir(fil); else render(); }
+    else { toast((x.d&&x.d.error)||'Message non envoyé'); render(); }
+  }).catch(function(){ AG.cv.envoi=false; toast('Message non envoyé — serveur injoignable'); render(); });
+}
+function agCvDossier(n){ AG.sec='dossiers'; agDosOuvrir(n); }
+function agCvMessage(m){
+  var moi=m.de==='justin';
+  return '<div class="ag-msg'+(moi?' moi':'')+(m.niveau==='urgent'?' urgent':m.niveau==='important'?' important':'')+'"><b>'+esc(m.nom||agNom(m.de))+(m.niveau!=='info'?' · '+(m.niveau==='urgent'?'urgent':'important'):'')+'</b><p>'+esc(m.texte)+'</p>'+
+    (m.dossier?'<button type="button" class="ag-btn ok" onclick="agCvDossier(\''+esc(m.dossier)+'\')">Ouvrir le dossier '+esc(m.dossier)+'</button>':'')+'<span>'+esc(fmtDate(m.ts))+' '+esc(fmtHeure(m.ts))+'</span></div>';
+}
+function agCvVue(){
+  var C=AG.cv, h='';
+  if(!C.ouvert){
+    if(C.lec===0) return acSquel();
+    if(C.lec!==1) return agIllisible('Les conversations n’ont pas pu être lues — on ne sait pas si un agent t’a écrit. Réessaie dans un instant.');
+    h+='<div class="ag-liste" style="margin-top:14px">'+C.fils.map(function(f){
+      return '<div class="ag-ligne"><div class="tx"><b>'+esc(f.nom)+(f.fil==='equipe'?' · groupe':'')+(f.nonLus?' <span class="ag-n">'+f.nonLus+'</span>':'')+'</b><span>'+(f.dernier?esc((f.dernier.de==='justin'?'Toi : ':'')+f.dernier.texte)+' · '+esc(fmtDate(f.dernier.ts)):'Aucun message')+'</span></div><div class="ag-act"><button type="button" class="ag-btn" onclick="agCvOuvrir(\''+esc(f.fil)+'\')">Ouvrir</button></div></div>'; }).join('')+'</div>';
+    h+='<div class="note" style="margin-top:12px;color:var(--muted);font-size:12.5px">Un agent n’écrit que s’il est allumé. Pour écrire à un agent qui n’a rien dit, ouvre son fil :</div><div class="ag-barre" style="margin-top:8px">'+
+      AG.agents.filter(function(a){ return !C.fils.some(function(f){ return f.fil===a.id; }); }).map(function(a){ return '<button type="button" class="ag-btn" onclick="agCvOuvrir(\''+esc(a.id)+'\')">'+esc(a.nom)+'</button>'; }).join('')+'</div>';
+    return h;
+  }
+  h+='<div style="margin-top:14px"><button type="button" class="ag-btn" onclick="agCvFermer()">← Toutes les conversations</button> <b style="margin-left:10px">'+esc(C.ouvert==='equipe'?'Équipe':agNom(C.ouvert))+'</b></div>';
+  if(C.msgLec===0) h+=acSquel();
+  else if(C.msgLec!==1) h+=agIllisible('Ce fil n’a pas pu être lu. Réessaie dans un instant.');
+  else {
+    var lignes=C.msgs.map(function(m){ return {ts:m.ts,h:agCvMessage(m)}; });
+    if(C.ouvert==='equipe'&&AG.lec.taches===1) AG.taches.forEach(function(k){ lignes.push({ts:k.ts,h:'<div class="ag-msg tache"><b>'+esc(agNom(k.de))+' → '+esc(agNom(k.vers))+'</b><p>'+esc(AG_TYPES[k.type]||k.type)+' · '+esc(AG_STATUTS[k.statut]||k.statut)+'</p><span>'+esc(fmtDate(k.ts))+' '+esc(fmtHeure(k.ts))+'</span></div>'}); });
+    lignes.sort(function(a,b){ return a.ts-b.ts; });
+    h+=lignes.length?'<div class="ag-fil">'+lignes.map(function(l){ return l.h; }).join('')+'</div>':'<div class="vide">Aucun message dans ce fil.</div>';
+  }
+  if(C.msgLec!==1) return h;   /* un fil non lu à l’écran n’offre pas d’y écrire à l’aveugle */
+  h+='<div class="ag-barre" style="margin-top:12px;align-items:flex-end"><textarea id="ag-cv-t" rows="2" maxlength="1000" placeholder="Écrire dans ce fil" aria-label="Ton message" oninput="AG.cv.brouillon=this.value" style="flex:1;min-width:160px;padding:10px 12px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--inset);color:var(--text);font:inherit">'+esc(C.brouillon)+'</textarea>'+
+    '<button type="button" class="ag-btn ok" '+(C.envoi?'disabled ':'')+'onclick="agCvEnvoyer()">Envoyer</button></div>'+
+    '<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ton message est gardé dans le fil. Seul Hugo y répond (s’il est allumé et que sa clé est posée) ; aucun agent n’exécute quoi que ce soit à partir d’un message.</div>';
+  return h;
+}
+/* ── les DOSSIERS clients : un numéro (DOS-000123) par client, la fiche est composée par le serveur ; trois états (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
+function agDosCharger(q){
+  AG.dos.q=String(q||'').slice(0,80); AG.dos.lec=0;
+  apiGet('/api/monitor/dossiers?q='+encodeURIComponent(AG.dos.q)).then(function(d){ if(!d) return;
+    if(Array.isArray(d.dossiers)){ AG.dos.liste=d.dossiers; AG.dos.total=Number(d.total)||d.dossiers.length; AG.dos.lec=1; } else { AG.dos.lec=-1; }
+    if(TAB==='agents') render();
+  }).catch(function(){ AG.dos.lec=-1; if(TAB==='agents') render(); });
+}
+function agDosOuvrir(n){
+  AG.dos.ouvert=String(n||''); AG.dos.fiche=null; AG.dos.ficheLec=0; render();
+  apiGet('/api/monitor/dossiers/'+encodeURIComponent(AG.dos.ouvert)).then(function(d){ if(!d) return;
+    if(AG.dos.ouvert!==String(n||'')) return;   /* une réponse tardive ne remplace pas le dossier ouvert depuis */
+    if(d.dossier&&typeof d.dossier==='object'){ AG.dos.fiche=d.dossier; AG.dos.ficheLec=1; } else { AG.dos.ficheLec=-1; }
+    if(TAB==='agents') render();
+  }).catch(function(){ if(AG.dos.ouvert===String(n||'')){ AG.dos.ficheLec=-1; if(TAB==='agents') render(); } });
+}
+function agDosFermer(){ AG.dos.ouvert=''; AG.dos.fiche=null; AG.dos.ficheLec=0; render(); }
+function agDosPaiement(p){ var e=p&&p.etat; return e==='paye'?'Payé'+(p.formule?' · '+esc(p.formule):''):e==='impaye'?'Impayé':e==='aucun'?'Aucun abonnement trouvé':'On ne sait pas (Stripe illisible)'; }
+function agDosFiche(){
+  var f=AG.dos.fiche, h='<div style="margin-top:14px"><button type="button" class="ag-btn" onclick="agDosFermer()">← Tous les dossiers</button></div>';
+  if(AG.dos.ficheLec===0) return h+acSquel();
+  if(AG.dos.ficheLec!==1||!f) return h+agIllisible('Ce dossier n’a pas pu être lu — on ne sait pas ce qu’il contient. Réessaie dans un instant.');
+  if(f.supprime) return h+agIllisible('Dossier '+esc(f.numero)+' : le client a été supprimé. Le numéro reste attribué, il ne sera jamais réutilisé.');
+  var c=f.client||{}, e=f.espace||{}, tel=String(c.tel||'').replace(/[^+0-9]/g,'');
+  return h+'<div class="ag-liste"><div class="ag-ligne"><div class="tx"><b style="font-size:17px">'+esc(f.numero)+' · '+esc(c.entreprise||'(sans nom)')+'</b><span>Inscrit le '+esc(fmtDate(c.inscrit))+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Contact</b><span>'+esc(((c.prenom||'')+' '+(c.nom||'')).trim()||'—')+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Téléphone</b><span>'+(tel?'<a href="tel:'+esc(tel)+'">'+esc(c.tel)+'</a>':'non renseigné')+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Adresse e-mail</b><span>'+(c.email?'<a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a>':'—')+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Espace</b><span>'+(e.existe?esc(e.slug)+' · formule '+esc(e.formule||'—')+' · créé le '+esc(fmtDate(e.creeLe)):'Pas encore d’espace')+'</span></div></div>'+
+    '<div class="ag-ligne"><div class="tx"><b>Paiement</b><span>'+agDosPaiement(f.paiement)+'</span></div></div>'+
+    ((f.demandes||[]).length?'<div class="ag-ligne"><div class="tx"><b>Demandes</b><span>'+f.demandes.map(function(d){ return esc(d.app)+(d.formule?' ('+esc(d.formule)+')':'')+' · '+esc(d.statut||'—'); }).join(' · ')+'</span></div></div>':'')+
+    (c.note?'<div class="ag-ligne"><div class="tx"><b>Note interne</b><span>'+esc(c.note)+'</span></div></div>':'')+'</div>'+
+    '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Donne ce numéro à un agent : il retrouve ce dossier. Seul toi vois ces coordonnées ici.</div>';
+}
+function agDosListe(){
+  var D=AG.dos, h='<div class="ag-barre" style="margin-top:14px"><input type="search" id="ag-dos-q" value="'+esc(D.q)+'" placeholder="Numéro ou nom d’entreprise" aria-label="Chercher un dossier" style="flex:1;min-width:160px;min-height:44px;padding:0 12px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--inset);color:var(--text)" onkeydown="if(event.key===\'Enter\') agDosCharger(this.value)"><button type="button" class="ag-btn ok" onclick="agDosCharger(document.getElementById(\'ag-dos-q\').value)">Chercher</button></div>';
+  if(D.lec===0) return h+acSquel();
+  if(D.lec!==1) return h+agIllisible('Les dossiers n’ont pas pu être lus — on ne sait pas s’il y en a. Réessaie dans un instant.');
+  if(!D.liste.length) return h+'<div class="vide">'+(D.q?'Aucun dossier ne correspond.':'Aucun client pour l’instant.')+'</div>';
+  return h+'<div class="ag-liste">'+D.liste.map(function(l){ return '<div class="ag-ligne"><span class="ag-etiq">'+esc(l.numero)+'</span><div class="tx"><b>'+esc(l.entreprise||'(sans nom)')+'</b><span>Inscrit le '+esc(fmtDate(l.inscrit))+' · '+(l.espace?'espace ouvert':'pas d’espace')+'</span></div><div class="ag-act"><button type="button" class="ag-btn" onclick="agDosOuvrir(\''+esc(l.numero)+'\')">Ouvrir</button></div></div>'; }).join('')+'</div>'+
+    (D.total>D.liste.length?'<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">'+D.total+' dossiers : affine la recherche pour voir les autres.</div>':'');
+}
+function agMode_(id,mode){
+  if(AG.busy||MYROLE!=='patron') return;
+  var a=agParId(id); if(!a||agMode(a)===mode) return;
+  if(mode==='auto'&&!confirm('Passer '+a.nom+' en AUTO : il agira sans te demander ce qui est dans ses droits. Continuer ?')) return;
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/mode',{agent:id,mode:mode}).then(function(r){
+    AG.busy=false;
+    toast(r.ok?(a.nom+' : '+(AG_MODES.filter(function(m){ return m[0]===mode; })[0]||['',mode])[1].toLowerCase()):((r.d&&r.d.error)||'Changement refusé'));
+    chargerAgents();   /* le serveur est la source : on relit, on ne devine pas */
+  }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agPause(arreter){
+  if(AG.busy||MYROLE!=='patron') return;
+  AG.busy=true; render();
+  /* seul `pause:false` reprend, côté serveur comme ici : tout le reste arrête */
+  apiPost('/api/monitor/agents/pause',arreter?{pause:true}:{pause:false}).then(function(r){
+    AG.busy=false; toast(r.ok?(arreter?'Tous les agents sont arrêtés.':'Les agents peuvent reprendre.'):((r.d&&r.d.error)||'Changement refusé'));
+    chargerAgents();
+  }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agDecider(id,decision){
+  if(AG.busy||MYROLE!=='patron') return;
+  if(decision==='accepter'&&!confirm('Valider cette demande ? Elle sera exécutée si l’agent en a la charge.')) return;
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/validations/decider',{id:id,decision:decision}).then(function(r){
+    AG.busy=false; toast(r.ok?(decision==='accepter'?'Demande validée.':'Demande refusée.'):((r.d&&r.d.error)||'Décision refusée'));
+    chargerAgents();
+  }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+/* Hugo relit Stripe À LA DEMANDE (il le fait aussi seul, toutes les 15 minutes) : le verdict se dit tel que le serveur l'a rendu */
+function agHugo(){
+  if(AG.busy||MYROLE!=='patron') return;
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/hugo/passer',{}).then(function(r){
+    AG.busy=false; var d=r.d||{};
+    toast(!r.ok?(d.error||'Passage refusé'):d.saute?'Hugo ne peut pas agir ('+({arret:'à l’arrêt',pause:'pause générale',etat_illisible:'état illisible',deja_en_cours:'déjà en route'}[d.saute]||d.saute)+')':
+      d.stripe===false?'Stripe illisible : rien n’a été proposé.':d.clients===false?'Liste des clients illisible : rien n’a été proposé.':
+      (Number(d.proposes)||0)+' demande'+((Number(d.proposes)||0)>1?'s':'')+' déposée'+((Number(d.proposes)||0)>1?'s':'')+' · '+(Number(d.examines)||0)+' client'+((Number(d.examines)||0)>1?'s':'')+' sans espace examiné'+((Number(d.examines)||0)>1?'s':''));
+    chargerAgents();
+  }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agIllisible(txt){ return '<div class="encart bloc"><div class="tx" style="margin-top:0">'+esc(txt)+'</div></div>'; }
+function vueAgents(){
+  var tete=enTete('Agents','Les agents IA qui gèrent Team OP. Tu décides ce que chacun a le droit de faire : à l’arrêt, il ne fait rien ; en brouillon, il prépare et tu relis ; en auto, il agit seul dans ses droits.');
+  if(!AG.loaded) return tete+acSquel();
+  if(AG.err) return tete+agIllisible(AG.err);
+  var h=tete;
+  if(AG.illisible) h+=agIllisible('L’état des agents est illisible sur le serveur : ils restent tous à l’arrêt et rien n’est modifié tant que ce fichier n’est pas réparé.');
+  var stop=agEnPause(), allumes=AG.agents.filter(function(a){ return agMode(a)!=='arret'; }).length;
+  h+='<div class="ag-barre'+(stop?' stop':'')+'"><span class="ag-pt" aria-hidden="true"></span><b>'+
+    (AG.illisible?'État illisible : les agents sont arrêtés':stop?'Pause générale : tous les agents sont à l’arrêt'+(AG.pause&&AG.pause.par?' (posée par '+esc(AG.pause.par)+')':''):'Les agents peuvent travailler')+
+    ' · '+allumes+' allumé'+(allumes>1?'s':'')+' sur '+AG.agents.length+'</b>'+
+    (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
+  var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
+  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers']].map(function(o){
+    return '<button type="button" role="tab" class="'+(AG.sec===o[0]?'on':'')+'" aria-selected="'+(AG.sec===o[0])+'" onclick="agSec(\''+o[0]+'\')">'+o[1]+
+      (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
+  if(AG.sec==='equipe'){
+    var c='';
+    AG.agents.forEach(function(a){
+      if(a.couche!==c){ if(c) h+='</div>'; c=a.couche; h+='<div class="ag-couche">'+esc(c)+'</div><div class="ag-grille">'; }
+      var m=agMode(a);
+      h+='<article class="ag-carte" data-etat="'+m+'"><div class="ag-haut"><div class="ag-av" aria-hidden="true">'+esc(String(a.nom||'?').charAt(0))+'</div><div><h3>'+esc(a.nom)+'</h3><div class="ag-role">'+esc(a.role)+'</div></div><span class="ag-vague">Vague '+esc(a.vague)+'</span></div>'+
+        '<div class="ag-seg" role="group" aria-label="Mode de '+esc(a.nom)+'">'+AG_MODES.map(function(x){
+          var off=AG.busy||(x[0]==='auto'&&m==='arret');
+          return '<button type="button" data-m="'+x[0]+'" class="'+(m===x[0]?'on':'')+'" aria-pressed="'+(m===x[0])+'"'+(off?' disabled':'')+(x[0]==='auto'&&m==='arret'?' title="Passe d’abord par brouillon"':'')+' onclick="agMode_(\''+esc(a.id)+'\',\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>'+
+        '<div class="ag-pied"><span>Plafond mensuel</span><b>'+esc(a.plafondUsd)+' $</b></div>'+
+        (a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+'</article>';
+    });
+    if(c) h+='</div>';
+    h+='<div class="encart bloc" style="margin-top:16px"><div class="tx" style="margin-top:0">Un agent neuf est à l’arrêt. Il passe par « brouillon » avant « auto ». Les dépenses ne se lisent pas ici : voir la Console Anthropic (espace « Agents Team OP », limite 195 $).</div></div>';
+  } else if(AG.sec==='valid'){
+    if(AG.lec.validations!==1) h+=AG.lec.validations===0?acSquel():agIllisible('Les demandes n’ont pas pu être lues — on ne sait pas s’il y en a. Réessaie dans un instant.');
+    else if(!AG.validations.length) h+='<div class="vide">Rien à valider pour l’instant.</div>';
+    else h+='<div class="ag-liste">'+AG.validations.map(function(v){
+      var att=v.statut==='en_attente';
+      return '<div class="ag-ligne"><span class="ag-etiq">'+esc(agNom(v.agent))+'</span><div class="tx"><b>'+esc(v.resume||AG_TYPES[v.type]||v.type)+'</b><span>'+esc(AG_TYPES[v.type]||v.type)+' · '+agParams(v.params)+' · '+esc(fmtDate(v.ts))+
+        (v.decideTs?' · '+esc(AG_STATUTS[v.statut]||v.statut)+(v.decidePar?' par '+esc(v.decidePar):''):'')+(v.execution?' · exécution : '+esc(v.execution):'')+'</span></div>'+
+        (att?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'refuser\')">Refuser</button><button type="button" class="ag-btn ok"'+(AG.busy?' disabled':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'accepter\')">Valider</button></div>'
+          :'<span class="ag-etiq'+(v.statut==='accepte'?' ok':'')+'">'+esc(AG_STATUTS[v.statut]||v.statut)+'</span>')+'</div>'; }).join('')+'</div>'+
+      '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Une demande non décidée expire au bout de 7 jours. Seul le patron valide : un agent ne se valide jamais lui-même.</div>';
+  } else if(AG.sec==='journal'){
+    if(AG.lec.journal!==1) h+=AG.lec.journal===0?acSquel():agIllisible('Le journal n’a pas pu être lu.');
+    else if(!AG.journal.length) h+='<div class="vide">Aucun agent n’a encore rien fait.</div>';
+    else h+='<div class="ag-liste">'+AG.journal.map(function(e){
+      return '<div class="ag-ligne"><span class="ag-etiq'+(e.resultat==='ok'?' ok':e.resultat==='erreur'||e.resultat==='refuse'?' ko':'')+'">'+esc(e.resultat||'')+'</span><div class="tx"><b>'+esc(agNom(e.agent))+' · '+esc(e.action)+'</b><span>'+
+        (e.cible?esc(e.cible)+' · ':'')+(e.detail?esc(e.detail)+' · ':'')+(e.qui?'par '+esc(e.qui)+' · ':'')+esc(fmtDate(e.ts))+'</span></div></div>'; }).join('')+'</div>';
+  } else if(AG.sec==='conv'){
+    h+=agCvVue();
+  } else if(AG.sec==='dossiers'){
+    h+=AG.dos.ouvert?agDosFiche():agDosListe();
+  } else {
+    if(AG.lec.taches!==1) h+=AG.lec.taches===0?acSquel():agIllisible('Les tâches n’ont pas pu être lues.');
+    else if(!AG.taches.length) h+='<div class="vide">Aucune tâche entre agents.</div>';
+    else h+='<div class="ag-liste">'+AG.taches.map(function(k){
+      return '<div class="ag-ligne"><span class="ag-etiq'+(k.statut==='faite'?' ok':k.statut==='echec'?' ko':'')+'">'+esc(AG_STATUTS[k.statut]||k.statut)+'</span><div class="tx"><b>'+esc(agNom(k.de))+' → '+esc(agNom(k.vers))+' : '+esc(AG_TYPES[k.type]||k.type)+'</b><span>'+agParams(k.params)+' · '+esc(fmtDate(k.ts))+'</span></div></div>'; }).join('')+'</div>'+
+      '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Entre agents ne passent que des demandes fermées : un identifiant, une valeur d’une liste. Jamais une phrase d’un client.</div>';
+  }
+  return h;
 }
 
 /* ══ démarrage : une session déjà ouverte reprend la main ══ */
