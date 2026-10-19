@@ -2,7 +2,7 @@
 # ══════════════════════════════════════════════════════════════════════════════════════════════
 #  Installation du serveur d'OP Courrier (signature Yousign) sur SON VPS — à lancer EN ROOT, SUR LE VPS.
 #
-#  Usage :  bash install-courrier.sh <beta|prod> <domaine> --email <adresse pour le certificat> [--branche <b>] [--sans-certificat]
+#  Usage :  bash install-courrier.sh <beta|prod> <domaine> [--email <adresse, pour certbot si le proxy est nginx>] [--branche <b>] [--sans-certificat]
 #    beta  → courrier-beta.teamop.fr, port 8192, service opcourrier-beta
 #    prod  → courrier.teamop.fr,      port 8193, service opcourrier-prod
 #  Rejouable : ce qui existe est gardé (la configuration, la clé maître, les données).
@@ -34,7 +34,7 @@ done
 [[ "$INSTANCE" =~ ^(beta|prod)$ ]] || { echo "refusé : l'instance doit valoir beta ou prod"; exit 2; }
 [[ "$DOMAINE" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}$ ]] || { echo "refusé : domaine illisible"; exit 2; }
 [[ "$BRANCHE" =~ ^[A-Za-z0-9._/-]{1,80}$ ]] || { echo "refusé : nom de branche illisible"; exit 2; }
-if [ "$CERTIF" = 1 ]; then [[ "$EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[a-z]{2,}$ ]] || { echo "refusé : --email <adresse> est nécessaire pour le certificat (ou --sans-certificat)"; exit 2; }; fi
+[ -z "$EMAIL" ] || [[ "$EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[a-z]{2,}$ ]] || { echo "refusé : adresse illisible"; exit 2; }
 [ "$(id -u)" = 0 ] || { echo "refusé : à lancer en root"; exit 2; }
 case "$INSTANCE" in beta) PORT_DEFAUT=8192 ;; prod) PORT_DEFAUT=8193 ;; esac
 PORT="${OPCOURRIER_PORT:-$PORT_DEFAUT}"
@@ -46,14 +46,29 @@ DEPOT="https://github.com/justino17-cmd/teamop.git"
 OPT=/opt/opcourrier; MIROIR="$OPT/repo"; DONNEES="$OPT/$INSTANCE/data"
 ETC=/etc/opcourrier; CONF="$ETC/$INSTANCE.json"; KEK="$ETC/kek-$INSTANCE"
 UNITE="opcourrier-$INSTANCE"
+CDY=/etc/caddy
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "── 1. Ce qui doit déjà être là (rien n'est mis à jour)"
 node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=5)?0:1)' 2>/dev/null || { echo "✗ Node 22.5 minimum est nécessaire (node:sqlite) ; ce script ne l'installe ni ne le met à jour"; exit 1; }
-command -v nginx >/dev/null && systemctl is-active --quiet nginx || { echo "✗ nginx n'est pas actif : ce script s'ajoute à nginx, il ne l'installe pas"; exit 1; }
-[ -d /etc/nginx/sites-available ] && [ -d /etc/nginx/sites-enabled ] || { echo "✗ /etc/nginx/sites-available et sites-enabled sont attendus"; exit 1; }
-NODE="$(command -v node)"
-case "$NODE" in /root/*|/home/*) echo "✗ node ($NODE) est dans un dossier personnel : le service dédié ne pourrait pas le lancer"; exit 1 ;; esac
+# le proxy qui tient 80/443 : nginx OU Caddy (OPCOURRIER_PROXY force le choix) ; on s'ajoute à lui, on ne l'installe pas
+actif() { systemctl is-active --quiet "$1"; }
+if [ -n "${OPCOURRIER_PROXY:-}" ]; then
+  PROXY="$OPCOURRIER_PROXY"; [ "$PROXY" = nginx ] || [ "$PROXY" = caddy ] || { echo "✗ OPCOURRIER_PROXY doit valoir nginx ou caddy"; exit 2; }
+elif actif nginx && actif caddy; then
+  echo "✗ nginx ET caddy sont actifs : lequel tient les ports 80 et 443 ? Relance avec OPCOURRIER_PROXY=nginx ou OPCOURRIER_PROXY=caddy."; exit 1
+elif actif nginx; then PROXY=nginx
+elif actif caddy; then PROXY=caddy
+else
+  echo "✗ aucun proxy actif (ni nginx ni caddy) : ce script s'ajoute au proxy en place, il n'en installe pas."; exit 1
+fi
+echo "   proxy : $PROXY"
+if [ "$PROXY" = nginx ]; then
+  command -v nginx >/dev/null && [ -d /etc/nginx/sites-available ] && [ -d /etc/nginx/sites-enabled ] || { echo "✗ nginx et /etc/nginx/sites-available + sites-enabled sont attendus"; exit 1; }
+  [ "$CERTIF" = 0 ] || [ -n "$EMAIL" ] || { echo "✗ --email <adresse> est nécessaire pour le certificat nginx (ou --sans-certificat)"; exit 2; }
+else
+  command -v caddy >/dev/null && [ -f /etc/caddy/Caddyfile ] || { echo "✗ caddy et /etc/caddy/Caddyfile sont attendus"; exit 1; }
+fi
 manquants=""; for c in git curl openssl; do command -v "$c" >/dev/null || manquants="$manquants $c"; done
 # seulement ce qui MANQUE, sans mise à jour du reste
 [ -z "$manquants" ] || { apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $manquants >/dev/null; }
@@ -146,7 +161,8 @@ systemctl daemon-reload
 systemctl enable --now "$UNITE" >/dev/null
 systemctl restart "$UNITE"
 
-echo "── 7. nginx : UN fichier ajouté, rien d'existant touché (aucun journal d'accès : il porterait des adresses réseau)"
+echo "── 7. nginx (si c'est le proxy) : UN fichier ajouté, rien d'existant touché (aucun journal d'accès : il porterait des adresses réseau)"
+if [ "$PROXY" = nginx ]; then
 SITE="/etc/nginx/sites-available/courrier-$INSTANCE"; LIEN="/etc/nginx/sites-enabled/courrier-$INSTANCE"
 SAUVE=""; [ -f "$SITE" ] && { SAUVE="$SITE.avant"; cp "$SITE" "$SAUVE"; }
 cat > "$SITE" <<NGINX
@@ -193,6 +209,51 @@ if [ "$CERTIF" = 1 ]; then
     exit 1
   fi
   nginx -t >/dev/null 2>&1 || { echo "✗ nginx -t échoue après le certificat : regarde « nginx -t » avant tout rechargement"; exit 1; }
+fi
+else
+echo "── 7. Caddy : UN fichier ajouté + UNE ligne « import » (aucun journal d'accès ; le certificat vient de Caddy tout seul)"
+if [ "$CERTIF" = 1 ]; then
+  IPS="$(hostname -I)"; DNS="$(getent ahostsv4 "$DOMAINE" | awk '{print $1}' | sort -u | head -1 || true)"
+  if [ -z "$DNS" ] || ! grep -qw "$DNS" <<<"$IPS"; then
+    echo "✗ $DOMAINE ne pointe pas vers ce serveur ($DNS ≠ une adresse de ce VPS). Corrige le DNS chez OVH puis relance cette commande."
+    exit 1
+  fi
+fi
+# --- caddy debut ---
+CADDYFILE="$CDY/Caddyfile"
+mkdir -p "$CDY/opcourrier"
+FICHIER_CDY="$CDY/opcourrier/$INSTANCE.caddy"
+cp "$CADDYFILE" "$CADDYFILE.avant-opcourrier"
+[ ! -f "$FICHIER_CDY" ] || cp "$FICHIER_CDY" "$FICHIER_CDY.avant"
+cat > "$FICHIER_CDY" <<CADDY
+# Posé par server-courrier/install-courrier.sh — réécrit à chaque installation, ne pas éditer à la main.
+$DOMAINE {
+    # 26 Mo au plus (un PDF de 25 Mo plus sa marge) ; seules /health et /api/signature/ sont servies. Pas de plafond de débit ici : c'est celui du service qui protège.
+    request_body {
+        max_size 26MB
+    }
+    @courrier path /health /api/signature/*
+    handle @courrier {
+        reverse_proxy 127.0.0.1:$PORT {
+            # X-Forwarded-For ÉCRASÉ par l'adresse vue ici, jamais complété (req.ip, trust proxy 1).
+            header_up X-Forwarded-For {remote_host}
+        }
+    }
+    handle {
+        respond 404
+    }
+}
+CADDY
+grep -qxF 'import /etc/caddy/opcourrier/*.caddy' "$CADDYFILE" || printf '\nimport /etc/caddy/opcourrier/*.caddy\n' >> "$CADDYFILE"
+if ! caddy validate --config "$CADDYFILE" --adapter caddyfile >/dev/null 2>&1; then
+  echo "✗ Caddy refuse la configuration (caddy validate) : rien n'est rechargé, tout est remis comme avant."
+  mv "$CADDYFILE.avant-opcourrier" "$CADDYFILE"
+  if [ -f "$FICHIER_CDY.avant" ]; then mv "$FICHIER_CDY.avant" "$FICHIER_CDY"; else rm -f "$FICHIER_CDY"; fi
+  exit 1
+fi
+rm -f "$CADDYFILE.avant-opcourrier" "$FICHIER_CDY.avant"
+systemctl reload caddy
+# --- caddy fin ---
 fi
 
 echo "── 8. Contrôle"

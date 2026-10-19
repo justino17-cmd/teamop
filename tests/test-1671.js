@@ -65,7 +65,7 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
   console.log('\n── 2. install-courrier.sh ──');
   const inst = path.join(SC, 'install-courrier.sh'), SH = lire('server-courrier/install-courrier.sh'), code = sansCommSh(SH);
   v('syntaxe bash', spawnSync('bash', ['-n', inst]).status, 0);
-  for (const [t, args] of [['instance inconnue', ['milieu', 'courrier.teamop.fr']], ['domaine illisible', ['beta', 'pas un domaine']], ['sans adresse pour le certificat', ['beta', 'courrier-beta.teamop.fr']], ['option inconnue', ['beta', 'courrier-beta.teamop.fr', '--rm']], ['branche illisible', ['beta', 'courrier-beta.teamop.fr', '--email', 'a@b.fr', '--branche', 'x;rm -rf /']]]) {
+  for (const [t, args] of [['instance inconnue', ['milieu', 'courrier.teamop.fr']], ['domaine illisible', ['beta', 'pas un domaine']], ['option inconnue', ['beta', 'courrier-beta.teamop.fr', '--rm']], ['branche illisible', ['beta', 'courrier-beta.teamop.fr', '--email', 'a@b.fr', '--branche', 'x;rm -rf /']]]) {
     const r = spawnSync('bash', [inst].concat(args), { encoding: 'utf8', timeout: 10000 });
     v('refusé avant toute action (code 2) : ' + t, [r.status, /refusé/.test(r.stdout)], [2, true]);
   }
@@ -98,11 +98,36 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
   vrai('nginx : le SEUL fichier posé est sites-available/courrier-<instance> (+ son lien) — ni nginx.conf, ni conf.d, ni un site existant', /SITE="\/etc\/nginx\/sites-available\/courrier-\$INSTANCE"/.test(code) && /LIEN="\/etc\/nginx\/sites-enabled\/courrier-\$INSTANCE"/.test(code) && !/nginx\.conf|conf\.d|sites-available\/(default|api|opmsg)/.test(code) && !/>\s*\/etc\/nginx\/(?!sites)/.test(code));
   const iT = code.indexOf('nginx -t >/dev/null'), iR = code.indexOf('systemctl reload nginx');
   vrai('`nginx -t` AVANT tout rechargement, et sur refus : fichier retiré, exit 1, aucun reload', iT > 0 && iR > iT && /rm -f "\$SITE" "\$LIEN"/.test(code) && code.slice(iT, iR).includes('exit 1'));
-  vrai('Node, nginx, les autres certificats : ni installés, ni mis à jour, ni apt upgrade', !/nodesource|apt(-get)? +(upgrade|dist-upgrade|full-upgrade)|install[^\n]*\s(nodejs|nginx)\b/.test(code) && /Node 22\.5 minimum/.test(code) && /nginx n'est pas actif/.test(code));
+  vrai('Node, nginx, les autres certificats : ni installés, ni mis à jour, ni apt upgrade', !/nodesource|apt(-get)? +(upgrade|dist-upgrade|full-upgrade)|install[^\n]*\s(nodejs|nginx)\b/.test(code) && /Node 22\.5 minimum/.test(code) && /aucun proxy actif/.test(code));
   vrai('certbot : CE domaine seulement (jamais renew, delete, --expand ni -d d\'un autre)', (code.match(/certbot --nginx -d "\$DOMAINE" --cert-name "\$DOMAINE"/g) || []).length === 1 && !/certbot +(renew|delete|revoke)|--expand/.test(code) && (code.match(/certbot[^\n]*-d "/g) || []).length === 1);
   vrai('pare-feu : rien n\'est ouvert (ni ufw, ni iptables, ni nft, ni firewall-cmd)', !/\b(ufw|iptables|ip6tables|nft|firewall-cmd)\b/.test(code));
   vrai('le port est refusé s\'il appartient à un autre service du VPS, et vérifié libre (ss)', /8080\|8090\|8091\|7880\|7881\|3478\|5349/.test(code) && /\/dev\/tcp\/127\.0\.0\.1/.test(code));
   vrai('le service n\'écoute que sur 127.0.0.1', /listen\(config\.port, '127\.0\.0\.1'/.test(sansCommJs(lire('server-courrier/index.js'))) && /proxy_pass http:\/\/127\.0\.0\.1:\$PORT/.test(code));
+  // CADDY (le proxy réel de ce VPS) : la section est EXÉCUTÉE avec un faux `caddy` et un faux `systemctl`
+  const bCad = SH.slice(SH.indexOf('# --- caddy debut ---'), SH.indexOf('# --- caddy fin ---'));
+  vrai('population : la section Caddy est trouvée', bCad.length > 500 && /caddy validate/.test(bCad));
+  const bacCaddy = (validate, deux) => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'opcourrier-caddy-')), bin = path.join(d, 'bin'), cdy = path.join(d, 'caddy'); fs.mkdirSync(bin); fs.mkdirSync(cdy);
+    const CF = '{\n  email x@y.fr\n}\napi.teamop.fr {\n  reverse_proxy 127.0.0.1:8080\n}\nimport /etc/caddy/opmsg/*.caddy\n';
+    fs.writeFileSync(path.join(cdy, 'Caddyfile'), CF);
+    fs.writeFileSync(path.join(bin, 'caddy'), '#!/bin/sh\necho "validate $*" >> "' + d + '/appels"\n' + (validate ? 'exit 0' : 'exit 1') + '\n', { mode: 0o755 });
+    fs.writeFileSync(path.join(bin, 'systemctl'), '#!/bin/sh\necho "systemctl $*" >> "' + d + '/appels"\n', { mode: 0o755 });
+    const run = () => spawnSync('bash', ['-c', 'set -euo pipefail\nINSTANCE=beta; DOMAINE=courrier-beta.teamop.fr; PORT=8192; CDY="$1"\n' + bCad, 'x', cdy], { encoding: 'utf8', env: { PATH: bin + ':' + process.env.PATH } });
+    const r1 = run(); const r2 = deux ? run() : null;
+    const lire2 = (f) => fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : null;
+    return { r1, r2, CF, cf: lire2(path.join(cdy, 'Caddyfile')), site: lire2(path.join(cdy, 'opcourrier', 'beta.caddy')), appels: lire2(path.join(d, 'appels')) || '', reste: fs.readdirSync(cdy).concat(fs.existsSync(path.join(cdy, 'opcourrier')) ? fs.readdirSync(path.join(cdy, 'opcourrier')) : []) };
+  };
+  let cd = bacCaddy(true, true);
+  vrai('Caddy : le fichier à nous est créé (domaine, port local, plafond 26 Mo, 404 ailleurs, X-Forwarded-For écrasé)', cd.r1.status === 0 && /courrier-beta\.teamop\.fr \{/.test(cd.site) && /reverse_proxy 127\.0\.0\.1:8192/.test(cd.site) && /max_size 26MB/.test(cd.site) && /respond 404/.test(cd.site) && /header_up X-Forwarded-For \{remote_host\}/.test(cd.site) && /path \/health \/api\/signature\/\*/.test(cd.site));
+  v('Caddy : UNE seule ligne import ajoutée, même relancé deux fois', (cd.cf.match(/^import \/etc\/caddy\/opcourrier\/\*\.caddy$/gm) || []).length, 1);
+  vrai('Caddy : le Caddyfile existant (api.teamop.fr, import opmsg) est conservé tel quel, seule la ligne est ajoutée', cd.cf.startsWith(cd.CF) && cd.r2.status === 0);
+  vrai('Caddy : validate AVANT reload, et reload fait', /validate[\s\S]*systemctl reload caddy/.test(cd.appels) && cd.r1.status === 0);
+  vrai('Caddy : les sauvegardes temporaires sont nettoyées', !cd.reste.some((f) => /avant/.test(f)));
+  cd = bacCaddy(false, false);
+  vrai('Caddy : validate refusé → code 1, Caddyfile restauré à l\'identique, fichier à nous retiré', cd.r1.status === 1 && cd.cf === cd.CF && cd.site === null);
+  vrai('Caddy : validate refusé → RIEN n\'est rechargé', !/reload/.test(cd.appels) && /validate/.test(cd.appels));
+  vrai('Caddy : aucun certbot, aucun nginx dans la section (Caddy obtient son certificat seul)', !/certbot|nginx/.test(bCad.replace(/^\s*#.*$/gm, '')));
+  vrai('le proxy est détecté (nginx OU caddy, OPCOURRIER_PROXY force) et deux proxys actifs = refus', /OPCOURRIER_PROXY/.test(code) && /nginx ET caddy sont actifs/.test(code));
   // la vérification « port libre » (section 1 bis) EXÉCUTÉE contre un vrai port occupé
   const blocPort = SH.slice(SH.indexOf('echo "── 1 bis.'), SH.indexOf('echo "── 2.'));
   const occupe = require('net').createServer(); await new Promise((r2) => occupe.listen(0, '127.0.0.1', r2));
