@@ -1,7 +1,7 @@
 /* Sonde OP MESSAGES × OP Courrier — la rubrique « Courrier » du côté Pro d'OP MESSAGES : la VRAIE page servie (`server-msg/public/`), par le VRAI service, sur 127.0.0.1.
    ⛔ 127.0.0.1 UNIQUEMENT (le service de banc `tests/outils-msg.js`, un OP GESTION de poche pour la porte bêta) — tout ce qui sort est refusé ET compté. Jamais msg.teamop.fr, jamais msg-beta.teamop.fr.
    ⛔ Le canal : « bêta » = le service lancé avec l'instance `beta` (c'est ce que /api/config dit à la page) ; « production » = la MÊME page dont /api/config est répondu `prod` par la sonde (un service de
-      production n'a pas la porte bêta : on ne s'y connecterait pas). `test-2705` joue, lui, un VRAI service `prod` et lit ce qu'il dit.
+      production n'a pas la porte bêta : on ne s'y connecterait pas). `test-2695` joue, lui, un VRAI service `prod` et lit ce qu'il dit.
      1. côté Perso : pas de rubrique Courrier, opcourrier.js n'est pas demandé ; côté Pro (bêta) : la rubrique existe, à la suite de l'Agenda ;
      2. l'ouvrir charge le module DU SERVICE (même origine), VIDE, qui invite à ajouter une boîte ; « Ajouter une boîte mail » dit « Bientôt » (le serveur d'OP Courrier n'existe pas) ;
      3. jour / nuit suivis ; 390 px (téléphone) et bureau ; aucune exception, aucune erreur de politique de contenu (CSP) ;

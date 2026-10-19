@@ -22,7 +22,7 @@ const MODULE = lire('opcourrier.js');
 const SCRIPT = (h) => (h.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi) || []).map(x => x.replace(/^<script[^>]*>|<\/script>$/gi, '')).join('\n');
 const corps = (src, entete) => { const i = src.indexOf(entete); if (i < 0) return ''; let j = src.indexOf('{', i), p = 0; for (let k = j; k < src.length; k++) { const c = src[k]; if (c === '{') p++; else if (c === '}') { p--; if (!p) return src.slice(i, k + 1); } } return ''; };
 
-console.log('\n── 2705 · 1. La page : une rubrique du côté Pro, sur le canal que le service dit ouvert, module chargé à l\'ouverture ──');
+console.log('\n── 2695 · 1. La page : une rubrique du côté Pro, sur le canal que le service dit ouvert, module chargé à l\'ouverture ──');
 {
   const JS = nu(SCRIPT(APERCU));
   vrai('(population) le script de la page est lu en entier', JS.length > 400000, JS.length);
@@ -42,7 +42,7 @@ console.log('\n── 2705 · 1. La page : une rubrique du côté Pro, sur le ca
   vrai('⛔ la page servie est celle de l\'aperçu (rien d\'écrit à la main côté Courrier) : le script servi porte entrerCourrier et la même ouverture conditionnelle', /function entrerCourrier\(/.test(UI) && /COUR\.ouvert = \(await source\.courrierOuvert\(\)\) === true/.test(UI));
 }
 
-console.log('\n── 2705 · 2. La source du service, la VRAIE, contre un vrai service bêta et un vrai service de production ──');
+console.log('\n── 2695 · 2. La source du service, la VRAIE, contre un vrai service bêta et un vrai service de production ──');
 (async () => {
   const OPMSG = require(path.join(T.SERVICE, 'public', 'api.js'));
   const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-serveur.js'));
@@ -72,7 +72,7 @@ console.log('\n── 2705 · 2. La source du service, la VRAIE, contre un vrai 
     vrai('(population) le service avait bien reçu des appels avant (la mesure ci-dessus compte quelque chose)', avant >= 1, avant);
     vrai('le code de l\'adaptateur ne contient aucun fetch ni aucun chemin d\'OP GESTION', !/fetch|\/api\/monitor|api\.teamop\.fr|server\//.test(nu(corps(SRC, 'function courrierSource('))) && corps(SRC, 'function courrierSource(').length > 400);
 
-    console.log('\n── 2705 · 3. Le service sert opcourrier.js LUI-MÊME ──');
+    console.log('\n── 2695 · 3. Le service sert opcourrier.js LUI-MÊME ──');
     for (const [nom, svc] of [['bêta', beta], ['production', prod]]) {
       const r = await fetch(svc.base + '/opcourrier.js');
       const txt = await r.text();
@@ -82,7 +82,7 @@ console.log('\n── 2705 · 2. La source du service, la VRAIE, contre un vrai 
       const h = await (await fetch(svc.base + '/')).text();
       vrai(nom + ' : la page servie porte la politique qui permet ses images `data:` (les deux icônes du module) et rien de plus large', /img-src 'self' blob: data:;/.test(h) && !/img-src[^;]*https:/.test(h));
     }
-    console.log('\n── 2705 · 4. La séparation : OP MESSAGES ne se branche pas sur OP GESTION ──');
+    console.log('\n── 2695 · 4. La séparation : OP MESSAGES ne se branche pas sur OP GESTION ──');
     const code = nu(MODULE);
     vrai('le module ne nomme aucun chemin, domaine ou serveur d\'OP GESTION (il ne parle qu\'à l\'adaptateur qu\'on lui donne)', !/teamop\.fr|\/api\/monitor|\/api\/mailbox|api\.teamop\.fr|PUSH_API/.test(code));
     vrai('la source du service ne lit aucune route d\'OP GESTION pour le Courrier (aucune adresse /api/ nouvelle : l\'adaptateur n\'en a pas, `courrierOuvert` lit /api/config du service lui-même)', !/\/api\/(mailbox|mailboxes|replies|sendmail|monitor)/.test(nu(SRC)));

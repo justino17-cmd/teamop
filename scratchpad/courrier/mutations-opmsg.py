@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Mutations de la rubrique Courrier d'OP MESSAGES : chaque défaut est remis un par un dans le dépôt (l'aperçu, la source du service ou le générateur), la sortie servie est REGÉNÉRÉE (sinon la page servie
-ne voit jamais la mutation), puis `tests/test-2705.js` doit TOMBER ; le fichier est restauré par `git checkout`. ⛔ CORRECTIF → BANC → COMMIT → MUTATION : `git status` doit être propre avant (CLAUDE.md).
+ne voit jamais la mutation), puis `tests/test-2695.js` doit TOMBER ; le fichier est restauré par `git checkout`. ⛔ CORRECTIF → BANC → COMMIT → MUTATION : `git status` doit être propre avant (CLAUDE.md).
    python3 scratchpad/courrier/mutations-opmsg.py [filtre]   (au premier plan)"""
 import os, subprocess, sys, re
 R = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -39,10 +39,10 @@ for nom, f, ancien, nouveau in M:
         g = subprocess.run(['node', 'scripts/opmsg-public.js'], cwd=R, capture_output=True, text=True, timeout=60)
         if g.returncode != 0: tombe, etat = True, ('le générateur REFUSE', '')
         else:
-            r = subprocess.run(['node', 'tests/test-2705.js'], cwd=R, capture_output=True, text=True, timeout=200)
+            r = subprocess.run(['node', 'tests/test-2695.js'], cwd=R, capture_output=True, text=True, timeout=200)
             k = re.findall(r'(\d+) ✓ +(\d+) ✗', r.stdout); etat = k[-1] if k else ('?', '?'); tombe = r.returncode != 0
             if not tombe and f == GEN:   # une mutation du GÉNÉRATEUR est aussi jouée contre son propre banc (test-941 : la sortie, ses refus, la population)
-                r2 = subprocess.run(['node', 'tests/test-941.js'], cwd=R, capture_output=True, text=True, timeout=200); tombe = r2.returncode != 0; etat = ('2705 vert', 'test-941 tombe' if tombe else 'rien')
+                r2 = subprocess.run(['node', 'tests/test-941.js'], cwd=R, capture_output=True, text=True, timeout=200); tombe = r2.returncode != 0; etat = ('2695 vert', 'test-941 tombe' if tombe else 'rien')
     except subprocess.TimeoutExpired: tombe, etat = True, ('délai', '')
     finally: subprocess.run(['git', 'checkout', '--', AP, SRCS, GEN, 'server-msg/public'], cwd=R)
     print(('TOMBE   ' if tombe else 'VIVANTE ') + nom + '  [' + ' ✗'.join(map(str, etat)) + ']')

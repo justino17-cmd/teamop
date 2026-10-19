@@ -133,6 +133,12 @@ const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers
     log(await p.locator('[data-opcourrier]').count() === 0 && await p.evaluate(() => COUR.inst === null), 'menu : changer de rubrique retire le module de la page et le démonte');
     await p.evaluate(() => setTab('support')); await p.waitForSelector('[data-opcourrier]'); await p.waitForTimeout(1500);
     log(vus.scripts.length === 1 && new RegExp(S.BOITE.replace('.', '\\.')).test(await texte(p, '#sideBody')), 'menu : on revient, le module se remonte (script non rechargé) et la boîte est là — ' + vus.scripts.length + ' chargement(s)');
+    /* l'accueil : il ne lit plus de messages, il compte les non lus et mène au Courrier */
+    await p.evaluate(() => { setTab('accueil'); }); await p.waitForTimeout(700);
+    await p.evaluate(() => { MSG.nonLus = 2; MSG.boites = [{}]; MSG.loaded = true; render(); }); await p.waitForTimeout(300);
+    const ac = await p.evaluate(() => document.getElementById('vue').innerText.replace(/\s+/g, ' '));
+    log(/Courrier/.test(ac) && /2 messages non lus/.test(ac) && /1 boîte reliée/.test(ac), 'accueil : un groupe « Courrier » compte les non lus (« 2 messages non lus · 1 boîte reliée ») et mène au Courrier');
+    await p.evaluate(() => setTab('support')); await p.waitForSelector('[data-opcourrier]'); await p.waitForTimeout(900);
     /* une relève ne le reconstruit pas */
     await p.evaluate(() => { window.__marque = document.querySelector('[data-opcourrier]'); render(); }); await p.waitForTimeout(400);
     log(await p.evaluate(() => window.__marque === document.querySelector('[data-opcourrier]')), 'relève : render() ne reconstruit pas le module vivant');

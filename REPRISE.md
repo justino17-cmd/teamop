@@ -41,7 +41,7 @@ Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `s
     `server-msg/public/opcourrier.js` (même origine, dans l'empreinte de version, refusé s'il appelait un réseau) et chargé à l'ouverture de la rubrique. **L'adaptateur est VIDE** (`courrierSource()` de
     `source-serveur.js` : `capacites()` tout à faux, aucune boîte, aucun message, aucun appel réseau) : « Ajouter une boîte mail » répond « Bientôt : la connexion de vos boîtes arrive avec le serveur d'OP Courrier ».
     ⚠️ La politique de contenu de la page rejoint l'en-tête du service (`img-src 'self' blob: data:`) : le module dessine deux icônes en `data:image/svg+xml`, que la copie plus stricte de la page refusait.
-    Gardes : `test-2705` (33 : la page, la VRAIE source contre un service bêta ET un service de production, `opcourrier.js` servi par le service), `test-941` (le générateur : sept fichiers, ses refus), `test-900` (la
+    Gardes : `test-2695` (33 : la page, la VRAIE source contre un service bêta ET un service de production, `opcourrier.js` servi par le service), `test-941` (le générateur : sept fichiers, ses refus), `test-900` (la
     huitième exception, jugée sur la structure du code), sonde `scratchpad/courrier/sonde-opmsg.js` (28), mutations `scratchpad/courrier/mutations-opmsg.py` (18, toutes tombent).
 
 - **Ce qui est fait (moitié 1 : le module et OP GESTION bêta)**
