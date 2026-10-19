@@ -126,10 +126,17 @@ function facteur() {
   /* la VRAIE fonction de la page : ses dépendances (l'adresse du serveur, l'équipe, l'en-tête de preuve) sont celles de la page, fournies ; `fetch` est le vrai, espionné */
   let cle = CLE_A; const requetes = [];
   const espion = (u, o) => { requetes.push((o && o.method || 'GET') + ' ' + new URL(u).pathname); return fetch(u, o); };
-  const sb = { PUSH_API: B, syncTeam: () => 'ent-a-9x', enteteEquipe: async (base) => Object.assign({}, base || {}, cle ? { 'x-teamop-kh': kh(cle) } : {}), mailBrandName: () => 'Entreprise A', fetch: espion, _courrierRep: null,
+  const sb = { PUSH_API: B, syncTeam: () => 'ent-a-9x', enteteEquipe: async (base) => Object.assign({}, base || {}, cle ? { 'x-teamop-kh': kh(cle) } : {}), mailBrandName: () => 'Entreprise A', fetch: espion, _courrierRep: null, BETA_ESSAI: false,
     Date, JSON, Promise, Array, String, Uint8Array, btoa, encodeURIComponent, Error, URL };
   vm.createContext(sb);
   vm.runInContext(SRC_A + '\n;this.source = courrierSource();', sb);
+  /* v2.92 — l'ESPACE DE LA BÊTA n'est pas une panne : aucune route n'est appelée, l'erreur porte `calme:true` et le message de Justin ; en production le drapeau est faux et le chemin est celui d'avant */
+  { const pris = []; const sbB = Object.assign({}, sb, { BETA_ESSAI: true, fetch: async (u) => { pris.push(u); return { ok: false, status: 403, json: async () => ({ error: 'refusé' }) }; } }); vm.createContext(sbB);
+    vm.runInContext(SRC_A + '\n;this.source = courrierSource();', sbB);
+    let e = null; try { await sbB.source.boites(); } catch (x) { e = x; }
+    v('⛔ BÊTA : boites() ne parle à AUCUNE route et rend une erreur CALME (pas de « refusé », pas de panne)', [pris.length, !!e && e.calme === true, !!e && /^Espace de test : aucune vraie boîte mail ne se connecte ici\. Les vrais mails se testent dans la Tour\.$/.test(e.message), !!e && /refus|clé/i.test(e.message)], [0, true, true, false]);
+    const nB = requetes.length; let e2 = null; try { await sb.source.boites(); } catch (x) { e2 = x; }
+    vrai('⛔ PRODUCTION (BETA_ESSAI faux) : le chemin est celui d\'avant — la route est appelée', requetes.length === nB + 1 && !(e2 && e2.calme), requetes.slice(nB).join(',')); }
   const S = sb.source;
   const rejet = async (p) => { try { const r = await p; return { rejete: false, valeur: r }; } catch (e) { return { rejete: true, message: String(e && e.message) }; } };
   const fichier = (nom, octets) => ({ name: nom, arrayBuffer: async () => octets.buffer.slice(octets.byteOffset, octets.byteOffset + octets.byteLength) });

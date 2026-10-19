@@ -31417,6 +31417,9 @@ function courrierSource(){
     async capacites(){ return {oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
       dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024}}; },
     async boites(){
+      /* ⛔ L'espace de la BÊTA est refusé exprès sur les routes mail (aucun vrai courriel ne se lit, ne se connecte ni ne part d'ici) : ce n'est pas une panne, donc pas de « refusé » ni de
+         « Réessayer ». `calme:true` le dit au module, qui affiche l'état tel quel. En production `BETA_ESSAI` vaut `false` : cette ligne ne s'exécute jamais, le chemin est celui d'avant. */
+      if(BETA_ESSAI){ const e=new Error('Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }
       const r=await fetch(PUSH_API+'/api/mailboxes?teamId='+encodeURIComponent(syncTeam()),{headers:await enteteEquipe()});
       if(!r.ok) throw await refus(r,'Lecture des boîtes refusée');
       const d=await r.json(); if(!Array.isArray(d.mailboxes)) throw new Error('réponse du serveur illisible');

@@ -134,9 +134,9 @@ vrai('la valeur rendue : { demonter, cote, rafraichir }', /return \{\s*demonter:
 vrai('monter exige une source (message clair) et un conteneur', /l’option « source » \(l’adaptateur de données\) est obligatoire/.test(CODE));
 const capDecl = (CODE.match(/CAP\[k\]=c\[k\]===true/g) || []).length;
 vrai('toute capacité est FAUSSE tant que la source ne dit pas le contraire (=== true, jamais « truthy »)', capDecl === 1 && /var CAP=\{oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,/.test(CODE));
-for (const [k, mot] of [['oauth', 'Bientôt : connexion sécurisée'], ['programmeServeur', 'Bientôt : l’envoi à l’heure dite'], ['signature', 'Bientôt : l’envoi du document à signer'], ['destinataires', 'Bientôt : plusieurs destinataires']])
+for (const [k, mot] of [['oauth', 'Bientôt : connexion sécurisée'], ['programmeServeur', 'Bientôt : l’envoi à l’heure dite'], ['signature', 'partira quand Yousign sera branché'], ['destinataires', 'Bientôt : plusieurs destinataires']])
   vrai('« Bientôt » : ce que la source ne sait pas faire (' + k + ') est DIT — « ' + mot + ' »', CODE.includes(mot));
-vrai('trois états : liste illisible ≠ liste vide (LOAD.boites wait | ok | ko ; un rejet n\'efface jamais ce qui était lu ; « Réception indisponible » ≠ « Aucun message »)', /LOAD\.boites="ko"/.test(CODE) && /Boîtes mail illisibles/.test(CODE) && /Réception indisponible/.test(CODE) && /LOAD\.msgs\[a\.id\]="ko"/.test(CODE));
+vrai('trois états : liste illisible ≠ liste vide (LOAD.boites wait | ok | ko ; un rejet n\'efface jamais ce qui était lu ; « Réception indisponible » ≠ « Aucun message »)', /"calme":"ko"/.test(CODE) && /Boîtes mail illisibles/.test(CODE) && /Réception indisponible/.test(CODE) && /LOAD\.msgs\[a\.id\]="ko"/.test(CODE));
 vrai('l\'envoi se DIT : « Message envoyé » après la réponse de la source, un échec remet le message dans les brouillons', /function expedier\(m,quiet,fin\)/.test(CODE) && /Envoi impossible : /.test(CODE));
 
 /* ═════════════════════════════ 5. LA PERSISTANCE — LA VRAIE ═════════════════════════════ */
@@ -382,6 +382,123 @@ const attente = (ms) => new Promise(r => setTimeout(r, ms || 15));
   const OC = fonction(MOD, 'openCompose'), FM = fonction(MOD, 'fillMsg'), DA = fonction(MOD, 'doAct');
   vrai('⛔ le composeur retient enReponseA, le rend avec les champs, le brouillon (fillMsg) le garde (repA) et le rouvre', /state\.compose=\{[^}]*enReponseA:model\.enReponseA\|\|null/.test(OC) && /enReponseA:state\.compose\.enReponseA\}; \}/.test(OC) && /if\(d\.enReponseA\) m\.repA=String\(d\.enReponseA\); else delete m\.repA;/.test(FM) && /enReponseA:m\.repA\|\|null\}\);/.test(DA));
   vrai('…la réponse rapide aussi répond dans le fil', /enReponseA:rm\?rm\.enReponseA:null\}\); \}/.test(CODE));
+}
+
+/* ═════════════════════════════ 6 ter. v2.92 — LES BOÎTES SE DISTINGUENT, UNE BOÎTE CLIQUÉE OUVRE SA RÉCEPTION (Justin, capture de la Tour) ═════════════════════════════ */
+console.log('\n6 ter. Trois boîtes de même nom, le clic sur une boîte, la catégorie vide, le volet de lecture vide');
+{
+  const F = ['nomPartage', 'acctLabel', 'acctSous'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 40); return f; }).join('\n');
+  const jouer = (noms) => { const sb = { ACCOUNTS: noms.map((n, i) => ({ id: 'b' + i, name: n, email: 'a' + i + '@teamop.fr' })), String }; vm.createContext(sb); vm.runInContext(F + '\n;this.l=acctLabel;this.s=acctSous;', sb);
+    return sb.ACCOUNTS.map(a => [sb.l(a), sb.s(a)]); };
+  v('⛔ trois boîtes nommées « TEAM OP » : l\'ADRESSE est le libellé principal, le nom passe dessous', jouer(['TEAM OP', 'TEAM OP', 'TEAM OP']), [['a0@teamop.fr', 'TEAM OP'], ['a1@teamop.fr', 'TEAM OP'], ['a2@teamop.fr', 'TEAM OP']]);
+  v('…la comparaison ignore casse et espaces (« Team Op » et « team op  » sont le même nom)', jouer(['Team Op', ' team op  '])[0], ['a0@teamop.fr', 'Team Op']);
+  v('…des noms DIFFÉRENTS gardent leur nom, l\'adresse dessous (rien ne change pour qui a nommé ses boîtes)', jouer(['Support', 'Contrôle']), [['Support', 'a0@teamop.fr'], ['Contrôle', 'a1@teamop.fr']]);
+  v('…seules les boîtes qui se ressemblent passent à l\'adresse', jouer(['Support', 'TEAM OP', 'TEAM OP']).map(x => x[0]), ['Support', 'a1@teamop.fr', 'a2@teamop.fr']);
+  const sb0 = tranche('la ligne d\'une boîte dans la barre latérale', 'var acctRow=function(a)', 'tile:acctTile(a)', MOD);
+  vrai('⛔ la barre latérale écrit le libellé distinct et le nom dessous (acctLabel / acctSous), l\'adresse reste en infobulle', /name:acctLabel\(a\),sub:acctSous\(a\),title:a\.email,badge:kindBadge\(k\),$/.test(sb0), sb0);
+  vrai('…le champ « De » du composeur et de la signature distinguent aussi (adresse seule quand le nom est partagé)', (CODE.match(/H\(nomPartage\(a\)\?a\.email:a\.name\)/g) || []).length === 2);
+  vrai('…un message écrit par la boîte elle-même (« À : » / expéditeur) prend le libellé distinct', /return m\.from\? m\.from\.name : acctLabel\(acctOf\(m\.acct\)\)/.test(CODE));
+  const clic = tranche('le clic sur une boîte', 'var sc=e.target.closest(".scope-row[data-scope]");', 'var f=e.target.closest(".folder[data-folder]");', CODE);
+  const iF = clic.indexOf('state.folder="inbox"'), iPh = clic.indexOf('if(isPhone())');
+  vrai('⛔ cliquer une BOÎTE ouvre sa Boîte de réception AVANT de distinguer les formats (Mac et iPad comme iPhone) — le dossier regardé avant ne reste pas', iF > 0 && iPh > iF && /state\.filter="all"/.test(clic.slice(0, iPh)), clic);
+  vrai('…et sur iPad le tiroir des boîtes se referme (comme le fait un dossier)', /layout\(\)==="pad"\)\{ closeDrawer\(\); return; \}/.test(clic));
+  const ev = fonction(MOD, 'etatVide');
+  vrai('(tranche trouvée) etatVide', ev.length > 600);
+  vrai('⛔ une catégorie vide dont les AUTRES catégories portent des messages le DIT et offre « Voir tout » (une boîte de notifications n\'a rien dans « Principal », ce n\'est pas une boîte vide)',
+    /ailleurs=\(!state\.query&&catActive\(\)&&state\.cat!=="tout"\)\?folderMessages\(state\.folder\)\.filter\(matchesFilter\)\.length:0/.test(ev) && /dans les autres catégories/.test(ev) && /data-cat-tout="1"/.test(ev) && /\[data-cat-tout\]"\)\)\{ setCat\("tout",false\)/.test(CODE));
+  const css = (MOD.match(/\.opc \.reading-empty\{[^}]*\}/) || [''])[0];
+  vrai('⛔ le volet de lecture vide est BORNÉ à son volet (largeur 100 %, rien ne dépasse) et le texte se replie plutôt que d\'être coupé', /box-sizing:border-box/.test(css) && /max-width:100%/.test(css) && /overflow:hidden/.test(css) && /\.opc \.reading-empty b\{[^}]*overflow-wrap:anywhere/.test(MOD) && /\.opc \.reading\{min-width:0\}/.test(MOD), css);
+}
+
+
+/* ═════════════════════════════ 6 quater. v2.92 — SIGNATURE « PRÊTE », NIVEAU EN DEUX MOTS, TRI PAR LA SOURCE ═════════════════════════════ */
+console.log('\n6 quater. Signature sans prestataire (« Prête — en attente de Yousign »), niveau « Code SMS / Code e-mail », automatique du serveur');
+{
+  vrai('⛔ le niveau de signature ne propose que « Code SMS » (adv) et « Code e-mail » (simple) — les valeurs internes ne bougent pas, le défaut suit toujours le type',
+    /<option value="adv"'\+\(pre\.level!=="simple"\?' selected':''\)\+'>Code SMS<\/option><option value="simple"'\+\(pre\.level==="simple"\?' selected':''\)\+'>Code e-mail<\/option>/.test(CODE) && !/Avancée — code par SMS|Simple — code par e-mail/.test(CODE));
+  const env = tranche('le bouton Envoyer de la demande de signature', 'var a=$("#sgFrom").value, now=Date.now(), body=$("#sgMsg").value;', 'var m=mk({acct:a,folder:"sign"', CODE);
+  vrai('⛔ sans prestataire, « Envoyer » RANGE la demande (état « ready », fenêtre fermée, message dans Signatures) — aucune fausse signature, aucun faux envoi (pas d\'apprentissage de contact, pas d\'événement « Envoyé à »)',
+    /if\(!CAP\.signature\)\{/.test(env) && /st:"ready"/.test(env) && /closeOverlay\(\)/.test(env) && /state\.folder="sign"/.test(env) && /return; \}/.test(env) && !/learnContacts|Envoyé à/.test(env), env);
+  vrai('…le toast le dit en une phrase : rangée, partira quand Yousign sera branché, rien n\'est parti', /Rangée dans Signatures : prête, elle partira quand Yousign sera branché\. Rien n’est parti\./.test(env));
+  vrai('…l\'état a son libellé et ne s\'expire jamais (expires 0, signState ne touche que pending / viewed)', /ready:"Prête — en attente de Yousign"/.test(CODE) && /\(g\.st==="pending"\|\|g\.st==="viewed"\)&&Date\.now\(\)>g\.expires/.test(CODE));
+  const carte = fonction(MOD, 'signCardHtml'), act = fonction(MOD, 'signAct');
+  vrai('…sa carte propose « Renvoyer » et « Annuler », dit « Pas encore envoyé » de chaque signataire, jamais « Relancer » ni « Simuler »', /st==="ready"\) acts='<button type="button" class="btn primary" data-act="signSend">Renvoyer<\/button><button type="button" class="btn danger" data-act="signDrop">Annuler<\/button>'/.test(carte) && /Pas encore envoyé/.test(carte));
+  vrai('⛔ « Renvoyer » ne prétend rien tant que la source ne sait pas signer, puis rouvre le formulaire REMPLI (et remplace la demande rangée) ; « Annuler » la retire', /signSend"\)\{[\s\S]*?if\(!CAP\.signature\)\{ toast\("Toujours en attente de Yousign — rien n’est parti\."\); return; \}[\s\S]*?remplace:m\.id/.test(act) && /signDrop"\)\{ removeMsg\(m\.id\)/.test(act) && /if\(pre\.remplace\) removeMsg\(pre\.remplace\)/.test(CODE));
+  /* le tri par la source : la VRAIE refreshCls + classifyCtx, avec le VRAI moteur */
+  const iM2 = MOD.indexOf('var OPClassify = (function () {'), jM2 = MOD.indexOf('\n})();', iM2) + '\n})();'.length;
+  const RC = ['classifyCtx', 'refreshCls', 'emailOf', 'emailsIn'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 30); return f; }).join('\n');
+  const jouerTri = (msgs, rules) => { const sb = { MESSAGES: msgs, CLS: {}, CONTACTS: {}, RULES: rules || { senders: {}, domains: {} }, String, Object, Array }; vm.createContext(sb);
+    vm.runInContext(MOD.slice(iM2, jM2) + '\n' + RC + '\n;this.go=refreshCls;', sb); sb.go(); return sb.CLS; };
+  const mm = (id, mail, nom, o) => Object.assign({ id, src: true, folder: 'inbox', from: { name: nom, email: mail }, to: 'support@teamop.fr', subject: 'Demande', preview: '', body: null, att: [] }, o);
+  const A = mm('a', 'contact@societe-dupont.fr', 'Société Dupont', { subject: 'Question sur votre devis', autoSrc: false });
+  const B = mm('b', 'noreply@teamop.fr', 'TeamOP', { subject: 'Votre code de connexion', autoSrc: true });
+  const C = mm('c', 'contact@societe-dupont.fr', 'Société Dupont', { id: 'c', subject: 'Question sur votre devis' });
+  const D = mm('d', 'info@teamop.fr', 'Formulaire du site', { subject: 'Nouveau message du site', autoSrc: false });
+  const cls = jouerTri([A, B, C, D]);
+  v('⛔ une PERSONNE qui écrit depuis une adresse générique (contact@) que la source ne juge pas automatique → Principal (le moteur seul disait Notifications)', [cls.a.cat, cls.c.cat], ['principal', 'notif']);
+  v('…un envoi automatique reconnu par la source (noreply@teamop.fr) reste en Notifications', cls.b.cat, 'notif');
+  v('…un formulaire du site (info@teamop.fr, non automatique pour la source) est Principal', cls.d.cat, 'principal');
+  const cr = jouerTri([mm('r', 'contact@societe-dupont.fr', 'Société Dupont', { autoSrc: false })], { senders: { 'contact@societe-dupont.fr': 'notif' }, domains: {} });
+  v('⛔ une règle de la personne passe AVANT la source (« toujours ranger cet expéditeur en Notifications »)', cr.r.cat, 'notif');
+  const promo = jouerTri([mm('p', 'offres@boutique-exemple.fr', 'Boutique', { subject: 'Soldes -50 % : profitez des promotions', autoSrc: false, unsub: true })]);
+  v('…une publicité (désabonnement) n\'est jamais promue en Principal par la source', promo.p.cat !== 'principal', true);
+  const env2 = mm('s1', 'support@teamop.fr', 'Support', { folder: 'sent', to: 'marie.durand@exemple-client.fr', subject: 'Votre dossier' });
+  const rep = mm('s2', 'info@exemple-client.fr', 'Cabinet Exemple', { subject: 'Re : Votre dossier' });
+  v('…une personne à qui la boîte a ÉCRIT (Envoyés lu depuis la source) est un contact connu', [jouerTri([env2, mm('s3', 'marie.durand@exemple-client.fr', 'Marie Durand', { subject: 'Bonjour' })]).s3.reasons[0]], ['contact connu']);
+  const dsrc = fonction(MOD, 'depuisSource');
+  vrai('⛔ le champ `automatique` de la source (vrai / faux, jamais « truthy ») arrive sur le message', /autoSrc:typeof r\.automatique==="boolean"\?r\.automatique:null/.test(dsrc));
+}
+
+
+/* ═════════════════════════════ 6 quinquies. v2.92 — LE LOGO D'UNE BOÎTE (Justin : « qu'on puisse choisir un logo, qu'il s'affiche dans la barre ») ═════════════════════════════ */
+console.log('\n6 quinquies. Logo par boîte : validé, recadré, rangé sur l\'appareil, retiré ; pastille à l\'initiale sinon');
+{
+  const F = ['logoValide', 'logoCadre', 'teinteAdresse', 'acctTile'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 40); return f; }).join('\n');
+  const CST = tranche('les bornes du logo', 'var LOGO_PX=64', 'function logoValide', MOD);
+  const sb = { SAVED: { logos: {} }, H: (x) => String(x), String, Number }; vm.createContext(sb);
+  vm.runInContext(CST + '\n' + F + '\n;this.v=logoValide;this.c=logoCadre;this.t=teinteAdresse;this.tile=acctTile;this.PX=LOGO_PX;this.MAX=LOGO_MAX;', sb);
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  v('⛔ un PNG ou un JPEG en data URL est accepté', [sb.v(png), sb.v('data:image/jpeg;base64,/9j/4AAQSkZJRg==')], [true, true]);
+  v('⛔ rien d\'autre ne passe : SVG (exécutable), HTML, GIF, URL distante, javascript:, type absent, non-chaîne', [
+    sb.v('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4='), sb.v('data:text/html;base64,PGgxPg=='), sb.v('data:image/gif;base64,R0lGOD'), sb.v('https://exemple.fr/logo.png'), sb.v('javascript:alert(1)'),
+    sb.v('data:image/png,<svg onload=alert(1)>'), sb.v('data:image/png;base64,AAAA"onerror="alert(1)'), sb.v(null), sb.v(42), sb.v('')], Array(10).fill(false));
+  v('…la taille est BORNÉE (quelques Ko) : 64 px, 24 000 caractères au plus', [sb.PX, sb.MAX, sb.v('data:image/png;base64,' + 'A'.repeat(sb.MAX - 22)), sb.v('data:image/png;base64,' + 'A'.repeat(sb.MAX))], [64, 24000, true, false]);
+  v('le recadrage garde le CARRÉ du centre (paysage, portrait, carré)', [sb.c(200, 100), sb.c(100, 300), sb.c(64, 64)], [{ sx: 50, sy: 0, c: 100 }, { sx: 0, sy: 100, c: 100 }, { sx: 0, sy: 0, c: 64 }]);
+  const a1 = { id: 'b1', email: 'support@teamop.fr' }, a2 = { id: 'b2', email: 'controle@teamop.fr' };
+  const sans = sb.tile(a1), avec = (sb.SAVED.logos.b1 = png, sb.tile(a1));
+  vrai('⛔ sans logo : une pastille à l\'INITIALE de l\'adresse, d\'une teinte stable par adresse (deux appels, même couleur ; deux adresses, deux couleurs)', /hsl\(\d+ 46% 36%\)[^>]*>S</.test(sans) && sb.t('support@teamop.fr') === sb.t('SUPPORT@teamop.fr') && sb.t('support@teamop.fr') !== sb.t('controle@teamop.fr') && /hsl\(\d+ 46% 36%\)[^>]*>C</.test(sb.tile(a2)), sans);
+  vrai('⛔ avec logo : l\'image est une <img src="data:…"> sans texte alternatif parlant, jamais exécutée, et le logo d\'une boîte n\'habille pas l\'autre', /<img src="data:image\/png;base64,[^"]+" alt="" draggable="false">/.test(avec) && !/S</.test(avec) && /hsl\(/.test(sb.tile(a2)));
+  sb.SAVED.logos.b1 = 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=';
+  vrai('…un logo rangé qui ne serait plus une petite image PNG / JPEG n\'est PAS peint (retour à la pastille)', /hsl\(/.test(sb.tile(a1)) && !/<img/.test(sb.tile(a1)));
+  /* la VRAIE persist / restore : le logo est rangé avec l'appareil, relu après validation, retiré avec la boîte */
+  const persistance = tranche('persist et restore', '  function persist(){ try{', '  function acctExists(id)', MOD);
+  const valeurs = {}; const stock = { getItem: (k) => (k in valeurs ? valeurs[k] : null), setItem: (k, x) => { valeurs[k] = x; } };
+  const mk2 = () => { const s2 = { LS: 'cle-test', localStorage: stock, JSON, Object, Array, String, GONE: [], OVER: {}, RULES: { senders: {}, domains: {} }, CONTACTS: {}, SETTINGS: { notif: true, threads: true }, MESSAGES: [], ACCOUNTS: [{ id: 'b1', email: 'a@x.fr', name: 'A', kind: 'pro', signature: '' }],
+    SAVED: { kinds: {}, names: {}, sigs: {}, logos: {} }, state: { scope: 'pro', folder: 'inbox', cat: 'principal' }, COTES: ['pro'], FOLDERS: [{ id: 'inbox' }], uid: 1, restoredLost: 0, kindOf: () => 'pro', majOver() {}, syncSource() {}, isCat: () => true,
+    CAP: {}, nettoye: (m) => m, emailsIn: () => [] };
+    vm.createContext(s2); vm.runInContext(CST + '\n' + fonction(MOD, 'logoValide') + '\n' + persistance + '\n;this.persist=persist;this.restore=restore;', s2); return s2; };
+  const p1 = mk2(); p1.SAVED.logos.b1 = png; p1.persist();
+  const p2 = mk2(); p2.restore();
+  v('⛔ le logo est RANGÉ avec la boîte (cleStockage) et relu à la reprise', p2.SAVED.logos.b1, png);
+  const brut = JSON.parse(valeurs['cle-test']); brut.logos.b1 = 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4='; brut.logos.b2 = png; valeurs['cle-test'] = JSON.stringify(brut);
+  const p3 = mk2(); p3.restore();
+  v('⛔ …et un rangement trafiqué ne fait rien entrer d\'exécutable : le SVG est jeté à la lecture, le PNG valide reste', [p3.SAVED.logos.b1, p3.SAVED.logos.b2], [undefined, png]);
+  vrai('…le logo n\'est jamais envoyé à la source (aucun appel de SRC. avec lui), et le module ne charge rien d\'externe', !/SRC\.[a-zA-Z]+\([^)]*logo/.test(CODE) && !/fetch\s*\(/.test(CODE));
+  const lf = fonction(MOD, 'logoDepuisFichier');
+  vrai('⛔ le fichier choisi est refusé AVANT d\'être lu s\'il n\'est pas PNG / JPEG ou dépasse 8 Mo, puis recadré et réduit sur un <canvas> de 64 px', /\^image\\\/\(png\|jpeg\)\$/.test(lf) && /LOGO_FICHIER_MAX/.test(lf) && /logoCadre\(w,h\)/.test(lf) && /cv\.width=LOGO_PX/.test(lf) && /logoValide\(u\)/.test(lf));
+  const ag = tranche('la ligne d\'une boîte', 'var acctRow=function(a)', 'tile:acctTile(a)}; };', MOD) + 'tile:acctTile(a)}; };';
+  vrai('⛔ le logo (ou la pastille) est celui de la barre latérale, de l\'en-tête de liste et du champ « De »; le menu de la boîte le propose (« Changer le logo… »), l\'ajout aussi',
+    /tile:acctTile\(a\)/.test(ag) && /acctTile\(acctOf\(state\.scope\)\)/.test(CODE) && /acctTile\(acctOf\(\$\("#cFrom"\)\.value\)\)/.test(CODE) && /label:"Changer le logo…"/.test(CODE) && /logoChoisi/.test(CODE) && /if\(logoValide\(extra\.logo\)\) SAVED\.logos\[id\]=extra\.logo/.test(CODE));
+  vrai('…et il part avec la boîte (supprimée, son logo est effacé du rangement)', /Object\.keys\(SAVED\.logos\)/.test(CODE) && /delete SAVED\.logos\[id\]/.test(CODE));
+}
+
+/* ═════════════════════════════ 6 sexies. v2.92 — L'ÉTAT « ESPACE DE TEST » (source qui rejette avec `calme:true`) ═════════════════════════════ */
+console.log('\n6 sexies. Un rejet « calme » n\'est pas une panne');
+{
+  const ch = fonction(MOD, 'charger'), ev = fonction(MOD, 'etatVide');
+  vrai('⛔ un rejet qui porte `calme:true` pose l\'état « calme », tout autre rejet reste « ko » (la panne se dit)', /LOAD\.boites=e&&e\.calme===true\?"calme":"ko"/.test(ch));
+  vrai('⛔ l\'état calme dit le message de la source tel quel, sans « Réessayer » ni « refusé » (role=status, pas alert), et ne propose pas d\'ajouter une boîte', /LOAD\.boites==="calme"\) return '<div class="empty" role="status">'\+I\.mail\+'<b>Espace de test<\/b><span>'\+H\(LOAD\.err\)\+'<\/span><\/div>';/.test(ev) && /LOAD\.boites==="calme"&&!ACCOUNTS\.length\?''/.test(CODE) && /Espace de test<\/span>/.test(CODE));
+  vrai('…et la liste calme se repeint (renderAll) comme une panne se repeint', /LOAD\.boites==="ko"\|\|LOAD\.boites==="calme"/.test(CODE));
 }
 
 /* ═════════════════════════════ 7. LE SITE ET LES SONDES ═════════════════════════════ */

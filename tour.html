@@ -2778,7 +2778,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.91</div>
+    <div class="lg-pied">console interne · v2.92</div>
   </div>
 </div>
 
@@ -2820,7 +2820,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.91</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.92</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2832,7 +2832,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.91</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.92</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3130,7 +3130,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.91';
+var TOUR_VERSION='v2.92';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -7005,18 +7005,28 @@ function courrierSource(){
       if(m&&m.mid) MIDS[id]=String(m.mid); return MIDS[id]||''; }); }
   function suiviDe(s){ return s&&typeof s==='object'?{statut:s.statut,assigne:s.assigne||'',par:s.par||''}:null; }
   /* UNE lecture des dossiers par relevé, partagée par tous les dossiers de toutes les boîtes (le serveur interroge l'IMAP de chaque boîte) */
-  function dossiers(){
-    var t=Date.now(); if(D&&t-D.t<30000) return D.p;
-    var p=appel('/api/monitor/mail/dossiers',undefined,'Lecture des boîtes refusée').then(function(d){
+  function dossiers(frais){
+    var t=Date.now(); if(!frais&&D&&t-D.t<30000) return D.p;
+    var p=appel('/api/monitor/mail/dossiers'+(frais?'?frais=1':''),undefined,'Lecture des boîtes refusée').then(function(d){
       if(!d||!Array.isArray(d.boites)) throw new Error('réponse du serveur illisible'); return d.boites; });
     D={t:t,p:p}; p.catch(function(){ if(D&&D.p===p) D=null; }); return p; }
-  function chemin(boite,dossier){
-    return dossiers().then(function(l){
+  function chemin(boite,dossier,frais){
+    return dossiers(frais).then(function(l){
       var b=l.filter(function(x){ return x.boite&&x.boite.id===boite; })[0];
       if(!b) throw new Error('boîte introuvable');
       if(b.erreur) throw new Error('la boîte ne répond pas : '+b.erreur);   /* une boîte qui ne répond pas n'est PAS une boîte vide */
       var d=(b.dossiers||[]).filter(function(x){ return x.role===ROLE[dossier]; })[0];
       return d?d.chemin:(dossier==='inbox'?'INBOX':null); }); }   /* null : cette boîte n'a pas ce dossier — il est vide, c'est vrai */
+  /* le dossier d'ARRIVÉE d'un déplacement : celui que la boîte porte VRAIMENT (usage spécial IMAP d'abord, puis les noms usuels — c'est `roleDe` du serveur qui le décide, on lit sa réponse).
+     Une boîte qui n'en a pas (OVH ne crée pas « Archives » d'office) le DIT, plutôt que de laisser le serveur répondre « dossier de destination introuvable » ; le serveur est relu à neuf
+     une fois (la personne vient peut-être de créer le dossier dans son webmail), et la suppression reste possible tant qu'une Corbeille existe. */
+  var NOM_DOSSIER={archive:'Archives',junk:'Indésirables',trash:'Corbeille',sent:'Envoyés',drafts:'Brouillons',inbox:'Réception'};
+  function cheminArrivee(boite,dossier){
+    return chemin(boite,dossier,false).then(function(ch){ return ch!==null?ch:chemin(boite,dossier,true); }).then(function(ch){
+      if(ch!==null) return ch;
+      return dossiers().then(function(l){
+        var b=l.filter(function(x){ return x.boite&&x.boite.id===boite; })[0]||{}, corb=(b.dossiers||[]).some(function(x){ return x.role==='corbeille'; });
+        throw new Error('Cette boîte n’a pas de dossier « '+NOM_DOSSIER[dossier]+' » (créez-le dans sa messagerie, puis réessayez).'+(corb&&dossier!=='trash'?' Le message reste en place ; « Supprimer » le range dans la Corbeille.':'')); }); }); }
   function taille(o){ o=+o||0; return o>=1048576?(o/1048576).toFixed(1).replace('.',',')+' Mo':o>=1024?Math.round(o/1024)+' Ko':o+' o'; }
   function ref(id){ var s=String(id), i=s.indexOf('|'), j=s.indexOf('|',i+1);
     if(i<0||j<0) throw new Error('message introuvable'); return {boite:s.slice(0,i),uid:parseInt(s.slice(i+1,j),10),dossier:s.slice(j+1)}; }
@@ -7024,7 +7034,8 @@ function courrierSource(){
     var pj=[]; for(var i=0;i<(m.pieces||0);i++) pj.push({nom:'Pièce jointe',taille:''});   /* la liste ne donne que le nombre ; les noms arrivent à l'ouverture */
     var id=m.boite+'|'+m.uid+'|'+m.dossier; if(m.mid) MIDS[id]=String(m.mid);
     return {id:id,dossier:dossier,de:{nom:m.deNom||'',email:m.de||''},a:(m.pour&&m.pour[0])||'',objet:m.objet||'',
-      date:+m.ts||0,lu:!!m.lu,drapeau:!!m.marque,pj:pj,suivi:suiviDe(m.suivi)}; }
+      date:+m.ts||0,lu:!!m.lu,drapeau:!!m.marque,pj:pj,suivi:suiviDe(m.suivi),
+      automatique:typeof m.auto==='boolean'?m.auto:undefined}; }   /* `auto` : le serveur a lu l'expéditeur et l'objet (robots, alertes) — le tri s'en sert pour ne pas ranger une PERSONNE en Notifications */
   function pages(boite,ch,n){
     var tout=[];
     var lire=function(p){ return appel('/api/monitor/mail/liste?page='+p+'&boite='+encodeURIComponent(boite)+'&dossier='+encodeURIComponent(ch),undefined,'Lecture du dossier refusée').then(function(d){
@@ -7061,7 +7072,8 @@ function courrierSource(){
     deplacer:function(id,vers){
       var r=ref(id); oublier();
       if(!ROLE[vers]) return Promise.reject(new Error('dossier inconnu'));
-      return appel('/api/monitor/mail/deplacer',{boite:r.boite,dossier:r.dossier,uid:r.uid,role:ROLE[vers]},'Déplacement refusé').then(function(){}); },
+      return cheminArrivee(r.boite,vers).then(function(){
+        return appel('/api/monitor/mail/deplacer',{boite:r.boite,dossier:r.dossier,uid:r.uid,role:ROLE[vers]},'Déplacement refusé'); }).then(function(){}); },
     envoyer:function(m){
       /* répondre dans le fil : le serveur veut le Message-ID (In-Reply-To / References) et, pour marquer « répondu », la place du message ; hors de SA boîte, le Message-ID seul */
       var rep=m.enReponseA?midDe(m.enReponseA).then(function(mid){

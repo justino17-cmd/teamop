@@ -63,7 +63,7 @@ console.log('\n── 2704 · 1. La page : l\'ancien Courrier n\'existe plus, OP
   vrai('« Écrire à… » d\'une fiche ouvre un nouveau message dans le module (ecrire), sans composeur maison', /function courrierEcrire\([\s\S]*?COUR\.inst\.ecrire\(/.test(BRUT) && (CODE.match(/courrierEcrire\(/g) || []).length >= 3);
   vrai('l\'accueil ne lit plus de messages (il n\'en a plus) : il compte les non lus et mène au Courrier', !/MSG\.messages/.test(CODE) && /nMot\(MSG\.nonLus,'message non lu'/.test(CODE));
   vrai('le relevé des compteurs (chargerMail) ne touche plus au chiffre quand le module est monté — la pastille ne saute pas entre deux manières de compter', /if\(!COUR\.inst\)\{ MSG\.nonLus=/.test(corps(BRUT, 'function chargerMail(')));
-  vrai('⛔ la version de la Tour est montée (v2.91)', /var TOUR_VERSION='v2\.91'/.test(BRUT));
+  vrai('⛔ la version de la Tour est montée (v2.92)', /var TOUR_VERSION='v2\.92'/.test(BRUT));
   vrai('(population) opcourrier.js existe à la racine, sert `ecrire`, et n\'appelle jamais le réseau', fs.existsSync(path.join(RACINE, 'opcourrier.js')) && /ecrire:function/.test(fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8')) && !/\bfetch\(|XMLHttpRequest/.test(nu(fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8'))));
 }
 
@@ -147,10 +147,10 @@ function facteur() {
   /* ── la VRAIE courrierSource, extraite du fichier réel, avec ce que la page lui fournit ── */
   const src = corps(BRUT, 'function courrierSource(');
   vrai('(population) courrierSource est trouvée dans tour.html, et entière', src.length > 3000 && /retirerBoite:function/.test(src), src.length);
-  let jeton = TP, deconnexions = 0, etats = [], nAdr = 0;
+  let jeton = TP, deconnexions = 0, etats = [], nAdr = 0; const URLS = [];
   const bac = { API: 'http://127.0.0.1:' + PORT, INJOIGNABLE: 'Serveur injoignable — nouvelle tentative dans un instant.', Promise, JSON, Date, encodeURIComponent, String, Array, Math, Error, parseInt,
     hAuth: () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + jeton }), srvEtat: ok2 => etats.push(ok2), doLogout: () => { deconnexions++; },
-    fetch: (u, o) => fetch(u, Object.assign({}, o, { headers: Object.assign({ 'X-Forwarded-For': '10.7.' + ((++nAdr >> 8) & 255) + '.' + (nAdr & 255) }, (o && o.headers) || {}) })),
+    fetch: (u, o) => { URLS.push(String(u)); return fetch(u, Object.assign({}, o, { headers: Object.assign({ 'X-Forwarded-For': '10.7.' + ((++nAdr >> 8) & 255) + '.' + (nAdr & 255) }, (o && o.headers) || {}) })) },
     FileReader: class { readAsDataURL(f) { f.arrayBuffer().then(b => { this.result = 'data:' + (f.type || 'application/octet-stream') + ';base64,' + Buffer.from(b).toString('base64'); this.onload(); }, e => this.onerror(e)); } } };
   vm.createContext(bac);
   vm.runInContext(src, bac);
@@ -226,6 +226,46 @@ function facteur() {
   const refusAdr = await rejette(s.envoyer({ boite: b.id, a: 'pas-une-adresse', objet: 'x', texte: 'texte', pieces: [] }));
   vrai('…ni une adresse invalide', /destinataire/.test(refusAdr || ''), refusAdr);
 
+
+  /* ── 2 ter. v2.92 (Justin, capture) : trois boîtes de MÊME nom ; lu / drapeau / robot rendus tels quels ; une boîte SANS « Archives » (OVH) le dit ── */
+  console.log('\n── 2704 · 2 ter. Trois boîtes « TEAM OP », les drapeaux IMAP, et un dossier d\'arrivée qui n\'existe pas ──');
+  {
+    const A1 = 'support@banc-2704.fr', A2 = 'controle@banc-2704.fr', A3 = 'contact@banc-2704.fr';
+    const e0 = lireEtat(); const msg = (adr, dossier, uid, o) => Object.assign({ dossier, uid, messageId: '<t' + adr.slice(0, 3) + uid + '@banc>', from: 'personne@exemple-2704.fr', fromNom: 'Personne', to: adr, subject: 'Sujet ' + uid, text: 'Texte ' + uid, ts: T0 + uid * 1000, flags: [] }, o);
+    const dossiersOVH = [{ chemin: 'INBOX' }, { chemin: 'INBOX.Sent', specialUse: '\\Sent' }, { chemin: 'INBOX.Drafts', specialUse: '\\Drafts' }, { chemin: 'INBOX.Trash', specialUse: '\\Trash' }, { chemin: 'INBOX.Junk', specialUse: '\\Junk' }];
+    e0.boites[A1] = { messages: [msg(A1, 'INBOX', 1, { subject: 'Lu', flags: ['\\Seen'] }), msg(A1, 'INBOX', 2, { subject: 'Non lu' }), msg(A1, 'INBOX', 3, { subject: 'Marqué', flags: ['\\Seen', '\\Flagged'] }),
+      msg(A1, 'INBOX', 4, { subject: 'Robot', from: 'noreply@teamop.fr', fromNom: 'TeamOP' })], actions: [] };
+    e0.boites[A2] = { messages: [msg(A2, 'INBOX', 1, { subject: 'Pour archiver' })], actions: [] };
+    e0.boites[A3] = { messages: [msg(A3, 'INBOX', 1, { subject: 'Sans archives' })], actions: [], dossiers: dossiersOVH };
+    fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e0)); fs.renameSync(IMAP + '.tmp', IMAP);
+    const p3 = { mdp: MDP, serveurs: { imap: '127.0.0.1', imapPort: 993, smtp: '127.0.0.1', smtpPort: portSmtp } };
+    const c1 = await s.ajouterBoite(Object.assign({ email: A1 }, p3)), c2 = await s.ajouterBoite(Object.assign({ email: A2 }, p3)), c3 = await s.ajouterBoite(Object.assign({ email: A3 }, p3));
+    const toutes = await s.boites(), memes = toutes.filter(x => [A1, A2, A3].includes(x.email));
+    v('⛔ (population) trois boîtes connectées SANS nom portent le MÊME nom d\'affichage — c\'est ce que le serveur leur donne, et ce que le module doit distinguer par l\'adresse', [memes.length, [...new Set(memes.map(x => x.nom))]], [3, ['TEAM OP']]);
+    const r1 = await s.messages({ boite: c1.id, dossier: 'inbox' }), par = (o) => r1.find(m => m.objet === o);
+    v('⛔ les drapeaux IMAP \\Seen et \\Flagged arrivent en `lu` et `drapeau` du contrat (ce que lisent les filtres « Non lus » et « Marqués »)',
+      ['Lu', 'Non lu', 'Marqué'].map(o => [par(o).lu, par(o).drapeau]), [[true, false], [false, false], [true, true]]);
+    v('…un message de robot (noreply@teamop.fr) arrive avec son expéditeur, que le tri classera en Notifications — pas en Principal', [par('Robot').de.email, par('Robot').lu], ['noreply@teamop.fr', false]);
+    v('⛔ la source rend ce que le serveur a LU de l\'expéditeur : `automatique` vrai pour le robot, faux pour une personne (le tri en dépend : une personne n\'est pas une notification)', [par('Robot').automatique, par('Lu').automatique, par('Non lu').automatique], [true, false, false]);
+    /* un dossier d'arrivée qui n'existe pas : dit AVANT d'appeler le serveur, rien n'est déplacé */
+    URLS.length = 0;
+    const refus = await rejette(s.deplacer((await s.messages({ boite: c3.id, dossier: 'inbox' }))[0].id, 'archive'));
+    vrai('⛔ archiver dans une boîte SANS dossier « Archives » : l\'erreur le DIT en français (pas « dossier de destination introuvable »)', /n’a pas de dossier « Archives »/.test(refus || '') && !/destination introuvable/.test(refus || ''), refus);
+    vrai('…elle propose la suite : le message reste en place, « Supprimer » le range dans la Corbeille (la boîte en a une)', /Corbeille/.test(refus || ''), refus);
+    vrai('…et AUCUN déplacement n\'a été demandé au serveur (la liste des dossiers a été relue à neuf une fois, au cas où le dossier vient d\'être créé)', !URLS.some(u => /mail\/deplacer/.test(u)) && URLS.some(u => /mail\/dossiers\?frais=1/.test(u)), URLS.join(' '));
+    vrai('…le message est toujours dans la Réception du serveur', lireEtat().boites[A3].messages.some(m => m.dossier === 'INBOX' && m.subject === 'Sans archives'));
+    const refusJunk = await rejette(s.deplacer((await s.messages({ boite: c3.id, dossier: 'inbox' }))[0].id, 'junk'));
+    vrai('…un dossier qui existe (« INBOX.Junk », reconnu à son usage spécial) reçoit le message', refusJunk === null && lireEtat().boites[A3].messages.some(m => m.dossier === 'INBOX.Junk'), refusJunk);
+    /* la personne crée « Archives » dans son webmail : le prochain essai le trouve (relecture à neuf) */
+    const e1 = lireEtat(); e1.boites[A3].dossiers.push({ chemin: 'INBOX.Archive', specialUse: '\\Archive' }); e1.boites[A3].messages.push(msg(A3, 'INBOX', 9, { subject: 'Après création' }));
+    fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e1)); fs.renameSync(IMAP + '.tmp', IMAP);
+    const apresCreation = (await s.messages({ boite: c3.id, dossier: 'inbox' })).find(m => m.objet === 'Après création');
+    const okArch = await rejette(s.deplacer(apresCreation.id, 'archive'));
+    vrai('⛔ le dossier créé entre-temps est trouvé (le cache de dossiers ne ment pas une deuxième fois) et le message y arrive', okArch === null && lireEtat().boites[A3].messages.some(m => m.dossier === 'INBOX.Archive' && m.subject === 'Après création'), okArch);
+    const archOK = await rejette(s.deplacer((await s.messages({ boite: c2.id, dossier: 'inbox' }))[0].id, 'archive'));
+    vrai('…et une boîte qui a ses Archives archive comme avant', archOK === null && lireEtat().boites[A2].messages.some(m => m.dossier === 'Archives'), archOK);
+    await s.retirerBoite(c1.id); await s.retirerBoite(c2.id); await s.retirerBoite(c3.id);   // les trois boîtes d'essai repartent : la suite du banc attend la sienne seule
+  }
 
   /* ── 2 bis. les quatre gestes de l'ancien écran ── */
   console.log('\n── 2704 · 2 bis. Envois TeamOP, pièce reçue, suivi d\'une demande, réponse dans le fil ──');

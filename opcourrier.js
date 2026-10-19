@@ -31,9 +31,12 @@
                                      suivi (le suivi d'une demande, via suivi()) : booléens, faux par défaut — le module ne promet RIEN qu'une source ne déclare pas,
                                      dossiers : ['inbox', …] les dossiers que la source remplit (les autres restent sur l'appareil),
                                      destinataires : nombre maximal par message, pj : { nombre, octets } }
-     boites()                    → [ { id, email, nom, cote?:'pro'|'perso', fournisseur? } ]
+     boites()                    → [ { id, email, nom, cote?:'pro'|'perso', fournisseur? } ]   (un rejet est une PANNE qui se dit ; sauf une erreur portant `calme:true` : ce n'est pas une panne,
+                                     c'est un espace de test — le module dit son message tel quel, sans « Réessayer », et ne propose pas d'ajouter une boîte)
      messages({boite, dossier})  → [ { id, dossier?, de:{nom,email}, a, objet, apercu?, corps:string|[paragraphes] (absent : lire(id) à l'ouverture),
-                                       date:ms, lu, drapeau, pj:[{nom,taille,type}], desinscription?, vip?, destinataires?:[email] } ]
+                                       date:ms, lu, drapeau, pj:[{nom,taille,type}], desinscription?, vip?, destinataires?:[email],
+                                       automatique?:boolean (la source a lu les en-têtes : VRAI = envoi automatique ; FAUX = écrit par une personne, ce qui range en Principal ce que le moteur
+                                       aurait pris pour une notification sur la seule forme de l'adresse ; absent = le moteur décide seul) } ]
      lire(id)                    → { corps, pj?:[{nom,taille,type,id?}], suivi? }  (facultatif ; pj[].id = l'identifiant de la pièce pour piece() ; suivi = { statut, assigne, par? })
      marquer(id,{lu,drapeau})    et   deplacer(id,dossier)                         (appelés seulement si capacites().marquage / .deplacement ; sinon l'état reste sur l'appareil)
      envoyer(mail)               → rien ; mail = { boite, de, nom, a, objet, texte, pieces:[File], enReponseA? }
@@ -403,10 +406,20 @@ var CSS = `
   .opc .f-junk{--tc:linear-gradient(180deg,#ff6a5f,#e8362b)} .opc .f-trash{--tc:linear-gradient(180deg,#7d7d83,#58585e)}
   .opc .ptile{flex:none;width:18px;height:18px;border-radius:5px;display:grid;place-items:center;color:#fff;font-size:10.5px;font-weight:800;line-height:1;background:var(--tint)}
   .opc .ptile svg{width:12px;height:12px}
+  .opc .ptile.alogo{background:var(--fill-2);overflow:hidden}
+  .opc .ptile.alogo img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+  .opc .logo-row{display:flex;align-items:center;gap:12px;padding:10px 12px}
+  .opc .logo-row .ptile{width:44px;height:44px;border-radius:11px;font-size:20px}
+  .opc .logo-row .logo-btns{display:flex;flex-wrap:wrap;gap:8px}
+  .opc .ptile.mini{width:14px;height:14px;border-radius:4px;font-size:9px;vertical-align:-2px;display:inline-grid}
+  .opc .from-tile{flex:none;display:inline-flex;align-items:center;margin-right:6px}
   .opc .ptile.all{background:linear-gradient(180deg,#5373c8,#2a4a9c)}
   .opc .sl{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
   .opc .sn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .opc .ss{display:none}
+  /* une boîte nommée par son ADRESSE (noms identiques) : l'adresse se lit EN ENTIER — elle passe à la ligne avant « @ » plutôt que d'être coupée par des points de suspension */
+  .opc .sn.adr{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;line-height:1.2}
+  .opc .srow:has(.sn.adr){height:auto;padding-block:5px}
   .opc .cnt{flex:none;font-size:12px;color:var(--label-2);font-variant-numeric:tabular-nums}
   .opc .srow .chk,.opc .srow .chev{display:none}
   .opc .sidebar .side-sub{display:none}
@@ -517,8 +530,9 @@ var CSS = `
   .opc .empty svg{width:44px;height:44px;color:var(--label-3);margin-bottom:6px}
   .opc .empty b{font-size:17px;font-weight:600;color:var(--label-2)}
   .opc .empty span{font-size:13px}
-  .opc .reading-empty{height:100%;min-height:0}
-  .opc .reading-empty b{font-size:20px;font-weight:400;color:var(--label-2)}
+  .opc .reading{min-width:0}
+  .opc .reading-empty{height:100%;min-height:0;box-sizing:border-box;width:100%;max-width:100%;padding:24px 16px;overflow:hidden}
+  .opc .reading-empty b{font-size:20px;font-weight:400;color:var(--label-2);max-width:100%;overflow-wrap:anywhere;text-wrap:balance}
   .opc .reading-empty svg{width:40px;height:40px}
 
   /* ---------- Lecture (Mac) ---------- */
@@ -576,8 +590,8 @@ var CSS = `
   .opc .sgchip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:18px;background:var(--fill);color:var(--label)}
   .opc .m-sub .sgchip{margin-right:6px;font-size:11px;line-height:16px;padding:0 6px;vertical-align:1px}
   .opc .sgchip.st-signed{background:#cff2da;color:#005222}
-  @media all {.opc:where([data-theme="nuit"]) .sgchip.st-signed{background:#56ad7e;color:#031108} .opc:where([data-theme="nuit"]) .sgchip.st-pending,.opc:where([data-theme="nuit"]) .sgchip.st-viewed,.opc:where([data-theme="nuit"]) .sgchip.st-counter{background:#e0a64a;color:#1d1000} .opc:where([data-theme="nuit"]) .sgchip.st-declined,.opc:where([data-theme="nuit"]) .sgchip.st-expired,.opc:where([data-theme="nuit"]) .sgchip.st-cancelled{background:#e8837b;color:#1f0402} .opc:where([data-theme="nuit"]) .sg-signers .ok{color:#7fdc95}}
-  .opc .sgchip.st-pending,.opc .sgchip.st-viewed,.opc .sgchip.st-counter{background:#fde7c4;color:#6b3a00}
+  @media all {.opc:where([data-theme="nuit"]) .sgchip.st-signed{background:#56ad7e;color:#031108} .opc:where([data-theme="nuit"]) .sgchip.st-pending,.opc:where([data-theme="nuit"]) .sgchip.st-viewed,.opc:where([data-theme="nuit"]) .sgchip.st-counter,.opc:where([data-theme="nuit"]) .sgchip.st-ready{background:#e0a64a;color:#1d1000} .opc:where([data-theme="nuit"]) .sgchip.st-declined,.opc:where([data-theme="nuit"]) .sgchip.st-expired,.opc:where([data-theme="nuit"]) .sgchip.st-cancelled{background:#e8837b;color:#1f0402} .opc:where([data-theme="nuit"]) .sg-signers .ok{color:#7fdc95}}
+  .opc .sgchip.st-pending,.opc .sgchip.st-viewed,.opc .sgchip.st-counter,.opc .sgchip.st-ready{background:#fde7c4;color:#6b3a00}
   .opc .sgchip.st-declined,.opc .sgchip.st-expired,.opc .sgchip.st-cancelled{background:#fbd5d2;color:#8a1410}
   .opc .sg-signers{list-style:none;margin:12px 0 0;padding:0}
   .opc .sg-signers li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:var(--hair) solid var(--sep)}
@@ -1586,6 +1600,31 @@ var MARKUP = `
   function provOf(id){ for(var i=0;i<PROVIDERS.length;i++) if(PROVIDERS[i].id===id) return PROVIDERS[i]; return PROVIDERS[5]; }
   function provTileInner(p){ return p.glyph ? I[p.glyph] : H(p.mono); }
   function providerTile(p){ return '<span class="ptile" style="background:'+p.color+'" aria-hidden="true">'+provTileInner(p)+'</span>'; }
+  // ---------- Le logo d'une boîte (choisi par la personne, rangé sur l'appareil, jamais sur le serveur) ----------
+  // Une image PNG ou JPEG de 64 px au plus, en « data: » : elle se pose dans un <img src>, elle n'est JAMAIS exécutée (pas de SVG, pas de HTML), rien n'est chargé d'ailleurs.
+  var LOGO_PX=64, LOGO_MAX=24000, LOGO_FICHIER_MAX=8*1024*1024;
+  function logoValide(u){ return typeof u==="string"&&u.length<=LOGO_MAX&&/^data:image\/(png|jpeg);base64,[A-Za-z0-9+\/]+={0,2}$/.test(u); }
+  // le carré centré qu'on garde d'une image l×h
+  function logoCadre(w,h){ var c=Math.min(w,h); return {sx:Math.floor((w-c)/2),sy:Math.floor((h-c)/2),c:c}; }
+  // sans logo : une pastille à l'initiale de l'adresse, d'une teinte STABLE (la même adresse a toujours la même couleur)
+  function teinteAdresse(email){ var h=0,e=String(email||"").toLowerCase(); for(var i=0;i<e.length;i++) h=(h*31+e.charCodeAt(i))>>>0; return h%360; }
+  function acctTile(a){ var u=SAVED.logos[a.id];
+    if(logoValide(u)) return '<span class="ptile alogo" aria-hidden="true"><img src="'+u+'" alt="" draggable="false"></span>';
+    var ini=String(a.email||"?").charAt(0).toUpperCase();
+    return '<span class="ptile" style="background:hsl('+teinteAdresse(a.email)+' 46% 36%)" aria-hidden="true">'+H(ini)+'</span>'; }
+  // fichier choisi → data URL carrée de 64 px (PNG, ou JPEG si l'image est une photo trop lourde). Refus DIT : mauvais type, trop gros, illisible.
+  function logoDepuisFichier(f){
+    return new Promise(function(ok,ko){
+      if(!f||!/^image\/(png|jpeg)$/.test(f.type||"")){ ko(new Error("Choisissez une image PNG ou JPEG.")); return; }
+      if(f.size>LOGO_FICHIER_MAX){ ko(new Error("Image trop lourde (8 Mo au plus).")); return; }
+      if(typeof createImageBitmap!=="function"){ ko(new Error("Ce navigateur ne sait pas lire cette image.")); return; }
+      createImageBitmap(f).then(function(img){ try{
+        var w=img.width, h=img.height; if(!w||!h) throw new Error("x");
+        var cd=logoCadre(w,h), cv=document.createElement("canvas"); cv.width=LOGO_PX; cv.height=LOGO_PX;
+        var cx=cv.getContext("2d"); cx.drawImage(img,cd.sx,cd.sy,cd.c,cd.c,0,0,LOGO_PX,LOGO_PX); if(img.close) img.close();
+        var u=cv.toDataURL("image/png"); if(!logoValide(u)) u=cv.toDataURL("image/jpeg",0.82); if(!logoValide(u)) u=cv.toDataURL("image/jpeg",0.6);
+        if(logoValide(u)) ok(u); else ko(new Error("Image trop complexe : essayez une image plus simple."));
+      }catch(e){ ko(new Error("Image illisible.")); } },function(){ ko(new Error("Image illisible.")); }); }); }
 
   // ---------- Comptes ----------
   // kind : « pro » ou « perso » — deux univers bien séparés (vues Pro / Perso, badges, compte d'envoi par défaut).
@@ -1593,6 +1632,11 @@ var MARKUP = `
   var ACCOUNTS=[];
   var AUCUN_COMPTE={id:"",provider:"imap",kind:COTES[0],name:"",email:"",color:"#5b6270",signature:""};
   function acctOf(id){ for(var i=0;i<ACCOUNTS.length;i++) if(ACCOUNTS[i].id===id) return ACCOUNTS[i]; return ACCOUNTS[0]||AUCUN_COMPTE; }
+  // Deux boîtes de même nom (le serveur nomme « TEAM OP » toute boîte connectée sans nom) ne se distinguent pas : l'ADRESSE devient le libellé principal et le nom passe dessous.
+  // Le nom reste celui que la personne a choisi (SAVED.names) ; seul l'affichage change, et il revient seul le jour où les noms diffèrent.
+  function nomPartage(a){ var n=String(a.name||"").trim().toLowerCase(), c=0; for(var i=0;i<ACCOUNTS.length;i++) if(String(ACCOUNTS[i].name||"").trim().toLowerCase()===n) c++; return c>1; }
+  function acctLabel(a){ return nomPartage(a)?a.email:a.name; }
+  function acctSous(a){ return nomPartage(a)?a.name:a.email; }
   var KINDS={pro:"Pro",perso:"Perso"};
   function kindOf(a){ return a&&a.kind==="pro"?"pro":"perso"; }
   // Compte enregistré par une version antérieure (sans type) : messagerie grand public → perso, sinon pro.
@@ -1653,7 +1697,7 @@ var MARKUP = `
   var LOAD={boites:"wait",err:"",msgs:{},msgErr:{},vu:{},t:0,essai:0,envois:"",envErr:""};
   var GONE=[];          // identifiants de messages reçus supprimés pour de bon (le serveur les rendra encore)
   var OVER={};          // état gardé SUR L'APPAREIL des messages reçus : {id:{a:compte,read,flagged,folder,co,uj,aj}}
-  var SAVED={kinds:{},names:{},sigs:{}};   // choix de la personne sur ses boîtes (côté, nom affiché, signature)
+  var SAVED={kinds:{},names:{},sigs:{},logos:{}};   // choix de la personne sur ses boîtes (côté, nom affiché, signature)
   var SEEN={};          // messages reçus déjà vus par cette séance : seuls les NOUVEAUX préviennent
   var chargement=null;
   var RETIRES={};       // boîtes retirées par la personne, en attente de la confirmation de la source
@@ -1678,7 +1722,7 @@ var MARKUP = `
   function depuisSource(r,acct,dossier){
     var de=r.de||null, m={id:"s:"+acct+":"+r.id,sid:String(r.id),src:true,acct:acct,folder:folderOfStrict(r.dossier)?r.dossier:(dossier||"inbox"),
       from:de?{name:String(de.nom||de.email||""),email:String(de.email||"")}:null,to:String(r.a||""),subject:String(r.objet||""),
-      read:!!r.lu,flagged:!!r.drapeau,vip:!!r.vip,unsub:!!r.desinscription,ancien:!!r.ancien,at:+r.date||0,rcpt:Array.isArray(r.destinataires)?r.destinataires.map(String):undefined,
+      read:!!r.lu,flagged:!!r.drapeau,vip:!!r.vip,unsub:!!r.desinscription,autoSrc:typeof r.automatique==="boolean"?r.automatique:null,ancien:!!r.ancien,at:+r.date||0,rcpt:Array.isArray(r.destinataires)?r.destinataires.map(String):undefined,
       att:(r.pj||[]).map(attDe),suivi:suiviDe(r.suivi)};
     if(r.corps!=null){ m.body=paragraphes(r.corps); m.preview=firstLine(r.apercu||texteDe(m.body)); }
     else { m.body=null; m.preview=firstLine(r.apercu||""); }   // corps pas encore lu : SRC.lire(id) à l'ouverture
@@ -1758,7 +1802,7 @@ var MARKUP = `
         if(!Array.isArray(liste)) throw new Error("réponse illisible");
         LOAD.boites="ok"; LOAD.err=""; majBoites(liste);
         return Promise.all(ACCOUNTS.map(chargerBoite)); },
-        function(e){ LOAD.boites="ko"; LOAD.err=msgErr(e,"Impossible de lire vos boîtes mail."); return null; })
+        function(e){ LOAD.boites=e&&e.calme===true?"calme":"ko"; LOAD.err=msgErr(e,"Impossible de lire vos boîtes mail."); return null; })
       .then(chargerJournal)
       .then(function(){ chargement=null; LOAD.t=Date.now(); finCharge(avant,silencieux); },
             function(){ chargement=null; finCharge(avant,silencieux); });
@@ -1768,12 +1812,12 @@ var MARKUP = `
     if(LOAD.boites==="ok"){
       // des brouillons / envois d'une boîte qui n'existe plus n'ont plus de maître
       for(var i=MESSAGES.length-1;i>=0;i--) if(MESSAGES[i].user&&!acctExists(MESSAGES[i].acct)) MESSAGES.splice(i,1);
-      Object.keys(SAVED.kinds).concat(Object.keys(SAVED.names),Object.keys(SAVED.sigs)).forEach(function(id){ if(!acctExists(id)){ delete SAVED.kinds[id]; delete SAVED.names[id]; delete SAVED.sigs[id]; } });
+      Object.keys(SAVED.kinds).concat(Object.keys(SAVED.names),Object.keys(SAVED.sigs),Object.keys(SAVED.logos)).forEach(function(id){ if(!acctExists(id)){ delete SAVED.kinds[id]; delete SAVED.names[id]; delete SAVED.sigs[id]; delete SAVED.logos[id]; } });
       if(!validScope(state.scope)) state.scope=COTES[0]; }
     refreshCls();
     // les NOUVEAUX seulement (jamais le premier chargement d'une boîte), et pas ce que le tri a rangé en indésirable
     var neufs=MESSAGES.filter(function(m){ var n=m.neuf; delete m.neuf; return n&&!m.ancien&&m.folder==="inbox"&&!m.read; });
-    if(!silencieux||avant!==empreinte()||LOAD.boites==="ko"){ renderAll(); persist(); }
+    if(!silencieux||avant!==empreinte()||LOAD.boites==="ko"||LOAD.boites==="calme"){ renderAll(); persist(); }
     if(neufs.length&&SETTINGS.notif) notifierArrivee(neufs);
     compter(); }
   var dernierCompte=-1;
@@ -1822,7 +1866,9 @@ var MARKUP = `
   // Contexte du moteur : contacts appris + expéditeurs VIP ; règles = apprises.
   function classifyCtx(){ var c={};
     Object.keys(CONTACTS).forEach(function(e){ c[e]=true; });
-    MESSAGES.forEach(function(m){ if(m.vip&&m.from) c[emailOf(m)]=true; });
+    MESSAGES.forEach(function(m){ if(m.vip&&m.from) c[emailOf(m)]=true;
+      // les personnes à qui cette boîte a ÉCRIT (dossier Envoyés lu depuis la source) sont des contacts connus, comme celles à qui on écrit d'ici
+      if(m.src&&m.folder==="sent") emailsIn(m.to).forEach(function(e){ c[e.toLowerCase()]=true; }); });
     return {contacts:c,rules:RULES}; }
   // Classe chaque message reçu ; un indésirable arrivé dans la réception part dans Indésirables (sauf si l'utilisateur l'a déjà déplacé),
   // et un message que le moteur y avait mis revient dès qu'il n'en est plus un (contact connu, règle « pas indésirable »).
@@ -1830,7 +1876,12 @@ var MARKUP = `
     var ctx=classifyCtx(), moved=0;
     MESSAGES.forEach(function(m){
       if(!m.from){ delete CLS[m.id]; return; }
-      var r=OPClassify.classify(m,ctx); CLS[m.id]=r;
+      var r=OPClassify.classify(m,ctx);
+      // La SOURCE sait ce que le moteur ne voit pas (les en-têtes : expéditeur automatique ou non). Quand elle dit « pas automatique » (`automatique:false`), un message que le moteur a rangé
+      // en Notifications sur la seule forme de l'adresse (contact@, info@, une adresse du domaine de la boîte) est écrit par une PERSONNE : Principal. Une règle de la personne, un
+      // indésirable, une promotion, un reçu ou un voyage ne bougent pas.
+      if(m.autoSrc===false&&r.cat==="notif"&&!r.junk&&!m.unsub&&!/^votre règle/.test(r.reasons[0]||"")) r={cat:"principal",junk:false,spamScore:r.spamScore,reasons:["écrit par une personne (la boîte ne l’a pas jugé automatique)"]};
+      CLS[m.id]=r;
       if(m.folder==="inbox"&&r.junk&&!m.uj){ m.folder="junk"; m.aj=true; moved++; }
       else if(m.folder==="junk"&&m.aj&&!r.junk){ m.folder="inbox"; m.aj=false; moved++; }
     });
@@ -1878,7 +1929,7 @@ var MARKUP = `
     majOver();
     ACCOUNTS.forEach(function(a){ SAVED.kinds[a.id]=kindOf(a); SAVED.names[a.id]=a.name; SAVED.sigs[a.id]=a.signature||""; });
     var snap={v:4,scope:state.scope,folder:state.folder,cat:state.cat,rules:RULES,contacts:Object.keys(CONTACTS),settings:SETTINGS,
-      kinds:SAVED.kinds,names:SAVED.names,sigs:SAVED.sigs,msgs:OVER,gone:GONE.slice(-2000),user:[]};
+      kinds:SAVED.kinds,names:SAVED.names,sigs:SAVED.sigs,logos:SAVED.logos,msgs:OVER,gone:GONE.slice(-2000),user:[]};
     MESSAGES.forEach(function(m){ if(m.user) snap.user.push(nettoye(m)); });
     localStorage.setItem(LS,JSON.stringify(snap));
   }catch(e){}
@@ -1887,6 +1938,7 @@ var MARKUP = `
     var raw=localStorage.getItem(LS); if(!raw) return;
     var snap=JSON.parse(raw); if(!snap||snap.v!==4) return;
     ["kinds","names","sigs"].forEach(function(k){ if(snap[k]&&typeof snap[k]==="object") SAVED[k]=snap[k]; });
+    if(snap.logos&&typeof snap.logos==="object") Object.keys(snap.logos).forEach(function(id){ if(logoValide(snap.logos[id])) SAVED.logos[id]=snap.logos[id]; });   // rien d'autre qu'une petite image PNG / JPEG ne revient du rangement
     if(snap.settings&&typeof snap.settings==="object"){ SETTINGS.notif=snap.settings.notif!==false; SETTINGS.threads=snap.settings.threads!==false; }
     if(snap.rules&&typeof snap.rules==="object"){ ["senders","domains"].forEach(function(k){ var o=snap.rules[k]; if(o&&typeof o==="object") Object.keys(o).forEach(function(x){ var v=o[x]; if(v==="junk"||v==="notjunk"||isCat(v)) RULES[k][x]=v; }); }); }
     if(snap.msgs&&typeof snap.msgs==="object") OVER=snap.msgs;
@@ -1931,7 +1983,7 @@ var MARKUP = `
   function fmtFull(ts){ var d=new Date(ts); return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})+" à "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); }
 
   // ---------- Requêtes ----------
-  function senderName(m){ return m.from? m.from.name : acctOf(m.acct).name; }
+  function senderName(m){ return m.from? m.from.name : acctLabel(acctOf(m.acct)); }
   function senderEmail(m){ return m.from? m.from.email : acctOf(m.acct).email; }
   // Vue : toutes les boîtes, tout l'univers pro, tout l'univers perso, ou un seul compte.
   function inScopeOf(m,sc){ if(sc==="all"||m.jr) return true; if(sc==="pro"||sc==="perso") return kindOf(acctOf(m.acct))===sc; return m.acct===sc; }
@@ -2009,12 +2061,12 @@ var MARKUP = `
     var emails=function(l){ return l.map(function(a){ return a.email; }).join(", "); };
     function row(r){ var cur=state.scope===r.id, u=scopeUnread(r.id);
       return '<button type="button" class="srow scope-row" data-scope="'+r.id+'" aria-current="'+cur+'" title="'+H(r.title||r.sub)+'">'+r.tile+
-        '<span class="sl"><span class="sn-row"><span class="sn">'+H(r.name)+'</span>'+(r.badge||'')+'</span><span class="ss">'+H(r.sub)+'</span></span>'+
+        '<span class="sl"><span class="sn-row"><span class="sn'+(String(r.name).indexOf("@")>0?' adr':'')+'">'+H(r.name).replace("@","<wbr>@")+'</span>'+(r.badge||'')+'</span><span class="ss">'+H(r.sub)+'</span></span>'+
         '<span class="chk" aria-hidden="true">'+I.check+'</span>'+
         (u?'<span class="cnt">'+u+'<span class="sr"> '+nonLus(u)+'</span></span>':'')+
         '<span class="chev" aria-hidden="true">'+I.chevR+'</span></button>'; }
     function group(id,label,rows){ return rows.length?'<section class="sgroup" aria-labelledby="'+id+'"><h2 class="shead" id="'+id+'">'+label+'</h2><div class="glist">'+rows.map(row).join("")+'</div></section>':''; }
-    var acctRow=function(a){ var k=kindOf(a); return {id:a.id,name:a.name,sub:a.email,badge:kindBadge(k),tile:providerTile(provOf(a.provider))}; };
+    var acctRow=function(a){ var k=kindOf(a); return {id:a.id,name:acctLabel(a),sub:acctSous(a),title:a.email,badge:kindBadge(k),tile:acctTile(a)}; };
     // Pas de mélange : la barre ne montre que le côté choisi (Pro OU Perso) — ses comptes, ses compteurs.
     var cote=coteCourant();
     if(cote==="perso"&&state.folder==="sign") state.folder="inbox";   // la signature de contrats est réservée au côté Pro
@@ -2025,6 +2077,7 @@ var MARKUP = `
     if(!mine.length){ var vide=UN_COTE?"Boîtes mail":cote==="pro"?"Comptes pro":"Comptes perso";
       h+='<section class="sgroup"><h2 class="shead">'+vide+'</h2><div class="glist">'+
         (LOAD.boites==="wait"&&!ACCOUNTS.length?'<div class="srow add" role="status"><span class="sl"><span class="sn">Chargement…</span></span></div>':
+         LOAD.boites==="calme"&&!ACCOUNTS.length?'<div class="srow add" role="status"><span class="sic" aria-hidden="true">'+I.info+'</span><span class="sl"><span class="sn">Espace de test</span></span></div>':
          LOAD.boites==="ko"&&!ACCOUNTS.length?'<button type="button" class="srow add" data-retry="1"><span class="sic" aria-hidden="true">'+I.warn+'</span><span class="sl"><span class="sn">Boîtes illisibles — réessayer</span></span></button>':
          '<button type="button" class="srow add" data-addaccount="1"><span class="sic" aria-hidden="true">'+I.plusCircle+'</span><span class="sl"><span class="sn">Ajouter une boîte mail</span></span></button>')+'</div></section>'; }
     function sect(id,label,list){ var s='<section class="sgroup" aria-labelledby="'+id+'"><h2 class="shead" id="'+id+'">'+label+'</h2><div class="glist">';
@@ -2038,7 +2091,7 @@ var MARKUP = `
       }); return s+'</div></section>'; }
     h+=sect("hFav","Favoris",FOLDERS.filter(function(f){return f.fav&&(!f.pro||cote==="pro")&&(!f.journal||CAP.journalEnvois);}));
     h+=sect("hOther","Autres dossiers",FOLDERS.filter(function(f){return !f.fav;}));
-    h+='<div class="side-foot"><div class="glist"><button type="button" class="srow add" data-addaccount="1"><span class="sic" aria-hidden="true">'+I.plusCircle+'</span><span class="sl"><span class="sn">Ajouter un compte</span></span></button>'+
+    h+='<div class="side-foot"><div class="glist">'+(LOAD.boites==="calme"&&!ACCOUNTS.length?'':'<button type="button" class="srow add" data-addaccount="1"><span class="sic" aria-hidden="true">'+I.plusCircle+'</span><span class="sl"><span class="sn">Ajouter un compte</span></span></button>')+
       '<button type="button" class="srow add" data-settings="1"><span class="sic" aria-hidden="true">'+I.gear+'</span><span class="sl"><span class="sn">Réglages</span></span></button></div></div>';
     $("#sideBody").innerHTML=h;
     paintStatus();
@@ -2063,12 +2116,16 @@ var MARKUP = `
       return '<div class="empty">'+I.sent+'<b>Aucun e-mail envoyé par TeamOP</b><span>Le journal se remplit à chaque envoi du serveur (codes, invitations, avis).</span></div>'; }
     if(!ACCOUNTS.length){
       if(LOAD.boites==="wait") return '<div class="empty" role="status">'+I.mail+'<b>Chargement de vos boîtes…</b></div>';
+      // La SOURCE dit que ce n'est pas une panne (`Error.calme`) : un espace de test où aucune vraie boîte ne se connecte. Un état calme — ni « Réessayer », ni « refusé ».
+      if(LOAD.boites==="calme") return '<div class="empty" role="status">'+I.mail+'<b>Espace de test</b><span>'+H(LOAD.err)+'</span></div>';
       if(LOAD.boites==="ko") return '<div class="empty" role="alert">'+I.warn+'<b>Boîtes mail illisibles</b><span>'+H(LOAD.err||"On n’a pas pu savoir si une boîte est connectée.")+'</span>'+pied([""," data-retry=\"1\"","Réessayer"])+'</div>';
       return '<div class="empty">'+I.mail+'<b>Aucune boîte mail connectée</b><span>Connectez votre messagerie pour lire et envoyer vos mails ici.</span>'+pied([" primary"," data-addaccount=\"1\"","Ajouter une boîte mail"])+'</div>'; }
     if(ko&&ko.length&&!state.query) return '<div class="empty" role="alert">'+I.warn+'<b>Réception indisponible</b><span>'+H(ko.map(function(a){ return a.email+" : "+(LOAD.msgErr[a.id]||"échec"); }).join(" · "))+'</span>'+pied([""," data-retry=\"1\"","Réessayer"])+'</div>';
     var txt=state.query?'Aucun résultat':(state.filter!=="all"?"Aucun message dans ce filtre":cl?"Aucun message dans "+cl:"Aucun message");
-    var sub=state.query?'pour « '+H(state.query)+' »':H(f.name+" · "+scopeLabel());
-    return '<div class="empty" role="presentation">'+I.mail+'<b>'+txt+'</b><span>'+sub+'</span>'+(f.id==="sign"&&!state.query?'<button type="button" class="btn primary" data-signnew="1" style="margin-top:12px">Envoyer un document à signer</button>':'')+'</div>'; }
+    // Une catégorie vide n'est pas une boîte vide : si les autres catégories portent des messages (une boîte qui ne reçoit que des notifications n'a rien dans « Principal »), on le DIT et on offre « Tout ».
+    var ailleurs=(!state.query&&catActive()&&state.cat!=="tout")?folderMessages(state.folder).filter(matchesFilter).length:0;
+    var sub=state.query?'pour « '+H(state.query)+' »':ailleurs?H(plural(ailleurs,"message","messages")+" dans les autres catégories"):H(f.name+" · "+scopeLabel());
+    return '<div class="empty" role="presentation">'+I.mail+'<b>'+txt+'</b><span>'+sub+'</span>'+(ailleurs?'<button type="button" class="btn" data-cat-tout="1" style="margin-top:12px">Voir tout</button>':'')+(f.id==="sign"&&!state.query?'<button type="button" class="btn primary" data-signnew="1" style="margin-top:12px">Envoyer un document à signer</button>':'')+'</div>'; }
   function statusHtml(){
     var cl=catLabel(), st2=H((cl?cl+" · ":"")+scopeLabel());
     if(state.filter!=="all") return '<span class="st1">Filtré par : <b>'+FILTER_NAMES[state.filter]+'</b></span><span class="st2">'+st2+'</span>';
@@ -2116,7 +2173,7 @@ var MARKUP = `
     $("#lbTitle").textContent=f.name; $("#ltTitle").textContent=f.name;
     // Sous-titre : la vue et la catégorie se tronquent d'abord ; le nombre de messages / non lus reste lisible.
     var ctxLbl=f.journal?"Journal du serveur":scopeLabel();   // le journal des envois n'est celui d'aucune boîte : pas « Boîtes mail »
-    $("#lbSub").innerHTML='<span class="ls-ctx">'+H(ctxLbl+(cl?" · "+cl:""))+'</span><span class="ls-n">&nbsp;· '+H((msgs.length?plural(msgs.length,"message","messages"):"aucun message")+(unread&&state.folder!=="scheduled"&&state.folder!=="drafts"?", "+plural(unread,"non lu","non lus"):""))+'</span>';
+    $("#lbSub").innerHTML='<span class="ls-ctx">'+(!f.journal&&acctExists(state.scope)?acctTile(acctOf(state.scope)).replace('class="ptile','class="ptile mini')+' ':'')+H(ctxLbl+(cl?" · "+cl:""))+'</span><span class="ls-n">&nbsp;· '+H((msgs.length?plural(msgs.length,"message","messages"):"aucun message")+(unread&&state.folder!=="scheduled"&&state.folder!=="drafts"?", "+plural(unread,"non lu","non lus"):""))+'</span>';
     $("#ltSub").textContent=ctxLbl;
     $("#backLbl").textContent=f.name;
     $$("#filters [data-filter]").forEach(function(b){ b.setAttribute("aria-pressed",String(b.getAttribute("data-filter")===state.filter)); });
@@ -2317,7 +2374,7 @@ var MARKUP = `
     catLine+=suiviHtml(m);
     var k=kindOf(acc);
     // « via » seulement si le destinataire affiché n'est pas déjà l'adresse de la boîte (le badge Pro / Perso nomme la boîte)
-    var rto='À : '+(m.sign?m.sign.signers.map(function(x){return x.email;}).join(", "):(m.to||acc.name))+(String(m.to||"").toLowerCase().indexOf(String(acc.email).toLowerCase())>=0?'':' · via '+acc.email);
+    var rto='À : '+(m.sign?m.sign.signers.map(function(x){return x.email;}).join(", "):(m.to||acctLabel(acc)))+(String(m.to||"").toLowerCase().indexOf(String(acc.email).toLowerCase())>=0?'':' · via '+acc.email);
     r.innerHTML='<article class="rpad">'+
       '<h1 class="rsubj" tabindex="-1">'+H(m.subject||"(Sans objet)")+'</h1>'+banner+
       '<div class="rhead"><span class="ravatar" aria-hidden="true">'+H(initials(who))+'</span>'+
@@ -2609,11 +2666,13 @@ var MARKUP = `
     openMenu(anchor,{label:"Boîte "+a.email,sheet:true,title:a.email,items:[
       {id:"open",label:"Ouvrir cette boîte",icon:I.inbox},
       {id:"rename",label:"Renommer…",icon:I.compose||I.mail},
+      {id:"logo",label:"Changer le logo…",icon:I.img||I.mail},
       UN_COTE?null:{id:"side",label:"Passer côté "+KINDS[other],icon:other==="pro"?I.briefcase:I.house},
       {id:"del",label:"Supprimer la boîte…",icon:I.trash,danger:true}].filter(Boolean),
       onPick:function(x){
         if(x==="open"){ state.scope=id; state.folder="inbox"; state.selected=null; renderAll(); persist(); go("list"); }
         else if(x==="rename") openRenameAcct(a);
+        else if(x==="logo") openLogoAcct(a);
         else if(x==="side"){ a.kind=other; if(state.scope===k&&!accountsOfKind(k).length) state.scope=other; renderAll(); persist(); toast(a.email+" est maintenant côté "+KINDS[other]); }
         else if(x==="del") confirmDeleteAcct(a,anchor);
       }});
@@ -2642,6 +2701,29 @@ var MARKUP = `
       ACCOUNTS.splice(Math.min(ai,ACCOUNTS.length),0,a);
       saved.forEach(function(x){ MESSAGES.splice(Math.min(x.i,MESSAGES.length),0,x.m); });
       state.scope=prevScope; refreshCls(); renderAll(); persist(); toast("Boîte rétablie"); }});
+  }
+  // Le logo d'une boîte : choisi, recadré carré, réduit ici ; rangé sur l'appareil (cleStockage), jamais envoyé.
+  function logoRowHtml(a,u){ return '<div class="gcard"><div class="logo-row"><span id="lgTile">'+(u?'<span class="ptile alogo"><img src="'+u+'" alt="" draggable="false"></span>':acctTile(a))+'</span>'+
+    '<div class="logo-btns"><button type="button" class="btn" id="lgPick">Choisir une image…</button><button type="button" class="btn" id="lgOff"'+(u||SAVED.logos[a.id]?'':' hidden')+'>Retirer le logo</button></div>'+
+    '<input type="file" id="lgFile" accept="image/png,image/jpeg" hidden></div></div><p class="kind-err" id="lgErr" role="alert" hidden>'+I.warn+'<span></span></p>'; }
+  function openLogoAcct(a){
+    closeOverlay(); var ov=makeOverlay("acct");
+    ov.innerHTML='<div class="sheet acct" role="dialog" aria-modal="true" aria-labelledby="lgTitle">'+
+      sheetBar('<button class="btn" id="lgCancel" type="button" data-home="l" data-mac="foot" data-ord="1">Fermer</button>','<span class="t">Logo de la boîte</span>','',"lgTitle")+
+      '<div class="sheet-body"><div class="gwrap"><div class="ghead" aria-hidden="true">'+H(a.email)+'</div>'+logoRowHtml(a,"")+
+      '<p class="gfoot-s">'+I.info+'<span>Une image PNG ou JPEG, recadrée en carré et réduite ici. Elle reste sur cet appareil et s’affiche dans la barre latérale, la liste et le champ « De ».</span></p></div></div>'+SHEET_FOOT+'</div>';
+    placeSheetChrome();
+    liaisonLogo(function(){ return a; },function(u){ if(u) SAVED.logos[a.id]=u; else delete SAVED.logos[a.id]; renderAll(); persist(); toast(u?"Logo enregistré":"Logo retiré"); },"");
+    $("#lgCancel").onclick=closeOverlay;
+  }
+  // Les deux boutons d'une ligne de logo (feuille « Changer le logo » ou ajout d'une boîte) : `quand(u)` reçoit la data URL, ou "" pour retirer.
+  function liaisonLogo(compte,quand,courant){
+    var f=$("#lgFile"), err=$("#lgErr"), tile=$("#lgTile"), off=$("#lgOff");
+    function dit(t){ err.hidden=!t; err.querySelector("span").textContent=t||""; }
+    $("#lgPick").onclick=function(){ f.click(); };
+    f.onchange=function(){ var fic=f.files&&f.files[0]; f.value=""; if(!fic) return; dit("");
+      logoDepuisFichier(fic).then(function(u){ if(!tile.isConnected) return; tile.innerHTML='<span class="ptile alogo"><img src="'+u+'" alt="" draggable="false"></span>'; off.hidden=false; quand(u); },function(e){ if(tile.isConnected) dit(msgErr(e,"Image illisible.")); }); };
+    off.onclick=function(){ quand(""); tile.innerHTML=acctTile(compte()); off.hidden=true; dit(""); };
   }
   function openRenameAcct(a){
     closeOverlay(); var ov=makeOverlay("acct");
@@ -2675,7 +2757,7 @@ var MARKUP = `
 
   // ---------- Signature électronique des documents (côté Pro) ----------
   // Le suivi (état, relances, contre-signature) est tenu ici ; la source doit annoncer capacites().signature pour l'allumer. Bientôt : prestataire certifié eIDAS, dossier de preuve, horodatage, code SMS.
-  var SIGN_ST={pending:"En attente",viewed:"Ouvert",counter:"À contresigner",signed:"Signé",declined:"Refusé",cancelled:"Annulé",expired:"Expiré"};
+  var SIGN_ST={ready:"Prête — en attente de Yousign",pending:"En attente",viewed:"Ouvert",counter:"À contresigner",signed:"Signé",declined:"Refusé",cancelled:"Annulé",expired:"Expiré"};
   var SIGN_TYPES=["Devis","Contrat de maintenance","Contrat de prestation","Bon d’intervention","Autre document"];
   function signState(m){ var g=m.sign; if((g.st==="pending"||g.st==="viewed")&&Date.now()>g.expires) return "expired"; return g.st; }
   function signChip(m){ var st=signState(m); return '<span class="sgchip st-'+st+'">'+H(SIGN_ST[st])+'</span>'; }
@@ -2687,16 +2769,17 @@ var MARKUP = `
   function signCardHtml(m){
     var g=m.sign, st=signState(m), live=st==="pending"||st==="viewed";
     var rows=g.signers.map(function(x){
-      var s=x.st==="signed"?'<span class="ok">✓ Signé le '+H(fmtDay(x.at))+'</span>':x.st==="viewed"?'Ouvert, pas encore signé':st==="cancelled"?'—':'En attente';
+      var s=x.st==="signed"?'<span class="ok">✓ Signé le '+H(fmtDay(x.at))+'</span>':st==="ready"?'Pas encore envoyé':x.st==="viewed"?'Ouvert, pas encore signé':st==="cancelled"?'—':'En attente';
       return '<li><span class="av" aria-hidden="true">'+H(initials(x.name||x.email))+'</span><span class="nm">'+H(x.name||x.email)+'<span>'+H(x.email)+(x.phone?' · '+H(x.phone):'')+'</span></span><span style="font-size:12px">'+s+'</span></li>'; }).join("");
     if(g.counter) rows+='<li><span class="av" aria-hidden="true">'+H(initials(acctOf(m.acct).name))+'</span><span class="nm">Vous (contre-signature)<span>'+H(acctOf(m.acct).email)+'</span></span><span style="font-size:12px">'+(g.me?'<span class="ok">✓ Signé le '+H(fmtDay(g.me))+'</span>':st==="counter"?'<b>À vous de signer</b>':'Après le client')+'</span></li>';
     var acts="";
     if(live) acts=(CAP.simulation?'<button type="button" class="btn" data-act="signSim">Simuler la signature du client (démo)</button>':'')+'<button type="button" class="btn" data-act="signRemind">Relancer</button><button type="button" class="btn danger" data-act="signCancel">Annuler la demande</button>';
     else if(st==="counter") acts='<button type="button" class="btn primary" data-act="signMe">Signer maintenant</button>';
     else if(st==="signed") acts='<button type="button" class="btn primary" data-act="signDl">Télécharger le PDF signé</button><button type="button" class="btn" data-act="signProof">Dossier de preuve</button>';
+    else if(st==="ready") acts='<button type="button" class="btn primary" data-act="signSend">Renvoyer</button><button type="button" class="btn danger" data-act="signDrop">Annuler</button>';
     else acts='<button type="button" class="btn primary" data-act="signResend">Renvoyer une demande</button>';
     return '<div class="sign-card" role="region" aria-label="Suivi de la signature">'+
-      '<div class="sg-head">'+signChip(m)+'<span>'+H(g.type)+' · '+(g.level==="adv"?"signature avancée (code SMS)":"signature simple (code e-mail)")+'</span><span>'+(live?'Échéance le '+H(fmtDay(g.expires))+(g.remind?' · relances auto tous les 3 jours':''):'')+'</span></div>'+
+      '<div class="sg-head">'+signChip(m)+'<span>'+H(g.type)+' · '+(g.level==="adv"?"signature avancée (code SMS)":"signature simple (code e-mail)")+'</span><span>'+(live?'Échéance le '+H(fmtDay(g.expires))+(g.remind?' · relances auto tous les 3 jours':''):st==="ready"?'Rien n’est parti : la demande partira quand Yousign sera branché':'')+'</span></div>'+
       '<ul class="sg-signers">'+rows+'</ul><div class="sg-acts">'+acts+'</div>'+
       '<ol class="sg-tl" aria-label="Historique">'+g.events.map(function(ev){ return '<li>'+H(fmtFull(ev.t))+' — '+H(ev.x)+'</li>'; }).join("")+'</ol>'+
       '</div>';
@@ -2714,6 +2797,11 @@ var MARKUP = `
       signPreview(m); renderAll(); persist(); toast(g.st==="signed"?"Document signé par tous":g.st==="counter"?"Le client a signé — à vous de contresigner":"Signature reçue de "+(x.name||x.email)); }
     else if(act==="signRemind"){ signLog(m,"Relance envoyée à "+g.signers.filter(function(s){return s.st!=="signed";}).map(function(s){return s.name||s.email;}).join(", ")); signPreview(m); renderAll(); persist(); toast("Relance envoyée"); }
     else if(act==="signCancel"){ g.st="cancelled"; signLog(m,"Demande annulée — le lien de signature ne fonctionne plus"); signPreview(m); renderAll(); persist(); toast("Demande annulée"); }
+    else if(act==="signSend"){
+      // La demande rangée « Prête » repart par le formulaire (rempli comme elle l'était) le jour où la source sait signer ; d'ici là, on ne prétend rien.
+      if(!CAP.signature){ toast("Toujours en attente de Yousign — rien n’est parti."); return; }
+      openSignRequest({acct:m.acct,title:m.subject,type:g.type,att:m.att.slice(),signers:g.signers.map(function(s){return {name:s.name,email:s.email,phone:s.phone};}),counter:g.counter,level:g.level,remplace:m.id}); }
+    else if(act==="signDrop"){ removeMsg(m.id); if(state.selected===m.id) state.selected=null; renderAll(); persist(); toast("Demande retirée"); }
     else if(act==="signMe") openSignPad(m);
     else if(act==="signResend") openSignRequest({acct:m.acct,title:m.subject,type:g.type,att:m.att.filter(function(a){return !a.signed;}),signers:g.signers.map(function(s){return {name:s.name,email:s.email,phone:s.phone};}),counter:g.counter,level:g.level});
     else if(act==="signDl") toast("Bientôt : le téléchargement du PDF signé");
@@ -2776,8 +2864,8 @@ var MARKUP = `
         '<div class="gcard" style="margin-top:8px"><div class="strow"><button type="button" class="btn" id="sgAdd">+ Ajouter un signataire</button></div>'+
           '<label class="swrow" for="sgCounter"><span class="swl">Je contresigne après le client</span><input type="checkbox" class="switch" id="sgCounter" role="switch"'+(pre.counter!=null?(pre.counter?" checked":""):(type==="Devis"||type==="Bon d’intervention"?"":" checked"))+'></label></div>'+
         '<div class="ghead">Options</div><div class="gcard">'+
-          '<div class="sgfld"><label for="sgFrom">Envoyé depuis</label><select id="sgFrom">'+pros.map(function(a){ return '<option value="'+a.id+'"'+(a.id===from?' selected':'')+'>'+H(a.name)+' · '+H(a.email)+'</option>'; }).join("")+'</select></div>'+
-          '<div class="sgfld"><label for="sgLevel">Niveau de signature</label><select id="sgLevel"><option value="adv"'+(pre.level!=="simple"?' selected':'')+'>Avancée — code par SMS (recommandé pour les contrats)</option><option value="simple"'+(pre.level==="simple"?' selected':'')+'>Simple — code par e-mail (devis, bons d’intervention)</option></select></div>'+
+          '<div class="sgfld"><label for="sgFrom">Envoyé depuis</label><select id="sgFrom">'+pros.map(function(a){ return '<option value="'+a.id+'"'+(a.id===from?' selected':'')+'>'+H(nomPartage(a)?a.email:a.name)+(nomPartage(a)?'':' · '+H(a.email))+'</option>'; }).join("")+'</select></div>'+
+          '<div class="sgfld"><label for="sgLevel">Niveau de signature</label><select id="sgLevel"><option value="adv"'+(pre.level!=="simple"?' selected':'')+'>Code SMS</option><option value="simple"'+(pre.level==="simple"?' selected':'')+'>Code e-mail</option></select></div>'+
           '<div class="sgfld"><label for="sgDays">À signer avant</label><select id="sgDays"><option value="7">7 jours</option><option value="15" selected>15 jours</option><option value="30">30 jours</option></select></div>'+
           '<label class="swrow" for="sgRemind"><span class="swl">Relances automatiques tous les 3 jours</span><input type="checkbox" class="switch" id="sgRemind" role="switch" checked></label>'+
           '<div class="sgfld"><label for="sgMsg">Message au signataire</label><textarea id="sgMsg"></textarea></div></div>'+
@@ -2822,13 +2910,22 @@ var MARKUP = `
       signers.forEach(function(x,i){ if(bad) return; if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.email)) bad=["#sgE"+i,"Adresse e-mail du signataire "+(i+1)+" invalide"];
         else if(level==="adv"&&!/^\+?[\d\s.-]{9,}$/.test(x.phone)) bad=["#sgP"+i,"Mobile du signataire "+(i+1)+" nécessaire pour le code SMS"]; });
       if(bad){ toast(bad[1]); $(bad[0]).focus(); return; }
-      if(!CAP.signature){ toast("Bientôt : l’envoi du document à signer (Yousign). Votre demande est prête — rien n’est parti."); return; }
       var a=$("#sgFrom").value, now=Date.now(), body=$("#sgMsg").value;
+      if(!CAP.signature){
+        // Pas de prestataire branché (Yousign) : la demande est RANGÉE dans Signatures, état « Prête », avec tout ce qui a été saisi — aucune fausse signature, aucun faux « Envoyé ».
+        var r=mk({acct:a,folder:"sign",from:null,to:signers.map(function(x){return x.email;}).join(", "),subject:title,body:splitBody(body),read:true,att:docs.map(function(d){ return {name:d.name,size:d.size,kind:"doc"}; })});
+        r.user=true; r.at=now;
+        r.sign={type:$("#sgType").value,level:level,counter:$("#sgCounter").checked,remind:$("#sgRemind").checked,expires:0,st:"ready",
+          signers:signers.map(function(x){ return {name:x.name,email:x.email,phone:x.phone,st:"pending"}; }),events:[{t:now,x:"Demande préparée — en attente de Yousign (rien n’est parti)"}]};
+        signPreview(r); r.preview="Prête — en attente de Yousign · "+r.sign.type;
+        if(pre.remplace) removeMsg(pre.remplace);
+        MESSAGES.push(r); closeOverlay(); if(app.classList.contains("nav-open")) closeDrawer();
+        state.folder="sign"; renderAll(); selectMessage(r.id); persist(); toast("Rangée dans Signatures : prête, elle partira quand Yousign sera branché. Rien n’est parti."); return; }
       var m=mk({acct:a,folder:"sign",from:null,to:signers.map(function(x){return x.email;}).join(", "),subject:title,body:splitBody(body),read:true,att:docs.map(function(d){ return {name:d.name,size:d.size,kind:"doc"}; })});
       m.user=true; m.at=now;
       m.sign={type:$("#sgType").value,level:level,counter:$("#sgCounter").checked,remind:$("#sgRemind").checked,expires:now+(+$("#sgDays").value)*DAY,st:"pending",
         signers:signers.map(function(x){ return {name:x.name,email:x.email,phone:x.phone,st:"pending"}; }),events:[{t:now,x:"Envoyé à "+signers.map(function(x){return x.name||x.email;}).join(", ")}]};
-      signPreview(m); MESSAGES.push(m); learnContacts(m);
+      signPreview(m); if(pre.remplace) removeMsg(pre.remplace); MESSAGES.push(m); learnContacts(m);
       closeOverlay(); if(app.classList.contains("nav-open")) closeDrawer();
       state.folder="sign"; renderAll(); selectMessage(m.id); persist(); toast("Demande de signature envoyée");
       if(CAP.simulation) setTimeout(function(){ var x=m.sign&&m.sign.signers[0]; if(!x||x.st!=="pending"||m.sign.st!=="pending"||!msgById(m.id)) return; x.st="viewed"; m.sign.st="viewed"; signLog(m,"Document ouvert par "+(x.name||x.email)); signPreview(m); renderAll(); persist(); },8000);
@@ -2892,7 +2989,7 @@ var MARKUP = `
     var fromAcct = model.acct&&acctExists(model.acct) ? model.acct : defaultFrom();
     // « De » : comptes rangés sous Pro / Perso
     var fromOpts=["pro","perso"].map(function(k){ var l=accountsOfKind(k); return l.length?'<optgroup label="'+KINDS[k]+'">'+l.map(function(a){
-      return '<option value="'+a.id+'"'+(a.id===fromAcct?" selected":"")+'>'+H(a.name)+' · '+H(a.email)+'</option>'; }).join("")+'</optgroup>':''; }).join("");
+      return '<option value="'+a.id+'"'+(a.id===fromAcct?" selected":"")+'>'+H(nomPartage(a)?a.email:a.name)+(nomPartage(a)?'':' · '+H(a.email))+'</option>'; }).join("")+'</optgroup>':''; }).join("");
     // Signature de la boîte d'envoi (nouveau message, réponse, transfert ; pas en reprenant un brouillon)
     var isNew=!model.draftId, sigOf=function(id){ var a=acctOf(id); return a&&a.signature&&a.signature.trim()?"\n\n-- \n"+a.signature.trim():""; };
     var curSig=isNew?sigOf(fromAcct):"", body0=curSig+(model.body||"");
@@ -2906,7 +3003,7 @@ var MARKUP = `
         '<button class="btn primary send-btn" id="cSend" type="button" data-home="r" data-mac="l" data-ord="4" data-ordm="3" aria-label="Envoyer" title="Envoyer"><span class="ic-plane">'+I.sent+'</span><span class="lbl">Envoyer</span>'+I.sendUp+'</button>',"cTitle")+
       '<div class="sheet-body compose-body">'+
         '<div class="fld"><label for="cTo">À&nbsp;:</label><input id="cTo" type="email" inputmode="email" autocomplete="off" value="'+H(model.to)+'" placeholder="destinataire@exemple.fr"></div>'+
-        '<div class="fld"><label for="cFrom">De&nbsp;:</label><select id="cFrom">'+fromOpts+'</select></div>'+
+        '<div class="fld"><label for="cFrom">De&nbsp;:</label><span class="from-tile" id="cFromTile" aria-hidden="true"></span><select id="cFrom">'+fromOpts+'</select></div>'+
         '<div class="fld"><label for="cSub">Objet&nbsp;:</label><input id="cSub" type="text" value="'+H(model.subject)+'" placeholder="Objet"></div>'+
         '<textarea class="cbody" id="cBody" aria-label="Message" placeholder="Écrivez votre message…">'+H(body0)+'</textarea>'+
         '<div class="catt-row"><button class="btn att-btn" id="cAttBtn" type="button">'+I.attach+'<span>Joindre un fichier</span></button><button class="btn att-btn" id="cSignBtn" type="button">'+I.sign+'<span>Faire signer</span></button><input type="file" id="cFile" multiple hidden>'+
@@ -2941,6 +3038,7 @@ var MARKUP = `
     // « Faire signer » (boîtes pro) : le message devient une demande de signature (destinataires = signataires, PDF joints = documents).
     var paintSignBtn=function(){ $("#cSignBtn").hidden=kindOf(acctOf($("#cFrom").value))!=="pro"; }; paintSignBtn();
     $("#cFrom").addEventListener("change",paintSignBtn);
+    var paintFromTile=function(){ $("#cFromTile").innerHTML=acctTile(acctOf($("#cFrom").value)); }; paintFromTile(); $("#cFrom").addEventListener("change",paintFromTile);
     $("#cSignBtn").onclick=function(){ var d=fields(), c=state.compose, sub=$("#cSub").value.trim(); clearTimeout(saveT);
       var ex=c.autoNew?liveDraft(c.draftId):null; if(ex) removeMsg(ex.id);
       closeCompose(); renderAll(); persist();
@@ -3318,6 +3416,7 @@ var MARKUP = `
       '<div class="gwrap"><div class="gcard">'+
         row("aMail","Adresse","email","vous@entreprise.fr",' autocomplete="email" autocapitalize="off" spellcheck="false" inputmode="email"')+
         row("aName","Nom","text","Votre nom affiché (facultatif)",' autocomplete="name"')+'</div>'+
+      '<div class="ghead" aria-hidden="true">Logo (facultatif)</div>'+logoRowHtml({id:"-",email:"@"},"")+
       '<div class="det" id="aDet" aria-live="polite" hidden></div>'+
       '<div id="aPassWrap" hidden><div class="gcard">'+row("aPass","Mot de passe","password","Mot de passe de la boîte",' autocomplete="current-password"')+'</div></div>'+
       '<div id="aAdv" hidden><button type="button" class="adv-tog" id="aAdvTog" aria-expanded="false" aria-controls="aAdvBody"><span>Réglages du serveur</span>'+I.chevR+'</button>'+
@@ -3336,6 +3435,8 @@ var MARKUP = `
       '</div></div>'+SHEET_FOOT+'</div>';
     placeSheetChrome();
     var mIn=$("#aMail"), det=$("#aDet"), go=$("#aGo"), err=$("#aMailErr"), found=null, seq=0, tmr;
+    var logoChoisi="";   // le logo choisi AVANT la connexion : il est rangé avec la boîte, une fois créée
+    liaisonLogo(function(){ return {id:"-",email:mIn.value.trim()||"@"}; },function(u){ logoChoisi=u; });
     var kind=cote, seg=$("#kKind"), segBtns=$$("[data-kind]",seg);
     function setKind(b,focus){ kind=b.getAttribute("data-kind"); segBtns.forEach(function(x){ var on=x===b; x.setAttribute("aria-checked",String(on)); x.tabIndex=on?0:-1; }); if(focus) b.focus(); }
     seg.addEventListener("click",function(e){ var b=e.target.closest("[data-kind]"); if(b) setKind(b,false); });
@@ -3392,7 +3493,7 @@ var MARKUP = `
       if(pw&&CAP.reglagesServeur&&!$("#aImap").value.trim()){ showErr("Indiquez le serveur de réception."); $("#aAdvBody").hidden=false; $("#aImap").focus(); return; }
       var avant=go.textContent; go.disabled=true; go.textContent=(found.kind==="oauth"&&CAP.oauth)?"Ouverture de "+found.via+"…":"Connexion…";
       if(!PROVIDERS.some(function(x){ return x.id===found.id; })) PROVIDERS.splice(PROVIDERS.length-1,0,{id:found.id,name:found.name,sub:"",color:found.color,mono:found.mono||"",glyph:found.mono?null:(found.id.indexOf("icloud")===0?"cloud":"at"),kind:found.kind});
-      connectAccount(provOf(found.id),mail,name||mail.split("@")[0],kind,{mdp:pw?$("#aPass").value:"",imap:pw&&CAP.reglagesServeur?{imap:$("#aImap").value.trim(),imapPort:+$("#aImapPort").value||993,smtp:$("#aSmtp").value.trim(),smtpPort:+$("#aSmtpPort").value||465}:null}).then(function(){
+      connectAccount(provOf(found.id),mail,name||mail.split("@")[0],kind,{mdp:pw?$("#aPass").value:"",imap:pw&&CAP.reglagesServeur?{imap:$("#aImap").value.trim(),imapPort:+$("#aImapPort").value||993,smtp:$("#aSmtp").value.trim(),smtpPort:+$("#aSmtpPort").value||465}:null,logo:logoChoisi}).then(function(){
         if(ov.isConnected) closeOverlay(); },function(e){
         if(!ov.isConnected) return; go.disabled=false; go.textContent=avant; showErr(msgErr(e,"Connexion impossible.")); });
     };
@@ -3496,6 +3597,7 @@ var MARKUP = `
     return Promise.resolve().then(function(){ return SRC.ajouterBoite({email:mail,nom:name,mdp:extra.mdp||"",fournisseur:p.id,cote:kind,serveurs:extra.imap||null}); }).then(function(b){
       var id=b&&b.id!=null?String(b.id):null; if(!id) throw new Error("réponse illisible");
       SAVED.kinds[id]=kind==="pro"?"pro":"perso"; SAVED.names[id]=name; SAVED.sigs[id]=name;
+      if(logoValide(extra.logo)) SAVED.logos[id]=extra.logo;
       if(!acctExists(id)) majBoites(ACCOUNTS.map(function(a){ return {id:a.sid,email:a.email}; }).concat([{id:b.id,email:mail,nom:name,cote:kind,fournisseur:p.id}]));
       state.scope=id; state.folder="inbox"; state.selected=null; LOAD.boites="ok";
       refreshCls(); renderAll(); persist(); toast("Boîte "+(UN_COTE?"":KINDS[kindOf(acctOf(id))].toLowerCase()+" ")+"connectée : "+mail);
@@ -3598,9 +3700,11 @@ var MARKUP = `
     if(e.target.closest("[data-settings]")){ openSettings(); return; }
     var sc=e.target.closest(".scope-row[data-scope]");
     if(sc){ state.scope=sc.getAttribute("data-scope"); app.setAttribute("data-scope",state.scope);
-      state.selected=null; clearSearch();
-      if(isPhone()){ state.folder="inbox"; state.filter="all"; renderAll(); persist(); $("#listScroll").scrollTop=0; $("#list").classList.remove("scrolled"); go("list"); return; }
-      renderAll(); persist();
+      // Comme Apple Mail : choisir une boîte ouvre SA boîte de réception, quel que soit le dossier regardé avant (Archive, Marqués, le journal…) — sur tous les formats.
+      state.selected=null; clearSearch(); state.folder="inbox"; state.filter="all";
+      if(isPhone()){ renderAll(); persist(); $("#listScroll").scrollTop=0; $("#list").classList.remove("scrolled"); go("list"); return; }
+      renderAll(); persist(); $("#listScroll").scrollTop=0; $("#list").classList.remove("scrolled");
+      if(layout()==="pad"){ closeDrawer(); return; }
       var again=$('#sidebar .scope-row[data-scope="'+state.scope+'"]'); if(again) again.focus({preventScroll:true}); return; }
     var f=e.target.closest(".folder[data-folder]");
     if(f){ state.folder=f.getAttribute("data-folder"); state.selected=null; state.filter="all"; clearSearch();
@@ -3626,6 +3730,7 @@ var MARKUP = `
     if(e.target.closest("[data-addaccount]")){ openAddAccount(); return; }
     var q=e.target.closest("[data-q]"); if(q){ e.stopPropagation(); doAct(q.getAttribute("data-q"),q.getAttribute("data-id")); return; }
     var c=e.target.closest("#catBar [data-cat]"); if(c){ setCat(c.getAttribute("data-cat"),true); return; }
+    if(e.target.closest("[data-cat-tout]")){ setCat("tout",false); return; }
     var f=e.target.closest("#filters [data-filter]"); if(f){ state.filter=f.getAttribute("data-filter"); renderList(); renderReading(); return; }
     if(e.target.closest("#btnFilter")){ openFilterMenu($("#btnFilter")); return; }
     var row=e.target.closest(".msg");

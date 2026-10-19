@@ -99,5 +99,20 @@ vrai('un pourriel évident est bien classé indésirable (la garde a quelque cho
 vrai('…mais jamais s\'il vient d\'un contact connu', moteur.classify(pourriel, { contacts: { 'promo@gagnez-gros.xyz': true }, rules: { senders: {}, domains: {} } }).junk === false);
 vrai('…ni quand la personne a dit « pas indésirable » pour cet expéditeur', moteur.classify(pourriel, { contacts: {}, rules: { senders: { 'promo@gagnez-gros.xyz': 'notjunk' }, domains: {} } }).junk === false);
 
+/* v2.92 (Justin : « en Principal j'ai rien, alors qu'il y a des mails vraiment principaux ») — des cas TeamOP RÉALISTES, joués sur le moteur du module : les envois automatiques du serveur
+   (alerte de bug, nouveau compte, code de connexion) sont des NOTIFICATIONS ; une personne qui écrit — même depuis une adresse générique (contact@, info@) quand elle parle à la première
+   personne, ou une adresse à nom de personne — est PRINCIPAL. Ce que le moteur ne peut pas voir (une adresse générique SANS texte, la liste ne portant pas le corps) est tranché par la SOURCE
+   (`automatique`, test-2702 § 6 quater), pas ici : le moteur reste celui du serveur futur. */
+{
+  const jeu = (from, nom, objet, corps) => ({ from: { name: nom, email: from }, subject: objet, preview: corps || '', body: corps ? [corps] : null });
+  const cat = (m) => moteur.classify(m, { contacts: {}, rules: { senders: {}, domains: {} } }).cat;
+  v('TeamOP — alerte « Bug OP GESTION » (envoi automatique du serveur) → Notifications', cat(jeu('noreply@teamop.fr', 'TeamOP', '🐛 Bug OP GESTION — erreur à l’enregistrement', 'Un bug a été signalé par un utilisateur.')), 'notif');
+  v('TeamOP — « Nouveau compte » créé (automatique) → Notifications', cat(jeu('noreply@teamop.fr', 'TeamOP', 'Nouveau compte : Atelier Dupont', 'Un nouveau compte vient d’être créé.')), 'notif');
+  v('TeamOP — code de connexion → Notifications', cat(jeu('noreply@teamop.fr', 'TeamOP', 'Votre code de connexion', 'Votre code : 482913')), 'notif');
+  v('un client qui écrit depuis une adresse à NOM DE PERSONNE (marie.durand@…) → Principal', cat(jeu('marie.durand@atelier-durand.fr', 'Marie Durand', 'Question sur mon abonnement', 'Bonjour, je voudrais changer de formule.')), 'principal');
+  v('un client qui écrit depuis contact@ en parlant à la première personne (« je ») → Principal', cat(jeu('contact@atelier-durand.fr', 'Marie Durand', 'Mon espace ne s’ouvre plus', 'Bonjour, je n’arrive plus à me connecter depuis hier.')), 'principal');
+  v('une réponse « Re : » d’un client (prénom nom, adresse personnelle) → Principal', cat(jeu('paul.bernard@gmail.com', 'Paul Bernard', 'Re : Votre devis', 'Merci, je vous confirme mon accord.')), 'principal');
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exitCode = ko ? 1 : 0;
