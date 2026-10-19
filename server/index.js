@@ -4416,6 +4416,7 @@ let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, p
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
+let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
 function supprDestLisible() {
   const d = adrNue(supprDest()); if (!d) return false;
@@ -10041,6 +10042,8 @@ try {
     agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif,
       cerveaux: ['hugo'], cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
     console.log('agents : socle chargé');
+    /* LA DIRECTION : la charte d'autonomie (ce que chaque geste a le droit de faire seul) et le rapport du jour. Elle ne fait agir personne. */
+    directionMod = require('./direction')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod });
     /* LES DOSSIERS : un numéro par client (`DOS-000123`), la fiche pour le patron, la même fiche pour un agent à qui il le donne. */
     dossiersMod = require('./dossiers')(app, { DATA_DIR, monPatronStrict, clients: () => clientsData,
       espaceDe: (email) => { const m = String(email).toLowerCase(); const sl = Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').toLowerCase() === m); return sl ? Object.assign({ slug: sl }, espacesReg[sl]) : null; },

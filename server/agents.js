@@ -373,7 +373,10 @@ module.exports = function monterAgents(app, ctx) {
     } catch (e) { console.error('décision des agents :', e.message); res.status(500).json({ error: 'Décision non traitée' }); }
   });
 
-  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS };
+  /* Pour la direction (charte, rapport du jour) : une COPIE du journal, et le fait qu'il soit lisible ou non — jamais « [] » à la place d'un « on ne sait pas ». */
+  const lireJournal = () => journal.slice();
+  const journalIllisible = () => illisibles.has(F_JOURNAL);
+  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS, lireJournal, journalIllisible };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;
