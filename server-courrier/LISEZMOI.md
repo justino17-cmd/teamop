@@ -31,10 +31,11 @@ Première brique : la signature. La lecture des boîtes viendra dans le même se
 ```bash
 ssh root@217.154.6.139
 git clone --depth 1 --branch courrier/serveur https://github.com/justino17-cmd/teamop.git /root/depot-courrier
-bash /root/depot-courrier/server-courrier/install-courrier.sh beta courrier-beta.teamop.fr --email <ton adresse> --branche courrier/serveur
+bash /root/depot-courrier/server-courrier/install-courrier.sh beta courrier-beta.teamop.fr --branche courrier/serveur
 ```
 (Quand la branche sera fusionnée, retire `--branche …` et `--branch …` : c'est `main` par défaut.)
-Il vérifie ce qu'il doit (Node 22.5+, nginx actif, port libre), crée l'utilisateur `opcourrier`, le service `opcourrier-beta` (127.0.0.1, port 8192), **ajoute** un site nginx `courrier-beta`, obtient le certificat de ce domaine seulement, tire au sort la **clé maître** (sans l'afficher) et dit à la fin l'adresse du webhook.
+Avant : `cd /root/depot-courrier && git pull` si le dépôt est déjà cloné.
+Il vérifie ce qu'il doit (Node 22.5+, un proxy actif — **Caddy sur ce VPS**, nginx sinon —, port libre), crée l'utilisateur `opcourrier`, le service `opcourrier-beta` (127.0.0.1, port 8192), **ajoute** son fichier de proxy (`/etc/caddy/opcourrier/beta.caddy` + une seule ligne `import` au Caddyfile ; Caddy obtient le certificat tout seul),  tire au sort la **clé maître** (sans l'afficher) et dit à la fin l'adresse du webhook.
 Rejouable : ce qui existe est gardé. ⛔ S'il trouve des données **sans** clé maître, il refuse : une clé neuve rendrait tout illisible. ⛔ Si `nginx -t` refuse, il retire son fichier et ne recharge rien.
 
 ### 2. Sauvegarder la clé maître (sans l'afficher)
@@ -75,7 +76,8 @@ Même chose avec `courrier.teamop.fr` (DNS à poser chez OVH vers 217.154.6.139)
 
 ## Cohabitation avec teamop-api et OP MESSAGES
 
-- nginx : seul `/etc/nginx/sites-available/courrier-<instance>` (+ son lien) est ajouté ; `nginx.conf`, `conf.d` et les sites existants ne sont jamais réécrits ; `nginx -t` passe AVANT le rechargement, sinon tout est retiré.
+- Caddy (ce VPS) : un fichier `/etc/caddy/opcourrier/<instance>.caddy` + UNE ligne `import /etc/caddy/opcourrier/*.caddy` au Caddyfile (sauvegardé avant) ; `caddy validate` AVANT `systemctl reload caddy`, et au moindre refus tout est remis comme avant. Les blocs d'api.teamop.fr et d'OP MESSAGES ne sont pas touchés. Si nginx ET Caddy sont actifs : `OPCOURRIER_PROXY=caddy|nginx`.
+- nginx (si c'est lui) : seul `/etc/nginx/sites-available/courrier-<instance>` (+ son lien) est ajouté ; `nginx.conf`, `conf.d` et les sites existants ne sont jamais réécrits ; `nginx -t` passe AVANT le rechargement, sinon tout est retiré.
 - Port local libre vérifié (8192 beta, 8193 prod ; jamais 8080, 8090, 8091, 7880, 7881, 3478, 5349), sur 127.0.0.1 seulement.
 - Certificat : `certbot --nginx -d <ce domaine>` seulement. Node, nginx, les autres certificats : ni installés ni mis à jour ; aucun `apt upgrade`. Pare-feu : rien d'ouvert.
 - Dossiers à part : `/opt/opcourrier`, `/etc/opcourrier`, utilisateur `opcourrier`, unité `opcourrier-<instance>` ; le service refuse de démarrer sous `/opt/teamop`, `/etc/teamop`, `/opt/opmsg`, `/etc/opmsg`.
