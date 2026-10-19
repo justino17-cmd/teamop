@@ -2064,6 +2064,9 @@ const MON_GESTES = {
   'op/double': 'a réglé la double écriture d’une entreprise', 'op/lecture': 'a basculé la lecture d’une entreprise',
   'op/revenir': 'a demandé le code ou appliqué un retour en arrière d’une entreprise', 'op/ouvrir': 'a ouvert une lecture de diagnostic d’une entreprise',
   'op/couper': 'a coupé le stockage d’une entreprise',
+  /* l'équipe d'agents (agents.js) : le patron seul allume, éteint, arrête et décide */
+  'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
+  'agents/validations/decider': 'a décidé d’une demande d’un agent',
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
@@ -2071,7 +2074,8 @@ const MON_ACTIONS_MAX = 500;
 function monGesteCible(b) {
   b = b && typeof b === 'object' ? b : {};
   // un identifiant de connexion PEUT être une adresse : elle passe masquée, comme `email`
-  for (const k of ['nom', 'slug', 'login', 'teamId', 't', 'id']) { const x = b[k]; if (typeof x === 'string' && x.trim()) return x.includes('@') ? masqueMail(x.trim()) : monStr(x.trim(), 60); }
+  // `agent` en DERNIER : le prénom (identifiant) d'un agent de l'équipe (`agents.js`) — il ne passe devant aucun champ des routes d'avant
+  for (const k of ['nom', 'slug', 'login', 'teamId', 't', 'id', 'agent']) { const x = b[k]; if (typeof x === 'string' && x.trim()) return x.includes('@') ? masqueMail(x.trim()) : monStr(x.trim(), 60); }
   if (typeof b.email === 'string' && b.email.trim()) return masqueMail(b.email);
   // la règle de tri du Courrier : un domaine (« @exemple.fr ») n'est personne, il s'écrit tel quel ; une adresse, masquée
   if (typeof b.adresse === 'string' && b.adresse.trim()) { const x = b.adresse.trim(); return x[0] === '@' ? monStr(x, 60) : masqueMail(x); }
@@ -4408,6 +4412,7 @@ function adrNue(s) { const m = /<([^<>]*)>\s*$/.exec(String(s || '')); return St
 function supprDest() { return String(config.securiteEmail || config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').trim(); }
 function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
+let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
 function supprDestLisible() {
   const d = adrNue(supprDest()); if (!d) return false;
   try { if (supportBox && adrNue(supportBox.email) === d) return true; } catch (e) {}
@@ -10024,6 +10029,13 @@ try {
   messagerieTour = require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege,
     quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages });
   console.log('messagerie : module chargé');
+  /* L'ÉQUIPE D'AGENTS (`agents.js`) : son socle seulement — registre, journal, validations, pause, tâches. Monté DANS ce bloc parce
+     que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
+     emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
+  try {
+    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif });
+    console.log('agents : socle chargé');
+  } catch (e) { console.error('agents indisponibles :', e.message); }
 } catch (e) { console.error('messagerie indisponible :', e.message); }
 
 /* ══════════ DEVIS IA — génération de devis par Claude ══════════
