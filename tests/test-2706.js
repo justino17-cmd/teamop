@@ -48,6 +48,28 @@ console.log('\n── 2706 · dossiers clients : le vrai serveur ──');
   }
   const lire = () => fs.readFileSync(path.join(D, 'dossiers.json'), 'utf8');
 
+  console.log('\n0. Le module seul : numeroDe (le geste de la synchro des clients), sans serveur');
+  {
+    const mont = require(path.join(RACINE, 'server', 'dossiers.js'));
+    const Dm = path.join(banc, 'module'); fs.mkdirSync(Dm, { recursive: true });
+    const m = mont({ get() {} }, { DATA_DIR: Dm, monPatronStrict() {}, clients: () => ({}) });
+    const a1 = m.numeroDe('Nouvelle@Exemple-2706.fr');
+    v('un client neuf prend DOS-000001', a1, 'DOS-000001');
+    v('le même client (casse et espaces ignorés) garde son numéro', [m.numeroDe(' nouvelle@exemple-2706.fr '), m.numeroDe('NOUVELLE@EXEMPLE-2706.FR')], [a1, a1]);
+    v('un autre client prend le numéro suivant, pas le même', m.numeroDe('autre@exemple-2706.fr'), 'DOS-000002');
+    v('une adresse sans arobase n\'a pas de numéro', [m.numeroDe('pas-une-adresse'), m.numeroDe(''), m.numeroDe(null)], [null, null, null]);
+    v('…et ne consomme aucun numéro', m.numeroDe('suite@exemple-2706.fr'), 'DOS-000003');
+    const ecrit = JSON.parse(fs.readFileSync(path.join(Dm, 'dossiers.json'), 'utf8'));
+    v('le fichier porte le prochain numéro à jour', ecrit.prochain, 4);
+    const Di = path.join(banc, 'module-ill'); fs.mkdirSync(Di, { recursive: true }); fs.writeFileSync(path.join(Di, 'dossiers.json'), '{pas du json');
+    const mi = mont({ get() {} }, { DATA_DIR: Di, monPatronStrict() {}, clients: () => ({ 'x@y.fr': { inscrit: 1 } }) });
+    v('registre illisible : aucun numéro, jamais un numéro inventé', [mi.numeroDe('x@y.fr'), mi.attribuerTous(), mi.estIllisible()], [null, 0, true]);
+    v('…et le fichier reste tel quel', fs.readFileSync(path.join(Di, 'dossiers.json'), 'utf8'), '{pas du json');
+    const Dr = path.join(banc, 'module-ro'); fs.mkdirSync(Dr, { recursive: true });
+    const mr = mont({ get() {} }, { DATA_DIR: path.join(Dr, 'absent', 'profond'), monPatronStrict() {}, clients: () => ({}) });
+    v('écriture impossible : pas de numéro, et le suivant ne saute pas', [mr.numeroDe('a@b.fr'), mr.numeroDe('c@d.fr')], [null, null]);
+  }
+
   console.log('\n1. Rétro-attribution : dans l\'ordre d\'inscription, forme fermée, stable');
   let S = await demarrer('premier démarrage');
   let L = await S.liste();

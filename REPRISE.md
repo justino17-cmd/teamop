@@ -741,6 +741,10 @@ rien n'est dit. La page : l'étiquette « Pro » / « Perso » sur une conversat
 mention de l'autre côté commence par « Pro · » / « Perso · » et s'ouvre d'un toucher ; « Confirmer l'envoi » ne retient plus une conversation Perso.
 Preuves : `test-968`, `test-973`, `test-998` (faux service push), `test-857` ; mutations PP1–PP6, Q01–Q05.
 
+
+## 📁 Dossiers clients — DOS-nnnnnn (19 octobre 2026, branche `claude/equipe-agents`)
+`server/dossiers.js` : un numéro par client (forme fermée, jamais réutilisé, rétro-attribué dans l'ordre d'inscription, mémoire = empreinte de l'adresse). Routes patron seul `GET /api/monitor/dossiers[?q=]` et `/:numero` (503 si le registre est illisible). Onglet « Dossiers » de la Tour (Agents). `tests/test-2706.js` (48 ✓). Mutations : 13, 11 tombent ; deux survivantes sont des gardes redondantes (`ecrire()` illisible, doublée par `numeroDe`/`attribuerTous` ; minuscules, déjà faites par l'appelant). Pas encore de test du panneau Tour des dossiers (test-2704). Les agents ne lisent pas encore de fiche : étape « Hugo avec un cerveau ».
+
 ## Ce qui reste ouvert, à proposer à Justin (rien n'est commencé)
 Perso / Pro : un STATUT et une présence par côté (un collègue ne voit pas « En ligne » le dimanche) ; les demandes de contact rangées par côté ; une sonnerie Pro
 distincte ; une pastille d'icône du côté actif ; le nom du calendrier (Pro / Perso) dans le .ics ; les heures de travail appliquées aux invitations et appels manqués
