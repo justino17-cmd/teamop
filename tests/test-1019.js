@@ -49,7 +49,7 @@ v('⛔ la fiche : une carte par sujet, dans cet ordre',
   secs, ['FORMULE ET PAIEMENT', '[acces]', 'ABONNEMENT', '[utilisateurs]', '[espace]', 'MÉTIER', 'APPLICATIONS ET CHIFFREMENT', '[dossier]', 'CONNEXIONS', 'ACTIVITÉ PAR ONGLET & PROBLÈMES', 'CONTACT', 'DEMANDES DU SITE', '[comptes]', '[supprimer]']);
 const nb = (re, h) => (String(h || H).match(re) || []).length;
 v('⛔ chaque geste n’a qu’UNE place : lien de connexion, Stripe, métier, abonnement, code promo, écrire',
-  [nb(/tourLienEntreprise\(/g), nb(/dashboard\.stripe\.com/g), nb(/tourMetierEnregistrer\(/g), nb(/tourAboEnregistrer\(/g), nb(/tourPromoEntreprise\(/g), nb(/compoOuvrir\(/g)], [1, 1, 1, 1, 1, 1]);
+  [nb(/tourLienEntreprise\(/g), nb(/dashboard\.stripe\.com/g), nb(/tourMetierEnregistrer\(/g), nb(/tourAboEnregistrer\(/g), nb(/tourPromoEntreprise\(/g), nb(/courrierEcrire\(/g)], [1, 1, 1, 1, 1, 1]);
 v('le lien de connexion est dans la carte Accès (avant l’abonnement), « Voir dans Stripe » dans l’abonnement',
   [H.indexOf('tourLienEntreprise(') < H.indexOf('class="sec">ABONNEMENT'), H.indexOf('dashboard.stripe.com') > H.indexOf('class="sec">ABONNEMENT') && H.indexOf('dashboard.stripe.com') < H.indexOf('[utilisateurs]')], [true, true]);
 v('⛔ la formule et l’argent : « Formule » n’est dite qu’une fois, OP MESSAGES et le chiffrement ne sont plus sous « Formule et paiement »',

@@ -1286,73 +1286,16 @@ body.jour #dia .dia-ctrl{border-top-color:rgba(20,28,48,.09)}
 }
 @media(prefers-reduced-motion:reduce){ #dia .dia-jauge i{transition:none} }
 
-/* ══ COURRIER ═══ trois natures dans la boîte, une seule matière au sol ═══════════════════
-   Le volet du milieu redevient un SOL : une carte élevée --plan-cli posée sur --surface ne
-   fait que 1,25:1 — la marche invisible. Posée sur le fond de page elle fait 1,46:1, et le
-   jour l'ombre porte enfin sur du gris perle au lieu de blanc sur blanc. */
-.mail-liste{background:var(--bg)}
-/* La branche LISTE du volet unique perd sa surface ; la branche LECTURE la garde — là, la
-   surface est voulue. Une classe plutôt que :has() : c'est plus sûr à relire. */
-.mail-plat{background:transparent;border:0;border-radius:0;overflow:visible}
-.mail-plat .mail-rows{padding:0}
+/* ══ COURRIER ═══ la zone où l'on monte OP Courrier (opcourrier.js, arbre d'ombre : sa feuille ne touche pas la Tour, la nôtre ne le touche pas).
+   La Tour ne lui donne que de la place — la hauteur est posée par `courrierAjuster` — et un coin arrondi comme les cartes. */
+.courrier-zone{min-height:360px;border-radius:var(--r-4);overflow:hidden}
 
-/* L'avatar dit UNE chose : est-ce une entreprise que je connais ? Les six teintes tirées
-   d'un hachage d'adresse — cinq couleurs de plus que l'accent unique autorisé — ne
-   portaient rien du tout. */
-.sup-ava{width:38px;height:38px;border-radius:11px;flex:0 0 38px;display:flex;align-items:center;
-  justify-content:center;font-size:14px;font-weight:700;
-  background:var(--avatar);box-shadow:inset 0 0 0 1px var(--avatarBorder);color:var(--blueSoft)}
-.sup-ava.inconnu{background:transparent;box-shadow:inset 0 0 0 1px var(--line);color:var(--dim)}
-.lec-qui .sup-ava{width:34px;height:34px;border-radius:50%;flex-basis:34px}
-
-/* La ligne d'un message : nom à gauche, heure à droite, sur la même ligne. */
-.sup-l1{display:flex;align-items:baseline;gap:10px}
-.sup-l1 .reg-t1{flex:1;min-width:0}
-.sup-h{flex-shrink:0;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-/* Un message non lu : le sujet passe en --strong EN PLUS d'être dans un groupe qui le dit.
-   Le rond de non-lu disparaît : « non lu », c'est désormais le nom du groupe. */
-/* Sur une carte élevée, l’objet du message est la substance : il passe sur deux lignes
-   plutôt que de se couper. Le socle tronque .reg-l2 parce qu’ailleurs c’est une suite de
-   faits ; ici c’est une phrase écrite par une cliente. */
-.reg-l.att .reg-l2{color:var(--strong);font-weight:600}
-.reg-l.cli.att .reg-l2{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 /* L'écart entre la formule SERVIE et la fiche (29 septembre 2026, `abnFormule`) se lit EN ENTIER, sur autant de lignes qu'il
    le faut : tronquée au téléphone, la ligne coupait « la fiche dit Business Premi… », c'est-à-dire l'écart lui-même
    (mesuré par scratchpad/sonde-tour-formule-servie.js, à 360 et 390 px). Deux lignes ne suffisaient pas à une période
    offerte, qui ajoute son échéance et ses jours restants (relecture adverse, mesuré à 360 px). Seules les lignes à écart
    grandissent. */
 .reg-l2.abn-ecart{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
-.sup-sig{font-size:12px;color:var(--muted);white-space:nowrap}
-
-/* La navigation principale d'un écran ouvert au doigt faisait 35 px. Et un titre de section
-   n'est pas une étiquette de champ : les petites capitales en monospace sont l'un des cinq
-   réflexes d'interface générée. */
-.dos-t{font-family:inherit;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;
-  color:var(--text2);margin:18px 0 6px 10px}
-.dos .n{font-variant-numeric:tabular-nums;min-width:18px;text-align:right}
-
-/* Les états vides parlent et donnent le geste suivant. */
-/* Le bandeau de panne du courrier : il porte l'erreur EXACTE renvoyée par le serveur, parce
-   qu'« impossible de lire » sans la raison ne permet à personne de réparer quoi que ce soit. */
-.mail-panne{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;background:var(--ambreBg);
-  color:var(--amber);border-radius:var(--r-3);padding:14px 16px;margin:0 0 12px;font-size:13px;line-height:1.55}
-.mail-panne svg{flex-shrink:0;margin-top:1px}
-.mail-panne>div{flex:1;min-width:180px}
-.mail-panne-l{color:var(--text2);font-size:12px;margin-top:4px;word-break:break-word}
-.mail-panne .btn-fant{flex-shrink:0}
-.sup-vide{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
-  padding:38px 22px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
-.sup-vide .t{font-size:15px;font-weight:600;color:var(--text)}
-.sup-vide svg{color:var(--dim)}
-.sup-vide .btn-plein,.sup-vide .btn-fant{margin-top:6px;min-height:44px}
-/* Le chargement montre la FORME de ce qui arrive, pas un mot dans un cadre en pointillés. */
-.sup-squel{height:66px;border-radius:var(--r-2);background:var(--tint-gris);margin:0 0 8px;
-  animation:jrBat 1.4s ease-in-out infinite}
-
-@media(max-width:640px){
-  .sup-ava{width:34px;height:34px;flex-basis:34px;border-radius:10px;font-size:13px}
-}
-@media(prefers-reduced-motion:reduce){ .sup-squel{animation:none} }
 
 /* ══ MODALE + VOILE ═══ créée par le JS avec ses styles inline ; on impose la matière ══ */
 #tour-panneau{background:var(--scrim)!important;-webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%);animation:voileIn var(--d-2) var(--e-sortie) both}
@@ -1380,104 +1323,6 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 #lg-err{color:var(--redText);font-size:13px;margin-top:10px;min-height:16px}
 #lg-rester{accent-color:var(--acc)}
 
-/* ══ LE COURRIER ═══ la maquette elle-même ══ */
-.mail{display:grid;grid-template-columns:1fr;border:1px solid var(--border);border-radius:var(--r-4);overflow:hidden;background:var(--surface)}
-/* 216 px suffisaient à « support@teamop.fr » ; la colonne porte maintenant des noms
-   d'entreprise ET leurs catégories en retrait — « Pas encore rattachées » y tenait sur
-   deux lignes tronquées. */
-@media(min-width:1000px){.mail{grid-template-columns:252px minmax(300px,340px) 1fr;min-height:560px}
-  .mail-rows{max-height:calc(100vh - 310px)}.mail-lect{overflow-y:auto;max-height:calc(100vh - 244px)}}
-.mail-doss{background:var(--inset);border-right:1px solid var(--line);padding:12px 10px}
-.mail-liste{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
-.mail-rech{display:flex;gap:8px;padding:11px 12px;border-bottom:1px solid var(--line)}
-.mail-rech .rech{flex:1;min-width:0}
-.mail-rows{overflow-y:auto;flex:1}
-/* ⛔ LE DÉCALAGE DE 56 px NE VAUT QUE POUR LA PAGE. `.reg-tete{top:56px}` (bloc téléphone)
-   existe pour que le titre d'un groupe s'arrête SOUS la barre du haut, elle-même sticky sur
-   la page. Mais `.mail-rows` défile TOUT SEUL : il n'y a aucune barre à contourner dedans,
-   donc les 56 px ne décalent plus rien — ils POUSSENT l'en-tête, fond opaque compris, par
-   -dessus la première ligne de la liste. Mesuré au téléphone (390 px), Courrier, groupe
-   « Non rattachées » : en-tête bas à 400 px, première ligne haut à 355 px — 45 px de courrier
-   recouverts, et l'objet du premier message coupé en deux, sans avoir rien fait défiler.
-   Capture de Justin, 14 septembre 2026. Le même en-tête passé en `position:static` rend
-   −7 px : c'est bien le collage, pas la mise en page. */
-.mail-rows .reg-tete{top:0}
-.mail-lect{min-width:0}
-.mail-1{display:block}
-.dos-bar{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px}
-.dos-bar .dos{width:auto;flex:0 0 auto;border:1px solid var(--trait-ui);border-radius:var(--r-pill);min-height:44px;padding:0 14px}
-.dos-bar .dos-t{display:none}
-/* Une seule définition, ici : elle vivait en trois morceaux dans trois blocs différents, et
-   les deux plus hauts perdaient la cascade contre celle-ci sans que rien ne le signale.
-   C’est la navigation principale d’un écran qu’on ouvre au doigt : 44 px, plancher dur. */
-/* `padding:0` devient `padding:7px 10px` : un libellé qui passe à deux lignes doit pouvoir
-   grandir sans coller aux bords. min-height reste le plancher tactile de 44 px. */
-.dos{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;color:var(--text2);font-family:inherit;font-size:14px;text-align:left;min-height:44px;padding:7px 10px;border-radius:var(--r-2);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie)}
-.dos:hover{background:var(--hover);color:var(--strong)}
-.dos:active{background:var(--sel);transition-duration:var(--d-0)}
-.dos.on{background:var(--accBg);color:var(--strong);font-weight:600}
-.dos:focus-visible{outline:none;box-shadow:var(--anneau)}
-.dos-i{flex:0 0 auto;font-size:14px}
-/* ⛔ LE LIBELLÉ SE REPLIE, IL NE SE COUPE PLUS. La colonne fait 238 px et « Toutes les
-   entreprises » s'affichait « Toutes les entrep… » — un libellé tronqué cache une information,
-   et il y en a d'autres qui arrivent (des noms d'entreprise, des adresses de boîte).
-   Deux lignes au plus : au-delà, on coupe quand même, sinon une seule ligne de la barre
-   pourrait manger tout l'écran. La coupure se fait entre les mots, jamais au milieu d'un mot
-   — un nom d'entreprise coupé en deux ne se reconnaît plus. */
-.dos-n{flex:1;min-width:0;overflow:hidden;overflow-wrap:break-word;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.25}
-.dos .n{flex:0 0 auto;font-size:11px;color:var(--muted);font-weight:700}
-.dos.on .n{color:var(--acc)}
-.dos-t{font-size:10px;letter-spacing:var(--suivi-mono);color:var(--muted);font-family:var(--fm);margin:14px 0 6px 10px}
-/* ── LE COURRIER RANGÉ PAR ENTREPRISE ──
-   Les catégories sont EN RETRAIT sous leur entreprise, et le filet vertical dit à qui elles
-   appartiennent : sans lui, cinq lignes de plus se lisent comme cinq entreprises de plus.
-   Elles restent à 44 px — c'est le plancher tactile, pas une suggestion. */
-.dos.sous{margin-left:12px;width:calc(100% - 12px);min-height:44px;font-size:13px;color:var(--muted);
-  border-left:1px solid var(--line);border-radius:0 var(--r-2) var(--r-2) 0;padding-left:11px}
-.dos.sous:hover{color:var(--text2)}
-.dos.sous.on{background:var(--tint-gris);color:var(--strong);font-weight:600;border-left-color:var(--acc)}
-.dos.sous .dos-i{font-size:12px}
-.dos-note{font-size:12px;color:var(--muted);line-height:1.5;padding:4px 10px 8px}
-/* Les boîtes reliées ne sont plus une navigation : ce sont des témoins. Elles ne se cliquent
-   donc pas, et ne doivent pas ressembler à ce qui se clique. */
-.dos-plomb{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 10px;
-  font-family:var(--fm);font-size:11px;color:var(--muted);line-height:1.4}
-.dos-plomb span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dos-plomb b{flex:0 0 auto;color:var(--amber);font-variant-numeric:tabular-nums}
-/* En barre horizontale (écran étroit), le retrait et le filet n'ont plus de sens. */
-.dos-bar .dos.sous{margin-left:0;width:auto;border-left:1px solid var(--trait-ui);border-radius:var(--r-pill);padding-left:14px}
-.dos-bar .dos-note,.dos-bar .dos-plomb{display:none}
-.mrow{display:flex;gap:10px;padding:11px 13px;border-bottom:1px solid var(--hairline);cursor:pointer;align-items:flex-start;transition:background-color var(--d-1) var(--e-sortie)}
-.mrow:hover{background:var(--hover)}
-.mrow:active{background:var(--sel);transition-duration:var(--d-0)}
-.mrow.on{background:var(--sel);box-shadow:inset 3px 0 0 var(--acc)}
-.mrow:focus-visible{outline:none;box-shadow:var(--anneau-int)}
-.mrow .pastille{width:8px;height:8px;border-radius:50%;flex:0 0 8px;margin-top:6px;background:var(--acc);transition:background-color var(--d-2) var(--e-sortie)}
-.mrow.lu .pastille{background:transparent}
-.m-txt{flex:1;min-width:0}
-.m-l1{display:flex;align-items:baseline;gap:8px}
-.m-de{flex:1;min-width:0;font-size:13px;font-weight:700;color:var(--strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mrow.lu .m-de{font-weight:600;color:var(--text2)}
-.m-h{flex:0 0 auto;font-family:var(--fm);font-size:11px;color:var(--muted)}
-.m-l2{font-size:13px;color:var(--text);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.m-l3{font-size:11px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.m-sig{margin-left:6px;font-size:11px;color:var(--muted)}
-.m-auto{margin-left:6px;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--muted);background:var(--chip);border-radius:var(--r-pill);padding:1px 7px}
-.lec{padding:22px 24px}
-.lec-tete{border-bottom:1px solid var(--line);padding-bottom:16px}
-.lec-ret{margin-bottom:12px}
-.lec-obj{font-size:18px;font-weight:700;line-height:1.35;letter-spacing:var(--suivi-titre)}
-.lec-qui{display:flex;align-items:center;gap:11px;margin-top:13px;flex-wrap:wrap}
-.m-ava{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex:0 0 34px}   /* teintes inline (L1457) : blanc ≥ 5,3 sur chacune ✓ */
-.lec-id{min-width:0;flex:1 1 160px;display:flex;flex-direction:column}
-.lec-id b{font-size:13px;color:var(--strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lec-id span{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lec-h{font-size:12px;color:var(--muted);font-family:var(--fm);flex:0 0 auto}
-.lec-act{margin-top:13px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
-.lec-corps{padding:20px 0;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--text2)}
-.lec-rep{border-top:1px solid var(--line);padding-top:16px}
-@media(max-width:640px){.lec{padding:18px 15px}}
 
 /* ══ RATTRAPAGE des restes inline ═══ le JS les pose en dur ; ces lignes les ramènent dans le système jusqu'à ce qu'on nettoie le JS ══ */
 #lg-rester{accent-color:var(--acc)!important}                              /* L217 : accent-color:var(--acc) (bleu) */
@@ -1547,7 +1392,7 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 /* ══ ARRIVÉE DU CONTENU ═══ les cartes et les lignes se posent, elles n'apparaissent pas ══════════════════
    Un décalage de 18 ms entre les six premières : assez pour lire un ordre, trop court pour attendre.
    Au-delà de six, tout arrive ensemble — on ne fait pas patienter devant une liste de trente. */
-#vue.entre .carte,#vue.entre .item,#vue.entre .kpi,#vue.entre .tbl,#vue.entre .mail{animation:posee var(--d-3) var(--e-sortie) both}
+#vue.entre .carte,#vue.entre .item,#vue.entre .kpi,#vue.entre .tbl{animation:posee var(--d-3) var(--e-sortie) both}
 #vue.entre .carte:nth-child(1),#vue.entre .item:nth-child(1),#vue.entre .kpi:nth-child(1){animation-delay:0ms}
 #vue.entre .carte:nth-child(2),#vue.entre .item:nth-child(2),#vue.entre .kpi:nth-child(2){animation-delay:18ms}
 #vue.entre .carte:nth-child(3),#vue.entre .item:nth-child(3),#vue.entre .kpi:nth-child(3){animation-delay:36ms}
@@ -1574,7 +1419,6 @@ nav.tabs.a-indic .tab.on,nav.tabs.a-indic .tab.on:hover{background:transparent}
 #tour-panneau>div>*{animation:posee var(--d-3) var(--e-sortie) both}
 #tour-panneau>div>*:nth-child(1){animation-delay:60ms}#tour-panneau>div>*:nth-child(2){animation-delay:100ms}#tour-panneau>div>*:nth-child(3){animation-delay:140ms}
 #tour-panneau>div>*:nth-child(4){animation-delay:180ms}#tour-panneau>div>*:nth-child(5){animation-delay:220ms}#tour-panneau>div>*:nth-child(n+6){animation-delay:260ms}
-.mail-lect.entre .lec{animation:glisse var(--d-3) var(--e-sortie) both}
 @keyframes glisse{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
 
 /* ══ CHIFFRES ET BARRES ═══ à l'arrivée d'un écran voulu ══ */
@@ -1615,20 +1459,15 @@ nav.tabs.a-indic .tab.on,nav.tabs.a-indic .tab.on:hover{background:transparent}
 @keyframes fondEntre{from{opacity:0}to{opacity:1}}
 /* Écrans à deux colonnes : seule la colonne de droite bouge, la liste reste. */
 .col-detail{view-transition-name:detail}
-.mail-lect{view-transition-name:lecture}
-:root.nav-detail::view-transition-old(root),:root.nav-detail::view-transition-new(root),
-:root.nav-lecture::view-transition-old(root),:root.nav-lecture::view-transition-new(root),
-:root.nav-lecture-retour::view-transition-old(root),:root.nav-lecture-retour::view-transition-new(root){animation:none}
-:root.nav-detail::view-transition-group(detail),:root.nav-lecture::view-transition-group(lecture),:root.nav-lecture-retour::view-transition-group(lecture){animation:none}
-:root.nav-detail::view-transition-old(detail),:root.nav-lecture::view-transition-old(lecture){animation:pousseSortG var(--d-3) var(--e-entree) both}
-:root.nav-detail::view-transition-new(detail),:root.nav-lecture::view-transition-new(lecture){animation:pousseEntreD var(--d-4) var(--ressort) both}
-:root.nav-lecture-retour::view-transition-old(lecture){animation:pousseSortD var(--d-3) var(--e-entree) both}
-:root.nav-lecture-retour::view-transition-new(lecture){animation:pousseEntreG var(--d-4) var(--ressort) both}
+:root.nav-detail::view-transition-old(root),:root.nav-detail::view-transition-new(root){animation:none}
+:root.nav-detail::view-transition-group(detail){animation:none}
+:root.nav-detail::view-transition-old(detail){animation:pousseSortG var(--d-3) var(--e-entree) both}
+:root.nav-detail::view-transition-new(detail){animation:pousseEntreD var(--d-4) var(--ressort) both}
 /* Le bouton « retour » : la flèche recule quand on le survole */
 .btn-fant:hover{letter-spacing:.005em}
 
 /* La bascule de thème ne claque pas : le fond et l'encre glissent (200 ms), le reste suit ses propres règles */
-body,.bandeau,.carte,.item,.kpi,.tbl,.mail,.mail-doss,.inp,.sel-f,.rech,.code,.lg-carte,#toast{transition-property:background-color,color,border-color,box-shadow,transform;transition-duration:var(--d-2),var(--d-2),var(--d-1),var(--d-1),var(--d-3);transition-timing-function:var(--e-sortie),var(--e-sortie),var(--e-sortie),var(--e-sortie),var(--ressort-vif)}
+body,.bandeau,.carte,.item,.kpi,.tbl,.inp,.sel-f,.rech,.code,.lg-carte,#toast{transition-property:background-color,color,border-color,box-shadow,transform;transition-duration:var(--d-2),var(--d-2),var(--d-1),var(--d-1),var(--d-3);transition-timing-function:var(--e-sortie),var(--e-sortie),var(--e-sortie),var(--e-sortie),var(--ressort-vif)}
 
 /* Sortie : à brancher le jour où le JS pose une classe .part avant de cacher (3 lignes : classList.add('part') + animationend → display:none) */
 #toast.part{animation:toastOut var(--d-2) var(--e-entree) forwards}
@@ -1643,13 +1482,12 @@ body,.bandeau,.carte,.item,.kpi,.tbl,.mail,.mail-doss,.inp,.sel-f,.rech,.code,.l
   /* plus aucune propriété géométrique ne glisse ; couleurs et ombres continuent, brièvement */
   *,*::before,*::after{transition-property:background-color,color,border-color,box-shadow,opacity!important;transition-duration:var(--d-1)!important;transition-timing-function:ease-out!important;animation-delay:0s!important;scroll-behavior:auto!important}
   :root[class*="nav-"]::view-transition-old(root),:root[class*="nav-"]::view-transition-new(root),
-  :root[class*="nav-"]::view-transition-old(detail),:root[class*="nav-"]::view-transition-new(detail),
-  :root[class*="nav-"]::view-transition-old(lecture),:root[class*="nav-"]::view-transition-new(lecture){animation:none!important}
+  :root[class*="nav-"]::view-transition-old(detail),:root[class*="nav-"]::view-transition-new(detail){animation:none!important}
   ::view-transition-group(titre){animation-duration:0s!important}
   .tab-indic{transition:none!important}
   .carte::after,.item::after,.kpi::after,.lg-carte::after{display:none}
   .item:hover,.kpi.clic:hover,.btn-plein:hover,.btn-fant:hover{transform:none!important}
-  #tour-panneau>div>*,.mail-lect.entre .lec,#vue.entre .kpi .bars i,.bdg-r.pop,.bdg-b.pop{animation:none!important}
+  #tour-panneau>div>*,#vue.entre .kpi .bars i,.bdg-r.pop,.bdg-b.pop{animation:none!important}
   ::view-transition-old(connexion){animation:none!important}
   /* la pression se lit par la couleur, pas par l'échelle */
   .btn-plein:active,.btn-fant:active,.btn-icone:active,.pill-act:active,.mode-fixe:active,.kpi.clic:active{transform:none}
@@ -1660,7 +1498,7 @@ body,.bandeau,.carte,.item,.kpi,.tbl,.mail,.mail-doss,.inp,.sel-f,.rech,.code,.l
   .kpi .bars i{transition:none!important}
   /* les vues ne se croisent plus, le contenu ne se pose plus : tout est déjà là */
   ::view-transition-old(root),::view-transition-new(root){animation:none!important}
-  #vue.entre .carte,#vue.entre .item,#vue.entre .kpi,#vue.entre .tbl,#vue.entre .mail{animation:none!important}
+  #vue.entre .carte,#vue.entre .item,#vue.entre .kpi,#vue.entre .tbl{animation:none!important}
   /* voile, feuille, toast : un fondu de 200 ms, sans translation ni échelle, sans flou animé */
   #tour-panneau{animation:fonduSimple var(--d-2) ease-out}
   #tour-panneau>div{animation:fonduSimple var(--d-2) ease-out}
@@ -1847,7 +1685,7 @@ body.plans .reg-l.cli::before{display:none}
    `overflow:hidden` fait de .col-liste le conteneur du collage, et au bureau `.reg-tete{top:48px}` (le
    dégagement de la barre du haut, qui vaut pour la PAGE) le poussait 48 px plus bas, fond compris : sur
    Équipe, « Accès ouverts » recouvrait la ligne du patron sans qu'on ait rien fait défiler. Le jumeau
-   de `.mail-rows .reg-tete{top:0}` (14 septembre). Ces listes sont courtes : on ne colle pas. */
+   de l'ancien `.mail-rows .reg-tete{top:0}` du Courrier (14 septembre, retiré le 18 octobre avec lui). Ces listes sont courtes : on ne colle pas. */
 .col-liste .reg-tete{position:relative;top:auto}
 /* v2.68 — DANS UNE COLONNE-CARTE, LE TITRE D'UN GROUPE S'ALIGNE SUR SES LIGNES. Les lignes ont 16 px de
    retrait, le titre 4 : dans Accès et Équipe il touchait le bord de la carte, et « Ouvrir un accès bêta »
@@ -2260,16 +2098,6 @@ body.plans .reg-l.cli::before{display:none}
   .ac-aside{ flex:0 1 340px }
 }
 
-/* ── 7) LE CHEVRON DU REPLI ───────────────────────────────────────────────────────
-   Justin, 13 septembre : « je clique elle se déroule, je reclique elle se replie ». Un pli
-   qu'aucun signe n'annonce ne se découvre pas — c'est la règle des gestes cachés. Le
-   chevron dit que la ligne s'ouvre, sa rotation dit dans quel état elle est. */
-.dos-chev{ flex:0 0 auto; margin-left:2px; color:var(--muted); font-size:15px; line-height:1;
-  transition:transform var(--d-1) var(--e-sortie) }
-.dos-chev.bas{ transform:rotate(90deg) }
-.dos.on .dos-chev{ color:inherit; opacity:.7 }
-@media(prefers-reduced-motion:reduce){ .dos-chev{ transition:none } }
-
 </style>
 <style id="theme-tour">
 /* ══ THÈME DE LA TOUR ═══ maquette « TeamOp Tour HIG », validée par Justin (26 septembre 2026) ══════════
@@ -2385,19 +2213,19 @@ body:not(.jour){background:var(--tt-page);background-attachment:fixed;min-height
 #login{background:transparent}
 
 /* ── la matière des surfaces : un encart blanc le jour, une vitre la nuit ── */
-.carte,.kpi,.tbl,.item,.reg-cli,.reg-haut,.reg-bloc,.squel-l,.mail,.lg-carte,.vide,.encart,.groupe,.tt-carte{
+.carte,.kpi,.tbl,.item,.reg-cli,.reg-haut,.reg-bloc,.squel-l,.lg-carte,.vide,.encart,.groupe,.tt-carte{
   background:var(--tt-carte);border:1px solid var(--tt-carte-bord);box-shadow:var(--tt-ombre);
   -webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre)}
-body.jour .carte,body.jour .kpi,body.jour .tbl,body.jour .item,body.jour .reg-cli,body.jour .reg-haut,body.jour .reg-bloc,body.jour .squel-l,body.jour .mail,
+body.jour .carte,body.jour .kpi,body.jour .tbl,body.jour .item,body.jour .reg-cli,body.jour .reg-haut,body.jour .reg-bloc,body.jour .squel-l,
 body.jour .lg-carte,body.jour .vide,body.jour .encart,body.jour .groupe,body.jour .tt-carte{border-color:rgba(0,0,0,0);-webkit-backdrop-filter:none;backdrop-filter:none}
 /* UNE vitre, pas deux : une liste posée DANS une carte ne s'empile pas en second verre (deux blancs à
    8 % font 16 %, et le texte secondaire y tombait à 4,3:1, mesuré au pixel). Elle devient un creux
    bordé d'un filet (de nuit : de jour, `body.jour` efface toutes les bordures). v2.68 : la LISTE (.reg-bloc)
    n'en a plus du tout — voir « CHAQUE TEXTE SUR SA COLONNE », 17. */
 .carte .reg-bloc,.carte .reg-cli,.carte .reg-haut,.carte .item,.carte .tbl,.carte .vide,.carte .squel-l,
-#tour-panneau .reg-bloc,#tour-panneau .item,#tour-panneau .vide,.mail .reg-bloc,.mail .reg-cli,.mail .vide{
+#tour-panneau .reg-bloc,#tour-panneau .item,#tour-panneau .vide{
   background:rgba(0,0,0,0);box-shadow:none;border:1px solid var(--hairline);-webkit-backdrop-filter:none;backdrop-filter:none}
-.carte,.kpi,.tbl,.reg-cli,.reg-haut,.reg-bloc,.squel-l,.mail,.groupe,.tt-carte{border-radius:12px}
+.carte,.kpi,.tbl,.reg-cli,.reg-haut,.reg-bloc,.squel-l,.groupe,.tt-carte{border-radius:12px}
 .item{border-radius:12px;margin-bottom:8px}
 .lg-carte{border-radius:20px}
 .vide{background:var(--tt-carte)}
@@ -2676,10 +2504,10 @@ body.jour #toast{background:rgba(255,255,255,.92)}
 
 /* ── préférences du système ── */
 @media(prefers-reduced-transparency:reduce){
-  .carte,.kpi,.tbl,.item,.reg-cli,.reg-haut,.reg-bloc,.squel-l,.mail,.lg-carte,.vide,.groupe,.tt-carte,.bandeau,.tt-haut,.barre-bas,.feuille,.reg-tete,#toast,#tour-panneau>div,.tbl .hd,.tbl th{
+  .carte,.kpi,.tbl,.item,.reg-cli,.reg-haut,.reg-bloc,.squel-l,.lg-carte,.vide,.groupe,.tt-carte,.bandeau,.tt-haut,.barre-bas,.feuille,.reg-tete,#toast,#tour-panneau>div,.tbl .hd,.tbl th{
     -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
   body:not(.jour) .carte,body:not(.jour) .kpi,body:not(.jour) .tbl,body:not(.jour) .item,body:not(.jour) .reg-cli,body:not(.jour) .reg-haut,
-  body:not(.jour) .reg-bloc,body:not(.jour) .squel-l,body:not(.jour) .mail,body:not(.jour) .lg-carte,body:not(.jour) .vide,body:not(.jour) .groupe,body:not(.jour) .tt-carte{background:#1E2A42}
+  body:not(.jour) .reg-bloc,body:not(.jour) .squel-l,body:not(.jour) .lg-carte,body:not(.jour) .vide,body:not(.jour) .groupe,body:not(.jour) .tt-carte{background:#1E2A42}
   body:not(.jour) .bandeau,body:not(.jour) .tt-haut,body:not(.jour) .barre-bas,body:not(.jour) .feuille,body:not(.jour) .reg-tete,body:not(.jour) #toast,body:not(.jour) #tour-panneau>div{background:#15213A!important}
   body.jour .bandeau,body.jour .tt-haut,body.jour .barre-bas,body.jour .feuille,body.jour .reg-tete,body.jour #toast{background:#F9F9F9!important}
 }
@@ -2797,10 +2625,6 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
 /* 14 · Deux encadrés empilés dans le dossier d'un problème : « Ce que ça veut dire » part à 16 px de son
         bord, la barre « Suivi » partait à 10 — 6 px d'écart d'un cadre à l'autre. */
 .barre-act{padding-left:16px;padding-right:16px}
-
-/* 15 · Courrier au téléphone : le titre d'un groupe collait au bord de la carte blanche, ses lignes partent
-        16 px plus loin (plus le filet de 1 px de la liste) — le titre les suit. */
-@media(max-width:899px){ .mail-rows .reg-tete{padding-left:17px} }
 
 /* 16 · « En un coup d'œil » : le filet entre deux lignes partait 4 px AVANT leur texte (12 contre 16). */
 .ac-aside .reg-bloc>.reg-l+.reg-l::before{left:16px}
@@ -2954,7 +2778,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.89</div>
+    <div class="lg-pied">console interne · v2.90</div>
   </div>
 </div>
 
@@ -2996,7 +2820,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.89</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.90</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3008,7 +2832,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.89</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.90</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3306,7 +3130,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.89';
+var TOUR_VERSION='v2.90';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -3315,6 +3139,7 @@ function modeLu(){
 }
 function modeApplique(m){
   document.body.classList.toggle('jour',m==='jour');
+  try{ if(COUR.inst) COUR.inst.rafraichir({donnees:false}); }catch(e){}   /* le Courrier suit le jour et la nuit EN DIRECT (son thème se relit sur la Tour) */
   var l=$('tt-mode'); if(l) l.textContent=(m==='jour'?'mode jour':'mode nuit')+(MODE_FORCE?' (forcé)':' (système)');
 }
 /* Écouté EN DIRECT : un changement du système pendant que la console est ouverte se voit tout de
@@ -3344,7 +3169,7 @@ function doLogin(){
     })
     .catch(function(){ _loginEnCours=false; $('lg-err').textContent='Serveur injoignable — réessayez dans un instant.'; });
 }
-function doLogout(){ try{ sessionStorage.removeItem('tour_token'); localStorage.removeItem('tour_token'); localStorage.removeItem('tour_nom'); localStorage.removeItem('tour_role'); sessionStorage.removeItem('tour_apps'); localStorage.removeItem('tour_apps'); }catch(e){} location.hash=''; location.reload(); }
+function doLogout(){ try{ courrierDemonter(); localStorage.removeItem('tour_courrier'); }catch(e){} try{ sessionStorage.removeItem('tour_token'); localStorage.removeItem('tour_token'); localStorage.removeItem('tour_nom'); localStorage.removeItem('tour_role'); sessionStorage.removeItem('tour_apps'); localStorage.removeItem('tour_apps'); }catch(e){} location.hash=''; location.reload(); }
 
 function entrer(){
   var lh=lireHash(), t=lh.tab; APP=lh.app; document.body.dataset.app=APP;
@@ -4047,7 +3872,7 @@ function setTab(t,sansAnim){
   /* Le Courrier range par ENTREPRISE : sans l'annuaire ni les clients du site, il n'a aucun
      moyen de savoir à qui appartient une adresse, et tout retomberait dans « pas encore
      rattachées ». Ces deux listes ne se chargeaient que depuis l'onglet Entreprises. */
-  if(t==='support'){ if(!MSG.loaded) chargerMail(); if(!ENT.loaded) chargerEntreprises(); if(!CLI.loaded) chargerClients(); }
+  if(t==='support'&&!MSG.loaded) chargerMail();
   /* PBL porte les espaces : sans lui, « Leurs espaces » resterait sur « Chargement… » pour qui
      ouvre Entreprises sans être passé par Accès. */
   if(APP==='messages'&&t==='accueil'){ if(!OPM.loaded||OPM.err) chargerEtatMessages(); if(!ENT.loaded) chargerEntreprises(); }
@@ -4123,13 +3948,8 @@ function incEcart(ms){
 }
 var CNX_VIA_L={adresse:'l’adresse de son entreprise',identifiants:'identifiant + mot de passe',
   session:'une session déjà ouverte',email:'un lien reçu par e-mail',sms:'un lien reçu par SMS'};
-var MSG={boites:[],messages:[],nonLus:0,total:0,loaded:false,busy:false,err:'',errListe:'',autoTout:false,
-         sel:{boite:'toutes',dossier:'',nom:'Toutes les réceptions',role:'inbox'},lu:null,ouvert:null,q:'',
-         /* Le rangement par entreprise est un filtre de CETTE page, pas une requête : la
-            liste fusionnée des boîtes arrive déjà entière. Changer d'entreprise ne
-            redemande donc rien au serveur, et le passage est instantané. */
-         selEnt:'toutes',selCat:'tout',
-         compo:false,cDest:'',cSujet:'',cTexte:''};
+/* Le Courrier lui-même vit dans le module (opcourrier.js) ; la Tour n'en garde que ce que l'accueil et la pastille du menu lisent. */
+var MSG={boites:[],nonLus:0,loaded:false,busy:false,err:''};
 var CLI={list:[],total:0,loaded:false,err:'',sel:null,q:''};
 var ABO={abos:[],paiements:[],mrr:0,actifs:0,impayes:0,echecs:0,configured:false,loaded:false,err:'',f:''};
 var EQ={users:[],loaded:false,err:'',nom:'',pass:'',role:'collaborateur'};
@@ -4181,7 +4001,6 @@ function chargerEntreprises(){
   ENT.loaded=false; ENT.err='';
   apiGet('/api/monitor/entreprises').then(function(d){
     ENT.liste=(d&&d.entreprises)||[];
-    _courrierEntCache={};   // l'annuaire vient de changer : ce qui en était déduit ne vaut plus
     ENT.stats={total:(d&&d.total)||0,horsAnnuaire:(d&&d.horsAnnuaire)||0,avecErreurs:(d&&d.avecErreurs)||0,avecEchecs:(d&&d.avecEchecs)||0};
     ENT.loaded=true; rafraichirSiConcerne();
   }).catch(function(){ ENT.err='Liste des entreprises illisible — serveur injoignable.'; ENT.loaded=true; rafraichirSiConcerne(); });
@@ -5594,15 +5413,6 @@ function tourStatutPack(nom){
     else toast((r&&r.d&&r.d.error)||'Statut indisponible');
   }).catch(function(){ toast('Serveur injoignable'); });
 }
-function supConnecterBoite(){
-  var email=prompt('Adresse de la boîte à connecter au Courrier :','contact@teamop.fr'); if(!email) return;
-  var pass=prompt('Mot de passe de cette boîte (celui du webmail OVH) :'); if(!pass) return;
-  toast('Connexion à '+email+'…');
-  apiPost('/api/monitor/support/connect',{email:email.trim(),pass:pass}).then(function(r){
-    if(r&&r.ok){ toast('📬 Boîte '+email.trim()+' connectée — ses mails arrivent dans le Courrier'); setTimeout(function(){ location.reload(); },900); }
-    else toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron');
-  }).catch(function(){ toast('Serveur injoignable'); });
-}
 /* 💾 L'abonnement réglé à la main : formule, places, statut, fin — prime sur Stripe et les codes */
 function tourAboEnregistrer(nom,btn){
   var f=(document.getElementById('abo-f')||{}).value, q=parseInt((document.getElementById('abo-q')||{}).value,10)||1;
@@ -5632,10 +5442,9 @@ function chargerClients(){
   apiGet('/api/monitor/clients').then(function(d){
     if(!d) return;
     CLI.list=(d.clients||[]).slice().sort(function(a,b){ return (b.majTs||b.inscrit||0)-(a.majTs||a.inscrit||0); });
-    _courrierEntCache={};   // ces fiches servent au rattachement du courrier : ce qui en était déduit ne vaut plus
     CLI.total=(d.total!=null?d.total:CLI.list.length); CLI.loaded=true; CLI.err='';
     try{ setBdg('bdg-dem',demandesATraiter().length); }catch(e){}
-    if(TAB==='entreprises'||TAB==='accueil'||TAB==='support'||TAB==='demandes') render();
+    if(TAB==='entreprises'||TAB==='accueil'||TAB==='demandes') render();
   }).catch(function(e){ CLI.err=msgErreur(e); CLI.loaded=true; if(TAB==='entreprises'||TAB==='demandes'||TAB==='accueil') render(); });
 }
 function chargerAbos(){
@@ -5676,39 +5485,17 @@ function chargerJournal(){
     if(TAB==='journal'||TAB==='accueil') render();
   }).catch(function(e){ JR.err=msgErreur(e); JR.loaded=true; if(TAB==='journal') render(); });
 }
+/* Les compteurs seuls : la pastille du menu et l'accueil les lisent avant qu'on ait ouvert le Courrier. Le module, une fois monté, les tient (`onCompter`) :
+   ce relevé ne touche alors plus au chiffre, sinon la pastille sauterait entre deux manières de compter. */
 function chargerMail(frais){
   if(MSG.busy) return; MSG.busy=true;
   apiGet('/api/monitor/mail/dossiers'+(frais?'?frais=1':'')).then(function(d){
     MSG.busy=false; MSG.loaded=true;
-    if(!d){ MSG.err=INJOIGNABLE; if(TAB==='support') render(); return; }
+    if(!d){ MSG.err=INJOIGNABLE; if(TAB==='accueil') render(); return; }
     MSG.err=''; MSG.boites=d.boites||[];
-    MSG.nonLus=MSG.boites.reduce(function(n,b){ return n+(Number(b.nonLus)||0); },0);
-    setBdg('bdg-supp',MSG.nonLus);
-    if(TAB==='support'||TAB==='accueil') render();
-    chargerMessages();
-  }).catch(function(){ MSG.busy=false; MSG.loaded=true; MSG.err=INJOIGNABLE; if(TAB==='support') render(); });
-}
-function chargerMessages(){
-  var s=MSG.sel, p='/api/monitor/mail/liste?page=0'+(MSG.q?'&q='+encodeURIComponent(MSG.q):'');
-  if(s.boite&&s.boite!=='toutes') p+='&boite='+encodeURIComponent(s.boite)+'&dossier='+encodeURIComponent(s.dossier||'');
-  /* Elle avalait TOUT : « if(!d||d.error) return » sortait sans rien dire, et le .catch était
-     vide. Le serveur, lui, est bavard — il renvoie {error} avec un 502 quand une boîte est
-     injoignable, et un tableau « erreurs » en vue fusionnée. Résultat : quand l'IMAP refusait
-     la connexion, l'écran affichait « Rien dans ce dossier », ce qui est faux : il y a quelque
-     chose, on n'arrive simplement pas à le lire. C'est ce mensonge qui a fait dire « ça ne
-     marche plus » sans qu'on sache par quel bout le prendre. */
-  apiGet(p).then(function(d){
-    if(!d) return;
-    if(d.error){ MSG.errListe=String(d.error); MSG.messages=[]; MSG.total=0;
-      if(TAB==='support'||TAB==='accueil') render(); return; }
-    MSG.errListe=(d.erreurs&&d.erreurs.length)?d.erreurs.join(' · '):'';
-    MSG.messages=d.messages||[]; MSG.total=Number(d.total)||0;
-    if(TAB==='support'||TAB==='accueil') render();
-  }).catch(function(e){
-    MSG.errListe=(e&&e.status===502)?'La boîte ne répond pas (IMAP). Vérifiez l’adresse, le mot de passe d’application et le serveur dans « Boîtes reliées ».':msgErreur(e);
-    MSG.messages=[]; MSG.total=0;
-    if(TAB==='support'||TAB==='accueil') render();
-  });
+    if(!COUR.inst){ MSG.nonLus=MSG.boites.reduce(function(n,b){ return n+(Number(b.nonLus)||0); },0); setBdg('bdg-supp',MSG.nonLus); }
+    if(TAB==='accueil') render();
+  }).catch(function(){ MSG.busy=false; MSG.loaded=true; MSG.err=INJOIGNABLE; if(TAB==='accueil') render(); });
 }
 
 /* ═══ RENDU ═══ */
@@ -5815,6 +5602,7 @@ function sousOnglet(vue,s){ SOUS[vue]=s; if(vue==='entreprises') ENT.sel=null;
   ecrireHash(); render(); }
 function renderVue(v){
   if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
+  if(TAB!=='support') courrierDemonter();   /* quitter le Courrier démonte le module (sa zone disparaît avec la vue) */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
   if(TAB==='accueil') v.innerHTML=(APP==='messages')?vueAccueilMsg():vueAccueil();
   /* v2.89 — SURVEILLANCE, MÊME FORME DANS LES DEUX CONSOLES : « Incidents » (ce que les clients rencontrent) et « Service »
@@ -5822,7 +5610,7 @@ function renderVue(v){
      collés sous la liste des incidents. */
   else if(TAB==='surveillance'&&APP==='messages') v.innerHTML=sousOnglets('survmsg',[['apps','Incidents'],['service','Service']])+(SOUS.survmsg==='service'?vueServiceMsg()+blocBasculeMsg()+blocVersionsMsg():survAvert()+vueSurveillance());
   else if(TAB==='surveillance') v.innerHTML=sousOnglets('survgest',[['apps','Incidents'],['service','Service']])+(SOUS.survgest==='service'?vueServiceGestion():survAvert()+vueSurveillance());
-  else if(TAB==='support') v.innerHTML=vueSupport();
+  else if(TAB==='support'){ if(!courrierGarde(v)){ v.innerHTML=vueCourrier(); courrierMonter(); } }
   else if(TAB==='demandes') v.innerHTML=vueDemandes();
   else if(TAB==='comptes') v.innerHTML=vueComptesMsg();
   else if(TAB==='entreprises') v.innerHTML=(APP==='messages')?(sousOnglets('entreprisesmsg',[['espaces','Espaces d’OP MESSAGES'],['gestion','Depuis OP GESTION']])+(SOUS.entreprisesmsg==='gestion'?vueEntreprisesMsg():vueEspacesMsg())):(sousOnglets('entreprises',[['liste','Entreprises'],['comptes','Comptes du site'],['connexions','Connexions']])+(SOUS.entreprises==='connexions'?vueConnexions():SOUS.entreprises==='comptes'?vueComptesSite():vueEntreprises()));
@@ -5891,11 +5679,10 @@ function vueAccueil(){
      occupé. Un incident neuf est à traiter, quelle que soit sa gravité. */
   var hautes=incOuverts().filter(function(i){ return gravite(i)==='haute'; });
   var neufs=incOuverts().filter(function(i){ return (i.statut||'nouveau')==='nouveau' && gravite(i)!=='haute'; });
-  var tousLus=(MSG.messages||[]).filter(function(m){ return !m.lu; });
   var tousImp=(ABO.paiements||[]).filter(paieEchec);
-  var nonLus=tousLus.slice(0,4), impayes=tousImp.slice(0,3);
+  var impayes=tousImp.slice(0,3);
   var demAT=CLI.loaded?demandesATraiter():[];
-  var n=hautes.length+neufs.length+nonLus.length+impayes.length+demAT.length;
+  var n=hautes.length+neufs.length+impayes.length+demAT.length;
 
   /* Les quatre natures étaient dessinées à l'identique : même .item, même vignette, même titre
      à 13,5 px, même chevron, même pastille EN MAJUSCULES. Un incident chez une cliente qui paie
@@ -5925,13 +5712,12 @@ function vueAccueil(){
       t1:esc(incTitre(i)),titre:incTitre(i),
       l2:esc(entNom(i))+' · '+esc(APP_L[i.app]||i.app||'—')+' · ×'+(i.count||1),
       action:"allerIncident('"+jsq(i.id)+"')"}); })});
-  if(nonLus.length) G.push({titre:'Courrier',n:Math.min(4,MSG.nonLus||nonLus.length),tot:MSG.nonLus||nonLus.length,bloc:'reg-bloc',
+  /* Le Courrier n'est plus lu par la Tour (c'est le module qui le tient) : l'accueil ne montre plus que le compte, et mène au Courrier. */
+  if(MSG.nonLus>0) G.push({titre:'Courrier',n:1,tot:1,bloc:'reg-bloc',
     sous:'Courriels reçus sur les boîtes reliées, pas encore ouverts.',opt:true,
     voir:"setTab('support')",
-    l:nonLus.map(function(m){ return ligneAc({ton:'bleu',ico:'support',
-      t1:esc(m.objet||'(sans objet)'),titre:m.objet||'(sans objet)',
-      l2:esc(m.deNom||m.de||'expéditeur inconnu')+(m.ts?' · '+esc(fmtAgo(m.ts)):''),
-      action:"allerMessage('"+jsq(m.boite)+"','"+jsq(m.dossier)+"',"+m.uid+")"}); })});
+    l:[ligneAc({ton:'bleu',ico:'support',t1:esc(nMot(MSG.nonLus,'message non lu','messages non lus')),titre:nMot(MSG.nonLus,'message non lu','messages non lus'),
+      l2:esc(nMot(MSG.boites.length,'boîte reliée','boîtes reliées')),action:"setTab('support')"})]});
   if(impayes.length) G.push({titre:'Paiements en échec',n:Math.min(3,ABO.impayes||impayes.length),tot:ABO.impayes||impayes.length,bloc:'reg-bloc',
     /* Celle-ci n'est PAS .opt : elle porte une conséquence que rien d'autre ne dit. */
     /* v2.76 — carte refusée = impayé (Justin, 29 septembre 2026) : les fonctions payantes sont bloquées jusqu'au règlement */
@@ -6331,7 +6117,6 @@ function allerFicheEntreprise(nom){
   else { chargerEntreprises(); var essais=0;
     var attendre=setInterval(function(){ if(ENT.loaded||++essais>40){ clearInterval(attendre); ouvrir(); } },100); }
 }
-function allerMessage(b,d,u){ setTab('support'); lireMessage(b,d,u); }
 function allerImpayes(){ ABO.f='past_due'; SOUS.abonnements='abos'; setTab('abonnements'); }
 
 /* ══════════ 2. SURVEILLANCE ══════════ */
@@ -7182,626 +6967,144 @@ function incCopier(id){
   else fini(false);
 }
 
-/* ══════════ 3. SUPPORT ══════════ */
-
-/* ═══════════════ LE COURRIER RANGÉ PAR ENTREPRISE ═══════════════════════════════════════
-   Demande de Justin, 8 septembre 2026 : « je voudrais que tout soit bien rangé par
-   entreprise quoi qu'il arrive. On clique, ça affiche tout dans chaque catégorie de
-   l'entreprise. Je ne veux pas que tout soit mélangé entre eux. »
-
-   La barre latérale rangeait par BOÎTE (support@, contact@) : deux entrées, et toutes les
-   entreprises mélangées à l'intérieur. Elle range maintenant par entreprise, chacune
-   portant ses catégories — la forme de la barre latérale de Mail.
-
-   AUCUN changement serveur : /api/monitor/mail/liste renvoie déjà « de », « lu », « marque »,
-   « pieces » et « auto » pour chaque message. Le rattachement se fait ici, et le passage
-   d'une entreprise à l'autre ne redemande donc rien.
-   ═══════════════════════════════════════════════════════════════════════════════════════ */
-
-/* ⛔ LE PIÈGE, ET IL EST GROS. Rattacher par DOMAINE est juste quand l'entreprise a son
-   propre nom de domaine (bruno@elan-proprete.fr → ELAN) et catastrophique sinon : ELAN est
-   enregistrée sous une adresse gmail. Sans ce garde-fou, TOUS les gmail du monde
-   atterriraient dans son dossier — exactement le mélange qu'on cherche à supprimer.
-   La liste est volontairement large : mieux vaut un message « pas encore rattaché », qu'on
-   range à la main, qu'un message rangé avec assurance chez la mauvaise entreprise. */
-var MAIL_PUBLICS=['gmail.com','googlemail.com','hotmail.fr','hotmail.com','hotmail.be','hotmail.it',
-  'outlook.fr','outlook.com','outlook.be','live.fr','live.com','live.be','msn.com',
-  'yahoo.fr','yahoo.com','yahoo.co.uk','ymail.com','orange.fr','wanadoo.fr','free.fr','sfr.fr',
-  'neuf.fr','laposte.net','bbox.fr','numericable.fr','aol.com','icloud.com','me.com','mac.com',
-  'protonmail.com','protonmail.ch','proton.me','gmx.fr','gmx.com','gmx.net','yandex.com',
-  'zoho.com','mail.com','tutanota.com','hushmail.com','libero.it','web.de'];
-function mailDomaine(a){ var s=String(a||'').toLowerCase().trim(); var i=s.indexOf('@'); return i<0?'':s.slice(i+1); }
-function mailDomainePropre(d){ return !!d && MAIL_PUBLICS.indexOf(d)<0; }
-
-/* Adresse → entreprise, ou null. Deux passes, la plus sûre d'abord.
-   Le cache n'est pas une optimisation gratuite : courrierEnt() est appelée pour chaque
-   message à chaque render(), et render() se rejoue à chaque lettre tapée dans la recherche.
-   Il se vide dès que l'annuaire change (voir chargerEntreprises). */
-var _courrierEntCache={};
-function courrierEnt(adr){
-  var a=String(adr||'').toLowerCase().trim(); if(!a) return null;
-  if(_courrierEntCache[a]!==undefined) return _courrierEntCache[a];
-  var liste=(ENT.liste||[]), t=null, i;
-  for(i=0;i<liste.length;i++){ if(String(liste[i].email||'').toLowerCase().trim()===a){ t=liste[i]; break; } }
-  /* Le client du site porte parfois l'adresse quand l'espace ne l'a pas : on remonte alors
-     à l'entreprise par son nom — même chemin que voirClient(), pas un second. */
-  if(!t){
-    var c=(CLI.list||[]).filter(function(x){ return String(x.email||'').toLowerCase().trim()===a; })[0];
-    if(c) t=entParNom(c.entreprise||c.nom||'')||null;
-  }
-  var d=mailDomaine(a), propre=mailDomainePropre(d);
-  if(!t&&propre){
-    for(i=0;i<liste.length;i++){ var de=mailDomaine(liste[i].email);
-      if(de&&mailDomainePropre(de)&&de===d){ t=liste[i]; break; } }
-  }
-  /* Quatrième passe, et sans elle la fonction serait inutile sur les vraies données : une
-     entreprise s'inscrit souvent avec une adresse personnelle (ELAN est enregistrée sous un
-     gmail) pendant que ses salariés écrivent depuis le domaine de la société. Ni l'adresse
-     exacte ni le domaine ne les relient. On rapproche donc le nom de domaine du nom de
-     l'entreprise : elan-proprete.fr ↔ ELAN.
-     Deux garde-fous, parce qu'un rapprochement par le nom se trompe vite :
-     · des mots entiers d'au moins 4 lettres, jamais un morceau de mot (« ELA » dans
-       « relance » rattacherait n'importe quoi) ;
-     · si DEUX entreprises correspondent, on ne tranche pas — un message chez la mauvaise
-       est pire qu'un message à ranger à la main. */
-  if(!t&&propre){
-    var mots=mailMots(d.replace(/\.[a-z.]+$/,''));
-    var cands=liste.filter(function(e){
-      var em=mailMots((e.slug||'')+' '+(e.nom||''));
-      return em.some(function(w){ return mots.indexOf(w)>=0; });
-    });
-    if(cands.length===1) t=cands[0];
-  }
-  _courrierEntCache[a]=t; return t;
-}
-/* Mots d'au moins 4 lettres, sans accent ni ponctuation. 4 et pas 3 : « sas », « eur »,
-   « pro » sont dans la moitié des raisons sociales et ne distinguent rien. */
-function mailMots(s){
-  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .split(/[^a-z0-9]+/).filter(function(w){ return w.length>=4; });
-}
-
-/* Les catégories d'une entreprise. Chacune tient à un champ que le serveur renvoie
-   RÉELLEMENT — on n'affiche pas un dossier « Corbeille » qu'on serait incapable de remplir. */
-var MAIL_CATS=[
-  {cle:'tout',   nom:'Tous les messages', ico:'📥'},
-  {cle:'traiter',nom:'À traiter',         ico:'🕗'},
-  {cle:'marques',nom:'Marqués',           ico:'🚩'},
-  {cle:'pieces', nom:'Pièces jointes',    ico:'📎'},
-  /* ⛔ PAS « Envoyés » : il y a maintenant un DOSSIER « Envoyés » juste au-dessus, celui de la
-     boîte IMAP. Deux entrées du même nom dans la même barre, qui montrent des choses
-     différentes — le dossier Envoyés de support@, et le journal de ce que TeamOP a envoyé
-     depuis son propre SMTP — c'est une confusion garantie. Le nom dit maintenant ce que c'est. */
-  {cle:'envoyes',nom:'Envois TeamOP',     ico:'📤'}
-];
-function mailDansCat(m,cle){
-  if(cle==='traiter') return !m.lu && !m.auto;
-  if(cle==='marques') return !!m.marque;
-  if(cle==='pieces')  return (m.pieces||0)>0;
-  return true;
-}
-function mailAttente(m){ return !m.lu && !m.auto; }
-
-/* Les messages reçus, groupés par entreprise. Le groupe « pas encore rattachées » est une
-   corbeille de tri, pas une entreprise : il reste toujours en dernier, quoi qu'il contienne. */
-function courrierParEnt(){
-  var par={}, ordre=[];
-  (MSG.messages||[]).forEach(function(m){
-    var e=courrierEnt(m.de), cle=e?e.t:'_autres';
-    /* « Non rattachées » et pas « Pas encore rattachées » : le nom passe dans une colonne de
-       238 px, où la version longue se coupait en « Pas encore rattac… ». Un libellé tronqué
-       cache une information — c'est la règle de résilience du skill, elle vaut ici aussi. */
-    if(!par[cle]){ par[cle]={ent:e,cle:cle,nom:e?nomEspace(e.nom,e.t):'Non rattachées',msgs:[]}; ordre.push(cle); }
-    par[cle].msgs.push(m);
-  });
-  ordre.sort(function(a,b){
-    if(a==='_autres') return 1; if(b==='_autres') return -1;
-    var na=par[a].msgs.filter(mailAttente).length, nb=par[b].msgs.filter(mailAttente).length;
-    if(na!==nb) return nb-na;                                   // qui attend une réponse passe devant
-    return ((par[b].msgs[0]||{}).ts||0)-((par[a].msgs[0]||{}).ts||0);
-  });
-  return ordre.map(function(k){ return par[k]; });
-}
-function mailChoisirEnt(cle){
-  MSG.selEnt=cle; MSG.selCat='tout'; MSG.autoTout=false; MSG.ouvert=null; MSG.lu=null; MSG.envSel=null;
-  renderNav('fondu');
-}
-/* ══ CHOISIR UNE BOÎTE — demandé par Justin le 12 septembre 2026 ═══════════════════════════
-   « je veux que la Tour refasse tout le mail, que je puisse choisir par mail ».
-
-   ⚠️ Le commentaire d'à côté disait l'inverse : « les rendre cliquables ramènerait le mélange
-   qu'on vient de supprimer ». Il avait raison SUR SON POINT — ranger par boîte À LA PLACE des
-   entreprises remettrait ELAN et sa voisine dans la même colonne. Ce n'est pas ce qu'on fait
-   ici : la boîte devient un CADRE, et le rangement par entreprise continue à l'intérieur.
-   Trois boîtes reliées, une seule qu'on regarde à la fois — et les entreprises toujours
-   séparées dedans.
-
-   ⛔ ET CE N'EST PAS UN FILTRE DE PAGE. La vue fusionnée ne charge qu'une tranche de
-   messages : filtrer côté navigateur n'aurait montré que ce qui traînait déjà en mémoire, en
-   laissant croire que la boîte ne contient que ça. La route serveur accepte « ?boite= » depuis
-   toujours — c'est elle qu'on appelle, pagination comprise. La plomberie existait, il ne
-   manquait que le clic. */
-/* ⛔ RECLIQUER SUR LA BOÎTE OUVERTE LA REPLIE, ET NE FAIT QUE ÇA. Demandé par Justin le
-   13 septembre 2026 : « je clique elle se déroule, je reclique elle se replie ». C'est le
-   comportement des comptes dans Mail.
-   Le point qui compte : replier est un geste d'AFFICHAGE. On ne recharge pas la liste, on ne
-   change pas de dossier, on ne touche à rien de ce qui est lu — sinon un simple pli coûterait
-   un aller-retour réseau et ferait perdre l'endroit où on était. On bascule un booléen et on
-   redessine la barre. */
-function mailReplier(){
-  MSG.deplie = (MSG.deplie===false);
-  renderNav('fondu');
-}
-function mailChoisirBoite(id,nom){
-  /* Reclic sur la boîte DÉJÀ ouverte : c'est un pli, pas un choix. */
-  if(id && id===mailBoiteChoisie()) return mailReplier();
-  MSG.deplie=true;
-  /* On pose le chemin de la RÉCEPTION, pas une chaîne vide. Le serveur retombe bien sur INBOX
-     tout seul, mais l'écran, lui, ne saurait pas quel dossier surligner : on aurait une boîte
-     ouverte et aucun dossier actif, ce qui se lit comme un bug. */
-  MSG.sel = id ? {boite:id,dossier:mailCheminInbox(id),nom:(nom||'Boîte'),role:'inbox',dosNom:'Réception'}
-               : {boite:'toutes',dossier:'',nom:'Toutes les réceptions',role:'inbox',dosNom:''};
-  /* On repart de « toutes les entreprises » : l'entreprise ouverte n'écrit peut-être pas à
-     cette boîte-là, et rester sur elle afficherait un écran vide sans dire pourquoi. */
-  MSG.selEnt='toutes'; MSG.selCat='tout'; MSG.autoTout=false;
-  MSG.ouvert=null; MSG.lu=null; MSG.envSel=null;
-  /* Les messages de la boîte précédente ne doivent pas rester sous les yeux pendant que les
-     nouveaux arrivent : on vide, l'écran dit qu'il charge, puis il dit ce qu'il a trouvé. */
-  MSG.messages=[]; MSG.total=0;
-  chargerMessages();
-  renderNav('fondu');
-}
-function mailBoiteChoisie(){ return (MSG.sel&&MSG.sel.boite!=='toutes') ? MSG.sel.boite : ''; }
-function mailDossierChoisi(){ return (MSG.sel&&MSG.sel.dossier)||''; }
-/* Les dossiers d'une boîte, tels que le serveur les a trouvés en IMAP : Réception, Brouillons,
-   Envoyés, Indésirables, Corbeille, Archives, plus ceux que l'entreprise a créés. Ils arrivaient
-   déjà dans /api/monitor/mail/dossiers et personne ne les lisait — la Tour jetait la moitié de
-   ce qu'elle demandait. */
-function mailDossiersDe(id){
-  var t=(MSG.boites||[]);
-  for(var i=0;i<t.length;i++){ var b=t[i].boite||{}; if(b.id===id) return t[i].dossiers||[]; }
-  return [];
-}
-function mailCheminInbox(id){
-  var d=mailDossiersDe(id);
-  for(var i=0;i<d.length;i++) if(d[i].role==='inbox') return d[i].chemin;
-  return '';
-}
-/* Une icône par rôle, comme dans Mail : le rôle est le même partout (inbox, envoyes…), les
-   noms de dossier, non — un serveur dit « Trash », l'autre « Corbeille ». */
-var MAIL_DOS_ICO={inbox:'📥',brouillons:'📝',envoyes:'📨',indesirables:'🚫',corbeille:'🗑️',archives:'📦'};
-function mailChoisirDossier(chemin,nom){
-  if(!MSG.sel||MSG.sel.boite==='toutes') return;
-  MSG.sel={boite:MSG.sel.boite,dossier:chemin||'',nom:MSG.sel.nom,role:'',dosNom:nom||''};
-  MSG.selEnt='toutes'; MSG.selCat='tout'; MSG.autoTout=false;
-  MSG.ouvert=null; MSG.lu=null; MSG.envSel=null;
-  MSG.messages=[]; MSG.total=0;
-  chargerMessages();
-  renderNav('fondu');
-}
-/* ⛔ L'ADRESSE, PAS L'IDENTIFIANT TECHNIQUE. Le serveur renvoie « boite: b.id » et rien d'autre :
-   chaque ligne de message affichait donc « b-sup » ou « b-ctl » au lieu de
-   « support@teamop.fr ». Défaut d'avant ce lot, vu en pilotant l'écran au navigateur — il ne se
-   voyait pas en relisant le code, parce que la ligne prévoit un « m.boiteNom » que personne
-   n'envoie. La correspondance vit déjà dans MSG.boites : aucune raison de la redemander au
-   serveur. On retombe sur l'identifiant seulement si la boîte a disparu de la liste. */
-function mailBoiteNom(id){
-  if(!id) return '';
-  var t=(MSG.boites||[]);
-  for(var i=0;i<t.length;i++){ var b=t[i].boite||{}; if(b.id===id) return b.email||id; }
-  return id;
-}
-function mailChoisirCat(cle){
-  MSG.selCat=cle; MSG.ouvert=null; MSG.lu=null; MSG.envSel=null;
-  /* Les envois viennent d'une autre route que les réceptions : on ne les charge qu'au
-     moment où quelqu'un les demande, et une seule fois. */
-  if(cle==='envoyes'&&!MSG.envoyes) chargerEnvois();
-  renderNav('fondu');
-}
-function chargerEnvois(){
-  MSG.envoyes=MSG.envoyes||null;
-  apiGet('/api/monitor/mails').then(function(d){ if(!d) return;
-    MSG.envoyes=d.mails||[]; MSG.envErr='';
-    if(TAB==='support') render();
-  }).catch(function(){ MSG.envErr='Les envois n’ont pas pu être lus — le serveur ne répond pas.';
-    if(TAB==='support') render(); });
-}
-
-function mailQ(v){ MSG.autoTout=false; MSG.q=v||''; chargerMessages(); }
-/* Le message disait « Boîte support actualisée », toujours — y compris en relevant
-   controle@ ou les trois à la fois. Un mot juste coûte le même clic qu'un mot faux. */
-function mailActualiser(){ chargerMail(true);
-  toast(mailBoiteChoisie() ? (mailBoiteNom(mailBoiteChoisie())+' actualisée') : 'Toutes les boîtes actualisées'); }
-function compoOuvrir(dest){ MSG.compo=true; if(dest) MSG.cDest=dest; renderNav('lecture'); }
-function compoFermer(){ MSG.compo=false; renderNav('lecture-retour'); }
-function compoChamp(k,v){ MSG[k]=v; }
-function compoEnvoyer(){
-  if(!MSG.cDest||!(MSG.cTexte||'').trim()){ toast('Choisissez un destinataire et écrivez un message'); return; }
-  apiPost('/api/monitor/support/envoyer',{to:MSG.cDest,subject:MSG.cSujet||'(sans objet)',text:MSG.cTexte})
-    .then(function(x){
-      if(!x.ok){ toast('⚠️ '+(x.d.error||'envoi refusé')); return; }
-      toast('Message envoyé à '+MSG.cDest);
-      MSG.compo=false; MSG.cSujet=''; MSG.cTexte=''; renderNav('fondu');
-    }).catch(function(){ toast('Serveur injoignable — le message n’est pas parti. Réessayez.'); });   /* fetch qui jette : rien n'est parti, il faut le DIRE (INJOIGNABLE promet une nouvelle tentative : un envoi n'en fait pas) */
-}
-function lireMessage(b,d,u){
-  MSG.lu=b+'|'+d+'|'+u; MSG.ouvert=null; render();
-  apiGet('/api/monitor/mail/message?boite='+encodeURIComponent(b)+'&dossier='+encodeURIComponent(d)+'&uid='+u)
-    .then(function(m){ if(!m||m.error) return; MSG.ouvert=m;
-      var k=MSG.messages.filter(function(x){ return x.uid===u&&x.boite===b; })[0];
-      if(k&&!k.lu){ k.lu=true; MSG.nonLus=Math.max(0,MSG.nonLus-1); setBdg('bdg-supp',MSG.nonLus); }
-      renderNav('lecture'); }).catch(function(){});
-}
-function repondre(){
-  var z=$('rep-txt'), t=(z&&z.value)||'';
-  if(!t.trim()){ toast('Écrivez votre réponse avant d’envoyer'); return; }
-  var m=MSG.ouvert; if(!m) return;
-  apiPost('/api/monitor/support/envoyer',{to:m.de,subject:'Re: '+(m.objet||''),text:t})
-    .then(function(x){ if(!x.ok){ toast('⚠️ '+(x.d.error||'envoi refusé')); return; }
-      toast('Réponse envoyée à '+(m.deNom||m.de)); if(z) z.value=''; })
-    .catch(function(){ toast('Serveur injoignable — la réponse n’est pas partie. Réessayez.'); });
-}
-/* ═══════════════════════════════════════════════════════════════════════════════════════
-   LE COURRIER — un vrai client mail, à trois volets.
-   Gauche : les dossiers, avec le nombre de messages non lus.
-   Milieu : la liste, une ligne par message, la plus récente en haut.
-   Droite : le message ouvert, et de quoi y répondre.
-   Sous 1000 px il n'y a plus la place pour trois volets : les dossiers deviennent une
-   barre, et la lecture remplace la liste avec un retour — comme sur un téléphone.
-   ═══════════════════════════════════════════════════════════════════════════════════════ */
-function mailEtroit(){ try{ return window.innerWidth<1000; }catch(e){ return false; } }
-function mailRetour(){ MSG.ouvert=null; MSG.lu=null; MSG.envSel=null; renderNav('lecture-retour'); }
-/* « Envoyés » n'est plus un dossier à part : c'est une catégorie DE L'ENTREPRISE ouverte.
-   Le reste de l'écran (recherche, lecture, volet de droite) continue de s'y référer par
-   cette fonction — c'est elle qui a changé de source, pas ses appelants. */
-function mailEnvoyes(){ return MSG.selCat==='envoyes'; }
-
-/* ── Volet 1 : les dossiers ─────────────────────────────────────────────────────────── */
-function mailDossiers(){
-  var d=function(actif, clic, icone, nom, n, suffixe){
-    return '<button class="dos'+(actif?' on':'')+'" onclick="'+clic+'">'+
-      '<span class="dos-i">'+icone+'</span><span class="dos-n">'+esc(nom)+'</span>'+
-      (n?'<span class="n">'+n+'</span>':'')+(suffixe||'')+'</button>';
+/* ══════════ 3. COURRIER ══════════ */
+/* ⛔ OP COURRIER REMPLACE LE COURRIER DE LA TOUR (Justin, 18 octobre 2026 : « ça remplace Mail, qui est actuel dans OP GESTION et dans la Tour » ;
+   « quand tu l'intègres c'est VIDE, les gens doivent se connecter à leur mail, comme nous dans la Tour — on devra se reconnecter au mail de la Tour »).
+   L'écran d'avant (trois volets, rangement par entreprise, composeur maison) est retiré, pas laissé mort : la messagerie est UNE pièce, `opcourrier.js`, que cette vue
+   MONTE dans sa zone — la même que dans OP GESTION et dans OP MESSAGES Pro. Ce bloc ne fait que trois choses : lui donner de la place, lui suivre le thème de la
+   Tour, et lui brancher les VRAIES routes de `server/mail.js` (`courrierSource`).
+   ⛔ LA SOURCE REND UN REFUS COMME UNE PANNE, JAMAIS COMME UNE LISTE VIDE (règle de `_mailboxes`, voir CLAUDE.md) : toute réponse non réussie lève une erreur dont le
+   message est celui du serveur, et le module le DIT à l'écran. « Aucune boîte » ne se dit que sur une liste lue et vide.
+   ⛔ AUCUNE BOÎTE REPRISE EN SILENCE PAR CE CODE : la personne CONNECTE sa boîte par « Ajouter une boîte mail » (`POST /api/monitor/mail/boites`, réservé au patron, qui
+   éprouve l'envoi ET la réception avant de ranger quoi que ce soit). Ce que le SERVEUR détient déjà (`mail-boites.json`) est relu tel quel : l'effacer est un geste du
+   module (« Retirer »), pas d'ici. La clé de stockage de l'appareil (`tour_courrier` : réglages, tri appris, brouillons) repart de zéro et part avec la déconnexion. */
+var COUR={inst:null,chargement:null,veille:false,raf:0,ecrire:null};
+function courrierSource(){
+  var D=null, listes={};
+  /* les dossiers du module → le rôle que le serveur donne à un dossier IMAP (`roleDe`, server/mail.js) */
+  var ROLE={inbox:'inbox',drafts:'brouillons',sent:'envoyes',archive:'archives',junk:'indesirables',trash:'corbeille'};
+  function erreurDe(r,defaut){ return r.json().catch(function(){ return {}; }).then(function(d){
+    return new Error((d&&d.error)||(r.status===403?'Réservé au patron — ton compte n’a pas cet accès.':defaut+' (HTTP '+r.status+')')); }); }
+  /* un refus se LIT sur le code d'abord (401 : la session a fini ; 4xx/5xx : le message du serveur), et un corps qui n'est pas du JSON ne passe jamais pour une réponse */
+  function appel(url,corps,defaut){
+    var o={headers:hAuth()}; if(corps!==undefined){ o.method='POST'; o.body=JSON.stringify(corps); }
+    return fetch(API+url,o).then(function(r){ srvEtat(r.status<500); return r; },function(){ srvEtat(false); throw new Error(INJOIGNABLE); })
+      .then(function(r){
+        if(r.status===401){ doLogout(); throw new Error('Session expirée — reconnectez-vous.'); }
+        if(!r.ok) return erreurDe(r,defaut).then(function(e){ throw e; });
+        return r.json().catch(function(){ throw new Error('réponse du serveur illisible'); }); }); }
+  function oublier(){ D=null; listes={}; }
+  /* UNE lecture des dossiers par relevé, partagée par tous les dossiers de toutes les boîtes (le serveur interroge l'IMAP de chaque boîte) */
+  function dossiers(){
+    var t=Date.now(); if(D&&t-D.t<30000) return D.p;
+    var p=appel('/api/monitor/mail/dossiers',undefined,'Lecture des boîtes refusée').then(function(d){
+      if(!d||!Array.isArray(d.boites)) throw new Error('réponse du serveur illisible'); return d.boites; });
+    D={t:t,p:p}; p.catch(function(){ if(D&&D.p===p) D=null; }); return p; }
+  function chemin(boite,dossier){
+    return dossiers().then(function(l){
+      var b=l.filter(function(x){ return x.boite&&x.boite.id===boite; })[0];
+      if(!b) throw new Error('boîte introuvable');
+      if(b.erreur) throw new Error('la boîte ne répond pas : '+b.erreur);   /* une boîte qui ne répond pas n'est PAS une boîte vide */
+      var d=(b.dossiers||[]).filter(function(x){ return x.role===ROLE[dossier]; })[0];
+      return d?d.chemin:(dossier==='inbox'?'INBOX':null); }); }   /* null : cette boîte n'a pas ce dossier — il est vide, c'est vrai */
+  function taille(o){ o=+o||0; return o>=1048576?(o/1048576).toFixed(1).replace('.',',')+' Mo':o>=1024?Math.round(o/1024)+' Ko':o+' o'; }
+  function ref(id){ var s=String(id), i=s.indexOf('|'), j=s.indexOf('|',i+1);
+    if(i<0||j<0) throw new Error('message introuvable'); return {boite:s.slice(0,i),uid:parseInt(s.slice(i+1,j),10),dossier:s.slice(j+1)}; }
+  function ligne(m,dossier){
+    var pj=[]; for(var i=0;i<(m.pieces||0);i++) pj.push({nom:'Pièce jointe',taille:''});   /* la liste ne donne que le nombre ; les noms arrivent à l'ouverture */
+    return {id:m.boite+'|'+m.uid+'|'+m.dossier,dossier:dossier,de:{nom:m.deNom||'',email:m.de||''},a:(m.pour&&m.pour[0])||'',objet:m.objet||'',
+      date:+m.ts||0,lu:!!m.lu,drapeau:!!m.marque,pj:pj}; }
+  function pages(boite,ch,n){
+    var tout=[];
+    var lire=function(p){ return appel('/api/monitor/mail/liste?page='+p+'&boite='+encodeURIComponent(boite)+'&dossier='+encodeURIComponent(ch),undefined,'Lecture du dossier refusée').then(function(d){
+      if(!d||!Array.isArray(d.messages)) throw new Error('réponse du serveur illisible');
+      tout=tout.concat(d.messages); return (p+1<n&&p+1<(d.pages||1))?lire(p+1):tout; }); };
+    return lire(0); }
+  function base64(f){ return new Promise(function(ok,ko){ var r=new FileReader();
+    r.onload=function(){ var s=String(r.result); ok(s.slice(s.indexOf(',')+1)); }; r.onerror=function(){ ko(new Error('pièce illisible : '+f.name)); }; r.readAsDataURL(f); }); }
+  return {
+    capacites:function(){ return Promise.resolve({oauth:false,programmeServeur:false,signature:false,marquage:true,deplacement:true,reglagesServeur:true,simulation:false,
+      dossiers:['inbox','drafts','sent','archive','junk','trash'],destinataires:20,pj:{nombre:12,octets:12*1024*1024}}); },
+    boites:function(){
+      return appel('/api/monitor/mail/boites',undefined,'Lecture des boîtes refusée').then(function(d){
+        if(!d||!Array.isArray(d.boites)) throw new Error('réponse du serveur illisible');
+        return d.boites.map(function(b){ return {id:b.id,email:b.email,nom:b.nom||String(b.email).split('@')[0],cote:'pro'}; }); }); },
+    messages:function(o){
+      return chemin(o.boite,o.dossier).then(function(ch){
+        if(ch===null) return [];
+        var cle=o.boite+'|'+ch, c=listes[cle], t=Date.now();
+        if(c&&t-c.t<(o.dossier==='inbox'?10000:90000)) return c.p;   /* la réception se relit à chaque relevé ; les autres dossiers, plus rarement (une connexion IMAP chacun) */
+        var p=pages(o.boite,ch,o.dossier==='inbox'?2:1).then(function(l){ return l.map(function(m){ return ligne(m,o.dossier); }); });
+        listes[cle]={t:t,p:p}; p.catch(function(){ if(listes[cle]&&listes[cle].p===p) delete listes[cle]; }); return p; }); },
+    lire:function(id){
+      var r=ref(id);
+      return appel('/api/monitor/mail/message?boite='+encodeURIComponent(r.boite)+'&dossier='+encodeURIComponent(r.dossier)+'&uid='+r.uid,undefined,'Lecture du message refusée').then(function(m){
+        if(!m||typeof m.texte!=='string') throw new Error('réponse du serveur illisible');
+        return {corps:m.texte,pj:(m.pieces||[]).map(function(p){ return {nom:p.nom,taille:taille(p.taille),type:/^image\//.test(p.type||'')?'img':'doc'}; })}; }); },
+    marquer:function(id,e){
+      var r=ref(id); oublier();
+      return appel('/api/monitor/mail/flag',{boite:r.boite,dossier:r.dossier,uid:r.uid,lu:e.lu,marque:e.drapeau},'Marquage refusé').then(function(){}); },
+    deplacer:function(id,vers){
+      var r=ref(id); oublier();
+      if(!ROLE[vers]) return Promise.reject(new Error('dossier inconnu'));
+      return appel('/api/monitor/mail/deplacer',{boite:r.boite,dossier:r.dossier,uid:r.uid,role:ROLE[vers]},'Déplacement refusé').then(function(){}); },
+    envoyer:function(m){
+      return Promise.all((m.pieces||[]).map(function(f){ return base64(f).then(function(b){ return {nom:f.name,type:f.type||'',b64:b}; }); })).then(function(pieces){
+        oublier();
+        return appel('/api/monitor/mail/envoyer',{boite:m.boite,a:m.a,objet:m.objet,texte:m.texte,pieces:pieces},'Envoi refusé'); }).then(function(){}); },
+    ajouterBoite:function(p){
+      var s=p.serveurs||{}, corps={email:String(p.email||'').trim(),pass:p.mdp,nom:p.nom};
+      if(s.imap){ corps.imapHost=s.imap; corps.imapPort=s.imapPort; } if(s.smtp){ corps.smtpHost=s.smtp; corps.smtpPort=s.smtpPort; }
+      return appel('/api/monitor/mail/boites',corps,'Connexion refusée').then(function(d){
+        if(!d||!d.ok||!d.boite) throw new Error('réponse du serveur illisible');
+        oublier(); return {id:d.boite.id,email:d.boite.email,nom:d.boite.nom||p.nom,cote:'pro'}; }); },
+    retirerBoite:function(id){ oublier(); return appel('/api/monitor/mail/boites/retirer',{id:id},'Retrait refusé').then(function(){}); }
   };
-
-  /* ⛔ LES BOÎTES PASSENT EN PREMIER, ET ELLES SE CLIQUENT (12 septembre 2026, demande de
-     Justin : « que je puisse choisir par mail »). Elles étaient en bas, en petit, décrites
-     comme « la plomberie » — mais c'est le CADRE de tout ce qui suit : tant qu'on ne sait pas
-     quelle boîte on regarde, les entreprises en dessous ne veulent rien dire de précis.
-     Le rangement par entreprise ne bouge pas d'un pouce : il vit À L'INTÉRIEUR de la boîte
-     choisie. On ne remplace pas un rangement par l'autre, on les emboîte. */
-  var h='';
-  if(MSG.boites.length>1||mailBoiteChoisie()){
-    var bSel=mailBoiteChoisie();
-    h+='<div class="dos-t">Boîte</div>'+
-      d(!bSel, 'mailChoisirBoite(\'\')', '📬', 'Toutes les boîtes', bSel?0:MSG.nonLus);
-    h+=MSG.boites.map(function(x){
-      var b=x.boite||{}, ouverte=(bSel===b.id);
-      /* Le compteur vient du serveur (x.nonLus) et vaut pour TOUTE la boîte, pas pour la
-         tranche chargée : c'est le seul chiffre juste quand on n'a pas encore ouvert. */
-      var dos0=(x.dossiers||[]), deplie=(MSG.deplie!==false);
-      /* Un pli qui ne se signale pas ne se devine pas : le chevron dit que la ligne s'ouvre,
-         et sa rotation dit dans quel état elle est. Même rôle que le triangle de Mail. */
-      var chev=(ouverte&&dos0.length)?'<span class="dos-chev'+(deplie?' bas':'')+'" aria-hidden="true">›</span>':'';
-      var r=d(ouverte, 'mailChoisirBoite(\''+jsq(b.id)+'\',\''+jsq(b.email||'')+'\')',
-              '✉️', b.email||'Boîte', Number(x.nonLus)||0, chev);
-      /* ⛔ LES DOSSIERS DE LA BOÎTE, COMME DANS MAIL — demandé par Justin le 13 septembre 2026,
-         capture d'Apple Mail à l'appui : Réception, Brouillons, Envoyés, Indésirables,
-         Corbeille, Archives. Ils arrivaient DÉJÀ dans /api/monitor/mail/dossiers, avec leur
-         rôle et leur chemin, déjà triés dans cet ordre — la Tour jetait la moitié de ce qu'elle
-         demandait. Aucun changement serveur.
-         Repliés par compte, comme Mail : seule la boîte ouverte montre ses dossiers. Trois
-         boîtes à six dossiers feraient dix-huit lignes permanentes, et c'est exactement ce que
-         Mail évite en repliant. */
-      if(!ouverte||!deplie) return r;
-      var dos=dos0;
-      if(!dos.length) return r;
-      return r+dos.map(function(f){
-        return '<button class="dos sous'+(mailDossierChoisi()===f.chemin?' on':'')+'" onclick="mailChoisirDossier(\''+jsq(f.chemin)+'\',\''+jsq(f.nom||'')+'\')">'+
-          '<span class="dos-i">'+(MAIL_DOS_ICO[f.role]||'📁')+'</span>'+
-          '<span class="dos-n">'+esc(f.nom||f.chemin)+'</span>'+
-          /* Le compteur de non-lus ne vaut que pour la RÉCEPTION : c'est le seul que le serveur
-             calcule. L'afficher sur Corbeille ou Archives serait un chiffre inventé. */
-          ((f.role==='inbox'&&Number(x.nonLus))?'<span class="n">'+Number(x.nonLus)+'</span>':'')+
-          '</button>';
-      }).join('');
-    }).join('');
-    /* ⛔ LES ENVOIS SONT UN ENDROIT OÙ DU COURRIER VIT, DONC ILS SONT DANS « BOÎTE ».
-       Ils étaient dans « Filtrer », supprimé le 13 septembre — et ce n'était pas un filtre :
-       les quatre autres restreignaient la liste courante, celui-ci CHANGEAIT de source (une
-       autre route, le SMTP de TeamOP, pas l'IMAP d'une boîte reliée). Rangé avec les boîtes,
-       il dit ce qu'il est : la sortie, à côté des entrées.
-       Sans ce déplacement, le seul chemin restant serait le bouton en bas du Journal de la
-       console — enfoui, et dont le libellé (« dans Support → Envoyés ») deviendrait faux. */
-    h+=d(mailEnvoyes(), 'mailChoisirCat(\'envoyes\')', '📤', 'Envois TeamOP',
-         MSG.envoyes ? MSG.envoyes.length : 0);
-  }
-  /* ⛔ « RECHERCHER » ET « ENTREPRISES » ONT QUITTÉ LA BARRE — 13 septembre 2026, capture de
-     Justin à l'appui : « je parle de ça à supprimer dans mail ». Il visait ces deux sections,
-     et il a raison pour la même raison que les filtres : le rangement par entreprise se fait
-     DANS LA LISTE, où chaque groupe porte son nom, son compte et son bouton « Voir les N
-     messages de X → ». La barre en était le doublon, et le doublon coûtait deux titres de
-     section pour une seule ligne utile — sur son écran, « Non rattachées » toute seule.
-
-     ⚠️ CE QUI A FAILLI PARTIR AVEC, ET QU'IL A FALLU REPLACER : le retour. « Toutes les
-     entreprises » dans la barre était le SEUL chemin de retour depuis la vue d'une entreprise
-     — celui du corps de page (« Revenir à toutes les entreprises ») ne s'affiche que dans
-     l'état VIDE, quand l'entreprise n'a plus aucun message. Supprimer la barre sans rien
-     faire d'autre transformait « Voir les N messages de X → » en cul-de-sac : on entrait, on
-     ne ressortait plus. Le retour est donc posé dans l'en-tête de la page, à côté de celui
-     des dossiers et de celui des envois. */
-
-  /* L'ancienne liste « Boîtes reliées » en bas a été retirée : elle est maintenant EN HAUT et
-     cliquable. La même chose à deux endroits, c'est un endroit de trop — et celui d'en bas ne
-     faisait rien. Une seule boîte reliée ? La section ne s'affiche pas du tout : il n'y a rien
-     à choisir, et un choix à une seule option est un faux choix. */
-  return h;
+}
+function courrierCharger(){
+  if(window.OPCourrier) return Promise.resolve();
+  if(COUR.chargement) return COUR.chargement;
+  COUR.chargement=new Promise(function(ok,ko){ var s=document.createElement('script'); s.src='opcourrier.js?v='+encodeURIComponent(TOUR_VERSION);
+    s.onload=function(){ ok(); }; s.onerror=function(){ COUR.chargement=null; ko(new Error('opcourrier.js')); }; document.head.appendChild(s); });
+  return COUR.chargement;
+}
+/* Le module remplit son conteneur : on lui donne ce qui reste de la fenêtre — où il commence, et ce qui reste SOUS lui (les rembourrages des ancêtres : la place de la barre du bas au téléphone). */
+function courrierAjuster(){
+  var z=$('courrier-zone'); if(!z||TAB!=='support') return;
+  var top=0; for(var e=z;e;e=e.offsetParent) top+=e.offsetTop;
+  var bas=0; for(var p=z;p;p=p.parentElement){ var c=getComputedStyle(p); bas+=(parseFloat(c.marginBottom)||0); if(p!==z) bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0); }
+  var h=Math.max(360,Math.floor(window.innerHeight-Math.round(top)-Math.ceil(bas)));
+  if(z.style.height!==h+'px') z.style.height=h+'px';
+}
+function courrierAjusterPlus(){ if(COUR.raf||TAB!=='support') return; COUR.raf=requestAnimationFrame(function(){ COUR.raf=0; courrierAjuster(); }); }
+function courrierVeiller(){
+  if(COUR.veille) return; COUR.veille=true;
+  try{ window.addEventListener('resize',courrierAjusterPlus); window.addEventListener('orientationchange',courrierAjusterPlus); }catch(e){}
+  try{ if(typeof ResizeObserver==='function'){ var ro=new ResizeObserver(courrierAjusterPlus); ro.observe($('vue')); ro.observe(document.body); } }catch(e){}
+}
+function courrierDemonter(){ if(COUR.inst){ try{ COUR.inst.demonter(); }catch(e){} COUR.inst=null; } }
+function vueCourrier(){ return '<div id="courrier-zone" class="courrier-zone"></div>'; }
+function courrierMonter(){
+  var zone=$('courrier-zone'); if(!zone) return;
+  courrierDemonter(); courrierVeiller(); courrierAjuster();
+  courrierCharger().then(function(){
+    if(!zone.isConnected||TAB!=='support') return;
+    COUR.inst=window.OPCourrier.monter(zone,{source:courrierSource(),cotes:['pro'],cote:'pro',cleStockage:'tour_courrier',titre:'OP Courrier',
+      theme:function(){ return document.body.classList.contains('jour')?'jour':'nuit'; },
+      onCompter:function(n){ MSG.nonLus=n; setBdg('bdg-supp',n); },
+      titreDocument:false});
+    courrierAjuster();
+    if(COUR.ecrire!==null){ var dest=COUR.ecrire; COUR.ecrire=null; COUR.inst.ecrire(dest); }
+  },function(){ if(zone.isConnected) zone.innerHTML='<div class="vide">Le module de messagerie n’a pas pu être chargé.<br><button type="button" class="btn-fant" onclick="render()">Réessayer</button></div>'; });
+}
+/* Une relève ou un chargement rappelle `render()` : le module vit déjà, on ne le reconstruit pas (il perdrait la lecture en cours). */
+function courrierGarde(v){ var z=v.querySelector('#courrier-zone'); if(z&&COUR.inst&&z.isConnected){ courrierAjuster(); return true; } return false; }
+/* « Écrire à… » d'une fiche : ouvre le Courrier avec un nouveau message vers cette adresse. */
+function courrierEcrire(dest){
+  if(TAB==='support'&&COUR.inst){ COUR.inst.ecrire(String(dest||'')); return; }
+  COUR.ecrire=String(dest||''); setTab('support');
 }
 
-/* ── Volet 2 : la liste ─────────────────────────────────────────────────────────────── */
-/* L'avatar dit UNE chose : est-ce une entreprise que je connais ? Les six teintes tirées d'un
-   hachage d'adresse étaient cinq couleurs de plus que l'accent unique, et ne portaient rien. */
-function supAva(nom,adr){
-  var a=String(adr||'').toLowerCase();
-  var connue=(CLI.list||[]).some(function(x){ return String(x.email||'').toLowerCase()===a; });
-  var i=(String(nom||adr||'?').trim().charAt(0)||'?').toUpperCase();
-  return '<span class="sup-ava'+(connue?'':' inconnu')+'">'+esc(i)+'</span>';
-}
-/* Trois natures, dans l'ordre du travail. Tous ces champs viennent tels quels de
-   /api/monitor/mail/liste — aucun changement serveur. m.suivi.statut serait une meilleure
-   source, mais le serveur ne crée le suivi qu'à la PREMIÈRE ouverture : un message jamais
-   ouvert a suivi:null. On garde donc `lu`, qui existe toujours. */
-function supNature(m){ if(m.auto) return 'auto'; if(!m.lu) return 'att'; return 'vu'; }
-/* Une ligne de message reçu. Extraite parce que deux chemins la dessinent désormais — la
-   vue « toutes les entreprises » et la vue d'une entreprise — et qu'une ligne de courrier
-   qui ne se ressemble pas d'une vue à l'autre est précisément ce qu'on corrige ici. */
-function mailLigneRecue(m,att){
-  var cle=m.boite+'|'+m.dossier+'|'+m.uid;
-  var l3=[];
-  /* La boîte ne se répète PAS quand on n'en regarde qu'une : tout l'écran le dit déjà, du
-     titre à la barre latérale. Un élément qui répète ce qu'on sait ne porte rien — il
-     encombre une ligne où le nom, l'objet et l'heure, eux, comptent. */
-  if(!mailBoiteChoisie()){ var bn=m.boiteNom||mailBoiteNom(m.boite); if(bn) l3.push(esc(bn)); }
-  if(m.deNom&&m.de&&m.deNom!==m.de) l3.push(esc(m.de));
-  return supLigne({nom:m.deNom||m.de,adr:m.de,ts:m.ts,objet:m.objet,l3:l3.join(' · '),
-    pieces:m.pieces,marque:m.marque,repondu:m.repondu,att:!!att,on:(MSG.lu===cle),
-    action:"lireMessage('"+jsq(m.boite)+"','"+jsq(m.dossier)+"',"+m.uid+")"});
-}
-function supAutoTout(){ MSG.autoTout=true; render(); }
-function supVide(ico,titre,txt,btn){
-  return '<div class="sup-vide">'+svg(ico,22)+'<div class="t">'+titre+'</div><div>'+txt+'</div>'+(btn||'')+'</div>';
-}
-function supSquel(){ return '<div style="padding:10px 12px"><div class="sup-squel"></div><div class="sup-squel"></div><div class="sup-squel"></div></div>'; }
-function supGroupe(titre,n,sous,opt,bloc,lignes,pied){
-  return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+titre+'</span>'+
-    '<span class="reg-n">'+n+'</span>'+
-    (sous?'<div class="reg-sous'+(opt?' opt':'')+'">'+sous+'</div>':'')+'</div>'+
-    '<div class="'+bloc+'">'+lignes+'</div>'+(pied||'')+'</div>';
-}
-/* Le chevron n'apparaît qu'en volet UNIQUE : à trois volets, la lecture est déjà à droite et
-   la ligne choisie porte son liseré — un chevron y mentirait sur la direction. C'est le seul
-   écart au socle sur cet écran, et il est motivé. */
-function supLigne(o){
-  var sig=[],reste=0;
-  var push=function(h){ if(sig.length<2) sig.push(h); else reste++; };
-  if(o.pieces) push('<span class="sup-sig" title="'+nMot(o.pieces,'pièce jointe','pièces jointes')+'">📎 '+o.pieces+'</span>');
-  if(o.marque) push('<span class="sup-sig" title="Marqué">⚑</span>');
-  if(o.repondu) push('<span class="sup-sig" title="Une réponse est partie">↩</span>');
-  if(reste) sig.push('<span class="reg-plus">+'+reste+'</span>');
-  return '<button type="button" class="reg-l'+(o.att?' cli att':'')+(o.on?' on':'')+'" onclick="'+o.action+'">'+
-    supAva(o.nom,o.adr)+
-    '<span class="reg-txt">'+
-      '<span class="sup-l1"><span class="reg-t1" title="'+esc(o.nom||o.adr||'')+'">'+esc(o.nom||o.adr||'expéditeur inconnu')+'</span>'+
-      '<span class="sup-h" title="'+esc(fmtDateLong(o.ts))+'">'+esc(fmtCourt(o.ts))+'</span></span>'+
-      '<span class="reg-l2">'+esc(o.objet||'(sans objet)')+'</span>'+
-      (o.l3?'<span class="reg-l3">'+o.l3+'</span>':'')+
-    '</span>'+
-    '<span class="reg-fin"><span class="reg-alertes">'+sig.join('')+'</span>'+
-    (mailEtroit()?'<span class="reg-chev" aria-hidden="true">›</span>':'')+'</span></button>';
-}
-function mailListeRecue(){
-  return mailPanneBandeau()+mailListeRecueCorps();
-}
-/* Une boîte en panne doit se voir même quand une AUTRE boîte, elle, a des messages : le
-   bandeau se calcule donc à part et coiffe tous les cas, pas seulement la liste vide. */
-function mailPanneBandeau(){
-  var enPanne=(MSG.boites||[]).filter(function(b){ return b&&b.erreur; });
-  if(!enPanne.length) return '';
-  return '<div class="mail-panne">'+svg('alerte',18)+'<div><b>'+
-      (enPanne.length>1?enPanne.length+' boîtes ne répondent pas':'La boîte '+esc((enPanne[0].boite||{}).email||'')+' ne répond pas')+'</b>'+
-      enPanne.map(function(b){ return '<div class="mail-panne-l">'+esc((b.boite||{}).email||'')+' — '+esc(b.erreur)+'</div>'; }).join('')+
-      '<div class="mail-panne-l">Mot de passe d’application expiré, adresse de serveur changée, ou boîte pleine : c’est la cause la plus fréquente.</div>'+
-    '</div><button type="button" class="btn-fant" onclick="chargerMail(1)">Réessayer</button></div>';
-}
-function mailListeRecueCorps(){
-  if(MSG.err) return supVide('support','Le serveur ne répond pas',esc(MSG.err),
-    '<button type="button" class="btn-fant" onclick="chargerMail(1)">Réessayer</button>');
-  if(!MSG.loaded) return supSquel();
-  if(!MSG.boites.length) return supVide('support','Aucune boîte reliée',
-    'Reliez la boîte support@teamop.fr pour lire ici ce que les clientes écrivent.',
-    '<button type="button" class="btn-plein" onclick="supConnecterBoite()">Connecter une boîte</button>');
-  /* Le message d'erreur est déjà dans la réponse du serveur (« erreur » par boîte, 140
-     caractères, ou « error » avec un 502) : il n'était simplement jamais affiché. */
-  var M=(MSG.messages||[]);
-  if(MSG.errListe) return supVide('support','Impossible de lire ce dossier',esc(MSG.errListe),
-    '<button type="button" class="btn-fant" onclick="chargerMail(1)">Réessayer</button>');
-  if(!M.length) return supVide('support','Rien dans ce dossier',
-    (MSG.boites||[]).some(function(b){ return b&&b.erreur; })
-      ?'Rien de lisible pour l’instant — voir l’avertissement ci-dessus.'
-      :'Les nouveaux messages arrivent tout seuls ; le bouton ⟳ force une relève.');
-
-  /* ── TOUTES LES ENTREPRISES : groupé PAR ENTREPRISE, jamais à plat ──
-     C'est la demande, mot pour mot : « je ne veux pas que tout soit mélangé entre eux ».
-     Une liste unique triée par date remettrait ELAN et sa voisine dans la même colonne. */
-  if(MSG.selEnt==='toutes'){
-    /* ⛔ LE FILTRE S'APPLIQUE ICI AUSSI. Cette vue l'ignorait complètement : choisir
-       « À traiter » ne changeait rien tant qu'on n'avait pas ouvert une entreprise, et la barre
-       montrait une catégorie sélectionnée pendant que la liste affichait tout. Un filtre qui
-       s'allume sans rien filtrer est pire qu'un filtre absent — on croit avoir trié. */
-    var catT=(MAIL_CATS.filter(function(c){ return c.cle===MSG.selCat; })[0])||MAIL_CATS[0];
-    var gr=courrierParEnt().map(function(g){
-      return { ent:g.ent, cle:g.cle, nom:g.nom,
-               msgs:g.msgs.filter(function(m){ return mailDansCat(m,catT.cle); }) };
-    }).filter(function(g){ return g.msgs.length; });
-    /* Rien dans cette catégorie : on le DIT, et on donne la sortie. Sinon l'écran reste vide
-       et on croit que la boîte l'est aussi. */
-    if(!gr.length) return supVide('support','Rien dans « '+esc(catT.nom)+' »',
-      mailBoiteChoisie()
-        ? 'Aucun message de '+esc(mailBoiteNom(mailBoiteChoisie()))+' ne correspond à ce filtre.'
-        : 'Aucun message ne correspond à ce filtre.',
-      '<button type="button" class="btn-fant" onclick="mailChoisirCat(\'tout\')">Voir tous les messages</button>');
-    return '<div class="reg" style="padding:4px 2px 12px">'+gr.map(function(g,i){
-      var att=g.msgs.filter(mailAttente).length;
-      var sous=g.ent
-        ? (att?att+' en attente de réponse.':'Tout est ouvert.')
-        : 'Adresses qu’aucune fiche ne réclame. Ouvrez-les pour savoir à qui les rattacher.';
-      /* UN SEUL plan élevé par écran — la règle du socle, et ce qui le garde crédible.
-         Ce n'est pas arbitraire : le tri met en tête l'entreprise qui attend le plus de
-         réponses. Le plan élevé va donc à celle qui a besoin de toi maintenant, et à elle
-         seule. Si personne n'attend, tout est à plat et l'écran le dit ainsi. */
-      var haut=(i===0&&att>0&&g.ent);
-      return supGroupe(esc(g.nom),g.msgs.length,sous,!!g.ent,(haut?'reg-cli':(g.ent?'reg-bloc':'reg-bloc mien')),
-        g.msgs.slice(0,6).map(function(m){ return mailLigneRecue(m,!m.lu); }).join(''),
-        g.msgs.length>6
-          ? '<button type="button" class="ac-plus" onclick="mailChoisirEnt(\''+jsq(g.cle)+'\')">Voir les '+g.msgs.length+' messages de '+esc(g.nom)+' →</button>'
-          : '');
-    }).join('')+'</div>';
-  }
-
-  /* ── UNE ENTREPRISE : ses messages seuls, dans la catégorie choisie ── */
-  var grp=courrierParEnt().filter(function(x){ return x.cle===MSG.selEnt; })[0];
-  if(!grp) return supVide('support','Plus aucun message pour cette entreprise',
-    'Ses messages ont peut-être été déplacés ou supprimés depuis la boîte.',
-    '<button type="button" class="btn-fant" onclick="mailChoisirEnt(\'toutes\')">Revenir à toutes les entreprises</button>');
-  var cat=(MAIL_CATS.filter(function(c){ return c.cle===MSG.selCat; })[0])||MAIL_CATS[0];
-  var Mc=grp.msgs.filter(function(m){ return mailDansCat(m,cat.cle); });
-  if(!Mc.length) return supVide('support','Rien dans « '+esc(cat.nom)+' »',
-    'Chez '+esc(grp.nom)+', aucun message ne correspond à cette catégorie.',
-    '<button type="button" class="btn-fant" onclick="mailChoisirCat(\'tout\')">Voir tous ses messages</button>');
-  /* Dans une catégorie précise, le tri par nature n'a plus de sens — « Marqués » est déjà
-     un tri. On ne garde les trois seaux que pour « Tous les messages ». */
-  if(cat.cle!=='tout') return '<div class="reg" style="padding:4px 2px 12px">'+
-    supGroupe(esc(grp.nom)+' · '+esc(cat.nom),Mc.length,'',true,'reg-cli',
-      Mc.map(function(m){ return mailLigneRecue(m,!m.lu); }).join(''),'')+'</div>';
-  M=Mc;
-  var GR=[
-   {cle:'att', titre:'À traiter', sous:'Reçus, pas encore ouverts. C’est la pile qui attend une réponse.',opt:true,bloc:'reg-cli'},
-   {cle:'vu',  titre:'Déjà ouverts', sous:'Ouverts depuis cette console. Le ↩ marque ceux auxquels une réponse est partie.',opt:true,bloc:'reg-bloc'},
-   {cle:'auto',titre:'Notifications automatiques', sous:'Stripe, GitHub, les robots. Personne n’attend de réponse — elles restent là pour la trace.',opt:false,bloc:'reg-bloc mien'}
-  ];
-  var g=GR.map(function(G){
-    /* Un .filter, jamais un Object.keys ni un tri intermédiaire : l'ordre décroissant est
-       posé par le serveur et doit survivre au groupage. */
-    var l=M.filter(function(m){ return supNature(m)===G.cle; });
-    if(!l.length) return '';
-    var pied='',vus=l;
-    /* Sortir de la liste ne doit jamais vouloir dire rendre inaccessible. L'état vit dans MSG
-       et non dans un <details> : la vue étant reconstruite par innerHTML, un pli se
-       refermerait tout seul à chaque render(). */
-    if(G.cle==='auto'&&!MSG.autoTout&&l.length>5){
-      vus=l.slice(0,5);
-      pied='<button type="button" class="ac-plus" onclick="supAutoTout()">Voir les '+(l.length-5)+' autres notifications →</button>';
-    }
-    return supGroupe(G.titre,l.length,G.sous,G.opt,G.bloc,vus.map(function(m){
-      return mailLigneRecue(m,G.cle==='att');
-    }).join(''),pied);
-  }).join('');
-  return '<div class="reg" style="padding:4px 2px 12px">'+g+'</div>';
-}
-function mailListeEnvoyee(){
-  if(MSG.envErr) return supVide('avion','Les envois ne répondent pas',esc(MSG.envErr),
-    '<button type="button" class="btn-fant" onclick="envoyesOuvrir()">Réessayer</button>');
-  var L=MSG.envoyes;
-  if(!L) return supSquel();
-  /* ⛔ LES ENVOIS NE SE FILTRENT PAS PAR BOÎTE, ET IL FAUT LE DIRE. Tout ce que TeamOP envoie
-     part de la MÊME adresse SMTP : le journal d'envoi (mailsLog) ne porte même pas de boîte
-     d'expédition, et il n'y en a qu'une. Laisser ce volet muet pendant que le titre annonce
-     « Courrier · support@ » ferait croire que ces envois sont ceux de cette boîte-là. Une
-     phrase suffit ; hausser les épaules ne suffit pas. */
-  var noteB = mailBoiteChoisie()
-    ? '<div class="dos-note" style="margin:2px 2px 8px">📤 Les envois ne se rangent pas par boîte : tout ce que TeamOP envoie part de la même adresse. Cette liste est donc complète, quelle que soit la boîte choisie.</div>'
-    : '';
-  var q=String(MSG.envQ||'').toLowerCase();
-  /* L'index d'origine est conservé : envoyeLire() pointe dans MSG.envoyes, pas dans le
-     filtrage. Sans ça, ouvrir un envoi depuis une entreprise ouvrirait celui d'une autre. */
-  var vus=L.map(function(m,i){ return {m:m,i:i}; }).filter(function(o){
-    /* Le rangement par entreprise vaut ici AUSSI : « Envoyés » était le dernier endroit où
-       tout restait mélangé. */
-    if(MSG.selEnt!=='toutes'){ var e=courrierEnt(o.m.a);
-      if(MSG.selEnt==='_autres' ? !!e : (!e||e.t!==MSG.selEnt)) return false; }
-    if(!q) return true;
-    return (mailEnt(o.m.a)+' '+(o.m.a||'')+' '+(o.m.sujet||'')).toLowerCase().indexOf(q)>=0; });
-  if(!vus.length) return noteB+(q
-    ? supVide('avion','Aucun envoi ne correspond','Rien ne correspond à « '+esc(MSG.envQ)+' ».',
-        '<button type="button" class="btn-fant" onclick="envoyesQ(\'\')">Effacer la recherche</button>')
-    : supVide('avion','Aucun e-mail envoyé','Le journal se remplit à chaque envoi.',
-        '<button type="button" class="btn-plein" onclick="compoOuvrir()">Écrire</button>'));
-  /* Trois seaux par date, TOUS à plat : un journal d'envois ne demande aucune décision, il
-     ne mérite donc aucun plan élevé — et le refuser ici est ce qui garde le plan crédible
-     ailleurs. */
-  var j0=new Date().setHours(0,0,0,0), s7=j0-6*86400000;
-  var seaux=[{titre:'Aujourd’hui',l:[]},{titre:'Cette semaine',l:[]},{titre:'Plus ancien',l:[]}];
-  vus.forEach(function(o){ var t=o.m.ts||0;
-    seaux[t>=j0?0:(t>=s7?1:2)].l.push(o); });
-  return noteB+'<div class="reg" style="padding:4px 2px 12px">'+seaux.map(function(S){
-    if(!S.l.length) return '';
-    return supGroupe(S.titre,S.l.length,'',false,'reg-bloc',S.l.map(function(o){
-      var m=o.m;
-      return supLigne({nom:mailEnt(m.a),adr:m.a,ts:m.ts,objet:m.sujet,l3:'→ '+esc(m.a||''),
-        on:(MSG.envSel===o.i),action:'envoyeLire('+o.i+')'});
-    }).join(''),'');
-  }).join('')+'</div>';
-}
-/* e-mail du destinataire → nom de l'entreprise, quand la fiche existe */
-function mailEnt(a){ a=String(a||'').toLowerCase();
-  /* Même rattachement que la barre latérale, et pas un second : un envoi rangé chez ELAN
-     doit porter le nom « ELAN », pas l'adresse brute parce que la fiche client manquait. */
-  var e=courrierEnt(a); if(e) return nomEspace(e.nom,e.t)||a;
-  var c=(CLI.list||[]).find(function(x){ return String(x.email||'').toLowerCase()===a; });
-  if(c) return c.entreprise||c.nom||a;
-  return (/teamop\.fr$/i.test(a)?'TeamOP (interne)':'')||a||'—'; }
-
-/* ── Volet 3 : la lecture ───────────────────────────────────────────────────────────── */
-function mailTeteLecture(nom, adr, ts, sujet, badge){
-  return '<div class="lec-tete">'+
-    (mailEtroit()?'<button class="btn-fant lec-ret" onclick="mailRetour()">‹ Liste</button>':'')+
-    '<div class="lec-obj">'+esc(sujet||'(sans objet)')+'</div>'+
-    '<div class="lec-qui">'+supAva(nom,adr)+
-      '<div class="lec-id"><b>'+esc(nom||adr||'—')+'</b><span>'+esc(adr||'')+'</span></div>'+
-      '<div class="lec-h" title="'+esc(fmtDateLong(ts))+'">'+esc(fmtDateLong(ts))+'</div></div>'+
-    (badge||'')+'</div>';
-}
-function lecture(){
-  var m=MSG.ouvert;
-  if(!m) return supVide('support','Aucun message ouvert','Choisissez un message à gauche.',
-    '<button type="button" class="btn-fant" onclick="compoOuvrir()">Écrire</button>');
-  var corps=String(m.texte||'').trim()||'(message vide)';
-  return '<div class="lec">'+
-    mailTeteLecture(m.deNom, m.de, m.ts, m.objet,
-      '<div class="lec-act"><button class="btn-fant" onclick="voirClient(\''+jsq(m.de||'')+'\')">Voir la fiche client</button></div>')+
-    '<div class="lec-corps">'+esc(corps)+'</div>'+
-    '<div class="lec-rep">'+
-      '<div class="lbl">RÉPONDRE À '+esc(String(m.deNom||m.de||'').toUpperCase())+'</div>'+
-      '<textarea id="rep-txt" class="inp" rows="4" placeholder="Votre réponse…"></textarea>'+
-      '<div style="display:flex;justify-content:flex-end;margin-top:10px">'+
-        '<button class="btn-plein" onclick="repondre()">'+svg('avion',15)+' Envoyer la réponse</button></div>'+
-    '</div></div>';
-}
-function envoyeLire(i){ MSG.envSel=i; renderNav('lecture'); }
-function envoyeLecture(){
-  var m=(MSG.envoyes||[])[MSG.envSel];
-  if(!m) return supVide('avion','Aucun envoi ouvert','Choisissez un envoi à gauche pour le relire.','');
-  return '<div class="lec">'+
-    mailTeteLecture(mailEnt(m.a), m.a, m.ts, m.sujet,
-      '<div class="lec-act"><span class="past p-vert">📤 Envoyé par TeamOP</span></div>')+
-    '<div class="lec-corps">'+esc(m.txt||'(aperçu non conservé pour ce message)')+'</div></div>';
-}
-/* Rouvrir les envois après un échec réseau. Ne touche plus à MSG.sel : « Envoyés » est
-   devenu une catégorie de l'entreprise ouverte, pas un dossier parallèle. */
-function envoyesOuvrir(){ MSG.selCat='envoyes'; MSG.envQ=MSG.envQ||''; MSG.ouvert=null; MSG.envErr=''; render(); chargerEnvois(); }
-function envoyesQ(v){ MSG.envQ=String(v||''); rendreDifféré(); }
-
-/* ── L'écran complet ────────────────────────────────────────────────────────────────── */
 /* Replier la barre : sur un grand écran, 232 px de menu permanents devant un tableau qu'on
    lit en largeur, c'est de la place perdue. Le choix est mémorisé — on ne le repose pas à
    chaque ouverture. Le bouton ne s'affiche qu'à partir de 900 px : en dessous la barre est
@@ -7880,109 +7183,6 @@ function teteListe(titre,aria,segs,cour,fn){
   return '<div class="tt-liste-tete"><h2>'+esc(titre)+'</h2><div class="tt-seg" role="group" aria-label="'+esc(aria)+'">'+
     segs.map(function(x){ return '<button type="button" aria-pressed="'+(cour===x[0])+'" onclick="'+fn+'\''+x[0]+'\')">'+esc(x[1])+
       (x[2]!=null?'<span class="n">'+x[2]+'</span>':'')+'</button>'; }).join('')+'</div></div>';
-}
-/* Passer du téléphone au bureau change le nombre de volets : on redessine au franchissement. */
-var _etroitAvant=null;
-try{ window.addEventListener('resize', function(){
-  var n=mailEtroit(); if(_etroitAvant===null){ _etroitAvant=n; return; }
-  if(n!==_etroitAvant){ _etroitAvant=n; render(); }
-}); }catch(e){}
-function vueSupport(){
-  var env=mailEnvoyes(), ouvert=env?((MSG.envoyes||[])[MSG.envSel]?true:false):!!MSG.ouvert;
-  var ent=CLI.list.map(function(c){ return '<option value="'+esc(c.email)+'"'+(MSG.cDest===c.email?' selected':'')+'>'+esc(c.entreprise||c.nom||c.email)+'</option>'; }).join('');
-  var compo=MSG.compo?'<div class="carte" style="border-color:var(--accBrd);margin-bottom:16px">'+
-      '<div class="ttl-carte">Nouveau message</div>'+
-      '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
-        '<div><div class="lbl">DESTINATAIRE</div><select class="sel-f" style="width:100%" onchange="compoChamp(\'cDest\',this.value)"><option value="">Choisir une entreprise…</option>'+ent+'</select></div>'+
-        '<div><div class="lbl">SUJET</div><input class="inp" value="'+esc(MSG.cSujet)+'" oninput="compoChamp(\'cSujet\',this.value)" placeholder="Objet du message"></div>'+
-        '<div><div class="lbl">MESSAGE</div><textarea class="inp" rows="5" oninput="compoChamp(\'cTexte\',this.value)" placeholder="Votre message…">'+esc(MSG.cTexte)+'</textarea></div>'+
-        '<div style="display:flex;gap:9px;justify-content:flex-end">'+
-          '<button class="btn-fant" onclick="compoFermer()">Annuler</button>'+
-          '<button class="btn-plein" onclick="compoEnvoyer()">'+svg('avion',15)+' Envoyer</button></div>'+
-      '</div></div>':'';
-
-  var rech=env
-    ? '<input placeholder="Rechercher un envoi…" value="'+esc(MSG.envQ||'')+'" oninput="envoyesQ(this.value)">'
-    : '<input placeholder="Rechercher un message…" value="'+esc(MSG.q)+'" onchange="mailQ(this.value)">';
-  var rafraichir=env?'envoyesOuvrir()':'mailActualiser()';
-
-  /* ⛔ LE TITRE DIT QUELLE BOÎTE ON REGARDE. Sans ça, seul le surlignage de la barre latérale
-     le disait — et sur écran étroit cette barre se replie : on lisait une liste restreinte
-     sans aucun moyen de savoir à quoi. Un écran qui filtre sans le dire fait croire que le
-     reste n'existe pas. */
-  var bCh=mailBoiteChoisie();
-  var bNom=bCh?String((MSG.sel&&MSG.sel.nom)||'cette boîte'):'';
-  /* Le dossier ne se dit que s'il n'est PAS la réception : écrire « · Réception » partout
-     ajouterait un mot à chaque titre sans rien apprendre. Mais dans la Corbeille ou les
-     Indésirables, ne pas le dire ferait croire qu'on lit le courrier normal. */
-  var dNom=(bCh&&MSG.sel&&MSG.sel.dosNom&&MSG.sel.dosNom!=='Réception')?String(MSG.sel.dosNom):'';
-  /* ⛔ LES ENVOIS NE SONT PAS UNE BOÎTE RELIÉE, ET LE TITRE DOIT LE DIRE. Depuis que
-     « Envois TeamOP » est rangé dans la section Boîte (13 septembre 2026), on l'ouvre souvent
-     alors qu'une boîte est sélectionnée — et l'écran titrait alors « Courrier ·
-     support@teamop.fr » au-dessus d'une liste qui ne vient pas de support@ du tout : elle
-     vient du SMTP de TeamOP. Mesuré à la sonde avant correction. Un titre qui nomme la
-     mauvaise source est pire que pas de titre.
-     On ne touche QUE le titre et sa phrase : la structure de la vue (volets, lecteur,
-     composeur) est déjà la bonne, c'est `env` qui l'aiguille plus bas. */
-  var envVue=mailEnvoyes();
-  /* ⛔ LE RETOUR DEPUIS UNE ENTREPRISE, désormais ici et nulle part ailleurs. La barre latérale
-     le portait (« Toutes les entreprises ») jusqu'au 13 septembre ; elle ne le porte plus, et
-     le bouton du corps de page ne sort que dans l'état vide. Sans cette ligne, « Voir les N
-     messages de X → » est une porte qui ne s'ouvre que dans un sens. */
-  var entVue=(!envVue&&MSG.selEnt&&MSG.selEnt!=='toutes');
-  var entNom=entVue?(function(){ var g=courrierParEnt().filter(function(x){ return x.cle===MSG.selEnt; })[0];
-    return g?g.nom:'cette entreprise'; })():'';
-  var tete=enTete(envVue?'Courrier · Envois TeamOP'
-      :entVue?('Courrier · '+entNom)
-      :(bCh?('Courrier · '+bNom+(dNom?(' · '+dNom):'')):'Courrier'),
-    envVue
-      ? 'Tout ce que TeamOP a envoyé depuis son propre serveur d’envoi — pas le dossier « Envoyés » d’une boîte reliée. <a href="#" onclick="mailChoisirCat(\'tout\');return false">Revenir aux messages reçus</a>'
-      : entVue
-      ? 'Vous ne voyez que les messages de <b>'+esc(entNom)+'</b>'+(bCh?(' sur <b>'+esc(bNom)+'</b>'):'')+'. <a href="#" onclick="mailChoisirEnt(\'toutes\');return false">Revenir à toutes les entreprises</a>'
-      : bCh
-      ? (dNom
-          ? 'Vous êtes dans <b>'+esc(dNom)+'</b> de <b>'+esc(bNom)+'</b> — ce n’est pas la réception. <a href="#" onclick="mailChoisirDossier(mailCheminInbox(mailBoiteChoisie()),\'Réception\');return false">Revenir à la réception</a> · <a href="#" onclick="mailChoisirBoite(\'\');return false">toutes les boîtes</a>'
-          : 'Vous ne voyez que ce qui est arrivé sur <b>'+esc(bNom)+'</b>. Les entreprises restent rangées séparément à l’intérieur. <a href="#" onclick="mailChoisirBoite(\'\');return false">Voir toutes les boîtes</a>')
-      : 'Les messages reçus par les boîtes reliées, et tout ce que TeamOP a envoyé. La date et l’heure de chaque envoi sont conservées.',
-    '<button class="btn-fant" onclick="supConnecterBoite()">Connecter une boîte</button>'+
-    '<button class="btn-plein" onclick="compoOuvrir()">'+svg('crayon',15)+' Écrire</button>');
-
-  /* Écran étroit : un seul volet à la fois. */
-  if(mailEtroit()){
-    if(ouvert) return tete+compo+'<div class="mail mail-1">'+(env?envoyeLecture():lecture())+'</div>';
-    return tete+compo+
-      '<div class="dos-bar">'+mailDossiers()+'</div>'+
-      '<div class="mail mail-1 mail-plat">'+
-        '<div class="mail-rech"><div class="rech">'+svg('loupe',16)+rech+'</div>'+
-          '<button class="btn-icone" onclick="'+rafraichir+'" title="Actualiser">'+svg('refresh',15)+'</button></div>'+
-        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue())+'</div></div>';
-  }
-  return tete+compo+
-    '<div class="mail">'+
-      '<div class="mail-doss">'+mailDossiers()+'</div>'+
-      '<div class="mail-liste">'+
-        '<div class="mail-rech"><div class="rech">'+svg('loupe',16)+rech+'</div>'+
-          '<button class="btn-icone" onclick="'+rafraichir+'" title="Actualiser">'+svg('refresh',15)+'</button></div>'+
-        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue())+'</div></div>'+
-      '<div class="mail-lect">'+(env?envoyeLecture():lecture())+'</div>'+
-    '</div>';
-}
-
-/* Depuis un message du Support : ouvrir la fiche de l'entreprise qui porte cette adresse.
-   Même chemin qu'ailleurs — entSel() est le seul qui ouvre une fiche. */
-function voirClient(email){
-  var m=String(email||'').toLowerCase().trim();
-  setTab('entreprises');
-  var ouvrir=function(){
-    var o=(ENT.liste||[]).find(function(x){ return String(x.email||'').toLowerCase()===m; });
-    if(!o){ var c=(CLI.list||[]).find(function(x){ return String(x.email||'').toLowerCase()===m; });
-      if(c) o=entParNom(c.entreprise||c.nom||''); }
-    if(!o){ toast('Cette adresse ne correspond à aucune entreprise connue'); return; }
-    if(ENT.sel!==o.t) entSel(o.t); else { renderNav('detail'); window.scrollTo(0,0); }
-  };
-  if(ENT.loaded) setTimeout(ouvrir,60);
-  else { chargerEntreprises(); var essais=0;
-    var attendre=setInterval(function(){ if(ENT.loaded||++essais>40){ clearInterval(attendre); ouvrir(); } },100); }
 }
 
 /* ══════════ 4. ENTREPRISES ══════════ */
@@ -8978,7 +8178,7 @@ function demCarte(x){
       (esp?'<button type="button" class="btn-fant" onclick="demOuvrirFiche(\''+jsq(esp.t)+'\')">Ouvrir la fiche</button>':'')
     :(MYROLE!=='patron'?'<span class="g dem-patron">Ouvrir l’espace est réservé au patron.</span>':'<label class="dem-ident"><span>Identifiant de départ</span><input class="inp" id="dem-id-'+i+'-'+esc(sigleAdr(c.email))+'" value="'+esc(DEM.id[i+'-'+sigleAdr(c.email)]!=null?DEM.id[i+'-'+sigleAdr(c.email)]:tourIdentDefaut(c.email))+'" oninput="DEM.id[\''+i+'-'+sigleAdr(c.email)+'\']=this.value" autocomplete="off" spellcheck="false"></label>'+
       '<button type="button" class="btn-plein" onclick="demAccepter(\''+jsq(c.email)+'\',\''+jsq(nomEnt)+'\','+i+',this)">✅ Accepter et ouvrir l’espace</button>')+
-      '<button type="button" class="btn-fant" onclick="compoOuvrir(\''+jsq(c.email)+'\');setTab(\'support\')">Écrire</button>'+
+      '<button type="button" class="btn-fant" onclick="courrierEcrire(\''+jsq(c.email)+'\')">Écrire</button>'+
       '<button type="button" class="btn-fant" onclick="demClasser(\''+jsq(c.email)+'\','+i+',true)">Classer sans suite</button>';
   return '<div class="carte p24 dem-carte">'+
     '<div class="dem-tete"><span class="reg-av">'+esc(sigle(nomEnt))+'</span>'+
@@ -9054,7 +8254,7 @@ function gestionClientParts(){
   /* ── CONTACT : lui écrire, le joindre, ce qu'il a demandé ── */
   parts.contact=
     '<div class="sous-act">'+
-      '<button type="button" class="btn-plein" onclick="compoOuvrir(\''+jsq(c.email)+'\');setTab(\'support\')">Écrire à '+esc(prenom)+'</button>'+
+      '<button type="button" class="btn-plein" onclick="courrierEcrire(\''+jsq(c.email)+'\')">Écrire à '+esc(prenom)+'</button>'+
       /* v2.88 — « Accepter la demande » ne vit plus que sur l'écran Demandes : ici il s'affichait pour TOUTE cliente, et sans
          demande à traiter il posait « Business ×1 » par-dessus une formule payée (relecture du 17 octobre 2026). */
       (demandesATraiter().some(function(x){ return x.c.email===c.email; })?'<button type="button" class="btn-fant" onclick="setTab(\'demandes\')">✅ Voir sa demande</button>':'')+
@@ -9325,7 +8525,7 @@ function abnStripe(id){ if(id) window.open('https://dashboard.stripe.com/subscri
    offerte ne faisait donc RIEN de visible, alors que c'est le seul chemin depuis cet écran
    vers la fiche de l'espace, et donc vers « Supprimer » : un espace fantôme qui profite
    d'un code promo restait affiché sans aucun moyen de le traiter.
-   Même méthode que voirClient() : on change d'écran, puis on ouvre la fiche — en attendant
+   Même méthode que l'ancien voirClient() du Courrier (retiré) : on change d'écran, puis on ouvre la fiche — en attendant
    la liste si elle n'est pas encore chargée, sinon le clic tombe dans le vide une fois sur
    deux selon qu'on a déjà visité Entreprises. */
 function abnVersEntreprise(t){
@@ -10401,9 +9601,7 @@ function vueJournal(){
     'Ce qui a été fait dans cette console, et qui s’y est connecté. Aucune ligne ne peut être effacée à la main.')+
     kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length],['echecs','Refusées',ko.length],['actions','Actions',A.length]],f,'jrFiltrePoser(')+
     '<div class="reg">'+bloc+'</div>'+
-    '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console et les 500 derniers gestes ; les plus anciens laissent la place aux nouveaux.</div>'+
-    (APP!=='gestion'?'':'<div class="reg-tech jr-mails"><div><b>📧 Les e-mails envoyés sont dans Courrier → Envois TeamOP.</b> Rangés par entreprise, avec la recherche et le contenu de chaque message. Ils étaient dupliqués ici en liste plate : une seule place vaut mieux que deux.</div>'+
-    '<button type="button" class="btn-plein" onclick="setTab(\'support\');envoyesOuvrir()">Ouvrir les envois</button></div>');
+    '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console et les 500 derniers gestes ; les plus anciens laissent la place aux nouveaux.</div>';
 }
 
 /* ══ démarrage : une session déjà ouverte reprend la main ══ */

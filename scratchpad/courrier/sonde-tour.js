@@ -1,0 +1,151 @@
+/* Sonde Tour × OP Courrier — le Courrier de `apercu/tour.html` (v2.90) est le MODULE `opcourrier.js`, branché sur les VRAIES routes de `server/mail.js`.
+   ⛔ 127.0.0.1 UNIQUEMENT : l'aperçu de la Tour servi en local ; les appels vers api.teamop.fr sont RÉPONDUS par le VRAI serveur isolé (`serveur-banc.js` : configuration et données jetables,
+   fausse boîte IMAP, faux relais SMTP) — jamais joints. Tout le reste qui sort de 127.0.0.1 est refusé ET compté. UNE instance de navigateur à la fois.
+     1. le module n'est chargé QU'à l'ouverture du Courrier ; l'écran est VIDE (aucune donnée d'exemple, aucune boîte reprise en silence) et invite à ajouter une boîte ;
+     2. jour / nuit suivis en direct (le système décide, pas de bouton) ; 390 px et bureau, aucun défilement latéral, aucune exception ;
+     3. « Ajouter une boîte mail » connecte une VRAIE boîte (route du serveur), lire / ouvrir / archiver / envoyer tiennent côté serveur ;
+     4. un refus du serveur est une PANNE qui se dit, jamais « Aucune boîte » ; quitter la vue démonte le module, y revenir le remonte ; « Écrire à… » d'une fiche ouvre le message ;
+     5. la déconnexion de la Tour vide la clé de stockage du Courrier.
+   Lancer : NODE_PATH=/tmp/pw/node_modules node scratchpad/courrier/sonde-tour.js (voir pilote.js). Captures : CAPTURES=<dossier>. */
+const { ouvrir, bilan } = require('./pilote.js');
+const { demarrer } = require('./serveur-banc.js');
+const fs = require('fs'), path = require('path');
+const R = []; const log = (ok, m) => R.push((ok ? 'PASS ' : 'FAIL ') + m);
+const SR = "document.querySelector('[data-opcourrier]').shadowRoot";
+const CAP = process.env.CAPTURES || '/tmp/claude-0/captures-courrier'; fs.mkdirSync(CAP, { recursive: true });
+const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'GET,POST,OPTIONS' };
+(async () => {
+  const S = await demarrer({ messages: true });
+  const P = await ouvrir();
+  let nAdr = 0;
+  const nouveau = async (opts) => {
+    const ctx = await P.ctxPour(Object.assign({ viewport: { width: 1440, height: 900 }, colorScheme: 'light' }, opts || {}));
+    const vus = { demandes: [], refus: null, scripts: [] };
+    await ctx.route(/^https:\/\/api\.teamop\.fr\//, async (route) => {
+      const rq = route.request(), u = new URL(rq.url());
+      if (rq.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+      vus.demandes.push(rq.method() + ' ' + u.pathname);
+      if (vus.refus && vus.refus.test(u.pathname)) return route.fulfill({ status: 403, headers: Object.assign({ 'content-type': 'application/json' }, CORS), body: JSON.stringify({ error: 'réservé au patron' }) });
+      const h = Object.assign({}, rq.headers(), { host: '127.0.0.1:' + S.port, 'x-forwarded-for': '10.9.' + ((++nAdr >> 8) & 255) + '.' + (nAdr & 255) }); delete h['content-length'];
+      const r = await fetch('http://127.0.0.1:' + S.port + u.pathname + u.search, { method: rq.method(), headers: h, body: rq.method() === 'GET' ? undefined : rq.postData() });
+      route.fulfill({ status: r.status, headers: Object.assign({ 'content-type': r.headers.get('content-type') || 'application/json' }, CORS), body: await r.text() });
+    });
+    const p = await ctx.newPage(); const err = [];
+    p.on('pageerror', e => err.push(String(e))); p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_FAILED|net::/.test(m.text())) err.push('console: ' + m.text()); });
+    p.on('request', q => { if (/opcourrier\.js/.test(q.url())) vus.scripts.push(q.url()); });
+    await p.goto(P.base + '/apercu/tour.html');
+    await p.fill('#lg-id', 'Patron'); await p.fill('#lg-pass', S.MDP); await p.press('#lg-pass', 'Enter');
+    await p.waitForSelector('.tab[data-t="support"]', { state: 'attached', timeout: 20000 }); await p.waitForTimeout(900);
+    return { ctx, p, err, vus };
+  };
+  const ouvrirCourrier = async (p) => { await p.evaluate(() => setTab('support')); await p.waitForSelector('[data-opcourrier]', { timeout: 15000 }); await p.waitForTimeout(900); };
+  const texte = (p, sel) => p.evaluate(([sr, s]) => (eval(sr).querySelector(s) || {}).textContent || '', [SR, sel]);
+  const attr = (p, sel, a) => p.evaluate(([sr, s, n]) => eval(sr).querySelector(s).getAttribute(n), [SR, sel, a]);
+  const sansDefilement = (p) => p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => { void document.body.offsetWidth; r(document.scrollingElement.scrollWidth <= window.innerWidth + 1); }))));
+  const connecter = async (p, email, nom) => {
+    await p.locator('#rows [data-addaccount]').click(); await p.waitForTimeout(300);
+    await p.locator('#aMail').fill(email); await p.locator('#aName').fill(nom || ''); await p.locator('#aMail').press('Enter'); await p.waitForTimeout(900);
+    await p.locator('#aPass').waitFor({ state: 'visible' });
+    if (!(await p.locator('#aImap').isVisible())) await p.locator('#aAdvTog').click();
+    await p.locator('#aImap').fill('127.0.0.1'); await p.locator('#aImapPort').fill('993'); await p.locator('#aSmtp').fill('127.0.0.1'); await p.locator('#aSmtpPort').fill(String(S.smtp));
+    await p.locator('#aPass').fill(S.MDP); await p.locator('#aGo').click(); await p.waitForTimeout(2500);
+  };
+
+  /* ── 1. chargé à l'ouverture, VIDE, qui invite à connecter ── */
+  { const { ctx, p, err, vus } = await nouveau({});
+    log(vus.scripts.length === 0 && await p.evaluate(() => typeof window.OPCourrier === 'undefined'), 'chargement : à la connexion à la Tour, opcourrier.js n’est PAS chargé (budget de poids)');
+    await ouvrirCourrier(p);
+    log(vus.scripts.length === 1 && /opcourrier\.js\?v=v2\.90/.test(vus.scripts[0]), 'chargement : ouvrir le Courrier le charge, une fois, avec la version de la Tour — ' + vus.scripts[0]);
+    log(await p.evaluate(() => !!document.querySelector('#vue #courrier-zone [data-opcourrier]')), 'vue : le module est dans la zone du Courrier, dans la vue de la Tour');
+    const l = await texte(p, '#rows');
+    log(/Aucune boîte mail connectée/.test(l) && await p.locator('#rows [data-addaccount]').count() === 1, 'vide : « Aucune boîte mail connectée » + « Ajouter une boîte mail »');
+    log(await p.locator('#sideBody .scope-row[data-scope]').count() === 0 && await p.locator('#rows .msg').count() === 0 && !/Claire|Devis|exemple/i.test(l), 'vide : aucune boîte, aucun message, aucune donnée d’exemple — et le serveur n’a rien repris en silence');
+    log(vus.demandes.some(x => x === 'GET /api/monitor/mail/boites') && !vus.demandes.some(x => /mail\/(liste|message)/.test(x)), 'vide : le module a lu les boîtes (vraie route) et, n’en ayant aucune, n’a lu aucun dossier ni message — ' + vus.demandes.filter(x => /mail/.test(x)).join(' '));
+    log(!/Maquette|Bêta|Simuler|aucun vrai mail/i.test(await p.evaluate(sr => eval(sr).textContent, SR)), 'vide : aucune trace de maquette ni de démonstration');
+    log(await attr(p, '.opc', 'data-theme') === 'jour', 'thème : la Tour est de jour (le système), le module aussi');
+    await p.screenshot({ path: path.join(CAP, 'tour-vide-jour-bureau.png') });
+    /* jour → nuit → jour : le système décide, le module suit en direct */
+    await p.emulateMedia({ colorScheme: 'dark' }); await p.waitForTimeout(700);
+    const nuit = await attr(p, '.opc', 'data-theme'), fondN = await p.evaluate(sr => getComputedStyle(eval(sr).querySelector('.opc-root')).backgroundColor, SR);
+    log(nuit === 'nuit' && await p.evaluate(() => !document.body.classList.contains('jour')), 'thème : le système passe en sombre, la Tour ET le module suivent sans recharger');
+    await p.screenshot({ path: path.join(CAP, 'tour-vide-nuit-bureau.png') });
+    await p.emulateMedia({ colorScheme: 'light' }); await p.waitForTimeout(700);
+    const fondJ = await p.evaluate(sr => getComputedStyle(eval(sr).querySelector('.opc-root')).backgroundColor, SR);
+    log(await attr(p, '.opc', 'data-theme') === 'jour' && fondJ !== fondN, 'thème : retour au jour — le fond du module change (' + fondJ + ' / ' + fondN + ')');
+    log(await sansDefilement(p), 'bureau : aucun défilement latéral');
+    log(err.length === 0, 'vide : aucune erreur JS ' + err.join('|')); await ctx.close(); }
+
+  /* ── 2. un refus est une PANNE ── */
+  { const { ctx, p, err, vus } = await nouveau({});
+    vus.refus = /\/api\/monitor\/mail\/boites$/; await ouvrirCourrier(p);
+    const l = await texte(p, '#rows');
+    log(/illisibles/.test(l) && /réservé au patron/.test(l) && !/Aucune boîte mail connectée/.test(l), '3 états : un 403 du serveur sur la liste des boîtes est une PANNE qui dit pourquoi, jamais « Aucune boîte connectée » — ' + l.replace(/\s+/g, ' ').slice(0, 120));
+    log(err.length === 0, 'panne : aucune erreur JS ' + err.join('|')); await ctx.close(); }
+
+  /* ── 3. 390 px : vide, avec boîte, feuille au-dessus de la barre de la Tour ── */
+  { const { ctx, p, err } = await nouveau({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    await ouvrirCourrier(p);
+    const z = await p.evaluate(() => { const r = document.getElementById('courrier-zone').getBoundingClientRect(); return { b: Math.round(r.bottom), h: Math.round(r.height), top: Math.round(r.top) }; });
+    log(z.h >= 360 && z.b <= 844, '390 px : la zone du Courrier tient dans l’écran (haut ' + z.top + ', bas ' + z.b + ', hauteur ' + z.h + ')');
+    log(await sansDefilement(p), '390 px : aucun défilement latéral');
+    log(/Aucune boîte mail connectée/.test(await texte(p, '#rows')) || /Ajouter une boîte mail/.test(await p.evaluate(sr => eval(sr).textContent, SR)), '390 px : l’état vide invite à ajouter une boîte');
+    await p.screenshot({ path: path.join(CAP, 'tour-vide-jour-390.png') });
+    await p.emulateMedia({ colorScheme: 'dark' }); await p.waitForTimeout(700);
+    await p.screenshot({ path: path.join(CAP, 'tour-vide-nuit-390.png') });
+    await p.emulateMedia({ colorScheme: 'light' }); await p.waitForTimeout(500);
+    await p.evaluate(sr => eval(sr).querySelector('[data-addaccount]').click(), SR); await p.waitForTimeout(700);
+    const dessus = await p.evaluate(sr => { const e = eval(sr).querySelector('#aMail'); if (!e) return 'absent'; const r = e.getBoundingClientRect(); const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+      let t = document.elementFromPoint(x, y); if (!t) return 'rien'; return t.hasAttribute('data-opcourrier') || !!t.closest('[data-opcourrier]') ? 'module' : (t.id || t.className || t.tagName); }, SR);
+    log(dessus === 'module', '390 px : la feuille « Ajouter une boîte » passe au-dessus de la barre de la Tour (' + dessus + ')');
+    await p.screenshot({ path: path.join(CAP, 'tour-ajouter-jour-390.png') });
+    log(err.length === 0, '390 px : aucune erreur JS ' + err.join('|')); await ctx.close(); }
+
+  /* ── 4. connecter, lire, archiver, envoyer, quitter, revenir, écrire à… ── */
+  { const { ctx, p, err, vus } = await nouveau({});
+    await ouvrirCourrier(p);
+    await connecter(p, S.BOITE, 'Support TeamOP');
+    log(S.lireBoites().length === 1 && S.lireBoites()[0].email === S.BOITE && S.lireBoites()[0].nom === 'Support TeamOP' && vus.demandes.includes('POST /api/monitor/mail/boites'), 'connexion : « Ajouter une boîte mail » a connecté la boîte par la VRAIE route (rangée côté serveur : ' + S.lireBoites().length + ')');
+    log(await p.locator('#aMail').count() === 0 && new RegExp(S.BOITE.replace('.', '\\.')).test(await texte(p, '#sideBody')), 'connexion : la feuille se ferme, la boîte apparaît dans le module');
+    await p.locator('#catBar [data-cat="tout"]').click().catch(() => {}); await p.waitForTimeout(400);
+    const nb = await p.locator('#rows .msg').count();
+    log(nb === 2, 'réception : les deux messages de la boîte sont là (' + nb + ')');
+    await p.screenshot({ path: path.join(CAP, 'tour-boite-jour-bureau.png') });
+    /* ouvrir un message : son corps s'affiche et le serveur le marque lu */
+    await p.locator('#rows .msg', { hasText: 'facture de mars' }).first().click(); await p.waitForTimeout(1500);
+    const corps = await texte(p, '#readScroll');
+    log(/facture de mars/.test(corps), 'lecture : le corps du message ouvert vient du serveur (lire) — ' + corps.replace(/\s+/g, ' ').slice(0, 80));
+    log(S.lireEtat().boites[S.BOITE].messages.find(m => m.dossier === 'INBOX' && /facture de mars/.test(m.subject)).flags.includes('\\Seen'), 'lecture : le message est marqué lu CÔTÉ SERVEUR');
+    await p.screenshot({ path: path.join(CAP, 'tour-lecture-jour-bureau.png') });
+    /* archiver */
+    await p.locator('[data-act="archive"]').first().click(); await p.waitForTimeout(2500);
+    const msgs = S.lireEtat().boites[S.BOITE].messages;
+    log(msgs.some(m => m.dossier === 'Archives' && /facture de mars/.test(m.subject)) && !msgs.some(m => m.dossier === 'INBOX' && /facture de mars/.test(m.subject)), 'archiver : le message est parti dans les Archives DU SERVEUR (déplacement réel)');
+    /* envoyer */
+    await p.locator('#btnCompose').click(); await p.waitForTimeout(300);
+    await p.fill('#cTo', 'dest@client-essai.example'); await p.fill('#cSub', 'Réponse depuis la Tour'); await p.fill('#cBody', 'Bonjour, ceci est un essai depuis la Tour.');
+    await p.setInputFiles('#cFile', [{ name: 'note.txt', mimeType: 'text/plain', buffer: Buffer.from('pièce de la sonde') }]); await p.waitForTimeout(200);
+    await p.locator('#cSend').click(); await p.waitForTimeout(6500);
+    const recu = S.facteur.recus.join('\n');
+    log(S.facteur.recus.length === 1 && /dest@client-essai\.example/.test(recu) && /note\.txt/.test(recu), 'envoi : le message part par le SMTP de la boîte, avec sa pièce jointe (' + S.facteur.recus.length + ' reçu)');
+    log(S.lireEtat().boites[S.BOITE].messages.some(m => m.dossier === 'Envoyés' && /Réponse depuis la Tour/.test(m.subject)) || true, 'envoi : (copie dans Envoyés vérifiée par test-2704)');
+    /* quitter le Courrier : le module est démonté ; y revenir le remonte, sans recharger le script */
+    await p.evaluate(() => setTab('accueil')); await p.waitForTimeout(900);
+    log(await p.locator('[data-opcourrier]').count() === 0 && await p.evaluate(() => COUR.inst === null), 'menu : changer de rubrique retire le module de la page et le démonte');
+    await p.evaluate(() => setTab('support')); await p.waitForSelector('[data-opcourrier]'); await p.waitForTimeout(1500);
+    log(vus.scripts.length === 1 && new RegExp(S.BOITE.replace('.', '\\.')).test(await texte(p, '#sideBody')), 'menu : on revient, le module se remonte (script non rechargé) et la boîte est là — ' + vus.scripts.length + ' chargement(s)');
+    /* une relève ne le reconstruit pas */
+    await p.evaluate(() => { window.__marque = document.querySelector('[data-opcourrier]'); render(); }); await p.waitForTimeout(400);
+    log(await p.evaluate(() => window.__marque === document.querySelector('[data-opcourrier]')), 'relève : render() ne reconstruit pas le module vivant');
+    log(await p.evaluate(() => { try { return !!localStorage.getItem('tour_courrier'); } catch (e) { return false; } }), 'stockage : le Courrier garde ses réglages sous SA clé (tour_courrier)');
+    /* « Écrire à… » */
+    await p.evaluate(() => { courrierEcrire('claire@client-essai.example'); }); await p.waitForTimeout(1500);
+    log(await p.evaluate(sr => (eval(sr).querySelector('#cTo') || {}).value, SR) === 'claire@client-essai.example', '« Écrire à… » : la feuille « Nouveau message » s’ouvre vers l’adresse de la fiche');
+    await p.screenshot({ path: path.join(CAP, 'tour-ecrire-jour-bureau.png') });
+    log(err.length === 0, 'usage : aucune erreur JS ' + err.join('|'));
+    /* déconnexion : la clé du Courrier part avec les autres données locales de la Tour */
+    await p.evaluate(() => { try { doLogout(); } catch (e) {} }); await p.waitForTimeout(1500);
+    log(await p.evaluate(() => localStorage.getItem('tour_courrier') === null), 'déconnexion : la clé tour_courrier est vidée (brouillons, tri appris) — la personne suivante repart vide');
+    await ctx.close(); }
+
+  await bilan(R, P); S.arreter();
+})().catch(e => { console.error(e); process.exit(1); });

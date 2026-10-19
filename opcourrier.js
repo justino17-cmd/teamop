@@ -17,6 +17,7 @@
        intervalle: 60000                 // relevé automatique de la source, en ms (0 : jamais)
      });
      c.demonter();  c.cote('perso');  c.rafraichir();  c.rafraichir({donnees:false});   // thème + format seuls
+     c.ecrire('contact@exemple.fr', 'Objet');   // ouvre un nouveau message vers cette adresse (rend faux, sans rien ouvrir, tant qu'aucune boîte n'est connectée)
 
    Le conteneur doit avoir une HAUTEUR définie (le module la remplit). Il vit dans un arbre d'ombre : sa feuille ne touche pas l'hôte, celle de
    l'hôte ne le touche pas. Les feuilles, menus et la notification passent dans la couche supérieure du navigateur (au-dessus de la barre de l'hôte).
@@ -3596,7 +3597,13 @@ var MARKUP = `
     // sans argument : le côté courant ; sinon ouvre ce côté (« pro » / « perso », s'il fait partie de options.cotes)
     cote:function(c){ if(c==null||COTES.indexOf(c)<0) return coteCourant(); ouvrirCote(c); clearSearch(); renderAll(); persist(); if(isPhone()) go("list"); return c; },
     // l'hôte dit « quelque chose a changé » : thème et format relus, données relues sauf rafraichir({donnees:false})
-    rafraichir:function(o){ appliquerTheme(); if(appliquerFormat()) placeChrome(); if(!o||o.donnees!==false) return charger(false); return Promise.resolve(); }
+    rafraichir:function(o){ appliquerTheme(); if(appliquerFormat()) placeChrome(); if(!o||o.donnees!==false) return charger(false); return Promise.resolve(); },
+    // l'hôte ouvre une feuille « Nouveau message » vers cette adresse (« Écrire à… » d'une fiche) ; sans boîte connectée, le module le dit et n'ouvre rien
+    // (le premier relevé des boîtes n'est pas fini : la feuille s'ouvre à son arrivée, sinon elle dirait « Ajoutez d'abord une boîte » à tort)
+    ecrire:function(a,objet){
+      var ouvrir=function(){ if(!vivant) return false; openCompose({to:String(a||""),subject:String(objet||""),body:""}); return ACCOUNTS.length>0; };
+      if(LOAD.boites==="wait"&&chargement){ chargement.then(ouvrir); return true; }
+      return ouvrir(); }
   };
   }
 

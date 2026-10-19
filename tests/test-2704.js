@@ -1,0 +1,242 @@
+/* ⛔ CE QUE CE FICHIER GARDE — LE COURRIER DE LA TOUR EST OP COURRIER, BRANCHÉ SUR LES VRAIES ROUTES DE `server/mail.js` (18 octobre 2026).
+
+   Justin : « ça remplace Mail, qui est actuel dans OP GESTION et dans la Tour » ; « quand tu l'intègres c'est VIDE, les gens doivent se connecter à leur mail, comme nous dans la Tour ».
+   Il remplace `test-670` et `test-671`, qui gardaient le TEXTE de l'ancien écran (choisir une boîte, les dossiers d'une boîte) : cet écran n'existe plus, et ce que ces deux bancs
+   gardaient — « on regarde une boîte à la fois, ses dossiers viennent du serveur, jamais d'une tranche déjà chargée » — vit maintenant dans l'ADAPTATEUR (`courrierSource`).
+   Trois moitiés, et elles ne se remplacent pas :
+     1. LA PAGE : l'ancien écran est RETIRÉ (aucun nom de fonction, aucune règle, aucune route de l'ancien envoi), le module est monté à l'ouverture seulement, dans la zone, avec le
+        thème de la Tour et sa propre clé de stockage, vidée à la déconnexion ; quitter la vue le démonte ; une relève ne le reconstruit pas ;
+     2. L'ADAPTATEUR : la VRAIE `courrierSource` de `tour.html`, extraite du fichier réel, contre le VRAI serveur isolé (fausse boîte IMAP `tests/faux-imap.js`, faux relais SMTP) —
+        vide au départ, la boîte se connecte PAR le geste, chaque dossier arrive de sa vraie boîte, lu / marqué / déplacé / envoyé tiennent côté serveur ;
+     3. LE REFUS EST UNE PANNE : un refus (403 patron, 401 session, 502 boîte en panne, serveur éteint) est une ERREUR qui se dit — jamais une liste vide qui dirait « Aucune boîte » à quelqu'un
+        dont la boîte marche (la règle de `_mailboxes`, CLAUDE.md).
+   Rien ne sort d'ici : 127.0.0.1, configuration et données jetables. */
+'use strict';
+const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto'), net = require('net'), vm = require('vm');
+const { spawn } = require('child_process');
+const RACINE = path.join(__dirname, '..');
+const TOUR_FICHIER = process.env.TOUR_FICHIER ? path.resolve(process.env.TOUR_FICHIER) : path.join(RACINE, 'tour.html');
+const SERVEUR = process.env.SERVEUR_FICHIER ? path.resolve(process.env.SERVEUR_FICHIER) : path.join(RACINE, 'server', 'index.js');
+const FAUX = path.join(__dirname, 'faux-imap.js');
+let ok = 0, ko = 0;
+const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 300) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 300)); } };
+const vrai = (t, c, d) => v(t + (d !== undefined && !c ? ' — ' + String(d).slice(0, 200) : ''), !!c, true);
+const dormir = ms => new Promise(r => setTimeout(r, ms));
+const sha = x => crypto.createHash('sha256').update(x).digest('hex');
+const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'b2704-'));
+let enfant = null, facteurSrv = null;
+const fin = () => { try { if (enfant) enfant.kill('SIGKILL'); } catch (e) {} try { if (facteurSrv) facteurSrv.s.close(); } catch (e) {} try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
+process.on('exit', fin);
+setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 240 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 240000).unref();
+
+/* ══ 1. LA PAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const BRUT = fs.readFileSync(TOUR_FICHIER, 'utf8');
+const nu = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');   // le code, pas les phrases qui racontent ce qui a été retiré
+const CODE = nu(BRUT);
+const corps = (src, entete) => { const i = src.indexOf(entete); if (i < 0) return ''; let j = src.indexOf('{', i), p = 0; for (let k = j; k < src.length; k++) { const c = src[k]; if (c === '{') p++; else if (c === '}') { p--; if (!p) return src.slice(i, k + 1); } } return ''; };
+
+console.log('\n── 2704 · 1. La page : l\'ancien Courrier n\'existe plus, OP Courrier est monté à sa place ──');
+{
+  const RETIRES = ['vueSupport', 'chargerMessages', 'mailListeRecue', 'mailListeRecueCorps', 'mailListeEnvoyee', 'mailChoisirBoite', 'mailChoisirDossier', 'mailChoisirEnt', 'mailChoisirCat', 'mailDossiers',
+    'courrierEnt', 'courrierParEnt', 'supLigne', 'supGroupe', 'supVide', 'lireMessage', 'allerMessage', 'repondre', 'compoEnvoyer', 'compoOuvrir', 'chargerEnvois', 'envoyesOuvrir', 'supConnecterBoite', 'voirClient'];
+  const restes = RETIRES.filter(n => new RegExp('(?<![\\w$.])' + n + '(?![\\w$])').test(CODE));
+  v('⛔ (population ' + RETIRES.length + ' noms) aucun nom de l\'ancien écran ne survit — retiré, pas laissé mort', restes, []);
+  vrai('⛔ l\'ancien envoi (« support/envoyer ») et la connexion par `prompt` n\'existent plus', !/monitor\/support\/(envoyer|connect)/.test(CODE) && !/prompt\([^)]*boîte/.test(CODE));
+  vrai('⛔ aucune règle de l\'ancien écran (.mail, .mail-*, .dos, .sup-*, .lec-*, .mrow) ne survit dans la feuille',
+    !/(^|[\s,}])\.(mail|mail-[a-z]+|dos|dos-[a-z]+|sup-[a-z0-9]+|lec|lec-[a-z]+|mrow)[\s{.,:>]/m.test(CODE.slice(0, CODE.indexOf('</style>'))));
+  const mont = corps(BRUT, 'function courrierMonter(');
+  vrai('(population) courrierMonter est trouvée', mont.length > 400);
+  vrai('⛔ elle monte le MODULE (OPCourrier.monter) dans la zone, côté Pro seul', /OPCourrier\.monter\(zone,/.test(mont) && /cotes:\['pro'\]/.test(mont));
+  vrai('…avec SA clé de stockage, qui n\'est celle d\'aucune autre application (tour_courrier)', /cleStockage:'tour_courrier'/.test(mont));
+  vrai('…le thème de la TOUR (jour automatique / nuit), pas celui de l\'appareil lu à part', /document\.body\.classList\.contains\('jour'\)\?'jour':'nuit'/.test(mont));
+  vrai('…la pastille du menu suit le module (onCompter)', /onCompter:function\(n\)\{[^}]*setBdg\('bdg-supp',n\)/.test(mont));
+  vrai('⛔ le module ne se charge QU\'À L\'OUVERTURE du Courrier : ni balise <script src="opcourrier.js"> dans la page, ni appel au démarrage',
+    !/<script[^>]*opcourrier\.js/.test(BRUT) && /document\.createElement\('script'\)/.test(corps(BRUT, 'function courrierCharger(')) && (CODE.match(/courrierCharger\(/g) || []).length === 2);
+  const rv = corps(BRUT, 'function renderVue(');
+  vrai('⛔ la vue Courrier passe par courrierGarde : une relève (render) ne reconstruit pas le module vivant', /TAB==='support'\)\{ if\(!courrierGarde\(v\)\)\{ v\.innerHTML=vueCourrier\(\); courrierMonter\(\); \} \}/.test(rv));
+  vrai('⛔ quitter le Courrier le DÉMONTE (sa minuterie ne redessinerait pas une autre vue)', /if\(TAB!=='support'\) courrierDemonter\(\)/.test(rv) && rv.indexOf('vuePermise(TAB)') < rv.indexOf('courrierDemonter'));
+  vrai('⛔ la déconnexion démonte le module ET vide sa clé (brouillons, tri appris) — la Tour ne les laisse pas à la personne suivante', /function doLogout\(\)\{ try\{ courrierDemonter\(\); localStorage\.removeItem\('tour_courrier'\)/.test(BRUT));
+  vrai('⛔ le jour / la nuit se suivent EN DIRECT : modeApplique relit le thème du module', /function modeApplique\([^)]*\)\{[^}]*COUR\.inst\.rafraichir\(\{donnees:false\}\)/.test(BRUT));
+  vrai('« Écrire à… » d\'une fiche ouvre un nouveau message dans le module (ecrire), sans composeur maison', /function courrierEcrire\([\s\S]*?COUR\.inst\.ecrire\(/.test(BRUT) && (CODE.match(/courrierEcrire\(/g) || []).length >= 3);
+  vrai('l\'accueil ne lit plus de messages (il n\'en a plus) : il compte les non lus et mène au Courrier', !/MSG\.messages/.test(CODE) && /nMot\(MSG\.nonLus,'message non lu'/.test(CODE));
+  vrai('le relevé des compteurs (chargerMail) ne touche plus au chiffre quand le module est monté — la pastille ne saute pas entre deux manières de compter', /if\(!COUR\.inst\)\{ MSG\.nonLus=/.test(corps(BRUT, 'function chargerMail(')));
+  vrai('⛔ la version de la Tour est montée (v2.90)', /var TOUR_VERSION='v2\.90'/.test(BRUT));
+  vrai('(population) opcourrier.js existe à la racine, sert `ecrire`, et n\'appelle jamais le réseau', fs.existsSync(path.join(RACINE, 'opcourrier.js')) && /ecrire:function/.test(fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8')) && !/\bfetch\(|XMLHttpRequest/.test(nu(fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8'))));
+}
+
+/* ══ 2. L'ADAPTATEUR CONTRE LE VRAI SERVEUR ═══════════════════════════════════════════════════════════════════════════════════════════ */
+function facteur() {
+  const f = { recus: [] };
+  f.s = net.createServer(c => {
+    c.on('error', () => {});
+    let tampon = '', corpsM = false, msg = '';
+    c.write('220 banc\r\n');
+    c.on('data', d => {
+      tampon += d.toString('utf8'); let i;
+      while ((i = tampon.indexOf('\r\n')) >= 0) {
+        const l = tampon.slice(0, i); tampon = tampon.slice(i + 2);
+        if (corpsM) { if (l === '.') { corpsM = false; f.recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }
+        const h = l.toUpperCase();
+        if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
+        else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
+        else if (h.startsWith('DATA')) { corpsM = true; c.write('354 go\r\n'); }
+        else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
+        else c.write('250 ok\r\n');
+      }
+    });
+  });
+  return f;
+}
+(async () => {
+  let webpush;
+  try { webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push')); require.resolve('imapflow', { paths: [path.join(RACINE, 'server')] }); }
+  catch (e) { console.log('  … SAUTÉ (parties 2 et 3) : server/node_modules absent (cd server && npm i)'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
+  console.log('\n── 2704 · 2. L\'adaptateur : la VRAIE courrierSource contre le VRAI serveur (fausse boîte IMAP, faux relais SMTP) ──');
+  facteurSrv = facteur();
+  const portSmtp = await new Promise(res => facteurSrv.s.listen(0, '127.0.0.1', () => res(facteurSrv.s.address().port)));
+  const BX = 'tour@banc-2704.fr', BAD = 'casse@banc-2704.fr', MDP = 'mot-de-passe-du-banc-2704', MDP2 = 'mot-de-passe-agent-2704', PROTEGE = '0123456789abcdef0123456789abcdef.securite@banc-2704.fr';
+  const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
+  fs.writeFileSync(path.join(D, 'mails-proteges.json'), JSON.stringify([PROTEGE]));
+  fs.writeFileSync(path.join(banc, 'monitor.json'), JSON.stringify({ users: [
+    { id: 'u-patron', nom: 'Patron', email: '', hash: sha(MDP), role: 'patron', actif: true, ts: Date.now() },
+    { id: 'u-agent', nom: 'Agent', email: '', hash: sha(MDP2), role: 'collaborateur', actif: true, ts: Date.now() }] }));
+  /* ⛔ AUCUNE boîte au départ : `mail-boites.json` n'existe pas — c'est « repartir vide » */
+  const IMAP = path.join(banc, 'faux-imap.json'), T0 = Date.now() - 3 * 86400000, rang = {};
+  const etat = { boites: { [BX]: { messages: [], actions: [] } }, pannes: { [BAD]: 'Invalid credentials pour ' + BAD } };
+  const poser = (dossier, o) => { const k = dossier; rang[k] = (rang[k] || 0) + 1; const n = rang[k];
+    etat.boites[BX].messages.push(Object.assign({ dossier, uid: n, messageId: o.mid || ('<' + dossier.slice(0, 2) + n + '@banc-2704>'), from: o.de || 'client@exemple-2704.fr', fromNom: o.nom || '', to: o.a || BX,
+      subject: o.objet || ('Message ' + n), text: o.texte || ('Corps du message ' + n), ts: T0 + n * 600000, flags: o.lu ? ['\\Seen'] : [] }, o.pieces ? { pieces: o.pieces } : {})); };
+  poser('INBOX', { objet: 'Facture mars', nom: 'Anne Durand', texte: 'Bonjour, ma facture de mars.' });
+  poser('INBOX', { objet: 'Devis signé', lu: true, pieces: [{ nom: 'devis.pdf', type: 'application/pdf', taille: 2345 }] });
+  poser('INBOX', { objet: 'Avis de sécurité', mid: '<' + PROTEGE + '>', de: 'banc@teamop.fr' });
+  poser('Envoyés', { de: BX, a: 'client@exemple-2704.fr', objet: 'Votre facture', lu: true });
+  poser('Brouillons', { de: BX, a: 'x@exemple-2704.fr', objet: 'Brouillon A', lu: true });
+  poser('Archives', { objet: 'Archive 1', lu: true });
+  poser('Indésirables', { objet: 'Gagnez' });
+  poser('Corbeille', { objet: 'Jeté', lu: true });
+  fs.writeFileSync(IMAP, JSON.stringify(etat));
+  const lireEtat = () => JSON.parse(fs.readFileSync(IMAP, 'utf8'));
+  const vap = webpush.generateVAPIDKeys();
+  fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' } }));
+  const PORT = await new Promise(res => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
+  let journal = '';
+  const demarrer = async () => {
+    enfant = spawn(process.execPath, ['-r', FAUX, SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT),
+      TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_FB_OAUTH_URL: 'http://127.0.0.1:9/token', TEAMOP_FIRESTORE_URL: 'http://127.0.0.1:9', TEAMOP_IDTK_URL: 'http://127.0.0.1:9/idtk',
+      TEAMOP_FB_CERTS_URL: 'http://127.0.0.1:9/certs', TEAMOP_MAIL_NONLUS_MS: '1000', FAUX_IMAP: IMAP, FAUX_IMAP_RACINE: path.join(RACINE, 'server') }), stdio: ['ignore', 'pipe', 'pipe'] });
+    enfant.stdout.on('data', d => { journal += d; }); enfant.stderr.on('data', d => { journal += d; });
+    let vivant = false; for (let i = 0; i < 100 && !vivant; i++) { try { vivant = (await fetch('http://127.0.0.1:' + PORT + '/health')).ok; } catch (e) {} if (!vivant) await dormir(100); }
+    return vivant;
+  };
+  vrai('le serveur démarre (fausse boîte IMAP glissée par `node -r`, AUCUNE boîte connectée)', await demarrer(), journal.slice(-300));
+  const login = async (nom, pass) => (await (await fetch('http://127.0.0.1:' + PORT + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.0.0.1' }, body: JSON.stringify({ nom, pass }) })).json()).token;
+  const TP = await login('Patron', MDP), TA = await login('Agent', MDP2);
+  vrai('la Tour ouvre une session de patron et une de collaborateur', TP && TA);
+
+  /* ── la VRAIE courrierSource, extraite du fichier réel, avec ce que la page lui fournit ── */
+  const src = corps(BRUT, 'function courrierSource(');
+  vrai('(population) courrierSource est trouvée dans tour.html, et entière', src.length > 3000 && /retirerBoite:function/.test(src), src.length);
+  let jeton = TP, deconnexions = 0, etats = [], nAdr = 0;
+  const bac = { API: 'http://127.0.0.1:' + PORT, INJOIGNABLE: 'Serveur injoignable — nouvelle tentative dans un instant.', Promise, JSON, Date, encodeURIComponent, String, Array, Math, Error, parseInt,
+    hAuth: () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + jeton }), srvEtat: ok2 => etats.push(ok2), doLogout: () => { deconnexions++; },
+    fetch: (u, o) => fetch(u, Object.assign({}, o, { headers: Object.assign({ 'X-Forwarded-For': '10.7.' + ((++nAdr >> 8) & 255) + '.' + (nAdr & 255) }, (o && o.headers) || {}) })),
+    FileReader: class { readAsDataURL(f) { f.arrayBuffer().then(b => { this.result = 'data:' + (f.type || 'application/octet-stream') + ';base64,' + Buffer.from(b).toString('base64'); this.onload(); }, e => this.onerror(e)); } } };
+  vm.createContext(bac);
+  vm.runInContext(src, bac);
+  const S = () => vm.runInContext('courrierSource()', bac);
+  const rejette = async (p) => { try { await p; return null; } catch (e) { return String(e && e.message); } };
+  let s = S();
+
+  const cap = await s.capacites();
+  v('⛔ ce que la Tour sait faire est DIT : lu/non lu, déplacement et réglages de serveur oui ; Google/Microsoft, envoi programmé, signature non', [cap.marquage, cap.deplacement, cap.reglagesServeur, cap.oauth, cap.programmeServeur, cap.signature, cap.simulation], [true, true, true, false, false, false, false]);
+  v('…les six dossiers que le serveur sait lire', cap.dossiers, ['inbox', 'drafts', 'sent', 'archive', 'junk', 'trash']);
+  v('⛔ VIDE au départ : le serveur n\'a aucune boîte, la liste est LUE et vide (pas une panne)', await s.boites(), []);
+
+  /* connecter : le geste, réservé au patron */
+  jeton = TA;
+  const refusAgent = await rejette(s.ajouterBoite({ email: BX, mdp: 'x', nom: 'Support', serveurs: { imap: '127.0.0.1', imapPort: 993, smtp: '127.0.0.1', smtpPort: portSmtp } }));
+  vrai('⛔ un collaborateur ne connecte pas de boîte : le refus est une ERREUR qui dit pourquoi (« réservé au patron »)', /patron/.test(refusAgent || ''), refusAgent);
+  jeton = TP;
+  v('…et rien n\'a été rangé', await s.boites(), []);
+  const refusMdp = await rejette(s.ajouterBoite({ email: BAD, mdp: 'faux', nom: 'Cassée', serveurs: { imap: '127.0.0.1', imapPort: 993, smtp: '127.0.0.1', smtpPort: portSmtp } }));
+  vrai('⛔ une boîte qui refuse la connexion est REFUSÉE avec la raison du serveur (réception) — rien n\'est rangé', /IMAP/.test(refusMdp || '') && !(refusMdp || '').includes(BAD), refusMdp);
+  v('…la liste reste vide', await s.boites(), []);
+  const b = await s.ajouterBoite({ email: ' ' + BX.toUpperCase() + ' ', mdp: MDP, nom: 'Support', serveurs: { imap: '127.0.0.1', imapPort: 993, smtp: '127.0.0.1', smtpPort: portSmtp } });
+  vrai('⛔ « Ajouter une boîte mail » connecte la boîte par la VRAIE route (SMTP et IMAP éprouvés avant tout rangement)', b && /^b[0-9a-f]{8}$/.test(b.id) && b.email === BX && b.cote === 'pro', JSON.stringify(b));
+  const liste = await s.boites();
+  v('…et la boîte est relue du serveur', liste.map(x => [x.id, x.email, x.nom, x.cote]), [[b.id, BX, 'Support', 'pro']]);
+  vrai('…son mot de passe n\'est jamais relu du serveur', !JSON.stringify(liste).includes(MDP));
+
+  /* lire, dossier par dossier */
+  const inbox = await s.messages({ boite: b.id, dossier: 'inbox' });
+  v('⛔ la Réception de CETTE boîte : trois messages, du plus récent au plus ancien', inbox.map(m => m.objet), ['Avis de sécurité', 'Devis signé', 'Facture mars']);
+  const m1 = inbox.find(m => m.objet === 'Facture mars');
+  v('un message porte ce que le module lit : expéditeur, date, lu, drapeau, dossier', [m1.de, typeof m1.date, m1.lu, m1.drapeau, m1.dossier, m1.id.startsWith(b.id + '|1|INBOX')], [{ nom: 'Anne Durand', email: 'client@exemple-2704.fr' }, 'number', false, false, 'inbox', true]);
+  v('…le nombre de pièces jointes vient de la liste (leurs noms, à l\'ouverture)', inbox.find(m => m.objet === 'Devis signé').pj.length, 1);
+  const autres = {}; for (const d of ['drafts', 'sent', 'archive', 'junk', 'trash']) autres[d] = (await s.messages({ boite: b.id, dossier: d })).map(m => m.objet);
+  v('⛔ chaque dossier arrive de SON dossier IMAP (rôle → chemin), jamais mélangé à la Réception', autres, { drafts: ['Brouillon A'], sent: ['Votre facture'], archive: ['Archive 1'], junk: ['Gagnez'], trash: ['Jeté'] });
+  const doc = await s.lire(m1.id);
+  v('⛔ lire(id) rend le corps du message ouvert', doc.corps, 'Bonjour, ma facture de mars.');
+  const doc2 = await s.lire(inbox.find(m => m.objet === 'Devis signé').id);
+  v('…et les pièces jointes avec leur nom et leur taille lisible', doc2.pj, [{ nom: 'devis.pdf', taille: '2 Ko', type: 'doc' }]);
+  vrai('…ouvrir marque le message lu CÔTÉ SERVEUR (comme une vraie messagerie)', lireEtat().boites[BX].messages.find(m => m.dossier === 'INBOX' && m.uid === 1).flags.includes('\\Seen'));
+
+  /* écrire côté serveur */
+  await s.marquer(m1.id, { lu: false, drapeau: true });
+  const f1 = lireEtat().boites[BX].messages.find(m => m.dossier === 'INBOX' && m.uid === 1).flags;
+  v('⛔ marquer(lu:false, drapeau:true) se lit côté serveur', [f1.includes('\\Seen'), f1.includes('\\Flagged')], [false, true]);
+  const apres = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Facture mars');
+  v('…et la liste suivante le montre (la mémoire de la source est oubliée à chaque geste)', [apres.lu, apres.drapeau], [false, true]);
+  await s.deplacer(m1.id, 'archive');
+  v('⛔ deplacer(archive) : le message quitte la Réception et arrive dans les Archives du serveur', [(await s.messages({ boite: b.id, dossier: 'inbox' })).map(m => m.objet), (await s.messages({ boite: b.id, dossier: 'archive' })).map(m => m.objet).sort()], [['Avis de sécurité', 'Devis signé'], ['Archive 1', 'Facture mars']]);
+  const refusDossier = await rejette(s.deplacer(m1.id, 'flagged'));
+  vrai('un dossier que le serveur ne connaît pas est refusé (rien n\'est envoyé)', /dossier inconnu/.test(refusDossier || ''), refusDossier);
+  const prot = (await s.messages({ boite: b.id, dossier: 'inbox' })).find(m => m.objet === 'Avis de sécurité');
+  const refusProt = await rejette(s.marquer(prot.id, { lu: true, drapeau: false }));
+  vrai('⛔ l\'e-mail de sécurité n\'est ni marqué ni déplacé : le refus du serveur est une ERREUR dite (le module annule son geste)', /sécurité/.test(refusProt || ''), refusProt);
+  vrai('…et il reste non lu côté serveur', !lireEtat().boites[BX].messages.find(m => m.dossier === 'INBOX' && m.messageId.includes(PROTEGE)).flags.includes('\\Seen'));
+
+  /* envoyer */
+  const avantRecus = facteurSrv.recus.length;
+  const pj = new File([Buffer.from('contenu de la pièce')], 'note.txt', { type: 'text/plain' });
+  await s.envoyer({ boite: b.id, de: BX, nom: 'Support', a: 'dest@exemple-2704.fr', objet: 'Réponse 2704', texte: 'Bonjour depuis la Tour', pieces: [pj] });
+  const lu = facteurSrv.recus.length === avantRecus + 1 ? await require(path.join(RACINE, 'server', 'node_modules', 'mailparser')).simpleParser(facteurSrv.recus[avantRecus].replace(/\n/g, '\r\n')) : null;
+  v('⛔ envoyer(): le message part par le SMTP de la boîte choisie — objet, texte, destinataire ET pièce jointe (relus par un vrai lecteur de courriel)',
+    lu && [lu.subject, lu.text.trim(), lu.to.text, lu.from.value[0].address, lu.attachments.map(a => a.filename + ':' + a.content.toString())], ['Réponse 2704', 'Bonjour depuis la Tour', 'dest@exemple-2704.fr', BX, ['note.txt:contenu de la pièce']]);
+  vrai('…et une copie arrive dans les Envoyés de la boîte', (await s.messages({ boite: b.id, dossier: 'sent' })).some(m => m.objet === 'Réponse 2704'));
+  const refusVide = await rejette(s.envoyer({ boite: b.id, a: 'dest@exemple-2704.fr', objet: 'x', texte: '   ', pieces: [] }));
+  vrai('un envoi refusé par le serveur (message vide) est une ERREUR dite, jamais un « Envoyé » silencieux', /message vide/.test(refusVide || ''), refusVide);
+  const refusAdr = await rejette(s.envoyer({ boite: b.id, a: 'pas-une-adresse', objet: 'x', texte: 'texte', pieces: [] }));
+  vrai('…ni une adresse invalide', /destinataire/.test(refusAdr || ''), refusAdr);
+
+  /* ── 3. LE REFUS EST UNE PANNE ── */
+  console.log('\n── 2704 · 3. Un refus est une panne, jamais une liste vide ──');
+  const e0 = deconnexions; jeton = 'a'.repeat(48);
+  const r401 = await rejette(s.boites());
+  vrai('⛔ une session expirée (401) est une ERREUR, et ramène à la connexion (doLogout)', /expirée/.test(r401 || '') && deconnexions === e0 + 1, r401);
+  jeton = '';
+  const rAnon = await rejette(S().messages({ boite: b.id, dossier: 'sent' }));
+  vrai('⛔ sans session, lire un dossier est une ERREUR (jamais « Rien dans ce dossier »)', rAnon !== null, rAnon);
+  jeton = TP;
+  /* une boîte qui ne répond pas */
+  const boitesEtat = JSON.parse(fs.readFileSync(path.join(D, 'mail-boites.json'), 'utf8'));
+  vrai('(population) la boîte connectée est rangée côté serveur (avec son mot de passe, chiffrement ou non, jamais renvoyé)', boitesEtat.length === 1 && boitesEtat[0].email === BX);
+  const e2 = lireEtat(); e2.pannes[BX] = 'Connection refused pour ' + BX; fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e2)); fs.renameSync(IMAP + '.tmp', IMAP);
+  s = S();
+  const rPanne = await rejette(s.messages({ boite: b.id, dossier: 'inbox' }));
+  vrai('⛔ une boîte qui ne répond pas (IMAP refusé) est une ERREUR qui le dit — pas une Réception vide', rPanne !== null && /ne répond pas|injoignable|Connection/.test(rPanne) && !rPanne.includes(BX), rPanne);
+  const e3 = lireEtat(); delete e3.pannes[BX]; fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e3)); fs.renameSync(IMAP + '.tmp', IMAP);
+  const rInconnue = await rejette(S().messages({ boite: 'b00000000', dossier: 'inbox' }));
+  vrai('une boîte que le serveur ne connaît pas est une erreur', /introuvable/.test(rInconnue || ''), rInconnue);
+
+  /* retirer, puis le serveur éteint */
+  await S().retirerBoite(b.id);
+  v('⛔ retirerBoite : la boîte quitte le serveur — on repart vide', await S().boites(), []);
+  const avantEtats = etats.length;
+  enfant.kill('SIGKILL'); await dormir(400);
+  const rEteint = await rejette(S().boites());
+  vrai('⛔ le serveur éteint est une ERREUR (« injoignable »), et la pastille du serveur le sait', /injoignable/.test(rEteint || '') && etats.slice(avantEtats).includes(false), rEteint);
+
+  console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
+  process.exit(ko ? 1 : 0);
+})().catch(e => { console.log('  ✗ banc interrompu : ' + (e && e.stack || e)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });

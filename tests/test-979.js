@@ -130,7 +130,7 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     v('⛔ Journal d\'OP GESTION : son geste, pas celui d\'OP MESSAGES', [/Geste fait dans OP GESTION/.test(jg), /Geste fait dans OP MESSAGES/.test(jg)], [true, false]);
     v('⛔ Journal d\'OP MESSAGES : l\'inverse', [/Geste fait dans OP MESSAGES/.test(jm), /Geste fait dans OP GESTION/.test(jm)], [true, false]);
     v('⛔ l\'action notée par le serveur suit la console de sa route (messages-beta ici, gestion-beta là)', [TM.run("vueJournal(); (JR.cnx||[]).filter(function(j){ return j.app&&/-beta/.test(j.motif||''); }).map(function(j){ return j.app+':'+(/messages-beta/.test(j.motif)?'m':'g'); }).sort().join(',')")], ['gestion:g,messages:m']);
-    vrai('⛔ le renvoi vers « Courrier → Envois TeamOP » n\'est que dans le Journal d\'OP GESTION', /Envois TeamOP/.test(jg) && !/Envois TeamOP/.test(jm));
+    vrai('⛔ aucun Journal ne renvoie vers « Courrier → Envois TeamOP » : cet écran est retiré avec l\'ancien Courrier (18 octobre 2026, OP Courrier le remplace)', !/Envois TeamOP|envoyesOuvrir/.test(jg + jm));
     v('⛔ l\'échec de connexion à la bêta d\'OP MESSAGES est dans SON Journal, pas dans celui d\'OP GESTION', [/intrus-979/.test(jm), /intrus-979/.test(jg)], [true, false]);
 
     console.log('\n── 979 · 5. Équipe : chaque console ses comptes ──');
