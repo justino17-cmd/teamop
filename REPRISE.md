@@ -36,7 +36,7 @@ Margaux, Léa ; 3 = le reste.
   « je suis une IA » à chaque message ; JAMAIS de prétention d'être une personne, et à la question sincère « êtes-vous un humain ? » il
   répond honnêtement et propose de passer la main à Justin. Une demande d'un humain, un litige ou un sujet sensible passe à Justin avec un dossier.
 - **N'existe pas** : aucun agent (ni Claude appelé, ni courriel lu, ni Stripe touché) ; AUCUN panneau « Agents » dans `tour.html` — le
-  socle n'a que ses routes, la Tour ne le montre pas encore ; rien côté OP MESSAGES ; `server/set-agents.sh` écrit (clé dédiée → `agents.cleApi`, saisie masquée, vérifiée auprès d'Anthropic, refuse la clé du Devis IA ; rien ne la lit encore) mais PAS encore lancé sur le VPS — la clé existe dans la Console (espace « Agents Team OP », limite 195 $).
+  socle n'a que ses routes, la Tour ne le montre pas encore ; rien côté OP MESSAGES ; `server/set-agents.sh` écrit (clé dédiée → `agents.cleApi`, saisie masquée, vérifiée auprès d'Anthropic, refuse la clé du Devis IA ; rien ne la lit encore) et LANCÉ sur le VPS le 19 octobre 2026 à 15 h 47 (clé de 106 caractères acceptée par Anthropic, posée dans `agents.cleApi`, agents toujours à l'arrêt) — espace « Agents Team OP » de la Console, limite 195 $.
 - ⏳ **Attend la phrase de Justin** avant `main` : un push de `server/**` sur `main` DÉPLOIE le VPS (`deploiement.yml`). Rien n'est fusionné.
 - **Suite, dans l'ordre** : 1. le panneau « Agents » de la Tour (maquette HTML d'abord, `tour.html` fait ~10 000 lignes et toute route
   neuve doit rester déclarée dans `index.js`) ; 2. `server/set-agents.sh` sur le modèle de `set-claude.sh` ; 3. Hugo — relecture Stripe par
