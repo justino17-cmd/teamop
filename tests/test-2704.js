@@ -63,7 +63,7 @@ console.log('\n── 2704 · 1. La page : l\'ancien Courrier n\'existe plus, OP
   vrai('« Écrire à… » d\'une fiche ouvre un nouveau message dans le module (ecrire), sans composeur maison', /function courrierEcrire\([\s\S]*?COUR\.inst\.ecrire\(/.test(BRUT) && (CODE.match(/courrierEcrire\(/g) || []).length >= 3);
   vrai('l\'accueil ne lit plus de messages (il n\'en a plus) : il compte les non lus et mène au Courrier', !/MSG\.messages/.test(CODE) && /nMot\(MSG\.nonLus,'message non lu'/.test(CODE));
   vrai('le relevé des compteurs (chargerMail) ne touche plus au chiffre quand le module est monté — la pastille ne saute pas entre deux manières de compter', /if\(!COUR\.inst\)\{ MSG\.nonLus=/.test(corps(BRUT, 'function chargerMail(')));
-  vrai('⛔ la version de la Tour est montée (v2.94)', /var TOUR_VERSION='v2\.94'/.test(BRUT));
+  vrai('⛔ la version de la Tour est montée (v2.95)', /var TOUR_VERSION='v2\.95'/.test(BRUT));
   /* v2.94 — le son du Courrier HORS de l'écran Courrier : la VRAIE `courrierSonner` et la VRAIE `courrierSonActif`, rejouées (la Tour n'a de relève de fond que par la pastille) */
   { const vm = require('vm');
     const fSon = ['courrierSonActif', 'courrierSonner'].map(n => { const i0 = BRUT.indexOf('function ' + n + '('); vrai('(tranche trouvée) ' + n, i0 > 0); return i0 > 0 ? corps(BRUT, 'function ' + n + '(') : ''; }).join('\n');
