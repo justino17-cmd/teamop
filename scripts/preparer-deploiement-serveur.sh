@@ -110,7 +110,9 @@ for f in "${PAGES_LIEES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 #    (le compteur de non-lus, désormais par dossier) ET `tour.html` ; restée celle de `main`, elle attendait l'ancien serveur
 #    et la suite complète tombait (1 ✗ sur 511 suites) sur un serveur juste. Sa version de la branche passe contre la Tour de
 #    `main` (vérifié) : elle part. Une suite ajoutée ici doit passer contre la Tour SERVIE.
-SUITES_SERVEUR_HORS_LISTE=(tests/test-671.js)
+# 19 octobre 2026 : `test-828` et `test-829` lisent le MENU de `tour.html` (onglet Agents, Tour v2.95) : la Tour part avec le serveur, donc leurs
+#    versions de la branche partent avec elle — celles de `main` attendraient encore huit vues et tomberaient sur une Tour juste.
+SUITES_SERVEUR_HORS_LISTE=(tests/test-671.js tests/test-828.js tests/test-829.js)
 for f in "${SUITES_SERVEUR_HORS_LISTE[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 
 # 2. Les deux workflows de la branche — la ligne des bancs lance la LISTE, pas tout (voir
