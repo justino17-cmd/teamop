@@ -38,6 +38,9 @@ const REPONSES = [
       if (u.pathname === '/api/version') return json({ min: 0 });
       return route.fulfill({ status: 503, headers: Object.assign({ 'content-type': 'text/plain' }, CORS), body: 'indisponible (essai)' });   // toute autre route : panne, jamais un « ok » que l’application lirait comme un verdict
     });
+    /* v2.92 : la bêta ne parle plus aux routes mail (espace de test, état calme). Pour jouer les gestes d'avant (connecter, envoyer…) sur les routes de la sonde, on lève CETTE seule garde dans la copie servie ;
+       `api.calme` garde la page telle qu'elle est livrée. */
+    if (!(api && api.calme)) await ctx.route(/\/beta\.html(\?.*)?$/, async (route) => { const r = await fetch(route.request().url()); const t = (await r.text()).replace("if(BETA_ESSAI){ const e=new Error('Espace de test", "if(false){ const e=new Error('Espace de test"); route.fulfill({ status: 200, headers: { 'content-type': 'text/html;charset=utf-8' }, body: t }); });
     const p = await ctx.newPage(); const err = [];
     p.on('pageerror', e => err.push(String(e))); p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_FAILED|net::/.test(m.text())) err.push('console: ' + m.text()); });
     const scripts = []; p.on('request', q => { if (/opcourrier\.js/.test(q.url())) scripts.push(q.url()); });
@@ -53,6 +56,16 @@ const REPONSES = [
   const ouvrirMail = async (p) => { await p.evaluate(() => { window.horsLigneDebut = function () {}; try { localStorage.setItem('elanB_sync_team', 'equipe-essai'); } catch (e) {} go('boiteMail'); }); await p.waitForSelector('[data-opcourrier]', { timeout: 20000 }); await p.waitForTimeout(900); };
   const attr = (p, sel, a) => p.evaluate(([sr, s, n]) => eval(sr).querySelector(s).getAttribute(n), [SR, sel, a]);
   const texte = (p, sel) => p.evaluate(([sr, s]) => (eval(sr).querySelector(s) || {}).textContent || '', [SR, sel]);
+
+  /* ── 0. L'ESPACE DE TEST : la bêta, telle que livrée, n'appelle aucune route mail et dit un état CALME (pas de « refusé », pas de « Réessayer ») ── */
+  { const { ctx, p, err, vus } = await nouveau({}, { calme: true });
+    await ouvrirMail(p); await p.waitForTimeout(800);
+    const l = await texte(p, '#rows'), side = await p.evaluate(sr => eval(sr).querySelector('#sideBody').textContent, SR);
+    log(/Espace de test : aucune vraie boîte mail ne se connecte ici\. Les vrais mails se testent dans la Tour\./.test(l), 'espace de test : le message est dit tel quel — ' + l.replace(/\s+/g, ' ').slice(0, 140));
+    log(!/refus|illisibles|clé de l|Réessayer|Aucune boîte mail connectée/i.test(l + side) && await p.locator('[data-retry]').count() === 0 && await p.locator('[data-addaccount]').count() === 0, 'espace de test : ni « refusé », ni « illisibles », ni « Réessayer », ni « Ajouter » — la bêta ne fait pas croire à une panne');
+    log(!vus.demandes.some(x => /\/api\/(mailboxes|replies|mailbox|sendmail)/.test(x)), 'espace de test : AUCUNE route mail appelée — ' + vus.demandes.join(' '));
+    await p.screenshot({ path: (process.env.CAPTURES || '/tmp/claude-0/captures-courrier') + '/gestion-espace-de-test.png' });
+    log(err.length === 0, 'espace de test : aucune erreur JS ' + err.join('|')); await ctx.close(); }
 
   /* ── 1. la vue, le menu, le module chargé à la demande ── */
   { const { ctx, p, err, vus, scripts } = await nouveau({});

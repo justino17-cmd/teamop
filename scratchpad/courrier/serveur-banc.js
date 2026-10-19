@@ -45,7 +45,22 @@ exports.demarrer = async function (opt) {
       { ts: TJ + 2000, a: 'rate@client-essai.example', sujet: '⚠️ NON PARTI — Invitation', txt: 'Invitation', echec: 1 },
       { ts: TJ + 1000, a: 'ancien@client-essai.example', sujet: 'Code de confirmation', txt: '' }]));
   }
-  fs.writeFileSync(IMAP, JSON.stringify({ boites: { [BOITE]: { messages: msgs, actions: [] } }, pannes: {} }));
+  const etatBoites = { [BOITE]: { messages: msgs, actions: [] } };
+  /* opt.boites : plusieurs boîtes DÉJÀ connectées côté serveur (mail-boites.json), de même nom d'affichage si on le veut ; `sans` retire des dossiers (une boîte OVH sans « Archives »). */
+  if (opt.boites) {
+    delete etatBoites[BOITE]; const ids = [];
+    opt.boites.forEach((b, k) => {
+      const m = []; let u = 0; const q = (dossier, objet, o) => { u++; m.push(Object.assign({ dossier, uid: u, messageId: '<b' + k + '-' + u + '@sonde>', from: 'client' + u + '@client-essai.example', fromNom: 'Client ' + u, to: b.email, subject: objet, text: 'Texte ' + objet, ts: T0 + (k * 100 + u) * 3600000, flags: (o && o.lu) ? ['\\Seen'] : [] }, o && o.pieces ? { pieces: o.pieces } : {})); };
+      q('INBOX', 'Reception ' + b.email); q('INBOX', 'Reception deux ' + b.email); q('Archives', 'Archive ' + b.email, { lu: true }); q('Indésirables', 'Indesirable ' + b.email); q('Corbeille', 'Corbeille ' + b.email, { lu: true }); q('Envoyés', 'Envoye ' + b.email, { lu: true }); q('Brouillons', 'Brouillon ' + b.email, { lu: true });
+      const base = [{ chemin: 'INBOX' }, { chemin: 'Envoyés', specialUse: '\\Sent' }, { chemin: 'Brouillons', specialUse: '\\Drafts' }, { chemin: 'Archives', specialUse: '\\Archive' }, { chemin: 'Indésirables', specialUse: '\\Junk' }, { chemin: 'Corbeille', specialUse: '\\Trash' }];
+      const e = { messages: m.filter(x => !(b.sans || []).includes(x.dossier)), actions: [] };
+      if (b.sans) e.dossiers = base.filter(d => !b.sans.includes(d.chemin));
+      etatBoites[b.email] = e;
+      ids.push({ id: 'b' + (1000 + k), email: b.email, pass: MDP, imapHost: '127.0.0.1', imapPort: 993, smtpHost: '127.0.0.1', smtpPort: smtp, nom: b.nom === undefined ? 'TEAM OP' : b.nom, ts: Date.now(), par: 'sonde' });
+    });
+    fs.writeFileSync(path.join(D, 'mail-boites.json'), JSON.stringify(ids));
+  }
+  fs.writeFileSync(IMAP, JSON.stringify({ boites: etatBoites, pannes: {} }));
   const vap = webpush.generateVAPIDKeys();
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', smtp: { host: '127.0.0.1', port: smtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' } }));
   const port = await libre(); let journal = '';
@@ -57,5 +72,5 @@ exports.demarrer = async function (opt) {
   let vivant = false; for (let i = 0; i < 150 && !vivant; i++) { try { vivant = (await fetch('http://127.0.0.1:' + port + '/health')).ok; } catch (e) {} if (!vivant) await dormir(100); }
   if (!vivant) throw new Error('serveur de sonde muet : ' + journal.slice(-400));
   const arreter = () => { try { enfant.kill('SIGKILL'); } catch (e) {} try { F.s.close(); } catch (e) {} try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
-  return { port, smtp, MDP, BOITE, facteur: F, arreter, journal: () => journal, lireEtat: () => JSON.parse(fs.readFileSync(IMAP, 'utf8')), lireSuivi: () => { try { return JSON.parse(fs.readFileSync(path.join(D, 'mail-suivi.json'), 'utf8')); } catch (e) { return {}; } }, lireBoites: () => { try { return JSON.parse(fs.readFileSync(path.join(D, 'mail-boites.json'), 'utf8')); } catch (e) { return []; } } };
+  return { port, smtp, MDP, BOITE, facteur: F, arreter, journal: () => journal, lireEtatChemin: () => IMAP, lireEtat: () => JSON.parse(fs.readFileSync(IMAP, 'utf8')), lireSuivi: () => { try { return JSON.parse(fs.readFileSync(path.join(D, 'mail-suivi.json'), 'utf8')); } catch (e) { return {}; } }, lireBoites: () => { try { return JSON.parse(fs.readFileSync(path.join(D, 'mail-boites.json'), 'utf8')); } catch (e) { return []; } } };
 };

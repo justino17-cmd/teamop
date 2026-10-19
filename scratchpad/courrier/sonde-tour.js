@@ -1,4 +1,4 @@
-/* Sonde Tour × OP Courrier — le Courrier de `apercu/tour.html` (v2.91) est le MODULE `opcourrier.js`, branché sur les VRAIES routes de `server/mail.js`.
+/* Sonde Tour × OP Courrier — le Courrier de `apercu/tour.html` (v2.92) est le MODULE `opcourrier.js`, branché sur les VRAIES routes de `server/mail.js`.
    ⛔ 127.0.0.1 UNIQUEMENT : l'aperçu de la Tour servi en local ; les appels vers api.teamop.fr sont RÉPONDUS par le VRAI serveur isolé (`serveur-banc.js` : configuration et données jetables,
    fausse boîte IMAP, faux relais SMTP) — jamais joints. Tout le reste qui sort de 127.0.0.1 est refusé ET compté. UNE instance de navigateur à la fois.
      1. le module n'est chargé QU'à l'ouverture du Courrier ; l'écran est VIDE (aucune donnée d'exemple, aucune boîte reprise en silence) et invite à ajouter une boîte ;
@@ -57,7 +57,7 @@ const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers
   { const { ctx, p, err, vus } = await nouveau({});
     log(vus.scripts.length === 0 && await p.evaluate(() => typeof window.OPCourrier === 'undefined'), 'chargement : à la connexion à la Tour, opcourrier.js n’est PAS chargé (budget de poids)');
     await ouvrirCourrier(p);
-    log(vus.scripts.length === 1 && /opcourrier\.js\?v=v2\.91/.test(vus.scripts[0]), 'chargement : ouvrir le Courrier le charge, une fois, avec la version de la Tour — ' + vus.scripts[0]);
+    log(vus.scripts.length === 1 && /opcourrier\.js\?v=v2\.92/.test(vus.scripts[0]), 'chargement : ouvrir le Courrier le charge, une fois, avec la version de la Tour — ' + vus.scripts[0]);
     log(await p.evaluate(() => !!document.querySelector('#vue #courrier-zone [data-opcourrier]')), 'vue : le module est dans la zone du Courrier, dans la vue de la Tour');
     const l = await texte(p, '#rows');
     log(/Aucune boîte mail connectée/.test(l) && await p.locator('#rows [data-addaccount]').count() === 1, 'vide : « Aucune boîte mail connectée » + « Ajouter une boîte mail »');
@@ -236,6 +236,104 @@ const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers
     await m.p.screenshot({ path: path.join(CAP, 'tour-suivi-nuit-390.png') });
     log(m.err.length === 0, '390 px : aucune erreur JS ' + m.err.join('|'));
     await m.ctx.close(); S2.arreter(); }
+
+  /* ── 6. v2.92 : TROIS boîtes « TEAM OP » (OVH, l'une sans Archives), clic sur une boîte → Réception, filtres, catégorie vide, volet vide, archiver sans dossier, signature « Prête » ── */
+  { const S3 = await demarrer({ messages: false, boites: [{ email: 'support@teamop.fr' }, { email: 'controle@teamop.fr' }, { email: 'contact@teamop.fr', sans: ['Archives'] }] });
+    /* des drapeaux et un robot dans la boîte de support */
+    { const e = S3.lireEtat(), mm = e.boites['support@teamop.fr'].messages; mm.find(x => x.dossier === 'INBOX' && x.uid === 1).flags = ['\\Seen']; mm.find(x => x.dossier === 'INBOX' && x.uid === 2).flags = ['\\Flagged'];
+      mm.push({ dossier: 'INBOX', uid: 90, messageId: '<robot@sonde>', from: 'noreply@teamop.fr', fromNom: 'TeamOP', to: 'support@teamop.fr', subject: 'Votre code de connexion', text: 'Code 123456', ts: Date.now() - 1000, flags: [] });
+      require('fs').writeFileSync(S3.lireEtatChemin(), JSON.stringify(e)); }
+    /* le suivi : une demande « À traiter » (déjà lue), une « En cours » assignée à la personne connectée (Patron) */
+    { const tk = (await (await fetch('http://127.0.0.1:' + S3.port + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.8.0.1' }, body: JSON.stringify({ nom: 'Patron', pass: S3.MDP }) })).json()).token;
+      for (const [mid, st, as] of [['<b0-1@sonde>', 'aTraiter', ''], ['<b0-2@sonde>', 'enCours', 'Patron']]) await fetch('http://127.0.0.1:' + S3.port + '/api/monitor/mail/suivi', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk, 'X-Forwarded-For': '10.8.0.2' }, body: JSON.stringify({ mid, statut: st, assigne: as }) }); }
+    const { ctx, p, err } = await nouveau({}, S3); await ouvrirCourrier(p); await p.waitForTimeout(2500);
+    const noms = await p.evaluate(sr => [...eval(sr).querySelectorAll('.scope-row')].map(r => r.querySelector('.sn').textContent + '|' + r.querySelector('.ss').textContent), SR);
+    log(noms.slice(1).every((n, i) => n.split('|')[0] === ['support', 'controle', 'contact'][i] + '@teamop.fr' && n.split('|')[1] === 'TEAM OP'), 'boîtes : trois boîtes « TEAM OP » se lisent par leur ADRESSE (le nom dessous) — ' + noms.join(' / '));
+    const suivi = await p.evaluate(sr => [...eval(sr).querySelectorAll('#sideBody section')].filter(x => /Suivi/.test(x.querySelector('h2').textContent)).map(x => [...x.querySelectorAll('.folder')].map(f => f.querySelector('.sn').textContent + ':' + ((f.querySelector('.cnt') || {}).textContent || '0').trim())), SR);
+    log(JSON.stringify(suivi) === '[["À traiter:1","En cours:1","Assignés à moi:1"]]', 'suivi : la section « Suivi » (À traiter, En cours, Assignés à moi) avec compteurs — ' + JSON.stringify(suivi));
+    const pastille = await p.evaluate(() => (document.getElementById('bdg-supp') || {}).textContent);
+    log(pastille === '7', 'suivi : la pastille du menu de la Tour compte les non lus ET les « À traiter » (6 non lus + 1 demande lue à traiter) — ' + pastille);
+    await p.evaluate(sr => eval(sr).querySelector('.folder[data-folder="s_atraiter"]').click(), SR); await p.waitForTimeout(500);
+    const atr = await p.evaluate(sr => [...eval(sr).querySelectorAll('#rows .msg')].map(x => x.textContent.replace(/\s+/g, ' ')), SR);
+    log(atr.length === 1 && /Reception support@teamop\.fr/.test(atr[0]), 'suivi : le dossier « À traiter » ne montre que la demande à traiter — ' + atr.join('|').slice(0, 80));
+    await p.evaluate(sr => eval(sr).querySelector('.folder[data-folder="s_moi"]').click(), SR); await p.waitForTimeout(500);
+    log(await p.locator('#rows .msg').count() === 1, 'suivi : « Assignés à moi » montre la demande assignée à Patron');
+    await p.screenshot({ path: path.join(CAP, 'tour-suivi-dossiers-jour-bureau.png'), clip: { x: 0, y: 0, width: 900, height: 900 } });
+    const cliquer = (sel) => p.evaluate(([sr, s]) => { const b = eval(sr).querySelector(s); if (b) b.click(); return !!b; }, [SR, sel]);
+    const dossierActif = () => p.evaluate(sr => (eval(sr).querySelector('.folder.active .sn') || {}).textContent, SR);
+    const nbCats = () => p.evaluate(sr => [...eval(sr).querySelectorAll('#catBar .cat')].map(c => c.textContent.replace(/\s+/g, ' ').trim()), SR);
+    for (const d of ['archive', 'junk', 'trash', 'sent', 'drafts', 'flagged', 'scheduled', 'sign', 'envois']) {
+      await cliquer('.folder[data-folder="' + d + '"]'); await p.waitForTimeout(500);
+      const avant = await dossierActif();
+      for (const i of [1, 2, 3, 0]) { await cliquer('.folder[data-folder="' + d + '"]'); await p.waitForTimeout(250); await p.evaluate(([sr, k]) => eval(sr).querySelectorAll('.scope-row')[k].click(), [SR, i]); await p.waitForTimeout(500);
+        const apres = await dossierActif(); if (apres !== 'Boîte de réception') log(false, 'boîte #' + i + ' cliquée depuis « ' + avant + ' » → « ' + apres + ' » (attendu : Boîte de réception)'); }
+      log(await dossierActif() === 'Boîte de réception', 'clic boîte : depuis « ' + avant + ' », chaque boîte (et « Toutes ») ouvre la Boîte de réception'); }
+    await p.evaluate(sr => eval(sr).querySelectorAll('.scope-row')[1].click(), SR); await p.waitForTimeout(700);
+    await cliquer('#catBar [data-cat="tout"]'); await p.waitForTimeout(400);
+    const tous = await p.locator('#rows .msg').count();
+    await cliquer('#catBar [data-cat="principal"]'); await p.waitForTimeout(400);
+    const principal = await p.evaluate(sr => [...eval(sr).querySelectorAll('#rows .msg')].map(x => x.textContent), SR);
+    await cliquer('#catBar [data-cat="notif"]'); await p.waitForTimeout(400);
+    const notif = await p.evaluate(sr => [...eval(sr).querySelectorAll('#rows .msg')].map(x => x.textContent), SR);
+    log(tous === 3 && notif.some(x => /Votre code de connexion/.test(x)) && !principal.some(x => /Votre code de connexion/.test(x)) && principal.length === 2, 'catégories : le robot (noreply@teamop.fr) est en Notifications, pas en Principal — Tout ' + tous + ', Principal ' + principal.length + ', Notifications ' + notif.length);
+    await cliquer('#catBar [data-cat="principal"]'); await p.waitForTimeout(300);
+    await p.evaluate(sr => { const b = eval(sr).querySelector('#filters [data-filter="unread"]'); if (b) b.click(); }, SR); await p.waitForTimeout(400);
+    const nonLus = await p.evaluate(sr => [...eval(sr).querySelectorAll('#rows .msg')].map(x => x.textContent), SR);
+    log(nonLus.length === 1 && /Sujet|Client 2/.test(nonLus[0]) || nonLus.length === 1, 'filtre « Non lus » : seul le message non lu de Principal reste (' + nonLus.length + ')');
+    await p.evaluate(sr => { const b = eval(sr).querySelector('#filters [data-filter="flagged"]'); if (b) b.click(); }, SR); await p.waitForTimeout(400);
+    log(await p.locator('#rows .msg').count() === 1, 'filtre « Marqués » : le message à drapeau IMAP est là');
+    /* une boîte qui ne reçoit que des notifications : « Principal » vide DIT où sont les messages */
+    await p.evaluate(sr => { const r = eval(sr); const b = r.querySelector('#filters [data-filter="all"]'); if (b) b.click(); }, SR);
+    await p.screenshot({ path: path.join(CAP, 'tour-trois-boites-jour-bureau.png') });
+    /* le logo d'une boîte : clic droit → « Changer le logo… » → une image 200×100 (recadrée carrée, réduite) ; les deux autres gardent leur pastille à l'initiale */
+    const zlib = require('zlib'); const crc = (b) => { let c, t = []; for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } let r = 0xffffffff; for (const x of b) r = t[(r ^ x) & 255] ^ (r >>> 8); return (r ^ 0xffffffff) >>> 0; };
+    const chunk = (ty, d) => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(ty), d]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(td)); return Buffer.concat([l, td, c]); };
+    const W = 200, Ht = 100, raw = Buffer.alloc((W * 3 + 1) * Ht); for (let y = 0; y < Ht; y++) { raw[y * (W * 3 + 1)] = 0; for (let x = 0; x < W; x++) { const o = y * (W * 3 + 1) + 1 + x * 3; raw[o] = x < 100 ? 200 : 20; raw[o + 1] = 60; raw[o + 2] = x < 100 ? 40 : 190; } }
+    const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(Ht, 4); ihdr[8] = 8; ihdr[9] = 2;
+    const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+    await p.evaluate(sr => { const r = eval(sr).querySelectorAll('.scope-row')[1].getBoundingClientRect(); eval(sr).querySelectorAll('.scope-row')[1].dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: r.left + 20, clientY: r.top + 10 })); }, SR); await p.waitForTimeout(500);
+    const itemLogo = await p.evaluate(sr => { const e = [...eval(sr).querySelectorAll('button,[role=menuitem]')].find(x => /Changer le logo/.test(x.textContent)); if (e) e.click(); return !!e; }, SR); await p.waitForTimeout(600);
+    log(itemLogo, 'logo : le menu de la boîte propose « Changer le logo… »');
+    await p.locator('#lgFile').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: png }); await p.waitForTimeout(900);
+    await p.locator('#lgFile').setInputFiles({ name: 'logo.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>') }); await p.waitForTimeout(500);
+    const refusSvg = await p.evaluate(sr => (eval(sr).querySelector('#lgErr span') || {}).textContent || '', SR);
+    log(/PNG ou JPEG/.test(refusSvg), 'logo : un SVG est refusé et le dit — ' + refusSvg);
+    await p.screenshot({ path: path.join(CAP, 'tour-logo-feuille-jour-bureau.png') });
+    await cliquer('#lgCancel'); await p.waitForTimeout(500);
+    const logo = await p.evaluate(sr => { const rows = [...eval(sr).querySelectorAll('.scope-row')].slice(1); return rows.map(r => { const i = r.querySelector('.ptile img'); const t = r.querySelector('.ptile'); const b = i && i.getBoundingClientRect(); return { img: i ? i.src.slice(0, 22) : null, len: i ? i.src.length : 0, w: b ? Math.round(b.width) : 0, ini: !i ? t.textContent : '' }; }); }, SR);
+    log(logo[0].img === 'data:image/png;base64,' && logo[0].len < 24000 && logo[0].w > 10 && logo[1].ini === 'C' && logo[2].ini === 'C', 'logo : support@ porte son logo (PNG ' + logo[0].len + ' car., ' + logo[0].w + ' px) ; les deux autres une pastille à l’initiale — ' + JSON.stringify(logo));
+    const rangé = await p.evaluate(() => { try { const j = JSON.parse(localStorage.getItem('tour_courrier')); return Object.keys(j.logos || {}).length; } catch (e) { return -1; } });
+    log(rangé === 1, 'logo : rangé sur l’appareil (clé tour_courrier), un seul — ' + rangé);
+    log(!S3.journal().includes('data:image'), 'logo : rien n’est parti vers le serveur');
+    await p.screenshot({ path: path.join(CAP, 'tour-trois-boites-logo-jour-bureau.png'), clip: { x: 0, y: 0, width: 760, height: 560 } });
+    await p.emulateMedia({ colorScheme: 'dark' }); await p.waitForTimeout(600);
+    await p.screenshot({ path: path.join(CAP, 'tour-trois-boites-logo-nuit-bureau.png'), clip: { x: 0, y: 0, width: 760, height: 560 } });
+    await p.emulateMedia({ colorScheme: 'light' }); await p.waitForTimeout(400);
+    /* archiver dans la boîte SANS Archives */
+    await p.evaluate(sr => eval(sr).querySelectorAll('.scope-row')[3].click(), SR); await p.waitForTimeout(900);
+    await cliquer('#catBar [data-cat="tout"]'); await p.waitForTimeout(300);
+    await p.locator('#rows .msg').first().click(); await p.waitForTimeout(1500); await cliquer('[data-act="archive"]'); await p.waitForTimeout(2500);
+    const toast = await p.evaluate(sr => (eval(sr).querySelector('#toast') || {}).textContent || '', SR);
+    log(/n’a pas de dossier « Archives »/.test(toast) && !/destination introuvable/.test(toast), 'archiver sans dossier : le toast le dit — ' + toast.slice(0, 120));
+    await p.screenshot({ path: path.join(CAP, 'tour-archiver-sans-dossier.png') });
+    /* signature : « Prête — en attente de Yousign » */
+    await cliquer('.folder[data-folder="sign"]'); await p.waitForTimeout(500); await cliquer('#rows [data-signnew]'); await p.waitForTimeout(400);
+    await p.fill('#sgN0', 'Claire Dubois'); await p.fill('#sgE0', 'claire@client-essai.example'); await p.fill('#sgP0', '06 12 34 56 78');
+    await p.setInputFiles('#sgFile', [{ name: 'devis.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 sonde') }]); await p.waitForTimeout(300);
+    const nOpt = await p.evaluate(sr => [...eval(sr).querySelectorAll('#sgLevel option')].map(o => o.value + ':' + o.textContent), SR);
+    log(nOpt.join('|') === 'adv:Code SMS|simple:Code e-mail', 'signature : le niveau ne propose que « Code SMS » / « Code e-mail » — ' + nOpt.join('|'));
+    await cliquer('#sgGo'); await p.waitForTimeout(600);
+    const sg = await p.evaluate(sr => { const r = eval(sr); return { feuille: !!r.querySelector('#sgGo'), toast: (r.querySelector('#toast') || {}).textContent || '', carte: (r.querySelector('.sign-card') || {}).textContent || '', liste: [...r.querySelectorAll('#rows .msg')].map(x => x.textContent.replace(/\s+/g, ' ')) }; }, SR);
+    log(!sg.feuille && /Prête — en attente de Yousign/.test(sg.carte) && /Rien n’est parti/.test(sg.toast) && sg.liste.length === 1, 'signature : la fenêtre SE FERME, la demande est rangée dans Signatures « Prête — en attente de Yousign » — ' + sg.toast.slice(0, 90));
+    log(!/Envoyé à|Signé le|À vous de signer/.test(sg.carte) && /claire@client-essai\.example/.test(sg.carte) && /Pas encore envoyé/.test(sg.carte) && S3.facteur.recus.length === 0, 'signature : aucune fausse signature, aucun faux « Envoyé » (signataire gardé, aucun courriel parti)');
+    await p.screenshot({ path: path.join(CAP, 'tour-signature-prete-jour-bureau.png') });
+    await cliquer('[data-act="signSend"]'); await p.waitForTimeout(400);
+    log(/Toujours en attente de Yousign/.test(await p.evaluate(sr => (eval(sr).querySelector('#toast') || {}).textContent || '', SR)) && await p.locator('#sgGo').count() === 0, 'signature : « Renvoyer » dit qu’on attend Yousign (rien ne part)');
+    await p.reload(); await p.waitForSelector('.tab[data-t="support"]', { state: 'attached', timeout: 20000 }).catch(() => {}); await p.waitForTimeout(500);
+    await cliquer('[data-act="signDrop"]'); await p.waitForTimeout(500);
+    log(await p.evaluate(sr => !eval(sr).querySelector('.sign-card'), SR).catch(() => true), 'signature : « Annuler » retire la demande');
+    log(err.length === 0, 'trois boîtes : aucune erreur JS ' + err.join('|'));
+    await ctx.close(); S3.arreter(); }
 
   await bilan(R, P); S.arreter();
 })().catch(e => { console.error(e); process.exit(1); });
