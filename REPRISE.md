@@ -13778,3 +13778,10 @@ Tous auraient donné un rapport faux. Ils sont désormais dans CLAUDE.md :
   requise », ce qui est juste dans un conteneur sans réseau.
 · ⚠️ **Côté code, à garder en tête** : `closeModal()` déréférence `$('overlay')` sans garde.
   Rien ne retire cet élément aujourd'hui, mais tout ce qui le ferait figerait la navigation.
+
+## Signature maison — phase 1 faite, EN TEST, rien en ligne (19 octobre 2026)
+Décision de Justin : abandon de Yousign, « notre propre système de signature, de A à Z ». Branche `signature/maison` (poussée, **ni PR ni déploiement**).
+· Fait : `server-courrier/moteur-interne.js` (même interface que le client Yousign), `chaine.js` (journal chaîné), `certificat.js` (PDF de preuve ; le PDF d'origine n'est jamais modifié), `canaux.js` (code par courriel), `signataire.js` + `public/signer.*` (page du signataire, CSP stricte), `configurer-signature.js`. Bancs 2800 (97), 2801 (34), 2802 (25), 39 mutations qui mordent.
+· ⛔ Signature électronique SIMPLE (eIDAS art. 25, Code civil 1366/1367) : ne jamais écrire « avancée » ni « qualifiée ». Moteur ÉTEINT par défaut (`signature.moteur` absent = Yousign), le code Yousign reste dormant ≥ 1 mois.
+· Reste, après mercredi 23 h : branchement de la Tour (liens envoyés par la boîte du pro, messages `canal_indisponible`, champs `liens`/`expediteur`) + sonde navigateur ; boîte SMTP à fournir par Justin (ex. signature@teamop.fr) puis `configurer-signature.js` ; phase 2 (SMS, horodatage RFC 3161, pages juridiques) ; correctifs OP Courrier (liens cliquables via `lier()`, aperçu des pièces jointes).
+· Agent `juriste` : branche `agent/juriste` (poussée, sans PR) — relit les PDF avec la grille TeamOP.
