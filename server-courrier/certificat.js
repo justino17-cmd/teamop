@@ -7,6 +7,11 @@
  */
 'use strict';
 
+const fs = require('fs'), path = require('path');
+/* Le logo TeamOP (JPEG 96x96, rangé à côté) : le PDF ne lit pas le PNG. Absent, le document sort sans logo plutôt que de ne pas sortir. */
+let LOGO = null;
+try { LOGO = { jpeg: fs.readFileSync(path.join(__dirname, 'logo-teamop.jpg')), w: 96, h: 96 }; } catch (e) { LOGO = null; }
+const NAVY = '0.071 0.188 0.361';
 const L = 595, H = 842, MARGE = 50, UTILE = L - 2 * MARGE;
 const SUBST = { '’': "'", '‘': "'", '“': '"', '”': '"', '«': '"', '»': '"', '–': '-', '—': '-', '…': '...', '→': '->', '←': '<-', '•': '-', '·': '-', ' ': ' ', '✓': 'oui', '€': 'EUR', 'œ': 'oe', 'Œ': 'OE' };
 function winansi(s) {
@@ -53,9 +58,17 @@ function couper(texte, taille, max, mono) {
 }
 
 /* `blocs` : [{ t:'h1'|'h2'|'p'|'mono'|'esp', texte }] → Buffer PDF. */
-function pdf(blocs, pied) {
+function pdf(blocs, pied, logo) {
   const pages = [[]];
   let y = H - MARGE;
+  if (logo) {
+    pages[0].push('q ' + NAVY + ' rg 0 ' + (H - 6) + ' ' + L + ' 6 re f Q');
+    pages[0].push('q 38 0 0 38 ' + MARGE + ' ' + (H - 20 - 38) + ' cm /Im1 Do Q');
+    pages[0].push('BT ' + NAVY + ' rg /F2 15 Tf ' + (MARGE + 48) + ' ' + (H - 20 - 17) + ' Td (TeamOP) Tj ET');
+    pages[0].push('BT 0.35 0.38 0.45 rg /F1 8.5 Tf ' + (MARGE + 48) + ' ' + (H - 20 - 31) + ' Td (Signature electronique simple) Tj ET');
+    pages[0].push('q 0.82 0.85 0.9 RG 0.6 w ' + MARGE + ' ' + (H - 72) + ' m ' + (L - MARGE) + ' ' + (H - 72) + ' l S Q');
+    y = H - 72 - 14;
+  }
   const style = { h1: ['F2', 17, 22], h2: ['F2', 11.5, 17], p: ['F1', 9.5, 13], mono: ['F3', 7.6, 10.5] };
   const nouvellePage = () => { pages.push([]); y = H - MARGE; };
   for (const b of blocs) {
@@ -65,12 +78,12 @@ function pdf(blocs, pied) {
     for (const ligne of couper(b.texte, taille, UTILE - decalage - 2, b.t === 'mono')) {
       if (y - pas < MARGE + 14) nouvellePage();
       y -= pas;
-      pages[pages.length - 1].push('BT /' + f + ' ' + taille + ' Tf ' + (MARGE + decalage) + ' ' + y.toFixed(1) + ' Td (' + echapper(ligne) + ') Tj ET');
+      pages[pages.length - 1].push('BT ' + (b.t === 'h1' || b.t === 'h2' ? NAVY : '0.1 0.12 0.16') + ' rg /' + f + ' ' + taille + ' Tf ' + (MARGE + decalage) + ' ' + y.toFixed(1) + ' Td (' + echapper(ligne) + ') Tj ET');
     }
     if (b.t === 'h1' || b.t === 'h2') y -= 3;
   }
   const total = pages.length;
-  pages.forEach((p, i) => p.push('BT /F1 7.5 Tf ' + MARGE + ' 28 Td (' + echapper(winansi(pied + ' - page ' + (i + 1) + '/' + total)) + ') Tj ET'));
+  pages.forEach((p, i) => p.push('BT 0.35 0.38 0.45 rg /F1 7.5 Tf ' + MARGE + ' 28 Td (' + echapper(winansi(pied + ' - page ' + (i + 1) + '/' + total)) + ') Tj ET'));
   // objets : 1 catalogue, 2 pages, 3-5 polices, puis (page, contenu) par page
   const obj = [];
   const kids = pages.map((_, i) => (6 + 2 * i) + ' 0 R').join(' ');
@@ -81,9 +94,10 @@ function pdf(blocs, pied) {
   obj[5] = '<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>';
   pages.forEach((p, i) => {
     const flux = p.join('\n');
-    obj[6 + 2 * i] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + L + ' ' + H + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents ' + (7 + 2 * i) + ' 0 R >>';
+    obj[6 + 2 * i] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + L + ' ' + H + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >>' + (logo ? ' /XObject << /Im1 ' + (6 + 2 * total) + ' 0 R >>' : '') + ' >> /Contents ' + (7 + 2 * i) + ' 0 R >>';
     obj[7 + 2 * i] = '<< /Length ' + flux.length + ' >>\nstream\n' + flux + '\nendstream';
   });
+  if (logo) obj[6 + 2 * total] = '<< /Type /XObject /Subtype /Image /Width ' + logo.w + ' /Height ' + logo.h + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + logo.jpeg.length + ' >>\nstream\n' + logo.jpeg.toString('latin1') + '\nendstream';
   let sortie = '%PDF-1.4\n', offsets = [];
   for (let i = 1; i < obj.length; i++) { offsets[i] = sortie.length; sortie += i + ' 0 obj\n' + obj[i] + '\nendobj\n'; }
   const xref = sortie.length;
@@ -133,6 +147,6 @@ function certificat(d) {
   b.push({ t: 'esp' }, { t: 'h2', texte: 'Ce que ce certificat atteste' });
   b.push({ t: 'p', texte: 'Ce certificat consigne les événements enregistrés par le service de signature de TeamOP. La signature est une signature électronique simple : elle manifeste le consentement d\'une personne joignable à l\'adresse e-mail (et, le cas échéant, au numéro de mobile) indiqués. Elle n\'est ni une signature avancée ni une signature qualifiée au sens du règlement européen eIDAS ; en cas de contestation, sa fiabilité se démontre par les éléments ci-dessus.' });
   b.push({ t: 'p', texte: 'Limites : l\'identité des signataires est déclarée par l\'expéditeur et n\'a pas été vérifiée par TeamOP. Les heures sont celles de l\'horloge du serveur de TeamOP, sans horodatage par un tiers, et le journal est tenu par TeamOP seul ; son intégrité se vérifie par la chaîne d\'empreintes. Les données de preuve sont conservées 90 jours après la fin de la demande : l\'expéditeur doit télécharger et conserver ce dossier.' });
-  return pdf(b, 'TeamOP - certificat ' + d.id);
+  return pdf(b, 'TeamOP - dossier de preuve ' + d.id, LOGO);
 }
-module.exports = { certificat, pdf, winansi, couper, fmtUTC };
+module.exports = { certificat, pdf, LOGO, winansi, couper, fmtUTC };
