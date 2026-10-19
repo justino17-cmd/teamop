@@ -65,7 +65,7 @@ const P = bac('patron', 'gestion');
 const cles = P.MENU.reduce((a, g) => a.concat(g.vues.map(x => x[0])), []);
 v('quatre catégories, rangées par sujet', P.MENU.map(g => g.section), ['Tour', 'Clients', 'Support', 'Administration']);
 v('…et dans chacune, ses vues', P.MENU.map(g => g.vues.map(x => x[0]).join(',')),
-  ['accueil', 'entreprises,abonnements,connexions,devisia', 'surveillance,support', 'essais,equipe,journal,donnees']);
+  ['accueil', 'entreprises,abonnements,connexions,devisia', 'surveillance,support', 'essais,equipe,journal,agents,donnees']);
 v('chaque vue une seule fois', cles.length, new Set(cles).size);
 const rendues = [...fonction('renderVue').matchAll(/TAB==='(\w+)'/g)].map(m => m[1]);
 vrai('population : renderVue dessine des vues', rendues.length >= 11, rendues.length);
@@ -78,7 +78,7 @@ vrai('⛔ plus aucune liste des vues écrite à la main', /var VUES_PAR_APP=\{ge
 console.log('\n2. Un nom par vue, partout');
 const LIB = {}; P.MENU.forEach(g => g.vues.forEach(x => { LIB[x[0]] = x[1]; }));
 v('les noms du menu', LIB, { accueil: 'Accueil', entreprises: 'Entreprises', abonnements: 'Abonnements', connexions: 'Connexions', devisia: 'Devis IA',
-  surveillance: 'Surveillance', support: 'Courrier', essais: 'Accès', equipe: 'Équipe', journal: 'Journal', donnees: 'Sauvegardes' });
+  surveillance: 'Surveillance', support: 'Courrier', essais: 'Accès', equipe: 'Équipe', journal: 'Journal', agents: 'Agents', donnees: 'Sauvegardes' });
 /* le titre de chaque page : toutes les chaînes passées à enTete() dans la fonction qui la dessine */
 const rv = fonction('renderVue');
 const dessin = {}; for (const m of rv.matchAll(/TAB==='(\w+)'\) v\.innerHTML=([^;]+);/g)) dessin[m[1]] = [...m[2].matchAll(/(vue\w+)\(\)/g)].map(x => x[1]);
@@ -105,12 +105,12 @@ v('…et chacune n’est qu’une ABRÉVIATION du nom du menu (« Surveill. », 
 
 console.log('\n3. Ce qui est au patron seul — des deux côtés');
 const C = bac('collaborateur', 'gestion');
-v('les vues réservées au patron', C.PATRON_SEUL, ['essais', 'equipe', 'journal', 'donnees']);
+v('les vues réservées au patron', C.PATRON_SEUL, ['essais', 'equipe', 'journal', 'agents', 'donnees']);
 const vuesC = C.menuVisible().reduce((a, g) => a.concat(g.vues.map(x => x[0])), []);
 v('le menu d’un collaborateur n’en montre aucune', vuesC.filter(t => C.PATRON_SEUL.includes(t)), []);
 v('…et il garde tout le reste', vuesC, ['accueil', 'entreprises', 'abonnements', 'connexions', 'devisia', 'surveillance', 'support']);
 v('sa navigation (vues()) ne les ouvre pas non plus', C.vues().filter(t => C.PATRON_SEUL.includes(t)), []);
-v('le patron, lui, a les onze vues de GESTION', P.vues().length, 11);
+v('le patron, lui, a les douze vues de GESTION', P.vues().length, 12);
 v('…une catégorie vide disparaît du menu (MESSAGES, collaborateur : pas d’Administration)', bac('collaborateur', 'messages').menuVisible().map(g => g.section), ['Tour', 'Clients', 'Support']);
 vrai('setTab ne pose que ce que vues() permet (première instruction)', /^function setTab\(t,sansAnim\)\{\s*if\(vues\(\)\.indexOf\(t\)<0\) t='accueil';/.test(fonction('setTab')));
 vrai('renderVue refuse d’abord un écran réservé (filet)', /^function renderVue\(v\)\{\s*if\(!vuePermise\(TAB\)\) TAB='accueil';/.test(fonction('renderVue')));
@@ -126,9 +126,9 @@ for (const [cle, [charge, garde]] of Object.entries(ROUTES)) {
 vrai('« Sauvegardes » lit /api/monitor/sauvegarde/etat, monté avec la garde du patron',
   fonction('donCharger').includes("apiGet('/api/monitor/sauvegarde/etat')") && /require\('\.\/sauvegarde'\)\.monterSauvegarde\(app, \{[^}]*garde: monPatronStrict/.test(CODE_SRV));
 v('la note d’Équipe se DÉDUIT du menu', P.eqNoteCollaborateur(),
-  'Il voit Accueil, Entreprises, Abonnements, Connexions, Devis IA, Surveillance et Courrier — pas Accès, Équipe, Journal ni Sauvegardes.');
-v('la ligne d’un compte aussi (collaborateur)', ' · ni ' + P.libsPatronSeul().join(', ni '), ' · ni Accès, ni Équipe, ni Journal, ni Sauvegardes');
-v('…(patron)', P.enPhrase(P.libsPatronSeul(), 'et'), 'Accès, Équipe, Journal et Sauvegardes');
+  'Il voit Accueil, Entreprises, Abonnements, Connexions, Devis IA, Surveillance et Courrier — pas Accès, Équipe, Journal, Agents ni Sauvegardes.');
+v('la ligne d’un compte aussi (collaborateur)', ' · ni ' + P.libsPatronSeul().join(', ni '), ' · ni Accès, ni Équipe, ni Journal, ni Agents, ni Sauvegardes');
+v('…(patron)', P.enPhrase(P.libsPatronSeul(), 'et'), 'Accès, Équipe, Journal, Agents et Sauvegardes');
 const lq = fonction('vueEquipe');
 vrai('⛔ vueEquipe n’écrit plus aucune liste de vues à la main', /libsPatronSeul\(APP\)/.test(lq) && /eqNoteCollaborateur\(\)/.test(lq) && !/ni Équipe, ni Accès|pas Équipe, pas Accès|y compris Équipe, Accès/.test(lq));
 

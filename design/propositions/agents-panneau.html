@@ -61,7 +61,7 @@ h1{font-size:24px;letter-spacing:-.02em;margin:0 0 2px}
 .agent{background:var(--surface);border:1px solid var(--line);border-radius:var(--r3);padding:14px;box-shadow:var(--ombre);display:flex;flex-direction:column;gap:12px}
 .agent .haut{display:flex;gap:12px;align-items:center}
 .av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:17px;background:var(--accBg);color:var(--acc);flex:none}
-.agent[data-mode=arret] .av{background:var(--inset);color:var(--faint)}
+.agent[data-etat=arret] .av{background:var(--inset);color:var(--faint)}
 .agent h3{margin:0;font-size:16px;letter-spacing:-.01em}
 .agent .role{color:var(--muted);font-size:13px}
 .vague{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--inset);padding:3px 8px;border-radius:99px;white-space:nowrap}
@@ -181,7 +181,7 @@ function dessinerEquipe(){
   AGENTS.forEach(function(a){
     if(a[3]!==c){c=a[3];h+=(h?'</div>':'')+'<div class="couche">'+c+'</div><div class="grille">'}
     var m=modes[a[0]];
-    h+='<article class="agent" data-mode="'+m+'"><div class="haut"><div class="av" aria-hidden="true">'+a[1][0]+'</div>'
+    h+='<article class="agent" data-etat="'+m+'"><div class="haut"><div class="av" aria-hidden="true">'+a[1][0]+'</div>'
      +'<div><h3>'+a[1]+'</h3><div class="role">'+a[2]+'</div></div><span class="vague">Vague '+a[4]+'</span></div>'
      +'<div class="seg" role="group" aria-label="Mode de '+a[1]+'">'
      +['arret','brouillon','auto'].map(function(x){

@@ -309,15 +309,18 @@ module.exports = function monterAgents(app, ctx) {
   app.get('/api/monitor/agents/journal', monAdmin, (req, res) => {
     const id = IDS.has(String(req.query.agent || '')) ? String(req.query.agent) : '';
     const n = Math.min(Math.max(parseInt(req.query.limite, 10) || 100, 1), 500);
+    if (illisibles.has(F_JOURNAL)) return res.status(503).json({ error: 'Le journal des agents est illisible' });   // jamais « [] » : une liste vide dit « rien ne s'est passé »
     res.json({ ok: true, journal: journal.filter(e => !id || e.agent === id).slice(-n).reverse() });
   });
   app.get('/api/monitor/agents/validations', monAdmin, (req, res) => {
     perimer();
+    if (illisibles.has(F_VALID)) return res.status(503).json({ error: 'La file de validations est illisible' });
     const tout = String(req.query.statut || '') === 'tout';
     res.json({ ok: true, validations: validations.filter(v => tout || v.statut === 'en_attente').slice(-200).reverse().map(vue) });
   });
   app.get('/api/monitor/agents/taches', monAdmin, (req, res) => {
     perimer();
+    if (illisibles.has(F_TACHES)) return res.status(503).json({ error: 'La file de tâches est illisible' });
     res.json({ ok: true, taches: taches.slice(-200).reverse().map(k => ({ id: k.id, ts: k.ts, de: k.de, vers: k.vers, type: k.type, params: k.params, statut: k.statut })) });
   });
 
