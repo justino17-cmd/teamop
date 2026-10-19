@@ -2115,8 +2115,9 @@ var MARKUP = `
     var unread=all.filter(function(m){return !m.read;}).length;
     $("#lbTitle").textContent=f.name; $("#ltTitle").textContent=f.name;
     // Sous-titre : la vue et la catégorie se tronquent d'abord ; le nombre de messages / non lus reste lisible.
-    $("#lbSub").innerHTML='<span class="ls-ctx">'+H(scopeLabel()+(cl?" · "+cl:""))+'</span><span class="ls-n">&nbsp;· '+H((msgs.length?plural(msgs.length,"message","messages"):"aucun message")+(unread&&state.folder!=="scheduled"&&state.folder!=="drafts"?", "+plural(unread,"non lu","non lus"):""))+'</span>';
-    $("#ltSub").textContent=scopeLabel();
+    var ctxLbl=f.journal?"Journal du serveur":scopeLabel();   // le journal des envois n'est celui d'aucune boîte : pas « Boîtes mail »
+    $("#lbSub").innerHTML='<span class="ls-ctx">'+H(ctxLbl+(cl?" · "+cl:""))+'</span><span class="ls-n">&nbsp;· '+H((msgs.length?plural(msgs.length,"message","messages"):"aucun message")+(unread&&state.folder!=="scheduled"&&state.folder!=="drafts"?", "+plural(unread,"non lu","non lus"):""))+'</span>';
+    $("#ltSub").textContent=ctxLbl;
     $("#backLbl").textContent=f.name;
     $$("#filters [data-filter]").forEach(function(b){ b.setAttribute("aria-pressed",String(b.getAttribute("data-filter")===state.filter)); });
     var fb=$("#btnFilter"); fb.innerHTML=state.filter==="all"?I.filter:I.filterOn;
@@ -2335,10 +2336,15 @@ var MARKUP = `
       '<span class="rs-seg">'+SUIVI_ETATS.map(function(e){ return '<button type="button" class="rs-b" data-suivi="'+e[0]+'" aria-pressed="'+(s.statut===e[0])+'">'+e[1]+'</button>'; }).join("")+'</span>'+
       '<label class="rs-a"><span class="rs-l">Assigné à</span><input type="text" id="suiviAssigne" maxlength="60" autocomplete="off" placeholder="Personne" value="'+H(s.assigne)+'"></label>'+
       (s.par?'<span class="rs-par">Dernier geste : '+H(s.par)+'</span>':'')+'</div>'; }
+  // Se met à jour SUR PLACE (jamais en remplaçant la ligne) : la réponse du serveur arrive pendant que la personne tape un nom ou enchaîne un second geste, et ne doit pas lui voler le focus.
   function repeindreSuivi(m,focus){
-    if(!m||state.selected!==m.id) return; var el=$("#readScroll .rsuivi"); if(!el) return;
-    el.outerHTML=suiviHtml(m).replace(/^\s+/,"");
-    if(focus){ var b=$('#readScroll .rsuivi [data-suivi="'+focus+'"]'); if(b) b.focus({preventScroll:true}); } }
+    if(!m||!m.suivi||state.selected!==m.id) return; var el=$("#readScroll .rsuivi"); if(!el) return;
+    var s=m.suivi;
+    $$("[data-suivi]",el).forEach(function(b){ b.setAttribute("aria-pressed",String(b.getAttribute("data-suivi")===s.statut)); });
+    var inp=$("#suiviAssigne",el); if(inp&&actif()!==inp) inp.value=s.assigne;
+    var par=$(".rs-par",el);
+    if(s.par){ if(!par){ par=document.createElement("span"); par.className="rs-par"; el.appendChild(par); } par.textContent="Dernier geste : "+s.par; } else if(par) par.parentNode.removeChild(par);
+    if(focus){ var b=$('[data-suivi="'+focus+'"]',el); if(b) b.focus({preventScroll:true}); } }
   function changerSuivi(m,patch){
     if(!m||!m.src||!m.suivi||!CAP.suivi||typeof SRC.suivi!=="function") return;
     var avant=m.suivi, neuf={statut:patch.statut||avant.statut,assigne:patch.assigne!==undefined?patch.assigne:avant.assigne,par:avant.par};

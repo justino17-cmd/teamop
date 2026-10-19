@@ -28,12 +28,22 @@ exports.demarrer = async function (opt) {
   fs.writeFileSync(path.join(banc, 'monitor.json'), JSON.stringify({ users: [{ id: 'u-patron', nom: 'Patron', email: '', hash: sha(MDP), role: 'patron', actif: true, ts: Date.now() }] }));
   const IMAP = path.join(banc, 'faux-imap.json'), T0 = Date.now() - 2 * 86400000;
   const msgs = []; let n = 0;
-  const poser = (dossier, o) => { n++; msgs.push(Object.assign({ dossier, uid: n, messageId: '<s' + n + '@sonde>', from: o.de || 'claire.martin@client-essai.example', fromNom: o.nom || 'Claire Martin', to: BOITE, subject: o.objet, text: o.texte || 'Bonjour,\n\nCeci est un message d’essai.', ts: T0 + n * 3600000, flags: o.lu ? ['\\Seen'] : [] }, o.pieces ? { pieces: o.pieces } : {})); };
+  const poser = (dossier, o) => { n++; msgs.push(Object.assign({ dossier, uid: n, messageId: o.mid || ('<s' + n + '@sonde>'), from: o.de || 'claire.martin@client-essai.example', fromNom: o.nom || 'Claire Martin', to: BOITE, subject: o.objet, text: o.texte || 'Bonjour,\n\nCeci est un message d’essai.', ts: T0 + n * 3600000, flags: o.lu ? ['\\Seen'] : [] }, o.pieces ? { pieces: o.pieces } : {})); };
   if (opt.messages !== false) {
     poser('INBOX', { objet: 'Question sur ma facture de mars', nom: 'Claire Martin', texte: 'Bonjour,\n\nPouvez-vous me renvoyer ma facture de mars ?\n\nMerci d’avance.' });
     poser('INBOX', { objet: 'Devis signé', nom: 'Paul Bernard', de: 'paul.bernard@client-essai.example', lu: true, pieces: [{ nom: 'devis.pdf', type: 'application/pdf', taille: 2345 }] });
     poser('Envoyés', { objet: 'Votre abonnement', nom: BOITE, de: BOITE, lu: true });
     poser('Archives', { objet: 'Ancien échange', lu: true });
+  }
+  if (opt.gestes) {   /* les quatre gestes de l'ancien écran (v2.91) : une demande à pièces jointes (nom hostile) et le journal des envois du serveur */
+    poser('INBOX', { objet: 'Demande avec pièces', nom: 'Léa Moreau', de: 'lea.moreau@client-essai.example', mid: '<demande-sonde@sonde>', texte: 'Bonjour, voici le rapport et la photo.', pieces: [
+      { nom: '../../rapport:T3?.pdf', type: 'text/html', b64: Buffer.from('<html><script>window.__execute=1</script>%PDF-sonde</html>').toString('base64') },
+      { nom: 'photo.png', type: 'image/png', b64: Buffer.from('PNGsonde').toString('base64') }] });
+    const TJ = Date.now() - 7200000;
+    fs.writeFileSync(path.join(D, 'mails-envoyes.json'), JSON.stringify([
+      { ts: TJ + 3000, a: 'neuf@client-essai.example', sujet: 'Bienvenue sur OP GESTION', txt: 'Votre espace est prêt.\n\nVotre lien : <b>pas du gras</b>' },
+      { ts: TJ + 2000, a: 'rate@client-essai.example', sujet: '⚠️ NON PARTI — Invitation', txt: 'Invitation', echec: 1 },
+      { ts: TJ + 1000, a: 'ancien@client-essai.example', sujet: 'Code de confirmation', txt: '' }]));
   }
   fs.writeFileSync(IMAP, JSON.stringify({ boites: { [BOITE]: { messages: msgs, actions: [] } }, pannes: {} }));
   const vap = webpush.generateVAPIDKeys();
@@ -47,5 +57,5 @@ exports.demarrer = async function (opt) {
   let vivant = false; for (let i = 0; i < 150 && !vivant; i++) { try { vivant = (await fetch('http://127.0.0.1:' + port + '/health')).ok; } catch (e) {} if (!vivant) await dormir(100); }
   if (!vivant) throw new Error('serveur de sonde muet : ' + journal.slice(-400));
   const arreter = () => { try { enfant.kill('SIGKILL'); } catch (e) {} try { F.s.close(); } catch (e) {} try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
-  return { port, smtp, MDP, BOITE, facteur: F, arreter, journal: () => journal, lireEtat: () => JSON.parse(fs.readFileSync(IMAP, 'utf8')), lireBoites: () => { try { return JSON.parse(fs.readFileSync(path.join(D, 'mail-boites.json'), 'utf8')); } catch (e) { return []; } } };
+  return { port, smtp, MDP, BOITE, facteur: F, arreter, journal: () => journal, lireEtat: () => JSON.parse(fs.readFileSync(IMAP, 'utf8')), lireSuivi: () => { try { return JSON.parse(fs.readFileSync(path.join(D, 'mail-suivi.json'), 'utf8')); } catch (e) { return {}; } }, lireBoites: () => { try { return JSON.parse(fs.readFileSync(path.join(D, 'mail-boites.json'), 'utf8')); } catch (e) { return []; } } };
 };
