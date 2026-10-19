@@ -107,7 +107,7 @@ module.exports = function monterConversations(app, ctx) {
     dossier: m.dossier || '', motif: m.motif || '' });
   const nonLus = f => messages.filter(m => m.fil === f && m.de !== 'justin' && m.lu !== true).length;
 
-  app.get('/api/monitor/conversations', monAdmin, (req, res) => {
+  app.get('/api/monitor/conversations', monPatronStrict, (req, res) => {
     if (illisible) return res.status(503).json({ error: 'Les conversations sont illisibles' });
     const fils = ['equipe', ...IDS.keys()].map(f => {
       const ms = messages.filter(m => m.fil === f); const d = ms[ms.length - 1];
@@ -115,7 +115,7 @@ module.exports = function monterConversations(app, ctx) {
     }).filter(x => x.dernier || x.fil === 'equipe');
     res.json({ ok: true, fils, nonLus: fils.reduce((s, x) => s + x.nonLus, 0), agents: [...IDS].map(([id, nom]) => ({ id, nom })) });
   });
-  app.get('/api/monitor/conversations/:fil', monAdmin, (req, res) => {
+  app.get('/api/monitor/conversations/:fil', monPatronStrict, (req, res) => {
     if (illisible) return res.status(503).json({ error: 'Les conversations sont illisibles' });
     const f = String(req.params.fil || '');
     if (!filValide(f)) return res.status(400).json({ error: 'Fil inconnu' });

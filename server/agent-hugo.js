@@ -28,6 +28,7 @@ const MOTS_MAX = 6;           // clients examinés par passage
 module.exports = function hugo(ctx) {
   const { agents, clients, espaceExiste, stripeListe, paiement, slug } = ctx;
   const conv = ctx.conversations && typeof ctx.conversations.parler === 'function' ? ctx.conversations : null;
+  const sansAdr = typeof ctx.sansAdresses === 'function' ? ctx.sansAdresses : (t => String(t || '').replace(/[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g, '(adresse)'));
   const ID = 'hugo';
   let enCours = false;
   let stripeHS = false;   // une panne de Stripe se DIT une fois, pas à chaque passage (toutes les 15 minutes)
@@ -86,7 +87,7 @@ module.exports = function hugo(ctx) {
     'Tu ne promets jamais d’avoir fait quelque chose. Si les faits fournis ne répondent pas à la question, tu dis que tu ne sais pas. Ne répète jamais d’adresse e-mail ni de numéro de téléphone.';
   async function repondre(texte) {
     if (!cerveau || !conv) return { saute: 'pas_de_cerveau' };
-    const t = String(texte || '').slice(0, 1000);
+    const t = String(sansAdr(texte) || '').slice(0, 1000);   /* même un message de Justin ne fait partir aucune adresse chez Anthropic */
     const numeros = [...new Set(t.toUpperCase().match(/DOS-\d{6}/g) || [])].slice(0, 3);
     let lignes = [];
     if (faits) for (const n of numeros) { let f = null; try { f = await faits(n); } catch (e) { f = null; } lignes.push(f ? JSON.stringify(f) : '{"numero":"' + n + '","lecture":"impossible"}'); }

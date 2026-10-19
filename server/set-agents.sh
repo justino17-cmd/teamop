@@ -11,8 +11,8 @@
 # longueur. On la VÉRIFIE auprès d'Anthropic avant d'écrire : une clé qu'on n'a pas essayée est une clé dont on ne
 # sait rien.
 #
-# Rien ne LIT encore agents.cleApi (le socle `server/agents.js` ne fait agir personne) : aucun redémarrage, donc aucun
-# risque pour le serveur en service. Le premier agent qui s'en servira le dira.
+# `server/cerveau.js` LIT agents.cleApi (Hugo répond à Justin dans la Tour) : après la pose, redémarrer teamop-api pour la prendre.
+# Aucun appel ne part tant qu'un agent est à l'arrêt.
 #
 # Usage : ssh -t root@IP "cd /opt/teamop/repo && git pull -q && bash server/set-agents.sh"
 set -u

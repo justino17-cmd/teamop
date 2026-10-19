@@ -10069,7 +10069,9 @@ try {
       /* ce que Hugo peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note */
       faits: async (n) => { const f = await dossiersMod.fiche(n); if (!f) return { numero: n, existe: false }; if (f.supprime) return { numero: n, supprime: true };
         return { numero: n, inscritDepuis_jours: f.client.inscrit ? Math.floor((Date.now() - f.client.inscrit) / 86400000) : null, espace: f.espace.existe ? { existe: true, formule: f.espace.formule } : { existe: false },
-          paiement: f.paiement, formuleDemandee: f.client.plan || '', demandes: f.demandes.map(d => ({ app: d.app, formule: d.formule, statut: d.statut })) }; },
+          paiement: f.paiement, formuleDemandee: ['pro', 'business', 'premium'].includes(String(f.client.plan).toLowerCase()) ? String(f.client.plan).toLowerCase() : '',
+          /* ⛔ des valeurs d'une LISTE : ce que le client a écrit n'entre jamais dans le prompt */
+          demandes: f.demandes.map(d => ({ app: ['OP GESTION', 'OP MESSAGES'].includes(d.app) ? d.app : 'autre', formule: ['pro', 'business', 'premium'].includes(String(d.formule).toLowerCase()) ? String(d.formule).toLowerCase() : '', statut: ['en attente', 'traitée', 'classée'].includes(d.statut) ? d.statut : 'autre' })) }; },
       clients: () => Object.values(clientsData || {}).map(c => ({ email: c && c.email, entreprise: c && c.entreprise })),
       espaceExiste: (email, sl) => !!espacesReg[sl] || Object.values(espacesReg).some(x => x && String(x.email || '').toLowerCase() === String(email).toLowerCase()),
       /* ⛔ `stripeListe` rend `[]` quand la lecture a échoué et qu'aucune liste n'a jamais été lue (une minute d'attente après un échec) :

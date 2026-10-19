@@ -10114,7 +10114,7 @@ function agCvVue(){
   if(C.msgLec!==1) return h;   /* un fil non lu à l’écran n’offre pas d’y écrire à l’aveugle */
   h+='<div class="ag-barre" style="margin-top:12px;align-items:flex-end"><textarea id="ag-cv-t" rows="2" maxlength="1000" placeholder="Écrire dans ce fil" aria-label="Ton message" oninput="AG.cv.brouillon=this.value" style="flex:1;min-width:160px;padding:10px 12px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--inset);color:var(--text);font:inherit">'+esc(C.brouillon)+'</textarea>'+
     '<button type="button" class="ag-btn ok" '+(C.envoi?'disabled ':'')+'onclick="agCvEnvoyer()">Envoyer</button></div>'+
-    '<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ton message est gardé dans le fil. Les agents ne le lisent pas encore et n’y répondent pas : il ne déclenche aucun geste.</div>';
+    '<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ton message est gardé dans le fil. Seul Hugo y répond (s’il est allumé et que sa clé est posée) ; aucun agent n’exécute quoi que ce soit à partir d’un message.</div>';
   return h;
 }
 /* ── les DOSSIERS clients : un numéro (DOS-000123) par client, la fiche est composée par le serveur ; trois états (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
