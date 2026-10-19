@@ -10038,7 +10038,8 @@ try {
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
      emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
   try {
-    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif });
+    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif,
+      cerveaux: ['hugo'], cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
     console.log('agents : socle chargé');
     /* LES DOSSIERS : un numéro par client (`DOS-000123`), la fiche pour le patron, la même fiche pour un agent à qui il le donne. */
     dossiersMod = require('./dossiers')(app, { DATA_DIR, monPatronStrict, clients: () => clientsData,

@@ -310,7 +310,9 @@ module.exports = function monterAgents(app, ctx) {
     perimer();
     res.json({ ok: true, illisible: illisibles.has(F_ETAT), pause: Object.assign({}, etat.pause),
       enAttente: validations.filter(v => v.statut === 'en_attente').length,
-      agents: AGENTS.map(a => Object.assign({}, a, { mode: modeDe(a.id) })) });
+      /* Ce que l'écran doit pouvoir DIRE : quels agents ont un cerveau branché, et si la clé est posée. Deux booléens — jamais la clé. */
+      cleOk: ctx.cleCerveauPosee === true,
+      agents: AGENTS.map(a => Object.assign({}, a, { mode: modeDe(a.id), cerveau: Array.isArray(ctx.cerveaux) && ctx.cerveaux.includes(a.id) })) });
   });
   app.get('/api/monitor/agents/journal', monAdmin, (req, res) => {
     const id = IDS.has(String(req.query.agent || '')) ? String(req.query.agent) : '';
