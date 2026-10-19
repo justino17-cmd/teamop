@@ -408,7 +408,7 @@ main{width:100%;max-width:1200px;margin:0 auto;padding:28px 20px 96px;flex:1;min
      là où elle compte — les paragraphes de description ont déjà leur propre max-width. */
   main{grid-column:2;max-width:none;padding:40px clamp(24px,3vw,56px) 96px}
   .pied{grid-column:2}
-  /* v2.98 (Justin, 19 octobre 2026 : « que dans la Tour la boîte mail prenne toute la page ») : le Courrier est un écran de
+  /* v2.99 (Justin, 19 octobre 2026 : « que dans la Tour la boîte mail prenne toute la page ») : le Courrier est un écran de
      travail qui se lit en largeur — il prend toute la place à droite du menu et jusqu'au bas de la fenêtre, sans marge ni pied.
      Bureau seulement : au téléphone la barre du bas a besoin de la réserve de `main`. La hauteur, elle, reste posée par
      `courrierAjuster`, qui compte les marges et rembourrages des ancêtres — à zéro, il rend toute la hauteur. */
@@ -2836,7 +2836,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.98</div>
+    <div class="lg-pied">console interne · v2.99</div>
   </div>
 </div>
 
@@ -2878,7 +2878,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.98</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.99</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2890,7 +2890,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.98</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.99</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3188,7 +3188,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.98';
+var TOUR_VERSION='v2.99';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -5681,7 +5681,7 @@ function sousOnglet(vue,s){ SOUS[vue]=s; if(vue==='entreprises') ENT.sel=null;
   ecrireHash(); render(); }
 function renderVue(v){
   if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
-  document.body.classList.toggle('plein-courrier',TAB==='support');   /* v2.98 : le Courrier prend toute la page (bureau) */
+  document.body.classList.toggle('plein-courrier',TAB==='support');   /* v2.99 : le Courrier prend toute la page (bureau) */
   if(TAB!=='support') courrierDemonter();   /* quitter le Courrier démonte le module (sa zone disparaît avec la vue) */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
   if(TAB==='accueil') v.innerHTML=(APP==='messages')?vueAccueilMsg():vueAccueil();
@@ -9803,7 +9803,7 @@ function vueJournal(){
    -1 « on n'a pas pu savoir ». Une liste illisible ne se dessine jamais comme « rien à valider » : c'est la confusion
    que ce dépôt a déjà payée deux fois (CLAUDE.md, `_mailboxes`). Et rien ne se change à l'écran avant que le serveur ait dit oui :
    un mode ne s'affiche pas « Auto » parce qu'on l'a demandé, mais parce que le serveur l'a écrit. */
-var AG={loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false,
+var AG={dir:{rap:null,rapLec:0,charte:null,charteLec:0,contrats:null,contLec:0,ouvert:'',vers:null,texte:'',note:''},loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false,
   dos:{q:'',lec:0,liste:[],total:0,ouvert:'',fiche:null,ficheLec:0},
   cv:{lec:0,fils:[],nonLus:0,ouvert:'',msgs:[],msgLec:0,brouillon:'',envoi:false}};
 var AG_MODES=[['arret','À l’arrêt'],['brouillon','Brouillon'],['auto','Auto']];
@@ -9975,6 +9975,67 @@ function agHugo(){
     chargerAgents();
   }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
 }
+/* LA DIRECTION — rapport du jour, charte d'autonomie, contrats. ⛔ Trois états par lecture (0 pas lu, 1 lu, -1 illisible) : un rapport qu'on n'a pas pu lire
+   ne se dessine jamais « rien n'a été fait ». Rien ne s'affiche « validé » avant que le serveur l'ait écrit ; le tampon d'un contrat est posé par lui. */
+function agDirCharger(){
+  AG.dir.rapLec=0; AG.dir.charteLec=0; AG.dir.contLec=0;
+  apiGet('/api/monitor/agents/rapport?heures=24').then(function(d){ if(d&&d.rapport){ AG.dir.rap=d.rapport; AG.dir.rapLec=1; } else AG.dir.rapLec=-1; if(TAB==='agents') render(); }).catch(function(){ AG.dir.rapLec=-1; if(TAB==='agents') render(); });
+  apiGet('/api/monitor/agents/charte').then(function(d){ if(d&&Array.isArray(d.gestes)){ AG.dir.charte=d.gestes; AG.dir.charteLec=1; } else AG.dir.charteLec=-1; if(TAB==='agents') render(); }).catch(function(){ AG.dir.charteLec=-1; if(TAB==='agents') render(); });
+  apiGet('/api/monitor/contrats').then(function(d){ if(d&&Array.isArray(d.types)){ AG.dir.contrats=d; AG.dir.contLec=1; } else AG.dir.contLec=-1; if(TAB==='agents') render(); }).catch(function(){ AG.dir.contLec=-1; if(TAB==='agents') render(); });
+}
+function agCharteAuto(geste,auto){
+  if(AG.busy||MYROLE!=='patron') return;
+  if(auto&&!confirm('Laisser les agents faire ce geste SEULS, sans te demander ?')) return;
+  AG.busy=true; render();
+  var g={}; g[geste]={auto:!!auto};
+  apiPost('/api/monitor/agents/charte',{gestes:g}).then(function(r){ AG.busy=false; toast(r.ok?(auto?'Ce geste passe en automatique.':'Ce geste redemande ton accord.'):((r.d&&r.d.error)||'Changement refusé')); agDirCharger(); }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agContratVoir(type,n){
+  AG.dir.ouvert=type; AG.dir.vers=null;
+  apiGet('/api/monitor/contrats/version?type='+encodeURIComponent(type)+'&n='+encodeURIComponent(n)).then(function(d){ if(d&&d.version){ AG.dir.vers=d.version; AG.dir.texte=d.version.texte||''; } if(TAB==='agents') render(); }).catch(function(){ toast(INJOIGNABLE); });
+}
+function agContratBrouillon(type){
+  if(AG.busy||MYROLE!=='patron') return; var t=(document.getElementById('ag-ct-texte')||{}).value||'';
+  if(!t.trim()){ toast('Le texte est vide.'); return; }
+  AG.busy=true; render();
+  apiPost('/api/monitor/contrats/brouillon',{type:type,texte:t,note:'écrit dans la Tour'}).then(function(r){ AG.busy=false; toast(r.ok?'Brouillon enregistré — il n’est pas encore en vigueur.':((r.d&&r.d.error)||'Refusé')); agDirCharger(); }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agContratValider(type,n){
+  if(AG.busy||MYROLE!=='patron') return;
+  if(!confirm('Valider la version '+n+' ? Elle porte ton nom et la date, ne se modifie plus, et c’est elle que recevront les nouveaux clients.')) return;
+  AG.busy=true; render();
+  apiPost('/api/monitor/contrats/valider',{type:type,n:n}).then(function(r){ AG.busy=false; toast(r.ok?'Version validée, tampon posé.':((r.d&&r.d.error)||'Refusé')); AG.dir.ouvert=''; agDirCharger(); }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agDirVue(){
+  var D=AG.dir, h='';
+  if(D.rapLec===0&&D.charteLec===0&&D.contLec===0) agDirCharger();
+  h+='<h3 class="ag-h">Rapport des dernières 24 h</h3>';
+  if(D.rapLec!==1) h+=D.rapLec===0?acSquel():agIllisible('Le rapport n’a pas pu être lu : on ne sait pas ce qui a été fait.');
+  else { var c=D.rap;
+    h+='<div class="encart bloc"><div class="tx" style="margin-top:0">'+esc(c.total||0)+' geste'+((c.total||0)>1?'s':'')+' · '+esc(c.ok||0)+' réussi'+((c.ok||0)>1?'s':'')+' · '+esc(c.refuse||0)+' refusé'+((c.refuse||0)>1?'s':'')+' · '+esc(c.erreur||0)+' en erreur · '+esc(c.propose||0)+' proposé'+((c.propose||0)>1?'s':'')+' à ton accord</div></div>';
+    if(!(D.rap.lignes||[]).length) h+='<div class="vide">Aucun agent n’a rien fait sur cette période.</div>';
+    else h+='<div class="ag-liste">'+D.rap.lignes.map(function(e){ return '<div class="ag-ligne"><span class="ag-etiq'+(e.resultat==='ok'?' ok':e.resultat==='erreur'||e.resultat==='refuse'?' ko':'')+'">'+esc(e.resultat||'')+'</span><div class="tx"><b>'+esc(agNom(e.agent))+' · '+esc(e.action)+'</b><span>'+(e.cible?esc(e.cible)+' · ':'')+(e.detail?esc(e.detail)+' · ':'')+esc(fmtDate(e.ts))+'</span></div></div>'; }).join('')+'</div>'+(D.rap.tronque?'<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Liste raccourcie : les erreurs et refus passent en premier.</div>':'');
+  }
+  h+='<h3 class="ag-h" style="margin-top:22px">Charte : ce que les agents font seuls</h3>';
+  if(D.charteLec!==1) h+=D.charteLec===0?acSquel():agIllisible('La charte n’a pas pu être lue : rien ne passe en automatique tant qu’elle n’est pas réparée.');
+  else { var G=D.charte;
+    h+='<div class="ag-liste">'+G.map(function(g){ var k=g.id, fixe=g.fixe===true;
+      return '<div class="ag-ligne"><div class="tx"><b>'+esc(g.libelle||k)+'</b><span>'+(fixe?'Toujours une personne — ne s’ouvre jamais.':g.auto?'Les agents le font seuls.':'Ils te le proposent d’abord.')+(g.jours?' · jours : '+esc(g.jours.join(', ')):'')+(g.apresJours?' · après '+esc(g.apresJours)+' jours':'')+'</span></div>'+
+        (fixe?'<span class="ag-etiq">humain</span>':'<div class="ag-act"><button type="button" class="ag-btn'+(g.auto?'':' ok')+'"'+(AG.busy||MYROLE!=='patron'?' disabled':'')+' onclick="agCharteAuto(\''+esc(k)+'\','+(g.auto?'false':'true')+')">'+(g.auto?'Redemander mon accord':'Laisser en auto')+'</button></div>')+'</div>'; }).join('')+'</div>';
+  }
+  h+='<h3 class="ag-h" style="margin-top:22px">Contrats</h3>';
+  if(D.contLec!==1) h+=D.contLec===0?acSquel():agIllisible('Les contrats n’ont pas pu être lus : rien ne sera envoyé à un client tant que le registre est illisible.');
+  else { var K=D.contrats.clients||{};
+    h+='<div class="encart bloc"><div class="tx" style="margin-top:0">Clients : '+esc(K.total||0)+' contrat'+((K.total||0)>1?'s':'')+' · '+esc(K.envoyes||0)+' envoyé'+((K.envoyes||0)>1?'s':'')+' · '+esc(K.acceptes||0)+' accepté'+((K.acceptes||0)>1?'s':'')+' · '+esc(K.enAttente||0)+' en attente de signature</div></div>';
+    D.contrats.types.forEach(function(t){
+      var vig=null; (t.versions||[]).forEach(function(v){ if(v.statut==='valide'&&(!vig||v.n>vig.n)) vig=v; });
+      h+='<div class="encart bloc" style="margin-top:12px"><div class="tx" style="margin-top:0"><b>'+esc(t.libelle||t.type)+'</b><br>'+(vig?'En vigueur : version '+esc(vig.n)+' · validée par '+esc(vig.validePar)+' le '+esc(fmtDate(vig.valideLe))+' · empreinte '+esc(String(vig.empreinte||'').slice(0,12)):'<span style="color:var(--red,#c0392b)">Aucune version validée : rien n’est envoyé aux clients.</span>')+'</div>'+
+        '<div class="ag-liste" style="margin-top:8px">'+(t.versions||[]).map(function(v){ return '<div class="ag-ligne"><span class="ag-etiq'+(v.statut==='valide'?' ok':'')+'">'+esc(v.statut==='valide'?'validée':v.statut==='retire'?'retirée':'brouillon')+'</span><div class="tx"><b>Version '+esc(v.n)+'</b><span>'+esc(v.auteur||'')+' · '+esc(fmtDate(v.ts))+' · '+esc(v.longueur)+' signes</span></div><div class="ag-act"><button type="button" class="ag-btn" onclick="agContratVoir(\''+esc(t.type)+'\','+esc(v.n)+')">Lire</button>'+(v.statut==='brouillon'?'<button type="button" class="ag-btn ok"'+(AG.busy||MYROLE!=='patron'?' disabled':'')+' onclick="agContratValider(\''+esc(t.type)+'\','+esc(v.n)+')">Valider</button>':'')+'</div></div>'; }).join('')+'</div>'+
+        (D.ouvert===t.type?'<div style="margin-top:10px"><textarea id="ag-ct-texte" rows="14" style="width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg2,transparent);color:inherit">'+esc(D.texte)+'</textarea><div class="ag-act" style="margin-top:8px"><button type="button" class="ag-btn ok"'+(AG.busy||MYROLE!=='patron'?' disabled':'')+' onclick="agContratBrouillon(\''+esc(t.type)+'\')">Enregistrer comme nouveau brouillon</button><button type="button" class="ag-btn" onclick="AG.dir.ouvert=\'\';render()">Fermer</button></div></div>'
+          :'<div class="ag-act" style="margin-top:8px"><button type="button" class="ag-btn" onclick="AG.dir.ouvert=\''+esc(t.type)+'\';AG.dir.texte=\'\';render()">Écrire un brouillon</button></div>')+'</div>'; });
+  }
+  return h;
+}
 function agIllisible(txt){ return '<div class="encart bloc"><div class="tx" style="margin-top:0">'+esc(txt)+'</div></div>'; }
 function vueAgents(){
   var tete=enTete('Agents','Les agents IA qui gèrent Team OP. Tu décides ce que chacun a le droit de faire : à l’arrêt, il ne fait rien ; en brouillon, il prépare et tu relis ; en auto, il agit seul dans ses droits. Pour lui écrire, touche « Parler » sur sa carte.');
@@ -9988,7 +10049,7 @@ function vueAgents(){
     ' · '+allumes+' allumé'+(allumes>1?'s':'')+' sur '+AG.agents.length+'</b>'+
     (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
   var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
-  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers']].map(function(o){
+  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['direction','Direction']].map(function(o){
     return '<button type="button" role="tab" class="'+(AG.sec===o[0]?'on':'')+'" aria-selected="'+(AG.sec===o[0])+'" onclick="agSec(\''+o[0]+'\')">'+o[1]+
       (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
@@ -10025,6 +10086,8 @@ function vueAgents(){
         (e.cible?esc(e.cible)+' · ':'')+(e.detail?esc(e.detail)+' · ':'')+(e.qui?'par '+esc(e.qui)+' · ':'')+esc(fmtDate(e.ts))+'</span></div></div>'; }).join('')+'</div>';
   } else if(AG.sec==='conv'){
     h+=agCvVue();
+  } else if(AG.sec==='direction'){
+    h+=agDirVue();
   } else if(AG.sec==='dossiers'){
     h+=AG.dos.ouvert?agDosFiche():agDosListe();
   } else {
