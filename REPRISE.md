@@ -48,7 +48,7 @@ Margaux, Léa ; 3 = le reste.
 
 - **Fait sur la branche** (`a3a785c`, poussée, PAS sur `main`) : `server/agents.js` — registre, journal, file de validations, pause
   globale, file de tâches ; sept routes `/api/monitor/agents/*` (GESTION, écritures au patron, gestes dans `MON_GESTES`) ;
-  `tests/test-2703.js` (129 vérifications : le module sur un vrai Express, puis le vrai `index.js`) inscrit dans
+  `tests/test-2710.js` (129 vérifications : le module sur un vrai Express, puis le vrai `index.js`) inscrit dans
   `scripts/bancs-serveur.liste` (plancher 4 280) ; `scratchpad/mutations-agents.py` (25 mutations, les 25 font tomber le banc).
   Trouvé au vrai serveur seulement : `monGesteCible` ne connaissait pas `agent`, le journal de la Tour ne disait pas lequel.
 - **Décisions de Justin, 19 octobre** (quatre questions) : Hugo vérifie Stripe par RELECTURE, sans webhook (comme `espacePaye`,

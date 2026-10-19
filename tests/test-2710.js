@@ -1,4 +1,4 @@
-/* ══ test-2703 — LE SOCLE DE L'ÉQUIPE D'AGENTS : CE QU'UN AGENT TROUVE AVANT D'AVOIR LE DROIT D'AGIR ══════════════
+/* ══ test-2710 — LE SOCLE DE L'ÉQUIPE D'AGENTS : CE QU'UN AGENT TROUVE AVANT D'AVOIR LE DROIT D'AGIR ══════════════
    Justin, 19 octobre 2026 : une équipe d'agents IA (courrier, paiements, surveillance, Instagram…) pour gérer Team OP.
    `server/agents.js` n'est pas un agent : c'est ce que tous partagent — registre, journal, file de validations, pause
    globale, file de tâches. Ce banc garde les cinq règles qui rendent l'équipe sûre, et il les garde par le COMPORTEMENT :
@@ -44,7 +44,7 @@ const monPatronStrict = (req, res, next) => { const u = qui(req); if (!u || u.ro
 const dossiers = [];
 async function serveur(opts) {
   opts = opts || {};
-  const DATA_DIR = opts.DATA_DIR || fs.mkdtempSync(path.join(os.tmpdir(), 'test-2703-'));
+  const DATA_DIR = opts.DATA_DIR || fs.mkdtempSync(path.join(os.tmpdir(), 'test-2710-'));
   if (!opts.DATA_DIR) dossiers.push(DATA_DIR);
   const app = express(); app.use(express.json());
   const notifs = [];
@@ -68,7 +68,7 @@ async function serveur(opts) {
 const P = jeton.patron, S = jeton.simple;
 
 (async () => {
-  console.log('\n── test-2703 : le socle de l\'équipe d\'agents ──');
+  console.log('\n── test-2710 : le socle de l\'équipe d\'agents ──');
 
   /* ══ 1. LE REGISTRE ══ */
   const A = monter.AGENTS;
@@ -243,7 +243,7 @@ const P = jeton.patron, S = jeton.simple;
   await s2.fermer();
 
   /* ══ 12. ⛔ UN ÉTAT ILLISIBLE ARRÊTE LES AGENTS, ET RIEN NE S'ÉCRIT PAR-DESSUS ══ */
-  const d3 = fs.mkdtempSync(path.join(os.tmpdir(), 'test-2703-ill-')); dossiers.push(d3);
+  const d3 = fs.mkdtempSync(path.join(os.tmpdir(), 'test-2710-ill-')); dossiers.push(d3);
   const abime = '{"pause": {"actif": fal';
   fs.writeFileSync(path.join(d3, 'agents-etat.json'), abime);
   const s3 = await serveur({ DATA_DIR: d3 });
@@ -256,13 +256,13 @@ const P = jeton.patron, S = jeton.simple;
   v('un agent illisible ne propose rien', s3.api.proposer('hugo', 'creer_espace', 'x', { espace: 'x1', formule: 'pro' }).raison, 'etat_illisible');
   await s3.fermer();
   /* un journal illisible : il ne s'écrase pas non plus, et il n'arrête pas pour autant les agents (l'état, lui, est lisible) */
-  const d4 = fs.mkdtempSync(path.join(os.tmpdir(), 'test-2703-jil-')); dossiers.push(d4);
+  const d4 = fs.mkdtempSync(path.join(os.tmpdir(), 'test-2710-jil-')); dossiers.push(d4);
   fs.writeFileSync(path.join(d4, 'agents-journal.json'), '[{"id": ');
   const s4 = await serveur({ DATA_DIR: d4 });
   v('un journal illisible n\'est pas réécrit', [s4.api.noter('hugo', 'essai'), fs.readFileSync(path.join(d4, 'agents-journal.json'), 'utf8')], [false, '[{"id": ']);
   await s4.fermer();
   /* la forme compte aussi : un tableau là où un objet est attendu */
-  const d5 = fs.mkdtempSync(path.join(os.tmpdir(), 'test-2703-forme-')); dossiers.push(d5);
+  const d5 = fs.mkdtempSync(path.join(os.tmpdir(), 'test-2710-forme-')); dossiers.push(d5);
   fs.writeFileSync(path.join(d5, 'agents-etat.json'), '[]');
   const s5 = await serveur({ DATA_DIR: d5 });
   v('un état de la mauvaise forme vaut « illisible » (arrêt), pas « vide »', s5.api.peutAgir('hugo').raison, 'etat_illisible');
@@ -270,7 +270,7 @@ const P = jeton.patron, S = jeton.simple;
 
   /* ══ 13. LES DATES : UNE PROPOSITION PÉRIMÉE NE S'ACCEPTE PLUS ══ */
   let horloge = 1000000000000;
-  const d6 = fs.mkdtempSync(path.join(os.tmpdir(), 'test-2703-t-')); dossiers.push(d6);
+  const d6 = fs.mkdtempSync(path.join(os.tmpdir(), 'test-2710-t-')); dossiers.push(d6);
   const s6 = await serveur({ DATA_DIR: d6, ctx: { maintenant: () => horloge } });
   await s6.appel('/api/monitor/agents/mode', { agent: 'hugo', mode: 'brouillon' }, P);
   await s6.appel('/api/monitor/agents/mode', { agent: 'camille', mode: 'brouillon' }, P);

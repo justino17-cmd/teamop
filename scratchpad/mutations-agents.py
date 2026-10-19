@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Contre-épreuve de tests/test-2703.js — le socle de l'équipe d'agents (19 octobre 2026).
+"""Contre-épreuve de tests/test-2710.js — le socle de l'équipe d'agents (19 octobre 2026).
 
 Règle du dépôt : « un banc qui passe ne prouve rien tant qu'on ne l'a pas vu ÉCHOUER ». Chaque
 mutation REMET un défaut que le banc garde, dans une COPIE de server/ (node_modules en lien) :
@@ -57,7 +57,7 @@ def copie(dest):
             os.symlink(s, os.path.join(dest, 'server', f))
         elif os.path.isfile(s):
             shutil.copy2(s, os.path.join(dest, 'server', f))
-    shutil.copy2(os.path.join(RACINE, 'tests', 'test-2703.js'), os.path.join(dest, 'tests', 'test-2703.js'))
+    shutil.copy2(os.path.join(RACINE, 'tests', 'test-2710.js'), os.path.join(dest, 'tests', 'test-2710.js'))
 
 
 def joue(nom, fichier, avant, apres):
@@ -71,7 +71,7 @@ def joue(nom, fichier, avant, apres):
             if n != 1:
                 return nom, 'INVALIDE', 'le motif apparaît %d fois (attendu : 1)' % n
             open(p, 'w', encoding='utf8').write(src.replace(avant, apres))
-        r = subprocess.run(['node', os.path.join(dest, 'tests', 'test-2703.js')], capture_output=True, text=True, timeout=240)
+        r = subprocess.run(['node', os.path.join(dest, 'tests', 'test-2710.js')], capture_output=True, text=True, timeout=240)
         sortie = (r.stdout or '') + (r.stderr or '')
         m = re.findall(r'(\d+) ✓ +(\d+) ✗', sortie)
         total = '%s ✓ %s ✗' % m[-1] if m else 'aucun total'

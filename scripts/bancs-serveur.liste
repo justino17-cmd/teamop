@@ -190,9 +190,9 @@ tests/test-1012.js
 # SMTP local, et les VRAIES `srvMail`, `mailDoConnect` et `mailDisconnect` d'app.html contre lui) — il lit `app.html`, que `main` sert déjà avec ces trois appels.
 tests/test-2692.js
 # 19 octobre 2026 : 4 291 contre les pages de `main` (64 suites), `test-2692` compris (+91) — plancher relevé à 4 151.
-# 19 octobre 2026 : `test-2703` (le socle de l'équipe d'agents, `server/agents.js` : registre, journal, validations, pause globale, tâches entre agents — une phrase ne traverse pas
+# 19 octobre 2026 : `test-2710` (le socle de l'équipe d'agents, `server/agents.js` : registre, journal, validations, pause globale, tâches entre agents — une phrase ne traverse pas
 # la file, un état illisible arrête les agents, seul `pause: false` reprend, arrêt → brouillon → auto sans saut, seul le patron décide) — il lit `server/` seulement, aucune page.
-tests/test-2703.js
+tests/test-2710.js
 # 19 octobre 2026, la Tour des agents : `test-2709` (le panneau : ses vraies fonctions contre le vrai serveur — il lit `tour.html`, qui part avec le serveur), `test-2705` (Hugo),
 # `test-2706` (les dossiers DOS-nnnnnn), `test-2707` (les conversations), `test-2708` (le cerveau, le budget, la réponse de Hugo sans donnée de client). 4 678 contre les pages de `main`
 # (70 suites) — plancher relevé à 4 530.
@@ -202,4 +202,4 @@ tests/test-2706.js
 tests/test-2707.js
 tests/test-2708.js
 tests/test-2709.js
-# 19 octobre 2026 : 4 420 contre les pages de `main` (65 suites), `test-2703` compris (+129) — plancher relevé à 4 280.
+# 19 octobre 2026 : 4 420 contre les pages de `main` (65 suites), `test-2710` compris (+129) — plancher relevé à 4 280.

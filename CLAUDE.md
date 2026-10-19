@@ -66,7 +66,7 @@ Toute modification touchant au contexte transmis a une portée juridique — voi
 
 `server/agents.js` — le SOCLE de l'équipe d'agents IA (19 octobre 2026, branche `claude/equipe-agents`) : registre des
 seize agents, journal, file de validations, pause globale, file de tâches. **Il ne fait agir personne** : aucun appel à
-Anthropic, Stripe ni au courrier. ⛔ Les règles qui le tiennent, et que `tests/test-2703.js` garde (contre-épreuve :
+Anthropic, Stripe ni au courrier. ⛔ Les règles qui le tiennent, et que `tests/test-2710.js` garde (contre-épreuve :
 `python3 scratchpad/mutations-agents.py`, 25 mutations) : un agent qui LIT du texte venu de l'extérieur n'a pas le droit
 d'agir sur l'argent ni les comptes — ce qu'il transmet à un autre agent ne passe que par des champs de forme FERMÉE
 (`SCHEMAS` : un identifiant, une valeur d'une liste, jamais une phrase) ; un état illisible ARRÊTE les agents et rien ne
