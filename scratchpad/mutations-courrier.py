@@ -59,7 +59,7 @@ M = [
  ('caddy: Caddyfile réécrit au lieu d\'une ligne ajoutée', [(S+'install-courrier.sh', "\\nimport /etc/caddy/opcourrier/*.caddy\\n' >> \"$CADDYFILE\"", "\\nimport /etc/caddy/opcourrier/*.caddy\\n' > \"$CADDYFILE\"")], 1671),
  ('caddy: validate retiré', [(S+'install-courrier.sh', "if ! caddy validate --config \"$CADDYFILE\" --adapter caddyfile >/dev/null 2>&1; then", "if false; then")], 1671),
  ('caddy: Caddyfile non restauré après refus', [(S+'install-courrier.sh', "  mv \"$CADDYFILE.avant-opcourrier\" \"$CADDYFILE\"\n", "  rm -f \"$CADDYFILE.avant-opcourrier\"\n")], 1671),
- ('caddy: refus mais on recharge quand même', [(S+'install-courrier.sh', "  else rm -f \"$FICHIER_CDY\"; fi\n  exit 1", "  else rm -f \"$FICHIER_CDY\"; fi\n  systemctl reload caddy; exit 1")], 1671),
+ ('caddy: refus mais on recharge quand même', [(S+'install-courrier.sh', "else rm -f \"$FICHIER_CDY\"; fi\n  exit 1", "else rm -f \"$FICHIER_CDY\"; fi\n  systemctl reload caddy; exit 1")], 1671),
  ('caddy: plafond de corps retiré', [(S+'install-courrier.sh', "        max_size 26MB", "        max_size 9999MB")], 1671),
  ('caddy: tout le site exposé', [(S+'install-courrier.sh', "    handle {\n        respond 404\n    }", "    handle {\n        reverse_proxy 127.0.0.1:$PORT\n    }")], 1671),
  ('caddy: X-Forwarded-For complété', [(S+'install-courrier.sh', "header_up X-Forwarded-For {remote_host}", "header_up X-Forwarded-For {http.request.header.X-Forwarded-For}")], 1671),
