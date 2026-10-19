@@ -1,6 +1,6 @@
 /* ══ LES DEMANDES DE SIGNATURE — LA LOGIQUE, SANS HTTP ═══════════════════════════════════════════════════════════════════════
  * Le parcours du module OP Courrier : documents, signataires (nom, e-mail, mobile), contre-signature (l'expéditeur, TOUJOURS le dernier),
- * niveau « Code SMS » (signature avancée) ou « Code e-mail » (simple), délai 7/15/30 jours, relances tous les 3 jours.
+ * niveau « Code SMS » (signature avancée) ou « Code e-mail » (simple), délai 7/15/30 jours, relances tous les 2 jours (Yousign n'accepte que 1, 2, 7 ou 14).
  * États rendus au module : brouillon · en_attente · ouvert · a_contresigner · signe · refuse · annule · expire.
  *
  * ⛔ UNE DEMANDE APPARTIENT À UNE PERSONNE. Chaque porte passe par `charger(proprio, id)`, qui répond « introuvable » dans les deux cas

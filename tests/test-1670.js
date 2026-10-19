@@ -133,7 +133,7 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
   v('rejouée : activée, « en attente »', [r.s, r.j.etat], [200, 'en_attente']);
   const R = ys.derniere();
   v('Yousign : nom, envoi par e-mail, fuseau, signataires ordonnés (contre-signature)', [R.corps.name, R.corps.delivery_mode, R.corps.timezone, R.corps.ordered_signers], ['Contrat de nettoyage', 'email', 'Europe/Paris', true]);
-  v('Yousign : relances tous les 3 jours, 5 au plus pour 15 jours', R.corps.reminder_settings, { interval_in_days: 3, max_occurrences: 5 });
+  v('Yousign : relances tous les 2 jours (1, 2, 7 ou 14 seulement), 7 au plus pour 15 jours', R.corps.reminder_settings, { interval_in_days: 2, max_occurrences: 7 });
   vrai('Yousign : échéance = aujourd\'hui + 15 jours', R.corps.expiration_date === new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10));
   v('Yousign : trois signataires, la contre-signature en DERNIER', R.signers.map((s) => s.info.email), [MAIL_C, MAIL_C2, MAIL_ME]);
   v('Yousign : « Code SMS » = signature avancée + otp_sms', [R.signers[0].signature_level, R.signers[0].signature_authentication_mode], ['advanced_electronic_signature', 'otp_sms']);

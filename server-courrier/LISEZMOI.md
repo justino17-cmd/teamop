@@ -13,7 +13,7 @@ Première brique : la signature. La lecture des boîtes viendra dans le même se
 1. Le module OP Courrier (dans la Tour) appelle ce service avec **le jeton de session de la Tour** (celui que `api.teamop.fr` a donné à la connexion).
 2. Ce service ne connaît aucun mot de passe : il demande à `api.teamop.fr` (`GET /api/monitor/moi`) **qui** est la personne, et n'accepte que le rôle `patron`. Couper un accès dans la Tour le ferme ici en moins d'une minute. `server/` n'a pas bougé d'une ligne.
 3. Une demande = un brouillon (JSON), puis le PDF **en flux** (25 Mo maximum, octets `%PDF-` vérifiés, pas seulement le type), puis « activer » : le service crée la demande chez Yousign, y dépose le PDF, ajoute les signataires (zones de signature sur la dernière page), la contre-signature (vous) **en dernier**, et active.
-4. Niveau « Code SMS » = signature avancée ; « Code e-mail » = signature simple. Délai 7/15/30 jours ; relances tous les 3 jours.
+4. Niveau « Code SMS » = signature avancée ; « Code e-mail » = signature simple. Délai 7/15/30 jours ; relances tous les 2 jours (Yousign n'accepte que 1, 2, 7 ou 14).
 5. Yousign prévient le service par **webhook** (signature HMAC vérifiée sur le corps brut ; un événement reçu deux fois n'est traité qu'une fois) ; l'état avance : En attente → Ouvert → À contresigner → Signé (ou Refusé, Annulé, Expiré).
 6. À la fin, le service **télécharge** le PDF signé et le dossier de preuve chez Yousign (il ne les croit jamais sur parole).
 7. Les PDF et les fiches des signataires sont **chiffrés** (AES-256-GCM) sur le disque ; la clé maître est dans `/etc/opcourrier/kek-<instance>`, jamais en base ni dans le dépôt.

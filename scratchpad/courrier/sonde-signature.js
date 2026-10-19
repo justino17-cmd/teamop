@@ -30,8 +30,10 @@ const CAP = process.env.CAPTURES || '/tmp/claude-0/-home-user-teamop/a8f64c75-27
   await p.goto(URL_); await p.waitForTimeout(600);
   await dossier('sign'); await p.locator('#rows [data-signnew]').click(); await p.waitForTimeout(250);
   /* ── 1. la feuille ── */
+  log(await p.locator('#sgType').count() === 0 && !/Devis|Contrat de maintenance|Bon d’intervention/.test(await p.locator('.sheet.acct .gcard').first().innerText().catch(() => '')), 'feuille : plus de champ « Type » (19 octobre 2026, Justin : « type, je veux pas »)');
+  log(!(await p.locator('#sgCounter').isChecked()) && /tous les 2 jours/.test(await p.locator('label[for=sgRemind]').innerText()), 'feuille : contre-signature DÉCOCHÉE d\'office, relances « tous les 2 jours »');
   log(await p.locator('#sgMeRow').isHidden(), 'feuille : un devis (pas de contre-signature) → le champ « Votre mobile » est caché');
-  await p.selectOption('#sgType', 'Contrat de prestation'); await p.waitForTimeout(100);
+  await p.locator('#sgCounter').check({ force: true }); await p.waitForTimeout(100);
   log(await p.locator('#sgCounter').isChecked() && await p.locator('#sgMeRow').isVisible(), 'feuille : un contrat → contre-signature cochée + « Votre mobile (pour votre contre-signature par SMS) » visible');
   await p.selectOption('#sgLevel', 'simple'); await p.waitForTimeout(100);
   log(await p.locator('#sgMeRow').isHidden(), 'feuille : « Code e-mail » → plus besoin du mobile de l\'expéditeur');
@@ -54,7 +56,7 @@ const CAP = process.env.CAPTURES || '/tmp/claude-0/-home-user-teamop/a8f64c75-27
   log(await p.locator('#rows .msg').count() === 0, 'refus : AUCUNE demande rangée dans Signatures');
   await srv(() => { window.__sigServeur.echec.envoyer = ''; });
   await p.locator('#rows [data-signnew]').click(); await p.waitForTimeout(250);
-  await p.selectOption('#sgType', 'Contrat de prestation'); await p.setInputFiles('#sgFile', { name: 'Contrat 2027.pdf', mimeType: 'application/pdf', buffer: PDF }); await p.waitForTimeout(150);
+  await p.locator('#sgCounter').check({ force: true }); await p.setInputFiles('#sgFile', { name: 'Contrat 2027.pdf', mimeType: 'application/pdf', buffer: PDF }); await p.waitForTimeout(150);
   log(await p.locator('#sgMe').inputValue() === '', 'feuille : le mobile n\'a pas été gardé sur un envoi qui a échoué');
   await p.fill('#sgN0', 'Claire Dubois'); await p.fill('#sgE0', 'claire@exemple.fr'); await p.fill('#sgP0', '06 12 34 56 78'); await p.fill('#sgMe', '07 98 76 54 32');
   await p.locator('#sgGo').click(); await p.waitForTimeout(600);
@@ -111,7 +113,7 @@ const CAP = process.env.CAPTURES || '/tmp/claude-0/-home-user-teamop/a8f64c75-27
   log((await chip()) === 'Signé' && (await p.locator('[data-act="signDl:1"]').count()) === 1, 'rechargement : la demande signée est RETROUVÉE avec ses téléchargements (le service d\'essai, lui, repart à vide — seul l\'appareil la garde)');
   /* ── 6. annuler avec succès, une demande refusée par le client ── */
   await p.locator('#rows [data-signnew]').click().catch(async () => { await p.locator('#btnCompose').click(); }); await p.waitForTimeout(250);
-  await p.selectOption('#sgType', 'Devis'); await p.setInputFiles('#sgFile', { name: 'Devis.pdf', mimeType: 'application/pdf', buffer: PDF }); await p.selectOption('#sgLevel', 'simple');
+  await p.setInputFiles('#sgFile', { name: 'Devis.pdf', mimeType: 'application/pdf', buffer: PDF }); await p.selectOption('#sgLevel', 'simple');
   await p.fill('#sgN0', 'Luc Moreau'); await p.fill('#sgE0', 'luc@exemple.fr'); await p.locator('#sgGo').click(); await p.waitForTimeout(600);
   log((await p.locator('#rows .msg').count()) === 2 && (await srv(() => Object.values(window.__sigServeur.demandes).pop().dem.niveau)) === 'simple', 'devis « Code e-mail » : envoyé, niveau « simple », sans contre-signature, sans mobile');
   await p.locator('#rows .msg').first().click(); await p.waitForTimeout(300);
@@ -125,7 +127,7 @@ const CAP = process.env.CAPTURES || '/tmp/claude-0/-home-user-teamop/a8f64c75-27
   await q.goto(P.avec('mode=reel&cotes=pro&cle=prete&intervalle=0')); await q.waitForTimeout(600);
   await q.locator('.folder[data-folder="sign"]').click(); await q.waitForTimeout(300); await q.locator('#rows [data-signnew]').click(); await q.waitForTimeout(250);
   await q.setInputFiles('#sgFile', { name: 'Ancien.pdf', mimeType: 'application/pdf', buffer: PDF }); await q.fill('#sgN0', 'Rose'); await q.fill('#sgE0', 'rose@exemple.fr'); await q.selectOption('#sgLevel', 'simple');
-  await q.selectOption('#sgType', 'Devis'); await q.locator('#sgGo').click(); await q.waitForTimeout(500);
+  await q.locator('#sgGo').click(); await q.waitForTimeout(500);
   await q.locator('#rows .msg').first().click(); await q.waitForTimeout(300);
   const chipQ = await q.evaluate((sr) => eval(sr).querySelector('.sign-card .sgchip').textContent + '|' + eval(sr).querySelector('.sign-card').textContent.includes('Rien n’est parti : la demande partira quand Yousign sera branché'), SR);
   log(chipQ === 'Prête — en attente de Yousign|true', 'avant : sans service, la demande est rangée « Prête — en attente de Yousign » (' + chipQ + ')');

@@ -39,6 +39,9 @@ async function fauxYousign(cle = 'CLE-YOUSIGN-DE-BANC') {
     if (req.method === 'POST' && p === '/v3/signature_requests') {
       if (echoue('creer')) return rep(st.refusCreer ? st.refusCreer.statut : 500, st.refusCreer && st.refusCreer.corps);
       const j = JSON.parse(b.toString()); const id = 'sr_' + (++st.n);
+      /* ⛔ ce que le VRAI Yousign refuse en 400 (« You have some invalid params in your payload ») : un intervalle de relance hors 1/2/7/14, un nombre hors 1..10, une échéance qui n'est pas AAAA-MM-JJ — le faux qui accepte tout a laissé passer « 3 jours » jusqu'au premier vrai essai */
+      const rs = j.reminder_settings;
+      if ((rs && !([1, 2, 7, 14].includes(rs.interval_in_days) && Number.isInteger(rs.max_occurrences) && rs.max_occurrences >= 1 && rs.max_occurrences <= 10)) || (j.expiration_date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(j.expiration_date))) return rep(400, { title: 'Bad Request', detail: 'You have some invalid params in your payload.' });
       st.demandes.set(id, { id, corps: j, docs: [], signers: [], etat: 'draft', rappels: [], annulee: false, supprimee: false });
       return rep(201, { id, status: 'draft' });
     }
