@@ -2066,7 +2066,7 @@ const MON_GESTES = {
   'op/couper': 'a coupé le stockage d’une entreprise',
   /* l'équipe d'agents (agents.js) : le patron seul allume, éteint, arrête et décide */
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
-  'agents/validations/decider': 'a décidé d’une demande d’un agent',
+  'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
@@ -4412,6 +4412,7 @@ function adrNue(s) { const m = /<([^<>]*)>\s*$/.exec(String(s || '')); return St
 function supprDest() { return String(config.securiteEmail || config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').trim(); }
 function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
+let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
 function supprDestLisible() {
   const d = adrNue(supprDest()); if (!d) return false;
@@ -10035,6 +10036,34 @@ try {
   try {
     agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif });
     console.log('agents : socle chargé');
+    /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
+       abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
+       (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
+    agentHugo = require('./agent-hugo')({
+      agents: agentsMod, slug: espSlug,
+      clients: () => Object.values(clientsData || {}).map(c => ({ email: c && c.email, entreprise: c && c.entreprise })),
+      espaceExiste: (email, sl) => !!espacesReg[sl] || Object.values(espacesReg).some(x => x && String(x.email || '').toLowerCase() === String(email).toLowerCase()),
+      /* ⛔ `stripeListe` rend `[]` quand la lecture a échoué et qu'aucune liste n'a jamais été lue (une minute d'attente après un échec) :
+         pour Hugo, une panne ne doit JAMAIS se lire « aucun abonnement ». Sans liste LUE, ou une liste de plus de trois fois l'âge du
+         cache, c'est `null` : « on ne sait pas », aucune demande. */
+      stripeListe: async () => {
+        if (!(config.stripe && config.stripe.secretKey)) return null;
+        const l = await stripeListe();
+        return (espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS) ? l : null;
+      },
+      paiement: (c, sl, liste) => {
+        const e = { slug: sl, email: String(c.email).toLowerCase(), nom: '', formule: '' };
+        const st = espaceStripeDans(e, liste);
+        const surs = (st && st.surs) || [];
+        if (!surs.length) return { sur: false };
+        if ((st.douteux || []).length) return { sur: false, doute: true };
+        return { sur: true, formule: formulePayee(e, surs) };
+      } });
+    app.post('/api/monitor/agents/hugo/passer', monPatronStrict, async (req, res) => {
+      try { res.json(Object.assign({ ok: true }, await agentHugo.passer())); }
+      catch (e) { console.error('hugo :', e.message); res.status(500).json({ error: 'Passage non traité' }); }
+    });
+    setInterval(() => { agentHugo.passer().catch(e => console.error('hugo :', e.message)); }, 15 * 60000).unref();
   } catch (e) { console.error('agents indisponibles :', e.message); }
 } catch (e) { console.error('messagerie indisponible :', e.message); }
 

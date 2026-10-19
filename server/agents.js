@@ -229,6 +229,12 @@ module.exports = function monterAgents(app, ctx) {
     return { ok: true, id: v.id };
   }
 
+  /* A-t-il déjà proposé CE (type, espace) ? Toute proposition compte — en attente, acceptée, refusée — sauf une expirée : une demande
+     que personne n'a regardée en sept jours peut être refaite, un refus du patron, non. */
+  function dejaPropose(id, type, espace) {
+    return validations.some(v => v.agent === id && v.type === type && v.statut !== 'expire' && v.params && v.params.espace === espace);
+  }
+
   /* Un agent demande quelque chose à un autre. Seules des formes fermées passent (`SCHEMAS`). */
   function deposer(de, vers, type, params) {
     const p = peutAgir(de);
@@ -365,7 +371,7 @@ module.exports = function monterAgents(app, ctx) {
     } catch (e) { console.error('décision des agents :', e.message); res.status(500).json({ error: 'Décision non traitée' }); }
   });
 
-  return { peutAgir, noter, proposer, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS };
+  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;
