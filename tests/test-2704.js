@@ -105,7 +105,7 @@ function facteur() {
   const etat = { boites: { [BX]: { messages: [], actions: [] } }, pannes: { [BAD]: 'Invalid credentials pour ' + BAD } };
   const poser = (dossier, o) => { const k = dossier; rang[k] = (rang[k] || 0) + 1; const n = rang[k];
     etat.boites[BX].messages.push(Object.assign({ dossier, uid: n, messageId: o.mid || ('<' + dossier.slice(0, 2) + n + '@banc-2704>'), from: o.de || 'client@exemple-2704.fr', fromNom: o.nom || '', to: o.a || BX,
-      subject: o.objet || ('Message ' + n), text: o.texte || ('Corps du message ' + n), ts: T0 + n * 600000, flags: o.lu ? ['\\Seen'] : [] }, o.pieces ? { pieces: o.pieces } : {})); };
+      subject: o.objet || ('Message ' + n), text: o.texte || ('Corps du message ' + n), ts: T0 + n * 600000, flags: o.lu ? ['\\Seen'] : [] }, o.pieces ? { pieces: o.pieces } : {}, o.html ? { html: o.html } : {})); };
   poser('INBOX', { objet: 'Facture mars', nom: 'Anne Durand', texte: 'Bonjour, ma facture de mars.' });
   poser('INBOX', { objet: 'Devis signé', lu: true, pieces: [{ nom: 'devis.pdf', type: 'application/pdf', taille: 2345 }] });
   poser('INBOX', { objet: 'Avis de sécurité', mid: '<' + PROTEGE + '>', de: 'banc@teamop.fr' });
