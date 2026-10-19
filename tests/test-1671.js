@@ -130,7 +130,7 @@ const sansCommSh = (t) => t.replace(/^[ \t]*#.*$/gm, ' ');
   vrai('le proxy est détecté (nginx OU caddy, OPCOURRIER_PROXY force) et deux proxys actifs = refus', /OPCOURRIER_PROXY/.test(code) && /nginx ET caddy sont actifs/.test(code));
   // la détection du proxy, EXÉCUTÉE avec un faux systemctl
   const bPx = SH.slice(SH.indexOf('actif() {'), SH.indexOf('echo "   proxy : $PROXY"') + 'echo "   proxy : $PROXY"'.length);
-  const dPx = fs.mkdtempSync(path.join(os.tmpdir(), 'opcourrier-px-')); fs.writeFileSync(path.join(dPx, 'systemctl'), '#!/bin/sh\ncase " $ACTIFS " in *" $2 "*) exit 0;; esac\nexit 1\n', { mode: 0o755 });
+  const dPx = fs.mkdtempSync(path.join(os.tmpdir(), 'opcourrier-px-')); fs.writeFileSync(path.join(dPx, 'systemctl'), '#!/bin/sh\ncase " $ACTIFS " in *" $3 "*) exit 0;; esac\nexit 1\n', { mode: 0o755 });
   const px = (actifs, forcer) => spawnSync('bash', ['-c', 'set -euo pipefail\n' + bPx], { encoding: 'utf8', env: { PATH: dPx + ':' + process.env.PATH, ACTIFS: actifs, OPCOURRIER_PROXY: forcer || '' } });
   vrai('proxy : seul Caddy actif → caddy', /proxy : caddy/.test(px('caddy').stdout) && px('caddy').status === 0);
   vrai('proxy : seul nginx actif → nginx', /proxy : nginx/.test(px('nginx').stdout));
