@@ -1,0 +1,10 @@
+{
+  "name": "teamop-courrier",
+  "version": "1.0.0",
+  "description": "Serveur d'OP Courrier — signature électronique par Yousign, service à part (ni le serveur d'OP GESTION, ni celui d'OP MESSAGES)",
+  "main": "index.js",
+  "private": true,
+  "engines": { "node": ">=22.5" },
+  "scripts": { "start": "node index.js" },
+  "dependencies": { "express": "^4.21.0" }
+}
