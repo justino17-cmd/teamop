@@ -59,7 +59,7 @@
 # 7 octobre 2026 : `test-851` (publier OP MESSAGES depuis la Tour : le vrai serveur, un faux GitHub, les deux instances, et la VRAIE carte de `tour.html` v2.86) — il entre
 # avec la Tour v2.86 qu'il lit : les deux partent ensemble sur `main`. Plancher relevé du nombre de ses vérifications (28).
 # 7 octobre 2026, mesuré : 58 suites, 3 939 vérifications une fois `test-978` nourri de la carte « Publier » (il mourait à 18) — plancher 3925.
-#plancher 4280
+#plancher 4530
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -193,4 +193,12 @@ tests/test-2692.js
 # 19 octobre 2026 : `test-2703` (le socle de l'équipe d'agents, `server/agents.js` : registre, journal, validations, pause globale, tâches entre agents — une phrase ne traverse pas
 # la file, un état illisible arrête les agents, seul `pause: false` reprend, arrêt → brouillon → auto sans saut, seul le patron décide) — il lit `server/` seulement, aucune page.
 tests/test-2703.js
+# 19 octobre 2026, la Tour des agents : `test-2704` (le panneau : ses vraies fonctions contre le vrai serveur — il lit `tour.html`, qui part avec le serveur), `test-2705` (Hugo),
+# `test-2706` (les dossiers DOS-nnnnnn), `test-2707` (les conversations), `test-2708` (le cerveau, le budget, la réponse de Hugo sans donnée de client). 4 678 contre les pages de `main`
+# (70 suites) — plancher relevé à 4 530.
+tests/test-2704.js
+tests/test-2705.js
+tests/test-2706.js
+tests/test-2707.js
+tests/test-2708.js
 # 19 octobre 2026 : 4 420 contre les pages de `main` (65 suites), `test-2703` compris (+129) — plancher relevé à 4 280.
