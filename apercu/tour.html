@@ -3130,7 +3130,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.96';
+var TOUR_VERSION='v2.98';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -7133,7 +7133,9 @@ function courrierSource(){
     signature:signature,
     capacites:function(){ return signaturePrete().then(function(pret){ return {oauth:false,programmeServeur:false,signature:pret,marquage:true,deplacement:true,reglagesServeur:true,simulation:false,
       dossiers:['inbox','drafts','sent','archive','junk','trash'],destinataires:20,pj:{nombre:12,octets:12*1024*1024},
-      journalEnvois:true,telechargerPiece:true,suivi:true,moi:MYNOM}; }); },
+      journalEnvois:true,telechargerPiece:true,suivi:true,traduire:true,moi:MYNOM}; }); },
+    /* « Traduire en français » (20 octobre 2026) : le texte d'UN message, au geste, traduit par le serveur (`/api/monitor/mail/traduire`) */
+    traduire:function(texte){ return appel('/api/monitor/mail/traduire',{texte:String(texte||'')},'Traduction refusée').then(function(d){ if(!d||typeof d.texte!=='string') throw new Error('réponse du serveur illisible'); return d.texte; }); },
     boites:function(){
       return appel('/api/monitor/mail/boites',undefined,'Lecture des boîtes refusée').then(function(d){
         if(!d||!Array.isArray(d.boites)) throw new Error('réponse du serveur illisible');

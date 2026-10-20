@@ -12,7 +12,7 @@ console.log('── test-2804 : le corps d\'un mail se lit ──');
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'opcourrier.js'), 'utf8');
 const tranche = (debut, fin) => { const i = SRC.indexOf(debut), j = SRC.indexOf(fin, i + 1); return i > 0 && j > i ? SRC.slice(i, j) : ''; };
 const H = tranche('  var H=function', '\n');
-const F = tranche('  var _deco=null;', '\n  /*') || tranche('  var _deco=null;', '\n  var ');
+const F = tranche('  var _deco=null;', '    return h.replace(/\\n/g,"<br>"); }') + '    return h.replace(/\\n/g,"<br>"); }';
 v('(population) les trois pièces sont trouvées dans le fichier livré', [H.length > 50, /function entitesLues/.test(F), /function corpsLu/.test(F)], [true, true, true]);
 const NOMMEES = { '&Eacute;': 'É', '&eacute;': 'é', '&nbsp;': ' ', '&lt;': '<', '&gt;': '>', '&amp;': '&', '&quot;': '"', '&rsquo;': '’' };
 const document = { createElement: () => { const t = { _v: '' }; Object.defineProperty(t, 'innerHTML', { set(x) { t._v = NOMMEES[x] !== undefined ? NOMMEES[x] : x; } }); Object.defineProperty(t, 'value', { get() { return t._v; } }); return t; } };

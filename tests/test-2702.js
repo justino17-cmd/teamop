@@ -128,10 +128,10 @@ vrai('les raccourcis clavier n\'écoutent QUE l\'arbre du module (sr.addEventLis
 console.log('\n4. Le contrat de l\'adaptateur : ce que le module appelle est écrit en tête du fichier, et inversement');
 const TETE = MOD.slice(0, MOD.indexOf('(function () {'));
 const appelles = Array.from(new Set(Array.from(CODE.matchAll(/\bSRC\.(\w+)/g)).map(m => m[1]))).sort();
-const documentes = ['ajouterBoite', 'boites', 'capacites', 'deplacer', 'envois', 'envoyer', 'lire', 'lireMX', 'marquer', 'messages', 'piece', 'retirerBoite', 'signature', 'simuler', 'suivi'];
+const documentes = ['ajouterBoite', 'boites', 'capacites', 'deplacer', 'envois', 'envoyer', 'lire', 'lireMX', 'marquer', 'messages', 'piece', 'retirerBoite', 'signature', 'simuler', 'suivi', 'traduire'];
 v('(population) les méthodes de la source appelées par le module', appelles, documentes);
 v('⛔ chacune est DÉCRITE dans le contrat, en tête du fichier', documentes.filter(m => !(m === 'signature' ? /^     signature\s+→/m : new RegExp('\\b' + m + '\\(')).test(TETE)), []);
-v('⛔ …et les trois méthodes des gestes d\'avant (envois, piece, suivi) ont leur PROPRE ligne de contrat (une simple mention au passage ne suffit pas)', ['envois', 'piece', 'suivi'].filter(m => !new RegExp('^     ' + m + '\\(', 'm').test(TETE)), []);
+v('⛔ …et les trois méthodes des gestes d\'avant (envois, piece, suivi) ont leur PROPRE ligne de contrat (une simple mention au passage ne suffit pas)', ['envois', 'piece', 'suivi', 'traduire'].filter(m => !new RegExp('^     ' + m + '\\(', 'm').test(TETE)), []);
 v('les options documentées sont celles que le module lit (source, cotes, cote, cleStockage, theme, titre, onCompter, titreDocument, intervalle)', ['source', 'cotes', 'cote', 'cleStockage', 'theme', 'titre', 'onCompter', 'titreDocument', 'intervalle'].filter(o => !new RegExp('\\b' + o + '\\b').test(TETE) || !new RegExp('opt\\.' + o + '\\b').test(CODE)), []);
 vrai('la valeur rendue : { demonter, cote, rafraichir }', /return \{\s*demonter:demonter,[\s\S]*?cote:function\(c\)[\s\S]*?rafraichir:function\(o\)/.test(CODE));
 vrai('monter exige une source (message clair) et un conteneur', /l’option « source » \(l’adaptateur de données\) est obligatoire/.test(CODE));

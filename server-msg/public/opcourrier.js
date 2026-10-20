@@ -46,6 +46,7 @@
      envois()                    → [ { id, a, objet, corps, date:ms, etat?:'echec'|'retard' } ]   (seulement avec capacites().journalEnvois : le journal des e-mails que le SERVEUR envoie, lecture seule)
      piece(idMessage, idPiece)   → Blob                                            (seulement avec capacites().telechargerPiece ; le nom est assaini ici, rien n'est ouvert ni exécuté)
      suivi(id,{statut?,assigne?})→ { statut:'aTraiter'|'enCours'|'resolu', assigne, par? }  (seulement avec capacites().suivi)
+     traduire(texte,'fr')→ texte traduit (chaîne)  (seulement avec capacites().traduire : un geste, UN message, jamais tout seul ; rien n'est rangé)
      ajouterBoite(params)        → { id, email, … } ; params = { email, nom, mdp, fournisseur, cote, serveurs }
      retirerBoite(id)
      lireMX(domaine)             → [serveurs]                                      (facultatif : sans lui, jamais d'appel réseau pour reconnaître un domaine d'entreprise)
@@ -576,6 +577,9 @@ var CSS = `
   .opc .rbody{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
   .opc .rbody p{margin:0 0 14px}
   .opc .rbody p:last-child{margin-bottom:0}
+  .opc .rbody .rtrad{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:13px}
+  .opc .rbody .rtrad .lnk{color:var(--tint)}
+  .opc .rbody .rtrad-n{color:var(--label-2)}
   .opc .rbody a.rlien{color:var(--tint);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
   .opc .rbody .quote{border-left:2px solid var(--tint);padding-left:12px;color:var(--label-2);margin:16px 0}
   .opc .attbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
@@ -1533,6 +1537,7 @@ var MARKUP = `
      ne fait que décoder, rien ne s'y exécute) et seulement elle : jamais le texte entier, où « <https://…> » serait pris pour une balise.
      Puis les adresses web deviennent des liens qu'on touche — sauf dans les indésirables (on n'ouvre pas une arnaque d'un clic). */
   var _deco=null;
+  var TRAD={};   // les traductions de la séance, par message (jamais rangées)
   function entitesLues(s){ s=String(s==null?"":s); if(s.indexOf("&")<0) return s;
     return s.replace(/&#x([0-9a-f]{1,6});/gi,function(t,h){ var n=parseInt(h,16); return n>0&&n<0x110000?String.fromCodePoint(n):t; })
       .replace(/&#([0-9]{1,7});/g,function(t,d){ var n=+d; return n>0&&n<0x110000?String.fromCodePoint(n):t; })
@@ -1715,7 +1720,7 @@ var MARKUP = `
 
   // ---------- Ce que la source sait faire (SRC.capacites()) ----------
   // Tout est FAUX tant que la source ne dit pas le contraire : ce qu'elle ne sait pas faire, l'interface le dit (« Bientôt : … ») au lieu de faire semblant.
-  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,journalEnvois:false,telechargerPiece:false,suivi:false,signatureReelle:false,
+  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,journalEnvois:false,telechargerPiece:false,suivi:false,signatureReelle:false,traduire:false,
     dossiers:["inbox"],destinataires:50,pj:{nombre:99,octets:25*1024*1024}};
   function appliquerCapacites(c){
     c=c&&typeof c==="object"?c:{};
@@ -1725,6 +1730,7 @@ var MARKUP = `
     CAP.journalEnvois=c.journalEnvois===true&&typeof SRC.envois==="function";
     CAP.telechargerPiece=c.telechargerPiece===true&&typeof SRC.piece==="function";
     CAP.suivi=c.suivi===true&&typeof SRC.suivi==="function";
+    CAP.traduire=c.traduire===true&&typeof SRC.traduire==="function";   // « Traduire en français » (20 octobre 2026) : la source traduit, le module ne devine rien
     // La VRAIE signature exige la déclaration ET les six méthodes de l'objet `signature` : sans elles, le module ne promet rien de plus qu'avant.
     var sg=SRC.signature;
     CAP.signatureReelle=c.signature===true&&!!sg&&typeof sg==="object"&&["envoyer","etat","relancer","annuler","signe","preuve"].every(function(k){ return typeof sg[k]==="function"; });
@@ -2406,6 +2412,12 @@ var MARKUP = `
     var who=senderName(m), acc=acctOf(m.acct), k0=kindOf(acc);
     if(m.src&&m.body===null) lireCorps(m);
     var bodyHtml=m.body===null?'<p class="lecture">Chargement du message…</p>':(m.body||[]).map(function(p){ var li=m.folder!=="junk"; if(Array.isArray(p)&&p[0]==="quote") return '<div class="quote">'+corpsLu(p[1],li)+'</div>'; return "<p>"+corpsLu(p,li)+"</p>"; }).join("");
+    /* TRADUIRE (20 octobre 2026, Justin : « ça serait bien qu'on puisse traduire les mails ») : un geste, par message, jamais tout seul — le texte part à la
+       source (le serveur le fait traduire) seulement quand on touche « Traduire ». Rien n'est rangé : la traduction vit le temps de la séance. Pas pour un indésirable. */
+    var tr=TRAD[m.id], trOk=CAP.traduire&&m.folder!=="junk"&&Array.isArray(m.body)&&m.body.length>0;
+    if(trOk&&tr&&tr.etat==="ok"&&tr.vue) bodyHtml=tr.body.map(function(p){ return "<p>"+corpsLu(p,true)+"</p>"; }).join("");
+    if(trOk) bodyHtml='<div class="rtrad"><button type="button" class="lnk" data-act="traduire"'+(tr&&tr.etat==="cours"?' disabled aria-busy="true"':'')+'>'+
+      H(!tr?"Traduire en français":tr.etat==="cours"?"Traduction…":tr.vue?"Voir l’original":"Voir la traduction")+'</button>'+(tr&&tr.etat==="ok"&&tr.vue?'<span class="rtrad-n">Traduit automatiquement</span>':'')+'</div>'+bodyHtml;
     var canSign=!m.sign&&k0==="pro"&&m.att.some(function(a){ return a.kind!=="img"; })&&m.folder!=="junk"&&m.folder!=="trash";
     var dlOk=!!m.src&&CAP.telechargerPiece&&typeof SRC.piece==="function";
     var att=m.att.length?'<div class="attbar">'+m.att.map(function(a,i){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(m.sign&&estPDF(a)?boutonApercu(i,"data-pv-att"):'')+(dlOk&&a.id!=null?'<button type="button" class="att-dl" data-dl="'+i+'" aria-label="Télécharger '+H(a.name)+'" title="Télécharger">'+I.down+'</button>':'')+'</div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn" data-act="signFrom">'+I.sign+'<span>Faire signer</span></button>':'')+'</div>':'';
@@ -2671,6 +2683,14 @@ var MARKUP = `
     else if(act==="toInbox"){ if(!peutRemettre(m)) return; if(m.folder==="junk") markNotJunk(m); else moveTo(m,"inbox","Remis dans la réception"); }
     else if(act==="junk") markJunk(m);
     else if(act==="notJunk") markNotJunk(m);
+    else if(act==="traduire"){ if(!CAP.traduire) return; var t0=TRAD[m.id];
+      if(t0&&t0.etat==="ok"){ t0.vue=!t0.vue; renderAll(); return; } if(t0) return;
+      var mid=m.id, texte=(m.body||[]).map(function(p){ return entitesLues(Array.isArray(p)?p[1]:p); }).join("\n\n");
+      TRAD[mid]={etat:"cours"}; renderAll();
+      Promise.resolve().then(function(){ return SRC.traduire(texte,"fr"); }).then(function(r){
+        var txt=String(r==null?"":r).trim(); if(!txt) throw new Error("réponse vide");
+        TRAD[mid]={etat:"ok",vue:true,body:txt.split(/\n{2,}/)}; renderAll();
+      },function(e){ delete TRAD[mid]; renderAll(); toast("Traduction impossible"+(e&&e.message?" : "+e.message:"")); }); }
     else if(act==="moveCat") openMoveCat(m);
     else if(act==="trash") moveTo(m,"trash","Message supprimé");
     else if(act==="reply") openCompose(replyModel(m,false));
