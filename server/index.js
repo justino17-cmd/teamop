@@ -2055,7 +2055,7 @@ const MON_GESTES = {
   'devisia': 'a changé l’accès Devis IA d’une entreprise',
   'mail/boites': 'a relié une boîte mail', 'mail/boites/retirer': 'a retiré une boîte mail', 'mail/flag': null, 'mail/deplacer': null,
   'mail/supprimer': 'a supprimé un courriel', 'mail/envoyer': 'a envoyé un courriel', 'mail/brouillon': null,
-  'mail/reglages': 'a changé les réglages du courrier', 'mail/suivi': null, 'mail/regle': 'a rangé une adresse dans une console',
+  'mail/reglages': 'a changé les réglages du courrier', 'mail/suivi': null, 'mail/traduire': null, 'mail/regle': 'a rangé une adresse dans une console',
   'documents/inventaire': 'a lancé l’inventaire des documents',
   'portail/message': 'a changé le message du portail', 'portail/etat': 'a ouvert ou fermé le portail',
   'portail/actu': 'a publié une actualité du portail', 'portail/actu/supprimer': 'a supprimé une actualité du portail',
