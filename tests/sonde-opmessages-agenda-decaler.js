@@ -46,6 +46,13 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
 /* les dates en heure de Paris (le fuseau des deux navigateurs) */
 const ymd = t => new Intl.DateTimeFormat('en-CA', { timeZone: PARIS, year: 'numeric', month: '2-digit', day: '2-digit' }).format(t);
 const jourSemaine = t => (new Date(ymd(t) + 'T12:00:00Z').getUTCDay() + 6) % 7;             // lundi 0 … dimanche 6
+/* relire l'agenda comme une personne : on sort de l'onglet et on y revient (`entrerReunions` relit le service). ⛔ (20 octobre 2026) « revenir à aujourd'hui » ne relit plus
+   quand la semaine affichée est déjà la bonne (`allerAuJour` redessine seulement) : la sonde comptait dessus, et ce qu'on venait de créer au service n'arrivait jamais. */
+async function relireAgenda(S) {
+  await toucher(S, S.pf.mobile ? '#tabs a[data-vue="messages"]' : '#nav-side a[data-vue="messages"]');
+  await attendre(S, () => document.getElementById('vue-reunions').hidden);
+  await agenda(S);
+}
 async function agenda(S) {
   await toucher(S, S.pf.mobile ? '#tabs a[data-vue="reunions"]' : '#nav-side a[data-vue="reunions"]');
   await attendre(S, () => { const s = document.getElementById('vue-reunions'); return !s.hidden && document.getElementById('liste-reunions').getAttribute('aria-busy') === 'false'; }, null, 12000);
@@ -154,7 +161,7 @@ async function tirer(S, de, vers) {
 
     console.log('\n── 5. Un chevauchement se dit ; un événement personnel se tire aussi ──');
     await a.post('/api/agenda', { titre: GENE, debut: CIBLE + 'T16:00', fin: CIBLE + 'T17:00', tz: PARIS, rappel: null });
-    await A.page.evaluate(() => document.getElementById('sem-titre').click());           // relire (revenir à aujourd'hui recharge la fenêtre)
+    await relireAgenda(A);
     if (semaineSuivante) { await toucher(A, '#sem-suiv'); }
     await attendre(A, ([g]) => document.getElementById('sem-grille').textContent.includes(g), [GENE], 12000);
     await A.page.mouse.click((await centre(A, selR)).x, (await centre(A, selR)).y, { button: 'right' });
@@ -184,7 +191,7 @@ async function tirer(S, de, vers) {
     vrai('(population) trois jours à venir de suite dans la semaine affichée', iX >= 0, jours);
     const X = ymd(jours.cases[iX]), X1 = ymd(jours.cases[iX + 1]), X2 = ymd(jours.cases[iX + 2]);
     const salon = await a.post('/api/agenda', { titre: 'Salon WQXZ', debut: X, fin: X1, journee: true, tz: PARIS, rappel: null });
-    await A.page.evaluate(() => document.getElementById('sem-titre').click());
+    await relireAgenda(A);
     if (semaineSuivante) { await toucher(A, '#sem-suiv'); }
     const vuSalon = await attendre(A, ([j]) => { const [y, m, d] = j.split('-').map(Number), t = new Date(y, m - 1, d).getTime(), c = document.querySelector('#sem-grille .mjour[data-case="' + t + '"]'); return !!c && c.textContent.includes('Salon WQXZ'); }, [X1], 12000);
     vrai('(population) le salon (' + X + ' → ' + X1 + ') est créé et paraît aussi dans la case de son 2e jour', salon.code === 201 && vuSalon, salon.code);
