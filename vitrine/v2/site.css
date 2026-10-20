@@ -154,7 +154,7 @@ h1, h2, h3 { text-wrap: balance; }
 .grande-carte { position: relative; overflow: hidden; background: var(--card); min-height: clamp(600px,54vw,800px); display: flex; flex-direction: column; text-align: center; }
 .grande-carte .haut { padding: clamp(44px,5vw,64px) 40px 0; }
 .petit-titre { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--sub); }
-.grande-carte h3 { margin: 8px 0 0; font-family: var(--titre); font-size: clamp(30px,3.4vw,48px); line-height: 1.08; letter-spacing: -.028em; font-weight: 700; }
+.grande-carte h2, .grande-carte h3 { margin: 8px 0 0; font-family: var(--titre); font-size: clamp(30px,3.4vw,48px); line-height: 1.08; letter-spacing: -.028em; font-weight: 700; }
 .grande-carte p { margin: 12px auto 0; max-width: 460px; font-size: clamp(17px,1.5vw,21px); line-height: 1.4; color: var(--sub); }
 .grande-carte .bas { flex: 1; min-height: 330px; display: flex; justify-content: center; align-items: flex-end; padding: 34px 40px 0; }
 /* le téléphone sort par le bas de la carte, comme posé derrière : on en montre les trois quarts */
