@@ -13778,3 +13778,8 @@ Tous auraient donné un rapport faux. Ils sont désormais dans CLAUDE.md :
   requise », ce qui est juste dans un conteneur sans réseau.
 · ⚠️ **Côté code, à garder en tête** : `closeModal()` déréférence `$('overlay')` sans garde.
   Rien ne retire cet élément aujourd'hui, mais tout ce qui le ferait figerait la navigation.
+
+# ✅ 20 OCTOBRE 2026 — MAQUETTE DE LA TOUR VALIDÉE PAR JUSTIN (« là c'est parfait »)
+`design/propositions/maquette-tour.html` (rien de branché, données d'exemple). Elle part de la Tour v2.97 telle qu'elle est (bascule GESTION / MESSAGES, sections, accueil « Bonjour… », bandeau du serveur, couleurs et police de la Tour) et y ajoute, marqué « Nouveau » : Au rapport (chaque problème client avec son attente, son objectif et son responsable), Facturation (impayés, relances), Incidents, Contrats, Agents, Rapport du sous-PDG, Journal. Le Courrier y est le VRAI `opcourrier.js`, monté avec une source d'exemple.
+⛔ Leçons, payées : (1) partir de l'écran qui EXISTE, pas d'une page blanche — six versions refusées avant ; (2) un fichier HTML donné à ouvrir hors d'un serveur porte `<meta charset="utf-8">` en tête, sinon Safari casse tous les accents (Chromium devine l'encodage, la sonde ne le voyait pas) ; (3) un module qui existe se MONTE, il ne se redessine pas.
+Suite : brancher la structure sur la vraie Tour, en aperçu d'abord ; puis la messagerie des agents (demandée le même jour).

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Maquette Tour TeamOP</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Plan : la Tour d'aujourd'hui (v2.97), gardée telle quelle pour son style : bascule GESTION / MESSAGES, sections Tour, Clients, Support, Administration, accueil « Bonjour… »,
+   bandeau d'état du serveur, mêmes couleurs (jour #F2F2F7 / blanc / bleu #0071E3, nuit bleu #0F1A30), mêmes polices (SF Pro) et même échelle.
+   Ce que j'ajoute pour une vraie société est marqué « Nouveau » dans le menu : Facturation, Incidents, Juridique et signature, Agents et rapport du jour, Journal.
+   Le courrier est OP Courrier (dossiers, liste, lecture, suivi). Mise en page : fenêtre de Mac, barre latérale 232 px. */
+:root{--fs:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;--ft:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif;--bg:#f2f2f7;--side:#f7f7fa;--surface:#ffffff;--inset:rgba(118,118,128,.12);--hover:rgba(0,0,0,.04);--line:rgba(60,60,67,.16);--hair:rgba(60,60,67,.12);--text:#000000;--muted:rgba(60,60,67,.78);--dim:rgba(60,60,67,.62);--acc:#007aff;--accfill:#0071e3;--acctxt:#0060c0;--accbg:rgba(0,122,255,.12);--on:#ffffff;--gest:#34c759;--gesttxt:#1c7a3a;--gestbg:rgba(52,199,89,.16);--vert:#1c7a3a;--ambre:#8a5300;--ambrebg:rgba(255,149,0,.16);--rouge:#b3261e;--rougebg:rgba(255,59,48,.12);--verre:rgba(249,249,249,.85);--ombre:0 0 0 .5px rgba(60,60,67,.1)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a30;--side:#0c1528;--surface:rgba(255,255,255,.08);--inset:rgba(118,118,128,.24);--hover:rgba(255,255,255,.06);--line:rgba(255,255,255,.13);--hair:rgba(255,255,255,.08);--text:#ffffff;--muted:rgba(220,228,245,.72);--dim:rgba(220,228,245,.58);--acc:#7fb2ff;--accfill:#0a84ff;--acctxt:#7fb2ff;--accbg:rgba(127,178,255,.16);--gesttxt:#6fd49b;--gestbg:rgba(52,199,89,.2);--vert:#6fd49b;--ambre:#f2c26b;--ambrebg:rgba(255,159,10,.18);--rouge:#ff9a92;--rougebg:rgba(255,69,58,.2);--verre:rgba(15,26,48,.82);--ombre:0 0 0 .5px rgba(255,255,255,.1);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1a30;--side:#0c1528;--surface:rgba(255,255,255,.08);--inset:rgba(118,118,128,.24);--hover:rgba(255,255,255,.06);--line:rgba(255,255,255,.13);--hair:rgba(255,255,255,.08);--text:#ffffff;--muted:rgba(220,228,245,.72);--dim:rgba(220,228,245,.58);--acc:#7fb2ff;--accfill:#0a84ff;--acctxt:#7fb2ff;--accbg:rgba(127,178,255,.16);--gesttxt:#6fd49b;--gestbg:rgba(52,199,89,.2);--vert:#6fd49b;--ambre:#f2c26b;--ambrebg:rgba(255,159,10,.18);--rouge:#ff9a92;--rougebg:rgba(255,69,58,.2);--verre:rgba(15,26,48,.82);--ombre:0 0 0 .5px rgba(255,255,255,.1);color-scheme:dark}
+*{box-sizing:border-box}
+button,input,select,textarea{font-family:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--fs);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-synthesis:none;padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
+h1,h2,h3,p{margin:0}
+.scene{display:flex;justify-content:center;padding:12px 12px 16px}
+.fenetre{position:relative;width:var(--W,1280px);height:var(--h,860px);zoom:var(--z,1);border-radius:12px;overflow:hidden;background:var(--bg);box-shadow:0 18px 60px rgba(0,0,0,.28);border:1px solid var(--line)}
+.titre-fen{position:absolute;top:0;left:0;right:0;height:30px;display:flex;align-items:center;gap:7px;padding:0 13px;background:var(--verre);border-bottom:1px solid var(--hair);z-index:3}
+.titre-fen i{width:11px;height:11px;border-radius:50%;background:#ff5f57}.titre-fen i:nth-child(2){background:#febc2e}.titre-fen i:nth-child(3){background:#28c840}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);height:100%;padding-top:30px}
+aside{background:var(--side);border-right:1px solid var(--hair);display:flex;flex-direction:column;min-height:0}
+.haut{padding:14px 12px 4px;display:flex;flex-direction:column;gap:12px}
+.marque{display:flex;align-items:center;gap:10px;padding:0 4px}
+.logo{width:34px;height:34px;border-radius:9px;background:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f1f4f9;line-height:1;flex:none}
+.logo small{font-size:5.5px;letter-spacing:.2em;font-weight:600;opacity:.85;margin:0 0 1px .2em}.logo b{font-family:var(--ft);font-size:14px;letter-spacing:-.02em;font-weight:700}
+.marque>div:last-child b{display:block;font-size:15px;font-weight:600;letter-spacing:-.01em}.marque>div:last-child small{color:var(--muted);font-size:12px}
+.bascule{display:flex;background:var(--inset);border-radius:9px;padding:2px}
+.bascule button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;min-height:30px;border-radius:7px;cursor:pointer}
+.bascule button::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--gest)}
+.bascule button:nth-child(2)::before{background:var(--acc)}
+.bascule button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.menu{flex:1;overflow:auto;padding:0 8px 12px;min-height:0}
+.rub-t{display:block;color:var(--muted);font-size:11.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:12px 10px 4px}
+.entree{white-space:nowrap;display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;color:var(--text);font-size:14.5px;font-weight:400;padding:0 10px;min-height:34px;border-radius:8px;cursor:pointer;text-align:left}
+.entree svg{width:17px;height:17px;flex:none;stroke:var(--acc);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.entree:hover{background:var(--hover)}
+.entree[aria-current="page"]{background:var(--accbg);font-weight:600}
+.cnt{margin-left:auto;font-size:12px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.cnt.rg{background:var(--accfill);color:#fff;border-radius:999px;padding:0 7px;min-width:20px;text-align:center}
+.nv{margin-left:auto;white-space:nowrap;font-size:10.5px;font-weight:600;color:var(--acctxt);background:var(--accbg);border-radius:999px;padding:1px 7px}
+.pied{padding:9px 14px;border-top:1px solid var(--hair);color:var(--muted);font-size:11.5px;line-height:1.35}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.droite{display:flex;flex-direction:column;min-width:0;min-height:0}
+.bandeau{display:flex;align-items:center;gap:14px;padding:0 22px;min-height:46px;border-bottom:1px solid var(--hair);background:var(--verre);flex:none}
+.fil-b{font-size:13.5px;color:var(--muted)}.fil-b b{color:var(--text);font-weight:500}
+.bandeau .sp{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--muted)}
+.srv{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border-radius:999px;padding:4px 11px;box-shadow:var(--ombre);color:var(--text);font-weight:500}
+.srv::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gest)}
+.srv.ko::before{background:#ff3b30}
+.srv.btn-pal{cursor:pointer;border:0;font-size:12.5px;color:var(--muted)}
+.srv.btn-pal::before{display:none}
+.srv kbd{font:600 11px var(--fs);background:var(--inset);border-radius:5px;padding:1px 6px;margin-left:6px}
+main{overflow:auto;min-width:0;position:relative;flex:1}
+.page{padding:22px max(26px,2.4vw) 40px;max-width:1160px;margin:0 auto}
+.fil{color:var(--muted);font-size:13px;margin:0 0 4px}
+h1{font-family:var(--ft);font-size:34px;line-height:1.1;letter-spacing:-.025em;font-weight:700;text-wrap:balance}
+.date{color:var(--muted);font-size:15.5px;margin-top:3px}
+.th{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.pill{display:inline-block;background:var(--inset);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:500}
+.pill.alerte{background:var(--rougebg);color:var(--rouge)}
+.sous{color:var(--muted);margin:3px 0 0;font-size:15px;max-width:72ch}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px}
+@media(max-width:1200px){.cols{grid-template-columns:1fr}}
+.st{display:flex;align-items:baseline;gap:10px;margin:20px 2px 9px}
+.st h2{font-family:var(--ft);font-size:19px;font-weight:600;letter-spacing:-.018em}
+.st span{color:var(--muted);font-size:13px}
+.st a{margin-left:auto;font-size:13px;color:var(--acctxt);cursor:pointer;font-weight:500}
+.card{background:var(--surface);border-radius:12px;box-shadow:var(--ombre);overflow:hidden}
+.rang{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 15px;min-height:50px;border-top:1px solid var(--hair);flex-wrap:wrap}
+.rang:first-child{border-top:0}
+.rang .t{min-width:0;flex:1 1 240px;overflow-wrap:anywhere;font-weight:500}
+.rang .t small{display:block;color:var(--muted);font-size:13px;margin-top:1px;font-weight:400}
+.rang.clic{cursor:pointer}.rang.clic:hover{background:var(--hover)}
+.tile{width:34px;height:34px;border-radius:9px;background:var(--accbg);display:grid;place-items:center;flex:none}
+.tile svg{width:18px;height:18px;stroke:var(--acctxt);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.val{font-family:var(--ft);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
+.val i{font-style:normal;color:var(--dim);font-size:15px}
+.etat{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:500;white-space:nowrap}
+.etat::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.ok{color:var(--vert)}.att{color:var(--ambre)}.ko{color:var(--rouge)}.neutre{color:var(--muted)}
+.btn{font-size:13.5px;font-weight:600;min-height:34px;padding:0 14px;border-radius:8px;border:0;background:var(--accbg);color:var(--acctxt);cursor:pointer;white-space:nowrap}
+.btn.p{background:var(--accfill);color:#fff}
+.vide{padding:24px 16px;text-align:center;color:var(--muted);font-size:14px}
+.pg{color:var(--muted);font-size:13px;margin:7px 4px 0;max-width:76ch}
+.texte{background:var(--surface);border-radius:12px;box-shadow:var(--ombre);padding:13px 16px}
+.texte p+p{margin-top:8px}
+.flux{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:13px 15px}
+.etape{background:var(--accbg);color:var(--acctxt);padding:5px 12px;border-radius:999px;font-size:13px;font-weight:500}
+.fl{color:var(--dim)}
+.tuiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.tuile{background:var(--surface);border-radius:12px;box-shadow:var(--ombre);padding:12px 15px;text-align:left;border:0;color:inherit}
+button.tuile{cursor:pointer}button.tuile:hover{background:var(--hover)}
+.tuile b{display:block;font-family:var(--ft);font-size:24px;line-height:1.1;letter-spacing:-.02em;font-weight:600;font-variant-numeric:tabular-nums}
+.tuile span{color:var(--muted);font-size:12.5px}
+.rap{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:10px 15px;border-top:1px solid var(--hair)}
+.rap:first-child{border-top:0}
+.rap .t{min-width:0;font-weight:500;overflow-wrap:anywhere}.rap .t small{display:block;color:var(--muted);font-size:13px;font-weight:400}
+.att-t{text-align:right;font-size:12.5px;color:var(--muted);white-space:nowrap}.att-t b{display:block;font-size:14px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+.att-t b.late{color:var(--rouge)}
+/* OP Courrier */
+.cour{display:grid;grid-template-columns:216px minmax(270px,330px) minmax(0,1fr);height:100%}
+.cf{border-right:1px solid var(--hair);overflow:auto;padding:10px 8px;background:var(--side)}
+.cf h3{font-size:11.5px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:14px 9px 4px}
+.cf h3:first-child{padding-top:2px}
+.cf .entree{min-height:32px;font-size:14px}
+.cl{border-right:1px solid var(--hair);display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+.cl-h{padding:12px 14px 8px;border-bottom:1px solid var(--hair)}
+.cl-h h1{font-size:19px;letter-spacing:-.018em;font-weight:600}
+.cl-h p{color:var(--muted);font-size:12.5px;margin-top:1px}
+.bo{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.bo button,.cats button{border:0;background:var(--inset);color:var(--text);font-size:12.5px;font-weight:500;padding:0 10px;min-height:26px;border-radius:999px;cursor:pointer}
+.bo button[aria-pressed="true"],.cats button[aria-pressed="true"]{background:var(--accfill);color:#fff}
+.cats{display:flex;gap:5px;padding:8px 14px 0;flex-wrap:wrap}
+.lm{overflow:auto;flex:1;margin-top:6px}
+.m{display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;border:0;background:transparent;color:inherit;font-size:inherit;padding:9px 14px;border-bottom:1px solid var(--hair);cursor:pointer}
+.m:hover{background:var(--hover)}
+.m[aria-current="true"]{background:var(--accfill);color:#fff}
+.m[aria-current="true"] .l3,.m[aria-current="true"] .dt{color:#fff;opacity:.85}
+.pt{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+.m.nl .pt{background:var(--acc)}.m[aria-current="true"] .pt{background:#fff}
+.m .cc{min-width:0;flex:1}
+.m .l1{display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.m .de{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m .dt{font-size:12px;color:var(--muted);white-space:nowrap}
+.m .l2{font-size:13.5px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m .l3{font-size:12.5px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-block;font-size:11.5px;font-weight:600;padding:0 7px;border-radius:999px;margin-right:5px;background:var(--ambrebg);color:var(--ambre)}
+.m[aria-current="true"] .badge{background:#fff;color:var(--accfill)}
+.cr{overflow:auto;padding:16px 22px 30px;background:var(--bg)}
+.tb{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tb select{font-size:13px;font-weight:500;min-height:30px;border-radius:7px;border:0;background:var(--inset);color:var(--text);padding:0 8px}
+.tb label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.cr h2{font-family:var(--ft);font-size:20px;line-height:1.2;letter-spacing:-.018em;font-weight:600;margin:4px 0 8px;overflow-wrap:anywhere}
+.ex{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.av{width:32px;height:32px;border-radius:50%;background:var(--accfill);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600;flex:none}
+.ex b{font-weight:600;display:block;font-size:14.5px}.ex small{color:var(--muted);font-size:12.5px}
+.pil{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.pil span{background:var(--inset);border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:500}
+.pil span.late{background:var(--rouge);color:#fff}
+.corps{background:var(--surface);border-radius:12px;box-shadow:var(--ombre);padding:13px 16px}
+.corps p+p{margin-top:9px}
+.prep{background:var(--accbg);border-radius:12px;padding:11px 14px;margin:12px 0}
+.prep h3{font-size:12.5px;font-weight:600;color:var(--acctxt);margin-bottom:5px}
+.prep p{margin-bottom:8px}
+.hist{margin-top:14px;color:var(--muted);font-size:13px}
+.hist h3{font-size:12.5px;font-weight:600;margin-bottom:4px}
+.hist ul{margin:0;padding:0}.hist li{margin:0 0 3px;list-style:none}
+.pal{position:absolute;inset:30px 0 0 0;background:rgba(0,0,0,.32);z-index:10;display:flex;justify-content:center;padding-top:70px}
+.pal[hidden]{display:none}
+.pal-b{width:min(540px,92%);max-height:70%;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.4);overflow:hidden;display:flex;flex-direction:column;align-self:flex-start}
+.pal-b input{border:0;border-bottom:1px solid var(--hair);background:transparent;color:var(--text);font-size:16px;padding:13px 16px;outline:0}
+.pal-l{overflow:auto;padding:6px}
+.pal-l button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;color:var(--text);font-size:14.5px;text-align:left;padding:0 10px;min-height:36px;border-radius:7px;cursor:pointer}
+.pal-l button small{margin-left:auto;color:var(--muted);font-size:12.5px}
+.pal-l button:hover,.pal-l button[aria-selected="true"]{background:var(--accbg)}
+@media(prefers-reduced-motion:no-preference){.page,.cr{animation:ap .18s cubic-bezier(.2,.8,.2,1)}@keyframes ap{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}}
+</style>
+<div class="scene"><div class="fenetre" id="fen">
+<div class="titre-fen"><i></i><i></i><i></i></div>
+<div class="app">
+<aside aria-label="Navigation de la Tour">
+  <div class="haut">
+    <div class="marque"><div class="logo"><small>TEAM</small><b>OP</b></div><div><b>La Tour</b><small>Justin Biret · patron</small></div></div>
+    <div class="bascule" role="group" aria-label="Console"><button id="b-g" type="button" aria-pressed="true">GESTION</button><button id="b-m" type="button" aria-pressed="false">MESSAGES</button></div>
+  </div>
+  <div class="menu" id="menu"></div>
+  <div class="pied">Maquette : données d’exemple. « Nouveau » = ajouté pour une vraie société, absent de la Tour actuelle.</div>
+</aside>
+<div class="droite">
+  <div class="bandeau"><div class="fil-b" id="fil"></div><div class="sp"><button class="srv btn-pal" id="q" type="button">Aller à…<kbd>⌘K</kbd></button><span id="mode"></span><span class="srv" id="srv">Serveur en ligne 13:11</span></div></div>
+  <main id="vue" tabindex="-1"></main>
+</div>
+</div>
+<div class="pal" id="pal" hidden><div class="pal-b" role="dialog" aria-label="Aller à"><input id="pal-q" type="text" placeholder="Une page, une société, un message…" aria-label="Rechercher"><div class="pal-l" id="pal-l"></div></div></div>
+</div></div>
+<script src="../../opcourrier.js"></script>
+<script>
+(function(){
+'use strict';
+var APP='gestion',PAGE='accueil',C={boite:'toutes',dossier:'inbox',cat:'principal',sel:null};
+var I={accueil:'<path d="M4 11l8-7 8 7v8.5a1.5 1.5 0 01-1.5 1.5h-3V15h-7v6h-3A1.5 1.5 0 014 19.5z"/>',demandes:'<path d="M4 5h16v11H9l-5 4z"/>',comptes:'<circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.7 3.5-5.5 7-5.5s6.2 1.8 7 5.5"/>',entreprises:'<path d="M4 20V8l8-4 8 4v12"/><path d="M9 20v-5h6v5M8.5 10.5h1M14.5 10.5h1"/>',abonnements:'<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M3 10h18M7 15h3"/>',facturation:'<path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6"/>',courrier:'<rect x="3.5" y="6" width="17" height="12" rx="3"/><path d="M4 7l8 6 8-6"/>',surveillance:'<path d="M3 12h4l2.5-6 4 12 2.5-6H21"/>',incidents:'<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.3v.1"/>',contrats:'<path d="M7 3.5h8l4 4V20.5H7z"/><path d="M15 3.5v4h4M10 12h6M10 15.5h6"/>',agents:'<rect x="5" y="8" width="14" height="11" rx="3.5"/><path d="M12 4v4M9.5 13v1.5M14.5 13v1.5"/><circle cx="12" cy="3.6" r="1"/>',rapport:'<path d="M5 4.5h14v15H5z"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/>',acces:'<rect x="5" y="10.5" width="14" height="9.5" rx="3"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/>',systeme:'<path d="M4 7h16M4 12h16M4 17h16"/>',journal:'<path d="M5 4.5h14v15H5z"/><path d="M8.5 9h7M8.5 12.5h7M8.5 16h4"/>',inbox:'<path d="M4 13l2.5-7h11L20 13v5a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18z"/><path d="M4 13h4.5l1 2h5l1-2H20"/>',flag:'<path d="M6 20V4.5M6 5h11l-2.5 4 2.5 4H6"/>',draft:'<path d="M5 19l1-4L16.5 4.5a2 2 0 013 3L9 18z"/>',clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/>',sent:'<path d="M20 4L10 14M20 4l-6 16-4-6-6-4z"/>',sign:'<path d="M4 18c3 0 4-8 6-8s1 6 3.5 6S17 11 20 11"/>',envois:'<rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M4 7l8 6 8-6"/>',archive:'<rect x="4" y="5" width="16" height="4" rx="1.5"/><path d="M5.5 9v9.5h13V9M10 13h4"/>',junk:'<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',trash:'<path d="M5 7h14M9.5 7V5h5v2M7 7l1 12h8l1-12"/>',moi:'<circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.7 3.5-5.5 7-5.5s6.2 1.8 7 5.5"/>',paiements:'<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M3 10h18"/>'};
+var AG={Victor:'Sous-PDG',Margaux:'Facturation et contrats',Hugo:'Support',Recouvrement:'Relances et suspensions',Juriste:'Textes et tampon','Rédacteur':'Conditions'};
+/* le menu : celui de la Tour v2.97 ; [clé, libellé, nouveau?] */
+function MENU(){var g=APP==='gestion';return [['Tour',[['accueil','Accueil']]],
+ ['Clients',[g?['demandes','Demandes']:['comptes','Comptes'],['entreprises','Entreprises'],['abonnements','Abonnements'],['facturation','Facturation',1]]],
+ ['Support',[['courrier','Courrier'],['surveillance','Surveillance'],['incidents','Incidents',1]]],
+ ['Juridique',[['contrats','Contrats',1]]],
+ ['Équipe d’agents',[['agents','Agents',1],['rapport','Rapport',1]]],
+ ['Administration',[['acces','Accès'],g?['systeme','Système']:['journal','Journal'],g?['journal','Journal',1]:null].filter(Boolean)]];}
+var DOSS=[['Favoris',[['inbox','Boîte de réception','inbox'],['flagged','Marqués','flag'],['drafts','Brouillons','draft'],['scheduled','Programmés','clock'],['sent','Envoyés','sent'],['sign','Signatures','sign'],['envois','Envois TeamOP','envois']]],
+ ['Suivi',[['s_atraiter','À traiter','clock'],['s_encours','En cours','agents'],['s_moi','Assignés à moi','moi']]],
+ ['Rangement',[['archive','Archive','archive'],['junk','Indésirables','junk'],['trash','Corbeille','trash']]]];
+var NOMD={};DOSS.forEach(function(g){g[1].forEach(function(f){NOMD[f[0]]=f[1];});});
+var CATS=[['principal','Principal'],['notif','Notifications'],['recus','Reçus']];
+var BOITES=[['toutes','Toutes les boîtes'],['contact','contact@'],['support','support@'],['signature','signature@']];
+var MSGS=[
+ {id:1,boite:'support',dos:'inbox',cat:'principal',de:'Karim Benali',mail:'k.benali@societe-a.fr',client:'Société A',objet:'Je ne retrouve plus mes interventions de lundi',date:'13:05',lu:false,suivi:'atraiter',prop:'Hugo',att:'1 h 12',objectif:'4 h',late:false,corps:['Bonjour,','Depuis ce matin je ne vois plus les interventions de lundi dans OP GESTION. Mon équipe est sur le terrain et en a besoin pour la tournée.','Pouvez-vous regarder rapidement ? Merci.'],prep:'Bonjour Karim,\nVos interventions de lundi sont bien présentes : nous avons relu la synchronisation de votre équipe, tout est en place. Fermez puis rouvrez l’application et elles réapparaîtront. Si ce n’est pas le cas, répondez-moi et je vous appelle.\nCordialement,\nL’équipe TeamOP',hist:['13 h 05 · message reçu','13 h 20 · Hugo a vérifié la synchronisation','13 h 24 · Hugo a préparé une réponse']},
+ {id:2,boite:'support',dos:'inbox',cat:'principal',de:'Sonia Marchand',mail:'s.marchand@societe-b.fr',client:'Société B',objet:'Le bouton « Imprimer » ne répond pas',date:'11:20',lu:false,suivi:'atraiter',prop:'Hugo',att:'3 h 05',objectif:'4 h',late:false,corps:['Bonjour,','Sur mon téléphone, le bouton pour imprimer un rapport ne fait rien. Je dois l’envoyer au client ce soir.'],prep:'Bonjour Sonia,\nMerci du signalement. Nous avons reproduit le défaut et l’avons transmis à l’équipe de développement. En attendant, vous pouvez envoyer le rapport par courriel depuis la fiche de l’intervention : il part en PDF. Je vous écris dès que c’est corrigé.\nCordialement,\nL’équipe TeamOP',hist:['11 h 20 · message reçu','11 h 50 · Hugo a reproduit le défaut sur la bêta']},
+ {id:3,boite:'contact',dos:'inbox',cat:'principal',de:'Élodie Fabre',mail:'e.fabre@societe-e.fr',client:'Société E',objet:'Demande d’un espace OP GESTION',date:'12:10',lu:true,suivi:'encours',prop:'Margaux',att:'2 h 10',objectif:'1 j',late:false,corps:['Bonjour,','Nous sommes une entreprise de nettoyage de 12 personnes et voudrions ouvrir un espace OP GESTION, formule Business. Quelles sont les étapes ?'],prep:'Bonjour Élodie,\nMerci de votre demande. Nous préparons votre facture et votre contrat de formule Business ; vous les recevrez par courriel, avec vos accès une fois le contrat accepté.\nCordialement,\nL’équipe TeamOP',hist:['12 h 10 · message reçu','12 h 40 · Margaux prépare la facture et le contrat']},
+ {id:4,boite:'support',dos:'inbox',cat:'principal',de:'Paul Giraud',mail:'p.giraud@societe-f.fr',client:'Société F',objet:'Question sur le passage de Pro à Business',date:'Hier',lu:true,suivi:'encours',prop:'Hugo',att:'En attente du client',objectif:'',late:false,corps:['Bonjour,','Que change le passage de Pro à Business pour notre équipe de 6 personnes ?'],prep:'',hist:['Hier 10 h · question reçue','Hier 10 h 30 · réponse envoyée par Hugo']},
+ {id:5,boite:'support',dos:'inbox',cat:'notif',de:'Surveillance TeamOP',mail:'surveillance@teamop.fr',client:'Tous les clients',objet:'Alerte : le service de signature ne répond plus',date:'14:02',lu:false,suivi:'encours',prop:'Victor',att:'12 min',objectif:'30 min',late:false,corps:['La sonde de surveillance ne reçoit plus de réponse du service de signature depuis 12 minutes.','Aucun client n’est signalé touché pour l’instant.'],prep:'',hist:['14 h 02 · plus de réponse','14 h 03 · Victor a redémarré le service','14 h 12 · Victor attend la reprise']},
+ {id:6,boite:'support',dos:'inbox',cat:'notif',de:'Facturation TeamOP',mail:'facturation@teamop.fr',client:'Société C',objet:'Paiement refusé : OP MESSAGES Perso',date:'Lun.',lu:true,suivi:'encours',prop:'Recouvrement',att:'3 j',objectif:'7 j',late:false,corps:['Le dernier prélèvement de la Société C a été refusé. Une relance est partie il y a 3 jours.','Sans règlement, l’accès est suspendu, jamais supprimé.'],prep:'',hist:['Il y a 7 j · prélèvement refusé','Il y a 3 j · relance envoyée','Dans 2 j · seconde relance programmée']},
+ {id:7,boite:'support',dos:'inbox',cat:'recus',de:'Stripe',mail:'recus@stripe.com',client:'Société A',objet:'Paiement reçu : OP GESTION Pro, 49 €',date:'Lun.',lu:true,suivi:null,prop:'',att:'',objectif:'',late:false,corps:['Un paiement de 49 € de la Société A vient d’être reçu.'],prep:'',hist:[]},
+ {id:8,boite:'signature',dos:'envois',cat:'principal',de:'TeamOP Signature',mail:'signature@teamop.fr',client:'Société B',objet:'Code de signature envoyé à s.marchand@societe-b.fr',date:'Lun.',lu:true,suivi:null,prop:'',att:'',objectif:'',late:false,corps:['Le code de vérification a été envoyé au signataire pour le document « Contrat de maintenance 2027 ».'],prep:'',hist:[]},
+ {id:9,boite:'support',dos:'sign',cat:'principal',de:'Contrat de maintenance 2027',mail:'',client:'Société B',objet:'Contrat de maintenance 2027 : en attente de signature',date:'Lun.',lu:true,suivi:null,prop:'',att:'',objectif:'',late:false,corps:['Demande envoyée à Sonia Marchand. Échéance dans 12 jours.'],prep:'',hist:[]},
+ {id:10,boite:'support',dos:'scheduled',cat:'principal',de:'Recouvrement',mail:'',client:'Société C',objet:'Seconde relance de paiement, programmée dans 2 jours',date:'Dans 2 j',lu:true,suivi:null,prop:'Recouvrement',att:'',objectif:'',late:false,corps:['Relance prévue : paiement refusé, OP MESSAGES Perso.'],prep:'',hist:[]},
+ {id:11,boite:'contact',dos:'drafts',cat:'principal',de:'Margaux',mail:'',client:'Société E',objet:'Brouillon : votre facture et votre contrat',date:'12:40',lu:true,suivi:null,prop:'Margaux',att:'',objectif:'',late:false,corps:['Brouillon prêt, en attente de la validation des textes de contrats.'],prep:'',hist:[]}];
+function dansDossier(m,f,toutes){var b=toutes||C.boite==='toutes'||m.boite===C.boite;if(!b)return false;
+ if(f==='s_atraiter')return m.suivi==='atraiter';if(f==='s_encours')return m.suivi==='encours';if(f==='s_moi')return m.prop==='Toi'&&m.suivi&&m.suivi!=='resolu';
+ if(f==='flagged')return !!m.marque;if(f==='inbox')return m.dos==='inbox'&&m.suivi!=='resolu';if(f==='archive')return m.dos==='archive'||m.suivi==='resolu';return m.dos===f;}
+function compteur(f){return MSGS.filter(function(m){return dansDossier(m,f,true);}).length;}
+function nonLus(f){return MSGS.filter(function(m){return dansDossier(m,f,true)&&!m.lu;}).length;}
+function icone(k){var s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('aria-hidden','true');s.innerHTML=I[k]||'';return s;}
+function fr(x){return typeof x==='string'?x.replace(/ ([:»])/g,' $1').replace(/ ([;!?])/g,' $1').replace(/« /g,'« '):x;}
+function h(t,a){var e=document.createElement(t),k,i,c;for(k in(a||{})){if(k==='class')e.className=a[k];else if(k==='text')e.textContent=fr(a[k]);else if(k.slice(0,2)==='on')e.addEventListener(k.slice(2),a[k]);else e.setAttribute(k,a[k]);}for(i=2;i<arguments.length;i++){c=arguments[i];if(c==null)continue;e.appendChild(typeof c==='string'?document.createTextNode(fr(c)):c);}return e;}
+function etat(t,c){return h('span',{class:'etat '+c,text:t});}
+function btn(t,p,f){return h('button',{type:'button',class:'btn'+(p?' p':''),text:t,onclick:f||function(){}});}
+function rang(t,s,d,f){return h('div',{class:'rang'+(f?' clic':''),onclick:f||null},h('div',{class:'t'},t,s?h('small',{text:s}):null),d||null);}
+function carte(rangs){var g=h('div',{class:'card'});rangs.forEach(function(r){g.appendChild(r);});return g;}
+function st(titre,sous,lien,f){var e=h('div',{class:'st'},h('h2',{text:titre}));if(sous)e.appendChild(h('span',{text:sous}));if(lien)e.appendChild(h('a',{text:lien,onclick:f}));return e;}
+function tuiles(l){var g=h('div',{class:'tuiles'});l.forEach(function(x){g.appendChild(h(x[2]?'button':'div',{class:'tuile',type:x[2]?'button':null,onclick:x[2]||null},h('b',{text:x[0]}),h('span',{text:x[1]})));});return g;}
+function lignes(l){return l.map(function(a){return rang(a[0],a[1],a[2]?etat(a[2],a[3]||'neutre'):null);});}
+function tete(c,t,sous,pill,alerte){var th=h('div',{class:'th'},h('div',null,h('h1',{text:t}),h('p',{class:sous&&sous.length>30?'sous':'date',text:sous})));if(pill)th.appendChild(h('span',{class:'pill'+(alerte?' alerte':''),text:pill}));c.appendChild(th);}
+function page(c){return h('div',{class:'page'},c);}
+function go(p){PAGE=p;rendre();}
+var P={};
+P.accueil=function(){var c=h('div'),att=compteur('s_atraiter'),moi=1;tete(c,'Bonjour Justin Biret','Mardi 20 octobre 2026',(att+moi)+' points à traiter');
+ var cols=h('div',{class:'cols'}),g=h('div'),d=h('div');
+ g.appendChild(st('Courrier',compteur('s_atraiter')+' à traiter','Ouvrir OP Courrier',function(){C.dossier='s_atraiter';go('courrier');}));
+ g.appendChild(carte([h('div',{class:'rang clic',onclick:function(){C.dossier='inbox';go('courrier');}},h('div',{style:'display:flex;gap:12px;align-items:center'},h('span',{class:'tile'},icone('courrier')),h('div',{class:'t'},nonLus('inbox')+(nonLus('inbox')>1?' messages non lus':' message non lu'),h('small',{text:'3 boîtes reliées : contact@, support@, signature@'}))),h('span',{class:'val'},h('i',{text:'›'})))]));
+ g.appendChild(st('Au rapport','ce qui attend un client, du plus ancien au plus récent'));
+ var ouv=MSGS.filter(function(m){return (m.suivi==='atraiter'||m.suivi==='encours')&&m.att&&m.att.indexOf('En attente')<0;}).sort(function(a,b){return a.id===1?-1:1;});
+ var cd=h('div',{class:'card'});cd.appendChild(h('div',{class:'rap'},h('div',{class:'t'},'Valider les 11 textes de contrats',h('small',{text:'TeamOP · aucun contrat ne part tant que ce n’est pas fait'})),h('div',{class:'att-t'},h('b',{text:'2 jours'}),'Toi'),btn('Ouvrir',true,function(){go('contrats');})));
+ ouv.forEach(function(m){cd.appendChild(h('div',{class:'rap'},h('div',{class:'t'},m.objet,h('small',{text:m.client+' · '+(m.suivi==='atraiter'?'à traiter':'en cours')+(m.objectif?' · objectif '+m.objectif:'')})),h('div',{class:'att-t'},h('b',{text:m.att}),m.prop),btn('Ouvrir',false,function(){C.dossier='inbox';C.cat=m.cat;C.boite='toutes';C.sel=m.id;m.lu=true;go('courrier');})));});
+ g.appendChild(cd);
+ g.appendChild(st('Rapport de Victor, sous-PDG','exemple','Tout le rapport',function(){go('rapport');}));
+ g.appendChild(h('div',{class:'texte'},h('p',{text:'Hier : 4 demandes traitées, 1 abonnement activé, 2 contrats préparés, 1 alerte détectée puis suivie. Aujourd’hui : 2 messages clients à traiter, 3 impayés suivis, aucune mise en demeure (geste réservé à de vrais juristes).'})));
+ d.appendChild(st('En un coup d’œil'));
+ function lig(t,s,v,f){return h('div',{class:'rang clic',onclick:f},h('div',{class:'t'},t,h('small',{text:s})),h('span',{class:'val'},v,h('i',{text:'›'})));}
+ d.appendChild(carte([lig('Incidents ouverts','Service de signature, suivi par Victor','1',function(){go('incidents');}),lig('Messages non lus','3 boîtes reliées',String(nonLus('inbox')),function(){C.dossier='inbox';go('courrier');}),lig('Entreprises clientes','10 surveillées','0',function(){go('entreprises');}),lig('Revenu mensuel','2 abonnements actifs','98 €',function(){go('facturation');})]));
+ d.appendChild(st('Derniers paiements'));d.appendChild(carte([rang('Société A · OP GESTION Pro','Lundi',etat('49 €','ok')),rang('Société C · OP MESSAGES Perso','Prélèvement refusé',etat('refusé','ko'))]));
+ d.appendChild(st('Activité de la console'));d.appendChild(carte([rang('Contrat validé','Toi · il y a 1 h'),rang('Brouillon de réponse','Hugo · il y a 1 h')]));
+ cols.appendChild(g);cols.appendChild(d);c.appendChild(cols);return page(c);};
+var INST=null,NBNL=3;
+function theme(){return (window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'nuit':'jour';}
+function creerSource(){var T=Date.now(),MIN=60000,ST={atraiter:'aTraiter',encours:'enCours',resolu:'resolu'};
+ var BX=[{id:'b-contact',email:'contact@teamop.fr',nom:'contact@',cote:'pro'},{id:'b-support',email:'support@teamop.fr',nom:'support@',cote:'pro'},{id:'b-signature',email:'signature@teamop.fr',nom:'signature@',cote:'pro'}];
+ var AGE={1:72,2:185,3:130,4:1500,5:12,6:4300,7:4400};
+ function sv(m){return m.suivi?{statut:ST[m.suivi],assigne:m.prop==='Toi'?'Justin Biret':m.prop,par:''}:null;}
+ function ligne(m){var txt=m.corps.join('\n\n');return {id:'m'+m.id,dossier:'inbox',de:{nom:m.de,email:m.mail||'noreply@teamop.fr'},a:m.boite+'@teamop.fr',objet:m.objet,apercu:m.corps[m.corps.length>1?1:0],corps:txt,date:T-(AGE[m.id]||60)*MIN,lu:m.lu,drapeau:false,pj:[],suivi:sv(m),automatique:m.cat!=='principal'};}
+ function parId(id){return MSGS.filter(function(m){return 'm'+m.id===id;})[0];}
+ return {capacites:function(){return Promise.resolve({moi:'Justin Biret',oauth:false,programmeServeur:false,signature:false,marquage:true,deplacement:true,reglagesServeur:false,simulation:false,journalEnvois:true,telechargerPiece:false,suivi:true,dossiers:['inbox']});},
+  boites:function(){return Promise.resolve(BX);},
+  messages:function(o){if(o.dossier!=='inbox')return Promise.resolve([]);var id=o.boite.replace('b-','');return Promise.resolve(MSGS.filter(function(m){return m.dos==='inbox'&&m.boite===id;}).map(ligne));},
+  lire:function(id){var m=parId(id);return Promise.resolve({corps:m?m.corps.join('\n\n'):'',pj:[],suivi:m?sv(m):null});},
+  marquer:function(){return Promise.resolve();},deplacer:function(){return Promise.resolve();},envoyer:function(){return Promise.resolve();},
+  envois:function(){return Promise.resolve([{id:'e1',a:'s.marchand@societe-b.fr',objet:'Votre code de signature',corps:'Le code de vérification a été envoyé pour le document « Contrat de maintenance 2027 ».',date:T-4300*MIN},{id:'e2',a:'k.benali@societe-a.fr',objet:'Contrat de formule Pro à signer',corps:'Votre contrat est prêt : le lien pour le lire et le signer est dans ce message.',date:T-6000*MIN}]);},
+  suivi:function(id,e){var m=parId(id);if(m){if(e.statut)m.suivi={aTraiter:'atraiter',enCours:'encours',resolu:'resolu'}[e.statut];if(e.assigne!==undefined)m.prop=e.assigne==='Justin Biret'?'Toi':e.assigne;}return Promise.resolve({statut:e.statut||ST[m&&m.suivi],assigne:e.assigne!==undefined?e.assigne:(m?m.prop:''),par:'Justin Biret'});},
+  ajouterBoite:function(){return Promise.reject(new Error('Maquette : les boîtes sont déjà reliées.'));},retirerBoite:function(){return Promise.reject(new Error('Maquette : rien à retirer.'));}};}
+function courrier(){var z=h('div',{style:'height:100%;width:100%'});setTimeout(function(){if(!z.isConnected||!window.OPCourrier)return;INST=window.OPCourrier.monter(z,{source:creerSource(),cotes:['pro'],cote:'pro',cleStockage:'maquette_courrier',theme:theme,titre:'OP Courrier',son:false,titreDocument:false,intervalle:0,onCompter:function(n){NBNL=n;var b=document.getElementById('nb-courrier');if(b)b.textContent=n?String(n):'';}});},0);return z;}
+function simple(t,s,fn){return function(){var c=h('div');tete(c,t,s);fn(c);return page(c);};}
+P.demandes=simple('Demandes','Les demandes d’espace et de changement de formule.',function(c){c.appendChild(carte(lignes([['Société E : demande d’espace OP GESTION','Business · il y a 2 h','à traiter','att'],['Société F : changement de formule','Pro vers Business · hier','traitée','ok']])));});
+P.comptes=simple('Comptes','Les comptes de personnes d’OP MESSAGES, séparés des entreprises d’OP GESTION.',function(c){c.appendChild(carte(lignes([['Comptes de personnes','Grand public et professionnels','serveur à part','neutre']])));});
+P.entreprises=simple('Entreprises','Chaque société, avec ce qu’elle utilise, ce qu’elle paie et ses échanges en cours.',function(c){var g=h('div',{class:'card'});[['Société A','OP GESTION · Pro · 1 message à traiter','actif','ok'],['Société B','OP GESTION et OP MESSAGES · Business · 1 message à traiter','actif','ok'],['Société C','OP MESSAGES · Perso · relance en cours','impayé','ko'],['Société D','OP GESTION · essai · aucun problème','période offerte','neutre']].forEach(function(x){g.appendChild(rang(x[0],x[1],h('span',{style:'display:flex;gap:10px;align-items:center'},etat(x[2],x[3]),btn('Courrier',false,function(){C.dossier='inbox';C.cat='principal';C.boite='toutes';go('courrier');}))));});c.appendChild(g);
+ c.appendChild(st('Fiche à 360° (exemple : Société C)'));c.appendChild(carte(lignes([['Applications','OP MESSAGES · formule Perso'],['Contrat','Accepté, version 1','ok','ok'],['Facturation','Dernier prélèvement refusé','impayé','ko'],['Courrier','1 relance programmée'],['Historique','Inscrite il y a 5 mois']])));c.appendChild(h('p',{class:'pg',text:'Dans la vraie Tour, cette fiche rassemble tout un client : produits, contrat, factures, échanges et chronologie.'}));});
+P.abonnements=simple('Abonnements','Le parcours d’un abonnement, de l’achat à l’envoi des accès.',function(c){var f=h('div',{class:'card'},h('div',{class:'flux'}));['Paiement','Facture','Contrat par abonnement','Acceptation du client','Accès envoyés'].forEach(function(x,i){var z=f.firstChild;if(i)z.appendChild(h('span',{class:'fl','aria-hidden':'true',text:'›'}));z.appendChild(h('span',{class:'etape',text:x}));});c.appendChild(f);
+ c.appendChild(st('Abonnements'));c.appendChild(carte(lignes([['Société A · OP GESTION · Pro','Contrat accepté · accès envoyés','prêt','ok'],['Société B · OP GESTION · Business','Contrat envoyé · accès en attente','en attente','att'],['Société B · OP MESSAGES · Pro','Contrat accepté · accès envoyés','prêt','ok'],['Société D · OP GESTION · essai','Texte du contrat non validé','bloqué','ko']])));});
+P.facturation=simple('Facturation','Factures, paiements, impayés et relances.',function(c){c.appendChild(tuiles([['98 €','revenu mensuel'],['4','factures ce mois-ci'],['1','impayé']]));c.appendChild(st('Impayés et relances'));c.appendChild(carte(lignes([['Société C · OP MESSAGES Perso','Relance envoyée il y a 3 jours, suspension dans 4 jours','en relance','att'],['Société G · OP GESTION Pro','Facture échue depuis 5 jours, relance hier','en relance','att']])));c.appendChild(h('p',{class:'pg',text:'Un impayé suit une règle fixe : relance, puis suspension. La mise en demeure est toujours faite par de vrais juristes, jamais automatiquement.'}));c.appendChild(st('Dernières factures'));c.appendChild(carte(lignes([['Société A · OP GESTION Pro','Payée','payée','ok'],['Société B · Business','Envoyée','en attente','att']])));});
+P.surveillance=simple('Surveillance','L’état du site, de l’API et des services.',function(c){c.appendChild(carte(lignes([['Site et API','Contrôle toutes les heures','tout est vert','ok'],['OP GESTION','v769 · 14 sociétés','ok','ok'],['OP MESSAGES','bêta · 6 sociétés','ok','ok'],['Service de signature','12 min sans réponse','alerte','ko'],['Sauvegarde hors site','Dernière : cette nuit','ok','ok']])));});
+P.incidents=simple('Incidents','Pannes et alertes, avec leur responsable et leur chronologie.',function(c){c.appendChild(carte([h('div',{class:'rap'},h('div',{class:'t'},'Le service de signature ne répond plus',h('small',{text:'Tous les clients · suivi par Victor · aucun client signalé touché'})),h('div',{class:'att-t'},h('b',{text:'12 min'}),'objectif 30 min'),btn('Ouvrir',true,function(){C.dossier='inbox';C.cat='notif';C.boite='toutes';C.sel=5;go('courrier');}))]));c.appendChild(st('Résolus récemment'));c.appendChild(carte(lignes([['Sauvegarde hors site en retard','Copie arrivée avec 40 min de retard, relue et contrôlée','résolu','ok']])));});
+P.contrats=simple('Contrats et signature','Les textes validés par toi, et la signature électronique des clients.',function(c){c.appendChild(carte(lignes([['Conditions générales','Version 1','brouillon','att'],['Conditions OP GESTION','Version 1','brouillon','att'],['Conditions OP MESSAGES','Version 1','brouillon','att'],['Conditions particulières, six formules','Version 1','brouillon','att'],['Accord de sous-traitance','Version 1','brouillon','att']])));c.appendChild(h('p',{class:'pg',text:'Tant qu’un texte n’est pas validé par toi, aucun contrat ne part : le serveur le refuse.'}));c.appendChild(st('Signature électronique'));c.appendChild(carte(lignes([['Moteur TeamOP','Code reçu par courriel, dossier de preuve en PDF','prêt','ok']])));});
+P.agents=simple('Agents','Chaque agent a un rôle et un mode : arrêt, brouillon (tu valides) ou auto (agit seul dans ses droits).',function(c){var md={Victor:['auto','ok'],Margaux:['brouillon','att'],Hugo:['brouillon','att'],Recouvrement:['brouillon','att'],Juriste:['arrêt','neutre'],'Rédacteur':['brouillon','att']};c.appendChild(carte(Object.keys(AG).map(function(n){var nb=MSGS.filter(function(x){return x.prop===n&&x.suivi&&x.suivi!=='resolu';}).length;return rang(n,AG[n]+' · '+nb+' message'+(nb>1?'s':'')+' en cours',etat(md[n][0],md[n][1]));})));c.appendChild(h('p',{class:'pg',text:'Un agent ne valide jamais à ta place : ce qui t’attend arrive dans « Assignés à moi » du courrier.'}));});
+P.rapport=simple('Rapport du jour','Rédigé chaque jour par Victor, le sous-PDG.',function(c){c.appendChild(h('div',{class:'texte'},h('p',{text:'Hier : 4 demandes traitées, 1 abonnement activé, 2 contrats préparés, 1 alerte détectée puis suivie.'}),h('p',{text:'Aujourd’hui : 2 messages clients à traiter, 3 impayés suivis, aucune mise en demeure.'}),h('p',{text:'Ce que j’ai fait sans toi : 2 brouillons de réponse, 3 relances. Ce que je n’ai pas fait : aucune mise en demeure, geste réservé à de vrais juristes.'})));});
+P.acces=simple('Accès','Qui peut entrer dans la Tour, et avec quels droits.',function(c){c.appendChild(carte(lignes([['Équipe de la Tour','Droits de chaque personne','3 personnes'],['Accès bêta','Comptes de l’équipe qui développe','2 actifs','ok']])));});
+P.systeme=simple('Système','Les services, les versions et les sauvegardes.',function(c){c.appendChild(carte(lignes([['Version de la Tour','v2.97','à jour','ok'],['Dernière sauvegarde hors site','Contrôlée par relecture','ok','ok']])));});
+P.journal=simple('Journal','Tout ce qui s’est passé, par qui, et quand.',function(c){c.appendChild(carte(lignes([['Alerte ouverte : service de signature','Victor','il y a 12 min'],['Contrat validé : conditions générales','Toi','il y a 1 h'],['Brouillon de réponse : Société A','Hugo','il y a 1 h']])));});
+function nomPage(p){var n='';MENU().forEach(function(g){g[1].forEach(function(x){if(x[0]===p)n=g[0]+'|'+x[1];});});return n.split('|');}
+function rendre(){var m=document.getElementById('vue');if(!P[PAGE]&&PAGE!=='courrier')PAGE='accueil';var ok=false;MENU().forEach(function(g){g[1].forEach(function(x){if(x[0]===PAGE)ok=true;});});if(!ok)PAGE='accueil';
+ if(INST){try{INST.demonter();}catch(e){}INST=null;}m.textContent='';m.style.overflow=PAGE==='courrier'?'hidden':'auto';m.appendChild(PAGE==='courrier'?courrier():P[PAGE]());
+ var np=PAGE==='courrier'?['Support','Courrier']:nomPage(PAGE);document.getElementById('fil').innerHTML='';document.getElementById('fil').appendChild(document.createTextNode(np[0]+' › '));document.getElementById('fil').appendChild(h('b',{text:np[1]||''}));
+ document.getElementById('mode').textContent=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'mode nuit':'mode jour')+' (système)';
+ var menu=document.getElementById('menu');menu.textContent='';
+ MENU().forEach(function(g){menu.appendChild(h('span',{class:'rub-t',text:g[0]}));g[1].forEach(function(x){var b=h('button',{type:'button',class:'entree','aria-current':PAGE===x[0]?'page':'false',onclick:function(){go(x[0]);}},icone(x[0]),x[1]);
+  if(x[0]==='courrier'){b.appendChild(h('span',{class:'cnt rg',id:'nb-courrier',text:NBNL?String(NBNL):''}));}else if(x[0]==='demandes'||x[0]==='incidents'){var k=x[0]==='demandes'?2:1;b.appendChild(h('span',{class:'cnt',text:String(k)}));}
+  if(x[2])b.appendChild(h('span',{class:'nv',text:'Nouveau'}));menu.appendChild(b);});});
+ document.getElementById('b-g').setAttribute('aria-pressed',String(APP==='gestion'));document.getElementById('b-m').setAttribute('aria-pressed',String(APP==='messages'));}
+document.getElementById('b-g').addEventListener('click',function(){APP='gestion';rendre();});
+document.getElementById('b-m').addEventListener('click',function(){APP='messages';rendre();});
+/* ⌘K */
+var pal=document.getElementById('pal'),palq=document.getElementById('pal-q'),pall=document.getElementById('pal-l'),pidx=0,pres=[];
+function palListe(){var q=palq.value.trim().toLowerCase(),r=[];MENU().forEach(function(g){g[1].forEach(function(x){r.push({t:x[1],s:g[0],f:function(){go(x[0]);}});});});
+ MSGS.forEach(function(x){if(x.dos!=='inbox'&&x.dos!=='archive')return;r.push({t:x.objet,s:x.client+' · '+x.de,f:function(){C.dossier=x.dos==='archive'?'archive':'inbox';C.cat=x.cat;C.boite='toutes';C.sel=x.id;x.lu=true;go('courrier');}});});
+ pres=r.filter(function(x){return !q||(x.t+' '+x.s).toLowerCase().indexOf(q)>=0;}).slice(0,9);pidx=0;pall.textContent='';
+ if(!pres.length)pall.appendChild(h('p',{class:'vide',text:'Aucun résultat.'}));
+ pres.forEach(function(x,i){pall.appendChild(h('button',{type:'button','aria-selected':String(i===0),onclick:function(){palFerme();x.f();}},x.t,h('small',{text:x.s})));});}
+function palOuvre(){pal.hidden=false;palq.value='';palListe();palq.focus();}
+function palFerme(){pal.hidden=true;}
+function palSel(d){var b=pall.querySelectorAll('button');if(!b.length)return;b[pidx].setAttribute('aria-selected','false');pidx=(pidx+d+b.length)%b.length;b[pidx].setAttribute('aria-selected','true');b[pidx].scrollIntoView({block:'nearest'});}
+document.getElementById('q').addEventListener('click',palOuvre);
+palq.addEventListener('input',palListe);
+palq.addEventListener('keydown',function(e){if(e.key==='ArrowDown'){e.preventDefault();palSel(1);}else if(e.key==='ArrowUp'){e.preventDefault();palSel(-1);}else if(e.key==='Enter'&&pres[pidx]){palFerme();pres[pidx].f();}else if(e.key==='Escape')palFerme();});
+pal.addEventListener('mousedown',function(e){if(e.target===pal)palFerme();});
+document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();pal.hidden?palOuvre():palFerme();}else if(e.key==='Escape'&&!pal.hidden)palFerme();});
+function cadrer(){var w=window.innerWidth,hh=window.innerHeight,r=document.documentElement,W=Math.max(1260,Math.min(1560,w-24)),z=Math.min(1,(w-24)/W);
+ r.style.setProperty('--W',W+'px');r.style.setProperty('--z',String(z));r.style.setProperty('--h',Math.round(Math.max(560,Math.min(hh-32,1000))/z)+'px');}
+window.addEventListener('resize',cadrer);cadrer();rendre();
+}());
+</script>
+
+</html>
