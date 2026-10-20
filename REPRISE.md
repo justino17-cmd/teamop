@@ -13,6 +13,22 @@ de ligne du tout.
 
 ---
 
+
+# ✅ 20 OCTOBRE 2026 (SOIR) — OP MESSAGES : CAMPAGNE DE TESTS, DEUX DÉFAUTS CORRIGÉS ; OP COURRIER LISIBLE, LIENS, TRADUCTION (publié sur `main`)
+- **Publié** (Justin : « publie », « je t'autorise ») : l'administration d'OP MESSAGES réservée au patron (`monPatronStrict`, `test-1016`) ;
+  un lien `#reunion=` collé au démarrage n'est plus refermé (la question « Courrier ouvert ? » part avec la session) ; le corps d'un mail
+  se lit (entités décodées, `corpsLu`) et ses adresses sont des liens (pas pour un indésirable, `test-2804`) ; « Traduire en français »
+  dans le Courrier de la Tour v2.98 (`/api/monitor/mail/traduire`, Claude Haiku, 200/jour, rien au journal, jamais un 5xx — `test-2805`).
+  ⚠ Le texte d'un mail traduit part chez Anthropic, au geste : à mentionner dans `sous-traitance.html` (Justin, juriste).
+- **Campagne** : porte d'OP MESSAGES 182 suites · 11 914 ; serveur 72 · 4 814 ; grande sonde 3 244 ✓ 0 ✗ ; toutes les autres sondes vertes
+  après correction — sept étaient EN RETARD sur la page, pas la page en défaut (onglet Courrier, chemin du Profil, case du mois devenue
+  bloc + bouton, « revenir à aujourd'hui » qui ne relit plus, séance terminée qui ne s'ouvre plus de la liste, 400 ms de `armerRetap`).
+  Restent non jouées ici : `sonde-opmessages-visio` (pas de LiveKit dans le conteneur).
+- ⛔ Leçon : `NODE_PATH=/opt/node-tools/node_modules` pour les sondes (playwright-core n'est pas sous `/opt/node22`) ; la grande sonde
+  dépasse 30 min ; ne jamais `pkill -f` un motif de sa propre commande (rejoué ce soir : code 144, commit perdu).
+- À trancher par Justin : « elan-tzl2 » et TEAMOP3MOIS (la Tour sait supprimer une entreprise partout ; retirer SEULEMENT une période offerte
+  n'existe pas — et sans période ni abonnement, l'entreprise serait suspendue) ; le Courrier pour un compte OP MESSAGES seul (laissé fermé).
+
 # 👉 19 OCTOBRE 2026 (SOIR) — OP COURRIER : OÙ ÇA EN EST, ET CE QUI RESTE
 
 **En service (vérifié en ligne)** : OP GESTION **v769** (`app.html` 769, cache `sw.js` v969 — demande de fusion n° 150, fusionnée par Justin le 19 octobre à 16 h 17) : OP Courrier REMPLACE la Boîte mail pour
