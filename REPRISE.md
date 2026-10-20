@@ -209,9 +209,9 @@ dernière retouche n'a PAS encore été rejouée par la porte : relancer `TOUR_E
 (retirer d'abord l'arbre `scratchpad/deploiement-serveur` par `git worktree remove --force`), puis pousser sur la phrase de Justin.
 
 **À trancher par Justin :**
-- l'administration d'OP MESSAGES (comptes et leurs adresses « courriel ») est lisible par TOUT compte de la console OP
-  MESSAGES, pas le seul patron — comme les Demandes d'OP GESTION pour ses opérateurs. Resserrer = `monPatronStrict` sur
-  `/api/monitor/messages/admin/:route` (relecture `gardien`) ;
+- ✅ TRANCHÉ le 20 octobre 2026 (Justin : « commence à faire ce qui manque » avant le public) : l'administration d'OP
+  MESSAGES est réservée au PATRON (`monPatronStrict`, branche `claude/opmsg-admin-patron`, `test-1016` + mutation qui tombe) —
+  ⛔ pas encore sur `main` : le pousser DÉPLOIE le serveur, il attend la phrase de Justin ;
 - un compte de la Tour qui n'a QUE la console OP MESSAGES ne voit pas le Courrier (le serveur range `mail/*` dans OP GESTION :
   la boîte porte les liens de connexion des entreprises) — le lui ouvrir, filtré côté serveur, est un chantier de plus ;
 - l'identifiant public « Prénom#1234 » sort par l'administration d'OP MESSAGES (seul moyen de retrouver un compte par
