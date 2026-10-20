@@ -618,8 +618,8 @@ const PAGES = {
         ['lock', 'Pourquoi TEAM OP', 'Chiffrement AES-256, un espace par entreprise et un interlocuteur direct.', 'Pourquoi TEAM OP ›', 'pourquoi.html']]
         .map(([i, t, x, c, h]) => `<a class="teaser" href="${h}"><span class="tuile">${ic(i)}</span><b>${fr(t)}</b><span class="t">${fr(x)}</span><span class="l">${fr(c)}</span></a>`).join('')
       /* (20 octobre 2026, Justin : un outil de lecture du site demandait « quelle preuve montre que ce produit fonctionne ? ») : UN déroulé concret, tiré de ce que la page
-         dit déjà de la fiche d'intervention — aucun client, aucun chiffre, aucun témoignage inventé */
-      + '</div><p class="intro" style="margin-top:28px">' + fr('Concrètement, une intervention avec OP GESTION : le technicien ouvre la fiche sur son téléphone, retrouve le client et l\'adresse, note les produits utilisés, prend les photos et fait signer le client à l\'écran. Le rapport part au client, et la facture se prépare depuis la même intervention, sans rien ressaisir.') + '</p></section>' },
+         dit déjà de la fiche d'intervention — aucun client, aucun chiffre, aucun témoignage inventé ; déroulé VALIDÉ par Justin le 20 octobre 2026 (« je valide ») */
+      + '</div><p class="intro" style="margin-top:28px"><b>' + fr('Exemple de déroulé, chez une entreprise de dératisation :') + '</b> ' + fr('le technicien ouvre la fiche d\'intervention sur son téléphone, retrouve le client et l\'adresse, note les produits utilisés, prend les photos et fait signer le client à l\'écran. Le rapport part au client, et la facture se prépare depuis la même intervention, sans rien ressaisir.') + '</p></section>' },
 
   applications: { section: 'applications', titre: 'Nos applications — TEAM OP', desc: 'Les applications TEAM OP : OP GESTION (gestion d\'activité terrain) et OP MESSAGES (messagerie professionnelle d\'équipe).',
     corps: () => scene('Applications', 'Nos applications.', 'Toutes les applications de la plateforme TEAM OP. Ouvrez-en une pour voir tout ce qu\'elle fait.')
