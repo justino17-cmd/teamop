@@ -604,6 +604,8 @@ var CSS = `
   .opc .sgchip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:18px;background:var(--fill);color:var(--label)}
   .opc .m-sub .sgchip{margin-right:6px;font-size:11px;line-height:16px;padding:0 6px;vertical-align:1px}
   .opc .sgchip.st-signed{background:#cff2da;color:#005222}
+  .opc .sgchip.sv-aTraiter{background:#fde7c4;color:#6b3a00} .opc .sgchip.sv-enCours{background:#d6e6ff;color:#003a80} .opc .sgchip.sv-resolu{background:#cff2da;color:#005222}
+  @media all {.opc:where([data-theme="nuit"]) .sgchip.sv-aTraiter{background:#e0a24a;color:#1c0e00} .opc:where([data-theme="nuit"]) .sgchip.sv-enCours{background:#7aa7f0;color:#021430} .opc:where([data-theme="nuit"]) .sgchip.sv-resolu{background:#56ad7e;color:#031108}}
   @media all {.opc:where([data-theme="nuit"]) .sgchip.st-signed{background:#56ad7e;color:#031108} .opc:where([data-theme="nuit"]) .sgchip.st-pending,.opc:where([data-theme="nuit"]) .sgchip.st-viewed,.opc:where([data-theme="nuit"]) .sgchip.st-counter,.opc:where([data-theme="nuit"]) .sgchip.st-ready{background:#e0a64a;color:#1d1000} .opc:where([data-theme="nuit"]) .sgchip.st-declined,.opc:where([data-theme="nuit"]) .sgchip.st-expired,.opc:where([data-theme="nuit"]) .sgchip.st-cancelled{background:#e8837b;color:#1f0402} .opc:where([data-theme="nuit"]) .sg-signers .ok{color:#7fdc95}}
   .opc .sgchip.st-pending,.opc .sgchip.st-viewed,.opc .sgchip.st-counter,.opc .sgchip.st-ready{background:#fde7c4;color:#6b3a00}
   .opc .sgchip.st-declined,.opc .sgchip.st-expired,.opc .sgchip.st-cancelled{background:#fbd5d2;color:#8a1410}
@@ -1823,6 +1825,10 @@ var MARKUP = `
         if(!premier&&!SEEN[m.id]) m.neuf=true; SEEN[m.id]=1; neufs.push(m); }); });
       LOAD.vu[a.id]=true;
       // ce que cette boîte rendait avant (dans les dossiers lus cette fois) est remplacé ; le reste (écrit ici, autres dossiers) ne bouge pas
+      /* (20 octobre 2026, Justin : « quand je lis un mail ça recharge souvent ») : le relevé rend des messages NEUFS, sans leur corps — le mail ouvert repassait par
+         « Chargement du message… » à chaque minute. Un corps déjà lu (et ses pièces) passe à son successeur : le même message, relu, n'a pas changé de contenu. */
+      var lus={}; MESSAGES.forEach(function(e){ if(e.src&&e.acct===a.id&&e._corpsLu) lus[e.id]=e; });
+      neufs.forEach(function(m){ var o=lus[m.id]; if(o&&m.body===null){ m.body=o.body; m._corpsLu=true; m.att=o.att; } });
       for(var i=MESSAGES.length-1;i>=0;i--){ var e=MESSAGES[i]; if(e.src&&e.acct===a.id) MESSAGES.splice(i,1); }
       neufs.forEach(function(m){ MESSAGES.push(m); });
       Object.keys(OVER).forEach(function(id){ if(OVER[id].a===a.id&&!vus[id]) delete OVER[id]; });
@@ -2270,7 +2276,7 @@ var MARKUP = `
           (m.folder==="scheduled"?'<span class="clk" title="Envoi programmé">'+I.clock+'</span>':'')+(m.sign?'<span class="clk" title="Signature électronique">'+I.sign+'</span>':'')+
           (all&&multi?'<span class="dotc" style="background:'+acctHue(a)+'" title="'+H(a.email)+' ('+KINDS[kindOf(a)]+')" aria-hidden="true"></span>':'')+
           '<span>'+H(date)+'</span><span class="m-chev" aria-hidden="true">'+I.chevR+'</span></span></span>'+
-        '<span class="m-sub">'+(m.sign?signChip(m):'')+(function(){ var k=inThreadFolder(m)&&threadKey(m), n=k?TC[k]||0:0; return n>1?'<span class="tcount" title="'+n+' messages dans la conversation">'+n+'</span><span class="sr">Conversation de '+n+' messages : </span>':''; })()+H(m.subject||"(Sans objet)")+'</span>'+
+        '<span class="m-sub">'+suiviChip(m)+(m.sign?signChip(m):'')+(function(){ var k=inThreadFolder(m)&&threadKey(m), n=k?TC[k]||0:0; return n>1?'<span class="tcount" title="'+n+' messages dans la conversation">'+n+'</span><span class="sr">Conversation de '+n+' messages : </span>':''; })()+H(m.subject||"(Sans objet)")+'</span>'+
         '<span class="m-prev">'+H(m.preview)+'</span>'+
         (all?'<span class="sr">, compte '+H(a.email)+'</span>':'')+
         // Raccourcis de survol (souris) : hors de l'arbre d'accessibilité et du Tab — au clavier, f / e / Suppr et la barre d'outils font la même chose.
@@ -2374,7 +2380,7 @@ var MARKUP = `
     m.lisant=true;
     Promise.resolve().then(function(){ return SRC.lire(m.sid); }).then(function(r){
       m.lisant=false; if(!r||r.corps==null) throw new Error("message vide");
-      m.body=paragraphes(r.corps); if(!m.preview) m.preview=firstLine(texteDe(m.body));
+      m.body=paragraphes(r.corps); m._corpsLu=true; if(!m.preview) m.preview=firstLine(texteDe(m.body));
       if(Array.isArray(r.pj)) m.att=r.pj.map(attDe);
       if(r.suivi!==undefined){ var sv=suiviDe(r.suivi); if(sv) m.suivi=sv; }
       if(state.selected===m.id) renderReading();
@@ -2392,8 +2398,9 @@ var MARKUP = `
         '<div class="rident"><div class="rline"><span class="rname">'+H(m.to||"—")+'</span><span class="rdate"><span class="d-long">'+H(fmtFull(tsOf(m)))+'</span><span class="d-short">'+H(fmtDate(tsOf(m)))+'</span></span></div>'+
           '<div class="rmeta">Destinataire</div></div></div>'+
       '<div class="rsep"></div><div class="rbody">'+corps+'</div></article>'; }
+  var lectureVue=null, yLecture=0;   // le message affiché, et où on en était dans sa lecture
   function renderReading(){
-    var r=$("#readScroll");
+    var r=$("#readScroll"); yLecture=r?r.scrollTop:0;
     syncCat();
     var m=msgById(state.selected);
     $("#reading").classList.remove("scrolled");
@@ -2406,7 +2413,7 @@ var MARKUP = `
     }
     $("#readActs").innerHTML=readActsHtml(m);
     $("#readTools").innerHTML=readToolsHtml(m);
-    if(m.jr){ r.innerHTML=journalHtml(m); r.scrollTop=0; return; }
+    if(m.jr){ r.innerHTML=journalHtml(m); if(lectureVue!==m.id){ lectureVue=m.id; r.scrollTop=0; } else r.scrollTop=yLecture; return; }
     var isSched=m.folder==="scheduled";
     var isDraft=m.folder==="drafts"||isSched;
     var who=senderName(m), acc=acctOf(m.acct), k0=kindOf(acc);
@@ -2455,7 +2462,9 @@ var MARKUP = `
           '<div class="rmeta">'+H(senderEmail(m))+'</div>'+
           '<div class="rmeta rto"><span class="rto-t">'+H(rto)+'</span>'+kindBadge(k)+'</div></div></div>'+catLine+
       '<div class="rsep"></div><div class="rbody">'+bodyHtml+att+'</div>'+quick+threadHtml(m)+'</article>';
-    r.scrollTop=0;
+    /* (20 octobre 2026, Justin : « quand je lis un mail ça recharge souvent ») : un relevé, une traduction, un drapeau redessinent la lecture — on ne remonte
+       en haut que pour un AUTRE message ; le même garde l'endroit où on lisait */
+    if(lectureVue!==m.id){ lectureVue=m.id; r.scrollTop=0; } else r.scrollTop=yLecture;
   }
 
   // Le suivi d'une demande (À traiter / En cours / Résolu, et qui s'en charge) : seulement sur un message reçu dont la source dit le suivi, et si elle sait l'enregistrer.
@@ -2468,6 +2477,9 @@ var MARKUP = `
       (s.par?'<span class="rs-par">Dernier geste : '+H(s.par)+'</span>':'')+'</div>'; }
   // Se met à jour SUR PLACE (jamais en remplaçant la ligne) : la réponse du serveur arrive pendant que la personne tape un nom ou enchaîne un second geste, et ne doit pas lui voler le focus.
   function repeindreSuivi(m,focus){
+    /* la LIGNE de la liste dit le suivi aussi (`suiviChip`) : elle se repeint sur place — pas toute la liste, le focus et le défilement restent où ils sont — et les compteurs du dossier « Suivi » suivent */
+    if(m&&m.suivi){ var row=$('.msg[data-id="'+m.id+'"] .m-sub'); if(row){ $$('.sgchip[class*="sv-"], .sgchip[class*="sv-"] + .sr',row).forEach(function(x){ x.parentNode.removeChild(x); }); row.insertAdjacentHTML("afterbegin",suiviChip(m)); }
+      try{ renderSidebar(); }catch(e){} compter(); }
     if(!m||!m.suivi||state.selected!==m.id) return; var el=$("#readScroll .rsuivi"); if(!el) return;
     var s=m.suivi;
     $$("[data-suivi]",el).forEach(function(b){ b.setAttribute("aria-pressed",String(b.getAttribute("data-suivi")===s.statut)); });
@@ -2602,7 +2614,9 @@ var MARKUP = `
       b.setAttribute("aria-label",(sp==="pro"?"Côté Pro":"Côté Perso")+(u?", "+u+" non lu"+(u>1?"s":""):""));
     });
   }
-  function renderAll(){ refreshCls(); renderSidebar(); renderSpace(); renderList(); renderReading(); paintTitle(); signOuverture(); }
+  /* (20 octobre 2026, Justin : « quand je vais en bas ça me remonte direct en haut ») : redessiner la liste (un relevé toutes les minutes) la remettait en haut — elle garde
+     sa position ; seuls les gestes qui CHANGENT de liste (dossier, boîte, recherche) la remontent, eux-mêmes, après ce rendu */
+  function renderAll(){ var ls=$("#listScroll"), y=ls?ls.scrollTop:0; refreshCls(); renderSidebar(); renderSpace(); renderList(); if(ls&&ls.scrollTop!==y) ls.scrollTop=y; renderReading(); paintTitle(); signOuverture(); }
   // Pastille dans l'onglet : nombre de mails non lus dans les boîtes de réception.
   function paintTitle(){ compter(); }
 
@@ -2928,6 +2942,11 @@ var MARKUP = `
   // Le suivi (état, relances, contre-signature) est tenu ici ; la source doit annoncer capacites().signature pour l'allumer. Bientôt : prestataire certifié eIDAS, dossier de preuve, horodatage, code SMS.
   var SIGN_ST={ready:"Prête — en attente de Yousign",pending:"En attente",viewed:"Ouvert",counter:"À contresigner",signed:"Signé",declined:"Refusé",cancelled:"Annulé",expired:"Expiré"};
   function signState(m){ var g=m.sign; if((g.st==="pending"||g.st==="viewed")&&Date.now()>g.expires) return "expired"; return g.st; }
+  /* (20 octobre 2026, Justin : « que moi quand je passe, je vois que c'est encore à traiter, que ça n'a pas été fait ») : le suivi d'une demande se voit DANS la liste —
+     « À traiter » (orange), « En cours » (bleu), « Résolu » (vert), et à qui c'est assigné — sans ouvrir le message */
+  function suiviChip(m){ if(!CAP.suivi||!m.suivi||!m.suivi.statut) return ''; var st=m.suivi.statut, l=(SUIVI_ETATS.filter(function(x){ return x[0]===st; })[0]||[])[1]; if(!l) return '';
+    var qui=String(m.suivi.assigne||'').trim();
+    return '<span class="sgchip sv-'+st+'" title="Suivi : '+H(l)+(qui?' · assigné à '+H(qui):'')+'">'+H(l)+(qui?' · '+H(qui):'')+'</span><span class="sr">Suivi : '+H(l)+(qui?', assigné à '+H(qui):'')+'. </span>'; }
   function signChip(m){ var st=signState(m); return '<span class="sgchip st-'+st+'">'+H(SIGN_ST[st])+'</span>'; }
   function fmtDay(t){ return new Date(t).toLocaleDateString("fr-FR",{day:"numeric",month:"long"}); }
   function signLog(m,x){ m.sign.events.push({t:Date.now(),x:x}); m.at=Date.now(); }

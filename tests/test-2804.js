@@ -33,5 +33,18 @@ v('⛔ une adresse s\'arrête devant un guillemet : aucun attribut injecté', [/
 v('⛔ sans liens (les indésirables) : aucune balise <a>', /<a /.test(corpsLu('https://arnaque.example/connexion', false)), false);
 v('les deux affichages du corps passent par corpsLu, et les indésirables y sont exclus',
   [(SRC.match(/corpsLu\(/g) || []).length >= 3, /var li=m\.folder!=="junk"/.test(SRC), /corpsLu\(Array\.isArray\(p\)\?p\[1\]:p,m\.folder!=="junk"\)/.test(SRC)], [true, true, true]);
+/* le SUIVI dans la liste (« À traiter » / « En cours » / « Résolu », et à qui) — la vraie `suiviChip` */
+{ const SC = tranche('  function suiviChip(m){', '\n  function signChip');
+  v('(population) suiviChip est trouvée', SC.length > 100, true);
+  const c2 = vm.createContext({ String, CAP: { suivi: true }, SUIVI_ETATS: [['aTraiter', 'À traiter'], ['enCours', 'En cours'], ['resolu', 'Résolu']] });
+  vm.runInContext(H + '\n' + SC + '\nthis.f=suiviChip;', c2);
+  v('« À traiter » assigné à Camille : la pastille le dit, et le lecteur d\'écran aussi', [/class="sgchip sv-aTraiter"[^>]*>À traiter · Camille</.test(c2.f({ suivi: { statut: 'aTraiter', assigne: 'Camille' } })), /Suivi : À traiter, assigné à Camille/.test(c2.f({ suivi: { statut: 'aTraiter', assigne: 'Camille' } }))], [true, true]);
+  v('sans suivi, ou sans la capacité : rien', [c2.f({}), (c2.CAP.suivi = false, c2.f({ suivi: { statut: 'resolu', assigne: '' } }))], ['', '']);
+  c2.CAP.suivi = true;
+  v('⛔ un nom d\'assigné est ÉCHAPPÉ (il vient d\'un champ libre)', /<img/.test(c2.f({ suivi: { statut: 'enCours', assigne: '<img src=x onerror=alert(1)>' } })), false);
+  v('la ligne de la liste porte la pastille, et un changement de suivi la repeint sur place', [/'<span class="m-sub">'\+suiviChip\(m\)/.test(SRC), /row\.insertAdjacentHTML\("afterbegin",suiviChip\(m\)\)/.test(SRC)], [true, true]); }
+/* RECHARGER sans perdre sa lecture : un corps déjà lu passe au message du relevé suivant, et la lecture ne remonte que pour un AUTRE message */
+v('un relevé garde le corps déjà lu (plus de « Chargement du message… » à chaque minute)', /if\(o&&m\.body===null\)\{ m\.body=o\.body; m\._corpsLu=true; m\.att=o\.att; \}/.test(SRC) && /m\.body=paragraphes\(r\.corps\); m\._corpsLu=true;/.test(SRC), true);
+v('la lecture ne remonte en haut que pour un autre message ; la liste garde sa position', [/if\(lectureVue!==m\.id\)\{ lectureVue=m\.id; r\.scrollTop=0; \} else r\.scrollTop=yLecture;/.test(SRC), /if\(ls&&ls\.scrollTop!==y\) ls\.scrollTop=y;/.test(SRC)], [true, true]);
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
