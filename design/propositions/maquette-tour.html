@@ -132,6 +132,7 @@ button.tuile{cursor:pointer}button.tuile:hover{background:var(--hover)}
 .bc p{margin-top:2px;overflow-wrap:anywhere}
 .tc{margin-top:6px;font-size:12.5px;font-weight:500;background:var(--accbg);color:var(--acctxt);border-radius:7px;padding:3px 8px}
 .sysm{align-self:center;font-size:12.5px;color:var(--muted);background:var(--inset);border-radius:999px;padding:3px 12px;text-align:center}
+.regle{margin:0;padding:6px 18px;font-size:12px;color:var(--muted);border-top:1px solid var(--hair)}
 .comp{border-top:1px solid var(--hair);padding:9px 18px 12px;background:var(--verre)}
 .chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
 .chips button{border:0;background:var(--inset);color:var(--text);font-size:12px;font-weight:500;padding:0 9px;min-height:24px;border-radius:999px;cursor:pointer}
@@ -346,7 +347,7 @@ P.agents=function(){var c=h('div');tete(c,'Agents','Qui travaille sur quoi, en c
    g.appendChild(h('div',{class:'rag'},avA(a[1]),h('div',{class:'t'},h('b',{text:a[1]}),h('small',{text:a[2]+' · mode '+(a[4]==='arret'?'arrêt':a[4])})),
     h('div',{class:'enc'},en?h('span',null,h('small',{text:'En ce moment'}),en.quoi):h('span',{class:'neutre',text:d==='arret'?'Ne fait rien tant que tu ne l’allumes pas':'Rien en cours'})),
     etat(ETATA[d][0],ETATA[d][1]),btn('Écrire',false,function(){CONV='p:'+a[0];go('messagerie');})));});c.appendChild(g);});
- c.appendChild(st('À créer','demandés, pas encore dans le registre'));c.appendChild(carte(lignes([['Juriste','Relit les textes et prépare le tampon : tu restes seul à valider','à créer'],['Rédacteur des conditions','Rédige les conditions par application et par formule','à créer']])));
+ c.appendChild(st('À créer','demandés, pas encore dans le registre'));c.appendChild(carte(lignes([['Rédacteur des conditions','Rédige les conditions par application et par formule ; c’est toi, le juriste, qui valides et poses le tampon TeamOP','à créer']])));
  return page(c);};
 /* ── la messagerie des agents ── */
 var CONV='g:equipe';
@@ -364,14 +365,15 @@ var CONVS={'g:equipe':{nom:'Équipe TeamOP',sous:'les 16 agents et toi',msgs:[
 AGENTS.forEach(function(a){CONVS['p:'+a[0]]={nom:a[1],sous:a[2],prive:true,msgs:a[0]==='victor'?[{de:'Victor',t:'07:58',x:'Le rapport du jour est prêt. Deux décisions t’attendent : les textes de contrats et le « 24 h/24 » de Business Premium.'}]:[]};});
 function nomsCites(x){var r=[];AGENTS.forEach(function(a){if(new RegExp('@'+a[1]+'\\b','i').test(x)||new RegExp('@'+a[0]+'\\b','i').test(x))r.push(a[1]);});return r;}
 var HORL=14*60+15;function heure(){var m=HORL;HORL+=1;return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+m%60).slice(-2);}
-function remplacant(n){var a=agent(n);var c=AGENTS.filter(function(b){return b[1]!==n&&b[3]===a[3]&&dispo(b[1])==='libre';})[0]||AGENTS.filter(function(b){return b[1]!==n&&dispo(b[1])==='libre';})[0];return c?c[1]:null;}
+var ARGENT=['Hugo','Margaux'];/* ⛔ server/agents.js : une phrase libre ne va jamais à un agent qui touche à l'argent ou aux comptes */
+function remplacant(n){var a=agent(n),ok=function(b){return b[1]!==n&&ARGENT.indexOf(b[1])<0&&dispo(b[1])==='libre';};var c=AGENTS.filter(function(b){return ok(b)&&b[3]===a[3];})[0]||AGENTS.filter(ok)[0];return c?c[1]:null;}
 function envoyerMsg(texte){var cv=CONVS[CONV];texte=texte.trim();if(!texte)return;cv.msgs.push({de:'Toi',t:heure(),x:texte});
  var cites=nomsCites(texte);if(cv.prive&&!cites.length)cites=[cv.nom];
  cites.forEach(function(n,i){var occ=dispo(n)==='occupe',a=agent(n),quoi=texte.replace(/@\S+/g,'').replace(/^[\s,:;]+/,'').trim()||'Ta demande';
   if(a[4]==='arret'){setTimeout(function(){cv.msgs.push({sys:true,t:heure(),x:n+' est à l’arrêt : rien n’est fait tant que tu ne l’allumes pas (page Agents)'});rendre();},500+i*400);return;}
   var r=occ?remplacant(n):null;
   TACHES.push({id:TACHES.length+1,qui:r||n,quoi:quoi,prio:'normale',etat:'en cours',de:'Toi',delegue:!!r});
-  setTimeout(function(){if(r){var en=tachesDe(n).filter(function(t){return t.etat==='en cours';})[0];cv.msgs.push({de:n,t:heure(),x:'Je suis sur « '+(en?en.quoi:'une tâche prioritaire')+' ». Je confie ta demande à '+r+', qui est disponible.'});cv.msgs.push({sys:true,t:heure(),x:n+' a confié « '+quoi+' » à '+r});cv.msgs.push({de:r,t:heure(),x:'Pris en charge, je m’en occupe.'});}
+  setTimeout(function(){if(r){var en=tachesDe(n).filter(function(t){return t.etat==='en cours';})[0];cv.msgs.push({de:n,t:heure(),x:'Je suis sur « '+(en?en.quoi:'une tâche prioritaire')+' ». Je confie ta demande à '+r+', qui est disponible.'});cv.msgs.push({sys:true,t:heure(),x:n+' a passé ta demande « '+quoi+' » à '+r+' (elle reste demandée par toi)'});cv.msgs.push({de:r,t:heure(),x:'Pris en charge, je m’en occupe.'});}
    else cv.msgs.push({de:n,t:heure(),x:'Pris en charge. Je te tiens au courant ici.'});rendre();},600+i*500);});
  rendre();}
 P.messagerie=function(){var w=h('div',{class:'msgr'}),l=h('div',{class:'mc'});
@@ -388,6 +390,7 @@ P.messagerie=function(){var w=h('div',{class:'msgr'}),l=h('div',{class:'mc'});
  cv.msgs.forEach(function(m){if(m.sys){flux.appendChild(h('div',{class:'sysm',text:m.x+' · '+m.t}));return;}
   var moi=m.de==='Toi',b=h('div',{class:'bul'+(moi?' moi':'')},moi?null:avA(m.de,true),h('div',{class:'bc'},h('div',{class:'bh'},h('b',{text:moi?'Toi':m.de}),h('small',{text:(moi?'':(agent(m.de)?agent(m.de)[2]+' · ':''))+m.t})),h('p',{text:m.x}),m.tache?h('div',{class:'tc',text:'Tâche confiée : '+m.tache}):null));flux.appendChild(b);});
  f.appendChild(flux);
+ f.appendChild(h('p',{class:'regle',text:'Règle de sécurité : entre eux, les agents ne se passent que des tâches d’une liste fermée. Un texte venu d’un client ne devient jamais un ordre, et seules tes consignes vont, telles quelles, à Hugo et Margaux (argent et comptes).'}));
  var ta=h('textarea',{id:'saisie',rows:'2','aria-label':'Message',placeholder:cv.prive?'Écrire à '+cv.nom+'…':'Écrire au groupe… « @Camille @Hugo, vous faites ça » confie une tâche'});
  var chips=h('div',{class:'chips'});if(!cv.prive)['Camille','Hugo','Margaux','Léa','Jules','Nina','Max','Victor'].forEach(function(n){chips.appendChild(h('button',{type:'button',text:'@'+n,onclick:function(){ta.value=(ta.value?ta.value.replace(/\s*$/,' '):'')+'@'+n+' ';ta.focus();}}));});
  ta.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();envoyerMsg(ta.value);}});
