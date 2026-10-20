@@ -7409,9 +7409,10 @@ app.post('/api/monitor/messages/version-min', monPatronStrict, async (req, res) 
      · la réponse ne repart que si c'est du JSON, sous 2 Mo, en 4 s au plus.
    Les routes vivent sous `/api/monitor/messages/` : `monAppDeRoute` les range dans la console OP MESSAGES (un compte limité à
    OP GESTION reçoit 403). Des lectures seulement : rien ne s'écrit chez OP MESSAGES par ici.
-   ⚠ Ouvert à tout compte de la console OP MESSAGES (`monAdmin`), pas au seul patron : les adresses des comptes « courriel »
-     y sortent, comme la console OP GESTION montre les demandes et leurs adresses à ses opérateurs (relecture `gardien`,
-     17 octobre 2026 — à resserrer en `monPatronStrict` sur une phrase de Justin, voir REPRISE.md). Aucune adresse ne passe
+   ⛔ Réservé au PATRON (`monPatronStrict`) depuis le 20 octobre 2026 — Justin, avant d'ouvrir OP MESSAGES au public
+     (« commence à faire ce qui manque ») : les adresses des comptes « courriel » y sortent, et un collaborateur de la console
+     OP MESSAGES les lisait toutes (relecture `gardien`, 17 octobre 2026). Le refus d'app passe AVANT le rôle (un compte
+     d'OP GESTION seul lit toujours « c'est l'autre Tour »), et la Tour dit « Réservé au patron » sur l'autre 403. Aucune adresse ne passe
      dans l'URL : `adresses` vaut oui|non et `id` est un identifiant opaque (p_…) — rien de personnel au journal d'accès. */
 const OPM_ADMIN_PARAMS = {
   sante: [], comptes: ['limite', 'apres', 'origine', 'etat', 'id', 'adresses'], espaces: ['limite', 'apres'],
@@ -7423,7 +7424,7 @@ function opmAdminSecret(instance) {
   const x = String(c[instance] || '');
   return /^[0-9a-f]{64}$/i.test(x) ? x.toLowerCase() : '';
 }
-app.get('/api/monitor/messages/admin/:route', monAdmin, async (req, res) => {
+app.get('/api/monitor/messages/admin/:route', monPatronStrict, async (req, res) => {
   const route = String(req.params.route || '');
   if (!Object.prototype.hasOwnProperty.call(OPM_ADMIN_PARAMS, route)) return res.status(404).json({ error: 'route inconnue' });
   const instance = String(req.query.instance || 'prod');
