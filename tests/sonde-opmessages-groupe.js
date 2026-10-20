@@ -807,8 +807,9 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await toucher(B, '#salle-quitter');
       await toucher(B, '[data-sa="terminer-confirmer"]');
       for (const S of [A, B, C, D]) await sansSalle(S.nom + ' : la réunion est terminée pour lui', S, 15000);
-      await toucher(B, 'a[data-vue="reunions"]');
-      await toucher(B, '#liste-reunions [data-reunion]');
+      /* ⛔ une séance TERMINÉE ne s'ouvre plus depuis la liste (Justin, 8 octobre 2026 : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus ») : l'organisateur
+         rouvre sa fiche par son adresse (le lien de la conversation de la réunion y mène) */
+      await B.page.evaluate(id => { location.hash = '#reunions/' + id; }, r.id);
       await verifier('Ben ouvre sa fiche : la Salle (interrupteur « Salle d\'attente » allumé, copier / renouveler le lien) est là', B, () => !!document.querySelector('#info-corps [data-reu="attente"][aria-checked="true"]') && !!document.querySelector('#info-corps [data-reu="lien-copier"]') && !!document.querySelector('#info-corps [data-reu="lien-renouveler"]'), null, 12000, async () => '«' + (await lire(B, '#info-corps')) + '»');
       await largeur(B, 'fiche de l\'organisateur · Salle (bureau)');
       await toucher(B, '#info-corps [data-reu="lien-copier"]');
