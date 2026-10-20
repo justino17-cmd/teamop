@@ -1673,7 +1673,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
    Ni défilement latéral, ni autre forme. Le titre d'une feuille (« Nouveau rendez-vous », 171 px) ne tenait pas non plus dans les 156 px laissés entre « Annuler » et « Créer » : 15 px, il tient. */
 @media (max-width: 380px) { .sem-jours { gap: 2px; } }
 @media (max-width: 351px) { .sem-jours { gap: 0; margin-inline: -11px; } }
-@media (max-width: 340px) { .feuille-barre h2 { font-size: 15px; } }
+@media (max-width: 340px) { .feuille-barre h2 { font-size: 15px; } .feuille-barre { gap: 2px; padding-left: 6px; padding-right: 6px; } }      /* 20 octobre 2026 : à 320 px, « Nouveau rendez-vous » manquait de 5 px — la marge cède, pas la lettre */
 .jour { min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 0 4px; border-radius: 14px; color: var(--text); font-size: 12px; }
 .jour b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 24px; }
 .jour .jour-point { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0; }

@@ -537,7 +537,7 @@ async function parcoursB(b, ctx) {
   await toucher(A, '[data-act="esp-dissoudre"]');
   await verifier('supprimer l\'espace demande deux touches (la première le dit)', A, () => /Toucher encore pour supprimer l'espace/.test(document.getElementById('info-corps').textContent), null, 4000);
   await toucher(A, '[data-act="esp-dissoudre"]');
-  await verifier('⛔ supprimer l\'espace avec un abonnement qui court encore (en retard) : REFUSÉ, avec la marche à suivre (résilier d\'abord)', A, () => /Un abonnement court encore pour cet espace/.test(document.getElementById('info-erreur').textContent) && /Réglages › Abonnement › Gérer/.test(document.getElementById('info-erreur').textContent), null, 10000, () => lire(A, '#info-erreur'));
+  await verifier('⛔ supprimer l\'espace avec un abonnement qui court encore (en retard) : REFUSÉ, avec la marche à suivre (résilier d\'abord)', A, () => /Un abonnement court encore pour cet espace/.test(document.getElementById('info-erreur').textContent) && /Profil › Entreprise et abonnement › Gérer l'abonnement/.test(document.getElementById('info-erreur').textContent), null, 10000, () => lire(A, '#info-erreur'));
   v('… et l\'espace est toujours là, avec ses deux membres et son canal (population)', [sql('SELECT COUNT(*) AS n FROM espace').n, sql('SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', EB).n, sql('SELECT COUNT(*) AS n FROM canal WHERE espace = ?', EB).n], [1, 2, 1]);
   /* ce que voit un MEMBRE : « fonctions Pro indisponibles », JAMAIS pourquoi */
   await onglet(B, 'reglages'); await rubrique(B, 'entreprise'); await toucher(B, '[data-esp-ouvrir]');
