@@ -576,6 +576,7 @@ var CSS = `
   .opc .rbody{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
   .opc .rbody p{margin:0 0 14px}
   .opc .rbody p:last-child{margin-bottom:0}
+  .opc .rbody a.rlien{color:var(--tint);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
   .opc .rbody .quote{border-left:2px solid var(--tint);padding-left:12px;color:var(--label-2);margin:16px 0}
   .opc .attbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
   .opc .att{display:flex;align-items:center;gap:10px;max-width:250px;padding:8px 12px 8px 8px;border-radius:10px;background:var(--fill-2);box-shadow:inset 0 0 0 var(--hair) var(--sep-mac)}
@@ -1527,6 +1528,19 @@ var MARKUP = `
   var $=function(s,r){return (r||sr).querySelector(s);};
   var $$=function(s,r){return Array.prototype.slice.call((r||sr).querySelectorAll(s));};
   var H=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+  /* Le CORPS d'un mail, en texte (20 octobre 2026, capture de Justin) : des expéditeurs écrivent leur version texte avec des entités HTML
+     (« &Eacute;QUIPE », « &nbsp; », « &lt;https://…&gt; ») — on les lit comme des lettres. Une entité nommée passe par un <textarea> (il
+     ne fait que décoder, rien ne s'y exécute) et seulement elle : jamais le texte entier, où « <https://…> » serait pris pour une balise.
+     Puis les adresses web deviennent des liens qu'on touche — sauf dans les indésirables (on n'ouvre pas une arnaque d'un clic). */
+  var _deco=null;
+  function entitesLues(s){ s=String(s==null?"":s); if(s.indexOf("&")<0) return s;
+    return s.replace(/&#x([0-9a-f]{1,6});/gi,function(t,h){ var n=parseInt(h,16); return n>0&&n<0x110000?String.fromCodePoint(n):t; })
+      .replace(/&#([0-9]{1,7});/g,function(t,d){ var n=+d; return n>0&&n<0x110000?String.fromCodePoint(n):t; })
+      .replace(/&[a-zA-Z][a-zA-Z0-9]{1,31};/g,function(t){ try{ _deco=_deco||document.createElement("textarea"); _deco.innerHTML=t; return _deco.value; }catch(e){ return t; } }); }
+  function corpsLu(s,liens){ var h=H(entitesLues(s)).replace(/\u00a0/g," ");
+    if(liens) h=h.replace(/\bhttps?:\/\/(?:(?!&quot;|&#39;|&lt;|&gt;)[^\s<>"'])+/g,function(u){ var fin=""; var m=/(?:[.,;:!?)\]]|&gt;|&#39;|&quot;)+$/.exec(u); if(m){ fin=u.slice(m.index); u=u.slice(0,m.index); } if(!/^https?:\/\/./.test(u)) return u+fin;
+      return '<a class="rlien" href="'+u+'" target="_blank" rel="noopener noreferrer nofollow">'+u+'</a>'+fin; });
+    return h.replace(/\n/g,"<br>"); }
   var app=$("#app"), cadre=$(".opc"), layerEl=$(".opc-layer");
   var actif=function(){ return sr.activeElement; };
   try{ layerEl.showPopover(); }catch(e){ /* navigateur sans popover : le calque reste « fixed » avec son z-index */ }
@@ -2363,7 +2377,7 @@ var MARKUP = `
   // Une ligne du journal des envois du serveur : lue, jamais exécutée (texte seul, échappé), sans geste de rangement ni de réponse.
   function journalHtml(m){
     var etat=m.etat, titre=etat==="echec"?"Non parti":etat==="retard"?"Pas encore parti":"Envoyé par TeamOP";
-    var corps=(m.body||[]).map(function(p){ return "<p>"+H(Array.isArray(p)?p[1]:p).replace(/\n/g,"<br>")+"</p>"; }).join("")||'<p class="lecture">(aperçu non conservé pour ce message)</p>';
+    var corps=(m.body||[]).map(function(p){ return "<p>"+corpsLu(Array.isArray(p)?p[1]:p,m.folder!=="junk")+"</p>"; }).join("")||'<p class="lecture">(aperçu non conservé pour ce message)</p>';
     return '<article class="rpad">'+
       '<h1 class="rsubj" tabindex="-1">'+H(m.subject||"(Sans objet)")+'</h1>'+
       '<div class="sched-banner'+(etat?" junk":"")+'" role="note"><span class="ic" aria-hidden="true">'+(etat?I.warn:I.sent)+'</span>'+
@@ -2391,7 +2405,7 @@ var MARKUP = `
     var isDraft=m.folder==="drafts"||isSched;
     var who=senderName(m), acc=acctOf(m.acct), k0=kindOf(acc);
     if(m.src&&m.body===null) lireCorps(m);
-    var bodyHtml=m.body===null?'<p class="lecture">Chargement du message…</p>':(m.body||[]).map(function(p){ if(Array.isArray(p)&&p[0]==="quote") return '<div class="quote">'+H(p[1]).replace(/\n/g,"<br>")+'</div>'; return "<p>"+H(p).replace(/\n/g,"<br>")+"</p>"; }).join("");
+    var bodyHtml=m.body===null?'<p class="lecture">Chargement du message…</p>':(m.body||[]).map(function(p){ var li=m.folder!=="junk"; if(Array.isArray(p)&&p[0]==="quote") return '<div class="quote">'+corpsLu(p[1],li)+'</div>'; return "<p>"+corpsLu(p,li)+"</p>"; }).join("");
     var canSign=!m.sign&&k0==="pro"&&m.att.some(function(a){ return a.kind!=="img"; })&&m.folder!=="junk"&&m.folder!=="trash";
     var dlOk=!!m.src&&CAP.telechargerPiece&&typeof SRC.piece==="function";
     var att=m.att.length?'<div class="attbar">'+m.att.map(function(a,i){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(m.sign&&estPDF(a)?boutonApercu(i,"data-pv-att"):'')+(dlOk&&a.id!=null?'<button type="button" class="att-dl" data-dl="'+i+'" aria-label="Télécharger '+H(a.name)+'" title="Télécharger">'+I.down+'</button>':'')+'</div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn" data-act="signFrom">'+I.sign+'<span>Faire signer</span></button>':'')+'</div>':'';

@@ -287,7 +287,7 @@ const attente = (ms) => new Promise(r => setTimeout(r, ms || 15));
 { /* la page de lecture d'un envoi : texte échappé, rien d'exécuté, aucun geste de rangement */
   const F = ['journalHtml', 'initials', 'fmtFull', 'fmtDate', 'tsOf'].map(n => fonction(MOD, n)).join('\n');
   const sb = { H: (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])), I: { warn: '<svg>W</svg>', sent: '<svg>S</svg>' }, String, Date, Array };
-  vm.createContext(sb); vm.runInContext('function cap(s){return s}\nfunction initials(n){return String(n||"?").slice(0,2).toUpperCase()}\nfunction fmtFull(t){return "F"+t}\nfunction fmtDate(t){return "D"+t}\nfunction tsOf(m){return m.at}\n' + fonction(MOD, 'journalHtml') + '\n;this.j=journalHtml;', sb);
+  vm.createContext(sb); vm.runInContext('function cap(s){return s}\nfunction initials(n){return String(n||"?").slice(0,2).toUpperCase()}\nfunction fmtFull(t){return "F"+t}\nfunction fmtDate(t){return "D"+t}\nfunction tsOf(m){return m.at}\n' + fonction(MOD, 'entitesLues') + '\n' + fonction(MOD, 'corpsLu') + '\nvar _deco=null;\n' + fonction(MOD, 'journalHtml') + '\n;this.j=journalHtml;', sb);
   void F;
   const h = sb.j({ subject: '<img src=x onerror=alert(1)>', to: 'a"b@y.fr', at: 9, etat: '', body: ['<script>alert(2)</script>\nligne'] });
   vrai('⛔ le journal est écrit comme du TEXTE : ni balise, ni gestionnaire d\'événement qui survive', !/<img|<script|onerror=alert/.test(h.replace(/&lt;[^]*?&gt;/g, '')) && h.includes('&lt;script&gt;alert(2)&lt;/script&gt;'));
