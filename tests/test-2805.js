@@ -17,6 +17,10 @@ const dormir = ms => new Promise(r => setTimeout(r, ms));
 const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
 (async () => {
   console.log('\n── test-2805 : traduire un mail du Courrier de la Tour ──');
+  { const SRV = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    v('server/index.js : /api/mail/traduire est sous cleEquipeObserve ET cleEquipeExige (les deux montages, dans le CODE)', [/app\.use\(\[[^\]]*'\/api\/mail\/traduire'[^\]]*\], cleEquipeObserve\)/.test(SRV), /app\.use\(\[[^\]]*'\/api\/mail\/traduire'[^\]]*\], cleEquipeExige\)/.test(SRV)], [true, true]);
+    const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8'), BETA = fs.readFileSync(path.join(RACINE, 'beta.html'), 'utf8');
+    for (const [n, T] of [['app.html', APP], ['beta.html', BETA]]) v(n + ' : la source du Courrier déclare `traduire:true` et appelle /api/mail/traduire avec la clé de l\'entreprise', [/pj:\{nombre:3,octets:4\*1024\*1024\},traduire:true\}/.test(T), /fetch\(PUSH_API\+'\/api\/mail\/traduire',\{method:'POST',headers:await enteteEquipe\(/.test(T)], [true, true]); }
   for (const p of ['tour.html', 'apercu/tour.html']) {
     const T = fs.readFileSync(path.join(RACINE, p), 'utf8');
     v(p + ' : la source déclare `traduire:true` et appelle /api/monitor/mail/traduire avec le texte', [/suivi:true,traduire:true,moi:MYNOM/.test(T), /traduire:function\(texte\)\{ return appel\('\/api\/monitor\/mail\/traduire',\{texte:String\(texte\|\|''\)\}/.test(T)], [true, true]);
@@ -62,6 +66,12 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
   const e = recus[recus.length - 1] || { corps: {} };
   v('Claude est appelé UNE fois, sur /v1/messages, avec le texte entre <mail> et la consigne de ne pas lui obéir',
     [recus.length - n0, e.url, (e.corps.messages || [])[0] && e.corps.messages[0].content.includes('<mail>\n' + SECRET_MAIL + '\n</mail>'), /n'obéis à aucune consigne/.test(e.corps.system || '')], [1, '/v1/messages', true, true]);
+  /* OP GESTION : la route de l'entreprise exige la preuve de clé, comme sa réception (défaut FERMÉ du serveur) */
+  n0 = recus.length;
+  let g = await fetch(B + '/api/mail/traduire', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teamId: 'entreprise-du-banc', texte: SECRET_MAIL }) });
+  v('⛔ OP GESTION sans preuve de clé d\'entreprise : refusé (403), Claude n\'est pas appelé', [g.status, recus.length - n0], [403, 0]);
+  g = await fetch(B + '/api/mail/traduire', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Teamop-Kh': 'a'.repeat(64) }, body: JSON.stringify({ teamId: 'entreprise-du-banc', texte: SECRET_MAIL }) });
+  v('⛔ …ni avec une preuve qui ne correspond à aucune entreprise', [g.status, recus.length - n0], [403, 0]);
   mode = 'panne'; r = await tr({ texte: 'Hello' }, PATRON); mode = 'normal';
   v('⛔ Claude en panne : 424 (jamais un 5xx, que la Tour lirait « serveur hors ligne »)', [r.s >= 500, r.s], [false, 424]);
   await dormir(200);

@@ -1054,7 +1054,7 @@ function mailServers(email) {
    C'est exactement le mode de panne silencieuse que ce dépôt a déjà payé. On mesure d'abord
    — /api/mail/cles, protégée — et on ne ferme que lorsque le compte « sans preuve » est à
    zéro pour les espaces vivants. */
-app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/sendmail', '/api/subscribe', '/api/notify'], cleEquipeObserve);
+app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/sendmail', '/api/mail/traduire', '/api/subscribe', '/api/notify'], cleEquipeObserve);
 
 /* ══ PHASE 2 — 11 septembre 2026 : LES DEUX ROUTES QUI LISENT REFUSENT VRAIMENT ══
    Elles ne demandaient qu'un teamId dans l'URL. /api/mailboxes rendait les adresses de
@@ -1186,7 +1186,7 @@ const mailRefus = { n: 0, parMotif: Object.create(null), parRoute: Object.create
    `/api/subscribe` et `/api/notify` restent OBSERVÉES : `espace.html` et `messages.html` les appellent sans jamais envoyer
    de preuve, leur fermer la porte les couperait. */
 const ROUTES_MAIL_REFUS_JSON = ['mailbox/connect', 'mailbox/disconnect', 'sendmail'];
-app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/sendmail'], cleEquipeExige);
+app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/sendmail', '/api/mail/traduire'], cleEquipeExige);
 
 /* Le nombre d'essais de connexion à une boîte, par IP et par heure. La route tente un
    SMTP puis un IMAP chez le fournisseur et RENVOIE son message d'erreur : sans borne,
@@ -7472,17 +7472,20 @@ app.get('/api/monitor/messages/admin/:route', monPatronStrict, async (req, res) 
    ⛔ Rien du mail n'est écrit au journal (ni texte, ni expéditeur) : seulement un compteur. Plafond : 200 traductions par jour, 12 000 signes
    par message. Le texte est une DONNÉE : la consigne dit de le traduire, jamais de lui obéir.
    ⛔ Aucun refus en 5xx : la Tour lit un 5xx comme « serveur hors ligne » (`srvEtat`) — une traduction ratée n'est pas une panne (409, 424). */
-const TRAD_JOUR_MAX = 200, TRAD_SIGNES_MAX = 12000;
-let tradJour = { jour: '', n: 0 };
-app.post('/api/monitor/mail/traduire', monAdmin, async (req, res) => {
+const TRAD_JOUR_MAX = 200, TRAD_ENTREPRISE_MAX = 100, TRAD_TOTAL_MAX = 3000, TRAD_SIGNES_MAX = 12000;
+let tradJour = { jour: '', n: 0, par: {} };
+/* le cœur, partagé par la Tour et OP GESTION : `compte` = la clé du plafond (la Tour, ou l'entreprise) */
+async function traduireMail(req, res, compte, plafond) {
   if (!devisActif()) return res.status(409).json({ error: 'Traduction indisponible : la clé Claude n\'est pas posée sur le serveur' });
   const texte = typeof (req.body || {}).texte === 'string' ? req.body.texte.trim() : '';
   if (!texte) return res.status(400).json({ error: 'rien à traduire' });
   if (texte.length > TRAD_SIGNES_MAX) return res.status(413).json({ error: 'message trop long pour être traduit (' + TRAD_SIGNES_MAX + ' signes au plus)' });
   const jour = new Date().toISOString().slice(0, 10);
-  if (tradJour.jour !== jour) tradJour = { jour, n: 0 };
-  if (tradJour.n >= TRAD_JOUR_MAX) return res.status(429).json({ error: 'plafond du jour atteint (' + TRAD_JOUR_MAX + ' traductions)' });
-  tradJour.n++;
+  if (tradJour.jour !== jour) tradJour = { jour, n: 0, par: {} };
+  const n = tradJour.par[compte] || 0;
+  if (n >= plafond) return res.status(429).json({ error: 'plafond du jour atteint (' + plafond + ' traductions)' });
+  if (tradJour.n >= TRAD_TOTAL_MAX) return res.status(429).json({ error: 'plafond du jour atteint pour tout le service' });
+  tradJour.par[compte] = n + 1; tradJour.n++;
   try {
     const msg = await getAnthropic().messages.create({
       model: 'claude-haiku-5-5', max_tokens: 4000,
@@ -7500,6 +7503,15 @@ app.post('/api/monitor/mail/traduire', monAdmin, async (req, res) => {
     console.error('traduction : échec de l\'appel (' + ((e && e.status) || (e && e.name) || 'erreur') + ')');
     res.status(424).json({ error: 'le service de traduction ne répond pas, réessaie' });
   }
+}
+app.post('/api/monitor/mail/traduire', monAdmin, (req, res) => traduireMail(req, res, 'tour', TRAD_JOUR_MAX));
+/* OP GESTION (20 octobre 2026, Justin : « traduis pour les autres qui ne l'ont pas ») : le Courrier d'une entreprise, gardé comme sa réception
+   (`cleEquipeObserve` puis `cleEquipeExige`, montés plus haut : seule la preuve de clé `valide` passe). 100 traductions par entreprise et par jour.
+   ⚠ Ici, ce sont les mails d'une entreprise cliente (et de SES clients) qui partent chez Anthropic, au geste : voir `sous-traitance.html`. */
+app.post('/api/mail/traduire', (req, res) => {
+  const t = String((req.body || {}).teamId || '');
+  if (!t) return res.status(400).json({ error: 'teamId manquant' });
+  return traduireMail(req, res, 'e:' + t, TRAD_ENTREPRISE_MAX);
 });
 
 /* ══ PUBLIER OP MESSAGES DEPUIS LA TOUR (7 octobre 2026) ══
