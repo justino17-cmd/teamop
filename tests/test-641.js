@@ -73,8 +73,8 @@ console.log('\n/api/replies et /api/mailboxes exigent la preuve de la clé d\'é
   v('le point de passage existe', /function cleEquipeExige\(req, res, next\)/.test(SRV), true);
   /* Les deux routes de lecture, PLUS les trois qui agissent au nom d'une entreprise (connecter une boîte, la déconnecter,
      envoyer) depuis octobre 2026 — leur propre banc est `test-2692`, qui joue le vrai serveur sur les cinq. */
-  v('il est monté sur les deux routes de lecture et les trois qui agissent, et sur elles seules',
-    /app\.use\(\['\/api\/replies', '\/api\/mailboxes', '\/api\/mailbox\/connect', '\/api\/mailbox\/disconnect', '\/api\/sendmail'\], cleEquipeExige\);/.test(SRV), true);
+  v('il est monté sur les deux routes de lecture, les trois qui agissent et la traduction (20 octobre 2026 — le texte d\'un mail de l\'entreprise), et sur elles seules',
+    /app\.use\(\['\/api\/replies', '\/api\/mailboxes', '\/api\/mailbox\/connect', '\/api\/mailbox\/disconnect', '\/api\/sendmail', '\/api\/mail\/traduire'\], cleEquipeExige\);/.test(SRV), true);
   /* L'ordre est ce qui rend le tout vrai : cleEquipeExige lit req.cleEquipe, que seul
      cleEquipeObserve pose. Monté avant lui, il refuserait tout le monde. */
   v('et APRÈS le compteur qui pose req.cleEquipe',
