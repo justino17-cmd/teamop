@@ -8372,7 +8372,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '769';
+const APP_VERSION = '770';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -31415,7 +31415,12 @@ function courrierSource(){
   const base64=async(f)=>{ const b=new Uint8Array(await f.arrayBuffer()); let s=''; for(let i=0;i<b.length;i+=0x8000) s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000)); return btoa(s); };
   return {
     async capacites(){ return {oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
-      dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024}}; },
+      dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024},traduire:true}; },
+    /* « Traduire en français » (20 octobre 2026) : le texte d'UN mail, au geste, traduit par le serveur (`/api/mail/traduire`, gardé par la clé de l'entreprise) */
+    async traduire(texte){
+      const r=await fetch(PUSH_API+'/api/mail/traduire',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),texte:String(texte||'')})});
+      if(!r.ok) throw await refus(r,'Traduction refusée');
+      const d=await r.json(); if(!d||typeof d.texte!=='string') throw new Error('réponse du serveur illisible'); return d.texte; },
     async boites(){
       /* ⛔ L'espace de la BÊTA est refusé exprès sur les routes mail (aucun vrai courriel ne se lit, ne se connecte ni ne part d'ici) : ce n'est pas une panne, donc pas de « refusé » ni de
          « Réessayer ». `calme:true` le dit au module, qui affiche l'état tel quel. En production `BETA_ESSAI` vaut `false` : cette ligne ne s'exécute jamais, le chemin est celui d'avant. */

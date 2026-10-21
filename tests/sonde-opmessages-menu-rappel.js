@@ -155,8 +155,8 @@ const geometrie = (S) => S.page.evaluate(() => {
     await toucher(P, '#tabs a[data-vue="reunions"]');
     vrai('le téléphone rouvre aussi le mois (le choix suit le compte)', await attendre(P, () => !document.getElementById('mois').hidden && document.querySelectorAll('#mois-jours .mjour').length >= 28));
     const tel = await P.page.evaluate(() => {
-      const cases = Array.from(document.querySelectorAll('#mois-jours .mjour')), avec = cases.filter(x => /Rappel : Peux-tu/.test(x.getAttribute('aria-label')));
-      return { h: Math.min(...cases.map(x => x.offsetHeight)), w: Math.min(...cases.map(x => x.offsetWidth)), points: avec.length ? avec[0].querySelectorAll('.mjour-points i').length : -1, elts: avec.length ? getComputedStyle(avec[0].querySelector('.mjour-elts')).display : '', jour: avec.length ? avec[0].dataset.jour : null };
+      const cases = Array.from(document.querySelectorAll('#mois-jours .mjour')), avec = cases.filter(x => /Rappel : Peux-tu/.test((x.querySelector('.mjour-num') || x).getAttribute('aria-label')));      // la case est un bloc ; son nom et son jour sont sur son bouton (`.mjour-num`)
+      return { h: Math.min(...cases.map(x => x.offsetHeight)), w: Math.min(...cases.map(x => x.offsetWidth)), points: avec.length ? avec[0].querySelectorAll('.mjour-points i').length : -1, elts: avec.length ? getComputedStyle(avec[0].querySelector('.mjour-elts')).display : '', jour: avec.length ? (avec[0].querySelector('.mjour-num') || avec[0]).dataset.jour : null };
     });
     v('au doigt : chaque case fait 44 px au moins (haut et large), la case du rappel porte ses points (un par élément, trois au plus — la réunion terminée peut tomber le même jour), et pas de texte (trop étroit)', [tel.h >= 44, tel.w >= 44, tel.points >= 1 && tel.points <= 3, tel.elts], [true, true, true, 'none']);
     await toucher(P, '#mois-jours [data-jour="' + tel.jour + '"]');

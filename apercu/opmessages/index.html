@@ -1673,7 +1673,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
    Ni défilement latéral, ni autre forme. Le titre d'une feuille (« Nouveau rendez-vous », 171 px) ne tenait pas non plus dans les 156 px laissés entre « Annuler » et « Créer » : 15 px, il tient. */
 @media (max-width: 380px) { .sem-jours { gap: 2px; } }
 @media (max-width: 351px) { .sem-jours { gap: 0; margin-inline: -11px; } }
-@media (max-width: 340px) { .feuille-barre h2 { font-size: 15px; } }
+@media (max-width: 340px) { .feuille-barre h2 { font-size: 15px; } .feuille-barre { gap: 2px; padding-left: 6px; padding-right: 6px; } }      /* 20 octobre 2026 : à 320 px, « Nouveau rendez-vous » manquait de 5 px — la marge cède, pas la lettre */
 .jour { min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 0 4px; border-radius: 14px; color: var(--text); font-size: 12px; }
 .jour b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 24px; }
 .jour .jour-point { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0; }
@@ -12953,6 +12953,10 @@ a.menu-action { text-decoration: none; }
 
   /* ═══ 11. LE DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
   async function demarrer() {
+    /* ⛔ (20 octobre 2026) la question « le Courrier est-il ouvert ? » part TOUT DE SUITE, en même temps que la session : attendue à la suite des autres lectures, elle allongeait
+       le démarrage, et un lien collé pendant ce temps (`#reunion=…`) était refermé par la route du démarrage, appliquée après lui (sonde des réunions Pro, rejouée à chaque passage). */
+    const courrierQ = (CAP.courrier && typeof source.courrierOuvert === 'function' && typeof source.courrierSource === 'function')
+      ? Promise.resolve().then(() => source.courrierOuvert()).then(v => v === true, () => false) : null;
     const retourAbo = lireRetourAbo();                                       // lu AVANT que `lireMotif` ne nettoie l'adresse
     const motif = typeof source.demarrer === 'function' ? lireMotif() : null;
     if (typeof source.demarrer === 'function') {
@@ -12971,7 +12975,7 @@ a.menu-action { text-decoration: none; }
     const codeInvitation = CAP.espaces ? invitationDansAdresse() : null;
     const codeReunion = CAP.salles ? reunionDansAdresse() : null;
     /* ⛔ OP COURRIER (18 octobre 2026) : la rubrique n'existe que si la source la connaît ET si le SERVICE dit qu'elle est ouverte (la bêta) — lu ici, avant tout, indépendamment du compte ; une lecture refusée : rien n'est proposé */
-    if (CAP.courrier && typeof source.courrierOuvert === 'function' && typeof source.courrierSource === 'function') { try { COUR.ouvert = (await source.courrierOuvert()) === true; } catch (e) { COUR.ouvert = false; } }
+    if (courrierQ) COUR.ouvert = await courrierQ;
     /* ⛔ « CÔTÉ PRO » : qui fait partie d'un espace d'entreprise (ou a Messages Pro) reçoit le tableau de bord, en tête. Une lecture de plus au démarrage — refusée, l'application
        démarre sans lui (il reviendra au prochain lancement), jamais l'inverse. */
     if (CAP.agenda && CAP.espaces && CAP.appels && typeof source.espaces === 'function') {

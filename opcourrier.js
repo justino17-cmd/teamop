@@ -46,6 +46,7 @@
      envois()                    → [ { id, a, objet, corps, date:ms, etat?:'echec'|'retard' } ]   (seulement avec capacites().journalEnvois : le journal des e-mails que le SERVEUR envoie, lecture seule)
      piece(idMessage, idPiece)   → Blob                                            (seulement avec capacites().telechargerPiece ; le nom est assaini ici, rien n'est ouvert ni exécuté)
      suivi(id,{statut?,assigne?})→ { statut:'aTraiter'|'enCours'|'resolu', assigne, par? }  (seulement avec capacites().suivi)
+     traduire(texte,'fr')→ texte traduit (chaîne)  (seulement avec capacites().traduire : un geste, UN message, jamais tout seul ; rien n'est rangé)
      ajouterBoite(params)        → { id, email, … } ; params = { email, nom, mdp, fournisseur, cote, serveurs }
      retirerBoite(id)
      lireMX(domaine)             → [serveurs]                                      (facultatif : sans lui, jamais d'appel réseau pour reconnaître un domaine d'entreprise)
@@ -576,6 +577,10 @@ var CSS = `
   .opc .rbody{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
   .opc .rbody p{margin:0 0 14px}
   .opc .rbody p:last-child{margin-bottom:0}
+  .opc .rbody .rtrad{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:13px}
+  .opc .rbody .rtrad .lnk{color:var(--tint)}
+  .opc .rbody .rtrad-n{color:var(--label-2)}
+  .opc .rbody a.rlien{color:var(--tint);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
   .opc .rbody .quote{border-left:2px solid var(--tint);padding-left:12px;color:var(--label-2);margin:16px 0}
   .opc .attbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
   .opc .att{display:flex;align-items:center;gap:10px;max-width:250px;padding:8px 12px 8px 8px;border-radius:10px;background:var(--fill-2);box-shadow:inset 0 0 0 var(--hair) var(--sep-mac)}
@@ -599,6 +604,8 @@ var CSS = `
   .opc .sgchip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:18px;background:var(--fill);color:var(--label)}
   .opc .m-sub .sgchip{margin-right:6px;font-size:11px;line-height:16px;padding:0 6px;vertical-align:1px}
   .opc .sgchip.st-signed{background:#cff2da;color:#005222}
+  .opc .sgchip.sv-aTraiter{background:#fde7c4;color:#6b3a00} .opc .sgchip.sv-enCours{background:#d6e6ff;color:#003a80} .opc .sgchip.sv-resolu{background:#cff2da;color:#005222}
+  @media all {.opc:where([data-theme="nuit"]) .sgchip.sv-aTraiter{background:#e0a24a;color:#1c0e00} .opc:where([data-theme="nuit"]) .sgchip.sv-enCours{background:#7aa7f0;color:#021430} .opc:where([data-theme="nuit"]) .sgchip.sv-resolu{background:#56ad7e;color:#031108}}
   @media all {.opc:where([data-theme="nuit"]) .sgchip.st-signed{background:#56ad7e;color:#031108} .opc:where([data-theme="nuit"]) .sgchip.st-pending,.opc:where([data-theme="nuit"]) .sgchip.st-viewed,.opc:where([data-theme="nuit"]) .sgchip.st-counter,.opc:where([data-theme="nuit"]) .sgchip.st-ready{background:#e0a64a;color:#1d1000} .opc:where([data-theme="nuit"]) .sgchip.st-declined,.opc:where([data-theme="nuit"]) .sgchip.st-expired,.opc:where([data-theme="nuit"]) .sgchip.st-cancelled{background:#e8837b;color:#1f0402} .opc:where([data-theme="nuit"]) .sg-signers .ok{color:#7fdc95}}
   .opc .sgchip.st-pending,.opc .sgchip.st-viewed,.opc .sgchip.st-counter,.opc .sgchip.st-ready{background:#fde7c4;color:#6b3a00}
   .opc .sgchip.st-declined,.opc .sgchip.st-expired,.opc .sgchip.st-cancelled{background:#fbd5d2;color:#8a1410}
@@ -1527,6 +1534,20 @@ var MARKUP = `
   var $=function(s,r){return (r||sr).querySelector(s);};
   var $$=function(s,r){return Array.prototype.slice.call((r||sr).querySelectorAll(s));};
   var H=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+  /* Le CORPS d'un mail, en texte (20 octobre 2026, capture de Justin) : des expéditeurs écrivent leur version texte avec des entités HTML
+     (« &Eacute;QUIPE », « &nbsp; », « &lt;https://…&gt; ») — on les lit comme des lettres. Une entité nommée passe par un <textarea> (il
+     ne fait que décoder, rien ne s'y exécute) et seulement elle : jamais le texte entier, où « <https://…> » serait pris pour une balise.
+     Puis les adresses web deviennent des liens qu'on touche — sauf dans les indésirables (on n'ouvre pas une arnaque d'un clic). */
+  var _deco=null;
+  var TRAD={};   // les traductions de la séance, par message (jamais rangées)
+  function entitesLues(s){ s=String(s==null?"":s); if(s.indexOf("&")<0) return s;
+    return s.replace(/&#x([0-9a-f]{1,6});/gi,function(t,h){ var n=parseInt(h,16); return n>0&&n<0x110000?String.fromCodePoint(n):t; })
+      .replace(/&#([0-9]{1,7});/g,function(t,d){ var n=+d; return n>0&&n<0x110000?String.fromCodePoint(n):t; })
+      .replace(/&[a-zA-Z][a-zA-Z0-9]{1,31};/g,function(t){ try{ _deco=_deco||document.createElement("textarea"); _deco.innerHTML=t; return _deco.value; }catch(e){ return t; } }); }
+  function corpsLu(s,liens){ var h=H(entitesLues(s)).replace(/\u00a0/g," ");
+    if(liens) h=h.replace(/\bhttps?:\/\/(?:(?!&quot;|&#39;|&lt;|&gt;)[^\s<>"'])+/g,function(u){ var fin=""; var m=/(?:[.,;:!?)\]]|&gt;|&#39;|&quot;)+$/.exec(u); if(m){ fin=u.slice(m.index); u=u.slice(0,m.index); } if(!/^https?:\/\/./.test(u)) return u+fin;
+      return '<a class="rlien" href="'+u+'" target="_blank" rel="noopener noreferrer nofollow">'+u+'</a>'+fin; });
+    return h.replace(/\n/g,"<br>"); }
   var app=$("#app"), cadre=$(".opc"), layerEl=$(".opc-layer");
   var actif=function(){ return sr.activeElement; };
   try{ layerEl.showPopover(); }catch(e){ /* navigateur sans popover : le calque reste « fixed » avec son z-index */ }
@@ -1701,7 +1722,7 @@ var MARKUP = `
 
   // ---------- Ce que la source sait faire (SRC.capacites()) ----------
   // Tout est FAUX tant que la source ne dit pas le contraire : ce qu'elle ne sait pas faire, l'interface le dit (« Bientôt : … ») au lieu de faire semblant.
-  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,journalEnvois:false,telechargerPiece:false,suivi:false,signatureReelle:false,
+  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,journalEnvois:false,telechargerPiece:false,suivi:false,signatureReelle:false,traduire:false,
     dossiers:["inbox"],destinataires:50,pj:{nombre:99,octets:25*1024*1024}};
   function appliquerCapacites(c){
     c=c&&typeof c==="object"?c:{};
@@ -1711,6 +1732,7 @@ var MARKUP = `
     CAP.journalEnvois=c.journalEnvois===true&&typeof SRC.envois==="function";
     CAP.telechargerPiece=c.telechargerPiece===true&&typeof SRC.piece==="function";
     CAP.suivi=c.suivi===true&&typeof SRC.suivi==="function";
+    CAP.traduire=c.traduire===true&&typeof SRC.traduire==="function";   // « Traduire en français » (20 octobre 2026) : la source traduit, le module ne devine rien
     // La VRAIE signature exige la déclaration ET les six méthodes de l'objet `signature` : sans elles, le module ne promet rien de plus qu'avant.
     var sg=SRC.signature;
     CAP.signatureReelle=c.signature===true&&!!sg&&typeof sg==="object"&&["envoyer","etat","relancer","annuler","signe","preuve"].every(function(k){ return typeof sg[k]==="function"; });
@@ -1803,6 +1825,10 @@ var MARKUP = `
         if(!premier&&!SEEN[m.id]) m.neuf=true; SEEN[m.id]=1; neufs.push(m); }); });
       LOAD.vu[a.id]=true;
       // ce que cette boîte rendait avant (dans les dossiers lus cette fois) est remplacé ; le reste (écrit ici, autres dossiers) ne bouge pas
+      /* (20 octobre 2026, Justin : « quand je lis un mail ça recharge souvent ») : le relevé rend des messages NEUFS, sans leur corps — le mail ouvert repassait par
+         « Chargement du message… » à chaque minute. Un corps déjà lu (et ses pièces) passe à son successeur : le même message, relu, n'a pas changé de contenu. */
+      var lus={}; MESSAGES.forEach(function(e){ if(e.src&&e.acct===a.id&&e._corpsLu) lus[e.id]=e; });
+      neufs.forEach(function(m){ var o=lus[m.id]; if(o&&m.body===null){ m.body=o.body; m._corpsLu=true; m.att=o.att; } });
       for(var i=MESSAGES.length-1;i>=0;i--){ var e=MESSAGES[i]; if(e.src&&e.acct===a.id) MESSAGES.splice(i,1); }
       neufs.forEach(function(m){ MESSAGES.push(m); });
       Object.keys(OVER).forEach(function(id){ if(OVER[id].a===a.id&&!vus[id]) delete OVER[id]; });
@@ -2250,7 +2276,7 @@ var MARKUP = `
           (m.folder==="scheduled"?'<span class="clk" title="Envoi programmé">'+I.clock+'</span>':'')+(m.sign?'<span class="clk" title="Signature électronique">'+I.sign+'</span>':'')+
           (all&&multi?'<span class="dotc" style="background:'+acctHue(a)+'" title="'+H(a.email)+' ('+KINDS[kindOf(a)]+')" aria-hidden="true"></span>':'')+
           '<span>'+H(date)+'</span><span class="m-chev" aria-hidden="true">'+I.chevR+'</span></span></span>'+
-        '<span class="m-sub">'+(m.sign?signChip(m):'')+(function(){ var k=inThreadFolder(m)&&threadKey(m), n=k?TC[k]||0:0; return n>1?'<span class="tcount" title="'+n+' messages dans la conversation">'+n+'</span><span class="sr">Conversation de '+n+' messages : </span>':''; })()+H(m.subject||"(Sans objet)")+'</span>'+
+        '<span class="m-sub">'+suiviChip(m)+(m.sign?signChip(m):'')+(function(){ var k=inThreadFolder(m)&&threadKey(m), n=k?TC[k]||0:0; return n>1?'<span class="tcount" title="'+n+' messages dans la conversation">'+n+'</span><span class="sr">Conversation de '+n+' messages : </span>':''; })()+H(m.subject||"(Sans objet)")+'</span>'+
         '<span class="m-prev">'+H(m.preview)+'</span>'+
         (all?'<span class="sr">, compte '+H(a.email)+'</span>':'')+
         // Raccourcis de survol (souris) : hors de l'arbre d'accessibilité et du Tab — au clavier, f / e / Suppr et la barre d'outils font la même chose.
@@ -2354,7 +2380,7 @@ var MARKUP = `
     m.lisant=true;
     Promise.resolve().then(function(){ return SRC.lire(m.sid); }).then(function(r){
       m.lisant=false; if(!r||r.corps==null) throw new Error("message vide");
-      m.body=paragraphes(r.corps); if(!m.preview) m.preview=firstLine(texteDe(m.body));
+      m.body=paragraphes(r.corps); m._corpsLu=true; if(!m.preview) m.preview=firstLine(texteDe(m.body));
       if(Array.isArray(r.pj)) m.att=r.pj.map(attDe);
       if(r.suivi!==undefined){ var sv=suiviDe(r.suivi); if(sv) m.suivi=sv; }
       if(state.selected===m.id) renderReading();
@@ -2363,7 +2389,7 @@ var MARKUP = `
   // Une ligne du journal des envois du serveur : lue, jamais exécutée (texte seul, échappé), sans geste de rangement ni de réponse.
   function journalHtml(m){
     var etat=m.etat, titre=etat==="echec"?"Non parti":etat==="retard"?"Pas encore parti":"Envoyé par TeamOP";
-    var corps=(m.body||[]).map(function(p){ return "<p>"+H(Array.isArray(p)?p[1]:p).replace(/\n/g,"<br>")+"</p>"; }).join("")||'<p class="lecture">(aperçu non conservé pour ce message)</p>';
+    var corps=(m.body||[]).map(function(p){ return "<p>"+corpsLu(Array.isArray(p)?p[1]:p,m.folder!=="junk")+"</p>"; }).join("")||'<p class="lecture">(aperçu non conservé pour ce message)</p>';
     return '<article class="rpad">'+
       '<h1 class="rsubj" tabindex="-1">'+H(m.subject||"(Sans objet)")+'</h1>'+
       '<div class="sched-banner'+(etat?" junk":"")+'" role="note"><span class="ic" aria-hidden="true">'+(etat?I.warn:I.sent)+'</span>'+
@@ -2372,8 +2398,9 @@ var MARKUP = `
         '<div class="rident"><div class="rline"><span class="rname">'+H(m.to||"—")+'</span><span class="rdate"><span class="d-long">'+H(fmtFull(tsOf(m)))+'</span><span class="d-short">'+H(fmtDate(tsOf(m)))+'</span></span></div>'+
           '<div class="rmeta">Destinataire</div></div></div>'+
       '<div class="rsep"></div><div class="rbody">'+corps+'</div></article>'; }
+  var lectureVue=null, yLecture=0;   // le message affiché, et où on en était dans sa lecture
   function renderReading(){
-    var r=$("#readScroll");
+    var r=$("#readScroll"); yLecture=r?r.scrollTop:0;
     syncCat();
     var m=msgById(state.selected);
     $("#reading").classList.remove("scrolled");
@@ -2386,12 +2413,18 @@ var MARKUP = `
     }
     $("#readActs").innerHTML=readActsHtml(m);
     $("#readTools").innerHTML=readToolsHtml(m);
-    if(m.jr){ r.innerHTML=journalHtml(m); r.scrollTop=0; return; }
+    if(m.jr){ r.innerHTML=journalHtml(m); if(lectureVue!==m.id){ lectureVue=m.id; r.scrollTop=0; } else r.scrollTop=yLecture; return; }
     var isSched=m.folder==="scheduled";
     var isDraft=m.folder==="drafts"||isSched;
     var who=senderName(m), acc=acctOf(m.acct), k0=kindOf(acc);
     if(m.src&&m.body===null) lireCorps(m);
-    var bodyHtml=m.body===null?'<p class="lecture">Chargement du message…</p>':(m.body||[]).map(function(p){ if(Array.isArray(p)&&p[0]==="quote") return '<div class="quote">'+H(p[1]).replace(/\n/g,"<br>")+'</div>'; return "<p>"+H(p).replace(/\n/g,"<br>")+"</p>"; }).join("");
+    var bodyHtml=m.body===null?'<p class="lecture">Chargement du message…</p>':(m.body||[]).map(function(p){ var li=m.folder!=="junk"; if(Array.isArray(p)&&p[0]==="quote") return '<div class="quote">'+corpsLu(p[1],li)+'</div>'; return "<p>"+corpsLu(p,li)+"</p>"; }).join("");
+    /* TRADUIRE (20 octobre 2026, Justin : « ça serait bien qu'on puisse traduire les mails ») : un geste, par message, jamais tout seul — le texte part à la
+       source (le serveur le fait traduire) seulement quand on touche « Traduire ». Rien n'est rangé : la traduction vit le temps de la séance. Pas pour un indésirable. */
+    var tr=TRAD[m.id], trOk=CAP.traduire&&m.folder!=="junk"&&Array.isArray(m.body)&&m.body.length>0;
+    if(trOk&&tr&&tr.etat==="ok"&&tr.vue) bodyHtml=tr.body.map(function(p){ return "<p>"+corpsLu(p,true)+"</p>"; }).join("");
+    if(trOk) bodyHtml='<div class="rtrad"><button type="button" class="lnk" data-act="traduire"'+(tr&&tr.etat==="cours"?' disabled aria-busy="true"':'')+'>'+
+      H(!tr?"Traduire en français":tr.etat==="cours"?"Traduction…":tr.vue?"Voir l’original":"Voir la traduction")+'</button>'+(tr&&tr.etat==="ok"&&tr.vue?'<span class="rtrad-n">Traduit automatiquement</span>':'')+'</div>'+bodyHtml;
     var canSign=!m.sign&&k0==="pro"&&m.att.some(function(a){ return a.kind!=="img"; })&&m.folder!=="junk"&&m.folder!=="trash";
     var dlOk=!!m.src&&CAP.telechargerPiece&&typeof SRC.piece==="function";
     var att=m.att.length?'<div class="attbar">'+m.att.map(function(a,i){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(m.sign&&estPDF(a)?boutonApercu(i,"data-pv-att"):'')+(dlOk&&a.id!=null?'<button type="button" class="att-dl" data-dl="'+i+'" aria-label="Télécharger '+H(a.name)+'" title="Télécharger">'+I.down+'</button>':'')+'</div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn" data-act="signFrom">'+I.sign+'<span>Faire signer</span></button>':'')+'</div>':'';
@@ -2429,7 +2462,9 @@ var MARKUP = `
           '<div class="rmeta">'+H(senderEmail(m))+'</div>'+
           '<div class="rmeta rto"><span class="rto-t">'+H(rto)+'</span>'+kindBadge(k)+'</div></div></div>'+catLine+
       '<div class="rsep"></div><div class="rbody">'+bodyHtml+att+'</div>'+quick+threadHtml(m)+'</article>';
-    r.scrollTop=0;
+    /* (20 octobre 2026, Justin : « quand je lis un mail ça recharge souvent ») : un relevé, une traduction, un drapeau redessinent la lecture — on ne remonte
+       en haut que pour un AUTRE message ; le même garde l'endroit où on lisait */
+    if(lectureVue!==m.id){ lectureVue=m.id; r.scrollTop=0; } else r.scrollTop=yLecture;
   }
 
   // Le suivi d'une demande (À traiter / En cours / Résolu, et qui s'en charge) : seulement sur un message reçu dont la source dit le suivi, et si elle sait l'enregistrer.
@@ -2442,6 +2477,9 @@ var MARKUP = `
       (s.par?'<span class="rs-par">Dernier geste : '+H(s.par)+'</span>':'')+'</div>'; }
   // Se met à jour SUR PLACE (jamais en remplaçant la ligne) : la réponse du serveur arrive pendant que la personne tape un nom ou enchaîne un second geste, et ne doit pas lui voler le focus.
   function repeindreSuivi(m,focus){
+    /* la LIGNE de la liste dit le suivi aussi (`suiviChip`) : elle se repeint sur place — pas toute la liste, le focus et le défilement restent où ils sont — et les compteurs du dossier « Suivi » suivent */
+    if(m&&m.suivi){ var row=$('.msg[data-id="'+m.id+'"] .m-sub'); if(row){ $$('.sgchip[class*="sv-"], .sgchip[class*="sv-"] + .sr',row).forEach(function(x){ x.parentNode.removeChild(x); }); row.insertAdjacentHTML("afterbegin",suiviChip(m)); }
+      try{ renderSidebar(); }catch(e){} compter(); }
     if(!m||!m.suivi||state.selected!==m.id) return; var el=$("#readScroll .rsuivi"); if(!el) return;
     var s=m.suivi;
     $$("[data-suivi]",el).forEach(function(b){ b.setAttribute("aria-pressed",String(b.getAttribute("data-suivi")===s.statut)); });
@@ -2576,7 +2614,9 @@ var MARKUP = `
       b.setAttribute("aria-label",(sp==="pro"?"Côté Pro":"Côté Perso")+(u?", "+u+" non lu"+(u>1?"s":""):""));
     });
   }
-  function renderAll(){ refreshCls(); renderSidebar(); renderSpace(); renderList(); renderReading(); paintTitle(); signOuverture(); }
+  /* (20 octobre 2026, Justin : « quand je vais en bas ça me remonte direct en haut ») : redessiner la liste (un relevé toutes les minutes) la remettait en haut — elle garde
+     sa position ; seuls les gestes qui CHANGENT de liste (dossier, boîte, recherche) la remontent, eux-mêmes, après ce rendu */
+  function renderAll(){ var ls=$("#listScroll"), y=ls?ls.scrollTop:0; refreshCls(); renderSidebar(); renderSpace(); renderList(); if(ls&&ls.scrollTop!==y) ls.scrollTop=y; renderReading(); paintTitle(); signOuverture(); }
   // Pastille dans l'onglet : nombre de mails non lus dans les boîtes de réception.
   function paintTitle(){ compter(); }
 
@@ -2657,6 +2697,14 @@ var MARKUP = `
     else if(act==="toInbox"){ if(!peutRemettre(m)) return; if(m.folder==="junk") markNotJunk(m); else moveTo(m,"inbox","Remis dans la réception"); }
     else if(act==="junk") markJunk(m);
     else if(act==="notJunk") markNotJunk(m);
+    else if(act==="traduire"){ if(!CAP.traduire) return; var t0=TRAD[m.id];
+      if(t0&&t0.etat==="ok"){ t0.vue=!t0.vue; renderAll(); return; } if(t0) return;
+      var mid=m.id, texte=(m.body||[]).map(function(p){ return entitesLues(Array.isArray(p)?p[1]:p); }).join("\n\n");
+      TRAD[mid]={etat:"cours"}; renderAll();
+      Promise.resolve().then(function(){ return SRC.traduire(texte,"fr"); }).then(function(r){
+        var txt=String(r==null?"":r).trim(); if(!txt) throw new Error("réponse vide");
+        TRAD[mid]={etat:"ok",vue:true,body:txt.split(/\n{2,}/)}; renderAll();
+      },function(e){ delete TRAD[mid]; renderAll(); toast("Traduction impossible"+(e&&e.message?" : "+e.message:"")); }); }
     else if(act==="moveCat") openMoveCat(m);
     else if(act==="trash") moveTo(m,"trash","Message supprimé");
     else if(act==="reply") openCompose(replyModel(m,false));
@@ -2894,6 +2942,11 @@ var MARKUP = `
   // Le suivi (état, relances, contre-signature) est tenu ici ; la source doit annoncer capacites().signature pour l'allumer. Bientôt : prestataire certifié eIDAS, dossier de preuve, horodatage, code SMS.
   var SIGN_ST={ready:"Prête — en attente de Yousign",pending:"En attente",viewed:"Ouvert",counter:"À contresigner",signed:"Signé",declined:"Refusé",cancelled:"Annulé",expired:"Expiré"};
   function signState(m){ var g=m.sign; if((g.st==="pending"||g.st==="viewed")&&Date.now()>g.expires) return "expired"; return g.st; }
+  /* (20 octobre 2026, Justin : « que moi quand je passe, je vois que c'est encore à traiter, que ça n'a pas été fait ») : le suivi d'une demande se voit DANS la liste —
+     « À traiter » (orange), « En cours » (bleu), « Résolu » (vert), et à qui c'est assigné — sans ouvrir le message */
+  function suiviChip(m){ if(!CAP.suivi||!m.suivi||!m.suivi.statut) return ''; var st=m.suivi.statut, l=(SUIVI_ETATS.filter(function(x){ return x[0]===st; })[0]||[])[1]; if(!l) return '';
+    var qui=String(m.suivi.assigne||'').trim();
+    return '<span class="sgchip sv-'+st+'" title="Suivi : '+H(l)+(qui?' · assigné à '+H(qui):'')+'">'+H(l)+(qui?' · '+H(qui):'')+'</span><span class="sr">Suivi : '+H(l)+(qui?', assigné à '+H(qui):'')+'. </span>'; }
   function signChip(m){ var st=signState(m); return '<span class="sgchip st-'+st+'">'+H(SIGN_ST[st])+'</span>'; }
   function fmtDay(t){ return new Date(t).toLocaleDateString("fr-FR",{day:"numeric",month:"long"}); }
   function signLog(m,x){ m.sign.events.push({t:Date.now(),x:x}); m.at=Date.now(); }

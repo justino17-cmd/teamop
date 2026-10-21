@@ -93,6 +93,11 @@ async function toucher(S, sel) {
 async function saisir(S, sel, texte) { await S.page.locator(sel).fill(texte); S.gestes++; }
 /* un sélecteur de fichier : le geste qui l'ouvre, puis le fichier choisi */
 async function choisirDansPlus(S, quoi, fichier) {
+  /* (20 octobre 2026) on attend que le « + » REÇOIVE le doigt — la conversation qui vient de s'ouvrir glisse encore, et un toucher sur sa transition n'atteint pas le bouton
+     (relevé : le menu ne s'ouvrait pas, alors que le même toucher un instant plus tard l'ouvre). On attend le geste possible, pas un chronomètre. */
+  await S.page.waitForFunction(() => { const b = document.getElementById('compo-plus'); if (!b) return false; const r = b.getBoundingClientRect(); if (!r.width) return false;
+    const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!h && b.contains(h) && !document.documentElement.classList.contains('feuille-ouverte') && (!document.getAnimations || !document.getAnimations().some(a => a.playState === 'running' && a.effect && a.effect.getComputedTiming().iterations !== Infinity)); }, null, { timeout: 8000 });
+  await dormir(450);      // ⛔ VOULU par la page : fermer la visionneuse, envoyer, enregistrer taisent 400 ms ce qui prend leur place (`armerRetap` — le second toucher d'un double toucher) ; la sonde tapait le « + » 0,1 s après la croix de la visionneuse
   await toucher(S, '#compo-plus');
   await S.page.waitForFunction(() => !document.getElementById('menu-fond').hidden, null, { timeout: 4000 });
   await dormir(450);                                       // la page ignore un clic dans les 350 ms qui suivent l'ouverture d'un menu (l'écho du geste qui l'a ouvert)

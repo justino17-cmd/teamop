@@ -70,7 +70,8 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
   fs.writeFileSync(CONFIG, JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), messagesAdmin: { beta: SECRET } }));
   fs.writeFileSync(path.join(banc, 'monitor.json'), JSON.stringify({ issues: [], journal: [], archive: [], users: [
     { id: 'upatron', nom: 'Patron', hash: kh(MDP), role: 'patron', actif: true, ts: Date.now() },
-    { id: 'ugestion', nom: 'Gestion', hash: kh(MDP_G), role: 'collaborateur', actif: true, ts: Date.now(), apps: ['gestion'] }] }));
+    { id: 'ugestion', nom: 'Gestion', hash: kh(MDP_G), role: 'collaborateur', actif: true, ts: Date.now(), apps: ['gestion'] },
+    { id: 'umessages', nom: 'Messages', hash: kh(MDP_G), role: 'collaborateur', actif: true, ts: Date.now(), apps: ['messages'] }] }));
   const port = await libre(), B = 'http://127.0.0.1:' + port;
   let sortie = '';
   const srv = spawn(process.execPath, [SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: CONFIG, TEAMOP_DATA: D, PORT: String(port),
@@ -83,7 +84,8 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
   vrai('le vrai serveur démarre', vivant, sortie.slice(0, 300));
   const login = async (nom, pass) => (await (await fetch(B + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nom, pass }) })).json()).token;
   const PATRON = await login('Patron', MDP), GESTION = await login('Gestion', MDP_G);
-  vrai('(population) deux sessions de la Tour : le patron, et un compte d\'OP GESTION seul', PATRON && GESTION);
+  const MESSAGES = await login('Messages', MDP_G);
+  vrai('(population) trois sessions de la Tour : le patron, un compte d\'OP GESTION seul, un collaborateur d\'OP MESSAGES', PATRON && GESTION && MESSAGES);
   /* chaque lecture borne SA propre attente : un relais sans délai doit faire TOMBER le banc, pas le figer */
   const lire = async (chemin, jeton, entetes) => { let r; try { r = await fetch(B + chemin, { headers: Object.assign({ Authorization: 'Bearer ' + jeton }, entetes || {}), signal: AbortSignal.timeout(9000) }); }
     catch (e) { return { s: 0, j: { motif: 'le relais n\'a pas rendu la main en 9 s' }, txt: '' }; }
@@ -114,6 +116,10 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
   v('une instance sans secret posé : 503 « relais non configuré » — rien n\'est appelé', [r.s, r.j.motif, recus.length - n0], [503, 'sans_secret', 0]);
   r = await lire('/api/monitor/messages/admin/sante?instance=beta', GESTION);
   v('un compte d\'OP GESTION seul : 403, la console OP MESSAGES ne lui est pas ouverte', [r.s, r.j.app], [403, 'messages']);
+  for (const rt of ['comptes', 'sante']) {
+    r = await lire('/api/monitor/messages/admin/' + rt + '?instance=beta', MESSAGES);
+    v('⛔ un collaborateur de la console OP MESSAGES (pas le patron) : 403 « réservé au patron » sur ' + rt + ' — les adresses des comptes ne sortent pas', [r.s, r.j.error, r.j.app], [403, 'réservé au patron', undefined]);
+  }
   r = await fetch(B + '/api/monitor/messages/admin/sante?instance=beta');
   vrai('sans session : refusé', r.status === 401 || r.status === 403, r.status);
   v('(population) aucun de ces refus n\'a atteint le service', recus.length - n0, 0);

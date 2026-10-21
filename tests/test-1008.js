@@ -48,7 +48,8 @@ for (const rel of ['CLAUDE.md', 'REPRISE.md', 'VERSION-STABLE.md', '.claude', '.
   'tests', 'scripts', 'scratchpad', 'design', 'beta-build.js']) {
   v('absent du site : ' + rel, existe(rel), false);
 }
-v('aucun fichier .md, où qu\'il soit', fichiers.filter(f => /\.md$/i.test(f)), []);
+v('aucun fichier .md, où qu\'il soit — sauf le jumeau Markdown de l\'accueil, à la racine, nommé (21 octobre 2026, fabriqué par scripts/site-marine.js)', fichiers.filter(f => /\.md$/i.test(f) && f !== 'index.md'), []);
+v('…et ce jumeau-là est bien publié (et lui seul parmi les .md)', fichiers.filter(f => /\.md$/i.test(f)), ['index.md']);
 
 console.log('\n2. Tout ce qui se sert');
 for (const rel of ['index.html', 'app.html', 'beta.html', 'tour.html', 'espace.html', 'connexion.html', 'tarifs.html',

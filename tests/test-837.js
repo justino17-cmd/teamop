@@ -60,13 +60,13 @@ const PHRASES = [
   ['content="Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 € (2 utilisateurs), Business Premium 50 € (3 utilisateurs + service 24h/24). OP MESSAGES a ses propres formules, à part."',
    'content="Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 €, Business Premium 50 € (service 24h/24), par mois et par utilisateur. OP MESSAGES a ses propres formules, à part."'],
   ['<p class="intro">Prix HT par mois, sans engagement. Chaque abonnement inclut un nombre d\'utilisateurs — besoin de plus' + N + '? Ajoutez un abonnement, les places s\'additionnent.</p>',
-   '<p class="intro">Prix TTC par mois, sans engagement. Un abonnement par utilisateur' + N + ': pour une équipe de cinq, prenez cinq abonnements. ' + COMPTE_INTRO + '</p>'],
+   '<p class="intro">Prix par mois, sans engagement — TVA non applicable (article 293 B du CGI). Un abonnement par utilisateur' + N + ': pour une équipe de cinq, prenez cinq abonnements. ' + COMPTE_INTRO + '</p>'],
   ['<p>Chaque abonnement inclut un nombre de comptes' + N + ': 1 en Gratuit, 1 en Pro, 2 en Business, 3 en Business Premium. Besoin de plus' + N + '? Ajoutez un abonnement' + N + ': les places s\'additionnent (par exemple, Business × 2 = 4 comptes).</p>',
    '<p>Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus' + N + '? Ajoutez un abonnement par personne' + N + ': les places s\'additionnent (par exemple, ' + ['Business', '×', '3', '=', '3', 'comptes'].join(NB) + ').</p>'],
 ];
 PHRASES.push(['<div class="liste">', '<div class="liste">' + COMPTE_FAQ]);
 /* le pied des huit pages : « Prix HT » → « Prix TTC » (Justin : « TTC ») */
-const PIED = ['Prix HT, sans engagement.', 'Prix TTC, sans engagement.'];
+const PIED = ['Prix HT, sans engagement.', 'Sans engagement ; TVA non applicable (article 293 B du CGI).'];      // 21 octobre 2026 (Justin) : franchise de TVA — ni HT ni TTC
 /* les huit pages publiées le 27 septembre (`fe599df`), octet pour octet — écrites ICI et pas lues dans
    `vitrine/racine-v1.json`, qui suit les retouches : un banc qui relirait l'empreinte qu'il doit contrôler ne
    contrôlerait rien. */
@@ -90,7 +90,7 @@ vrai('la page porte bien les formules (population : ' + (TAR.match(/<div class="
 vrai('⛔ plus aucune formule ne vend plusieurs utilisateurs', !/[2-9] utilisateurs inclus/.test(tt) && !/\(\d utilisateurs/.test(meta));
 v('les cinq formules payantes disent « 1 utilisateur par abonnement »', (TAR.match(/<div class="places">1 utilisateur par abonnement<\/div>/g) || []).length, 5);
 vrai('l\'introduction le dit : « Un abonnement par utilisateur »', tt.includes('Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements.'));
-vrai('⛔ l\'introduction dit « Prix TTC par mois », et plus « HT »', tt.includes('Prix TTC par mois, sans engagement.') && !/\bHT\b/.test(tt));
+vrai('⛔ l\'introduction dit « TVA non applicable » (franchise, 21 octobre 2026), ni « HT » ni « TTC »', tt.includes('Prix par mois, sans engagement — TVA non applicable (article 293 B du CGI).') && !/\bTTC\b/.test(tt) && !/\bHT\b/.test(tt));
 vrai('la FAQ le dit, avec un exemple qui compte juste (Business × 3 = 3 comptes)', tt.includes('Un abonnement donne un compte utilisateur, quelle que soit la formule') && tt.includes('Business × 3 = 3 comptes'));
 vrai('… et l\'exemple ne se coupe pas en fin de ligne (insécables)', TAR.includes(['Business', '×', '3', '=', '3', 'comptes'].join(NB)));
 vrai('la description (moteurs de recherche) dit « par mois et par utilisateur »', meta.includes('par mois et par utilisateur'));
@@ -108,7 +108,7 @@ if (racineGeneree) {
 v('population : huit pages publiées, dont les sept qui ne vendent rien', Object.keys(V1_PUBLIEE).length, 8);
 for (const f of Object.keys(V1_PUBLIEE).filter(f => f !== 'tarifs.html')) {
   const P = lire(f);
-  vrai(f + ' : le pied dit « Prix TTC, sans engagement. », et plus « HT »', P.includes(PIED[1]) && !/\bHT\b/.test(texte(P)));
+  vrai(f + ' : le pied dit « TVA non applicable », ni « HT » ni « TTC »', P.includes(PIED[1]) && !/\b(HT|TTC)\b/.test(texte(P)));
   if (P === GEN.page(f.replace(/\.html$/, ''), { racine: true })) { vrai(f + ' : sortie du générateur (remplacée) — test-835 la garde', true); continue; }
   v(f + ' : la retouche s\'y trouve une fois', P.split(PIED[1]).length - 1, 1);
   v('⛔ ' + f + ' : en la défaisant, on retrouve octet pour octet la v1 publiée', sha(P.split(PIED[1]).join(PIED[0])), V1_PUBLIEE[f]);
@@ -116,8 +116,8 @@ for (const f of Object.keys(V1_PUBLIEE).filter(f => f !== 'tarifs.html')) {
 }
 /* l'aperçu (le site v2) : `test-835` exige que ses pages soient la sortie du générateur — on lit donc le générateur */
 const GEN_HT = Object.keys(GEN.PAGES).filter(cle => { const g = GEN.page(cle); return !g.includes(PIED[1]) || /\bHT\b/.test(texte(g)); });
-v('le générateur du site (aperçu) : les huit pages disent « Prix TTC », aucune « HT »', GEN_HT, []);
-vrai('… et l\'introduction des tarifs « Prix TTC par mois »', texte(GEN.page('tarifs')).includes('Prix TTC par mois, sans engagement.'));
+v('le générateur du site (aperçu) : les huit pages disent « TVA non applicable », aucune « HT »', GEN_HT, []);
+vrai('… et l\'introduction des tarifs « TVA non applicable »', texte(GEN.page('tarifs')).includes('Prix par mois, sans engagement — TVA non applicable (article 293 B du CGI).'));
 
 /* ── 1 bis. deux pages du portail EN SERVICE : une phrase de l'ancienne règle chacune, et rien d'autre ────────── */
 /* Trouvées le soir même, en relisant la chaîne du paiement jusqu'au bout : la page qu'on voit JUSTE APRÈS avoir payé
@@ -211,7 +211,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     // Business, sept personnes : sept abonnements, 175 €
     let p = b.paiement();
     vrai('sept personnes en Business : « 7 abonnements Business · un par utilisateur »', p.includes('7 abonnements Business · un par utilisateur'));
-    vrai('… « Abonnement Business × 7 » et un total de 175 € (7 × 25)', p.includes('Abonnement Business × 7') && p.includes('175 € TTC'));
+    vrai('… « Abonnement Business × 7 » et un total de 175 € (7 × 25)', p.includes('Abonnement Business × 7') && p.includes('175 €') && !p.includes('TTC'));
     vrai('… « Formule Business · 1 utilisateur par abonnement »', p.includes('Formule Business · 1 utilisateur par abonnement'));
     const d = b.droits();
     vrai('la carte des droits : « 1 utilisateur par abonnement », et plus « inclus »', d.includes('1 utilisateur par abonnement') && !/utilisateurs? inclus/.test(d));
@@ -219,7 +219,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     // « + » puis « − » : une personne de plus, une de moins — plus jamais par paquets de deux ou trois
     b.derniers.aboPlus._h.click[0]();
     v('« + » : huit personnes, huit abonnements', b.api.etat().nbUsersVoulu, 8);
-    vrai('… et l\'écran le dit (200 €)', b.paiement().includes('8 abonnements Business') && b.paiement().includes('200 € TTC'));
+    vrai('… et l\'écran le dit (200 €)', b.paiement().includes('8 abonnements Business') && b.paiement().includes('200 €') && !b.paiement().includes('TTC'));
     b.derniers.aboMoins._h.click[0]();
     v('« − » : retour à sept', b.api.etat().nbUsersVoulu, 7);
     // le champ : 60 tapés → plafond du serveur, et la page dit pourquoi
@@ -239,7 +239,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     const pr = executer(PAGE, '?formule=premium');
     await pr.api.compteLu;
     v('Business Premium sans nombre donné : 1 personne, 1 abonnement', pr.api.etat().nbUsersVoulu, 1);
-    vrai('… 50 € par mois, et « Formule Business Premium · 1 utilisateur par abonnement »', pr.paiement().includes('50 € TTC') && pr.paiement().includes('Formule Business Premium · 1 utilisateur par abonnement'));
+    vrai('… 50 € par mois, et « Formule Business Premium · 1 utilisateur par abonnement »', pr.paiement().includes('50 €') && !pr.paiement().includes('TTC') && pr.paiement().includes('Formule Business Premium · 1 utilisateur par abonnement'));
     await pr.derniers.btnPayer._h.click[0]();
     v('… et « Payer » envoie la quantité 1', pr.envoye.map(e => e.corps.quantity), [1]);
     // une adresse venue de l'application (utilisateurs=N) au-delà du plafond
@@ -249,7 +249,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     const g = executer(PAGE, '?formule=gratuit');
     await g.api.compteLu;
     v('⛔ un ancien lien « ?formule=gratuit » ouvre Pro', g.api.etat().formuleActive, 'pro');
-    vrai('… à 15 € par mois, avec son compteur d\'abonnements', g.paiement().includes('15 € TTC') && g.paiement().includes('Formule Pro · 1 utilisateur par abonnement'));
+    vrai('… à 15 € par mois, avec son compteur d\'abonnements', g.paiement().includes('15 €') && !g.paiement().includes('TTC') && g.paiement().includes('Formule Pro · 1 utilisateur par abonnement'));
   }
 
   /* ── 3. le site et la page de paiement vendent le même prix par utilisateur ─────────────────────────────── */
@@ -277,7 +277,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     v(pf + ' · ⛔ Messages Pro porte TOUTE la liste : visio, partage d\'écran, réunions planifiées, appels de groupe, personnalisation, support prioritaire, espace et canaux', MANQUE.filter(([, re]) => !re.test(d)).map(([n]) => n), []);
     vrai('   … et il ne reste AUCUN droit « non inclus » ni renvoi vers la formule à 25 € (« disponibles avec Messages Business Premium »)', !/Non inclus dans cette formule/.test(d) && !/Business Premium/.test(d) && !/avec le Business Premium de la suite/.test(d));
     vrai('   « illimitée » ne se dit que de la durée, et le nombre de participants en vidéo reste dit limité', /sans limite de durée/.test(d) && /nombre de participants en vidéo reste limité/.test(d) && !/visio illimitée|sans limite\b(?! de durée)/i.test(d));
-    vrai('   15 € par mois, 1 utilisateur par abonnement', /15 € TTC/.test(m.paiement()) || /Messages Pro/.test(m.droits()));
+    vrai('   15 € par mois, 1 utilisateur par abonnement', (/15 €/.test(m.paiement()) && !/TTC/.test(m.paiement())) || /Messages Pro/.test(m.droits()));
     /* un lien d'avant (mail, favori, page en cache) : Messages Pro, avec un mot — jamais Business, jamais une page vide */
     const r = executer(PG, '?formule=msgpremium'); await r.api.compteLu;
     v(pf + ' · ⛔ ?formule=msgpremium ouvre MESSAGES PRO', r.api.etat().formuleActive, 'msgpro');

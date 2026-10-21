@@ -13,6 +13,22 @@ de ligne du tout.
 
 ---
 
+
+# ✅ 20 OCTOBRE 2026 (SOIR) — OP MESSAGES : CAMPAGNE DE TESTS, DEUX DÉFAUTS CORRIGÉS ; OP COURRIER LISIBLE, LIENS, TRADUCTION (publié sur `main`)
+- **Publié** (Justin : « publie », « je t'autorise ») : l'administration d'OP MESSAGES réservée au patron (`monPatronStrict`, `test-1016`) ;
+  un lien `#reunion=` collé au démarrage n'est plus refermé (la question « Courrier ouvert ? » part avec la session) ; le corps d'un mail
+  se lit (entités décodées, `corpsLu`) et ses adresses sont des liens (pas pour un indésirable, `test-2804`) ; « Traduire en français »
+  dans le Courrier de la Tour v2.98 (`/api/monitor/mail/traduire`, Claude Haiku, 200/jour, rien au journal, jamais un 5xx — `test-2805`).
+  ⚠ Le texte d'un mail traduit part chez Anthropic, au geste : à mentionner dans `sous-traitance.html` (Justin, juriste).
+- **Campagne** : porte d'OP MESSAGES 182 suites · 11 914 ; serveur 72 · 4 814 ; grande sonde 3 244 ✓ 0 ✗ ; toutes les autres sondes vertes
+  après correction — sept étaient EN RETARD sur la page, pas la page en défaut (onglet Courrier, chemin du Profil, case du mois devenue
+  bloc + bouton, « revenir à aujourd'hui » qui ne relit plus, séance terminée qui ne s'ouvre plus de la liste, 400 ms de `armerRetap`).
+  Restent non jouées ici : `sonde-opmessages-visio` (pas de LiveKit dans le conteneur).
+- ⛔ Leçon : `NODE_PATH=/opt/node-tools/node_modules` pour les sondes (playwright-core n'est pas sous `/opt/node22`) ; la grande sonde
+  dépasse 30 min ; ne jamais `pkill -f` un motif de sa propre commande (rejoué ce soir : code 144, commit perdu).
+- À trancher par Justin : « elan-tzl2 » et TEAMOP3MOIS (la Tour sait supprimer une entreprise partout ; retirer SEULEMENT une période offerte
+  n'existe pas — et sans période ni abonnement, l'entreprise serait suspendue) ; le Courrier pour un compte OP MESSAGES seul (laissé fermé).
+
 # 👉 19 OCTOBRE 2026 (SOIR) — OP COURRIER : OÙ ÇA EN EST, ET CE QUI RESTE
 
 **En service (vérifié en ligne)** : OP GESTION **v769** (`app.html` 769, cache `sw.js` v969 — demande de fusion n° 150, fusionnée par Justin le 19 octobre à 16 h 17) : OP Courrier REMPLACE la Boîte mail pour
@@ -209,9 +225,9 @@ dernière retouche n'a PAS encore été rejouée par la porte : relancer `TOUR_E
 (retirer d'abord l'arbre `scratchpad/deploiement-serveur` par `git worktree remove --force`), puis pousser sur la phrase de Justin.
 
 **À trancher par Justin :**
-- l'administration d'OP MESSAGES (comptes et leurs adresses « courriel ») est lisible par TOUT compte de la console OP
-  MESSAGES, pas le seul patron — comme les Demandes d'OP GESTION pour ses opérateurs. Resserrer = `monPatronStrict` sur
-  `/api/monitor/messages/admin/:route` (relecture `gardien`) ;
+- ✅ TRANCHÉ le 20 octobre 2026 (Justin : « commence à faire ce qui manque » avant le public) : l'administration d'OP
+  MESSAGES est réservée au PATRON (`monPatronStrict`, branche `claude/opmsg-admin-patron`, `test-1016` + mutation qui tombe) —
+  ⛔ pas encore sur `main` : le pousser DÉPLOIE le serveur, il attend la phrase de Justin ;
 - un compte de la Tour qui n'a QUE la console OP MESSAGES ne voit pas le Courrier (le serveur range `mail/*` dans OP GESTION :
   la boîte porte les liens de connexion des entreprises) — le lui ouvrir, filtré côté serveur, est un chantier de plus ;
 - l'identifiant public « Prénom#1234 » sort par l'administration d'OP MESSAGES (seul moyen de retrouver un compte par

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '76682ab3f0c8';
+  const OPMSG_BUILD = '65e7ae48c0d7';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 256;
+  const OPMSG_VERSION = 264;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -10044,6 +10044,10 @@
 
   /* ═══ 11. LE DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
   async function demarrer() {
+    /* ⛔ (20 octobre 2026) la question « le Courrier est-il ouvert ? » part TOUT DE SUITE, en même temps que la session : attendue à la suite des autres lectures, elle allongeait
+       le démarrage, et un lien collé pendant ce temps (`#reunion=…`) était refermé par la route du démarrage, appliquée après lui (sonde des réunions Pro, rejouée à chaque passage). */
+    const courrierQ = (CAP.courrier && typeof source.courrierOuvert === 'function' && typeof source.courrierSource === 'function')
+      ? Promise.resolve().then(() => source.courrierOuvert()).then(v => v === true, () => false) : null;
     const retourAbo = lireRetourAbo();                                       // lu AVANT que `lireMotif` ne nettoie l'adresse
     const motif = typeof source.demarrer === 'function' ? lireMotif() : null;
     if (typeof source.demarrer === 'function') {
@@ -10062,7 +10066,7 @@
     const codeInvitation = CAP.espaces ? invitationDansAdresse() : null;
     const codeReunion = CAP.salles ? reunionDansAdresse() : null;
     /* ⛔ OP COURRIER (18 octobre 2026) : la rubrique n'existe que si la source la connaît ET si le SERVICE dit qu'elle est ouverte (la bêta) — lu ici, avant tout, indépendamment du compte ; une lecture refusée : rien n'est proposé */
-    if (CAP.courrier && typeof source.courrierOuvert === 'function' && typeof source.courrierSource === 'function') { try { COUR.ouvert = (await source.courrierOuvert()) === true; } catch (e) { COUR.ouvert = false; } }
+    if (courrierQ) COUR.ouvert = await courrierQ;
     /* ⛔ « CÔTÉ PRO » : qui fait partie d'un espace d'entreprise (ou a Messages Pro) reçoit le tableau de bord, en tête. Une lecture de plus au démarrage — refusée, l'application
        démarre sans lui (il reviendra au prochain lancement), jamais l'inverse. */
     if (CAP.agenda && CAP.espaces && CAP.appels && typeof source.espaces === 'function') {

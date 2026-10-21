@@ -1,5 +1,12 @@
 # Point stable TeamOP
 
+**Version stable : v770** — 20 octobre 2026 (Justin : « traduis pour les autres qui ne l'ont pas »). Ce qui change pour une entreprise :
+dans OP Courrier, un mail se lit normalement (plus de « &Eacute; » ni de « &nbsp; »), ses liens se touchent (pas dans les indésirables), et
+**« Traduire en français »** traduit le mail ouvert, au geste (`/api/mail/traduire`, gardé par la clé de l'entreprise, 100 par jour) — le
+texte de CE mail part chez Anthropic (sous-traitant déjà déclaré pour l'assistant devis). Aucun format de données ne change.
+
+**Ancien point : v769.**
+
 **Version stable : v768** — publiée le 17 octobre 2026, sur la décision de Justin du 16 octobre au soir (« Bêta et version publique », à la
 question « où vont les correctifs d'OP GESTION ? ») : ELAN n'est plus client, aucune entreprise n'utilise l'application, et les correctifs de la
 campagne de test partent ensemble dans `app.html` et `beta.html`.

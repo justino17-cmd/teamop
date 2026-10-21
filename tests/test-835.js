@@ -42,6 +42,9 @@ for (const c of CLES) {
   const lu = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
   PAGES[c] = lu;
   vrai(c + '.html est identique à la sortie du générateur (sinon : node scripts/site-marine.js)', lu && lu === GEN.page(c, { racine: false }));
+  if (c === 'index') { const md = fs.existsSync(path.join(RACINE, 'index.md')) ? fs.readFileSync(path.join(RACINE, 'index.md'), 'utf8') : '';
+    vrai('index.md (le jumeau Markdown de l\'accueil) est la sortie du générateur — il ne diverge jamais de la page (sinon : node scripts/site-marine.js --racine)', md.length > 500 && md === GEN.jumeauMd('index'));
+    vrai('⛔ le jumeau dit le titre de la page et le H1 en ligne, sans balise ni icône', /^# TEAM OP — Logiciel de gestion pour entreprises de terrain\n/.test(md) && md.includes('## Logiciel de gestion pour entreprises de terrain') && !/<[a-z]/i.test(md)); }
 }
 
 console.log('2. aucune promesse retirée');

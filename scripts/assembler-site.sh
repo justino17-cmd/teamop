@@ -18,7 +18,7 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 
 # La racine : pages, scripts servis, manifestes, et ce que le domaine attend (CNAME, robots…).
-for f in *.html *.js *.webmanifest favicon.ico robots.txt sitemap.xml CNAME .nojekyll; do
+for f in *.html *.js *.webmanifest favicon.ico robots.txt llms.txt index.md sitemap.xml CNAME .nojekyll; do
   [ -f "$f" ] || continue
   case "$f" in
     beta-build.js) continue ;;   # fabrique beta.html depuis app.html : un outil, pas une page
@@ -33,7 +33,9 @@ done
 
 # ⛔ La garde : rien d'interne n'entre, même caché dans un dossier servi. Un fichier de ce genre
 # arrêté ici est une décision à prendre (le servir exprès, ou le ranger ailleurs), jamais à taire.
-interdits=$(cd "$DEST" && find . \( -name '*.md' -o -name '*.rules' -o -name '.claude' \
+# ⚠ UNE seule exception aux .md : `./index.md`, le jumeau Markdown de l'accueil, FABRIQUÉ par scripts/site-marine.js (21 octobre 2026) —
+# nommé par son chemin : un autre index.md, plus bas, reste refusé.
+interdits=$(cd "$DEST" && find . -path ./index.md -prune -o \( -name '*.md' -o -name '*.rules' -o -name '.claude' \
   -o -name '.github' -o -name '.githooks' -o -name '.mcp.json' -o -name 'skills-lock.json' \
   -o -name 'server' -o -name 'server-msg' -o -name 'tests' -o -name 'scratchpad' \) -print)
 if [ -n "$interdits" ]; then

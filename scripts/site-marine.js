@@ -249,7 +249,7 @@ function pied() {
     /* ⛔ LA COLONNE « Contact » : contact@ seul (voir `CONTACTS`) — `test-835` § 4 l'exige au pied de chaque page, et rien d'autre. */
     + `<div class="contact"><b>Contact</b>${CONTACTS.map(([m, r]) => `<a href="mailto:${m}">${m}</a><small>${fr(r)}</small>`).join('')}</div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
-    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Prix TTC, sans engagement.</p>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Sans engagement ; TVA non applicable (article 293 B du CGI).</p>
     <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a>${CONTACTS.map(([m]) => `<a href="mailto:${m}">${m}</a>`).join('')}<span class="fin">France</span></div>
   </div></footer>`;
 }
@@ -354,7 +354,7 @@ function formules(liste, attente) {
 const prixDe = cle => (FORMULES_GESTION.find(f => f.cle === cle) || {}).prix;
 /* la troisième carte de chaque page : la même partout, sauf si la page en dit une autre */
 const PREMIUM_METIER = "Tout Business, plus la couleur de votre entreprise dans l'application, OP MESSAGES dès sa réouverture et le service 24h/24.";
-const DES_PRO = 'Dès ' + prixDe('pro') + ' € TTC par mois.';
+const DES_PRO = 'Dès ' + prixDe('pro') + ' € par mois.';      // court : il entre dans des descriptions de 155 signes (test-846) ; la TVA est dite au pied de chaque page et dans « Les conditions, en bref »
 const METIERS = {
   'logiciel-anti-nuisibles': { priorite: '0.9', icone: 'bug', trois: 1,
     titre: "Logiciel anti-nuisibles 3D : registre sanitaire | TEAM OP",
@@ -439,8 +439,8 @@ function pageMetier(m, cle) {
   const duo = `<section class="duo">` + m.duo.map(([pt, h3, p, nom, alt]) => `<div class="grande-carte"><div class="haut"><div class="petit-titre">${fr(pt)}</div><h3>${fr(h3)}</h3><p>${fr(p)}</p></div>
           <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone(nom, alt)}</div>` : carPaire(paireDe(nom), { carte: true })}</div></div>`).join('') + '</section>';
   const bloc = ([h2, ps], i) => `<section class="bloc${i % 2 ? ' teinte' : ''}"><div class="bloc-in texte-metier"><h2 class="h2 moyen">${fr(h2)}</h2>` + ps.map(t => `<p>${fr(t)}</p>`).join('') + '</div></section>';
-  const f = [['Pro', prixDe('pro') + ' € TTC par mois et par utilisateur', m.formules[0]], ['Business', prixDe('business') + ' € TTC par mois et par utilisateur', m.formules[1]],
-    ['Business Premium', prixDe('premium') + ' € TTC par mois et par utilisateur', m.formules[2] || PREMIUM_METIER]];
+  const f = [['Pro', prixDe('pro') + ' € par mois et par utilisateur', m.formules[0]], ['Business', prixDe('business') + ' € par mois et par utilisateur', m.formules[1]],
+    ['Business Premium', prixDe('premium') + ' € par mois et par utilisateur', m.formules[2] || PREMIUM_METIER]];
   const formules = `<section class="bloc${m.blocs.length % 2 ? ' teinte' : ''}" id="formules"><div class="bloc-in texte-metier"><h2 class="h2 moyen">${fr('Quelle formule choisir ?')}</h2>`
     + `<p>${fr('Sans engagement : choisissez la formule qui vous convient, et changez-en quand votre équipe grandit. Un abonnement par utilisateur.')}</p><div style="height:22px"></div>`
     + '<div class="cartes-3">' + f.map(([n, pr, t]) => `<div class="carte-v"><b>${fr(n)}</b><span class="prix-metier">${fr(pr)}</span><span class="t">${fr(t)}</span></div>`).join('') + '</div>'
@@ -594,18 +594,18 @@ function liensAccueil(liens, fiches, icone) {
 }
 
 const PAGES = {
-  index: { maj: '2026-10-08', titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. ' + DES_PRO,
+  index: { maj: '2026-10-21', titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. ' + DES_PRO,
     ogDesc: 'Interventions, stock, registre sanitaire, encaissements et équipe, sur mobile, tablette et ordinateur.',
-    corps: () => `<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Toutes vos applications métier. Au même endroit.</h1>
-      <p class="chapeau">${fr('Interventions, stock, encaissements et communication d\'équipe — sur iPhone, Android, Mac et PC, à jour en quelques secondes.')}</p>
+    corps: () => `<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Logiciel de gestion pour entreprises de terrain</h1>
+      <p class="chapeau">${fr('OP GESTION regroupe les interventions, le stock et les encaissements. L\'application est déclarée pour iOS, Android, macOS, Windows et le Web.')}</p>
       <div class="actions"><a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="applications.html">Découvrir les applications ›</a></div>
       <div class="gages"><span>Chiffré AES-256</span><span>Sur tous vos appareils</span><span>Sans installation</span></div>
       <div class="appareils">${POUR_LA_RACINE ? `<div class="ap-duo">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration', { tot: true })}${iphone('iphone-tableau', 'OP GESTION sur un iPhone : le tableau de bord', { tot: true })}</div>` : carPaire('tableau', { tot: true })}</div></section>
       <div class="plateformes"><span>Mac · Windows</span><span>iPhone · Android</span><span>Navigateur</span></div>
       <section class="duo">
-        <div class="grande-carte"><div class="haut"><div class="petit-titre">Sur le terrain</div><h3>${fr('La fiche d\'intervention, dans la poche.')}</h3><p>${fr('Client, adresse, produits, photos et signature : tout est sur la fiche.')}</p></div>
+        <div class="grande-carte"><div class="haut"><div class="petit-titre">Sur le terrain</div><h2>${fr('La fiche d\'intervention, dans la poche.')}</h2><p>${fr('Avant le passage, le technicien retrouve sur la fiche le client, l\'adresse et les produits prévus. Sur place, il ajoute les photos et fait signer le client à l\'écran.')}</p></div>
           <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-intervention', 'OP GESTION sur un iPhone : une fiche d\'intervention en cours')}</div>` : carPaire('interventions', { carte: true })}</div></div>
-        <div class="grande-carte"><div class="haut"><div class="petit-titre">Au dépôt</div><h3>Le stock, à jour.</h3><p>${fr('Avec la formule Business : arrivage, sortie, relevé — chaque mouvement est tracé et met le stock à jour.')}</p></div>
+        <div class="grande-carte"><div class="haut"><div class="petit-titre">Au dépôt</div><h2>Le stock, à jour.</h2><p>${fr('Avec la formule Business, par exemple : une livraison arrive, on enregistre l\'arrivage avec la photo du bon de livraison, et la quantité en stock augmente. Quand un technicien prend un produit, la sortie dit pour qui. Chaque mouvement reste dans l\'historique.')}</p></div>
           <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-box', 'OP GESTION sur un iPhone : la fiche d\'une box et ses gestes')}</div>` : carPaire('stock', { carte: true })}</div></div>
       </section>
       <section class="page" style="padding-top:90px;padding-bottom:0"><h2 class="h2">Ce que fait OP GESTION.</h2><p class="intro">${fr('Une seule application pour le bureau et le terrain. Chaque fonction a sa page : ce qu\'elle fait, et la formule qui l\'ouvre.')}</p>
@@ -614,10 +614,20 @@ const PAGES = {
         <div class="teasers compacts">${liensAccueil(VOLETS.metiers.grands, METIERS, k => METIERS[k].icone)}${carteLien('metiers.html', 'grid', 'Tous les métiers', packsPhrase())}</div></section>
       <section class="page" style="padding-top:90px;padding-bottom:40px"><h2 class="h2">${fr('Tout TEAM OP, en un coup d\'œil.')}</h2><div class="teasers">`
       + [['tool', 'Adapté à votre métier', 'Anti-nuisibles, plomberie, électricité, chauffage… TEAM OP se règle sur le métier que vous indiquez à votre demande d\'accès.', 'Page Métiers ›', 'metiers.html'],
-        ['euro', 'Des tarifs clairs', 'Sans engagement, dès ' + prixDe('pro') + ' € TTC par mois. Les places s\'additionnent quand l\'équipe grandit.', 'Page Tarifs ›', 'tarifs.html'],
+        ['euro', 'Des tarifs clairs', 'Sans engagement, dès ' + prixDe('pro') + ' € par mois (TVA non applicable). Les places s\'additionnent quand l\'équipe grandit.', 'Page Tarifs ›', 'tarifs.html'],
         ['lock', 'Pourquoi TEAM OP', 'Chiffrement AES-256, un espace par entreprise et un interlocuteur direct.', 'Pourquoi TEAM OP ›', 'pourquoi.html']]
         .map(([i, t, x, c, h]) => `<a class="teaser" href="${h}"><span class="tuile">${ic(i)}</span><b>${fr(t)}</b><span class="t">${fr(x)}</span><span class="l">${fr(c)}</span></a>`).join('')
-      + '</div></section>' },
+      /* (20 octobre 2026, Justin : un outil de lecture du site demandait « quelle preuve montre que ce produit fonctionne ? ») : UN déroulé concret, tiré de ce que la page
+         dit déjà de la fiche d'intervention — aucun client, aucun chiffre, aucun témoignage inventé ; déroulé VALIDÉ par Justin le 20 octobre 2026 (« je valide ») */
+      + '</div><p class="intro" style="margin-top:28px"><b>' + fr('Exemple de déroulé, chez une entreprise de dératisation :') + '</b> ' + fr('le technicien ouvre la fiche d\'intervention sur son téléphone, retrouve le client et l\'adresse, note les produits utilisés, prend les photos et fait signer le client à l\'écran. Le rapport part au client, et la facture se prépare depuis la même intervention, sans rien ressaisir.') + '</p></section>'
+      /* (21 octobre 2026, Justin : « fait ») LES CONDITIONS, EN BREF — la question d'un acheteur que l'accueil laissait sans réponse (« quelles limites,
+         conditions ou exigences ? »). Rien de neuf : ce que disent déjà les tarifs et les mentions légales, validé par Justin. */
+      + '<section class="page" style="padding-top:60px;padding-bottom:40px"><h2 class="h2">' + fr('Les conditions, en bref.') + '</h2><ul class="intro conditions">'
+      + ['Réservé aux professionnels : entreprises, artisans, micro-entrepreneurs, associations et collectivités.',
+         'Sans engagement, dès ' + prixDe('pro') + ' € par mois (TVA non applicable, article 293 B du CGI).',
+         'Un abonnement ouvre un compte utilisateur ; les abonnements s\'additionnent quand l\'équipe grandit.',
+         'Fonctionne sur iPhone, Android, Mac, PC et navigateur web.',
+         'Données chiffrées (AES-256), un espace séparé par entreprise.'].map(x => '<li>' + fr(x) + '</li>').join('') + '</ul></section>' },
 
   applications: { section: 'applications', titre: 'Nos applications — TEAM OP', desc: 'Les applications TEAM OP : OP GESTION (gestion d\'activité terrain) et OP MESSAGES (messagerie professionnelle d\'équipe).',
     corps: () => scene('Applications', 'Nos applications.', 'Toutes les applications de la plateforme TEAM OP. Ouvrez-en une pour voir tout ce qu\'elle fait.')
@@ -702,10 +712,10 @@ const PAGES = {
   ...Object.fromEntries(Object.entries(METIERS).map(([k, m]) => [k, { section: 'metiers', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m, k) }])),
   ...Object.fromEntries(Object.entries(FONCTIONS).map(([k, m]) => [k, { section: 'applications', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m, k) }])),
 
-  tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Tarifs TEAM OP : Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, TTC et sans engagement.',
+  tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Tarifs TEAM OP : Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, sans engagement, TVA non applicable.',
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Choisissez votre formule, et changez-en quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
       + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="opmessages"></span><div class="tarifs-in">
-        <p class="intro">${fr('Prix TTC par mois, sans engagement. Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements. Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.')}</p>
+        <p class="intro">${fr('Prix par mois, sans engagement — TVA non applicable (article 293 B du CGI). Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements. Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.')}</p>
         <div class="segment" role="tablist" aria-label="Application"><button type="button" role="tab" id="onglet-gestion" aria-controls="formules-gestion" aria-selected="true">OP GESTION</button><button type="button" role="tab" id="onglet-msg" aria-controls="formules-msg" aria-selected="false" tabindex="-1">OP MESSAGES</button></div>
         <div class="formules" id="formules-gestion" role="tabpanel" aria-labelledby="onglet-gestion" style="--n:${FORMULES_GESTION.length}">${formules(FORMULES_GESTION)}</div>
         <div class="formules" id="formules-msg" role="tabpanel" aria-labelledby="onglet-msg" style="--n:3" hidden>${formules(FORMULES_MESSAGES, true)}</div>
@@ -761,11 +771,16 @@ const IMAGE_PARTAGE = { url: SITE_URL + 'vitrine/v2/captures/partage-tableau-jou
   alt: 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration' };
 const JSONLD = () => JSON.stringify({ '@context': 'https://schema.org', '@graph': [
   { '@type': 'Organization', '@id': SITE_URL + '#organisation', name: 'TEAM OP', url: SITE_URL, logo: SITE_URL + 'icons/teamop-192.png',
-    founder: { '@type': 'Person', name: 'Justin Biret' }, email: CONTACTS[0][0], areaServed: 'FR' },
+    founder: { '@type': 'Person', name: 'Justin Biret' }, email: CONTACTS[0][0], areaServed: 'FR',
+    /* (21 octobre 2026) l'identité LÉGALE, reprise MOT POUR MOT des mentions légales (mentions-legales.html, « Éditeur du site ») — jamais devinée :
+       entrepreneur individuel, SIREN. ⛔ PAS D'ADRESSE (Justin, 21 octobre 2026 : « je veux pas que mon adresse personnelle soit sur le site »). ⛔ PAS de vatID : TVA non applicable (art. 293 B du CGI) ; la changer ici quand les mentions changent. */
+    legalName: 'Justin Biret, entrepreneur individuel', identifier: { '@type': 'PropertyValue', propertyID: 'SIREN', value: '107995011' } },
   { '@type': 'WebSite', '@id': SITE_URL + '#site', url: SITE_URL, name: 'TEAM OP', inLanguage: 'fr-FR', publisher: { '@id': SITE_URL + '#organisation' } },
   { '@type': 'SoftwareApplication', name: 'OP GESTION', applicationCategory: 'BusinessApplication', operatingSystem: 'iOS, Android, macOS, Windows, Web',
     description: 'Gestion tout-en-un pour entreprises de terrain : interventions, stock, encaissements, comptabilité.', url: SITE_URL + 'elan.html',
-    offers: FORMULES_GESTION.map(f => ({ '@type': 'Offer', name: f.nom, price: f.prix, priceCurrency: 'EUR' })) }] }, null, 2);
+    /* ⛔ le prix est celui qu'on paie, et AUCUNE TVA ne s'y ajoute ni n'y est comprise (franchise, art. 293 B du CGI) : `valueAddedTaxIncluded: false`, jamais `true` */
+    offers: FORMULES_GESTION.map(f => ({ '@type': 'Offer', name: f.nom, price: f.prix, priceCurrency: 'EUR',
+      priceSpecification: { '@type': 'UnitPriceSpecification', price: f.prix, priceCurrency: 'EUR', unitText: 'mois', valueAddedTaxIncluded: false, description: 'TVA non applicable, article 293 B du CGI' } })) }] }, null, 2);
 function teteSeo(cle) {
   const P = PAGES[cle], u = urlDe(cle);
   return `<link rel="canonical" href="${u}">
@@ -836,6 +851,25 @@ ${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
 `;
 }
 
+/* ══ LE JUMEAU MARKDOWN DE L'ACCUEIL (21 octobre 2026) ══
+   Recommandation de l'outil de lecture du site (Justin) : `/index.md`, le texte de l'accueil sans la mise en page, pour les assistants IA.
+   ⛔ IL EST FABRIQUÉ DEPUIS LA PAGE, jamais écrit à la main : un jumeau recopié diverge à la première retouche (l'outil proposait déjà un texte
+   périmé). Titres, paragraphes, listes et liens du <main> ; ni image, ni icône, ni script. `test-835` exige qu'il soit la sortie de cette fonction.
+   ⚠ `scripts/assembler-site.sh` refuse tout `.md` (rien d'interne ne part) : `index.md` y est la SEULE exception, nommée. */
+function jumeauMd(cle) {
+  const html = page(cle, { racine: true }), m = /<main[^>]*>([\s\S]*?)<\/main>/.exec(html);
+  if (!m) throw new Error('jumeau Markdown : pas de <main> dans ' + cle);
+  const dec = t => t.replace(/&nbsp;|&#160;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&rsquo;/g, '’')
+    .replace(/ | /g, ' ');
+  const abs = h => /^https?:/.test(h) ? h : SITE_URL + h.replace(/^\//, '');
+  let t = m[1].replace(/<(script|style|svg|noscript|template)[\s\S]*?<\/\1>/gi, ' ').replace(/<img[^>]*>/gi, ' ')
+    .replace(/<a\b[^>]*href="([^"#]*)(#[^"]*)?"[^>]*>([\s\S]*?)<\/a>/gi, (x, h, f, txt) => { const l = txt.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); return l ? '\n- [' + l + '](' + abs(h + (f || '')) + ')\n' : ' '; })
+    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n\n# $1\n\n').replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n\n## $1\n\n').replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n\n### $1\n\n')
+    .replace(/<li[^>]*>/gi, '\n- ').replace(/<\/?p\b[^>]*>/gi, '\n\n').replace(/<\/(div|section|ul|ol|li|article|header|footer)>/gi, '\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ');
+  t = dec(t).split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim()).join('\n').replace(/\n{3,}/g, '\n\n').replace(/^(- .*)\n\n(?=- )/gm, '$1\n').replace(/^- (\d) /gm, '$1. ').trim();
+  return '# ' + PAGES[cle].titre + '\n\n' + t.replace(/^# /, '## ').replace(/\n# /g, '\n## ') + '\n';
+}
+
 if (require.main === module) {
   fs.mkdirSync(DEST, { recursive: true });
   for (const cle of Object.keys(PAGES)) {
@@ -843,6 +877,6 @@ if (require.main === module) {
     fs.writeFileSync(f, page(cle));
     console.log('✓', path.relative(RACINE, f), Math.round(fs.statSync(f).size / 1024) + ' Ko');
   }
-  if (A_LA_RACINE) { fs.writeFileSync(path.join(RACINE, 'sitemap.xml'), sitemap()); console.log('✓ sitemap.xml'); }
+  if (A_LA_RACINE) { fs.writeFileSync(path.join(RACINE, 'sitemap.xml'), sitemap()); console.log('✓ sitemap.xml'); fs.writeFileSync(path.join(RACINE, 'index.md'), jumeauMd('index')); console.log('✓ index.md'); }
 }
-module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE };
+module.exports = { jumeauMd, PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE };

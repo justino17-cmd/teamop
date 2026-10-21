@@ -3188,7 +3188,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.100';
+var TOUR_VERSION='v2.101';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -7175,7 +7175,7 @@ function courrierSource(){
     envoyer:function(dem,fichiers){
       if(!fichiers||!fichiers.length) return Promise.reject(new Error('Ajoutez le PDF à signer.'));
       var id=null;
-      var corps={titre:dem.titre,type:dem.type,niveau:dem.niveau,jours:dem.jours,relances:dem.relances!==false,signataires:dem.signataires};
+      var corps={titre:dem.titre,type:dem.type,niveau:dem.niveau,jours:dem.jours,relances:dem.relances!==false,signataires:dem.signataires,expediteur:dem.expediteur};
       if(dem.contresignature) corps.contresignature=dem.contresignature;
       return sigRequete('POST','/demandes',{corps:corps,json:true}).then(sigVue).then(function(v){
         id=v.id;
@@ -7196,7 +7196,9 @@ function courrierSource(){
     signature:signature,
     capacites:function(){ return signaturePrete().then(function(pret){ return {oauth:false,programmeServeur:false,signature:pret,marquage:true,deplacement:true,reglagesServeur:true,simulation:false,
       dossiers:['inbox','drafts','sent','archive','junk','trash'],destinataires:20,pj:{nombre:12,octets:12*1024*1024},
-      journalEnvois:true,telechargerPiece:true,suivi:true,moi:MYNOM}; }); },
+      journalEnvois:true,telechargerPiece:true,suivi:true,traduire:true,moi:MYNOM}; }); },
+    /* « Traduire en français » (20 octobre 2026) : le texte d'UN message, au geste, traduit par le serveur (`/api/monitor/mail/traduire`) */
+    traduire:function(texte){ return appel('/api/monitor/mail/traduire',{texte:String(texte||'')},'Traduction refusée').then(function(d){ if(!d||typeof d.texte!=='string') throw new Error('réponse du serveur illisible'); return d.texte; }); },
     boites:function(){
       return appel('/api/monitor/mail/boites',undefined,'Lecture des boîtes refusée').then(function(d){
         if(!d||!Array.isArray(d.boites)) throw new Error('réponse du serveur illisible');
@@ -7264,7 +7266,7 @@ function courrierSource(){
 function courrierCharger(){
   if(window.OPCourrier) return Promise.resolve();
   if(COUR.chargement) return COUR.chargement;
-  COUR.chargement=new Promise(function(ok,ko){ var s=document.createElement('script'); s.src='opcourrier.js?v='+encodeURIComponent(TOUR_VERSION);
+  COUR.chargement=new Promise(function(ok,ko){ var s=document.createElement('script'); s.src='apercu/opcourrier.js?v='+encodeURIComponent(TOUR_VERSION);
     s.onload=function(){ ok(); }; s.onerror=function(){ COUR.chargement=null; ko(new Error('opcourrier.js')); }; document.head.appendChild(s); });
   return COUR.chargement;
 }
