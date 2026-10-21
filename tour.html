@@ -3322,7 +3322,6 @@ function svg(n,t){ t=t||17; return '<svg width="'+t+'" height="'+t+'" viewBox="0
    Chaque vue du lot arrive partie par partie, vérifiée (règle de Justin, 20 octobre) ; d'ici là, elle dit ce qu'elle montrera,
    jamais un chiffre d'exemple. Une vue terminée quitte cette table. */
 var VUES_BIENTOT={
-  incidents:['Incidents','Ce que les clients rencontrent, regroupé par problème, avec qui s’en occupe et depuis quand.'],
   contrats:['Contrats','Les contrats et les signatures en cours : envoyés, signés, en attente — et ce qui reste à faire.'],
   rapport:['Rapport','Le rapport du jour des agents : ce qu’ils ont fait, ce qui attend ta validation, ce qui a échoué.']
 };
@@ -3978,7 +3977,8 @@ function setTab(t,sansAnim){
   /* chargerPromos() n'était appelée NULLE PART : le bloc des formules offertes restait
      sur « Chargement des codes… » pour toute la session, alors que c'est le seul endroit de
      la console où l'on voit qui profite d'une formule offerte, et jusqu'à quand. */
-  if(t==='facturation'&&(!ABO.loaded||ABO.err)) chargerAbos();   /* lot 1 (c) : les factures viennent de la même lecture de Stripe */
+  if(t==='facturation'&&(!ABO.loaded||ABO.err)) chargerAbos();
+  if(t==='incidents'&&(!INC.loaded||INC.err)) chargerIncidents();   /* lot 1 (d) : la même liste que la Surveillance */   /* lot 1 (c) : les factures viennent de la même lecture de Stripe */
   if(t==='abonnements'){ if(!ABO.loaded||ABO.err) chargerAbos(); if(!PRO.loaded||PRO.err) chargerPromos(); }
   if(t==='equipe'&&(!EQ.loaded||EQ.err)) chargerEquipe();   /* v2.88 : un échec au chargement figeait l'écran pour toute la séance */
   if(t==='journal') chargerJournal();
@@ -4601,11 +4601,11 @@ function chargerIncidents(){
     if(!d) return;
     INC.list=d.issues||[]; INC.cnt=d.compteurs||{}; INC.nbEnt=d.entreprises||0; INC.loaded=true; INC.err=''; INC.avert='';
     setBdg('bdg-surv',incOuverts().length); majCompteursApp(); majBarreBas();
-    if((TAB==='surveillance'&&!incNoteEnCours())||TAB==='accueil') render();
+    if((TAB==='surveillance'&&!incNoteEnCours())||TAB==='accueil'||TAB==='incidents') render();
   }).catch(function(e){
     if(INC.loaded&&!INC.err&&(INC.list||[]).length){ INC.avert='Dernière relève impossible ('+msgErreur(e)+') — la liste affichée est celle d’avant.'; }
     else { INC.err=msgErreur(e); INC.loaded=true; }
-    if((TAB==='surveillance'&&!incNoteEnCours())||TAB==='accueil') render(); });
+    if((TAB==='surveillance'&&!incNoteEnCours())||TAB==='accueil'||TAB==='incidents') render(); });
 }
 /* ── ✨ Devis IA : activation entreprise par entreprise (la clé et les codes restent côté serveur) ── */
 var DIA={equipes:{},noms:{},entreprises:[],cle:false,quotaJour:0,utilises:0,loaded:false,err:'',nv:''};
@@ -5728,6 +5728,7 @@ function renderVue(v){
   else if(TAB==='journal') v.innerHTML=groupeOnglets('journal')+vueJournal();
   else if(TAB==='agents') v.innerHTML=vueAgents();
   else if(TAB==='facturation') v.innerHTML=vueFacturation();
+  else if(TAB==='incidents') v.innerHTML=vueIncidents();
   else if(VUES_BIENTOT[TAB]) v.innerHTML=vueBientot(TAB);
   if(v.classList.contains('entre')) compterKpi(v);
   /* ICI et pas dans render() : renderAnime() appelle renderVue() directement, sans passer par
@@ -8797,6 +8798,51 @@ function abnGroupe(titre,n,sous,opt,corps){
   return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+titre+'</span>'+
     (n===null?'':'<span class="reg-n">'+n+'</span>')+
     (sous?'<div class="reg-sous'+(opt?' opt':'')+'">'+sous+'</div>':'')+'</div>'+corps+'</div>';
+}
+/* ══ INCIDENTS (lot 1 de la refonte, partie d — 21 octobre 2026) ══
+   Ce que les clients rencontrent, un problème par ligne : le plus grave d'abord, puis ce que personne n'a pris, puis le plus
+   récent. Qui s'en occupe (le dernier qui a agi, `par`, « personne » sinon), depuis quand, et combien d'entreprises. La MÊME liste
+   que la Surveillance (`chargerIncidents`, /api/monitor/issues, la console ouverte seulement) : aucune route neuve, aucune écriture —
+   on agit dans la fiche de l'incident, où mène chaque ligne. Une relève ratée après une bonne le dit (INC.avert). */
+var INC_GRAV_R={haute:0,moyenne:1,faible:2};
+function incDernierGeste(i){ var h=(i.historique||[]); return h.length?(h[h.length-1].ts||0):0; }
+function vueIncidents(){
+  var tete=enTete('Incidents',
+    'Ce que les clients rencontrent, regroupé par problème : le plus grave d’abord, avec qui s’en occupe et depuis quand.',
+    '<button type="button" class="btn-fant" onclick="allerIncidents()">Ouvrir la surveillance</button>');
+  if(!INC.loaded) return tete+acSquel();
+  if(INC.err) return tete+acErr('La surveillance ne répond pas',INC.err,'chargerIncidents()');
+  if(INC.avert) tete+='<div class="note" style="margin-bottom:14px">⚠️ '+esc(INC.avert)+'</div>';
+  var ouv=incOuverts().slice().sort(function(a,b){
+    return (INC_GRAV_R[gravite(a)]-INC_GRAV_R[gravite(b)])||(((a.statut||'nouveau')==='nouveau'?0:1)-((b.statut||'nouveau')==='nouveau'?0:1))||((b.lastTs||0)-(a.lastTs||0)); });
+  var mois=Date.now()-30*86400000;
+  var corr=incDeLaConsole().filter(function(i){ return i.statut==='corrige'&&Math.max(incDernierGeste(i),i.lastTs||0)>mois; })
+    .sort(function(a,b){ return Math.max(incDernierGeste(b),b.lastTs||0)-Math.max(incDernierGeste(a),a.lastTs||0); });
+  var hautes=ouv.filter(function(i){ return gravite(i)==='haute'; }).length, libres=ouv.filter(function(i){ return (i.statut||'nouveau')==='nouveau'; }).length;
+  var kpi='<div class="grille-kpi abn-kpi" style="margin-top:18px">'+
+    '<div class="kpi"><div class="n">'+ouv.length+'</div><div class="l">Ouverts</div></div>'+
+    '<div class="kpi"><div class="n"'+(hautes?' style="color:var(--redText)"':'')+'>'+hautes+'</div><div class="l">Gravité haute</div></div>'+
+    '<div class="kpi"><div class="n"'+(libres?' style="color:var(--amber)"':'')+'>'+libres+'</div><div class="l">Personne dessus</div></div>'+
+    '<div class="kpi"><div class="n" style="color:var(--green)">'+corr.length+'</div><div class="l">Corrigés en 30 jours</div></div>'+
+  '</div>';
+  var ligne=function(i,fini){ var st=i.statut||'nouveau', g=gravite(i), ents=(i.entreprises||[]).length;
+    return ligneAc({haut:!fini&&g==='haute',ton:fini?'bleu':g==='haute'?'rouge':'ambre',ico:'incidents',
+      t1:esc(incTitre(i)),titre:incTitre(i),
+      l2:esc(APP_L[i.app]||i.app||'—')+' · '+(ents>1?ents+' entreprises':ents?esc(entNom(i)):'aucune entreprise identifiée')+' · '+
+        (fini?'corrigé'+(i.par?' par <b>'+esc(i.par)+'</b>':''):st==='encours'?'suivi par <b>'+esc(i.par||'—')+'</b>':'personne dessus'),
+      l3:(i.firstTs?'depuis le '+esc(fmtJour(i.firstTs))+' · ':'')+'dernière fois '+esc(fmtAgo(i.lastTs)),
+      past:fini?{c:'p-vert',t:'corrigé'}:{c:g==='haute'?'p-rouge':'p-ambre',t:'×'+(i.count||1)},
+      action:"allerIncident('"+jsq(i.id)+"')"}); };
+  var G=[];
+  if(ouv.length) G.push(abnGroupe('Ouverts',ouv.length,'Toucher une ligne ouvre sa fiche : statut, cause, notes et historique.',false,
+    '<div class="reg-bloc">'+ouv.slice(0,30).map(function(i){ return ligne(i,false); }).join('')+'</div>'+
+    (ouv.length>30?'<button type="button" class="ac-plus" onclick="allerIncidents()">Voir les '+(ouv.length-30)+' autres dans la surveillance →</button>':'')));
+  if(corr.length) G.push(abnGroupe('Corrigés récemment',corr.length,'Les trente derniers jours.',true,
+    '<div class="reg-bloc">'+corr.slice(0,8).map(function(i){ return ligne(i,true); }).join('')+'</div>'));
+  var corps=G.length?'<div class="reg" style="margin-top:26px">'+G.join('')+'</div>'
+    :videTour('Aucun incident','Rien de signalé par les applications. Une erreur, une lenteur ou une panne réseau chez un client arrivera ici toute seule.','','incidents');
+  if(G.length&&!ouv.length) corps=videTour('Aucun incident ouvert','Tout ce qui a été signalé est traité.','',false)+corps;
+  return tete+kpi+corps;
 }
 /* ══ FACTURATION (lot 1 de la refonte, partie c — 21 octobre 2026) ══
    Les factures d'OP GESTION telles que Stripe les tient, lues par la MÊME lecture que les Abonnements (`chargerAbos`,
