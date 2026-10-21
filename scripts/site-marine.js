@@ -843,6 +843,25 @@ ${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
 `;
 }
 
+/* ══ LE JUMEAU MARKDOWN DE L'ACCUEIL (21 octobre 2026) ══
+   Recommandation de l'outil de lecture du site (Justin) : `/index.md`, le texte de l'accueil sans la mise en page, pour les assistants IA.
+   ⛔ IL EST FABRIQUÉ DEPUIS LA PAGE, jamais écrit à la main : un jumeau recopié diverge à la première retouche (l'outil proposait déjà un texte
+   périmé). Titres, paragraphes, listes et liens du <main> ; ni image, ni icône, ni script. `test-835` exige qu'il soit la sortie de cette fonction.
+   ⚠ `scripts/assembler-site.sh` refuse tout `.md` (rien d'interne ne part) : `index.md` y est la SEULE exception, nommée. */
+function jumeauMd(cle) {
+  const html = page(cle, { racine: true }), m = /<main[^>]*>([\s\S]*?)<\/main>/.exec(html);
+  if (!m) throw new Error('jumeau Markdown : pas de <main> dans ' + cle);
+  const dec = t => t.replace(/&nbsp;|&#160;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&rsquo;/g, '’')
+    .replace(/ | /g, ' ');
+  const abs = h => /^https?:/.test(h) ? h : SITE_URL + h.replace(/^\//, '');
+  let t = m[1].replace(/<(script|style|svg|noscript|template)[\s\S]*?<\/\1>/gi, ' ').replace(/<img[^>]*>/gi, ' ')
+    .replace(/<a\b[^>]*href="([^"#]*)(#[^"]*)?"[^>]*>([\s\S]*?)<\/a>/gi, (x, h, f, txt) => { const l = txt.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); return l ? '\n- [' + l + '](' + abs(h + (f || '')) + ')\n' : ' '; })
+    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n\n# $1\n\n').replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n\n## $1\n\n').replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n\n### $1\n\n')
+    .replace(/<li[^>]*>/gi, '\n- ').replace(/<\/?p\b[^>]*>/gi, '\n\n').replace(/<\/(div|section|ul|ol|li|article|header|footer)>/gi, '\n').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ');
+  t = dec(t).split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim()).join('\n').replace(/\n{3,}/g, '\n\n').replace(/^(- .*)\n\n(?=- )/gm, '$1\n').replace(/^- (\d) /gm, '$1. ').trim();
+  return '# ' + PAGES[cle].titre + '\n\n' + t.replace(/^# /, '## ').replace(/\n# /g, '\n## ') + '\n';
+}
+
 if (require.main === module) {
   fs.mkdirSync(DEST, { recursive: true });
   for (const cle of Object.keys(PAGES)) {
@@ -850,6 +869,6 @@ if (require.main === module) {
     fs.writeFileSync(f, page(cle));
     console.log('✓', path.relative(RACINE, f), Math.round(fs.statSync(f).size / 1024) + ' Ko');
   }
-  if (A_LA_RACINE) { fs.writeFileSync(path.join(RACINE, 'sitemap.xml'), sitemap()); console.log('✓ sitemap.xml'); }
+  if (A_LA_RACINE) { fs.writeFileSync(path.join(RACINE, 'sitemap.xml'), sitemap()); console.log('✓ sitemap.xml'); fs.writeFileSync(path.join(RACINE, 'index.md'), jumeauMd('index')); console.log('✓ index.md'); }
 }
-module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE };
+module.exports = { jumeauMd, PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE };
