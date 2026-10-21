@@ -3327,7 +3327,6 @@ function svg(n,t){ t=t||17; return '<svg width="'+t+'" height="'+t+'" viewBox="0
    Chaque vue du lot arrive partie par partie, vérifiée (règle de Justin, 20 octobre) ; d'ici là, elle dit ce qu'elle montrera,
    jamais un chiffre d'exemple. Une vue terminée quitte cette table. */
 var VUES_BIENTOT={
-  rapport:['Rapport','Le rapport du jour des agents : ce qu’ils ont fait, ce qui attend ta validation, ce qui a échoué.']
 };
 function vueBientot(t){ var b=VUES_BIENTOT[t];
   return enTete(esc(b[0]),'')+videTour('Cette page arrive',esc(b[1])+'<br>Elle se construit partie par partie, chacune vérifiée avant de paraître ici.'); }
@@ -3983,7 +3982,8 @@ function setTab(t,sansAnim){
      la console où l'on voit qui profite d'une formule offerte, et jusqu'à quand. */
   if(t==='facturation'&&(!ABO.loaded||ABO.err)) chargerAbos();
   if(t==='incidents'&&(!INC.loaded||INC.err)) chargerIncidents();
-  if(t==='contrats') chargerContrats();   /* lot 1 (e) : relu à chaque ouverture — une version a pu être validée depuis la Direction */   /* lot 1 (d) : la même liste que la Surveillance */   /* lot 1 (c) : les factures viennent de la même lecture de Stripe */
+  if(t==='contrats') chargerContrats();
+  if(t==='rapport') chargerRapportAgents();   /* lot 1 (g) : relu à chaque ouverture — le journal bouge à chaque geste */   /* lot 1 (e) : relu à chaque ouverture — une version a pu être validée depuis la Direction */   /* lot 1 (d) : la même liste que la Surveillance */   /* lot 1 (c) : les factures viennent de la même lecture de Stripe */
   if(t==='abonnements'){ if(!ABO.loaded||ABO.err) chargerAbos(); if(!PRO.loaded||PRO.err) chargerPromos(); }
   if(t==='equipe'&&(!EQ.loaded||EQ.err)) chargerEquipe();   /* v2.88 : un échec au chargement figeait l'écran pour toute la séance */
   if(t==='journal') chargerJournal();
@@ -5735,6 +5735,7 @@ function renderVue(v){
   else if(TAB==='facturation') v.innerHTML=vueFacturation();
   else if(TAB==='incidents') v.innerHTML=vueIncidents();
   else if(TAB==='contrats') v.innerHTML=vueContrats();
+  else if(TAB==='rapport') v.innerHTML=vueRapport();
   else if(VUES_BIENTOT[TAB]) v.innerHTML=vueBientot(TAB);
   if(v.classList.contains('entre')) compterKpi(v);
   /* ICI et pas dans render() : renderAnime() appelle renderVue() directement, sans passer par
@@ -8805,6 +8806,67 @@ function abnGroupe(titre,n,sous,opt,corps){
     (n===null?'':'<span class="reg-n">'+n+'</span>')+
     (sous?'<div class="reg-sous'+(opt?' opt':'')+'">'+sous+'</div>':'')+'</div>'+corps+'</div>';
 }
+/* ══ RAPPORT (lot 1 de la refonte, partie g — 21 octobre 2026) ══
+   Le rapport des agents, établi PAR LE SERVEUR à partir de leur journal (/api/monitor/agents/rapport, `construireRapport`) : ce qu'ils
+   ont fait, ce qui attend ta décision (/api/monitor/agents/validations), ce qui a échoué ou a été refusé — sur 24 heures, 7 ou 30 jours.
+   EN LECTURE : on décide dans Agents › Validations, où mène chaque demande. Aucun texte n'est « rédigé » ici : le rapport écrit par Victor
+   viendra quand il sera branché, et la page ne fait pas semblant de l'avoir.
+   ⛔ Trois états par lecture : un journal illisible ne se dessine jamais « rien n'a été fait ». */
+var RPJ={h:24,lec:0,rap:null,err:'',val:null,valLec:0,valErr:''};
+function chargerRapportAgents(){
+  var h=RPJ.h; RPJ.lec=0; RPJ.valLec=0;
+  var dit=function(e){ return (e&&e.corps)||msgErreur(e); };
+  apiGet('/api/monitor/agents/rapport?heures='+h).then(function(d){ if(RPJ.h!==h) return;
+    if(d&&d.rapport&&Array.isArray(d.rapport.lignes)){ RPJ.rap=d.rapport; RPJ.lec=1; } else { RPJ.lec=-1; RPJ.err='Réponse inattendue du serveur.'; } if(TAB==='rapport') render(); },
+    function(e){ if(RPJ.h!==h) return; RPJ.lec=-1; RPJ.err=dit(e); if(TAB==='rapport') render(); });
+  apiGet('/api/monitor/agents/validations').then(function(d){ if(d&&Array.isArray(d.validations)){ RPJ.val=d.validations.filter(function(v){ return v.statut==='en_attente'; }); RPJ.valLec=1; } else { RPJ.valLec=-1; RPJ.valErr='Réponse inattendue du serveur.'; } if(TAB==='rapport') render(); },
+    function(e){ RPJ.valLec=-1; RPJ.valErr=dit(e); if(TAB==='rapport') render(); });
+}
+function rpjPeriode(h){ h=Number(h)||24; if(h===RPJ.h) return; RPJ.h=h; RPJ.rap=null; chargerRapportAgents(); render(); }
+var RPJ_RES={ok:['fait','p-vert'],propose:['proposé','p-info'],refuse:['refusé','p-ambre'],erreur:['erreur','p-rouge']};
+function rpjLigne(e){ var r=RPJ_RES[e.resultat]||[e.resultat||'—','p-attente'];
+  return ligneAc({ton:e.resultat==='erreur'?'rouge':e.resultat==='refuse'?'ambre':'bleu',ico:'agents',
+    t1:esc(e.nom||e.agent)+' · '+esc(e.action||''),titre:(e.nom||e.agent)+' · '+(e.action||''),
+    l2:[e.cible?esc(e.cible):'',e.detail?esc(e.detail):''].filter(Boolean).join(' · ')||'—',
+    l3:esc(fmtDate(e.ts)),past:{c:r[1],t:r[0]},action:"AG.sec='journal';setTab('agents')"}); }
+function vueRapport(){
+  var per={24:'les dernières 24 heures',168:'les 7 derniers jours',720:'les 30 derniers jours'}[RPJ.h]||RPJ.h+' heures';
+  var tete=enTete('Rapport',
+    'Ce que les agents ont fait, ce qui attend ta décision, ce qui a échoué. Établi par le serveur à partir de leur journal ; on décide dans Agents › Validations.','')+
+    teteListe('Sur '+per,'Période du rapport',[['24','24 heures'],['168','7 jours'],['720','30 jours']],String(RPJ.h),'rpjPeriode(');
+  if(RPJ.lec===0&&RPJ.valLec===0) return tete+acSquel();
+  var G=[], kpi='';
+  if(RPJ.valLec===-1) G.push(acErr('Les demandes à valider ne répondent pas',RPJ.valErr+' — on ne sait pas s’il y en a.','chargerRapportAgents()'));
+  else if(RPJ.valLec===1&&RPJ.val.length) G.push(abnGroupe('À ta décision',RPJ.val.length,'Un agent ne se valide jamais lui-même : sans toi, rien ne part. Une demande non décidée expire au bout de 7 jours.',false,
+    '<div class="reg-bloc">'+RPJ.val.slice(0,8).map(function(v){ return ligneAc({ton:'bleu',ico:'agents',t1:esc(v.resume||AG_TYPES[v.type]||v.type),titre:v.resume||'',
+      l2:'<b>'+esc(agNomRpj(v.agent))+'</b> · '+esc(AG_TYPES[v.type]||v.type),l3:'demandé '+esc(fmtAgo(v.ts)),past:{c:'p-info',t:'à valider'},
+      action:"AG.sec='valid';setTab('agents')"}); }).join('')+'</div>'+
+    (RPJ.val.length>8?'<button type="button" class="ac-plus" onclick="AG.sec=\'valid\';setTab(\'agents\')">Voir les '+(RPJ.val.length-8)+' autres →</button>':'')));
+  if(RPJ.lec===-1) G.push(acErr('Le rapport ne peut pas être établi',RPJ.err,'chargerRapportAgents()'));
+  else if(RPJ.lec===1){ var R=RPJ.rap, L=R.lignes||[];
+    kpi='<div class="grille-kpi abn-kpi" style="margin-top:6px">'+
+      '<div class="kpi"><div class="n">'+(Number(R.total)||0)+'</div><div class="l">Gestes</div></div>'+
+      '<div class="kpi"><div class="n" style="color:var(--green)">'+(Number(R.ok)||0)+'</div><div class="l">Faits</div></div>'+
+      '<div class="kpi"><div class="n"'+(R.propose?' style="color:var(--link)"':'')+'>'+(Number(R.propose)||0)+'</div><div class="l">Proposés à ton accord</div></div>'+
+      '<div class="kpi"><div class="n"'+((R.erreur||R.refuse)?' style="color:var(--redText)"':'')+'>'+((Number(R.erreur)||0)+(Number(R.refuse)||0))+'</div><div class="l">Échecs et refus</div></div>'+
+    '</div>';
+    var mal=L.filter(function(e){ return e.resultat==='erreur'||e.resultat==='refuse'; }), reste=L.filter(function(e){ return e.resultat!=='erreur'&&e.resultat!=='refuse'; });
+    if(mal.length) G.push(abnGroupe('À regarder d’abord',mal.length,'Ce qui a échoué ou a été refusé — le plus récent en premier.',false,'<div class="reg-bloc">'+mal.map(rpjLigne).join('')+'</div>'));
+    if((R.parAgent||[]).length) G.push(abnGroupe('Par agent',R.parAgent.length,'',true,'<div class="reg-bloc">'+R.parAgent.map(function(a){
+      return ligneAc({ton:a.erreurs?'rouge':a.refuses?'ambre':'bleu',ico:'agents',t1:esc(a.nom||a.agent),titre:a.nom||a.agent,
+        l2:(Number(a.faits)||0)+' geste'+(a.faits>1?'s':'')+(a.refuses?' · '+a.refuses+' refusé'+(a.refuses>1?'s':''):'')+(a.erreurs?' · '+a.erreurs+' en erreur':''),
+        action:"AG.sec='journal';setTab('agents')"}); }).join('')+'</div>'));
+    if(reste.length) G.push(abnGroupe('Le reste',reste.length,(R.tronque?'Liste raccourcie à soixante lignes : les échecs et refus passent en premier. ':'')+'Toucher une ligne ouvre le journal des agents.',true,'<div class="reg-bloc">'+reste.map(rpjLigne).join('')+'</div>'));
+    if(!L.length) G.push(videTour('Aucun agent n’a rien fait sur '+per,'Un agent à l’arrêt ne fait rien ; en brouillon, il prépare et te propose. Chaque geste s’inscrit au journal, et paraît ici.','',false));
+  }
+  else G.push(acSquel());
+  return tete+kpi+'<div class="reg" style="margin-top:26px">'+G.join('')+'</div>';
+}
+/* le nom d'un agent : la file de validations ne porte que son identifiant. Le rapport porte les noms (le serveur les tient de son
+   registre) ; à défaut, la page Agents si elle est chargée ; sinon l'identifiant. Jamais une liste recopiée ici, qui vieillirait. */
+function agNomRpj(id){ var R=RPJ.rap, i, l=((R&&R.parAgent)||[]).concat((R&&R.lignes)||[]);
+  for(i=0;i<l.length;i++) if(l[i].agent===id&&l[i].nom) return l[i].nom;
+  var a=(typeof agParId==='function')&&agParId(id); return a?a.nom:String(id||''); }
 /* ══ CONTRATS (lot 1 de la refonte, partie e — 21 octobre 2026) ══
    Le registre des contrats (`server/contrats.js`), EN LECTURE : chaque pièce et sa version en vigueur (qui l'a validée, quand), les
    abonnements qu'un texte manquant bloque, et les contrats des clients — envoyés, signés, en attente (`/contrats/clients`, qu'aucun

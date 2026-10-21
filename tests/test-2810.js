@@ -17,7 +17,7 @@ const MENU = tranche('var MENU=[', '\n];') + '\n];';
 const PS = tranche('var PATRON_SEUL=', '\n');
 const FN = tranche('function vuePermise(t)', '\n/* les vues de la console ouverte');
 const VB = tranche('var VUES_BIENTOT={', '\n};') + '\n};';
-v('(population) les quatre pièces sont trouvées dans le fichier livré', [MENU.length > 300, PS.length > 20, /function vuesDe/.test(FN), VB.length > 100], [true, true, true, true]);
+v('(population) les quatre pièces sont trouvées dans le fichier livré', [MENU.length > 300, PS.length > 20, /function vuesDe/.test(FN), VB.indexOf('var VUES_BIENTOT={') === 0], [true, true, true, true]);
 const ctx = vm.createContext({ MYROLE: 'patron' });
 vm.runInContext(MENU + '\n' + PS + '\n' + FN + '\n' + VB + '\nthis.MENU=MENU;this.PATRON_SEUL=PATRON_SEUL;this.VUES_BIENTOT=VUES_BIENTOT;this.vuesDe=vuesDe;this.vuePermise=vuePermise;this.VUES_PAR_APP=VUES_PAR_APP;', ctx);
 const { MENU: M } = ctx;
@@ -33,7 +33,8 @@ ctx.MYROLE = 'collaborateur';
 v('⛔ un collaborateur ne les ouvre pas ; il garde les Incidents', ['facturation', 'contrats', 'rapport', 'incidents'].map(k => ctx.vuePermise(k)), [false, false, false, true]);
 v('les vues de chaque console sont DÉDUITES du menu (les neuves y sont)', [ctx.VUES_PAR_APP.gestion.includes('rapport'), ctx.VUES_PAR_APP.messages.includes('rapport'), ctx.VUES_PAR_APP.messages.includes('facturation')], [true, false, true]);
 const VBk = Object.keys(ctx.VUES_BIENTOT);
-v('chaque vue neuve pas encore faite le dit (VUES_BIENTOT) — et rien d’autre n’y est', VBk.every(k => NEUVES.includes(k)) && VBk.length > 0, true);
+/* lot 1 (g), 21 octobre 2026 : les quatre vues neuves sont faites — la table est VIDE, et le mécanisme reste pour la prochaine vue annoncée */
+v('une vue neuve pas encore faite le dit (VUES_BIENTOT) — et rien d’autre n’y est ; les quatre du lot 1 sont faites, la table est vide', [VBk.every(k => NEUVES.includes(k)), VBk], [true, []]);
 v('⛔ aucun chiffre dans une page « en construction » (jamais un exemple pris pour une donnée)', VBk.filter(k => /\d/.test(ctx.VUES_BIENTOT[k].join(' '))), []);
 const SANS = T.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
 v('le rendu les connaît : une branche pour les vues en construction, une icône et un nom court pour chacune',
