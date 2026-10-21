@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Récapitulatif — TEAM OP</title> <meta name="description" content="Récapitulatif de votre formule TEAM OP avant le paiement : ce qui est inclus, le nombre d'utilisateurs et le prix TTC par mois."> <link rel="canonical" href="https://teamop.fr/recap-abonnement.html"> <meta property="og:type" content="website"> <meta property="og:locale" content="fr_FR"> <meta property="og:site_name" content="TEAM OP"> <meta property="og:title" content="Récapitulatif — TEAM OP"> <meta property="og:description" content="Récapitulatif de votre formule TEAM OP avant le paiement : ce qui est inclus, le nombre d'utilisateurs et le prix TTC par mois."> <meta property="og:url" content="https://teamop.fr/recap-abonnement.html"> <meta property="og:image" content="https://teamop.fr/vitrine/v2/captures/partage-tableau-jour.jpg"> <meta property="og:image:width" content="1200"> <meta property="og:image:height" content="630"> <meta property="og:image:alt" content="OP GESTION sur un Mac : le tableau de bord d'une entreprise de démonstration"> <meta name="twitter:card" content="summary_large_image">
+<title>Récapitulatif — TEAM OP</title> <meta name="description" content="Récapitulatif de votre formule TEAM OP avant le paiement : ce qui est inclus, le nombre d'utilisateurs et le prix par mois (TVA non applicable)."> <link rel="canonical" href="https://teamop.fr/recap-abonnement.html"> <meta property="og:type" content="website"> <meta property="og:locale" content="fr_FR"> <meta property="og:site_name" content="TEAM OP"> <meta property="og:title" content="Récapitulatif — TEAM OP"> <meta property="og:description" content="Récapitulatif de votre formule TEAM OP avant le paiement : ce qui est inclus, le nombre d'utilisateurs et le prix par mois (TVA non applicable)."> <meta property="og:url" content="https://teamop.fr/recap-abonnement.html"> <meta property="og:image" content="https://teamop.fr/vitrine/v2/captures/partage-tableau-jour.jpg"> <meta property="og:image:width" content="1200"> <meta property="og:image:height" content="630"> <meta property="og:image:alt" content="OP GESTION sur un Mac : le tableau de bord d'une entreprise de démonstration"> <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/teamop-favicon-32.png">
 <meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
@@ -658,7 +658,7 @@ const REMISE_ANNUELLE = 2; // 2 mois offerts sur l'année
 /* ---------- LES OPTIONS DU PRO ---------- */
 /* Réservées au Pro : Business et Business Premium les ont TOUTES (cahier des charges du 1er octobre 2026, section 1).
    Même grille que le serveur (`OPTIONS_PRIX_MOIS`), l'application (`OPTIONS_GESTION`) et le site : `tests/test-852.js` les
-   compare. Prix TTC par utilisateur et par mois ; à l'année, dix mois (REMISE_ANNUELLE) comme la formule.
+   compare. Prix par utilisateur et par mois (TVA non applicable) ; à l'année, dix mois (REMISE_ANNUELLE) comme la formule.
    ⚠️ La clé du registre sanitaire est `sanitaire`, jamais `registre` (déjà une vue de l'application). */
 const OPTIONS_GESTION = {
   stock:     { nom: 'Stock',                           prixMensuel: 9, desc: 'produits, mouvements, demandes, validations — et les box pour le métier 3D' },
@@ -989,7 +989,7 @@ function rendrePaiement() {
         </div>` : ''}
       <div class="ligne-prix total">
         <span>Total ${cycleAnnuel ? 'annuel' : 'mensuel'}</span>
-        <span>${totalAffiche} € TTC</span>
+        <span>${totalAffiche} €</span>
       </div>
     ` : ''}
 
@@ -1161,7 +1161,7 @@ function traiterReponsePaiement(r, j) {
     else {
       optionsChoisies = optionsChoisies.filter(x => cles.indexOf(x) < 0).concat(cles);
       const noms = cles.map(k => OPTIONS_GESTION[k].nom).join(', ');
-      const somme = typeof j.surcout === 'number' && isFinite(j.surcout) ? ' (' + String(j.surcout).replace('.', ',') + '\u00a0€ TTC ' + (j.cycle === 'annuel' ? 'par an' : 'par mois') + ' en plus de la formule)' : '';
+      const somme = typeof j.surcout === 'number' && isFinite(j.surcout) ? ' (' + String(j.surcout).replace('.', ',') + '\u00a0€ ' + (j.cycle === 'annuel' ? 'par an' : 'par mois') + ' en plus de la formule)' : '';
       compteMsg = { texte: (cles.length > 1 ? 'Les options ' : 'L\'option ') + noms + (cles.length > 1 ? ' sont déjà actives' : ' est déjà active') + ' pour votre entreprise : ' + (cles.length > 1 ? 'elles suivent' : 'elle suit') + ' vos nouveaux utilisateurs' + somme + '. Le total ci-dessous les compte ; vérifiez-le, puis validez. Rien n\'a été payé.' };
       history.replaceState(null, '', adresseEtat(','));
       rendreTout(); return;

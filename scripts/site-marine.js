@@ -249,7 +249,7 @@ function pied() {
     /* ⛔ LA COLONNE « Contact » : contact@ seul (voir `CONTACTS`) — `test-835` § 4 l'exige au pied de chaque page, et rien d'autre. */
     + `<div class="contact"><b>Contact</b>${CONTACTS.map(([m, r]) => `<a href="mailto:${m}">${m}</a><small>${fr(r)}</small>`).join('')}</div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
-    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Prix TTC, sans engagement.</p>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Sans engagement ; TVA non applicable (article 293 B du CGI).</p>
     <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a>${CONTACTS.map(([m]) => `<a href="mailto:${m}">${m}</a>`).join('')}<span class="fin">France</span></div>
   </div></footer>`;
 }
@@ -354,7 +354,7 @@ function formules(liste, attente) {
 const prixDe = cle => (FORMULES_GESTION.find(f => f.cle === cle) || {}).prix;
 /* la troisième carte de chaque page : la même partout, sauf si la page en dit une autre */
 const PREMIUM_METIER = "Tout Business, plus la couleur de votre entreprise dans l'application, OP MESSAGES dès sa réouverture et le service 24h/24.";
-const DES_PRO = 'Dès ' + prixDe('pro') + ' € TTC par mois.';
+const DES_PRO = 'Dès ' + prixDe('pro') + ' € par mois.';      // court : il entre dans des descriptions de 155 signes (test-846) ; la TVA est dite au pied de chaque page et dans « Les conditions, en bref »
 const METIERS = {
   'logiciel-anti-nuisibles': { priorite: '0.9', icone: 'bug', trois: 1,
     titre: "Logiciel anti-nuisibles 3D : registre sanitaire | TEAM OP",
@@ -439,8 +439,8 @@ function pageMetier(m, cle) {
   const duo = `<section class="duo">` + m.duo.map(([pt, h3, p, nom, alt]) => `<div class="grande-carte"><div class="haut"><div class="petit-titre">${fr(pt)}</div><h3>${fr(h3)}</h3><p>${fr(p)}</p></div>
           <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone(nom, alt)}</div>` : carPaire(paireDe(nom), { carte: true })}</div></div>`).join('') + '</section>';
   const bloc = ([h2, ps], i) => `<section class="bloc${i % 2 ? ' teinte' : ''}"><div class="bloc-in texte-metier"><h2 class="h2 moyen">${fr(h2)}</h2>` + ps.map(t => `<p>${fr(t)}</p>`).join('') + '</div></section>';
-  const f = [['Pro', prixDe('pro') + ' € TTC par mois et par utilisateur', m.formules[0]], ['Business', prixDe('business') + ' € TTC par mois et par utilisateur', m.formules[1]],
-    ['Business Premium', prixDe('premium') + ' € TTC par mois et par utilisateur', m.formules[2] || PREMIUM_METIER]];
+  const f = [['Pro', prixDe('pro') + ' € par mois et par utilisateur', m.formules[0]], ['Business', prixDe('business') + ' € par mois et par utilisateur', m.formules[1]],
+    ['Business Premium', prixDe('premium') + ' € par mois et par utilisateur', m.formules[2] || PREMIUM_METIER]];
   const formules = `<section class="bloc${m.blocs.length % 2 ? ' teinte' : ''}" id="formules"><div class="bloc-in texte-metier"><h2 class="h2 moyen">${fr('Quelle formule choisir ?')}</h2>`
     + `<p>${fr('Sans engagement : choisissez la formule qui vous convient, et changez-en quand votre équipe grandit. Un abonnement par utilisateur.')}</p><div style="height:22px"></div>`
     + '<div class="cartes-3">' + f.map(([n, pr, t]) => `<div class="carte-v"><b>${fr(n)}</b><span class="prix-metier">${fr(pr)}</span><span class="t">${fr(t)}</span></div>`).join('') + '</div>'
@@ -614,12 +614,20 @@ const PAGES = {
         <div class="teasers compacts">${liensAccueil(VOLETS.metiers.grands, METIERS, k => METIERS[k].icone)}${carteLien('metiers.html', 'grid', 'Tous les métiers', packsPhrase())}</div></section>
       <section class="page" style="padding-top:90px;padding-bottom:40px"><h2 class="h2">${fr('Tout TEAM OP, en un coup d\'œil.')}</h2><div class="teasers">`
       + [['tool', 'Adapté à votre métier', 'Anti-nuisibles, plomberie, électricité, chauffage… TEAM OP se règle sur le métier que vous indiquez à votre demande d\'accès.', 'Page Métiers ›', 'metiers.html'],
-        ['euro', 'Des tarifs clairs', 'Sans engagement, dès ' + prixDe('pro') + ' € TTC par mois. Les places s\'additionnent quand l\'équipe grandit.', 'Page Tarifs ›', 'tarifs.html'],
+        ['euro', 'Des tarifs clairs', 'Sans engagement, dès ' + prixDe('pro') + ' € par mois (TVA non applicable). Les places s\'additionnent quand l\'équipe grandit.', 'Page Tarifs ›', 'tarifs.html'],
         ['lock', 'Pourquoi TEAM OP', 'Chiffrement AES-256, un espace par entreprise et un interlocuteur direct.', 'Pourquoi TEAM OP ›', 'pourquoi.html']]
         .map(([i, t, x, c, h]) => `<a class="teaser" href="${h}"><span class="tuile">${ic(i)}</span><b>${fr(t)}</b><span class="t">${fr(x)}</span><span class="l">${fr(c)}</span></a>`).join('')
       /* (20 octobre 2026, Justin : un outil de lecture du site demandait « quelle preuve montre que ce produit fonctionne ? ») : UN déroulé concret, tiré de ce que la page
          dit déjà de la fiche d'intervention — aucun client, aucun chiffre, aucun témoignage inventé ; déroulé VALIDÉ par Justin le 20 octobre 2026 (« je valide ») */
-      + '</div><p class="intro" style="margin-top:28px"><b>' + fr('Exemple de déroulé, chez une entreprise de dératisation :') + '</b> ' + fr('le technicien ouvre la fiche d\'intervention sur son téléphone, retrouve le client et l\'adresse, note les produits utilisés, prend les photos et fait signer le client à l\'écran. Le rapport part au client, et la facture se prépare depuis la même intervention, sans rien ressaisir.') + '</p></section>' },
+      + '</div><p class="intro" style="margin-top:28px"><b>' + fr('Exemple de déroulé, chez une entreprise de dératisation :') + '</b> ' + fr('le technicien ouvre la fiche d\'intervention sur son téléphone, retrouve le client et l\'adresse, note les produits utilisés, prend les photos et fait signer le client à l\'écran. Le rapport part au client, et la facture se prépare depuis la même intervention, sans rien ressaisir.') + '</p></section>'
+      /* (21 octobre 2026, Justin : « fait ») LES CONDITIONS, EN BREF — la question d'un acheteur que l'accueil laissait sans réponse (« quelles limites,
+         conditions ou exigences ? »). Rien de neuf : ce que disent déjà les tarifs et les mentions légales, validé par Justin. */
+      + '<section class="page" style="padding-top:60px;padding-bottom:40px"><h2 class="h2">' + fr('Les conditions, en bref.') + '</h2><ul class="intro conditions">'
+      + ['Réservé aux professionnels : entreprises, artisans, micro-entrepreneurs, associations et collectivités.',
+         'Sans engagement, dès ' + prixDe('pro') + ' € par mois (TVA non applicable, article 293 B du CGI).',
+         'Un abonnement ouvre un compte utilisateur ; les abonnements s\'additionnent quand l\'équipe grandit.',
+         'Fonctionne sur iPhone, Android, Mac, PC et navigateur web.',
+         'Données chiffrées (AES-256), un espace séparé par entreprise.'].map(x => '<li>' + fr(x) + '</li>').join('') + '</ul></section>' },
 
   applications: { section: 'applications', titre: 'Nos applications — TEAM OP', desc: 'Les applications TEAM OP : OP GESTION (gestion d\'activité terrain) et OP MESSAGES (messagerie professionnelle d\'équipe).',
     corps: () => scene('Applications', 'Nos applications.', 'Toutes les applications de la plateforme TEAM OP. Ouvrez-en une pour voir tout ce qu\'elle fait.')
@@ -704,10 +712,10 @@ const PAGES = {
   ...Object.fromEntries(Object.entries(METIERS).map(([k, m]) => [k, { section: 'metiers', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m, k) }])),
   ...Object.fromEntries(Object.entries(FONCTIONS).map(([k, m]) => [k, { section: 'applications', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m, k) }])),
 
-  tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Tarifs TEAM OP : Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, TTC et sans engagement.',
+  tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Tarifs TEAM OP : Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, sans engagement, TVA non applicable.',
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Choisissez votre formule, et changez-en quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
       + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="opmessages"></span><div class="tarifs-in">
-        <p class="intro">${fr('Prix TTC par mois, sans engagement. Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements. Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.')}</p>
+        <p class="intro">${fr('Prix par mois, sans engagement — TVA non applicable (article 293 B du CGI). Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements. Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.')}</p>
         <div class="segment" role="tablist" aria-label="Application"><button type="button" role="tab" id="onglet-gestion" aria-controls="formules-gestion" aria-selected="true">OP GESTION</button><button type="button" role="tab" id="onglet-msg" aria-controls="formules-msg" aria-selected="false" tabindex="-1">OP MESSAGES</button></div>
         <div class="formules" id="formules-gestion" role="tabpanel" aria-labelledby="onglet-gestion" style="--n:${FORMULES_GESTION.length}">${formules(FORMULES_GESTION)}</div>
         <div class="formules" id="formules-msg" role="tabpanel" aria-labelledby="onglet-msg" style="--n:3" hidden>${formules(FORMULES_MESSAGES, true)}</div>

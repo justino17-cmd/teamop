@@ -50,10 +50,18 @@ Types d'intervention, fiche de rapport et modules utiles sont réglés sur votre
 ## Tout TEAM OP, en un coup d'œil.
 
 - [Adapté à votre métier Anti-nuisibles, plomberie, électricité, chauffage… TEAM OP se règle sur le métier que vous indiquez à votre demande d'accès. Page Métiers ›](https://teamop.fr/metiers.html)
-- [Des tarifs clairs Sans engagement, dès 15 € TTC par mois. Les places s'additionnent quand l'équipe grandit. Page Tarifs ›](https://teamop.fr/tarifs.html)
+- [Des tarifs clairs Sans engagement, dès 15 € par mois (TVA non applicable). Les places s'additionnent quand l'équipe grandit. Page Tarifs ›](https://teamop.fr/tarifs.html)
 - [Pourquoi TEAM OP Chiffrement AES-256, un espace par entreprise et un interlocuteur direct. Pourquoi TEAM OP ›](https://teamop.fr/pourquoi.html)
 
 Exemple de déroulé, chez une entreprise de dératisation : le technicien ouvre la fiche d'intervention sur son téléphone, retrouve le client et l'adresse, note les produits utilisés, prend les photos et fait signer le client à l'écran. Le rapport part au client, et la facture se prépare depuis la même intervention, sans rien ressaisir.
+
+## Les conditions, en bref.
+
+- Réservé aux professionnels : entreprises, artisans, micro-entrepreneurs, associations et collectivités.
+- Sans engagement, dès 15 € par mois (TVA non applicable, article 293 B du CGI).
+- Un abonnement ouvre un compte utilisateur ; les abonnements s'additionnent quand l'équipe grandit.
+- Fonctionne sur iPhone, Android, Mac, PC et navigateur web.
+- Données chiffrées (AES-256), un espace séparé par entreprise.
 
 ## Prêt en trois étapes.
 
