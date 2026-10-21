@@ -594,7 +594,7 @@ function liensAccueil(liens, fiches, icone) {
 }
 
 const PAGES = {
-  index: { maj: '2026-10-08', titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. ' + DES_PRO,
+  index: { maj: '2026-10-21', titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. ' + DES_PRO,
     ogDesc: 'Interventions, stock, registre sanitaire, encaissements et équipe, sur mobile, tablette et ordinateur.',
     corps: () => `<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Logiciel de gestion pour entreprises de terrain</h1>
       <p class="chapeau">${fr('OP GESTION regroupe les interventions, le stock et les encaissements. L\'application est déclarée pour iOS, Android, macOS, Windows et le Web.')}</p>
