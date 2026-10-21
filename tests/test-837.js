@@ -107,9 +107,12 @@ if (racineGeneree) {
 /* les sept autres pages : le pied, et RIEN d'autre */
 v('population : huit pages publiées, dont les sept qui ne vendent rien', Object.keys(V1_PUBLIEE).length, 8);
 for (const f of Object.keys(V1_PUBLIEE).filter(f => f !== 'tarifs.html')) {
-  const P = lire(f);
+  /* elan.html s'appelle op-gestion.html depuis le 21 octobre 2026 (Justin) ; elan.html ne fait plus que rediriger. */
+  const RENOMMEE = { 'elan.html': 'op-gestion.html' }[f], fichier = RENOMMEE || f;
+  if (RENOMMEE) vrai(f + ' : ne fait plus que rediriger vers ' + RENOMMEE, /location\.replace\('\/op-gestion\.html'/.test(lire(f)) && !lire(f).includes('class="pied"'));
+  const P = lire(fichier);
   vrai(f + ' : le pied dit « TVA non applicable », ni « HT » ni « TTC »', P.includes(PIED[1]) && !/\b(HT|TTC)\b/.test(texte(P)));
-  if (P === GEN.page(f.replace(/\.html$/, ''), { racine: true })) { vrai(f + ' : sortie du générateur (remplacée) — test-835 la garde', true); continue; }
+  if (P === GEN.page(fichier.replace(/\.html$/, ''), { racine: true })) { vrai(f + ' : sortie du générateur (remplacée) — test-835 la garde', true); continue; }
   v(f + ' : la retouche s\'y trouve une fois', P.split(PIED[1]).length - 1, 1);
   v('⛔ ' + f + ' : en la défaisant, on retrouve octet pour octet la v1 publiée', sha(P.split(PIED[1]).join(PIED[0])), V1_PUBLIEE[f]);
   vrai(f + ' : l\'empreinte de la racine la connaît (vitrine/racine-v1.json)', V1 && V1.pages[f] === sha(P));

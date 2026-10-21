@@ -36,7 +36,7 @@ const vrai = (t, c) => v(t, !!c, true);
 
 const PAGES = ['espace.html', 'connexion.html', 'reinit.html', 'recap-abonnement.html', 'merci.html', 'mentions-legales.html',
   'confidentialite.html', 'sous-traitance.html', 'registre-traitements.html', '404.html'];
-const SITE = ['index', 'tarifs', 'applications', 'creer', 'elan', 'metiers', 'opmessages', 'pourquoi'];
+const SITE = ['index', 'tarifs', 'applications', 'creer', 'op-gestion', 'metiers', 'opmessages', 'pourquoi'];
 const { TETE_MODE } = require(path.join(RACINE, 'scripts', 'site-marine.js'));
 const THEME = lire('vitrine/v2/theme.css'), SITECSS = lire('vitrine/v2/site.css'), MODEJS = lire('vitrine/v2/mode.js'), SW = lire('sw.js');
 const EMPREINTES = JSON.parse(lire('vitrine/portail-v1.json')).pages;

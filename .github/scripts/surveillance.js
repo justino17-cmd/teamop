@@ -16,7 +16,7 @@ function get(url) {
 
 (async () => {
   const problems = [];
-  const pages = ['index.html', 'app.html', 'messages.html', 'espace.html', 'elan.html', 'opmessages.html', 'confidentialite.html', 'sw.js', 'manifest.webmanifest', 'manifest-teamop.webmanifest', 'manifest-opmsg.webmanifest', '.well-known/assetlinks.json'];
+  const pages = ['index.html', 'app.html', 'messages.html', 'espace.html', 'op-gestion.html', 'elan.html', 'opmessages.html', 'confidentialite.html', 'sw.js', 'manifest.webmanifest', 'manifest-teamop.webmanifest', 'manifest-opmsg.webmanifest', '.well-known/assetlinks.json'];
 
   // 1. Chaque page répond et son JavaScript est valide
   for (const p of pages) {
