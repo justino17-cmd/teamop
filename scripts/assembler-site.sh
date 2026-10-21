@@ -18,7 +18,7 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 
 # La racine : pages, scripts servis, manifestes, et ce que le domaine attend (CNAME, robots…).
-for f in *.html *.js *.webmanifest favicon.ico robots.txt sitemap.xml CNAME .nojekyll; do
+for f in *.html *.js *.webmanifest favicon.ico robots.txt llms.txt sitemap.xml CNAME .nojekyll; do
   [ -f "$f" ] || continue
   case "$f" in
     beta-build.js) continue ;;   # fabrique beta.html depuis app.html : un outil, pas une page

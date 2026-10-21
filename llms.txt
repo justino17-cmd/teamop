@@ -1,0 +1,11 @@
+# TEAM OP
+
+> Logiciel français de gestion pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. Dès 15 € par mois (TVA non applicable, article 293 B du CGI).
+
+## Pages principales
+
+- [Applications](https://teamop.fr/applications.html)
+- [OP GESTION](https://teamop.fr/elan.html)
+- [Métiers](https://teamop.fr/metiers.html)
+- [Tarifs](https://teamop.fr/tarifs.html)
+- [Pourquoi TEAM OP](https://teamop.fr/pourquoi.html)
