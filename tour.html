@@ -2139,6 +2139,11 @@ body.plans .reg-l.cli::before{display:none}
 .ag-seg button[data-m=brouillon].on{background:var(--accBg);color:var(--acc-txt)}
 .ag-seg button[disabled]{opacity:.4;cursor:not-allowed}
 .ag-etat-cv{font-size:12.5px;color:var(--muted);line-height:1.4}
+/* lot 1 (f) — ce que l'agent fait en ce moment : une ligne, sur sa carte */
+.ag-encours{font-size:13px;line-height:1.4;color:var(--text2);padding:8px 10px;border-radius:10px;background:var(--inset)}
+.ag-encours b{color:var(--text);font-weight:600}
+.ag-encours[data-d=occupe]{background:var(--accBg)}
+.ag-encours[data-d=arret],.ag-encours[data-d=inconnu]{color:var(--muted)}
 .ag-etat-cv.ok{color:var(--ok,var(--muted))}
 .ag-pied{display:flex;justify-content:space-between;color:var(--muted);font-size:12.5px}
 .ag-liste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-top:14px}
@@ -10044,6 +10049,30 @@ function agNom(id){ var a=agParId(id); return a?a.nom:(id==='systeme'?'Système'
 function agMode(a){ return a&&AG_MODES.some(function(m){ return m[0]===a.mode; })?a.mode:'arret'; }   /* un mode inconnu se lit « à l'arrêt » : la direction sûre */
 function agParams(p){ if(!p||typeof p!=='object') return ''; return Object.keys(p).map(function(k){ return esc(k)+' : '+esc(p[k]); }).join(' · '); }
 function agEnPause(){ return AG.illisible||(AG.pause&&AG.pause.actif===true); }
+/* « Qui fait quoi, en ce moment » (lot 1 de la refonte, partie f — 21 octobre 2026). EN LECTURE, sur la file de tâches entre agents
+   (/api/monitor/agents/taches) : « prise » = il y travaille, « attente » = elle l'attend. ⛔ File illisible ou pas encore lue : null,
+   jamais une liste vide — on ne dit pas « disponible » d'un agent dont on ne sait pas ce qu'il fait. À l'arrêt ou pause générale :
+   il ne fait rien, quoi que la file contienne (ce qui l'attend est dit). */
+function agTachesDe(id){ if(AG.lec.taches!==1) return null;
+  return AG.taches.filter(function(k){ return k.vers===id&&(k.statut==='prise'||k.statut==='attente'); }); }
+function agDispo(a){ if(agMode(a)==='arret'||agEnPause()) return 'arret'; var t=agTachesDe(a.id); if(t===null) return 'inconnu';
+  return t.some(function(k){ return k.statut==='prise'; })?'occupe':'libre'; }
+function agEnCoursTxt(a){ var d=agDispo(a), t=agTachesDe(a.id)||[], pr=t.filter(function(k){ return k.statut==='prise'; })[0], at=t.filter(function(k){ return k.statut==='attente'; });
+  var tache=function(k){ return '<b>'+esc(AG_TYPES[k.type]||k.type)+'</b> · demandé par '+esc(agNom(k.de)); };
+  /* à l'arrêt, une tâche PRISE est interrompue : elle l'attend aussi */
+  if(d==='arret') return (agEnPause()?'Pause générale : ne fait rien':'Ne fait rien tant que tu ne l’allumes pas')+(t.length?' · '+t.length+' tâche'+(t.length>1?'s l’attendent':' l’attend'):'');
+  if(d==='inconnu') return 'On ne sait pas : les tâches n’ont pas pu être lues';
+  if(pr) return 'En ce moment : '+tache(pr)+(at.length?' · puis '+at.length+' en attente':'');
+  if(at.length) return 'En attente : '+tache(at[0])+(at.length>1?' · +'+(at.length-1):'');
+  return 'Rien en cours'; }
+function agQuiFaitQuoi(){ var n={occupe:0,libre:0,arret:0,inconnu:0};
+  AG.agents.forEach(function(a){ n[agDispo(a)]++; });
+  var sait=AG.lec.taches===1, att=sait?AG.taches.filter(function(k){ return k.statut==='attente'; }).length:null;
+  var tu=function(v,l,coul){ return '<div class="kpi"><div class="n"'+(coul?' style="color:'+coul+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
+  return '<div class="grille-kpi abn-kpi" style="margin:16px 0 6px">'+
+    tu(sait?n.occupe:'—','Au travail',sait&&n.occupe?'var(--link)':'')+tu(sait?n.libre:'—','Disponibles')+tu(n.arret,'À l’arrêt')+
+    tu(sait?att:'—','Tâches en attente',att?'var(--amber)':'')+'</div>'+
+    (sait?'':'<div class="note" style="margin-bottom:8px">⚠️ '+(AG.lec.taches===0?'Lecture des tâches en cours…':'Les tâches entre agents n’ont pas pu être lues : on ne sait pas qui est occupé.')+'</div>'); }
 function chargerAgents(){
   if(MYROLE!=='patron'){ AG.agents=[]; AG.loaded=true; AG.err='Réservé au patron — les agents ne se règlent que par lui.'; if(TAB==='agents') render(); return; }
   apiGet('/api/monitor/agents').then(function(d){ if(!d) return;
@@ -10293,10 +10322,12 @@ function vueAgents(){
       (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
     var c='';
+    h+=agQuiFaitQuoi();
     AG.agents.forEach(function(a){
       if(a.couche!==c){ if(c) h+='</div>'; c=a.couche; h+='<div class="ag-couche">'+esc(c)+'</div><div class="ag-grille">'; }
       var m=agMode(a);
       h+='<article class="ag-carte" data-etat="'+m+'"><div class="ag-haut"><div class="ag-av" aria-hidden="true">'+esc(String(a.nom||'?').charAt(0))+'</div><div><h3>'+esc(a.nom)+'</h3><div class="ag-role">'+esc(a.role)+'</div></div><span class="ag-vague">Vague '+esc(a.vague)+'</span></div>'+
+        '<div class="ag-encours" data-d="'+agDispo(a)+'">'+agEnCoursTxt(a)+'</div>'+
         '<div class="ag-seg" role="group" aria-label="Mode de '+esc(a.nom)+'">'+AG_MODES.map(function(x){
           var off=AG.busy||(x[0]==='auto'&&m==='arret');
           return '<button type="button" data-m="'+x[0]+'" class="'+(m===x[0]?'on':'')+'" aria-pressed="'+(m===x[0])+'"'+(off?' disabled':'')+(x[0]==='auto'&&m==='arret'?' title="Passe d’abord par brouillon"':'')+' onclick="agMode_(\''+esc(a.id)+'\',\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>'+
