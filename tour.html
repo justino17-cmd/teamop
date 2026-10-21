@@ -3322,7 +3322,6 @@ function svg(n,t){ t=t||17; return '<svg width="'+t+'" height="'+t+'" viewBox="0
    Chaque vue du lot arrive partie par partie, vérifiée (règle de Justin, 20 octobre) ; d'ici là, elle dit ce qu'elle montrera,
    jamais un chiffre d'exemple. Une vue terminée quitte cette table. */
 var VUES_BIENTOT={
-  facturation:['Facturation','Les paiements reçus, les factures et les impayés, lus chez Stripe — pour savoir qui a payé quoi, et quand.'],
   incidents:['Incidents','Ce que les clients rencontrent, regroupé par problème, avec qui s’en occupe et depuis quand.'],
   contrats:['Contrats','Les contrats et les signatures en cours : envoyés, signés, en attente — et ce qui reste à faire.'],
   rapport:['Rapport','Le rapport du jour des agents : ce qu’ils ont fait, ce qui attend ta validation, ce qui a échoué.']
@@ -3979,6 +3978,7 @@ function setTab(t,sansAnim){
   /* chargerPromos() n'était appelée NULLE PART : le bloc des formules offertes restait
      sur « Chargement des codes… » pour toute la session, alors que c'est le seul endroit de
      la console où l'on voit qui profite d'une formule offerte, et jusqu'à quand. */
+  if(t==='facturation'&&(!ABO.loaded||ABO.err)) chargerAbos();   /* lot 1 (c) : les factures viennent de la même lecture de Stripe */
   if(t==='abonnements'){ if(!ABO.loaded||ABO.err) chargerAbos(); if(!PRO.loaded||PRO.err) chargerPromos(); }
   if(t==='equipe'&&(!EQ.loaded||EQ.err)) chargerEquipe();   /* v2.88 : un échec au chargement figeait l'écran pour toute la séance */
   if(t==='journal') chargerJournal();
@@ -5543,7 +5543,7 @@ function chargerAbos(){
   .then(function(r){
     var a=r[0], p=r[1];
     ABO.loaded=true;
-    if(!a&&!p){ ABO.err=INJOIGNABLE; if(TAB==='abonnements') render(); return; }
+    if(!a&&!p){ ABO.err=INJOIGNABLE; if(TAB==='abonnements'||TAB==='facturation') render(); return; }
     ABO.err='';
     if(a){ ABO.configured=!!a.configured; ABO.abos=a.abos||[]; ABO.mrr=Number(a.mrr)||0; ABO.actifs=Number(a.actifs)||0; ABO.impayes=Number(a.impayes)||0; }
     if(p){ if(!a) ABO.configured=!!p.configured; ABO.paiements=(p.paiements||[]).slice().sort(function(x,y){ return (y.date||0)-(x.date||0); }); ABO.echecs=Number(p.echecs)||0; }
@@ -5552,7 +5552,7 @@ function chargerAbos(){
     ABO.stripeErr=String((a&&a.erreur)||(p&&p.erreur)||(!a?'Les abonnements n’ont pas pu être lus.':!p?'Les paiements n’ont pas pu être lus.':''));
     ABO.perime=((a&&a.perime)||(p&&p.perime))?((a&&a.majTs)||(p&&p.majTs)||0):0;
     ABO.videFaute=!a||!p||!!((a.erreur&&!a.perime)||(p.erreur&&!p.perime));
-    if(TAB==='demandes') rendreEnGardantLeFocus(); else if(TAB==='abonnements'||TAB==='accueil') render();
+    if(TAB==='demandes') rendreEnGardantLeFocus(); else if(TAB==='abonnements'||TAB==='accueil'||TAB==='facturation') render();
   });
 }
 function chargerEquipe(){
@@ -5727,6 +5727,7 @@ function renderVue(v){
   else if(TAB==='equipe') v.innerHTML=groupeOnglets('equipe')+vueEquipe();
   else if(TAB==='journal') v.innerHTML=groupeOnglets('journal')+vueJournal();
   else if(TAB==='agents') v.innerHTML=vueAgents();
+  else if(TAB==='facturation') v.innerHTML=vueFacturation();
   else if(VUES_BIENTOT[TAB]) v.innerHTML=vueBientot(TAB);
   if(v.classList.contains('entre')) compterKpi(v);
   /* ICI et pas dans render() : renderAnime() appelle renderVue() directement, sans passer par
@@ -8796,6 +8797,56 @@ function abnGroupe(titre,n,sous,opt,corps){
   return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+titre+'</span>'+
     (n===null?'':'<span class="reg-n">'+n+'</span>')+
     (sous?'<div class="reg-sous'+(opt?' opt':'')+'">'+sous+'</div>':'')+'</div>'+corps+'</div>';
+}
+/* ══ FACTURATION (lot 1 de la refonte, partie c — 21 octobre 2026) ══
+   Les factures d'OP GESTION telles que Stripe les tient, lues par la MÊME lecture que les Abonnements (`chargerAbos`,
+   /api/monitor/stripe/paiements) : aucune route neuve, aucune écriture. Refusées d'abord (c'est de l'argent qui n'arrive pas),
+   puis en attente de règlement, puis l'encaissé, mois par mois. Une facture annulée n'est pas un échec : elle se compte à part.
+   ⛔ Un vide qui vient d'une panne de Stripe n'est jamais « aucune facture » (la règle des Abonnements, v2.88). */
+function factMois(ts){ var d=new Date(ts); return d.getFullYear()*12+d.getMonth(); }
+function factLigne(p,cl){ var mort=!p.url;
+  return '<button type="button" class="abn-j'+(mort?' mort':'')+'"'+(mort?'':' onclick="window.open(\''+jsq(p.url)+'\',\'_blank\',\'noopener\')"')+
+    ' title="'+esc(mort?'Facture sans lien Stripe':'Ouvrir la facture chez Stripe')+'"><span class="d">'+esc(fmtJour(p.date))+'</span>'+
+    '<span class="q">'+esc(p.clientNom||p.clientEmail||'client inconnu')+'</span>'+
+    (cl?'<span class="past '+cl[1]+'">'+cl[0]+'</span>':'')+
+    '<span class="m">'+esc(fmtEur(p.montant))+'</span></button>'; }
+function vueFacturation(){
+  var tete=enTete('Facturation',
+    'Les factures, lues chez Stripe : refusées, en attente, encaissées. En lecture seule : les changements se font dans Stripe.',
+    '<button class="btn-plein" onclick="window.open(\'https://dashboard.stripe.com/invoices\',\'_blank\',\'noopener\')">Ouvrir dans Stripe '+svg('ext',14)+'</button>');
+  if(!ABO.loaded) return tete+acSquel();
+  if(ABO.err) return tete+acErr('Stripe ne répond pas',ABO.err,'chargerAbos()');
+  if(!ABO.configured) return tete+videTour('Stripe n’est pas relié au serveur','Dès que Stripe sera relié, les factures et les paiements apparaîtront ici tout seuls.','');
+  var P=ABO.paiements||[];
+  if(ABO.videFaute&&!P.length) return tete+acErr('Stripe ne répond pas',ABO.stripeErr||'Les factures n’ont pas pu être lues.','chargerAbos()');
+  if(ABO.stripeErr) tete+='<div class="note" style="margin-bottom:14px">⚠️ '+esc(ABO.perime?('Factures de Stripe du '+fmtDate(ABO.perime)+' — la relecture a échoué. '):'')+esc(ABO.stripeErr)+
+    ' <a href="#" onclick="chargerAbos();return false">Relire</a></div>';
+  var auj=factMois(Date.now());
+  var payees=P.filter(function(p){ return paieOk(p)&&p.date; }), refusees=P.filter(paieEchec),
+      attente=P.filter(function(p){ return p.statut==='ouvert'; }), annulees=P.filter(function(p){ return p.statut==='annule'; });
+  var somme=function(l){ return l.reduce(function(t,p){ return t+(Number(p.montant)||0); },0); };
+  var ceMois=payees.filter(function(p){ return factMois(p.date)===auj; }), avant=payees.filter(function(p){ return factMois(p.date)===auj-1; });
+  var kpi='<div class="grille-kpi abn-kpi" style="margin-top:18px">'+
+    '<div class="kpi"><div class="n" style="color:var(--green)">'+esc(fmtEur(somme(ceMois)))+'</div><div class="l">Encaissé ce mois · '+ceMois.length+' facture'+(ceMois.length>1?'s':'')+'</div></div>'+
+    '<div class="kpi"><div class="n">'+esc(fmtEur(somme(avant)))+'</div><div class="l">Le mois dernier · '+avant.length+' facture'+(avant.length>1?'s':'')+'</div></div>'+
+    '<div class="kpi"><div class="n"'+(attente.length?' style="color:var(--amber)"':'')+'>'+attente.length+'</div><div class="l">En attente de règlement</div></div>'+
+    '<div class="kpi"><div class="n"'+(refusees.length?' style="color:var(--redText)"':'')+'>'+refusees.length+'</div><div class="l">Refusées</div></div>'+
+  '</div>';
+  var G=[];
+  if(refusees.length) G.push(abnGroupe('Refusées',refusees.length,
+    'Le prélèvement n’est pas passé : les fonctions payantes sont bloquées jusqu’au règlement, rien n’est supprimé. '+
+    '<a href="#" onclick="allerImpayes();return false">Voir les abonnements impayés</a>',false,
+    '<div class="abn-jrn">'+refusees.map(function(p){ return factLigne(p,['refusée','p-rouge']); }).join('')+'</div>'));
+  if(attente.length) G.push(abnGroupe('En attente de règlement',attente.length,'Envoyées, pas encore réglées.',true,
+    '<div class="abn-jrn">'+attente.map(function(p){ return factLigne(p,['en attente','p-ambre']); }).join('')+'</div>'));
+  var mois={},ordre=[];
+  payees.forEach(function(p){ var c=factMois(p.date); if(!mois[c]){ mois[c]=[]; ordre.push(c); } mois[c].push(p); });
+  ordre.sort(function(a,b){ return b-a; }).slice(0,6).forEach(function(c){
+    var l=mois[c], nom=new Date(Math.floor(c/12),c%12,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+    G.push(abnGroupe('Encaissé en '+esc(nom),null,esc(fmtEur(somme(l)))+' · '+l.length+' facture'+(l.length>1?'s':''),true,
+      '<div class="abn-jrn">'+l.map(function(p){ return factLigne(p,null); }).join('')+'</div>')); });
+  var corps=G.length?'<div class="reg" style="margin-top:26px">'+G.join('')+'</div>':videTour('Aucune facture pour l’instant','Les factures émises par Stripe paraîtront ici dès le premier abonnement.','');
+  return tete+kpi+corps+(annulees.length?'<p style="margin:12px 0 0;font-size:12px;color:var(--muted)">'+annulees.length+' facture'+(annulees.length>1?'s annulées':' annulée')+' chez Stripe, non comptée'+(annulees.length>1?'s':'')+' ici.</p>':'');
 }
 function vueAbonnements(){
   var tete=enTete('Abonnements',
