@@ -214,6 +214,9 @@ input[type=number].inp{font-variant-numeric:tabular-nums}
 .chip.acc{background:var(--accBg);color:var(--acc-txt)}
 .pt{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
 .bdg-r{display:none;background:var(--red);color:#fff;border-radius:var(--r-pill);font-size:11px;padding:1px 7px;font-weight:700;min-width:18px;text-align:center}
+/* « Nouveau » (lot 1, 21 octobre 2026) : une pastille discrète, la teinte de l'accent en voile — l'état d'une destination, pas une alerte */
+.tab .nv{margin-left:auto;font-size:10px;font-weight:600;letter-spacing:.01em;line-height:16px;padding:0 6px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc-txt,var(--acc));white-space:nowrap}
+body.barre-repliee .tab .nv{display:none}
 .bdg-b{display:none;background:var(--acc-fill);color:#fff;border-radius:var(--r-pill);font-size:11px;padding:1px 7px;font-weight:700;min-width:18px;text-align:center}
 
 /* ══ CARTES ET LISTES ═══ sans bord ; la surface se détache du fond par le ton ══ */
@@ -2938,15 +2941,19 @@ var APPS_TOUR={
    à côté de la version publique : deux portes qui ne doivent jamais se voir l'une sans l'autre
    (vueEssais, reg-g-fixe). La console MESSAGES ne dessine pas Devis IA, Connexions, Abonnements
    ni Sauvegardes — ils n'y ont rien à montrer (« Accès » y est depuis la v2.81 : la bêta d'OP MESSAGES a ses accès) (REPRISE.md, « une console par application »).
-   Colonnes : [clé, nom, consoles, compteur?]. */
+   Colonnes : [clé, nom, consoles, compteur?, tête?, nouveau?]. Le 6ᵉ champ (lot 1 de la refonte, 21 octobre 2026, maquette validée par
+   Justin le 19 octobre) marque d'un « Nouveau » une vue ajoutée pour une vraie société — tant qu'elle n'est pas finie, elle le DIT
+   (`vueBientot`) au lieu de montrer des chiffres inventés. */
 var MENU=[
   {section:'Tour',vues:[['accueil','Accueil','gestion messages']]},
-  {section:'Clients',vues:[['demandes','Demandes','gestion','bdg-dem'],['comptes','Comptes','messages'],['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion messages']]},
-  {section:'Support',vues:[['support','Courrier','gestion','bdg-supp'],['surveillance','Surveillance','gestion messages','bdg-surv']]},
+  {section:'Clients',vues:[['demandes','Demandes','gestion','bdg-dem'],['comptes','Comptes','messages'],['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion messages'],['facturation','Facturation','gestion messages','','',1]]},
+  {section:'Support',vues:[['support','Courrier','gestion','bdg-supp'],['surveillance','Surveillance','gestion messages','bdg-surv'],['incidents','Incidents','gestion messages','','',1]]},
+  {section:'Juridique',vues:[['contrats','Contrats','gestion messages','','',1]]},
+  {section:'Équipe d’agents',vues:[['agents','Agents','gestion'],['rapport','Rapport','gestion','','',1]]},
   /* v2.88 — le 5ᵉ champ RATTACHE une vue à une autre : elle quitte le menu et la barre du bas, et paraît en onglet en tête
      de sa vue de tête (Justin, 17 octobre 2026 : « améliore et simplifie-la »). Équipe est « qui peut entrer », comme Accès ;
      les Sauvegardes et le Journal sont les deux écrans de contrôle qu'on ouvre rarement. Dix entrées deviennent huit. */
-  {section:'Administration',vues:[['essais','Accès','gestion messages'],['equipe','Équipe','gestion messages','','essais'],['journal','Journal','gestion messages'],['agents','Agents','gestion'],['donnees','Sauvegardes','gestion','','journal']]}
+  {section:'Administration',vues:[['essais','Accès','gestion messages'],['equipe','Équipe','gestion messages','','essais'],['journal','Journal','gestion messages'],['donnees','Sauvegardes','gestion','','journal']]}
 ];
 /* le nom que porte la tête d'un groupe au MENU quand il a au moins deux écrans dans la console ouverte (OP MESSAGES n'a pas
    de Sauvegardes : son « Journal » reste « Journal ») */
@@ -2965,7 +2972,7 @@ function groupeOnglets(t){ var l=groupeDe(t); if(l.length<2) return '';
    répondent « Réservé au patron » à tout autre compte (monPatronStrict). Le Journal et les Sauvegardes
    restaient pourtant au menu d'un collaborateur, pour n'y montrer qu'un refus ; et une adresse tapée à
    la main (#gestion/equipe) ouvrait un écran retiré du menu. La liste sert au menu ET à la navigation. */
-var PATRON_SEUL=['essais','equipe','journal','agents','donnees'];
+var PATRON_SEUL=['essais','equipe','journal','agents','donnees','facturation','contrats','rapport'];   // l'argent, les contrats et le rapport des agents : le patron (lot 1)
 /* ⛔ v2.87 (17 octobre 2026, Justin : « les catégories qui servent à quelque chose, les autres qui servent à rien —
    je range ») : Connexions et Devis IA quittent le menu, rien ne se perd. Connexions devient un onglet d'Entreprises
    (elle doublait la fiche et les compteurs d'Entreprises), Devis IA un onglet d'Abonnements (c'est une option qu'on
@@ -3264,6 +3271,10 @@ window.addEventListener('hashchange',function(){
 
 /* ══ ICÔNES : dessinées ici, rien à télécharger ══ */
 var IC={
+  facturation:'<path d="M7 3h10v18l-2.5-1.6L12 21l-2.5-1.6L7 21z"></path><path d="M10 8h4M10 12h4"></path>',
+  incidents:'<path d="M12 4 3 20h18z"></path><path d="M12 10v4M12 17h.01"></path>',
+  contrats:'<path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v4h4M9.5 16c1.2-1.4 2.2-.4 3 0 .8.4 1.6.2 2.5-.6"></path>',
+  rapport:'<path d="M4 20h16"></path><path d="M7 16v-5M12 16V7M17 16v-8"></path>',
   accueil:'<path d="M4 11 12 4l8 7"></path><path d="M6 10v10h12V10"></path>',
   surveillance:'<path d="M3 12h4l2-6 4 12 2-6h6"></path>',
   /* Un cylindre de base de données : c'est le socle, pas un dossier. */
@@ -3304,6 +3315,17 @@ function svg(n,t){ t=t||17; return '<svg width="'+t+'" height="'+t+'" viewBox="0
    la couleur des tuiles dit une DESTINATION, jamais un état.
    titre / sous / action arrivent en HTML déjà échappé par l'appelant : plusieurs états vides
    portent un <br> ou un <b> dans leur phrase, et ce sont des textes du fichier, pas des données. */
+/* ══ LOT 1 DE LA REFONTE — UNE VUE MARQUÉE « NOUVEAU » QUI N'EST PAS ENCORE FAITE LE DIT (21 octobre 2026) ══
+   Chaque vue du lot arrive partie par partie, vérifiée (règle de Justin, 20 octobre) ; d'ici là, elle dit ce qu'elle montrera,
+   jamais un chiffre d'exemple. Une vue terminée quitte cette table. */
+var VUES_BIENTOT={
+  facturation:['Facturation','Les paiements reçus, les factures et les impayés, lus chez Stripe — pour savoir qui a payé quoi, et quand.'],
+  incidents:['Incidents','Ce que les clients rencontrent, regroupé par problème, avec qui s’en occupe et depuis quand.'],
+  contrats:['Contrats','Les contrats et les signatures en cours : envoyés, signés, en attente — et ce qui reste à faire.'],
+  rapport:['Rapport','Le rapport du jour des agents : ce qu’ils ont fait, ce qui attend ta validation, ce qui a échoué.']
+};
+function vueBientot(t){ var b=VUES_BIENTOT[t];
+  return enTete(esc(b[0]),'')+videTour('Cette page arrive',esc(b[1])+'<br>Elle se construit partie par partie, chacune vérifiée avant de paraître ici.'); }
 function videTour(titre,sous,action,ic){
   /* ic===false : pas de tuile. Dans un encart de 200 px sur l'accueil, un glyphe de 36 px
      pèse plus lourd que la phrase qu'il accompagne — la même fonction, un dessin de moins. */
@@ -3338,7 +3360,7 @@ function renderTabs(){
   menuVisible().forEach(function(g){
     h+='<div class="grp"><i></i><span>'+esc(g.section)+'</span></div>';
     g.vues.forEach(function(x){
-      h+='<button class="tab" data-t="'+x[0]+'" data-apps="'+x[2]+'" onclick="setTab(\''+x[0]+'\')" title="'+esc(x[1])+'"><i class="ic">'+svg(x[0],13)+'</i><span class="lib">'+esc(x[1])+'</span>'+
+      h+='<button class="tab" data-t="'+x[0]+'" data-apps="'+x[2]+'" onclick="setTab(\''+x[0]+'\')" title="'+esc(x[1])+'"><i class="ic">'+svg(x[0],13)+'</i><span class="lib">'+esc(x[1])+'</span>'+(x[5]?'<span class="nv" title="Nouveau : ajouté pour une vraie société">Nouveau</span>':'')+
          (x[3]?'<span class="'+(x[0]==='surveillance'?'bdg-r':'bdg-b')+'" id="'+x[3]+'">0</span>':'')+'</button>';
     });
   });
@@ -3373,7 +3395,8 @@ var BAS=BAS_DEFAUT.slice(0,BAS_MAX);
 /* Un nom qui tient sous l'icône, dans une colonne d'une soixantaine de pixels. Le nom COMPLET reste
    dans `aria-label` : un lecteur d'écran ne lit pas des abréviations. */
 var BAS_LIB={comptes:'Comptes',accueil:'Accueil',surveillance:'Surveill.',demandes:'Demandes',entreprises:'Entreprises',essais:'Accès',
-  abonnements:'Abonn.',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal',agents:'Agents'};
+  abonnements:'Abonn.',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal',agents:'Agents',
+  facturation:'Factur.',incidents:'Incidents',contrats:'Contrats',rapport:'Rapport'};
 /* Les vues que CE compte voit dans CETTE console, à plat, dans l'ordre du menu, avec leur compteur. */
 function barreDispo(){
   var l=[]; menuVisible().forEach(function(g){ g.vues.forEach(function(x){ l.push({t:x[0],lib:x[1],bdg:x[3]||''}); }); });
@@ -5701,6 +5724,7 @@ function renderVue(v){
   else if(TAB==='equipe') v.innerHTML=groupeOnglets('equipe')+vueEquipe();
   else if(TAB==='journal') v.innerHTML=groupeOnglets('journal')+vueJournal();
   else if(TAB==='agents') v.innerHTML=vueAgents();
+  else if(VUES_BIENTOT[TAB]) v.innerHTML=vueBientot(TAB);
   if(v.classList.contains('entre')) compterKpi(v);
   /* ICI et pas dans render() : renderAnime() appelle renderVue() directement, sans passer par
      render(). Accroché à render(), le pliage ne s'appliquait donc jamais lors d'un changement

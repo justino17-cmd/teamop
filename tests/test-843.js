@@ -80,7 +80,7 @@ let J = jouer({});
 vrai('population : le menu du patron compte ' + J.vues.length + ' vues', J.vues.length >= 8, J.vues.length);   // v2.88 : dix entrées deviennent huit (Équipe sous Accès, Sauvegardes sous Système)
 v('⛔ patron, GESTION : TOUTES les vues du menu, dans l\'ordre, chacune une fois', J.lignes.map(x => x.t), J.vues);
 v('   la vue ouverte (Accueil), et elle seule, est marquée et annoncée (aria-current)', J.lignes.filter(x => x.on || x.cur).map(x => x.t + '/' + x.on + '/' + x.cur), ['accueil/true/true']);
-v('   une section par groupe du menu, en capitales dessinées (pas tapées)', (J.h.match(/<div class="ti-sec">/g) || []).length, 4);
+v('   une section par groupe du menu, en capitales dessinées (pas tapées)', (J.h.match(/<div class="ti-sec">/g) || []).length, 6);   // lot 1 (21 octobre 2026) : + Juridique, Équipe d’agents
 v('⛔ aucun id dans le tiroir (bdg-surv, app-n-… sont déjà au menu du bureau : setBdg viserait le mauvais)', (J.h.match(/\sid="/g) || []).length, 0);
 vrai('   le pied : « Personnaliser la barre » (ferme le tiroir, ouvre la feuille) et « Quitter », puis la version',
   /onclick="fermerTiroir\(true\);ouvrirFeuille\('barre'\)"/.test(J.h) && /class="ti ti-quitter" onclick="doLogout\(\)"/.test(J.h) && /<div class="ti-version">Tour OP GESTION · v9\.99<\/div>/.test(J.h));
