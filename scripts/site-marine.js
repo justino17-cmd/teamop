@@ -217,6 +217,8 @@ const VOLETS = {
    mon thème »). `page()` pose POUR_LA_RACINE avant d'écrire la page. */
 let POUR_LA_RACINE = A_LA_RACINE;
 const hors = c => (POUR_LA_RACINE ? '' : '/apercu') + c;
+/* l'accueil s'écrit « / » (21 octobre 2026, Justin : « pourquoi l'adresse du site est teamop.fr/index.html ? ») : la même page à deux adresses ; l'aperçu garde la sienne */
+const ACCUEIL = () => POUR_LA_RACINE ? '/' : 'index.html';
 const ESPACE = () => hors('/espace.html'), CONNEXION = () => hors('/connexion.html?choix=1');
 
 function entete(section, sousnav) {
@@ -224,12 +226,12 @@ function entete(section, sousnav) {
   const volets = Object.keys(VOLETS).map(k => { const v = VOLETS[k]; return `<div class="fly" id="fly-${k}"><div class="fly-in"><div><div class="fly-t">${esc(v.titre)}</div><div class="fly-grand">`
     + v.grands.map(l => `<a href="${l.href}"><b>${esc(l.label)}</b>${l.sous ? `<small>${fr(l.sous)}</small>` : ''}</a>`).join('')
     + `</div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit">` + v.petits.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div></div></div></div>'; }).join('');
-  const mobile = `<section><div class="fly-t">TEAM OP</div><a href="index.html">Accueil</a></section>`
+  const mobile = `<section><div class="fly-t">TEAM OP</div><a href="${ACCUEIL()}">Accueil</a></section>`
     + Object.keys(VOLETS).map(k => `<section><div class="fly-t">${esc(VOLETS[k].label)}</div>` + VOLETS[k].grands.concat(VOLETS[k].petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</section>').join('');
   const sn = sousnav ? `<div class="sousnav"><div class="sousnav-in"><a class="sousnav-t" href="${sousnav.href}">${esc(sousnav.titre)}</a><nav class="sousnav-liens" aria-label="${esc(sousnav.titre)}">`
     + sousnav.liens.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `</nav>${typeof sousnav.cta === 'function' ? sousnav.cta() : sousnav.cta}</div></div>` : '';
   return `<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
-      <a class="marque" href="index.html"><img src="/icons/teamop-192.png" width="22" height="22" alt=""><span>TEAM OP</span></a>
+      <a class="marque" href="${ACCUEIL()}"><img src="/icons/teamop-192.png" width="22" height="22" alt=""><span>TEAM OP</span></a>
       <div class="nav-liens">${liens}</div>
       <div class="nav-droite"><a class="pilule" href="${ESPACE()}">Espace client</a>
         <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>

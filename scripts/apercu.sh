@@ -61,6 +61,8 @@ if famille == 'portail':
     fam = 'espace|connexion|reinit|recap-abonnement|merci|mentions-legales|confidentialite|sous-traitance|registre-traitements'
     s, n1 = re.subn(r"""(?<!encodeURIComponent\()(["'(])/?(""" + fam + r""")\.html""", r"\1/apercu/\2.html", s)
     s, n2 = re.subn(r"""(["'(])/?(index|tarifs|applications|creer|elan|metiers|opmessages|pourquoi)\.html""", r"\1/apercu/site/\2.html", s)
+    # l'accueil s'écrit « / » depuis le 21 octobre 2026 (href="/") : dans l'aperçu, c'est l'accueil d'aperçu
+    s, n2b = re.subn(r'(<a\b[^>]*?\s)href="/"', r'\1href="/apercu/site/index.html"', s); n2 += n2b      # les LIENS seulement — jamais <base href="/">
     s, n3 = re.subn(r"location\.href=RETOUR_PAIEMENT;", "location.href='/apercu/'+RETOUR_PAIEMENT;", s)
     # l'adresse d'une entreprise (teamop.fr/e/nom) passe par la page d'erreur EN SERVICE : dans l'aperçu, on va
     # droit à la connexion d'aperçu, qui lit ?e= exactement comme quand 404.html l'y envoie
