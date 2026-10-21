@@ -247,7 +247,9 @@ function entete(section, sousnav) {
 const CONTACTS = [['contact@teamop.fr', 'Une question, une demande']];
 function pied() {
   const cols = [['Applications', VOLETS.applications], ['Métiers', VOLETS.metiers], ['Tarifs', VOLETS.tarifs]].map(([t, v]) => `<div><b>${t}</b>` + v.grands.concat(v.petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div>').join('')
-    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`
+    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="https://blog.teamop.fr">Blog</a><a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`
+    /* « Blog » (21 octobre 2026, Justin) : blog.teamop.fr, hébergé par BabyLoveGrowth (CNAME OVH) — un lien depuis le
+       site aide Google et les IA à trouver les articles. */
     /* ⛔ LA COLONNE « Contact » : contact@ seul (voir `CONTACTS`) — `test-835` § 4 l'exige au pied de chaque page, et rien d'autre. */
     + `<div class="contact"><b>Contact</b>${CONTACTS.map(([m, r]) => `<a href="mailto:${m}">${m}</a><small>${fr(r)}</small>`).join('')}</div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
