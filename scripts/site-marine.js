@@ -252,7 +252,7 @@ function pied() {
     + `<div class="contact"><b>Contact</b>${CONTACTS.map(([m, r]) => `<a href="mailto:${m}">${m}</a><small>${fr(r)}</small>`).join('')}</div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
     <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Sans engagement ; TVA non applicable (article 293 B du CGI).</p>
-    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a>${CONTACTS.map(([m]) => `<a href="mailto:${m}">${m}</a>`).join('')}<span class="fin">France</span></div>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a>${POUR_LA_RACINE ? '<a href="#" data-cookies>Gestion des cookies</a>' : ''}${CONTACTS.map(([m]) => `<a href="mailto:${m}">${m}</a>`).join('')}<span class="fin">France</span></div>
   </div></footer>`;
 }
 
@@ -824,6 +824,9 @@ const ICONES = cle => cle === 'opmessages'
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/teamop-192.png">
 <link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">`;
+/* ⛔ MESURE D'AUDIENCE (21 octobre 2026, Justin) : `/cookies.js` — bandeau Refuser / Accepter, Google Analytics
+   (G-BW7P0K94BZ) chargé SEULEMENT après « Accepter » (CNIL). À la racine seulement : l'aperçu ne se mesure pas. Le lien
+   « Gestion des cookies » du pied rouvre le bandeau (`data-cookies`) ; `confidentialite.html` § 2 le dit. */
 function page(cle, o) {
   const P = PAGES[cle], racine = o ? !!o.racine : A_LA_RACINE;
   POUR_LA_RACINE = racine;
@@ -848,7 +851,7 @@ ${P.cta === false ? '' : commencer()}
 </main>
 ${pied()}
 <script src="${RES}site.js" defer></script>
-${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
+${racine ? '<script src="/cookies.js" defer></script>\n' : ''}${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
 </html>
 `;
 }
