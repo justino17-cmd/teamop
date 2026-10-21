@@ -4338,7 +4338,7 @@ function rafraichirSiConcerne(){
   try{ if(TAB==='demandes'){ rendreEnGardantLeFocus(); return; }   /* v2.88 : « espace déjà ouvert » et « payé » arrivent après le premier rendu */
     if(TAB==='essais'||TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}
 }
-var JR={cnx:[],loaded:false,err:'',serveur:[],f:'tout'};
+var JR={cnx:[],loaded:false,err:'',serveur:[],f:'tout',ag:[],agLec:0,agErr:'',agNoms:{}};   /* ag* : le journal des agents (lot 1, partie h) */
 /* ── Connexions des applications : toutes les entreprises, le moindre détail ── */
 var CNX={list:[],global:{},loaded:false,err:'',sel:null,det:null,detErr:'',q:'',f:'toutes'};
 function chargerConnexions(dire){   // `dire` : voir chargerComptesSite
@@ -5578,7 +5578,15 @@ function chargerJournal(){
       tx:(a.qui||'?')+' '+(a.geste||'')+(a.cible?' « '+a.cible+' »':'')+(a.detail?' ('+a.detail+')':'')}; });
     if(TAB==='journal'||TAB==='accueil') render();
   }).catch(function(e){ JR.err=msgErreur(e); JR.loaded=true; if(TAB==='journal') render(); });
+  /* LOT 1 (h) — CE QU'ONT FAIT LES AGENTS : leur journal (server/agents.js), dans le même écran que les gestes des personnes. Les agents travaillent pour
+     la console OP GESTION. Trois états : un journal illisible (503) n'est jamais « aucun agent n'a rien fait ». Les noms viennent du registre. */
+  if(MYAPPS.indexOf('gestion')>=0){ JR.agLec=0;
+    apiGet('/api/monitor/agents/journal?limite=100').then(function(d){
+      if(d&&Array.isArray(d.journal)){ JR.ag=d.journal; JR.agLec=1; } else { JR.agLec=-1; JR.agErr='Réponse inattendue du serveur.'; } if(TAB==='journal') render(); },
+      function(e){ JR.agLec=-1; JR.agErr=(e&&e.corps)||msgErreur(e); if(TAB==='journal') render(); });
+    apiGet('/api/monitor/agents').then(function(d){ ((d&&d.agents)||[]).forEach(function(a){ JR.agNoms[a.id]=a.nom; }); if(TAB==='journal') render(); },function(){}); }
 }
+function jrAgNom(id){ return JR.agNoms[id]||agNom(id); }
 /* v2.94 (Justin : « je voudrais ce son quand on reçoit un mail… boîte mail ouverte ou autre, ça sonne quand même ») — LE SON DU COURRIER HORS DE L'ÉCRAN COURRIER.
    Le module ne vit que sur l'onglet Courrier et joue le son des nouveaux mails qu'il relève ; ailleurs dans la Tour, la relève de la pastille (ci-dessous, même rythme : une minute, le
    serveur garde les compteurs 20 s) joue le MÊME son quand le nombre de non lus a MONTÉ. Jamais au premier relevé (`sonRef` encore vide), jamais pendant que le module est monté (c'est lui qui
@@ -10002,6 +10010,7 @@ function vueJournal(){
   var ok=C.filter(function(j){ return j.ok; });
   var ko=C.filter(function(j){ return !j.ok; });
   var f=JR.f||'tout';
+  var AGJ=APP==='gestion'; if(!AGJ&&f==='agents') f='tout';   /* le filtre « Agents » n'existe pas dans la console MESSAGES */
 
   var kpi=function(cle,n,l,rouge){
     return '<button type="button" class="kpi clic'+(f===cle?' sel':'')+'" aria-pressed="'+(f===cle)+'" onclick="jrFiltre(\''+cle+'\')">'+
@@ -10056,6 +10065,16 @@ function vueJournal(){
   else corpsOk=jours.map(function(g){
     return '<div class="jr-jour">'+esc(etiq(g.ts))+'</div><div class="reg-bloc">'+g.l.map(ligneOk).join('')+'</div>'; }).join('');
 
+  /* lot 1 (h) — les gestes des agents : la console OP GESTION seulement (c'est pour elle qu'ils travaillent) */
+  var RES={erreur:['erreur','p-rouge'],refuse:['refusé','p-ambre'],propose:['proposé','p-info']};
+  var corpsAg=!AGJ?'':JR.agLec===0?squelListe(2)
+    :JR.agLec===-1?'<div class="jr-err"><span>Le journal des agents n’a pas pu être lu ('+esc(JR.agErr)+') — on ne sait pas ce qu’ils ont fait.</span><button type="button" class="btn-fant" onclick="chargerJournal();render()">Réessayer</button></div>'
+    :!JR.ag.length?'<div class="jr-vide">Aucun agent n’a encore rien fait. Un agent à l’arrêt ne fait rien ; en brouillon, il prépare et te propose — chaque geste s’inscrit ici.</div>'
+    :'<div class="reg-bloc">'+JR.ag.map(function(e){ var r=RES[e.resultat];
+        return '<div class="reg-l inerte jr-l"><span class="reg-txt"><span class="reg-t1"><b>'+esc(jrAgNom(e.agent))+'</b> · '+esc(e.action||'')+'</span>'+
+          '<span class="reg-l2">'+([e.cible?esc(e.cible):'',e.detail?esc(e.detail):'',e.qui?'par '+esc(e.qui):''].filter(Boolean).join(' · ')||'—')+'</span></span>'+
+          '<span class="reg-fin">'+(r?'<span class="past '+r[1]+'">'+r[0]+'</span>':'')+'<span class="reg-h">'+esc(fmtDate(e.ts))+'</span></span></div>'; }).join('')+'</div>';
+  var nAg=AGJ&&JR.agLec===1?JR.ag.length:0;
   var corpsAct=A.length
     ? '<div class="reg-bloc act">'+A.map(function(a){
         return '<div class="reg-l inerte"><span class="reg-txt"><span class="reg-l2">'+esc(a.tx)+'</span></span>'+
@@ -10084,14 +10103,16 @@ function vueJournal(){
       'Qui est entré, depuis quel appareil, et quand.',true,corpsOk));
     if(f==='tout'||f==='actions') g.push(jrGroupe('Ce qui a été fait dans cette console',A.length,
       'Les gestes sont notés par le serveur — vus de tous les appareils, gardés après un rechargement (les 200 derniers paraissent ici).',false,corpsAct));
+    if(AGJ&&(f==='tout'||f==='agents')) g.push(jrGroupe('Ce qu’ont fait les agents',JR.agLec===1?nAg:null,
+      'Chaque geste d’un agent — fait, proposé, refusé ou en erreur — noté par le serveur (les 100 derniers paraissent ici).',false,corpsAg));
     bloc=g.join('');
   }
 
   return enTete('Journal',
     'Ce qui a été fait dans cette console, et qui s’y est connecté. Aucune ligne ne peut être effacée à la main.')+
-    kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length],['echecs','Refusées',ko.length],['actions','Actions',A.length]],f,'jrFiltrePoser(')+
+    kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length+nAg],['echecs','Refusées',ko.length],['actions','Actions',A.length]].concat(AGJ?[['agents','Agents',JR.agLec===1?nAg:null]]:[]),f,'jrFiltrePoser(')+
     '<div class="reg">'+bloc+'</div>'+
-    '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console et les 500 derniers gestes ; les plus anciens laissent la place aux nouveaux.</div>';
+    '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console et les 500 derniers gestes'+(AGJ?', et les 2 000 derniers gestes des agents':'')+' ; les plus anciens laissent la place aux nouveaux.</div>';
 }
 
 /* ══ AGENTS ══ — l'équipe d'agents IA (server/agents.js). Patron seul : lire ET écrire (le serveur le dit aussi).
