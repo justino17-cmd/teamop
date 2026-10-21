@@ -620,6 +620,8 @@ input.inp,select.sel-f{display:block;line-height:normal}
 /* Le « +n » d'un débordement de pastilles : --text2 sur --tint-gris (6,02:1 sur le plan).
    Surtout pas .past.p-gris, dont l'encre --gray plafonne à 4,44:1 sur le plan élevé, quel que
    soit le taux de teinte qu'on essaie — c'est le seul couple qui ne se rattrape pas. */
+/* « Au rapport » : l'attente de moins d'un jour, même couple que « +n » (jamais .p-gris) */
+.past.p-attente{background:var(--tint-gris);color:var(--text2)}
 .reg-plus{background:var(--tint-gris);color:var(--text2);border-radius:var(--r-pill);
   padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap}
 /* v2.80 — une pastille par option servie (« Stock », « Achats »…) à côté de la formule : même couple d'encres que « +n »
@@ -3263,6 +3265,7 @@ function entrer(){
   setInterval(function(){ if(document.visibilityState==='visible') chargerIncidents(); },60000);
   /* la relève de la pastille Courrier (v2.94) : seulement quand le module ne tourne pas — monté, il relève lui-même au même rythme */
   if(MYAPPS.indexOf('gestion')>=0) setInterval(function(){ if(document.visibilityState==='visible'&&!COUR.inst&&MSG.loaded) chargerMail(); },60000);
+  if(MYAPPS.indexOf('gestion')>=0){ chargerRapport(); setInterval(function(){ if(document.visibilityState==='visible'&&TAB==='accueil') chargerRapport(); },60000); }   /* « Au rapport » (lot 1) */
 }
 window.addEventListener('hashchange',function(){
   var h=lireHash();
@@ -5800,6 +5803,16 @@ function vueAccueil(){
       l2:'<b>'+esc(entNom(i))+'</b> · '+esc(APP_L[i.app]||i.app||'—'),
       l3:esc(fmtAgo(i.lastTs))+(i.firstTs?' · première fois le '+esc(fmtJour(i.firstTs)):''),
       past:{c:'p-rouge',t:'×'+(i.count||1)},action:"allerIncident('"+jsq(i.id)+"')"}); })});
+  if(APP==='gestion'&&RAP.l.length) G.push({titre:'Au rapport',n:Math.min(4,RAP.l.length),tot:RAP.total||RAP.l.length,bloc:'reg-bloc',
+    sous:'Ce qui attend un client, du plus ancien au plus récent.',opt:false,
+    voir:"setTab('support')",
+    l:RAP.l.slice(0,4).map(function(x){ var vieux=Date.now()-(x.recuTs||0)>24*3600000;
+      return ligneAc({ton:x.statut==='enCours'?'bleu':'ambre',ico:'support',
+        t1:esc(x.objet||'(sans objet)'),titre:x.objet||'',
+        /* l'état et QUI d'abord : c'est l'adresse, en dernier, qui se coupe sur une colonne étroite */
+        l2:(x.statut==='enCours'?'en cours':'à traiter')+' · '+(x.assigne?'<b>'+esc(x.assigne)+'</b>':'personne')+' · '+esc(x.de||'—'),
+        past:x.recuTs?{c:vieux?'p-rouge':'p-attente',t:attenteCourte(x.recuTs)}:null,
+        action:"setTab('support')"}); })});
   /* v2.87 : une demande du site attend une réponse de TEAM OP — c'est du travail, pas une statistique */
   if(demAT.length) G.push({titre:'Demandes à traiter',n:Math.min(4,demAT.length),tot:demAT.length,bloc:'reg-bloc',
     sous:'Envoyées depuis le site : accepter ouvre l’espace avec la formule et le métier demandés.',opt:false,
@@ -6176,6 +6189,21 @@ function acGroupe(g){
 /* Une priorité. Un vrai <button>, jamais un .item : .item réappliquerait background:var(--surface),
    margin-bottom:6px et box-shadow, donc des rectangles DANS un rectangle. Le contenu d'un
    <button> est du contenu de phrasé — que des <span>, jamais un <div>. */
+/* ══ « AU RAPPORT » (lot 1, partie b — 21 octobre 2026, maquette validée par Justin) ══
+   Ce qui attend un client, du plus ancien au plus récent : les demandes « À traiter » et « En cours » du Courrier, lues par
+   /api/monitor/mail/stats (champ `ouverts`, vingt au plus). Combien de temps elle attend, et qui s'en occupe — ou « personne ».
+   En lecture : changer un état se fait dans le Courrier. Un serveur d'avant (sans `ouverts`) ou une lecture refusée : le groupe ne paraît pas. */
+var RAP={loaded:false,l:[],total:0};
+function chargerRapport(){
+  if(MYAPPS.indexOf('gestion')<0) return Promise.resolve();
+  return apiGet('/api/monitor/mail/stats').then(function(d){
+    RAP.loaded=true; RAP.l=d&&Array.isArray(d.ouverts)?d.ouverts:[]; RAP.total=d?(d.aTraiter||0)+(d.enCours||0):0;
+    if(TAB==='accueil'&&APP==='gestion') render();
+  },function(){ RAP.loaded=true; RAP.l=[]; RAP.total=0; });
+}
+/* depuis combien de temps : « 12 min », « 5 h », « 3 j » — un mot court, à droite de la ligne */
+function attenteCourte(ts){ var m=Math.max(0,Math.round((Date.now()-ts)/60000));
+  return m<60?m+' min':m<48*60?Math.round(m/60)+' h':Math.round(m/1440)+' j'; }
 function ligneAc(o){
   return '<button type="button" class="reg-l'+(o.haut?' haut':'')+'" onclick="'+o.action+'">'+
     '<span class="ac-ico '+o.ton+'">'+svg(o.ico,o.haut?20:17)+'</span>'+

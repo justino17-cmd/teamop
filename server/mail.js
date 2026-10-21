@@ -820,7 +820,11 @@ module.exports = function monterMessagerie(app, ctx) {
       aTraiter: clients.filter(x => x.statut === 'aTraiter').length,
       enCours: clients.filter(x => x.statut === 'enCours').length,
       resolus: clients.filter(x => x.statut === 'resolu').length,
-      reponseMoyenneMin: moyenne, repondus: delais.length, sujets, semaines
+      reponseMoyenneMin: moyenne, repondus: delais.length, sujets, semaines,
+      /* « Au rapport » (lot 1 de la refonte de la Tour, 21 octobre 2026) : ce qui attend un client, du plus ancien au plus récent — vingt au plus,
+         les notifications automatiques à part (elles n'attendent personne). En LECTURE : rien ne s'écrit ici. */
+      ouverts: clients.filter(x => x.statut === 'aTraiter' || x.statut === 'enCours').sort((a, b) => (a.recuTs || 0) - (b.recuTs || 0)).slice(0, 20)
+        .map(x => ({ statut: x.statut, assigne: x.assigne || '', recuTs: x.recuTs || 0, de: x.de || '', objet: x.objet || '' }))
     });
   });
 
