@@ -3322,7 +3322,6 @@ function svg(n,t){ t=t||17; return '<svg width="'+t+'" height="'+t+'" viewBox="0
    Chaque vue du lot arrive partie par partie, vérifiée (règle de Justin, 20 octobre) ; d'ici là, elle dit ce qu'elle montrera,
    jamais un chiffre d'exemple. Une vue terminée quitte cette table. */
 var VUES_BIENTOT={
-  contrats:['Contrats','Les contrats et les signatures en cours : envoyés, signés, en attente — et ce qui reste à faire.'],
   rapport:['Rapport','Le rapport du jour des agents : ce qu’ils ont fait, ce qui attend ta validation, ce qui a échoué.']
 };
 function vueBientot(t){ var b=VUES_BIENTOT[t];
@@ -3978,7 +3977,8 @@ function setTab(t,sansAnim){
      sur « Chargement des codes… » pour toute la session, alors que c'est le seul endroit de
      la console où l'on voit qui profite d'une formule offerte, et jusqu'à quand. */
   if(t==='facturation'&&(!ABO.loaded||ABO.err)) chargerAbos();
-  if(t==='incidents'&&(!INC.loaded||INC.err)) chargerIncidents();   /* lot 1 (d) : la même liste que la Surveillance */   /* lot 1 (c) : les factures viennent de la même lecture de Stripe */
+  if(t==='incidents'&&(!INC.loaded||INC.err)) chargerIncidents();
+  if(t==='contrats') chargerContrats();   /* lot 1 (e) : relu à chaque ouverture — une version a pu être validée depuis la Direction */   /* lot 1 (d) : la même liste que la Surveillance */   /* lot 1 (c) : les factures viennent de la même lecture de Stripe */
   if(t==='abonnements'){ if(!ABO.loaded||ABO.err) chargerAbos(); if(!PRO.loaded||PRO.err) chargerPromos(); }
   if(t==='equipe'&&(!EQ.loaded||EQ.err)) chargerEquipe();   /* v2.88 : un échec au chargement figeait l'écran pour toute la séance */
   if(t==='journal') chargerJournal();
@@ -5729,6 +5729,7 @@ function renderVue(v){
   else if(TAB==='agents') v.innerHTML=vueAgents();
   else if(TAB==='facturation') v.innerHTML=vueFacturation();
   else if(TAB==='incidents') v.innerHTML=vueIncidents();
+  else if(TAB==='contrats') v.innerHTML=vueContrats();
   else if(VUES_BIENTOT[TAB]) v.innerHTML=vueBientot(TAB);
   if(v.classList.contains('entre')) compterKpi(v);
   /* ICI et pas dans render() : renderAnime() appelle renderVue() directement, sans passer par
@@ -8798,6 +8799,83 @@ function abnGroupe(titre,n,sous,opt,corps){
   return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+titre+'</span>'+
     (n===null?'':'<span class="reg-n">'+n+'</span>')+
     (sous?'<div class="reg-sous'+(opt?' opt':'')+'">'+sous+'</div>':'')+'</div>'+corps+'</div>';
+}
+/* ══ CONTRATS (lot 1 de la refonte, partie e — 21 octobre 2026) ══
+   Le registre des contrats (`server/contrats.js`), EN LECTURE : chaque pièce et sa version en vigueur (qui l'a validée, quand), les
+   abonnements qu'un texte manquant bloque, et les contrats des clients — envoyés, signés, en attente (`/contrats/clients`, qu'aucun
+   écran ne montrait). On rédige et on valide dans Agents › Direction, où sont les gestes ; ici, rien ne s'écrit.
+   ⛔ Trois états par lecture (la règle de la Direction) : un registre illisible ne se dessine jamais « aucun contrat » —
+   les deux lectures se disent chacune à leur place. */
+var CT={reg:null,regLec:0,regErr:'',cli:null,cliLec:0,cliErr:'',vers:null,versLec:0};
+function chargerContrats(){
+  CT.regLec=0; CT.cliLec=0;
+  var dit=function(e){ return (e&&e.corps)||msgErreur(e); };
+  apiGet('/api/monitor/contrats').then(function(d){ if(d&&Array.isArray(d.types)){ CT.reg=d; CT.regLec=1; } else { CT.regLec=-1; CT.regErr='Réponse inattendue du serveur.'; } if(TAB==='contrats') render(); },
+    function(e){ CT.regLec=-1; CT.regErr=dit(e); if(TAB==='contrats') render(); });
+  apiGet('/api/monitor/contrats/clients').then(function(d){ if(d&&Array.isArray(d.contrats)){ CT.cli=d.contrats; CT.cliLec=1; } else { CT.cliLec=-1; CT.cliErr='Réponse inattendue du serveur.'; } if(TAB==='contrats') render(); },
+    function(e){ CT.cliLec=-1; CT.cliErr=dit(e); if(TAB==='contrats') render(); });
+}
+function ctLire(type,n){
+  CT.vers={type:type,n:n}; CT.versLec=0; render();
+  var lv=document.getElementById('ct-lecteur'); if(lv&&lv.scrollIntoView) lv.scrollIntoView({block:'start',behavior:'smooth'});   /* le texte paraît en haut : on y mène */
+  apiGet('/api/monitor/contrats/version?type='+encodeURIComponent(type)+'&n='+encodeURIComponent(n)).then(function(d){
+    if(!CT.vers||CT.vers.type!==type||CT.vers.n!==n) return;
+    if(d&&d.version){ CT.vers=Object.assign({type:type},d.version); CT.versLec=1; } else CT.versLec=-1; if(TAB==='contrats') render(); },
+    function(){ if(CT.vers&&CT.vers.type===type&&CT.vers.n===n){ CT.versLec=-1; if(TAB==='contrats') render(); } });
+}
+/* « paquet:op_gestion:business_premium » → « OP GESTION · Business Premium » */
+function ctPaquetNom(cle){ var p=String(cle||'').replace(/^paquet:/,'').split(':');
+  var app=p[0]==='op_gestion'?'OP GESTION':p[0]==='op_messages'?'OP MESSAGES':p[0];
+  var f=(p[1]||'').split('_').map(function(m){ return m.charAt(0).toUpperCase()+m.slice(1); }).join(' ');
+  return app+(f?' · '+f:''); }
+/* la version qu'on lit en touchant une pièce : celle en vigueur, sinon le dernier brouillon ; aucune → la ligne ne fait rien */
+function ctAction(T,type){ var t=(T||[]).filter(function(x){ return x.type===type; })[0]||{}, n=t.enVigueur?t.enVigueur.n:((t.versions||[])[0]||{}).n;
+  return n?"ctLire('"+jsq(type)+"',"+Number(n)+")":"void 0"; }
+function vueContrats(){
+  var tete=enTete('Contrats',
+    'Les textes qu’un client reçoit et accepte, la version de chacun en vigueur et qui l’a validée ; puis les contrats envoyés et signés. En lecture : on rédige et on valide dans Agents › Direction.',
+    MYROLE==='patron'?'<button type="button" class="btn-fant" onclick="AG.sec=\'direction\';setTab(\'agents\')">Rédiger et valider</button>':'');
+  if(CT.regLec===0&&CT.cliLec===0) return tete+acSquel();
+  var h=tete, G=[];
+  var lecteur='';
+  if(CT.vers){ var V=CT.vers;
+    lecteur='<div class="encart bloc" id="ct-lecteur" style="margin-top:18px;scroll-margin-top:70px"><div class="tx" style="margin-top:0"><b>'+esc(((CT.reg&&CT.reg.types||[]).filter(function(t){ return t.type===V.type; })[0]||{}).libelle||V.type)+' — version '+esc(V.n)+'</b>'+
+      (CT.versLec===1?'<br>'+(V.statut==='valide'?'Validée par '+esc(V.validePar||'—')+' le '+esc(fmtDate(V.valideLe))+' · empreinte '+esc(String(V.empreinte||'').slice(0,12)):V.statut==='retire'?'Retirée de la vigueur':'Brouillon — pas encore en vigueur')+'</div>'+
+        '<div style="margin-top:10px;max-height:420px;overflow:auto;white-space:pre-wrap;font-size:13px;line-height:1.55;padding:12px;border-radius:10px;border:1px solid var(--hairline)">'+esc(V.texte||'')+'</div>'
+      :CT.versLec===-1?'</div><div class="tx">Ce texte n’a pas pu être lu.</div>':'</div>'+acSquel())+
+      '<div class="ag-act" style="margin-top:8px"><button type="button" class="ag-btn" onclick="CT.vers=null;render()">Fermer</button></div></div>'; }
+  if(CT.regLec===-1) G.push(acErr('Le registre des contrats ne répond pas',CT.regErr+' — rien n’est envoyé à un client tant qu’il est illisible.','chargerContrats()'));
+  else if(CT.regLec===1){ var R=CT.reg, T=R.types||[], PQ=R.paquets||[];
+    var vig=T.filter(function(t){ return t.enVigueur; }).length, prets=PQ.filter(function(q){ return !(q.manquantes||[]).length; }).length, K=R.clients||{};
+    h+='<div class="grille-kpi abn-kpi" style="margin-top:18px">'+
+      '<div class="kpi"><div class="n"'+(vig<T.length?' style="color:var(--amber)"':' style="color:var(--green)"')+'>'+vig+' / '+T.length+'</div><div class="l">Pièces en vigueur</div></div>'+
+      '<div class="kpi"><div class="n"'+(prets<PQ.length?' style="color:var(--amber)"':' style="color:var(--green)"')+'>'+prets+' / '+PQ.length+'</div><div class="l">Abonnements prêts à partir</div></div>'+
+      '<div class="kpi"><div class="n">'+(Number(K.envoyes)||0)+'</div><div class="l">Contrats envoyés</div></div>'+
+      '<div class="kpi"><div class="n"'+((Number(K.enAttente)||0)?' style="color:var(--amber)"':'')+'>'+(Number(K.enAttente)||0)+'</div><div class="l">En attente de signature</div></div>'+
+    '</div>';
+    var bloq=PQ.filter(function(q){ return (q.manquantes||[]).length; });
+    var LIB={}; T.forEach(function(t){ LIB[t.type]=t.libelle||t.type; });
+    if(bloq.length) G.push(abnGroupe('Abonnements bloqués',bloq.length,'Sans une version validée de chaque pièce, le serveur refuse d’envoyer le contrat : un client qui s’abonne ne le reçoit pas.',false,
+      '<div class="reg-bloc">'+bloq.map(function(q){ return ligneAc({ton:'ambre',ico:'contrats',t1:esc(ctPaquetNom(q.cle)),titre:ctPaquetNom(q.cle),
+        l2:'manque : '+q.manquantes.map(function(m){ return esc(LIB[m]||m); }).join(' · '),past:{c:'p-ambre',t:'bloqué'},action:ctAction(T,q.manquantes[0])}); }).join('')+'</div>'));
+    /* reg-g-fixe : c'est ce que la page sert à lire — regPliage replierait ce groupe long, venu après les bloqués */
+    G.push(abnGroupe('Les pièces',T.length,'Toucher une pièce lit sa version en vigueur — ou, à défaut, le dernier brouillon.',true,
+      '<div class="reg-bloc">'+T.map(function(t){ var e=t.enVigueur, dern=(t.versions||[])[0];
+        return ligneAc({ton:e?'bleu':'ambre',ico:'contrats',t1:esc(t.libelle||t.type),titre:t.libelle||t.type,
+          l2:e?'version '+esc(e.n)+' · validée par <b>'+esc(e.validePar||'—')+'</b> le '+esc(fmtJour(e.valideLe)):'aucune version validée'+(dern?' · dernier brouillon : version '+esc(dern.n):' · aucun texte'),
+          l3:t.aConfirmer?'des points « À CONFIRMER » restent à trancher dans le brouillon':'',
+          past:e?{c:'p-vert',t:'en vigueur'}:{c:'p-ambre',t:dern?'brouillon':'vide'},
+          action:ctAction(T,t.type)}); }).join('')+'</div>').replace('<div class="reg-g">','<div class="reg-g reg-g-fixe">')); }
+  if(CT.cliLec===-1) G.push(acErr('Les contrats des clients ne répondent pas',CT.cliErr,'chargerContrats()'));
+  else if(CT.cliLec===1){ var C=CT.cli||[];
+    G.push(abnGroupe('Contrats des clients',C.length,C.length?'Les plus récents d’abord : envoyé, puis signé par le client.':'',true,
+      C.length?'<div class="abn-jrn">'+C.map(function(c){ var st=c.accepteLe?['signé','p-vert']:c.envoyeLe?['en attente','p-ambre']:['pas envoyé','p-attente'];
+        return '<div class="abn-j mort"><span class="d">'+esc(c.dossier||'—')+'</span><span class="q">'+esc(String(c.type||'').indexOf('paquet:')===0?ctPaquetNom(c.type):(c.type||'')+(c.version?' · v'+c.version:''))+
+          (c.envoyeLe?' · envoyé le '+esc(fmtJour(c.envoyeLe)):'')+(c.accepteLe?' · signé le '+esc(fmtJour(c.accepteLe)):'')+'</span>'+
+          '<span class="past '+st[1]+'">'+st[0]+'</span></div>'; }).join('')+'</div>'
+      :videTour('Aucun contrat envoyé à un client pour l’instant','Un client reçoit le sien quand il s’abonne — à condition que chaque pièce de son abonnement ait une version validée.','',false))); }
+  else G.push(acSquel());
+  return h+lecteur+'<div class="reg" style="margin-top:26px">'+G.join('')+'</div>';
 }
 /* ══ INCIDENTS (lot 1 de la refonte, partie d — 21 octobre 2026) ══
    Ce que les clients rencontrent, un problème par ligne : le plus grave d'abord, puis ce que personne n'a pris, puis le plus
