@@ -765,9 +765,8 @@ const JSONLD = () => JSON.stringify({ '@context': 'https://schema.org', '@graph'
   { '@type': 'Organization', '@id': SITE_URL + '#organisation', name: 'TEAM OP', url: SITE_URL, logo: SITE_URL + 'icons/teamop-192.png',
     founder: { '@type': 'Person', name: 'Justin Biret' }, email: CONTACTS[0][0], areaServed: 'FR',
     /* (21 octobre 2026) l'identité LÉGALE, reprise MOT POUR MOT des mentions légales (mentions-legales.html, « Éditeur du site ») — jamais devinée :
-       entrepreneur individuel, SIREN, adresse. ⛔ PAS de vatID : TVA non applicable (art. 293 B du CGI) ; la changer ici quand les mentions changent. */
-    legalName: 'Justin Biret, entrepreneur individuel', identifier: { '@type': 'PropertyValue', propertyID: 'SIREN', value: '107995011' },
-    address: { '@type': 'PostalAddress', streetAddress: '10 rue de la Gravière', postalCode: '17220', addressLocality: 'Salles-sur-Mer', addressCountry: 'FR' } },
+       entrepreneur individuel, SIREN. ⛔ PAS D'ADRESSE (Justin, 21 octobre 2026 : « je veux pas que mon adresse personnelle soit sur le site »). ⛔ PAS de vatID : TVA non applicable (art. 293 B du CGI) ; la changer ici quand les mentions changent. */
+    legalName: 'Justin Biret, entrepreneur individuel', identifier: { '@type': 'PropertyValue', propertyID: 'SIREN', value: '107995011' } },
   { '@type': 'WebSite', '@id': SITE_URL + '#site', url: SITE_URL, name: 'TEAM OP', inLanguage: 'fr-FR', publisher: { '@id': SITE_URL + '#organisation' } },
   { '@type': 'SoftwareApplication', name: 'OP GESTION', applicationCategory: 'BusinessApplication', operatingSystem: 'iOS, Android, macOS, Windows, Web',
     description: 'Gestion tout-en-un pour entreprises de terrain : interventions, stock, encaissements, comptabilité.', url: SITE_URL + 'elan.html',
