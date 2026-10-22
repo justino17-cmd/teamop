@@ -66,7 +66,16 @@ const CAP = process.env.CAPTURES; if (CAP) fs.mkdirSync(CAP, { recursive: true }
   await S.ev(`window.__clicsVig=0; window.__vphLog=[]; for(const n of ['vphBascule','photoPleinFermer','vphRamener']){ const f=window[n]; window[n]=function(){ __vphLog.push(n); return f.apply(this,arguments); }; } return 1;`);   // l'appui qui l'ouvre était voulu
   let e = await etat();
   c('aucun onglet ouvert (window.open jamais appelé)', (await S.ev(`return __onglets;`)) === 0, await S.ev(`return __onglets;`));
-  c('la visionneuse est ouverte, fond noir', e.ouverte && e.vu && /rgba\(0, 0, 0, 0\.9/.test(e.fond), e);
+  c('la visionneuse est ouverte, fond noir PLEIN (' + e.fond + ')', e.ouverte && e.vu && /^rgba?\(0, 0, 0(, 1)?\)$/.test(e.fond), e);
+  /* au pixel (partie W) : sous l'en-tête, là où la barre de l'application transparaissait (« ＋ Créer », la cloche), plus rien */
+  { const { decoder } = require(path.join(__dirname, 'png.js')); const F0 = await S.ev(`return {w:innerWidth, x:scrollX, y:scrollY};`);
+    /* ⚠ le clip se donne en coordonnées du DOCUMENT (la fiche est défilée jusqu'à la vignette), comme dans sonde-barre.js */
+    const im = await S.c.envoyer('Page.captureScreenshot', { format: 'png', clip: { x: F0.x, y: F0.y + 40, width: F0.w, height: 70, scale: 1 } });
+    const I = decoder(Buffer.from(im.data, 'base64')), k0 = I.w / F0.w; let fantome = 0, n = 0;
+    const titre = await S.ev(`const r=document.querySelector('.vph-tete').getBoundingClientRect(), f=document.querySelector('.vph-fermer').getBoundingClientRect(), t=document.querySelector('.vph-titre').getBoundingClientRect(); return {f:[f.left-6,f.right+6], t:[t.left-6,t.right+6]};`);
+    for (let y = 0; y < I.h; y++) for (let x = 0; x < I.w; x++) { const xc = x / k0; if ((xc >= titre.f[0] && xc <= titre.f[1]) || (xc >= titre.t[0] && xc <= titre.t[1])) continue;
+      const k = (y * I.w + x) * 4; n++; if (Math.max(I.data[k], I.data[k + 1], I.data[k + 2]) > 6) fantome++; }
+    c('… au pixel : hors de « Fermer » et du titre, la bande de l’en-tête est noire (' + fantome + ' points de l’application qui transparaissent, sur ' + n + ')', n > 5000 && fantome === 0, { fantome, n, I: [I.w, I.h] }); }
   c('la photo est à sa place : aucune transformation, contenue dans l’écran (4:3, pleine largeur moins les marges)', e.ouverte && e.s === 1 && e.x === 0 && e.y === 0 && e.r.l >= 0 && e.r.l + e.r.w <= e.W && Math.abs(e.r.w / e.r.h - 4 / 3) < 0.02 && e.r.w >= e.W - 30, e);
   const dessus = await S.ev(`const H=innerHeight, W=innerWidth; return [[W/2,H/2],[W/2,H-30],[W/2,20],[20,H/2]].map(([x,y])=>{ const t=document.elementFromPoint(x,y); return !!(t&&t.closest('.vph')); });`);
   c('elle couvre TOUT : le centre, la barre d’onglets, le haut, les bords', dessus.every(Boolean), dessus);
@@ -102,6 +111,9 @@ const CAP = process.env.CAPTURES; if (CAP) fs.mkdirSync(CAP, { recursive: true }
   await T('touchStart', [[cx, cy]]);
   for (let k = 1; k <= 6; k++) { await T('touchMove', [[cx, cy + k * 20]]); await images(); }
   e = await etat(); c('elle suit le doigt (120 px), rapetisse, et le fond s’éclaircit', e.ouverte && e.y > 90 && e.s < 1 && /rgba\(0, 0, 0, 0\.[5-8]/.test(e.fond), e);
+  { await dormir(260);   // le doigt toujours posé : l'en-tête s'efface en --d-2
+    const t = await S.ev(`const h=document.querySelector('.vph-tete'); return h?+getComputedStyle(h).opacity:null;`);
+    c('… et l’en-tête s’efface : la photo seule suit le doigt (opacité ' + t + ')', t !== null && t < 0.05, t); }
   if (CAP) { const im = await S.c.envoyer('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(path.join(CAP, 'photo-tiree.png'), Buffer.from(im.data, 'base64')); }
   await dormir(300); await T('touchEnd', []); await dormir(150); await finAnim('.vph img');
   e = await etat(); c('lâchée à 120 px après un arrêt : elle revient', e.ouverte && e.y === 0 && e.s === 1, e);

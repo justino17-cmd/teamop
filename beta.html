@@ -8122,7 +8122,11 @@ html .leaflet-marker-icon.leaflet-interactive:active{filter:brightness(.82)}
 .vph{position:fixed;inset:0;z-index:420;display:flex;align-items:center;justify-content:center;box-sizing:border-box;
   padding:calc(64px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));
   background-color:rgba(0,0,0,0);transition:background-color var(--d-3) var(--e-sortie);touch-action:none;overscroll-behavior:contain;-webkit-user-select:none;user-select:none}
-.vph.vu{background-color:rgba(0,0,0,.94)}
+.vph.vu{background-color:#000}
+/* ⛔ au repos, le fond est PLEIN — à 94 %, la barre de l'application transparaissait sous l'en-tête de la visionneuse (le
+   « ＋ Créer » fantôme sous « Fermer », relevé sur les captures de sonde-photo-plein.js) ; comme dans Photos, l'application ne
+   reparaît que quand on tire la photo pour la renvoyer — et l'en-tête s'efface alors, la photo seule suit le doigt */
+.vph.vu.tire .vph-tete{opacity:0}   /* (0,4,0) : plus fort que « .vph.vu .vph-tete{opacity:1} », écrit plus bas */
 .vph:focus{outline:none}
 .vph.feuille-sort{transition-duration:var(--d-2)}
 .vph-img{display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;transform-origin:50% 50%;
@@ -24988,7 +24992,7 @@ function vphTaille(P){ const cs=getComputedStyle(P.ov), nw=P.img.naturalWidth, n
   P.img.style.width=Math.floor(nw*k)+'px'; P.img.style.height=Math.floor(nh*k)+'px'; }
 /* jusqu'où la photo agrandie peut se promener : son débord, de chaque côté */
 function vphDebord(P){ return [Math.max(0,(P.img.offsetWidth*P.s-P.ov.clientWidth)/2), Math.max(0,(P.img.offsetHeight*P.s-P.ov.clientHeight)/2)]; }
-function vphRamener(P){ if(!P||P.sort) return; P.img.style.transition=''; P.ov.style.backgroundColor='';
+function vphRamener(P){ if(!P||P.sort) return; P.img.style.transition=''; P.ov.style.backgroundColor=''; P.ov.classList.remove('tire');
   if(P.s<=1.01){ P.s=1; P.x=0; P.y=0; }
   else { P.s=Math.min(P.s,5); const d=vphDebord(P); P.x=Math.max(-d[0],Math.min(d[0],P.x)); P.y=Math.max(-d[1],Math.min(d[1],P.y)); }
   vphPoser(P); }
@@ -25078,7 +25082,7 @@ function photoPlein(source,titre){
     g.hist.push([dy,performance.now()]); if(g.hist.length>12) g.hist.shift();
     const bas=Math.max(0,dy);
     P.x=g.x0+dx; P.y=g.y0+(dy<0?elastique(dy,90):dy); P.s=g.s0*(1-Math.min(.25,bas/innerHeight*.6));
-    P.ov.style.backgroundColor='rgba(0,0,0,'+(.94*(1-Math.min(1,bas/(innerHeight*.5)))).toFixed(3)+')';
+    P.ov.style.backgroundColor='rgba(0,0,0,'+(1-Math.min(1,bas/(innerHeight*.5))).toFixed(3)+')'; P.ov.classList.add('tire');
     vphPoser(P); },{passive:false});
   const lever=e=>{ if(!g||P.sort) return; if(e.touches.length){ debuter(e); if(g) g.bouge=true; return; }
     const G=g; g=null;

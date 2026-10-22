@@ -228,16 +228,29 @@ console.log('\n── 2842 · 3. lire : pincer, double toucher, promener ──'
   vrai('relâchée, elle revient à son bord', Math.abs(M.t().x - deb) < 0.1, [M.t().x, deb]);
   vrai('… et ne s’est pas fermée (glisser une photo agrandie n’est pas la renvoyer)', M.ctx.photoPleinOuvert() === true); }
 
+console.log('\n── 2842 · 3 bis. au repos, le fond est plein ; tirée, l’application reparaît et l’en-tête s’efface ──');
+{ const C = require('./outils-cascade-app.js');
+  const TOUT = C.regles([...BRUT.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).join('\n'));
+  const g = (ch, prop) => { const x = C.gagnant(TOUT.filter(q => !/[\[:]/.test(q.sel.replace(/:(focus|active|hover)[\w-]*/g, ''))), ch, 390, prop); return x ? x.v.replace(/\s*!important\s*$/, '').trim() : null; };
+  const html = { tag: 'html', classes: [], attrs: {} }, body = { tag: 'body', classes: [], attrs: {} };
+  const vu = { tag: 'div', classes: ['vph', 'vu'], attrs: {} }, tire = { tag: 'div', classes: ['vph', 'vu', 'tire'], attrs: {} }, tete = { tag: 'div', classes: ['vph-tete'], attrs: {} };
+  const f = g([html, body, vu], 'background-color');
+  vrai('⛔ au repos, le fond de la visionneuse est PLEIN (' + f + ') — à 94 %, la barre de l’application transparaissait sous « Fermer »', /^(#000(000)?|black|rgba?\(0,\s*0,\s*0(,\s*1)?\))$/.test(f || ''), f);
+  vrai('l’en-tête se voit au repos', g([html, body, vu, tete], 'opacity') === '1');
+  vrai('… et s’efface quand on tire la photo', g([html, body, tire, tete], 'opacity') === '0', g([html, body, tire, tete], 'opacity')); }
+
 console.log('\n── 2842 · 4. tirée vers le bas, elle part ; lâchée tôt, elle revient ──');
 { const M = monde(); M.ctx.photoPlein(M.vign, 'Photo'); M.tourner();
   M.doigt.pose([[195, 444]], M.img());
   for (let k = 1; k <= 8; k++) M.doigt.bouge([[195, 444 + k * 10]], 60);
   const d = M.t(), fond = M.ov().style.backgroundColor;
   vrai('la photo suit le doigt (1:1) et rapetisse un peu', Math.abs(d.y - 80) < 0.5 && d.s < 1 && d.s > 0.9, d);
-  vrai('le fond s’éclaircit à mesure', /^rgba\(0,0,0,0\.[5-8]\d*\)$/.test(fond), fond);
+  vrai('le fond s’éclaircit à mesure, depuis le noir plein (80 px sur une demi-hauteur d’écran : ' + (1 - 80 / (H * .5)).toFixed(3) + ')', /^rgba\(0,0,0,0\.[5-8]\d*\)$/.test(fond) && Math.abs(parseFloat(fond.split(',')[3]) - (1 - 80 / (H * .5))) < .006, fond);
   vrai('la transition est coupée pendant le geste (la photo est sous le doigt, pas en retard sur lui)', M.img().style.transition === 'none');
+  vrai('tirée, l’en-tête s’efface (classe « tire ») : la photo seule suit le doigt, comme dans Photos', M.ov().classList.contains('tire'));
   M.doigt.leve([], [195, 524], M.img(), 200); M.tourner();
-  vrai('un doigt lent, lâché à 80 px, après un arrêt : elle revient, le fond redevient noir', M.ctx.photoPleinOuvert() === true && M.t().y === 0 && M.t().s === 1 && M.ov().style.backgroundColor === '', [M.t(), M.ov().style.backgroundColor]); }
+  vrai('un doigt lent, lâché à 80 px, après un arrêt : elle revient, le fond redevient noir', M.ctx.photoPleinOuvert() === true && M.t().y === 0 && M.t().s === 1 && M.ov().style.backgroundColor === '', [M.t(), M.ov().style.backgroundColor]);
+  vrai('… et l’en-tête revient', !M.ov().classList.contains('tire')); }
 { const M = monde(); M.ctx.photoPlein(M.vign, 'Photo'); M.tourner();
   M.doigt.pose([[195, 444]], M.img());
   for (let k = 1; k <= 5; k++) M.doigt.bouge([[195, 444 + k * 18]], 12);
@@ -313,7 +326,7 @@ console.log('\n── 2842 · 8. la feuille ──');
   const ta = g(['vph'], 'touch-action');
   vrai('le doigt lui appartient (touch-action:none : ni défilement ni zoom de la page dessous)', !!ta && ta.v === 'none', ta && ta.v);
   const bg = g(['vph', 'vu'], 'background-color');
-  vrai('ouverte, son fond est noir presque opaque', !!bg && /rgba\(0,\s*0,\s*0,\s*\.9\d\)/.test(bg.v), bg && bg.v);
+  vrai('ouverte, son fond est noir plein (partie W : à 94 %, l’application transparaissait)', !!bg && /^(#000(000)?|black|rgba?\(0,\s*0,\s*0(,\s*1)?\))$/.test(bg.v.trim()), bg && bg.v);
   const bouton = [html, corps, { tag: 'div', classes: ['vph'], attrs: {} }, { tag: 'div', classes: ['vph-tete'], attrs: {} }, { tag: 'button', classes: ['vph-fermer'], attrs: { type: 'button' } }];
   const mh = gg(bouton, 'min-height');
   vrai('« Fermer » fait au moins 44 px de haut', !!mh && (parseFloat(mh.v) >= 44 || /var\(--rf-tap\)/.test(mh.v) && /--rf-tap:44px/.test(BRUT)), mh && mh.v);
