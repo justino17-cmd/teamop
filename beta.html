@@ -8474,19 +8474,31 @@ try{
       var TM_HORS=/\/api\/(monitor|subscribe|unsubscribe|notify|bug|vapid|clients\/sync)/;
       if(/api\.teamop\.fr/.test(url)&&!TM_HORS.test(url)){ var ep=url.replace(/^https?:\/\/[^\/]+/,'').split('?')[0];
         /* un échec isolé (serveur qui redémarre, wifi qui saute) n'est pas un incident :
-           on ne le signale qu'à la 2e fois en moins de 3 minutes sur le même appel. */
-        var tmRet=function(msg){ try{
+           on ne le signale qu'à la 2e fois en moins de 3 minutes sur le même appel.
+           ⛔ ET UN APPAREIL QUI N'A PAS DE RÉSEAU N'EST PAS UN SERVEUR INJOIGNABLE. 22 octobre 2026, deux dossiers de la Tour :
+           « api.teamop.fr injoignable sur /api/mailboxes » ×3 et « … sur /api/replies », la même minute (01 h 46-47), un PC sous
+           Chrome sur l'écran Messages — et le serveur tournait sans interruption depuis 48 h (`/health`, uptime). C'était
+           l'appareil : un ordinateur qui sort de veille, un wifi qui revient. On ne signale donc rien quand l'appareil se sait
+           hors ligne, ni dans la minute qui suit son retour (réseau revenu, page revenue au premier plan, page rendue par le
+           cache d'historique) : une vraie panne dure plus d'une minute, et la surveillance horaire du serveur la voit aussi. */
+        var tmRet=function(msg,sansReponse){ try{
+          if(sansReponse&&navigator.onLine===false) return;
+          if(sansReponse&&Date.now()-(window.__tmRetour||0)<60000) return;   // une réponse 5xx, elle, prouve le réseau : elle se signale toujours
           window.__tmNet=window.__tmNet||{};
           var n=Date.now(), pre=window.__tmNet[ep]||0;
           window.__tmNet[ep]=n;
           if(n-pre<180000) tmPush('reseau',msg,'','',0);
         }catch(_){ } };
         p.then(function(r){ try{ if(r&&r.status>=500) tmRet('api.teamop.fr a répondu '+r.status+' sur '+ep); }catch(_){ } },
-               function(err){ try{ tmRet('api.teamop.fr injoignable sur '+ep+' ('+String((err&&err.message)||'échec').slice(0,80)+')'); }catch(_){ } });
+               function(err){ try{ tmRet('api.teamop.fr injoignable sur '+ep+' ('+String((err&&err.message)||'échec').slice(0,80)+')',true); }catch(_){ } });
       } }catch(_){ }
     return p; };
 }catch(_){ }
-try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); }); }catch(_){ }
+try{ document.addEventListener('visibilitychange',function(){ tmT=Date.now(); if(document.visibilityState==='hidden') tmFlush(); else window.__tmRetour=Date.now(); }); }catch(_){ }
+/* le retour de l'appareil : le réseau qui revient, la page rendue par le cache d'historique (voir tmRet, plus haut) — pas le
+   premier chargement : une panne à l'ouverture de l'application se signale tout de suite */
+try{ window.addEventListener('online',function(){ window.__tmRetour=Date.now(); });
+  window.addEventListener('pageshow',function(e){ if(e&&e.persisted) window.__tmRetour=Date.now(); }); }catch(_){ }
 try{ setInterval(tmFlush,35000); setTimeout(tmFlush,4000); }catch(_){ }
 /* ⛔ LA SEULE PORTE DE LA SENTINELLE VERS LE RESTE DE LA PAGE. Tout ce bloc est une fonction
    isolée : `tmPush` n'existe pas en dehors. Mesuré le 25 septembre 2026 : `syncDiagnostic`
