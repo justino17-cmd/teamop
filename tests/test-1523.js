@@ -52,7 +52,8 @@ console.log('— dans tout le fichier : UN SEUL id="cli-search", et c\'est celui
   const ctxe = occ.length ? SRC.slice(occ[0], occ[0] + 400) : '';
   vrai('c\'est le champ « Client » de la fenêtre (cliFilter / cli-id / cli-list autour)', /oninput="cliFilter\(this\.value\)"/.test(ctxe), ctxe.slice(0, 200));
   const lecteurs = [...SRC.matchAll(/getElementById\('cli-search'\)|\$\('cli-search'\)/g)].length;
-  vrai('les lecteurs de cet identifiant sont les deux du formulaire (cliPick, saveIntervention)', lecteurs === 2, lecteurs);
+  vrai('les lecteurs de cet identifiant sont ceux du formulaire : cliPick, saveIntervention — qui le lit, puis le DÉSIGNE quand il manque (champManque, audit apple-design point 33)',
+    lecteurs === 3 && /champManque\('Indique un client',\$\('cli-search'\)\)/.test(SRC), lecteurs);
   vrai('cliPick lit le champ de la fenêtre', /function cliPick\(id,nom\)\{[^}]*getElementById\('cli-search'\)/.test(SRC));
   vrai('saveIntervention lit le champ de la fenêtre pour créer un client neuf', /if\(!data\.clientId\)\{ const n=\(\(document\.getElementById\('cli-search'\)/.test(SRC)); }
 

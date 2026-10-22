@@ -8134,6 +8134,15 @@ html .leaflet-marker-icon.leaflet-interactive:active{filter:brightness(.82)}
 @media (hover:hover){ .vph-fermer:hover{background:rgba(255,255,255,.26)} }
 .vph-titre{min-width:0;text-align:center;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (prefers-reduced-motion: reduce){ .vph,.vph-img,.vph-tete{transition:none!important} }
+/* Un champ qui manque (champManque, point 33 de l'audit) : un bord rouge et un halo qui l'emportent sur l'anneau du focus — le
+   champ a le focus et doit continuer de dire qu'il manque ; le message, juste dessous, en texte (pas la couleur seule). */
+html[data-refonte] input[aria-invalid="true"],html[data-refonte] select[aria-invalid="true"],html[data-refonte] textarea[aria-invalid="true"],
+html[data-refonte] .field input[aria-invalid="true"],html[data-refonte] .field select[aria-invalid="true"],html[data-refonte] .field textarea[aria-invalid="true"],
+html[data-refonte] input[aria-invalid="true"]:focus,html[data-refonte] select[aria-invalid="true"]:focus,html[data-refonte] textarea[aria-invalid="true"]:focus,
+html[data-refonte] .field input[aria-invalid="true"]:focus,html[data-refonte] .field select[aria-invalid="true"]:focus,html[data-refonte] .field textarea[aria-invalid="true"]:focus,
+html[data-refonte] .field button[aria-invalid="true"],html[data-refonte] .field button[aria-invalid="true"]:focus{
+  border-color:var(--red)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 24%,transparent)!important}
+.champ-manque-note{color:var(--red);font-size:12.5px;font-weight:600;line-height:1.35;margin:6px 2px 0}
 </style>
 </head>
 <body>
@@ -14132,6 +14141,42 @@ function toastAnnuler(msg,appel,ms){
      le temps de comprendre ce qui vient d'arriver avant que le seul moyen de revenir en arrière parte. */
   t._t=setTimeout(()=>toastCacher(t),ms||7000);
 }
+/* ⛔⛔ UN CHAMP QUI MANQUE SE DÉSIGNE — audit apple-design du 21 octobre 2026, point 33 (§ 16 : le message près de ce qu'il
+   concerne, pas à l'autre bout de l'écran). Une validation disait « Date et heure obligatoires » dans un toast posé en bas, que
+   le clavier ouvert du téléphone recouvre, et le formulaire restait tel quel : on ne savait pas QUEL champ manquait quand le
+   message en nommait deux. champManque(message, champ, champ…) marque les champs reçus (aria-invalid, bord rouge, que le lecteur
+   d'écran dit aussi), écrit le message JUSTE SOUS le premier (relié par aria-describedby), l'amène au centre de l'écran et lui
+   donne le focus ; la première frappe dans un champ efface sa marque. Le toast reste, pour l'annonce (un refus est assertif).
+   Les champs « faux » (false, null) sont ignorés : on passe `!d.date&&$('x-date')` pour ne marquer que ce qui manque.
+   Un champ CACHÉ (la période d'une absence : deux dates cachées, choisies par un bouton) ne se voit ni ne prend le focus :
+   c'est le contrôle visible de son .field qu'on désigne, et le toucher efface sa marque. */
+/* le champ `nom` d'un formulaire, ou rien (un formulaire sans ce champ, un appel sans formulaire) */
+function champDe(f,nom){ return f&&f.elements?f.elements[nom]||null:null; }
+function champManque(msg,...champs){
+  const visible=x=>{ if(!x||x.nodeType!==1) return null; if(String(x.type).toLowerCase()!=='hidden') return x;
+    const z=x.closest&&x.closest('.field'); return (z&&z.querySelector('button,select,textarea,input:not([type="hidden"])'))||null; };
+  const L=[...new Set(champs.map(visible).filter(Boolean))];
+  L.forEach((el,k)=>{
+    el.setAttribute('aria-invalid','true');
+    if(!el._manqueEfface){
+      if(el._manqueDesc===undefined) el._manqueDesc=el.getAttribute('aria-describedby');
+      el._manqueEfface=()=>{ el.removeAttribute('aria-invalid');
+        const n=el._manqueNote; if(n){ try{ n.remove(); }catch(_){} el._manqueNote=null; }
+        if(el._manqueDesc) el.setAttribute('aria-describedby',el._manqueDesc); else el.removeAttribute('aria-describedby'); el._manqueDesc=undefined;
+        el.removeEventListener('input',el._manqueEfface); el.removeEventListener('change',el._manqueEfface); el.removeEventListener('click',el._manqueEfface); el._manqueEfface=null; };
+      el.addEventListener('input',el._manqueEfface); el.addEventListener('change',el._manqueEfface);
+      if(el.tagName==='BUTTON') el.addEventListener('click',el._manqueEfface);   // un bouton qui choisit (une période, une date) : le toucher, c'est y répondre
+    }
+    if(k===0){ let n=el._manqueNote;
+      if(!n||!n.isConnected){ n=document.createElement('div'); n.className='champ-manque-note'; n.id='mq-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+        el.insertAdjacentElement('afterend',n); el._manqueNote=n; el.setAttribute('aria-describedby',(el._manqueDesc?el._manqueDesc+' ':'')+n.id); }
+      n.textContent=msg; }
+  });
+  const f=L[0];
+  if(f){ try{ f.scrollIntoView({block:'center',behavior:defilDoux()}); }catch(_){} try{ f.focus({preventScroll:true}); }catch(_){} }
+  toast(msg,0,'erreur');
+  return false;
+}
 /* ⛔ UN BOUTON QUI NE CHANGE PAS N'A PAS ACCUSÉ RÉCEPTION — et le toast ne le remplace pas.
    Demande de Justin, 17 septembre 2026, capture à l'appui : « quand on valide les droits il
    faudrait qu'une fois cliqué dessus ça mette droits validés », puis, tout de suite après :
@@ -18018,7 +18063,7 @@ function actSave(id){
   const g=x=>((document.getElementById(x)||{}).value||'').trim();
   const d={type:window._actTy||'garage',techId:g('act-tech'),date:g('act-date'),heure:g('act-heure'),
     duree:parseInt(g('act-duree'))||30,note:g('act-note')};
-  if(!d.date||!d.heure){ toast('Date et heure obligatoires'); return; }
+  if(!d.date||!d.heure){ champManque('Date et heure obligatoires',!d.date&&$('act-date'),!d.heure&&$('act-heure')); return; }
   actAll();
   if(id){ const k=db.activites.findIndex(x=>x.id===id); if(k>=0) db.activites[k]={...db.activites[k],...d}; }
   else db.activites.push({id:uid(),creePar:(currentUser&&currentUser.id)||'',creeLe:todayISO(),...d});
@@ -21517,7 +21562,7 @@ function planIndispoForm(){ if(!canPlan()){ toast('Droit « Déplacer le plannin
     <div class="field"><label>Motif</label><input id="ind-motif" placeholder="Ex : garage — révision fourgon"></div>
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn" onclick="planIndispoSave()">Bloquer le créneau</button></div>`); }
 function planIndispoSave(){ const techId=($('ind-tech')||{}).value, date=($('ind-date')||{}).value, debut=($('ind-debut')||{}).value, fin=($('ind-fin')||{}).value, motif=(($('ind-motif')||{}).value||'').trim();
-  if(!techId||!date||!debut||!fin){ toast('Technicien, date et heures obligatoires'); return; }
+  if(!techId||!date||!debut||!fin){ champManque('Technicien, date et heures obligatoires',!techId&&$('ind-tech'),!date&&$('ind-date'),!debut&&$('ind-debut'),!fin&&$('ind-fin')); return; }
   if(toMin(fin)<=toMin(debut)){ toast('L\u2019heure de fin doit être après le début'); return; }
   db.indispos=db.indispos||[];
   db.indispos.push({id:uid(),techId,date,debut,fin,motif});
@@ -21579,7 +21624,7 @@ function planNextCreate(id,mode){ const i=db.interventions.find(x=>x.id===id); i
       intHisto(n,'Créneau proposé automatiquement : '+fmtShort(prop.date)+' '+prop.heure+' · '+(techName(prop.techId)||'Non assigné')); }
     else { msg='Aucun créneau valide — passage '+tot+' envoyé au bac « À planifier »'; intHisto(n,'Aucun créneau valide sous 14 jours → bac À planifier'); } }
   else if(mode==='manuel'){ const d=($('pn-date')||{}).value, h=($('pn-heure')||{}).value, t=($('pn-tech')||{}).value||'';
-    if(!d){ toast('Choisis une date'); return; }
+    if(!d){ champManque('Choisis une date',$('pn-date')); return; }
     if(t&&!planAbsGate(t,d,n)) return;
     n.date=d; n.heure=h||i.heure||'09:00'; n.techId=t; n.techIds=t?[t]:[]; n.statut='planifiee';
     msg='Passage '+tot+' planifié le '+fmtShort(d)+(h?' à '+h:'');
@@ -21946,7 +21991,7 @@ function formTache(id){ db.taches=db.taches||[]; const t=id?db.taches.find(x=>x.
     </form>`); }
 function saveTache(e,id){ e.preventDefault(); if(!permGarde('plan',id?'modifier':'ajouter','une tâche')) return; const d=Object.fromEntries(new FormData(e.target));
   /* ⛔ planning#12 — `required` ne voit pas les espaces : un titre fait d'espaces passait et donnait une carte sans nom. */
-  d.titre=String(d.titre||'').trim(); if(!d.titre){ toast('Le titre de la tâche est obligatoire'); return; }
+  d.titre=String(d.titre||'').trim(); if(!d.titre){ champManque('Le titre de la tâche est obligatoire',champDe(e.target,'titre')); return; }
   if(id){ const ix=db.taches.findIndex(x=>x.id===id); db.taches[ix]={...db.taches[ix],...d}; }
   else db.taches.push({id:uid(),fait:false,creePar:currentUser.id,creeLe:todayISO(),...d});
   logEvent(id?'Tâche modifiée':'Nouvelle tâche',d.titre,'crud'); save(); closeModal(); views.taches(); toast(id?'Tâche mise à jour':'Tâche créée'); }
@@ -22132,7 +22177,7 @@ function absRefuser(id){ absDecision(id,false); }
 function absDecisionOk(id,ok){
   const a=(db.absences||[]).find(x=>x.id===id); if(!a) return;
   const m=((document.getElementById('abs-motif')||{}).value||'').trim();
-  if(!ok&&!m){ toast('Un motif est obligatoire pour refuser'); return; }
+  if(!ok&&!m){ champManque('Un motif est obligatoire pour refuser',$('abs-motif')); return; }
   a.statut=ok?'validee':'refusee';
   a.motif=m.slice(0,300);
   a.parQui=(currentUser&&fullName(currentUser))||'';
@@ -22275,7 +22320,7 @@ function absTypeChange(reprendre){
   absPeriodeMaj();
 }
 function saveAbsence(e,id){ e.preventDefault(); if(!permGarde('plan',id?'modifier':'ajouter','une absence')) return; const d=Object.fromEntries(new FormData(e.target));
-  if(!d.techId||!d.du){ toast('Personne et dates requises'); return; }
+  if(!d.techId||!d.du){ champManque('Personne et dates requises',!d.techId&&champDe(e.target,'techId'),!d.du&&champDe(e.target,'du')); return; }
   if((d.au||d.du)<d.du){ toast('La date de fin est avant le début'); return; }
   if(d.du!==(d.au||d.du)) d.demi='';
   if(!absJoursOuvres(d)){ toast('Cette période ne contient aucun jour ouvré'); return; }
@@ -22477,8 +22522,8 @@ function userMailForm(){ if(!can('mailPro')){ toast('Ton compte n\'a pas le droi
       <button class="btn block" style="margin-top:12px" type="submit">Enregistrer</button>
     </form>`); }
 function userMailSave(e){ e.preventDefault(); if(!can('mailPro')){ toast('Ton compte n\'a pas le droit « Envoyer depuis son adresse e-mail pro »'); return; } const d=Object.fromEntries(new FormData(e.target));
-  d.user=(d.user||'').trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.user)){ toast('Adresse e-mail invalide'); return; }
-  if(!d.pass){ toast('Indique le mot de passe de la boîte'); return; }
+  d.user=(d.user||'').trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.user)){ champManque('Adresse e-mail invalide',champDe(e.target,'user')); return; }
+  if(!d.pass){ champManque('Indique le mot de passe de la boîte',champDe(e.target,'pass')); return; }
   d.host=(d.host||'').trim()||'smtp.mail.ovh.net'; d.port=parseInt(d.port)||465; d.from=(d.from||'').trim()||fullName(currentUser);
   currentUser.mailBox=d; const u=(db.users||[]).find(x=>x.id===currentUser.id); if(u) u.mailBox=d;
   save(); closeModal(); toast('E-mail professionnel enregistré ✓'); if(current==='parametres') views.parametres(); }
@@ -22502,8 +22547,8 @@ function mailBoxForm(id){ if(!adminSeul()) return; const b=(db.mailBoxes||[]).fi
       <button class="btn block" style="margin-top:12px" type="submit">Enregistrer</button>
     </form>`); }
 function mailBoxSave(e,id){ e.preventDefault(); if(!adminSeul()) return; const d=Object.fromEntries(new FormData(e.target));
-  d.user=(d.user||'').trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.user)){ toast('Adresse e-mail invalide'); return; }
-  if(!d.pass){ toast('Indique le mot de passe de la boîte'); return; }
+  d.user=(d.user||'').trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.user)){ champManque('Adresse e-mail invalide',champDe(e.target,'user')); return; }
+  if(!d.pass){ champManque('Indique le mot de passe de la boîte',champDe(e.target,'pass')); return; }
   d.host=(d.host||'').trim()||'smtp.mail.ovh.net'; d.port=parseInt(d.port)||465; d.from=(d.from||'').trim();
   db.mailBoxes=db.mailBoxes||[];
   if(id){ const b=db.mailBoxes.find(x=>x.id===id); if(b) Object.assign(b,d); }
@@ -25191,7 +25236,7 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
   if(!data.clientId){ const n=((document.getElementById('cli-search')||{}).value||'').trim();
     if(n){ const ex=db.clients.find(c=>(c.nom||'').toLowerCase()===n.toLowerCase());
       if(ex){ data.clientId=ex.id; } else { if(!permGarde('crm','ajouter','un client')) return; const nc={id:uid(),nom:n,creePar:(currentUser&&currentUser.id)||''}; db.clients.push(nc); data.clientId=nc.id; logEvent('Client créé',n,'crud'); } } }
-  if(!data.clientId){ toast('Indique un client'); return; }
+  if(!data.clientId){ champManque('Indique un client',$('cli-search')); return; }
   /* ⛔ Un identifiant de client qui n'existe plus (supprimé par un collègue ou par une synchro pendant que ce formulaire restait
      ouvert) ne rattache RIEN : l'intervention naissait liée à un client fantôme, « Intervention créée », sans un mot. Seule exception :
      une fiche DÉJÀ liée à ce client orphelin — modifier son titre ne doit pas être refusé pour un défaut d'avant. */
@@ -26242,7 +26287,7 @@ function intToggleProd(id,nom){ const i=db.interventions.find(x=>x.id===id); if(
   if(ix>=0) i.produitsUtilises.splice(ix,1);
   else i.produitsUtilises.push({produitId:p.id,qte:1});
   save(); renderIntDetail(id); }
-function intAddEquip(id){ const i=db.interventions.find(x=>x.id===id); const nom=$('ie-nom').value.trim(); if(!nom){toast('Nom requis');return;}
+function intAddEquip(id){ const i=db.interventions.find(x=>x.id===id); const nom=$('ie-nom').value.trim(); if(!nom){ champManque('Nom requis',$('ie-nom')); return; }
   i.equipements.push({nom,reference:$('ie-ref').value.trim(),note:''}); save(); renderIntDetail(id); }
 function intDelEquip(id,ix){ const i=db.interventions.find(x=>x.id===id); i.equipements.splice(ix,1); save(); renderIntDetail(id); }
 
@@ -29312,7 +29357,7 @@ async function arrPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f) re
   if(d){ _arrPhoto=d; const z=$('arr-photo-zone'); if(z) z.innerHTML=`<div style="display:flex;gap:10px;align-items:center"><img src="${d}" style="width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--brd)"><button type="button" class="btn ghost sm" onclick="_arrPhoto=null;document.getElementById('arr-photo-zone').innerHTML='<button type=\'button\' class=\'btn ghost\' style=\'width:100%;justify-content:center;padding:13px\' onclick=\'document.getElementById(\\'arr-file\\').click()\'>Prendre / choisir une photo</button>'">Retirer</button></div>`; }
   e.target.value=''; }
 function saveArrivage(boxId){ const b=db.boxes.find(x=>x.id===boxId); if(!b) return;
-  const four=($('arr-four')?$('arr-four').value.trim():''); if(!four){ toast('Indique le fournisseur'); return; }
+  const four=($('arr-four')?$('arr-four').value.trim():''); if(!four){ champManque('Indique le fournisseur',$('arr-four')); return; }
   const lignes=_arrLignes.filter(l=>l.produitId&&l.qte>0);
   if(!lignes.length){ toast(_arrLignes.some(l=>l.produitId)
     ? 'Tout est à zéro : rien n’est arrivé, il n’y a donc rien à réceptionner. Le bon reste ouvert.'
@@ -31329,7 +31374,7 @@ function savePaiement(ev,envId){ ev.preventDefault(); if(!permGarde('stock','mod
   const d=Object.fromEntries(new FormData(ev.target)); d.montant=parseFloat(String(d.montant==null?'':d.montant).replace(',','.'));
   /* g02 : un encaissement est un montant REÇU, donc strictement positif. 0, vide et NaN ne disent rien ; un
      négatif ressemble à un remboursement, notion qui n'existe pas encore ici — on refuse en le disant. */
-  if(!isFinite(d.montant)||d.montant===0){ toast('Indique un montant supérieur à 0 €'); return; }
+  if(!isFinite(d.montant)||d.montant===0){ champManque('Indique un montant supérieur à 0 €',champDe(ev.target,'montant')); return; }
   if(d.montant<0){ toast('Un encaissement ne peut pas être négatif — les remboursements ne sont pas gérés ici'); return; }
   e.paiements.push({id:uid(),mode:d.mode,montant:d.montant,date:d.date,reference:d.reference,statut:d.statut});
   logEvent('Encaissement',`${e.numero} — ${eur(d.montant)} (${d.mode})`,'finance'); save(); ficheEnv(envId); toast('Encaissement ajouté');
@@ -31631,9 +31676,9 @@ function congesModal(){
 }
 function congesEnregistrer(){
   const du=(($('cg-du')||{}).value||'').trim(), au=(($('cg-au')||{}).value||'').trim(), vers=(($('cg-vers')||{}).value||'').trim();
-  if(!du||!au){ toast('Indique les deux dates'); return; }
-  if(au<du){ toast('Le retour est avant le départ'); return; }
-  if(!vers){ toast('Choisis qui valide à ta place'); return; }
+  if(!du||!au){ champManque('Indique les deux dates',!du&&$('cg-du'),!au&&$('cg-au')); return; }
+  if(au<du){ champManque('Le retour est avant le départ',$('cg-au')); return; }
+  if(!vers){ champManque('Choisis qui valide à ta place',$('cg-vers')); return; }
   const u=db.users.find(x=>x.id===currentUser.id); if(!u) return;
   u.delegation={du,au,versId:vers,poseLe:todayISO()};
   currentUser=u;
@@ -32601,7 +32646,7 @@ function formBon(id){ if(!peutCommander()){ refusCommander(); return; } const b=
 }
 /* ✎ Édition rapide d'un fournisseur (e-mail de commande, contact…) par-dessus le bon, sans perdre la saisie */
 function bonFourEdit(){ if(!peutCommander()){ refusCommander(); return; } const sel=document.querySelector('#bonform select[name="fournisseurId"]'); const fid=sel?sel.value:'';
-  if(!fid){ toast('Choisis d\'abord un fournisseur dans la liste'); return; }
+  if(!fid){ champManque('Choisis d\'abord un fournisseur dans la liste',sel); return; }
   _fourQuickEdit(fid,()=>{ const f=db.fournisseurs.find(x=>x.id===fid); if(sel&&f){ const opt=sel.querySelector('option[value="'+fid+'"]'); if(opt) opt.textContent=f.nom; } });
 }
 /* ＋ Créer un fournisseur directement depuis le bon (puis compléter son e-mail dans la foulée) */
@@ -34970,7 +35015,7 @@ async function saveTech(e,id){ e.preventDefault();
      utilisateurs ne signale pas : elle compare les COMPTES). Seulement si le nom CHANGE, comme saveUser. */
   if(id){ const t0=(db.techniciens||[]).find(x=>x.id===id);
     if(t0&&nomNorm(d.nom)!==nomNorm(t0.nom)){ const ps=(d.nom||'').trim().split(/\s+/).filter(Boolean);
-      if(ps.length<2){ toast('Indique le prénom ET le nom (ex. « Karim Benali ») : ils distinguent deux personnes',4200); return; }
+      if(ps.length<2){ champManque('Indique le prénom ET le nom (ex. « Karim Benali ») : ils distinguent deux personnes',champDe(e.target,'nom')); return; }
       if((db.techniciens||[]).some(x=>x.id!==id&&nomNorm(x.nom)===nomNorm(d.nom))){ toast('Un autre technicien porte déjà ce nom — ajoute une initiale ou un second prénom pour distinguer les deux personnes',5200); return; }
       const lie=(db.users||[]).find(u=>u&&u.techId===id), h=compteHomonyme(ps[0],ps.slice(1).join(' '),lie?lie.id:'');
       if(h){ toast(homonymeMessage(h,ps[0],ps.slice(1).join(' ')),7500); return; } } }
@@ -34986,7 +35031,7 @@ async function saveTech(e,id){ e.preventDefault();
      2026), et jamais le nom d'un autre technicien qui a déjà son compte (compteHomonyme). Un compte sans
      fiche technicien au même nom, lui, est RELIÉ plus bas : c'est la même personne. */
   { const ps=(d.nom||'').trim().split(/\s+/).filter(Boolean);
-    if(ps.length<2){ toast('Indique le prénom ET le nom (ex. « Karim Benali ») : ils distinguent deux personnes',4200); return; }
+    if(ps.length<2){ champManque('Indique le prénom ET le nom (ex. « Karim Benali ») : ils distinguent deux personnes',champDe(e.target,'nom')); return; }
     const h=compteHomonyme(ps[0],ps.slice(1).join(' '),'');
     if(h&&h.techId){ toast(homonymeMessage(h,ps[0],ps.slice(1).join(' ')),7500); return; } }
   if(db.techniciens.some(x=>nomNorm(x.nom)===nomNorm(d.nom))){ toast('Un technicien porte déjà ce nom — modifie sa fiche plutôt que d\'en créer une deuxième'); return; }
@@ -35823,7 +35868,7 @@ async function saveUser(e,id){ e.preventDefault();
   /* Prénom ET nom obligatoires — Justin, 10 septembre 2026 : « comme ça, dans Utilisateurs, avec le
      nom et le prénom, ils savent qui c'est ; et nous pareil dans la Tour ». Deux « florent » sans
      nom, on ne sait plus lequel garder ; deux « Florent Martin », si. */
-  if(!String(d.prenom||'').trim()||!String(d.nom||'').trim()){ toast('Remplis tous les champs : le prénom et le nom sont obligatoires',3600); return; }
+  if(!String(d.prenom||'').trim()||!String(d.nom||'').trim()){ champManque('Remplis tous les champs : le prénom et le nom sont obligatoires',!String(d.prenom||'').trim()&&champDe(e.target,'prenom'),!String(d.nom||'').trim()&&champDe(e.target,'nom')); return; }
   if(id && currentUser.role!=='admin'){ toast('Modification des comptes réservée à l\'administrateur'); return; }
   /* ⛔ admin#0 : le DERNIER administrateur actif ne se désactive pas et ne se rétrograde pas. Rien ne le
      gardait (delUser refuse « Impossible de supprimer votre compte », saveUser écrivait role et actif sans
@@ -35891,10 +35936,10 @@ async function saveUser(e,id){ e.preventDefault();
     if(currentUser.role!=='admin' && d.role===ROLE_PROTEGE){ toast('Seul un administrateur peut créer un administrateur'); return; }
     // mot de passe provisoire OBLIGATOIRE : envoyé par e-mail avec le lien de l'entreprise
     const pwd=(d.pwd||'').trim();
-    if(pwd.length<8){ toast('Mot de passe provisoire obligatoire (8 caractères minimum)'); return; }
+    if(pwd.length<8){ champManque('Mot de passe provisoire obligatoire (8 caractères minimum)',champDe(e.target,'pwd')); return; }
     // le nom de l'entreprise va dans le lien de connexion et sur l'écran de connexion de ses utilisateurs (appareil relié à un espace)
     if(!entrepriseNom() && localStorage.getItem('elanB_sync_team')){
-      const en=(d.entNom||'').trim(); if(!en){ toast('Indique le nom de ton entreprise : il va dans le lien de connexion'); return; }
+      const en=(d.entNom||'').trim(); if(!en){ champManque('Indique le nom de ton entreprise : il va dans le lien de connexion',champDe(e.target,'entNom')); return; }
       db.entreprise={...(db.entreprise||{}),nom:en}; try{ localStorage.setItem('elanB_entreprise_nom',en); }catch(_e){}
     }
     if(nuStk&&stockageBox()) acces.caps.stockage=true;   // v742 : cochée à la création — droitsBorner la retire si le créateur ne l'a pas
@@ -37685,7 +37730,7 @@ async function aiGenDevisXylo(e){ e.preventDefault(); if(!permGarde('ventes','aj
   const majCli=c=>{ if(!canCat('crm','modifier')) return; if(f.cliTel)c.tel=f.cliTel; if(f.cliEmail)c.email=f.cliEmail; if(f.cliAdresse)c.adresse=f.cliAdresse; };
   let clientId=f.clientId||''; const nom=(f.cliNom||'').trim();
   if(clientId){ if(!clientPropose(clientId)){ toast('Ce client ne te concerne pas'); return; } const c=db.clients.find(x=>x.id===clientId); if(c) majCli(c); }
-  else { if(!nom){ toast('Indique le nom du client (ou choisis-en un existant)'); return; }
+  else { if(!nom){ champManque('Indique le nom du client (ou choisis-en un existant)',champDe(e.target,'cliNom')); return; }
     let c=db.clients.find(x=>(x.nom||'').toLowerCase()===nom.toLowerCase());
     if(c){ majCli(c); }
     else { if(!permGarde('crm','ajouter','un client')) return; c={id:uid(),nom,tel:f.cliTel||'',email:f.cliEmail||'',adresse:f.cliAdresse||'',creePar:(currentUser&&currentUser.id)||''}; db.clients.push(c); logEvent('Client créé',nom,'crud'); }
@@ -38943,7 +38988,7 @@ function payEnregistre(interId,techId,declarantId,d){
   }
   if(!_payMode){ toast('Choisis comment ça a été payé'); return; }
   const mnt=Math.round((parseFloat(($('pay-mnt')||{}).value)||0)*100)/100;
-  if(mnt<=0){ toast('Indique le montant encaissé'); return; }
+  if(mnt<=0){ champManque('Indique le montant encaissé',$('pay-mnt')); return; }
   i.aFacturer=false; i.dejaRegle=false;
   let l=regDeLInter(interId);
   if(l){ l.mode=_payMode; l.montant=mnt; l.par=currentUser?fullName(currentUser):''; }
@@ -40258,11 +40303,11 @@ function savePointage(e,id){ e.preventDefault();
   if(d.techId && !ptTechsVisibles().some(t=>t.id===d.techId)){ toast('Ce technicien n\'est pas dans ton équipe'); return; }
   /* ⛔ Une date vidée ne devient pas « aujourd'hui » : `date` restait '' pendant que debutTs sautait au
      jour courant — le pointage du 13 se comptait le 16. Les validations parlent AVANT d'écrire. */
-  if(!d.date){ toast('La date est obligatoire'); return; }
+  if(!d.date){ champManque('La date est obligatoire',champDe(e.target,'date')); return; }
   const jour=d.date;
   const ancien=id?db.pointages.find(x=>x.id===id):null;
   const resteOuvert=!d.fin && !!ancien && ptOuvert(ancien);   // un pointage en cours qu'on corrige sans lui donner de fin
-  if(!d.fin && !resteOuvert){ toast('Indique l\'heure de fin'); return; }
+  if(!d.fin && !resteOuvert){ champManque('Indique l\'heure de fin',champDe(e.target,'fin')); return; }
   d.debutTs=new Date(jour+'T'+(d.debut||'00:00')+':00').getTime()||null;
   if(!d.debutTs){ toast('Heure de début invalide'); return; }
   if(resteOuvert){ d.fin=''; d.finTs=null; }
@@ -41193,7 +41238,7 @@ function saveConducteur(ev,id){ ev.preventDefault();
   /* ⛔ Un conducteur sans nom est une ligne vide dans la liste (et un « Conducteur habituel » vide) : des espaces
      passaient l'attribut `required`. */
   const prenom=String(d.prenom||'').trim(), nom=String(d.nom||'').trim();
-  if(!prenom||!nom){ toast('Le prénom et le nom du conducteur sont obligatoires'); return; }
+  if(!prenom||!nom){ champManque('Le prénom et le nom du conducteur sont obligatoires',!prenom&&champDe(f,'prenom'),!nom&&champDe(f,'nom')); return; }
   const obj={prenom,nom,telephone:d.telephone,actif:f.actif?f.actif.checked:true};
   if(id){ const ix=db.conducteurs.findIndex(x=>x.id===id); db.conducteurs[ix]={...db.conducteurs[ix],...obj}; toast('Conducteur mis à jour'); }
   else{ db.conducteurs.push({id:uid(),...obj,dateCreation:todayISO()}); logEvent('Conducteur ajouté',`${prenom} ${nom}`,'crud'); toast('Conducteur créé'); }
@@ -45631,18 +45676,24 @@ function saisieGardeInstaller(doc){
   doc.addEventListener('submit',function(e){
     var form=e.target;
     if(!form||!form.querySelectorAll) return;
-    var champs=form.querySelectorAll('input[required],textarea[required]');
+    var champs=form.querySelectorAll('input[required],textarea[required]'), manquent=[];
     for(var i=0;i<champs.length;i++){
       var el=champs[i];
       if(el.disabled) continue;
       var type=String(el.tagName).toLowerCase()==='textarea'?'text':String(el.type||'text').toLowerCase();
       if(!TYPES[type]) continue;
       if(!vide(String(el.value==null?'':el.value))) continue;
-      e.preventDefault(); e.stopImmediatePropagation();
-      if(typeof toast==='function') toast('Le champ « '+libelle(el)+' » est obligatoire',3200);
-      try{ el.focus(); if(el.select) el.select(); }catch(x){}
-      return;
+      manquent.push(el);
     }
+    if(!manquent.length) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    /* audit apple-design, point 33 : TOUS les champs en défaut se DÉSIGNENT d'un coup (marque, message sous le premier, focus) —
+       plus un toast pour le premier seulement, puis le suivant à l'envoi d'après */
+    var noms=manquent.map(function(x){ return '« '+libelle(x)+' »'; });
+    var msg=noms.length===1?'Le champ '+noms[0]+' est obligatoire':'Les champs '+noms.slice(0,-1).join(', ')+' et '+noms[noms.length-1]+' sont obligatoires';
+    var premier=manquent[0];
+    if(typeof champManque==='function'){ champManque.apply(null,[msg].concat(manquent)); try{ if(premier.select) premier.select(); }catch(x){} }
+    else { if(typeof toast==='function') toast(msg,3200); try{ premier.focus(); if(premier.select) premier.select(); }catch(x){} }
   },true);
 }
 saisieGardeInstaller(document);

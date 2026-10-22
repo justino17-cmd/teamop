@@ -52,7 +52,7 @@ function monde(dbInit) {
     ${F.NUM_RE.replace('const ', 'var ')}\n${F.relever}\n${F.union}\n${F.plafond}\n${F.next}\n${F.pris || 'function numDejaPris(){ return null; }'}\n${F.doubles}
     ${F.payStat.replace('const ', 'var ')}\n${F.envPaie}\n${(F.envEnc || '').replace('const ', 'var ')}\n${F.envTotal}\n${F.envEsp}\n${F.envChq}\n${F.envAtt || 'function envAttente(){ return undefined; }'}
     var __id=0; function uid(){ return 'n'+(++__id); }
-    function toast(m){ __toasts.push(String(m)); } function save(){ numPlafondRelever(); __saves++; } function closeModal(){} function logEvent(){}
+    function toast(m){ __toasts.push(String(m)); } function champManque(m){ toast(m); return false; } function champDe(f,n){ return f&&f.elements?f.elements[n]||null:null; } /* champManque (audit apple-design, point 33) : ici, son message seul — test-2850 éprouve le reste */ function save(){ numPlafondRelever(); __saves++; } function closeModal(){} function logEvent(){}
     function permGarde(){ return true; } function openModal(h){ __html=h; } function esc(s){ return s==null?'':String(s); }
     function todayISO(){ return '${AN}-06-01'; } function eur(n){ return n+' €'; } function ficheEnv(){}
     function clientPropose(){ return true; } function clientsProposes(){ return []; } function canCat(){ return true; }

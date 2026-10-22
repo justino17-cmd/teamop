@@ -52,7 +52,7 @@ function monde({ tid = null, moi = 'uA', users = [{ id: 'uA', prenom: 'Justin', 
     var techName = id => 'Fiche ' + id;
     var fullName = u => ((u.prenom||'') + ' ' + (u.nom||'')).trim();
     var __n = 0; var uid = () => 'p' + (++__n);
-    var save = () => { saves++; }; var toast = m => { toasts.push(m); }; var logEvent = () => {};
+    var save = () => { saves++; }; var toast = m => { toasts.push(m); }; var champManque = m => { toast(m); return false; }; var champDe = (f,n) => f&&f.elements?f.elements[n]||null:null; var logEvent = () => {};
     var views = { pointage: () => { rendus++; } };
     var ptCloreOubli = id => { clore.push(id); };
     var closeModal = () => { fermes++; }; var openModal = h => { modales.push(h); };
@@ -229,7 +229,7 @@ function monde2({ moi, voirTout = false, vehicules = [], peutAjouter = true }) {
   vm.runInContext(`
     function FormData(t) { return Object.entries(t); }
     var vehPhotos = {}; var __n = 0; var uid = () => 'n' + (++__n);
-    var toast = m => { toasts.push(m); }; var save = () => { saves++; }; var closeModal = () => {}; var logEvent = () => {};
+    var toast = m => { toasts.push(m); }; var champManque = m => { toast(m); return false; }; var champDe = (f,n) => f&&f.elements?f.elements[n]||null:null; var save = () => { saves++; }; var closeModal = () => {}; var logEvent = () => {};
     var views = { vehicules: () => { rendus++; } };
     var permGarde = () => peutAjouter;
     var can = c => c === 'voirTout' ? voirTout : false; var perimetreTechIds = () => null;
@@ -320,7 +320,7 @@ function monde3(conducteurs = []) {
   vm.createContext(ctx);
   vm.runInContext(`
     function FormData(t) { return Object.entries(t); }
-    var __n = 0; var uid = () => 'c' + (++__n); var toast = m => { toasts.push(m); }; var save = () => { saves++; }; var closeModal = () => {};
+    var __n = 0; var uid = () => 'c' + (++__n); var toast = m => { toasts.push(m); }; var champManque = m => { toast(m); return false; }; var champDe = (f,n) => f&&f.elements?f.elements[n]||null:null; var save = () => { saves++; }; var closeModal = () => {};
     var logEvent = () => {}; var views = { conducteurs: () => {} }; var permGarde = () => true; var todayISO = () => '2026-10-16';
     var openModal = h => { modales.push(h); }; var esc = x => String(x == null ? '' : x);
     ${CODE_COND.join('\n')}`, ctx);
@@ -369,7 +369,7 @@ console.log('\n── 1290 · 8. ⛔ equipe#3 (relecture) · les AUTRES lecteurs
   vm.createContext(ctx);
   vm.runInContext(`
     var norm = s => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
-    var go = v => { gos.push(v); }; var toast = () => {}; var visibleBoxes = l => l; var visibleTechniciens = l => l;
+    var go = v => { gos.push(v); }; var toast = () => {}; var champManque = () => false; var champDe = () => null; var visibleBoxes = l => l; var visibleTechniciens = l => l;
     var detailIntervention = () => {}; var ficheClient = () => {}; var ficheTech = () => {}; var openBox = () => {}; var formDoc = () => {};
     var visibleVehicules = l => l;   // la recherche du journal passe par le périmètre des véhicules (lot g17)
     ${ligne('const vPlaque=')}
