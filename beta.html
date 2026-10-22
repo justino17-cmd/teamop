@@ -8055,6 +8055,27 @@ html .leaflet-marker-icon.leaflet-interactive:active{filter:brightness(.82)}
   .flot,.flot-sort,#mail-read,#mail-read.feuille-sort,#bon-cat,#bon-cat.feuille-sort,#roues-ov,#roues-ov .roues-feuille,
   #roues-ov.feuille-sort,#roues-ov.feuille-sort .roues-feuille{animation:none!important}
 }
+/* La visionneuse de photo (photoPlein, point 21 de l'audit) : une couche à elle, au-dessus des fenêtres (#overlay2 est en 310),
+   pour qu'une photo ouverte depuis une feuille secondaire ne la remplace plus. Le fond se fond par sa COULEUR, et la photo
+   bouge par sa transformation, que le doigt pilote en direct (transition coupée pendant le geste, rendue au relâcher). */
+.vph{position:fixed;inset:0;z-index:420;display:flex;align-items:center;justify-content:center;box-sizing:border-box;
+  padding:calc(64px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));
+  background-color:rgba(0,0,0,0);transition:background-color var(--d-3) var(--e-sortie);touch-action:none;overscroll-behavior:contain;-webkit-user-select:none;user-select:none}
+.vph.vu{background-color:rgba(0,0,0,.94)}
+.vph:focus{outline:none}
+.vph.feuille-sort{transition-duration:var(--d-2)}
+.vph-img{display:block;max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;transform-origin:50% 50%;
+  transition:transform var(--d-3) var(--e-sortie),opacity var(--d-2) ease;-webkit-user-drag:none;cursor:zoom-in}
+.vph.zoom .vph-img{cursor:grab}
+.vph-tete{position:absolute;left:0;right:0;top:0;display:grid;grid-template-columns:1fr minmax(0,auto) 1fr;align-items:center;gap:10px;
+  padding:calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left));color:#fff;opacity:0;transition:opacity var(--d-2) ease}
+.vph.vu .vph-tete{opacity:1}
+.vph-fermer{justify-self:start;min-height:44px;padding:0 18px;border:0;border-radius:22px;background:rgba(255,255,255,.18);color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.vph-fermer:active{background:rgba(255,255,255,.32)}
+.vph-fermer:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media (hover:hover){ .vph-fermer:hover{background:rgba(255,255,255,.26)} }
+.vph-titre{min-width:0;text-align:center;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (prefers-reduced-motion: reduce){ .vph,.vph-img,.vph-tete{transition:none!important} }
 </style>
 </head>
 <body>
@@ -16685,10 +16706,12 @@ let current='dashboard';
    d'abord, si l'on a saisi quelque chose) ; sinon fiche ouverte → retour à la liste de sa rubrique ; sinon retour normal.
    Rend '' (rien d'ouvert), 'fenetre' (fenêtre fermée, ou gardée par sa confirmation), 'bloque' (écran obligatoire) ou 'fiche'.
    Ne touche à aucun historique : c'est l'appelant (bloc `popstate`) qui remet l'entrée que le navigateur vient de consommer.
-   ⛔ Les feuilles SECONDAIRES (`#overlay2` : détail d'un traitement dans la Clôture guidée, visionneuse de photo) sont AU-DESSUS de
-   `#overlay` : c'est elles qu'un retour ferme d'abord, seules — sinon la confirmation de la Clôture s'affichait par-dessus une feuille
-   restée orpheline, ou la liste se redessinait sous une photo. `fenetresSeules` (la touche Échap) laisse la fiche tranquille. */
+   ⛔ Les feuilles SECONDAIRES (`#overlay2` : détail d'un traitement dans la Clôture guidée) sont AU-DESSUS de `#overlay` : c'est
+   elles qu'un retour ferme d'abord, seules — sinon la confirmation de la Clôture s'affichait par-dessus une feuille restée
+   orpheline. Et la visionneuse de photo (photoPlein, une couche à elle depuis le point 21 de l'audit apple-design) est au-dessus
+   de tout : c'est elle qui part la première. `fenetresSeules` (la touche Échap) laisse la fiche tranquille. */
 function retourFerme(fenetresSeules){
+  if(photoPleinOuvert()){ photoPleinFermer(); return 'fenetre'; }
   const ov2=$('overlay2');
   if(ov2&&ov2.classList.contains('open')&&!ov2.classList.contains('ferme')){ closeSub(); return 'fenetre'; }
   const ov=$('overlay');
@@ -22017,7 +22040,7 @@ function absJustifVoir(id){
   openModal(`<div class="modal-head"><h3>Justificatif — ${esc(techName(a.techId)||'')}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div style="padding:14px 16px">
       <div style="font-size:12.5px;color:var(--t2);margin-bottom:11px">${esc(ABS_TYPES[a.type]||a.type)} · ${esc(fmtShort(a.du))} → ${esc(fmtShort(a.au||a.du))}${a.justifNom?' · '+esc(a.justifNom):''}</div>
-      <img src="${a.justif}" onclick="window.open(this.src)" style="max-width:100%;border-radius:11px;border:1px solid var(--brd);cursor:pointer"></div>
+      <img src="${a.justif}" onclick="photoPlein(this,'Justificatif')" style="max-width:100%;border-radius:11px;border:1px solid var(--brd);cursor:pointer"></div>
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Fermer</button>
       <button class="btn" onclick="closeModal();formAbsence('${a.id}')">Ouvrir l’absence</button></div>`);
 }
@@ -24789,6 +24812,159 @@ function closeSub(){ const ov=$('overlay2'); if(!ov) return;
     _subSortie=setTimeout(()=>{ if(ov.classList.contains('ferme')) ov.classList.remove('open','ferme'); },210); }
   else ov.classList.remove('open','ferme');
   if(document.getElementById('int-nuis')) renderIntNuis(); }
+/* ⛔⛔ UNE PHOTO S'OUVRE EN GRAND DANS L'APPLICATION, ET ELLE SE LIT — audit apple-design du 21 octobre 2026, point 21. Les
+   vignettes (photos et plans d'une intervention, bon de livraison, ticket du TPE, carte grise, justificatif d'absence…)
+   faisaient window.open(this.src) : dans l'application installée, la photo partait dans le navigateur, hors de l'application ;
+   et une photo gardée sur l'appareil (adresse data:) n'y paraissait pas du tout — Chrome refuse d'ouvrir une adresse data: dans
+   un onglet. La visionneuse du Contrôle passait, elle, par #overlay2 : ouverte depuis une feuille secondaire, elle REMPLAÇAIT
+   cette feuille, perdue à la fermeture.
+   photoPlein(vignette, titre) est une couche à elle, au-dessus de tout : la photo part de sa vignette et y revient ; elle se
+   LIT (deux doigts pour zoomer, un doigt pour la promener, double toucher ou double clic pour 2,5×, Ctrl + molette au bureau) ;
+   tirée vers le bas, elle suit le doigt, rapetisse, le fond s'éclaircit, et au relâcher la vitesse est projetée (vitesseRelache,
+   swipeProjeter) : assez loin, elle se ferme, sinon elle revient. Un toucher sur le fond, « Fermer », Échap ou le retour système
+   la ferment ; le focus revient d'où il venait. Animations réduites : elle paraît et disparaît sans mouvement.
+   ⚠️ Le toucher est retenu dès son début (preventDefault) : aucun clic synthétique ne traverse donc la visionneuse vers la
+   vignette quand elle se ferme sous le doigt. */
+let _vph=null;
+function photoPleinOuvert(){ return !!(_vph&&!_vph.sort); }
+function vphPoser(P){ P.img.style.transform='translate('+P.x.toFixed(1)+'px,'+P.y.toFixed(1)+'px) scale('+P.s.toFixed(4)+')'; P.ov.classList.toggle('zoom',P.s>1.01); }
+/* reprendre la photo LÀ OÙ ELLE EST (une transition en cours s'interrompt sans saut) et couper la transition pour le geste */
+function vphFiger(P){ const m=getComputedStyle(P.img).transform, v=m&&m!=='none'?m.match(/-?[\d.]+(e-?\d+)?/g).map(Number):null;
+  if(v&&v.length>=6){ P.s=v[0]; P.x=v[4]; P.y=v[5]; } P.img.style.transition='none'; vphPoser(P); }
+/* le centre de MISE EN PAGE de la photo (sa transformation retirée) */
+function vphCentre(P){ const r=P.img.getBoundingClientRect(); return [r.left+r.width/2-P.x, r.top+r.height/2-P.y]; }
+/* la photo à la taille de l'écran, proportions gardées — une petite photo est AGRANDIE (comme Photos), sinon elle restait un
+   timbre au milieu du noir, et un toucher à côté la fermait */
+function vphTaille(P){ const cs=getComputedStyle(P.ov), nw=P.img.naturalWidth, nh=P.img.naturalHeight;
+  const aw=P.ov.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight), ah=P.ov.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+  if(!(nw>0&&nh>0&&aw>0&&ah>0)) return; const k=Math.min(aw/nw,ah/nh);
+  P.img.style.width=Math.floor(nw*k)+'px'; P.img.style.height=Math.floor(nh*k)+'px'; }
+/* jusqu'où la photo agrandie peut se promener : son débord, de chaque côté */
+function vphDebord(P){ return [Math.max(0,(P.img.offsetWidth*P.s-P.ov.clientWidth)/2), Math.max(0,(P.img.offsetHeight*P.s-P.ov.clientHeight)/2)]; }
+function vphRamener(P){ if(!P||P.sort) return; P.img.style.transition=''; P.ov.style.backgroundColor='';
+  if(P.s<=1.01){ P.s=1; P.x=0; P.y=0; }
+  else { P.s=Math.min(P.s,5); const d=vphDebord(P); P.x=Math.max(-d[0],Math.min(d[0],P.x)); P.y=Math.max(-d[1],Math.min(d[1],P.y)); }
+  vphPoser(P); }
+/* agrandir (ou revenir) en gardant sous le doigt le point touché */
+function vphZoomVers(P,s,cx,cy){ vphFiger(P); const c=vphCentre(P), u=[(cx-c[0]-P.x)/P.s,(cy-c[1]-P.y)/P.s];
+  P.s=s; P.x=cx-c[0]-s*u[0]; P.y=cy-c[1]-s*u[1]; void P.img.offsetWidth; vphRamener(P); }
+function vphBascule(P,cx,cy){ if(P.s>1.01) vphZoomVers(P,1,cx,cy); else vphZoomVers(P,2.5,cx,cy); }
+function vphRetirer(){ const P=_vph; if(!P) return; _vph=null; clearTimeout(P.fin); document.removeEventListener('keydown',P.clavier,true); window.removeEventListener('resize',P.tourne); try{ P.ov.remove(); }catch(e){} }
+function photoPlein(source,titre){
+  const vign=source&&source.tagName?source:null;
+  const src=vign?(vign.currentSrc||vign.src||vign.getAttribute('src')||''):String(source||'');
+  if(!src) return;
+  vphRetirer();
+  const ov=document.createElement('div');
+  ov.className='vph'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-label',titre||'Photo');
+  ov.innerHTML='<div class="vph-tete"><button type="button" class="vph-fermer">Fermer</button><div class="vph-titre">'+esc(titre||'')+'</div><span></span></div><img class="vph-img" alt="'+esc(titre||'Photo')+'" draggable="false">';
+  const img=ov.querySelector('img'); img.src=src;   // par la propriété : une photo de plusieurs Mo ne repasse pas par le HTML
+  const P=_vph={ov,img,vign,s:1,x:0,y:0,sort:false,retour:document.activeElement};
+  document.body.appendChild(ov);
+  const fermer=ov.querySelector('.vph-fermer');
+  fermer.onclick=()=>photoPleinFermer();
+  P.clavier=e=>{ if(_vph!==P) return;
+    if(e.key==='Escape'){ e.preventDefault(); e.stopImmediatePropagation(); photoPleinFermer(); }
+    else if(e.key==='Tab'){ e.preventDefault(); fermer.focus({preventScroll:true}); } };   // un seul bouton : le focus reste dans la visionneuse
+  document.addEventListener('keydown',P.clavier,true);
+  /* le focus entre dans la visionneuse (lecteur d'écran, clavier) ; ouverte AU CLAVIER (un clic sans pointeur, detail 0), il va
+     sur « Fermer » ; ouverte au doigt ou à la souris, sur la couche elle-même — sinon un anneau de focus entourait « Fermer » à
+     chaque photo touchée (mesuré, capture à l'appui). Tab mène ensuite à « Fermer ». */
+  const clavier=(()=>{ try{ const e=window.event; return !!(e&&e.type==='click'&&e.detail===0); }catch(_){ return false; } })();
+  ov.setAttribute('tabindex','-1');
+  try{ (clavier?fermer:ov).focus({preventScroll:true}); }catch(e){}
+  /* l'entrée : la photo part de sa vignette (même centre, même surface), puis prend sa place ; le fond se fond en noir */
+  const entrer=()=>{ if(_vph!==P||P.sort) return;
+    const f=img.getBoundingClientRect(), r=vign&&vign.isConnected?vign.getBoundingClientRect():null;
+    if(r&&r.width&&r.height&&f.width&&f.height&&!animSobre()){
+      P.s=Math.sqrt(r.width*r.height/(f.width*f.height)); P.x=r.left+r.width/2-(f.left+f.width/2); P.y=r.top+r.height/2-(f.top+f.height/2);
+      img.style.transition='none'; vphPoser(P); void img.offsetWidth; img.style.transition=''; }
+    else if(!animSobre()){ P.s=.94; img.style.transition='none'; vphPoser(P); void img.offsetWidth; img.style.transition=''; }   // sans vignette : elle s'avance un peu
+    P.s=1; P.x=0; P.y=0;
+    requestAnimationFrame(()=>{ if(_vph!==P||P.sort) return; ov.classList.add('vu'); vphPoser(P); }); };
+  img.style.opacity='0';
+  const montrer=()=>{ img.style.opacity=''; vphTaille(P); entrer(); };
+  P.tourne=()=>{ if(_vph===P&&!P.sort){ vphTaille(P); vphRamener(P); } };
+  window.addEventListener('resize',P.tourne);
+  if(img.complete&&img.naturalWidth) montrer();
+  else { img.onload=montrer; img.onerror=montrer; }
+  /* le bureau : un clic sur le fond ferme, un double clic agrandit, Ctrl + molette (le pincement du pavé) zoome, la molette
+     promène une photo agrandie, et la souris la saisit */
+  ov.addEventListener('click',e=>{ if(e.target===ov) photoPleinFermer(); });
+  img.addEventListener('dblclick',e=>{ e.preventDefault(); vphBascule(P,e.clientX,e.clientY); });
+  ov.addEventListener('wheel',e=>{ e.preventDefault(); if(P.sort) return;
+    if(e.ctrlKey){ vphFiger(P); const c=vphCentre(P), u=[(e.clientX-c[0]-P.x)/P.s,(e.clientY-c[1]-P.y)/P.s];
+      P.s=Math.max(1,Math.min(5,P.s*Math.exp(-e.deltaY*.01))); P.x=e.clientX-c[0]-P.s*u[0]; P.y=e.clientY-c[1]-P.s*u[1]; }
+    else if(P.s>1.01){ vphFiger(P); P.x-=e.deltaX; P.y-=e.deltaY; }
+    else return;
+    vphPoser(P); clearTimeout(P.molette); P.molette=setTimeout(()=>vphRamener(P),120); },{passive:false});
+  img.addEventListener('pointerdown',e=>{ if(e.pointerType!=='mouse'||P.s<=1.01||P.sort) return; e.preventDefault();
+    vphFiger(P); const x0=P.x-e.clientX, y0=P.y-e.clientY;
+    const bouger=m=>{ P.x=x0+m.clientX; P.y=y0+m.clientY; vphPoser(P); };
+    const lacher=()=>{ window.removeEventListener('pointermove',bouger,true); window.removeEventListener('pointerup',lacher,true); vphRamener(P); };
+    window.addEventListener('pointermove',bouger,true); window.addEventListener('pointerup',lacher,true); });   // en capture : la couche arrête la propagation
+  /* le doigt */
+  let g=null, tap=null;
+  const pts=e=>[...e.touches].map(t=>[t.clientX,t.clientY]);
+  const debuter=e=>{ const p=pts(e); if(!p.length){ g=null; return; } vphFiger(P); const c=vphCentre(P);
+    if(p.length>=2){ const m=[(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2];
+      g={pince:true,c,d0:Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1])||1,s0:P.s,u:[(m[0]-c[0]-P.x)/P.s,(m[1]-c[1]-P.y)/P.s],bouge:true}; }
+    else g={promene:P.s>1.01,p0:p[0],x0:P.x,y0:P.y,s0:P.s,hist:[[0,performance.now()]],bouge:false}; };
+  /* ⛔ LES GESTES DE LA VISIONNEUSE NE TRAVERSENT PAS VERS L'APPLICATION. Mesuré au doigt (sonde-photo-plein.js) : le premier
+     doigt d'un pincement est un toucher à un doigt pour le balayage entre rubriques, les doigts s'écartent à l'horizontale…
+     et au relâcher la rubrique CHANGEAIT sous la photo. Tout ce qui touche la couche s'arrête à elle (stopPropagation) :
+     balayage, tiroir, feuille « Créer », glisser-déposer du planning ne le voient plus. */
+  const garder=e=>e.stopPropagation();
+  for(const t of ['touchstart','touchmove','touchend','touchcancel','pointerdown','pointermove','pointerup','pointercancel']) ov.addEventListener(t,garder,{passive:true});
+  ov.addEventListener('touchstart',e=>{ if(P.sort||e.target.closest('.vph-tete')) return; e.preventDefault(); debuter(e); },{passive:false});
+  ov.addEventListener('touchmove',e=>{ if(!g||P.sort) return; e.preventDefault(); const p=pts(e);
+    if(g.pince){ if(p.length<2) return; const m=[(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2];
+      P.s=Math.max(.6,Math.min(6,g.s0*Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1])/g.d0));
+      P.x=m[0]-g.c[0]-P.s*g.u[0]; P.y=m[1]-g.c[1]-P.s*g.u[1]; vphPoser(P); return; }
+    if(p.length!==1) return;
+    const dx=p[0][0]-g.p0[0], dy=p[0][1]-g.p0[1];
+    if(!g.bouge&&Math.hypot(dx,dy)<8) return;
+    g.bouge=true;
+    if(g.promene){ const d=vphDebord(P), x=g.x0+dx, y=g.y0+dy;   // au-delà du bord, ça cède (elastique)
+      P.x=Math.abs(x)>d[0]?Math.sign(x)*(d[0]+elastique(Math.abs(x)-d[0],90)):x;
+      P.y=Math.abs(y)>d[1]?Math.sign(y)*(d[1]+elastique(Math.abs(y)-d[1],90)):y; vphPoser(P); return; }
+    g.hist.push([dy,performance.now()]); if(g.hist.length>12) g.hist.shift();
+    const bas=Math.max(0,dy);
+    P.x=g.x0+dx; P.y=g.y0+(dy<0?elastique(dy,90):dy); P.s=g.s0*(1-Math.min(.25,bas/innerHeight*.6));
+    P.ov.style.backgroundColor='rgba(0,0,0,'+(.94*(1-Math.min(1,bas/(innerHeight*.5)))).toFixed(3)+')';
+    vphPoser(P); },{passive:false});
+  const lever=e=>{ if(!g||P.sort) return; if(e.touches.length){ debuter(e); if(g) g.bouge=true; return; }
+    const G=g; g=null;
+    if(G.pince||(G.promene&&G.bouge)){ vphRamener(P); return; }
+    if(G.bouge){ const dy=P.y-G.y0, v=vitesseRelache(G.hist,performance.now());
+      if(dy>0&&(dy>innerHeight*.33||dy+swipeProjeter(v)>innerHeight*.22)) photoPleinFermer(); else vphRamener(P);
+      return; }
+    /* un toucher sans mouvement : sur le fond, il ferme ; deux sur la photo, elle s'agrandit (ou revient) */
+    const t=e.changedTouches[0], now=performance.now();
+    if(e.target!==img){ tap=null; photoPleinFermer(); return; }
+    if(tap&&now-tap.t<320&&Math.hypot(t.clientX-tap.x,t.clientY-tap.y)<30){ tap=null; vphBascule(P,t.clientX,t.clientY); }
+    else tap={t:now,x:t.clientX,y:t.clientY}; };
+  ov.addEventListener('touchend',lever,{passive:false});
+  ov.addEventListener('touchcancel',()=>{ g=null; vphRamener(P); });
+}
+/* la sortie : vers la vignette si elle est encore à l'écran, sinon la photo s'efface sur place ; .feuille-sort fait avaler
+   le clic qui tomberait dessus pendant ce temps (écouteur de capture des sorties) */
+function photoPleinFermer(){ const P=_vph; if(!P||P.sort) return; P.sort=true;
+  const {ov,img,vign}=P; clearTimeout(P.molette);
+  if(animSobre()){ vphRetirer(); }
+  else {
+    ov.classList.add('feuille-sort'); vphFiger(P); ov.style.backgroundColor=''; ov.classList.remove('vu');
+    const garde=img.style.transform; img.style.transform='none'; const f=img.getBoundingClientRect(); img.style.transform=garde; void img.offsetWidth;
+    const r=vign&&vign.isConnected?vign.getBoundingClientRect():null;
+    img.style.transition='';
+    if(r&&r.width&&r.height&&f.width&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth){
+      P.s=Math.sqrt(r.width*r.height/(f.width*f.height)); P.x=r.left+r.width/2-(f.left+f.width/2); P.y=r.top+r.height/2-(f.top+f.height/2); }
+    else { P.s*=.9; img.style.opacity='0'; }
+    vphPoser(P);
+    P.fin=setTimeout(()=>{ if(_vph===P) vphRetirer(); },300);
+  }
+  try{ if(P.retour&&P.retour.isConnected&&P.retour.focus) P.retour.focus({preventScroll:true}); }catch(e){}
+}
 function openNuisFiche(n){ nfNuis=n; if(!intTrait[n])intTrait[n]={};
   openSub(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeSub()">Fermer</button><h3>${esc(n)}</h3><button type="button" class="btn sm" onclick="closeSub()">OK</button></div><div id="nf-body"></div>`);
   renderNuisFiche();
@@ -25268,7 +25444,7 @@ function renderIntDetail(id){
       body=`${sub}
       <div id="int-detail-photos" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px">
         ${intEdit?`<div onclick="intMediaSheet('${id}')" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un média</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un média')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
+        ${i.photos.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="photoPlein(this,'Photo')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${canDelM?`<button onclick="intPhotoDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:''}</div>`).join('')}
       </div>
       <input type="file" id="int-photo-cam" accept="image/*" capture="environment" style="display:none" onchange="intPhotoAdd(event,'${id}')">
       <input type="file" id="int-photo-file" accept="image/*" multiple style="display:none" onchange="intPhotoAdd(event,'${id}')">
@@ -25303,7 +25479,7 @@ function renderIntDetail(id){
     intPlansCombler(id);   // v744 : les photos de plan qui vivent sur le serveur arrivent après coup
     body=`<div id="int-detail-plans" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:10px">
       ${intEdit?`<div onclick="document.getElementById('int-plan-file').click()" style="aspect-ratio:1;border-radius:14px;background:var(--acc);color:var(--on-acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-weight:700;font-size:12.5px"><span style="font-size:34px">＋</span>Ajouter un plan</div>`:`<div onclick="toast('Touche le stylo ✏️ pour ajouter un plan')" style="aspect-ratio:1;border-radius:14px;background:var(--card2);border:2px dashed var(--brd2);color:var(--t3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:default;font-weight:700;font-size:12px"><span style="font-size:26px">🔒</span>Stylo ✏️ pour ajouter</div>`}
-      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="window.open(this.src)" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
+      ${i.plans.map((ph,ix)=>`<div style="position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--brd)"><img src="${photoSrc(ph)}" onclick="photoPlein(this,'Plan')" style="width:100%;height:100%;object-fit:cover;cursor:pointer">${intEdit?`<button onclick="intPlanDel('${id}',${ix})" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;cursor:pointer">✕</button>`:``}</div>`).join('')}
     </div>
     <input type="file" id="int-plan-file" accept="image/*" style="display:none" onchange="intPlanAdd(event,'${id}')">
     <p style="color:var(--t3);font-size:12.5px">Plans du site : postes d'appâtage, zones traitées, accès… (photo ou capture du plan)</p>
@@ -25364,12 +25540,12 @@ function renderIntDetail(id){
       <div class="card" style="margin-top:12px"><div class="card-head" style="margin-bottom:8px"><h3>Aperçu du rapport <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t3);font-size:12px">— texte envoyé au client</span></h3></div>
         <div style="white-space:pre-wrap;font-size:13px;color:var(--t2);line-height:1.6;background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:14px">${esc(genRapportTexte(i))}</div></div>
       ${champsV}
-      ${(i.photos&&i.photos.length)?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:8px">Photos</div><div style="display:flex;gap:8px;flex-wrap:wrap">${i.photos.map(p=>`<img src="${photoSrc(p)}" onclick="window.open(this.src)" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--brd);cursor:pointer">`).join('')}</div></div>`:''}
+      ${(i.photos&&i.photos.length)?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:8px">Photos</div><div style="display:flex;gap:8px;flex-wrap:wrap">${i.photos.map(p=>`<img src="${photoSrc(p)}" onclick="photoPlein(this,'Photo')" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--brd);cursor:pointer">`).join('')}</div></div>`:''}
       ${(i.signature||i.signatureTech)?`<div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap">${i.signature?`<div><div class="dt-lbl" style="margin-bottom:8px">Signature client</div><img src="${i.signature}" style="background:#fff;border-radius:8px;max-width:220px;border:1px solid var(--brd)"></div>`:''}${i.signatureTech?`<div><div class="dt-lbl" style="margin-bottom:8px">Signature technicien</div><img src="${i.signatureTech}" style="background:#fff;border-radius:8px;max-width:220px;border:1px solid var(--brd)"></div>`:''}</div>`:''}
       ${(i.montant||i.moyenPaiement||i.tpePhoto)?`<div class="card" style="margin-top:14px"><div class="card-head" style="margin-bottom:8px"><h3>Paiement</h3></div>
         ${i.montant?`<div class="frow"><span class="frow-lbl">Montant encaissé</span><div class="frow-val"><b style="color:var(--acc-txt)">${eur(i.montant)}</b></div></div>`:''}
         ${i.moyenPaiement?`<div class="frow"><span class="frow-lbl">Moyen</span><div class="frow-val">${esc(i.moyenPaiement)}</div></div>`:''}
-        ${i.tpePhoto?`<div style="margin-top:10px"><div class="dt-lbl" style="margin-bottom:6px">Photo du TPE</div><img src="${i.tpePhoto}" onclick="window.open(this.src)" style="max-width:240px;border-radius:8px;border:1px solid var(--brd);cursor:pointer"></div>`:''}</div>`:''}
+        ${i.tpePhoto?`<div style="margin-top:10px"><div class="dt-lbl" style="margin-bottom:6px">Photo du TPE</div><img src="${i.tpePhoto}" onclick="photoPlein(this,'Photo du TPE')" style="max-width:240px;border-radius:8px;border:1px solid var(--brd);cursor:pointer"></div>`:''}</div>`:''}
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">${peutClore?`<button class="btn ghost" onclick="closeModal();formRapport('${id}')">Rédiger / modifier</button>`:''}<button class="btn ghost" onclick="printRapport('${id}')">Export PDF</button><button class="btn" onclick="envoiRapportClient('${id}')">Envoyer au client</button></div>`;
   }
   setHeader('','','');
@@ -26615,7 +26791,7 @@ function formRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)ret
   renderRapPhotos(); initSigPad(i.signature,'sig-pad'); initSigPad(i.signatureTech,'sig-pad-tech'); renderChamps(); renderRapIndices(); renderRapPresta(); renderTraitInline(); renderRapTpe();
 }
 let rapTpe='';
-function renderRapTpe(){ const el=$('rap-tpe'); if(!el) return; el.innerHTML=rapTpe?`<div style="display:inline-flex;align-items:center;gap:10px"><img src="${rapTpe}" style="height:90px;border-radius:8px;border:1px solid var(--brd);cursor:pointer" onclick="window.open(this.src)"><button type="button" class="btn ghost sm" onclick="rapTpe='';renderRapTpe()">Retirer</button></div>`:'<div style="color:var(--t3);font-size:13px">Aucune photo de TPE.</div>'; }
+function renderRapTpe(){ const el=$('rap-tpe'); if(!el) return; el.innerHTML=rapTpe?`<div style="display:inline-flex;align-items:center;gap:10px"><img src="${rapTpe}" style="height:90px;border-radius:8px;border:1px solid var(--brd);cursor:pointer" onclick="photoPlein(this,'Photo du TPE')"><button type="button" class="btn ghost sm" onclick="rapTpe='';renderRapTpe()">Retirer</button></div>`:'<div style="color:var(--t3);font-size:13px">Aucune photo de TPE.</div>'; }
 async function addTpePhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f,1280,0.7); if(d){ rapTpe=d; renderRapTpe(); } e.target.value=''; }
 function renderRapPresta(){ const el=$('rap-presta'); if(!el)return; const items=prestaItemsFor(rapNuis);
   el.innerHTML=items.map(([key,lbl,ic])=>{ const on=rapPresta.has(key);
@@ -28907,7 +29083,7 @@ function renderBoxDetail(){
             ${sent&&x.statut!=='arrivageNote'?`<div style="font-size:12px;color:var(--t2);margin-top:8px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.5">📦 <b>À la livraison :</b> touche <b>Arrivage</b> en haut de la box. La commande y est proposée, les quantités sont préremplies, et c'est là qu'on photographie le <b>bon de livraison</b>.</div>`:''}
           </div>
         </div>`; }).join('')+`</div>`; })()}
-    ${b.photo?`<div style="margin:4px 0 12px"><img src="${b.photo}" onclick="window.open(this.src)" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid var(--brd);cursor:pointer"></div>`:''}
+    ${b.photo?`<div style="margin:4px 0 12px"><img src="${b.photo}" onclick="photoPlein(this,'Photo de la box')" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid var(--brd);cursor:pointer"></div>`:''}
     <div class="card" style="margin-top:4px;padding:4px 4px">
       ${stk&&!b.numero?'':`<div class="bdt-row"><span class="bdt-ic">🔢</span><span class="bdt-lbl">Numéro</span><span class="bdt-val mono">${esc(b.numero||'—')}</span></div>`}
       ${(()=>{ const r=b.respUserId?(db.users||[]).find(u=>u.id===b.respUserId):null;
@@ -28939,7 +29115,7 @@ function renderBoxDetail(){
     <div id="boxprod-list"></div>
     <div class="card-head" style="margin:18px 2px 6px"><h3>Arrivages (${(b.arrivages||[]).length})</h3></div>
     ${(b.arrivages&&b.arrivages.length)? b.arrivages.map(a=>`<div class="pl-row" style="cursor:default">
-      ${a.photo?`<img src="${a.photo}" onclick="window.open(this.src)" style="width:52px;height:52px;object-fit:cover;border-radius:9px;border:1px solid var(--brd);cursor:pointer;flex-shrink:0">`:''}
+      ${a.photo?`<img src="${a.photo}" onclick="photoPlein(this,'Bon de livraison')" style="width:52px;height:52px;object-fit:cover;border-radius:9px;border:1px solid var(--brd);cursor:pointer;flex-shrink:0">`:''}
       <div class="pl-info"><div class="pl-title">${esc(a.fournisseur||'')} — ${(a.lignes||[]).reduce((t,l)=>t+(l.qte||0),0)} produit(s)</div>
       <div class="pl-meta">${fmtTs(a.ts)} · par ${esc(a.par||'')}${a.bcId&&(db.bons||[]).some(x=>x.id===a.bcId)?` · <a onclick="event.stopPropagation();ficheBon('${a.bcId}',true)" style="color:var(--acc-txt);font-weight:700;text-decoration:underline;cursor:pointer">📄 ${esc(a.bcNum||'voir le bon')}</a>`:''}</div>
       <div style="font-size:11px;color:var(--t3);margin-top:3px">${(a.lignes||[]).map(l=>{const p=produit(l.produitId);return esc((p.nom||'?'))+' ×'+l.qte;}).join(' · ')}</div></div>
@@ -28953,7 +29129,7 @@ const APPAT_ETATS={ras:{l:'RAS',c:'st-green'},consomme:{l:'Consommé',c:'st-org'
 function renderBoxPassages(){ const el=$('box-passages'); if(!el)return; const b=db.boxes.find(x=>x.id===boxView); if(!b)return; const ps=(b.passages||[]).slice().sort((a,b2)=>(b2.date||'').localeCompare(a.date||''));
   if(!ps.length){ el.innerHTML='<div style="color:var(--t3);font-size:13px;padding:10px 2px">Aucun passage enregistré. Touche « Relevé » en haut de la fiche à chaque visite.</div>'; return; }
   el.innerHTML=ps.map(p=>{ const e=APPAT_ETATS[p.etat]||APPAT_ETATS.ras;
-    const ic=p.photo?`<img src="${p.photo}" onclick="window.open(this.src)" style="width:40px;height:40px;border-radius:10px;object-fit:cover;cursor:pointer;flex-shrink:0">`:`<span style="width:40px;height:40px;border-radius:10px;background:color-mix(in srgb,var(--acc) 14%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0">📋</span>`;
+    const ic=p.photo?`<img src="${p.photo}" onclick="photoPlein(this,'Photo du relevé')" style="width:40px;height:40px;border-radius:10px;object-fit:cover;cursor:pointer;flex-shrink:0">`:`<span style="width:40px;height:40px;border-radius:10px;background:color-mix(in srgb,var(--acc) 14%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0">📋</span>`;
     return `<div class="pl-row" style="cursor:default">${ic}
       <div class="pl-info"><div class="pl-title">${fmtShort(p.date)} · ${esc(p.technicienNom||'')}</div><div class="pl-meta">${esc(p.note)||'Relevé du poste'}</div></div>
       <span class="st ${e.c}">${e.l}</span><button class="btn danger sm" onclick="delPassage('${b.id}','${p.id}')">✕</button></div>`;}).join('');
@@ -29189,7 +29365,7 @@ function boxCommandes(boxId){
           <div class="dos-m">Sans bon de commande · ${(a.lignes||[]).reduce((t,l)=>t+(l.qte||0),0)} u · ${fmtTs(a.ts)}${a.par?` · par ${esc(a.par)}`:''}</div></div>
         <span class="st st-blue">Livraison</span>${can('supprimerHistoCommandes')?`<button type="button" class="dos-x" onclick="event.stopPropagation();boxLivrSuppr('${a.id}','${boxId}')" title="Supprimer définitivement" aria-label="Supprimer cette livraison">🗑</button>`:''}</div>
       <div class="dos-p">
-        ${a.photo?`<button type="button" class="dos-pi" onclick="window.open('${a.photo}')"><img src="${a.photo}" alt="Bon de livraison"><span><b>Bon de livraison</b><i>Photo à la réception</i></span></button>`
+        ${a.photo?`<button type="button" class="dos-pi" onclick="photoPlein(this.querySelector('img'),'Bon de livraison')"><img src="${a.photo}" alt="Bon de livraison"><span><b>Bon de livraison</b><i>Photo à la réception</i></span></button>`
                  :`<div class="dos-pi vide"><span class="dos-ic">📷</span><span><b>Bon de livraison</b><i>Aucune photo prise</i></span></div>`}
       </div></div>`;
   const ligne=x=>{ if(x._arr) return ligneArr(x._arr); const ph=photoDe(x);
@@ -29202,7 +29378,7 @@ function boxCommandes(boxId){
       <div class="dos-p">
         <button type="button" class="dos-pi" onclick="event.stopPropagation();bonPdfOpen('${x.id}')">
           <span class="dos-ic">📄</span><span><b>Bon de commande</b><i>PDF · ${esc(bonNum(x))}</i></span></button>
-        ${ph?`<button type="button" class="dos-pi" onclick="event.stopPropagation();window.open('${ph}')">
+        ${ph?`<button type="button" class="dos-pi" onclick="event.stopPropagation();photoPlein(this.querySelector('img'),'Bon de livraison')">
           <img src="${ph}" alt="Bon de livraison"><span><b>Bon de livraison</b><i>Photo à la réception</i></span></button>`
            :`<div class="dos-pi vide"><span class="dos-ic">📷</span><span><b>Bon de livraison</b><i>Aucune photo prise</i></span></div>`}
       </div>
@@ -31574,7 +31750,7 @@ function bonEcartHtml(bon,mvt){
      là où l'on compare, et elle reste sur la fiche du bon — le papier et les chiffres au même
      endroit, pour toujours. */
   const bl=(mvt&&mvt.photo)?`<div class="ec-bl">
-      <img src="${mvt.photo}" alt="Bon de livraison photographié à la réception" onclick="window.open(this.src)">
+      <img src="${mvt.photo}" alt="Bon de livraison photographié à la réception" onclick="photoPlein(this,'Bon de livraison')">
       <div><b>Bon de livraison</b><span>Photographié${mvt.par?' par '+esc(mvt.par):''}${mvt.ts?' le '+fmtShort(jourDe(mvt.ts)):''} — toucher pour agrandir</span></div>
     </div>`:`<div class="ec-bl ec-bl-non"><span>📄 Aucune photo du bon de livraison n\'a été prise à la réception.</span></div>`;
   return `<div class="ec">
@@ -33576,7 +33752,7 @@ function ficheVehicule(id){ const v=db.vehicules.find(x=>x.id===id); if(!v) retu
       <div><div class="dt-lbl">Garantie</div><div class="dt-val">${esc(v.typeGarantie)||'—'}</div></div>
       <div><div class="dt-lbl">Échéance</div><div class="dt-val">${v.dateEcheanceAssurance?fmtShort(v.dateEcheanceAssurance):'—'} ${assurEtat(v)}</div></div>
       <div><div class="dt-lbl">N° d'assistance</div><div class="dt-val">${esc(v.numAssistance)||'—'}</div></div></div>
-    ${[['photoCGRecto','Carte grise recto'],['photoCGVerso','Carte grise verso'],['photoAttestation','Attestation'],['photoCarteVerte','Carte verte']].some(([k])=>v[k])?`<div class="dt-lbl" style="margin:14px 0 8px;color:var(--acc-txt)">Documents</div><div style="display:flex;gap:8px;flex-wrap:wrap">${[['photoCGRecto','CG recto'],['photoCGVerso','CG verso'],['photoAttestation','Attestation'],['photoCarteVerte','Carte verte']].filter(([k])=>v[k]).map(([k,lbl])=>`<div style="text-align:center"><img src="${v[k]}" onclick="window.open(this.src)" style="width:90px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--brd);cursor:pointer"><div style="font-size:11px;color:var(--t3);margin-top:3px">${lbl}</div></div>`).join('')}</div>`:''}
+    ${[['photoCGRecto','Carte grise recto'],['photoCGVerso','Carte grise verso'],['photoAttestation','Attestation'],['photoCarteVerte','Carte verte']].some(([k])=>v[k])?`<div class="dt-lbl" style="margin:14px 0 8px;color:var(--acc-txt)">Documents</div><div style="display:flex;gap:8px;flex-wrap:wrap">${[['photoCGRecto','CG recto'],['photoCGVerso','CG verso'],['photoAttestation','Attestation'],['photoCarteVerte','Carte verte']].filter(([k])=>v[k]).map(([k,lbl])=>`<div style="text-align:center"><img src="${v[k]}" onclick="photoPlein(this,'${lbl}')" style="width:90px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--brd);cursor:pointer"><div style="font-size:11px;color:var(--t3);margin-top:3px">${lbl}</div></div>`).join('')}</div>`:''}
     ${sec('Conducteur habituel')}<div class="detail-grid">
       <div><div class="dt-lbl">Nom</div><div class="dt-val">${esc(vConducteur(v))||'—'}</div></div>
       <div><div class="dt-lbl">Téléphone</div><div class="dt-val">${esc(v.conducteurTelephone)||'—'}</div></div></div>
@@ -38103,11 +38279,6 @@ function comptaControle(){
    en quoi, combien, ou rien de saisi), les ajouts du soir, et le comparatif
    « ce que les interventions ont récolté » / « ce que la télécollecte
    annonce » — les deux doivent raconter la même chose. */
-/* une photo en grand, SANS quitter l'application ni ouvrir un onglet */
-function ctrlPhotoPlein(src,titre){
-  openSub(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeSub()">Fermer</button><h3>${esc(titre||'Photo')}</h3><span style="width:56px"></span></div>
-    <div style="padding:4px 2px 16px;text-align:center"><img src="${src}" style="max-width:100%;max-height:74vh;border-radius:12px;border:1px solid var(--brd);background:#fff"></div>`);
-}
 /* ══ LA TÉLÉCOLLECTE DU JOUR ══
    C'est le relevé du TPE : la vérité de la journée. On la met EN PREMIER,
    avant les interventions, et on la compare au registre MODE PAR MODE.
@@ -38153,7 +38324,7 @@ function ctrlTeleBloc(rec,lig,techId,declarantId,d){
         ${mod?`<span class="st" onclick="event.stopPropagation();ctrlModeFiche('${m}')" style="background:rgba(232,163,61,.16);color:var(--org);font-weight:800;white-space:nowrap;cursor:pointer"
           title="Voir d'où vient cette correction">✏️ ${eur(mod.avant)} → ${eur(mod.apres)}</span>`:''}
         ${(rec.confirmes||[]).includes(m)?`<span class="st st-green" style="white-space:nowrap" title="Confirmé par ${esc(rec.parNom||rec.declarantNom||'')}">✓ confirmé</span>`:''}
-        ${(rec.photos||{})[m]?`<img src="${(rec.photos||{})[m]}" onclick="ctrlPhotoPlein(this.src,'Photo — ${esc(M[1])}')" title="Voir la preuve" style="width:30px;height:30px;object-fit:cover;border-radius:7px;border:1px solid var(--acc);cursor:zoom-in">`:''}
+        ${(rec.photos||{})[m]?`<img src="${(rec.photos||{})[m]}" onclick="photoPlein(this,'Photo — ${esc(M[1])}')" title="Voir la preuve" style="width:30px;height:30px;object-fit:cover;border-radius:7px;border:1px solid var(--acc);cursor:zoom-in">`:''}
         ${eur(t)}<span style="font-weight:600;color:var(--t3);font-size:11.5px"> / ${eur(r)} au registre</span>
         <b onclick="event.stopPropagation();ctrlModeFiche('${m}')" title="${ok?'Voir le détail de ce mode':'Comprendre cet écart'}"
           style="margin-left:8px;cursor:pointer;color:${ok?'var(--acc-txt)':'var(--red)'}">${ok?'✓':((e>0?'+':'')+eur(e))}</b></span></div>`
@@ -38177,7 +38348,7 @@ function ctrlTeleBloc(rec,lig,techId,declarantId,d){
       <span class="bdt-val" style="font-weight:900">${eur(tot)}<span style="font-weight:600;color:var(--t3);font-size:11.5px"> / ${eur(enc)} au registre</span>
         <b style="margin-left:8px;color:${pareil?'var(--acc-txt)':'var(--red)'}">${pareil?'✓':((ecart>0?'+':'')+eur(ecart))}</b></span></div>
     <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:10px">
-      ${rec.photo?`<img src="${rec.photo}" onclick="ctrlPhotoPlein(this.src,'Ticket de télécollecte')" style="width:76px;height:76px;object-fit:cover;border-radius:11px;border:1px solid var(--brd);cursor:zoom-in" title="Voir le ticket en grand">`
+      ${rec.photo?`<img src="${rec.photo}" onclick="photoPlein(this,'Ticket de télécollecte')" style="width:76px;height:76px;object-fit:cover;border-radius:11px;border:1px solid var(--brd);cursor:zoom-in" title="Voir le ticket en grand">`
                  :`<span style="font-size:12.5px;color:var(--t3)">📷 Pas de photo du ticket TPE.</span>`}
       <button class="btn ghost sm" onclick="formTelecollecte('${rec.id||''}')">Modifier la télécollecte</button>
       <button class="btn ghost sm" onclick="closeModal();comptaTab='telecollecte';views.comptabilite()">Toutes les journées →</button>
@@ -38350,7 +38521,7 @@ function ctrlModeFiche(m){
     <div class="card" style="padding:12px 14px;margin:0 0 12px">
       <div style="font-size:13px;line-height:1.6">${sens}</div></div>
     ${ph?`<div class="dt-lbl" style="margin-bottom:6px">La preuve jointe</div>
-      <img src="${ph}" onclick="ctrlPhotoPlein(this.src,'${esc(M[1])}')" style="max-width:210px;border-radius:11px;border:1px solid var(--brd);cursor:zoom-in;margin-bottom:14px">`:''}
+      <img src="${ph}" onclick="photoPlein(this,'${esc(M[1])}')" style="max-width:210px;border-radius:11px;border:1px solid var(--brd);cursor:zoom-in;margin-bottom:14px">`:''}
     <div class="form-sec">Les encaissements de ce mode (${lig.length})</div>
     ${lig.length? lig.map(l=>{ const i=l.interId?(db.interventions||[]).find(x=>x.id===l.interId):null;
       return `<div class="pl-row" style="cursor:pointer" onclick="closeSub();ctrlLigneOuvre('${l.id}')">
@@ -38592,7 +38763,7 @@ function interTout(i,l){
       : '<div style="font-size:12.5px;color:var(--t3);padding:2px 2px 4px">Rien n\'a été écrit sur cette intervention.</div>'}
     <div class="form-sec">Les tickets et les photos (${med.length})</div>
     ${med.length? `<div style="display:flex;gap:10px;flex-wrap:wrap">${med.map(([src,t])=>`<div style="width:98px">
-        <img src="${src}" onclick="ctrlPhotoPlein(this.src,this.nextElementSibling.textContent)" title="Voir en grand"
+        <img src="${src}" onclick="photoPlein(this,this.nextElementSibling.textContent)" title="Voir en grand"
           style="width:98px;height:98px;object-fit:cover;border-radius:11px;border:1px solid var(--brd);cursor:zoom-in;background:#fff;display:block">
         <div style="font-size:10.5px;color:var(--t3);margin-top:5px;text-align:center;line-height:1.35">${esc(t)}</div></div>`).join('')}</div>`
       : '<div style="font-size:12.5px;color:var(--t3);padding:2px">📷 Aucun ticket ni photo pour cette intervention.</div>'}`;
@@ -38924,7 +39095,7 @@ function teleDetail(id){ const r=(db.telecollectes||[]).find(x=>x.id===id); if(!
   openModal(`<div class="modal-head"><h3>Télécollecte — ${esc(teleWho(r))}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="form-sec">${new Date((r.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}${r.heure?' · '+esc(r.heure):''}</div>
     <div style="overflow-x:auto"><table class="xl" style="min-width:0"><tbody>${TELE_CHAMPS.map(([k,l,u])=>`<tr><td>${esc(l)}</td><td style="text-align:right">${u==='#'?(Number(r[k])||0):eur(Number(r[k])||0)}</td></tr>`).join('')}<tr class="tot"><td><b>TOTAL ENCAISSÉ</b></td><td style="text-align:right"><b style="color:var(--acc-txt)">${eur(teleTotal(r))}</b></td></tr></tbody></table></div>
-    ${r.photo?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:6px">Photo de la télécollecte</div><img src="${r.photo}" onclick="window.open(this.src)" style="max-width:100%;border-radius:10px;border:1px solid var(--brd);cursor:pointer"></div>`:'<p style="color:var(--t3);font-size:13px;margin-top:12px">Aucune photo jointe.</p>'}
+    ${r.photo?`<div style="margin-top:14px"><div class="dt-lbl" style="margin-bottom:6px">Photo de la télécollecte</div><img src="${r.photo}" onclick="photoPlein(this,'Photo de la télécollecte')" style="max-width:100%;border-radius:10px;border:1px solid var(--brd);cursor:pointer"></div>`:'<p style="color:var(--t3);font-size:13px;margin-top:12px">Aucune photo jointe.</p>'}
     <div class="modal-foot" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" onclick="closeModal();formTelecollecte('${r.id}')">Modifier</button><button class="btn ghost" onclick="teleCheckPlanning('${r.id}')">Planning</button><button class="btn" onclick="teleToggleCompta('${r.id}');closeModal()">${r.envoyeeCompta?'↩︎ Repasser à valider':'Valider'}</button></div>`);
 }
 /* ── Télécollecte du jour : déclaration des encaissements par mode de paiement + photo de la télécollecte TPE ── */
@@ -38958,7 +39129,7 @@ function teleTicketHtml(pfx){
     <input type="file" id="${pfx}tk-file" style="display:none" onchange="teleTicketAdd(event,'${pfx}')">`;
   if(telePhoto) return inputs+`<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       <div style="position:relative">
-        <img src="${telePhoto}" onclick="ctrlPhotoPlein(this.src,'Ticket TPE')" title="Voir en grand"
+        <img src="${telePhoto}" onclick="photoPlein(this,'Ticket TPE')" title="Voir en grand"
           style="width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid var(--acc);cursor:zoom-in;display:block;background:#fff">
         <span onclick="teleTicketRetire('${pfx}')" title="Retirer la photo"
           style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:99px;background:#EF4444;color:#fff;font-size:12px;line-height:20px;text-align:center;cursor:pointer">✕</span>
@@ -39234,11 +39405,11 @@ views.telecollecte=function(){
         ${TELE_VS_REG.map(([k,m])=>{ const val=Number(rec[k])||0; const ph=(rec.photos||{})[m]; if(!val&&!ph) return ''; const M=REG_MODES[m]||['•',m];
           return `<div class="bdt-row"><span class="bdt-ic">${M[0]}</span><span class="bdt-lbl">${esc(M[1])}${(k==='chq'&&rec.nbChq)?' · '+rec.nbChq+' chèque'+(rec.nbChq>1?'s':''):''}</span>
             <span class="bdt-val" style="display:flex;align-items:center;gap:9px;justify-content:flex-end;font-weight:800">
-              ${ph?`<img src="${ph}" onclick="ctrlPhotoPlein(this.src,'Photo — ${esc(M[1])}')" title="Voir la preuve" style="width:34px;height:34px;object-fit:cover;border-radius:8px;border:1px solid var(--acc);cursor:zoom-in">`:''}
+              ${ph?`<img src="${ph}" onclick="photoPlein(this,'Photo — ${esc(M[1])}')" title="Voir la preuve" style="width:34px;height:34px;object-fit:cover;border-radius:8px;border:1px solid var(--acc);cursor:zoom-in">`:''}
               ${eur(val)}</span></div>`; }).join('')
           ||'<div style="padding:10px;color:var(--t3);font-size:12.5px">Relevé à zéro sur tous les modes.</div>'}</div>
       <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:10px">
-        ${rec.photo?`<img src="${rec.photo}" onclick="ctrlPhotoPlein(this.src,'Ticket TPE')" title="Ticket TPE" style="width:76px;height:76px;object-fit:cover;border-radius:10px;border:1px solid var(--brd);cursor:zoom-in">`:''}
+        ${rec.photo?`<img src="${rec.photo}" onclick="photoPlein(this,'Ticket TPE')" title="Ticket TPE" style="width:76px;height:76px;object-fit:cover;border-radius:10px;border:1px solid var(--brd);cursor:zoom-in">`:''}
         <span style="font-size:12px;color:var(--t3)">${telePhotosNb(rec)} preuve${telePhotosNb(rec)>1?'s':''} jointe${telePhotosNb(rec)>1?'s':''}</span></div>
       ${isMgr?`<div style="margin-top:10px"><button class="btn ghost sm" onclick="teleDevalider('${rec.id}')">↩︎ Rouvrir la journée</button></div>`:''}
     </div>`

@@ -68,6 +68,8 @@ function monde(opts) {
     function assistRender(){ _multiHtml='<button onclick="assistFermer()">Fermer</button>'; $('overlay').classList.add('open'); }
     function t3dQuestModalEnd(id){ __log.push('t3dEnd '+id); _t3dModalCat=''; closeModal(); assistRender(); }
     function marquer(){}
+    /* la visionneuse de photo (audit apple-design, point 21) passe la première au retour : fermée ici, test-2842 la joue ouverte */
+    function photoPleinOuvert(){ return false; } function photoPleinFermer(){}
     ${F['function closeModal(']}
     var _subSortie=null;
     ${F['function closeSub(']}

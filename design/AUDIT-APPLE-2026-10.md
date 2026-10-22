@@ -43,7 +43,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 18 | 3 | Le toast n'est pas annoncé aux lecteurs d'écran ; son « Annuler » n'est pas un bouton | 8057, 13911 | VoiceOver ne dit rien | ✅ corrigé (partie J) |
 | 19 | 3 | `confirm()` natifs sur des gestes réversibles | 21703 (et suivants) | une boîte du navigateur pour rien | ✅ corrigé (partie K) |
 | 20 | 3 | Suppression générique « Supprimer cet élément ? » sans nom ni annulation | 36321 | on ne sait pas quoi on supprime | ✅ corrigé (partie K) |
-| 21 | 3 | Photos d'intervention ouvertes dans un onglet (`window.open`) alors qu'une visionneuse existe | 24886, 24921, 24982, 24987 | on sort de l'application | à faire |
+| 21 | 3 | Photos d'intervention ouvertes dans un onglet (`window.open`) alors qu'une visionneuse existe | 24886, 24921, 24982, 24987 | on sort de l'application | ✅ corrigé (partie L) |
 | 22 | 3 | Pied de fenêtre opaque à trait dur sur téléphone, sous un en-tête en verre | 712 | deux matières dans une fenêtre | à faire |
 | 23 | 3 | Replier le menu (bureau) : la transition de largeur ne tourne jamais | 5656 | le menu disparaît d'un coup | à faire |
 | 24 | 3 | Changement jour/nuit sec hors du bouton de la barre | 43171 | saut de luminosité | à faire |
