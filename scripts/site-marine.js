@@ -231,7 +231,7 @@ function entete(section, sousnav) {
   const sn = sousnav ? `<div class="sousnav"><div class="sousnav-in"><a class="sousnav-t" href="${sousnav.href}">${esc(sousnav.titre)}</a><nav class="sousnav-liens" aria-label="${esc(sousnav.titre)}">`
     + sousnav.liens.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `</nav>${typeof sousnav.cta === 'function' ? sousnav.cta() : sousnav.cta}</div></div>` : '';
   return `<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
-      <a class="marque" href="${ACCUEIL()}"><img src="/icons/teamop-192.png" width="22" height="22" alt=""><span>TEAM OP</span></a>
+      <a class="marque" href="${ACCUEIL()}"><img src="/icons/teamop-192.png" width="22" height="22" alt="TEAM OP"><span aria-hidden="true">TEAM OP</span></a>
       <div class="nav-liens">${liens}</div>
       <div class="nav-droite"><a class="pilule" href="${ESPACE()}">Espace client</a>
         <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
@@ -598,7 +598,7 @@ function liensAccueil(liens, fiches, icone) {
 }
 
 const PAGES = {
-  index: { maj: '2026-10-21', titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. ' + DES_PRO,
+  index: { maj: '2026-10-21', titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour le terrain : interventions, planning, stock, devis et factures. Plombiers, électriciens, nettoyage, nuisibles. ' + DES_PRO,
     ogDesc: 'Interventions, stock, registre sanitaire, encaissements et équipe, sur mobile, tablette et ordinateur.',
     corps: () => `<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Logiciel de gestion pour entreprises de terrain</h1>
       <p class="chapeau">${fr('OP GESTION regroupe les interventions, le stock et les encaissements. L\'application est déclarée pour iOS, Android, macOS, Windows et le Web.')}</p>

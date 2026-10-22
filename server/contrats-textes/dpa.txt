@@ -1,0 +1,24 @@
+CONTRAT DE SOUS-TRAITANCE DES DONNÉES (article 28 du RGPD) — ANNEXE
+
+Parties : le Client, responsable du traitement, et TEAM OP (Justin Biret, entrepreneur individuel, SIREN 107 995 011, 10 rue de la Gravière, 17220 Salles-sur-Mer), sous-traitant.
+
+Article 1 — Objet et durée
+TEAM OP traite des données à caractère personnel pour le compte du Client, pour fournir les applications souscrites, pendant la durée de l'abonnement puis la période de conservation prévue aux conditions générales (24 mois, avec un avertissement 30 jours avant suppression).
+
+Article 2 — Nature des données et des personnes
+Données saisies par le Client : coordonnées de ses clients et prospects, adresses d'intervention, rapports, devis, factures, données de ses utilisateurs (nom, courriel, pointages). Personnes concernées : clients et prospects du Client, ses salariés et collaborateurs.
+
+Article 3 — Obligations de TEAM OP
+TEAM OP traite les données uniquement sur instruction documentée du Client ; garantit la confidentialité de ses accès ; chiffre les données (AES-256) et isole chaque entreprise ; aide le Client à répondre aux demandes des personnes concernées ; notifie au Client toute violation de données dans un délai de 48 heures après en avoir eu connaissance ; supprime ou restitue les données à la fin du contrat ; met à disposition les informations nécessaires aux audits.
+
+Article 4 — Sous-traitants ultérieurs
+Le Client autorise le recours aux sous-traitants suivants : IONOS (hébergement, France ; sauvegardes à Francfort) ; Google Firebase (copie gelée conservée 30 jours) [À CONFIRMER : OP MESSAGES vit encore sur Firebase tant qu'il n'a pas son propre serveur — le dire ici] ; Stripe (paiement) ; Anthropic PBC (assistant de devis, optionnel ; agents internes uniquement avec des faits fermés) ; GitHub (publication du site). Tout changement est annoncé au Client avec un préavis lui permettant de s'y opposer.
+
+Article 5 — Transferts hors Union européenne
+Les transferts vers des prestataires établis aux États-Unis sont encadrés par les clauses contractuelles types de la Commission européenne ou par le cadre de protection des données UE–États-Unis. [À CONFIRMER PAR UN JURISTE : mécanisme retenu pour chaque prestataire et pièces à joindre.]
+
+Article 6 — Responsabilité
+La responsabilité de TEAM OP au titre du présent contrat est limitée dans les conditions des conditions générales. [À CONFIRMER PAR UN JURISTE : compatibilité de ce plafond avec l'article 82 du RGPD.]
+
+Article 7 — Champ professionnel
+Le présent contrat vaut pour les traitements réalisés pour des activités professionnelles du Client. [À CONFIRMER PAR UN JURISTE : traitement du cas d'un Client agissant à titre non professionnel.]
