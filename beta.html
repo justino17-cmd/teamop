@@ -637,7 +637,10 @@
   .grp-photo-pick{width:78px;height:78px;border-radius:50%;border:2px dashed var(--brd);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg2);font-size:26px;color:var(--t3);}
   .grp-photo-pick img{width:100%;height:100%;object-fit:cover;}
 
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--acc);color:var(--on-acc);font-weight:700;font-size:14px;padding:13px 22px;border-radius:12px;z-index:320;transition:transform .3s;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--acc);color:var(--on-acc);font-weight:700;font-size:14px;padding:13px 22px;border-radius:12px;z-index:415;transition:transform .3s;box-shadow:0 10px 30px rgba(0,0,0,.4);}
+  /* z-index 415 : au-dessus des panneaux plein écran (volet 350, catalogue et « Ma commande » des bons 400/410), sous la
+     visionneuse de photo (420) — à 320, un refus des bons (« Toutes les quantités sont à 0 ») partait SOUS le panneau ouvert
+     (relecture adverse, partie X) */
   .toast.show{transform:translateX(-50%) translateY(0);}
   /* Il monte du bas — d'où il vit — sur un ressort amorti, et redescend par le même chemin. */
   .toast{transition:transform var(--d-4,.4s) var(--ressort,cubic-bezier(.2,0,0,1)),opacity var(--d-2,.2s) ease;opacity:0;box-shadow:var(--ombre-3,0 24px 64px rgba(0,0,0,.45));}
@@ -2678,6 +2681,12 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
    défilement au doigt (touch-action, sur sa règle) et avale la molette (creerOuvrir). */
 .overlay{overscroll-behavior:contain}
 .overlay::before{content:"";position:absolute;top:0;left:0;width:1px;height:calc(100% + 1px);pointer-events:none}
+/* ⚠ ce pixel suffit à faire paraître une BARRE de défilement là où le système en dessine (Windows, Linux, Firefox, un Mac avec
+   « toujours afficher ») : sur toute fenêtre courte, une piste pleine hauteur, un curseur presque aussi long, la fenêtre centrée
+   décalée de la largeur de la barre (relecture adverse, partie X). voileBarre() pose « sans-barre » tant que le contenu tient
+   dans le voile : la barre ne paraît que quand il y a vraiment de quoi défiler. */
+.overlay.sans-barre{scrollbar-width:none}
+.overlay.sans-barre::-webkit-scrollbar{display:none}
 @media(min-width:781px){ .overlay.full .modal{border-radius:var(--r-5)!important} }
 .modal-head h3{font-size:19px!important;font-weight:700!important;letter-spacing:-.02em}
 .sheet-head{border-bottom:1px solid var(--brd)}
@@ -8149,7 +8158,7 @@ html[data-refonte] input[aria-invalid="true"]:focus,html[data-refonte] select[ar
 html[data-refonte] .field input[aria-invalid="true"]:focus,html[data-refonte] .field select[aria-invalid="true"]:focus,html[data-refonte] .field textarea[aria-invalid="true"]:focus,
 html[data-refonte] .field button[aria-invalid="true"],html[data-refonte] .field button[aria-invalid="true"]:focus{
   border-color:var(--red)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 24%,transparent)!important}
-.champ-manque-note{color:var(--red);font-size:12.5px;font-weight:600;line-height:1.35;margin:6px 2px 0}
+.champ-manque-note{color:var(--red);font-size:12.5px;font-weight:600;line-height:1.35;margin:6px 0 0;padding:0 2px;box-sizing:border-box;flex:0 0 100%}
 </style>
 </head>
 <body>
@@ -14137,12 +14146,18 @@ function toastHabiller(t,msg,genre){ const err=genre==='erreur'||(genre!=='ok'&&
   clearTimeout(t._v); t.classList.toggle('tst-err',err); t.setAttribute('aria-live',err?'assertive':'polite'); return err; }
 function toastCacher(t){ t.classList.remove('show'); clearTimeout(t._v);
   t._v=setTimeout(()=>{ if(!t.classList.contains('show')) t.textContent=''; },450); }
-function toast(msg,ms,genre){ const t=$('toast'); if(!t) return; toastHabiller(t,msg,genre); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>toastCacher(t),ms||2200); }
+/* une erreur porte UN signe : la pastille « ! » (partie J) — l'émoji d'avertissement qui ouvrait le message (« ⚠️ Toutes les
+   quantités sont à 0 », dix-neuf messages) faisait deux signes côte à côte ; il s'efface quand la pastille est posée
+   (relecture des captures, partie X). 📶 reste : il dit « réseau », pas « attention ». */
+function toast(msg,ms,genre){ const t=$('toast'); if(!t) return; const err=toastHabiller(t,msg,genre);
+  t.textContent=err?String(msg).replace(/^\s*(⚠️|⚠|❌|⛔️|⛔|🚫)\uFE0F?\s*/u,''):msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>toastCacher(t),ms||2200); }
 /* message avec une action : sert au « ↩︎ Annuler » d'un changement de technicien */
 function toastAnnuler(msg,appel,ms){
   const t=$('toast'); if(!t){ toast(msg); return; }
   toastHabiller(t,msg,'ok');
-  t.innerHTML=esc(msg)+' <button type="button" class="tst-an" onclick="'+appel+';(function(){var z=document.getElementById(\'toast\');if(z&&window.toastCacher)toastCacher(z);else if(z)z.classList.remove(\'show\')})()">↩︎ Annuler</button>';
+  /* on CACHE d'abord, on agit ensuite : dans l'autre ordre, le toast que pose l'annulation (« Rétabli », « Décision rétablie »…)
+     était retiré dans le même geste, avant d'être peint (relecture adverse, partie X) */
+  t.innerHTML=esc(msg)+' <button type="button" class="tst-an" onclick="(function(){var z=document.getElementById(\'toast\');if(z&&window.toastCacher)toastCacher(z);else if(z)z.classList.remove(\'show\')})();'+appel+'">↩︎ Annuler</button>';
   t.classList.add('show'); clearTimeout(t._t);
   /* 7 s par défaut — assez pour se dédire d'un geste sur une box. Une pose sur douze box passe 20 s :
      le temps de comprendre ce qui vient d'arriver avant que le seul moyen de revenir en arrière parte. */
@@ -14176,7 +14191,12 @@ function champManque(msg,...champs){
     }
     if(k===0){ let n=el._manqueNote;
       if(!n||!n.isConnected){ n=document.createElement('div'); n.className='champ-manque-note'; n.id='mq-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-        el.insertAdjacentElement('afterend',n); el._manqueNote=n; el.setAttribute('aria-describedby',(el._manqueDesc?el._manqueDesc+' ':'')+n.id); }
+        /* dans une RANGÉE flex qui ne passe pas à la ligne (le mot de passe et son 🎲, le nom et la référence d'un équipement),
+           le message se coinçait entre deux champs : il va sous la rangée. Une rangée qui passe à la ligne (.frow, la date et
+           l'heure de « Planifier ») le garde, juste après le champ, sur une ligne à lui (flex-basis 100 % de sa règle) — sorti
+           de .frow, il perdait le retrait de la rangée et se collait au bord de la carte (relectures adverses, partie X) */
+        const p=el.parentElement, cs=p&&getComputedStyle(p), rangee=!!cs&&/flex/.test(cs.display)&&!/column/.test(cs.flexDirection)&&cs.flexWrap==='nowrap';
+        (rangee?p:el).insertAdjacentElement('afterend',n); el._manqueNote=n; el.setAttribute('aria-describedby',(el._manqueDesc?el._manqueDesc+' ':'')+n.id); }
       n.textContent=msg; }
   });
   const f=L[0];
@@ -14471,7 +14491,14 @@ function multiProposer(vue){
 function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html || '');
   if(taille==='carte'){ m.className='modal carte'; $('overlay').classList.remove('full'); $('overlay').classList.add('centre'); }
   else { m.className='modal full'; $('overlay').classList.remove('centre'); $('overlay').classList.add('full'); }
-  m.innerHTML=html; $('overlay').classList.add('open'); m.scrollTop=0; $('overlay').scrollTop=0; kpiTailler(m);   // le voile aussi (point 32) : il gardait la position de la fenêtre d'avant
+  /* le voile revient en haut avec une NOUVELLE fenêtre (point 32 : il gardait la position de la précédente) — pas quand la même
+     se redessine (une teinte touchée dans « Thème et couleur » renvoyait tout en haut ; relecture adverse, partie X). Nouvelle :
+     le voile n'était pas ouvert, ou partait (l'enveloppe plus bas le note avant de retirer « ferme »), ou le titre change. */
+  const ov=$('overlay'), t0=fenetreSignature(m);
+  const nouvelle=ov._nouvelle!==undefined?ov._nouvelle:!ov.classList.contains('open'); ov._nouvelle=undefined;
+  m.innerHTML=html; ov.classList.add('open'); m.scrollTop=0;
+  if(nouvelle||t0!==fenetreSignature(m)) ov.scrollTop=0;
+  kpiTailler(m); voileBarre(ov,m);
   /* Le contenu arrive bloc par bloc. La classe se retire ensuite : « both » laisserait
      une transformation figée sur ces blocs, qui bloquerait tout déplacement ultérieur. */
   m.classList.add('pose'); clearTimeout(window._poseT); window._poseT=setTimeout(()=>m.classList.remove('pose'),620); }
@@ -17972,6 +17999,12 @@ views.dashboard=function(){
 function dashDragInit(){
   const wrap=document.querySelector('.kpis'); if(!wrap) return;
   const cartes=()=>[...wrap.querySelectorAll('.kpi[data-dk]')];
+  /* une pose en cours (les 300 ms où la carte lâchée rejoint sa case) se TERMINE dès qu'on reprend une carte : sinon la prise
+     suivante mesurait des cases encore décalées, et la fin de l'ancienne pose remettait à zéro la carte tenue et rangeait la
+     grille sous elle — ordre enregistré différent de l'ordre montré (relecture adverse, partie X ; à la souris seulement : au
+     doigt, l'appui long dépasse la pose) */
+  let poseEnCours=null;
+  const finirPose=()=>{ if(poseEnCours) poseEnCours(); };
   wrap.querySelectorAll('.kpi[data-dk]').forEach(el=>{
     const k=el.dataset.dk;
     let sx=0,sy=0,drag=false,timer=null,cases=null,ordre=null,depart=-1,place=-1;
@@ -18014,12 +18047,13 @@ function dashDragInit(){
       el.style.transition='translate var(--d-3) var(--ressort),scale var(--d-3) var(--ressort),box-shadow var(--d-3) var(--e-sortie)';
       el.style.translate=(d.x-a.x)+'px '+(d.y-a.y)+'px'; el.style.scale='1'; el.style.boxShadow='';
       if(!tk) cases.forEach(c=>{ if(c.c!==el) c.c.style.translate=''; });
-      setTimeout(fin,300); };
-    el.addEventListener('mousedown',e=>{ if(e.button!==0||e.target.closest('button')) return; sx=e.clientX; sy=e.clientY;
+      const h=setTimeout(()=>{ poseEnCours=null; fin(); },300);
+      poseEnCours=()=>{ clearTimeout(h); poseEnCours=null; fin(); }; };
+    el.addEventListener('mousedown',e=>{ if(e.button!==0||e.target.closest('button')) return; finirPose(); sx=e.clientX; sy=e.clientY;
       const mm=ev=>{ if(!drag&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>8) begin(); move(ev.clientX,ev.clientY); };
       const mu=()=>{ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); end(); };
       document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu); });
-    el.addEventListener('touchstart',e=>{ if(e.target.closest('button')) return; const t0=e.touches[0]; sx=t0.clientX; sy=t0.clientY;
+    el.addEventListener('touchstart',e=>{ if(e.target.closest('button')) return; finirPose(); const t0=e.touches[0]; sx=t0.clientX; sy=t0.clientY;
       timer=setTimeout(begin,430); },{passive:true});
     el.addEventListener('touchmove',e=>{ const t0=e.touches[0]; if(!t0) return;
       if(drag){ e.preventDefault(); move(t0.clientX,t0.clientY); }
@@ -24957,7 +24991,23 @@ function unpickNuis(n){ intNuis.delete(n); delete intTrait[n]; renderIntNuis(); 
 /* ⛔ la fenêtre secondaire (photo, détail d'un traitement) arrivait par la feuille des fenêtres et disparaissait d'un coup :
    elle repart par le même chemin (.overlay.ferme, comme #overlay), et une ouverture pendant la sortie l'annule */
 let _subSortie=null;
-function openSub(html){ const m=$('modal2'), ov=$('overlay2'); if(!m||!ov)return; clearTimeout(_subSortie); ov.classList.remove('ferme'); m.innerHTML=html; ov.classList.add('open'); m.scrollTop=0; ov.scrollTop=0; }
+function openSub(html){ const m=$('modal2'), ov=$('overlay2'); if(!m||!ov)return; clearTimeout(_subSortie);
+  const nouvelle=!ov.classList.contains('open')||ov.classList.contains('ferme'), t0=fenetreSignature(m);
+  ov.classList.remove('ferme'); m.innerHTML=html; ov.classList.add('open'); m.scrollTop=0;
+  if(nouvelle||t0!==fenetreSignature(m)) ov.scrollTop=0;   // comme openModal (partie X)
+  voileBarre(ov,m); }
+/* ce qui reconnaît une fenêtre : le début de son texte. Le titre de .modal-head seul ne suffisait pas — « Copies de sauvegarde »
+   puis « Copie du … » (un h3 nu, enchaînés sans fermeture) passaient pour la même fenêtre, et la seconde s'ouvrait défilée
+   (relecture adverse de la partie X). Une fenêtre qui se redessine (« Thème et couleur ») garde le même début — en LETTRES et en
+   CHIFFRES seulement : après le premier dessin, icones() change « ✕ » et les flèches en dessins ; relu avant et après un redessin,
+   le texte différait d'un « ✕ », et toucher une teinte renvoyait de nouveau tout en haut (vu par sonde-relecture.js). */
+function fenetreSignature(m){ return m?String(m.textContent||'').replace(/[^\p{L}\p{N}]+/gu,' ').trim().slice(0,80):''; }
+/* la barre du voile ne paraît que s'il y a de quoi défiler (voir .overlay.sans-barre) : un observateur par voile, posé une fois,
+   qui suit la taille du voile ET celle de sa fenêtre (un formulaire qui s'allonge, l'écran qui tourne) */
+function voileBarre(ov,m){ if(!ov) return;
+  const juger=()=>ov.classList.toggle('sans-barre',ov.scrollHeight<=ov.clientHeight+1);
+  if(!ov._barre&&typeof ResizeObserver==='function'){ ov._barre=new ResizeObserver(juger); ov._barre.observe(ov); if(m) ov._barre.observe(m); }
+  juger(); }
 function closeSub(){ const ov=$('overlay2'); if(!ov) return;
   if(ov.classList.contains('open')&&!ov.classList.contains('ferme')&&!animSobre()){ ov.classList.add('ferme'); clearTimeout(_subSortie);
     _subSortie=setTimeout(()=>{ if(ov.classList.contains('ferme')) ov.classList.remove('open','ferme'); },210); }
@@ -37016,7 +37066,10 @@ function boxDemandesRetirer(boxId){ const att=boxDemandesAttente(boxId);
   return att.length; }
 function fournisseurBons(id){ return (db.bons||[]).filter(b=>b&&b.fournisseurId===id); }
 function delItem(coll,id){
-  _delAvant=null;   // le « ↩︎ Annuler » ne vaut que pour la suppression qu'on vient de faire
+  /* le « ↩︎ Annuler » ne vaut que pour la DERNIÈRE suppression faite : il ne change de main qu'au moment où une nouvelle a
+     vraiment lieu (relecture adverse, partie X) — remis à zéro en tête de fonction, une boîte refusée, un droit manquant ou
+     une suppression qui passe par sa propre fenêtre rendaient muet l'« Annuler » du toast encore à l'écran */
+  let arme=null;
   const _grp=COLL_GRP[coll]||'';
   if(_grp ? !canCat(_grp,'supprimer') : !can('supprimer')){ toast('Suppression non autorisée pour ton compte (Permissions)'); return; }
   if(coll==='pointages' && !ptPeutCorriger((db.pointages||[]).find(x=>x.id===id))){ toast('Supprimer des heures est réservé aux responsables'); return; }
@@ -37059,8 +37112,9 @@ function delItem(coll,id){
        ce cas-ci (rien d'autre n'est touché) se défait : « ↩︎ Annuler » remet l'enregistrement à sa place. */
     const x=(db[coll]||[]).find(r=>r.id===id);
     if(!confirm('Supprimer '+delLibelle(coll,x)+' ?')) return;
-    _delAvant={coll,pos:(db[coll]||[]).findIndex(r=>r.id===id),x};
+    arme={coll,pos:(db[coll]||[]).findIndex(r=>r.id===id),x};
   }
+  _delAvant=arme;
   const defaire=!!(_delAvant&&_delAvant.coll===coll&&_delAvant.x&&_delAvant.x.id===id);
   db[coll]=db[coll].filter(x=>x.id!==id); logEvent('Suppression',coll,'crud'); save(); closeModal();
   if(defaire) toastAnnuler('Supprimé : '+delLibelle(coll,_delAvant.x),'delItemAnnuler()');
@@ -37076,7 +37130,7 @@ function delLibelle(coll,x){ const pl=coll==='vehicules'&&x&&typeof vPlaque==='f
   const q=DEL_NOMS[coll], nom=n?'« '+String(n).slice(0,60)+' »':'';
   return q?(q+(nom?' '+nom:'')):(nom||'cet élément'); }
 var _delAvant=null;
-function delItemAnnuler(){ const a=_delAvant; _delAvant=null; if(!a||!a.x) return;
+function delItemAnnuler(){ const a=_delAvant; _delAvant=null; if(!a||!a.x){ toast('Rien à rétablir'); return; }
   const l=db[a.coll]=db[a.coll]||[]; if(l.some(r=>r.id===a.x.id)) return;
   l.splice(Math.max(0,Math.min(a.pos,l.length)),0,a.x);   // à sa place ; il porte un _m neuf au save(), il bat donc sa pierre tombale
   logEvent('Suppression annulée',a.coll,'crud'); save(); toast('Rétabli',0,'ok'); go(current); }
@@ -42585,7 +42639,8 @@ function maybeDemoTelecollecte(){ return; if(!currentUser) return;
   db.telecollectes=db.telecollectes||[];
   db.telecollectes.unshift({id:uid(),date:todayISO(),ts:Date.now(),heure:new Date().toTimeString().slice(0,5),techId,declarantId:techId?'':currentUser.id,declarantNom:techId?'':fullName(currentUser),auteurId:currentUser.id,cb:450,esp:120,nbChq:2,chq:300,vmt:0,smupLdp:0,troisQuatre:0,envoyeeCompta:false,exemple:true});
   save(); }
-function renderLogin(){ $('app-root').style.display='none'; $('login').style.display='flex';
+function renderLogin(){ try{ vphRetirer(); }catch(e){}   // la visionneuse (z-index 420) resterait par-dessus : déconnexion, compte retiré (relecture adverse, partie X)
+  $('app-root').style.display='none'; $('login').style.display='flex';
   const saved=localStorage.getItem('elanB_savedLogin')||'';
   const _logo = (typeof effectiveTheme==='function' && effectiveTheme()==='dark') ? 'icons/logo-night.png' : 'icons/logo-day.png';
   // le nom porté par le lien de connexion d'abord (c'est celui annoncé dans l'e-mail), sinon celui des données de l'équipe
@@ -45321,7 +45376,7 @@ if(typeof window.closeModal==='function'&&typeof window.openModal==='function'){
        « Retour » d'origine de la feuille continue de fonctionner : il la retire lui-même et ne
        passe par aucune des deux enveloppes. */
     try{ var f=document.getElementById('mail-read'); if(f) f.remove(); }catch(e){}
-    var ov=voile(); if(ov) ov.classList.remove('ferme');
+    var ov=voile(); if(ov){ ov._nouvelle=!ov.classList.contains('open')||ov.classList.contains('ferme'); ov.classList.remove('ferme'); }   // lu AVANT de retirer « ferme » : une fenêtre qui part, puis une autre, c'est une nouvelle
     return ouvrirNatif.apply(this,arguments);
   };
   /* ⛔⛔ UNE FENÊTRE QUI PART N'ACCEPTE PLUS RIEN — UNE GARDE POUR TOUS LES FORMULAIRES (lot g01, 16 octobre 2026).

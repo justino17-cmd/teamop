@@ -118,6 +118,20 @@ console.log('\n── 2841 · 6. une suppression dit ce qu’elle supprime (poin
 { const M = monde();
   vrai('sans nom connu : « cet élément » (jamais une phrase vide)', M.run("delLibelle('inconnus',{id:'z'})") === 'cet élément' && M.run("delLibelle('taches',{id:'z',titre:'Rappeler M. Dupont'})") === 'la tâche « Rappeler M. Dupont »'); }
 
+console.log('\n── 2841 · 6 bis. l’« Annuler » d’avant survit à une suppression qui n’a pas lieu (relecture adverse, partie X) ──');
+{ const M = monde(); const ids = () => M.ctx.db.vehicules.map(v => v.id).join(',');
+  M.run("delItem('vehicules','v1')"); const a1 = M.J.annuler[M.J.annuler.length - 1];
+  M.ctx.confirm = (m) => { M.J.confirms.push(String(m)); return false; };
+  M.run("delItem('vehicules','v2')");
+  vrai('la suppression suivante, refusée à la boîte : rien n’est supprimé', ids() === 'v0,v2', ids());
+  M.run(a1);
+  vrai('⛔ … et le « ↩︎ Annuler » du premier toast, encore à l’écran, remet toujours le premier (il devenait muet)', ids() === 'v0,v1,v2', ids());
+  M.ctx.confirm = (m) => { M.J.confirms.push(String(m)); return true; };
+  M.run("delItem('vehicules','v0')"); M.run("delItem('vehicules','v2')"); M.run('delItemAnnuler()');
+  vrai('deux suppressions faites : « Annuler » rend la DERNIÈRE', ids() === 'v1,v2', ids()); }
+{ const M = monde(); M.run('delItemAnnuler()');
+  vrai('« Annuler » sans rien à rétablir le DIT (« Rien à rétablir »), au lieu de se taire', M.J.toasts.includes('Rien à rétablir'), M.J.toasts); }
+
 console.log('\n── 2841 · 7. une seule boîte pour remettre la consommation à zéro (irréversible) ──');
 { const M = monde(); M.run('consoRemiseZero()');
   vrai('une boîte, pas deux (la première dit tout : combien, quoi, irréversible)', M.J.confirms.length === 1 && /Irréversib/.test(M.J.confirms[0]) && M.ctx.db.mouvements.length === 0, M.J.confirms.length); }

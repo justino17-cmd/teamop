@@ -123,5 +123,23 @@ console.log('\n── 2850 · 3. la marque se voit, même au focus ──');
   vrai('… et au focus (le champ l’a, on le lui donne) : la marque est plus forte que l’anneau du focus (.field … :focus, un attribut de plus), et vient après lui', sp() > focusRegle && focusRegle > 0, [sp(), focusRegle]);
   vrai('le message sous le champ : en rouge, en texte (pas la couleur seule)', /\.champ-manque-note\{color:var\(--red\);font-size:12\.5px/.test(CSS)); }
 
+console.log('\n── 2850 · le message va SOUS la rangée quand le champ est dans une rangée flex (relecture adverse, partie X) ──');
+/* le mot de passe provisoire et son 🎲, le nom et la référence d'un équipement, la date et l'heure de « Planifier » : le message
+   inséré juste après le champ devenait un élément de la rangée — coincé entre deux champs, la rangée débordait au téléphone */
+/* … mais une rangée qui PASSE À LA LIGNE (.frow : le montant d'un encaissement, le prénom d'un conducteur) garde le message
+   juste après le champ, sur une ligne à lui : sorti de .frow, il perdait le retrait de la rangée (relecture de la partie X) */
+for (const [disp, dir, wrap, attendu, quoi] of [['flex', 'row', 'nowrap', 'rangee', 'rangée flex qui ne passe pas à la ligne'], ['inline-flex', 'row', 'nowrap', 'rangee', 'rangée inline-flex'],
+  ['flex', 'row', 'wrap', 'pwd', 'rangée qui passe à la ligne (.frow)'], ['flex', 'column', 'nowrap', 'pwd', 'colonne flex'], ['block', '', '', 'pwd', 'bloc']]) {
+  const M = monde(); const rangee = M.el('rangee'), pwd = M.el('pwd'); pwd.parentElement = rangee;
+  M.ctx.getComputedStyle = (x) => x === rangee ? { display: disp, flexDirection: dir, flexWrap: wrap } : { display: 'block', flexDirection: '', flexWrap: '' };
+  M.ctx.champManque('Mot de passe provisoire obligatoire', pwd);
+  const ins = M.J.insere[0];
+  vrai((attendu === 'rangee' ? '⛔ ' : '') + quoi + ' : le message va après ' + (attendu === 'rangee' ? 'la RANGÉE (sous elle)' : 'le champ'), !!ins && ins.apres === attendu && ins.pos === 'afterend', ins && ins.apres);
+  vrai('… et reste relié au CHAMP (aria-invalid, aria-describedby), effacé à sa première frappe', pwd.a['aria-invalid'] === 'true' && /^mq-/.test(pwd.a['aria-describedby'] || '') && (pwd.tape(), M.J.insere.length === 0)); }
+
+{ const CSSN = [...BRUT.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).join('\n').replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const regle = (/\.champ-manque-note\{([^}]*)\}/.exec(CSSN) || [])[1] || '';
+  vrai('dans une rangée qui passe à la ligne, le message prend une ligne à lui (flex:0 0 100 %, ses marges en rembourrage : il ne déborde pas)', /flex:0 0 100%/.test(regle) && /box-sizing:border-box/.test(regle) && /margin:6px 0 0/.test(regle), regle); }
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

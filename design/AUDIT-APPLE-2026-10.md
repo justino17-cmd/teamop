@@ -80,3 +80,31 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 - Bancs : `test-2830` (35 contrôles, 7 mutations sur 7 mordent), `test-2831` (47 contrôles, 7 mutations sur 7).
 - Sondes : `sonde-contraste-accru.js` (8 ✓ ; 4 ✗ sur la bêta d'origine), `sonde-transparence-reduite.js` (4 ✓ ;
   0 ✓ 4 ✗ sur l'origine), `sonde-defilement-reduit.js` (sur l'origine la page glisse sur 3 048 px, corrigée elle saute).
+
+### Parties B à W
+La preuve de chacune (banc, mutations vues tomber, sonde au navigateur avec sa contre-épreuve sur la bêta d'origine,
+suite complète) est écrite dans son message de commit, sur la branche.
+
+### Partie X — la relecture adverse des parties K à W
+Avant de livrer, le diff K → W a été relu par trois relecteurs indépendants, chaque constat repris par un sceptique
+chargé de le réfuter (12 agents) ; puis les correctifs eux-mêmes ont été relus (5 agents). Ce qu'ils ont trouvé, et
+qui est corrigé :
+- l'« Annuler » d'une suppression devenait muet après une suppression refusée (point 20) ; sans rien à rétablir, il
+  le dit ;
+- le toast posé par une annulation (« Rétabli ») était retiré dans le même geste — on cache d'abord, on agit ensuite ;
+- reprendre une carte du tableau de bord pendant que la précédente se pose (point 35) : l'ordre enregistré différait
+  de l'ordre montré ;
+- un refus des bons de commande (point 31) partait SOUS le panneau ouvert — le toast passe au-dessus des panneaux
+  plein écran, sous la visionneuse ;
+- une fenêtre qui se redessine (toucher une teinte) remontait tout en haut (point 32) ; une AUTRE fenêtre se reconnaît
+  au début de son texte (lettres et chiffres : un « ✕ » devient une icône entre deux dessins) ;
+- le pixel de défilement du voile faisait paraître une barre sur une fenêtre courte, là où le système en dessine ;
+- le message d'un champ qui manque (point 33) tombait entre deux champs d'une même rangée ; dans une rangée qui passe
+  à la ligne (`.frow`), il reste sous le champ, au retrait de la rangée ;
+- la visionneuse de photo (point 21) restait par-dessus l'écran de connexion après une déconnexion ;
+- une erreur portait deux signes (la pastille « ! » et l'émoji « ⚠️ ») — elle n'en porte plus qu'un.
+Un constat a été réfuté : l'« Annuler » de « Rendre toutes les box » pourrait écraser un changement fait ailleurs sur la
+même box dans les 7 s du toast — un cas qu'un utilisateur n'atteint pas en pratique.
+- Bancs : `test-2840` (43), `test-2841` (30), `test-2842` (89), `test-2849` (43), `test-2850` (40), `test-2851` (31) ;
+  27 mutations sur 27 mordent.
+- Sonde : `sonde-relecture.js`, iPhone et Mac, jour et nuit : 30 ✓ ; 17 ✓ 13 ✗ sur la bêta de la partie W.

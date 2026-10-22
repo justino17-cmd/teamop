@@ -108,6 +108,17 @@ console.log('\n── 2851 · 3. la dépose ──');
 { const M = monde(); M.souris.presse('a', 80, 50); M.souris.bouge(95, 55); M.souris.bouge(80, 60); M.souris.lache(); M.tourner();
   vrai('reposée sur sa propre case : rien n’est enregistré, rien ne bouge dans la grille', M.J.saves === 0 && !M.J.deplacements && M.J.redessins === 0); }
 
+console.log('\n── 2851 · 3 bis. reprendre une carte pendant que la précédente se pose (relecture adverse, partie X) ──');
+{ const M = monde(); M.souris.presse('a', 80, 50); M.souris.bouge(95, 55); M.souris.bouge(250, 160); M.souris.lache();
+  vrai('(population) la carte lâchée est en train de se poser (rien d’enregistré encore)', M.J.saves === 0 && M.carte('a').style.translate === '170px 110px');
+  M.souris.presse('b', 250, 50);
+  vrai('⛔ reprendre une carte TERMINE d’abord la pose en cours : l’ordre est enregistré et la grille rangée avant la nouvelle prise', M.J.saves === 1 && M.J.ordre.join(',') === 'b,c,d,a,cachee' && M.C.map(e => e.dataset.dk).join(',') === 'b,c,d,a', [M.J.saves, M.J.ordre]);
+  vrai('… et ses styles sont rendus (la nouvelle prise mesure des cases propres)', M.C.every(e => !e.style.translate && !e.style.scale && !e.style.transition));
+  M.souris.bouge(262, 56);
+  M.tourner();
+  vrai('⛔ … et la fin de l’ancienne pose ne repasse pas : la carte tenue reste soulevée, rien n’est enregistré deux fois', M.carte('b').style.scale === '1.04' && M.J.saves === 1, [M.carte('b').style.scale, M.J.saves]);
+  M.souris.lache(); M.tourner(); }
+
 console.log('\n── 2851 · 4. au doigt ──');
 { const M = monde(); M.doigt.pose('b', 250, 50);
   const avant = M.doigt.bouge('b', 252, 51);

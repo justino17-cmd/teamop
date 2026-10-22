@@ -81,7 +81,8 @@ function monde(opts) {
     },
     $: id => els[id] || null,
     STORE_KEY: 'teamop_gestion_v2', currentUser: { id: 'u1' }, current: 'clients',
-    kpiTailler() {}, stopBoxScanCamera() {}, toast(m) { ctx.__toasts.push(String(m)); },
+    /* voileBarre et fenetreSignature : la barre du voile et ce qui reconnaît une fenêtre, appelés par openModal (audit apple-design, partie X) */
+    kpiTailler() {}, voileBarre() {}, fenetreSignature: () => '', stopBoxScanCamera() {}, toast(m) { ctx.__toasts.push(String(m)); },
     __toasts: [], __ouvertures: [], db: { clients: [] }, esc: x => String(x == null ? '' : x),
     scanStream: null, scanTimer: null, _pp: null,
   };

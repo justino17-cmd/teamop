@@ -70,7 +70,9 @@ console.log('\n── 2840 · 3. parti, il ne reste rien à lire ──');
 
 console.log('\n── 2840 · 4. « Annuler » est un vrai bouton ──');
 { const M = monde(); M.ctx.toastAnnuler('Intervention déplacée', 'annulerDeplacement()');
-  vrai('« ↩︎ Annuler » est un <button type="button"> (clavier, lecteur d’écran)', /<button type="button" class="tst-an" onclick="annulerDeplacement\(\);/.test(M.t.innerHTML), M.t.innerHTML.slice(0, 160));
+  vrai('« ↩︎ Annuler » est un <button type="button"> (clavier, lecteur d’écran)', /<button type="button" class="tst-an" onclick="[^"]*annulerDeplacement\(\)"/.test(M.t.innerHTML), M.t.innerHTML.slice(0, 160));
+  { const oc = (/onclick="([^"]*)"/.exec(M.t.innerHTML) || [])[1] || '';
+    vrai('⛔ … qui CACHE le toast d’abord, puis agit : le toast que pose l’annulation (« Rétabli »…) se voit (relecture adverse, partie X)', oc.indexOf('toastCacher') > -1 && oc.indexOf('toastCacher') < oc.indexOf('annulerDeplacement()'), oc); }
   vrai('… et le message qui le porte n’est pas une alerte', !M.cl.has('tst-err')); }
 
 console.log('\n── 2840 · 5. le classement, sur tous les messages de la page ──');
@@ -98,6 +100,32 @@ const CSS = [...BRUT.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]
   } }
 vrai('… et une pastille « ! » (un signe, pas seulement une teinte), aplat et encre appariés', /\.toast\.tst-err::before\{content:'!'[^}]*background:var\(--red-fill[^}]*color:var\(--on-red/.test(CSS));
 vrai('« Annuler » garde l’encre de la capsule (plus de liseré blanc invisible sur une capsule claire)', /\.tst-an\{[^}]*border:1px solid currentColor;[^}]*background:none;[^}]*color:inherit/.test(CSS));
+
+console.log('\n── 2840 · une erreur porte UN signe (partie X) ──');
+{ const M = monde();
+  M.ctx.toast('⚠️ Toutes les quantités sont à 0 — règle les cartons', 0, 'erreur');
+  vrai('⛔ une erreur qui commençait par « ⚠️ » : la pastille « ! » la marque, l’émoji s’efface (deux signes côte à côte)', M.t.classList.contains('tst-err') && M.t.textContent === 'Toutes les quantités sont à 0 — règle les cartons', M.t.textContent);
+  M.ctx.toast('❌ Échec de l’envoi');
+  vrai('… de même pour « ❌ » (reconnue comme erreur par son signe)', M.t.classList.contains('tst-err') && M.t.textContent === 'Échec de l’envoi', M.t.textContent);
+  M.ctx.toast('📶 Hors connexion — enregistré sur l’appareil');
+  vrai('« 📶 » reste : il dit « réseau », pas « attention »', /^📶/.test(M.t.textContent), M.t.textContent);
+  M.ctx.toast('⚠️ Pensez à valider', 0, 'ok');
+  vrai('un message qui n’est pas une erreur garde son émoji (pas de pastille, rien à remplacer)', !M.t.classList.contains('tst-err') && /^⚠️/.test(M.t.textContent), M.t.textContent); }
+
+console.log('\n── 2840 · le toast passe au-dessus des panneaux plein écran (relecture adverse, partie X) ──');
+/* « Ma commande » des bons (410), leur catalogue (400), le volet du téléphone (350) : à 320, un refus des bons (« Toutes les
+   quantités sont à 0 ») partait SOUS le panneau ouvert — le bouton « ✓ Valider » avait l'air de ne rien faire. La visionneuse
+   de photo (420) et l'écran hors ligne restent au-dessus. */
+{ const C = require('./outils-cascade-app.js'); const REG = C.regles([...BRUT.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).join('\n'));
+  const g = C.gagnant(REG.filter(r => !/[\[:]/.test(r.sel)), [{ tag: 'html', classes: [], attrs: {} }, { tag: 'body', classes: [], attrs: {} }, { tag: 'div', classes: ['toast', 'show'], attrs: { id: 'toast' }, id: 'toast' }], 390, 'z-index');
+  const zt = g ? parseInt(g.v, 10) : NaN;
+  const SRCJ = BRUT.replace(/<style[^>]*>[\s\S]*?<\/style>/g, ' ');
+  const panneaux = [...SRCJ.matchAll(/position:fixed;inset:0;z-index:(\d+)/g)].map(m => +m[1]).filter(z => z < 420);
+  const zv = (/\.vph\{[^}]*z-index:(\d+)/.exec(CSS) || [])[1];
+  vrai('(population) les panneaux plein écran écrits dans le code sont trouvés (' + panneaux.join(', ') + ')', panneaux.length >= 3 && panneaux.includes(410), panneaux);
+  vrai('⛔ le toast (' + zt + ') passe au-dessus de chacun', zt > Math.max(...panneaux), [zt, panneaux]);
+  vrai('… et du volet du téléphone (#splitpane, 350)', zt > 350);
+  vrai('… mais reste sous la visionneuse de photo (' + zv + ')', !!zv && zt < +zv, [zt, zv]); }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

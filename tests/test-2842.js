@@ -337,5 +337,17 @@ vrai('la couche qui reçoit le focus ne dessine pas de contour', /\.vph:focus\{o
 vrai('animations réduites : la couche, la photo et la barre n’ont plus de transition', /@media \(prefers-reduced-motion: reduce\)\{\s*\.vph,\.vph-img,\.vph-tete\{transition:none!important\}/.test(CSS));
 vrai('le survol de « Fermer » ne vit que sous une souris (@media (hover:hover))', /@media \(hover:hover\)\{\s*\.vph-fermer:hover\{/.test(CSS) && !/(^|[}\s])\.vph-fermer:hover\{/.test(CSS.replace(/@media \(hover:hover\)\{\s*\.vph-fermer:hover\{[^}]*\}\s*\}/, '')));
 
+console.log('\n── 2842 · 9. l’écran de connexion ne se dessine jamais sous une photo ouverte (relecture adverse, partie X) ──');
+/* la visionneuse (420) est une couche à elle : la déconnexion et le retrait du compte (compteRetire) dessinaient l'écran de
+   connexion (200) DESSOUS — la photo d'un client restait affichée, le formulaire inaccessible. renderLogin la retire, quel que
+   soit le chemin qui y mène. */
+{ const rl = (/\nfunction renderLogin\(\)\{[^\n]*/.exec(CODE) || [''])[0];
+  vrai('renderLogin commence par retirer la visionneuse (vphRetirer), avant de dessiner quoi que ce soit', /^\nfunction renderLogin\(\)\{ try\{ vphRetirer\(\); \}catch\(e\)\{\}/.test(rl), rl.slice(0, 120));
+  for (const f of ['logout', 'compteRetire']) { const m = new RegExp('\\nfunction ' + f + '\\([^)]*\\)\\{[\\s\\S]*?\\n(?=function |/\\*)').exec(CODE);
+    vrai(f + ' passe par renderLogin (donc retire la visionneuse)', !!m && /renderLogin\(\)/.test(m[0])); }
+  const M = monde(); M.ctx.photoPlein(M.vign, 'Photo'); M.tourner();
+  vrai('(population) la visionneuse est ouverte', M.ctx.photoPleinOuvert() === true);
+  M.ctx.vphRetirer(); vrai('… vphRetirer la retire tout de suite, avec ses écouteurs (clavier, rotation)', M.ctx.photoPleinOuvert() === false && !(M.J.doc.keydown || []).length && !(M.J.fen.resize || []).length, [M.ctx.photoPleinOuvert(), (M.J.doc.keydown || []).length, (M.J.fen.resize || []).length]); }
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

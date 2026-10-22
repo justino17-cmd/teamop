@@ -141,7 +141,7 @@ function monde(stockage) {
     var $=id=>document.getElementById(id);
     var db={clients:[{id:'c1',nom:'Boulangerie'},{id:'c2',nom:'Bar'}]};
     var formLignes=[], intNuis=new Set(), intMeth=new Set(), intTrait={}, prodFours=new Set(), demLignes=[], bonLignes=[], _bonEditId='', bonSites=[];
-    function toast(m){ __toasts.push(String(m)); } function kpiTailler(){} function setTimeout(){} function clearTimeout(){}
+    function toast(m){ __toasts.push(String(m)); } function kpiTailler(){} function voileBarre(){} function fenetreSignature(){ return ''; } function setTimeout(){} function clearTimeout(){}
     var window2=window;
     function clientsProposes(){ return db.clients; } function canCat(){ return false; }
     const ligHT=l=>l.reduce((s,x)=>s+(Number(x.qte)||0)*(Number(x.pu)||0),0);
