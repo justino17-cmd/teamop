@@ -3699,6 +3699,16 @@ html[data-refonte] .modal-head h3{flex:1;min-width:0}
 }
 html[data-refonte] .modal-foot{border-top-color:var(--rf-filet)!important}
 html[data-refonte] .modal-foot .btn{min-height:var(--rf-tap)}
+/* ⛔ ET SUR TÉLÉPHONE AUSSI — audit apple-design du 21 octobre 2026, point 22. Le pied collant du téléphone (la règle
+   « .modal-foot{position:sticky;… background:var(--bg1)} » du palier 780 px) restait un aplat opaque sous un en-tête en verre :
+   le formulaire défilait sous un en-tête translucide et se coupait net, à ras d'« Enregistrer », sur une barre pleine — deux
+   matières aux deux bouts de la même feuille. Il prend la matière de l'en-tête, avec son filet (déjà posé juste au-dessus) ;
+   « moins de transparence » le rend plein, comme l'en-tête. */
+@media(max-width:780px){
+  html[data-refonte] .modal-foot{
+    background:color-mix(in srgb,var(--card) 80%,transparent)!important;
+    -webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%)}
+}
 /* ══ LA FEUILLE DE RÉGLAGES TIENT DANS L'ÉCRAN ══════════════════════════════════════════════
    Mesuré sur un iPhone : la fenêtre faisait 2 493 px de haut pour un écran de 844. Elle ne
    défilait pas en elle-même (scrollHeight ≈ clientHeight) : c'est la PAGE qui défilait, et
@@ -5867,7 +5877,9 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
 /* ══ MOINS DE TRANSPARENCE ══ les verres ajoutés par la refonte (en-tête de fenêtre, pied de
    fenêtre, en-tête de tableau, en-tête du planning) redeviennent des aplats pleins. */
 @media (prefers-reduced-transparency: reduce){
-  html[data-refonte] .modal-head,html[data-refonte] .modal-foot,
+  /* .modal.full .modal-foot : le pied en verre du bureau est écrit avec deux classes de plus — sans lui, il restait
+     translucide sous le réglage (mesuré par test-2843, audit apple-design, point 22) */
+  html[data-refonte] .modal-head,html[data-refonte] .modal-foot,html[data-refonte] .modal.full .modal-foot,
   html[data-refonte] .tbl th,html[data-refonte] .plm-th,html[data-refonte] .plg-h{
     -webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--card)!important}
   html[data-refonte] .rf-tabs{
@@ -7921,6 +7933,10 @@ html[data-refonte] .filters.tc-modes,html[data-refonte] .filters.seg-on:not(.seg
   /* les en-têtes collants du planning et des tableaux : pleins, filet du bas net */
   html[data-marque][data-verre] .plm-th,html[data-marque][data-verre] .plg-h,
   html[data-marque][data-verre] .tbl th{background:var(--vr-plein)!important;border-bottom-color:var(--t3)!important}
+  /* l'en-tête et le pied d'une fenêtre écrivent leur verre en dur (color-mix(…, transparent)), hors des jetons : pleins aussi,
+     filets nets (point 22 de l'audit — le pied venait de prendre la matière de l'en-tête) */
+  html[data-marque][data-verre] .modal-head{background:var(--vr-plein)!important;border-bottom-color:var(--t3)!important}
+  html[data-marque][data-verre] .modal-foot,html[data-marque][data-verre] .modal.full .modal-foot{background:var(--vr-plein)!important;border-top-color:var(--t3)!important}
 }
 @media (prefers-reduced-transparency: reduce){
   /* ⛔ À LA SOURCE, PAS SURFACE PAR SURFACE. Le bloc § 20 plus haut liste ses surfaces une à une : mesuré le
