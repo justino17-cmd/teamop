@@ -20639,37 +20639,85 @@ function planDropTime(e,techId,h0,PPH){ PPH=PPH||48; e.preventDefault(); if(!can
    armé), et la souris garde le glisser natif. touchcancel (appel entrant, geste système, glisser natif
    qui reprend la main) défait le glisser SANS déposer : fantôme retiré, _planDragging remis à faux. */
 let _tpDrag=null;
-function planTpArreter(t){ if(!t) return; clearTimeout(t.timer);
-  try{ if(t.ghost) t.ghost.remove(); }catch(_){ }
+/* ⛔⛔ LE POINT SAISI RESTE SOUS LE DOIGT — audit apple-design du 21 octobre 2026 (§ 2 : « touch and content should move
+   together », en respectant l'endroit où l'on a saisi). Le fantôme était posé coin haut-gauche au doigt + 10 px, pendant
+   que le DÉPÔT soustrayait le point de prise (_planGrabDy) : une carte saisie en son milieu s'affichait des dizaines de
+   pixels plus BAS que là où elle se posait — presque une heure au planning. On pose désormais le fantôme pour que le point
+   saisi (dx, dy) soit sous le doigt ; l'inclinaison et l'échelle tournent AUTOUR de ce point (transform-origin), donc ne
+   le déplacent pas. Ce que voit l'œil est ce que pose le dépôt. */
+const planTpPose=(t,leve)=>'translate('+(t.x-t.dx)+'px,'+(t.y-t.dy)+'px)'+(leve===false?'':' rotate(-2deg) scale(1.03)');
+const planTpSobre=()=>{ try{ return matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(_){ return true; } };
+/* le repère d'heure de la souris (planGuideMaj), donné au doigt : la zone dit son heure de départ et son échelle dans
+   data-drop — multi:jour:personne:h0:pph · cell:date:personne:h0:pph · time:date:h0:pph ; une case sans heures n'en a pas */
+function planTpGuide(t,dz){
+  if(!dz){ planGuideOff(); return; }
+  const p=(dz.getAttribute('data-drop')||'').split(':'), nb=(v)=>{ const n=parseInt(v,10); return isNaN(n)?null:n; };
+  const h0=p[0]==='time'?nb(p[2]):nb(p[3]), pph=p[0]==='time'?nb(p[3]):nb(p[4]);
+  if(h0===null||pph===null){ planGuideOff(); return; }
+  window._planGrabDy=t.dy||0;
+  try{ planGuideMaj({clientY:t.y},dz,h0,pph,p[0]!=='time'&&p[2]?techColor(p[2]):undefined); }catch(_){ }
+}
+/* au bord de l'écran, la page défile sous le doigt immobile (§ 6 : un geste ne doit pas buter sur ce qu'on ne voit pas) */
+function planTpBord(){
+  const t=_tpDrag; if(!t||!t.on){ return; }
+  const haut=88, bas=innerHeight-110, v=t.y<haut?-(haut-t.y):t.y>bas?(t.y-bas):0;
+  if(!v){ t.raf=0; return; }
+  window.scrollBy(0,Math.max(-18,Math.min(18,v*0.25)));
+  const el=document.elementFromPoint(t.x,t.y), dz=el&&el.closest('[data-drop]');
+  if(t.dz&&t.dz!==dz) t.dz.classList.remove('drop');
+  if(dz) dz.classList.add('drop');
+  t.dz=dz; planTpGuide(t,dz);
+  t.raf=requestAnimationFrame(planTpBord);
+}
+/* revenir : un geste annulé RAMÈNE la carte à sa place (§ 7, même chemin à l'aller et au retour) au lieu de l'effacer */
+function planTpArreter(t,revenir){ if(!t) return; clearTimeout(t.timer); if(t.raf) cancelAnimationFrame(t.raf);
+  const gh=t.ghost;
+  try{ if(t.src) t.src.classList.remove('plg-fantome'); }catch(_){ }
   try{ if(t.dz) t.dz.classList.remove('drop'); }catch(_){ }
-  if(t.on) window._planDragging=false; }
-document.addEventListener('touchstart',e=>{ if(e.touches.length!==1||(current!=='planning'&&current!=='carteInt')){ planTpArreter(_tpDrag); _tpDrag=null; return; }
+  try{ planGuideOff(); }catch(_){ }
+  if(gh){
+    let r=null; try{ r=revenir&&t.src&&t.src.isConnected?t.src.getBoundingClientRect():null; }catch(_){ }
+    if(r&&gh.animate&&!planTpSobre()){
+      const a=gh.animate([{transform:gh.style.transform},{transform:'translate('+r.left+'px,'+r.top+'px)'}],{duration:220,easing:'cubic-bezier(.2,0,0,1)'});
+      a.onfinish=a.oncancel=()=>{ try{ gh.remove(); }catch(_){ } };
+    } else { try{ gh.remove(); }catch(_){ } }
+  }
+  if(t.on){ window._planDragging=false; window._planDragId=''; window._planGrabDy=0; } }
+document.addEventListener('touchstart',e=>{ if(e.touches.length!==1||(current!=='planning'&&current!=='carteInt')){ planTpArreter(_tpDrag,true); _tpDrag=null; return; }
   if(!canPlan()) return;   // sans le droit « Déplacer le planning », pas de glisser tactile
   const c=e.target.closest('[data-drag-int]'); if(!c) return;
   const id=c.getAttribute('data-drag-int'), d0=e.touches[0];
-  planTpArreter(_tpDrag);
-  /* où le doigt tient la carte : comme à la souris (planDragStart), la carte se pose là où on l'a saisie */
-  let dy=0; try{ const rb=c.getBoundingClientRect(); dy=Math.max(0,Math.min(rb.height,d0.clientY-rb.top)); }catch(_){ }
-  _tpDrag={id,dy,x:d0.clientX,y:d0.clientY,timer:setTimeout(()=>{ if(!_tpDrag) return; _tpDrag.on=true; window._planDragging=true; window._planDragDe=planLigneDe(c);
-    const gh=c.cloneNode(true); Object.assign(gh.style,{position:'fixed',left:'0',top:'0',width:c.offsetWidth+'px',zIndex:999,pointerEvents:'none',opacity:.92,margin:0,transform:'translate('+(_tpDrag.x+10)+'px,'+(_tpDrag.y+10)+'px) rotate(-2deg)'});
-    document.body.appendChild(gh); _tpDrag.ghost=gh; if(navigator.vibrate) try{navigator.vibrate(12);}catch(_){ }
+  planTpArreter(_tpDrag,true);
+  /* où le doigt tient la carte, dans les deux sens : la carte se pose là où on l'a saisie */
+  let dx=0, dy=0; try{ const rb=c.getBoundingClientRect(); dx=Math.max(0,Math.min(rb.width,d0.clientX-rb.left)); dy=Math.max(0,Math.min(rb.height,d0.clientY-rb.top)); }catch(_){ }
+  _tpDrag={id,dx,dy,src:c,x:d0.clientX,y:d0.clientY,timer:setTimeout(()=>{ const t=_tpDrag; if(!t) return; t.on=true; window._planDragging=true; window._planDragId=id; window._planDragDe=planLigneDe(c);
+    const gh=c.cloneNode(true); gh.removeAttribute('id');
+    Object.assign(gh.style,{position:'fixed',left:'0',top:'0',width:c.offsetWidth+'px',zIndex:999,pointerEvents:'none',opacity:.94,margin:0,
+      transformOrigin:t.dx+'px '+t.dy+'px',transform:planTpPose(t),boxShadow:'0 14px 34px rgba(0,0,0,.28)'});
+    document.body.appendChild(gh); t.ghost=gh;
+    /* la carte se SOULÈVE (elle quitte sa place sous le doigt), l'origine reste visible en fantôme comme à la souris */
+    if(gh.animate&&!planTpSobre()) gh.animate([{transform:planTpPose(t,false),boxShadow:'0 0 0 rgba(0,0,0,0)'},{transform:planTpPose(t),boxShadow:'0 14px 34px rgba(0,0,0,.28)'}],{duration:140,easing:'cubic-bezier(.2,0,0,1)'});
+    c.classList.add('plg-fantome');
+    if(navigator.vibrate) try{navigator.vibrate(12);}catch(_){ }
   },260)};
 },{passive:true});
 document.addEventListener('touchmove',e=>{ if(!_tpDrag) return; const d0=e.touches[0]; if(!d0) return;
   if(!_tpDrag.on){ if(Math.hypot(d0.clientX-_tpDrag.x,d0.clientY-_tpDrag.y)>12){ clearTimeout(_tpDrag.timer); _tpDrag=null; } return; }
   if(e.cancelable) e.preventDefault();
-  _tpDrag.x=d0.clientX; _tpDrag.y=d0.clientY;
-  _tpDrag.ghost.style.transform='translate('+(d0.clientX+10)+'px,'+(d0.clientY+10)+'px) rotate(-2deg)';
+  const t=_tpDrag; t.x=d0.clientX; t.y=d0.clientY;
+  t.ghost.style.transform=planTpPose(t);
   const el=document.elementFromPoint(d0.clientX,d0.clientY); const dz=el&&el.closest('[data-drop]');
-  if(_tpDrag.dz&&_tpDrag.dz!==dz) _tpDrag.dz.classList.remove('drop');
+  if(t.dz&&t.dz!==dz) t.dz.classList.remove('drop');
   if(dz) dz.classList.add('drop');
-  _tpDrag.dz=dz;
+  t.dz=dz; planTpGuide(t,dz);
+  if(!t.raf) t.raf=requestAnimationFrame(planTpBord);
 },{passive:false});
 document.addEventListener('touchend',e=>{ const t=_tpDrag; _tpDrag=null; if(!t) return; clearTimeout(t.timer);
   if(!t.on) return;
   const d0=(e.changedTouches&&e.changedTouches[0])||{clientY:t.y};
   const dz=t.dz;
-  planTpArreter(t);
+  /* lâchée hors de toute zone, la carte revient à sa place ; déposée, la vue se redessine à sa nouvelle place */
+  planTpArreter(t,!dz);
   if(dz){
     const parts=(dz.getAttribute('data-drop')||'').split(':');
     const fake={preventDefault(){},dataTransfer:{getData:()=>t.id},altKey:false,clientY:d0.clientY,currentTarget:dz};
@@ -20689,7 +20737,7 @@ document.addEventListener('touchend',e=>{ const t=_tpDrag; _tpDrag=null; if(!t) 
   }
   if(window._planPending){ window._planPending=false; if(current==='planning'){ try{ views.planning(); }catch(err){} } }
 });
-document.addEventListener('touchcancel',()=>{ const t=_tpDrag; _tpDrag=null; planTpArreter(t);
+document.addEventListener('touchcancel',()=>{ const t=_tpDrag; _tpDrag=null; planTpArreter(t,true);
   if(window._planPending){ window._planPending=false; if(current==='planning'){ try{ views.planning(); }catch(err){} } } });
 
 /* ═══════════════ PLANNING — traçabilité, indispos, notes, passages, garanties ═══════════════ */

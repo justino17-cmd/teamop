@@ -12,6 +12,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const APP = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
 let ok = 0, ko = 0;
+const carteDe = (m) => m.carte;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d).slice(0, 300) : '')); } };
 
 // le bloc du glisser tactile : de `let _tpDrag=null;` au marqueur du bloc suivant
@@ -29,17 +30,23 @@ function monter(opts) {
   const ecoute = (type, fn, o) => { (S.ecout[type] = S.ecout[type] || []).push({ fn, o }); };
   const zone = { classes: new Set(), classList: { add(c) { zone.classes.add(c); }, remove(c) { zone.classes.delete(c); } },
     getAttribute: k => k === 'data-drop' ? (O.zone || 'time:T2:8') : '', getBoundingClientRect: () => ({ top: 0 }) };
-  const carte = { getAttribute: k => k === 'data-drag-int' ? 'i1' : '', offsetWidth: 100,
-    getBoundingClientRect: () => ({ top: 100, height: 60 }),
-    cloneNode() { const g = { style: {}, enleve: false, remove() { g.enleve = true; } }; S.fantome = g; return g; } };
+  /* la carte occupe x 90→190, y 100→160 : un doigt posé en (100,100) la tient à 10 px de son bord gauche, 0 du haut */
+  const carte = { getAttribute: k => k === 'data-drag-int' ? 'i1' : '', offsetWidth: 100, isConnected: true,
+    classes: new Set(), classList: { add(c) { carte.classes.add(c); }, remove(c) { carte.classes.delete(c); } },
+    getBoundingClientRect: () => ({ left: 90, top: 100, width: 100, height: 60 }),
+    cloneNode() { const g = { style: {}, enleve: false, remove() { g.enleve = true; }, removeAttribute() {} }; S.fantome = g; return g; } };
   const W = { console, Object, Math, JSON, Set, parseInt, Date, isNaN,
     document: { addEventListener: ecoute, body: { appendChild(g) { S.ajout.push(g); } }, elementFromPoint: () => ({ closest: sel => sel === '[data-drop]' ? zone : null }) },
-    navigator: {}, window: { _planDragging: false },
+    navigator: {}, window: { _planDragging: false, scrollBy() {} },
     current: 'planning', canPlan: () => O.peut, planLigneDe: () => 'T1', views: { planning() { S.vues++; } },
     planDropCell: (e, ...r) => S.drops.push(['cell', ...r]), planDropTime: (e, ...r) => S.drops.push(['time', e.clientY, ...r]),
     planMultiDrop: (e, ...r) => S.drops.push(['multi', e.clientY, ...r, 'dy=' + W.window._planGrabDy]),
     planWeekDrop: (e, ...r) => S.drops.push(['semaine', e.clientY, ...r, 'dy=' + W.window._planGrabDy]),
     plHovHide() {}, planCtxTarget: () => [{}], planCtxOpen: () => { S.menus++; },
+    /* ce que le glisser au doigt emprunte depuis l'audit apple-design (repère d'heure, bord qui défile, animations) :
+       le repère est noté, les images ne tournent pas d'elles-mêmes, « réduire les animations » est posé */
+    planGuideOff() { S.guide = 'off'; }, planGuideMaj() { S.guide = 'on'; }, techColor: () => '#123456',
+    requestAnimationFrame: () => 1, cancelAnimationFrame() {}, innerHeight: 800, matchMedia: () => ({ matches: true }),
     setTimeout: (fn, ms) => { const id = S.timers.length + 1; S.timers.push({ id, fn, a: S.t + ms, vivant: true }); return id; },
     clearTimeout: id => { const t = S.timers.find(x => x.id === id); if (t) t.vivant = false; } };
   vm.createContext(W);
@@ -49,7 +56,7 @@ function monter(opts) {
   const doigt = (x, y) => ({ clientX: x, clientY: y });
   const touche = (type, x, y, extra) => { const ev = Object.assign({ touches: type === 'touchend' || type === 'touchcancel' ? [] : [doigt(x, y)], changedTouches: [doigt(x, y)], target: { closest: sel => sel === '[data-drag-int]' ? carte : null }, cancelable: true, prevenu: false, preventDefault() { ev.prevenu = true; } }, extra || {}); tire(type, ev); return ev; };
   const pointeur = (type, x, y) => { const ev = { pointerType: 'touch', clientX: x, clientY: y, target: { closest: sel => (sel === '[data-drag-int]' ? carte : null) } }; tire(type, ev); return ev; };
-  return { W, S, avance, touche, pointeur, zone };
+  return { W, S, avance, touche, pointeur, zone, carte };
 }
 
 console.log('— un doigt arme, déplace, relâche : la carte est déposée');
@@ -59,11 +66,13 @@ console.log('— un doigt arme, déplace, relâche : la carte est déposée');
   vrai('appui long : le fantôme paraît et le glisser est armé', m.S.ajout.length === 1 && m.W.window._planDragging === true, [m.S.ajout.length, m.W.window._planDragging]);
   const mv = m.touche('touchmove', 140, 400);
   vrai('le déplacement bloque le défilement (touchmove annulé)', mv.prevenu === true);
-  vrai('le fantôme suit le doigt', /140|150/.test(m.S.fantome && m.S.fantome.style.transform || ''), m.S.fantome && m.S.fantome.style.transform);
+  vrai('le fantôme suit le doigt, le point saisi sous le doigt (140−10, 400−0)', /^translate\(130px,400px\)/.test(m.S.fantome && m.S.fantome.style.transform || ''), m.S.fantome && m.S.fantome.style.transform);
+  vrai('l’original reste à sa place, marqué en fantôme', m.W.document && carteDe(m).classes.has('plg-fantome'));
   vrai('la zone survolée s\'allume', m.zone.classes.has('drop'));
   m.touche('touchend', 140, 400);
   vrai('relâché : la carte est déposée sur la zone (une fois)', m.S.drops.length === 1 && m.S.drops[0][0] === 'time' && m.S.drops[0][1] === 400, m.S.drops);
   vrai('le fantôme est retiré et _planDragging remis à faux', (m.S.fantome || {}).enleve === true && m.W.window._planDragging === false);
+  vrai('l’original perd sa marque de fantôme', !m.carte.classes.has('plg-fantome'));
   vrai('la zone ne reste pas allumée', !m.zone.classes.has('drop')); }
 
 console.log('— un doigt perdu (touchcancel) défait tout sans déposer');
