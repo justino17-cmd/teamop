@@ -87,8 +87,11 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     v('les fonctions sont trouvées', Object.keys(FN).filter(k => !FN[k] && (V767 || k !== 'acces') && k !== 'feuille'), []);
     v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)',
       ['function abosManquants(', 'function proposerAbonnement(', 'function planPlaces(', 'function planPlaceLibre(', 'function essaiCouvreEquipe(', 'function placesSrvActives('].map(n => SRC.split(n).length - 1), [1, 1, 1, 1, 1, 1]);
-    /* audit apple-design, point 19 : la proposition est une feuille de l'application, plus une boîte du navigateur */
-    vrai('la proposition d\'abonnement est une FEUILLE de l\'application (aboFeuille → openSub), plus confirm()', !!FN.feuille && /aboFeuille\(/.test(FN.proposer) && !/confirm\(/.test(FN.proposer) && /openSub\(/.test(FN.feuille));
+    /* audit apple-design, point 19 : la proposition est une feuille de l'application, plus une boîte du navigateur.
+       ⚠️ Par VERSION, comme V767 : sur `main`, la bêta se publie en avance (v771) pendant qu'app.html reste en v770, qui pose
+       encore la question par confirm() — les deux pages passent par ce banc le même jour. */
+    if (VERSION >= 771) vrai('la proposition d\'abonnement est une FEUILLE de l\'application (aboFeuille → openSub), plus confirm()', !!FN.feuille && /aboFeuille\(/.test(FN.proposer) && !/confirm\(/.test(FN.proposer) && /openSub\(/.test(FN.feuille));
+    else vrai('(v' + VERSION + ') la proposition d\'abonnement passe encore par confirm()', !FN.feuille && /confirm\(/.test(FN.proposer));
     /* les deux portes qui créent un compte passent toujours par là quand il n'y a plus de place */
     v('les deux portes qui créent un compte (utilisateur, fiche technicien) appellent proposerAbonnement quand il n\'y a plus de place',
       (SRC.match(/if\(!id && !planPlaceLibre\(\)\)\{ proposerAbonnement\(\); return; \}/g) || []).length, 2);
