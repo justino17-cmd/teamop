@@ -36,6 +36,7 @@ function fonction(nom) {
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'acSquel', 'fmtDate', 'agParId', 'agNom', 'agMode', 'agParams', 'agEnPause',
   'chargerAgents', 'agSec', 'agMode_', 'agPause', 'agDecider', 'agHugo', 'agIllisible', 'vueAgents', 'fmtHeure',
+  'agTachesDe', 'agDispo', 'agEnCoursTxt', 'agQuiFaitQuoi',   // lot 1 (f) : « qui fait quoi » de l'onglet Équipe
   'agDosCharger', 'agDosOuvrir', 'agDosFermer', 'agDosPaiement', 'agDosFiche', 'agDosListe', 'agCvCharger', 'agCvOuvrir', 'agCvFermer', 'agCvEnvoyer', 'agCvDossier', 'agCvMessage', 'agCvVue'];
 const i0 = CODE.indexOf('var AG={'), i1 = CODE.indexOf('\nfunction agParId(');
 vrai('le bloc des agents est trouvé dans la Tour', i0 > 0 && i1 > i0);
@@ -280,6 +281,21 @@ console.log('\n── 2709 · le panneau Agents de la Tour : ses vraies fonction
   v('dossiers : −1', Z.ctx.AG.dos.lec, -1);
   vrai('l’écran dit « n’ont pas pu être lus » et jamais « Aucun client »', /pas pu être lus/.test(Z.etat.html) && !/Aucun client/.test(Z.etat.html));
   vrai('un dossier illisible ne se dessine pas « vide »', (Z.ctx.agDosOuvrir('DOS-000001'), await att(() => Z.ctx.AG.dos.ficheLec === -1)) && /pas pu être lu/.test(Z.etat.html));
+
+
+  /* ── « Parler » et ce que chaque carte dit de son cerveau (20 octobre 2026) ── */
+  vrai('⛔ le bouton « Parler » existe et ouvre le fil de l’agent', /function agParler\(id\)\{[^}]*agCvOuvrir\(id\)/.test(SRC) && /onclick="agParler\(/.test(SRC));
+  vrai('le serveur dit quels agents ont un cerveau et si la clé est posée — deux booléens, jamais la clé', /cleOk: ctx\.cleCerveauPosee === true/.test(fs.readFileSync(path.join(RACINE, 'server/agents.js'), 'utf8')) && /cleCerveauPosee: !!\(config\.agents && config\.agents\.cleApi\)/.test(fs.readFileSync(path.join(RACINE, 'server/index.js'), 'utf8')));
+  (function () {
+    const A = Z.ctx.AG, avant = [A.agents, A.cleOk, A.loaded, A.err, A.sec];
+    A.loaded = true; A.err = ''; A.sec = 'equipe';
+    A.agents = [{ id: 'hugo', nom: 'Hugo', role: 'r', couche: 'Clients', vague: 1, plafondUsd: 10, mode: 'arret', cerveau: true }, { id: 'camille', nom: 'Camille', role: 'r', couche: 'Clients', vague: 2, plafondUsd: 35, mode: 'arret', cerveau: false }];
+    A.cleOk = false; const sansCle = Z.ctx.vueAgents(); A.cleOk = true; const avecCle = Z.ctx.vueAgents();
+    vrai('sans clé, Hugo dit qu’il ne répond pas encore', /Branché, mais la clé Anthropic n’est pas posée/.test(sansCle) && !/Il répond quand tu lui écris/.test(sansCle));
+    vrai('avec la clé, Hugo dit qu’il répond ; Camille dit « pas encore branché » dans les deux cas', /Il répond quand tu lui écris/.test(avecCle) && (sansCle.match(/Pas encore branché/g) || []).length === 1 && (avecCle.match(/Pas encore branché/g) || []).length === 1);
+    vrai('chaque carte a son bouton « Parler à … »', /Parler à Hugo/.test(avecCle) && /Parler à Camille/.test(avecCle));
+    A.agents = avant[0]; A.cleOk = avant[1]; A.loaded = avant[2]; A.err = avant[3]; A.sec = avant[4];
+  })();
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   fin(); process.exit(ko ? 1 : 0);

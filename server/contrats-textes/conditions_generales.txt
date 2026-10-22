@@ -1,0 +1,67 @@
+CONDITIONS GÉNÉRALES TEAM OP
+Applicables à toutes les applications et à tous les abonnements
+
+Éditeur : TEAM OP — Justin Biret, entrepreneur individuel, SIREN 107 995 011 [À CONFIRMER : SIRET en cours d'attribution à la date de rédaction — le renseigner dès qu'il existe], 10 rue de la Gravière, 17220 Salles-sur-Mer, France. Contact : contact@teamop.fr. TVA non applicable, article 293 B du code général des impôts.
+
+Article 1 — Objet et documents du contrat
+Les présentes conditions encadrent l'abonnement du Client aux applications de la suite TEAM OP (OP GESTION, OP MESSAGES et applications associées), proposées en ligne sur teamop.fr.
+Le contrat du Client se compose, dans cet ordre de priorité : (1) les conditions particulières de son abonnement (la formule choisie) ; (2) les conditions d'utilisation de l'application concernée ; (3) les présentes conditions générales ; (4) le contrat de sous-traitance des données (annexe). En cas de contradiction, le document le plus haut dans cette liste l'emporte.
+
+Article 2 — Clients concernés
+Le service est réservé aux professionnels (entreprises, artisans, micro-entrepreneurs, associations, collectivités) agissant pour les besoins de leur activité. En souscrivant, le Client déclare agir à titre professionnel. Le service n'est pas proposé aux consommateurs au sens du code de la consommation.
+
+Article 3 — Compte et accès
+Un compte TEAM OP est nécessaire pour souscrire. L'adresse électronique du compte doit être confirmée : c'est ce qui rattache chaque abonnement à la personne qui l'a souscrite et à son entreprise.
+Chaque abonnement ouvre un compte utilisateur nominatif. Les identifiants sont personnels ; le Client répond de l'usage qui en est fait par ses utilisateurs et prévient TEAM OP sans délai de toute utilisation non autorisée. Le Client administre lui-même les droits de ses utilisateurs.
+Les accès à l'application sont envoyés après l'acceptation du contrat. [À CONFIRMER : ce parcours (lien d'acceptation, envoi des accès à l'acceptation) n'est pas encore en service ; ne valider qu'une fois branché.]
+
+Article 4 — Prix, commande et paiement
+Les formules et leurs prix sont affichés sur teamop.fr/tarifs.html et rappelés dans les conditions particulières. Les prix sont en euros, par utilisateur et par mois, TVA non applicable (article 293 B du CGI).
+Le paiement s'effectue par carte bancaire via Stripe, chaque mois ou chaque année (deux mois offerts sur l'année), avec reconduction tacite à chaque période. Le Client reçoit une facture et ses reçus par courriel.
+Des codes promotionnels peuvent donner droit à une période offerte. Un code ne peut être utilisé qu'une fois par entreprise. Souscrire pendant une période offerte ne déclenche aucun prélèvement avant la fin de cette période lorsque l'adresse du compte désigne l'entreprise seule, que la fin de la période est comprise entre 48 heures et deux ans, et qu'aucun abonnement n'existe déjà ; sinon la facturation commence immédiatement.
+
+Article 5 — Changement de formule, places utilisateur
+Le Client peut changer de formule, ajouter ou retirer des abonnements (un abonnement = un utilisateur) à tout moment, sur simple demande au support ou depuis son espace. Les modalités de facturation du changement sont décrites dans les conditions particulières.
+
+Article 6 — Durée et résiliation
+L'abonnement est sans engagement de durée. Le Client peut résilier à tout moment depuis le Support de son espace client ou en écrivant à contact@teamop.fr. L'accès se poursuit jusqu'à la fin de la période déjà réglée ; l'application est ensuite suspendue jusqu'à un nouvel abonnement. [À CONFIRMER : non-remboursement d'une période entamée — absent des pages publiques actuelles ; l'y ajouter ou le retirer ici.]
+TEAM OP peut résilier en cas de manquement grave du Client (usage frauduleux, atteinte à la sécurité du service, contenus illicites), après un courriel restant sans effet.
+
+Article 7 — Défaut de paiement
+En cas de paiement refusé ou impayé, TEAM OP en informe le Client par courriel et lui laisse la possibilité de régulariser. Tant que l'abonnement n'est pas réglé, l'accès aux fonctions payantes est suspendu. La suspension n'entraîne aucune suppression : les données sont conservées et l'accès revient dès le règlement. TEAM OP n'engage aucune procédure de recouvrement contentieux sans en avoir préalablement informé le Client par écrit.
+
+Article 8 — Données du Client
+Les données saisies par le Client lui appartiennent. Elles sont chiffrées (AES-256), hébergées dans un espace isolé par entreprise, et exportables à tout moment.
+Un changement de formule, une résiliation ou un impayé n'entraînent aucune suppression. Les données sont conservées 24 mois après la fin de l'abonnement, puis supprimées ; un courriel prévient le Client 30 jours avant cette suppression. Le Client peut à tout moment exporter ses données ou demander leur effacement immédiat.
+Les rôles de chacun au regard du RGPD et la liste des sous-traitants sont fixés par le contrat de sous-traitance (annexe), qui fait partie du contrat.
+
+Article 9 — Disponibilité, maintenance et support
+TEAM OP met en œuvre les moyens raisonnables pour assurer une disponibilité continue du service, sans garantir une disponibilité sans interruption. Des opérations de maintenance peuvent entraîner des interruptions brèves ; TEAM OP s'efforce de les placer hors des heures de travail courantes. [À CONFIRMER : TEAM OP s'engage-t-il sur un taux de disponibilité chiffré ? Tant que non, ne rien chiffrer.]
+Le support est assuré par courriel (support@teamop.fr) et depuis l'espace client. Le niveau d'assistance dépend de la formule (conditions particulières).
+
+Article 10 — État du service : ce qui fonctionne et ce qui n'est pas encore disponible
+TEAM OP indique clairement ce qui est disponible. Les fonctions listées dans les conditions particulières d'une formule sont celles qui sont ouvertes au jour de la souscription. OP MESSAGES n'est pas encore ouvert : ses formules ne sont pas facturées tant qu'il n'est pas disponible. Une fonction annoncée « bientôt disponible » ne fait pas partie de l'abonnement tant qu'elle n'est pas ouverte, et ne peut justifier aucune réclamation avant son ouverture.
+
+Article 11 — Assistant de rédaction de devis (intelligence artificielle)
+L'assistant de devis, optionnel, transmet à notre sous-traitant Anthropic PBC (États-Unis) le texte de la demande du Client et le nom, l'adresse et la ville des clients concernés, sans conservation par TEAM OP. [À CONFIRMER : engagement que les données ne servent pas à entraîner des modèles — ne le garder que s'il est vérifié auprès d'Anthropic et repris dans sous-traitance.html.] Le Client qui ne souhaite pas ce transfert n'utilise pas l'assistant : le reste du service fonctionne sans lui. Le Client relit et valide chaque document généré avant de l'envoyer.
+
+Article 12 — Obligations du Client
+Le Client utilise le service conformément à la loi, ne saisit que des données qu'il a le droit de traiter et informe les personnes concernées. Il ne tente pas de contourner les protections du service, ne le revend pas et n'en extrait pas le contenu autrement que par les fonctions d'export.
+
+Article 13 — Propriété intellectuelle
+TEAM OP concède au Client, pour la durée de l'abonnement, un droit d'utilisation personnel, non exclusif et non transférable des applications. Les applications, leur code, leur marque et leur documentation restent la propriété de TEAM OP.
+
+Article 14 — Responsabilité
+TEAM OP répond des dommages directs résultant d'un manquement à ses obligations. Sa responsabilité est limitée au montant des sommes versées au titre des 12 derniers mois. [À CONFIRMER PAR UN JURISTE : validité de ce plafond, notamment au regard de l'article 82 du RGPD pour les obligations de sous-traitant.] TEAM OP ne répond pas des contenus saisis par le Client, ni des conséquences d'un document (devis, facture, registre) que le Client a émis sans le vérifier.
+
+Article 15 — Force majeure
+Aucune partie n'est responsable d'un manquement dû à un cas de force majeure au sens de l'article 1218 du code civil, y compris la défaillance d'un fournisseur d'infrastructure hors de son contrôle.
+
+Article 16 — Modification des conditions
+TEAM OP peut modifier ses conditions. Le Client en est informé par courriel au moins 30 jours avant leur entrée en vigueur. S'il les refuse, il peut résilier sans frais avant cette date ; à défaut, il est réputé les accepter. Le Client conserve, pour ce qui est en cours, la version du contrat en vigueur le jour de sa souscription jusqu'à l'entrée en vigueur de la nouvelle.
+
+Article 17 — Acceptation et preuve
+Le contrat est accepté en ligne, par le Client, depuis l'adresse électronique confirmée de son compte. TEAM OP conserve la date et l'heure d'acceptation, l'empreinte numérique du texte accepté et l'identifiant du dossier ; ces éléments font foi entre les parties, sauf preuve contraire. Les conditions de la signature électronique sont décrites dans le document qui y est consacré.
+
+Article 18 — Droit applicable et litiges
+Le contrat est soumis au droit français. En cas de litige, les parties recherchent une solution amiable avant toute action ; à défaut, les tribunaux français sont compétents. Le service étant réservé aux professionnels, aucune médiation de la consommation ne s'applique.

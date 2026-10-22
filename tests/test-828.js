@@ -80,7 +80,7 @@ function bac(role, app) {
   v('par défaut (collaborateur) : le Courrier à la place d’Accès', c.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
   const m = bac('patron', 'messages');
   v('par défaut (console MESSAGES) : Accès y existe depuis la v2.81 (la bêta d’OP MESSAGES a ses accès) : la barre est celle de GESTION', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'essais']);
-  v('la liste des vues suit le menu visible (patron, GESTION : 9 vues — v2.87 : Demandes entre, Connexions et Devis IA deviennent des onglets ; v2.88 : Équipe et Sauvegardes rattachées)', p.ctx.barreDispo().length, 9);
+  v('la liste des vues suit le menu visible (patron, GESTION : 13 vues — lot 1 : + Facturation, Incidents, Contrats, Rapport ; v2.87 : Demandes entre, Connexions et Devis IA deviennent des onglets ; v2.88 : Équipe et Sauvegardes rattachées)', p.ctx.barreDispo().length, 13);   // lot 1 (21 octobre 2026) : + Facturation, Incidents, Contrats, Rapport
   v('…(collaborateur : ni Accès, ni Équipe, ni Journal, ni Sauvegardes — ce que le serveur lui refuse)', c.ctx.barreDispo().map(o => o.t).filter(t => ['essais', 'equipe', 'journal', 'agents', 'donnees'].includes(t)), []);
 }
 {

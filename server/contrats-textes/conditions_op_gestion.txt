@@ -1,0 +1,27 @@
+CONDITIONS D'UTILISATION — OP GESTION
+
+Article 1 — Ce qu'est OP GESTION
+OP GESTION est l'application de gestion des entreprises de terrain (nettoyage, lutte anti-nuisibles, plomberie, électricité, chauffage-climatisation et métiers voisins) : planning des interventions, fiches clients, rapports d'intervention, devis et factures, pointage des heures et, selon la formule, stock, bons de commande, boîte mail intégrée, registre sanitaire et comptabilité. Les fonctions comprises dans chaque formule sont listées dans ses conditions particulières.
+OP GESTION s'utilise dans un navigateur (ordinateur, téléphone, tablette) et peut être ajoutée à l'écran d'accueil. Aucune installation n'est nécessaire.
+
+Article 2 — Un espace par entreprise
+Chaque entreprise cliente dispose d'un espace isolé. Les utilisateurs sont ajoutés par l'administrateur du Client, qui décide des droits de chacun : ce qu'il voit, ce qu'il ne voit pas, ce qu'il peut faire. Un abonnement correspond à un utilisateur.
+
+Article 3 — Les documents que l'application produit
+L'application aide à produire des devis, factures, bons de commande, rapports d'intervention et registres. Le Client reste seul responsable de l'exactitude de ces documents, de leurs mentions légales et de leur conformité à la réglementation de son métier (y compris le registre des produits biocides). TEAM OP ne donne aucun conseil juridique, fiscal ou comptable.
+Les documents portent le nom, le SIRET et les coordonnées que le Client a renseignés.
+
+Article 4 — Assistant de devis
+L'assistant propose un devis à partir d'une dictée ou d'un texte. Une intelligence artificielle peut se tromper : le Client relit chaque devis avant de l'envoyer. Les données transmises et leur encadrement sont décrits dans les conditions générales (article 11) et dans le contrat de sous-traitance.
+
+Article 5 — Synchronisation et appareils
+Les données sont synchronisées entre les appareils de l'entreprise. Le Client veille à utiliser une version à jour de l'application ; elle se met à jour d'elle-même à l'ouverture. TEAM OP peut exiger une version minimale pour des raisons de sécurité ou de compatibilité.
+
+Article 6 — Suspension et retour
+Si l'abonnement n'est pas réglé, l'application est suspendue : les rubriques payantes sont grisées, seuls les réglages restent accessibles à l'administrateur, qui voit la raison et peut régler. Rien n'est supprimé. Dès le règlement, tout redevient accessible.
+
+Article 7 — Évolution du service
+OP GESTION évolue en continu. TEAM OP peut ajouter, modifier ou retirer une fonction ; le retrait d'une fonction incluse dans la formule du Client, s'il est significatif, est annoncé par courriel au moins 30 jours avant et ouvre droit à résiliation sans frais.
+
+Article 8 — Données
+Les données saisies appartiennent au Client, qui peut les exporter à tout moment. Le sort des données en fin de contrat et le rôle de TEAM OP comme sous-traitant sont fixés par les conditions générales (article 8) et le contrat de sous-traitance.

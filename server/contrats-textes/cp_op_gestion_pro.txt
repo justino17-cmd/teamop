@@ -1,0 +1,23 @@
+CONDITIONS PARTICULIÈRES — OP GESTION PRO
+
+Formule : OP GESTION Pro.
+Prix : 15 € par mois et par utilisateur, TVA non applicable (article 293 B du CGI). Un abonnement donne un compte utilisateur ; pour une équipe de cinq personnes, cinq abonnements.
+Facturation : mensuelle, ou annuelle avec deux mois offerts. Sans engagement de durée.
+
+Fonctions comprises
+- Planning des interventions (jour, semaine, mois)
+- Fiches clients et historique des passages
+- Rapports d'intervention : photos, signatures, envoi en PDF
+- Tournées du jour : carte, temps de trajet, ordre optimisé
+- Récurrences (contrats) et passages multiples
+- Conflits de planning et absences signalés
+- Devis et factures
+- Pointage des heures
+- Exports CSV, notifications
+- Application web et mobile (iPhone, Android, Mac, PC), données chiffrées AES-256
+
+Assistance : par courriel (support@teamop.fr) et depuis l'espace client.
+
+Changement de formule : le Client peut passer à OP GESTION Business ou Business Premium, ou redescendre, sur simple demande. [À CONFIRMER : règle de facturation au changement — au prorata, ou au début de la période suivante ; l'écrire telle qu'elle est réellement appliquée par Stripe.]
+
+Les fonctions qui ne sont pas listées ci-dessus (stock, bons de commande, registre sanitaire, comptabilité, personnalisation) ne font pas partie de cette formule.

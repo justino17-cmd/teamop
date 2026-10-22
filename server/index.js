@@ -2068,6 +2068,8 @@ const MON_GESTES = {
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
+  'agents/charte': 'a changé la charte d’autonomie des agents', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
+  'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
@@ -4416,6 +4418,8 @@ let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, p
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
+let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
+let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
 function supprDestLisible() {
   const d = adrNue(supprDest()); if (!d) return false;
@@ -10088,8 +10092,13 @@ try {
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
      emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
   try {
-    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif });
+    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif,
+      cerveaux: ['hugo'], cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
     console.log('agents : socle chargé');
+    /* LA DIRECTION : la charte d'autonomie (ce que chaque geste a le droit de faire seul) et le rapport du jour. Elle ne fait agir personne. */
+    directionMod = require('./direction')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod });
+    /* LES CONTRATS : rien ne part sans une version VALIDÉE par une personne nommée ; le tampon est posé par le serveur. */
+    contratsMod = require('./contrats')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, textesDir: path.join(__dirname, 'contrats-textes') });
     /* LES DOSSIERS : un numéro par client (`DOS-000123`), la fiche pour le patron, la même fiche pour un agent à qui il le donne. */
     dossiersMod = require('./dossiers')(app, { DATA_DIR, monPatronStrict, clients: () => clientsData,
       espaceDe: (email) => { const m = String(email).toLowerCase(); const sl = Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').toLowerCase() === m); return sl ? Object.assign({ slug: sl }, espacesReg[sl]) : null; },
