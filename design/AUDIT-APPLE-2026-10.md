@@ -50,7 +50,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 25 | 3 | Space Mono (police web) encore appliquée à trois endroits | 28083 | une police étrangère au thème | ✅ corrigé (partie P) |
 | 26 | 3 | Vitesse de relâchement mesurée sur un seul échantillon | 15966 | un doigt qui s'arrête relance quand même | ✅ corrigé (partie I) |
 | 27 | 3 | Balayage entre rubriques : butée dure au bord au lieu d'une résistance | 15918 | ça cogne au lieu de céder | ✅ corrigé (partie I) |
-| 28 | 2 | Le voile de la feuille « Créer » est plus mince que celui des fenêtres | 6602 | deux voiles différents | à faire |
+| 28 | 2 | Le voile de la feuille « Créer » est plus mince que celui des fenêtres | 6602 | deux voiles différents | ✅ corrigé (partie Q) |
 | 29 | 2 | Totaux HT/TVA/TTC sans chiffres tabulaires : la ligne tremble à chaque frappe | 38919 | les chiffres dansent | à faire |
 | 30 | 2 | « Annuler ce qui attend le DR ? » : le bouton « Annuler » veut dire « ne pas annuler » | 28960 | piège de libellé | ✅ corrigé (partie K) |
 | 31 | 2 | `alert()` natifs dans le flux des bons de commande | 32385 | une boîte du navigateur | ✅ corrigé (partie K) |

@@ -6602,7 +6602,8 @@ html[data-os="windows"] .msg-flot{border-radius:10px}
 /* ══ « ＋ CRÉER » — feuille montante (mobile) / fenêtre centrée (bureau) ══════════════════ */
 .creer-ov{
   position:fixed;inset:0;z-index:60;display:none;
-  background:rgba(0,0,0,0);transition:background-color var(--d-2,.24s) ease;
+  background:rgba(0,0,0,0);
+  transition:background-color var(--d-2,.24s) ease,-webkit-backdrop-filter var(--d-2,.24s) ease,backdrop-filter var(--d-2,.24s) ease;
   align-items:flex-end;justify-content:center;
 }
 .creer-ov.on{display:flex}
@@ -6611,6 +6612,13 @@ html[data-os="windows"] .msg-flot{border-radius:10px}
    l'ouverture, la fermeture et le tirage au doigt, la feuille devenait transparente (les tuiles et la barre d'onglets se
    lisaient au travers, capture du 22 octobre 2026). */
 .creer-ov.vu{background:rgba(0,0,0,.35)}
+/* ⛔ LE MÊME VOILE QUE LES FENÊTRES — audit apple-design du 21 octobre 2026, point 28. La feuille « Créer » est une fenêtre
+   (role=dialog, aria-modal), mais son voile était un aplat sans flou quand celui de toute fenêtre (#overlay) floute la page à
+   20 px : sous elle, le tableau de bord restait net et lisible, la tâche modale pesait moins que le moindre menu. Même teinte
+   (le scrim du thème), même flou, fondus ensemble à l'ouverture et à la fermeture ; tirée au doigt, la feuille éclaircit
+   l'une ET l'autre (creerGeste). « Moins de transparence » éteint ce flou comme tous les autres, à la source
+   (« html[data-marque][data-verre] * », partie A de l'audit). */
+html[data-refonte] .creer-ov.vu{background:var(--scrim);-webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%)}
 .creer-sheet{
   width:100%;max-width:640px;background:var(--bg1);color:var(--t1);
   border-radius:34px 34px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 22px);
@@ -15888,20 +15896,23 @@ function creerEchap(e){ if(e.key==='Escape'){ e.stopPropagation(); creerFermer()
       if(Math.abs(dx)<10&&Math.abs(dy)<10) return;
       if(Math.abs(dx)>Math.abs(dy)){ t=null; return; }   // horizontal : ce n'est pas pour la feuille
       t.suivi=true; const f=feuille(), o=ov(); if(f) f.style.transition='none'; if(o) o.style.transition='none';
+      try{ const bf=getComputedStyle(o).backdropFilter||'', mf=/blur\(([\d.]+)px\)/.exec(bf), ms=/saturate\(([\d.]+)\)/.exec(bf);
+        t.flou={b:mf?+mf[1]:0, s:ms?+ms[1]:1}; }catch(_){ t.flou={b:0,s:1}; }   // le flou du voile (point 28) s'allège avec sa couleur
       /* le voile s'éclaircit par sa COULEUR (son alpha lu au départ), jamais par l'opacité : voir .creer-ov.vu */
       try{ const m=/rgba?\(([^)]*)\)/.exec(getComputedStyle(o).backgroundColor); const c=m?m[1].split(',').map(x=>parseFloat(x)):[0,0,0,.35];
         t.voile={r:c[0]||0,g:c[1]||0,b:c[2]||0,a:c.length>3?c[3]:1}; }catch(_){ t.voile={r:0,g:0,b:0,a:.35}; }
     }
     t.dy=dy>0?dy:elastique(dy,60); t.hist.push([p.clientY,performance.now()]); if(t.hist.length>12) t.hist.shift();
     const f=feuille(), o=ov(); if(f) f.style.transform='translateY('+t.dy.toFixed(1)+'px)';
-    if(o&&t.voile){ const v=t.voile, k=Math.max(0,Math.min(1,1-Math.max(0,t.dy)/t.haut)); o.style.backgroundColor='rgba('+v.r+','+v.g+','+v.b+','+(v.a*k).toFixed(3)+')'; }
+    if(o&&t.voile){ const v=t.voile, k=Math.max(0,Math.min(1,1-Math.max(0,t.dy)/t.haut)); o.style.backgroundColor='rgba('+v.r+','+v.g+','+v.b+','+(v.a*k).toFixed(3)+')';
+      if(t.flou&&t.flou.b){ const bf='blur('+(t.flou.b*k).toFixed(1)+'px) saturate('+(1+(t.flou.s-1)*k).toFixed(3)+')'; o.style.webkitBackdropFilter=bf; o.style.backdropFilter=bf; } }
     if(e.cancelable) e.preventDefault();
   },{passive:false});
   const fin=function(){
     if(!t) return; const r=t; t=null; if(!r.suivi) return;
     const f=feuille(), o=ov();
     const projete=r.dy+swipeProjeter(vitesseRelache(r.hist,performance.now()));
-    if(f){ f.style.transition=''; f.style.transform=''; } if(o){ o.style.transition=''; o.style.backgroundColor=''; }
+    if(f){ f.style.transition=''; f.style.transform=''; } if(o){ o.style.transition=''; o.style.backgroundColor=''; o.style.webkitBackdropFilter=''; o.style.backdropFilter=''; }
     if(projete>r.haut/3) creerFermer();
   };
   document.addEventListener('touchend',fin,{passive:true});
