@@ -58,7 +58,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 33 | 2 | Une validation de formulaire ne marque aucun champ | 17635 | « Date et heure obligatoires », mais lequel ? | ✅ corrigé (partie T) |
 | 34 | 2 | Un toast d'erreur a l'habillage d'une confirmation | 13911 | une erreur passe pour un succès | ✅ corrigé (partie J) |
 | 35 | 2 | Réorganiser les tuiles du tableau de bord : saut à la prise et à la dépose | 17530 | la tuile saute | ✅ corrigé (partie U) |
-| 36 | 2 | Huit transitions animent la largeur ou le rembourrage au lieu de `transform` | 3993, 6334, 6368, 499, 106, 2324 | calcul de mise en page à chaque image | à faire |
+| 36 | 2 | Huit transitions animent la largeur ou le rembourrage au lieu de `transform` | 3993, 6334, 6368, 499, 106, 2324 | calcul de mise en page à chaque image | ✅ corrigé (partie V) |
 
 ### Écartés après vérification (ce ne sont pas des défauts)
 

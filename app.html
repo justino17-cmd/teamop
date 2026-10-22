@@ -495,7 +495,9 @@
   .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:13px;}
   .bar-lbl{font-size:13px;color:var(--t2);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .bar-track{flex:1;height:12px;background:var(--bg);border-radius:100px;overflow:hidden;}
-  .bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .5s;}
+  /* pas de transition de largeur : la barre naît à sa largeur (écrite dans le gabarit), elle ne change jamais ensuite — la
+     transition ne tournait pas, et aurait remis la page en page à chaque image (audit apple-design, point 36) */
+  .bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--acc2),var(--acc));}
   /* ⛔ UNE COLONNE DE MONTANTS NE SE FIXE PAS À 64 PX (g03, accueil#9, mesuré au navigateur) : « 1 055,00 € » passait sur deux
      lignes (« € » seul dessous), « 12 345,67 € » dépassait de 6 px, « 123 456,78 € » de 14 px et « 118 518 518,52 € » de 46 px
      — jusqu'à sortir de la carte (page à 395 px pour 390). 64 px reste le PLANCHER (les petits chiffres gardent leur
@@ -6405,7 +6407,8 @@ html[data-refonte] .tabbar .tab{padding:4px 2px!important;gap:2px!important;min-
    et de la HIG, sur un écran qu'on touche avec des gants. Le contenu tient en 42,6 — c'est
    donc le plancher qui fixe la hauteur, pas l'inverse. Descendre la barre plus bas voudrait
    dire descendre SOUS 44, et ça on ne le fait pas. */
-.tab-ic{font-size:18px;line-height:1;transition:background var(--d-1,.14s) ease,padding var(--d-1,.14s) ease,transform .2s cubic-bezier(.32,.72,0,1)}
+/* sans « padding » dans la transition : aucune règle ne change le rembourrage de l'icône (point 36 de l'audit apple-design) */
+.tab-ic{font-size:18px;line-height:1;transition:background var(--d-1,.14s) ease,transform .2s cubic-bezier(.32,.72,0,1)}
 /* ⚠ UN LIBELLÉ TRONQUÉ NE NOMME RIEN, ET « Planni… » NE DIT PLUS SI C'EST « Planning » ou
    « Planning général ». Mesuré à 430 px : cinq colonnes de 78 px, et « Planning » débordait
    d'un caractère. Un chouia de crénage négatif le fait rentrer sans toucher à la taille — on
