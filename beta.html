@@ -5654,21 +5654,28 @@ html[data-refonte] .rf-plier .rf-volet{fill:currentColor;opacity:.55;transition:
 html[data-refonte] body.rf-repliee .rf-plier .rf-volet{opacity:0}
 @media (min-width:781px){
   html[data-refonte] .rf-plier{display:inline-flex}
+  /* ⛔ !important — audit apple-design du 21 octobre 2026, point 23. Les deux règles du tiroir du téléphone (« transition:
+     transform …!important », sans média, plus haut dans la feuille) avaient la même force : au bureau, la seule transition
+     de la barre était donc celle d'un transform qui ne bouge jamais, et « Replier le menu » la faisait passer de sa largeur
+     à 0 en une image, le contenu recalé d'un coup (mesuré : transition-property « transform »). Le bloc « réduire les
+     animations », écrit plus bas, garde le dernier mot (transition:none!important). */
   html[data-refonte] .sidebar{
-    transition:width var(--d-3) var(--ressort),opacity var(--d-2) var(--e-sortie);
+    transition:width var(--d-3) var(--ressort),opacity var(--d-2) var(--e-sortie)!important;
     will-change:width}
   /* La barre est un membre de la rangée flex : lui retirer sa largeur suffit, le contenu
      (.main, en flex:1) reprend la place sans qu'on ait à la lui donner. */
   html[data-refonte] body.rf-repliee .sidebar{
     width:0!important;min-width:0!important;opacity:0;pointer-events:none;
     overflow:hidden;border-right-color:transparent!important}
-  html[data-refonte] body.rf-repliee .sidebar *{visibility:hidden}
+  /* son contenu s'efface AVEC elle (opacité, --d-2), puis devient invisible au clavier et au lecteur d'écran : la visibilité
+     attend la fin du fondu — cachée d'un coup, la barre se vidait avant de bouger. Au dépli, elle revient tout de suite. */
+  html[data-refonte] body.rf-repliee .sidebar *{visibility:hidden;transition:visibility 0s linear var(--d-2)!important}
 }
 @media (pointer:coarse){
   html[data-refonte] .rf-plier{width:44px;height:44px}
 }
 @media (prefers-reduced-motion: reduce){
-  html[data-refonte] .sidebar{transition:none!important;will-change:auto}
+  html[data-refonte] .sidebar,html[data-refonte] body.rf-repliee .sidebar *{transition:none!important;will-change:auto}
   html[data-refonte] .rf-plier:active{transform:none!important}
   html[data-refonte] .rf-plier .rf-volet{transition:none}
   /* La feuille de base neutralise tout par « *{transition-property:…!important} » — mais une

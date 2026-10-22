@@ -45,7 +45,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 20 | 3 | Suppression générique « Supprimer cet élément ? » sans nom ni annulation | 36321 | on ne sait pas quoi on supprime | ✅ corrigé (partie K) |
 | 21 | 3 | Photos d'intervention ouvertes dans un onglet (`window.open`) alors qu'une visionneuse existe | 24886, 24921, 24982, 24987 | on sort de l'application | ✅ corrigé (partie L) |
 | 22 | 3 | Pied de fenêtre opaque à trait dur sur téléphone, sous un en-tête en verre | 712 | deux matières dans une fenêtre | ✅ corrigé (partie M) |
-| 23 | 3 | Replier le menu (bureau) : la transition de largeur ne tourne jamais | 5656 | le menu disparaît d'un coup | à faire |
+| 23 | 3 | Replier le menu (bureau) : la transition de largeur ne tourne jamais | 5656 | le menu disparaît d'un coup | ✅ corrigé (partie N) |
 | 24 | 3 | Changement jour/nuit sec hors du bouton de la barre | 43171 | saut de luminosité | à faire |
 | 25 | 3 | Space Mono (police web) encore appliquée à trois endroits | 28083 | une police étrangère au thème | à faire |
 | 26 | 3 | Vitesse de relâchement mesurée sur un seul échantillon | 15966 | un doigt qui s'arrête relance quand même | ✅ corrigé (partie I) |
