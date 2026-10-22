@@ -174,7 +174,7 @@ console.log('\n── 818 · 8. les tuiles chiffrées, les montants, Mouvements,
   vrai('⛔ la taille suit la tuile ET la valeur (cqi / --kpi-n), bornée 17–40 px, et ne sort jamais',
     /\.kpis \.kpi\{container-type:inline-size;min-width:0\}/.test(APP)
     && /font-size:clamp\(17px,calc\(150cqi \/ var\(--kpi-n,5\)\),40px\)!important;[^}]*overflow-wrap:anywhere/.test(APP));
-  vrai('   posée après chaque rendu d\'écran et chaque fenêtre', /try\{ kpiTailler\(\$\('content'\)\); \}catch\(_e\)\{\}/.test(NU) && /m\.scrollTop=0; kpiTailler\(m\);/.test(NU));
+  vrai('   posée après chaque rendu d\'écran et chaque fenêtre', /try\{ kpiTailler\(\$\('content'\)\); \}catch\(_e\)\{\}/.test(NU) && /m\.scrollTop=0;(?: \$\('overlay'\)\.scrollTop=0;)? kpiTailler\(m\);/.test(NU));   // le voile remis en haut avec la fenêtre (point 32 de l'audit apple-design)
   vrai('⛔ la barre de Mouvements passe au-dessus du voile du menu (la recherche répond)',
     /\n\.mvt-voile \+ \.mvt-bar\{position:relative;z-index:51\}/.test(APP)
     && /const voile=mvtMenuOuvert\?`<div class="mvt-voile" /.test(NU) && /`\$\{voile\}<div class="mvt-bar"/.test(NU));

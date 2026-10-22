@@ -2666,6 +2666,16 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
 .overlay{background:var(--scrim)!important;-webkit-backdrop-filter:blur(20px) saturate(140%)!important;backdrop-filter:blur(20px) saturate(140%)!important}
 .modal{background:var(--card)!important;border:0!important;border-radius:var(--r-5)!important;box-shadow:var(--ombre-3);padding:28px;--rf-modal-marge:28px}
 .overlay.full .modal{border-radius:0!important}
+/* ⛔ UNE FENÊTRE OUVERTE NE FAIT PAS DÉFILER LA PAGE DERRIÈRE ELLE — audit apple-design du 21 octobre 2026, point 32. Mesuré
+   (scratchpad/sonde-fenetre-defile.js) : au bureau, la molette sur une fenêtre ouverte faisait défiler la page dessous, longue
+   ou courte ; au téléphone, un glissement sur une petite fenêtre emmenait la page de 163 px. « overscroll-behavior:contain »
+   retient le défilement d'un voile QUI DÉFILE ; une fenêtre courte ne défile pas, et le geste passait quand même à la page. Le
+   voile défile donc toujours d'un pixel (::before, invisible, transparent au toucher) : la retenue s'applique dans tous les cas,
+   sans verrouiller la page en JavaScript (un overflow:hidden sur la page retirerait la barre de défilement de Windows et
+   décalerait la mise en page à chaque ouverture). La feuille « Créer », elle, ne défile jamais : son voile ne laisse aucun
+   défilement au doigt (touch-action, sur sa règle) et avale la molette (creerOuvrir). */
+.overlay{overscroll-behavior:contain}
+.overlay::before{content:"";position:absolute;top:0;left:0;width:1px;height:calc(100% + 1px);pointer-events:none}
 @media(min-width:781px){ .overlay.full .modal{border-radius:var(--r-5)!important} }
 .modal-head h3{font-size:19px!important;font-weight:700!important;letter-spacing:-.02em}
 .sheet-head{border-bottom:1px solid var(--brd)}
@@ -6607,6 +6617,10 @@ html[data-os="windows"] .msg-flot{border-radius:10px}
 /* ══ « ＋ CRÉER » — feuille montante (mobile) / fenêtre centrée (bureau) ══════════════════ */
 .creer-ov{
   position:fixed;inset:0;z-index:60;display:none;
+  /* aucun défilement au doigt sous la feuille (point 32 de l'audit : un glissement sur le voile emmenait la page de 163 px).
+     Rendre le voile défilant ne convenait pas ici : le navigateur s'emparait des premiers millimètres du geste de la poignée
+     (creerGeste n'annule qu'au-delà de 10 px), et la chiquenaude ne fermait plus la feuille — mesuré, sonde-gestes-bord.js */
+  touch-action:none;
   background:rgba(0,0,0,0);
   transition:background-color var(--d-2,.24s) ease,-webkit-backdrop-filter var(--d-2,.24s) ease,backdrop-filter var(--d-2,.24s) ease;
   align-items:flex-end;justify-content:center;
@@ -14405,7 +14419,7 @@ function multiProposer(vue){
 function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html || '');
   if(taille==='carte'){ m.className='modal carte'; $('overlay').classList.remove('full'); $('overlay').classList.add('centre'); }
   else { m.className='modal full'; $('overlay').classList.remove('centre'); $('overlay').classList.add('full'); }
-  m.innerHTML=html; $('overlay').classList.add('open'); m.scrollTop=0; kpiTailler(m);
+  m.innerHTML=html; $('overlay').classList.add('open'); m.scrollTop=0; $('overlay').scrollTop=0; kpiTailler(m);   // le voile aussi (point 32) : il gardait la position de la fenêtre d'avant
   /* Le contenu arrive bloc par bloc. La classe se retire ensuite : « both » laisserait
      une transformation figée sur ces blocs, qui bloquerait tout déplacement ultérieur. */
   m.classList.add('pose'); clearTimeout(window._poseT); window._poseT=setTimeout(()=>m.classList.remove('pose'),620); }
@@ -15875,6 +15889,7 @@ function creerOuvrir(){
   requestAnimationFrame(()=>requestAnimationFrame(()=>ov.classList.add('vu')));
   document.addEventListener('keydown',creerEchap);
   ov.onclick=e=>{ if(e.target===ov) creerFermer(); };
+  ov.onwheel=e=>{ e.preventDefault(); };   // au bureau, la molette sur le voile ne fait pas défiler la page dessous (point 32)
 }
 function creerEchap(e){ if(e.key==='Escape'){ e.stopPropagation(); creerFermer(); } }
 /* ⛔⛔ LA POIGNÉE GLISSE — audit apple-design du 21 octobre 2026, point 17. La feuille « Créer » du téléphone porte la
@@ -24853,7 +24868,7 @@ function unpickNuis(n){ intNuis.delete(n); delete intTrait[n]; renderIntNuis(); 
 /* ⛔ la fenêtre secondaire (photo, détail d'un traitement) arrivait par la feuille des fenêtres et disparaissait d'un coup :
    elle repart par le même chemin (.overlay.ferme, comme #overlay), et une ouverture pendant la sortie l'annule */
 let _subSortie=null;
-function openSub(html){ const m=$('modal2'), ov=$('overlay2'); if(!m||!ov)return; clearTimeout(_subSortie); ov.classList.remove('ferme'); m.innerHTML=html; ov.classList.add('open'); m.scrollTop=0; }
+function openSub(html){ const m=$('modal2'), ov=$('overlay2'); if(!m||!ov)return; clearTimeout(_subSortie); ov.classList.remove('ferme'); m.innerHTML=html; ov.classList.add('open'); m.scrollTop=0; ov.scrollTop=0; }
 function closeSub(){ const ov=$('overlay2'); if(!ov) return;
   if(ov.classList.contains('open')&&!ov.classList.contains('ferme')&&!animSobre()){ ov.classList.add('ferme'); clearTimeout(_subSortie);
     _subSortie=setTimeout(()=>{ if(ov.classList.contains('ferme')) ov.classList.remove('open','ferme'); },210); }

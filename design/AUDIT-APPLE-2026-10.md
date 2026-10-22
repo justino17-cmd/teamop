@@ -54,7 +54,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 29 | 2 | Totaux HT/TVA/TTC sans chiffres tabulaires : la ligne tremble à chaque frappe | 38919 | les chiffres dansent | ✅ corrigé (partie R) |
 | 30 | 2 | « Annuler ce qui attend le DR ? » : le bouton « Annuler » veut dire « ne pas annuler » | 28960 | piège de libellé | ✅ corrigé (partie K) |
 | 31 | 2 | `alert()` natifs dans le flux des bons de commande | 32385 | une boîte du navigateur | ✅ corrigé (partie K) |
-| 32 | 2 | Une fenêtre ouverte laisse défiler la page derrière elle | 384 | la page bouge sous la fenêtre | à faire |
+| 32 | 2 | Une fenêtre ouverte laisse défiler la page derrière elle | 384 | la page bouge sous la fenêtre | ✅ corrigé (partie S) |
 | 33 | 2 | Une validation de formulaire ne marque aucun champ | 17635 | « Date et heure obligatoires », mais lequel ? | à faire |
 | 34 | 2 | Un toast d'erreur a l'habillage d'une confirmation | 13911 | une erreur passe pour un succès | ✅ corrigé (partie J) |
 | 35 | 2 | Réorganiser les tuiles du tableau de bord : saut à la prise et à la dépose | 17530 | la tuile saute | à faire |
