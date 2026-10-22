@@ -8078,6 +8078,22 @@ html[data-refonte] .tdb-cel[onclick]:active:not(:has(.tdb-pc:active)),html[data-
 html[data-refonte] :is(.pf-nav u,.pf-nav .auj,.pf-zoom span,.pf-zoom b,.pf-disp button,.nav-fav-edit,.pf-b)[onclick]:active{background:color-mix(in srgb,var(--acc) 14%,var(--card))!important;color:var(--acc-txt)!important;transition-duration:var(--d-0)!important}
 html[data-refonte] .pf-disp button.on:active{background:var(--acc)!important;color:var(--on-acc)!important;filter:brightness(.88)}
 html[data-refonte] .brand[onclick]:active{opacity:.6;transition-duration:var(--d-0)}
+/* la taille du texte (audit, point 4) : les barres gardent la leur — une barre a une hauteur, pas une page ; et les cinq choix
+   passent à la ligne plutôt que de défiler hors de l'écran au téléphone */
+.sidebar,.topbar,#tabbar{--txt:1}
+/* une rangée de DESTINATIONS (nav) qui ne tient plus en segmenté passe à la ligne : elle ne défile pas hors de l'écran (CLAUDE.md,
+   « une rangée de destinations ne doit pas défiler ») ; et au grand texte sur un téléphone, les chiffres clés prennent une colonne
+   chacun — à deux colonnes, « Prévu aujourd'hui (6 interventions) » tombait sous 11 signes par ligne (×1,35, 360 px) */
+html[data-refonte] nav.filters:not(.seg-on){flex-wrap:wrap!important;overflow:visible!important;-webkit-mask-image:none!important;mask-image:none!important}
+@media(max-width:520px){ html[data-marque][data-refonte][data-txt] .kpis{grid-template-columns:minmax(0,1fr)!important} }
+.txt-choix{display:flex;flex-wrap:wrap;gap:8px}
+.txt-choix .chip{font-family:inherit}
+/* deux menus écrits en ligne (le choix d'une box dans Mouvements, le menu du pied) changeaient leur fond par onmouseover : sur
+   iPhone, le toucher déclenche le survol, et il restait collé. La classe porte le survol — à la souris seulement — et l'appui,
+   tout de suite (relecture de l'audit, partie Z). */
+.ligne-choix.on{background:color-mix(in srgb,var(--acc) 9%,transparent)}
+@media (hover:hover){ .ligne-choix:not(.on):hover{background:var(--bg2)} .ligne-choix.teinte:not(.on):hover{background:color-mix(in srgb,var(--acc) 6%,transparent)} }
+.ligne-choix:active{box-shadow:inset 0 0 0 100vmax color-mix(in srgb,var(--acc) 12%,transparent);transition-duration:var(--d-0)}
 html[data-refonte] .tf-act:active{background:color-mix(in srgb,var(--acc) 22%,var(--rf-2nd,var(--chip)))!important;transition-duration:var(--d-0)}
 html[data-refonte] svg rect[onclick]:active{fill:color-mix(in srgb,var(--acc) 12%,transparent)}
 .tf-rangee:active{transition-duration:var(--d-0)}
@@ -14174,6 +14190,25 @@ function toastAnnuler(msg,appel,ms){
    c'est le contrôle visible de son .field qu'on désigne, et le toucher efface sa marque. */
 /* le champ `nom` d'un formulaire, ou rien (un formulaire sans ce champ, un appel sans formulaire) */
 function champDe(f,nom){ return f&&f.elements?f.elements[nom]||null:null; }
+/* ⛔ LA BULLE DU NAVIGATEUR PASSAIT AVANT : un champ VIDE marqué « required » arrêtait l'envoi sur la bulle du système (« Veuillez
+   renseigner ce champ. »), posée une seconde, ailleurs que les autres refus, et notre code ne tournait jamais — 54 champs dans
+   30 formulaires. Le navigateur lève « invalid » sur chaque champ en défaut AVANT d'abandonner l'envoi : on prend la main là,
+   on retient tous ceux du même essai, et champManque les désigne d'un coup, le message nommé par le libellé du champ
+   (relecture de l'audit, partie Z). */
+function champInvalideMessage(el){
+  const z=el.closest&&el.closest('.field'), l=z&&z.querySelector('label');
+  const nom=String((l&&l.textContent)||el.getAttribute('aria-label')||el.placeholder||'').replace(/\s*\*\s*$/,'').trim();
+  if(!nom) return el.validationMessage||'Ce champ est à remplir';
+  return el.validity&&el.validity.valueMissing ? '« '+nom+' » est obligatoire' : '« '+nom+' » : '+(el.validationMessage||'valeur incorrecte');
+}
+let _champsInvalides=null;
+document.addEventListener('invalid',e=>{
+  const el=e.target; if(!el||el.nodeType!==1) return;
+  e.preventDefault();
+  if(!_champsInvalides){ _champsInvalides=[];
+    Promise.resolve().then(()=>{ const L=_champsInvalides; _champsInvalides=null; if(L.length) champManque(champInvalideMessage(L[0]),...L); }); }
+  _champsInvalides.push(el);
+},true);
 function champManque(msg,...champs){
   const visible=x=>{ if(!x||x.nodeType!==1) return null; if(String(x.type).toLowerCase()!=='hidden') return x;
     const z=x.closest&&x.closest('.field'); return (z&&z.querySelector('button,select,textarea,input:not([type="hidden"])'))||null; };
@@ -15710,9 +15745,13 @@ function segEligible(g,fam){
 function segTient(g){
   const p=g.parentElement; if(!p) return true;
   const q=getComputedStyle(p);
-  const dispo=p.clientWidth-(parseFloat(q.paddingLeft)||0)-(parseFloat(q.paddingRight)||0);
+  /* ses propres marges comptent : « Liste · Carte des box · Produits donnés » (Boxes) porte 16 px de chaque côté, et au grand
+     texte ses 336 px tenaient dans les 360 du parent — marges comprises, 368 : la page glissait de 8 px (×1,35, 360 px) */
+  const m=getComputedStyle(g);
+  const dispo=p.clientWidth-(parseFloat(q.paddingLeft)||0)-(parseFloat(q.paddingRight)||0)-(parseFloat(m.marginLeft)||0)-(parseFloat(m.marginRight)||0);
   if(!(dispo>0)) return true;      // vue pas encore mesurable : on ne décide rien sur du vide
-  return g.getBoundingClientRect().width<=dispo+1;
+  /* et c'est son CONTENU qui dit s'il tient, pas sa boîte, que son parent borne */
+  return Math.max(g.getBoundingClientRect().width,g.scrollWidth||0)<=dispo+1;
 }
 /* ⛔ LE CURSEUR EST UN ENFANT DU GROUPE, PAS UN ÉLÉMENT FLOTTANT. Un élément posé en
    `position:fixed` se décalerait au premier défilement ; ici il suit son conteneur. */
@@ -17351,11 +17390,22 @@ function dashLayout(){ if(!Array.isArray(db.dashLayout)) db.dashLayout=DASH_DEFA
   if(!db.dashV2){ db.dashV2=1; db.dashLayout=DASH_DEFAULT.slice(); try{ save(); }catch(e){} }   // migration unique vers la disposition épurée — le marqueur se synchronise avec l'équipe
   const connues=db.dashLayout.filter(k=>DASH_CARDS[k]);
   db.dashLayout=(db.dashLayout.length&&!connues.length)?DASH_DEFAULT.slice():connues; return db.dashLayout; }
-function dashToggleEdit(){ dashEdit=!dashEdit; views.dashboard(); }
-function dashRemove(k){ db.dashLayout=dashLayout().filter(x=>x!==k); save(); views.dashboard(); }
-function dashMove(k,dir){ const a=dashLayout().slice(); const i=a.indexOf(k), j=i+dir; if(j<0||j>=a.length)return; [a[i],a[j]]=[a[j],a[i]]; db.dashLayout=a; save(); views.dashboard(); }
-function dashAdd(k){ const a=dashLayout(); if(!a.includes(k)){ a.push(k); db.dashLayout=a; save(); } views.dashboard(); }
-function dashReset(){ db.dashLayout=DASH_DEFAULT.slice(); save(); views.dashboard(); }
+/* ⛔ UN RÉGLAGE DU TABLEAU DE BORD LE REDESSINE SUR PLACE. Six gestes (« Modifier », une carte ajoutée, retirée, déplacée par
+   ses flèches, la disposition d'origine, la période : jour, 7 ou 14 jours, mois) appelaient views.dashboard() nu : la barre
+   « Reprendre » disparaissait au premier choix de période et ne revenait plus (les cartes remontaient de 75 px au téléphone,
+   mesuré à la partie U ; rejoué, scratchpad/sonde-partie-z.js). rendreVueSure, la seule fonction qui écrit l'écran, la remet
+   (et repasse segInit, kpiTailler) ; on garde ensuite la place où l'on était, car la barre « Reprendre » rend sinon le
+   défilement du dernier départ du tableau de bord (239 px au bureau). Relecture de l'audit, partie Z. */
+function tdbRedessiner(){
+  const c=$('content'), y=window.scrollY, cy=c?c.scrollTop:0;
+  rendreVueSure('dashboard');
+  try{ if(c) c.scrollTop=cy; window.scrollTo(0,y); }catch(_){}
+}
+function dashToggleEdit(){ dashEdit=!dashEdit; tdbRedessiner(); }
+function dashRemove(k){ db.dashLayout=dashLayout().filter(x=>x!==k); save(); tdbRedessiner(); }
+function dashMove(k,dir){ const a=dashLayout().slice(); const i=a.indexOf(k), j=i+dir; if(j<0||j>=a.length)return; [a[i],a[j]]=[a[j],a[i]]; db.dashLayout=a; save(); tdbRedessiner(); }
+function dashAdd(k){ const a=dashLayout(); if(!a.includes(k)){ a.push(k); db.dashLayout=a; save(); } tdbRedessiner(); }
+function dashReset(){ db.dashLayout=DASH_DEFAULT.slice(); save(); tdbRedessiner(); }
 /* ═══════════════════════════════════════════════════════════════════════════
    PLANNING GÉNÉRAL DE L'ENTREPRISE
    Un écran à part : qui fait quoi, sur la durée. Interventions, activités
@@ -17751,7 +17801,7 @@ function dpValider(){ const cb=DP.cb, du=DP.du, au=DP.au; dpFerme(); if(cb) try{
    Toute l'équipe sur une bande : interventions, activités et absences.
    ═══════════════════════════════════════════════════════════════════════════ */
 function tdbPortee(){ try{ const v=localStorage.getItem('elanB_tdb_portee'); return ['jour','7','14','mois'].indexOf(v)>=0?v:'7'; }catch(e){ return '7'; } }
-function tdbPorteeSet(v){ try{ localStorage.setItem('elanB_tdb_portee',v); }catch(e){} views.dashboard(); }
+function tdbPorteeSet(v){ try{ localStorage.setItem('elanB_tdb_portee',v); }catch(e){} tdbRedessiner(); }
 function tdbJours(){
   const p=tdbPortee(), j0=todayISO(), out=[];
   const n=p==='jour'?1:p==='7'?7:p==='14'?14:0;
@@ -28792,7 +28842,7 @@ views.mouvements=function(){
   const tuileBox=b=>`<span style="width:26px;height:26px;flex:none;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:color-mix(in srgb,${boxTeinte(b)} 16%,transparent);color:${boxTeinte(b)}">${esc(initials(String(b.nom||b.numero||'B').trim(),1))}</span>`;
   const boxesFiltrees=visibleBoxes(db.boxes||[]).filter(b=>!mvtFBoxQ.trim()||String((b.nom||'')+' '+(b.numero||'')).toLowerCase().includes(mvtFBoxQ.trim().toLowerCase()));   // le filtre « box » ne propose que ses box
   const nbMvtBox=id=>tout.filter(m=>m.boxId===id).length;
-  const rangBox=(b,on,html)=>`<div onclick="mvtChoisirBox('${b?b.id:''}')" style="display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer;background:${on?'color-mix(in srgb,var(--acc) 9%,transparent)':'transparent'}" onmouseover="this.style.background='color-mix(in srgb,var(--acc) 6%,transparent)'" onmouseout="this.style.background='${on?'color-mix(in srgb,var(--acc) 9%,transparent)':'transparent'}'">${html}<span style="flex:1"></span>${on?'<span style="color:var(--acc-txt);font-weight:800">✓</span>':''}</div>`;
+  const rangBox=(b,on,html)=>`<div class="ligne-choix teinte${on?' on':''}" onclick="mvtChoisirBox('${b?b.id:''}')" style="display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer">${html}<span style="flex:1"></span>${on?'<span style="color:var(--acc-txt);font-weight:800">✓</span>':''}</div>`;
   const menuBox=mvtMenuOuvert==='box'?`<div class="mvt-menu" style="position:absolute;top:calc(100% + 8px);right:0;z-index:60;width:305px;background:var(--card);border:1px solid var(--brd);border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden">
     <div style="padding:12px 14px 4px;font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--t3);text-transform:uppercase">Filtrer par box</div>
     <div style="padding:8px 12px 10px;border-bottom:1px solid color-mix(in srgb,var(--brd) 70%,transparent)"><div class="mvt-menu-q" style="display:flex;align-items:center;gap:8px;background:var(--bg1);border-radius:10px;padding:8px 11px"><span style="opacity:.55;font-size:12px">🔍</span><input id="mvt-box-q" value="${esc(mvtFBoxQ)}" oninput="mvtBoxQ(this.value)" placeholder="Chercher une box…" style="flex:1;min-width:0;border:none;background:transparent;color:var(--t1);font-size:12.5px;outline:none"></div></div>
@@ -36554,6 +36604,10 @@ views.parametres=function(){
         <div class="filters" style="margin:0">${Object.entries(LANGS).map(([k,v])=>`<div class="chip ${getLang()===k?'active':''}" onclick="setLang('${k}')">${LANG_FLAG[k]} ${v}</div>`).join('')}</div>
         <div style="font-size:12px;color:var(--t3);margin-top:8px">Le français reste la langue par défaut. Chaque utilisateur choisit la sienne.</div>
       </div>
+      <div style="margin-bottom:18px"><div class="dt-lbl" id="txt-lbl" style="margin-bottom:10px">Taille du texte</div>
+        <div class="txt-choix" role="radiogroup" aria-labelledby="txt-lbl">${TXT_CHOIX.map(([k,l])=>`<button type="button" class="chip ${txtChoix()===k?'active':''}" role="radio" aria-checked="${txtChoix()===k}" onclick="setTxt('${k}')">${l}</button>`).join('')}</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:8px">${esc(txtNote())}</div>
+      </div>
       <div><div class="dt-lbl" style="margin-bottom:10px">Thème et couleur</div>
         <button type="button" class="tc-rangee" onclick="themeCouleur()">
           <span class="tc-apercu" style="background:linear-gradient(158deg,${MARQUES[getMarque()].clair} 0 50%,${MARQUES[getMarque()].fonce} 50% 100%)"></span>
@@ -43460,7 +43514,7 @@ function userFootMenu(e){ e.preventDefault(); e.stopPropagation();
   const old=$('foot-menu'); if(old) old.remove();
   const m=document.createElement('div'); m.id='foot-menu';
   m.style.cssText='position:fixed;z-index:600;background:var(--card);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:14px;padding:6px;min-width:200px;box-shadow:0 16px 44px rgba(0,0,0,.5)';
-  const it=(ic,l,fn,danger)=>`<div onclick="event.stopPropagation();flottantSort(document.getElementById('foot-menu'));${fn}" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:${danger?'var(--danger-ink)':'var(--t1)'}" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'"><span style="width:18px;text-align:center">${ic}</span>${l}</div>`;
+  const it=(ic,l,fn,danger)=>`<div onclick="event.stopPropagation();flottantSort(document.getElementById('foot-menu'));${fn}" class="ligne-choix" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:${danger?'var(--danger-ink)':'var(--t1)'}"><span style="width:18px;text-align:center">${ic}</span>${l}</div>`;
   m.innerHTML=it('⧉','Nouvelle fenêtre',"window.open(location.href.split('#')[0],'_blank')")
     +it('⚙️','Paramètres',"go('parametres');document.getElementById('sidebar').classList.remove('open')")
     +'<div style="height:1px;background:var(--brd);margin:5px 8px"></div>'
@@ -43772,10 +43826,69 @@ function carteAppareil(){
 }
 function setPlatForce(k){
   try{ if(PLATS[k]) localStorage.setItem(PLAT_CLE,k); else localStorage.removeItem(PLAT_CLE); }catch(e){}
-  opPlatAppliquer();
+  opPlatAppliquer(); try{ txtAppliquer(); }catch(e){}
   toast(PLATS[k]? ('🖥️ Rendu « '+PLATS[k].lbl+' »') : '🔍 Rendu détecté automatiquement');
   if(current==='parametres') views.parametres();
 }
+
+/* ⛔ LA TAILLE DU TEXTE SUIT LE TÉLÉPHONE — audit apple-design du 21 octobre 2026, point 4. Toute la typographie est écrite en
+   px (2 157 tailles : 798 dans la feuille, 1 359 dans le code des écrans), et Safari ne fait grossir que la police du SYSTÈME
+   (-apple-system-body) : quelqu'un qui lit en gros caractères ne gagnait rien. On ne réécrit pas le fichier : quand le facteur
+   n'est pas 1, la page fait passer chaque taille en px par calc(… * var(--txt,1)) — les feuilles une fois, les styles écrits
+   en ligne au fil des rendus (un observateur, posé à ce moment-là seulement). Au réglage « Normale », rien ne bouge : ni
+   feuille, ni observateur ; et ce qu'on écrira demain en px suit tout seul.
+   · « Comme l'appareil » (le défaut) lit, sur iPhone et iPad, la taille de -apple-system-body : 17 px à la taille par défaut,
+     19, 21, 23 aux trois crans au-dessus (Réglages › Luminosité et affichage › Taille du texte). Ailleurs : 1 (Android
+     grossit lui-même ; au bureau, le zoom du navigateur agrandit tout).
+   · jamais sous 1 (un champ sous 16 px fait zoomer Safari), jamais au-dessus de TXT_MAX (au-delà, la mise en page ne tient
+     plus — mesuré, scratchpad/sonde-taille-texte.js).
+   · les barres (menu, barre du haut, onglets) gardent leur taille, comme chez Apple : une barre a une hauteur, pas une page.
+   · un réglage de L'APPAREIL (un téléphone et un Mac ne se lisent pas pareil) : il ne voyage pas, il se range par prefLocal
+     (la mémoire de repli d'un rangement plein). */
+const TXT_CLE='elanB_txt', TXT_MAX=1.35;
+const TXT_CHOIX=[['auto','Comme l’appareil'],['1','Normale'],['1.12','Grande'],['1.24','Très grande'],['1.35','La plus grande']];
+function txtChoix(){ const v=prefLocalLire(TXT_CLE); return TXT_CHOIX.some(c=>c[0]===v)?v:'auto'; }
+function txtSysteme(){
+  if(document.documentElement.getAttribute('data-os')!=='ios') return 1;
+  try{ if(!(window.CSS&&CSS.supports&&CSS.supports('font','-apple-system-body'))||!document.body) return 1;
+    const t=document.createElement('span'); t.style.cssText='font:-apple-system-body;position:absolute;visibility:hidden;pointer-events:none'; t.textContent='x';
+    document.body.appendChild(t); const px=parseFloat(getComputedStyle(t).fontSize); t.remove();
+    return px>0?px/17:1; }catch(e){ return 1; } }
+function txtFacteur(){ const c=txtChoix(), f=c==='auto'?txtSysteme():parseFloat(c);
+  return Math.min(TXT_MAX,Math.max(1,Math.round((isFinite(f)?f:1)*100)/100)); }
+/* une déclaration de feuille : `font-size:13px` → `font-size:calc(13px * var(--txt,1))` (un !important qui suit reste le sien).
+   Le raccourci `font:` n'est pas touché : la feuille n'en a qu'un en px, les initiales d'une tuile de liste (.tf-badge), et la
+   tuile a une taille fixe — comme une icône, elle ne grossit pas avec le texte (elle en déborderait). */
+function txtReecrireCss(css){ return String(css).replace(/(font-size\s*:\s*)(\d*\.?\d+)px/g,'$1calc($2px * var(--txt,1))'); }
+function txtEnLigne(el){ const f=el&&el.style&&el.style.fontSize; if(f&&/^\d*\.?\d+px$/.test(f)) el.style.fontSize='calc('+f+' * var(--txt,1))'; }
+let _txtObs=null;
+function txtAppliquer(){
+  const f=txtFacteur(), r=document.documentElement;
+  r.style.setProperty('--txt',String(f));
+  if(f!==1) r.setAttribute('data-txt',String(f)); else r.removeAttribute('data-txt');
+  if(f===1||_txtObs) return f;
+  document.querySelectorAll('style').forEach(st=>{ if(st.dataset.txt) return; const n=txtReecrireCss(st.textContent); if(n!==st.textContent) st.textContent=n; st.dataset.txt='1'; });
+  document.querySelectorAll('[style*="font-size"]').forEach(txtEnLigne);
+  if(typeof MutationObserver==='function'){
+    _txtObs=new MutationObserver(L=>{ for(const m of L){
+      if(m.type==='attributes'){ txtEnLigne(m.target); continue; }
+      m.addedNodes.forEach(n=>{ if(n.nodeType!==1) return;
+        if(n.tagName==='STYLE'){ if(!n.dataset.txt){ n.textContent=txtReecrireCss(n.textContent); n.dataset.txt='1'; } return; }
+        txtEnLigne(n); if(n.querySelectorAll) n.querySelectorAll('[style*="font-size"]').forEach(txtEnLigne); }); } });
+    _txtObs.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['style']}); }
+  return f;
+}
+/* le geste s'applique d'abord, s'enregistre ensuite (CLAUDE.md, « un geste d'apparence ») */
+function setTxt(k){ const d=document.documentElement, avant=d.getAttribute('data-txt');
+  prefLocal(TXT_CLE,k); txtAppliquer();
+  if(current==='parametres') views.parametres();
+  if(d.getAttribute('data-txt')!==avant) toast(k==='auto'?'Taille du texte : comme l’appareil':'Taille du texte : '+((TXT_CHOIX.find(c=>c[0]===k)||[])[1]||k).toLowerCase()); }
+function txtNote(){ const c=txtChoix(), f=txtFacteur(), ios=document.documentElement.getAttribute('data-os')==='ios';
+  if(c==='auto') return ios?'Suit Réglages › Luminosité et affichage › Taille du texte'+(f!==1?' — en ce moment ×'+String(f).replace('.',','):'')+'.'
+    :'Sur cet appareil, la taille du système ne se lit pas : choisis-la ici. Au bureau, le zoom du navigateur (⌘ +, Ctrl +) agrandit aussi tout.';
+  return 'Sur cet appareil seulement. Le menu, la barre du haut et les onglets gardent leur taille.'; }
+/* revenir sur l'application relit le réglage du téléphone (il a pu changer pendant ce temps) */
+try{ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&txtChoix()==='auto') txtAppliquer(); }); }catch(e){}
 
 /* ═══════════════ THÈME (auto système / jour / sombre + couleur d'accent) ═══════════════ */
 /* ⛔⛔ LE THÈME ET LA TEINTE SONT DEUX RÉGLAGES — thème final de Justin, 24 septembre 2026
@@ -44504,6 +44617,7 @@ if(window.matchMedia){ try{ window.matchMedia('(prefers-color-scheme: dark)').ad
    marquee AVANT le premier rendu, sinon le premier ecran paraitrait sans verre puis sauterait. */
 try{ opPlatAppliquer(); opPlatHaute(); }catch(e){}
 applyTheme();
+try{ txtAppliquer(); }catch(e){}
 boot();
 
 /* PWA : installation (Mac, Windows, iPhone, Android) */

@@ -37,6 +37,7 @@ function monde(layout, extra) {
   vm.runInContext(`${DD.replace('const ', 'var ')}
     var DASH_CARDS={interventions:{},boxes:{},enveloppes:{},bonsCommande:{},vehicules:{},clients:{}};
     function save(){ __saves++; } var views={dashboard(){ __vues++; }};
+    function tdbRedessiner(){ views.dashboard(); }   // audit apple-design, partie Z : les gestes redessinent par tdbRedessiner (rendreVueSure)
     ${DL}\n${RM}\n${AD}\n${RS}`, ctx);
   return ctx;
 }

@@ -26,7 +26,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 1 | 5 | « Augmenter le contraste » ignoré : la règle visait un attribut de MOINS que le thème, elle ne prenait jamais | 7917 (règle), 7151 et 7189 (thèmes) | vitres à 42 % de blanc, liseré blanc invisible sur fond clair | ✅ corrigé (partie A) |
 | 2 | 5 | « Réduire la transparence » incomplet : surfaces listées une par une, cinq oubliées, trois voiles écrits en ligne | 7900 (liste), 7713, 3999, 7443, 7630, 25228, 31989, 32196 | le groupe de liste, le segmenté, la recherche, le bouton de repli restent flous | ✅ corrigé (partie A) |
 | 3 | 5 | Sept défilements doux en JavaScript ignorent « Réduire les animations » | 19258, 19451, 20151, 25253, 36523, 37843, 44877 | la page glisse sur 3 000 px sous le réglage | ✅ corrigé (partie A) |
-| 4 | 5 | La taille du texte choisie dans le téléphone n'est pas suivie : toute la typographie est en px | 3242 (et toute la feuille) | quelqu'un qui lit en gros caractères ne gagne rien | ❓ décision (chantier) |
+| 4 | 5 | La taille du texte choisie dans le téléphone n'est pas suivie : toute la typographie est en px | 3242 (et toute la feuille) | quelqu'un qui lit en gros caractères ne gagne rien | ✅ corrigé (partie Y) |
 | 5 | 4 | Glisser une intervention au doigt dans le planning : la carte atterrit décalée du point de prise ; pas de repère d'heure ; prise et dépose sèches | 20603, 20611, 20591 | on dépose à l'aveugle, l'intervention change d'heure toute seule | ✅ corrigé (partie B) |
 | 6 | 4 | ~450 ms de taps perdus après chaque navigation (le calque de la transition reçoit les taps) | 2209 | on touche, rien ne répond, on retape | ✅ corrigé (partie C) |
 | 7 | 4 | Un simple enregistrement rejoue toute l'entrée de l'écran (fondu, cascade, compteurs à zéro) | 16736, 16466, 16550 | « ▶ Démarrer » fait clignoter toute la liste | ✅ corrigé (partie C) |
@@ -108,3 +108,30 @@ même box dans les 7 s du toast — un cas qu'un utilisateur n'atteint pas en pr
 - Bancs : `test-2840` (43), `test-2841` (30), `test-2842` (89), `test-2849` (43), `test-2850` (40), `test-2851` (31) ;
   27 mutations sur 27 mordent.
 - Sonde : `sonde-relecture.js`, iPhone et Mac, jour et nuit : 30 ✓ ; 17 ✓ 13 ✗ sur la bêta de la partie W.
+
+### Partie Z — les trois restes de la relecture
+- **La bulle du navigateur** : un champ « obligatoire » laissé vide arrêtait l'envoi sur la bulle du système, avant notre code
+  (54 champs dans 30 formulaires). Le navigateur lève « invalid » sur chaque champ en défaut avant d'abandonner l'envoi : on la
+  retient là, et `champManque` désigne les champs du même essai d'un coup, le message nommé par le libellé du champ
+  (« « Nom / Raison sociale » est obligatoire »).
+- **Six gestes du tableau de bord** (« Modifier », une carte ajoutée, retirée, déplacée, la disposition d'origine, la période)
+  le redessinaient sans la barre « Reprendre ». Ils passent par `tdbRedessiner` : la seule fonction qui écrit l'écran, puis la
+  place où l'on était.
+- **Deux menus écrits en ligne** (le choix d'une box dans Mouvements, le menu du pied) posaient leur fond par `onmouseover`,
+  que le toucher d'un iPhone laisse collé. Une classe porte le survol (à la souris seulement) et l'appui.
+- Banc : `test-2853` (31). Sonde : `sonde-partie-z.js`, iPhone et Mac, jour et nuit : 41 ✓ sur chacun ; sur la bêta d'avant,
+  16 ✗ et 18 ✗.
+
+### Partie Y — la taille du texte suit le téléphone (n° 4)
+- Justin, 22 octobre : « corrige tous les problèmes tout de suite ». Toute la typographie est en px (2 157 tailles) et Safari ne
+  fait grossir que la police du système : on ne réécrit pas le fichier. Quand le facteur n'est pas 1, la page fait passer
+  chaque taille en px par `calc(… * var(--txt,1))` — les feuilles une fois, les styles en ligne par un observateur posé à ce
+  moment-là. Au réglage « Normale », rien ne bouge (ni feuille ni observateur), et ce qu'on écrira demain en px suit tout seul.
+- « Comme l'appareil » (le défaut) lit, sur iPhone et iPad, la taille de `-apple-system-body` (17 px par défaut ; 19, 21, 23
+  aux trois crans au-dessus). Paramètres › Apparence › « Taille du texte » : Comme l'appareil, Normale, Grande (×1,12), Très
+  grande (×1,24), La plus grande (×1,35). Jamais sous 1, jamais au-dessus de 1,35. Le menu, la barre du haut et les onglets
+  gardent leur taille. Les initiales d'une tuile de liste aussi (elles vivent dans une tuile de taille fixe).
+- Banc : `test-2854` (40), 20 mutations sur 20. Sonde : `sonde-taille-texte.js` — le mécanisme (le contenu grossit de 35 %,
+  les barres non, un écran dessiné après aussi, le retour à « Normale » rend chaque taille au centième de pixel), puis chaque
+  rubrique à ×1 et ×1,35 sur iPhone, petit Android et Mac.
+
