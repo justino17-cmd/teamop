@@ -40,7 +40,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 15 | 3 | Panneau des notifications sans animation, sans point d'ancrage | 40935 | il surgit au milieu de nulle part | ✅ corrigé (partie H) |
 | 16 | 3 | Planning : menu contextuel et carte de survol secs | 20759 | apparition sèche | ✅ corrigé (partie H) |
 | 17 | 3 | Feuille « Créer » : une poignée qui ne glisse pas | 6614, 15644 | on tire, rien ne bouge | ✅ corrigé (partie I) |
-| 18 | 3 | Le toast n'est pas annoncé aux lecteurs d'écran ; son « Annuler » n'est pas un bouton | 8057, 13911 | VoiceOver ne dit rien | à faire |
+| 18 | 3 | Le toast n'est pas annoncé aux lecteurs d'écran ; son « Annuler » n'est pas un bouton | 8057, 13911 | VoiceOver ne dit rien | ✅ corrigé (partie J) |
 | 19 | 3 | `confirm()` natifs sur des gestes réversibles | 21703 (et suivants) | une boîte du navigateur pour rien | à faire |
 | 20 | 3 | Suppression générique « Supprimer cet élément ? » sans nom ni annulation | 36321 | on ne sait pas quoi on supprime | à faire |
 | 21 | 3 | Photos d'intervention ouvertes dans un onglet (`window.open`) alors qu'une visionneuse existe | 24886, 24921, 24982, 24987 | on sort de l'application | à faire |
@@ -56,7 +56,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 31 | 2 | `alert()` natifs dans le flux des bons de commande | 32385 | une boîte du navigateur | à faire |
 | 32 | 2 | Une fenêtre ouverte laisse défiler la page derrière elle | 384 | la page bouge sous la fenêtre | à faire |
 | 33 | 2 | Une validation de formulaire ne marque aucun champ | 17635 | « Date et heure obligatoires », mais lequel ? | à faire |
-| 34 | 2 | Un toast d'erreur a l'habillage d'une confirmation | 13911 | une erreur passe pour un succès | à faire |
+| 34 | 2 | Un toast d'erreur a l'habillage d'une confirmation | 13911 | une erreur passe pour un succès | ✅ corrigé (partie J) |
 | 35 | 2 | Réorganiser les tuiles du tableau de bord : saut à la prise et à la dépose | 17530 | la tuile saute | à faire |
 | 36 | 2 | Huit transitions animent la largeur ou le rembourrage au lieu de `transform` | 3993, 6334, 6368, 499, 106, 2324 | calcul de mise en page à chaque image | à faire |
 

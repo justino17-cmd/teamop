@@ -1185,7 +1185,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
    Le toast ne capte donc plus rien ; seul « ↩︎ Annuler » reste cliquable, parce que c'est
    la seule partie d'un toast qui soit une action. */
 .toast{ pointer-events:none; }
-.tst-an{ display:inline-block; margin-left:10px; padding:2px 10px; border-radius:100px; border:1px solid rgba(255,255,255,.45); font-weight:800; cursor:pointer; pointer-events:auto; }
+.tst-an{ display:inline-block; margin-left:10px; padding:2px 10px; border-radius:100px; border:1px solid currentColor; background:none; color:inherit; font:inherit; font-weight:800; cursor:pointer; pointer-events:auto; }
 @media (hover:hover){ .tst-an:hover{ background:rgba(255,255,255,.16); } }
 /* plusieurs plannings empilés */
 .plg-pl{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 11px; margin-bottom:9px; }
@@ -2660,6 +2660,14 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
 /* ── TOAST ── une capsule en verre, posée en bas */
 .toast{background:var(--eleve)!important;color:var(--t1)!important;border:0;border-radius:var(--r-4);padding:12px 18px;font-weight:600;font-size:14px;
   box-shadow:var(--ombre-3)!important;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);max-width:min(92vw,520px);text-align:center}
+/* un refus, une erreur : la même capsule, avec un liseré et une pastille rouges — elle ne passe plus pour une confirmation
+   (audit apple-design, point 34). Le sens ne tient pas qu'à la couleur : la pastille porte « ! ». */
+.toast.tst-err{box-shadow:inset 0 0 0 1.5px var(--red),var(--ombre-3)!important}
+/* sous le verre, la capsule reçoit son ombre d'une règle plus forte (html[data-marque][data-verre][data-refonte] .toast) :
+   le liseré doit l'égaler, sinon il disparaît (mesuré le 22 octobre 2026 : la règle était là, et ne gagnait pas) */
+html[data-marque][data-verre][data-refonte] .toast.tst-err{box-shadow:inset 0 0 0 1.5px var(--red),var(--vr-ombre-barre,var(--ombre-3))!important}
+.toast.tst-err::before{content:'!';display:inline-grid;place-items:center;width:20px;height:20px;margin-right:9px;border-radius:50%;
+  background:var(--red-fill,var(--red));color:var(--on-red,#fff);font-weight:800;font-size:13px;line-height:1;vertical-align:-3px}
 
 /* ── CONNEXION ── */
 .login-logo{width:72px;height:72px;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.08)}
@@ -8131,7 +8139,7 @@ html .leaflet-marker-icon.leaflet-interactive:active{filter:brightness(.82)}
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div class="overlay" id="overlay2" style="z-index:310"><div class="modal wide" id="modal2"></div></div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script>
 /* ═══════════════════════════════════════════════════════════
@@ -14012,15 +14020,33 @@ function flottantSort(el,fin){ const finir=fin||(()=>{ try{ el.remove(); }catch(
   el._flotT=setTimeout(()=>{ if(el.classList.contains('flot-sort')){ el.classList.remove('flot-sort','flot'); finir(); } },160); }
 document.addEventListener('click',function(e){ const t=e.target; const x=t&&t.closest&&t.closest('.flot-sort,.feuille-sort');
   if(x||(t&&t.closest&&t.closest('#overlay2.ferme'))){ e.preventDefault(); e.stopImmediatePropagation(); } },true);
-function toast(msg,ms){ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),ms||2200); }
+/* ⛔⛔ LE TOAST SE DIT, ET UNE ERREUR NE S'HABILLE PAS EN SUCCÈS — audit apple-design du 21 octobre 2026, points 18 et 34.
+   Le toast est le seul retour de quelque 845 gestes. Il n'était annoncé à aucun lecteur d'écran (ni role, ni aria-live) :
+   avec VoiceOver, « Droit requis », « Serveur injoignable » ou « Suppression non autorisée » n'étaient jamais prononcés, et on
+   croyait le geste réussi. Son « ↩︎ Annuler » était un <span> : inatteignable au clavier. Et un refus portait exactement
+   l'habillage d'une confirmation. Donc :
+   · #toast est une région vivante (role="status") ; un refus ou une erreur passe en « assertive » ;
+   · un refus se reconnaît à sa FORMULATION (TOAST_ERREUR : « … requis », « Impossible… », « … injoignable », « Réservé
+     aux… », ⚠️ ❌ ⛔…) et prend l'habillage d'une alerte (.tst-err) ; un appel peut trancher lui-même (genre 'erreur' ou
+     'ok' — « Mouvement refusé » confirme le refus qu'on vient de faire, ce n'est pas une erreur) ;
+   · parti, son texte est retiré (la région, vide, reste en place : retirée, elle ne serait plus écoutée) — un lecteur d'écran
+     ne le retrouve pas hors contexte ;
+   · « Annuler » est un vrai <button>. */
+const TOAST_ERREUR=/^\s*(⚠|❌|⛔|🚫|📶)|(^|[^a-zà-ÿ])(impossible|échec|erreur|injoignable|refus|non autoris|requise?s?\b|réservée? (aux|à|au) |introuvable|illisible|invalide|interdit|obligatoire)/i;
+function toastHabiller(t,msg,genre){ const err=genre==='erreur'||(genre!=='ok'&&TOAST_ERREUR.test(String(msg||'')));
+  clearTimeout(t._v); t.classList.toggle('tst-err',err); t.setAttribute('aria-live',err?'assertive':'polite'); return err; }
+function toastCacher(t){ t.classList.remove('show'); clearTimeout(t._v);
+  t._v=setTimeout(()=>{ if(!t.classList.contains('show')) t.textContent=''; },450); }
+function toast(msg,ms,genre){ const t=$('toast'); if(!t) return; toastHabiller(t,msg,genre); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>toastCacher(t),ms||2200); }
 /* message avec une action : sert au « ↩︎ Annuler » d'un changement de technicien */
 function toastAnnuler(msg,appel,ms){
   const t=$('toast'); if(!t){ toast(msg); return; }
-  t.innerHTML=esc(msg)+' <span class="tst-an" onclick="'+appel+';(function(){var z=document.getElementById(\'toast\');if(z)z.classList.remove(\'show\')})()">↩︎ Annuler</span>';
+  toastHabiller(t,msg,'ok');
+  t.innerHTML=esc(msg)+' <button type="button" class="tst-an" onclick="'+appel+';(function(){var z=document.getElementById(\'toast\');if(z&&window.toastCacher)toastCacher(z);else if(z)z.classList.remove(\'show\')})()">↩︎ Annuler</button>';
   t.classList.add('show'); clearTimeout(t._t);
   /* 7 s par défaut — assez pour se dédire d'un geste sur une box. Une pose sur douze box passe 20 s :
      le temps de comprendre ce qui vient d'arriver avant que le seul moyen de revenir en arrière parte. */
-  t._t=setTimeout(()=>{ t.classList.remove('show'); t.innerHTML=''; },ms||7000);
+  t._t=setTimeout(()=>toastCacher(t),ms||7000);
 }
 /* ⛔ UN BOUTON QUI NE CHANGE PAS N'A PAS ACCUSÉ RÉCEPTION — et le toast ne le remplace pas.
    Demande de Justin, 17 septembre 2026, capture à l'appui : « quand on valide les droits il
@@ -21998,7 +22024,7 @@ function absDecisionOk(id,ok){
   a.leQuand=todayISO();
   save(); closeModal();
   logEvent(ok?'Absence validée':'Absence refusée',techName(a.techId)+' · '+fmtShort(a.du)+(m?' — '+m:''),'crud');
-  toast(ok?'✅ Demande validée':'⛔ Demande refusée');
+  toast(ok?'✅ Demande validée':'⛔ Demande refusée',0,'ok');   // la décision qu'on vient de prendre : une confirmation, même « refusée »
   views.absences();
 }
 function absRouvrir(id){
@@ -29882,7 +29908,7 @@ function boxMvtValider(id,statut,accords){ _resteApresValid='';
      dans le circuit normal (saveDemande les met toujours en attente). */
   if(!visibleBoxMvts([m]).length){ toast('Ce mouvement ne relève pas de ton périmètre'); return; }
   const champMot=(typeof document!=='undefined')?document.getElementById('mot-'+m.id):null;
-  if(statut==='refuse'){ const motif=prompt('Motif du refus :',champMot?champMot.value:''); if(motif===null) return; boxMvtRefuser(m,motif); toast('Mouvement refusé'); return; }
+  if(statut==='refuse'){ const motif=prompt('Motif du refus :',champMot?champMot.value:''); if(motif===null) return; boxMvtRefuser(m,motif); toast('Mouvement refusé',0,'ok'); return; }
   const b=db.boxes.find(x=>x.id===m.boxId);
   if(!b){ boxMvtRefuser(m,'box introuvable'); toast('Box introuvable — mouvement refusé'); return; }
   /* La correction du DR se pose AVANT d'appliquer : tout ce qui suit lit l'accordé. Tout à zéro,
@@ -31364,7 +31390,7 @@ function validerDemande(id,statut){ if(!currentUser||!can('validerDR')){ toast('
     logEvent('Demande validée',`${d.num} → bon de commande ${num}`,'demande',d.chefId); toast('Validée — bon de commande créé');
     delegationTracer(d,`Demande ${d.num} validée`);
     respBonsPrevenir(db.bons[db.bons.length-1],d);
-  } else { logEvent('Demande refusée',`${d.num}`+(d.motifRefus?' — '+d.motifRefus:''),'demande',d.chefId); toast('Demande refusée');
+  } else { logEvent('Demande refusée',`${d.num}`+(d.motifRefus?' — '+d.motifRefus:''),'demande',d.chefId); toast('Demande refusée',0,'ok');
     delegationTracer(d,`Demande ${d.num} refusée`); }
   // seule la personne qui a fait la demande est prévenue de la décision
   try{ if(d.chefId&&d.chefId!==currentUser.id) pushNotify(statut==='valide'?'✅ Demande validée par le DR '+fullName(currentUser):'🚫 Demande refusée par le DR '+fullName(currentUser),d.num+' · '+(d.boxNom||boxLabel(d.boxId)||'')+(d.motifRefus?' — motif : '+d.motifRefus:''),'/app.html#v=demandes',[d.chefId]); }catch(e){}
