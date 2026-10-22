@@ -4165,6 +4165,17 @@ html[data-refonte] .sidebar{transition:transform var(--d-4) var(--ressort)!impor
 @media(max-width:1000px){
   html[data-refonte] .sidebar.open{box-shadow:var(--ombre-3)!important}
 }
+/* ⛔ … ET LE VOILE SE FOND AVEC LUI — audit apple-design du 21 octobre 2026 (§ 7, § 12 : « dim to focus », les deux plans
+   bougent ensemble). Le voile passait de display:none à display:block : il SURGISSAIT pendant que le menu glissait 400 ms,
+   et s'éteignait d'un coup au retour. Il est désormais toujours là, transparent et sans prise sur le toucher, et se fond
+   sur la même durée que le menu. Le tiroir se repousse aussi au doigt (tiroirGeste) : il pilote alors l'opacité en ligne. */
+@media(max-width:780px){
+  html[data-refonte] .sidebar-backdrop{display:block;position:fixed;inset:0;z-index:39;background:rgba(0,0,0,.45);
+    opacity:0;visibility:hidden;pointer-events:none;transition:opacity var(--d-4) var(--e-sortie),visibility 0s linear var(--d-4)}
+  html[data-refonte] .sidebar.open ~ .sidebar-backdrop{opacity:1;visibility:visible;pointer-events:auto;
+    transition:opacity var(--d-4) var(--e-sortie),visibility 0s}
+}
+@media (prefers-reduced-motion: reduce){ html[data-refonte] .sidebar-backdrop{transition:none!important} }
 
 /* ── 6. CE QUI SE REPLIE ── le chevron d'une section tourne sur un ressort, et le contenu qui
    apparaît se pose au lieu de surgir. <details> ne sait pas animer sa hauteur : on anime ce qui
@@ -15922,6 +15933,48 @@ function tabCurPlacer(anime,decalage){
 const SWIPE_ENGAGE=12, SWIPE_DOMINANCE=1.3, SWIPE_DECEL=0.995;
 /* La projection d'Apple (« Designing Fluid Interfaces ») : où le doigt AURAIT emmené l'objet. */
 function swipeProjeter(vitesse){ return (vitesse/1000)*SWIPE_DECEL/(1-SWIPE_DECEL); }
+/* ⛔⛔ LE TIROIR DU MENU SE REPOUSSE AU DOIGT — audit apple-design du 21 octobre 2026 (§ 2, § 5, § 6). Le menu du téléphone
+   s'ouvrait par ☰ et ne se fermait que par un toucher sur le voile : aucun geste ne le tenait, et un balayage sur le voile
+   CHANGEAIT DE RUBRIQUE (le glissement entre écrans le prenait) au lieu de le fermer. Ici, le menu ouvert suit le doigt
+   vers la gauche, 1:1, le voile s'éclaircit à mesure ; au relâcher, la vitesse des derniers instants est PROJETÉE
+   (swipeProjeter, la même règle que les autres gestes) : au-delà de la moitié, il se ferme, sinon il revient. Le retour
+   et la fermeture repartent de la position affichée (la transition CSS part de la valeur en ligne qu'on retire). Un
+   geste qui part vers la droite, ou plutôt vertical, est rendu au défilement du menu. */
+(function tiroirGeste(){
+  let t=null;
+  const sb=()=>document.getElementById('sidebar'), bd=()=>document.getElementById('sidebar-backdrop');
+  const actif=()=>{ const s=sb(); try{ return !!s&&s.classList.contains('open')&&matchMedia('(max-width:780px)').matches; }catch(_){ return false; } };
+  document.addEventListener('touchstart',function(e){
+    if(e.touches.length!==1||!actif()) return;
+    const x=e.target; if(!(x&&x.closest&&(x.closest('#sidebar')||x.closest('#sidebar-backdrop')))) return;
+    const p=e.touches[0], l=sb().getBoundingClientRect().width||280;
+    t={x0:p.clientX,y0:p.clientY,dx:0,suivi:false,larg:l,hist:[[p.clientX,performance.now()]]};
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!t) return; const p=e.touches[0]; if(!p) return;
+    const dx=p.clientX-t.x0, dy=p.clientY-t.y0;
+    if(!t.suivi){
+      if(Math.abs(dx)<10&&Math.abs(dy)<10) return;
+      if(Math.abs(dy)>Math.abs(dx)||dx>0){ t=null; return; }   // vertical : le menu défile ; vers la droite : rien à tirer
+      t.suivi=true; sb().style.transition='none'; const b=bd(); if(b) b.style.transition='none';
+    }
+    t.dx=Math.min(0,dx); t.hist.push([p.clientX,performance.now()]); if(t.hist.length>5) t.hist.shift();
+    sb().style.transform='translateX('+t.dx+'px)';
+    const b=bd(); if(b) b.style.opacity=String(Math.max(0,1+t.dx/t.larg));
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  const fin=function(){
+    if(!t) return; const r=t; t=null; if(!r.suivi) return;
+    const s=sb(), b=bd(), h=r.hist, a=h[0], z=h[h.length-1];
+    /* la vitesse des derniers instants ; un doigt arrêté depuis plus de 80 ms ne relance rien */
+    const v=(z[1]-a[1])>0&&(performance.now()-z[1])<80?(z[0]-a[0])/(z[1]-a[1])*1000:0;
+    const projete=r.dx+swipeProjeter(v);
+    s.style.transition=''; s.style.transform=''; if(b){ b.style.transition=''; b.style.opacity=''; }
+    if(projete< -r.larg/2) s.classList.remove('open');
+  };
+  document.addEventListener('touchend',fin,{passive:true});
+  document.addEventListener('touchcancel',fin,{passive:true});
+})();
 function swipeDefileH(n){
   while(n && n!==document.body && n!==document.documentElement){
     try{ const st=getComputedStyle(n);
@@ -15950,7 +16003,7 @@ function swipeDefileH(n){
    balayage de page pousserait la bulle dans le sens contraire de celle qui la tient.
    Ce qui reste exclu l'est pour une vraie raison : un tiroir, un voile, un panneau ou la barre
    du haut ne sont pas des rubriques qu'on parcourt. */
-const SWIPE_HORS=['.sidebar','#overlay','#overlay2','#login','.topbar','.creer-ov','#tabbar'];
+const SWIPE_HORS=['.sidebar','.sidebar-backdrop','#overlay','#overlay2','#login','.topbar','.creer-ov','#tabbar'];   /* le voile du menu : un balayage y FERME le menu (tiroirGeste), il ne change pas de rubrique */
 function swipeExclu(n){
   while(n && n.nodeType===1 && n!==document.body){
     for(const sel of SWIPE_HORS){ try{ if(n.matches&&n.matches(sel)) return true; }catch(e){} }
