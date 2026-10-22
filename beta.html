@@ -7915,7 +7915,52 @@ html[data-refonte] .filters.tc-modes,html[data-refonte] .filters.seg-on:not(.seg
   html[data-marque][data-verre] .topbar .tb-grappe::before{background:var(--bg1)!important}
 }
 @media (prefers-contrast: more){
-  html[data-marque][data-verre]{--vr-liseret:var(--t3); --tf-filet:var(--t3)}
+  /* ⛔ `[data-theme]` N'EST PAS UN ORNEMENT. Les deux matières (§ 1 et 1 bis) visent
+     html[data-marque][data-verre][data-theme="…"] : un attribut de plus que cette règle, qui ne
+     prenait donc JAMAIS. Mesuré le 21 octobre 2026 (scratchpad/sonde-apple-audit.js) : contraste
+     accru demandé, les vitres restaient à 42 % de blanc et leur liseré blanc à 85 % — invisible sur
+     une page claire. À spécificité égale c'est l'ordre qui tranche, et cette règle vient après.
+     Ce que le réglage demande (apple-design § 14) : des surfaces presque pleines, un bord qui se
+     voit, aucun reflet décoratif entre le texte et son fond. */
+  html[data-marque][data-verre][data-theme]{
+    --vr-liseret:var(--t3); --tf-filet:var(--t3); --vr-reflet:none;
+    --vr-plein:var(--card);   /* plein : jamais color-mix(…, transparent), qui assombrit (test-757) */
+    --vr-fond:var(--vr-plein); --vr-fond2:var(--vr-plein); --vr-fond-dense:var(--vr-plein);
+    --tf-kpi:var(--vr-plein); --tf-barre:var(--vr-plein); --tf-cote:var(--vr-plein);
+  }
+  /* les contrôles en verre SANS bord (boutons fantômes, recherche, curseur d'un segmenté) : un trait intérieur,
+     qui ne décale rien. Les deux sélecteurs longs ont la MÊME force que les règles qu'ils remplacent
+     (« .ph-actions .btn:not(.danger){box-shadow:none} », « .filters.seg-on .seg-cur{…} ») : à force égale,
+     c'est l'écrit plus loin qui gagne. */
+  html[data-marque][data-verre] .btn.ghost,html[data-marque][data-verre] input.search-inp,
+  html[data-marque][data-verre] .seg-cur,html[data-marque][data-verre] .filters.seg-on .seg-cur,
+  html[data-marque][data-verre][data-refonte] .ph-actions .btn.ghost{box-shadow:inset 0 0 0 1px var(--t3)!important}
+  html[data-marque][data-verre] .seg-cur,html[data-marque][data-verre] .filters.seg-on .seg-cur{background:var(--vr-plein)!important}
+  /* « ‹ Tableau de bord » (.ph-back) est un LIEN, sans fond ni rembourrage : un trait l'enfermerait au ras du texte */
+  html[data-marque][data-verre] .btn.ghost.ph-back{box-shadow:none!important}
+  /* les en-têtes collants du planning et des tableaux : pleins, filet du bas net */
+  html[data-marque][data-verre] .plm-th,html[data-marque][data-verre] .plg-h,
+  html[data-marque][data-verre] .tbl th{background:var(--vr-plein)!important;border-bottom-color:var(--t3)!important}
+}
+@media (prefers-reduced-transparency: reduce){
+  /* ⛔ À LA SOURCE, PAS SURFACE PAR SURFACE. Le bloc § 20 plus haut liste ses surfaces une à une : mesuré le
+     21 octobre 2026 (scratchpad/sonde-apple-audit.js), trois lui avaient échappé et gardaient leur flou sous le
+     réglage — le curseur du segmenté du tableau de bord, le groupe de liste de la maquette (Interventions, Clients,
+     Boxes) et la recherche des Clients ; et les boutons fantômes, le bouton de repli, le toast restaient
+     translucides. Une surface en verre de plus naîtra un jour : elle doit s'éteindre seule.
+     Donc : les jetons de matière deviennent OPAQUES (même force que les deux matières, écrit plus loin ; ce bloc
+     vient après celui du contraste accru, l'opaque l'emporte quand les deux réglages sont posés), et AUCUN flou
+     de fond ne survit au réglage (apple-design § 14 : « drop the blur »). Le voile d'une fenêtre perd son flou et
+     garde son assombrissement. */
+  html[data-marque][data-verre][data-theme]{
+    --vr-flou:none; --vr-reflet:none; --vr-plein:var(--bg1);
+    --vr-fond:var(--vr-plein); --vr-fond2:var(--vr-plein); --vr-fond-dense:var(--vr-plein);
+    --tf-kpi:var(--vr-plein); --tf-barre:var(--vr-plein); --tf-cote:var(--vr-plein);
+  }
+  html[data-marque][data-verre] *,html[data-marque][data-verre] *::before,html[data-marque][data-verre] *::after{
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  html[data-marque][data-verre] .seg-cur,html[data-marque][data-verre] .filters.seg-on .seg-cur,
+  html[data-marque][data-verre] input.search-inp{background:var(--bg1)!important}
 }
 
 /* ── 22. CE QUI NE TIENT PAS DANS SA CARTE, SA FENÊTRE OU SON ÉCRAN (g04, 16 octobre 2026) ──
@@ -13908,6 +13953,12 @@ function logEvent(action, detail, type='general', cibleUserId){
 }
 
 /* ── Toast / Modal ── */
+/* ⛔ UN DÉFILEMENT DOUX DEMANDÉ EN JAVASCRIPT PASSE PAR ICI. « Réduire les animations » coupe bien le défilement doux
+   de la feuille (scroll-behavior:auto!important), mais un `behavior:'smooth'` écrit dans un appel l'EMPORTE sur la
+   propriété CSS, qui ne joue que pour `behavior:'auto'`. Relevé par l'audit apple-design du 21 octobre 2026 (§ 14) :
+   sept appels (la carte du planning, les roues d'heure, le résultat d'une étiquette, une aide…) faisaient glisser la
+   page sous ce réglage. `test-2831` refuse tout `behavior:'smooth'` écrit ailleurs. */
+function defilDoux(){ try{ return window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'; }catch(e){ return 'auto'; } }
 function toast(msg,ms){ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),ms||2200); }
 /* message avec une action : sert au « ↩︎ Annuler » d'un changement de technicien */
 function toastAnnuler(msg,appel,ms){
@@ -19255,7 +19306,7 @@ function planOptVoir(){
     _planMap.fitBounds(ll,{padding:[60,60],maxZoom:15});
     setTimeout(function(){ try{ _planMap.invalidateSize(); _planMap.fitBounds(ll,{padding:[60,60],maxZoom:15}); }catch(e){} },220);
     planOptBarre();
-    const mp=$('plm-map'); if(mp&&mp.scrollIntoView) mp.scrollIntoView({behavior:'smooth',block:'center'});
+    const mp=$('plm-map'); if(mp&&mp.scrollIntoView) mp.scrollIntoView({behavior:defilDoux(),block:'center'});
   }catch(e){ toast('Aperçu impossible'); }
 }
 /* petite barre posee sur la carte : on valide ou on annule sans rouvrir le panneau */
@@ -19448,7 +19499,7 @@ function planCarteFocus(id){
     mk.openPopup();
     const el=mk.getElement(); if(el){ el.style.setProperty('--cl',planCoulOf(id)||'#2EB872');
       el.classList.add('pin-flash'); setTimeout(function(){ try{ el.classList.remove('pin-flash'); }catch(_){ } },1700); }
-    const mp=$('plm-map'); if(mp&&mp.scrollIntoView) mp.scrollIntoView({behavior:'smooth',block:'nearest'});
+    const mp=$('plm-map'); if(mp&&mp.scrollIntoView) mp.scrollIntoView({behavior:defilDoux(),block:'nearest'});
   }catch(e){}
 }
 
@@ -20148,7 +20199,7 @@ function planVersPlanning(id){
     if(planZoom==='carte'){ planZoom='normal'; views.planning(); setTimeout(function(){ planVersPlanning(id); },700); return; }
     const el=document.querySelector('[data-int="'+id+'"],[data-drag-int="'+id+'"]');
     if(!el){ detailIntervention(id); return; }
-    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.scrollIntoView({behavior:defilDoux(),block:'center'});
     el.classList.add('plm-flash'); setTimeout(function(){ try{ el.classList.remove('plm-flash'); }catch(_){ } },1800);
   }catch(e){}
 }
@@ -25250,7 +25301,7 @@ function roueTick(){ const h=roueLit('roue-h',1), m=roueLit('roue-m',5), two=n=>
   const big=document.getElementById('roue-big'); if(big) big.textContent=two(h)+':'+two(m);
   ['roue-h','roue-m'].forEach((id,k)=>{ const v=k?m:h;
     (document.getElementById(id)||{querySelectorAll:()=>[]}).querySelectorAll('.roue-i').forEach(el=>el.classList.toggle('mid',parseInt(el.dataset.v)===v)); }); }
-function roueVise(el){ const c=el.parentNode; c.scrollTo({top:el.offsetTop-88,behavior:'smooth'}); }
+function roueVise(el){ const c=el.parentNode; c.scrollTo({top:el.offsetTop-88,behavior:defilDoux()}); }
 function fermeRoues(){ const ov=document.getElementById('roues-ov'); if(ov) ov.remove(); rouesCb=null; }
 function validRoues(){ const two=n=>String(n).padStart(2,'0'); const v=two(roueLit('roue-h',1))+':'+two(roueLit('roue-m',5));
   const cb=rouesCb; fermeRoues(); if(cb) cb(v); }
@@ -36520,7 +36571,7 @@ async function etiqLireImage(cv){ if(etiq.busy||!cv) return; etiq.busy=true; con
   try{ const w=await ocrLecteur(); const r=await w.recognize(cv); if(etiq.mode!==mode) return;
     const txt=((r&&r.data&&r.data.text)||'').replace(/\s+/g,' ').trim(); etiq.lu=txt;
     etiqResultat(txt,etiqCandidats(txt,db.produits||[]),true);
-    const rs=$('etiq-result'); if(rs&&rs.firstElementChild){ try{ rs.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(e){} }
+    const rs=$('etiq-result'); if(rs&&rs.firstElementChild){ try{ rs.scrollIntoView({behavior:defilDoux(),block:'nearest'}); }catch(e){} }
   }catch(e){ if(etiq.mode===mode) etiqEtat(navigator.onLine===false?'La première lecture a besoin d’Internet (le lecteur se télécharge une fois) — tape le nom du produit.':'La lecture n’a pas pu se faire — réessaie, ou tape le nom du produit.','err'); }
   finally{ if(etiq.mode===mode){ etiq.busy=false; if(btn) btn.disabled=false; } _ocrLog=null; } }
 function etiqTexte(q){ const t=String(q||'').trim(); if(!t){ etiq.cands=[]; etiq.sel=null; const r=$('etiq-result'); if(r) r.innerHTML=''; return; }
@@ -37840,7 +37891,7 @@ function teleManque(pfx,reste){
 /* on amène la personne sur la ligne, et on la fait remarquer */
 function teleVaVers(pfx,m){
   const el=document.getElementById(teleId(pfx,m)); if(!el) return;
-  try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){ el.scrollIntoView(); }
+  try{ el.scrollIntoView({block:'center',behavior:defilDoux()}); }catch(e){ el.scrollIntoView(); }
   const z=document.getElementById(pfx+'k-'+(m===TELE_NB?'nb':m));
   if(z){ z.style.outline='2px solid var(--org)'; z.style.outlineOffset='4px'; z.style.borderRadius='10px';
     setTimeout(()=>{ z.style.outline=''; z.style.outlineOffset=''; },1800); }
@@ -44874,7 +44925,7 @@ function refusEnPage(texte){
       void aide.offsetWidth;                       // on relance l'animation même si elle vient de jouer
       aide.classList.add('rf-signale');
       setTimeout(function(){ aide.classList.remove('rf-signale'); },2200);
-      try{ aide.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){ aide.scrollIntoView(); }
+      try{ aide.scrollIntoView({block:'center',behavior:defilDoux()}); }catch(e){ aide.scrollIntoView(); }
     } else if(aide){
       var d=document.createElement('div');
       d.style.cssText='margin:-4px 0 15px;padding:12px 15px;border-radius:12px;font-size:13px;'

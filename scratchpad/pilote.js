@@ -3,9 +3,13 @@
    app.html, jamais teamop.fr : le navigateur piloté expose tout le contenu de la page. */
 const fs = require('fs'), os = require('os'), path = require('path'), net = require('net'), http = require('http');
 const { spawn } = require('child_process');
-const RACINE = '/home/user/teamop';
+/* La racine est celle du dépôt qui PORTE cette copie de l'outil : une copie de travail (`git worktree`) mesure sa
+   propre bêta, jamais celle du clone principal — le 21 octobre 2026, une passe entière a mesuré la v768 d'une
+   branche en retard pendant que `main` servait la v770. `OPG_RACINE` force une autre racine. */
+const RACINE = process.env.OPG_RACINE || path.resolve(__dirname, '..');
 const CHROME = '/opt/pw-browsers/chromium';
-const COPIE = '/tmp/claude-0/-home-user-teamop/2b5579ae-09a0-571f-9bc9-ac0e61b4c7de/scratchpad/essai/essai.html';
+/* deux sondes lancées depuis deux copies de travail écriraient la MÊME copie : `OPG_COPIE` en donne une à chacune */
+const COPIE = process.env.OPG_COPIE || '/tmp/claude-0/-home-user-teamop/2b5579ae-09a0-571f-9bc9-ac0e61b4c7de/scratchpad/essai/essai.html';
 
 const dormir = ms => new Promise(r => setTimeout(r, ms));
 const portLibre = () => new Promise(res => { const s = net.createServer();
