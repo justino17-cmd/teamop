@@ -8023,6 +8023,10 @@ html[data-refonte] #content a[href]:not(.btn):active{opacity:.55;transition-dura
 /* la carte (feuille de Leaflet, chargée à part) : ses boutons de zoom et ses repères ne répondaient pas non plus */
 html .leaflet-bar a:active{background-color:#dcdfe5!important}
 html .leaflet-marker-icon.leaflet-interactive:active{filter:brightness(.82)}
+/* la feuille d'abonnement (aboFeuille) : côte à côte sur un écran large ; empilés en pleine largeur au téléphone, le bouton
+   qui agit en haut (deux boutons de largeurs différentes passaient à la ligne de travers, mesuré à 390 px) */
+.abo-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+@media(max-width:520px){ .abo-actions{flex-direction:column-reverse} .abo-actions .btn{width:100%;justify-content:center} }
 
 /* ══ CE QUI FLOTTE NAÎT DE CE QUI L'APPELLE — audit apple-design du 21 octobre 2026, points 12 à 16 (voir flottantEntre).
    Menus, carte de survol, panneau des notifications : ils grandissent depuis leur point d'ancrage (transform-origin, posé
@@ -9332,13 +9336,14 @@ function metierSet(id){
   if(!METIERS[id]) return;
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
   const av=metierId(); if(av===id){ toast('C’est déjà ton métier'); return; }
-  if(!confirm('Passer l’application en « '+METIERS[id].nom+' » ?\n\nCe qui change : les catégories d’intervention, la fiche de rapport et les modules affichés.\nTes clients, ton planning et tes interventions ne sont pas touchés — tu peux revenir en arrière à tout moment.')) return;
+  /* audit apple-design, point 19 : le texte le disait déjà, « tu peux revenir en arrière à tout moment » — le geste se
+     fait, et « ↩︎ Annuler » rend le métier d'avant. */
   db.metier=id;
   /* v751 : `logJournal` n'a jamais existé — la ligne ne s'écrivait pas, en silence (ESLint, vérification de A à Z).
      v765 : et elle s'écrit AVANT le save() — logEvent ne range rien (voir metierServeurAppliquer). */
   try{ logEvent('Métier de l’entreprise',METIERS[id].nom,'admin'); }catch(e){}
   save();
-  toast(METIERS[id].ic+' Métier « '+METIERS[id].nom+' » activé');
+  toastAnnuler(METIERS[id].ic+' Métier « '+METIERS[id].nom+' » activé',"metierSet('"+av+"')");
   views.parametres();
 }
 /* ⛔ v765 — LE MÉTIER VIENT DE TEAM OP (Justin, 29 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
@@ -14530,12 +14535,23 @@ function planPlaceLibre(){ return essaiCouvreEquipe() || db.users.length<planPla
 function abosManquants(){ return Math.max(1, db.users.length+1-planPlaces()); }
 function proposerAbonnement(){
   if(!currentUser||currentUser.role!=='admin'){ toast('Plus de place utilisateur libre — seul l\'administrateur peut en ajouter',4500); return; }
-  if(!BETA_ESSAI&&_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, tes places reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  if(!BETA_ESSAI&&_susp.suspendu){ aboFeuille('Abonnement en attente de règlement','Abonnement en attente de règlement : règle-le d\'abord, tes places reviennent avec lui.','Ouvrir l’espace client','https://teamop.fr/espace.html'); return; }
   const f=forfait(), n=abosManquants(), u=db.users.length, p=planPlaces(), s=k=>k>1?'s':'';
-  const msg='Formule '+PLANS[f].l+' : '+u+' utilisateur'+s(u)+' pour '+p+' place'+s(p)+'.\n\nUn abonnement = un utilisateur : pour en ajouter un, il faut '+n+' abonnement'+s(n)+' '+PLANS[f].l+' de plus.'
-    +'\n\nAprès le paiement, '+(n>1?'les places s\'ajoutent d\'elles-mêmes':'la place s\'ajoute d\'elle-même')+' à ton espace en quelques minutes (rouvre l\'application).'
-    +'\n\nOuvrir la page de paiement ?';
-  if(confirm(msg)) window.open('https://teamop.fr/recap-abonnement.html?formule='+f+'&utilisateurs='+n,'_blank'); }
+  aboFeuille('Plus de place utilisateur',
+    '<p style="margin:0 0 10px">Formule '+esc(PLANS[f].l)+' : '+u+' utilisateur'+s(u)+' pour '+p+' place'+s(p)+'.</p>'
+    +'<p style="margin:0 0 10px">Un abonnement = un utilisateur : pour en ajouter un, il faut <b>'+n+' abonnement'+s(n)+' '+esc(PLANS[f].l)+'</b> de plus.</p>'
+    +'<p style="margin:0">Après le paiement, '+(n>1?'les places s\'ajoutent d\'elles-mêmes':'la place s\'ajoute d\'elle-même')+' à ton espace en quelques minutes (rouvre l\'application).</p>',
+    'Ouvrir la page de paiement','https://teamop.fr/recap-abonnement.html?formule='+encodeURIComponent(f)+'&utilisateurs='+n); }
+/* ⛔ audit apple-design, point 19 : la proposition d'abonnement était une boîte du navigateur (titre du domaine, « OK /
+   Annuler », police et mode sombre du système) — pour ouvrir une page de paiement. C'est une feuille de l'application,
+   posée par-dessus ce qui est ouvert (openSub : le formulaire de création d'un compte qui l'a appelée reste intact
+   dessous), avec un bouton qui dit ce qu'il fait. Ouvrir la page reste un geste direct (window.open dans le toucher). */
+function aboFeuille(titre,texteHtml,bouton,url){
+  openSub(`<div class="modal-head"><h3>${esc(titre)}</h3><button class="modal-close" onclick="closeSub()" aria-label="Fermer">✕</button></div>
+    <div style="font-size:14.5px;line-height:1.55;color:var(--t2)">${texteHtml}</div>
+    <div class="abo-actions">
+      <button type="button" class="btn ghost" onclick="closeSub()">Plus tard</button>
+      <button type="button" class="btn" onclick="window.open('${url.replace(/'/g,'%27')}','_blank');closeSub()">${esc(bouton)}</button></div>`); }
 function setForfaitQty(d){ const q=Math.max(1,(db.forfaitQty||1)+d);
   if(d<0 && db.users.length>(PLANS[forfait()].maxU||1)*q){ toast('Impossible : '+db.users.length+' comptes utilisent les places actuelles'); return; }
   db.forfaitQty=q; logEvent('Abonnements '+PLANS[forfait()].l,'×'+q,'auth'); save(); toast(q+' abonnement(s) — '+planPlaces()+' place(s)'); if(current==='parametres') views.parametres(); }
@@ -15207,12 +15223,19 @@ function exclusionsRendre(userId,boxId){
 function exclusionsRendreTout(userId){
   const u=(db.users||[]).find(x=>x.id===userId); if(!u) return;
   const l=exclusionsPrivantes(u); if(!l.length) return;
-  if(!confirm('Rendre à '+fullName(u)+' les '+l.length+' box que l\'équipe voit ?\n\nCe geste ne change rien pour les autres, et n\'ouvre aucune box qui ne lui serait pas déjà destinée.')) return;
+  /* audit apple-design, point 19 : ce geste se DÉFAIT (« ↩︎ Annuler » remet chaque box exactement comme avant) */
+  _exclAvant={userId,boxes:l.map(b=>({id:b.id,userIds:(b.userIds||[]).slice(),userIdsExclus:(b.userIdsExclus||[]).slice()}))};
   l.forEach(b=>userBoxVoit(userId,b.id,true));
   /* Une ligne de journal par GESTE, jamais par box : `db.journal` est plafonné à 500. */
   save(); try{ logEvent('Box rendues',l.length+' box rendues à @'+(u.login||u.id),'auth'); }catch(e){}
-  toast(l.length+' box rendues à '+fullName(u),3200); revueExclusions();
+  toastAnnuler(l.length+' box rendues à '+fullName(u),'exclusionsRendreAnnuler()'); revueExclusions();
 }
+var _exclAvant=null;
+function exclusionsRendreAnnuler(){ const a=_exclAvant; _exclAvant=null; if(!a) return;
+  a.boxes.forEach(x=>{ const b=(db.boxes||[]).find(y=>y.id===x.id); if(b){ b.userIds=x.userIds; b.userIdsExclus=x.userIdsExclus; } });
+  const u=(db.users||[]).find(x=>x.id===a.userId)||{};
+  save(); try{ logEvent('Box rendues — annulé',a.boxes.length+' box de nouveau retirées à @'+(u.login||u.id||''),'auth'); }catch(e){}
+  toast('Box de nouveau retirées, comme avant',0,'ok'); try{ revueExclusions(); }catch(e){} }
 function revueExclusions(){
   const gens=(db.users||[]).filter(u=>u&&u.actif!==false).map(u=>({u,l:exclusionsPrivantes(u)})).filter(x=>x.l.length);
   const total=gens.reduce((n,x)=>n+x.l.length,0);
@@ -18022,11 +18045,18 @@ function orgaValider(d){
   save(); logEvent('Organisation du planning validée — '+fmtShort(d),'','plan');
   views.planning(); toast('✅ Organisation du '+fmtShort(d)+' validée — tu peux prévenir les clients quand tu veux');
 }
+/* audit apple-design, point 19 : rouvrir l'organisation se défait (« ↩︎ Annuler » la referme telle qu'elle était) */
+var _orgaAvant=null;
 function orgaRouvrir(d){
   if(!canPlan()) return;
-  if(!confirm('Rouvrir l\u2019organisation du '+fmtShort(d)+' ?\nLes clients déjà prévenus le restent.')) return;
-  db.planOrga=db.planOrga||{}; delete db.planOrga[d]; save(); views.planning(); toast('Organisation rouverte');
+  db.planOrga=db.planOrga||{}; _orgaAvant={[d]:{o:db.planOrga[d]}};
+  delete db.planOrga[d]; save(); if(current==='planning') views.planning();
+  toastAnnuler('Organisation du '+fmtShort(d)+' rouverte — les clients déjà prévenus le restent','orgaRouvrirAnnuler()');
 }
+function orgaRouvrirAnnuler(){ const a=_orgaAvant; _orgaAvant=null; if(!a||!canPlan()) return;
+  db.planOrga=db.planOrga||{}; db.planOrgaRef=db.planOrgaRef||{};
+  Object.keys(a).forEach(d=>{ if(a[d].o!==undefined) db.planOrga[d]=a[d].o; if(a[d].r!==undefined) db.planOrgaRef[d]=a[d].r; });
+  save(); if(current==='planning') views.planning(); toast('Organisation refermée, telle qu’elle était',0,'ok'); }
 function orgaBandeau(){
   if(!canPlan()) return '';
   const dates=orgaJours(); if(!dates.length) return '';
@@ -18067,10 +18097,10 @@ function orgaValiderTout(){ orgaJours().forEach(d=>{ db.planOrga=db.planOrga||{}
   save(); logEvent('Organisation du planning validée','','plan'); views.planning();
   toast('✅ Organisation validée — tu peux prévenir les clients maintenant ou plus tard'); }
 function orgaRouvrirTout(){
-  if(!confirm('Rouvrir l\u2019organisation ?\nLes clients déjà prévenus le restent.')) return;
   db.planOrga=db.planOrga||{}; db.planOrgaRef=db.planOrgaRef||{};
-  orgaJours().forEach(d=>{ delete db.planOrga[d]; delete db.planOrgaRef[d]; });
-  save(); views.planning(); toast('Organisation rouverte'); }
+  _orgaAvant={}; orgaJours().forEach(d=>{ _orgaAvant[d]={o:db.planOrga[d],r:db.planOrgaRef[d]}; delete db.planOrga[d]; delete db.planOrgaRef[d]; });
+  save(); if(current==='planning') views.planning();
+  toastAnnuler('Organisation rouverte — les clients déjà prévenus le restent','orgaRouvrirAnnuler()'); }
 /* le message d'un client, modèle rempli */
 function orgaTexte(i){
   const c=db.clients.find(x=>x.id===i.clientId)||{};
@@ -22030,11 +22060,17 @@ function absDecisionOk(id,ok){
 function absRouvrir(id){
   const a=(db.absences||[]).find(x=>x.id===id); if(!a) return;
   if(!absPeutValider(a)){ toast('Droit insuffisant'); return; }
-  if(!confirm('Remettre cette demande en attente ?')) return;
+  /* audit apple-design, point 19 : un geste réversible ne se confirme pas, il se DÉFAIT (« ↩︎ Annuler » rétablit la décision) */
+  _absAvant[id]={statut:a.statut,motif:a.motif,parQui:a.parQui,leQuand:a.leQuand};
   a.statut='attente'; a.motif=''; a.parQui=''; a.leQuand='';
   save(); logEvent('Absence remise en attente',techName(a.techId)+' · '+fmtShort(a.du),'crud');
-  toast('Demande remise en attente'); views.absences();
+  toastAnnuler('Demande remise en attente',"absRouvrirAnnuler('"+id+"')"); views.absences();
 }
+var _absAvant={};
+function absRouvrirAnnuler(id){ const a=(db.absences||[]).find(x=>x.id===id), av=_absAvant[id]; delete _absAvant[id];
+  if(!a||!av||a.statut!=='attente'||!absPeutValider(a)) return;   // déjà retraitée entre-temps : on ne l'écrase pas
+  Object.assign(a,av); save(); logEvent('Remise en attente annulée',techName(a.techId)+' · '+fmtShort(a.du),'crud');
+  toast('Décision rétablie',0,'ok'); if(current==='absences') views.absences(); }
 function formAbsence(id){
   db.absences=db.absences||[];
   const a=id?db.absences.find(x=>x.id===id):null;
@@ -29309,11 +29345,19 @@ function boxAttenteProduit(boxId,pid){
 function boxLotAnnuler(boxId){
   var att=boxAttentes(boxId); if(!att.length) return;
   var n=boxAttentePids(boxId).length;
-  if(!confirm('Annuler ce qui attend le DR ?\n\n'+n+' produit'+(n>1?'s ne partiront':' ne partira')+' pas. Le stock n\'a pas encore bougé, rien ne sera défait.')) return;
+  /* audit apple-design, point 30 : « Annuler ce qui attend le DR ? » faisait du bouton « Annuler » de la boîte le contraire
+     d'annuler. Rien n'est appliqué au stock : le geste se fait, et « ↩︎ Annuler » remet les demandes telles quelles. */
   att.forEach(function(m){ logEvent('Demande de mouvement annulée',boxMvtLibelle(m,true),'stock'); });
   db.boxMvtAttente=(db.boxMvtAttente||[]).filter(function(x){ return att.indexOf(x)<0; });
-  save(); toast('Demande annulée'); renderBoxProdList();
+  _lotAvant={boxId:boxId,att:att};
+  save(); toastAnnuler(n+' produit'+(n>1?'s':'')+' retiré'+(n>1?'s':'')+' de la demande — le DR ne '+(n>1?'les':'le')+' verra pas','boxLotRemettre()'); renderBoxProdList();
 }
+var _lotAvant=null;
+function boxLotRemettre(){ const a=_lotAvant; _lotAvant=null; if(!a) return;
+  db.boxMvtAttente=db.boxMvtAttente||[];
+  a.att.forEach(function(m){ if(!db.boxMvtAttente.some(function(x){ return x.id===m.id; })) db.boxMvtAttente.push(m); });
+  logEvent('Demande de mouvement remise',a.att.length+' ligne(s)','stock'); save(); toast('Demande remise au DR',0,'ok');
+  try{ if(typeof boxView!=='undefined'&&boxView===a.boxId) renderBoxProdList(); }catch(e){} }
 /* Retirer un seul produit de ce qui attend. Dans un lot, on enlève la ligne — le lot se vide et
    disparaît tout seul s'il ne reste rien. Un mouvement isolé (« Quantité », « Retirer de la
    box ») ne porte qu'un produit : on retire le mouvement entier. */
@@ -32741,8 +32785,10 @@ function saveBon(e,id){ e.preventDefault(); bonValider(id); }
    création des bons séparés par fournisseur/site, statut Prêt à envoyer, retour sur la liste des Prêts */
 function bonValider(id){ const form=$('bonform'); if(!form) return; const f=Object.fromEntries(new FormData(form));
   const lignesOk=bonLignes.filter(l=>l.designation||l.produitId);
-  if(!lignesOk.length){ alert('Ta commande est vide.\n\nAjoute au moins un produit avec le bouton 📖 Catalogue.'); return; }
-  const _qt=bonQteTot({lignes:lignesOk}); if(_qt.ctn+_qt.u===0){ alert('⚠️ Toutes les quantités sont à 0.\n\nRègle les CARTONS ou les UNITÉS de chaque produit (boutons − / ＋) avant de valider la commande.'); if(!$('bon-qty')) bonQtyOpen(); return; }
+  /* audit apple-design, point 31 : plus de boîte du navigateur dans le flux des bons — un refus se dit dans la page (toast
+     d'erreur, annoncé), et la fenêtre des quantités s'ouvre là où il faut agir */
+  if(!lignesOk.length){ toast('Ta commande est vide — ajoute au moins un produit avec 📖 Catalogue',4500,'erreur'); return; }
+  const _qt=bonQteTot({lignes:lignesOk}); if(_qt.ctn+_qt.u===0){ toast('⚠️ Toutes les quantités sont à 0 — règle les cartons ou les unités de chaque produit (− / ＋)',5000,'erreur'); if(!$('bon-qty')) bonQtyOpen(); return; }
   /* g02 : un numéro de bon ne se réutilise pas. Saisi à la main, il pouvait doubler celui d'un autre bon
      (les réponses fournisseur retrouvent le bon par son numéro : elles tomberaient sur le premier). À la
      modification, seulement si le N° CHANGE — un doublon d'avant ne bloque pas la correction d'autre chose.
@@ -33370,7 +33416,7 @@ function bonEmailSaisirOk(id){ const b=db.bons.find(x=>x.id===id); if(!b) return
 }
 async function envoiBonApercu(id){ if(!peutCommander()){ refusCommander(); return; } const b=db.bons.find(x=>x.id===id); if(!b)return;
   const sep=bonSeparer(id);
-  if(sep){ alert('✂️ Cette commande mélangeait plusieurs fournisseurs :\nelle vient d\'être séparée en '+(sep+1)+' bons (un par fournisseur).\n\nEnvoie-les un par un (bouton ✉️ Envoyer de chaque bon) ou avec « Envoyer les bons prêts… » en cochant lesquels.'); if(current==='bons') views.bons(); return; }
+  if(sep){ toast('✂️ Commande séparée en '+(sep+1)+' bons, un par fournisseur — envoie-les un par un (✉️) ou par « Envoyer les bons prêts… »',7000,'ok'); if(current==='bons') views.bons(); return; }
   const f=db.fournisseurs.find(x=>x.id===b.fournisseurId)||{};
   if(!(b.lignes||[]).length){ toast('⚠️ Ce bon est vide — ajoute des produits avant de l\'envoyer'); return; }
   const dest=bonEmailDest(b,f);
@@ -36643,6 +36689,7 @@ function boxDemandesRetirer(boxId){ const att=boxDemandesAttente(boxId);
   return att.length; }
 function fournisseurBons(id){ return (db.bons||[]).filter(b=>b&&b.fournisseurId===id); }
 function delItem(coll,id){
+  _delAvant=null;   // le « ↩︎ Annuler » ne vaut que pour la suppression qu'on vient de faire
   const _grp=COLL_GRP[coll]||'';
   if(_grp ? !canCat(_grp,'supprimer') : !can('supprimer')){ toast('Suppression non autorisée pour ton compte (Permissions)'); return; }
   if(coll==='pointages' && !ptPeutCorriger((db.pointages||[]).find(x=>x.id===id))){ toast('Supprimer des heures est réservé aux responsables'); return; }
@@ -36680,8 +36727,32 @@ function delItem(coll,id){
        comprises — c'est la confirmation honnête que le générique « Supprimer cet élément ? » ne donnait pas. */
     const reste=clientLiensTxt(l);
     if(!confirm(reste?'Supprimer le client « '+(c.nom||'')+' » ?\n\nIl est lié à : '+reste+'.\nCes éléments RESTENT, mais sans client : plus de nom ni d\'adresse dessus'+(l.factures?' (une facture sans client ne peut plus être réclamée)':'')+'.\n\nPour garder l\'historique lisible, garde plutôt la fiche.':'Supprimer cet élément ?')) return;
-  } else if(!confirm('Supprimer cet élément ?'))return;
-  db[coll]=db[coll].filter(x=>x.id!==id); logEvent('Suppression',coll,'crud'); save(); closeModal(); toast('Supprimé'); go(current); }
+  } else {
+    /* audit apple-design, point 20 : « Supprimer cet élément ? » ne disait pas QUOI. La boîte nomme ce qui part, et
+       ce cas-ci (rien d'autre n'est touché) se défait : « ↩︎ Annuler » remet l'enregistrement à sa place. */
+    const x=(db[coll]||[]).find(r=>r.id===id);
+    if(!confirm('Supprimer '+delLibelle(coll,x)+' ?')) return;
+    _delAvant={coll,pos:(db[coll]||[]).findIndex(r=>r.id===id),x};
+  }
+  const defaire=!!(_delAvant&&_delAvant.coll===coll&&_delAvant.x&&_delAvant.x.id===id);
+  db[coll]=db[coll].filter(x=>x.id!==id); logEvent('Suppression',coll,'crud'); save(); closeModal();
+  if(defaire) toastAnnuler('Supprimé : '+delLibelle(coll,_delAvant.x),'delItemAnnuler()');
+  else toast('Supprimé');
+  go(current); }
+/* le nom de ce qu'on supprime, pour la boîte et le toast : « le véhicule « AB-123-CD » », sinon « cet élément » */
+const DEL_NOMS={devis:'le devis',factures:'la facture',contrats:'le contrat',telecollectes:'la télécollecte',mouvements:'le mouvement',produitsDonnes:'le don',
+  enveloppes:'l’enveloppe',brouillons:'le brouillon',demandes:'la demande',bons:'le bon de commande',fournisseurs:'le fournisseur',taches:'la tâche',
+  absences:'l’absence',vehicules:'le véhicule',conducteurs:'le conducteur',pointages:'le pointage',secteurs:'le secteur'};
+/* un véhicule se nomme par sa plaque, lue par vPlaque — le seul chemin qui lit la plaque (test-1290) */
+function delLibelle(coll,x){ const pl=coll==='vehicules'&&x&&typeof vPlaque==='function'?vPlaque(x):'';
+  const n=x&&((pl&&pl!=='—'?pl:'')||x.nom||x.titre||x.num||x.numero||x.libelle||x.label||x.designation||'');
+  const q=DEL_NOMS[coll], nom=n?'« '+String(n).slice(0,60)+' »':'';
+  return q?(q+(nom?' '+nom:'')):(nom||'cet élément'); }
+var _delAvant=null;
+function delItemAnnuler(){ const a=_delAvant; _delAvant=null; if(!a||!a.x) return;
+  const l=db[a.coll]=db[a.coll]||[]; if(l.some(r=>r.id===a.x.id)) return;
+  l.splice(Math.max(0,Math.min(a.pos,l.length)),0,a.x);   // à sa place ; il porte un _m neuf au save(), il bat donc sa pierre tombale
+  logEvent('Suppression annulée',a.coll,'crud'); save(); toast('Rétabli',0,'ok'); go(current); }
 
 /* ═══════════════ SCANNER D'ÉTIQUETTE ═══════════════ */
 /* ⛔ PLUS DE CODE-BARRES — Justin, 23 septembre 2026 : « que ça fasse un scan d'étiquette à la place
@@ -40152,7 +40223,8 @@ function consoRemiseZero(){
   const n=(db.mouvements||[]).length;
   if(!n){ toast('Aucun mouvement à effacer'); return; }
   if(!confirm('Remettre la consommation à zéro ?\n\n'+n+' mouvement(s) de stock seront effacés — c\'est le même historique que l\'écran « Mouvements stock », il se videra aussi.\n\nLes quantités présentes dans les box ne changent PAS.\n\nIrréversible, et la synchro le propage à toute l\'équipe.')) return;
-  if(!confirm('Confirmer : effacer définitivement '+n+' mouvement(s) ?')) return;
+  /* audit apple-design, point 19 : une seconde boîte qui redit la première dresse à taper « OK » sans lire — la première
+     dit déjà tout (combien, quoi, irréversible) */
   db.mouvements=[];
   logEvent('Consommation remise à zéro',n+' mouvement(s) effacé(s)','stock');
   save(); toast('Consommation remise à zéro — '+n+' mouvement(s) effacé(s)',4000);

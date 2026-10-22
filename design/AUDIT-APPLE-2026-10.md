@@ -41,8 +41,8 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 16 | 3 | Planning : menu contextuel et carte de survol secs | 20759 | apparition sèche | ✅ corrigé (partie H) |
 | 17 | 3 | Feuille « Créer » : une poignée qui ne glisse pas | 6614, 15644 | on tire, rien ne bouge | ✅ corrigé (partie I) |
 | 18 | 3 | Le toast n'est pas annoncé aux lecteurs d'écran ; son « Annuler » n'est pas un bouton | 8057, 13911 | VoiceOver ne dit rien | ✅ corrigé (partie J) |
-| 19 | 3 | `confirm()` natifs sur des gestes réversibles | 21703 (et suivants) | une boîte du navigateur pour rien | à faire |
-| 20 | 3 | Suppression générique « Supprimer cet élément ? » sans nom ni annulation | 36321 | on ne sait pas quoi on supprime | à faire |
+| 19 | 3 | `confirm()` natifs sur des gestes réversibles | 21703 (et suivants) | une boîte du navigateur pour rien | ✅ corrigé (partie K) |
+| 20 | 3 | Suppression générique « Supprimer cet élément ? » sans nom ni annulation | 36321 | on ne sait pas quoi on supprime | ✅ corrigé (partie K) |
 | 21 | 3 | Photos d'intervention ouvertes dans un onglet (`window.open`) alors qu'une visionneuse existe | 24886, 24921, 24982, 24987 | on sort de l'application | à faire |
 | 22 | 3 | Pied de fenêtre opaque à trait dur sur téléphone, sous un en-tête en verre | 712 | deux matières dans une fenêtre | à faire |
 | 23 | 3 | Replier le menu (bureau) : la transition de largeur ne tourne jamais | 5656 | le menu disparaît d'un coup | à faire |
@@ -52,8 +52,8 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 27 | 3 | Balayage entre rubriques : butée dure au bord au lieu d'une résistance | 15918 | ça cogne au lieu de céder | ✅ corrigé (partie I) |
 | 28 | 2 | Le voile de la feuille « Créer » est plus mince que celui des fenêtres | 6602 | deux voiles différents | à faire |
 | 29 | 2 | Totaux HT/TVA/TTC sans chiffres tabulaires : la ligne tremble à chaque frappe | 38919 | les chiffres dansent | à faire |
-| 30 | 2 | « Annuler ce qui attend le DR ? » : le bouton « Annuler » veut dire « ne pas annuler » | 28960 | piège de libellé | à faire |
-| 31 | 2 | `alert()` natifs dans le flux des bons de commande | 32385 | une boîte du navigateur | à faire |
+| 30 | 2 | « Annuler ce qui attend le DR ? » : le bouton « Annuler » veut dire « ne pas annuler » | 28960 | piège de libellé | ✅ corrigé (partie K) |
+| 31 | 2 | `alert()` natifs dans le flux des bons de commande | 32385 | une boîte du navigateur | ✅ corrigé (partie K) |
 | 32 | 2 | Une fenêtre ouverte laisse défiler la page derrière elle | 384 | la page bouge sous la fenêtre | à faire |
 | 33 | 2 | Une validation de formulaire ne marque aucun champ | 17635 | « Date et heure obligatoires », mais lequel ? | à faire |
 | 34 | 2 | Un toast d'erreur a l'habillage d'une confirmation | 13911 | une erreur passe pour un succès | ✅ corrigé (partie J) |

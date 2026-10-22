@@ -425,7 +425,7 @@ globalThis.fetch = async function (url, opts) {
       /<b>Ton administrateur peut le rétablir depuis son application\.<\/b>/.test(NU) && !/Ton administrateur est prévenu/.test(NU));
     /* ⛔ la bêta n'est jamais suspendue, ici non plus : les deux lectures directes de la suspension passent par la règle */
     vrai('⛔ la largesse d\u2019une période offerte et la proposition d\u2019abonnement lisent la règle de la bêta (`accesSuspendu`, `BETA_ESSAI`)',
-      /function essaiCouvreEquipe\(\)\{[^\n]*&&!accesSuspendu\(\)\); \}/.test(NU) && /if\(!BETA_ESSAI&&_susp\.suspendu\)\{ if\(confirm\('Abonnement en attente de règlement/.test(NU));
+      /function essaiCouvreEquipe\(\)\{[^\n]*&&!accesSuspendu\(\)\); \}/.test(NU) && /if\(!BETA_ESSAI&&_susp\.suspendu\)\{ aboFeuille\('Abonnement en attente de règlement'/.test(NU));   // une feuille de l'application, plus une boîte du navigateur (audit apple-design, point 19)
     /* (le passage lui-même — une réponse du serveur qui suspend, une autre qui rend — est JOUÉ contre le vrai serveur par
        `test-845` et `test-848`, avec les vraies `forfaitServeurSync`) */
     vrai('⛔⛔ `forfaitServeurSync` appelle bien suspensionPoser et suspensionRappel — hors d’une vérification impossible',
