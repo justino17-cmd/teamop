@@ -6567,11 +6567,15 @@ html[data-os="windows"] .msg-flot{border-radius:10px}
 /* ══ « ＋ CRÉER » — feuille montante (mobile) / fenêtre centrée (bureau) ══════════════════ */
 .creer-ov{
   position:fixed;inset:0;z-index:60;display:none;
-  background:rgba(0,0,0,.35);opacity:0;transition:opacity var(--d-2,.24s) ease;
+  background:rgba(0,0,0,0);transition:background-color var(--d-2,.24s) ease;
   align-items:flex-end;justify-content:center;
 }
 .creer-ov.on{display:flex}
-.creer-ov.vu{opacity:1}
+/* ⛔ LE VOILE SE FOND PAR SA COULEUR, PAS PAR L'OPACITÉ DU CONTENEUR (audit apple-design, point 17) : un ancêtre à
+   opacité < 1 est une « racine de fond » — la vitre de la feuille, qu'il contient, ne floutait plus que lui-même. Pendant
+   l'ouverture, la fermeture et le tirage au doigt, la feuille devenait transparente (les tuiles et la barre d'onglets se
+   lisaient au travers, capture du 22 octobre 2026). */
+.creer-ov.vu{background:rgba(0,0,0,.35)}
 .creer-sheet{
   width:100%;max-width:640px;background:var(--bg1);color:var(--t1);
   border-radius:34px 34px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 22px);
@@ -15759,6 +15763,49 @@ function creerOuvrir(){
   ov.onclick=e=>{ if(e.target===ov) creerFermer(); };
 }
 function creerEchap(e){ if(e.key==='Escape'){ e.stopPropagation(); creerFermer(); } }
+/* ⛔⛔ LA POIGNÉE GLISSE — audit apple-design du 21 octobre 2026, point 17. La feuille « Créer » du téléphone porte la
+   poignée d'une feuille iOS : elle promet « tire-moi vers le bas », et le doigt qui la saisissait ne faisait rien bouger.
+   La feuille suit désormais le doigt vers le bas, 1:1, le voile s'éclaircit à mesure (par sa couleur) ; vers le haut elle résiste
+   (elastique) ; au relâcher, la vitesse des derniers instants est projetée (vitesseRelache, swipeProjeter) : au-delà
+   d'un tiers de sa hauteur elle se ferme, sinon elle remonte — toujours depuis la position affichée (la transition CSS
+   part de la valeur en ligne qu'on retire). Un toucher qui ne bouge pas reste un toucher (une tuile s'ouvre). Bureau et
+   fenêtre centrée : pas de geste (il n'y a pas de poignée). */
+(function creerGeste(){
+  let t=null;
+  const ov=()=>document.getElementById('creer'), feuille=()=>{ const o=ov(); return o&&o.querySelector('.creer-sheet'); };
+  const actif=()=>{ const o=ov(); try{ return !!o&&o.classList.contains('vu')&&matchMedia('(max-width:780px)').matches&&document.documentElement.dataset.kind!=='desktop'; }catch(_){ return false; } };
+  document.addEventListener('touchstart',function(e){
+    if(e.touches.length!==1||!actif()) return;
+    const f=feuille(); if(!f||!(e.target&&e.target.closest&&e.target.closest('.creer-sheet'))) return;
+    const p=e.touches[0];
+    t={y0:p.clientY,x0:p.clientX,dy:0,suivi:false,haut:f.getBoundingClientRect().height||400,hist:[[p.clientY,performance.now()]]};
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!t) return; const p=e.touches[0]; if(!p) return;
+    const dy=p.clientY-t.y0, dx=p.clientX-t.x0;
+    if(!t.suivi){
+      if(Math.abs(dx)<10&&Math.abs(dy)<10) return;
+      if(Math.abs(dx)>Math.abs(dy)){ t=null; return; }   // horizontal : ce n'est pas pour la feuille
+      t.suivi=true; const f=feuille(), o=ov(); if(f) f.style.transition='none'; if(o) o.style.transition='none';
+      /* le voile s'éclaircit par sa COULEUR (son alpha lu au départ), jamais par l'opacité : voir .creer-ov.vu */
+      try{ const m=/rgba?\(([^)]*)\)/.exec(getComputedStyle(o).backgroundColor); const c=m?m[1].split(',').map(x=>parseFloat(x)):[0,0,0,.35];
+        t.voile={r:c[0]||0,g:c[1]||0,b:c[2]||0,a:c.length>3?c[3]:1}; }catch(_){ t.voile={r:0,g:0,b:0,a:.35}; }
+    }
+    t.dy=dy>0?dy:elastique(dy,60); t.hist.push([p.clientY,performance.now()]); if(t.hist.length>12) t.hist.shift();
+    const f=feuille(), o=ov(); if(f) f.style.transform='translateY('+t.dy.toFixed(1)+'px)';
+    if(o&&t.voile){ const v=t.voile, k=Math.max(0,Math.min(1,1-Math.max(0,t.dy)/t.haut)); o.style.backgroundColor='rgba('+v.r+','+v.g+','+v.b+','+(v.a*k).toFixed(3)+')'; }
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  const fin=function(){
+    if(!t) return; const r=t; t=null; if(!r.suivi) return;
+    const f=feuille(), o=ov();
+    const projete=r.dy+swipeProjeter(vitesseRelache(r.hist,performance.now()));
+    if(f){ f.style.transition=''; f.style.transform=''; } if(o){ o.style.transition=''; o.style.backgroundColor=''; }
+    if(projete>r.haut/3) creerFermer();
+  };
+  document.addEventListener('touchend',fin,{passive:true});
+  document.addEventListener('touchcancel',fin,{passive:true});
+})();
 function creerFermer(){
   const ov=document.getElementById('creer'); if(!ov) return;
   document.removeEventListener('keydown',creerEchap);
@@ -15971,6 +16018,17 @@ function tabCurPlacer(anime,decalage){
 const SWIPE_ENGAGE=12, SWIPE_DOMINANCE=1.3, SWIPE_DECEL=0.995;
 /* La projection d'Apple (« Designing Fluid Interfaces ») : où le doigt AURAIT emmené l'objet. */
 function swipeProjeter(vitesse){ return (vitesse/1000)*SWIPE_DECEL/(1-SWIPE_DECEL); }
+/* ⛔ LA VITESSE AU RELÂCHER SE LIT SUR LES DERNIERS INSTANTS, PAS SUR UN SEUL ÉCHANTILLON — audit apple-design du
+   21 octobre 2026, point 26. Le balayage entre rubriques gardait la vitesse du DERNIER mouvement : un doigt qui s'arrêtait
+   avant de lâcher (aucun mouvement, donc rien de neuf) relançait quand même l'écran suivant. On garde les échantillons
+   [x, t] et on mesure sur les 100 dernières ms ; rien depuis 80 ms, le doigt s'est arrêté : vitesse nulle. */
+function vitesseRelache(hist,t){ if(!hist||hist.length<2) return 0; const z=hist[hist.length-1]; if(t-z[1]>80) return 0;
+  let a=hist[hist.length-2]; for(let k=hist.length-2;k>=0;k--){ if(z[1]-hist[k][1]<=100) a=hist[k]; else break; }
+  const dt=z[1]-a[1]; return dt>0?(z[0]-a[0])/dt*1000:0; }
+/* ⛔ AU BORD, ÇA CÈDE AU LIEU DE COGNER — point 27. La résistance d'iOS (le « rubber band ») : plus on tire au-delà de ce
+   qui existe, moins ça avance, sans jamais buter. elastique(x, d) rend le déplacement affiché pour un dépassement x,
+   borné par d (c = 0,55, la constante d'UIScrollView). */
+function elastique(x,d){ if(!d) return 0; const a=Math.abs(x); return Math.sign(x)*(1-1/(a*0.55/d+1))*d; }
 /* ⛔⛔ LE TIROIR DU MENU SE REPOUSSE AU DOIGT — audit apple-design du 21 octobre 2026 (§ 2, § 5, § 6). Le menu du téléphone
    s'ouvrait par ☰ et ne se fermait que par un toucher sur le voile : aucun geste ne le tenait, et un balayage sur le voile
    CHANGEAIT DE RUBRIQUE (le glissement entre écrans le prenait) au lieu de le fermer. Ici, le menu ouvert suit le doigt
@@ -15996,16 +16054,16 @@ function swipeProjeter(vitesse){ return (vitesse/1000)*SWIPE_DECEL/(1-SWIPE_DECE
       if(Math.abs(dy)>Math.abs(dx)||dx>0){ t=null; return; }   // vertical : le menu défile ; vers la droite : rien à tirer
       t.suivi=true; sb().style.transition='none'; const b=bd(); if(b) b.style.transition='none';
     }
-    t.dx=Math.min(0,dx); t.hist.push([p.clientX,performance.now()]); if(t.hist.length>5) t.hist.shift();
+    t.dx=Math.min(0,dx); t.hist.push([p.clientX,performance.now()]); if(t.hist.length>12) t.hist.shift();
     sb().style.transform='translateX('+t.dx+'px)';
     const b=bd(); if(b) b.style.opacity=String(Math.max(0,1+t.dx/t.larg));
     if(e.cancelable) e.preventDefault();
   },{passive:false});
   const fin=function(){
     if(!t) return; const r=t; t=null; if(!r.suivi) return;
-    const s=sb(), b=bd(), h=r.hist, a=h[0], z=h[h.length-1];
+    const s=sb(), b=bd();
     /* la vitesse des derniers instants ; un doigt arrêté depuis plus de 80 ms ne relance rien */
-    const v=(z[1]-a[1])>0&&(performance.now()-z[1])<80?(z[0]-a[0])/(z[1]-a[1])*1000:0;
+    const v=vitesseRelache(r.hist,performance.now());
     const projete=r.dx+swipeProjeter(v);
     s.style.transition=''; s.style.transform=''; if(b){ b.style.transition=''; b.style.opacity=''; }
     if(projete< -r.larg/2) s.classList.remove('open');
@@ -16052,7 +16110,7 @@ function swipeExclu(n){
 function ongletsGeste(){
   const zone=document; if(zone._geste) return;
   zone._geste=true;
-  let x0=0,y0=0,t0=0,actif=false,engage=false,dernier=0,vitesse=0,tdernier=0,largeur=0,sens=0;
+  let x0=0,y0=0,t0=0,actif=false,engage=false,dernier=0,vitesse=0,tdernier=0,largeur=0,sens=0,hist=[],voisins=[true,true];
   /* ⛔ UN BALAYAGE QUI FINIT SUR UN ONGLET DÉCLENCHE LE `click` DE CET ONGLET. Le doigt part
      d'« Accueil », arrive sur « Boxes » : le geste dit « un cran à droite » et le clic dit
      « va sur Boxes » — deux navigations pour un seul geste, et c'est la seconde qui gagne.
@@ -16098,9 +16156,11 @@ function ongletsGeste(){
     if(swipeExclu(cible)) return;
     if(swipeDefileH(cible)) return;
     actif=true; engage=false; x0=x; y0=y; t0=Date.now(); tdernier=t0;
-    dernier=x; vitesse=0; sens=0;
+    dernier=x; vitesse=0; sens=0; hist=[[x,performance.now()]];
     const on=document.querySelector('#tabbar .tab.on');
     largeur=on?on.offsetWidth:80;
+    /* y a-t-il une rubrique avant (doigt vers la droite) et après (vers la gauche) ? au bord, la pastille résiste */
+    try{ const vues=onglets().filter(k=>k&&k!=='_plus'), j=vues.indexOf(VUE_PARENT[current]||current); voisins=[j>0, j>=0&&j<vues.length-1]; }catch(e){ voisins=[true,true]; }
   };
   zone.addEventListener('touchstart',e=>{ const t=e.touches&&e.touches[0]; if(!t||e.touches.length>1) return;
     debut(t.clientX,t.clientY,e.target); },{passive:true});
@@ -16123,11 +16183,14 @@ function ongletsGeste(){
     }
     const t=Date.now(), dt=Math.max(1,t-tdernier);
     vitesse=(cx-dernier)/dt*1000; dernier=cx; tdernier=t;
+    hist.push([cx,performance.now()]); if(hist.length>12) hist.shift();
     sens=dx<0?1:-1;
-    /* La pastille suit le doigt 1:1, bornée à un onglet : c'est ce qui fait qu'on SENT le
-       geste avant de l'avoir fini. Plafonnée, sinon elle sortirait de la barre. */
+    /* La pastille suit le doigt, jusqu'à un onglet ; au-delà — et dès le départ quand il n'y a rien de ce côté — elle
+       RÉSISTE (elastique) au lieu de buter : on sent le bord, on ne s'y cogne pas. */
     if(!sobre()){
-      const p=Math.max(-largeur,Math.min(largeur, -dx*0.55));
+      const brut=-dx*0.55, existe=brut>0?voisins[1]:voisins[0];
+      const p=!existe ? elastique(brut,largeur*0.35)
+        : Math.abs(brut)<=largeur ? brut : Math.sign(brut)*(largeur+elastique(Math.abs(brut)-largeur,largeur*0.35));
       tabCurPlacer(false,p);
     }
   };
@@ -16142,7 +16205,9 @@ function ongletsGeste(){
        marqueur global pour ne pas défaire ce que le doigt vient de faire. */
     try{ window._balayageFin=finBalayage; }catch(e){}
     const dx=dernier-x0;
-    /* Distance parcourue PLUS distance projetée : un coup sec suffit, un glissement lent aussi. */
+    /* Distance parcourue PLUS distance projetée : un coup sec suffit, un glissement lent aussi. La vitesse : celle des
+       derniers instants (vitesseRelache) — un doigt arrêté avant de lâcher ne relance rien. */
+    vitesse=vitesseRelache(hist,performance.now());
     const arrivee=dx+swipeProjeter(vitesse);
     const seuil=Math.max(48,largeur*0.6);
     if(Math.abs(arrivee)<seuil){ finir(0); return; }

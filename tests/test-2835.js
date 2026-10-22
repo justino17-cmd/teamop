@@ -28,11 +28,11 @@ function bloc(debut) {
 
 console.log('\n── 2835 · 0. la population ──');
 const GESTE = bloc('(function tiroirGeste(){');
-const PROJ = bloc('function swipeProjeter(');
+const PROJ = bloc('function swipeProjeter(') + '\n' + bloc('function vitesseRelache(');   // la vitesse au relâcher, partagée (point 26)
 const CONST = (/const SWIPE_ENGAGE=[^;]*;/.exec(CODE) || [''])[0];
 const HORS = (/const SWIPE_HORS=\[([^\]]*)\]/.exec(CODE) || ['', ''])[1];
 vrai('le geste du tiroir (tiroirGeste) est trouvé', GESTE.length > 600, GESTE.length);
-vrai('swipeProjeter et ses constantes sont trouvées', PROJ.length > 30 && /SWIPE_DECEL/.test(CONST), [PROJ.length, CONST]);
+vrai('swipeProjeter, vitesseRelache et leurs constantes sont trouvées', PROJ.length > 200 && /function vitesseRelache\(/.test(PROJ) && /SWIPE_DECEL/.test(CONST), [PROJ.length, CONST]);
 vrai('la liste des zones écartées du glissement entre écrans est trouvée', HORS.length > 20, HORS);
 
 console.log('\n── 2835 · 1. un balayage sur le voile ne change pas de rubrique ──');

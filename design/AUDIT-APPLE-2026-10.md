@@ -39,7 +39,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 14 | 3 | Lecture d'un mail et catalogue des bons : posés et retirés sans mouvement | 31698 | coupure sèche | ✅ corrigé (partie H) |
 | 15 | 3 | Panneau des notifications sans animation, sans point d'ancrage | 40935 | il surgit au milieu de nulle part | ✅ corrigé (partie H) |
 | 16 | 3 | Planning : menu contextuel et carte de survol secs | 20759 | apparition sèche | ✅ corrigé (partie H) |
-| 17 | 3 | Feuille « Créer » : une poignée qui ne glisse pas | 6614, 15644 | on tire, rien ne bouge | à faire |
+| 17 | 3 | Feuille « Créer » : une poignée qui ne glisse pas | 6614, 15644 | on tire, rien ne bouge | ✅ corrigé (partie I) |
 | 18 | 3 | Le toast n'est pas annoncé aux lecteurs d'écran ; son « Annuler » n'est pas un bouton | 8057, 13911 | VoiceOver ne dit rien | à faire |
 | 19 | 3 | `confirm()` natifs sur des gestes réversibles | 21703 (et suivants) | une boîte du navigateur pour rien | à faire |
 | 20 | 3 | Suppression générique « Supprimer cet élément ? » sans nom ni annulation | 36321 | on ne sait pas quoi on supprime | à faire |
@@ -48,8 +48,8 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 23 | 3 | Replier le menu (bureau) : la transition de largeur ne tourne jamais | 5656 | le menu disparaît d'un coup | à faire |
 | 24 | 3 | Changement jour/nuit sec hors du bouton de la barre | 43171 | saut de luminosité | à faire |
 | 25 | 3 | Space Mono (police web) encore appliquée à trois endroits | 28083 | une police étrangère au thème | à faire |
-| 26 | 3 | Vitesse de relâchement mesurée sur un seul échantillon | 15966 | un doigt qui s'arrête relance quand même | à faire |
-| 27 | 3 | Balayage entre rubriques : butée dure au bord au lieu d'une résistance | 15918 | ça cogne au lieu de céder | à faire |
+| 26 | 3 | Vitesse de relâchement mesurée sur un seul échantillon | 15966 | un doigt qui s'arrête relance quand même | ✅ corrigé (partie I) |
+| 27 | 3 | Balayage entre rubriques : butée dure au bord au lieu d'une résistance | 15918 | ça cogne au lieu de céder | ✅ corrigé (partie I) |
 | 28 | 2 | Le voile de la feuille « Créer » est plus mince que celui des fenêtres | 6602 | deux voiles différents | à faire |
 | 29 | 2 | Totaux HT/TVA/TTC sans chiffres tabulaires : la ligne tremble à chaque frappe | 38919 | les chiffres dansent | à faire |
 | 30 | 2 | « Annuler ce qui attend le DR ? » : le bouton « Annuler » veut dire « ne pas annuler » | 28960 | piège de libellé | à faire |
