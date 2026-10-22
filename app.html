@@ -2368,6 +2368,13 @@ html[data-theme="light"] .card::after,html[data-theme="light"] .kpi::after{
    changement de thème elles doivent au contraire être balayées par le cercle. */
 :root.theme-vt .sidebar,:root.theme-vt .topbar,:root.theme-vt .tabbar{view-transition-name:none}
 :root.theme-vt *{transition:none!important}
+/* les autres chemins (themeFondu) : un fondu enchaîné pur — l'ancien écran reste, le nouveau monte par-dessus, sans le
+   glissement de la navigation ; barres comprises ; et les couleurs ne transitent pas deux fois (le fondu les porte déjà) */
+:root.theme-fondu::view-transition-old(root){animation:none}
+:root.theme-fondu::view-transition-new(root){animation:opFondu var(--d-3) ease both}
+@keyframes opFondu{from{opacity:0}to{opacity:1}}
+:root.theme-fondu .sidebar,:root.theme-fondu .topbar,:root.theme-fondu .tabbar{view-transition-name:none}
+:root.theme-fondu *{transition:none!important}
 
 /* ══ L'OMBRE AU DÉFILEMENT ══ la barre du haut ne flotte que quand on a quitté le haut. */
 .topbar{transition:box-shadow var(--d-2) var(--e-sortie)}
@@ -2380,6 +2387,8 @@ html[data-theme="light"] body.defile .topbar{box-shadow:0 10px 26px rgba(14,21,3
   @media (hover:hover){ .card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover,.list-row[onclick]:hover{transform:none!important} }
   .modal.pose>*{animation:none!important}
   :root.theme-vt::view-transition-new(root){animation:none!important}
+  /* une OPACITÉ n'est pas un mouvement : le fondu du jour à la nuit reste (apple-design § 14), un peu plus court */
+  :root.theme-fondu::view-transition-new(root){animation:opFondu var(--d-2) ease both!important}
 }
 
 @media print{ .sidebar,.topbar,.filters{display:none!important} .content{padding:0!important} .plg-wrap{overflow:visible} }
@@ -11693,7 +11702,7 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
         if(currentUser&&!compteVerifier()){ _syncApplying=false; return; }   // supprimé / désactivé par l'entreprise → déconnecté
         /* Thème, couleur ou langue changés sur un AUTRE appareil : `compteVerifier()` vient de
            repointer `currentUser` sur la fiche fusionnée, on peut la relire. */
-        try{ if(currentUser) prefAppliquer(currentUser); }catch(e){}
+        try{ if(currentUser) prefAppliquer(currentUser,true); }catch(e){}
         try{ refreshBadges&&refreshBadges(); updateBell&&updateBell();
           if(currentUser){ if(planEnGlissement()&&current==='planning'){ window._planPending=true; } else refreshEcran(); } }catch(e){}
         _syncApplying=false; if(currentUser){ try{ toast(diffMsg||'Données de l\'équipe mises à jour'); }catch(e){} }
@@ -12260,7 +12269,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
           if(tomb.length) db.usersSupprimes=tomb;
           /* un réglage plus récent choisi sur un autre appareil vient d'entrer dans NOTRE fiche
              (`prefFusion`) : il s'applique ici aussi, sans attendre la prochaine réception. */
-          try{ const moi=currentUser&&(db.users||[]).find(u=>u&&u.id===currentUser.id); if(moi) prefAppliquer(moi); }catch(_e){}
+          try{ const moi=currentUser&&(db.users||[]).find(u=>u&&u.id===currentUser.id); if(moi) prefAppliquer(moi,true); }catch(_e){}
           /* ⛔ ON NE POUSSE JAMAIS UNE BASE AMPUTÉE. Si le nuage connaît des lignes que nous n'avons
              pas — beaucoup, dans une même collection — c'est que CET appareil est en retard, pas
              que l'équipe a supprimé. Écrire, ce serait rejouer la panne d'ELAN sur les
@@ -43660,14 +43669,16 @@ function prefGarder(cle,val){
 }
 /* ⚠ La mémoire (`prefLocal`) passe AVANT le rangement : sur un appareil plein, le réglage venu de
    la fiche s'applique quand même, et il est repris de la fiche à chaque ouverture. */
-function prefAppliquer(u){
+function prefAppliquer(u,fondu){
   const p=u&&u.pref; if(!p||typeof p!=='object') return false;
   let change=false;
   Object.keys(PREF_CLES).forEach(k=>{ const v=p[k];
     if(typeof v!=='string'||!v) return;
     if(prefLocalLire(PREF_CLES[k])===v) return;
     prefLocal(PREF_CLES[k],v); change=true; });
-  if(change){ try{ applyTheme(); }catch(e){} try{ avatarAccentSync(); }catch(e){} }
+  if(change){ const poser=()=>{ try{ applyTheme(); }catch(e){} };
+    if(fondu) themeFondu(poser,effectiveTheme()); else poser();   // à l'ouverture (enterApp), on pose AVANT de dessiner : pas de fondu
+    try{ avatarAccentSync(); }catch(e){} }
   return change;
 }
 function systemDark(){ return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); }
@@ -43736,7 +43747,25 @@ function applyTheme(){
   // La carte suit le mode jour/nuit — par la teinte des tuiles, sans reconstruire la vue
   try{ mapNuitSync(); }catch(e){}
 }
-function setThemePref(p){ prefLocal('elan_theme',p); applyTheme(); prefGarder('theme',p); toast(THEME_ICO[p]+' '+THEME_LBL[p]); if(current==='parametres') views.parametres(); }
+/* ⛔⛔ LE JOUR ET LA NUIT SE FONDENT, PAR TOUS LES CHEMINS — audit apple-design du 21 octobre 2026, point 24 (§ 14 : un
+   changement de luminosité se fond). Seul le bouton de la barre du haut (toggleTheme) passait par une transition (son cercle) :
+   « Sombre » choisi dans la fenêtre Apparence, le passage automatique du téléphone au crépuscule, un réglage changé sur un
+   autre appareil inversaient TOUTE l'interface en une image — un éclair blanc devant un technicien dans un local sombre.
+   themeFondu(faire, cible) est le seul point d'entrée : si le thème affiché change vraiment, l'ancien écran se fond dans le
+   nouveau (fondu enchaîné, sans déplacement — sous « réduire les animations » aussi, une opacité n'est pas un mouvement) ;
+   sinon, ou sans transition de vue, on applique tout de suite. Les barres sont filmées avec la page (sinon elles sautaient
+   seules), et un toucher termine le fondu (_vtEnCours, comme une navigation). */
+function themeCible(p){ return p==='auto'?(systemDark()?'dark':'light'):(p==='light'?'light':'dark'); }
+function themeFondu(faire,cible){
+  const r=document.documentElement;
+  if(!document.startViewTransition||!cible||r.getAttribute('data-theme')===cible||document.visibilityState==='hidden'||r.classList.contains('theme-vt')){ faire(); return; }
+  r.classList.add('theme-fondu');
+  let vt; try{ vt=vtTaire(document.startViewTransition(faire)); }catch(e){ r.classList.remove('theme-fondu'); faire(); return; }
+  const fin=()=>r.classList.remove('theme-fondu'); vt.finished.then(fin,fin);
+  _vtEnCours=vt; const libre=()=>{ if(_vtEnCours===vt) _vtEnCours=null; }; vt.finished.then(libre,libre);
+}
+function setThemePrefNu(p){ prefLocal('elan_theme',p); applyTheme(); prefGarder('theme',p); toast(THEME_ICO[p]+' '+THEME_LBL[p]); if(current==='parametres') views.parametres(); }
+function setThemePref(p){ themeFondu(()=>setThemePrefNu(p),themeCible(p)); }
 /* Le thème (TEAM OP / OP GESTION) pose SA teinte, comme dans la maquette : on choisit un thème,
    puis on peut changer la teinte. Il voyage avec la personne (`u.pref.marque`), comme le reste. */
 function setMarque(k){
@@ -43787,7 +43816,7 @@ function themeCouleur(){
     </div>
     <button class="btn tc-termine" onclick="closeModal()">Terminé</button></div>`);
 }
-function tcMode(k){ prefLocal('elan_theme',k); applyTheme(); prefGarder('theme',k); if(current==='parametres') views.parametres(); themeCouleur(); }
+function tcMode(k){ themeFondu(()=>{ prefLocal('elan_theme',k); applyTheme(); prefGarder('theme',k); if(current==='parametres') views.parametres(); themeCouleur(); },themeCible(k)); }
 function tcMarque(k){ setMarque(k); themeCouleur(); }
 function tcTeinte(k){ prefLocal('elan_accent',k); applyTheme(); try{ avatarAccentSync(); }catch(e){}
   prefGarder('accent',k);
@@ -43795,7 +43824,7 @@ function tcTeinte(k){ prefLocal('elan_accent',k); applyTheme(); try{ avatarAccen
 function toggleTheme(ev){
   const o=['auto','light','dark'], suivant=o[(o.indexOf(getThemePref())+1)%3];
   const sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(!document.startViewTransition||sobre){ setThemePref(suivant); return; }
+  if(!document.startViewTransition||sobre){ setThemePref(suivant); return; }   // sous « réduire les animations » : le fondu, pas le cercle
   /* Le nouveau thème se révèle en cercle depuis le bouton qu'on vient de presser :
      le changement part de la main, il ne tombe pas du ciel. Le rayon va jusqu'au coin
      le plus éloigné, sinon le cercle s'arrêterait avant d'avoir tout repeint. */
@@ -43807,10 +43836,10 @@ function toggleTheme(ev){
     const root=document.documentElement;
     root.style.setProperty('--rx',x+'px'); root.style.setProperty('--ry',y+'px'); root.style.setProperty('--rr',rayon+'px');
     root.classList.add('theme-vt');
-    const vt=vtTaire(document.startViewTransition(()=>setThemePref(suivant)));
+    const vt=vtTaire(document.startViewTransition(()=>setThemePrefNu(suivant)));   // déjà dans SA transition : pas de second fondu
     const fin=()=>root.classList.remove('theme-vt');
     vt.finished.then(fin,fin);
-  }catch(e){ document.documentElement.classList.remove('theme-vt'); setThemePref(suivant); }
+  }catch(e){ document.documentElement.classList.remove('theme-vt'); setThemePrefNu(suivant); }
 }
 /* Bouton Synchroniser (barre du haut) */
 function syncNow(){
@@ -44292,7 +44321,7 @@ function accentPersoRetirer(ev,hex){
   prefGarder('accentsPerso',v);
   toast('Couleur retirée'); if(current==='parametres') views.parametres(); }
 /* Suit le thème système en direct quand le réglage est sur « Auto » */
-if(window.matchMedia){ try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') applyTheme(); }); }catch(e){} }
+if(window.matchMedia){ try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(getThemePref()==='auto') themeFondu(applyTheme,systemDark()?'dark':'light'); }); }catch(e){} }
 
 /* ═══════════════ INIT ═══════════════ */
 /* La plateforme d'abord : la feuille de style s'accroche a <html>, donc elle doit etre
