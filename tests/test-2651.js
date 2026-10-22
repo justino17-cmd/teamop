@@ -17,7 +17,10 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
 const PAGE = fs.readFileSync(path.join(T.RACINE, 'apercu', 'opmessages', 'index.html'), 'utf8');
 const JS = ((/<script>([\s\S]*?)<\/script>/.exec(PAGE) || [, ''])[1]).replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 const ligne = debut => { const i = JS.indexOf(debut); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
-const localDans = (t, tz) => { const p = {}; for (const x of new Intl.DateTimeFormat('en-CA', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(t))) p[x.type] = x.value; return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute; };
+/* ⛔ LE BANC ENVOIE SES INSTANTS (millisecondes UTC), JAMAIS « L'HEURE LOCALE DE CET INSTANT » : il raisonne en durées depuis MAINTENANT, et convertir un instant en heure
+   de Paris perd l'heure vécue deux fois. Pris le 21 octobre 2026 : une réunion d'une heure qui commençait le 25 octobre à 2 h 32 (heure d'été) finissait à 2 h 32
+   (heure d'hiver) — le texte « 02:32 → 02:32 » que le service lit, à bon droit, comme une fin égale au début (`fin_avant_debut`, 400). Aucune page ne l'envoie : celle
+   d'OP MESSAGES additionne les durées sur l'horloge et refuse elle-même une fin qui n'est pas après le début ; `test-973` garde ce chemin, sur une horloge FIXE. */
 
 (async () => {
   const NOMS = { ana: 'Ana Martin', ben: 'Ben Durand' };
@@ -48,7 +51,7 @@ const localDans = (t, tz) => { const p = {}; for (const x of new Intl.DateTimeFo
     const debut = Date.now() + 3600000, H = 3600000;
     const lignes = [];
     for (let i = 0; i < 8; i++) {
-      const r = await P.ana.post('/api/reunions', { titre: 'Point ' + i, debut: localDans(debut + i * 86400000, 'Europe/Paris'), fin: localDans(debut + i * 86400000 + H, 'Europe/Paris'), tz: 'Europe/Paris', invites: [P.ben.moi.id], rappels: [], notifier: false });
+      const r = await P.ana.post('/api/reunions', { titre: 'Point ' + i, debut: debut + i * 86400000, fin: debut + i * 86400000 + H, tz: 'Europe/Paris', invites: [P.ben.moi.id], rappels: [], notifier: false });
       if (r.code !== 201 && r.code !== 200) throw new Error('la réunion ' + i + ' n\'est pas créée (' + r.code + ')');
       lignes.push(r.j.reunion.id);
     }

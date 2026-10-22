@@ -37,7 +37,10 @@ const ARGS = ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshade
 const MOTS = { ana: 'pw-ana-12345678', ben: 'pw-ben-12345678', cleo: 'pw-cleo-12345678' };
 const NOMS = { ana: 'Ana Martin', ben: 'Ben Durand', cleo: 'Cléo Petit' };
 const PARIS = 'Europe/Paris', H = 3600000;
-const localDans = (t, tz) => { const p = {}; for (const x of new Intl.DateTimeFormat('en-CA', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(t))) p[x.type] = x.value; return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute; };
+/* ⛔ LE BANC ENVOIE SES INSTANTS (millisecondes UTC), JAMAIS « L'HEURE LOCALE DE CET INSTANT » : il raisonne en durées depuis MAINTENANT, et convertir un instant en heure
+   de Paris perd l'heure vécue deux fois. Pris le 21 octobre 2026 : une réunion d'une heure qui commençait le 25 octobre à 2 h 32 (heure d'été) finissait à 2 h 32
+   (heure d'hiver) — le texte « 02:32 → 02:32 » que le service lit, à bon droit, comme une fin égale au début (`fin_avant_debut`, 400). Aucune page ne l'envoie : celle
+   d'OP MESSAGES additionne les durées sur l'horloge et refuse elle-même une fin qui n'est pas après le début ; `test-973` garde ce chemin, sur une horloge FIXE. */
 const UA_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1';
 const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
 const UA_MAC = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
@@ -73,7 +76,7 @@ const NOM_LONG = ['A'.repeat(60), 'N'.repeat(60)];   // 120 signes, aucune espac
     const dit = await C.ana.post('/api/conversations/' + G + '/messages', { cid: 'c-ana-0001', texte: 'Réunion demain matin ?' });
     v('population : Ana écrit dans le groupe (sous son nom de 120 signes)', dit.code, 201);
     const debut = Date.now() + 2 * 60000;
-    const reu = await C.ana.post('/api/reunions', { titre: 'Point chantier', debut: localDans(debut, PARIS), fin: localDans(debut + H, PARIS), tz: PARIS, invites: [C.ben.moi.id], rappels: [15], notifier: false });
+    const reu = await C.ana.post('/api/reunions', { titre: 'Point chantier', debut, fin: debut + H, tz: PARIS, invites: [C.ben.moi.id], rappels: [15], notifier: false });
     const lien = reu.j && reu.j.reunion ? await C.ana.post('/api/reunions/' + reu.j.reunion.id + '/lien', {}) : null;
     const codeLien = lien && lien.j && lien.j.code;
 

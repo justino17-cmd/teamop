@@ -13,11 +13,10 @@ const T = require('./outils-msg');
 T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const PARIS = 'Europe/Paris', H = 3600000, J = 24 * H;
-function localDans(t, tz) {
-  const p = {};
-  for (const x of new Intl.DateTimeFormat('en-CA', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(t)) p[x.type] = x.value;
-  return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute;
-}
+/* ⛔ LE BANC ENVOIE SES INSTANTS (millisecondes UTC), JAMAIS « L'HEURE LOCALE DE CET INSTANT » : il raisonne en durées depuis MAINTENANT, et convertir un instant en heure
+   de Paris perd l'heure vécue deux fois. Pris le 21 octobre 2026 : une réunion d'une heure qui commençait le 25 octobre à 2 h 32 (heure d'été) finissait à 2 h 32
+   (heure d'hiver) — le texte « 02:32 → 02:32 » que le service lit, à bon droit, comme une fin égale au début (`fin_avant_debut`, 400). Aucune page ne l'envoie : celle
+   d'OP MESSAGES additionne les durées sur l'horloge et refuse elle-même une fin qui n'est pas après le début ; `test-973` garde ce chemin, sur une horloge FIXE. */
 
 (async () => {
   const og = await T.fauxOpGestion({
@@ -31,7 +30,7 @@ function localDans(t, tz) {
     const relier = async (x, y) => { const l = await x.post('/api/contacts/lien', {}); const r = await y.post('/api/liens/accepter', { code: l.j.code }); if (r.code !== 200) throw new Error('lien refusé : ' + r.code); };
     await relier(A, B); await relier(A, C); await relier(B, C);
     const t0 = Math.ceil((Date.now() + J) / H) * H;
-    const prog = async (P, titre, debut, invites) => { const r = await P.post('/api/reunions', { titre, debut: localDans(debut, PARIS), fin: localDans(debut + H, PARIS), tz: PARIS, invites: invites.map(x => x.moi.id), notifier: false }); if (r.code !== 201) throw new Error(titre + ' : ' + r.code + ' ' + r.txt); return r.j.reunion.id; };
+    const prog = async (P, titre, debut, invites) => { const r = await P.post('/api/reunions', { titre, debut, fin: debut + H, tz: PARIS, invites: invites.map(x => x.moi.id), notifier: false }); if (r.code !== 201) throw new Error(titre + ' : ' + r.code + ' ' + r.txt); return r.j.reunion.id; };
     const r1 = await prog(A, 'Point chantier', t0, [B]);
     await prog(B, 'Visite client', t0 + 2 * J, [A, C]);
     await prog(A, 'Avec Cleo seule', t0 + J, [C]);
