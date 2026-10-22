@@ -82,10 +82,19 @@ console.log('\n── 1211 · l\'ordre : en haut APRÈS le rendu de la vue ─�
   W.go('clients');
   vrai('la remise en haut vient après l\'écriture de la vue (sinon une vue plus courte réécrit un défilement périmé)', W.__content.scrollTop === 0 && W.__content.innerHTML === 'c', place(W)); }
 
-console.log('\n── 1211 · ⛔ le chemin PRINCIPAL : le rendu est différé par startViewTransition ──');
-// Tous les navigateurs sans « animations réduites » passent par poser() dans rendreDirige : la vue s'écrit PLUS TARD, hors de go().
+console.log('\n── 1211 · ⛔ changer de rubrique ne passe plus par une transition de vue (audit apple-design, test-2833) ──');
+// Pendant une transition de vue, le document entier est inerte : changer de rubrique, sans sens de déplacement, n'en a plus.
 const jouerTransition = W => { const f = W.__vt.splice(0); f.forEach(cb => cb()); return f.length; };
 { const W = monde('parametres', true); W.__content.scrollTop = 2500; W.window.scrollY = 1080;
+  W.go('clients');
+  vrai('population : startViewTransition existe, et aucune transition n’est ouverte pour un changement de rubrique', typeof W.document.startViewTransition === 'function' && W.__vt.length === 0, W.__vt.length);
+  const p = place(W);
+  vrai('l’écran est rendu tout de suite, et remis en haut', p.contenu === 0 && p.fenetre === 0 && W.__content.innerHTML === 'c', p); }
+
+console.log('\n── 1211 · ⛔ le chemin DIFFÉRÉ : une navigation qui a un sens (balayage d’onglet, retour) ──');
+// Celle-là garde sa poussée : la vue s'écrit PLUS TARD, dans le rappel de startViewTransition, hors de go().
+{ const W = monde('parametres', true); W.__content.scrollTop = 2500; W.window.scrollY = 1080;
+  vm.runInContext("_sensForce='avant'", W);
   W.go('clients');
   vrai('population : la transition est bien OUVERTE et le rendu pas encore joué', W.__vt.length === 1 && W.__content.innerHTML === '', W.__vt.length);
   vrai('… l\'écran n\'a pas encore bougé', place(W).contenu === 2500, place(W));
@@ -94,9 +103,11 @@ const jouerTransition = W => { const f = W.__vt.splice(0); f.forEach(cb => cb())
   vrai('le rendu différé remet #content en haut', p.contenu === 0 && W.__content.innerHTML === 'c', p);
   vrai('… et la fenêtre aussi', p.fenetre === 0, p); }
 { const W = monde('clients', true); W.__content.scrollTop = 2500; W.window.scrollY = 1300;
+  vm.runInContext("_sensForce='avant'", W);
   W.go('clients'); jouerTransition(W);
   vrai('chemin différé : un rafraîchissement go(current) GARDE sa place', place(W).contenu === 2500 && place(W).fenetre === 1300, place(W)); }
 { const W = monde('parametres', true); W.__content.scrollTop = 2500; vm.runInContext('__reprise=700', W);
+  vm.runInContext("_sensForce='avant'", W);
   W.go('clients'); jouerTransition(W);
   vrai('chemin différé : la reprise du multitâche garde son défilement', W.__content.scrollTop === 700, place(W)); }
 

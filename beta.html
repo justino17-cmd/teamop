@@ -16514,8 +16514,23 @@ function planPleinQuitteSiBesoin(v){ try{ if(v!=='planning'&&planPleinPageOn()) 
 function rendreVueAnimee(view,sens,remonter){
   const c=$('content');
   const sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const poser=()=>{ rendreVueSure(view,remonter); if(c){ c.classList.add('entre'); setTimeout(()=>c.classList.remove('entre'),460); } compterKpi(c); };
+  /* ⛔⛔ UN RAFRAÎCHISSEMENT N'EST PAS UNE ARRIVÉE — audit apple-design du 21 octobre 2026 (§ 1, § 3). `remonter` vaut
+     exactement « c'est une AUTRE vue » (go() : view!==current). Vingt-sept gestes rappellent go(current) pour redessiner
+     après un enregistrement (« ▶ Démarrer », « Payée », le statut d'un bon, « Voir plus »…) : chacun rejouait toute
+     l'entrée — fondu, cascade des cartes, chiffres des tuiles repartis de zéro — et le calque de transition prenait les
+     touchers pendant ce temps. Le commentaire de go() le promettait déjà (« JAMAIS le rafraîchissement ») ; c'est
+     ici que ça se tient : la vue se redessine SUR PLACE. */
+  if(!remonter){ rendreVueSure(view,false); return; }
+  /* la classe d'entrée vit 460 ms ; une navigation plus rapide l'annule et pose la sienne, au lieu de se faire couper
+     net par la minuterie de la précédente */
+  const poser=()=>{ rendreVueSure(view,remonter); if(c){ c.classList.add('entre'); clearTimeout(c._entreT); c._entreT=setTimeout(()=>c.classList.remove('entre'),460); } compterKpi(c); };
   if(!document.startViewTransition||sobre){ rendreVueSure(view,remonter); return; }
+  /* ⛔ CHANGER DE RUBRIQUE N'A PAS DE SENS DE DÉPLACEMENT : pas de transition de vue. Pendant une transition, le
+     navigateur rend TOUT le document inerte (un toucher va à <html>) : mesuré à 40, 120 et 220 ms après go(), aucun
+     geste n'atteignait le nouvel écran (scratchpad/sonde-taps-transition.js) — et pour un simple fondu. L'écran est
+     posé tout de suite, VIVANT, avec son entrée (la cascade .entre) : on touche ce qui est réellement là. Seuls les
+     mouvements qui portent un sens (entrer dans une fiche, en sortir : § 7) gardent leur transition. */
+  if(!sens){ poser(); return; }
   rendreDirige(sens,poser);
 }
 /* Un mouvement porte un sens. 'avant' : on entre dans une fiche, elle est poussée depuis la
@@ -16548,7 +16563,20 @@ function rendreDirige(sens,rendu){
      à vt.finished — la promesse repartait non traitée elle aussi. */
   const vt=vtTaire(document.startViewTransition(rendu));
   if(cl){ const fin=()=>root.classList.remove(cl); vt.finished.then(fin,fin); }
+  _vtEnCours=vt; const libre=()=>{ if(_vtEnCours===vt) _vtEnCours=null; }; vt.finished.then(libre,libre);
 }
+/* ⛔⛔ UN TOUCHER PENDANT UNE TRANSITION LA TERMINE — audit apple-design du 21 octobre 2026 (§ 3 : « never lock out input
+   during a transition »). Entrer dans une fiche ou en sortir garde sa poussée (§ 7), et pendant ces 400 ms le navigateur rend
+   tout le document inerte (`::view-transition{pointer-events:none}` n'y change rien, essayé). Un appui la TERMINE donc
+   sur-le-champ : l'écran est déjà posé sous l'image, il ne reste qu'à la retirer. On ne REND PAS le clic à ce qui est sous
+   le doigt : essayé le 22 octobre 2026, un toucher à 120 ms atterrissait sur un filtre au lieu de la ligne — la personne
+   voyait une image en mouvement, parfois encore l'ancien écran, pas la mise en page réelle. Un toucher perdu vaut mieux
+   qu'un geste qu'on n'a pas fait. */
+var _vtEnCours=null;   /* var : rendreDirige, plus haut, l'écrit — un `let` ici ouvrirait une zone morte si une navigation partait pendant le chargement */
+document.addEventListener('pointerdown',function(){
+  const vt=_vtEnCours; if(!vt) return;
+  _vtEnCours=null; try{ vt.skipTransition(); }catch(_){ }
+},true);
 /* Le try/catch d'origine, sorti de go() : dans une transition de vue le rendu s'exécute
    plus tard, hors du try de l'appelant — sans cette enveloppe, une vue qui plante
    n'afficherait plus « Affichage indisponible » mais une page vide. */

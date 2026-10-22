@@ -28,8 +28,8 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 3 | 5 | Sept défilements doux en JavaScript ignorent « Réduire les animations » | 19258, 19451, 20151, 25253, 36523, 37843, 44877 | la page glisse sur 3 000 px sous le réglage | ✅ corrigé (partie A) |
 | 4 | 5 | La taille du texte choisie dans le téléphone n'est pas suivie : toute la typographie est en px | 3242 (et toute la feuille) | quelqu'un qui lit en gros caractères ne gagne rien | ❓ décision (chantier) |
 | 5 | 4 | Glisser une intervention au doigt dans le planning : la carte atterrit décalée du point de prise ; pas de repère d'heure ; prise et dépose sèches | 20603, 20611, 20591 | on dépose à l'aveugle, l'intervention change d'heure toute seule | ✅ corrigé (partie B) |
-| 6 | 4 | ~450 ms de taps perdus après chaque navigation (le calque de la transition reçoit les taps) | 2209 | on touche, rien ne répond, on retape | à faire |
-| 7 | 4 | Un simple enregistrement rejoue toute l'entrée de l'écran (fondu, cascade, compteurs à zéro) | 16736, 16466, 16550 | « ▶ Démarrer » fait clignoter toute la liste | à faire |
+| 6 | 4 | ~450 ms de taps perdus après chaque navigation (le calque de la transition reçoit les taps) | 2209 | on touche, rien ne répond, on retape | ✅ corrigé (partie C) |
+| 7 | 4 | Un simple enregistrement rejoue toute l'entrée de l'écran (fondu, cascade, compteurs à zéro) | 16736, 16466, 16550 | « ▶ Démarrer » fait clignoter toute la liste | ✅ corrigé (partie C) |
 | 8 | 4 | Envois d'e-mails sans état « en cours » ni garde du second appui | 17886, 31838, 39092 | un second appui envoie le courriel deux fois | à faire |
 | 9 | 4 | Tiroir du menu (téléphone) : voile qui surgit et s'éteint sec ; un balayage sur le voile change de rubrique au lieu de fermer | 666, 15885 | on veut fermer le menu, on change d'écran | à faire |
 | 10 | 3 | Survol collé sur iPhone : 38 familles restent « survolées » après un toucher (« ＋ Créer », retour, onglets, cloche, menu, tuiles, lignes) | 4422, 4085, 1355, 3581, 450, 1430, 2169, 239, 244 | le bouton reste soulevé jusqu'au toucher suivant | à faire |
