@@ -207,11 +207,26 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   }catch(_){ tmSending=false; } }
   window.addEventListener('error',function(e){ try{ tmPush('erreur',e&&e.message,e&&e.error&&e.error.stack,e&&e.filename,e&&e.lineno); }catch(_){ } });
   window.addEventListener('unhandledrejection',function(e){ try{ var r=(e&&e.reason)||{}; var m=String((r&&r.message)||r||''); if(/Failed to fetch|NetworkError|Load failed|network connection was lost|annulé/i.test(m)) return; tmPush('erreur','Promesse rejetée : '+m,r&&r.stack,'',0); }catch(_){ } });
+  /* ⛔ UN TROU ENTRE DEUX IMAGES N'EST PAS UN GEL. Safari n'a pas « longtask » : on y mesure l'écart entre deux images, et il
+     les suspend quand la fenêtre passe au second plan, se cache, que le Mac s'endort — ou qu'une boîte du navigateur (alert,
+     confirm, prompt : cet espace en ouvre une vingtaine) attend qu'on la lise. Au retour la page est « visible », et l'écart
+     vaut tout le temps d'absence. 22 octobre 2026, dossier de la Tour : « Interface figée pendant 10639 ms » (PC, Safari, un
+     client) — la page ne gelait pas. Le correctif d'app.html (15 septembre 2026), et plus : le compteur repart à chaque
+     changement de premier plan ET après chaque boîte, il faut le focus, et au-delà de 15 s ce n'est pas un gel (une veille). */
   try{
     if(window.PerformanceObserver&&PerformanceObserver.supportedEntryTypes&&PerformanceObserver.supportedEntryTypes.indexOf('longtask')>=0){
-      new PerformanceObserver(function(l){ try{ l.getEntries().forEach(function(en){ if(en.duration>2000) tmPush('lenteur','Interface bloquée pendant '+Math.round(en.duration)+' ms','','',0); }); }catch(_){ } }).observe({entryTypes:['longtask']});
+      new PerformanceObserver(function(l){ try{ l.getEntries().forEach(function(en){ if(en.duration>2000&&en.duration<15000) tmPush('lenteur','Interface bloquée pendant '+Math.round(en.duration)+' ms','','',0); }); }catch(_){ } }).observe({entryTypes:['longtask']});
     } else if(window.requestAnimationFrame){
-      var tmTick=function(){ try{ var n=Date.now(); if(n-tmT>2000&&document.visibilityState==='visible') tmPush('lenteur','Interface figée pendant '+(n-tmT)+' ms','','',0); tmT=n; }catch(_){ } requestAnimationFrame(tmTick); };
+      var tmRepart=function(){ tmT=Date.now(); };
+      try{ ['focus','blur','pageshow'].forEach(function(ev){ window.addEventListener(ev,tmRepart,true); }); document.addEventListener('visibilitychange',tmRepart,true); }catch(_){ }
+      try{ ['alert','confirm','prompt'].forEach(function(k){ var f=window[k]; if(typeof f!=='function') return;
+        window[k]=function(){ try{ return f.apply(window,arguments); } finally{ tmRepart(); } }; }); }catch(_){ }
+      var tmTick=function(){ try{
+          var n=Date.now(), d=n-tmT;
+          var actif=(document.visibilityState==='visible')&&(typeof document.hasFocus!=='function'||document.hasFocus());
+          if(d>2000&&d<15000&&actif) tmPush('lenteur','Interface figée pendant '+d+' ms','','',0);
+          tmT=n;
+        }catch(_){ } requestAnimationFrame(tmTick); };
       requestAnimationFrame(tmTick);
     }
   }catch(_){ }
