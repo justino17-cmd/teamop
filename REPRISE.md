@@ -14,6 +14,20 @@ de ligne du tout.
 ---
 
 
+# ⏳ 22 OCTOBRE 2026 — AUDIT APPLE-DESIGN D'OP GESTION : 35 CORRECTIONS SUR 36, BÊTA v771 — RIEN SUR `main`
+- Justin, 21 octobre : « audite toute l'interface avec le skill apple-design, liste chaque problème du plus grave au moins grave, puis
+  corrige-les un par un ». La liste et les preuves : `design/AUDIT-APPLE-2026-10.md`. Branche `claude/audit-apple-op-gestion`, une
+  partie par commit (A → X), demande de fusion **en brouillon** https://github.com/justino17-cmd/teamop/pull/156 — ⛔ la fusionner
+  publierait `app.html` (décision du 23 septembre) : elle attend sa phrase.
+- Attend une décision de Justin : le n° 4 (la taille du texte choisie dans le téléphone n'est pas suivie — passer la feuille en rem,
+  un réglage dans l'application, ou rien) ; replier le menu au Mac anime une largeur (0,4 à 1 ms par image ici, à voir sur un vrai Mac).
+- Le correctif des bancs du changement d'heure (25 octobre) est seul dans https://github.com/justino17-cmd/teamop/pull/155 : des bancs
+  seulement, rien ne se publie — à fusionner AVANT le 25, sinon quatre bancs d'OP MESSAGES tombent, dont un qui garde son déploiement.
+- ⛔ Leçon : deux contrôles de GitHub ne sont PAS dans `scripts/bancs-ci.sh` — `verifier-version.js` (une modification d'`app.html`
+  sans `APP_VERSION` ni cache du service worker qui montent) et `verifier-propose.js` (il ancrait sur `function toast(msg,ms){`, que la
+  partie J a changé). La suite locale était verte, la CI rouge. Avant d'ouvrir une demande de fusion, jouer AUSSI chaque étape de
+  `verification.yml`, sur la fusion avec `main`.
+
 # ✅ 20 OCTOBRE 2026 (SOIR) — OP MESSAGES : CAMPAGNE DE TESTS, DEUX DÉFAUTS CORRIGÉS ; OP COURRIER LISIBLE, LIENS, TRADUCTION (publié sur `main`)
 - **Publié** (Justin : « publie », « je t'autorise ») : l'administration d'OP MESSAGES réservée au patron (`monPatronStrict`, `test-1016`) ;
   un lien `#reunion=` collé au démarrage n'est plus refermé (la question « Courrier ouvert ? » part avec la session) ; le corps d'un mail
