@@ -53,8 +53,9 @@ vrai('`eur` est une fonction exécutable', typeof eur === 'function');
 if (typeof eur === 'function') {
   const m = eur(118518518.52).replace(/[  ]/g, ' ');
   vrai('eur(118518518.52) rend « 118 518 518,52 € »', m === '118 518 518,52 €', m);
-  /* la largeur utile à la colonne : Space Mono 13 px gras ≈ 7,8 px par signe — mesuré : 125 px pour ce montant, 78 pour « 1 055,00 € » */
-  const largeur = s => Math.ceil(String(s).length * 7.8);
+  /* la largeur utile à la colonne : la police du système, 13 px gras, chiffres tabulaires ≈ 7 px par signe — mesuré : 70 px pour
+     « 1 055,00 € » (scratchpad/sonde-polices.js). Space Mono, avant le point 25 de l'audit apple-design, en prenait 78. */
+  const largeur = s => Math.ceil(String(s).length * 7);
   vrai('… il lui faut plus de 64 px (la largeur fixe d\'avant le coupait de 46 px), et « 1 055,00 € » aussi (78 px)', largeur(m) > 64 && largeur(eur(1055)) > 64, [largeur(m), largeur(eur(1055))]);
 }
 

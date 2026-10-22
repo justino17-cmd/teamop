@@ -27,7 +27,6 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo:wght@400;500;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* ══ THÈME OFFICIEL OP GESTION (export design 22/07/2026) — navy + vert sapin ══ */
   /* ── MODE SOMBRE (par défaut — base commune du thème) ── */
@@ -75,9 +74,9 @@
   html[data-theme="light"][data-accent="red"]   { --acc:#C7332B; --acc2:#9E2822; }
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{height:100%;}
-  body{background:var(--bg);color:var(--t1);font-family:'Archivo',sans-serif;-webkit-font-smoothing:antialiased;}
+  body{background:var(--bg);color:var(--t1);font-family:var(--fs);-webkit-font-smoothing:antialiased;}
   body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 10% 10%,color-mix(in srgb,var(--acc) 6%,transparent) 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 95% 90%,rgba(46,184,114,.04) 0%,transparent 60%);pointer-events:none;}
-  .mono{font-family:'Space Mono',monospace;}
+  .mono{font-family:var(--mono);}
 
   .app{display:flex;min-height:100vh;min-height:100dvh;position:relative;z-index:1;}
 
@@ -93,13 +92,13 @@
   .sidebar .nav-item.active .badge{background:rgba(0,0,0,.25);color:var(--side-ink);}
   .sidebar .nav-item .badge{background:rgba(0,0,0,.25);}
   .brand{display:flex;align-items:center;gap:12px;padding:20px 20px 18px;border-bottom:1px solid var(--brd);}
-  .brand-icon{width:46px;height:46px;background:var(--side-avatar);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;font-family:'Space Mono',monospace;}
+  .brand-icon{width:46px;height:46px;background:var(--side-avatar);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;font-family:var(--fs);}
   .brand .hi{font-size:16px;font-weight:700;}
   .brand .role{font-size:12px;color:var(--acc-txt);display:flex;align-items:center;gap:6px;margin-top:2px;}
   .brand .role::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--acc);}
   .nav{padding:10px 12px;flex:1;overflow-y:auto;}
   .nav::-webkit-scrollbar{width:6px;} .nav::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px;}
-  .nav-label{font-family:'Archivo',sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--t3);text-transform:uppercase;padding:14px 12px 7px;}
+  .nav-label{font-family:var(--fs);font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--t3);text-transform:uppercase;padding:14px 12px 7px;}
   /* ── La loupe du menu ── discrète par défaut : un simple creux, sans bordure marquée, qui
      ne se réveille qu'au focus. Elle emprunte les jetons du thème (--bg2, --t3, --acc) donc
      elle suit le jour, la nuit et la refonte sans une ligne de plus. */
@@ -205,10 +204,10 @@
   /* Et « en cours » se voit : la rotation seule, sur une icône de 18 px, se rate. */
   .bell.spin{background:var(--tint)!important;border-color:var(--acc)!important}
   .ph-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-  .ph-title{font-family:'Archivo',sans-serif;font-size:24px;font-weight:800;letter-spacing:-.4px;}
+  .ph-title{font-family:var(--fs);font-size:24px;font-weight:800;letter-spacing:-.4px;}
   .ph-sub{font-size:13px;color:var(--t3);margin-top:3px;}
   .ph-actions{display:flex;gap:8px;flex-wrap:wrap;}
-  .topbar h1{font-family:'Archivo',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .topbar h1{font-family:var(--fs);font-size:20px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .topbar .sub{font-size:13px;color:var(--t3);margin-top:2px;}
   .topbar-actions{margin-left:auto;display:flex;gap:10px;align-items:center;}
   .olsec{border:1px solid var(--brd);border-radius:16px;overflow:hidden;margin-bottom:12px;background:var(--card)}
@@ -235,7 +234,7 @@
   .menu-btn{display:none;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);width:40px;height:40px;border-radius:10px;font-size:18px;cursor:pointer;}
 
   /* BUTTONS */
-  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--acc-fill);color:var(--on-fill);font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;padding:10px 17px;border-radius:14px;border:none;cursor:pointer;transition:.15s;white-space:nowrap;}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--acc-fill);color:var(--on-fill);font-family:var(--fs);font-weight:800;font-size:14px;padding:10px 17px;border-radius:14px;border:none;cursor:pointer;transition:.15s;white-space:nowrap;}
   @media (hover:hover){ .btn:hover{background:var(--acc2);transform:translateY(-1px);} }
   .btn.ghost{background:var(--bg2);border:1px solid var(--brd);color:var(--t2);}
   @media (hover:hover){ .btn.ghost:hover{background:var(--bg3);color:var(--t1);} }
@@ -254,7 +253,7 @@
      lisait comme un trou noir. Mesuré au navigateur le 21 septembre 2026. La seule façon de la
      rendre au verre est de n'écrire AUCUNE règle sur :first-child. */
   .kpi-ico{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:12px;}
-  .kpi-val{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;line-height:1;}
+  .kpi-val{font-family:var(--fs);font-size:28px;font-weight:700;line-height:1;}
   .kpi-lbl{font-size:13px;color:var(--t3);margin-top:6px;}
 
   /* CARD */
@@ -365,7 +364,7 @@
   .tag{font-size:12px;font-weight:600;padding:3px 9px;border-radius:7px;background:color-mix(in srgb,var(--t3) 12%,transparent);color:var(--t2);}
   .tag.hot{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red);}
 
-  .search-inp{width:100%;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;color:var(--t1);font-family:'Archivo',sans-serif;font-size:14px;margin-bottom:14px;text-overflow:ellipsis;}
+  .search-inp{width:100%;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;color:var(--t1);font-family:var(--fs);font-size:14px;margin-bottom:14px;text-overflow:ellipsis;}
   /* un libellé trop long pour le champ (« Rechercher un produit, une référence, un fournisseur… » : 441 px dans 358) finit par « … » au lieu d'être coupé net sur « ur » — g03, technicien#13 */
   .search-inp::placeholder{text-overflow:ellipsis;}
   .search-inp:focus{outline:none;border-color:color-mix(in srgb,var(--acc) 55%,transparent);}
@@ -414,7 +413,7 @@
   @media(min-width:1240px){ .int-form-cols{column-count:3;} }
   @keyframes pop{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
   .modal-head{display:flex;align-items:center;margin-bottom:20px;}
-  .modal-head h3{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;}
+  .modal-head h3{font-family:var(--fs);font-size:18px;font-weight:700;}
   .modal-close{margin-left:auto;background:var(--bg2);border:1px solid var(--brd);color:var(--t2);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;}
   @media (hover:hover){ .modal-close:hover{color:var(--t1);} }
   .sheet-head{gap:10px;}
@@ -426,7 +425,7 @@
   .form-sec:first-of-type{margin-top:6px;}
   .field{margin-bottom:15px;}
   .field label{display:block;font-size:13px;font-weight:500;color:var(--t2);margin-bottom:7px;}
-  .field input,.field select,.field textarea{width:100%;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:11px 13px;color:var(--t1);font-family:'Archivo',sans-serif;font-size:14px;transition:.15s;}
+  .field input,.field select,.field textarea{width:100%;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:11px 13px;color:var(--t1);font-family:var(--fs);font-size:14px;transition:.15s;}
   .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:color-mix(in srgb,var(--acc) 55%,transparent);}
   .field textarea{resize:vertical;min-height:80px;}
   .field-row{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
@@ -449,11 +448,11 @@
   .pl-row{display:flex;align-items:center;gap:15px;background:var(--bg1);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:12px;padding:13px 16px;margin-bottom:9px;cursor:pointer;transition:.15s;}
   @media (hover:hover){ .pl-row:hover{background:color-mix(in srgb,var(--acc) 10%,var(--bg1));} }
   @media (hover:hover){ .pl-row:hover{border-color:color-mix(in srgb,var(--acc) 30%,transparent);transform:translateX(2px);} }
-  .pl-time{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;min-width:50px;}
+  .pl-time{font-family:var(--fs);font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;min-width:50px;}
   .pl-info{flex:1;min-width:0;}
   .pl-title{font-size:15px;font-weight:600;margin-bottom:3px;}
   .pl-meta{font-size:13px;color:var(--t3);}
-  .planning-date{font-family:'Space Mono',monospace;font-size:13px;letter-spacing:1px;color:var(--acc-txt);text-transform:uppercase;margin:22px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--brd);}
+  .planning-date{font-family:var(--fs);font-size:13px;letter-spacing:1px;color:var(--acc-txt);text-transform:uppercase;margin:22px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--brd);}
   /* Calendrier (planning style Organilog) */
   .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
   .cal-h{text-align:center;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:4px 0;font-weight:600;}
@@ -502,7 +501,7 @@
      — jusqu'à sortir de la carte (page à 395 px pour 390). 64 px reste le PLANCHER (les petits chiffres gardent leur
      alignement), la colonne s'élargit à son contenu, insécable, et c'est la barre — `flex:1`, sans largeur propre — qui
      cède la place : un chiffre se lit, une barre se devine. */
-  .bar-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:auto;min-width:64px;white-space:nowrap;text-align:right;flex-shrink:0;}
+  .bar-val{font-family:var(--fs);font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;width:auto;min-width:64px;white-space:nowrap;text-align:right;flex-shrink:0;}
 
   /* MAP */
   .map-canvas{position:relative;height:440px;border-radius:16px;overflow:hidden;border:1px solid var(--brd);background:linear-gradient(135deg,#10141b,#181f2b);background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:40px 40px;}
@@ -546,7 +545,7 @@
   .login{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse 50% 45% at 50% 42%,rgba(74,222,128,.14) 0%,rgba(22,128,60,.05) 35%,transparent 65%),var(--deep);display:flex;align-items:center;justify-content:center;padding:20px;}
   .login-box{width:100%;max-width:380px;text-align:center;}
   .login-logo{width:104px;height:104px;margin:0 auto 18px;border-radius:24px;object-fit:cover;display:block;box-shadow:0 14px 44px rgba(0,0,0,.45),0 0 60px color-mix(in srgb,var(--acc) 22%,transparent);}
-  .login-box h2{font-family:'Space Mono',monospace;font-size:22px;letter-spacing:2px;margin-bottom:4px;font-weight:700;}
+  .login-box h2{font-family:var(--fs);font-size:22px;letter-spacing:2px;margin-bottom:4px;font-weight:700;}
   .login-box p{color:var(--t3);font-size:13px;margin-bottom:24px;}
   .login-card{background:var(--bg1);border:1px solid var(--brd);border-radius:16px;padding:22px;margin-top:18px;text-align:left;box-shadow:0 24px 60px rgba(0,0,0,.5);}
   .login-card-title{text-align:center;font-weight:700;font-size:15px;margin-bottom:18px;color:var(--t1);}
@@ -560,7 +559,7 @@
   .login-user .nom{font-weight:600;font-size:15px;}
   .login-user .role2{font-size:12px;color:var(--t3);}
   .pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:260px;margin:0 auto;}
-  .pin-key{background:var(--bg1);border:1px solid var(--brd);color:var(--t1);font-size:22px;font-family:'Space Mono',monospace;padding:16px 0;border-radius:14px;cursor:pointer;transition:.1s;}
+  .pin-key{background:var(--bg1);border:1px solid var(--brd);color:var(--t1);font-size:22px;font-family:var(--fs);font-variant-numeric:tabular-nums;padding:16px 0;border-radius:14px;cursor:pointer;transition:.1s;}
   @media (hover:hover){ .pin-key:hover{background:var(--bg2);border-color:color-mix(in srgb,var(--acc) 40%,transparent);} }
   .pin-key:active{transform:scale(.95);}
   .pin-dots{display:flex;gap:14px;justify-content:center;margin:20px 0;}
@@ -8121,7 +8120,7 @@ html .leaflet-marker-icon.leaflet-interactive:active{filter:brightness(.82)}
     <div class="brand" style="cursor:pointer" title="Paramètres — Apparence" onclick="go('parametres');document.getElementById('sidebar').classList.remove('open')">
       <img id="brand-logo" src="icons/icon-192.png" alt="" style="width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0">
       <div style="min-width:0">
-        <div class="hi" id="brand-name" style="font-family:'Space Mono',monospace;letter-spacing:2px;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">OP&nbsp;GESTION</div>
+        <div class="hi" id="brand-name" style="letter-spacing:2px;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">OP&nbsp;GESTION</div>
         <div id="brand-sub" style="display:none;font-size:9px;letter-spacing:.16em;color:var(--t3)">OP GESTION</div>
         <div id="brand-plan" style="display:none;font-size:8.5px;font-weight:800;letter-spacing:.18em;margin-top:2px;white-space:nowrap"></div>
       </div>
@@ -28662,11 +28661,11 @@ views.mouvements=function(){
     const donne=(!e&&m.donneA)?`<span class="st" style="background:rgba(167,139,250,.16);color:var(--purple)" title="${m.donneA===m.technicien?'Pris pour lui-même':'Produits remis à cette personne'}">👤 ${esc(m.donneA)}</span>`:'<span style="color:var(--t3)">—</span>';
     return `<div style="${GRILLE2};padding:11px 16px;border-top:1px solid color-mix(in srgb,var(--brd) 60%,transparent)">
       <div style="min-width:0"><div class="strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.nom||'—')} <span class="mono" style="color:var(--t3);font-size:11px">${esc(p.ref||'')}</span></div><div style="display:flex;align-items:center;gap:7px;margin-top:3px;min-width:0">${srcMvt(m)}<span style="font-size:12px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.motif||'')||''}</span></div></div>
-      <span style="font-family:'Space Mono',monospace;font-weight:700;font-size:14.5px;color:${e?'var(--acc-txt)':'var(--org)'}">${e?'＋':'−'}${m.qte}${m.unite&&m.unite!=='u'?' '+esc(m.unite):''}</span>
+      <span style="font-variant-numeric:tabular-nums;font-weight:700;font-size:14.5px;color:${e?'var(--acc-txt)':'var(--org)'}">${e?'＋':'−'}${m.qte}${m.unite&&m.unite!=='u'?' '+esc(m.unite):''}</span>
       <div style="min-width:0">${pers(m.technicien,e?'var(--acc-txt)':'var(--org)')}</div>
       <div style="min-width:0">${m.validePar?`<span class="st st-green" title="Mouvement validé par le DR">✔ ${esc(m.validePar)}</span>`:'<span style="color:var(--t3)" title="Fait en direct (DR ou administrateur — pas de validation requise)">—</span>'}</div>
       <div style="min-width:0">${donne}</div>
-      <span style="color:var(--t3);font-size:12px;text-align:right;font-family:'Space Mono',monospace">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
+      <span style="color:var(--t3);font-size:12px;text-align:right;font-variant-numeric:tabular-nums">${new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
     </div>`; };
   // ── bons de remise : mêmes colonnes que le journal, un clic ouvre le PDF ──
   const brs=visibleRemises(db.bonsRemise||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));   // chacun ne voit que les bons qui le concernent
@@ -28676,7 +28675,7 @@ views.mouvements=function(){
     const donne=r.pourQui?`<span class="st" style="background:rgba(167,139,250,.16);color:var(--purple)" title="${r.pourQui===r.par?'Pris pour lui-même':'Produits remis à cette personne'}">👤 ${esc(r.pourQui)}</span>`:'<span style="color:var(--t3)">—</span>';
     return `<div style="${GRILLE2};padding:11px 16px;border-top:1px solid color-mix(in srgb,var(--brd) 60%,transparent);background:color-mix(in srgb,var(--purple) 5%,transparent)">
       <div style="min-width:0"><div class="strong" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${prodTxt}</div><div style="display:flex;align-items:center;gap:7px;margin-top:3px;min-width:0"><span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(167,139,250,.16);color:var(--purple);white-space:nowrap">📄 BON DE REMISE</span><span style="font-size:12px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.num)}${r.parRole?' · '+esc(r.parRole):''}</span></div></div>
-      <span style="font-family:'Space Mono',monospace;font-weight:700;font-size:14.5px;color:var(--org)">−${esc(tot)}</span>
+      <span style="font-variant-numeric:tabular-nums;font-weight:700;font-size:14.5px;color:var(--org)">−${esc(tot)}</span>
       <div style="min-width:0">${pers(r.par,'var(--org)')}</div>
       <div style="min-width:0">${r.valideDr?`<span class="st st-green" title="Bon validé par le DR">✔ ${esc(r.valideDr)}</span>`:'<span style="color:var(--t3)">—</span>'}</div>
       <div style="min-width:0">${donne}</div>
@@ -42204,7 +42203,9 @@ function makeAvatar(quiet){ if(!currentUser) return; const c=document.createElem
   const gr=g.createLinearGradient(0,0,256,256); gr.addColorStop(0,accentDark()); gr.addColorStop(1,accentHex());
   g.fillStyle=gr; g.fillRect(0,0,256,256);
   g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=8; g.strokeRect(16,16,224,224);   // cadre façon logo ELAN
-  g.fillStyle='#fff'; g.font='700 100px "Space Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+  /* la police du système (le jeton --fs, celui de la plateforme) : un canevas ne lit pas var(), on la résout */
+  let fs=''; try{ fs=getComputedStyle(document.documentElement).getPropertyValue('--fs').trim(); }catch(_){}
+  g.fillStyle='#fff'; g.font='700 100px '+(fs||'system-ui,sans-serif'); g.textAlign='center'; g.textBaseline='middle';
   g.fillText(initials(fullName(currentUser)).slice(0,2),128,134);
   if(!quiet){ try{ closeModal(); }catch(_){ } } setProfilePhoto(c.toDataURL('image/png'),{type:'ini'},quiet); }
 /* ── Créateur d'avatar : personnage personnalisable (SVG → PNG). v755 : son écran a disparu (plus aucun
@@ -43271,7 +43272,7 @@ function splitOpen(url){
   let sp=$('splitpane');
   if(sp){ sp.querySelector('iframe').src=url; return; }
   sp=document.createElement('div'); sp.id='splitpane';
-  sp.innerHTML=`<div class="sp-head"><b style="font-size:11px;letter-spacing:1.2px;font-family:'Space Mono',monospace">OP&nbsp;MESSAGES</b><span style="flex:1"></span>
+  sp.innerHTML=`<div class="sp-head"><b style="font-size:11px;letter-spacing:1.2px">OP&nbsp;MESSAGES</b><span style="flex:1"></span>
       <button class="btn ghost sm" style="padding:4px 9px" title="Détacher dans une nouvelle fenêtre" onclick="window.open(document.querySelector('#splitpane iframe').src,'_blank');splitClose()">⧉</button>
       <button class="btn ghost sm" style="padding:4px 9px" title="Fermer l'écran partagé" onclick="splitClose()">✕</button></div>
     <iframe src="${url}" allow="camera;microphone"></iframe>`;
