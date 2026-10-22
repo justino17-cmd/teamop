@@ -8011,6 +8011,34 @@ html[data-refonte] #content a[href]:not(.btn):active{opacity:.55;transition-dura
 /* la carte (feuille de Leaflet, chargée à part) : ses boutons de zoom et ses repères ne répondaient pas non plus */
 html .leaflet-bar a:active{background-color:#dcdfe5!important}
 html .leaflet-marker-icon.leaflet-interactive:active{filter:brightness(.82)}
+
+/* ══ CE QUI FLOTTE NAÎT DE CE QUI L'APPELLE — audit apple-design du 21 octobre 2026, points 12 à 16 (voir flottantEntre).
+   Menus, carte de survol, panneau des notifications : ils grandissent depuis leur point d'ancrage (transform-origin, posé
+   par le script au doigt ou au pointeur ; par la feuille pour la cloche) et y retournent, plus vite qu'ils ne sont venus.
+   Les feuilles plein écran suivent leur sens : la lecture d'un courriel est une NAVIGATION (elle entre par la droite et y
+   repart), le catalogue des bons une FEUILLE (elle monte et redescend), les roues d'heure une FENÊTRE (la matière et le
+   mouvement de .modal). Sous « réduire les animations », plus rien ne bouge : les éléments partent tout de suite. */
+.flot{animation:flotEntre var(--d-2) var(--e-sortie) both}
+.flot-sort{animation:flotSort 150ms var(--e-entree) both!important}
+@keyframes flotEntre{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes flotSort{from{opacity:1;transform:none}to{opacity:0;transform:scale(.95)}}
+.notif-panel{transform-origin:calc(100% - 22px) -6px}
+#mail-read{animation:feuillePousse var(--d-3) var(--e-sortie) both}
+#mail-read.feuille-sort{animation:feuillePousseSort var(--d-2) var(--e-entree) both}
+@keyframes feuillePousse{from{transform:translateX(100%)}to{transform:none}}
+@keyframes feuillePousseSort{from{transform:none}to{transform:translateX(100%)}}
+#bon-cat{animation:feuilleMonte var(--d-3) var(--e-sortie) both}
+#bon-cat.feuille-sort{animation:feuilleDescend var(--d-2) var(--e-entree) both}
+@keyframes feuilleMonte{from{transform:translateY(100%)}to{transform:none}}
+@keyframes feuilleDescend{from{transform:none}to{transform:translateY(100%)}}
+#roues-ov{animation:refonteVoile var(--d-3) var(--e-sortie) both}
+#roues-ov .roues-feuille{animation:refonteFeuille var(--d-3) var(--ressort) both}
+#roues-ov.feuille-sort{animation:refonteVoileSort var(--d-2) var(--e-entree) both}
+#roues-ov.feuille-sort .roues-feuille{animation:refonteFeuilleSort var(--d-2) var(--e-entree) both}
+@media (prefers-reduced-motion: reduce){
+  .flot,.flot-sort,#mail-read,#mail-read.feuille-sort,#bon-cat,#bon-cat.feuille-sort,#roues-ov,#roues-ov .roues-feuille,
+  #roues-ov.feuille-sort,#roues-ov.feuille-sort .roues-feuille{animation:none!important}
+}
 </style>
 </head>
 <body>
@@ -13959,6 +13987,27 @@ function logEvent(action, detail, type='general', cibleUserId){
    sept appels (la carte du planning, les roues d'heure, le résultat d'une étiquette, une aide…) faisaient glisser la
    page sous ce réglage. `test-2831` refuse tout `behavior:'smooth'` écrit ailleurs. */
 function defilDoux(){ try{ return window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'; }catch(e){ return 'auto'; } }
+/* ⛔⛔ CE QUI FLOTTE NAÎT DE CE QUI L'APPELLE, ET Y RETOURNE — audit apple-design du 21 octobre 2026 (§ 7 : origine ancrée,
+   chemins symétriques ; § 12 : rien ne surgit ni ne disparaît d'un coup). Le panneau des notifications, le menu contextuel du
+   planning, la carte de survol, le menu du compte, la fenêtre secondaire, les roues d'heure, la lecture d'un courriel et le
+   catalogue des bons apparaissaient et disparaissaient en une image. Une seule mécanique pour tous :
+   · flottantEntre(el, x, y) : l'élément grandit depuis le point (x, y) de l'écran — le doigt, la cloche, la carte touchée ;
+   · flottantSort(el, fin) : il rejoue le chemin à l'envers, PUIS `fin` (par défaut : il est retiré). Une entrée pendant la
+     sortie l'annule (même élément réutilisé : la carte de survol).
+   · pendant la sortie, un geste DANS l'élément est avalé (écouteur plus bas) : un double toucher sur un article de menu ne
+     tombe ni deux fois sur l'action, ni sur la page dessous — même règle que les fenêtres (`avalerSiPart`).
+   « Réduire les animations » : ni entrée ni sortie animées, l'élément part tout de suite. */
+function animSobre(){ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } }
+function flottantEntre(el,x,y){ if(!el) return; clearTimeout(el._flotT); el.classList.remove('flot-sort');
+  if(x!==undefined&&y!==undefined){ try{ const r=el.getBoundingClientRect(); el.style.transformOrigin=Math.round(x-r.left)+'px '+Math.round(y-r.top)+'px'; }catch(e){} }
+  el.classList.remove('flot'); void el.offsetWidth; el.classList.add('flot'); }
+function flottantSort(el,fin){ const finir=fin||(()=>{ try{ el.remove(); }catch(e){} });
+  if(!el||!el.isConnected||animSobre()){ finir(); return; }
+  if(el.classList.contains('flot-sort')) return;
+  el.classList.add('flot-sort'); clearTimeout(el._flotT);
+  el._flotT=setTimeout(()=>{ if(el.classList.contains('flot-sort')){ el.classList.remove('flot-sort','flot'); finir(); } },160); }
+document.addEventListener('click',function(e){ const t=e.target; const x=t&&t.closest&&t.closest('.flot-sort,.feuille-sort');
+  if(x||(t&&t.closest&&t.closest('#overlay2.ferme'))){ e.preventDefault(); e.stopImmediatePropagation(); } },true);
 function toast(msg,ms){ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),ms||2200); }
 /* message avec une action : sert au « ↩︎ Annuler » d'un changement de technicien */
 function toastAnnuler(msg,appel,ms){
@@ -16527,7 +16576,7 @@ let current='dashboard';
    restée orpheline, ou la liste se redessinait sous une photo. `fenetresSeules` (la touche Échap) laisse la fiche tranquille. */
 function retourFerme(fenetresSeules){
   const ov2=$('overlay2');
-  if(ov2&&ov2.classList.contains('open')){ closeSub(); return 'fenetre'; }
+  if(ov2&&ov2.classList.contains('open')&&!ov2.classList.contains('ferme')){ closeSub(); return 'fenetre'; }
   const ov=$('overlay');
   if(ov&&ov.classList.contains('open')&&!ov.classList.contains('ferme')){
     if(_modalForcee) return 'bloque';
@@ -19976,7 +20025,7 @@ function plHovHtml(i){
     </div>`;
 }
 function plHovHide(){ if(_plHovT){ clearTimeout(_plHovT); _plHovT=null; }
-  const h=$('plhov'); if(h){ h.style.display='none'; h.innerHTML=''; } _plHovId=''; }
+  const h=$('plhov'); if(h&&h.style.display!=='none') flottantSort(h,()=>{ h.style.display='none'; h.innerHTML=''; }); _plHovId=''; }
 function plHovShow(id,el){
   if(current!=='planning') return;
   const i=db.interventions.find(x=>x.id===id); if(!i||!el||!el.getBoundingClientRect) return;
@@ -19991,6 +20040,7 @@ function plHovShow(id,el){
   if(x<8) x=Math.max(8,Math.round((window.innerWidth-W)/2));
   let y=r.top; if(y+H>window.innerHeight-8) y=window.innerHeight-H-8; if(y<8) y=8;
   h.style.left=Math.round(x)+'px'; h.style.top=Math.round(y)+'px';
+  flottantEntre(h, x>r.left?r.right:r.left, Math.min(Math.max(r.top+r.height/2,y+12),y+H-12));   // elle naît du bord de la carte survolée
   _plHovId=id;
 }
 function plHovCible(t){ return (t&&t.closest)?t.closest('.plm-card,.plg-mini,.plt-blk,.plg-mh,.plm-tr,.plmo-i,[data-hov-int]'):null; }
@@ -20944,7 +20994,7 @@ function serieShiftPropose(i,oldDate){ try{
    Chaque entrée passe par les fonctions existantes (droits + journal planStamp inchangés). ── */
 let _ctxEl=null,_lpCtx=null;
 function _ctxEsc(e){ if(e.key==='Escape') planCtxClose(); }
-function planCtxClose(){ if(!_ctxEl) return; try{ _ctxEl.remove(); }catch(e){} _ctxEl=null;
+function planCtxClose(){ if(!_ctxEl) return; flottantSort(_ctxEl); _ctxEl=null;
   document.removeEventListener('click',planCtxClose,true); document.removeEventListener('scroll',planCtxClose,true); document.removeEventListener('keydown',_ctxEsc,true); }
 function planCtxOpen(x,y,items){ planCtxClose(); items=(items||[]).filter(Boolean); if(!items.length) return;
   const el=document.createElement('div'); el.id='plan-ctx';
@@ -20958,6 +21008,7 @@ function planCtxOpen(x,y,items){ planCtxClose(); items=(items||[]).filter(Boolea
   const r=el.getBoundingClientRect();
   el.style.left=Math.max(8,Math.min(x,(window.innerWidth||360)-r.width-8))+'px';
   el.style.top=Math.max(8,Math.min(y,(window.innerHeight||700)-r.height-8))+'px';
+  flottantEntre(el,x,y);   // il naît sous le doigt (ou le pointeur)
   _ctxEl=el;
   setTimeout(()=>{ if(_ctxEl===el){ document.addEventListener('click',planCtxClose,true); document.addEventListener('scroll',planCtxClose,true); document.addEventListener('keydown',_ctxEsc,true); } },0); }
 function planCtxItemsCard(id,x,y){
@@ -24602,8 +24653,15 @@ function renderIntNuis(){ const el=$('int-nuis'); if(!el)return;
 function pickNuis(n){ intNuis.add(n); renderIntNuis(); openNuisFiche(n); }
 function unpickNuis(n){ intNuis.delete(n); delete intTrait[n]; renderIntNuis(); }
 /* Sous-fenêtre (fiche de traitement par nuisible) */
-function openSub(html){ const m=$('modal2'); if(!m)return; m.innerHTML=html; $('overlay2').classList.add('open'); m.scrollTop=0; }
-function closeSub(){ $('overlay2').classList.remove('open'); if(document.getElementById('int-nuis')) renderIntNuis(); }
+/* ⛔ la fenêtre secondaire (photo, détail d'un traitement) arrivait par la feuille des fenêtres et disparaissait d'un coup :
+   elle repart par le même chemin (.overlay.ferme, comme #overlay), et une ouverture pendant la sortie l'annule */
+let _subSortie=null;
+function openSub(html){ const m=$('modal2'), ov=$('overlay2'); if(!m||!ov)return; clearTimeout(_subSortie); ov.classList.remove('ferme'); m.innerHTML=html; ov.classList.add('open'); m.scrollTop=0; }
+function closeSub(){ const ov=$('overlay2'); if(!ov) return;
+  if(ov.classList.contains('open')&&!ov.classList.contains('ferme')&&!animSobre()){ ov.classList.add('ferme'); clearTimeout(_subSortie);
+    _subSortie=setTimeout(()=>{ if(ov.classList.contains('ferme')) ov.classList.remove('open','ferme'); },210); }
+  else ov.classList.remove('open','ferme');
+  if(document.getElementById('int-nuis')) renderIntNuis(); }
 function openNuisFiche(n){ nfNuis=n; if(!intTrait[n])intTrait[n]={};
   openSub(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeSub()">Fermer</button><h3>${esc(n)}</h3><button type="button" class="btn sm" onclick="closeSub()">OK</button></div><div id="nf-body"></div>`);
   renderNuisFiche();
@@ -25420,15 +25478,17 @@ function rouesCss(){ if(document.getElementById('roues-css')) return;
 .roue-i{height:44px;line-height:44px;text-align:center;font-size:20px;font-weight:700;color:var(--t3);scroll-snap-align:center;cursor:pointer;transition:color .12s,transform .12s}
 .roue-i.mid{color:var(--t1);font-size:24px;font-weight:800;transform:scale(1.06)}`;
   document.head.appendChild(s); }
-function ouvreRoues(val,cb){ rouesCb=cb||null; rouesCss();
+function ouvreRoues(val,cb){ const ancien=document.getElementById('roues-ov'); if(ancien) ancien.remove();   // une sortie en cours : les identifiants roue-h/roue-m doivent être uniques
+  rouesCb=cb||null; rouesCss();
   const p=(val||'09:00').split(':'), h0=Math.min(23,Math.max(0,parseInt(p[0])||0)), m0=Math.round((parseInt(p[1])||0)/5)*5%60;
   const two=n=>String(n).padStart(2,'0');
   const colH=Array.from({length:24},(_,i)=>`<div class="roue-i" data-v="${i}" onclick="roueVise(this)">${two(i)}</div>`).join('');
   const colM=Array.from({length:12},(_,i)=>`<div class="roue-i" data-v="${i*5}" onclick="roueVise(this)">${two(i*5)}</div>`).join('');
   const ov=document.createElement('div'); ov.id='roues-ov';
-  ov.style.cssText='position:fixed;inset:0;background:rgba(4,9,18,.62);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)';
+  /* le voile des fenêtres (--scrim, flou de 20 px), pas un voile à part flouté à 2 px */
+  ov.style.cssText='position:fixed;inset:0;background:var(--scrim);z-index:99999;display:flex;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%)';
   ov.onclick=e=>{ if(e.target===ov) fermeRoues(); };
-  ov.innerHTML=`<div style="background:var(--card);border:1px solid var(--brd2);border-radius:20px;padding:20px 22px;width:280px;box-shadow:0 24px 70px rgba(0,0,0,.5)">
+  ov.innerHTML=`<div class="roues-feuille" style="background:var(--card);border:1px solid var(--brd2);border-radius:20px;padding:20px 22px;width:280px;box-shadow:0 24px 70px rgba(0,0,0,.5)">
     <div id="roue-big" style="text-align:center;font-size:31px;font-weight:800;letter-spacing:.03em;margin-bottom:10px">--:--</div>
     <div style="position:relative;display:flex;gap:10px;justify-content:center">
       <div style="position:absolute;left:4px;right:4px;top:50%;height:44px;transform:translateY(-50%);background:color-mix(in srgb,var(--acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:12px;pointer-events:none"></div>
@@ -25451,8 +25511,9 @@ function roueTick(){ const h=roueLit('roue-h',1), m=roueLit('roue-m',5), two=n=>
   ['roue-h','roue-m'].forEach((id,k)=>{ const v=k?m:h;
     (document.getElementById(id)||{querySelectorAll:()=>[]}).querySelectorAll('.roue-i').forEach(el=>el.classList.toggle('mid',parseInt(el.dataset.v)===v)); }); }
 function roueVise(el){ const c=el.parentNode; c.scrollTo({top:el.offsetTop-88,behavior:defilDoux()}); }
-function fermeRoues(){ const ov=document.getElementById('roues-ov'); if(ov) ov.remove(); rouesCb=null; }
-function validRoues(){ const two=n=>String(n).padStart(2,'0'); const v=two(roueLit('roue-h',1))+':'+two(roueLit('roue-m',5));
+function fermeRoues(){ const ov=document.getElementById('roues-ov'); rouesCb=null; feuilleSortir(ov); }
+function validRoues(){ const ov=document.getElementById('roues-ov'); if(!ov||ov.classList.contains('feuille-sort')) return;
+  const two=n=>String(n).padStart(2,'0'); const v=two(roueLit('roue-h',1))+':'+two(roueLit('roue-m',5));
   const cb=rouesCb; fermeRoues(); if(cb) cb(v); }
 function ouvreRouesInt(){ const f=document.getElementById('intform')||document.querySelector('.modal form'); if(!f) return;
   const inp=f.querySelector('[name=heure]'); if(!inp) return;
@@ -31552,7 +31613,7 @@ let _mailModeRendu=null;
    écran sinon. */
 function mailBasculerMode(){
   const ov=$('mail-read');
-  const ouvert=ov&&ov.dataset&&ov.dataset.idx!==undefined&&ov.dataset.idx!==''?{type:ov.dataset.type,idx:+ov.dataset.idx}
+  const ouvert=ov&&!ov.classList.contains('feuille-sort')&&ov.dataset&&ov.dataset.idx!==undefined&&ov.dataset.idx!==''?{type:ov.dataset.type,idx:+ov.dataset.idx}
     :(_mailModeRendu&&mailSel?{type:mailSel.type,idx:mailSel.idx}:null);
   if(ov) ov.remove();
   mailSel=null;
@@ -31886,6 +31947,11 @@ function renderMailPane(){ const p=$('mail-pane'); if(!p) return;
   if(!r){ mailSel=null; renderMailPane(); return; }
   p.innerHTML=mailReadHtml(r,mailSel.type);
 }
+/* ⛔ une feuille plein écran posée sur <body> (lecture d'un courriel, catalogue des bons, roues d'heure) repart par le chemin
+   par lequel elle est venue — la feuille la porte (.feuille-sort) — au lieu de disparaître en une image */
+function feuilleSortir(el){ if(!el) return; if(!el.isConnected||animSobre()){ el.remove(); return; }
+  if(el.classList.contains('feuille-sort')) return;
+  el.classList.add('feuille-sort'); setTimeout(()=>{ try{ el.remove(); }catch(e){} },230); }
 /* Plein écran (mobile) */
 function mailOpen(type,idx){
   const r=type==='envoye'?(db.mailSent||[]).slice().reverse()[idx]:(_mailReplies||[])[idx];
@@ -31895,7 +31961,7 @@ function mailOpen(type,idx){
   const ov=document.createElement('div'); ov.id='mail-read'; ov.dataset.type=type; ov.dataset.idx=String(idx);   // j01 : le message qu'elle montre, pour le suivre au changement de mode
   ov.style.cssText='position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;flex-direction:column';
   ov.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--brd);flex-shrink:0">
-      <button class="btn ghost sm" onclick="document.getElementById('mail-read').remove();if(current==='boiteMail')views.boiteMail()">← Retour</button><span style="flex:1"></span></div>
+      <button class="btn ghost sm" onclick="feuilleSortir(document.getElementById('mail-read'));if(current==='boiteMail')views.boiteMail()">← Retour</button><span style="flex:1"></span></div>
     <div style="flex:1;overflow-y:auto">${mailReadHtml(r,type)}</div>`;
   document.body.appendChild(ov);
 }
@@ -32266,7 +32332,7 @@ function bonCatList(){ const el=$('bcat-list'); if(!el) return; const q=norm(($(
    +(!list.length?'<div style="text-align:center;color:var(--t3);padding:24px">Aucun produit trouvé.</div>':'');
 }
 function bonCatToggle(pid){ if(_bonCatSel.has(pid)) _bonCatSel.delete(pid); else _bonCatSel.add(pid); bonCatList(); }
-function bonCatClose(){ const ov=$('bon-cat'); if(ov) ov.remove(); }
+function bonCatClose(){ feuilleSortir($('bon-cat')); }
 function bonCatApply(){
   bonLignes=bonLignes.filter(l=>!l.produitId||_bonCatSel.has(l.produitId));   // décoché = retiré
   const have=new Set(bonLignes.filter(l=>l.produitId).map(l=>l.produitId));
@@ -41139,8 +41205,9 @@ function openNotif(){ const list=computeNotifs(); notifOpen=true; const unseen=l
   $('notif-panel').innerHTML=`<div class="notif-panel" onclick="event.stopPropagation()">
     <div class="notif-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px">Notifications (${unseen})${list.length?`<button class="btn ghost sm" onclick="notifAllSeen()">Tout lire</button>`:''}</div>
     <div class="notif-list">${list.length? list.map(n=>{ const seen=notifSeen.has(n.id); return `<div class="notif-it" style="${seen?'opacity:.45':''}" onclick="notifSee('${n.id}');${n.act};closeNotif()"><span class="ni-ico">${n.ic}</span><span class="ni-txt">${n.txt}</span>${seen?'':'<span style="margin-left:auto;align-self:center;width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0"></span>'}</div>`; }).join('') : '<div class="empty" style="padding:34px"><div class="e-ico">✅</div><p>Aucune alerte</p></div>'}</div></div>`;
+  flottantEntre(($('notif-panel')||{}).firstElementChild);   // l'origine (la cloche) est posée par la feuille : .notif-panel
 }
-function closeNotif(){ notifOpen=false; $('notif-panel').innerHTML=''; }
+function closeNotif(){ notifOpen=false; const p=$('notif-panel'), el=p&&p.firstElementChild; if(el) flottantSort(el); else if(p) p.innerHTML=''; }
 document.addEventListener('click',()=>{ if(notifOpen) closeNotif(); });
 
 /* ═══════════════ AUTH — identifiant + mot de passe personnel (SHA-256) ═══════════════ */
@@ -42851,7 +42918,7 @@ function userFootMenu(e){ e.preventDefault(); e.stopPropagation();
   const old=$('foot-menu'); if(old) old.remove();
   const m=document.createElement('div'); m.id='foot-menu';
   m.style.cssText='position:fixed;z-index:600;background:var(--card);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:14px;padding:6px;min-width:200px;box-shadow:0 16px 44px rgba(0,0,0,.5)';
-  const it=(ic,l,fn,danger)=>`<div onclick="event.stopPropagation();document.getElementById('foot-menu').remove();${fn}" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:${danger?'var(--danger-ink)':'var(--t1)'}" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'"><span style="width:18px;text-align:center">${ic}</span>${l}</div>`;
+  const it=(ic,l,fn,danger)=>`<div onclick="event.stopPropagation();flottantSort(document.getElementById('foot-menu'));${fn}" style="display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;cursor:pointer;font-size:13.5px;font-weight:600;color:${danger?'var(--danger-ink)':'var(--t1)'}" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='transparent'"><span style="width:18px;text-align:center">${ic}</span>${l}</div>`;
   m.innerHTML=it('⧉','Nouvelle fenêtre',"window.open(location.href.split('#')[0],'_blank')")
     +it('⚙️','Paramètres',"go('parametres');document.getElementById('sidebar').classList.remove('open')")
     +'<div style="height:1px;background:var(--brd);margin:5px 8px"></div>'
@@ -42860,7 +42927,8 @@ function userFootMenu(e){ e.preventDefault(); e.stopPropagation();
   const r=m.getBoundingClientRect();
   m.style.left=Math.max(8,Math.min(e.clientX,innerWidth-r.width-8))+'px';
   m.style.top=Math.max(8,Math.min(e.clientY-r.height-6,innerHeight-r.height-8))+'px';
-  setTimeout(()=>{ const close=ev=>{ if(!m.contains(ev.target)){ m.remove(); document.removeEventListener('click',close); document.removeEventListener('contextmenu',close); } };
+  flottantEntre(m,e.clientX,e.clientY);
+  setTimeout(()=>{ const close=ev=>{ if(!m.contains(ev.target)){ flottantSort(m); document.removeEventListener('click',close); document.removeEventListener('contextmenu',close); } };
     document.addEventListener('click',close); document.addEventListener('contextmenu',close); },0);
 }
 

@@ -34,11 +34,11 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 9 | 4 | Tiroir du menu (téléphone) : voile qui surgit et s'éteint sec ; un balayage sur le voile change de rubrique au lieu de fermer | 666, 15885 | on veut fermer le menu, on change d'écran | ✅ corrigé (partie E) |
 | 10 | 3 | Survol collé sur iPhone : 38 familles restent « survolées » après un toucher (« ＋ Créer », retour, onglets, cloche, menu, tuiles, lignes) | 4422, 4085, 1355, 3581, 450, 1430, 2169, 239, 244 | le bouton reste soulevé jusqu'au toucher suivant | ✅ corrigé (partie F) |
 | 11 | 3 | Aucun retour à l'appui sur 36 familles (cases des plannings, barre d'outils du planning, logo et fiche du menu au Mac) ; lignes de liste en 200 ms | 1949–1964, 1777–1792, 1355, 7979, 8008, 7714 | on ne sait pas si le toucher a pris | ✅ corrigé (partie G) |
-| 12 | 3 | La fenêtre secondaire (photo, détail d'un traitement) arrive animée et disparaît d'un coup | 24406 | elle clignote en sortant | à faire |
-| 13 | 3 | Roues d'heure : ni entrée ni sortie, voile flouté à 2 px | 25228 | apparition et disparition sèches | à faire |
-| 14 | 3 | Lecture d'un mail et catalogue des bons : posés et retirés sans mouvement | 31698 | coupure sèche | à faire |
-| 15 | 3 | Panneau des notifications sans animation, sans point d'ancrage | 40935 | il surgit au milieu de nulle part | à faire |
-| 16 | 3 | Planning : menu contextuel et carte de survol secs | 20759 | apparition sèche | à faire |
+| 12 | 3 | La fenêtre secondaire (photo, détail d'un traitement) arrive animée et disparaît d'un coup | 24406 | elle clignote en sortant | ✅ corrigé (partie H) |
+| 13 | 3 | Roues d'heure : ni entrée ni sortie, voile flouté à 2 px | 25228 | apparition et disparition sèches | ✅ corrigé (partie H) |
+| 14 | 3 | Lecture d'un mail et catalogue des bons : posés et retirés sans mouvement | 31698 | coupure sèche | ✅ corrigé (partie H) |
+| 15 | 3 | Panneau des notifications sans animation, sans point d'ancrage | 40935 | il surgit au milieu de nulle part | ✅ corrigé (partie H) |
+| 16 | 3 | Planning : menu contextuel et carte de survol secs | 20759 | apparition sèche | ✅ corrigé (partie H) |
 | 17 | 3 | Feuille « Créer » : une poignée qui ne glisse pas | 6614, 15644 | on tire, rien ne bouge | à faire |
 | 18 | 3 | Le toast n'est pas annoncé aux lecteurs d'écran ; son « Annuler » n'est pas un bouton | 8057, 13911 | VoiceOver ne dit rien | à faire |
 | 19 | 3 | `confirm()` natifs sur des gestes réversibles | 21703 (et suivants) | une boîte du navigateur pour rien | à faire |

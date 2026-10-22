@@ -33,7 +33,8 @@ vrai("l'écouteur resize passe par mailBasculerMode, plus par views.boiteMail() 
 /* ── le monde : un faux <body>, des éléments connus par leur id, les vraies fonctions ── */
 function monde(largeur, base) {
   const registre = {}, journal = [];
-  const mkEl = () => { const e = { style: {}, dataset: {}, innerHTML: '', id: '', remove() { if (this.id && registre[this.id] === this) delete registre[this.id]; journal.push('remove:' + this.id); } }; return e; };
+  /* classList : la lecture qui SORT (audit apple-design, .feuille-sort) est tenue pour fermée par mailBasculerMode */
+  const mkEl = () => { const cl = new Set(); const e = { style: {}, dataset: {}, innerHTML: '', id: '', classList: { contains: c => cl.has(c), add: (...c) => c.forEach(x => cl.add(x)), remove: (...c) => c.forEach(x => cl.delete(x)) }, remove() { if (this.id && registre[this.id] === this) delete registre[this.id]; journal.push('remove:' + this.id); } }; return e; };
   const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, parseInt, parseFloat, window: { innerWidth: largeur }, current: 'boiteMail',
     _mailReplies: base.recus, db: { mailSent: base.envoyes }, mailSel: null, _mailModeRendu: null, __journal: journal, __ecouteurs: {} };
   ctx.window.addEventListener = (ev, f) => { ctx.__ecouteurs[ev] = f; };

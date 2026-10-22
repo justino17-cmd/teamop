@@ -40,13 +40,16 @@ vrai('le bouton « Fermer » de la Clôture guidée appelle assistFermer (pas cl
 
 function monde(opts) {
   opts = opts || {};
-  const ov = { s: new Set(), classList: { contains: c => ov.s.has(c), add: c => ov.s.add(c), remove: c => ov.s.delete(c) } };
-  const ov2 = { s: new Set(), classList: { contains: c => ov2.s.has(c), add: c => ov2.s.add(c), remove: c => ov2.s.delete(c) } };
+  const ov = { s: new Set(), classList: { contains: c => ov.s.has(c), add: (...c) => c.forEach(x => ov.s.add(x)), remove: (...c) => c.forEach(x => ov.s.delete(x)) } };
+  const ov2 = { s: new Set(), classList: { contains: c => ov2.s.has(c), add: (...c) => c.forEach(x => ov2.s.add(x)), remove: (...c) => c.forEach(x => ov2.s.delete(x)) } };
   const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, Promise, __log: [], __urls: [], __confirms: [], __saves: 0, __push: 0, __back: 0,
     __handlers: {}, __ov: ov, __ov2: ov2, __elts: {}, $: id => id === 'overlay' ? ov : id === 'overlay2' ? ov2 : (ctx.__elts[id] || null),
     document: { getElementById: () => null, querySelector: () => null, addEventListener(t, f) { ctx.__handlers['doc_' + t] = f; } },
     history: { state: { rf: 1 }, pushState(s, t, u) { ctx.__push++; ctx.__urls.push(u); this.state = s; }, back() { ctx.__back++; }, replaceState() {} },
-    confirm: m => { ctx.__confirms.push(m); return !!ctx.__reponse; }, __reponse: false };
+    confirm: m => { ctx.__confirms.push(m); return !!ctx.__reponse; }, __reponse: false,
+    /* la fenêtre secondaire a un chemin de sortie (audit apple-design, test-2838) : par défaut « réduire les animations »
+       (elle part tout de suite, les contrôles d'avant restent tels quels) ; opts.anime joue la sortie, minuteries tenues ici */
+    animSobre: () => !opts.anime, __minut: [], setTimeout: (f) => { ctx.__minut.push(f); return ctx.__minut.length; }, clearTimeout() {} };
   ctx.window = ctx;
   ctx.addEventListener = (t, f) => { ctx.__handlers[t] = f; };
   vm.createContext(ctx);
@@ -66,6 +69,7 @@ function monde(opts) {
     function t3dQuestModalEnd(id){ __log.push('t3dEnd '+id); _t3dModalCat=''; closeModal(); assistRender(); }
     function marquer(){}
     ${F['function closeModal(']}
+    var _subSortie=null;
     ${F['function closeSub(']}
     ${F['function asSigsVives(']}
     ${F['function asKeepSigs(']}
@@ -179,6 +183,13 @@ console.log('\n── 1213 · feuilles secondaires (#overlay2) : on les ferme AV
   vrai('Échap : la feuille secondaire d\'abord, la Clôture ensuite', !W.__ov2.s.has('open') && e.ouvert && e.asW === 'i1' && e.confirms === 0, e); }
 { const W = monde(); vm.runInContext('_ecranRendu=function(){}', W); W.__ov2.s.add('open'); popstate(W); const e = etat(W);
   vrai('visionneuse de photo ouverte sur une fiche : le retour ferme la visionneuse, la fiche n\'est pas redessinée dessous', !W.__ov2.s.has('open') && e.log.length === 0 && e.push === 1, e); }
+
+{ const W = monde({ anime: true }); ouvrirCloture(W, true); W.__ov2.s.add('open'); W.__reponse = true; popstate(W);
+  vrai('animée : le retour lance la SORTIE de la feuille secondaire (« open ferme »), la Clôture reste', W.__ov2.s.has('ferme') && etat(W).asW === 'i1' && etat(W).confirms === 0, [...W.__ov2.s]);
+  popstate(W); const e2 = etat(W);
+  vrai('… pendant cette sortie, un second retour ne la referme pas : il passe à la Clôture (comme #overlay)', e2.confirms === 1 && e2.asW === null, e2);
+  W.__minut.splice(0).forEach(f => f());
+  vrai('… et la sortie finie, la feuille n’est plus ni « open » ni « ferme »', !W.__ov2.s.has('open') && !W.__ov2.s.has('ferme'), [...W.__ov2.s]); }
 
 console.log('\n── 1213 · fenêtres ordinaires et écran obligatoire ──');
 { const W = monde(); W.__ov.s.add('open'); vm.runInContext("_multiHtml='<div>une fenêtre ordinaire</div>'", W); popstate(W); const e = etat(W);
