@@ -114,6 +114,15 @@ else (async () => {
        avançait de 22 h « jusqu'au lendemain, dans la plage » et tombait une heure AVANT elle : son « aucun résumé » passait à vide, faute de reprise. */
     let decalage = 0;
     const avancer = (ms) => { decalage += ms; svc.avancer(ms); };
+    /* ⛔ L'HORLOGE AVANCE JUSQU'À UNE HEURE DE PARIS, JAMAIS D'UNE DURÉE FIXE. Le 25 octobre 2026 dure 25 heures à Paris (retour à l'heure d'hiver), le 28 mars 2027
+       en dure 23 : « + 24 h 05 » tombait une heure AVANT la plage dès que la nuit du changement passait entre deux étapes. Pris le 21 octobre 2026 : cinq contrôles
+       tombaient selon l'heure du lancement, quatre jours avant le changement — et le banc garde la porte de déploiement d'OP MESSAGES. On cherche, minute par minute,
+       le prochain instant (pour le service) dont l'heure LOCALE est `minuteLocale`, comme le balayeur la lira. */
+    const allerA = (minuteLocale) => {
+      const cible = ((minuteLocale % 1440) + 1440) % 1440, t = Date.now() + decalage;
+      for (let k = 1; k <= 3000; k++) if (H.instantLocal(t + k * 60000, 'Europe/Paris').minute === cible) return avancer(k * 60000);
+      throw new Error('aucune minute ' + cible + ' à Paris dans les deux jours qui suivent');
+    };
     const horsMaintenant = () => H.horsHeures({ jours: [1, 2, 3, 4, 5, 6, 7], debut: DANS2H, fin: DANS3H }, 'Europe/Paris', Date.now() + decalage);
     const ok = await b.post('/api/moi/maj', { tz: 'Europe/Paris', prefs: { heures_pro: reglage } });
     v('le réglage s\'écrit, les jours RANGÉS (lundi d\'abord)', [ok.code, JSON.stringify(ok.j.moi.prefs.heures_pro)], [200, JSON.stringify({ jours: [1, 2, 3, 4, 5, 6, 7], debut: DANS2H, fin: DANS3H })]);
@@ -137,7 +146,7 @@ else (async () => {
     const n1 = recus(dB).length;
     await T.dort(500);                                          // plusieurs passages du balayeur (150 ms) TOUJOURS hors des heures
     v('⛔ pas avant l\'heure : rien n\'a sonné tant que les heures n\'ont pas repris', recus(dB).length, n1);
-    avancer(125 * 60000);
+    allerA(DANS2H + 5);                                         // cinq minutes après le DÉBUT de la plage
     vrai('population : l\'horloge du service est maintenant DANS la plage', !horsMaintenant());
     vrai('le résumé arrive quand les heures reprennent', await attendreN(dB, n1 + 1));
     const r = sansAppels(recus(dB).slice(n1))[0] || {};
@@ -172,7 +181,7 @@ else (async () => {
     v('⛔ la notification d\'essai (d\'aucune conversation) s\'intitule « OP MESSAGES » — rien n\'est deviné', [es.code, ess.titre], [200, 'OP MESSAGES']);
 
     console.log('\n6. De nouveau hors des heures, tout lu avant la reprise : aucun résumé');
-    avancer(60 * 60000 + 60000);                                // la fin de la plage est passée : dehors
+    allerA(DANS3H + 6);                                         // la fin de la plage est passée : dehors
     vrai('population : l\'horloge du service est HORS de la plage', horsMaintenant());
     const n3 = recus(dB).length;
     await envoyer(a, PRO1, 'Un dernier point');
@@ -181,7 +190,7 @@ else (async () => {
     v('population : hors des heures, le message pro n\'a pas sonné (seule la sentinelle)', sansAppels(recus(dB).slice(n3)).map(x => x.type), ['groupe']);
     const dernier1 = ((await b.get('/api/conversations/' + PRO1 + '/messages')).j.messages || []).reduce((m, x) => Math.max(m, x.seq), 0);
     await b.post('/api/conversations/' + PRO1 + '/lu', { seq: dernier1 });
-    avancer((1440 + 120 + 5) * 60000 - decalage);               // le lendemain, cinq minutes après le DÉBUT de la plage
+    allerA(DANS2H + 5);                                         // le lendemain, cinq minutes après le DÉBUT de la plage
     vrai('population : le lendemain, l\'horloge du service est DANS la plage (la reprise a bien lieu)', !horsMaintenant());
     const n4 = recus(dB).length;
     await T.dort(600);
@@ -190,7 +199,7 @@ else (async () => {
     v('⛔ tout avait été lu : à la reprise, aucun résumé — la suivante est la sentinelle', sansAppels(recus(dB).slice(n4)).map(x => x.type), ['groupe']);
 
     console.log('\n7. Coupé : rien n\'est retenu');
-    avancer(2 * 3600000);                                       // hors de la plage
+    allerA(DANS3H + 65);                                        // hors de la plage
     vrai('population : l\'horloge du service est HORS de la plage', horsMaintenant());
     const coupe = await b.post('/api/moi/maj', { prefs: { heures_pro: null } });
     v('Ben coupe ses heures de travail : le réglage disparaît', [coupe.code, coupe.j.moi.prefs.heures_pro], [200, undefined]);
@@ -200,7 +209,7 @@ else (async () => {
     v('⛔ coupé : le message pro sonne à toute heure', sansAppels(recus(dB).slice(n5)).map(x => x.type), ['message']);
 
     /* la reprise suivante : cinq minutes après le DÉBUT de la plage, le lendemain si besoin — l'étape d'après PROUVE où elle tombe */
-    const versReprise = () => { const lm = H.instantLocal(Date.now() + decalage, 'Europe/Paris').minute; avancer(((((DANS2H - lm) % 1440) + 1440) % 1440 + 5) * 60000); };
+    const versReprise = () => allerA(DANS2H + 5);
     const lireTout = async (X, conv) => { const d = ((await X.get('/api/conversations/' + conv + '/messages')).j.messages || []).reduce((m, x) => Math.max(m, x.seq), 0); return (await X.post('/api/conversations/' + conv + '/lu', { seq: d })).code; };
 
     console.log('\n8. Ce que la pastille ne compte pas, le résumé ne le compte pas : un message du système, un supprimé, un masqué');
@@ -243,7 +252,7 @@ else (async () => {
     await attendreHA(dB, nG, 3);                                // les trois « ajouté au groupe » de Ben : comptés AVANT la mesure
     const dC = P.appareil(fps.endpoint('cleo')); dC.chemin = '/push/cleo';
     const abC = await c.post('/api/push/abonner', { sub: dC.sub });
-    avancer(60 * 60000);                                        // la fin de la plage est passée
+    allerA(DANS3H + 5);                                         // la fin de la plage est passée
     vrai('population : l\'horloge du service est HORS de la plage, l\'appareil de Cléo est abonné', horsMaintenant() && abC.code === 200);
     const fB = await T.flux(b); flux.push(fB);                 // la page de Ben est ouverte pendant la réunion (elle n'acquitte rien : chaque push attend `ackMs`, puis part)
     const appel = await a.post('/api/appels', { conv: REU, type: 'audio' });
@@ -300,7 +309,7 @@ else (async () => {
     const r3 = await b.post('/api/conversations/' + PRO3 + '/prefs', { cote: 'pro' });
     const hC = await c.post('/api/moi/maj', { tz: 'Europe/Paris', prefs: { heures_pro: reglage } });
     const rC = await c.post('/api/conversations/' + PERSO + '/prefs', { cote: 'pro' });        // « Week-end » est Pro pour Cléo : le côté est à CHACUN
-    avancer(60 * 60000);
+    allerA(DANS3H + 5);
     v('population : « Planning » rangé Pro par Ben ; Cléo a posé ses heures, « Week-end » est Pro pour elle ; l\'horloge du service HORS de la plage',
       [r3.code, hC.code, rC.code, horsMaintenant()], [200, 200, 200, true]);
     const n12 = recus(dB).length;
