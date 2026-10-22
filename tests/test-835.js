@@ -33,9 +33,9 @@ console.log('1. les pages sont la sortie du générateur');
 /* les huit pages d'origine, les cinq pages métier et les six pages par fonction du plan SEO de Justin (29 septembre 2026 :
    « une page = une URL = un mot-clé principal » ; le soir même : « une page par fonction […], plus une page nettoyage ») —
    test-846 garde leur référencement */
-v('dix-neuf pages : les huit du site, les cinq pages métier et les six pages par fonction', CLES.slice().sort(), ['applications', 'creer', 'elan', 'index', 'logiciel-anti-nuisibles',
+v('dix-neuf pages : les huit du site, les cinq pages métier et les six pages par fonction', CLES.slice().sort(), ['applications', 'creer', 'index', 'logiciel-anti-nuisibles',
   'logiciel-bons-de-commande', 'logiciel-chauffage-climatisation', 'logiciel-devis-factures', 'logiciel-electricien', 'logiciel-gestion-de-stock', 'logiciel-nettoyage',
-  'logiciel-planning-interventions', 'logiciel-plombier', 'logiciel-pointage', 'logiciel-registre-sanitaire', 'metiers', 'opmessages', 'pourquoi', 'tarifs']);
+  'logiciel-planning-interventions', 'logiciel-plombier', 'logiciel-pointage', 'logiciel-registre-sanitaire', 'metiers', 'op-gestion', 'opmessages', 'pourquoi', 'tarifs']);
 const PAGES = {};
 for (const c of CLES) {
   const f = path.join(DIR, c + '.html');
@@ -106,6 +106,9 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
     liens++;
     const u = brut;
     if (/^mailto:/.test(u)) { if (u !== 'mailto:contact@teamop.fr') morts.push(c + ' → ' + u); continue; }
+    /* UNE seule adresse externe permise, nommée : le blog (21 octobre 2026) — un sous-domaine À NOUS (CNAME OVH vers
+       BabyLoveGrowth), pas un site tiers. Une autre adresse reste un lien mort à trancher. */
+    if (u === 'https://blog.teamop.fr') continue;
     if (/^https?:/.test(u)) { morts.push(c + ' → adresse externe ' + u); continue; }
     const [chemin, ancre] = u.split('#');
     const sansQ = chemin.split('?')[0];
@@ -154,7 +157,7 @@ vrai('population : ' + ecrans + ' écrans d\'appareil', ecrans >= 16);
 for (const f of fs.readdirSync(path.join(RACINE, 'vitrine', 'v2', 'captures'))) vrai('captures : ' + f + ' pèse moins de 400 Ko', fs.statSync(path.join(RACINE, 'vitrine', 'v2', 'captures', f)).size < 400 * 1024);
 
 console.log('5 bis. chaque case de « Ce que fait OP GESTION » montre son écran (Justin, 27 septembre au soir)');
-const bento = (PAGES.elan.match(/<div class="bento">[\s\S]*?<\/div><script type="application\/json"/) || [''])[0];
+const bento = (PAGES['op-gestion'].match(/<div class="bento">[\s\S]*?<\/div><script type="application\/json"/) || [''])[0];
 const cases = bento.split('<button type="button" class="tuile-f').slice(1);
 v('dix cases', cases.length, 10);
 v('les dix ont leur appareil', cases.filter(x => /class="vue /.test(x) && /<picture>/.test(x)).length, 10);
@@ -179,7 +182,7 @@ v('⛔ aperçu : les dix cases défilent (`vue alterne`, branchées au script)',
 v('⛔ aperçu : dans chaque case, le Mac PUIS le téléphone, sur le MÊME écran de l\'application, et rien d\'autre', casesA.filter(c => !paire(c.L)).map(c => c.L.map(e => e.app + ':' + e.ecran).join(' / ')), []);
 v('⛔ aperçu : chaque case a son horloge invisible (deux pastilles), et rien à toucher', casesA.filter(c => !c.x.includes(HORLOGE) || /<button|c-lecture|c-legende/.test(c.x.slice(0, c.x.indexOf('<span class="plus">')))).length, 0);
 v('dix écrans DIFFÉRENTS (une capture ne sert pas deux cases), sur le Mac comme sur le téléphone', [new Set(casesA.map(c => (c.L.find(e => e.app === 'mac') || {}).ecran)).size, new Set(casesA.map(c => (c.L.find(e => e.app === 'iphone') || {}).ecran)).size], [10, 10]);
-vrai('⛔ aperçu : aucun ⏸ au-dessus des cases (« ça ne fait que ça »)', !/c-groupe|data-c-groupe/.test(PAGES.elan));
+vrai('⛔ aperçu : aucun ⏸ au-dessus des cases (« ça ne fait que ça »)', !/c-groupe|data-c-groupe/.test(PAGES['op-gestion']));
 console.log('5 ter. les carrousels de l\'aperçu : le Mac, puis le téléphone, et c\'est tout');
 {
   let n = 0;
@@ -209,11 +212,11 @@ console.log('5 ter. les carrousels de l\'aperçu : le Mac, puis le téléphone, 
   }
 }
 {
-  const casesR = ((GEN.page('elan', { racine: true }).match(/<div class="bento">[\s\S]*?<\/div><script type="application\/json"/) || [''])[0]).split('<button type="button" class="tuile-f').slice(1);
+  const casesR = ((GEN.page('op-gestion', { racine: true }).match(/<div class="bento">[\s\S]*?<\/div><script type="application\/json"/) || [''])[0]).split('<button type="button" class="tuile-f').slice(1);
   vrai('la racine en service garde ses cases d\'avant (les grandes un Mac, les petites un iPhone, « Partout » les deux)', casesR.length === 10
     && casesR.every(x => /^[^"]*large/.test(x) ? /class="vue v-mac"/.test(x) : /class="vue (v-iphone|duo)"/.test(x)));
 }
-vrai('plus de « Code PIN » (l\'application est au mot de passe depuis septembre)', !/code PIN/i.test(PAGES.elan));
+vrai('plus de « Code PIN » (l\'application est au mot de passe depuis septembre)', !/code PIN/i.test(PAGES['op-gestion']));
 
 /* 27 septembre au soir, Justin : « je veux vraiment un mode jour et un mode nuit » — un bouton ☀︎/☾ forçait l'autre
    mode. 29 septembre, capture de son iPhone à l'appui : « Sur le site je veux pas le bouton jour nuit, je veux que ça

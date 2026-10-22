@@ -197,7 +197,7 @@ function carPaire(k, o) {
 const L = (label, href, sous) => ({ label, href, sous });
 const VOLETS = {
   applications: { label: 'Applications', href: 'applications.html', titre: 'Explorer les applications',
-    grands: [L('OP GESTION', 'elan.html', 'Gestion tout-en-un : interventions, stock, compta'), L('OP MESSAGES', 'opmessages.html', 'Messagerie d\'équipe — bientôt disponible'), L('Créer votre application', 'creer.html', 'Décrivez votre besoin, on le construit')],
+    grands: [L('OP GESTION', 'op-gestion.html', 'Gestion tout-en-un : interventions, stock, compta'), L('OP MESSAGES', 'opmessages.html', 'Messagerie d\'équipe — bientôt disponible'), L('Créer votre application', 'creer.html', 'Décrivez votre besoin, on le construit')],
     petits: [L('Planning des interventions', 'logiciel-planning-interventions.html'), L('Gestion de stock', 'logiciel-gestion-de-stock.html'), L('Devis et factures', 'logiciel-devis-factures.html'),
       L('Bons de commande', 'logiciel-bons-de-commande.html'), L('Pointage des heures', 'logiciel-pointage.html'), L('Registre sanitaire (3D)', 'logiciel-registre-sanitaire.html'),
       L('Toutes les applications', 'applications.html')] },
@@ -205,7 +205,7 @@ const VOLETS = {
     grands: [L('3D — Anti-nuisibles', 'logiciel-anti-nuisibles.html', 'Pack complet : registre sanitaire, biocides'), L('Plomberie', 'logiciel-plombier.html'), L('Électricité', 'logiciel-electricien.html'), L('Chauffage / Climatisation', 'logiciel-chauffage-climatisation.html'), L('Nettoyage / Propreté', 'logiciel-nettoyage.html')],
     petits: [L('Tous les métiers', 'metiers.html')] },
   tarifs: { label: 'Tarifs', href: 'tarifs.html', titre: 'Explorer les tarifs',
-    grands: [L('Tarifs OP GESTION', 'tarifs.html#elan', 'Pro 15 € · Business 25 € · Business Premium 50 €'), L('Tarifs OP MESSAGES', 'tarifs.html#opmessages', 'Perso · Pro · Premium — bientôt disponible')],
+    grands: [L('Tarifs OP GESTION', 'tarifs.html#op-gestion', 'Pro 15 € · Business 25 € · Business Premium 50 €'), L('Tarifs OP MESSAGES', 'tarifs.html#opmessages', 'Perso · Pro · Premium — bientôt disponible')],
     petits: [L('Comparer toutes les formules', 'tarifs.html'), L('Questions fréquentes', 'tarifs.html#faq')] },
   pourquoi: { label: 'Pourquoi TEAM OP', href: 'pourquoi.html', titre: 'Pourquoi TEAM OP',
     grands: [L('Au service des entreprises', 'pourquoi.html#partenaire', 'On écoute, on adapte, on construit avec vous'), L('Sécurité et engagements', 'pourquoi.html#engagements', 'Chiffrement AES-256, vos données à vous')],
@@ -217,6 +217,8 @@ const VOLETS = {
    mon thème »). `page()` pose POUR_LA_RACINE avant d'écrire la page. */
 let POUR_LA_RACINE = A_LA_RACINE;
 const hors = c => (POUR_LA_RACINE ? '' : '/apercu') + c;
+/* l'accueil s'écrit « / » (21 octobre 2026, Justin : « pourquoi l'adresse du site est teamop.fr/index.html ? ») : la même page à deux adresses ; l'aperçu garde la sienne */
+const ACCUEIL = () => POUR_LA_RACINE ? '/' : 'index.html';
 const ESPACE = () => hors('/espace.html'), CONNEXION = () => hors('/connexion.html?choix=1');
 
 function entete(section, sousnav) {
@@ -224,12 +226,12 @@ function entete(section, sousnav) {
   const volets = Object.keys(VOLETS).map(k => { const v = VOLETS[k]; return `<div class="fly" id="fly-${k}"><div class="fly-in"><div><div class="fly-t">${esc(v.titre)}</div><div class="fly-grand">`
     + v.grands.map(l => `<a href="${l.href}"><b>${esc(l.label)}</b>${l.sous ? `<small>${fr(l.sous)}</small>` : ''}</a>`).join('')
     + `</div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit">` + v.petits.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div></div></div></div>'; }).join('');
-  const mobile = `<section><div class="fly-t">TEAM OP</div><a href="index.html">Accueil</a></section>`
+  const mobile = `<section><div class="fly-t">TEAM OP</div><a href="${ACCUEIL()}">Accueil</a></section>`
     + Object.keys(VOLETS).map(k => `<section><div class="fly-t">${esc(VOLETS[k].label)}</div>` + VOLETS[k].grands.concat(VOLETS[k].petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</section>').join('');
   const sn = sousnav ? `<div class="sousnav"><div class="sousnav-in"><a class="sousnav-t" href="${sousnav.href}">${esc(sousnav.titre)}</a><nav class="sousnav-liens" aria-label="${esc(sousnav.titre)}">`
     + sousnav.liens.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `</nav>${typeof sousnav.cta === 'function' ? sousnav.cta() : sousnav.cta}</div></div>` : '';
   return `<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
-      <a class="marque" href="index.html"><img src="/icons/teamop-192.png" width="22" height="22" alt=""><span>TEAM OP</span></a>
+      <a class="marque" href="${ACCUEIL()}"><img src="/icons/teamop-192.png" width="22" height="22" alt="TEAM OP"><span aria-hidden="true">TEAM OP</span></a>
       <div class="nav-liens">${liens}</div>
       <div class="nav-droite"><a class="pilule" href="${ESPACE()}">Espace client</a>
         <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
@@ -245,12 +247,14 @@ function entete(section, sousnav) {
 const CONTACTS = [['contact@teamop.fr', 'Une question, une demande']];
 function pied() {
   const cols = [['Applications', VOLETS.applications], ['Métiers', VOLETS.metiers], ['Tarifs', VOLETS.tarifs]].map(([t, v]) => `<div><b>${t}</b>` + v.grands.concat(v.petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div>').join('')
-    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`
+    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="https://blog.teamop.fr">Blog</a><a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`
+    /* « Blog » (21 octobre 2026, Justin) : blog.teamop.fr, hébergé par BabyLoveGrowth (CNAME OVH) — un lien depuis le
+       site aide Google et les IA à trouver les articles. */
     /* ⛔ LA COLONNE « Contact » : contact@ seul (voir `CONTACTS`) — `test-835` § 4 l'exige au pied de chaque page, et rien d'autre. */
     + `<div class="contact"><b>Contact</b>${CONTACTS.map(([m, r]) => `<a href="mailto:${m}">${m}</a><small>${fr(r)}</small>`).join('')}</div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
     <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Sans engagement ; TVA non applicable (article 293 B du CGI).</p>
-    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a>${CONTACTS.map(([m]) => `<a href="mailto:${m}">${m}</a>`).join('')}<span class="fin">France</span></div>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a>${POUR_LA_RACINE ? '<a href="#" data-cookies>Gestion des cookies</a>' : ''}${CONTACTS.map(([m]) => `<a href="mailto:${m}">${m}</a>`).join('')}<span class="fin">France</span></div>
   </div></footer>`;
 }
 
@@ -594,7 +598,7 @@ function liensAccueil(liens, fiches, icone) {
 }
 
 const PAGES = {
-  index: { maj: '2026-10-21', titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. ' + DES_PRO,
+  index: { maj: '2026-10-21', titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour le terrain : interventions, planning, stock, devis et factures. Plombiers, électriciens, nettoyage, nuisibles. ' + DES_PRO,
     ogDesc: 'Interventions, stock, registre sanitaire, encaissements et équipe, sur mobile, tablette et ordinateur.',
     corps: () => `<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Logiciel de gestion pour entreprises de terrain</h1>
       <p class="chapeau">${fr('OP GESTION regroupe les interventions, le stock et les encaissements. L\'application est déclarée pour iOS, Android, macOS, Windows et le Web.')}</p>
@@ -632,7 +636,7 @@ const PAGES = {
   applications: { section: 'applications', titre: 'Nos applications — TEAM OP', desc: 'Les applications TEAM OP : OP GESTION (gestion d\'activité terrain) et OP MESSAGES (messagerie professionnelle d\'équipe).',
     corps: () => scene('Applications', 'Nos applications.', 'Toutes les applications de la plateforme TEAM OP. Ouvrez-en une pour voir tout ce qu\'elle fait.')
       + `<section class="page" id="applications" style="padding-top:20px;padding-bottom:20px"><h2 class="h2 moyen">Deux applications, chacune à sa place.</h2><p class="intro">${fr('OP GESTION pour gérer votre activité. OP MESSAGES, bientôt disponible, pour échanger — avec son propre compte.')}</p><div class="apps">
-        <article class="app-carte"><img class="ico" src="/icons/opgestion-512.png" width="64" height="64" alt=""><div><div class="nom">OP GESTION</div><div class="desc">${fr('Interventions avec rapports signés, planning et tournées, stock et box, devis-factures, encaissements, équipe.')}</div></div><a href="elan.html">Découvrir OP GESTION ›</a>
+        <article class="app-carte"><img class="ico" src="/icons/opgestion-512.png" width="64" height="64" alt=""><div><div class="nom">OP GESTION</div><div class="desc">${fr('Interventions avec rapports signés, planning et tournées, stock et box, devis-factures, encaissements, équipe.')}</div></div><a href="op-gestion.html">Découvrir OP GESTION ›</a>
           ${POUR_LA_RACINE ? `<div class="rogne-mac">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord', { tailles: '(max-width: 700px) 90vw, 620px' })}</div>` : carPaire('tableau', { carte: true })}</article>
         <article class="app-carte"><img class="ico" src="/icons/opmsg-512.png" width="64" height="64" alt=""><div><div class="nom">OP MESSAGES</div><div class="desc">${fr('Toute votre équipe, une seule conversation : chat en temps réel, groupes, photos, vocaux, sondages — réservé à votre entreprise. Bientôt disponible.')}</div></div><a href="opmessages.html">Découvrir OP MESSAGES ›</a>
           <div class="sondage" aria-hidden="true"><b>Quel créneau pour la réunion d'équipe ?</b>
@@ -641,10 +645,12 @@ const PAGES = {
             <small>${fr('Événement créé : Réunion d\'équipe — mardi 14 h')}</small></div></article></div></section>
       <section class="page" style="padding-top:20px;padding-bottom:40px"><a class="bandeau-creer" href="creer.html"><span class="tuile">${ic('rocket', 24)}</span><span><b>Créer votre application</b><small>${fr('Décrivez votre besoin, on le construit avec vous — de A à Z.')}</small></span><span class="l">Décrire mon besoin ›</span></a></section>` },
 
-  elan: { section: 'applications', titre: 'OP GESTION — Pilotez votre activité terrain | TEAM OP', desc: 'OP GESTION : interventions, planning et tournées, stock, devis et factures, encaissements et équipe — votre quotidien dans une seule application.',
-    sousnav: { titre: 'OP GESTION', href: 'elan.html', liens: [L('Vue d\'ensemble', 'elan.html#apercu'), L('Fonctions', 'elan.html#fonctions'), L('Tarifs', 'tarifs.html#elan')], cta: () => `<a class="pilule" href="${ESPACE()}">Demander un accès</a>` },
+  /* « op-gestion » (21 octobre 2026, Justin : « je voulais plus qu'il y ait le nom élan dans chaque lien ») — l'ancienne
+     adresse elan.html reste, à la main, comme simple redirection (liens déjà publiés, Google). */
+  'op-gestion': { section: 'applications', titre: 'OP GESTION — Pilotez votre activité terrain | TEAM OP', desc: 'OP GESTION : interventions, planning et tournées, stock, devis et factures, encaissements et équipe — votre quotidien dans une seule application.',
+    sousnav: { titre: 'OP GESTION', href: 'op-gestion.html', liens: [L('Vue d\'ensemble', 'op-gestion.html#apercu'), L('Fonctions', 'op-gestion.html#fonctions'), L('Tarifs', 'tarifs.html#op-gestion')], cta: () => `<a class="pilule" href="${ESPACE()}">Demander un accès</a>` },
     corps: () => scene('Application de gestion tout-en-un', 'Pilotez votre activité terrain en un seul endroit.', 'Interventions, planning et tournées, stock et box, encaissements, devis-factures et équipe : OP GESTION réunit tout votre quotidien dans une application simple, rapide et accessible partout.',
-        `<a class="bouton" href="${ESPACE()}">Demander un accès</a><a class="lien-suite" href="tarifs.html#elan">Voir les tarifs ›</a>`)
+        `<a class="bouton" href="${ESPACE()}">Demander un accès</a><a class="lien-suite" href="tarifs.html#op-gestion">Voir les tarifs ›</a>`)
       + `<section class="scene-mac">${POUR_LA_RACINE ? mac('mac-planning', 'OP GESTION sur un Mac : le planning de la semaine, technicien par technicien', { tot: false }) : carPaire('planning')}</section>
       <section id="fonctions" style="padding:clamp(70px,9vw,120px) 12px 12px"><div class="page" style="padding:0 10px"><h2 class="h2">Ce que fait OP GESTION.</h2><p class="intro">Ouvrez une carte pour tout voir.</p></div>${tuiles('elan', 'OP GESTION', F_GESTION)}</section>${FENETRE}` },
 
@@ -714,7 +720,7 @@ const PAGES = {
 
   tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Tarifs TEAM OP : Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, sans engagement, TVA non applicable.',
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Choisissez votre formule, et changez-en quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
-      + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="opmessages"></span><div class="tarifs-in">
+      + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="op-gestion"></span><span id="opmessages"></span><div class="tarifs-in">
         <p class="intro">${fr('Prix par mois, sans engagement — TVA non applicable (article 293 B du CGI). Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements. Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.')}</p>
         <div class="segment" role="tablist" aria-label="Application"><button type="button" role="tab" id="onglet-gestion" aria-controls="formules-gestion" aria-selected="true">OP GESTION</button><button type="button" role="tab" id="onglet-msg" aria-controls="formules-msg" aria-selected="false" tabindex="-1">OP MESSAGES</button></div>
         <div class="formules" id="formules-gestion" role="tabpanel" aria-labelledby="onglet-gestion" style="--n:${FORMULES_GESTION.length}">${formules(FORMULES_GESTION)}</div>
@@ -777,7 +783,7 @@ const JSONLD = () => JSON.stringify({ '@context': 'https://schema.org', '@graph'
     legalName: 'Justin Biret, entrepreneur individuel', identifier: { '@type': 'PropertyValue', propertyID: 'SIREN', value: '107995011' } },
   { '@type': 'WebSite', '@id': SITE_URL + '#site', url: SITE_URL, name: 'TEAM OP', inLanguage: 'fr-FR', publisher: { '@id': SITE_URL + '#organisation' } },
   { '@type': 'SoftwareApplication', name: 'OP GESTION', applicationCategory: 'BusinessApplication', operatingSystem: 'iOS, Android, macOS, Windows, Web',
-    description: 'Gestion tout-en-un pour entreprises de terrain : interventions, stock, encaissements, comptabilité.', url: SITE_URL + 'elan.html',
+    description: 'Gestion tout-en-un pour entreprises de terrain : interventions, stock, encaissements, comptabilité.', url: SITE_URL + 'op-gestion.html',
     /* ⛔ le prix est celui qu'on paie, et AUCUNE TVA ne s'y ajoute ni n'y est comprise (franchise, art. 293 B du CGI) : `valueAddedTaxIncluded: false`, jamais `true` */
     offers: FORMULES_GESTION.map(f => ({ '@type': 'Offer', name: f.nom, price: f.prix, priceCurrency: 'EUR',
       priceSpecification: { '@type': 'UnitPriceSpecification', price: f.prix, priceCurrency: 'EUR', unitText: 'mois', valueAddedTaxIncluded: false, description: 'TVA non applicable, article 293 B du CGI' } })) }] }, null, 2);
@@ -800,7 +806,7 @@ function teteSeo(cle) {
 }
 /* les pages du plan du site, et leur priorité (celles du sitemap.xml de Justin) ; les pages hors du générateur (les deux
    pages juridiques qu'il y a mises) sont nommées à part */
-const PRIORITE = { index: '1.0', elan: '0.9', applications: '0.8', metiers: '0.8', tarifs: '0.8', opmessages: '0.6', creer: '0.6', pourquoi: '0.6' };
+const PRIORITE = { index: '1.0', 'op-gestion': '0.9', applications: '0.8', metiers: '0.8', tarifs: '0.8', opmessages: '0.6', creer: '0.6', pourquoi: '0.6' };
 const HORS_GENERATEUR = [['confidentialite.html', '0.2'], ['mentions-legales.html', '0.2']];
 function sitemap() {
   const u = (loc, pr, maj) => `  <url><loc>${loc}</loc><lastmod>${maj || MAJ}</lastmod><priority>${pr}</priority></url>`;
@@ -822,6 +828,9 @@ const ICONES = cle => cle === 'opmessages'
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/teamop-192.png">
 <link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">`;
+/* ⛔ MESURE D'AUDIENCE (21 octobre 2026, Justin) : `/cookies.js` — bandeau Refuser / Accepter, Google Analytics
+   (G-BW7P0K94BZ) chargé SEULEMENT après « Accepter » (CNIL). À la racine seulement : l'aperçu ne se mesure pas. Le lien
+   « Gestion des cookies » du pied rouvre le bandeau (`data-cookies`) ; `confidentialite.html` § 2 le dit. */
 function page(cle, o) {
   const P = PAGES[cle], racine = o ? !!o.racine : A_LA_RACINE;
   POUR_LA_RACINE = racine;
@@ -846,7 +855,7 @@ ${P.cta === false ? '' : commencer()}
 </main>
 ${pied()}
 <script src="${RES}site.js" defer></script>
-${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
+${racine ? '<script src="/cookies.js" defer></script>\n' : ''}${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
 </html>
 `;
 }
