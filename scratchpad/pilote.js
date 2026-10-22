@@ -75,7 +75,11 @@ async function ouvrir(opts) {
      l'ancien, pour comparer. */
   const rendu = process.env.CPU ? ['--disable-gpu']
     : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-gpu-rasterization', '--ignore-gpu-blocklist'];
-  const chrome = spawn(CHROME, ['--headless=new', '--no-sandbox', ...rendu, '--disable-dev-shm-usage',
+  /* `OPG_ARGS` ajoute des drapeaux au lancement. Ce Chromium sans écran n'a AUCUNE souris : il se déclare (hover:none) et
+     (pointer:none), et Emulation.setEmulatedMedia n'émule ni l'un ni l'autre (mesuré le 22 octobre 2026). Pour jouer une
+     souris : OPG_ARGS='--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4' */
+  const plus = process.env.OPG_ARGS ? process.env.OPG_ARGS.split(' ').filter(Boolean) : [];
+  const chrome = spawn(CHROME, ['--headless=new', '--no-sandbox', ...rendu, ...plus, '--disable-dev-shm-usage',
     '--remote-debugging-port=' + pc, '--user-data-dir=' + path.join(BANC, 'ch'), 'about:blank'],
     { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
   /* ⛔ tuer le GROUPE, pas le seul processus principal : ses enfants (GPU, rendu) lui survivaient et

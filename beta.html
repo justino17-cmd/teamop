@@ -150,9 +150,9 @@
   .nav-loupe button{background:transparent;border:0;color:var(--t3);cursor:pointer;font-size:12px;
     line-height:1;padding:0;border-radius:7px;flex-shrink:0;
     min-width:26px;min-height:26px;display:flex;align-items:center;justify-content:center;}
-  .nav-loupe button:hover{color:var(--t1);background:var(--bg1);}
+  @media (hover:hover){ .nav-loupe button:hover{color:var(--t1);background:var(--bg1);} }
   .nav-item{display:flex;align-items:center;gap:13px;padding:10px 14px;border-radius:10px;color:var(--t2);font-size:14px;font-weight:500;cursor:pointer;transition:.15s;margin-bottom:1px;user-select:none;}
-  .nav-item:hover{background:var(--bg2);color:var(--t1);}
+  @media (hover:hover){ .nav-item:hover{background:var(--bg2);color:var(--t1);} }
   .nav-item.active{background:color-mix(in srgb,var(--acc) 15%,transparent);color:var(--acc-txt);font-weight:600;}
   .nav-item .ico{font-size:16px;width:20px;text-align:center;}
   .nav-item .badge{margin-left:auto;background:rgba(255,255,255,.08);color:var(--t2);font-size:11px;font-weight:600;padding:1px 8px;border-radius:100px;}
@@ -228,7 +228,7 @@
   .gsrch input{flex:1;background:transparent;border:none;outline:none;color:var(--t1);font-size:13.5px;font-family:inherit;min-width:0}
   #gsrch-res{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);border:1px solid var(--brd);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.4);z-index:40;display:none;max-height:340px;overflow-y:auto}
   #gsrch-res .gr{display:flex;align-items:center;gap:9px;padding:10px 13px;cursor:pointer;border-bottom:1px solid var(--brd);font-size:13px}
-  #gsrch-res .gr:hover{background:var(--bg2)}
+  @media (hover:hover){ #gsrch-res .gr:hover{background:var(--bg2)} }
   #gsrch-res .gr .gt{font-size:10px;color:var(--t3);margin-left:auto;white-space:nowrap}
   @media(max-width:900px){.gsrch{display:none}}
   .content{padding:26px 30px 48px;flex:1;}
@@ -236,17 +236,17 @@
 
   /* BUTTONS */
   .btn{display:inline-flex;align-items:center;gap:8px;background:var(--acc-fill);color:var(--on-fill);font-family:'Archivo',sans-serif;font-weight:800;font-size:14px;padding:10px 17px;border-radius:14px;border:none;cursor:pointer;transition:.15s;white-space:nowrap;}
-  .btn:hover{background:var(--acc2);transform:translateY(-1px);}
+  @media (hover:hover){ .btn:hover{background:var(--acc2);transform:translateY(-1px);} }
   .btn.ghost{background:var(--bg2);border:1px solid var(--brd);color:var(--t2);}
-  .btn.ghost:hover{background:var(--bg3);color:var(--t1);}
+  @media (hover:hover){ .btn.ghost:hover{background:var(--bg3);color:var(--t1);} }
   .btn.sm{padding:7px 12px;font-size:13px;}
   .btn.danger{background:var(--danger-bg);color:var(--danger-ink);border:1px solid color-mix(in srgb,var(--danger-ink) 30%,transparent);}
-  .btn.danger:hover{background:rgba(239,68,68,.25);}
+  @media (hover:hover){ .btn.danger:hover{background:rgba(239,68,68,.25);} }
 
   /* KPIs */
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:15px;margin-bottom:26px;}
   .kpi{background:var(--card);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:18px;padding:18px;}
-  .kpi[onclick]:hover{background:color-mix(in srgb,var(--acc) 12%,var(--card));}
+  @media (hover:hover){ .kpi[onclick]:hover{background:color-mix(in srgb,var(--acc) 12%,var(--card));} }
   /* 1er indicateur en carte vert sapin (comme « CA du mois » dans la maquette Team OP Web) */
   /* ⛔ PLUS DE CARTE « HÉRO ». Toute règle .kpis .kpi:first-child pèse (0,3,0) et bat le verre
      (html[data-verre="1"] .kpi, (0,2,1)) — même quand elle sert à le NEUTRALISER. La première
@@ -261,7 +261,7 @@
   /* RÈGLE MAQUETTE (validée) : contour accent 45 % sur toutes les cases ;
      cliquable = se remplit au survol, non cliquable = contour seul */
   .card{background:var(--bg1);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:18px;padding:20px;margin-bottom:18px;}
-  .card[onclick]:not(.pf-bar):hover{background:color-mix(in srgb,var(--acc) 10%,var(--bg1));}
+  @media (hover:hover){ .card[onclick]:not(.pf-bar):hover{background:color-mix(in srgb,var(--acc) 10%,var(--bg1));} }
   .card-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
   .card-head h3{font-size:16px;font-weight:600;}
   .card-head .btn{margin-left:auto;}
@@ -272,7 +272,7 @@
   .tbl{width:100%;border-collapse:collapse;}
   .tbl th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);font-weight:600;padding:0 14px 12px;}
   .tbl td{padding:13px 14px;border-top:1px solid var(--brd);font-size:14px;color:var(--t2);vertical-align:middle;}
-  .tbl tr:hover td{background:rgba(255,255,255,.015);}
+  @media (hover:hover){ .tbl tr:hover td{background:rgba(255,255,255,.015);} }
   .tbl .row-clk{cursor:pointer;}
   .tbl .strong{color:var(--t1);font-weight:600;}
   .tbl-wrap{overflow-x:auto;}
@@ -372,7 +372,7 @@
   /* FILTERS */
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
   .chip{background:var(--bg1);border:1px solid var(--brd);color:var(--t2);font-size:13px;font-weight:500;padding:8px 15px;border-radius:100px;cursor:pointer;transition:.15s;}
-  .chip:hover{border-color:color-mix(in srgb,var(--acc) 30%,transparent);}
+  @media (hover:hover){ .chip:hover{border-color:color-mix(in srgb,var(--acc) 30%,transparent);} }
   .chip.active{background:color-mix(in srgb,var(--acc) 15%,transparent);border-color:color-mix(in srgb,var(--acc) 45%,transparent);color:var(--acc-txt);}
 
   /* EMPTY */
@@ -408,7 +408,7 @@
   .soc-search{width:100%;background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;color:var(--t1);font-size:14px;}
   .soc-list{margin-top:4px;max-height:240px;overflow:auto;border:1px solid var(--brd);border-radius:10px;background:var(--bg1);box-shadow:0 8px 24px rgba(0,0,0,.18);}
   .soc-item{padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--brd);}
-  .soc-item:hover,.soc-item.on{background:color-mix(in srgb,var(--acc) 16%,transparent);}
+  .soc-item.on{background:color-mix(in srgb,var(--acc) 16%,transparent);}@media (hover:hover){ .soc-item:hover{background:color-mix(in srgb,var(--acc) 16%,transparent);} }
   .soc-item:last-child{border-bottom:none;}
   @media(min-width:781px){ .int-form-cols{column-count:2;column-gap:26px;} }
   @media(min-width:1240px){ .int-form-cols{column-count:3;} }
@@ -416,7 +416,7 @@
   .modal-head{display:flex;align-items:center;margin-bottom:20px;}
   .modal-head h3{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;}
   .modal-close{margin-left:auto;background:var(--bg2);border:1px solid var(--brd);color:var(--t2);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:16px;}
-  .modal-close:hover{color:var(--t1);}
+  @media (hover:hover){ .modal-close:hover{color:var(--t1);} }
   .sheet-head{gap:10px;}
   .sheet-head h3{flex:1;text-align:center;font-size:16px;}
   /* v751 : à mi-chemin entre --t3 et --t1 — --t3 seul tombait à 4,46:1 sur le point le plus sombre de la vitre
@@ -442,13 +442,13 @@
   .detail-desc{background:var(--bg);border:1px solid var(--brd);border-radius:12px;padding:15px;margin-top:16px;font-size:14px;color:var(--t2);line-height:1.6;}
   .tabs{display:flex;gap:2px;border-bottom:1px solid var(--brd);margin-bottom:16px;overflow-x:auto;}
   .tab{padding:9px 14px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
-  .tab:hover{color:var(--t2);}
+  @media (hover:hover){ .tab:hover{color:var(--t2);} }
   .tab.active{color:var(--acc-txt);border-bottom-color:var(--acc);}
 
   /* PLANNING/LIST ROWS */
   .pl-row{display:flex;align-items:center;gap:15px;background:var(--bg1);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);border-radius:12px;padding:13px 16px;margin-bottom:9px;cursor:pointer;transition:.15s;}
-  .pl-row:hover{background:color-mix(in srgb,var(--acc) 10%,var(--bg1));}
-  .pl-row:hover{border-color:color-mix(in srgb,var(--acc) 30%,transparent);transform:translateX(2px);}
+  @media (hover:hover){ .pl-row:hover{background:color-mix(in srgb,var(--acc) 10%,var(--bg1));} }
+  @media (hover:hover){ .pl-row:hover{border-color:color-mix(in srgb,var(--acc) 30%,transparent);transform:translateX(2px);} }
   .pl-time{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;min-width:50px;}
   .pl-info{flex:1;min-width:0;}
   .pl-title{font-size:15px;font-weight:600;margin-bottom:3px;}
@@ -458,7 +458,7 @@
   .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
   .cal-h{text-align:center;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;padding:4px 0;font-weight:600;}
   .cal-d{min-height:62px;border:1px solid var(--brd);border-radius:10px;padding:6px;cursor:pointer;display:flex;flex-direction:column;gap:4px;transition:.12s;background:var(--bg);}
-  .cal-d:hover{border-color:color-mix(in srgb,var(--acc) 45%,transparent);}
+  @media (hover:hover){ .cal-d:hover{border-color:color-mix(in srgb,var(--acc) 45%,transparent);} }
   .cal-d.out{opacity:.32;}
   .cal-d.today{border-color:var(--acc);}
   .cal-d.sel{background:color-mix(in srgb,var(--acc) 14%,transparent);border-color:var(--acc);}
@@ -556,12 +556,12 @@
   .login-error{color:var(--red);font-size:12px;font-weight:600;margin-bottom:8px;}
   .login-users{display:flex;flex-direction:column;gap:10px;}
   .login-user{display:flex;align-items:center;gap:12px;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;padding:13px 16px;cursor:pointer;transition:.15s;text-align:left;}
-  .login-user:hover{border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
+  @media (hover:hover){ .login-user:hover{border-color:color-mix(in srgb,var(--acc) 40%,transparent);} }
   .login-user .nom{font-weight:600;font-size:15px;}
   .login-user .role2{font-size:12px;color:var(--t3);}
   .pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:260px;margin:0 auto;}
   .pin-key{background:var(--bg1);border:1px solid var(--brd);color:var(--t1);font-size:22px;font-family:'Space Mono',monospace;padding:16px 0;border-radius:14px;cursor:pointer;transition:.1s;}
-  .pin-key:hover{background:var(--bg2);border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
+  @media (hover:hover){ .pin-key:hover{background:var(--bg2);border-color:color-mix(in srgb,var(--acc) 40%,transparent);} }
   .pin-key:active{transform:scale(.95);}
   .pin-dots{display:flex;gap:14px;justify-content:center;margin:20px 0;}
   .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--t3);transition:.15s;}
@@ -569,17 +569,17 @@
   .pin-err{animation:shake .4s;}
   @keyframes shake{0%,100%{transform:none}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
   .link-btn{background:none;border:none;color:var(--t3);font-size:13px;cursor:pointer;margin-top:16px;text-decoration:underline;}
-  .link-btn:hover{color:var(--acc-txt);}
+  @media (hover:hover){ .link-btn:hover{color:var(--acc-txt);} }
 
   /* NOTIF */
   .bell{position:relative;background:var(--bg2);border:1px solid var(--brd);color:var(--t2);width:42px;height:42px;border-radius:11px;font-size:18px;cursor:pointer;transition:.15s;}
-  .bell:hover{color:var(--t1);border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
+  @media (hover:hover){ .bell:hover{color:var(--t1);border-color:color-mix(in srgb,var(--acc) 40%,transparent);} }
   .bell-count{position:absolute;top:-6px;right:-6px;background:var(--red-fill,var(--red));color:var(--on-red,#fff);font-size:11px;font-weight:700;min-width:19px;height:19px;border-radius:100px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
   .notif-panel{position:absolute;top:54px;right:0;width:340px;max-width:90vw;background:var(--bg1);border:1px solid var(--brd);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);z-index:30;overflow:hidden;}
   .notif-head{padding:15px 18px;border-bottom:1px solid var(--brd);font-weight:600;font-size:14px;}
   .notif-list{max-height:380px;overflow-y:auto;}
   .notif-it{display:flex;gap:12px;padding:13px 18px;border-bottom:1px solid var(--brd);cursor:pointer;}
-  .notif-it:hover{background:var(--bg2);}
+  @media (hover:hover){ .notif-it:hover{background:var(--bg2);} }
   .notif-it .ni-ico{font-size:18px;}
   .notif-it .ni-txt{font-size:13px;color:var(--t2);line-height:1.4;}
   .notif-it .ni-txt b{color:var(--t1);}
@@ -624,7 +624,7 @@
   .xl th{background:var(--bg2);color:var(--t2);font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;position:sticky;top:0;text-align:left;}
   .xl tbody tr{cursor:pointer;}
   .xl tbody tr:nth-child(even){background:color-mix(in srgb,var(--bg2) 50%,transparent);}
-  .xl tbody tr:hover{background:var(--bg2);}
+  @media (hover:hover){ .xl tbody tr:hover{background:var(--bg2);} }
   .xl tfoot td{background:var(--bg2);border-top:2px solid var(--acc);font-weight:800;}
   /* MESSAGERIE : avatar de groupe + mentions @ */
   .grp-ava{border-radius:50%;object-fit:cover;background:color-mix(in srgb,var(--acc) 20%,transparent);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--brd);}
@@ -632,7 +632,7 @@
   .mention-pop{position:absolute;bottom:54px;left:0;right:62px;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.55);overflow:hidden auto;z-index:20;max-height:230px;}
   .mention-item{padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px;}
   .mention-item:last-child{border-bottom:none;}
-  .mention-item:hover{background:var(--bg2);}
+  @media (hover:hover){ .mention-item:hover{background:var(--bg2);} }
   .grp-photo-pick{width:78px;height:78px;border-radius:50%;border:2px dashed var(--brd);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;background:var(--bg2);font-size:26px;color:var(--t3);}
   .grp-photo-pick img{width:100%;height:100%;object-fit:cover;}
 
@@ -847,22 +847,22 @@ table, .tbl, .list-row {
   color: var(--t1) !important;
   transition: background .25s, color .25s, border-color .25s, transform .15s;
 }
-.btn:hover{
+@media (hover:hover){ .btn:hover{
   /* --acc-fill et non --acc : le blanc sur le vert clair de la maquette ne faisait que
      2,94:1 — sur tous les boutons, le toast et les onglets sélectionnés. */
   background: var(--acc-fill) !important;
   color: var(--on-acc) !important;
   border-color: transparent !important;
-}
+} }
 .btn:active{ background: var(--acc-fill-hover) !important; transform: scale(.97); }
 .btn.ghost{ background: transparent !important; color: var(--t2) !important; }
-.btn.ghost:hover{
+@media (hover:hover){ .btn.ghost:hover{
   background: color-mix(in srgb, var(--acc) 18%, var(--bg2)) !important;
   color: var(--t1) !important; border-color: transparent !important;
-}
+} }
 
 /* ── 4) Cliquable → se remplit tant que le curseur est dessus ── */
-.kpi[onclick]:hover, .kpi.clickable:hover,
+@media (hover:hover){ .kpi[onclick]:hover, .kpi.clickable:hover,
 .card[onclick]:not(.pf-bar):hover, .card.clickable:not(.pf-bar):hover,
 .olsec summary:hover,
 .list-row:hover, tr[onclick]:hover{
@@ -871,12 +871,12 @@ table, .tbl, .list-row {
   background: var(--hover-tint) !important;
   /* Pas de `border-color` ici : le bord porte une information (la bande de statut d'une
      intervention, le liseré du verre) — la recolorer au survol l'effaçait sous le doigt. */
-}
+} }
 .nav-item{ transition: background .2s, color .2s, border-color .2s; }
-.nav-item:hover{
+@media (hover:hover){ .nav-item:hover{
   background: color-mix(in srgb, var(--acc) 18%, transparent) !important;
   color: var(--side-ink) !important;
-}
+} }
 .sidebar .nav-item.active{ background: var(--side-active) !important; color: #FFFFFF !important; }
 
 /* ── Barre latérale façon maquette : grandes pastilles espacées, texte 700,
@@ -889,7 +889,7 @@ table, .tbl, .list-row {
 .nav-item.active{ font-weight:800 !important; color:color-mix(in srgb,var(--acc) 62%,#FFFFFF) !important; }   /* sélectionné = couleur choisie (éclaircie pour rester lisible sur navy) */
 .sidebar .nav-item.active{ color:color-mix(in srgb,var(--acc) 62%,#FFFFFF) !important; }
 .nav-item .ico{ font-size:17px; filter:grayscale(1) brightness(1.6); opacity:.75; transition:filter .2s,opacity .2s; }
-.nav-item:hover .ico,.nav-item.active .ico{ filter:grayscale(1) brightness(2.4); opacity:1; }
+.nav-item.active .ico{ filter:grayscale(1) brightness(2.4); opacity:1; }@media (hover:hover){ .nav-item:hover .ico{ filter:grayscale(1) brightness(2.4); opacity:1; } }
 .nav-item .badge{ font-weight:800; }
 .nav-label{ padding:16px 14px 9px !important; }
 
@@ -899,10 +899,10 @@ table, .tbl, .list-row {
 
 /* ── 6) Coque TEAM OP : rangées SUITE + carte utilisateur (mêmes règles maquette) ── */
 .suite-row{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:12px;border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);margin-bottom:6px;transition:background .2s;}
-.suite-row:hover{background:color-mix(in srgb,var(--acc) 18%,transparent);}
+@media (hover:hover){ .suite-row:hover{background:color-mix(in srgb,var(--acc) 18%,transparent);} }
 .suite-row.on{background:color-mix(in srgb,var(--acc) 12%,transparent);}
 .suite-user{display:flex;align-items:center;gap:10px;padding:10px 8px 2px;border-top:1px solid var(--brd);margin-top:10px;cursor:pointer;border-radius:10px;}
-.suite-user:hover{background:var(--side-hover);}
+@media (hover:hover){ .suite-user:hover{background:var(--side-hover);} }
 /* ⛔ UN SÉPARATEUR QUI NE SÉPARE RIEN EST UN TROU. La rangée « SUITE » s'efface dès qu'il n'y a
    pas d'autre application à ouvrir (`suiteRefresh`) — c'est le cas de TOUTE entreprise sans
    OP MESSAGES, donc le cas ORDINAIRE, pas l'exception. Le filet et la marge de la carte
@@ -917,7 +917,7 @@ table, .tbl, .list-row {
 /* ── SUITE compacte : l'autre app apparaît au survol (ou au clic sur mobile) ── */
 .suite-mini{padding:6px 9px !important;margin-bottom:4px !important;}
 #suite-fly{display:none;}
-#suite-box:hover #suite-fly, #suite-box.open #suite-fly{display:block;animation:fadein .15s ease;}
+#suite-box.open #suite-fly{display:block;animation:fadein .15s ease;}@media (hover:hover){ #suite-box:hover #suite-fly{display:block;animation:fadein .15s ease;} }
 @keyframes fadein{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
 /* ── Écran partagé : OP MESSAGES dans la même fenêtre (multitâche) ── */
 #splitpane{flex:0 0 42%;min-width:340px;max-width:600px;border-left:1px solid var(--brd);display:flex;flex-direction:column;background:var(--bg);}
@@ -930,13 +930,13 @@ table, .tbl, .list-row {
 .mdp-wrap{position:relative;display:block;flex:1 1 auto;min-width:0}
 .mdp-wrap>input{padding-right:44px!important;width:100%;box-sizing:border-box}
 .mdp-oeil{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;padding:0;margin:0;background:transparent;color:var(--oeil);border-radius:8px;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,color .12s ease,transform .28s cubic-bezier(.2,0,0,1)}
-.mdp-oeil:hover{background:var(--oeil-h);color:var(--oeil-t)}
+@media (hover:hover){ .mdp-oeil:hover{background:var(--oeil-h);color:var(--oeil-t)} }
 .mdp-oeil:active{transform:translateY(-50%) scale(.92)}
 .mdp-oeil:focus-visible{outline:none;box-shadow:0 0 0 3px var(--oeil-anneau)}
 .mdp-oeil[aria-pressed="true"]{color:var(--oeil-on)}
 /* Le remplissage automatique de Safari peignait les champs en jaune sur la carte sombre :
    on repeint par-dessous avec le fond du champ, et l'encre du thème. */
-input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,textarea:-webkit-autofill{-webkit-text-fill-color:var(--oeil-t);caret-color:var(--oeil-t);-webkit-box-shadow:0 0 0 1000px var(--champ-fond) inset;box-shadow:0 0 0 1000px var(--champ-fond) inset;transition:background-color 9999s ease-out 0s}
+input:-webkit-autofill,input:-webkit-autofill:focus,textarea:-webkit-autofill{-webkit-text-fill-color:var(--oeil-t);caret-color:var(--oeil-t);-webkit-box-shadow:0 0 0 1000px var(--champ-fond) inset;box-shadow:0 0 0 1000px var(--champ-fond) inset;transition:background-color 9999s ease-out 0s}@media (hover:hover){ input:-webkit-autofill:hover{-webkit-text-fill-color:var(--oeil-t);caret-color:var(--oeil-t);-webkit-box-shadow:0 0 0 1000px var(--champ-fond) inset;box-shadow:0 0 0 1000px var(--champ-fond) inset;transition:background-color 9999s ease-out 0s} }
     /* Barre de reprise du multitâche : visible sans voler la vedette au contenu. */
     .multi-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;
       border-radius:12px;background:var(--bg2);border:1px solid var(--brd);font-size:13.5px;color:var(--t2)}
@@ -952,7 +952,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .plm-lbl{ font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--t3); }
 .plm-jours{ display:flex; gap:6px; flex-wrap:wrap; }
 .plm-j{ font-size:12px; font-weight:800; padding:6px 12px; border-radius:100px; border:1.5px solid var(--brd2); color:var(--t2); background:var(--card2); cursor:pointer; white-space:nowrap; }
-.plm-j:hover{ color:var(--t1); }
+@media (hover:hover){ .plm-j:hover{ color:var(--t1); } }
 .plm-j.on{ background:color-mix(in srgb,var(--acc) 18%,transparent); border-color:color-mix(in srgb,var(--acc) 60%,transparent); color:var(--t1); }
 .plm-cnt{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-left:auto; }
 .plm-c{ font-size:11px; font-weight:800; padding:4px 11px; border-radius:100px; border:1px solid transparent; white-space:nowrap; }
@@ -967,7 +967,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .plm-mh .btn{ flex:1; justify-content:center; }
 .plm-row{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--brd); font-size:13px; font-weight:700; cursor:pointer; }
 .plm-row:last-child{ border-bottom:none; }
-.plm-row:hover{ background:color-mix(in srgb,var(--acc) 7%,transparent); }
+@media (hover:hover){ .plm-row:hover{ background:color-mix(in srgb,var(--acc) 7%,transparent); } }
 .plm-row.on{ color:var(--t1); }
 .plm-row:not(.on){ opacity:.6; }
 .plm-row .cb{ width:20px; height:20px; border-radius:6px; border:2px solid var(--brd2); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; flex-shrink:0; }
@@ -1010,7 +1010,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .plm-col.drop{ background:color-mix(in srgb,var(--acc) 10%,transparent); }
 .plm-cell{ height:46px; border-bottom:1px solid color-mix(in srgb,var(--brd) 70%,transparent); }
 .plm-card{ position:absolute; left:4px; right:4px; background:var(--card2); border:1px solid var(--brd2); border-left:4px solid var(--acc); border-radius:9px; padding:4px 8px; overflow:hidden; cursor:pointer; box-shadow:0 2px 7px rgba(0,0,0,.32); }
-.plm-card:hover{ border-color:var(--acc); }
+@media (hover:hover){ .plm-card:hover{ border-color:var(--acc); } }
 .plm-card b{ font-size:11px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .bdg{ display:inline-block; font-size:8.5px; font-weight:800; padding:1px 5px; border-radius:4px; margin-left:5px;
   background:var(--card2); border:1px solid var(--brd2); color:var(--t3); vertical-align:1px; letter-spacing:.02em; }
@@ -1074,11 +1074,11 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .pjs-rac{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:11px; }
 .pjs-rac span{ font-size:11px; font-weight:700; padding:6px 11px; border-radius:20px; cursor:pointer;
   background:var(--card2); border:1px solid var(--brd); color:var(--t2); }
-.pjs-rac span:hover{ border-color:var(--acc); color:var(--acc-txt); }
+@media (hover:hover){ .pjs-rac span:hover{ border-color:var(--acc); color:var(--acc-txt); } }
 .pjs-grid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; }
 .pjs-grid button{ display:flex; align-items:center; gap:9px; background:var(--card2); border:1px solid var(--brd);
   border-radius:10px; padding:10px 12px; font:inherit; font-size:13px; font-weight:600; color:var(--t2); cursor:pointer; text-align:left; }
-.pjs-grid button:hover{ border-color:var(--brd2); color:var(--t1); }
+@media (hover:hover){ .pjs-grid button:hover{ border-color:var(--brd2); color:var(--t1); } }
 .pjs-grid button.on{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 12%,transparent); color:var(--t1); }
 .pjs-grid button .ck{ width:17px; height:17px; border-radius:5px; border:1.5px solid var(--brd2); flex:none;
   display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--acc-txt); }
@@ -1088,7 +1088,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .pf-disp{ display:inline-flex; gap:3px; background:var(--card2); border:1px solid var(--brd); border-radius:10px; padding:3px; flex:none; }
 .pf-disp button{ display:flex; align-items:center; gap:7px; background:transparent; border:none; color:var(--t2);
   font:inherit; font-size:11.5px; font-weight:700; padding:6px 10px; border-radius:7px; cursor:pointer; white-space:nowrap; }
-.pf-disp button:hover{ color:var(--t1); }
+@media (hover:hover){ .pf-disp button:hover{ color:var(--t1); } }
 .pf-disp button.on{ background:var(--acc); color:var(--on-acc); }
 .pf-disp .di{ width:22px; height:15px; border-radius:3px; border:1.5px solid currentColor; display:flex; gap:1.5px; padding:1.5px; flex:none; }
 .pf-disp .di s{ background:currentColor; opacity:.45; text-decoration:none; border-radius:1px; }
@@ -1107,7 +1107,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .plm-leg .lg i{ width:11px; height:11px; border-radius:50%; display:inline-block; }
 .plm-leg .lg.sub{ color:var(--t3); }
 .plm-leg .lg.clic{ cursor:pointer; border-radius:100px; padding:2px 9px; border:1px solid transparent; }
-.plm-leg .lg.clic:hover{ border-color:var(--brd2); background:var(--card2); }
+@media (hover:hover){ .plm-leg .lg.clic:hover{ border-color:var(--brd2); background:var(--card2); } }
 .plm-leg .lg.vif{ background:var(--card2); border-color:var(--acc); color:var(--t1); font-weight:700; }
 .plm-leg .lg.eteint{ opacity:.38; }
 .plm-leg .lg-tout{ cursor:pointer; font-weight:700; color:var(--org); border:1px solid color-mix(in srgb,var(--org) 45%,transparent); border-radius:100px; padding:2px 10px; }
@@ -1120,15 +1120,15 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .plg-techleg .tl b{ color:var(--t3); font-weight:700; }
 .plg-techleg .tl.sub{ background:transparent; border:none; color:var(--t3); padding:0; }
 .det-back{ display:inline-flex; align-items:center; gap:5px; font-weight:700; flex-shrink:0; padding:5px 12px 5px 10px; }
-.det-back:hover{ color:var(--acc-txt); border-color:color-mix(in srgb,var(--acc) 45%,transparent); background:color-mix(in srgb,var(--acc) 10%,transparent); }
+@media (hover:hover){ .det-back:hover{ color:var(--acc-txt); border-color:color-mix(in srgb,var(--acc) 45%,transparent); background:color-mix(in srgb,var(--acc) 10%,transparent); } }
 @media print{ .det-back{ display:none !important } }
 .tb-back{ width:auto !important; padding:0 12px 0 9px; gap:5px; display:inline-flex; align-items:center; font-weight:700; font-size:12.5px; white-space:nowrap; flex-shrink:0; }
 .tb-back[data-l]::after{ content:attr(data-l); }
-.tb-back:hover{ color:var(--acc-txt); border-color:color-mix(in srgb,var(--acc) 45%,transparent); }
+@media (hover:hover){ .tb-back:hover{ color:var(--acc-txt); border-color:color-mix(in srgb,var(--acc) 45%,transparent); } }
 @media(max-width:900px){ .tb-back[data-l]::after{ display:none } .tb-back{ padding:0; width:36px !important; justify-content:center } }
 @media print{ .tb-back{ display:none !important } }
 .ph-back{ margin:0 0 8px; display:inline-flex; align-items:center; gap:5px; font-weight:700; }
-.ph-back:hover{ background:color-mix(in srgb,var(--acc) 12%,transparent); border-color:color-mix(in srgb,var(--acc) 45%,transparent); color:var(--acc-txt); }
+@media (hover:hover){ .ph-back:hover{ background:color-mix(in srgb,var(--acc) 12%,transparent); border-color:color-mix(in srgb,var(--acc) 45%,transparent); color:var(--acc-txt); } }
 @media print{ .ph-back{ display:none } }
 /* ── barre de filtres du planning ── */
 .pf-bar{ padding:10px 11px; margin-bottom:10px; position:relative; z-index:20; }
@@ -1140,18 +1140,18 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .plm-j.cal .n{ background:var(--acc); color:var(--on-acc); border-radius:100px; padding:0 6px; font-size:10px; }
 .plm-j.cal.ouv{ box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 35%,transparent); }
 .plm-j.on b{ cursor:pointer; opacity:.65; margin-left:3px; }
-.plm-j.on b:hover{ opacity:1; }
+@media (hover:hover){ .plm-j.on b:hover{ opacity:1; } }
 .pcal{ position:absolute; top:calc(100% + 8px); right:0; width:min(300px,calc(100vw - 26px)); background:var(--card); border:1px solid var(--brd2); border-radius:14px; box-shadow:0 20px 48px rgba(0,0,0,.5); padding:11px; z-index:28; }
 .pcal-h{ display:flex; align-items:center; gap:8px; margin-bottom:9px; }
 .pcal-h b{ flex:1; text-align:center; font-size:12.5px; text-transform:capitalize; }
 .pcal-h span{ width:26px; height:26px; border-radius:8px; border:1px solid var(--brd); display:flex; align-items:center; justify-content:center; color:var(--t2); cursor:pointer; }
-.pcal-h span:hover{ border-color:var(--acc); color:var(--acc-txt); }
+@media (hover:hover){ .pcal-h span:hover{ border-color:var(--acc); color:var(--acc-txt); } }
 .pcal-wd{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:3px; }
 .pcal-wd span{ text-align:center; font-size:9px; font-weight:800; color:var(--t3); }
 .pcal-gd{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
 .pcal-d{ height:36px; border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:12.5px; font-weight:700; color:var(--t1); border:1px solid transparent; cursor:pointer; }
 .pcal-d small{ font-size:8px; font-weight:800; color:var(--t3); line-height:1; }
-.pcal-d:hover{ background:var(--card2); }
+@media (hover:hover){ .pcal-d:hover{ background:var(--card2); } }
 .pcal-d.hors{ opacity:.38; }
 .pcal-d.we{ color:var(--t3); }
 .pcal-d.auj{ border-color:var(--acc); }
@@ -1159,7 +1159,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .pcal-d.on small{ color:rgba(255,255,255,.85); }
 .pcal-rap{ display:flex; gap:5px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px solid var(--brd); }
 .pcal-rap span{ font-size:10.5px; font-weight:700; border:1px solid var(--brd); border-radius:100px; padding:4px 10px; color:var(--t2); cursor:pointer; }
-.pcal-rap span:hover{ border-color:var(--acc); color:var(--acc-txt); }
+@media (hover:hover){ .pcal-rap span:hover{ border-color:var(--acc); color:var(--acc-txt); } }
 .pcal-fin{ display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid var(--brd); }
 .pcal-fin .k{ font-size:11px; color:var(--t3); flex:1; }
 .pcal-fin .b{ font-size:11.5px; font-weight:700; border-radius:9px; padding:6px 14px; background:var(--acc); color:var(--on-acc); cursor:pointer; }
@@ -1170,7 +1170,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .dep-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
 .dep-rap{ display:flex; gap:5px; flex-wrap:wrap; margin-bottom:11px; }
 .dep-rap span{ font-size:11px; font-weight:700; border:1px solid var(--brd); border-radius:100px; padding:4px 11px; color:var(--t2); cursor:pointer; }
-.dep-rap span:hover{ border-color:var(--acc); color:var(--acc-txt); }
+@media (hover:hover){ .dep-rap span:hover{ border-color:var(--acc); color:var(--acc-txt); } }
 .dep-info{ border-radius:9px; padding:8px 11px; font-size:12px; font-weight:700; margin-bottom:9px; line-height:1.45; }
 .dep-info.ok{ background:color-mix(in srgb,var(--blue) 12%,transparent); border:1px solid color-mix(in srgb,var(--blue) 34%,transparent); color:var(--blue); }
 .dep-info.wr{ background:color-mix(in srgb,var(--org) 13%,transparent); border:1px solid color-mix(in srgb,var(--org) 38%,transparent); color:var(--org); }
@@ -1186,7 +1186,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
    la seule partie d'un toast qui soit une action. */
 .toast{ pointer-events:none; }
 .tst-an{ display:inline-block; margin-left:10px; padding:2px 10px; border-radius:100px; border:1px solid rgba(255,255,255,.45); font-weight:800; cursor:pointer; pointer-events:auto; }
-.tst-an:hover{ background:rgba(255,255,255,.16); }
+@media (hover:hover){ .tst-an:hover{ background:rgba(255,255,255,.16); } }
 /* plusieurs plannings empilés */
 .plg-pl{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 11px; margin-bottom:9px; }
 .plg-pl .lb{ font-size:9.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--t3); }
@@ -1199,7 +1199,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .seg span,.seg button{ font-size:11.5px; font-weight:700; color:var(--t2); padding:4px 11px;
   border-radius:7px; cursor:pointer; background:none; border:0; font-family:inherit;
   line-height:1.2; -webkit-appearance:none; appearance:none; }
-.seg span:hover,.seg button:hover{ color:var(--acc-txt); }
+@media (hover:hover){ .seg span:hover,.seg button:hover{ color:var(--acc-txt); } }
 .seg span.on,.seg button.on{ background:var(--card); color:var(--acc-txt); box-shadow:0 1px 3px rgba(0,0,0,.2); }
 .plg-pl .brid{ font-size:10.5px; font-weight:700; color:var(--org); border:1px dashed color-mix(in srgb,var(--org) 45%,transparent); border-radius:100px; padding:2px 9px; }
 .plg-pl .sp{ flex:1; }
@@ -1213,7 +1213,7 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .fen-reste .qui{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .fen-reste .sp{ flex:1; }
 .fen-reste .lk{ color:var(--acc-txt); font-weight:700; cursor:pointer; white-space:nowrap; }
-.fen-reste .lk:hover{ text-decoration:underline; }
+@media (hover:hover){ .fen-reste .lk:hover{ text-decoration:underline; } }
 .plt-bh{ display:flex; align-items:center; gap:8px; padding:7px 11px; background:color-mix(in srgb,var(--acc) 9%,transparent); border-bottom:1px solid var(--brd); font-size:11px; font-weight:800; color:var(--acc-txt); flex-wrap:wrap; }
 .plt-bh .n{ background:var(--acc); color:var(--on-acc); border-radius:100px; padding:1px 8px; font-size:9.5px; flex-shrink:0; }
 .plt-bh .qui{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1229,13 +1229,13 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .fen-h .n{ width:22px; height:22px; border-radius:7px; background:var(--fc); color:#fff; font-size:11px; font-weight:800;
   display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 2px 7px rgba(0,0,0,.3); }
 .fen-h .ti{ font-size:12.5px; font-weight:800; cursor:pointer; border-bottom:1px dashed transparent; }
-.fen-h .ti:hover{ border-bottom-color:var(--brd2); }
+@media (hover:hover){ .fen-h .ti:hover{ border-bottom-color:var(--brd2); } }
 .fen-h .sp{ flex:1; }
 .fen-h .tot{ font-size:11px; color:var(--t2); white-space:nowrap; }
 .fen-h .ic{ width:25px; height:25px; border-radius:7px; background:var(--card); border:1px solid var(--brd); color:var(--t2);
   font-size:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; }
-.fen-h .ic:hover{ color:var(--t1); border-color:var(--brd2); }
-.fen-h .ic.dg:hover{ color:var(--red); border-color:var(--red); }
+@media (hover:hover){ .fen-h .ic:hover{ color:var(--t1); border-color:var(--brd2); } }
+@media (hover:hover){ .fen-h .ic.dg:hover{ color:var(--red); border-color:var(--red); } }
 .fen-ch{ font-size:10px; font-weight:800; padding:3px 9px; border-radius:20px; white-space:nowrap; }
 .fen-ch.ok{ background:color-mix(in srgb,var(--acc) 16%,transparent); color:var(--acc-txt); border:1px solid color-mix(in srgb,var(--acc) 45%,transparent); }
 .fen-ch.or{ background:color-mix(in srgb,var(--org) 16%,transparent); color:var(--org); border:1px solid color-mix(in srgb,var(--org) 48%,transparent); }
@@ -1247,25 +1247,25 @@ body.plan-plein .plm-split.carte-haut #plm-map{ height:calc(100vh - 128px); heig
 .fen-tch .nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .fen-tch .x{ width:16px; height:16px; border-radius:50%; background:rgba(0,0,0,.28); color:var(--t2); font-size:10px;
   display:flex; align-items:center; justify-content:center; cursor:pointer; flex:none; }
-.fen-tch .x:hover{ background:var(--red-fill,var(--red)); color:var(--on-red,#fff); }
+@media (hover:hover){ .fen-tch .x:hover{ background:var(--red-fill,var(--red)); color:var(--on-red,#fff); } }
 .fen-add{ display:inline-flex; align-items:center; gap:5px; border:1px dashed var(--brd2); border-radius:20px; padding:4px 11px;
   font-size:11.5px; font-weight:700; color:var(--t2); cursor:pointer; background:transparent; }
-.fen-add:hover{ color:var(--acc-txt); border-color:color-mix(in srgb,var(--acc) 55%,transparent); }
+@media (hover:hover){ .fen-add:hover{ color:var(--acc-txt); border-color:color-mix(in srgb,var(--acc) 55%,transparent); } }
 .fen-vide{ padding:14px 12px; font-size:12px; color:var(--t3); text-align:center; }
 .pf-row{ display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
 /* ══ La barre du planning : icônes dessinées et bulle d'aide au survol ══ */
 svg.ic{ width:15px; height:15px; flex:none; display:block; }
 /* la bulle d'aide */
 [data-tip]{ position:relative; }
-[data-tip]:hover::after{ content:attr(data-tip); position:absolute; left:50%; top:calc(100% + 7px);
+@media (hover:hover){ [data-tip]:hover::after{ content:attr(data-tip); position:absolute; left:50%; top:calc(100% + 7px);
   transform:translateX(-50%); background:#0A1526; color:#E8EEF7; border:1px solid var(--brd2);
   border-radius:9px; padding:7px 11px; font-size:11.5px; font-weight:600; line-height:1.45;
   white-space:normal; width:max-content; max-width:250px; text-align:center; z-index:24;
   box-shadow:0 10px 26px rgba(0,0,0,.5); pointer-events:none;
-  animation:tipIn .12s ease-out .45s both; }
-[data-tip]:hover::before{ content:''; position:absolute; left:50%; top:calc(100% + 2px);
+  animation:tipIn .12s ease-out .45s both; } }
+@media (hover:hover){ [data-tip]:hover::before{ content:''; position:absolute; left:50%; top:calc(100% + 2px);
   transform:translateX(-50%); border:5px solid transparent; border-bottom-color:var(--brd2);
-  z-index:24; pointer-events:none; animation:tipIn .12s ease-out .45s both; }
+  z-index:24; pointer-events:none; animation:tipIn .12s ease-out .45s both; } }
 @keyframes tipIn{ from{ opacity:0; transform:translateX(-50%) translateY(-3px); } to{ opacity:1; } }
 /* le sélecteur de vue */
 /* la bande des jours de la vue Jour : une seule ligne, légère */
@@ -1273,10 +1273,10 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
   background:var(--card); border:1px solid var(--brd); border-radius:11px; flex-wrap:wrap; }
 .pld-nav u{ text-decoration:none; width:26px; height:26px; border-radius:7px; display:inline-flex;
   align-items:center; justify-content:center; color:var(--t3); font-size:13px; font-weight:800; cursor:pointer; flex:none; }
-.pld-nav u:hover{ background:var(--card2); color:var(--acc-txt); }
+@media (hover:hover){ .pld-nav u:hover{ background:var(--card2); color:var(--acc-txt); } }
 .pld-j{ display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:8px;
   font-size:11.8px; color:var(--t2); cursor:pointer; white-space:nowrap; }
-.pld-j:hover{ background:var(--card2); color:var(--t1); }
+@media (hover:hover){ .pld-j:hover{ background:var(--card2); color:var(--t1); } }
 .pld-j b{ font-weight:700; }
 .pld-j i{ font-style:normal; font-size:9.5px; font-weight:800; background:var(--brd); color:var(--t2);
   border-radius:100px; padding:1px 6px; }
@@ -1287,24 +1287,24 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pld-sp{ flex:1; min-width:8px; }
 .pld-note,.pld-lk{ font-size:11.3px; font-weight:700; color:var(--t3); cursor:pointer; padding:5px 10px;
   border-radius:8px; white-space:nowrap; }
-.pld-note:hover,.pld-lk:hover{ background:var(--card2); color:var(--acc-txt); }
+@media (hover:hover){ .pld-note:hover,.pld-lk:hover{ background:var(--card2); color:var(--acc-txt); } }
 .pld-note.on{ color:var(--org); }
 .pf-vues{ display:inline-flex; gap:3px; background:var(--card2); border:1px solid var(--brd); border-radius:10px; padding:3px; flex:none; }
 .pf-vues span{ display:inline-flex; align-items:center; gap:6px; font-size:11.8px; font-weight:700;
   color:var(--t2); padding:6px 11px; border-radius:7px; cursor:pointer; white-space:nowrap; }
-.pf-vues span:hover{ color:var(--t1); }
+@media (hover:hover){ .pf-vues span:hover{ color:var(--t1); } }
 .pf-vues span.on{ background:var(--acc); color:var(--on-acc); }
 /* la navigation dans le temps */
 .pf-nav{ display:inline-flex; align-items:center; gap:4px; background:var(--card2); border:1px solid var(--brd);
   border-radius:10px; padding:3px 4px; flex:none; }
 .pf-nav u{ text-decoration:none; width:26px; height:26px; border-radius:7px; display:inline-flex;
   align-items:center; justify-content:center; color:var(--t2); font-size:15px; font-weight:800; cursor:pointer; }
-.pf-nav u:hover{ background:var(--card); color:var(--acc-txt); }
+@media (hover:hover){ .pf-nav u:hover{ background:var(--card); color:var(--acc-txt); } }
 .pf-nav b{ font-size:12.3px; font-weight:800; padding:0 6px; white-space:nowrap; }
 .pf-nav b::first-letter{ text-transform:uppercase; }
 .pf-nav .auj{ display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px;
   border-radius:7px; color:var(--t3); cursor:pointer; }
-.pf-nav .auj:hover{ background:var(--card); color:var(--acc-txt); }
+@media (hover:hover){ .pf-nav .auj:hover{ background:var(--card); color:var(--acc-txt); } }
 /* la recherche */
 .pf-inw{ display:inline-flex; align-items:center; gap:7px; background:var(--card2); border:1px solid var(--brd2);
   border-radius:10px; padding:0 11px; color:var(--t3); flex:1 1 140px; min-width:120px; max-width:230px; }
@@ -1314,7 +1314,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-ib{ display:inline-flex; align-items:center; justify-content:center; gap:4px; width:34px; height:34px;
   border-radius:10px; border:1px solid var(--brd); background:var(--card2); color:var(--t2);
   cursor:pointer; font-family:inherit; position:relative; flex:none; }
-.pf-ib:hover{ border-color:color-mix(in srgb,var(--acc) 45%,transparent); color:var(--t1); }
+@media (hover:hover){ .pf-ib:hover{ border-color:color-mix(in srgb,var(--acc) 45%,transparent); color:var(--t1); } }
 .pf-ib.on{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 14%,transparent); color:var(--acc-txt); }
 .pf-ib .n{ position:absolute; top:-5px; right:-5px; background:var(--acc); color:var(--on-acc); font-size:9px;
   font-weight:900; border-radius:100px; padding:1px 5px; }
@@ -1333,17 +1333,17 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-seg2.mini span{ font-size:11.5px; padding:5px 4px; }
 .pf-mrow{ display:flex; gap:7px; flex-wrap:wrap; padding:2px 6px 6px; }
 .pf-lk{ font-size:11.3px; font-weight:700; color:var(--acc-txt); cursor:pointer; }
-.pf-lk:hover{ text-decoration:underline; }
+@media (hover:hover){ .pf-lk:hover{ text-decoration:underline; } }
 .pf-note{ font-size:10.8px; color:var(--t3); line-height:1.55; padding:2px 7px 7px; }
 .pf-jrs{ display:flex; gap:5px; flex-wrap:wrap; padding:2px 6px 8px; }
 .pf-jr{ font-size:11.3px; font-weight:700; background:color-mix(in srgb,var(--acc) 14%,transparent);
   color:var(--acc-txt); border-radius:20px; padding:5px 11px; display:inline-flex; align-items:center; gap:6px; }
 .pf-jr b{ cursor:pointer; opacity:.7; font-weight:800; }
-.pf-jr b:hover{ opacity:1; }
+@media (hover:hover){ .pf-jr b:hover{ opacity:1; } }
 .pf-semnav{ display:flex; align-items:center; gap:6px; padding:3px 4px 9px; border-bottom:1px solid var(--brd); margin-bottom:6px; }
 .pf-semnav u{ text-decoration:none; width:26px; height:26px; border-radius:7px; display:inline-flex;
   align-items:center; justify-content:center; color:var(--t2); font-size:14px; font-weight:800; cursor:pointer; flex:none; }
-.pf-semnav u:hover{ background:var(--card2); color:var(--acc-txt); }
+@media (hover:hover){ .pf-semnav u:hover{ background:var(--card2); color:var(--acc-txt); } }
 .pf-semnav b{ flex:1; text-align:center; font-size:12px; font-weight:800; }
 @media(max-width:760px){
   .pf-vues span b{ display:none; } .pf-vues span{ padding:6px 9px; }
@@ -1352,7 +1352,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-in{ flex:1; min-width:150px; background:var(--card2); border:1px solid var(--brd2); border-radius:10px; padding:8px 12px; color:var(--t1); font-family:inherit; font-size:12.5px; }
 .pf-dd{ position:relative; display:inline-flex; }
 .pf-b{ font-size:12.5px; font-weight:700; border-radius:10px; padding:8px 13px; border:1px solid var(--brd); background:var(--card2); color:var(--t1); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer; font-family:inherit; }
-.pf-b:hover{ border-color:color-mix(in srgb,var(--acc) 45%,transparent); }
+@media (hover:hover){ .pf-b:hover{ border-color:color-mix(in srgb,var(--acc) 45%,transparent); } }
 .pf-b.act{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 14%,transparent); color:var(--acc-txt); }
 .pf-b .n{ background:var(--acc); color:var(--on-acc); font-size:10px; font-weight:900; border-radius:100px; padding:1px 7px; }
 .pf-b .ar{ color:var(--t3); font-size:10px; }
@@ -1368,9 +1368,9 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 }
 .pf-h{ display:flex; gap:6px; padding:3px 5px 7px; border-bottom:1px solid var(--brd); margin-bottom:5px; }
 .pf-h span{ font-size:11px; font-weight:700; border-radius:7px; padding:4px 9px; border:1px solid var(--brd); color:var(--t2); cursor:pointer; }
-.pf-h span:hover{ border-color:var(--acc); color:var(--acc-txt); }
+@media (hover:hover){ .pf-h span:hover{ border-color:var(--acc); color:var(--acc-txt); } }
 .pf-opt{ display:flex; align-items:center; gap:9px; padding:7px 9px; border-radius:9px; font-size:12.5px; color:var(--t1); cursor:pointer; }
-.pf-opt:hover{ background:var(--card2); }
+@media (hover:hover){ .pf-opt:hover{ background:var(--card2); } }
 .pf-opt.on{ background:color-mix(in srgb,var(--acc) 13%,transparent); }
 .pf-opt.vide{ opacity:.5; }
 .pf-opt .ck{ width:16px; height:16px; border-radius:5px; border:1.5px solid var(--brd2); display:flex; align-items:center; justify-content:center; font-size:10px; color:#fff; flex-shrink:0; }
@@ -1411,7 +1411,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .pf-chip i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
 .pf-chip i.car{ border-radius:3px; }
 .pf-chip b{ cursor:pointer; opacity:.7; font-weight:900; }
-.pf-chip b:hover{ opacity:1; }
+@media (hover:hover){ .pf-chip b:hover{ opacity:1; } }
 .pf-chip.sub{ background:var(--card2); border-color:var(--brd); color:var(--t2); }
 .pf-raz{ font-size:11.5px; font-weight:700; color:var(--org); border:1px dashed color-mix(in srgb,var(--org) 50%,transparent); border-radius:100px; padding:4px 11px; cursor:pointer; }
 .pf-sp{ flex:1; }
@@ -1427,10 +1427,10 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 /* en-tête de colonne : couleur de la personne, cliquable */
 .plg-tete{ position:relative; }
 .plg-tete.clic{ cursor:pointer; border-radius:10px 10px 0 0; transition:background .12s; }
-.plg-tete.clic:hover{ background:color-mix(in srgb,var(--ct) 14%,transparent); box-shadow:inset 0 -3px 0 var(--ct); }
+@media (hover:hover){ .plg-tete.clic:hover{ background:color-mix(in srgb,var(--ct) 14%,transparent); box-shadow:inset 0 -3px 0 var(--ct); } }
 .plg-go{ display:none; position:absolute; left:50%; transform:translateX(-50%); bottom:-11px; z-index:8;
   background:var(--ct); color:#fff; font-size:9.5px; font-weight:800; padding:2px 9px; border-radius:100px; white-space:nowrap; box-shadow:0 3px 10px rgba(0,0,0,.35); }
-.plg-tete.clic:hover .plg-go{ display:block; }
+@media (hover:hover){ .plg-tete.clic:hover .plg-go{ display:block; } }
 .plg-tech.plg-tete .plg-go{ bottom:auto; top:50%; left:auto; right:6px; transform:translateY(-50%); padding:1px 6px; }
 /* ligne d'heure pendant le glisser */
 .plt-blk .ci,.plm-card .ci,.plg-mini .ci{ display:block; font-size:9.5px; line-height:1.35; color:var(--t3); font-weight:600;
@@ -1477,7 +1477,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 /* Par jour / Par personne */
 .plm-grp{ display:inline-flex; gap:3px; background:var(--card2); border:1px solid var(--brd); border-radius:8px; padding:2px; flex:none; }
 .plm-grp span{ font-size:10.5px; font-weight:700; color:var(--t2); padding:4px 9px; border-radius:6px; cursor:pointer; white-space:nowrap; }
-.plm-grp span:hover{ color:var(--t1); }
+@media (hover:hover){ .plm-grp span:hover{ color:var(--t1); } }
 .plm-grp span.on{ background:var(--acc); color:var(--on-acc); }
 /* bande d'une personne quand on regroupe par personne */
 .plm-bande.pers{ color:var(--cb); background:color-mix(in srgb,var(--cb) 10%,transparent);
@@ -1488,7 +1488,7 @@ svg.ic{ width:15px; height:15px; flex:none; display:block; }
 .plm-fab{ position:fixed; right:22px; bottom:22px; z-index:900; border:none; cursor:pointer;
   background:var(--acc); color:var(--on-acc); font-size:12.5px; font-weight:800; font-family:inherit;
   padding:11px 18px; border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,.4); }
-.plm-fab:hover{ filter:brightness(1.12); }
+@media (hover:hover){ .plm-fab:hover{ filter:brightness(1.12); } }
 body.plan-plein .plm-fab{ bottom:16px; }
 .plg-fantome{ opacity:.3 !important; }
 .plg-typechips .sw.car{ border-radius:3px; }
@@ -1502,7 +1502,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .opt-bar .tot b{ color:var(--acc-txt); }
 .opt-who{ display:inline-flex; align-items:center; gap:6px; border-radius:20px; padding:4px 10px 4px 4px; font-size:11.5px; font-weight:700; cursor:pointer;
   background:color-mix(in srgb,var(--wc) 18%,transparent); border:1px solid color-mix(in srgb,var(--wc) 58%,transparent); color:var(--t1); }
-.opt-who:hover{ background:color-mix(in srgb,var(--wc) 30%,transparent); }
+@media (hover:hover){ .opt-who:hover{ background:color-mix(in srgb,var(--wc) 30%,transparent); } }
 .opt-who .av{ width:20px; height:20px; border-radius:50%; background:var(--wc); color:#fff; font-size:9px; font-weight:800;
   display:flex; align-items:center; justify-content:center; flex:none; }
 .opt-who .g{ font-size:10px; font-weight:800; color:var(--acc-txt); }
@@ -1514,10 +1514,10 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .opt-all.off{ opacity:.6; }
 .opt-undo{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:5px 12px; border-radius:20px; cursor:pointer;
   background:transparent; border:1px dashed var(--brd2); color:var(--t2); }
-.opt-undo:hover{ color:var(--t1); border-color:var(--t3); }
+@media (hover:hover){ .opt-undo:hover{ color:var(--t1); border-color:var(--t3); } }
 .opt-rec{ border:1px solid var(--brd2); border-radius:12px; overflow:hidden; }
 .opt-rec .li{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--brd); font-size:12.5px; cursor:pointer; }
-.opt-rec .li:hover{ background:var(--card2); }
+@media (hover:hover){ .opt-rec .li:hover{ background:var(--card2); } }
 .opt-rec .li .av{ width:22px; height:22px; border-radius:50%; background:var(--wc); color:#fff; font-size:9px; font-weight:800;
   display:flex; align-items:center; justify-content:center; flex:none; }
 .opt-rec .li .gain{ margin-left:auto; font-size:11.5px; font-weight:800; color:var(--acc-txt); white-space:nowrap; }
@@ -1553,7 +1553,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .plm-tt:first-child{ margin-top:0; }
 .plm-tt i{ width:9px; height:9px; border-radius:50%; display:inline-block; flex-shrink:0; }
 .plm-tr{ display:flex; align-items:center; gap:8px; padding:6px 4px; border-bottom:1px solid var(--brd); font-size:12px; cursor:pointer; border-radius:8px; }
-.plm-tr:hover{ background:color-mix(in srgb,var(--acc) 10%,transparent); }
+@media (hover:hover){ .plm-tr:hover{ background:color-mix(in srgb,var(--acc) 10%,transparent); } }
 .plm-tr .h{ font-family:ui-monospace,monospace; font-size:11px; color:var(--t3); width:38px; flex-shrink:0; }
 .plm-tr .n{ width:19px; height:19px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:900; color:#fff; flex-shrink:0; }
 .plm-tr .tx{ flex:1; min-width:0; }
@@ -1566,7 +1566,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .plm-jauge{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:10.5px; color:var(--t3); background:var(--card2); border:1px solid var(--brd); border-radius:9px; padding:5px 9px; margin:0 0 7px; }
 .plm-jauge b{ color:var(--acc-txt); margin-left:auto; font-size:11px; }
 .plm-opt{ margin-left:auto; font-size:9.5px; font-weight:800; letter-spacing:0; text-transform:none; color:#fff; background:linear-gradient(135deg,var(--org),#c07f1c); border-radius:100px; padding:3px 9px; cursor:pointer; box-shadow:0 2px 7px rgba(232,163,61,.4); }
-.plm-opt:hover{ filter:brightness(1.1); }
+@media (hover:hover){ .plm-opt:hover{ filter:brightness(1.1); } }
 /* alertes de retard dans la liste des tournees */
 .plm-tr .al{ font-size:9px; font-weight:800; border-radius:100px; padding:2px 7px; white-space:nowrap; cursor:pointer; background:color-mix(in srgb,var(--org) 20%,transparent); color:var(--org); border:1px solid color-mix(in srgb,var(--org) 45%,transparent); }
 .plm-tr .al.tard{ background:color-mix(in srgb,var(--red) 20%,transparent); color:var(--red); border-color:color-mix(in srgb,var(--red) 50%,transparent); }
@@ -1596,7 +1596,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 /* choix du metier dans les parametres */
 .met-cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:10px; }
 .met-card{ background:var(--card2); border:1.5px solid var(--brd); border-radius:13px; padding:13px; cursor:pointer; display:flex; flex-direction:column; gap:5px; position:relative; }
-.met-card:hover{ border-color:color-mix(in srgb,var(--acc) 55%,transparent); }
+@media (hover:hover){ .met-card:hover{ border-color:color-mix(in srgb,var(--acc) 55%,transparent); } }
 .met-card.on{ border-color:var(--acc); background:color-mix(in srgb,var(--acc) 10%,var(--card2)); }
 .met-card .ic{ font-size:22px; }
 .met-card .nm{ font-weight:800; font-size:13.5px; color:var(--t1); }
@@ -1667,7 +1667,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .plg{display:grid;min-width:860px;grid-template-columns:138px repeat(7,1fr)}
 .plg-h{padding:8px 4px;text-align:center;font-weight:800;font-size:11px;color:var(--t3);border-bottom:1px solid var(--brd);border-left:1px solid var(--brd);letter-spacing:.4px}
 .plg-h.day-click{cursor:pointer;transition:background .18s,color .18s}
-.plg-h.day-click:hover{background:rgba(46,184,114,.10);background:color-mix(in srgb,var(--acc) 10%,transparent);color:var(--acc-txt)}
+@media (hover:hover){ .plg-h.day-click:hover{background:rgba(46,184,114,.10);background:color-mix(in srgb,var(--acc) 10%,transparent);color:var(--acc-txt)} }
 .plg-h.today{color:var(--acc-txt);background:color-mix(in srgb,var(--acc) 10%,transparent)}
 .plg-tech{display:flex;align-items:center;gap:7px;padding:8px;border-top:1px solid var(--brd);font-weight:700;font-size:12px;min-width:0}
 /* la ligne qui sépare deux personnes : pleine largeur, à la couleur de la personne du dessous */
@@ -1688,7 +1688,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 /* Le liseré s'éclaire au survol, la BANDE de gauche garde sa couleur : c'est le technicien. Sans
    `border-left-color`, `border-color` la repeignait en gris — sous le doigt sur un iPhone, où le
    survol reste collé après un toucher (mesuré le 23 septembre 2026, `sonde-survol.js`). */
-.plg-mh:hover{border-color:var(--brd2);border-left-color:var(--cc);z-index:4}
+@media (hover:hover){ .plg-mh:hover{border-color:var(--brd2);border-left-color:var(--cc);z-index:4} }
 .plg-mh b{font-size:9px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.45}
 /* dès que la case est assez haute, le titre s'écrit sur deux lignes au lieu d'être coupé */
 .plg-mh.deux b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:clip}
@@ -1726,7 +1726,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 /* ── Détail d'une case du tableau de bord ── */
 .td-jr{ font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--acc-txt); padding:12px 16px 5px; }
 .td-li{ display:flex; align-items:center; gap:11px; padding:9px 16px; border-top:1px solid var(--brd); font-size:12.5px; cursor:pointer; }
-.td-li:hover{ background:var(--card2); }
+@media (hover:hover){ .td-li:hover{ background:var(--card2); } }
 .td-li .h{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; font-weight:800; color:var(--t2); width:44px; flex:none; }
 .td-li .av{ width:24px; height:24px; border-radius:50%; background:var(--tc); color:#fff; font-size:9px; font-weight:800;
   display:flex; align-items:center; justify-content:center; flex:none; }
@@ -1748,17 +1748,17 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .pg-bar .mois{ font-size:13px; font-weight:800; text-transform:capitalize; min-width:150px; text-align:center; }
 .pg-nav{ width:28px; height:28px; border-radius:8px; background:var(--card2); border:1px solid var(--brd);
   display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--t2); flex:none; }
-.pg-nav:hover{ color:var(--t1); border-color:var(--brd2); }
+@media (hover:hover){ .pg-nav:hover{ color:var(--t1); border-color:var(--brd2); } }
 .pg-seg{ display:inline-flex; background:var(--card2); border-radius:9px; padding:3px; gap:3px; }
 .pg-seg span{ font-size:11.5px; font-weight:700; color:var(--t2); padding:5px 12px; border-radius:7px; cursor:pointer; }
-.pg-seg span:hover{ color:var(--acc-txt); }
+@media (hover:hover){ .pg-seg span:hover{ color:var(--acc-txt); } }
 .pg-seg span.on{ background:var(--card); color:var(--acc-txt); box-shadow:0 1px 3px rgba(0,0,0,.3); }
 .pg-in{ background:var(--card2); border:1px solid var(--brd); border-radius:9px; padding:7px 12px; font-size:12px;
   color:var(--t1); min-width:180px; font-family:inherit; outline:none; }
 .pg-in:focus{ border-color:var(--acc); }
 .pg-pb{ background:var(--card2); border:1px solid var(--brd); border-radius:9px; padding:7px 13px; font-size:12px;
   font-weight:700; color:var(--t2); cursor:pointer; font-family:inherit; white-space:nowrap; }
-.pg-pb:hover{ color:var(--t1); border-color:var(--brd2); }
+@media (hover:hover){ .pg-pb:hover{ color:var(--t1); border-color:var(--brd2); } }
 .pg-pb b{ color:var(--t1); }
 .pg-pb.act{ border-color:var(--acc); color:var(--acc-txt); }
 .pg-pb.act b{ color:var(--acc-txt); }
@@ -1784,7 +1784,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .pg-hd.auj .d{ color:var(--acc-txt); }
 .pg-pers{ display:flex; align-items:center; gap:9px; padding:10px 12px; border-bottom:1px solid var(--brd);
   position:sticky; left:0; background:var(--card); z-index:2; cursor:pointer; }
-.pg-pers:hover{ background:var(--card2); }
+@media (hover:hover){ .pg-pers:hover{ background:var(--card2); } }
 .pg-pers .av{ width:30px; height:30px; border-radius:50%; background:var(--tc); color:#fff; font-size:10px; font-weight:800;
   display:flex; align-items:center; justify-content:center; flex:none; }
 .pg-pers b{ font-size:12.5px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1807,18 +1807,18 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .pg-rac{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:11px; }
 .pg-rac span{ font-size:10.7px; font-weight:700; padding:5px 10px; border-radius:20px; cursor:pointer;
   background:var(--card2); border:1px solid var(--brd); color:var(--t2); }
-.pg-rac span:hover{ border-color:var(--acc); color:var(--acc-txt); }
+@media (hover:hover){ .pg-rac span:hover{ border-color:var(--acc); color:var(--acc-txt); } }
 .pg-gt{ font-size:9.6px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--acc-txt);
   padding:9px 4px 4px; display:flex; align-items:center; gap:8px; }
 .pg-gt span{ margin-left:auto; font-size:10px; font-weight:700; letter-spacing:0; text-transform:none;
   color:var(--t3); cursor:pointer; }
-.pg-gt span:hover{ color:var(--acc-txt); }
+@media (hover:hover){ .pg-gt span:hover{ color:var(--acc-txt); } }
 /* le zoom */
 .pg-zoom{ display:inline-flex; align-items:center; gap:2px; background:var(--card2); border:1px solid var(--brd);
   border-radius:9px; padding:2px; flex:none; }
 .pg-zoom span{ width:24px; text-align:center; font-size:14px; font-weight:800; color:var(--t2); cursor:pointer;
   padding:3px 0; border-radius:6px; }
-.pg-zoom span:hover{ color:var(--acc-txt); background:var(--card); }
+@media (hover:hover){ .pg-zoom span:hover{ color:var(--acc-txt); background:var(--card); } }
 .pg-zoom b{ font-size:10.5px; font-weight:800; color:var(--t2); padding:0 7px; cursor:pointer;
   font-variant-numeric:tabular-nums; white-space:nowrap; }
 /* la bande de focus */
@@ -1843,7 +1843,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .pgf-ev b{ font-weight:800; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10.4px;
   color:var(--c); margin-right:6px; }
 .pgf-vide{ padding:18px 14px; text-align:center; color:var(--t3); font-size:12.5px; }
-.pg-cel:hover{ background:color-mix(in srgb,var(--acc) 6%,transparent); }
+@media (hover:hover){ .pg-cel:hover{ background:color-mix(in srgb,var(--acc) 6%,transparent); } }
 .pg-cel.we{ background:color-mix(in srgb,var(--t3) 6%,transparent); }
 .pg-cel.auj{ background:color-mix(in srgb,var(--acc) 6%,transparent); }
 .pg-tot{ border-bottom:1px solid var(--brd); border-left:1px solid var(--brd); padding:8px 10px; text-align:right; }
@@ -1907,7 +1907,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .dp-rap{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:13px; }
 .dp-rp{ font-size:11px; font-weight:700; padding:5px 11px; border-radius:20px; background:var(--card2);
   border:1px solid var(--brd); color:var(--t2); cursor:pointer; }
-.dp-rp:hover{ color:var(--acc-txt); border-color:var(--acc); }
+@media (hover:hover){ .dp-rp:hover{ color:var(--acc-txt); border-color:var(--acc); } }
 .dp-cals{ display:flex; gap:18px; }
 @media(max-width:620px){ .dp-cals{ flex-direction:column; gap:14px; } }
 .dp-cal{ flex:1; min-width:0; }
@@ -1915,12 +1915,12 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .dp-nav b{ flex:1; text-align:center; font-size:13.5px; font-weight:800; text-transform:capitalize; }
 .dp-nav span{ width:28px; height:28px; border-radius:8px; background:var(--card2); border:1px solid var(--brd);
   display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; color:var(--t2); flex:none; }
-.dp-nav span:hover{ color:var(--t1); border-color:var(--brd2); }
+@media (hover:hover){ .dp-nav span:hover{ color:var(--t1); border-color:var(--brd2); } }
 .dp-jg{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
 .dp-jn{ text-align:center; font-size:9.5px; font-weight:800; color:var(--t3); padding:4px 0; letter-spacing:.04em; }
 .dp-j{ height:36px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;
   border-radius:9px; cursor:pointer; position:relative; font-variant-numeric:tabular-nums; color:var(--t1); }
-.dp-j:hover{ background:var(--card2); }
+@media (hover:hover){ .dp-j:hover{ background:var(--card2); } }
 .dp-j.hors{ color:var(--t3); opacity:.35; }
 .dp-j.we{ color:var(--t3); }
 .dp-j.auj{ box-shadow:0 0 0 1.5px var(--acc) inset; }
@@ -1943,11 +1943,11 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .tdb-hd .sp{ flex:1; }
 .tdb-seg{ display:inline-flex; background:var(--card2); border-radius:9px; padding:3px; gap:3px; }
 .tdb-seg span{ font-size:11.5px; font-weight:700; color:var(--t2); padding:4px 11px; border-radius:7px; cursor:pointer; }
-.tdb-seg span:hover{ color:var(--acc-txt); }
+@media (hover:hover){ .tdb-seg span:hover{ color:var(--acc-txt); } }
 .tdb-seg span.on{ background:var(--card); color:var(--acc-txt); box-shadow:0 1px 3px rgba(0,0,0,.3); }
 .tdb-res{ display:flex; gap:10px; padding:11px 15px; flex-wrap:wrap; border-bottom:1px solid var(--brd); }
 .tdb-rz{ flex:1; min-width:126px; background:var(--card2); border:1px solid var(--brd); border-radius:11px; padding:9px 12px; cursor:pointer; }
-.tdb-rz:hover{ border-color:var(--brd2); }
+@media (hover:hover){ .tdb-rz:hover{ border-color:var(--brd2); } }
 .tdb-rz b{ display:block; font-size:19px; font-weight:800; line-height:1.15; }
 .tdb-rz span{ font-size:10.5px; color:var(--t2); font-weight:600; }
 .tdb-grid{ display:grid; overflow-x:auto; }
@@ -1956,13 +1956,13 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .tdb-jh.t{ text-align:left; border-left:none; padding-left:13px; cursor:default; }
 .tdb-jh.auj{ color:var(--acc-txt); }
 .tdb-tec{ display:flex; align-items:center; gap:9px; padding:12px 12px; border-bottom:1px solid var(--brd); cursor:pointer; }
-.tdb-tec:hover{ background:var(--card2); }
+@media (hover:hover){ .tdb-tec:hover{ background:var(--card2); } }
 .tdb-tec .av{ width:26px; height:26px; border-radius:50%; background:var(--tc); color:#fff; font-size:9.5px; font-weight:800;
   display:flex; align-items:center; justify-content:center; flex:none; }
 .tdb-tec b{ font-size:13px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tdb-tec small{ font-size:10.5px; color:var(--t3); display:block; }
 .tdb-cel{ border-bottom:1px solid var(--brd); border-left:1px solid var(--brd); padding:5px; min-height:82px; position:relative; cursor:pointer; }
-.tdb-cel:hover{ background:color-mix(in srgb,var(--acc) 5%,transparent); }
+@media (hover:hover){ .tdb-cel:hover{ background:color-mix(in srgb,var(--acc) 5%,transparent); } }
 .tdb-cel.auj{ background:color-mix(in srgb,var(--acc) 5%,transparent); }
 .tdb-pc{ background:var(--card2); border-left:3px solid var(--cc); border-radius:6px; padding:4px 7px; margin-bottom:4px; }
 .tdb-pc b{ font-size:11px; font-weight:700; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -2008,7 +2008,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .pnote-mini{ display:flex; align-items:center; gap:8px; padding:6px 12px; font-size:11.5px; font-weight:600;
   color:var(--org); background:color-mix(in srgb,var(--org) 9%,transparent);
   border-bottom:1px solid color-mix(in srgb,var(--org) 25%,transparent); cursor:pointer; }
-.pnote-mini:hover{ background:color-mix(in srgb,var(--org) 15%,transparent); }
+@media (hover:hover){ .pnote-mini:hover{ background:color-mix(in srgb,var(--org) 15%,transparent); } }
 .pnote-mini b{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
 .pnote-mini small{ margin-left:auto; flex:none; font-size:10px; opacity:.75; font-weight:700; white-space:nowrap; }
 /* ── Note de journée : bien visible en tête du planning ── */
@@ -2021,14 +2021,14 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .pnote .go{ flex:none; display:flex; gap:6px; }
 .pnote .go span{ width:27px; height:27px; border-radius:8px; background:var(--card); border:1px solid var(--brd);
   color:var(--t2); font-size:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-.pnote .go span:hover{ color:var(--t1); border-color:var(--brd2); }
-.pnote .go span.dg:hover{ color:var(--red); border-color:var(--red); }
+@media (hover:hover){ .pnote .go span:hover{ color:var(--t1); border-color:var(--brd2); } }
+@media (hover:hover){ .pnote .go span.dg:hover{ color:var(--red); border-color:var(--red); } }
 /* ── Activités : ce qui occupe la journée sans être un client ── */
 #abs-type optgroup{ color:var(--acc-txt); font-weight:800; font-size:12px; letter-spacing:.04em; text-transform:uppercase; background:var(--card2); }
 #abs-type option{ color:var(--t1); font-weight:500; text-transform:none; letter-spacing:0; }
 .abs-tybtn{ width:100%; display:flex; align-items:center; gap:10px; background:var(--card2); border:1px solid var(--brd);
   border-radius:11px; padding:11px 13px; cursor:pointer; text-align:left; font:inherit; color:var(--t1); }
-.abs-tybtn:hover{ border-color:var(--brd2); }
+@media (hover:hover){ .abs-tybtn:hover{ border-color:var(--brd2); } }
 .abs-tybtn i{ width:11px; height:11px; border-radius:3px; flex:none; }
 .abs-tybtn b{ font-size:14px; font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .abs-tybtn small{ font-size:11px; color:var(--t3); font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
@@ -2036,7 +2036,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .abs-tycat{ font-size:10.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--acc-txt);
   padding:12px 8px 5px; }
 .abs-tyit{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:9px; cursor:pointer; font-size:13.5px; }
-.abs-tyit:hover{ background:var(--card2); }
+@media (hover:hover){ .abs-tyit:hover{ background:var(--card2); } }
 .abs-tyit.on{ background:color-mix(in srgb,var(--acc) 12%,transparent); }
 .abs-tyit i{ width:11px; height:11px; border-radius:3px; flex:none; }
 .abs-tyit b{ font-weight:600; flex:1; min-width:0; }
@@ -2102,7 +2102,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
   background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--org) 9%,var(--card)) 0 8px,color-mix(in srgb,var(--org) 15%,var(--card)) 8px 16px);
   border:1px dashed color-mix(in srgb,var(--org) 55%,transparent); border-left:4px solid var(--org);
   display:flex; flex-direction:column; }
-.plt-act:hover,.plm-act:hover{ border-color:var(--org); }
+@media (hover:hover){ .plt-act:hover,.plm-act:hover{ border-color:var(--org); } }
 .plt-act b,.plm-act b{ font-size:11.5px; font-weight:800; color:var(--org); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .plt-act b .hh,.plm-act b .hh{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-weight:900; letter-spacing:-.3px; }
 .plt-act small,.plm-act small{ font-size:10px; color:color-mix(in srgb,var(--org) 78%,var(--t2)); display:block; line-height:1.4;
@@ -2125,7 +2125,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
   background:color-mix(in srgb,var(--acc) 16%,transparent); color:var(--acc-txt); }
 .org-pill.att{ background:color-mix(in srgb,var(--org) 18%,transparent); color:var(--org); }
 .org-li{ display:flex; align-items:center; gap:11px; padding:9px 4px; border-top:1px solid var(--brd); font-size:12.5px; cursor:pointer; }
-.org-li:hover{ background:var(--card2); }
+@media (hover:hover){ .org-li:hover{ background:var(--card2); } }
 .org-li .ck{ width:17px; height:17px; border-radius:5px; border:1.5px solid var(--brd2); display:flex; align-items:center;
   justify-content:center; font-size:11px; color:transparent; flex:none; }
 .org-li .ck.on{ background:var(--acc); border-color:var(--acc); color:var(--on-acc); }
@@ -2142,7 +2142,7 @@ body.plan-plein .plm-fab{ bottom:16px; }
 .org-can.fait{ background:color-mix(in srgb,var(--acc) 16%,transparent); color:var(--acc-txt); }
 .org-sw{ display:inline-flex; align-items:center; gap:5px; padding:2px 3px; border-radius:20px; border:1px solid transparent; }
 .org-sw.clic{ cursor:pointer; }
-.org-sw.clic:hover{ border-color:var(--brd2); background:var(--card2); }
+@media (hover:hover){ .org-sw.clic:hover{ border-color:var(--brd2); background:var(--card2); } }
 .org-sw .ch{ font-size:10px; font-weight:900; color:var(--t3); }
 .org-msg{ background:var(--card2); border:1px solid var(--brd); border-radius:11px; padding:10px 12px; font-size:12px;
   line-height:1.6; color:var(--t2); width:100%; resize:vertical; min-height:96px; font-family:inherit; }
@@ -2159,14 +2159,14 @@ body.plan-plein .app{ background:var(--bg); }
   font-size:12px; font-weight:800; cursor:pointer; }
 .pf-plein{ display:inline-flex; align-items:center; gap:6px; background:var(--card2); border:1px solid var(--brd);
   border-radius:9px; padding:7px 12px; font-size:12px; font-weight:700; color:var(--t2); cursor:pointer; flex:none; }
-.pf-plein:hover{ color:var(--acc-txt); border-color:color-mix(in srgb,var(--acc) 45%,transparent); }
+@media (hover:hover){ .pf-plein:hover{ color:var(--acc-txt); border-color:color-mix(in srgb,var(--acc) 45%,transparent); } }
 /* ── zoom du planning ── */
 .pf-zoom{ display:inline-flex; align-items:center; background:var(--card2); border:1px solid var(--brd); border-radius:9px; overflow:hidden; flex:none; }
 .pf-zoom span{ padding:6px 11px; font-size:14px; font-weight:800; color:var(--t2); cursor:pointer; line-height:1; }
-.pf-zoom span:hover{ background:var(--brd); color:var(--t1); }
+@media (hover:hover){ .pf-zoom span:hover{ background:var(--brd); color:var(--t1); } }
 .pf-zoom b{ padding:0 8px; font-size:11px; font-weight:800; color:var(--t2); cursor:pointer; min-width:44px; text-align:center;
   border-left:1px solid var(--brd); border-right:1px solid var(--brd); font-variant-numeric:tabular-nums; }
-.pf-zoom b:hover{ color:var(--acc-txt); }
+@media (hover:hover){ .pf-zoom b:hover{ color:var(--acc-txt); } }
 .plt-hl{height:48px;font-size:10.5px;color:var(--t2);text-align:right;padding:0 7px 0 0;font-weight:700;
   display:flex;align-items:center;justify-content:flex-end;transform:translateY(-50%);font-variant-numeric:tabular-nums;letter-spacing:.02em}
 .plt-hl:first-child{transform:none;align-items:flex-start;padding-top:1px}
@@ -2339,11 +2339,11 @@ html[data-theme="light"] .card::after,html[data-theme="light"] .kpi::after{
   html:not([data-theme="dark"]):not([data-theme="light"]) .kpi::after{
     background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),color-mix(in srgb,var(--acc) 9%,transparent),transparent 62%)}
 }
-.card:hover::after,.kpi:hover::after{opacity:1}
+@media (hover:hover){ .card:hover::after,.kpi:hover::after{opacity:1} }
 /* Ce qui s'ouvre se soulève. Les KPI du tableau de bord en sont exclus : ils se déplacent
    à la souris pour être réordonnés, un soulèvement au survol brouillerait le geste. */
-.card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover,.list-row[onclick]:hover{
-  transform:translateY(-2px);box-shadow:var(--ombre-2)}
+@media (hover:hover){ .card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover,.list-row[onclick]:hover{
+  transform:translateY(-2px);box-shadow:var(--ombre-2)} }
 
 /* ══ LES CHIFFRES MONTENT ══ voir compterKpi() : à l'arrivée d'un écran voulu, jamais
    sur un rafraîchissement automatique. Rien ici, tout se joue en JS. */
@@ -2377,7 +2377,7 @@ html[data-theme="light"] body.defile .topbar{box-shadow:0 10px 26px rgba(14,21,3
 @media (prefers-reduced-motion: reduce){
   .nav-glisse{transition:none!important}
   .card::after,.kpi::after{display:none}
-  .card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover,.list-row[onclick]:hover{transform:none!important}
+  @media (hover:hover){ .card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover,.list-row[onclick]:hover{transform:none!important} }
   .modal.pose>*{animation:none!important}
   :root.theme-vt::view-transition-new(root){animation:none!important}
 }
@@ -2482,7 +2482,7 @@ body{font-size:14.5px;line-height:1.45;text-rendering:optimizeLegibility;letter-
 .nav{padding:10px 10px}
 .nav-label{padding:16px 10px 6px!important;font-size:11px!important;font-weight:600!important;letter-spacing:.04em!important;color:var(--side-mut)!important;text-transform:none!important}
 .nav-item{padding:8px 10px!important;border-radius:var(--r-1)!important;margin-bottom:2px!important;font-size:13.5px!important;font-weight:500!important;gap:10px!important;color:var(--side-ink)!important;border:0!important}
-.nav-item:hover{background:var(--side-hover)!important;color:var(--side-ink)!important}
+@media (hover:hover){ .nav-item:hover{background:var(--side-hover)!important;color:var(--side-ink)!important} }
 .nav-item.active,.sidebar .nav-item.active{background:var(--side-active)!important;color:var(--side-active-ink)!important;font-weight:600!important}
 .nav-item .ico{filter:none;opacity:.9}
 .nav-item.active .badge{background:rgba(255,255,255,.22)!important;color:var(--side-active-ink)!important}
@@ -2550,9 +2550,9 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
    survol — donc sous le DOIGT, sur un iPhone — le liseré partait, le contenu bougeait d'un pixel
    et la couleur de statut disparaissait. Mesuré le 23 septembre 2026 : 64 éléments sur 42
    rubriques, au téléphone comme au bureau (`scratchpad/sonde-survol.js`). */
-.kpi[onclick]:hover,.kpi.clickable:hover,.card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover,.olsec summary:hover,.list-row:hover,tr[onclick]:hover{
-  background:var(--hover)!important}
-.kpi[onclick]:hover,.kpi.clickable:hover,.card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover{box-shadow:var(--ombre-2)}
+@media (hover:hover){ .kpi[onclick]:hover,.kpi.clickable:hover,.card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover,.olsec summary:hover,.list-row:hover,tr[onclick]:hover{
+  background:var(--hover)!important} }
+@media (hover:hover){ .kpi[onclick]:hover,.kpi.clickable:hover,.card[onclick]:not(.pf-bar):hover,.card.clickable:not(.pf-bar):hover{box-shadow:var(--ombre-2)} }
 .olsec{border-radius:var(--r-4)!important}
 .olsec summary{background:transparent;font-weight:600;font-size:15px;border-bottom:1px solid var(--brd)}
 .olsec summary::after{color:var(--t3)}
@@ -2563,30 +2563,30 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .tbl{background:var(--card);border-radius:var(--r-4)!important;overflow:hidden}
 .tbl th{font-size:11.5px!important;font-weight:600!important;letter-spacing:.04em!important;text-transform:uppercase;color:var(--t3);padding:12px 16px;border-bottom:1px solid var(--brd)}
 .tbl td{padding:11px 16px;border-top:1px solid var(--cardline);font-size:13.5px;color:var(--t2)}
-.tbl tr:hover td{background:var(--hover)}
+@media (hover:hover){ .tbl tr:hover td{background:var(--hover)} }
 .tbl .strong{color:var(--t1)}
 
 /* ── BOUTONS ── plein = l'action, teinté = le reste, rond = l'icône */
 .btn{background:var(--acc-fill)!important;color:var(--on-fill)!important;border:0!important;border-radius:var(--r-2)!important;
   padding:0 16px!important;min-height:38px;font-weight:600!important;font-size:14.5px!important;letter-spacing:-.005em;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),box-shadow var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)!important}
-.btn:hover{background:var(--acc-fill-hover)!important;color:var(--on-fill)!important;transform:none}
+@media (hover:hover){ .btn:hover{background:var(--acc-fill-hover)!important;color:var(--on-fill)!important;transform:none} }
 .btn:active{background:var(--acc-fill-press)!important;transform:scale(.96)!important;transition-duration:var(--d-0)!important}
 .btn.ghost{background:var(--tint)!important;color:var(--acc-txt)!important}
-.btn.ghost:hover{background:color-mix(in srgb,var(--tint) 100%,var(--acc) 10%)!important;color:var(--acc-txt)!important}
+@media (hover:hover){ .btn.ghost:hover{background:color-mix(in srgb,var(--tint) 100%,var(--acc) 10%)!important;color:var(--acc-txt)!important} }
 .btn.sm{min-height:32px;padding:0 12px!important;font-size:13.5px!important}
 /* lot h04 (appareils#2) : « ＋ Ajouter un point de livraison (même commande) » passe à la ligne au téléphone étroit.
    Le `padding:0 …!important` ci-dessus collerait deux lignes de texte aux bords du bouton : il reprend de l'air en haut et en bas. */
 .btn.sm.bon-site-ajout{padding:8px 12px!important;height:auto;line-height:1.3;white-space:normal}
 .btn.danger{background:var(--danger-bg)!important;color:var(--danger-ink)!important}
-.btn.danger:hover{background:var(--red)!important;color:#FFFFFF!important}
+@media (hover:hover){ .btn.danger:hover{background:var(--red)!important;color:#FFFFFF!important} }
 /* « Fin de journée » (Pointage) : le bouton PRINCIPAL de l'écran reste en tête — pleine largeur au
    téléphone, où la ligne des actions range `.danger` avec les secondaires —, mais il en prend la
    teinte : c'est l'arrêt du chronomètre, comme le bouton rouge du Chronomètre d'iOS. Au survol,
    l'aplat rouge porte SON encre (`--on-red`) : de nuit, `--red` est éclairci pour se lire et ne
    porte pas de blanc. */
 .btn.pt-fin,html[data-refonte] .btn.pt-fin{background:var(--danger-bg)!important;color:var(--danger-ink)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--danger-ink) 30%,transparent)!important}
-.btn.pt-fin:hover,html[data-refonte] .btn.pt-fin:hover{background:var(--red-fill)!important;color:var(--on-red)!important}
+@media (hover:hover){ .btn.pt-fin:hover,html[data-refonte] .btn.pt-fin:hover{background:var(--red-fill)!important;color:var(--on-red)!important} }
 /* ⛔ UNE ACTION DESTRUCTIVE TIENT LE PLANCHER TACTILE, MÊME QUAND LE RESTE NE LE TIENT PAS.
    Mesuré le 17 septembre 2026 sur la bêta, à 390 px, sur les 42 écrans : 1 109 cibles sur
    1 810 sont sous 44 px — c'est un compromis de DENSITÉ, assumé et documenté (`.btn.sm` est
@@ -2619,10 +2619,10 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
   opacity:.88!important;pointer-events:none;transform:none!important;box-shadow:none!important;cursor:progress}
 .bell,.menu-btn,.modal-close,.dp-hd .x{background:var(--tint-gris)!important;color:var(--t2)!important;border:0!important;border-radius:50%!important;
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
-.bell:hover,.menu-btn:hover,.modal-close:hover{background:var(--hover)!important;color:var(--t1)!important}
+@media (hover:hover){ .bell:hover,.menu-btn:hover,.modal-close:hover{background:var(--hover)!important;color:var(--t1)!important} }
 .bell:active,.menu-btn:active,.modal-close:active{transform:scale(.94);transition-duration:var(--d-0)}
 .chip{background:var(--chip)!important;border:0!important;color:var(--t2)!important;font-size:13px;font-weight:500;padding:7px 14px;border-radius:var(--r-pill)!important}
-.chip:hover{background:var(--hover)!important;color:var(--t1)!important}
+@media (hover:hover){ .chip:hover{background:var(--hover)!important;color:var(--t1)!important} }
 .chip.active,.chip.on{background:var(--tint)!important;color:var(--acc-txt)!important;font-weight:600}
 
 /* ── CHAMPS ── en creux, bord discret, focus = anneau */
@@ -2630,7 +2630,7 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
 .field input,.field select,.field textarea,.search-inp{background:var(--deep)!important;border:1px solid var(--inpBorder)!important;border-radius:var(--r-2)!important;
   color:var(--t1)!important;padding:9px 12px!important;min-height:38px;font-size:14.5px!important;
   transition:border-color var(--d-1) var(--e-sortie),box-shadow var(--d-1) var(--e-sortie)}
-.field input:hover,.field select:hover,.field textarea:hover,.search-inp:hover{border-color:var(--trait-ui)!important}
+@media (hover:hover){ .field input:hover,.field select:hover,.field textarea:hover,.search-inp:hover{border-color:var(--trait-ui)!important} }
 .field input:focus,.field select:focus,.field textarea:focus,.search-inp:focus{border-color:var(--acc)!important;box-shadow:var(--focus-champ)}
 .field input:user-invalid{border-color:var(--red)!important}
 .field textarea{line-height:1.55;min-height:92px}
@@ -2640,7 +2640,7 @@ html[data-refonte] .btn.danger.sm{min-height:44px!important}
 .gsrch:focus-within{border-color:var(--acc)!important;box-shadow:var(--focus-champ)}
 #gsrch-res{border-radius:var(--r-3)!important;box-shadow:var(--ombre-3)}
 #gsrch-res .gr{border-bottom:1px solid var(--cardline)}
-#gsrch-res .gr:hover{background:var(--hover)}
+@media (hover:hover){ #gsrch-res .gr:hover{background:var(--hover)} }
 .mdp-oeil{color:var(--t3)}
 :root{--champ-fond:var(--deep)}
 
@@ -2669,7 +2669,7 @@ html[data-theme="light"] .login-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 
 .login-card-title{font-size:20px;font-weight:700;letter-spacing:-.02em;text-align:left;margin-bottom:22px}
 .login-card .field label{letter-spacing:.06em;text-transform:uppercase;font-size:11px;color:var(--t3)}
 .login-user{background:var(--card)!important;border-radius:var(--r-3)!important}
-.login-user:hover{background:var(--hover)!important}
+@media (hover:hover){ .login-user:hover{background:var(--hover)!important} }
 .login-error{color:var(--red)}
 
 /* ── PRÉFÉRENCES SYSTÈME ── moins de transparence : les verres redeviennent des aplats */
@@ -3088,7 +3088,7 @@ html[data-refonte] .brand::after{
    de s'enfoncer et le message de confirmation de glisser (mesuré, doigt posé). */
 html[data-refonte] .btn,html[data-refonte] .chip,html[data-refonte] .bell,html[data-refonte] .menu-btn{
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),box-shadow var(--d-2) var(--e-sortie),transform var(--d-3) var(--ressort)!important}
-html[data-refonte] .btn:hover{transform:translateY(-1.5px);box-shadow:var(--ombre-2)}
+@media (hover:hover){ html[data-refonte] .btn:hover{transform:translateY(-1.5px);box-shadow:var(--ombre-2)} }
 html[data-refonte] .btn:active{transform:scale(.94)!important;transition-duration:var(--d-0)!important}
 html[data-refonte] .nav-glisse{transition:transform var(--d-3) var(--ressort),width var(--d-3) var(--ressort),height var(--d-3) var(--ressort),opacity var(--d-2) var(--e-sortie)!important}
 @keyframes refontePose{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
@@ -3161,11 +3161,12 @@ html[data-refonte] .sidebar-foot .btn{min-height:38px}
 html[data-refonte] .btn.ghost{
   background:var(--rf-2nd)!important;color:var(--t1)!important;font-weight:600!important;
   border:0!important}
-html[data-refonte] .btn.ghost:hover{background:var(--rf-2nd-h)!important;color:var(--t1)!important}
+@media (hover:hover){ html[data-refonte] .btn.ghost:hover{background:var(--rf-2nd-h)!important;color:var(--t1)!important} }
 /* Le survol est écrit en !important par le socle : sans ce doublon, la pression (le doigt survole
    ET presse) reprendrait le vert de .btn:active, écrit lui aussi en !important. */
-html[data-refonte] .btn.ghost:active,html[data-refonte] .btn.ghost:hover:active{
-  background:var(--rf-2nd-h)!important;color:var(--t1)!important}
+html[data-refonte] .btn.ghost:active{
+  background:var(--rf-2nd-h)!important;color:var(--t1)!important}@media (hover:hover){ html[data-refonte] .btn.ghost:hover:active{
+  background:var(--rf-2nd-h)!important;color:var(--t1)!important} }
 html[data-refonte] .suite-row,html[data-refonte] .suite-mini{background:var(--rf-2nd)!important}
 html[data-refonte] .suite-row.on{background:var(--rf-2nd-h)!important}
 /* La pastille de raccourci d'une suite garde son point vert : c'est un ÉTAT (« en service »),
@@ -3227,7 +3228,7 @@ html[data-refonte] ::-webkit-scrollbar-track{background:transparent}
 html[data-refonte] ::-webkit-scrollbar-thumb{
   background:color-mix(in srgb,var(--acier) 30%,transparent);border-radius:99px;
   border:3px solid transparent;background-clip:content-box}
-html[data-refonte] ::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--acier) 52%,transparent);background-clip:content-box}
+@media (hover:hover){ html[data-refonte] ::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--acier) 52%,transparent);background-clip:content-box} }
 @media (prefers-color-scheme: light){
   html[data-refonte]:not([data-theme="dark"]):not([data-theme="light"]){
     --rf-filet:color-mix(in srgb,var(--navy) 12%,transparent);
@@ -3542,7 +3543,7 @@ html[data-refonte] .tdb-pc b .hh{color:color-mix(in srgb,var(--cc) 45%,var(--t1)
 
 html[data-refonte] .plm-fab{border-radius:var(--r-pill)!important;min-height:var(--rf-tap);padding:0 20px!important;
   box-shadow:0 10px 30px rgba(0,0,0,.42),0 0 0 1px color-mix(in srgb,var(--glace) 10%,transparent)}
-html[data-refonte] .plm-fab:hover{filter:none;background:var(--acc-fill-hover)!important;transform:translateY(-2px)}
+@media (hover:hover){ html[data-refonte] .plm-fab:hover{filter:none;background:var(--acc-fill-hover)!important;transform:translateY(-2px)} }
 html[data-refonte] .plm-fab:active{transform:scale(.96);transition-duration:var(--d-0)}
 html[data-refonte] .plm-fab{transition:background-color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort),box-shadow var(--d-2) var(--e-sortie)}
 
@@ -3578,7 +3579,7 @@ html[data-refonte] .pf-b.act,html[data-refonte] .pf-ib.on{
 html[data-refonte] .pf-jr{background:var(--rf-2nd)!important;color:var(--t1)!important}
 html[data-refonte] .plm-j.cal{
   background:var(--card)!important;color:var(--t1)!important;border-color:transparent!important;box-shadow:var(--rf-pastille)}
-html[data-refonte] .pf-b:hover,html[data-refonte] .pf-ib:hover{border-color:transparent!important;color:var(--t1)!important}
+@media (hover:hover){ html[data-refonte] .pf-b:hover,html[data-refonte] .pf-ib:hover{border-color:transparent!important;color:var(--t1)!important} }
 html[data-refonte] .pf-nav u,html[data-refonte] .pf-nav .auj{min-width:30px;min-height:30px;border-radius:8px}
 /* Barre des profils de droits — au-dessus du « Valider », parce qu'on pose AVANT de relire. */
 .usr-pf{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 0;padding-top:12px;
@@ -3887,7 +3888,7 @@ html[data-refonte] .plg-cell.today,html[data-refonte] .plm-cell.today,
 html[data-refonte] .plm-col.today,html[data-refonte] .plt-col.today{background:var(--rf-auj)!important}
 html[data-refonte] .plg-h.today,html[data-refonte] .plm-th.today{
   background:var(--rf-auj)!important;color:var(--acc-txt)!important;font-weight:800!important}
-html[data-refonte] .plg-h.day-click:hover{background:var(--rf-2nd)!important;color:var(--t1)!important}
+@media (hover:hover){ html[data-refonte] .plg-h.day-click:hover{background:var(--rf-2nd)!important;color:var(--t1)!important} }
 /* Entre deux personnes : UNE séparation, celle qui porte du sens — la couleur de la personne du
    dessous. Les deux traits gris qui l'encadraient faisaient trois lignes pour une frontière. */
 html[data-refonte] .plg-sepl{height:12px;background:transparent!important;border-top:0!important}
@@ -3895,7 +3896,7 @@ html[data-refonte] .plg-sepl{height:12px;background:transparent!important;border
 html[data-refonte] .plg-mh{
   border-radius:7px!important;border-top:0!important;border-right:0!important;border-bottom:0!important;
   transition:transform var(--d-3) var(--ressort-vif),box-shadow var(--d-2) var(--e-sortie)}
-html[data-refonte] .plg-mh:hover{transform:scale(1.02);box-shadow:var(--ombre-2);z-index:4}
+@media (hover:hover){ html[data-refonte] .plg-mh:hover{transform:scale(1.02);box-shadow:var(--ombre-2);z-index:4} }
 html[data-refonte] .plg-mh:active{transform:scale(.97);transition-duration:var(--d-0)}
 html[data-refonte] .plg-mini{border-radius:9px!important;
   transition:transform var(--d-3) var(--ressort-vif),box-shadow var(--d-2) var(--e-sortie)}
@@ -3906,7 +3907,7 @@ html[data-refonte] .plm-card{
   border-radius:var(--rf-r-mini)!important;border-width:0 0 0 3px!important;
   padding:5px 8px!important;font-size:11.5px;
   transition:transform var(--d-3) var(--ressort-vif),box-shadow var(--d-2) var(--e-sortie),filter var(--d-2) var(--e-sortie)}
-html[data-refonte] .plm-card:hover{transform:translateY(-1px) scale(1.015);box-shadow:var(--ombre-2);z-index:3}
+@media (hover:hover){ html[data-refonte] .plm-card:hover{transform:translateY(-1px) scale(1.015);box-shadow:var(--ombre-2);z-index:3} }
 html[data-refonte] .plm-card:active{transform:scale(.97);transition-duration:var(--d-0)}
 /* Le jour choisi et le jour courant, dans les sélecteurs de date du planning */
 html[data-refonte] .plm-j,html[data-refonte] .pld-j,html[data-refonte] .pcal-d{
@@ -3941,14 +3942,14 @@ html[data-refonte] .nav-item .ico{
   transition:background-color var(--d-1) var(--e-sortie),transform var(--d-2) var(--ressort-vif);
 }
 html[data-refonte] .nav-item .ico .rf-ic{width:16px;height:16px;stroke-width:2;vertical-align:0}
-html[data-refonte] .nav-item:hover .ico{background:color-mix(in srgb,var(--cat,#8E8E93) 24%,transparent)}
+@media (hover:hover){ html[data-refonte] .nav-item:hover .ico{background:color-mix(in srgb,var(--cat,#8E8E93) 24%,transparent)} }
 html[data-refonte] .nav-item:active .ico{transform:scale(.92)}
 /* Sur l'élément actif la pastille passe en plein : c'est le seul endroit où la couleur de la
    rubrique et celle de la personne se croisent, et c'est la rubrique qui gagne — on reconnaît
    la ligne à sa couleur, pas au fait qu'elle soit allumée. */
 html[data-refonte] .nav-item.active .ico{background:var(--cat,#8E8E93);color:#fff}
 html[data-refonte][data-theme="dark"] .nav-item .ico{background:color-mix(in srgb,var(--cat,#8E8E93) 22%,transparent)}
-html[data-refonte][data-theme="dark"] .nav-item:hover .ico{background:color-mix(in srgb,var(--cat,#8E8E93) 32%,transparent)}
+@media (hover:hover){ html[data-refonte][data-theme="dark"] .nav-item:hover .ico{background:color-mix(in srgb,var(--cat,#8E8E93) 32%,transparent)} }
 /* ⛔⛔ LE DOCUMENT EST ÉCRIT POUR DES LIBELLÉS ANGLAIS, ET LE FRANÇAIS EST PLUS LONG.
    Mesuré au navigateur le 22 septembre 2026, sidebar à 236 px comme le document l'exige :
    la tuile de 26 px plus sa gouttière faisaient passer « Tableau de bord », « Archives
@@ -3970,11 +3971,11 @@ html[data-os="android"] .nav-item .ico{border-radius:999px}
 html[data-refonte] .tdb-cel,html[data-refonte] .tdb-jh{border-color:var(--rf-plan-trait)!important}
 html[data-refonte] .tdb-cel.auj{background:var(--rf-auj)!important}
 html[data-refonte] .tdb-jh.auj{background:var(--rf-auj)!important;color:var(--acc-txt)!important}
-html[data-refonte] .tdb-cel:hover{background:var(--rf-2nd)!important}
+@media (hover:hover){ html[data-refonte] .tdb-cel:hover{background:var(--rf-2nd)!important} }
 html[data-refonte] .tdb-tec{gap:8px!important;padding:12px 10px!important;border-color:var(--rf-plan-trait)!important}
 html[data-refonte] .tdb-tec b{font-size:12.5px!important;letter-spacing:-.014em}
 html[data-refonte] .tdb-tec small{font-size:11px!important}
-html[data-refonte] .tdb-tec:hover{background:var(--rf-2nd)!important}
+@media (hover:hover){ html[data-refonte] .tdb-tec:hover{background:var(--rf-2nd)!important} }
 html[data-refonte] .tdb-seg{background:var(--rf-creux)!important;border-radius:var(--r-pill)!important;padding:3px!important}
 html[data-refonte] .tdb-seg span{
   border-radius:var(--r-pill)!important;min-height:30px;display:inline-flex;align-items:center;
@@ -4082,25 +4083,22 @@ html[data-refonte] .tbl tbody tr[onclick]:active td{background:var(--eleve)!impo
 /* ── 2. LE SURVOL DIT OÙ ÇA VA ── ce qui s'ouvre vers la droite avance vers la droite. C'est le
    même sens que la transition de navigation (nav-avant entre par la droite) : le survol devient
    la première image du mouvement d'ouverture, pas un effet décoratif détaché de lui. */
-html[data-refonte] .pl-row[onclick]:hover,html[data-refonte] .list-row[onclick]:hover,
+@media (hover:hover){ html[data-refonte] .pl-row[onclick]:hover,html[data-refonte] .list-row[onclick]:hover,
 html[data-refonte] .content > .card[onclick] + .card[onclick]:hover,
 html[data-refonte] .content > .card[onclick]:has(+ .card[onclick]):hover{
-  background:var(--hover)!important;transform:none!important;box-shadow:none!important}
+  background:var(--hover)!important;transform:none!important;box-shadow:none!important} }
 /* Le survol RETIENT la ligne dans son groupe — mais la pression, elle, doit toujours passer :
    sans ce !important, la règle de survol ci-dessus gagnerait aussi pendant l'appui (le doigt
    survole et presse en même temps) et la ligne ne répondrait plus du tout. */
-html[data-refonte] .pl-row:active,html[data-refonte] .list-row[onclick]:active,
-html[data-refonte] .content > .card[onclick]:active,
-html[data-refonte] .pl-row[onclick]:hover:active,html[data-refonte] .list-row[onclick]:hover:active,
-html[data-refonte] .content > .card[onclick] + .card[onclick]:hover:active,
-html[data-refonte] .content > .card[onclick]:has(+ .card[onclick]):hover:active{
-  transform:scale(.985)!important;transition-duration:var(--d-0)!important}
+html[data-refonte] .pl-row:active,html[data-refonte] .list-row[onclick]:active,html[data-refonte] .content > .card[onclick]:active{
+  transform:scale(.985)!important;transition-duration:var(--d-0)!important}@media (hover:hover){ html[data-refonte] .pl-row[onclick]:hover:active,html[data-refonte] .list-row[onclick]:hover:active,html[data-refonte] .content > .card[onclick] + .card[onclick]:hover:active,html[data-refonte] .content > .card[onclick]:has(+ .card[onclick]):hover:active{
+  transform:scale(.985)!important;transition-duration:var(--d-0)!important} }
 /* les cartes, elles, se soulèvent : on ne les ouvre pas latéralement, on les prend */
-html[data-refonte] .card[onclick]:not(.pf-bar):hover,html[data-refonte] .card.clickable:not(.pf-bar):hover{
-  transform:translateY(-3px);box-shadow:var(--ombre-2)!important}
-html[data-refonte] .content > .card[onclick] + .card[onclick]:hover,
-html[data-refonte] .content > .card[onclick]:has(+ .card[onclick]):hover{transform:none!important}
-html[data-refonte] .tbl tbody tr[onclick]:hover td{background:var(--hover)!important}
+@media (hover:hover){ html[data-refonte] .card[onclick]:not(.pf-bar):hover,html[data-refonte] .card.clickable:not(.pf-bar):hover{
+  transform:translateY(-3px);box-shadow:var(--ombre-2)!important} }
+@media (hover:hover){ html[data-refonte] .content > .card[onclick] + .card[onclick]:hover,
+html[data-refonte] .content > .card[onclick]:has(+ .card[onclick]):hover{transform:none!important} }
+@media (hover:hover){ html[data-refonte] .tbl tbody tr[onclick]:hover td{background:var(--hover)!important} }
 
 /* ── 3. L'ARRIVÉE EN CASCADE ── elle ne concernait que les cartes et les KPI. Les listes, les
    tableaux et les sections arrivaient d'un bloc, ce qui donnait exactement l'impression que
@@ -4424,45 +4422,21 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] input[type=checkbox],html[data-refonte] input[type=radio]{width:24px;height:24px}
 }
 
-/* ── SANS VRAI SURVOL ── sur un écran tactile, :hover se déclenche à l'appui et RESTE COLLÉ
-   jusqu'au prochain toucher ailleurs : la ligne qu'on vient de quitter demeure surlignée et
-   soulevée, et l'écran se couvre de traces. Tout ce qui se soulève ou se teinte au survol est
-   donc annulé quand le pointeur n'est pas capable de survoler. La réponse à la PRESSION, elle,
-   reste : c'est la seule qui ait un sens au doigt. */
+/* ── SANS VRAI SURVOL ── (audit apple-design du 21 octobre 2026, § 10) Ce bloc annulait les survols UN PAR UN quand le
+   pointeur ne survole pas : sur un écran tactile, :hover se déclenche à l'appui et RESTE COLLÉ jusqu'au toucher suivant.
+   Mesuré au doigt, 38 familles lui échappaient (« ＋ Créer », retour, onglets, cloche, tuiles, lignes…) — toute règle de
+   survol écrite après lui. La règle est désormais à la SOURCE : chaque :hover de cette page vit sous @media (hover:hover),
+   à sa place dans la cascade (tests/test-2836.js le recense et refuse un survol nu). La réponse à la PRESSION (:active)
+   reste pour tous : c'est la seule qui ait un sens au doigt. */
+/* … sauf la feuille de LEAFLET, chargée à part (unpkg) : ses survols sont nus (.leaflet-bar a:hover, l'attribution), et
+   on ne range pas une feuille qu'on ne sert pas. Au doigt, on les ramène donc à leur repos — le seul survol annulé qui
+   reste, nommé dans test-2836. La feuille est ajoutée APRÈS les nôtres : « html » donne la priorité à égalité. Le
+   focus qu'un toucher laisse sur un lien (même teinte chez Leaflet) n'est gardé que pour le clavier. */
 @media (hover:none){
-  html[data-refonte] .btn:hover,html[data-refonte] .plm-fab:hover,
-  html[data-refonte] .card[onclick]:not(.pf-bar):hover,html[data-refonte] .card.clickable:not(.pf-bar):hover,
-  html[data-refonte] .kpi[onclick]:hover,html[data-refonte] .kpi.clickable:hover,
-  html[data-refonte] .plm-card:hover,html[data-refonte] .plg-mh:hover,html[data-refonte] .plg-mini:hover{
-    transform:none!important;box-shadow:var(--rf-relief)!important}
-  html[data-refonte] .pl-row[onclick]:hover,html[data-refonte] .list-row[onclick]:hover,
-  html[data-refonte] .content > .card[onclick] + .card[onclick]:hover,
-  html[data-refonte] .content > .card[onclick]:has(+ .card[onclick]):hover{background:var(--card)!important}
-  html[data-refonte] .tbl tbody tr[onclick]:hover td{background:transparent!important}
-  html[data-refonte] .chip:hover{background:var(--rf-creux)!important;color:var(--t2)!important}
-  html[data-refonte] .chip.active:hover,html[data-refonte] .chip.on:hover{
-    background:var(--card)!important;color:var(--acc-txt)!important}
-  html[data-refonte] .nav-item:hover{background:transparent!important}
-  html[data-refonte] .nav-item.active:hover{color:var(--side-active-ink)!important}
-  html[data-refonte] .plg-h.day-click:hover{background:transparent!important;color:var(--t3)!important}
-  html[data-refonte] .plg-h.today.day-click:hover{background:var(--rf-auj)!important;color:var(--acc-txt)!important}
-  html[data-refonte] .tdb-cel:hover,html[data-refonte] .tdb-tec:hover{background:transparent!important}
-  html[data-refonte] .tdb-cel.auj:hover{background:var(--rf-auj)!important}
-  /* L'infobulle s'affiche au survol : au doigt elle reste plantée au milieu de l'écran, sur le
-     contenu, jusqu'au prochain toucher ailleurs. Sans souris, pas d'infobulle — l'attribut title
-     du même élément reste, lui, lisible par les technologies d'assistance. */
-  html[data-refonte] [data-tip]:hover::after,html[data-refonte] [data-tip]:hover::before{display:none!important}
-  html[data-refonte] .tdb-seg span:hover{color:var(--t2)!important}
-  html[data-refonte] .tdb-seg span.on:hover{color:var(--acc-txt)!important}
-  /* Le halo qui suit la souris n'a aucun sens sans souris — et Chrome garde :hover collé sur le
-     dernier élément touché : la carte qu'on venait d'effleurer restait éclairée en permanence.
-     Mesuré, pas supposé : en contexte tactile, .card:hover reste vrai après que le doigt s'est levé. */
-  html[data-refonte] .card:hover::after,html[data-refonte] .kpi:hover::after{opacity:0!important}
-  html[data-refonte] .olsec summary:hover{background:transparent!important}
-  html[data-refonte] .btn.ghost:hover{background:var(--rf-2nd)!important}
-  html[data-refonte] .bell:hover,html[data-refonte] .menu-btn:hover,
-  html[data-refonte] .modal-close:hover{background:var(--tint-gris)!important;color:var(--t2)!important}
+  html .leaflet-bar a:hover{background-color:#fff}
+  html .leaflet-control-attribution a:hover{text-decoration:none}
 }
+html .leaflet-bar a:focus:not(:focus-visible){background-color:#fff}
 
 /* ── À LA SOURIS ── le survol reprend tout son sens, et le focus CLAVIER doit se voir : sur un Mac
    on navigue à Tab, et un anneau qu'on ne voit pas est un anneau qui n'existe pas. */
@@ -4557,8 +4531,8 @@ html[data-refonte] .btn.ghost.ph-back,html[data-refonte] .ph-back{
   background:transparent!important;color:var(--acc-txt)!important;border:0!important;
   padding:0!important;margin:0 0 7px -2px!important;min-height:32px;
   font-size:15px!important;font-weight:600!important;letter-spacing:-.01em}
-html[data-refonte] .btn.ghost.ph-back:hover,html[data-refonte] .ph-back:hover{
-  background:transparent!important;color:var(--acc-txt)!important;text-decoration:none}
+@media (hover:hover){ html[data-refonte] .btn.ghost.ph-back:hover,html[data-refonte] .ph-back:hover{
+  background:transparent!important;color:var(--acc-txt)!important;text-decoration:none} }
 html[data-refonte] .content{padding-top:10px}
 /* ⛔⛔ LE RETOUR D'EN-TÊTE EST UNE NAVIGATION PRIMAIRE, PAS UN LIEN DE BAS DE PAGE.
    Mesuré le 22 septembre 2026 : **32 px sur 41 catégories** — c'est le bouton le plus
@@ -5360,8 +5334,8 @@ html[data-refonte] #mail-app #mail-list > .card .btn{
 }
 html[data-refonte] body:has(#mail-list > .card) .ph-actions .btn[onclick="mailCompose()"]{
   background:var(--rf-2nd)!important;color:var(--t1)!important;border:0!important;font-weight:600!important}
-html[data-refonte] body:has(#mail-list > .card) .ph-actions .btn[onclick="mailCompose()"]:hover{
-  background:var(--rf-2nd-h)!important;color:var(--t1)!important}
+@media (hover:hover){ html[data-refonte] body:has(#mail-list > .card) .ph-actions .btn[onclick="mailCompose()"]:hover{
+  background:var(--rf-2nd-h)!important;color:var(--t1)!important} }
 
 /* ══ CONNECTER UNE BOÎTE ══ la liste « BOÎTES COMPATIBLES » est le meilleur morceau de cet
    écran : elle dit exactement ce qu'il faut savoir avant de taper quoi que ce soit. On ne la
@@ -5553,11 +5527,11 @@ html[data-refonte] #mail-pane > div[style*="max-width:760px"],html[data-refonte]
 html[data-refonte] #mail-pane > div > div:first-child{margin-bottom:24px!important;gap:8px!important},html[data-refonte] #mail-read > div > div:first-child{margin-bottom:24px!important;gap:8px!important}
 html[data-refonte] #mail-pane .btn.sm[onclick^="mailCompose"],html[data-refonte] #mail-read .btn.sm[onclick^="mailCompose"]{
   background:var(--rf-2nd)!important;color:var(--acc-txt)!important;font-weight:650!important}
-html[data-refonte] #mail-pane .btn.sm[onclick^="mailCompose"]:hover{background:var(--rf-2nd-h)!important;color:var(--acc-txt)!important},html[data-refonte] #mail-read .btn.sm[onclick^="mailCompose"]:hover{background:var(--rf-2nd-h)!important;color:var(--acc-txt)!important}
+/* (une virgule entre deux règles — « }, » — rendait la seconde invalide : le bouton de la lecture n'avait pas de survol) */
+@media (hover:hover){ html[data-refonte] #mail-pane .btn.sm[onclick^="mailCompose"]:hover,html[data-refonte] #mail-read .btn.sm[onclick^="mailCompose"]:hover{background:var(--rf-2nd-h)!important;color:var(--acc-txt)!important} }
 html[data-refonte] #mail-pane .btn.danger.sm,html[data-refonte] #mail-read .btn.danger.sm{
   background:transparent!important;color:var(--t3)!important;font-weight:600!important}
-html[data-refonte] #mail-pane .btn.danger.sm:hover,html[data-refonte] #mail-read .btn.danger.sm:hover,
-html[data-refonte] #mail-pane .btn.danger.sm:active{background:var(--danger-bg)!important;color:var(--danger-ink)!important},html[data-refonte] #mail-read .btn.danger.sm:active{background:var(--danger-bg)!important;color:var(--danger-ink)!important}
+html[data-refonte] #mail-pane .btn.danger.sm:active{background:var(--danger-bg)!important;color:var(--danger-ink)!important}@media (hover:hover){ html[data-refonte] #mail-pane .btn.danger.sm:hover,html[data-refonte] #mail-read .btn.danger.sm:hover{background:var(--danger-bg)!important;color:var(--danger-ink)!important} },html[data-refonte] #mail-read .btn.danger.sm:active{background:var(--danger-bg)!important;color:var(--danger-ink)!important}
 /* L'objet du message est le titre du document : il en prend la taille et le resserrement. */
 html[data-refonte] #mail-pane [style*="font-size:19px"],html[data-refonte] #mail-read [style*="font-size:19px"]{
   font-size:clamp(21px,1.7vw,26px)!important;font-weight:700!important;
@@ -5595,7 +5569,7 @@ html[data-refonte] .rf-corps a{
   color:var(--acc-txt);font-weight:600;text-decoration:underline;
   text-underline-offset:3px;text-decoration-thickness:1px;
   text-decoration-color:color-mix(in srgb,var(--acc) 42%,transparent)}
-html[data-refonte] .rf-corps a:hover{text-decoration-color:var(--acc)}
+@media (hover:hover){ html[data-refonte] .rf-corps a:hover{text-decoration-color:var(--acc)} }
 /* Une citation est un texte qu'on a déjà lu : elle s'efface d'un cran et se marque au bord. */
 html[data-refonte] .rf-corps blockquote{
   margin:0 0 1.05em;padding:2px 0 2px 15px;border-left:2.5px solid var(--rf-filet);
@@ -5653,7 +5627,7 @@ html[data-refonte] .rf-plier{
   transition:background-color var(--d-1) var(--e-sortie),color var(--d-1) var(--e-sortie),
              transform var(--d-3) var(--ressort-vif)}
 html[data-refonte] .rf-plier svg{width:19px;height:19px}
-html[data-refonte] .rf-plier:hover{background:var(--hover);color:var(--t1)}
+@media (hover:hover){ html[data-refonte] .rf-plier:hover{background:var(--hover);color:var(--t1)} }
 html[data-refonte] .rf-plier:active{transform:scale(.92);transition-duration:var(--d-0)}
 html[data-refonte] .rf-plier:focus-visible{box-shadow:var(--anneau)}
 /* La colonne active du bouton se remplit quand la barre est là, se vide quand elle est repliée :
@@ -5689,9 +5663,7 @@ html[data-refonte] body.rf-repliee .rf-plier .rf-volet{opacity:0}
   html[data-refonte] .btn,html[data-refonte] .chip,html[data-refonte] .bell,
   html[data-refonte] .menu-btn,html[data-refonte] .nav-item,html[data-refonte] .nav-glisse{
     transition-property:background-color,color,border-color,box-shadow,opacity!important}
-  html[data-refonte] .btn:hover,html[data-refonte] .btn:active,
-  html[data-refonte] .chip:active,html[data-refonte] .bell:active,
-  html[data-refonte] .menu-btn:active,html[data-refonte] .nav-item:active{transform:none!important}
+  html[data-refonte] .btn:active,html[data-refonte] .chip:active,html[data-refonte] .bell:active,html[data-refonte] .menu-btn:active,html[data-refonte] .nav-item:active{transform:none!important}@media (hover:hover){ html[data-refonte] .btn:hover{transform:none!important} }
   /* Le message de confirmation paraît sans glisser : le translate est sa seule mise en place
      (posé en left:50 %), on le laisse donc à sa position finale au lieu de l'annuler. */
   html[data-refonte] .toast{transition-property:opacity!important;transform:translateX(-50%)!important}
@@ -5874,23 +5846,8 @@ html[data-refonte] .rf-reg-item.rf-reg-plein{animation:rfPlein 700ms var(--e-sor
   html[data-refonte] .tab.on::after,html[data-refonte] .tab.active::after,
   html[data-refonte] .modal,html[data-refonte] .overlay.open,html[data-refonte] .overlay.ferme,
   html[data-refonte] .overlay.ferme .modal{animation:none!important}
-  html[data-refonte] .pl-row:active,html[data-refonte] .tab:active,html[data-refonte] .plm-card:active,
-  html[data-refonte] .list-row[onclick]:active,html[data-refonte] .content > .card[onclick]:active,
-  html[data-refonte] .pl-row[onclick]:hover:active,html[data-refonte] .list-row[onclick]:hover:active,
-  html[data-refonte] .content > .card[onclick] + .card[onclick]:hover:active,
-  html[data-refonte] .content > .card[onclick]:has(+ .card[onclick]):hover:active,
-  html[data-refonte] .tbl tbody tr[onclick]:active,html[data-refonte] .olsec summary:active,
-  html[data-refonte] .notif-it:active,html[data-refonte] #gsrch-res .gr:active,html[data-refonte] .suite-row:active,
-  html[data-refonte] .seg span:active,html[data-refonte] .seg button:active,html[data-refonte] .pf-seg2 span:active,
-  html[data-refonte] .pf-vues span:active,html[data-refonte] .plm-row:active,
-  html[data-refonte] .pjs-grid button:active,html[data-refonte] .plm-j:active,
-  html[data-refonte] .pld-j:active,html[data-refonte] .pcal-d:active,
-  html[data-refonte] [onclick^="intSelDay='"]:active,
-  html[data-refonte] .plm-fab:hover,html[data-refonte] .plm-fab:active{transform:none!important}
-  html[data-refonte] .pl-row[onclick]:hover,html[data-refonte] .list-row[onclick]:hover,
-  html[data-refonte] .card[onclick]:not(.pf-bar):hover,html[data-refonte] .card.clickable:not(.pf-bar):hover,
-  html[data-refonte] .plm-card:hover,html[data-refonte] .plg-mh:hover,
-  html[data-refonte] .plg-mh:active,html[data-refonte] .plg-mini:active{transform:none!important}
+  html[data-refonte] .pl-row:active,html[data-refonte] .tab:active,html[data-refonte] .plm-card:active,html[data-refonte] .list-row[onclick]:active,html[data-refonte] .content > .card[onclick]:active,html[data-refonte] .tbl tbody tr[onclick]:active,html[data-refonte] .olsec summary:active,html[data-refonte] .notif-it:active,html[data-refonte] #gsrch-res .gr:active,html[data-refonte] .suite-row:active,html[data-refonte] .seg span:active,html[data-refonte] .seg button:active,html[data-refonte] .pf-seg2 span:active,html[data-refonte] .pf-vues span:active,html[data-refonte] .plm-row:active,html[data-refonte] .pjs-grid button:active,html[data-refonte] .plm-j:active,html[data-refonte] .pld-j:active,html[data-refonte] .pcal-d:active,html[data-refonte] [onclick^="intSelDay='"]:active,html[data-refonte] .plm-fab:active{transform:none!important}@media (hover:hover){ html[data-refonte] .pl-row[onclick]:hover:active,html[data-refonte] .list-row[onclick]:hover:active,html[data-refonte] .content > .card[onclick] + .card[onclick]:hover:active,html[data-refonte] .content > .card[onclick]:has(+ .card[onclick]):hover:active,html[data-refonte] .plm-fab:hover{transform:none!important} }
+  html[data-refonte] .plg-mh:active,html[data-refonte] .plg-mini:active{transform:none!important}@media (hover:hover){ html[data-refonte] .pl-row[onclick]:hover,html[data-refonte] .list-row[onclick]:hover,html[data-refonte] .card[onclick]:not(.pf-bar):hover,html[data-refonte] .card.clickable:not(.pf-bar):hover,html[data-refonte] .plm-card:hover,html[data-refonte] .plg-mh:hover{transform:none!important} }
   html[data-refonte] .filters,html[data-refonte] .tabs{scroll-snap-type:none}
   html[data-refonte] .topbar::after{transition:none}
   html[data-refonte] .rf-tabs button:active{transform:none!important}
@@ -6632,7 +6589,7 @@ html[data-os="windows"] .msg-flot{border-radius:10px}
   background:var(--bg2);color:var(--t1);cursor:pointer;font-family:inherit;
   -webkit-tap-highlight-color:transparent;transition:transform var(--d-1,.14s) ease,background var(--d-1,.14s) ease;
 }
-.creer-t:hover{background:var(--hover,var(--bg3))}
+@media (hover:hover){ .creer-t:hover{background:var(--hover,var(--bg3))} }
 .creer-t:active{transform:scale(.96)}
 .creer-ic{
   width:44px;height:44px;border-radius:14px;display:inline-flex;align-items:center;
@@ -6803,7 +6760,7 @@ html[data-refonte] .pl-row[onclick]:is(:has(.btn),:has(button))::after{
   border-right:2px solid var(--t3);border-bottom:2px solid var(--t3);
   transform:rotate(-45deg);opacity:.75;
 }
-html[data-refonte] .pl-row[onclick]:hover::after{opacity:1;border-color:var(--acc)}
+@media (hover:hover){ html[data-refonte] .pl-row[onclick]:hover::after{opacity:1;border-color:var(--acc)} }
 @media(max-width:780px){
   html[data-refonte] .list-tbl tbody tr{min-height:64px;padding-top:12px;padding-bottom:12px}
 }
@@ -6942,7 +6899,7 @@ html[data-refonte] .btn.det-back{
   background:color-mix(in srgb,var(--t3) 12%,transparent)!important;border:0!important;
   font-size:13.5px!important;font-weight:600!important;color:var(--t2)!important;
 }
-html[data-refonte] .btn.det-back:hover{background:color-mix(in srgb,var(--t3) 20%,transparent)!important;color:var(--t1)!important}
+@media (hover:hover){ html[data-refonte] .btn.det-back:hover{background:color-mix(in srgb,var(--t3) 20%,transparent)!important;color:var(--t1)!important} }
 html[data-os="windows"] .btn.det-back{border-radius:6px!important}
 @media(max-width:780px){ html[data-refonte] .btn.det-back{min-height:44px} }
 
@@ -6997,7 +6954,7 @@ html[data-os="windows"] #content:has(.det-back) .fiche-actions .btn{border-radiu
 html[data-refonte] .btn.matiere{
   background:var(--org)!important;color:#1E0E00!important;border-color:transparent!important;
 }
-html[data-refonte] .btn.matiere:hover{background:color-mix(in srgb,#000 12%,var(--org))!important}
+@media (hover:hover){ html[data-refonte] .btn.matiere:hover{background:color-mix(in srgb,#000 12%,var(--org))!important} }
 
 /* ── ⛔ LA FICHE CLIENT EST UNE FENÊTRE, PAS UN ÉCRAN — MESURÉ, PAS SUPPOSÉ ──
    `ficheClient(id)` appelle `openModal(...)` : elle ne touche jamais `#content`, donc
@@ -7122,14 +7079,14 @@ html[data-verre="1"] .sidebar .nav-label{font-weight:640!important}
   font-family:inherit;font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;
   color:var(--acc-txt,var(--acc));
 }
-.nav-fav-edit:hover{text-decoration:underline}
+@media (hover:hover){ .nav-fav-edit:hover{text-decoration:underline} }
 .nav-item-fav{position:relative}
 .nav-fav{
   background:transparent;border:0;padding:0 2px;min-height:0;cursor:pointer;line-height:1;
   font-size:14px;color:var(--side-mut);margin-left:auto;flex-shrink:0;
 }
 .nav-fav.on{color:var(--acc-txt,var(--acc))}
-.nav-fav:hover{transform:scale(1.15)}
+@media (hover:hover){ .nav-fav:hover{transform:scale(1.15)} }
 .nav-fav-vide{padding:4px 12px 10px;font-size:12px;line-height:1.5;color:var(--side-mut)}
 /* La coupe qui suit les favoris sépare deux familles, pas deux écrans : elle respire plus. */
 .nav-item-fav + .nav-label,.nav-fav-vide + .nav-label{padding-top:22px!important}

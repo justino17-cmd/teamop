@@ -41,11 +41,10 @@ vrai('… dont plus de 150 règles de survol', SURVOL.length > 150, SURVOL.lengt
 
 console.log('\n── 780 · 1. toute règle de survol qui change une taille est NOMMÉE, avec sa raison ──');
 const PERMIS = {
-  '#suite-box:hover #suite-fly, #suite-box.open #suite-fly': 'le menu volant de la suite : il apparaît HORS du flux, rien ne bouge autour',
-  '[data-tip]:hover::after': 'l’infobulle : un pseudo-élément en position absolue (et coupée au doigt par `(hover:none)`)',
+  '#suite-box:hover #suite-fly': 'le menu volant de la suite : il apparaît HORS du flux, rien ne bouge autour (au doigt, c’est `.open`, posé par le toucher)',
+  '[data-tip]:hover::after': 'l’infobulle : un pseudo-élément en position absolue (et absente au doigt : tout survol vit sous `(hover:hover)`, test-2836)',
   '[data-tip]:hover::before': 'la pointe de l’infobulle, même chose',
   '.plg-tete.clic:hover .plg-go': 'la flèche « voir ce technicien » de l’en-tête du planning : en position absolue',
-  'html[data-refonte] [data-tip]:hover::after,html[data-refonte] [data-tip]:hover::before': 'au doigt, on ÉTEINT l’infobulle : c’est la garde, pas un saut',
 };
 const trouves = SURVOL.filter(r => r.decl.some(d => TAILLE.test(d.p)));
 const inconnus = trouves.filter(r => !PERMIS[r.sel]).map(r => r.decl.filter(d => TAILLE.test(d.p)).map(d => d.p).join(',') + ' ⟵ ' + r.sel.slice(0, 140));

@@ -32,7 +32,7 @@ problème trouvé, du plus grave au moins grave, avec le fichier et la ligne, pu
 | 7 | 4 | Un simple enregistrement rejoue toute l'entrée de l'écran (fondu, cascade, compteurs à zéro) | 16736, 16466, 16550 | « ▶ Démarrer » fait clignoter toute la liste | ✅ corrigé (partie C) |
 | 8 | 4 | Envois d'e-mails sans état « en cours » ni garde du second appui | 17886, 31838, 39092 | un second appui envoie le courriel deux fois | ✅ corrigé (partie D) |
 | 9 | 4 | Tiroir du menu (téléphone) : voile qui surgit et s'éteint sec ; un balayage sur le voile change de rubrique au lieu de fermer | 666, 15885 | on veut fermer le menu, on change d'écran | ✅ corrigé (partie E) |
-| 10 | 3 | Survol collé sur iPhone : 38 familles restent « survolées » après un toucher (« ＋ Créer », retour, onglets, cloche, menu, tuiles, lignes) | 4422, 4085, 1355, 3581, 450, 1430, 2169, 239, 244 | le bouton reste soulevé jusqu'au toucher suivant | à faire |
+| 10 | 3 | Survol collé sur iPhone : 38 familles restent « survolées » après un toucher (« ＋ Créer », retour, onglets, cloche, menu, tuiles, lignes) | 4422, 4085, 1355, 3581, 450, 1430, 2169, 239, 244 | le bouton reste soulevé jusqu'au toucher suivant | ✅ corrigé (partie F) |
 | 11 | 3 | Aucun retour à l'appui sur 36 familles (cases des plannings, barre d'outils du planning, logo et fiche du menu au Mac) ; lignes de liste en 200 ms | 1949–1964, 1777–1792, 1355, 7979, 8008, 7714 | on ne sait pas si le toucher a pris | à faire |
 | 12 | 3 | La fenêtre secondaire (photo, détail d'un traitement) arrive animée et disparaît d'un coup | 24406 | elle clignote en sortant | à faire |
 | 13 | 3 | Roues d'heure : ni entrée ni sortie, voile flouté à 2 px | 25228 | apparition et disparition sèches | à faire |
