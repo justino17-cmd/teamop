@@ -2479,6 +2479,11 @@ body{font-size:14.5px;line-height:1.45;text-rendering:optimizeLegibility;letter-
 :focus{outline:none}
 :focus-visible{box-shadow:var(--anneau);outline:none}
 .tbl td,.kpi-val,.kpi .n,input[type=number]{font-variant-numeric:tabular-nums}
+/* ⛔ un total recalculé À CHAQUE FRAPPE, aligné à droite, ne tremble pas — audit apple-design du 21 octobre 2026, point 29.
+   « Total HT · TVA · TTC » d'un devis ou d'une facture (#lig-tot), le total d'un bon de commande (#bon-tot) et le trajet d'une
+   tournée (#tournee-total) : en chiffres proportionnels, un « 1 » plus étroit qu'un « 8 » faisait glisser toute la ligne de
+   quelques pixels à chaque chiffre tapé. Chiffres tabulaires : elle ne bouge que quand le nombre de chiffres change. */
+#lig-tot,#bon-tot,#tournee-total{font-variant-numeric:tabular-nums}
 
 /* ── CHARPENTE ── barre latérale en verre dépoli, barre du haut en verre, comme dans Mail ou Réglages */
 .sidebar{background:var(--rf-barre),var(--side)!important;border-right:1px solid var(--brd)!important;
