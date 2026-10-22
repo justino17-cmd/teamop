@@ -14026,6 +14026,23 @@ function btnOccupe(el,texte){
     el.innerHTML=html; el.style.minWidth=''; el.classList.remove('btn-occupe');
   };
 }
+/* ⛔⛔ UN ENVOI SE DIT « EN COURS » ET NE PART QU'UNE FOIS — audit apple-design du 21 octobre 2026 (§ 16 : un retour de
+   statut pour ce qui dure). Prévenir les clients, écrire un e-mail, envoyer un devis ou une facture attendaient le serveur
+   (PDF, puis SMTP) sans que le bouton change, et un second appui RELANÇAIT tout : le client recevait le courriel deux fois.
+   `envoiGarde(clé, envoi)` grise le bouton du geste (« Envoi… ») jusqu'à la réponse, et refuse un second départ de la même
+   clé tant que le premier n'a pas répondu ; `srvMail`, plus bas, ne renvoie jamais un courriel identique déjà en route.
+   `boutonDuGeste()` : le bouton du clic en cours — un onclick écrit en ligne n'a pas d'autre accès à son élément ; à
+   appeler AVANT le premier `await` (après, l'événement n'existe plus). */
+function boutonDuGeste(){ try{ const e=window.event, t=e&&e.target; return t&&t.closest?t.closest('button,.btn'):null; }catch(_){ return null; } }
+var _envoisEnCours=new Set();   /* var : pas de zone morte si un envoi part pendant le chargement du script */
+function envoiGarde(cle,envoi){
+  if(_envoisEnCours.has(cle)){ toast('Envoi déjà en cours…'); return Promise.resolve(false); }
+  _envoisEnCours.add(cle);
+  const relacher=btnOccupe(boutonDuGeste(),'Envoi…');
+  let p; try{ p=Promise.resolve(envoi()); }catch(e){ p=Promise.reject(e); }
+  const fin=()=>{ _envoisEnCours.delete(cle); relacher(); }; p.then(fin,fin);
+  return p;
+}
 /* ═══ MULTITÂCHE — QUITTER UN ÉCRAN SANS PERDRE CE QU'ON Y FAISAIT ══════════════════
    Demandé par Justin le 21 septembre 2026 : pouvoir aller dans une autre catégorie, revenir,
    et continuer. Sur le terrain c'est la situation NORMALE : on remplit une intervention, un
@@ -17964,6 +17981,7 @@ function orgaRender(){
 }
 async function orgaEnvoyer(){
   const ids=Object.keys(ORGA.ids); if(!ids.length) return;
+  return envoiGarde('orga',async()=>{
   const sms=[]; let ok=0, ko=0;
   toast('Envoi en cours…');
   for(const id of ids){
@@ -17991,6 +18009,7 @@ async function orgaEnvoyer(){
   }
   closeModal(); views.planning();
   toast('✉️ '+ok+' client(s) prévenu(s)'+(ko?' · '+ko+' échec(s)':''));
+  });
 }
 /* ── Planning en pleine page : on masque le menu et la barre du haut ── */
 function planPleinPageOn(){ try{ return document.body.classList.contains('plan-plein'); }catch(e){ return false; } }
@@ -22115,6 +22134,18 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
   location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent((opts&&opts.mailtoBody)||body);
   return false;
 }
+/* un courriel IDENTIQUE (destinataire, objet, texte, pièces, boîte) déjà en route ne repart pas : le second appel attend la
+   réponse du premier. Enveloppe et non réécriture : les bancs relisent le corps de srvMail (test-792, test-793, test-2692). */
+var _srvMailEnRoute=new Map();
+(function(){ const envoyer=srvMail;
+  window.srvMail=function(to,subject,body,okMsg,cat,boxOverride,opts){
+    let cle=null; try{ cle=JSON.stringify([to,subject,body,((opts&&opts.atts)||[]).map(a=>[a.filename,String(a.content||'').length]),(opts&&opts.mailboxId)||'']); }catch(_){ }
+    if(cle&&_srvMailEnRoute.has(cle)) return _srvMailEnRoute.get(cle);
+    const p=Promise.resolve(envoyer.apply(this,arguments));
+    if(cle){ _srvMailEnRoute.set(cle,p); const fin=()=>{ if(_srvMailEnRoute.get(cle)===p) _srvMailEnRoute.delete(cle); }; p.then(fin,fin); }
+    return p;
+  };
+})();
 let _srvMailErr='';
 /* Capacités du serveur (mise en cache) — permet de savoir si les pièces jointes sont gérées */
 let _srvFeat=null;
@@ -31965,6 +31996,7 @@ function mailPickFile(inp){ const f=inp.files&&inp.files[0]; if(!f) return;
 async function mailSend(){ const to=(($('mc-to')||{}).value||'').trim(), subject=(($('mc-subject')||{}).value||'').trim(), text=(($('mc-text')||{}).value||'').trim();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)){ toast('Destinataire invalide'); return; }
   if(!subject&&!text){ toast('Ajoute un objet ou un message'); return; }
+  return envoiGarde('mail:'+to,async()=>{
   const val=(($('mc-from')||{}).value)||'';
   const opts={meta:{track:true},brandName:(fullName(currentUser)+' · '+mailBrandName()).slice(0,80)};
   let fromLabel=mailBrandName();
@@ -31980,6 +32012,7 @@ async function mailSend(){ const to=(($('mc-to')||{}).value||'').trim(), subject
   if(!ok){ toast('✉️ Message non envoyé — ton texte est conservé ici : réessaie, ou termine-le dans le brouillon Mail préparé.'); return; }
   db.mailSent=db.mailSent||[]; db.mailSent.push({ts:Date.now(),to,subject,text,att:_mailAtt?_mailAtt.filename:'',from:fromLabel}); if(db.mailSent.length>200) db.mailSent=db.mailSent.slice(-200); save();
   closeModal(); if(current==='boiteMail') views.boiteMail();
+  });
 }
 /* 📥 Réponses des fournisseurs — relevées par le serveur (Boîte Commandes), rattachées aux bons */
 async function renderBonsReponses(el){
@@ -39235,13 +39268,13 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
        EN PDF JOINT — le courriel disait « veuillez trouver ci-joint » sans rien joindre. Si le PDF
        ne peut pas être construit, le courriel part sans, et son texte ne prétend plus le contraire.
        Le brouillon de secours (mailto) ne sait pas joindre : son texte ne dit pas « ci-joint ». */
-    return (async()=>{ let pdf=''; try{ pdf=await docPdfChaine(kind,d); }catch(e){ pdf=''; }
+    return envoiGarde('doc:'+kind+':'+id,async()=>{ let pdf=''; try{ pdf=await docPdfChaine(kind,d); }catch(e){ pdf=''; }
       const opts=Object.assign({},docMailOpts(d.rapportModele)||{});
       if(pdf){ opts.atts=[{filename:(cfg.titre+'-'+(d.num||'document')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'-')+'.pdf',content:btoa(pdf)}];
         opts.mailtoBody=genDocTexte(kind,d,false); }
       const ok=await srvMail(c.email,sujet,genDocTexte(kind,d,!!pdf),'✉️ '+cfg.titre+(cfg.fem?' envoyée':' envoyé')+' à '+(c.nom||c.email)+(pdf?' (PDF joint)':''),'devis',null,Object.keys(opts).length?opts:undefined);
       if(ok){ marquer(); if(current===kind&&views[kind]) views[kind](); }
-      return ok; })();
+      return ok; });
   }
 }
 

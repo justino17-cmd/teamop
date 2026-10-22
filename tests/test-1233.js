@@ -10,6 +10,8 @@
    passe comme avant (message gardé dans « Envoyés », fenêtre fermée).                                    */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const BRUT = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
+/* la garde d'envoi (audit apple-design, 21 octobre 2026) : mailSend passe par envoiGarde — le bac à sable fournit la VRAIE */
+const GARDE = require('./outils-envoi.js').gardeEnvoi(BRUT);
 const SRC = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d).slice(0, 300) : '')); } };
@@ -36,6 +38,7 @@ function monde(srvMailRend) {
     function fullName(u){ return u.prenom+' '+u.nom; } function mailBrandName(){ return 'Nettoyage Excellence'; }
     async function srvFeatures(){ return {}; }
     async function srvMail(){ __srv++; return ${srvMailRend}; }
+    ${GARDE}
     ${MS}`, ctx);
   return ctx; }
 
