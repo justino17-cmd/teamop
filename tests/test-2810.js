@@ -31,7 +31,8 @@ v('⛔ seules les vues neuves portent « Nouveau »', Object.keys(ou).filter(k =
 v('⛔ l’argent, les contrats et le rapport des agents : au patron seul', ['facturation', 'contrats', 'rapport'].map(k => ctx.PATRON_SEUL.includes(k)), [true, true, true]);
 ctx.MYROLE = 'collaborateur';
 v('⛔ un collaborateur ne les ouvre pas ; il garde les Incidents', ['facturation', 'contrats', 'rapport', 'incidents'].map(k => ctx.vuePermise(k)), [false, false, false, true]);
-v('les vues de chaque console sont DÉDUITES du menu (les neuves y sont)', [ctx.VUES_PAR_APP.gestion.includes('rapport'), ctx.VUES_PAR_APP.messages.includes('rapport'), ctx.VUES_PAR_APP.messages.includes('facturation')], [true, false, true]);
+/* relecture du 22 octobre 2026 : Facturation lit les factures d'OP GESTION — elle n'est donc pas dans la console OP MESSAGES */
+v('les vues de chaque console sont DÉDUITES du menu (les neuves y sont ; Facturation à OP GESTION seulement)', [ctx.VUES_PAR_APP.gestion.includes('rapport'), ctx.VUES_PAR_APP.messages.includes('rapport'), ctx.VUES_PAR_APP.messages.includes('facturation'), ctx.VUES_PAR_APP.gestion.includes('facturation')], [true, false, false, true]);
 const VBk = Object.keys(ctx.VUES_BIENTOT);
 /* lot 1 (g), 21 octobre 2026 : les quatre vues neuves sont faites — la table est VIDE, et le mécanisme reste pour la prochaine vue annoncée */
 v('une vue neuve pas encore faite le dit (VUES_BIENTOT) — et rien d’autre n’y est ; les quatre du lot 1 sont faites, la table est vide', [VBk.every(k => NEUVES.includes(k)), VBk], [true, []]);

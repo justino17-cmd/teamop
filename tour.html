@@ -2953,7 +2953,7 @@ var APPS_TOUR={
    (`vueBientot`) au lieu de montrer des chiffres inventés. */
 var MENU=[
   {section:'Tour',vues:[['accueil','Accueil','gestion messages']]},
-  {section:'Clients',vues:[['demandes','Demandes','gestion','bdg-dem'],['comptes','Comptes','messages'],['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion messages'],['facturation','Facturation','gestion messages','','',1]]},
+  {section:'Clients',vues:[['demandes','Demandes','gestion','bdg-dem'],['comptes','Comptes','messages'],['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion messages'],['facturation','Facturation','gestion','','',1]]},
   {section:'Support',vues:[['support','Courrier','gestion','bdg-supp'],['surveillance','Surveillance','gestion messages','bdg-surv'],['incidents','Incidents','gestion messages','','',1]]},
   {section:'Juridique',vues:[['contrats','Contrats','gestion messages','','',1]]},
   {section:'Équipe d’agents',vues:[['agents','Agents','gestion'],['rapport','Rapport','gestion','','',1]]},
@@ -2979,7 +2979,10 @@ function groupeOnglets(t){ var l=groupeDe(t); if(l.length<2) return '';
    répondent « Réservé au patron » à tout autre compte (monPatronStrict). Le Journal et les Sauvegardes
    restaient pourtant au menu d'un collaborateur, pour n'y montrer qu'un refus ; et une adresse tapée à
    la main (#gestion/equipe) ouvrait un écran retiré du menu. La liste sert au menu ET à la navigation. */
-var PATRON_SEUL=['essais','equipe','journal','agents','donnees','facturation','contrats','rapport'];   // l'argent, les contrats et le rapport des agents : le patron (lot 1)
+/* ⚠️ Lot 1 (relecture du 22 octobre 2026) : Facturation, Contrats et Rapport sont au patron dans le MENU seulement. Leurs lectures
+   restent ouvertes à un collaborateur côté serveur (« l'administrateur lit, le patron seul écrit » : contrats.js, direction.js,
+   /stripe/paiements que les Abonnements montrent déjà) — fermer ces routes est une décision de Justin, posée dans REPRISE.md. */
+var PATRON_SEUL=['essais','equipe','journal','agents','donnees','facturation','contrats','rapport'];
 /* ⛔ v2.87 (17 octobre 2026, Justin : « les catégories qui servent à quelque chose, les autres qui servent à rien —
    je range ») : Connexions et Devis IA quittent le menu, rien ne se perd. Connexions devient un onglet d'Entreprises
    (elle doublait la fiche et les compteurs d'Entreprises), Devis IA un onglet d'Abonnements (c'est une option qu'on
@@ -5820,7 +5823,8 @@ function vueAccueil(){
       l2:'<b>'+esc(entNom(i))+'</b> · '+esc(APP_L[i.app]||i.app||'—'),
       l3:esc(fmtAgo(i.lastTs))+(i.firstTs?' · première fois le '+esc(fmtJour(i.firstTs)):''),
       past:{c:'p-rouge',t:'×'+(i.count||1)},action:"allerIncident('"+jsq(i.id)+"')"}); })});
-  if(APP==='gestion'&&RAP.l.length) G.push({titre:'Au rapport',n:Math.min(4,RAP.l.length),tot:RAP.total||RAP.l.length,bloc:'reg-bloc',
+  /* compte : ce qui ATTEND quelqu'un (« à traiter ») — une demande déjà « en cours » est prise, le bandeau ne la compte pas */
+  if(APP==='gestion'&&RAP.l.length) G.push({titre:'Au rapport',n:Math.min(4,RAP.l.length),tot:RAP.total||RAP.l.length,compte:RAP.aTraiter,bloc:'reg-bloc',
     sous:'Ce qui attend un client, du plus ancien au plus récent.',opt:false,
     voir:"setTab('support')",
     l:RAP.l.slice(0,4).map(function(x){ var vieux=Date.now()-(x.recuTs||0)>24*3600000;
@@ -5870,11 +5874,13 @@ function vueAccueil(){
   if(CLI.err) pannes.push(ligneAc({ton:'ambre',ico:'demandes',t1:'Les demandes ne répondent pas',titre:'Demandes',l2:esc(CLI.err),action:"chargerClients()"}));
   if(ABO.loaded&&ABO.configured&&ABO.videFaute) pannes.push(ligneAc({ton:'ambre',ico:'abonnements',t1:'Stripe ne répond pas',titre:'Stripe',l2:esc(ABO.stripeErr||'les paiements n’ont pas pu être lus'),action:"chargerAbos()"}));
   if(MSG.err) pannes.push(ligneAc({ton:'ambre',ico:'support',t1:'Le courrier ne répond pas',titre:'Courrier',l2:esc(MSG.err),action:"setTab('support')"}));
+  if(APP==='gestion'&&RAP.err) pannes.push(ligneAc({ton:'ambre',ico:'support',t1:'Les demandes à traiter n’ont pas pu être relues',titre:'Au rapport',
+    l2:esc(RAP.err)+(RAP.l.length?' — la liste affichée est celle d’avant':''),action:"chargerRapport()"}));
   if(pannes.length) G.push({titre:'Ce qui n’a pas pu être lu',n:pannes.length,tot:pannes.length,bloc:'reg-bloc',sous:'Ces chiffres manquent à l’accueil : le reste est à jour.',opt:false,l:pannes});
-  n=G.reduce(function(t,g){ return g.titre==='Ce qui n’a pas pu être lu'?t:t+(g.tot||0); },0);
+  n=G.reduce(function(t,g){ return g.titre==='Ce qui n’a pas pu être lu'?t:t+(g.compte!=null?g.compte:(g.tot||0)); },0);
   var prio;
   if(INC.err) prio=acErr('La surveillance ne répond pas',INC.err,'chargerIncidents()');
-  else if(!INC.loaded||!CLI.loaded||!ABO.loaded) prio=acSquel();
+  else if(!INC.loaded||!CLI.loaded||!ABO.loaded||(APP==='gestion'&&MYAPPS.indexOf('gestion')>=0&&!RAP.loaded)) prio=acSquel();
   else if(!G.length) prio=videTour('','Rien en attente. Les demandes du site, les incidents signalés par les applications, les courriels non lus et les prélèvements refusés arrivent ici.',
     '<button type="button" class="btn-fant" onclick="allerIncidents()">Ouvrir la surveillance</button>',false);
   else prio='<div class="reg">'+G.map(acGroupe).join('')+'</div>';
@@ -6209,14 +6215,16 @@ function acGroupe(g){
 /* ══ « AU RAPPORT » (lot 1, partie b — 21 octobre 2026, maquette validée par Justin) ══
    Ce qui attend un client, du plus ancien au plus récent : les demandes « À traiter » et « En cours » du Courrier, lues par
    /api/monitor/mail/stats (champ `ouverts`, vingt au plus). Combien de temps elle attend, et qui s'en occupe — ou « personne ».
-   En lecture : changer un état se fait dans le Courrier. Un serveur d'avant (sans `ouverts`) ou une lecture refusée : le groupe ne paraît pas. */
-var RAP={loaded:false,l:[],total:0};
+   En lecture : changer un état se fait dans le Courrier. Un serveur d'avant (sans `ouverts`) : le groupe ne paraît pas.
+   ⛔ Une lecture ratée (relecture du 22 octobre 2026) n'efface rien et SE DIT : la liste d'avant reste, et « Ce qui n'a pas pu
+   être lu » le dit — jamais un accueil « Rien en attente » pendant une panne du courrier. */
+var RAP={loaded:false,l:[],total:0,aTraiter:0,err:''};
 function chargerRapport(){
   if(MYAPPS.indexOf('gestion')<0) return Promise.resolve();
   return apiGet('/api/monitor/mail/stats').then(function(d){
-    RAP.loaded=true; RAP.l=d&&Array.isArray(d.ouverts)?d.ouverts:[]; RAP.total=d?(d.aTraiter||0)+(d.enCours||0):0;
+    RAP.loaded=true; RAP.err=''; RAP.l=d&&Array.isArray(d.ouverts)?d.ouverts:[]; RAP.total=d?(d.aTraiter||0)+(d.enCours||0):0; RAP.aTraiter=d?(d.aTraiter||0):0;
     if(TAB==='accueil'&&APP==='gestion') render();
-  },function(){ RAP.loaded=true; RAP.l=[]; RAP.total=0; });
+  },function(e){ RAP.loaded=true; RAP.err=msgErreur(e); if(TAB==='accueil'&&APP==='gestion') render(); });
 }
 /* depuis combien de temps : « 12 min », « 5 h », « 3 j » — un mot court, à droite de la ligne */
 function attenteCourte(ts){ var m=Math.max(0,Math.round((Date.now()-ts)/60000));
@@ -8904,7 +8912,8 @@ function ctPaquetNom(cle){ var p=String(cle||'').replace(/^paquet:/,'').split(':
   var f=(p[1]||'').split('_').map(function(m){ return m.charAt(0).toUpperCase()+m.slice(1); }).join(' ');
   return app+(f?' · '+f:''); }
 /* la version qu'on lit en touchant une pièce : celle en vigueur, sinon le dernier brouillon ; aucune → la ligne ne fait rien */
-function ctAction(T,type){ var t=(T||[]).filter(function(x){ return x.type===type; })[0]||{}, n=t.enVigueur?t.enVigueur.n:((t.versions||[])[0]||{}).n;
+function ctAction(T,type){ var t=(T||[]).filter(function(x){ return x.type===type; })[0]||{}, vs=t.versions||[],
+    n=t.enVigueur?t.enVigueur.n:((vs.filter(function(x){ return x.statut==='brouillon'; })[0]||vs[0]||{}).n);   /* un brouillon avant une version retirée */
   return n?"ctLire('"+jsq(type)+"',"+Number(n)+")":"void 0"; }
 function vueContrats(){
   var tete=enTete('Contrats',
@@ -8935,11 +8944,11 @@ function vueContrats(){
         l2:'manque : '+q.manquantes.map(function(m){ return esc(LIB[m]||m); }).join(' · '),past:{c:'p-ambre',t:'bloqué'},action:ctAction(T,q.manquantes[0])}); }).join('')+'</div>'));
     /* reg-g-fixe : c'est ce que la page sert à lire — regPliage replierait ce groupe long, venu après les bloqués */
     G.push(abnGroupe('Les pièces',T.length,'Toucher une pièce lit sa version en vigueur — ou, à défaut, le dernier brouillon.',true,
-      '<div class="reg-bloc">'+T.map(function(t){ var e=t.enVigueur, dern=(t.versions||[])[0];
+      '<div class="reg-bloc">'+T.map(function(t){ var e=t.enVigueur, vs=t.versions||[], dern=vs.filter(function(x){ return x.statut==='brouillon'; })[0], ret=!e&&vs[0]&&vs[0].statut==='retire'?vs[0]:null;   /* relecture du 22 octobre : la plus récente peut être RETIRÉE */
         return ligneAc({ton:e?'bleu':'ambre',ico:'contrats',t1:esc(t.libelle||t.type),titre:t.libelle||t.type,
-          l2:e?'version '+esc(e.n)+' · validée par <b>'+esc(e.validePar||'—')+'</b> le '+esc(fmtJour(e.valideLe)):'aucune version validée'+(dern?' · dernier brouillon : version '+esc(dern.n):' · aucun texte'),
+          l2:e?'version '+esc(e.n)+' · validée par <b>'+esc(e.validePar||'—')+'</b> le '+esc(fmtJour(e.valideLe)):'aucune version en vigueur'+(ret?' · version '+esc(ret.n)+' retirée':'')+(dern?' · dernier brouillon : version '+esc(dern.n):ret?'':' · aucun texte'),
           l3:t.aConfirmer?'des points « À CONFIRMER » restent à trancher dans le brouillon':'',
-          past:e?{c:'p-vert',t:'en vigueur'}:{c:'p-ambre',t:dern?'brouillon':'vide'},
+          past:e?{c:'p-vert',t:'en vigueur'}:{c:'p-ambre',t:dern?'brouillon':ret?'retirée':'vide'},
           action:ctAction(T,t.type)}); }).join('')+'</div>').replace('<div class="reg-g">','<div class="reg-g reg-g-fixe">')); }
   if(CT.cliLec===-1) G.push(acErr('Les contrats des clients ne répondent pas',CT.cliErr,'chargerContrats()'));
   else if(CT.cliLec===1){ var C=CT.cli||[];
@@ -9018,6 +9027,10 @@ function vueFacturation(){
   if(!ABO.configured) return tete+videTour('Stripe n’est pas relié au serveur','Dès que Stripe sera relié, les factures et les paiements apparaîtront ici tout seuls.','');
   var P=ABO.paiements||[];
   if(ABO.videFaute&&!P.length) return tete+acErr('Stripe ne répond pas',ABO.stripeErr||'Les factures n’ont pas pu être lues.','chargerAbos()');
+  /* relecture du 22 octobre 2026 : le serveur lit les 50 DERNIÈRES factures (STRIPE_PAY_URL) — passé ce nombre, les mois anciens sont
+     coupés ; et les refus des 30 jours se comptent aussi hors de cette liste (ABO.echecs). On le DIT, on ne présente pas un total partiel. */
+  var limite=(P.length>=50?'Calculé sur les '+P.length+' dernières factures lues chez Stripe : les mois les plus anciens peuvent être incomplets. ':'')+
+    ((Number(ABO.echecs)||0)>P.filter(paieEchec).length?'Stripe compte '+Number(ABO.echecs)+' factures refusées sur 30 jours ; seules celles de cette liste paraissent ici. ':'');
   if(ABO.stripeErr) tete+='<div class="note" style="margin-bottom:14px">⚠️ '+esc(ABO.perime?('Factures de Stripe du '+fmtDate(ABO.perime)+' — la relecture a échoué. '):'')+esc(ABO.stripeErr)+
     ' <a href="#" onclick="chargerAbos();return false">Relire</a></div>';
   var auj=factMois(Date.now());
@@ -9042,9 +9055,11 @@ function vueFacturation(){
   payees.forEach(function(p){ var c=factMois(p.date); if(!mois[c]){ mois[c]=[]; ordre.push(c); } mois[c].push(p); });
   ordre.sort(function(a,b){ return b-a; }).slice(0,6).forEach(function(c){
     var l=mois[c], nom=new Date(Math.floor(c/12),c%12,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-    G.push(abnGroupe('Encaissé en '+esc(nom),null,esc(fmtEur(somme(l)))+' · '+l.length+' facture'+(l.length>1?'s':''),true,
+    /* le total dans le TITRE : un mois long se replie tout seul (regPliage), et son sous-titre avec lui (relecture du 22 octobre 2026) */
+    G.push(abnGroupe('Encaissé en '+esc(nom)+' · '+esc(fmtEur(somme(l))),l.length,'',true,
       '<div class="abn-jrn">'+l.map(function(p){ return factLigne(p,null); }).join('')+'</div>')); });
   var corps=G.length?'<div class="reg" style="margin-top:26px">'+G.join('')+'</div>':videTour('Aucune facture pour l’instant','Les factures émises par Stripe paraîtront ici dès le premier abonnement.','');
+  if(limite) kpi+='<div class="note" style="margin-top:12px">'+esc(limite)+'</div>';
   return tete+kpi+corps+(annulees.length?'<p style="margin:12px 0 0;font-size:12px;color:var(--muted)">'+annulees.length+' facture'+(annulees.length>1?'s annulées':' annulée')+' chez Stripe, non comptée'+(annulees.length>1?'s':'')+' ici.</p>':'');
 }
 function vueAbonnements(){
@@ -10075,6 +10090,9 @@ function vueJournal(){
           '<span class="reg-l2">'+([e.cible?esc(e.cible):'',e.detail?esc(e.detail):'',e.qui?'par '+esc(e.qui):''].filter(Boolean).join(' · ')||'—')+'</span></span>'+
           '<span class="reg-fin">'+(r?'<span class="past '+r[1]+'">'+r[0]+'</span>':'')+'<span class="reg-h">'+esc(fmtDate(e.ts))+'</span></span></div>'; }).join('')+'</div>';
   var nAg=AGJ&&JR.agLec===1?JR.ag.length:0;
+  /* relecture du 22 octobre 2026 : une panne du journal de la console ne cache pas celui des agents, lu à part */
+  var grpAg=AGJ&&(f==='tout'||f==='agents')?jrGroupe('Ce qu’ont fait les agents',JR.agLec===1?nAg:null,
+      'Chaque geste d’un agent — fait, proposé, refusé ou en erreur — noté par le serveur (les 100 derniers paraissent ici).',false,corpsAg):'';
   var corpsAct=A.length
     ? '<div class="reg-bloc act">'+A.map(function(a){
         return '<div class="reg-l inerte"><span class="reg-txt"><span class="reg-l2">'+esc(a.tx)+'</span></span>'+
@@ -10088,11 +10106,11 @@ function vueJournal(){
     bloc=jrGroupe('Connexions à la console',null,'',false,
       '<div class="encart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg>'+
       '<div class="encart-tx">'+esc(JR.err)+'</div></div>')+
-      jrGroupe('Ce qui a été fait dans cette console',A.length,'Les gestes sont notés par le serveur — vus de tous les appareils, gardés après un rechargement (les 200 derniers paraissent ici).',false,corpsAct);
+      jrGroupe('Ce qui a été fait dans cette console',A.length,'Les gestes sont notés par le serveur — vus de tous les appareils, gardés après un rechargement (les 200 derniers paraissent ici).',false,corpsAct);   /* un collaborateur ne lit pas le journal des agents : rien à montrer ici */
   else if(JR.err)
     bloc=jrGroupe('Connexions à la console',null,'',false,
       '<div class="jr-err"><span>'+esc(JR.err)+'</span><button type="button" class="btn-fant" onclick="JR.loaded=false;chargerJournal();render()">Réessayer</button></div>')+
-      jrGroupe('Ce qui a été fait dans cette console',A.length,'Les gestes sont notés par le serveur — vus de tous les appareils, gardés après un rechargement (les 200 derniers paraissent ici).',false,corpsAct);
+      jrGroupe('Ce qui a été fait dans cette console',A.length,'Les gestes sont notés par le serveur — vus de tous les appareils, gardés après un rechargement (les 200 derniers paraissent ici).',false,corpsAct)+grpAg;
   else{
     var g=[];
     /* Le groupe des refusées est TOUJOURS rendu quand il est dans le filtre : son absence
@@ -10103,8 +10121,7 @@ function vueJournal(){
       'Qui est entré, depuis quel appareil, et quand.',true,corpsOk));
     if(f==='tout'||f==='actions') g.push(jrGroupe('Ce qui a été fait dans cette console',A.length,
       'Les gestes sont notés par le serveur — vus de tous les appareils, gardés après un rechargement (les 200 derniers paraissent ici).',false,corpsAct));
-    if(AGJ&&(f==='tout'||f==='agents')) g.push(jrGroupe('Ce qu’ont fait les agents',JR.agLec===1?nAg:null,
-      'Chaque geste d’un agent — fait, proposé, refusé ou en erreur — noté par le serveur (les 100 derniers paraissent ici).',false,corpsAg));
+    if(grpAg) g.push(grpAg);
     bloc=g.join('');
   }
 

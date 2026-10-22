@@ -476,7 +476,8 @@ module.exports = function monterMessagerie(app, ctx) {
           if (!estProtege && midCle && !suivi[midCle] && role === 'inbox') {
             const deAdr = de.adr;
             suivi[midCle] = { statut: estNotification(deAdr, env.subject) ? 'resolu' : 'aTraiter', assigne: '', par: '',
-              ts: Date.now(), recuTs: env.date ? new Date(env.date).getTime() : Date.now(), repTs: 0,
+              /* l'en-tête Date: vient de l'EXPÉDITEUR : une date dans le futur se borne à l'heure où le serveur voit le message (relecture du 22 octobre 2026) */
+              ts: Date.now(), recuTs: Math.min((env.date && new Date(env.date).getTime()) || Date.now(), Date.now()), repTs: 0,
               de: deAdr, objet: String(env.subject || '').slice(0, 160), auto: estNotification(deAdr, env.subject) ? 1 : 0 };
             suiviSauve();
           }
@@ -823,8 +824,10 @@ module.exports = function monterMessagerie(app, ctx) {
       reponseMoyenneMin: moyenne, repondus: delais.length, sujets, semaines,
       /* « Au rapport » (lot 1 de la refonte de la Tour, 21 octobre 2026) : ce qui attend un client, du plus ancien au plus récent — vingt au plus,
          les notifications automatiques à part (elles n'attendent personne). En LECTURE : rien ne s'écrit ici. */
-      ouverts: clients.filter(x => x.statut === 'aTraiter' || x.statut === 'enCours').sort((a, b) => (a.recuTs || 0) - (b.recuTs || 0)).slice(0, 20)
-        .map(x => ({ statut: x.statut, assigne: x.assigne || '', recuTs: x.recuTs || 0, de: x.de || '', objet: x.objet || '' }))
+      /* `recuTs` vient de l'en-tête Date: de l'EXPÉDITEUR : borné à la création depuis le 22 octobre 2026 ; une entrée plus ancienne au futur
+         se borne ici à maintenant. Une date trop ANCIENNE ne se borne pas — connecter une boîte relève de vrais vieux messages (REPRISE.md). */
+      ouverts: clients.filter(x => x.statut === 'aTraiter' || x.statut === 'enCours').sort((a, b) => Math.min(a.recuTs || 0, now) - Math.min(b.recuTs || 0, now)).slice(0, 20)
+        .map(x => ({ statut: x.statut, assigne: x.assigne || '', recuTs: Math.min(x.recuTs || 0, now), de: x.de || '', objet: x.objet || '' }))
     });
   });
 

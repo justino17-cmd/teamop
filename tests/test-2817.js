@@ -98,6 +98,13 @@ const JOURNAL = [
   bac.APP = 'messages'; Hm = bac.vueJournal();
   vrai('⛔ console OP MESSAGES : ni le groupe des agents, ni leur filtre — et le filtre « Agents » resté posé retombe sur « Tout »', !/Ce qu’ont fait les agents/.test(Hm) && !/jrFiltrePoser\('agents'\)/.test(Hm) && /aria-pressed="true" onclick="jrFiltrePoser\('tout'\)"/.test(Hm), Hm.slice(Hm.indexOf('tt-seg'), Hm.indexOf('tt-seg') + 400));
   bac.APP = 'gestion'; bac.JR.f = 'tout';
+  /* ⛔ relecture du 22 octobre 2026 : une panne du journal de la CONSOLE ne cache pas celui des agents, lu à part */
+  const errAvant = bac.JR.err; bac.JR.err = 'Serveur injoignable.';
+  const HE = bac.vueJournal();
+  vrai('⛔ journal de la console en panne : sa panne est dite, ET le groupe des agents (lu, lui) reste là', /Serveur injoignable\./.test(HE) && /Ce qu’ont fait les agents/.test(HE) && /<b>Camille<\/b>/.test(HE));
+  bac.JR.err = 'Réservé au patron — les connexions à la console ne sont visibles que par lui.';
+  vrai('…mais pas sous la note « réservé au patron » : un collaborateur ne lit pas le journal des agents (jamais un squelette sans fin)', !/Ce qu’ont fait les agents/.test(bac.vueJournal()));
+  bac.JR.err = errAvant;
 
   /* ⛔ une réponse 200 qui ne porte pas de liste (un relais, un serveur d'avant) : « on ne sait pas », jamais « aucun agent » */
   const vf0 = bac.fetch;

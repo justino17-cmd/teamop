@@ -62,11 +62,12 @@ async function await0() {
   const ordre = ['Refusées', 'En attente de règlement', 'Encaissé en'].map(t => XG.indexOf(t));
   v('refusées d\'abord, puis en attente, puis l\'encaissé', ordre.every((x, i) => x >= 0 && (!i || x > ordre[i - 1])), true);
   const eur = n => n.toLocaleString('fr-FR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).replace(/ | /g, ' ') + ' €';
+  vrai('le titre de chaque mois porte SON total (un mois replié le garde visible), son compteur le nombre de factures', new RegExp('Encaissé en [^<]+ · ' + eur(78.5).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</span><span class="reg-n">2<').test(H.replace(/\u202f|\u00a0/g, ' ')), H.slice(H.indexOf('Encaissé en'), H.indexOf('Encaissé en') + 200));
   vrai('encaissé ce mois : 49 + 29,50 = ' + eur(78.5) + ', deux factures', X.indexOf(eur(78.5) + ' Encaissé ce mois · 2 factures') >= 0, X.slice(0, 400));
   vrai('le mois dernier : ' + eur(99) + ', une facture', X.indexOf(eur(99) + ' Le mois dernier · 1 facture') >= 0, X.slice(0, 400));
   vrai('une en attente, une refusée (tuiles)', /1 En attente de règlement 1 Refusées/.test(X), X.slice(0, 400));
   v('six mois encaissés au plus (dix au fichier)', (X.match(/Encaissé en /g) || []).length, 6);
-  v('…les plus récents d\'abord', (H.match(/Encaissé en ([^<]+)</g) || []).slice(0, 2).map(m => m.replace('Encaissé en ', '').replace('<', '')),
+  v('…les plus récents d\'abord', (H.match(/Encaissé en ([^<·]+) ·/g) || []).slice(0, 2).map(m => m.replace('Encaissé en ', '').replace(' ·', '')),
     [now, new Date(now.getFullYear(), now.getMonth() - 1, 1)].map(d => d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })));
   vrai('⛔ l\'annulée n\'est ni refusée ni encaissée : elle se compte à part', !/Société F/.test(X) && /1 facture annulée chez Stripe, non comptée ici/.test(X), X.slice(-200));
   vrai('la refusée mène aux abonnements impayés', /allerImpayes\(\)/.test(H));
@@ -74,6 +75,13 @@ async function await0() {
   vrai('⛔ un lien n\'est posé que vers une vraie adresse https (la facture « javascript: » n\'en a pas)', H.indexOf('javascript:alert') < 0 && /window\.open\('https:\/\/invoice\.stripe\.com\/i\/a'/.test(H));
   vrai('une facture sans lien le dit (classe « mort », pas de clic)', (H.match(/class="abn-j mort"/g) || []).length >= 2);
 
+  vrai('moins de 50 factures et aucun refus hors liste : aucune note de limite', !/dernières factures lues chez Stripe/.test(X) && !/factures refusées sur 30 jours/.test(X));
+  /* ⛔ relecture du 22 octobre 2026 : le serveur ne lit que les 50 DERNIÈRES factures — passé ce nombre, la page le dit */
+  const cinquante = paiements.concat(Array.from({ length: 50 }, (_, k) => ({ id: 'in_x' + k, clientNom: 'X', clientEmail: '', montant: 1, date: Date.now() - 3600000, statut: 'paye', url: '' })));
+  await charger({ ok: true, configured: true, abos: [], mrr: 0, actifs: 0, impayes: 1 }, { ok: true, configured: true, paiements: cinquante, echecs: 3 });
+  const XL = texte(page.vueFacturation());
+  vrai('⛔ 50 factures ou plus : « calculé sur les N dernières factures… les mois les plus anciens peuvent être incomplets »', /Calculé sur les \d+ dernières factures lues chez Stripe : les mois les plus anciens peuvent être incomplets/.test(XL), XL.slice(0, 500));
+  vrai('⛔ Stripe compte plus de refus (3) que la liste n\'en montre (1) : la page le dit', /Stripe compte 3 factures refusées sur 30 jours ; seules celles de cette liste paraissent ici/.test(XL));
   await charger({ ok: true, configured: true, abos: [], mrr: 0, actifs: 0, impayes: 0, erreur: 'Stripe indisponible' }, { ok: true, configured: true, paiements: [], echecs: 0, erreur: 'Stripe indisponible' });
   const P1 = texte(page.vueFacturation());
   vrai('⛔ Stripe en panne, rien de lu : « Stripe ne répond pas » — jamais « aucune facture »', /Stripe ne répond pas/.test(P1) && !/Aucune facture/.test(P1), P1);

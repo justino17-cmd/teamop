@@ -72,6 +72,10 @@ const preparer = (banc) => { const vap = webpush.generateVAPIDKeys();
   const br3 = await post('/api/monitor/contrats/brouillon', { type: 'conditions_generales', texte: 'Nouvelle rédaction <b>en gras</b> — pas encore validée.', note: 'banc' });
   v('…puis un brouillon PLUS RÉCENT, pas encore validé', br3.s, 200);
   const n3 = br3.d.version && br3.d.version.n;
+  /* le contrat de sous-traitance : un brouillon validé PUIS retiré (vraies routes) — plus rien en vigueur, la version retirée reste au registre */
+  const brD = await post('/api/monitor/contrats/brouillon', { type: 'dpa', texte: 'Contrat de sous-traitance — banc 2814.', note: 'banc' });
+  const nD = brD.d.version && brD.d.version.n;
+  v('le contrat de sous-traitance : validé puis RETIRÉ par les vraies routes', [(await post('/api/monitor/contrats/valider', { type: 'dpa', n: nD })).s, (await post('/api/monitor/contrats/retirer', { type: 'dpa', n: nD })).s], [200, 200]);
 
   let jeton = TP, rendus = 0;
   const bac = { API, fetch, Promise, JSON, Date, String, Array, Math, Error, Number, Object, TAB: 'contrats', MYROLE: 'patron', AG: { sec: '' },
@@ -91,13 +95,13 @@ const preparer = (banc) => { const vap = webpush.generateVAPIDKeys();
   vrai('⛔ « en vigueur » : version ' + n + ', validée par Patron — le tampon du serveur', /validée par <b>Patron<\/b>/.test(lCG) && /p-vert">en vigueur</.test(lCG) && new RegExp('version ' + n + ' ').test(lCG), lCG);
   const HP0 = H.slice(H.indexOf('>Les pièces<'));
   const lDPA = (HP0.match(/<button type="button" class="reg-l"[^>]*>(?:(?!<\/button>)[\s\S])*?Contrat de sous-traitance[\s\S]*?<\/button>/) || [''])[0];
-  vrai('une pièce sans version validée le DIT', /aucune version validée/.test(lDPA) && !/en vigueur/.test(lDPA), lDPA);
+  vrai('une pièce sans version en vigueur le DIT ; sa version RETIRÉE se dit retirée, jamais « brouillon » (relecture du 22 octobre 2026)', /aucune version en vigueur · version \d+ retirée · dernier brouillon : version 1/.test(lDPA) && !/p-vert">en vigueur/.test(lDPA), lDPA);
   vrai('les abonnements bloqués nomment ce qui leur manque (OP GESTION · Pro : les conditions d\'OP GESTION)', /Abonnements bloqués/.test(X) && /OP GESTION · Pro/.test(X) && /manque : [^·]*Conditions d’utilisation — OP GESTION/.test(X), X.slice(0, 600));
   vrai('« Les pièces » ne se replie jamais toute seule (reg-g-fixe)', /<div class="reg-g reg-g-fixe"><div class="reg-tete"><span class="reg-nom">Les pièces</.test(H));
   vrai('…et les conditions générales, validées, n\'y manquent plus', !/manque : [^<]*Conditions générales/.test(H));
   vrai('contrats des clients : signé, en attente, pas envoyé — avec leurs dossiers', /DOS-000101[\s\S]*?signé le[\s\S]*?p-vert">signé</.test(H) && /DOS-000102[\s\S]*?OP GESTION · Business Premium[\s\S]*?p-ambre">en attente</.test(H) && /DOS-000103[\s\S]*?p-attente">pas envoyé</.test(H), H.slice(H.indexOf('DOS-0001'), H.indexOf('DOS-0001') + 600));
   v('le nom d\'un abonnement se lit en français', [bac.ctPaquetNom('paquet:op_gestion:business_premium'), bac.ctPaquetNom('op_messages:perso')], ['OP GESTION · Business Premium', 'OP MESSAGES · Perso']);
-  v('⛔ toucher une pièce lit sa version EN VIGUEUR, pas le brouillon plus récent ; une pièce sans aucun texte ne fait rien', [bac.ctAction(bac.CT.reg.types, 'conditions_generales'), bac.ctAction([{ type: 'vide', versions: [] }], 'vide')], ["ctLire('conditions_generales'," + n + ")", 'void 0']);
+  v('⛔ toucher une pièce lit sa version EN VIGUEUR, pas le brouillon plus récent ; sans version en vigueur, le dernier BROUILLON (pas la retirée) ; sans texte, rien', [bac.ctAction(bac.CT.reg.types, 'conditions_generales'), bac.ctAction(bac.CT.reg.types, 'dpa'), bac.ctAction([{ type: 'vide', versions: [] }], 'vide')], ["ctLire('conditions_generales'," + n + ")", "ctLire('dpa',1)", 'void 0']);
   bac.ctLire('conditions_generales', n); await attendre(() => bac.CT.versLec);
   const HL = texte(bac.vueContrats());
   vrai('lire : le TEXTE de la version, et qui l\'a validée', bac.CT.versLec === 1 && /Article 1\. Objet\./.test(HL) && /Validée par Patron/.test(HL), HL.slice(0, 300));
@@ -110,6 +114,12 @@ const preparer = (banc) => { const vap = webpush.generateVAPIDKeys();
   bac.ctLire('conditions_generales', 999); await attendre(() => bac.CT.versLec);
   vrai('une version qui n\'existe pas : « ce texte n\'a pas pu être lu »', bac.CT.versLec === -1 && /Ce texte n’a pas pu être lu/.test(texte(bac.vueContrats())));
   bac.CT.vers = null;
+  /* une pièce dont la seule version est RETIRÉE (aucun brouillon) : la pastille dit « retirée » */
+  const regAvant = bac.CT.reg;
+  bac.CT.reg = { types: [{ type: 'signature_electronique', libelle: 'Signature', enVigueur: null, versions: [{ n: 2, statut: 'retire', auteur: 'x', ts: now }] }], paquets: [], clients: {} };
+  const HR = bac.vueContrats();
+  vrai('une pièce dont la seule version est retirée : « version 2 retirée », pastille « retirée »', /aucune version en vigueur · version 2 retirée/.test(HR) && /p-ambre">retirée</.test(HR), HR.slice(HR.indexOf('Signature'), HR.indexOf('Signature') + 500));
+  bac.CT.reg = regAvant;
   bac.MYROLE = 'collaborateur';
   vrai('le bouton « Rédiger et valider » n\'est proposé qu\'au patron', !/Rédiger et valider/.test(bac.vueContrats()));
   bac.MYROLE = 'patron';

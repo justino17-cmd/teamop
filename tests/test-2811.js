@@ -85,7 +85,7 @@ vrai('⛔ l\'attente de moins d\'un jour ne porte JAMAIS .p-gris (4,44:1, le cou
   let jeton = TP, rendus = 0, deconnexions = 0;
   const bac = { API: 'http://127.0.0.1:' + PORT, fetch, Promise, JSON, Date, String, Array, Math, Error, MYAPPS: ['gestion'], TAB: 'accueil', APP: 'gestion',
     hAuth: () => ({ Authorization: 'Bearer ' + jeton }), srvRepond: r => r, srvMuet: e => { throw e; }, doLogout: () => { deconnexions++; }, render: () => { rendus++; },
-    svg: n => '<svg data-ic="' + n + '"></svg>', G: [] };
+    msgErreur: () => 'Serveur injoignable.', svg: n => '<svg data-ic="' + n + '"></svg>', G: [] };
   vm.createContext(bac);
   vm.runInContext(RAPV + '\n' + FN.join('\n') + '\nthis.RAP=RAP;this.chargerRapport=chargerRapport;this.attenteCourte=attenteCourte;', bac);
   const groupe = () => { bac.G = []; vm.runInContext('(function(){ var G=this.G; ' + BLOC + ' }).call(this)', bac); return bac.G.find(g => g.titre === 'Au rapport') || null; };
@@ -95,6 +95,7 @@ vrai('⛔ l\'attente de moins d\'un jour ne porte JAMAIS .p-gris (4,44:1, le cou
   const g = groupe();
   vrai('le groupe « Au rapport » paraît', g);
   v('quatre lignes au plus ; le compteur dit le VRAI total (26), pas la longueur de la liste', g && [g.l.length, g.n, g.tot], [4, 4, 26]);
+  v('⛔ le bandeau de l\'accueil ne compte que ce qui ATTEND quelqu\'un (17 « à traiter ») — pas les 9 déjà « en cours »', g && g.compte, 17);
   v('« Voir tout » et chaque ligne mènent au Courrier', g && [g.voir, g.l.every(x => x.indexOf("setTab('support')") > 0)], ["setTab('support')", true]);
   const L0 = g ? g.l[0] : '';
   vrai('la première ligne est la plus ancienne (« ' + attendu[0] + ' »), avec son expéditeur', L0.indexOf('>' + attendu[0] + '<') > 0 && /client\d+@exemple-2811\.fr/.test(L0), L0);
@@ -127,10 +128,34 @@ vrai('⛔ l\'attente de moins d\'un jour ne porte JAMAIS .p-gris (4,44:1, le cou
   vrai('(population) une liste pleine avant la panne', bac.RAP.l.length === 20 && groupe());
   bac.API = 'http://127.0.0.1:1';
   await bac.chargerRapport();
-  v('⛔ serveur injoignable : l\'ancienne liste tombe, aucun groupe (jamais « rien n\'attend » sur une panne)', groupe(), null);
-  bac.MYAPPS = ['messages']; bac.API = 'http://127.0.0.1:' + PORT; const r0 = rendus;
+  v('⛔ serveur injoignable : la liste d\'avant RESTE (rien ne s\'efface sur une panne) et la panne est notée pour l\'accueil', [!!groupe(), bac.RAP.l.length, bac.RAP.err], [true, 20, 'Serveur injoignable.']);
+  bac.API = 'http://127.0.0.1:' + PORT; await bac.chargerRapport();
+  v('…et une relève réussie efface la panne', bac.RAP.err, '');
+  bac.MYAPPS = ['messages']; bac.RAP.l = []; const r0 = rendus;
   await bac.chargerRapport();
   v('une Tour sans la console OP GESTION ne le lit pas', [bac.RAP.l.length, rendus], [0, r0]);
+
+  /* l'accueil (relecture du 22 octobre 2026) : la panne se dit dans « Ce qui n'a pas pu être lu », le vide n'est dit qu'une fois lu, le bandeau compte « compte » */
+  const SANS = T.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+  vrai('⛔ une relève ratée se DIT dans « Ce qui n\'a pas pu être lu », avec « Réessayer » (chargerRapport)', /if\(APP==='gestion'&&RAP\.err\) pannes\.push\(ligneAc\(\{[^]*?action:"chargerRapport\(\)"\}\)\);/.test(SANS));
+  vrai('⛔ « Rien en attente » n\'est dit qu\'une fois « Au rapport » lu (squelette avant)', /else if\(!INC\.loaded\|\|!CLI\.loaded\|\|!ABO\.loaded\|\|\(APP==='gestion'&&MYAPPS\.indexOf\('gestion'\)>=0&&!RAP\.loaded\)\) prio=acSquel\(\);/.test(SANS));
+  vrai('le bandeau additionne `compte` quand un groupe le donne, sinon `tot`', /t\+\(g\.compte!=null\?g\.compte:\(g\.tot\|\|0\)\)/.test(SANS));
+  vrai('⛔ côté serveur, une date d\'en-tête dans le futur se borne À LA CRÉATION à l\'heure du serveur', /recuTs: Math\.min\(\(env\.date && new Date\(env\.date\)\.getTime\(\)\) \|\| Date\.now\(\), Date\.now\(\)\)/.test(fs.readFileSync(path.join(RACINE, 'server', 'mail.js'), 'utf8')));
+
+  /* ⛔ une entrée déjà écrite avec une date dans le FUTUR (avant le correctif, ou un fichier recopié) : un second serveur, trois demandes */
+  try { enfant.kill('SIGKILL'); } catch (e) {}
+  fs.writeFileSync(SUIVI, JSON.stringify({ '<a@b2811>': { statut: 'aTraiter', recuTs: now - 2 * H, de: 'a@exemple-2811.fr', objet: 'Ancienne' },
+    '<f@b2811>': { statut: 'aTraiter', recuTs: now + 30 * 86400000, de: 'f@exemple-2811.fr', objet: 'Datée du futur' }, '<b@b2811>': { statut: 'enCours', recuTs: now - H, de: 'b@exemple-2811.fr', objet: 'Récente' } }));
+  journal = '';
+  enfant = spawn(process.execPath, [SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT),
+    TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_FB_OAUTH_URL: 'http://127.0.0.1:9/token', TEAMOP_FIRESTORE_URL: 'http://127.0.0.1:9', TEAMOP_IDTK_URL: 'http://127.0.0.1:9/idtk',
+    TEAMOP_FB_CERTS_URL: 'http://127.0.0.1:9/certs' }), stdio: ['ignore', 'pipe', 'pipe'] });
+  enfant.stdout.on('data', x => { journal += x; }); enfant.stderr.on('data', x => { journal += x; });
+  let vivant2 = false; for (let i = 0; i < 100 && !vivant2; i++) { try { vivant2 = (await fetch('http://127.0.0.1:' + PORT + '/health')).ok; } catch (e) {} if (!vivant2) await dormir(100); }
+  const TP2 = vivant2 ? await login('Patron', MDP) : '';
+  const o2 = vivant2 ? (await lire(TP2)).d.ouverts : [];
+  const fut = (o2 || []).find(x => x.objet === 'Datée du futur');
+  v('⛔ (second serveur) une demande datée du futur : bornée à maintenant, jamais au-delà', [o2.map(x => x.objet), !!fut && fut.recuTs <= Date.now() && fut.recuTs >= now], [['Ancienne', 'Récente', 'Datée du futur'], true]);
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   fin(); process.exit(ko ? 1 : 0);

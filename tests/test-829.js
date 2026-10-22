@@ -75,7 +75,7 @@ v('le menu et renderVue connaissent les MÊMES vues (aucune orpheline, aucune fa
 v('la liste des vues de GESTION est DÉDUITE du menu, dans son ordre', P.VUES_PAR_APP.gestion,
   cles.filter(k => P.MENU.some(g => g.vues.some(x => x[0] === k && x[2].split(' ').includes('gestion')))));
 /* v2.88 : la console OP MESSAGES lit son serveur — ses Comptes et ses Abonnements ; ni Courrier ni Demandes (ceux d'OP GESTION) */
-v('…celle de MESSAGES aussi — sans le Courrier, qui est celui d’OP GESTION (v2.85)', P.VUES_PAR_APP.messages, ['accueil', 'comptes', 'entreprises', 'abonnements', 'facturation', 'surveillance', 'incidents', 'contrats', 'essais', 'equipe', 'journal']);   // lot 1 : Facturation, Incidents, Contrats dans les deux consoles ; le Rapport des agents, à OP GESTION seule
+v('…celle de MESSAGES aussi — sans le Courrier, qui est celui d’OP GESTION (v2.85)', P.VUES_PAR_APP.messages, ['accueil', 'comptes', 'entreprises', 'abonnements', 'surveillance', 'incidents', 'contrats', 'essais', 'equipe', 'journal']);   // lot 1 : Incidents et Contrats dans les deux consoles ; Facturation (les factures d'OP GESTION, relecture du 22 octobre 2026) et le Rapport des agents, à OP GESTION seule
 v('⛔ v2.88 : Équipe et Sauvegardes sont RATTACHÉES (à Accès, au Journal) — hors du menu, en onglets de leur tête', P.MENU.reduce((a, g) => a.concat(g.vues.filter(x => x[4]).map(x => x[0] + '→' + x[4])), []), ['equipe→essais', 'donnees→journal']);
 vrai('⛔ plus aucune liste des vues écrite à la main', /var VUES_PAR_APP=\{gestion:vuesDe\('gestion'\),messages:vuesDe\('messages'\)\};/.test(CODE) && !/\nvar VUES=/.test(CODE));
 
