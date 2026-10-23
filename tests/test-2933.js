@@ -50,7 +50,7 @@ const fonction = nom => corps('\nfunction ' + nom + '(').trim();
 const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const NOMS = ['exHeure', 'exUsd', 'exEcran', 'exEntrer', 'exCharger', 'exSurveiller', 'exOuvrir', 'exBasculer', 'exLancer', 'exCleCreer', 'exCleSupprimer', 'exCleCopier', 'exCleCacher', 'exVerifHtml', 'exFilLib', 'exConvHtml',
-  'exScenarioHtml', 'exBilanHtml', 'exSourceLib', 'exResultatHtml', 'exProgresHtml', 'exCleHtml', 'exVue', 'nMot', 'fmtDate', 'msgErreur', 'apiGet', 'apiPost', 'acSquel', 'agIllisible', 'agNom', 'agParId'];
+  'exScenarioHtml', 'exBilanHtml', 'exSourceLib', 'exResultatHtml', 'exProgresHtml', 'exCleHtml', 'exVue', 'nMot', 'fmtDate', 'msgErreur', 'apiGet', 'apiPost', 'acSquel', 'agIllisible', 'agNom', 'agParId', 'agSec'];
 const FN = NOMS.map(fonction);
 const VARS = ['var EX=', 'var EX_LIB=', 'var EX_ICO=', 'var EX_PROG=', 'var EX_FILS=', 'var INJOIGNABLE='].map(ligne).join('\n');
 vrai('(population) les ' + NOMS.length + ' fonctions de l’onglet Examen et ses tables sont trouvées dans le fichier livré', ESC && FN.every(f => f.length > 30) && VARS.split('\n').every(l => l.length > 20), NOMS.filter((n, i) => FN[i].length <= 30).join(', '));
@@ -95,7 +95,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
     const j = { toasts: [], confirms: [], peintures: 0, minuteries: [], copie: [], fetchs: 0 };
     const ctx = { fetch: (u, opt) => { j.fetchs++; return fetch(u, opt); }, API: S.B, Object, String, JSON, Promise, Math, Number, Array, Date, Error, Response, TypeError, console, clearTimeout: id => { const m = j.minuteries.find(x => x.id === id); if (m) m.annule = true; },
       setTimeout: (f, ms) => { const m = { f, ms, id: j.minuteries.length + 1, annule: false }; j.minuteries.push(m); return m.id; },
-      TAB: 'agents', MYROLE: o.role || 'patron', document: { visibilityState: 'visible' }, APPS_TOUR: {}, AG: { sec: 'examen', agents: o.agents || [] },
+      TAB: 'agents', MYROLE: o.role || 'patron', agDosCharger: () => {}, document: { visibilityState: 'visible' }, APPS_TOUR: {}, AG: { sec: 'examen', agents: o.agents || [], dos: { lec: 1, q: '' } },
       toast: t => j.toasts.push(t), confirm: m => { j.confirms.push(m); return o.confirme !== false; }, render: () => { j.peintures++; }, doLogout: () => {},
       navigator: { clipboard: { writeText: async t => { if (o.copieRefusee) throw new Error('refus'); j.copie.push(t); } } } };
     ctx.hAuth = () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + (o.jeton || S.jeton), 'X-Forwarded-For': '10.3.' + Math.floor(n++ / 40) + '.1' });
@@ -127,6 +127,14 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
     v('un compte qui n’est pas le patron : « Réservé au patron », rien n’est demandé au serveur', [collab.EX.lec, /Réservé au patron/.test(texte(collab.exVue()))], [-1, true]);
     collab.EX.d = { limites: { appelsMax: 200, usdMax: 12 } }; collab.exLancer(); collab.exCleCreer(); collab.exCleSupprimer();
     v('…et ses boutons ne font rien (ni confirmation, ni requête)', [collab.__j.confirms.length, collab.EX.busy], [0, false]);
+  }
+
+  {
+    const T0 = tour(S, { agents: REG }); T0.AG.sec = 'equipe';
+    const f0 = T0.__j.fetchs; T0.agSec('examen'); await dormir(300);
+    v('⛔ choisir l’onglet « Examen » relit le serveur (agSec → exEntrer), vide la clé de l’écran et repeint', [T0.AG.sec, T0.__j.fetchs > f0, T0.EX.lec, T0.__j.peintures > 0], ['examen', true, 1, true]);
+    T0.EX.cle = 'exam_' + 'a'.repeat(48); T0.agSec('equipe'); T0.agSec('examen');
+    v('…revenir sur l’onglet efface une clé restée en mémoire', T0.EX.cle, '');
   }
 
   console.log('\n2. L’écran lit le serveur : le bouton, le coût annoncé, aucun résultat, aucune clé');

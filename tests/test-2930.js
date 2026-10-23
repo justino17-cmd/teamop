@@ -328,6 +328,19 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   v('après un redémarrage, la clé supprimée reste supprimée (et l’empreinte était la seule trace)', (await SR.appel('GET', '/api/monitor/agents/examen', { Authorization: 'Bearer ' + c2.j.cle })).s, 401);
   await SR.ferme();
 
+  console.log('\n   ⛔ l’imputation au budget du mois (le vrai cerveau)');
+  {
+    const A = require(path.join(RACINE, 'server', 'agents.js')), CV = require(path.join(RACINE, 'server', 'cerveau.js'));
+    const dirB = fs.mkdtempSync(path.join(racine, 'bud-'));
+    const ag = A({ get() {}, post() {} }, { DATA_DIR: dirB, monAdmin: (a, b, c) => c(), monPatronStrict: (a, b, c) => c() });
+    const cv = CV({ DATA_DIR: dirB, agents: ag, cleApi: 'k' });
+    v('un nom d’AGENT est refusé (aucun plafond d’agent ne s’entame par cette voie), rien d’écrit', [cv.imputer('lea', 1), cv.imputer('victor', 1), fs.existsSync(path.join(dirB, 'agents-budget.json'))], [false, false, false]);
+    v('un montant hors forme est refusé (zéro, négatif, texte, infini, plus de 50 $)', [0, -1, '2', Infinity, NaN, 51].map(x => cv.imputer('examen', x)), [false, false, false, false, false, false]);
+    v('un nom qui n’a pas la forme d’un nom (majuscule, chiffre, trop long) est refusé', ['Examen', 'examen2', 'a'.repeat(21), ''].map(n => cv.imputer(n, 1)), [false, false, false, false]);
+    v('« examen » est accepté, cumulé, compté dans le TOTAL du mois et dans aucun agent', [cv.imputer('examen', 2.5), cv.imputer('examen', 1), cv.etatBudget().total, cv.etatBudget().parAgent], [true, true, 3.5, { examen: 3.5 }]);
+    v('…et le budget d’un agent reste entier', JSON.parse(fs.readFileSync(path.join(dirB, 'agents-budget.json'), 'utf8')).parAgent.lea, undefined);
+  }
+
   console.log('\n11. Un processus qui joue l’examen se TERMINE de lui-même (aucune minuterie ne survit)');
   const fils = spawn(process.execPath, ['-e', "const ex=require(" + JSON.stringify(path.join(RACINE, 'server', 'examen.js')) + "),b=require(" + JSON.stringify(path.join(__dirname, 'banc-examen.js')) + ");ex.executer({cle:'k',appeler:b.appeler([]),capacites:{},tmp:" + JSON.stringify(banc_dir) + "}).then(r=>console.log('FINI '+r.bilan.ok))"], { stdio: ['ignore', 'pipe', 'pipe'] });
   let sortieFils = ''; fils.stdout.on('data', d => { sortieFils += d; });
