@@ -52,7 +52,7 @@ function monter(opts) {
     function canCat(g,d){ var k=g+'.'+d; return Object.prototype.hasOwnProperty.call(__droits,k)?!!__droits[k]:true; }
     function permGarde(g,d,q){ if(canCat(g,d)) return true; toast((d==='ajouter'?'Créer':'Modifier')+' '+q+' n\\'est pas autorisé pour ton compte (Permissions)'); return false; }
     function visibleClients(l){ return __visibles?(l||[]).filter(function(c){return __visibles.indexOf(c.id)>=0;}):(l||[]); }
-    function visibleDocs(l){ var ids=__visibles; return ids?(l||[]).filter(function(d){return ids.indexOf(d.clientId)>=0;}):(l||[]); }
+    function visibleDocs(l){ return l||[]; }   /* volontairement SANS filtre : la visite d'un contrat doit se garder elle-même par le client qu'on voit */
     function ouvrables(){ var ids=new Set(visibleClients(db.clients||[]).map(function(c){return c.id;})); return {cli:function(c){return !!c&&ids.has(c.id);},int:function(i){return !!i;}}; }
     function intTypes(){ return ['Entretien annuel chaudière','Entretien pompe à chaleur','Entretien climatisation','Dépannage chauffage','Entretien chaudière fioul ou bois','Contrat d’entretien']; }
     function formIntervention(id,pre){ __interForm.push({id:id,pre:pre}); }

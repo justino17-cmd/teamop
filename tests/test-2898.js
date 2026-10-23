@@ -68,6 +68,8 @@ console.log('\n── 2898 · 2. ce qui la fait taire ──');
   vrai('contrat sans statut (fiche d’avant le champ) : compte pour actif', visite(sansStatut, 'k1') !== null);
   const fin = cdc(BASE); fin.contrats[0].dateFin = '2026-10-01';
   v('contrat TERMINÉ (date de fin passée) : rien, c’est le rappel de renouvellement qui parle', visite(fin, 'k1'), null);
+  const fin3 = cdc(BASE); fin3.contrats[0].dateDebut = '2025-06-01'; fin3.contrats[0].dateFin = '2026-09-01';
+  v('⛔ contrat terminé alors que la visite (01/06/2026) tombait AVANT sa fin : rien non plus', visite(fin3, 'k1'), null);
   const fin2 = cdc(BASE); fin2.contrats[0].dateFin = '2026-11-01';
   v('⛔ la prochaine visite (15/11) tomberait après la fin du contrat (01/11) : rien', visite(fin2, 'k1'), null);
   const sf = cdc(BASE); delete sf.contrats[0].dateFin;
