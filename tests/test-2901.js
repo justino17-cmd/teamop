@@ -122,6 +122,11 @@ for (const fichier of ['app.html', 'beta.html']) {
     const p0 = METIERS_ESSAIS.map(sp);
     egal('⛔ hors 3D, enregistrer une fiche venue de la 3D GARDE son AMM, sa matière active, son type de traitement et sa catégorie', p0.filter(p => p.amm !== 'FR-2020-0123' || p.matiereActive !== 'Fipronil' || p.categorie3d !== 'insecticide' || p.categorie !== 'TP18 — Insecticide').length, 0); }
 
+  /* la liste collée : la 3D garde son texte à l'IDENTIQUE (apostrophe droite comprise), son exemple de saisie d'anti-nuisibles */
+  { const LP = m => rendu(m, ['formProduitsListe'], w => w.b.fn.formProduitsListe(), { permGarde: () => true }).html || '';
+    vrai('⛔ « ＋ Liste » : la 3D garde mot pour mot « La catégorie est trouvée toute seule d\'après le nom… » et son exemple (Gel blattes Maxforce ; MABI ; 24,90)', /La catégorie est trouvée toute seule d'après le nom, et tu peux la corriger avant de valider\./.test(LP('3d')) && /Gel blattes Maxforce ; MABI ; 24,90/.test(LP('3d')), LP('3d').slice(0, 120));
+    egal('⛔ hors 3D : ni l\'exemple de la 3D, ni la promesse d\'une catégorie « trouvée toute seule »', METIERS_ESSAIS.filter(m => !LP(m) || /Maxforce|MABI|trouvée toute seule/.test(LP(m)) || !/La catégorie se choisit dans la liste de ton métier/.test(LP(m))), []); }
+
   /* ── 5. Le CSV des interventions ── */
   console.log('\n5. exportInterventionsCsv : la colonne « Nuisibles »');
   { const csv = m => { const w = essai(m, ['exportInterventionsCsv']); w.b.fn.exportInterventionsCsv(); return w.sortie.csv; };
