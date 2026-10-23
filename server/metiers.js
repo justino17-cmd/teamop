@@ -1,6 +1,6 @@
 'use strict';
 /* ══ LE RÉFÉRENTIEL DES MÉTIERS, LU PAR LE SERVEUR ══════════════════════════════════════════════════════════════
-   `metiers.json` (à la racine du dépôt, servi par le site) est LA source : les 23 métiers, leurs rubriques d'OP GESTION
+   `metiers.json` (à la racine du dépôt, lu par le serveur et par le générateur du site, JAMAIS publié tel quel : il porte le travail à faire) est LA source : les 23 métiers, leurs rubriques d'OP GESTION
    (ouvertes par défaut, avec la raison de chacune), l'explication de chaque rubrique. Le serveur, la Tour, l'espace client,
    la page de paiement et le générateur du site la lisent — jamais une copie.
 

@@ -45,7 +45,8 @@ const existe = rel => fs.existsSync(path.join(SITE, rel));
 console.log('\n1. Rien d\'interne');
 for (const rel of ['CLAUDE.md', 'REPRISE.md', 'VERSION-STABLE.md', '.claude', '.github', '.githooks', '.mcp.json',
   'skills-lock.json', 'firestore.rules', 'firestore-opmessages.rules', 'storage.rules', 'server', 'server-msg',
-  'tests', 'scripts', 'scratchpad', 'design', 'beta-build.js']) {
+  'tests', 'scripts', 'scratchpad', 'design', 'beta-build.js',
+  'metiers.json']) {   // ⛔ le référentiel de travail (aCreer, aVerifier, notes, métiers fermés) : l'API en sert l'extrait filtré, le fichier ne se publie pas
   v('absent du site : ' + rel, existe(rel), false);
 }
 v('aucun fichier .md, où qu\'il soit — sauf le jumeau Markdown de l\'accueil, à la racine, nommé (21 octobre 2026, fabriqué par scripts/site-marine.js)', fichiers.filter(f => /\.md$/i.test(f) && f !== 'index.md'), []);
@@ -53,7 +54,7 @@ v('…et ce jumeau-là est bien publié (et lui seul parmi les .md)', fichiers.f
 
 console.log('\n2. Tout ce qui se sert');
 for (const rel of ['index.html', 'app.html', 'beta.html', 'tour.html', 'espace.html', 'connexion.html', 'tarifs.html',
-  'sw.js', 'op-fs.js', 'metiers.json', 'rubriques-choix.js', 'rubriques-choix.css', 'CNAME', '.nojekyll', 'robots.txt', 'sitemap.xml', 'favicon.ico', 'manifest.webmanifest',
+  'sw.js', 'op-fs.js', 'rubriques-choix.js', 'rubriques-choix.css', 'CNAME', '.nojekyll', 'robots.txt', 'sitemap.xml', 'favicon.ico', 'manifest.webmanifest',
   '.well-known/assetlinks.json']) {
   vrai('présent : ' + rel, existe(rel));
 }
