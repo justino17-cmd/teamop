@@ -9099,7 +9099,7 @@ app.post('/api/monitor/expliquer', monAdmin, async (req, res) => {
       + "« verifier » : ce qu'un humain doit regarder ou reproduire pour confirmer, en une phrase.\n"
       + "« confiance » : « haute » seulement si l'extrait montre la cause noir sur blanc ; « faible » si tu raisonnes sans voir le code fautif. Une explication plausible mais invérifiable est de confiance faible, dis-le.";
     /* ⛔ chaque champ libre passe par `incidentTexte` APRÈS sa troncature, et séparément : le bout d'un champ n'est pas le bout du suivant. */
-    const extraitSur = s && s.extrait ? s.extrait.split('\n').map(l => { const k = l.indexOf(' ', 8); return k < 0 ? incidentCode(l) : l.slice(0, k + 1) + incidentCode(l.slice(k + 1)); }).join('\n') : '';
+    const extraitSur = s && s.extrait ? s.extrait.split('\n').map(incidentCode).join('\n') : '';
     const contexte = 'Incident\n'
       + '- application : ' + (incidentTexte(issue.app) || '?') + (issue.version ? ' v' + incidentTexte(issue.version) : '') + '\n'
       + '- type : ' + (incidentTexte(issue.type) || '?') + ' · écran ouvert : ' + (incidentTexte(issue.categorie) || '?')
