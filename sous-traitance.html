@@ -73,7 +73,7 @@
     <p>Quand vous saisissez dans les applications TEAM OP les données de <b>vos</b> clients,
     de vos salariés ou de vos interventions, c'est vous qui décidez pourquoi et comment
     elles sont traitées. Vous êtes donc <b>responsable de traitement</b>, et TEAM OP —
-    Justin Biret, entrepreneur individuel, SIREN 107 995 011 — agit comme votre
+    Justin Biret, entrepreneur individuel, SIREN 107 995 011 (SIRET en cours d'attribution) — agit comme votre
     <b>sous-traitant</b>.</p>
     <p>Cette distinction n'est pas rhétorique : elle détermine qui répond devant la CNIL
     et devant les personnes concernées. Les données de votre propre compte (nom, e-mail,
@@ -85,8 +85,8 @@
     <h2>2. Objet, durée et nature du traitement</h2>
     <p><b>Objet</b> — fournir la suite logicielle TEAM OP : gestion des interventions,
     des clients, des devis et de la messagerie professionnelle.</p>
-    <p><b>Durée</b> — celle de votre abonnement, prolongée de 24 mois après sa fin,
-    conformément à l'article 5 des conditions générales de vente.</p>
+    <p><b>Durée</b> — celle de votre abonnement ; vos données peuvent être supprimées après
+    24 mois sans abonnement (article 5 des conditions générales de vente).</p>
     <p><b>Nature des opérations</b> — collecte, enregistrement, structuration,
     conservation, consultation, export et suppression.</p>
     <h3>Catégories de personnes concernées</h3>
@@ -160,18 +160,19 @@
       </tr>
       <tr>
         <td>IONOS SE</td>
-        <td>Serveur et base de données des applications TeamOP ; sauvegardes</td>
+        <td>Serveur et base de données des applications TeamOP (OP GESTION et OP MESSAGES) ; sauvegardes</td>
         <td>Toutes les données saisies dans les applications ; boîtes mail connectées à
-        l'application et courriels relevés ou envoyés ; incidents, devis, journaux techniques ;
-        sauvegardes chiffrées de l'ensemble</td>
+        l'application (leur mot de passe d'application est conservé chiffré) et courriels relevés ou envoyés ;
+        incidents, devis, journaux techniques ; sauvegardes chiffrées de l'ensemble</td>
         <td>Serveur : France — sauvegardes : Allemagne (Francfort) — UE</td>
       </tr>
       <tr>
         <td>Google Ireland Ltd<br>(Firebase)</td>
-        <td>Ancien stockage des applications — copie de retour arrière</td>
-        <td>Les données des applications telles qu'au jour de leur passage sur le serveur
+        <td>Stockage des applications — pour OP GESTION, copie de retour arrière ; pour OP MESSAGES, stockage tant qu'il n'a pas son propre serveur</td>
+        <td><b>OP GESTION</b> : les données telles qu'au jour de leur passage sur le serveur
         TeamOP, figées : plus aucune donnée nouvelle n'y est envoyée. Conservées 30 jours pour
-        pouvoir revenir en arrière, puis supprimées.</td>
+        pouvoir revenir en arrière, puis supprimées. <b>OP MESSAGES</b> : stockage tant qu'il n'a pas son propre serveur
+        (qui tourne sur le même serveur que l'API de TEAM OP).</td>
         <td>Irlande — UE</td>
       </tr>
       <tr>
@@ -183,11 +184,12 @@
       </tr>
       <tr>
         <td>Anthropic PBC</td>
-        <td>Assistant de rédaction de devis ; traduction d'un e-mail (bouton « Traduire en français » d'OP Courrier)</td>
-        <td>À chaque utilisation de l'assistant : nom, adresse et ville des clients
-        concernés, et le texte de votre demande. À chaque traduction : le texte de
-        l'e-mail ouvert, et lui seul, seulement quand vous touchez « Traduire ».
-        Transmission ponctuelle, sans conservation par nos soins.</td>
+        <td>Assistant de rédaction de devis (en conversation, ou « Devis IA » rapide) ; traduction d'un e-mail (bouton « Traduire en français » d'OP Courrier)</td>
+        <td>Assistant en conversation : le fil de la conversation, le nom des sociétés émettrices et, pour les
+        60 premiers clients visibles par l'utilisateur, leur nom, adresse et ville. « Devis IA » rapide : le texte
+        de la demande, et lui seul. Traduction : le texte de l'e-mail ouvert, tel quel (adresses électroniques et
+        numéros de téléphone compris), et lui seul, seulement quand vous touchez « Traduire » (100 par jour et par
+        entreprise au plus). Transmission ponctuelle, sans conservation par nos soins.</td>
         <td>États-Unis</td>
       </tr>
       <tr>
@@ -208,7 +210,7 @@
         le besoin décrit — un champ libre : ce que vous y écrivez est transmis, adresses électroniques et numéros de
         téléphone retirés. <b>Jamais l'adresse électronique, le téléphone, le prénom ni le nom</b> de la personne
         qui s'inscrit ;<br>
-        · <b>courriel reçu par TEAM OP</b> : le texte du message est transmis <b>tel quel, signature comprise</b>
+        · <b>courriel reçu par TEAM OP</b> : l'objet et le texte du message sont transmis <b>tel quel, signature comprise</b>
         (prénom, nom, société, adresse postale éventuels) ; seuls les adresses électroniques et les numéros de
         téléphone en sont retirés. L'adresse de l'expéditeur et le nom lu dans l'en-tête du message ne sont pas
         transmis ;<br>
@@ -225,13 +227,23 @@
         partie de la réponse qu'elle nous a faite. Chaque entrée proposée est relue par l'éditeur avant d'être utilisée.<br>
         Jamais les notes.<br>
         Pour surveiller la plateforme, suivre les incidents et tenir le point du matin : <b>des nombres et des noms
-        de règles de surveillance que nous avons écrites</b> (combien d'erreurs, depuis combien de minutes), sans le texte d'une erreur ni le nom d'une entreprise.<br>
-        Pour comprendre un incident, sur un geste de l'éditeur seulement (« Expliquer la cause », « Proposer un correctif ») : <b>le message d'erreur, la trace, l'écran ouvert, l'application et sa version, l'emplacement désigné et un extrait du code d'OP GESTION</b> (le code de notre propre dépôt, sans donnée de client). Ces textes viennent de l'application d'un client et peuvent citer ce qu'il y avait saisi : adresses électroniques et numéros de téléphone retirés, <b>mais pas les noms</b>.<br>
+        de règles de surveillance que nous avons écrites</b> (combien d'erreurs, depuis combien de minutes), jamais
+        le texte d'une erreur remontée par une application ni le nom d'une entreprise (ce texte ne part que par les
+        deux gestes de l'éditeur décrits dans la ligne suivante).<br>
         Pour répartir le travail entre agents, et pour départager deux agents qui se répondent sans conclure :
         <b>le texte des consignes en cours</b> entre agents, écrites par l'éditeur ou par un agent, et les derniers
         messages de leur échange. Adresses électroniques et numéros de téléphone retirés, <b>mais pas les noms</b> :
         une consigne qui cite un client peut le nommer. Trois appels par jour au plus pour chacun.<br>
         Transmission ponctuelle, sans conservation par nos soins.</td>
+        <td>États-Unis</td>
+      </tr>
+      <tr>
+        <td>Anthropic PBC</td>
+        <td>Analyse d'un incident technique (console d'administration : « Expliquer la cause » et « Proposer un correctif », à la demande de l'éditeur seul)</td>
+        <td>Le message d'erreur d'un incident remonté par une application, sa trace, l'écran ouvert et un extrait du
+        code de l'application autour de la ligne en cause, <b>adresses électroniques et numéros de téléphone
+        retirés</b>. Jamais le nom d'une entreprise ni le contenu des données saisies, sauf s'il figure dans le texte
+        même de l'erreur. Transmission ponctuelle, sans conservation par nos soins.</td>
         <td>États-Unis</td>
       </tr>
       <tr>
@@ -258,6 +270,8 @@
     <p>Ces mécanismes proviennent des engagements publiés par les deux prestataires ;
     <b>ils doivent être confirmés par le juriste au regard des contrats effectivement
     souscrits</b>, et revérifiés à chaque changement d'offre.</p>
+    <p>Les données transmises à Anthropic ne servent pas à entraîner ses modèles, selon ses
+    conditions commerciales applicables à l'API.</p>
     <p>Si vous ne souhaitez pas que les données de vos clients soient transmises à
     Anthropic, n'utilisez ni l'assistant de devis ni « Traduire en français » : le reste
     de la suite fonctionne sans eux.</p>
