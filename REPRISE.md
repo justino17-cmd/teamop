@@ -13,6 +13,40 @@ de ligne du tout.
 
 ---
 
+# ⏳ 23 OCTOBRE 2026 — CHAUFFAGE / CLIMATISATION COMPLET (CVC) : PARC D'APPAREILS, ATTESTATION, FLUIDES, VISITES DES CONTRATS — BÊTA v772, RIEN SUR `main`
+
+Branche `claude/chauffage-clim` (copie `~/teamop-clim`), demande de Justin du 23 octobre (« Chauffage / climatisation, fais-le aussi »). Un seul bloc d'`app.html`, entre
+les marqueurs `═══ CVC — LE PARC D'APPAREILS` et `═══ fin du bloc CVC ═══` ; UNE fonction décide que le métier a un parc, `metierGereParc()` (`CVC_METIERS` : chauffage,
+froid, energies — « froid » et « energies » n'existent pas encore dans `METIERS`, l'autre chantier les ajoute). La 3D et les autres métiers ne voient RIEN de neuf
+(prouvé : bancs et sonde, y compris avec des appareils en base). Aucune ligne de `METIERS`, de la NAV ou des catégories n'a été touchée.
+
+**Fait** (un commit par partie, bancs `test-2895` à `test-2898`, bancs `test-2895` à `test-2898` (+ 28 contrôles après la relecture), `tests/cvc-monter.js` monte le VRAI bloc ; 119 mutations rejouées toutes mordantes, quatre séries : `python3 scratchpad/mutations-cvc.py test-2895.js p1-` puis `test-2896.js p2-`, `test-2897.js p3-`, `test-2898.js p4-` — le lanceur compte une mutation « mal visée » comme muette et sort en 1) :
+1. `db.appareils` (collection synchronisée, déclarée à tous ses registres : `COLLECTIONS_DONNEES`, `OP_CLASSES`, `migrate`, `COLLS_GARDEES`, droits de Clients, suppression, remise
+   à zéro) ; section « Appareils » de la fiche client ; carte « Appareils visités » de l'intervention ; « dernière intervention » et échéance d'entretien DÉDUITES, jamais recopiées ;
+   « Entretiens à planifier » dans les Tâches et sur le tableau de bord. `server/` n'a PAS changé (le socle classe par nom de collection). `test-731` passe à 28 collections.
+2. Attestation d'entretien d'une chaudière (PDF, `docEntete`, envoi `srvMail`, trace après la réussite). Seuils du CO sur le CO AMBIANT seulement.
+3. Fiches fluides frigorigènes dans l'intervention (`fichesFluides`), PRP, périodicité d'étanchéité, échéance sur l'appareil / Tâches / tableau de bord.
+4. Visite annuelle des contrats : une proposition (`Planifier` pré-remplit l'intervention), le contrat désigne ses appareils (`appareilIds`).
+Défaut de l'existant corrigé en route : `_pdfTranslit` écrivait « CO? » pour « CO₂ » dans TOUT PDF (le relevé des chauffagistes) — les chiffres en indice sont dits.
+
+⛔ **Ce qui n'a PAS pu être vérifié, et ce que le code en dit** : le règlement (UE) 2024/573 sur EUR-Lex n'a pas pu être lu (page vide). Les seuils (5 / 50 / 500 t éq. CO₂ → 12 / 6 / 3 mois,
+doublés avec détection ; HFO 1 / 10 / 100 kg) viennent de la FFB et de la CAPEB, cités en tête du bloc. NON confirmés : le seuil de 10 t des équipements « hermétiquement scellés » (case décochée par
+défaut) et les PRP du tableau (valeurs du règlement 517/2014 vues dans des tableaux de fabricants — le champ « PRP » de la fiche appareil, celui de la plaque, l'emporte). Ce n'est pas un calculateur
+opposable, l'écran le dit. À faire relire par quelqu'un qui a le texte.
+
+**Pas fait** : attestation PAC / climatisation (le détail de l'arrêté du 24 juillet 2020 n'a pas pu être relu — pas de document qui prétendrait le reproduire) ; verrou « pas de fluide sans n° d'attestation de
+capacité » et qualifications des techniciens ; suivi des bouteilles ; certificat de ramonage ; alertes de sécurité hors CO ambiant ; « appareils visités » dans le rapport d'intervention (`rapportConstatLignes`,
+partagé avec l'anti-nuisibles du chantier métiers) ; rappel au client à 30 puis 7 jours (seulement une proposition côté entreprise) ; ligne de la cloche pour les échéances.
+**À la fusion avec le chantier métiers** : ajouter `Contrôle d'étanchéité des fluides frigorigènes` aux types du pack chauffage (le code l'utilise s'il existe, sinon laisse le type vide) ; rien d'autre.
+⚠️ Le pack ne devra jamais RETIRER `Entretien annuel chaudière` / `Entretien chaudière fioul ou bois` / `Entretien pompe à chaleur` / `Entretien climatisation` / `Contrat d'entretien` sans mettre à jour `cvcTypeInterventionPour`.
+`test-747` (« masquer une rubrique passe par acces.modules ») est ROUGE sur le commit de départ `7d45d134`, avant ce chantier.
+⛔ **Relecture du 23 octobre (neuf constats, tous rejoués)** : la visite d'un contrat « tout le parc » CITE ses appareils (sinon elle ne remettait l'horloge d'aucun) ; une intervention ne compte pour un appareil que chez le MÊME client (`cvcIndex`, `cvcIntsDe`) ; « déjà prévue » se dit par obligation (`cvcPlanifiee(a, genre)` : un dépannage ne fait plus taire l'entretien ni l'étanchéité) ; le pied du PDF d'attestation tient sur trois lignes ; signatures / logo non joints sont DITS (aperçu, confirmation à l'envoi) ; 🔁 prend la date de la proposition pour un métier à parc et demande confirmation si une visite est déjà planifiée ; une carte d'échéances qui jette dit « indisponibles » ; fiches et attestations d'un appareil RETIRÉ restent lisibles (`cvcIntOrphelines`) ; deux cases à 44 px. Sonde : `scratchpad/sonde-cvc-relecture.js` (37 ✓, trois profils, jour et nuit).
+⚠️ **`APP_VERSION` (772) et le cache de `sw.js` (v972) n'ont PAS monté, exprès** (consigne du chantier : l'autre chantier « métiers » travaille en parallèle sur le même fichier). `node scripts/verifier-version.js` est donc ROUGE sur cette branche, et la CI de GitHub (`verification.yml`) le serait : **à la fusion, monter les deux ensemble (773 / v973, ou le numéro que l'arbitrage donne), régénérer `beta.html`, relancer `verifier-version.js`** — la collection `appareils` change le format des données, la Tour doit pouvoir exiger la version. Rien ne se publie sans la phrase de Justin.
+Connu, non corrigé : l'entretien se reconnaît au TYPE choisi (« Entretien… ») — une visite d'un autre type ne remet pas l'horloge à zéro (documenté sur `cvcEstEntretien`) ; le calcul de `cvcIndex` ne compare pas le client des fiches fluides (une fiche appartient physiquement à l'appareil).
+
+---
+
+
 
 # ⏳ 22 OCTOBRE 2026 — AUDIT APPLE-DESIGN D'OP GESTION : LES 36 CORRIGÉS, BÊTA v771 — RIEN SUR `main`
 - Justin, 21 octobre : « audite toute l'interface avec le skill apple-design, liste chaque problème du plus grave au moins grave, puis
