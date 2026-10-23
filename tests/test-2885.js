@@ -134,7 +134,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     v('…la lecture : la prochaine réunion est le vendredi 30 octobre, 18 h ; la réunion tenue a son compte rendu', [(await reunions(A)).prochaine.libelle, (await reunions(A)).reunions[0].compteRendu.slice(0, 18), (await reunions(A)).enCours], ['vendredi 30 octobre, 18 h', 'Compte rendu-2885 ', null]);
     const sansJeton = [(await fetch(A.B + '/api/monitor/agents/reunions')).status, (await fetch(A.B + '/api/monitor/agents/reunions/lancer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"type":"bilan"}' })).status,
       (await fetch(A.B + '/api/monitor/agents/lecons/retirer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"agent":"lea","id":"cafe0001"}' })).status];
-    v('(garde) sans jeton : la lecture est refusée (401, monAdmin), le lancement et le retrait aussi (patron strict)', sansJeton, [401, 403, 403]);
+    v('(garde) sans jeton : la lecture, le lancement et le retrait sont refusés (403, patron strict — le compte rendu est du texte libre)', sansJeton, [403, 403, 403]);
     vrai('…et avec le jeton du patron la lecture passe', (await A.G('/api/monitor/agents/reunions')).s === 200);
   }
 
@@ -200,18 +200,28 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     const r = await reunions(S);
     vrai('…elle est inscrite « manuelle » : le vendredi soir 18 h 05 a déjà eu son bilan, la clé n’est donc pas celle du jour', r.reunions[0].manuelle === true && r.reunions.length === 3 && r.reunions[0].type === 'objectifs');
     v('type inconnu : 400', (await S.P('/api/monitor/agents/reunions/lancer', { type: 'mardi' })).s, 400);
+    /* ⛔ le patron lit AVANT qu'un compte de la Tour existe : la session par mot de passe d'administration ne survit pas à la création d'un compte (banc seulement). */
+    const lectP = (await reunions(S));
+    const jPat = (await S.G('/api/monitor/agents/journal?limite=500')).j.journal;
     /* un collaborateur */
     await S.P('/api/monitor/users', { nom: 'Collab', pass: 'un-mot-de-passe-2885' });
     const lj = await (await fetch(S.B + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.9.0.1' }, body: JSON.stringify({ nom: 'Collab', pass: 'un-mot-de-passe-2885' }) })).json();
     const colla = async (m, r, c) => (await fetch(S.B + r, { method: m, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + lj.token }, body: m === 'POST' ? JSON.stringify(c || {}) : undefined })).status;
     v('⛔ un collaborateur (non patron) ne lance pas de réunion et ne retire pas de leçon : 403', [await colla('POST', '/api/monitor/agents/reunions/lancer', { type: 'bilan' }), await colla('POST', '/api/monitor/agents/lecons/retirer', { agent: 'lea', id: 'cafe0001' })], [403, 403]);
+    /* ⛔ ET IL NE LIT NI LES RÉUNIONS NI LA PHRASE DES LEÇONS (relecture C1-C3) : compte rendu, objectifs, bilans et leçons sont du texte libre ; le journal garde la ligne, pas la phrase. */
+    vrai('(population) le patron lit un compte rendu, des objectifs et des leçons — sinon « le collaborateur ne voit rien » passerait sur du vide', lectP.reunions.some(x => x.compteRendu) && Object.keys(lectP.objectifs).length > 0);
+    v('⛔ un collaborateur (non patron) ne lit pas les réunions : 403', await colla('GET', '/api/monitor/agents/reunions'), 403);
+    const jCol = await (await fetch(S.B + '/api/monitor/agents/journal?limite=500', { headers: { Authorization: 'Bearer ' + lj.token } })).json();
+    const lecons = jPat.filter(e => e.action === 'réunion : leçon' && e.resultat === 'ok');
+    vrai('(population) le patron lit la leçon dans le journal, avec sa phrase', lecons.length >= 1 && lecons.every(e => /LECON-2885/.test(e.detail)));
+    v('⛔ le collaborateur lit le journal sans la phrase de la leçon (la ligne est là, le détail est réservé)', [JSON.stringify(jCol).includes('LECON-2885'), jCol.journal.filter(e => e.action === 'réunion : leçon').length, jCol.journal.filter(e => e.action.startsWith('réunion : ')).every(e => e.detail === undefined && e.detailReserve === true)], [false, jPat.filter(e => e.action === 'réunion : leçon').length, true]);
     const SRC = fs.readFileSync(SERVEUR, 'utf8');
     const i = SRC.indexOf('const MON_GESTES = {'), j = SRC.indexOf('\n};', i);
     const GESTES = SRC.slice(i, j);
     const REU = fs.readFileSync(path.join(RACINE, 'server', 'reunions.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     const posts = [...REU.matchAll(/app\.post\('\/api\/monitor\/([^']+)', (\w+)/g)], gets = [...REU.matchAll(/app\.get\('\/api\/monitor\/([^']+)', (\w+)/g)];
     vrai('(population) les réunions déclarent deux routes POST et une lecture', posts.length === 2 && gets.length === 1);
-    vrai('⛔ chaque POST est dans MON_GESTES et exige le patron strict ; la lecture exige monAdmin', posts.every(m => new RegExp("'" + m[1].replace(/\//g, '\\/') + "':").test(GESTES) && m[2] === 'monPatronStrict') && gets.every(m => m[2] === 'monAdmin'));
+    vrai('⛔ chaque POST est dans MON_GESTES et exige le patron strict ; la lecture aussi', posts.every(m => new RegExp("'" + m[1].replace(/\//g, '\\/') + "':").test(GESTES) && m[2] === 'monPatronStrict') && gets.every(m => m[2] === 'monPatronStrict'));
     vrai('…et le déclenchement est dans index.js : une minuterie d’une minute, une première vérification, sans que `reunions.js` n’arme rien', /setTimeout\(ticReunions, 5000\)/.test(SRC.replace(/\/\*[\s\S]*?\*\//g, ' ')) && /setInterval\(ticReunions, 60000\)/.test(SRC.replace(/\/\*[\s\S]*?\*\//g, ' ')) && !/setInterval|setTimeout/.test(REU));
     vrai('aucun détail du journal, aucune adresse dans toute la sortie du serveur', !/SECRET-DETAIL-2885|client-secret/.test(S.journal()));
   }

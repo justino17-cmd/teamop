@@ -87,6 +87,55 @@ console.log('\n── 2707 · conversations Tour ↔ agents ──');
   v('registre illisible : rien ne se dit', [ill.m.parler('hugo', 'hugo', 'Salut').raison, ill.m.rappelClient('hugo', 'DOS-000007', 'litige').raison, ill.m.estIllisible()], ['registre_illisible', 'registre_illisible', true]);
   v('…et le fichier reste tel quel', fs.readFileSync(path.join(ill.D, 'agents-messages.json'), 'utf8'), avant);
 
+  console.log('\n1 ter. ⛔ Le plafond du registre ne chasse jamais un rappel de client NON LU (relecture C1-C3)');
+  {
+    /* Le rappel d'un client n'existe QU'ICI : le chasser du registre, c'est que Justin ne rappelle jamais ce client, sans erreur ni trace. */
+    const montePlafond = nom => {
+      const D = path.join(banc, nom); fs.mkdirSync(D, { recursive: true }); const routes = {};
+      const app = { get() {}, post(chemin, ...h) { routes[chemin] = h[h.length - 1]; } };
+      const m = conv(app, { DATA_DIR: D, monAdmin() {}, monPatronStrict() {}, agents: { AGENTS, peutAgir: () => ({ ok: true, mode: 'brouillon' }), noter() {} },
+        pousseNotif: () => Promise.resolve(), maintenant: () => horloge, dossierExiste: () => true });
+      const lire = () => JSON.parse(fs.readFileSync(path.join(D, 'agents-messages.json'), 'utf8'));
+      const marquerLu = fil => { let sortie = null; routes['/api/monitor/conversations/lire']({ body: { fil } }, { status() { return this; }, json(x) { sortie = x; } }); return sortie; };
+      return { m, D, lire, marquerLu };
+    };
+    const inonde = (P, n, fil) => { for (let i = 0; i < n; i++) P.m.systeme(fil || 'max', 'ligne du système ' + i); };
+    const rappel = P => P.lire().filter(x => x.dossier === 'DOS-000042' && x.lu !== true).length;
+
+    let P = montePlafond('plafond-a');
+    v('le rappel naît', P.m.rappelClient('hugo', 'DOS-000042', 'demande_humain').ok, true);
+    inonde(P, 600);
+    v('⛔ APRÈS 600 lignes du système, le rappel non lu est TOUJOURS au registre — et le registre reste borné à 500', [rappel(P), P.lire().length], [1, 500]);
+    vrai('…c\'est bien le BAVARDAGE qui est parti, du plus ancien : la première ligne gardée n\'est plus la ligne 0', P.lire().some(x => x.dossier === 'DOS-000042') && !P.lire().some(x => x.texte === 'ligne du système 0'));
+
+    P = montePlafond('plafond-b');
+    for (let i = 0; i < 3; i++) { P.m.parler('max', 'max', 'Alerte réelle ' + i, { niveau: 'urgent' }); }
+    inonde(P, 600);
+    v('⛔ un message « urgent » non lu d\'un agent est protégé de la même façon', P.lire().filter(x => x.niveau === 'urgent' && x.lu !== true).length, 3);
+
+    P = montePlafond('plafond-c');
+    P.m.rappelClient('hugo', 'DOS-000042', 'demande_humain');
+    inonde(P, 600);
+    const lu = P.marquerLu('hugo');
+    v('(population) « lu » marque bien le rappel (un message du fil de Hugo)', lu && lu.lus, 1);
+    inonde(P, 600);
+    v('…LU, il n\'est plus protégé : le plafond l\'évince comme le reste', [P.lire().some(x => x.dossier === 'DOS-000042'), P.lire().length], [false, 500]);
+
+    P = montePlafond('plafond-d');
+    for (let i = 0; i < 520; i++) { if (i && i % 12 === 0) horloge += 3700 * 1000; P.m.rappelClient('hugo', 'DOS-' + String(100000 + i), 'demande_humain'); }
+    const dos = P.lire().filter(x => x.dossier).map(x => x.dossier);
+    v('⛔ 520 rappels non lus : le registre reste BORNÉ (500), le plus récent est là, le plus ancien est parti — le fichier ne grossit pas sans borne', [P.lire().length, dos.includes('DOS-100519'), dos.includes('DOS-100000')], [500, true, false]);
+
+    P = montePlafond('plafond-e');
+    P.m.rappelClient('hugo', 'DOS-000042', 'demande_humain');
+    P.m.systeme('equipe', 'témoin-2707 : la plus ancienne ligne ordinaire');
+    inonde(P, 498);
+    v('(population) le registre est plein : 500 messages', P.lire().length, 500);
+    fs.rmSync(P.D, { recursive: true, force: true });
+    v('une écriture qui échoue est refusée', P.m.systeme('max', 'ligne de trop').ok, false);
+    v('⛔ …et le registre est rendu EXACTEMENT comme il était : la ligne que le plafond allait évincer est toujours là', P.m.historique('equipe', 5).map(x => x.texte), ['témoin-2707 : la plus ancienne ligne ordinaire']);
+  }
+
   console.log('\n1 bis. Hugo seul : la panne se dit une fois, la reprise aussi');
   {
     const hugo = require(path.join(RACINE, 'server', 'agent-hugo.js')); const dits = []; let liste = null;

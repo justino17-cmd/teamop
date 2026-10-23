@@ -497,8 +497,22 @@ console.log('\n6. L\'envoi : le message paraît à l\'instant ; un refus se dit 
     vrai('les points d\'écriture respectent « animations réduites »', /@media\(prefers-reduced-motion:reduce\)\{ \.ms-pts i\{animation:none/.test(css));
     vrai('le bouton « Suivre dans OP MESSAGES » n\'est PAS un bouton : un texte « Bientôt » (OP MESSAGES ne se rebranche pas)', /<span class="ms-bientot"[^>]*>Suivre dans OP MESSAGES · <b>Bientôt<\/b><\/span>/.test(SANS) && !/Suivre dans OP MESSAGES[^<]*<\/button>/.test(SANS));
     /* ⛔ la messagerie n'écrit RIEN que par les deux routes de la messagerie */
-    const posts = [...(fonction('msEnvoiFaire') + fonction('messLire')).matchAll(/apiPost\('([^']+)'/g)].map(m => m[1]);
-    v('les seules écritures de la page : l\'envoi d\'un message et « lu » (les routes que le serveur déclare déjà)', posts.sort(), ['/api/monitor/conversations/envoyer', '/api/monitor/conversations/lire']);
+    /* La population est celle du FICHIER (toute fonction `ms*` / `mess*`), jamais une liste de noms écrite ici : deux écritures de plus sont nées avec les réunions
+       (`messReunionLancer`, `messLeconRetirer`) et une liste à la main ne les voyait pas. */
+    /* `agCv*` : l'ancien panneau « Parler » de l'onglet Agents, qui écrit par les deux mêmes routes de messagerie — il a toujours existé, il est dans la population. */
+    const nomsMs = [...CODE.matchAll(/\nfunction ((?:ms|mess|agCv)[A-Za-z]*)\(/g)].map(m => m[1]);
+    vrai('(population) la page déclare des dizaines de fonctions `ms*` / `mess*`, toutes trouvées avec leur corps', nomsMs.length > 50 && nomsMs.every(n => fonction(n).length > 20), nomsMs.filter(n => fonction(n).length <= 20).join(', '));
+    const ROUTE_MS = /apiPost\('(\/api\/monitor\/(?:conversations|agents\/reunions|agents\/lecons)[^']*)'/g;
+    const dansMs = nomsMs.map(n => [n, [...fonction(n).matchAll(ROUTE_MS)].map(m => m[1])]).filter(x => x[1].length);
+    v('⛔ les seules écritures de la messagerie : l\'envoi, « lu », le lancement d\'une réunion et le retrait d\'une leçon — exactement quatre routes DISTINCTES', [...new Set(dansMs.map(x => x[1]).reduce((t, l) => t.concat(l), []))].sort(),
+      ['/api/monitor/agents/lecons/retirer', '/api/monitor/agents/reunions/lancer', '/api/monitor/conversations/envoyer', '/api/monitor/conversations/lire']);
+    v('…et aucune de ces routes n\'est écrite HORS de ces fonctions (une cinquième écriture ailleurs dans la page ferait tomber ce contrôle)', [...CODE.matchAll(ROUTE_MS)].length, dansMs.reduce((n, x) => n + x[1].length, 0));
+    /* ⛔ les deux phrases de sécurité DISENT ce que le code fait (relecture C1-C3) : les consignes portent du texte libre entre agents ; seules les demandes d'argent et d'accès sont en liste fermée */
+    const phrases = [...SRC.matchAll(/ms-regle">([^<]*)</g)].map(m => m[1]).concat([...SRC.matchAll(/Les demandes d’argent et d’accès ne passent[^<]*/g)].map(m => m[0]));
+    vrai('(population) les deux textes de sécurité sont trouvés dans le fichier livré', phrases.length === 2 && phrases.every(t => t.length > 80), phrases.length);
+    vrai('…chacun dit que le travail confié en conversation est une phrase libre, jamais un texte de client', phrases.every(t => /phrase libre/.test(t) && /jamais un texte de client/.test(t)));
+    vrai('…et plus aucun des deux ne promet que « seules des tâches d\'une liste fermée » passent entre agents', !/ne se passent que des tâches d’une liste fermée|Entre agents ne passent que des demandes fermées/.test(SRC));
+    vrai('⛔ la confirmation d\'un lancement à la main DIT qu\'il tient lieu de la réunion du jour (le serveur le fait : sans cette phrase, l\'essai de 8 h 50 fait sauter celle de 9 h sans prévenir)', /confirm\([^;]*le jour même de cette réunion, elle en tient lieu : celle de l’heure dite ne se rejouera pas/.test(fonction('messReunionLancer')));
     const bloc = CODE.slice(CODE.indexOf('var MS_GROUPES_LIB='), CODE.indexOf('/* ══ démarrage'));
     v('⛔ rien ne se fabrique côté page : ni délégation, ni tâche, ni réponse d\'agent (aucun push dans MS.taches, aucun Math.random, aucun setTimeout qui parle)', [/MS\.taches\.push|taches\.push|Math\.random/.test(bloc), /setTimeout\([^)]*msg|setTimeout\([^)]*texte/.test(bloc)], [false, false]);
   }

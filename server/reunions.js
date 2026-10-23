@@ -123,7 +123,7 @@ const ESTUN_MAIL = 'mail envoyé';   // l'action que noteront les agents qui env
 const RAS = /^\s*RAS\b[\s.!]*$/i;
 
 module.exports = function monterReunions(app, ctx) {
-  const { DATA_DIR, monAdmin, monPatronStrict, agents, conversations, cerveau } = ctx;
+  const { DATA_DIR, monPatronStrict, agents, conversations, cerveau } = ctx;
   const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : () => Date.now();
   const pousse = typeof ctx.pousseNotif === 'function' ? ctx.pousseNotif : null;
   const faitsExt = ctx.faits && typeof ctx.faits === 'object' ? ctx.faits : {};
@@ -427,6 +427,20 @@ module.exports = function monterReunions(app, ctx) {
     try { Promise.resolve(pousse(CRENEAUX[R.type].titre + ' terminée', corps, '/tour.html#agents')).catch(() => {}); } catch (e) {}
   }
 
+  /* Qui peut parler, dans l'ordre de la réunion : Victor ouvre, le tour de table, Inès à la fin. */
+  function participantsDe() {
+    const l = ORDRE.concat(['ines']).filter(x => agents.peutAgir(x).ok);
+    if (agents.peutAgir('victor').ok) l.unshift('victor');
+    return l;
+  }
+  /* Ce qui empêche la réunion de COMMENCER, avant tout appel à Claude : la phrase que le fil dira, ou '' si rien ne l'empêche. */
+  function empechement(participants) {
+    if (!participants.length) return 'Réunion annulée : aucun agent n’est allumé';
+    let b = null; try { b = typeof cerveau.etatBudget === 'function' ? cerveau.etatBudget() : null; } catch (e) { b = null; }
+    if (b && (b.illisible || !b.cle)) return 'Réunion annulée : ' + (b.illisible ? CAUSES.budget_illisible : CAUSES.pas_de_cle) + '.';
+    return '';
+  }
+
   /* ── LANCER (le calendrier ET le bouton de Justin passent ici) ── */
   function demarrer(type, o) {
     o = o || {};
@@ -441,23 +455,20 @@ module.exports = function monterReunions(app, ctx) {
     /* Un lancement à la main PENDANT le jour de la réunion tient lieu de la réunion du jour (sinon elle rejouerait à l'heure dite) — sauf si elle a déjà eu lieu. */
     let cle = o.cle;
     if (!cle) { const duJour = type + ':' + p.date; cle = (p.jourSemaine === c.jour && !reunions.some(r => r && r.cle === duJour)) ? duJour : 'manuelle:' + id; }
-    const participants = ORDRE.concat(['ines']).filter(x => agents.peutAgir(x).ok);
-    if (agents.peutAgir('victor').ok) participants.unshift('victor');
+    const participants = participantsDe();
     /* La semaine visée : les objectifs d'un samedi ou d'un dimanche sont ceux de la semaine qui vient. */
     const semaine = (type === 'objectifs' && p.jourSemaine >= 6) ? (() => { const j = jourPlus(p, 8 - p.jourSemaine); return semaineIso(j.annee, j.mois, j.jour); })() : semaineIso(p.annee, p.mois, p.jour);
     const fin = o.debut && now - o.debut < HEURE_MS ? o.debut + HEURE_MS : (o.debut ? now + RATTRAPAGE_COURT_MS : now + HEURE_MS);
-    const R = { id, type, cle, semaine, ts: now, fin, statut: participants.length ? 'en_cours' : 'annulee', participants, manuelle: !!o.manuel };
+    /* ⛔ Une réunion que RIEN n'a empêchée de naître, mais qui n'a pas pu commencer (aucun agent allumé, clé absente, budget illisible) est annulée SANS consommer son
+       créneau : `reessai` la signale à `tic()`, qui la tient dès que Justin a rallumé les agents (le lundi à 9 h 15, le rattrapage va jusqu'à `limite`). Elle est dite UNE fois. */
+    const emp = empechement(participants);
+    const R = { id, type, cle, semaine, ts: now, fin, statut: emp ? 'annulee' : 'en_cours', participants, manuelle: !!o.manuel };
+    if (emp) { R.reessai = true; R.finReelle = now; }
     reunions.push(R);
     if (reunions.length > REUNIONS_MAX) reunions = reunions.slice(-REUNIONS_MAX);
     if (!ecrireReunions()) { reunions.pop(); return { ok: false, raison: 'ecriture' }; }
-    if (!participants.length) {
-      dire('Réunion annulée : aucun agent n’est allumé');
-      return { ok: true, id, annulee: true };
-    }
-    let b = null; try { b = typeof cerveau.etatBudget === 'function' ? cerveau.etatBudget() : null; } catch (e) { b = null; }
-    if (b && (b.illisible || !b.cle)) {
-      dire('Réunion annulée : ' + (b.illisible ? CAUSES.budget_illisible : CAUSES.pas_de_cle) + '.');
-      termine(R, 'annulee');
+    if (emp) {
+      dire(emp, { cle: 'reunion-annulee:' + cle, parHeure: true });
       return { ok: true, id, annulee: true };
     }
     const suite = derouler(R).catch(e => {
@@ -475,14 +486,22 @@ module.exports = function monterReunions(app, ctx) {
     const now = maintenant(), d = dueA(now);
     if (!d) return { saute: 'pas_l_heure' };
     if (illisible()) return { saute: 'illisible' };
-    if (reunions.some(r => r && r.cle === d.cle)) return { saute: 'deja' };
+    const ex = reunions.find(r => r && r.cle === d.cle);
+    if (ex && !(ex.statut === 'annulee' && ex.reessai === true)) return { saute: 'deja' };
+    if (ex) {
+      /* annulée AVANT son premier appel : le créneau n'est pas consommé. Tant que rien ne change, on ne réécrit rien (c'est déjà dit) ; dès que ça change, elle se tient. */
+      if (empechement(participantsDe())) return { saute: 'deja' };
+      reunions = reunions.filter(r => r !== ex);
+    }
     const r = demarrer(d.type, { cle: d.cle, debut: d.debut });
     return r.ok ? { lancee: r.id, annulee: !!r.annulee } : { saute: r.raison };
   }
 
   /* ── les routes ── */
   const objectifsVue = sem => { const o = {}; for (const [id, l] of Object.entries(objectifs[sem] || {})) if (IDS.has(id) && Array.isArray(l)) o[id] = l.map(x => ({ id: x.id, texte: x.texte, mesure: x.mesure, bilan: x.bilan ? { statut: x.bilan.statut, pourquoi: x.bilan.pourquoi } : null })); return o; };
-  app.get('/api/monitor/agents/reunions', monAdmin, (req, res) => {
+  /* ⛔ PATRON SEUL : compte rendu, objectifs, bilans et leçons sont du texte libre que les agents ont écrit d'après ce que Justin leur a dit (le fil de la
+     messagerie, lui aussi au patron, « porte les rappels de clients »). `monAdmin` laisserait lire tout compte actif de la console. */
+  app.get('/api/monitor/agents/reunions', monPatronStrict, (req, res) => {
     if (illisible()) return res.status(503).json({ error: 'Les réunions des agents sont illisibles' });
     const now = maintenant(), sem = semaineDe(now), prec = semaineAvant(now);
     const prochaine = prochaineApres(now);
