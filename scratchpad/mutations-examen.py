@@ -3,7 +3,7 @@
 Chaque mutation remet un défaut dans un fichier COMMITÉ, lance les bancs (les moins chers d'abord) et attend qu'au moins un tombe.
 Usage : python3 scratchpad/mutations-examen.py [début [fin]]   (indices dans la liste)"""
 import subprocess, sys, os
-R = '/home/user/teamop-d4'
+R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # le dépôt qui porte ce script (il visait un dossier figé)
 os.chdir(R)
 BANCS = [b for b in ['tests/test-2934.js', 'tests/test-2932.js', 'tests/test-2930.js', 'tests/test-2931.js', 'tests/test-2933.js'] if not (os.environ.get('SANS_STATIQUE') and b.endswith('2934.js'))]
 E = 'server/examen.js'; I = 'server/index.js'; C = 'server/cerveau.js'; T = 'tour.html'
@@ -18,7 +18,7 @@ M = [
  (E, "etat.jour.n >= (ctx.parJour || PAR_JOUR)", "false", 'plus de limite journalière'),
  (E, "if (!garde.reserver()) { compte.coupe = true;", "if (false) { compte.coupe = true;", 'plus de plafond global d\'appels'),
  (E, "if (o.appelsMax && compte.appels >= o.appelsMax) { compte.plafondScenario = true;", "if (false) { compte.plafondScenario = true;", 'plus de plafond par scénario'),
- (E, "ctx.cerveau.imputer('examen', res.usd)", "0", 'la dépense n\'est plus imputée'),
+ (E, "typeof ctx.cerveau.imputer === 'function' && ctx.cerveau.imputer('examen', u)) courant.imputé += u", "typeof ctx.cerveau.imputer === 'function' && false) courant.imputé += u", 'la dépense n\'est plus imputée'),
  (E, "if (E.techniques() > 0) return { libelle, etat: 'inconnu'", "if (false) return { libelle, etat: 'inconnu'", 'une panne de Claude accuse (✗)'),
  (E, "if (o && o.capacite && !E.capa(o.capacite)) return", "if (false) return", 'plus d\'« en attente » : ✗ pour un module absent'),
  (E, "if (cond) return { libelle, etat: 'ok', detail: '' };", "if (cond || (o && o.capacite)) return { libelle, etat: 'ok', detail: '' };", '« en attente » passe pour ✓ à vide'),
