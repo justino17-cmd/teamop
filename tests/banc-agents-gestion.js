@@ -40,8 +40,10 @@ function monter(o) {
 
   const agents = require(S('agents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, maintenant, pousseNotif: async () => 0, cerveaux: [], cleCerveauPosee: true });
   const direction = require(S('direction.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, maintenant });
+  let equipe = null;
   const conversations = require(S('conversations.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, maintenant, pousseNotif: async () => 0,
-    dossierExiste: n => !o.dossiersExistants || o.dossiersExistants.includes(n) });
+    dossierExiste: n => !o.dossiersExistants || o.dossiersExistants.includes(n),
+    surMessage: m => (equipe ? equipe.surMessage(m) : null) });
 
   const recus = [];
   const cerveau = require(S('cerveau.js'))({ DATA_DIR: D, agents, cleApi: o.sansCle ? '' : 'sk-ant-banc-2911-xxxxxxxxxxxxxxxx', maintenant,
@@ -49,6 +51,7 @@ function monter(o) {
       recus.push(JSON.parse(JSON.stringify(requete)));
       const r = o.claude ? await o.claude(requete, recus.length) : 'Objet : Mise à jour d’OP GESTION\n\nBonjour,\n\nVotre application OP GESTION vient de recevoir une mise à jour : le planning s’affiche plus vite.\n\nBien cordialement,';
       if (r instanceof Error) throw r;
+      if (r && typeof r === 'object') return Object.assign({ texte: '', entree: 900, sortie: 400, stop_reason: 'end_turn' }, r);   // { texte, actions:[{ id, nom, entree }] } : un faux Claude qui joue un outil
       return { texte: r, entree: 900, sortie: 400, stop_reason: 'end_turn' };
     } });
 
@@ -87,6 +90,12 @@ function monter(o) {
   const emma = require(S('agent-emma.js'))(app, { agents, conversations, documents, fichier, maintenant, monAdmin, monPatronStrict, adresseDe: dep.adresseDe });
   const sarah = require(S('agent-sarah.js'))(app, { agents, conversations, cerveau, documents, fichier, maintenant, monPatronStrict });
 
+  /* LA MESSAGERIE (`agent-equipe.js`, le vrai module) : seulement si `o.equipe` — avec les outils propres de Hugo, Margaux, Emma, Sarah et les faits fermés `dossier` et `facture` */
+  if (o.equipe) {
+    equipe = require(S('agent-equipe.js'))({ agents, conversations, cerveau,
+      faits: { dossier: dep.faits, facture: async (n) => (monde.factureFait ? monde.factureFait(n) : { numero: n, nb: 1, factures: [{ statut: 'paye', montantEur: 15, jour: 1, mois: 10, annee: 2026 }] }) },
+      outilsAgents: { hugo: hugo.outilsEquipe, margaux: margaux.outilsEquipe, emma: emma.outilsEquipe, sarah: sarah.outilsEquipe } });
+  }
   const validations = async (statut) => (await appeler('GET /api/monitor/agents/validations', { tourUser: PATRON, query: { statut: statut || 'tout' } })).corps.validations;
   const decider = async (id, decision, corps) => appeler('POST /api/monitor/agents/validations/decider', { tourUser: PATRON, body: Object.assign({ id, decision }, corps || {}) });
   const journal = () => agents.lireJournal();
@@ -96,7 +105,7 @@ function monter(o) {
   /* un document lu comme la Tour le lit, puis accepté AVEC son empreinte */
   const lireDoc = async (ref) => (await appeler('GET /api/monitor/agents/documents', { tourUser: PATRON, query: { refs: ref } })).corps[ref];
   const accepter = async (v) => { const ref = v.params.ref; const d = ref ? await lireDoc(ref) : null; return decider(v.id, 'accepter', d ? { empreinte: d.empreinte } : {}); };
-  return { D, horloge, agents, direction, conversations, cerveau, mail, documents, hugo, margaux, emma, sarah, fichier, recus, envoyes, diffusions, appelsStripe, impayesListe, factureDe, dep, espaces,
+  return { D, horloge, equipe, agents, direction, conversations, cerveau, mail, documents, hugo, margaux, emma, sarah, fichier, recus, envoyes, diffusions, appelsStripe, impayesListe, factureDe, dep, espaces,
     routes, appeler, PATRON, COLLAB, validations, decider, journal, fil, fichierJson, nettoyer, lireDoc, accepter };
 }
 module.exports = { monter };

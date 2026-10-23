@@ -35,10 +35,23 @@ const ACTIONS_MAX = 4;
 const MESSAGE_MAX = 1000;
 const DOSSIERS_MAX = 3;
 
+/* HUGO, MARGAUX, EMMA, SARAH (23 octobre 2026) : leur mission dans la messagerie. Les gestes qu'ils font vraiment passent par des outils propres (`outilsAgents`, plus bas), validés par
+   leur module — jamais par une phrase. */
+const ROLES_GESTION = {
+  hugo: { faits: ['dossier'], rien: 'Tu ne rembourses JAMAIS et tu n’annules jamais un abonnement tout de suite : la seule fin possible est celle de la période déjà réglée, et seulement sur une demande fermée de Camille ou de Justin. Tu ne peux RIEN faire d’autre sur les paiements ni sur les accès.',
+    mission: 'Tu t’occupes des paiements et des accès : tu relis les paiements Stripe, tu prépares la création des espaces clients, et tu programmes la FIN d’un abonnement à la fin de la période réglée quand le client l’a demandé (tu accuses réception au client et tu préviens Justin). Quand un collègue te demande si un client a payé (il te donne un numéro de dossier), tu réponds oui, non, ou « en impayé » — jamais un montant, jamais un nom.' },
+  margaux: { faits: ['dossier', 'facture'], rien: 'Tu ne peux RIEN faire sur l’argent : ni remboursement (« on ne fera pas de remboursement », Justin), ni avoir, ni résiliation. Tes seuls gestes : relancer les impayés (J+3, J+7) et PRÉPARER la mise en demeure, que seul Justin valide.',
+    mission: 'Tu t’occupes de la facturation : les factures, les paiements, ce que doit ou a payé un client. Tu relances les impayés puis tu prépares la mise en demeure pour Justin. Quand un collègue te pose une question de facture (il te donne un numéro de dossier), tu réponds avec les faits du bloc Faits : le statut, le montant et la date de la dernière facture — sans jamais citer de nom ni d’adresse.' },
+  emma:    { faits: [], mission: 'Tu t’occupes des rendez-vous avec les prospects : quand l’un veut être appelé, tu lui proposes des créneaux pris dans les disponibilités de Justin (jamais d’autres), puis tu crées le rendez-vous pour Justin quand le prospect a choisi. Sans disponibilités réglées, tu dis au prospect qu’on le rappelle.' },
+  sarah:   { faits: [], mission: 'Tu rédiges les annonces aux clients (nouvelle version d’OP GESTION, maintenance) à partir des notes de Justin. Une annonce à tous les clients ne part JAMAIS sans la validation de Justin : tu la déposes, il décide.' },
+};
+
 /* Les rôles : ceux de la conversation générique, plus Hugo (qui avait son module — il parle désormais ici, comme les autres). */
 const ROLES = Object.assign({}, AC.ROLES, {
-  hugo: { faits: ['dossier'], rien: 'Tu ne peux RIEN faire seul sur les paiements ni sur les accès : tu constates, tu prépares, et Justin valide.',
-    mission: 'Tu t’occupes des paiements et des accès : tu relis les paiements Stripe, tu prépares la création des espaces clients et les fins d’abonnement. Tu ne crées aucun espace toi-même : ta demande passe par une validation de Justin.' },
+  /* 23 octobre 2026 — Hugo, Margaux, Emma et Sarah (`agent-hugo.js`, `agent-margaux.js`, `agent-emma.js`, `agent-sarah.js`) : leur mission, et les faits qu'ils lisent.
+     Une question de FAIT d'un collègue (« tel client a-t-il payé ? ») reçoit la réponse de celui à qui elle est posée, sur les faits fermés du dossier cité — sans montant pour Hugo,
+     avec le montant et la date pour Margaux (« facture »), jamais un nom ni une adresse. */
+  ...ROLES_GESTION,
 });
 
 /* Une ligne de caractère par agent : une façon de parler, pas une liste de qualités. Pas de formule toute faite (Justin : « pas des robots »). */
@@ -85,7 +98,7 @@ function outilsDe(id, o) {
   o = o || {};
   const fils = Array.isArray(o.fils) ? o.fils : [];
   const collegues = Array.isArray(o.collegues) ? o.collegues : [];
-  return [
+  const communs = [
     { name: 'ecrire', description: 'Écrire un message dans un fil dont tu es membre (ton fil privé avec Justin, ou un groupe). Pour qu’un collègue le lise, cite-le avec @identifiant dans le texte (par exemple @lea). Pas besoin de cet outil pour répondre à ce qu’on te demande ici : ta réponse normale va déjà dans ce fil. 600 caractères au plus.',
       input_schema: { type: 'object', properties: { fil: { type: 'string', enum: fils }, texte: { type: 'string' } }, required: ['fil', 'texte'], additionalProperties: false } },
     { name: 'prendre', description: 'Accepter un travail : il devient TA tâche en cours, « demandée par » celui qui vient de te la demander. À n’utiliser que si tu t’en charges vraiment ; une simple question n’est pas un travail. Décris le travail en une phrase (500 caractères au plus).',
@@ -97,6 +110,9 @@ function outilsDe(id, o) {
     { name: 'demander_justin', description: 'Poser une question que Justin doit trancher : elle arrive dans ton fil privé avec lui, en « important » (il est notifié). Une question à la fois, courte.',
       input_schema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'], additionalProperties: false } },
   ];
+  /* les outils propres à l'agent (`ctx.outilsAgents`) : jamais un nom déjà pris par un outil commun */
+  const noms = new Set(communs.map(t => t.name));
+  return communs.concat((Array.isArray(o.propres) ? o.propres : []).filter(t => t && typeof t.name === 'string' && !noms.has(t.name)));
 }
 
 const MOTIFS_PASSER = {
@@ -121,6 +137,11 @@ module.exports = function agentEquipe(ctx) {
     return { ids: [], surMessage: async () => ({ saute: 'pas_de_cerveau' }) };
   }
   const registre = new Map(agents.AGENTS.map(a => [a.id, a]));
+  /* LES OUTILS PROPRES À UN AGENT (23 octobre 2026) : `ctx.outilsAgents = { hugo: { outils:[définitions], executer(nom, entree, c) → { ok, raison, ligne } }, … }`. Ils s'ajoutent
+     aux cinq outils communs, pour CET agent seulement ; leur module les valide (c'est lui qui sait qui peut quoi), ce fichier ne fait que les passer — `c` porte l'auteur du message
+     qui a réveillé l'agent (`de`) et son texte : un outil qui engage (une fin d'abonnement, une mise en demeure) n'agit que sur un message de Justin. */
+  const propres = ctx.outilsAgents && typeof ctx.outilsAgents === 'object' ? ctx.outilsAgents : {};
+  const outilsPropres = id => (Object.prototype.hasOwnProperty.call(propres, id) && propres[id] && Array.isArray(propres[id].outils)) ? propres[id].outils : [];
   /* La mémoire d'équipe de l'agent (leçons et objectifs des réunions, `reunions.js`) : injectée, donc absente tant que les réunions ne sont pas montées. */
   const memoire = id => { try { return typeof ctx.memoire === 'function' ? String(ctx.memoire(id) || '') : ''; } catch (e) { return ''; } };
   const ids = agents.AGENTS.map(a => a.id).filter(id => ROLES[id] && PERSO[id]);
@@ -194,7 +215,9 @@ module.exports = function agentEquipe(ctx) {
     const recents = conversations.lire(fil, 8).reverse();
     for (const m of recents) {
       if (m.de === id) break;
-      if (m.de !== 'justin') continue;
+      /* Justin, OU un collègue : un numéro de dossier est une forme fermée (DOS- et six chiffres), et ce qu'on en lit ce sont des faits fermés — « tel client a-t-il payé ? » posé
+         par Camille reçoit la réponse de Hugo (23 octobre 2026). Une ligne du système n'est à personne. */
+      if (m.de === 'systeme') continue;
       for (const n of (String(m.texte).toUpperCase().match(/DOS-\d{6}/g) || [])) if (!vus.includes(n) && vus.length < DOSSIERS_MAX) vus.push(n);
     }
     return vus;
@@ -204,10 +227,10 @@ module.exports = function agentEquipe(ctx) {
     if (!voulus.length) return '\nBloc Faits : aucun fait n’est fourni à ton rôle — tu ne connais que ta mission ; pour tout chiffre ou toute donnée, tu dis que tu ne sais pas.';
     const lignes = [];
     for (const f of voulus) {
-      if (f === 'dossier') {
+      if (f === 'dossier' || f === 'facture') {
         const nums = dossiersCites(fil, id);
-        if (!nums.length) { lignes.push('dossier : aucun dossier cité, tu n’as aucun fait client sous les yeux'); continue; }
-        for (const n of nums) { const r = await lire('dossier', n); lignes.push('dossier ' + n + ' ' + JSON.stringify(r === null ? { lecture: 'impossible' } : r)); }
+        if (!nums.length) { lignes.push(f + ' : aucun dossier cité, tu n’as aucun fait client sous les yeux'); continue; }
+        for (const n of nums) { const r = await lire(f, n); lignes.push(f + ' ' + n + ' ' + JSON.stringify(r === null ? { lecture: 'impossible' } : r)); }
         continue;
       }
       const r = await lire(f);
@@ -288,6 +311,14 @@ module.exports = function agentEquipe(ctx) {
       dire(c.fil, nom + ' a terminé ' + (avant.texte ? '« ' + court(avant.texte, 90) + ' »' : 'une tâche') + (resume ? ' : ' + resume : '') + '.');
       return bon('terminee');
     }
+    if (outilsPropres(id).some(t => t.name === a.nom) && typeof propres[id].executer === 'function') {
+      /* un outil PROPRE : son module le valide et l'exécute (asynchrone) ; le résultat est journalisé ici, et sa phrase éventuelle dite dans le fil par le système */
+      return Promise.resolve().then(() => propres[id].executer(a.nom, e, { fil: c.fil, de: c.d.de, texte: String(c.d.texte || ''), prof: c.prof })).then(x => {
+        x = x && typeof x === 'object' ? x : { ok: false, raison: 'erreur' };
+        if (x.ligne) dire(c.fil, x.ligne);
+        return x.ok ? bon(a.nom) : refus(String(x.raison || 'refus'));
+      });
+    }
     if (a.nom === 'demander_justin') {
       const q = raccourcir(masquer(str('question')));
       if (!q) return refus('texte');
@@ -319,7 +350,7 @@ module.exports = function agentEquipe(ctx) {
     conversations.ecrit(fil, id, true);
     try {
       const system = systemDe(id) + blocCharge() + blocTaches(id) + await blocFaits(id, fil);
-      const outils = outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id) });
+      const outils = outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id), propres: outilsPropres(id) });
       const r = await cerveau.penser(id, system, messages, { outils, reflechir: true });
       if (!r.ok) return echec(id, fil, r.raison, prof);
       const sortie = { repondu: false, actions: [] };
@@ -328,7 +359,7 @@ module.exports = function agentEquipe(ctx) {
         if (dit.ok) sortie.repondu = true; else sortie.saute = dit.raison;
       }
       for (const a of (Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
-        let x; try { x = executer(id, a, { fil, d, prof }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
+        let x; try { x = await executer(id, a, { fil, d, prof }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
         sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison });
       }
       return sortie;

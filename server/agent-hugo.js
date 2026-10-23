@@ -214,7 +214,7 @@ module.exports = function hugo(ctx) {
       if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Hugo ne programme une fin d’abonnement que sur une demande de Justin : un collègue passe par la demande fermée.' };
       const dossier = String((entree && entree.dossier) || '').toUpperCase();
       if (!FORME_DOSSIER.test(dossier)) return { ok: false, raison: 'dossier', ligne: 'Hugo n’a pas reçu un numéro de dossier valide (DOS- et six chiffres).' };
-      const slug = espaceDeDossier(dossier);
+      const slug = await espaceDeDossier(dossier);
       if (!slug) return { ok: false, raison: 'espace', ligne: 'Hugo ne trouve pas d’espace pour le dossier ' + dossier + '.' };
       const r = await demanderFinAbonnement(slug, { de: 'justin' });
       return { ok: !!(r && (r.ok || r.propose)), raison: r && (r.raison || r.saute) };

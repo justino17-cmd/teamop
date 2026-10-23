@@ -2078,6 +2078,9 @@ const MON_GESTES = {
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
   'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
+  /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
+  'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
+  'agents/emma/disponibilites': 'a réglé les disponibilités d’Emma', 'agents/emma/proposer': 'a demandé à Emma de proposer des créneaux à un prospect', 'agents/sarah/rediger': 'a demandé à Sarah de rédiger une annonce aux clients',
   'agents/charte': 'a changé la charte d’autonomie des agents', 'agents/brouillons/modifier': 'a corrigé un brouillon de réponse d’un agent avant de le valider', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
   'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
 };
@@ -4432,6 +4435,10 @@ let agentsConversation = null; // la conversation des quinze autres agents (`age
 let agentLea = null;         // Léa (`agent-lea.js`) : la réponse commerciale à une inscription ou une demande — `null` = pas montée, elle ne prépare rien
 let agentCamille = null;     // Camille (`agent-camille.js`) : la réponse à un mail reçu — `null` = pas montée (la veille du Courrier ne lui annonce rien)
 let brouillonsMod = null;    // les brouillons de Léa et de Camille, et ce qui les fait partir (`agents-brouillons.js`)
+let docsAgentsMod = null;     // les courriels d'agents de gestion, la mise en demeure et l'annonce à tous, validés par Justin (`agents-documents.js`) : `null` = pas monté
+let agentMargaux = null;     // Margaux (`agent-margaux.js`) : les relances d'impayé et la mise en demeure préparée — `null` = pas montée
+let agentEmma = null;        // Emma (`agent-emma.js`) : les rendez-vous avec les prospects — `null` = pas montée
+let agentSarah = null;       // Sarah (`agent-sarah.js`) : les annonces aux clients, rédigées pour la validation de Justin — `null` = pas montée
 let agentEquipe = null;        // la messagerie des agents (`agent-equipe.js`) : `null` = pas montée ; la conversation d'avant (Hugo + les quinze) reste alors servie
 let reunionsMod = null;        // les réunions du lundi et du vendredi (`reunions.js`) : `null` = pas montées ; les agents n'ont alors ni objectifs ni leçons
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
@@ -5499,14 +5506,44 @@ const ANNONCE = {
   ],
   fin: 'Votre adresse et vos identifiants OP GESTION ne changent pas.'
 };
-app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
-  if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
-  // une adresse par entreprise, la plus récente gagne
+/* Les destinataires d'une annonce à tous : UNE adresse par entreprise, la plus récente gagne. UNE définition, lue par la route ci-dessous et par la diffusion que Sarah prépare
+   (`diffuserAnnonceClients`, validée par Justin) : deux copies finiraient par écrire à deux listes. */
+function annonceDestinataires() {
   const parMail = new Map();
   for (const [slug, e] of Object.entries(espacesReg)) {
     const ad = String(e.email || '').toLowerCase().trim();
     if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ad)) parMail.set(ad, e.nom || slug);
   }
+  return parMail;
+}
+/* L'annonce de SARAH, une fois que Justin l'a validée (`agents-documents.js`, type `annonce_clients`) : le même gabarit TeamOP, le même journal, la même liste que la route ci-dessous.
+   Le texte est celui que Justin a lu : chaque paragraphe est ÉCHAPPÉ (rien de ce que Claude a écrit n'entre dans le HTML autrement que comme du texte). Rend { envoyes, refus }. */
+async function diffuserAnnonceClients(a) {
+  if (!mailer) throw new Error('e-mail non configuré sur le serveur');
+  const parMail = annonceDestinataires();
+  if (!parMail.size) throw new Error('aucune entreprise avec une adresse e-mail');
+  const objet = String((a && a.objet) || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 200);
+  const texte = String((a && a.texte) || '').trim().slice(0, 20000);
+  if (!objet || !texte) throw new Error('annonce vide');
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const paragraphes = texte.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+  const corpsHtml = paragraphes.map(p => esc(p).replace(/\n/g, '<br>')).join('<br><br>');
+  let envoyes = 0, refus = 0;
+  for (const [ad] of parMail) {
+    try {
+      await mailerEnvoi({ diffusion: true, from: config.smtp.from || config.smtp.user, to: ad, subject: objet, text: texte + '\n\n— L\'équipe TEAM OP · teamop.fr',
+        html: mailTeamOP({ desabo: true, chip: 'Annonce', chipBg: '#E7F0FE', chipColor: '#1D4ED8', titre: objet, corpsHtml,
+          boutonTxt: 'Ouvrir mon application', boutonUrl: 'https://teamop.fr/app.html', bouton2Txt: 'Mon espace client', bouton2Url: 'https://teamop.fr/espace.html' }) });
+      envoyes++;
+    } catch (err) { refus++; console.error('annonce (Sarah) →', ad.replace(/^[^@]{0,2}[^@]*/, '***'), ':', String(err.message || err).slice(0, 120)); }
+  }
+  console.log('annonce de Sarah validée par Justin →', envoyes, 'entreprises', refus ? ('(' + refus + ' refus)') : '');
+  return { envoyes, refus };
+}
+app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
+  if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
+  // une adresse par entreprise, la plus récente gagne
+  const parMail = annonceDestinataires();
   if (!parMail.size) return res.status(404).json({ error: 'aucune entreprise avec une adresse e-mail' });
   const blocs = ANNONCE.points.map(([t, d]) =>
     '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F7FB;border:1px solid #E3E8F1;border-radius:12px;margin-bottom:10px"><tr><td style="padding:14px 18px">' +
@@ -10227,6 +10264,10 @@ try {
        d'avant sur tous les fils (Hugo compris) dès qu'elle est montée ; sous son propre `try`, comme la précédente. */
     try {
       agentEquipe = require('./agent-equipe')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents,
+        /* les outils propres à Hugo, Margaux, Emma et Sarah (fin d'abonnement, mise en demeure, créneaux, annonce) : liaison TARDIVE — leurs modules sont montés plus bas, et un
+           agent non monté n'a simplement pas d'outil. Chacun ne vaut que d'un message de Justin (le module le vérifie, pas le prompt). */
+        outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; }, get margaux() { return agentMargaux && agentMargaux.outilsEquipe; },
+          get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; } },
         memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
     } catch (e) { agentEquipe = null; console.error('messagerie des agents indisponible :', e.message); }
@@ -10245,12 +10286,126 @@ try {
       setInterval(ticReunions, 60000).unref();
       console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
     } catch (e) { reunionsMod = null; console.error('réunions des agents indisponibles :', e.message); }
+    /* ══ HUGO, MARGAUX, EMMA, SARAH — LES CLIENTS (23 octobre 2026) ══════════════════════════════════════════════════════════════════════════
+       Justin : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. S'il n'arrête
+       pas l'abonnement et qu'il ne paye pas, là on fait les démarches pour les faire payer. »
+       Ce bloc ne décide RIEN du payé ni du bloqué : il branche les modules des agents sur les verdicts du serveur (`espaceStripeDans`, `impayesGestion`, `impayeBloque`, `espacePaye`,
+       `facturationDe`) — jamais une seconde règle. Chaque adaptateur rend des FORMES FERMÉES (un numéro de dossier, un état d'une liste, des nombres) ; l'adresse d'un client n'en sort
+       que comme DESTINATAIRE d'un courriel que le code compose, jamais dans un fil ni un journal. Chaque module est monté sous son propre `try` : un échec éteint cet agent-là seul. */
+    let gestionClients = null;
+    try {
+      const stripeFinPeriode = require('./stripe-resiliation');
+      const cleStripe = () => (config.stripe && config.stripe.secretKey) || '';
+      /* le numéro de dossier d'une entreprise (par l'adresse de son compte), et l'espace d'un numéro de dossier — l'un et l'autre FERMÉS */
+      const dossierDeSlug = slug => { const e = espacesReg[slug]; return (e && e.email && dossiersMod) ? (dossiersMod.numeroDe(e.email) || '') : ''; };
+      const emailDeDossier = async n => { if (!dossiersMod) return ''; const f = await dossiersMod.fiche(n); return (f && !f.supprime && f.client) ? String(f.client.email || '').trim().toLowerCase() : ''; };
+      const slugDeDossier = async n => { const m = await emailDeDossier(n); if (!m) return ''; return Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').trim().toLowerCase() === m) || ''; };
+
+      /* HUGO — la fin d'abonnement À LA FIN DE LA PÉRIODE. Une lecture FRAÎCHE de Stripe (comme un achat : `espaceStripeAchat`), les abonnements d'OP GESTION SÛREMENT à l'entreprise
+         (payés, puis en impayé) ; un doute (un abonnement trouvé par l'adresse mais pas sûrement à elle) ne se tranche pas ici. Rend { etat, finMs, adresse, nb } où etat ∈ ok | deja |
+         rien | doute | illisible | echec | inconnu. */
+      const resilierEntreprise = async (slug) => {
+        const e0 = espacesReg[slug];
+        if (!e0) return { etat: 'inconnu' };
+        const sk = cleStripe();
+        if (!sk) return { etat: 'illisible' };
+        const e = Object.assign({ slug }, facturationDe(e0));
+        let achat; try { achat = await espaceStripeAchat(e); } catch (err) { achat = null; }
+        if (!achat || !achat.fraiche || !Array.isArray(espStripeCache.data)) return { etat: 'illisible' };   // une liste ancienne ne décide pas d'une fin d'abonnement
+        const liste = espStripeCache.data;
+        let st = null, imp = null; try { st = espaceStripeDans(e, liste); imp = impayesGestion(e, liste); } catch (err) { return { etat: 'illisible' }; }
+        const payes = ((st && st.surs) || []).filter(aboDeGestion), impayes = ((imp && imp.surs) || []);
+        const douteux = ((st && st.douteux) || []).filter(aboDeGestion);
+        const autresImpayes = ((imp && imp.tous) || []).filter(sb => !impayes.includes(sb));
+        if (douteux.length || autresImpayes.length) return { etat: 'doute' };
+        const cibles = payes.concat(impayes).filter((sb, i, a) => a.indexOf(sb) === i);
+        if (!cibles.length) return { etat: 'rien' };
+        let finMs = 0, toutDeja = true;
+        for (const sb of cibles) {
+          const r = await stripeFinPeriode.programmerFin({ aboId: String(sb.id || ''), sk, entetes: stripeEntetes, jour: new Date().toISOString().slice(0, 10) });
+          if (!r.ok) return { etat: 'echec', nb: cibles.length };
+          if (!r.deja) toutDeja = false;
+          finMs = Math.max(finMs, r.finSec * 1000);
+        }
+        return { etat: toutDeja ? 'deja' : 'ok', finMs, adresse: String(e0.email || '').trim().toLowerCase(), nb: cibles.length };
+      };
+
+      /* MARGAUX — les impayés : les entreprises que le serveur dit BLOQUÉES par un impayé d'OP GESTION (le verdict d'`espacePaye`, pas le sien), une par identifiant, avec l'abonnement
+         SÛREMENT à elles et l'adresse de FACTURATION de Stripe. Une liste ancienne ou illisible : `ok:false`, personne n'est relancé sur un « on ne sait pas ». */
+      const impayesMargaux = async () => {
+        const sk = cleStripe();
+        if (!sk) return { ok: false, raison: 'pas_de_stripe' };
+        let liste; try { liste = await stripeListe(); } catch (err) { return { ok: false, raison: 'stripe' }; }
+        if (!Array.isArray(liste) || !(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return { ok: false, raison: 'liste_perimee' };
+        const vus = new Set(), sortie = [];
+        for (const [slug, e0] of Object.entries(espacesReg)) {
+          if (!e0) continue;
+          const e = Object.assign({ slug }, facturationDe(e0));
+          const t = String(espaceT(e) || '').toLowerCase();
+          if (!t || vus.has(t) || ESPACES_INTOUCHABLES.includes(t)) continue;
+          vus.add(t);
+          let p; try { p = await espacePaye(e, { lecture: true }); } catch (err) { continue; }
+          if (!(p && p.bloque === true && p.impayeStripe === true)) continue;
+          let imp = null; try { imp = impayesGestion(e, liste); } catch (err) { imp = null; }
+          const abo = imp && (imp.surs.includes(imp.abo) ? imp.abo : imp.surs[0]);
+          if (!abo || typeof abo.id !== 'string') continue;   // pas d'abonnement SÛREMENT à elle : on ne relance personne sur un doute
+          sortie.push({ cle: t, slug, dossier: dossierDeSlug(slug), aboId: abo.id, adresse: stripeClient(abo.customer).email.trim().toLowerCase(), entreprise: String(e.nom || slug) });
+        }
+        return { ok: true, liste: sortie };
+      };
+      /* la facture EN ATTENTE d'un abonnement, relue chez Stripe : numéro, montant (en euros), jour d'émission, page https — ou `null` s'il n'y en a pas. JETTE si Stripe est muet. */
+      const factureMargaux = async (aboId) => {
+        const sk = cleStripe();
+        if (!sk || !/^sub_[A-Za-z0-9]{1,80}$/.test(String(aboId))) return null;
+        const d = await stripeMonGet('https://api.stripe.com/v1/subscriptions/' + encodeURIComponent(aboId) + '?expand[]=latest_invoice', sk);
+        if (!d || !STATUTS_IMPAYES.includes(d.status)) return null;
+        let li = d.latest_invoice && typeof d.latest_invoice === 'object' && d.latest_invoice.status === 'open' ? d.latest_invoice : null;
+        if (!li) { const f = await stripeMonGet('https://api.stripe.com/v1/invoices?subscription=' + encodeURIComponent(aboId) + '&status=open&limit=1', sk); li = f && Array.isArray(f.data) ? f.data[0] : null; }
+        if (!li) return null;
+        const eur = li.currency === 'eur' && Number.isFinite(li.amount_due) ? li.amount_due / 100 : 0;
+        return { numero: /^[A-Za-z0-9][A-Za-z0-9_-]{0,40}$/.test(String(li.number || '')) ? String(li.number) : '', montantEur: eur, emiseMs: Number.isFinite(li.created) ? li.created * 1000 : 0,
+          url: /^https:\/\//.test(String(li.hosted_invoice_url || '')) ? String(li.hosted_invoice_url) : '' };
+      };
+      /* « la dernière facture de ce client », pour que Margaux réponde à Camille dans la messagerie : des NOMBRES et des valeurs d'une LISTE (statut, montant, jour, mois, année). */
+      faitsAgents.facture = async (n) => {
+        const mail = await emailDeDossier(n);
+        if (!mail) return { numero: n, existe: false };
+        const sk = cleStripe();
+        if (!sk) return { numero: n, lecture: 'impossible' };
+        let liste; try { liste = await stripeListe(); } catch (err) { return null; }
+        if (!Array.isArray(liste) || !(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return null;
+        const e = { slug: '', email: mail, nom: '', formule: '' };
+        const st = espaceStripeDans(e, liste), im = espaceStripeDans(e, liste, STATUTS_IMPAYES);
+        const abo = ((st && st.surs) || [])[0] || ((im && im.surs) || [])[0];
+        if (!abo || !abo.customer || typeof abo.customer !== 'object' || !/^cus_[A-Za-z0-9]+$/.test(String(abo.customer.id || ''))) return { numero: n, nb: 0, factures: [] };
+        const f = await stripeMonGet('https://api.stripe.com/v1/invoices?customer=' + encodeURIComponent(abo.customer.id) + '&limit=3', sk);
+        const jourFr = ts => { const p = {}; for (const x of new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(new Date(ts * 1000))) p[x.type] = +x.value; return p; };
+        const lignes = (f && Array.isArray(f.data) ? f.data : []).slice(0, 3).map(x => {
+          const p = jourFr(x.created || 0);
+          return { statut: x.status === 'paid' ? 'paye' : (x.status === 'open' || x.status === 'uncollectible') ? 'impaye' : 'autre',
+            montantEur: Number.isFinite(x.amount_due) ? x.amount_due / 100 : 0, jour: p.day || 0, mois: p.month || 0, annee: p.year || 0 };
+        });
+        return { numero: n, nb: lignes.length, factures: lignes };
+      };
+
+      const fichierGestion = fichierAgents;
+      /* LES DOCUMENTS : courriels d'agents, mise en demeure, annonce — la validation de Justin, l'aperçu, l'empreinte. */
+      try {
+        docsAgentsMod = require('./agents-documents')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, mail: messagerieTour, direction: directionMod, fichier: fichierGestion, sansAdresses,
+          diffuser: diffuserAnnonceClients, destinataires: () => annonceDestinataires().size });
+      } catch (e) { docsAgentsMod = null; console.error('documents des agents indisponibles :', e.message); }
+      gestionClients = { dossierDeSlug, emailDeDossier, slugDeDossier, resilierEntreprise, impayesMargaux, factureMargaux };
+    } catch (e) { console.error('adaptateurs des agents de gestion indisponibles :', e.message); }
+
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
     agentHugo = require('./agent-hugo')({
       agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, slug: espSlug,
       faits: faitsDossier,
+      /* la fin d'abonnement (23 octobre 2026) : les adaptateurs du bloc ci-dessus, les documents (l'accusé de réception) et le registre de Hugo */
+      documents: docsAgentsMod, fichier: fichierAgents,
+      resilier: gestionClients ? gestionClients.resilierEntreprise : null, dossierDe: gestionClients ? gestionClients.dossierDeSlug : (() => ''), espaceDeDossier: gestionClients ? gestionClients.slugDeDossier : (async () => ''),
       clients: () => Object.values(clientsData || {}).map(c => ({ email: c && c.email, entreprise: c && c.entreprise })),
       espaceExiste: (email, sl) => !!espacesReg[sl] || Object.values(espacesReg).some(x => x && String(x.email || '').toLowerCase() === String(email).toLowerCase()),
       /* ⛔ `stripeListe` rend `[]` quand la lecture a échoué et qu'aucune liste n'a jamais été lue (une minute d'attente après un échec) :
@@ -10274,6 +10429,32 @@ try {
       catch (e) { console.error('hugo :', e.message); res.status(500).json({ error: 'Passage non traité' }); }
     });
     setInterval(() => { agentHugo.passer().catch(e => console.error('hugo :', e.message)); }, 15 * 60000).unref();
+    /* les demandes fermées que ses collègues lui déposent (la fin d'un abonnement, « a-t-il payé ? ») : chaque minute — c'est une lecture de la file, pas de Stripe */
+    setInterval(() => { agentHugo.traiterTaches().catch(e => console.error('hugo (tâches) :', e.message)); }, 60000).unref();
+
+    /* MARGAUX : les relances d'impayé (J+3, J+7 de la charte) et la mise en demeure PRÉPARÉE — jamais envoyée sans Justin. Toutes les 30 minutes, et à la demande du patron. */
+    try {
+      if (docsAgentsMod && gestionClients) {
+        agentMargaux = require('./agent-margaux')({ agents: agentsMod, conversations: conversationsMod, documents: docsAgentsMod, direction: directionMod, fichier: fichierAgents,
+          impayes: gestionClients.impayesMargaux, facture: gestionClients.factureMargaux });
+        app.post('/api/monitor/agents/margaux/passer', monPatronStrict, async (req, res) => {
+          try { res.json(Object.assign({ ok: true }, await agentMargaux.passer())); }
+          catch (e) { console.error('margaux :', e.message); res.status(500).json({ error: 'Passage non traité' }); }
+        });
+        setInterval(() => { agentMargaux.passer().catch(e => console.error('margaux :', e.message)); }, 30 * 60000).unref();
+      }
+    } catch (e) { agentMargaux = null; console.error('Margaux indisponible :', e.message); }
+    /* EMMA : les rendez-vous avec les prospects qui veulent un appel (disponibilités réglées par Justin dans la Tour). L'adresse du prospect est celle de son DOSSIER. */
+    try {
+      if (docsAgentsMod && gestionClients) {
+        agentEmma = require('./agent-emma')(app, { agents: agentsMod, conversations: conversationsMod, documents: docsAgentsMod, fichier: fichierAgents, monAdmin, monPatronStrict, adresseDe: gestionClients.emailDeDossier });
+        setInterval(() => { agentEmma.traiterTaches().catch(e => console.error('emma :', e.message)); }, 60000).unref();
+      }
+    } catch (e) { agentEmma = null; console.error('Emma indisponible :', e.message); }
+    /* SARAH : l'annonce aux clients, rédigée à partir des notes de Justin — déposée en validation, jamais envoyée seule. */
+    try {
+      if (docsAgentsMod) agentSarah = require('./agent-sarah')(app, { agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, documents: docsAgentsMod, fichier: fichierAgents, monPatronStrict });
+    } catch (e) { agentSarah = null; console.error('Sarah indisponible :', e.message); }
   } catch (e) { console.error('agents indisponibles :', e.message); }
 } catch (e) { console.error('messagerie indisponible :', e.message); }
 
