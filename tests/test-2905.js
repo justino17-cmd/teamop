@@ -94,7 +94,7 @@ const avec = (cat, plus) => ({ claude: () => 'CATEGORIE : ' + cat + (plus || '')
       vrai('⛔ le gabarit « ' + cat + ' » : pas de Justin, pas de « je », pas de « tu », aucune adresse hors contact@teamop.fr, aucun lien, aucun numéro', !/justin/i.test(t) && !/(^|[^\p{L}])(je|j['’])/iu.test(t) && !/(^|[^\p{L}])(tu|ton|ta|tes)(?![\p{L}])/iu.test(t)
         && (t.match(/[^\s]+@[^\s.]+\.[^\s.]+/g) || []).every(a => /^contact@teamop\.fr/.test(a)) && !/https?:|www\./.test(t) && !/\d{6,}/.test(t) && /^Bonjour,\n\n/.test(t) && /\n\nBien cordialement,$/.test(t));
     }
-    /* ⛔ Personne ne `prend` la tâche de Hugo (aucun exécuteur) : l'accusé qui part SEUL ne dit donc ni « enregistrée », ni « aucun nouveau prélèvement », ni « prendra fin » (relecture du 23 octobre 2026). */
+    /* ⛔ L'accusé part AVANT que Hugo ait pris la tâche (il la prend dans la minute, puis programme la fin ou attend Justin selon son mode) : il ne dit donc ni « enregistrée », ni « aucun nouveau prélèvement », ni « prendra fin » (relecture du 23 octobre 2026). */
     vrai('⛔ …le gabarit de résiliation est SANS ENGAGEMENT : demande « transmise », quelqu’un revient confirmer la date ; ni « enregistrée », ni « prendra fin », ni « aucun nouveau prélèvement », ni date', /Elle est transmise à la personne qui s’en occupe, qui revient vers vous/.test(G.resiliation) && /pour vous confirmer la date de fin/.test(G.resiliation)
       && !/enregistr|prendra fin|aucun nouveau|prélèvement|\b(20\d\d|janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\b/i.test(G.resiliation), G.resiliation);
     vrai('…il garde seulement ce que les CGV garantissent : l’accès jusqu’à la fin de la période déjà réglée', /Vous gardez l’accès à l’application jusqu’à la fin de la période déjà réglée/.test(G.resiliation));
@@ -109,8 +109,22 @@ const avec = (cat, plus) => ({ claude: () => 'CATEGORIE : ' + cat + (plus || '')
     let r = await Z.camille.surNouveauMessage(poser(Z, { texte: 'Je veux arrêter mon abonnement.' }));
     const tache = Z.agents.prendre('hugo');
     v('⛔ expéditeur AUTHENTIFIÉ et adresse d’un COMPTE : une tâche fermée « resilier_fin_periode » pour Hugo, avec le numéro de dossier — rien d’autre', [r.hugo, tache && tache.type, tache && tache.params, tache && tache.de], [true, 'resilier_fin_periode', { dossier: 'DOS-000123' }, 'camille']);
-    vrai('…l’accusé de réception est déposé (gabarit), le message à Hugo est dit dans « Clients », Justin est informé', Z.fichierJson('agents-brouillons.json')[r.ref].texte === CAM.GABARITS.resiliation && Z.paroles.some(p => p.fil === 'clients' && /^@Hugo demande fermée déposée : programmer la fin d’abonnement à la fin de la période pour DOS-000123\./.test(p.texte)) && Z.paroles.some(p => p.fil === 'camille' && p.niveau === 'urgent' && /SANS rien promettre/.test(p.texte) && /l’abonnement continue : c’est à toi de le faire/.test(p.texte)));
+    vrai('…l’accusé de réception est déposé (gabarit), le message à Hugo est dit dans « Clients », Justin est informé', Z.fichierJson('agents-brouillons.json')[r.ref].texte === CAM.GABARITS.resiliation && Z.paroles.some(p => p.fil === 'clients' && /^@Hugo demande fermée déposée : programmer la fin d’abonnement à la fin de la période pour DOS-000123\./.test(p.texte)) && Z.paroles.some(p => p.fil === 'camille' && p.niveau === 'urgent' && /SANS rien promettre/.test(p.texte) && /Tant que tu n’as pas validé, l’abonnement continue/.test(p.texte)));
     vrai('⛔ …et rien du texte du client ne traverse (la tâche ne porte que le dossier)', !/arrêter|abonnement/.test(JSON.stringify(tache)) && !/arrêter mon abonnement/.test(JSON.stringify(Z.paroles)));
+    /* ⛔ Ce que Justin lit dit ce que Hugo FERA : Hugo prend la tâche dans la minute (index.js), et selon son mode il dépose une validation ou programme la fin. L'ancienne phrase — « tant que personne ne
+       programme la fin dans Stripe, l'abonnement continue : c'est à toi de le faire » — était fausse depuis que Hugo existe. */
+    const aJ = Z => Z.paroles.filter(p => p.fil === 'camille' && p.niveau === 'urgent' && /demandé l’arrêt de son abonnement/.test(p.texte)).map(p => p.texte);
+    const mBrouillon = aJ(Z);
+    vrai('Hugo en « brouillon » : Justin lit que Hugo dépose la fin d’abonnement dans SES validations, et que c’est sa validation qui la programme', mBrouillon.length === 1 && /Hugo n’est pas en mode « auto » : il la prend dans la minute et dépose la fin d’abonnement dans tes validations/.test(mBrouillon[0])
+      && /c’est quand tu valides qu’il programme la fin de période et écrit au client avec la date/.test(mBrouillon[0]), JSON.stringify(mBrouillon));
+    vrai('⛔ …l’ancienne phrase fausse a disparu (« personne ne programme », « c’est à toi de le faire »)', !/personne ne programme|c’est à toi de le faire/.test(JSON.stringify(Z.paroles)));
+    Z.nettoyer();
+    Z = arret({ modes: { camille: 'brouillon', hugo: 'auto' } });
+    r = await Z.camille.surNouveauMessage(poser(Z, { texte: 'Je veux arrêter mon abonnement.' }));
+    const mAuto = aJ(Z);
+    vrai('Hugo en « auto » : Justin lit que Hugo programme lui-même la fin À LA FIN DE LA PÉRIODE réglée (jamais d’arrêt immédiat ni de remboursement) et écrit au client', mAuto.length === 1 && /Hugo est en mode « auto » : il la prend dans la minute et programme la fin À LA FIN DE LA PÉRIODE réglée \(jamais d’arrêt immédiat ni de remboursement\), puis écrit au client avec la date/.test(mAuto[0]), JSON.stringify(mAuto));
+    vrai('⛔ …et ce n’est pas la phrase du mode « brouillon » (ni « tes validations », ni « Tant que tu n’as pas validé »)', mAuto.length === 1 && !/tes validations|Tant que tu n’as pas validé|n’est pas en mode « auto »/.test(mAuto[0]) && mAuto[0] !== mBrouillon[0]);
+    vrai('…rien d’autre ne change : la demande fermée est bien déposée pour Hugo (une tâche, le dossier)', !!Z.agents.prendre('hugo') && r.hugo === true);
     Z.nettoyer();
 
     Z = arret();

@@ -11,9 +11,10 @@
  *   · une FACTURE → accusé de réception, et Camille passe la main à Margaux par la messagerie, avec sa raison ; un problème TECHNIQUE → à Jules, de même ;
  *   · « je veux ARRÊTER » → un accusé de réception SANS ENGAGEMENT (« transmise, nous revenons vers vous ») ET une demande FERMÉE à Hugo (« résiliation fin de période », `agents.deposer`),
  *     SEULEMENT si l'expéditeur est authentifié et que son adresse est celle d'un compte — sinon une question à Justin, et rien ne part. ⛔ L'accusé ne dit JAMAIS « enregistrée » ni « aucun nouveau
- *     prélèvement » tant qu'aucun exécuteur ne marque la tâche faite (relecture du 23 octobre 2026 : personne ne `prend` cette tâche, elle expire sans rien programmer — le client aurait eu une preuve
- *     écrite de TeamOP qu'il ne serait plus prélevé, et l'aurait été). Le jour où un exécuteur existe : il relit l'abonnement, compare l'adresse du compte, ne résilie jamais immédiatement,
- *     et c'est LUI (ou Justin) qui confirme la date au client, après coup ;
+ *     prélèvement » (relecture du 23 octobre 2026) : il part au moment où la demande est DÉPOSÉE, avant que Hugo l'ait lue, et Hugo peut encore la refuser (plusieurs abonnements dont l'un n'est pas sûrement
+ *     au client, Stripe illisible) ou attendre Justin — le client aurait eu une preuve écrite qu'il ne serait plus prélevé, et l'aurait été. HUGO PREND cette tâche toutes les 60 s (`agent-hugo.js`,
+ *     `traiterTaches`) : en « brouillon » il dépose la fin d'abonnement dans les validations de Justin, qui valide ; en « auto » il programme lui-même la fin À LA FIN DE LA PÉRIODE réglée (jamais d'arrêt
+ *     immédiat, jamais de remboursement). Dans les deux cas c'est LUI qui écrit ensuite au client, avec la date, et qui prévient Justin — ou qui lui DIT qu'il n'a pas pu ;
  *   · un REMBOURSEMENT de ce qu'on a choisi d'arrêter → un refus poli et clair, écrit par le CODE (Justin, 23 octobre 2026 : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois
  *     et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. ») ; ⛔ mais une ERREUR DE PRÉLÈVEMENT (en double, inattendu, contesté, après une résiliation) n'est pas « une
  *     personne qui arrête » : elle va à Margaux et à Justin, l'accusé attend la validation — jamais un refus catégorique envoyé seul à quelqu'un que nous avons peut-être prélevé à tort (la
@@ -109,8 +110,8 @@ const GABARITS = {
   facture: 'Bonjour,\n\nNous avons bien reçu votre message au sujet de votre facturation. Il est transmis à la personne qui s’en occupe, qui revient vers vous rapidement.' + FIN,
   technique: 'Bonjour,\n\nNous avons bien reçu votre message au sujet du problème que vous rencontrez. Il est transmis à la personne qui s’en occupe, qui revient vers vous rapidement.' + FIN,
   inconnu: 'Bonjour,\n\nNous avons bien reçu votre question. Nous revenons vers vous rapidement avec une réponse précise.' + FIN,
-  /* ⛔ SANS ENGAGEMENT : ni « enregistrée », ni « aucun nouveau prélèvement », ni « prendra fin » tant qu'aucun exécuteur ne marque la tâche de Hugo faite (voir l'en-tête). Ce que cette lettre dit est vrai
-     quoi qu'il arrive ensuite : la demande est transmise, quelqu'un revient vers la personne, l'accès se poursuit jusqu'à la fin de la période réglée (CGV). */
+  /* ⛔ SANS ENGAGEMENT : ni « enregistrée », ni « aucun nouveau prélèvement », ni « prendra fin » — cet accusé part AVANT que Hugo ait pris la tâche, et Hugo peut la refuser ou attendre Justin (voir l'en-tête) ;
+     la date, c'est lui qui l'écrit au client, une fois la fin programmée. Ce que cette lettre dit est vrai quoi qu'il arrive ensuite : la demande est transmise, quelqu'un revient vers la personne, l'accès se poursuit jusqu'à la fin de la période réglée (CGV). */
   resiliation: 'Bonjour,\n\nNous avons bien reçu votre demande d’arrêt de l’abonnement. Elle est transmise à la personne qui s’en occupe, qui revient vers vous rapidement pour vous confirmer la date de fin. Vous gardez l’accès à l’application jusqu’à la fin de la période déjà réglée.\n\nSi vous avez la moindre question d’ici là, répondez simplement à ce message.' + FIN,
   /* Justin, 23 octobre 2026 : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. » */
   remboursement: 'Bonjour,\n\nNous avons bien reçu votre demande de remboursement. Nous ne procédons à aucun remboursement : l’abonnement est sans engagement de durée et se résilie à tout moment, ce qui évite tout nouveau prélèvement. Aucune période commencée n’est remboursée, et votre accès se poursuit jusqu’à la fin de la période déjà réglée.\n\nPour arrêter l’abonnement, il suffit de le demander depuis le Support de votre espace client ou par courriel à contact@teamop.fr.\n\nNous restons à votre disposition pour toute question sur l’utilisation de l’application.' + FIN,
@@ -316,7 +317,11 @@ module.exports = function camille(ctx) {
             return { justin: true, categorie, depose: d0.ok, ref: d0.ref };
           }
           dire('clients', '@Hugo demande fermée déposée : programmer la fin d’abonnement à la fin de la période pour ' + dossier + '. Le client a écrit depuis l’adresse du compte, authentifiée (réf. ' + rf + ').', 'info');
-          aJustin('Un client a demandé l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ' : j’ai accusé réception SANS rien promettre (« transmise, nous revenons vers vous ») et déposé la demande fermée pour Hugo. ⚠️ Tant que personne ne programme la fin dans Stripe, l’abonnement continue : c’est à toi de le faire, et de confirmer la date au client.', 'urgent');
+          /* Ce que Hugo fera dépend de SON mode (il prend la tâche dans la minute : `agent-hugo.js`). Une phrase du code, jamais un texte de client. */
+          const suite = hp.mode === 'auto'
+            ? 'Hugo est en mode « auto » : il la prend dans la minute et programme la fin À LA FIN DE LA PÉRIODE réglée (jamais d’arrêt immédiat ni de remboursement), puis écrit au client avec la date ; s’il ne peut pas, il te le dit dans son fil.'
+            : 'Hugo n’est pas en mode « auto » : il la prend dans la minute et dépose la fin d’abonnement dans tes validations — c’est quand tu valides qu’il programme la fin de période et écrit au client avec la date. Tant que tu n’as pas validé, l’abonnement continue.';
+          aJustin('Un client a demandé l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ' : j’ai accusé réception SANS rien promettre (« transmise, nous revenons vers vous ») et déposé la demande fermée pour Hugo. ' + suite, 'urgent');
           agents.noter(ID, 'résiliation transmise à Hugo', { cible: 'courrier', resultat: 'ok', detail: 'demande fermée, expéditeur authentifié' });
           const d = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: GABARITS.resiliation, controle: BON_GABARIT });
           if (d.ok) { jour.brouillons++; sauve(); }
