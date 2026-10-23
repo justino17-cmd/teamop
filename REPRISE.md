@@ -44,6 +44,34 @@ outil d'argent), pas d'urgence — options au constat (citer le dernier message 
 - **`metiers.json` n'est plus publié** sur teamop.fr (il porte la feuille de route : `aCreer`, `aVerifier`, notes). Le serveur le lit dans le dépôt cloné, les écrans lisent `GET /api/metiers` (filtré). `test-1008` exige son absence.
 - **Choix à la page de paiement** : la fiche du client (`ficheDePaiement`) naît APRÈS la page rendue par Stripe, jamais pour un compte fermé, ne compte pas comme un espace (`aUnEspace`, suppression d'un compte du site) ; elle part avec le compte supprimé. ⚠️ Un client qui a payé SANS jamais ouvrir son espace client n'a donc plus de « 409 : ce compte porte une entreprise » — la Tour le montre « sans espace » : vérifier dans Stripe avant de supprimer un compte.
 - **Reste à faire** : `apercu/tour.html` n'est PAS régénéré (à faire à la fusion : `bash scripts/apercu.sh tour.html` — une copie plus vieille que la page est pire que pas de copie) ; la Tour ne monte pas de version (`TOUR_VERSION`) ; l'acceptation d'une seconde demande pose toujours le MÉTIER de la demande sur un espace déjà ouvert (seules les rubriques sont protégées) ; sonde `scratchpad/sonde-tour-demande-ouverte.js` (54 ✓, jour/nuit, 1440/1100/390).
+# ⏳ 23 OCTOBRE 2026 — L'EXAMEN DE L'ÉQUIPE D'AGENTS ET LA CLÉ D'EXAMEN (branche `claude/auto-examen`, RIEN en ligne)
+- **Ce que c'est** (cahier §13) : `server/examen.js` joue les neuf scénarios avec le VRAI modèle sur une équipe d'ESSAI (les vrais modules agents / messagerie / réunions / Léa / Camille sur un dossier
+  temporaire, faits et courriels FICTIFS, fausse poste qui note sans envoyer). Rien de réel n'est touché (fils, files, registres, journal : seulement « examen lancé / terminé »). Onglet **Examen** de la page
+  Agents de la Tour (bouton « Faire passer l'examen à l'équipe », coût annoncé, progression, résultats ✓ ✗ … ? avec conversations dépliables, clé). Bancs `test-2930` à `2934` (+ `tests/banc-examen.js`, le faux Claude).
+- **Coût** : au plus 200 appels et 12 $ (estimés), imputés au budget du mois sous « examen » (`cerveau.imputer`, ajout minimal à `cerveau.js`) ; un examen à la fois, un par heure, six par jour. Le coût réel d'un
+  examen n'est PAS encore mesuré (aucun examen réel n'a été joué) : le premier résultat le dira (champ `usd`). Réunions jouées avec 8 agents sur 16 pour borner le coût.
+- **La clé d'examen** : créée / supprimée par le patron dans la Tour (onglet Examen), montrée UNE fois, empreinte seule sur le serveur, une seule vivante. Elle ne sert que sur `GET /api/monitor/agents/examen`,
+  `GET …/examen/resultat?id=` et `POST …/examen/lancer` ; `test-2932` prouve qu'elle ne change la réponse d'AUCUNE autre route /api/monitor (142 routes relevées dans les sources).
+  Pour Claude Code (la clé se lit dans une variable d'environnement, JAMAIS dans la commande ni dans une réponse collée ici) :
+  ```bash
+  curl -sS -X POST https://api.teamop.fr/api/monitor/agents/examen/lancer -H "Authorization: Bearer $CLE_EXAMEN"   # 202 {id} ; 429 si moins d'une heure
+  curl -sS https://api.teamop.fr/api/monitor/agents/examen -H "Authorization: Bearer $CLE_EXAMEN"                  # progression : courant, résumés des 20 derniers
+  curl -sS "https://api.teamop.fr/api/monitor/agents/examen/resultat?id=<id>" -H "Authorization: Bearer $CLE_EXAMEN" # le détail : contrôles ✓/✗, conversations
+  ```
+  Boucle de correction : lancer → attendre `courant: null` → lire le résultat → corriger ce qui est ✗ (une raison est écrite sur chaque ligne) → publier → relancer (une heure plus tard). « inconnu » = Claude était en panne : relancer, ne rien corriger.
+- **À faire par Justin** : (1) merger / publier le serveur ET la Tour (l'onglet n'existe que dans la Tour qui porte `tour.html` de cette branche ; bêta d'abord, règle de publication) ; (2) créer la clé dans la Tour, la mettre dans
+  son gestionnaire de mots de passe puis la donner à Claude Code par variable d'environnement — jamais en clair dans une conversation (règle « on ne fait jamais afficher un secret ») ; (3) lancer le premier examen et lire
+  le coût réel ; (4) trancher ce que l'examen dit qui est ✗.
+- **« En attente de » — ce que l'examen mesure déjà et que d'AUTRES chantiers livrent** (jamais ✓ à vide ; ✓ dès que la sortie le prouve, ✗ dès que le module se déclare présent et que la sortie le dément) :
+  signature « Léa » ajoutée à l'envoi (`mail.signatureDe`), contrôle qualité des mails (`agents-connaissance.controleQualite`), refus poli de remboursement et accusé de résiliation de Camille
+  (`agent-camille` exporte `CAPACITES: ['remboursement','resiliation']`). ⚠ **À la fusion avec `claude/auto-commercial`** : exporter ces noms (c'est ce qui lève « en attente » dans `index.js`, bloc « L'EXAMEN DE L'ÉQUIPE »)
+  et, pour la signature, que la fausse poste de `examen.js` (`faussePoste`, `envoyerAgent`) applique la même fabrique que la vraie. Sans ça, quatre lignes restent « en attente » pour toujours — le résultat les nomme.
+- **Pas fait** : aucun examen RÉEL joué (pas de clé Anthropic ici) — tout est prouvé avec un faux Claude (`test-2931`) ; le scénario 7 « remboursement » et « je veux arrêter » dépend du chantier commercial ;
+  la page `sous-traitance.html` n'est pas modifiée (l'examen n'envoie à Anthropic que des textes fictifs : `test-2934` prouve qu'aucune donnée de client ne peut y entrer).
+- Un défaut remarqué en passant (hors périmètre) : un agent cité à la fois par Justin et par un collègue est réveillé DEUX fois sur la même question (deux réponses ; la seconde sans les faits du dossier). `test-2931`/`test-2930` le
+  tolèrent ; à corriger dans `agent-equipe.js` (dédoublonner par fil et par réveil en attente).
+
+---
 
 # ✅ 20 OCTOBRE 2026 (SOIR) — OP MESSAGES : CAMPAGNE DE TESTS, DEUX DÉFAUTS CORRIGÉS ; OP COURRIER LISIBLE, LIENS, TRADUCTION (publié sur `main`)
 - **Publié** (Justin : « publie », « je t'autorise ») : l'administration d'OP MESSAGES réservée au patron (`monPatronStrict`, `test-1016`) ;

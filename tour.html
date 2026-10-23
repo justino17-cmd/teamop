@@ -2215,6 +2215,63 @@ body.plans .reg-l.cli::before{display:none}
 .ag-ge .gv li b{font-weight:650}
 .ag-ge .gv li.passe{opacity:.55}
 
+/* ══ L'EXAMEN DE L'ÉQUIPE (Tour, 23 octobre 2026) ══ les jetons de la Tour, jour ET nuit : rien n'est écrit en couleur dure, un état se lit aussi par son SIGNE (✓ ✗ … ?), jamais par la seule teinte. */
+.ex-carte{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:16px;margin-top:16px}
+.ex-carte h3{margin:0 0 6px;font-size:16px}
+.ex-carte p{margin:0 0 10px;color:var(--muted);font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
+.ex-carte .ag-act{margin-top:10px}
+.ex-cout{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.ex-cout span{font-size:12.5px;font-weight:650;padding:4px 10px;border-radius:99px;background:var(--inset);color:var(--text)}
+.ex-prog{display:grid;gap:6px;margin:10px 0 0;padding:0;list-style:none}
+.ex-prog li{display:flex;align-items:center;gap:10px;font-size:13.5px;min-height:34px}
+.ex-prog li b{font-weight:650}
+.ex-badge{flex:none;min-width:28px;height:28px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;background:var(--inset);color:var(--muted)}
+.ex-badge.ok{background:var(--vertBg);color:var(--green-txt)}
+.ex-badge.ko{background:var(--rougeBg);color:var(--redText)}
+.ex-badge.attente{background:var(--ambreBg);color:var(--amber)}
+.ex-badge.inconnu,.ex-badge.en_cours{background:var(--grisBg);color:var(--gray)}
+.ex-badge.en_cours{animation:exPulse 1.4s ease-in-out infinite}
+@keyframes exPulse{50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.ex-badge.en_cours{animation:none}}
+.ex-bilan{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+.ex-bilan span{font-size:13px;font-weight:700;padding:4px 12px;border-radius:99px;background:var(--inset)}
+.ex-bilan .ok{background:var(--vertBg);color:var(--green-txt)}
+.ex-bilan .ko{background:var(--rougeBg);color:var(--redText)}
+.ex-bilan .attente{background:var(--ambreBg);color:var(--amber)}
+.ex-sc{border-top:1px solid var(--line);padding:14px 0}
+.ex-sc:first-of-type{border-top:0}
+.ex-sc-tete{display:flex;gap:10px;align-items:flex-start}
+.ex-sc-tx{min-width:0;flex:1}
+.ex-sc-tx b{display:block;overflow-wrap:anywhere}
+.ex-sc-tx span{color:var(--muted);font-size:12.5px}
+.ex-vs{margin:8px 0 0 38px}
+.ex-v{display:flex;gap:8px;padding:5px 0;font-size:13px;line-height:1.45}
+.ex-v i{font-style:normal;font-weight:800;width:16px;flex:none;text-align:center}
+.ex-v.ok i{color:var(--green-txt)}
+.ex-v.ko i,.ex-v.ko>div>b{color:var(--redText)}
+.ex-v.attente i{color:var(--amber)}
+.ex-v.inconnu i{color:var(--gray)}
+.ex-v>div{min-width:0;overflow-wrap:anywhere}
+.ex-v small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.ex-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ex-bas{margin:8px 0 0 38px;min-height:44px}
+.ex-conv{margin:8px 0 0 38px;padding:10px 12px;background:var(--inset);border-radius:var(--r-3);max-height:420px;overflow:auto}
+.ex-msg{padding:7px 0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;border-top:1px solid var(--line)}
+.ex-msg:first-child{border-top:0}
+.ex-msg b{display:block;font-size:12px;color:var(--muted)}
+.ex-msg.sys{color:var(--muted);font-style:italic}
+.ex-liste{margin:10px 0 0;padding:0;list-style:none}
+.ex-liste li{border-top:1px solid var(--line)}
+.ex-liste li:first-child{border-top:0}
+.ex-liste button{display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;min-height:44px;padding:8px 2px;background:none;border:0;color:var(--text);text-align:left;font-size:13.5px}
+.ex-liste button[aria-current="true"]{font-weight:700}
+.ex-liste small{color:var(--muted);font-size:12.5px}
+.ex-cle{margin:10px 0;padding:12px 14px;border-radius:var(--r-3);border:1px solid var(--amber);background:var(--ambreBg)}
+.ex-cle code{display:block;margin:8px 0;padding:10px 12px;border-radius:var(--r-3);background:var(--inset);color:var(--text);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all;user-select:all}
+.ex-cle strong{display:block;font-size:13.5px}
+.ex-cmd{margin:8px 0 0;padding:10px 12px;border-radius:var(--r-3);background:var(--inset);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
+@media (max-width:560px){.ex-vs,.ex-bas,.ex-conv{margin-left:0}.ex-sc-tete{align-items:center}}
+
 /* ══ MESSAGERIE DES AGENTS (v2.104) ══ trois colonnes — conversations · fil · « Qui fait quoi » — sur les jetons de la Tour, jour ET nuit.
    La zone est son propre CONTENEUR : c'est sa largeur qui décide (à 1100 px d'écran, le menu en prend 258 et il reste 842 pour trois colonnes),
    pas celle de l'écran. En dessous de 1000 px « Qui fait quoi » devient un volet ; en dessous de 700 px on ne voit qu'une colonne à la fois. */
@@ -10687,7 +10744,7 @@ function chargerAgents(){
   return Promise.all(ps);
 }
 function agParler(id){ messOuvrirFil(id); }   /* v2.104 : « Parler à X » ouvre la Messagerie sur son fil privé (l'onglet Conversations d'avant reste, sans bouton qui y mène) */
-function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); render(); }
+function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); if(s==='examen') exEntrer(); render(); }
 /* ── les CONVERSATIONS : un fil privé par agent, un fil « Équipe » ; trois états comme partout (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
 function agCvCharger(){
   apiGet('/api/monitor/conversations').then(function(d){ if(!d) return;
@@ -11179,7 +11236,7 @@ function vueAgents(){
     ' · '+allumes+' allumé'+(allumes>1?'s':'')+' sur '+AG.agents.length+'</b>'+
     (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
   var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
-  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['direction','Direction']].map(function(o){
+  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['examen','Examen'],['direction','Direction']].map(function(o){
     return '<button type="button" role="tab" class="'+(AG.sec===o[0]?'on':'')+'" aria-selected="'+(AG.sec===o[0])+'" onclick="agSec(\''+o[0]+'\')">'+o[1]+
       (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
@@ -11219,6 +11276,8 @@ function vueAgents(){
         (e.cible?esc(e.cible)+' · ':'')+(e.detail?esc(e.detail)+' · ':'')+(e.qui?'par '+esc(e.qui)+' · ':'')+esc(fmtDate(e.ts))+'</span></div></div>'; }).join('')+'</div>';
   } else if(AG.sec==='conv'){
     h+=agCvVue();
+  } else if(AG.sec==='examen'){
+    h+=exVue();
   } else if(AG.sec==='direction'){
     h+=agDirVue();
   } else if(AG.sec==='dossiers'){
@@ -11231,6 +11290,167 @@ function vueAgents(){
       '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Les demandes d’argent et d’accès ne passent entre agents que sous une forme fermée : un identifiant, une valeur d’une liste. Le travail confié en conversation est une phrase libre, celle de Justin ou d’un collègue — jamais un texte de client.</div>';
   }
   return h;
+}
+
+/* ══ L'EXAMEN DE L'ÉQUIPE ══ (Justin, 23 octobre 2026, cahier `design/EQUIPE-AGENTS.md` §13 ; le serveur : `server/examen.js`)
+   « Je veux une vraie équipe d'entreprise, une vraie communication humaine ; je veux que tu testes tout comme je te l'explique quand tout est en ligne. »
+   Le bouton fait passer les neuf scénarios à l'équipe, avec le VRAI modèle, sur une équipe d'essai. ⛔ L'ÉCRAN NE SIMULE RIEN : que rien de réel ne soit touché (aucun vrai fil,
+   aucun vrai client, aucun courriel) est une garantie du SERVEUR, que `test-2931` mesure ; cet écran lit ce que le serveur a trouvé et le montre.
+   · ⛔ TROIS ÉTATS pour chaque lecture (0 pas encore lue, 1 lue, −1 on n'a pas pu savoir) : un examen qu'on n'a pas pu lire ne se dessine jamais « aucun examen n'a eu lieu ».
+   · ⛔ LE COÛT SE DIT AVANT DE LANCER (appels, dollars, budget du mois) et le bouton ne dit pas « lancé » avant que le serveur ait répondu 202.
+   · QUATRE verdicts, chacun avec son SIGNE : ✓ réussi, ✗ échec, … en attente (un module qu'un autre chantier livre : il manque, ce n'est pas un ✓), ? à relancer (Claude était en panne).
+   · ⛔ LA CLÉ D'EXAMEN n'existe à l'écran que dans la réponse qui la crée, et cinq minutes au plus (ou jusqu'à « J'ai copié la clé ») : le serveur ne la rend plus jamais. */
+var EX={lec:0,d:null,err:'',busy:false,voir:'',res:{},resLec:{},ouvert:{},cle:'',tCle:0,tPoll:0};
+var EX_LIB={ok:'Réussi',ko:'Échec',attente:'En attente',inconnu:'À relancer'};
+var EX_ICO={ok:'✓',ko:'✗',attente:'…',inconnu:'?'};
+var EX_PROG={a_venir:'à venir',en_cours:'en cours…',ok:'réussi',ko:'échec',attente:'en attente d’un module',inconnu:'à relancer'};
+var EX_FILS={equipe:'Équipe',clients:'Clients',plateforme:'Plateforme',reunions:'Réunions',courrier:'Courrier'};
+function exHeure(ts){ if(!ts) return '—'; var d=new Date(ts), p=function(n){ return (n<10?'0':'')+n; }; return p(d.getHours())+' h '+p(d.getMinutes()); }
+function exUsd(x){ return (Math.round((+x||0)*100)/100).toString().replace('.',',')+' $'; }
+function exEcran(){ return TAB==='agents'&&AG.sec==='examen'; }
+function exEntrer(){ EX.cle=''; clearTimeout(EX.tCle); exCharger(); }
+function exCharger(){
+  if(MYROLE!=='patron'){ EX.lec=-1; EX.err='Réservé au patron — l’examen ne se lance que par lui.'; if(exEcran()) render(); return Promise.resolve(); }
+  return apiGet('/api/monitor/agents/examen').then(function(d){ if(!d) return;
+    var etait=!!(EX.d&&EX.d.courant);
+    if(d&&Array.isArray(d.resultats)){ EX.d=d; EX.lec=1; EX.err=''; } else { EX.lec=-1; EX.err='réponse inattendue du serveur'; }
+    if(EX.lec===1){
+      var r=d.resultats[0];
+      if(etait&&!d.courant&&r){ EX.voir=r.id; delete EX.resLec[r.id]; exOuvrir(r.id); toast('L’examen est terminé : '+nMot(r.bilan.ok,'réussi','réussis')+', '+nMot(r.bilan.ko,'échec','échecs')+'.'); }
+      else if(!EX.voir&&r) exOuvrir(r.id);
+      if(d.courant) exSurveiller();
+    }
+    if(exEcran()) render();
+  }).catch(function(e){ EX.lec=-1; EX.err=msgErreur(e); if(exEcran()) render(); });
+}
+/* Tant qu'un examen tourne ET que l'écran est ouvert : on relit toutes les quatre secondes. Quitter l'écran arrête la minuterie (elle repart à l'entrée). */
+function exSurveiller(){
+  if(EX.tPoll) return;
+  EX.tPoll=setTimeout(function(){ EX.tPoll=0;
+    if(!exEcran()) return;
+    if(typeof document!=='undefined'&&document.visibilityState==='hidden'){ exSurveiller(); return; }
+    exCharger(); },4000);
+}
+function exOuvrir(id){
+  if(!id) return Promise.resolve();
+  EX.voir=id;
+  if(EX.resLec[id]===1){ if(exEcran()) render(); return Promise.resolve(); }
+  EX.resLec[id]=0; if(exEcran()) render();
+  return apiGet('/api/monitor/agents/examen/resultat?id='+encodeURIComponent(id)).then(function(d){ if(!d) return;
+    if(d&&d.resultat&&typeof d.resultat==='object'){ EX.res[id]=d.resultat; EX.resLec[id]=1; } else EX.resLec[id]=-1;
+    if(exEcran()) render();
+  }).catch(function(){ EX.resLec[id]=-1; if(exEcran()) render(); });
+}
+function exBasculer(cle){ EX.ouvert[cle]=!EX.ouvert[cle]; render(); }
+function exLancer(){
+  if(EX.busy||MYROLE!=='patron'||!EX.d) return;
+  var l=EX.d.limites||{};
+  if(!confirm('Faire passer l’examen à l’équipe ?\n\nIl joue neuf scénarios avec le vrai modèle, sur une équipe d’essai : aucun vrai fil, aucun vrai client, aucun courriel réel.\n\nCoût : au plus '+l.appelsMax+' appels à Claude, soit '+l.usdMax+' $ au maximum, comptés dans le budget du mois des agents.'+(l.moisUsdMax?' L’examen a son propre plafond : '+l.moisUsdMax+' $ par mois.':'')+' Un examen par heure.')) return;
+  EX.busy=true; render();
+  apiPost('/api/monitor/agents/examen/lancer',{}).then(function(r){ EX.busy=false;
+    if(r.ok){ toast('L’examen est lancé.'); EX.voir=''; } else toast((r.d&&r.d.error)||'Lancement refusé');
+    exCharger();
+  }).catch(function(){ EX.busy=false; toast(INJOIGNABLE); render(); });
+}
+function exCleCreer(){
+  if(EX.busy||MYROLE!=='patron'||!EX.d) return;
+  if(EX.d.cle&&EX.d.cle.existe&&!confirm('Créer une nouvelle clé remplace l’ancienne : elle cessera de fonctionner à l’instant. Continuer ?')) return;
+  EX.busy=true; render();
+  apiPost('/api/monitor/agents/examen/cle',{}).then(function(r){ EX.busy=false;
+    if(r.ok&&r.d&&typeof r.d.cle==='string'){
+      EX.cle=r.d.cle; clearTimeout(EX.tCle); EX.tCle=setTimeout(function(){ EX.cle=''; if(exEcran()) render(); },300000);
+      toast('Clé créée : copie-la maintenant, elle ne sera plus montrée.');
+    } else toast((r.d&&r.d.error)||'Clé non créée');
+    exCharger();
+  }).catch(function(){ EX.busy=false; toast(INJOIGNABLE); render(); });
+}
+function exCleSupprimer(){
+  if(EX.busy||MYROLE!=='patron'||!EX.d) return;
+  if(!confirm('Supprimer la clé d’examen ? Elle cessera de fonctionner à l’instant.')) return;
+  EX.busy=true; EX.cle=''; clearTimeout(EX.tCle); render();
+  apiPost('/api/monitor/agents/examen/cle/supprimer',{}).then(function(r){ EX.busy=false;
+    toast(r.ok?'Clé supprimée.':((r.d&&r.d.error)||'Suppression refusée'));
+    exCharger();
+  }).catch(function(){ EX.busy=false; toast(INJOIGNABLE); render(); });
+}
+function exCleCopier(){
+  var c=EX.cle; if(!c) return;
+  var mal=function(){ toast('Copie impossible : sélectionne la clé et copie-la à la main.'); };
+  try{ navigator.clipboard.writeText(c).then(function(){ toast('Clé copiée.'); },mal); }catch(e){ mal(); }
+}
+function exCleCacher(){ EX.cle=''; clearTimeout(EX.tCle); render(); }
+
+function exVerifHtml(v){
+  var e=EX_ICO[v.etat]?v.etat:'inconnu';
+  return '<div class="ex-v '+e+'" role="listitem"><i aria-hidden="true">'+EX_ICO[e]+'</i><div><span class="ex-sr">'+esc(EX_LIB[e])+' : </span>'+esc(v.libelle)+(v.detail?'<small>'+esc(v.detail)+'</small>':'')+'</div></div>';
+}
+function exFilLib(f){ return EX_FILS[f]||agNom(f); }
+function exConvHtml(c){
+  return '<div class="ex-conv">'+c.map(function(m){ return '<div class="ex-msg'+(m.systeme?' sys':'')+'"><b>'+esc(m.nom||m.de)+(m.fil?' · '+esc(exFilLib(m.fil)):'')+'</b>'+esc(m.texte)+'</div>'; }).join('')+'</div>';
+}
+function exScenarioHtml(s,id){
+  var e=EX_ICO[s.etat]?s.etat:'inconnu', cle=id+':'+s.n, ouvert=!!EX.ouvert[cle], v=Array.isArray(s.verifs)?s.verifs:[], conv=Array.isArray(s.conversation)?s.conversation:[];
+  var att=v.filter(function(x){ return x.etat==='attente'; }).length;
+  return '<section class="ex-sc"><div class="ex-sc-tete"><span class="ex-badge '+e+'" aria-hidden="true">'+EX_ICO[e]+'</span><div class="ex-sc-tx"><b>'+esc(s.n)+'. '+esc(s.titre)+'</b><span><span class="ex-sr">Verdict : </span>'+esc(EX_LIB[e])+' · '+nMot(v.length,'contrôle','contrôles')+(att?' · '+nMot(att,'en attente d’un module','en attente d’un module'):'')+' · '+nMot(s.appels||0,'appel','appels')+' · '+(+s.duree||0)+' s</span></div></div>'+
+    '<div class="ex-vs" role="list">'+v.map(exVerifHtml).join('')+'</div>'+
+    (conv.length?'<button type="button" class="ag-btn ex-bas" aria-expanded="'+ouvert+'" onclick="exBasculer(\''+esc(cle)+'\')">'+(ouvert?'Masquer':'Voir')+' la conversation ('+conv.length+')</button>'+(ouvert?exConvHtml(conv):''):'')+'</section>';
+}
+function exBilanHtml(b){
+  b=b||{};
+  return '<div class="ex-bilan"><span class="ok">✓ '+nMot(b.ok||0,'réussi','réussis')+'</span><span class="ko">✗ '+nMot(b.ko||0,'échec','échecs')+'</span>'+(b.attente?'<span class="attente">… '+b.attente+' en attente</span>':'')+(b.inconnu?'<span>? '+nMot(b.inconnu,'à relancer','à relancer')+'</span>':'')+'</div>';
+}
+function exSourceLib(s){ return s==='cle'?'par la clé d’examen':s==='tour'?'depuis la Tour':''; }
+function exResultatHtml(id){
+  var l=EX.resLec[id], r=EX.res[id];
+  if(l===0||l===undefined) return acSquel();
+  if(l===-1||!r) return agIllisible('Ce résultat n’a pas pu être lu — on ne sait pas ce qu’il dit.')+'<button type="button" class="ag-btn" onclick="delete EX.resLec[\''+esc(id)+'\'];exOuvrir(\''+esc(id)+'\')">Réessayer</button>';
+  var tete='<div class="ex-sc-tx"><span>Examen du '+esc(fmtDate(r.debut))+' '+esc(exSourceLib(r.source))+' · '+nMot(r.appels||0,'appel','appels')+' · '+esc(exUsd(r.usd))+' · '+(+r.duree||0)+' s</span></div>';
+  if(r.etat==='interrompu') return tete+'<div class="encart bloc"><div class="tx" style="margin-top:0">Cet examen a été interrompu : '+esc(r.raison||'raison inconnue')+'. Rien n’a été rejoué ; relance-le quand tu veux.</div></div>';
+  if(r.etat==='erreur') return tete+agIllisible('Cet examen s’est arrêté sur une erreur du serveur'+(r.erreur?' : '+r.erreur:'')+'.');
+  return tete+exBilanHtml(r.bilan)+(r.plafondAtteint?'<div class="note" style="margin:6px 0;color:var(--amber);font-size:13px">Le plafond de l’examen a été atteint : ce qui n’a pas pu se jouer est « à relancer ».</div>':'')+
+    (Array.isArray(r.scenarios)?r.scenarios.map(function(s){ return exScenarioHtml(s,id); }).join(''):'');
+}
+function exProgresHtml(c){
+  var f=c.scenarios.filter(function(s){ return s.etat!=='a_venir'&&s.etat!=='en_cours'; }).length;
+  return '<div class="ex-carte" aria-live="polite"><h3>Examen en cours</h3><p>Lancé à '+esc(exHeure(c.debut))+' '+esc(exSourceLib(c.source))+'. '+f+' scénario'+(f>1?'s':'')+' sur '+c.scenarios.length+' terminé'+(f>1?'s':'')+' · '+nMot(c.appels||0,'appel','appels')+' sur '+esc(c.appelsMax)+' au plus · '+esc(exUsd(c.usd))+' sur '+esc(c.usdMax)+' $ au plus. La page se met à jour toute seule.</p>'+
+    '<ul class="ex-prog">'+c.scenarios.map(function(s){ var e=EX_PROG[s.etat]?s.etat:'inconnu';
+      return '<li><span class="ex-badge '+(e==='a_venir'?'':e)+'" aria-hidden="true">'+(e==='a_venir'?'·':e==='en_cours'?'…':EX_ICO[e]||'?')+'</span><span><b>'+esc(s.n)+'.</b> '+esc(s.titre)+' <small style="color:var(--muted)">— '+esc(EX_PROG[e])+'</small></span></li>'; }).join('')+'</ul></div>';
+}
+function exCleHtml(){
+  var d=EX.d, c=d.cle||{existe:false};
+  var API_=API+'/api/monitor/agents/examen';
+  var h='<div class="ex-carte"><h3>Clé d’examen — pour que Claude Code teste et corrige sans te déranger</h3><p>Une clé qui ne permet que DEUX gestes : lancer l’examen et lire ses résultats (des données fictives uniquement). Elle ne donne accès à rien d’autre dans la Tour : ni clients, ni courrier, ni agents réels. Une seule clé vit à la fois ; elle est gardée sous forme d’empreinte, donc montrée une seule fois, ici, à sa création. Un examen par heure au plus, quelle que soit la façon de le lancer ; chaque usage est inscrit au journal des agents (les refus et les lectures répétés n’y font qu’une ligne par fenêtre, qui dit combien elle en recouvre).</p>';
+  if(EX.cle){
+    h+='<div class="ex-cle" role="alert"><strong>Copie cette clé maintenant : elle ne sera plus jamais affichée.</strong><code id="ex-cle-val">'+esc(EX.cle)+'</code><div class="ag-act"><button type="button" class="ag-btn ok" onclick="exCleCopier()">Copier la clé</button><button type="button" class="ag-btn" onclick="exCleCacher()">J’ai copié la clé</button></div></div>';
+  }
+  h+=c.existe?'<p>Une clé est vivante depuis le '+esc(fmtDate(c.creeLe))+(c.par?' (créée par '+esc(c.par)+')':'')+'.</p>':'<p>Aucune clé n’est vivante.</p>';
+  h+='<div class="ag-act"><button type="button" class="ag-btn '+(c.existe?'':'ok')+'"'+(EX.busy?' disabled':'')+' onclick="exCleCreer()">'+(c.existe?'Remplacer la clé':'Créer une clé')+'</button>'+(c.existe?'<button type="button" class="ag-btn danger"'+(EX.busy?' disabled':'')+' onclick="exCleSupprimer()">Supprimer la clé</button>':'')+'</div>';
+  h+='<p style="margin-top:12px">Pour s’en servir (la clé se lit dans une variable, jamais dans la commande) :</p><div class="ex-cmd">curl -sS -X POST '+esc(API_)+'/lancer -H "Authorization: Bearer $CLE_EXAMEN"\ncurl -sS '+esc(API_)+'/resultat -H "Authorization: Bearer $CLE_EXAMEN"</div></div>';
+  return h;
+}
+function exVue(){
+  if(EX.lec===0) return acSquel();
+  if(EX.lec===-1||!EX.d) return agIllisible('L’examen n’a pas pu être lu ('+(EX.err||'raison inconnue')+') : on ne sait pas si un examen est en cours.')+'<button type="button" class="ag-btn" onclick="exCharger()">Réessayer</button>';
+  var d=EX.d, l=d.limites||{}, c=d.courant, now=Date.now();
+  var attente=d.prochainPossible&&d.prochainPossible>now?d.prochainPossible:0;
+  var peut=!EX.busy&&!c&&!attente&&d.cleOk===true;
+  var h='<div class="ex-carte"><h3>Faire passer l’examen à l’équipe</h3><p>Les neuf scénarios du cahier sont joués avec le vrai modèle, sur une équipe d’essai : une question à Margaux, un travail à Camille, « @tous », Camille et Hugo entre eux, un désaccord arbitré par Victor, le premier courriel de Léa, le courrier, les réunions du lundi et du vendredi, le ton. Rien de réel n’est touché : aucun vrai fil, aucun vrai client, aucun courriel envoyé.</p>'+
+    '<div class="ex-cout"><span>Au plus '+esc(l.appelsMax)+' appels à Claude</span><span>'+esc(l.usdMax)+' $ au maximum</span><span>comptés dans le budget du mois des agents</span>'+(l.moisUsdMax?'<span>'+esc(l.moisUsdMax)+' $ par mois au plus pour l’examen</span>':'')+'<span>un examen par heure</span></div>'+
+    (d.cleOk!==true?'<div class="note" style="margin:6px 0;color:var(--amber);font-size:13px">La clé des agents n’est pas posée sur le serveur : l’examen ne peut pas jouer avec le vrai modèle.</div>':'')+
+    (attente?'<p>Le prochain examen sera possible à '+esc(exHeure(attente))+'.</p>':'')+
+    '<div class="ag-act"><button type="button" class="ag-btn ok"'+(peut?'':' disabled')+' onclick="exLancer()">'+(c?'Examen en cours…':EX.busy?'Lancement…':'Faire passer l’examen à l’équipe')+'</button></div></div>';
+  if(c) h+=exProgresHtml(c);
+  var rs=d.resultats||[];
+  if(!rs.length){ h+=c?'':'<div class="vide" style="margin-top:16px">Aucun examen n’a encore été joué.</div>'; }
+  else {
+    var id=EX.voir&&rs.some(function(x){ return x.id===EX.voir; })?EX.voir:rs[0].id;
+    h+='<div class="ex-carte"><h3>Résultat</h3>'+exResultatHtml(id)+'</div>';
+    if(rs.length>1){
+      h+='<div class="ex-carte"><h3>Les examens gardés</h3><ul class="ex-liste">'+rs.map(function(x){
+        return '<li><button type="button" aria-current="'+(x.id===id)+'" onclick="exOuvrir(\''+esc(x.id)+'\')"><span>'+esc(fmtDate(x.debut))+'</span><span class="ag-etiq'+(x.bilan.ko?' ko':x.etat==='interrompu'?'':' ok')+'">'+(x.etat==='interrompu'?'interrompu':x.etat==='erreur'?'erreur':'✓ '+x.bilan.ok+' · ✗ '+x.bilan.ko)+'</span><small>'+esc(exSourceLib(x.source))+'</small></button></li>'; }).join('')+'</ul></div>';
+    }
+  }
+  return h+exCleHtml();
 }
 
 /* ══ LA MESSAGERIE DES AGENTS ══ (Justin, 23 octobre 2026, cahier `design/EQUIPE-AGENTS.md` §6 et §11 ; modèle visuel : `design/propositions/maquette-tour.html`)
