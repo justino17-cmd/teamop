@@ -4418,6 +4418,7 @@ let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, p
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
+let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
 let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
@@ -10093,7 +10094,7 @@ try {
      emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
   try {
     agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif,
-      cerveaux: ['hugo'], cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
+      cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
     console.log('agents : socle chargé');
     /* LA DIRECTION : la charte d'autonomie (ce que chaque geste a le droit de faire seul) et le rapport du jour. Elle ne fait agir personne. */
     directionMod = require('./direction')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod });
@@ -10116,21 +10117,47 @@ try {
     /* LES CONVERSATIONS : un fil privé par agent, un fil « Équipe ». Un agent y parle par `parler` / `rappelClient`, jamais par une route. */
     conversationsMod = require('./conversations')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, sansAdresses, pousseNotif,
       formeDossier: dossiersMod.FORME, dossierExiste: n => dossiersMod.existe(n),
-      surMessagePatron: (fil, t) => (fil === 'hugo' && agentHugo) ? agentHugo.repondre(t) : null });
+      /* Hugo a son module ; les quinze autres (et le fil « Équipe », que Victor tient) passent par la conversation générique. */
+      surMessagePatron: (fil, t) => fil === 'hugo' ? (agentHugo ? agentHugo.repondre(t) : null) : (agentsConversation ? agentsConversation.repondre(fil, t) : null) });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
     const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '' });
     console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
+    /* ce qu'un agent peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note. UNE définition : Hugo
+       et les agents de la conversation générique (Léa, Camille, Margaux) la partagent, une seconde copie divergerait. */
+    const faitsDossier = async (n) => { const f = await dossiersMod.fiche(n); if (!f) return { numero: n, existe: false }; if (f.supprime) return { numero: n, supprime: true };
+        return { numero: n, inscritDepuis_jours: f.client.inscrit ? Math.floor((Date.now() - f.client.inscrit) / 86400000) : null, espace: f.espace.existe ? { existe: true, formule: f.espace.formule } : { existe: false },
+          paiement: f.paiement, formuleDemandee: ['pro', 'business', 'premium'].includes(String(f.client.plan).toLowerCase()) ? String(f.client.plan).toLowerCase() : '',
+          /* ⛔ des valeurs d'une LISTE : ce que le client a écrit n'entre jamais dans le prompt */
+          demandes: f.demandes.map(d => ({ app: ['OP GESTION', 'OP MESSAGES'].includes(d.app) ? d.app : 'autre', formule: ['pro', 'business', 'premium'].includes(String(d.formule).toLowerCase()) ? String(d.formule).toLowerCase() : '', statut: ['en attente', 'traitée', 'classée'].includes(d.statut) ? d.statut : 'autre' })) }; };
+    /* LA CONVERSATION DES QUINZE AUTRES AGENTS : ils répondent dans « Parler » (Claude, faits fermés, rien d'exécuté). Sous son propre `try` :
+       un échec de montage ne doit emporter ni Hugo ni la Messagerie — les agents se taisent, c'est tout. */
+    try {
+      agentsConversation = require('./agent-conversation')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod,
+        faits: {
+          /* le /health LOCAL du serveur (pas la copie publique d'un autre) : on n'en garde que des nombres et des booléens. Le port est lu comme
+             à l'écoute (`PORT`, plus bas) mais PAR l'environnement : la constante n'existe pas encore à l'exécution de ce bloc. */
+          sante: async () => {
+            let j; try { const r = await fetch('http://127.0.0.1:' + (process.env.PORT || 8080) + '/health', { signal: AbortSignal.timeout(2000) }); j = r.ok ? await r.json() : null; } catch (e) { j = null; }
+            if (!j || typeof j !== 'object') return null;
+            const nb = x => (typeof x === 'number' && Number.isFinite(x)) ? x : null, bo = x => typeof x === 'boolean' ? x : null;
+            const sv = j.sauvegarde || {}, lim = j.limites || {}, pr = j.processus || {}, mr = j.mailRefus || {};
+            return { ok: bo(j.ok), uptimeH: nb(j.uptime) === null ? null : Math.round(j.uptime / 3600), bugs1h: nb(j.bugs1h), bugs24h: nb(j.bugs24h), stripeEchecMin: nb(j.stripeEchecMin),
+              sauvegarde: { ok: bo(sv.ok), ageH: nb(sv.ageH), instantaneEchecs: nb(sv.instantaneEchecs) },
+              refus: { synchro1h: nb(lim.refusSynchro1h), autres1h: nb(lim.refusAutres1h), mail: nb(mr.n) }, processus: { rejets1h: nb(pr.rejets1h), erreurs1h: nb(pr.erreurs1h) } };
+          },
+          equipe: () => { const c = agentsMod.comptes(); return { modes: Object.fromEntries(agentsMod.AGENTS.map(a => [a.id, agentsMod.modeDe(a.id)])), validationsEnAttente: c.validationsEnAttente, tachesEnAttente: c.tachesEnAttente, tachesPrises: c.tachesPrises }; },
+          courrier: () => { if (!messagerieTour || typeof messagerieTour.compter !== 'function') return null; const c = messagerieTour.compter(); return { aTraiter: c.aTraiter, enCours: c.enCours }; },
+          clients: () => { const l = Object.values(clientsData || {});
+            return { clients: l.length, demandesEnAttente: l.reduce((n, c) => n + (Array.isArray(c && c.demandes) ? c.demandes.filter((d, i) => String(d && d.statut).toLowerCase() === 'en attente' && !(c.demandesTraitees && c.demandesTraitees[i])).length : 0), 0), espaces: Object.keys(espacesReg || {}).length }; },
+          dossier: faitsDossier } });
+      console.log('agents : conversation montée pour ' + agentsConversation.ids.length + ' agents');
+    } catch (e) { agentsConversation = null; console.error('conversation des agents indisponible :', e.message); }
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
     agentHugo = require('./agent-hugo')({
       agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, slug: espSlug,
-      /* ce que Hugo peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note */
-      faits: async (n) => { const f = await dossiersMod.fiche(n); if (!f) return { numero: n, existe: false }; if (f.supprime) return { numero: n, supprime: true };
-        return { numero: n, inscritDepuis_jours: f.client.inscrit ? Math.floor((Date.now() - f.client.inscrit) / 86400000) : null, espace: f.espace.existe ? { existe: true, formule: f.espace.formule } : { existe: false },
-          paiement: f.paiement, formuleDemandee: ['pro', 'business', 'premium'].includes(String(f.client.plan).toLowerCase()) ? String(f.client.plan).toLowerCase() : '',
-          /* ⛔ des valeurs d'une LISTE : ce que le client a écrit n'entre jamais dans le prompt */
-          demandes: f.demandes.map(d => ({ app: ['OP GESTION', 'OP MESSAGES'].includes(d.app) ? d.app : 'autre', formule: ['pro', 'business', 'premium'].includes(String(d.formule).toLowerCase()) ? String(d.formule).toLowerCase() : '', statut: ['en attente', 'traitée', 'classée'].includes(d.statut) ? d.statut : 'autre' })) }; },
+      faits: faitsDossier,
       clients: () => Object.values(clientsData || {}).map(c => ({ email: c && c.email, entreprise: c && c.entreprise })),
       espaceExiste: (email, sl) => !!espacesReg[sl] || Object.values(espacesReg).some(x => x && String(x.email || '').toLowerCase() === String(email).toLowerCase()),
       /* ⛔ `stripeListe` rend `[]` quand la lecture a échoué et qu'aucune liste n'a jamais été lue (une minute d'attente après un échec) :

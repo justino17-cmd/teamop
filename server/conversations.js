@@ -143,6 +143,16 @@ module.exports = function monterConversations(app, ctx) {
     res.json({ ok: true, lus: touches.length });
   });
 
-  return { parler, rappelClient, MOTIFS, estIllisible: () => illisible };
+  /* Les `n` derniers messages d'un fil (1 à 50), du plus ancien au plus récent : `[{de, texte, ts}]`. Pour qu'un agent REPRENNE la conversation
+     sans qu'on lui recopie tout. Le texte est celui qui est rangé : sans caractère de contrôle, borné ; il n'est PAS passé par `sansAdresses`
+     côté patron (seuls les agents y passent à l'écriture) — l'appelant qui l'envoie hors du serveur le nettoie lui-même. Un fil inconnu ou
+     un registre illisible rend `[]` : « rien à lire » ne devient jamais une erreur qui ferait parler un agent à tort. */
+  function historique(fil, n) {
+    if (illisible || !filValide(fil)) return [];
+    const k = Math.min(Math.max(Math.floor(Number(n)) || 1, 1), 50);
+    return messages.filter(m => m.fil === fil).slice(-k).map(m => ({ de: m.de, texte: m.texte, ts: m.ts }));
+  }
+
+  return { parler, rappelClient, historique, MOTIFS, estIllisible: () => illisible };
 };
 module.exports.MOTIFS = MOTIFS;

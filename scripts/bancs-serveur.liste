@@ -209,3 +209,8 @@ tests/test-2709.js
 # 19 octobre 2026 : 4 420 contre les pages de `main` (65 suites), `test-2710` compris (+129) — plancher relevé à 4 280.
 # 20 octobre 2026 : `test-2805` (« Traduire en français » du Courrier de la Tour : vrai serveur, faux Claude ; aucun 5xx, rien du mail au journal).
 tests/test-2805.js
+# 22 octobre 2026 : les quinze autres agents répondent dans « Parler » — `test-2860` (le cerveau : `thinking` désactivé, jamais `temperature`/`top_p`/`top_k`, `maxTokens` borné,
+# « trop long » distinct de « vide » ; il joue aussi la VRAIE fonction d'appel, `fetch` remplacé) et `test-2861` (le vrai serveur, Claude simulé : chacun répond dans son fil, rien d'une
+# personne ne part chez Claude, faits fermés par rôle, historique alterné, rien d'exécuté). `test-2861` lit aussi `tour.html` via `test-2709` (déjà ci-dessus).
+tests/test-2860.js
+tests/test-2861.js

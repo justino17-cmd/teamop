@@ -18,7 +18,15 @@ const TOTAL_USD = 195;
 const MODEL = 'claude-sonnet-5';
 const USD_ENTREE_M = 3.5, USD_SORTIE_M = 17.5;   /* un peu au-dessus du tarif : on estime vers le haut */
 const MAX_TOKENS = 600;
+/* Ce qu'un appelant peut demander (`opts.maxTokens`) : borné des deux côtés. Sous 100, même « Bonjour » peut être coupé ; au-dessus de 4000,
+   un agent qui boucle ferait payer une réponse sans fin sur un budget partagé de 195 $. */
+const MAX_TOKENS_MIN = 100, MAX_TOKENS_MAX = 4000;
 const TIMEOUT_MS = 30000;
+function jetonsDemandes(opts) {
+  const n = opts && typeof opts === 'object' ? opts.maxTokens : undefined;
+  if (typeof n !== 'number' || !Number.isFinite(n)) return MAX_TOKENS;
+  return Math.min(Math.max(Math.floor(n), MAX_TOKENS_MIN), MAX_TOKENS_MAX);
+}
 
 module.exports = function cerveau(ctx) {
   const { DATA_DIR, agents } = ctx;
@@ -44,8 +52,11 @@ module.exports = function cerveau(ctx) {
   const total = () => Object.values(etat.parAgent).reduce((s, x) => s + (Number(x) || 0), 0);
   const plafond = id => { const a = agents.AGENTS.find(x => x.id === id); return a ? a.plafondUsd : 0; };
 
-  /* Une question à Claude. `appeler` est injectable (banc) : `(cle, requete) → {texte, entree, sortie}`. */
-  async function penser(id, system, messages) {
+  /* Une question à Claude. `appeler` est injectable (banc) : `(cle, requete) → {texte, entree, sortie, stop_reason}`.
+     `opts.maxTokens` (facultatif) : la longueur permise de la réponse, bornée entre 100 et 4000 ; sans lui, 600.
+     ⛔ On n'envoie JAMAIS `temperature`, `top_p` ni `top_k` : l'API les refuse en 400 depuis le 21 octobre 2026, et un agent qui les
+        enverrait se tairait sur une erreur d'API. Le banc (test-2860) relit la requête et exige leur absence. */
+  async function penser(id, system, messages, opts) {
     if (illisible) return { ok: false, raison: 'budget_illisible' };
     if (!cle) return { ok: false, raison: 'pas_de_cle' };
     const p = agents.peutAgir(id);
@@ -55,13 +66,26 @@ module.exports = function cerveau(ctx) {
     if (total() >= TOTAL_USD) return { ok: false, raison: 'plafond_total' };
     if (typeof system !== 'string' || !Array.isArray(messages) || !messages.length) return { ok: false, raison: 'requete' };
     let r;
-    try { r = await (ctx.appeler || appelerAnthropic)(cle, { model: MODEL, max_tokens: MAX_TOKENS, system, messages }); }
+    /* ⛔ `thinking: disabled`, EXPRÈS. Sans ce réglage, Claude Sonnet 5 réfléchit d'office (mode adaptatif) et cette réflexion est prise
+       sur `max_tokens` : avec 600 jetons, elle pouvait manger toute la réponse, qui revenait VIDE — et un échec « vide » est tu par les
+       agents (rien à dire dans le fil). Un agent muet sans le dire est exactement la panne qu'on ne voit pas. Ici l'agent converse, il ne
+       raisonne pas à longue portée : tous les jetons vont à la réponse. */
+    const requete = { model: MODEL, max_tokens: jetonsDemandes(opts), thinking: { type: 'disabled' }, system, messages };
+    try { r = await (ctx.appeler || appelerAnthropic)(cle, requete); }
     catch (e) { agents.noter(id, 'penser', { cible: 'claude', resultat: 'erreur', detail: String(e && e.message || e).slice(0, 120) }); return { ok: false, raison: 'erreur_api' }; }
     const cout = ((Number(r.entree) || 0) * USD_ENTREE_M + (Number(r.sortie) || 0) * USD_SORTIE_M) / 1e6;
     moisCourant(); etat.parAgent[id] = depense(id) + (Number.isFinite(cout) ? cout : 0);
     if (!ecrire()) { agents.noter(id, 'penser', { cible: 'budget', resultat: 'erreur', detail: 'dépense non écrite : plus d’appel avant réparation' }); illisible = true; }
     const texte = String(r.texte || '').trim();
-    if (!texte) return { ok: false, raison: 'vide' };
+    if (!texte) {
+      /* Aucun texte parce que la réponse a atteint sa limite : ce n'est pas « vide », c'est « trop long » — l'appelant peut le DIRE
+         (et le journal le garde, pour qu'on sache qu'il faut relever `maxTokens` plutôt que chercher une panne). */
+      if (r.stop_reason === 'max_tokens') {
+        agents.noter(id, 'penser', { cible: 'claude', resultat: 'erreur', detail: 'réponse coupée avant tout texte (max_tokens ' + requete.max_tokens + ')' });
+        return { ok: false, raison: 'trop_long' };
+      }
+      return { ok: false, raison: 'vide' };
+    }
     return { ok: true, texte, cout };
   }
   const etatBudget = () => ({ illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL_USD, parAgent: Object.assign({}, etat.parAgent), cle: !!cle });
@@ -72,6 +96,6 @@ async function appelerAnthropic(cle, requete) {
   const Anthropic = require('@anthropic-ai/sdk');
   const client = new Anthropic({ apiKey: cle, timeout: TIMEOUT_MS, maxRetries: 0 });
   const rep = await client.messages.create(requete);
-  if (rep.stop_reason === 'refusal') return { texte: '', entree: (rep.usage || {}).input_tokens, sortie: (rep.usage || {}).output_tokens };
-  return { texte: (rep.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n'), entree: (rep.usage || {}).input_tokens, sortie: (rep.usage || {}).output_tokens };
+  if (rep.stop_reason === 'refusal') return { texte: '', entree: (rep.usage || {}).input_tokens, sortie: (rep.usage || {}).output_tokens, stop_reason: rep.stop_reason };
+  return { texte: (rep.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n'), entree: (rep.usage || {}).input_tokens, sortie: (rep.usage || {}).output_tokens, stop_reason: rep.stop_reason };
 }

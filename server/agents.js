@@ -376,7 +376,15 @@ module.exports = function monterAgents(app, ctx) {
   /* Pour la direction (charte, rapport du jour) : une COPIE du journal, et le fait qu'il soit lisible ou non — jamais « [] » à la place d'un « on ne sait pas ». */
   const lireJournal = () => journal.slice();
   const journalIllisible = () => illisibles.has(F_JOURNAL);
-  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS, lireJournal, journalIllisible };
+  /* Des NOMBRES sur la file et les tâches, pour qui veut dire « où en est l'équipe » sans recopier la file : jamais un résumé ni des
+     paramètres (ce sont des phrases de l'équipe). `null` si la file est illisible — « on ne sait pas » n'est pas « zéro ». */
+  const comptes = () => {
+    perimer();
+    return { validationsEnAttente: illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').length,
+      tachesEnAttente: illisibles.has(F_TACHES) ? null : taches.filter(k => k.statut === 'attente').length,
+      tachesPrises: illisibles.has(F_TACHES) ? null : taches.filter(k => k.statut === 'prise').length };
+  };
+  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

@@ -796,10 +796,19 @@ module.exports = function monterMessagerie(app, ctx) {
   });
 
   /* ═════════════════════ STATISTIQUES DU SUPPORT ═════════════════════ */
+  /* UNE définition de « ce qui attend un client » : les notifications automatiques (`auto`) n'attendent personne. Les statistiques de la Tour
+     et les agents (qui ne reçoivent que des NOMBRES) comptent par là — deux copies divergeraient le jour où un statut s'ajoute. */
+  const suiviClients = () => Object.values(suivi).filter(x => !x.auto);
+  function compter() {
+    const clients = suiviClients();
+    return { aTraiter: clients.filter(x => x.statut === 'aTraiter').length, enCours: clients.filter(x => x.statut === 'enCours').length,
+      resolus: clients.filter(x => x.statut === 'resolu').length, total: clients.length };
+  }
   app.get('/api/monitor/mail/stats', monAdmin, (req, res) => {
     const now = Date.now(), SEM = 7 * 86400000;
     const tous = Object.values(suivi);
-    const clients = tous.filter(x => !x.auto);
+    const clients = suiviClients();
+    const cpt = compter();
     const dans = (l, d) => l.filter(x => (x.recuTs || 0) > now - d);
     const delais = clients.filter(x => x.repTs && x.recuTs && x.repTs > x.recuTs).map(x => x.repTs - x.recuTs);
     const moyenne = delais.length ? Math.round(delais.reduce((a, b) => a + b, 0) / delais.length / 60000) : 0;
@@ -818,9 +827,7 @@ module.exports = function monterMessagerie(app, ctx) {
     res.json({
       total: clients.length, notifications: tous.length - clients.length,
       semaine: dans(clients, SEM).length, mois: dans(clients, 30 * 86400000).length,
-      aTraiter: clients.filter(x => x.statut === 'aTraiter').length,
-      enCours: clients.filter(x => x.statut === 'enCours').length,
-      resolus: clients.filter(x => x.statut === 'resolu').length,
+      aTraiter: cpt.aTraiter, enCours: cpt.enCours, resolus: cpt.resolus,
       reponseMoyenneMin: moyenne, repondus: delais.length, sujets, semaines,
       /* « Au rapport » (lot 1 de la refonte de la Tour, 21 octobre 2026) : ce qui attend un client, du plus ancien au plus récent — vingt au plus,
          les notifications automatiques à part (elles n'attendent personne). En LECTURE : rien ne s'écrit ici. */
@@ -871,5 +878,5 @@ module.exports = function monterMessagerie(app, ctx) {
   setInterval(() => { veille().catch(() => {}); }, 120000);
   setTimeout(() => { veille().catch(() => {}); }, 20000);
 
-  return { boites: () => boites.map(publique) };
+  return { boites: () => boites.map(publique), compter };
 };
