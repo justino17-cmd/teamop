@@ -109,6 +109,7 @@ for (const [f, T] of [['conditions_generales.txt', CG], ['dpa.txt', DPA], ['sous
 const ANCIENNE = /courriel (?:de préavis )?pr[ée]vient[^.]{0,60}30 jours|30 jours avant (?:cette |la )?suppression|avertissement 30 jours|conservées?[^.]{0,30}24 mois[^.]{0,40}puis supprimées/i;
 v('⛔ aucun reste de l’ancienne promesse (courriel 30 jours avant, suppression automatique à 24 mois)', [['CG', CG], ['DPA', DPA], ['sous-traitance', SOUS], ['registre', REG], ['mentions', ML], ['confidentialité', CONF]].filter(([, T]) => ANCIENNE.test(T)).map(([n]) => n), []);
 vrai('mentions-legales.html:74 garde sa phrase (citée par le serveur et les bancs) : « n’entraînent aucune suppression »', /n'entraînent aucune suppression/.test(lire('mentions-legales.html').split('\n')[73]));
+vrai('⛔ le contrat remis par espace.html ne dit plus « jamais supprimées » : il dit la même chose que les autres textes (24 mois sans abonnement)', !/ne sont jamais supprimées/.test(lire('espace.html')) && /peuvent l.être après 24 mois sans abonnement/.test(lire('espace.html')));
 /* — ce qui part chez Anthropic, et ce que le code envoie vraiment — */
 const DEVIS = sansJsCom(lire('server/agent-devis.js')), INDEX = sansJsCom(lire('server/index.js')), APP = sansJsCom(lire('app.html'));
 vrai('(population) les trois sources du code sont lues', DEVIS.length > 3000 && INDEX.length > 500000 && APP.length > 1000000);
