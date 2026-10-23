@@ -141,14 +141,14 @@ const fuites = corps => INTERDITS.filter(x => corps.includes(x));
 
   /* ── 6 · un numéro DANS une URL, ou en paires ── */
   const FORMES_URL = ['06%2098%2076%2054%2032', '06+98+76+54+32', '%2B33%206%2098%2076%2054%2032', '+33+6+98+76+54+32', '06_98_76_54_32', '06,98,76,54,32'];
-  const PILE_URL = 'Error: appel\n at f (https://127.0.0.1/api/x?a=' + FORMES_URL.slice(0, 4).join('&b=') + '&c=' + FORMES_URL[4] + '&d=' + FORMES_URL[5] + '&n=3+4%205 MARQUEUR-URL)';
+  const PILE_URL = 'Error: appel\n at f (https://127.0.0.1/api/x?a=' + FORMES_URL.slice(0, 4).join('&b=') + '&c=' + FORMES_URL[4] + '&d=' + FORMES_URL[5] + '&n=3+4%205&q=12%2034%2056 MARQUEUR-URL)';
   await rapporter({ signature: 'sig-url', message: 'Paramètres : tel=' + FORMES_URL[0] + ' puis ' + FORMES_URL[1] + ' MARQUEUR-MSGURL', stack: PILE_URL, src: 'opcourrier.js', line: LIGNE_ADR });
   const i6 = await trouver('sig-url');
   v('(population) les six formes sont dans l\'incident stocké, EN CLAIR (ce que la Tour montre)', FORMES_URL.every(f => (i6.message + i6.stack).includes(f)), true);
   n0 = recus.length; r = await post('/api/monitor/expliquer', { id: i6.id });
   const e6 = recus[recus.length - 1] || { brut: '', corps: {} }, ctx6 = ((e6.corps.messages || [])[0] || {}).content || '';
   v('⛔ aucune des six formes d\'un numéro (%20, +, %2B, paires « _ » et « , ») n\'arrive chez Anthropic — ni un morceau de chiffres', [r.s, recus.length - n0, FORMES_URL.filter(f => ctx6.includes(f)), /98(?:%20|\+|_|,)76/.test(ctx6)], [200, 1, [], false]);
-  v('…le reste arrive (contre-épreuve : les marqueurs, et « 3+4%205 », qui n\'est pas un téléphone, reste lisible)', [ctx6.includes('MARQUEUR-MSGURL'), ctx6.includes('MARQUEUR-URL'), ctx6.includes('n=3+4%205'), ctx6.includes('(numéro)')], [true, true, true, true]);
+  v('…le reste arrive (contre-épreuve : les marqueurs, « 3+4%205 » et « 12%2034%2056 » (six chiffres : les « 20 » du %20 ne comptent pas), qui ne sont pas des téléphones, restent lisibles)', [ctx6.includes('MARQUEUR-MSGURL'), ctx6.includes('MARQUEUR-URL'), ctx6.includes('n=3+4%205'), ctx6.includes('q=12%2034%2056'), ctx6.includes('(numéro)')], [true, true, true, true, true]);
 
   /* ── 7 · Proposer jusqu'à la demande de fusion : ce que reçoit GitHub ── */
   const FICHIER_BRUT = fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8');
