@@ -66,6 +66,9 @@ const CHLOE_DEBUT = 'Tu es Chloé, l’assistante virtuelle « Devis et proposit
 const LOUIS_DEBUT = 'Tu es Louis, l’assistant virtuel';
 const JUGE_DEBUT = 'Tu es le relecteur qualité', RECHERCHE_DEBUT = 'Tu es Léa, l’assistante virtuelle de TeamOP. Avant d’écrire';
 
+/* Ce que Justin enregistre dans la Tour en ouvrant « Répondre seul aux questions courantes par courrier » — la forme EXACTE d'`agents-charte.json`. */
+const CHARTE_OUVERTE = { repondre_client: { auto: true } };
+
 function monter(o) {
   o = o || {};
   const D = fs.mkdtempSync(path.join(os.tmpdir(), 'bcourrier-'));
@@ -90,6 +93,9 @@ function monter(o) {
   const PATRON = { nom: 'Justin', role: 'patron' }, COLLAB = { nom: 'Agent', role: 'collaborateur' };
 
   if (o.modes) fs.writeFileSync(path.join(D, 'agents-etat.json'), JSON.stringify({ pause: { actif: false, par: '', depuis: 0, motif: '' }, modes: o.modes }));
+  /* La charte `repondre_client` est FERMÉE par défaut (`direction.js`) : l'établi ne l'ouvre PAS de lui-même — un banc qui joue l'envoi seul passe `charte: CHARTE_OUVERTE`, comme Justin
+     l'ouvre dans la Tour. Écrite AVANT `direction.js` (qui la lit au démarrage) et avant `o.avant`, qui peut encore la réécrire. */
+  if (o.charte) fs.writeFileSync(path.join(D, 'agents-charte.json'), JSON.stringify(o.charte));
   if (o.avant) o.avant(D);
 
   const agents = require(S('agents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, maintenant, pousseNotif: async () => 0, cerveaux: [], cleCerveauPosee: true });
@@ -161,4 +167,4 @@ const COURRIEL_TOKA = COURRIEL.replace('Nous avons bien noté votre activité.',
 const pourToka = x => COURRIEL_TOKA.replace(NOTE_TOKA, NOTE_TOKA + ' ' + x);
 /* La signature qu'un agent porte à l'envoi (`agents-signature.js`), pour la boîte contact@. */
 const signatureDe = (nom, role) => nom + ' — ' + (role || 'Assistante virtuelle') + ' — Équipe TeamOP\ncontact@teamop.fr · teamop.fr';
-module.exports = { LOUIS_DEBUT, PROPOSITION, CHLOE_DEBUT, JUGE_DEBUT, RECHERCHE_DEBUT, monter, COURRIEL, COURRIEL_TOKA, pourToka, NOTE_TOKA, SIGNATURE, courrielPour, signatureDe };
+module.exports = { CHARTE_OUVERTE, LOUIS_DEBUT, PROPOSITION, CHLOE_DEBUT, JUGE_DEBUT, RECHERCHE_DEBUT, monter, COURRIEL, COURRIEL_TOKA, pourToka, NOTE_TOKA, SIGNATURE, courrielPour, signatureDe };

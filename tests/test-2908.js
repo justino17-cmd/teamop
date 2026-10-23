@@ -1,7 +1,7 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LA COUTURE ENTIÈRE DE L'AUTONOMIE COMMERCIALE, SUR LE VRAI SERVEUR (23 octobre 2026, cahier §3, §4, §9).
      Les bancs 2900 à 2907 montent les modules ; ils ne voient pas ce qu'`index.js` branche ni ce que `mail.js` lit dans un VRAI en-tête. Ici : le vrai `server/index.js`, une fausse boîte IMAP
      qui porte de vrais en-têtes (`Authentication-Results`, `In-Reply-To`), un facteur SMTP qui GARDE ce qui partirait, un faux Claude — rien ne sort de la machine.
-       0. Léa, Camille et Chloé sont en mode AUTO, la charte « répondre à un client » est ouverte (le défaut) :
+       0. Léa, Camille et Chloé sont en mode AUTO, la charte « répondre à un client » est OUVERTE (par Justin : fermée par défaut) :
             · un prospect dont NOTRE serveur de réception a vérifié l'expéditeur (`dkim=pass` aligné) reçoit la réponse SEUL — signée « Camille — Assistante virtuelle — Équipe TeamOP » ;
             · sans en-tête, avec l'en-tête d'un AUTRE serveur (forgé), ou avec un `dkim=pass` d'un autre domaine : brouillon à valider, RIEN ne part ;
             · une question dont l'offre n'a pas la réponse ne part jamais seule, et Louis en propose une entrée à Justin ;
@@ -38,7 +38,8 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 220 s'); console.lo
     /* ⛔ le faux qui PASSAIT : l'expéditeur écrit lui-même « Authentication-Results: teamop.fr; dkim=pass header.d=<son domaine> » (un nom public, ancien repli) */
     M(6, { from: 'frank@exemple-2908f.fr', entetes: ['Authentication-Results: teamop.fr; dkim=pass header.d=exemple-2908f.fr; spf=pass smtp.mailfrom=exemple-2908f.fr'], subject: 'Faux en-tête teamop.fr' }),
     M(7, { from: 'gina@exemple-2908g.fr', entetes: ['Authentication-Results: mx.teamop.fr; spf=pass smtp.mailfrom=gina@exemple-2908g.fr'], subject: 'Faux en-tête mx.teamop.fr' })];
-  const S = await demarrer({ modes: { camille: 'auto', lea: 'auto', chloe: 'auto', louis: 'brouillon' }, comptes: true, authservIds: [SERVEUR],
+  /* La charte est FERMÉE par défaut : Justin l'a ouverte dans la Tour, et le banc écrit `agents-charte.json` comme la route le ferait. */
+  const S = await demarrer({ modes: { camille: 'auto', lea: 'auto', chloe: 'auto', louis: 'brouillon' }, charte: BA.CHARTE_OUVERTE, comptes: true, authservIds: [SERVEUR],
     boites: [{ id: 'b-contact', email: BOITE }, { id: 'b-controle', email: CTRL }, { id: 'b-autre', email: AUTRE }],
     claude: "(r, n) => (String(r.system).startsWith('Tu es Camille') && /INCONNU-2908/.test(JSON.stringify(r.messages)) ? 'CATEGORIE : inconnu' : (" + BA.courrielPour.toString() + ")(r))",
     louisClaude: "() => 'QUESTION : Gérez-vous les licences des machines des clients ?\\nREPONSE : À COMPLÉTER'",

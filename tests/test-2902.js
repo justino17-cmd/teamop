@@ -1,16 +1,17 @@
 /* ⛔ CE QUE CE FICHIER GARDE — L'ENVOI AUTONOME : QUAND UN COURRIEL PART SEUL, ET QUAND IL NE PART PAS (23 octobre 2026).
-     Justin veut l'autonomie : la charte `repondre_client` est OUVERTE par défaut. Mais « ouvert » ne veut pas dire « sans garde » : un courriel ne part seul que si TOUT est vrai —
+     Justin veut l'autonomie, et il l'ouvre LUI-MÊME : la charte `repondre_client` est FERMÉE par défaut (un serveur neuf, ou sans `agents-charte.json`, ne fait rien partir seul) ; il l'ouvre dans la Tour.
+     Mais « ouvert » ne veut pas dire « sans garde » : un courriel ne part seul que si TOUT est vrai —
      le mode de l'agent est « auto », la charte est ouverte, le contrôle qualité a dit « bon », l'expéditeur est authentifié, personne n'a demandé la validation, et cette adresse n'a pas
      déjà reçu trois courriels en 24 h. Le moindre doute : une validation, et la RAISON s'écrit au journal.
        0. `authentification` (mail.js) : l'en-tête Authentication-Results de NOTRE serveur de réception — le PREMIER seulement, d'un serveur CONNU, dkim=pass ou spf=pass ALIGNÉ sur le
           domaine « De » ; un en-tête forgé plus bas, un serveur inconnu, un domaine d'ailleurs, un échec : « non » ; `enteteAutomatique` : réponses d'absence, listes, accusés ;
        1. `brouillons.deposer` : chaque condition retirée UNE à UNE → la validation, avec sa raison ; toutes réunies → l'envoi direct ; le plafond de trois par adresse ;
-       2. la charte est ouverte par défaut, et le patron peut la refermer ;
+       2. la charte est FERMÉE par défaut, le patron l'ouvre puis peut la refermer ;
        3. Léa et Camille en mode auto : un compte prouvé → direct ; un courriel reçu non authentifié → brouillon ; un message automatique → jamais de réponse. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
-const { monter, courrielPour } = require('./banc-agents-courrier.js');
+const { monter, courrielPour, CHARTE_OUVERTE } = require('./banc-agents-courrier.js');
 const MAIL = require(path.join(RACINE, 'server', 'mail.js'));
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 400) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 400)); } };
@@ -81,8 +82,8 @@ const A = (lignes, de, serveurs) => MAIL.authentification(lignes, de, serveurs |
   {
     const base = (Z, n, plus) => Object.assign({ agent: 'lea', a: 'p' + n + '@exemple-2902.fr', objet: 'Objet', texte: 'Bonjour,\n\nTexte.\n\nBien cordialement,', source: 'inscription', entreprise: 'Toka Clim', role: 'contact',
       controle: { etat: 'bon', fautes: [], juge: true }, authentifie: true }, plus || {});
-    const Z = monter({ modes: { lea: 'auto' } });
-    v('(population) la charte laisse « répondre seul » ouvert par défaut', Z.direction.autorise('repondre_client'), { auto: true, raison: 'ok' });
+    const Z = monter({ modes: { lea: 'auto' }, charte: CHARTE_OUVERTE });
+    v('(population) la charte que Justin a ouverte laisse « répondre seul » ouvert', Z.direction.autorise('repondre_client'), { auto: true, raison: 'ok' });
     let r = await Z.brouillons.deposer(base(Z, 1));
     v('TOUT réuni (auto, charte ouverte, contrôle bon, expéditeur authentifié) : envoi DIRECT', [r.voie, Z.envoyes.length, Z.fichierJson('agents-brouillons.json')[r.ref].etat, (await Z.validations()).length], ['direct', 1, 'envoye', 0]);
     vrai('…journalisé, avec le fait que le contrôle était passé', Z.journal().some(e => e.action === 'réponse envoyée sans validation' && /contrôle qualité bon/.test(e.detail)));
@@ -111,14 +112,14 @@ const A = (lignes, de, serveurs) => MAIL.authentification(lignes, de, serveurs |
     v('⛔ le MODE « brouillon » (tout le reste est bon) : validation', [r.voie, B.envoyes.length], ['validation', 0]);
     B.nettoyer();
     const F = monter({ modes: { lea: 'auto' } });
-    await F.appeler('POST /api/monitor/agents/charte', { tourUser: F.PATRON, body: { gestes: { repondre_client: { auto: false } } } });
+    v('(population) sans `agents-charte.json`, la charte « répondre seul » est FERMÉE', F.direction.autorise('repondre_client'), { auto: false, raison: 'brouillon' });
     r = await F.brouillons.deposer(base(F, 1));
-    v('⛔ la charte REFERMÉE par le patron : validation', [r.voie, F.envoyes.length], ['validation', 0]);
+    v('⛔ la charte FERMÉE (le défaut : Justin ne l\'a pas ouverte) : validation, même avec tout le reste de bon', [r.voie, F.envoyes.length], ['validation', 0]);
     vrai('…et la raison dit « charte fermée »', F.journal().some(e => e.action === 'réponse laissée à la validation' && /charte fermée/.test(e.detail)));
     F.nettoyer();
 
     console.log('   … trois courriels par adresse en 24 h');
-    const R = monter({ modes: { lea: 'auto' } });
+    const R = monter({ modes: { lea: 'auto' }, charte: CHARTE_OUVERTE });
     const memes = [];
     for (let i = 0; i < 4; i++) memes.push(await R.brouillons.deposer(base(R, 0, { a: 'meme@exemple-2902.fr', objet: 'Objet ' + i })));
     v('⛔ trois partent seuls, le QUATRIÈME vers la même adresse attend Justin', [memes.map(x => x.voie), R.envoyes.length], [['direct', 'direct', 'direct', 'validation'], 3]);
@@ -134,19 +135,19 @@ const A = (lignes, de, serveurs) => MAIL.authentification(lignes, de, serveurs |
   {
     const Z = monter({ modes: {} });
     const fermer = body => Z.appeler('POST /api/monitor/agents/charte', { tourUser: Z.PATRON, body: { gestes: body } });
-    v('le patron ferme puis rouvre', [(await fermer({ repondre_client: { auto: false } })).status, Z.direction.autorise('repondre_client').auto, (await fermer({ repondre_client: { auto: true } })).status, Z.direction.autorise('repondre_client').auto], [200, false, 200, true]);
+    v('fermée par défaut ; le patron l\'ouvre puis la referme', [Z.direction.autorise('repondre_client').auto, (await fermer({ repondre_client: { auto: true } })).status, Z.direction.autorise('repondre_client').auto, (await fermer({ repondre_client: { auto: false } })).status, Z.direction.autorise('repondre_client').auto], [false, 200, true, 200, false]);
     v('⛔ un collaborateur ne la change pas', (await Z.appeler('POST /api/monitor/agents/charte', { tourUser: Z.COLLAB, body: { gestes: { repondre_client: { auto: false } } } })).status, 403);
-    v('⛔ ce qu’un serveur a DÉJÀ enregistré reste tel quel : une charte écrite « fermée » reste fermée au redémarrage', (() => {
-      const Y = monter({ avant: D => fs.writeFileSync(path.join(D, 'agents-charte.json'), JSON.stringify({ repondre_client: { auto: false } })) });
+    v('⛔ ce que Justin a DÉJÀ enregistré reste tel quel : une charte écrite « ouverte » reste ouverte au redémarrage (le défaut fermé ne passe que sur ce qui manque)', (() => {
+      const Y = monter({ avant: D => fs.writeFileSync(path.join(D, 'agents-charte.json'), JSON.stringify({ repondre_client: { auto: true } })) });
       const x = Y.direction.autorise('repondre_client'); Y.nettoyer(); return x;
-    })(), { auto: false, raison: 'brouillon' });
+    })(), { auto: true, raison: 'ok' });
     v('⛔ les gestes qui engagent restent fermés : rembourser à 0 €, mise en demeure, changement de contrat et suppression de données ne s’ouvrent pas', [Z.direction.autorise('rembourser').auto, Z.direction.autorise('mise_en_demeure'), Z.direction.autorise('changer_contrat').auto, Z.direction.autorise('supprimer_donnees').auto], [false, { auto: false, raison: 'humain' }, false, false]);
     Z.nettoyer();
   }
 
   console.log('\n3. Léa et Camille en mode auto');
   {
-    const Z = monter({ modes: { lea: 'auto', camille: 'auto' } });
+    const Z = monter({ modes: { lea: 'auto', camille: 'auto' }, charte: CHARTE_OUVERTE });
     const r = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'direct@client-2902.fr' });
     v('Léa : une inscription d’un compte PROUVÉ, contrôle bon : le courriel part SEUL', [r.voie, r.controle, Z.envoyes.length, Z.envoyes[0].a], ['direct', 'bon', 1, 'direct@client-2902.fr']);
     const nl = Z.recusJuge.length;

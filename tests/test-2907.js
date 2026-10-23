@@ -9,7 +9,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
-const { monter } = require('./banc-agents-courrier.js');
+const { monter, CHARTE_OUVERTE } = require('./banc-agents-courrier.js');
 const CV = require(path.join(RACINE, 'server', 'conversations.js'));
 const EQ = require(path.join(RACINE, 'server', 'agent-equipe.js'));
 let ok = 0, ko = 0;
@@ -45,7 +45,7 @@ const poser = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', bo
 
   console.log('\n0. Camille passe la main par la messagerie');
   {
-    const Z = await monterEquipe({ modes: { camille: 'brouillon', margaux: 'brouillon', jules: 'brouillon', hugo: 'brouillon' }, mails: () => 'CATEGORIE : facture',
+    const Z = await monterEquipe({ charte: CHARTE_OUVERTE, modes: { camille: 'brouillon', margaux: 'brouillon', jules: 'brouillon', hugo: 'brouillon' }, mails: () => 'CATEGORIE : facture',
       chat: (r) => (/^Tu es Margaux/.test(r.system) ? 'Je regarde où il en est.' : /^Tu es Jules/.test(r.system) ? 'Je regarde côté serveur.' : 'Reçu.') });
     await Z.camille.surNouveauMessage(poser(Z, {}));
     await calme();
@@ -58,7 +58,7 @@ const poser = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', bo
 
     Z.nettoyer();
 
-    const T = await monterEquipe({ modes: { camille: 'brouillon', margaux: 'brouillon', jules: 'brouillon', hugo: 'brouillon' }, mails: () => 'CATEGORIE : technique',
+    const T = await monterEquipe({ charte: CHARTE_OUVERTE, modes: { camille: 'brouillon', margaux: 'brouillon', jules: 'brouillon', hugo: 'brouillon' }, mails: () => 'CATEGORIE : technique',
       chat: (r) => (/^Tu es Jules/.test(r.system) ? 'Je regarde côté serveur.' : 'Reçu.') });
     await T.camille.surNouveauMessage(poser(T, { texte: 'Je n’arrive plus à me connecter.' }));
     await calme();
@@ -66,7 +66,7 @@ const poser = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', bo
     v('⛔ un problème technique : la main passe par « Équipe » (Jules n’est pas dans « Clients »), Jules est réveillé et répond lui-même', [T.chats().map(r => r.system.match(CHAT)[1]), cl.filter(m => m.de === 'jules').map(m => m.texte)], [['Jules'], ['Je regarde côté serveur.']]);
     T.nettoyer();
 
-    const H = await monterEquipe({ modes: { camille: 'brouillon', hugo: 'brouillon' }, mails: () => 'CATEGORIE : resiliation', chat: () => 'Je programme la fin à l’échéance.' });
+    const H = await monterEquipe({ charte: CHARTE_OUVERTE, modes: { camille: 'brouillon', hugo: 'brouillon' }, mails: () => 'CATEGORIE : resiliation', chat: () => 'Je programme la fin à l’échéance.' });
     await H.camille.surNouveauMessage(poser(H, { texte: 'Je veux arrêter mon abonnement.' }));
     await calme();
     cl = H.conv.lire('clients', 50);
@@ -79,7 +79,7 @@ const poser = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', bo
 
   console.log('\n1. Léa et Chloé annoncent ce qu’elles ont envoyé');
   {
-    const Z = await monterEquipe({ modes: { lea: 'auto', chloe: 'auto', camille: 'brouillon' } });
+    const Z = await monterEquipe({ charte: CHARTE_OUVERTE, modes: { lea: 'auto', chloe: 'auto', camille: 'brouillon' } });
     await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'prospect@exemple-2907.fr' });
     await calme();
     const cl = () => Z.conv.lire('clients', 50);
@@ -97,7 +97,7 @@ const poser = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', bo
 
   console.log('\n2. Une question posée à Léa, Chloé, Camille ou Louis reçoit LEUR réponse, avec leurs chiffres');
   {
-    const Z = await monterEquipe({ modes: { lea: 'auto', chloe: 'auto', camille: 'brouillon', louis: 'brouillon', margaux: 'brouillon' }, chat: (r) => 'Réponse de ' + r.system.match(CHAT)[1] + '.' });
+    const Z = await monterEquipe({ charte: CHARTE_OUVERTE, modes: { lea: 'auto', chloe: 'auto', camille: 'brouillon', louis: 'brouillon', margaux: 'brouillon' }, chat: (r) => 'Réponse de ' + r.system.match(CHAT)[1] + '.' });
     await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'prospect@exemple-2907.fr' });
     await Z.chloe.surReponse({ adresse: 'prospect@exemple-2907.fr', texte: 'Nous sommes 4.', mid: '<r@x>', boiteId: 'b-contact', dossier: 'INBOX', uid: 3, authentifie: false });
     await calme();
@@ -126,7 +126,7 @@ const poser = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', bo
   console.log('\n3. Aucune donnée personnelle dans toute la messagerie');
   const Z_cat = ['facture', 'technique', 'resiliation', 'litige', 'remboursement', 'inconnu'];
   {
-    const Z = await monterEquipe({ modes: { lea: 'auto', camille: 'brouillon', margaux: 'brouillon', jules: 'brouillon', hugo: 'brouillon', louis: 'brouillon' },
+    const Z = await monterEquipe({ charte: CHARTE_OUVERTE, modes: { lea: 'auto', camille: 'brouillon', margaux: 'brouillon', jules: 'brouillon', hugo: 'brouillon', louis: 'brouillon' },
       mails: (r) => (/Camille/.test(r.system) ? 'CATEGORIE : ' + (Z_cat.shift() || 'facture') : require('./banc-agents-courrier.js').courrielPour(r)) });
     await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'client@exemple-2907.fr' });
     for (let i = 1; i <= 6; i++) { await Z.camille.surNouveauMessage(poser(Z, { uid: i, mid: '<pii' + i + '@x>', de: 'client' + i + '@exemple-2907.fr', texte: 'Hortense Valmont, 06 12 34 56 78, hortense@secret-2907.fr, IBAN FR76 3000 6000 0112 3456 7890 189. Rappelez-moi.' })); await calme(); }

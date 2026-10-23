@@ -4,7 +4,7 @@
  * lui expliquer comment on fonctionne, ce qu'on peut faire pour lui […] la semaine d'essai, on la propose APRÈS son retour, pas tout de suite ;
  * le but c'est de vendre l'application. » ; « Quelqu'un se connecte, ils lisent, ils se renseignent sur ce qu'ils font, ils regardent un peu partout. À partir de là, ils
  * rédigent un mail et ils l'envoient. » Léa SE RENSEIGNE (une recherche sur le web de ce que fait l'entreprise), rédige, passe le CONTRÔLE QUALITÉ (`agents-controle.js` : le code, un
- * juge, UNE réécriture) puis dépose un brouillon (`agents-brouillons.js`) : il part SEUL en mode « auto » avec la charte `repondre_client` ouverte (ouverte par défaut) et un contrôle
+ * juge, UNE réécriture) puis dépose un brouillon (`agents-brouillons.js`) : il part SEUL en mode « auto » avec la charte `repondre_client` ouverte (FERMÉE par défaut : Justin l’ouvre dans la Tour) et un contrôle
  * « bon » ; sinon c'est une validation de Justin, « à revoir » avec la raison quand le contrôle a échoué deux fois.
  *
  * ⛔ SE RENSEIGNER : un appel SÉPARÉ du rédacteur — l'outil de recherche côté serveur de l'API (voir `cerveau.js`) n'est donné qu'à lui, qui ne reçoit que le NOM de l'entreprise

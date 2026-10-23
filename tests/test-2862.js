@@ -14,7 +14,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
-const { monter, COURRIEL, COURRIEL_TOKA, pourToka, signatureDe } = require('./banc-agents-courrier.js');
+const { monter, COURRIEL, COURRIEL_TOKA, pourToka, signatureDe, CHARTE_OUVERTE } = require('./banc-agents-courrier.js');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 400) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 400)); } };
 const vrai = (t, c, d) => v(t + (d !== undefined && !c ? ' — ' + String(d).slice(0, 200) : ''), !!c, true);
@@ -244,7 +244,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     }
     {
       /* un texte trop court n'est pas un défaut GRAVE (rien d'hostile) : après la réécriture, il reste « à revoir » pour Justin, jamais « bon » — donc jamais envoyé seul */
-      const C = monter({ modes: { lea: 'auto' }, claude: () => 'Objet : Court\n\nBonjour,' });
+      const C = monter({ modes: { lea: 'auto' }, charte: CHARTE_OUVERTE, claude: () => 'Objet : Court\n\nBonjour,' });   // (charte OUVERTE : c'est le contrôle qui doit retenir le courriel, pas la charte fermée)
       const rc = await C.lea.surInscription({ entreprise: 'Toka Clim', email: 'c@court-2862.fr' });
       vrai('⛔ un texte trop court : un brouillon « à revoir » (deux rédactions, jamais envoyé seul)', rc.depose === true && rc.controle === 'a_revoir' && rc.voie === 'validation' && C.recus.length === 2 && C.envoyes.length === 0, JSON.stringify(rc));
       C.nettoyer();

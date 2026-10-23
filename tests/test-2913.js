@@ -27,8 +27,7 @@ function monde(o) {
   nettoyer.push(m);
   m.regler = async (d) => m.appeler('POST /api/monitor/agents/emma/disponibilites', { tourUser: m.PATRON, body: { dispo: d || SEMAINE } });
   m.ouvrirCharte = () => m.appeler('POST /api/monitor/agents/charte', { tourUser: m.PATRON, body: { gestes: { repondre_client: { auto: true } } } });
-  /* 23 octobre 2026 (fusion de l'intégration) : « répondre seul » est OUVERT par défaut (`direction.js`, décision de Justin) ; pour jouer le chemin « charte fermée », le banc la FERME comme le ferait Justin. */
-  m.fermerCharte = () => m.appeler('POST /api/monitor/agents/charte', { tourUser: m.PATRON, body: { gestes: { repondre_client: { auto: false } } } });
+  /* « répondre seul » est FERMÉ par défaut (`direction.js`) : un monde neuf joue le chemin « charte fermée » ; `ouvrirCharte` est le geste de Justin dans la Tour. */
   return m;
 }
 
@@ -111,9 +110,10 @@ function monde(o) {
   v('quatre jours sans réponse : la proposition expire, ses créneaux se libèrent (nouvelle demande acceptée)', (await m.emma.surDemandeRendezVous({ dossier: 'DOS-000002' })).ok, true);
 
   console.log('\n5. Les autres voies : validation, aucune disponibilité, aucune adresse');
-  m = monde(); await m.regler(); await m.fermerCharte();
+  m = monde(); await m.regler();
+  v('(population) la charte « répondre seul » est FERMÉE par défaut', m.direction.autorise('repondre_client'), { auto: false, raison: 'brouillon' });
   await m.emma.surDemandeRendezVous({ dossier: 'DOS-000002' });
-  v('« auto » mais la charte « répondre seul » est fermée (par Justin : le défaut est ouvert depuis le 23 octobre) : une VALIDATION avec aperçu, rien ne part', [m.envoyes.length, (await m.validations('en_attente')).map(x => x.type)], [0, ['courrier_agent']]);
+  v('« auto » mais la charte « répondre seul » est fermée (le défaut : Justin ne l\'a pas ouverte) : une VALIDATION avec aperçu, rien ne part', [m.envoyes.length, (await m.validations('en_attente')).map(x => x.type)], [0, ['courrier_agent']]);
   const val = (await m.validations('en_attente'))[0];
   vrai('…résumé « Rendez-vous avec un prospect (DOS-000002) »', /Rendez-vous avec un prospect \(DOS-000002\)/.test(val.resume));
   m = monde({ modes: { emma: 'brouillon', camille: 'auto' } }); await m.regler(); await m.ouvrirCharte();

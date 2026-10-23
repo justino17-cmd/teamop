@@ -32,7 +32,8 @@ function monter(nom, o) {
 console.log('\n1. La charte');
 let M = monter('a');
 v('par défaut, envoyer le contrat est autorisé seul', M.m.autorise('envoyer_contrat'), { auto: true, raison: 'ok' });
-v('par défaut, répondre aux clients est OUVERT (23 octobre 2026, Justin : agents autonomes) — le mode de l\'agent et le contrôle qualité décident encore', M.m.autorise('repondre_client'), { auto: true, raison: 'ok' });
+v('⛔ par défaut, répondre aux clients est FERMÉ : c\'est Justin qui l\'ouvre dans la Tour (un serveur sans `agents-charte.json` ne fait rien partir seul, même pour un agent déjà en « auto »)', M.m.autorise('repondre_client'), { auto: false, raison: 'brouillon' });
+vrai('…et un serveur neuf n\'a pas écrit `agents-charte.json` de lui-même', M.fichier() === null);
 v('par défaut, rembourser reste en brouillon, plafond à 0 €', [M.m.autorise('rembourser').auto, M.m.reglage('rembourser', 'plafondEur')], [false, 0]);
 v('⛔ la mise en demeure est toujours humaine', M.m.autorise('mise_en_demeure'), { auto: false, raison: 'humain' });
 v('un geste inconnu n\'est jamais autorisé', M.m.autorise('virer_tout'), { auto: false, raison: 'inconnu' });

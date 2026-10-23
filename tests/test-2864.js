@@ -7,11 +7,11 @@
        § 1  `MON_GESTES` : la route de correction est un geste journalisé, la lecture non ;
        § 2  le VRAI serveur (facteur SMTP et fausse boîte IMAP de banc, faux Claude) : l'inscription publique → le brouillon → la correction → « Valider et
             envoyer » → UN courriel au facteur, avec la signature du Courrier et une copie dans « Envoyés » ; la demande d'application (portail, vraie session)
-            réécrit le brouillon qui attend ; auto + charte fermée = validation, puis charte ouverte = envoi direct. */
+            réécrit le brouillon qui attend ; auto + charte fermée (le défaut) = validation, puis charte ouverte par le patron = envoi direct. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
-const { monter, COURRIEL, COURRIEL_TOKA, pourToka, SIGNATURE, signatureDe } = require('./banc-agents-courrier.js');
+const { monter, COURRIEL, COURRIEL_TOKA, pourToka, SIGNATURE, signatureDe, CHARTE_OUVERTE } = require('./banc-agents-courrier.js');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 400) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 400)); } };
 const vrai = (t, c, d) => v(t + (d !== undefined && !c ? ' — ' + String(d).slice(0, 200) : ''), !!c, true);
@@ -141,31 +141,31 @@ const decider = async (Z, id, decision, qui, empreinte) => {
     Z.nettoyer();
   }
 
-  console.log('\n2. Le mode « auto » : la charte est OUVERTE par défaut (23 octobre 2026), le mode et le contrôle qualité décident encore');
+  console.log('\n2. Le mode « auto » : la charte est FERMÉE par défaut (Justin l\'ouvre dans la Tour), le mode et le contrôle qualité décident encore');
   {
     const Z = monter({ modes: { lea: 'auto' } });
-    v('(population) la charte, par défaut, laisse « répondre seul » ouvert', Z.direction.autorise('repondre_client'), { auto: true, raison: 'ok' });
+    v('(population) la charte, par défaut, laisse « répondre seul » FERMÉ', Z.direction.autorise('repondre_client'), { auto: false, raison: 'brouillon' });
+    const r2 = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'a2@auto-2864.fr' });
+    v('⛔ mode auto mais charte FERMÉE (le défaut, Justin ne l’a pas ouverte) : une VALIDATION, rien ne part', [r2.voie, Z.envoyes.length, (await Z.validations()).length], ['validation', 0, 1]);
+    const ouvre = await Z.appeler('POST /api/monitor/agents/charte', { tourUser: Z.PATRON, body: { gestes: { repondre_client: { auto: true } } } });
+    v('(population) le patron OUVRE le geste « répondre seul »', ouvre.status, 200);
     const r1 = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'a1@auto-2864.fr' });
-    v('mode AUTO, charte ouverte (le défaut), contrôle « bon » : envoi DIRECT, aucune validation', [r1.voie, r1.controle, Z.envoyes.length, Z.envoyes[0] && Z.envoyes[0].a, (await Z.validations()).length], ['direct', 'bon', 1, 'a1@auto-2864.fr', 0]);
+    v('mode AUTO, charte ouverte par Justin, contrôle « bon » : envoi DIRECT, aucune validation de plus', [r1.voie, r1.controle, Z.envoyes.length, Z.envoyes[0] && Z.envoyes[0].a, (await Z.validations()).length], ['direct', 'bon', 1, 'a1@auto-2864.fr', 1]);
     vrai('…journalisé (« réponse envoyée sans validation »)', Z.journal().some(e => e.agent === 'lea' && e.action === 'réponse envoyée sans validation' && e.resultat === 'ok'));
     v('…et le registre garde le brouillon comme « envoyé »', Z.fichierJson('agents-brouillons.json')[r1.ref].etat, 'envoye');
-    const ferme = await Z.appeler('POST /api/monitor/agents/charte', { tourUser: Z.PATRON, body: { gestes: { repondre_client: { auto: false } } } });
-    v('(population) le patron FERME le geste « répondre seul »', ferme.status, 200);
-    const r2 = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'a2@auto-2864.fr' });
-    v('⛔ mode auto mais charte FERMÉE par le patron : une VALIDATION, pas d’envoi de plus', [r2.voie, Z.envoyes.length, (await Z.validations()).length], ['validation', 1, 1]);
     Z.nettoyer();
 
-    const B = monter({ modes: { lea: 'brouillon' } });
+    const B = monter({ modes: { lea: 'brouillon' }, charte: CHARTE_OUVERTE });
     const rb = await B.lea.surInscription({ entreprise: 'Toka Clim', email: 'b@auto-2864.fr' });
     v('⛔ charte ouverte mais Léa en BROUILLON : validation (le mode décide aussi)', [rb.voie, B.envoyes.length], ['validation', 0]);
     B.nettoyer();
 
-    const I = monter({ modes: { lea: 'auto' }, avant: D => fs.writeFileSync(path.join(D, 'agents-charte.json'), '{charte illisible') });
+    const I = monter({ modes: { lea: 'auto' }, charte: CHARTE_OUVERTE, avant: D => fs.writeFileSync(path.join(D, 'agents-charte.json'), '{charte illisible') });
     const ri = await I.lea.surInscription({ entreprise: 'Toka Clim', email: 'i@auto-2864.fr' });
     v('⛔ charte ILLISIBLE : rien ne passe en auto, validation', [ri.voie, I.envoyes.length], ['validation', 0]);
     I.nettoyer();
 
-    const F = monter({ modes: { camille: 'auto' }, panneEnvoi: true });
+    const F = monter({ modes: { camille: 'auto' }, charte: CHARTE_OUVERTE, panneEnvoi: true });
     F.messages['b-contact|INBOX|1'] = { uid: 1, dossier: 'INBOX', boite: 'b-contact', mid: '<f1@x>', de: 'prospect@exemple-2864.fr', objet: 'Question', texte: 'Que proposez-vous ?', ts: F.horloge.t - 1000, auto: false, protege: false, authentifie: true };
     const rf = await F.camille.surNouveauMessage({ boiteId: 'b-contact', dossier: 'INBOX', uid: 1 });
     const rbF = F.fichierJson('agents-brouillons.json')[Object.keys(F.fichierJson('agents-brouillons.json'))[0]];
@@ -346,19 +346,21 @@ const decider = async (Z, id, decision, qui, empreinte) => {
   await dormir(500);
   v('⛔ une seconde validation : 409, et le facteur ne reçoit rien de plus', [dec2.s, (await mails()).filter(m => /Notre proposition/.test(String(m.subject || ''))).length], [409, 1]);
 
-  console.log('   … auto : charte ouverte (le défaut) = envoi direct ; charte fermée par le patron = validation');
+  console.log('   … auto : charte FERMÉE (le défaut d\'un serveur neuf) = validation ; charte ouverte par le patron = envoi direct');
   v('(population) Léa passe en AUTO (depuis brouillon)', (await S.post('/api/monitor/agents/mode', { agent: 'lea', mode: 'auto' })).s, 200);
   const reponseA = async re => (await mails()).filter(m => re.test(String((m.to && m.to.text) || '')) && /OP GESTION pour votre activité/.test(String(m.subject || '')));   // (le lien de confirmation du portail part aussi à l’adresse : on vise la RÉPONSE de Léa)
   const enAttente = async () => ((await S.get('/api/monitor/agents/validations')).j.validations || []).filter(x => x.statut === 'en_attente').length;
+  vrai('(population) ce serveur n\'a PAS d\'`agents-charte.json` : la charte est celle du défaut', !fs.existsSync(path.join(S.D, 'agents-charte.json')));
   const avantAuto = await enAttente();
-  await S.inscrire('auto2@exemple-2864.fr', 'Auto Deux');
-  vrai('⛔ AUTO + charte OUVERTE (le défaut du serveur) + contrôle bon + adresse prouvée : le courriel part SANS validation', await S.attendre(async () => (await reponseA(/auto2@/)).length > 0, 15000));
-  v('…et aucune validation de plus ne s’est ouverte', await enAttente(), avantAuto);
-  v('(population) le patron FERME « répondre seul »', (await S.post('/api/monitor/agents/charte', { gestes: { repondre_client: { auto: false } } })).s, 200);
   await S.inscrire('auto1@exemple-2864.fr', 'Auto Un');
   vrai('une nouvelle validation attend', await S.attendre(async () => (await enAttente()) > avantAuto, 15000));
   await dormir(500);
-  v('⛔ AUTO mais charte FERMÉE par le patron : validation, rien de plus au facteur', [await enAttente(), (await reponseA(/auto1@/)).length], [avantAuto + 1, 0]);
+  v('⛔ AUTO + contrôle bon + adresse prouvée, mais la charte est FERMÉE (le défaut : Justin ne l\'a pas ouverte) : validation, rien au facteur', [await enAttente(), (await reponseA(/auto1@/)).length], [avantAuto + 1, 0]);
+  vrai('…et le journal des agents ne dit PAS « réponse envoyée sans validation »', !(((await S.get('/api/monitor/agents/journal?agent=lea')).j.journal) || []).some(e => e.action === 'réponse envoyée sans validation'));
+  v('(population) le patron OUVRE « répondre seul »', (await S.post('/api/monitor/agents/charte', { gestes: { repondre_client: { auto: true } } })).s, 200);
+  await S.inscrire('auto2@exemple-2864.fr', 'Auto Deux');
+  vrai('⛔ AUTO + charte OUVERTE par le patron + contrôle bon + adresse prouvée : le courriel part SANS validation', await S.attendre(async () => (await reponseA(/auto2@/)).length > 0, 15000));
+  v('…et aucune validation de plus ne s’est ouverte', await enAttente(), avantAuto + 1);
   vrai('…le journal des agents le note', (((await S.get('/api/monitor/agents/journal?agent=lea')).j.journal) || []).some(e => e.action === 'réponse envoyée sans validation'));
   vrai('le journal du serveur ne porte ni adresse en clair, ni prénom, ni nom, ni texte de courriel (ses lignes d’adresse sont masquées)', !/Zéphyrin|Quarantelle|nora\.neuve@|Texte relu|auto1@|auto2@|fluides/.test(S.journal()), S.journal().slice(-300));
   await S.fin();

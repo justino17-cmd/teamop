@@ -52,10 +52,10 @@ const COURRIEL = (m, extra) => Object.assign({ agent: 'hugo', a: 'alpha@exemple-
   v('mode « auto », porte « aucune » (l\'accusé d\'une fin d\'abonnement) : part SEUL, aucune validation ouverte', [r.ok, r.voie, m.envoyes.length, (await m.validations('en_attente')).length], [true, 'direct', 1, 0]);
   m = B({ modes: { emma: 'auto' } });
   const creneaux = OPS.propositionCreneaux({ creneaux: [Date.UTC(2026, 9, 27, 8)], dureeMin: 30 });
-  /* 23 octobre 2026 (fusion de l'intégration) : « répondre seul » est OUVERT par défaut (`direction.js`, décision de Justin) — Justin la FERME ici, comme il le ferait depuis la Tour. */
-  await m.appeler('POST /api/monitor/agents/charte', { tourUser: m.PATRON, body: { gestes: { repondre_client: { auto: false } } } });
+  /* « répondre seul » est FERMÉ par défaut (`direction.js`) : tant que Justin ne l'a pas ouvert dans la Tour, rien ne part seul — le banc ne touche à rien pour ce premier cas. */
+  v('(population) la charte « répondre seul » est FERMÉE par défaut', m.direction.autorise('repondre_client'), { auto: false, raison: 'brouillon' });
   r = await m.documents.courrier({ agent: 'emma', a: 'p@exemple-2911.fr', objet: creneaux.objet, texte: creneaux.texte, source: 'rendez_vous', dossier: 'DOS-000002', porte: 'repondre_client' });
-  v('mode « auto » mais la charte « répondre seul » est FERMÉE (par Justin) : une validation, rien ne part', [r.voie, m.envoyes.length], ['validation', 0]);
+  v('mode « auto » mais la charte « répondre seul » est FERMÉE (le défaut) : une validation, rien ne part', [r.voie, m.envoyes.length], ['validation', 0]);
   await m.appeler('POST /api/monitor/agents/charte', { tourUser: m.PATRON, body: { gestes: { repondre_client: { auto: true } } } });
   r = await m.documents.courrier({ agent: 'emma', a: 'q@exemple-2911.fr', objet: creneaux.objet, texte: creneaux.texte, source: 'rendez_vous', dossier: 'DOS-000002', porte: 'repondre_client' });
   v('la charte ouverte (lue à l\'instant) : le courriel part seul, signé Emma', [r.voie, m.envoyes.length, m.envoyes[0] && m.envoyes[0].signature.split('\n')[0]], ['direct', 1, 'Emma — Assistante virtuelle — Équipe TeamOP']);

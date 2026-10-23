@@ -7,11 +7,11 @@
        2. ce que le contrôle refuse : une formule hors liste, un autre prix, des rubriques écrites par le modèle, pas d'essai ;
        3. une proposition par adresse sur 30 jours, les plafonds, l'arrêt, un référentiel absent, un registre illisible, un message hors sujet ;
        4. Camille reconnaît la réponse à Léa (même adresse, ou In-Reply-To) et passe la main à Chloé — sinon c'est un courrier ordinaire ;
-       5. en mode auto : la proposition part SEULE (signée Chloé), et Chloé l'annonce à l'équipe. */
+       5. en mode auto, la charte « répondre seul » OUVERTE par Justin (fermée par défaut) : la proposition part SEULE (signée Chloé), et Chloé l'annonce à l'équipe. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
-const { monter, PROPOSITION, signatureDe } = require('./banc-agents-courrier.js');
+const { monter, PROPOSITION, signatureDe, CHARTE_OUVERTE } = require('./banc-agents-courrier.js');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 400) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 400)); } };
 const vrai = (t, c, d) => v(t + (d !== undefined && !c ? ' — ' + String(d).slice(0, 200) : ''), !!c, true);
@@ -185,7 +185,7 @@ const MAIL = (formule, corps) => 'FORMULE : ' + formule + '\nObjet : Notre propo
   console.log('\n4. Camille reconnaît la réponse à Léa et passe la main à Chloé');
   {
     const lecture = (Z, o) => { const m = Object.assign({ uid: 7, dossier: 'INBOX', boite: 'b-contact', mid: '<rep7@prospect-2904>', de: 'prospect@exemple-2904.fr', pour: 'contact@teamop.fr', objet: 'Re : OP GESTION', texte: REPONSE, ts: Z.horloge.t - 3600000, auto: false, protege: false }, o); Z.messages[m.boite + '|' + m.dossier + '|' + m.uid] = m; return { boiteId: m.boite, dossier: m.dossier, uid: m.uid }; };
-    const Z = monter({ modes: { lea: 'auto', chloe: 'brouillon', camille: 'brouillon' } });
+    const Z = monter({ charte: CHARTE_OUVERTE, modes: { lea: 'auto', chloe: 'brouillon', camille: 'brouillon' } });
     const rl = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'prospect@exemple-2904.fr' });
     v('(population) Léa a ENVOYÉ son premier courriel à ce prospect (mode auto)', [rl.voie, Z.envoyes.length, Z.envoyes[0].a], ['direct', 1, 'prospect@exemple-2904.fr']);
     const avant = Z.recus.length;
@@ -196,7 +196,7 @@ const MAIL = (formule, corps) => 'FORMULE : ' + formule + '\nObjet : Notre propo
     vrai('⛔ une SECONDE réponse du même prospect : Chloé a déjà proposé, c’est un courrier ordinaire (Camille appelle Claude)', !c2.chloe && Z.recus.length - avant === 2, JSON.stringify(c2));
     Z.nettoyer();
 
-    const Y = monter({ modes: { lea: 'auto', chloe: 'brouillon', camille: 'brouillon' } });
+    const Y = monter({ charte: CHARTE_OUVERTE, modes: { lea: 'auto', chloe: 'brouillon', camille: 'brouillon' } });
     await Y.lea.surInscription({ entreprise: 'Toka Clim', email: 'prospect@exemple-2904.fr' });
     const cx = await Y.camille.surNouveauMessage(lecture(Y, { de: 'autre@exemple-2904.fr', mid: '<o@x>' }));
     vrai('une AUTRE adresse, sans In-Reply-To : un courrier ordinaire (jamais la proposition de Chloé)', !cx.chloe && (await Y.validations()).every(x => x.agent !== 'chloe'), JSON.stringify(cx));
@@ -204,21 +204,21 @@ const MAIL = (formule, corps) => 'FORMULE : ' + formule + '\nObjet : Notre propo
     vrai('⛔ …mais la même adresse « autre » qui répond avec In-Reply-To vers le Message-ID du courriel de Léa : Chloé (la réponse part de l’adresse de l’en-tête)', cy.chloe === true && Y.fichierJson('agents-brouillons.json')[cy.ref].a === 'autre@exemple-2904.fr', JSON.stringify(cy));
     Y.nettoyer();
 
-    const O = monter({ modes: { lea: 'auto', chloe: 'brouillon', camille: 'brouillon' } });
+    const O = monter({ charte: CHARTE_OUVERTE, modes: { lea: 'auto', chloe: 'brouillon', camille: 'brouillon' } });
     await O.lea.surInscription({ entreprise: 'Toka Clim', email: 'prospect@exemple-2904.fr' });
     O.horloge.t += 61 * JOUR;
     const co = await O.camille.surNouveauMessage(lecture(O, { ts: O.horloge.t - 3600000 }));
     vrai('une réponse 61 jours plus tard : courrier ordinaire (le fil est froid)', !co.chloe, JSON.stringify(co));
     O.nettoyer();
 
-    const A = monter({ modes: { lea: 'auto', camille: 'brouillon' } });
+    const A = monter({ charte: CHARTE_OUVERTE, modes: { lea: 'auto', camille: 'brouillon' } });
     await A.lea.surInscription({ entreprise: 'Toka Clim', email: 'prospect@exemple-2904.fr' });
     const ca = await A.camille.surNouveauMessage(lecture(A, {}));
     v('⛔ Chloé à l’ARRÊT : Camille ne fabrique PAS une proposition à sa place — elle PRÉVIENT Justin (fil de Camille, important), le message est marqué vu', [ca.saute, A.paroles.some(p => p.de === 'camille' && p.fil === 'camille' && p.niveau === 'important' && /Chloé ne peut pas agir \(à l’arrêt\)/.test(p.texte)), (await A.validations()).length, (await A.camille.surNouveauMessage(lecture(A, {}))).saute], ['chloe_arret', true, 0, 'deja_vu']);
     vrai('…sans aucune adresse dans le message à Justin', !A.paroles.some(p => /@|exemple-2904/.test(p.texte)), JSON.stringify(A.paroles));
     A.nettoyer();
 
-    const S = monter({ modes: { lea: 'auto', chloe: 'brouillon', camille: 'brouillon' }, sansChloe: true });
+    const S = monter({ charte: CHARTE_OUVERTE, modes: { lea: 'auto', chloe: 'brouillon', camille: 'brouillon' }, sansChloe: true });
     await S.lea.surInscription({ entreprise: 'Toka Clim', email: 'prospect@exemple-2904.fr' });
     const cs = await S.camille.surNouveauMessage(lecture(S, {}));
     vrai('sans module Chloé branché : un courrier ordinaire', !cs.chloe && cs.depose === true, JSON.stringify(cs));
@@ -227,17 +227,17 @@ const MAIL = (formule, corps) => 'FORMULE : ' + formule + '\nObjet : Notre propo
 
   console.log('\n5. En mode auto : la proposition part SEULE, et Chloé l’annonce');
   {
-    const Z = monter({ modes: { chloe: 'auto' } });
+    const Z = monter({ charte: CHARTE_OUVERTE, modes: { chloe: 'auto' } });
     const r = await Z.chloe.surReponse(ev({ authentifie: true }));
     v('auto + charte ouverte + contrôle bon + expéditeur authentifié : envoi DIRECT', [r.voie, Z.envoyes.length, Z.envoyes[0].a, Z.envoyes[0].enReponseA.mid], ['direct', 1, 'hortense@secret-2904.fr', '<r1@banc-2904>']);
     vrai('…signée par Chloé, avec le nom d’expéditeur « Chloé — TeamOP »', Z.envoyes[0].signature === signatureDe('Chloé') && Z.envoyes[0].deNom === 'Chloé — TeamOP');
     vrai('⛔ Chloé l’annonce dans le groupe « Clients » (métier et formule, jamais un nom ni une adresse)', Z.paroles.some(p => p.de === 'chloe' && p.fil === 'clients' && /envoyé seule une proposition sur mesure/.test(p.texte) && /Business/.test(p.texte)) && !Z.paroles.some(p => /hortense|secret-2904|Toka/.test(p.texte)), JSON.stringify(Z.paroles));
     Z.nettoyer();
-    const N = monter({ modes: { chloe: 'auto' } });
+    const N = monter({ charte: CHARTE_OUVERTE, modes: { chloe: 'auto' } });
     const rn = await N.chloe.surReponse(ev({ authentifie: false }));
     v('⛔ non authentifié : une validation, rien ne part — et la raison est au journal', [rn.voie, N.envoyes.length, N.journal().some(e => /expéditeur non authentifié/.test(e.detail || ''))], ['validation', 0, true]);
     N.nettoyer();
-    const R = monter({ modes: { chloe: 'auto' }, claude: () => MAIL('business', PROPOSITION.replace('25 €', '15 €')) });
+    const R = monter({ charte: CHARTE_OUVERTE, modes: { chloe: 'auto' }, claude: () => MAIL('business', PROPOSITION.replace('25 €', '15 €')) });
     const rr = await R.chloe.surReponse(ev({ authentifie: true }));
     vrai('⛔ contrôle « à revoir » : une validation ; Chloé le dit à l’équipe en « important » (Justin est prévenu)', rr.voie === 'validation' && R.envoyes.length === 0 && R.paroles.some(p => p.de === 'chloe' && p.niveau === 'important' && /n’a pas passé le contrôle qualité/.test(p.texte)), JSON.stringify(R.paroles));
     const vl = (await R.validations())[0];
