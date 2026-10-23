@@ -166,7 +166,14 @@ vrai('   et il couvre les genres qui ont un identifiant',
     let f2 = -1, p2 = 0;
     for (let k = B.indexOf('{', iB); k < B.length; k++) { if (B[k] === '{') p2++; else if (B[k] === '}') { p2--; if (!p2) { f2 = k + 1; break; } } }
     const CB = new Function('return ' + B.slice(B.indexOf('{', iB), f2) + ';')();
-    v('   et exactement le même', CB, CLASSES);
+    /* ⛔ La bêta peut être EN AVANCE d'une collection tant qu'app.html n'est pas publié (v772 : `appareils`, le parc du chauffage et de la
+       climatisation). Une avance se DÉCLARE ici, collection par collection, avec son genre ; tout le reste doit être identique. Le jour où
+       app.html la porte aussi, la déclaration ne sert plus à rien et l'égalité redevient stricte d'elle-même. */
+    const AVANCE_BETA = { appareils: 'liste' };
+    const attendu = Object.assign({}, CLASSES);
+    Object.keys(AVANCE_BETA).forEach(k => { if (!(k in CLASSES) && (k in CB)) attendu[k] = AVANCE_BETA[k]; });
+    const trie = o => Object.keys(o).sort().map(k => [k, o[k]]);
+    v('   et exactement le même (hors avance déclarée de la bêta : ' + (Object.keys(attendu).filter(k => !(k in CLASSES)).join(', ') || 'aucune') + ')', trie(CB), trie(attendu));
   }
 }
 
