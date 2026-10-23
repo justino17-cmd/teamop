@@ -96,7 +96,7 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     const msgs = dansFil(B, 'equipe', 'ines').map(m => m.texte);
     v('UN message dans « Équipe » : Léa citée par son nom, Victor aussi, les fautes en clair', [msgs.length, B.fil('equipe').filter(m => m.de === 'ines')[0].mentions], [1, ['lea', 'victor']]);
     vrai('…« 1 courriel sur 3 à reprendre — un courriel ne commence pas par « Bonjour, » et donne un autre prix que « 15 € » »', /^Relecture du jour \(mes critères du cahier, mécaniques : à relire, pas un jugement\)\. @Léa : 1 courriel sur 3 à reprendre — un courriel ne commence pas par « Bonjour, » et donne un autre prix que « 15 € »\. @Victor, pour toi\.$/.test(msgs[0]) || /ne commence pas par « Bonjour, »/.test(msgs[0]), msgs[0]);
-    vrai('⛔ ni extrait, ni objet, ni adresse : rien du courriel', !/99|Salut|partenaire|TeamOP — OP GESTION|Nous vous remercions/.test(JSON.stringify([B.fil('equipe'), B.fil('victor'), B.journal(), B.fichierJson('agents-plateforme.json')])));
+    vrai('⛔ ni extrait, ni objet, ni adresse : rien du courriel', !/99 €|Salut|partenaire|TeamOP — OP GESTION|Nous vous remercions/.test(JSON.stringify([B.fil('equipe'), B.fil('victor'), B.journal(), B.fichierJson('agents-plateforme.json')])));
     v('⛔ aucun appel à Claude (le texte d’un courriel envoyé à un client reste sur le serveur)', B.recus.length, 0);
     v('une seconde passe le même jour : rien', [(await B.ines.passer()).saute, dansFil(B, 'equipe', 'ines').length], ['deja_relu', 1]);
     heureParis(B, 2026, 10, 23, 18, 0);
@@ -485,6 +485,8 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     pc('camille', '@Léa merci !', 1); pc('lea', '@Camille de rien', 2); pc('camille', '@Léa à demain', 3); C.avancer(5 * MIN);
     const rc = await C.victor.arbitrageur();
     v('le modèle lit l’échange et répond RAS (pas un désaccord) : rien n’est dit, l’échange est marqué lu', [rc.ras, dansFil(C, 'equipe', 'victor').length, C.etat.agent('victor').decisions || []], [true, 0, []]);
+    C.avancer(11 * MIN);
+    v('⛔ la coupure lue (RAS) n’est pas relue dix minutes plus tard : pas de second appel', [(await C.victor.arbitrageur()).saute, C.recus.length], ['rien_a_arbitrer', 1]);
     C.nettoyer();
 
     // Justin ou un troisième agent dans l'échange : ce n'est pas un échange à deux
@@ -507,6 +509,29 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     }
     v('⛔ trois appels par jour au plus (une coupure qui reste sans lecture est marquée vue, pas rejouée)', [res, E.recus.length], [['appel', 'appel', 'appel', 'plafond', 'plafond'], 3]);
     E.nettoyer();
+  }
+
+  console.log('\n8. Victor : les plafonds et les masques tiennent même sans le garde-fou d’en amont');
+  {
+    /* D7 : un point demandé à la main (« Dire le point maintenant ») deux fois le même jour n’appelle Claude qu’UNE fois */
+    const B = equipe({ claude: () => 'Bonjour Justin. Quatre courriels attendent.' });
+    heureParis(B, 2026, 10, 23, 8, 0); B.sources.courrier = { aTraiter: 4, enCours: 0 };
+    const p1 = await B.victor.pointDuMatin({ forcer: true });
+    B.avancer(MIN);
+    const p2 = await B.victor.pointDuMatin({ forcer: true });
+    v('⛔ deux points forcés le même jour : un seul appel (le second est dit avec le texte du code)', [p1.modele, p2.dit, p2.modele, B.recus.length], [true, true, false, 1]);
+    B.nettoyer();
+
+    /* D15 : le registre des tâches masque déjà les adresses ; Victor les masque AUSSI (une seconde barrière, pas une confiance) */
+    const C = equipe({ claude: () => 'RIEN' });
+    for (const id of ['lea', 'hugo', 'margaux', 'max', 'jules', 'chloe', 'emma', 'louis', 'sarah', 'lola', 'noah', 'ines', 'nina']) await C.appeler('POST /api/monitor/agents/mode', { tourUser: C.PATRON, body: { agent: id, mode: 'arret' } });
+    for (const t of ['A tâche', 'B tâche', 'C tâche']) C.agents.consigner('justin', 'camille', t);
+    const brut = id => (id === 'camille' ? ['x1', 'x2', 'x3'].map((k, i) => ({ id: 'a1b2c3d4e5f' + i, de: 'justin', type: 'consigne', texte: 'Écrire à jean@brut-2923.fr' })) : []);
+    const V2 = require(S('agent-victor.js'))({ cerveau: C.cerveau, equipe: () => C.eq, agents: Object.assign({}, C.agents, { tachesDe: brut }), conversations: C.conversations, etat: C.etat, incidents: C.incidents, maintenant: C.maintenant,
+      rgpd: () => [], contrats: () => ({ enAttente: 0 }), courrier: () => ({ aTraiter: 0, enCours: 0 }), clients: () => ({ demandesEnAttente: 0 }), alarmes: () => ({ ouvertes: 0, critiques: 0 }), qualite: () => null });
+    await V2.equilibrer();
+    vrai('⛔ une adresse qui aurait échappé au registre des tâches est masquée avant de partir chez Claude', C.recus.length === 1 && !/brut-2923/.test(JSON.stringify(C.recus[0])) && /\(adresse\)/.test(C.recus[0].system), JSON.stringify(C.recus.map(r => r.system.slice(-300))));
+    C.nettoyer();
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
