@@ -232,7 +232,8 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
     /* 23 octobre 2026 (fusion) : Victor, et lui seul, a un sixième outil (l'arbitrage — `agents-plateforme.js`) ; Hugo, Margaux, Emma et Sarah ont UN outil propre de plus
        (fin d'abonnement, mise en demeure, créneaux, annonce) — `test-2915` les joue ; ici, une liste fermée */
     && (/^Tu es Victor,/.test(b.system) ? b.tools.map(t => t.name).slice(5).join() === 'arbitrer'
-      : b.tools.slice(5).every(t => ['programmer_fin_abonnement', 'preparer_mise_en_demeure', 'proposer_creneaux', 'rediger_annonce'].includes(t.name)))));
+      /* à chacun SON outil (relecture du `gardien` : une liste commune laissait passer un outil de Margaux chez Hugo) ; les autres n'en ont aucun */
+      : b.tools.map(t => t.name).slice(5).join() === ({ Hugo: 'programmer_fin_abonnement', Margaux: 'preparer_mise_en_demeure', Emma: 'proposer_creneaux', Sarah: 'rediger_annonce' }[(/^Tu es ([^,]+),/.exec(b.system) || [])[1]] || ''))));
 
   console.log('\n3. Ce qui part chez Claude : rien d’une personne');
   const tout = corps.map(b => JSON.stringify(b)).join('\n');

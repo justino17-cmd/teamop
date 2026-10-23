@@ -255,7 +255,7 @@ tests/test-2890.js
 # remboursement), `test-2911` (les courriers composés par le code et leur contrôle qualité), `test-2912` (les documents des agents : empreinte, acceptation, jamais d'envoi sans validation),
 # `test-2913` (Hugo : tâche fermée de Camille, accusé signé, « a-t-il payé ? »), `test-2914` (Margaux : relances J+3 / J+7 une fois chacune, mise en demeure PRÉPARÉE), `test-2915` (Emma : créneaux
 # libres à l'heure de Paris, jamais inventés ; Sarah : l'annonce rédigée, validée avant d'être envoyée) et `test-2917` (le VRAI serveur : Stripe simulé dans son processus, les verdicts de
-# l'application réutilisés, les routes — le patron seul écrit). `test-2916` (la Tour) lit le bloc `agGe…` de `tour.html`, que la `tour.html` de `main` n'a pas encore : il reste hors de cette liste jusqu'à la fusion.
+# l'application réutilisés, les routes — le patron seul écrit). `test-2916` (la Tour : le bloc `agGe…` de `tour.html`) est entré dans cette liste à la fusion de l'intégration (relecture du `gardien`).
 tests/test-2910.js
 tests/test-2911.js
 tests/test-2912.js
@@ -284,7 +284,11 @@ tests/test-2929.js
 tests/test-2930.js
 # `test-2931` (le vrai serveur, un faux Claude : l'examen se lance par la route de la Tour, rien de réel n'est touché — ni fils, ni files, ni registres, ni un client réel —, un défaut tombe, une panne est « inconnu », un redémarrage se dit),
 # `test-2932` (la clé d'examen contre le vrai serveur : en empreinte, nulle part sur le disque, deux gestes, REFUSÉE sur chacune des routes /api/monitor relevées dans les sources, CORS) et `test-2934` (la forme lue dans le code :
-# aucune donnée de client, aucun réseau, la poste n'envoie rien, la clé en temps constant). ⛔ `test-2933` (les vraies fonctions de la TOUR) n'est PAS ici : il lit la `tour.html` de la branche, que `main` ne sert pas encore.
+# aucune donnée de client, aucun réseau, la poste n'envoie rien, la clé en temps constant). `test-2933` (les vraies fonctions de la TOUR) y entre à la fusion de l'intégration, avec `test-2916`, `test-2926` et `test-2927` (le panneau de la plateforme) : sans eux, le bloc Tour des agents n'aurait aucune porte au déploiement du serveur seul.
 tests/test-2931.js
 tests/test-2932.js
 tests/test-2934.js
+tests/test-2916.js
+tests/test-2926.js
+tests/test-2927.js
+tests/test-2933.js
