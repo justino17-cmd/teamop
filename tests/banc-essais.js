@@ -74,8 +74,11 @@ async function lancer(o) {
   let sortie = '', enfant = null, sortis = 0;
   const demarrer = async () => {
     const env = Object.assign({}, process.env, { TEAMOP_CONFIG: CONFIG, TEAMOP_DATA: D, PORT: String(port), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json') },
-      o.anthropic ? { ANTHROPIC_BASE_URL: 'http://127.0.0.1:' + o.anthropic.s.address().port } : {});
-    enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+      o.anthropic ? { ANTHROPIC_BASE_URL: 'http://127.0.0.1:' + o.anthropic.s.address().port } : {}, o.env || {});
+    /* `sansFbAdmin` : ne PAS poser TEAMOP_FB_ADMIN — la configuration que l'installeur du serveur de test produit (relecture adverse, 23 octobre 2026 : le banc la masquait) */
+    if (o.sansFbAdmin) delete env.TEAMOP_FB_ADMIN;
+    /* `requis` : des modules préchargés (`--require`) dans le serveur — un faux Stripe, une sonde de lecture de fichier */
+    enfant = spawn(process.execPath, [].concat(...(o.requis || []).map(r => ['--require', r])).concat([path.join(RACINE, 'server', 'index.js')]), { env, stdio: ['ignore', 'pipe', 'pipe'] });
     enfant.stdout.on('data', d => { sortie += d; }); enfant.stderr.on('data', d => { sortie += d; });
     const cet = enfant; cet.on('exit', () => { sortis++; });
     let vivant = false;

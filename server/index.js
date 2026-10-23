@@ -20,6 +20,11 @@ const ESSAI = config.espaceTest === true;
 const essaisMod = ESSAI ? require('./essais') : null;
 const essaiEtat = ESSAI ? essaisMod.demarrage({ dossier: DATA_DIR }) : null;
 const ESSAI_ORIGINE = ESSAI ? (/^https:\/\/[a-z0-9.-]+$/i.test(String(config.espaceTestOrigine || '').replace(/\/+$/, '')) ? String(config.espaceTestOrigine).replace(/\/+$/, '') : essaisMod.ORIGINE_DEFAUT) : '';
+/* ⛔ LA BASE DU SITE, UNE SEULE FOIS : en production `https://teamop.fr`, dans le serveur de test l'origine de test. Les liens que le serveur
+   REND (retour de Stripe, lien de connexion d'un espace, adresse d'un espace dans la Tour) la lisent : écrits en dur, un paiement de test
+   revenait sur la production, et la Tour de test offrait le lien d'une application où l'espace n'existe pas. Les courriels, eux, sont réécrits
+   au rangement (`essais.js`). Sans `espaceTest`, la valeur est celle d'avant, au caractère près. */
+const SITE_BASE = ESSAI ? ESSAI_ORIGINE : 'https://teamop.fr';
 if (ESSAI) console.log('⚠️ ESPACE DE TEST : courriels captés (rien ne part), origine ' + ESSAI_ORIGINE + (essaiEtat.remise ? ', remise à zéro faite' : '') + (essaiEtat.sur ? '' : ', REMISE À ZÉRO REFUSÉE (' + essaiEtat.raison + ')'));
 
 webpush.setVapidDetails('mailto:' + (config.contactEmail || 'contact@teamop.fr'), config.vapidPublicKey, config.vapidPrivateKey);
@@ -911,8 +916,8 @@ app.post('/api/stripe/checkout', async (req, res) => {
        tout de suite pendant que la formule attend. */
     const essai = (rangDuPrix >= 0 || optionSeule) ? finEssaiPeriode(visees, payeurMin) : null;
     if (essai) p.append('subscription_data[trial_end]', String(essai.fin));
-    p.append('success_url', 'https://teamop.fr/merci.html' + (essai ? '?debut=' + essai.debut : ''));
-    p.append('cancel_url', 'https://teamop.fr/recap-abonnement.html');
+    p.append('success_url', SITE_BASE + '/merci.html' + (essai ? '?debut=' + essai.debut : ''));
+    p.append('cancel_url', SITE_BASE + '/recap-abonnement.html');
     p.append('customer_email', payeur);
     p.append('metadata[compte]', payeur);
     p.append('subscription_data[metadata][compte]', payeur);
@@ -6286,7 +6291,7 @@ try {
   if ((config.comptes && config.comptes.actif) || ESSAI) {   // l'espace de test a toujours les comptes du portail : c'est ce qu'il sert à essayer
     comptes = require('./comptes').monterComptes(app, {
       dossier: DATA_DIR, mailerEnvoi: (o) => mailerEnvoi(o), quotaOk, ligneContacts: ligneContactsServeur,
-      siteBase: ESSAI ? ESSAI_ORIGINE : 'https://teamop.fr',
+      siteBase: SITE_BASE,
       journal: (...a) => console.log('comptes:', ...a),
     });
     etatPortail.comptes = { actif: true };
@@ -6465,7 +6470,7 @@ function espaceT(e) {
 /* Le lien de connexion d'un espace porte le CODE (#entreprise=…), jamais le nom
    (#e=nom) : un nom se devine, un code non. Le mot de passe provisoire n'y figure
    pas — codeMdpHache l'a remplacé par son empreinte. */
-function lienEspaceCode(e) { return 'https://teamop.fr/app.html#entreprise=' + codeMdpHache(e.code); }
+function lienEspaceCode(e) { return SITE_BASE + '/app.html#entreprise=' + codeMdpHache(e.code); }
 /* ══ OUVRIR SON ESPACE AVEC UN CODE D'ACCÈS — HISTORIQUE : RETIRÉ LE 28 SEPTEMBRE 2026 (voir « PLUS DE CODE D'ACCÈS ») ══
    Taper le nom de l'entreprise ne peut pas suffire : le lien de connexion porte la CLÉ qui
    déchiffre les données de l'espace (syncKey la dérive en PBKDF2), et un nom se lit sur un
@@ -6570,7 +6575,7 @@ app.post('/api/monitor/espaces/identifiants', monPatronStrict, (req, res) => {
      forcément le semis précédent. Sans ça, le patron dicterait un identifiant pendant que
      l'ancien continuerait d'ouvrir. */
   annuaireSemerDepuisCode(t, neuf, true).catch(() => {});
-  res.json({ ok: true, ident: ident, lien: 'https://teamop.fr/app.html#entreprise=' + neuf });
+  res.json({ ok: true, ident: ident, lien: SITE_BASE + '/app.html#entreprise=' + neuf });
 });
 /* ══ SE CONNECTER AVEC SON IDENTIFIANT, SANS LIEN NI CODE ═══════════════════════════════════
    Le problème posé, en clair : le lien (#entreprise=…) et le code d'accès à dix caractères
@@ -7085,7 +7090,7 @@ app.post('/api/monitor/espaces/renommer', monPatronStrict, (req, res) => {
      changement, et l'écran doit pouvoir le montrer plutôt que l'affirmer. */
   const adresse = e.slug || slug;
   console.log('Tour :', req.tourUser.nom, 'renomme l\'espace', t, '(adresse inchangée, ' + cles.length + ' entrée(s) mise(s) à jour)');
-  res.json({ ok: true, slug: adresse, nom, adresseInchangee: true, adresse: 'https://teamop.fr/e/' + adresse, lien: lienEspaceCode(espacesReg[cles[0]]) });
+  res.json({ ok: true, slug: adresse, nom, adresseInchangee: true, adresse: SITE_BASE + '/e/' + adresse, lien: lienEspaceCode(espacesReg[cles[0]]) });
 });
 /* ══ SUSPENDRE OU ROUVRIR UN ACCÈS, DEPUIS LA TOUR ══════════════════════════════════════════
    Couper un accès sans rien effacer. C'est le pendant de « Couper » sur un accès bêta, et la
@@ -7881,7 +7886,11 @@ const retraitCodes = new Map();   // email -> { code, exp, tries }
    service → « Générer une nouvelle clé privée »). Quand elle est posée sur le serveur,
    la fermeture d'une entreprise supprime AUSSI son compte du site (espace client),
    sa fiche et sa messagerie — plus rien n'est enregistré nulle part. */
-const FB_ADMIN_PATH = process.env.TEAMOP_FB_ADMIN || '/opt/teamop/firebase-admin.json';
+/* ⛔ LE SERVEUR DE TEST NE LIT JAMAIS LA CLÉ DE PRODUCTION (relecture adverse, 23 octobre 2026). Sans `TEAMOP_FB_ADMIN`, le défaut est le fichier de
+   production, lisible par le même utilisateur : « ne pas la définir » dans l'unité de test la chargeait donc, et un `/api/` joignable d'Internet
+   aurait tenu la clé d'administration de `elan-gestion` (fiches de vrais clients, coupure de sessions, jetons signés). En test, pas de défaut :
+   une clé de test ne vient que d'un `TEAMOP_FB_ADMIN` posé exprès. */
+const FB_ADMIN_PATH = process.env.TEAMOP_FB_ADMIN || (ESSAI ? '' : '/opt/teamop/firebase-admin.json');
 /* ⛔ LES ADRESSES DE BANC NE VISENT QUE 127.0.0.1 (`gardien`, 25 septembre 2026, N3). Posée par
    erreur sur le VPS, `TEAMOP_FB_OAUTH_URL` enverrait une assertion SIGNÉE par la clé
    d'administration (échangeable une heure contre un jeton qui passe au-dessus des règles), et
@@ -7895,7 +7904,7 @@ const FIRESTORE_URL = urlBanc(process.env.TEAMOP_FIRESTORE_URL, 'https://firesto
    au-dessus : seul `http://127.0.0.1:<port>` est accepté, et rien ne se règle sur le VPS. */
 const IDTK_URL = urlBanc(process.env.TEAMOP_IDTK_URL, 'https://identitytoolkit.googleapis.com/v1');
 let fbAdminCle = null;
-try { fbAdminCle = JSON.parse(fs.readFileSync(FB_ADMIN_PATH, 'utf8')); } catch (e) {}
+if (FB_ADMIN_PATH) { try { fbAdminCle = JSON.parse(fs.readFileSync(FB_ADMIN_PATH, 'utf8')); } catch (e) {} }
 const fbAdminTok = { jeton: '', exp: 0 };
 async function fbAdminJeton() {
   if (!fbAdminCle || !fbAdminCle.client_email || !fbAdminCle.private_key) return '';

@@ -9,6 +9,8 @@
         un dossier voisin, la config) n'ont pas bougé d'un octet, la demande est consommée ;
      4. et c'est un espace neuf : les anciens courriels, comptes et sessions n'existent plus, les comptes semés sont recréés (autres identifiants), la Tour garde ses deux comptes
         (son fichier est à côté de la config, hors des données) sans doublon ;
+     4 bis. ⛔ le COMPTEUR DE DÉPENSE des agents survit à la remise à zéro (relecture adverse, 23 octobre 2026) : 10,50 $ dépensés avant, un message à Léa REFUSÉ au plafond
+        (`plafond_total`) après — sans quoi chaque clic sur « Remettre l'espace à zéro » rachèterait 10 $ de la vraie clé des agents ;
      5. un dossier qui n'est PAS reconnu comme dossier de test (non vierge au départ) : la route refuse (409), rien n'est écrit, rien n'est effacé, le serveur reste debout.
    Aucune sortie ne montre une clé ; jamais `api.teamop.fr`. */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -30,7 +32,8 @@ const empreinteDe = (dossier) => { const out = {}; const parcours = (d, pref) =>
   const voisin = path.join(banc, 'dossier-voisin'); fs.mkdirSync(path.join(voisin, 'profond'), { recursive: true });
   fs.writeFileSync(path.join(voisin, 'precieux.json'), '{"a":"ne pas toucher"}'); fs.writeFileSync(path.join(voisin, 'profond', 'autre.txt'), 'autre');
   fs.writeFileSync(path.join(banc, 'temoin.txt'), 'je suis à côté de TEAMOP_DATA');
-  const S = await B2.lancer({ essai: true, banc, config: { mailPreuveExigee: false } }); vivants.push(S);
+  const fauxA = B2.fauxAnthropic(); await new Promise(r => fauxA.s.listen(0, '127.0.0.1', r));
+  const S = await B2.lancer({ essai: true, banc, anthropic: fauxA, config: { mailPreuveExigee: false, agents: { cleApi: 'sk-ant-banc', plafondMoisTotal: 10, reunionsAuto: false } } }); vivants.push(S);
   vrai('le serveur de test démarre', S.vivant);
   vrai('le semis est fait', await attendre(() => fs.existsSync(path.join(S.D, 'essais-semis.json')), 200));
   const cle = S.CLE, avecCle = (r, c) => r + '?cle=' + (c === undefined ? cle : c);
@@ -48,6 +51,8 @@ const empreinteDe = (dossier) => { const out = {}; const parcours = (d, pref) =>
   const hors0 = empreintesHors();
   vrai('(population) les témoins existent : le voisin porte 2 fichiers, le dossier de données plus de 8 entrées', Object.keys(hors0.voisin).length === 2 && fs.readdirSync(S.D).length > 8);
   const nbAvant = fs.readdirSync(S.D).length;
+  const mois = new Date().toISOString().slice(0, 7), budgetTexte = JSON.stringify({ mois, parAgent: { examen: 10.5 } });
+  fs.writeFileSync(path.join(S.D, 'agents-budget.json'), budgetTexte);       // 10,50 $ dépensés ce mois-ci : au-dessus du plafond de 10 $
 
   console.log('\n2. La demande');
   const rMauvaise = await S.appel(avecCle('/api/essais/remise-a-zero', 'f'.repeat(64)), {});
@@ -81,7 +86,12 @@ const empreinteDe = (dossier) => { const out = {}; const parcours = (d, pref) =>
   const equipe = (await S.appel('/api/monitor/users', undefined, T)).j.users || [];
   v('la Tour garde ses deux comptes, sans doublon (son fichier est à côté de la config, hors des données)', equipe.map(u => u.nom).sort(), ['Collaborateur Essai', 'Patron Essai']);
   v('le faux facteur n\'a vu aucune connexion, avant comme après', S.smtp.connexions(), 0);
-  await S.nettoyer();
+  v('⛔ le compteur de dépense des agents n\'a pas bougé d\'un octet à la remise à zéro (10,50 $ toujours inscrits)', fs.readFileSync(path.join(S.D, 'agents-budget.json'), 'utf8'), budgetTexte);
+  const recusAvant = fauxA.recus.length;
+  await S.appel('/api/monitor/conversations/envoyer', { fil: 'lea', texte: 'Léa, un point après la remise à zéro ?' }, T);
+  await dormir(2500);
+  v('⛔ et Léa est refusée au plafond (`plafond_total`) : le faux Anthropic ne reçoit RIEN — la remise à zéro ne rachète pas de crédit', fauxA.recus.length, recusAvant);
+  await S.nettoyer(); fauxA.s.close();
 
   console.log('\n4. Un dossier non reconnu : rien ne s\'efface');
   const banc2 = fs.mkdtempSync(path.join(fs2.tmpdir(), 'b2984b-'));

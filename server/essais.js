@@ -89,11 +89,15 @@ function demarrage(o) {
   }
   return { sur: false, raison: 'dossier_non_vierge' };
 }
-/* Vide le contenu direct du dossier, la marque exceptée. `rmSync` ne suit PAS un lien symbolique : il retire le lien, jamais sa cible. */
+/* Ce que la remise à zéro ne vide JAMAIS : la marque, et le COMPTEUR DE DÉPENSE des agents. Ce compteur dit combien de la vraie clé `agents.cleApi`
+   a été consommé ce mois-ci : le vider, c'était racheter 10 $ de crédit réel à chaque clic sur « Remettre l'espace à zéro » (relecture adverse, 23 octobre 2026).
+   Il ne porte aucune donnée de test — des dollars par agent —, et `cerveau.js` le remet à neuf tout seul au changement de mois. */
+const EPARGNES = [MARQUE, 'agents-budget.json'];
+/* Vide le contenu direct du dossier, sauf `EPARGNES`. `rmSync` ne suit PAS un lien symbolique : il retire le lien, jamais sa cible. */
 function vider(dossier) {
   let n = 0;
   for (const nom of fs.readdirSync(dossier)) {
-    if (nom === MARQUE) continue;
+    if (EPARGNES.includes(nom)) continue;
     try { fs.rmSync(path.join(dossier, nom), { recursive: true, force: true }); n++; } catch (e) { console.error('essais : non retiré —', nom, (e && e.code) || 'erreur'); }
   }
   return n;
