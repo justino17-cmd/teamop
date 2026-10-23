@@ -240,6 +240,14 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   vrai('le journal du serveur : aucune exception non rattrapée, aucun « is not defined »', !/is not defined|Cannot read|TypeError|ReferenceError|Unhandled|UnhandledPromiseRejection/.test(tout));
   vrai('…et aucune adresse de client en clair dans le journal du serveur', !/alpha@exemple-2917|facturation-beta@exemple-2917|beta@exemple-2917|gamma@exemple-2917/.test(tout));
 
+  /* ce qui part chez Anthropic est DÉCLARÉ : le fait « facture » de Margaux (statut, montant, jour/mois/année) est lu dans le CODE (pas dans une phrase), puis cherché dans les deux pages */
+  const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  vrai('(population) le serveur produit bien le fait « facture » (statut, montantEur, annee) pour les agents', /faitsAgents\.facture\s*=\s*async/.test(CODE) && /montantEur:\s*Number\.isFinite\(x\.amount_due\)/.test(CODE));
+  for (const page of ['sous-traitance.html', 'registre-traitements.html']) {
+    const h = fs.readFileSync(path.join(RACINE, page), 'utf8').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    vrai('⛔ ' + page + ' déclare le statut, le montant et la date des dernières factures transmis à Anthropic pour l\'agent de facturation', /statut, le montant en euros et le jour, le mois et l.année d.émission des\s+trois dernières factures/.test(h));
+  }
+
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ exception : ' + (e && e.stack || e)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });
