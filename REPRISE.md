@@ -14,6 +14,45 @@ de ligne du tout.
 ---
 
 
+# ⏳ 23 OCTOBRE 2026 — OP GESTION PAR MÉTIER, CÔTÉ APPLICATION : 23 MÉTIERS, PLUS D'ANTI-NUISIBLES HORS 3D, CATÉGORIES PAR MÉTIER — BÊTA v772, RIEN SUR `main`
+- Branche `claude/metiers-app` (partie du commit `7d45d134` de la branche d'audit, à fusionner dans elle). Cahier : les demandes de Justin
+  de la nuit du 22 au 23 octobre (« je veux que tu fasses bien OP GESTION en fonction des packs métiers qu'on propose »). Cinq parties,
+  un commit chacune, `APP_VERSION` reste 772, `sw.js` ne bouge pas.
+- **A — les 23 métiers dans l'application.** `METIERS`, `METIERS_ORDRE` et `RUBRIQUES_INFO` sont ÉCRITS par `scripts/metiers-generer.js`
+  depuis `design/metiers-referentiel.json` (copie du référentiel de la nuit ; l'autre chantier pose `metiers.json` à la racine — `test-2900`
+  les compare dès qu'il existe). Treize métiers enrichis (types, prestations, relevés à la suite des anciens), dix nouveaux : incendie, froid,
+  ascenseurs, portails, ramonage, assainissement, énergies, alarme, eau, piscine. `test-2900` relit le référentiel ET l'application
+  (`app.html`, `beta.html`) et joue les vraies fonctions pour les 23. La 3D ne reprend PAS les deux types que le référentiel lui propose
+  (« Désinfection de locaux », « Audit hygiène… ») : ELAN ne change pas d'un mot — écart nommé dans le banc ; les adopter est une décision.
+  `saisieConso` et `enveloppes` rejoignent le masque des métiers hors 3D (la bêta voit tout). Le site, le serveur (`METIERS_OK`), la Tour
+  (`MET_L`) et le portail (`METIER_L`) connaissent TREIZE métiers : `tests/metiers-publics.js` NOMME les dix « pas encore ouverts au
+  public » (test-835, 837, 846, 848 les tolèrent absents, jamais exigés). ⛔ `scripts/site-marine.js` lit `METIERS_ORDRE` dans app.html
+  pour compter ses « packs prêts » : tant que l'autre chantier n'a pas ouvert les dix, le régénérer annoncerait « 22 packs » — le banc
+  charge le générateur avec une lecture qui retire les dix ; **quand ils sont ouverts, vider la liste de `tests/metiers-publics.js`.**
+- **B — hors 3D, plus rien de l'anti-nuisibles** (`estMetier3D()`, une seule décision) : « Nuisibles ciblés », « Méthodes », étape
+  « Constat » de la clôture guidée (garde le champ d'observations), niveau d'infestation, AMM / matière active / type de traitement,
+  fournisseurs du catalogue 3D, « Dossier sanitaire », Certibiocide (colonne, fiche, formulaire), colonne CSV « Nuisibles », constat et
+  traitement du compte-rendu. On cache, on ne vide pas (`test-2901` : 96 contrôles, 18 mutations sur 18). Un Certibiocide déjà saisi reste
+  visible. La 3D avant/après (`scratchpad/metiers/sonde-avant-apres.js`, 67 écrans) a trouvé TROIS phrases que les correctifs avaient retouchées :
+  rétablies ; il ne reste que les différences voulues (cartes TEAM OP, explications des modules, « Valideur responsable »). **Pas fait** : le registre, les box, le devis xylophage, la clôture « Produits » restent propres à la 3D par le masque ; les
+  générateurs de démonstration (`betaRemplir`, « test nuisibles ») sont des outils de la bêta, non touchés.
+- **C — catégories de produits par métier** (`categoriesProduit()`, `categorieListe()`, couleurs dans `CAT_COLORS`) : la 3D garde `CAT_LIST`
+  (même objet) ; les 22 autres ont leur liste fermée du référentiel ; une catégorie inconnue d'une base d'avant s'affiche telle quelle ;
+  `migrate` ne range plus que la 3D. Règle de CLAUDE.md réécrite. `test-2902` : 60 contrôles, 9 mutations sur 9. Les noms de catégories sont
+  ceux du référentiel — des PROPOSITIONS à valider avec chaque métier (« Fluides frigorigènes (par type) », 69 signes pour « Pièces de chaudière… »).
+- **D — « quand ils cochent, que ça explique »** : grille des droits et profils, « Accès au cas par cas », « Modules OP », et — nouveau —
+  Paramètres → Mon métier (rubriques conseillées dépliables) montrent l'explication du référentiel, sous le nom, sans survol (`test-2903` : 34
+  contrôles, 9 mutations sur 9). Le titre « Validations DR » et sa note de chantier ont quitté le référentiel de `design/` : à reporter dans la
+  copie de l'autre chantier. **Pas fait** : la page d'abonnement et la Tour (autre chantier) ; les rubriques conseillées ne PRÉ-COCHENT rien ici
+  (c'est le chantier « catégories par client », Tour + serveur).
+- **E — le menu de bureau tient sur une ligne : 284 px** (258 avant ; « Validation des mouvements » demande 181,6 px pour 171). Mesuré après,
+  41 entrées × 3 langues × 1440/1100 px × jour/nuit : zéro entrée sur deux lignes, marge la plus faible 15,4 px. « Directeur régional
+  responsable » → « Valideur responsable » (le rôle `dr` et la donnée `drId` ne changent pas). `test-2904`.
+  ⛔ **Reste ouvert, à mesurer avant de toucher** : le menu « au doigt » (272 px : iPad portrait/paysage et tiroir du téléphone, texte à 15,5 px)
+  demande 201 px pour ce libellé et n'en a que 191 — il passe sur deux lignes ; l'élargir touche les mises en page iPad de test-1421, 1432, 1433.
+- Preuves au navigateur (bêta servie en 127.0.0.1, captures regardées) : `scratchpad/metiers/` — `sonde-b` 162 ✓ (3 métiers × 6 tailles/thèmes × 9 écrans), `-c` 48 ✓, `-d` 60 ✓, `-e` 19 ✓, `-recense` (plomberie, piscine : rien de l'anti-nuisibles), `-avant-apres`. Elles lisent `beta.html` : régénérer (`node beta-build.js`) avant de les lancer. ⚠️ Deux contrôles de GitHub ne sont pas dans
+  `bancs-ci.sh` (`verifier-version.js`, `verifier-propose.js`) : `app.html` change sans que `APP_VERSION` monte — à jouer avant la fusion.
+
 # ⏳ 22 OCTOBRE 2026 — AUDIT APPLE-DESIGN D'OP GESTION : LES 36 CORRIGÉS, BÊTA v771 — RIEN SUR `main`
 - Justin, 21 octobre : « audite toute l'interface avec le skill apple-design, liste chaque problème du plus grave au moins grave, puis
   corrige-les un par un ». La liste et les preuves : `design/AUDIT-APPLE-2026-10.md`. Branche `claude/audit-apple-op-gestion`, une
