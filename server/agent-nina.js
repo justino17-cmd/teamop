@@ -80,6 +80,24 @@ module.exports = function agentNina(ctx) {
     note('demande RGPD reçue', { cible: 'rgpd', resultat: 'ok', detail: 'délai jusqu’au ' + O.dateLongue(r.limite), qui: t.de });
     return 1;
   }
+  /* ⛔ LE CÔTÉ ÉMISSION : personne ne dépose de tâche « escalade_humain / rgpd » dans le serveur tel qu'il est (revue du 23 octobre 2026 : aucun code, hors des bancs). Justin enregistre donc la
+     demande lui-même, depuis la Tour, avec SA DATE DE RÉCEPTION — le délai légal d'un mois court depuis le jour où la demande est arrivée, pas depuis le jour où on la saisit. Rien de la
+     personne n'entre : une date, qui l'a saisie. Refusée : une date dans le futur, ou de plus de quatre mois (une faute de frappe d'année). Si Camille ou le courrier déposent un jour la tâche,
+     `enregistrer()` la prend comme avant. */
+  const RGPD_REMONTE_MAX_MS = 122 * 86400000;
+  function declarer(recu, qui) {
+    if (etat.illisible()) return { ok: false, raison: 'memoire_illisible' };
+    const now = maintenant();
+    if (typeof recu !== 'number' || !Number.isFinite(recu) || recu > now) return { ok: false, raison: 'date_future' };
+    if (recu < now - RGPD_REMONTE_MAX_MS) return { ok: false, raison: 'date_ancienne' };
+    const m = memoire();
+    if (ouvertes().length >= OUVERTES_MAX) return { ok: false, raison: 'plafond' };
+    const r = { id: 'g' + crypto.randomBytes(5).toString('hex'), fil: 'saisie-' + crypto.randomBytes(4).toString('hex'), de: 'justin', recu, limite: O.plusUnMois(recu), statut: 'ouverte', rappels: [], accuse: false };
+    m.rgpd.push(r);
+    if (!etat.sauver()) { m.rgpd.pop(); return { ok: false, raison: 'ecriture' }; }
+    note('demande RGPD saisie', { cible: 'rgpd', resultat: 'ok', detail: 'délai jusqu’au ' + O.dateLongue(r.limite), qui: String(qui || '').slice(0, 40) });
+    return { ok: true, id: r.id, limite: r.limite };
+  }
   /* L'accusé : à Camille (qui garde le contact avec le demandeur) dans « Équipe », et la tâche pour Justin dans le fil privé de Nina. Marqué fait quand les deux sont partis. */
   function accuser() {
     let n = 0;
@@ -185,5 +203,5 @@ module.exports = function agentNina(ctx) {
     },
     contrats: () => { const c = lire(ctx.contrats && ctx.contrats.etat && (() => ctx.contrats.etat())); return c ? { envoyes: c.envoyes, acceptes: c.acceptes, enAttente: c.enAttente, plusVieuxJours: c.plusVieuxJours, formulesBloquees: c.paquetsBloques, formules: c.paquetsTotal, piecesAConfirmer: c.piecesAConfirmer } : null; },
   };
-  return Object.assign({}, moteur, { passer, cloturer, rgpd, faits });
+  return Object.assign({}, moteur, { passer, cloturer, declarer, rgpd, faits });
 };

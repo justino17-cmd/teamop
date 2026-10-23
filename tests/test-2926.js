@@ -39,7 +39,7 @@ function corps(entete) {
 const fonction = nom => corps('\nfunction ' + nom + '(').trim();
 const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
-const NOMS = ['msPfIlYa', 'msPfNom', 'msPfCartes', 'msPfHtml', 'messPeindrePf', 'messPfCharger', 'messPfGeste', 'messPfPasser', 'messPfPoint', 'messPfRgpd', 'messPfClic', 'msAgentsParId', 'fmtDate'];
+const NOMS = ['msPfIlYa', 'msPfNom', 'msPfCartes', 'msPfHtml', 'messPeindrePf', 'messPfCharger', 'messPfGeste', 'messPfPasser', 'messPfPoint', 'messPfRgpd', 'msPfDateSaisie', 'messPfRgpdNouvelle', 'messPfClic', 'msAgentsParId', 'fmtDate'];
 const FN = NOMS.map(fonction);
 const VARS = [ligne('var MS_PF_AG_CLAUDE='), ligne('var MS_PF_MODE='), ligne('var MS_PF_NIV='), ligne('MS.pf={')].join('\n');
 vrai('(population) les ' + NOMS.length + ' fonctions, le coffre MS.pf et les tables sont trouvés dans le fichier livré', ESC && FN.every(f => f.length > 30) && VARS.split('\n').every(l => l.length > 20), NOMS.filter((n, i) => FN[i].length <= 30).join(', ') + ' | ' + VARS.slice(0, 200));
@@ -51,11 +51,11 @@ function faux(id) {
   return o;
 }
 function monde() {
-  const j = { appels: [], file: [], toasts: [], confirms: [], filTot: 0, dom: { 'ms-pf': faux() } };
+  const j = { appels: [], file: [], toasts: [], prompts: [], confirms: [], filTot: 0, dom: { 'ms-pf': faux() } };
   const rep = (st, d) => new Response(JSON.stringify(d), { status: st, headers: { 'Content-Type': 'application/json' } });
   const ctx = { API: 'https://api.teamop.fr', Object, String, JSON, Promise, Math, Number, Array, Date, Error, Response, console, TypeError, setTimeout,
     $: id => j.dom[id] || null, document: { activeElement: null }, INJOIGNABLE: 'Serveur injoignable — nouvelle tentative dans un instant.',
-    toast: t => j.toasts.push(t), confirm: m => { j.confirms.push(m); return j.reponseConfirm !== false; }, messFilTot: () => { j.filTot++; }, msgErreur: e => 'ERR:' + (e && e.message || e), doLogout: () => {},
+    toast: t => j.toasts.push(t), prompt: m => { j.prompts.push(m); return j.reponsePrompt === undefined ? null : j.reponsePrompt; }, confirm: m => { j.confirms.push(m); return j.reponseConfirm !== false; }, messFilTot: () => { j.filTot++; }, msgErreur: e => 'ERR:' + (e && e.message || e), doLogout: () => {},
     fetch: (url, opt) => { j.appels.push([String(url).replace('https://api.teamop.fr', ''), opt && opt.method || 'GET', opt && opt.body ? JSON.parse(opt.body) : null]);
       const r = j.file.length ? j.file.shift() : { st: 200, d: {} };
       if (r === 'coupure') return Promise.reject(new TypeError('Failed to fetch'));
@@ -134,9 +134,18 @@ const txt = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     vrai('Inès : « relu le … » et « 3 courriels conformes sur 4 » ; Victor : « point dit il y a… » ; ses décisions nomment les agents', /relu le 2026-10-22/.test(t) && /3 courriels conformes sur 4/.test(t) && /point dit il y a 2 h|point dit il y a 1 h/.test(t) && /Léa garde la relance Camille et Léa/.test(t), t);
     R.d = donnees({ agents: Object.assign(donnees().agents, { ines: { mode: 'brouillon', dernier: 0, relu: '', derniere: { courriels: { envoyes: 1, conformes: 1 } } } }) });
     vrai('un seul courriel conforme : le singulier', /1 courrier?el? conforme sur 1/.test(txt(ctx.msPfHtml())) || /1 courriel conforme sur 1/.test(txt(ctx.msPfHtml())));
-    R.occ = '/api/monitor/agents/plateforme/passer';
+    R.ouvert = { ep: false, ag: false, rgpd: true }; R.d = donnees();
+    const tv = txt(ctx.msPfHtml());
+    vrai('⛔ sans demande en cours, le panneau n’affirme PLUS que « Camille passe à Nina » (rien ne le fait : revue du 23 octobre) — il dit d’enregistrer la demande avec sa date', !/Camille/.test(tv) && /enregistre-la ici avec sa date de réception/.test(tv) && /data-act="pfRgpdNouvelle"/.test(ctx.msPfHtml()), tv);
+    R.d = donnees({ rgpd: [{ id: 'g1', recu: NOW, limite: NOW + 31 * JOUR, joursRestants: 31, accusee: true }] });
+    vrai('…et avec des demandes en cours, le bouton « Enregistrer » reste là', /data-act="pfRgpdNouvelle"/.test(ctx.msPfHtml()));
+    R.ouvert = { ep: false, ag: true, rgpd: false };
+    R.d = donnees({ victor: { decisions: [{ id: 'd1', ts: NOW - 5 * H, entre: ['camille', 'lea'], decision: 'Léa garde la relance', statut: 'decidee' }, { id: 'd2', ts: NOW - 4 * H, entre: ['camille', 'lea'], decision: 'Question d’argent', statut: 'attend_justin' }] } });
+    const td = txt(ctx.msPfHtml());
+    vrai('⛔ les décisions de Victor : « decidee » (le statut interne du serveur) ne s’écrit plus à l’écran, « attend_justin » se dit en français', !/decidee|attend_justin/.test(td) && /Question d’argent Camille et Léa · il y a 4 h · attend ta décision/.test(td), td);
+    R.occ = '/api/monitor/agents/plateforme/passer'; R.ouvert = { ep: true, ag: true, rgpd: true }; R.d = donnees({ rgpd: [{ id: 'g1', recu: NOW, limite: NOW + 31 * JOUR, joursRestants: 31, accusee: true }] });
     h = ctx.msPfHtml();
-    vrai('pendant un geste : TOUS les boutons sont grisés (le point, passer, RGPD)', !/<button[^>]*data-act="(pfPoint|pfPasser|pfRgpd)"(?![^>]*disabled)/.test(h), h);
+    vrai('pendant un geste : TOUS les boutons sont grisés (le point, passer, RGPD)', !/<button[^>]*data-act="(pfPoint|pfPasser|pfRgpd|pfRgpdNouvelle)"(?![^>]*disabled)/.test(h), h);
   }
 
   console.log('\n4. Le dessin : caché hors du fil « Plateforme », écrit une seule fois');
@@ -209,6 +218,16 @@ const txt = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     await G.ctx.messPfRgpd('g0000001');
     v('RGPD : POST avec l\'identifiant, toast', [G.j.appels[0], G.j.toasts], [['/api/monitor/agents/plateforme/rgpd', 'POST', { id: 'g0000001' }], ['Demande RGPD marquée traitée.']]);
 
+    const N = monde(); N.ctx.MS.pf.d = donnees(); N.ctx.MS.pf.lec = 1; N.j.file.push({ st: 200, d: { ok: true } }, { st: 200, d: donnees() }); N.j.reponsePrompt = '20/10/2026';
+    await N.ctx.messPfRgpdNouvelle();
+    v('⛔ « Enregistrer une demande reçue » : la date saisie en JJ/MM/AAAA part en AAAA-MM-JJ (le jour de RÉCEPTION, pas celui de la saisie), un toast le dit', [N.j.appels[0], N.j.toasts], [['/api/monitor/agents/plateforme/rgpd/declarer', 'POST', { recu: '2026-10-20' }], ['Demande RGPD enregistrée : Nina tient le délai d’un mois.']]);
+    vrai('…la question rappelle de ne saisir ni nom ni adresse (rien d’une personne ne part)', /ni nom, ni adresse/.test(N.j.prompts[0]), N.j.prompts[0]);
+    const N2 = monde(); N2.ctx.MS.pf.d = donnees(); N2.ctx.MS.pf.lec = 1; N2.j.reponsePrompt = null;
+    await N2.ctx.messPfRgpdNouvelle();
+    const N3 = monde(); N3.ctx.MS.pf.d = donnees(); N3.ctx.MS.pf.lec = 1; N3.j.reponsePrompt = 'hier';
+    await N3.ctx.messPfRgpdNouvelle();
+    v('⛔ « Annuler » n’envoie rien ; une date qu’on ne comprend pas non plus (et le dit)', [N2.j.appels.length, N3.j.appels.length, N3.j.toasts], [0, 0, ['Date non comprise : écris JJ/MM/AAAA.']]);
+    v('la date se lit en JJ/MM/AAAA, J/M/AAAA, avec / . ou -, et en AAAA-MM-JJ ; le reste est refusé', ['5/3/2026', '05.03.2026', '05-03-2026', '2026-03-05', ' 05/03/2026 ', '2026/03/05', '05/03/26', '', 'x'].map(x => N.ctx.msPfDateSaisie(x)), ['2026-03-05', '2026-03-05', '2026-03-05', '2026-03-05', '2026-03-05', '', '', '', '']);
     const R = monde(); R.ctx.MS.pf.d = donnees(); R.ctx.MS.pf.lec = 1; R.j.file.push({ st: 409, d: { error: 'Un passage est déjà en cours' } }, { st: 200, d: donnees() });
     await R.ctx.messPfPasser('theo');
     v('⛔ un refus du serveur : le toast REPREND sa phrase, le panneau se dégrise', [R.j.toasts, R.ctx.MS.pf.occ], [['Un passage est déjà en cours'], '']);
@@ -236,8 +255,8 @@ const txt = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     v('« Détails / Réduire » bascule', ctx.MS.pf.plie, !plie);
     j.file.push({ st: 200, d: donnees() }); ctx.MS.pf.lec = -1; ctx.messPfClic(el('pfRecharger')); await dormir(30);
     v('« Réessayer » relit', [j.appels.length, ctx.MS.pf.lec], [1, 1]);
-    j.reponseConfirm = false; ctx.messPfClic(el('pfPoint')); ctx.messPfClic(el('pfPasser', { 'data-agent': 'victor' })); ctx.messPfClic(el('pfRgpd', { 'data-id': 'g1' }));
-    v('point, passer et RGPD aboutissent à leur confirmation (trois questions)', j.confirms.length, 3);
+    j.reponseConfirm = false; ctx.messPfClic(el('pfPoint')); ctx.messPfClic(el('pfPasser', { 'data-agent': 'victor' })); ctx.messPfClic(el('pfRgpd', { 'data-id': 'g1' })); ctx.messPfClic(el('pfRgpdNouvelle'));
+    v('point, passer et RGPD aboutissent à leur confirmation (trois questions), « Enregistrer une demande » à sa saisie de date (une)', [j.confirms.length, j.prompts.length], [3, 1]);
   }
 
   console.log('\n8. L\'accord page ↔ serveur, et le câblage dans le fichier');
@@ -245,12 +264,12 @@ const txt = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const urlsPage = [...new Set([...(FN.join('\n') + VARS).matchAll(/['"](\/api\/monitor\/agents\/plateforme[^'"?]*)['"]/g)].map(m => m[1]))].sort();
     const routesServeur = [...new Set([...SERVEUR_PF.matchAll(/app\.(?:get|post)\('(\/api\/monitor\/agents\/plateforme[^']*)'/g)].map(m => m[1]))].sort();
     v('⛔ chaque URL que la page appelle est une route du serveur, et le serveur n\'en a pas d\'autre (UNE liste, deux fichiers)', urlsPage, routesServeur);
-    vrai('(population) quatre routes', routesServeur.length === 4, routesServeur.join());
+    vrai('(population) cinq routes (une lecture, quatre gestes)', routesServeur.length === 5, routesServeur.join());
     const verbes = [...SERVEUR_PF.matchAll(/app\.(get|post)\('(\/api\/monitor\/agents\/plateforme[^']*)'/g)].map(m => m[1] + ' ' + m[2]).sort();
-    const pageVerbes = [...new Set([...(fonction('messPfCharger') + fonction('messPfGeste') + fonction('messPfPasser') + fonction('messPfPoint') + fonction('messPfRgpd')).matchAll(/(apiGet|apiPost)\('(\/api\/monitor\/agents\/plateforme[^']*)'/g)].map(m => (m[1] === 'apiGet' ? 'get ' : 'post ') + m[2]))].sort();
+    const pageVerbes = [...new Set([...(fonction('messPfCharger') + fonction('messPfGeste') + fonction('messPfPasser') + fonction('messPfPoint') + fonction('messPfRgpd') + fonction('messPfRgpdNouvelle')).matchAll(/(apiGet|apiPost)\('(\/api\/monitor\/agents\/plateforme[^']*)'/g)].map(m => (m[1] === 'apiGet' ? 'get ' : 'post ') + m[2]))].sort();
     v('…et chaque appel emploie le BON verbe (apiGet pour la lecture, apiPost pour les gestes — la page passe l\'URL à `messPfGeste`)', pageVerbes.filter(x => x.startsWith('get')), verbes.filter(x => x.startsWith('get')));
-    const gestes = [...new Set([...(fonction('messPfPasser') + fonction('messPfPoint') + fonction('messPfRgpd')).matchAll(/messPfGeste\('([^']+)'/g)].map(m => m[1]))].sort();
-    v('…les trois gestes de la page sont les trois POST du serveur', gestes, verbes.filter(x => x.startsWith('post')).map(x => x.slice(5)).sort());
+    const gestes = [...new Set([...(fonction('messPfPasser') + fonction('messPfPoint') + fonction('messPfRgpd') + fonction('messPfRgpdNouvelle')).matchAll(/messPfGeste\('([^']+)'/g)].map(m => m[1]))].sort();
+    v('…les quatre gestes de la page sont les quatre POST du serveur', gestes, verbes.filter(x => x.startsWith('post')).map(x => x.slice(5)).sort());
 
     vrai('le panneau est monté dans la messagerie (un seul #ms-pf, après celui des réunions)', (CODE.match(/id="ms-pf"/g) || []).length === 1 && CODE.indexOf('id="ms-reu"') < CODE.indexOf('id="ms-pf"'));
     vrai('la relecture suit la liste (messToutCharger relit le panneau sur le fil « Plateforme »)', /function messToutCharger\(\)\{ if\(MS\.fil==='plateforme'\) messPfCharger\(\);/.test(CODE));

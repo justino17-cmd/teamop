@@ -91,7 +91,7 @@ module.exports = function agentsPlateforme(app, ctx) {
   };
 
   /* ── ce que la Tour lit : un seul relevé ── */
-  function resume() {
+  async function resume() {
     const now = maintenant();
     const modeDe = id => { try { return agents.modeDe(id); } catch (e) { return 'arret'; } };
     const par = {};
@@ -99,23 +99,25 @@ module.exports = function agentsPlateforme(app, ctx) {
       let e = {}; try { e = mods[id].etat() || {}; } catch (x) { e = {}; }
       par[id] = Object.assign({ mode: modeDe(id), pasMin: PAS[id] }, e);
     }
+    /* le relevé des sauvegardes est une PROMESSE (il lit la santé) : sérialisé tel quel, il sortait `{}` — le contrat de la route mentait (revue du 23 octobre 2026) */
+    let sauvegardes = null; try { sauvegardes = await faits.sauvegardes(); } catch (e) { sauvegardes = null; }
     const ep = e => ({ id: e.id, proprio: e.proprio, cle: e.cle, zone: e.zone, niveau: e.niveau, depuis: e.depuis, fin: e.fin || 0, annonce: !!e.annonce, incident: !!e.incident, pris: !!e.pris, texte: R.texteDe(e.cle, e.valeurs) || e.cle });
     return { ok: true, ts: now, illisible: etat.illisible(), agents: par,
       episodes: etat.episodes().sort((a, b) => b.depuis - a.depuis).slice(0, 30).map(ep),
       recents: etat.passes(now - 7 * 86400000).slice(0, 12).map(x => ({ cle: x.cle, depuis: x.depuis, fin: x.fin, niveau: x.niveau, texte: R.texteDe(x.cle, {}) || x.cle })),
-      incidents: lire(faits.incidents), rgpd: lire(() => nina.rgpd()), securite: lire(faits.securite), sauvegardes: lire(faits.sauvegardes), conservation: lire(faits.conservation),
+      incidents: lire(faits.incidents), rgpd: lire(() => nina.rgpd()), securite: lire(faits.securite), sauvegardes, conservation: lire(faits.conservation),
       qualite: lire(faits.qualite), victor: lire(() => victor.etat()), ines: lire(() => ines.etat()) };
   }
 
   /* ── les routes ── */
   if (app && typeof app.get === 'function') {
-    app.get('/api/monitor/agents/plateforme', monAdmin, (req, res) => { res.json(resume()); });
+    app.get('/api/monitor/agents/plateforme', monAdmin, async (req, res) => { try { res.json(await resume()); } catch (e) { console.error('agents de la plateforme :', (e && e.message) || e); res.status(500).json({ error: 'Relevé non lu' }); } });
     app.post('/api/monitor/agents/plateforme/passer', monPatronStrict, async (req, res) => {
       const b = req.body && typeof req.body === 'object' ? req.body : {};
-      if (typeof b.agent !== 'string' || !mods[b.agent]) return res.status(400).json({ error: 'Agent : max, theo, nina, jules, ines ou victor' });
+      if (typeof b.agent !== 'string' || !ORDRE.includes(b.agent)) return res.status(400).json({ error: 'Agent : max, theo, nina, jules, ines ou victor' });
       if (enCours) return res.status(409).json({ error: 'Un passage est déjà en cours' });
       enCours = true;
-      try { const r = await mods[b.agent].passer(); dernier[b.agent] = maintenant(); res.json({ ok: true, agent: b.agent, resultat: r || {} }); }
+      try { const r = await mods[b.agent].passer(b.agent === 'ines' ? { forcer: true } : undefined); dernier[b.agent] = maintenant(); res.json({ ok: true, agent: b.agent, resultat: r || {} }); }
       catch (e) { console.error('agent ' + b.agent + ' :', (e && e.message) || e); res.status(500).json({ error: 'Passage non traité' }); }
       finally { enCours = false; }
     });
@@ -133,6 +135,19 @@ module.exports = function agentsPlateforme(app, ctx) {
       const r = nina.cloturer(b.id, req.tourUser && req.tourUser.nom);
       if (r.ok) return res.json({ ok: true });
       res.status(r.raison === 'inconnue' ? 404 : 503).json({ error: r.raison === 'inconnue' ? 'Demande inconnue' : 'Demande non enregistrée' });
+    });
+    /* Enregistrer une demande RGPD reçue (par courriel, par courrier) avec sa date de réception AAAA-MM-JJ : Nina tient alors le délai légal d'un mois. */
+    app.post('/api/monitor/agents/plateforme/rgpd/declarer', monPatronStrict, (req, res) => {
+      const b = req.body && typeof req.body === 'object' ? req.body : {};
+      const m = typeof b.recu === 'string' ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(b.recu) : null;
+      const [a, mo, j] = m ? [+m[1], +m[2], +m[3]] : [0, 0, 0];
+      const ts = m && mo >= 1 && mo <= 12 && j >= 1 && j <= 31 ? O.tsParis(a, mo, j, 0, 0) : NaN;
+      const rond = Number.isFinite(ts) ? O.parisParties(ts) : null;
+      if (!rond || rond.date !== b.recu) return res.status(400).json({ error: 'Date de réception : AAAA-MM-JJ' });
+      const r = nina.declarer(ts, req.tourUser && req.tourUser.nom);
+      if (r.ok) return res.json({ ok: true, limite: r.limite });
+      const dit = { date_future: [400, 'La date de réception est dans le futur'], date_ancienne: [400, 'La date de réception remonte à plus de quatre mois : vérifie l’année'], plafond: [409, 'Trop de demandes ouvertes : marque des demandes traitées d’abord'] }[r.raison];
+      res.status(dit ? dit[0] : 503).json({ error: dit ? dit[1] : 'Demande non enregistrée' });
     });
   }
 

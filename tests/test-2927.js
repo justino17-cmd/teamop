@@ -85,7 +85,7 @@ console.log('\n── 2927 · les six agents de la plateforme contre le vrai ser
   const fonction = nom => corpsDe('\nfunction ' + nom + '(').trim();
   const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
   const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
-  const NOMS = ['msPfIlYa', 'msPfNom', 'msPfCartes', 'msPfHtml', 'messPeindrePf', 'messPfCharger', 'messPfGeste', 'messPfPasser', 'messPfPoint', 'messPfRgpd', 'messPfClic', 'msAgentsParId', 'fmtDate'];
+  const NOMS = ['msPfIlYa', 'msPfNom', 'msPfCartes', 'msPfHtml', 'messPeindrePf', 'messPfCharger', 'messPfGeste', 'messPfPasser', 'messPfPoint', 'messPfRgpd', 'msPfDateSaisie', 'messPfRgpdNouvelle', 'messPfClic', 'msAgentsParId', 'fmtDate'];
   const FN = NOMS.map(fonction);
   const VARS = [ligne('var MS_PF_AG_CLAUDE='), ligne('var MS_PF_MODE='), ligne('var MS_PF_NIV='), ligne('MS.pf={')].join('\n');
   vrai('(population) les fonctions et le coffre de la page sont trouvés dans le fichier livré', ESC && FN.every(f => f.length > 30) && VARS.split('\n').every(l => l.length > 20));
@@ -98,9 +98,9 @@ console.log('\n── 2927 · les six agents de la plateforme contre le vrai ser
   function page(jeton) {
     const el = { hidden: true, html: '', attrs: {}, setAttribute(k, x) { this.attrs[k] = x; }, getAttribute(k) { return this.attrs[k] === undefined ? null : this.attrs[k]; }, removeAttribute(k) { delete this.attrs[k]; }, contains: () => false, querySelector: () => null };
     Object.defineProperty(el, 'innerHTML', { get() { return this.html; }, set(x) { this.html = x; } });
-    const j = { toasts: [], confirms: [], filTot: 0, statuts: [] };
+    const j = { toasts: [], confirms: [], prompts: [], reponsePrompt: null, filTot: 0, statuts: [] };
     const ctx = { Object, String, JSON, Promise, Math, Number, Array, Date, Error, console, TypeError, setTimeout, $: id => (id === 'ms-pf' ? el : null), document: { activeElement: null },
-      INJOIGNABLE: 'Serveur injoignable — nouvelle tentative dans un instant.', toast: t => j.toasts.push(t), confirm: m => { j.confirms.push(m); return true; }, messFilTot: () => { j.filTot++; }, msgErreur: e => 'ERR:' + (e && e.message || e), doLogout: () => {} };
+      INJOIGNABLE: 'Serveur injoignable — nouvelle tentative dans un instant.', toast: t => j.toasts.push(t), confirm: m => { j.confirms.push(m); return true; }, prompt: m => { j.prompts.push(m); return j.reponsePrompt; }, messFilTot: () => { j.filTot++; }, msgErreur: e => 'ERR:' + (e && e.message || e), doLogout: () => {} };
     vm.createContext(ctx);
     const appel = (m, u, b) => fetch(S.B + u, { method: m, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + jeton, 'X-Forwarded-For': '10.7.' + Math.floor(Math.random() * 200) + '.1' }, body: m === 'POST' ? JSON.stringify(b || {}) : undefined }).then(r => { j.statuts.push([m, u, r.status]); return r; });
     ctx.apiGet = u => appel('GET', u).then(r => r.ok ? r.json() : r.json().then(d => { const e = new Error((d && d.error) || ('HTTP ' + r.status)); e.status = r.status; throw e; }));
@@ -147,6 +147,28 @@ console.log('\n── 2927 · les six agents de la plateforme contre le vrai ser
     vrai('…le panneau est dégrisé après le refus', P.ctx.MS.pf.occ === '');
   }
 
+  console.log('\n3 bis. « Enregistrer une demande reçue » : la page DÉCLARE au vrai serveur, qui compte le délai depuis le jour de réception');
+  {
+    P.j.toasts.length = 0;
+    const j10 = new Date(Date.now() - 10 * 86400000);
+    P.j.reponsePrompt = ('0' + j10.getDate()).slice(-2) + '/' + ('0' + (j10.getMonth() + 1)).slice(-2) + '/' + j10.getFullYear();
+    await P.ctx.messPfRgpdNouvelle(); await dormir(400);                 // la page relit APRÈS le geste, sans l'attendre
+    vrai('⛔ le geste aboutit : 200, un toast, et la page relue porte UNE demande ouverte (la route existe, elle attend bien `recu`)', P.j.statuts.some(s => /rgpd\/declarer/.test(s[1]) && s[2] === 200) && P.j.toasts[0] === 'Demande RGPD enregistrée : Nina tient le délai d’un mois.' && P.ctx.MS.pf.d.rgpd.length === 1, JSON.stringify([P.j.statuts.slice(-3), P.j.toasts, P.ctx.MS.pf.d.rgpd]));
+    const g = P.ctx.MS.pf.d.rgpd[0];
+    vrai('…reçue il y a dix jours, il reste une vingtaine de jours (le délai court depuis la RÉCEPTION, pas depuis la saisie)', g && g.joursRestants >= 19 && g.joursRestants <= 22 && g.accusee === false, JSON.stringify(g));
+    vrai('…et la page peint « Demandes RGPD · 1 à suivre » sans rien d’une personne', (P.ctx.messPeindrePf(), /1 demande RGPD à suivre/.test(txt(P.el.html))));
+    P.j.toasts.length = 0; P.j.reponsePrompt = '31/12/2099';
+    await P.ctx.messPfRgpdNouvelle();
+    v('⛔ une date dans le futur : le serveur refuse (400) et sa PHRASE arrive au toast', P.j.toasts, ['La date de réception est dans le futur']);
+    P.j.toasts.length = 0; P.j.reponsePrompt = '01/01/2020';
+    await P.ctx.messPfRgpdNouvelle();
+    v('…une date de plus de quatre mois aussi (la faute de frappe d\'année)', P.j.toasts, ['La date de réception remonte à plus de quatre mois : vérifie l’année']);
+    const g2 = await S.P('/api/monitor/agents/plateforme/rgpd/declarer', { recu: '2026-02-31' });
+    v('une date qui n\'existe pas (31 février) : 400, pas d\'écriture', [g2.s, (await S.G('/api/monitor/agents/plateforme')).j.rgpd.length], [400, 1]);
+    await P.ctx.messPfRgpd(g.id); await dormir(400);
+    v('Justin la marque traitée : elle sort de la liste', P.ctx.MS.pf.d.rgpd.length, 0);
+  }
+
   console.log('\n4. Un compte qui n\'est pas le patron : le serveur refuse, la page le dit');
   {
     const cr = await S.P('/api/monitor/users', { nom: 'Collab-2927', email: 'collab-2927@exemple.fr', pass: 'un-mot-de-passe-2927-long', role: 'collaborateur', apps: ['gestion'] });
@@ -158,8 +180,8 @@ console.log('\n── 2927 · les six agents de la plateforme contre le vrai ser
       v('il PEUT lire le panneau (lecture réservée à la Tour)', [C.ctx.MS.pf.lec, !!C.ctx.MS.pf.d], [1, true]);
       await C.ctx.messPfPasser('max');
       v('⛔ « Passer » : le serveur refuse (403), la page le DIT et ne se bloque pas', [C.j.statuts.filter(s => s[0] === 'POST').map(s => s[2]), C.j.toasts.length === 1 && /patron/.test(C.j.toasts[0]), C.ctx.MS.pf.occ], [[403], true, '']);
-      await C.ctx.messPfPoint(); await C.ctx.messPfRgpd('g0000001');
-      v('…le point et le RGPD aussi : deux refus de plus', C.j.statuts.filter(s => s[0] === 'POST').map(s => s[2]), [403, 403, 403]);
+      await C.ctx.messPfPoint(); await C.ctx.messPfRgpd('g0000001'); C.j.reponsePrompt = '01/10/2026'; await C.ctx.messPfRgpdNouvelle();
+      v('…le point, le RGPD et l\'enregistrement d\'une demande aussi : trois refus de plus', C.j.statuts.filter(s => s[0] === 'POST').map(s => s[2]), [403, 403, 403, 403]);
     }
   }
 

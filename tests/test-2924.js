@@ -118,7 +118,7 @@ console.log('\n── 2924 · les six agents de la plateforme, assemblés ──
     }
     const cv = B.P.victor.collecter();
     vrai('⛔ Victor voit l’alarme ouverte dans SON relevé du matin (un nombre, jamais le texte)', cv.plateforme && cv.plateforme.alarmesOuvertes === 1 && cv.plateforme.alarmesCritiques === 1, JSON.stringify(cv.plateforme));
-    const rel = B.P.resume();
+    const rel = await B.P.resume();
     vrai('⛔ le relevé de la Tour ne livre d’un épisode que ses champs (identifiant, règle, zone, niveau, dates, drapeaux, phrase du serveur) — pas ses valeurs brutes', rel.episodes.length >= 1 && rel.episodes.every(e => Object.keys(e).sort().join() === 'annonce,cle,depuis,fin,id,incident,niveau,pris,proprio,texte,zone'), JSON.stringify(rel.episodes[0]));
     const p = B.P.faits.plateforme();
     vrai('« plateforme » compte l’épisode ouvert, par clé de NOTRE table', p.episodesOuverts >= 1 && typeof p.actives === 'object' && Object.keys(p.actives).some(k => /^sauvegarde_/.test(k)), JSON.stringify(p));
@@ -184,7 +184,7 @@ console.log('\n── 2924 · les six agents de la plateforme, assemblés ──
     vrai('…dans son PROPRE try (un échec n’emporte ni la messagerie ni les réunions)', i0 > 0 && iTry > 0 && iCatch > i0 && CODE_INDEX.slice(iTry, i0).split('\n').length <= 3 && !/\n\s*\}\s*catch/.test(CODE_INDEX.slice(iTry, i0)));
     vrai('…qui lit la santé SANS la vider (`santeCorps(false)`, jamais /health)', /sante: \(\) => santeCorps\(false\)/.test(CODE_INDEX));
     vrai('…et démarre la cadence', /plateformeMod\.demarrer\(\)/.test(CODE_INDEX));
-    for (const g of ['agents/plateforme/passer', 'agents/plateforme/point', 'agents/plateforme/rgpd']) vrai('la route « ' + g + ' » est déclarée dans MON_GESTES', new RegExp("'" + g + "': '").test(CODE_INDEX));
+    for (const g of ['agents/plateforme/passer', 'agents/plateforme/point', 'agents/plateforme/rgpd', 'agents/plateforme/rgpd/declarer']) vrai('la route « ' + g + ' » est déclarée dans MON_GESTES', new RegExp("'" + g + "': '").test(CODE_INDEX));
     vrai('la messagerie reçoit l’outil `arbitrer` de Victor', /arbitrer: \(e, c\) => plateformeMod \? plateformeMod\.arbitrer\(e, c\)/.test(CODE_INDEX));
     vrai('les réunions reçoivent la part « qualité » d’Inès', /qualite: \(debut, fin\) => plateformeMod \? plateformeMod\.qualite\(debut, fin\)/.test(CODE_INDEX));
     vrai('Nina lit les verrous de la Tour (ceux qui courent encore), ceux du portail et la série des preuves de clé refusées', /verrousTour: \[\.\.\.monLock\.values\(\)\]\.filter\(l => l && l\.until > Date\.now\(\)\)\.length/.test(CODE_INDEX) && /verrousPortail: \(comptes && typeof comptes\.bloques === 'function'\) \? comptes\.bloques\(\) : null/.test(CODE_INDEX) && /clesInvalides: cleEquipeVu\.invalide/.test(CODE_INDEX));
@@ -192,7 +192,7 @@ console.log('\n── 2924 · les six agents de la plateforme, assemblés ──
     vrai('Théo lit la sauvegarde et la conservation du serveur, Nina les contrats', /sauvegarde: \{ etat: \(\) => \(sauvegarde && typeof sauvegarde\.etat === 'function' \? sauvegarde\.etat\(\) : null\) \}/.test(CODE_INDEX) && /conservation: \{ sante: \(\) => \(conservation && typeof conservation\.sante === 'function' \? conservation\.sante\(\) : null\) \}/.test(CODE_INDEX) && /contrats: \{ etat: \(\) => \(contratsMod && typeof contratsMod\.etat === 'function' \? contratsMod\.etat\(\) : null\) \}/.test(CODE_INDEX));
     vrai('les relevés de la plateforme rejoignent ceux de la messagerie (une seule table)', /Object\.assign\(faitsAgents, plateformeMod\.faits\)/.test(CODE_INDEX));
     const routes = [...fs.readFileSync(S('agents-plateforme.js'), 'utf8').matchAll(/app\.(get|post)\('(\/api\/monitor\/[^']+)'/g)].map(m => m[1] + ' ' + m[2]);
-    v('les routes du module : une lecture, trois gestes', routes, ['get /api/monitor/agents/plateforme', 'post /api/monitor/agents/plateforme/passer', 'post /api/monitor/agents/plateforme/point', 'post /api/monitor/agents/plateforme/rgpd']);
+    v('les routes du module : une lecture, quatre gestes', routes, ['get /api/monitor/agents/plateforme', 'post /api/monitor/agents/plateforme/passer', 'post /api/monitor/agents/plateforme/point', 'post /api/monitor/agents/plateforme/rgpd', 'post /api/monitor/agents/plateforme/rgpd/declarer']);
     vrai('chaque geste (POST) engage le patron seul', [...fs.readFileSync(S('agents-plateforme.js'), 'utf8').matchAll(/app\.post\('[^']+', (\w+)/g)].every(m => m[1] === 'monPatronStrict'));
     vrai('la lecture est celle de la Tour', /app\.get\('\/api\/monitor\/agents\/plateforme', monAdmin/.test(fs.readFileSync(S('agents-plateforme.js'), 'utf8')));
   }

@@ -35,6 +35,7 @@ const ARBITRAGE_MS = 10 * 60000;
 const COUPE_ATTENTE_MS = 3 * 60000;                 // une chaîne coupée par l'anti-boucle : on laisse trois minutes avant d'y toucher
 const PROF_COUPE = 3;                               // la profondeur où la messagerie arrête une chaîne (`agent-equipe.js`, PROF_MAX)
 const APPELS_MAX = { equilibre: 3, arbitrage: 3, point: 1 };
+const POINTS_MANUELS_GARDES = 5;       // les points forcés depuis la Tour qu'on garde : une famille à part, ils ne comptent pas dans les jours
 const DECISIONS_MAX = 50, POINTS_GARDES = 14, ESSAIS_POINT = 10;
 const TEXTE_TACHE = 100, DECISION_MAX = 300, RAISON_MAX = 200;
 /* Ce qui n'est PAS à Victor : si une décision en parle, elle devient une question à Justin (la charte : argent, contrats, accès, suppression, mise en demeure). */
@@ -169,7 +170,14 @@ module.exports = function agentVictor(ctx) {
     if (e && (e.statut === 'fait' || e.statut === 'sans_objet' || e.statut === 'en_cours' || (e.essais || 0) >= ESSAIS_POINT)) return { saute: 'deja' };
     if (!e) {
       e = m.points[cle] = { ts: now, statut: 'en_cours', essais: 0 };
-      for (const k of Object.keys(m.points).sort().slice(0, Math.max(0, Object.keys(m.points).length - POINTS_GARDES))) delete m.points[k];
+      /* DEUX familles, élaguées chacune pour elle-même : les points du matin (clé AAAA-MM-JJ, l'ordre des noms est celui des dates) et les points forcés par la Tour (« manuel:<ts> »). Élagués
+         ensemble par nom de clé, « manuel:… » se rangeait APRÈS « 2026-10-23 » : quinze points forcés effaçaient la clé du jour, et le point du matin se redisait. Par date de pose, la clé du
+         jour (plus ancienne que les forcés de l'après-midi) partait aussi — d'où deux familles. */
+      const ts = k => (m.points[k] && m.points[k].ts) || 0;
+      const manuels = Object.keys(m.points).filter(k => k.startsWith('manuel:')).sort((a, b) => ts(a) - ts(b));
+      const jours = Object.keys(m.points).filter(k => !k.startsWith('manuel:')).sort();
+      for (const k of manuels.slice(0, Math.max(0, manuels.length - POINTS_MANUELS_GARDES))) delete m.points[k];
+      for (const k of jours.slice(0, Math.max(0, jours.length - POINTS_GARDES))) delete m.points[k];
       if (!etat.sauver()) { delete m.points[cle]; return { saute: 'memoire' }; }              // inscrit AVANT d'être dit, ou pas du tout
     }
     e.statut = 'en_cours'; e.essais = (e.essais || 0) + 1;

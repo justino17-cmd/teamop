@@ -177,7 +177,7 @@ console.log('\n── 2922 · Théo et Nina : les sauvegardes, la conservation, 
     v('dix passages tranquilles : rien', [B.textes('plateforme').length, B.textes('nina').length, B.issues.length, B.recus.length], [0, 0, 0, 0]);
     B.secu.verrousTour = 1;
     const r = await B.nina.passer();
-    v('un compte de la Tour verrouillé : annoncé, SANS incident (une faute de frappe en pose un)', [r.nouveaux, B.issues.length, B.textes('plateforme').map(t => t.replace(/ \(depuis.*$/, ''))], [1, 0, ['1 compte de la Tour (ou de la bêta) verrouillé quinze minutes après cinq échecs de connexion d’affilée']]);
+    v('un identifiant de la Tour verrouillé (pas forcément un compte) : annoncé, SANS incident (une faute de frappe en pose un)', [r.nouveaux, B.issues.length, B.textes('plateforme').map(t => t.replace(/ \(depuis.*$/, ''))], [1, 0, ['1 identifiant de connexion à la Tour (ou à la bêta) verrouillé quinze minutes après cinq échecs d’affilée']]);
     B.secu.verrousTour = 0; B.avancer(300000); await B.nina.passer(); B.avancer(300000); await B.nina.passer();
     v('…rétabli deux passages plus tard, une fois, aucun incident à fermer', [B.textes('plateforme').filter(t => /^Rétabli/.test(t)).length, B.etat.episodes().length], [1, 0]);
     B.secu.verrousPortail = 2; B.avancer(300000);

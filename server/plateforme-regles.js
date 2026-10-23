@@ -246,8 +246,8 @@ const REGLES = [
      du serveur où la règle est écrite (la surveillance horaire ne la connaît pas) — le banc y relit `ref`. Pas de seuil de notre cru : un verrou existe quand le serveur l'a posé. */
   { cle: 'verrou_tour', proprio: 'nina', zone: 'securite', niveau: 'info', sansIncident: true, src: 'index.js', ref: 'const monLock = new Map()',
     test: j => sup(j, 'securite.verrousTour', 0), valeurs: j => ({ comptes: num(at(j, 'securite.verrousTour')) }),
-    texte: v => nb(v.comptes) + ' compte' + pl(v.comptes, '', 's') + ' de la Tour (ou de la bêta) verrouillé' + pl(v.comptes, '', 's') + ' quinze minutes après cinq échecs de connexion d’affilée',
-    pistes: 'Une faute de frappe suffit à poser un verrou. Si ce n’est personne de l’équipe, c’est à surveiller : le journal de la Tour (Système) montre les tentatives refusées.' },
+    texte: v => nb(v.comptes) + ' identifiant' + pl(v.comptes, '', 's') + ' de connexion à la Tour (ou à la bêta) verrouillé' + pl(v.comptes, '', 's') + ' quinze minutes après cinq échecs d’affilée',
+    pistes: 'Un identifiant n’est pas forcément un compte : le serveur pose un verrou même sur un nom qui n’existe pas, donc cinq essais ratés de n’importe qui en posent un. Une faute de frappe suffit aussi. Si ce n’est personne de l’équipe, c’est à surveiller : le journal de la Tour (Système) montre les tentatives refusées.' },
   { cle: 'verrou_portail', proprio: 'nina', zone: 'securite', niveau: 'info', sansIncident: true, src: 'comptes.js', ref: 'ECHECS_MAX = 8',
     test: j => sup(j, 'securite.verrousPortail', 0), valeurs: j => ({ comptes: num(at(j, 'securite.verrousPortail')) }),
     texte: v => nb(v.comptes) + ' compte' + pl(v.comptes, '', 's') + ' du portail client bloqué' + pl(v.comptes, '', 's') + ' quinze minutes après huit échecs de mot de passe',

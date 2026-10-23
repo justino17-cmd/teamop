@@ -2080,7 +2080,7 @@ const MON_GESTES = {
   'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   'agents/charte': 'a changé la charte d’autonomie des agents', 'agents/brouillons/modifier': 'a corrigé un brouillon de réponse d’un agent avant de le valider', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
   'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
-  'agents/plateforme/passer': 'a fait passer un agent de la plateforme', 'agents/plateforme/point': 'a demandé le point de Victor', 'agents/plateforme/rgpd': 'a clos une demande RGPD suivie par Nina',
+  'agents/plateforme/passer': 'a fait passer un agent de la plateforme', 'agents/plateforme/point': 'a demandé le point de Victor', 'agents/plateforme/rgpd': 'a clos une demande RGPD suivie par Nina', 'agents/plateforme/rgpd/declarer': 'a enregistré une demande RGPD reçue (Nina en tient le délai)',
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une

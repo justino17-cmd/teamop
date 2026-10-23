@@ -258,3 +258,5 @@ tests/test-2924.js
 tests/test-2925.js
 # …et `test-2928` (revue du 23 octobre) : un déclencheur FORGEABLE reste borné — « inconnu » ne réveille personne, un push urgent par règle et par jour, des incidents d'appareils forgés qui ne sonnent pas.
 tests/test-2928.js
+# …et `test-2929` (revue du 23 octobre) : l'amont du RGPD (la demande saisie avec sa date de réception), le relevé de la Tour, « passer maintenant » en liste fermée, Inès relit, le point de Victor ne se redit pas.
+tests/test-2929.js

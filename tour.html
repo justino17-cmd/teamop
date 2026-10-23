@@ -2317,6 +2317,7 @@ body.jour .ms-tq{box-shadow:0 0 0 1px var(--line)}
 .ms-reu-t small{color:var(--muted);font-size:12.5px;line-height:1.35}
 .ms-reu-bd.cours .ms-reu-t small{color:var(--text2)}
 .ms-reu-a{display:flex;gap:8px;flex-wrap:wrap}
+.ms-reu-c>.ms-reu-a{grid-column:1/-1}      /* le bouton « Enregistrer une demande reçue » est une rangée à lui, pas une carte de plus dans la grille */
 .ms-reu-btn{min-height:36px;padding:0 12px;border:0;border-radius:var(--r-3);background:var(--inset);color:var(--text);font:inherit;font-size:13px;font-weight:650;cursor:pointer;white-space:nowrap}
 .ms-reu-btn:hover:not(:disabled){background:var(--hover)}
 .ms-reu-btn:disabled{opacity:.5;cursor:default}
@@ -11150,14 +11151,15 @@ function msPfHtml(){
         '<ul><li><span>Dernier passage : '+esc(id==='ines'?(a.relu?'relu le '+a.relu:'pas encore relu'):dernier)+esc(det)+'</span><button type="button" class="ms-lien" data-act="pfPasser" data-agent="'+id+'"'+(m==='arret'||R.occ?' disabled':'')+' aria-label="Faire passer '+esc(msPfNom(id))+' maintenant">Passer maintenant</button></li></ul></div>';
     }).join('')+'</div>';
     var dec=(d.victor&&d.victor.decisions)||[];
-    if(dec.length) h+='<div class="ms-reu-c"><div class="ms-reu-ag"><b>Décisions de Victor</b><ul>'+dec.map(function(x){ return '<li><span>'+esc(x.decision)+'</span><small>'+esc((x.entre||[]).map(msPfNom).join(' et '))+' · '+esc(msPfIlYa(x.ts))+(x.statut&&x.statut!=='dite'?' · '+esc(x.statut):'')+'</small></li>'; }).join('')+'</ul></div></div>';
+    if(dec.length) h+='<div class="ms-reu-c"><div class="ms-reu-ag"><b>Décisions de Victor</b><ul>'+dec.map(function(x){ return '<li><span>'+esc(x.decision)+'</span><small>'+esc((x.entre||[]).map(msPfNom).join(' et '))+' · '+esc(msPfIlYa(x.ts))+(x.statut==='attend_justin'?' · attend ta décision':'')+'</small></li>'; }).join('')+'</ul></div></div>';
   }
   /* les demandes RGPD suivies par Nina */
   h+='</section><section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="pfSection" data-s="rgpd" aria-expanded="'+!!o.rgpd+'">Demandes RGPD <small>'+rgpd.length+' à suivre · délai légal : un mois</small></button>';
   if(o.rgpd) h+='<div class="ms-reu-c">'+(rgpd.length?'<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">N</span><b>Nina</b></div><ul>'+rgpd.map(function(g){
     return '<li><span>Reçue le '+esc(fmtDate(g.recu))+' · échéance le '+esc(fmtDate(g.limite).split(' · ')[0])+' — '+(g.joursRestants<0?'en retard de '+(-g.joursRestants)+' jour'+(g.joursRestants<-1?'s':''):g.joursRestants===0?'dernier jour':'il reste '+g.joursRestants+' jour'+(g.joursRestants>1?'s':''))+(g.accusee?' · accusé de réception envoyé':'')+'</span>'+
       '<button type="button" class="ms-lien" data-act="pfRgpd" data-id="'+esc(g.id)+'"'+(R.occ?' disabled':'')+' aria-label="Marquer cette demande RGPD traitée">Marquer traitée</button></li>'; }).join('')+'</ul></div>'
-    :'<p class="ms-reu-vide">Aucune demande en cours. Camille passe à Nina une demande RGPD reçue par courriel ; Nina accuse réception et te rappelle avant la fin du mois.</p>')+'</div>';
+    :'<p class="ms-reu-vide">Aucune demande en cours. Quand tu reçois une demande d’exercice de droits (RGPD), enregistre-la ici avec sa date de réception : Nina tient le délai légal d’un mois, en accuse réception dans « Équipe » et te rappelle à J-10, J-3 et le jour même.</p>')+
+    '<div class="ms-reu-a"><button type="button" class="ms-reu-btn" data-act="pfRgpdNouvelle"'+(R.occ?' disabled':'')+'>Enregistrer une demande reçue</button></div></div>';
   return h+'</section>';
 }
 function messPeindrePf(){
@@ -11200,6 +11202,21 @@ function messPfRgpd(id){
   if(!confirm('Marquer cette demande RGPD comme traitée ?\n\nNina arrête ses rappels. Tu as répondu à la personne ?')) return Promise.resolve(null);
   return messPfGeste('/api/monitor/agents/plateforme/rgpd',{id:id},'Demande RGPD marquée traitée.');
 }
+/* Une demande RGPD reçue (courriel, courrier) : Justin la saisit avec le JOUR où elle est arrivée — le délai d'un mois court depuis ce jour-là, pas depuis celui de la saisie. */
+function msPfDateSaisie(txt){
+  var t=String(txt||'').trim(), a, m;
+  if((m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(t))) a=[m[3],('0'+m[2]).slice(-2),('0'+m[1]).slice(-2)];
+  else if((m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(t))) a=[m[1],m[2],m[3]];
+  return a?a.join('-'):'';
+}
+function messPfRgpdNouvelle(){
+  var j=new Date(), auj=('0'+j.getDate()).slice(-2)+'/'+('0'+(j.getMonth()+1)).slice(-2)+'/'+j.getFullYear();
+  var s=prompt('Date de réception de la demande RGPD (JJ/MM/AAAA) ?\n\nLe délai légal d’un mois court depuis ce jour-là. Ne saisis rien d’autre : ni nom, ni adresse.',auj);
+  if(s===null) return Promise.resolve(null);
+  var iso=msPfDateSaisie(s);
+  if(!iso){ toast('Date non comprise : écris JJ/MM/AAAA.'); return Promise.resolve(null); }
+  return messPfGeste('/api/monitor/agents/plateforme/rgpd/declarer',{recu:iso},'Demande RGPD enregistrée : Nina tient le délai d’un mois.');
+}
 function messPfClic(el){
   var a=el.getAttribute('data-act');
   if(a==='pfRecharger'){ MS.pf.lec=0; messPeindrePf(); messPfCharger(); }
@@ -11208,6 +11225,7 @@ function messPfClic(el){
   else if(a==='pfPasser') messPfPasser(el.getAttribute('data-agent'));
   else if(a==='pfPoint') messPfPoint();
   else if(a==='pfRgpd') messPfRgpd(el.getAttribute('data-id'));
+  else if(a==='pfRgpdNouvelle') messPfRgpdNouvelle();
 }
 /* Les minuteries : seulement écran ouvert ET page visible. Chaque tour revérifie — et s'éteint lui-même si l'écran a été quitté. */
 function messTimers(oui){
