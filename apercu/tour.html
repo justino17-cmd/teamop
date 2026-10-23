@@ -3156,7 +3156,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.105</div>
+    <div class="lg-pied">console interne · v2.107</div>
   </div>
 </div>
 
@@ -3198,7 +3198,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.105</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.107</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3210,7 +3210,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.105</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.107</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3515,7 +3515,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.105';
+var TOUR_VERSION='v2.107';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -10868,6 +10868,26 @@ function agMode_(id,mode){
     chargerAgents();   /* le serveur est la source : on relit, on ne devine pas */
   }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
 }
+/* « Toute l'équipe au travail » (23 octobre 2026, Justin : « mets les agents au travail ») : chaque agent À L'ARRÊT passe en BROUILLON — il prépare,
+   Justin relit, rien ne part seul. Un appel par agent à la route existante (/api/monitor/agents/mode, patron seul), l'un après l'autre : le serveur
+   reste la seule source, un refus arrête la série et dit combien sont passés. Ce geste ne met JAMAIS un agent en « auto ». */
+function agToutBrouillon(){
+  if(AG.busy||MYROLE!=='patron') return;
+  var ids=AG.agents.filter(function(a){ return agMode(a)==='arret'; }).map(function(a){ return a.id; });
+  if(!ids.length) return;
+  if(!confirm('Mettre '+ids.length+' agent'+(ids.length>1?'s':'')+' au travail en BROUILLON ? Ils préparent, tu relis : rien ne part sans toi.')) return;
+  AG.busy=true; render();
+  var faits=0;
+  var fin=function(txt){ AG.busy=false; toast(txt); chargerAgents(); };   /* le serveur est la source : on relit, on ne devine pas */
+  var suivant=function(i){
+    if(i>=ids.length) return fin(faits+' agent'+(faits>1?'s':'')+' au travail, en brouillon.'+(agEnPause()?' La pause générale est posée : touche « Reprendre ».':''));
+    apiPost('/api/monitor/agents/mode',{agent:ids[i],mode:'brouillon'}).then(function(r){
+      if(!r.ok) return fin(((r.d&&r.d.error)||'Changement refusé')+' — '+faits+' sur '+ids.length+' mis au travail.');
+      faits++; suivant(i+1);
+    }).catch(function(){ fin(INJOIGNABLE+' — '+faits+' sur '+ids.length+' mis au travail.'); });
+  };
+  suivant(0);
+}
 function agPause(arreter){
   if(AG.busy||MYROLE!=='patron') return;
   AG.busy=true; render();
@@ -11314,6 +11334,7 @@ function vueAgents(){
   h+='<div class="ag-barre'+(stop?' stop':'')+'"><span class="ag-pt" aria-hidden="true"></span><b>'+
     (AG.illisible?'État illisible : les agents sont arrêtés':stop?'Pause générale : tous les agents sont à l’arrêt'+(AG.pause&&AG.pause.par?' (posée par '+esc(AG.pause.par)+')':''):'Les agents peuvent travailler')+
     ' · '+allumes+' allumé'+(allumes>1?'s':'')+' sur '+AG.agents.length+'</b>'+
+    (AG.illisible||MYROLE!=='patron'||allumes>=AG.agents.length?'':'<button type="button" class="ag-btn ok"'+(AG.busy?' disabled':'')+' onclick="agToutBrouillon()">Toute l’équipe au travail</button>')+
     (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
   var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
   h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['courrier','Courrier des agents'],['examen','Examen'],['direction','Direction']].map(function(o){
