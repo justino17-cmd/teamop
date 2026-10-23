@@ -352,6 +352,26 @@ function suite() {
   { const { db, b } = monde(); b.fn.demoPubliqueSemer('plomberie'); db.interventions[0].titre = 'Dératisation'; vrai('(contre-épreuve) le détecteur de mots de l\'anti-nuisibles voit une dératisation posée chez un plombier', MOTS_3D.test(JSON.stringify(db.interventions))); }
   { const { db, b } = monde(); b.fn.demoPubliqueSemer('3d'); vrai('(contre-épreuve) la 3D, elle, garde ses types (Dératisation…) : le semis ne vide pas le métier d\'origine', db.interventions.some(i => /Dératisation|Désinsectisation/.test(i.type))); }
 
+  console.log('\n6 bis. Les fonctions de l\'application que la démonstration coupe');
+  { const COUPEES = evalue(litteral(MODULE, 'const DEMO_FONCTIONS_COUPEES = ['));
+    vrai('(population) ' + COUPEES.length + ' fonctions coupées, chacune DÉCLARÉE dans app.html (un renommage la sortirait de la liste en silence)', COUPEES.length >= 12 && COUPEES.every(n => fonction(nu(APP), n).length > 20), COUPEES.filter(n => !fonction(nu(APP), n)));
+    const appels = []; const w = { location: { href: 'http://127.0.0.1/demo.html' } };
+    COUPEES.concat(['syncNow', 'syncEtat', 'srvMail', 'logout']).forEach(n => { w[n] = function () { appels.push(n); return 'ORIGINAL'; }; });
+    const toasts = []; const b = bac('demo.html', ['demoPubliqueBouchons'], Object.assign({ window: w, location: w.location, DEMO_FONCTIONS_COUPEES: COUPEES, DEMO_MSG: CONSTS.DEMO_MSG, toast: m => toasts.push(m), _srvMailErr: '' }));
+    b.fn.demoPubliqueBouchons();
+    egal('⛔ chaque fonction coupée ne fait plus rien (elle ne rend plus ce que rendait l\'originale, et ne se déclenche pas)', COUPEES.filter(n => w[n]() === 'ORIGINAL'), []);
+    (async () => {
+      const r = await w.srvMail('client@exemple.invalid', 'Devis', 'Bonjour');
+      vrai('⛔ srvMail rend faux — le document RESTE un brouillon (envoiDoc ne marque « envoyé » que sur un vrai) — et le dit', r === false && toasts.some(t => t.indexOf(CONSTS.DEMO_MSG) >= 0) && w.location.href === 'http://127.0.0.1/demo.html', toasts);
+      w.logout(); vrai('« Déconnexion » sort vers le site (il n\'y a pas de compte à quitter) et ne rouvre aucun écran de connexion', w.location.href === 'index.html');
+      vrai('« Synchroniser » dit qu\'il n\'y a pas d\'équipe, sans rien envoyer ; l\'état de la synchro se dit « Démonstration »', (() => { w.syncNow(); return /Démonstration|démonstration/.test(w.syncEtat().t) && toasts.some(t => /pas d’équipe/.test(t)); })());
+      fin7();
+    })();
+    return;
+  }
+  fin7();
+}
+function fin7() {
   console.log('\n7. Les fichiers : syntaxe, assemblage du site');
   { const r = spawnSync(process.execPath, [path.join(RACINE, 'scripts', 'verifier-syntaxe.js')], { encoding: 'utf8' });
     vrai('scripts/verifier-syntaxe.js contrôle demo.html (il lit toutes les pages de la racine) et passe', r.status === 0 && /pages, \d+ blocs/.test(r.stdout) && fs.readdirSync(RACINE).indexOf('demo.html') >= 0, r.stdout + r.stderr);
