@@ -1043,11 +1043,15 @@ function rememberSent(teamId, bonNum, to) {
 }
 // ── Boîtes mail connectées (plusieurs par équipe, relevées par le serveur) ──
 const MAILBOX_PATH = path.join(DATA_DIR, 'mailboxes.json');
+/* ⛔ LES MOTS DE PASSE DE CES BOÎTES SONT CHIFFRÉS SUR LE DISQUE (`coffre-boites.js`, clé maître du socle). En mémoire ils restent
+   en clair — il faut les présenter à IMAP/SMTP — : `lire` déchiffre, `saveMailboxes` rechiffre. Un fichier d'avant (en clair) se lit
+   tel quel et se réécrit chiffré dès le démarrage si la clé est là. Jamais un mot de passe dans une réponse ni un journal. */
+const coffreBoites = require('./coffre-boites');
 let mailboxes = {};   // clé "boxId" -> { id, teamId, email, pass, name, imapHost, imapPort, smtpHost, smtpPort }
-try { mailboxes = JSON.parse(fs.readFileSync(MAILBOX_PATH, 'utf8')); } catch (e) {}
+mailboxes = coffreBoites.lire(MAILBOX_PATH, {});
 // migration éventuelle depuis l'ancien format "teamId|userId"
 for (const k of Object.keys(mailboxes)) { const b = mailboxes[k]; if (!b.id) { b.id = 'mb' + Math.random().toString(36).slice(2, 9); mailboxes[b.id] = b; delete mailboxes[k]; } }
-function saveMailboxes() { try { fs.writeFileSync(MAILBOX_PATH, JSON.stringify(mailboxes)); } catch (e) {} }
+function saveMailboxes() { return coffreBoites.ecrire(MAILBOX_PATH, mailboxes); }   // temporaire + renommage, mots de passe chiffrés ; rend false (et le dit) si non écrit
 // Détection automatique des serveurs selon le domaine
 function mailServers(email) {
   const dom = String(email || '').split('@')[1] || '';
@@ -8641,10 +8645,10 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
 
   // ── 2. LES BOÎTES MAIL. releveBoite() les relit toutes les 120 s : tant qu'elles sont là,
   //       le serveur se reconnecte et réécrit dans replies.jsonl ce qu'on va en retirer.
-  //       Elles portent aussi les mots de passe IMAP/SMTP en clair.
+  //       Elles portent aussi les mots de passe IMAP/SMTP (chiffrés sur le disque).
   for (const id of inv._boites) delete mailboxes[id];
   /* saveMailboxes() avale son erreur. Or c'est le fichier qui porte les mots de passe
-     IMAP/SMTP EN CLAIR : répondre « supprimé » alors qu'ils sont encore sur le disque est
+     IMAP/SMTP (chiffrés, mais toujours ceux de l'entreprise) : répondre « supprimé » alors qu'ils sont encore sur le disque est
      exactement ce qu'il ne faut pas faire. On relit pour en être sûr. */
   let ecrit = true;
   if (inv._boites.length) {
@@ -9353,7 +9357,7 @@ const SUPPORT_BOX_PATH = path.join(DATA_DIR, 'support-box.json');
 const SUPPORT_MAILS_PATH = path.join(DATA_DIR, 'support-mails.json');
 let supportBox = null;    // { email, pass, imapHost, imapPort, smtpHost, smtpPort }
 let supportMails = [];    // [{ id, mid, from, fromName, subject, text, ts, statut:'nouveau'|'traite'|'archive', reponses:[{ts,par,text}] }]
-try { supportBox = JSON.parse(fs.readFileSync(SUPPORT_BOX_PATH, 'utf8')); } catch (e) {}
+supportBox = coffreBoites.lire(SUPPORT_BOX_PATH, null);   // mot de passe chiffré sur le disque, en clair en mémoire (voir `coffreBoites`)
 try { supportMails = JSON.parse(fs.readFileSync(SUPPORT_MAILS_PATH, 'utf8')); } catch (e) {}
 const SUPPORT_ENVOYES_PATH = path.join(DATA_DIR, 'support-envoyes.json');
 let supportEnvoyes = [];   // [{ id, to, subject, text, ts, par }] — les messages écrits depuis le contrôle
@@ -9494,7 +9498,7 @@ app.post('/api/monitor/support/connect', monPatronStrict, async (req, res) => {
     try { supSave(); } catch (e) {}
   }
   supportBox = box;
-  try { fs.writeFileSync(SUPPORT_BOX_PATH, JSON.stringify(box)); } catch (e) {}
+  coffreBoites.ecrire(SUPPORT_BOX_PATH, box);
   res.json({ ok: true, email: box.email });
   releveSupport(true).catch(() => {});   // import de l'historique en arrière-plan
 });

@@ -22,6 +22,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const coffreBoites = require('./coffre-boites');
 
 const MAX_PIECES = 12;
 const MAX_PIECES_OCTETS = 12 * 1024 * 1024;   // 12 Mo au total pour un envoi — environ 16 Mo de JSON une fois en base64, d'où l'analyseur à 20 Mo de `index.js`
@@ -200,10 +201,14 @@ module.exports = function monterMessagerie(app, ctx) {
 
   /* ── les boîtes connectées ─────────────────────────────────────────────── */
   let boites = [];   // [{ id, email, pass, imapHost, imapPort, smtpHost, smtpPort, nom, ts, par }]
-  try { boites = JSON.parse(fs.readFileSync(BOITES_PATH, 'utf8')) || []; } catch (e) {}
+  /* ⛔ Les mots de passe sont chiffrés sur le disque (`coffre-boites.js`) : lus ici en clair, rechiffrés par `sauve`. L'ancienne boîte
+     support se lit par la même porte — son fichier peut déjà être chiffré par `index.js`, et recopier son chiffré comme mot de passe
+     tuerait la boîte. */
+  boites = coffreBoites.lire(BOITES_PATH, []) || [];
+  if (!Array.isArray(boites)) boites = [];
   // reprise de l'ancienne boîte support unique, pour ne rien perdre
   try {
-    const anc = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'support-box.json'), 'utf8'));
+    const anc = coffreBoites.lire(path.join(DATA_DIR, 'support-box.json'), null);
     if (anc && anc.email && !boites.some(b => b.email.toLowerCase() === String(anc.email).toLowerCase())) {
       boites.push({ id: 'b' + crypto.randomBytes(4).toString('hex'), email: anc.email, pass: anc.pass,
         imapHost: anc.imapHost || 'imap.mail.ovh.net', imapPort: anc.imapPort || 993,
@@ -212,7 +217,7 @@ module.exports = function monterMessagerie(app, ctx) {
       sauve();
     }
   } catch (e) {}
-  function sauve() { try { fs.writeFileSync(BOITES_PATH, JSON.stringify(boites)); } catch (e) { console.error('mail boites:', e.message); } }
+  function sauve() { return coffreBoites.ecrire(BOITES_PATH, boites); }   // temporaire + renommage, mots de passe chiffrés
   function publique(b) { return { id: b.id, email: b.email, nom: b.nom || '', imapHost: b.imapHost, smtpHost: b.smtpHost, ts: b.ts || 0, par: b.par || '' }; }
   function trouve(id) { return boites.find(b => b.id === String(id || '')) || null; }
 

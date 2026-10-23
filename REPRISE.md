@@ -4570,8 +4570,18 @@ inverse à ce jour.
 
 ### Reste ouvert après le jour J (dettes connues, aucune ne bloque)
 
-- Les mots de passe des boîtes mail connectées (`mailboxes.json`) ne sont pas chiffrés au repos —
-  dit dans le registre, à chiffrer avec la clé maître.
+- ✅ Les mots de passe des boîtes mail connectées sont chiffrés au repos (23 octobre 2026,
+  `server/coffre-boites.js`, `test-2970`, `test-2971`) : `mailboxes.json` (OP GESTION),
+  `mail-boites.json` (Messagerie de la Tour) et `support-box.json`, par `socle.sceller` (une
+  seule définition du chiffrement) sous une sous-clé HKDF de la clé maître `/etc/teamop/kek`.
+  Un fichier d'avant (clair) se lit et se réécrit chiffré AU DÉMARRAGE dès que la clé est là ; sans
+  clé le serveur écrit en clair et le dit une fois (une installation de test). Un chiffré qu'on ne
+  sait pas ouvrir (clé absente ou autre) reste dans le fichier OCTET POUR OCTET et la boîte est
+  listée, `pass` vide. ⚠️ La clé maître devient donc nécessaire à ces boîtes : perdue, leurs
+  propriétaires les reconnectent (même séquestre que les bases du socle). ⚠️ Reste en clair :
+  `config.json` (`smtp.pass`, `imap.pass`, posés par `set-smtp.sh` / `set-boite.sh`), qui vit sur le
+  VPS hors du dépôt — hors de ce chantier. Les sauvegardes d'avant ce jour portent encore les mots
+  de passe en clair (chiffrées par `sauvegarde.cle`).
 - `app.html` : le bloc `resource-exhausted` est INERTE depuis la v748, et le dit ; `test-645` le
   garde encore — à retirer avec lui le jour où on nettoie.
 - G2 (`gardien`) : fermé pour l'essentiel par G1 (adresse prouvée, donc plus de courriel chez un
