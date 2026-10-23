@@ -4571,7 +4571,7 @@ inverse à ce jour.
 ### Reste ouvert après le jour J (dettes connues, aucune ne bloque)
 
 - ✅ Les mots de passe des boîtes mail connectées sont chiffrés au repos (23 octobre 2026,
-  `server/coffre-boites.js`, `test-2970`, `test-2971`) : `mailboxes.json` (OP GESTION),
+  `server/coffre-boites.js`, `test-2970`, `test-2976`) : `mailboxes.json` (OP GESTION),
   `mail-boites.json` (Messagerie de la Tour) et `support-box.json`, par `socle.sceller` (une
   seule définition du chiffrement) sous une sous-clé HKDF de la clé maître `/etc/teamop/kek`.
   Un fichier d'avant (clair) se lit et se réécrit chiffré AU DÉMARRAGE dès que la clé est là ; sans

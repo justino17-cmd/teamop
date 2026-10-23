@@ -2,7 +2,7 @@
 
    Trois fichiers du serveur portaient des mots de passe IMAP/SMTP en clair : `mailboxes.json` (les boîtes que les entreprises connectent dans OP GESTION), `mail-boites.json` (la
    Messagerie de la Tour) et `support-box.json`. Seules les sauvegardes étaient chiffrées. `server/coffre-boites.js` les chiffre avec LE chiffrement du socle (`socle.sceller`, clé
-   maître `TEAMOP_KEK` / `$CREDENTIALS_DIRECTORY`) — une seule définition de l'algorithme. Ce banc monte le MODULE (le fichier réel, la vraie clé de banc) ; `test-2971` fait parler le
+   maître `TEAMOP_KEK` / `$CREDENTIALS_DIRECTORY`) — une seule définition de l'algorithme. Ce banc monte le MODULE (le fichier réel, la vraie clé de banc) ; `test-2976` fait parler le
    VRAI serveur, redémarré sur ses propres fichiers.
 
    Ce qu'il joue, avec le VRAI code :
@@ -14,7 +14,7 @@
      4. SANS CLÉ (installation de test) : l'ancien format se lit, l'écriture est en clair, et le serveur le DIT une fois ; le fichier n'est pas réécrit à la lecture.
      5. mots de passe difficiles (vide, accents, guillemets, antislash, « mdp1: », 200 caractères) ; une écriture qui échoue rend false, laisse l'original et aucun temporaire.
      6. LE CÂBLAGE (texte, code seul) : `index.js` et `mail.js` passent par `coffre-boites` pour les trois fichiers, aucune écriture directe n'y reste.
-   Éprouvé par mutations (voir l'en-tête de `test-2971`). */
+   Éprouvé par mutations (voir l'en-tête de `test-2976`). */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const RACINE = path.join(__dirname, '..');

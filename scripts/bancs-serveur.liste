@@ -309,6 +309,6 @@ tests/test-2905.js
 tests/test-2906.js
 tests/test-2907.js
 tests/test-2908.js
-# 23 octobre 2026 : `test-2970` (le coffre des mots de passe de boîtes mail : migration, jamais de perte, sans clé) et `test-2971` (le vrai serveur redémarré sur ses fichiers, avec puis sans la clé).
+# 23 octobre 2026 : `test-2970` (le coffre des mots de passe de boîtes mail : migration, jamais de perte, sans clé) et `test-2976` (le vrai serveur redémarré sur ses fichiers, avec puis sans la clé).
 tests/test-2970.js
-tests/test-2971.js
+tests/test-2976.js

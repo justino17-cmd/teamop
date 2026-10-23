@@ -29,13 +29,13 @@ catch (e) {
 }
 
 const sha = x => crypto.createHash('sha256').update(x).digest('hex');
-const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'coffre-2971-'));
+const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'coffre-2976-'));
 const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
 const KEK = crypto.randomBytes(32).toString('hex');
 /* des mots de passe à lettres hors de [0-9a-f], et distincts par boîte : un mot de passe présenté à la mauvaise boîte se verrait */
-const MDP = { gest: 'Wvq-Zk.2971/gestion', gest2: 'Pjx-Hn.2971/connectee', tour: 'Rkz-Yd.2971/tour', tour2: 'Fgt-Mw.2971/tour-deux', supp: 'Bhn-Qx.2971/support' };
-const ADR = { gest: 'gestion@banc-2971.fr', gest2: 'connectee@banc-2971.fr', tour: 'tour@banc-2971.fr', tour2: 'tour2@banc-2971.fr', supp: 'aide@banc-2971.fr' };
-MDP.sans = 'Xtq-sans-cle-2971'; ADR.sans = 'sanscle@banc-2971.fr';
+const MDP = { gest: 'Wvq-Zk.2976/gestion', gest2: 'Pjx-Hn.2976/connectee', tour: 'Rkz-Yd.2976/tour', tour2: 'Fgt-Mw.2976/tour-deux', supp: 'Bhn-Qx.2976/support' };
+const ADR = { gest: 'gestion@banc-2976.fr', gest2: 'connectee@banc-2976.fr', tour: 'tour@banc-2976.fr', tour2: 'tour2@banc-2976.fr', supp: 'aide@banc-2976.fr' };
+MDP.sans = 'Xtq-sans-cle-2976'; ADR.sans = 'sanscle@banc-2976.fr';
 const ATTENDU = {}; for (const k of Object.keys(ADR)) ATTENDU[ADR[k]] = MDP[k];
 
 /* ── le SMTP de banc : il n'accepte QUE le bon mot de passe de chaque adresse, et note tout ce qu'on lui présente ── */
@@ -86,10 +86,10 @@ const creer = nm.createTransport.bind(nm);
 nm.createTransport = (o, ...r) => creer(o && o.host === 'ssl0.ovh.net' ? Object.assign({}, o, { host: '127.0.0.1', port: Number(process.env.FAUX_SMTP_PORT), secure: false }) : o, ...r);\n`);
 const traces = () => { try { return fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch (e) { return []; } };
 
-const CLE_ENT = 'CLE-PRIVEE-2971', T = 'ent-2971-x';
+const CLE_ENT = 'CLE-PRIVEE-2976', T = 'ent-2976-x';
 const kh = k => sha(k);
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64');
-const MDP_TOUR = 'mot-de-passe-du-banc-2971';
+const MDP_TOUR = 'mot-de-passe-du-banc-2976';
 const PORT = 9100 + (process.pid % 700), B = 'http://127.0.0.1:' + PORT;
 let enfant = null, journal = '';
 const lireF = (nom) => fs.readFileSync(path.join(D, nom));
@@ -117,7 +117,7 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
 (async () => {
   const portSmtp = await new Promise(res => smtp.s.listen(0, '127.0.0.1', () => res(smtp.s.address().port)));
   const boite = (id, email, pass, plus) => Object.assign({ id, email, pass, imapHost: '127.0.0.1', imapPort: 993, smtpHost: '127.0.0.1', smtpPort: portSmtp, ts: Date.now() }, plus || {});
-  fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify({ 'entreprise-x': { slug: 'entreprise-x', nom: 'X', email: 'x@exemple-2971.fr', t: T, code: b64({ t: T, k: CLE_ENT }), ts: 1 } }));
+  fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify({ 'entreprise-x': { slug: 'entreprise-x', nom: 'X', email: 'x@exemple-2976.fr', t: T, code: b64({ t: T, k: CLE_ENT }), ts: 1 } }));
   /* LES TROIS FICHIERS D'AVANT : mots de passe en clair */
   fs.writeFileSync(path.join(D, 'mailboxes.json'), JSON.stringify({ mb1: boite('mb1', ADR.gest, MDP.gest, { teamId: T, name: 'Gestion', histoDone: true }) }));
   fs.writeFileSync(path.join(D, 'mail-boites.json'), JSON.stringify([boite('bt1', ADR.tour, MDP.tour, { nom: 'TEAM OP', par: 'Justin' }), boite('bt2', ADR.tour2, MDP.tour2, { nom: 'Deux', par: 'Justin' })]));
@@ -128,10 +128,10 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
 
   let jeton = '';
   const tour = (route, corps) => req(route, { corps, h: { Authorization: 'Bearer ' + jeton } });
-  const sendmail = (id) => req('/api/sendmail', { corps: { teamId: T, to: 'client@exemple-2971.fr', subject: 'Banc 2971', text: 'Bonjour', useMailbox: { id } }, h: H_ENT });
+  const sendmail = (id) => req('/api/sendmail', { corps: { teamId: T, to: 'client@exemple-2976.fr', subject: 'Banc 2976', text: 'Bonjour', useMailbox: { id } }, h: H_ENT });
   /* La boîte support REPRISE par la Messagerie de la Tour (`mail.js` lit `support-box.json` à son démarrage) : son identifiant est tiré au sort, on la retrouve par son adresse. */
   const envoyerReprise = async () => { const l = await tour('/api/monitor/mail/boites'); const b = (l.j.boites || []).find(x => x.email === ADR.supp);
-    return b ? (await tour('/api/monitor/mail/envoyer', { boite: b.id, a: 'client@exemple-2971.fr', objet: 'Banc 2971', texte: 'Bonjour' })).s : 'boîte reprise introuvable'; };
+    return b ? (await tour('/api/monitor/mail/envoyer', { boite: b.id, a: 'client@exemple-2976.fr', objet: 'Banc 2976', texte: 'Bonjour' })).s : 'boîte reprise introuvable'; };
   const aSecret = (txt) => Object.values(MDP).some(m => txt.includes(m));
   let scelles = {};
 
@@ -153,11 +153,11 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
     vrai('la Tour ouvre une session de patron', jeton);
     let r = await sendmail('mb1');
     v('OP GESTION : /api/sendmail par la boîte connectée → 200 (le SMTP a reçu le bon mot de passe)', r.s, 200);
-    r = await tour('/api/monitor/mail/envoyer', { boite: 'bt1', a: 'client@exemple-2971.fr', objet: 'Banc 2971', texte: 'Bonjour' });
+    r = await tour('/api/monitor/mail/envoyer', { boite: 'bt1', a: 'client@exemple-2976.fr', objet: 'Banc 2976', texte: 'Bonjour' });
     v('la Tour : /api/monitor/mail/envoyer par la boîte bt1 → 200', r.s, 200);
-    r = await tour('/api/monitor/mail/envoyer', { boite: 'bt2', a: 'client@exemple-2971.fr', objet: 'Banc 2971', texte: 'Bonjour' });
+    r = await tour('/api/monitor/mail/envoyer', { boite: 'bt2', a: 'client@exemple-2976.fr', objet: 'Banc 2976', texte: 'Bonjour' });
     v('la Tour : par la boîte bt2 (autre adresse, autre mot de passe) → 200', r.s, 200);
-    r = await tour('/api/monitor/support/envoyer', { to: 'client@exemple-2971.fr', subject: 'Banc 2971', text: 'Bonjour' });
+    r = await tour('/api/monitor/support/envoyer', { to: 'client@exemple-2976.fr', subject: 'Banc 2976', text: 'Bonjour' });
     v('la boîte support : /api/monitor/support/envoyer → 200', r.s, 200);
     v('⛔ la boîte support REPRISE dans la Messagerie de la Tour (mail.js lit support-box.json par le coffre) envoie avec le bon mot de passe → 200', await envoyerReprise(), 200);
     const bonnes = smtp.auths.filter(a => a.bon).map(a => a.user).sort();
@@ -197,8 +197,8 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
     smtp.auths.length = 0;
     v('après redémarrage : la boîte d\'avant se relit (SMTP content)', (await sendmail('mb1')).s, 200);
     v('après redémarrage : la boîte connectée par la route aussi', (await sendmail(id2)).s, 200);
-    v('après redémarrage : la Tour (bt2)', (await tour('/api/monitor/mail/envoyer', { boite: 'bt2', a: 'client@exemple-2971.fr', objet: 'Banc 2971', texte: 'Bonjour' })).s, 200);
-    v('après redémarrage : le support', (await tour('/api/monitor/support/envoyer', { to: 'client@exemple-2971.fr', subject: 'Banc 2971', text: 'Bonjour' })).s, 200);
+    v('après redémarrage : la Tour (bt2)', (await tour('/api/monitor/mail/envoyer', { boite: 'bt2', a: 'client@exemple-2976.fr', objet: 'Banc 2976', texte: 'Bonjour' })).s, 200);
+    v('après redémarrage : le support', (await tour('/api/monitor/support/envoyer', { to: 'client@exemple-2976.fr', subject: 'Banc 2976', text: 'Bonjour' })).s, 200);
     v('après redémarrage : la boîte support reprise par la Tour', await envoyerReprise(), 200);
     v('après redémarrage : aucun refus du SMTP', smtp.auths.filter(a => !a.bon), []);
     vrai('(population) quatre authentifications après redémarrage', smtp.auths.length >= 4);
@@ -215,7 +215,7 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
     v('les deux boîtes de l\'entreprise sont toujours listées', (r.j.mailboxes || []).map(b => b.email).sort(), [ADR.gest2, ADR.gest].sort());
     r = await tour('/api/monitor/mail/boites');
     v('les trois boîtes de la Tour aussi', (r.j.boites || []).map(b => b.email).sort(), [ADR.supp, ADR.tour2, ADR.tour].sort());
-    vrai('le serveur DIT que des mots de passe sont illisibles (un nombre, aucune adresse)', /mot\(s\) de passe illisible/.test(journal) && !journal.includes('banc-2971.fr'));
+    vrai('le serveur DIT que des mots de passe sont illisibles (un nombre, aucune adresse)', /mot\(s\) de passe illisible/.test(journal) && !journal.includes('banc-2976.fr'));
     vrai('démarrer sans clé n\'a RIEN réécrit (octets identiques)', avantFichiers.m.equals(lireF('mailboxes.json')) && avantFichiers.t.equals(lireF('mail-boites.json')) && avantFichiers.s.equals(lireF('support-box.json')));
     /* une écriture SANS clé : on connecte une nouvelle boîte (réécrit mailboxes.json) */
     smtp.auths.length = 0;
@@ -240,8 +240,8 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
     smtp.auths.length = 0;
     v('la boîte d\'origine marche de nouveau', (await sendmail('mb1')).s, 200);
     v('la boîte connectée par la route aussi', (await sendmail(id2)).s, 200);
-    v('la Tour (bt1)', (await tour('/api/monitor/mail/envoyer', { boite: 'bt1', a: 'client@exemple-2971.fr', objet: 'Banc 2971', texte: 'Bonjour' })).s, 200);
-    v('le support', (await tour('/api/monitor/support/envoyer', { to: 'client@exemple-2971.fr', subject: 'Banc 2971', text: 'Bonjour' })).s, 200);
+    v('la Tour (bt1)', (await tour('/api/monitor/mail/envoyer', { boite: 'bt1', a: 'client@exemple-2976.fr', objet: 'Banc 2976', texte: 'Bonjour' })).s, 200);
+    v('le support', (await tour('/api/monitor/support/envoyer', { to: 'client@exemple-2976.fr', subject: 'Banc 2976', text: 'Bonjour' })).s, 200);
     v('la boîte support reprise par la Tour', await envoyerReprise(), 200);
     v('aucun refus du SMTP', smtp.auths.filter(a => !a.bon), []);
     vrai('la boîte écrite en clair faute de clé est migrée dès que la clé revient : plus aucun mot de passe en clair dans aucun des trois fichiers', Object.values(MDP).every(m => ['mailboxes.json', 'mail-boites.json', 'support-box.json'].every(f => absent(f, m))));
