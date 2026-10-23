@@ -5139,7 +5139,7 @@ function tourActiviteCharge(nm){
     var el=document.getElementById('fiche-activite'); if(!el) return;
     if(!(r&&r.ok&&r.d&&r.d.ok)){ el.innerHTML=videTour('Activité indisponible',esc((r&&r.d&&r.d.error)||'Le serveur a-t-il été mis à jour ?'),'','entreprises'); return; }
     var d=r.d;
-    var L={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning général',interventions:'Interventions',clients:'Clients',boxes:'Boxes',stock:'Stock',produits:'Produits',mouvements:'Mouvements stock',devis:'Devis',factures:'Factures',rapports:'Rapports',validations:'Validation des mouvements',messagerie:'Messagerie',parametres:'Paramètres',utilisateurs:'Utilisateurs',taches:'Tâches',vehicules:'Véhicules',commandes:'Commandes en cours',bons:'Bons de commande',statistiques:'Statistiques',historique:'Historique',conso:'Dashboard conso',saisieConso:'Saisie conso',fournisseurs:'Fournisseurs',demandes:'Mes demandes',contrats:'Contrats',pointage:'Pointage',carteInt:'Carte interventions',carteBox:'Carte des box',boiteMail:'Boîte mail'};
+    var L={dashboard:'Tableau de bord',planning:'Planning',planningGeneral:'Planning général',interventions:'Interventions',clients:'Clients',boxes:'Boxes',stock:'Stock',produits:'Produits',mouvements:'Mouvements stock',devis:'Devis',factures:'Factures',rapports:'Rapports',validations:'Validations DR',messagerie:'Messagerie',parametres:'Paramètres',utilisateurs:'Utilisateurs',taches:'Tâches',vehicules:'Véhicules',commandes:'Commandes en cours',bons:'Bons de commande',statistiques:'Statistiques',historique:'Historique',conso:'Dashboard conso',saisieConso:'Saisie conso',fournisseurs:'Fournisseurs',demandes:'Mes demandes',contrats:'Contrats',pointage:'Pointage',carteInt:'Carte interventions',carteBox:'Carte des box',boiteMail:'Boîte mail'};
     /* La barre de proportion est le seul endroit de la Tour où une largeur DOIT être calculée :
        elle porte la donnée elle-même. Tout le reste du bloc passe par les classes. */
     /* v2.68 — un vrai pluriel, et une phrase qui ne se coupe pas en trois au téléphone (le tiret orphelin
@@ -9511,7 +9511,7 @@ var CAT_L=[
 ['Stock',[['produits','Produits'],['stock','Stock'],['mouvements','Mouvements stock'],['boxes','Boxes'],['saisieConso','Consommation produits'],['enveloppes','Enveloppes']]],
 ['Temps & équipe',[['pointage','Temps de travail'],['vehicules','Véhicules'],['conducteurs','Conducteurs']]],
 ['Communication / Fournisseurs',[['messagerie','Messagerie'],['boiteMail','Boîte mail'],['fournisseurs','Fournisseurs'],['bons','Bons de commande']]],
-['Achats internes',[['brouillon','Brouillon'],['demandes','Mes demandes'],['validations','Validation des mouvements'],['commandes','Commandes en cours']]],
+['Achats internes',[['brouillon','Brouillon'],['demandes','Mes demandes'],['validations','Validations DR'],['commandes','Commandes en cours']]],
 ['Administration',[['secteurs','Secteurs']]]
 ];
 var CAT_CLES=[]; CAT_L.forEach(function(g){ g[1].forEach(function(c){ CAT_CLES.push(c[0]); }); });
