@@ -42,7 +42,8 @@ const compile = s => { try { new vm.Script(s); return true; } catch (e) { return
 
 console.log('\n── test-1014 : l\'écran Demandes de la Tour ──');
 const NOMS = ['demEstGestion', 'demandesListe', 'demandesATraiter', 'demPaiement', 'demEspace', 'vueDemandes', 'demCarte', 'sigleAdr',
-  'teteListe', 'esc', 'jsq', 'nMot', 'sigle', 'espSlugJs', 'tourIdentDefaut', 'acErr', 'acSquel', 'aboPast', 'aboFiable'];
+  'teteListe', 'esc', 'jsq', 'nMot', 'sigle', 'espSlugJs', 'tourIdentDefaut', 'acErr', 'acSquel', 'aboPast', 'aboFiable',
+  'demCatsHtml', 'demCatsInfo', 'demCatsDepart', 'demCatsCle', 'catExpl'];   // (23 octobre 2026 : la grille des rubriques de la demande)
 const COURTES = ['esc', 'jsq'];
 const FN = NOMS.map(n => COURTES.includes(n) ? parLignes(n) : fonction(n)), LIGNES = [ligne('var DEM='), ligne('var MET_L=')];
 vrai('(population) les fonctions de l\'écran et ce qu\'elles appellent sont trouvées dans tour.html', FN.every(Boolean) && LIGNES.every(Boolean), NOMS.filter((n, i) => !FN[i]).join(', '));
@@ -75,6 +76,7 @@ const bac = (cli, opt) => {
     'var ENT=' + JSON.stringify({ liste: ENTS, loaded: true }) + ';',
     'function enTete(t,p){ return "<h1>"+t+"</h1>"; }',
     'function videTour(t,s){ return "<div class=\\"vide\\">"+t+" — "+s+"</div>"; }',
+    'var REFM={d:null,err:"",enCours:false}; var CAT_L=[]; var CAT_CLES=[];',
     'function fmtJour(ts){ return "le jour"; } function svg(){ return ""; } var INJOIGNABLE="injoignable"; var MYROLE=' + JSON.stringify(o.role || 'patron') + ';',
   ].concat(LIGNES, FN).join('\n'), ctx);
   return ctx;
@@ -98,6 +100,10 @@ vrai('l\'ancienne demande ne dit PAS « payé » (son abonnement est annulé)', 
 vrai('…elle dit « abonnement annulé », dans les mots de l\'écran Abonnements (pas le code « annule » de Stripe)', /💳 abonnement annulé/.test(html.slice(html.indexOf('Ancienne Demande'))) && !/💳 annule\b/.test(html));
 vrai('le lien souhaité s\'écrit sous sa VRAIE adresse (teamop.fr/e/hygieneexemple), et dit ce qui a été tapé', /teamop\.fr\/e\/hygieneexemple<\/span> <span class="g">\(tapé « Hygiène Exemple »\)/.test(html));
 v('deux gestes « Accepter » (un par carte)', (html.match(/Accepter et ouvrir l’espace/g) || []).length, 2);
+/* 23 octobre 2026 — la grille des rubriques de la demande (pré-cochée, expliquée) vit dans la carte À TRAITER du patron, et nulle part ailleurs */
+v('⛔ chaque carte à traiter porte sa grille « RUBRIQUES D’OP GESTION » (patron) — deux cartes, deux grilles', (html.match(/class="dem-cats"/g) || []).length, 2);
+v('   un collaborateur (qui ne peut pas ouvrir l\'espace) n\'a pas la grille', (bac(CLIENTS, { role: 'collaborateur' }).vueDemandes().match(/class="dem-cats"/g) || []).length, 0);
+v('   une demande TRAITÉE n\'en a pas non plus', (bac(CLIENTS).vueDemandes.call ? (() => { const T = bac(CLIENTS); T.DEM.vue = 'traitees'; return (T.vueDemandes().match(/class="dem-cats"/g) || []).length; })() : -1), 0);
 vrai('l\'identifiant de départ est prérempli du prénom (camille)', /value="camille"/.test(html));
 v('⛔ aucun identifiant d\'élément ne porte une adresse en clair', (html.match(/id="[^"]*@[^"]*"/g) || []), []);
 vrai('aucune demande d\'OP MESSAGES à l\'écran', !/Messagerie Marc/.test(html));
@@ -125,7 +131,7 @@ vrai('« Demandes » est au menu d\'OP GESTION, avec son compteur', /\['demandes
 vrai('renderVue dessine l\'écran Demandes', /TAB==='demandes'\) v\.innerHTML=vueDemandes\(\);/.test(fonction('renderVue')));
 vrai('le compteur du menu suit les demandes à traiter quand les comptes du site arrivent', /setBdg\('bdg-dem',demandesATraiter\(\)\.length\)/.test(fonction('chargerClients')));
 vrai('l\'accueil met les demandes à traiter en tête de ce qui attend', /demandesATraiter\(\)/.test(fonction('vueAccueil')) && /titre:'Demandes à traiter'/.test(fonction('vueAccueil')));
-vrai('accepter depuis la carte passe l\'identifiant ET la demande touchée à tourAccepterDemande (pas de fenêtre du navigateur)', /tourAccepterDemande\(email,nom,ident,i\)/.test(fonction('demAccepter')) && /identVoulu!=null\?identVoulu:prompt\(/.test(fonction('tourAccepterDemande')));
+vrai('accepter depuis la carte passe l\'identifiant ET la demande touchée à tourAccepterDemande (pas de fenêtre du navigateur)', /tourAccepterDemande\(email,nom,ident,i,cats\)/.test(fonction('demAccepter')) && /identVoulu!=null\?identVoulu:prompt\(/.test(fonction('tourAccepterDemande')));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

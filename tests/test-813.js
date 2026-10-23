@@ -216,7 +216,7 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
     vrai('⛔ l\'utilisateur maison a un jeton à présenter (`getIdToken`) — sans lui, `cliSync` se taisait', typeof user.getIdToken === 'function' && /^[0-9a-f]{64}$/.test(await user.getIdToken()));
     const doc = base.collection('teamop_requests').doc(user.uid);
     await doc.set({ prenom: 'Nora', nom: 'Neuve', name: 'Nora Neuve', company: 'Hygiène Nouvelle', tel: '0600000000', status: 'nouveau',
-      demandes: [{ app: 'OP GESTION', formule: 'Pro', statut: 'nouveau', date: Date.now(), besoin: 'deux techniciens', users: '2' }] }, { merge: true });
+      demandes: [{ app: 'OP GESTION', formule: 'Pro', statut: 'nouveau', date: Date.now(), besoin: 'deux techniciens', users: '2', metier: 'plomberie' }] }, { merge: true });   // (le métier : obligatoire depuis le 23 octobre 2026, test-2891)
     let d = (await doc.get()).data();
     v('sa demande est rangée dans SON dossier', [d && d.company, d && d.demandes && d.demandes.length], ['Hygiène Nouvelle', 1]);
 
@@ -298,7 +298,7 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
     for (let i = 0; i < 6; i++) {
       await appel('/api/clients/sync', { entreprise: 'Hygiène Nouvelle', nom: 'Nora Neuve', demandes: [] }, jetonNouveau);
       await appel('/api/clients/sync', { entreprise: 'Hygiène Nouvelle', nom: 'Nora Neuve',
-        demandes: [{ app: 'OP GESTION', formule: 'Pro', statut: 'nouveau', date: Date.now(), users: '2' }] }, jetonNouveau);
+        demandes: [{ app: 'OP GESTION', formule: 'Pro', statut: 'nouveau', date: Date.now(), users: '2', metier: 'plomberie' }] }, jetonNouveau);
     }
     await dormir(900);
     v('⛔ six demandes en rafale : deux courriels de plus au patron, deux accusés au client — pas douze', [salvePatron() - p0, salveClient() - c0], [2, 2]);
@@ -315,7 +315,7 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
     const rf = await appel('/api/monitor/espaces/formule', { nom: 'Victime SARL', formule: 'premium', quantite: 3 }, tour);
     const formuleVictime = async () => { const e = ((await appel('/api/monitor/espaces/liste', undefined, tour)).j.espaces || []).find(x => x.slug === 'victimesarl') || {}; return [e.formule, e.quantite]; };
     v('la Tour ouvre l\'espace d\'une entreprise cliente, en formule payante', [r.s, rf.s, await formuleVictime()], [200, 200, ['premium', 3]]);
-    const demandeGratuite = { company: 'Victime SARL', demandes: [{ app: 'OP GESTION', formule: 'Gratuit', statut: 'nouveau', date: Date.now(), users: '1' }] };
+    const demandeGratuite = { company: 'Victime SARL', demandes: [{ app: 'OP GESTION', formule: 'Gratuit', statut: 'nouveau', date: Date.now(), users: '1', metier: 'plomberie' }] };
 
     const jetonGoogle = (email) => { const now = Math.floor(Date.now() / 1000);
       const h = Buffer.from(JSON.stringify({ alg: 'RS256', kid: 'k-banc', typ: 'JWT' })).toString('base64url');
