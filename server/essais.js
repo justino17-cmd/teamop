@@ -2,7 +2,7 @@
  *
  * Justin : « toute modification — site, application, la Tour — je veux des espaces de test, et après on pousse ; chaque
  * test expliqué dans un ordre ». Un SECOND serveur, le MÊME code (`index.js`), lancé sur le VPS avec sa propre config, ses
- * propres données et sa propre clé maître (`test.teamop.fr` → 127.0.0.1:8090). Ce fichier est tout ce que ce serveur-là a
+ * propres données et sa propre clé maître (`test.teamop.fr` → 127.0.0.1:8095 — 8090 est à OP MESSAGES). Ce fichier est tout ce que ce serveur-là a
  * de plus que l'autre — et rien de ceci ne se monte sans `config.espaceTest === true`.
  *
  * ⛔ INERTE EN PRODUCTION, ET UN BANC LE PROUVE (`tests/test-2981.js`, sur le VRAI serveur) : sans `espaceTest`, les trois
