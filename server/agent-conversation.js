@@ -136,6 +136,8 @@ module.exports = function agentConversation(ctx) {
   const ids = agents.AGENTS.map(a => a.id).filter(id => id !== 'hugo' && ROLES[id]);
   const IDS = new Set(ids);
   const SYSTEM = {}; for (const id of ids) SYSTEM[id] = systemDe(registre.get(id), ROLES[id]);
+  /* La mémoire d'équipe de l'agent (leçons et objectifs des réunions, `reunions.js`) : injectée, lue À CHAQUE réponse (elle change chaque semaine). */
+  const memoire = id => { try { return typeof ctx.memoire === 'function' ? String(ctx.memoire(id) || '') : ''; } catch (e) { return ''; } };
   const masquer = t => sansTel(sansAdr(String(t || '')));
   const nettoyer = t => masquer(t).replace(/\s+/g, ' ').trim().slice(0, MESSAGE_MAX);
 
@@ -199,7 +201,7 @@ module.exports = function agentConversation(ctx) {
     if (!p.ok) return { saute: p.raison };          /* à l'arrêt : ni faits, ni Claude, ni mot */
     const messages = messagesDe(fil, id, texte);
     if (!messages.length) return { saute: 'vide' };
-    const system = SYSTEM[id] + await blocFaits(id, fil);
+    const system = SYSTEM[id] + memoire(id) + await blocFaits(id, fil);
     const r = await cerveau.penser(id, system, messages, { maxTokens: JETONS });
     if (!r.ok) {
       if (Object.prototype.hasOwnProperty.call(CAUSES, r.raison)) dire(id, fil, 'Je ne peux pas te répondre pour l’instant (' + CAUSES[r.raison] + ').', 'important');

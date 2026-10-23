@@ -35,6 +35,10 @@ const NIVEAUX = ['info', 'important', 'urgent'];
 const MOTIFS = { demande_humain: 'demande à parler à une vraie personne', litige: 'litige à traiter', sensible: 'sujet sensible', blocage: 'client bloqué', urgence: 'urgence' };
 const TEXTE_MAX = 600, TEXTE_PATRON_MAX = 1000, MESSAGES_MAX = 500, PAR_HEURE = 12, DOUBLON_MS = 24 * 3600 * 1000, LISTE_MAX = 100;
 const PAR_HEURE_FIL = 20;          // messages d'AGENTS par heure et par fil, en plus des douze par agent : deux agents qui s'emballent s'arrêtent ici
+/* LES RÉUNIONS (`reunions.js`, 23 octobre 2026) ont leur plafond propre, et SEULEMENT dans le fil « reunions » : une ouverture, un tour de table de seize,
+   une discussion bornée et une conclusion tiennent en moins de quarante messages. Elles réveillent personne par l'@mention (le déroulé donne la parole lui-même,
+   une réponse après l'autre) et leur compte rendu peut dépasser les 600 caractères d'un message d'agent. Le tout par `o.reunion === true` ET fil « reunions ». */
+const PAR_HEURE_FIL_REUNION = 45, REUNION_TEXTE_MAX = 1500;
 const ECRIT_TTL_MS = 120000;       // « X écrit… » expire seul : un appel resté pendu ne laisse pas un agent « en train d'écrire » pour toujours
 const SYSTEME_MAX = 300;
 /* ── QUI EST DANS QUEL FIL — la seule définition. `'*'` : tous les agents du registre. Un fil privé n'a qu'un membre : son agent. ── */
@@ -144,19 +148,21 @@ module.exports = function monterConversations(app, ctx) {
     if (!p.ok) return { ok: false, raison: p.raison };
     /* un agent parle dans SON fil et dans les groupes dont il est membre — jamais dans le fil privé d'un collègue */
     if (typeof fil !== 'string' || !filValide(fil) || !estMembre(de, fil)) return { ok: false, raison: 'fil' };
-    const t = propre(sansAdr(texte), TEXTE_MAX);
+    const reunion = o.reunion === true && fil === 'reunions';
+    const max = reunion && Number.isInteger(o.max) ? Math.min(Math.max(o.max, TEXTE_MAX), REUNION_TEXTE_MAX) : TEXTE_MAX;
+    const t = propre(sansAdr(texte), max);
     if (!t) return { ok: false, raison: 'texte' };
     const niveau = NIVEAUX.includes(o.niveau) ? o.niveau : 'info';
     const now = maintenant();
     if (messages.filter(m => m.de === de && now - m.ts < 3600000).length >= PAR_HEURE) return { ok: false, raison: 'trop_de_messages' };
-    if (messages.filter(m => m.fil === fil && IDS.has(m.de) && now - m.ts < 3600000).length >= PAR_HEURE_FIL) return { ok: false, raison: 'trop_de_messages_fil' };
+    if (messages.filter(m => m.fil === fil && IDS.has(m.de) && now - m.ts < 3600000).length >= (reunion ? PAR_HEURE_FIL_REUNION : PAR_HEURE_FIL)) return { ok: false, raison: 'trop_de_messages_fil' };
     if (messages.some(m => m.de === de && m.fil === fil && m.texte === t && now - m.ts < DOUBLON_MS)) return { ok: false, raison: 'doublon' };
     /* La profondeur : celle du message auquel l'agent répond + 1 (donnée par l'appelant) ; un message spontané en compte 1. */
     const prof = Number.isInteger(o.prof) && o.prof >= 1 && o.prof <= 20 ? o.prof : 1;
     const m = { id: crypto.randomBytes(6).toString('hex'), ts: now, fil, de, texte: t, niveau, lu: false, prof, mentions: mentionsDe(t, fil) };
     if (!ajouter(m)) return { ok: false, raison: 'ecriture' };
     notifier(m);
-    if (m.mentions.some(id => id !== de)) declencher(m);
+    if (!reunion && m.mentions.some(id => id !== de)) declencher(m);
     return { ok: true, id: m.id, prof, mentions: m.mentions.slice() };
   }
 

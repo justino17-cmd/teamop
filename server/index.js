@@ -2073,6 +2073,7 @@ const MON_GESTES = {
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
+  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   'agents/charte': 'a changé la charte d’autonomie des agents', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
   'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
 };
@@ -4425,6 +4426,7 @@ let conversationsMod = null; // les conversations Tour ↔ agents (`conversation
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
 let agentEquipe = null;        // la messagerie des agents (`agent-equipe.js`) : `null` = pas montée ; la conversation d'avant (Hugo + les quinze) reste alors servie
+let reunionsMod = null;        // les réunions du lundi et du vendredi (`reunions.js`) : `null` = pas montées ; les agents n'ont alors ni objectifs ni leçons
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
 let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
@@ -10160,15 +10162,32 @@ try {
     /* LA CONVERSATION DES QUINZE AUTRES AGENTS (celle d'avant, gardée en repli) : ils répondent dans « Parler » (Claude, faits fermés, rien d'exécuté).
        Sous son propre `try` : un échec de montage ne doit emporter ni Hugo ni la Messagerie — les agents se taisent, c'est tout. */
     try {
-      agentsConversation = require('./agent-conversation')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents });
+      agentsConversation = require('./agent-conversation')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents,
+        memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : conversation montée pour ' + agentsConversation.ids.length + ' agents');
     } catch (e) { agentsConversation = null; console.error('conversation des agents indisponible :', e.message); }
     /* LA MESSAGERIE DES AGENTS : groupes, @mentions, réveil du cité, outils fermés (prendre, passer…), « X écrit… ». Elle remplace la conversation
        d'avant sur tous les fils (Hugo compris) dès qu'elle est montée ; sous son propre `try`, comme la précédente. */
     try {
-      agentEquipe = require('./agent-equipe')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents });
+      agentEquipe = require('./agent-equipe')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents,
+        memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
     } catch (e) { agentEquipe = null; console.error('messagerie des agents indisponible :', e.message); }
+    /* LES RÉUNIONS : lundi 9 h les objectifs, vendredi 18 h le bilan (heure de Paris), leçons et objectifs rangés puis injectés dans les consignes des agents.
+       Sous son propre `try` : sans elles, les agents parlent comme avant. La vérification est minutée ICI (une fois par minute, plus une première cinq secondes après le
+       démarrage : un serveur qui revient dans le créneau de rattrapage rattrape) — `reunions.js` n'arme aucune minuterie lui-même. */
+    try {
+      reunionsMod = require('./reunions')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, pousseNotif,
+        equipe: () => agentEquipe,
+        /* Les incidents de la fenêtre : des NOMBRES (ouverts depuis le début, corrigés depuis, restant à traiter) — jamais le texte d'un incident, forgeable (/api/monitor/report est publique). */
+        faits: { incidents: (debut, fin) => ({ ouverts: monIssues.filter(i => i.firstTs >= debut && i.firstTs <= fin).length,
+          corriges: monIssues.filter(i => i.statut === 'corrige' && i.lastTs >= debut && i.lastTs <= fin).length,
+          aTraiter: monIssues.filter(i => i.statut === 'nouveau' || i.statut === 'encours').length }) } });
+      const ticReunions = () => { try { reunionsMod.tic(); } catch (e) { console.error('réunions :', e.message); } };
+      setTimeout(ticReunions, 5000).unref();
+      setInterval(ticReunions, 60000).unref();
+      console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
+    } catch (e) { reunionsMod = null; console.error('réunions des agents indisponibles :', e.message); }
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */

@@ -121,6 +121,8 @@ module.exports = function agentEquipe(ctx) {
     return { ids: [], surMessage: async () => ({ saute: 'pas_de_cerveau' }) };
   }
   const registre = new Map(agents.AGENTS.map(a => [a.id, a]));
+  /* La mémoire d'équipe de l'agent (leçons et objectifs des réunions, `reunions.js`) : injectée, donc absente tant que les réunions ne sont pas montées. */
+  const memoire = id => { try { return typeof ctx.memoire === 'function' ? String(ctx.memoire(id) || '') : ''; } catch (e) { return ''; } };
   const ids = agents.AGENTS.map(a => a.id).filter(id => ROLES[id] && PERSO[id]);
   const IDS = new Set(ids);
   const nomDe = id => id === 'justin' ? 'Justin' : (registre.get(id) || {}).nom || id;
@@ -155,7 +157,8 @@ module.exports = function agentEquipe(ctx) {
       '- Tu réponds toujours par un message, même court, avant ou avec tes outils. Pour parler à un collègue, cite-le dans ton message avec @ suivi de son identifiant (par exemple @lea) : c’est ainsi qu’il le lit. @tous cite tout le fil.\n' +
       '- Outil prendre : tu acceptes un travail, il devient ta tâche. Outil terminer : c’est fait. Outil passer : seulement si tu es vraiment chargé (une autre tâche en cours) et à un collègue libre, jamais Hugo ni Margaux, et tu en dis la raison ; un collègue libre peut aussi proposer de prendre une tâche d’un collègue chargé. Outil demander_justin : une décision qui lui revient.\n' +
       '- Hugo et Margaux (l’argent, les accès) ne reçoivent de consigne en texte libre que de Justin.\n' +
-      (id === 'victor' ? '- Tu vois la charge de chacun : si un collègue est débordé et qu’un autre est libre, tu peux redistribuer avec l’outil passer, et tu le dis dans le fil.\n' : '');
+      (id === 'victor' ? '- Tu vois la charge de chacun : si un collègue est débordé et qu’un autre est libre, tu peux redistribuer avec l’outil passer, et tu le dis dans le fil.\n' : '') +
+      memoire(id);
   }
 
   /* Des NOMS et des NOMBRES : qui a du travail en cours. Écrit avant le bloc Faits, qui reste la dernière chose du prompt. */
@@ -352,7 +355,7 @@ module.exports = function agentEquipe(ctx) {
     return Promise.all(cibles.map(id => enfiler(m.fil, () => reveiller(id, m).catch(e => { console.error('agent ' + id + ' :', String(e && e.message || e).slice(0, 120)); return { saute: 'erreur' }; }))));
   }
 
-  return { ids, surMessage };
+  return { ids, surMessage, systemDe };
 };
 module.exports.destinataires = destinataires;
 module.exports.outilsDe = outilsDe;
