@@ -244,3 +244,15 @@ tests/test-2883.js
 # pas de rejeu au redémarrage, le bilan du vendredi sur les objectifs du lundi, la mémoire dans le prompt d'une réponse puis retirée avec la leçon, lancement à la main, gardes, MON_GESTES).
 tests/test-2884.js
 tests/test-2885.js
+# 23 octobre 2026 : les six agents de la plateforme (Max la sentinelle, Jules les incidents, Théo les sauvegardes et la conservation, Nina les accès, le RGPD et les contrats, Inès la qualité,
+# Victor le point du matin, la répartition et l'arbitrage) — `test-2920` (les règles : les seuils de `surveillance.js` relus et rejoués à leurs bornes, les épisodes annoncés une fois),
+# `test-2921` (Max et Jules : l'incident dans le registre de la Tour, le diagnostic proposé, la seconde barrière), `test-2922` (Théo et Nina), `test-2923` (Inès et Victor) et `test-2924`
+# (l'assemblage : la cadence, de bout en bout, les relevés fermés, les routes, le câblage d'index.js). Un faux Claude partout ; aucun ne vise api.anthropic.com.
+tests/test-2920.js
+tests/test-2921.js
+tests/test-2922.js
+tests/test-2923.js
+tests/test-2924.js
+# …et `test-2925` : le VRAI serveur, un faux Claude — une erreur d'application ouvre un épisode, un incident dans la Tour et UN diagnostic ; le texte forgé des appareils ne part jamais chez Claude ;
+# les verrous de la Tour et du portail, les relevés de Théo et de Max dans le prompt, le point de Victor, les gestes au journal, la minuterie armée par index.js.
+tests/test-2925.js

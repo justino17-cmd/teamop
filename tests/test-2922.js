@@ -1,5 +1,5 @@
 /* ⛔ CE QUE CE FICHIER GARDE — THÉO ET NINA, LES MODULES (23 octobre 2026). Justin : « je veux des agents qui gèrent toutes les catégories de la Tour ».
-     Les VRAIS `agents.js`, `conversations.js`, `cerveau.js`, `contrats.js` (pour ce que Nina lit), `plateforme-etat.js`, `incidents-agents.js`, `agent-theo.js`,
+     Les VRAIS modules de `server/` : `agents.js`, `conversations.js`, `cerveau.js`, `contrats.js` (pour ce que Nina lit), `plateforme-etat.js`, `incidents-agents.js`, `agent-theo.js`,
      `agent-nina.js` et leur moteur ; seuls Claude (un faux qui GARDE ce qu'il reçoit — et qui ne doit jamais être appelé ici), la sauvegarde, la conservation, le relevé de
      sécurité du serveur et l'état de santé sont simulés, chacun avec un ESPION qui note ce qu'on lui demande.
        THÉO

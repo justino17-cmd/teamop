@@ -1,6 +1,6 @@
 /* ⛔ CE QUE CE FICHIER GARDE — INÈS ET VICTOR, LES MODULES (23 octobre 2026). Justin : « une vraie équipe d'entreprise » ; « si une personne est occupée et qu'une autre ne fait rien et peut gérer, pour ne pas la
      surcharger de travail, c'est bien ».
-     Les VRAIS `agents.js`, `conversations.js`, `cerveau.js`, `agent-equipe.js` (la voix de Victor et ses outils), `agents-brouillons.js` (pour `envoyes`), `plateforme-etat.js`, `incidents-agents.js`,
+     Les VRAIS modules de `server/` : `agents.js`, `conversations.js`, `cerveau.js`, `agent-equipe.js` (la voix de Victor et ses outils), `agents-brouillons.js` (pour `envoyes`), `plateforme-etat.js`, `incidents-agents.js`,
      `agent-ines.js` et `agent-victor.js` ; seul l'appel à Claude est un faux qui GARDE ce qu'il reçoit, et les lectures des autres agents (RGPD, contrats, courrier…) sont des fonctions simulées.
        INÈS
        · les critères du cahier §8, un par un : chaque faute connue déclenche SON identifiant et seulement lui, un courriel conforme n'en déclenche aucun ;

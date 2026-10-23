@@ -40,6 +40,8 @@ const ROLES = Object.assign({}, AC.ROLES, {
   hugo: { faits: ['dossier'], rien: 'Tu ne peux RIEN faire seul sur les paiements ni sur les accès : tu constates, tu prépares, et Justin valide.',
     mission: 'Tu t’occupes des paiements et des accès : tu relis les paiements Stripe, tu prépares la création des espaces clients et les fins d’abonnement. Tu ne crées aucun espace toi-même : ta demande passe par une validation de Justin.' },
 });
+/* Les relevés des agents de la plateforme (Max, Jules, Théo, Nina, Inès, Victor) : leur liste vit dans `plateforme-roles.js`, qui remplace leur entrée par une copie élargie (AC.ROLES reste intact). */
+require('./plateforme-roles').appliquer(ROLES);
 
 /* Une ligne de caractère par agent : une façon de parler, pas une liste de qualités. Pas de formule toute faite (Justin : « pas des robots »). */
 const PERSO = {

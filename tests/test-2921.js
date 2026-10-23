@@ -1,5 +1,5 @@
 /* ⛔ CE QUE CE FICHIER GARDE — MAX ET JULES, LES MODULES (23 octobre 2026). Justin : « je veux des agents qui gèrent la surveillance, incidents ».
-     Les VRAIS `agents.js`, `conversations.js`, `cerveau.js`, `plateforme-etat.js`, `incidents-agents.js`, `agent-max.js` (et son moteur), `agent-jules.js` et
+     Les VRAIS modules de `server/` : `agents.js`, `conversations.js`, `cerveau.js`, `plateforme-etat.js`, `incidents-agents.js`, `agent-max.js` (et son moteur), `agent-jules.js` et
      `agent-equipe.js` (pour la voix de Jules) ; seul l'appel à Claude est un faux qui GARDE ce qu'il reçoit. Rien d'HTTP : `test-2925` joue le vrai serveur.
        MAX
        · le CODE surveille : cent passages sur un serveur en bonne forme ne font AUCUN appel à Claude, ne disent rien, n'ouvrent rien ;

@@ -213,7 +213,7 @@ module.exports = function agentInes(ctx) {
 
   const resume = () => { const m = etat.agent(ID); return { dernier: m.dernier || 0, relu: m.relu || '', illisible: etat.illisible(), derniere: m.derniere || null }; };
   /* le relevé fermé donné à la conversation (Inès elle-même, Victor) : le dernier jour relu */
-  const faits = { qualite: () => { const m = etat.agent(ID); if (!m.derniere) return null; const d = m.derniere; return { relueLe: m.relu ? 1 : 0, courrielsEnvoyes: d.courriels ? d.courriels.envoyes : null, courrielsConformes: d.courriels ? d.courriels.conformes : null, courrielsAReprendre: d.aReprendre, agentsEnErreur: d.erreurs, validationsAnciennes: d.anciennes, plusVieilleValidationJours: d.plusVieilleJours }; } };
+  const faits = { qualite: () => { const m = etat.agent(ID); if (!m.derniere) return { relueLe: 0 }; const d = m.derniere; return { relueLe: m.relu ? 1 : 0, courrielsEnvoyes: d.courriels ? d.courriels.envoyes : null, courrielsConformes: d.courriels ? d.courriels.conformes : null, courrielsAReprendre: d.aReprendre, agentsEnErreur: d.erreurs, validationsAnciennes: d.anciennes, plusVieilleValidationJours: d.plusVieilleJours }; } };
   return { passer, qualite, etat: resume, faits, controler };
 };
 module.exports.controler = controler;
