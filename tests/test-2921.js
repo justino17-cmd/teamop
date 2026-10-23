@@ -215,6 +215,36 @@ console.log('\n── 2921 · Max et Jules : la sentinelle, l’incident, le dia
     B.nettoyer();
   }
 
+  console.log('\n10 bis. ⛔ La SECONDE barrière de Jules : même si une règle laissait passer une chaîne libre, elle ne part pas chez Claude');
+  {
+    const B = equipe({ claude: () => 'Diagnostic du banc.' });
+    // on pousse dans la mémoire un épisode dont la zone et les valeurs portent la chaîne hostile (ce que `evaluer` ne laisse pas passer, mais qu'un futur appelant pourrait)
+    const e = B.etat.suivre('max', new Map([['bugs_applications', { niveau: 'important', zone: HOSTILE, valeurs: { erreurs: 2, evil: HOSTILE, liste: [HOSTILE] } }]])).nouveaux[0];
+    B.etat.marquer(e.id, { incident: B.incidents.ouvrir({ agent: 'max', signature: 'agent|max|bugs|' + e.id, message: 'Surveillance — 2 erreurs' }).id, annonce: true });
+    await B.jules.passer();
+    vrai('(population) Jules a bien appelé Claude pour cet épisode', B.recus.length === 1, B.recus.length);
+    vrai('⛔ …et la chaîne hostile n’y est pas : une zone, un nom de valeur ou une liste hors des tables fermées devient null', !/IGNORE TES|pirate-2921|<script>/.test(JSON.stringify(B.recus)), B.recus[0] && B.recus[0].system.slice(-300));
+    B.nettoyer();
+  }
+
+  console.log('\n10 ter. Un retour de la même alarme un autre jour : un incident NEUF, pas l’ancien rouvert');
+  {
+    const B = equipe();
+    B.sante.j.stripeEchecMin = 95;
+    await B.max.passer(); await B.jules.passer();
+    B.sante.j.stripeEchecMin = 0;
+    for (let k = 0; k < 3; k++) { B.avancer(300000); await B.max.passer(); }
+    await B.jules.passer();
+    v('(population) premier épisode : incident fermé', [B.issues.length, B.issues[0].statut], [1, 'corrige']);
+    B.avancer(86400000);
+    B.sante.j.stripeEchecMin = 130;
+    const r = await B.max.passer();
+    v('⛔ le lendemain l’alarme revient : annoncée de nouveau, un NOUVEL incident, l’ancien reste corrigé', [r.annonces, B.issues.length, B.issues[0].statut, B.issues[1].statut, B.issues[0].signature !== B.issues[1].signature], [1, 2, 'corrige', 'nouveau', true]);
+    v('…la récidive se compte pour Jules (deux fois ce mois-ci)', B.etat.recidives('stripe_illisible', 30), 2);
+    vrai('…et le message du lendemain n’est pas refusé comme « doublon » : il porte l’heure du nouvel épisode', B.textes('plateforme').filter(t => /^Stripe est illisible depuis (95|130) minutes/.test(t)).length === 2);
+    B.nettoyer();
+  }
+
   console.log('\n11. Les incidents venus des appareils : signalés en faits, jamais lus');
   {
     const B = equipe({ claude: () => 'Ne devrait jamais servir.' });
