@@ -14,6 +14,45 @@ de ligne du tout.
 ---
 
 
+# 🔶 23 OCTOBRE 2026 (MIDI) — NOS COURRIELS EN INDÉSIRABLES : CE QUI EST MESURÉ, CORRIGÉ, ET CE QUI RESTE
+
+Justin : « quand on envoie des mails ça se met dans indésirables », « ça me fait pas que sur Gmail », « oui mais pour mes clients ».
+
+**Mesuré.** Tous les relevés ont été faits en direct le 23 octobre 2026.
+- **DNS de teamop.fr :**
+  - SPF : `include:mx.ovh.com ~all` ;
+  - DKIM : deux sélecteurs OVH, `ovhmo-selector-1` et `-2`, les clés répondent ;
+  - DMARC : `p=none; rua=mailto:contact@teamop.fr`, posé par Justin le 23 au matin.
+- **Listes noires :** aucune ne cite le serveur (217.154.6.139) ni teamop.fr.
+- **Test mail-tester :** un courriel de la Tour (Courrier, boîte contact@) obtient **10/10**.
+  - DKIM passe, signé `d=teamop.fr`, sélecteur 1 ;
+  - SPF passe ;
+  - DMARC passe ;
+  - l'adresse OVH qui envoie (51.210.91.38) a une réputation « excellente » ;
+  - SpamAssassin : 0,2.
+- **Gmail** range le message en indésirables parce qu'il est « semblable à des messages identifiés comme spam ». C'est la réputation d'un domaine jeune, pas l'authentification.
+
+**Corrigé.**
+1. **Le Courrier mettait deux signatures** (n° 163, Tour v2.106, en ligne). Le navigateur avale le saut de ligne qui suit `<textarea>`. Changer de boîte « De » ajoutait donc une seconde signature, et un brouillon s'enregistrait tout seul.
+2. **⛔ Les trois courriels du portail partaient SANS EXPÉDITEUR** (n° 165) : confirmation d'adresse, tentative d'inscription sur une adresse connue, mot de passe.
+   - ce qui partait : pas de « From: », « MAIL FROM:<> », un identifiant « @localhost » ;
+   - conséquence : Gmail refuse un tel message, et chaque inscription attendait une confirmation qui n'arrivait pas ;
+   - correctif : `mailerEnvoi` donne l'expéditeur réglé à tout appelant ;
+   - garde : `test-831` lit désormais l'enveloppe.
+3. **« Pour recevoir nos messages sans faute, ajoutez <adresse qui envoie> à vos contacts. »** (n° 165). Une seule rédaction (`agents-signature.js`, `ligneContacts`), qui part :
+   - sous les courriels de Léa, Camille et Chloé, posée par le serveur ;
+   - au pied des courriels du portail ;
+   - dans le gabarit HTML `mailTeamOP`.
+
+   L'offre dit aussi à Camille quoi répondre à un client qui trouve nos courriels en indésirables.
+
+**Reste — et ce n'est pas du code.**
+- **La réputation se construit** : des courriels attendus, ouverts, et surtout des RÉPONSES. Les deux à quatre premières semaines, mieux vaut éviter toute annonce envoyée à tous les clients d'un coup.
+- **Le DMARC reste en `p=none`, et c'est suffisant pour Gmail.** Le passer en `quarantine` demande de LIRE d'abord les rapports quotidiens.
+  - OP MESSAGES (`server-msg/courriel.js`) envoie par son PROPRE relais, et rien ne dit qu'il est signé pour teamop.fr ;
+  - les rapports arrivent compressés (.zip, .gz) dans contact@, et personne ne les lit aujourd'hui ;
+  - un lecteur dans la Tour serait le préalable. Il n'existe pas.
+
 # 🔶 23 OCTOBRE 2026 (MATIN) — L'ÉQUIPE D'AGENTS AUTONOME : CE QUI PART AVEC LA TROISIÈME DEMANDE DE FUSION, ET LES GESTES DE JUSTIN
 - **En ligne depuis la nuit** (n° 160, n° 161) : les 16 agents parlent, la messagerie, les réunions, Léa et Camille en brouillon, les
   catégories par client, le métier obligatoire à l'abonnement.

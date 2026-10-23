@@ -44,17 +44,20 @@ let enfant = null, facteurSrv = null, faux502 = null;
 function facteur() {
   const recus = [];
   const s = require('net').createServer(c => {
-    let tampon = '', corps = false, msg = '';
+    let tampon = '', corps = false, msg = '', env = '';
     c.write('220 banc\r\n');
     c.on('data', d => {
       tampon += d.toString('utf8');
       let i;
       while ((i = tampon.indexOf('\r\n')) >= 0) {
         const l = tampon.slice(0, i); tampon = tampon.slice(i + 2);
-        if (corps) { if (l === '.') { corps = false; recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += l + '\n'; continue; }
+        /* L'expéditeur de l'ENVELOPPE (« MAIL FROM ») est rangé en tête du message reçu, sous un en-tête du banc : sans lui, un courriel parti
+           sans expéditeur (« MAIL FROM:<> », aucun « From: ») passait ici comme un autre — Gmail, lui, le refuse (23 octobre 2026). */
+        if (corps) { if (l === '.') { corps = false; recus.push('X-Banc-Enveloppe: ' + env + '\n' + msg); msg = ''; c.write('250 ok\r\n'); } else msg += l + '\n'; continue; }
         const h = l.toUpperCase();
         if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
         else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
+        else if (h.startsWith('MAIL FROM:')) { env = (/<([^>]*)>/.exec(l) || [])[1] || ''; c.write('250 ok\r\n'); }
         else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
         else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
         else c.write('250 ok\r\n');
@@ -197,6 +200,21 @@ const ROUGE = 'var(--m-err)', VERT = 'var(--m-ok)';
       + facteurSrv.recus.slice(avant).map(m => '\n      · à ' + entete(m, 'To') + ' — « ' + entete(m, 'Subject') + ' »').join('')
       + ' ; journal du serveur :\n      '
       + S.journal().split('\n').filter(l => /courriel|mail|smtp|ECONN|erreur/i.test(l)).slice(-8).join('\n      '));
+    /* ⛔ UN COURRIEL DU PORTAIL PART AVEC UN EXPÉDITEUR (23 octobre 2026). Les trois courriels de `comptes.js` (confirmation d'adresse,
+       changement d'adresse, mot de passe) n'en posaient aucun : nodemailer les envoyait sans « From: », avec « MAIL FROM:<> » et un identifiant
+       « @localhost ». Gmail refuse un message sans « From: » ; ce banc les recevait sans rien dire. Le mot de passe ET la confirmation de
+       l'inscription de zoé (partie juste avant), chacun : l'expéditeur réglé (`config.smtp.from`), dans l'en-tête ET dans l'enveloppe. */
+    const deZoe = facteurSrv.recus.filter(m => /^To:.*zoe@exemple\.fr/mi.test(m));
+    const confirmation = deZoe.find(m => /mode=verifyEmail/.test(qp(m))), motDePasse = deZoe.find(lienMdp);
+    vrai('(population) la confirmation d\'inscription ET le mot de passe de zoé sont reçus', !!confirmation && !!motDePasse, deZoe.length + ' courriel(s)');
+    for (const [nom, m] of [['la confirmation d\'inscription', confirmation], ['le mot de passe', motDePasse]]) {
+      v('⛔ ' + nom + ' : « From: » est l\'expéditeur réglé, l\'enveloppe aussi, l\'identifiant n\'est pas « @localhost »',
+        [entete(m || '', 'From').replace(/^.*</, '').replace(/>.*$/, '').trim(), entete(m || '', 'X-Banc-Enveloppe'), /^Message-ID:.*@localhost/mi.test(m || '')],
+        ['banc@teamop.fr', 'banc@teamop.fr', false]);
+      /* et le pied demande d'enregistrer CETTE adresse (un domaine jeune arrive en indésirables ; un expéditeur enregistré, non) */
+      vrai('   ' + nom + ' : le pied dit qui écrit et demande d\'enregistrer l\'adresse qui envoie',
+        /\nTEAM OP · teamop\.fr\nPour recevoir nos messages sans faute, ajoutez banc@teamop\.fr à vos contacts\./.test(Buffer.from(qp(m || ''), 'latin1').toString('utf8').replace(/\r/g, '')));   // les octets UTF-8 du quoted-printable, relus en UTF-8
+    }
     vrai('une adresse inconnue : « vient de partir » aussi', PARTI(inconnu));
     await dormir(300);
     v('   sans que rien parte chez elle', facteurSrv.recus.slice(avant).filter(m => /personne-ici@exemple\.fr/.test(m)).length, 0);

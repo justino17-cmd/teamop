@@ -177,6 +177,11 @@ function mailerEnvoi(opts) {
   // trace : ce qu'on garde d'un e-mail confidentiel (destinataire, lien envoyé, espace…) — jamais le secret lui-même
   const ent = mailsJournal(opts.to, opts.subject, opts.text, secret, opts.trace);
   const o2 = Object.assign({}, opts); delete o2.confidentiel; delete o2.trace; delete o2.diffusion;
+  /* ⛔ AUCUN COURRIEL NE PART SANS EXPÉDITEUR (23 octobre 2026). Les trois courriels du portail (`comptes.js` : confirmation d'adresse,
+     changement d'adresse, mot de passe) n'en donnaient pas : nodemailer les envoyait sans « From: », avec « MAIL FROM:<> » et un
+     identifiant « @localhost » — Gmail refuse un tel message, et les autres le rangent en indésirables. Chaque client qui s'inscrivait
+     attendait une confirmation qui n'arrivait pas. L'expéditeur réglé (`config.smtp`) est donc le défaut ICI, pour tout appelant. */
+  if (!o2.from && config.smtp) o2.from = config.smtp.from || config.smtp.user;
   try {
     const moi = String(config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').toLowerCase();
     /* La copie à soi-même est utile pour un envoi unitaire — on garde une trace de ce qu'on a
@@ -1687,6 +1692,8 @@ const MAIL_STYLE = '<style>' +
   '}' +
   '@media (max-width:600px){.m-int{padding-left:20px!important;padding-right:20px!important}}' +
   '</style>';
+/* une déclaration de fonction, pas une constante : `mailTeamOP` est remontée, une constante ne l'est pas (zone morte temporelle, voir `test-726`) */
+function escHtmlPied(x) { return String(x || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function mailTeamOP(o) {
   const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const int = (haut, bas) => 'padding:' + haut + 'px 36px ' + bas + 'px';
@@ -1717,7 +1724,7 @@ function mailTeamOP(o) {
     ((bouton || bouton2) ? '<tr><td class="m-int" style="' + int(26, 8) + '">' + bouton + bouton2 + '</td></tr>' : '<tr><td style="height:8px;line-height:8px;font-size:0">&nbsp;</td></tr>') +
     '<tr><td class="m-int m-pied" style="' + int(18, 22) + ';border-top:1px solid #EDF0F5;font-size:12px;line-height:18px;color:#8593AB">TEAM OP · la suite de gestion des pros du terrain · <a href="https://teamop.fr" style="color:#1E7A4E;text-decoration:none">teamop.fr</a>' + desabo + '</td></tr>' +
     '</table>' +
-    '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%"><tr><td class="m-muet" style="padding:14px 8px 0;font-size:11.5px;line-height:17px;color:#8593AB;font-family:' + MAIL_POLICE + '">Vous recevez cet e-mail parce que vous avez un compte TEAM OP.</td></tr></table>' +
+    '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%"><tr><td class="m-muet" style="padding:14px 8px 0;font-size:11.5px;line-height:17px;color:#8593AB;font-family:' + MAIL_POLICE + '">Vous recevez cet e-mail parce que vous avez un compte TEAM OP. ' + escHtmlPied(ligneContactsServeur()) + '</td></tr></table>' +
     '</td></tr></table></body></html>';
 }
 
@@ -4571,6 +4578,12 @@ function uneLigne(s, max) {   // une ligne, sans caractère de contrôle ni sép
   return out.replace(/ {2,}/g, ' ').trim().slice(0, max || 200);
 }
 function adrNue(s) { const m = /<([^<>]*)>\s*$/.exec(String(s || '')); return String(m ? m[1] : (s || '')).trim().toLowerCase(); }
+/* L'ADRESSE QU'UN CLIENT ENREGISTRE DANS SES CONTACTS (23 octobre 2026) : celle qui ENVOIE les courriels du serveur (`config.smtp`), si c'est une boîte
+   @teamop.fr — sinon contact@teamop.fr. La phrase est celle des agents du Courrier (`agents-signature.js`, `ligneContacts`) : une seule rédaction. */
+function ligneContactsServeur() {
+  const a = adrNue(config.smtp && (config.smtp.from || config.smtp.user));
+  return require('./agents-signature').ligneContacts(/^[a-z0-9._%+-]+@teamop\.fr$/.test(a) ? a : 'contact@teamop.fr');
+}
 function supprDest() { return String(config.securiteEmail || config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').trim(); }
 function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
@@ -6230,7 +6243,7 @@ let comptes = null;
 try {
   if (config.comptes && config.comptes.actif) {
     comptes = require('./comptes').monterComptes(app, {
-      dossier: DATA_DIR, mailerEnvoi: (o) => mailerEnvoi(o), quotaOk,
+      dossier: DATA_DIR, mailerEnvoi: (o) => mailerEnvoi(o), quotaOk, ligneContacts: ligneContactsServeur,
       siteBase: 'https://teamop.fr',
       journal: (...a) => console.log('comptes:', ...a),
     });

@@ -37,7 +37,9 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
       ['pointage', /Pointage des heures/], ['droits personne par personne', /Droits réglés personne par personne/],
       ['formule sur mesure (catégories retirées, non facturées)', /catégories dont l’entreprise n’a pas besoin sont retirées, et elles ne sont pas facturées/],
       ['catégories créées, réservées à l’entreprise', /créées pour les besoins de l’entreprise, et elles lui sont réservées/],
-      ['à partir de 15 € par mois et par utilisateur, TVA non applicable', /à partir de 15 € par mois et par utilisateur \(TVA non applicable\)/]]) vrai('l’offre dit : ' + nom, motif.test(O));
+      ['à partir de 15 € par mois et par utilisateur, TVA non applicable', /à partir de 15 € par mois et par utilisateur \(TVA non applicable\)/],
+      ['nos courriels en indésirables : regarder ce dossier, « non-spam », enregistrer l’adresse de la signature (23 octobre 2026)', /marque le message « non-spam »[^']*enregistre l’adresse de la signature dans ses contacts/],
+      ['…sans jamais écrire l’adresse elle-même (elle dépend de la boîte qui envoie ; la signature la porte)', /jamais l’adresse elle-même/]]) vrai('l’offre dit : ' + nom, motif.test(O));
     vrai('⛔ les interdits sont écrits : aucune fonction absente comme existante, la « catégorie que nous pouvons créer pour vous », aucun autre prix / date / remise / engagement juridique',
       /AUCUNE fonction absente/.test(O) && /catégorie que nous pouvons créer pour vous/.test(O) && /aucun autre prix/.test(O) && /aucune date, aucune remise/.test(O) && /aucun engagement juridique/.test(O));
     vrai('⛔ la période d’essai se propose APRÈS le retour du client, jamais dans le premier message', /APRÈS le retour du client, jamais dans le premier message/.test(O));
