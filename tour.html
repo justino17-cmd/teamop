@@ -2344,6 +2344,13 @@ body.jour .ms-reu-ag{box-shadow:0 0 0 1px var(--line)}
   .ms-reu[data-plie="1"] .ms-reu-a,.ms-reu[data-plie="1"] .ms-reu-s,.ms-reu[data-plie="1"] .ms-reu-t small{display:none}
   .ms-reu{max-height:min(34%,230px)} .ms-reu-bd{padding:8px 12px;gap:6px} .ms-reu-a{width:100%} .ms-reu-btn{flex:1 1 0;white-space:normal;line-height:1.2;padding:4px 8px} .ms-reu-h{padding:0 12px} .ms-reu-c{padding:0 12px 10px} }
 @media(pointer:coarse){ .ms-reu-btn,.ms-reu-h,.ms-reu-plier{min-height:44px} }
+/* LES AGENTS DE LA PLATEFORME (23 octobre 2026) : le panneau réemploie `.ms-reu-*` ; seul le voyant d'état est à lui. Le sens d'un état ne suit pas la teinte : vert, ambre, rouge. */
+.ms-pf-pt{width:10px;height:10px;border-radius:50%;flex:none;box-sizing:border-box;background:var(--gray)}
+.ms-pf-pt.ok{background:var(--green)}
+.ms-pf-pt.alerte{background:var(--amber)}
+.ms-pf-pt.crit{background:var(--red)}
+.ms-pf .ms-lien:disabled{opacity:.45;cursor:default;text-decoration:none}
+@media(pointer:coarse){ .ms-pf .ms-lien{min-height:44px;display:inline-flex;align-items:center} }
 @container mess (max-width:1000px){
   .ms{grid-template-columns:240px minmax(0,1fr)}
   .ms-btn-tq{display:inline-flex;align-items:center}
@@ -10967,7 +10974,7 @@ function messTachesCharger(){
     messPeindreTaches();
   }).catch(function(){ if(MS.tachesLec!==1) MS.tachesLec=-1; messPeindreTaches(); });
 }
-function messToutCharger(){ return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
+function messToutCharger(){ if(MS.fil==='plateforme') messPfCharger(); return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
 /* La lecture d'un fil : entière à l'ouverture, INCRÉMENTALE ensuite (`?apres=`). Une réponse qui arrive après un changement de fil est jetée. */
 function messFilCharger(incr){
   var fil=MS.fil; if(incr&&MS.msgLec===-1) incr=false;   /* un fil qu'on n'a pas pu lire se retente tout seul, en entier */
@@ -11087,6 +11094,118 @@ function messVeiller(){
     if(TAB!=='messagerie'||!MS.inst) return;
     if(document.visibilityState==='visible'){ messToutCharger(); messFilCharger(true); messTimers(true); } else messTimers(false); }); }catch(e){}
 }
+/* ══════════ LES AGENTS DE LA PLATEFORME (23 octobre 2026) — au-dessus du fil « Plateforme » ══════════
+   Max (surveillance), Jules (incidents), Théo (sauvegardes, conservation), Nina (accès, RGPD, contrats), Inès (qualité), Victor (le point, la répartition, l'arbitrage).
+   Ce panneau LIT `GET /api/monitor/agents/plateforme` (des nombres, des clés, des phrases composées par le serveur — jamais un texte venu d'un client) et porte trois gestes du patron :
+   faire passer un agent maintenant, demander le point de Victor, marquer une demande RGPD traitée. Trois états comme partout : lu, en lecture, PAS PU LIRE (on ne dit pas « rien
+   d'anormal » d'une lecture qui a échoué). Ouvrir n'écrit rien. Il réemploie les classes du panneau des réunions (`ms-reu-*`) : une seule apparence pour les deux. */
+var MS_PF_AG_CLAUDE=['jules','victor'];   /* ceux qui peuvent appeler Claude à leur passage : on demande avant */
+var MS_PF_MODE={arret:'à l’arrêt',brouillon:'brouillon',auto:'allumé'};
+var MS_PF_NIV={critique:'Critique',important:'Important',info:'Info'};
+MS.pf={lec:0,d:null,err:'',enVol:false,occ:'',ouvert:{ep:true,ag:false,rgpd:true},plie:(typeof matchMedia==='function'?matchMedia('(max-width:899px)').matches:false)};
+function msPfIlYa(ts){
+  if(!ts) return 'pas encore';
+  var m=Math.max(0,Math.round((Date.now()-ts)/60000));
+  return m<1?'à l’instant':m<60?'il y a '+m+' min':m<1440?'il y a '+Math.round(m/60)+' h':'il y a '+Math.round(m/1440)+' j';
+}
+function msPfNom(id){ var a=msAgentsParId()[id]; return a?a.nom:id; }
+function msPfCartes(vide,groupes){
+  var ids=Object.keys(groupes).filter(function(k){ return groupes[k].length; });
+  if(!ids.length) return '<p class="ms-reu-vide">'+esc(vide)+'</p>';
+  return ids.map(function(k){ return '<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(msPfNom(k)).charAt(0).toUpperCase())+'</span><b>'+esc(msPfNom(k))+'</b></div><ul>'+groupes[k].join('')+'</ul></div>'; }).join('');
+}
+function msPfHtml(){
+  var R=MS.pf, d=R.d;
+  if(R.lec===0&&!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>Plateforme</b><small>Lecture…</small></div></div>';
+  if(!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>L’état des agents de la plateforme n’a pas pu être lu</b><small>'+esc(R.err||'On ne sait pas ce qu’ils ont relevé.')+'</small></div>'+
+    '<div class="ms-reu-a"><button type="button" class="ms-reu-btn" data-act="pfRecharger">Réessayer</button></div></div>';
+  var ouverts=(d.episodes||[]).filter(function(e){ return !e.fin; }), crit=ouverts.filter(function(e){ return e.niveau==='critique'; }).length;
+  var rgpd=Array.isArray(d.rgpd)?d.rgpd:[], retard=rgpd.filter(function(g){ return g.joursRestants<0; }).length;
+  var cls=crit||retard?'crit':ouverts.length||rgpd.length?'alerte':'ok';
+  var titre=ouverts.length?ouverts.length+(ouverts.length>1?' épisodes en cours':' épisode en cours')+(crit?' dont '+crit+' critique'+(crit>1?'s':''):''):'Rien d’anormal sur la plateforme';
+  var max=d.agents&&d.agents.max?d.agents.max:null;
+  var sous=d.illisible?'La mémoire des agents est illisible : ils se taisent plutôt que de deviner.':(max&&max.dernier?'Max a relu la santé '+msPfIlYa(max.dernier)+' (toutes les 5 minutes).':'Max n’a pas encore relu la santé depuis le démarrage.')+(rgpd.length?' · '+rgpd.length+' demande'+(rgpd.length>1?'s':'')+' RGPD à suivre.':'');
+  var h='<div class="ms-reu-bd"><span class="ms-pf-pt '+cls+'" aria-hidden="true"></span><div class="ms-reu-t"><b>'+esc(titre)+'</b><small>'+esc(sous)+'</small></div>'+
+    '<button type="button" class="ms-reu-plier" data-act="pfPlier" aria-expanded="'+!R.plie+'">'+(R.plie?'Détails':'Réduire')+'</button>'+
+    '<div class="ms-reu-a"><button type="button" class="ms-reu-btn" data-act="pfPoint"'+(R.occ?' disabled':'')+'>Dire le point de Victor</button></div></div>';
+  var o=R.ouvert;
+  /* les épisodes : en cours, puis rétablis cette semaine */
+  var par={}; ouverts.forEach(function(e){ (par[e.proprio]=par[e.proprio]||[]).push('<li><span>'+esc(e.texte)+'</span><small>'+esc(MS_PF_NIV[e.niveau]||e.niveau)+' · depuis '+esc(msPfIlYa(e.depuis).replace('il y a ',''))+(e.incident?' · incident ouvert dans la Tour':'')+(e.annonce?'':' · pas encore annoncé')+'</small></li>'); });
+  var rec=(d.recents||[]).slice(0,6).map(function(x){ return '<li><span>'+esc(x.texte)+'</span><small>'+esc(MS_PF_NIV[x.niveau]||x.niveau)+' · rétabli '+esc(msPfIlYa(x.fin))+'</small></li>'; });
+  h+='<section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="pfSection" data-s="ep" aria-expanded="'+!!o.ep+'">Épisodes <small>'+ouverts.length+' en cours · '+rec.length+' rétabli'+(rec.length>1?'s':'')+' sur 7 jours</small></button>';
+  if(o.ep) h+='<div class="ms-reu-c">'+msPfCartes('Aucun épisode en cours. Max, Théo et Nina relisent l’état de santé toutes les cinq minutes, avec les seuils de la surveillance horaire.',par)+(rec.length?'<div class="ms-reu-ag"><b>Rétablis</b><ul>'+rec.join('')+'</ul></div>':'')+'</div>';
+  /* les six agents */
+  h+='</section><section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="pfSection" data-s="ag" aria-expanded="'+!!o.ag+'">Les six agents <small>dernier passage et passage à la demande</small></button>';
+  if(o.ag){
+    h+='<div class="ms-reu-c">'+['max','jules','theo','nina','ines','victor'].map(function(id){
+      var a=(d.agents||{})[id]||{}, m=a.mode||'arret', det='';
+      if(id==='ines'&&a.derniere&&a.derniere.courriels) det=' · '+a.derniere.courriels.conformes+' courriel'+(a.derniere.courriels.conformes>1?'s':'')+' conforme'+(a.derniere.courriels.conformes>1?'s':'')+' sur '+a.derniere.courriels.envoyes;
+      if(id==='victor'&&a.dernierPoint) det=' · point '+(a.dernierPoint.statut==='fait'?'dit '+msPfIlYa(a.dernierPoint.ts):'à redire');
+      if(id==='jules') det=' · '+(a.diagnosticsAujourdhui||0)+' diagnostic'+((a.diagnosticsAujourdhui||0)>1?'s':'')+' aujourd’hui';
+      var dernier=id==='ines'?(a.relu||''):msPfIlYa(a.dernier);
+      return '<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(msPfNom(id)).charAt(0).toUpperCase())+'</span><b>'+esc(msPfNom(id))+'</b> <small>'+esc(MS_PF_MODE[m]||m)+'</small></div>'+
+        '<ul><li><span>Dernier passage : '+esc(id==='ines'?(a.relu?'relu le '+a.relu:'pas encore relu'):dernier)+esc(det)+'</span><button type="button" class="ms-lien" data-act="pfPasser" data-agent="'+id+'"'+(m==='arret'||R.occ?' disabled':'')+' aria-label="Faire passer '+esc(msPfNom(id))+' maintenant">Passer maintenant</button></li></ul></div>';
+    }).join('')+'</div>';
+    var dec=(d.victor&&d.victor.decisions)||[];
+    if(dec.length) h+='<div class="ms-reu-c"><div class="ms-reu-ag"><b>Décisions de Victor</b><ul>'+dec.map(function(x){ return '<li><span>'+esc(x.decision)+'</span><small>'+esc((x.entre||[]).map(msPfNom).join(' et '))+' · '+esc(msPfIlYa(x.ts))+(x.statut&&x.statut!=='dite'?' · '+esc(x.statut):'')+'</small></li>'; }).join('')+'</ul></div></div>';
+  }
+  /* les demandes RGPD suivies par Nina */
+  h+='</section><section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="pfSection" data-s="rgpd" aria-expanded="'+!!o.rgpd+'">Demandes RGPD <small>'+rgpd.length+' à suivre · délai légal : un mois</small></button>';
+  if(o.rgpd) h+='<div class="ms-reu-c">'+(rgpd.length?'<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">N</span><b>Nina</b></div><ul>'+rgpd.map(function(g){
+    return '<li><span>Reçue le '+esc(fmtDate(g.recu))+' · échéance le '+esc(fmtDate(g.limite).split(' · ')[0])+' — '+(g.joursRestants<0?'en retard de '+(-g.joursRestants)+' jour'+(g.joursRestants<-1?'s':''):g.joursRestants===0?'dernier jour':'il reste '+g.joursRestants+' jour'+(g.joursRestants>1?'s':''))+(g.accusee?' · accusé de réception envoyé':'')+'</span>'+
+      '<button type="button" class="ms-lien" data-act="pfRgpd" data-id="'+esc(g.id)+'"'+(R.occ?' disabled':'')+' aria-label="Marquer cette demande RGPD traitée">Marquer traitée</button></li>'; }).join('')+'</ul></div>'
+    :'<p class="ms-reu-vide">Aucune demande en cours. Camille passe à Nina une demande RGPD reçue par courriel ; Nina accuse réception et te rappelle avant la fin du mois.</p>')+'</div>';
+  return h+'</section>';
+}
+function messPeindrePf(){
+  var c=$('ms-pf'); if(!c||!MS.inst) return;
+  if(MS.fil!=='plateforme'){ if(!c.hidden){ c.hidden=true; c.innerHTML=''; c.removeAttribute('data-h'); } return; }
+  var h=msPfHtml();
+  c.hidden=false; c.setAttribute('data-plie',MS.pf.plie?'1':'0');
+  if(c.getAttribute('data-h')===h) return;
+  var act=document.activeElement, garde=act&&c.contains(act)&&act.getAttribute?(act.getAttribute('data-act')+'|'+(act.getAttribute('data-s')||act.getAttribute('data-agent')||act.getAttribute('data-id')||'')):'';
+  c.setAttribute('data-h',h); c.innerHTML=h;
+  if(garde){ var p=garde.split('|'), n=c.querySelector('[data-act="'+p[0]+'"]'+(p[1]?'[data-s="'+p[1]+'"],[data-act="'+p[0]+'"][data-agent="'+p[1]+'"],[data-act="'+p[0]+'"][data-id="'+p[1]+'"]':'')); if(n) n.focus({preventScroll:true}); }
+}
+function messPfCharger(){
+  var R=MS.pf; if(R.enVol) return Promise.resolve(); R.enVol=true;
+  return apiGet('/api/monitor/agents/plateforme').then(function(d){
+    R.enVol=false; if(!d) return;
+    if(d.ok&&d.agents){ R.d=d; R.lec=1; R.err=''; } else if(!R.d){ R.lec=-1; R.err=''; }
+    messPeindrePf();
+  },function(e){ R.enVol=false; if(!R.d){ R.lec=-1; R.err=msgErreur(e); } messPeindrePf(); });
+}
+/* un geste du patron : on grise les boutons le temps de l'appel, puis on relit (l'écran dit ce que le serveur a répondu, pas ce qu'on espérait) */
+function messPfGeste(url,corps,ok){
+  var R=MS.pf; if(R.occ) return Promise.resolve(null);
+  R.occ=url; messPeindrePf();
+  return apiPost(url,corps).then(function(x){
+    R.occ='';
+    if(x.ok) toast(typeof ok==='function'?ok(x.d):ok); else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    messPfCharger(); messFilTot(); messPeindrePf(); return x;
+  },function(){ R.occ=''; toast(INJOIGNABLE); messPeindrePf(); return null; });
+}
+function messPfPasser(agent){
+  if(MS_PF_AG_CLAUDE.indexOf(agent)>=0&&!confirm('Faire passer '+msPfNom(agent)+' maintenant ?\n\nIl peut appeler Claude, sur le budget des agents.')) return Promise.resolve(null);
+  return messPfGeste('/api/monitor/agents/plateforme/passer',{agent:agent},function(d){ return msPfNom(agent)+' est passé.'; });
+}
+function messPfPoint(){
+  if(!confirm('Dire le point de Victor maintenant dans « Équipe » ?\n\nIl le dit une fois de plus, en plus de celui du matin.')) return Promise.resolve(null);
+  return messPfGeste('/api/monitor/agents/plateforme/point',{},'Le point de Victor est dit dans « Équipe ».');
+}
+function messPfRgpd(id){
+  if(!confirm('Marquer cette demande RGPD comme traitée ?\n\nNina arrête ses rappels. Tu as répondu à la personne ?')) return Promise.resolve(null);
+  return messPfGeste('/api/monitor/agents/plateforme/rgpd',{id:id},'Demande RGPD marquée traitée.');
+}
+function messPfClic(el){
+  var a=el.getAttribute('data-act');
+  if(a==='pfRecharger'){ MS.pf.lec=0; messPeindrePf(); messPfCharger(); }
+  else if(a==='pfPlier'){ MS.pf.plie=!MS.pf.plie; messPeindrePf(); }
+  else if(a==='pfSection'){ var k=el.getAttribute('data-s'); MS.pf.ouvert[k]=!MS.pf.ouvert[k]; messPeindrePf(); }
+  else if(a==='pfPasser') messPfPasser(el.getAttribute('data-agent'));
+  else if(a==='pfPoint') messPfPoint();
+  else if(a==='pfRgpd') messPfRgpd(el.getAttribute('data-id'));
+}
 /* Les minuteries : seulement écran ouvert ET page visible. Chaque tour revérifie — et s'éteint lui-même si l'écran a été quitté. */
 function messTimers(oui){
   clearInterval(MS.tFil); clearInterval(MS.tListe); MS.tFil=0; MS.tListe=0;
@@ -11116,8 +11235,9 @@ function messChoisir(fil){
   MS.liste.ouverte=false;
   var t2=$('ms-ta'); if(t2){ t2.value=MS.brouillons[fil]||''; messMiroir(); }   /* chaque fil garde son brouillon */
   messMentionPeindre();
-  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau();
+  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindrePf(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau();
   if(fil==='reunions') messReunionsCharger();
+  if(fil==='plateforme') messPfCharger();
   messFilCharger(false);
 }
 function messDossier(n){ AG.sec='dossiers'; setTab('agents'); agDosOuvrir(n); }
@@ -11129,6 +11249,7 @@ function messMonter(){
     '<aside class="ms-gauche" aria-label="Conversations"><div class="ms-gt"><h1>Messagerie</h1><p>Les agents et toi</p></div><div class="ms-fils" id="ms-fils"></div></aside>'+
     '<section class="ms-centre" aria-label="Conversation"><header class="ms-hd" id="ms-hd"></header>'+
       '<div class="ms-reu" id="ms-reu" aria-label="Les réunions de l’équipe" hidden></div>'+
+      '<div class="ms-reu ms-pf" id="ms-pf" aria-label="Les agents de la plateforme" hidden></div>'+
       '<div class="ms-zone-flux"><div class="ms-flux" id="ms-flux" role="log" aria-live="polite" aria-label="Messages" tabindex="0"></div><button type="button" class="ms-nouv" id="ms-nouv" data-act="nouv" hidden>↓ Nouveaux messages</button></div>'+
       '<p class="ms-regle">Règle de sécurité : entre eux, les agents ne se passent que des tâches d’une liste fermée. Un texte venu d’un client ne devient jamais un ordre, et seules tes consignes vont, telles quelles, à Hugo et Margaux (argent et comptes).</p>'+
       '<div class="ms-comp" id="ms-comp"></div></section>'+
@@ -11140,7 +11261,7 @@ function messMonter(){
   zone.removeEventListener('click',messClic); zone.addEventListener('click',messClic);
   zone.addEventListener('mousedown',function(e){ if(e.target.closest&&e.target.closest('.ms-mi')) e.preventDefault(); });   /* choisir dans la liste ne retire pas le focus à la saisie */
   var fl=$('ms-flux'); fl.addEventListener('scroll',function(){ if(messColle()) messNouvCacher(); });
-  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau(); messPeindreTaches();
+  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindrePf(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau(); messPeindreTaches();
   messAjuster(); messTimers(true);
   if(MS.msgLec===1) messLire(MS.msgs);   /* la lecture a pu finir AVANT que l'écran existe : « lu » se pose une fois le fil affiché */
 }
@@ -11165,6 +11286,7 @@ function messClic(ev){
   else if(a==='reuSection'){ var k=el.getAttribute('data-s'); MS.reu.ouvert[k]=!MS.reu.ouvert[k]; messPeindreReunions(); }
   else if(a==='reuLancer') messReunionLancer(el.getAttribute('data-type'));
   else if(a==='reuRetirer') messLeconRetirer(el.getAttribute('data-agent'),el.getAttribute('data-id'));
+  else if(a.indexOf('pf')===0) messPfClic(el);
 }
 function messPeindreListe(){
   var c=$('ms-fils'); if(!c||!MS.inst) return;
