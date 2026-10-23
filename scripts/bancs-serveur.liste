@@ -244,3 +244,18 @@ tests/test-2883.js
 # pas de rejeu au redémarrage, le bilan du vendredi sur les objectifs du lundi, la mémoire dans le prompt d'une réponse puis retirée avec la leçon, lancement à la main, gardes, MON_GESTES).
 tests/test-2884.js
 tests/test-2885.js
+# 23 octobre 2026 : Léa, Chloé, Camille (et Louis) AUTONOMES — `test-2900` (le contrôle qualité : fautes du code, juge fermé, une réécriture, « Bonjour Louca… je suis Justin » tombe), `test-2901` (la signature posée
+# par le SERVEUR, jamais « Justin » ; controle@ exclue des agents), `test-2902` (l'authentification de l'en-tête de NOTRE serveur de réception, les gardes de l'envoi seul, la charte ouverte par défaut),
+# `test-2903` (la recherche web côté serveur : requête, pause_turn, plafonds, aucune donnée personnelle), `test-2904` (Chloé : la proposition sur mesure), `test-2905` (Camille : catégories, gabarits, résiliation
+# fermée vers Hugo, remboursement refusé, mail piégé), `test-2906` (Louis : Justin seul valide une connaissance), `test-2907` (la messagerie : la main passe par un fil dont le collègue est membre, annonces,
+# aucune donnée personnelle) et `test-2908` (le vrai serveur : dkim=pass aligné part seul, en-tête absent / forgé / d'un autre domaine reste en brouillon, controle@ jamais lue, la chaîne Léa → Camille → Chloé ;
+# ~2 min : il attend le second passage de la veille). ⛔ `test-2909` (la Tour et les pages juridiques) n'est PAS ici : il lit `tour.html` et des pages que `main` ne sert pas encore.
+tests/test-2900.js
+tests/test-2901.js
+tests/test-2902.js
+tests/test-2903.js
+tests/test-2904.js
+tests/test-2905.js
+tests/test-2906.js
+tests/test-2907.js
+tests/test-2908.js

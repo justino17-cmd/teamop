@@ -49,7 +49,7 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
     const reg15 = REGISTRE.map(a => a.id).filter(id => id !== 'hugo');
     let Z = montee();
     v('⛔ la table des rôles couvre EXACTEMENT les quinze du registre hors Hugo (ni oubli, ni agent fantôme)', [Z.m.ids.slice().sort(), Object.keys(AC.ROLES).sort()], [reg15.slice().sort(), reg15.slice().sort()]);
-    vrai('chaque rôle ne demande que des relevés qui existent', Object.values(AC.ROLES).every(r => r.faits.every(f => ['sante', 'equipe', 'courrier', 'clients', 'dossier'].includes(f))));
+    vrai('chaque rôle ne demande que des relevés qui existent', Object.values(AC.ROLES).every(r => r.faits.every(f => ['sante', 'equipe', 'courrier', 'clients', 'dossier', 'commercial'].includes(f))));
     v('Hugo (son module) et un inconnu ne passent pas par ici : rien n’est lu, appelé ni dit', [await Z.m.repondre('hugo', 'x'), await Z.m.repondre('pirate', 'x'), Z.j.penser.length + Z.j.parler.length + Z.j.faits.length], [{ saute: 'pas_de_cerveau' }, { saute: 'pas_de_cerveau' }, 0]);
     v('un module mal monté (sans cerveau) ne répond pas et ne jette pas', await AC({ agents: { AGENTS: REGISTRE }, conversations: {}, cerveau: null }).repondre('max', 'x'), { saute: 'pas_de_cerveau' });
 
@@ -246,12 +246,12 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
   const faitDe = (id, nom) => { const l = (lignesFaits(id) || []).find(x => x.startsWith(nom + ' ')); if (!l) return undefined; try { return JSON.parse(l.slice(l.indexOf('{'))); } catch (e) { return 'illisible'; } };
   let lignes = 0, toutesFermees = true, illisibles = 0;
   for (const id of QUINZE) for (const l of (lignesFaits(id) || [])) { const j = l.indexOf('{'); if (j < 0) continue; lignes++; let o; try { o = JSON.parse(l.slice(j)); } catch (e) { illisibles++; continue; } if (!fermee(o)) { toutesFermees = false; console.log('      non fermé : ' + l.slice(0, 200)); } }
-  v('(population) les 14 lignes de faits attendues ont été relevées et lues (sinon « fermé » ne prouve rien sur du vide)', [lignes, illisibles], [14, 0]);
+  v('(population) les 18 lignes de faits attendues ont été relevées et lues (sinon « fermé » ne prouve rien sur du vide ; 23 octobre : +4, le travail commercial de Léa, Camille, Chloé et Louis)', [lignes, illisibles], [18, 0]);
   vrai('⛔ TOUTES les lignes de faits ne portent que nombres, booléens, valeurs de liste et numéros de dossier', toutesFermees);
-  const quels = id => (lignesFaits(id) || []).map(l => l.split(' ')[0]).filter(x => /^(sante|equipe|courrier|clients|dossier)$/.test(x)).join(',');
-  const ATTENDU = { victor: 'sante,equipe,courrier,clients', ines: 'sante', camille: 'courrier,dossier', margaux: 'dossier', lea: 'clients,dossier', max: 'sante', nina: 'sante', theo: 'sante', jules: 'sante', chloe: '', emma: '', louis: '', sarah: '', lola: '', noah: '' };
+  const quels = id => (lignesFaits(id) || []).map(l => l.split(' ')[0]).filter(x => /^(sante|equipe|courrier|clients|dossier|commercial)$/.test(x)).join(',');
+  const ATTENDU = { victor: 'sante,equipe,courrier,clients', ines: 'sante', camille: 'courrier,dossier,commercial', margaux: 'dossier', lea: 'clients,dossier,commercial', max: 'sante', nina: 'sante', theo: 'sante', jules: 'sante', chloe: 'commercial', emma: '', louis: 'commercial', sarah: '', lola: '', noah: '' };
   v('⛔ chaque rôle reçoit SES relevés, et eux seuls', QUINZE.map(id => id + ':' + quels(id)).join(' '), QUINZE.map(id => id + ':' + ATTENDU[id]).join(' '));
-  vrai('les six sans relevé le disent (« aucun fait n’est fourni ») au lieu de laisser croire à des faits', ['chloe', 'emma', 'louis', 'sarah', 'lola', 'noah'].every(id => /aucun fait n’est fourni à ton rôle/.test(sys(id))));
+  vrai('les quatre sans relevé le disent (« aucun fait n’est fourni ») au lieu de laisser croire à des faits', ['emma', 'sarah', 'lola', 'noah'].every(id => /aucun fait n’est fourni à ton rôle/.test(sys(id))));
   const sante = faitDe('max', 'sante');
   vrai('la santé du serveur vient de /health LOCAL : ok, âge en heures, compteurs — des nombres', sante && sante.ok === true && Number.isFinite(sante.uptimeH) && Number.isFinite(sante.bugs1h) && Number.isFinite(sante.bugs24h) && sante.refus && Number.isFinite(sante.refus.synchro1h) && Number.isFinite(sante.refus.mail) && sante.sauvegarde && 'ageH' in sante.sauvegarde);
   const cour = faitDe('camille', 'courrier');
