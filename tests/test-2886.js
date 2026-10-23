@@ -111,5 +111,38 @@ const B = sansCommentaires(fs.readFileSync(path.join(RACINE, 'beta.html'), 'utf8
 const compteMotsDR = (s) => (s.match(MOT_DR) || []).length;
 v('le même nombre de « DR » (mot) dans app.html et beta.html', compteMotsDR(B), compteMotsDR(A));
 
+/* ══ Relecture du 23 octobre 2026 ══ */
+console.log('\n── relecture : refus, badge de la rangée, nom exact du droit ──');
+for (const nom of ['app.html', 'beta.html']) {
+  const code = sansCommentaires(fs.readFileSync(path.join(RACINE, nom), 'utf8'));
+  /* 1. ficheDemande est JOUÉE (la vraie fonction, openModal et les aides simulés) : un refus ne s'écrit pas « Validé par ». */
+  const i0 = code.indexOf('function ficheDemande(id){'), i1 = code.indexOf('\nlet demLignes', i0);
+  vrai(nom + ' : population : ficheDemande est trouvée (' + (i1 - i0) + ' signes)', i0 > 0 && i1 > i0 + 500);
+  let html = '';
+  const bac = { db: { demandes: [
+      { id: 'r', num: 'DC-1', statut: 'refuse', drNom: 'Zoé Test', motifRefus: 'Trop cher', lignes: [], date: '2026-10-23' },
+      { id: 'v', num: 'DC-2', statut: 'valide', drNom: 'Zoé Test', lignes: [], date: '2026-10-23' },
+      { id: 'a', num: 'DC-3', statut: 'enAttente', lignes: [], date: '2026-10-23' } ] },
+    openModal: (h) => { html = h; }, esc: (x) => String(x == null ? '' : x), badge: () => '', STATV: {}, boxLabel: () => '', userName: () => '', fmtShort: (x) => x,
+    demProduitNom: () => '', can: () => false };
+  vm.createContext(bac); vm.runInContext(code.slice(i0, i1), bac);
+  const libelles = (id) => { html = ''; bac.ficheDemande(id); return (html.match(/<div class="dt-lbl">[^<]*<\/div>/g) || []).map((x) => x.replace(/<[^>]+>/g, '')); };
+  const lr = libelles('r'), lv = libelles('v'), la = libelles('a');
+  vrai(nom + ' : population : la fiche refusée porte son motif', lr.includes('Motif de refus'), lr);
+  vrai(nom + ' : ⛔ une demande REFUSÉE se lit « Refusé par », jamais « Validé par »', lr.includes('Refusé par') && !lr.includes('Validé par'), lr);
+  vrai(nom + ' : une demande VALIDÉE se lit « Validé par »', lv.includes('Validé par') && !lv.includes('Refusé par'), lv);
+  vrai(nom + ' : une demande en attente (sans valideur) ne porte ni l’un ni l’autre', !la.includes('Validé par') && !la.includes('Refusé par'), la);
+  /* 2. la rangée « Commande envoyée au fournisseur » : plus de badge qui écrase le titre (le sous-titre dit déjà l’attente). */
+  const j0 = code.indexOf("'Commande envoyée au fournisseur'"), j1 = code.indexOf("</div>`; }).join('')", j0);
+  vrai(nom + ' : population : la rangée de commande de la box est trouvée', j0 > 0 && j1 > j0 && j1 - j0 < 3000, { j0, j1 });
+  vrai(nom + ' : ⛔ … sans badge « En attente de validation » (le sous-titre « Réception notée — en attente de validation » le dit)',
+    !/st st-purple[^>]*>📦 En attente de validation/.test(code.slice(j0, j1)) && /Réception notée — en attente de validation/.test(code.slice(j0, j1)));
+  /* 3. le refus cite le libellé EXACT du droit (celui de la grille des droits). */
+  const droit = (code.match(/\['validerDR','(Valider les mouvements[^']+)'/) || [])[1];
+  vrai(nom + ' : le droit s’appelle « Valider les mouvements de box et les demandes »', droit === 'Valider les mouvements de box et les demandes', droit);
+  const refus = code.match(/toast\('Validation réservée à qui a le droit « ([^»]+) »'\)/g) || [];
+  vrai(nom + ' : les deux refus (mouvement, demande) citent ce libellé exact (' + refus.length + ' lus)', refus.length === 2 && refus.every((x) => x.includes('« ' + droit + ' »')), refus);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

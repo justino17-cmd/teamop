@@ -29338,7 +29338,6 @@ function renderBoxDetail(){
               <div style="font-weight:800;font-size:13.5px">${sent?'Commande envoyée au fournisseur':'Commande prévue'}</div>
               <div style="font-size:12px;color:var(--t3)">${x.statut==='arrivageNote'?'<b style="color:var(--org)">Réception notée — en attente de validation</b>':(sent?'<b style="color:#60A5FA">En attente de réception</b>':(x.statut==='prete'?'Prête à envoyer':'En préparation'))}</div>
             </div>
-            ${x.statut==='arrivageNote'?'<span class="st st-purple" style="flex-shrink:0">📦 En attente de validation</span>':''}
           </div>
           <div style="margin-top:9px;border-top:1px solid var(--brd);padding-top:8px">
             ${prods.slice(0,8).map(l=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:2px 0"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t2)">• ${esc(l.designation||'—')}</span><b style="white-space:nowrap;color:var(--t1)">${esc(bonQteTxt(l))}</b></div>`).join('')}
@@ -30381,7 +30380,7 @@ let _resteApresValid='';
 /* accords : les quantités accordées par le DR, { 'index:du': -4, … } — lues sur l'écran quand il
    n'est pas fourni. Le mot pour le technicien vient du champ de la même carte. */
 function boxMvtValider(id,statut,accords){ _resteApresValid='';
-  if(!currentUser||!can('validerDR')){ toast('Validation réservée à qui a le droit « Valider les mouvements et demandes »'); return; }
+  if(!currentUser||!can('validerDR')){ toast('Validation réservée à qui a le droit « Valider les mouvements de box et les demandes »'); return; }
   const m=(db.boxMvtAttente||[]).find(x=>x.id===id&&x.statut==='enAttente'); if(!m) return;
   /* ⛔ v738 — LE PÉRIMÈTRE DU VALIDEUR N'EXISTAIT QU'À L'ÉCRAN. `visibleBoxMvts` filtre la liste, mais
      cette fonction appliquait tout mouvement dont on lui donnait l'identifiant (ancienne notification,
@@ -31689,7 +31688,7 @@ function ficheDemande(id){ const d=db.demandes.find(x=>x.id===id); if(!d)return;
       <div style="grid-column:1/-1"><div class="dt-lbl">Box concernée</div><div class="dt-val">${esc(d.boxNom||boxLabel(d.boxId))}</div></div>
       <div><div class="dt-lbl">Demandeur</div><div class="dt-val">${esc(d.chefNom||userName(d.chefId))}</div></div>
       <div><div class="dt-lbl">Date</div><div class="dt-val">${fmtShort(d.date)}</div></div>
-      ${d.drNom?`<div><div class="dt-lbl">Validé par</div><div class="dt-val">${esc(d.drNom)}</div></div>`:''}
+      ${d.drNom?`<div><div class="dt-lbl">${d.statut==='refuse'?'Refusé par':'Validé par'}</div><div class="dt-val">${esc(d.drNom)}</div></div>`:''}
       ${d.motifRefus?`<div style="grid-column:1/-1"><div class="dt-lbl">Motif de refus</div><div class="dt-val" style="color:var(--red)">${esc(d.motifRefus)}</div></div>`:''}</div>
     <div class="dt-lbl" style="margin:14px 0 8px">Produits demandés</div>
     ${(d.lignes||[]).map(l=>`<div class="pl-row" style="cursor:default"><div class="pl-info"><div class="pl-title">${esc(demProduitNom(l))}</div></div><span class="strong">×${l.quantite}</span></div>`).join('')||'<div style="color:var(--t3);font-size:13px">Aucun produit</div>'}
@@ -31859,7 +31858,7 @@ function delegationTracer(obj,quoi){
   if(obj){ obj.parDelegation={ deId:abs.id, deNom:fullName(abs), parId:currentUser.id, parNom:fullName(currentUser) }; }
   logEvent('Validé pendant tes congés',quoi+' — par '+fullName(currentUser)+', à ta place','demande',abs.id);
 }
-function validerDemande(id,statut){ if(!currentUser||!can('validerDR')){ toast('Validation réservée à qui a le droit « Valider les mouvements et demandes »'); return; }
+function validerDemande(id,statut){ if(!currentUser||!can('validerDR')){ toast('Validation réservée à qui a le droit « Valider les mouvements de box et les demandes »'); return; }
   const d=db.demandes.find(x=>x.id===id); if(!d)return;
   /* v738 : la même règle que la liste (visibleDemandes) — voir boxMvtValider */
   if(!visibleDemandes([d]).length){ toast('Cette demande ne relève pas de ton périmètre'); return; }
