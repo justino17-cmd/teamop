@@ -6494,7 +6494,7 @@ html[data-kind="mobile"] .sidebar{width:272px}
   /* Une fenêtre plein écran commence au bord du menu : elle partait de 226 ou 262 px, écrits
      pour d'anciennes largeurs — elle mordait sur le menu ou laissait une bande de page nue. */
   html[data-kind="mobile"] .overlay.full{left:272px}
-  html[data-kind="desktop"] .overlay.full{left:258px}
+  html[data-kind="desktop"] .overlay.full{left:284px}
 }
 @media(max-width:780px){ .content{padding-bottom:calc(var(--tabh) + 16px)} }
 html[data-kind="desktop"] .content{padding-bottom:22px}
@@ -6577,8 +6577,15 @@ html[data-os="android"] .tabbar{border-top:0;box-shadow:0 -1px 0 var(--brd)}
    pas reprise telle quelle. » 258 laisse 171 px pour 163 demandés — HUIT de marge, parce que deux ne suffisaient pas :
    mesuré, le libelle tenait sur le papier (dispo 165, besoin 163) et passait quand meme a la
    ligne. Sous-pixel, graisse de l'item actif, pastille de rappel. Une marge qui se compte sur
-   les doigts n'en est pas une — on mesure APRES, pas seulement avant. */
-html[data-kind="desktop"] .sidebar{width:258px}
+   les doigts n'en est pas une — on mesure APRES, pas seulement avant.
+   ⛔ 284 px DEPUIS LE 23 OCTOBRE 2026 : « Validation des mouvements » (ex « Validations DR ») est devenu le plus long libellé du
+   menu — 181,6 px en français (« Validación de movimientos » : 176,3 en espagnol, 13,4 de marge en anglais), pour 171 de place à
+   258 : deux lignes, 59 px au lieu de 44. On ÉLARGIT (tronquer cache une information, rapetisser descend sous le plancher de
+   lisibilité du terrain) : 284 laisse 197 px — 15 de marge en français, 20 en espagnol, 39 en anglais, mesurés
+   APRÈS à 1440 et 1100 px, jour et nuit (`scratchpad/metiers/sonde-e.js`, `tests/test-2904.js`). La fenêtre plein écran
+   (`.overlay.full`) commence au même bord. Le menu « au doigt » (272 px, tablettes et tiroir du téléphone) est une autre mesure :
+   voir `REPRISE.md`. */
+html[data-kind="desktop"] .sidebar{width:284px}
 html[data-kind="desktop"] .menu-btn{display:none!important}
 
 /* ── Le tiroir en verre, avec une encre qui tient sur une surface CLAIRE ──
@@ -36603,7 +36610,8 @@ function nuProfilChange(pid){
 function formUser(id){ const u=id?db.users.find(x=>x.id===id):{}; window._formUserNew=!id; window._formUserRole0=u.role||'technicien';
   if(!id){ nuBoxes=new Set(); nuVehs=new Set(); nuBoxTout=false; nuStk=false; }
   // Rattachements vus depuis le DR : avec 65 techniciens, ouvrir 65 fiches n'a pas de sens.
-  // Même donnée que le champ « Directeur régional responsable », lue dans l'autre sens.
+  // Même donnée que le champ « Valideur responsable » (`drId`), lue dans l'autre sens. Le champ s'appelait « Directeur régional
+  // responsable » alors que tout le circuit dit « valideur » : le NOM du rôle (« DR ») ne change pas, la case qui valide s'appelle valideur.
   drRattaches = new Set((db.users||[]).filter(x=>x&&id&&x.drId===id).map(x=>x.id));
   const lt = u.techId ? (db.techniciens||[]).find(x=>x.id===u.techId) : null;
   const isTech = roleEstTech(u.role||'technicien');
@@ -36619,7 +36627,7 @@ function formUser(id){ const u=id?db.users.find(x=>x.id===id):{}; window._formUs
       <div class="field"><label>Chef d'équipe</label>
         <select name="chefId">${[`<option value="">— aucun —</option>`].concat(chefsPossibles(u.id).map(x=>`<option value="${x.id}" ${u.chefId===x.id?'selected':''}>${esc(fullName(x))}</option>`)).join('')}</select>
         <div style="font-size:11px;color:var(--t3);margin-top:4px">Dès qu'au moins une personne lui est rattachée, ce chef ne voit plus que SON équipe : leurs interventions, leurs clients, leurs devis, leurs pointages. Tant que personne ne l'est, il continue de tout voir — rien n'est retiré sans qu'on l'ait décidé.</div></div>
-      <div class="field"><label>Directeur régional responsable</label>
+      <div class="field"><label>Valideur responsable</label>
         <select name="drId">${[`<option value="">— aucun (tous les valideurs sont prévenus) —</option>`].concat(valideursDR().filter(x=>x.id!==u.id).map(x=>`<option value="${x.id}" ${u.drId===x.id?'selected':''}>${esc(fullName(x))}</option>`)).join('')}</select>
         <div style="font-size:11px;color:var(--t3);margin-top:4px">Ses demandes et ses mouvements de box partent à ce valideur, et lui seul les voit dans « Validation des mouvements ». Sans choix, tous les valideurs sont prévenus, comme avant.</div></div>
       ${!id?nuBoxHtml():''}

@@ -53,9 +53,9 @@ vrai('⛔ les écrans Carte dégagent la barre d’onglets (le bord à bord ne r
 console.log('\n── 776 · 2. le menu au doigt, les fenêtres alignées ──');
 const mw = regle('html[data-kind="mobile"] .sidebar{width:272px}');
 vrai('⛔ au doigt (appareil « mobile »), le menu fait 272 px — à toute largeur', !!mw && mw.media === '', mw && mw.media);
-vrai('… le bureau garde ses 258 px', /html\[data-kind="desktop"\] \.sidebar\{width:258px\}/.test(SRC));
-const ovm = regle('html[data-kind="mobile"] .overlay.full{left:272px}'), ovd = regle('html[data-kind="desktop"] .overlay.full{left:258px}');
-vrai('⛔ une fenêtre plein écran commence au bord RÉEL du menu (272 au doigt, 258 au bureau)',
+vrai('… le bureau fait 284 px (258 jusqu\'au 23 octobre 2026 : « Validation des mouvements » demandait 182 pour 171)', /html\[data-kind="desktop"\] \.sidebar\{width:284px\}/.test(SRC));
+const ovm = regle('html[data-kind="mobile"] .overlay.full{left:272px}'), ovd = regle('html[data-kind="desktop"] .overlay.full{left:284px}');
+vrai('⛔ une fenêtre plein écran commence au bord RÉEL du menu (272 au doigt, 284 au bureau)',
   !!ovm && !!ovd && /min-width:781px/.test(ovm.media) && ovm.media === ovd.media);
 
 console.log('\n── 776 · 3. les planchers tactiles suivent le DOIGT, pas la largeur ──');
