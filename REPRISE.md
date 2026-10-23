@@ -13,6 +13,37 @@ de ligne du tout.
 
 ---
 
+# ⏳ 23 OCTOBRE 2026 — CHAUFFAGE / CLIMATISATION COMPLET (CVC) : PARC D'APPAREILS, ATTESTATION, FLUIDES, VISITES DES CONTRATS — BÊTA v772, RIEN SUR `main`
+
+Branche `claude/chauffage-clim` (copie `~/teamop-clim`), demande de Justin du 23 octobre (« Chauffage / climatisation, fais-le aussi »). Un seul bloc d'`app.html`, entre
+les marqueurs `═══ CVC — LE PARC D'APPAREILS` et `═══ fin du bloc CVC ═══` ; UNE fonction décide que le métier a un parc, `metierGereParc()` (`CVC_METIERS` : chauffage,
+froid, energies — « froid » et « energies » n'existent pas encore dans `METIERS`, l'autre chantier les ajoute). La 3D et les autres métiers ne voient RIEN de neuf
+(prouvé : bancs et sonde, y compris avec des appareils en base). Aucune ligne de `METIERS`, de la NAV ou des catégories n'a été touchée.
+
+**Fait** (un commit par partie, bancs `test-2895` à `test-2898`, 333 vérifications, `tests/cvc-monter.js` monte le VRAI bloc ; 87 mutations rejouées, `scratchpad/mutations-cvc.py`) :
+1. `db.appareils` (collection synchronisée, déclarée à tous ses registres : `COLLECTIONS_DONNEES`, `OP_CLASSES`, `migrate`, `COLLS_GARDEES`, droits de Clients, suppression, remise
+   à zéro) ; section « Appareils » de la fiche client ; carte « Appareils visités » de l'intervention ; « dernière intervention » et échéance d'entretien DÉDUITES, jamais recopiées ;
+   « Entretiens à planifier » dans les Tâches et sur le tableau de bord. `server/` n'a PAS changé (le socle classe par nom de collection). `test-731` passe à 28 collections.
+2. Attestation d'entretien d'une chaudière (PDF, `docEntete`, envoi `srvMail`, trace après la réussite). Seuils du CO sur le CO AMBIANT seulement.
+3. Fiches fluides frigorigènes dans l'intervention (`fichesFluides`), PRP, périodicité d'étanchéité, échéance sur l'appareil / Tâches / tableau de bord.
+4. Visite annuelle des contrats : une proposition (`Planifier` pré-remplit l'intervention), le contrat désigne ses appareils (`appareilIds`).
+Défaut de l'existant corrigé en route : `_pdfTranslit` écrivait « CO? » pour « CO₂ » dans TOUT PDF (le relevé des chauffagistes) — les chiffres en indice sont dits.
+
+⛔ **Ce qui n'a PAS pu être vérifié, et ce que le code en dit** : le règlement (UE) 2024/573 sur EUR-Lex n'a pas pu être lu (page vide). Les seuils (5 / 50 / 500 t éq. CO₂ → 12 / 6 / 3 mois,
+doublés avec détection ; HFO 1 / 10 / 100 kg) viennent de la FFB et de la CAPEB, cités en tête du bloc. NON confirmés : le seuil de 10 t des équipements « hermétiquement scellés » (case décochée par
+défaut) et les PRP du tableau (valeurs du règlement 517/2014 vues dans des tableaux de fabricants — le champ « PRP » de la fiche appareil, celui de la plaque, l'emporte). Ce n'est pas un calculateur
+opposable, l'écran le dit. À faire relire par quelqu'un qui a le texte.
+
+**Pas fait** : attestation PAC / climatisation (le détail de l'arrêté du 24 juillet 2020 n'a pas pu être relu — pas de document qui prétendrait le reproduire) ; verrou « pas de fluide sans n° d'attestation de
+capacité » et qualifications des techniciens ; suivi des bouteilles ; certificat de ramonage ; alertes de sécurité hors CO ambiant ; « appareils visités » dans le rapport d'intervention (`rapportConstatLignes`,
+partagé avec l'anti-nuisibles du chantier métiers) ; rappel au client à 30 puis 7 jours (seulement une proposition côté entreprise) ; ligne de la cloche pour les échéances.
+**À la fusion avec le chantier métiers** : ajouter `Contrôle d'étanchéité des fluides frigorigènes` aux types du pack chauffage (le code l'utilise s'il existe, sinon laisse le type vide) ; rien d'autre.
+⚠️ Le pack ne devra jamais RETIRER `Entretien annuel chaudière` / `Entretien chaudière fioul ou bois` / `Entretien pompe à chaleur` / `Entretien climatisation` / `Contrat d'entretien` sans mettre à jour `cvcTypeInterventionPour`.
+`test-747` (« masquer une rubrique passe par acces.modules ») est ROUGE sur le commit de départ `7d45d134`, avant ce chantier.
+
+---
+
+
 
 # ⏳ 22 OCTOBRE 2026 — AUDIT APPLE-DESIGN D'OP GESTION : LES 36 CORRIGÉS, BÊTA v771 — RIEN SUR `main`
 - Justin, 21 octobre : « audite toute l'interface avec le skill apple-design, liste chaque problème du plus grave au moins grave, puis

@@ -24,7 +24,7 @@ let ok = 0, ko = 0; const c = (t, v, d) => { if (v) { ok++; console.log('  ✓ '
   await S.c.envoyer('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   const calme = () => S.ev(`for(let k=0;k<60&&window._vtEnCours;k++) await new Promise(r=>setTimeout(r,50));
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void document.body.offsetWidth; return 1;`);
-  const capture = async nom => { if (!CAP) return; await dormir(250); const im = await S.c.envoyer('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(path.join(CAP, nom + '.png'), Buffer.from(im.data, 'base64')); };
+  const capture = async nom => { if (!CAP) return; await dormir(250); for (let k = 0; k < 3; k++) { try { const im = await S.c.envoyer('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(path.join(CAP, nom + '.png'), Buffer.from(im.data, 'base64')); return; } catch (e) { await dormir(800); } } console.log('    (capture ' + nom + ' impossible : le navigateur refuse — pas un défaut de la page)'); };
   /* un geste réel ; prouve d'abord que le point touché est bien l'élément */
   const geste = async (sel, souris, texte) => {
     const p = await S.ev(`const L=[...document.querySelectorAll(${JSON.stringify(sel)})].filter(e=>e.offsetWidth&&(!${JSON.stringify(texte || '')}||e.textContent.replace(/\\s+/g,' ').trim().includes(${JSON.stringify(texte || '')})));
