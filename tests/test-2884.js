@@ -167,7 +167,39 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
     const r = await H.tic();
     v('⛔ aucun agent allumé : UNE ligne du système « Réunion annulée : aucun agent n’est allumé », aucun appel', [!!r.annulee, H.messages().map(m => [m.de, m.texte]), H.appels.length], [true, [['systeme', 'Réunion annulée : aucun agent n’est allumé']], 0]);
     H.horloge.t += 60000; const r2 = await H.tic();
-    v('…la minute suivante ne la redit pas (le créneau est consommé)', [r2.saute, H.messages().length, H.reunions()[0].statut], ['deja', 1, 'annulee']);
+    v('…la minute suivante ne la redit pas (rien n\'a changé : elle ne se réécrit pas non plus)', [r2.saute, H.messages().length, H.reunions()[0].statut], ['deja', 1, 'annulee']);
+    const fichier = fs.readFileSync(path.join(H.D, 'agents-reunions.json'), 'utf8');
+    for (let i = 0; i < 5; i++) { H.horloge.t += 60000; await H.tic(); }
+    vrai('…cinq minutes de plus, toujours rien : ni ligne de plus, ni fichier réécrit', H.messages().length === 1 && fs.readFileSync(path.join(H.D, 'agents-reunions.json'), 'utf8') === fichier);
+    /* ⛔ relecture C1-C3 : une réunion annulée AVANT son premier appel consommait le créneau du jour — Justin allumait les agents à 9 h 15 et rien ne se tenait ce lundi */
+    for (const id of REG) await H.post('/api/monitor/agents/mode', { agent: id, mode: 'brouillon' });
+    H.horloge.t += 10 * 60000;
+    const r3 = await H.tic();
+    v('⛔ Justin rallume les agents après l\'heure : la réunion SE TIENT (le rattrapage va jusqu\'à midi), le créneau n\'avait pas été consommé', [!!r3.lancee, r3.annulee, H.appels.length > 10], [true, false, true]);
+    v('…une seule réunion inscrite pour ce créneau : l\'annulation d\'avant a cédé la place, et la nouvelle est terminée', [H.reunions().length, H.reunions()[0].statut, H.reunions()[0].cle, H.reunions()[0].reessai], [1, 'terminee', 'objectifs:2026-10-19', undefined]);
+    v('…le fil dit l\'annulation UNE fois, puis la réunion ; et la minute d\'après, plus rien ne se rejoue', [H.messages().filter(m => /^Réunion annulée/.test(m.texte)).length, H.messages().filter(m => m.de === 'systeme').length > 1], [1, true]);
+    const nA = H.appels.length; H.horloge.t += 60000; const r4 = await H.tic();
+    v('⛔ elle ne se rejoue pas : « déjà », aucun appel de plus', [r4.saute, H.appels.length], ['deja', nA]);
+  }
+  {
+    /* la clé absente : même règle (c'est le même empêchement, lu avant tout appel) */
+    let cle = false;
+    const H = await monter({ depart: U(2026, 10, 19, 7, 0), etatBudget: () => ({ illisible: false, cle }) });
+    await H.tic();
+    v('sans clé à 9 h : annulée, zéro appel', [H.reunions()[0].statut, H.appels.length], ['annulee', 0]);
+    cle = true; H.horloge.t += 20 * 60000;
+    const r = await H.tic();
+    v('⛔ la clé posée à 9 h 20 : la réunion se tient (un seul enregistrement, terminé)', [!!r.lancee, H.reunions().length, H.reunions()[0].statut], [true, 1, 'terminee']);
+  }
+  {
+    /* Justin essaie la réunion à la main à 8 h 50 (rien d'allumé) : l'essai annulé ne tient pas lieu de la réunion planifiée */
+    const H = await monter({ depart: U(2026, 10, 19, 6, 50), allumes: [] });
+    const an = await H.post('/api/monitor/agents/reunions/lancer', { type: 'objectifs' });
+    v('(population) l\'essai à la main de 8 h 50, sans agent allumé, est annulé', [an.code, an.corps.annulee], [200, true]);
+    for (const id of REG) await H.post('/api/monitor/agents/mode', { agent: id, mode: 'brouillon' });
+    H.horloge.t = U(2026, 10, 19, 7, 5);
+    const r = await H.tic();
+    v('⛔ à 9 h 05 les agents sont allumés : la réunion PLANIFIÉE se tient quand même', [!!r.lancee, H.reunions().filter(x => x.statut === 'terminee').length], [true, 1]);
   }
   {
     const H = await monter({ depart: U(2026, 10, 19, 7, 5), pause: true });

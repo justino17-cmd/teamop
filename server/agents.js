@@ -32,7 +32,8 @@
  *
  * Ce que le serveur déclare : sept routes sous `/api/monitor/agents`, déclarées EN ENTIER (la
  * table `ROUTES_COMMUNES` d'`index.js` lit `req.route.path`) ; elles tombent donc en GESTION, la
- * console fermée — voulu : l'équipe d'agents touche à l'argent et aux comptes. Lire : `monAdmin`.
+ * console fermée — voulu : l'équipe d'agents touche à l'argent et aux comptes. Lire : `monAdmin` — mais le TEXTE LIBRE des consignes
+ * (tâches, journal) n'est rendu qu'au patron.
  * Écrire (mode, pause, décision) : `monPatronStrict`. Les trois écritures sont aussi dans
  * `MON_GESTES` : `tests/test-1015.js` refuse une route POST de la Tour qui n'y est pas.
  *
@@ -406,6 +407,12 @@ module.exports = function monterAgents(app, ctx) {
   }
 
   /* ── les routes ── */
+  /* Le patron, jugé sur le compte que la garde a posé — jamais sur le corps de la requête. Sans `req.tourUser` (garde absente), on est « non patron » : dans le doute, rien. */
+  const estPatron = req => !!(req && req.tourUser && req.tourUser.role === 'patron');
+  /* Les lignes du journal dont `detail` est une PHRASE (la consigne prise ou passée, la leçon et le reste d'une réunion) — les autres portent un identifiant,
+     un compte, un motif de la liste. Par préfixe pour les réunions : une action neuve de réunion naît masquée, c'est le sens sûr. */
+  const texteLibreJournal = a => a === 'prendre une consigne' || a === 'passer une consigne' || String(a).startsWith('réunion : ');
+  const sansDetail = e => { const c = Object.assign({}, e); delete c.detail; c.detailReserve = true; return c; };
   const vue = v => ({ id: v.id, ts: v.ts, agent: v.agent, type: v.type, resume: v.resume, params: v.params, statut: v.statut,
     decideTs: v.decideTs || 0, decidePar: v.decidePar || '', execution: v.execution || '' });
 
@@ -421,7 +428,10 @@ module.exports = function monterAgents(app, ctx) {
     const id = IDS.has(String(req.query.agent || '')) ? String(req.query.agent) : '';
     const n = Math.min(Math.max(parseInt(req.query.limite, 10) || 100, 1), 500);
     if (illisibles.has(F_JOURNAL)) return res.status(503).json({ error: 'Le journal des agents est illisible' });   // jamais « [] » : une liste vide dit « rien ne s'est passé »
-    res.json({ ok: true, journal: journal.filter(e => !id || e.agent === id).slice(-n).reverse() });
+    /* ⛔ Le texte libre d'une consigne ou d'une leçon n'est lu que par le patron : `monAdmin` laisse passer tout compte actif, et ces lignes portent ce que
+       Justin a TAPÉ (un nom de client, un rappel). Les autres comptes lisent l'événement (qui, quoi, quand, résultat), pas la phrase. */
+    const patron = estPatron(req);
+    res.json({ ok: true, journal: journal.filter(e => !id || e.agent === id).slice(-n).reverse().map(e => (!patron && e.detail !== undefined && texteLibreJournal(e.action)) ? sansDetail(e) : e) });
   });
   app.get('/api/monitor/agents/validations', monAdmin, (req, res) => {
     perimer();
@@ -434,7 +444,11 @@ module.exports = function monterAgents(app, ctx) {
     if (illisibles.has(F_TACHES)) return res.status(503).json({ error: 'La file de tâches est illisible' });
     /* `passePar` : les identifiants de ceux qui ont passé cette tâche avant l'agent actuel (jamais un texte) — c'est ce qui permet à la Tour de dire
        « déléguée » sans le deviner (messagerie, « Qui fait quoi »). */
-    res.json({ ok: true, taches: taches.slice(-200).reverse().map(k => ({ id: k.id, ts: k.ts, de: k.de, vers: k.vers, type: k.type, params: k.params, statut: k.statut,
+    /* ⛔ Une consigne porte du texte libre (jusqu'à CONSIGNE_MAX signes, tapé par Justin ou écrit par un agent) : seul le patron le lit. Les autres comptes de la
+       Tour voient la tâche — qui, vers qui, quel état — avec un texte vide. Les demandes STRUCTURÉES (SCHEMAS) restent entières : ce sont des formes fermées. */
+    const patron = estPatron(req);
+    res.json({ ok: true, taches: taches.slice(-200).reverse().map(k => ({ id: k.id, ts: k.ts, de: k.de, vers: k.vers, type: k.type,
+      params: (!patron && k.type === 'consigne') ? { texte: '' } : k.params, statut: k.statut,
       passePar: Array.isArray(k.passePar) ? k.passePar.filter(x => IDS.has(x)) : [] })) });
   });
 

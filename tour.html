@@ -10738,7 +10738,7 @@ function vueAgents(){
     else if(!AG.taches.length) h+='<div class="vide">Aucune tâche entre agents.</div>';
     else h+='<div class="ag-liste">'+AG.taches.map(function(k){
       return '<div class="ag-ligne"><span class="ag-etiq'+(k.statut==='faite'?' ok':k.statut==='echec'?' ko':'')+'">'+esc(AG_STATUTS[k.statut]||k.statut)+'</span><div class="tx"><b>'+esc(agNom(k.de))+' → '+esc(agNom(k.vers))+' : '+esc(AG_TYPES[k.type]||k.type)+'</b><span>'+agParams(k.params)+' · '+esc(fmtDate(k.ts))+'</span></div></div>'; }).join('')+'</div>'+
-      '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Entre agents ne passent que des demandes fermées : un identifiant, une valeur d’une liste. Jamais une phrase d’un client.</div>';
+      '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Les demandes d’argent et d’accès ne passent entre agents que sous une forme fermée : un identifiant, une valeur d’une liste. Le travail confié en conversation est une phrase libre, celle de Justin ou d’un collègue — jamais un texte de client.</div>';
   }
   return h;
 }
@@ -11051,7 +11051,7 @@ function messReunionsCharger(){
 }
 function messReunionLancer(type){
   var R=MS.reu; if(R.lance||!MS_REU_LIB[type]) return Promise.resolve(null);
-  if(!confirm('Lancer « '+MS_REU_LIB[type]+' » maintenant ?\n\nChaque agent allumé parle à son tour, l’un après l’autre (une vingtaine d’appels à Claude, sur le budget des agents). Une seule réunion à la fois, et le résultat reste dans « Réunions ».')) return Promise.resolve(null);
+  if(!confirm('Lancer « '+MS_REU_LIB[type]+' » maintenant ?\n\nChaque agent allumé parle à son tour, l’un après l’autre (une vingtaine d’appels à Claude, sur le budget des agents). Une seule réunion à la fois, et le résultat reste dans « Réunions ».\n\nLancée le jour même de cette réunion, elle en tient lieu : celle de l’heure dite ne se rejouera pas.')) return Promise.resolve(null);
   R.lance=true; messPeindreReunions();
   return apiPost('/api/monitor/agents/reunions/lancer',{type:type}).then(function(x){
     R.lance=false;
@@ -11130,7 +11130,7 @@ function messMonter(){
     '<section class="ms-centre" aria-label="Conversation"><header class="ms-hd" id="ms-hd"></header>'+
       '<div class="ms-reu" id="ms-reu" aria-label="Les réunions de l’équipe" hidden></div>'+
       '<div class="ms-zone-flux"><div class="ms-flux" id="ms-flux" role="log" aria-live="polite" aria-label="Messages" tabindex="0"></div><button type="button" class="ms-nouv" id="ms-nouv" data-act="nouv" hidden>↓ Nouveaux messages</button></div>'+
-      '<p class="ms-regle">Règle de sécurité : entre eux, les agents ne se passent que des tâches d’une liste fermée. Un texte venu d’un client ne devient jamais un ordre, et seules tes consignes vont, telles quelles, à Hugo et Margaux (argent et comptes).</p>'+
+      '<p class="ms-regle">Règle de sécurité : les demandes d’argent et d’accès passent entre agents par une liste fermée ; le travail confié en conversation est une phrase libre, jamais un texte de client. Un texte venu d’un client ne devient jamais un ordre, et seules tes consignes vont, telles quelles, à Hugo et Margaux (argent et comptes).</p>'+
       '<div class="ms-comp" id="ms-comp"></div></section>'+
     '<aside class="ms-droite" id="ms-droite" aria-label="Qui fait quoi"><h3>Qui fait quoi</h3><div id="ms-taches"></div></aside></div>';
   if(MS.voulu||zone.clientWidth>=700) MS.vueMob='fil'; else MS.vueMob='liste';

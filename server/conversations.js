@@ -118,10 +118,24 @@ module.exports = function monterConversations(app, ctx) {
     catch (e) { console.error(F + ' non écrit :', e.message); return false; }
   }
   const propre = (t, n) => String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  /* ⛔ Un message qu'on n'a pas encore lu et qui porte un dossier ou le niveau « urgent » (le rappel d'un client) n'existe QU'ICI : le chasser du registre,
+     c'est que Justin ne rappelle jamais ce client, sans erreur ni trace — le dossier est toujours là, plus l'alerte. */
+  const protege = m => !!m && m.lu !== true && (m.niveau === 'urgent' || !!m.dossier);
+  /* Le plafond évince d'abord les plus anciens messages NON protégés (le bavardage, les lignes du système, ce qui est lu). Les protégés ne partent que si TOUT
+     le registre l'est — plus de MESSAGES_MAX rappels non lus —, du plus ancien : le fichier ne grossit jamais sans borne. */
+  function elaguer(liste) {
+    const exces = liste.length - MESSAGES_MAX;
+    if (exces <= 0) return liste;
+    const sortir = new Set();
+    for (const x of liste) { if (sortir.size >= exces) break; if (!protege(x)) sortir.add(x); }
+    for (const x of liste) { if (sortir.size >= exces) break; sortir.add(x); }
+    return liste.filter(x => !sortir.has(x));
+  }
   function ajouter(m) {
-    messages.push(m);
-    if (messages.length > MESSAGES_MAX) messages = messages.slice(-MESSAGES_MAX);
-    if (!ecrire()) { messages.pop(); return false; }
+    const avant = messages;
+    messages = elaguer(avant.concat([m]));
+    /* un échec d'écriture rend le registre EXACTEMENT comme il était — évincés compris (l'ancienne version ne retirait que le dernier). */
+    if (!ecrire()) { messages = avant; return false; }
     return true;
   }
   /* Prévenir l'équipe qu'un message est arrivé — sans attendre et sans JAMAIS faire échouer l'écriture. `surMessage(m)` reçoit une copie du message ;

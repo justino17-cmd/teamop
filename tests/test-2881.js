@@ -211,10 +211,25 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     v('…après le dernier : rien', (await S.G('/api/monitor/conversations/clients?apres=' + dernier.id)).j.messages, []);
     const R = await fetch(S.B + '/api/monitor/conversations?tous=1'), R2 = await fetch(S.B + '/api/monitor/conversations/clients'), R3 = await fetch(S.B + '/api/monitor/conversations/envoyer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     v('⛔ sans jeton : liste, fil, envoi refusés (403 — réservé au patron)', [R.status, R2.status, R3.status], [403, 403, 403]);
+    /* le patron lit AVANT la création du compte : la session par mot de passe d'administration ne survit pas à un compte créé (banc seulement) */
+    const tP = await S.G('/api/monitor/agents/taches'), jP = (await S.G('/api/monitor/agents/journal?limite=500')).j.journal;
     const K = await S.P('/api/monitor/users', { nom: 'Collab', pass: 'un-mot-de-passe-2881' });
     const lj = await (await fetch(S.B + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.9.0.1' }, body: JSON.stringify({ nom: 'Collab', pass: 'un-mot-de-passe-2881' }) })).json();
     const colla = async (m, r, c) => (await fetch(S.B + r, { method: m, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + lj.token }, body: m === 'POST' ? JSON.stringify(c || {}) : undefined })).status;
     v('⛔ un collaborateur (non patron) ne lit ni n’écrit : 403 partout', [K.s, await colla('GET', '/api/monitor/conversations?tous=1'), await colla('GET', '/api/monitor/conversations/clients'), await colla('POST', '/api/monitor/conversations/envoyer', { fil: 'clients', texte: 'je ne devrais pas' }), await colla('POST', '/api/monitor/conversations/lire', { fil: 'clients' })], [200, 403, 403, 403, 403]);
+    /* ⛔ LE TEXTE LIBRE DES CONSIGNES N'EST PAS POUR TOUT COMPTE ACTIF (relecture C1-C3) : `monAdmin` laisse lire la liste des tâches et le journal à un collaborateur ;
+       la phrase que Justin a tapée (« rappeler M. Durand… ») y est — il ne la lit pas, il lit l'événement. */
+    const collaJ = async r => { const x = await fetch(S.B + r, { headers: { Authorization: 'Bearer ' + lj.token } }); let o = {}; try { o = await x.json(); } catch (y) {} return { s: x.status, j: o, brut: JSON.stringify(o) }; };
+    const tC = await collaJ('/api/monitor/agents/taches');
+    const cP = tP.j.taches.filter(k => k.type === 'consigne');
+    vrai('(population) le patron lit au moins deux consignes, toutes avec leur texte — sinon « le collaborateur ne voit rien » passerait sur du vide', cP.length >= 2 && cP.every(k => k.params.texte.length > 5) && cP.filter(k => /TRAVAIL-2881/.test(k.params.texte)).length >= 2);
+    v('⛔ un collaborateur lit la liste des tâches (200) mais SANS le texte des consignes : ni le mot-clé, ni la phrase', [tC.s, tC.j.taches.filter(k => k.type === 'consigne').length, tC.j.taches.filter(k => k.type === 'consigne').every(k => k.params.texte === ''), /TRAVAIL-2881|Tâche prise/.test(tC.brut)], [200, cP.length, true, false]);
+    v('…les tâches elles-mêmes restent lisibles : mêmes identifiants, mêmes agents, mêmes statuts', tC.j.taches.map(k => [k.id, k.de, k.vers, k.statut]), tP.j.taches.map(k => [k.id, k.de, k.vers, k.statut]));
+    const jC = await collaJ('/api/monitor/agents/journal?limite=500');
+    const prises = jP.filter(e => e.action === 'prendre une consigne' && e.resultat === 'ok');
+    vrai('(population) le patron lit des consignes prises AVEC leur détail, et des lignes d’un autre genre (« mode ») avec le leur', prises.length >= 2 && prises.every(e => e.detail && e.detail.length > 5) && prises.filter(e => /TRAVAIL-2881/.test(e.detail)).length >= 2 && jP.some(e => e.action === 'mode' && e.detail));
+    v('⛔ un collaborateur lit le journal (200) SANS la phrase des consignes — la ligne reste, son détail est réservé', [jC.s, /TRAVAIL-2881|Tâche prise/.test(jC.brut), jC.j.journal.filter(e => e.action === 'prendre une consigne' && e.resultat === 'ok').every(e => e.detail === undefined && e.detailReserve === true), jC.j.journal.length], [200, false, true, jP.length]);
+    v('…les lignes sans texte libre sont intactes (« mode » garde son détail)', jC.j.journal.filter(e => e.action === 'mode').map(e => e.detail), jP.filter(e => e.action === 'mode').map(e => e.detail));
     const SRC = fs.readFileSync(SERVEUR, 'utf8');
     const i = SRC.indexOf('const MON_GESTES = {'), j = SRC.indexOf('\n};', i);
     const GESTES = SRC.slice(i, j);
