@@ -1,7 +1,7 @@
 CONDITIONS GÉNÉRALES TEAM OP
 Applicables à toutes les applications et à tous les abonnements
 
-Éditeur : TEAM OP — Justin Biret, entrepreneur individuel, SIREN 107 995 011 [À CONFIRMER : SIRET en cours d'attribution à la date de rédaction — le renseigner dès qu'il existe], 10 rue de la Gravière, 17220 Salles-sur-Mer, France. Contact : contact@teamop.fr. TVA non applicable, article 293 B du code général des impôts.
+Éditeur : TEAM OP — Justin Biret, entrepreneur individuel, SIREN 107 995 011 (SIRET en cours d'attribution), 10 rue de la Gravière, 17220 Salles-sur-Mer, France. Contact : contact@teamop.fr. TVA non applicable, article 293 B du code général des impôts.
 
 Article 1 — Objet et documents du contrat
 Les présentes conditions encadrent l'abonnement du Client aux applications de la suite TEAM OP (OP GESTION, OP MESSAGES et applications associées), proposées en ligne sur teamop.fr.
@@ -13,7 +13,7 @@ Le service est réservé aux professionnels (entreprises, artisans, micro-entrep
 Article 3 — Compte et accès
 Un compte TEAM OP est nécessaire pour souscrire. L'adresse électronique du compte doit être confirmée : c'est ce qui rattache chaque abonnement à la personne qui l'a souscrite et à son entreprise.
 Chaque abonnement ouvre un compte utilisateur nominatif. Les identifiants sont personnels ; le Client répond de l'usage qui en est fait par ses utilisateurs et prévient TEAM OP sans délai de toute utilisation non autorisée. Le Client administre lui-même les droits de ses utilisateurs.
-Les accès à l'application sont envoyés après l'acceptation du contrat. [À CONFIRMER : ce parcours (lien d'acceptation, envoi des accès à l'acceptation) n'est pas encore en service ; ne valider qu'une fois branché.]
+Les accès sont envoyés par courriel à l'adresse confirmée du compte, une fois l'espace ouvert.
 
 Article 4 — Prix, commande et paiement
 Les formules et leurs prix sont affichés sur teamop.fr/tarifs.html et rappelés dans les conditions particulières. Les prix sont en euros, par utilisateur et par mois, TVA non applicable (article 293 B du CGI).
@@ -21,7 +21,7 @@ Le paiement s'effectue par carte bancaire via Stripe, chaque mois ou chaque ann�
 Des codes promotionnels peuvent donner droit à une période offerte. Un code ne peut être utilisé qu'une fois par entreprise. Souscrire pendant une période offerte ne déclenche aucun prélèvement avant la fin de cette période lorsque l'adresse du compte désigne l'entreprise seule, que la fin de la période est comprise entre 48 heures et deux ans, et qu'aucun abonnement n'existe déjà ; sinon la facturation commence immédiatement.
 
 Article 5 — Changement de formule, places utilisateur
-Le Client peut changer de formule, ajouter ou retirer des abonnements (un abonnement = un utilisateur) à tout moment, sur simple demande au support ou depuis son espace. Les modalités de facturation du changement sont décrites dans les conditions particulières.
+Le Client peut changer de formule, ajouter ou retirer des abonnements (un abonnement = un utilisateur) à tout moment, sur simple demande au support ou depuis son espace. La nouvelle formule s'applique à la période suivante ; la période en cours n'est ni remboursée ni recalculée.
 
 Article 6 — Durée et résiliation
 L'abonnement est sans engagement de durée. Le Client peut résilier à tout moment depuis le Support de son espace client ou en écrivant à contact@teamop.fr. L'accès se poursuit jusqu'à la fin de la période déjà réglée ; l'application est ensuite suspendue jusqu'à un nouvel abonnement. Aucune période commencée n'est remboursée : celui qui s'abonne pour un mois puis cesse de s'en servir doit résilier son abonnement ; tant qu'il ne l'a pas résilié, la période suivante reste due.
@@ -32,18 +32,24 @@ En cas de paiement refusé ou impayé, TEAM OP en informe le Client par courriel
 
 Article 8 — Données du Client
 Les données saisies par le Client lui appartiennent. Elles sont chiffrées (AES-256), hébergées dans un espace isolé par entreprise, et exportables à tout moment.
-Un changement de formule, une résiliation ou un impayé n'entraînent aucune suppression. Les données sont conservées 24 mois après la fin de l'abonnement, puis supprimées ; un courriel prévient le Client 30 jours avant cette suppression. Le Client peut à tout moment exporter ses données ou demander leur effacement immédiat.
+Un changement de formule, une résiliation ou un impayé n'entraînent aucune suppression. Les données peuvent être supprimées après 24 mois sans abonnement. [À CONFIRMER PAR UN JURISTE : durée de 24 mois, sa justification et son articulation avec l'obligation de restitution ou de suppression des données en fin de contrat.] Le Client peut à tout moment exporter ses données ou demander leur effacement immédiat.
 Les rôles de chacun au regard du RGPD et la liste des sous-traitants sont fixés par le contrat de sous-traitance (annexe), qui fait partie du contrat.
 
 Article 9 — Disponibilité, maintenance et support
-TEAM OP met en œuvre les moyens raisonnables pour assurer une disponibilité continue du service, sans garantir une disponibilité sans interruption. Des opérations de maintenance peuvent entraîner des interruptions brèves ; TEAM OP s'efforce de les placer hors des heures de travail courantes. [À CONFIRMER : TEAM OP s'engage-t-il sur un taux de disponibilité chiffré ? Tant que non, ne rien chiffrer.]
+TEAM OP met en œuvre les moyens raisonnables pour une disponibilité continue, sans s'engager sur un taux chiffré. Des opérations de maintenance peuvent entraîner des interruptions brèves ; TEAM OP s'efforce de les placer hors des heures de travail courantes.
 Le support est assuré par courriel (support@teamop.fr) et depuis l'espace client. Le niveau d'assistance dépend de la formule (conditions particulières).
 
 Article 10 — État du service : ce qui fonctionne et ce qui n'est pas encore disponible
-TEAM OP indique clairement ce qui est disponible. Les fonctions listées dans les conditions particulières d'une formule sont celles qui sont ouvertes au jour de la souscription. OP MESSAGES n'est pas encore ouvert : ses formules ne sont pas facturées tant qu'il n'est pas disponible. Une fonction annoncée « bientôt disponible » ne fait pas partie de l'abonnement tant qu'elle n'est pas ouverte, et ne peut justifier aucune réclamation avant son ouverture.
+TEAM OP indique clairement ce qui est disponible. Les fonctions listées dans les conditions particulières d'une formule sont celles qui sont ouvertes au jour de la souscription. OP MESSAGES n'est pas encore ouvert : il ouvrira avec sa nouvelle version, à une date annoncée sur teamop.fr ; aucune formule n'est facturée avant. Une fonction annoncée « bientôt disponible » ne fait pas partie de l'abonnement tant qu'elle n'est pas ouverte, et ne peut justifier aucune réclamation avant son ouverture.
 
-Article 11 — Assistant de rédaction de devis (intelligence artificielle)
-L'assistant de devis, optionnel, transmet à notre sous-traitant Anthropic PBC (États-Unis) le texte de la demande du Client et le nom, l'adresse et la ville des clients concernés, sans conservation par TEAM OP. [À CONFIRMER : engagement que les données ne servent pas à entraîner des modèles — ne le garder que s'il est vérifié auprès d'Anthropic et repris dans sous-traitance.html.] Le Client qui ne souhaite pas ce transfert n'utilise pas l'assistant : le reste du service fonctionne sans lui. Le Client relit et valide chaque document généré avant de l'envoyer.
+Article 11 — Fonctions d'intelligence artificielle (Anthropic)
+Trois fonctions, optionnelles, transmettent du texte à notre sous-traitant Anthropic PBC (États-Unis), sans conservation par TEAM OP :
+(a) l'assistant de rédaction de devis en conversation : le fil de la conversation, le nom des sociétés émettrices du Client et, pour les 60 premiers clients visibles par l'utilisateur, leur nom, adresse et ville ;
+(b) le « Devis IA » rapide : le seul texte de la demande ;
+(c) « Traduire en français » dans le Courrier : le texte du courriel ouvert, tel quel, adresses électroniques et numéros compris, au seul geste de l'utilisateur et dans la limite de 100 traductions par jour et par entreprise.
+Les données transmises à Anthropic ne servent pas à entraîner ses modèles, selon ses conditions commerciales applicables à l'API.
+TEAM OP s'aide aussi d'Anthropic pour préparer ses propres réponses aux courriels et demandes qu'il reçoit (objet et texte du message, adresses électroniques et numéros de téléphone retirés) ; ces traitements sont décrits dans le contrat de sous-traitance (annexe).
+Le Client qui ne souhaite pas ces transferts n'utilise pas ces fonctions : le reste du service fonctionne sans elles. Le Client relit et valide chaque document généré avant de l'envoyer.
 
 Article 12 — Obligations du Client
 Le Client utilise le service conformément à la loi, ne saisit que des données qu'il a le droit de traiter et informe les personnes concernées. Il ne tente pas de contourner les protections du service, ne le revend pas et n'en extrait pas le contenu autrement que par les fonctions d'export.

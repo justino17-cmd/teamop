@@ -8,10 +8,10 @@ Fonctions comprises : toutes celles d'OP GESTION Business, plus
 - Toutes les fonctions d'OP GESTION pour le métier du Client
 - Logo et couleur de l'entreprise pour toute l'équipe
 - OP MESSAGES inclus à son ouverture (voir l'article suivant)
-- Création sur mesure d'une application selon les besoins du Client. [À CONFIRMER : périmètre exact — nombre de demandes, délai, ce qui est inclus et ce qui fait l'objet d'un devis séparé.]
+- Création sur mesure d'une application selon les besoins du Client : TEAM OP étudie la demande ; périmètre, délai et prix éventuel sont fixés dans un devis écrit, accepté avant tout travail.
 
 OP MESSAGES : n'est pas encore ouvert. Il sera inclus dans cette formule dès son ouverture, sans supplément. Rien n'est dû à ce titre avant.
 
-Assistance : accompagnement à la mise en route et assistance prioritaire. [À CONFIRMER : la page tarifs annonce un « service 24h/24, 7j/7 ». N'écrire un engagement de disponibilité de cette nature que s'il est réellement tenu, avec ses horaires et ses délais ; sinon corriger la page tarifs ET ce texte.]
+Assistance : assistance prioritaire et accompagnement à la mise en route.
 
-Changement de formule : voir les conditions particulières d'OP GESTION Pro. [À CONFIRMER : règle de facturation au changement de formule.]
+Changement de formule : voir les conditions particulières d'OP GESTION Pro. La nouvelle formule s'applique à la période suivante ; la période en cours n'est ni remboursée ni recalculée.

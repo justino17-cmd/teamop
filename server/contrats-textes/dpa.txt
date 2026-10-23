@@ -1,9 +1,9 @@
 CONTRAT DE SOUS-TRAITANCE DES DONNÉES (article 28 du RGPD) — ANNEXE
 
-Parties : le Client, responsable du traitement, et TEAM OP (Justin Biret, entrepreneur individuel, SIREN 107 995 011, 10 rue de la Gravière, 17220 Salles-sur-Mer), sous-traitant.
+Parties : le Client, responsable du traitement, et TEAM OP (Justin Biret, entrepreneur individuel, SIREN 107 995 011 (SIRET en cours d'attribution), 10 rue de la Gravière, 17220 Salles-sur-Mer), sous-traitant.
 
 Article 1 — Objet et durée
-TEAM OP traite des données à caractère personnel pour le compte du Client, pour fournir les applications souscrites, pendant la durée de l'abonnement puis la période de conservation prévue aux conditions générales (24 mois, avec un avertissement 30 jours avant suppression).
+TEAM OP traite des données à caractère personnel pour le compte du Client, pour fournir les applications souscrites, pendant la durée de l'abonnement puis la période de conservation prévue aux conditions générales (les données peuvent être supprimées après 24 mois sans abonnement).
 
 Article 2 — Nature des données et des personnes
 Données saisies par le Client : coordonnées de ses clients et prospects, adresses d'intervention, rapports, devis, factures, données de ses utilisateurs (nom, courriel, pointages). Personnes concernées : clients et prospects du Client, ses salariés et collaborateurs.
@@ -12,7 +12,16 @@ Article 3 — Obligations de TEAM OP
 TEAM OP traite les données uniquement sur instruction documentée du Client ; garantit la confidentialité de ses accès ; chiffre les données (AES-256) et isole chaque entreprise ; aide le Client à répondre aux demandes des personnes concernées ; notifie au Client toute violation de données dans un délai de 48 heures après en avoir eu connaissance ; supprime ou restitue les données à la fin du contrat ; met à disposition les informations nécessaires aux audits.
 
 Article 4 — Sous-traitants ultérieurs
-Le Client autorise le recours aux sous-traitants suivants : IONOS (hébergement, France ; sauvegardes à Francfort) ; Google Firebase (copie gelée conservée 30 jours) [À CONFIRMER : OP MESSAGES vit encore sur Firebase tant qu'il n'a pas son propre serveur — le dire ici] ; Stripe (paiement) ; Anthropic PBC (assistant de devis, optionnel ; agents internes uniquement avec des faits fermés) ; GitHub (publication du site). Tout changement est annoncé au Client avec un préavis lui permettant de s'y opposer.
+Le Client autorise le recours aux sous-traitants suivants : IONOS (hébergement, France ; sauvegardes à Francfort ; le serveur d'OP MESSAGES tourne sur le même serveur que l'API de TEAM OP) ; Google Firebase (pour OP GESTION, copie figée conservée 30 jours puis supprimée ; pour OP MESSAGES, stockage tant qu'il n'a pas son propre serveur) ; Stripe (paiement) ; Anthropic PBC (fonctions d'intelligence artificielle : assistant de devis et « Traduire en français », optionnels, au geste du Client ; agents internes de TEAM OP, décrits à l'article 4 bis) ; GitHub (publication du site). Tout changement est annoncé au Client avec un préavis lui permettant de s'y opposer.
+
+Article 4 bis — Ce que reçoit Anthropic PBC
+Rien n'est conservé par TEAM OP à cette occasion. Sont transmis :
+(a) assistant de rédaction de devis en conversation, si le Client s'en sert : le fil de la conversation, le nom des sociétés émettrices et, pour les 60 premiers clients visibles par l'utilisateur, leur nom, adresse et ville ;
+(b) « Devis IA » rapide : le seul texte de la demande ;
+(c) « Traduire en français » dans le Courrier, au seul geste de l'utilisateur (100 par jour et par entreprise au plus) : le texte du courriel ouvert, tel quel, adresses électroniques et numéros compris ;
+(d) agents internes de TEAM OP (console d'administration, réservée à l'éditeur) : dans la conversation avec l'éditeur, son message (adresses électroniques retirées) et des faits fermés sur les dossiers cités ; mais aussi du texte libre — courriels reçus par TEAM OP (objet et texte tel quel, signature comprise), réponses de prospects à nos courriels, besoin décrit à l'inscription —, adresses électroniques et numéros de téléphone retirés, noms non retirés ; pour préparer une proposition : le nom de l'entreprise, son métier, le nombre d'utilisateurs et la formule ;
+(e) « Expliquer la cause » et « Proposer un correctif » d'un incident, à la demande de l'éditeur : le message d'erreur, sa trace, l'écran concerné et un extrait du code de l'application, adresses électroniques et numéros de téléphone retirés.
+Les données transmises à Anthropic ne servent pas à entraîner ses modèles, selon ses conditions commerciales applicables à l'API.
 
 Article 5 — Transferts hors Union européenne
 Les transferts vers des prestataires établis aux États-Unis sont encadrés par les clauses contractuelles types de la Commission européenne ou par le cadre de protection des données UE–États-Unis. [À CONFIRMER PAR UN JURISTE : mécanisme retenu pour chaque prestataire et pièces à joindre.]

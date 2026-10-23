@@ -43,6 +43,18 @@ const PAQUETS = {
 };
 /* Un texte qui porte encore un point à confirmer ne se valide pas : le tampon dirait que tout est relu. */
 const MARQUEUR = /\[\s*[AÀ]\s+(?:CONFIRMER|COMPLÉTER|VÉRIFIER|RENSEIGNER)/i;
+/* LES RÉVISIONS DES TEXTES RÉDIGÉS (23 octobre 2026, relecture juridique). `semer` n'entre un texte que sur un type VIDE : sur un registre déjà peuplé (celui du VPS), corriger
+   un `.txt` ne change donc RIEN pour la Tour. Une révision nommée ici dépose, UNE fois, le texte du fichier comme brouillon de plus — jamais validé, jamais « en vigueur » :
+   les versions déjà validées (et ce que les clients ont reçu) ne bougent pas, et Justin compare puis valide. La marque `revision` sur la version est ce qui rend le dépôt unique :
+   au démarrage suivant, la révision est là, rien ne se redépose — même si la version a été retirée, même si Justin a écrit la sienne depuis. ⛔ Une révision de plus s'AJOUTE
+   ici avec un nouveau nom : réutiliser un nom ferait croire un texte déjà déposé. Les types dont le fichier n'a pas bougé n'y figurent pas. */
+const REVISION_JURIDIQUE = 'relecture-juridique-2026-10-23';
+const REVISIONS = {
+  conditions_generales: REVISION_JURIDIQUE, conditions_op_messages: REVISION_JURIDIQUE, dpa: REVISION_JURIDIQUE,
+  cp_op_gestion_pro: REVISION_JURIDIQUE, cp_op_gestion_business: REVISION_JURIDIQUE, cp_op_gestion_business_premium: REVISION_JURIDIQUE,
+  cp_op_messages_business_premium: REVISION_JURIDIQUE,
+};
+const NOTE_REVISION = 'Révision du 23 octobre 2026 (relecture juridique) — à comparer à la version en vigueur, puis valider ; les points « PAR UN JURISTE » restent à trancher';
 const connu = t => typeof t === 'string' && Object.prototype.hasOwnProperty.call(TYPES, t);
 const TEXTE_MAX = 80000, NOTE_MAX = 300;
 const DOS = /^DOS-\d{6}$/;
@@ -82,7 +94,7 @@ module.exports = function contrats(app, ctx) {
   }
   const vueVersion = (v, avecTexte) => { const o = { n: v.n, ts: v.ts, auteur: v.auteur, statut: v.statut, note: v.note || '', longueur: String(v.texte || '').length }; if (v.statut === 'valide' || v.statut === 'retire') { o.validePar = v.validePar; o.valideLe = v.valideLe; o.empreinte = v.empreinte; } if (avecTexte) o.texte = v.texte; return o; };
 
-  function brouillon(type, texte, auteur, note) {
+  function brouillon(type, texte, auteur, note, revision) {
     if (!connu(type)) return { code: 400, error: 'Type de document inconnu' };
     if (illisibles.has(F_DOCS)) return { code: 503, error: 'Le registre des contrats est illisible' };
     const t = typeof texte === 'string' ? texte.replace(/\r\n/g, '\n').trim() : '';
@@ -90,6 +102,7 @@ module.exports = function contrats(app, ctx) {
     if (t.length > TEXTE_MAX) return { code: 400, error: 'Texte trop long (' + TEXTE_MAX + ' caractères au plus)' };
     const liste = versions(type).slice();
     const v = { n: liste.reduce((m, x) => Math.max(m, x.n), 0) + 1, ts: maintenant(), auteur: String(auteur || '').slice(0, 60), texte: t, statut: 'brouillon', note: String(note || '').slice(0, NOTE_MAX) };
+    if (revision) v.revision = String(revision).slice(0, 80);
     const avant = docs[type]; docs[type] = liste.concat([v]);
     if (!ecrire(F_DOCS, docs)) { if (avant === undefined) delete docs[type]; else docs[type] = avant; return { code: 503, error: 'Brouillon non enregistré' }; }
     noter('contrat : brouillon', { cible: type, detail: 'version ' + v.n + ' par ' + v.auteur });
@@ -169,14 +182,16 @@ module.exports = function contrats(app, ctx) {
     if (!ecrire(F_CLIENTS, clients)) { clients = avant; return { ok: false, raison: 'non_ecrit' }; }
     return { ok: true, contrat: Object.assign({}, c) };
   }
-  /* Les textes rédigés (dossier contrats-textes) entrent comme BROUILLONS, une fois, sur un type encore vide. Jamais validés ici. */
+  /* Les textes rédigés (dossier contrats-textes) entrent comme BROUILLONS : une fois sur un type encore vide, et une fois par RÉVISION nommée (voir REVISIONS). Jamais validés ici. */
   function semer(dossierTextes) {
     if (!dossierTextes || illisibles.has(F_DOCS)) return 0;
     let n = 0; enSemis = true;
     try { for (const t of Object.keys(TYPES)) {
-      if (versions(t).length) continue;
+      const rev = REVISIONS[t] || '';
+      if (versions(t).length && (!rev || versions(t).some(x => x.revision === rev))) continue;
       let texte; try { texte = fs.readFileSync(path.join(dossierTextes, t + '.txt'), 'utf8'); } catch (e) { continue; }
-      if (brouillon(t, texte, 'Rédaction (agents)', 'Texte initial — à relire et trancher les points « À CONFIRMER »').code === 200) n++;
+      const neuf = !versions(t).length;
+      if (brouillon(t, texte, 'Rédaction (agents)', neuf ? 'Texte initial — à relire et trancher les points « À CONFIRMER »' : NOTE_REVISION, rev).code === 200) n++;
     } } finally { enSemis = false; }
     return n;
   }
@@ -222,3 +237,4 @@ module.exports = function contrats(app, ctx) {
 module.exports.TYPES = TYPES;
 module.exports.PAQUETS = PAQUETS;
 module.exports.sha = sha;
+module.exports.REVISIONS = REVISIONS;

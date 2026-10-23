@@ -18,6 +18,6 @@ Fonctions comprises
 
 Assistance : par courriel (support@teamop.fr) et depuis l'espace client.
 
-Changement de formule : le Client peut passer à OP GESTION Business ou Business Premium, ou redescendre, sur simple demande. [À CONFIRMER : règle de facturation au changement — au prorata, ou au début de la période suivante ; l'écrire telle qu'elle est réellement appliquée par Stripe.]
+Changement de formule : le Client peut passer à OP GESTION Business ou Business Premium, ou redescendre, sur simple demande. La nouvelle formule s'applique à la période suivante ; la période en cours n'est ni remboursée ni recalculée.
 
 Les fonctions qui ne sont pas listées ci-dessus (stock, bons de commande, registre sanitaire, comptabilité, personnalisation) ne font pas partie de cette formule.
