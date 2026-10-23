@@ -131,6 +131,15 @@ console.log('\n── 2895 · 4. l’échéance d’entretien se DÉDUIT ──'
   vrai('la période de l’appareil remplace celle du type', W.cvcEntretienEcheance(ap('a2')).date === '2025-11-10');
   vrai('31 janvier + 1 mois = 28 février (pas le 3 mars)', W.cvcAddMois('2026-01-31', 1) === '2026-02-28' && W.cvcAddMois('2028-02-29', 12) === '2029-02-28' && W.cvcAddMois('2026-11-30', 3) === '2027-02-28');
   vrai('cvcJours : différence de jours entière, sans dérive d’heure d’été', W.cvcJours('2026-10-25', '2026-10-23') === 2 && W.cvcJours('2026-03-30', '2026-03-28') === 2 && W.cvcJours('2026-10-20', '2026-10-23') === -3);
+  /* ⛔ la période par défaut de CHAQUE type, écrite en dur : lire la table contre elle-même ne garderait rien */
+  const PERIODES = { chaudiere_gaz: 12, chaudiere_fioul: 12, chaudiere_bois: 12, pac_eau: 24, pac_air: 24, clim_split: 24, clim_multi: 24, clim_gainable: 24, cet: 12, vmc: 12, autre: 12 };
+  v('période d’entretien par défaut de chacun des 11 types', Object.keys(PERIODES).map(k => W.cvcPeriodeEntretien({ type: k })), Object.keys(PERIODES).map(k => PERIODES[k]));
+  vrai('un type inconnu retombe sur « Autre appareil » (12 mois)', W.cvcPeriodeEntretien({ type: 'inconnu' }) === 12 && W.cvcPeriodeEntretien(null) === 12);
+  vrai('⛔ le nombre de types est connu : un type de plus doit entrer dans ce tableau', W.cvcType({ type: 'cet' }).k === 'cet' && W.cvcType({ type: 'vmc' }).k === 'vmc' && /const CVC_TYPES=\[([\s\S]*?)\n\];/.exec(require('./cvc-monter.js').APP)[1].match(/\{k:'/g).length === Object.keys(PERIODES).length);
+  v('période de l’appareil : bornes 1 et 120 acceptées, 0 et 121 retombent sur le type', [W.cvcPeriodeEntretien({ type: 'vmc', periodeMois: 1 }), W.cvcPeriodeEntretien({ type: 'vmc', periodeMois: 120 }), W.cvcPeriodeEntretien({ type: 'vmc', periodeMois: 0 }), W.cvcPeriodeEntretien({ type: 'vmc', periodeMois: 121 })], [1, 120, 12, 12]);
+  /* ⛔ seule une visite TERMINÉE remet l'horloge à zéro */
+  ['planifiee', 'encours', 'aplanifier'].forEach(st => { const X = monter({ db: cdc(BASE) }); X.db.interventions.push({ id: 'ip', clientId: 'c1', statut: st, date: '2026-10-01', type: 'Entretien annuel chaudière', appareilIds: ['a1'] });
+    vrai('⛔ une visite d’entretien seulement « ' + st + ' » ne compte pas comme entretien fait', X.cvcDernierEntretien(X.db.appareils[0]).id === 'i1'); });
   vrai('une visite née d’un contrat compte comme entretien, même sans le mot', W.cvcEstEntretien({ contratId: 'k1', type: 'Visite' }) && !W.cvcEstEntretien({ type: 'Dépannage chauffage' }));
 }
 
@@ -149,8 +158,21 @@ console.log('\n── 2895 · 5. les propositions ──');
   const W2 = monter({ db: BASE, clientsVisibles: ['c1'] });
   v('⛔ jamais chez un client qu’on ne voit pas', W2.cvcPropositions().map(p => p.appareilIds[0]), ['a1', 'a2']);
   const W3 = monter({ db: cdc(BASE) });
-  W3.db.interventions.push({ id: 'i9', clientId: 'c1', statut: 'planifiee', date: '2026-10-29', appareilIds: ['a1'] });
-  v('déjà planifiée : plus proposée', W3.cvcPropositions().map(p => p.appareilIds[0]), ['a4', 'a2']);
+  W3.db.interventions.push({ id: 'i9', clientId: 'c1', statut: 'planifiee', date: '2026-10-29', type: 'Entretien annuel chaudière', appareilIds: ['a1'] });
+  v('déjà planifiée (une visite d’ENTRETIEN) : plus proposée', W3.cvcPropositions().map(p => p.appareilIds[0]), ['a4', 'a2']);
+  /* ⛔ « Changer le client » d'une intervention ne vide pas appareilIds : elle ne compte alors plus pour l'appareil de l'autre client */
+  const W3e = monter({ db: cdc(BASE) });
+  W3e.db.interventions.push({ id: 'i8', clientId: 'c2', statut: 'terminee', date: '2026-10-20', type: 'Entretien annuel chaudière', appareilIds: ['a1'] });
+  v('⛔ une visite terminée d’un AUTRE client qui cite a1 ne repousse pas son échéance (a1 reste proposé)', [W3e.cvcPropositions().some(p => p.appareilIds[0] === 'a1'), W3e.cvcIntsDe(W3e.db.appareils.find(a => a.id === 'a1')).some(i => i.id === 'i8')], [true, false]);
+  const W3f = monter({ db: cdc(BASE) });
+  W3f.db.interventions.push({ id: 'i8', clientId: 'c2', statut: 'terminee', date: '2026-10-20', type: 'Entretien annuel chaudière', appareilIds: ['a1'] });
+  v('… de même par l’index (le tableau de bord et les Tâches)', W3f.cvcAvecIndex(() => W3f.cvcPropositions().some(p => p.appareilIds[0] === 'a1') ), true);
+  const W3b = monter({ db: cdc(BASE) });
+  W3b.db.interventions.push({ id: 'i9', clientId: 'c1', statut: 'planifiee', date: '2026-10-29', type: 'Dépannage chauffage', appareilIds: ['a1'] });
+  v('⛔ un DÉPANNAGE planifié qui cite l’appareil n’est pas un entretien : l’entretien reste proposé', W3b.cvcPropositions().map(p => p.appareilIds[0]), ['a4', 'a1', 'a2']);
+  const W3c = monter({ db: cdc(BASE) });
+  W3c.db.interventions.push({ id: 'i9', clientId: 'c1', statut: 'planifiee', date: '2026-10-29', type: '', titre: 'Entretien — Chaudière gaz', appareilIds: ['a1'] });
+  v('une visite SANS type, intitulée « Entretien — … » (née de « Planifier » sans type voulu) : plus proposée', W3c.cvcPropositions().map(p => p.appareilIds[0]), ['a4', 'a2']);
   const W4 = monter({ db: cdc(BASE), today: '2026-08-01' });
   vrai('à plus de 30 jours : rien', W4.cvcPropositions().every(p => p.j <= 30) && !W4.cvcPropositions().some(p => p.appareilIds[0] === 'a1'));
   const html = W.cvcTachesBloc();
@@ -246,6 +268,7 @@ console.log('\n── 2895 · 9. règle d’étanchéité : seuils, aux frontiè
   v('frontière 50 t pile : 6 mois', mois(F(50, 1000)), 6);
   v('frontière 499,999 t : 6 mois', mois(F(499.999, 1000)), 6);
   v('frontière 500 t pile : 3 mois', mois(F(500, 1000)), 3);
+  v('⛔ détection permanente OBLIGATOIRE à 500 t pile, pas à 499,999 t', [F(500, 1000).detectionObligatoire, F(499.999, 1000).detectionObligatoire], [true, false]);
   v('le PRP de la plaque l’emporte sur le tableau (R32 à 2088 : 3 kg = 6,3 t)', mois(R('R32', 3, { prp: 2088 })), 12);
   v('équipement hermétiquement scellé : seuil 10 t (7 t → non)', mois(F(7, 1000, { scelle: true })), false);
   v('… et 10 t pile → oui', mois(F(10, 1000, { scelle: true })), 12);

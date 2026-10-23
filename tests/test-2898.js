@@ -92,7 +92,7 @@ console.log('\n── 2898 · 3. la proposition, et « Planifier » qui n’écr
   const k1 = C.find(p => p.contratId === 'k1');
   v('contenu : client, titre, appareils désignés, type, clé, jours', [k1.clientId, k1.titre, k1.appareilIds, k1.type, k1.cle, k1.j], ['c1', 'Visite d’entretien — Entretien annuel chaudière', ['a1'], 'Entretien annuel chaudière', 'ctr:k1:2026-11-15', 23]);
   const k2 = C.find(p => p.contratId === 'k2');
-  v('contrat sans appareil désigné : aucun appareil dans la proposition, mais il couvre tout le parc du client', [k2.appareilIds, k2.couvre], [[], ['a3']]);
+  v('⛔ contrat sans appareil désigné : la proposition CITE tout le parc couvert (sinon la visite ne remet l’horloge d’aucun appareil)', [k2.appareilIds, k2.couvre], [['a3'], ['a3']]);
   vrai('type par défaut du contrat Durand (chaudière fioul) : « Entretien chaudière fioul ou bois »', k2.type === 'Entretien chaudière fioul ou bois', k2.type);
   vrai('triées par urgence', P.every((p, k) => k === 0 || P[k - 1].j <= p.j));
   const avant = JSON.stringify(W.db);
@@ -176,6 +176,21 @@ console.log('\n── 2898 · 8. les crochets du fichier livré ──');
   const iF = CODE.indexOf('function formContrat('), iS = CODE.indexOf('function saveContrat(');
   vrai('formContrat pose la zone des appareils et écoute le changement de client', iF > 0 && /\$\{typeof cvcContratChamp==='function'\?cvcContratChamp\(ct\):''\}/.test(CODE.slice(iF, iS)) && /onchange="if\(typeof cvcContratMaj==='function'\)cvcContratMaj\(this\)"/.test(CODE.slice(iF, iS)));
   vrai('saveContrat range les appareils AVANT de fusionner dans le contrat', /if\(typeof cvcContratLire==='function'\) cvcContratLire\(e\.target,d\);/.test(CODE.slice(iS, iS + 900)));
+}
+
+console.log('\n── 2898 · 9. ⛔ la boucle entière : un contrat « tout le parc », Planifier, la visite faite — l’entretien n’est plus dû ──');
+{
+  const W = monter({ db: BASE });
+  const k2 = W.cvcPropositions().find(p => p.kind === 'contrat' && p.contratId === 'k2');
+  vrai('départ : le contrat sans case cochée propose sa visite, et l’appareil du parc (fioul de 2023) est en retard', !!k2 && !!W.cvcEntretienEcheance(W.db.appareils[2]) && W.cvcJours(W.cvcEntretienEcheance(W.db.appareils[2]).date, AUJ) < 0);
+  W.cvcPlanifier(k2.cle);
+  const pre = W.__interForm[W.__interForm.length - 1].pre;
+  v('« Planifier » ouvre l’intervention en CITANT le parc couvert, rattachée au contrat', [pre.appareilIds, pre.contratId], [['a3'], 'k2']);
+  const db = cdc(BASE); db.interventions.push({ id: 'v1', clientId: pre.clientId, contratId: pre.contratId, type: pre.type, appareilIds: pre.appareilIds, statut: 'terminee', date: '2026-10-20' });
+  const W2 = monter({ db, today: AUJ });
+  v('visite terminée le 20/10 : aucune proposition (ni d’entretien en retard, ni de visite de contrat)', W2.cvcPropositions().filter(p => p.clientId === 'c2').map(p => p.cle), []);
+  const W3 = monter({ db, today: '2026-10-23' });
+  vrai('… et l’appareil porte la date de cette visite comme dernier entretien', (W3.cvcDernierEntretien(W3.db.appareils[2]) || {}).id === 'v1');
 }
 
 console.log('\n══ test-2898 : ' + ok + ' ✓  ' + ko + ' ✗ ══');

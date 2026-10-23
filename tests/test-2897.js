@@ -138,7 +138,22 @@ console.log('\n── 2897 · 4. l’échéance paraît sur l’appareil, les T�
   vrai('à plus de 30 jours : l’étanchéité de a2 n’est pas encore proposée', !W2.cvcPropositions().some(p => p.kind === 'etancheite' && p.appareilIds[0] === 'a2'));
   /* planifiée : une intervention non terminée cite l'appareil → plus proposée. i2 (en cours) cite a2 */
   const W3 = monter({ db: BASE, today: '2026-10-23' });
-  vrai('⛔ a2 est cité par une intervention EN COURS (i2) : plus proposée', !W3.cvcPropositions().some(p => p.appareilIds[0] === 'a2'), W3.cvcPropositions().map(p => p.cle));
+  vrai('⛔ i2 (EN COURS, type « Maintenance ») cite a2 mais n’est NI un entretien NI un contrôle : l’étanchéité ET l’entretien de a2 restent proposés',
+    W3.cvcPropositions().some(p => p.kind === 'etancheite' && p.appareilIds[0] === 'a2') && W3.cvcPropositions().some(p => p.kind === 'entretien' && p.appareilIds[0] === 'a2'), W3.cvcPropositions().map(p => p.cle));
+  const W3a = monter({ db: BASE, today: '2026-10-23' }); W3a.db.interventions[1].type = 'Contrôle d’étanchéité des fluides frigorigènes';
+  vrai('un CONTRÔLE D’ÉTANCHÉITÉ planifié sur a2 : l’étanchéité n’est plus proposée, l’entretien l’est encore (autre obligation)',
+    !W3a.cvcPropositions().some(p => p.kind === 'etancheite' && p.appareilIds[0] === 'a2') && W3a.cvcPropositions().some(p => p.kind === 'entretien' && p.appareilIds[0] === 'a2'), W3a.cvcPropositions().map(p => p.cle));
+  const W3d = monter({ db: BASE, today: '2026-10-23' }); W3d.db.interventions[1].type = 'Entretien pompe à chaleur';
+  vrai('un ENTRETIEN planifié sur a2 : l’entretien n’est plus proposé, l’étanchéité l’est encore',
+    W3d.cvcPropositions().some(p => p.kind === 'etancheite' && p.appareilIds[0] === 'a2') && !W3d.cvcPropositions().some(p => p.kind === 'entretien' && p.appareilIds[0] === 'a2'), W3d.cvcPropositions().map(p => p.cle));
+  /* ⛔ le plafond de 30 jours : une étanchéité à onze mois n'encombre ni le tableau de bord ni les Tâches */
+  const W5 = monter({ db: BASE, today: '2026-10-23' }); W5.db.interventions[1].statut = 'annulee';
+  const e5 = W5.cvcEtancheiteEcheance(W5.db.appareils[1]);
+  vrai('l’échéance d’étanchéité de a2 est bien dans onze mois d’ici l’an prochain (précondition)', e5 && e5.date === '2026-11-20', e5);
+  const lim2 = (auj) => { const X = monter({ db: BASE, today: auj }); X.db.interventions[1].statut = 'annulee'; return X.cvcPropositions().some(p => p.kind === 'etancheite' && p.appareilIds[0] === 'a2'); };
+  v('⛔ plafond 30 j : proposée à 30 j (21/10), pas à 31 j (20/10), toujours proposée en retard', [lim2('2026-10-21'), lim2('2026-10-20'), lim2('2026-12-01')], [true, false, true]);
+  vrai('… et pas à plus de onze mois', !lim2('2025-12-01'));
+  v('la pastille : orange jusqu’à 30 j, verte au-delà, rouge en retard', [W5.cvcPastille(30, '').includes('st-org'), W5.cvcPastille(31, '').includes('st-green'), W5.cvcPastille(-1, '').includes('st-red'), W5.cvcPastille(0, '').includes('st-org')], [true, true, true, true]);
   const W4 = monter({ db: BASE, today: '2026-10-23' }); W4.db.interventions[1].statut = 'terminee';
   vrai('… et reparaît dès qu’elle est terminée sans nouveau contrôle', W4.cvcPropositions().some(p => p.kind === 'etancheite' && p.appareilIds[0] === 'a2'));
   const html = W4.cvcTachesBloc();

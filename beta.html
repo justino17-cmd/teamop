@@ -40215,14 +40215,15 @@ function cvcLibelle(a){ const t=cvcType(a), m=[a.marque,a.modele].filter(Boolean
    plusieurs fois par appareil). `cvcAvecIndex` bâtit UNE table appareil → interventions pour la durée d'un calcul, et la jette — jamais gardée d'un écran
    à l'autre : une intervention close entre deux affichages doit se voir. */
 let _cvcIdx=null;
-function cvcIndex(){ const ints=new Map(), fiches=new Map();
+function cvcIndex(){ const ints=new Map(), fiches=new Map(), chez=new Map((db.appareils||[]).filter(a=>a).map(a=>[a.id,a.clientId]));
   (db.interventions||[]).forEach(i=>{ if(!i||i.statut==='annulee') return;
-    (Array.isArray(i.appareilIds)?i.appareilIds:[]).forEach(id=>{ if(!ints.has(id)) ints.set(id,[]); ints.get(id).push(i); });
+    /* ⛔ une intervention ne compte pour un appareil que chez LE MÊME client : « Changer le client » (intSetClient) ne touche pas à appareilIds */
+    (Array.isArray(i.appareilIds)?i.appareilIds:[]).forEach(id=>{ if(chez.get(id)!==i.clientId) return; if(!ints.has(id)) ints.set(id,[]); ints.get(id).push(i); });
     (Array.isArray(i.fichesFluides)?i.fichesFluides:[]).forEach(f=>{ if(!f||!f.appareilId) return; if(!fiches.has(f.appareilId)) fiches.set(f.appareilId,[]); fiches.get(f.appareilId).push(f); }); });
   return {ints,fiches}; }
 function cvcAvecIndex(fn){ if(_cvcIdx) return fn(); _cvcIdx=cvcIndex(); try{ return fn(); } finally{ _cvcIdx=null; } }
 function cvcIntsDe(a){ if(_cvcIdx) return (_cvcIdx.ints.get(a.id)||[]).slice();
-  return (db.interventions||[]).filter(i=>i&&i.statut!=='annulee'&&Array.isArray(i.appareilIds)&&i.appareilIds.indexOf(a.id)>=0); }
+  return (db.interventions||[]).filter(i=>i&&i.statut!=='annulee'&&i.clientId===a.clientId&&Array.isArray(i.appareilIds)&&i.appareilIds.indexOf(a.id)>=0); }
 function cvcParDateDesc(a,b){ return String((b.date||'')+(b.heure||'')).localeCompare(String((a.date||'')+(a.heure||''))); }
 function cvcDerniereIntervention(a){ return cvcIntsDe(a).filter(i=>i.statut==='terminee'&&cvcIsoOk(i.date)).sort(cvcParDateDesc)[0]||null; }
 /* Ce qui remet l'horloge de l'entretien à zéro : une visite d'entretien ou une mise en service, ou une visite née d'un contrat.
@@ -40236,7 +40237,13 @@ function cvcEntretienEcheance(a){ const P=cvcPeriodeEntretien(a), d=cvcDernierEn
   if(cvcIsoOk(a.miseEnService)) return {date:cvcAddMois(a.miseEnService,P),base:'miseEnService',depuis:a.miseEnService,mois:P};
   return null; }
 /* Déjà prévue : une intervention non terminée cite l'appareil — inutile de la proposer une seconde fois. */
-function cvcPlanifiee(a){ return cvcIntsDe(a).some(i=>i.statut==='planifiee'||i.statut==='encours'||i.statut==='aplanifier'); }
+function cvcNonTerminee(i){ return i.statut==='planifiee'||i.statut==='encours'||i.statut==='aplanifier'; }
+/* ⛔ « Déjà prévue » se dit PAR OBLIGATION : un dépannage planifié qui cite l'appareil n'accomplit ni l'entretien ni le contrôle d'étanchéité.
+   Une visite sans type n'est pas écartée (elle vient de « Planifier » quand le type voulu n'existe pas dans la liste) : son titre tranche. */
+function cvcVise(i,genre){ const t=String(i.type||''), re=genre==='etancheite'?/[ée]tanch/i:/entretien|mise en service/i;
+  if(genre==='entretien'&&i.contratId) return true;
+  return re.test(t)||(!t.trim()&&re.test(String(i.titre||''))); }
+function cvcPlanifiee(a,genre){ return cvcIntsDe(a).some(i=>cvcNonTerminee(i)&&(!genre||cvcVise(i,genre))); }
 const CVC_RAPPEL_J=30;    // une échéance se montre dans les 30 jours qui la précèdent, et reste montrée tant qu'elle n'est pas traitée
 function cvcPastille(j,mot){ if(j==null) return '';
   const cls=j<0?'st-red':j<=CVC_RAPPEL_J?'st-org':'st-green';
@@ -40255,12 +40262,12 @@ function cvcPropositionsCalc(auj){ auj=auj||todayISO();
   const vus=new Set(visibleClients(db.clients||[]).map(c=>c.id)), out=[];
   /* la visite d'un contrat d'abord : elle CONTIENT l'entretien des appareils qu'elle couvre, qu'on ne propose donc pas une seconde fois */
   const ctr=cvcContratPropositions(auj,vus), couverts=new Set(); ctr.forEach(p=>p.couvre.forEach(id=>couverts.add(id))); out.push(...ctr);
-  (db.appareils||[]).forEach(a=>{ if(!a||!vus.has(a.clientId)||cvcPlanifiee(a)) return;
-    const e=cvcEntretienEcheance(a), j=e?cvcJours(e.date,auj):null;
+  (db.appareils||[]).forEach(a=>{ if(!a||!vus.has(a.clientId)) return;
+    const e=cvcPlanifiee(a,'entretien')?null:cvcEntretienEcheance(a), j=e?cvcJours(e.date,auj):null;
     if(e&&j<=CVC_RAPPEL_J&&!couverts.has(a.id)) out.push({cle:'ent:'+a.id+':'+e.date,kind:'entretien',clientId:a.clientId,date:e.date,j,appareilIds:[a.id],
       titre:'Entretien — '+cvcLibelle(a),type:cvcTypeInterventionPour([a])});
     /* l'étanchéité est une AUTRE obligation que l'entretien : sa propre ligne, sa propre échéance (règle : cvcEtancheiteRegle) */
-    const t=cvcEtancheiteEcheance(a), jt=t?cvcJours(t.date,auj):null;
+    const t=cvcPlanifiee(a,'etancheite')?null:cvcEtancheiteEcheance(a), jt=t?cvcJours(t.date,auj):null;
     if(t&&jt<=CVC_RAPPEL_J) out.push({cle:'etc:'+a.id+':'+t.date,kind:'etancheite',clientId:a.clientId,date:t.date,j:jt,appareilIds:[a.id],
       titre:'Contrôle d’étanchéité — '+cvcLibelle(a),type:((typeof intTypes==='function'?intTypes():[]).indexOf('Contrôle d’étanchéité des fluides frigorigènes')>=0?'Contrôle d’étanchéité des fluides frigorigènes':'')}); });
   return out.sort((x,y)=>x.j-y.j); }
@@ -40838,7 +40845,7 @@ function cvcContratVisite(ct,auj){ auj=auj||todayISO();
 function cvcContratPropositions(auj,vus){ const out=[];
   visibleDocs(db.contrats||[]).forEach(ct=>{ if(!ct||!vus.has(ct.clientId)) return;
     const e=cvcContratVisite(ct,auj); if(!e) return;
-    const apps=cvcContratAppareils(ct), ids=Array.isArray(ct.appareilIds)?ct.appareilIds.filter(x=>apps.some(a=>a.id===x)):[];
+    const apps=cvcContratAppareils(ct), ids=apps.map(a=>a.id);   /* ⛔ aucune case cochée = TOUT le parc : la visite le CITE, sinon elle ne remet l'horloge d'aucun appareil */
     out.push({cle:'ctr:'+ct.id+':'+e.date,kind:'contrat',clientId:ct.clientId,date:e.date,j:e.j,contratId:ct.id,appareilIds:ids,couvre:apps.map(a=>a.id),
       titre:'Visite d’entretien — '+(ct.titre||ct.num||'contrat'),type:cvcTypeInterventionPour(apps)||((typeof intTypes==='function'?intTypes():[]).indexOf('Contrat d’entretien')>=0?'Contrat d’entretien':'')}); });
   return out; }
