@@ -176,7 +176,7 @@ const iSauve = INDEX.indexOf('function saveMailboxes()');
 const SAUVE = iSauve < 0 ? '' : INDEX.slice(iSauve, iSauve + 700).split(/\n(?=function |app\.)/)[0];
 vrai('(population) la fonction qui écrit mailboxes.json est trouvée', SAUVE.length > 40 && /writeFileSync\(MAILBOX_PATH/.test(SAUVE), SAUVE.slice(0, 120));
 const BOITES_EN_CLAIR = /JSON\.stringify\(\s*mailboxes\s*\)/.test(SAUVE);
-const DIT_CHIFFRE = T => /mots? de passe d.application[^.<]{0,120}conserv\w+ chiffr/i.test(T) || /conserv\w+ chiffr\w*[^.<]{0,60}mots? de passe d.application/i.test(T);
+const DIT_CHIFFRE = T => /mots? de passe d.application[^.<]{0,120}conserv\S*\s+chiffr/i.test(T) || /conserv\S*\s+chiffr\S*[^.<]{0,60}mots? de passe d.application/i.test(T);   // \S et non \w : « conservé » porte un é
 const PAGES_BOITES = [['registre-traitements.html', REG], ['sous-traitance.html', SOUS], ['confidentialite.html', CONF], ['apercu/registre-traitements.html', txtPage('apercu/registre-traitements.html')], ['apercu/sous-traitance.html', txtPage('apercu/sous-traitance.html')], ['apercu/confidentialite.html', txtPage('apercu/confidentialite.html')]];
 for (const [f, T] of PAGES_BOITES) vrai('⛔ ' + f + ' : ' + (BOITES_EN_CLAIR ? 'ne dit pas « conservé chiffré » du mot de passe d’une boîte (le code l’écrit en clair)' : 'dit le mot de passe d’une boîte « conservé chiffré » (le code ne l’écrit plus en clair)'), DIT_CHIFFRE(T) === !BOITES_EN_CLAIR);
 vrai('⛔ le registre dit ce que fait le code des mots de passe de boîtes (' + (BOITES_EN_CLAIR ? '« sans chiffrement propre », seules les sauvegardes chiffrées' : 'chiffré sur le serveur') + ')',
