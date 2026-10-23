@@ -69,7 +69,24 @@ vrai('⛔ la configuration de la production n\'est que LUE : PROD_CONFIG ne sert
 const systemctls = SRC.match(/systemctl [^\n]*/g) || [];
 vrai('systemctl n\'est appelé que sur l\'unité de TEST, nginx, ou daemon-reload (' + systemctls.length + ' appels)', systemctls.length >= 4 && systemctls.every(l => /\$UNITE|nginx|daemon-reload|\$1/.test(l)) && /^UNITE="teamop-api-test"$/m.test(SRC));
 vrai('⛔ le service tourne sous un compte à part, dont la production est INVISIBLE (User=teamoptest, InaccessiblePaths, ProtectSystem=strict, écriture bornée aux données de test)',
-  /^User=teamoptest$/m.test(SRC) && /^ProtectSystem=strict$/m.test(SRC) && /^ReadWritePaths=\/opt\/teamop\/test\/data$/m.test(SRC) && /^InaccessiblePaths=-\/opt\/teamop\/data -\/opt\/teamop\/config\.json -\/opt\/teamop\/repo -\/opt\/teamop\/firebase-admin\.json -\/etc\/teamop$/m.test(SRC));
+  /^User=teamoptest$/m.test(SRC) && /^ProtectSystem=strict$/m.test(SRC) && /^ReadWritePaths=\/opt\/teamop\/test\/data \/opt\/teamop\/test\/monitor\.json$/m.test(SRC) && /^InaccessiblePaths=-\/opt\/teamop\/data -\/opt\/teamop\/config\.json -\/opt\/teamop\/repo -\/opt\/teamop\/firebase-admin\.json -\/etc\/teamop$/m.test(SRC));
+{
+  /* ⛔ Tout chemin que le VRAI serveur écrit doit être dans ReadWritePaths. Le faux systemd du bac n'applique AUCUNE restriction :
+     monitor.json (comptes de la Tour, incidents, journal) a été oublié ainsi — root possède /opt/teamop/test, ProtectSystem=strict
+     ne laissait que data/, et monSave() avale l'erreur : la Tour de test perdait ses comptes à chaque redémarrage, sans un mot.
+     On relit donc le serveur (commentaires retirés) pour savoir OÙ il écrit, au lieu de recopier une liste ici. */
+  const IDX = fs.readFileSync(path.join(RACINE_DEPOT, 'server/index.js'), 'utf8').replace(/^[ \t]*\/\/.*$/gm, ' ');   // le code, pas la phrase qui l'explique
+  const mm = IDX.match(/const MONITOR_PATH = path\.join\(path\.dirname\(CONFIG_PATH\), '([^']+)'\)/);
+  vrai('le serveur range son fichier de la Tour à côté de la configuration (monitor.json) — sinon ce contrôle ne garde plus rien', !!mm && mm[1] === 'monitor.json' && /fs\.writeFileSync\(MONITOR_PATH,/.test(IDX));
+  const rw = ((SRC.match(/^ReadWritePaths=(.*)$/m) || [])[1] || '').split(/\s+/).filter(Boolean);
+  const cfgDir = path.posix.dirname(((SRC.match(/^Environment=TEAMOP_CONFIG=(.*)$/m) || [])[1]) || '/introuvable/config.json');
+  const dataDir = (SRC.match(/^Environment=TEAMOP_DATA=(.*)$/m) || [])[1];
+  const ecrits = [dataDir, mm ? path.posix.join(cfgDir, mm[1]) : null];
+  v('⛔ chaque chemin écrit par le serveur (TEAMOP_DATA, et monitor.json à côté de TEAMOP_CONFIG) est dans ReadWritePaths', ecrits.map(e => rw.includes(e)), [true, true]);
+  vrai('⛔ …et monitor.json est créé par l\'installeur AVANT l\'unité, à teamoptest (systemd refuse de démarrer sur un ReadWritePaths manquant, et root possède le dossier)',
+    /^MONITOR="\$OPT\/monitor\.json"$/m.test(SRC) && /printf '\{\}\\n' > "\$MONITOR"/.test(SRC) && /^chown teamoptest:teamoptest "\$MONITOR"$/m.test(SRC) && SRC.indexOf('chown teamoptest:teamoptest "$MONITOR"') < SRC.indexOf('UNITE_TEXTE="'));
+  vrai('⛔ il n\'est créé que s\'il manque (jamais écrasé : le service y range les comptes de la Tour)', /^if \[ ! -e "\$MONITOR" \]; then/m.test(SRC));
+}
 vrai('⛔ la clé d\'administration Firebase de la production est hors d\'atteinte : TEAMOP_FB_ADMIN pointe un fichier de l\'espace de test', /^Environment=TEAMOP_FB_ADMIN=\/opt\/teamop\/test\/firebase-admin\.json$/m.test(SRC));
 vrai('la clé maître de test est lue par LoadCredential (hors de /opt) et la config/les données par les variables du serveur', /^LoadCredential=teamop_kek:\/etc\/teamop\/kek-test$/m.test(SRC) && /^Environment=TEAMOP_CONFIG=\/opt\/teamop\/test\/config\.json$/m.test(SRC) && /^Environment=TEAMOP_DATA=\/opt\/teamop\/test\/data$/m.test(SRC));
 vrai('⛔ aucun secret sur une ligne de commande : jq reçoit tout par l\'ENVIRONNEMENT (pas de --arg), le mot de passe passe par stdin à openssl', !/jq[^\n]*--arg(json|file)?\b/.test(SRC) && /openssl passwd -apr1 -stdin/.test(SRC) && /printf '%s' "\$MDP" \| openssl/.test(SRC));
@@ -113,6 +130,8 @@ vrai('⛔ le fichier du mot de passe contient un HACHAGE apr1, pas le mot de pas
   v('…et c\'est bien le hachage du mot de passe saisi (le même sel redonne la même empreinte)', htp.split(':')[1], attendu);
 }
 v('le fichier du mot de passe est 0640 (lu par nginx, pas par tous)', mode(B, 'etc/nginx/teamop-test.htpasswd'), '640');
+vrai('⛔ monitor.json existe après l\'installation, vide ({}), en 0600 et chowné à teamoptest (le service ne peut pas créer un fichier dans /opt/teamop/test)',
+  B.existe('opt/teamop/test/monitor.json') && B.lire('opt/teamop/test/monitor.json').trim() === '{}' && mode(B, 'opt/teamop/test/monitor.json') === '600' && j.some(l => /^chown teamoptest:teamoptest .*opt\/teamop\/test\/monitor\.json$/.test(l)));
 const unite = B.lire('etc/systemd/system/teamop-api-test.service');
 vrai('l\'unité est posée avec le port, le compte et les chemins DE TEST', /^Environment=PORT=8095$/m.test(unite) && /^User=teamoptest$/m.test(unite) && /^WorkingDirectory=\/opt\/teamop\/test\/current\/server$/m.test(unite) && /^EnvironmentFile=-\/opt\/teamop\/test\/commit\.env$/m.test(unite));
 vrai('l\'ordre du journal : compte < miroir < unité rechargée < certificat < nginx rechargé < premier déploiement < vérifications',
@@ -165,11 +184,15 @@ vrai('le bloc d\'api.teamop.fr n\'a pas été touché', B.lire('etc/nginx/sites-
 console.log('\n── 4. Idempotence : un second passage ne change pas un octet');
 {
   const fichiers = ['opt/teamop/test/config.json', 'etc/teamop/kek-test', 'etc/nginx/teamop-test.htpasswd', 'etc/nginx/sites-available/teamop-test.conf', 'etc/systemd/system/teamop-api-test.service'];
+  const RANGE = '{"users":[{"nom":"patron-essai"}],"issues":[],"journal":[]}\n';
+  fs.writeFileSync(B.chemin('opt/teamop/test/monitor.json'), RANGE);   // ce que le service y a rangé entre-temps
+  fichiers.push('opt/teamop/test/monitor.json');
   const avant = fichiers.map(f => hash(B, f));
   const nj = B.journal().length;
   const r2 = installer(B, []);   // AUCUNE saisie : tout est déjà en place
   v('le second passage réussit sans qu\'on lui réponde rien (code 0)', r2.rc, 0);
   v('⛔ configuration, clé maître de test, mot de passe, fichier nginx et unité : identiques octet pour octet', fichiers.map(f => hash(B, f)), avant);
+  v('⛔ monitor.json (comptes de la Tour) survit à un second passage tel que le service l\'a laissé', B.lire('opt/teamop/test/monitor.json'), RANGE);
   const nouveau = B.journal().slice(nj);
   vrai('⛔ aucun nouveau certificat, aucun rechargement de nginx, aucune unité rechargée', !nouveau.some(l => /^certbot/.test(l)) && !nouveau.some(l => /^systemctl (reload nginx|daemon-reload)/.test(l)));
   vrai('il ne redemande aucune saisie (ni clé Stripe, ni mot de passe)', !/Clé secrète Stripe de test|Mot de passe des pages/.test(r2.out));

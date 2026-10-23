@@ -67,6 +67,7 @@ OPT="$R/opt/teamop/test"
 MIROIR="$OPT/repo"
 DATA="$OPT/data"
 CONFIG="$OPT/config.json"
+MONITOR="$OPT/monitor.json"
 LIEN_PAGES="$OPT/pages"
 PAGES_D="$OPT/pages.d"
 ETC="$R/etc/teamop"
@@ -178,6 +179,15 @@ mkdir -p "$OPT" "$OPT/releases" "$PAGES_D" "$MIROIR" "$DATA"
 chmod 755 "$OPT" "$OPT/releases" "$PAGES_D"
 chown teamoptest:teamoptest "$MIROIR" "$DATA"
 chmod 700 "$DATA"
+# ⛔ monitor.json : le serveur le range à côté de SA configuration (server/index.js, MONITOR_PATH =
+# dirname(TEAMOP_CONFIG)/monitor.json), donc dans /opt/teamop/test, qui appartient à root. Il porte les
+# comptes de la Tour (patron, collaborateur), les incidents et le journal. Sans ce fichier à lui, le service
+# (ProtectSystem=strict, écriture bornée à data/) ne pourrait pas le créer : monSave() avale l'erreur, et la
+# Tour de test perdrait ses comptes à chaque redémarrage. On le crée VIDE s'il manque, JAMAIS on ne
+# l'écrase (un second passage garde ce que le service y a rangé), et l'unité le nomme dans ReadWritePaths.
+if [ ! -e "$MONITOR" ]; then ( umask 077; printf '{}\n' > "$MONITOR" ); fi
+chown teamoptest:teamoptest "$MONITOR"
+chmod 600 "$MONITOR"
 echo "  /opt/teamop/test prêt"
 
 # ══ 4. Le miroir du dépôt — LE SIEN ═══════════════════════════════════════════════════════════
@@ -306,7 +316,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
-ReadWritePaths=/opt/teamop/test/data
+ReadWritePaths=/opt/teamop/test/data /opt/teamop/test/monitor.json
 InaccessiblePaths=-/opt/teamop/data -/opt/teamop/config.json -/opt/teamop/repo -/opt/teamop/firebase-admin.json -/etc/teamop
 
 [Install]
