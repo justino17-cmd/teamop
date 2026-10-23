@@ -117,7 +117,7 @@ console.log('\n── 2924 · les six agents de la plateforme, assemblés ──
       v('le relevé « ' + nom + ' » est FERMÉ : `fermer()` n’en retire rien (ni texte, ni chaîne libre)', [r === null ? 'null' : JSON.stringify(AC.fermer(JSON.parse(JSON.stringify(r)))) === JSON.stringify(r)], [true]);
     }
     const cv = B.P.victor.collecter();
-    vrai('⛔ Victor voit l’alarme ouverte dans SON relevé du matin (un nombre, jamais le texte)', cv.plateforme && Object.values(cv.plateforme).some(x => typeof x === 'number' && x >= 1), JSON.stringify(cv.plateforme));
+    vrai('⛔ Victor voit l’alarme ouverte dans SON relevé du matin (un nombre, jamais le texte)', cv.plateforme && cv.plateforme.alarmesOuvertes >= 1 && cv.plateforme.alarmesCritiques === 0, JSON.stringify(cv.plateforme));
     const rel = B.P.resume();
     vrai('⛔ le relevé de la Tour ne livre d’un épisode que ses champs (identifiant, règle, zone, niveau, dates, drapeaux, phrase du serveur) — pas ses valeurs brutes', rel.episodes.length >= 1 && rel.episodes.every(e => Object.keys(e).sort().join() === 'annonce,cle,depuis,fin,id,incident,niveau,pris,proprio,texte,zone'), JSON.stringify(rel.episodes[0]));
     const p = B.P.faits.plateforme();
