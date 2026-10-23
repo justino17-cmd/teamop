@@ -172,8 +172,10 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     /* le client choisit « chauffage » : la grille se pré-coche selon le conseil que le SERVEUR sert */
     nouveau.el['r-metier'].value = 'chauffage'; nouveau.ctx.ratMetierChange();
     const g1 = nouveau.el['r-rub-grille'].innerHTML;
-    v('⛔ « chauffage » choisi : la grille compte 38 rubriques, celles du conseil du métier cochées, chacune avec son explication (+ les 4 incluses)',
-      compter(g1), { cases: 38, cochees: CONSEIL('chauffage').length, expl: 38 + 4 });
+    const VIS = k => CATS_OK.filter(c => !(REF.rubriques[c].seulement && !REF.rubriques[c].seulement.includes(k)) || METIERS.metiers[k].rubriques.includes(c) || (METIERS.metiers[k].proposees || {})[c]);
+    v('⛔ « chauffage » choisi : la grille compte 32 rubriques (les six de la 3D n\'y sont pas : l\'application les masque), celles du conseil cochées, chacune avec son explication (+ les 4 incluses)',
+      compter(g1), { cases: VIS('chauffage').length, cochees: CONSEIL('chauffage').length, expl: VIS('chauffage').length + 4 });
+    v('   (population) elle masque bien six rubriques à ce métier — et la 3D les montre toutes', [38 - VIS('chauffage').length, VIS('3d').length], [6, 38]);
     v('   les cases cochées sont EXACTEMENT celles du référentiel pour le chauffage', OPRUB.liste(nouveau.ctx.window._rat.rub), CONSEIL('chauffage'));
     vrai('   chaque rubrique conseillée porte la raison propre au métier (« Pour votre métier »)', (g1.match(/class="rub-raison"/g) || []).length === CONSEIL('chauffage').length, (g1.match(/class="rub-raison"/g) || []).length);
     vrai('   les quatre rubriques toujours présentes sont montrées comme INCLUSES, sans case à cocher',
@@ -188,7 +190,8 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     nouveau.el['r-rub-grille']._h.click[0]({ target: { closest: () => ({ getAttribute: () => 'tout' }) } });
     const toutes = compter(nouveau.el['r-rub-grille'].innerHTML).cochees;
     nouveau.el['r-rub-grille']._h.click[0]({ target: { closest: () => ({ getAttribute: () => 'conseil' }) } });
-    v('   « Tout cocher » (38), puis « Revenir au conseil du métier » (le conseil, « Stock » inclus à nouveau)', [toutes, compter(nouveau.el['r-rub-grille'].innerHTML).cochees], [38, CONSEIL('chauffage').length]);
+    v('   « Tout cocher » (38), puis « Revenir au conseil du métier » (le conseil, « Stock » inclus à nouveau)', [toutes, compter(nouveau.el['r-rub-grille'].innerHTML).cochees], [VIS('chauffage').length, CONSEIL('chauffage').length]);
+    v('   « Tout cocher » ne coche que ce que la grille montre (jamais une rubrique de la 3D chez un chauffagiste)', OPRUB.liste(OPRUB.tout(OPRUB.etat(nouveau.ctx.window._rat.ref, 'chauffage'))), VIS('chauffage'));
     bascule(nouveau, 'stock');
 
     /* l'envoi : relayé au serveur AVANT d'être écrit */
@@ -217,7 +220,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     /* des rubriques hors liste (page piratée) : refusées aussi */
     const piratee = portail({ form: { 'r-metier': 'chauffage', 'r-lien': 'pirate-banc' } });
     await piratee.ctx.ratRefCharger(); piratee.ctx.ratInit(null);
-    piratee.ctx.window._rat.rub = { ref: Object.assign({}, piratee.ctx.window._rat.ref, { ordre: piratee.ctx.window._rat.ref.ordre.concat(['inventee']) }), metier: 'chauffage', choisies: { planning: true, inventee: true }, touche: true };
+    piratee.ctx.window._rat.rub = { ref: Object.assign({}, piratee.ctx.window._rat.ref, { ordre: piratee.ctx.window._rat.ref.ordre.concat(['inventee']), rubriques: Object.assign({}, piratee.ctx.window._rat.ref.rubriques, { inventee: { titre: 'Inventée', groupe: 'Planification', explication: 'Une rubrique que le serveur ne connaît pas.' } }) }), metier: 'chauffage', choisies: { planning: true, inventee: true }, touche: true };
     await piratee.ctx.sendRequest('u-chantal');
     vrai('   des rubriques hors liste : le serveur refuse (`cats_inconnues`), l\'écran le dit, rien n\'est écrit', piratee.ecrits.length === 0 && /n’existe plus/.test(piratee.el['req-msg'].innerHTML), piratee.el['req-msg'].innerHTML);
     /* le relais en panne : la demande s'écrit quand même (comme avant) */

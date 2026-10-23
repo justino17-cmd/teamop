@@ -799,7 +799,7 @@ function blocMetier() {
   return '<div class="bloc-metier" id="blocMetier">' + entete
     + '<select id="metierAbo" aria-required="true"><option value=""' + (metierAbo ? '' : ' selected') + ' disabled>— Choisissez votre métier —</option>' + options + '</select>'
     + '<p class="metier-aide">Votre application est réglée sur votre métier : types d\'intervention, fiche de terrain, rubriques.</p>'
-    + (metierAbo && typeof OpRub !== 'undefined' ? '<details class="bloc-rubriques" id="rubVolet"' + (rubOuvert ? ' open' : '') + '><summary>Vos rubriques</summary><div id="rubriquesAbo"></div></details>' : '')
+    + (metierAbo && typeof OpRub !== 'undefined' ? '<details class="bloc-rubriques" id="rubVolet"' + (rubOuvert ? ' open' : '') + '><summary>Voir ou masquer les rubriques</summary><div id="rubriquesAbo"></div></details>' : '')
     + '</div>';
 }
 /* après chaque rendu de la carte : le fil du bloc (liste déroulante, bouton de relecture, grille des rubriques) */

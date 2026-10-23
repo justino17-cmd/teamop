@@ -60,6 +60,7 @@ module.exports = function (chemin, catsOk, catsToujours) {
       const r = ref.rubriques[k];
       rubriques[k] = { titre: r.titre, ic: r.ic, groupe: r.groupe, explication: r.explication };
       if (r.reserveAdmin) rubriques[k].reserveAdmin = true;
+      if (Array.isArray(r.seulement)) rubriques[k].seulement = r.seulement.slice();
     }
     const metiers = {};
     for (const k of ordre) {

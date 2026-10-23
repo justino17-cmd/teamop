@@ -701,9 +701,9 @@ globalThis.fetch = async function (url, opts) {
           const e1 = q.api.etat();
           v('   on choisit « chauffage » : le métier est retenu, et la grille des rubriques est pré-cochée selon son conseil', [e1.metierAbo, OPRUB.liste(e1.rubAbo)], ['chauffage', REFERENTIEL.metiers.chauffage.rubriques]);
           const grille = q.derniers.rubriquesAbo.innerHTML;
-          v('   … 38 cases, celles du conseil cochées, chacune avec son explication visible (pas une infobulle)',
+          v('   … 32 cases (hors les six de la 3D), celles du conseil cochées, chacune avec son explication visible (pas une infobulle)',
             [(grille.match(/type="checkbox"/g) || []).length, (grille.match(/ checked/g) || []).length, (grille.match(/class="rub-expl"/g) || []).length],
-            [38, REFERENTIEL.metiers.chauffage.rubriques.length, 38 + 4]);
+            [32, REFERENTIEL.metiers.chauffage.rubriques.length, 32 + 4]);
           q.derniers.rubriquesAbo._h.change[0]({ target: { getAttribute: k => (k === 'data-rub' ? 'stock' : null) } });
           vrai('   on décoche « Stock » : la case est décochée, le compte baisse, le choix est gardé pour l\'aller-retour par le portail',
             !OPRUB.liste(q.api.etat().rubAbo).includes('stock') && JSON.parse(q.session.get('teamop_abo_choix')).metier === 'chauffage' && !JSON.parse(q.session.get('teamop_abo_choix')).cats.includes('stock'));

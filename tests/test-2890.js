@@ -96,6 +96,8 @@ const signatures = new Set(cles.map(k => J.metiers[k].rubriques.slice().sort().j
 vrai('⛔ les 23 métiers n\'ouvrent pas tous les mêmes rubriques (au moins 8 combinaisons différentes)', signatures.size >= 8, signatures.size);
 vrai('   la 3D est le seul à ouvrir les rubriques du registre, des box et du devis xylophage',
   cles.filter(k => ['registre', 'carteBox', 'devisXylo', 'boxes', 'saisieConso'].some(r => J.metiers[k].rubriques.includes(r))).join() === '3d', cles.filter(k => ['registre', 'carteBox', 'devisXylo', 'boxes', 'saisieConso'].some(r => J.metiers[k].rubriques.includes(r))).join());
+v('   aucun métier hors 3D n\'ouvre par défaut une rubrique réservée (`seulement`) — la grille d\'abonnement les cache, l\'application aussi',
+  cles.filter(k => k !== '3d').flatMap(k => J.metiers[k].rubriques.filter(r => Array.isArray(rub[r].seulement) && !rub[r].seulement.includes(k)).map(r => k + ':' + r)), []);
 vrai('   le fichier ne porte ni adresse électronique, ni clé, ni code promo, ni chemin d\'une machine',
   !/[\w.+-]+@[\w-]+\.[\w.]+/.test(BRUT) && !/sk_(live|test)_|api[_-]?key|\/home\/|\/Users\/|TEAMOP3MOIS/i.test(BRUT));
 

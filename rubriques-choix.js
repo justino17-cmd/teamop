@@ -41,7 +41,19 @@
     e.touche = Array.isArray(depart) && depart.length > 0;
     return e;
   };
-  function cles(e) { return e && e.ref && Array.isArray(e.ref.ordre) ? e.ref.ordre : []; }
+  /* les rubriques que la grille MONTRE pour ce métier : toutes, sauf celles qui n'existent que pour d'autres métiers (`seulement` : aujourd'hui les
+     rubriques de la 3D, masquées dans l'application hors 3D) — à moins que le métier ne les conseille ou ne les propose */
+  function visible(e, k) {
+    var r = e.ref.rubriques && e.ref.rubriques[k]; if (!r) return false;
+    if (!Array.isArray(r.seulement) || r.seulement.indexOf(e.metier) >= 0) return true;
+    var m = e.ref.metiers && e.ref.metiers[e.metier];
+    return !!m && ((m.rubriques || []).indexOf(k) >= 0 || !!(m.proposees && m.proposees[k]));
+  }
+  function cles(e) {
+    if (!(e && e.ref && Array.isArray(e.ref.ordre))) return [];
+    var r = []; for (var i = 0; i < e.ref.ordre.length; i++) if (visible(e, e.ref.ordre[i])) r.push(e.ref.ordre[i]);
+    return r;
+  }
   /* Changer de métier recale sur son conseil : les cases d'un autre métier n'ont plus de raison d'être cochées. */
   OpRub.changerMetier = function (e, metier) {
     e.metier = metier || ''; e.choisies = {}; e.touche = false;
@@ -88,7 +100,8 @@
     var groupes = Array.isArray(ref.groupes) ? ref.groupes : [];
     for (var g = 0; g < groupes.length; g++) {
       var dans = [];
-      for (var i = 0; i < ref.ordre.length; i++) if (ref.rubriques[ref.ordre[i]] && ref.rubriques[ref.ordre[i]].groupe === groupes[g]) dans.push(ref.ordre[i]);
+      var vis = cles(e);
+      for (var i = 0; i < vis.length; i++) if (ref.rubriques[vis[i]].groupe === groupes[g]) dans.push(vis[i]);
       if (!dans.length) continue;
       var cochees = 0; for (var c = 0; c < dans.length; c++) if (e.choisies[dans[c]]) cochees++;
       h += '<div class="rub-groupe" role="group" aria-labelledby="' + esc(id) + '-g' + g + '"><div class="rub-gt" id="' + esc(id) + '-g' + g + '"><span>' + fr(groupes[g]) + '</span><small>' + cochees + '\u00a0/\u00a0' + dans.length + '</small></div>';

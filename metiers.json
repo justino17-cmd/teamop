@@ -31,7 +31,8 @@
   "valeur d'une fonction à créer : haute = bloque l'usage réel du métier ou une obligation ; moyenne = apporte un vrai gain ; basse = confort.",
   "ref renvoie à fonctionsCommunes (F0 à F13) : une fonction à construire une seule fois pour plusieurs métiers.",
   "ouverts = LES MÉTIERS QUE LE PUBLIC PEUT CHOISIR (serveur, espace client, page de paiement, site). C'est l'interrupteur, et il est unique : un métier n'y entre que si l'application publique le connaît (clé dans METIERS_ORDRE d'app.html, vérifié par tests/test-2890.js). Tant qu'elle ne le connaît pas, un client qui le choisirait recevrait le pack par défaut (3D) : le métier reste fermé, et le site dit « Bientôt ».",
-  "ouvertsReglage = les clés ouvertes PAR DÉCISION alors que l'application ne les connaît pas encore, chacune avec sa raison. Vide aujourd'hui. Dès que l'application connaît la clé, la ligne se retire (le banc refuse une ligne périmée)."
+  "ouvertsReglage = les clés ouvertes PAR DÉCISION alors que l'application ne les connaît pas encore, chacune avec sa raison. Vide aujourd'hui. Dès que l'application connaît la clé, la ligne se retire (le banc refuse une ligne périmée).",
+  "seulement = les métiers pour lesquels une rubrique existe aujourd'hui dans l'application (les autres la voient masquée : metierBloque). La grille d'abonnement ne la montre pas à un autre métier, sauf si elle figure dans ses rubriques ou ses propositions."
  ],
  "ordreMetiers": [
   "3d",
@@ -135,7 +136,10 @@
    "groupe": "Interventions",
    "explication": "Le registre des interventions que l'on doit pouvoir présenter à un contrôle. Aujourd'hui conçu pour l'hygiène anti-nuisibles (3D) ; il sera rendu utilisable par les autres métiers qui tiennent un registre.",
    "moduleMisDeCote": true,
-   "aujourdhui": "3d seulement (masque du code actuel)"
+   "aujourdhui": "3d seulement (masque du code actuel)",
+   "seulement": [
+    "3d"
+   ]
   },
   "carteBox": {
    "titre": "Carte des box",
@@ -143,7 +147,10 @@
    "groupe": "Interventions",
    "explication": "La carte des box (postes et dispositifs de surveillance) posés chez vos clients, pour retrouver chacun d'un coup d'œil. Réservée à la 3D.",
    "moduleMisDeCote": true,
-   "aujourdhui": "3d seulement (masque du code actuel)"
+   "aujourdhui": "3d seulement (masque du code actuel)",
+   "seulement": [
+    "3d"
+   ]
   },
   "clients": {
    "titre": "Clients",
@@ -188,7 +195,10 @@
    "groupe": "Ventes",
    "explication": "Un devis spécialisé pour le traitement du bois (insectes xylophages). Réservé à la 3D.",
    "moduleMisDeCote": true,
-   "aujourdhui": "3d seulement (masque du code actuel)"
+   "aujourdhui": "3d seulement (masque du code actuel)",
+   "seulement": [
+    "3d"
+   ]
   },
   "telecollecte": {
    "titre": "Télécollecte",
@@ -219,7 +229,10 @@
    "ic": "🧱",
    "groupe": "Stock",
    "explication": "Les box (postes, dispositifs de surveillance) posées chez vos clients, avec leur contenu. Le Stockage de l'entreprise s'appuie sur le même mécanisme. Réservé à la 3D pour l'instant.",
-   "aujourdhui": "3d seulement (masque du code actuel)"
+   "aujourdhui": "3d seulement (masque du code actuel)",
+   "seulement": [
+    "3d"
+   ]
   },
   "saisieConso": {
    "titre": "Consommation produits",
@@ -227,7 +240,10 @@
    "groupe": "Stock",
    "explication": "Saisie et analyse de la consommation de produits box par box : qui consomme quoi, combien, depuis quand. Réservée à la 3D.",
    "moduleMisDeCote": true,
-   "aujourdhui": "3d seulement (masque du code actuel)"
+   "aujourdhui": "3d seulement (masque du code actuel)",
+   "seulement": [
+    "3d"
+   ]
   },
   "enveloppes": {
    "titre": "Enveloppes",
@@ -236,7 +252,10 @@
    "explication": "Les encaissements clients rangés par enveloppe : espèces et chèques remis au bureau, avec ce qui reste à rapprocher. Réservé à la 3D pour l'instant.",
    "reserveAdmin": true,
    "moduleMisDeCote": true,
-   "aujourdhui": "3d seulement (masque du code actuel)"
+   "aujourdhui": "3d seulement (masque du code actuel)",
+   "seulement": [
+    "3d"
+   ]
   },
   "pointage": {
    "titre": "Temps de travail",
