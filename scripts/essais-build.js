@@ -32,8 +32,9 @@
    │ service worker (toutes les pages)           │ COUPÉ     │ l'inscription est refusée ; sw.js n'est même pas copié             │
    │ manifeste de l'application installable      │ COUPÉ     │ on n'installe pas un espace de test sur un téléphone                │
    │ Google Analytics (cookies.js)               │ COUPÉ     │ une visite d'essai ne compte pas dans les statistiques du site      │
-   │ price_… Stripe (recap-abonnement.html)      │ LAISSÉ ⚠️ │ ce sont les tarifs de PRODUCTION : le serveur de test (sk_test) répond │
-   │                                             │           │   « No such price » — le PAIEMENT n'est pas jouable (voir plus bas) │
+   │ price_… Stripe (recap-abonnement.html)      │ REMPLACÉ  │ → les tarifs de TEST (`stripe.prixEssai` de la config de test), les 10│
+   │                                             │ ou LAISSÉ │   ou, sans table complète, LAISSÉS : le paiement n'est alors pas    │
+   │                                             │           │   jouable et essais.html le DIT (voir plus bas)                     │
    │ courrier-beta.teamop.fr (Tour)              │ COUPÉ     │ → un nom qui ne se résout jamais (.invalid) : le jeton d'essai ne   │
    │                                             │           │   part pas chez un autre service, la Tour dit « injoignable »        │
    │ msg-beta.teamop.fr (Tour, adresse de lien)  │ COUPÉ     │ idem — OP MESSAGES a son propre serveur (CLAUDE.md), pas rebranché  │
@@ -46,14 +47,17 @@
    │ adresses « @teamop.fr » (texte, mailto)     │ LAISSÉ    │ du texte ; en essai les courriels sont captés, rien ne part         │
    │ beta.html, dev.html, messages*.html         │ ABSENTES  │ autres canaux (bêta, OP MESSAGES fermé), diag-geste, google…html    │
    └─────────────────────────────────────────────┴───────────┴─────────────────────────────────────────────────────────────────────┘
-   ⚠️ LE PAIEMENT NE SE JOUE PAS ENCORE EN ESSAI (relecture adverse, 23 octobre 2026). `recap-abonnement.html` envoie à
+   ⛔ LE PAIEMENT SE JOUE (carte 4242) SEULEMENT SI LES DEUX MOITIÉS TIENNENT ENSEMBLE. `recap-abonnement.html` envoie à
    `POST /api/stripe/checkout` un identifiant `price_…` de la table de la page, et le serveur n'accepte que les MÊMES (`STRIPE_PRIX_FORMULE`,
-   index.js) : ce sont des tarifs créés en mode réel, que Stripe ne connaît pas avec une clé `sk_test`. Rien ne part vers la production
-   (la clé de test ne peut pas payer pour de vrai) — mais la carte 4242 ne peut pas aboutir. Remplacer les 10 identifiants dans la page
-   sans que le serveur de test porte la même table donnerait `tarif_inconnu` : une demi-mesure qui change le message d'erreur sans
-   rendre le paiement jouable. La suite est donc DEUX gestes ensemble, à faire par le chantier serveur : une table de tarifs de test lue
-   dans la config de test (`stripe.prixEssai`, seulement si `espaceTest`), et ici un remplacement gardé des 10 identifiants. Tant que
-   ce n'est pas fait, `PAIEMENT_JOUABLE` vaut faux : essais.html le DIT, et aucune étape du parcours ne promet un paiement.
+   index.js). Les identifiants de production sont des tarifs créés en mode réel, que Stripe ne connaît pas avec une clé `sk_test`
+   (« No such price »). `server/stripe-essai-prix.js` crée donc chez Stripe, en mode test, les dix tarifs équivalents et écrit la table
+   `stripe.prixEssai` { price_ de production → price_ de test } dans la config de test ; le serveur de test (seulement `espaceTest`)
+   remplace ses identifiants par ceux-là, et ce fabricant remplace les mêmes dans la page. ⚠️ Remplacer d'un seul côté donnerait
+   `tarif_inconnu` : une demi-mesure qui change le message d'erreur sans rendre le paiement jouable. C'est pourquoi `PAIEMENT_JOUABLE`
+   n'est PAS un réglage : il n'est vrai que si la config porte la table COMPLÈTE (les dix identifiants de la page, chacun avec un
+   correspondant valide, distinct, qui n'est jamais un tarif de production). Sinon rien n'est remplacé, la page garde ses tarifs de
+   production et essais.html dit la limite. La dernière passe refuse de livrer si, le paiement étant déclaré jouable, un `price_` de
+   production subsiste quelque part, ou si un tarif de test manque dans la page de paiement.
    ⚠️ Firebase n'existe plus dans app.html (plus aucun script gstatic ni googleapis) : la synchro passe par le serveur de test, qui n'a
    pas de clé d'administration Google. `FB_TEAM` est tout de même isolé, comme beta-build.js isole l'espace bêta.
    ⚠️ Une origine par environnement : les pages d'essai vivent sur test.teamop.fr, donc leur localStorage n'est PAS celui de teamop.fr
@@ -152,7 +156,32 @@ const PAGES = fs.readdirSync(RACINE).filter(f => /\.html$/.test(f) && !ABSENTES[
    clé que la route de connexion du serveur de test voudrait poser et qui manque ici se lit dans la console (« clés refusées »). */
 const CLES_STOCKAGE = ['teamop_portail_jeton', 'teamop_app', 'tour_token', 'tour_nom', 'tour_role', 'tour_apps', 'elanT_sync_team', 'elanT_entreprise_nom', 'elanT_savedLogin'];
 const CLES_SESSION = ['tour_token', 'tour_nom', 'tour_role', 'tour_apps', 'tour_email'];
-const PAIEMENT_JOUABLE = false;   // vrai le jour où le serveur de test porte ses tarifs de test ET que la page les reçoit (voir l'inventaire)
+/* LES TARIFS DE TEST (`stripe.prixEssai`, écrits par server/stripe-essai-prix.js). Les identifiants de production viennent de la VRAIE page
+   de paiement (pas d'une liste écrite ici, qui vieillirait). La table est complète ou elle n'est pas : une table à moitié posée remplacerait
+   une partie des tarifs et laisserait l'autre au serveur de production — le pire des deux mondes. */
+const PRIX_PROD_PAGE = Array.from(new Set(lire('recap-abonnement.html').match(/price_[A-Za-z0-9]{8,}/g) || []));
+function lirePrixEssai() {
+  if (!CONFIG) return null;
+  let j; try { j = JSON.parse(fs.readFileSync(CONFIG, 'utf8')); } catch (e) { return null; }
+  if (!j || j.espaceTest !== true) return null;
+  const t = j.stripe && j.stripe.prixEssai;
+  if (t === undefined || t === null) return null;
+  const dire = m => { console.warn('avertissement : stripe.prixEssai ' + m + ' — aucun tarif n\'est remplacé, le paiement n\'est pas jouable (relance : bash install-test.sh stripe)'); return null; };
+  if (typeof t !== 'object' || Array.isArray(t)) return dire('n\'est pas une table');
+  if (!PRIX_PROD_PAGE.length) return dire('ne peut pas être vérifiée : la page de paiement ne porte aucun tarif price_…');
+  const table = {};
+  for (const id of PRIX_PROD_PAGE) {
+    const v = Object.prototype.hasOwnProperty.call(t, id) ? t[id] : undefined;
+    if (typeof v !== 'string' || !/^price_[A-Za-z0-9]+$/.test(v)) return dire('est incomplète ou mal formée (un tarif de la page n\'a pas de correspondant valide)');
+    table[id] = v;
+  }
+  const test = Object.values(table);
+  if (new Set(test).size !== test.length) return dire('donne le même tarif de test à deux tarifs de production');
+  if (test.some(v => PRIX_PROD_PAGE.some(p => v.indexOf(p) >= 0))) return dire('prend un tarif de production pour un tarif de test');
+  return table;
+}
+const PRIX_ESSAI = lirePrixEssai();
+const PAIEMENT_JOUABLE = PRIX_ESSAI !== null;   // vrai SEULEMENT si la config de test porte la table complète (voir l'inventaire)
 const SCRIPT_ESSAI = `<script id="essai-fragment">(function(){try{
 var h=location.hash||'';if(h.indexOf('#essai=')!==0)return;
 var corps=h.slice(7);history.replaceState(null,'',location.pathname+location.search);
@@ -265,6 +294,16 @@ function apresTour(s) {
 }
 function pagePortailLiee(s) { return prefixe(s, 1); }   // connexion.html, recap-abonnement.html : elles posent/lisent les clés de l'application
 
+/* Les tarifs de production deviennent ceux de test. La page de paiement DOIT les porter tous (garde habituelle : un motif absent fait
+   échouer la fabrication) ; une autre page qui en porterait un est traitée de même, sans l'exiger. */
+function prixDeTest(s, f) {
+  for (const prod of Object.keys(PRIX_ESSAI)) {
+    if (f === 'recap-abonnement.html') s = remplacer(s, 'tarif Stripe ' + prod.slice(0, 12) + '… → tarif de test', prod, PRIX_ESSAI[prod], 'plusieurs');
+    else if (s.indexOf(prod) >= 0) s = remplacer(s, 'tarif Stripe ' + prod.slice(0, 12) + '… → tarif de test', prod, PRIX_ESSAI[prod], 'plusieurs');
+  }
+  return s;
+}
+
 /* ── la fabrication ───────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 for (const f of PAGES) {
   COURANT = f;
@@ -273,6 +312,7 @@ for (const f of PAGES) {
   else if (f === 'tour.html') s = pageTour(s);
   else if (f === 'connexion.html' || f === 'recap-abonnement.html') s = pagePortailLiee(s);
   s = communes(s, { sansFragment: f === 'demo.html' });   // demo.html : pare-feu et politique de contenu, aucun compte à ranger
+  if (PRIX_ESSAI) s = prixDeTest(s, f);
   if (f === 'app.html') s = apresApp(s);
   else if (f === 'tour.html') s = apresTour(s);
   fs.writeFileSync(path.join(SORTIE, f), s);
@@ -335,6 +375,14 @@ const PARCOURS_BASE = [
     attendu: 'Les données d\'essai sont vidées et les quatre comptes reviennent propres. Recommence l\'étape 1 : tu dois retrouver « Clim Essai » comme au début.' },
 ];
 
+/* L'étape de paiement n'existe QUE si le paiement est jouable : une étape qui promettrait la carte 4242 sans que la page ait reçu ses tarifs de test
+   ferait perdre une étape à Justin sur un refus de Stripe. Elle se place avant la remise à zéro (dernière étape de la base). */
+const ETAPE_PAIEMENT = { titre: 'Payer un abonnement avec la carte de test',
+  quoi: 'Reste connecté comme client, ouvre la page d\'abonnement (bouton « Ouvrir » ci-dessous), choisis Pro, appuie sur le bouton de paiement. Sur la page de Stripe, saisis la carte 4242 4242 4242 4242, une date de fin dans le futur (12/34), n\'importe quel code de sécurité (123) et un nom.',
+  attendu: 'La page de Stripe porte le bandeau « mode test » et le bon montant (15 € par mois et par utilisateur pour Pro). Après le paiement, tu reviens sur test.teamop.fr (jamais sur teamop.fr) et la page de confirmation s\'ouvre. Aucun vrai prélèvement n\'a lieu : la clé est une clé de test.',
+  lien: 'recap-abonnement.html?formule=pro' };
+const PARCOURS_AFFICHE = PAIEMENT_JOUABLE ? PARCOURS_BASE.slice(0, PARCOURS_BASE.length - 1).concat([ETAPE_PAIEMENT], PARCOURS_BASE.slice(-1)) : PARCOURS_BASE;
+
 function parcoursSupplementaire() {
   if (!PARCOURS) return [];
   let j; try { j = JSON.parse(fs.readFileSync(PARCOURS, 'utf8')); } catch (e) { echec('le parcours est illisible (' + path.basename(PARCOURS) + ') : ' + e.message.slice(0, 80)); }
@@ -385,7 +433,7 @@ ${PAIEMENT_JOUABLE ? '' : '<div class="carte" id="limite-paiement"><p><b>Limite 
 <h2>Les tests, dans l'ordre</h2>
 <p class="doux">Fais-les un par un, du haut vers le bas. Dès qu'une étape ne montre pas ce qui est écrit, arrête-toi, note ce que tu vois, et dis-le : on corrige avant de passer à la suivante. Ce que tu coches reste sur cet appareil.</p>
 ${sup.length ? '<h2>Les tests de cette modification</h2><ol class="etapes">' + sup.map((e, i) => carteEtape(e, i + 1, 'm')).join('') + '</ol><h2>Le parcours de base</h2>' : ''}
-<ol class="etapes">${PARCOURS_BASE.map((e, i) => carteEtape(e, i + 1, 'b')).join('')}</ol>
+<ol class="etapes">${PARCOURS_AFFICHE.map((e, i) => carteEtape(e, i + 1, 'b')).join('')}</ol>
 </main>
 ${bandeau()}
 <script>
@@ -492,8 +540,9 @@ const INTERDITS = [
    sinon essais.html promettrait une carte 4242 que Stripe (clé de test) refuse. Les identifiants viennent de la page elle-même, pas d'une
    liste écrite ici qui vieillirait. */
 if (PAIEMENT_JOUABLE) {
-  const prod = Array.from(new Set(lire('recap-abonnement.html').match(/price_[A-Za-z0-9]{8,}/g) || []));
+  const prod = PRIX_PROD_PAGE.slice();
   if (!prod.length) echec('recap-abonnement.html ne porte plus aucun tarif price_… : le garde du paiement ne regarde rien — à revoir');
+  Object.keys(PRIX_ESSAI || {}).forEach(id => { if (prod.indexOf(id) < 0) prod.push(id); });
   prod.forEach(id => INTERDITS.push(['tarif Stripe de production ' + id.slice(0, 12) + '…', new RegExp(id)]));
 }
 {
@@ -510,6 +559,16 @@ if (PAIEMENT_JOUABLE) {
   if (vus.length) {
     fs.rmSync(SORTIE, { recursive: true, force: true });
     echec('une adresse de production subsiste dans les pages d\'essai — rien n\'est livré (dossier vidé) :\n  ' + vus.slice(0, 20).join('\n  '));
+  }
+}
+
+if (PRIX_ESSAI) {
+  /* le paiement est annoncé jouable : la page doit PORTER les dix tarifs de test (population comptée avant de croire une absence) */
+  const page = fs.readFileSync(path.join(SORTIE, 'recap-abonnement.html'), 'utf8');
+  const manquants = Object.values(PRIX_ESSAI).filter(id => page.indexOf(id) < 0);
+  if (!Object.keys(PRIX_ESSAI).length || manquants.length) {
+    fs.rmSync(SORTIE, { recursive: true, force: true });
+    echec('le paiement est annoncé jouable mais la page de paiement ne porte pas ' + (manquants.length || 'aucun') + ' tarif(s) de test — rien n\'est livré (dossier vidé)');
   }
 }
 

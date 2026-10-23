@@ -160,7 +160,7 @@ vrai('sans parcours de la modification, aucune section « Les tests de cette mod
     vrai('… et les tarifs de production restent (ils sont ceux du serveur : le remplacement seul donnerait tarif_inconnu)', restent.length === prod.length, [restent.length, prod.length]);
   }
   /* éprouvé : le générateur qui se croit « jouable » alors que la page porte encore les tarifs de production doit REFUSER de fabriquer */
-  const mut = src.replace(/^const PAIEMENT_JOUABLE = false;/m, 'const PAIEMENT_JOUABLE = true;');
+  const mut = src.replace(/^const PAIEMENT_JOUABLE = PRIX_ESSAI !== null;/m, 'const PAIEMENT_JOUABLE = true;');   // « jouable » déclaré À LA MAIN, sans table de tarifs de test : la page garde ceux de production
   vrai('(mutation) le motif PAIEMENT_JOUABLE est trouvé dans le générateur', mut !== src || jouable);
   if (mut !== src) {
     const f = path.join(TMP, 'jouable-' + (++n) + '.js'); fs.writeFileSync(f, mut);

@@ -3,8 +3,7 @@
 #  Installation de l'ESPACE DE TEST (test.teamop.fr) sur le VPS — en root, UNE fois, rejouable.
 #
 #  Usage :   bash /root/install-test.sh
-#            bash /root/install-test.sh stripe        (redemander la clé Stripe de test)
-#            bash /root/install-test.sh webhook       (redemander le secret du webhook de test)
+#            bash /root/install-test.sh stripe        (redemander la clé Stripe de test, puis recréer/retrouver les dix tarifs de test)
 #            bash /root/install-test.sh motdepasse    (changer le mot de passe des pages)
 #  Mode d'emploi, geste par geste : design/ESPACE-DE-TEST.md.
 #
@@ -21,7 +20,7 @@
 #  à sable, et exige que la production sorte du bac à sable octet pour octet identique.
 #
 #  ⛔ IL N'AFFICHE JAMAIS UN SECRET (règle de CLAUDE.md : Justin recolle toutes ses sorties dans la
-#  conversation). La clé Stripe de test, le secret du webhook et le mot de passe des pages se saisissent
+#  conversation). La clé Stripe de test et le mot de passe des pages se saisissent
 #  EN MASQUÉ ; la clé maître de test, la clé des routes d'essai et la paire VAPID naissent ici et ne
 #  sont écrites que dans leur fichier (0600 / 0640). Aucun secret ne passe par une ligne de commande
 #  (visible par `ps`) : jq les reçoit par l'environnement de son seul processus.
@@ -56,8 +55,8 @@ case "$PORT" in 8080|8090|8091|8092|8192|8193|7880|7881|3478|5349) echo "✗ le 
 REDEMANDER=" "
 for mot in "$@"; do
   case "$mot" in
-    stripe|webhook|motdepasse) REDEMANDER="$REDEMANDER$mot " ;;
-    *) echo "usage : bash install-test.sh [stripe] [webhook] [motdepasse]"; exit 2 ;;
+    stripe|motdepasse) REDEMANDER="$REDEMANDER$mot " ;;
+    *) echo "usage : bash install-test.sh [stripe] [motdepasse]"; exit 2 ;;
   esac
 done
 
@@ -129,7 +128,7 @@ lire_masque() {   # $1 = libellé, $2 = « oui » pour une double saisie. Résul
   fi
   REPONSE="$a"
 }
-STRIPE_SK=""; STRIPE_WH=""; MDP=""
+STRIPE_SK=""; MDP=""
 if a_demander stripe || ! config_a '(.stripe.secretKey // "") | test("^(sk|rk)_test_")'; then
   echo "  Clé Stripe de TEST (tableau de bord Stripe, en mode test → Développeurs → Clés API → « Clé secrète »)."
   echo "  Elle commence par sk_test_. Entrée seule = je la poserai plus tard (les paiements de test restent éteints)."
@@ -144,15 +143,6 @@ if a_demander stripe || ! config_a '(.stripe.secretKey // "") | test("^(sk|rk)_t
     esac
     essai=$((essai + 1))
   done
-  REPONSE=""
-fi
-if a_demander webhook || ! config_a '(.stripe.webhookSecret // "") | test("^whsec_")'; then
-  echo "  Secret de signature du point de webhook de TEST (whsec_…, facultatif — le serveur relit Stripe lui-même"
-  echo "  aujourd'hui, voir design/ESPACE-DE-TEST.md). Entrée seule = pas maintenant."
-  lire_masque "Secret du webhook de test" non || true
-  if [[ "$REPONSE" =~ ^whsec_[A-Za-z0-9+/=_-]{16,}$ ]]; then STRIPE_WH="$REPONSE"; echo "  → secret reçu"
-  elif [ -n "$REPONSE" ]; then echo "  ✗ Ce n'est pas un secret de webhook (whsec_…). Je ne l'enregistre pas."
-  else echo "  → pas de secret de webhook pour l'instant"; fi
   REPONSE=""
 fi
 if a_demander motdepasse || [ ! -s "$HTPASSWD" ]; then
@@ -243,7 +233,7 @@ SRC_AVANT=/dev/null; [ -f "$CONFIG" ] && SRC_AVANT="$CONFIG"
 SRC_PROD=/dev/null;  [ -f "$PROD_CONFIG" ] && SRC_PROD="$PROD_CONFIG"
 CONFIG_NEUVE="$(
   NOUVELLE_CLE="$(openssl rand -hex 32)" NOUVEL_APIKEY="$(openssl rand -hex 24)" NOUVEAU_CODE_DEVIS="$(openssl rand -hex 8)" \
-  VAPID="$VAPID_JSON" STRIPE_SK="$STRIPE_SK" STRIPE_WH="$STRIPE_WH" ORIGINE="https://$DOMAINE" \
+  VAPID="$VAPID_JSON" STRIPE_SK="$STRIPE_SK" ORIGINE="https://$DOMAINE" \
   jq -n --slurpfile avant "$SRC_AVANT" --slurpfile prod "$SRC_PROD" '
     def v(x): (env[x] // "");
     ($avant[0] // {})
@@ -260,8 +250,7 @@ CONFIG_NEUVE="$(
     | .agents = ((.agents // {}) | .plafondMoisTotal = 10
         | .cleApi = (if (.cleApi // "") != "" then .cleApi else ($prod[0].agents.cleApi // "") end))
     | .stripe = ((.stripe // {})
-        | (if v("STRIPE_SK") != "" then .secretKey = v("STRIPE_SK") else . end)
-        | (if v("STRIPE_WH") != "" then .webhookSecret = v("STRIPE_WH") else . end))
+        | (if v("STRIPE_SK") != "" then .secretKey = v("STRIPE_SK") else . end))
     | .anthropic = (.anthropic // { cleApi: "", secretDevis: v("NOUVEAU_CODE_DEVIS"), quotaJour: 100 })'
 )"
 # ⛔ Garde-fous AVANT d'écrire : le mode test est posé, et aucune clé de production n'a pu entrer.
@@ -283,6 +272,26 @@ config_a '(.agents.cleApi // "") != ""' \
 config_a '(.stripe.secretKey // "") | test("^(sk|rk)_test_")' \
   && echo "  Stripe : clé de test en place" \
   || echo "  ⚠️ Stripe : pas de clé de test — les paiements de test sont éteints (bash install-test.sh stripe)"
+# Les tarifs de TEST : les dix tarifs de production n'existent pas en mode test (« No such price »). `stripe-essai-prix.js` crée chez
+# Stripe, en mode test, leurs équivalents (retrouvés par clé de recherche s'ils existent : rejouable) et écrit la table
+# `stripe.prixEssai` dans la configuration, d'où le serveur de test et le fabricant des pages la lisent. Il refuse tout ce qui n'est pas
+# une clé de test. Une panne de Stripe n'arrête pas l'installation : le reste de l'espace de test se joue sans le paiement.
+if config_a '(.stripe.secretKey // "") | test("^(sk|rk)_test_")'; then
+  if a_demander stripe || ! config_a '((.stripe.prixEssai // {}) | length) == 10'; then
+    if [ ! -f "$MIROIR/server/stripe-essai-prix.js" ]; then
+      echo "  ⚠️ cette branche ne porte pas server/stripe-essai-prix.js : les tarifs de test ne sont pas créés, le paiement de test n'aboutira pas"
+    elif SORTIE_PRIX="$(TEAMOP_CONFIG="$CONFIG" node "$MIROIR/server/stripe-essai-prix.js" 2>&1)"; then
+      printf '%s\n' "$SORTIE_PRIX" | tail -n 3 | sed 's/^/  /'
+      echo "  tarifs de test : prêts (table écrite dans la configuration, clé non affichée)"
+    else
+      printf '%s\n' "$SORTIE_PRIX" | tail -n 5 | sed 's/^/    /'
+      echo "  ⚠️ les tarifs de test n'ont pas pu être créés (voir ci-dessus) : le paiement de test n'aboutira pas. Relance : bash install-test.sh stripe"
+    fi
+    SORTIE_PRIX=""
+  else
+    echo "  tarifs de test : déjà en place (10 dans la configuration)"
+  fi
+fi
 
 # ══ 7. Le service ═════════════════════════════════════════════════════════════════════════════
 echo "── [7/9] Le service « $UNITE » (127.0.0.1:$PORT)…"

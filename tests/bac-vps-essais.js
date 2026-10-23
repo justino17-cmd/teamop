@@ -39,6 +39,18 @@ function creerBac() {
     ecrire(path.join(d, 'server/package.json'), '{"name":"teamop-api"}');
     for (const f of ['deployer-test.sh', 'install-test.sh', 'nginx-teamop-test.conf'])
       ecrire(path.join(d, 'server', f), fs.readFileSync(path.join(RACINE_DEPOT, 'server', f), 'utf8'), 0o755);
+    /* Un FAUX créateur de tarifs : le vrai (server/stripe-essai-prix.js) parle à api.stripe.com, ce que le bac ne doit jamais faire — il est éprouvé par test-2990 contre un faux Stripe.
+       Celui-ci note l'appel (qui, quelle config) et écrit une table de dix tarifs dans la config, comme le vrai. Il n'imprime rien d'autre qu'une ligne. */
+    ecrire(path.join(d, 'server/stripe-essai-prix.js'), `
+const fs = require('fs'), path = require('path');
+const C = process.env.TEAMOP_CONFIG, cfg = JSON.parse(fs.readFileSync(C, 'utf8'));
+fs.appendFileSync(process.env.BAC_ETAT + '/log', 'prixessai cfg=' + path.basename(C) + ' cle=' + /^(sk|rk)_test_/.test(String(cfg.stripe && cfg.stripe.secretKey)) + '\\n');
+if (fs.existsSync(process.env.BAC_ETAT + '/prix_echec')) { console.error('Stripe a refusé (banc)'); process.exit(1); }
+const t = {}; for (let i = 0; i < 10; i++) t['price_PROD' + i] = 'price_TEST' + i;
+cfg.stripe = Object.assign({}, cfg.stripe, { prixEssai: t });
+fs.writeFileSync(C, JSON.stringify(cfg, null, 2) + '\\n');   // la forme de jq et du vrai script : un second passage de l'installeur ne change pas un octet
+console.log('10 tarif(s) de test prêts (faux créateur du banc)');
+`);
     ecrire(path.join(d, 'scripts/essais-build.js'), `
 const fs = require('fs'), path = require('path');
 const [dir, sha, branche] = process.argv.slice(2);

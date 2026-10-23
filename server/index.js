@@ -3788,6 +3788,31 @@ const OPTIONS_PRIX_MOIS = { stock: 9, achats: 6, compta: 6, sanitaire: 6 };   //
 const OPTIONS_LBL = { stock: 'Stock (et box pour la 3D)', achats: 'Achats fournisseurs', compta: 'Encaissements et compta', sanitaire: 'Registre sanitaire (métier 3D)' };
 const OPTIONS_COURT = { stock: 'Stock', achats: 'Achats', compta: 'Compta', sanitaire: 'Registre sanitaire (3D)' };   // les courriels
 function placesQ(e) { return Math.max(1, Math.min(50, parseInt(e && e.quantite, 10) || 1)); }
+/* ⛔⛔ L'ESPACE DE TEST PAIE AVEC SES PROPRES TARIFS (23 octobre 2026, `stripe-essai-prix.js`). Les dix identifiants de `STRIPE_PRIX_FORMULE` sont des tarifs du mode
+   RÉEL de Stripe : avec une clé `sk_test_`, Stripe répond « No such price » et la carte 4242 ne peut pas aboutir. `server/stripe-essai-prix.js` crée chez Stripe, en mode
+   test, les dix tarifs équivalents et écrit dans la config de TEST la table `stripe.prixEssai` { price_ de production → price_ de test }. Ici, et ici SEULEMENT, le serveur
+   de test remplace ses identifiants par leurs correspondants — à la place, dans les mêmes tableaux, pour que TOUS les lecteurs (la route de paiement, `classerLigne`,
+   `ligneMessages`, les places, la formule payée) lisent la même chose : un seul lieu de remplacement. ⛔ Sans `espaceTest`, RIEN ne bouge (la table, même présente
+   dans la config de production, est ignorée : une clé réelle avec des tarifs de test ferait refuser tout paiement vrai). ⛔ Tout ou rien : une table incomplète ou mal formée
+   ne remplace RIEN (une moitié de tarifs de test laisserait l'autre au mode réel) et le journal le dit. Posé APRÈS `STRIPE_PRIX_FORMULE` (zone morte temporelle) et hors du
+   bloc des constantes que `test-727` extrait. Les options du Pro n'ont pas de tarif de test : `STRIPE_PRIX_OPTION` est vide en production aussi. */
+if (ESSAI) {
+  const table = config.stripe && config.stripe.prixEssai, prod = [].concat(...Object.values(STRIPE_PRIX_FORMULE));
+  const propre = x => !!x && typeof x === 'object' && !Array.isArray(x);
+  const aLui = (k) => propre(table) && Object.prototype.hasOwnProperty.call(table, k) ? table[k] : undefined;
+  const test = prod.map(aLui);
+  const complete = propre(table) && test.every(v => typeof v === 'string' && /^price_[A-Za-z0-9]+$/.test(v))
+    && new Set(test).size === test.length && test.every(v => !prod.includes(v));
+  if (complete) {
+    for (const k of Object.keys(STRIPE_PRIX_FORMULE)) STRIPE_PRIX_FORMULE[k] = STRIPE_PRIX_FORMULE[k].map(aLui);
+    STRIPE_PRIX_MESSAGES.splice(0, STRIPE_PRIX_MESSAGES.length, ...STRIPE_PRIX_FORMULE.msgpro.concat(STRIPE_PRIX_FORMULE.msgpremium));
+    console.log('⚠️ ESPACE DE TEST : les ' + prod.length + ' tarifs de formule sont ceux du mode TEST de Stripe (stripe.prixEssai)');
+  } else if (table !== undefined) {
+    console.error('essais : `stripe.prixEssai` est incomplète ou mal formée — AUCUN tarif remplacé (le paiement de test n\'aboutira pas) ; relancer : bash install-test.sh stripe');
+  } else {
+    console.log('ESPACE DE TEST : pas de `stripe.prixEssai` — les tarifs de production sont gardés, le paiement de test n\'aboutira pas (bash install-test.sh stripe)');
+  }
+}
 /* a-t-elle eu un code promo, un jour ? Le repère « (code) » de `formulePar` s'efface quand la Tour règle la formule
    ensuite : on lit `codePromo` et le registre des codes, qui restent. Registre illisible → oui, dans le doute. */
 function placesPromoDejaEu(e) {

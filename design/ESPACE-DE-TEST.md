@@ -21,7 +21,7 @@ Un **second serveur TeamOP**, sur le même VPS que la production, mais **sépar�
 | service | `teamop-api` (port 8080) | `teamop-api-test` (port **8095**) |
 | compte système | root | `teamoptest`, sans connexion, qui **ne voit pas** la production |
 | courriels | partent | **captés** : rien ne part, tout se lit sur une page |
-| Stripe | clés `live` | clés **de test** (carte `4242 4242 4242 4242`) |
+| Stripe | clés `live`, tarifs réels | clé **de test** et **dix tarifs de test** créés par l'installation (carte `4242 4242 4242 4242`) |
 | agents | vrai Claude | vrai Claude, **plafonné à 10 $ par mois** |
 | qui y accède | tout le monde | **toi** : un mot de passe devant les pages |
 
@@ -41,7 +41,6 @@ conversation, donc rien de ce qui s'affiche sur le VPS ne doit être secret.
 | secret | où il naît | où il vit | ce que tu colles dans la conversation |
 |---|---|---|---|
 | clé secrète Stripe **de test** (`sk_test_…`) | le tableau de bord Stripe, en mode test | ton gestionnaire de mots de passe, puis `/opt/teamop/test/config.json` (saisie masquée) | **jamais** |
-| secret de signature du webhook de test (`whsec_…`) — facultatif | le tableau de bord Stripe | idem | **jamais** |
 | mot de passe des pages de test | **toi** (10 caractères au moins) | ton gestionnaire de mots de passe, puis `/etc/nginx/teamop-test.htpasswd` (un hachage, saisie masquée) | **jamais** |
 | clé maître de test | sur le VPS, par le script | `/etc/teamop/kek-test` (0600) | jamais — elle n'est même pas affichée, et n'a pas à être mise au séquestre (données jetables) |
 | clé des routes d'essai, paire VAPID, clé d'API de test | sur le VPS, par le script | `/opt/teamop/test/config.json` (0640) | jamais |
@@ -92,12 +91,20 @@ bash /root/install-test.sh
 > `TEAMOP_TEST_BRANCHE=<le nom de la branche> bash /root/install-test.sh`. (Après la fusion, `main` suffit.)
 
 Le script s'annonce par étapes numérotées — `── [1/9] La machine…` jusqu'à `── [9/9] Premier déploiement…` — et **te pose
-trois questions d'abord**, avant d'avoir rien changé. Ce que tu tapes **ne s'affiche pas** (c'est normal) :
+deux questions d'abord**, avant d'avoir rien changé. Ce que tu tapes **ne s'affiche pas** (c'est normal) :
 
 1. `Clé secrète Stripe de test :` — colle la clé `sk_test_…`, puis Entrée. Tu dois voir
    `→ clé de test reçue (sk_test_…, N caractères)`. *Entrée seule* = tu la poseras plus tard.
-2. `Secret du webhook de test :` — **Entrée seule** (c'est facultatif, voir l'étape 4).
-3. `Mot de passe des pages :` — celui de l'étape « avant de commencer », puis `Encore une fois :`.
+2. `Mot de passe des pages :` — celui de l'étape « avant de commencer », puis `Encore une fois :`.
+
+**Ce que tu dois voir au milieu** (étape 6 : la configuration), quand la clé de test est posée — c'est le paiement
+de test qui se prépare, sans rien de plus à faire :
+
+```
+  Stripe : clé de test en place
+  … (quelques lignes « ✓ teamop_essai_… » ou « + teamop_essai_… créé », jamais la clé)
+  tarifs de test : prêts (table écrite dans la configuration, clé non affichée)
+```
 
 **Ce que tu dois voir à la fin :**
 
@@ -150,31 +157,25 @@ curl -s https://api.teamop.fr/health
    n'est pas une erreur, le script de déploiement le dit aussi) ; **jamais `200`** ;
 4. une ligne JSON qui contient `"ok":true` — **la production répond comme avant**.
 
-## Étape 4 — Le webhook Stripe de test (facultatif)
+## Étape 4 — Le paiement de test (carte 4242) : rien de plus à faire
 
-⚠️ **Aujourd'hui, le serveur n'a pas de route de webhook** : il relit Stripe lui-même (Hugo « vérifie par relecture de
-Stripe, pas de webhook »). Cette étape est donc **facultative** — elle prépare le jour où une route existera, et
-ne te coûte rien. Si tu veux gagner du temps : saute-la.
+Les dix tarifs de production n'existent pas en mode test (Stripe répondrait « No such price »). L'installation crée donc,
+chez Stripe **en mode test**, les dix tarifs équivalents (mêmes montants, même devise, même rythme que la page
+d'abonnement) et les range dans la configuration de test (`stripe.prixEssai`) ; le serveur de test et les pages de test
+les utilisent. **Ce que tu fais :** rien, c'est l'étape 2. **Ce que tu vois :** la ligne `tarifs de test : prêts`. Sur
+`essais.html`, une étape « Payer un abonnement avec la carte de test » apparaît dans le parcours ; tant que la ligne
+n'a pas été vue, la page dit au contraire « Limite connue : le paiement ne se joue pas encore ici » — elle ne promet
+jamais un paiement qui échouerait.
 
-1. Tableau de bord Stripe, **en mode test** → *Développeurs* → *Webhooks* → *Ajouter un point de terminaison*.
-2. **Adresse :** `https://test.teamop.fr/api/stripe/webhook`
-3. **Événements :** `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`,
-   `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`.
-4. *Ajouter le point de terminaison*, puis dans sa fiche : **Clé de signature** → *Révéler* → copier (`whsec_…`).
-5. Sur le VPS :
+Pour payer : `4242 4242 4242 4242`, n'importe quelle date future, n'importe quel code. Le script ne crée jamais rien dans
+le compte réel : il **refuse** toute clé qui n'est pas `sk_test_…` / `rk_test_…`.
 
-   ```bash
-   bash /root/install-test.sh webhook
-   ```
+**Pas de webhook à déclarer dans le tableau de bord Stripe :** le serveur n'a pas de route de webhook, il relit lui-même
+les abonnements chez Stripe — déclarer un point de terminaison n'aurait donc aucun effet.
 
-   Réponds à la question `Secret du webhook de test :` en collant le secret (rien ne s'affiche), Entrée. Les autres
-   questions ne sont pas reposées.
-
-**Ce que tu dois voir :** `→ secret reçu`, puis l'installation repasse sans rien changer d'autre et finit sur `✅`.
-
-Pour payer en test, une carte : `4242 4242 4242 4242`, n'importe quelle date future, n'importe quel code. Pour
-redonner une clé Stripe de test : `bash /root/install-test.sh stripe`. Pour changer le mot de passe des pages :
-`bash /root/install-test.sh motdepasse`.
+Pour redonner une clé Stripe de test (et retrouver ou recréer les tarifs de test — sans doublon, le script les
+retrouve par leur clé de recherche) : `bash /root/install-test.sh stripe`, qui redemande la clé masquée puis finit sur
+`tarifs de test : prêts`. Pour changer le mot de passe des pages : `bash /root/install-test.sh motdepasse`.
 
 ## Au quotidien
 

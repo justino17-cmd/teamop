@@ -40,14 +40,13 @@ function bac() {
   return b;
 }
 const CLE_STRIPE = 'sk_test_' + 'A1b2C3d4E5f6G7h8I9j0K1l2';
-const WEBHOOK = 'whsec_' + 'abcdEFGH1234ijklMNOP5678';
 const MDP = 'Mot-de-passe-secret-42';
 function installer(b, saisies, args, extraEnv) {
   const f = path.join(b.E, 'entree'); fs.writeFileSync(f, (saisies || []).join('\n') + '\n');
   const r = spawnSync('bash', [INSTALL].concat(args || []), { encoding: 'utf8', env: Object.assign({}, b.env, { TEAMOP_TEST_ENTREE: f, TEAMOP_TEST_BRANCHE: 'claude/essai-test' }, extraEnv || {}), timeout: 90000 });
   return { rc: r.status, out: String(r.stdout || '') + String(r.stderr || '') };
 }
-const TOUT = [CLE_STRIPE, WEBHOOK, MDP, MDP];
+const TOUT = [CLE_STRIPE, MDP, MDP];
 const config = (b) => JSON.parse(b.lire('opt/teamop/test/config.json'));
 const argv = (b) => { try { return fs.readFileSync(path.join(b.E, 'argv'), 'utf8'); } catch (e) { return ''; } };
 const mode = (b, rel) => (fs.statSync(b.chemin(rel)).mode & 0o777).toString(8);
@@ -117,7 +116,11 @@ vrai('⛔ la configuration porte les réglages du mode test : espaceTest, courri
 vrai('la clé des routes d\'essai fait 64 hexadécimaux, tirée au hasard par l\'installation', /^[0-9a-f]{64}$/.test(cfg.espaceTestCle));
 v('⛔ la clé des agents est COPIÉE de la production (jq --slurpfile, sans écran)', cfg.agents.cleApi, CANARI_AGENTS);
 vrai('⛔ rien de plus n\'est copié de la production : ni sa clé Stripe live, ni son apiKey, ni agents.reunionsAuto (les réunions tournent en test)', !JSON.stringify(cfg).includes('PRODUCTION') && cfg.apiKey !== 'PROD-API-KEY' && cfg.agents.reunionsAuto === undefined);
-v('la clé Stripe de TEST et le secret du webhook sont enregistrés', [cfg.stripe.secretKey, cfg.stripe.webhookSecret], [CLE_STRIPE, WEBHOOK]);
+v('la clé Stripe de TEST est enregistrée', cfg.stripe.secretKey, CLE_STRIPE);
+vrai('⛔ la table des tarifs de test (stripe.prixEssai : dix tarifs) est écrite dans la configuration par server/stripe-essai-prix.js, lancé APRÈS la clé et AVANT le premier déploiement (le fabricant des pages la lit)',
+  Object.keys(cfg.stripe.prixEssai || {}).length === 10 && mode(B, 'opt/teamop/test/config.json') === '640'
+  && (() => { const i = B.journal().findIndex(l => /^prixessai cfg=config\.json cle=true$/.test(l)), d = B.journal().findIndex(l => /^build as=/.test(l)); return i >= 0 && d > i; })());
+vrai('…et la sortie de l\'installeur le dit en une ligne, sans secret', /tarifs de test : prêts/.test(r.out) && !r.out.includes(CLE_STRIPE));
 vrai('une paire VAPID valide : publique = 65 octets (87 caractères base64url), privée = 32 octets (43)', cfg.vapidPublicKey.length === 87 && cfg.vapidPrivateKey.length === 43 && Buffer.from(cfg.vapidPublicKey, 'base64url')[0] === 4);
 vrai('l\'adresse de contact est fictive (exemple-essai.fr) et aucun SMTP n\'est configuré : rien ne peut partir', /@exemple-essai\.fr$/.test(cfg.contactEmail) && Object.keys(cfg.smtp).length === 0);
 v('⛔ la configuration est lisible par le seul service et root (640)', mode(B, 'opt/teamop/test/config.json'), '640');
@@ -138,7 +141,7 @@ vrai('l\'ordre du journal : compte < miroir < unité rechargée < certificat < n
   (() => { const p = re => j.findIndex(l => re.test(l)); const dernier = re => { for (let k = j.length - 1; k >= 0; k--) if (re.test(j[k])) return k; return -1; }; const o = [p(/^useradd/), p(/^git clone/), p(/^systemctl daemon-reload/), p(/^certbot certonly/), dernier(/^systemctl reload nginx/), p(/^systemctl restart teamop-api-test/)]; return o.every(x => x >= 0) && o.every((x, k) => k === 0 || x > o[k - 1]); })());
 vrai('⛔ le premier déploiement est celui de la branche demandée, par son SHA complet', j.some(l => /^build as=teamoptest sha=aaaaaaaa branche=claude\/essai-test /.test(l)));
 vrai('les pages servies sont celles du premier déploiement (le lien « pages » ne désigne plus l\'attente)', /pages\.d\/\d{14}-aaaaaaaa$/.test(B.lien('opt/teamop/test/pages') || ''));
-const secrets = { 'clé Stripe de test': CLE_STRIPE, 'secret du webhook': WEBHOOK, 'mot de passe des pages': MDP, 'clé maître de test': B.lire('etc/teamop/kek-test').trim(), 'clé des routes d\'essai': cfg.espaceTestCle, 'clé privée VAPID': cfg.vapidPrivateKey, 'apiKey de test': cfg.apiKey, 'clé des agents (copiée)': CANARI_AGENTS };
+const secrets = { 'clé Stripe de test': CLE_STRIPE, 'mot de passe des pages': MDP, 'clé maître de test': B.lire('etc/teamop/kek-test').trim(), 'clé des routes d\'essai': cfg.espaceTestCle, 'clé privée VAPID': cfg.vapidPrivateKey, 'apiKey de test': cfg.apiKey, 'clé des agents (copiée)': CANARI_AGENTS };
 for (const [nom, val] of Object.entries(secrets)) {
   vrai('⛔ ' + nom + ' : ni à l\'écran, ni sur une ligne de commande de jq/openssl', !r.out.includes(val) && !argv(B).includes(val) && !j.some(l => l.includes(val)));
 }
@@ -196,13 +199,16 @@ console.log('\n── 4. Idempotence : un second passage ne change pas un octet'
   const nouveau = B.journal().slice(nj);
   vrai('⛔ aucun nouveau certificat, aucun rechargement de nginx, aucune unité rechargée', !nouveau.some(l => /^certbot/.test(l)) && !nouveau.some(l => /^systemctl (reload nginx|daemon-reload)/.test(l)));
   vrai('il ne redemande aucune saisie (ni clé Stripe, ni mot de passe)', !/Clé secrète Stripe de test|Mot de passe des pages/.test(r2.out));
+  vrai('⛔ rejouable : la table de tarifs de test est déjà là (dix), le créateur n\'est PAS relancé (aucun appel à Stripe pour rien)', !nouveau.some(l => /^prixessai/.test(l)) && /tarifs de test : déjà en place/.test(r2.out));
   vrai('le compte n\'est pas recréé', !nouveau.some(l => /^useradd/.test(l)));
   v('la production est toujours identique', B.empreinteProduction(), prodAvant);
   const CLE2 = 'sk_test_' + 'Z9y8X7w6V5u4T3s2R1q0P9o8';
   const r3 = installer(B, [CLE2], ['stripe']);
   const c3 = config(B);
   v('« stripe » redemande la clé Stripe et SEULEMENT elle : la nouvelle remplace l\'ancienne…', c3.stripe.secretKey, CLE2);
-  vrai('…sans toucher à la clé des routes d\'essai, à la paire VAPID, ni au secret du webhook', c3.espaceTestCle === cfg.espaceTestCle && c3.vapidPrivateKey === cfg.vapidPrivateKey && c3.stripe.webhookSecret === WEBHOOK && r3.rc === 0);
+  vrai('…sans toucher à la clé des routes d\'essai ni à la paire VAPID', c3.espaceTestCle === cfg.espaceTestCle && c3.vapidPrivateKey === cfg.vapidPrivateKey && r3.rc === 0);
+  vrai('⛔ « stripe » relance AUSSI le créateur de tarifs (une clé neuve peut être d\'un autre compte de test : ses tarifs sont à retrouver ou à créer), clé non affichée',
+    B.journal().slice(nj).some(l => /^prixessai cfg=config\.json cle=true$/.test(l)) && !r3.out.includes(CLE2));
 }
 {
   const r4 = installer(B, ['Nouveau-mot-de-passe-77', 'Nouveau-mot-de-passe-77'], ['motdepasse']);
@@ -214,18 +220,19 @@ console.log('\n── 4. Idempotence : un second passage ne change pas un octet'
 console.log('\n── 5. Les refus : une clé de production, une clé maître orpheline, un DNS absent, nginx qui refuse');
 {
   const b = bac();
-  const x = installer(b, ['sk_live_' + 'Q'.repeat(24), '', '', MDP, MDP]);
+  const x = installer(b, ['sk_live_' + 'Q'.repeat(24), '', MDP, MDP]);
   vrai('⛔ une clé Stripe de PRODUCTION (sk_live_) est refusée, dite en clair, et n\'entre jamais dans la configuration', /clé de PRODUCTION/.test(x.out) && !JSON.stringify(config(b)).includes('sk_live') && !x.out.includes('Q'.repeat(24)));
   vrai('…l\'installation va quand même au bout sans Stripe, et le dit (paiements de test éteints)', x.rc === 0 && /Stripe : pas de clé de test/.test(x.out) && !(config(b).stripe || {}).secretKey);
+  vrai('⛔ sans clé de test, le créateur de tarifs n\'est PAS lancé (rien à demander à Stripe, et jamais avec une clé de production)', !b.journal().some(l => /^prixessai/.test(l)));
 }
 {
   const b = bac();
-  const x = installer(b, [CLE_STRIPE, '', MDP, 'autre chose']);
+  const x = installer(b, [CLE_STRIPE, MDP, 'autre chose']);
   vrai('⛔ deux saisies différentes du mot de passe : trois essais puis refus, RIEN n\'est installé (les saisies passent avant tout geste)', x.rc === 1 && !b.existe('opt/teamop/test') && !b.existe('etc/teamop/kek-test') && !b.journal().some(l => /^(useradd|git|certbot|chown)/.test(l)));
 }
 {
   const b = bac();
-  const x = installer(b, [CLE_STRIPE, '', 'court', 'court', 'court', 'court', 'court', 'court']);
+  const x = installer(b, [CLE_STRIPE, 'court', 'court', 'court', 'court', 'court', 'court']);
   vrai('un mot de passe de moins de 10 caractères est refusé', x.rc === 1 && !b.existe('etc/nginx/teamop-test.htpasswd'));
 }
 {
@@ -308,8 +315,9 @@ if (fs.existsSync(DOC)) {
   vrai('il donne la commande de vérification du DNS et ce qu\'on doit voir', /dig \+short test\.teamop\.fr/.test(d));
   vrai('il donne l\'installation en commandes réelles, qui existent dans le dépôt (install-test.sh)', /install-test\.sh/.test(d) && /ssh root@api\.teamop\.fr/.test(d) && fs.existsSync(INSTALL));
   vrai('il dit la vérification : ouvrir https://test.teamop.fr/essais.html', /https:\/\/test\.teamop\.fr\/essais\.html/.test(d));
-  vrai('il explique le webhook Stripe de test : où le créer (mode test), quelle adresse, quel événement, où coller le secret', /whsec_/.test(d) && /https:\/\/test\.teamop\.fr\/api\/stripe\/webhook/.test(d) && /mode test/i.test(d) && /bash \/root\/install-test\.sh webhook/.test(d));
-  vrai('il dit que le serveur n\'a pas encore de route de webhook (le point est facultatif aujourd\'hui)', /facultatif/i.test(d) && /pas de webhook|pas encore de route/i.test(d));
+  vrai('⛔ il ne fait faire AUCUN geste de webhook (le serveur n\'a pas de route de webhook Stripe : il relit les abonnements chez Stripe) et il dit pourquoi en une phrase', !/bash \/root\/install-test\.sh webhook/.test(d) && !/api\/stripe\/webhook/.test(d) && !/whsec_/.test(d) && /pas de route de webhook/.test(d) && /relit/.test(d));
+  vrai('…et la fonction du serveur confirme : AUCUNE route de webhook Stripe dans server/index.js (sinon le mode d\'emploi mentirait)', !/app\.(post|use|all)\(\s*['"]\/api\/stripe\/webhook/.test(fs.readFileSync(path.join(RACINE_DEPOT, 'server/index.js'), 'utf8')));
+  vrai('il dit la commande qui crée les tarifs de test (bash /root/install-test.sh stripe), ce qui s\'affiche, et la carte 4242', /bash \/root\/install-test\.sh stripe/.test(d) && /tarifs de test : prêts/.test(d) && /4242 4242 4242 4242/.test(d));
   vrai('⛔ il ne fait jamais afficher un secret : la section dédiée existe et aucune commande n\'imprime kek-test, config.json ou .env', /Aucune commande de ce document n'affiche un secret/.test(d) && !/cat \/etc\/teamop|cat \/opt\/teamop\/test\/config|cat \/etc\/nginx\/teamop-test\.htpasswd/.test(d));
   vrai('⛔ il ne contient aucune clé ni aucun secret (sk_test_ suivi de lettres, whsec_ suivi de lettres, 64 hexadécimaux)', !/sk_(test|live)_[A-Za-z0-9]{8}/.test(d) && !/whsec_[A-Za-z0-9]{8}/.test(d) && !/\b[0-9a-f]{64}\b/.test(d));
   const rmDoc = d.split('\n').filter(l => /^\s*rm\b/.test(l));

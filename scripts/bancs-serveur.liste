@@ -67,7 +67,10 @@
 # remplacé, le démarrage et la marque, le semis, la forme du code), `test-2981` (SANS `espaceTest`, le vrai serveur est celui d'avant : trois routes en 404, un courriel PART, CORS, plafond),
 # `test-2982` (AVEC : semis, clé, courriels captés dont le lien marche, « Se connecter comme… » ouvre la vraie fonction de `espace.html`, la Tour, un dossier non vierge ne reçoit rien),
 # `test-2983` (le plafond des agents : 10 $ tous agents confondus) et `test-2984` (la remise à zéro ne touche rien hors de TEAMOP_DATA) — 222 vérifications, plancher relevé à 5350.
-#plancher 5440
+# La couture : `test-2987` (les vraies pages fabriquées parlent au vrai serveur de test) — 93 vérifications. Le paiement de test : `test-2990` (le script qui crée les dix tarifs de
+# test chez un FAUX Stripe, idempotent, qui refuse une clé live ou une config sans `espaceTest` ; le vrai serveur qui les accepte en essai et ne change RIEN sans `espaceTest`) —
+# 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
+#plancher 5490
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -329,5 +332,7 @@ tests/test-2981.js
 tests/test-2982.js
 tests/test-2983.js
 tests/test-2984.js
-# 23 octobre 2026 : `test-2987` (la COUTURE : les vraies pages fabriquées par `scripts/essais-build.js` parlent au vrai serveur de test — le Location de chaque compte, le vrai script injecté, une session ouverte avec ce qu'il a rangé, un courriel capté lu par `courriels.html`) — 93 vérifications, plancher relevé de 5350 à 5440.
+# 23 octobre 2026 : `test-2987` (la COUTURE : les vraies pages fabriquées par `scripts/essais-build.js` parlent au vrai serveur de test — le Location de chaque compte, le vrai script injecté, une session ouverte avec ce qu'il a rangé, un courriel capté lu par `courriels.html`) — 93 vérifications.
 tests/test-2987.js
+# 23 octobre 2026 : le paiement de test (stripe-essai-prix.js, le remplacement des tarifs dans le serveur de test). Lit server/ et la page de paiement seulement.
+tests/test-2990.js
