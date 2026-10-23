@@ -548,6 +548,13 @@ function fin7() {
   { const robots = lire('robots.txt'), plan = lire('sitemap.xml');
     vrai('demo.html n\'est PAS dans le plan du site (aucune page de la démonstration n\'est proposée aux moteurs : elle est noindex, et robots.txt ne la cache pas — un robot doit pouvoir lire le noindex)',
       plan.indexOf('demo') < 0 && robots.indexOf('demo.html') < 0); }
+  /* Justin : « le lien de la démo sur le site ». Le lien vit sur l'ACCUEIL et les TARIFS (ajoutés le 23 octobre 2026 : l'accueil n'y menait qu'en
+     deux clics), sur OP GESTION, Métiers et chaque page métier — lu dans les pages PUBLIÉES (sorties de scripts/site-marine.js), sur la forme du code. */
+  { const LIEN = '<a class="lien-suite" href="/demo.html">Essayer la démonstration ›</a>';
+    const pages = ['index.html', 'tarifs.html', 'op-gestion.html', 'metiers.html'].concat(fs.readdirSync(RACINE).filter(f => /^logiciel-[\w-]+\.html$/.test(f)).sort());
+    vrai('(population) l\'accueil, les tarifs, OP GESTION, Métiers et ' + (pages.length - 4) + ' pages métier sont lus', pages.length >= 14 && pages.every(f => fs.existsSync(path.join(RACINE, f))));
+    egal('⛔ chacune porte le lien « Essayer la démonstration › » vers /demo.html', pages.filter(f => lire(f).indexOf(LIEN) < 0), []);
+    egal('   … et l\'aperçu du site aussi', pages.filter(f => fs.existsSync(path.join(RACINE, 'apercu', 'site', f)) && lire('apercu/site/' + f).indexOf('Essayer la démonstration ›') < 0), []); }
   finir();
 }
 function finir() {

@@ -7,6 +7,7 @@ TEAM OP
 OP GESTION regroupe les interventions, le stock et les encaissements. L'application est déclarée pour iOS, Android, macOS, Windows et le Web.
 
 - [Créer mon compte](https://teamop.fr/espace.html)
+- [Essayer la démonstration ›](https://teamop.fr/demo.html)
 - [Découvrir les applications ›](https://teamop.fr/applications.html)
 
 Chiffré AES-256 Sur tous vos appareils Sans installation

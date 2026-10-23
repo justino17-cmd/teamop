@@ -48,7 +48,7 @@ async function ranger(S) {   // ferme ce qui s'ouvre tout seul (fenêtres, toast
         for (const P of PROFILS) for (const th of THEMES) {
           await profil(S, P, th); await S.goto('/demo.html'); await S.attendre('document.querySelectorAll(".demo-carte").length>0', 15000); await dormir(500);
           const n = await S.ev('return document.querySelectorAll(".demo-carte").length');
-          vrai('le choix du métier s\'affiche : ' + n + ' métiers (' + P.nom + ', ' + th + ')', n === 13);
+          vrai('le choix du métier s\'affiche : ' + n + ' métiers (' + P.nom + ', ' + th + ')', n === 23);
           const deborde = await S.ev('const r=document.documentElement; return r.scrollWidth-document.documentElement.clientWidth');
           vrai('   et ne déborde pas de côté', deborde <= 1, deborde);
           await S.snap(path.join(DOSSIER, M, 'choix-' + P.nom + '-' + th + '.png'));

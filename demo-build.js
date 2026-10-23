@@ -159,5 +159,10 @@ if (s.indexOf("SYNC_SECRET_DEFAULT='ELAN-GESTION-7F3A9C2E-cloud-2026'") < 0) ech
 if (s.indexOf("SYNC_SALT='RUxBTi1HRVNUSU9OLXNhbHQtdjE='") < 0) echec('SYNC_SALT a été modifié — c\'est le SEL de chiffrement, pas un nom');
 
 const sortie = (process.argv && process.argv[2]) || 'demo.html';
+/* ⛔ « SERVICE 24H/24 » N'EST PLUS UNE PROMESSE (relecture juridique du 23 octobre 2026) : la démonstration est PUBLIQUE, elle ne doit pas la porter alors que le site et les contrats disent « assistance
+   prioritaire ». `app.html` ne change que sur une phrase de Justin ; ce remplacement dit le texte juste d'ici là, et ne fait plus rien le jour où app.html le dit lui-même (même garde que beta-build.js). */
+const n24h = s.split('service 24h/24').length - 1;
+if (n24h > 1) echec('« service 24h/24 » est écrit ' + n24h + ' fois dans app.html — le remplacement vise la description de la formule, une seule fois');
+s = s.split('service 24h/24').join('assistance prioritaire');
 fs.writeFileSync(sortie, s);
 console.log(sortie + ' générée (' + Math.round(s.length / 1024) + ' Ko) — version ' + (s.match(/APP_VERSION = '([^']+)'/) || [])[1]);

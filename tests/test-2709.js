@@ -68,7 +68,7 @@ console.log('\n── 2709 · le panneau Agents de la Tour : ses vraies fonction
     const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true });
     preparer(D);
     const vap = webpush.generateVAPIDKeys();
-    fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP) }));
+    fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), agents: { reunionsAuto: false } }));   // la réunion due (vendredi 18 h-23 h, lundi matin) écrirait dans agents-messages.json pendant que le banc les compte
     const PORT = 9600 + ((process.pid + (numero++)) % 300);
     let journal = '';
     const e = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, nom, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json') }), stdio: ['ignore', 'pipe', 'pipe'] });

@@ -543,5 +543,29 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
     v('lancer sans aucun agent allumé : 200 et « annulée » (la ligne du système, une fois)', [an.code, an.corps.annulee, H4.messages().map(m => m.texte)], [200, true, ['Réunion annulée : aucun agent n’est allumé']]);
   }
 
+  /* LA MINUTERIE, dans index.js (23 octobre 2026) : armée sans réglage ; seule la valeur `false` de `agents.reunionsAuto` la coupe — c'est le réglage des BANCS qui
+     démarrent le vrai serveur (sans lui, la réunion due du vendredi soir ou du lundi matin partait pendant qu'ils comptaient). Lu dans le CODE, commentaires retirés. */
+  console.log('\nLa minuterie du serveur');
+  {
+    const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const i = IDX.indexOf('const ticReunions'), bloc = i < 0 ? '' : IDX.slice(i, i + 900);
+    vrai('(population) le câblage des réunions est trouvé dans index.js', bloc.length > 100 && /reunionsMod\.tic\(\)/.test(bloc));
+    vrai('⛔ sans réglage, la minuterie est armée : seule la valeur `false` de `agents.reunionsAuto` la coupe',
+      /if \(config\.agents && config\.agents\.reunionsAuto === false\)[^\n]*\n\s*else \{\s*setTimeout\(ticReunions, 5000\)\.unref\(\);\s*setInterval\(ticReunions, 60000\)\.unref\(\);/.test(bloc));
+  }
+  /* …et AUCUN banc qui démarre le vrai serveur avec une clé d'agents n'oublie de la couper : il a fallu deux passes à la main pour les trouver
+     (huit bancs, puis deux), le 23 octobre 2026. test-2885 garde la minuterie : il éprouve les réunions du vrai serveur. */
+  {
+    const dir = path.join(RACINE, 'tests'), lus = [], oublis = [];
+    for (const f of fs.readdirSync(dir).filter(f => /^(?:test-\d+|banc-[\w-]+)\.js$/.test(f) && f !== 'test-2884.js' && f !== 'test-2885.js')) {
+      const s = fs.readFileSync(path.join(dir, f), 'utf8');
+      const lance = /\bspawn\(/.test(s) && /['"]server['"],\s*['"]index\.js['"]|server\/index\.js/.test(s);
+      const cle = /conf\.agents\s*=|agents:\s*\{\s*cleApi/.test(s);
+      if (lance && cle) { lus.push(f); if (!/reunionsAuto:\s*false/.test(s)) oublis.push(f); }
+    }
+    vrai('(population) des bancs démarrent le vrai serveur avec une clé d\'agents : ' + lus.length + ' (' + lus.join(', ') + ')', lus.length >= 8);
+    v('⛔ chacun coupe la minuterie des réunions (`agents.reunionsAuto: false`)', oublis, []);
+  }
+
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ banc mort : ' + (e && e.stack || e)); process.exit(1); });

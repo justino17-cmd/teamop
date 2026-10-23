@@ -60,7 +60,7 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true });
     fs.writeFileSync(path.join(D, 'clients.json'), '{}'); fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
     const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2881' } };
-    if (cle) conf.agents = { cleApi: cle };
+    conf.agents = Object.assign(cle ? { cleApi: cle } : {}, { reunionsAuto: false });   // pas de réunion due pendant le banc (vendredi 18 h-23 h, lundi matin, heure de Paris)
     if (socle) conf.socle = { actif: true };
     fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify(conf));
     const PORT = await libre(); let journal = '';

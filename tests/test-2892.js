@@ -134,10 +134,10 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
   try {
     /* ══ 1. LE PORTAIL — les vraies fonctions d'espace.html ══ */
     console.log('\n1. Le portail (les vraies fonctions d\'espace.html) : le client choisit son métier, la grille se pré-coche, il décoche « Stock », la demande part');
-    const NOMS_P = ['lienSlug', 'sendRequest', 'planNom', 'cliResume', 'cliSigne', 'ratEtat', 'ratMetiers', 'ratOptions', 'ratInit', 'ratRefCharger', 'ratZone', 'ratRepeindre', 'ratMonter', 'ratMetierChange', 'ratChoix', 'cliRelayerDemande'];
+    const NOMS_P = ['lienSlug', 'sendRequest', 'planNom', 'cliResume', 'cliSigne', 'ratEtat', 'ratMetiers', 'ratOptions', 'ratInit', 'ratRefCharger', 'ratZone', 'ratRepeindre', 'ratMonter', 'ratMetierChange', 'ratManque', 'ratChoix', 'cliRelayerDemande'];
     const FN_P = NOMS_P.map(n => fonction(PORTN, n));
     const L_METIER = ligne(PORTN, /^[ \t]*const METIER_L=\{[^\n]*\};$/m), L_REFUS = ligne(PORTN, /^[ \t]*const RAT_REFUS=\{[^\n]*\};$/m), L_SYNC = ligne(PORTN, /^[ \t]*const CLI_SYNC_URL=[^\n]*;$/m);
-    vrai('(population) les seize fonctions du portail, la liste des métiers, les refus et l\'adresse du relais sont trouvés dans son code', FN_P.every(Boolean) && !!L_METIER && !!L_REFUS && !!L_SYNC, NOMS_P.filter((n, i) => !FN_P[i]).join(', ') + [L_METIER, L_REFUS, L_SYNC].map(x => x ? '' : ' (une ligne manque)').join(''));
+    vrai('(population) les dix-sept fonctions du portail, la liste des métiers, les refus et l\'adresse du relais sont trouvés dans son code', FN_P.every(Boolean) && !!L_METIER && !!L_REFUS && !!L_SYNC, NOMS_P.filter((n, i) => !FN_P[i]).join(', ') + [L_METIER, L_REFUS, L_SYNC].map(x => x ? '' : ' (une ligne manque)').join(''));
     const FORM = { 'r-app': 'OP GESTION', 'r-company': 'Chauffe Banc', 'r-besoin': 'Entretien annuel des chaudières', 'r-users': '3', 'r-code': '', 'r-formule': 'Pro',
       'r-prenom': 'Chantal', 'r-nom': 'Chaud', 'r-tel': '06 12 34 56 78', 'r-lien': 'chauffe-banc' };
     /* un navigateur de banc : des éléments par identifiant, dont la zone des rubriques qui se réécrit — la grille n'existe que si la zone la porte */
@@ -178,6 +178,10 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
 
     /* le client choisit « chauffage » : la grille se pré-coche selon le conseil que le SERVEUR sert */
     nouveau.el['r-metier'].value = 'chauffage'; nouveau.ctx.ratMetierChange();
+    v('⛔ … et « il manque : métier » disparaît dès que le métier est choisi (il ne manquait que lui)', nouveau.el['req-msg'].innerHTML, '');
+    { const deux = portail({ form: { 'r-tel': '' } }); await deux.ctx.ratRefCharger(); deux.ctx.ratInit(null); await deux.ctx.sendRequest('u-chantal');
+      const avant = deux.el['req-msg'].innerHTML; deux.el['r-metier'].value = 'plomberie'; deux.ctx.ratMetierChange(); const apres = deux.el['req-msg'].innerHTML;
+      vrai('   … sans effacer ce qui manque encore (téléphone et métier manquaient : le téléphone reste, le métier part)', /<b>[^<]*téléphone[^<]*métier/.test(avant) && /il manque : <b>téléphone<\/b>/.test(apres) && !/métier/.test(apres), { avant, apres }); }
     const g1 = nouveau.el['r-rub-grille'].innerHTML;
     const VIS = k => CATS_OK.filter(c => !(REF.rubriques[c].seulement && !REF.rubriques[c].seulement.includes(k)) || METIERS.metiers[k].rubriques.includes(c) || (METIERS.metiers[k].proposees || {})[c]);
     v('⛔ « chauffage » choisi : la grille compte 32 rubriques (les six de la 3D n\'y sont pas : l\'application les masque), celles du conseil cochées, chacune avec son explication (+ les 4 incluses)',

@@ -1043,11 +1043,15 @@ function rememberSent(teamId, bonNum, to) {
 }
 // ── Boîtes mail connectées (plusieurs par équipe, relevées par le serveur) ──
 const MAILBOX_PATH = path.join(DATA_DIR, 'mailboxes.json');
+/* ⛔ LES MOTS DE PASSE DE CES BOÎTES SONT CHIFFRÉS SUR LE DISQUE (`coffre-boites.js`, clé maître du socle). En mémoire ils restent
+   en clair — il faut les présenter à IMAP/SMTP — : `lire` déchiffre, `saveMailboxes` rechiffre. Un fichier d'avant (en clair) se lit
+   tel quel et se réécrit chiffré dès le démarrage si la clé est là. Jamais un mot de passe dans une réponse ni un journal. */
+const coffreBoites = require('./coffre-boites');
 let mailboxes = {};   // clé "boxId" -> { id, teamId, email, pass, name, imapHost, imapPort, smtpHost, smtpPort }
-try { mailboxes = JSON.parse(fs.readFileSync(MAILBOX_PATH, 'utf8')); } catch (e) {}
+mailboxes = coffreBoites.lire(MAILBOX_PATH, {});
 // migration éventuelle depuis l'ancien format "teamId|userId"
 for (const k of Object.keys(mailboxes)) { const b = mailboxes[k]; if (!b.id) { b.id = 'mb' + Math.random().toString(36).slice(2, 9); mailboxes[b.id] = b; delete mailboxes[k]; } }
-function saveMailboxes() { try { fs.writeFileSync(MAILBOX_PATH, JSON.stringify(mailboxes)); } catch (e) {} }
+function saveMailboxes() { return coffreBoites.ecrire(MAILBOX_PATH, mailboxes); }   // temporaire + renommage, mots de passe chiffrés ; rend false (et le dit) si non écrit
 // Détection automatique des serveurs selon le domaine
 function mailServers(email) {
   const dom = String(email || '').split('@')[1] || '';
@@ -8641,10 +8645,10 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
 
   // ── 2. LES BOÎTES MAIL. releveBoite() les relit toutes les 120 s : tant qu'elles sont là,
   //       le serveur se reconnecte et réécrit dans replies.jsonl ce qu'on va en retirer.
-  //       Elles portent aussi les mots de passe IMAP/SMTP en clair.
+  //       Elles portent aussi les mots de passe IMAP/SMTP (chiffrés sur le disque).
   for (const id of inv._boites) delete mailboxes[id];
   /* saveMailboxes() avale son erreur. Or c'est le fichier qui porte les mots de passe
-     IMAP/SMTP EN CLAIR : répondre « supprimé » alors qu'ils sont encore sur le disque est
+     IMAP/SMTP (chiffrés, mais toujours ceux de l'entreprise) : répondre « supprimé » alors qu'ils sont encore sur le disque est
      exactement ce qu'il ne faut pas faire. On relit pour en être sûr. */
   let ecrit = true;
   if (inv._boites.length) {
@@ -9027,6 +9031,19 @@ app.get('/api/monitor/issues/contexte', monAdmin, (req, res) => {
        collaborateur qui l'a demandée, et relisible. Une explication qu'on ne peut pas
        relire est une explication à laquelle on ne peut pas se fier. */
 const DEPOT = path.resolve(__dirname, '..');
+/* ⛔ CE QUI PART CHEZ ANTHROPIC N'EST PAS CE QUE LA TOUR AFFICHE. Le message, la trace, la source et l'origine d'un incident viennent de
+   /api/monitor/report — publique, sans preuve — et peuvent citer ce qu'un client avait saisi (une adresse dans un message d'erreur, un numéro
+   dans une URL). Justin les lit en entier dans la Tour (le stockage ne change pas) ; mais « Expliquer la cause » et « Proposer un correctif »
+   les passent par `incidentTexte` AVANT l'appel. UNE définition du filtre : celle des courriels reçus (`agents-connaissance.js`). `coupe` : ces
+   champs sont tronqués au stockage (300, 600, 200) — le bout d'une adresse ou d'un numéro est masqué aussi. Tout NOUVEAU champ d'incident
+   qui entre dans un `contexte` passe par ici ou n'y entre pas (`tests/test-2975.js` rejoue les deux routes contre un faux Anthropic). */
+const { pourAnthropic: incidentPourAnthropic } = require('./agents-connaissance');
+const incidentTexte = (t) => incidentPourAnthropic(t, { coupe: true });
+const incidentCode = (t) => incidentPourAnthropic(t);
+/* ⛔ Le MÊME filtre vaut pour ce qui part vers GitHub : le corps, le titre et le message de commit d'une proposition de correctif sont lus sur un dépôt
+   (public, vraisemblablement : il publie le site). Le message vient de la route publique, la cause et le texte de la proposition viennent du modèle, qui
+   recopie ce qu'il a lu. La Tour garde l'original ; GitHub reçoit `incidentTexte` (texte COUPÉ au stockage) ou `incidentModele` (texte du modèle, jamais coupé). */
+const incidentModele = incidentCode;
 /* Le fichier désigné par une trace de sentinelle : un seul nom, à la racine du dépôt,
    et rien d'autre — pas de chemin, pas de remontée, pas d'autre extension. */
 function monSource(src, ligne) {
@@ -9085,16 +9102,18 @@ app.post('/api/monitor/expliquer', monAdmin, async (req, res) => {
       + "« ou » : le fichier et la ligne, repris EXACTEMENT de l'extrait fourni. Si aucun extrait n'est fourni, ou si l'extrait ne montre pas la cause, écris « emplacement non déterminé » — n'invente jamais un fichier ni un numéro de ligne.\n"
       + "« verifier » : ce qu'un humain doit regarder ou reproduire pour confirmer, en une phrase.\n"
       + "« confiance » : « haute » seulement si l'extrait montre la cause noir sur blanc ; « faible » si tu raisonnes sans voir le code fautif. Une explication plausible mais invérifiable est de confiance faible, dis-le.";
+    /* ⛔ chaque champ libre passe par `incidentTexte` APRÈS sa troncature, et séparément : le bout d'un champ n'est pas le bout du suivant. */
+    const extraitSur = s && s.extrait ? s.extrait.split('\n').map(incidentCode).join('\n') : '';
     const contexte = 'Incident\n'
-      + '- application : ' + (issue.app || '?') + (issue.version ? ' v' + issue.version : '') + '\n'
-      + '- type : ' + (issue.type || '?') + ' · écran ouvert : ' + (issue.categorie || '?')
-      + (issue.origine ? ' · origine : ' + issue.origine : '') + '\n'
-      + '- message : ' + (issue.message || '') + '\n'
+      + '- application : ' + (incidentTexte(issue.app) || '?') + (issue.version ? ' v' + incidentTexte(issue.version) : '') + '\n'
+      + '- type : ' + (issue.type || '?') + ' · écran ouvert : ' + (issue.categorie || '?')   // ces deux-là sortent d'une liste blanche (MON_TYPES, monCategorie) : rien de libre à filtrer
+      + (issue.origine ? ' · origine : ' + incidentTexte(issue.origine) : '') + '\n'
+      + '- message : ' + incidentTexte(issue.message) + '\n'
       + '- vu ' + (issue.count || 1) + ' fois, sur ' + Object.keys(issue.appareils || {}).length + ' appareil(s)\n'
-      + (issue.stack ? '- trace :\n' + issue.stack + '\n' : '')
+      + (issue.stack ? '- trace :\n' + incidentTexte(issue.stack) + '\n' : '')
       + (s && s.extrait
-        ? '\nCode du dépôt autour de ' + s.fichier + ':' + s.ligne + ' (▶ = la ligne désignée) :\n' + s.extrait + '\n'
-        : '\nAucun extrait de code : la trace ne désigne pas un fichier du dépôt' + (issue.src ? ' (elle indique « ' + String(issue.src).slice(0, 120) + ' »)' : '') + '.\n');
+        ? '\nCode du dépôt autour de ' + s.fichier + ':' + s.ligne + ' (▶ = la ligne désignée) :\n' + extraitSur + '\n'
+        : '\nAucun extrait de code : la trace ne désigne pas un fichier du dépôt' + (issue.src ? ' (elle indique « ' + incidentTexte(String(issue.src).slice(0, 120)) + ' »)' : '') + '.\n');
 
     const msg = await getAnthropic().messages.create({
       model: 'claude-sonnet-5', max_tokens: 2000, system: sys,
@@ -9241,10 +9260,13 @@ app.post('/api/monitor/proposer', monPatronStrict, async (req, res) => {
       + "« verifier » : comment un humain confirme que c'est réglé, concrètement.\n"
       + "« risque » : « faible » si le correctif ne touche qu'un chemin d'exécution étroit ; « eleve » s'il touche du code partagé ou une donnée persistée.\n"
       + "Si le code fourni ne suffit pas pour corriger sûrement, renvoie « avant » et « apres » identiques : c'est la façon de dire que tu ne corriges pas à l'aveugle.";
-    const contexte = 'Incident : ' + (issue.message || '') + '\n'
-      + 'Cause établie : ' + (e.cause || '') + '\n'
+    /* Le message et la trace sont du texte de la route publique ; la cause est celle que le modèle a rendue (il peut recopier ce qu'il a lu) : les
+       trois sont filtrés. Le CODE de la fenêtre ne l'est pas — il est servi publiquement, et le modèle doit en recopier un fragment au caractère
+       près (verrou 2 : l'ancre se trouve une fois et une seule). */
+    const contexte = 'Incident : ' + incidentTexte(issue.message) + '\n'
+      + 'Cause établie : ' + incidentTexte(e.cause) + '\n'
       + 'Emplacement : ' + s.fichier + ' ligne ' + s.ligne + '\n'
-      + (issue.stack ? 'Trace :\n' + issue.stack + '\n' : '')
+      + (issue.stack ? 'Trace :\n' + incidentTexte(issue.stack) + '\n' : '')
       + '\nCode du dépôt (' + s.fichier + ', lignes ' + d + ' à ' + fin + ') :\n' + large;
 
     const msg = await getAnthropic().messages.create({
@@ -9293,18 +9315,18 @@ app.post('/api/monitor/proposer', monPatronStrict, async (req, res) => {
       await gh('/contents/' + encodeURIComponent(nomF), {
         method: 'PUT',
         body: JSON.stringify({
-          message: monStr(p.titre, 120) + '\n\nIncident #' + String(issue.id).slice(-6) + ' — proposition ouverte depuis la Tour par ' + req.tourUser.nom + '.',
+          message: monStr(incidentModele(p.titre), 120) + '\n\nIncident #' + String(issue.id).slice(-6) + ' — proposition ouverte depuis la Tour par ' + req.tourUser.nom + '.',
           content: Buffer.from(fichiers[nomF], 'utf8').toString('base64'),
           branch: branche, sha: actuel.sha
         })
       });
     }
-    const corps = '## Ce qui ne va pas\n\n' + (issue.message || '') + '\n\n'
+    const corps = '## Ce qui ne va pas\n\n' + incidentTexte(issue.message || '') + '\n\n'
       + '_Incident #' + String(issue.id).slice(-6) + ' · vu ' + (issue.count || 1) + ' fois sur '
-      + Object.keys(issue.appareils || {}).length + ' appareil(s) · ' + (issue.categorie || '') + '_\n\n'
-      + '## La cause\n\n' + (e.cause || '') + '\n\n`' + s.fichier + '` ligne ' + s.ligne + '\n\n'
-      + '## Ce que change ce correctif\n\n' + (p.pourquoi || '') + '\n\n'
-      + '## À vérifier avant de fusionner\n\n' + (p.verifier || '') + '\n\n'
+      + Object.keys(issue.appareils || {}).length + ' appareil(s) · ' + incidentTexte(issue.categorie || '') + '_\n\n'
+      + '## La cause\n\n' + incidentTexte(e.cause || '') + '\n\n`' + s.fichier + '` ligne ' + s.ligne + '\n\n'
+      + '## Ce que change ce correctif\n\n' + incidentModele(p.pourquoi || '') + '\n\n'
+      + '## À vérifier avant de fusionner\n\n' + incidentModele(p.verifier || '') + '\n\n'
       + '```\nnode scripts/verifier-syntaxe.js\nnode scripts/verifier-lien-jeton.js\nnode scripts/verifier-explique.js\n```\n\n'
       + '## Ce que cette proposition n\'a pas fait\n\n'
       + '- Elle n\'est **pas** fusionnée, et rien dans le serveur ne peut la fusionner.\n'
@@ -9314,7 +9336,7 @@ app.post('/api/monitor/proposer', monPatronStrict, async (req, res) => {
       + new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + '.\n';
     const pr = await gh('/pulls', {
       method: 'POST',
-      body: JSON.stringify({ title: monStr(p.titre, 120), head: branche, base: 'main', body: corps, draft: true })
+      body: JSON.stringify({ title: monStr(incidentModele(p.titre), 120), head: branche, base: 'main', body: corps, draft: true })
     });
 
     issue.proposition = {
@@ -9353,7 +9375,7 @@ const SUPPORT_BOX_PATH = path.join(DATA_DIR, 'support-box.json');
 const SUPPORT_MAILS_PATH = path.join(DATA_DIR, 'support-mails.json');
 let supportBox = null;    // { email, pass, imapHost, imapPort, smtpHost, smtpPort }
 let supportMails = [];    // [{ id, mid, from, fromName, subject, text, ts, statut:'nouveau'|'traite'|'archive', reponses:[{ts,par,text}] }]
-try { supportBox = JSON.parse(fs.readFileSync(SUPPORT_BOX_PATH, 'utf8')); } catch (e) {}
+supportBox = coffreBoites.lire(SUPPORT_BOX_PATH, null);   // mot de passe chiffré sur le disque, en clair en mémoire (voir `coffreBoites`)
 try { supportMails = JSON.parse(fs.readFileSync(SUPPORT_MAILS_PATH, 'utf8')); } catch (e) {}
 const SUPPORT_ENVOYES_PATH = path.join(DATA_DIR, 'support-envoyes.json');
 let supportEnvoyes = [];   // [{ id, to, subject, text, ts, par }] — les messages écrits depuis le contrôle
@@ -9494,7 +9516,7 @@ app.post('/api/monitor/support/connect', monPatronStrict, async (req, res) => {
     try { supSave(); } catch (e) {}
   }
   supportBox = box;
-  try { fs.writeFileSync(SUPPORT_BOX_PATH, JSON.stringify(box)); } catch (e) {}
+  coffreBoites.ecrire(SUPPORT_BOX_PATH, box);
   res.json({ ok: true, email: box.email });
   releveSupport(true).catch(() => {});   // import de l'historique en arrière-plan
 });
@@ -10528,9 +10550,15 @@ try {
           /* la part « qualité » d'Inès : les jours relus de la fenêtre (des nombres) — `null` si elle n'est pas montée */
           qualite: (debut, fin) => plateformeMod ? plateformeMod.qualite(debut, fin) : null } });
       const ticReunions = () => { try { reunionsMod.tic(); } catch (e) { console.error('réunions :', e.message); } };
-      setTimeout(ticReunions, 5000).unref();
-      setInterval(ticReunions, 60000).unref();
-      console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
+      /* ⛔ `agents.reunionsAuto: false` coupe la MINUTERIE, pas les réunions (les routes restent). C'est le réglage des BANCS qui démarrent le vrai serveur : sans
+         lui, un banc lancé le vendredi entre 18 h et 23 h (heure de Paris) ou le lundi matin voyait la réunion due partir pendant qu'il comptait les appels à Claude
+         et les messages des agents — trois suites tombaient chaque vendredi soir, déploiement compris (23 octobre 2026). Sans réglage, la minuterie tourne. */
+      if (config.agents && config.agents.reunionsAuto === false) console.log('agents : réunions montées SANS minuterie (agents.reunionsAuto: false)');
+      else {
+        setTimeout(ticReunions, 5000).unref();
+        setInterval(ticReunions, 60000).unref();
+        console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
+      }
     } catch (e) { reunionsMod = null; console.error('réunions des agents indisponibles :', e.message); }
     /* ══ HUGO, MARGAUX, EMMA, SARAH — LES CLIENTS (23 octobre 2026) ══════════════════════════════════════════════════════════════════════════
        Justin : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. S'il n'arrête

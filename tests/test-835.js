@@ -357,7 +357,7 @@ vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : 
   const NB_REF = METIERS_JSON.ordreMetiers.length;
   const puces = [...PAGES.creer.matchAll(/class="metier-puce"[^>]*data-pack="([^"]+)"[^>]*data-pret="([01])"/g)].map(m => [m[1], m[2] === '1']);
   vrai('(population) la liste des packs de l\'application est lue (' + ordreApp.length + ' métiers)', ordreApp.length >= 6 && ordreApp[0] === '3d');
-  v('22 métiers proposés (les douze du site, plus les dix du référentiel — « autre » n\'est pas une puce)', [puces.length, (PAGES.creer.match(/class="metier-puce"/g) || []).length], [NB_REF - 1, NB_REF - 1]);
+  v('23 métiers proposés (les treize du site, « autre » compris — le métier est obligatoire, il faut pouvoir dire « autre » —, plus les dix du référentiel)', [puces.length, (PAGES.creer.match(/class="metier-puce"/g) || []).length], [NB_REF, NB_REF]);
   v('⛔ les dix nouveaux métiers sont « bientôt » tant que le référentiel ne les ouvre pas (jamais « Pack prêt »)',
     METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, puces.find(p => p[0] === k)[1], METIERS_JSON.ouverts.includes(k)]),
     METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, METIERS_JSON.ouverts.includes(k), METIERS_JSON.ouverts.includes(k)]));
@@ -365,7 +365,7 @@ vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : 
     METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant && !METIERS_JSON.ouverts.includes(k))
       .every(k => { const m = new RegExp('<article class="pack" id="m-' + k + '">[\\s\\S]*?</article>').exec(PAGES.metiers); return m && !/<ul>/.test(m[0]) && />PACK BIENTÔT</.test(m[0]); }));
   v('⛔ une puce est « prête » si et seulement si l\'application connaît sa clé', puces.filter(([k, pr]) => pr !== ordreApp.includes(k)).map(([k]) => k), []);
-  v('   packs prêts : ' + puces.filter(([, pr]) => pr).length, puces.filter(([, pr]) => pr).length, ordreApp.filter(k => k !== 'autre').length);
+  v('   packs prêts : ' + puces.filter(([, pr]) => pr).length, puces.filter(([, pr]) => pr).length, ordreApp.length);
   const intro = texte((PAGES.metiers.match(/<h2 class="h2">Les métiers couverts\.<\/h2><p class="intro">([^<]*)</) || ['', ''])[1]);
   vrai('   la page Métiers dit le même nombre : « ' + intro + ' »', intro.startsWith(ordreApp.filter(k => k !== 'autre').length + ' packs'));
   v('   la page Métiers : « Démarrer avec ce pack » exactement sur les packs connus', (PAGES.metiers.match(/Démarrer avec ce pack/g) || []).length, ordreApp.length);

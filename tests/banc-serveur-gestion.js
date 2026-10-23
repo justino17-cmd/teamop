@@ -79,7 +79,7 @@ globalThis.fetch = async function (url, opts) {
 
   const webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push'));
   const vap = webpush.generateVAPIDKeys();
-  const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', agents: { cleApi: 'sk-ant-banc-gestion-xxxxxxxxxxxxxxxx' }, stripe: { secretKey: 'sk_de_banc_gestion' },
+  const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', agents: { cleApi: 'sk-ant-banc-gestion-xxxxxxxxxxxxxxxx', reunionsAuto: false }, stripe: { secretKey: 'sk_de_banc_gestion' },
     smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' }, contactEmail: 'contact@banc-gestion.fr' };
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify(conf));
   const PORT = await new Promise(res => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });

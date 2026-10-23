@@ -85,7 +85,7 @@
   .chk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--t2);cursor:pointer}
   .hero-cli{display:flex;align-items:center;gap:14px;margin:4px 0 16px}
   .cli-ava{width:54px;height:54px;border-radius:999px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;color:#fff;background:linear-gradient(135deg,#1e3a8a,#3b6fd0)}
-  .hero-cli .hi{font-family:var(--m-titre);font-size:24px;font-weight:700;letter-spacing:-.02em}
+  .hero-cli .hi{font-family:var(--m-titre);font-size:24px;font-weight:700;letter-spacing:-.02em;overflow-wrap:anywhere}
   .hero-cli .hs{font-size:13px;color:var(--t3);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .prog{height:8px;border-radius:999px;background:var(--m-seg);overflow:hidden}
   .prog-b{height:100%;border-radius:999px;background:var(--m-link);transition:width .4s}
@@ -925,14 +925,14 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
     const user=_meUser,d=_meDoc||{}; if(!user) return;
     const apps=clientApps(user,d);
-    const prenom=d.prenom||((d.name||user.email||'').split(' ')[0])||'';
+    const prenom=d.prenom||((d.name||'').split(' ')[0])||'';   // jamais l'adresse : « Bonjour cliente@… » débordait de l'écran du téléphone
     const avaL=((prenom[0]||user.email||'?')[0]||'?').toUpperCase();
     const docs=Array.isArray(d.docs)?d.docs:[];
     const _pi0=promoInfo(d);
     const planTxt=(planNom(d)||'Aucune formule')+' · '+planEtat(d)+(_pi0?(' · 🎁 '+_pi0.label+' — reste '+_pi0.jours+' j'):'');
     const ROW=(v,ic,title,sub,badge)=>`<div class="setrow" onclick="openView('${v}')"><span class="si">${ic}</span><div class="sl"><b>${title}${badge||''}</b><span>${sub}</span></div><span class="sc">›</span></div>`;
     $('space').innerHTML=`
-      <div class="hero-cli"><div class="cli-ava">${avaL}</div><div style="flex:1;min-width:0"><div class="hi">Bonjour ${esc(prenom||'👋')} 👋</div><div class="hs">${esc(d.company||'Ton espace TeamOP')} ${_cliBadge(d)}</div></div></div>
+      <div class="hero-cli"><div class="cli-ava">${avaL}</div><div style="flex:1;min-width:0"><div class="hi">Bonjour${prenom?' '+esc(prenom):''} 👋</div><div class="hs">${esc(d.company||'Ton espace TeamOP')} ${_cliBadge(d)}</div></div></div>
       ${verifBanner(user)}
       ${(()=>{ const steps=[['Compte créé',true],['Profil complété',!!(d.prenom&&d.nom&&d.company)],['Accès demandé',d.status==='nouveau'||d.status==='encours'||d.status==='fourni'||(apps.length>0)],['Application activée',apps.length>0]]; const done=steps.filter(x=>x[1]).length; if(done>=4) return '';
         return `<div class="panel" style="padding:16px 18px;margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><b style="font-size:14px">🚀 Prise en main</b><span class="muted">${done}/4 · ${Math.round(done/4*100)}%</span></div><div class="prog"><div class="prog-b" style="width:${done/4*100}%"></div></div></div>`; })()}
@@ -1219,14 +1219,14 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       <h1>${esc(c.name)}</h1>
       <p class="mut">Établi le ${auj} — TEAM OP (teamop.fr)</p><hr>
       <h2>Entre</h2>
-      <p><b>TEAM OP</b> — Justin Biret, entrepreneur individuel<br>SIREN 107 995 011 — 10 rue de la Gravière, 17220 Salles-sur-Mer, France<br>contact@teamop.fr</p>
+      <p><b>TEAM OP</b> — Justin Biret, entrepreneur individuel<br>SIREN 107 995 011 (SIRET en cours d'attribution) — 10 rue de la Gravière, 17220 Salles-sur-Mer, France<br>contact@teamop.fr</p>
       <h2>Et</h2>
       <p>${client||'<i>Client TeamOP</i>'}</p>
       <h2>1. Objet</h2><p>${objet}</p>
       <h2>2. Durée</h2><p>${duree}</p>
       <h2>3. Prix</h2><p>${prix}</p>
       <h2>4. Utilisateurs</h2><p>Chaque abonnement donne un compte utilisateur, quelle que soit la formule : le nombre de comptes disponibles est le nombre d'abonnements souscrits. L'application applique automatiquement cette limite. Pendant une période offerte par un code promotionnel, tous les comptes de l'entreprise sont couverts.</p>
-      <h2>5. Données</h2><p>Les données appartiennent au client. Elles sont chiffrées (AES-256), hébergées dans un espace isolé par entreprise, exportables à tout moment, et <b>ne sont jamais supprimées en cas de changement ou d'arrêt de formule</b>.</p>
+      <h2>5. Données</h2><p>Les données appartiennent au client. Elles sont chiffrées (AES-256), hébergées dans un espace isolé par entreprise, exportables à tout moment, et <b>ne sont pas supprimées en cas de changement ou d'arrêt de formule</b> ; elles peuvent l'être après 24 mois sans abonnement.</p>
       <h2>6. Résiliation</h2><p>Sans engagement : le client peut arrêter à tout moment depuis le Support de son espace ou par e-mail à contact@teamop.fr. L'accès à l'application cesse à la fin de la période en cours : il est suspendu, les données sont conservées, et tout revient à la souscription d'un nouvel abonnement.</p>
       <h2>7. Droit applicable</h2><p>Le présent contrat est soumis au droit français.</p>
       <div class="sig"><div>TEAM OP<br>Justin Biret</div><div>Le client<br>${esc((d.prenom||'')+' '+(d.nom||''))}</div></div>
@@ -1334,7 +1334,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const E=ratEtat(), v=($('r-metier')&&$('r-metier').value)||'';
     E.metier=v; E.cats0=null; E.rub=(E.ref&&v&&typeof OpRub!=='undefined')?OpRub.etat(E.ref,v):null;
     ratMonter();
+    /* Un refus ne survit pas au geste qui le dément (23 octobre 2026) : choisir un métier retire « métier » de « il manque : … », et le message
+       entier quand il ne restait que lui. Sans ça, la bannière rouge restait sous les yeux du client jusqu'à l'envoi suivant. */
+    const msg=$('req-msg'), liste=msg&&(/data-manque="([^"]*)"/.exec(msg.innerHTML||'')||[])[1];
+    if(v&&liste!=null){ const reste=liste.split('|').filter(x=>x&&x!=='métier'); msg.innerHTML=reste.length?ratManque(reste):''; }
   }
+  /* « il manque : … », avec sa liste dans `data-manque` : c'est elle que relit `ratMetierChange` */
+  function ratManque(liste){ return '<div class="err" data-manque="'+esc(liste.join('|'))+'">⚠️ Tous les champs sont obligatoires — il manque : <b>'+esc(liste.join(', '))+'</b>.</div>'; }
   /* ce qui part avec la demande : le métier choisi, et les clés cochées dans l'ordre du menu (`null` : rien de coché, ou grille absente —
      la Tour part alors du conseil du métier) */
   function ratChoix(){
@@ -1376,9 +1382,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     if(!tel) manque.push('téléphone'); if(!lienNom||!lienSlug(lienNom)) manque.push('nom du lien');
     if(!(users>=1)) manque.push('nombre d\'utilisateurs');
     if(!metier) manque.push('métier');
-    if(metier&&refE&&refE.ouverts.indexOf(metier)<0){ $('req-msg').innerHTML='<div class="err">⚠️ '+esc(RAT_REFUS.metier_ferme)+'</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
+    if(metier&&refE&&refE.ouverts.indexOf(metier)<0){ $('req-msg').innerHTML='<div class="err" data-manque="métier">⚠️ '+esc(RAT_REFUS.metier_ferme)+'</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
     if(!formule||formule==='Je ne sais pas encore') manque.push('formule'); if(!besoin) manque.push('besoin');
-    if(manque.length){ $('req-msg').innerHTML='<div class="err">⚠️ Tous les champs sont obligatoires — il manque : <b>'+esc(manque.join(', '))+'</b>.</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
+    if(manque.length){ $('req-msg').innerHTML=ratManque(manque); $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
     if(!/^[0-9+][0-9 .()\/-]{8,19}$/.test(tel)){ $('req-msg').innerHTML='<div class="err">⚠️ Numéro de téléphone invalide (ex. 06 12 34 56 78).</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
     // le nom du lien doit être DISPONIBLE — revérifié au moment de l'envoi
     try{

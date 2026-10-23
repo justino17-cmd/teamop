@@ -1,6 +1,6 @@
 CONDITIONS D'UTILISATION — OP MESSAGES
 
-État du service : OP MESSAGES n'est pas encore ouvert. Il change d'infrastructure et ouvrira avec sa nouvelle version. Tant qu'il n'est pas ouvert, aucune formule n'est facturée et ces conditions ne s'appliquent à aucune souscription. [À CONFIRMER : date ou condition d'ouverture à indiquer ici le jour venu.]
+État du service : OP MESSAGES n'est pas encore ouvert. Il change d'infrastructure : il ouvrira avec sa nouvelle version, à une date annoncée sur teamop.fr ; aucune formule n'est facturée avant. Tant qu'il n'est pas ouvert, ces conditions ne s'appliquent à aucune souscription.
 
 Article 1 — Ce qu'est OP MESSAGES
 OP MESSAGES est la messagerie de la suite TEAM OP : messages privés et de groupe, appels audio et vidéo, fichiers et messages vocaux ; pour les entreprises, espaces d'équipe, canaux et gestion des membres. Les fonctions de chaque formule sont listées dans ses conditions particulières.
@@ -12,7 +12,7 @@ Article 3 — Contenus et conduite
 Chaque utilisateur est responsable des messages et fichiers qu'il envoie. Il s'interdit les contenus illicites, le harcèlement et l'usage frauduleux. TEAM OP peut suspendre un compte en cas de manquement grave, après avoir averti l'utilisateur lorsque c'est possible.
 
 Article 4 — Données
-Les messages et fichiers sont conservés sur le serveur d'OP MESSAGES. [À CONFIRMER : lieu d'hébergement, chiffrement, durée de conservation et sous-traitants du nouveau serveur — à décrire exactement, et à ajouter au contrat de sous-traitance, avant l'ouverture.]
+Les messages et fichiers sont conservés sur le serveur d'OP MESSAGES. Ce serveur tourne sur le même serveur que l'API de TEAM OP (api.teamop.fr), hébergé par IONOS SE en France ; les sauvegardes chiffrées sont conservées à Francfort (Allemagne). Le corps des messages est chiffré au repos (AES-256-GCM) ; ce n'est pas un chiffrement de bout en bout. [À CONFIRMER : durée de conservation des messages — à décider et à décrire avant l'ouverture.]
 
 Article 5 — Appels et urgences
 OP MESSAGES n'est pas un service d'appel d'urgence et ne peut pas appeler les numéros d'urgence.

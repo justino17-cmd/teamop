@@ -2146,7 +2146,7 @@ module.exports = {
   sessionOuvrir, sessionParJeton, sessionVue, sessionsCouper, appareilsDe,
   diagnostic, diagnosticsDe, ancre, ancreVerifier,
   sceller, desceller, sceller_corps, desceller_corps, aadCorps, aadFichier,
-  kekDepuis, exigerKek, SOCLE_DIR, ANNUAIRE_PATH, SCHEMA_VERSION,
+  kekDepuis, kek, exigerKek, SOCLE_DIR, ANNUAIRE_PATH, SCHEMA_VERSION,
   fichiersReferences, fichiersDeLigne,
   signatureCanonique,
 };

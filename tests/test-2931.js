@@ -55,7 +55,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
       fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
     }
     const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2931' } };
-    if (o.cle !== false) conf.agents = { cleApi: 'sk-ant-' + 'api03-banc-2931-xxxxxxxxxxxxxxxx' };
+    conf.agents = Object.assign(o.cle !== false ? { cleApi: 'sk-ant-' + 'api03-banc-2931-xxxxxxxxxxxxxxxx' } : {}, { reunionsAuto: false });   // pas de réunion due pendant le banc (vendredi 18 h-23 h, lundi matin, heure de Paris)
     fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify(conf));
     const PORT = await libre(); let journal = '';
     const env = Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, nom, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_PLACES_BASCULE: '2026-01-01T00:00:00Z' });
