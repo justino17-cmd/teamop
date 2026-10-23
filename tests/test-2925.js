@@ -136,6 +136,7 @@ console.log('\n── 2925 · les six agents de la plateforme contre le vrai ser
 
   console.log('\n4. Nina : les verrous que le serveur pose, comptés par lui');
   {
+    await S.req('POST', '/api/monitor/login', { nom: 'une-faute-2925', pass: 'mauvais' });      // UN seul échec ailleurs : ce n'est pas un verrou, et le compteur ne le compte pas
     for (let k = 0; k < 5; k++) await S.req('POST', '/api/monitor/login', { nom: 'inconnu-2925', pass: 'mauvais' + k });
     await passer(S, 'nina');
     vrai('cinq échecs à la Tour : un verrou, dit par Nina (sans nom ni adresse) et SANS incident', (await msgs(S, 'plateforme')).some(m => m.de === 'nina' && /verrouillé/.test(m.texte) && !/inconnu-2925/.test(m.texte)) && (await S.G('/api/monitor/issues')).j.issues.every(i => i.agent !== 'nina'), JSON.stringify((await msgs(S, 'plateforme')).map(m => [m.de, m.texte])));
