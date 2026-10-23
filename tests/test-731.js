@@ -86,9 +86,9 @@ v('   tous les genres employés sont des genres connus', genresInconnus, []);
    classement les contredit, c'est lui qui a tort — elles sont en production. */
 const listeDe = (nom) => { const m = new RegExp('const ' + nom + '=\\[([^\\]]*)\\]').exec(CODE); return m ? [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : []; };
 const DONNEES = listeDe('COLLECTIONS_DONNEES'), DICT = listeDe('COLLS_DICT');
-vrai('COLLECTIONS_DONNEES est trouvée', DONNEES.length === 27);
+vrai('COLLECTIONS_DONNEES est trouvée (28 depuis les appareils du parc CVC, 23 octobre 2026)', DONNEES.length === 28);
 vrai('COLLS_DICT est trouvée', DICT.length === 4);   // v740 : + societesStyle (les coordonnées d'une société)
-v('⛔ les 27 de COLLECTIONS_DONNEES sont toutes des LISTES',
+v('⛔ les 28 de COLLECTIONS_DONNEES sont toutes des LISTES',
   DONNEES.filter(k => CLASSES[k] !== 'liste' && CLASSES[k] !== 'box'), []);
 v('⛔ les 4 de COLLS_DICT sont toutes des DICTIONNAIRES', DICT.filter(k => CLASSES[k] !== 'dict'), []);
 

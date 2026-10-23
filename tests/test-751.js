@@ -226,8 +226,8 @@ const blocCss = (titre) => {
      Tronquer cache une information, rapetisser descend sous le plancher de lisibilité du
      terrain. La règle du dépôt tranche : une grille copiée d'une référence anglophone
      s'ÉLARGIT. Mesuré après : 171 px disponibles, zéro rubrique sur deux lignes. */
-  vrai('la sidebar de bureau fait 258 px (élargie pour les libellés français)',
-    /html\[data-kind="desktop"\] \.sidebar\{width:258px\}/.test(css));
+  vrai('la sidebar de bureau fait 284 px (élargie pour les libellés français : 258 jusqu\'au 23 octobre 2026, puis « Validation des mouvements » en demande 182)',
+    /html\[data-kind="desktop"\] \.sidebar\{width:284px\}/.test(css));
   vrai('⛔ et le ☰ disparaît sur bureau', /html\[data-kind="desktop"\] \.menu-btn\{display:none!important\}/.test(css));
   vrai('⛔ la pilule flottante ne sort QUE sur du verre ET installée',
     /html\[data-verre="1"\]\[data-kind="mobile"\] \.tabbar\{/.test(css) &&

@@ -238,7 +238,7 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
   /* Et les deux moments où on applique : l'ouverture de session, et l'arrivée d'une synchro. */
   v('appliqué à la connexion', /try\{ prefAppliquer\(u\); \}catch\(e\)\{\}/.test(APP), true);
   v('⛔ appliqué aussi quand la synchro apporte le changement d’un autre appareil',
-    /try\{ if\(currentUser\) prefAppliquer\(currentUser\); \}catch\(e\)\{\}/.test(APP), true);
+    /try\{ if\(currentUser\) prefAppliquer\(currentUser,true\); \}catch\(e\)\{\}/.test(APP), true);   // ,true : il se FOND (audit apple-design, point 24 ; test-2845)
 }
 
 /* ══ 5. LE LIEN RAMÈNE À LA CONSIGNE ═══════════════════════════════════════════════════

@@ -112,11 +112,13 @@ function specificite(sel) {
 const cmp = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
 
 /* ce que la cascade donne à `prop` pour la cible (dernier élément de `chaine`), fenêtre de largeur w.
-   `enLigne` : valeur d'un style écrit dans le balisage (gagne sur la feuille sauf devant un !important). */
-function gagnant(toutes, chaine, w, prop, enLigne) {
-  let best = null;
+   `enLigne` : valeur d'un style écrit dans le balisage (gagne sur la feuille sauf devant un !important).
+   `media` (facultatif) : un juge des conditions @media à la place de `mediaVrai` — pour jouer un RÉGLAGE de
+   l'utilisateur (contraste accru, transparence réduite), que `mediaVrai` tient toujours pour vrai. */
+function gagnant(toutes, chaine, w, prop, enLigne, media) {
+  let best = null; const juge = media || mediaVrai;
   for (const r of toutes) {
-    if (!r.media.every(m => mediaVrai(m, w))) continue;
+    if (!r.media.every(m => juge(m, w))) continue;
     if (!selecteurVise(r.sel, chaine)) continue;
     for (const d of r.decls) {
       if (d.p !== prop) continue;
@@ -138,4 +140,4 @@ function px(v, ctx) {
   try { return Function('"use strict";return (' + e + ')')(); } catch (x) { return NaN; }
 }
 
-module.exports = { sansCommentaires, regles, gagnant, px, fermer, mediaVrai, selecteurVise };
+module.exports = { sansCommentaires, regles, gagnant, px, fermer, mediaVrai, selecteurVise, specificite };

@@ -37,7 +37,7 @@ function monde(users, moi, techs) {
   vm.createContext(ctx);
   vm.runInContext(`${NN}\n${FN.replace('const ', 'var ')}\n${HOM}\n${MSG}\n${NET}
     var ROLE_PROTEGE='admin', drRattaches=new Set(), nuBoxes=new Set(), nuVehs=new Set(), nuStk=false, views={utilisateurs(){}};
-    function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){} function logEvent(){} /* lot g01 : saveUser verrouille son bouton (btnOccupe) ; ici l'événement n'a pas de bouton, le double suffit — la vraie est jouée par test-1100 §5 */ function btnOccupe(){ return function(){}; }
+    function toast(m){ __toasts.push(String(m)); } function champManque(m){ toast(m); return false; } function champDe(f,n){ return f&&f.elements?f.elements[n]||null:null; } /* champManque (audit apple-design, point 33) : ici, son message seul — test-2850 éprouve le reste */ function save(){ __saves++; } function closeModal(){} function logEvent(){} /* lot g01 : saveUser verrouille son bouton (btnOccupe) ; ici l'événement n'a pas de bouton, le double suffit — la vraie est jouée par test-1100 §5 */ function btnOccupe(){ return function(){}; }
     function can(){ return false; } function planPlaceLibre(){ return true; } function proposerAbonnement(){ __toasts.push('abonnement'); }
     async function loginExisteAilleurs(){ return false; }
     function roleEstTech(r){ return r==='technicien'; } function roleLbl(r){ return r; } function profilDroits(){ return null; }

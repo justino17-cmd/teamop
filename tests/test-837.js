@@ -84,7 +84,7 @@ const V1_PUBLIEE = {
 const sha = t => crypto.createHash('sha256').update(t).digest('hex');
 const V1 = existe('vitrine/racine-v1.json') ? JSON.parse(lire('vitrine/racine-v1.json')) : null;
 const TAR = lire('tarifs.html');
-const GEN = require(path.join(RACINE, 'scripts', 'site-marine.js'));
+const GEN = require('./metiers-publics.js').chargerGenerateur(RACINE);   // 23 octobre 2026 : les dix métiers que le site n'ouvre pas encore sont retirés de ce que le générateur lit (tests/metiers-publics.js)
 const racineGeneree = TAR === GEN.page('tarifs', { racine: true });
 const tt = texte(TAR), meta = (TAR.match(/<meta name="description" content="([^"]*)"/) || [])[1] || '';
 vrai('la page porte bien les formules (population : ' + (TAR.match(/<div class="places">/g) || []).length + ' places)', (TAR.match(/<div class="places">/g) || []).length === 6);   // 3 OP GESTION (plus de Gratuit, 29 septembre 2026) + 3 OP MESSAGES
@@ -341,7 +341,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
      commentaires retirés. Les APPLICATIONS en sont écartées, nommées : elles fabriquent des devis et des factures, où
      « Total HT » et « prix unitaire HT » sont justes et obligatoires. */
   console.log('4 bis. le prix se dit TTC partout');
-  const APPLICATIONS = /^(apercu\/)?(app|beta|tour|messages|messages-beta)\.html$/;
+  const APPLICATIONS = /^(apercu\/)?(app|beta|demo|tour|messages|messages-beta)\.html$/;
   const DIT_HT = /\bPrix HT\b|\bHT\s*\/\s*mois|\bHT par mois|€\s*HT\b/, HORS_TAXES = /hors[ -]taxes?/i;
   const relus = SERVIS.filter(f => !APPLICATIONS.test(f));
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);

@@ -203,8 +203,11 @@ console.log('\n══ 5. LA DÉCISION : la vélocité compte autant que la dista
   vrai('⛔ … et go() le consomme tout de suite (gardé, il enverrait la suivante du même côté)',
     /const _sens=_sensForce\|\|\(_retour\?'retour':''\); _sensForce='';/.test(NU));
   vrai('la pastille suit le doigt pendant le geste', /tabCurPlacer\(false,p\)/.test(NU));
-  vrai('⛔ … bornée à un onglet (sinon elle sortirait de la barre)',
-    /const p=Math\.max\(-largeur,Math\.min\(largeur, -dx\*0\.55\)\)/.test(NU));
+  /* audit apple-design du 21 octobre 2026, point 27 : au-delà d'un onglet, et dès le départ quand il n'y a rien de ce côté, elle
+     RÉSISTE (elastique, bornée à 0,35 onglet) au lieu de buter contre Math.min/Math.max — test-2839 en éprouve la courbe */
+  vrai('⛔ … bornée : un onglet au plus, puis une résistance qui ne dépasse jamais 0,35 onglet (sinon elle sortirait de la barre)',
+    /const p=!existe \? elastique\(brut,largeur\*0\.35\)\s*: Math\.abs\(brut\)<=largeur \? brut : Math\.sign\(brut\)\*\(largeur\+elastique\(Math\.abs\(brut\)-largeur,largeur\*0\.35\)\)/.test(NU)
+    && /const brut=-dx\*0\.55/.test(NU));
 }
 
 console.log('\n══ 6. LA BARRE NE SE RÉÉCRIT PAS POUR RIEN ══\n');

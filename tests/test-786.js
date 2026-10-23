@@ -61,7 +61,7 @@ function monde(moi, reglage) {
   const users = avec(moi, reglage), u = users.find(x => x.id === moi) || null;
   const ctx = { currentUser: u, db: { users, techniciens: TECHS, pointages: PTS }, CAPS: { technicien: {} },
     fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim() };
-  vm.createContext(ctx); vm.runInContext(CODE.join('\n'), ctx);
+  vm.createContext(ctx); vm.runInContext('/* v773 : ce banc joue la 3D */ function certibVisible(t){ return true; } function certibColonne(){ return true; }\n' + CODE.join('\n'), ctx);
   ctx.equipe = () => vm.runInContext('visibleTechniciens(db.techniciens).map(t=>t.id)', ctx);
   ctx.corrige = id => vm.runInContext('ptPeutCorriger(db.pointages.find(p=>p.id===' + JSON.stringify(id) + '))', ctx);
   return ctx;
@@ -136,10 +136,10 @@ function mondeEcran(moi, reglage) {
     techColor: () => '#123', initials: n => n[0], keyLabel: d => d, deptColor: () => '#456', encreSur: () => '#fff', esc: x => String(x == null ? '' : x),
     techForKey: dep => techs.find(t => t.departements === dep) || null, depDeKey: k => k,   // 1302 : Secteurs range par département via depDeKey (les clés de ce banc sont déjà des départements)
     badge: (o, k) => '<b>' + o[k].l + '</b>', canCat: () => true,
-    permGarde: () => true, toast: m => out.toasts.push(m), openModal: h => { out.modal = h; },
+    permGarde: () => true, toast: m => out.toasts.push(m), champManque: m => { out.toasts.push(m); return false; }, champDe: (f,n) => f&&f.elements?f.elements[n]||null:null, openModal: h => { out.modal = h; },
     techCouleurChoix: () => '<span class="tcc"></span>',   // v757 : le choix de couleur en pastilles (test-825 l'exécute)
     techCouleurPrevenus: () => [], techCouleursFiger: () => 0 };   // v758 : les couleurs des autres figées au geste (test-825 les exécute)
-  vm.createContext(ctx); vm.runInContext(CODE.join('\n') + '\n' + SECT + '\n' + FT, ctx);
+  vm.createContext(ctx); vm.runInContext('/* v773 : ce banc joue la 3D */ function certibVisible(t){ return true; } function certibColonne(){ return true; }\n' + CODE.join('\n') + '\n' + SECT + '\n' + FT, ctx);
   ctx.out = out; return ctx;
 }
 if (SECT && FT && CODE.every(Boolean)) {
@@ -224,7 +224,7 @@ async function partieSaveTech() {
     const ctx = { currentUser: users.find(u => u.id === moi), db: { users, techniciens: [{ id: 'tK', nom: 'Karim Benali', metier: 'Technicien', tel: '06 12', droitConges: 25, capMin: 420, departements: '44', chef: '' }, { id: 'tL', nom: 'Léo Martin', metier: 'Technicien', tel: '07 11' }] },
       /* les VRAIS userCap / can (dans CODE) : l'administrateur a tout, les autres leurs cases */
       CAPS: { technicien: {} }, permGarde: () => true, planPlaceLibre: () => true, proposerAbonnement: () => toasts.push('abonnement'),
-      closeModal: () => {}, toast: m => toasts.push(m), save: () => {}, logEvent: () => {}, current: courant,
+      closeModal: () => {}, toast: m => toasts.push(m), champManque: m => { toasts.push(m); return false; }, champDe: (f,n) => f&&f.elements?f.elements[n]||null:null, save: () => {}, logEvent: () => {}, current: courant,
       views: { techniciens: () => redessins.push('techniciens'), secteurs: () => redessins.push('secteurs') }, pointages: [],
       fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(),
       uid: (() => { let n = 0; return () => 'id' + (++n); })(), nomNorm: x => String(x || '').toLowerCase().trim(),
@@ -236,7 +236,7 @@ async function partieSaveTech() {
       techCouleurPrevenus: () => [], techCouleursFiger: () => 0,
       FormData: function (t) { return Object.entries(t); } };
     ctx.db.pointages = [];
-    vm.createContext(ctx); vm.runInContext(CODE.join('\n') + '\n' + st, ctx);
+    vm.createContext(ctx); vm.runInContext('/* v773 : ce banc joue la 3D */ function certibVisible(t){ return true; } function certibColonne(){ return true; }\n' + CODE.join('\n') + '\n' + st, ctx);
     await vm.runInContext('saveTech({preventDefault(){},target:' + JSON.stringify(form) + '},' + JSON.stringify(id || '') + ')', ctx);
     return { roleK: users.find(u => u.id === 'uK').role, roleL: users.find(u => u.id === 'uL').role, metierK: ctx.db.techniciens[0].metier, comptes: users.length, fiches: ctx.db.techniciens.length, toasts, bornes,
       K: JSON.parse(JSON.stringify(ctx.db.techniciens[0])), L: JSON.parse(JSON.stringify(ctx.db.techniciens[1])), redessins };

@@ -47,7 +47,7 @@ function monde(opts) {
     var asW=null, _gpsAway={}, current='interventions', factFilter='tous';
     var _intReport=null;   // posé par formIntervention (lot g09 : ce qu'une duplication reporte) et relu par saveIntervention — le bac à sable doit le connaître
     var STATUT_INT={aplanifier:{l:'À planifier'},planifiee:{l:'Planifiée'},encours:{l:'En cours'},terminee:{l:'Terminée'},annulee:{l:'Annulée'}};
-    function toast(m){ __toasts.push(String(m)); }
+    function toast(m){ __toasts.push(String(m)); } function champManque(m){ toast(m); return false; } function champDe(f,n){ return f&&f.elements?f.elements[n]||null:null; } /* champManque (audit apple-design, point 33) : ici, son message seul — test-2850 éprouve le reste */
     function save(){ __saves++; }
     function logEvent(){} function closeModal(){} function openModal(){ __modals++; } function go(v){ __go.push(v); }
     function renderIntDetail(id){ __rendus.push(id); }

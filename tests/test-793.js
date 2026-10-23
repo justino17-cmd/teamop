@@ -17,6 +17,8 @@
    l'appui, est `scratchpad/sonde-entetes.js`. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const APP = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
+/* la garde d'envoi (audit apple-design, 21 octobre 2026) : envoiDoc passe par envoiGarde — les bacs à sable fournissent la VRAIE */
+const GARDE = require('./outils-envoi.js').gardeEnvoi(APP);
 const SRC = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d).slice(0, 300) : '')); } };
@@ -128,7 +130,8 @@ console.log('── 793 · 4. chaque fabrique passe par la même règle ──')
   const INTERNES = { absJustifVoir: 'justificatif d’absence d’un salarié', remisePdf: 'bon de remise entre l’équipe et le DR', printTelecollecte: 'relevé de télécollecte, pour la comptabilité',
     ptPdfStr: 'relevé de pointage des heures', printArchive: 'archive mensuelle de l’entreprise' };
   /* la fabrique reçoit son en-tête tout prêt : c'est l'appelant qui lit docEntete */
-  const PAR_APPELANT = { papImplPdfStr: 'papImplDocument', rapportPdfStr: 'rapportDocument' };   // v744 : le rapport joint au courriel
+  const PAR_APPELANT = { papImplPdfStr: 'papImplDocument', rapportPdfStr: 'rapportDocument',   // v744 : le rapport joint au courriel
+    cvcAttestationPdfStr: 'cvcAttestationDocument', cvcAttestationApercu: 'cvcAttestationDocument' };   // 23 octobre 2026 : l'attestation d'entretien (chauffage) — l'aperçu n'écrit que « Préparation… » dans sa fenêtre, le document vient de cvcAttestationDocument
   vrai('population : au moins 15 fabriques trouvées dans le fichier', fab.length >= 15, fab.map(x => x.n));
   const sans = fab.filter(x => !INTERNES[x.n] && !PAR_APPELANT[x.n] && !/docEntete\(|bcEntete\(/.test(x.b)).map(x => x.n);
   v('toute fabrique remise à un client passe par docEntete (ou bcEntete) — ou elle est nommée INTERNE', sans, []);
@@ -165,7 +168,7 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
   for (const casse of [false, true, 'refus']) {
     const W = monter(BASE); W.__envois = []; W.__mailOk = casse !== 'refus';
     W.btoa = s => Buffer.from(String(s), 'latin1').toString('base64');
-    vm.runInContext([decoupe('function genDocTexte('), decoupe('function envoiDoc('), decoupe('async function docPdfChaine('),
+    vm.runInContext([GARDE, decoupe('function genDocTexte('), decoupe('function envoiDoc('), decoupe('async function docPdfChaine('),
       `function permGarde(){ return true; } function save(){} function confirm(){ return false; }
        async function devisLogoJpeg(){ return null; }
        var current='devis'; const views={ devis(){ __vues=(typeof __vues==='number'?__vues:0)+1; } };
@@ -193,7 +196,7 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
     for (const part of [true, false]) {
       const W = monter(BASE); W.__envois = []; W.__mailOk = part; W.btoa = s => Buffer.from(String(s), 'latin1').toString('base64');
       W.db.factures.find(x => x.id === 'fB').statut = 'attente';
-      vm.runInContext([decoupe('function genDocTexte('), decoupe('function envoiDoc('), decoupe('async function docPdfChaine('), decoupe('function factEnvoyer('),
+      vm.runInContext([GARDE, decoupe('function genDocTexte('), decoupe('function envoiDoc('), decoupe('async function docPdfChaine('), decoupe('function factEnvoyer('),
         `function permGarde(){ return true; } function save(){} function confirm(){ return false; } function logEvent(){}
          async function devisLogoJpeg(){ return null; } var current='factures'; const views={ factures(){} };
          function srvMail(){ __envois.push([...arguments]); return Promise.resolve(__mailOk); }`].join('\n'), W);

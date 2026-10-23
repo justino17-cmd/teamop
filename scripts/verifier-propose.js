@@ -47,7 +47,9 @@ verifie('un « await » à la racine reste accepté', pageAnalysable(pageAwait) 
 console.log('\nLa bêta suit l\'application');
 const app = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
 const marque = 'zzMarqueDEssaiPropose';
-const appCorrigee = app.replace('function toast(msg,ms){', 'function toast(msg,ms){ /* ' + marque + ' */');
+/* L'ancre est l'OUVERTURE de toast, quels que soient ses paramètres : l'audit apple-design (partie J, octobre 2026) lui a
+   ajouté « genre », et l'ancre écrite en toutes lettres ne trouvait plus rien — l'essai tombait sur l'ancre, pas sur la bêta. */
+const appCorrigee = app.replace(/function toast\([^)]*\)\{/, (o) => o + ' /* ' + marque + ' */');
 verifie('l\'application d\'essai a bien été modifiée', appCorrigee !== app, 'aucun remplacement');
 let beta = null, erreurBeta = '';
 try { beta = betaDepuis(appCorrigee); } catch (e) { erreurBeta = e.message; }

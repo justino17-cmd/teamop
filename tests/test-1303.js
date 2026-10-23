@@ -26,7 +26,7 @@ const tranche = (debut, fin) => { const i = SRC.indexOf(debut); if (i < 0) retur
 
 console.log('\n── 1303 · 0. la population ──');
 const NAV = tranche('const NAV = [', '\n];'), DP = bloc('function defaultPerms(){'), TDR = bloc('function tableDuRole(role){'), MR = bloc('function moduleReglage(u,k){'),
-  USM = bloc('function userSeesModule(u,k,horsSusp){'), MOD = bloc('views.modulesElan=function(){'), SA = ligne('function showAside(){');
+  USM = bloc('function userSeesModule(u,k,horsSusp'), MOD = bloc('views.modulesElan=function(){'), SA = ligne('function showAside(){');
 v('les pièces sont trouvées', [NAV.length > 1500, DP.length > 1500, !!TDR, !!MR, USM.length > 500, MOD.length > 400, !!SA], [true, true, true, true, true, true, true]);
 
 console.log('\n── 1303 · 1. MESURE : le réglage « afficher dans le menu » ne commande plus rien ──');
@@ -34,7 +34,8 @@ function monde(aside) {
   const ctx = { console, JSON, Math, Object, Array, String, Set, RegExp, __aside: aside, localStorage: { getItem: k => (k === 'elan_aside' && ctx.__aside ? '1' : null) }, db: {} };
   vm.createContext(ctx);
   vm.runInContext(`${NAV}\n${DP}\n${TDR}\n${MR}\n${SA}
-    function planBloque(){ return false; } function metierBloque(){ return false; } function validationsOuvertes(){ return false; }
+    function planBloque(){ return false; } function metierBloque(){ return false; } function catBloque(){ return false; } function validationsOuvertes(){ return false; }
+    function rubExplication(){ return ''; } function rubExplHtml(){ return ''; }   /* v773 : les explications des rubriques sont le sujet de test-2953 */
     ${USM}
     db.permissions=defaultPerms();`, ctx);
   return ctx;
@@ -55,7 +56,7 @@ console.log('\n── 1303 · 2. l’écran ne promet plus un bouton ni un état
   const ctx = { console, JSON, Math, Object, Array, String, Set, RegExp, currentUser: { role: 'admin' }, db: {} };
   vm.createContext(ctx);
   vm.runInContext(`${NAV}
-    function userSeesModule(){ return true; } function esc(s){ return String(s); }
+    function userSeesModule(){ return true; } function esc(s){ return String(s); } function rubExplication(){ return ''; } function rubExplHtml(){ return ''; }
     function setHeader(t,s,a){ __r.titre=t; __r.sous=s; __r.action=a; } function $(){ return { set innerHTML(h){ __r.html=h; } }; }
     ${SA}`, Object.assign(ctx, { __r: rendu, localStorage: { getItem: () => null } }));
   vm.runInContext('var views={}; ' + MOD, ctx); vm.runInContext('views.modulesElan()', ctx);

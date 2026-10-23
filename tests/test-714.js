@@ -102,8 +102,8 @@ console.log('\n── 714 · ⛔ LA BASE LOCALE N\'EST JAMAIS TOUCHÉE ──');
 console.log('\n── 714 · les six endroits qui affichent une photo passent par photoSrc ──');
 /* Un seul oublié, et un technicien voit un cadre vide à la place d'une preuve de traitement —
    sans aucune erreur en console, parce qu'un `src` inconnu échoue en silence. */
-[['onglet médias de la fiche', '<img src="${photoSrc(ph)}" onclick="window.open(this.src)" style="width:100%'],
- ['bloc Photos du détail', '<img src="${photoSrc(p)}" onclick="window.open(this.src)" style="width:80px'],
+[['onglet médias de la fiche', '<img src="${photoSrc(ph)}" onclick="photoPlein(this,\'Photo\')" style="width:100%'],
+ ['bloc Photos du détail', '<img src="${photoSrc(p)}" onclick="photoPlein(this,\'Photo\')" style="width:80px'],
  ['vignettes du rapport', 'rapPhotos.map((p,idx)=>`<div style="position:relative"><img src="${photoSrc(p)}"'],
  ['clôture guidée', "rapPhotos.map((p,ix)=>{ const tg=rapTags[ix]||''; p=photoSrc(p);"],
  ['PDF du rapport', 'const photos=(i.photos||[]).map((p,ix)=>{ p=photoSrc(p);'],

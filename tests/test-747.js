@@ -225,7 +225,7 @@ vrai('⛔ les trois droits se sauvegardent par catégorie',
    Depuis la v731 la garde est COMPOSÉE (la rubrique, OU la sous-catégorie qui a son propre
    droit : `VUE_PARENT`) : le motif accepte les deux formes, mais exige toujours la redirection. */
 vrai('⛔ masquer une rubrique passe par acces.modules, et go() le fait respecter',
-  /u\.acces\.modules\[m\.k\]/.test(NU) && /if\(\(?item && !canSee\(item\)\)[^{]*\{ view='dashboard';/.test(NU));
+  /u\.acces\.modules\[m\.k\]/.test(NU) && /if\(\(?item && !canSee\(item\)\)[^{]*\{ (?:const parCat=[^;]*; )?view='dashboard';/.test(NU));   // + depuis « catégories par client » : la garde nomme d'abord parCat (catBloque), puis redirige
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

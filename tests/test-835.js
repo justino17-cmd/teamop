@@ -24,7 +24,9 @@ let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + JSON.stringify(b) + '\n      obtenu  : ' + JSON.stringify(a)); } };
 const vrai = (t, a) => v(t, !!a, true);
 
-const GEN = require('../scripts/site-marine.js');
+const { PAS_ENCORE_OUVERTS, chargerGenerateur } = require('./metiers-publics.js');
+/* 23 octobre 2026 : l'application connaît 23 métiers, le site 13 — les dix autres sont NOMMÉS dans tests/metiers-publics.js (le site les ouvrira avec son propre chantier). */
+const GEN = chargerGenerateur(RACINE);
 const CLES = Object.keys(GEN.PAGES);
 const DIR = path.join(RACINE, 'apercu', 'site');
 const texte = h => h.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;| | /g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
@@ -345,11 +347,13 @@ vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : 
    clé qu'elle ne connaît pas se dit « Sur mesure avec vous » — jamais l'inverse. Publier l'application, c'est donc aussi
    régénérer le site : sinon ce contrôle tombe. */
 {
-  /* 23 octobre 2026 : l'interrupteur est `ouverts` de metiers.json (test-2890 : il contient tout ce que l'application connaît, plus les réglages
-     explicites). Ici « connu de l'application » = METIERS_ORDRE d'app.html ET ce que le fichier ouvre par réglage. */
+  /* 23 octobre 2026 (fusion des deux chantiers métiers) : « connu de l'application » pour le SITE = METIERS_ORDRE d'app.html, moins la
+     liste nommée des métiers que la bêta connaît et que le site n'ouvre pas encore (tests/metiers-publics.js), plus ce que
+     metiers.json ouvre par réglage explicite (`ouvertsReglage` — test-2890 garde l'interrupteur `ouverts`). */
   const METIERS_JSON = JSON.parse(fs.readFileSync(path.join(RACINE, 'metiers.json'), 'utf8'));
-  const ordreApp = (fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean)
-    .concat(Object.keys(METIERS_JSON.ouvertsReglage || {}));
+  const ordreTous = (fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
+  const ordreApp = ordreTous.filter(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0).concat(Object.keys(METIERS_JSON.ouvertsReglage || {}));
+  vrai('(population) la liste des « pas encore ouverts au public » est bien dans l\'application (' + PAS_ENCORE_OUVERTS.length + ' sur ' + ordreTous.length + ')', PAS_ENCORE_OUVERTS.every(k => ordreTous.includes(k)) && ordreTous.length - ordreTous.filter(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0).length === PAS_ENCORE_OUVERTS.length);
   const NB_REF = METIERS_JSON.ordreMetiers.length;
   const puces = [...PAGES.creer.matchAll(/class="metier-puce"[^>]*data-pack="([^"]+)"[^>]*data-pret="([01])"/g)].map(m => [m[1], m[2] === '1']);
   vrai('(population) la liste des packs de l\'application est lue (' + ordreApp.length + ' métiers)', ordreApp.length >= 6 && ordreApp[0] === '3d');

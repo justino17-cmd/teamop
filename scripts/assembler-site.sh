@@ -29,6 +29,7 @@ for f in *.html *.js *.webmanifest rubriques-choix.css favicon.ico robots.txt ll
   [ -f "$f" ] || continue
   case "$f" in
     beta-build.js) continue ;;   # fabrique beta.html depuis app.html : un outil, pas une page
+    demo-build.js) continue ;;   # fabrique demo.html depuis app.html : un outil, pas une page
   esac
   cp "$f" "$DEST/"
 done

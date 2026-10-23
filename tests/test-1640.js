@@ -4,7 +4,7 @@
    À 360 px, rien. Deux éléments seulement, mesurés :
      · le bouton « ＋ Choisir la couleur de l'entreprise » : un `.btn` est `white-space:nowrap` (feuille), 302 px de large
        dans une colonne de 288 → il sortait à right 342 ;
-     · le libellé « Toute sortie de stock passe par le DR » : `.frow .frow-lbl{white-space:nowrap}`, 279 px insécables
+     · le libellé « Toute sortie de stock passe par la validation » : `.frow .frow-lbl{white-space:nowrap}`, 279 px insécables
        dans une rangée de 260 → right 333, et l'interrupteur n'avait aucune place à lui rendre.
    Contre-épreuve de la mesure (sonde du scratchpad, style modifié en direct) : les DEUX corrections suffisent, une seule
    ne suffit pas (342 → 333 avec le bouton seul).
@@ -59,7 +59,7 @@ const enLigne = (a, prop) => { const m = new RegExp('(?:^|;)\\s*' + prop + ':\\s
 
 const bouton = /<button ([^>]*onclick="document\.getElementById\('ent-couleur-in'\)\.click\(\)"[^>]*)>/.exec(VUE);
 vrai('le bouton « Choisir la couleur de l\'entreprise » est trouvé dans le balisage', !!bouton);
-const libs = ['Toute sortie de stock passe par le DR', 'Bons de remise à la sortie de stock'].map(t => {
+const libs = ['Toute sortie de stock passe par la validation', 'Bons de remise à la sortie de stock'].map(t => {
   const m = new RegExp('<span ([^>]*class="frow-lbl[^"]*"[^>]*)>' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</span>').exec(VUE);
   return { t, m };
 });

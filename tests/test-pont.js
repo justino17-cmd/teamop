@@ -4,10 +4,11 @@ function dec(h){ const d=APP.indexOf(h); if(d<0) throw new Error('introuvable : 
   for(let i=d;i<d+9000;i++){ if(APP[i]!=='}'&&APP[i]!==';') continue; const b=APP.slice(d,i+1); try{ new Function(b); return b; }catch(e){} } throw new Error('fin : '+h); }
 function cst(n){ const i=APP.indexOf('const '+n+'='); const fin=APP.indexOf('];',i); return APP.slice(i,fin+2); }
 /* g19 : plAnalyse lit désormais le prix par plPrix (la vraie fonction, extraite elle aussi) et note ses refus dans _plRefus. */
-const morceaux=['const norm = s =>','const CAT_LIST=','function catFourNorm(s){','function devineCat(nom){','function rangerCatFour(catFournisseur,nomProduit){','function catalogueLignes(list){','function produitsVisibles(){','function plPrix(','function plAnalyse(){'].map(dec)
+/* v773 : la catégorie d'une ligne collée passe par `categorieListe`, qui lit la liste du métier — ici la 3D (aucun métier réglé), avec les VRAIES fonctions */
+const morceaux=['const norm = s =>','const CAT_LIST=','function metierPackDe(base){','function metierId(){','function metierPack(){','function estMetier3D(){','function categoriesProduit(base){','function categorieListe(cat,nom){','function catFourNorm(s){','function devineCat(nom){','function rangerCatFour(catFournisseur,nomProduit){','function catalogueLignes(list){','function produitsVisibles(){','function plPrix(','function plAnalyse(){'].map(dec)
   .concat([cst('CAT_FOUR_REJET'),cst('CAT_FOUR_NOM'),cst('CAT_FOUR_NOM_FAIBLE'),cst('CAT_FOUR_MAP')]).join('\n');
 const bac=new Function('etat',`let db=etat.db, prdOnglet=etat.onglet, prdSearch=etat.q, _plLignes=[], _plRefus=[], champ='';
-  const CAT_DEVINE=[]; const $=id=>id==='pl-texte'?{value:champ}:null;
+  const CAT_DEVINE=[]; const METIERS={'3d':{produits:null}}; const $=id=>id==='pl-texte'?{value:champ}:null;
   ${morceaux}
   return { catalogueLignes, produitsVisibles, lire:t=>{ champ=t; plAnalyse(); return _plLignes; }, regler:(o,s)=>{ prdOnglet=o; prdSearch=s; } };`)
   ({db:{produits:[]},onglet:'tous',q:''});

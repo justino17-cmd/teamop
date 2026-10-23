@@ -8,6 +8,10 @@
      2. hors des deux phrases qui dépendent du drapeau, aucun texte de la Tour ne dit « l'application ne montrera / montre que celles-là » ;
      3. la grille du client (`rubriques-choix.js`, partagée par l'espace client, la page de paiement et le site) ne le promet pas non plus : son texte est vrai quel que
         soit l'état de l'application (le choix part avec la demande et sert à ouvrir l'espace).
+   ⛔ LA BÊTA PRÉCÈDE LE PUBLIC : sur cette branche `app.html` applique les catégories retenues, alors que la version publique ne les lit pas encore et
+   que la Tour (donc le client) le sait par `CATS_APPLIQUEES` = faux. Cet écart-là, et seulement lui, est DÉCLARÉ dans tests/beta-en-avance.js
+   (`categoriesAppliquees`) : le drapeau se compare à ce que lit l'application PUBLIQUE (app.html moins l'avance déclarée). Si la déclaration
+   devient fausse (app.html ne les lit plus, ou le drapeau est passé à `true`), `mensongesCategories` la fait tomber.
    Rien ne sort d'ici : aucun réseau. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const RACINE = path.join(__dirname, '..');
@@ -25,10 +29,13 @@ console.log('\n── 2893 · les textes ne promettent pas ce que l\'application
 function appLitCats(src) { let i = -1, n = 0, lit = false; while ((i = src.indexOf('/api/espaces/etat', i + 1)) >= 0) { n++; if (/cats/i.test(src.slice(i, i + 6000))) lit = true; } return { n, lit }; }
 console.log('\n1. Le drapeau dit vrai');
 const A = appLitCats(APPN), Bt = appLitCats(BETAN);
+const BETA = require('./beta-en-avance.js');
+const LIT_PUBLIC = BETA.categoriesLuesParPublique(A.lit);   // ce que lit l'application PUBLIQUE : app.html, moins l'avance déclarée
 vrai('(population) app.html et beta.html appellent `/api/espaces/etat` (' + A.n + ' et ' + Bt.n + ' appel)', A.n >= 1 && Bt.n >= 1, A.n + '/' + Bt.n);
 const DRAPEAU = (/var CATS_APPLIQUEES=(true|false);/.exec(TOURN) || [])[1];
 vrai('(population) le drapeau est lu dans le code de la Tour', DRAPEAU === 'true' || DRAPEAU === 'false', DRAPEAU);
-v('⛔ `CATS_APPLIQUEES` vaut ce que lit app.html (l\'application EN SERVICE) : aujourd\'hui rien — ' + (A.lit ? 'elle les lit' : 'elle ne les lit pas'), DRAPEAU === 'true', A.lit);
+v('⛔ `CATS_APPLIQUEES` vaut ce que lit l\'application PUBLIQUE (app.html moins l\'avance déclarée de la bêta) : ' + (LIT_PUBLIC ? 'elle les lit' : 'elle ne les lit pas'), DRAPEAU === 'true', LIT_PUBLIC);
+v('⛔ la déclaration d\'avance de la bêta est VRAIE côté catégories (app.html les lit, le drapeau de la Tour dit encore faux)', BETA.mensongesCategories(A.lit, DRAPEAU === 'true' ? true : DRAPEAU === 'false' ? false : undefined), []);
 
 console.log('\n2. Aucun texte de la Tour ne promet autre chose que le drapeau');
 const iDeb = TOURN.indexOf('var CATS_APPLIQUEES='), iFin = TOURN.indexOf('function demCatsDepart(');
@@ -50,8 +57,8 @@ const ref = { ok: true, ordre: ['planning', 'devis'], groupes: ['Planification',
   rubriques: { planning: { titre: 'Planning', ic: 'P', groupe: 'Planification', explication: 'Le planning de vos interventions, jour par jour.' }, devis: { titre: 'Devis', ic: 'D', groupe: 'Ventes', explication: 'Vos devis, de la demande à la signature.' } } };
 const html = OPRUB.html(OPRUB.etat(ref, 'chauffage'), 'rub');
 vrai('(population) la grille se rend (deux cases, une introduction)', /rub-aide/.test(html) && (html.match(/type="checkbox"/g) || []).length === 2, html.slice(0, 200));
-vrai('⛔ l\'introduction de la grille ne promet pas « votre application ne montrera que ces rubriques » tant que l\'application ne les applique pas', A.lit || !/ne montrera/.test(html), (/rub-aide">[^<]*/.exec(html) || [''])[0]);
-vrai('   et le code du module ne porte pas la phrase', A.lit || !/application ne montrera/.test(RUBN));
+vrai('⛔ l\'introduction de la grille ne promet pas « votre application ne montrera que ces rubriques » tant que l\'application ne les applique pas', LIT_PUBLIC || !/ne montrera/.test(html), (/rub-aide">[^<]*/.exec(html) || [''])[0]);
+vrai('   et le code du module ne porte pas la phrase', LIT_PUBLIC || !/application ne montrera/.test(RUBN));
 vrai('   elle dit ce qui est vrai : le choix part avec la demande et sert à ouvrir l\'espace', /votre choix part avec votre demande/.test(html), (/rub-aide">[^<]*/.exec(html) || [''])[0]);
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

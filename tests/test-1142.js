@@ -34,7 +34,7 @@ function monde(taches) {
     var tacheFilter='toutes';
     function $(){ return __content; }
     function permGarde(){ return true; } function can(){ return true; } function canCat(){ return true; }
-    function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){}
+    function toast(m){ __toasts.push(String(m)); } function champManque(m){ toast(m); return false; } function champDe(f,n){ return f&&f.elements?f.elements[n]||null:null; } /* champManque (audit apple-design, point 33) : ici, son message seul — test-2850 éprouve le reste */ function save(){ __saves++; } function closeModal(){}
     function logEvent(t,d){ __log.push([t,d]); } var __id=0; function uid(){ return 't'+(++__id); }
     function todayISO(){ return '2026-10-16'; } function myTechId(){ return null; }
     function setHeader(){} function emptyState(){ return ''; }

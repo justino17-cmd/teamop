@@ -13,6 +13,109 @@ de ligne du tout.
 
 ---
 
+# ⏳ 23 OCTOBRE 2026 — CHAUFFAGE / CLIMATISATION COMPLET (CVC) : PARC D'APPAREILS, ATTESTATION, FLUIDES, VISITES DES CONTRATS — BÊTA v772, RIEN SUR `main`
+
+Branche `claude/chauffage-clim` (copie `~/teamop-clim`), demande de Justin du 23 octobre (« Chauffage / climatisation, fais-le aussi »). Un seul bloc d'`app.html`, entre
+les marqueurs `═══ CVC — LE PARC D'APPAREILS` et `═══ fin du bloc CVC ═══` ; UNE fonction décide que le métier a un parc, `metierGereParc()` (`CVC_METIERS` : chauffage,
+froid, energies — « froid » et « energies » n'existent pas encore dans `METIERS`, l'autre chantier les ajoute). La 3D et les autres métiers ne voient RIEN de neuf
+(prouvé : bancs et sonde, y compris avec des appareils en base). Aucune ligne de `METIERS`, de la NAV ou des catégories n'a été touchée.
+
+**Fait** (un commit par partie, bancs `test-2895` à `test-2898`, bancs `test-2895` à `test-2898` (+ 28 contrôles après la relecture), `tests/cvc-monter.js` monte le VRAI bloc ; 119 mutations rejouées toutes mordantes, quatre séries : `python3 scratchpad/mutations-cvc.py test-2895.js p1-` puis `test-2896.js p2-`, `test-2897.js p3-`, `test-2898.js p4-` — le lanceur compte une mutation « mal visée » comme muette et sort en 1) :
+1. `db.appareils` (collection synchronisée, déclarée à tous ses registres : `COLLECTIONS_DONNEES`, `OP_CLASSES`, `migrate`, `COLLS_GARDEES`, droits de Clients, suppression, remise
+   à zéro) ; section « Appareils » de la fiche client ; carte « Appareils visités » de l'intervention ; « dernière intervention » et échéance d'entretien DÉDUITES, jamais recopiées ;
+   « Entretiens à planifier » dans les Tâches et sur le tableau de bord. `server/` n'a PAS changé (le socle classe par nom de collection). `test-731` passe à 28 collections.
+2. Attestation d'entretien d'une chaudière (PDF, `docEntete`, envoi `srvMail`, trace après la réussite). Seuils du CO sur le CO AMBIANT seulement.
+3. Fiches fluides frigorigènes dans l'intervention (`fichesFluides`), PRP, périodicité d'étanchéité, échéance sur l'appareil / Tâches / tableau de bord.
+4. Visite annuelle des contrats : une proposition (`Planifier` pré-remplit l'intervention), le contrat désigne ses appareils (`appareilIds`).
+Défaut de l'existant corrigé en route : `_pdfTranslit` écrivait « CO? » pour « CO₂ » dans TOUT PDF (le relevé des chauffagistes) — les chiffres en indice sont dits.
+
+⛔ **Ce qui n'a PAS pu être vérifié, et ce que le code en dit** : le règlement (UE) 2024/573 sur EUR-Lex n'a pas pu être lu (page vide). Les seuils (5 / 50 / 500 t éq. CO₂ → 12 / 6 / 3 mois,
+doublés avec détection ; HFO 1 / 10 / 100 kg) viennent de la FFB et de la CAPEB, cités en tête du bloc. NON confirmés : le seuil de 10 t des équipements « hermétiquement scellés » (case décochée par
+défaut) et les PRP du tableau (valeurs du règlement 517/2014 vues dans des tableaux de fabricants — le champ « PRP » de la fiche appareil, celui de la plaque, l'emporte). Ce n'est pas un calculateur
+opposable, l'écran le dit. À faire relire par quelqu'un qui a le texte.
+
+**Pas fait** : attestation PAC / climatisation (le détail de l'arrêté du 24 juillet 2020 n'a pas pu être relu — pas de document qui prétendrait le reproduire) ; verrou « pas de fluide sans n° d'attestation de
+capacité » et qualifications des techniciens ; suivi des bouteilles ; certificat de ramonage ; alertes de sécurité hors CO ambiant ; « appareils visités » dans le rapport d'intervention (`rapportConstatLignes`,
+partagé avec l'anti-nuisibles du chantier métiers) ; rappel au client à 30 puis 7 jours (seulement une proposition côté entreprise) ; ligne de la cloche pour les échéances.
+**À la fusion avec le chantier métiers** : ajouter `Contrôle d'étanchéité des fluides frigorigènes` aux types du pack chauffage (le code l'utilise s'il existe, sinon laisse le type vide) ; rien d'autre.
+⚠️ Le pack ne devra jamais RETIRER `Entretien annuel chaudière` / `Entretien chaudière fioul ou bois` / `Entretien pompe à chaleur` / `Entretien climatisation` / `Contrat d'entretien` sans mettre à jour `cvcTypeInterventionPour`.
+`test-747` (« masquer une rubrique passe par acces.modules ») est ROUGE sur le commit de départ `7d45d134`, avant ce chantier.
+⛔ **Relecture du 23 octobre (neuf constats, tous rejoués)** : la visite d'un contrat « tout le parc » CITE ses appareils (sinon elle ne remettait l'horloge d'aucun) ; une intervention ne compte pour un appareil que chez le MÊME client (`cvcIndex`, `cvcIntsDe`) ; « déjà prévue » se dit par obligation (`cvcPlanifiee(a, genre)` : un dépannage ne fait plus taire l'entretien ni l'étanchéité) ; le pied du PDF d'attestation tient sur trois lignes ; signatures / logo non joints sont DITS (aperçu, confirmation à l'envoi) ; 🔁 prend la date de la proposition pour un métier à parc et demande confirmation si une visite est déjà planifiée ; une carte d'échéances qui jette dit « indisponibles » ; fiches et attestations d'un appareil RETIRÉ restent lisibles (`cvcIntOrphelines`) ; deux cases à 44 px. Sonde : `scratchpad/sonde-cvc-relecture.js` (37 ✓, trois profils, jour et nuit).
+⚠️ **`APP_VERSION` (772) et le cache de `sw.js` (v972) n'ont PAS monté, exprès** (consigne du chantier : l'autre chantier « métiers » travaille en parallèle sur le même fichier). `node scripts/verifier-version.js` est donc ROUGE sur cette branche, et la CI de GitHub (`verification.yml`) le serait : **à la fusion, monter les deux ensemble (773 / v973, ou le numéro que l'arbitrage donne), régénérer `beta.html`, relancer `verifier-version.js`** — la collection `appareils` change le format des données, la Tour doit pouvoir exiger la version. Rien ne se publie sans la phrase de Justin.
+Connu, non corrigé : l'entretien se reconnaît au TYPE choisi (« Entretien… ») — une visite d'un autre type ne remet pas l'horloge à zéro (documenté sur `cvcEstEntretien`) ; le calcul de `cvcIndex` ne compare pas le client des fiches fluides (une fiche appartient physiquement à l'appareil).
+
+---
+
+
+
+# ⏳ 23 OCTOBRE 2026 — OP GESTION PAR MÉTIER, CÔTÉ APPLICATION : 23 MÉTIERS, PLUS D'ANTI-NUISIBLES HORS 3D, CATÉGORIES PAR MÉTIER — BÊTA v772, RIEN SUR `main`
+- Branche `claude/metiers-app` (partie du commit `7d45d134` de la branche d'audit, à fusionner dans elle). Cahier : les demandes de Justin
+  de la nuit du 22 au 23 octobre (« je veux que tu fasses bien OP GESTION en fonction des packs métiers qu'on propose »). Cinq parties,
+  un commit chacune, `APP_VERSION` reste 772, `sw.js` ne bouge pas.
+- **A — les 23 métiers dans l'application.** `METIERS`, `METIERS_ORDRE` et `RUBRIQUES_INFO` sont ÉCRITS par `scripts/metiers-generer.js`
+  depuis `metiers.json` (UN SEUL référentiel depuis la fusion du 23 octobre : la copie `design/metiers-referentiel.json` est supprimée ;
+  ce que la bêta a d'avance sur le public — dix métiers, le libellé « Validation des mouvements », les catégories appliquées — est
+  DÉCLARÉ dans `tests/beta-en-avance.js`, gardé par `test-2956`. ⛔ Geste de publication : vider cette déclaration ET ouvrir les pièces
+  publiques ensemble, puis `node scripts/metiers-generer.js`) Treize métiers enrichis (types, prestations, relevés à la suite des anciens), dix nouveaux : incendie, froid,
+  ascenseurs, portails, ramonage, assainissement, énergies, alarme, eau, piscine. `test-2950` relit le référentiel ET l'application
+  (`app.html`, `beta.html`) et joue les vraies fonctions pour les 23. La 3D ne reprend PAS les deux types que le référentiel lui propose
+  (« Désinfection de locaux », « Audit hygiène… ») : ELAN ne change pas d'un mot — écart nommé dans le banc ; les adopter est une décision.
+  `saisieConso` et `enveloppes` rejoignent le masque des métiers hors 3D (la bêta voit tout). Le site, le serveur (`METIERS_OK`), la Tour
+  (`MET_L`) et le portail (`METIER_L`) connaissent TREIZE métiers : `tests/metiers-publics.js` NOMME les dix « pas encore ouverts au
+  public » (test-835, 837, 846, 848 les tolèrent absents, jamais exigés). ⛔ `scripts/site-marine.js` lit `METIERS_ORDRE` dans app.html
+  pour compter ses « packs prêts » : tant que l'autre chantier n'a pas ouvert les dix, le régénérer annoncerait « 22 packs » — le banc
+  charge le générateur avec une lecture qui retire les dix ; **quand ils sont ouverts, vider la liste de `tests/metiers-publics.js`.**
+- **B — hors 3D, plus rien de l'anti-nuisibles** (`estMetier3D()`, une seule décision) : « Nuisibles ciblés », « Méthodes », étape
+  « Constat » de la clôture guidée (garde le champ d'observations), niveau d'infestation, AMM / matière active / type de traitement,
+  fournisseurs du catalogue 3D, « Dossier sanitaire », Certibiocide (colonne, fiche, formulaire), colonne CSV « Nuisibles », constat et
+  traitement du compte-rendu. On cache, on ne vide pas (`test-2951` : 96 contrôles, 18 mutations sur 18). Un Certibiocide déjà saisi reste
+  visible. La 3D avant/après (`scratchpad/metiers/sonde-avant-apres.js`, 67 écrans) a trouvé TROIS phrases que les correctifs avaient retouchées :
+  rétablies ; il ne reste que les différences voulues (cartes TEAM OP, explications des modules, « Valideur responsable »). **Pas fait** : le registre, les box, le devis xylophage, la clôture « Produits » restent propres à la 3D par le masque ; les
+  générateurs de démonstration (`betaRemplir`, « test nuisibles ») sont des outils de la bêta, non touchés.
+- **C — catégories de produits par métier** (`categoriesProduit()`, `categorieListe()`, couleurs dans `CAT_COLORS`) : la 3D garde `CAT_LIST`
+  (même objet) ; les 22 autres ont leur liste fermée du référentiel ; une catégorie inconnue d'une base d'avant s'affiche telle quelle ;
+  `migrate` ne range plus que la 3D. Règle de CLAUDE.md réécrite. `test-2952` : 60 contrôles, 9 mutations sur 9. Les noms de catégories sont
+  ceux du référentiel — des PROPOSITIONS à valider avec chaque métier (« Fluides frigorigènes (par type) », 69 signes pour « Pièces de chaudière… »).
+- **D — « quand ils cochent, que ça explique »** : grille des droits et profils, « Accès au cas par cas », « Modules OP », et — nouveau —
+  Paramètres → Mon métier (rubriques conseillées dépliables) montrent l'explication du référentiel, sous le nom, sans survol (`test-2953` : 34
+  contrôles, 9 mutations sur 9). Le titre « Validations DR » et sa note de chantier ont quitté le référentiel de `design/` : à reporter dans la
+  copie de l'autre chantier. **Pas fait** : la page d'abonnement et la Tour (autre chantier) ; les rubriques conseillées ne PRÉ-COCHENT rien ici
+  (c'est le chantier « catégories par client », Tour + serveur).
+- **E — le menu de bureau tient sur une ligne : 284 px** (258 avant ; « Validation des mouvements » demande 181,6 px pour 171). Mesuré après,
+  41 entrées × 3 langues × 1440/1100 px × jour/nuit : zéro entrée sur deux lignes, marge la plus faible 15,4 px. « Directeur régional
+  responsable » → « Valideur responsable » (le rôle `dr` et la donnée `drId` ne changent pas). `test-2954`.
+  ⛔ **Reste ouvert, à mesurer avant de toucher** : le menu « au doigt » (272 px : iPad portrait/paysage et tiroir du téléphone, texte à 15,5 px)
+  demande 201 px pour ce libellé et n'en a que 191 — il passe sur deux lignes ; l'élargir touche les mises en page iPad de test-1421, 1432, 1433.
+- **F — relecture (23 octobre, `gardien`/`relecteur`) : cinq restes réels corrigés, `test-2955` (76 ✓, 17 mutations sur 17).** `mentionRegl` / `ammVisible` :
+  la mention des biocides et la colonne « N° AMM » n'existent hors 3D que si une ligne de produit PORTE une AMM (étape 6, PDF, rapport imprimé,
+  courriel, plan d'appâtage, dossier sanitaire) ; `libZones` (« Zones concernées ») ; `aiGenRapport` neutre au métier ; exemple de l'assistant devis
+  et phrase du stock de la fiche d'intervention ; `metierBloque` laisse ouvertes « Enveloppes » (si `db.enveloppes`) et « Consommation produits »
+  (si mouvements de box) ; « Sans catégorie » en tête d'une fiche produit sans catégorie. La 3D est identique à l'octet (8 surfaces rendues avant/après).
+  Sonde : `scratchpad/metiers/sonde-restes.js` (76 ✓, 3 métiers × 6 tailles/thèmes). **Pas fait, à trancher** : (1) le menu « au doigt » (272 px) passe
+  « Validation des mouvements » sur deux lignes (201 px demandés pour 191) — l'élargir touche test-1421/1432/1433, ou raccourcir le libellé de Justin ;
+  (2) le vocabulaire « box » reste dans Stock, Mouvements, Bons, Validations, Utilisateurs, Paramètres hors 3D — variante hors 3D ou « box » assumé ;
+  (3) `server/agent-devis.js` (consigne de l'agent devis : dératisation, Certibiocide) n'est pas touché — c'est un déploiement, à relire par `gardien` ;
+  (4) les dix nouveaux métiers n'existent pas dans `METIERS_OK` du serveur ni dans la Tour : un métier réglé dans l'application seule reste dans la base
+  (`db.metier`), mais `metierServeurAppliquer` le remplace par celui de la Tour à l'ouverture — c'est l'autre chantier. `test-747` relisait la garde de
+  `go()` à l'ancienne forme (il tombait déjà sur la base 7d45d134) ; `test-811` (durées de création de compte) tombe sous charge et passe seul.
+- Preuves au navigateur (bêta servie en 127.0.0.1, captures regardées) : `scratchpad/metiers/` — `sonde-b` 162 ✓ (3 métiers × 6 tailles/thèmes × 9 écrans), `-c` 48 ✓, `-d` 60 ✓, `-e` 19 ✓, `-recense` (plomberie, piscine : rien de l'anti-nuisibles), `-avant-apres`. Elles lisent `beta.html` : régénérer (`node beta-build.js`) avant de les lancer. ⚠️ Deux contrôles de GitHub ne sont pas dans
+  `bancs-ci.sh` (`verifier-version.js`, `verifier-propose.js`) : `app.html` change sans que `APP_VERSION` monte — à jouer avant la fusion.
+
+# ⏳ 22 OCTOBRE 2026 — AUDIT APPLE-DESIGN D'OP GESTION : LES 36 CORRIGÉS, BÊTA v771 — RIEN SUR `main`
+- Justin, 21 octobre : « audite toute l'interface avec le skill apple-design, liste chaque problème du plus grave au moins grave, puis
+  corrige-les un par un ». La liste et les preuves : `design/AUDIT-APPLE-2026-10.md`. Branche `claude/audit-apple-op-gestion`, une
+  partie par commit (A → X), demande de fusion **en brouillon** https://github.com/justino17-cmd/teamop/pull/156 — ⛔ la fusionner
+  publierait `app.html` (décision du 23 septembre) : elle attend sa phrase.
+- Justin, 22 octobre : « corrige tous les problèmes tout de suite ». Le n° 4 est fait (partie Y : la taille du texte suit l'iPhone et
+  l'iPad, et un réglage « Taille du texte » dans Paramètres › Apparence) ; les restes aussi (partie Z : la bulle du navigateur, six
+  redessins du tableau de bord, deux survols collés). Reste à voir sur un vrai Mac : replier le menu anime une largeur (0,4 à 1 ms
+  par image ici).
+- Le correctif des bancs du changement d'heure (25 octobre) : fusionné sur `main` le 22 octobre (https://github.com/justino17-cmd/teamop/pull/155,
+  des bancs seulement, rien ne s'est publié).
+- ⛔ Leçon : deux contrôles de GitHub ne sont PAS dans `scripts/bancs-ci.sh` — `verifier-version.js` (une modification d'`app.html`
+  sans `APP_VERSION` ni cache du service worker qui montent) et `verifier-propose.js` (il ancrait sur `function toast(msg,ms){`, que la
+  partie J a changé). La suite locale était verte, la CI rouge. Avant d'ouvrir une demande de fusion, jouer AUSSI chaque étape de
+  `verification.yml`, sur la fusion avec `main`.
 
 # 🔶 23 OCTOBRE 2026 (MIDI) — NOS COURRIELS EN INDÉSIRABLES : CE QUI EST MESURÉ, CORRIGÉ, ET CE QUI RESTE
 

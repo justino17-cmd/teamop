@@ -21,7 +21,7 @@
       naissait « Modifier les plans d'appâtage » coché, et l'enregistrer l'écrivait. Règle de la v752.
    5. (v754) UN PROFIL NEUF PART TOUT DÉCOCHÉ — Justin, 26 septembre 2026 : « un profil neuf, tout est
       décoché ». Ses menus arrivaient cochés comme ceux du technicien, « Ajouter » / « Modifier » ouverts ;
-      et sous « Toute sortie de stock passe par le DR », « Validations DR » coché et verrouillé.
+      et sous « Toute sortie de stock passe par la validation », « Validation des mouvements » coché et verrouillé.
    Tout est EXÉCUTÉ : les vraies fonctions du fichier livré, les vraies listes (NAV, USER_CAPS, la liste
    de départ, la reprise). Le rendu dans la vraie page est mesuré par `scratchpad/sonde-droits-v753.js`. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -48,7 +48,7 @@ const P = {
   USER_CAPS: constante('const USER_CAPS=[', '\n];'), PERM_GRPS: ligne('const PERM_GRPS=['), PERM_GRP_OF: ligne('const PERM_GRP_OF='),
   PERM_SPECIAUX: ligne('const PERM_SPECIAUX={'), CAPS_HERITE: constante('const CAPS_HERITE = {', '\n};'), CAPS: ligne('const CAPS = Object.fromEntries('),
   defaultPerms: bloc('function defaultPerms(){'), moduleHeriteRole: bloc('function moduleHeriteRole(role,k){'), reprise: bloc('function reprendreDroitsImplicites(){'),
-  tableDuRole: bloc('function tableDuRole(role){'), moduleReglage: bloc('function moduleReglage(u,k){'), userSeesModule: bloc('function userSeesModule(u,k,horsSusp){'),
+  tableDuRole: bloc('function tableDuRole(role){'), moduleReglage: bloc('function moduleReglage(u,k){'), userSeesModule: bloc('function userSeesModule(u,k,horsSusp'),
   capDeduitRegle: bloc('function capDeduitRegle(cap){'), userCap: bloc('function userCap(u,cap){'), can: bloc('function can(cap){'),
   catDeduitRegle: bloc('function catDeduitRegle(grp,droit){'), catDroit: bloc('function catDroit(u,grp,droit){'),
   valideSoumis: bloc('function valideSoumis(u){'), validationsOuvertes: bloc('function validationsOuvertes(u){'), validationsNote: bloc('function validationsNote(valideur){'),
@@ -76,7 +76,8 @@ function monde(opts) {
   vm.createContext(ctx);
   vm.runInContext(`
     var db = { users: [], boxes: [], vehicules: [], profilsDroits: [] };
-    function planBloque(k){ return __plan.includes(k); } function metierBloque(){ return false; }
+    function planBloque(k){ return __plan.includes(k); } function metierBloque(){ return false; } function catBloque(){ return false; }
+    function rubExplication(){ return ''; } function rubExplHtml(){ return ''; }   /* v773 : les explications des rubriques sont le sujet de test-2953 */
     function logEvent(){} function save(){} function toast(){} function t(x){ return x; }
     function estStockage(){ return false; } function showAside(){ return false; }
     function userBoxVoit(){} function userVehiculeVoit(){} function fullName(u){ return ((u.prenom||'')+' '+(u.nom||'')).trim()||u.login||''; }
@@ -120,7 +121,7 @@ const CLES = M.NAV.flatMap(g => g.items).flatMap(it => [it.k].concat(M.SOUS_CATS
 const LT = M.db.permissions.technicien;
 vrai('population : une entreprise neuve, cinq listes de rôle, ' + CLES.length + ' rubriques',
   ['technicien', 'commercial', 'compta', 'dr', 'chefEquipe'].every(r => !!M.db.permissions[r]) && CLES.length >= 40);
-vrai('population : la liste du technicien FERME « Validations DR » et OUVRE « Modifier les plans d’appâtage » (sinon ce banc ne mesure rien)',
+vrai('population : la liste du technicien FERME « Validation des mouvements » et OUVRE « Modifier les plans d’appâtage » (sinon ce banc ne mesure rien)',
   LT.validations === false && !!(LT.caps && LT.caps.modifierPlans === true), { validations: LT.validations, modifierPlans: LT.caps && LT.caps.modifierPlans });
 
 console.log('\n── 821 · 1. le texte de la création de compte dit ce qui se passe ──');
@@ -135,17 +136,17 @@ console.log('\n── 821 · 1. le texte de la création de compte dit ce qui se
   vrai('l’aide sans profil enregistré le dit aussi', /Aucun profil pour l\\'instant : le compte suivra la liste de son rôle\./.test(SRC));
 }
 
-console.log('\n── 821 · 2. ⛔⛔ « Validations DR » s’ouvre avec la case de validation, et pour qui est soumis ──');
+console.log('\n── 821 · 2. ⛔⛔ « Validation des mouvements » s’ouvre avec la case de validation, et pour qui est soumis ──');
 { const tech = { id: 't', role: 'technicien' };
   const val = { id: 'tv', role: 'technicien', acces: { caps: { validerDR: true } } };
   const valFerme = { id: 'tvf', role: 'technicien', acces: { caps: { validerDR: true }, modules: { validations: false } } };
   const soumis = { id: 'ts', role: 'technicien', boxValidDR: true };
-  vrai('population : un technicien ordinaire ne voit pas « Validations DR »', M.userSeesModule(tech, 'validations') === false);
+  vrai('population : un technicien ordinaire ne voit pas « Validation des mouvements »', M.userSeesModule(tech, 'validations') === false);
   vrai('⛔ la case « Valider les mouvements… » l’ouvre (v752 : fermé, la case ne servait à rien)', M.userSeesModule(val, 'validations') === true);
   vrai('⛔ … même si un réglage à part avait écrit « fermé » (l’éditeur écrit tous les menus à chaque validation)', M.userSeesModule(valFerme, 'validations') === true);
   vrai('⛔ la personne soumise à la validation (case de sa fiche) le voit : elle y suit ses mouvements', M.userSeesModule(soumis, 'validations') === true);
   M.db.validDRTous = true;
-  v('⛔ « Toute sortie de stock passe par le DR » : technicien, commercial et compta le voient',
+  v('⛔ « Toute sortie de stock passe par la validation » : technicien, commercial et compta le voient',
     ['technicien', 'commercial', 'compta'].map(r => M.userSeesModule({ id: 'x' + r, role: r }, 'validations')), [true, true, true]);
   vrai('… et un valideur n’est jamais « soumis » (il se validerait lui-même)', M.valideSoumis(val) === false && M.validationsOuvertes(val) === true);
   M.db.validDRTous = false;
@@ -172,9 +173,9 @@ console.log('\n── 821 · 2. ⛔⛔ « Validations DR » s’ouvre avec la ca
 console.log('\n── 821 · 3. ⛔ un compte créé par un non-administrateur : le menu ouvert d’office n’est pas « retenu » ──');
 { const par = { id: 'p', role: 'chefEquipe', acces: { caps: { creerUtilisateurs: true }, modules: { validations: false } } };
   const nu = { id: 'n', role: 'technicien', boxValidDR: true, acces: { caps: {}, modules: {} } };
-  vrai('population : le créateur ne voit pas « Validations DR »', M.userSeesModule(par, 'validations') === false);
+  vrai('population : le créateur ne voit pas « Validation des mouvements »', M.userSeesModule(par, 'validations') === false);
   const ret = M.droitsBorner(nu, par);
-  vrai('⛔ le message ne prétend pas avoir retenu « Validations DR » à une personne soumise (elle l’a d’office)', !ret.some(x => /Validations DR/.test(x)), ret);
+  vrai('⛔ le message ne prétend pas avoir retenu « Validation des mouvements » à une personne soumise (elle l’a d’office)', !ret.some(x => /Validation des mouvements/.test(x)), ret);
   vrai('… et elle le voit bien', M.userSeesModule(nu, 'validations') === true);
   /* soumise par l'interrupteur d'entreprise, sans la case de sa fiche : la v752 ne regardait que la fiche */
   M.db.validDRTous = true;
@@ -185,7 +186,7 @@ console.log('\n── 821 · 3. ⛔ un compte créé par un non-administrateur :
      la retenue ne peut pas partir. La mutation est équivalente ; on l'écrit au lieu de la croire mordue. */
   vrai('… (sous l’interrupteur, le créateur non valideur est lui-même soumis : il voit le menu)', M.userSeesModule(par, 'validations') === true);
   M.db.validDRTous = false;
-  vrai('⛔ … ni à une personne soumise par « Toute sortie de stock passe par le DR »', !retT.some(x => /Validations DR/.test(x)), retT);
+  vrai('⛔ … ni à une personne soumise par « Toute sortie de stock passe par la validation »', !retT.some(x => /Validation des mouvements/.test(x)), retT);
   const nu2 = { id: 'n2', role: 'technicien', acces: { caps: { validerDR: true }, modules: {} } };
   const ret2 = M.droitsBorner(nu2, par);
   vrai('⛔ la case de validation reste bornée : un créateur qui ne valide pas ne la donne pas — et le menu tombe avec elle',
@@ -199,7 +200,7 @@ const noteDe = h => { const m = /<div class="pn-d" data-val-note style="([^"]*)"
 { const H = u => M.usrDroitsHtml(u, true);
   const hVal = H({ id: 'tv', role: 'technicien', acces: { caps: { validerDR: true } } });
   const iVal = interrupteur(hVal), nVal = noteDe(hVal);
-  vrai('population : l’interrupteur « Validations DR » est dessiné', !!iVal, hVal.length);
+  vrai('population : l’interrupteur « Validation des mouvements » est dessiné', !!iVal, hVal.length);
   vrai('⛔ valideur : ouvert ET verrouillé, marqué « d’office »', / checked/.test(iVal) && / disabled/.test(iVal) && /data-val-force="1"/.test(iVal), iVal);
   vrai('… sa valeur propre est gardée à part (la liste du technicien : fermé)', /data-val-av="0"/.test(iVal), iVal);
   vrai('⛔ … et la raison est écrite dessous', !!nVal && nVal.style === '' && nVal.texte === M.validationsNote(true), nVal);
@@ -352,11 +353,11 @@ console.log('\n── 821 · 7. ⛔⛔ (v754) « ＋ Nouveau profil » part TOUT
   const lu = Mn.profilLireZone(zoneDe(h));
   v('⛔⛔ « Enregistrer » sans rien toucher : aucun menu, aucun droit à OUI', Object.entries(lu.modules).concat(Object.entries(lu.caps)).filter(([, x]) => x).map(([k]) => k), []);
   vrai('… et les menus sont bien écrits (à NON), pas oubliés', Object.keys(lu.modules).length >= 40 && Object.values(lu.modules).every(x => x === false), Object.keys(lu.modules).length);
-  /* sous « Toute sortie de stock passe par le DR », un profil n'est pas une personne : jamais « soumis » */
+  /* sous « Toute sortie de stock passe par la validation », un profil n'est pas une personne : jamais « soumis » */
   const Mt = monde(); Mt.db.validDRTous = true;
   const ht = neuf(Mt), it = inputs(ht).find(i => i.dataset.d === 'mod_validations');
-  v('⛔⛔ « Toute sortie de stock passe par le DR » : un profil neuf reste tout décoché', inputs(ht).filter(i => i.checked).map(i => i.dataset.d), []);
-  vrai('… « Validations DR » n’y est ni ouvert d’office, ni verrouillé, ni « soumis »', !!it && !it.checked && !it.disabled && it.dataset.valForce !== '1' && it.dataset.valSoumis === '0', it);
+  v('⛔⛔ « Toute sortie de stock passe par la validation » : un profil neuf reste tout décoché', inputs(ht).filter(i => i.checked).map(i => i.dataset.d), []);
+  vrai('… « Validation des mouvements » n’y est ni ouvert d’office, ni verrouillé, ni « soumis »', !!it && !it.checked && !it.disabled && it.dataset.valForce !== '1' && it.dataset.valSoumis === '0', it);
   vrai('… mais une PERSONNE sans la case de validation, elle, reste soumise (la règle d’entreprise n’a pas bougé)', Mt.valideSoumis({ id: 'p', role: 'technicien' }) === true && Mt.userSeesModule({ id: 'p', role: 'technicien' }, 'validations') === true);
   const hv = Mt.usrDroitsHtml({ id: '__profil__', role: '__profil__', acces: { caps: Object.assign({}, Mt.profilVierge().caps, { validerDR: true }), modules: Mt.profilVierge().modules } }, true);
   const iv = inputs(hv).find(i => i.dataset.d === 'mod_validations');

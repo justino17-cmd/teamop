@@ -44,7 +44,7 @@ const FONCTIONS = ['function plansOf(', 'function papZoneOf(', 'function papRoom
   'function papImplEmpreintes(', 'function papImplDernier(', 'function papImplDernierPlan(', 'function papImplEtat(', 'function papImplEtatTxt(',
   'function _pdfDessinPlans(', 'function papImplPdfStr(', 'async function papImplDocument(', 'let _papImplEnvoi=', 'async function papImplantationEnvoyer(', 'function papImplCarteHtml(', 'function papImplClotureLigne(',
   'function papMarque(', 'function papTombe(', 'function papTouch(', 'function papFindPoste(', 'function papZoneAlimName(', 'function papSheetZone(', 'function papSheetProduit(', 'function papSheetSecure(',
-  'function socNom(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function socDuClient(', 'function socStyle(', 'function entSocUnique('];
+  'function mentionRegl(', 'function ammVisible(', 'function socNom(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function socDuClient(', 'function socStyle(', 'function entSocUnique('];
 const CONSTS = ['const PA_TYPES=', 'const PAP_ZONES_ALIM=', 'const MENTION_REGL=', 'const PH_MARQUE='];
 function monter(base) {
   const W = { console, Map, Set, Object, JSON, String, Math, Date, Array, Number, Promise, Uint8Array, Error, isNaN,
@@ -55,7 +55,7 @@ function monter(base) {
   W.db = JSON.parse(JSON.stringify(base));
   vm.createContext(W);
   vm.runInContext([...CONSTS.map(decoupe), ...FONCTIONS.map(decoupe),
-    `function can(c){ return c==='modifierPlans'?__droit:true; }
+    `function estMetier3D(){ return true; } /* ces bancs jouent la 3D : la mention et la colonne AMM y sont celles d'avant */ function can(c){ return c==='modifierPlans'?__droit:true; }
      function toast(m){ __toasts.push(m); } function save(){ __saves++; } function intHisto(i,t){ (i.histo=i.histo||[]).push({txt:t}); __histo.push(t); }
      function fullName(u){ return u?(u.prenom+' '+u.nom):''; } function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
      function fmtShort(d){ return String(d||''); } function todayISO(){ return '2026-09-23'; } function entNom(){ return (db.entreprise&&db.entreprise.nom)||'OP GESTION'; }

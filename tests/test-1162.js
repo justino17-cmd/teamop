@@ -32,7 +32,7 @@ function monde(extra) {
   const nodes = {};
   const propre = Object.assign({ JSON, Math, Date, Set, Map, Object, Array, String, Number, console, parseInt, parseFloat, isFinite, RegExp,
     esc: s => String(s == null ? '' : s), norm: s => String(s || '').toLowerCase(), emptyState: () => '', encreDonnee: () => '#000', catColor: () => '#000',
-    CAT_LIST: ['Matériel'], stockSearch: '', stockFiltreManque: false, prdSearch: '', prdExpanded: {}, prdCataloguePont: () => '', prdBoxCount: () => 1,
+    CAT_LIST: ['Matériel'], categoriesProduit: () => ['Matériel'], stockSearch: '', stockFiltreManque: false, prdSearch: '', prdExpanded: {}, prdCataloguePont: () => '', prdBoxCount: () => 1,
     stockageVisible: () => true, visibleBoxes: l => l || [], estStockage: () => false, db: { bons: [], produits: [], boxes: [] }, nextNum: () => 'BC-1', uid: () => 'u1', todayISO: () => '2026-10-17', fullName: () => 'Moi', currentUser: {},
     logEvent() {}, save() {}, toast() {}, go() {}, __nodes: nodes,
     $: id => nodes[id] || (nodes[id] = { innerHTML: '' }) }, extra);

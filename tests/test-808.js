@@ -38,9 +38,9 @@ function decoupe(h){ const d=APP.indexOf(h); if(d<0) throw new Error('introuvabl
 
 const CODE=['const PREF_CLES=','const _prefVue={};','function prefLocal(k,v){','function prefLocalLire(k){',
   'let _prefPleinDit=false;','function prefRangementPlein(k,e){','function rangementMesure(){',
-  'function prefEcrire(cle,val){','function prefGarder(cle,val){','function prefAppliquer(u){',
+  'function prefEcrire(cle,val){','function prefGarder(cle,val){','function prefAppliquer(u,fondu){',
   'const MARQUES = {','function getMarque(){','const THEME_LBL','const THEME_ICO','function getThemePref(){','function getAccent(){',
-  'const ACCENTS = {','function setThemePref(p){','function setMarque(k){',
+  'const ACCENTS = {','function themeCible(p){','function themeFondu(faire,cible){','function setThemePrefNu(p){','function setThemePref(p){','function setMarque(k){',
   'function tcMode(k){','function tcMarque(k){','function tcTeinte(k){','function setAccent(a){',
   'const ACC_PERSO_MAX=','function accentsPerso(){','function accentsPersoEcrire(l){','function setAccentCustom(hex){','function accentPersoRetirer(ev,hex){',
   'function prefFusion(gagnant,autre){','function usersFusionner(','function usersSansDoublonLogin(list){',
@@ -71,6 +71,10 @@ function bac(O){
     const themeCouleur=()=>J.push('fenetre');
     const avatarAccentSync=()=>{};
     const applyTheme=()=>J.push('apply:'+getThemePref()+'/'+getMarque()+'/'+getAccent());
+    /* le fondu du jour à la nuit (themeFondu, audit apple-design point 24) : un navigateur SANS transition de vue l'applique
+       tout de suite — c'est l'ordre « appliqué, puis enregistré » que ce banc garde ; le fondu lui-même : test-2845 */
+    const document={ documentElement:{ getAttribute:()=>null, classList:{ contains:()=>false, add(){}, remove(){} } } };
+    const systemDark=()=>false;
     const save=()=>{ J.push('save'); if(O.saveJette) throw new Error('refreshBadges : donnée inattendue'); };
     const syncPush=()=>J.push('push');
     const logEvent=()=>{};
@@ -265,7 +269,7 @@ console.log('\n══ 6. LE CÂBLAGE — ce que l\'exécution n\'atteint pas ═
   vrai('⛔ … et REPOUSSE quand un choix plus récent a été gardé ici', NU.slice(i,i+900).includes('|| (sigPref(remote.users)!==prefAvant)'));
   const j=NU.indexOf('db.users=usersFusionner(db.users,remote.users,tomb,true);');
   vrai('l\'envoi est trouvé', j>0);
-  vrai('⛔ … et applique un réglage plus récent venu du nuage', /prefAppliquer\(moi\)/.test(NU.slice(j,j+700)));
+  vrai('⛔ … et applique un réglage plus récent venu du nuage', /prefAppliquer\(moi,true\)/.test(NU.slice(j,j+700)));
   const s0=NU.indexOf("if(localStorage.getItem('top_monitor_off')==='1') return;");
   const s1=NU.indexOf('})();', NU.indexOf('setInterval(tmFlush,35000)'));
   vrai('la sentinelle est trouvée', s0>0 && s1>s0);
