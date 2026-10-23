@@ -52,6 +52,10 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   const bon = await EX.executer({ cle: 'sk-ant-banc-2930', appeler: espion, capacites: {}, tmp: banc_dir });
   v('bilan : 9 réussis, aucun échec, rien d’inconnu', [bon.bilan.ok, bon.bilan.ko, bon.bilan.inconnu, bon.bilan.attente], [9, 0, 0, 0]);
   v('les scénarios sont rendus dans l’ordre', bon.scenarios.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  /* ⛔ L'équipe d'essai ne SE RENSEIGNE PAS sur le web (`recherche: false` pour Léa) : sinon le vrai outil de recherche partait à chaque scénario où elle écrit à une entreprise — un coût de plus et un résultat qui varie. */
+  const dePlusieursLea = requetes.filter(r => /Tu es Léa/.test(String(r.system))).length;
+  vrai('(population) l’examen a bien fait écrire Léa (au moins 3 requêtes de Léa) sur plus de 40 requêtes', dePlusieursLea >= 3 && requetes.length > 40, dePlusieursLea + ' / ' + requetes.length);
+  v('⛔ …et AUCUNE requête de l’examen ne porte l’outil de recherche web : Léa ne se renseigne pas dans l’essai', requetes.filter(r => JSON.stringify((r && r.tools) || []).includes('web_search')).length, 0);
   const minVerifs = { 1: 5, 2: 6, 3: 5, 4: 7, 5: 6, 6: 5, 7: 9, 8: 12, 9: 5 };
   for (const n of Object.keys(minVerifs)) vrai('(population) scénario ' + n + ' : au moins ' + minVerifs[n] + ' contrôles mesurés, dont des ✓', sc(bon, +n).verifs.length >= minVerifs[n] && verifsDe(bon, +n, 'ok').length >= minVerifs[n] - 2, sc(bon, +n).verifs.length + ' contrôles');
   /* 23 octobre 2026 (fusion de l'intégration) : les quatre comportements que l'examen ATTENDAIT d'un autre chantier (signature par agent, contrôle qualité, refus de remboursement, accusé de

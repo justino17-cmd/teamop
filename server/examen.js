@@ -215,7 +215,10 @@ function monterEquipe(o) {
   const poste = faussePoste(o.signature);
   const fichier = require('./agents-fichier')(dir);
   const brouillons = require('./agents-brouillons')(app, { DATA_DIR: dir, monAdmin: PASSE, monPatronStrict: PASSE, agents, mail: poste, direction, fichier, maintenant });
-  const lea = require('./agent-lea')({ agents, cerveau, brouillons, fichier, maintenant, libelleMetier: () => '', metiers: [] });
+  /* `recherche: false` : l'équipe d'essai ne SE RENSEIGNE PAS sur le web. Sans cela Léa lançait le VRAI outil de recherche à chaque scénario où elle écrit à une entreprise : chaque recherche se paie en plus des
+     jetons (voir `cerveau.js`), sur un examen plafonné en dollars, et son résultat varie d'un passage à l'autre — or l'examen compare des sorties, il lui faut un passage qui se répète. Ce que la recherche
+     apporte à Léa est gardé par ses propres bancs, pas par l'examen. */
+  const lea = require('./agent-lea')({ agents, cerveau, brouillons, fichier, maintenant, libelleMetier: () => '', metiers: [], recherche: false });
   /* `dossierDe` : l'expéditeur de « je veux arrêter » est, pour l'essai, le titulaire d'un compte (un numéro de dossier FICTIF) — c'est ce qui permet à Camille de déposer la demande fermée pour Hugo ; les autres
      expéditeurs ne sont l'adresse d'aucun compte. */
   const camille = require('./agent-camille')({ agents, cerveau, brouillons, mail: poste, fichier, maintenant, domainesNotres: () => ['teamop.fr'], adressesNotres: () => [],
