@@ -655,7 +655,7 @@
 
   /* PERMISSIONS */
   .perm-row{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--brd);}
-  .perm-row .pn{flex:1;font-size:14px;}
+  .perm-row .pn{flex:1;min-width:0;font-size:14px;}
   .switch{position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer;}
   .switch input{display:none;}
   .switch .track{position:absolute;inset:0;background:var(--bg3);border-radius:100px;transition:.2s;}
@@ -5164,6 +5164,14 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
 .usr-cb .perm-row:last-child{border-bottom:none}
 .usr-sec{font-size:10.5px;font-weight:800;letter-spacing:.09em;color:var(--t3);text-transform:uppercase;margin:12px 0 2px}
 .pn-d{font-size:11px;color:var(--t3);font-weight:400;margin-top:2px;line-height:1.4}
+/* v773 : l'EXPLICATION d'une rubrique, sous son nom, TOUJOURS visible (jamais au survol : au téléphone il n'y en a pas) — 12,5 px,
+   la couleur du texte courant et non la discrète : c'est ce qui aide à décider de cocher */
+.pn-x{font-size:12.5px;color:var(--t2);font-weight:400;margin-top:3px;line-height:1.45;overflow-wrap:anywhere}
+.met-rub{margin-top:12px;border:1px solid var(--brd);border-radius:12px;background:var(--card2);padding:2px 14px}
+.met-rub summary{cursor:pointer;font-weight:800;font-size:13px;padding:11px 0;color:var(--t1);list-style-position:inside}
+.met-rub-l{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-top:1px solid var(--brd);font-size:13px}
+.met-rub-l b{color:var(--t1)}
+.met-rub-l span{color:var(--t2);font-size:12.5px;line-height:1.45}
 .usr-lk{display:block;text-align:center;margin-top:10px;font-size:12.5px;color:var(--t3);text-decoration:underline;cursor:pointer}
 .usr-x{font-size:12.5px;color:var(--t3);line-height:1.55}
 .usr-b{margin-top:14px}
@@ -18120,6 +18128,12 @@ document.addEventListener('click',function(e){
   if(c.tagName==='SELECT' && typeof c.showPicker==='function'){ try{ c.showPicker(); }catch(_){ } }
 });
 /* Nom lisible d'une page, pour dire au bouton retour d'où l'on vient */
+/* ⛔ v773 — « QUAND ILS COCHENT, QUE ÇA EXPLIQUE » (Justin, 22 octobre 2026). Chaque rubrique que l'application propose de cocher —
+   la grille des droits et les profils, « Accès au cas par cas », « Modules OP », la liste du métier — montre son explication, celle
+   du référentiel (`RUBRIQUES_INFO`, générée : les mêmes mots que la page d'abonnement et la Tour). Une seule table, une seule
+   fonction : une rubrique qui n'a pas de texte (« Produits donnés », sous-rubrique) n'en affiche pas, elle n'en invente pas. */
+function rubExplication(k){ const r=RUBRIQUES_INFO[k]; return r?r[1]:''; }
+function rubExplHtml(k){ const e=rubExplication(k); return e?'<div class="pn-x">'+esc(e)+'</div>':''; }
 function navLabel(k){ try{ const it=avecSousCats(NAV.flatMap(s2=>s2.items)).find(x=>x.k===k); return it?t(it.l):''; }catch(e){ return ''; } }
 /* Bouton « ← page précédente » : il n'apparaît que s'il y a vraiment où revenir */
 function navRetourBtn(){
@@ -22870,7 +22884,7 @@ views.modulesElan=function(){
   setHeader('Modules OP (mis de côté)', 'Rubriques métier, selon vos droits');
   $('content').innerHTML=`<div class="card" style="padding:16px">
     <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Ces modules métier (3D, circuits internes…) sont <b>mis de côté</b> du parcours principal. <b>Rien n'est supprimé</b> : les données restent enregistrées et synchronisées. Ouvrez-les ci-dessous ; leur place dans le menu de chaque personne se règle dans <b>Permissions</b>.</p>
-    ${items.map(x=>`<div class="pl-row" style="cursor:pointer" onclick="go('${x.k}')"><div class="pl-info"><div class="pl-title">${x.ic} ${esc(x.l)}</div></div><span style="color:var(--t3)">Ouvrir ›</span></div>`).join('')}
+    ${items.map(x=>`<div class="pl-row" style="cursor:pointer" onclick="go('${x.k}')"><div class="pl-info"><div class="pl-title">${x.ic} ${esc(x.l)}</div>${rubExplication(x.k)?`<div class="pl-meta" style="white-space:normal">${esc(rubExplication(x.k))}</div>`:''}</div><span style="color:var(--t3)">Ouvrir ›</span></div>`).join('')}
   </div>`;
 };
 let tacheFilter='afaire';
@@ -36123,7 +36137,7 @@ function usrDroitsHtml(u,admin){
     '<p class="usr-x" style="margin-top:8px">🗑 <b>Par défaut, lui seul peut effacer</b> une commande, une livraison ou une demande d\'un historique, effacer les prix pré-remplis et revenir sur les « c\'est normal » des doublons. Il peut confier chacun de ces gestes à qui il veut : ce sont des cases, sur la ligne de la personne (Stock, Achats internes).</p></div>';
   const dis=admin?'':' disabled';
   const swH=(name,on,extra)=>'<label class="switch"><input type="checkbox" data-d="'+name+'"'+(on?' checked':'')+dis+(extra||'')+'><span class="track"></span><span class="knob"></span></label>';
-  const ligne=(lbl,desc,sw)=>'<div class="perm-row"><div class="pn">'+lbl+(desc?'<div class="pn-d">'+desc+'</div>':'')+'</div>'+sw+'</div>';
+  const ligne=(lbl,desc,sw,ex)=>'<div class="perm-row"><div class="pn">'+lbl+(desc?'<div class="pn-d">'+desc+'</div>':'')+(ex||'')+'</div>'+sw+'</div>';
   const capLbl=k=>{ const c=USER_CAPS.find(x=>x[0]===k); return c?[c[1],c[2]||'']:[k,'']; };
   /* v737 : une case DÉDUITE (capDeduitRegle) que rien n'a encore réglée porte data-deduit="1" —
      elle suit ses cases de base en direct, et la validation ne l'écrit pas (usrDeduireZone). */
@@ -36149,11 +36163,12 @@ function usrDroitsHtml(u,admin){
      elle part avec la case qui la donne. */
   const menuLigne=m=>{
     const nom=(m.parent?'↳ ':'')+m.ic+' '+esc(t(m.l)), sous=m.parent?'dans '+esc(navLabel(m.parent)):'';
-    if(catBloque(m.k)) return ligne(nom,(sous?sous+' · ':'')+'non retenue pour l\'entreprise',swH('mod_'+m.k,userSeesModule(u,m.k,false,true),dis?'':' disabled'));
-    if(m.k!=='validations'||planBloque(m.k)||metierBloque(m.k)) return ligne(nom,sous,swH('mod_'+m.k,userSeesModule(u,m.k)));
+    const ex=rubExplHtml(m.k);   // v773 : l'explication de la rubrique, sous son nom, visible sans survol
+    if(catBloque(m.k)) return ligne(nom,(sous?sous+' · ':'')+'non retenue pour l\'entreprise',swH('mod_'+m.k,userSeesModule(u,m.k,false,true),dis?'':' disabled'),ex);
+    if(m.k!=='validations'||planBloque(m.k)||metierBloque(m.k)) return ligne(nom,sous,swH('mod_'+m.k,userSeesModule(u,m.k)),ex);
     const force=validationsOuvertes(u), r=moduleReglage(u,'validations'), propre=r?r.v:false;
     const extra=' data-val="1" data-val-soumis="'+(u.role!=='__profil__'&&(db.validDRTous||u.boxValidDR)?1:0)+'" data-val-av="'+(propre?1:0)+'"'+(force?' data-val-force="1"'+(admin?' disabled':''):'');
-    return '<div class="perm-row"><div class="pn">'+nom+'<div class="pn-d" data-val-note style="'+(force?'':'display:none')+'">'+(force?esc(validationsNote(userCap(u,'validerDR'))):'')+'</div></div>'+swH('mod_validations',force||propre,extra)+'</div>';
+    return '<div class="perm-row"><div class="pn">'+nom+'<div class="pn-d" data-val-note style="'+(force?'':'display:none')+'">'+(force?esc(validationsNote(userCap(u,'validerDR'))):'')+'</div>'+ex+'</div>'+swH('mod_validations',force||propre,extra)+'</div>';
   };
   const cats=PERM_GRPS.map(([g,titre])=>{
     const ms=avecSousCats(NAV.filter(x=>PERM_GRP_OF[x.g]===g).flatMap(x=>x.items)).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
@@ -37029,7 +37044,7 @@ function formAccess(id){ const u=db.users.find(x=>x.id===id); if(!u)return; if(c
       <div class="form-sec">Droits d'action</div>
       <div class="fgroup">${caps.map(([k,l])=>`<div class="perm-row"><div class="pn">${l}</div><label class="switch"><input type="checkbox" ${userCap(u,k)?'checked':''} onchange="accessSetCap('${u.id}','${k}',this.checked)"><span class="track"></span><span class="knob"></span></label></div>`).join('')}</div>
       <div class="form-sec">Modules visibles</div>
-      <div class="fgroup">${mods.map(m=>`<div class="perm-row"><div class="pn">${m.ic} ${esc(m.l)}</div><label class="switch"><input type="checkbox" ${userSeesModule(u,m.k)?'checked':''} onchange="accessSetMod('${u.id}','${m.k}',this.checked)"><span class="track"></span><span class="knob"></span></label></div>`).join('')}</div>
+      <div class="fgroup">${mods.map(m=>`<div class="perm-row"><div class="pn">${m.ic} ${esc(m.l)}${rubExplHtml(m.k)}</div><label class="switch"><input type="checkbox" ${userSeesModule(u,m.k)?'checked':''} onchange="accessSetMod('${u.id}','${m.k}',this.checked)"><span class="track"></span><span class="knob"></span></label></div>`).join('')}</div>
     </div>`,'full');
 }
 function accessEnsure(u){ u.acces=u.acces||{}; u.acces.modules=u.acces.modules||{}; u.acces.caps=u.acces.caps||{}; }
@@ -37556,7 +37571,9 @@ views.parametres=function(){
             <span class="nm">${esc(m.nom)}</span>
             <span class="ss">${esc(m.sous)}</span>
             <span class="nb">${nb} catégories${m.presta?' · '+m.presta.length+' prestations':' · registre sanitaire &amp; biocides'}</span>
-          </div>`; }).join('')}</div>`; })()}
+          </div>`; }).join('')}</div>
+        ${(()=>{ const L=((METIERS[cur]||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]); if(!L.length) return '';
+          return `<details class="met-rub"><summary>📋 Les ${L.length} rubriques conseillées pour ton métier</summary>${L.map(k=>`<div class="met-rub-l"><b>${esc(RUBRIQUES_INFO[k][0])}</b><span>${esc(RUBRIQUES_INFO[k][1])}</span></div>`).join('')}</details>`; })()}`; })()}
       <div class="form-sec">🏢 Mes sociétés <span style="font-weight:400;text-transform:none;letter-spacing:0">— noms sur les documents (rapports, devis, factures, SMS…)</span></div>
       <p style="color:var(--t3);font-size:12px;line-height:1.55;margin-bottom:8px">Ajoute tes sociétés : elles remplacent la liste générique dans le sélecteur « Société » des interventions et documents. <b>Une seule société</b> → le sélecteur disparaît et elle est appliquée partout automatiquement.</p>
       <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:8px">${(db.societes||[]).map((s2,ix)=>{ const st=socStyle(s2); const cl=/^#[0-9a-fA-F]{6}$/.test(st.couleur||'')?st.couleur:'#1E7A4E';

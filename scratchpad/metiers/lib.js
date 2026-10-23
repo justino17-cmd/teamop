@@ -5,7 +5,7 @@ const {PROFILS,poserProfil}=require('./profils.js');
 const RACINE=path.join(__dirname,'..','..');
 async function demarrer(o){
   o=o||{};
-  const S=await ouvrir({source:o.source||path.join(RACINE,'beta.html')});
+  const S=await ouvrir({source:o.source||process.env.SOURCE||path.join(RACINE,'beta.html')});
   S.dormir=dormir;
   await S.ev(`window.horsLigneDebut=function(){}; try{_horsLigne=false;}catch(e){} const h=document.getElementById('hl-ecran'); if(h)h.remove(); window.pushPropose=function(){}; return 1;`);
   await S.ev(`if(!db.users.length){db.users.push({id:'u1',prenom:'Justin',nom:'B',role:'admin',username:'j',pass:'x',actif:true,pref:{}});save();}
