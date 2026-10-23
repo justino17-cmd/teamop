@@ -38,7 +38,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 220 s'); console.lo
     claude: "(r, n) => (String(r.system).startsWith('Tu es Camille') && /INCONNU-2908/.test(JSON.stringify(r.messages)) ? 'CATEGORIE : inconnu' : (" + BA.courrielPour.toString() + ")(r))",
     louisClaude: "() => 'QUESTION : Gérez-vous les licences des machines des clients ?\\nREPONSE : À COMPLÉTER'",
     imap: { [BOITE]: { messages: MSG },
-      [CTRL]: { messages: [M(1, { to: CTRL, from: 'zoe@exemple-2908z.fr', entetes: [AR('exemple-2908z.fr')], subject: 'CONTROLE-2908 alerte de sécurité' })] } } });
+      [CTRL]: { messages: [M(1, { to: CTRL, messageId: '<ctrl1@banc-2908>', from: 'zoe@exemple-2908z.fr', entetes: [AR('exemple-2908z.fr')], subject: 'CONTROLE-2908 une question' })] } } });
   vrai('le serveur démarre (portail des comptes allumé, fausse boîte IMAP, facteur, faux Claude)', S.vivant);
   if (!S.vivant) { console.log(S.journal().slice(0, 800)); await S.fin(); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }
   const lettres = async () => Promise.all(S.fact.recus.map(r => simpleParser(r)));
