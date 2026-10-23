@@ -32,7 +32,7 @@ vrai('(population) les fonctions de la fiche sont trouvées dans tour.html', SRC
 function fiche(o, avecCompte, pblCharge) {
   const REP = nom => () => '<div class="sous-sec"><div class="sec">[' + nom + ']</div></div>';
   const ctx = { console, JSON, String, Object, Array, Number, Math, Date, isFinite, encodeURIComponent, setTimeout() {}, clearTimeout() {}, window: {},
-    IC: {}, MYAPPS: ['gestion', 'messages'], MET_L: { nettoyage: 'Nettoyage' }, MYROLE: 'patron', catExpl: () => '', CAT_L: [['Planification', [['planning', 'Planning']]]],   /* (22 octobre 2026) le bloc des catégories d'OP GESTION se range avec le métier, et lit le rôle */
+    IC: {}, MYAPPS: ['gestion', 'messages'], MET_L: { nettoyage: 'Nettoyage' }, MYROLE: 'patron', CATS_APPLIQUEES: false, catExpl: () => '', CAT_L: [['Planification', [['planning', 'Planning']]]],   /* (22 octobre 2026) le bloc des catégories d'OP GESTION se range avec le métier, et lit le rôle */
     ENT: { sel: o.t, liste: [o] }, CLI: { sel: o.email, list: avecCompte ? [{ email: o.email, entreprise: o.nom, nom: 'Claire Martin', tel: '', inscrit: 1, majTs: 1, demandes: [], apps: ['OP GESTION'] }] : [] },
     PBL: { loaded: pblCharge !== false, liste: [{ nom: o.nom, slug: 'boulmartin', email: o.email, opMessages: true }] },
     cliStatut: () => ['Sans formule', 'p-gris'], demandesATraiter: () => [], optsCasesHtml: () => '<div class="opts">[cases]</div>', squelListe: () => '<div>…</div>',
