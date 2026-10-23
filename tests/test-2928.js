@@ -71,6 +71,7 @@ console.log('\n── 2928 · un déclencheur forgeable reste borné ──');
     }
     const reveils = sonneries(B, '🔴 Nina').length, nina = B.issues.filter(i => i.agent === 'nina');
     v('⛔ cinq épisodes « courrier refusé » le même jour : Justin n’est RÉVEILLÉ (🔴) qu’une fois', reveils, 1);
+    v('⛔ …et le « rétabli » des épisodes sans réveil ne sonne pas non plus (une notification « Nina te parle » pour le seul premier épisode)', sonneries(B, 'Nina te parle').length, 1);
     v('…deux incidents au plus (donc deux diagnostics de Jules au plus) : les trois autres épisodes sont annoncés sans incident', [nina.length, B.recus.length <= 2], [2, true]);
     vrai('(population) les cinq épisodes ont bien eu lieu et ont été annoncés dans « Plateforme »', B.fil('plateforme').filter(m => m.de === 'nina' && /^Des appareils se font refuser leur courrier/.test(m.texte)).length === 5, JSON.stringify(B.fil('plateforme').map(m => m.texte.slice(0, 60))));
     v('…et le message privé des épisodes suivants reste lisible dans son fil (info, sans notification)', niveauxDe(B, 'nina', 'nina').filter(n => n === 'urgent').length, 1);
