@@ -213,3 +213,5 @@ tests/test-2805.js
 tests/test-2870.js
 # 23 octobre 2026 : `test-2891` (le métier est obligatoire à l'abonnement : la demande d'accès et le paiement, le vrai serveur, un Stripe simulé ; `GET /api/metiers` ne sert que les métiers ouverts). Il lit `metiers.json`, qui part avec les pages liées.
 tests/test-2891.js
+# 23 octobre 2026 (relecture) : `test-2890` (le référentiel des métiers et son interrupteur : « tout métier ouvert est connu de l'application » — sans lui, ouvrir un métier dans `metiers.json` sans que l'application publique le connaisse déclenchait un déploiement qui passait la porte, et un plombier lisait « Dératisation »). Mesuré contre l'`app.html` de `origin/main` (APP_FICHIER) : 60 ✓ 0 ✗. `test-2891` garde aussi que le script de déploiement emporte la page de paiement.
+tests/test-2890.js

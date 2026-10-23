@@ -260,6 +260,15 @@ globalThis.fetch = async function (url, opts) {
     vrai('   ⛔ le choix n\'est rangé qu\'APRÈS la réponse de Stripe (après `!d.url`), jamais avant l\'appel', iCh > SRVN.indexOf('if (!r.ok || !d.url)') && SRVN.indexOf('if (!r.ok || !d.url)') > SRVN.indexOf("fetch('https://api.stripe.com/v1/checkout/sessions'"));
     vrai('   le refus du paiement vient AVANT la création de la page chez Stripe, et seul un tarif d\'OP GESTION l\'exige', /if \(!optionSeule && rangDuPrix >= 0 && !visees\.length\) \{\s*const c = choixAbonnement\(/.test(SRVN));
     vrai('   le refus du paiement vient AVANT la lecture de Stripe des options (avant `const qtes`)', SRVN.indexOf('let choixPaiement = null;') > 0 && SRVN.indexOf('let choixPaiement = null;') < SRVN.indexOf('const qtes = {};'));
+
+    /* ══ 6. LE SERVEUR NE PART JAMAIS SANS LA PAGE QUI SAIT DEMANDER LE MÉTIER ══ */
+    console.log('\n6. Le déploiement du serveur seul emporte la page de paiement et ses pièces (dans le code du script)');
+    const PREP = nu(fs.readFileSync(path.join(RACINE, 'scripts', 'preparer-deploiement-serveur.sh'), 'utf8').replace(/^[ \t]*#.*$/gm, ' '));
+    const lignesPages = PREP.split('\n').filter(l => /^\s*(?:PAGES_LIEES=\()|^\s*PAGES_LIEES=\(/.test(l));
+    vrai('(population) le script déclare ses pages liées en DEUX formes (la normale, et celle de TOUR_EN_SERVICE=garder)', lignesPages.length === 2, lignesPages.length);
+    for (const piece of ['recap-abonnement.html', 'metiers.json', 'rubriques-choix.js', 'rubriques-choix.css'])
+      vrai('⛔ « ' + piece + ' » part avec le serveur dans les deux formes — sans elle le serveur exige un métier que la page ne sait pas demander (400 `metier_requis`)', lignesPages.every(l => l.includes(piece)), lignesPages.map(l => l.includes(piece)).join('/'));
+    vrai('   et ces pièces sont ajoutées au commit (`git add ... "${PAGES_LIEES[@]}"`), pas seulement relues par les bancs', /git add [\s\S]*"\$\{PAGES_LIEES\[@\]\}"/.test(PREP));
   } finally { fin(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
