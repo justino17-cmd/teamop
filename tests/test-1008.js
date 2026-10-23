@@ -45,7 +45,7 @@ const existe = rel => fs.existsSync(path.join(SITE, rel));
 console.log('\n1. Rien d\'interne');
 for (const rel of ['CLAUDE.md', 'REPRISE.md', 'VERSION-STABLE.md', '.claude', '.github', '.githooks', '.mcp.json',
   'skills-lock.json', 'firestore.rules', 'firestore-opmessages.rules', 'storage.rules', 'server', 'server-msg',
-  'tests', 'scripts', 'scratchpad', 'design', 'beta-build.js']) {
+  'tests', 'scripts', 'scratchpad', 'design', 'beta-build.js', 'demo-build.js']) {
   v('absent du site : ' + rel, existe(rel), false);
 }
 v('aucun fichier .md, où qu\'il soit — sauf le jumeau Markdown de l\'accueil, à la racine, nommé (21 octobre 2026, fabriqué par scripts/site-marine.js)', fichiers.filter(f => /\.md$/i.test(f) && f !== 'index.md'), []);
