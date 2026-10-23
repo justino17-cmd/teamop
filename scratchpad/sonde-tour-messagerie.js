@@ -356,7 +356,11 @@ async function main() {
       await ev(`window.__mess.length=0; setTab('accueil'); return 1;`);
       await dormir(9500);
       const H3 = await ev(`return {appels:window.__mess.slice(),zone:!!document.getElementById('mess-zone'),inst:!!MS.inst,tFil:MS.tFil,tListe:MS.tListe};`);
-      v('écran QUITTÉ pendant 9,5 s : aucun appel, la zone est démontée, les minuteries sont éteintes', H3.appels.length === 0 && !H3.zone && !H3.inst && H3.tFil === 0 && H3.tListe === 0, JSON.stringify(H3));
+      /* La pastille du menu se relit À LA MINUTE quand on est ailleurs (`messNonLusCharger`, voulu) : son appel nu
+         (« GET /api/monitor/conversations », sans ?tous=1 ni fil) peut tomber dans la fenêtre — une fois sur deux selon l'heure
+         où le profil commence. Ce qui ne doit plus partir, ce sont les appels de l'ÉCRAN : la liste (?tous=1) et le fil. */
+      const ecran = H3.appels.filter(a => a !== 'GET /api/monitor/conversations');
+      v('écran QUITTÉ pendant 9,5 s : aucun appel de l\'écran (la pastille du menu seule peut se relire), la zone est démontée, les minuteries sont éteintes', ecran.length === 0 && H3.appels.length <= 1 && !H3.zone && !H3.inst && H3.tFil === 0 && H3.tListe === 0, JSON.stringify(H3));
       const hd = await ev(`return {h:location.hash};`);
 
       /* ── 9. « Parler à X » ouvre la messagerie sur son fil ── */
