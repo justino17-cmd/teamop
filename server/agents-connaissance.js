@@ -1,0 +1,130 @@
+/* LA CONNAISSANCE DE L'OFFRE (23 octobre 2026) — UN texte de référence que Léa et Camille reçoivent dans leur `system`.
+ *
+ * Justin : « quand on reçoit des mails comme ça, il faut que les agents répondent en fonction de l'entreprise ; prendre contact avec
+ * le client, lui expliquer comment on fonctionne, ce qu'on peut faire pour lui […] sans exploser son budget, à des prix très
+ * corrects — c'est là qu'on fait la différence avec la concurrence ; la semaine d'essai, on la propose APRÈS son retour, pas tout
+ * de suite ; le but c'est de vendre l'application. »
+ *
+ * ⛔ UNIQUEMENT des faits vrais, déjà vérifiés. Un agent commercial qui promet une fonction absente fait signer un client pour un
+ *    produit qui n'existe pas : c'est la faute la plus coûteuse de ce chantier, et c'est pourquoi la liste est ICI, en un seul
+ *    exemplaire, relue par le banc (`test-2862` § 0), plutôt que recopiée dans deux prompts qui divergeraient.
+ * ⛔ Une demande métier qui n'est pas dans la liste ne devient JAMAIS « une fonction qu'on a » : elle se présente comme « une
+ *    catégorie qu'on peut créer pour vous ». Aucun autre prix, aucune date, aucune remise, aucun engagement juridique.
+ * Ajouter un fait ici est un geste conscient : il doit être vrai AUJOURD'HUI dans l'application publiée ou sur teamop.fr.
+ */
+'use strict';
+
+const OFFRE = [
+  'TeamOP édite deux applications : OP GESTION (la gestion des interventions des entreprises de terrain) et OP MESSAGES (une messagerie, bientôt disponible).',
+  '',
+  'CE QU’OP GESTION FAIT (et rien d’autre que cette liste) :',
+  '- Fonctionne sur ordinateur, tablette et téléphone, depuis le navigateur, sans installation (sur téléphone, elle s’ajoute à l’écran d’accueil).',
+  '- Toute l’équipe travaille sur des informations à jour en temps réel.',
+  '- Planning des techniciens par jour, semaine ou mois, avec glisser-déposer ; les conflits et les absences sont signalés.',
+  '- Suivi des interventions : planifiée, en cours, terminée.',
+  '- Fiche d’intervention sur téléphone : liste de contrôle, photos avant et après, signature du client et du technicien, rapport PDF envoyé au client.',
+  '- Contrats d’entretien : échéances, passage suivant créé en un clic, rappel avant l’échéance, historique par client et par site.',
+  '- Fiches clients et sites.',
+  '- Devis : un devis accepté se transforme en facture en un clic, envoi par e-mail, suivi des factures envoyées, payées ou en retard.',
+  '- Stock et commandes fournisseurs.',
+  '- Pointage des heures.',
+  '- Droits réglés personne par personne.',
+  '',
+  'NOTRE DIFFÉRENCE :',
+  '- Une formule sur mesure : les catégories dont l’entreprise n’a pas besoin sont retirées, et elles ne sont pas facturées.',
+  '- Des catégories peuvent être améliorées, ou créées pour les besoins de l’entreprise, et elles lui sont réservées (confidentielles).',
+  '- Des tarifs maîtrisés : à partir de 15 € par mois et par utilisateur (TVA non applicable).',
+  '',
+  'LIMITES, À RESPECTER À LA LETTRE :',
+  '- Tu ne présentes comme existante AUCUNE fonction absente de la liste ci-dessus. Un besoin propre au métier du client qui n’y figure pas (par exemple le suivi des fluides frigorigènes d’un climaticien) se présente comme « une catégorie que nous pouvons créer pour vous », jamais comme une fonction déjà disponible.',
+  '- Tu ne donnes aucun autre prix que « à partir de 15 € par mois et par utilisateur (TVA non applicable) », aucune date, aucune remise, aucune promesse de délai, aucun engagement juridique, aucun remboursement.',
+  '- La période d’essai d’une semaine se propose APRÈS le retour du client, jamais dans le premier message : tu la présentes comme une possibilité « ensuite », sans la promettre.',
+  '- Tu n’écris jamais les mots « gratuit », « offert », « remise », « réduction », « illimité », « garanti », « remboursé », ni « sans engagement » : ce sont des promesses commerciales que personne n’a faites. Tu n’écris aucun nom de site ou d’adresse web autre que « teamop.fr ».',
+].join('\n');
+
+/* La FORME du courriel, la même pour les deux. Ce que Justin a validé : professionnel, voix de l'entreprise, vouvoiement. */
+const FORME = [
+  'FORME DU COURRIEL :',
+  '- Un courriel professionnel, écrit au nom de l’entreprise TeamOP (« nous »), en français, au vouvoiement.',
+  '- Il commence par « Bonjour, » (jamais un prénom ni un nom : tu n’en connais pas) et finit par « Bien cordialement, ».',
+  '- Structuré en courts paragraphes séparés par une ligne vide ; une liste numérotée simple (1., 2., 3.) pour les questions.',
+  '- Texte brut : ni Markdown (pas d’astérisques, pas de dièses), ni titres en capitales, ni émoji, ni lien, ni adresse électronique, ni numéro de téléphone.',
+  '- Tu n’écris PAS de signature : le serveur l’ajoute après « Bien cordialement, ».',
+].join('\n');
+
+/* Les bornes du texte rendu par Claude : un brouillon trop court n'est pas un courriel, un trop long n'est pas lu. */
+const OBJET_MAX = 200;
+const CORPS_MIN = 80;
+const CORPS_MAX = 8000;
+
+/* ── Ce qui part chez Claude, et ce qui en revient ───────────────────────────────────────────────────────────────────────────────
+   `sansAdresses` / `sansTel` : une adresse ou un numéro de téléphone ne part JAMAIS chez Claude (la règle de `sous-traitance.html`).
+   ⛔ PAS le `sansAdresses` du serveur : il garde l'initiale et le DOMAINE (« j***@entreprise.fr »), très bien pour un journal que Justin lit, pas
+   pour ce qui part chez Anthropic — le domaine d'un client EST un nom de client. Ici, tout devient « (adresse) ».
+   Les numéros : neuf chiffres au moins (une date ou un numéro de dossier ne sont pas des téléphones), séparés par des espaces — insécables
+   compris —, des points, des tirets ou des parenthèses : « 06 12 34 56 78 », « +33 6 12 34 56 78 », « 06.12.34.56.78 », « 0612345678 ». */
+const ADRESSE = /[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g;
+const TEL = /\+?\d[\d    .\-()]{6,}\d/g;
+const sansAdresses = t => String(t || '').replace(ADRESSE, '(adresse)');
+const sansTel = t => String(t || '').replace(TEL, m => (m.replace(/\D/g, '').length >= 9 ? '(numéro)' : m));
+/* Une donnée venue de l'extérieur, présentée à Claude ENTRE DÉLIMITEURS : elle ne peut pas les contenir (on les remplace), donc elle ne
+   peut pas « fermer » le bloc et faire passer la suite pour une consigne. */
+const delimiter = t => String(t || '').replace(/[<>]{3,}/g, ' ').replace(/[<>]/g, ' ');
+
+/* Lire la réponse de Claude : « IGNORER » en première ligne, ou « Objet : … » puis le corps. Rien d'autre n'est un courriel. */
+function lireMail(brut) {
+  const t = String(brut || '').replace(/\r/g, '').trim();
+  if (!t) return null;
+  const premiere = t.split('\n')[0].trim();
+  if (/^IGNORER\b/i.test(premiere)) return { ignorer: true };
+  const m = /^Objet\s*:[ \t]*([^\n]*)\n+([\s\S]+)$/i.exec(t);
+  if (!m) return null;
+  return { objet: m[1].trim(), corps: m[2].trim() };
+}
+
+/* Les mots d'une PROMESSE que personne n'a faite (« trois mois gratuits », « formule illimitée », « sans engagement »). Cherchés sur le texte sans accents ni
+   majuscules, au début des mots (« garanti » attrape garantie, garantissons). Pas « offre » seul : c'est le nom de notre offre, et le mot revient partout. */
+const PROMESSES = /\b(?:gratuit|offert|offre\s+(?:speciale|exclusive)|offrons|offrirons|remise|rabais|reduction|promotion|illimite|garanti|garantissons|rembours|satisfait\s+ou|sans\s+engagement|sans\s+frais|sans\s+surcout|a\s+vie\b)/;
+const sansAccents = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+/* Un NOM DE DOMAINE nu (« teamop-paiement.example/pay », « bit.ly/3xYz ») : des étiquettes séparées par des points, une extension de lettres MINUSCULES (« fin.Merci » n'en est pas un). Seule abréviation
+   française qui en a la forme : « p.ex » (écartée par son nom, `ABREVIATIONS`). Les extensions de fichier courantes ne comptent pas comme des sites. */
+const DOMAINE = /(?<![A-Za-z0-9@.-])((?:[A-Za-z0-9][A-Za-z0-9-]{0,62}\.)+[a-z]{2,24})(?![A-Za-z0-9-])/g;
+const ABREVIATIONS = new Set(['p.ex']);
+const FICHIERS = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'gif', 'txt', 'zip', 'csv']);
+
+/* Ce que Claude écrit se vérifie avant d'être rangé : un texte venu d'un courriel hostile ne doit pas pouvoir y glisser un lien de
+   paiement ou une adresse d'ailleurs. Seuls le site de TeamOP et ses adresses passent ; aucun numéro de téléphone (Claude n'en a reçu aucun,
+   donc tout numéro est inventé). Rend `''` si le texte est sain, sinon la raison — pour le journal, jamais le texte. */
+function refusDe(objet, corps) {
+  const o = String(objet || ''), c = String(corps || '');
+  if (o.length < 3 || o.length > OBJET_MAX || /[\r\n]/.test(o)) return 'objet hors bornes';
+  if (c.length < CORPS_MIN || c.length > CORPS_MAX) return 'texte hors bornes';
+  const tout = o + '\n' + c;
+  for (const m of tout.matchAll(/[^\s<>"'(),;:[\]]+@([^\s<>"'(),;:[\]]+)/g)) if (!/(^|\.)teamop\.fr\.?$/i.test(m[1])) return 'adresse étrangère';
+  if (/@/.test(tout.replace(/[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g, ''))) return 'adresse étrangère';
+  for (const m of tout.matchAll(/(?:https?:\/\/|www\.)([^\s/?#)>"']+)/gi)) if (!/(^|\.)teamop\.fr$/i.test(m[1].replace(/^www\./i, '').replace(/:\d+$/, ''))) return 'lien étranger';
+  /* un domaine SANS « http » ni « www » est un lien aussi (le client clique, ou son courriel en fait un lien) : seul teamop.fr passe */
+  for (const m of tout.matchAll(DOMAINE)) {
+    const d = m[1].toLowerCase();
+    if (/(^|\.)teamop\.fr$/.test(d) || ABREVIATIONS.has(d) || FICHIERS.has(d.split('.').pop())) continue;
+    return 'lien étranger';
+  }
+  if (PROMESSES.test(sansAccents(tout))) return 'promesse commerciale';
+  for (const m of tout.matchAll(TEL)) if (m[0].replace(/\D/g, '').length >= 9) return 'numéro de téléphone';
+  /* Le SEUL prix permis est « 15 € » (le plancher de l'offre) : tout autre montant en euros est une promesse que personne n'a faite. Et un
+     pourcentage est une remise. ⚠️ On lit le NOMBRE, pas le mot : « 150 € » contient « 15 » — une comparaison de texte le laisserait passer. */
+  for (const m of tout.matchAll(/(\d[\d  .,]*)\s*(?:€|euros?\b|eur\b)/gi)) if (parseFloat(m[1].replace(/[^\d.,]/g, '').replace(',', '.')) !== 15) return 'prix étranger';
+  if (/\d\s*%|pour\s?cent/i.test(tout)) return 'pourcentage';
+  return '';
+}
+
+/* Remettre un corps d'aplomb sans en changer le sens : pas de Markdown (Claude en glisse malgré la consigne), « Bonjour, » en tête et « Bien
+   cordialement, » en queue — la forme que Justin a validée. La signature, elle, n'est JAMAIS ajoutée ici : c'est le serveur d'envoi qui la pose. */
+function normaliserCorps(corps) {
+  let t = String(corps || '').replace(/\r/g, '').replace(/\*\*|__/g, '').replace(/^[ \t]*#{1,6}[ \t]+/gm, '').replace(/^[ \t]*[*•][ \t]+/gm, '- ').trim();
+  if (!/^Bonjour\b/i.test(t)) t = 'Bonjour,\n\n' + t;
+  if (!/Bien cordialement,?\s*$/i.test(t)) t = t.replace(/\s*$/, '') + '\n\nBien cordialement,';
+  return t.replace(/\n{3,}/g, '\n\n');
+}
+
+module.exports = { OFFRE, FORME, OBJET_MAX, CORPS_MIN, CORPS_MAX, ADRESSE, TEL, sansAdresses, sansTel, delimiter, lireMail, refusDe, normaliserCorps };

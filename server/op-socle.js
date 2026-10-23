@@ -1062,7 +1062,7 @@ function monterOpSocle(app, deps) {
      exactement dans l'état « drapeau éteint », qui est le seul état sûr. */
   enregistrer();
 
-  etat.sante = () => {
+  etat.sante = (o) => {
     const s = socle.sante();
     /* ⛔ `/health` est PUBLIQUE : un NOMBRE de lignes illisibles, jamais chez qui. Le « chez
        qui » est dans la Tour, qui est gardée. Mais le nombre doit sortir : sans lui, une
@@ -1092,7 +1092,8 @@ function monterOpSocle(app, deps) {
        dernière lecture. La surveillance passe toutes les heures, c'est donc « la dernière
        heure » — exactement ce qu'on veut voir. Corollaire à connaître : deux lectures
        rapprochées donnent la seconde presque vide, et ce n'est pas une panne. */
-    let lat = {}; try { lat = socle.latQuantiles(true); } catch (e) {}
+    /* ⛔ `o.sansVider` : un agent qui lit l'état du serveur ne prend pas la fenêtre de la surveillance horaire (voir `santeCorps`, index.js). */
+    let lat = {}; try { lat = socle.latQuantiles(!(o && o.sansVider === true)); } catch (e) {}
     /* ⛔ ARRONDIS, PARCE QUE `/health` EST PUBLIQUE ET QUE CES DEUX NOMBRES SONT COMMERCIAUX.
        `bases` donnait à qui fait `curl` le nombre EXACT d'entreprises clientes de TEAM OP ;
        `flux` donnait le nombre de longs-polls tenus, c'est-à-dire combien d'appareils de

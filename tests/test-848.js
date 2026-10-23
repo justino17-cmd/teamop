@@ -383,7 +383,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
         espSlugJs: s => String(s), esc: s => String(s == null ? '' : s), jsq: s => String(s), ST: {}, ABN_F: {}, abnEcart: () => '',
         lgMessagePoser: () => {}, tourCopie: () => {}, tourMailAcces: () => {} };
       vm.createContext(ctx);
-      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var CLI={list:' + JSON.stringify(cliList || []) + ', sel:' + JSON.stringify(sel || '') + '}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="", LG_MAIL="", LG_ZONE="";\n'
+      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var CAT_CLES=[]; var CLI={list:' + JSON.stringify(cliList || []) + ', sel:' + JSON.stringify(sel || '') + '}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="", LG_MAIL="", LG_ZONE="";\n'
         + ligneMetL + '\n' + FN6.join('\n'), ctx);
       return { ctx, el, toasts, panneaux, prefills };
     };

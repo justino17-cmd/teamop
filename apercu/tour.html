@@ -1759,6 +1759,8 @@ body.plans .reg-l.cli::before{display:none}
 @media(max-width:899px){ .eq-apps label{min-height:44px;padding:0 14px}
   .eq-apps input[type="checkbox"]{width:18px;height:18px;flex:none} }
 .eq-apps label i{width:10px;height:10px;border-radius:3px;background:var(--c)} .eq-apps .sous{color:var(--muted);font-size:12px} .eq-apps input{accent-color:var(--app)}
+/* Catégories d'OP GESTION (fiche d'une entreprise) : un titre de groupe au-dessus de ses cases, qui sont des .eq-apps */
+.cats-gt{font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 0}
 .app-sw button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;min-height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:-.005em;cursor:pointer}
 .app-sw button i{width:10px;height:10px;border-radius:3px;background:var(--c);flex-shrink:0}
 .app-sw button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--app-brd),0 1px 2px rgba(0,0,0,.06)}
@@ -2156,6 +2158,17 @@ body.plans .reg-l.cli::before{display:none}
 .ag-etiq.ok{background:var(--accBg);color:var(--acc-txt)}
 .ag-etiq.ko{color:var(--red)}
 .ag-act{display:flex;gap:8px;flex-wrap:wrap}
+.ag-ligne.ag-br{flex-wrap:wrap}
+.ag-apercu{flex:1 1 100%;order:3;min-width:0;padding:12px 14px;border-radius:var(--r-3);border:1px solid var(--line);background:var(--inset)}
+.ag-apercu .de{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.ag-apercu .de b{color:var(--text)}
+.ag-apercu .obj{display:block;margin:6px 0 8px;font-weight:700;overflow-wrap:anywhere}
+.ag-apercu p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.ag-apercu .sig{margin-top:10px;font-size:12.5px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}
+.ag-apercu input,.ag-apercu textarea{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--surface,transparent);color:var(--text);font:inherit}
+.ag-apercu textarea{min-height:220px;resize:vertical;margin-top:8px}
+.ag-apercu .err{margin-top:8px;color:var(--red);font-size:13px}
+.ag-apercu .ag-act{margin-top:10px}
 .ag-fil{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .ag-msg{max-width:min(560px,92%);align-self:flex-start;padding:10px 14px;border-radius:var(--r-3);border:1px solid var(--line);background:var(--inset)}
 .ag-msg.moi{align-self:flex-end;border-color:var(--acc)}
@@ -2166,6 +2179,195 @@ body.plans .reg-l.cli::before{display:none}
 .ag-msg p{margin:4px 0 6px;white-space:pre-wrap;overflow-wrap:anywhere}
 .ag-msg span{display:block;font-size:11.5px;color:var(--muted);margin-top:6px}
 @media (max-width:560px){.ag-ligne{flex-wrap:wrap}.ag-act{width:100%}.ag-act button{flex:1}}
+
+/* ══ MESSAGERIE DES AGENTS (v2.104) ══ trois colonnes — conversations · fil · « Qui fait quoi » — sur les jetons de la Tour, jour ET nuit.
+   La zone est son propre CONTENEUR : c'est sa largeur qui décide (à 1100 px d'écran, le menu en prend 258 et il reste 842 pour trois colonnes),
+   pas celle de l'écran. En dessous de 1000 px « Qui fait quoi » devient un volet ; en dessous de 700 px on ne voit qu'une colonne à la fois. */
+.mess-zone{container:mess / inline-size;position:relative;min-height:420px;border-radius:var(--r-4);overflow:hidden;
+  background:var(--tt-carte);border:1px solid var(--tt-carte-bord);box-shadow:var(--tt-ombre);-webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre)}
+body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backdrop-filter:none}
+@media(min-width:900px){ body.plein-courrier .mess-zone{border-radius:0;border-width:0} }
+.ms{display:grid;grid-template-columns:260px minmax(0,1fr) 292px;height:100%;position:relative}
+.ms-gauche{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line);background:var(--tt-lateral)}
+.ms-gt{padding:16px 16px 8px}
+.ms-gt h1{margin:0;font-size:19px;font-weight:700;letter-spacing:var(--suivi-titre)}
+.ms-gt p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+.ms-fils{flex:1;min-height:0;overflow-y:auto;padding:0 8px 12px}
+.ms-ct{padding:14px 8px 4px;font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ms-cv{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;border:0;border-radius:var(--r-3);background:transparent;color:inherit;text-align:left;padding:6px 8px;cursor:pointer;font:inherit}
+.ms-cv:hover{background:var(--hover)}
+.ms-cv[aria-current="true"]{background:var(--accBg)}
+.ms-cv:focus-visible,.ms-cv:focus{outline:0}
+.ms-cv:focus-visible{box-shadow:var(--anneau-int)}
+.ms-cc{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}
+.ms-l1{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ms-l1 b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms-l1 small{color:var(--muted);font-size:11.5px;flex:none}
+.ms-l3{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms-l3.ecrit{color:var(--acc-txt);font-style:italic}
+.ms-av{width:32px;height:32px;border-radius:50%;background:var(--accBg);color:var(--acc-txt);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+.ms-av.p{width:26px;height:26px;font-size:12px}
+.ms-av.g{border-radius:9px;background:var(--inset);color:var(--text2)}
+.ms-nl{min-width:20px;padding:1px 7px;border-radius:99px;background:var(--acc-fill);color:var(--on-acc);font-size:11.5px;font-weight:700;text-align:center;flex:none}
+/* l'état d'un agent se lit par la FORME autant que par la couleur : plein = allumé, anneau = brouillon, creux = à l'arrêt */
+.ms-pt{width:10px;height:10px;border-radius:50%;flex:none;box-sizing:border-box}
+.ms-pt.allume{background:var(--green)}
+.ms-pt.brouillon{border:2.5px solid var(--amber);background:transparent}
+.ms-pt.arret{border:1.5px solid var(--gray);background:transparent}
+.ms-centre{display:flex;flex-direction:column;min-height:0;min-width:0}
+.ms-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);min-height:62px}
+.ms-ht{min-width:0}
+.ms-ht h2{margin:0;font-size:17px;font-weight:650;letter-spacing:var(--suivi-titre);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms-ht p{margin:1px 0 0;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms-ha{display:flex;align-items:center;gap:10px;flex:none}
+.ms-bientot{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.ms-bientot b{font-weight:650;color:var(--text2);background:var(--inset);border-radius:99px;padding:2px 8px;margin-left:2px}
+.ms-btn-tq,.ms-retour{min-height:36px;padding:0 12px;border-radius:var(--r-3);border:0;background:var(--inset);color:var(--text);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ms-btn-tq{display:none}
+.ms-retour{display:none;padding:0 10px;background:transparent;color:var(--acc-txt)}
+.ms-btn-tq:focus-visible,.ms-retour:focus-visible{outline:0;box-shadow:var(--anneau-int)}
+.ms-zone-flux{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.ms-flux{flex:1;min-height:0;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain}
+.ms-flux:focus-visible{outline:0;box-shadow:var(--anneau-int)}
+.ms-b{display:flex;gap:9px;align-items:flex-start;max-width:min(680px,92%)}
+.ms-b.moi{align-self:flex-end;flex-direction:row-reverse}
+.ms-bc{background:var(--inset);border-radius:var(--r-4);padding:8px 12px;min-width:0}
+.ms-b.moi .ms-bc{background:var(--acc-fill);color:var(--on-acc)}
+.ms-b.important .ms-bc{box-shadow:inset 3px 0 0 var(--amber)}
+.ms-b.urgent .ms-bc{box-shadow:inset 3px 0 0 var(--red)}
+.ms-bh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ms-bh b{font-size:13.5px;font-weight:650}
+.ms-bh small{color:var(--muted);font-size:11.5px}
+.ms-b.moi .ms-bh small{color:inherit;opacity:.82}
+.ms-niv{font-size:11px;font-weight:700;border-radius:99px;padding:0 7px;background:var(--ambreBg);color:var(--amber)}
+.ms-b.urgent .ms-niv{background:var(--rougeBg);color:var(--redText)}
+.ms-bc p{margin:2px 0 0;font-size:14.5px;line-height:1.42;white-space:pre-wrap;overflow-wrap:anywhere}
+/* une mention RECONNUE : bleue, dans le fil comme dans la saisie. Dans la saisie le calque ne peut rien ajouter à la largeur du texte : fond et ombre, jamais de marge ni de graisse. */
+.ms-m{color:var(--bleu);background:var(--bleuBg);border-radius:4px;box-shadow:0 0 0 2px var(--bleuBg)}
+.ms-bc .ms-m{font-weight:650;padding:0 3px;margin:0 1px}   /* dans une bulle rien ne doit s'aligner sur un calque : on peut respirer */
+.ms-b.moi .ms-m{color:#0A4FA8;background:rgba(255,255,255,.92);box-shadow:0 0 0 2px rgba(255,255,255,.92)}
+.ms-dos{margin-top:8px;min-height:36px;padding:0 12px;border:0;border-radius:var(--r-2);background:var(--accBg);color:var(--acc-txt);font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.ms-sys{align-self:center;max-width:92%;font-size:12.5px;color:var(--muted);background:var(--inset);border-radius:99px;padding:4px 14px;text-align:center;overflow-wrap:anywhere}
+.ms-sys small{opacity:.8}
+.ms-jour{align-self:center;font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;padding:4px 0 0}
+.ms-envoi .ms-bc{opacity:.78}
+.ms-echec .ms-bc{box-shadow:inset 0 0 0 2px var(--red)}
+.ms-echec-l{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-top:6px;font-size:12.5px;font-weight:650}
+.ms-echec-l small{font-weight:400;opacity:.9}
+.ms-lien{border:0;background:none;padding:0;font:inherit;font-weight:650;color:var(--acc-txt);text-decoration:underline;text-underline-offset:2px;cursor:pointer;min-height:24px}
+.ms-b.moi .ms-lien{color:inherit}
+.ms-ecrit{align-self:flex-start;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);font-style:italic;padding:2px 4px}
+.ms-pts{display:inline-flex;gap:3px}
+.ms-pts i{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:msPoint 1.2s ease-in-out infinite}
+.ms-pts i:nth-child(2){animation-delay:.18s}.ms-pts i:nth-child(3){animation-delay:.36s}
+@keyframes msPoint{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
+@media(prefers-reduced-motion:reduce){ .ms-pts i{animation:none;opacity:.7} }
+.ms-vide{margin:auto;max-width:360px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.5;padding:24px 12px}
+.ms-retard{align-self:center;font-size:12px;color:var(--amber)}
+.ms-nouv{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);min-height:34px;padding:0 14px;border:0;border-radius:99px;background:var(--acc-fill);color:var(--on-acc);font:inherit;font-size:13px;font-weight:650;box-shadow:var(--ombre-2);cursor:pointer}
+.ms-nouv[hidden]{display:none}
+.ms-regle{margin:0;padding:6px 18px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);line-height:1.4}
+.ms-comp{border-top:1px solid var(--line);padding:10px 16px 12px}
+.ms-note{margin:0 0 8px;font-size:12.5px;color:var(--amber);line-height:1.4}
+.ms-lecture{margin:0;color:var(--muted);font-size:13px}
+.ms-puces{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ms-puces button{min-height:28px;padding:0 10px;border:0;border-radius:99px;background:var(--inset);color:var(--text);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.ms-puces button:focus-visible{outline:0;box-shadow:var(--anneau-int)}
+.ms-ligne{display:flex;gap:10px;align-items:flex-end}
+.ms-champ{position:relative;flex:1;min-width:0}
+.ms-miroir,.ms-ta{box-sizing:border-box;margin:0;padding:10px 12px;border:1px solid transparent;border-radius:var(--r-3);font-family:var(--fs);font-size:15px;line-height:21px;letter-spacing:normal;font-weight:400;
+  white-space:pre-wrap;overflow-wrap:break-word;word-break:normal;text-align:left;tab-size:4;text-rendering:auto;font-kerning:auto;unicode-bidi:normal}   /* ⚠️ le navigateur donne à <textarea> un moteur de rendu de texte que <div> n'a pas (text-rendering, unicode-bidi) : mesuré au style calculé — on les pose à la main sur les deux */
+.ms-miroir{position:absolute;top:0;left:0;bottom:0;right:0;overflow:hidden;pointer-events:none;color:var(--text);background:var(--tt-champ);border-color:var(--inpBorder)}
+.ms-miroir .ms-m{font-weight:400}
+.ms-ta{position:relative;display:block;width:100%;min-height:44px;max-height:150px;resize:none;overflow-y:auto;background:transparent;color:transparent;caret-color:var(--text);outline:0}
+.ms-ta::placeholder{color:var(--muted);opacity:1}
+.ms-ta::selection{background:rgba(10,132,255,.38);color:transparent}
+.ms-champ:focus-within .ms-miroir{box-shadow:var(--focus-champ);border-color:var(--acc)}
+.ms-envoyer{min-height:44px;padding:0 18px;border:0;border-radius:var(--r-3);background:var(--acc-fill);color:var(--on-acc);font:inherit;font-weight:650;cursor:pointer;flex:none}
+.ms-envoyer:hover{background:var(--acc-fill-hover)}
+.ms-envoyer:focus-visible{outline:0;box-shadow:var(--anneau)}
+.ms-mentions{position:absolute;left:0;bottom:calc(100% + 6px);width:min(340px,100%);max-height:244px;overflow-y:auto;z-index:6;padding:4px;border-radius:var(--r-4);
+  background:#17223D;box-shadow:var(--ombre-3)}
+body.jour .ms-mentions{background:#FFFFFF}
+.ms-mentions[hidden]{display:none}
+.ms-mi{display:flex;align-items:center;gap:10px;min-height:40px;padding:5px 8px;border-radius:var(--r-2);cursor:pointer}
+.ms-mi[aria-selected="true"]{background:var(--accBg)}
+.ms-mi:hover{background:var(--hover)}
+.ms-mt{display:flex;flex-direction:column;min-width:0}
+.ms-mt b{font-size:14px;font-weight:600}
+.ms-mt small{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ms-droite{border-left:1px solid var(--line);overflow-y:auto;padding:14px 12px;background:var(--tt-lateral);min-height:0}
+.ms-droite h3{margin:0 4px 10px;font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ms-tq{background:var(--surface);border-radius:var(--r-3);padding:9px 11px;margin-bottom:8px;box-shadow:var(--tt-ombre)}
+body.jour .ms-tq{box-shadow:0 0 0 1px var(--line)}
+.ms-th{display:flex;align-items:center;gap:8px}
+.ms-th b{font-size:13.5px;font-weight:650}
+.ms-ep{margin-left:auto;font-size:11px;font-weight:700;border-radius:99px;padding:1px 8px;background:var(--inset);color:var(--muted)}
+.ms-ep.cours{background:var(--accBg);color:var(--acc-txt)}
+.ms-tq p{margin:5px 0 3px;font-size:13.5px;line-height:1.4;overflow-wrap:anywhere}
+.ms-tq small{color:var(--muted);font-size:12px}
+/* LE PANNEAU DES RÉUNIONS (fil « Réunions » seulement) : une bande d'état, puis deux sections repliables. Il ne mange jamais le fil : sa hauteur est bornée et il défile en lui-même. */
+.ms-reu{flex:none;max-height:min(46%,360px);overflow-y:auto;overscroll-behavior:contain;border-bottom:1px solid var(--line);background:var(--tt-lateral)}
+.ms-reu[hidden]{display:none}
+.ms-reu-bd{display:flex;align-items:center;gap:10px;padding:10px 18px;flex-wrap:wrap}
+.ms-reu-bd.cours{background:var(--accBg)}
+.ms-reu-pt{width:10px;height:10px;border-radius:50%;flex:none;box-sizing:border-box;border:1.5px solid var(--gray)}
+.ms-reu-pt.cours{border:0;background:var(--green);animation:msPoint 1.6s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){ .ms-reu-pt.cours{animation:none} }
+.ms-reu-t{min-width:0;flex:1 1 220px;display:flex;flex-direction:column;gap:1px}
+.ms-reu-t b{font-size:14px;font-weight:650}
+.ms-reu-t small{color:var(--muted);font-size:12.5px;line-height:1.35}
+.ms-reu-bd.cours .ms-reu-t small{color:var(--text2)}
+.ms-reu-a{display:flex;gap:8px;flex-wrap:wrap}
+.ms-reu-btn{min-height:36px;padding:0 12px;border:0;border-radius:var(--r-3);background:var(--inset);color:var(--text);font:inherit;font-size:13px;font-weight:650;cursor:pointer;white-space:nowrap}
+.ms-reu-btn:hover:not(:disabled){background:var(--hover)}
+.ms-reu-btn:disabled{opacity:.5;cursor:default}
+.ms-reu-btn:focus-visible,.ms-reu-h:focus-visible{outline:0;box-shadow:var(--anneau-int)}
+.ms-reu-s{border-top:1px solid var(--line)}
+.ms-reu-h{display:flex;align-items:baseline;gap:10px;width:100%;min-height:40px;padding:0 18px;border:0;background:transparent;color:var(--text);font:inherit;font-size:13px;font-weight:650;text-align:left;cursor:pointer}
+.ms-reu-h::before{content:'›';display:inline-block;flex:none;width:10px;color:var(--muted);font-weight:700;transition:transform .15s}
+.ms-reu-h[aria-expanded="true"]::before{transform:rotate(90deg)}
+.ms-reu-h small{color:var(--muted);font-size:12px;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.ms-reu-c{padding:0 18px 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:8px}
+.ms-reu-ag{background:var(--surface);border-radius:var(--r-3);padding:9px 11px;box-shadow:var(--tt-ombre);min-width:0}
+body.jour .ms-reu-ag{box-shadow:0 0 0 1px var(--line)}
+.ms-reu-ag ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
+.ms-reu-ag li{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:13.5px;line-height:1.4;overflow-wrap:anywhere}
+.ms-reu-ag li small{color:var(--muted);font-size:12px;flex:1 1 100%}
+.ms-reu-b{font-size:11px;font-weight:700;border-radius:99px;padding:1px 8px;background:var(--inset);color:var(--muted)}
+.ms-reu-b.atteint{background:var(--vertBg);color:var(--green-txt)}
+.ms-reu-b.partiel{background:var(--ambreBg);color:var(--amber)}
+.ms-reu-b.non{background:var(--rougeBg);color:var(--redText)}
+.ms-reu-vide{margin:0;grid-column:1/-1;color:var(--muted);font-size:13px;line-height:1.45}
+.ms-reu-plier{display:none}
+@container mess (max-width:700px){ .ms-reu-plier{display:inline-flex;align-items:center;min-height:36px;padding:0 10px;border:0;border-radius:var(--r-3);background:transparent;color:var(--acc-txt);font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+  .ms-reu-plier::after{content:'›';margin-left:6px;transform:rotate(90deg)}
+  .ms-reu-plier[aria-expanded="true"]::after{transform:rotate(-90deg)}
+  .ms-reu[data-plie="1"] .ms-reu-a,.ms-reu[data-plie="1"] .ms-reu-s,.ms-reu[data-plie="1"] .ms-reu-t small{display:none}
+  .ms-reu{max-height:min(34%,230px)} .ms-reu-bd{padding:8px 12px;gap:6px} .ms-reu-a{width:100%} .ms-reu-btn{flex:1 1 0;white-space:normal;line-height:1.2;padding:4px 8px} .ms-reu-h{padding:0 12px} .ms-reu-c{padding:0 12px 10px} }
+@media(pointer:coarse){ .ms-reu-btn,.ms-reu-h,.ms-reu-plier{min-height:44px} }
+@container mess (max-width:1000px){
+  .ms{grid-template-columns:240px minmax(0,1fr)}
+  .ms-btn-tq{display:inline-flex;align-items:center}
+  .ms-droite{display:none;position:absolute;top:0;right:0;bottom:0;width:min(320px,88%);z-index:5;border-left:1px solid var(--line);box-shadow:var(--ombre-3);background:var(--surface)}
+  .ms[data-tq="1"] .ms-droite{display:block}
+}
+@container mess (max-width:800px){ .ms-bientot{display:none} }
+@container mess (max-width:700px){
+  .ms{grid-template-columns:minmax(0,1fr)}
+  .ms[data-mob="fil"] .ms-gauche{display:none}
+  .ms[data-mob="liste"] .ms-centre{display:none}
+  .ms[data-mob="liste"] .ms-droite{display:none}
+  .ms-gauche{border-right:0}
+  .ms-retour{display:inline-flex;align-items:center;margin-left:-8px}
+  .ms-hd{flex-wrap:wrap;gap:2px 12px;padding:8px 12px}   /* le titre passe sur sa propre ligne : « # Cli… » ne dit rien */
+  .ms-ht{order:3;flex:1 1 100%}
+  .ms-ha{margin-left:auto}
+  .ms-flux{padding:12px 12px}
+  .ms-comp{padding:8px 10px 10px}
+  .ms-regle{display:none}
+}
+@media(pointer:coarse){ .ms-puces button{min-height:44px} .ms-lien{min-height:44px;display:inline-flex;align-items:center} .ms-btn-tq,.ms-retour{min-height:44px} .ms-dos{min-height:44px} .ms-mi{min-height:48px} }
 </style>
 <style id="theme-tour">
 /* ══ THÈME DE LA TOUR ═══ maquette « TeamOp Tour HIG », validée par Justin (26 septembre 2026) ══════════
@@ -2846,7 +3048,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.102</div>
+    <div class="lg-pied">console interne · v2.103</div>
   </div>
 </div>
 
@@ -2888,7 +3090,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.102</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.103</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2900,7 +3102,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.102</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.103</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -2956,7 +3158,7 @@ var MENU=[
   {section:'Clients',vues:[['demandes','Demandes','gestion','bdg-dem'],['comptes','Comptes','messages'],['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion messages'],['facturation','Facturation','gestion','','',1]]},
   {section:'Support',vues:[['support','Courrier','gestion','bdg-supp'],['surveillance','Surveillance','gestion messages','bdg-surv'],['incidents','Incidents','gestion messages','','',1]]},
   {section:'Juridique',vues:[['contrats','Contrats','gestion messages','','',1]]},
-  {section:'Équipe d’agents',vues:[['agents','Agents','gestion'],['rapport','Rapport','gestion','','',1]]},
+  {section:'Équipe d’agents',vues:[['agents','Agents','gestion'],['messagerie','Messagerie','gestion','bdg-msgr'],['rapport','Rapport','gestion','','',1]]},
   /* v2.88 — le 5ᵉ champ RATTACHE une vue à une autre : elle quitte le menu et la barre du bas, et paraît en onglet en tête
      de sa vue de tête (Justin, 17 octobre 2026 : « améliore et simplifie-la »). Équipe est « qui peut entrer », comme Accès ;
      les Sauvegardes et le Journal sont les deux écrans de contrôle qu'on ouvre rarement. Dix entrées deviennent huit. */
@@ -2982,7 +3184,7 @@ function groupeOnglets(t){ var l=groupeDe(t); if(l.length<2) return '';
 /* ⚠️ Lot 1 (relecture du 22 octobre 2026) : Facturation, Contrats et Rapport sont au patron dans le MENU seulement. Leurs lectures
    restent ouvertes à un collaborateur côté serveur (« l'administrateur lit, le patron seul écrit » : contrats.js, direction.js,
    /stripe/paiements que les Abonnements montrent déjà) — fermer ces routes est une décision de Justin, posée dans REPRISE.md. */
-var PATRON_SEUL=['essais','equipe','journal','agents','donnees','facturation','contrats','rapport'];
+var PATRON_SEUL=['essais','equipe','journal','agents','messagerie','donnees','facturation','contrats','rapport'];
 /* ⛔ v2.87 (17 octobre 2026, Justin : « les catégories qui servent à quelque chose, les autres qui servent à rien —
    je range ») : Connexions et Devis IA quittent le menu, rien ne se perd. Connexions devient un onglet d'Entreprises
    (elle doublait la fiche et les compteurs d'Entreprises), Devis IA un onglet d'Abonnements (c'est une option qu'on
@@ -3205,7 +3407,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.102';
+var TOUR_VERSION='v2.103';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -3273,6 +3475,7 @@ function entrer(){
   setInterval(function(){ if(document.visibilityState==='visible') chargerIncidents(); },60000);
   /* la relève de la pastille Courrier (v2.94) : seulement quand le module ne tourne pas — monté, il relève lui-même au même rythme */
   if(MYAPPS.indexOf('gestion')>=0) setInterval(function(){ if(document.visibilityState==='visible'&&!COUR.inst&&MSG.loaded) chargerMail(); },60000);
+  messReleve();   /* la pastille « Messagerie » : à la minute, page visible, et seulement hors de l'écran */
   if(MYAPPS.indexOf('gestion')>=0){ chargerRapport(); setInterval(function(){ if(document.visibilityState==='visible'&&TAB==='accueil') chargerRapport(); },60000); }   /* « Au rapport » (lot 1) */
 }
 window.addEventListener('hashchange',function(){
@@ -3285,6 +3488,7 @@ var IC={
   facturation:'<path d="M7 3h10v18l-2.5-1.6L12 21l-2.5-1.6L7 21z"></path><path d="M10 8h4M10 12h4"></path>',
   incidents:'<path d="M12 4 3 20h18z"></path><path d="M12 10v4M12 17h.01"></path>',
   contrats:'<path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v4h4M9.5 16c1.2-1.4 2.2-.4 3 0 .8.4 1.6.2 2.5-.6"></path>',
+  messagerie:'<path d="M4 5.5h11v8H8.5L5 16.5v-3H4z"></path><path d="M15 9h5v8h-1v3l-3.5-3H11v-2.5"></path>',
   rapport:'<path d="M4 20h16"></path><path d="M7 16v-5M12 16V7M17 16v-8"></path>',
   accueil:'<path d="M4 11 12 4l8 7"></path><path d="M6 10v10h12V10"></path>',
   surveillance:'<path d="M3 12h4l2-6 4 12 2-6h6"></path>',
@@ -3378,7 +3582,7 @@ function renderTabs(){
      Surveillance et Courrier restaient muets jusqu'au prochain relevé (une minute). On repose ce
      qu'on SAIT déjà — et pour la console ouverte : incOuverts() ne compte que les siens. */
   var poser=function(id,n){ var e=$(id); if(e){ e.textContent=n; e.style.display=n?'inline-block':'none'; } };
-  try{ if(INC.loaded) poser('bdg-surv',incOuverts().length); if(MSG.loaded) poser('bdg-supp',MSG.nonLus||0); if(CLI.loaded) poser('bdg-dem',demandesATraiter().length); }catch(x){}
+  try{ if(INC.loaded) poser('bdg-surv',incOuverts().length); if(MSG.loaded) poser('bdg-supp',MSG.nonLus||0); if(CLI.loaded) poser('bdg-dem',demandesATraiter().length); if(MS.lec===1||MS.nonLus) poser('bdg-msgr',MS.nonLus); }catch(x){}
   renderBarreBas();
   majHaut();
 }
@@ -3403,7 +3607,7 @@ var BAS=BAS_DEFAUT.slice(0,BAS_MAX);
    dans `aria-label` : un lecteur d'écran ne lit pas des abréviations. */
 var BAS_LIB={comptes:'Comptes',accueil:'Accueil',surveillance:'Surveill.',demandes:'Demandes',entreprises:'Entreprises',essais:'Accès',
   abonnements:'Abonn.',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal',agents:'Agents',
-  facturation:'Factur.',incidents:'Incidents',contrats:'Contrats',rapport:'Rapport'};
+  facturation:'Factur.',incidents:'Incidents',contrats:'Contrats',rapport:'Rapport',messagerie:'Messag.'};
 /* Les vues que CE compte voit dans CETTE console, à plat, dans l'ordre du menu, avec leur compteur. */
 function barreDispo(){
   var l=[]; menuVisible().forEach(function(g){ g.vues.forEach(function(x){ l.push({t:x[0],lib:x[1],bdg:x[3]||''}); }); });
@@ -3992,6 +4196,7 @@ function setTab(t,sansAnim){
   if(t==='journal') chargerJournal();
   /* les agents se relisent à CHAQUE ouverture : un mode ou une demande a pu changer depuis un autre appareil */
   if(t==='agents') chargerAgents();
+  if(t==='messagerie') messOuvrir();   /* la messagerie se relit à CHAQUE ouverture : un agent a pu écrire depuis un autre appareil */
   window.scrollTo(0,0);
   tiroirRafraichir();
 }
@@ -5343,6 +5548,7 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu){
     '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">L\'espace est prêt. Il ne te reste qu\'à envoyer l\'e-mail au client.</div>'+
     '<div class="sec">FORMULE RÉSERVÉE</div><div style="margin:6px 0 14px;font-size:15px"><b>'+esc(F2[formule]||formule)+(q>1?' ×'+q:'')+'</b> '+
       (promo?'<span class="past p-vert">🎁 offerte jusqu’au '+esc(promo.finLe)+'</span>':dejaPaye?'<span class="past p-vert">💳 déjà réglée</span>':'<span class="past p-orange">⏸ suspendue jusqu’au paiement</span>')+'</div>'+
+    '<div class="encart" style="margin:0 0 14px"><div class="encart-tx">🧩 <b>Choisis ses catégories</b> dans sa fiche : l’application ne montrera à cette entreprise que celles que tu retiens (par défaut, toutes). <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>'+
     (codeDem&&!promo?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx">⚠️ Code promo « '+esc(codeDem)+' » de la demande non appliqué : '+esc(promoErr)+'</div></div>':'')+
     '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— c\'est elle qu\'on donne aux équipes</span></div>'+
     '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span id="acc-adr" class="mono" style="flex:1;word-break:break-all;font-size:14px;color:var(--link);font-weight:700">'+esc(adrF)+'</span><button class="btn-fant" onclick="tourCopie(\'acc-adr\',this)">Copier</button></div>'+
@@ -5459,7 +5665,9 @@ function optsPeindre(d){
 function packPeindre(){
   var el=document.getElementById('pack-info'); if(!el) return;
   if(!PACK.charge){ el.textContent=PACK.nom?'Chargement du statut…':''; return; }
-  if(PACK.err){ el.innerHTML='<span style="color:var(--redText)">'+esc(PACK.err)+'</span>'; return; }
+  if(PACK.err){ el.innerHTML='<span style="color:var(--redText)">'+esc(PACK.err)+'</span>';
+    var ce=document.getElementById('cats-info'); if(ce) ce.innerHTML='<span style="color:var(--redText)">Catégories illisibles\u202f: '+esc(PACK.err)+'</span>';   /* sans ça, « Chargement… » resterait pour toujours */
+    return; }
   var d=PACK.d||{};
   /* une fiche « Gratuit » d'avant la v2.78 : la liste n'a plus cette formule — elle reste VIDE, pour qu'on en choisisse une
      (l'enregistrement le demande), plutôt que d'afficher Pro qu'on enregistrerait sans l'avoir choisi */
@@ -5473,6 +5681,13 @@ function packPeindre(){
     sm.value=d.metier||dmM||'';
     if(mi) mi.innerHTML=d.metier?'Métier réglé\u202f: <b>'+esc(MET_L[d.metier]||d.metier)+'</b> — l’application le reçoit à sa prochaine ouverture.'
       :'Métier <b>non réglé</b> — l’application reste en 3D'+(dmM?'. Demandé\u202f: <b>'+esc(MET_L[dmM])+'</b>, à enregistrer.':'.'); }
+  /* les catégories d'OP GESTION : un tableau (celles qui sont retenues), `null` (rien de réglé : tout est ouvert) ou rien du tout
+     (un serveur d'avant, qui ne sait pas les régler — on le dit, on ne coche pas « tout » comme si on savait) */
+  var ci=document.getElementById('cats-info'), cc=d.cats;
+  CAT_CLES.forEach(function(k){ var c=document.getElementById('cat-'+k); if(c) c.checked=!Array.isArray(cc)||cc.indexOf(k)>=0; });
+  if(ci) ci.innerHTML=Array.isArray(cc)
+    ? '<b>'+cc.length+' catégorie'+(cc.length>1?'s':'')+' sur '+CAT_CLES.length+'</b> retenue'+(cc.length>1?'s':'')+' — l’application ne montre que celles-là, à sa prochaine ouverture.'
+    : (cc===null?'Toutes les catégories sont ouvertes.':'Le serveur ne sait pas encore régler les catégories — mets-le à jour.');
   var ST={auto:'automatique',actif:'activé par TEAM OP',essai:'en essai',impaye:'impayé',suspendu:'suspendu',annule:'annulé'};
   if(d.formule){
     /* la formule en toutes lettres, comme « l’application reçoit » juste après (et le toast de « 💳 Statut paiement ») :
@@ -5534,6 +5749,45 @@ function tourMetierEnregistrer(nom,btn){
     else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour');
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; } });
+}
+/* 🧩 22 octobre 2026 — les catégories d'OP GESTION de l'espace (liste fermée, vérifiée aussi par le serveur). Chaque essai écrit SON verdict
+   dans #cats-msg : un refus ne survit pas à la réussite qui le dément, et un refus se DIT à l'écran, pas seulement au toast. */
+function catsDire(h){ var m=document.getElementById('cats-msg'); if(m) m.innerHTML=h?'<span style="color:var(--redText)">'+h+'</span>':''; }
+function catsChoisies(){ return CAT_CLES.filter(function(k){ var c=document.getElementById('cat-'+k); return c&&c.checked; }); }
+function catsEnvoyer(nom,cats,btn,libelle,ok){
+  catsDire('');
+  if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
+  var rendre=function(){ if(btn){ btn.disabled=false; btn.textContent=libelle; } };
+  return apiPost('/api/monitor/espaces/cats',{nom:nom,cats:cats}).then(function(r){
+    if(r&&r.ok&&r.d&&r.d.ok){ toast(ok(r.d.cats)); tourPackPrefill(nom); }
+    else { var e=(r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour'; catsDire('⛔ '+esc(e)); toast(e); }
+    rendre();
+  }).catch(function(){ catsDire('⛔ Serveur injoignable.'); toast('Serveur injoignable'); rendre(); });
+}
+function tourCatsEnregistrer(nom,btn){
+  catsDire('');
+  if(MYROLE!=='patron'){ catsDire('⛔ Réservé au patron.'); toast('Réservé au patron'); return; }
+  /* tant que la fiche n'a pas parlé, les cases sont toutes cochées PAR DÉFAUT : enregistrer maintenant reviendrait à « tout rouvrir » */
+  if(!PACK.charge||PACK.nom!==nom||!PACK.d){ catsDire('⛔ Attends que la fiche soit chargée.'); toast('Attends que la fiche soit chargée'); return; }
+  var ch=catsChoisies();
+  if(!ch.length){ catsDire('⛔ Coche au moins une catégorie — « Tout rouvrir » ne restreint rien.'); toast('Coche au moins une catégorie'); return; }
+  /* tout coché = rien de restreint : le serveur retire le champ (une rubrique ajoutée plus tard à l'application doit s'ouvrir) */
+  var tout=(ch.length===CAT_CLES.length);
+  return catsEnvoyer(nom,tout?null:ch,btn,'💾 Enregistrer les catégories',function(c){
+    return Array.isArray(c)?('🧩 '+c.length+' catégorie'+(c.length>1?'s':'')+' retenue'+(c.length>1?'s':'')+' — l’application les reçoit à sa prochaine ouverture'):'🧩 Toutes les catégories sont ouvertes'; });
+}
+function tourCatsRouvrir(nom,btn){
+  catsDire('');
+  if(MYROLE!=='patron'){ catsDire('⛔ Réservé au patron.'); toast('Réservé au patron'); return; }
+  return catsEnvoyer(nom,null,btn,'Tout rouvrir',function(){ return '🧩 Toutes les catégories sont ouvertes — l’application les reçoit à sa prochaine ouverture'; });
+}
+/* le rappel après une acceptation ou une création d'accès : mène à la fiche, au bloc des catégories */
+function tourCatsAller(nom){
+  try{ tourPanneauFermer(); }catch(e){}
+  var k=espSlugJs(nom||''), o=(ENT.liste||[]).filter(function(x){ return x&&(espSlugJs(x.nom||'')===k||x.slug===k); })[0];
+  if(o&&o.t){ demOuvrirFiche(o.t); setTimeout(function(){ var b=document.getElementById('cats-bloc'); if(b&&b.scrollIntoView) b.scrollIntoView({behavior:'smooth',block:'start'}); },700); return; }
+  setTab('entreprises'); try{ chargerEntreprises(); }catch(e){}
+  toast('Ouvre sa fiche dans Entreprises : « Catégories d’OP GESTION »');
 }
 function chargerClients(){
   apiGet('/api/monitor/clients').then(function(d){
@@ -5723,8 +5977,9 @@ function sousOnglet(vue,s){ SOUS[vue]=s; if(vue==='entreprises') ENT.sel=null;
   ecrireHash(); render(); }
 function renderVue(v){
   if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
-  document.body.classList.toggle('plein-courrier',TAB==='support');   /* v2.99 : le Courrier prend toute la page (bureau) */
-  if(TAB!=='support') courrierDemonter();   /* quitter le Courrier démonte le module (sa zone disparaît avec la vue) */
+  document.body.classList.toggle('plein-courrier',TAB==='support'||TAB==='messagerie');   /* v2.99 : le Courrier prend toute la page (bureau) ; la messagerie aussi (v2.104) */
+  if(TAB!=='support') courrierDemonter();
+  if(TAB!=='messagerie') messDemonter();   /* quitter la messagerie arrête ses minuteries et garde le brouillon */   /* quitter le Courrier démonte le module (sa zone disparaît avec la vue) */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
   if(TAB==='accueil') v.innerHTML=(APP==='messages')?vueAccueilMsg():vueAccueil();
   /* v2.89 — SURVEILLANCE, MÊME FORME DANS LES DEUX CONSOLES : « Incidents » (ce que les clients rencontrent) et « Service »
@@ -5743,6 +5998,7 @@ function renderVue(v){
   else if(TAB==='equipe') v.innerHTML=groupeOnglets('equipe')+vueEquipe();
   else if(TAB==='journal') v.innerHTML=groupeOnglets('journal')+vueJournal();
   else if(TAB==='agents') v.innerHTML=vueAgents();
+  else if(TAB==='messagerie'){ if(!messGarde(v)){ v.innerHTML=vueMessagerie(); messMonter(); } }   /* montée UNE fois : un render() ne perd ni la saisie ni l'endroit où l'on lit */
   else if(TAB==='facturation') v.innerHTML=vueFacturation();
   else if(TAB==='incidents') v.innerHTML=vueIncidents();
   else if(TAB==='contrats') v.innerHTML=vueContrats();
@@ -7434,7 +7690,7 @@ function typoFr(racine){
   if(!racine||!racine.ownerDocument) return;
   var tw=document.createTreeWalker(racine,NodeFilter.SHOW_TEXT,null), n, l=[];
   while((n=tw.nextNode())) if(TYPO_RX.test(n.data)) l.push(n);
-  l.forEach(function(n){ var p=n.parentElement; if(!p||p.closest('pre,code,script,style,textarea,[contenteditable]')) return;
+  l.forEach(function(n){ var p=n.parentElement; if(!p||p.closest('pre,code,script,style,textarea,[contenteditable],.ms-miroir')) return;
     var e=typoTexte(n.data); if(e!==n.data) n.data=e; });
 }
 try{ (function(){ var v=document.body; if(!v||typeof MutationObserver!=='function') return;
@@ -7963,7 +8219,7 @@ function ficheEntreprise(){
   if(g) t+=pleine(g.abonnement);
   t+=carteSi(blocUtilisateurs());
   /* SON ESPACE — où vivent ses données : l'espace, son métier, ses applications, son chiffrement */
-  t+=carteSi(blocEspaceDe(o)+(g?g.metier:'')+
+  t+=carteSi(blocEspaceDe(o)+(g?g.metier+g.cats:'')+
     '<div class="sous-sec"><div class="sec">APPLICATIONS ET CHIFFREMENT</div><div class="kv">'+(g?g.declare+g.opmsg:'')+ficheChiffrement(o)+'</div></div>');
   /* ACTIVITÉ — ce qu'ils font : usage, échecs, erreurs, connexions, écrans */
   t+=pleine((blocDossier()||'')+(g?g.connexions+g.activite:''));
@@ -8588,6 +8844,22 @@ function gestionClientParts(){
       '<button type="button" class="btn-plein" onclick="tourMetierEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer le métier</button></div>'+
       '<div class="note">'+esc(metDemande(c)?'Métier demandé à l’inscription : '+MET_L[metDemande(c)]:'Métier non précisé à la demande')+'</div>'+
       '<div id="met-info" class="note">Chargement…</div></div>';
+  /* 22 octobre 2026 — LES CATÉGORIES D'OP GESTION : ce que l'application montre à cette entreprise. Tout coché = rien de restreint. Le patron
+     seul écrit (le serveur le redit) : pour un collaborateur, les cases se lisent et ne bougent pas. */
+  parts.cats=(function(){
+    var pat=(MYROLE==='patron');
+    return '<div class="sous-sec" id="cats-bloc"><div class="sec">CATÉGORIES D’OP GESTION</div>'+
+      '<div class="note">Ce que l’application montre à cette entreprise : une catégorie décochée disparaît du menu, de la barre du bas et du tableau de bord. Le tableau de bord, les utilisateurs, les modules OP et les paramètres restent toujours ouverts. Ce réglage ne change pas le prix.</div>'+
+      '<div id="cats-info" class="note">Chargement…</div>'+
+      CAT_L.map(function(g){
+        return '<div class="cats-gt">'+esc(g[0])+'</div><div class="eq-apps">'+g[1].map(function(c){
+          return '<label><input type="checkbox" id="cat-'+c[0]+'" value="'+c[0]+'" checked'+(pat?'':' disabled')+'> '+esc(c[1])+'</label>'; }).join('')+'</div>'; }).join('')+
+      (pat?'<div class="form-rang">'+
+        '<button type="button" class="btn-plein" onclick="tourCatsEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer les catégories</button>'+
+        '<button type="button" class="btn-fant" onclick="tourCatsRouvrir(\''+jsq(nm)+'\',this)">Tout rouvrir</button></div>'
+        :'<div class="note">Réservé au patron : les cases se lisent, elles ne se règlent pas ici.</div>')+
+      '<div id="cats-msg" class="note" role="status" aria-live="polite"></div></div>';
+  })();
   /* Les applications de cette entreprise : ce qu'elle a DÉCLARÉ à l'inscription (chips), ce
      qui lui est OUVERT par TEAM OP, et ce qu'elle UTILISE vraiment (bloc CONNEXIONS, rangé dans Activité).
      OP MESSAGES est une application à part, avec son propre abonnement : elle s'ouvre et se
@@ -9225,6 +9497,24 @@ var ABN_F={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Pre
    les six métiers du site qui n'avaient pas de pack en ont un, et « Autre métier de terrain » est le réglage neutre. */
 var MET_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain'};
 function metDemande(c){ var d=((c&&c.demandes)||[]).filter(function(x){ return x&&typeof x==='object'&&MET_L[x.metier]; }).sort(function(a,b){ return (b.date||0)-(a.date||0); })[0]; return d?d.metier:''; }
+/* 22 octobre 2026 — LES CATÉGORIES D'OP GESTION qu'on retient pour une entreprise (Justin : « quand on crée un accès client, dans la Tour on
+   choisit les catégories dont ils ont besoin et pas besoin »). Les groupes et les libellés sont ceux de `NAV` (app.html) ; les
+   clés sont celles de `CATS_OK` (serveur). Ne figurent PAS ici — jamais cochables, toujours ouvertes : le tableau de bord, les
+   utilisateurs, les modules OP et les paramètres. `tests/test-2871.js` compare les trois listes : une rubrique ajoutée un jour à
+   `NAV` fait tomber le banc au lieu d'échapper au réglage. */
+var CAT_L=[
+['Tableau de bord',[['statistiques','Statistiques'],['historique','Historique'],['archives','Archives mensuelles']]],
+['Planification',[['planning','Planning'],['planningGeneral','Planning général'],['taches','Tâches'],['absences','Absences & congés']]],
+['Interventions',[['interventions','Interventions'],['rapports','Rapports'],['carteInt','Carte interventions'],['registre','Registre sanitaire'],['carteBox','Carte des box']]],
+['CRM',[['clients','Clients']]],
+['Ventes',[['devis','Devis'],['assistantDevis','Assistant devis'],['factures','Factures'],['contrats','Contrats'],['comptabilite','Comptabilité'],['devisXylo','Devis xylophage'],['telecollecte','Télécollecte']]],
+['Stock',[['produits','Produits'],['stock','Stock'],['mouvements','Mouvements stock'],['boxes','Boxes'],['saisieConso','Consommation produits'],['enveloppes','Enveloppes']]],
+['Temps & équipe',[['pointage','Temps de travail'],['vehicules','Véhicules'],['conducteurs','Conducteurs']]],
+['Communication / Fournisseurs',[['messagerie','Messagerie'],['boiteMail','Boîte mail'],['fournisseurs','Fournisseurs'],['bons','Bons de commande']]],
+['Achats internes',[['brouillon','Brouillon'],['demandes','Mes demandes'],['validations','Validations DR'],['commandes','Commandes en cours']]],
+['Administration',[['secteurs','Secteurs']]]
+];
+var CAT_CLES=[]; CAT_L.forEach(function(g){ g[1].forEach(function(c){ CAT_CLES.push(c[0]); }); });
 /* La formule que l'application REÇOIT (serveur : `formuleServie`) — celle que l'entreprise paie, ou celle qu'une période
    offerte sert — et l'écart quand ce n'est pas celle de la fiche. Justin, 29 septembre 2026 : « ils choisissent le tarif
    qu'ils veulent » ; un code promo sert le plus gros forfait « pour mieux montrer l'application ». Sans l'écart, une fiche
@@ -9395,7 +9685,9 @@ async function pbCreer(btn){
       '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b><br>Mot de passe provisoire : <b>'+esc(e.mdp||mdp)+'</b> <span style="color:var(--muted);font-size:12px">(l’app fait choisir le vrai mot de passe à la 1re connexion)</span></div>'+
       '<div class="encart"><div class="encart-tx">Cette adresse ouvre la <b>version publique</b>, avec ses vraies données. Elle n’a rien à voir avec un accès bêta : la bêta n’ouvre que la bêta.</div></div>'+
       /* v2.78 — sans formule, l'espace est SUSPENDU tant que rien n'est payé ni offert (Justin, 30 septembre 2026 : « Suspend ») */
-      '<div class="encart" style="margin-top:10px"><div class="encart-tx">⏸ <b>Sans formule, l’application s’ouvre suspendue</b> (rien de payé ni offert). Pour t’en servir : Entreprises → sa fiche → Abonnement → une formule et le statut « En essai » avec une date de fin.</div></div>');
+      '<div class="encart" style="margin-top:10px"><div class="encart-tx">⏸ <b>Sans formule, l’application s’ouvre suspendue</b> (rien de payé ni offert). Pour t’en servir : Entreprises → sa fiche → Abonnement → une formule et le statut « En essai » avec une date de fin.</div></div>'+
+      /* 22 octobre 2026 — les catégories d'OP GESTION se choisissent dans sa fiche */
+      '<div class="encart" style="margin-top:10px"><div class="encart-tx">🧩 <b>Choisis ses catégories</b> dans sa fiche : l’application ne montrera que celles que tu retiens (par défaut, toutes). <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>');
     /* Ce panneau n'a pas de message type : on oublie celui du panneau précédent, sinon
        lgMessagePoser irait réécrire une zone qui n'est plus à l'écran. */
     LG_MSG_MODELE=''; LG_ZONE='';
@@ -10139,7 +10431,8 @@ function vueJournal(){
    un mode ne s'affiche pas « Auto » parce qu'on l'a demandé, mais parce que le serveur l'a écrit. */
 var AG={dir:{rap:null,rapLec:0,charte:null,charteLec:0,contrats:null,contLec:0,ouvert:'',vers:null,texte:'',note:''},loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false,
   dos:{q:'',lec:0,liste:[],total:0,ouvert:'',fiche:null,ficheLec:0},
-  cv:{lec:0,fils:[],nonLus:0,ouvert:'',msgs:[],msgLec:0,brouillon:'',envoi:false}};
+  cv:{lec:0,fils:[],nonLus:0,ouvert:'',msgs:[],msgLec:0,brouillon:'',envoi:false},
+  br:{lec:0,d:{},edit:'',objet:'',texte:'',err:'',busy:false}};
 var AG_MODES=[['arret','À l’arrêt'],['brouillon','Brouillon'],['auto','Auto']];
 var AG_TYPES={creer_espace:'Créer un espace',suspendre_acces:'Suspendre un accès',envoyer_mail:'Envoyer un courriel',publier:'Publier',repondre_avis:'Répondre à un avis',correctif:'Proposer un correctif',
   verifier_paiement:'Vérifier un paiement',preparer_espace:'Préparer un espace',escalade_humain:'Passer la main à une personne',signaler_erreur:'Signaler une erreur',relire_envoi:'Relire un envoi'};
@@ -10174,20 +10467,24 @@ function agQuiFaitQuoi(){ var n={occupe:0,libre:0,arret:0,inconnu:0};
     tu(sait?att:'—','Tâches en attente',att?'var(--amber)':'')+'</div>'+
     (sait?'':'<div class="note" style="margin-bottom:8px">⚠️ '+(AG.lec.taches===0?'Lecture des tâches en cours…':'Les tâches entre agents n’ont pas pu être lues : on ne sait pas qui est occupé.')+'</div>'); }
 function chargerAgents(){
-  if(MYROLE!=='patron'){ AG.agents=[]; AG.loaded=true; AG.err='Réservé au patron — les agents ne se règlent que par lui.'; if(TAB==='agents') render(); return; }
-  apiGet('/api/monitor/agents').then(function(d){ if(!d) return;
+  if(MYROLE!=='patron'){ AG.agents=[]; AG.loaded=true; AG.err='Réservé au patron — les agents ne se règlent que par lui.'; if(TAB==='agents') render(); return Promise.resolve(); }
+  var ps=[];   /* promesses rendues : un banc peut attendre la fin du chargement, la page non */
+  ps.push(apiGet('/api/monitor/agents').then(function(d){ if(!d) return;
     AG.agents=d.agents||[]; AG.illisible=d.illisible===true; AG.cleOk=d.cleOk===true; AG.pause=d.pause||null; AG.enAttente=Number(d.enAttente)||0; AG.loaded=true; AG.err='';
     if(TAB==='agents') render();
-  }).catch(function(e){ AG.err=msgErreur(e); AG.loaded=true; if(TAB==='agents') render(); });
+  }).catch(function(e){ AG.err=msgErreur(e); AG.loaded=true; if(TAB==='agents') render(); }));
   agCvCharger();
   ['validations','journal','taches'].forEach(function(k){
-    apiGet('/api/monitor/agents/'+k+(k==='validations'?'?statut=tout':'')).then(function(d){ if(!d) return;
+    ps.push(apiGet('/api/monitor/agents/'+k+(k==='validations'?'?statut=tout':'')).then(function(d){ if(!d) return;
       if(Array.isArray(d[k])){ AG[k]=d[k]; AG.lec[k]=1; } else { AG.lec[k]=-1; }
+      var br=(k==='validations'&&AG.lec.validations===1)?agBrCharger():null;
       if(TAB==='agents') render();
-    }).catch(function(){ AG.lec[k]=-1; if(TAB==='agents') render(); });
+      return br;
+    }).catch(function(){ AG.lec[k]=-1; if(TAB==='agents') render(); }));
   });
+  return Promise.all(ps);
 }
-function agParler(id){ AG.sec='conv'; if(AG.cv.lec===0) agCvCharger(); agCvOuvrir(id); }
+function agParler(id){ messOuvrirFil(id); }   /* v2.104 : « Parler à X » ouvre la Messagerie sur son fil privé (l'onglet Conversations d'avant reste, sans bouton qui y mène) */
 function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); render(); }
 /* ── les CONVERSATIONS : un fil privé par agent, un fil « Équipe » ; trois états comme partout (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
 function agCvCharger(){
@@ -10312,13 +10609,76 @@ function agPause(arreter){
     chargerAgents();
   }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
 }
+/* ── Les BROUILLONS de Léa et de Camille : une validation « envoyer_mail » montre ce qui partirait (destinataire, objet, texte), lu sur le serveur.
+   ⛔ Trois états par lecture comme partout (0 pas lu, 1 lu, −1 illisible) : un brouillon qu'on n'a pas pu lire ne se valide PAS — on ne valide pas
+   un courriel qu'on n'a pas vu. Le destinataire s'affiche mais ne se change nulle part : seuls l'objet et le texte se corrigent. */
+function agBrRef(v){ return v&&v.type==='envoyer_mail'&&v.params&&typeof v.params.fil==='string'?v.params.fil:''; }
+function agBrCharger(){
+  var refs=AG.validations.filter(function(v){ return v.statut==='en_attente'&&agBrRef(v); }).map(agBrRef).slice(0,50);
+  if(!refs.length){ AG.br.lec=1; AG.br.d={}; return Promise.resolve(); }
+  AG.br.lec=0;
+  return apiGet('/api/monitor/agents/brouillons?refs='+encodeURIComponent(refs.join(','))).then(function(d){
+    if(d&&typeof d==='object'&&!d.error){ AG.br.d=d; AG.br.lec=1; } else AG.br.lec=-1;
+    if(TAB==='agents') render();
+  }).catch(function(){ AG.br.lec=-1; if(TAB==='agents') render(); });
+}
+function agBrApercu(v){
+  var ref=agBrRef(v), b=AG.br.d[ref];
+  if(AG.br.lec===0) return '<div class="ag-apercu">'+acSquel()+'</div>';
+  if(AG.br.lec!==1||!b) return '<div class="ag-apercu"><div class="err" style="color:var(--red)">Le brouillon n’a pas pu être lu : on ne sait pas ce qui partirait. Ne valide pas avant de l’avoir vu — réessaie dans un instant.</div></div>';
+  if(AG.br.edit===ref){
+    return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.a)+'</b> · le destinataire ne se change pas</div>'+
+      '<input id="ag-br-o" type="text" maxlength="200" aria-label="Objet" value="'+esc(AG.br.objet)+'" oninput="AG.br.objet=this.value" style="margin-top:8px">'+
+      '<textarea id="ag-br-t" maxlength="20000" aria-label="Texte du courriel" oninput="AG.br.texte=this.value">'+esc(AG.br.texte)+'</textarea>'+
+      (AG.br.err?'<div class="err" role="alert">'+esc(AG.br.err)+'</div>':'')+
+      '<div class="ag-act"><button type="button" class="ag-btn"'+(AG.br.busy?' disabled':'')+' onclick="agBrAnnuler()">Annuler</button><button type="button" class="ag-btn ok"'+(AG.br.busy?' disabled':'')+' onclick="agBrEnregistrer(\''+esc(ref)+'\')">Enregistrer</button></div></div>';
+  }
+  return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.a)+'</b>'+(b.entreprise?' · '+esc(b.entreprise):'')+'</div>'+
+    '<span class="obj">'+esc(b.objet)+'</span><p>'+esc(b.texte)+'</p>'+(b.signature?'<div class="sig">'+esc(b.signature)+'</div>':'')+
+    (b.etat!=='attente'?'<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ce brouillon est déjà '+(b.etat==='envoye'?'envoyé':'en échec : le courriel n’est pas parti, plus aucun essai possible')+'.</div>':
+      (b.echecs>0?'<div class="note" style="margin-top:8px;color:var(--red);font-size:12.5px">Un envoi a échoué ('+esc(String(b.echecs))+' fois) : le courriel n’est pas parti. Valide de nouveau pour réessayer.</div>':''))+
+    (MYROLE==='patron'&&b.etat==='attente'?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agBrModifier(\''+esc(ref)+'\')">Modifier</button></div>':'')+'</div>';
+}
+function agBrModifier(ref){
+  var b=AG.br.d[ref]; if(!b||MYROLE!=='patron') return;
+  AG.br.edit=ref; AG.br.objet=b.objet; AG.br.texte=b.texte; AG.br.err=''; render();
+}
+function agBrAnnuler(){ AG.br.edit=''; AG.br.err=''; render(); }
+function agBrEnregistrer(ref){
+  if(AG.br.busy||MYROLE!=='patron') return;
+  AG.br.busy=true; AG.br.err=''; render();
+  return apiPost('/api/monitor/agents/brouillons/modifier',{ref:ref,objet:AG.br.objet,texte:AG.br.texte}).then(function(r){
+    AG.br.busy=false;
+    if(r.ok&&r.d&&r.d.brouillon){ AG.br.d[ref]=r.d.brouillon; AG.br.edit=''; AG.br.err=''; toast('Brouillon enregistré.'); }
+    else AG.br.err=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')');   /* le refus se DIT à l’écran, dans le formulaire resté ouvert */
+    render();
+  }).catch(function(){ AG.br.busy=false; AG.br.err=INJOIGNABLE; render(); });
+}
+/* Ce que le serveur a VRAIMENT fait d'une décision. ⛔ « Validée » ne veut pas dire « parti » : `validation.execution` dit si l'exécution a eu lieu ('ok'), a échoué
+   ('echec') ou a été retenue par la pause ('pause'). Dire « Demande validée » sur un courriel qui n'est pas parti laissait Justin croire la réponse envoyée. */
+function agDecisionMsg(r,decision){
+  if(!r.ok) return (r.d&&r.d.error)||'Décision refusée';
+  if(decision!=='accepter') return 'Demande refusée.';
+  var v=(r.d&&r.d.validation)||{}, mail=v.type==='envoyer_mail';
+  if(v.execution==='echec') return mail?'Validée, mais le courriel n’est PAS parti. Une nouvelle validation est rouverte si le brouillon peut encore partir : regarde la liste.':'Validée, mais l’exécution a échoué : rien n’a été fait.';
+  if(v.execution==='pause') return mail?'Validée, mais les agents sont en pause : le courriel n’est PAS parti.':'Validée, mais les agents sont en pause : rien n’a été exécuté.';
+  return mail&&v.execution==='ok'?'Courriel envoyé.':'Demande validée.';
+}
 function agDecider(id,decision){
   if(AG.busy||MYROLE!=='patron') return;
-  if(decision==='accepter'&&!confirm('Valider cette demande ? Elle sera exécutée si l’agent en a la charge.')) return;
+  var vd=AG.validations.filter(function(x){ return x.id===id; })[0], corps={id:id,decision:decision};
+  if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'){
+    /* l’empreinte du texte que Justin a SOUS LES YEUX : le serveur refuse (409) si le brouillon a été réécrit depuis */
+    var bv=AG.br.d[agBrRef(vd)];
+    if(AG.br.lec!==1||!bv||!bv.empreinte){ toast('Le brouillon n’a pas été lu : recharge la liste avant de valider.'); return; }
+    corps.empreinte=bv.empreinte;
+  }
+  if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'&&!confirm('Envoyer ce courriel maintenant ? Il part tel que tu le vois, avec la signature du Courrier.')) return;
+  if(decision==='accepter'&&!(vd&&vd.type==='envoyer_mail')&&!confirm('Valider cette demande ? Elle sera exécutée si l’agent en a la charge.')) return;
   AG.busy=true; render();
-  apiPost('/api/monitor/agents/validations/decider',{id:id,decision:decision}).then(function(r){
-    AG.busy=false; toast(r.ok?(decision==='accepter'?'Demande validée.':'Demande refusée.'):((r.d&&r.d.error)||'Décision refusée'));
-    chargerAgents();
+  return apiPost('/api/monitor/agents/validations/decider',corps).then(function(r){
+    AG.busy=false; toast(agDecisionMsg(r,decision));
+    chargerAgents();   /* aussi après un 409 « le brouillon a changé » : l’aperçu se recharge avec le texte à jour */
   }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
 }
 /* Hugo relit Stripe À LA DEMANDE (il le fait aussi seul, toutes les 15 minutes) : le verdict se dit tel que le serveur l'a rendu */
@@ -10431,7 +10791,7 @@ function vueAgents(){
         '<div class="ag-seg" role="group" aria-label="Mode de '+esc(a.nom)+'">'+AG_MODES.map(function(x){
           var off=AG.busy||(x[0]==='auto'&&m==='arret');
           return '<button type="button" data-m="'+x[0]+'" class="'+(m===x[0]?'on':'')+'" aria-pressed="'+(m===x[0])+'"'+(off?' disabled':'')+(x[0]==='auto'&&m==='arret'?' title="Passe d’abord par brouillon"':'')+' onclick="agMode_(\''+esc(a.id)+'\',\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>'+
-        '<div class="ag-etat-cv'+(a.cerveau===true&&AG.cleOk?' ok':'')+'">'+(a.cerveau===true?(AG.cleOk?'Il répond quand tu lui écris, tant qu’il n’est pas à l’arrêt.':'Branché, mais la clé Anthropic n’est pas posée : il ne répond pas encore.'):'Pas encore branché : il ne répond pas et n’agit pas.')+'</div>'+
+        '<div class="ag-etat-cv'+(a.cerveau===true&&AG.cleOk&&m!=='arret'?' ok':'')+'">'+(a.cerveau===true?(AG.cleOk?(m==='arret'?'Branché — à l’arrêt : passe-le en Brouillon pour qu’il te réponde.':'Il répond quand tu lui écris, tant qu’il n’est pas à l’arrêt.'):'Branché, mais la clé Anthropic n’est pas posée : il ne répond pas encore.'):'Pas encore branché : il ne répond pas et n’agit pas.')+'</div>'+
         '<button type="button" class="ag-btn" onclick="agParler(\''+esc(a.id)+'\')">Parler à '+esc(a.nom)+'</button>'+
         '<div class="ag-pied"><span>Plafond mensuel</span><b>'+esc(a.plafondUsd)+' $</b></div>'+
         (a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+'</article>';
@@ -10442,11 +10802,11 @@ function vueAgents(){
     if(AG.lec.validations!==1) h+=AG.lec.validations===0?acSquel():agIllisible('Les demandes n’ont pas pu être lues — on ne sait pas s’il y en a. Réessaie dans un instant.');
     else if(!AG.validations.length) h+='<div class="vide">Rien à valider pour l’instant.</div>';
     else h+='<div class="ag-liste">'+AG.validations.map(function(v){
-      var att=v.statut==='en_attente';
-      return '<div class="ag-ligne"><span class="ag-etiq">'+esc(agNom(v.agent))+'</span><div class="tx"><b>'+esc(v.resume||AG_TYPES[v.type]||v.type)+'</b><span>'+esc(AG_TYPES[v.type]||v.type)+' · '+agParams(v.params)+' · '+esc(fmtDate(v.ts))+
+      var att=v.statut==='en_attente', brRef=att?agBrRef(v):'', brOk=!brRef||(AG.br.lec===1&&!!AG.br.d[brRef]&&AG.br.edit!==brRef);
+      return '<div class="ag-ligne'+(brRef?' ag-br':'')+'"><span class="ag-etiq">'+esc(agNom(v.agent))+'</span><div class="tx"><b>'+esc(v.resume||AG_TYPES[v.type]||v.type)+'</b><span>'+esc(AG_TYPES[v.type]||v.type)+' · '+agParams(v.params)+' · '+esc(fmtDate(v.ts))+
         (v.decideTs?' · '+esc(AG_STATUTS[v.statut]||v.statut)+(v.decidePar?' par '+esc(v.decidePar):''):'')+(v.execution?' · exécution : '+esc(v.execution):'')+'</span></div>'+
-        (att?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'refuser\')">Refuser</button><button type="button" class="ag-btn ok"'+(AG.busy?' disabled':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'accepter\')">Valider</button></div>'
-          :'<span class="ag-etiq'+(v.statut==='accepte'?' ok':'')+'">'+esc(AG_STATUTS[v.statut]||v.statut)+'</span>')+'</div>'; }).join('')+'</div>'+
+        (att?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'refuser\')">Refuser</button><button type="button" class="ag-btn ok"'+(AG.busy||!brOk?' disabled':'')+(brRef&&!brOk?' title="Lis le brouillon (et enregistre ta correction) avant de valider"':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'accepter\')">'+(brRef?'Valider et envoyer':'Valider')+'</button></div>'
+          :'<span class="ag-etiq'+(v.statut==='accepte'?' ok':'')+'">'+esc(AG_STATUTS[v.statut]||v.statut)+'</span>')+(brRef?agBrApercu(v):'')+'</div>'; }).join('')+'</div>'+
       '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Une demande non décidée expire au bout de 7 jours. Seul le patron valide : un agent ne se valide jamais lui-même.</div>';
   } else if(AG.sec==='journal'){
     if(AG.lec.journal!==1) h+=AG.lec.journal===0?acSquel():agIllisible('Le journal n’a pas pu être lu.');
@@ -10465,9 +10825,580 @@ function vueAgents(){
     else if(!AG.taches.length) h+='<div class="vide">Aucune tâche entre agents.</div>';
     else h+='<div class="ag-liste">'+AG.taches.map(function(k){
       return '<div class="ag-ligne"><span class="ag-etiq'+(k.statut==='faite'?' ok':k.statut==='echec'?' ko':'')+'">'+esc(AG_STATUTS[k.statut]||k.statut)+'</span><div class="tx"><b>'+esc(agNom(k.de))+' → '+esc(agNom(k.vers))+' : '+esc(AG_TYPES[k.type]||k.type)+'</b><span>'+agParams(k.params)+' · '+esc(fmtDate(k.ts))+'</span></div></div>'; }).join('')+'</div>'+
-      '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Entre agents ne passent que des demandes fermées : un identifiant, une valeur d’une liste. Jamais une phrase d’un client.</div>';
+      '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Les demandes d’argent et d’accès ne passent entre agents que sous une forme fermée : un identifiant, une valeur d’une liste. Le travail confié en conversation est une phrase libre, celle de Justin ou d’un collègue — jamais un texte de client.</div>';
   }
   return h;
+}
+
+/* ══ LA MESSAGERIE DES AGENTS ══ (Justin, 23 octobre 2026, cahier `design/EQUIPE-AGENTS.md` §6 et §11 ; modèle visuel : `design/propositions/maquette-tour.html`)
+   Groupes (Équipe TeamOP, Clients, Plateforme, Réunions) et un fil privé par agent, sur les routes `/api/monitor/conversations` du serveur.
+   ⛔ L'ÉCRAN NE SIMULE RIEN. La maquette inventait les délégations et les tâches dans le navigateur ; ici une question reçoit la réponse de celui
+   qu'on interroge parce que le SERVEUR (`agent-equipe.js`) l'a décidé, et « Qui fait quoi » est la file de tâches du serveur — aucune ligne n'est
+   fabriquée côté page. Ce que la page décide seule tient en trois choses : colorer ce que le serveur reconnaît comme une mention (l'écran
+   colore, il ne décide de rien : `analyserMentions` du serveur est la règle, `msMentions` la recopie — test-2883 les compare), montrer le message
+   à l'instant (puis le confirmer ou DIRE qu'il n'est pas parti), et ne rien dessiner qu'on n'ait lu.
+   · TROIS ÉTATS pour chaque lecture (0 pas encore lue, 1 lue, −1 on n'a pas pu savoir) : une liste illisible ne se dessine jamais « Aucun message ».
+   · Le module se monte UNE fois (`messMonter`) et se met à jour par morceaux : réécrire la vue ferait perdre la saisie, le curseur et l'endroit
+     où l'on lisait. `render()` ne le reconstruit pas (`messGarde`), comme le Courrier.
+   · Des minuteries (fil 4 s, liste 15 s) TANT QUE l'écran est ouvert ET visible — quitter l'écran ou cacher la page les arrête (une minuterie qui
+     survit redessine un autre écran). Hors de l'écran, seule la pastille du menu se relève, à la minute, page visible (comme le Courrier).
+   · La saisie colore ses mentions par un CALQUE MIROIR derrière une zone de texte transparente — même police, même retour à la ligne, même
+     défilement. Pas de contenteditable : le curseur, la sélection, l'annulation et la dictée restent ceux du navigateur. Le calque ne porte aucun
+     espacement ni graisse de plus que le texte (sinon les deux se désalignent) : la couleur passe par le fond et une ombre sans épaisseur. */
+var MS_GROUPES_LIB={equipe:'Équipe TeamOP',clients:'Clients',plateforme:'Plateforme',reunions:'Réunions'};
+var MS_ETAT_LIB={allume:'Allumé',brouillon:'Brouillon',arret:'À l’arrêt'};
+var MS={lec:0,fils:[],nonLus:0,agents:[],agLec:0,pause:false,illisible:false,taches:[],tachesLec:0,
+  fil:'equipe',voulu:false,msgs:[],msgLec:0,membres:[],meneur:'',ecrit:[],dernier:'',retard:false,envois:[],envoi:0,brouillons:{},
+  liste:{ouverte:false,ctx:null,items:[],actif:0,q:null},inst:null,tFil:0,tListe:0,enVol:'',vueMob:'fil',panneau:false,sig:'',peint:'',veille:false,releve:false,seq:0,
+  reu:{lec:0,d:null,err:'',enVol:false,lance:false,ouvert:{obj:true,lec:false},plie:(typeof matchMedia==='function'?matchMedia('(max-width:899px)').matches:false)}};   /* au téléphone le panneau démarre PLIÉ (sa bande seule) : déplié, il mangerait le fil */
+
+/* Sans accent ni casse : « @Léa », « @lea » et « @LÉA » sont la même personne (la règle du serveur). */
+function msNorm(t){ return String(t==null?'':t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
+/* Les mentions RECONNUES d'un texte : `[{debut, fin, mot, ids, tous}]`. Recopie de `analyserMentions` (server/conversations.js) : un « @ » qui commence
+   un mot ; « jean@camille.fr » n'en est pas une ; « @tous » et « @équipe » = tous les membres du fil ; un nom qui n'est pas du fil n'est PAS reconnu.
+   ⚠ Écrite sans `(?<!…)` : un Safari d'avant 16.4 refuserait le fichier ENTIER à la lecture d'un regard en arrière — on regarde le caractère d'avant. */
+function msMentions(texte,membres){
+  texte=String(texte==null?'':texte); var liste=Array.isArray(membres)?membres:[], parNom=Object.create(null), sortie=[], re=/@([\p{L}\p{N}_]+)/gu, x;
+  liste.forEach(function(m){ parNom[msNorm(m.id)]=m.id; parNom[msNorm(m.nom)]=m.id; });
+  while((x=re.exec(texte))){
+    if(x.index>0){ var av=Array.from(texte.slice(Math.max(0,x.index-2),x.index)).pop(); if(av&&/[\p{L}\p{N}_.@]/u.test(av)) continue; }
+    var mot=msNorm(x[1]), ids=null, tous=(mot==='tous'||mot==='equipe');
+    if(tous) ids=liste.map(function(m){ return m.id; });
+    else if(mot in parNom) ids=[parNom[mot]];
+    if(ids&&ids.length) sortie.push({debut:x.index,fin:x.index+x[0].length,mot:x[1],ids:ids,tous:tous});
+  }
+  return sortie;
+}
+/* Les identifiants cités, sans doublon, dans l'ordre où ils paraissent — ce que le serveur range dans `mentions`. */
+function msIds(texte,membres){ var r=[]; msMentions(texte,membres).forEach(function(s){ s.ids.forEach(function(id){ if(r.indexOf(id)<0) r.push(id); }); }); return r; }
+/* Le texte, échappé, avec ses mentions dans un <mark>. `serveur` : la liste que le serveur a reconnue pour CE message — une mention n'est colorée que si
+   le serveur l'a reconnue aussi (on ne promet pas à l'œil un réveil que le serveur n'a pas fait). Sans `serveur` (la saisie), c'est la reconnaissance locale. */
+function msColorer(texte,membres,serveur){
+  texte=String(texte==null?'':texte); var h='', i=0;
+  msMentions(texte,membres).forEach(function(s){
+    if(Array.isArray(serveur)&&!s.ids.every(function(id){ return serveur.indexOf(id)>=0; })) return;
+    h+=esc(texte.slice(i,s.debut))+'<mark class="ms-m">'+esc(texte.slice(s.debut,s.fin))+'</mark>'; i=s.fin; });
+  return h+esc(texte.slice(i));
+}
+/* « @ca▮ » juste avant le curseur ? `{debut, q}` ou null. Le « @ » doit commencer un mot. */
+function msContexte(texte,caret){
+  var av=String(texte==null?'':texte).slice(0,caret), x=/@([\p{L}\p{N}_]*)$/u.exec(av); if(!x) return null;
+  if(x.index>0){ var p=Array.from(av.slice(Math.max(0,x.index-2),x.index)).pop(); if(p&&/[\p{L}\p{N}_.@]/u.test(p)) return null; }
+  return {debut:x.index,q:x[1]};
+}
+/* La liste du « @ » : les membres du fil dont le nom ou l'identifiant COMMENCE par ce qu'on a tapé, puis ceux qui le contiennent ; « @tous » en tête quand il
+   convient ; ceux déjà cités n'y reviennent pas (on enchaîne plusieurs personnes). Sans accent ni casse. */
+function msPropositions(q,membres,deja){
+  var n=msNorm(q), liste=Array.isArray(membres)?membres:[], dej=Array.isArray(deja)?deja:[], t0=[], t1=[], sortie=[];
+  liste.forEach(function(m){
+    if(dej.indexOf(m.id)>=0) return;
+    var a=msNorm(m.nom), b=msNorm(m.id);
+    if(!n||a.indexOf(n)===0||b.indexOf(n)===0) t0.push(m); else if(a.indexOf(n)>=0||b.indexOf(n)>=0) t1.push(m); });
+  if(liste.length&&(!n||'tous'.indexOf(n)===0||'equipe'.indexOf(n)===0)) sortie.push({id:'*',nom:'tous',tous:true,detail:'Toute l’équipe de ce fil'});
+  return sortie.concat(t0,t1);
+}
+/* Choisir une proposition : « @ca » devient « @Camille » suivi d'une espace ; le curseur passe après. */
+function msInserer(texte,caret,ctx,item){
+  texte=String(texte==null?'':texte); var ins='@'+item.nom, apres=texte.slice(caret), fin;
+  if(/^\s/.test(apres)){ fin=ctx.debut+ins.length+1; } else { ins+=' '; fin=ctx.debut+ins.length; }
+  return {texte:texte.slice(0,ctx.debut)+ins+apres,caret:fin,ins:ins};
+}
+/* Ce que fait une touche dans la saisie : liste ouverte → ↑ ↓ Entrée Tab Échap lui appartiennent ; sinon Entrée envoie et Maj+Entrée va à la ligne. */
+function msTouche(e,etat){
+  if(!e||e.isComposing||e.keyCode===229) return 'rien';
+  if(etat&&etat.ouverte&&etat.n>0){
+    if(e.key==='ArrowDown') return 'suivant';
+    if(e.key==='ArrowUp') return 'precedent';
+    if(e.key==='Escape') return 'fermer';
+    if((e.key==='Enter'&&!e.shiftKey)||(e.key==='Tab'&&!e.shiftKey)) return 'choisir';
+    return 'rien';
+  }
+  if(e.key==='Enter'&&!e.shiftKey&&!e.altKey) return 'envoyer';
+  return 'rien';
+}
+function msHeureCourte(ts,now){
+  if(!ts) return ''; var d=new Date(ts), n=new Date(now||Date.now());
+  if(d.toDateString()===n.toDateString()) return d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var h=new Date(n.getFullYear(),n.getMonth(),n.getDate()-1);
+  if(d.toDateString()===h.toDateString()) return 'hier';
+  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+}
+function msJourLib(ts,now){
+  var d=new Date(ts), n=new Date(now||Date.now());
+  if(d.toDateString()===n.toDateString()) return 'Aujourd’hui';
+  if(d.toDateString()===new Date(n.getFullYear(),n.getMonth(),n.getDate()-1).toDateString()) return 'Hier';
+  return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+}
+function msAgentsParId(){ var o={}; MS.agents.forEach(function(a){ o[a.id]=a; }); return o; }
+/* allumé (auto) · brouillon · à l'arrêt — la pause générale ou un état illisible = à l'arrêt, comme `agEnPause`. */
+function msEtat(a){ if(!a||MS.pause||MS.illisible) return 'arret'; return a.mode==='auto'?'allume':a.mode==='brouillon'?'brouillon':'arret'; }
+function msNomFil(f){ return MS_GROUPES_LIB[f]||(msAgentsParId()[f]||{}).nom||f; }
+/* ── les morceaux d'HTML : des fonctions de leurs données, rien d'autre ── */
+function msBulleHtml(m,membres,agents){
+  if(m.systeme||m.de==='systeme') return '<div class="ms-sys" data-id="'+esc(m.id)+'">'+esc(m.texte)+'<small> · '+esc(fmtHeure(m.ts))+'</small></div>';
+  var moi=m.de==='justin', ag=agents&&agents[m.de], nom=moi?'Toi':(m.nom||(ag&&ag.nom)||m.de), role=(!moi&&ag&&ag.role)?ag.role:'';
+  var niv=m.niveau==='urgent'?'Urgent':m.niveau==='important'?'Important':'';
+  return '<div class="ms-b'+(moi?' moi':'')+(niv?' '+m.niveau:'')+'" data-id="'+esc(m.id)+'">'+(moi?'':'<span class="ms-av" aria-hidden="true">'+esc(String(nom).charAt(0))+'</span>')+
+    '<div class="ms-bc"><div class="ms-bh"><b>'+esc(nom)+'</b>'+(niv?'<span class="ms-niv">'+niv+'</span>':'')+'<small>'+(role?esc(role)+' · ':'')+esc(fmtHeure(m.ts))+'</small></div>'+
+    '<p>'+msColorer(m.texte,membres,Array.isArray(m.mentions)?m.mentions:[])+'</p>'+
+    (m.dossier?'<button type="button" class="ms-dos" data-act="dossier" data-dos="'+esc(m.dossier)+'">Ouvrir le dossier '+esc(m.dossier)+'</button>':'')+'</div></div>';
+}
+/* Un message pas encore confirmé : il paraît à l'instant, « Envoi… », puis disparaît au profit du message du serveur — ou dit POURQUOI il n'est pas parti. */
+function msEnvoiHtml(e,membres){
+  return '<div class="ms-b moi '+(e.etat==='echec'?'ms-echec':'ms-envoi')+'" data-cle="'+esc(e.cle)+'"><div class="ms-bc"><div class="ms-bh"><b>Toi</b><small>'+(e.etat==='echec'?'':'Envoi…')+'</small></div>'+
+    '<p>'+msColorer(e.texte,membres)+'</p>'+
+    (e.etat==='echec'?'<div class="ms-echec-l" role="alert"><span>Non envoyé — <button type="button" class="ms-lien" data-act="reessayer" data-cle="'+esc(e.cle)+'">réessayer</button></span>'+
+      (e.raison?'<small>'+esc(e.raison)+'</small>':'')+'<button type="button" class="ms-lien" data-act="retirer" data-cle="'+esc(e.cle)+'" aria-label="Retirer ce message">retirer</button></div>':'')+'</div></div>';
+}
+function msEcritTexte(ecrit){
+  var n=(ecrit||[]).map(function(x){ return x.nom; }).filter(Boolean); if(!n.length) return '';
+  return (n.length===1?n[0]:n.slice(0,-1).join(', ')+' et '+n[n.length-1])+(n.length===1?' écrit…':' écrivent…');
+}
+function msEcritHtml(ecrit){ var t=msEcritTexte(ecrit); return t?'<div class="ms-ecrit" id="ms-ecrit" role="status"><span class="ms-pts" aria-hidden="true"><i></i><i></i><i></i></span>'+esc(t)+'</div>':''; }
+/* Les messages d'un fil, avec une ligne de jour quand le jour change. `apres` : le message déjà peint juste avant (pour ne pas répéter la ligne). */
+function msFluxHtml(msgs,membres,agents,apres){
+  var h='', av=apres||null;
+  msgs.forEach(function(m){ if(!av||new Date(av.ts).toDateString()!==new Date(m.ts).toDateString()) h+='<div class="ms-jour">'+esc(msJourLib(m.ts))+'</div>';
+    h+=msBulleHtml(m,membres,agents); av=m; });
+  return h;
+}
+function msLigneFil(f,agents,fil){
+  var ag=agents[f.fil], nom=msNomFil(f.fil), der=f.dernier, ec=msEcritTexte(f.ecrit);
+  var l3=ec?ec:der?((der.de==='justin'?'Toi : ':der.de==='systeme'?'':((agents[der.de]||{}).nom||'')+' : ')+der.texte):(ag?ag.role:'Aucun message');
+  var et=ag?msEtat(ag):'';
+  return '<button type="button" class="ms-cv" data-fil="'+esc(f.fil)+'" aria-current="'+(fil===f.fil)+'">'+
+    (f.groupe?'<span class="ms-av g" aria-hidden="true">#</span>':'<span class="ms-av" aria-hidden="true">'+esc(String(nom).charAt(0))+'</span>')+
+    '<span class="ms-cc"><span class="ms-l1"><b>'+esc(nom)+'</b>'+(der?'<small>'+esc(msHeureCourte(der.ts))+'</small>':'')+'</span>'+
+    '<span class="ms-l3'+(ec?' ecrit':'')+'">'+esc(l3)+'</span></span>'+
+    (f.nonLus?'<span class="ms-nl" aria-label="'+f.nonLus+' non lu'+(f.nonLus>1?'s':'')+'">'+f.nonLus+'</span>':'')+
+    (et?'<span class="ms-pt '+et+'" role="img" aria-label="'+esc(MS_ETAT_LIB[et])+'" title="'+esc(MS_ETAT_LIB[et])+'"></span>':'')+'</button>';
+}
+function msListeHtml(){
+  var ag=msAgentsParId(), g=MS.fils.filter(function(f){ return f.groupe; }), p=MS.fils.filter(function(f){ return !f.groupe; });
+  return '<div class="ms-ct">Groupes</div>'+g.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('')+
+    '<div class="ms-ct">Messages privés</div>'+p.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('');
+}
+/* « Qui fait quoi » : la file de tâches du SERVEUR, rien d'autre. Les tâches de conversation portent leur phrase ; les demandes fermées entre agents, leur nom. */
+function msTacheTxt(k){
+  if(k.type==='consigne') return String((k.params&&k.params.texte)||'');
+  var base=AG_TYPES[k.type]||String(k.type||''), p=agParams(k.params);
+  return p?base+' — '+p:base;
+}
+function msTachesHtml(){
+  if(MS.tachesLec===0) return '<div class="ms-vide">Lecture des tâches…</div>';
+  if(MS.tachesLec!==1) return '<div class="ms-vide">Les tâches n’ont pas pu être lues — on ne sait pas qui fait quoi.<br><button type="button" class="ms-lien" data-act="rechargerTaches">Réessayer</button></div>';
+  var ag=msAgentsParId(), ouv=MS.taches.filter(function(k){ return k.statut==='prise'||k.statut==='attente'; });
+  if(!ouv.length) return '<div class="ms-vide">Aucune tâche ouverte. Quand tu confies un travail à quelqu’un, il apparaît ici.</div>';
+  var nom=function(id){ return id==='justin'?'toi':(ag[id]||{}).nom||String(id||''); };
+  return ouv.map(function(k){
+    var pp=Array.isArray(k.passePar)&&k.passePar.length?k.passePar[k.passePar.length-1]:'';
+    return '<div class="ms-tq"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(nom(k.vers)).charAt(0).toUpperCase())+'</span><b>'+esc(nom(k.vers))+'</b>'+
+      '<span class="ms-ep '+(k.statut==='prise'?'cours':'att')+'">'+(k.statut==='prise'?'en cours':'en attente')+'</span></div>'+
+      '<p>'+esc(msTacheTxt(k))+'</p><small>demandée par '+esc(nom(k.de))+(pp?' · déléguée, d’abord à '+esc(nom(pp)):'')+' · '+esc(msHeureCourte(k.ts))+'</small></div>'; }).join('');
+}
+function msSousTitre(){
+  var ag=msAgentsParId(), a=ag[MS.fil];
+  if(a) return esc(a.role)+' · '+MS_ETAT_LIB[msEtat(a)].toLowerCase();
+  var n=MS.membres.length, tous=n&&n>=MS.agents.length&&MS.agents.length>0;
+  var qui=tous?'les '+n+' agents et toi':MS.membres.map(function(m){ return m.nom; }).join(', ')+' et toi';
+  var men=MS.meneur&&ag[MS.meneur]?' · sans @mention, '+ag[MS.meneur].nom+' répond':'';
+  return esc(qui+men);
+}
+function msPlaceholder(){ return 'Écrire… — tape @ pour citer quelqu’un'; }
+/* ── l'envoi : le message paraît à l'instant, puis le serveur le confirme — ou la page DIT qu'il n'est pas parti ── */
+function msAjouterServeur(fil,liste){
+  if(fil!==MS.fil) return [];
+  var vus={}, neufs=[]; MS.msgs.forEach(function(m){ vus[m.id]=1; });
+  (liste||[]).forEach(function(m){ if(m&&m.id&&!vus[m.id]){ vus[m.id]=1; MS.msgs.push(m); neufs.push(m); } });
+  if(MS.msgs.length) MS.dernier=MS.msgs[MS.msgs.length-1].id;
+  return neufs;
+}
+function msEnvoyer(fil,texte){
+  var t=String(texte==null?'':texte).trim();
+  if(!t||MYROLE!=='patron') return Promise.resolve(null);
+  var e={cle:'local-'+(++MS.seq),fil:fil,texte:t,ts:Date.now(),etat:'envoi',raison:''};
+  MS.envois.push(e);
+  return msEnvoiFaire(e);
+}
+function msEnvoiFaire(e){
+  e.etat='envoi'; e.raison=''; MS.envoi++; messPeindreFil();
+  var fin=function(){ MS.envoi=Math.max(0,MS.envoi-1); };
+  return apiPost('/api/monitor/conversations/envoyer',{fil:e.fil,texte:e.texte}).then(function(x){
+    fin();
+    if(x.ok&&x.d&&x.d.message&&x.d.message.id){ MS.envois=MS.envois.filter(function(y){ return y!==e; }); msAjouterServeur(e.fil,[x.d.message]); e.etat='ok'; messPeindreFil(); messFilTot(); return x; }
+    e.etat='echec'; e.raison=(x.d&&x.d.error)?String(x.d.error):'Le serveur a refusé ('+x.status+')'; messPeindreFil(); return x;
+  },function(){ fin(); e.etat='echec'; e.raison='Serveur injoignable'; messPeindreFil(); return null; });
+}
+function msReessayer(cle){ var e=MS.envois.filter(function(y){ return y.cle===cle&&y.etat==='echec'; })[0]; if(!e) return Promise.resolve(null); return msEnvoiFaire(e); }
+function msRetirer(cle){
+  var e=MS.envois.filter(function(y){ return y.cle===cle; })[0]; MS.envois=MS.envois.filter(function(y){ return y.cle!==cle; });
+  if(e&&e.fil===MS.fil&&!String(MS.brouillons[e.fil]||'').trim()){ MS.brouillons[e.fil]=e.texte; var ta=$('ms-ta'); if(ta){ ta.value=e.texte; messMiroir(); } }
+  messPeindreFil();
+}
+/* ── les lectures ── */
+function messListeCharger(){
+  return apiGet('/api/monitor/conversations?tous=1').then(function(d){ if(!d) return;
+    if(Array.isArray(d.fils)){ MS.fils=d.fils; MS.nonLus=Number(d.nonLus)||0; MS.lec=1; setBdg('bdg-msgr',MS.nonLus); } else if(MS.lec!==1) MS.lec=-1;
+    messPeindreListe(); messPeindreEntete();
+  }).catch(function(){ if(MS.lec!==1) MS.lec=-1; messPeindreListe(); });
+}
+function messAgentsCharger(){
+  return apiGet('/api/monitor/agents').then(function(d){ if(!d) return;
+    if(Array.isArray(d.agents)){ MS.agents=d.agents; MS.agLec=1; MS.illisible=d.illisible===true; MS.pause=!!(d.pause&&d.pause.actif===true); } else if(MS.agLec!==1) MS.agLec=-1;
+    messPeindreListe(); messPeindreEntete();
+  }).catch(function(){ if(MS.agLec!==1) MS.agLec=-1; });
+}
+function messTachesCharger(){
+  return apiGet('/api/monitor/agents/taches').then(function(d){ if(!d) return;
+    if(Array.isArray(d.taches)){ MS.taches=d.taches; MS.tachesLec=1; } else if(MS.tachesLec!==1) MS.tachesLec=-1;
+    messPeindreTaches();
+  }).catch(function(){ if(MS.tachesLec!==1) MS.tachesLec=-1; messPeindreTaches(); });
+}
+function messToutCharger(){ return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
+/* La lecture d'un fil : entière à l'ouverture, INCRÉMENTALE ensuite (`?apres=`). Une réponse qui arrive après un changement de fil est jetée. */
+function messFilCharger(incr){
+  var fil=MS.fil; if(incr&&MS.msgLec===-1) incr=false;   /* un fil qu'on n'a pas pu lire se retente tout seul, en entier */
+  if(incr&&(MS.enVol===fil||MS.envoi>0||MS.msgLec!==1||MS.vueMob==='liste')) return Promise.resolve();
+  MS.enVol=fil;
+  var q=incr&&MS.dernier?'?apres='+encodeURIComponent(MS.dernier):'';
+  return apiGet('/api/monitor/conversations/'+encodeURIComponent(fil)+q).then(function(d){
+    if(MS.enVol===fil) MS.enVol=''; if(!d||MS.fil!==fil) return;
+    if(!Array.isArray(d.messages)){ if(!incr||MS.msgLec!==1) MS.msgLec=-1; else MS.retard=true; messPeindreFil(); return; }
+    MS.membres=d.membres||[]; MS.meneur=d.meneur||''; MS.ecrit=d.ecrit||[]; MS.retard=false;
+    var neufs;
+    if(d.complet||!incr){ MS.msgs=d.messages; MS.msgLec=1; MS.dernier=d.messages.length?d.messages[d.messages.length-1].id:''; neufs=d.messages; messPeindreFil(true); }
+    else { neufs=msAjouterServeur(fil,d.messages); messPeindreFil(); }
+    messPeindreEntete(); messPeindreSaisie();
+    if(incr&&neufs.length) messTachesCharger();    /* un agent vient de parler ou d'agir : la file a pu changer */
+    if(fil==='reunions'&&(neufs.length||!incr)) messReunionsCharger();    /* la réunion avance : objectifs, bilans et « en cours » changent avec le fil */
+    messLire(neufs);
+  },function(){ if(MS.enVol===fil) MS.enVol=''; if(MS.fil!==fil) return; if(!incr||MS.msgLec!==1) MS.msgLec=-1; else MS.retard=true; messPeindreFil(); });
+}
+/* « lu » seulement APRÈS l'affichage, page visible : un fil qu'on n'a pas vu reste non lu (règle de l'onglet Conversations). */
+function messLire(neufs){
+  if(!MS.inst||document.visibilityState!=='visible'||TAB!=='messagerie'||MS.vueMob==='liste') return;   /* au téléphone, le fil caché derrière la liste n'est pas « vu » */
+  if(!(neufs||[]).some(function(m){ return m.lu===false; })) return;
+  var fil=MS.fil;
+  apiPost('/api/monitor/conversations/lire',{fil:fil}).then(function(x){ if(!x.ok) return;
+    if(MS.fil===fil) MS.msgs.forEach(function(m){ m.lu=true; });   /* lu de notre côté aussi : l'écran ne redemande pas */
+    messListeCharger(); });
+}
+function messFilTot(){ setTimeout(function(){ if(MS.inst&&TAB==='messagerie') messFilCharger(true); },1200); }
+/* ── LES RÉUNIONS (cahier §7) : au-dessus du fil « Réunions » — la réunion en cours, la prochaine, les objectifs de la semaine, les leçons, et le bouton de Justin ──
+   Trois états comme partout dans cet écran : lu, en cours de lecture, PAS PU LIRE (on ne dit pas « aucun objectif » d'une lecture qui a échoué). Ouvrir n'écrit rien. */
+var MS_REU_LIB={objectifs:'Objectifs du lundi',bilan:'Bilan du vendredi'};
+var MS_BILAN_LIB={atteint:'Atteint',partiel:'Partiel',non:'Non atteint'};
+function msReuNom(id){ var a=msAgentsParId()[id]; return a?a.nom:id; }
+function msReuAgentsHtml(parAgent,vide,fn){
+  var ids=Object.keys(parAgent||{}).filter(function(id){ return (parAgent[id]||[]).length; });
+  if(!ids.length) return '<p class="ms-reu-vide">'+esc(vide)+'</p>';
+  return ids.map(function(id){ var nom=msReuNom(id);
+    return '<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(nom).charAt(0).toUpperCase())+'</span><b>'+esc(nom)+'</b></div><ul>'+parAgent[id].map(function(x){ return fn(id,x); }).join('')+'</ul></div>'; }).join('');
+}
+function msReuHtml(){
+  var R=MS.reu, d=R.d;
+  if(R.lec===0&&!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>Réunions</b><small>Lecture…</small></div></div>';
+  if(!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>Les réunions n’ont pas pu être lues</b><small>'+esc(R.err||'On ne sait pas ce que l’équipe s’est fixé.')+'</small></div>'+
+    '<div class="ms-reu-a"><button type="button" class="ms-reu-btn" data-act="reuRecharger">Réessayer</button></div></div>';
+  var cours=d.enCours, prec=false, obj=d.objectifs||{}, sem=d.semaine;
+  if(!Object.keys(obj).some(function(k){ return (obj[k]||[]).length; })&&d.objectifsPrecedents&&Object.keys(d.objectifsPrecedents).length){ obj=d.objectifsPrecedents; prec=true; sem=d.semainePrecedente; }
+  var nObj=Object.keys(obj).filter(function(k){ return (obj[k]||[]).length; }).length, nLec=0; Object.keys(d.lecons||{}).forEach(function(k){ nLec+=(d.lecons[k]||[]).length; });
+  var der=(d.reunions||[])[0];
+  var etat=cours?'<span class="ms-reu-pt cours" aria-hidden="true"></span><div class="ms-reu-t"><b>'+esc(cours.titre||MS_REU_LIB[cours.type])+' en cours — jusqu’à '+esc(cours.jusqua)+'</b><small>Les agents parlent à tour de rôle ; tu peux intervenir à tout moment.</small></div>'
+    :'<span class="ms-reu-pt" aria-hidden="true"></span><div class="ms-reu-t"><b>Aucune réunion en cours</b><small>'+(d.prochaine?'Prochaine : '+esc(d.prochaine.libelle)+' (heure de Paris)':'')+
+      (der?' · dernière : '+esc(MS_REU_LIB[der.type]||der.type)+', '+esc(fmtDate(der.ts))+(der.statut==='terminee'?'':' ('+esc({annulee:'annulée',interrompue:'interrompue',en_cours:'en cours'}[der.statut]||der.statut)+')'):'')+'</small></div>';
+  var btn=function(t){ return '<button type="button" class="ms-reu-btn" data-act="reuLancer" data-type="'+t+'"'+(cours||R.lance?' disabled':'')+'>Lancer : '+esc(MS_REU_LIB[t].toLowerCase())+'</button>'; };
+  var h='<div class="ms-reu-bd'+(cours?' cours':'')+'">'+etat+'<button type="button" class="ms-reu-plier" data-act="reuPlier" aria-expanded="'+!R.plie+'">'+(R.plie?'Détails':'Réduire')+'</button><div class="ms-reu-a">'+btn('objectifs')+btn('bilan')+'</div></div>';
+  var o=R.ouvert;
+  h+='<section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="reuSection" data-s="obj" aria-expanded="'+!!o.obj+'">Objectifs de la semaine <small>'+esc(sem||'')+(prec?' (semaine précédente)':'')+' · '+nObj+' agent'+(nObj>1?'s':'')+'</small></button>';
+  if(o.obj) h+='<div class="ms-reu-c">'+msReuAgentsHtml(obj,'Aucun objectif pour l’instant. Le lundi à 9 h, chaque agent allumé en fixe pour la semaine.',function(id,x){
+    return '<li><span>'+esc(x.texte)+'</span><small>Mesure : '+esc(x.mesure)+'</small>'+(x.bilan?'<span class="ms-reu-b '+esc(x.bilan.statut)+'" title="'+esc(x.bilan.pourquoi||'')+'">'+esc(MS_BILAN_LIB[x.bilan.statut]||x.bilan.statut)+'</span><small>'+esc(x.bilan.pourquoi||'')+'</small>':'')+'</li>'; })+'</div>';
+  h+='</section><section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="reuSection" data-s="lec" aria-expanded="'+!!o.lec+'">Leçons retenues <small>'+nLec+' au total · elles entrent dans les consignes de l’agent</small></button>';
+  if(o.lec) h+='<div class="ms-reu-c">'+msReuAgentsHtml(d.lecons,'Aucune leçon pour l’instant. Le vendredi, chaque agent peut en retenir une ou deux ; tu pourras les retirer ici.',function(id,x){
+    return '<li><span>'+esc(x.texte)+'</span><button type="button" class="ms-lien" data-act="reuRetirer" data-agent="'+esc(id)+'" data-id="'+esc(x.id)+'" aria-label="Retirer cette leçon de '+esc(msReuNom(id))+'">Retirer</button></li>'; })+'</div>';
+  return h+'</section>';
+}
+function messPeindreReunions(){
+  var c=$('ms-reu'); if(!c||!MS.inst) return;
+  if(MS.fil!=='reunions'){ if(!c.hidden){ c.hidden=true; c.innerHTML=''; c.removeAttribute('data-h'); } return; }
+  var h=msReuHtml();
+  c.hidden=false; c.setAttribute('data-plie',MS.reu.plie?'1':'0');
+  if(c.getAttribute('data-h')===h) return;
+  var act=document.activeElement, garde=act&&c.contains(act)&&act.getAttribute?(act.getAttribute('data-act')+'|'+(act.getAttribute('data-s')||act.getAttribute('data-type')||act.getAttribute('data-id')||'')):'';
+  c.setAttribute('data-h',h); c.innerHTML=h;
+  if(garde){ var p=garde.split('|'), n=c.querySelector('[data-act="'+p[0]+'"]'+(p[1]?'[data-s="'+p[1]+'"],[data-act="'+p[0]+'"][data-type="'+p[1]+'"],[data-act="'+p[0]+'"][data-id="'+p[1]+'"]':'')); if(n) n.focus({preventScroll:true}); }
+}
+function messReunionsCharger(){
+  var R=MS.reu; if(R.enVol) return Promise.resolve(); R.enVol=true;
+  return apiGet('/api/monitor/agents/reunions').then(function(d){
+    R.enVol=false; if(!d) return;
+    if(Array.isArray(d.reunions)){ R.d=d; R.lec=1; R.err=''; } else if(!R.d){ R.lec=-1; R.err=''; }
+    messPeindreReunions();
+  },function(e){ R.enVol=false; if(!R.d){ R.lec=-1; R.err=msgErreur(e); } messPeindreReunions(); });
+}
+function messReunionLancer(type){
+  var R=MS.reu; if(R.lance||!MS_REU_LIB[type]) return Promise.resolve(null);
+  if(!confirm('Lancer « '+MS_REU_LIB[type]+' » maintenant ?\n\nChaque agent allumé parle à son tour, l’un après l’autre (une vingtaine d’appels à Claude, sur le budget des agents). Une seule réunion à la fois, et le résultat reste dans « Réunions ».\n\nLancée le jour même de cette réunion, elle en tient lieu : celle de l’heure dite ne se rejouera pas.')) return Promise.resolve(null);
+  R.lance=true; messPeindreReunions();
+  return apiPost('/api/monitor/agents/reunions/lancer',{type:type}).then(function(x){
+    R.lance=false;
+    if(x.ok){ toast(x.d&&x.d.annulee?'Réunion annulée : aucun agent n’est allumé.':'Réunion lancée.'); messReunionsCharger(); messFilTot(); }
+    else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    messPeindreReunions(); return x;
+  },function(){ R.lance=false; toast(INJOIGNABLE); messPeindreReunions(); return null; });
+}
+function messLeconRetirer(agent,id){
+  var d=MS.reu.d, l=d&&d.lecons&&d.lecons[agent]?d.lecons[agent].filter(function(x){ return x.id===id; })[0]:null;
+  if(!l||!confirm('Retirer cette leçon de '+msReuNom(agent)+' ?\n\n« '+l.texte+' »\n\nL’agent ne la lira plus dans ses consignes.')) return Promise.resolve(null);
+  return apiPost('/api/monitor/agents/lecons/retirer',{agent:agent,id:id}).then(function(x){
+    if(x.ok){ toast('Leçon retirée.'); if(d.lecons[agent]){ d.lecons[agent]=d.lecons[agent].filter(function(y){ return y.id!==id; }); if(!d.lecons[agent].length) delete d.lecons[agent]; } messPeindreReunions(); messReunionsCharger(); }
+    else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    return x;
+  },function(){ toast(INJOIGNABLE); return null; });
+}
+/* ── la page ── */
+function vueMessagerie(){ return '<div id="mess-zone" class="mess-zone"></div>'; }
+function messGarde(v){ var z=v.querySelector('#mess-zone'); if(z&&MS.inst&&MS.inst.zone===z&&z.isConnected){ messAjuster(); return true; } return false; }
+function messAjuster(){
+  var z=$('mess-zone'); if(!z||TAB!=='messagerie') return;
+  var top=0; for(var e=z;e;e=e.offsetParent) top+=e.offsetTop;
+  var bas=0; for(var p=z;p;p=p.parentElement){ var c=getComputedStyle(p); bas+=(parseFloat(c.marginBottom)||0); if(p!==z) bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0); }
+  var h=Math.max(420,Math.floor(window.innerHeight-Math.round(top)-Math.ceil(bas)));
+  if(z.style.height!==h+'px') z.style.height=h+'px';
+}
+function messVeiller(){
+  if(MS.veille) return; MS.veille=true;
+  var plus=function(){ if(TAB==='messagerie') requestAnimationFrame(messAjuster); };
+  try{ window.addEventListener('resize',plus); window.addEventListener('orientationchange',plus); }catch(e){}
+  try{ document.addEventListener('visibilitychange',function(){
+    if(TAB!=='messagerie'||!MS.inst) return;
+    if(document.visibilityState==='visible'){ messToutCharger(); messFilCharger(true); messTimers(true); } else messTimers(false); }); }catch(e){}
+}
+/* Les minuteries : seulement écran ouvert ET page visible. Chaque tour revérifie — et s'éteint lui-même si l'écran a été quitté. */
+function messTimers(oui){
+  clearInterval(MS.tFil); clearInterval(MS.tListe); MS.tFil=0; MS.tListe=0;
+  if(!oui||document.visibilityState!=='visible'||!MS.inst) return;
+  MS.tFil=setInterval(function(){ if(TAB==='messagerie'&&MS.inst&&document.visibilityState==='visible') messFilCharger(true); else messTimers(false); },4000);
+  MS.tListe=setInterval(function(){ if(TAB==='messagerie'&&MS.inst&&document.visibilityState==='visible') messToutCharger(); else messTimers(false); },15000);
+}
+function messDemonter(){
+  messTimers(false);
+  var ta=$('ms-ta'); if(MS.inst&&ta) MS.brouillons[MS.fil]=ta.value;
+  MS.inst=null; MS.liste.ouverte=false; MS.peint=''; MS.sig='';
+}
+/* Ouvrir l'écran (setTab) : tout se relit — un agent a pu écrire depuis un autre appareil. */
+function messOuvrir(){
+  if(MYROLE!=='patron') return;
+  MS.msgLec=0; MS.msgs=[]; MS.dernier=''; MS.enVol=''; MS.peint='';
+  messToutCharger(); if(MS.fil==='reunions') messReunionsCharger(); messFilCharger(false);
+}
+/* « Parler à X » (page Agents), ou un lien vers un fil : on ouvre la messagerie sur ce fil. */
+function messOuvrirFil(fil){
+  MS.fil=String(fil||'equipe'); MS.voulu=true;
+  if(TAB==='messagerie'&&MS.inst) messChoisir(MS.fil); else setTab('messagerie');
+}
+function messChoisir(fil){
+  var ta=$('ms-ta'); if(ta) MS.brouillons[MS.fil]=ta.value;
+  MS.fil=fil; MS.vueMob='fil'; MS.panneau=false; MS.msgs=[]; MS.msgLec=0; MS.dernier=''; MS.ecrit=[]; MS.membres=[]; MS.meneur=''; MS.retard=false; MS.enVol=''; MS.peint='';
+  MS.liste.ouverte=false;
+  var t2=$('ms-ta'); if(t2){ t2.value=MS.brouillons[fil]||''; messMiroir(); }   /* chaque fil garde son brouillon */
+  messMentionPeindre();
+  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau();
+  if(fil==='reunions') messReunionsCharger();
+  messFilCharger(false);
+}
+function messDossier(n){ AG.sec='dossiers'; setTab('agents'); agDosOuvrir(n); }
+/* ── le dessin, par morceaux ── */
+function messMonter(){
+  var zone=$('mess-zone'); if(!zone) return;
+  messDemonter(); messVeiller();
+  zone.innerHTML='<div class="ms" data-mob="'+MS.vueMob+'" data-tq="0">'+
+    '<aside class="ms-gauche" aria-label="Conversations"><div class="ms-gt"><h1>Messagerie</h1><p>Les agents et toi</p></div><div class="ms-fils" id="ms-fils"></div></aside>'+
+    '<section class="ms-centre" aria-label="Conversation"><header class="ms-hd" id="ms-hd"></header>'+
+      '<div class="ms-reu" id="ms-reu" aria-label="Les réunions de l’équipe" hidden></div>'+
+      '<div class="ms-zone-flux"><div class="ms-flux" id="ms-flux" role="log" aria-live="polite" aria-label="Messages" tabindex="0"></div><button type="button" class="ms-nouv" id="ms-nouv" data-act="nouv" hidden>↓ Nouveaux messages</button></div>'+
+      '<p class="ms-regle">Règle de sécurité : les demandes d’argent et d’accès passent entre agents par une liste fermée ; le travail confié en conversation est une phrase libre, jamais un texte de client. Un texte venu d’un client ne devient jamais un ordre, et seules tes consignes vont, telles quelles, à Hugo et Margaux (argent et comptes).</p>'+
+      '<div class="ms-comp" id="ms-comp"></div></section>'+
+    '<aside class="ms-droite" id="ms-droite" aria-label="Qui fait quoi"><h3>Qui fait quoi</h3><div id="ms-taches"></div></aside></div>';
+  if(MS.voulu||zone.clientWidth>=700) MS.vueMob='fil'; else MS.vueMob='liste';
+  MS.voulu=false;
+  zone.firstChild.setAttribute('data-mob',MS.vueMob);
+  MS.inst={zone:zone};
+  zone.removeEventListener('click',messClic); zone.addEventListener('click',messClic);
+  zone.addEventListener('mousedown',function(e){ if(e.target.closest&&e.target.closest('.ms-mi')) e.preventDefault(); });   /* choisir dans la liste ne retire pas le focus à la saisie */
+  var fl=$('ms-flux'); fl.addEventListener('scroll',function(){ if(messColle()) messNouvCacher(); });
+  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau(); messPeindreTaches();
+  messAjuster(); messTimers(true);
+  if(MS.msgLec===1) messLire(MS.msgs);   /* la lecture a pu finir AVANT que l'écran existe : « lu » se pose une fois le fil affiché */
+}
+function messClic(ev){
+  var el=ev.target.closest&&ev.target.closest('[data-act],[data-fil],[data-mi]'); if(!el) return;
+  if(el.hasAttribute('data-fil')&&!el.hasAttribute('data-act')){ messChoisir(el.getAttribute('data-fil')); return; }
+  if(el.hasAttribute('data-mi')){ messMentionChoisir(+el.getAttribute('data-mi')); return; }
+  var a=el.getAttribute('data-act');
+  if(a==='puce') messPuce(el.getAttribute('data-nom'));
+  else if(a==='envoyer') messEnvoyerSaisie();
+  else if(a==='reessayer') msReessayer(el.getAttribute('data-cle'));
+  else if(a==='retirer') msRetirer(el.getAttribute('data-cle'));
+  else if(a==='dossier') messDossier(el.getAttribute('data-dos'));
+  else if(a==='retour'){ MS.vueMob='liste'; var r=MS.inst&&MS.inst.zone.firstChild; if(r) r.setAttribute('data-mob','liste'); }
+  else if(a==='panneau'){ MS.panneau=!MS.panneau; messPeindrePanneau(); }
+  else if(a==='nouv'){ messDescendre(); }
+  else if(a==='rechargerListe'){ MS.lec=0; messPeindreListe(); messToutCharger(); }
+  else if(a==='rechargerFil'){ MS.msgLec=0; messPeindreFil(true); messFilCharger(false); }
+  else if(a==='rechargerTaches'){ MS.tachesLec=0; messPeindreTaches(); messTachesCharger(); }
+  else if(a==='reuRecharger'){ MS.reu.lec=0; messPeindreReunions(); messReunionsCharger(); }
+  else if(a==='reuPlier'){ MS.reu.plie=!MS.reu.plie; messPeindreReunions(); }
+  else if(a==='reuSection'){ var k=el.getAttribute('data-s'); MS.reu.ouvert[k]=!MS.reu.ouvert[k]; messPeindreReunions(); }
+  else if(a==='reuLancer') messReunionLancer(el.getAttribute('data-type'));
+  else if(a==='reuRetirer') messLeconRetirer(el.getAttribute('data-agent'),el.getAttribute('data-id'));
+}
+function messPeindreListe(){
+  var c=$('ms-fils'); if(!c||!MS.inst) return;
+  var h;
+  if(MS.lec===0&&!MS.fils.length) h=acSquel();
+  else if(MS.lec!==1&&!MS.fils.length) h='<div class="ms-vide">Les conversations n’ont pas pu être lues — on ne sait pas si un agent t’a écrit.<br><button type="button" class="ms-lien" data-act="rechargerListe">Réessayer</button></div>';
+  else h=msListeHtml();
+  var sig=h+'|'+MS.fil+'|'+MS.pause+MS.illisible;
+  if(sig===MS.sig) return; MS.sig=sig;
+  var act=document.activeElement, garde=act&&c.contains(act)&&act.getAttribute?act.getAttribute('data-fil'):'';
+  c.innerHTML=h;
+  if(garde){ var n=c.querySelector('[data-fil="'+garde+'"]'); if(n) n.focus({preventScroll:true}); }
+}
+function messPeindreEntete(){
+  var hd=$('ms-hd'); if(!hd||!MS.inst) return;
+  var ouv=MS.taches.filter(function(k){ return k.statut==='prise'||k.statut==='attente'; }).length, grp=!!MS_GROUPES_LIB[MS.fil];
+  var h='<button type="button" class="ms-retour" data-act="retour" aria-label="Toutes les conversations">‹ Conversations</button>'+
+    '<div class="ms-ht"><h2>'+(grp?'# ':'')+esc(msNomFil(MS.fil))+'</h2><p>'+msSousTitre()+'</p></div>'+
+    '<div class="ms-ha"><span class="ms-bientot" title="OP MESSAGES se rebranchera plus tard">Suivre dans OP MESSAGES · <b>Bientôt</b></span>'+
+    '<button type="button" class="ms-btn-tq" data-act="panneau" aria-expanded="'+MS.panneau+'" aria-controls="ms-droite">Qui fait quoi'+(MS.tachesLec===1&&ouv?'<span class="ag-n">'+ouv+'</span>':'')+'</button></div>';
+  if(hd.getAttribute('data-h')===h) return; hd.setAttribute('data-h',h); hd.innerHTML=h;
+}
+function messPeindrePanneau(){ var r=MS.inst&&MS.inst.zone.firstChild; if(!r) return; r.setAttribute('data-tq',MS.panneau?'1':'0'); var b=r.querySelector('.ms-btn-tq'); if(b) b.setAttribute('aria-expanded',String(MS.panneau)); r.setAttribute('data-mob',MS.vueMob); }
+function messPeindreTaches(){ var c=$('ms-taches'); if(!c||!MS.inst) return; var h=msTachesHtml(); if(c.getAttribute('data-h')!==h){ c.setAttribute('data-h',h); c.innerHTML=h; } messPeindreEntete(); }
+function messColle(){ var f=$('ms-flux'); return !f||f.scrollHeight-f.scrollTop-f.clientHeight<=60; }
+function messDescendre(){ var f=$('ms-flux'); if(f) f.scrollTop=f.scrollHeight; messNouvCacher(); }
+function messNouvCacher(){ var n=$('ms-nouv'); if(n) n.hidden=true; }
+/* Le fil. `complet` : on réécrit tout (ouverture, fil rogné) ; sinon on AJOUTE ce qui est nouveau et on garde l'endroit où l'on lisait. */
+function messPeindreFil(complet){
+  var f=$('ms-flux'); if(!f||!MS.inst) return;
+  var ag=msAgentsParId(), pend=MS.envois.filter(function(e){ return e.fil===MS.fil&&e.etat!=='ok'; });
+  if(MS.msgLec===0){ f.innerHTML=acSquel(); MS.peint=''; return; }
+  if(MS.msgLec!==1){ f.innerHTML='<div class="ms-vide">Ce fil n’a pas pu être lu. Réessaie dans un instant.<br><button type="button" class="ms-lien" data-act="rechargerFil">Réessayer</button></div>'; MS.peint=''; return; }
+  var colle=messColle(), moi=pend.length>0, neufs=0;
+  var peints=[].slice.call(f.querySelectorAll('[data-id]')).map(function(n){ return n.getAttribute('data-id'); });
+  var prefixe=MS.peint===MS.fil&&peints.length<=MS.msgs.length&&peints.every(function(id,i){ return MS.msgs[i].id===id; });
+  [].forEach.call(f.querySelectorAll('[data-cle],#ms-ecrit,.ms-vide,.ms-retard,.ms-squel,.ac-squel'),function(n){ n.parentNode.removeChild(n); });
+  if(complet||!prefixe){ f.innerHTML=MS.msgs.length?msFluxHtml(MS.msgs,MS.membres,ag):''; colle=true; }
+  else {
+    var rest=MS.msgs.slice(peints.length); neufs=rest.length;
+    if(rest.length) f.insertAdjacentHTML('beforeend',msFluxHtml(rest,MS.membres,ag,peints.length?MS.msgs[peints.length-1]:null));
+  }
+  MS.peint=MS.fil;
+  if(!MS.msgs.length&&!pend.length) f.insertAdjacentHTML('beforeend','<div class="ms-vide">'+(ag[MS.fil]?'Écris à '+esc(ag[MS.fil].nom)+' : sa réponse arrive ici.':'Aucun message pour l’instant. Écris au groupe : sans @mention, '+esc(((ag[MS.meneur]||{}).nom)||'le meneur')+' répond ; avec une @mention, la personne citée lit et répond.')+'</div>');
+  pend.forEach(function(e){ f.insertAdjacentHTML('beforeend',msEnvoiHtml(e,MS.membres)); });
+  if(MS.retard) f.insertAdjacentHTML('beforeend','<div class="ms-retard" role="status">Mise à jour impossible pour l’instant — nouvelle tentative dans quelques secondes.</div>');
+  f.insertAdjacentHTML('beforeend',msEcritHtml(MS.ecrit));
+  if(colle||moi){ f.scrollTop=f.scrollHeight; messNouvCacher(); }
+  else if(neufs){ var b=$('ms-nouv'); if(b) b.hidden=false; }
+}
+/* La saisie : puces des membres (groupes), zone de texte + calque miroir, liste du « @ ». Recréée seulement au changement de fil ou d'état : jamais pendant qu'on tape. */
+function messPeindreSaisie(force){
+  var c=$('ms-comp'); if(!c||!MS.inst) return;
+  if(MS.msgLec===0) return;    /* pendant la lecture, la saisie reste telle quelle : elle ne clignote pas */
+  var ag=msAgentsParId(), a=ag[MS.fil], grp=!!MS_GROUPES_LIB[MS.fil], lisible=MS.msgLec===1, patron=MYROLE==='patron';
+  var sig=[MS.fil,lisible,patron,a?msEtat(a):'',MS.membres.map(function(m){ return m.id; }).join(',')].join('|');
+  if(!force&&c.getAttribute('data-sig')===sig) return;
+  var ta=$('ms-ta'), valeur=MS.brouillons[MS.fil]||'', avait=ta&&document.activeElement===ta;
+  c.setAttribute('data-sig',sig);
+  if(!patron){ c.innerHTML='<p class="ms-lecture">Lecture seule — seul le patron écrit aux agents.</p>'; return; }
+  if(!lisible){ c.innerHTML='<p class="ms-lecture">On n’écrit pas à l’aveugle : ce fil n’a pas encore été lu.</p>'; return; }
+  var pref=['camille','hugo','margaux','lea','jules','nina','max','victor'], noms=MS.membres.filter(function(m){ return pref.indexOf(m.id)>=0; });
+  noms.sort(function(x,y){ return pref.indexOf(x.id)-pref.indexOf(y.id); });
+  if(noms.length<8) MS.membres.forEach(function(m){ if(noms.length<8&&noms.indexOf(m)<0) noms.push(m); });
+  var puces=grp?'<div class="ms-puces">'+noms.map(function(m){ return '<button type="button" data-act="puce" data-nom="'+esc(m.nom)+'">@'+esc(m.nom)+'</button>'; }).join('')+'<button type="button" data-act="puce" data-nom="tous">@tous</button></div>':'';
+  var etat=a&&msEtat(a)==='arret'?'<p class="ms-note">'+esc(a.nom)+' est à l’arrêt : rien n’est fait tant que tu ne l’allumes pas (page Agents). Ton message est gardé dans le fil.</p>':'';
+  c.innerHTML=etat+puces+'<div class="ms-ligne"><div class="ms-champ"><div class="ms-miroir" id="ms-miroir" aria-hidden="true"></div>'+
+    '<textarea id="ms-ta" class="ms-ta" rows="1" maxlength="1000" aria-label="Message" placeholder="'+esc(msPlaceholder())+'" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ms-mentions" spellcheck="false" autocomplete="off"></textarea>'+
+    '<div class="ms-mentions" id="ms-mentions" role="listbox" aria-label="Personnes à citer" hidden></div></div>'+
+    '<button type="button" class="ms-envoyer" data-act="envoyer">Envoyer</button></div>';
+  var t=$('ms-ta'); t.value=valeur;
+  t.addEventListener('input',messSaisieChange); t.addEventListener('click',messMentionMaj); t.addEventListener('keyup',function(e){ if(['ArrowUp','ArrowDown','Enter','Tab','Escape'].indexOf(e.key)<0) messMentionMaj(); });
+  t.addEventListener('keydown',messSaisieTouche); t.addEventListener('scroll',messMiroirDefiler); t.addEventListener('blur',function(){ setTimeout(messMentionFermer,120); });
+  messMiroir(); if(avait) t.focus();
+}
+function messMiroir(){
+  var ta=$('ms-ta'), mi=$('ms-miroir'); if(!ta||!mi) return;
+  mi.innerHTML=msColorer(ta.value,MS.membres)+'\u200b';
+  ta.style.height='auto'; var h=Math.min(ta.scrollHeight+2,150); ta.style.height=Math.max(h,44)+'px';
+  var gut=ta.offsetWidth-ta.clientWidth-(parseFloat(getComputedStyle(ta).borderLeftWidth)||0)-(parseFloat(getComputedStyle(ta).borderRightWidth)||0);
+  mi.style.right=Math.max(0,gut)+'px'; mi.scrollTop=ta.scrollTop;
+}
+function messMiroirDefiler(){ var ta=$('ms-ta'), mi=$('ms-miroir'); if(ta&&mi) mi.scrollTop=ta.scrollTop; }
+function messSaisieChange(){ var ta=$('ms-ta'); if(ta) MS.brouillons[MS.fil]=ta.value; messMiroir(); messMentionMaj(); }
+function messSaisieTouche(e){
+  var act=msTouche(e,{ouverte:MS.liste.ouverte,n:MS.liste.items.length});
+  if(act==='rien') return;
+  e.preventDefault();
+  if(act==='suivant'||act==='precedent'){ var n=MS.liste.items.length; MS.liste.actif=(MS.liste.actif+(act==='suivant'?1:n-1))%n; messMentionPeindre(); }
+  else if(act==='choisir') messMentionChoisir(MS.liste.actif);
+  else if(act==='fermer') messMentionFermer();
+  else if(act==='envoyer') messEnvoyerSaisie();
+}
+function messMentionMaj(){
+  var ta=$('ms-ta'); if(!ta||!MS.inst) return;
+  var ctx=ta.selectionStart===ta.selectionEnd?msContexte(ta.value,ta.selectionStart):null;
+  if(!ctx){ messMentionFermer(); return; }
+  var deja=msIds(ta.value.slice(0,ctx.debut)+ta.value.slice(ta.selectionStart),MS.membres), items=msPropositions(ctx.q,MS.membres,deja);
+  if(!items.length){ messMentionFermer(); return; }
+  var actif=(MS.liste.ouverte&&MS.liste.q===ctx.q)?Math.min(MS.liste.actif,items.length-1):0;
+  MS.liste={ouverte:true,ctx:ctx,items:items,actif:actif,q:ctx.q};
+  messMentionPeindre();
+}
+function messMentionPeindre(){
+  var l=$('ms-mentions'), ta=$('ms-ta'); if(!l||!ta) return;
+  var ag=msAgentsParId();
+  l.hidden=!MS.liste.ouverte; ta.setAttribute('aria-expanded',String(MS.liste.ouverte));
+  if(!MS.liste.ouverte){ ta.removeAttribute('aria-activedescendant'); return; }
+  l.innerHTML=MS.liste.items.map(function(it,i){
+    return '<div class="ms-mi" role="option" id="ms-mi-'+i+'" data-mi="'+i+'" aria-selected="'+(i===MS.liste.actif)+'">'+
+      (it.tous?'<span class="ms-av p g" aria-hidden="true">@</span>':'<span class="ms-av p" aria-hidden="true">'+esc(String(it.nom).charAt(0))+'</span>')+
+      '<span class="ms-mt"><b>'+(it.tous?'@tous':esc(it.nom))+'</b><small>'+esc(it.tous?it.detail:((ag[it.id]||{}).role||''))+'</small></span></div>'; }).join('');
+  ta.setAttribute('aria-activedescendant','ms-mi-'+MS.liste.actif);
+  var a=$('ms-mi-'+MS.liste.actif); if(a&&a.scrollIntoView) a.scrollIntoView({block:'nearest'});
+}
+function messMentionFermer(){ if(!MS.liste.ouverte&&!MS.liste.items.length) return; MS.liste={ouverte:false,ctx:null,items:[],actif:0,q:null}; messMentionPeindre(); }
+function messMentionChoisir(i){
+  var ta=$('ms-ta'), it=MS.liste.items[i], ctx=MS.liste.ctx; if(!ta||!it||!ctx) return;
+  var r=msInserer(ta.value,ta.selectionStart,ctx,it), ok=false;
+  ta.focus();
+  /* insertText garde l'annulation du navigateur (Ctrl+Z défait la mention) ; sans lui, on écrit la valeur. */
+  try{ ta.setSelectionRange(ctx.debut,ta.selectionStart); ok=document.execCommand('insertText',false,r.ins); }catch(e){}
+  if(!ok||ta.value!==r.texte) ta.value=r.texte;
+  ta.setSelectionRange(r.caret,r.caret);
+  MS.brouillons[MS.fil]=ta.value; MS.liste={ouverte:false,ctx:null,items:[],actif:0,q:null}; messMentionPeindre(); messMiroir(); messMentionMaj();
+}
+function messPuce(nom){
+  var ta=$('ms-ta'); if(!ta) return;
+  var v=ta.value, sep=(v&&!/\s$/.test(v))?' ':'';
+  ta.value=v+sep+'@'+nom+' '; ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length);
+  MS.brouillons[MS.fil]=ta.value; messMiroir(); messMentionFermer();
+}
+function messEnvoyerSaisie(){
+  var ta=$('ms-ta'); if(!ta||MYROLE!=='patron') return;
+  var t=ta.value.trim(); if(!t) return;
+  ta.value=''; MS.brouillons[MS.fil]=''; messMentionFermer(); messMiroir(); ta.focus();
+  msEnvoyer(MS.fil,t);
+}
+/* La pastille du menu : à la minute quand on est ailleurs, page visible — l'écran, lui, la tient à jour avec la liste (15 s). */
+function messNonLusCharger(){
+  if(MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return;
+  apiGet('/api/monitor/conversations').then(function(d){ if(d&&typeof d.nonLus==='number'){ MS.nonLus=d.nonLus; setBdg('bdg-msgr',MS.nonLus); } }).catch(function(){});
+}
+function messReleve(){
+  if(MS.releve||MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return; MS.releve=true;
+  messNonLusCharger();
+  setInterval(function(){ if(document.visibilityState==='visible'&&TAB!=='messagerie') messNonLusCharger(); },60000);
 }
 
 /* ══ démarrage : une session déjà ouverte reprend la main ══ */

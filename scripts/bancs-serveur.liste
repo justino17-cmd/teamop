@@ -209,3 +209,40 @@ tests/test-2709.js
 # 19 octobre 2026 : 4 420 contre les pages de `main` (65 suites), `test-2710` compris (+129) — plancher relevé à 4 280.
 # 20 octobre 2026 : `test-2805` (« Traduire en français » du Courrier de la Tour : vrai serveur, faux Claude ; aucun 5xx, rien du mail au journal).
 tests/test-2805.js
+# 22 octobre 2026 : les quinze autres agents répondent dans « Parler » — `test-2860` (le cerveau : `thinking` désactivé, jamais `temperature`/`top_p`/`top_k`, `maxTokens` borné,
+# « trop long » distinct de « vide » ; il joue aussi la VRAIE fonction d'appel, `fetch` remplacé) et `test-2861` (le vrai serveur, Claude simulé : chacun répond dans son fil, rien d'une
+# personne ne part chez Claude, faits fermés par rôle, historique alterné, rien d'exécuté). `test-2861` lit aussi `tour.html` via `test-2709` (déjà ci-dessus).
+tests/test-2860.js
+tests/test-2861.js
+# 23 octobre 2026 : Léa et Camille préparent une réponse commerciale EN BROUILLON (inscription, demande d'application, mail reçu) — jamais envoyée sans Justin.
+# `test-2862` (Léa), `test-2863` (Camille : modules, puis le vrai serveur — la veille du Courrier, la fausse boîte IMAP, le crochet d'index.js) et `test-2864` (l'exécuteur, les
+# deux routes, le mode auto fermé par défaut, puis le vrai serveur de l'inscription publique à « Valider et envoyer »). Établis communs : `tests/banc-agents-courrier.js` et
+# `tests/banc-serveur-courrier.js` (pas des suites : leur nom ne commence pas par test-). ⛔ `test-2865` (les vraies fonctions de la TOUR contre le vrai serveur) n'est PAS ici : il lit
+# la `tour.html` de la branche, que `main` ne sert pas encore — il tourne dans la suite complète.
+tests/test-2862.js
+tests/test-2863.js
+tests/test-2864.js
+# 23 octobre 2026, relecture adverse de Léa et de Camille : `test-2866` (domaines nus et promesses refusés, Léa hors de la route publique, plafonds par adresse, reprise d'une inscription écartée, envoi en échec rouvert,
+# texte envoyé = texte lu, une lettre dans deux boîtes, un expéditeur ne remplit pas la file ; puis le vrai serveur). ⛔ `test-2865` (la Tour) et `test-2867` (les pages juridiques) ne sont PAS ici : ils lisent des fichiers de la racine
+# que `main` ne sert pas encore — ils tournent dans la suite complète.
+tests/test-2866.js
+# 23 octobre 2026 : la messagerie des agents — `test-2880` (les modules réels, cerveau scripté : mentions, MEMBRES, qui est réveillé, profondeur et anti-boucle,
+# les outils prendre / passer / ecrire / terminer / demander_justin et leurs refus, Hugo et Margaux sans consigne libre d'un collègue, « X écrit… », l'arrêt dit une
+# fois par heure) et `test-2881` (le vrai serveur, un faux Claude qui joue des outils : une question reçoit la réponse de celui qui est interrogé, A↔B s'arrête à 3,
+# lecture incrémentale, routes gardées et déclarées dans MON_GESTES, et la santé lue par les agents ne vide plus la fenêtre de /health). Les routes, `test-2707`, `test-2708`
+# et `test-2861` en sont modifiés d'une ligne chacun (la ligne du système d'un agent à l'arrêt ; 3000 jetons et réflexion adaptative) — dits dans leurs en-têtes.
+tests/test-2880.js
+tests/test-2881.js
+# 23 octobre 2026 : l'écran de la messagerie dans la Tour — `test-2882` (les VRAIES fonctions de tour.html : mentions comparées à la règle du serveur, liste du « @ », touches,
+# envoi optimiste puis refus dit, trois états, minuteries, calque miroir de la saisie ; `TOUR_FICHIER` lit une autre version) et `test-2883` (ces fonctions contre le VRAI serveur
+# et un faux Claude : la question à Margaux reste à Margaux, « @Camille @Léa » donne deux tâches dans « Qui fait quoi », « déléguée » vient de `passePar`, « lu », « écrit… », les refus).
+tests/test-2882.js
+tests/test-2883.js
+# 23 octobre 2026 : les réunions du lundi (9 h, objectifs) et du vendredi (18 h, bilan), heure de Paris — `test-2884` (les modules réels, horloge tenue : lundi 9 h en heure d'été ET d'hiver,
+# rattrapage, jamais deux fois même après un redémarrage, fichier illisible, seuls les agents allumés, le déroulé un appel à la fois, les faits du journal, les outils fermés objectifs / bilan /
+# leçons, la mémoire dans les consignes) et `test-2885` (le vrai serveur : la minuterie déclenche la réunion SEULE à l'heure de Paris — horloge avancée par un préchargement —, rien à 8 h 30,
+# pas de rejeu au redémarrage, le bilan du vendredi sur les objectifs du lundi, la mémoire dans le prompt d'une réponse puis retirée avec la leçon, lancement à la main, gardes, MON_GESTES).
+tests/test-2884.js
+tests/test-2885.js
+# 22 octobre 2026 : `test-2870` (les catégories d'OP GESTION retenues par entreprise : la route de la Tour, ses refus, l'écriture sur tous les noms, « Revoir le lien » qui garde le réglage, `cats` sur les cinq formes vivantes de `/api/espaces/etat` et jamais sur la fermeture). Plancher inchangé : à relever après mesure sur les pages de `main`.
+tests/test-2870.js

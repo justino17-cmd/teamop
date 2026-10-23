@@ -516,7 +516,12 @@ process.on('unhandledRejection', (r) => {
   incidentNoter('rejet');
   console.error('⛔ promesse rejetée sans gestionnaire —', String((r && (r.code || r.name)) || typeof r).slice(0, 40), '·', incidentOu(r));
 });
-app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
+/* ⛔ L'ÉTAT DE SANTÉ EST UNE FONCTION, PAS SEULEMENT UNE ROUTE (23 octobre 2026). Les agents (Max, Inès…) en lisent des chiffres : ils le
+   faisaient en appelant /health par HTTP local, et chaque lecture VIDAIT la fenêtre des temps de réponse (`latQuantiles(true)`) que la
+   surveillance horaire de GitHub lit une fois par heure — une question à Max faussait la surveillance. `vider` n'est donc VRAI que pour la
+   route publique ; un agent appelle `santeCorps(false)`, mêmes champs, aucune fenêtre touchée. */
+app.get('/health', (req, res) => res.json(santeCorps(true)));
+function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
      la suite se déciderait à l'aveugle : /api/mail/cles est protégée par une clé de
@@ -535,7 +540,7 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
   /* ⛔ TROIS ÉTATS, PAS DEUX. `{actif:false}` seul ne distingue pas « éteint par décision » de
      « cassé au démarrage » — et ce dépôt a payé DEUX fois pour cette confusion précise
      (`_mailboxes`, `syncDecrypt`). Un socle qui refuse de se monter doit se voir. */
-  socle: (opSocle && opSocle.sante) ? opSocle.sante() : (opSocle ? { actif: false } : { actif: false, erreur: 'montage' }),
+  socle: (opSocle && opSocle.sante) ? opSocle.sante({ sansVider: vider === false }) : (opSocle ? { actif: false } : { actif: false, erreur: 'montage' }),
   /* Le portail client : voir `etatPortail` plus bas pour les trois états et pourquoi ce
      n'est PAS un nombre. `surveillance.js` alarme sur `erreur`, jamais sur `actif:false`
      seul — une alarme qui sonne sur un état voulu devient du bruit, puis une alarme qu'on
@@ -598,7 +603,7 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      révèle son existence à qui passe. « Bientôt ou pas » suffit à la surveillance, qui n'a
      besoin que de savoir s'il faut prévenir. `null` tant que la date n'est pas renseignée : on
      ne prétend pas savoir ce qu'on ignore. */
-  ghExpireBientot: (j => (j === null ? null : j <= 15))(ghJoursRestants()) }));
+  ghExpireBientot: (j => (j === null ? null : j <= 15))(ghJoursRestants()) }; }
 
 /* Jours avant l'expiration du jeton GitHub, d'après `github.expire` (AAAA-MM-JJ) dans
    config.json. Une date absente ou illisible rend null — jamais 0, qui voudrait dire
@@ -997,6 +1002,10 @@ app.post('/api/nouveau-compte', (req, res) => {
         boutonTxt: 'Ouvrir la Tour de contrôle', boutonUrl: 'https://teamop.fr/tour.html' })
     }).catch(e => console.error('mail nouveau compte:', e.message));
   }
+  /* ⛔ LÉA N'EST PAS APPELÉE D'ICI. Cette route est PUBLIQUE et ne prouve aucune adresse : y déclencher Léa laissait un anonyme épuiser ses 20 appels du
+     jour, remplir la file de validations de Justin (le vrai prospect du lendemain recevait « file pleine ») et lui faire valider un courriel à l'adresse
+     de son choix (relecture adverse, 23 octobre 2026). Son premier déclencheur est la PREMIÈRE synchro d'un compte dont l'adresse est PROUVÉE
+     (`/api/clients/sync`, plus bas) — le courriel à l'équipe ci-dessus, lui, reste ici. */
   res.json({ ok: true });
 });
 
@@ -2032,7 +2041,7 @@ const MON_GESTES = {
   'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',
   'beta/toggle': 'a coupé ou rouvert un accès bêta', 'beta/delete': 'a supprimé un accès bêta',
   'espaces': 'a ouvert ou repris le lien de connexion d’une entreprise', 'espaces/lien-existant': null,
-  'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
+  'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/cats': 'a choisi les catégories d’OP GESTION d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
   'espaces/abonnement': 'a réglé l’abonnement d’une entreprise à la main', 'espaces/statut': null, 'entreprise/dossier': null,
   'espaces/activite': null, 'espaces/connexions': null, 'espaces/compteurs-zero': 'a remis à zéro ou rétabli les compteurs d’une entreprise',
   'connexions/effacer-tentatives': 'a effacé les tentatives de connexion refusées',
@@ -2068,7 +2077,8 @@ const MON_GESTES = {
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
-  'agents/charte': 'a changé la charte d’autonomie des agents', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
+  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
+  'agents/charte': 'a changé la charte d’autonomie des agents', 'agents/brouillons/modifier': 'a corrigé un brouillon de réponse d’un agent avant de le valider', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
   'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
 };
 const MON_ACTIONS_MAX = 500;
@@ -2582,6 +2592,9 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
     /* ⛔ le métier se reporte comme la formule (29 septembre 2026) : sans ça, « Revoir le lien de connexion » le
        remettait à « non réglé » — l'application garderait le sien, mais la Tour afficherait un métier à re-poser */
     metier: base.metier, metierPar: base.metierPar, metierTs: base.metierTs,
+    /* ⛔ et les catégories retenues (CATS_OK) : la même panne que le métier — cette route reconstruit l'entrée de zéro, et
+       « Revoir le lien de connexion » rouvrait toutes les rubriques d'une entreprise dont on venait de restreindre l'application */
+    cats: base.cats, catsPar: base.catsPar, catsTs: base.catsTs,
     /* ⛔⛔ L'ABONNEMENT RÉGLÉ À LA MAIN SE REPORTE AUSSI (30 septembre 2026). Cette route le perdait : une entreprise
        « abonnement activé par TEAM OP » (un virement, un accord) retombait sur Stripe, qui ne la connaît pas — l'application
        d'avant affichait « Paye ton abonnement » à toute l'équipe, et depuis qu'une entreprise qui ne paie pas est SUSPENDUE,
@@ -2681,6 +2694,66 @@ app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
     console.log('Tour :', req.tourUser.nom, 'règle le métier', m || '(aucun)', 'de l\'entreprise', espaceT(e) || '(sans identifiant)');
   }
   res.json({ ok: true, slug, metier: m });
+});
+/* ══ LES CATÉGORIES D'OP GESTION D'UNE ENTREPRISE — Justin : « quand on crée un accès client, dans la Tour on choisit les
+   catégories dont ils ont besoin et pas besoin ». L'application ne montre alors à cette entreprise que les rubriques retenues.
+   LE CONTRAT avec l'application (chantier à part, ne pas le changer sans elle) :
+     · `cats` est un tableau de clés de rubriques (celles de `NAV`, app.html). ABSENT = jamais réglé = TOUT est ouvert, comme
+       avant ce chantier ; `/api/espaces/etat` rend alors `cats: null`. Un tableau, même vide, est un choix explicite ;
+     · liste FERMÉE (`CATS_OK`) : une clé hors liste est refusée ici, parce que l'application l'ignorerait EN SILENCE ;
+     · quatre rubriques ne se cochent jamais et restent toujours ouvertes (`CATS_TOUJOURS`) : le tableau de bord (la garde de
+       `go()` y renvoie), les utilisateurs, les modules OP et les paramètres — sans eux l'administrateur ne pourrait plus
+       rouvrir ce qu'on a fermé ;
+     · `cats: null` revient à « tout » en SUPPRIMANT le champ. Le métier ne sait pas retirer sa valeur (vide = non réglé) ;
+       ici « jamais réglé » et « vide » sont deux choses, donc le retrait est un geste à part.
+   ⚠️ Ce réglage ne change PAS le prix : c'est Justin qui fixe la formule (`/espaces/formule`, `/espaces/abonnement`).
+   `tests/test-2870.js` garde cette liste contre `NAV` d'app.html : une rubrique ajoutée un jour au menu fait tomber le banc
+   au lieu d'échapper au réglage. */
+const CATS_OK = ['statistiques', 'historique', 'archives', 'planning', 'planningGeneral', 'taches', 'absences',
+  'interventions', 'rapports', 'carteInt', 'registre', 'carteBox', 'clients',
+  'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'devisXylo', 'telecollecte',
+  'produits', 'stock', 'mouvements', 'boxes', 'saisieConso', 'enveloppes', 'pointage', 'vehicules', 'conducteurs',
+  'messagerie', 'boiteMail', 'fournisseurs', 'bons', 'brouillon', 'demandes', 'validations', 'commandes', 'secteurs'];
+const CATS_TOUJOURS = ['dashboard', 'utilisateurs', 'modulesElan', 'parametres'];
+/* Ce que le serveur SERT : le tableau (dans l'ordre de la liste, sans doublon, rien d'étranger — une valeur écrite à la main
+   dans l'annuaire n'atteint jamais l'application), ou `null` quand rien n'est réglé. Un champ qui n'est pas un tableau
+   vaut « jamais réglé », pas « rien d'ouvert » : dans le doute, on ne ferme rien. */
+const catsOk = c => (Array.isArray(c) ? CATS_OK.filter(k => c.includes(k)) : null);
+app.post('/api/monitor/espaces/cats', monPatronStrict, (req, res) => {
+  const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
+  const e = espacesReg[slug];
+  if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son « Lien de connexion » (fiche entreprise)' });
+  const demande = (req.body || {}).cats;
+  let cats;
+  if (demande === null) cats = null;
+  else if (Array.isArray(demande)) {
+    if (demande.length > CATS_OK.length) return res.status(400).json({ error: 'trop de catégories' });
+    const inconnue = demande.find(k => typeof k !== 'string' || !CATS_OK.includes(k));
+    if (inconnue !== undefined) return res.status(400).json({ error: 'catégorie inconnue : ' + monStr(String(inconnue), 40) });
+    if (new Set(demande).size !== demande.length) return res.status(400).json({ error: 'catégorie en double' });
+    cats = CATS_OK.filter(k => demande.includes(k));
+  } else return res.status(400).json({ error: 'cats : un tableau de catégories, ou null pour tout rouvrir' });   // absent ≠ null : un oubli ne rouvre rien
+  /* Sur TOUS les noms de l'entreprise, comme le métier : posé sur un ancien nom, il n'atteindrait pas l'application (qui lit
+     le plus récent), et « Revoir le lien » sur un ancien nom le ferait revenir en arrière. */
+  const noms = nomsEntreprise(e).length ? nomsEntreprise(e) : [e];
+  const tel = x => JSON.stringify(catsOk(x.cats));
+  if (noms.some(x => tel(x) !== JSON.stringify(cats))) {
+    const CH = ['cats', 'catsPar', 'catsTs'];
+    const avant = noms.map(x => ({ x, v: CH.map(k => [k, x[k]]) }));
+    const ts = Date.now();
+    for (const x of noms) {
+      if (cats === null) CH.forEach(k => { delete x[k]; });
+      else { x.cats = cats.slice(); x.catsPar = req.tourUser.nom; x.catsTs = ts; }
+    }
+    /* écrit, ou on le dit — et on défait en mémoire (le champ revient tel qu'il était, absent compris) */
+    if (!espacesEcrire()) {
+      avant.forEach(a => a.v.forEach(([k, val]) => { if (val === undefined) delete a.x[k]; else a.x[k] = val; }));
+      return res.status(500).json({ error: 'L\'annuaire n\'a pas pu être enregistré — les catégories n\'ont pas changé.' });
+    }
+    /* (l'identifiant, jamais le nom d'accès : il est souvent celui d'une personne) */
+    console.log('Tour :', req.tourUser.nom, cats === null ? 'rouvre toutes les catégories' : 'retient ' + cats.length + ' catégories', 'pour l\'entreprise', espaceT(e) || '(sans identifiant)');
+  }
+  res.json({ ok: true, slug, cats });
 });
 /* ⛔ PLUS DE FORMULE GRATUITE (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu tant que
    c'est pas réglé »). Les deux routes qui posent une formule la refusent — une Tour d'avant qui l'enverrait encore reçoit la
@@ -3942,7 +4015,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   if (!espacesReg[slug]) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   const e = facturationDe(espacesReg[slug]);   // la fiche montre la facturation de l'ENTREPRISE : c'est elle que la Tour règle
   const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
-  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, inconnu: !!p.inconnu, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier),
+  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, inconnu: !!p.inconnu, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier), cats: catsOk(e.cats),
     impaye: !!p.bloque, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0,
     optionsServies: Array.isArray(p.optionsServies) ? p.optionsServies : [], options: optionsDeTour(e.options), optionsStripe: optionsLignesStripe(Object.assign({ slug }, e)) });
 });
@@ -4418,6 +4491,12 @@ let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, p
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
+let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
+let agentLea = null;         // Léa (`agent-lea.js`) : la réponse commerciale à une inscription ou une demande — `null` = pas montée, elle ne prépare rien
+let agentCamille = null;     // Camille (`agent-camille.js`) : la réponse à un mail reçu — `null` = pas montée (la veille du Courrier ne lui annonce rien)
+let brouillonsMod = null;    // les brouillons de Léa et de Camille, et ce qui les fait partir (`agents-brouillons.js`)
+let agentEquipe = null;        // la messagerie des agents (`agent-equipe.js`) : `null` = pas montée ; la conversation d'avant (Hugo + les quinze) reste alors servie
+let reunionsMod = null;        // les réunions du lundi et du vendredi (`reunions.js`) : `null` = pas montées ; les agents n'ont alors ni objectifs ni leçons
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
 let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
@@ -5797,13 +5876,17 @@ app.post('/api/espaces/etat', (req, res) => {
   /* Le métier voyage comme `opMessages` : sur les quatre réponses d'un espace VIVANT, formule ou pas, payé ou pas — un
      impayé garde son métier (ce n'est pas une fonction payante), et une entreprise sans formule aussi. */
   const metier = metierOk(e && e.metier);
+  /* Les catégories retenues voyagent comme le métier — sur les cinq réponses d'un espace VIVANT, suspendue comprise (le menu
+     grisé ne change pas de contenu au règlement). TOUJOURS présent : le tableau, ou `null` quand rien n'est réglé ; une
+     réponse SANS la clé vient d'un serveur d'avant, et l'application n'y touche à rien (voir le contrat, `CATS_OK`). */
+  const cats = catsOk(e && e.cats);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
   /* ⛔⛔ UNE FICHE SANS FORMULE NE SORT PLUS ICI (Justin, 30 septembre 2026, « Suspend ») : elle passe par `espacePaye`, qui la
      traite comme une fiche « Gratuit » d'avant (`ficheSansFormule`) — une période offerte ou un abonnement la servent, rien
      de payé la suspend, un doute ne décide rien. Seule une entreprise ABSENTE de l'annuaire garde la réponse d'avant, sans
      formule ni suspension : elle ne se décide pas (un annuaire illisible au démarrage rendrait TOUT LE MONDE inconnu — les
      suspendre couperait toutes les entreprises d'un coup, sur une panne de notre côté). */
-  if (!e) return res.json({ ok: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
+  if (!e) return res.json({ ok: true, opMessages, metier, cats, versionMin, enLigne, suspendu, sursisJours });
   /* ⛔ la formule SERVIE (`formulePayee`) : celle que l'entreprise paie, pas forcément celle de la fiche (29 septembre 2026) */
   espacePaye(e).then(p => {
     /* ⛔⛔ UN IMPAYÉ SE SERT COMME UNE SUSPENSION AU SURSIS ÉCOULÉ, SANS FORMULE (Justin, 29 septembre 2026 : « leur accès sont
@@ -5829,23 +5912,23 @@ app.post('/api/espaces/etat', (req, res) => {
        lui rouvrirait tout pendant une semaine, plus qu'à une entreprise que la Tour n'a pas touchée. `test-761`. */
     /* ⛔ ON NE SAIT PAS (Stripe ou registre des codes illisible) : ni formule, ni suspension — l'application garde ce qu'elle
        savait (`payeInconnu`, relectures du 30 septembre 2026) */
-    if (p.inconnu) return res.json({ ok: true, verificationImpossible: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
+    if (p.inconnu) return res.json({ ok: true, verificationImpossible: true, opMessages, metier, cats, versionMin, enLigne, suspendu, sursisJours });
     const fServie = p.formuleServie || e.formule;
-    if (accesSuspenduPar(p, fServie)) return res.json({ ok: true, paye: false, motif: 'accès suspendu', opMessages, metier, versionMin, enLigne, suspendu: true, sursisJours: 0 });
+    if (accesSuspenduPar(p, fServie)) return res.json({ ok: true, paye: false, motif: 'accès suspendu', opMessages, metier, cats, versionMin, enLigne, suspendu: true, sursisJours: 0 });
     /* ⛔⛔ `options` : LES OPTIONS DU PRO PAYÉES (1er octobre 2026), dans la réponse PAYÉE et nulle part ailleurs. Un tableau — éventuellement
        VIDE : « le serveur sait, et il n'y en a pas » (toujours `[]` en Business, Business Premium et en période offerte : toutes les
        rubriques y sont déjà ouvertes, l'application n'en déduit aucun verrouillage). ABSENT quand le serveur ne sait pas (liste Stripe
        périmée, places illisibles, doute) : l'application garde alors ce qu'elle savait — jamais « rien » à la place de « on ne sait
        pas ». Les deux réponses suspendue et « vérification impossible » n'en portent pas : une option ne lève aucune suspension.
        Jamais dans `motif` (`motifPublic`) : c'est la Tour, gardée, qui lit le détail. Les applications v763 et v767 ignorent ce champ. */
-    res.json({ ok: true, formule: fServie, quantite: e.quantite || 1, places: placesServies(e, p), paye: true, motif: motifPublic(p.motif), opMessages, metier, versionMin, enLigne, suspendu, sursisJours,
+    res.json({ ok: true, formule: fServie, quantite: e.quantite || 1, places: placesServies(e, p), paye: true, motif: motifPublic(p.motif), opMessages, metier, cats, versionMin, enLigne, suspendu, sursisJours,
       ...((Array.isArray(p.optionsServies) && !p.doute) ? { options: p.optionsServies.slice() } : {}) });
   })
     /* ⛔ LA VÉRIFICATION IMPOSSIBLE NE DÉCIDE RIEN. Elle rendait la formule avec `paye:false` : à la moindre panne ici,
        l'application v763 réécrivait `db.forfait` au Gratuit chez une entreprise qui paie, et le répandait à toute l'équipe
        par la synchro. On le DIT (`verificationImpossible`) et on ne sert ni formule ni suspension de facturation :
        l'application garde ce qu'elle savait. « Dans le doute, on ne coupe pas. » */
-    .catch(() => res.json({ ok: true, verificationImpossible: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours }));
+    .catch(() => res.json({ ok: true, verificationImpossible: true, opMessages, metier, cats, versionMin, enLigne, suspendu, sursisJours }));
 });
 /* nom d'entreprise présentable (jamais une adresse e-mail mise là faute de mieux) */
 function espNomPropre(e) { const n = String((e && e.nom) || '').trim(); return (n && !/@/.test(n) && n.toLowerCase() !== String((e && e.email) || '').toLowerCase()) ? n : ''; }
@@ -9459,6 +9542,10 @@ app.post('/api/clients/sync', async (req, res) => {
   if (entFermes.emails.includes(email)) return res.status(410).json({ error: 'compte fermé par TeamOP' });
   if (Object.keys(clientsData).length >= 2000 && !clientsData[email]) return res.json({ ok: true });   // cap silencieux
   const prev = clientsData[email] || {};
+  /* ⛔ L'ADRESSE EST-ELLE PROUVÉE ? Seule une session de `comptes.js` dont l'adresse est vérifiée le prouve (le test plus haut a déjà refusé le reste quand le
+     portail maison est allumé) ; un jeton Google, lui, ne prouve rien dès que `comptes` existe — et sans `comptes`, rien non plus. Léa n'écrit qu'à une adresse prouvée. */
+  const adresseProuvee = !!(cm && /^[0-9a-f]{64}$/i.test(brut) && cm.verifie(email));
+  const premiereSynchro = !clientsData[email];
   const demandes = (Array.isArray(b.demandes) ? b.demandes.slice(0, 20) : []).map(d => ({
     app: monStr(d && d.app, 60), formule: monStr(d && d.formule, 40), statut: monStr(d && d.statut, 20), date: parseInt(d && d.date, 10) || 0, besoin: monStr(d && d.besoin, 200), users: monStr(d && d.users, 10),
     code: monStr(d && d.code, 40), lien: monStr(d && d.lien, 60),
@@ -9635,6 +9722,21 @@ app.post('/api/clients/sync', async (req, res) => {
         .catch(e => console.error('accusé de demande:', sansAdresses(String((e && e.message) || e))));
     }
   } catch (e) { console.error('notif demande:', e && e.message); }
+  /* LÉA, sur une demande d'application NOUVELLE (la liste s'allonge) : métier (liste fermée), utilisateurs, formule et besoin. Indépendant du courriel
+     au patron ci-dessus (qui dépend de l'envoi SMTP) ; SANS ATTENDRE, sans jamais faire échouer la synchro. Une demande qui ne vise qu'OP MESSAGES
+     (pas encore vendu) ne déclenche rien : la démarche commerciale parle d'OP GESTION. */
+  try {
+    if (agentLea && adresseProuvee) {
+      /* (a) l'INSCRIPTION : la première synchro de ce compte vérifié — ou une inscription que le plafond du jour ou la file pleine a écartée (`aRepriser`).
+         Léa porte ses propres plafonds (une réponse par adresse sur 30 jours, trois préparations par heure et par adresse, vingt par jour). */
+      if (premiereSynchro || agentLea.aRepriser(email)) Promise.resolve(agentLea.surInscription({ entreprise: (clientsData[email] || {}).entreprise, email })).catch(() => {});
+      if (demandes.length > (prev.demandes || []).length) {
+        const nvL = demandes.slice((prev.demandes || []).length).filter(d => !/messages/i.test(String(d.app || '')));
+        const d = [...nvL].reverse().find(x => x.metier) || nvL[nvL.length - 1];
+        if (d) Promise.resolve(agentLea.surDemande({ email, entreprise: (clientsData[email] || {}).entreprise, metier: d.metier, users: d.users, formule: d.formule, besoin: d.besoin })).catch(() => {});
+      }
+    }
+  } catch (e) {}
   res.json({ ok: true });
 });
 // lecture depuis le contrôle (patron ET collaborateurs)
@@ -10086,14 +10188,17 @@ try {
      ni les marquer (voir plus haut). Et on garde ses boîtes (sans mot de passe) : `supprDestLisible` doit
      savoir si le code d'une suppression y atterrirait. */
   messagerieTour = require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege,
-    quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages });
+    quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages,
+    /* La veille annonce chaque message neuf à Camille. Liaison TARDIVE : la Messagerie est montée avant les agents, `agentCamille` n'existe pas
+       encore ici. Le crochet ne jette jamais et n'est pas attendu (voir `mail.js`). */
+    surNouveauMessage: (ev) => (agentCamille ? agentCamille.surNouveauMessage(ev) : null) });
   console.log('messagerie : module chargé');
   /* L'ÉQUIPE D'AGENTS (`agents.js`) : son socle seulement — registre, journal, validations, pause, tâches. Monté DANS ce bloc parce
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
      emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
   try {
     agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif,
-      cerveaux: ['hugo'], cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
+      cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
     console.log('agents : socle chargé');
     /* LA DIRECTION : la charte d'autonomie (ce que chaque geste a le droit de faire seul) et le rapport du jour. Elle ne fait agir personne. */
     directionMod = require('./direction')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod });
@@ -10116,21 +10221,103 @@ try {
     /* LES CONVERSATIONS : un fil privé par agent, un fil « Équipe ». Un agent y parle par `parler` / `rappelClient`, jamais par une route. */
     conversationsMod = require('./conversations')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, sansAdresses, pousseNotif,
       formeDossier: dossiersMod.FORME, dossierExiste: n => dossiersMod.existe(n),
-      surMessagePatron: (fil, t) => (fil === 'hugo' && agentHugo) ? agentHugo.repondre(t) : null });
+      /* Hugo a son module ; les quinze autres (et le fil « Équipe », que Victor tient) passent par la conversation générique. */
+      /* La messagerie des agents (`agent-equipe.js`) répond à tout message : le cité, l'agent du fil privé, le meneur du groupe. Si elle n'est pas
+         montée, la conversation d'avant reste servie (Hugo par son module, les quinze autres par la conversation générique) — mais seulement pour Justin. */
+      surMessage: (m) => agentEquipe ? agentEquipe.surMessage(m)
+        : (m.de !== 'justin' ? null : (m.fil === 'hugo' ? (agentHugo ? agentHugo.repondre(m.texte) : null) : (agentsConversation ? agentsConversation.repondre(m.fil, m.texte) : null))) });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
     const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '' });
     console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
+    /* ce qu'un agent peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note. UNE définition : Hugo
+       et les agents de la conversation générique (Léa, Camille, Margaux) la partagent, une seconde copie divergerait. */
+    const faitsDossier = async (n) => { const f = await dossiersMod.fiche(n); if (!f) return { numero: n, existe: false }; if (f.supprime) return { numero: n, supprime: true };
+        return { numero: n, inscritDepuis_jours: f.client.inscrit ? Math.floor((Date.now() - f.client.inscrit) / 86400000) : null, espace: f.espace.existe ? { existe: true, formule: f.espace.formule } : { existe: false },
+          paiement: f.paiement, formuleDemandee: ['pro', 'business', 'premium'].includes(String(f.client.plan).toLowerCase()) ? String(f.client.plan).toLowerCase() : '',
+          /* ⛔ des valeurs d'une LISTE : ce que le client a écrit n'entre jamais dans le prompt */
+          demandes: f.demandes.map(d => ({ app: ['OP GESTION', 'OP MESSAGES'].includes(d.app) ? d.app : 'autre', formule: ['pro', 'business', 'premium'].includes(String(d.formule).toLowerCase()) ? String(d.formule).toLowerCase() : '', statut: ['en attente', 'traitée', 'classée'].includes(d.statut) ? d.statut : 'autre' })) }; };
+    /* Les relevés que les agents ont le droit de lire : UNE définition, partagée par la conversation d'avant et par la messagerie. */
+    const faitsAgents = {
+          /* l'état de santé du serveur (la même fonction que /health, sans vider sa fenêtre) : on n'en garde que des nombres et des booléens. */
+          sante: async () => {
+            /* ⛔ PAS DE HTTP : `/health` vide la fenêtre des temps de réponse que lit la surveillance horaire. `santeCorps(false)` rend les mêmes
+               champs sans y toucher (`test-2881`). Le corps passe par JSON : ce que l'agent lit est ce que la route publierait, rien d'autre. */
+            let j; try { j = JSON.parse(JSON.stringify(santeCorps(false))); } catch (e) { j = null; }
+            if (!j || typeof j !== 'object') return null;
+            const nb = x => (typeof x === 'number' && Number.isFinite(x)) ? x : null, bo = x => typeof x === 'boolean' ? x : null;
+            const sv = j.sauvegarde || {}, lim = j.limites || {}, pr = j.processus || {}, mr = j.mailRefus || {};
+            return { ok: bo(j.ok), uptimeH: nb(j.uptime) === null ? null : Math.round(j.uptime / 3600), bugs1h: nb(j.bugs1h), bugs24h: nb(j.bugs24h), stripeEchecMin: nb(j.stripeEchecMin),
+              sauvegarde: { ok: bo(sv.ok), ageH: nb(sv.ageH), instantaneEchecs: nb(sv.instantaneEchecs) },
+              refus: { synchro1h: nb(lim.refusSynchro1h), autres1h: nb(lim.refusAutres1h), mail: nb(mr.n) }, processus: { rejets1h: nb(pr.rejets1h), erreurs1h: nb(pr.erreurs1h) } };
+          },
+          equipe: () => { const c = agentsMod.comptes(); return { modes: Object.fromEntries(agentsMod.AGENTS.map(a => [a.id, agentsMod.modeDe(a.id)])), validationsEnAttente: c.validationsEnAttente, tachesEnAttente: c.tachesEnAttente, tachesPrises: c.tachesPrises }; },
+          courrier: () => { if (!messagerieTour || typeof messagerieTour.compter !== 'function') return null; const c = messagerieTour.compter(); return { aTraiter: c.aTraiter, enCours: c.enCours }; },
+          clients: () => { const l = Object.values(clientsData || {});
+            return { clients: l.length, demandesEnAttente: l.reduce((n, c) => n + (Array.isArray(c && c.demandes) ? c.demandes.filter((d, i) => String(d && d.statut).toLowerCase() === 'en attente' && !(c.demandesTraitees && c.demandesTraitees[i])).length : 0), 0), espaces: Object.keys(espacesReg || {}).length }; },
+          dossier: faitsDossier };
+    /* LA CONVERSATION DES QUINZE AUTRES AGENTS (celle d'avant, gardée en repli) : ils répondent dans « Parler » (Claude, faits fermés, rien d'exécuté).
+       Sous son propre `try` : un échec de montage ne doit emporter ni Hugo ni la Messagerie — les agents se taisent, c'est tout. */
+    try {
+      agentsConversation = require('./agent-conversation')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents,
+        memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
+      console.log('agents : conversation montée pour ' + agentsConversation.ids.length + ' agents');
+    } catch (e) { agentsConversation = null; console.error('conversation des agents indisponible :', e.message); }
+    /* LÉA, CAMILLE ET LEURS BROUILLONS : une réponse commerciale PRÉPARÉE à chaque inscription, demande d'application et mail reçu — jamais envoyée
+       sans Justin (la validation « envoyer_mail »), sauf mode « auto » ET charte `repondre_client` ouverte (fermée par défaut). Chacune sous son
+       propre `try` : un échec de montage éteint ce module-là et RIEN d'autre (ni la conversation, ni Hugo, ni la Messagerie). Léa et Camille
+       répondent toujours dans « Parler » par le module générique ci-dessus. */
+    const MESSAGERIES_PUBLIQUES = /^(gmail|googlemail|outlook|hotmail|live|msn|yahoo|ymail|icloud|me|mac|orange|wanadoo|free|sfr|neuf|laposte|bbox|aol|proton|protonmail|gmx|web|numericable)\./i;
+    const nosAdressesCourrier = () => {
+      const adr = new Set(), dom = new Set(['teamop.fr']);
+      const ajoute = a => { const n = adrNue(a); const m = /^[^@\s<>]+@([^@\s<>]+)$/.exec(n); if (!m) return; adr.add(n); if (!MESSAGERIES_PUBLIQUES.test(m[1])) dom.add(m[1]); };
+      try { ajoute(config.smtp && (config.smtp.from || config.smtp.user)); ajoute(config.contactEmail); ajoute(config.alertEmail); } catch (x) {}
+      try { for (const b of (messagerieTour.boites() || [])) ajoute(b && b.email); } catch (x) {}
+      return { domaines: [...dom], adresses: [...adr] };
+    };
+    const fichierAgents = require('./agents-fichier')(DATA_DIR);
+    try {
+      brouillonsMod = require('./agents-brouillons')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, mail: messagerieTour, direction: directionMod,
+        fichier: fichierAgents, sansAdresses });
+    } catch (e) { brouillonsMod = null; console.error('brouillons des agents indisponibles :', e.message); }
+    try {
+      if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents,
+        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK });
+    } catch (e) { agentLea = null; console.error('Léa indisponible :', e.message); }
+    try {
+      if (brouillonsMod) agentCamille = require('./agent-camille')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, mail: messagerieTour, fichier: fichierAgents,
+        /* NOS domaines : celui de l'expéditeur de la configuration, teamop.fr et ceux des boîtes connectées — un mail de chez nous n'appelle jamais de réponse.
+           ⚠️ Mais un domaine de messagerie PUBLIQUE (gmail.com, orange.fr…) n'est pas « chez nous » parce qu'une de nos adresses y vit : pour lui, seules nos
+           adresses EXACTES comptent (`adressesNotres`) — sinon tous les clients qui écrivent depuis la même messagerie seraient ignorés. */
+        domainesNotres: () => nosAdressesCourrier().domaines, adressesNotres: () => nosAdressesCourrier().adresses });
+    } catch (e) { agentCamille = null; console.error('Camille indisponible :', e.message); }
+    /* LA MESSAGERIE DES AGENTS : groupes, @mentions, réveil du cité, outils fermés (prendre, passer…), « X écrit… ». Elle remplace la conversation
+       d'avant sur tous les fils (Hugo compris) dès qu'elle est montée ; sous son propre `try`, comme la précédente. */
+    try {
+      agentEquipe = require('./agent-equipe')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents,
+        memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
+      console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
+    } catch (e) { agentEquipe = null; console.error('messagerie des agents indisponible :', e.message); }
+    /* LES RÉUNIONS : lundi 9 h les objectifs, vendredi 18 h le bilan (heure de Paris), leçons et objectifs rangés puis injectés dans les consignes des agents.
+       Sous son propre `try` : sans elles, les agents parlent comme avant. La vérification est minutée ICI (une fois par minute, plus une première cinq secondes après le
+       démarrage : un serveur qui revient dans le créneau de rattrapage rattrape) — `reunions.js` n'arme aucune minuterie lui-même. */
+    try {
+      reunionsMod = require('./reunions')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, pousseNotif,
+        equipe: () => agentEquipe,
+        /* Les incidents de la fenêtre : des NOMBRES (ouverts depuis le début, corrigés depuis, restant à traiter) — jamais le texte d'un incident, forgeable (/api/monitor/report est publique). */
+        faits: { incidents: (debut, fin) => ({ ouverts: monIssues.filter(i => i.firstTs >= debut && i.firstTs <= fin).length,
+          corriges: monIssues.filter(i => i.statut === 'corrige' && i.lastTs >= debut && i.lastTs <= fin).length,
+          aTraiter: monIssues.filter(i => i.statut === 'nouveau' || i.statut === 'encours').length }) } });
+      const ticReunions = () => { try { reunionsMod.tic(); } catch (e) { console.error('réunions :', e.message); } };
+      setTimeout(ticReunions, 5000).unref();
+      setInterval(ticReunions, 60000).unref();
+      console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
+    } catch (e) { reunionsMod = null; console.error('réunions des agents indisponibles :', e.message); }
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
     agentHugo = require('./agent-hugo')({
       agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, slug: espSlug,
-      /* ce que Hugo peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note */
-      faits: async (n) => { const f = await dossiersMod.fiche(n); if (!f) return { numero: n, existe: false }; if (f.supprime) return { numero: n, supprime: true };
-        return { numero: n, inscritDepuis_jours: f.client.inscrit ? Math.floor((Date.now() - f.client.inscrit) / 86400000) : null, espace: f.espace.existe ? { existe: true, formule: f.espace.formule } : { existe: false },
-          paiement: f.paiement, formuleDemandee: ['pro', 'business', 'premium'].includes(String(f.client.plan).toLowerCase()) ? String(f.client.plan).toLowerCase() : '',
-          /* ⛔ des valeurs d'une LISTE : ce que le client a écrit n'entre jamais dans le prompt */
-          demandes: f.demandes.map(d => ({ app: ['OP GESTION', 'OP MESSAGES'].includes(d.app) ? d.app : 'autre', formule: ['pro', 'business', 'premium'].includes(String(d.formule).toLowerCase()) ? String(d.formule).toLowerCase() : '', statut: ['en attente', 'traitée', 'classée'].includes(d.statut) ? d.statut : 'autre' })) }; },
+      faits: faitsDossier,
       clients: () => Object.values(clientsData || {}).map(c => ({ email: c && c.email, entreprise: c && c.entreprise })),
       espaceExiste: (email, sl) => !!espacesReg[sl] || Object.values(espacesReg).some(x => x && String(x.email || '').toLowerCase() === String(email).toLowerCase()),
       /* ⛔ `stripeListe` rend `[]` quand la lecture a échoué et qu'aucune liste n'a jamais été lue (une minute d'attente après un échec) :

@@ -32,7 +32,8 @@
  *
  * Ce que le serveur déclare : sept routes sous `/api/monitor/agents`, déclarées EN ENTIER (la
  * table `ROUTES_COMMUNES` d'`index.js` lit `req.route.path`) ; elles tombent donc en GESTION, la
- * console fermée — voulu : l'équipe d'agents touche à l'argent et aux comptes. Lire : `monAdmin`.
+ * console fermée — voulu : l'équipe d'agents touche à l'argent et aux comptes. Lire : `monAdmin` — mais le TEXTE LIBRE des consignes
+ * (tâches, journal) n'est rendu qu'au patron.
  * Écrire (mode, pause, décision) : `monPatronStrict`. Les trois écritures sont aussi dans
  * `MON_GESTES` : `tests/test-1015.js` refuse une route POST de la Tour qui n'y est pas.
  *
@@ -99,6 +100,14 @@ const ATTENTE_PAR_AGENT = 20;
 const VALIDATION_VIE_MS = 7 * 86400000;
 const TACHE_VIE_MS = 48 * 3600000;
 const RESUME_MAX = 200;
+/* LES CONSIGNES (23 octobre 2026) : le travail qu'un agent PREND dans une conversation (« @Camille, tu t'occupes de… »). C'est le seul type de
+   tâche dont le texte est LIBRE — voulu, c'est ce que Justin ou un collègue vient de dire — et c'est pourquoi il n'entre ni dans `SCHEMAS` ni
+   dans `TYPES_TACHE` : `deposer` (la voie des demandes entre agents) reste fermée, une phrase n'y passe toujours pas. Une consigne ne naît que
+   par `consigner` (l'agent la prend lui-même) et ne change de main que par `passerConsigne`, qui porte TOUTES les règles. */
+const CONSIGNE_MAX = 500;
+const CONSIGNE_VIE_MS = 7 * 86400000;     // une consigne vit plus longtemps qu'une demande fermée : c'est du vrai travail, pas un relais
+const CONSIGNES_PAR_AGENT = 10;           // en cours, par agent : un agent qui s'emballe ne s'attribue pas la file
+const SANS_CONSIGNE_LIBRE = ['hugo', 'margaux'];   // l'argent et les accès : du texte libre ne leur vient QUE de Justin
 
 /* Valide `params` contre le schéma de `type`. Rend les paramètres NETTOYÉS (uniquement les champs du
    schéma, rien d'autre ne passe) ou null. Un champ en trop, un champ manquant, une valeur hors forme,
@@ -203,7 +212,7 @@ module.exports = function monterAgents(app, ctx) {
     const t = maintenant();
     let touche = false;
     for (const v of validations) if (v.statut === 'en_attente' && t - v.ts > VALIDATION_VIE_MS) { v.statut = 'expire'; v.decideTs = t; touche = true; }
-    for (const k of taches) if ((k.statut === 'attente' || k.statut === 'prise') && t - k.ts > TACHE_VIE_MS) { k.statut = 'expiree'; touche = true; }
+    for (const k of taches) if ((k.statut === 'attente' || k.statut === 'prise') && t - k.ts > (k.type === 'consigne' ? CONSIGNE_VIE_MS : TACHE_VIE_MS)) { k.statut = 'expiree'; touche = true; }
     if (touche) { ecrire(F_VALID, validations); ecrire(F_TACHES, taches); }
   }
 
@@ -266,11 +275,89 @@ module.exports = function monterAgents(app, ctx) {
     if (!ecrire(F_TACHES, taches)) { k.statut = 'attente'; return null; }
     return { id: k.id, de: k.de, type: k.type, params: Object.assign({}, k.params) };
   }
-  function terminer(tacheId, id, resultat) {
+  function terminer(tacheId, id, resultat, resume) {
     const k = taches.find(x => x.id === tacheId && x.vers === id && x.statut === 'prise');
     if (!k) return false;
+    const avant = { statut: k.statut, resume: k.resume };
     k.statut = resultat === 'ok' ? 'faite' : 'echec';
-    return ecrire(F_TACHES, taches);
+    if (typeof resume === 'string' && resume.trim()) k.resume = monStr(sansAdr(resume.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()), RESUME_MAX);
+    if (!ecrire(F_TACHES, taches)) { k.statut = avant.statut; if (avant.resume === undefined) delete k.resume; else k.resume = avant.resume; return false; }
+    return true;
+  }
+
+  /* ── Les consignes : le travail pris en conversation ── */
+  const enCours = id => taches.filter(k => k.vers === id && k.statut === 'prise');
+  const proprement = t => monStr(sansAdr(String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()), CONSIGNE_MAX);
+  /* `demandeur` : 'justin' ou l'identifiant d'un agent. L'agent `vers` prend SA tâche : elle naît « en cours », « demandée par » celui qui l'a demandée.
+     ⛔ Hugo et Margaux ne reçoivent un texte libre que de Justin : le serveur le dit ICI, pas dans le prompt — c'est la règle qui garde l'argent et
+     les accès d'une phrase qu'un client aurait glissée dans le courrier d'un collègue. */
+  function consigner(demandeur, vers, texte) {
+    if (illisibles.has(F_TACHES)) return { ok: false, raison: 'registre_illisible' };
+    if (!IDS.has(vers)) return { ok: false, raison: 'destinataire' };
+    if (demandeur !== 'justin' && !IDS.has(demandeur)) return { ok: false, raison: 'demandeur' };
+    if (demandeur === vers) return { ok: false, raison: 'demandeur' };
+    const p = peutAgir(vers);
+    if (!p.ok) { noter(vers, 'prendre une consigne', { cible: 'consigne', resultat: 'refuse', detail: p.raison }); return { ok: false, raison: p.raison }; }
+    if (SANS_CONSIGNE_LIBRE.includes(vers) && demandeur !== 'justin') {
+      noter(vers, 'prendre une consigne', { cible: 'consigne', resultat: 'refuse', detail: 'texte libre : seul Justin en donne à cet agent', qui: demandeur });
+      return { ok: false, raison: 'consigne_libre_refusee' };
+    }
+    const t = proprement(texte);
+    if (!t) return { ok: false, raison: 'texte' };
+    perimer();
+    const en = enCours(vers);
+    if (en.length >= CONSIGNES_PAR_AGENT) return { ok: false, raison: 'trop_de_taches' };
+    if (en.some(k => k.type === 'consigne' && k.params.texte === t)) return { ok: false, raison: 'doublon' };
+    const k = { id: nouvelId(), ts: maintenant(), de: demandeur, vers, type: 'consigne', params: { texte: t }, statut: 'prise' };
+    taches.push(k);
+    if (taches.length > TACHES_MAX) {
+      const finies = taches.filter(x => x.statut !== 'attente' && x.statut !== 'prise');
+      if (finies.length) taches.splice(taches.indexOf(finies[0]), 1); else taches.shift();
+    }
+    if (!ecrire(F_TACHES, taches)) { taches.splice(taches.indexOf(k), 1); return { ok: false, raison: 'ecriture' }; }
+    noter(vers, 'prendre une consigne', { cible: 'consigne', resultat: 'ok', detail: t, qui: demandeur });
+    return { ok: true, id: k.id, texte: t };
+  }
+
+  /* Passer une consigne à un collègue. Les règles de Justin (« si une personne est occupée et qu'une autre ne fait rien et peut gérer, pour ne
+     pas la surcharger ») sont ICI, une seule fois :
+       · c'est la tâche de `par` — sauf pour Victor, qui répartit le travail de l'équipe ;
+       · son titulaire est RÉELLEMENT chargé : au moins une AUTRE tâche en cours (sinon il garde ce qu'on lui a demandé) ;
+       · le destinataire est un collègue LIBRE (aucune tâche en cours), qui peut agir, jamais Hugo ni Margaux ;
+       · la tâche reste « demandée par » la même personne. */
+  function passerConsigne(par, tacheId, vers) {
+    if (illisibles.has(F_TACHES)) return { ok: false, raison: 'registre_illisible' };
+    perimer();
+    const k = taches.find(x => x.id === tacheId && x.type === 'consigne' && x.statut === 'prise');
+    const refus = raison => { noter(IDS.has(par) ? par : 'systeme', 'passer une consigne', { cible: String(tacheId).slice(0, 20), resultat: 'refuse', detail: raison }); return { ok: false, raison }; };
+    if (!IDS.has(par)) return { ok: false, raison: 'inconnu' };
+    if (!k) return refus('tache');
+    if (k.vers !== par && par !== 'victor') return refus('pas_le_tien');
+    if (!IDS.has(vers) || vers === k.vers) return refus('destinataire');
+    if (SANS_CONSIGNE_LIBRE.includes(vers)) return refus('jamais_hugo_margaux');
+    if (enCours(k.vers).length < 2) return refus('pas_charge');
+    if (enCours(vers).length > 0) return refus('occupe');
+    const p = peutAgir(vers);
+    if (!p.ok) return refus(p.raison);
+    if (!peutAgir(par).ok) return refus(peutAgir(par).raison);
+    const ancien = k.vers;
+    k.vers = vers; k.passePar = (k.passePar || []).concat(ancien).slice(-5);
+    if (!ecrire(F_TACHES, taches)) { k.vers = ancien; k.passePar = k.passePar.slice(0, -1); if (!k.passePar.length) delete k.passePar; return { ok: false, raison: 'ecriture' }; }
+    noter(par, 'passer une consigne', { cible: ancien + ' → ' + vers, resultat: 'ok', detail: k.params.texte });
+    return { ok: true, de: ancien, vers, texte: k.params.texte, demandePar: k.de };
+  }
+
+  /* Ce que chacun a en cours : des NOMBRES pour tous, le détail pour l'agent lui-même. `null` si la file est illisible (on ne sait pas : on ne répartit rien). */
+  function charge() {
+    if (illisibles.has(F_TACHES)) return null;
+    perimer();
+    const o = {}; for (const a of AGENTS) o[a.id] = enCours(a.id).length;
+    return o;
+  }
+  function tachesDe(id) {
+    if (illisibles.has(F_TACHES) || !IDS.has(id)) return [];
+    perimer();
+    return enCours(id).map(k => ({ id: k.id, de: k.de, type: k.type, texte: k.type === 'consigne' ? k.params.texte : '' }));
   }
 
   /* Ce qui s'exécute quand le patron accepte une proposition : un agent branche son geste ici. Sans exécuteur, accepter
@@ -278,6 +365,23 @@ module.exports = function monterAgents(app, ctx) {
   function executeur(type, fn) {
     if (!TYPES_VALIDATION.includes(type) || typeof fn !== 'function') throw new Error('exécuteur refusé : ' + type);
     executeurs.set(type, fn);
+  }
+
+  /* Une GARDE d'acceptation : ce qu'un type de validation exige AVANT d'être accepté (rend '' si tout va bien, sinon la raison, dite telle quelle à la Tour
+     avec un 409 — la validation reste alors EN ATTENTE). Pour « envoyer_mail » : que le patron ait lu le texte qui partira, pas un texte réécrit depuis
+     (`agents-brouillons.js`). Un refus n'est jamais gardé : refuser ne coûte rien. */
+  const gardes = new Map();
+  function garde(type, fn) {
+    if (!TYPES_VALIDATION.includes(type) || typeof fn !== 'function') throw new Error('garde refusée : ' + type);
+    gardes.set(type, fn);
+  }
+
+  /* Une proposition de plus tiendrait-elle dans la file de CET agent ? Pour qui veut le savoir AVANT de payer un appel à Claude (Léa) : une réponse
+     rédigée puis jetée faute de place coûte un appel et ne sert à rien. */
+  function placeLibre(id) {
+    perimer();
+    const attente = validations.filter(v => v.statut === 'en_attente');
+    return attente.length < ATTENTE_MAX && attente.filter(v => v.agent === id).length < ATTENTE_PAR_AGENT;
   }
 
   async function decider(id, decision, qui) {
@@ -303,6 +407,12 @@ module.exports = function monterAgents(app, ctx) {
   }
 
   /* ── les routes ── */
+  /* Le patron, jugé sur le compte que la garde a posé — jamais sur le corps de la requête. Sans `req.tourUser` (garde absente), on est « non patron » : dans le doute, rien. */
+  const estPatron = req => !!(req && req.tourUser && req.tourUser.role === 'patron');
+  /* Les lignes du journal dont `detail` est une PHRASE (la consigne prise ou passée, la leçon et le reste d'une réunion) — les autres portent un identifiant,
+     un compte, un motif de la liste. Par préfixe pour les réunions : une action neuve de réunion naît masquée, c'est le sens sûr. */
+  const texteLibreJournal = a => a === 'prendre une consigne' || a === 'passer une consigne' || String(a).startsWith('réunion : ');
+  const sansDetail = e => { const c = Object.assign({}, e); delete c.detail; c.detailReserve = true; return c; };
   const vue = v => ({ id: v.id, ts: v.ts, agent: v.agent, type: v.type, resume: v.resume, params: v.params, statut: v.statut,
     decideTs: v.decideTs || 0, decidePar: v.decidePar || '', execution: v.execution || '' });
 
@@ -318,7 +428,10 @@ module.exports = function monterAgents(app, ctx) {
     const id = IDS.has(String(req.query.agent || '')) ? String(req.query.agent) : '';
     const n = Math.min(Math.max(parseInt(req.query.limite, 10) || 100, 1), 500);
     if (illisibles.has(F_JOURNAL)) return res.status(503).json({ error: 'Le journal des agents est illisible' });   // jamais « [] » : une liste vide dit « rien ne s'est passé »
-    res.json({ ok: true, journal: journal.filter(e => !id || e.agent === id).slice(-n).reverse() });
+    /* ⛔ Le texte libre d'une consigne ou d'une leçon n'est lu que par le patron : `monAdmin` laisse passer tout compte actif, et ces lignes portent ce que
+       Justin a TAPÉ (un nom de client, un rappel). Les autres comptes lisent l'événement (qui, quoi, quand, résultat), pas la phrase. */
+    const patron = estPatron(req);
+    res.json({ ok: true, journal: journal.filter(e => !id || e.agent === id).slice(-n).reverse().map(e => (!patron && e.detail !== undefined && texteLibreJournal(e.action)) ? sansDetail(e) : e) });
   });
   app.get('/api/monitor/agents/validations', monAdmin, (req, res) => {
     perimer();
@@ -329,7 +442,14 @@ module.exports = function monterAgents(app, ctx) {
   app.get('/api/monitor/agents/taches', monAdmin, (req, res) => {
     perimer();
     if (illisibles.has(F_TACHES)) return res.status(503).json({ error: 'La file de tâches est illisible' });
-    res.json({ ok: true, taches: taches.slice(-200).reverse().map(k => ({ id: k.id, ts: k.ts, de: k.de, vers: k.vers, type: k.type, params: k.params, statut: k.statut })) });
+    /* `passePar` : les identifiants de ceux qui ont passé cette tâche avant l'agent actuel (jamais un texte) — c'est ce qui permet à la Tour de dire
+       « déléguée » sans le deviner (messagerie, « Qui fait quoi »). */
+    /* ⛔ Une consigne porte du texte libre (jusqu'à CONSIGNE_MAX signes, tapé par Justin ou écrit par un agent) : seul le patron le lit. Les autres comptes de la
+       Tour voient la tâche — qui, vers qui, quel état — avec un texte vide. Les demandes STRUCTURÉES (SCHEMAS) restent entières : ce sont des formes fermées. */
+    const patron = estPatron(req);
+    res.json({ ok: true, taches: taches.slice(-200).reverse().map(k => ({ id: k.id, ts: k.ts, de: k.de, vers: k.vers, type: k.type,
+      params: (!patron && k.type === 'consigne') ? { texte: '' } : k.params, statut: k.statut,
+      passePar: Array.isArray(k.passePar) ? k.passePar.filter(x => IDS.has(x)) : [] })) });
   });
 
   app.post('/api/monitor/agents/mode', monPatronStrict, (req, res) => {
@@ -367,6 +487,16 @@ module.exports = function monterAgents(app, ctx) {
     if (typeof b.id !== 'string' || !REF.test(b.id)) return res.status(400).json({ error: 'Identifiant manquant' });
     if (b.decision !== 'accepter' && b.decision !== 'refuser') return res.status(400).json({ error: 'Décision : accepter ou refuser' });
     try {
+      if (b.decision === 'accepter') {
+        perimer();
+        const v0 = validations.find(x => x.id === b.id);
+        const g = v0 && v0.statut === 'en_attente' ? gardes.get(v0.type) : null;
+        if (g) {
+          let refus = '';
+          try { refus = String(g(Object.assign({}, v0.params), b) || ''); } catch (e) { refus = 'Vérification impossible : la validation reste en attente'; }
+          if (refus) return res.status(409).json({ error: refus });
+        }
+      }
       const r = await decider(b.id, b.decision, req.tourUser.nom);
       if (r.code !== 200) return res.status(r.code).json({ error: r.error });
       res.json({ ok: true, validation: vue(r.validation) });
@@ -376,7 +506,18 @@ module.exports = function monterAgents(app, ctx) {
   /* Pour la direction (charte, rapport du jour) : une COPIE du journal, et le fait qu'il soit lisible ou non — jamais « [] » à la place d'un « on ne sait pas ». */
   const lireJournal = () => journal.slice();
   const journalIllisible = () => illisibles.has(F_JOURNAL);
-  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS, lireJournal, journalIllisible };
+  /* Des NOMBRES sur la file et les tâches, pour qui veut dire « où en est l'équipe » sans recopier la file : jamais un résumé ni des
+     paramètres (ce sont des phrases de l'équipe). `null` si la file est illisible — « on ne sait pas » n'est pas « zéro ». */
+  const comptes = () => {
+    perimer();
+    return { validationsEnAttente: illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').length,
+      tachesEnAttente: illisibles.has(F_TACHES) ? null : taches.filter(k => k.statut === 'attente').length,
+      tachesPrises: illisibles.has(F_TACHES) ? null : taches.filter(k => k.statut === 'prise').length };
+  };
+  /* Une validation de ce (type, champ = valeur) attend-elle encore le patron ? Pour un agent qui doit savoir si SON brouillon est encore sous les yeux de
+     Justin (une validation refusée ou expirée n'attend plus personne : réécrire le brouillon qui lui correspond serait écrire dans le vide). */
+  const enAttentePour = (type, champ, valeur) => { perimer(); return validations.some(v => v.statut === 'en_attente' && v.type === type && v.params && v.params[champ] === valeur); };
+  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;
@@ -384,3 +525,5 @@ module.exports.SCHEMAS = SCHEMAS;
 module.exports.TYPES_VALIDATION = TYPES_VALIDATION;
 module.exports.TYPES_TACHE = TYPES_TACHE;
 module.exports.paramsValides = paramsValides;
+module.exports.CONSIGNE_MAX = CONSIGNE_MAX;
+module.exports.SANS_CONSIGNE_LIBRE = SANS_CONSIGNE_LIBRE;

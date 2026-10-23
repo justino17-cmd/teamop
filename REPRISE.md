@@ -14,6 +14,30 @@ de ligne du tout.
 ---
 
 
+# 👉 23 OCTOBRE 2026 — L'ÉQUIPE D'AGENTS : RELECTURE DES PARTIES C1 À C3 (branche `claude/equipe-messagerie`, pas sur `main`)
+**Corrigé** (relecture adverse, chaque constat rejoué avant) :
+- ⛔ **Le texte libre des consignes n'est plus lu par tout compte actif de la Tour.** `/agents/taches` rend `params.texte` d'une consigne VIDE à un non-patron ;
+  `/agents/journal` retire le `detail` des lignes « prendre/passer une consigne » et « réunion : … » (`detailReserve:true` à la place) ; `/agents/reunions`
+  passe en `monPatronStrict` (compte rendu, objectifs, bilans, leçons). Rejoué sur le vrai serveur avec un compte `Collab` : `test-2881`, `test-2885`.
+  Note : l'objectif d'une réunion n'entre PAS au journal (seulement « N objectif(s) ») — le constat le citait à tort ; le préfixe « réunion : » est masqué quand même (une action neuve naît masquée).
+- ⛔ **Le plafond de 500 messages ne chasse plus un rappel de client non lu** (`conversations.js`, `elaguer`) : un message non lu qui porte un dossier ou le niveau
+  « urgent » reste ; ce sont les lignes ordinaires/du système, puis les lus, qui partent d'abord. Les protégés ne partent que s'il y en a plus de 500 (fichier borné).
+  Un échec d'écriture rend le registre tel qu'il était, évincés compris. `test-2707` § 1 ter.
+- **Une réunion annulée AVANT son premier appel ne consomme plus son créneau** (aucun agent allumé, clé absente, budget illisible) : `reessai`, relue à la minute
+  par `tic()` sans rien réécrire tant que rien ne change ; Justin rallume à 9 h 15, elle se tient. Dite UNE fois. `test-2884` § 2. La confirmation de la Tour dit
+  qu'un lancement à la main le jour même tient lieu de la réunion planifiée (inchangé côté serveur : voulu).
+- Les deux phrases de la Tour (« liste fermée ») disent désormais ce que le code fait (demandes d'argent et d'accès = liste fermée ; le travail confié en conversation =
+  phrase libre, jamais un texte de client) — gardées par `test-2882`, dont le contrôle des écritures couvre maintenant TOUTES les fonctions `ms*`/`mess*`/`agCv*`.
+**⛔ Attend UNE DÉCISION DE JUSTIN, avant toute publication — `sous-traitance.html` et `registre-traitements.html`** (cahier §9) : depuis la messagerie, ce qui part chez
+Anthropic à chaque réveil d'un agent dépasse « le message que l'éditeur écrit à un agent » (ligne « Agents internes ») : les 15 derniers messages du fil (ceux des autres
+agents et des groupes compris), le texte libre des consignes en cours (celles de TOUTE l'équipe pour Victor), les objectifs et leçons, le déroulé du fil et des chiffres du
+journal pour une réunion. Les adresses et numéros sont masqués, PAS les noms : un nom de client que Justin tape dans un message ou une consigne repart à chaque réveil.
+Deux voies : étendre la ligne « Agents internes » (+ créer l'entrée du registre, qui ne mentionne aucun agent) — ou réduire le contexte (pas les consignes des autres
+à Victor, noms propres masqués). Non touché : c'est un texte juridique, ce n'est pas à un agent de le trancher.
+**Laissé** : (a) Hugo/Margaux et le texte d'une tâche rédigé d'après un message d'un collègue, validé par un « ok » de Justin : l'effet est une ligne dans une liste (aucun
+outil d'argent), pas d'urgence — options au constat (citer le dernier message de Justin, ou le rappeler au prompt) ; (b) le plancher de `scripts/bancs-serveur.liste`
+(4 630) est très en dessous du total mesuré : à relever à la fusion, sur la liste fusionnée.
+
 # ✅ 20 OCTOBRE 2026 (SOIR) — OP MESSAGES : CAMPAGNE DE TESTS, DEUX DÉFAUTS CORRIGÉS ; OP COURRIER LISIBLE, LIENS, TRADUCTION (publié sur `main`)
 - **Publié** (Justin : « publie », « je t'autorise ») : l'administration d'OP MESSAGES réservée au patron (`monPatronStrict`, `test-1016`) ;
   un lien `#reunion=` collé au démarrage n'est plus refermé (la question « Courrier ouvert ? » part avec la session) ; le corps d'un mail
