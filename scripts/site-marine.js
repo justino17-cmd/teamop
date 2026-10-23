@@ -710,7 +710,7 @@ const PAGES = {
       + `</div>
           <p class="erreur-metier" id="erreur-metier" role="alert" hidden>${fr('Choisissez votre métier : il règle votre application (catégories d\'intervention, fiche de terrain, rubriques). La demande ne part pas sans lui.')}</p>
           <p class="metier-bientot" id="metier-bientot" role="status" hidden>${fr('Ce métier n\'a pas encore son pack dans l\'application : la demande part quand même, et nous construisons le vôtre avec vous.')}</p></div>
-          <div id="rubriques-demande" hidden><h3>${fr('3 · Vos rubriques')}</h3><p>${fr('Cochez ce dont vous avez besoin : elles sont pré-cochées pour votre métier, et chacune dit ce qu\'elle fait.')}</p><div id="rubriques-grille"></div></div>
+          <div id="rubriques-demande" hidden><h3>${fr('3 · Vos rubriques')}</h3><div id="rubriques-grille"></div></div>
           <div><h3>${fr('4 · Ce dont vous avez besoin')}</h3><p>${fr('Cochez tout ce qui vous parle — on affine ensemble après.')}</p><div class="besoins">`
       + ['Planning et rendez-vous', 'Suivi d\'interventions / chantiers', 'Stock / matériel / box', 'Encaissements / facturation', 'Communication d\'équipe', 'Photos et comptes-rendus', 'Gestion clients / contrats'].map(b => `<button type="button" class="besoin" aria-pressed="false">${fr(b)}</button>`).join('')
       + `</div></div>

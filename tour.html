@@ -8589,8 +8589,8 @@ function demCatsHtml(c,i,d){
 }
 function demCatsInfo(cle,dep){
   var sel=DEM.cats[cle]||[], depart=dep&&dep.liste?dep.liste:[], pareil=JSON.stringify(CAT_CLES.filter(function(k){ return sel.indexOf(k)>=0; }))===JSON.stringify(depart);
-  var qui=dep&&dep.source==='client'?'le choix du client':'le conseil du métier';
-  return '<b>'+sel.length+' rubrique'+(sel.length>1?'s':'')+' sur '+CAT_CLES.length+'</b> — '+(pareil?'pré-cochées avec '+qui:'ajustées (parti de '+qui+', '+depart.length+')')+
+  var qui=dep&&dep.source==='client'?'le choix du client':'le conseil du métier', dequi=dep&&dep.source==='client'?'du choix du client':'du conseil du métier';
+  return '<b>'+sel.length+' rubrique'+(sel.length>1?'s':'')+' sur '+CAT_CLES.length+'</b> — '+(pareil?'pré-cochées avec '+qui:'ajustées (parti '+dequi+', '+depart.length+')')+
     (sel.length===CAT_CLES.length?'. Tout coché : rien n’est restreint.':'. L’application ne montrera que celles-là.');
 }
 /* une case cochée ou décochée : l'état, la ligne et le compteur se mettent à jour EN PLACE (un rendu complet ferait perdre la place) */

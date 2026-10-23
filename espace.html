@@ -1027,7 +1027,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         <p class="muted" style="margin:-6px 0 12px;font-size:12px">💬 <b>OP MESSAGES</b> est une application indépendante : compte personnel gratuit, abonnement à part — tout se passe directement dans l'application.</p>
         <div class="field"><label for="r-metier">Votre métier *</label><select id="r-metier" aria-required="true" onchange="ratMetierChange()"><option value="" disabled ${ed&&ed.metier?'':'selected'}>— Choisissez votre métier —</option>${ratOptions(ed&&ed.metier)}</select>
         <p class="muted" style="margin:6px 0 0;font-size:12px">Votre application est réglée sur votre métier : types d'intervention, fiche de terrain et rubriques.</p></div>
-        <div class="field" id="r-rub">${ratZone()}</div>
+        <div id="r-rub" style="margin-bottom:14px">${ratZone()}</div>
         <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Nombre d'utilisateurs *</label><input id="r-users" type="number" min="1" max="250" placeholder="ex. 5" value="${ed&&ed.users?esc(String(ed.users)):''}"></div>
         <div class="field" style="flex:1.4"><label>Formule OP GESTION *</label><select id="r-formule"><option value="" disabled ${ed&&ed.formule&&ed.formule!=='Je ne sais pas encore'?'':'selected'}>— Choisissez votre formule —</option>${['Pro','Business','Business Premium'].map(o=>`<option ${ed&&ed.formule===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
         <div class="field"><label>Code teste / code promo (facultatif)</label>
