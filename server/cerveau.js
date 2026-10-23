@@ -22,10 +22,28 @@ const MAX_TOKENS = 600;
    un agent qui boucle ferait payer une réponse sans fin sur un budget partagé de 195 $. */
 const MAX_TOKENS_MIN = 100, MAX_TOKENS_MAX = 4000;
 const TIMEOUT_MS = 30000;
+/* `opts.reflechir === true` : la réponse d'un agent qui CONVERSE (23 octobre 2026, Justin : « des agents qui réfléchissent comme des humains »).
+   La réflexion est alors adaptative — le modèle décide s'il en a besoin — et elle est prise SUR `max_tokens` : on laisse donc 3000 jetons (la
+   réponse, elle, reste bornée à 600 caractères par l'appelant). Sans `reflechir`, rien ne change : `thinking` désactivé, 600 jetons. */
+const MAX_TOKENS_REFLEXION = 3000;
 function jetonsDemandes(opts) {
   const n = opts && typeof opts === 'object' ? opts.maxTokens : undefined;
-  if (typeof n !== 'number' || !Number.isFinite(n)) return MAX_TOKENS;
+  if (typeof n !== 'number' || !Number.isFinite(n)) return opts && typeof opts === 'object' && opts.reflechir === true ? MAX_TOKENS_REFLEXION : MAX_TOKENS;
   return Math.min(Math.max(Math.floor(n), MAX_TOKENS_MIN), MAX_TOKENS_MAX);
+}
+/* Les OUTILS qu'un agent peut appeler (tool use de l'API) : une liste FERMÉE que l'appelant écrit, jamais un réglage venu d'ailleurs. On ne garde
+   d'une définition que son nom, sa description et son schéma d'entrée — une définition mal formée est écartée, pas corrigée. */
+const NOM_OUTIL = /^[a-z][a-z_]{0,39}$/;
+function outilsValides(opts) {
+  const l = opts && typeof opts === 'object' && Array.isArray(opts.outils) ? opts.outils : [];
+  const sortie = [];
+  for (const o of l.slice(0, 12)) {
+    if (!o || typeof o !== 'object' || typeof o.name !== 'string' || !NOM_OUTIL.test(o.name) || typeof o.description !== 'string') continue;
+    const sc = o.input_schema;
+    if (!sc || typeof sc !== 'object' || sc.type !== 'object' || !sc.properties || typeof sc.properties !== 'object') continue;
+    sortie.push({ name: o.name, description: o.description.slice(0, 1500), input_schema: sc });
+  }
+  return sortie;
 }
 
 module.exports = function cerveau(ctx) {
@@ -70,13 +88,24 @@ module.exports = function cerveau(ctx) {
        sur `max_tokens` : avec 600 jetons, elle pouvait manger toute la réponse, qui revenait VIDE — et un échec « vide » est tu par les
        agents (rien à dire dans le fil). Un agent muet sans le dire est exactement la panne qu'on ne voit pas. Ici l'agent converse, il ne
        raisonne pas à longue portée : tous les jetons vont à la réponse. */
-    const requete = { model: MODEL, max_tokens: jetonsDemandes(opts), thinking: { type: 'disabled' }, system, messages };
+    const reflechir = !!(opts && typeof opts === 'object' && opts.reflechir === true);
+    const outils = outilsValides(opts);
+    const requete = { model: MODEL, max_tokens: jetonsDemandes(opts), thinking: reflechir ? { type: 'adaptive' } : { type: 'disabled' }, system, messages };
+    /* `tool_choice: auto` : le modèle choisit d'appeler un outil ou de répondre — les seuls choix compatibles avec la réflexion. Et c'est le CODE
+       de l'appelant qui valide chaque appel d'outil : ce que Claude « décide » n'est jamais exécuté tel quel. */
+    if (outils.length) { requete.tools = outils; requete.tool_choice = { type: 'auto' }; }
     try { r = await (ctx.appeler || appelerAnthropic)(cle, requete); }
     catch (e) { agents.noter(id, 'penser', { cible: 'claude', resultat: 'erreur', detail: String(e && e.message || e).slice(0, 120) }); return { ok: false, raison: 'erreur_api' }; }
     const cout = ((Number(r.entree) || 0) * USD_ENTREE_M + (Number(r.sortie) || 0) * USD_SORTIE_M) / 1e6;
     moisCourant(); etat.parAgent[id] = depense(id) + (Number.isFinite(cout) ? cout : 0);
     if (!ecrire()) { agents.noter(id, 'penser', { cible: 'budget', resultat: 'erreur', detail: 'dépense non écrite : plus d’appel avant réparation' }); illisible = true; }
     const texte = String(r.texte || '').trim();
+    /* Les appels d'outils rendus par l'API : un nom, un objet. Une forme inattendue est écartée ici ; la VALIDATION est celle de l'appelant. */
+    const actions = [];
+    if (outils.length && Array.isArray(r.actions)) for (const x of r.actions.slice(0, 8)) {
+      if (x && typeof x.nom === 'string' && outils.some(o => o.name === x.nom) && x.entree && typeof x.entree === 'object' && !Array.isArray(x.entree)) actions.push({ id: String(x.id || ''), nom: x.nom, entree: x.entree });
+    }
+    if (!texte && actions.length) return { ok: true, texte: '', actions, cout };
     if (!texte) {
       /* Aucun texte parce que la réponse a atteint sa limite : ce n'est pas « vide », c'est « trop long » — l'appelant peut le DIRE
          (et le journal le garde, pour qu'on sache qu'il faut relever `maxTokens` plutôt que chercher une panne). */
@@ -86,7 +115,7 @@ module.exports = function cerveau(ctx) {
       }
       return { ok: false, raison: 'vide' };
     }
-    return { ok: true, texte, cout };
+    return outils.length ? { ok: true, texte, actions, cout } : { ok: true, texte, cout };
   }
   const etatBudget = () => ({ illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL_USD, parAgent: Object.assign({}, etat.parAgent), cle: !!cle });
   return { penser, etatBudget, MODEL };
@@ -97,5 +126,8 @@ async function appelerAnthropic(cle, requete) {
   const client = new Anthropic({ apiKey: cle, timeout: TIMEOUT_MS, maxRetries: 0 });
   const rep = await client.messages.create(requete);
   if (rep.stop_reason === 'refusal') return { texte: '', entree: (rep.usage || {}).input_tokens, sortie: (rep.usage || {}).output_tokens, stop_reason: rep.stop_reason };
-  return { texte: (rep.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n'), entree: (rep.usage || {}).input_tokens, sortie: (rep.usage || {}).output_tokens, stop_reason: rep.stop_reason };
+  /* Les blocs `thinking` ne sont jamais lus ; les blocs `tool_use` deviennent des actions à valider. */
+  const blocs = rep.content || [];
+  return { texte: blocs.filter(b => b.type === 'text').map(b => b.text).join('\n'), entree: (rep.usage || {}).input_tokens, sortie: (rep.usage || {}).output_tokens, stop_reason: rep.stop_reason,
+    actions: blocs.filter(b => b.type === 'tool_use').map(b => ({ id: b.id, nom: b.name, entree: b.input })) };
 }

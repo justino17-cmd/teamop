@@ -193,10 +193,13 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
   await S.P('/api/monitor/conversations/envoyer', { fil: 'equipe', texte: 'Équipe, un point ?' });
   await dormir(900);
   v('⛔ zéro appel à Claude, quinze agents et « Équipe » à l’arrêt', recus().length, 0);
-  let filsOk = 0; for (const id of QUINZE) { const m = (await S.G('/api/monitor/conversations/' + id)).j.messages; if (m.every(x => x.de === 'justin') && m.length === (id === 'max' ? 2 : 1)) filsOk++; }
-  v('…et aucune réponse dans leurs fils (que les messages de Justin)', filsOk, 15);
-  v('…ni dans « Équipe »', (await S.G('/api/monitor/conversations/equipe')).j.messages.filter(m => m.de !== 'justin').length, 0);
-  v('(population) le fil « Équipe » porte bien le message de Justin', (await S.G('/api/monitor/conversations/equipe')).j.messages.length, 1);
+  /* 23 octobre 2026 : un agent à l'arrêt qu'on appelle laisse UNE ligne du système par heure (« X est à l'arrêt : allume-le dans la page Agents »). Le contrôle
+     reste entier : aucune réponse d'agent — que les messages de Justin et cette ligne, une seule même quand Justin insiste (Max, deux messages). */
+  let filsOk = 0; for (const id of QUINZE) { const m = (await S.G('/api/monitor/conversations/' + id)).j.messages; if (m.filter(x => x.de === 'justin').length === (id === 'max' ? 2 : 1) && m.filter(x => x.de === 'systeme').length === 1 && m.every(x => x.de === 'justin' || x.de === 'systeme')) filsOk++; }
+  v('…et aucune réponse dans leurs fils (que les messages de Justin, et UNE ligne du système qui dit que l’agent est à l’arrêt)', filsOk, 15);
+  const eqM = (await S.G('/api/monitor/conversations/equipe')).j.messages;
+  v('…ni dans « Équipe » (Victor, le meneur, est à l’arrêt : la ligne du système le dit, aucune réponse)', [eqM.filter(m => m.de !== 'justin' && m.de !== 'systeme').length, eqM.filter(m => m.de === 'systeme' && /Victor est à l’arrêt/.test(m.texte)).length], [0, 1]);
+  v('(population) le fil « Équipe » porte bien le message de Justin', eqM.filter(m => m.de === 'justin').length, 1);
 
   console.log('\n2. Allumé en Brouillon, chacun répond dans SON fil');
   const TEXTE = 'Dis-moi ce que tu sais du dossier DOS-000001. Écris-moi à justin@exemple-2861.fr ou appelle le 06 98 76 54 32.';
@@ -222,7 +225,10 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
   vrai('…la règle « tu ne peux RIEN exécuter » et celle des faits fermés, chez les quinze', QUINZE.every(id => /ne peux RIEN exécuter/.test(sys(id)) && /ne cites que les faits du bloc Faits/.test(sys(id)) && /Ne répète jamais une adresse électronique ni un numéro de téléphone/.test(sys(id)) && /600 caractères au plus/.test(sys(id))));
   v('⛔ l’argent (Margaux) et la sécurité (Nina) : « RIEN » est répété à part ; les autres, une fois', QUINZE.map(id => (sys(id).match(/RIEN/g) || []).length).join(''), QUINZE.map(id => (id === 'margaux' || id === 'nina') ? 2 : 1).join(''));
   vrai('…et la règle de Margaux nomme l’argent, celle de Nina la sécurité', /RIEN faire sur l’argent/.test(sys('margaux')) && /RIEN faire sur la sécurité/.test(sys('nina')));
-  vrai('chaque requête demande 500 jetons au plus, sans réflexion, sans réglage refusé', corps.every(b => b.max_tokens === 500 && b.thinking && b.thinking.type === 'disabled' && !('temperature' in b) && !('top_p' in b) && !('top_k' in b)));
+  /* 23 octobre 2026 (cahier §6 et §7, Justin : « des agents qui réfléchissent comme des humains ») : la messagerie fait RÉFLÉCHIR l'agent (thinking adaptatif,
+     3000 jetons — la réflexion est prise sur max_tokens) et lui donne cinq outils fermés. Le contrôle reste entier sur ce qui compte : jamais de réglage refusé. */
+  vrai('chaque requête : réflexion adaptative, 3000 jetons, les cinq outils fermés en choix automatique, et JAMAIS temperature / top_p / top_k', corps.every(b => b.max_tokens === 3000 && b.thinking && b.thinking.type === 'adaptive' && !('temperature' in b) && !('top_p' in b) && !('top_k' in b)
+    && b.tool_choice && b.tool_choice.type === 'auto' && Array.isArray(b.tools) && b.tools.map(t => t.name).join() === 'ecrire,prendre,passer,terminer,demander_justin'));
 
   console.log('\n3. Ce qui part chez Claude : rien d’une personne');
   const tout = corps.map(b => JSON.stringify(b)).join('\n');
