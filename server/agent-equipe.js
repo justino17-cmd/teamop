@@ -341,6 +341,20 @@ module.exports = function agentEquipe(ctx) {
     return refus('outil_inconnu');
   }
 
+  /* Une réponse que `parler` REFUSE ne se perd pas en silence (23 octobre 2026, campagne de vérification de la Tour) : le même texte déjà dit dans ce fil depuis 24 h,
+     douze messages par heure et par agent, vingt messages d'agents par heure dans un fil. Justin posait sa question, « X écrit… » s'éteignait, et rien ne venait : ni réponse
+     ni raison. Une ligne du système, UNE fois par heure pour chaque cause (et par fil pour le plafond du fil : un @tous ne laisse pas douze lignes). Les autres refus
+     (texte vide, fil inconnu, agent arrêté entre-temps) restent muets : ce sont des états, pas des limites que Justin peut comprendre. */
+  const REFUS_DIT = {
+    doublon: nom => nom + ' vient de dire exactement la même chose dans ce fil : relis plus haut, ou reformule ta question.',
+    trop_de_messages: nom => nom + ' a atteint sa limite de messages par heure : sa prochaine réponse viendra dans l’heure.',
+    trop_de_messages_fil: () => 'Ce fil a atteint la limite de messages d’agents par heure : les réponses suivantes reprennent dans l’heure.',
+  };
+  function refusDit(id, fil, raison) {
+    const f = REFUS_DIT[raison]; if (!f) return;
+    dire(fil, f(nomDe(id)), { cle: raison === 'trop_de_messages_fil' ? 'limite-fil:' + fil : 'refus:' + raison + ':' + id + ':' + fil, parHeure: true });
+  }
+
   /* Pourquoi Claude n'a pas répondu, quand Justin peut le lever ou doit le savoir. Dans le fil privé de l'agent, c'est lui qui le dit ; dans un
      groupe, une ligne du système (une fois par heure) : quinze « je ne peux pas répondre » ne noient pas le fil. */
   function echec(id, fil, raison, prof) {
@@ -369,7 +383,7 @@ module.exports = function agentEquipe(ctx) {
       const sortie = { repondu: false, actions: [] };
       if (r.texte) {
         const dit = conversations.parler(id, fil, raccourcir(masquer(r.texte)), { niveau: 'info', prof });
-        if (dit.ok) sortie.repondu = true; else sortie.saute = dit.raison;
+        if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
       }
       for (const a of (Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
         let x; try { x = await executer(id, a, { fil, d, prof }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }

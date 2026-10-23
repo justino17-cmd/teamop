@@ -248,6 +248,8 @@ tests/test-2883.js
 # pas de rejeu au redémarrage, le bilan du vendredi sur les objectifs du lundi, la mémoire dans le prompt d'une réponse puis retirée avec la leçon, lancement à la main, gardes, MON_GESTES).
 tests/test-2884.js
 tests/test-2885.js
+# 23 octobre 2026, campagne de vérification de la Tour : `test-2960` (le vrai serveur, un faux Claude : une réponse d'agent REFUSÉE — même texte redit, douze messages par heure, vingt par fil — se dit par une ligne du système, une fois par heure, au lieu de se perdre en silence).
+tests/test-2960.js
 # 22 octobre 2026 : `test-2870` (les catégories d'OP GESTION retenues par entreprise : la route de la Tour, ses refus, l'écriture sur tous les noms, « Revoir le lien » qui garde le réglage, `cats` sur les cinq formes vivantes de `/api/espaces/etat` et jamais sur la fermeture). Plancher inchangé : à relever après mesure sur les pages de `main`.
 tests/test-2870.js
 # 23 octobre 2026 : `test-2891` (le métier est obligatoire à l'abonnement : la demande d'accès et le paiement, le vrai serveur, un Stripe simulé ; `GET /api/metiers` ne sert que les métiers ouverts). Il lit `metiers.json`, qui part avec les pages liées.
