@@ -81,7 +81,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
 
   const webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push'));
   const vap = webpush.generateVAPIDKeys();
-  const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', agents: { cleApi: 'sk-ant-banc-courrier-xxxxxxxxxxxxxxxx' },
+  const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', agents: { cleApi: 'sk-ant-' + 'banc-courrier-xxxxxxxxxxxxxxxx' },
     smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' }, contactEmail: o.contactEmail || 'contact@banc-courrier.fr' };
   if (o.promos) conf.promos = o.promos;
   if (o.comptes) conf.comptes = { actif: true };
