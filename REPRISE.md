@@ -50,6 +50,18 @@ de ligne du tout.
   responsable » → « Valideur responsable » (le rôle `dr` et la donnée `drId` ne changent pas). `test-2904`.
   ⛔ **Reste ouvert, à mesurer avant de toucher** : le menu « au doigt » (272 px : iPad portrait/paysage et tiroir du téléphone, texte à 15,5 px)
   demande 201 px pour ce libellé et n'en a que 191 — il passe sur deux lignes ; l'élargir touche les mises en page iPad de test-1421, 1432, 1433.
+- **F — relecture (23 octobre, `gardien`/`relecteur`) : cinq restes réels corrigés, `test-2905` (76 ✓, 17 mutations sur 17).** `mentionRegl` / `ammVisible` :
+  la mention des biocides et la colonne « N° AMM » n'existent hors 3D que si une ligne de produit PORTE une AMM (étape 6, PDF, rapport imprimé,
+  courriel, plan d'appâtage, dossier sanitaire) ; `libZones` (« Zones concernées ») ; `aiGenRapport` neutre au métier ; exemple de l'assistant devis
+  et phrase du stock de la fiche d'intervention ; `metierBloque` laisse ouvertes « Enveloppes » (si `db.enveloppes`) et « Consommation produits »
+  (si mouvements de box) ; « Sans catégorie » en tête d'une fiche produit sans catégorie. La 3D est identique à l'octet (8 surfaces rendues avant/après).
+  Sonde : `scratchpad/metiers/sonde-restes.js` (76 ✓, 3 métiers × 6 tailles/thèmes). **Pas fait, à trancher** : (1) le menu « au doigt » (272 px) passe
+  « Validation des mouvements » sur deux lignes (201 px demandés pour 191) — l'élargir touche test-1421/1432/1433, ou raccourcir le libellé de Justin ;
+  (2) le vocabulaire « box » reste dans Stock, Mouvements, Bons, Validations, Utilisateurs, Paramètres hors 3D — variante hors 3D ou « box » assumé ;
+  (3) `server/agent-devis.js` (consigne de l'agent devis : dératisation, Certibiocide) n'est pas touché — c'est un déploiement, à relire par `gardien` ;
+  (4) les dix nouveaux métiers n'existent pas dans `METIERS_OK` du serveur ni dans la Tour : un métier réglé dans l'application seule reste dans la base
+  (`db.metier`), mais `metierServeurAppliquer` le remplace par celui de la Tour à l'ouverture — c'est l'autre chantier. `test-747` relisait la garde de
+  `go()` à l'ancienne forme (il tombait déjà sur la base 7d45d134) ; `test-811` (durées de création de compte) tombe sous charge et passe seul.
 - Preuves au navigateur (bêta servie en 127.0.0.1, captures regardées) : `scratchpad/metiers/` — `sonde-b` 162 ✓ (3 métiers × 6 tailles/thèmes × 9 écrans), `-c` 48 ✓, `-d` 60 ✓, `-e` 19 ✓, `-recense` (plomberie, piscine : rien de l'anti-nuisibles), `-avant-apres`. Elles lisent `beta.html` : régénérer (`node beta-build.js`) avant de les lancer. ⚠️ Deux contrôles de GitHub ne sont pas dans
   `bancs-ci.sh` (`verifier-version.js`, `verifier-propose.js`) : `app.html` change sans que `APP_VERSION` monte — à jouer avant la fusion.
 
