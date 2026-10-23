@@ -61,7 +61,7 @@ module.exports = function documents(app, ctx) {
   /* Le résumé de la validation : composé ICI (jamais un mot de Claude), sans adresse ni nom. */
   function resumeDe(e) {
     const dos = e.dossier ? ' (' + e.dossier + ')' : '';
-    if (e.type === 'mise_en_demeure') return 'Mise en demeure préparée' + dos + ' — à relire : elle ne part que si tu la valides';
+    if (e.type === 'mise_en_demeure') return 'Mise en demeure préparée' + dos + (e.aRevoir ? ' — À REVOIR : ' + e.aRevoir : ' — à relire') + ' : elle ne part que si tu la valides';
     if (e.type === 'annonce_clients') return 'Annonce à tous les clients — ' + (e.aRevoir ? 'à revoir : ' + e.aRevoir : 'à relire') + ' : elle ne part que si tu la valides';
     const nom = { resiliation: 'Accusé de fin d’abonnement', relance: 'Relance d’impayé', rendez_vous: 'Rendez-vous avec un prospect' }[e.source] || 'Courriel d’un agent';
     return nom + dos + (e.aRevoir ? ' — à revoir : ' + e.aRevoir : ' — à relire avant envoi');
@@ -89,9 +89,14 @@ module.exports = function documents(app, ctx) {
       a = String(o.a || '').trim().toLowerCase();
       if (!bonneAdresse(a)) { agents.noter(agent, 'déposer un document', { cible: o.type, resultat: 'refuse', detail: 'destinataire invalide' }); return { ok: false, raison: 'destinataire' }; }
     }
+    /* ⛔ pas de signature d'agent, pas de courriel : `signatureAgent` rend '' pour un agent hors des quatre, et l'envoi retomberait sur la signature de la boîte — celle de Justin */
+    if (o.type === 'courrier_agent' && !OPS.signatureAgent(agent)) { agents.noter(agent, 'déposer un document', { cible: o.type, resultat: 'refuse', detail: 'cet agent n’a pas de signature' }); return { ok: false, raison: 'signature' }; }
     const dossier = FORME_DOSSIER.test(String(o.dossier || '')) ? String(o.dossier) : '';
     const ref = 'dc' + crypto.randomBytes(6).toString('hex');
     const aut = o.autorises && typeof o.autorises === 'object' ? o.autorises : {};
+    /* ⛔ la mise en demeure passe aussi par le contrôle qualité (formule de la LETTRE) : son seul texte libre est le nom d'entreprise du registre, saisi par le client. Une faute ne la bloque pas
+       — Justin la relit avant tout envoi —, elle la marque « à revoir ». */
+    if (o.type === 'mise_en_demeure' && !o.aRevoir) { let f = []; try { f = OPS.controle(objet, texte, Object.assign({}, aut, { lettre: true })); } catch (e) { f = ['contrôle impossible']; } if (f.length) o = Object.assign({}, o, { aRevoir: f.join(', ') }); }
     reg[ref] = { ref, type: o.type, agent, a, nb, objet, texte, source: String(o.source || '').slice(0, 20), dossier, lettre: o.lettre === true,
       autorises: { liens: (aut.liens || []).map(String).slice(0, 5), montants: (aut.montants || []).map(Number).filter(Number.isFinite).slice(0, 5), permis: (aut.permis || []).map(String).slice(0, 5) },
       aRevoir: String(o.aRevoir || '').slice(0, 120), cree: maintenant(), etat: 'attente' };
@@ -132,6 +137,7 @@ module.exports = function documents(app, ctx) {
         agents.noter(e.agent, 'annonce envoyée', { cible: 'clients', resultat: 'ok', detail: envoyes + ' entreprise(s)' + (e.refus ? ', ' + e.refus + ' refus' : '') });
         return;
       }
+      if (!signatureDe(e)) throw new Error('signature introuvable : cet agent n’en a pas');
       await mail.envoyerAgent({ boiteId: mail.boiteParRole('contact'), a: e.a, objet: e.objet, texte: e.texte, signature: signatureDe(e), enReponseA: e.enReponseA || null });
       e.etat = 'envoye'; e.envoyeTs = maintenant(); sauve();
       agents.noter(e.agent, e.type === 'mise_en_demeure' ? 'mise en demeure envoyée' : 'courriel envoyé', { cible: e.source || e.type, resultat: 'ok', detail: e.dossier || '' });
@@ -191,7 +197,13 @@ module.exports = function documents(app, ctx) {
     if (illisible()) return res.status(503).json({ error: 'Le registre des documents est illisible' });
     const refs = String(req.query.refs || '').split(',').map(x => x.trim()).filter(x => REF_DOC.test(x)).slice(0, 50);
     const out = {};
-    for (const r of refs) if (reg[r]) out[r] = vue(reg[r]);
+    /* ⛔ l'adresse du client et le texte d'une mise en demeure (nom d'entreprise, montant) ne se lisent que du PATRON : un compte de la Tour qui n'est pas patron voit l'objet, l'état, l'agent — pas qui, ni la lettre */
+    const patron = !!(req.tourUser && req.tourUser.role === 'patron');
+    for (const r of refs) if (reg[r]) {
+      const x = vue(reg[r]);
+      if (!patron) { if (x.a) x.a = ''; if (x.type !== 'annonce_clients') x.cible = ''; if (x.type === 'mise_en_demeure') x.texte = ''; x.masque = true; }
+      out[r] = x;
+    }
     res.json(out);
   });
   app.post('/api/monitor/agents/documents/modifier', monPatronStrict, (req, res) => {

@@ -85,6 +85,10 @@ const lesEnvois = m => m.envoyes.map(e => e.objet);
   vrai('Justin est prévenu dans le fil de Margaux (« important »), par le dossier', m.fil('margaux').some(x => /mise en demeure du dossier DOS-000001/.test(x.texte) && /ne part que si tu la valides/.test(x.texte)));
   for (let i = 0; i < 3; i++) { m.jour(15 + i); await m.margaux.passer(); }
   v('⛔ elle n\'est préparée QU\'UNE fois', (await m.validations('tout')).filter(x => x.type === 'mise_en_demeure').length, 1);
+  const lecture = await m.appeler('GET /api/monitor/agents/documents', { tourUser: m.COLLAB, query: { refs: val.params.ref } });
+  const dc = lecture.corps[val.params.ref] || {};
+  v('⛔ un compte de la Tour qui n\'est PAS patron lit l\'état de la mise en demeure, pas l\'adresse du client ni la lettre (nom d\'entreprise, montant)', [lecture.status, dc.a, dc.cible, dc.texte, dc.type, dc.etat, dc.masque], [200, '', '', '', 'mise_en_demeure', 'attente', true]);
+  vrai('…et le patron, lui, lit l\'adresse et la lettre (population : le même document)', doc.a === 'facturation-alpha@exemple-2912.fr' && doc.texte.length > 200 && !doc.masque);
   await m.decider(val.id, 'refuser', {});
   m.jour(30);
   await m.margaux.passer();
@@ -232,6 +236,20 @@ const lesEnvois = m => m.envoyes.map(e => e.objet);
   m = monde({ avant: D => fs.writeFileSync(path.join(D, 'agents-margaux.json'), '{pas json') });
   m.jour(3);
   v('⛔ registre de Margaux illisible : rien ne part, le fichier reste tel quel', [(await m.margaux.passer()).saute, m.envoyes.length, fs.readFileSync(path.join(m.D, 'agents-margaux.json'), 'utf8')], ['registre_illisible', 0, '{pas json']);
+
+  console.log('\n5 ter. La mise en demeure passe aussi par le contrôle qualité (le nom d\'entreprise est saisi par le client) ; pas de signature, pas de courriel d\'agent');
+  m = monde();
+  m.etat.liste = [Object.assign({}, IMPAYE, { entreprise: 'Alpha https://evil.example/pay' })];
+  m.jour(3); await m.margaux.passer(); m.jour(7); await m.margaux.passer(); m.jour(14); r = await m.margaux.passer();
+  const vv = (await m.validations('en_attente')).find(x => x.type === 'mise_en_demeure');
+  const dd = vv ? await m.lireDoc(vv.params.ref) : {};
+  v('un nom d\'entreprise qui porte un lien étranger : la mise en demeure est déposée MAIS marquée « à revoir » (Justin la lit avant tout envoi)', [r.demeures, /lien étranger/.test(dd.aRevoir || ''), /À REVOIR : lien étranger/.test((vv || {}).resume || '')], [1, true, true]);
+  m = monde();
+  m.jour(3); await m.margaux.passer(); m.jour(7); await m.margaux.passer(); m.jour(14); await m.margaux.passer();
+  const propre = (await m.validations('en_attente')).find(x => x.type === 'mise_en_demeure');
+  v('(contre-épreuve) un nom ordinaire : rien « à revoir »', [propre ? (await m.lireDoc(propre.params.ref)).aRevoir : 'absente'], ['']);
+  const sansSig = m.documents.deposer({ type: 'courrier_agent', agent: 'camille', a: 'x@exemple-2912.fr', objet: 'Objet', texte: 'Bonjour,\n\nUn message.\n\nBien cordialement,', source: 'resiliation' });
+  v('⛔ un agent hors des quatre n\'a pas de signature : son courriel ne se range pas (il retomberait sur la signature de la boîte, celle de Justin)', [sansSig.ok, sansSig.raison, (await m.validations('en_attente')).filter(x => x.type === 'courrier_agent').length], [false, 'signature', 0]);
 
   console.log('\n6. Aucun remboursement, jamais');
   const SRC = fs.readFileSync(path.join(RACINE, 'server', 'agent-margaux.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
