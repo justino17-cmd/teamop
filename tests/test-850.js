@@ -427,7 +427,7 @@ globalThis.fetch = async function (url, opts) {
   const n0 = nSess();
   for (const corps of [{ options: null }, { options: [] }, {}]) { r = await payer('c1', Object.assign({ price: P.pro[0], quantity: 2, ref: 't-c1-850' }, corps)); }
   v('   sans option (absent, null, []) : une seule ligne, comme avant', [r.s, nSess() - n0, ligN(dernier())], [200, 3, ['pro:M×2']]);
-  v('   un prospect (pas de référence) peut aussi prendre des options à son premier paiement', [(await payer('c1', { price: P.pro[0], quantity: 2, options: ['achats'] })).s, ligN(dernier())], [200, ['pro:M×2', 'achats:M×2']]);
+  v('   un prospect (pas de référence) peut aussi prendre des options à son premier paiement', [(await payer('c1', { price: P.pro[0], quantity: 2, options: ['achats'], metier: 'plomberie' })).s  /* (23 octobre 2026 : une souscription neuve choisit son métier — test-2891) */, ligN(dernier())], [200, ['pro:M×2', 'achats:M×2']]);
 
   console.log('\n  Paiement · les refus (400) — le corps ne porte que des CLÉS');
   const n1 = nSess();

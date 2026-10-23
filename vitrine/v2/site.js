@@ -151,14 +151,31 @@
     });
   });
 
-  /* ── créer : un métier (un seul), des besoins (plusieurs), et la demande part par e-mail ── */
+  /* ── créer : un métier (un seul, OBLIGATOIRE), ses rubriques (pré-cochées, expliquées), des besoins (plusieurs), et la demande part par e-mail ──
+     Justin, 23 octobre 2026 : « quand ils prennent un abonnement, ils choisissent le métier, et c'est obligatoire ; ils cochent les catégories ; et
+     quand ils cochent, ça explique la catégorie ». Sans métier, la demande NE PART PAS (le message le dit, la liste reprend le focus). Les rubriques
+     viennent du référentiel embarqué dans la page (le même que celui du serveur) et de `rubriques-choix.js` ; un métier encore fermé n'en a pas :
+     la demande part quand même, « à construire sur mesure ». */
   var demande = $('#demande');
   if (demande) {
+    var refBrut = $('#referentiel-metiers'), REF = null;
+    try { REF = refBrut ? JSON.parse(refBrut.textContent) : null; } catch (e) { REF = null; }
+    var zoneRub = $('#rubriques-demande'), grille = $('#rubriques-grille'), erreur = $('#erreur-metier'), bientot = $('#metier-bientot'), etatRub = null;
+    var montrerRubriques = function (m) {
+      var k = m && m.getAttribute('data-pack'), pret = !!m && m.getAttribute('data-pret') === '1';
+      if (bientot) bientot.hidden = !(m && !pret);
+      if (!(m && pret && REF && window.OpRub && grille && zoneRub && REF.metiers && REF.metiers[k])) { etatRub = null; if (zoneRub) zoneRub.hidden = true; return; }
+      etatRub = window.OpRub.etat(REF, k);
+      zoneRub.hidden = false;
+      window.OpRub.monter(grille, etatRub, 'cr', function () {});
+    };
     $$('.metier-puce', demande).forEach(function (m) {
       m.addEventListener('click', function () {
         var on = m.getAttribute('aria-pressed') !== 'true';
         $$('.metier-puce', demande).forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
         m.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (on && erreur) erreur.hidden = true;
+        montrerRubriques(on ? m : null);
       });
     });
     $$('.besoin', demande).forEach(function (b) {
@@ -169,12 +186,23 @@
       /* Le métier part EN TÊTE et sous une forme sans ambiguïté : c'est lui qui décide du pack
          activé à la création de l'espace (même lecture que l'ancienne page). */
       var lignes = [], m = $('.metier-puce[aria-pressed="true"]', demande);
-      if (m) {
-        lignes.push('MÉTIER CHOISI : ' + m.getAttribute('data-nom') + '  [pack ' + m.getAttribute('data-pack') + ']');
-        lignes.push('Pack : ' + (m.getAttribute('data-pret') === '1' ? 'prêt — activable dès la création' : 'à construire sur mesure'));
-      } else lignes.push('MÉTIER CHOISI : aucun sélectionné');
+      if (!m) {
+        /* ⛔ pas de métier, pas de demande : le message se DIT (lecteur d'écran compris) et on ramène sur la liste */
+        if (erreur) erreur.hidden = false;
+        var premiere = $('.metier-puce', demande);
+        if (premiere) { try { premiere.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (x) {} premiere.focus(); }
+        return;
+      }
+      lignes.push('MÉTIER CHOISI : ' + m.getAttribute('data-nom') + '  [pack ' + m.getAttribute('data-pack') + ']');
+      lignes.push('Pack : ' + (m.getAttribute('data-pret') === '1' ? 'prêt — activable dès la création' : 'à construire sur mesure'));
+      var choisies = etatRub && window.OpRub ? window.OpRub.liste(etatRub) : null;
+      if (choisies) {
+        lignes.push('RUBRIQUES CHOISIES (' + choisies.length + ' sur ' + etatRub.ref.ordre.length + ') : ' + choisies.map(function (c) { return etatRub.ref.rubriques[c].titre; }).join(', '));
+        lignes.push('Clés des rubriques : ' + choisies.join(','));
+      } else if (etatRub) lignes.push('RUBRIQUES CHOISIES : aucune cochée — partir du conseil du métier');
       lignes.push('');
       $$('input, textarea', demande).forEach(function (c) {
+        if (c.type === 'checkbox') return;   // les cases de la grille des rubriques sont dites plus haut
         var v = (c.value || '').trim(); if (!v) return;
         lignes.push((c.getAttribute('data-libelle') || c.name) + ' : ' + v);
       });

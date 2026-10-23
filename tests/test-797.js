@@ -58,8 +58,10 @@ const vrai = (t, a) => v(t, !!a, true);
        ne paie qu'avec elle, jamais avec une session changée entre-temps dans un autre onglet. */
     /* `optionsEnvoyees` : les options cochées ET en vente (la page la calcule juste avant l'appel, depuis son panier) — le
        banc la pose à la main, le calcul du panier est gardé par test-853 */
-    const evaluer = (ls, expr, opts) => new Function('localStorage', 'priceId', 'nbAbos', 'optionsEnvoyees',
-      mFn[0] + '\n' + mSess[0] + '\nconst compte = { jeton: sessionPortail() };\nreturn ' + expr + ';')({ getItem: ls }, PRIX_PAGE, 3, opts || []);
+    /* `choixPaiement` : le métier et les rubriques que la page joint au paiement (23 octobre 2026) — vide ici, la référence est le sujet ;
+       ce qu'il porte, test-839 §4 bis le joue contre le vrai serveur */
+    const evaluer = (ls, expr, opts) => new Function('localStorage', 'priceId', 'nbAbos', 'optionsEnvoyees', 'choixPaiement',
+      mFn[0] + '\n' + mSess[0] + '\nconst compte = { jeton: sessionPortail() };\nreturn ' + expr + ';')({ getItem: ls }, PRIX_PAGE, 3, opts || [], () => ({}));
     corps = JSON.parse(evaluer(stockage, 'JSON.stringify(' + mBody[1] + ')'));
     entetes = evaluer(stockage, mEntetes[1]);
     v('⛔ le corps envoy\u00e9 par la page PORTE la r\u00e9f\u00e9rence de l\'espace', corps.ref, 'monclient-9f2a');
@@ -81,7 +83,7 @@ const vrai = (t, a) => v(t, !!a, true);
   if (mLien) {
     /* `optionsActives` : le panier (vide ici — le chemin du portail ne change pas sans option ; avec, test-853) */
     /* `modeAjout` : le mode « ajout d'option » de la page (faux ici ; ses chemins, test-858 et test-853) */
-    const faireLien = (...a) => new Function('formuleActive', 'nbUsersVoulu', 'cycleAnnuel', 'optionsActives', 'modeAjout', 'return ' + mLien[1] + ';')(...a);
+    const faireLien = (...a) => new Function('formuleActive', 'nbUsersVoulu', 'cycleAnnuel', 'optionsActives', 'modeAjout', 'metierAbo', 'return ' + mLien[1] + ';')(...a, '');
     const lien = faireLien('business', 7, true, () => [], false);
     const retour = decodeURIComponent(lien.split('?retour=')[1] || '');
     v('   … vers le portail, avec la formule, le nombre et le cycle choisis', [lien.split('?')[0], retour], ['espace.html', 'recap-abonnement.html?formule=business&utilisateurs=7&cycle=annuel']);

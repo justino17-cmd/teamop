@@ -11,6 +11,7 @@
 <script>/* le jour et la nuit suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on efface le choix qu'avait rangé l'ancien bouton ☀︎/☾, que plus rien ne lit (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
 (function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>
 <link rel="stylesheet" href="/vitrine/v2/theme.css">
+<link rel="stylesheet" href="/rubriques-choix.css">
 <style>
   /* ══ LA PAGE OÙ L'ON PAIE, AU THÈME DU SITE (27 septembre 2026 au soir) ══════════════════════════════════════════
      Justin : « au niveau des connexions ou création de compte, j'ai pas mon thème ». On arrive ici depuis « Choisir
@@ -276,6 +277,16 @@
     color: var(--vert);
     margin-top: 2px;
   }
+  /* ===== LE MÉTIER, OBLIGATOIRE, ET LES RUBRIQUES (23 octobre 2026) : même boîte que les options, une liste déroulante de 48 px ===== */
+  .bloc-metier { margin: 10px 0 14px; padding: 12px 14px 14px; border-radius: 16px; background: color-mix(in srgb, var(--m-link) 6%, transparent); border: 1px solid color-mix(in srgb, var(--m-link) 20%, transparent); }
+  .bloc-metier .titre-options { display: block; margin-bottom: 8px; }
+  .bloc-metier select { width: 100%; min-height: 48px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--bordure); background: var(--m-tile); color: var(--texte); font: inherit; font-size: 16px; }
+  .bloc-metier select:focus-visible, .bloc-metier button:focus-visible, .bloc-rubriques summary:focus-visible { outline: 2px solid var(--m-link); outline-offset: 2px; }
+  .bloc-metier .metier-aide { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--texte-3); }
+  .bloc-metier .metier-erreur { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: var(--m-err); }
+  .bloc-metier .metier-reessayer { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--bordure); background: var(--m-tile); color: var(--texte); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .bloc-rubriques { margin-top: 12px; }
+  .bloc-rubriques > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--m-link); list-style-position: inside; }
   /* ===== LES OPTIONS DU PRO : des cases de 44 px, prix à droite, aucun mot ne se coupe ===== */
   .bloc-options, .options-incluses {
     margin: 10px 0 14px;
@@ -468,6 +479,7 @@
 <p style="text-align:center;color:var(--texte-3);font-size:12.5px;margin-top:34px">© 2026 TEAM OP · <a href="/apercu/mentions-legales.html" class="lien-geste" style="color:var(--texte-3)">Mentions légales &amp; CGV</a></p>
 </main>
 
+<script src="/rubriques-choix.js"></script>
 <script>
 /* =====================================================================
    RÉCAPITULATIF AVANT PAIEMENT — TEAM OP
@@ -725,6 +737,82 @@ const sessionPortail = () => { try { const j = String(localStorage.getItem(CLE_S
 const oublierSession = () => { try { localStorage.removeItem(CLE_SESSION); } catch (e) {} };
 let compte = { etat: sessionPortail() ? 'lecture' : 'aucun' };   // lecture · aucun · a_confirmer · pret · injoignable
 let compteMsg = null;                                             // { texte, erreur } : ce qu'a donné le dernier geste
+
+/* ---------- LE MÉTIER, OBLIGATOIRE, ET LES RUBRIQUES ---------- */
+/* ⛔ Justin, 23 octobre 2026 : « quand ils prennent un abonnement, ils choisissent le métier, et c'est obligatoire ; ils cochent les
+   catégories ; et quand ils cochent, ça explique la catégorie ». Une souscription NEUVE (aucune entreprise rattachée à cet
+   appareil : on paie avant d'avoir son espace) choisit son métier ICI, et le serveur refuse sans lui (`metier_requis`, avant tout
+   appel à Stripe) : le choix part dans le corps du paiement avec les rubriques cochées (liste fermée, validée par le serveur).
+   Une entreprise qui existe déjà a son métier ; un ajout d'option n'en demande pas.
+   ⚠️ La liste des métiers et les rubriques viennent de l'API (`/api/metiers`, tirée de `metiers.json`) : jamais une copie ici. Elle
+   ne s'affiche que si le service répond — sinon la page le DIT et propose de réessayer, elle ne devine pas et ne laisse pas payer
+   sans métier. Le choix survit à l'aller-retour par le portail (créer son compte) dans `sessionStorage`. */
+const CLE_CHOIX = 'teamop_abo_choix';
+let refMetiers = null;      // le référentiel de l'API ; null tant qu'il n'est pas lu
+let refMetiersMsg = '';     // pourquoi il n'est pas là — un refus se DIT
+let metierAbo = '';         // le métier choisi
+let rubAbo = null;          // l'état de la grille des rubriques (OpRub.etat)
+let rubOuvert = true;       // le volet « Vos rubriques » est ouvert
+let metierForce = false;     // le serveur a demandé un métier alors que l'appareil croit connaître une entreprise (une référence que l'annuaire ne connaît plus)
+const metierRequis = () => !modeAjout && !!FORMULES[formuleActive] && FORMULES[formuleActive].groupe === 'gestion' && (metierForce || !espaceDeAppareil());
+/* ce qui part avec le paiement : le métier choisi et les rubriques cochées (dans l'ordre du menu, `null` si rien n'est coché) — rien
+   quand aucun métier n'est choisi (une entreprise qui existe déjà : le serveur ne le demande pas) */
+function choixPaiement() { return metierAbo ? { metier: metierAbo, cats: rubAbo && typeof OpRub !== 'undefined' ? OpRub.liste(rubAbo) : null } : {}; }
+function choixGarder() {
+  try { sessionStorage.setItem(CLE_CHOIX, JSON.stringify({ metier: metierAbo, cats: rubAbo && typeof OpRub !== 'undefined' ? OpRub.liste(rubAbo) : null })); } catch (e) {}
+}
+/* le métier de l'adresse (`?metier=`) ou, à défaut, celui que la personne avait choisi avant d'aller créer son compte */
+function choixRestaurer() {
+  let gardé = null; try { gardé = JSON.parse(sessionStorage.getItem(CLE_CHOIX) || 'null'); } catch (e) { gardé = null; }
+  const voulu = params.get('metier') || (gardé && gardé.metier) || '';
+  if (!refMetiers || !voulu || refMetiers.ouverts.indexOf(voulu) < 0) return;
+  metierAbo = voulu;
+  if (typeof OpRub !== 'undefined') rubAbo = OpRub.etat(refMetiers, voulu, gardé && gardé.metier === voulu && Array.isArray(gardé.cats) ? gardé.cats.filter(k => refMetiers.ordre.indexOf(k) >= 0) : null);
+}
+async function chargerMetiers() {
+  refMetiersMsg = '';
+  try {
+    const r = await fetch(API_TEAMOP + '/api/metiers');
+    const j = await r.json().catch(() => null);
+    if (r.ok && j && j.ok && j.metiers && Array.isArray(j.ouverts)) { refMetiers = j; choixRestaurer(); }
+    else refMetiersMsg = r.status === 503 ? 'Les métiers ne sont pas disponibles pour le moment : réessayez dans un instant.' : 'Les métiers n\'ont pas pu être lus : réessayez.';
+  } catch (e) { refMetiersMsg = 'Le service ne répond pas : les métiers n\'ont pas pu être lus. Réessayez.'; }
+  rendrePaiement();
+}
+function metierChoisir(k) {
+  metierAbo = refMetiers && refMetiers.ouverts.indexOf(k) >= 0 ? k : '';
+  rubAbo = metierAbo && typeof OpRub !== 'undefined' ? OpRub.etat(refMetiers, metierAbo) : null;
+  compteMsg = null; choixGarder();
+  history.replaceState(null, '', adresseEtat(','));
+  rendrePaiement();
+  const sel = document.getElementById('metierAbo'); if (sel && sel.focus) sel.focus();   // le rendu réécrit tout : le clavier ne perd pas sa place
+}
+/* le bloc de la carte de paiement : le métier (liste déroulante) puis, une fois choisi, ses rubriques */
+function blocMetier() {
+  const entete = '<label class="titre-options" for="metierAbo">VOTRE MÉTIER <span>· obligatoire</span></label>';
+  if (!refMetiers) {
+    return '<div class="bloc-metier" id="blocMetier">' + entete + (refMetiersMsg
+      ? '<p class="metier-erreur" role="alert">' + refMetiersMsg + '</p><button type="button" class="metier-reessayer" id="metierReessayer">Réessayer</button>'
+      : '<p class="metier-aide" role="status">Chargement des métiers…</p>') + '</div>';
+  }
+  const options = refMetiers.ordre ? refMetiers.ouverts.map(k => '<option value="' + k + '"' + (metierAbo === k ? ' selected' : '') + '>' + refMetiers.metiers[k].nom.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</option>').join('') : '';
+  return '<div class="bloc-metier" id="blocMetier">' + entete
+    + '<select id="metierAbo" aria-required="true"><option value=""' + (metierAbo ? '' : ' selected') + ' disabled>— Choisissez votre métier —</option>' + options + '</select>'
+    + '<p class="metier-aide">Votre application est réglée sur votre métier : types d\'intervention, fiche de terrain, rubriques.</p>'
+    + (metierAbo && typeof OpRub !== 'undefined' ? '<details class="bloc-rubriques" id="rubVolet"' + (rubOuvert ? ' open' : '') + '><summary>Voir ou masquer les rubriques</summary><div id="rubriquesAbo"></div></details>' : '')
+    + '</div>';
+}
+/* après chaque rendu de la carte : le fil du bloc (liste déroulante, bouton de relecture, grille des rubriques) */
+function lierMetier(c) {
+  const sel = document.getElementById('metierAbo');
+  if (sel && sel.addEventListener) sel.addEventListener('change', () => metierChoisir(sel.value));
+  const re = document.getElementById('metierReessayer');
+  if (re && re.addEventListener) re.addEventListener('click', () => { refMetiersMsg = ''; rendrePaiement(); chargerMetiers(); });
+  const volet = document.getElementById('rubVolet');
+  if (volet && volet.addEventListener) volet.addEventListener('toggle', () => { rubOuvert = !!volet.open; });
+  const grille = document.getElementById('rubriquesAbo');
+  if (grille && rubAbo && typeof OpRub !== 'undefined') OpRub.monter(grille, rubAbo, 'abo', () => { choixGarder(); compteMsg = null; });
+}
 async function lireCompte() {
   const jeton = sessionPortail();
   if (!jeton) { compte = { etat: 'aucun' }; return compte; }
@@ -744,7 +832,7 @@ async function lireCompte() {
    page de retour s'écrit DANS `encodeURIComponent(` : `scripts/apercu.sh` réécrit tout autre `'/apercu/recap-abonnement.html`
    vers l'aperçu, et `RETOUR_PAIEMENT` refuserait alors le retour. */
 const lienPortail = () => '/apercu/espace.html?retour=' + encodeURIComponent('recap-abonnement.html?formule=' + formuleActive + (modeAjout ? '&ajout=options' : '')
-  + (modeAjout ? '' : (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join('.') : '')) + (modeAjout && optionsActives().length ? '&options=' + optionsActives().join('.') : ''));
+  + (modeAjout ? '' : (metierAbo ? '&metier=' + metierAbo : '') + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join('.') : '')) + (modeAjout && optionsActives().length ? '&options=' + optionsActives().join('.') : ''));
 /* Revenir sur l'onglet — après avoir confirmé son adresse ailleurs, ou depuis la page Stripe — relit le compte : c'est le
    geste que la personne fait, elle n'a pas à recharger la page pour qu'il compte. */
 let relectureEnCours = false;
@@ -961,6 +1049,7 @@ function rendrePaiement() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
         <span><b>Toutes les options sont incluses</b> — stock, achats, compta et registre sanitaire (métier 3D), sans rien à ajouter.</span>
       </div>` : ''}
+    ${!gratuit && metierRequis() ? blocMetier() : ''}
     ${!gratuit && annuelDispo ? `
       <div class="choix-cycle">
         <button class="cycle ${!cycleAnnuel ? 'actif' : ''}" data-cycle="mensuel">
@@ -1054,6 +1143,7 @@ function rendrePaiement() {
     });
   });
 
+  if (!gratuit && metierRequis()) lierMetier(c);
   const br = document.getElementById('btnRenvoiLien'); if (br) br.addEventListener('click', () => renvoyerLien(br));
   const ba = document.getElementById('btnAutreCompte'); if (ba) ba.addEventListener('click', () => changerCompte());
 
@@ -1063,6 +1153,12 @@ function rendrePaiement() {
       return;
     }
     if (!(await paiementPret())) return;
+    /* ⛔ LE MÉTIER D'ABORD (23 octobre 2026) : une souscription neuve ne paie pas sans métier — le serveur refuse aussi, mais l'écran le
+       DIT ici, avant d'ouvrir quoi que ce soit chez Stripe, et ramène sur la liste. */
+    if (metierRequis()) {
+      if (!refMetiers) { compteMsg = { texte: (refMetiersMsg || 'Les métiers se chargent : patientez un instant, puis réessayez.') + ' Rien n\'a été payé.', erreur: true }; rendrePaiement(); return; }
+      if (!metierAbo) { compteMsg = { texte: 'Choisissez votre métier avant de payer : il règle votre application (types d\'intervention, fiche de terrain, rubriques). Rien n\'a été payé.', erreur: true }; rendrePaiement(); const sel = document.getElementById('metierAbo'); if (sel && sel.focus) sel.focus(); return; }
+    }
     /* ⛔ SANS CETTE RÉFÉRENCE, LE CORRECTIF STRIPE DU SERVEUR NE SERT À RIEN.
        `/api/stripe/checkout` ne grave `subscription_data[metadata][espace]` sur l'abonnement
        que si la page lui envoie un `ref` — et cette page, la SEULE du site qui ouvre une page
@@ -1086,7 +1182,7 @@ function rendrePaiement() {
     let r = null, j = null;
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
     try {
-      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef(), options: optionsEnvoyees }), signal: ctl.signal });
+      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef(), options: optionsEnvoyees, ...choixPaiement() }), signal: ctl.signal });
       j = await r.json().catch(() => null);
     } catch (e) { r = null; }
     finally { clearTimeout(to); }
@@ -1168,6 +1264,12 @@ function traiterReponsePaiement(r, j) {
     }
   }
   else if (r && r.status === 409 && j && j.error === 'option_deja') compteMsg = { texte: 'Une des options choisies est déjà active pour votre entreprise : rien à payer de plus pour elle. Décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
+  /* le métier (23 octobre 2026) : chaque refus du serveur se dit, rien n'est parti chez Stripe */
+  /* (le serveur peut demander un métier à un appareil qui croit connaître son entreprise : l'annuaire ne la connaît plus — la liste
+     s'affiche alors, et le second clic part avec le choix) */
+  else if (r && r.status === 400 && j && j.error === 'metier_requis') { metierForce = true; compteMsg = { texte: 'Choisissez votre métier avant de payer : il règle votre application. Rien n\'a été payé.', erreur: true }; }
+  else if (r && r.status === 400 && j && j.error === 'metier_ferme') compteMsg = { texte: 'Ce métier n\'est pas encore ouvert : choisissez-en un autre, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 400 && j && (j.error === 'metier_inconnu' || j.error === 'cats_inconnues')) compteMsg = { texte: 'Votre choix de métier ou de rubriques n\'existe plus : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
   else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
   /* un impayé sans facture ouverte : définitif tant que TEAM OP ne l'a pas réglé — « réessayez » mentirait */
   else if (r && r.status === 409 && j && j.error === 'impaye_sans_facture') compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti et doit être réglé avant tout nouveau paiement : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
@@ -1318,6 +1420,7 @@ function rendreTout() {
 }
 
 rendreTout();
+chargerMetiers();   // le référentiel des métiers : la carte se redessine quand il arrive (ou dit pourquoi il n'arrive pas)
 /* La page se dessine tout de suite, puis lit le compte : sans session, pas même un aller-retour au serveur. */
 const compteLu = lireCompte().then(rendrePaiement);
 </script>

@@ -345,10 +345,21 @@ vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : 
    clé qu'elle ne connaît pas se dit « Sur mesure avec vous » — jamais l'inverse. Publier l'application, c'est donc aussi
    régénérer le site : sinon ce contrôle tombe. */
 {
-  const ordreApp = (fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
+  /* 23 octobre 2026 : l'interrupteur est `ouverts` de metiers.json (test-2890 : il contient tout ce que l'application connaît, plus les réglages
+     explicites). Ici « connu de l'application » = METIERS_ORDRE d'app.html ET ce que le fichier ouvre par réglage. */
+  const METIERS_JSON = JSON.parse(fs.readFileSync(path.join(RACINE, 'metiers.json'), 'utf8'));
+  const ordreApp = (fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean)
+    .concat(Object.keys(METIERS_JSON.ouvertsReglage || {}));
+  const NB_REF = METIERS_JSON.ordreMetiers.length;
   const puces = [...PAGES.creer.matchAll(/class="metier-puce"[^>]*data-pack="([^"]+)"[^>]*data-pret="([01])"/g)].map(m => [m[1], m[2] === '1']);
   vrai('(population) la liste des packs de l\'application est lue (' + ordreApp.length + ' métiers)', ordreApp.length >= 6 && ordreApp[0] === '3d');
-  v('12 métiers proposés', [puces.length, (PAGES.creer.match(/class="metier-puce"/g) || []).length], [12, 12]);
+  v('22 métiers proposés (les douze du site, plus les dix du référentiel — « autre » n\'est pas une puce)', [puces.length, (PAGES.creer.match(/class="metier-puce"/g) || []).length], [NB_REF - 1, NB_REF - 1]);
+  v('⛔ les dix nouveaux métiers sont « bientôt » tant que le référentiel ne les ouvre pas (jamais « Pack prêt »)',
+    METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, puces.find(p => p[0] === k)[1], METIERS_JSON.ouverts.includes(k)]),
+    METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant).map(k => [k, METIERS_JSON.ouverts.includes(k), METIERS_JSON.ouverts.includes(k)]));
+  vrai('   … et leur carte de la page Métiers ne promet rien (aucune puce de fonctionnalité) tant qu\'ils sont fermés',
+    METIERS_JSON.ordreMetiers.filter(k => !METIERS_JSON.metiers[k].existant && !METIERS_JSON.ouverts.includes(k))
+      .every(k => { const m = new RegExp('<article class="pack" id="m-' + k + '">[\\s\\S]*?</article>').exec(PAGES.metiers); return m && !/<ul>/.test(m[0]) && />PACK BIENTÔT</.test(m[0]); }));
   v('⛔ une puce est « prête » si et seulement si l\'application connaît sa clé', puces.filter(([k, pr]) => pr !== ordreApp.includes(k)).map(([k]) => k), []);
   v('   packs prêts : ' + puces.filter(([, pr]) => pr).length, puces.filter(([, pr]) => pr).length, ordreApp.filter(k => k !== 'autre').length);
   const intro = texte((PAGES.metiers.match(/<h2 class="h2">Les métiers couverts\.<\/h2><p class="intro">([^<]*)</) || ['', ''])[1]);

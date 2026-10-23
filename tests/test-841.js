@@ -53,7 +53,7 @@ function courte(nom) {
    un patron qui tape l'identifiant proposé, et tout ce que la page affiche, capturé. */
 function tour(API, TOKEN, clients) {
   const noms = ['hAuth', 'apiPost', 'esc', 'jsq', 'espSlugJs', 'tourSha256', 'tourLienServeur', 'tourEspaceDe', 'tourIdentDefaut',
-    'tirageSur', 'tourMdpDefaut', 'tourMailAcces', 'lgMessagePoser', 'tourLienEntreprise', 'tourAccepterDemande', 'demPaiement', 'demEstGestion'];   // v2.88 : seules les demandes d'OP GESTION s'acceptent   // v2.87 : « déjà payé ? »
+    'tirageSur', 'tourMdpDefaut', 'tourMailAcces', 'lgMessagePoser', 'tourLienEntreprise', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'demCatsDepart', 'demEspace', 'catsEffet', 'catsPromesse'];   // (23 octobre 2026 : l'acceptation pose aussi les rubriques — test-2892 le joue)   // v2.88 : seules les demandes d'OP GESTION s'acceptent   // v2.87 : « déjà payé ? »
   const src = noms.map(n => (n === 'esc' || n === 'jsq') ? courte(n) : fonction(n));
   /* v2.77 : l'acceptation lit la liste des métiers (`MET_L`, le métier demandé se pose sur l'espace — test-848) ; la VRAIE
      ligne de la Tour, pas une copie : sans elle, la fonction extraite jette dès sa première ligne sur le métier */
@@ -75,7 +75,7 @@ function tour(API, TOKEN, clients) {
     document: { getElementById: elem },
     CLI: { list: clients || [] } };
   vm.createContext(ctx);
-  vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(TOKEN) + ";\nvar ABO={abos:[]};\nvar LG_MSG_MODELE='', LG_MAIL='', LG_ZONE='lg-msg';\n" + src.join('\n')
+  vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(TOKEN) + ";\nvar ABO={abos:[]};\nvar REFM={d:null,err:'',enCours:false}, CAT_CLES=[];\nvar ENT={loaded:true,liste:[]}, CATS_APPLIQUEES=false;\nvar LG_MSG_MODELE='', LG_MAIL='', LG_ZONE='lg-msg';\n" + src.join('\n')
     + '\nthis.__lg=function(){ return {modele:LG_MSG_MODELE, zone:LG_ZONE, mail:LG_MAIL}; };', ctx);
   return Object.assign(L, { ctx, elem });
 }

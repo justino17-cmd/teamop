@@ -59,7 +59,8 @@
 # 7 octobre 2026 : `test-851` (publier OP MESSAGES depuis la Tour : le vrai serveur, un faux GitHub, les deux instances, et la VRAIE carte de `tour.html` v2.86) — il entre
 # avec la Tour v2.86 qu'il lit : les deux partent ensemble sur `main`. Plancher relevé du nombre de ses vérifications (28).
 # 7 octobre 2026, mesuré : 58 suites, 3 939 vérifications une fois `test-978` nourri de la carte « Publier » (il mourait à 18) — plancher 3925.
-#plancher 4630
+# 23 octobre 2026 (relecture des métiers) : 5 168 mesurés (79 suites, `test-2890` et `test-2891` compris) — plancher relevé à 5100.
+#plancher 5100
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -246,3 +247,7 @@ tests/test-2884.js
 tests/test-2885.js
 # 22 octobre 2026 : `test-2870` (les catégories d'OP GESTION retenues par entreprise : la route de la Tour, ses refus, l'écriture sur tous les noms, « Revoir le lien » qui garde le réglage, `cats` sur les cinq formes vivantes de `/api/espaces/etat` et jamais sur la fermeture). Plancher inchangé : à relever après mesure sur les pages de `main`.
 tests/test-2870.js
+# 23 octobre 2026 : `test-2891` (le métier est obligatoire à l'abonnement : la demande d'accès et le paiement, le vrai serveur, un Stripe simulé ; `GET /api/metiers` ne sert que les métiers ouverts). Il lit `metiers.json`, qui part avec les pages liées.
+tests/test-2891.js
+# 23 octobre 2026 (relecture) : `test-2890` (le référentiel des métiers et son interrupteur : « tout métier ouvert est connu de l'application » — sans lui, ouvrir un métier dans `metiers.json` sans que l'application publique le connaisse déclenchait un déploiement qui passait la porte, et un plombier lisait « Dératisation »). Mesuré contre l'`app.html` de `origin/main` (APP_FICHIER) : 60 ✓ 0 ✗. `test-2891` garde aussi que le script de déploiement emporte la page de paiement.
+tests/test-2890.js

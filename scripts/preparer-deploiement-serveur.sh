@@ -93,14 +93,18 @@ echo "  aides des suites : ${AIDES_PRISES[*]:-aucune}"
 #    `impayesPartiels` à `/api/monitor/espaces/liste` ; restée celle de `main`, la Tour afficherait « la cliente garde son
 #    accès jusqu'à ce que ce soit réglé » et « Formule attribuée, jamais payée » à côté d'une entreprise grisée — et
 #    treize suites de la liste lisent `tour.html` (relevé par `relecteur`).
-PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html tour.html apercu/tour.html)
+# ⚠️ Et le référentiel des métiers (23 octobre 2026) : le serveur lit `metiers.json` (les métiers qu'un client peut choisir, les rubriques
+#    de chaque métier) et sert `/api/metiers` ; la page de paiement charge `rubriques-choix.js` et `.css` (la grille « Vos rubriques »).
+#    Sans eux, le serveur neuf tourne sur ses treize métiers de secours et la page de `main` ne sait pas demander le métier que la
+#    route de paiement EXIGE désormais (400 `metier_requis`) : un client ne pourrait plus payer. Ils partent donc avec la page.
+PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html tour.html apercu/tour.html metiers.json rubriques-choix.js rubriques-choix.css)
 # ⛔ TOUR_EN_SERVICE=garder (Justin, 17 octobre 2026 : « serveur + aperçu ») : le serveur part, la Tour EN SERVICE reste
 #    celle de `main` — seul son APERÇU part, pour qu'il l'essaie. Le serveur doit alors parler à la Tour d'AVANT : les
 #    suites de la liste qui lisent `tour.html` gardent leur version de `main` (celle qui garde la Tour servie), et c'est
 #    elle qu'on joue contre le serveur neuf. Une suite NEUVE qui lirait `tour.html` part telle quelle : si elle attend la
 #    Tour neuve, la porte tombe ici — c'est le but.
 if [ "${TOUR_EN_SERVICE:-}" = "garder" ]; then
-  PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html apercu/tour.html)
+  PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html apercu/tour.html metiers.json rubriques-choix.js rubriques-choix.css)
   for f in "${SUITES[@]}"; do
     if grep -q 'tour\.html' "$f" && git cat-file -e "origin/main:$f" 2>/dev/null; then git checkout -q origin/main -- "$f"; echo "  (Tour gardée) $f : version de main"; fi
   done
