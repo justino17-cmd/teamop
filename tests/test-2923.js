@@ -111,6 +111,19 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     B.nettoyer();
   }
 
+  console.log('\n2 bis. Inès : la fenêtre part du DERNIER passage, pas de « il y a 24 h »');
+  {
+    const B = equipe();
+    heureParis(B, 2026, 10, 23, 11, 0);
+    B.sources.courriels = [mail({ ts: B.horloge.t - 3 * 3600000 })];
+    v('premier passage à 11 h : le courriel de 8 h est relu', (await B.ines.passer()).courriels, { envoyes: 1, conformes: 1 });
+    heureParis(B, 2026, 10, 24, 8, 0);       // 21 h après : le courriel de 8 h (la veille) est encore dans « les 24 dernières heures »
+    B.sources.courriels = [mail({ ts: Date.UTC(2026, 9, 23, 6, 0, 0) }), mail({ ts: B.horloge.t - 3600000 })];
+    const r = await B.ines.passer();
+    v('⛔ le courriel d’avant le dernier passage n’est pas relu une seconde fois (un seul courriel, celui d’après)', [r.relu, r.courriels.envoyes], [true, 1]);
+    B.nettoyer();
+  }
+
   console.log('\n3. Inès : les erreurs du journal, les validations qui vieillissent, « pas relu »');
   {
     const B = equipe();
