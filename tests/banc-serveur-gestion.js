@@ -70,7 +70,7 @@ globalThis.fetch = async function (url, opts) {
       if (m === 'POST') { if (/(^|&)cancel_at_period_end=true(&|$)/.test(corps)) a.cancel_at_period_end = true; return sortie(200, a); }
       return sortie(200, /expand\\[\\]=latest_invoice/.test(u) ? avecFacture(a) : a);
     }
-    if (u.startsWith('https://api.stripe.com/v1/subscriptions?')) return sortie(200, { data: e.abos, has_more: false });
+    if (u.startsWith('https://api.stripe.com/v1/subscriptions?')) { if (e.panneListe) return sortie(500, { error: { message: 'panne simulée de la liste' } }); return sortie(200, { data: e.abos, has_more: false }); }   // panneListe : la lecture de la liste échoue (test-2917 §8 bis)
     if ((x = /^https:\\/\\/api\\.stripe\\.com\\/v1\\/invoices\\?subscription=([^&]+)/.exec(u))) { const f = e.factures['open:' + decodeURIComponent(x[1])]; return sortie(200, { data: f ? [f] : [], has_more: false }); }
     if ((x = /^https:\\/\\/api\\.stripe\\.com\\/v1\\/invoices\\?customer=([^&]+)/.exec(u))) return sortie(200, { data: e.factures['cus:' + decodeURIComponent(x[1])] || [], has_more: false });
     return sortie(200, { data: [], has_more: false });

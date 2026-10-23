@@ -192,6 +192,27 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   v('Justin accepte : la fin est programmée chez Stripe, l\'accusé part', [accR.s, accR.j.validation.execution, S.stripe().abos[0].cancel_at_period_end, (await S.courriels()).length], [200, 'ok', true, 1]);
   await fermer(S);
 
+  /* ═══════════════ SERVEUR 4 : les gardes de la résiliation que les bancs de module ne voient pas (constat de relecture) ═══════════════ */
+  console.log('\n8 bis. Hugo en « auto » : la liste de Stripe illisible, un abonnement DOUTEUX — rien n\'est écrit chez Stripe, et rien n\'est accusé');
+  S = await demarrer({ modes: MODES, clients: CLIENTS, espaces: ESPACES, abos: ABOS(), taches: [TACHE('k1', 'resilier_fin_periode', 'alpha-nettoyage')] });
+  serveurs.push(S);
+  if (!S.vivant) { console.log(S.journal().slice(0, 800)); process.exit(1); }
+  S.poserStripe(e => { e.panneListe = true; });
+  await S.post('/api/monitor/agents/hugo/passer');
+  v('⛔ la LISTE de Stripe ne se relit pas : « illisible » — aucune écriture chez Stripe, aucun accusé de réception, la tâche en échec', [S.stripe().appels.filter(a => a.m !== 'GET').length, (await S.courriels()).length, (await S.get('/api/monitor/agents/taches')).j.taches.find(t => t.id === 'k1').statut], [0, 0, 'echec']);
+  vrai('(population) la lecture de la liste a bien été TENTÉE (et a échoué) : le banc a joué la garde, pas un chemin qui n\'y passe pas', S.stripe().appels.some(a => a.m === 'GET' && /^\/v1\/subscriptions\?/.test(a.u)));
+  vrai('…et l\'abonnement d\'Alpha n\'a pas de fin programmée', S.stripe().abos.find(a => a.id === 'sub_alpha').cancel_at_period_end === false);
+  await fermer(S);
+  const PARTAGE = Object.assign({}, ESPACES, { 'alpha-bis': { t: 't-alphabis-2917', nom: 'Alpha Bis', email: 'alpha@exemple-2917.fr', ts: MAINTENANT - 2 * J, formule: 'pro', quantite: 1 } });
+  const SANS_REF = Object.assign(aboStripe('sub_incertain', 'past_due', '', 'cus_incertain', 'alpha@exemple-2917.fr'), { metadata: {} });
+  S = await demarrer({ modes: MODES, clients: CLIENTS, espaces: PARTAGE, abos: ABOS().concat([SANS_REF]), taches: [TACHE('k1', 'resilier_fin_periode', 'alpha-nettoyage')] });
+  serveurs.push(S);
+  if (!S.vivant) { console.log(S.journal().slice(0, 800)); process.exit(1); }
+  await S.post('/api/monitor/agents/hugo/passer');
+  v('⛔ un abonnement en impayé trouvé par une adresse que DEUX entreprises portent (donc pas sûrement à Alpha) : « doute » — aucune écriture chez Stripe, aucun accusé', [S.stripe().appels.filter(a => a.m !== 'GET').length, (await S.courriels()).length, (await S.get('/api/monitor/agents/taches')).j.taches.find(t => t.id === 'k1').statut], [0, 0, 'echec']);
+  vrai('(population) la liste a été relue et l\'abonnement sûr d\'Alpha y est : seul le doute a retenu la main', S.stripe().appels.some(a => a.m === 'GET' && /^\/v1\/subscriptions\?/.test(a.u)) && S.stripe().abos.some(a => a.id === 'sub_alpha'));
+  await fermer(S);
+
   /* ═══════════════ LE BILAN DE TOUT LE BANC : CE QUI A ÉTÉ ÉCRIT CHEZ STRIPE ═══════════════ */
   console.log('\n9. Tout ce banc : les écritures vers Stripe');
   const tous = bilans.flatMap(b => b.appels);
