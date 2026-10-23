@@ -241,6 +241,11 @@ const hors = c => (POUR_LA_RACINE ? '' : '/apercu') + c;
 /* l'accueil s'écrit « / » (21 octobre 2026, Justin : « pourquoi l'adresse du site est teamop.fr/index.html ? ») : la même page à deux adresses ; l'aperçu garde la sienne */
 const ACCUEIL = () => POUR_LA_RACINE ? '/' : 'index.html';
 const ESPACE = () => hors('/espace.html'), CONNEXION = () => hors('/connexion.html?choix=1');
+/* LA DÉMONSTRATION PUBLIQUE (demo.html, générée par demo-build.js : la vraie application, sans réseau ni compte, un exemple fictif par métier). Justin,
+   23 octobre 2026 : « sur le site il faudrait faire un système de simulation des applications, qu'ils puissent tester » ; le lien sur le site, sur sa
+   phrase du même jour. Toujours l'adresse de la RACINE : la démonstration n'a pas de copie d'aperçu. */
+const DEMO = () => '/demo.html';
+const lienDemo = () => `<a class="lien-suite" href="${DEMO()}">Essayer la démonstration ›</a>`;
 
 function entete(section, sousnav) {
   const liens = Object.keys(VOLETS).map(k => `<a href="${VOLETS[k].href}" data-fly="${k}" aria-haspopup="true" aria-expanded="false"${section === k ? ' aria-current="page"' : ''}>${esc(VOLETS[k].label)}</a>`).join('');
@@ -474,7 +479,7 @@ function pageMetier(m, cle) {
     + `<p>${fr('Sans engagement : choisissez la formule qui vous convient, et changez-en quand votre équipe grandit. Un abonnement par utilisateur.')}</p><div style="height:22px"></div>`
     + '<div class="cartes-3">' + f.map(([n, pr, t]) => `<div class="carte-v"><b>${fr(n)}</b><span class="prix-metier">${fr(pr)}</span><span class="t">${fr(t)}</span></div>`).join('') + '</div>'
     + `<div class="actions" style="margin-top:28px"><a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="tarifs.html">Voir les tarifs ›</a></div></div></section>`;
-  return scene(m.surtitre, m.h1, m.chapeau, `<a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="tarifs.html">Voir les tarifs ›</a>`)
+  return scene(m.surtitre, m.h1, m.chapeau, `<a class="bouton" href="${ESPACE()}">Créer mon compte</a>${lienDemo()}<a class="lien-suite" href="tarifs.html">Voir les tarifs ›</a>`)
     + (POUR_LA_RACINE ? (m.mac ? `<section class="scene-mac">${mac(m.mac[0], m.mac[1], { tot: false })}</section>` : '')
       : neutre ? '' : `<section class="scene-mac">${carPaire(m.mac ? PAIRE_DE[m.mac[0]] : 'tableau')}</section>`)
     + bloc(m.blocs[0], 0) + duo + m.blocs.slice(1).map((b, i) => bloc(b, i + 1)).join('') + formules;
@@ -675,7 +680,7 @@ const PAGES = {
   'op-gestion': { section: 'applications', titre: 'OP GESTION — Pilotez votre activité terrain | TEAM OP', desc: 'OP GESTION : interventions, planning et tournées, stock, devis et factures, encaissements et équipe — votre quotidien dans une seule application.',
     sousnav: { titre: 'OP GESTION', href: 'op-gestion.html', liens: [L('Vue d\'ensemble', 'op-gestion.html#apercu'), L('Fonctions', 'op-gestion.html#fonctions'), L('Tarifs', 'tarifs.html#op-gestion')], cta: () => `<a class="pilule" href="${ESPACE()}">Demander un accès</a>` },
     corps: () => scene('Application de gestion tout-en-un', 'Pilotez votre activité terrain en un seul endroit.', 'Interventions, planning et tournées, stock et box, encaissements, devis-factures et équipe : OP GESTION réunit tout votre quotidien dans une application simple, rapide et accessible partout.',
-        `<a class="bouton" href="${ESPACE()}">Demander un accès</a><a class="lien-suite" href="tarifs.html#op-gestion">Voir les tarifs ›</a>`)
+        `<a class="bouton" href="${ESPACE()}">Demander un accès</a>${lienDemo()}<a class="lien-suite" href="tarifs.html#op-gestion">Voir les tarifs ›</a>`)
       + `<section class="scene-mac">${POUR_LA_RACINE ? mac('mac-planning', 'OP GESTION sur un Mac : le planning de la semaine, technicien par technicien', { tot: false }) : carPaire('planning')}</section>
       <section id="fonctions" style="padding:clamp(70px,9vw,120px) 12px 12px"><div class="page" style="padding:0 10px"><h2 class="h2">Ce que fait OP GESTION.</h2><p class="intro">Ouvrez une carte pour tout voir.</p></div>${tuiles('elan', 'OP GESTION', F_GESTION)}</section>${FENETRE}` },
 
@@ -721,7 +726,7 @@ const PAGES = {
 
   metiers: { section: 'metiers', titre: 'Métiers — TEAM OP', desc: 'TEAM OP s\'adapte à votre métier : 3D anti-nuisibles, plomberie, électricité, chauffage, BTP, paysagistes, nettoyage et plus encore.',
     corps: () => scene('Métiers', 'Un outil qui parle votre métier.', 'Dites-nous ce que vous faites, TEAM OP se règle sur votre métier : types d\'intervention, fiche de rapport et modules utiles sont prêts dès l\'ouverture de votre espace. Vous démarrez dès que votre demande est acceptée, pas au bout de quelques semaines.',
-        `<a class="bouton" href="${ESPACE()}">Créer mon espace</a>`)
+        `<a class="bouton" href="${ESPACE()}">Créer mon espace</a>${lienDemo()}`)
       + `<section class="page" style="padding-top:10px;padding-bottom:20px"><div class="cartes-3">`
       + [['1', 'Renseignez votre entreprise', 'Nom, coordonnées… et surtout votre métier, dans votre demande d\'accès.'], ['2', 'Tout se met en place', 'Types d\'intervention, fiche de rapport et modules de votre métier sont réglés pour vous à l\'ouverture de votre espace. Vos produits et fournisseurs, vous les ajoutez à votre rythme.'], ['3', 'Vous travaillez', 'Planning, rapports, devis et factures : votre équipe est opérationnelle dès le premier jour.']]
         .map(([n, t, d]) => `<div class="etape-carte"><b class="n">${n}</b><b class="t">${fr(t)}</b><span>${fr(d)}</span></div>`).join('')

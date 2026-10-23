@@ -407,7 +407,12 @@ function fenetre(opts) {
     && (DIRECTIVES['form-action'] || []).join() === '\'none\'' && (DIRECTIVES['frame-src'] || []).every(x => /^(blob|data):$/.test(x)) && (DIRECTIVES['object-src'] || []).every(x => /^(blob|data):$/.test(x)));
   vrai('et pare-feu.js DIT que ces fenêtres n\'ont pas son pare-feu (une note, pour qu\'un gabarit neuf n\'y compte pas)', /fenêtres VIDES[\s\S]{0,400}n'ont PAS ce pare-feu/.test(PARE));
   { const sw = lire('sw.js');
-    if (!/demo\.html/.test(sw)) console.log('  ⚠ PRÉREQUIS DE PUBLICATION (non compté) : sw.js n\'exclut pas demo.html — le worker rangerait la démonstration (4,3 Mo) dans le cache de la VRAIE application et annoncerait « Nouvelle version prête » à ses fenêtres. À poser (avec beta.html, tour.html, dev.html) AVANT de publier demo.html ; sw.js se décide hors de cette branche.'); }
+    /* ⛔ PRÉREQUIS DE PUBLICATION, compté depuis la mise en ligne de la démonstration (23 octobre 2026) : le worker ignore /demo.html AVANT
+       toute mise en cache (comme /beta.html), dans le code et pas dans un commentaire — sinon il rangerait la démonstration (4 Mo) dans le cache de
+       la VRAIE application et annoncerait « Nouvelle version prête » aux clients. */
+    const swCode = sw.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const iDemo = swCode.indexOf("if (url.pathname.endsWith('/demo.html')) return;"), iDoc = swCode.indexOf('const isDoc');
+    vrai('⛔ sw.js ignore /demo.html avant toute mise en cache (comme la bêta)', iDemo > 0 && iDoc > 0 && iDemo < iDoc); }
   suite();
 })().catch(e => { ko++; console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); finir(); });
 

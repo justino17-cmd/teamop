@@ -173,6 +173,9 @@ self.addEventListener('fetch', e => {
   if (url.pathname.endsWith('/beta.html')) return;
   if (url.pathname.endsWith('/messages-beta.html')) return;   // canal d'essai OP MESSAGES : toujours la dernière poussée
   if (url.pathname.endsWith('/dev.html')) return;   // portail bêta de l'équipe : jamais en cache, toujours frais
+  /* demo.html (la démonstration publique, 4 Mo, sans réseau ni compte) : jamais en cache. Rangée ici, elle entrerait dans le cache de la
+     VRAIE application et annoncerait « Nouvelle version prête » aux clients à chaque régénération ; et une vieille copie garderait un vieil exemple. */
+  if (url.pathname.endsWith('/demo.html')) return;
   if (url.origin !== self.location.origin) return;   // le reste du web ne nous regarde pas
 
   const isDoc = req.mode === 'navigate' || req.destination === 'document';
