@@ -40131,11 +40131,12 @@ function genererInterventionContrat(id){ if(!permGarde('int','ajouter','une inte
   ct.derniereGeneration=iso; logEvent('Intervention générée (contrat)',`${ct.num} → ${iso}`,'crud'); save(); toast('Intervention planifiée le '+fmtShort(iso)); views.contrats(); }
 function formContrat(id){ const ct=id?db.contrats.find(x=>x.id===id):{};
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} contrat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <form onsubmit="saveContrat(event,'${id||''}')">
+    <form onsubmit="saveContrat(event,'${id||''}')" onchange="if(typeof cvcContratMaj==='function')cvcContratMaj(this)">
       <div class="field-row"><div class="field"><label>N° *</label><input name="num" required value="${esc(ct.num)||nextNum('contrats','CTR','num')}"></div>
         <div class="field"><label>Montant (€)</label><input type="number" step="0.01" name="montant" value="${ct.montant??0}"></div></div>
       <div class="field"><label>Intitulé *</label><input name="titre" required value="${esc(ct.titre)}"></div>
       <div class="field"><label>Client *</label><select name="clientId" required><option value="">—</option>${clientsProposes(ct.clientId).map(c=>`<option value="${c.id}" ${c.id===ct.clientId?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></div>
+      ${typeof cvcContratChamp==='function'?cvcContratChamp(ct):''}
       <div class="field-row"><div class="field"><label>Fréquence</label><select name="frequence">${Object.entries(FREQ).map(([k,v])=>`<option value="${k}" ${ct.frequence===k?'selected':''}>${v}</option>`).join('')}</select></div>
         <div class="field"><label>Statut</label><select name="statut">${Object.entries(CTR_ST).map(([k,v])=>`<option value="${k}" ${ct.statut===k?'selected':''}>${v.l}</option>`).join('')}</select></div></div>
       <div class="field-row"><div class="field"><label>Début</label><input type="date" name="dateDebut" value="${ct.dateDebut||todayISO()}"></div>
@@ -40144,6 +40145,7 @@ function formContrat(id){ const ct=id?db.contrats.find(x=>x.id===id):{};
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`);
 }
 function saveContrat(e,id){ e.preventDefault(); if(!permGarde('ventes',id?'modifier':'ajouter','un contrat')) return; const d=Object.fromEntries(new FormData(e.target)); d.montant=parseFloat(d.montant)||0;
+  if(typeof cvcContratLire==='function') cvcContratLire(e.target,d);   // CVC : les appareils couverts, limités au client choisi
   /* g02 : un N° est unique. À la modification, seulement s'il CHANGE — corriger un contrat dont le numéro
      est déjà doublé (doublon d'avant) ne doit pas se bloquer. */
   { const avant=id?(db.contrats.find(x=>x.id===id)||{}).num:''; d.num=String(d.num||'').trim();
@@ -40251,9 +40253,11 @@ function cvcTypeInterventionPour(appareils){ const types=(typeof intTypes==='fun
 function cvcPropositions(auj){ return cvcAvecIndex(()=>cvcPropositionsCalc(auj)); }
 function cvcPropositionsCalc(auj){ auj=auj||todayISO();
   const vus=new Set(visibleClients(db.clients||[]).map(c=>c.id)), out=[];
+  /* la visite d'un contrat d'abord : elle CONTIENT l'entretien des appareils qu'elle couvre, qu'on ne propose donc pas une seconde fois */
+  const ctr=cvcContratPropositions(auj,vus), couverts=new Set(); ctr.forEach(p=>p.couvre.forEach(id=>couverts.add(id))); out.push(...ctr);
   (db.appareils||[]).forEach(a=>{ if(!a||!vus.has(a.clientId)||cvcPlanifiee(a)) return;
     const e=cvcEntretienEcheance(a), j=e?cvcJours(e.date,auj):null;
-    if(e&&j<=CVC_RAPPEL_J) out.push({cle:'ent:'+a.id+':'+e.date,kind:'entretien',clientId:a.clientId,date:e.date,j,appareilIds:[a.id],
+    if(e&&j<=CVC_RAPPEL_J&&!couverts.has(a.id)) out.push({cle:'ent:'+a.id+':'+e.date,kind:'entretien',clientId:a.clientId,date:e.date,j,appareilIds:[a.id],
       titre:'Entretien — '+cvcLibelle(a),type:cvcTypeInterventionPour([a])});
     /* l'étanchéité est une AUTRE obligation que l'entretien : sa propre ligne, sa propre échéance (règle : cvcEtancheiteRegle) */
     const t=cvcEtancheiteEcheance(a), jt=t?cvcJours(t.date,auj):null;
@@ -40795,6 +40799,61 @@ function cvcIntFiches(i,a){ const L=cvcFichesDe(i,a.id), peut=canCat('int','modi
       <div class="pl-meta" style="overflow-wrap:anywhere">${esc(cvcFicheResume(f))}</div></div>
       ${peut?`<button type="button" class="btn ghost sm" onclick="cvcFicheForm('${i.id}','${a.id}','${f.id}')" aria-label="Modifier la fiche fluides">✎</button><button type="button" class="btn ghost sm" onclick="cvcFicheSupprimer('${i.id}','${f.id}')" aria-label="Supprimer la fiche fluides">🗑</button>`:''}</div>`).join('');
   return lignes; }
+/* ═══ CVC 4 — LA VISITE DU CONTRAT D'ENTRETIEN : UNE PROPOSITION, JAMAIS UNE ÉCRITURE ═══
+   Un contrat d'entretien lié à un client — et, au choix, à certains de ses appareils — propose de planifier la visite quand son échéance approche.
+   L'échéance est celle de la FRÉQUENCE du contrat (annuelle pour un entretien annuel) : dernière visite connue + période. Dernière visite connue =
+   la plus récente entre `derniereGeneration` (le bouton 🔁 « Générer la prochaine intervention ») et les interventions rattachées au contrat
+   (`contratId`), annulées exceptées ; à défaut, le début du contrat. C'est exactement la base de `genererInterventionContrat` : les deux chemins
+   donnent la même date.
+   · ce n'est PAS le rappel de FIN de contrat (`ctrRappels` : renouveler) — c'est la visite DE l'année ;
+   · ⛔ elle ne s'écrit pas toute seule : « Planifier » ouvre le formulaire d'intervention pré-rempli (client, contrat, appareils, date, type) et rien n'est
+     créé tant que la personne ne valide pas ; la visite créée porte `contratId`, donc la proposition disparaît d'elle-même ;
+   · une visite déjà prévue (intervention non terminée rattachée au contrat) la fait taire ; un contrat suspendu, expiré, terminé ou dont la prochaine
+     visite tomberait après sa fin n'en propose pas ;
+   · les appareils d'un contrat sont ses cases cochées (`appareilIds`) ; aucune cochée = tout le parc du client. L'entretien d'un appareil que le
+     contrat couvre n'est pas proposé une seconde fois : la visite du contrat le contient. */
+const CVC_FREQ_MOIS={mensuel:1,trimestriel:3,semestriel:6,annuel:12};
+function cvcContratIntervalle(ct){ return CVC_FREQ_MOIS[ct&&ct.frequence]||12; }
+function cvcContratAppareils(ct){ const L=cvcAppareilsDe(ct&&ct.clientId), ids=Array.isArray(ct&&ct.appareilIds)?ct.appareilIds:[];
+  return ids.length?L.filter(a=>ids.indexOf(a.id)>=0):L; }
+function cvcContratPlanifiee(ct){ return (db.interventions||[]).some(i=>i&&i.contratId===ct.id&&(i.statut==='planifiee'||i.statut==='encours'||i.statut==='aplanifier')); }
+function cvcContratDerniereVisite(ct){ const d=[];
+  if(cvcIsoOk(ct.derniereGeneration)) d.push(ct.derniereGeneration);
+  (db.interventions||[]).forEach(i=>{ if(i&&i.contratId===ct.id&&i.statut!=='annulee'&&cvcIsoOk(i.date)) d.push(i.date); });
+  d.sort(); return d.length?d[d.length-1]:''; }
+/* La prochaine visite d'un contrat : {date,j,base:'visite'|'debut',depuis} ou null (rien à proposer). */
+function cvcContratVisite(ct,auj){ auj=auj||todayISO();
+  if(!ct||(ct.statut||'actif')!=='actif') return null;
+  if(cvcIsoOk(ct.dateFin)&&ct.dateFin<auj) return null;
+  if(cvcContratPlanifiee(ct)) return null;
+  const derniere=cvcContratDerniereVisite(ct), depuis=derniere||(cvcIsoOk(ct.dateDebut)?ct.dateDebut:''); if(!depuis) return null;
+  const date=cvcAddMois(depuis,cvcContratIntervalle(ct));
+  if(cvcIsoOk(ct.dateFin)&&date>ct.dateFin) return null;
+  const j=cvcJours(date,auj); if(j>CVC_RAPPEL_J) return null;
+  return {date,j,base:derniere?'visite':'debut',depuis}; }
+function cvcContratPropositions(auj,vus){ const out=[];
+  visibleDocs(db.contrats||[]).forEach(ct=>{ if(!ct||!vus.has(ct.clientId)) return;
+    const e=cvcContratVisite(ct,auj); if(!e) return;
+    const apps=cvcContratAppareils(ct), ids=Array.isArray(ct.appareilIds)?ct.appareilIds.filter(x=>apps.some(a=>a.id===x)):[];
+    out.push({cle:'ctr:'+ct.id+':'+e.date,kind:'contrat',clientId:ct.clientId,date:e.date,j:e.j,contratId:ct.id,appareilIds:ids,couvre:apps.map(a=>a.id),
+      titre:'Visite d’entretien — '+(ct.titre||ct.num||'contrat'),type:cvcTypeInterventionPour(apps)||((typeof intTypes==='function'?intTypes():[]).indexOf('Contrat d’entretien')>=0?'Contrat d’entretien':'')}); });
+  return out; }
+/* ── Le contrat DÉSIGNE ses appareils : des cases dans son formulaire, qui suivent le client choisi. ── */
+function cvcContratCases(clientId,sel){ const L=cvcAppareilsDe(clientId||'');
+  if(!clientId) return '<div style="font-size:12.5px;color:var(--t3);margin:-4px 0 10px">Choisissez le client pour désigner les appareils couverts.</div>';
+  if(!L.length) return '<div style="font-size:12.5px;color:var(--t3);margin:-4px 0 10px">Ce client n’a pas encore d’appareil dans son parc (fiche client → Appareils). La visite du contrat concernera l’ensemble de ses installations.</div>';
+  const s=Array.isArray(sel)?sel:[];
+  return `<div class="field"><label>Appareils couverts <span style="color:var(--t3);font-weight:400">(aucun coché = tout le parc du client)</span></label>`
+    +L.map(a=>`<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin:5px 0;cursor:pointer;overflow-wrap:anywhere"><input type="checkbox" name="cvcApp" value="${esc(a.id)}" ${s.indexOf(a.id)>=0?'checked':''} style="width:19px;height:19px;flex-shrink:0;accent-color:var(--acc)"><span>${esc(cvcLibelle(a))}${a.emplacement?' — '+esc(a.emplacement):''}</span></label>`).join('')+'</div>'; }
+function cvcContratChamp(ct){ if(!metierGereParc()) return '';
+  return `<div id="cvc-ct" data-client="${esc((ct&&ct.clientId)||'')}">${cvcContratCases(ct&&ct.clientId,ct&&ct.appareilIds)}</div>`; }
+/* Changer de client change la liste ; le même client ne la réécrit pas (les cases cochées restent). */
+function cvcContratMaj(f){ const z=document.getElementById('cvc-ct'); if(!z||!f||!f.elements||!f.elements.clientId) return;
+  const cid=f.elements.clientId.value; if(z.dataset.client===cid) return; z.dataset.client=cid; z.innerHTML=cvcContratCases(cid,[]); }
+/* À l'enregistrement : la liste des cases, limitée aux appareils DU client finalement choisi. Un formulaire sans la zone (autre métier) ne touche à rien. */
+function cvcContratLire(f,d){ const z=f&&f.querySelector&&f.querySelector('#cvc-ct'); if(!z||!d) return;
+  delete d.cvcApp;
+  d.appareilIds=[...f.querySelectorAll('input[name=cvcApp]')].filter(x=>x.checked).map(x=>x.value).filter(x=>(db.appareils||[]).some(a=>a.id===x&&a.clientId===d.clientId)); }
 /* ═══════════════ fin du bloc CVC ═══════════════ */
 
 /* ═══════════════ POINTAGE (temps de travail) ═══════════════

@@ -72,7 +72,10 @@ console.log('\n── 2897 · 1. la fiche s’écrit DANS l’intervention ─�
   vrai('textes coupés aux bornes (80 / 80 / 600 / 120 / 80)', L.contenant.length === 80 && L.bordereau.length === 80 && L.obs.length === 600 && L.operateur.length === 120 && L.attestation.length === 80);
   /* supprimer */
   const nn = i.fichesFluides.length; W.cvcFicheSupprimer('i2', f.id);
-  vrai('supprimer retire la fiche (après confirmation), une ligne d’historique', i.fichesFluides.length === nn - 1 && !i.fichesFluides.some(k => k.id === f.id));
+  vrai('supprimer retire la fiche (après confirmation)', i.fichesFluides.length === nn - 1 && !i.fichesFluides.some(k => k.id === f.id));
+  vrai('… et laisse une ligne d’historique', /Fiche fluides supprimée/.test(i.histo.join('|')));
+  SOUMET(W, 'i2', 'a2', '', { prp: '2088' });
+  vrai('le PRP de la plaque saisi sur la fiche est gardé', i.fichesFluides[i.fichesFluides.length - 1].prp === 2088);
   /* droits */
   const D = monter({ db: BASE, droits: { 'int.modifier': false } });
   SOUMET(D, 'i2', 'a2');
@@ -144,6 +147,7 @@ console.log('\n── 2897 · 4. l’échéance paraît sur l’appareil, les T�
   const ligne = W4.cvcLigneAppareil(W4.db.appareils[1]);
   vrai('la ligne de l’appareil dit la périodicité et la prochaine date, avec sa pastille', /Étanchéité/.test(ligne) && /20\/11/.test(ligne) && /12 mois/.test(ligne), ligne.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '));
   vrai('un appareil sans fluide n’a pas de ligne d’étanchéité', !/Étanchéité/.test(W4.cvcLigneAppareil(W4.db.appareils[0])));
+  vrai('⛔ un appareil à fluide SOUS le seuil (R32 1,5 kg) n’annonce pas de périodicité (« tous les undefined mois »)', !/Étanchéité/.test(W4.cvcLigneAppareil(W4.db.appareils[2])), W4.cvcLigneAppareil(W4.db.appareils[2]));
   W4.cvcPlanifier('etc:a2:2026-11-20');
   v('« Planifier » pré-remplit : client, titre, date, appareil — et n’écrit rien', [W4.__interForm[0].pre.clientId, W4.__interForm[0].pre.titre, W4.__interForm[0].pre.date, W4.__interForm[0].pre.appareilIds, W4.__saves],
     ['c1', 'Contrôle d’étanchéité — Climatiseur multisplit · Mitsubishi MXZ', '2026-11-20', ['a2'], 0]);
