@@ -15,7 +15,17 @@
   "paysagiste",
   "couverture",
   "multiservices",
-  "autre"
+  "autre",
+  "incendie",
+  "froid",
+  "ascenseurs",
+  "portails",
+  "ramonage",
+  "assainissement",
+  "energies",
+  "alarme",
+  "eau",
+  "piscine"
  ],
  "ouvertsReglage": {},
  "regles": [
@@ -318,7 +328,7 @@
    "moduleMisDeCote": true
   },
   "validations": {
-   "titre": "Validations DR",
+   "titre": "Validation des mouvements",
    "ic": "✅",
    "groupe": "Achats internes",
    "explication": "Le responsable valide ou refuse les demandes de commande et les sorties de stock, pour que rien ne bouge sans son accord.",

@@ -26,7 +26,9 @@ function restesDeMode(page, TETE_MODE) {
     const t = m[2].split(/\s+/);
     if (t.includes('mode') || t.includes('coin-mode')) vu.push('classe « ' + m[2] + ' »');
   }
-  if (/[☀☾☼🌙🌞]/u.test(c)) vu.push('le dessin ☀︎/☾');
+  /* le dessin se cherche hors des blocs de DONNÉES (`<script type="application/json">`, jamais exécutés ni affichés tels quels) : le référentiel des
+     métiers que `creer.html` embarque porte le pictogramme ☀️ du photovoltaïque (métier ouvert le 23 octobre 2026), qui n'est pas un bouton de mode */
+  if (/[☀☾☼🌙🌞]/u.test(c.replace(/<script\b[^>]*\btype\s*=\s*("|')application\/json\1[^>]*>[\s\S]*?<\/script>/gi, ' '))) vu.push('le dessin ☀︎/☾');
   if (/(?:aria-label|title)\s*=\s*("|')[^"']*\b(?:mode (?:jour|nuit|sombre|clair)|thème (?:sombre|clair))/i.test(c)) vu.push('un nom « mode jour / nuit »');
   if (/(?:aria-label|title)\s*=\s*("|')\s*(?:thème|theme|mode)\s*\1/i.test(c)) vu.push('un groupe nommé « Thème »');
   if (/<button\b[^>]*>\s*(?:jour|nuit|auto|mode (?:jour|nuit))\s*<\/button>/i.test(c)) vu.push('un bouton « Jour / Nuit »');

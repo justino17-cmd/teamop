@@ -425,7 +425,7 @@ function suite() {
   vrai('le fichier de scénarios est recopié TEL QUEL dans demo.html, comme le module et le pare-feu', DEMO.indexOf(SCEN) > 0 && DEMO.indexOf(MODULE) > 0 && DEMO.indexOf(PARE) > 0);
   egal('⛔ la liste des métiers FERMÉS de la démonstration est celle que tests/metiers-publics.js nomme « pas encore ouverts » (quand le site les ouvre, les deux se vident ensemble)', CONSTS.DEMO_METIERS_FERMES, PUBLICS.PAS_ENCORE_OUVERTS);
   const OUVERTS = ORDRE.filter(k => CONSTS.DEMO_METIERS_FERMES.indexOf(k) < 0);
-  vrai('(population) 23 métiers dans l\'application, 13 proposés, 10 fermés', ORDRE.length === 23 && OUVERTS.length === 13 && CONSTS.DEMO_METIERS_FERMES.length === 10);
+  vrai('(population) 23 métiers dans l\'application ; proposés + fermés = 23, et les fermés sont ceux que le site n\'ouvre pas', ORDRE.length === 23 && OUVERTS.length + CONSTS.DEMO_METIERS_FERMES.length === 23 && OUVERTS.length >= 13);
   egal('chaque métier proposé a SON exemple ; aucun exemple pour un métier fermé (pas de donnée écrite pour rien)', [OUVERTS.filter(k => !DEMO_SCENARIOS[k]), Object.keys(DEMO_SCENARIOS).filter(k => OUVERTS.indexOf(k) < 0)], [[], []]);
 
   console.log('\n6. Le vrai semis, pour chaque métier (les vraies fonctions de l\'application et du module)');
@@ -506,7 +506,7 @@ function suite() {
     egal((OUVERTS.indexOf(k) >= 0 ? 'métier proposé' : 'métier fermé (le semis tient aussi)') + ' « ' + k + ' » : ' + db.techniciens.length + ' techniciens, ' + db.clients.length + ' clients, ' + db.interventions.length + ' interventions, ' + db.produits.length + ' produits, '
       + db.devis.length + ' devis, ' + db.factures.length + ' factures — tous aux types, catégories et mots du métier', f, []);
   });
-  vrai('(population) 23 métiers semés, dont 13 proposés', Object.keys(rapports).length === 23);
+  vrai('(population) 23 métiers semés, dont ' + OUVERTS.length + ' proposés', Object.keys(rapports).length === 23);
   /* la contre-épreuve du détecteur de mots : il VOIT l'anti-nuisibles quand on en pose un */
   { const { db, b } = monde(); b.fn.demoPubliqueSemer('plomberie'); db.interventions[0].titre = 'Dératisation'; vrai('(contre-épreuve) le détecteur de mots de l\'anti-nuisibles voit une dératisation posée chez un plombier', MOTS_3D.test(JSON.stringify(db.interventions))); }
   { const { db, b } = monde(); b.fn.demoPubliqueSemer('3d'); vrai('(contre-épreuve) la 3D, elle, garde ses types (Dératisation…) : le semis ne vide pas le métier d\'origine', db.interventions.some(i => /Dératisation|Désinsectisation/.test(i.type))); }
