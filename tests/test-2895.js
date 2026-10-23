@@ -240,6 +240,7 @@ console.log('\n── 2895 · 9. règle d’étanchéité : seuils, aux frontiè
   v('… 6 mois avec détection', mois(R('R404A', 150, { detection: true })), 6);
   const F = (kg, prp, extra) => W.cvcEtancheiteRegle(Object.assign({ fluide: 'R410A', charge: kg, prp }, extra || {}));
   v('frontière 4,999 t : non', mois(F(4.999, 1000)), false);
+  v('⛔ le tonnage n’est PAS arrondi : 4,9996 t (4999,6 kg·PRP) reste sous la frontière', mois(F(4.9996, 1000)), false);
   v('frontière 5 t pile : oui, 12 mois', mois(F(5, 1000)), 12);
   v('frontière 49,999 t : 12 mois', mois(F(49.999, 1000)), 12);
   v('frontière 50 t pile : 6 mois', mois(F(50, 1000)), 6);

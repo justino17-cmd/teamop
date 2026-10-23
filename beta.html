@@ -33513,8 +33513,10 @@ function _pdfTranslit(s){
     '\u2190':'<-','\u2192':'->','\u2194':'<->','\u21D0':'<=','\u21D2':'=>','\u21D4':'<=>','\u2191':'^','\u2193':'v',
     '\u27F5':'<-','\u27F6':'->','\u27F7':'<->','\u2794':'->','\u279C':'->','\u27A1':'->','\u2B05':'<-','\u2B06':'^','\u2B07':'v',
     '\u2264':'<=','\u2265':'>=','\u2260':'!=','\u2248':'~','\u2713':'OK','\u2714':'OK','\u2611':'OK','\u2717':'X','\u2718':'X','\u2612':'X','\u2610':'[ ]',
-    '\u03BC':'\u00B5','\uFB01':'fi','\uFB02':'fl','\u2002':' ','\u2003':' ','\u2007':' '};
-  return String(s==null?'':s).normalize('NFC').replace(/[\u2010-\u2012\u2023\u2032\u2033\u2043\u2190-\u21FF\u2212\u2248\u2260\u2264\u2265\u2300-\u23FF\u25A0-\u27BF\u27F5-\u27FF\u2B00-\u2BFF\u03BC\uFB01\uFB02\u2002\u2003\u2007\u200B\u200D\u20E3\uFE0E\uFE0F\u{1F000}-\u{1FAFF}]/gu,
+    '\u03BC':'\u00B5','\uFB01':'fi','\uFB02':'fl','\u2002':' ','\u2003':' ','\u2007':' ',
+    /* chiffres en indice : « CO₂ » (relevé des chauffagistes) s'écrivait « CO? » dans le PDF — WinAnsi n'a que ² et ³ */
+    '\u2080':'0','\u2081':'1','\u2082':'2','\u2083':'3','\u2084':'4','\u2085':'5','\u2086':'6','\u2087':'7','\u2088':'8','\u2089':'9'};
+  return String(s==null?'':s).normalize('NFC').replace(/[\u2010-\u2012\u2023\u2032\u2033\u2043\u2190-\u21FF\u2212\u2248\u2260\u2264\u2265\u2300-\u23FF\u25A0-\u27BF\u27F5-\u27FF\u2B00-\u2BFF\u03BC\uFB01\uFB02\u2002\u2003\u2007\u2080-\u2089\u200B\u200D\u20E3\uFE0E\uFE0F\u{1F000}-\u{1FAFF}]/gu,
     c=>(c in T)?T[c]:(c>='\u25A0'&&c<='\u25FF'?'\u2022':'')); }
 function _pdfTxt(s){ s=_pdfTranslit(s); let out='';
   for(const ch of s){ let c=ch.codePointAt(0);
@@ -40204,7 +40206,17 @@ function cvcLibelle(a){ const t=cvcType(a), m=[a.marque,a.modele].filter(Boolean
   return t.l+(m?' · '+m:''); }
 /* Les interventions qui CITENT l'appareil — ni annulées. C'est d'elles, et d'elles seules, que se déduisent « dernière intervention »
    et la prochaine échéance. */
-function cvcIntsDe(a){ return (db.interventions||[]).filter(i=>i&&i.statut!=='annulee'&&Array.isArray(i.appareilIds)&&i.appareilIds.indexOf(a.id)>=0); }
+/* ⛔ Le tableau de bord et les Tâches parcourent TOUS les appareils : chacun relisait toutes les interventions (500 appareils × 5 000 interventions,
+   plusieurs fois par appareil). `cvcAvecIndex` bâtit UNE table appareil → interventions pour la durée d'un calcul, et la jette — jamais gardée d'un écran
+   à l'autre : une intervention close entre deux affichages doit se voir. */
+let _cvcIdx=null;
+function cvcIndex(){ const ints=new Map();
+  (db.interventions||[]).forEach(i=>{ if(!i||i.statut==='annulee'||!Array.isArray(i.appareilIds)) return;
+    i.appareilIds.forEach(id=>{ if(!ints.has(id)) ints.set(id,[]); ints.get(id).push(i); }); });
+  return {ints}; }
+function cvcAvecIndex(fn){ if(_cvcIdx) return fn(); _cvcIdx=cvcIndex(); try{ return fn(); } finally{ _cvcIdx=null; } }
+function cvcIntsDe(a){ if(_cvcIdx) return (_cvcIdx.ints.get(a.id)||[]).slice();
+  return (db.interventions||[]).filter(i=>i&&i.statut!=='annulee'&&Array.isArray(i.appareilIds)&&i.appareilIds.indexOf(a.id)>=0); }
 function cvcParDateDesc(a,b){ return String((b.date||'')+(b.heure||'')).localeCompare(String((a.date||'')+(a.heure||''))); }
 function cvcDerniereIntervention(a){ return cvcIntsDe(a).filter(i=>i.statut==='terminee'&&cvcIsoOk(i.date)).sort(cvcParDateDesc)[0]||null; }
 /* Ce qui remet l'horloge de l'entretien à zéro : une visite d'entretien ou une mise en service, ou une visite née d'un contrat.
@@ -40232,7 +40244,8 @@ function cvcTypeInterventionPour(appareils){ const types=(typeof intTypes==='fun
   const t=cvcType(a);
   const voulu=t.comb?(t.k==='chaudiere_gaz'?'Entretien annuel chaudière':'Entretien chaudière fioul ou bois'):(/^pac/.test(t.k)?'Entretien pompe à chaleur':/^clim/.test(t.k)?'Entretien climatisation':'');
   return types.indexOf(voulu)>=0?voulu:(t.comb&&types.indexOf('Entretien annuel chaudière')>=0?'Entretien annuel chaudière':''); }
-function cvcPropositions(auj){ auj=auj||todayISO();
+function cvcPropositions(auj){ return cvcAvecIndex(()=>cvcPropositionsCalc(auj)); }
+function cvcPropositionsCalc(auj){ auj=auj||todayISO();
   const vus=new Set(visibleClients(db.clients||[]).map(c=>c.id)), out=[];
   (db.appareils||[]).forEach(a=>{ if(!a||!vus.has(a.clientId)||cvcPlanifiee(a)) return;
     const e=cvcEntretienEcheance(a); if(!e) return; const j=cvcJours(e.date,auj); if(j>CVC_RAPPEL_J) return;
@@ -40399,7 +40412,7 @@ function cvcIntCard(i,edit){ if(!metierGereParc()||!i) return '';
   if(!L.length) corps=`<div style="color:var(--t3);font-size:13px;padding:2px 0 6px">Ce client n’a pas encore d’appareil dans son parc.</div>${canCat('crm','ajouter')?`<button type="button" class="btn ghost sm" onclick="formAppareil('','${esc(i.clientId||'')}')">＋ Ajouter un appareil</button>`:''}`;
   else if(peut) corps=`<div class="met-grid">${L.map(a=>chip(a,sel.indexOf(a.id)>=0)).join('')}</div><div style="font-size:12px;color:var(--t3);margin-top:6px">Touchez les appareils visités pendant ce passage.</div>`;
   else corps=vis.length?`<div class="met-grid">${vis.map(a=>chip(a,true)).join('')}</div>`:'<div style="color:var(--t3);font-size:13px;padding:2px 0 6px">Aucun appareil cité. ✏️ stylo pour choisir.</div>';
-  return `<div class="card" id="cvc-int" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>🔥 Appareils visités</h3>${edit?'':'<span style="font-size:10.5px;color:var(--t3)">✏️ stylo pour modifier</span>'}</div>${corps}</div>`; }
+  return `<div class="card" id="cvc-int" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>🔥 Appareils visités</h3>${edit?'':'<span style="font-size:10.5px;color:var(--t3)">✏️ stylo pour modifier</span>'}</div>${corps}${cvcIntActions(i,vis)}</div>`; }
 function cvcIntToggle(iid,aid){ if(!permGarde('int','modifier','une intervention')) return;
   const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid); if(!i||!a) return;
   if(a.clientId!==i.clientId){ toast('Cet appareil n’est pas chez le client de cette intervention'); return; }
@@ -40415,6 +40428,253 @@ function cvcFormLire(data){ if(!data||data.cvcAppareils===undefined) return;
   const ids=String(data.cvcAppareils).split(',').filter(Boolean); delete data.cvcAppareils;
   const bons=ids.filter(x=>(db.appareils||[]).some(a=>a.id===x&&a.clientId===data.clientId));
   if(bons.length) data.appareilIds=bons; }
+/* ═══ CVC 2 — L'ATTESTATION D'ENTRETIEN D'UNE CHAUDIÈRE (PDF) ═══
+   Depuis une intervention TERMINÉE qui cite une chaudière (gaz, fioul, bois), l'entreprise établit « son » attestation d'entretien :
+   en-tête de la société de CE passage (docEntete), client, appareil, date, points contrôlés, mesures, verdict sur le CO, conseils,
+   technicien, signatures si elles existent. Elle part par le chemin des autres documents (courriel + PDF joint, trace APRÈS la réussite).
+   ⛔ C'est le document DE L'ENTREPRISE, pas un formulaire officiel reproduit : l'écran et le pied du PDF le disent. Le contenu suit ce que
+   la source officielle exige d'une attestation de chaudière — identification de l'appareil, points contrôlés, instruments de mesure,
+   résultats, déclaration sur le CO, classe énergétique pour une chaudière gaz ou fioul de moins de 70 kW, conseils ; remise au client dans
+   les 15 jours (arrêté du 15 septembre 2009 modifié, annexe V — https://aida.ineris.fr/node/28049).
+   ⛔ SEUILS DU CO (même arrêté, article 3) : moins de 10 ppm, situation normale ; de 10 à moins de 50 ppm, anomalie — le client est informé
+   qu'il faut investiguer le tirage et la ventilation ; 50 ppm et plus, danger grave et immédiat — chaudière laissée à l'arrêt jusqu'à remise en
+   sécurité. Ils s'appliquent au CO AMBIANT : la teneur en CO des FUMÉES (relevé « co » des Prestations, souvent plusieurs centaines de ppm sur
+   une chaudière normale) est un autre chiffre, qui ne reçoit AUCUN verdict — le confondre déclarerait « danger » une chaudière saine.
+   ⛔ L'attestation vit dans `i.attestations[appareilId]` : une copie des relevés au moment où on l'établit, pas un renvoi vers les Prestations.
+   Pour une pompe à chaleur ou une climatisation, le détail de l'annexe officielle (arrêté du 24 juillet 2020) n'a pas pu être relu : pas
+   d'attestation proposée, plutôt qu'un document qui prétendrait la reproduire. */
+const CVC_ATT_MESURES=[
+  {k:'coAmbiant',l:'CO ambiant',u:'ppm'},{k:'co',l:'Teneur en CO des fumées',u:'ppm'},{k:'co2',l:'CO₂ des fumées',u:'%'},
+  {k:'rdt',l:'Rendement',u:'%'},{k:'tfum',l:'Température des fumées',u:'°C'},{k:'tirage',l:'Tirage',u:'Pa'}];
+/* Un relevé de la fiche « Prestations » qui préremplit l'attestation — seulement ceux qui ont le même sens. */
+const CVC_ATT_DEPUIS_RELEVES=['co','co2','rdt','tfum','tirage'];
+function cvcCoVerdict(ppm){ const n=cvcNum(ppm); if(!isFinite(n)||n<0) return null;
+  if(n>=50) return {niveau:'danger',texte:'Danger grave et immédiat : teneur en CO de 50 ppm ou plus. L’appareil doit rester à l’arrêt jusqu’à sa remise en sécurité.'};
+  if(n>=10) return {niveau:'anomalie',texte:'Anomalie : teneur en CO comprise entre 10 et 50 ppm. Il convient d’investiguer le tirage et la ventilation.'};
+  return {niveau:'normal',texte:'Situation normale : teneur en CO inférieure à 10 ppm.'}; }
+function cvcAttestable(a){ return !!a&&!!cvcType(a).comb; }
+function cvcAttestationDe(i,aid){ return (i&&i.attestations&&i.attestations[aid])||null; }
+/* Les valeurs de départ du formulaire : l'attestation déjà établie, sinon les relevés de l'intervention (copiés, pas liés). */
+function cvcAttestationDepart(i,aid){ const ex=cvcAttestationDe(i,aid); if(ex) return Object.assign({},ex);
+  const r=(i&&i.relevesMetier)||{}, o={};
+  CVC_ATT_DEPUIS_RELEVES.forEach(k=>{ if(r[k]!==undefined&&r[k]!=='') o[k]=String(r[k]); });
+  if(r.classe) o.classe=String(r.classe); if(r.instrument) o.instrument=String(r.instrument);
+  return o; }
+/* Les points contrôlés : les prestations cochées sur l'intervention, dans l'ordre du pack. */
+function cvcAttestationPoints(i){ const p=(typeof metierPack==='function'&&metierPack())||{}, sel=Array.isArray(i&&i.prestaMetier)?i.prestaMetier:[];
+  const ordre=(p.presta||[]).filter(x=>sel.indexOf(x)>=0).concat(sel.filter(x=>(p.presta||[]).indexOf(x)<0));
+  return ordre.filter(x=>!/^Attestation d.entretien/i.test(x)); }
+function cvcAttestationLire(f){ const g=n=>String((f.elements[n]||{}).value||'').trim(), o={};
+  CVC_ATT_MESURES.forEach(m=>{ const s=g(m.k); if(s!==''){ const n=cvcNum(s); o[m.k]=isFinite(n)?String(n).replace('.',','):s.slice(0,20); } });
+  ['classe','instrument'].forEach(k=>{ if(g(k)) o[k]=g(k).slice(0,120); });
+  ['conseils','travaux'].forEach(k=>{ if(g(k)) o[k]=g(k).slice(0,1500); });
+  return o; }
+function cvcAttestationCtx(iid,aid){ const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
+  if(!i||!a){ toast('Intervention ou appareil introuvable'); return null; }
+  if(a.clientId!==i.clientId||!(Array.isArray(i.appareilIds)&&i.appareilIds.indexOf(aid)>=0)){ toast('Cet appareil n’est pas cité sur cette intervention'); return null; }
+  if(!cvcAttestable(a)){ toast('L’attestation d’entretien ne concerne que les chaudières'); return null; }
+  if(i.statut!=='terminee'){ toast('L’attestation se fait une fois l’intervention terminée'); return null; }
+  return {i,a}; }
+function cvcAttestationForm(iid,aid){ if(!permGarde('int','modifier','une intervention')) return;
+  const x=cvcAttestationCtx(iid,aid); if(!x) return; const {i,a}=x, v=cvcAttestationDepart(i,aid), ex=cvcAttestationDe(i,aid);
+  const champ=m=>`<div class="field"><label>${esc(m.l)} <span style="color:var(--t3);font-weight:400">(${esc(m.u)})</span></label><input type="number" step="any" inputmode="decimal" name="${m.k}" value="${esc(v[m.k]||'')}"></div>`;
+  openModal(`<div class="modal-head"><h3>📄 Attestation d’entretien</h3><button class="modal-close" onclick="closeModal();renderIntDetail('${esc(iid)}')">✕</button></div>
+    <div style="font-size:13px;color:var(--t2);overflow-wrap:anywhere;margin:-4px 0 8px"><b>${esc(cvcLibelle(a))}</b>${a.serie?' · n° '+esc(a.serie):''}<br>${esc(clientName(i.clientId))} · visite du ${esc(fmtLong(i.date))}</div>
+    <div style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px">Ce document est <b>celui de votre entreprise</b>, établi à partir de cette visite : ce n’est pas un formulaire officiel reproduit. À remettre au client dans les 15 jours qui suivent la visite.</div>
+    <form id="cvc-att" onsubmit="return false" oninput="cvcAttestationMaj(this)">
+      <div class="form-sec" style="margin-top:0">Mesures</div>
+      <div class="field-row">${champ(CVC_ATT_MESURES[0])}${champ(CVC_ATT_MESURES[1])}</div>
+      <div id="cvc-att-co" style="font-size:12.5px;line-height:1.5;margin:-4px 0 10px"></div>
+      <div class="field-row">${champ(CVC_ATT_MESURES[2])}${champ(CVC_ATT_MESURES[3])}</div>
+      <div class="field-row">${champ(CVC_ATT_MESURES[4])}${champ(CVC_ATT_MESURES[5])}</div>
+      <div class="field"><label>Analyseur utilisé (marque et référence)</label><input name="instrument" maxlength="120" value="${esc(v.instrument||'')}"></div>
+      ${(!(a.puissance>=70)&&/gaz|fioul/.test(a.type))?`<div class="field"><label>Classe énergétique <span style="color:var(--t3);font-weight:400">(chaudière gaz ou fioul de moins de 70 kW)</span></label><input name="classe" maxlength="120" value="${esc(v.classe||'')}" placeholder="Ex : A"></div>`:''}
+      <div class="field"><label>Conseils d’usage, d’amélioration et de remplacement remis au client</label><textarea name="conseils" rows="3" maxlength="1500">${esc(v.conseils||'')}</textarea></div>
+      <div class="field"><label>Travaux recommandés</label><textarea name="travaux" rows="2" maxlength="1500">${esc(v.travaux||'')}</textarea></div>
+      ${ex&&ex.envoyeeLe?`<div style="font-size:12.5px;color:var(--t3);margin-bottom:8px">Déjà envoyée à ${esc(ex.envoyeeA||'')} le ${esc(new Date(ex.envoyeeLe).toLocaleDateString('fr-FR'))}.</div>`:''}
+      <div class="modal-foot" style="flex-wrap:wrap"><button type="button" class="btn ghost" onclick="cvcAttestationApercu('${esc(iid)}','${esc(aid)}')">Aperçu PDF</button>
+        <button type="button" class="btn ghost" onclick="cvcAttestationSauver('${esc(iid)}','${esc(aid)}')">Enregistrer</button>
+        <button type="button" class="btn" onclick="cvcAttestationEnvoyer('${esc(iid)}','${esc(aid)}')">Envoyer au client</button></div></form>`);
+  cvcAttestationMaj(document.getElementById('cvc-att')); }
+/* Le verdict du CO se lit pendant la saisie : le technicien est prévenu avant de quitter le sous-sol. */
+function cvcAttestationMaj(f){ if(!f||!f.elements) return; const el=document.getElementById('cvc-att-co'); if(!el) return;
+  const r=cvcCoVerdict((f.elements.coAmbiant||{}).value); if(!r){ el.textContent=''; return; }
+  el.textContent=(r.niveau==='normal'?'✓ ':'⚠️ ')+r.texte; el.style.color=r.niveau==='danger'?'var(--red)':r.niveau==='anomalie'?'var(--org)':'var(--acc-txt)'; el.style.fontWeight=r.niveau==='normal'?'400':'700'; }
+function cvcAttestationSauver(iid,aid,silencieux){ if(!permGarde('int','modifier','une intervention')) return false;
+  const x=cvcAttestationCtx(iid,aid); if(!x) return false; const f=document.getElementById('cvc-att'); if(!f) return false;
+  const att=Object.assign(cvcAttestationLire(f),{etabliLe:todayISO(),etabliPar:(currentUser&&fullName(currentUser))||''});
+  const ex=cvcAttestationDe(x.i,aid); if(ex){ if(ex.envoyeeLe){ att.envoyeeLe=ex.envoyeeLe; att.envoyeeA=ex.envoyeeA; } }
+  x.i.attestations=(x.i.attestations&&typeof x.i.attestations==='object')?x.i.attestations:{};
+  x.i.attestations[aid]=att; intHisto(x.i,'📄 Attestation d’entretien établie — '+cvcLibelle(x.a));
+  save(); if(!silencieux) toast('Attestation enregistrée'); return true; }
+
+/* ── Le PDF, écrit à la main comme le rapport et le bon de commande ── (`_pdfTxt` écrit, `_pdfLarg` mesure : jamais autrement) */
+function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||{};
+  const c=(db.clients||[]).find(x=>x.id===i.clientId)||{};
+  const hx=/^#[0-9a-fA-F]{6}$/.test(E.couleur||'')?E.couleur:'#1E7A4E';
+  const rgbS=h=>[1,3,5].map(k=>(parseInt(h.slice(k,k+2),16)/255).toFixed(3)).join(' ');
+  const ACC=rgbS(hx), ACCLT=[1,3,5].map(k=>(0.93+parseInt(hx.slice(k,k+2),16)/255*0.07).toFixed(3)).join(' ');
+  const GREY='0.42 0.46 0.52', DARK='0.10 0.12 0.16', LINE='0.85 0.88 0.91', ALT='0.962 0.97 0.976', BLANC='1 1 1', ROUGE='0.80 0.15 0.15', AMBRE='0.76 0.42 0.06', VERT='0.12 0.48 0.31';
+  const W=595,H=842,M=42,RGT=W-M,L=W-2*M,BAS=74;
+  const pages=[]; let ops=[]; let y;
+  const f2=v=>(+v).toFixed(1);
+  const larg=(t,sz,b)=>_pdfLarg(t,sz,b);
+  const net=s=>_pdfTranslit(s).replace(/[ \t]+/g,' ').trim();
+  const T=(x,yy,sz,txt,bold,col)=>ops.push((col||DARK)+' rg','BT','/F'+(bold?'2':'1')+' '+sz+' Tf',f2(x)+' '+f2(yy)+' Td','('+_pdfTxt(net(txt))+') Tj','ET');
+  const TR=(xr,yy,sz,txt,bold,col)=>T(xr-larg(net(txt),sz,bold),yy,sz,txt,bold,col);
+  const TW=(x,yy,sz,txt,bold,col,max)=>T(x,yy,sz,_pdfCoupe(net(txt),sz,bold,max),bold,col);
+  const R=(x,yy,w,h,col)=>ops.push(col+' rg',f2(x)+' '+f2(yy)+' '+f2(w)+' '+f2(h)+' re f');
+  const lignes=(s,sz,b,max)=>{ const out=[];
+    String(s==null?'':s).split(/\r?\n/).forEach(par=>{ let cur='';
+      net(par).split(' ').filter(Boolean).forEach(m=>{
+        while(larg(m,sz,b)>max){ let k=m.length-1; while(k>1&&larg(m.slice(0,k),sz,b)>max) k--; if(cur){ out.push(cur); cur=''; } out.push(m.slice(0,k)); m=m.slice(k); }
+        const e=cur?cur+' '+m:m; if(larg(e,sz,b)<=max) cur=e; else { out.push(cur); cur=m; } });
+      out.push(cur); });
+    while(out.length&&!out[out.length-1]) out.pop(); return out; };
+  const dateFr=x=>{ try{ return new Date((x||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return String(x||''); } };
+  const nouvellePage=()=>{ pages.push(ops.join('\n')); ops=[]; R(0,H-6,W,6,ACC); y=H-M-10; };
+  const place=h=>{ if(y-h<BAS) nouvellePage(); };
+  const titre=(t,suite)=>{ place(18+(suite||0)); y-=6; T(M,y,11,t,1,ACC); y-=5; R(M,y,L,0.8,LINE); y-=13; };
+  const texte=(s,sz,col,x0,max,bold)=>{ const lh=sz*1.32; lignes(s,sz,bold,max||L).forEach(t=>{ place(lh); if(t) T(x0||M,y,sz,t,bold,col); y-=lh; }); };
+  const ligneLV=(lbl,val,col)=>{ const sz=9, lh=12.5, l=net(lbl)+' : ', wl=larg(l,sz,1);
+    const reste=lignes(val,sz,0,L-wl-2); place(lh*Math.max(1,Math.min(2,reste.length)));
+    T(M,y,sz,l,1,DARK); if(reste.length) T(M+wl,y,sz,reste[0],0,col||DARK); y-=lh;
+    reste.slice(1).forEach(t=>{ place(lh); T(M+wl,y,sz,t,0,col||DARK); y-=lh; }); };
+  const image=(nom,x,yy,w,h)=>ops.push('q',f2(w)+' 0 0 '+f2(h)+' '+f2(x)+' '+f2(yy)+' cm','/'+nom+' Do','Q');
+
+  /* ─ en-tête : la société de CE passage (docEntete, passé par l'appelant) */
+  R(0,H-6,W,6,ACC); y=H-M-16;
+  let nx=M; if(E.logo&&E.logo.b64){ const lh=34, lw=Math.round(E.logo.w*(lh/E.logo.h)); image('L1',M,y-9,lw,lh); nx=M+lw+12; }
+  TW(nx,y,19,E.nom||'',1,ACC,RGT-215-nx);
+  TR(RGT,y+3,14,'ATTESTATION D’ENTRETIEN',1,DARK);
+  TR(RGT,y-12,9,dateFr(i.date),0,GREY);
+  if(i.num) TR(RGT,y-24,8.5,'Intervention '+i.num,1,GREY);
+  const lgMax=RGT-235-nx; let ey=y-14;
+  (E.lignes||[]).flatMap(t=>larg(t,8.3,0)<=lgMax?[t]:String(t).split(/\s+·\s+/)).forEach(t=>{ TW(nx,ey,8.3,t,0,GREY,lgMax); ey-=10.5; });
+  y=Math.min(y-(i.num?38:30),ey-6); R(M,y,L,1.4,ACC); y-=16;
+
+  /* ─ le client et l'appareil */
+  { const cl=[['Client',c.nom||'—'],['Adresse',i.adresse||c.adresse||''],['Visite du',dateFr(i.date)],['Technicien(s)',techNames(i)||'—']].filter(r=>r[1]);
+    cl.forEach(r=>ligneLV(r[0],r[1])); y-=4; }
+  titre('Appareil entretenu',20);
+  { const T0=cvcType(a), lignesA=[['Type',T0.l],['Marque et modèle',[a.marque,a.modele].filter(Boolean).join(' ')],['N° de série',a.serie||''],
+      ['Puissance',a.puissance>0?cvcNbTxt(+a.puissance,1)+' kW':''],['Emplacement',a.emplacement||''],['Mise en service',cvcIsoOk(a.miseEnService)?dateFr(a.miseEnService):'']].filter(r=>r[1]);
+    lignesA.forEach(r=>ligneLV(r[0],r[1])); y-=4; }
+  { const pts=cvcAttestationPoints(i);
+    titre('Points contrôlés',16+Math.min(pts.length,3)*12);
+    if(pts.length) pts.forEach(p=>{ place(12); T(M+4,y,9,'-',1,ACC); texte(p,9,DARK,M+14,L-14); });
+    else texte('Voir le compte rendu de la visite.',9,GREY); y-=4; }
+
+  /* ─ les mesures, et le verdict sur le CO ambiant (l'article 3 de l'arrêté) */
+  { const rows=CVC_ATT_MESURES.filter(m=>att[m.k]!==undefined&&att[m.k]!=='').map(m=>[m.l,att[m.k]+(m.u?' '+m.u:'')]);
+    titre('Mesures et résultats',16+Math.min(rows.length,6)*12.5+30);
+    if(rows.length) rows.forEach(r=>ligneLV(r[0],r[1])); else texte('Aucune mesure renseignée.',9,GREY);
+    if(att.instrument) ligneLV('Analyseur utilisé',att.instrument);
+    if(att.classe) ligneLV('Classe énergétique',att.classe);
+    const vd=cvcCoVerdict(att.coAmbiant);
+    if(vd){ y-=3; const col=vd.niveau==='danger'?ROUGE:vd.niveau==='anomalie'?AMBRE:VERT; const tl=lignes('Déclaration sur le CO : '+vd.texte,9,1,L-20);
+      place(tl.length*12.5+10); R(M,y-tl.length*12.5-1,3,tl.length*12.5+8,col);
+      tl.forEach(t=>{ T(M+10,y,9,t,1,col); y-=12.5; }); y-=4; }
+    y-=4; }
+  if(att.conseils){ titre('Conseils d’usage, d’amélioration et de remplacement',24); texte(att.conseils,9.2,DARK); y-=4; }
+  if(att.travaux){ titre('Travaux recommandés',24); texte(att.travaux,9.2,DARK); y-=4; }
+
+  /* ─ les signatures, quand elles existent */
+  if(imgs.sigCli||imgs.sigTech){ const bw=(L-24)/2, bh=64; titre('Signatures',bh+30);
+    const bloc=(x,lbl,im)=>{ T(x,y,8.8,lbl,1,DARK); const y0=y-8-bh; ops.push(LINE+' RG','0.8 w',f2(x)+' '+f2(y0)+' '+f2(bw)+' '+f2(bh)+' re S');
+      if(im&&im.nom){ const k=Math.min((bw-10)/im.w,(bh-10)/im.h); const w=im.w*k,h=im.h*k; image(im.nom,x+(bw-w)/2,y0+(bh-h)/2,w,h); } };
+    bloc(M,'Signature du client',imgs.sigCli); bloc(M+bw+24,'Signature du technicien',imgs.sigTech); y-=bh+24; }
+
+  pages.push(ops.join('\n'));
+  const mention='Document établi par '+(E.nom||'l’entreprise')+' à la suite de la visite du '+dateFr(i.date)+' — ce n’est pas un formulaire officiel reproduit. À conserver par le client (2 ans au moins).';
+  const pied=(k,n)=>[LINE+' rg',M+' 56 '+L+' 0.8 re f',GREY+' rg','BT','/F1 7.2 Tf',M+' 44 Td',
+    '('+_pdfTxt(_pdfCoupe(net(mention),7.2,0,L-60))+') Tj','ET',
+    GREY+' rg','BT','/F1 7.5 Tf',(RGT-40)+' 44 Td','('+_pdfTxt('Page '+k+'/'+n)+') Tj','ET'].join('\n');
+  for(let k=0;k<pages.length;k++) pages[k]+='\n'+pied(k+1,pages.length);
+  const objs=[]; objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
+  objs[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  let n=5; const xo=[];
+  const obj=(nom,o)=>{ if(!o||!o.b64||!nom) return; const bin=atob(o.b64); const io=n++;
+    objs[io]={s:bin,dict:'<< /Type /XObject /Subtype /Image /Width '+o.w+' /Height '+o.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+bin.length+' >>'};
+    xo.push('/'+nom+' '+io+' 0 R'); };
+  if(E.logo&&E.logo.b64) obj('L1',E.logo);
+  obj(imgs.sigCli&&imgs.sigCli.nom,imgs.sigCli); obj(imgs.sigTech&&imgs.sigTech.nom,imgs.sigTech);
+  const res='/Font << /F1 3 0 R /F2 4 0 R >>'+(xo.length?' /XObject << '+xo.join(' ')+' >>':'');
+  const kids=[];
+  pages.forEach(ct0=>{ const pg=n++, ct=n++; kids.push(pg+' 0 R');
+    objs[pg]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << '+res+' >> /Contents '+ct+' 0 R >>';
+    objs[ct]={s:ct0}; });
+  objs[2]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+pages.length+' >>';
+  let out='%PDF-1.4\n'; const offs=[];
+  for(let k=1;k<objs.length;k++){ offs[k]=out.length; const o=objs[k];
+    out+=(o&&o.s!==undefined)?k+' 0 obj\n'+(o.dict||('<< /Length '+o.s.length+' >>'))+'\nstream\n'+o.s+'\nendstream\nendobj\n':k+' 0 obj\n'+o+'\nendobj\n'; }
+  const xr=out.length;
+  out+='xref\n0 '+objs.length+'\n0000000000 65535 f \n';
+  for(let k=1;k<objs.length;k++) out+=String(offs[k]).padStart(10,'0')+' 00000 n \n';
+  out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+  return out; }
+/* Le document prêt à partir : en-tête de la société de CE passage, logo et signatures en JPEG. Rend {pdf,b64,nom} ou {err} — jamais une exception. */
+async function cvcAttestationDocument(iid,aid,att){
+  const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
+  if(!i||!a) return {err:'Intervention ou appareil introuvable.'};
+  const H=docEntete(i.rapportModele), E={nom:H.nom,couleur:H.couleur,lignes:docCoordLignes(H)};
+  let logo=null; try{ logo=H.logo?await devisLogoJpeg(H.logo):null; }catch(e){}
+  for(const [max,q] of [[600,0.85],[400,0.7]]){
+    const imgs={}; if(i.signature){ const j=await papImplJpeg(i.signature,max,q); if(j) imgs.sigCli=Object.assign({},j,{nom:'S1'}); }
+    if(i.signatureTech){ const j=await papImplJpeg(i.signatureTech,max,q); if(j) imgs.sigTech=Object.assign({},j,{nom:'S2'}); }
+    let pdf; try{ pdf=cvcAttestationPdfStr(i,a,att||cvcAttestationDe(i,aid)||{},Object.assign({},E,{logo}),imgs); }
+    catch(e){ return {err:'L’attestation PDF n’a pas pu être construite ('+(e&&e.message||e)+') — rien n’est parti.'}; }
+    const b64=btoa(pdf);
+    if(b64.length<=PAP_IMPL_MAX_B64){
+      const cl=(db.clients||[]).find(x=>x.id===i.clientId)||{};
+      const nom='Attestation-entretien-'+String(cl.nom||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)+'-'+String(i.date||todayISO())+'.pdf';
+      return {pdf,b64,nom,E}; } }
+  return {err:'L’attestation dépasse la taille qu’un courriel peut porter — rien n’est parti.'}; }
+/* Aperçu : le PDF qui partirait, avec ce qui est dans le formulaire, sans rien écrire. La fenêtre s'ouvre DANS le geste (avant tout await). */
+async function cvcAttestationApercu(iid,aid){
+  const x=cvcAttestationCtx(iid,aid); if(!x) return;
+  const f=document.getElementById('cvc-att'), att=f?cvcAttestationLire(f):cvcAttestationDe(x.i,aid)||{};
+  const w=window.open('','_blank'); if(!w){ toast('Autorise les pop-ups pour voir le PDF'); return; }
+  try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation de l’attestation…</p>'); w.document.close(); }catch(e){}
+  const d=await cvcAttestationDocument(iid,aid,att);
+  if(d.err){ try{ w.close(); }catch(e){} toast(d.err); return; }
+  const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
+  const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+  w.location.href=u; setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000); }
+/* L'envoi : le formulaire est enregistré d'abord, le PDF fabriqué, le courriel part — et la trace s'écrit SEULEMENT s'il est parti. */
+const _cvcEnvoi={};
+async function cvcAttestationEnvoyer(iid,aid){
+  if(!permGarde('int','modifier','une intervention')) return;
+  const x=cvcAttestationCtx(iid,aid); if(!x) return; const c=(db.clients||[]).find(k=>k.id===x.i.clientId)||{};
+  if(!c.email){ toast('Ajoute l’e-mail du client dans sa fiche'); return; }
+  if(_cvcEnvoi[iid+aid]) return; _cvcEnvoi[iid+aid]=1;
+  try{
+    if(document.getElementById('cvc-att')&&!cvcAttestationSauver(iid,aid,true)) return;
+    toast('📄 Préparation de l’attestation PDF…',3000);
+    const d=await cvcAttestationDocument(iid,aid);
+    if(d.err){ toast(d.err,9000); return; }
+    const i=(db.interventions||[]).find(k=>k.id===iid)||x.i;   // la synchro a pu remplacer la base pendant la préparation
+    const sujet='Attestation d’entretien — '+fmtShort(i.date)+' ('+cvcLibelle(x.a)+')';
+    const corps='Bonjour,\n\nVous trouverez ci-joint l’attestation d’entretien de votre appareil ('+cvcLibelle(x.a)+'), établie à la suite de notre visite du '+fmtShort(i.date)+'.\n\nNous restons à votre disposition.';
+    const ok=await srvMail(c.email,sujet,corps,'✉️ Attestation envoyée à '+c.email+' — PDF joint','rapport',null,Object.assign({},intSocMailOpts(i)||{},{atts:[{filename:d.nom,content:d.b64}],sansMailto:true}));
+    if(!ok) return;   // srvMail a dit pourquoi ; rien n'est parti, donc rien ne se trace
+    i.attestations=(i.attestations&&typeof i.attestations==='object')?i.attestations:{};
+    const att=i.attestations[aid]||{}; att.envoyeeLe=Date.now(); att.envoyeeA=c.email; i.attestations[aid]=att;
+    intHisto(i,'Attestation d’entretien envoyée par e-mail à '+c.email+' (PDF joint)'); save();
+    try{ closeModal(); renderIntDetail(iid); }catch(e){}
+  } finally { delete _cvcEnvoi[iid+aid]; } }
+/* Les gestes propres à chaque appareil visité, sous les puces de la carte de l'intervention. */
+function cvcIntActions(i,vis){ if(!i||!vis||!vis.length) return '';
+  const fini=i.statut==='terminee';
+  const lignes=vis.map(a=>{ const b=[];
+    if(cvcAttestable(a)){ const att=cvcAttestationDe(i,a.id);
+      b.push(fini?`<button type="button" class="btn ghost sm" onclick="cvcAttestationForm('${i.id}','${a.id}')">📄 Attestation d’entretien</button>`
+        :`<button type="button" class="btn ghost sm" disabled title="Disponible une fois l’intervention terminée">📄 Attestation d’entretien</button>`);
+      if(att) b.push(`<span class="tag">${att.envoyeeLe?'envoyée le '+esc(new Date(att.envoyeeLe).toLocaleDateString('fr-FR')):'établie le '+esc(fmtShort(att.etabliLe))}</span>`); }
+    return b.length?`<div class="cvc-act" style="margin-top:10px"><div style="font-size:12.5px;font-weight:700;overflow-wrap:anywhere">${esc(cvcLibelle(a))}</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:5px">${b.join('')}</div></div>`:''; }).join('');
+  const attend=!fini&&vis.some(cvcAttestable);
+  return lignes+(attend?'<div style="font-size:12px;color:var(--t3);margin-top:8px">L’attestation d’entretien se fait une fois l’intervention terminée.</div>':''); }
 /* ═══════════════ fin du bloc CVC ═══════════════ */
 
 /* ═══════════════ POINTAGE (temps de travail) ═══════════════

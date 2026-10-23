@@ -35,7 +35,7 @@ function monter(opts) {
   const W = { console, Date, Math, JSON, Set, Map, Object, Array, String, Number, Promise, isNaN, parseInt, parseFloat, RegExp, Error,
     atob: s => Buffer.from(s, 'base64').toString('latin1'), btoa: s => Buffer.from(s, 'latin1').toString('base64'),
     __toasts: [], __saves: 0, __modals: [], __logs: [], __interForm: [], __fiches: [], __go: [], __droits: o.droits || {}, __metier: o.metier || 'chauffage',
-    __today: o.today || '2026-10-23', __visibles: o.clientsVisibles || null, __n: 0, __mails: [], __windows: [], __mailOk: true, __jpeg: o.jpeg || '', __pack: o.pack || { presta: [] }, __noPopup: false };
+    __today: o.today || '2026-10-23', __visibles: o.clientsVisibles || null, __n: 0, setTimeout: () => 0, __mails: [], __windows: [], __mailOk: true, __jpeg: o.jpeg || '', __pack: o.pack || { presta: [] }, __noPopup: false };
   W.db = cdc(o.db || { clients: [], interventions: [], appareils: [], contrats: [] });
   vm.createContext(W);
   vm.runInContext(`
