@@ -138,7 +138,11 @@ module.exports = function documents(app, ctx) {
         return;
       }
       if (!signatureDe(e)) throw new Error('signature introuvable : cet agent n’en a pas');
-      await mail.envoyerAgent({ boiteId: mail.boiteParRole('contact'), a: e.a, objet: e.objet, texte: e.texte, signature: signatureDe(e), enReponseA: e.enReponseA || null });
+      /* ⛔ « Contrôle, ils ne l'utilisent pas » (Justin) : `boiteParRole` retombe sur la PREMIÈRE boîte quand aucune ne commence par contact@ — si c'était controle@, un agent écrirait d'une boîte qui n'est pas la sienne */
+      const boiteId = mail.boiteParRole('contact');
+      const bx = (typeof mail.boites === 'function' ? mail.boites() : []).find(b => b && b.id === boiteId);
+      if (!boiteId || /^controle@/i.test(String((bx && bx.email) || ''))) throw new Error('aucune boîte d’agent (contact@) : la boîte de contrôle n’est pas utilisée');
+      await mail.envoyerAgent({ boiteId, a: e.a, objet: e.objet, texte: e.texte, signature: signatureDe(e), enReponseA: e.enReponseA || null });
       e.etat = 'envoye'; e.envoyeTs = maintenant(); sauve();
       agents.noter(e.agent, e.type === 'mise_en_demeure' ? 'mise en demeure envoyée' : 'courriel envoyé', { cible: e.source || e.type, resultat: 'ok', detail: e.dossier || '' });
     } catch (err) {

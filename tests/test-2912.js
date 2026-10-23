@@ -251,6 +251,15 @@ const lesEnvois = m => m.envoyes.map(e => e.objet);
   const sansSig = m.documents.deposer({ type: 'courrier_agent', agent: 'camille', a: 'x@exemple-2912.fr', objet: 'Objet', texte: 'Bonjour,\n\nUn message.\n\nBien cordialement,', source: 'resiliation' });
   v('⛔ un agent hors des quatre n\'a pas de signature : son courriel ne se range pas (il retomberait sur la signature de la boîte, celle de Justin)', [sansSig.ok, sansSig.raison, (await m.validations('en_attente')).filter(x => x.type === 'courrier_agent').length], [false, 'signature', 0]);
 
+  m = monde({ boites: [{ id: 'b-controle', email: 'controle@teamop.fr', nom: 'TEAM OP' }] });
+  m.jour(3);
+  const rc = await m.margaux.passer();
+  v('⛔ seule la boîte controle@ existe (aucune contact@) : AUCUN courriel d\'agent n\'en part — la relance retombe en validation de Justin', [m.envoyes.length, (await m.validations('en_attente')).map(x => x.type), typeof rc.relances], [0, ['courrier_agent'], 'number']);
+  m = monde({ boites: [{ id: 'b-controle', email: 'controle@teamop.fr', nom: 'TEAM OP' }, { id: 'b-contact', email: 'contact@teamop.fr', nom: 'TEAM OP' }] });
+  m.jour(3);
+  const rc2 = await m.margaux.passer();
+  v('(contre-épreuve) avec contact@ à côté de controle@ : la relance part, par contact@', [rc2.relances, m.envoyes.length, (m.envoyes[0] || {}).boiteId], [1, 1, 'b-contact']);
+
   console.log('\n6. Aucun remboursement, jamais');
   const SRC = fs.readFileSync(path.join(RACINE, 'server', 'agent-margaux.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   vrai('(population) le code est lu sans ses commentaires', SRC.length > 3000 && /async function passer/.test(SRC));
