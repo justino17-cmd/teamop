@@ -29085,7 +29085,7 @@ function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) re
         <div><div style="font-size:13px;font-weight:700;color:var(--t1)">${id?'Modifier produit':'Nouveau produit'}</div><div style="font-size:11px;color:var(--t2)">${id?'Produit du catalogue — modifiable':'Nouveau produit dans le catalogue'}</div></div>
       </div>
       <div class="form-sec">Nom du produit *</div>
-      <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="Ex : XILIX 1000" aria-label="Nom du produit"></div></div>
+      <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="${estMetier3D()?'Ex : XILIX 1000':'Ex : Raccord laiton 20/27'}" aria-label="Nom du produit"></div></div>
       <div class="form-sec">Référence fournisseur</div>
       <div class="fgroup"><div class="frow"><input name="ref" value="${esc(p.ref)}" placeholder="Optionnel — ex : SG051" class="mono"></div></div>
 ${!estMetier3D()?'':`
