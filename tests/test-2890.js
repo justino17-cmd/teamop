@@ -58,12 +58,12 @@ const TOUJOURS = ['dashboard', 'utilisateurs', 'modulesElan', 'parametres'];
 
 /* ══ 1. LE FICHIER EST SAIN ══ */
 console.log('\n1. Le fichier : 23 métiers, des rubriques qui existent, une raison et une explication partout');
-vrai('(population) NAV (10 groupes, une quarantaine de rubriques) et METIERS_ORDRE (23 clés dont les 13 publiques) sont lus dans le CODE d\'app.html',
-  NAV.length === 10 && clesNav.length >= 40 && Array.isArray(ORDRE_BETA) && ORDRE_BETA.length === 23 && ORDRE_APP.length === 13, JSON.stringify([NAV.length, clesNav.length, ORDRE_BETA, ORDRE_APP]));
+vrai('(population) NAV (10 groupes, une quarantaine de rubriques) et METIERS_ORDRE (23 clés ; publiques : 13 avant la v772, les 23 depuis le 23 octobre 2026) sont lus dans le CODE d\'app.html',
+  NAV.length === 10 && clesNav.length >= 40 && Array.isArray(ORDRE_BETA) && ORDRE_BETA.length === 23 && ORDRE_APP.length === 23 - BETA.PAS_ENCORE_OUVERTS.length, JSON.stringify([NAV.length, clesNav.length, ORDRE_BETA, ORDRE_APP]));
 const cles = Object.keys(J.metiers);
 v('23 métiers (les treize actuels et les dix nouveaux)', cles.length, 23);
 v('   `ordreMetiers` les range tous, une fois chacun', J.ordreMetiers.slice().sort(), cles.slice().sort());
-v('   les treize actuels ouvrent la liste, dans l\'ordre de l\'application', J.ordreMetiers.slice(0, 13), ORDRE_APP);
+v('   ceux de l\'application publique ouvrent la liste, dans son ordre', J.ordreMetiers.slice(0, ORDRE_APP.length), ORDRE_APP);
 const NOUVEAUX = ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine'];
 v('   les dix nouveaux suivent', J.ordreMetiers.slice(13), NOUVEAUX);
 const rub = J.rubriques, clesRub = Object.keys(rub);
@@ -134,17 +134,24 @@ const creer = require(path.join(RACINE, 'server', 'metiers.js'));
 vrai('(population) CATS_OK (38) et CATS_TOUJOURS (4) sont lus dans le code du serveur', CATS_OK.length === 38 && CATS_TOUJOURS.length === 4, [CATS_OK.length, CATS_TOUJOURS.length]);
 v('⛔ le catalogue du référentiel est EXACTEMENT les rubriques cochables du serveur plus les quatre « toujours » (dans l\'ordre du menu)', clesRub.filter(k => !TOUJOURS.includes(k)), CATS_OK);
 const M = creer(CHEMIN, CATS_OK, CATS_TOUJOURS);
+/* L'état d'AVANT la publication de la v772 (treize ouverts, les dix nouveaux fermés), FABRIQUÉ : depuis le 23 octobre 2026 le vrai fichier ouvre
+   les vingt-trois, et les refus d'un métier fermé se jouent sur cette copie — sinon ils ne viseraient plus rien. */
+const HIST13 = J.ordreMetiers.slice(0, 13);
+const bac13 = fs.mkdtempSync(path.join(os.tmpdir(), 'b2890a-'));
+const J13 = JSON.parse(BRUT); J13.ouverts = HIST13.slice(); J13.ouvertsReglage = {};
+const F13 = path.join(bac13, 'treize.json'); fs.writeFileSync(F13, JSON.stringify(J13));
+const M13 = creer(F13, CATS_OK, CATS_TOUJOURS), P13 = M13.publique();
 vrai('le module lit le fichier', M.lu === true);
-v('⛔ il ouvre exactement `ouverts` (les treize aujourd\'hui)', M.ouverts.slice().sort(), ouv.slice().sort());
-v('   … et refuse un métier fermé, un inconnu, un vide, un nombre', [M.estOuvert('incendie'), M.estOuvert('piscine'), M.estOuvert('boulangerie'), M.estOuvert(''), M.estOuvert(null), M.estOuvert(3)], [false, false, false, false, false, false]);
-v('   … et accepte les treize', ORDRE_APP.map(k => M.estOuvert(k)), ORDRE_APP.map(() => true));
+v('⛔ il ouvre exactement `ouverts` (les vingt-trois depuis la v772)', M.ouverts.slice().sort(), ouv.slice().sort());
+v('   … et refuse un métier fermé, un inconnu, un vide, un nombre', [M13.estOuvert('incendie'), M13.estOuvert('piscine'), M.estOuvert('boulangerie'), M.estOuvert(''), M.estOuvert(null), M.estOuvert(3)], [false, false, false, false, false, false]);
+v('   … et accepte tous ceux de l\'application publique', ORDRE_APP.map(k => M.estOuvert(k)), ORDRE_APP.map(() => true));
 v('   ses libellés sont ceux du fichier', ORDRE_APP.map(k => M.nom(k)), ORDRE_APP.map(k => J.metiers[k].nom));
 v('   le conseil d\'un métier = ses rubriques ouvertes par défaut, sans les quatre « toujours », dans l\'ordre du menu',
   M.conseil('chauffage'), CATS_OK.filter(c => J.metiers.chauffage.rubriques.includes(c)));
-v('   … et il n\'y a PAS de conseil pour un métier fermé (le serveur ne devine rien)', [M.conseil('incendie'), M.conseil('inconnu')], [null, null]);
+v('   … et il n\'y a PAS de conseil pour un métier fermé (le serveur ne devine rien)', [M13.conseil('incendie'), M.conseil('inconnu')], [null, null]);
 const P = M.publique();
 vrai('⛔ le référentiel servi aux écrans : les métiers OUVERTS seulement', P && P.ok === true && JSON.stringify(P.ouverts) === JSON.stringify(M.ordre) && Object.keys(P.metiers).join() === P.ouverts.join(), P && Object.keys(P.metiers).join());
-vrai('   … sans aucun métier fermé (les dix nouveaux ne sortent pas du serveur tant qu\'ils sont fermés)', NOUVEAUX.every(k => !P.metiers[k]));
+vrai('   … sans aucun métier fermé (sur l\'état d\'avant : les dix nouveaux ne sortaient pas du serveur tant qu\'ils étaient fermés)', !!P13 && NOUVEAUX.every(k => !P13.metiers[k]) && HIST13.every(k => !!P13.metiers[k]));
 v('   … avec les 38 rubriques cochables, titrées, expliquées', [Object.keys(P.rubriques).length, Object.values(P.rubriques).every(r => r.titre && r.explication.length >= 40)], [38, true]);
 v('   … et les quatre « toujours » à part', P.toujours.map(t => t.k), CATS_TOUJOURS);
 v('   … les groupes dans l\'ordre du menu', P.groupes, NAV.map(g => g.g).filter(g => g !== 'Tableau de bord' || CATS_OK.some(c => libNav[c] && libNav[c].g === g)));
@@ -155,21 +162,21 @@ vrai('   … en moins de 80 Ko (il part à chaque ouverture de l\'écran d\'abon
 const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'b2890-'));
 try {
   const ecrire = (nom, o) => { const f = path.join(bac, nom); fs.writeFileSync(f, typeof o === 'string' ? o : JSON.stringify(o)); return f; };
-  const ouvert = JSON.parse(BRUT); ouvert.ouvertsReglage = { incendie: 'ouvert pour l\'essai : l\'application le connaît sur la bêta, publiée le jour même' }; ouvert.ouverts = ouv.concat(['incendie']);
+  const ouvert = JSON.parse(BRUT); ouvert.ouvertsReglage = { incendie: 'ouvert pour l\'essai : l\'application le connaît sur la bêta, publiée le jour même' }; ouvert.ouverts = HIST13.concat(['incendie']);
   const A = creer(ecrire('reglage.json', ouvert), CATS_OK, CATS_TOUJOURS);
   v('⛔ un réglage explicite OUVRE le métier (et lui seul) — mutation de l\'interrupteur', [A.estOuvert('incendie'), A.estOuvert('froid'), A.ouverts.length], [true, false, 14]);
   vrai('   … et le conseil de ce métier ouvert est servi', Array.isArray(A.conseil('incendie')) && A.conseil('incendie').length >= 15);
   const tronque = JSON.parse(BRUT); tronque.ouverts = [];
   const B = creer(ecrire('tronque.json', tronque), CATS_OK, CATS_TOUJOURS);
-  v('⛔ un fichier dont `ouverts` est vidé ne ferme PERSONNE : les treize restent ouverts', B.ouverts.slice().sort(), ORDRE_APP.slice().sort());
+  v('⛔ un fichier dont `ouverts` est vidé ne ferme PERSONNE : les treize historiques restent ouverts', B.ouverts.slice().sort(), HIST13.slice().sort());
   const inconnue = JSON.parse(BRUT); inconnue.ouverts = ouv.concat(['boulangerie']);
   v('   une clé qui n\'est pas dans le référentiel ne s\'ouvre pas', creer(ecrire('inconnue.json', inconnue), CATS_OK, CATS_TOUJOURS).estOuvert('boulangerie'), false);
   const C = creer(path.join(bac, 'absent.json'), CATS_OK, CATS_TOUJOURS);
   v('⛔ un fichier ABSENT (déploiement du serveur seul avant le site) : les treize restent ouverts, rien d\'autre, et pas de référentiel à servir',
-    [C.lu, C.ouverts.slice().sort(), C.publique(), C.conseil('3d')], [false, ORDRE_APP.slice().sort(), null, null]);
+    [C.lu, C.ouverts.slice().sort(), C.publique(), C.conseil('3d')], [false, HIST13.slice().sort(), null, null]);
   const D = creer(ecrire('casse.json', '{ pas du json'), CATS_OK, CATS_TOUJOURS);
   v('   un fichier illisible : pareil', [D.lu, D.ouverts.length], [false, 13]);
-} finally { try { fs.rmSync(bac, { recursive: true, force: true }); } catch (e) {} }
+} finally { try { fs.rmSync(bac, { recursive: true, force: true }); fs.rmSync(bac13, { recursive: true, force: true }); } catch (e) {} }
 
 /* ══ 4. LES LECTEURS LISENT L'INTERRUPTEUR (dans le code) ══ */
 console.log('\n4. Le serveur lit l\'interrupteur (et plus une liste recopiée)');

@@ -111,7 +111,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
   const piecesCles = [ordreSrv, Object.keys(lblTour), Object.keys(lblPort)];
   vrai('(population) les quatre listes se lisent dans le CODE (app.html, serveur, Tour, portail) : l\'application porte vingt-trois métiers, chaque autre pièce au moins les treize d\'avant',
     Array.isArray(ordreApp) && ordreApp.length === 23 && piecesCles.every(l => Array.isArray(l) && l.length >= 13), JSON.stringify(ordreApp));
-  vrai('(population) la liste nommée « pas encore ouverts » est dans l\'application et ne contient pas les treize d\'avant', PAS_ENCORE_OUVERTS.length === 10 && PAS_ENCORE_OUVERTS.every(k => ordreApp.includes(k)) && ordreApp.slice(0, 13).every(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0));
+  vrai('(population) la liste nommée « pas encore ouverts » est dans l\'application et ne contient pas les treize d\'avant — dix avant la publication de la v772, VIDE depuis (23 octobre 2026 : tout le monde connaît les vingt-trois)', (PAS_ENCORE_OUVERTS.length === 10 || PAS_ENCORE_OUVERTS.length === 0) && PAS_ENCORE_OUVERTS.every(k => ordreApp.includes(k)) && ordreApp.slice(0, 13).every(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0));
   v('⛔ le serveur accepte exactement les métiers de l\'application, dans le même ordre (METIERS_OK = METIERS_ORDRE) — les « pas encore ouverts » tolérés absents', ordreSrv, attendu(ordreApp, ordreSrv));
   v('⛔ la Tour propose exactement ces métiers (MET_L)', Object.keys(lblTour), attendu(ordreApp, Object.keys(lblTour)));
   v('⛔ le portail demande exactement ces métiers (METIER_L)', Object.keys(lblPort), attendu(ordreApp, Object.keys(lblPort)));

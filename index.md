@@ -45,7 +45,7 @@ Types d'intervention, fiche de rapport et modules utiles sont réglés sur votre
 - [Électricité Interventions, stock, devis et encaissements réunis dans une seule application pour électriciens. Sur mobile et ordinateur.](https://teamop.fr/logiciel-electricien.html)
 - [Chauffage / Climatisation Interventions, contrats d'entretien, stock et encaissements pour chauffagistes et frigoristes. Application mobile et web.](https://teamop.fr/logiciel-chauffage-climatisation.html)
 - [Nettoyage / Propreté Planning des agents, fiches d'intervention, relevés de surface et de temps, devis, factures et encaissements pour le nettoyage.](https://teamop.fr/logiciel-nettoyage.html)
-- [Tous les métiers 12 packs préconfigurés, et un réglage général pour tous les autres métiers de terrain.](https://teamop.fr/metiers.html)
+- [Tous les métiers 22 packs préconfigurés, et un réglage général pour tous les autres métiers de terrain.](https://teamop.fr/metiers.html)
 
 ## Tout TEAM OP, en un coup d'œil.
 

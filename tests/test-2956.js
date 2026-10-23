@@ -5,10 +5,10 @@
    sont déclarés dans UN fichier, et les bancs qui comparent `app.html` aux pièces publiques (2890, 2893, 2871, 2950, 835, 837, 846,
    848) les tolèrent — exactement ceux-là. Une tolérance qu'on peut oublier de retirer est une porte ouverte : ce banc tient donc
    quatre choses, chacune lue dans le CODE ou exécutée :
-     1. la déclaration dit VRAI sur les vrais fichiers (métiers connus d'app.html et fermés dans metiers.json, libellé porté par
-        app.html et ancien libellé dans metiers.json et la Tour, catégories lues par app.html et drapeau de la Tour faux) ;
-     2. les fonctions qui la jugent MORDENT : une déclaration qui devient fausse (mutation de l'entrée) est signalée, et la tolérance
-        ne dépasse pas la déclaration (un autre libellé, un autre métier ne passent pas) ;
+     1. la déclaration dit VRAI sur les vrais fichiers, qu'elle soit pleine (bêta en avance) ou VIDÉE (geste de publication du
+        23 octobre 2026, v772) : ce que l'application publique connaît, lit et affiche est ce que disent les pièces publiques ;
+     2. les fonctions qui la jugent MORDENT — sur des copies pleine et vide du vrai fichier, et des pièces fabriquées : une déclaration
+        qui devient fausse est signalée, la tolérance ne dépasse pas la déclaration, et une déclaration vidée ne tolère plus rien ;
      3. elle est déclarée à UN seul endroit, et chaque banc qui compare app.html à une pièce publique la lit ;
      4. le générateur (`scripts/metiers-generer.js`) l'honore dans les deux sens, sur un arbre fabriqué : déclaration pleine →
         « Validation des mouvements », déclaration vidée → le titre public de metiers.json ; titre public qui a changé → il s'arrête.
@@ -26,8 +26,11 @@ const lire = f => fs.readFileSync(path.join(RACINE, f), 'utf8');
 
 console.log('\n── 2956 · la bêta en avance : une déclaration, vraie, et rien de plus ──');
 
-/* ══ 1. LA DÉCLARATION DIT VRAI SUR LES VRAIS FICHIERS ══ */
-console.log('\n1. La déclaration est vraie');
+/* ══ 1. LA DÉCLARATION DIT VRAI SUR LES VRAIS FICHIERS ══
+   Elle a deux états, et ce banc tient dans les deux : PLEINE (la bêta en avance : dix métiers, un libellé, l'avance des catégories)
+   ou VIDÉE au geste de publication (23 octobre 2026, v772 : « oui publie »). Dans les deux, les invariants ci-dessous sont les mêmes :
+   ce que l'application publique connaît, lit et affiche est ce que disent les pièces publiques. */
+console.log('\n1. La déclaration est vraie, et les pièces publiques disent ce qu\'elle laisse');
 const APPN = nu(lire('app.html')), TOURN = nu(lire('tour.html'));
 const J = JSON.parse(lire('metiers.json'));
 const NAV = evalue(litteral(APPN, 'const NAV = ['));
@@ -38,33 +41,60 @@ function appLitCats(src) { let i = -1, lit = false; while ((i = src.indexOf('/ap
 const LIT = appLitCats(APPN);
 const DRAPEAU = (/var CATS_APPLIQUEES=(true|false);/.exec(TOURN) || [])[1];
 const DRAPEAU_B = DRAPEAU === 'true' ? true : DRAPEAU === 'false' ? false : undefined;
-vrai('(population) la déclaration porte dix métiers, un libellé et l\'avance des catégories — et les fichiers se lisent (23 métiers dans app.html, 13 ouverts, ' + Object.keys(libNav).length + ' rubriques au menu)',
-  BETA.PAS_ENCORE_OUVERTS.length === 10 && Object.keys(BETA.LIBELLES).length === 1 && BETA.BETA_EN_AVANCE.categoriesAppliquees === true
-  && ORDRE_APP.length === 23 && J.ouverts.length === 13 && Object.keys(libNav).length >= 40 && typeof DRAPEAU === 'string', [ORDRE_APP.length, J.ouverts.length, DRAPEAU]);
-egal('⛔ métiers : les dix déclarés sont connus d\'app.html et FERMÉS dans metiers.json', BETA.mensongesMetiers(ORDRE_APP, J.ouverts), []);
-egal('⛔ libellés : app.html porte le libellé déclaré, metiers.json (donc la grille du client) l\'ancien', BETA.mensongesLibelles(libNav, titresPublics), []);
-egal('⛔ catégories : app.html les lit, le drapeau de la Tour dit encore faux', BETA.mensongesCategories(LIT, DRAPEAU_B), []);
+const D = BETA.BETA_EN_AVANCE;
+const PLEINE_ETAT = D.metiers.length === 10 && Object.keys(D.libelles).length === 1 && D.categoriesAppliquees === true;
+const VIDE_ETAT = D.metiers.length === 0 && Object.keys(D.libelles).length === 0 && D.categoriesAppliquees === false;
+vrai('(population) les fichiers se lisent (23 métiers dans app.html, ' + J.ouverts.length + ' ouverts, ' + Object.keys(libNav).length + ' rubriques au menu, app.html lit les catégories, drapeau de la Tour lu) — et la déclaration est ' + (VIDE_ETAT ? 'VIDÉE (publication faite)' : PLEINE_ETAT ? 'pleine (bêta en avance)' : 'dans un état inconnu'),
+  ORDRE_APP.length === 23 && Object.keys(libNav).length >= 40 && LIT === true && typeof DRAPEAU === 'string' && (PLEINE_ETAT || VIDE_ETAT), [ORDRE_APP.length, J.ouverts.length, DRAPEAU, D]);
+egal('⛔ métiers : chaque métier déclaré est connu d\'app.html et FERMÉ dans metiers.json', BETA.mensongesMetiers(ORDRE_APP, J.ouverts), []);
+egal('⛔ libellés : chaque libellé déclaré est porté par app.html, et metiers.json (donc la grille du client) porte l\'ancien', BETA.mensongesLibelles(libNav, titresPublics), []);
+egal('⛔ catégories : si l\'avance est déclarée, app.html les lit et le drapeau de la Tour dit encore faux', BETA.mensongesCategories(LIT, DRAPEAU_B), []);
 egal('   et hors de la déclaration, le menu d\'app.html dit EXACTEMENT les titres de metiers.json (aucun autre écart toléré)',
   Object.keys(libNav).filter(k => J.rubriques[k] && BETA.libellePublic(k, libNav[k].l) !== J.rubriques[k].titre), []);
-egal('   et l\'application publique connaît exactement les treize `ouverts` de metiers.json, dans l\'ordre', BETA.ordrePublic(ORDRE_APP), J.ouverts);
+egal('   et l\'application publique connaît exactement les `ouverts` de metiers.json, dans l\'ordre', BETA.ordrePublic(ORDRE_APP), J.ouverts);
+egal('⛔ et ce que l\'application publique lit des catégories est ce que la Tour promet au client (`CATS_APPLIQUEES`)', BETA.categoriesLuesParPublique(LIT), DRAPEAU_B);
 
-/* ══ 2. LES FONCTIONS MORDENT ══ */
-console.log('\n2. Les fonctions qui la jugent mordent (mutation de leur entrée), et la tolérance ne dépasse pas la déclaration');
-egal('un métier déclaré que metiers.json OUVRE → la déclaration est fausse', BETA.mensongesMetiers(ORDRE_APP, J.ouverts.concat(['incendie'])).length, 1);
-egal('un métier déclaré qu\'app.html ne connaît plus → fausse', BETA.mensongesMetiers(ORDRE_APP.filter(k => k !== 'piscine'), J.ouverts).length, 1);
-egal('un libellé déclaré qu\'app.html ne porte plus → fausse', BETA.mensongesLibelles(Object.assign({}, libNav, { validations: { l: 'Validations DR' } }), titresPublics).length, 1);
-egal('un libellé que la pièce publique a déjà adopté (metiers.json dit « Validation des mouvements ») → fausse', BETA.mensongesLibelles(libNav, Object.assign({}, titresPublics, { validations: 'Validation des mouvements' })).length >= 1, true);
-egal('une rubrique déclarée qui disparaît du menu → fausse', BETA.mensongesLibelles(Object.assign({}, libNav, { validations: undefined }), titresPublics).length >= 1, true);
-egal('des catégories déclarées appliquées mais qu\'app.html ne lit pas → fausse', BETA.mensongesCategories(false, false).length, 1);
-egal('… ou dont le drapeau de la Tour est passé à vrai (promesse publique) → fausse', BETA.mensongesCategories(true, true).length, 1);
-egal('… ou dont le drapeau n\'est pas lu → fausse', BETA.mensongesCategories(true, undefined).length, 1);
+/* ══ 2. LES FONCTIONS MORDENT ══
+   Une déclaration vidée ne laisse rien à faire mentir : les fonctions se jugent donc sur deux COPIES du vrai fichier (seul le littéral
+   `BETA_EN_AVANCE` remplacé), l'une pleine, l'autre vide, et sur des pièces fabriquées dans l'état d'avant la publication. */
+console.log('\n2. Les fonctions qui la jugent mordent (copies pleine et vide du vrai fichier, pièces fabriquées), et la tolérance ne dépasse pas la déclaration');
+const SRC_DECL = fs.readFileSync(path.join(__dirname, 'beta-en-avance.js'), 'utf8');
+const LITT = /const BETA_EN_AVANCE = \{[\s\S]*?\n\};/g;
+const DIX = ORDRE_APP.filter(k => ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine'].indexOf(k) >= 0);
+const copie = (nom, litteralDecl) => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'b2956' + nom + '-'));
+  try { fs.writeFileSync(path.join(d, 'beta-en-avance.js'), SRC_DECL.replace(LITT, litteralDecl)); return require(path.join(d, 'beta-en-avance.js')); }
+  finally { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) {} }
+};
+const P = copie('p', 'const BETA_EN_AVANCE = {\n  metiers: ' + JSON.stringify(DIX) + ",\n  libelles: { validations: { beta: 'Validation des mouvements', public: 'Validations DR' } },\n  categoriesAppliquees: true,\n};");
+const V = copie('v', 'const BETA_EN_AVANCE = { metiers: [], libelles: {}, categoriesAppliquees: false };');
+const OUVERTS_AVANT = ORDRE_APP.filter(k => DIX.indexOf(k) < 0);
+const titresAvant = Object.assign({}, titresPublics, { validations: 'Validations DR' });
+const titresApres = Object.assign({}, titresPublics, { validations: 'Validation des mouvements' });
+vrai('(population) le littéral se trouve UNE fois dans le vrai fichier, les dix métiers sont dans app.html, et le menu dit « Validation des mouvements »',
+  (SRC_DECL.match(LITT) || []).length === 1 && DIX.length === 10 && OUVERTS_AVANT.length === 13 && libNav.validations && libNav.validations.l === 'Validation des mouvements', [DIX, libNav.validations]);
+egal('(contre-épreuve) la copie pleine dit VRAI sur l\'état d\'avant la publication (13 ouverts, ancien titre, drapeau faux)',
+  [P.mensongesMetiers(ORDRE_APP, OUVERTS_AVANT), P.mensongesLibelles(libNav, titresAvant), P.mensongesCategories(true, false)], [[], [], []]);
+egal('un métier déclaré que metiers.json OUVRE → la déclaration est fausse', P.mensongesMetiers(ORDRE_APP, OUVERTS_AVANT.concat(['incendie'])).length, 1);
+egal('⛔ tous les métiers ouverts (le geste de publication) sans vider la déclaration → dix mensonges', P.mensongesMetiers(ORDRE_APP, ORDRE_APP).length, 10);
+egal('un métier déclaré qu\'app.html ne connaît plus → fausse', P.mensongesMetiers(ORDRE_APP.filter(k => k !== 'piscine'), OUVERTS_AVANT).length, 1);
+egal('un libellé déclaré qu\'app.html ne porte plus → fausse', P.mensongesLibelles(Object.assign({}, libNav, { validations: { l: 'Validations DR' } }), titresAvant).length, 1);
+egal('un libellé que la pièce publique a déjà adopté (metiers.json dit « Validation des mouvements ») → fausse', P.mensongesLibelles(libNav, titresApres).length, 1);
+egal('une rubrique déclarée qui disparaît du menu → fausse', P.mensongesLibelles(Object.assign({}, libNav, { validations: undefined }), titresAvant).length >= 1, true);
+egal('des catégories déclarées appliquées mais qu\'app.html ne lit pas → fausse', P.mensongesCategories(false, false).length, 1);
+egal('… ou dont le drapeau de la Tour est passé à vrai (promesse publique) → fausse', P.mensongesCategories(true, true).length, 1);
+egal('… ou dont le drapeau n\'est pas lu → fausse', P.mensongesCategories(true, undefined).length, 1);
 egal('la tolérance de libellé est EXACTEMENT celle-là : le libellé déclaré se lit comme le public',
-  [BETA.libellePublic('validations', 'Validation des mouvements')], ['Validations DR']);
+  [P.libellePublic('validations', 'Validation des mouvements')], ['Validations DR']);
 egal('… un autre libellé de la même rubrique ne passe pas, un libellé déclaré posé sur une autre rubrique non plus',
-  [BETA.libellePublic('validations', 'Validations'), BETA.libellePublic('clients', 'Validation des mouvements'), BETA.libellePublic('constructor', 'x'), BETA.libellePublic('__proto__', 'x')],
+  [P.libellePublic('validations', 'Validations'), P.libellePublic('clients', 'Validation des mouvements'), P.libellePublic('constructor', 'x'), P.libellePublic('__proto__', 'x')],
   ['Validations', 'Validation des mouvements', 'x', 'x']);
-egal('la tolérance de métiers retire EXACTEMENT les dix déclarés, ni un de plus ni un de moins', ORDRE_APP.filter(k => BETA.ordrePublic(ORDRE_APP).indexOf(k) < 0), BETA.PAS_ENCORE_OUVERTS);
-egal('… et l\'application publique ne lit les catégories que si app.html les lit SANS l\'avance déclarée', [BETA.categoriesLuesParPublique(true), BETA.categoriesLuesParPublique(false)], [false, false]);
+egal('la tolérance de métiers retire EXACTEMENT les dix déclarés, ni un de plus ni un de moins', ORDRE_APP.filter(k => P.ordrePublic(ORDRE_APP).indexOf(k) < 0), DIX);
+egal('… et l\'application publique ne lit les catégories que si app.html les lit SANS l\'avance déclarée', [P.categoriesLuesParPublique(true), P.categoriesLuesParPublique(false)], [false, false]);
+egal('⛔ la déclaration VIDÉE ne tolère plus rien : aucun métier retiré, aucun libellé réécrit, les catégories lues comme app.html',
+  [V.ordrePublic(ORDRE_APP).length, V.libellePublic('validations', 'Validation des mouvements'), V.categoriesLuesParPublique(true), V.categoriesLuesParPublique(false)], [23, 'Validation des mouvements', true, false]);
+egal('   … donc un métier resté FERMÉ, l\'ancien titre gardé ou le drapeau resté faux se voient dans les comparaisons de la section 1',
+  [V.ordrePublic(ORDRE_APP).join() === OUVERTS_AVANT.join(), V.libellePublic('validations', libNav.validations.l) === titresAvant.validations, V.categoriesLuesParPublique(true) === false], [false, false, false]);
 
 /* ══ 3. UN SEUL ENDROIT, LU PAR CHAQUE BANC ══ */
 console.log('\n3. Déclarée à un seul endroit, lue par chaque banc qui compare app.html à une pièce publique');
@@ -83,7 +113,8 @@ const LECTEURS_ANCIEN = fichiersTests.map(f => 'tests/' + f).concat(fs.readdirSy
   .filter(f => f !== 'tests/test-2956.js' && /(?:readFileSync|require)\([^;]*metiers-referentiel/.test(nu(fs.readFileSync(path.join(RACINE, f), 'utf8'))));
 egal('   et rien ne le lit plus (aucun banc ni script ne LIT l\'ancien chemin)', LECTEURS_ANCIEN, []);
 
-/* ══ 4. LE GÉNÉRATEUR HONORE LA DÉCLARATION, DANS LES DEUX SENS ══ */
+/* ══ 4. LE GÉNÉRATEUR HONORE LA DÉCLARATION, DANS LES DEUX SENS ══
+   Sur un arbre fabriqué, avec un metiers.json dans chacun des deux états (titre public d'avant, titre publié). */
 console.log('\n4. Le générateur, sur un arbre fabriqué');
 const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'b2956-'));
 try {
@@ -98,25 +129,28 @@ try {
   };
   const titreDans = r => { const N = nu(fs.readFileSync(path.join(r, 'app.html'), 'utf8')); return evalue(litteral(N, 'const RUBRIQUES_INFO={')).validations[0]; };
   const lancer = (r, ...args) => cp.spawnSync(process.execPath, [path.join(r, 'scripts', 'metiers-generer.js'), ...args], { encoding: 'utf8' });
-  const brut = lire('metiers.json');
+  const avecTitre = t => { const j = JSON.parse(lire('metiers.json')); j.rubriques.validations.titre = t; return JSON.stringify(j, null, 1); };
+  const jsonAvant = avecTitre('Validations DR'), jsonPublie = avecTitre('Validation des mouvements');
   const declPleine = "module.exports = { LIBELLES: { validations: { beta: 'Validation des mouvements', public: 'Validations DR' } } };";
   const declVide = 'module.exports = { LIBELLES: {} };';
-  const r1 = monter('pleine', declPleine, brut);
-  vrai('(population) l\'arbre fabriqué part d\'un app.html qui porte le titre déclaré', titreDans(r1) === 'Validation des mouvements', titreDans(r1));
+  const r1 = monter('pleine', declPleine, jsonAvant);
+  vrai('(population) l\'arbre fabriqué part d\'un app.html qui porte « Validation des mouvements »', titreDans(r1) === 'Validation des mouvements', titreDans(r1));
   const g1 = lancer(r1, '--verifier');
-  vrai('déclaration pleine : app.html (déjà à jour) passe `--verifier`', g1.status === 0, (g1.stdout + g1.stderr).trim());
-  const r2 = monter('vide', declVide, brut);
+  vrai('déclaration pleine, titre public d\'avant : app.html (déjà à jour) passe `--verifier`', g1.status === 0, (g1.stdout + g1.stderr).trim());
+  const r2 = monter('vide', declVide, jsonAvant);
   const g2 = lancer(r2, '--verifier');
-  vrai('⛔ déclaration VIDÉE : le même app.html n\'est plus à jour (il porte l\'écart que plus rien ne déclare)', g2.status === 1, g2.status);
+  vrai('⛔ déclaration VIDÉE, titre public d\'avant : le même app.html n\'est plus à jour (il porte l\'écart que plus rien ne déclare)', g2.status === 1, g2.status);
   const g2b = lancer(r2);
   vrai('   … et le script écrit alors le titre PUBLIC de metiers.json', g2b.status === 0 && titreDans(r2) === 'Validations DR', [g2b.status, titreDans(r2), g2b.stderr]);
   const g2c = lancer(r2, '--verifier');
   vrai('   … après quoi `--verifier` passe', g2c.status === 0, g2c.status);
-  const J2 = JSON.parse(brut); J2.rubriques.validations.titre = 'Validation des mouvements';
-  const r3 = monter('perimee', declPleine, JSON.stringify(J2));
+  const r3 = monter('perimee', declPleine, jsonPublie);
   const g3 = lancer(r3);
   vrai('⛔ titre public changé dans metiers.json alors que la déclaration annonce l\'ancien : le script S\'ARRÊTE (déclaration périmée), app.html intact',
     g3.status === 3 && /périmée/.test(g3.stderr) && fs.readFileSync(path.join(r3, 'app.html'), 'utf8') === fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8'), [g3.status, g3.stderr.slice(0, 200)]);
+  const r4 = monter('publiee', declVide, jsonPublie);
+  const g4 = lancer(r4, '--verifier');
+  vrai('⛔ l\'état PUBLIÉ (déclaration vidée, titre public « Validation des mouvements ») : app.html est à jour, rien à réécrire', g4.status === 0, (g4.stdout + g4.stderr).trim());
 } finally { try { fs.rmSync(bac, { recursive: true, force: true }); } catch (e) {} }
 
 console.log('\n── 2956 : ' + ok + ' ✓  ' + ko + ' ✗');

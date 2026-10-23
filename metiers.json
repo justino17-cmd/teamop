@@ -15,7 +15,17 @@
   "paysagiste",
   "couverture",
   "multiservices",
-  "autre"
+  "autre",
+  "incendie",
+  "froid",
+  "ascenseurs",
+  "portails",
+  "ramonage",
+  "assainissement",
+  "energies",
+  "alarme",
+  "eau",
+  "piscine"
  ],
  "ouvertsReglage": {},
  "regles": [
@@ -27,7 +37,7 @@
   "Un métier retiré ne supprime aucune donnée.",
   "fiabilite des obligations : officielle (texte de l'administration), professionnelle (fédération, organisme), secondaire (assureur, site d'information, document local). aConfirmer = à relire sur Légifrance avant d'écrire une règle dans l'application. Ce qui n'a pas de source est dans aVerifier, jamais dans obligations.",
   "Aucun document produit par l'application ne se dit officiel (Cerfa, bordereau, rapport APSAD) tant que le modèle n'est pas reproduit à l'identique.",
-  "Les clés des nouveaux métiers (incendie, froid, ascenseurs, portails, ramonage, assainissement, energies, alarme, eau, piscine) devront être ajoutées aux listes fermées : METIERS_OK du serveur, METIERS_ORDRE de l'application, les puces de creer.html et la page Métiers du site.",
+  "Les clés des dix métiers ajoutés en octobre 2026 (incendie, froid, ascenseurs, portails, ramonage, assainissement, energies, alarme, eau, piscine) sont dans METIERS_ORDRE de l'application depuis la v772 et dans ouverts depuis le 23 octobre 2026 ; le serveur (METIERS_OK) les lit ici, au démarrage : ouvrir un métier demande donc un déploiement du serveur, que tout changement de ce fichier déclenche.",
   "valeur d'une fonction à créer : haute = bloque l'usage réel du métier ou une obligation ; moyenne = apporte un vrai gain ; basse = confort.",
   "ref renvoie à fonctionsCommunes (F0 à F13) : une fonction à construire une seule fois pour plusieurs métiers.",
   "ouverts = LES MÉTIERS QUE LE PUBLIC PEUT CHOISIR (serveur, espace client, page de paiement, site). C'est l'interrupteur, et il est unique : un métier n'y entre que si l'application publique le connaît (clé dans METIERS_ORDRE d'app.html, vérifié par tests/test-2890.js). Tant qu'elle ne le connaît pas, un client qui le choisirait recevrait le pack par défaut (3D) : le métier reste fermé, et le site dit « Bientôt ».",
@@ -318,7 +328,7 @@
    "moduleMisDeCote": true
   },
   "validations": {
-   "titre": "Validations DR",
+   "titre": "Validation des mouvements",
    "ic": "✅",
    "groupe": "Achats internes",
    "explication": "Le responsable valide ou refuse les demandes de commande et les sorties de stock, pour que rien ne bouge sans son accord.",

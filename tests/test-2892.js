@@ -86,7 +86,11 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
   catch (e) { console.log('  … SAUTÉ : server/node_modules absent (cd server && npm i)'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
   const OPRUB = require(path.join(RACINE, 'rubriques-choix.js'));
   const CATS_OK = evalue(litteral(SRVN, 'const CATS_OK = ['));
-  const METIERS = JSON.parse(fs.readFileSync(path.join(RACINE, 'metiers.json'), 'utf8'));
+  /* Le vrai `metiers.json` ouvre les vingt-trois métiers depuis le 23 octobre 2026 : le serveur de ce banc lit un référentiel FABRIQUÉ où
+     les dix nouveaux restent fermés (tests/metiers-banc.js) — c'est ce qui fait de « un métier fermé, page périmée » une vraie épreuve. */
+  const REFB = require('./metiers-banc.js').ecrire(RACINE, banc);
+  const PREM = path.join(banc, 'metiers-fermes.js'); fs.writeFileSync(PREM, require('./metiers-banc.js').preload(RACINE, REFB.chemin));
+  const METIERS = REFB.json;
   const CONSEIL = k => CATS_OK.filter(c => METIERS.metiers[k].rubriques.includes(c));
 
   /* ══ LE MONDE : deux entreprises (qui paient), un compte du site vérifié, un patron ══ */
@@ -111,7 +115,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
   fs.writeFileSync(path.join(banc, 'monitor.json'), JSON.stringify({ issues: [], journal: [], archive: [], users: [{ id: 'upatron', nom: 'Patron', email: '', hash: sha('mot-de-passe-2892'), role: 'patron', actif: true, ts: MAINT }] }));
   const PORT = 9500 + (process.pid % 90), B = 'http://127.0.0.1:' + PORT;
   let journal = '', ipN = 0;
-  enfant = spawn(process.execPath, [SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json') }), stdio: ['ignore', 'pipe', 'pipe'] });
+  enfant = spawn(process.execPath, ['--require', PREM, SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json') }), stdio: ['ignore', 'pipe', 'pipe'] });
   enfant.stdout.on('data', d => { journal += d; }); enfant.stderr.on('data', d => { journal += d; });
   let vivant = false;
   for (let i = 0; i < 150 && !vivant; i++) { try { vivant = (await fetch(B + '/health')).ok; } catch (x) {} if (!vivant) await dormir(100); }
@@ -427,9 +431,11 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     /* ══ 4. LES LISTES SE TIENNENT ══ */
     console.log('\n4. Les trois listes de métiers de secours disent la même chose que l\'interrupteur');
     const METIER_L = evalue(litteral(PORTN, 'const METIER_L={')), MET_L = evalue(litteral(TOURN, 'var MET_L={'));
-    v('⛔ la liste de secours du portail (`METIER_L`) = les métiers ouverts du référentiel (ouvrir un métier sans la mettre à jour fait tomber ce banc)', Object.keys(METIER_L), REF.ouverts);
-    v('⛔ la liste de la Tour (`MET_L`) = les métiers ouverts du référentiel', Object.keys(MET_L), REF.ouverts);
-    v('   les libellés sont ceux du référentiel', [Object.keys(METIER_L).map(k => METIER_L[k]), Object.keys(MET_L).map(k => MET_L[k])], [REF.ouverts.map(k => REF.metiers[k].nom), REF.ouverts.map(k => REF.metiers[k].nom)]);
+    /* ces listes sont PUBLIÉES : elles se comparent au VRAI fichier (`REFB.reel`), pas au référentiel fabriqué que joue le serveur du banc */
+    const RV = REFB.reel;
+    v('⛔ la liste de secours du portail (`METIER_L`) = les métiers ouverts du VRAI référentiel (ouvrir un métier sans la mettre à jour fait tomber ce banc)', Object.keys(METIER_L), RV.ouverts);
+    v('⛔ la liste de la Tour (`MET_L`) = les métiers ouverts du VRAI référentiel', Object.keys(MET_L), RV.ouverts);
+    v('   les libellés sont ceux du référentiel', [Object.keys(METIER_L).map(k => METIER_L[k]), Object.keys(MET_L).map(k => MET_L[k])], [RV.ouverts.map(k => RV.metiers[k].nom), RV.ouverts.map(k => RV.metiers[k].nom)]);
   } finally { fin(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);

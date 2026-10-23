@@ -27,9 +27,11 @@
 'use strict';
 
 const BETA_EN_AVANCE = {
-  metiers: ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine'],
-  libelles: { validations: { beta: 'Validation des mouvements', public: 'Validations DR' } },
-  categoriesAppliquees: true,
+  /* VIDÉE le 23 octobre 2026, au geste de publication de la v772 (Justin : « oui publie ») : les dix métiers sont ouverts dans
+     `metiers.json`, « Validation des mouvements » est le titre public, et la Tour promet les catégories appliquées (`CATS_APPLIQUEES`). */
+  metiers: [],
+  libelles: {},
+  categoriesAppliquees: false,
 };
 
 const PAS_ENCORE_OUVERTS = BETA_EN_AVANCE.metiers;

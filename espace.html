@@ -307,7 +307,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      « chaque métier qu'on a sur le site, quand ils ont l'application, ça correspond à leur métier »). Depuis le 30 septembre,
      « autre » est un pack comme les autres (le réglage neutre de l'application) : il n'y a plus d'option à part, le besoin
      précise le reste. `tests/test-848.js` compare les listes. */
-  const METIER_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain'};
+  const METIER_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain',incendie:'Sécurité incendie',froid:'Froid commercial / Frigoriste',ascenseurs:'Ascenseurs',portails:'Portes et portails automatiques',ramonage:'Ramonage',assainissement:'Assainissement / Vidange',energies:'Photovoltaïque et bornes de recharge',alarme:'Alarme, vidéosurveillance, contrôle d’accès',eau:'Traitement de l’eau',piscine:'Pisciniste'};
   /* ⛔ LE PORTAIL PARLE À NOTRE SERVEUR, ET SEULEMENT À LUI — sortie de Firebase, décision de
      Justin du 25 septembre 2026. Jusque-là, un interrupteur (`PORTAIL_SERVEUR`, fermé) gardait
      Firebase en service ; il est parti avec les trois balises du kit de Google, parce qu'un
@@ -1281,10 +1281,10 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      rubriques d'OP GESTION sont PRÉ-COCHÉES selon le métier, chacune avec son titre et son explication (la grille est celle de
      `rubriques-choix.js`, lue aussi par la page de paiement et la demande du site) ; le choix part avec la demande (`cats`, liste fermée
      validée par le serveur). Le référentiel vient de l'API (`/api/metiers`, tiré de `metiers.json`) — jamais d'une copie ici : tant
-     qu'il n'est pas lu, la liste des métiers est `METIER_L` (les treize d'avant) et la grille dit pourquoi elle n'est pas là.
+     qu'il n'est pas lu, la liste des métiers est `METIER_L` (les métiers publiés, vingt-trois depuis le 23 octobre 2026) et la grille dit pourquoi elle n'est pas là.
      ⚠️ Des DÉCLARATIONS de fonction, hissées, comme `cliResume` : une vue peut s'afficher avant que le script arrive ici. */
   function ratEtat(){ return window._rat||(window._rat={ ref:null, msg:'', metier:'', cats0:null, rub:null, enCours:false }); }
-  /* les métiers que la liste propose : ceux que le serveur ouvre au public, sinon les treize d'avant */
+  /* les métiers que la liste propose : ceux que le serveur ouvre au public, sinon la liste publiée (`METIER_L`) */
   function ratMetiers(){
     const r=ratEtat().ref; if(!(r&&Array.isArray(r.ouverts)&&r.metiers)) return METIER_L;
     const o={}; r.ouverts.forEach(k=>{ o[k]=(r.metiers[k]&&r.metiers[k].nom)||METIER_L[k]||k; }); return o;

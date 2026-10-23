@@ -13,6 +13,27 @@ de ligne du tout.
 
 ---
 
+# ✅ 23 OCTOBRE 2026 — LES VINGT-TROIS MÉTIERS OUVERTS AU PUBLIC (geste de publication de la v772, Justin : « oui publie »)
+
+- **Fait** : OP GESTION v772 en ligne pour les clients (justino17-cmd/teamop#156), puis le geste de `tests/beta-en-avance.js`, dans un
+  seul commit : la déclaration VIDÉE ; `metiers.json` ouvre les vingt-trois (`ouverts`, les dix nouveaux après « autre », ordre de
+  l'application) et le titre public devient « Validation des mouvements » ; Tour v2.108 (`MET_L`, `CATS_APPLIQUEES` vrai : les rubriques
+  cochées sont appliquées) ; portail (`METIER_L`) ; site régénéré (plus de « Bientôt ») ; démonstration : un exemple FICTIF par nouveau
+  métier (`scripts/demo/scenarios.js`), `DEMO_METIERS_FERMES` vide.
+- ⛔ **Le serveur lit `metiers.json` AU DÉMARRAGE** (`METIERS_OK`) : ouvrir un métier sans redéployer publiait le site, la Tour et le
+  portail pendant que l'API le refusait (`metier_ferme`). `deploiement.yml` se déclenche désormais aussi sur `metiers.json` (relecture
+  adverse du 23 octobre, trois angles, chaque constat contre-vérifié ; les autres constats — textes périmés, accords de la démo — corrigés).
+- Bancs : `test-2956` tient la déclaration dans ses DEUX états (ses contrôles qui mordent jouent sur des copies pleine et vide du vrai
+  fichier) ; `test-2891`, `2892`, `2904` prouvent le refus d'un métier FERMÉ — toujours du code vivant — sur un référentiel FABRIQUÉ
+  (`tests/metiers-banc.js`, servi au vrai serveur par un `--require`). Suite complète : 641 suites, 0 ✗ (les cinq qui sautaient faute
+  de dépendances rejouées à part, vertes). Mutations : 10 sur 11 mordent.
+- ⚠️ **La onzième ne mord pas — trou d'avant, à garder** : `metierOk` (`server/index.js`, le métier SERVI par `/api/espaces/etat` et
+  la fiche d'une demande) n'est joué par aucun banc. Aujourd'hui aucun métier n'est fermé, donc rien ne passe par là ; le jour où un
+  métier entre au référentiel avant d'être ouvert, écrire ce banc avant.
+- ⚠️ **Avant de régler une VRAIE entreprise sur un des dix métiers** : un appareil en v770 ou avant lit le métier comme la 3D (repli
+  voulu, rien ne plante) et ne lit pas les rubriques cochées. Exiger la 772 d'abord (`version.min`, Firestore ET API). Aucune entreprise
+  ne travaille aujourd'hui (`VERSION-STABLE.md`, 16 octobre).
+
 # ⏳ 23 OCTOBRE 2026 — CHAUFFAGE / CLIMATISATION COMPLET (CVC) : PARC D'APPAREILS, ATTESTATION, FLUIDES, VISITES DES CONTRATS — BÊTA v772, RIEN SUR `main`
 
 Branche `claude/chauffage-clim` (copie `~/teamop-clim`), demande de Justin du 23 octobre (« Chauffage / climatisation, fais-le aussi »). Un seul bloc d'`app.html`, entre
@@ -95,8 +116,8 @@ Connu, non corrigé : l'entretien se reconnaît au TYPE choisi (« Entretien… 
   « Validation des mouvements » sur deux lignes (201 px demandés pour 191) — l'élargir touche test-1421/1432/1433, ou raccourcir le libellé de Justin ;
   (2) le vocabulaire « box » reste dans Stock, Mouvements, Bons, Validations, Utilisateurs, Paramètres hors 3D — variante hors 3D ou « box » assumé ;
   (3) `server/agent-devis.js` (consigne de l'agent devis : dératisation, Certibiocide) n'est pas touché — c'est un déploiement, à relire par `gardien` ;
-  (4) les dix nouveaux métiers n'existent pas dans `METIERS_OK` du serveur ni dans la Tour : un métier réglé dans l'application seule reste dans la base
-  (`db.metier`), mais `metierServeurAppliquer` le remplace par celui de la Tour à l'ouverture — c'est l'autre chantier. `test-747` relisait la garde de
+  (4) ✅ réglé le 23 octobre 2026 : les dix nouveaux métiers sont ouverts dans `metiers.json`, donc dans `METIERS_OK`, la Tour et le portail
+  (voir l'entrée « LES VINGT-TROIS MÉTIERS OUVERTS AU PUBLIC » en tête de page). `test-747` relisait la garde de
   `go()` à l'ancienne forme (il tombait déjà sur la base 7d45d134) ; `test-811` (durées de création de compte) tombe sous charge et passe seul.
 - Preuves au navigateur (bêta servie en 127.0.0.1, captures regardées) : `scratchpad/metiers/` — `sonde-b` 162 ✓ (3 métiers × 6 tailles/thèmes × 9 écrans), `-c` 48 ✓, `-d` 60 ✓, `-e` 19 ✓, `-recense` (plomberie, piscine : rien de l'anti-nuisibles), `-avant-apres`. Elles lisent `beta.html` : régénérer (`node beta-build.js`) avant de les lancer. ⚠️ Deux contrôles de GitHub ne sont pas dans
   `bancs-ci.sh` (`verifier-version.js`, `verifier-propose.js`) : `app.html` change sans que `APP_VERSION` monte — à jouer avant la fusion.
