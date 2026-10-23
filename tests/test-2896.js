@@ -122,7 +122,14 @@ console.log('\n── 2896 · 5. un vrai PDF ──');
   vrai('la déclaration sur le CO (4 ppm → situation normale)', /Déclaration sur le CO : Situation normale/.test(tout));
   vrai('conseils et travaux recommandés', /Conseils d’usage, d’amélioration et de remplacement/.test(tout) && /Travaux recommandés/.test(tout) && /Remplacer le vase d’expansion/.test(tout));
   vrai('les deux signatures sont nommées', /Signature du client/.test(tout) && /Signature du technicien/.test(tout));
-  vrai('⛔ le pied dit que ce n’est PAS un formulaire officiel reproduit', /ce n’est pas un formulaire officiel reproduit/.test(tout) && /Page 1\/1/.test(tout));
+  const piedDe = pdfx => lirePdf(pdfx).textes.filter(t => t.y < 50).map(t => t.u).join(' ');
+  vrai('⛔ le pied dit que ce n’est PAS un formulaire officiel reproduit', /ce n’est pas un formulaire officiel reproduit/.test(piedDe(pdf)) && /Page 1\/1/.test(piedDe(pdf)), piedDe(pdf));
+  /* ⛔ un nom d'entreprise LONG ne fait pas perdre la moitié de la phrase (elle était coupée en « … ce… » sur une seule ligne) */
+  for (const nom of ['Alpha Chauffage', 'Établissements Dupont-Lefèvre Chauffage Climatisation Énergies Renouvelables', 'N'.repeat(70) + ' Chauffage et Sanitaire de la Vallée', 'Z'.repeat(200)]) {
+    const pp = W.cvcAttestationPdfStr(i, a, att, Object.assign({}, E, { nom }), {}), pt = piedDe(pp), tx = lirePdf(pp).textes.filter(t => t.y < 50);
+    vrai('⛔ pied complet avec « ' + nom.slice(0, 30) + '… » (' + nom.length + ' car.)', /ce n’est pas un formulaire officiel reproduit/.test(pt) && /À conserver par le client \(2 ans au moins\)\./.test(pt) && /Page 1\/1/.test(pt) && !/…/.test(pt.replace(/…\s+à la suite/, '')), pt);
+    vrai('… et chaque ligne du pied tient dans la page (marges)', tx.every(t => t.x >= 42 && t.y >= 20), tx.map(t => [t.x, t.y]));
+  }
   vrai('⛔ AUCUN « ? » : la flèche, l’émoji, le ≥, la puce, le ⏰ sont dits autrement ou effacés', !/\?/.test(tout), tout.split('\n').filter(l => /\?/.test(l)));
   const verdict = x => lignesDe(lirePdf(W.cvcAttestationPdfStr(i, a, { coAmbiant: x }, E, {}))).join(' ');
   vrai('CO 25 ppm : « Anomalie », tirage et ventilation', /Anomalie/.test(verdict('25')) && /tirage et la ventilation/.test(verdict('25')));
@@ -143,7 +150,7 @@ console.log('\n── 2896 · 5. un vrai PDF ──');
   vrai('plusieurs pages (' + G.pages + ')', G.pages >= 2);
   const trop = G.textes.filter(t => t.x + W._pdfLarg(t.u, t.sz, t.gras) > 553.5);
   vrai('⛔ aucune ligne ne déborde de la marge droite (595 − 42)', trop.length === 0, trop.slice(0, 3).map(t => t.u.slice(0, 40) + ' → ' + Math.round(t.x + W._pdfLarg(t.u, t.sz, t.gras))));
-  vrai('⛔ aucun texte sous le pied de page (y ≥ 74 hors pied)', G.textes.filter(t => t.y < 74 && !/ce n’est pas un formulaire|^Page \d/.test(t.u)).length === 0);
+  vrai('⛔ aucun texte sous le pied de page (y ≥ 74 hors pied)', G.textes.filter(t => t.y < 74 && t.y >= 50).length === 0);
   vrai('chaque page porte son pied « Page k/n »', Array.from({ length: G.pages }, (_, k) => 'Page ' + (k + 1) + '/' + G.pages).every(s => G.textes.some(t => t.u === s)));
   vrai('le client très long est dit en entier ou coupé avec « … », jamais hors page', G.textes.some(t => /Établissements Dupont/.test(t.u)));
 }
@@ -195,6 +202,18 @@ console.log('\n── 2896 · 6. l’aperçu : la fenêtre s’ouvre DANS le ges
     vrai('⛔ … même sans formulaire ouvert (la garde de l’envoi ne repose pas sur celle de l’enregistrement)', D2.__mails.length === 0 && D2.__saves === 0);
     const X = mk(); await X.cvcAttestationEnvoyer('i2', 'a1');
     vrai('intervention non terminée : rien ne part', X.__mails.length === 0);
+    /* ⛔ une signature qui n'a pas pu être convertie ne part pas EN SILENCE */
+    const SJ = mk({ jpeg: '' }); require('vm').runInContext("var __cf=[]; var __okc=false; confirm=function(m){ __cf.push(m); return __okc; }", SJ);
+    await SJ.cvcAttestationEnvoyer('i1', 'a1');
+    vrai('⛔ signatures illisibles + refus : la question les NOMME, rien ne part, rien n’est tracé',
+      SJ.__cf.length === 1 && /signature du client/.test(SJ.__cf[0]) && /signature du technicien/.test(SJ.__cf[0]) && SJ.__mails.length === 0 && SJ.db.interventions[0].attestations.a1.envoyeeLe === undefined, SJ.__cf);
+    require('vm').runInContext('__okc=true', SJ); await SJ.cvcAttestationEnvoyer('i1', 'a1');
+    vrai('… et sur « oui », le courriel part (la personne sait ce que le PDF ne porte pas)', SJ.__cf.length === 2 && SJ.__mails.length === 1);
+    const SA = monter({ db: BASE, pack: PACK }); SA.__form = formulaire({ coAmbiant: '3' }); require('vm').runInContext("document.getElementById=function(id){ return id==='cvc-att'?__form:null; }", SA);
+    await SA.cvcAttestationApercu('i1', 'a1');
+    vrai('⛔ l’aperçu le dit aussi (toast « Non jointe au PDF »)', /Non jointe au PDF : la signature du client, la signature du technicien/.test(SA.__toasts.join('|')), SA.__toasts);
+    const OK = mk(); require('vm').runInContext("var __cf=[]; confirm=function(m){ __cf.push(m); return true; }", OK); await OK.cvcAttestationEnvoyer('i1', 'a1');
+    vrai('signatures lues : aucune question posée', OK.__cf.length === 0 && OK.__mails.length === 1);
   }
 
   console.log('\n── 2896 · 8. la carte de l’intervention ──');

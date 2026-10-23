@@ -169,6 +169,18 @@ console.log('\n── 2898 · 7. ⛔ ouvrir un écran n’écrit pas ──');
   vrai('base identique, zéro save(), zéro journal', JSON.stringify(W.db) === avant && W.__saves === 0 && W.__logs.length === 0);
 }
 
+console.log('\n── 2898 · 7 bis. ⛔ un calcul qui jette ne fait pas disparaître la carte sans un mot ──');
+{
+  const W = monter({ db: BASE }); W.console = { error() {} };
+  vrai('départ : sans panne, la carte des Tâches est là', /Visite d’entretien/.test(W.cvcTachesBloc()));
+  W.db.clients = {};   // une donnée inattendue : .map n'existe pas sur un objet
+  const t = W.cvcTachesBloc(), d = W.cvcDashSection(() => true);
+  vrai('Tâches : « Échéances d’entretien indisponibles » au lieu d’un écran vide', /cvc-taches/.test(t) && /indisponibles/.test(t), t.slice(0, 120));
+  vrai('tableau de bord : la même ligne', /cvc-dash/.test(d) && /indisponibles/.test(d), d.slice(0, 120));
+  const A = monter({ db: BASE, metier: 'antinuisibles' }); A.db.clients = {};
+  v('autre métier : toujours rien', [A.cvcTachesBloc(), A.cvcDashSection(() => true)], ['', '']);
+}
+
 console.log('\n── 2898 · 8. les crochets du fichier livré ──');
 {
   const { APP } = require('./cvc-monter.js');
@@ -191,6 +203,39 @@ console.log('\n── 2898 · 9. ⛔ la boucle entière : un contrat « tout le 
   v('visite terminée le 20/10 : aucune proposition (ni d’entretien en retard, ni de visite de contrat)', W2.cvcPropositions().filter(p => p.clientId === 'c2').map(p => p.cle), []);
   const W3 = monter({ db, today: '2026-10-23' });
   vrai('… et l’appareil porte la date de cette visite comme dernier entretien', (W3.cvcDernierEntretien(W3.db.appareils[2]) || {}).id === 'v1');
+}
+
+console.log('\n── 2898 · 10. ⛔ le bouton 🔁 et la proposition donnent la MÊME date, et pas deux visites ──');
+{
+  const { APP } = require('./cvc-monter.js'), vm = require('vm');
+  const coupe = (a, b) => { const i = APP.indexOf(a), j = APP.indexOf(b, i); if (i < 0 || j < 0) throw new Error('introuvable : ' + a); return APP.slice(i, j); };
+  const GEN = coupe('function ctrFreqDays(', 'function formContrat(');
+  const charge = (db, today, metier, ok) => { const W = monter({ db, today, metier }); W.__ok = ok !== false; W.__confirms = 0; W.__created = [];
+    vm.runInContext(`var ISO=function(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }; function notifyTechNewInt(o){ __created.push(o); } var views={contrats:function(){}};
+      function confirm(m){ __confirms++; return __ok; } ` + GEN, W); return W; };
+  /* contrat annuel du 01/03/2023, aucune visite : proposition au 01/03/2024 ; l'ancien calcul en jours donnait le 29/02/2024 */
+  const db = cdc(BASE); db.contrats[1].dateDebut = '2023-03-01'; db.contrats[1].dateFin = '2030-03-01';
+  const prop = monter({ db, today: '2024-02-20' }).cvcContratVisite(db.contrats[1], '2024-02-20');
+  const W = charge(db, '2024-02-20');
+  W.genererInterventionContrat('k2');
+  v('annuel : 🔁 planifie le 01/03/2024 comme la proposition (pas le 29/02 des 365 jours)', [W.__created.length && W.__created[0].date, prop && prop.date], ['2024-03-01', '2024-03-01']);
+  v('… la visite porte son contrat, et la génération est retenue', [W.__created[0].contratId, W.db.contrats[1].derniereGeneration], ['k2', '2024-03-01']);
+  /* trimestriel du 01/07/2026 : 01/10/2026 (et non le 30/09 des 91 jours) */
+  const dt = cdc(BASE); dt.contrats[1].frequence = 'trimestriel'; dt.contrats[1].dateDebut = '2026-07-01';
+  const Wt = charge(dt, '2026-09-15'); Wt.genererInterventionContrat('k2');
+  v('trimestriel : le 01/10/2026', Wt.__created[0].date, '2026-10-01');
+  /* en retard : jamais dans le passé */
+  const Wr = charge(db, '2026-10-23'); Wr.genererInterventionContrat('k2');
+  v('contrat en retard : 🔁 planifie aujourd’hui, pas dans le passé', Wr.__created[0].date, '2026-10-23');
+  /* une visite née de « Planifier » est déjà prévue : 🔁 demande, et ne crée rien si on refuse */
+  const dp = cdc(BASE); dp.interventions.push({ id: 'vp', clientId: 'c2', contratId: 'k2', statut: 'planifiee', date: '2026-11-01', appareilIds: ['a3'] });
+  const Wn = charge(dp, '2026-10-23', undefined, false); Wn.genererInterventionContrat('k2');
+  v('⛔ visite déjà planifiée + refus : une question, aucune seconde visite, rien d’écrit', [Wn.__confirms, Wn.__created.length, Wn.__saves, Wn.db.contrats[1].derniereGeneration || ''], [1, 0, 0, '']);
+  const Wo = charge(dp, '2026-10-23', undefined, true); Wo.genererInterventionContrat('k2');
+  v('… et sur oui, elle est créée', [Wo.__confirms, Wo.__created.length], [1, 1]);
+  /* autre métier : l'ancien calcul en jours, sans question */
+  const Wa = charge(db, '2024-02-20', 'antinuisibles'); Wa.genererInterventionContrat('k2');
+  v('hors métier à parc : le calcul d’avant (365 jours → 29/02/2024), sans confirmation', [Wa.__created[0].date, Wa.__confirms], ['2024-02-29', 0]);
 }
 
 console.log('\n══ test-2898 : ' + ok + ' ✓  ' + ko + ' ✗ ══');

@@ -40124,9 +40124,11 @@ views.contrats=function(){
 };
 function ctrFreqDays(f){ return {mensuel:30,trimestriel:91,semestriel:182,annuel:365}[f]||30; }   // contrats (minuscules) — distinct de freqDays des box
 function genererInterventionContrat(id){ if(!permGarde('int','ajouter','une intervention')) return; const ct=db.contrats.find(x=>x.id===id); if(!ct)return;
+  const cvcD=(typeof cvcContratProchaineDate==='function')?cvcContratProchaineDate(ct):'';   // CVC : la même date que la proposition
+  if(cvcD&&cvcContratPlanifiee(ct)&&!confirm('Une visite de ce contrat est déjà planifiée. En planifier une autre ?')) return;
   const base=ct.derniereGeneration||ct.dateDebut||todayISO();
   const nx=new Date(base+'T00:00:00'); nx.setDate(nx.getDate()+ctrFreqDays(ct.frequence));
-  const iso=ISO(nx), cli=db.clients.find(c=>c.id===ct.clientId)||{};
+  const iso=cvcD?(cvcD<todayISO()?todayISO():cvcD):ISO(nx), cli=db.clients.find(c=>c.id===ct.clientId)||{};
   const obj={id:uid(),titre:ct.titre,clientId:ct.clientId,techId:'',date:iso,heure:'09:00',duree:60,statut:'planifiee',prio:'normale',rapportModele:ct.rapportModele||'',adresse:cli.adresse||'',desc:'Intervention récurrente — contrat '+ct.num,compteRendu:'',contratId:id,produitsUtilises:[],equipements:[]}; db.interventions.push(obj); notifyTechNewInt(obj);
   ct.derniereGeneration=iso; logEvent('Intervention générée (contrat)',`${ct.num} → ${iso}`,'crud'); save(); toast('Intervention planifiée le '+fmtShort(iso)); views.contrats(); }
 function formContrat(id){ const ct=id?db.contrats.find(x=>x.id===id):{};
@@ -40227,7 +40229,10 @@ function cvcIntsDe(a){ if(_cvcIdx) return (_cvcIdx.ints.get(a.id)||[]).slice();
 function cvcParDateDesc(a,b){ return String((b.date||'')+(b.heure||'')).localeCompare(String((a.date||'')+(a.heure||''))); }
 function cvcDerniereIntervention(a){ return cvcIntsDe(a).filter(i=>i.statut==='terminee'&&cvcIsoOk(i.date)).sort(cvcParDateDesc)[0]||null; }
 /* Ce qui remet l'horloge de l'entretien à zéro : une visite d'entretien ou une mise en service, ou une visite née d'un contrat.
-   Un dépannage qui cite l'appareil n'est PAS un entretien — il ne repousse pas l'échéance. */
+   Un dépannage qui cite l'appareil n'est PAS un entretien — il ne repousse pas l'échéance.
+   ⚠️ L'entretien se reconnaît au TYPE choisi (« Entretien… », « Mise en service ») ou au contrat dont la visite est née — pas à autre chose : une
+   « Installation » ou un type libre ne remet pas l'horloge à zéro. « Planifier » pré-remplit le bon type, qui est donc le chemin sûr ; changer le
+   type d'une visite d'entretien en autre chose la retire du calcul, et l'appareil reste proposé tant qu'aucune visite « Entretien… » n'est terminée. */
 function cvcEstEntretien(i){ return !!i&&(!!i.contratId||/entretien|mise en service/i.test(String(i.type||''))); }
 function cvcDernierEntretien(a){ return cvcIntsDe(a).filter(i=>i.statut==='terminee'&&cvcIsoOk(i.date)&&cvcEstEntretien(i)).sort(cvcParDateDesc)[0]||null; }
 function cvcPeriodeEntretien(a){ const p=Math.round(cvcNum(a&&a.periodeMois)); return (p>0&&p<=120)?p:(cvcType(a).mois||12); }
@@ -40280,7 +40285,11 @@ function cvcLigneProposition(p,peutAj){ return `<div class="pl-row cvc-l" style=
       <div class="pl-meta" style="overflow-wrap:anywhere">${esc(clientName(p.clientId))} · avant le ${esc(cvcDateTxt(p.date))}</div></div>
     <div class="cvc-l-fin">${cvcPastille(p.j,'')}${peutAj?`<button type="button" class="btn sm" onclick="cvcPlanifier('${p.cle}')">Planifier</button>`:''}</div></div>`; }
 /* Le bloc des Tâches : en tête de liste, seulement pour un métier à parc, seulement s'il y a quelque chose à proposer. */
+/* ⛔ un calcul qui jette ne fait pas disparaître la carte SANS un mot : elle dit que les échéances sont indisponibles (et la console garde la cause). */
+function cvcIndisponible(id){ return `<div class="card" id="${id}" style="margin-bottom:12px"><div class="card-head"><h3>🔥 Entretiens à planifier</h3></div><div style="font-size:12.5px;color:var(--t3)">Échéances d’entretien indisponibles pour le moment — rouvrez l’écran ; si cela persiste, prévenez le support.</div></div>`; }
 function cvcTachesBloc(){ if(!metierGereParc()) return '';
+  try{ return cvcTachesBlocCalc(); }catch(e){ console.error(e); return cvcIndisponible('cvc-taches'); } }
+function cvcTachesBlocCalc(){
   const L=cvcPropositions(); if(!L.length) return '';
   const peutAj=canCat('int','ajouter');
   return `<div class="card" id="cvc-taches" style="margin-bottom:12px"><div class="card-head"><h3>🔥 Entretiens à planifier</h3><span class="tag">${L.length}</span></div>
@@ -40289,6 +40298,8 @@ function cvcTachesBloc(){ if(!metierGereParc()) return '';
 /* La carte du tableau de bord — même liste. Rendue SEULEMENT pour qui voit les interventions (une carte n'ouvre jamais un écran interdit). */
 function cvcDashSection(voitVue){ if(!metierGereParc()) return '';
   if(typeof voitVue==='function'&&!voitVue('interventions')) return '';
+  try{ return cvcDashSectionCalc(); }catch(e){ console.error(e); return cvcIndisponible('cvc-dash'); } }
+function cvcDashSectionCalc(){
   const L=cvcPropositions(); if(!L.length) return '';
   const peutAj=canCat('int','ajouter');
   return `<div class="card" id="cvc-dash"><div class="card-head"><h3>🔥 Entretiens à planifier</h3><button class="btn ghost sm" onclick="go('taches')">Tâches</button></div>
@@ -40382,8 +40393,8 @@ function formAppareil(id,clientId){ db.appareils=db.appareils||[];
         <div class="field-row"><div class="field"><label>Fluide</label><select name="fluide"><option value="">—</option>${CVC_FLUIDES.map(f=>`<option value="${f.k}" ${f.k===a.fluide?'selected':''}>${esc(f.k)}</option>`).join('')}</select></div>
           <div class="field"><label>Charge (kg)</label><input type="number" step="any" min="0" inputmode="decimal" name="charge" value="${a.charge>0?esc(a.charge):''}"></div></div>
         <div class="field"><label>PRP du fluide <span style="color:var(--t3);font-weight:400">(laisser vide = valeur du tableau ; sinon celle de la plaque signalétique)</span></label><input type="number" step="any" min="0" inputmode="decimal" name="prp" value="${a.prp>0?esc(a.prp):''}"></div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;cursor:pointer"><input type="checkbox" name="detection" ${a.detection?'checked':''} style="width:19px;height:19px;accent-color:var(--acc)">Système permanent de détection de fuite</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0 10px;cursor:pointer"><input type="checkbox" name="scelle" ${a.scelle?'checked':''} style="width:19px;height:19px;accent-color:var(--acc)">Équipement hermétiquement scellé (étiqueté comme tel)</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;min-height:44px;cursor:pointer;overflow-wrap:anywhere"><input type="checkbox" name="detection" ${a.detection?'checked':''} style="width:19px;height:19px;flex-shrink:0;accent-color:var(--acc)">Système permanent de détection de fuite</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0 10px;min-height:44px;cursor:pointer;overflow-wrap:anywhere"><input type="checkbox" name="scelle" ${a.scelle?'checked':''} style="width:19px;height:19px;flex-shrink:0;accent-color:var(--acc)">Équipement hermétiquement scellé (étiqueté comme tel)</label>
         <div id="cvc-regle" style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px;overflow-wrap:anywhere"></div>
       </div>
       <div class="field"><label>Entretien tous les … mois <span style="color:var(--t3);font-weight:400">(vide = ${T.mois} mois, la règle de ce type d’appareil)</span></label><input type="number" min="1" max="120" step="1" inputmode="numeric" name="periodeMois" value="${a.periodeMois>0?esc(a.periodeMois):''}"></div>
@@ -40434,7 +40445,17 @@ function cvcIntCard(i,edit){ if(!metierGereParc()||!i) return '';
   if(!L.length) corps=`<div style="color:var(--t3);font-size:13px;padding:2px 0 6px">Ce client n’a pas encore d’appareil dans son parc.</div>${canCat('crm','ajouter')?`<button type="button" class="btn ghost sm" onclick="formAppareil('','${esc(i.clientId||'')}')">＋ Ajouter un appareil</button>`:''}`;
   else if(peut) corps=`<div class="met-grid">${L.map(a=>chip(a,sel.indexOf(a.id)>=0)).join('')}</div><div style="font-size:12px;color:var(--t3);margin-top:6px">Touchez les appareils visités pendant ce passage.</div>`;
   else corps=vis.length?`<div class="met-grid">${vis.map(a=>chip(a,true)).join('')}</div>`:'<div style="color:var(--t3);font-size:13px;padding:2px 0 6px">Aucun appareil cité. ✏️ stylo pour choisir.</div>';
-  return `<div class="card" id="cvc-int" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>🔥 Appareils visités</h3>${edit?'':'<span style="font-size:10.5px;color:var(--t3)">✏️ stylo pour modifier</span>'}</div>${corps}${cvcIntActions(i,vis)}</div>`; }
+  return `<div class="card" id="cvc-int" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>🔥 Appareils visités</h3>${edit?'':'<span style="font-size:10.5px;color:var(--t3)">✏️ stylo pour modifier</span>'}</div>${corps}${cvcIntActions(i,vis)}${cvcIntOrphelines(i)}</div>`; }
+/* ⛔ « Retirer du parc » n'efface pas les fiches fluides ni les attestations des interventions passées (le Cerfa se conserve 5 ans) : elles restent LISIBLES ici,
+   sous un appareil qui n'existe plus, au lieu de devenir invisibles faute d'appareil sous lequel les ranger. */
+function cvcIntOrphelines(i){ const ex=new Set((db.appareils||[]).filter(a=>a).map(a=>a.id));
+  const F=cvcFichesDe(i).filter(f=>!ex.has(f.appareilId));
+  const A=Object.keys((i&&i.attestations&&typeof i.attestations==='object')?i.attestations:{}).filter(k=>!ex.has(k));
+  if(!F.length&&!A.length) return '';
+  return `<div class="cvc-act cvc-orph" style="margin-top:10px"><div style="font-size:12.5px;font-weight:700;overflow-wrap:anywhere">Appareil retiré du parc</div>`
+    +F.map(f=>`<div class="pl-row cvc-l" style="padding:6px 0"><div class="pl-info"><div class="pl-title" style="font-size:13px;overflow-wrap:anywhere">💧 ${esc(f.nature||'Fiche')} — ${esc(fmtShort(f.date))}${f.appLabel?' · '+esc(f.appLabel):''}</div><div class="pl-meta" style="overflow-wrap:anywhere">${esc(cvcFicheResume(f))}</div></div></div>`).join('')
+    +A.map(k=>{ const t=i.attestations[k]||{}; return `<div class="pl-meta" style="overflow-wrap:anywhere;padding:4px 0">📄 Attestation d’entretien ${t.envoyeeLe?'envoyée le '+esc(new Date(t.envoyeeLe).toLocaleDateString('fr-FR')):t.etabliLe?'établie le '+esc(fmtShort(t.etabliLe)):'enregistrée'}</div>`; }).join('')
+    +`<div style="font-size:12px;color:var(--t3);margin-top:4px">Conservées avec l’intervention : l’appareil a été retiré du parc.</div></div>`; }
 function cvcIntToggle(iid,aid){ if(!permGarde('int','modifier','une intervention')) return;
   const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid); if(!i||!a) return;
   if(a.clientId!==i.clientId){ toast('Cet appareil n’est pas chez le client de cette intervention'); return; }
@@ -40611,10 +40632,12 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
     bloc(M,'Signature du client',imgs.sigCli); bloc(M+bw+24,'Signature du technicien',imgs.sigTech); y-=bh+24; }
 
   pages.push(ops.join('\n'));
-  const mention='Document établi par '+(E.nom||'l’entreprise')+' à la suite de la visite du '+dateFr(i.date)+' — ce n’est pas un formulaire officiel reproduit. À conserver par le client (2 ans au moins).';
-  const pied=(k,n)=>[LINE+' rg',M+' 56 '+L+' 0.8 re f',GREY+' rg','BT','/F1 7.2 Tf',M+' 44 Td',
-    '('+_pdfTxt(_pdfCoupe(net(mention),7.2,0,L-60))+') Tj','ET',
-    GREY+' rg','BT','/F1 7.5 Tf',(RGT-40)+' 44 Td','('+_pdfTxt('Page '+k+'/'+n)+') Tj','ET'].join('\n');
+  /* ⛔ la mention est la phrase qui dit que ce n'est PAS un formulaire officiel : elle se COUPE EN LIGNES (trois au plus), jamais d'une ligne unique
+     « … ce… » qui perdrait cette moitié-là avec un nom d'entreprise long ; le nom, lui, se borne. */
+  const mention='Document établi par '+_pdfCoupe(net(E.nom||'l’entreprise'),7.2,0,240)+' à la suite de la visite du '+dateFr(i.date)+' — ce n’est pas un formulaire officiel reproduit. À conserver par le client (2 ans au moins).';
+  const mentionL=lignes(mention,7.2,0,L-70).slice(0,3);
+  const pied=(k,n)=>[LINE+' rg',M+' 56 '+L+' 0.8 re f',GREY+' rg'].concat(...mentionL.map((l,q)=>['BT','/F1 7.2 Tf',M+' '+(46-9*q)+' Td','('+_pdfTxt(l)+') Tj','ET']),
+    [GREY+' rg','BT','/F1 7.5 Tf',(RGT-40)+' 44 Td','('+_pdfTxt('Page '+k+'/'+n)+') Tj','ET']).join('\n');
   for(let k=0;k<pages.length;k++) pages[k]+='\n'+pied(k+1,pages.length);
   const objs=[]; objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
   objs[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
@@ -40654,7 +40677,9 @@ async function cvcAttestationDocument(iid,aid,att){
     if(b64.length<=PAP_IMPL_MAX_B64){
       const cl=(db.clients||[]).find(x=>x.id===i.clientId)||{};
       const nom='Attestation-entretien-'+String(cl.nom||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)+'-'+String(i.date||todayISO())+'.pdf';
-      return {pdf,b64,nom,E}; } }
+      /* ⛔ ce qui devait figurer et n'a pas pu l'être se DIT (une conversion d'image qui échoue partait en silence) */
+      const manque=[]; if(H.logo&&!logo) manque.push('le logo'); if(i.signature&&!imgs.sigCli) manque.push('la signature du client'); if(i.signatureTech&&!imgs.sigTech) manque.push('la signature du technicien');
+      return {pdf,b64,nom,E,manque}; } }
   return {err:'L’attestation dépasse la taille qu’un courriel peut porter — rien n’est parti.'}; }
 /* Aperçu : le PDF qui partirait, avec ce qui est dans le formulaire, sans rien écrire. La fenêtre s'ouvre DANS le geste (avant tout await). */
 async function cvcAttestationApercu(iid,aid){
@@ -40664,6 +40689,7 @@ async function cvcAttestationApercu(iid,aid){
   try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation de l’attestation…</p>'); w.document.close(); }catch(e){}
   const d=await cvcAttestationDocument(iid,aid,att);
   if(d.err){ try{ w.close(); }catch(e){} toast(d.err); return; }
+  if(d.manque&&d.manque.length) toast('⚠️ Non jointe au PDF : '+d.manque.join(', '),9000);
   const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
   const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
   w.location.href=u; setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000); }
@@ -40679,6 +40705,7 @@ async function cvcAttestationEnvoyer(iid,aid){
     toast('📄 Préparation de l’attestation PDF…',3000);
     const d=await cvcAttestationDocument(iid,aid);
     if(d.err){ toast(d.err,9000); return; }
+    if(d.manque&&d.manque.length&&!confirm('Le PDF ne porte pas '+d.manque.join(', ')+' (l’image n’a pas pu être lue). L’envoyer quand même au client ?')) return;
     const i=(db.interventions||[]).find(k=>k.id===iid)||x.i;   // la synchro a pu remplacer la base pendant la préparation
     const sujet='Attestation d’entretien — '+fmtShort(i.date)+' ('+cvcLibelle(x.a)+')';
     const corps='Bonjour,\n\nVous trouverez ci-joint l’attestation d’entretien de votre appareil ('+cvcLibelle(x.a)+'), établie à la suite de notre visite du '+fmtShort(i.date)+'.\n\nNous restons à votre disposition.';
@@ -40814,8 +40841,9 @@ function cvcIntFiches(i,a){ const L=cvcFichesDe(i,a.id), peut=canCat('int','modi
    Un contrat d'entretien lié à un client — et, au choix, à certains de ses appareils — propose de planifier la visite quand son échéance approche.
    L'échéance est celle de la FRÉQUENCE du contrat (annuelle pour un entretien annuel) : dernière visite connue + période. Dernière visite connue =
    la plus récente entre `derniereGeneration` (le bouton 🔁 « Générer la prochaine intervention ») et les interventions rattachées au contrat
-   (`contratId`), annulées exceptées ; à défaut, le début du contrat. C'est exactement la base de `genererInterventionContrat` : les deux chemins
-   donnent la même date.
+   (`contratId`), annulées exceptées ; à défaut, le début du contrat. ⚠️ `genererInterventionContrat` (🔁) compte en JOURS (365, 91…) sur
+   `derniereGeneration` seule : pour un métier à parc, elle prend donc la date de `cvcContratProchaineDate` (la MÊME règle, en mois) et demande
+   confirmation quand une visite du contrat est déjà prévue — sinon une visite née de « Planifier » et un 🔁 donnaient deux visites.
    · ce n'est PAS le rappel de FIN de contrat (`ctrRappels` : renouveler) — c'est la visite DE l'année ;
    · ⛔ elle ne s'écrit pas toute seule : « Planifier » ouvre le formulaire d'intervention pré-rempli (client, contrat, appareils, date, type) et rien n'est
      créé tant que la personne ne valide pas ; la visite créée porte `contratId`, donc la proposition disparaît d'elle-même ;
@@ -40828,6 +40856,9 @@ function cvcContratIntervalle(ct){ return CVC_FREQ_MOIS[ct&&ct.frequence]||12; }
 function cvcContratAppareils(ct){ const L=cvcAppareilsDe(ct&&ct.clientId), ids=Array.isArray(ct&&ct.appareilIds)?ct.appareilIds:[];
   return ids.length?L.filter(a=>ids.indexOf(a.id)>=0):L; }
 function cvcContratPlanifiee(ct){ return (db.interventions||[]).some(i=>i&&i.contratId===ct.id&&(i.statut==='planifiee'||i.statut==='encours'||i.statut==='aplanifier')); }
+/* La prochaine visite d'un contrat, SANS horizon ni filtre (la date que 🔁 doit reprendre) : dernière visite connue (ou le début) + la période en mois. */
+function cvcContratProchaineDate(ct){ if(!ct||!metierGereParc()) return '';
+  const depuis=cvcContratDerniereVisite(ct)||(cvcIsoOk(ct.dateDebut)?ct.dateDebut:''); return depuis?cvcAddMois(depuis,cvcContratIntervalle(ct)):''; }
 function cvcContratDerniereVisite(ct){ const d=[];
   if(cvcIsoOk(ct.derniereGeneration)) d.push(ct.derniereGeneration);
   (db.interventions||[]).forEach(i=>{ if(i&&i.contratId===ct.id&&i.statut!=='annulee'&&cvcIsoOk(i.date)) d.push(i.date); });

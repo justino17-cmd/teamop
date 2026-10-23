@@ -207,5 +207,19 @@ console.log('\n── 2897 · 6. ⛔ ouvrir un écran n’écrit pas ──');
   v('autre métier : la carte est vide même avec des fiches en base', A.cvcIntCard(A.db.interventions[0], false), '');
 }
 
+console.log('\n── 2897 · 7. ⛔ un appareil retiré du parc ne rend pas ses fiches invisibles ──');
+{
+  const W = monter({ db: BASE });
+  const I = W.db.interventions[0];
+  I.fichesFluides.push({ id: 'f7', appareilId: 'a9', appLabel: 'Climatiseur split · Daikin Retiré', date: '2025-06-02', nature: 'Mise en service', fluide: 'R410A', charge: 2, recup: 0, controle: false });
+  I.attestations = { a9: { etabliLe: '2025-06-03' } };
+  const h = W.cvcIntCard(I, false);
+  vrai('la fiche et l’attestation d’un appareil absent du parc restent LISIBLES sous « Appareil retiré du parc »', /Appareil retiré du parc/.test(h) && /Mise en service/.test(h) && /Daikin Retiré/.test(h) && /Attestation d’entretien établie le/.test(h), h.slice(-400));
+  vrai('… sans bouton pour les modifier (l’appareil n’existe plus)', !/cvcFicheForm\('i1','a9'/.test(h) && !/cvcAttestationForm\('i1','a9'/.test(h));
+  vrai('… et rien de tel quand tous les appareils cités existent', !/Appareil retiré/.test(W.cvcIntCard(W.db.interventions[1], false)));
+  I.fichesFluides[I.fichesFluides.length - 1].appLabel = '<img src=x onerror=1>'; const h2 = W.cvcIntCard(I, false);
+  vrai('⛔ le libellé gardé est échappé', !/<img src=x/.test(h2));
+}
+
 console.log('\n══ test-2897 : ' + ok + ' ✓  ' + ko + ' ✗ ══');
 process.exit(ko ? 1 : 0);
