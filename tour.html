@@ -2293,6 +2293,46 @@ body.jour .ms-tq{box-shadow:0 0 0 1px var(--line)}
 .ms-ep.cours{background:var(--accBg);color:var(--acc-txt)}
 .ms-tq p{margin:5px 0 3px;font-size:13.5px;line-height:1.4;overflow-wrap:anywhere}
 .ms-tq small{color:var(--muted);font-size:12px}
+/* LE PANNEAU DES RÉUNIONS (fil « Réunions » seulement) : une bande d'état, puis deux sections repliables. Il ne mange jamais le fil : sa hauteur est bornée et il défile en lui-même. */
+.ms-reu{flex:none;max-height:min(46%,360px);overflow-y:auto;overscroll-behavior:contain;border-bottom:1px solid var(--line);background:var(--tt-lateral)}
+.ms-reu[hidden]{display:none}
+.ms-reu-bd{display:flex;align-items:center;gap:10px;padding:10px 18px;flex-wrap:wrap}
+.ms-reu-bd.cours{background:var(--accBg)}
+.ms-reu-pt{width:10px;height:10px;border-radius:50%;flex:none;box-sizing:border-box;border:1.5px solid var(--gray)}
+.ms-reu-pt.cours{border:0;background:var(--green);animation:msPoint 1.6s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){ .ms-reu-pt.cours{animation:none} }
+.ms-reu-t{min-width:0;flex:1 1 220px;display:flex;flex-direction:column;gap:1px}
+.ms-reu-t b{font-size:14px;font-weight:650}
+.ms-reu-t small{color:var(--muted);font-size:12.5px;line-height:1.35}
+.ms-reu-bd.cours .ms-reu-t small{color:var(--text2)}
+.ms-reu-a{display:flex;gap:8px;flex-wrap:wrap}
+.ms-reu-btn{min-height:36px;padding:0 12px;border:0;border-radius:var(--r-3);background:var(--inset);color:var(--text);font:inherit;font-size:13px;font-weight:650;cursor:pointer;white-space:nowrap}
+.ms-reu-btn:hover:not(:disabled){background:var(--hover)}
+.ms-reu-btn:disabled{opacity:.5;cursor:default}
+.ms-reu-btn:focus-visible,.ms-reu-h:focus-visible{outline:0;box-shadow:var(--anneau-int)}
+.ms-reu-s{border-top:1px solid var(--line)}
+.ms-reu-h{display:flex;align-items:baseline;gap:10px;width:100%;min-height:40px;padding:0 18px;border:0;background:transparent;color:var(--text);font:inherit;font-size:13px;font-weight:650;text-align:left;cursor:pointer}
+.ms-reu-h::before{content:'›';display:inline-block;flex:none;width:10px;color:var(--muted);font-weight:700;transition:transform .15s}
+.ms-reu-h[aria-expanded="true"]::before{transform:rotate(90deg)}
+.ms-reu-h small{color:var(--muted);font-size:12px;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.ms-reu-c{padding:0 18px 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:8px}
+.ms-reu-ag{background:var(--surface);border-radius:var(--r-3);padding:9px 11px;box-shadow:var(--tt-ombre);min-width:0}
+body.jour .ms-reu-ag{box-shadow:0 0 0 1px var(--line)}
+.ms-reu-ag ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
+.ms-reu-ag li{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;font-size:13.5px;line-height:1.4;overflow-wrap:anywhere}
+.ms-reu-ag li small{color:var(--muted);font-size:12px;flex:1 1 100%}
+.ms-reu-b{font-size:11px;font-weight:700;border-radius:99px;padding:1px 8px;background:var(--inset);color:var(--muted)}
+.ms-reu-b.atteint{background:var(--vertBg);color:var(--green-txt)}
+.ms-reu-b.partiel{background:var(--ambreBg);color:var(--amber)}
+.ms-reu-b.non{background:var(--rougeBg);color:var(--redText)}
+.ms-reu-vide{margin:0;grid-column:1/-1;color:var(--muted);font-size:13px;line-height:1.45}
+.ms-reu-plier{display:none}
+@container mess (max-width:700px){ .ms-reu-plier{display:inline-flex;align-items:center;min-height:36px;padding:0 10px;border:0;border-radius:var(--r-3);background:transparent;color:var(--acc-txt);font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+  .ms-reu-plier::after{content:'›';margin-left:6px;transform:rotate(90deg)}
+  .ms-reu-plier[aria-expanded="true"]::after{transform:rotate(-90deg)}
+  .ms-reu[data-plie="1"] .ms-reu-a,.ms-reu[data-plie="1"] .ms-reu-s,.ms-reu[data-plie="1"] .ms-reu-t small{display:none}
+  .ms-reu{max-height:min(34%,230px)} .ms-reu-bd{padding:8px 12px;gap:6px} .ms-reu-a{width:100%} .ms-reu-btn{flex:1 1 0;white-space:normal;line-height:1.2;padding:4px 8px} .ms-reu-h{padding:0 12px} .ms-reu-c{padding:0 12px 10px} }
+@media(pointer:coarse){ .ms-reu-btn,.ms-reu-h,.ms-reu-plier{min-height:44px} }
 @container mess (max-width:1000px){
   .ms{grid-template-columns:240px minmax(0,1fr)}
   .ms-btn-tq{display:inline-flex;align-items:center}
@@ -10643,7 +10683,8 @@ var MS_GROUPES_LIB={equipe:'Équipe TeamOP',clients:'Clients',plateforme:'Platef
 var MS_ETAT_LIB={allume:'Allumé',brouillon:'Brouillon',arret:'À l’arrêt'};
 var MS={lec:0,fils:[],nonLus:0,agents:[],agLec:0,pause:false,illisible:false,taches:[],tachesLec:0,
   fil:'equipe',voulu:false,msgs:[],msgLec:0,membres:[],meneur:'',ecrit:[],dernier:'',retard:false,envois:[],envoi:0,brouillons:{},
-  liste:{ouverte:false,ctx:null,items:[],actif:0,q:null},inst:null,tFil:0,tListe:0,enVol:'',vueMob:'fil',panneau:false,sig:'',peint:'',veille:false,releve:false,seq:0};
+  liste:{ouverte:false,ctx:null,items:[],actif:0,q:null},inst:null,tFil:0,tListe:0,enVol:'',vueMob:'fil',panneau:false,sig:'',peint:'',veille:false,releve:false,seq:0,
+  reu:{lec:0,d:null,err:'',enVol:false,lance:false,ouvert:{obj:true,lec:false},plie:(typeof matchMedia==='function'?matchMedia('(max-width:899px)').matches:false)}};   /* au téléphone le panneau démarre PLIÉ (sa bande seule) : déplié, il mangerait le fil */
 
 /* Sans accent ni casse : « @Léa », « @lea » et « @LÉA » sont la même personne (la règle du serveur). */
 function msNorm(t){ return String(t==null?'':t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
@@ -10863,6 +10904,7 @@ function messFilCharger(incr){
     else { neufs=msAjouterServeur(fil,d.messages); messPeindreFil(); }
     messPeindreEntete(); messPeindreSaisie();
     if(incr&&neufs.length) messTachesCharger();    /* un agent vient de parler ou d'agir : la file a pu changer */
+    if(fil==='reunions'&&(neufs.length||!incr)) messReunionsCharger();    /* la réunion avance : objectifs, bilans et « en cours » changent avec le fil */
     messLire(neufs);
   },function(){ if(MS.enVol===fil) MS.enVol=''; if(MS.fil!==fil) return; if(!incr||MS.msgLec!==1) MS.msgLec=-1; else MS.retard=true; messPeindreFil(); });
 }
@@ -10876,6 +10918,78 @@ function messLire(neufs){
     messListeCharger(); });
 }
 function messFilTot(){ setTimeout(function(){ if(MS.inst&&TAB==='messagerie') messFilCharger(true); },1200); }
+/* ── LES RÉUNIONS (cahier §7) : au-dessus du fil « Réunions » — la réunion en cours, la prochaine, les objectifs de la semaine, les leçons, et le bouton de Justin ──
+   Trois états comme partout dans cet écran : lu, en cours de lecture, PAS PU LIRE (on ne dit pas « aucun objectif » d'une lecture qui a échoué). Ouvrir n'écrit rien. */
+var MS_REU_LIB={objectifs:'Objectifs du lundi',bilan:'Bilan du vendredi'};
+var MS_BILAN_LIB={atteint:'Atteint',partiel:'Partiel',non:'Non atteint'};
+function msReuNom(id){ var a=msAgentsParId()[id]; return a?a.nom:id; }
+function msReuAgentsHtml(parAgent,vide,fn){
+  var ids=Object.keys(parAgent||{}).filter(function(id){ return (parAgent[id]||[]).length; });
+  if(!ids.length) return '<p class="ms-reu-vide">'+esc(vide)+'</p>';
+  return ids.map(function(id){ var nom=msReuNom(id);
+    return '<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(nom).charAt(0).toUpperCase())+'</span><b>'+esc(nom)+'</b></div><ul>'+parAgent[id].map(function(x){ return fn(id,x); }).join('')+'</ul></div>'; }).join('');
+}
+function msReuHtml(){
+  var R=MS.reu, d=R.d;
+  if(R.lec===0&&!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>Réunions</b><small>Lecture…</small></div></div>';
+  if(!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>Les réunions n’ont pas pu être lues</b><small>'+esc(R.err||'On ne sait pas ce que l’équipe s’est fixé.')+'</small></div>'+
+    '<div class="ms-reu-a"><button type="button" class="ms-reu-btn" data-act="reuRecharger">Réessayer</button></div></div>';
+  var cours=d.enCours, prec=false, obj=d.objectifs||{}, sem=d.semaine;
+  if(!Object.keys(obj).some(function(k){ return (obj[k]||[]).length; })&&d.objectifsPrecedents&&Object.keys(d.objectifsPrecedents).length){ obj=d.objectifsPrecedents; prec=true; sem=d.semainePrecedente; }
+  var nObj=Object.keys(obj).filter(function(k){ return (obj[k]||[]).length; }).length, nLec=0; Object.keys(d.lecons||{}).forEach(function(k){ nLec+=(d.lecons[k]||[]).length; });
+  var der=(d.reunions||[])[0];
+  var etat=cours?'<span class="ms-reu-pt cours" aria-hidden="true"></span><div class="ms-reu-t"><b>'+esc(cours.titre||MS_REU_LIB[cours.type])+' en cours — jusqu’à '+esc(cours.jusqua)+'</b><small>Les agents parlent à tour de rôle ; tu peux intervenir à tout moment.</small></div>'
+    :'<span class="ms-reu-pt" aria-hidden="true"></span><div class="ms-reu-t"><b>Aucune réunion en cours</b><small>'+(d.prochaine?'Prochaine : '+esc(d.prochaine.libelle)+' (heure de Paris)':'')+
+      (der?' · dernière : '+esc(MS_REU_LIB[der.type]||der.type)+', '+esc(fmtDate(der.ts))+(der.statut==='terminee'?'':' ('+esc({annulee:'annulée',interrompue:'interrompue',en_cours:'en cours'}[der.statut]||der.statut)+')'):'')+'</small></div>';
+  var btn=function(t){ return '<button type="button" class="ms-reu-btn" data-act="reuLancer" data-type="'+t+'"'+(cours||R.lance?' disabled':'')+'>Lancer : '+esc(MS_REU_LIB[t].toLowerCase())+'</button>'; };
+  var h='<div class="ms-reu-bd'+(cours?' cours':'')+'">'+etat+'<button type="button" class="ms-reu-plier" data-act="reuPlier" aria-expanded="'+!R.plie+'">'+(R.plie?'Détails':'Réduire')+'</button><div class="ms-reu-a">'+btn('objectifs')+btn('bilan')+'</div></div>';
+  var o=R.ouvert;
+  h+='<section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="reuSection" data-s="obj" aria-expanded="'+!!o.obj+'">Objectifs de la semaine <small>'+esc(sem||'')+(prec?' (semaine précédente)':'')+' · '+nObj+' agent'+(nObj>1?'s':'')+'</small></button>';
+  if(o.obj) h+='<div class="ms-reu-c">'+msReuAgentsHtml(obj,'Aucun objectif pour l’instant. Le lundi à 9 h, chaque agent allumé en fixe pour la semaine.',function(id,x){
+    return '<li><span>'+esc(x.texte)+'</span><small>Mesure : '+esc(x.mesure)+'</small>'+(x.bilan?'<span class="ms-reu-b '+esc(x.bilan.statut)+'" title="'+esc(x.bilan.pourquoi||'')+'">'+esc(MS_BILAN_LIB[x.bilan.statut]||x.bilan.statut)+'</span><small>'+esc(x.bilan.pourquoi||'')+'</small>':'')+'</li>'; })+'</div>';
+  h+='</section><section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="reuSection" data-s="lec" aria-expanded="'+!!o.lec+'">Leçons retenues <small>'+nLec+' au total · elles entrent dans les consignes de l’agent</small></button>';
+  if(o.lec) h+='<div class="ms-reu-c">'+msReuAgentsHtml(d.lecons,'Aucune leçon pour l’instant. Le vendredi, chaque agent peut en retenir une ou deux ; tu pourras les retirer ici.',function(id,x){
+    return '<li><span>'+esc(x.texte)+'</span><button type="button" class="ms-lien" data-act="reuRetirer" data-agent="'+esc(id)+'" data-id="'+esc(x.id)+'" aria-label="Retirer cette leçon de '+esc(msReuNom(id))+'">Retirer</button></li>'; })+'</div>';
+  return h+'</section>';
+}
+function messPeindreReunions(){
+  var c=$('ms-reu'); if(!c||!MS.inst) return;
+  if(MS.fil!=='reunions'){ if(!c.hidden){ c.hidden=true; c.innerHTML=''; c.removeAttribute('data-h'); } return; }
+  var h=msReuHtml();
+  c.hidden=false; c.setAttribute('data-plie',MS.reu.plie?'1':'0');
+  if(c.getAttribute('data-h')===h) return;
+  var act=document.activeElement, garde=act&&c.contains(act)&&act.getAttribute?(act.getAttribute('data-act')+'|'+(act.getAttribute('data-s')||act.getAttribute('data-type')||act.getAttribute('data-id')||'')):'';
+  c.setAttribute('data-h',h); c.innerHTML=h;
+  if(garde){ var p=garde.split('|'), n=c.querySelector('[data-act="'+p[0]+'"]'+(p[1]?'[data-s="'+p[1]+'"],[data-act="'+p[0]+'"][data-type="'+p[1]+'"],[data-act="'+p[0]+'"][data-id="'+p[1]+'"]':'')); if(n) n.focus({preventScroll:true}); }
+}
+function messReunionsCharger(){
+  var R=MS.reu; if(R.enVol) return Promise.resolve(); R.enVol=true;
+  return apiGet('/api/monitor/agents/reunions').then(function(d){
+    R.enVol=false; if(!d) return;
+    if(Array.isArray(d.reunions)){ R.d=d; R.lec=1; R.err=''; } else if(!R.d){ R.lec=-1; R.err=''; }
+    messPeindreReunions();
+  },function(e){ R.enVol=false; if(!R.d){ R.lec=-1; R.err=msgErreur(e); } messPeindreReunions(); });
+}
+function messReunionLancer(type){
+  var R=MS.reu; if(R.lance||!MS_REU_LIB[type]) return Promise.resolve(null);
+  if(!confirm('Lancer « '+MS_REU_LIB[type]+' » maintenant ?\n\nChaque agent allumé parle à son tour, l’un après l’autre (une vingtaine d’appels à Claude, sur le budget des agents). Une seule réunion à la fois, et le résultat reste dans « Réunions ».')) return Promise.resolve(null);
+  R.lance=true; messPeindreReunions();
+  return apiPost('/api/monitor/agents/reunions/lancer',{type:type}).then(function(x){
+    R.lance=false;
+    if(x.ok){ toast(x.d&&x.d.annulee?'Réunion annulée : aucun agent n’est allumé.':'Réunion lancée.'); messReunionsCharger(); messFilTot(); }
+    else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    messPeindreReunions(); return x;
+  },function(){ R.lance=false; toast(INJOIGNABLE); messPeindreReunions(); return null; });
+}
+function messLeconRetirer(agent,id){
+  var d=MS.reu.d, l=d&&d.lecons&&d.lecons[agent]?d.lecons[agent].filter(function(x){ return x.id===id; })[0]:null;
+  if(!l||!confirm('Retirer cette leçon de '+msReuNom(agent)+' ?\n\n« '+l.texte+' »\n\nL’agent ne la lira plus dans ses consignes.')) return Promise.resolve(null);
+  return apiPost('/api/monitor/agents/lecons/retirer',{agent:agent,id:id}).then(function(x){
+    if(x.ok){ toast('Leçon retirée.'); if(d.lecons[agent]){ d.lecons[agent]=d.lecons[agent].filter(function(y){ return y.id!==id; }); if(!d.lecons[agent].length) delete d.lecons[agent]; } messPeindreReunions(); messReunionsCharger(); }
+    else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    return x;
+  },function(){ toast(INJOIGNABLE); return null; });
+}
 /* ── la page ── */
 function vueMessagerie(){ return '<div id="mess-zone" class="mess-zone"></div>'; }
 function messGarde(v){ var z=v.querySelector('#mess-zone'); if(z&&MS.inst&&MS.inst.zone===z&&z.isConnected){ messAjuster(); return true; } return false; }
@@ -10910,7 +11024,7 @@ function messDemonter(){
 function messOuvrir(){
   if(MYROLE!=='patron') return;
   MS.msgLec=0; MS.msgs=[]; MS.dernier=''; MS.enVol=''; MS.peint='';
-  messToutCharger(); messFilCharger(false);
+  messToutCharger(); if(MS.fil==='reunions') messReunionsCharger(); messFilCharger(false);
 }
 /* « Parler à X » (page Agents), ou un lien vers un fil : on ouvre la messagerie sur ce fil. */
 function messOuvrirFil(fil){
@@ -10923,7 +11037,8 @@ function messChoisir(fil){
   MS.liste.ouverte=false;
   var t2=$('ms-ta'); if(t2){ t2.value=MS.brouillons[fil]||''; messMiroir(); }   /* chaque fil garde son brouillon */
   messMentionPeindre();
-  messPeindreListe(); messPeindreEntete(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau();
+  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau();
+  if(fil==='reunions') messReunionsCharger();
   messFilCharger(false);
 }
 function messDossier(n){ AG.sec='dossiers'; setTab('agents'); agDosOuvrir(n); }
@@ -10934,6 +11049,7 @@ function messMonter(){
   zone.innerHTML='<div class="ms" data-mob="'+MS.vueMob+'" data-tq="0">'+
     '<aside class="ms-gauche" aria-label="Conversations"><div class="ms-gt"><h1>Messagerie</h1><p>Les agents et toi</p></div><div class="ms-fils" id="ms-fils"></div></aside>'+
     '<section class="ms-centre" aria-label="Conversation"><header class="ms-hd" id="ms-hd"></header>'+
+      '<div class="ms-reu" id="ms-reu" aria-label="Les réunions de l’équipe" hidden></div>'+
       '<div class="ms-zone-flux"><div class="ms-flux" id="ms-flux" role="log" aria-live="polite" aria-label="Messages" tabindex="0"></div><button type="button" class="ms-nouv" id="ms-nouv" data-act="nouv" hidden>↓ Nouveaux messages</button></div>'+
       '<p class="ms-regle">Règle de sécurité : entre eux, les agents ne se passent que des tâches d’une liste fermée. Un texte venu d’un client ne devient jamais un ordre, et seules tes consignes vont, telles quelles, à Hugo et Margaux (argent et comptes).</p>'+
       '<div class="ms-comp" id="ms-comp"></div></section>'+
@@ -10945,7 +11061,7 @@ function messMonter(){
   zone.removeEventListener('click',messClic); zone.addEventListener('click',messClic);
   zone.addEventListener('mousedown',function(e){ if(e.target.closest&&e.target.closest('.ms-mi')) e.preventDefault(); });   /* choisir dans la liste ne retire pas le focus à la saisie */
   var fl=$('ms-flux'); fl.addEventListener('scroll',function(){ if(messColle()) messNouvCacher(); });
-  messPeindreListe(); messPeindreEntete(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau(); messPeindreTaches();
+  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau(); messPeindreTaches();
   messAjuster(); messTimers(true);
   if(MS.msgLec===1) messLire(MS.msgs);   /* la lecture a pu finir AVANT que l'écran existe : « lu » se pose une fois le fil affiché */
 }
@@ -10965,6 +11081,11 @@ function messClic(ev){
   else if(a==='rechargerListe'){ MS.lec=0; messPeindreListe(); messToutCharger(); }
   else if(a==='rechargerFil'){ MS.msgLec=0; messPeindreFil(true); messFilCharger(false); }
   else if(a==='rechargerTaches'){ MS.tachesLec=0; messPeindreTaches(); messTachesCharger(); }
+  else if(a==='reuRecharger'){ MS.reu.lec=0; messPeindreReunions(); messReunionsCharger(); }
+  else if(a==='reuPlier'){ MS.reu.plie=!MS.reu.plie; messPeindreReunions(); }
+  else if(a==='reuSection'){ var k=el.getAttribute('data-s'); MS.reu.ouvert[k]=!MS.reu.ouvert[k]; messPeindreReunions(); }
+  else if(a==='reuLancer') messReunionLancer(el.getAttribute('data-type'));
+  else if(a==='reuRetirer') messLeconRetirer(el.getAttribute('data-agent'),el.getAttribute('data-id'));
 }
 function messPeindreListe(){
   var c=$('ms-fils'); if(!c||!MS.inst) return;
