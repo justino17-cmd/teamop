@@ -8593,7 +8593,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '771-beta';
+const APP_VERSION = '772-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -9502,6 +9502,70 @@ function metierServeurAppliquer(j){
   try{ if(currentUser&&current&&views[current]) views[current](); }catch(e){}
   if(av!==m&&currentUser) try{ toast(METIERS[m].ic+' Application réglée pour : '+METIERS[m].nom); }catch(e){}
   return true;
+}
+/* ⛔ v772 — LES CATÉGORIES RETENUES PAR TEAM OP POUR UNE ENTREPRISE (chantier « catégories par client »). La Tour
+   coche, pour chaque client, les rubriques qu'il a prises ; `/api/espaces/etat` rend le champ `cats` à chaque ouverture
+   (`forfaitServeurSync`, par le même chemin que le métier). Trois états, et il faut les garder distincts :
+   · la clé `cats` ABSENTE de la réponse = un serveur d'avant : on ne touche à RIEN (ce qui était retenu reste) ;
+   · `null` = rien de réglé : tout est ouvert, le réglage éventuel de l'appareil est retiré ;
+   · un tableau = les clés de `NAV` retenues ; toute autre rubrique est fermée à TOUTE l'entreprise, administrateur compris
+     (`userSeesModule`, avant le test du rôle — comme le forfait et le métier).
+   ⛔ LE RÉGLAGE VIT SUR L'APPAREIL, PAS DANS `db`. `db` part à la synchro, chez toute l'équipe, et « rien ne s'écrit dans
+   les données d'une entreprise au seul chargement » ; chaque appareil relit l'état au lancement, ce qui suffit. La clé se
+   construit sur le préfixe de `STORE_KEY` (« elan_ » en production, « elanB_ » en bêta), comme `espaceQuitter` qui l'emporte
+   avec le reste. La page fonctionne sans rangement (navigation privée) : la mémoire de la séance sert alors de repli.
+   ⛔ UNE VALEUR ILLISIBLE N'EFFACE JAMAIS CE QUE L'APPAREIL SAIT : une réponse qui n'est ni `null` ni un tableau, ou un
+   tableau non vide dont AUCUNE clé n'est connue (un serveur plus récent que l'application), ne décide rien — fermer toute
+   une entreprise sur une réponse qu'on ne sait pas lire serait couper quelqu'un qui travaille. */
+const CATS_TOUJOURS=['dashboard','utilisateurs','modulesElan','parametres','suspendu'];   // jamais fermées : l'accueil, l'équipe, les réglages
+let _cats;          // undefined = pas encore lu sur l'appareil · null = rien de réglé (tout ouvert) · tableau = rubriques retenues
+let _catsConnues;   // les clés de NAV qu'un réglage peut fermer (paresseux : NAV est déclarée plus bas dans le fichier)
+function catsCle(){ return STORE_KEY.split('_')[0]+'_cats'; }
+function catsConnues(){
+  if(!_catsConnues) _catsConnues=NAV.flatMap(s=>s.items).map(it=>it.k).filter(k=>CATS_TOUJOURS.indexOf(k)<0);
+  return _catsConnues;
+}
+function catsListe(){
+  if(_cats!==undefined) return _cats;
+  let v=null;
+  try{ const raw=localStorage.getItem(catsCle()); const a=raw?JSON.parse(raw):null; if(Array.isArray(a)) v=a.filter(x=>typeof x==='string'); }catch(e){}
+  _cats=v; return v;
+}
+function catsServeurAppliquer(j){
+  if(!j||typeof j!=='object'||!Object.prototype.hasOwnProperty.call(j,'cats')) return false;   // un serveur d'avant : rien ne bouge
+  const c=j.cats; let nv;
+  if(c===null) nv=null;
+  else if(Array.isArray(c)){
+    const connues=catsConnues();
+    nv=[]; c.forEach(x=>{ if(typeof x==='string'&&connues.indexOf(x)>=0&&nv.indexOf(x)<0) nv.push(x); });
+    nv.sort();
+    if(c.length&&!nv.length&&!c.some(x=>typeof x==='string'&&CATS_TOUJOURS.indexOf(x)>=0)) return false;   // illisible : l'appareil garde ce qu'il sait
+  } else return false;
+  const av=catsListe();
+  if(JSON.stringify(av?av.slice().sort():null)===JSON.stringify(nv)) return false;   // déjà le bon : rien à ranger, rien à redessiner
+  _cats=nv;
+  try{ if(nv===null) localStorage.removeItem(catsCle()); else localStorage.setItem(catsCle(),JSON.stringify(nv)); }catch(e){}
+  if(currentUser){
+    try{ renderNav(); }catch(e){}
+    try{
+      if(current&&current!=='dashboard'&&current!=='suspendu'&&catBloque(current)){ try{ toast('🔒 Cette rubrique n\'est plus ouverte à ton entreprise'); }catch(e){} go('dashboard'); }
+      else if(current&&views[current]) views[current]();
+    }catch(e){}
+  }
+  return true;
+}
+/* La bêta voit tout (même raison que `planBloque` et `metierBloque`) ; une sous-catégorie suit son parent (`VUE_PARENT`) ;
+   une vue qui n'est pas une rubrique de `NAV` (`techniciens`, `histoDemandes`, `parametres`) n'est jamais fermée ici :
+   `histoDemandes` redirige vers « Mes demandes », que la garde de `go()` ferme déjà. Sans réglage : ouvert. */
+function catBloque(k){
+  if(BETA_ESSAI) return false;
+  try{
+    const l=catsListe(); if(!l) return false;
+    const p=(VUE_PARENT&&VUE_PARENT[k])||k;
+    if(CATS_TOUJOURS.indexOf(p)>=0||CATS_TOUJOURS.indexOf(k)>=0) return false;
+    if(catsConnues().indexOf(p)<0) return false;
+    return l.indexOf(p)<0;
+  }catch(e){ return false; }
 }
 /* ── prestations realisees + releves : la fiche metier qui remplace le diagnostic 3D ── */
 function metPrestaToggle(id,lbl){
@@ -13732,6 +13796,10 @@ function espaceQuitter(){
     localStorage.setItem(P+'frais','1');
     ['anthropic_key','devis_code','sync_cfg','annuaire_cache','mail_lus','mail_supp','usage','espace_admin','courrier']
       .forEach(k=>{ try{ localStorage.removeItem(P+k); }catch(_){} });
+    /* v772 : les catégories retenues sont celles de l'entreprise quittée — la suivante ne les hérite pas (la clé se lit par
+       `catsCle()`, même préfixe) ; et la mémoire de la séance part aussi, sinon elle les servirait jusqu'au rechargement */
+    try{ localStorage.removeItem(P+'cats'); }catch(_){}
+    try{ _cats=undefined; }catch(_){}
     localStorage.removeItem('opB_devis_code');   // même code d'équipe, sous son autre nom
     /* ⛔ LES CLÉS DU SOCLE SE BALAIENT PAR PRÉFIXE, PAS PAR LISTE. `elan_op_haut_<espace>` et
        `elan_op_non_<espace>` portent l'espace dans leur NOM : une liste fixe, comme celle du
@@ -14982,6 +15050,9 @@ async function forfaitServeurSync(silencieux){
     /* le métier réglé par TEAM OP : lu AVANT le test sur la formule, comme `opMessages` — une entreprise sans formule
        attribuée a déjà son métier (`metierServeurAppliquer`) */
     try{ metierServeurAppliquer(j); }catch(e){}
+    /* les catégories retenues pour l'entreprise : même ordre, AVANT le test de formule (une entreprise suspendue garde son
+       menu retenu — le menu grisé ne change pas de contenu au règlement) ; rangées sur l'appareil, jamais dans `db` */
+    try{ catsServeurAppliquer(j); }catch(e){}
     /* ⛔ L'ÉTAT DE FACTURATION SE LIT AVANT LE TEST SUR LA FORMULE, pour la même raison
        qu'`opMessages` juste au-dessus : un espace sans formule attribuée sortait par le
        `return` ci-dessous, et serait resté suspendu sans que rien ne grise jamais.
@@ -15052,7 +15123,9 @@ function moduleReglage(u,k){ if(!u) return null;
   const pr=tableDuRole(u.role);
   if(pr && Object.prototype.hasOwnProperty.call(pr,k)) return {src:'role',v:pr[k]!==false};
   return null; }
-function userSeesModule(u,k,horsSusp){ if(!u) return false; if(planBloque(k,horsSusp)) return false; if(metierBloque(k)) return false; if(u.role==='admin') return true;
+/* `horsCats` : ce que la personne verrait sans le réglage par catégories — l'écran des droits le lit pour garder, sur une
+   rubrique retirée, la valeur PROPRE de la personne (sinon « Valider » la réécrirait fermée). */
+function userSeesModule(u,k,horsSusp,horsCats){ if(!u) return false; if(planBloque(k,horsSusp)) return false; if(metierBloque(k)) return false; if(!horsCats&&catBloque(k)) return false; if(u.role==='admin') return true;
   /* ⛔ v753 — « Validations DR » S'OUVRE D'OFFICE DES DEUX CÔTÉS, AVANT tout réglage. Celui qui valide
      (la case « Valider les mouvements… ») y valide ; celui qui attend (soumis à la validation) y suit ses
      mouvements et la décision du DR — le contenu reste filtré : chacun n'y voit que ce qui le concerne
@@ -17223,7 +17296,9 @@ function go(view){
     let item=null; NAV.forEach(s=>s.items.forEach(it=>{ if(it.k===cible) item=it; }));
     /* … et une sous-catégorie a AUSSI ses propres droits : « Produits donnés » est fermé au
        commercial et à la comptable par défaut (`defaultPerms`), même quand ils voient les Box. */
-    if((item && !canSee(item)) || (VUE_PARENT[view] && !userSeesModule(currentUser,view))){ view='dashboard'; try{ toast('🔒 Cette rubrique n\'est pas ouverte à ton compte (réglable dans Permissions)'); }catch(e){} }
+    /* v772 : une rubrique retirée par catégories se refuse sous SA clé aussi — `carteBox` est ramenée à `boxes` plus haut, et
+       les Box peuvent être retenues sans leur carte */
+    if((item && !canSee(item)) || (VUE_PARENT[view] && !userSeesModule(currentUser,view)) || catBloque(view)){ const parCat=catBloque(view)||catBloque(cible); view='dashboard'; try{ toast(parCat?'🔒 Cette rubrique n\'est pas ouverte à ton entreprise':'🔒 Cette rubrique n\'est pas ouverte à ton compte (réglable dans Permissions)'); }catch(e){} }
   }catch(e){} }
   closeModal();
   planPleinQuitteSiBesoin(view);
@@ -29111,7 +29186,7 @@ function boxTotalStock(b){ let u=0,c=0;
 function boxSousCats(actif){
   let dons=false; try{ dons=userSeesModule(currentUser,'produitsDonnes'); }catch(e){}
   const c=(k,lib)=>`<div class="chip${actif===k?' active':''}"${actif===k?' aria-current="page"':` onclick="go('${k}')"`}>${lib}</div>`;
-  return `<nav class="filters" aria-label="Boxes" style="margin:0 0 10px">${c('boxes','Liste')}${c('carteBox','Carte')}${dons?c('produitsDonnes','Produits donnés'):''}</nav>`;
+  return `<nav class="filters" aria-label="Boxes" style="margin:0 0 10px">${c('boxes','Liste')}${catBloque('carteBox')?'':c('carteBox','Carte')}${dons?c('produitsDonnes','Produits donnés'):''}</nav>`;
 }
 views.boxes=function(){
   /* v741 : le stockage a sa ligne en tête de liste ; il ne compte pas pour « une box ». */
@@ -35322,7 +35397,10 @@ function usrDroitsHtml(u,admin){
     return !!((ov&&Object.prototype.hasOwnProperty.call(ov,k))||(rp&&Object.prototype.hasOwnProperty.call(rp,k))); };
   const capSw=k=>(capDeduitRegle(k)&&!capExpl(k)?' data-deduit="1"':'')+' onchange="'+(k==='voirTout'?'usrVoirTout(this);':'')+'usrDeduire(this)"';
   const tousMods=avecSousCats(NAV.filter(x=>PERM_GRP_OF[x.g]).flatMap(x=>x.items)).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
-  const vus=tousMods.filter(m=>userSeesModule(u,m.k)).length;
+  /* v772 : une rubrique que TEAM OP n'a pas retenue pour l'entreprise n'est pas à régler ici — elle reste affichée (désactivée,
+     à la valeur PROPRE de la personne : « Valider » ne doit pas la réécrire fermée) et ne compte pas dans « Voit N menus sur M » */
+  const ouverts=tousMods.filter(m=>!catBloque(m.k));
+  const vus=ouverts.filter(m=>userSeesModule(u,m.k)).length;
   const toutVoir=userCap(u,'voirTout');
   const boxes=(db.boxes||[]).filter(b=>b.actif!==false&&!estStockage(b));   // v742 : le stockage est une case (catégorie Stock), pas une box qu'on ouvre
   const boxFixe=b=>!!(b.visibleTous||(u.techId&&(b.techIds||[]).includes(u.techId))||b.respUserId===u.id);
@@ -35337,6 +35415,7 @@ function usrDroitsHtml(u,admin){
      elle part avec la case qui la donne. */
   const menuLigne=m=>{
     const nom=(m.parent?'↳ ':'')+m.ic+' '+esc(t(m.l)), sous=m.parent?'dans '+esc(navLabel(m.parent)):'';
+    if(catBloque(m.k)) return ligne(nom,(sous?sous+' · ':'')+'non retenue pour l\'entreprise',swH('mod_'+m.k,userSeesModule(u,m.k,false,true),dis?'':' disabled'));
     if(m.k!=='validations'||planBloque(m.k)||metierBloque(m.k)) return ligne(nom,sous,swH('mod_'+m.k,userSeesModule(u,m.k)));
     const force=validationsOuvertes(u), r=moduleReglage(u,'validations'), propre=r?r.v:false;
     const extra=' data-val="1" data-val-soumis="'+(u.role!=='__profil__'&&(db.validDRTous||u.boxValidDR)?1:0)+'" data-val-av="'+(propre?1:0)+'"'+(force?' data-val-force="1"'+(admin?' disabled':''):'');
@@ -35384,7 +35463,7 @@ function usrDroitsHtml(u,admin){
     </div></details></div>`:'';
   const perso=!!(u.acces&&(Object.keys(u.acces.caps||{}).length||Object.keys(u.acces.modules||{}).length));
   return `<div class="usr-d" id="usr-d-${u.id}">
-    <div class="usr-res">Voit <b>${vus}</b> menus sur ${tousMods.length} · ${toutVoir?'<b>toutes</b> les box':'<b>'+nBox+'</b> box'}${userCap(u,'validerDR')?' · <b>valide</b> les mouvements et demandes':''}${perso?'':' · <span class="usr-x">suit son rôle, rien de réglé à part</span>'}</div>
+    <div class="usr-res">Voit <b>${vus}</b> menus sur ${ouverts.length} · ${toutVoir?'<b>toutes</b> les box':'<b>'+nBox+'</b> box'}${userCap(u,'validerDR')?' · <b>valide</b> les mouvements et demandes':''}${perso?'':' · <span class="usr-x">suit son rôle, rien de réglé à part</span>'}</div>
     ${cats}${autresHtml}${boxHtml}${vehHtml}
     ${admin?`<div class="usr-pf">
       ${profilsDroits().length?`<select class="usr-pf-s" onchange="profilAppliquer('${u.id}',this.value);this.value=''">
@@ -41493,7 +41572,7 @@ function saveNotifSeen(){ localStorage.setItem(notifSeenCle(), JSON.stringify(Ob
 /* Chacun ne voit QUE les notifications qui le concernent : ses box (assignées, dont il est responsable,
    ou visibles par tous) et les modules auxquels il a accès — jamais celles des autres services ni des
    autres box. En cas de doute (erreur), on ne montre PAS. */
-function notifVoitModule(k){ try{ if(!currentUser) return false; if(currentUser.role==='admin') return true; return !!userSeesModule(currentUser,k); }catch(e){ return false; } }
+function notifVoitModule(k){ try{ if(!currentUser) return false; if(currentUser.role==='admin') return !catBloque(k); return !!userSeesModule(currentUser,k); }catch(e){ return false; } }
 function notifBoxOk(b){ if(!b||!currentUser) return false; if(b.respUserId&&b.respUserId===currentUser.id&&stkLienOk(b,currentUser)) return true; try{ return visibleBoxes([b]).length>0; }catch(e){ return false; } }
 /* box « qui me concerne » pour les alertes opérationnelles : admin / DR → toutes celles qu'ils voient ;
    les autres (chef d'équipe, technicien…) → uniquement celles qui leur sont assignées ou dont ils sont responsables */

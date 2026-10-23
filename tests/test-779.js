@@ -125,12 +125,14 @@ if (fTot) {
 
 console.log('\n── 779 · 3. la rangée des sous-catégories, JOUÉE ──');
 if (fCats) {
-  const rangee = (actif, voit) => {
-    const bac = { currentUser: MOI, userSeesModule: (u, k) => { if (voit === 'jette') throw new Error('x'); return k === 'produitsDonnes' ? voit : true; } };
+  const rangee = (actif, voit, sansCarte) => {
+    const bac = { currentUser: MOI, catBloque: k => !!sansCarte && k === 'carteBox', userSeesModule: (u, k) => { if (voit === 'jette') throw new Error('x'); return k === 'produitsDonnes' ? voit : true; } };
     vm.createContext(bac); vm.runInContext(fCats + '\nthis.r = boxSousCats(' + JSON.stringify(actif) + ');', bac);
     return bac.r;
   };
   const R = rangee('boxes', true);
+  /* v772 : quand TEAM OP n'a pas retenu « Carte des box » pour l'entreprise, la rangée ne la propose pas (le clic serait refusé par go()) */
+  v('Carte des box non retenue pour l\'entreprise → Liste · Produits donnés', (rangee('boxes', true, true).match(/<div class="chip[^"]*"[^>]*>([^<]*)<\/div>/g) || []).map(x => x.replace(/<[^>]+>/g, '')), ['Liste', 'Produits donnés']);
   const libs = (R.match(/<div class="chip[^"]*"[^>]*>([^<]*)<\/div>/g) || []).map(x => x.replace(/<[^>]+>/g, ''));
   v('trois destinations : Liste · Carte · Produits donnés', libs, ['Liste', 'Carte', 'Produits donnés']);
   vrai('⛔⛔ libellés COURTS et sans émoji : la rangée doit tenir sur un téléphone (440 px mesurés avant, coupés à 360, 390 ET 430 ; 316 px après)',

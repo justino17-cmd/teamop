@@ -49,7 +49,7 @@ const P = {
   reprise: bloc('function reprendreDroitsImplicites(){'), moduleReglage: bloc('function moduleReglage(u,k){'),
   /* v753 : moduleReglage lit la liste du rôle par tableDuRole ; « Validations DR » s'ouvre d'office (validationsOuvertes) */
   tableDuRole: bloc('function tableDuRole(role){'), valideSoumis: bloc('function valideSoumis(u){'), validationsOuvertes: bloc('function validationsOuvertes(u){'),
-  userSeesModule: bloc('function userSeesModule(u,k,horsSusp){'), seed: bloc('function seed(){'), migrate: bloc('function migrate('),
+  userSeesModule: bloc('function userSeesModule(u,k,horsSusp'), seed: bloc('function seed(){'), migrate: bloc('function migrate('),
   slugNom: bloc('function slugNom('), idCatalogue: bloc('function idCatalogue('), vueAssistant: bloc('views.assistantDevis=function(){'),
 };
 v('toutes les pièces sont trouvées dans le fichier réel', Object.keys(P).filter(k => !P[k]), []);
@@ -64,7 +64,7 @@ function monde(opts) {
   let n = 0;
   return new Function('uid', 'BETA_ESSAI', 'ID_ADMIN_DEPART', 'CAT_LIST', 'DASH_DEFAULT', 'FOURS_VER', 'PRIX_VER', 'console', `
     let db = {}; const ASIDE = { v: false }; function showAside(){ return ASIDE.v; }
-    function planBloque(){ return false; } function metierBloque(){ return false; }
+    function planBloque(){ return false; } function metierBloque(){ return false; } function catBloque(){ return false; }
     function logEvent(){} function userCap(){ return false; }
     ${cat}
     ${ligne('const isoDe = d =>')}

@@ -300,15 +300,21 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
        APPELLE — lu dans son code, jamais déduit d'un numéro de version — et une page qui les appelle sans les définir fait tomber
        la population (2 octobre 2026 : « Vérification des pages » rouge sur main, le banc y exigeait des fonctions de la v768). */
     const SYNC5 = fonction(APPN, 'forfaitServeurSync'), AVEC_OPTIONS = /\boptionsPoser\(/.test(SYNC5);
+    /* v772 : elle lit aussi les catégories retenues (`catsServeurAppliquer`, rangées sur l'appareil) — même règle que les options :
+       prises quand la VRAIE `forfaitServeurSync` les appelle (ce banc tourne aussi sur `main`, qui n'en sert pas encore). Une
+       fonction appelée sous un `try` mais absente du bac à sable lève une ReferenceError avalée : la lecture ne se ferait jamais. */
+    const AVEC_CATS = /\bcatsServeurAppliquer\(/.test(SYNC5);
     const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
-      .concat(AVEC_OPTIONS ? ['optionsCle', 'optionsLire', 'optionsPoser'] : []);
+      .concat(AVEC_OPTIONS ? ['optionsCle', 'optionsLire', 'optionsPoser'] : [])
+      .concat(AVEC_CATS ? ['catsServeurAppliquer', 'catsCle', 'catsConnues', 'catsListe', 'catBloque'] : []);
+    const CATS_SRC = AVEC_CATS ? [(/^const CATS_TOUJOURS=[^\n]*;/m.exec(APPN) || [''])[0], 'let _cats; let _catsConnues;', 'const NAV=' + litteral(APPN, 'const NAV = [') + ';', 'const VUE_PARENT={};'].join('\n') : '';
     const FN5 = NOMS5.map(n => fonction(APPN, n));
     const PLANS_SRC = litteral(APPN, 'const PLANS={'), SUSP = (/^let _susp = \{[^\n]*\};$/m.exec(APPN) || [''])[0];
     const INT_TYPES_SRC = (/^const INT_TYPES = \[[^\n]*\];$/m.exec(APPN) || [''])[0];
     const OPTIONS_SRC = AVEC_OPTIONS ? litteral(APPN, 'const OPTIONS_GESTION={') : '';
     vrai('(population) les fonctions, PLANS, METIERS, INT_TYPES et l\'état de suspension sont trouvés dans le fichier réel'
       + (AVEC_OPTIONS ? ' — et les options du Pro, que `forfaitServeurSync` range' : ' (cette page ne range pas d\'options : v767 et avant)'),
-      FN5.every(Boolean) && !!PLANS_SRC && !!SUSP && !!INT_TYPES_SRC && /metierServeurAppliquer\(j\)/.test(FN5[0]) && (!AVEC_OPTIONS || !!OPTIONS_SRC),
+      FN5.every(Boolean) && !!PLANS_SRC && !!SUSP && !!INT_TYPES_SRC && /metierServeurAppliquer\(j\)/.test(FN5[0]) && (!AVEC_OPTIONS || !!OPTIONS_SRC) && (!AVEC_CATS || (/^const CATS_TOUJOURS=/.test(CATS_SRC) && /const NAV=\[/.test(CATS_SRC))),
       NOMS5.filter((n, i) => !FN5[i]).concat(AVEC_OPTIONS && !OPTIONS_SRC ? ['OPTIONS_GESTION'] : []).join(', '));
     const appareil = (nom, base) => {
       const E = espaces[cle(nom)];
@@ -318,7 +324,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
       const code = 'let STORE_KEY="elanB_banc848"; let currentUser={id:"u-admin",role:"admin"}; let current="interventions";\n'
         + 'let db=' + JSON.stringify(Object.assign({ forfait: E.formule || 'gratuit', forfaitQty: 1, forfaitSrv: 'teamop' }, base || {})) + '; let _opMsgOuvert=false;\n'
         + 'const METIERS=' + litteral(APPN, 'const METIERS={') + ';\n' + INT_TYPES_SRC + '\nconst BETA_ESSAI=false;\n'
-        + PLANS_SRC.replace(/^/, 'const PLANS=') + ';\nvar _placesSrv=null,_placesSrvF="";\n' + (AVEC_OPTIONS ? 'const OPTIONS_GESTION=' + OPTIONS_SRC + ';\n' : '') + 'var _optsSrv;var _etatLuLe=0;\n' + SUSP + '\n' + FN5.join('\n')
+        + PLANS_SRC.replace(/^/, 'const PLANS=') + ';\nvar _placesSrv=null,_placesSrvF="";\n' + (AVEC_OPTIONS ? 'const OPTIONS_GESTION=' + OPTIONS_SRC + ';\n' : '') + 'var _optsSrv;var _etatLuLe=0;\n' + CATS_SRC + '\n' + SUSP + '\n' + FN5.join('\n')
         + '\nreturn { sync: forfaitServeurSync, appliquer: metierServeurAppliquer, metierId, intTypes, db: () => db, suspendu: accesSuspendu };';
       const f = new Function('fetch', 'localStorage', 'PUSH_API', 'toast', 'renderNav', 'go', 'save', 'logEvent', 'todayISO', 'espaceQuitter', 'suiteRefresh', 'views', 'document', 'esc', code);
       const a = f((u, o) => fetch(u, o), { getItem: k => (LS.has(k) ? LS.get(k) : null), setItem: (k, x) => LS.set(k, String(x)), removeItem: k => LS.delete(k) },
