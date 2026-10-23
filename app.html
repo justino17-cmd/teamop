@@ -40734,7 +40734,8 @@ function cvcFicheForm(iid,aid,fid){ if(!permGarde('int','modifier','une interven
   const x=cvcFicheCtx(iid,aid); if(!x) return; const {i,a}=x;
   const f=fid?cvcFichesDe(i,aid).find(k=>k.id===fid):{ date:cvcIsoOk(i.date)?i.date:todayISO(), fluide:a.fluide||'', prp:a.prp>0?a.prp:'', nature:'Maintenance / entretien', operateur:(currentUser&&fullName(currentUser))||'' };
   if(!f){ toast('Cette fiche n’existe plus'); return; }
-  const sel=(n,L,v)=>`<select name="${n}">${L.map(o=>{ const k=Array.isArray(o)?o[0]:o, l=Array.isArray(o)?o[1]:o; return `<option value="${esc(k)}" ${k===v?'selected':''}>${esc(l)}</option>`; }).join('')}</select>`;
+  const opts=(L,v)=>L.map(o=>{ const k=Array.isArray(o)?o[0]:o, l=Array.isArray(o)?o[1]:o; return `<option value="${esc(k)}" ${k===v?'selected':''}>${esc(l)}</option>`; }).join('');
+  const sel=(n,L,v)=>`<select name="${n}">${opts(L,v)}</select>`;
   const inp=(n,l,v,ex)=>`<div class="field"><label>${l}</label><input name="${n}" ${ex||''} value="${esc(v==null?'':v)}"></div>`;
   openModal(`<div class="modal-head"><h3>💧 Fiche fluides frigorigènes</h3><button class="modal-close" onclick="closeModal();renderIntDetail('${esc(iid)}')">✕</button></div>
     <div style="font-size:13px;color:var(--t2);overflow-wrap:anywhere;margin:-4px 0 8px"><b>${esc(cvcLibelle(a))}</b>${a.serie?' · n° '+esc(a.serie):''}<br>${esc(clientName(i.clientId))}</div>
@@ -40750,7 +40751,7 @@ function cvcFicheForm(iid,aid,fid){ if(!permGarde('int','modifier','une interven
       ${inp('bordereau','N° de bordereau de suivi des déchets (Trackdéchets)',f.bordereau,'maxlength="80"')}
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0;cursor:pointer"><input type="checkbox" name="controle" ${f.controle?'checked':''} style="width:19px;height:19px;accent-color:var(--acc)">Contrôle d’étanchéité effectué pendant cette opération</label>
       <div id="cvc-fiche-ctl" style="display:${f.controle?'':'none'}">
-        <div class="field-row"><div class="field"><label>Résultat</label>${sel('resultat',CVC_RESULTATS,f.resultat||'conforme')}</div>
+        <div class="field-row"><div class="field"><label>Résultat</label><select name="resultat">${opts(CVC_RESULTATS,f.resultat||'conforme')}</select></div>
           <div class="field"><label>Vignette posée</label>${sel('vignette',[['','Aucune'],['bleue','Bleue (prochain contrôle)'],['rouge','Rouge (réparation différée)']],f.vignette||'')}</div></div>
         ${inp('fuiteLieu','Localisation de la fuite',f.fuiteLieu,'maxlength="160"')}
       </div>
