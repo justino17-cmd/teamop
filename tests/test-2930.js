@@ -261,6 +261,7 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   const S4 = await monter({}, S3.dir);
   const g4 = (await S4.G('/api/monitor/agents/examen')).j;
   v('⛔ un examen que le redémarrage a coupé se DIT : « interrompu », en tête des résultats', [g4.resultats[0].id, g4.resultats[0].etat, g4.resultats[0].raison, g4.courant], ['coupe123456', 'interrompu', 'le serveur a redémarré pendant l’examen', null]);
+  v('…et la liste reste bornée à vingt malgré cette ligne de plus (sur disque aussi)', [g4.resultats.length, JSON.parse(fs.readFileSync(path.join(S3.dir, 'examen-resultats.json'), 'utf8')).length], [20, 20]);
   v('…et il ne se rejoue pas (rien en cours), le fichier d’état est nettoyé', JSON.parse(fs.readFileSync(path.join(S3.dir, 'examen-etat.json'), 'utf8')).courant, null);
   await S4.ferme();
 

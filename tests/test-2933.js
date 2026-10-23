@@ -92,8 +92,8 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   /* la Tour, face à UN serveur : les vraies fonctions, un faux DOM, une horloge de minuteries que le banc déclenche à la main */
   function tour(S, o) {
     o = o || {}; let n = 0;
-    const j = { toasts: [], confirms: [], peintures: 0, minuteries: [], copie: [] };
-    const ctx = { fetch: (u, opt) => fetch(u, opt), API: S.B, Object, String, JSON, Promise, Math, Number, Array, Date, Error, Response, TypeError, console, clearTimeout: id => { const m = j.minuteries.find(x => x.id === id); if (m) m.annule = true; },
+    const j = { toasts: [], confirms: [], peintures: 0, minuteries: [], copie: [], fetchs: 0 };
+    const ctx = { fetch: (u, opt) => { j.fetchs++; return fetch(u, opt); }, API: S.B, Object, String, JSON, Promise, Math, Number, Array, Date, Error, Response, TypeError, console, clearTimeout: id => { const m = j.minuteries.find(x => x.id === id); if (m) m.annule = true; },
       setTimeout: (f, ms) => { const m = { f, ms, id: j.minuteries.length + 1, annule: false }; j.minuteries.push(m); return m.id; },
       TAB: 'agents', MYROLE: o.role || 'patron', document: { visibilityState: 'visible' }, APPS_TOUR: {}, AG: { sec: 'examen', agents: o.agents || [] },
       toast: t => j.toasts.push(t), confirm: m => { j.confirms.push(m); return o.confirme !== false; }, render: () => { j.peintures++; }, doLogout: () => {},
@@ -159,7 +159,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   const T2 = tour(S, { agents: REG });
   T2.TAB = 'accueil';
   await T2.exCharger();
-  vrai('⛔ l’écran QUITTÉ n’arme pas de minuterie qui redessinerait un autre écran : elle se tait quand on déclenche (aucune relecture)', await (async () => { const n0 = T2.__j.peintures; await tictac(T2); return T2.__j.peintures === n0; })());
+  vrai('⛔ l’écran QUITTÉ : la minuterie, quand elle se déclenche, ne relit rien (aucune requête, aucune peinture) et ne se ré-arme pas', await (async () => { const f0 = T2.__j.fetchs, p0 = T2.__j.peintures, m0 = T2.__j.minuteries.length; const a = await tictac(T2); return a === true && T2.__j.fetchs === f0 && T2.__j.peintures === p0 && T2.__j.minuteries.length === m0; })());
   const lance2 = await (await fetch(S.B + '/api/monitor/agents/examen/lancer', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + S.jeton, 'X-Forwarded-For': '10.2.0.1' }, body: '{}' })).json();
   v('un second lancement pendant l’examen : 409 « en_cours »', lance2.raison, 'en_cours');
   let tours = 0;
