@@ -23,7 +23,7 @@ const CLAIRS_MIN = 2;                       // passages clairs de suite avant de
 const HISTORIQUE_PAR_REGLE = 30;            // les épisodes passés qu'on garde, par règle (les récidives se comptent là-dessus)
 const EPISODES_MAX = 200;                   // bornes : une règle qui bat la mesure ne remplit pas le disque
 const JOUR = 86400000;
-const CHAMPS = ['annonce', 'prive', 'incident', 'incidentFerme', 'retabliDit', 'pris', 'diagnostic', 'consigne', 'dernierRappel'];
+const CHAMPS = ['annonce', 'prive', 'incident', 'incidentFerme', 'retabliDit', 'pris', 'diagnostic', 'consigne', 'dernierRappel', 'incidentRefuse', 'sourdine'];
 
 module.exports = function etatPlateforme(ctx) {
   const fichier = ctx.fichier;

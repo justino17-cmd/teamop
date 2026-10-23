@@ -39,6 +39,15 @@ function gravite(i) {
   return count >= 10 ? 'haute' : (count >= 3 ? 'moyenne' : 'faible');
 }
 
+/* ⛔ UN INCIDENT D'APPAREIL N'EST « CORROBORÉ » QUE PAR CE QUE LE SERVEUR A VÉRIFIÉ LUI-MÊME. `/api/monitor/report` est publique : le type, le nombre d'occurrences, le nom d'une entreprise sont
+   écrits par l'appelant (revue du 23 octobre 2026 : 30 incidents « haute » forgés d'une requête, 10 push à Justin). La seule trace qu'un rapport vient d'une vraie session est une PERSONNE
+   (`gens`) que le journal des connexions de l'espace connaît — le serveur ne la retient que contre ce journal. Corroboré = au moins trois entreprises nommées ET une personne vérifiée. Ce qui ne l'est
+   pas se voit dans la Tour et se dit en « info » : cela ne sonne pas sur un téléphone et ne rend pas le point du matin urgent. */
+function corrobore(i) {
+  const ents = Array.isArray(i && i.entreprises) ? i.entreprises : [];
+  return ents.length >= 3 && ents.some(e => e && Array.isArray(e.gens) && e.gens.length > 0);
+}
+
 module.exports = function incidentsAgents(ctx) {
   const lire = typeof ctx.lire === 'function' ? ctx.lire : (() => []);
   const sauver = typeof ctx.sauver === 'function' ? ctx.sauver : (() => {});
@@ -112,7 +121,8 @@ module.exports = function incidentsAgents(ctx) {
     return { notre: estNotre(i), app: dansListe(i.app, APPS, 'serveur'), categorie: dansListe(i.categorie, CATEGORIES, 'Général'), type: dansListe(i.type, TYPES, 'erreur'),
       gravite: gravite(i), statut: dansListe(i.statut, STATUTS, 'nouveau'), triage: dansListe(i.triage || '', TRIAGES, ''), occurrences: Number(i.count) || 0,
       entreprises: Array.isArray(i.entreprises) ? i.entreprises.length : 0, appareils: i.appareils && typeof i.appareils === 'object' ? Object.keys(i.appareils).length : 0,
-      ageH: Math.max(0, Math.round((t - (i.firstTs || t)) / HEURE)), dernierH: Math.max(0, Math.round((t - (i.lastTs || t)) / HEURE)), courrielEnvoye: i.mailEnvoye === true };
+      ageH: Math.max(0, Math.round((t - (i.firstTs || t)) / HEURE)), dernierH: Math.max(0, Math.round((t - (i.lastTs || t)) / HEURE)), courrielEnvoye: i.mailEnvoye === true,
+      corrobore: estNotre(i) || corrobore(i) };
   }
 
   /* Les compteurs de la file : tout ce que Victor et Inès ont le droit de dire de la Surveillance. */
@@ -123,7 +133,7 @@ module.exports = function incidentsAgents(ctx) {
     const sansPar = ouverts.filter(i => i.statut === 'nouveau' && !i.par && !i.triage);
     const plus = sansPar.reduce((m, i) => Math.max(m, t - (i.firstTs || t)), 0);
     const parApp = {}; for (const a of APPS) parApp[a] = ouverts.filter(i => i.app === a).length;
-    return { ouverts: ouverts.length, haute: hauts.length, nouveau: ouverts.filter(i => i.statut === 'nouveau').length, sansPersonne: sansPar.length,
+    return { ouverts: ouverts.length, haute: hauts.length, hauteSure: hauts.filter(i => estNotre(i) || corrobore(i)).length, nouveau: ouverts.filter(i => i.statut === 'nouveau').length, sansPersonne: sansPar.length,
       plusVieuxSansPersonneH: Math.round(plus / HEURE), corriges30j: l.filter(i => i.statut === 'corrige' && (i.lastTs || 0) >= t - 30 * 86400000).length, parApp };
   }
 
@@ -136,5 +146,6 @@ module.exports = function incidentsAgents(ctx) {
   return { ouvrir, prendre, fermer, etat, faits, compteurs, clientsHauts, gravite };
 };
 module.exports.gravite = gravite;
+module.exports.corrobore = corrobore;
 module.exports.APPS = APPS;
 module.exports.CATEGORIES = CATEGORIES;

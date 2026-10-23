@@ -98,14 +98,15 @@ module.exports = function agentVictor(ctx) {
         demandesClients: cl ? num(cl.demandesEnAttente) : null,
       },
       plateforme: {
-        incidentsOuverts: inc ? inc.ouverts : null, incidentsHauts: inc ? inc.haute : null, incidentsSansPersonne: inc ? inc.sansPersonne : null,
+        incidentsOuverts: inc ? inc.ouverts : null, incidentsHauts: inc ? inc.haute : null, incidentsHautsSurs: inc ? inc.hauteSure : null, incidentsSansPersonne: inc ? inc.sansPersonne : null,
         alarmesOuvertes: mx ? num(mx.ouvertes) : null, alarmesCritiques: mx ? num(mx.critiques) : null,
       },
       equipe: { allumes: allumes.length, tachesEnCours: ch ? Object.fromEntries(allumes.filter(id => ch[id] > 0).map(id => [id, ch[id]])) : null, libres: ch ? allumes.filter(id => ch[id] === 0) : null },
       qualite: qa ? { courrielsEnvoyes: num(qa.courrielsEnvoyes), courrielsAReprendre: num(qa.courrielsAReprendre), agentsEnErreur: num(qa.agentsEnErreur) } : null,
     };
   }
-  const urgent = f => f.plateforme.incidentsHauts > 0 || f.plateforme.alarmesCritiques > 0 || f.attendJustin.rgpdEnRetard > 0 || f.attendJustin.validationPlusAncienneJours >= 6 || (f.attendJustin.rgpdProchaineJours !== null && f.attendJustin.rgpdProchaineJours <= 3);
+  /* ⛔ Un incident venu des appareils rend le point URGENT (donc une notification) seulement s'il est corroboré par le serveur (`incidents-agents.js`) : le texte du point le dit quand même. */
+  const urgent = f => f.plateforme.incidentsHautsSurs > 0 || f.plateforme.alarmesCritiques > 0 || f.attendJustin.rgpdEnRetard > 0 || f.attendJustin.validationPlusAncienneJours >= 6 || (f.attendJustin.rgpdProchaineJours !== null && f.attendJustin.rgpdProchaineJours <= 3);
   const rien = f => {
     const a = f.attendJustin, p = f.plateforme;
     return !(a.validations > 0 || a.rgpdOuvertes > 0 || a.contratsEnAttente > 0 || a.courrierATraiter > 0 || a.demandesClients > 0 || p.incidentsOuverts > 0 || p.alarmesOuvertes > 0

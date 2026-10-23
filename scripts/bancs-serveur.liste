@@ -256,3 +256,5 @@ tests/test-2924.js
 # …et `test-2925` : le VRAI serveur, un faux Claude — une erreur d'application ouvre un épisode, un incident dans la Tour et UN diagnostic ; le texte forgé des appareils ne part jamais chez Claude ;
 # les verrous de la Tour et du portail, les relevés de Théo et de Max dans le prompt, le point de Victor, les gestes au journal, la minuterie armée par index.js.
 tests/test-2925.js
+# …et `test-2928` (revue du 23 octobre) : un déclencheur FORGEABLE reste borné — « inconnu » ne réveille personne, un push urgent par règle et par jour, des incidents d'appareils forgés qui ne sonnent pas.
+tests/test-2928.js

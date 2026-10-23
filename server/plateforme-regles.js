@@ -226,11 +226,22 @@ const REGLES = [
     pistes: 'Rien n’envoie ce courriel : à faire à la main. Combien et qui : dans la Tour, la conservation.' },
 
   /* ═══ NINA — la sécurité ═══ */
+  /* ⛔ « INCONNU » NE RÉVEILLE PERSONNE : c'est un teamId que L'APPELANT a choisi. Revue du 23 octobre 2026, rejoué : une seule requête anonyme (`X-Teamop-Kh` de 64 hexadécimaux + un
+     teamId qui n'existe pas, sur /api/replies ou /api/mailboxes) pose `mailRefus.parMotif.inconnu` — et la règle d'origine, qui comptait tout motif hors absent/technique/partagee,
+     donnait un push 🔴 à Justin, un incident « haute », un diagnostic de Jules (un appel à Claude) et un point de Victor devenu urgent, relançable toutes les ~2 h 10. Seul
+     « invalide » (la preuve d'une clé présentée pour une entreprise qui EXISTE) désigne un appareil réel ; « inconnu » reste dit — en info, sans incident (`courrier_inconnu`), parce
+     qu'une entreprise vivante tombée hors de l'annuaire produit exactement ça. La surveillance horaire (`surveillance.js`) garde sa règle large : elle crie par courriel, une fois par heure,
+     elle ne pousse pas sur un téléphone ni n'appelle un modèle. D'où un `ref` qui reste celui de `surveillance.js` pendant que le `test` ci-dessous est volontairement PLUS ÉTROIT.
+     ⛔ ET ON COMPTE CE QUI A MONTÉ DEPUIS LE DERNIER PASSAGE, MOTIF PAR MOTIF (`j.securite.refusInvalides`, posé par Nina comme `clesInvalides`) : `mailRefus.ts` est la date du dernier refus
+     de N'IMPORTE QUEL motif, donc « total d'invalides > 0 et ts récent » se laissait réveiller par un refus « inconnu » forgé sur un vieil « invalide » de juillet. */
   { cle: 'courrier_refuse', proprio: 'nina', zone: 'securite', niveau: 'critique', ref: "motif !== 'absent' && motif !== 'technique' && motif !== 'partagee'",
-    test: (j, now) => (at(j, 'mailRefus.parMotif') && typeof j.mailRefus.parMotif === 'object') ? refusReels(j) > 0 && recent(j.mailRefus.ts, 2 * 3600000, now) : false,
-    valeurs: j => ({ refus: refusReels(j) }),
-    texte: v => 'des appareils se font refuser leur courrier maintenant (' + nb(v.refus) + ' refus qui ne sont ni une version ancienne ni la bêta) : une entreprise vivante dont la preuve de clé est refusée',
+    test: j => sup(j, 'securite.refusInvalides', 0), valeurs: j => ({ refus: num(at(j, 'securite.refusInvalides')) }),
+    texte: v => 'des appareils se font refuser leur courrier maintenant (' + nb(v.refus) + ' refus de preuve de clé pour une entreprise qui existe) : une entreprise vivante dont la preuve de clé est refusée',
     pistes: 'Ces gens-là n’ont plus leur courrier (réception, envoi, boîte connectée). Qui exactement : dans la Tour, /api/mail/cles. Pour rouvrir le temps de comprendre : mailPreuveExigee à false dans config.json.' },
+  { cle: 'courrier_inconnu', proprio: 'nina', zone: 'securite', niveau: 'info', sansIncident: true, src: 'index.js', ref: 'mailRefus.parMotif[motif] = (mailRefus.parMotif[motif] || 0) + 1',
+    test: j => sup(j, 'securite.refusInconnus', 0), valeurs: j => ({ refus: num(at(j, 'securite.refusInconnus')) }),
+    texte: v => nb(v.refus) + ' refus de courrier pour un espace que le serveur ne connaît pas',
+    pistes: 'N’importe qui peut le provoquer d’une requête (le nom de l’espace est celui qu’il écrit) : ce n’est pas une alarme. Si ça dure, ou si une entreprise vivante n’a plus son courrier, regarder l’annuaire dans la Tour : une entreprise sortie de l’annuaire produit exactement ça.' },
   /* Ce que le SERVEUR relève déjà et que `/health` ne publie pas : Nina le lit par `securite()` (injecté) et le joint à l'état de santé sous `j.securite`. `src` : le fichier
      du serveur où la règle est écrite (la surveillance horaire ne la connaît pas) — le banc y relit `ref`. Pas de seuil de notre cru : un verrou existe quand le serveur l'a posé. */
   { cle: 'verrou_tour', proprio: 'nina', zone: 'securite', niveau: 'info', sansIncident: true, src: 'index.js', ref: 'const monLock = new Map()',
@@ -246,14 +257,6 @@ const REGLES = [
     texte: v => nb(v.appareils) + ' présentation' + pl(v.appareils, '', 's') + ' d’une preuve de clé d’équipe REFUSÉE depuis mon dernier passage : cette série doit rester à zéro',
     pistes: 'Une preuve invalide, c’est une clé qui ne correspond pas à l’entreprise : un appareil mal rattaché ou une tentative. Les routes concernées sont dans /health (cles.parRoute), sans entreprise nommée.' },
 ];
-
-/* ON ALARME SUR LA RÉCENCE, PAS SUR LE TOTAL (`surveillance.js`) : `ts` est la date du DERNIER refus */
-const recent = (ts, fenetre, now) => typeof ts === 'number' && ts > now - fenetre;
-function refusReels(j) {
-  let n = 0;
-  for (const [motif, x] of Object.entries(at(j, 'mailRefus.parMotif') || {})) if (motif !== 'absent' && motif !== 'technique' && motif !== 'partagee' && typeof x === 'number' && x > 0) n += x;
-  return n;
-}
 
 const PAR_CLE = new Map(REGLES.map(r => [r.cle, r]));
 

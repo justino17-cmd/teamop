@@ -22,7 +22,7 @@ const R = require(S('plateforme-regles.js'));
 const IA = require(S('incidents-agents.js'));
 
 console.log('\n1. La table des règles');
-v('(population) 51 règles, des clés uniques', [R.REGLES.length, new Set(R.REGLES.map(r => r.cle)).size], [51, 51]);
+v('(population) 52 règles, des clés uniques', [R.REGLES.length, new Set(R.REGLES.map(r => r.cle)).size], [52, 52]);
 vrai('chaque règle a un propriétaire connu, un niveau et une zone de LISTES FERMÉES, une condition source et des pistes', R.REGLES.every(r => ['max', 'theo', 'nina'].includes(r.proprio) && R.NIVEAUX.includes(r.niveau) && R.ZONES.includes(r.zone) && r.ref && r.pistes && typeof r.test === 'function'));
 v('trois propriétaires, chacun a de quoi faire', ['max', 'theo', 'nina'].map(p => R.REGLES.filter(r => r.proprio === p).length > 0), [true, true, true]);
 v('⛔ un état de santé en BONNE FORME ne déclenche rien — pour aucun propriétaire', ['max', 'theo', 'nina'].map(p => R.evaluer(SANTE_BONNE(), p).size), [0, 0, 0]);
@@ -35,7 +35,7 @@ v('(population) retirer les commentaires n’avale aucun code : autant de « pro
 v('chaque condition source (`ref`) est encore écrite dans le code de la surveillance horaire', R.REGLES.filter(r => !r.src && !CODE.includes(r.ref)).map(r => r.cle), []);
 /* les règles que le SERVEUR relève (verrous, preuve de clé refusée) ne sont pas dans la surveillance horaire : leur `ref` est relue dans le fichier du serveur qui les écrit */
 const DU_SERVEUR = R.REGLES.filter(r => r.src);
-v('(population) trois règles viennent du serveur lui-même (index.js, comptes.js)', DU_SERVEUR.map(r => r.cle), ['verrou_tour', 'verrou_portail', 'cle_invalide']);
+v('(population) quatre règles viennent du serveur lui-même (index.js, comptes.js)', DU_SERVEUR.map(r => r.cle), ['courrier_inconnu', 'verrou_tour', 'verrou_portail', 'cle_invalide']);
 v('…et leur condition est encore écrite dans le fichier du serveur qui les porte (commentaires retirés)', DU_SERVEUR.filter(r => !nu(fs.readFileSync(path.join(RACINE, 'server', r.src), 'utf8')).includes(r.ref)).map(r => r.cle), []);
 /* les bornes sont tirées de la condition ELLE-MÊME : `j.chemin > N` / `>= N` */
 const parChemin = (chemin, valeur) => { const j = SANTE_BONNE(); let c = j; const ks = chemin.split('.').slice(1); for (let i = 0; i < ks.length - 1; i++) { c[ks[i]] = c[ks[i]] && typeof c[ks[i]] === 'object' ? c[ks[i]] : {}; c = c[ks[i]]; } c[ks[ks.length - 1]] = valeur; return j; };
@@ -78,10 +78,12 @@ j = SANTE_BONNE(); j.portail = { comptes: { actif: true }, dossiers: { actif: fa
 v('comptes montés, dossiers non, sans erreur : le demi-portail', [...R.evaluer(j, 'max').keys()], ['demi_portail']);
 j = SANTE_BONNE(); j.mailRefus = { n: 9, parMotif: { absent: 4, technique: 3, partagee: 2 }, parRoute: {}, ts: Date.now() };
 v('refus de courrier bénins (version ancienne, bêta, clé partagée) : rien', R.evaluer(j, 'nina').size, 0);
-j = SANTE_BONNE(); j.mailRefus = { n: 2, parMotif: { invalide: 2 }, parRoute: {}, ts: Date.now() - 3 * 3600000 };
-v('…un vrai refus mais vieux de 3 h : rien (on crie sur la RÉCENCE, pas sur le total)', R.evaluer(j, 'nina').size, 0);
 j = SANTE_BONNE(); j.mailRefus = { n: 2, parMotif: { invalide: 2 }, parRoute: {}, ts: Date.now() - 600000 };
-v('…un vrai refus d’il y a 10 minutes : critique, chez Nina', [...R.evaluer(j, 'nina')].map(([k, x]) => [k, x.niveau, x.valeurs]), [['courrier_refuse', 'critique', { refus: 2 }]]);
+v('⛔ le total d’un vieil « invalide » sans MONTÉE depuis le dernier passage : rien (Nina compte ce qui monte, motif par motif — `mailRefus.ts` ne dit pas lequel a refusé)', R.evaluer(j, 'nina').size, 0);
+j = SANTE_BONNE(); j.securite = { refusInvalides: 2, refusInconnus: 0 };
+v('…2 « invalide » en plus depuis le dernier passage : critique, chez Nina', [...R.evaluer(j, 'nina')].map(([k, x]) => [k, x.niveau, x.valeurs]), [['courrier_refuse', 'critique', { refus: 2 }]]);
+j = SANTE_BONNE(); j.securite = { refusInvalides: 0, refusInconnus: 4 };
+v('⛔ « inconnu » (un espace que l’appelant a CHOISI, forgeable d’une requête) : jamais critique, jamais d’incident — une phrase d’info chez Nina', [...R.evaluer(j, 'nina')].map(([k, x]) => [k, x.niveau, x.valeurs, !!R.PAR_CLE.get(k).sansIncident]), [['courrier_inconnu', 'info', { refus: 4 }, true]]);
 j = SANTE_BONNE(); j.conservation = { actif: true, balayageOk: false, echu: true, preavis: true };
 v('conservation : le balayage en échec (critique) passe devant, l’échéance et le préavis suivent — tous chez Théo', [...R.evaluer(j, 'theo')].map(([k, x]) => [k, x.niveau]), [['conservation_balayage', 'critique'], ['conservation_echu', 'important'], ['conservation_preavis', 'info']]);
 j = SANTE_BONNE(); j.conservation = { actif: true, erreur: 'balayage jeté', balayageOk: false };
@@ -195,7 +197,7 @@ console.log('\n6. Le registre des incidents, vu par les agents');
   B.issues.push(client);
   v('⛔ fermer ou prendre un incident venu d’un APPAREIL : refusé (« corrigé » envoie un courriel aux clients, c’est un jugement de Justin)', [IN.fermer(client.id, 'Jules', 'x').raison, IN.prendre(client.id, 'jules', 'Jules').raison, client.statut], ['pas_a_nous', 'pas_a_nous', 'nouveau']);
   const f = IN.faits(client.id);
-  v('les faits d’un incident client : des nombres et des listes fermées', f, { notre: false, app: 'opgestion', categorie: 'Planning', type: 'erreur', gravite: 'haute', statut: 'nouveau', triage: '', occurrences: 14, entreprises: 1, appareils: 2, ageH: 5, dernierH: 1, courrielEnvoye: false });
+  v('les faits d’un incident client : des nombres et des listes fermées', f, { notre: false, app: 'opgestion', categorie: 'Planning', type: 'erreur', gravite: 'haute', statut: 'nouveau', triage: '', occurrences: 14, entreprises: 1, appareils: 2, ageH: 5, dernierH: 1, courrielEnvoye: false, corrobore: false });
   vrai('⛔ …et rien du texte forgeable, d’une entreprise, d’une personne ni d’une note', !/IGNORE|pirate|script|Secrète|secret-2920|jean|Dupont/i.test(JSON.stringify(f) + JSON.stringify(IN.compteurs())));
   client.categorie = HOSTILE; client.app = HOSTILE; client.triage = HOSTILE; client.type = HOSTILE;
   v('⛔ une catégorie, une application, un tri ou un type HORS LISTE devient une valeur de repli (jamais la chaîne)', (({ app, categorie, triage, type }) => [app, categorie, triage, type])(IN.faits(client.id)), ['serveur', 'Général', '', 'erreur']);
@@ -211,7 +213,12 @@ console.log('\n6. Le registre des incidents, vu par les agents');
   const cas = [];
   for (const type of ['erreur', 'lenteur', 'reseau']) for (const count of [1, 2, 3, 9, 10, 40]) for (const nbEnt of [0, 1, 2, 3, 5]) cas.push({ type, count, entreprises: new Array(nbEnt).fill({}) });
   v('⛔ la gravité côté serveur est CELLE de la Tour sur ' + cas.length + ' cas (type × occurrences × entreprises)', cas.filter(c => bac.g(c) !== IA.gravite(c)).length, 0);
-  v('un incident d’agent porte sa propre gravité, jamais celle qu’un client aurait écrite', [IA.gravite({ agent: 'max', gravite: 'faible', type: 'erreur', count: 99 }), IA.gravite({ gravite: 'faible', type: 'erreur', count: 99 })], ['faible', 'haute']);
+  const agentCas = [];
+for (const agent of ['max', 'theo', 'nina']) for (const gravite of ['haute', 'moyenne', 'faible']) for (const type of ['erreur', 'lenteur', 'reseau']) agentCas.push({ agent, gravite, type, count: 1, entreprises: [] });
+vrai('(population) ' + agentCas.length + ' incidents d’agent joués', agentCas.length === 27);
+v('⛔ …et la Tour dit la MÊME gravité pour un incident d’AGENT (réseau, une occurrence, aucune entreprise : elle le disait « faible » même pour une sauvegarde échouée)', agentCas.filter(c => bac.g(c) !== IA.gravite(c) || bac.g(c) !== c.gravite).length, 0);
+v('…et l’agent inconnu ou la gravité hors liste ne s’y fient pas (repli sur le calcul des appareils)', [bac.g({ agent: 'pirate', gravite: 'faible', type: 'erreur', count: 99, entreprises: [] }), bac.g({ agent: 'max', gravite: 'critique', type: 'reseau', count: 1, entreprises: [] })], ['haute', 'faible']);
+v('un incident d’agent porte sa propre gravité, jamais celle qu’un client aurait écrite', [IA.gravite({ agent: 'max', gravite: 'faible', type: 'erreur', count: 99 }), IA.gravite({ gravite: 'faible', type: 'erreur', count: 99 })], ['faible', 'haute']);
   B.nettoyer();
 }
 

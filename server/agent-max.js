@@ -19,6 +19,9 @@ const sentinelle = require('./plateforme-sentinelle');
 const O = require('./plateforme-outils');
 
 const CLIENTS_PAR_PASSAGE = 2;
+/* ⛔ Six incidents venus des appareils par jour au plus, signalés à Jules : la route qui les reçoit est publique, et chaque signalement consomme les plafonds de messages du fil « Plateforme »
+   qui servent aussi aux vraies alarmes. Les autres restent dans la Tour (Surveillance), où ils étaient déjà. */
+const CLIENTS_PAR_JOUR = 6;
 const FENETRE_MS = 24 * 3600000;       // un incident plus vieux que ça n'est pas « venu d'arriver »
 const OUBLI_MS = 7 * 86400000;
 
@@ -34,8 +37,10 @@ module.exports = function agentMax(ctx) {
     const now = maintenant();
     for (const k of Object.keys(m.clientsVus)) if (now - m.clientsVus[k] > OUBLI_MS) delete m.clientsVus[k];
     let dits = 0;
+    const jour = O.jourParis(now);
+    if (!m.clientsJour || m.clientsJour.j !== jour) m.clientsJour = { j: jour, n: 0 };
     for (const id of incidents.clientsHauts(now - FENETRE_MS)) {
-      if (dits >= CLIENTS_PAR_PASSAGE) break;
+      if (dits >= CLIENTS_PAR_PASSAGE || m.clientsJour.n >= CLIENTS_PAR_JOUR) break;
       if (m.clientsVus[id]) continue;
       if (!agents.peutAgir('max').ok) break;
       const f = incidents.faits(id);
@@ -46,7 +51,7 @@ module.exports = function agentMax(ctx) {
       const texte = 'Un incident de gravité haute vient d’arriver des appareils : ' + f.occurrences + ' ' + O.pluriel(f.occurrences, 'occurrence', 'occurrences') + ', ' + qui + ', catégorie ' + f.categorie + '.' +
         (c.ok ? ' Je le passe à Jules.' : '');
       const d = conversations.parler('max', 'plateforme', texte, { niveau: 'info' });
-      if (d.ok || d.raison === 'doublon') { m.clientsVus[id] = now; dits++; try { agents.noter('max', 'incident client signalé', { cible: id, resultat: 'ok', detail: f.categorie }); } catch (e) {} }
+      if (d.ok || d.raison === 'doublon') { m.clientsVus[id] = now; m.clientsJour.n++; dits++; try { agents.noter('max', 'incident client signalé', { cible: id, resultat: 'ok', detail: f.categorie }); } catch (e) {} }
     }
     if (dits) etat.sauver();
     return dits;
@@ -60,3 +65,4 @@ module.exports = function agentMax(ctx) {
   return Object.assign({}, moteur, { passer });
 };
 module.exports.CLIENTS_PAR_PASSAGE = CLIENTS_PAR_PASSAGE;
+module.exports.CLIENTS_PAR_JOUR = CLIENTS_PAR_JOUR;

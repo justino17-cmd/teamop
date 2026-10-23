@@ -200,6 +200,8 @@ console.log('\n── 2922 · Théo et Nina : les sauvegardes, la conservation, 
     C.nettoyer();
 
     const D = equipe();
+    D.sante.j.mailRefus = { n: 0, parMotif: {}, parRoute: {}, ts: 0 };
+    await D.nina.passer(); D.avancer(300000);                       // le premier passage fixe la base : on compte ce qui MONTE
     D.sante.j.mailRefus = { n: 3, parMotif: { invalide: 3 }, parRoute: {}, ts: D.horloge.t - 60000 };
     await D.nina.passer();
     v('⛔ du courrier refusé à une vraie entreprise : critique, Justin prévenu à part (urgent)', [D.pousses.map(p => p.titre), D.issues[0].gravite, /^Justin, c’est sérieux : des appareils se font refuser leur courrier maintenant \(3 refus/.test(D.textes('nina')[0])], [['🔴 Nina'], 'haute', true]);
@@ -331,6 +333,8 @@ console.log('\n── 2922 · Théo et Nina : les sauvegardes, la conservation, 
   {
     const B = equipe();
     B.sante.j.portail = { comptes: { actif: true, erreur: HOSTILE }, dossiers: { actif: true } }; B.sante.j.conservation = { actif: true, erreur: HOSTILE };
+    B.sante.j.mailRefus = { n: 0, parMotif: {}, parRoute: {}, ts: 0 };
+    await B.nina.passer(); B.avancer(300000);                       // la base d'abord : on compte ce qui MONTE
     B.sante.j.mailRefus = { n: 1, parMotif: { invalide: 1, [HOSTILE]: 4 }, parRoute: { [HOSTILE]: 4 }, ts: B.horloge.t };
     await B.theo.passer(); await B.nina.passer();
     const partout = JSON.stringify([B.issues, B.fil('plateforme'), B.fil('theo'), B.fil('nina'), B.journal(), B.recus, B.fichierJson('agents-plateforme.json')]);

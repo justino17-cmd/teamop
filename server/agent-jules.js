@@ -25,6 +25,8 @@ const ID = 'jules';
 const DIAGNOSTICS_PAR_JOUR = 6;
 const PRISES_PAR_PASSAGE = 2;
 const CLIENTS_PAR_PASSAGE = 2;
+/* ⛔ Un incident venu des appareils ne SONNE sur le téléphone de Justin que s'il est corroboré (`incidents-agents.js`), et trois fois par jour au plus : la route qui les reçoit est publique. */
+const SONNERIES_CLIENTS_PAR_JOUR = 3;
 const ID_INCIDENT = /\[(i[0-9a-f]{12})\]/;
 const ARRET_LIB = AC.CAUSES;
 
@@ -166,7 +168,11 @@ module.exports = function agentJules(ctx) {
       const nb = f.entreprises;
       const texte = 'Incident venu des appareils : ' + f.occurrences + ' ' + O.pluriel(f.occurrences, 'occurrence', 'occurrences') + ' ' + (nb ? 'chez ' + nb + ' ' + O.pluriel(nb, 'entreprise', 'entreprises') : 'sans entreprise identifiée') +
         ', catégorie ' + f.categorie + ', dernier signalement il y a ' + f.dernierH + ' h. Je ne lis pas son texte (il vient des appareils). Pour la cause : « Expliquer » dans la Tour ; ensuite « Proposer une correction » ouvre une demande de fusion en brouillon que tu valides. Je ne le classe pas « corrigé » : ça écrit aux entreprises.';
-      const d1 = parler(ID, texte, 'important');
+      const jour = O.jourParis(maintenant());
+      if (!m.sonneries || m.sonneries.j !== jour) m.sonneries = { j: jour, n: 0 };
+      const sonne = f.corrobore === true && m.sonneries.n < SONNERIES_CLIENTS_PAR_JOUR;
+      const d1 = parler(ID, texte, sonne ? 'important' : 'info');
+      if (d1.ok && sonne) m.sonneries.n++;
       if (dit(d1)) { m.clients[iid] = maintenant(); etat.sauver(); n++; note('incident client lu', { cible: iid, resultat: 'propose', detail: f.categorie }); }
     }
     return n;
@@ -191,3 +197,4 @@ module.exports = function agentJules(ctx) {
   return { passer, etat: () => ({ dernier: dernier || (etat.agent(ID).dernier || 0), illisible: etat.illisible(), diagnosticsAujourdhui: (etat.agent(ID).jour || {}).n || 0 }), faitsEpisode };
 };
 module.exports.DIAGNOSTICS_PAR_JOUR = DIAGNOSTICS_PAR_JOUR;
+module.exports.SONNERIES_CLIENTS_PAR_JOUR = SONNERIES_CLIENTS_PAR_JOUR;

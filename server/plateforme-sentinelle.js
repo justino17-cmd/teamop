@@ -23,6 +23,11 @@ const O = require('./plateforme-outils');
 
 const ANNONCES_PAR_PASSAGE = 3;
 const ILLISIBLE_AVANT_DE_DIRE = 3;
+/* ⛔ DEUX PLAFONDS PAR JOUR ET PAR RÈGLE, parce qu'une règle peut être déclenchée de l'EXTÉRIEUR (revue du 23 octobre 2026 : le courrier refusé, les erreurs d'application postées sur une route
+   publique) et qu'un épisode neuf se rouvre dès que le précédent est clos. Un push « urgent » : un par règle et par jour (le suivant se dit dans le fil privé, sans notification). Un incident
+   (donc un diagnostic de Jules, donc un appel à Claude) : deux par règle et par jour (l'épisode est annoncé quand même). Un déclencheur forgeable reste ainsi BORNÉ, quel que soit son rythme. */
+const URGENTS_PAR_JOUR_ET_REGLE = 1;
+const INCIDENTS_PAR_JOUR_ET_REGLE = 2;
 
 module.exports = function sentinelle(ctx) {
   const { agents, conversations, etat, incidents } = ctx;
@@ -56,6 +61,14 @@ module.exports = function sentinelle(ctx) {
 
   let enCours = false, dernierPassage = 0, illisibles = 0;
   function memoire() { return etat.agent(proprio); }
+  /* Les compteurs du jour (Paris), rangés avec la mémoire de l'agent : { j, urgent:{règle:n}, incident:{règle:n} } */
+  function plafonds() {
+    const m = memoire(), j = O.jourParis(maintenant());
+    if (!m.plafonds || typeof m.plafonds !== 'object' || m.plafonds.j !== j) m.plafonds = { j, urgent: {}, incident: {} };
+    return m.plafonds;
+  }
+  const dejaFait = (genre, cle, max) => (plafonds()[genre][cle] || 0) >= max;
+  const compter = (genre, cle) => { const p = plafonds(); p[genre][cle] = (p[genre][cle] || 0) + 1; };
 
   async function passer() {
     if (enCours) return { saute: 'en_cours' };
@@ -85,10 +98,14 @@ module.exports = function sentinelle(ctx) {
         if (annonces >= ANNONCES_PAR_PASSAGE) break;
         const p2 = agents.peutAgir(proprio); if (!p2.ok) break;          // revérifié avant chaque geste
         /* 1. l'incident : le registre de la Tour, un texte de NOTRE code, aucune entreprise listée */
-        if (!e.incident && !(R.PAR_CLE.get(e.cle) || {}).sansIncident) {     // un verrou de connexion s'annonce, il n'ouvre pas d'incident
+        if (!e.incident && !e.incidentRefuse && !(R.PAR_CLE.get(e.cle) || {}).sansIncident && dejaFait('incident', e.cle, INCIDENTS_PAR_JOUR_ET_REGLE)) {
+          etat.marquer(e.id, { incidentRefuse: true }); e.incidentRefuse = true;       // le plafond du jour est atteint : annoncé, sans incident (et on ne le retente pas à chaque passage)
+          note('incident ouvert', { cible: e.cle, resultat: 'refuse', detail: 'plafond du jour pour cette règle' });
+        }
+        if (!e.incident && !e.incidentRefuse && !(R.PAR_CLE.get(e.cle) || {}).sansIncident) {     // un verrou de connexion s'annonce, il n'ouvre pas d'incident
           const o = incidents.ouvrir({ agent: proprio, signature: 'agent|' + proprio + '|' + e.cle + '|' + e.id, gravite: R.GRAVITE[e.niveau], regle: e.cle,
             message: 'Surveillance — ' + O.cap(titre(e)) });
-          if (o.ok) { etat.marquer(e.id, { incident: o.id }); e.incident = o.id; note('incident ouvert', { cible: e.cle, resultat: 'ok', detail: e.niveau }); }
+          if (o.ok) { if (!o.deja) compter('incident', e.cle); etat.marquer(e.id, { incident: o.id }); e.incident = o.id; note('incident ouvert', { cible: e.cle, resultat: 'ok', detail: e.niveau }); }
           else note('incident ouvert', { cible: e.cle, resultat: 'erreur', detail: o.raison });
         }
         /* 2. l'annonce, une seule fois — marquée APRÈS un message parti (« doublon » : c'est déjà dit dans les 24 h) */
@@ -100,8 +117,9 @@ module.exports = function sentinelle(ctx) {
         }
         /* 3. critique : Justin est prévenu à part, dans le fil privé, en « urgent » (la messagerie le notifie) */
         if (e.niveau === 'critique' && !e.prive) {
-          const d = conversations.parler(proprio, proprio, ms.prive, { niveau: 'urgent' });
-          if (d.ok || d.raison === 'doublon') { etat.marquer(e.id, { prive: true }); e.prive = true; }
+          const sourdine = dejaFait('urgent', e.cle, URGENTS_PAR_JOUR_ET_REGLE);       // déjà réveillé pour cette règle aujourd'hui : il le lit dans son fil, sans notification
+          const d = conversations.parler(proprio, proprio, ms.prive, { niveau: sourdine ? 'info' : 'urgent' });
+          if (d.ok || d.raison === 'doublon') { if (d.ok && !sourdine) compter('urgent', e.cle); etat.marquer(e.id, sourdine ? { prive: true, sourdine: true } : { prive: true }); e.prive = true; e.sourdine = sourdine; }
           else note('Justin prévenu', { cible: e.cle, resultat: 'refuse', detail: d.raison });
         }
       }
@@ -115,7 +133,7 @@ module.exports = function sentinelle(ctx) {
         const d = conversations.parler(proprio, fil, ms.groupe, { niveau: 'info' });
         let dit = d.ok || d.raison === 'doublon';
         if (dit && e.niveau === 'critique') {
-          const d2 = conversations.parler(proprio, proprio, ms.prive, { niveau: 'important' });
+          const d2 = conversations.parler(proprio, proprio, ms.prive, { niveau: e.sourdine ? 'info' : 'important' });       // pas de notification pour un « rétabli » dont le départ n'en a pas eu
           dit = d2.ok || d2.raison === 'doublon';
         }
         if (!dit) { note('rétabli dit', { cible: e.cle, resultat: 'refuse', detail: d.raison }); continue; }
@@ -145,3 +163,5 @@ module.exports = function sentinelle(ctx) {
   return { passer, etat: resume, titre, messages };
 };
 module.exports.ANNONCES_PAR_PASSAGE = ANNONCES_PAR_PASSAGE;
+module.exports.URGENTS_PAR_JOUR_ET_REGLE = URGENTS_PAR_JOUR_ET_REGLE;
+module.exports.INCIDENTS_PAR_JOUR_ET_REGLE = INCIDENTS_PAR_JOUR_ET_REGLE;

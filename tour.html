@@ -5973,6 +5973,9 @@ function renderVue(v){
 
 /* ── outils partagés ── */
 function gravite(i){
+  /* Un incident ouvert par un AGENT (Max, Théo, Nina) porte sa propre gravité, décidée par la règle qui l'a ouvert : sans type, sans occurrences ni entreprise, le calcul ci-dessous
+     le rendait « faible » (une sauvegarde échouée, Stripe illisible…). Même règle que `gravite()` de server/incidents-agents.js — test-2920 les compare. */
+  if(['max','theo','nina'].indexOf(i.agent)>=0&&['haute','moyenne','faible'].indexOf(i.gravite)>=0) return i.gravite;
   var nbEnt=(i.entreprises||[]).length;
   if(i.type==='erreur') return (i.count>=10||nbEnt>=3)?'haute':'moyenne';
   if(i.type==='lenteur') return 'moyenne';

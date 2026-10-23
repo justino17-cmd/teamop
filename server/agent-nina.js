@@ -44,7 +44,17 @@ module.exports = function agentNina(ctx) {
     const inv = nombre(sec.clesInvalides);
     let delta = 0;
     if (inv !== null) { delta = typeof m.clesInvalides === 'number' ? Math.max(0, inv - m.clesInvalides) : 0; m.clesInvalides = inv; }
-    return Object.assign({}, j, { securite: { verrousTour: nombre(sec.verrousTour), verrousPortail: nombre(sec.verrousPortail), clesInvalides: delta } });
+    /* Le courrier refusé, MOTIF PAR MOTIF et depuis le dernier passage : `mailRefus.ts` est la date du dernier refus de n'importe quel motif, il ne dit pas lequel (un « inconnu » forgé
+       aurait réveillé la règle sur un vieil « invalide »). Compteur cumulé depuis le démarrage du serveur : s'il a baissé, le serveur a redémarré, tout ce qu'il porte est neuf. */
+    const mr = j.mailRefus && typeof j.mailRefus === 'object' && j.mailRefus.parMotif && typeof j.mailRefus.parMotif === 'object' ? j.mailRefus.parMotif : null;
+    const monte = (motif, cle) => {
+      if (!mr) return null;
+      const x = nombre(mr[motif]) || 0;                      // un motif qui n'a jamais refusé n'a pas de clé : zéro
+      const avant = m[cle]; m[cle] = x;
+      return typeof avant === 'number' ? (x >= avant ? x - avant : x) : 0;
+    };
+    const refusInvalides = monte('invalide', 'refusInvalides'), refusInconnus = monte('inconnu', 'refusInconnus');
+    return Object.assign({}, j, { securite: { verrousTour: nombre(sec.verrousTour), verrousPortail: nombre(sec.verrousPortail), clesInvalides: delta, refusInvalides, refusInconnus } });
   }
   const moteur = sentinelle(Object.assign({}, ctx, { proprio: ID, fil: 'plateforme', sante: santeNina }));
   if (!agents || !conversations || !etat) return moteur;
