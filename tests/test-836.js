@@ -286,6 +286,7 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
   const EXCEPTIONS = {
     'app.html': 'OP GESTION : son propre réglage Jour / Nuit / Auto (Paramètres), ce n\'est pas le site',
     'beta.html': 'OP GESTION bêta : même réglage, générée depuis app.html',
+    'demo.html': 'OP GESTION en démonstration publique : même réglage, générée depuis app.html par demo-build.js (noindex, sans réseau)',
     'messages.html': 'OP MESSAGES (fermée, OPMSG_EN_TRAVAUX) : son propre thème d\'application',
     'messages-beta.html': 'OP MESSAGES bêta : même thème',
     'server-msg/public/index.html': 'le front d\'OP MESSAGES servi par SON serveur (étape 1) : une application, pas une page du site — il suit l\'appareil (prefers-color-scheme), sans bouton, et déclare color-scheme pour que ses champs suivent aussi',
