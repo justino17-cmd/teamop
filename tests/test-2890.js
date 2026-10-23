@@ -11,6 +11,10 @@
      3. le MODULE du serveur (`server/metiers.js`, le vrai) obéit : il n'ouvre que ce que le fichier ouvre, jamais moins que
         les treize d'avant, ne ferme personne quand le fichier manque ou se tronque, et sert le référentiel aux écrans ;
      4. le serveur, le site et les pages le LISENT — dans le code, pas dans une phrase.
+   ⛔ LA BÊTA PRÉCÈDE LE PUBLIC : sur cette branche `app.html` connaît 23 métiers et dit « Validation des mouvements ». `metiers.json`
+   décrit la version PUBLIQUE. L'écart est DÉCLARÉ en un seul endroit (tests/beta-en-avance.js) : `ORDRE_PUBLIC` = l'ordre d'app.html moins les
+   métiers déclarés, `libellePublic` lit le libellé déclaré comme le libellé public. Tout autre écart fait tomber ce banc, et la
+   déclaration elle-même est contrôlée (`mensongesMetiers`, `mensongesLibelles`).
    Rien ne sort d'ici : aucun réseau, aucune donnée de client. */
 const fs = require('fs'), os = require('os'), path = require('path'), vm = require('vm');
 const RACINE = path.join(__dirname, '..');
@@ -35,6 +39,7 @@ function litteral(src, debut) {
   return src.slice(o, k + 1);
 }
 const evalue = txt => vm.runInNewContext('(' + txt + ')');
+const BETA = require('./beta-en-avance.js');
 
 console.log('\n── 2890 · le référentiel des métiers et son interrupteur ──');
 const CHEMIN = process.env.METIERS_FICHIER ? path.resolve(process.env.METIERS_FICHIER) : path.join(RACINE, 'metiers.json');
@@ -45,15 +50,16 @@ if (!J) { console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(1); }
 
 const APPN = nu(lire('APP_FICHIER', 'app.html')), SRV = lire('SERVEUR_FICHIER', 'server/index.js'), SRVN = nu(SRV);
 const NAV = evalue(litteral(APPN, 'const NAV = ['));
-const ORDRE_APP = evalue(litteral(APPN, 'const METIERS_ORDRE=['));
+const ORDRE_BETA = evalue(litteral(APPN, 'const METIERS_ORDRE=['));
+const ORDRE_APP = BETA.ordrePublic(ORDRE_BETA);   // les métiers que l'application PUBLIQUE connaît (la bêta en connaît dix de plus, déclarés)
 const clesNav = NAV.flatMap(g => g.items.map(i => i.k)), libNav = {};
 NAV.forEach(g => g.items.forEach(i => { libNav[i.k] = { l: i.l, g: g.g }; }));
 const TOUJOURS = ['dashboard', 'utilisateurs', 'modulesElan', 'parametres'];
 
 /* ══ 1. LE FICHIER EST SAIN ══ */
 console.log('\n1. Le fichier : 23 métiers, des rubriques qui existent, une raison et une explication partout');
-vrai('(population) NAV (10 groupes, une quarantaine de rubriques) et METIERS_ORDRE (13 clés) sont lus dans le CODE d\'app.html',
-  NAV.length === 10 && clesNav.length >= 40 && Array.isArray(ORDRE_APP) && ORDRE_APP.length === 13, JSON.stringify([NAV.length, clesNav.length, ORDRE_APP]));
+vrai('(population) NAV (10 groupes, une quarantaine de rubriques) et METIERS_ORDRE (23 clés dont les 13 publiques) sont lus dans le CODE d\'app.html',
+  NAV.length === 10 && clesNav.length >= 40 && Array.isArray(ORDRE_BETA) && ORDRE_BETA.length === 23 && ORDRE_APP.length === 13, JSON.stringify([NAV.length, clesNav.length, ORDRE_BETA, ORDRE_APP]));
 const cles = Object.keys(J.metiers);
 v('23 métiers (les treize actuels et les dix nouveaux)', cles.length, 23);
 v('   `ordreMetiers` les range tous, une fois chacun', J.ordreMetiers.slice().sort(), cles.slice().sort());
@@ -64,7 +70,8 @@ const rub = J.rubriques, clesRub = Object.keys(rub);
 v('42 rubriques décrites : les 38 cochables et les 4 qui ne se cochent jamais', clesRub.length, 42);
 v('⛔ chaque rubrique décrite existe dans NAV d\'app.html (ou est l\'écran des paramètres, hors NAV)', clesRub.filter(k => !clesNav.includes(k) && k !== 'parametres'), []);
 v('⛔ et chaque rubrique de NAV est décrite (une rubrique ajoutée au menu sans explication fait tomber ce banc)', clesNav.filter(k => !clesRub.includes(k)), []);
-v('   les libellés sont ceux du menu (le client coche ce qu\'il verra)', clesRub.filter(k => libNav[k] && libNav[k].l !== rub[k].titre).map(k => [k, libNav[k].l, rub[k].titre]), []);
+v('   les libellés sont ceux du menu (le client coche ce qu\'il verra) — à l\'écart DÉCLARÉ près (la bêta précède le public)', clesRub.filter(k => libNav[k] && BETA.libellePublic(k, libNav[k].l) !== rub[k].titre).map(k => [k, libNav[k].l, rub[k].titre]), []);
+v('⛔ la déclaration d\'avance de la bêta est VRAIE côté libellés (app.html porte le libellé déclaré, le référentiel public l\'ancien)', BETA.mensongesLibelles(libNav, Object.fromEntries(clesRub.map(k => [k, rub[k].titre]))), []);
 v('   les groupes sont ceux du menu', clesRub.filter(k => libNav[k] && libNav[k].g !== rub[k].groupe).map(k => [k, libNav[k].g, rub[k].groupe]), []);
 v('   les quatre rubriques « toujours » sont marquées, et elles seules', clesRub.filter(k => rub[k].toujours), TOUJOURS.slice().sort((a, b) => clesRub.indexOf(a) - clesRub.indexOf(b)));
 v('⛔ chaque rubrique a son explication, en vraies phrases (au moins 40 signes) — « quand ils cochent, ça explique la catégorie »',
@@ -110,6 +117,7 @@ console.log('\n2. L\'interrupteur : `ouverts`, lié à l\'application (`METIERS_
 const ouv = J.ouverts, reg = J.ouvertsReglage;
 vrai('(population) `ouverts` et `ouvertsReglage` sont là', Array.isArray(ouv) && ouv.length >= 13 && reg && typeof reg === 'object' && !Array.isArray(reg));
 v('⛔ tout métier que l\'application connaît est ouvert (ouvrir un métier dans app.html sans l\'ouvrir ici ferait tomber ce banc)', ORDRE_APP.filter(k => !ouv.includes(k)), []);
+v('⛔ la déclaration d\'avance de la bêta est VRAIE côté métiers (déclarés connus d\'app.html, et NON ouverts par metiers.json)', BETA.mensongesMetiers(ORDRE_BETA, ouv), []);
 v('⛔ tout métier ouvert que l\'application ne connaît pas porte un réglage explicite avec sa raison (sinon un client le choisirait et recevrait la 3D)',
   ouv.filter(k => !ORDRE_APP.includes(k) && (typeof reg[k] !== 'string' || reg[k].trim().length < 20)), []);
 v('   un réglage qui vise une clé que l\'application connaît désormais est PÉRIMÉ : on le retire', Object.keys(reg).filter(k => ORDRE_APP.includes(k) || !ouv.includes(k)), []);

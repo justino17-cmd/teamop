@@ -1,6 +1,6 @@
 # Référentiel des métiers d'OP GESTION
 
-Version lisible pour Justin. Le fichier que le code lira est `metiers-referentiel.json` (même dossier) : c'est lui qui fait foi, ce document en est la lecture.
+Version lisible pour Justin. Le fichier que le code lit est `metiers.json`, à la racine du dépôt : c'est lui qui fait foi (l'ancienne copie `design/metiers-referentiel.json` a été supprimée le 23 octobre 2026 — une seule source), ce document en est la lecture.
 
 Fait dans la nuit du 22 au 23 octobre 2026, à partir de :
 - tes demandes (`cahier-metiers.md`) et la carte du code (`carte-metiers.md`) ;

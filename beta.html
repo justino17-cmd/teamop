@@ -9346,7 +9346,7 @@ function papSocOf(cid){ return rapportSociete(socDuClient(cid)); }
    La source est design/metiers-referentiel.json ; le bloc ci-dessous est généré par scripts/metiers-generer.js, et
    tests/test-2950.js exige que l'application et le référentiel disent la même chose. Pour changer un pack : corriger le
    référentiel, relancer le script — jamais éditer le bloc à la main. */
-// ⟦METIERS:DEBUT⟧ — GÉNÉRÉ par scripts/metiers-generer.js depuis design/metiers-referentiel.json. NE PAS ÉDITER ICI : on corrige le référentiel, puis on relance le script.
+// ⟦METIERS:DEBUT⟧ — GÉNÉRÉ par scripts/metiers-generer.js depuis metiers.json. NE PAS ÉDITER ICI : on corrige le référentiel, puis on relance le script.
 const METIERS={
   '3d':{ nom:'3D — Hygiène anti-nuisibles', ic:'🐀', sous:'Dératisation · désinsectisation · désinfection',
     complet:true,
@@ -10117,7 +10117,7 @@ const RUBRIQUES_INFO={
   'interventions':['Interventions','Chaque passage chez un client est une fiche : date, technicien, adresse, photos, signature du client, compte rendu. C\'est le cœur de l\'application.',0],
   'rapports':['Rapports','Les rapports d\'intervention prêts à envoyer au client en PDF, avec photos et signature, au nom de la bonne société.',0],
   'carteInt':['Carte interventions','Les interventions du jour posées sur une carte, pour ordonner la tournée et perdre moins de temps sur la route.',0],
-  'registre':['Registre sanitaire','Le registre des interventions que l\'on doit pouvoir présenter à un contrôle. Aujourd\'hui conçu pour l\'hygiène anti-nuisibles (3D) ; il sera rendu utilisable par les autres métiers qui tiennent un registre.',0],
+  'registre':['Registre sanitaire','Le registre des interventions que l\'on doit pouvoir présenter à un contrôle.',0],
   'carteBox':['Carte des box','La carte des box (postes et dispositifs de surveillance) posés chez vos clients, pour retrouver chacun d\'un coup d\'œil. Réservée à la 3D.',0],
   'clients':['Clients','Votre fichier clients : coordonnées, sites, historique des interventions, devis et factures de chacun.',0],
   'devis':['Devis','Préparez des devis, envoyez-les en PDF à vos clients et suivez ceux qui sont acceptés.',0],
@@ -10126,7 +10126,7 @@ const RUBRIQUES_INFO={
   'contrats':['Contrats','Gardez vos contrats d\'entretien : client, durée, tarif, passages prévus. Un contrat fixe vos visites dans l\'année.',0],
   'comptabilite':['Comptabilité','Une synthèse de ce qui est encaissé, le registre des encaissements et un contrôle du jour. Réservé aux comptes autorisés.',0],
   'devisXylo':['Devis xylophage','Un devis spécialisé pour le traitement du bois (insectes xylophages). Réservé à la 3D.',0],
-  'telecollecte':['Télécollecte','Notez les paiements encaissés sur place pendant la journée (espèces, chèques, carte) pour les rapprocher des factures le soir.',0],
+  'telecollecte':['Télécollecte','Chaque soir, recopiez le ticket de votre terminal de paiement : les encaissements de la journée (carte, espèces, chèques…) sont déjà pré-remplis, l\'écart s\'affiche en direct, et la comptabilité reçoit le relevé.',0],
   'produits':['Produits','Votre catalogue de produits et de fournitures : références, prix, unités. Chaque entreprise y met ses propres références.',0],
   'stock':['Stock','Ce qu\'il vous reste de chaque produit, pour ne pas partir en intervention sans la pièce ou le produit qu\'il faut.',0],
   'mouvements':['Mouvements stock','Le journal automatique des entrées et des sorties de stock : qui a pris quoi, où, quand, validé par qui.',0],

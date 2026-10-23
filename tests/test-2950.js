@@ -1,6 +1,6 @@
 /* ══ test-2950 · LES 23 MÉTIERS DE L'APPLICATION SONT CEUX DU RÉFÉRENTIEL — UNE VÉRITÉ, DEUX COPIES TENUES ÉGALES ═══════════════
    23 octobre 2026 (Justin : « je veux que tu fasses bien OP GESTION en fonction des packs métiers qu'on propose »).
-   Le référentiel (design/metiers-referentiel.json) dit, pour chaque métier, ses rubriques conseillées, ses types d'intervention,
+   Le référentiel UNIQUE (metiers.json, à la racine — il n'y a plus de seconde copie dans design/) dit, pour chaque métier, ses rubriques conseillées, ses types d'intervention,
    ses prestations, ses relevés, ses catégories de produits et ses documents ; pour chaque rubrique, un titre et une explication.
    L'application marche hors ligne : elle en embarque une copie, ÉCRITE PAR UNE MACHINE (scripts/metiers-generer.js). Ce banc
    relit les DEUX et exige qu'elles disent la même chose — dans app.html comme dans beta.html — et il EXÉCUTE les vraies
@@ -51,7 +51,9 @@ function fonction(src, nom) {
 }
 const evalue = txt => vm.runInNewContext('(' + txt + ')');
 
-const REF = JSON.parse(fs.readFileSync(path.join(RACINE, 'design', 'metiers-referentiel.json'), 'utf8'));
+const REF = JSON.parse(fs.readFileSync(path.join(RACINE, 'metiers.json'), 'utf8'));
+/* la bêta précède le public sur UN titre (« Validation des mouvements ») : l'écart est déclaré dans tests/beta-en-avance.js, et seulement là */
+const { libellePublic, LIBELLES } = require('./beta-en-avance.js');
 
 /* ── ÉCARTS NOMMÉS (chacun est une décision, pas un oubli) ───────────────────────────────────────────────────────────────── */
 /* La 3D d'ELAN ne change pas d'un mot : ces deux types, que le référentiel propose pour la 3D, ne sont PAS dans INT_TYPES. */
@@ -127,7 +129,7 @@ for (const fichier of ['app.html', 'beta.html']) {
 
   console.log('\n4. ' + fichier + ' — les rubriques : un titre et une explication pour chacune');
   egal('RUBRIQUES_INFO a les clés du référentiel, dans le même ordre', Object.keys(A.INFO), Object.keys(REF.rubriques));
-  egal('⛔ chaque titre et chaque explication est celle du référentiel (mot pour mot)', Object.keys(REF.rubriques).filter(k => !A.INFO[k] || A.INFO[k][0] !== REF.rubriques[k].titre || A.INFO[k][1] !== REF.rubriques[k].explication || !!A.INFO[k][2] !== !!REF.rubriques[k].toujours), []);
+  egal('⛔ chaque titre et chaque explication est celle du référentiel (mot pour mot)', Object.keys(REF.rubriques).filter(k => !A.INFO[k] || libellePublic(k, A.INFO[k][0]) !== REF.rubriques[k].titre || A.INFO[k][1] !== REF.rubriques[k].explication || !!A.INFO[k][2] !== !!REF.rubriques[k].toujours), []);
   const sansInfo = navCles.filter(k => !A.INFO[k]);
   /* « Produits donnés » n'est pas au menu : c'est une sous-catégorie de Boxes (SOUS_CATS), donc elle n'est pas dans NAV */
   egal('chaque rubrique du MENU a son explication', sansInfo, []);
@@ -142,12 +144,9 @@ const gen = cp.spawnSync(process.execPath, [path.join(RACINE, 'scripts', 'metier
 vrai('node scripts/metiers-generer.js --verifier → app.html est à jour avec le référentiel (sinon : relancer le script)', gen.status === 0, (gen.stdout + gen.stderr).trim());
 const a1 = lire('app.html'), b1 = lire('beta.html');
 egal('beta.html porte les mêmes METIERS, METIERS_ORDRE et RUBRIQUES_INFO qu\'app.html (beta-build.js les recopie)', [b1.METIERS, b1.ORDRE, b1.INFO], [a1.METIERS, a1.ORDRE, a1.INFO]);
-/* le fichier à la racine, posé par l'autre chantier (serveur et site) : quand il existe, il doit dire la même chose que notre copie */
-const racineJson = path.join(RACINE, 'metiers.json');
-if (fs.existsSync(racineJson)) {
-  const R2 = JSON.parse(fs.readFileSync(racineJson, 'utf8'));
-  egal('metiers.json (racine) dit la même chose que design/metiers-referentiel.json sur les métiers et les rubriques', [R2.ordreMetiers, R2.metiers, R2.rubriques], [REF.ordreMetiers, REF.metiers, REF.rubriques]);
-} else console.log('  · metiers.json n\'est pas encore à la racine de cette branche : l\'autre chantier le pose, la comparaison se fera alors d\'elle-même');
+/* UNE SEULE SOURCE : l'ancienne copie du référentiel (design/) a été supprimée — deux copies d'un même fichier divergent toujours */
+vrai('il n\'existe pas de seconde copie du référentiel (design/metiers-referentiel.json supprimé)', !fs.existsSync(path.join(RACINE, 'design', 'metiers-referentiel.json')));
+vrai('(population) l\'écart déclaré de titre est bien celui d\'app.html : ' + Object.keys(LIBELLES).join(', '), Object.keys(LIBELLES).every(k => a1.INFO[k] && a1.INFO[k][0] === LIBELLES[k].beta && REF.rubriques[k].titre === LIBELLES[k].public));
 
 console.log('\n6. Les vraies fonctions, jouées pour chacun des 23 métiers');
 {

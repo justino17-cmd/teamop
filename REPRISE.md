@@ -53,8 +53,10 @@ Connu, non corrigé : l'entretien se reconnaît au TYPE choisi (« Entretien… 
   de la nuit du 22 au 23 octobre (« je veux que tu fasses bien OP GESTION en fonction des packs métiers qu'on propose »). Cinq parties,
   un commit chacune, `APP_VERSION` reste 772, `sw.js` ne bouge pas.
 - **A — les 23 métiers dans l'application.** `METIERS`, `METIERS_ORDRE` et `RUBRIQUES_INFO` sont ÉCRITS par `scripts/metiers-generer.js`
-  depuis `design/metiers-referentiel.json` (copie du référentiel de la nuit ; l'autre chantier pose `metiers.json` à la racine — `test-2950`
-  les compare dès qu'il existe). Treize métiers enrichis (types, prestations, relevés à la suite des anciens), dix nouveaux : incendie, froid,
+  depuis `metiers.json` (UN SEUL référentiel depuis la fusion du 23 octobre : la copie `design/metiers-referentiel.json` est supprimée ;
+  ce que la bêta a d'avance sur le public — dix métiers, le libellé « Validation des mouvements », les catégories appliquées — est
+  DÉCLARÉ dans `tests/beta-en-avance.js`, gardé par `test-2956`. ⛔ Geste de publication : vider cette déclaration ET ouvrir les pièces
+  publiques ensemble, puis `node scripts/metiers-generer.js`) Treize métiers enrichis (types, prestations, relevés à la suite des anciens), dix nouveaux : incendie, froid,
   ascenseurs, portails, ramonage, assainissement, énergies, alarme, eau, piscine. `test-2950` relit le référentiel ET l'application
   (`app.html`, `beta.html`) et joue les vraies fonctions pour les 23. La 3D ne reprend PAS les deux types que le référentiel lui propose
   (« Désinfection de locaux », « Audit hygiène… ») : ELAN ne change pas d'un mot — écart nommé dans le banc ; les adopter est une décision.

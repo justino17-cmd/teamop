@@ -15,7 +15,7 @@ const { lire, litteral, evalue, bac, fonction } = require('./metiers-outils.js')
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + (typeof d === 'string' ? d : JSON.stringify(d)) : '')); } };
 const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b]);
-const REF = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'design', 'metiers-referentiel.json'), 'utf8'));
+const REF = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'metiers.json'), 'utf8'));
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const sansBalises = h => h.replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/\s+/g, ' ');
 

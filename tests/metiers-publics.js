@@ -1,18 +1,19 @@
 /* ══ LES MÉTIERS QUE L'APPLICATION CONNAÎT ET QUE LE SITE N'OUVRE PAS ENCORE ═══════════════════════════════════════════════
    23 octobre 2026 : l'application passe de treize à vingt-trois métiers (`METIERS_ORDRE`, généré depuis
-   design/metiers-referentiel.json). Le site, le serveur (`METIERS_OK`), la Tour (`MET_L`) et le portail (`METIER_L`) en
+   metiers.json). Le site, le serveur (`METIERS_OK`), la Tour (`MET_L`) et le portail (`METIER_L`) en
    connaissent treize : un autre chantier ouvre les dix nouveaux, pages comprises. En attendant, les bancs qui comparent ces
    pièces à `METIERS_ORDRE` ne doivent ni tomber (la comparaison n'a pas changé de sens) ni se taire (une différence
    inattendue doit continuer de les faire tomber).
 
-   Donc UNE liste NOMMÉE, ici, et une règle : un métier de cette liste est TOLÉRÉ absent des autres pièces — il n'est jamais
+   Donc UNE liste NOMMÉE (déclarée dans tests/beta-en-avance.js, qui la rend VÉRIFIABLE : `test-2956`), et une règle : un métier de cette liste est TOLÉRÉ absent des autres pièces — il n'est jamais
    exigé. Le jour où l'autre chantier les ouvre, ils entrent dans les pièces et cette liste se vide ; un métier de la liste
    que TOUTES les pièces connaissent déjà est un oubli, et `ouvertsPartout` le signale.
    ⚠️ Ce n'est pas une exemption générale : tout métier ABSENT de la liste doit être partout, dans le même ordre.            */
 'use strict';
 const fs = require('fs'), path = require('path');
 
-const PAS_ENCORE_OUVERTS = ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine'];
+/* La liste est DÉCLARÉE à un seul endroit : tests/beta-en-avance.js (avec les deux autres écarts de la bêta, et le geste de publication). */
+const { PAS_ENCORE_OUVERTS } = require('./beta-en-avance.js');
 
 /* La liste attendue d'une pièce, dans l'ordre de l'application : tous les métiers qu'elle DOIT connaître, plus ceux de la liste
    qu'elle connaît déjà (tolérés, jamais exigés). */

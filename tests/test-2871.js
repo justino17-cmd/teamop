@@ -103,7 +103,11 @@ console.log('\n── 2871 · les catégories d\'OP GESTION : la Tour et le serv
   const grpNav = NAV.map(g => ({ g: g.g, items: g.items.filter(i => CATS_OK.includes(i.k)).map(i => [i.k, i.l]) })).filter(g => g.items.length);
   v('⛔ les groupes de la Tour sont ceux du menu (même titre, même ordre, mêmes rubriques dans chaque groupe) — « Tableau de bord » sans sa rubrique toujours ouverte',
     CAT_L.map(g => [g[0], g[1].map(c => c[0])]), grpNav.map(g => [g.g, g.items.map(i => i[0])]));
-  v('⛔ les libellés de la Tour sont ceux du menu de l\'application, rubrique par rubrique', CAT_L.flatMap(g => g[1]), grpNav.flatMap(g => g.items));
+  /* la bêta précède le public sur un libellé (« Validation des mouvements ») : l'écart est DÉCLARÉ dans tests/beta-en-avance.js, et seulement là */
+  const BETA = require('./beta-en-avance.js');
+  v('⛔ les libellés de la Tour sont ceux du menu de l\'application, rubrique par rubrique — à l\'écart DÉCLARÉ près (la bêta précède le public)', CAT_L.flatMap(g => g[1]), grpNav.flatMap(g => g.items.map(i => [i[0], BETA.libellePublic(i[0], i[1])])));
+  v('⛔ la déclaration d\'avance de la bêta est VRAIE côté libellés (app.html porte le libellé déclaré, la Tour le libellé public)',
+    BETA.mensongesLibelles(Object.fromEntries(clesNav.map(k => [k, { l: (grpNav.flatMap(g => g.items).find(i => i[0] === k) || [])[1] }])), Object.fromEntries(CAT_L.flatMap(g => g[1]))), []);
   vrai('   (population) le serveur et la Tour construisent leur liste de clés de la même façon : `CAT_CLES` suit `CAT_L`',
     /^var CAT_CLES=\[\]; CAT_L\.forEach\(function\(g\)\{ g\[1\]\.forEach\(function\(c\)\{ CAT_CLES\.push\(c\[0\]\); \}\); \}\);$/m.test(TOURN));
 
