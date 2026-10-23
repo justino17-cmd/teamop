@@ -8338,6 +8338,11 @@ const BRUIT_IDB=/in-progress transaction|transaction is not active|transaction w
       désactivable via localStorage 'top_monitor_off'. Ne doit JAMAIS faire planter l'application. ── */
 (function(){
 try{ if(localStorage.getItem('top_monitor_off')==='1') return; }catch(_){ }
+/* ⛔ SEULE UNE PAGE SERVIE PAR teamop.fr PARLE À LA CONSOLE (23 octobre 2026). Une copie locale — une sonde au navigateur sur
+      127.0.0.1, un aperçu ouvert depuis le disque — n'a pas de chemin vers api.teamop.fr : chaque appel y tombe en « Failed to
+      fetch », et la balise (sendBeacon, sans requête préalable CORS) remontait ces faux incidents dans la Tour. Relevé : 21
+      « api.teamop.fr injoignable sur /api/devis/etat » en v772-beta, une version qu'aucun client n'avait — c'était une sonde. */
+try{ if(!/(^|\.)teamop\.fr$/.test(String(location.hostname||''))) return; }catch(_){ return; }
 var TM_APP='opgestion', TM_KEY='top_monitor_q', TM_URL='https://api.teamop.fr/api/monitor/report';
 var tmLastSend=0, tmSending=false, tmT=Date.now();
 /* ⛔ TOUT ÉCRAN DOIT FIGURER ICI. `tmCat()` retombe sur `String(current).slice(0,30)` quand
