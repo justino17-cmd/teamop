@@ -97,7 +97,14 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   r = await tombe('piege-obeit', [], true);
   vrai('…un courriel piégé obéi est de toute façon REFUSÉ par le contrôle du serveur (adresse étrangère) : rien ne part vers l’attaquant', verifsDe(r, 7).filter(x => /piégé/.test(x.libelle)).every(x => x.etat === 'ok'));
   r = await lancer(['muet']);
-  vrai('personne ne répond : chaque scénario de conversation est ✗', [1, 2, 3, 4, 5].every(n => sc(r, n).etat === 'ko'));
+  vrai('personne ne répond (réponses VIDES : une limite de Claude, pas un défaut prouvé) : aucun scénario de conversation n’est ✓, aucun ✗ à tort', [1, 2, 3, 4, 5].every(n => sc(r, n).etat === 'inconnu'), [1, 2, 3, 4, 5].map(n => sc(r, n).etat).join(' '));
+  vrai('⛔ …et les verdicts de SÉCURITÉ du scénario 7 (spam ignoré, courriel piégé) ne passent jamais ✓ à vide : rien n’a été examiné, rien n’est prouvé', verifsDe(r, 7).filter(x => /spam|piégé/.test(x.libelle)).length === 3 && verifsDe(r, 7).filter(x => /spam|piégé/.test(x.libelle)).every(x => x.etat === 'inconnu' && /n’a pas été examiné/.test(x.detail)), JSON.stringify(verifsDe(r, 7).filter(x => /spam|piégé/.test(x.libelle)).map(x => x.etat)));
+  vrai('…et le scénario 8 (réunions muettes) n’est pas ✓ non plus', sc(r, 8).etat !== 'ok' && sc(r, 7).etat !== 'ok', sc(r, 7).etat + ' ' + sc(r, 8).etat);
+  const E7 = { techniques: () => 0 };
+  v('le verdict d’une absence exige un courriel examiné : traité (réponse, brouillon, ignorer, texte écarté) → le verdict vaut ; sinon inconnu si Claude (vide, trop long, forme, panne), ✗ si c’est de notre côté',
+    [{ c: {} }, { r: { ignore: true } }, { r: { depose: true } }, { r: { saute: 'texte_refuse' } }, { r: { saute: 'vide' } }, { r: { saute: 'trop_long' } }, { r: { saute: 'forme' } }, { r: { saute: 'erreur_api' } }, { r: { saute: 'registre_illisible' } }, { r: { saute: 'plafond_examens' } }, { r: null }, null].map(x => EX.verifTraite(E7, 'l', x, true, 'd').etat),
+    ['ok', 'ok', 'ok', 'ok', 'inconnu', 'inconnu', 'inconnu', 'inconnu', 'ko', 'ko', 'ko', 'ko']);
+  v('…et un courriel examiné dont la défense est fausse reste ✗', EX.verifTraite(E7, 'l', { r: { ignore: true } }, false, 'd').etat, 'ko');
 
   console.log('\n3. ⛔ UNE PANNE DE CLAUDE EST « INCONNU », JAMAIS ✗');
   r = await lancer(['panne']);
@@ -214,7 +221,7 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   let S = await monter({ appeler: banc.appeler([]) });
   v('sans session : 401 sur la lecture comme sur le lancement', [(await S.appel('GET', '/api/monitor/agents/examen')).s, (await S.appel('POST', '/api/monitor/agents/examen/lancer', {}, {})).s], [401, 401]);
   let g = (await S.G('/api/monitor/agents/examen')).j;
-  v('l’état au départ : aucun résultat, rien en cours, la clé de l’API est posée, limites annoncées', [g.resultats.length, g.courant, g.cleOk, g.limites], [0, null, true, { appelsMax: 200, usdMax: 12, parHeure: 1, parJour: 6 }]);
+  v('l’état au départ : aucun résultat, rien en cours, la clé de l’API est posée, limites annoncées', [g.resultats.length, g.courant, g.cleOk, g.limites], [0, null, true, { appelsMax: 200, usdMax: 12, moisUsdMax: 40, parHeure: 1, parJour: 6 }]);
   let l1 = await S.P('/api/monitor/agents/examen/lancer');
   v('lancer : 202, un identifiant, le coût annoncé', [l1.s, typeof l1.j.id, l1.j.appelsMax, l1.j.usdMax], [202, 'string', 200, 12]);
   const l2 = await S.P('/api/monitor/agents/examen/lancer');
@@ -232,7 +239,8 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   v('⛔ un par heure : 429 avec le délai, sur la minute près', await (async () => { const x = await S.P('/api/monitor/agents/examen/lancer'); return [x.s, x.j.raison, x.j.reessayerDans, x.h.get('retry-after')]; })(), [429, 'heure', 3600, '3600']);
   S.T.t += 30 * 60000;
   v('…trente minutes plus tard : encore 429, dans trente minutes', await (async () => { const x = await S.P('/api/monitor/agents/examen/lancer'); return [x.s, x.j.reessayerDans]; })(), [429, 1800]);
-  v('la dépense de l’examen est IMPUTÉE au budget du mois des agents (sous le nom « examen »)', [S.imputations.length, S.imputations[0][0], S.imputations[0][1] > 0], [1, 'examen', true]);
+  vrai('la dépense de l’examen est IMPUTÉE au budget du mois des agents (sous le nom « examen »), appel après appel', S.imputations.length > 1 && S.imputations.every(x => x[0] === 'examen' && x[1] > 0), S.imputations.length);
+  vrai('…et la somme imputée est celle du résultat (rien de compté deux fois, rien d’oublié)', Math.abs(S.imputations.reduce((t, x) => t + x[1], 0) - rs.usd) < 0.002, S.imputations.reduce((t, x) => t + x[1], 0) + ' contre ' + rs.usd);
   vrai('⛔ la vraie poste n’a jamais été appelée ni lue (elle lèverait)', !S.notes.some(n => /POSTE/.test(JSON.stringify(n))), JSON.stringify(S.notes.slice(0, 3)));
   vrai('le journal des agents note « examen lancé » puis « examen terminé » (identifiant « systeme »)', S.notes.some(n => n.id === 'systeme' && n.action === 'examen lancé') && S.notes.some(n => n.id === 'systeme' && n.action === 'examen terminé' && /9 ✓ · 0 ✗/.test(n.detail)), JSON.stringify(S.notes.map(n => n.action)));
   v('⛔ le vrai dossier de données ne reçoit que les deux fichiers de l’examen', fs.readdirSync(S.dir).sort(), ['examen-etat.json', 'examen-resultats.json']);
@@ -339,6 +347,66 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
     v('un nom qui n’a pas la forme d’un nom (majuscule, chiffre, trop long) est refusé', ['Examen', 'examen2', 'a'.repeat(21), ''].map(n => cv.imputer(n, 1)), [false, false, false, false]);
     v('« examen » est accepté, cumulé, compté dans le TOTAL du mois et dans aucun agent', [cv.imputer('examen', 2.5), cv.imputer('examen', 1), cv.etatBudget().total, cv.etatBudget().parAgent], [true, true, 3.5, { examen: 3.5 }]);
     v('…et le budget d’un agent reste entier', JSON.parse(fs.readFileSync(path.join(dirB, 'agents-budget.json'), 'utf8')).parAgent.lea, undefined);
+  }
+
+  console.log('\n   ⛔ L’abus : de fausses clés ne ruinent pas le journal plafonné, et l’examen a son plafond du mois');
+  {
+    const A = require(path.join(RACINE, 'server', 'agents.js'));
+    const dirJ = fs.mkdtempSync(path.join(racine, 'jrn-')), TJ = { t: Date.UTC(2026, 10, 3, 10, 0, 0) };
+    const ag = A({ get() {}, post() {} }, { DATA_DIR: dirJ, monAdmin: (a, b, c) => c(), monPatronStrict: (a, b, c) => c(), maintenant: () => TJ.t });
+    for (let i = 0; i < 5; i++) ag.noter('lea', 'préparer une réponse', { cible: 'inscription', resultat: 'ok' });
+    const SJ = await monter({ agents: ag, maintenant: () => TJ.t, appeler: banc.appeler([]) });
+    const FAUSSE = { Authorization: 'Bearer exam_' + 'a'.repeat(48) };
+    const t0 = Date.now();
+    for (let i = 0; i < 3000; i += 100) await Promise.all(Array.from({ length: 100 }, () => SJ.appel('GET', '/api/monitor/agents/examen', FAUSSE)));
+    const duree = Date.now() - t0;
+    const lignes = () => ag.lireJournal();
+    const refusees = () => lignes().filter(e => e.action === 'clé d\'examen : refusée');
+    v('3 000 fausses clés d’un anonyme : UNE ligne « refusée » dans le journal des agents (pas 3 000)', refusees().length, 1);
+    v('…et les cinq vraies lignes d’agents posées avant sont TOUTES encore là', lignes().filter(e => e.agent === 'lea' && e.action === 'préparer une réponse').length, 5);
+    vrai('…le fichier du journal reste petit (quelques lignes, pas 2 000)', fs.statSync(path.join(dirJ, 'agents-journal.json')).size < 6000, fs.statSync(path.join(dirJ, 'agents-journal.json')).size);
+    v('…chaque fausse clé est refusée (401)', (await SJ.appel('GET', '/api/monitor/agents/examen', FAUSSE)).s, 401);
+    TJ.t += 3600001;
+    await SJ.appel('GET', '/api/monitor/agents/examen', FAUSSE);
+    vrai('l’heure suivante, une seconde ligne dit COMBIEN de refus elle recouvre', refusees().length === 2 && /3001 fois/.test(refusees()[1].detail || ''), JSON.stringify(refusees().map(e => e.detail)));
+    vrai('⛔ la clé fausse n’est écrite nulle part dans le journal', !JSON.stringify(lignes()).includes('a'.repeat(48)));
+    // une clé valide : ses lancements refusés et ses lectures sont cadencés aussi
+    const cj = (await SJ.P('/api/monitor/agents/examen/cle')).j.cle, KJ = { Authorization: 'Bearer ' + cj };
+    await SJ.appel('POST', '/api/monitor/agents/examen/lancer', KJ, {});     // lance (202)
+    for (let i = 0; i < 400; i++) await SJ.appel('POST', '/api/monitor/agents/examen/lancer', KJ, {});   // 409 « en cours » / 429
+    for (let i = 0; i < 400; i++) await SJ.appel('GET', '/api/monitor/agents/examen', KJ);
+    v('⛔ 400 lancements refusés et 400 lectures d’un détenteur de clé : une ligne de chaque sorte (le détail compte les occurrences)', [lignes().filter(e => e.action === 'clé d\'examen : lancement refusé').length, lignes().filter(e => e.action === 'clé d\'examen : résultats lus').length], [1, 1]);
+    await SJ.mod.attendre();
+    // la clé d'examen n'a pas de ligne de plus par la suite tant que la fenêtre n'est pas passée
+    const avant = lignes().length; await SJ.appel('GET', '/api/monitor/agents/examen', KJ);
+    v('…et une lecture de plus dans la même minute n’ajoute rien', lignes().length, avant);
+    await SJ.ferme();
+
+    // le plafond MENSUEL de l'examen
+    const mois = async (budget, attendu, nom) => {
+      const M = await monter({ appeler: banc.appeler([]) });
+      Object.assign(M.budget, budget);
+      const x = await M.P('/api/monitor/agents/examen/lancer');
+      v(nom, [x.s, x.j.raison || ''], attendu);
+      if (x.s === 202) await M.mod.attendre();
+      await M.ferme(); return x;
+    };
+    const x1 = await mois({ mois: '2026-11', parAgent: { examen: 28.5 } }, [409, 'mois_examen'], '⛔ 28,5 $ déjà dépensés par l’examen ce mois-ci + 12 $ dépasseraient 40 $ : 409 « mois_examen »');
+    vrai('…le refus dit pourquoi, avec les chiffres', /plafond mensuel de l’examen/.test(x1.j.error) && /28,?\.?5/.test(x1.j.error.replace(',', '.')) && /40 \$/.test(x1.j.error), x1.j.error);
+    await mois({ mois: '2026-11', parAgent: { examen: 28 } }, [202, ''], '28 $ + 12 $ = 40 $ : tient pile dans le plafond (202)');
+    await mois({ mois: '2026-10', parAgent: { examen: 39 } }, [202, ''], 'la dépense d’un AUTRE mois ne compte pas : 202');
+    await mois({ mois: '2026-11', parAgent: { lea: 150, victor: 20 }, total: 170 }, [202, ''], 'ce que les agents dépensent n’est pas le plafond de l’examen : 202');
+    await mois({ mois: '2026-11', parAgent: { examen: 5 }, total: 185 }, [409, 'budget'], 'et le plafond de 195 $ du mois des agents reste le dernier mot : 409 « budget »');
+    const Sm = await monter({}); const gm = (await Sm.G('/api/monitor/agents/examen')).j; await Sm.ferme();
+    v('le plafond mensuel est annoncé à la Tour (limites.moisUsdMax)', gm.limites.moisUsdMax, 40);
+
+    // l'imputation se fait au fur et à mesure
+    const SI = await monter({ appeler: banc.appeler([]) });
+    await SI.P('/api/monitor/agents/examen/lancer');
+    let vu = false; const tI = Date.now();
+    while (SI.mod.enCours() && Date.now() - tI < 60000) { if (SI.imputations.length > 0) { vu = true; break; } await dormir(10); }
+    vrai('⛔ la dépense est imputée AU FUR ET À MESURE : le budget du mois voit déjà de l’argent alors que l’examen tourne encore (une erreur ou un redémarrage ne laisse rien de non compté)', vu);
+    await SI.mod.attendre(); await SI.ferme();
   }
 
   console.log('\n11. Un processus qui joue l’examen se TERMINE de lui-même (aucune minuterie ne survit)');

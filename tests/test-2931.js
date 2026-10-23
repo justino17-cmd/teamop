@@ -82,7 +82,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   v('(population) seize agents réels, tous à l’arrêt', [REG.length, REG.filter(a => a.mode === 'arret').length], [16, 16]);
   const avantJournal = (await S.G('/api/monitor/agents/journal')).j.journal.length;
   const g0 = (await S.G('/api/monitor/agents/examen')).j;
-  v('l’état au départ : aucun résultat, rien en cours, clé des agents posée, limites annoncées', [g0.resultats.length, g0.courant, g0.cleOk, g0.limites], [0, null, true, { appelsMax: 200, usdMax: 12, parHeure: 1, parJour: 6 }]);
+  v('l’état au départ : aucun résultat, rien en cours, clé des agents posée, limites annoncées', [g0.resultats.length, g0.courant, g0.cleOk, g0.limites], [0, null, true, { appelsMax: 200, usdMax: 12, moisUsdMax: 40, parHeure: 1, parJour: 6 }]);
   const t0 = Date.now();
   const L = await S.P('/api/monitor/agents/examen/lancer');
   v('lancer par la route de la Tour : 202, l’identifiant, le coût annoncé', [L.s, typeof L.j.id, L.j.appelsMax, L.j.usdMax], [202, 'string', 200, 12]);
