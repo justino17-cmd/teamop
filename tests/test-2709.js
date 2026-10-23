@@ -284,7 +284,8 @@ console.log('\n── 2709 · le panneau Agents de la Tour : ses vraies fonction
 
 
   /* ── « Parler » et ce que chaque carte dit de son cerveau (20 octobre 2026) ── */
-  vrai('⛔ le bouton « Parler » existe et ouvre le fil de l’agent', /function agParler\(id\)\{[^}]*agCvOuvrir\(id\)/.test(SRC) && /onclick="agParler\(/.test(SRC));
+  /* 23 octobre 2026 (v2.104) : « Parler à X » ouvre la MESSAGERIE sur le fil de l'agent (`messOuvrirFil`), plus l'onglet Conversations — test-2882 §9 et la sonde le gardent. */
+  vrai('⛔ le bouton « Parler » existe et ouvre le fil de l’agent', /function agParler\(id\)\{[^}]*messOuvrirFil\(id\)/.test(SRC) && /onclick="agParler\(/.test(SRC));
   vrai('le serveur dit quels agents ont un cerveau et si la clé est posée — deux booléens, jamais la clé', /cleOk: ctx\.cleCerveauPosee === true/.test(fs.readFileSync(path.join(RACINE, 'server/agents.js'), 'utf8')) && /cleCerveauPosee: !!\(config\.agents && config\.agents\.cleApi\)/.test(fs.readFileSync(path.join(RACINE, 'server/index.js'), 'utf8')));
   (function () {
     const A = Z.ctx.AG, avant = [A.agents, A.cleOk, A.loaded, A.err, A.sec];

@@ -221,3 +221,8 @@ tests/test-2861.js
 # et `test-2861` en sont modifiés d'une ligne chacun (la ligne du système d'un agent à l'arrêt ; 3000 jetons et réflexion adaptative) — dits dans leurs en-têtes.
 tests/test-2880.js
 tests/test-2881.js
+# 23 octobre 2026 : l'écran de la messagerie dans la Tour — `test-2882` (les VRAIES fonctions de tour.html : mentions comparées à la règle du serveur, liste du « @ », touches,
+# envoi optimiste puis refus dit, trois états, minuteries, calque miroir de la saisie ; `TOUR_FICHIER` lit une autre version) et `test-2883` (ces fonctions contre le VRAI serveur
+# et un faux Claude : la question à Margaux reste à Margaux, « @Camille @Léa » donne deux tâches dans « Qui fait quoi », « déléguée » vient de `passePar`, « lu », « écrit… », les refus).
+tests/test-2882.js
+tests/test-2883.js

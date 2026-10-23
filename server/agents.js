@@ -415,7 +415,10 @@ module.exports = function monterAgents(app, ctx) {
   app.get('/api/monitor/agents/taches', monAdmin, (req, res) => {
     perimer();
     if (illisibles.has(F_TACHES)) return res.status(503).json({ error: 'La file de tâches est illisible' });
-    res.json({ ok: true, taches: taches.slice(-200).reverse().map(k => ({ id: k.id, ts: k.ts, de: k.de, vers: k.vers, type: k.type, params: k.params, statut: k.statut })) });
+    /* `passePar` : les identifiants de ceux qui ont passé cette tâche avant l'agent actuel (jamais un texte) — c'est ce qui permet à la Tour de dire
+       « déléguée » sans le deviner (messagerie, « Qui fait quoi »). */
+    res.json({ ok: true, taches: taches.slice(-200).reverse().map(k => ({ id: k.id, ts: k.ts, de: k.de, vers: k.vers, type: k.type, params: k.params, statut: k.statut,
+      passePar: Array.isArray(k.passePar) ? k.passePar.filter(x => IDS.has(x)) : [] })) });
   });
 
   app.post('/api/monitor/agents/mode', monPatronStrict, (req, res) => {
