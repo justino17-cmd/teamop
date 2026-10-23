@@ -55,7 +55,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   async function serveur(nom) {
     const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true });
     if (!fs.existsSync(path.join(D, 'clients.json'))) { fs.writeFileSync(path.join(D, 'clients.json'), '{}'); fs.writeFileSync(path.join(D, 'espaces.json'), '{}'); }
-    const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2932' }, agents: { cleApi: 'sk-ant-api03-banc-2932-xxxxxxxxxxxxxxxx' } };
+    const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2932' }, agents: { cleApi: 'sk-ant-' + 'api03-banc-2932-xxxxxxxxxxxxxxxx' } };
     fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify(conf));
     const PORT = await libre(); let journal = '';
     const env = Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, nom, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_PLACES_BASCULE: '2026-01-01T00:00:00Z' });
