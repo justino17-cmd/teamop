@@ -20,7 +20,7 @@ Rien n'est conservé par TEAM OP à cette occasion. Sont transmis :
 (b) « Devis IA » rapide : le seul texte de la demande ;
 (c) « Traduire en français » dans le Courrier, au seul geste de l'utilisateur (100 par jour et par entreprise au plus) : le texte du courriel ouvert, tel quel, adresses électroniques et numéros compris ;
 (d) agents internes de TEAM OP (console d'administration, réservée à l'éditeur) : dans la conversation avec l'éditeur, son message (adresses électroniques retirées) et des faits fermés sur les dossiers cités ; mais aussi du texte libre — courriels reçus par TEAM OP (objet et texte tel quel, signature comprise), réponses de prospects à nos courriels, besoin décrit à l'inscription —, adresses électroniques et numéros de téléphone retirés, noms non retirés ; pour préparer une proposition : le nom de l'entreprise, son métier, le nombre d'utilisateurs et la formule ;
-(e) « Expliquer la cause » et « Proposer un correctif » d'un incident, à la demande de l'éditeur : le message d'erreur, sa trace, l'écran concerné et un extrait du code de l'application ; aucun filtre ne retire les adresses électroniques ni les numéros de téléphone que le texte d'une erreur peut citer.
+(e) « Expliquer la cause » et « Proposer un correctif » d'un incident, à la demande de l'éditeur : le message d'erreur, sa trace, l'écran concerné et un extrait du code de l'application (le code de TEAM OP, sans donnée de client) ; adresses électroniques et numéros de téléphone retirés, mais pas les noms que le texte d'une erreur peut citer.
 Les données transmises à Anthropic ne servent pas à entraîner ses modèles, selon ses conditions commerciales applicables à l'API.
 
 Article 5 — Transferts hors Union européenne

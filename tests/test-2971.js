@@ -174,8 +174,12 @@ vrai('la réunion d’OP MESSAGES compte au plus dix personnes dans le code (ce 
    ne le fait plus, ce banc oblige à réécrire les phrases. */
 const iSauve = INDEX.indexOf('function saveMailboxes()');
 const SAUVE = iSauve < 0 ? '' : INDEX.slice(iSauve, iSauve + 700).split(/\n(?=function |app\.)/)[0];
-vrai('(population) la fonction qui écrit mailboxes.json est trouvée', SAUVE.length > 40 && /writeFileSync\(MAILBOX_PATH/.test(SAUVE), SAUVE.slice(0, 120));
-const BOITES_EN_CLAIR = /JSON\.stringify\(\s*mailboxes\s*\)/.test(SAUVE);
+/* Depuis le chantier des boîtes (23 octobre 2026), `saveMailboxes()` passe par le coffre (`server/coffre-boites.js`) : c'est LUI qui écrit, et
+   il écrit le mot de passe scellé (`passScelle = sceller(…)`, la clé maître du socle). On suit donc l'écriture jusqu'au coffre. */
+const PAR_COFFRE = /coffreBoites\.ecrire\(\s*MAILBOX_PATH/.test(SAUVE);
+const COFFRE = PAR_COFFRE && fs.existsSync(path.join(RACINE, 'server', 'coffre-boites.js')) ? sansJsCom(lire('server/coffre-boites.js')) : '';
+vrai('(population) la fonction qui écrit mailboxes.json est trouvée' + (PAR_COFFRE ? ', et le coffre qu\'elle appelle' : ''), SAUVE.length > 40 && (/writeFileSync\(MAILBOX_PATH/.test(SAUVE) || (PAR_COFFRE && COFFRE.length > 200)), SAUVE.slice(0, 120));
+const BOITES_EN_CLAIR = PAR_COFFRE ? !/passScelle\s*=\s*sceller\(/.test(COFFRE) : /JSON\.stringify\(\s*mailboxes\s*\)/.test(SAUVE);
 const DIT_CHIFFRE = T => /mots? de passe d.application[^.<]{0,120}conserv\S*\s+chiffr/i.test(T) || /conserv\S*\s+chiffr\S*[^.<]{0,60}mots? de passe d.application/i.test(T);   // \S et non \w : « conservé » porte un é
 const PAGES_BOITES = [['registre-traitements.html', REG], ['sous-traitance.html', SOUS], ['confidentialite.html', CONF], ['apercu/registre-traitements.html', txtPage('apercu/registre-traitements.html')], ['apercu/sous-traitance.html', txtPage('apercu/sous-traitance.html')], ['apercu/confidentialite.html', txtPage('apercu/confidentialite.html')]];
 for (const [f, T] of PAGES_BOITES) vrai('⛔ ' + f + ' : ' + (BOITES_EN_CLAIR ? 'ne dit pas « conservé chiffré » du mot de passe d’une boîte (le code l’écrit en clair)' : 'dit le mot de passe d’une boîte « conservé chiffré » (le code ne l’écrit plus en clair)'), DIT_CHIFFRE(T) === !BOITES_EN_CLAIR);

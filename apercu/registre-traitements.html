@@ -49,7 +49,7 @@
     <p><b>À faire relire par un juriste avant publication.</b> Ce registre est tenu par TEAM OP
     en qualité de sous-traitant, comme le promet l'article 3 du <a href="/apercu/sous-traitance.html">contrat
     de sous-traitance</a>. Il décrit l'état des applications à partir du passage de leurs données
-    sur le serveur TEAM OP. Trois points appellent une décision :</p>
+    sur le serveur TEAM OP. Deux points appellent une décision :</p>
     <ol>
       <li><b>Les sauvegardes et la fin de contrat.</b> Une donnée supprimée de l'application
       disparaît des sauvegardes au terme de leur rotation (30 copies quotidiennes, 24 copies
@@ -59,9 +59,6 @@
       supprimées après 24 mois sans abonnement (conditions générales, article 5). Le décompte est
       tenu par le serveur ; la suppression au terme n'est pas automatique, et aucun courriel de
       préavis n'est envoyé.</li>
-      <li><b>Les mots de passe des boîtes mail connectées</b> sont conservés sur le serveur pour
-      relever le courrier, sans chiffrement propre (seules les sauvegardes sont chiffrées) : leur
-      chiffrement au repos est décidé et n'est pas encore en service.</li>
     </ol>
   </div>
 
@@ -96,7 +93,7 @@
       </tr>
       <tr>
         <td><b>Relevé des boîtes mail</b> que l'entreprise connecte à l'application</td>
-        <td>Adresse et mot de passe d'application de la boîte (conservé sur le serveur sans chiffrement propre ; seules les sauvegardes sont chiffrées), courriels reçus en réponse</td>
+        <td>Adresse et mot de passe d'application de la boîte (conservé chiffré sur le serveur, AES-256-GCM, avec la clé maître du serveur), courriels reçus en réponse</td>
         <td>Salariés du client, ses correspondants</td>
       </tr>
       <tr>
@@ -140,7 +137,7 @@
       <tr><td>Google Ireland Ltd (Firebase)</td><td>Pour OP GESTION, ancien stockage — copie figée conservée 30 jours après le passage sur le serveur TeamOP, puis supprimée ; pour OP MESSAGES, stockage tant qu'il n'a pas son propre serveur</td><td>Irlande — UE</td></tr>
       <tr><td>Anthropic PBC</td><td>Assistant de rédaction de devis (en conversation ou « Devis IA » rapide) : le fil de la conversation, le nom des sociétés émettrices, nom, adresse et ville des 60 premiers clients visibles par l'utilisateur, ou le seul texte de la demande ; traduction d'un e-mail ouvert dans OP Courrier, au geste (« Traduire en français »), 100 par jour et par entreprise au plus : le texte de cet e-mail seulement, tel quel (adresses électroniques et numéros compris) ; rien n'est conservé</td><td>États-Unis</td></tr>
       <tr><td>Anthropic PBC</td><td>Agents internes de TEAM OP (console d'administration, réservée à l'éditeur) : conversation avec l'éditeur (le message qu'il écrit à un agent, toute adresse électronique retirée, et des faits fermés sur les dossiers qu'il cite : numéro de dossier, état de l'abonnement, formule, et pour l'agent de facturation le statut, le montant en euros et le jour, le mois et l'année d'émission des trois dernières factures du dossier — jamais le nom, l'adresse, le téléphone ni les notes), messagerie de l'équipe (derniers messages du fil, consignes confiées à l'équipe, objectifs et leçons des réunions, adresses électroniques et numéros de téléphone retirés), et préparation d'une réponse qu'il relit avant l'envoi ou, quand il a autorisé l'envoi automatique, qu'un contrôle qualité vérifie avant qu'elle parte — pour une inscription ou une demande d'application (adresse confirmée) : le nom de l'entreprise, son métier, le nombre d'utilisateurs et la formule demandés, le besoin décrit (champ libre, adresses électroniques et numéros de téléphone retirés), jamais l'adresse, le téléphone, le prénom ni le nom de la personne ; pour un courriel reçu : son objet et son texte tel quel, signature comprise (prénom, nom, société et adresse postale éventuels), seuls les adresses électroniques et les numéros de téléphone en étant retirés, sans l'adresse ni le nom de l'expéditeur lus dans l'en-tête ; pour la réponse d'un prospect à notre courriel, le même traitement ; pour une recherche sur le web, le nom de l'entreprise et le métier indiqué seulement, jamais le nom d'une personne (sauf lorsque l'entreprise porte elle-même ce nom, comme une entreprise individuelle : c'est alors son nom d'entreprise qui est transmis), une adresse électronique ni un téléphone ; pour la base de connaissances de l'équipe (assistant « Louis », relue et validée par l'éditeur), le texte d'une question de client restée sans réponse (tel quel, signature comprise, adresses électroniques et numéros de téléphone retirés) et, quand l'éditeur corrige un de nos courriels, le texte de ce courriel avant et après correction (il peut contenir le nom de l'entreprise destinataire et une partie de sa réponse) ; pour surveiller la plateforme, suivre les incidents et tenir le point du matin : des nombres et des noms de règles de surveillance, jamais le texte d'une erreur remontée par une application ni le nom d'une entreprise ; pour répartir le travail entre agents et départager deux agents : le texte des consignes en cours et les derniers messages de leur échange, adresses électroniques et numéros de téléphone retirés, mais pas les noms; jamais les notes ; transmission ponctuelle, à chaque préparation</td><td>États-Unis</td></tr>
-      <tr><td>Anthropic PBC</td><td>Analyse d'un incident technique (console d'administration : « Expliquer la cause » et « Proposer un correctif », à la demande de l'éditeur seul) : le message d'erreur d'un incident remonté par une application, sa trace, l'écran ouvert et un extrait du code de l'application, aucun filtre ne retire les adresses électroniques ni les numéros de téléphone que le texte d'une erreur peut citer ; aucune donnée n'est jointe à l'incident ; rien n'est conservé</td><td>États-Unis</td></tr>
+      <tr><td>Anthropic PBC</td><td>Analyse d'un incident technique (console d'administration : « Expliquer la cause » et « Proposer un correctif », à la demande de l'éditeur seul) : le message d'erreur d'un incident remonté par une application, sa trace, l'écran ouvert et un extrait du code de l'application (le code de TEAM OP, sans donnée de client), adresses électroniques et numéros de téléphone retirés, mais pas les noms que le texte d'une erreur peut citer ; aucune donnée n'est jointe à l'incident ; rien n'est conservé</td><td>États-Unis</td></tr>
       <tr><td>IGN — Institut national de l'information géographique et forestière (Géoplateforme)</td><td>Calcul d'un trajet dans OP MESSAGES (l'heure à laquelle partir à un rendez-vous ou à une réunion) : le lieu du rendez-vous ou de la réunion tel qu'il est écrit, et le point de départ (une adresse — Domicile ou Travail compris —, ou une position arrondie à une dizaine de mètres) — jamais le nom ni l'identifiant de la personne ; rien n'est conservé à cette occasion</td><td>France — UE</td></tr>
     </table>
     </div>
@@ -161,7 +158,7 @@
       <li>Sauvegarde chaque nuit dans une archive chiffrée (AES-256-GCM), relue après dépôt ;
       30 copies quotidiennes et 24 mensuelles ; restauration éprouvée</li>
       <li>Cloisonnement : un espace de données par entreprise, ouvert par la preuve de sa clé</li>
-      <li>Boîtes mail connectées : le mot de passe d'application de chaque boîte est conservé sur le serveur sans chiffrement propre ; il n'est chiffré que dans les sauvegardes</li>
+      <li>Boîtes mail connectées : le mot de passe d'application de chaque boîte est conservé chiffré sur le serveur (AES-256-GCM, clé maître du serveur, hors du dossier des données)</li>
       <li>Comptes : mots de passe jamais transmis ni conservés en clair (empreinte dérivée,
       PBKDF2 à 120 000 tours) ; liens de réinitialisation à usage unique et à durée limitée</li>
       <li>Contrôle d'accès par rôle dans l'application, et par rôle dans la console d'administration</li>
