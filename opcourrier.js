@@ -3324,7 +3324,7 @@ var MARKUP = `
         '<div class="fld"><label for="cTo">À&nbsp;:</label><input id="cTo" type="email" inputmode="email" autocomplete="off" value="'+H(model.to)+'" placeholder="destinataire@exemple.fr"></div>'+
         '<div class="fld"><label for="cFrom">De&nbsp;:</label><span class="from-tile" id="cFromTile" aria-hidden="true"></span><select id="cFrom">'+fromOpts+'</select></div>'+
         '<div class="fld"><label for="cSub">Objet&nbsp;:</label><input id="cSub" type="text" value="'+H(model.subject)+'" placeholder="Objet"></div>'+
-        '<textarea class="cbody" id="cBody" aria-label="Message" placeholder="Écrivez votre message…">'+H(body0)+'</textarea>'+
+        '<textarea class="cbody" id="cBody" aria-label="Message" placeholder="Écrivez votre message…"></textarea>'+
         '<div class="catt-row"><button class="btn att-btn" id="cAttBtn" type="button">'+I.attach+'<span>Joindre un fichier</span></button><button class="btn att-btn" id="cSignBtn" type="button">'+I.sign+'<span>Faire signer</span></button><input type="file" id="cFile" multiple hidden>'+
           '<div class="catt" id="cAtt" role="list" aria-label="Pièces jointes" style="display:contents"></div></div>'+
         '<div class="cfoot"><span class="cnote"><span class="csaved" id="cSaved" role="status"></span></span>'+
@@ -3332,6 +3332,10 @@ var MARKUP = `
       '</div>'+
       '<div class="sched-pop" id="cSchedWrap" role="region" aria-label="Programmer l’envoi" hidden>'+schedPanel("cSchedPanel")+'</div>'+
     '</div>';
+    /* ⛔ LE CORPS S'ÉCRIT PAR `.value`, JAMAIS DANS LE HTML (Justin, 23 octobre 2026, capture : « -- TEAM OP » deux fois). Le navigateur avale le
+       saut de ligne qui suit `<textarea>` : la signature ("\n\n-- \n…") n'était plus retrouvée telle quelle, changer de boîte « De » l'ajoutait une
+       seconde fois, et un brouillon s'enregistrait sans qu'on ait rien tapé (`hasContent` ne savait plus l'ôter). */
+    $("#cBody").value=body0;
     placeSheetChrome();
     state.compose={draftId:model.draftId||null,scheduled:!!model.scheduled,noTrust:model.noTrust||null,enReponseA:model.enReponseA||null,att:(model.att||[]).slice()};
     var toEl=$("#cTo"); (model.to?$("#cBody"):toEl).focus();
