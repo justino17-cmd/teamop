@@ -129,6 +129,9 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
   let jeton = '';
   const tour = (route, corps) => req(route, { corps, h: { Authorization: 'Bearer ' + jeton } });
   const sendmail = (id) => req('/api/sendmail', { corps: { teamId: T, to: 'client@exemple-2971.fr', subject: 'Banc 2971', text: 'Bonjour', useMailbox: { id } }, h: H_ENT });
+  /* La boîte support REPRISE par la Messagerie de la Tour (`mail.js` lit `support-box.json` à son démarrage) : son identifiant est tiré au sort, on la retrouve par son adresse. */
+  const envoyerReprise = async () => { const l = await tour('/api/monitor/mail/boites'); const b = (l.j.boites || []).find(x => x.email === ADR.supp);
+    return b ? (await tour('/api/monitor/mail/envoyer', { boite: b.id, a: 'client@exemple-2971.fr', objet: 'Banc 2971', texte: 'Bonjour' })).s : 'boîte reprise introuvable'; };
   const aSecret = (txt) => Object.values(MDP).some(m => txt.includes(m));
   let scelles = {};
 
@@ -156,8 +159,9 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
     v('la Tour : par la boîte bt2 (autre adresse, autre mot de passe) → 200', r.s, 200);
     r = await tour('/api/monitor/support/envoyer', { to: 'client@exemple-2971.fr', subject: 'Banc 2971', text: 'Bonjour' });
     v('la boîte support : /api/monitor/support/envoyer → 200', r.s, 200);
+    v('⛔ la boîte support REPRISE dans la Messagerie de la Tour (mail.js lit support-box.json par le coffre) envoie avec le bon mot de passe → 200', await envoyerReprise(), 200);
     const bonnes = smtp.auths.filter(a => a.bon).map(a => a.user).sort();
-    vrai('(population) le SMTP a reçu au moins quatre authentifications', smtp.auths.length >= 4);
+    vrai('(population) le SMTP a reçu au moins cinq authentifications', smtp.auths.length >= 5);
     v('chaque authentification présentée était la bonne (aucun refus 535) — aucun chiffré ni mot de passe vide n\'est parti vers un serveur de messagerie', smtp.auths.filter(a => !a.bon), []);
     v('les quatre adresses ont été authentifiées', Array.from(new Set(bonnes)), [ADR.supp, ADR.gest, ADR.tour2, ADR.tour].sort());
     await dormir(500);
@@ -195,6 +199,7 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
     v('après redémarrage : la boîte connectée par la route aussi', (await sendmail(id2)).s, 200);
     v('après redémarrage : la Tour (bt2)', (await tour('/api/monitor/mail/envoyer', { boite: 'bt2', a: 'client@exemple-2971.fr', objet: 'Banc 2971', texte: 'Bonjour' })).s, 200);
     v('après redémarrage : le support', (await tour('/api/monitor/support/envoyer', { to: 'client@exemple-2971.fr', subject: 'Banc 2971', text: 'Bonjour' })).s, 200);
+    v('après redémarrage : la boîte support reprise par la Tour', await envoyerReprise(), 200);
     v('après redémarrage : aucun refus du SMTP', smtp.auths.filter(a => !a.bon), []);
     vrai('(population) quatre authentifications après redémarrage', smtp.auths.length >= 4);
 
@@ -237,6 +242,7 @@ const H_ENT = { 'x-teamop-kh': kh(CLE_ENT) };
     v('la boîte connectée par la route aussi', (await sendmail(id2)).s, 200);
     v('la Tour (bt1)', (await tour('/api/monitor/mail/envoyer', { boite: 'bt1', a: 'client@exemple-2971.fr', objet: 'Banc 2971', texte: 'Bonjour' })).s, 200);
     v('le support', (await tour('/api/monitor/support/envoyer', { to: 'client@exemple-2971.fr', subject: 'Banc 2971', text: 'Bonjour' })).s, 200);
+    v('la boîte support reprise par la Tour', await envoyerReprise(), 200);
     v('aucun refus du SMTP', smtp.auths.filter(a => !a.bon), []);
     vrai('la boîte écrite en clair faute de clé est migrée dès que la clé revient : plus aucun mot de passe en clair dans aucun des trois fichiers', Object.values(MDP).every(m => ['mailboxes.json', 'mail-boites.json', 'support-box.json'].every(f => absent(f, m))));
     vrai('le journal complet du dernier démarrage ne contient aucun mot de passe', !aSecret(journal));
