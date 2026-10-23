@@ -293,6 +293,7 @@ tests/test-2916.js
 tests/test-2926.js
 tests/test-2927.js
 tests/test-2933.js
+tests/test-2909.js
 # 23 octobre 2026 : Léa, Chloé, Camille (et Louis) AUTONOMES — `test-2900` (le contrôle qualité : fautes du code, juge fermé, une réécriture, « Bonjour Louca… je suis Justin » tombe), `test-2901` (la signature posée
 # par le SERVEUR, jamais « Justin » ; controle@ exclue des agents), `test-2902` (l'authentification de l'en-tête de NOTRE serveur de réception, les gardes de l'envoi seul, la charte ouverte par défaut),
 # `test-2903` (la recherche web côté serveur : requête, pause_turn, plafonds, aucune donnée personnelle), `test-2904` (Chloé : la proposition sur mesure), `test-2905` (Camille : catégories, gabarits, résiliation
