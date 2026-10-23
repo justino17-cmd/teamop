@@ -134,7 +134,7 @@
    "titre": "Registre sanitaire",
    "ic": "📋",
    "groupe": "Interventions",
-   "explication": "Le registre des interventions que l'on doit pouvoir présenter à un contrôle. Aujourd'hui conçu pour l'hygiène anti-nuisibles (3D) ; il sera rendu utilisable par les autres métiers qui tiennent un registre.",
+   "explication": "Le registre des interventions que l'on doit pouvoir présenter à un contrôle.",
    "moduleMisDeCote": true,
    "aujourdhui": "3d seulement (masque du code actuel)",
    "seulement": [
@@ -204,7 +204,7 @@
    "titre": "Télécollecte",
    "ic": "💳",
    "groupe": "Ventes",
-   "explication": "Notez les paiements encaissés sur place pendant la journée (espèces, chèques, carte) pour les rapprocher des factures le soir."
+   "explication": "Chaque soir, recopiez le ticket de votre terminal de paiement : les encaissements de la journée (carte, espèces, chèques…) sont déjà pré-remplis, l'écart s'affiche en direct, et la comptabilité reçoit le relevé."
   },
   "produits": {
    "titre": "Produits",
@@ -321,7 +321,7 @@
    "titre": "Validations DR",
    "ic": "✅",
    "groupe": "Achats internes",
-   "explication": "Le responsable valide ou refuse les demandes de commande et les sorties de stock, pour que rien ne bouge sans son accord. (Le menu s'appelle « Validations DR » ; il doit devenir « Validation des mouvements ».)",
+   "explication": "Le responsable valide ou refuse les demandes de commande et les sorties de stock, pour que rien ne bouge sans son accord.",
    "reserveAdmin": true,
    "moduleMisDeCote": true
   },

@@ -69,6 +69,10 @@ v('   les groupes sont ceux du menu', clesRub.filter(k => libNav[k] && libNav[k]
 v('   les quatre rubriques « toujours » sont marquées, et elles seules', clesRub.filter(k => rub[k].toujours), TOUJOURS.slice().sort((a, b) => clesRub.indexOf(a) - clesRub.indexOf(b)));
 v('⛔ chaque rubrique a son explication, en vraies phrases (au moins 40 signes) — « quand ils cochent, ça explique la catégorie »',
   clesRub.filter(k => typeof rub[k].explication !== 'string' || rub[k].explication.trim().length < 40), []);
+/* ⛔ Une explication est LUE PAR LE CLIENT (page de paiement, espace client, site) : pas de note de travail (« il doit devenir… »), pas de promesse d'évolution
+   (« il sera rendu… »), pas de « aujourd'hui » qui date le texte, pas de parenthèse qui parle du menu en interne. */
+v('⛔ aucune explication ne porte une note de travail ni une promesse d\'évolution',
+  clesRub.filter(k => /doit devenir|il sera |elle sera |sera rendu|bientôt|aujourd'hui|à venir|le menu s'appelle|\(f\d+\)/i.test(rub[k].explication)), []);
 v('   … et un titre et un pictogramme', clesRub.filter(k => !rub[k].titre || !rub[k].ic), []);
 let manques = [], extras = [], inconnues = [], chevauche = [], vides = [], sansToujours = [], petits = [], sansTexte = [];
 for (const k of cles) {
