@@ -30,14 +30,27 @@ const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
 const A_LA_RACINE = process.argv.includes('--racine');
 const DEST = A_LA_RACINE ? RACINE : path.join(RACINE, 'apercu', 'site');
-/* ⛔ UN PACK « PRÊT » EST UN PACK QUE L'APPLICATION CONNAÎT — lu dans `app.html` (METIERS_ORDRE), jamais écrit ici. Le site
-   se publie sans attendre l'application (30 septembre 2026 : les six packs de la v766 vivent sur la bêta, l'application en
-   service n'en connaît que six) : un pack qu'elle ne connaît pas se dit « bientôt », et ce qui ne passe qu'avec la v766
-   (« Autre métier », le compte « 12 packs ») ne se dit pas — une clé inconnue partirait en 3D, le défaut de `metierId`.
-   Publier l'application, c'est donc aussi régénérer le site (`test-835` §8 le rappelle). */
-const PACKS_APP = ((fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1])
-  .split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
+/* ⛔ UN PACK « PRÊT » EST UN MÉTIER QUE LE PUBLIC PEUT CHOISIR — l'interrupteur UNIQUE, `ouverts` de `metiers.json` (23 octobre 2026), le même que
+   lisent le serveur (`server/metiers.js`), l'espace client et la page de paiement. Un métier n'y entre que si l'application connaît sa clé
+   (`METIERS_ORDRE`, app.html — `tests/test-2890.js` le vérifie dans les deux sens), ou par un réglage explicite et justifié : une clé qu'elle ne
+   connaît pas partirait en 3D, le défaut de `metierId`. Les dix métiers ajoutés au référentiel (incendie, froid, ascenseurs…) se disent donc
+   « bientôt » tant qu'ils n'y sont pas. Le site se publie sans attendre l'application (la v763 en service ne connaissait que six packs) :
+   publier l'application, c'est aussi ouvrir le métier dans le référentiel, puis régénérer le site (`test-835` §8 le rappelle). */
+const METIERS_REF = JSON.parse(fs.readFileSync(path.join(RACINE, 'metiers.json'), 'utf8'));
+const PACKS_APP = METIERS_REF.ouverts.slice();
 const packPret = k => PACKS_APP.includes(k) ? 1 : 0;
+/* le référentiel tel que le serveur le sert à l'espace client (`GET /api/metiers`) : le MÊME module, sur le même fichier — la demande de
+   création du site (creer.html) l'embarque pour proposer les rubriques sans réseau. Seuls les métiers OUVERTS y figurent. */
+const REF_PUBLIQUE = (() => {
+  const toujours = Object.keys(METIERS_REF.rubriques).filter(k => METIERS_REF.rubriques[k].toujours);
+  const ref = require('../server/metiers.js')(path.join(RACINE, 'metiers.json'), Object.keys(METIERS_REF.rubriques).filter(k => !toujours.includes(k)), toujours).publique();
+  /* ⚠️ SANS LA RAISON DE CHAQUE RUBRIQUE POUR CHAQUE MÉTIER (`pourquoi`, `proposees`) : ces phrases parlent du camion, du temps passé, du stock de la
+     camionnette — vraies pour le métier, mais le site public ne dit pas ce que l'application ne tient pas (`test-846` lit JUSQUE DANS le JSON de la
+     page). La page de création garde le titre, l'explication et le conseil de chaque rubrique ; les raisons, elles, s'affichent dans l'espace client et la
+     page de paiement, qui les lisent à l'API. */
+  const metiers = {}; for (const k of Object.keys(ref.metiers)) metiers[k] = { nom: ref.metiers[k].nom, ic: ref.metiers[k].ic, sous: ref.metiers[k].sous, rubriques: ref.metiers[k].rubriques, pourquoi: {}, proposees: {} };
+  return Object.assign({}, ref, { metiers });
+})();
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 /* les insécables de la typographie française, posés une fois ici (« : ; ! ? » et guillemets) */
@@ -74,6 +87,14 @@ const TRACE = {
   spray: 'M8 9h6v11H8zM10 9V6h2v3M15 6h1m2-2h1m-1 4h1M6 11H4',
   wrench: 'M14 6a4 4 0 0 0 4 4l-8 8a2.5 2.5 0 0 1-4-4l8-8Zm1-3 3 3',
   chat: 'M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H10l-5 4v-4H7a3 3 0 0 1-3-3V6Z',
+  snow: 'M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5',
+  lift: 'M6 3h12v18H6zM12 3v18M9 8l-1.5 2h3zM15 14l1.5-2h-3z',
+  gate: 'M3 6v14M21 6v14M3 9h18M3 15h18M7 9v6M12 9v6M17 9v6',
+  chimney: 'M9 21V8h6v13M8 8h8M11 8V4h2v4M5 21h14',
+  drop: 'M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11Z',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5',
+  cam: 'M3 8h12v8H3zM15 11l6-3v8l-6-3M6 16v3',
+  waves: 'M3 15c2 0 2-2 4.5-2s2.5 2 4.5 2 2.5-2 4.5-2 2.5 2 4.5 2M3 19c2 0 2-2 4.5-2s2.5 2 4.5 2 2.5-2 4.5-2 2.5 2 4.5 2M8 12V5a2 2 0 0 1 4 0',
 };
 const ic = (k, t) => `<svg width="${t || 20}" height="${t || 20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${TRACE[k]}"/></svg>`;
 const COCHE = (t) => `<svg width="${t || 14}" height="${t || 14}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>`;
@@ -359,6 +380,10 @@ const prixDe = cle => (FORMULES_GESTION.find(f => f.cle === cle) || {}).prix;
 /* la troisième carte de chaque page : la même partout, sauf si la page en dit une autre */
 const PREMIUM_METIER = "Tout Business, plus la couleur de votre entreprise dans l'application, OP MESSAGES dès sa réouverture et le service 24h/24.";
 const DES_PRO = 'Dès ' + prixDe('pro') + ' € par mois.';      // court : il entre dans des descriptions de 155 signes (test-846) ; la TVA est dite au pied de chaque page et dans « Les conditions, en bref »
+/* les métiers que le référentiel ajoute aux treize d'avant, dans son ordre : leur nom et leur ligne viennent de `metiers.json`, jamais d'ici */
+const ICONE_METIER = { incendie: 'flame', froid: 'snow', ascenseurs: 'lift', portails: 'gate', ramonage: 'chimney', assainissement: 'pipe', energies: 'sun', alarme: 'cam', eau: 'drop', piscine: 'waves' };
+const METIERS_NOUVEAUX = METIERS_REF.ordreMetiers.filter(k => !METIERS_REF.metiers[k].existant)
+  .map(k => ['m-' + k, 'PACK DISPONIBLE', ICONE_METIER[k] || 'tool', METIERS_REF.metiers[k].nom, METIERS_REF.metiers[k].sous, [], 1]);
 const METIERS = {
   'logiciel-anti-nuisibles': { priorite: '0.9', icone: 'bug', trois: 1,
     titre: "Logiciel anti-nuisibles 3D : registre sanitaire | TEAM OP",
@@ -663,7 +688,11 @@ const PAGES = {
         <div class="fil"><div class="bulle eux"><b>Julie</b>${fr('Tu peux m\'envoyer une photo du compteur ?')}</div><div class="bulle moi">Oui, deux secondes</div><div class="photos"><span></span><span></span></div><div class="bulle eux">${fr('Parfait, merci !')}</div><div class="ecrit">Marc est en train d'écrire…</div></div></div></section>
       <section id="fonctions" style="padding:clamp(70px,9vw,120px) 12px 12px"><div class="page" style="padding:0 10px"><h2 class="h2">Ce que fait OP MESSAGES.</h2><p class="intro">Ouvrez une carte pour tout voir.</p></div>${tuiles('msg', 'OP MESSAGES', F_MESSAGES)}</section>${FENETRE}` },
 
-  creer: { section: 'applications', cta: false, titre: 'Créer votre application — TEAM OP', desc: 'Décrivez votre métier et vos besoins : nous étudions votre demande et construisons avec vous l\'application qu\'il vous faut.',
+  creer: { section: 'applications', cta: false,
+    /* la grille des rubriques (rubriques-choix.js/.css, partagée avec l'espace client et la page de paiement) et le référentiel qu'elle lit : le MÊME que
+       celui du serveur (`REF_PUBLIQUE`), embarqué — la page se lit sans réseau, et ne propose que les métiers OUVERTS. `<` échappé : le JSON est dans un <script>. */
+    tete: () => '<link rel="stylesheet" href="/rubriques-choix.css">\n',
+    scripts: () => '<script type="application/json" id="referentiel-metiers">' + JSON.stringify(REF_PUBLIQUE).replace(/</g, '\\u003c') + '</script>\n<script src="/rubriques-choix.js" defer></script>\n', titre: 'Créer votre application — TEAM OP', desc: 'Décrivez votre métier et vos besoins : nous étudions votre demande et construisons avec vous l\'application qu\'il vous faut.',
     corps: () => scene('Sur mesure', 'Créons votre application, de A à Z.', 'Décrivez-nous votre métier, votre quotidien et vos besoins : nous étudions votre demande et construisons avec vous l\'outil qu\'il vous faut.')
       + `<section class="page" style="max-width:1100px;padding-top:clamp(50px,6vw,80px);padding-bottom:60px">
         <div class="etapes3"><div><b>1</b><span>Vous décrivez votre besoin</span></div><div><b>2</b><span>On vous rappelle sous 48 h</span></div><div><b>3</b><span>On construit ensemble</span></div></div>
@@ -672,12 +701,17 @@ const PAGES = {
       + [['Nom', 'text', 'Dupont', 'family-name'], ['Prénom', 'text', 'Marie', 'given-name'], ['E-mail', 'email', 'marie@entreprise.fr', 'email'], ['Téléphone', 'tel', '06 12 34 56 78', 'tel'], ['Nom de l\'entreprise', 'text', 'Votre entreprise', 'organization'], ['Taille de l\'équipe', 'text', 'Ex. : 5 personnes', 'off']]
         .map(([l, t, ph, ac], n) => `<label class="champ">${fr(l)}<input type="${t}" name="c${n}" data-libelle="${esc(l)}" placeholder="${esc(ph)}" autocomplete="${ac}"${t === 'tel' ? ' inputmode="tel"' : ''}></label>`).join('')
       + `</div></div>
-          <div><h3>Votre métier</h3><p>${fr('Votre application démarre avec les catégories d\'intervention, la fiche de terrain et les modules de votre métier.')}</p><div class="metiers-choix">`
+          <div><h3>${fr('2 · Votre métier')} <span class="oblig">${fr('— obligatoire')}</span></h3><p>${fr('Votre application démarre avec les catégories d\'intervention, la fiche de terrain et les rubriques de votre métier.')}</p><div class="metiers-choix" id="metiers-choix" role="group" aria-label="Votre métier">`
       + [['3d', '3D — Anti-nuisibles', 'Dératisation · désinsectisation · désinfection', 1], ['plomberie', 'Plomberie', 'Dépannage · sanitaire · réseaux', 1], ['electricite', 'Électricité', 'Installation · normes · dépannage', 1], ['chauffage', 'Chauffage / Climatisation', 'CVC · entretien · contrats', 1], ['serrurerie', 'Serrurerie', 'Ouverture · sécurité · accès', 1], ['nettoyage', 'Nettoyage / Propreté', 'Bureaux · remise en état · vitrerie', 1], ['maconnerie', 'Maçonnerie / Gros œuvre', 'Construction · rénovation', 1], ['menuiserie', 'Menuiserie', 'Pose · agencement · fermetures', 1], ['peinture', 'Peinture / Revêtements', 'Intérieur · extérieur · sols', 1], ['paysagiste', 'Paysagiste / Espaces verts', 'Entretien · création · élagage', 1], ['couverture', 'Couverture / Zinguerie', 'Toiture · gouttières · étanchéité', 1], ['multiservices', 'Multiservices / Maintenance', 'Petits travaux · contrats', 1]]
+        /* les dix métiers du référentiel que les treize d'avant ne couvrent pas : proposés (le visiteur dit ce qu'il fait), « bientôt » tant qu'ils sont fermés */
+        .concat(METIERS_REF.ordreMetiers.filter(k => !METIERS_REF.metiers[k].existant).map(k => [k, METIERS_REF.metiers[k].nom, METIERS_REF.metiers[k].sous]))
         .map(([k, n, s]) => [k, n, s, packPret(k)])
-        .map(([k, n, s, p]) => `<button type="button" class="metier-puce" aria-pressed="false" data-pack="${k}" data-nom="${esc(n)}" data-pret="${p}"><b>${fr(n)}</b><small>${fr(s)}</small><i${p ? ' class="pret"' : ''}>${p ? 'Pack prêt' : 'Sur mesure avec vous'}</i></button>`).join('')
-      + `</div></div>
-          <div><h3>2 · Ce dont vous avez besoin</h3><p>${fr('Cochez tout ce qui vous parle — on affine ensemble après.')}</p><div class="besoins">`
+        .map(([k, n, s, p]) => `<button type="button" class="metier-puce" aria-pressed="false" data-pack="${k}" data-nom="${esc(n)}" data-pret="${p}"><b>${fr(n)}</b><small>${fr(s)}</small><i${p ? ' class="pret"' : ''}>${p ? 'Pack prêt' : (METIERS_REF.metiers[k].existant ? 'Sur mesure avec vous' : 'Bientôt')}</i></button>`).join('')
+      + `</div>
+          <p class="erreur-metier" id="erreur-metier" role="alert" hidden>${fr('Choisissez votre métier : il règle votre application (catégories d\'intervention, fiche de terrain, rubriques). La demande ne part pas sans lui.')}</p>
+          <p class="metier-bientot" id="metier-bientot" role="status" hidden>${fr('Ce métier n\'a pas encore son pack dans l\'application : la demande part quand même, et nous construisons le vôtre avec vous.')}</p></div>
+          <div id="rubriques-demande" hidden><h3>${fr('3 · Vos rubriques')}</h3><p>${fr('Cochez ce dont vous avez besoin : elles sont pré-cochées pour votre métier, et chacune dit ce qu\'elle fait.')}</p><div id="rubriques-grille"></div></div>
+          <div><h3>${fr('4 · Ce dont vous avez besoin')}</h3><p>${fr('Cochez tout ce qui vous parle — on affine ensemble après.')}</p><div class="besoins">`
       + ['Planning et rendez-vous', 'Suivi d\'interventions / chantiers', 'Stock / matériel / box', 'Encaissements / facturation', 'Communication d\'équipe', 'Photos et comptes-rendus', 'Gestion clients / contrats'].map(b => `<button type="button" class="besoin" aria-pressed="false">${fr(b)}</button>`).join('')
       + `</div></div>
           <label class="champ">Décrivez votre quotidien (facultatif)<textarea name="quotidien" data-libelle="Quotidien" rows="4" placeholder="${esc('Ex. : 3 techniciens, 40 clients en contrat, on veut les rapports signés sur tablette…')}"></textarea></label>
@@ -708,6 +742,10 @@ const PAGES = {
         ['m-couverture', 'PACK DISPONIBLE', 'building', 'Couverture / Zinguerie', 'Toiture · gouttières · étanchéité', ['Interventions type : fuite, tuiles, gouttières, démoussage…', 'Relevés : surface, gouttière posée, hauteur de travail', 'Photos avant/après dans le rapport'], 1],
         ['m-multiservices', 'PACK DISPONIBLE', 'wrench', 'Multiservices / Maintenance', 'Petits travaux · maintenance · contrats', ['Interventions type : dépannage, petits travaux, maintenance…', 'Contrats de maintenance : chaque passage généré d\'un clic', 'Relevés : temps passé, pièces fournies'], 1],
         ['m-autre', 'RÉGLAGE GÉNÉRAL', 'tool', 'Autre métier de terrain', 'Interventions · entretien · dépannage', ['Types d\'intervention généraux : dépannage, entretien, installation…', 'Rapport : prestations réalisées et temps passé'], 1]]
+        /* ⛔ les dix métiers ajoutés au référentiel (23 octobre 2026) : leur carte dit « PACK BIENTÔT » tant que `metiers.json` ne les ouvre pas, SANS
+           aucune puce de promesse (aucun pack ne les règle encore dans l'application — `test-846` refuse ce qu'elle ne tient pas). Quand un métier
+           s'ouvre, sa carte passe seule en « PACK DISPONIBLE » ; ses puces, elles, s'écrivent alors (et se relisent dans l'application). */
+        .concat(METIERS_NOUVEAUX)
         .filter(([id]) => id !== 'm-autre' || PACKS_APP.includes('autre'))
         .map(([id, tag, i, t, s, pts]) => [id, packPret(id.slice(2)) ? tag : 'PACK BIENTÔT', i, t, s, pts, packPret(id.slice(2))])
         .map(([id, tag, i, t, s, pts, pret]) => `<article class="pack" id="${id}"><span class="tag${pret ? ' pret' : ''}">${tag}</span><span class="tete"><span class="tuile">${ic(i)}</span><span><b>${fr(t)}</b><small>${fr(s)}</small></span></span>`
@@ -846,7 +884,7 @@ ${racine ? teteSeo(cle) : ''}${ICONES(cle)}
 <link rel="manifest" href="/manifest-teamop.webmanifest">
 ${cle === 'index' ? LANCEUR + '\n' : ''}<link rel="stylesheet" href="${RES}site.css">
 <link rel="stylesheet" href="${RES}appareils.css">
-${racine ? '' : `<link rel="stylesheet" href="${RES}carrousel.css">\n`}</head>
+${racine ? '' : `<link rel="stylesheet" href="${RES}carrousel.css">\n`}${P.tete ? P.tete() : ''}</head>
 <body>
 ${entete(P.section, P.sousnav)}
 <main>
@@ -854,7 +892,7 @@ ${P.corps()}
 ${P.cta === false ? '' : commencer()}
 </main>
 ${pied()}
-<script src="${RES}site.js" defer></script>
+${P.scripts ? P.scripts() : ''}<script src="${RES}site.js" defer></script>
 ${racine ? '<script src="/cookies.js" defer></script>\n' : ''}${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
 </html>
 `;
