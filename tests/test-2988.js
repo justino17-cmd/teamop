@@ -216,7 +216,7 @@ console.log('\n── 7. Le workflow de déploiement de test (code seul)');
   const wfBrut = fs.readFileSync(WF, 'utf8');
   vrai('le workflow existe et n\'est pas vide', wf.length > 1500 && /^name: Espace de test$/m.test(wf));
   vrai('il se lance sur les demandes de fusion vers main (opened, synchronize, reopened) ET à la main', /pull_request:\n\s+branches: \[main\]\n\s+types: \[opened, synchronize, reopened\]/.test(wf) && /workflow_dispatch:/.test(wf));
-  vrai('⛔ le job qui parle au VPS attend les bancs du serveur (needs), comme le déploiement de la production', /deployer:\n\s+needs: bancs/.test(wf) && /scripts\/bancs-serveur\.liste/.test(wf));
+  vrai('⛔ le job qui parle au VPS attend les bancs du serveur (needs), comme le déploiement de la production', /deployer:\n\s+needs: \[cible, bancs\]/.test(wf) && /scripts\/bancs-serveur\.liste/.test(wf));
   vrai('⛔ une demande de fusion venue d\'un FORK ne déploie pas (elle n\'a pas les secrets, et ne doit pas)', /head\.repo\.full_name == github\.repository/.test(wf));
   vrai('⛔ il n\'appelle sur le VPS que le déployeur de l\'espace de test', /DEPLOYEUR=\/opt\/teamop\/test\/repo\/server\/deployer-test\.sh/.test(wf) && /bash "\$DEPLOYEUR" "\$SHA" "\$BRANCHE"/.test(wf));
   vrai('⛔ rien dans le code du workflow ne nomme la production : ni teamop-api (sans -test), ni /opt/teamop/data, config.json ou repo', !/teamop-api(?!-test)/.test(wf) && !/\/opt\/teamop\/(data|config|repo)/.test(wf));
@@ -231,6 +231,23 @@ console.log('\n── 7. Le workflow de déploiement de test (code seul)');
   vrai('la clé de déploiement est celle du dépôt, une seule (VPS_SSH_KEY), et le secret n\'est écrit que dans ~/.ssh', (wf.match(/secrets\.[A-Z_]+/g) || []).every(s => s === 'secrets.VPS_SSH_KEY'));
   vrai('le workflow ne déclenche pas le déploiement de la production : il ne touche pas deploiement.yml', !/deploiement\.yml/.test(wf));
   vrai('un commentaire du fichier dit qu\'il ne touche jamais à la production (la garde existe aussi dans le texte, mais l\'intention est écrite)', /NE TOUCHE JAMAIS À LA PRODUCTION/.test(wfBrut));
+  /* ⛔ LE COMMIT TESTÉ EST LE COMMIT DÉPLOYÉ. Le job de bancs faisait `actions/checkout` SANS `ref:` : sur une demande de fusion il
+     testait le commit de fusion synthétique, sur un lancement manuel le sommet de la branche — jamais l'entrée `sha` — pendant que
+     le VPS recevait le sha demandé. Un job `cible` calcule le commit UNE fois ; les bancs le consomment par `ref:`, le déployeur
+     par son environnement. On découpe le fichier en jobs (indentation de deux espaces) pour relier les deux sans rien supposer. */
+  {
+    const dans = wf.slice(wf.indexOf('\njobs:'));
+    const jobs = {}; let cour = null;
+    for (const l of dans.split('\n').slice(1)) { const m = l.match(/^  ([a-z]+):\s*$/); if (m) { cour = m[1]; jobs[cour] = ''; } else if (cour) jobs[cour] += l + '\n'; }
+    v('le workflow a exactement trois jobs : cible, bancs, deployer', Object.keys(jobs), ['cible', 'bancs', 'deployer']);
+    const ref = ((jobs.bancs || '').match(/uses: actions\/checkout@v4\n\s+with:\n\s+ref: (\$\{\{ needs\.cible\.outputs\.sha \}\})/) || [])[1];
+    vrai('⛔ les bancs font leur checkout du commit CALCULÉ par `cible` (`ref: ${{ needs.cible.outputs.sha }}`), jamais celui que GitHub choisirait seul', !!ref && /needs: cible/.test(jobs.bancs));
+    vrai('⛔ aucun `actions/checkout` du fichier n\'est sans `ref:` (un checkout nu teste le commit de fusion ou le sommet de la branche)', (wf.match(/uses: actions\/checkout@v4/g) || []).length === 1 && !/uses: actions\/checkout@v4\n(?!\s+with:\n\s+ref:)/.test(wf));
+    const envs = (jobs.deployer || '').match(/^\s+SHA: (.*)$/gm) || [];
+    vrai('⛔ le déployeur envoie au VPS le MÊME SHA que celui des bancs (' + envs.length + ' usages, tous `needs.cible.outputs.sha`)', envs.length >= 2 && envs.every(e => /SHA: \$\{\{ needs\.cible\.outputs\.sha \}\}$/.test(e)) && !/steps\.cible/.test(jobs.deployer) && /needs: \[cible, bancs\]/.test(jobs.deployer));
+    vrai('`cible` publie sha et branche depuis son étape, avec le sha de la demande de fusion d\'abord, l\'entrée manuelle ensuite', /sha: \$\{\{ steps\.cible\.outputs\.sha \}\}/.test(jobs.cible) && /SHA="\$\{SHA_PR:-\$\{SHA_MANUEL:-\$SHA_COURANT\}\}"/.test(jobs.cible));
+    vrai('⛔ le sha est validé (40 hexadécimaux) AVANT que les bancs ne le consomment, et le garde-fou des forks est sur `cible` (les deux autres sautent avec lui)', /\[\[ "\$SHA" =~ \^\[0-9a-f\]\{40\}\$ \]\]/.test(jobs.cible) && /head\.repo\.full_name == github\.repository/.test(jobs.cible) && !/\bif:/.test(jobs.bancs));
+  }
 }
 
 /* ═══ 8. CE QUE LE DÉPLOYEUR EXIGE DES PAGES ═════════════════════════════════════════════════════════════════════ */

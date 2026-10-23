@@ -38,36 +38,21 @@ permissions:
   contents: read
 
 jobs:
-  # Les mêmes bancs que le déploiement du serveur : un commit dont le serveur ne passe pas ses
-  # bancs ne va pas sur le VPS, même en essai (le serveur de test est un vrai serveur, sur la
-  # même machine que la production).
-  bancs:
-    name: Bancs du serveur (avant de toucher au VPS)
+  # ⛔ UN SEUL commit décide de tout : celui-ci. Les bancs le TESTENT (checkout de ce SHA, pas du commit de
+  # fusion que GitHub fabrique pour une demande de fusion, ni du sommet de la branche choisie à la main) et
+  # le VPS le REÇOIT (même sortie, lue par les deux jobs). Calculés chacun de leur côté, ils pouvaient
+  # diverger : un lancement manuel avec un sha faisait vérifier la branche et déployer le sha demandé
+  # (relecture adverse du 23 octobre 2026). `tests/test-2988.js` relie le `ref:` du checkout au SHA déployé.
+  cible:
+    name: Quel commit, quelle branche
     # Une demande de fusion venue d'un FORK n'a pas accès aux secrets (et ne doit pas en avoir) :
-    # elle n'est pas déployée en essai.
+    # elle n'est pas déployée en essai. Les jobs suivants en dépendent : ils sautent avec elle.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      # ⚠️ Sans les dépendances, les suites qui montent le VRAI serveur SAUTENT d'elles-mêmes
-      # et se déclarent vertes sans rien avoir exécuté — le pire des faux verts.
-      - name: Dépendances du serveur
-        run: npm ci --omit=dev --no-audit --no-fund --prefix server
-      - name: Syntaxe des pages
-        run: node scripts/verifier-syntaxe.js
-      - name: Syntaxe des fichiers serveur
-        run: for f in server/*.js; do node --check "$f" || exit 1; done
-      - name: Les bancs d'essai
-        run: BANCS_PLANCHER=$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste) bash scripts/bancs-ci.sh $(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-serveur.liste)
-
-  deployer:
-    needs: bancs
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 2
+    outputs:
+      sha: ${{ steps.cible.outputs.sha }}
+      branche: ${{ steps.cible.outputs.branche }}
     steps:
       # Le commit et la branche viennent du contexte GitHub, donc d'un humain (un nom de branche peut
       # contenir « $ », « ; » ou une apostrophe). Ils passent par l'ENVIRONNEMENT, jamais collés dans
@@ -91,6 +76,38 @@ jobs:
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
           echo "branche=$BRANCHE" >> "$GITHUB_OUTPUT"
 
+  # Les mêmes bancs que le déploiement du serveur : un commit dont le serveur ne passe pas ses
+  # bancs ne va pas sur le VPS, même en essai (le serveur de test est un vrai serveur, sur la
+  # même machine que la production).
+  bancs:
+    name: Bancs du serveur (avant de toucher au VPS)
+    needs: cible
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Le commit qui sera déployé, pas celui que GitHub choisirait seul (voir le job « cible »).
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.cible.outputs.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # ⚠️ Sans les dépendances, les suites qui montent le VRAI serveur SAUTENT d'elles-mêmes
+      # et se déclarent vertes sans rien avoir exécuté — le pire des faux verts.
+      - name: Dépendances du serveur
+        run: npm ci --omit=dev --no-audit --no-fund --prefix server
+      - name: Syntaxe des pages
+        run: node scripts/verifier-syntaxe.js
+      - name: Syntaxe des fichiers serveur
+        run: for f in server/*.js; do node --check "$f" || exit 1; done
+      - name: Les bancs d'essai
+        run: BANCS_PLANCHER=$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste) bash scripts/bancs-ci.sh $(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-serveur.liste)
+
+  deployer:
+    needs: [cible, bancs]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
       # La clé de déploiement vient des secrets du dépôt ; l'empreinte de l'hôte, elle, est
       # écrite en clair ici — une clé publique d'hôte n'est pas un secret, et la voir dans le
       # diff est précisément ce qui permet de vérifier qu'elle n'a pas changé en douce.
@@ -108,8 +125,8 @@ jobs:
 
       - name: Mettre en essai sur test.teamop.fr
         env:
-          SHA: ${{ steps.cible.outputs.sha }}
-          BRANCHE: ${{ steps.cible.outputs.branche }}
+          SHA: ${{ needs.cible.outputs.sha }}
+          BRANCHE: ${{ needs.cible.outputs.branche }}
         run: |
           # ⚠️ Le SHA et la branche passent en ARGUMENTS de `bash -s`, pas par interpolation dans le
           # heredoc : celui-ci est protégé (<<'DISTANT') exprès, pour que tout soit évalué SUR LE VPS.
@@ -136,8 +153,8 @@ jobs:
       # à travers nginx, et qu'il est bien FERMÉ à qui n'a pas le mot de passe.
       - name: Vérifier l'espace de test de l'extérieur
         env:
-          SHA: ${{ steps.cible.outputs.sha }}
-          BRANCHE: ${{ steps.cible.outputs.branche }}
+          SHA: ${{ needs.cible.outputs.sha }}
+          BRANCHE: ${{ needs.cible.outputs.branche }}
         run: |
           # Si l'installation n'est pas faite, test.teamop.fr ne répond pas encore : rien à vérifier.
           if ! curl -s --max-time 10 -o /dev/null https://test.teamop.fr/health; then
