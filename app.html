@@ -10144,6 +10144,15 @@ METIERS['3d'].catalogue=CATALOGUE; METIERS['3d'].fournisseurs=FOURNISSEURS_3D;
 function metierPackDe(base){ const id=(base&&base.metier&&METIERS[base.metier])?base.metier:'3d'; return METIERS[id]||{}; }
 function metierId(){ try{ return (db&&db.metier&&METIERS[db.metier])?db.metier:'3d'; }catch(e){ return '3d'; } }
 function metierPack(){ return METIERS[metierId()]; }
+/* ⛔ v773 — HORS ANTI-NUISIBLES, PLUS RIEN DE L'ANTI-NUISIBLES (Justin, 22 octobre 2026, cahier des métiers, point 5). UNE
+   seule fonction décide : `estMetier3D()`. Elle est lue par tout écran qui SAISIT quelque chose de propre à la 3D —
+   « Nuisibles ciblés », « Méthodes », l'étape « Constat » de la clôture guidée, le constat et le traitement du compte-rendu,
+   N° AMM / matière active / type de traitement d'un produit, le « Dossier sanitaire », le Certibiocide, la colonne CSV
+   « Nuisibles », les fournisseurs du catalogue 3D. Deux règles, qu'un banc garde (tests/test-2901.js) :
+   · on CACHE le champ, on ne le VIDE pas : une base venue de la 3D garde ses nuisibles, ses AMM, son constat — chaque
+     enregistrement relit ce que la fiche portait déjà ;
+   · un document déjà ÉMIS se relit tel quel : les lignes d'un rapport ou d'une fiche se lisent sur la DONNÉE (présente ou
+     non), jamais sur le métier d'aujourd'hui. */
 function estMetier3D(){ return metierId()==='3d'; }
 function intTypes(){ const p=metierPack(); return (p&&p.types)?p.types:INT_TYPES; }
 /* La beta voit tout : meme raison que planBloque (chercher BETA_ESSAI a cote de PLAN_BLOQUE). */
@@ -23565,8 +23574,8 @@ function csvLignes(rows,eol){ return rows.map(r=>r.map(csvCellule).join(';')).jo
 function csvDate(iso){ iso=String(iso||''); const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso); return m?m[3]+'/'+m[2]+'/'+m[1]:iso; }
 function csvDownload(name,heads,rows){ const txt='﻿'+csvLignes([heads,...rows],'\r\n');
   const blob=new Blob([txt],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); toast('Export téléchargé'); }
-function exportInterventionsCsv(){ const rows=visibleInts(db.interventions).map(i=>[i.num||'',i.date||'',i.heure||'',i.titre||'',i.type||'',clientName(i.clientId),techNames(i),(STATUT_INT[i.statut]||{}).l||i.statut||'',i.duree||'',i.adresse||'',csvCellMontant(i.montant),(i.nuisibles||[]).join(', '),i.compteRendu||'']);
-  csvDownload('interventions.csv',['N°','Date','Heure','Titre','Type','Client','Technicien','Statut','Durée (min)','Adresse','Montant','Nuisibles','Compte rendu'],rows); }
+function exportInterventionsCsv(){ const rows=visibleInts(db.interventions).map(i=>[i.num||'',i.date||'',i.heure||'',i.titre||'',i.type||'',clientName(i.clientId),techNames(i),(STATUT_INT[i.statut]||{}).l||i.statut||'',i.duree||'',i.adresse||'',csvCellMontant(i.montant)].concat(estMetier3D()?[(i.nuisibles||[]).join(', ')]:[],[i.compteRendu||'']));
+  csvDownload('interventions.csv',['N°','Date','Heure','Titre','Type','Client','Technicien','Statut','Durée (min)','Adresse','Montant'].concat(estMetier3D()?['Nuisibles']:[],['Compte rendu']),rows); }
 function exportClientsCsv(){ const ints=visibleInts(db.interventions); const rows=visibleClients(db.clients).map(c=>[c.nom||'',c.contact||'',c.tel||'',c.email||'',c.adresse||'',c.codePostal||'',c.ville||'',ints.filter(i=>i.clientId===c.id).length]);
   csvDownload('clients.csv',['Nom','Contact','Téléphone','Email','Adresse','Code postal','Ville','Nb interventions'],rows); }
 
@@ -25566,7 +25575,7 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
   let body='';
   if(s===0){ const sel=[...intNuis]; const all=[...NUIS_3D,...sel.filter(n=>!NUIS_3D.includes(n))];
     body=`<div class="form-sec" style="margin-top:0">1 · Constat — qu'as-tu trouvé sur place ?</div>
-    <div class="dt-lbl" style="margin-bottom:6px">Nuisible(s)</div>
+    ${!estMetier3D()?'':`    <div class="dt-lbl" style="margin-bottom:6px">Nuisible(s)</div>
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">${all.map(n=>{ const on=intNuis.has(n); const ne=n.replace(/'/g,"\\'");
       return `<button type="button" onclick="intNuis.${on?'delete':'add'}('${ne}');assistRender()" style="cursor:pointer;font-size:13px;font-weight:700;padding:10px 15px;border-radius:14px;border:1px solid ${on?'var(--acc)':'var(--brd)'};background:${on?'var(--acc)':'var(--bg2)'};color:${on?'var(--on-acc)':'var(--t2)'}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')}</div>
     <div class="dt-lbl" style="margin-bottom:6px">Niveau d'infestation</div>
@@ -25580,26 +25589,26 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
       if(!cats.length) return '';
       return `<div class="dt-lbl" style="margin:4px 0 6px">Questionnaires par type (repris sur le rapport)</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${cats.map(c2=>{ const on=!!((i.quest||{})[c2]||{}).actif;
-        return `<button type="button" class="chip ${on?'active':''}" onclick="t3dQuestModal('${i.id}','${c2}')">${T3D_CATS[c2].ic} ${esc(T3D_CATS[c2].lbl)}${on?' ✓':''}</button>`; }).join('')}</div>`; })()}
+        return `<button type="button" class="chip ${on?'active':''}" onclick="t3dQuestModal('${i.id}','${c2}')">${T3D_CATS[c2].ic} ${esc(T3D_CATS[c2].lbl)}${on?' ✓':''}</button>`; }).join('')}</div>`; })()}`}
     <div class="field" style="margin-top:8px"><label>Constat / observations (visible sur le rapport client)</label><textarea rows="4" oninput="asW.obs=this.value" placeholder="Ce que tu as constaté et fait sur place…">${esc(asW.obs)}</textarea></div>`;
   } else if(s===1){ const ck=i.checklist||[];
     body=`<div class="form-sec" style="margin-top:0">2 · Actions réalisées</div>
     ${ck.length?`<div class="dt-lbl" style="margin-bottom:6px">Checklist de l'intervention</div><div class="fgroup" style="margin-bottom:12px">${ck.map((x,k)=>`<label class="frow" style="cursor:pointer;gap:10px"><input type="checkbox" ${x.done?'checked':''} onchange="intCkToggleQuiet('${i.id}',${k})" style="width:24px;height:24px;accent-color:var(--acc);flex-shrink:0"><span style="flex:1;color:var(--t1);${x.done?'text-decoration:line-through;opacity:.6':''}">${esc(x.t)}</span></label>`).join('')}</div>`:''}
-    <div class="dt-lbl" style="margin-bottom:6px">Méthodes / actions</div>
+    ${!estMetier3D()?'':`    <div class="dt-lbl" style="margin-bottom:6px">Méthodes / actions</div>
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">${METHODES.map(n=>{ const on=intMeth.has(n); const ne=n.replace(/'/g,"\\'");
-      return `<button type="button" onclick="intMeth.${on?'delete':'add'}('${ne}');assistRender()" style="cursor:pointer;font-size:12.5px;font-weight:700;padding:9px 13px;border-radius:14px;border:1px solid ${on?'var(--acc)':'var(--brd)'};background:${on?'var(--acc)':'var(--bg2)'};color:${on?'var(--on-acc)':'var(--t2)'}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')}</div>
-    <div class="field"><label>Zones traitées</label><input value="${esc(asW.zones)}" oninput="asW.zones=this.value" placeholder="Ex : cuisine, cave, réserve…"></div>
-    <div class="field"><label>Matériel utilisé</label><input value="${esc(asW.materiel)}" oninput="asW.materiel=this.value" placeholder="Ex : 2 pièges à glu, 1 grille anti-intrusion…"></div>`;
+      return `<button type="button" onclick="intMeth.${on?'delete':'add'}('${ne}');assistRender()" style="cursor:pointer;font-size:12.5px;font-weight:700;padding:9px 13px;border-radius:14px;border:1px solid ${on?'var(--acc)':'var(--brd)'};background:${on?'var(--acc)':'var(--bg2)'};color:${on?'var(--on-acc)':'var(--t2)'}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')}</div>`}
+    <div class="field"><label>${estMetier3D()?'Zones traitées':'Zones concernées'}</label><input value="${esc(asW.zones)}" oninput="asW.zones=this.value" placeholder="${estMetier3D()?'Ex : cuisine, cave, réserve…':'Ex : salle de bain, cuisine, local technique…'}"></div>
+    <div class="field"><label>Matériel utilisé</label><input value="${esc(asW.materiel)}" oninput="asW.materiel=this.value" placeholder="${estMetier3D()?'Ex : 2 pièges à glu, 1 grille anti-intrusion…':'Ex : outillage, pièces, matériel posé…'}"></div>`;
   } else if(s===2){ const lines=i.produitsUtilises=i.produitsUtilises||[];
-    body=`<div class="form-sec" style="margin-top:0">3 · Produits utilisés (registre)</div>
+    body=`<div class="form-sec" style="margin-top:0">3 · ${estMetier3D()?'Produits utilisés (registre)':'Produits et pièces utilisés'}</div>
     ${lines.length?lines.map((l,ix)=>{ const p=produit(l.produitId);
-      return `<div class="fgroup" style="margin-bottom:8px"><div class="frow"><div style="flex:1;min-width:0"><b style="font-size:13.5px">${esc(p.nom||'—')}</b>${p.amm?`<div class="mono" style="font-size:11px;color:var(--t3)">AMM ${esc(p.amm)}</div>`:'<div style="font-size:11px;color:var(--t3)">AMM non renseignée (fiche produit)</div>'}</div>
+      return `<div class="fgroup" style="margin-bottom:8px"><div class="frow"><div style="flex:1;min-width:0"><b style="font-size:13.5px">${esc(p.nom||'—')}</b>${!estMetier3D()?'':(p.amm?`<div class="mono" style="font-size:11px;color:var(--t3)">AMM ${esc(p.amm)}</div>`:'<div style="font-size:11px;color:var(--t3)">AMM non renseignée (fiche produit)</div>')}</div>
         <div style="display:flex;align-items:center;gap:6px"><button type="button" class="btn ghost sm" onclick="asProdQte('${i.id}',${ix},-1)">−</button><b class="mono" style="min-width:26px;text-align:center">${l.qte||1}</b><button type="button" class="btn ghost sm" onclick="asProdQte('${i.id}',${ix},1)">＋</button><button type="button" class="btn danger sm" onclick="asProdDel('${i.id}',${ix})">✕</button></div></div></div>`; }).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:4px 0 10px">Aucun produit pour l’instant.</div>'}
     <div style="display:flex;gap:7px;align-items:center;margin-top:6px">
-      <select id="as-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:12px;color:var(--t1)"><option value="">— Ajouter un produit du registre —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.nom)}${p.amm?' · AMM '+esc(p.amm):''}</option>`).join('')}</select>
+      <select id="as-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:12px;color:var(--t1)"><option value="">${estMetier3D()?'— Ajouter un produit du registre —':'— Ajouter un produit ou une pièce —'}</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.nom)}${(estMetier3D()&&p.amm)?' · AMM '+esc(p.amm):''}</option>`).join('')}</select>
       <button type="button" class="btn" onclick="asProdAdd('${i.id}')">＋</button></div>
-    <div style="font-size:12px;color:var(--t3);margin-top:8px">Noté sur le rapport et au registre (n° AMM, traçabilité biocide) — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.</div>`;
+    <div style="font-size:12px;color:var(--t3);margin-top:8px">${estMetier3D()?'Noté sur le rapport et au registre (n° AMM, traçabilité biocide) — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.':'Noté sur le rapport — le stock ne bouge pas : il baisse quand on se sert dans le stockage.'}</div>`;
   } else if(s===3){
     body=`<div class="form-sec" style="margin-top:0">4 · Photos avant / après</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:9px;margin-bottom:10px">
@@ -25613,9 +25622,9 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
     <div style="font-size:12px;color:var(--t3)">Touchez « étiqueter » pour marquer AVANT → APRÈS → sans étiquette. Les étiquettes apparaissent sur le rapport.</div>`;
   } else if(s===4){
     body=`<div class="form-sec" style="margin-top:0">5 · Recommandations au client</div>
-    <div class="dt-lbl" style="margin-bottom:6px">Phrases types (1 touche pour ajouter)</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${RECO_3D.map((r,ix)=>`<button type="button" onclick="asRecoAdd(${ix})" style="cursor:pointer;font-size:12px;padding:8px 12px;border-radius:12px;border:1px solid var(--brd);background:var(--bg2);color:var(--t2);text-align:left">💡 ${esc(r)}</button>`).join('')}</div>
-    <div class="field"><label>Recommandations (rapport client)</label><textarea id="as-reco" rows="5" oninput="asW.reco=this.value" placeholder="Mesures correctives, hygiène, prochaine visite…">${esc(asW.reco)}</textarea></div>
+    ${!estMetier3D()?'':`    <div class="dt-lbl" style="margin-bottom:6px">Phrases types (1 touche pour ajouter)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${RECO_3D.map((r,ix)=>`<button type="button" onclick="asRecoAdd(${ix})" style="cursor:pointer;font-size:12px;padding:8px 12px;border-radius:12px;border:1px solid var(--brd);background:var(--bg2);color:var(--t2);text-align:left">💡 ${esc(r)}</button>`).join('')}</div>`}
+    <div class="field"><label>Recommandations (rapport client)</label><textarea id="as-reco" rows="5" oninput="asW.reco=this.value" placeholder="${estMetier3D()?'Mesures correctives, hygiène, prochaine visite…':'Conseils d’entretien, travaux à prévoir, prochaine visite…'}">${esc(asW.reco)}</textarea></div>
     <div style="border:1px dashed color-mix(in srgb,var(--purple) 55%,transparent);background:color-mix(in srgb,var(--purple) 6%,transparent);border-radius:12px;padding:11px 12px;margin-top:6px">
       <div style="font-size:12px;font-weight:800;color:var(--purple);margin-bottom:6px">🔒 Note interne équipe — jamais sur le rapport</div>
       <textarea rows="2" oninput="asW.noteInterne=this.value" placeholder="Infos pour les collègues uniquement…" style="width:100%;background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:9px 11px;color:var(--t1);font-family:inherit;font-size:13px;resize:vertical">${esc(asW.noteInterne)}</textarea></div>`;
@@ -25729,7 +25738,7 @@ function formIntervention(id,preset){
             <input type="hidden" id="adr-cp"><input type="hidden" id="adr-ville"><input type="hidden" id="adr-lat"><input type="hidden" id="adr-lng">
             <div id="adr-list" class="soc-list" style="display:none"></div>
           </div>
-          <div class="frow"><input name="titre" required value="${esc(i.titre)}" placeholder="Titre (ex : Dératisation cuisine)"></div>
+          <div class="frow"><input name="titre" required value="${esc(i.titre)}" placeholder="${esc(estMetier3D()?'Titre (ex : Dératisation cuisine)':'Titre (ex : '+((intTypes()[0])||'Intervention')+')')}"></div>
         </div></div>
 
         <div class="fsec"><div class="form-sec">Affectation</div>
@@ -25776,11 +25785,13 @@ ${!id?`
         <div id="passage-dates"></div>
         <div style="font-size:12px;color:var(--t3);margin-top:6px;padding:0 4px">Plusieurs passages → le titre affichera « 1/2 passage », « 2/2 passage »… et chaque passage devient un rendez-vous.</div></div>`:''}
 
+${estMetier3D()?`
         <div class="fsec"><div class="form-sec">Nuisibles ciblés <span style="font-weight:400;text-transform:none;letter-spacing:0">— plusieurs possibles</span></div>
         <div class="fgroup" style="background:var(--bg1);padding:14px"><div id="int-nuis" style="display:flex;flex-wrap:wrap;gap:8px"></div></div></div>
 
         <div class="fsec"><div class="form-sec">Méthodes / actions <span style="font-weight:400;text-transform:none;letter-spacing:0">— plusieurs possibles</span></div>
         <div class="fgroup" style="background:var(--bg1);padding:14px"><div id="int-meth" style="display:flex;flex-wrap:wrap;gap:8px"></div></div></div>
+`:''}
 
         <div class="fsec"><div class="form-sec">Commentaires</div>
         <div class="fgroup">
@@ -27383,7 +27394,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
     ${(()=>{ const pp=c.prefPassage||{}; const hasPref=(pp.jours&&pp.jours.length)||pp.techId||(pp.creneau&&pp.creneau!=='indifferent')||pp.prevenir48||pp.appelerAvant;
       return hasPref?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;font-size:11px">${pp.jours&&pp.jours.length?`<span class="tag">📅 ${pp.jours.map(j=>['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][j]).join(' · ')}</span>`:''}${pp.creneau&&pp.creneau!=='indifferent'?`<span class="tag">🕘 ${pp.creneau==='matin'?'Matin':pp.creneau==='apresmidi'?'Après-midi':'Heure fixe '+(pp.heureFixe||'')}</span>`:''}${pp.techId?`<span class="tag">👷 ${esc(techName(pp.techId))}</span>`:''}${pp.prevenir48?'<span class="tag">📧 Prévenir 48 h avant</span>':''}${pp.appelerAvant?'<span class="tag">📞 Appeler avant</span>':''}</div>`:''; })()}
     ${garSectionHtml(c.id)}
-    ${cliIsPro(c)?`<div style="background:var(--card2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;margin:10px 0">
+    ${(estMetier3D()&&cliIsPro(c))?`<div style="background:var(--card2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;margin:10px 0">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;font-size:13.5px">📕 Dossier sanitaire</b>
         <button class="btn sm" onclick="papDossierSanitaire('${c.id}')">Générer le dossier complet (PDF)</button></div>
       <div style="font-size:11.5px;color:var(--t3);margin-top:5px">Plan de lutte, relevés des 12 derniers passages, produits & n° AMM, Certibiocide des techniciens, courbe d'activité par zone, attestation de passage.</div>
@@ -27412,7 +27423,7 @@ function formClient(id){ const c=id?db.clients.find(x=>x.id===id):{};
           <div class="chip tc-chip ${(c.typeClient||'pro')!=='particulier'?'active':''}" data-v="pro" onclick="cliSetType(this)" style="flex:1;justify-content:center;text-align:center;padding:10px 8px">🏢 Professionnel</div>
           <div class="chip tc-chip ${(c.typeClient||'pro')==='particulier'?'active':''}" data-v="particulier" onclick="cliSetType(this)" style="flex:1;justify-content:center;text-align:center;padding:10px 8px">🏠 Particulier</div>
         </div>
-        <div style="font-size:11px;color:var(--t3);margin-top:4px">Professionnel : plan d'appâtage du site, conformité alimentaire et dossier sanitaire activés.</div></div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">${estMetier3D()?'Professionnel : plan d\'appâtage du site, conformité alimentaire et dossier sanitaire activés.':'Professionnel : raison sociale, SIRET et contact du site. Particulier : un simple nom et une adresse.'}</div></div>
       <div class="field-row"><div class="field"><label>Contact</label><input name="contact" value="${esc(c.contact)}"></div>
         <div class="field"><label>Téléphone</label><input name="tel" value="${esc(c.tel)}"></div></div>
       <div class="field"><label>Email</label><input type="email" name="email" value="${esc(c.email)}"></div>
@@ -27762,23 +27773,25 @@ function formRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)ret
     <div class="detail-grid" style="margin-bottom:8px"><div><div class="dt-lbl">Intervention</div><div class="dt-val">${esc(i.titre)}</div></div>
       <div><div class="dt-lbl">Client</div><div class="dt-val">${esc(clientName(i.clientId))}</div></div></div>
     <form id="rapform" onsubmit="saveRapport(event,'${id}')">
+${!estMetier3D()?'':`
       <div class="form-sec">Constat anti-nuisibles</div>
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">Niveau d'infestation</span><div class="frow-val"><select name="infestation">${['',...INFEST_NIV].map(n=>`<option ${rapConstat.infestation===n?'selected':''}>${n||'—'}</option>`).join('')}</select></div></div>
         <div class="frow"><span class="frow-lbl">Conformité</span><div class="frow-val"><select name="conformite">${['',...CONFORMITE].map(n=>`<option ${rapConstat.conformite===n?'selected':''}>${n||'—'}</option>`).join('')}</select></div></div>
       </div>
       <div class="form-sec">Indices de présence</div>
-      <div id="rap-indices" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+      <div id="rap-indices" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>`}
       <div class="form-sec">Observations & actions</div>
       <div class="field"><label>Compte-rendu / actions réalisées</label><textarea name="compteRendu" id="rap-cr" style="min-height:100px">${esc(i.compteRendu)}</textarea>
         <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="aiGenRapport('${id}')">Rédiger le rapport avec l'IA</button>
         <div style="font-size:12px;color:var(--t3);margin-top:4px">Écris quelques mots de ce que tu as fait → l'IA rédige un compte-rendu pro.</div></div>
-      <div class="field"><label>Recommandations au client</label><textarea name="recommandations" style="min-height:70px" placeholder="Mesures correctives, hygiène, prochaine visite…">${esc(rapConstat.recommandations)}</textarea></div>
+      <div class="field"><label>Recommandations au client</label><textarea name="recommandations" style="min-height:70px" placeholder="${estMetier3D()?'Mesures correctives, hygiène, prochaine visite…':'Conseils d’entretien, travaux à prévoir, prochaine visite…'}">${esc(rapConstat.recommandations)}</textarea></div>
+${!estMetier3D()?'':`
       <div class="form-sec">Traitement par nuisible <span style="font-weight:400;text-transform:none;letter-spacing:0">— coche Oui pour remplir la fiche</span></div>
       <div id="trait-inline" style="margin-bottom:14px"></div>
       <div id="rap-traitement"></div>
       <div id="rap-presta-wrap"><div class="form-sec">Prestation réalisée${rapNuis.length?' — '+esc(rapNuis.join(', ')):''}</div>
-      <div id="rap-presta" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div></div>
+      <div id="rap-presta" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div></div>`}
       <div id="rap-champs"></div>
       <div class="field"><label>Photos</label>
         <div id="rap-photos" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
@@ -27885,7 +27898,9 @@ function clearSig(cvId){ const cv=$(cvId||'sig-pad'); if(cv&&cv._ctx){ cv._ctx.c
 function saveRapport(e,id){ e.preventDefault(); if(!intStatutPermis(db.interventions.find(x=>x.id===id),'terminee')){ toast('Rédiger ou clore cette intervention n\'est pas autorisé pour ton compte (Permissions)'); return; } const f=e.target; const data=Object.fromEntries(new FormData(f)); const ix=db.interventions.findIndex(x=>x.id===id);
   const cv=$('sig-pad'); const sig = (cv&&cv.dataset.has) ? cv.toDataURL('image/png') : (db.interventions[ix].signature||'');
   const cvT=$('sig-pad-tech'); const sigT = (cvT&&cvT.dataset.has) ? cvT.toDataURL('image/png') : (db.interventions[ix].signatureTech||'');
-  const constat={infestation:data.infestation==='—'?'':data.infestation, conformite:data.conformite==='—'?'':data.conformite, recommandations:data.recommandations||'', indices:(rapConstat.indices||[]).slice()};
+  /* ⛔ hors 3D, le constat anti-nuisibles n'est pas à l'écran : `data.infestation` et `data.conformite` sont ABSENTS, pas vides —
+     on garde ce que la fiche portait (une base venue de la 3D), on ne l'efface pas */
+  const constat={infestation:data.infestation===undefined?((db.interventions[ix].constat||{}).infestation||''):(data.infestation==='—'?'':data.infestation), conformite:data.conformite===undefined?((db.interventions[ix].constat||{}).conformite||''):(data.conformite==='—'?'':data.conformite), recommandations:data.recommandations||'', indices:(rapConstat.indices||[]).slice()};
   delete data.infestation; delete data.conformite; delete data.recommandations;
   const prestation=[...rapPresta];
   const traitement=JSON.parse(JSON.stringify(rapTraitement||{}));
@@ -28599,7 +28614,7 @@ views.produits=function(){
      entreprise qui a tout créé elle-même, ce serait « Tous · 12 » et « Mes produits · 12 » — et un
      onglet « nuisibles » à zéro chez un plombier. */
   if(!nbC) prdOnglet='tous';
-  $('content').innerHTML=produitsDoublonsBandeau()+produitsDistinctsLigne()+(nbC?`<div class="filters" style="margin:0 0 8px">${[['tous','Tous · '+db.produits.length],['perso','Mes produits · '+nbP],['catalogue','Catalogue 3D (nuisibles) · '+nbC]].map(([k,l])=>`<div class="chip ${prdOnglet===k?'active':''}" onclick="prdOnglet='${k}';renderProduitsList()">${l}</div>`).join('')}</div>`:'')+`
+  $('content').innerHTML=produitsDoublonsBandeau()+produitsDistinctsLigne()+(nbC?`<div class="filters" style="margin:0 0 8px">${[['tous','Tous · '+db.produits.length],['perso','Mes produits · '+nbP],['catalogue',(estMetier3D()?'Catalogue 3D (nuisibles) · ':'Catalogue OP · ')+nbC]].map(([k,l])=>`<div class="chip ${prdOnglet===k?'active':''}" onclick="prdOnglet='${k}';renderProduitsList()">${l}</div>`).join('')}</div>`:'')+`
     <input class="search-inp" id="prd-search" placeholder="Rechercher un produit, une référence, un fournisseur…" value="${esc(prdSearch)}" oninput="prdSearch=this.value;rechDiffere(renderProduitsList)">
     <div id="prd-list"></div>`;
   renderProduitsList();
@@ -29031,17 +29046,19 @@ function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) re
       <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="Ex : XILIX 1000" aria-label="Nom du produit"></div></div>
       <div class="form-sec">Référence fournisseur</div>
       <div class="fgroup"><div class="frow"><input name="ref" value="${esc(p.ref)}" placeholder="Optionnel — ex : SG051" class="mono"></div></div>
+${!estMetier3D()?'':`
       <div class="form-sec">Biocide <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour le registre réglementaire</span></div>
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">N° AMM</span><div class="frow-val"><input name="amm" value="${esc(p.amm)}" placeholder="Ex : FR-2020-0123 (facultatif)" class="mono"></div></div>
         <div class="frow"><span class="frow-lbl">Matière active</span><div class="frow-val"><input name="matiereActive" value="${esc(p.matiereActive)}" placeholder="Ex : Brodifacoum 0,0025 % (facultatif)"></div></div>
-      </div>
+      </div>`}
       <div class="form-sec">Catégorie *</div>
       <div class="fgroup"><div class="frow"><select name="categorie" style="width:100%">${cats.map(c=>`<option ${p.categorie===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div></div>
+${!estMetier3D()?'':`
       <div class="form-sec">Type de traitement <span style="font-weight:400;text-transform:none;letter-spacing:0">— filtre les produits proposés dans les questionnaires</span></div>
       <div class="fgroup"><div class="frow"><select name="categorie3d" style="width:100%">
         ${[['rodonticide','🐀 Rodonticide (dératisation)'],['insecticide','🪳 Insecticide (rampants, volants)'],['desinfectant','🦠 Virucide / bactéricide (désinfection)'],['repulsif','🕊 Répulsif (volatiles)'],['','Autre / tous les types']].map(([k,l])=>`<option value="${k}" ${(p.categorie3d||'')===k?'selected':''}>${l}</option>`).join('')}</select></div>
-      <div style="font-size:11px;color:var(--t3);margin:4px 2px 0">Le produit sera proposé dans « ＋ Depuis le stock » des questionnaires de sa catégorie (« Autre » = proposé partout).</div></div>
+      <div style="font-size:11px;color:var(--t3);margin:4px 2px 0">Le produit sera proposé dans « ＋ Depuis le stock » des questionnaires de sa catégorie (« Autre » = proposé partout).</div></div>`}
       <div class="form-sec">Stock & prix</div>
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">Unité</span><div class="frow-val"><select name="unite">${['unité','kg','g','L','mL','carton','sachet','cartouche'].map(u=>`<option ${(p.unite||'unité')===u?'selected':''}>${u}</option>`).join('')}</select></div></div>
@@ -29060,7 +29077,7 @@ function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) re
   renderProdFours();
 }
 function renderProdFours(){ const el=$('prod-fours'); if(!el) return;
-  const all=[...new Set([...FOUR_PILLS,...db.fournisseurs.map(f=>(f.nom||'').trim().toUpperCase()).filter(Boolean),...prodFours])];
+  const all=[...new Set([...(estMetier3D()?FOUR_PILLS:[]),...db.fournisseurs.map(f=>(f.nom||'').trim().toUpperCase()).filter(Boolean),...prodFours])];
   el.innerHTML=all.map(f=>{ const on=prodFours.has(f); const c=fourColor(f);
     return `<button type="button" onclick="toggleProdFour('${f.replace(/'/g,"\\'")}')" style="cursor:pointer;font-size:11px;font-weight:700;padding:6px 12px;border-radius:14px;color:${on?aplatDe(c)[1]:encreDonnee(c)};background:${on?aplatDe(c)[0]:`color-mix(in srgb,${c} 12%,transparent)`};border:.5px solid ${c}">${esc(f)}</button>`;}).join(''); }
 function toggleProdFour(f){ if(prodFours.has(f)) prodFours.delete(f); else prodFours.add(f); renderProdFours(); }
@@ -35851,6 +35868,10 @@ function journalView(title,sub){
 views.historique=function(){ journalView('Historique','Activité de l\'application — journal de traçabilité, en lecture seule'); };
 
 /* ═══════════════ TECHNICIENS ═══════════════ */
+/* Le Certibiocide est le certificat de l'anti-nuisibles : hors 3D, ni colonne, ni champ — SAUF si la fiche en porte déjà un
+   (une base venue de la 3D) : ce qui est saisi se lit, jamais ne disparaît. */
+function certibVisible(t){ return estMetier3D()||!!(t&&(t.certibiocide||t.certibiocideExp)); }
+function certibColonne(L){ return estMetier3D()||(L||[]).some(t=>certibVisible(t)); }
 function certibBadge(t){ if(!t||!t.certibiocideExp) return '<span class="st st-grey">—</span>';
   const days=Math.ceil((new Date(t.certibiocideExp)-new Date())/86400000);
   if(days<0) return '<span class="st st-red">Expiré</span>';
@@ -35863,9 +35884,9 @@ views.techniciens=function(){
   const nbDbl=(peutModif&&L.length===(db.techniciens||[]).length)?techDoublons().length:0;
   setHeader('Techniciens',`${L.length} membre(s)`,`${nbDbl?`<button class="btn ghost" onclick="techFusionnerDoublons()" title="Des fiches portent le même nom">🧹 Fusionner ${nbDbl} doublon(s)</button> `:''}${peutAjout?`<button class="btn" onclick="formTech()">＋ Technicien</button>`:''}`);
   const rows=L.map(t=>{ const n=db.interventions.filter(i=>intTechIds(i).indexOf(t.id)>=0).length;   // v757 : second compris, pas seulement le premier
-    return `<tr class="row-clk" onclick="ficheTech('${t.id}')"><td><div class="ppl"><span class="avatar av-tc" style="--tc:${techColor(t.id)}">${initials(t.nom)}</span> <span class="strong">${esc(t.nom)}</span></div></td><td>${esc(t.metier)||'—'}</td><td>${esc(t.tel)||'—'}</td><td>${certibBadge(t)}</td><td>${n}</td>
+    return `<tr class="row-clk" onclick="ficheTech('${t.id}')"><td><div class="ppl"><span class="avatar av-tc" style="--tc:${techColor(t.id)}">${initials(t.nom)}</span> <span class="strong">${esc(t.nom)}</span></div></td><td>${esc(t.metier)||'—'}</td><td>${esc(t.tel)||'—'}</td>${certibColonne(L)?`<td>${certibVisible(t)?certibBadge(t):''}</td>`:''}<td>${n}</td>
     <td class="cel-gestes" style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">${peutModif?`<button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button>`:''}${peutModif&&peutSuppr?' ':''}${peutSuppr?`<button class="btn danger sm" onclick="delItem('techniciens','${t.id}')">🗑</button>`:''}</td></tr>`;}).join('');
-  $('content').innerHTML=L.length? tableCard(['Technicien','Rôle','Téléphone','Certibiocide','Interv.',''],rows)
+  $('content').innerHTML=L.length? tableCard(['Technicien','Rôle','Téléphone'].concat(certibColonne(L)?['Certibiocide']:[],['Interv.','']),rows)
     :`<div class="card">${peutAjout?emptyState('👷','Aucun technicien.','Ajouter','formTech()'):emptyState('👷','Aucune fiche du personnel n’est rattachée à ton compte.','','')}</div>`;
 }
 function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id===id);
@@ -35886,7 +35907,7 @@ function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id=
       <div><div class="dt-lbl">Téléphone</div><div class="dt-val">${esc(t.tel)||'—'}</div></div>
       <div><div class="dt-lbl">Email</div><div class="dt-val">${esc(t.email)||'—'}</div></div>
       <div><div class="dt-lbl">Véhicule</div><div class="dt-val">${veh?esc(vPlaque(veh)):'—'}</div></div>
-      <div><div class="dt-lbl">Certibiocide</div><div class="dt-val">${esc(t.certibiocide)||'—'} ${certibBadge(t)}</div></div>
+      ${certibVisible(t)?`<div><div class="dt-lbl">Certibiocide</div><div class="dt-val">${esc(t.certibiocide)||'—'} ${certibBadge(t)}</div></div>`:''}
       ${t.certibiocideExp?`<div><div class="dt-lbl">Valide jusqu'au</div><div class="dt-val">${fmtShort(t.certibiocideExp)}</div></div>`:''}</div>
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:14px 0">
       ${k('🧰','rgba(96,165,250,.14)',ints.length,'Interventions')}
@@ -35919,7 +35940,7 @@ async function saveTech(e,id){ e.preventDefault();
   /* le rôle, verrouillé à l'écran pour qui n'est pas administrateur, ne se lit pas non plus au formulaire */
   if(id && !admin) d.metier=(db.techniciens.find(x=>x.id===id)||{}).metier||'Technicien';
   const gere=!id||fichesGere();
-  const obj={nom:d.nom,metier:d.metier||'Technicien',tel:d.tel,email:d.email,departements:d.departements,couleur:d.couleur,certibiocide:d.certibiocide||'',certibiocideExp:d.certibiocideExp||'',capMin:Math.round((parseFloat(String(d.capH||'').replace(',','.'))||7)*60),
+  const obj={nom:d.nom,metier:d.metier||'Technicien',tel:d.tel,email:d.email,departements:d.departements,couleur:d.couleur,certibiocide:d.certibiocide===undefined?((id&&(db.techniciens.find(x=>x.id===id)||{}).certibiocide)||''):(d.certibiocide||''),certibiocideExp:d.certibiocideExp===undefined?((id&&(db.techniciens.find(x=>x.id===id)||{}).certibiocideExp)||''):(d.certibiocideExp||''),capMin:Math.round((parseFloat(String(d.capH||'').replace(',','.'))||7)*60),
     droitConges:(d.droitConges===''||d.droitConges==null)?25:(parseFloat(String(d.droitConges).replace(',','.'))||0),
     chef:d.chef||''};
   if(!gere) ['departements','capMin','droitConges','chef'].forEach(k=>delete obj[k]);   // la fiche garde ce qu'elle avait
@@ -35990,9 +36011,10 @@ function formTech(id){ if(!permGarde('equipe', id?'modifier':'ajouter','un techn
         <div class="field"><label>Jours de congés par an</label><input name="droitConges"${fg} type="number" min="0" max="60" step="0.5" value="${t.droitConges!=null&&t.droitConges!==''?t.droitConges:25}" style="text-align:right"></div></div>
       <div class="field"><label>Rattaché à</label><select name="chef"${fg}><option value="">Personne — travaille seul</option>${db.techniciens.filter(x=>x.id!==id&&(gere||x.id===t.chef)).map(x=>`<option value="${x.id}" ${t.chef===x.id?'selected':''}>${esc(x.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">Sert à choisir toute une équipe d'un coup dans le planning général.</div></div>
       <div style="font-size:11px;color:var(--t3);margin:-6px 2px 10px">La capacité sert à la jauge de charge du planning (vert ≤ 75 %, orange 76-99 %, rouge ≥ 100 %), défaut 7 h. Les jours de congés servent au solde dans Absences &amp; congés, défaut 25 jours ouvrés.</div>
+${!certibVisible(t)?'':`
       <div class="field-row"><div class="field"><label>Certibiocide n°</label><input name="certibiocide" value="${esc(t.certibiocide)}" placeholder="N° du certificat" class="mono"></div>
         <div class="field"><label>Valide jusqu'au</label><input type="date" name="certibiocideExp" value="${t.certibiocideExp||''}"></div></div>
-      <div style="font-size:11px;color:var(--t3);margin:-6px 2px 10px">Certibiocide : obligatoire pour appliquer des produits biocides professionnels (validité 5 ans). Une alerte apparaît 60 jours avant l'expiration.</div>
+      <div style="font-size:11px;color:var(--t3);margin:-6px 2px 10px">Certibiocide : obligatoire pour appliquer des produits biocides professionnels (validité 5 ans). Une alerte apparaît 60 jours avant l'expiration.</div>`}
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`);
 }
 
