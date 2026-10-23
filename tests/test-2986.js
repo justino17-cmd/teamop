@@ -50,17 +50,25 @@ function verdicts(SCRIPT) {
   const client = { stockage: { teamop_portail_jeton: 'jeton-essai-1' }, page: 'espace.html' };
   par('écrit la clé et va à la page', () => { const j = jouer(SCRIPT, '#essai=' + b64u(client)); return j.ls.teamop_portail_jeton === 'jeton-essai-1' && j.replace.length === 1 && j.replace[0] === '/espace.html' && j.reload === 0; });
   par('efface le fragment AVANT tout', () => { const j = jouer(SCRIPT, '#essai=' + b64u(client)); return j.replaceState.length === 1 && j.replaceState[0] === '/espace.html?x=1'; });
-  par('sans page : recharge', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { a_b: '1' } })); return j.reload === 1 && j.replace.length === 0 && j.ls.a_b === '1'; });
+  par('sans page : recharge', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { teamop_app: 'app.html' } })); return j.reload === 1 && j.replace.length === 0 && j.ls.teamop_app === 'app.html'; });
   const REFUSEES = ['//exemple.fr/x', 'https://exemple.fr/x', 'javascript:alert(1)', '../x.html', 'a/../../x', '/etc/passwd', 'a b.html', 'x.html#h', 'a//b', 'é.html', ''];
-  for (const p of REFUSEES) par('page refusée : ' + JSON.stringify(p), () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { k: '1' }, page: p })); return j.replace.length === 0 && j.reload === 1; });
+  for (const p of REFUSEES) par('page refusée : ' + JSON.stringify(p), () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { teamop_app: '1' }, page: p })); return j.replace.length === 0 && j.reload === 1; });
   for (const [p, att] of [['tour.html', '/tour.html'], ['a/b.html?x=1&y=2', '/a/b.html?x=1&y=2'], ['espace.html?mode=resetPassword&oobCode=a-b_c', '/espace.html?mode=resetPassword&oobCode=a-b_c']])
     par('page acceptée : ' + p, () => { const j = jouer(SCRIPT, '#essai=' + b64u({ page: p })); return j.replace.length === 1 && j.replace[0] === att && j.reload === 0; });
-  par('clé invalide refusée (espace, accent, vide, 81 signes)', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { 'a b': '1', 'clé': '1', '': '1', ['x'.repeat(81)]: '1', ok_1: '1' } })); return Object.keys(j.ls).join() === 'ok_1'; });
-  par('valeur non texte : mise en JSON', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { o: { a: 1 }, nb: 5, ta: ['x'] } })); return j.ls.o === '{"a":1}' && j.ls.nb === '5' && j.ls.ta === '["x"]'; });
-  par('valeur trop longue refusée (60 001), 60 000 gardée', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { long: 'x'.repeat(60001), juste: 'x'.repeat(60000) } })); return !('long' in j.ls) && j.ls.juste.length === 60000; });
-  par('au plus 60 clés', () => { const s = {}; for (let i = 0; i < 100; i++) s['k' + i] = '1'; const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: s })); return Object.keys(j.ls).length === 60; });
+  /* ⛔ LISTE FERMÉE (relecture adverse) : ce qui n'est pas attendu ne s'écrit pas, quelle que soit sa forme */
+  const ATTENDUES_LS = ['teamop_portail_jeton', 'teamop_app', 'tour_token', 'tour_nom', 'tour_role', 'tour_apps', 'elanT_sync_team', 'elanT_entreprise_nom', 'elanT_savedLogin'];
+  const ATTENDUES_SS = ['tour_token', 'tour_nom', 'tour_role', 'tour_apps', 'tour_email'];
+  const HORS_LISTE = { elanT_gestion_v2: '{"produits":[]}', top_monitor_off: '1', teamop_portail_jetonX: 'j', top_client_sync: '{}', elan_sync_team: 'prod', constructor: 'x', toString: 'x', 'a b': '1', 'clé': '1', '': '1', ['x'.repeat(81)]: '1' };
+  par('clés hors liste : aucune écriture (la base d\'essai, le jeton d\'une autre session, la forme d\'une clé ne suffisent pas)', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: Object.assign({}, HORS_LISTE, { teamop_portail_jeton: 'jeton-ok' }), session: Object.assign({}, HORS_LISTE, { tour_token: 't-ok' }) })); return Object.keys(j.ls).join() === 'teamop_portail_jeton' && Object.keys(j.ss).join() === 'tour_token'; });
+  par('clés hors liste : la navigation a lieu quand même, et la console les NOMME', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { elanT_gestion_v2: '{}' }, page: 'espace.html' })); return j.replace.length === 1 && j.warn === 1 && Object.keys(j.ls).length === 0; });
+  par('la liste de localStorage : toutes les clés attendues passent (' + ATTENDUES_LS.length + ')', () => { const o = {}; ATTENDUES_LS.forEach(k => { o[k] = 'v'; }); const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: o })); return Object.keys(j.ls).sort().join() === ATTENDUES_LS.slice().sort().join(); });
+  par('la liste de sessionStorage : toutes les clés attendues passent (' + ATTENDUES_SS.length + ')', () => { const o = {}; ATTENDUES_SS.forEach(k => { o[k] = 'v'; }); const j = jouer(SCRIPT, '#essai=' + b64u({ session: o })); return Object.keys(j.ss).sort().join() === ATTENDUES_SS.slice().sort().join(); });
+  par('une clé de session n\'entre pas dans localStorage, ni l\'inverse (jeton du portail : localStorage seulement)', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { tour_email: 'a@exemple-essai.fr' }, session: { teamop_portail_jeton: 'j', teamop_app: 'app.html' } })); return Object.keys(j.ls).length === 0 && Object.keys(j.ss).length === 0; });
+  par('valeur non texte : mise en JSON', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { teamop_app: { a: 1 }, tour_nom: 5, tour_apps: ['x'] } })); return j.ls.teamop_app === '{"a":1}' && j.ls.tour_nom === '5' && j.ls.tour_apps === '["x"]'; });
+  par('valeur trop longue refusée (60 001), 60 000 gardée', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { tour_apps: 'x'.repeat(60001), tour_nom: 'x'.repeat(60000) } })); return !('tour_apps' in j.ls) && j.ls.tour_nom.length === 60000; });
+  par('au plus 60 clés regardées (une clé attendue en 61e position n\'est pas lue)', () => { const s = {}; for (let i = 0; i < 100; i++) s['k' + i] = '1'; s.teamop_app = 'app.html'; const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: s })); return Object.keys(j.ls).length === 0; });
   par('« session » va dans sessionStorage, pas dans localStorage', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ session: { tour_token: 't' } })); return j.ss.tour_token === 't' && Object.keys(j.ls).length === 0; });
-  par('UTF-8 : é€ revient intact', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { nom: 'Élodie 12 €' } })); return j.ls.nom === 'Élodie 12 €'; });
+  par('UTF-8 : é€ revient intact', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { tour_nom: 'Élodie 12 €' } })); return j.ls.tour_nom === 'Élodie 12 €'; });
   par('base64 invalide : aucune écriture, aucune exception', () => { const j = jouer(SCRIPT, '#essai=%%%%'); return Object.keys(j.ls).length === 0 && j.replace.length === 0 && j.replaceState.length === 1; });
   par('pas du JSON : aucune écriture, aucune exception', () => { const j = jouer(SCRIPT, '#essai=' + b64u('bonjour')); return Object.keys(j.ls).length === 0 && j.replace.length === 0; });
   par('JSON « null » : aucune écriture, aucun rechargement', () => { const j = jouer(SCRIPT, '#essai=' + b64u('null')); return Object.keys(j.ls).length === 0 && j.reload === 0 && j.replace.length === 0; });
@@ -95,11 +103,15 @@ console.log('\n2. Chaque règle du script tombe quand on la retire (générateur
     ["le refus d'une page « // » (hors du site)", "&&p.indexOf('//')<0", '', /^page refusée : "(\/\/exemple\.fr\/x|a\/\/b)"$/],
     ['le refus de « .. » (remonter le dossier)', "&&p.indexOf('..')<0", '', /^page refusée : "(\.\.\/x\.html|a\/\.\.\/\.\.\/x)"$/],
     ['la forme d\'une page (chemin du site, signes sûrs)', "[A-Za-z0-9_][A-Za-z0-9_.\\\\/-]{0,80}(\\\\?[A-Za-z0-9_=&%.-]{0,200})?", '.*', /^(page refusée|sans page)/],
-    ['la forme d\'une clé de stockage', "if(!/^[A-Za-z0-9_.:-]{1,80}$/.test(k))return;", '', /^clé invalide refusée/],
-    ['la limite de 60 clés', '.slice(0,60)', '', /^au plus 60 clés$/],
+    ['la liste fermée des clés (le contrôle d\'appartenance retiré)', "if(ok.indexOf(k)<0){refus.push(k);return;}", '', /^clés hors liste : aucune écriture/],
+    ['la liste de localStorage élargie à la base de l\'application', "const CLES_STOCKAGE = ['teamop_portail_jeton',", "const CLES_STOCKAGE = ['elanT_gestion_v2', 'teamop_portail_jeton',", /^clés hors liste : aucune écriture/],
+    ['la liste de la Tour élargie au jeton de la Tour en localStorage ET au portail en session', "const CLES_SESSION = ['tour_token',", "const CLES_SESSION = ['teamop_portail_jeton', 'tour_token',", /^(clés hors liste : aucune écriture|une clé de session)/],
+    ['les deux listes confondues (la session lit celle de localStorage)', 'try{ranger(sessionStorage,j.session,OK_SS);}catch(e){}', 'try{ranger(sessionStorage,j.session,OK_LS);}catch(e){}', /^(clés hors liste : aucune écriture|une clé de session|la liste de sessionStorage)/],
+    ['la console nomme les clés refusées', "if(refus.length){try{console.warn(", "if(false){try{console.warn(", /^clés hors liste : la navigation/],
+    ['la limite de 60 clés', '.slice(0,60)', '', /^au plus 60 clés/],
     ['la limite de taille d\'une valeur', 'v.length>60000', 'false', /^valeur trop longue/],
     ['l\'effacement du fragment', "history.replaceState(null,'',location.pathname+location.search);", '', /^efface le fragment/],
-    ['la lecture de « session » dans sessionStorage', 'try{ranger(sessionStorage,j.session);}catch(e){}', 'try{ranger(localStorage,j.session);}catch(e){}', /^« session »/],
+    ['la lecture de « session » dans sessionStorage', 'try{ranger(sessionStorage,j.session,OK_SS);}catch(e){}', 'try{ranger(localStorage,j.session,OK_SS);}catch(e){}', /^« session »/],
     ['le décodage UTF-8', 'new TextDecoder().decode(oct)', 'bin', /^UTF-8/],
     ['le filtre « commence par #essai= »', "if(h.indexOf('#essai=')!==0)return;", '', /^autre fragment/],
   ];
@@ -112,7 +124,7 @@ console.log('\n2. Chaque règle du script tombe quand on la retire (générateur
     if (!S) { vrai('règle « ' + nom + ' » : la copie mutilée fabrique des pages', false, (r.stderr || '').slice(0, 160)); continue; }
     const V = verdicts(S), tombes = Object.keys(V).filter(k => !V[k]);
     vrai('règle « ' + nom + ' » : retirée, au moins un scénario tombe (' + tombes.length + ')', tombes.length > 0 && tombes.some(k => attendu.test(k)), tombes.slice(0, 4));
-    vrai('   … et c\'est bien SON scénario, aucun sans rapport', tombes.length > 0 && tombes.every(k => attendu.test(k) || /^(écrit la clé|sans page|efface le fragment|autre fragment|base64|pas du JSON|JSON)/.test(k)), tombes);
+    vrai('   … et c\'est bien SON scénario, aucun sans rapport', tombes.length > 0 && tombes.every(k => attendu.test(k) || /^(écrit la clé|sans page|efface le fragment|autre fragment|base64|pas du JSON|JSON|clés hors liste|une clé de session|la liste de|« session »|au plus 60)/.test(k)), tombes);
   }
 }
 
@@ -134,6 +146,28 @@ vrai('le commit et la branche en essai sont dits', ESSAIS.indexOf('<code>claude/
   vrai('… dans l\'ordre voulu : client, prospect, patron, collaborateur, courriels, remise à zéro', places.every((p, i) => p > 0 && (i === 0 || p > places[i - 1])), places);
   vrai('… et chacune dit ce qu\'il faut faire ET ce que l\'on doit voir', (ESSAIS.match(/Ce que tu dois voir :/g) || []).length === 6); }
 vrai('sans parcours de la modification, aucune section « Les tests de cette modification »', ESSAIS.indexOf('Les tests de cette modification') < 0);
+{ /* ⛔ LE PAIEMENT : ou bien la page de paiement ne porte plus les tarifs de production ET essais.html promet la carte 4242, ou bien la limite est DITE */
+  const src = fs.readFileSync(BUILD, 'utf8'), jouable = /^const PAIEMENT_JOUABLE = true;/m.test(src), RECAP = lire(OUT, 'recap-abonnement.html');
+  const prod = Array.from(new Set((fs.readFileSync(path.join(RACINE, 'recap-abonnement.html'), 'utf8').match(/price_[A-Za-z0-9]{8,}/g) || [])));
+  vrai('(population) la vraie page de paiement porte des tarifs price_… (sinon ce contrôle ne regarde rien)', prod.length >= 10, prod.length);
+  const restent = prod.filter(id => RECAP.indexOf(id) >= 0);
+  if (jouable) {
+    egal('le paiement est annoncé jouable : AUCUN tarif de production ne reste dans la page de paiement', restent, []);
+    vrai('… et essais.html promet la carte de test', /4242/.test(ESSAIS) && ESSAIS.indexOf('id="limite-paiement"') < 0);
+  } else {
+    vrai('le paiement n\'est pas jouable : essais.html DIT la limite (carte 4242, tarifs de production) au lieu de promettre un paiement', ESSAIS.indexOf('id="limite-paiement"') > 0 && /Limite connue : le paiement ne se joue pas encore/.test(ESSAIS) && /tarifs de production/.test(ESSAIS));
+    vrai('… aucune étape du parcours ne dit de payer, et la page n\'affirme plus « les paiements sont en mode test »', !/paiements sont en mode test/.test(ESSAIS) && !/payer avec/i.test(ESSAIS));
+    vrai('… et les tarifs de production restent (ils sont ceux du serveur : le remplacement seul donnerait tarif_inconnu)', restent.length === prod.length, [restent.length, prod.length]);
+  }
+  /* éprouvé : le générateur qui se croit « jouable » alors que la page porte encore les tarifs de production doit REFUSER de fabriquer */
+  const mut = src.replace(/^const PAIEMENT_JOUABLE = false;/m, 'const PAIEMENT_JOUABLE = true;');
+  vrai('(mutation) le motif PAIEMENT_JOUABLE est trouvé dans le générateur', mut !== src || jouable);
+  if (mut !== src) {
+    const f = path.join(TMP, 'jouable-' + (++n) + '.js'); fs.writeFileSync(f, mut);
+    const D = neuf(), r = construire(D, { script: f });
+    vrai('⛔ « jouable » avec les tarifs de production encore dans la page : la fabrication ÉCHOUE et ne livre rien', r.status !== 0 && /tarif Stripe de production/.test(r.stderr || '') && (!fs.existsSync(D) || fs.readdirSync(D).length === 0), (r.stderr || '').slice(0, 200));
+  }
+}
 
 /* le parcours de la modification : AVANT le parcours de base, échappé */
 {

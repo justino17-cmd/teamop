@@ -161,11 +161,11 @@ function cdp(ws) {
   await aller('https://' + HOTE + '/api/essais/connexion?compte=inconnu&cle=' + CLE);
   vrai('un compte inconnu ne range rien (le serveur refuse, aucune redirection)', await ev("location.pathname.indexOf('/api/essais/connexion')===0"), await ev('location.href'));
   /* un fragment forgé : ni clé étrangère, ni redirection hors du site */
-  const forge = { stockage: { 'clé interdite': 'x', 'ok_cle': 'v' }, page: '//exemple-essai.fr/x' };
+  const forge = { stockage: { 'elanT_gestion_v2': '{"forge":1}', 'top_monitor_off': '1', 'teamop_app': 'app.html' }, page: '//exemple-essai.fr/x' };
   await aller('https://' + HOTE + '/mentions-legales.html#essai=' + b64u(forge));
-  vrai('un fragment forgé : la clé valide est rangée, la clé à espace refusée, et la page reste sur le site',
-    await attendre("localStorage.getItem('ok_cle')==='v' && location.hostname==='" + HOTE + "' && location.hash===''") && await ev("localStorage.getItem('clé interdite')") === null, await ev('location.href'));
-  await ev("localStorage.removeItem('ok_cle')");   // la sonde range derrière elle : l'application ouverte plus bas ne doit voir que ses propres clés
+  vrai('un fragment forgé : la clé de la liste est rangée, la base de l\'application et les autres clés refusées, et la page reste sur le site',
+    await attendre("localStorage.getItem('teamop_app')==='app.html' && location.hostname==='" + HOTE + "' && location.hash===''") && await ev("localStorage.getItem('elanT_gestion_v2')") === null && await ev("localStorage.getItem('top_monitor_off')") === null, await ev('location.href'));
+  await ev("localStorage.removeItem('teamop_app')");   // la sonde range derrière elle : l'application ouverte plus bas ne doit voir que ses propres clés
 
   /* ── D. courriels.html ───────────────────────────────────────────────────────────────────────────────────────────────────── */
   console.log('\nD. courriels.html');

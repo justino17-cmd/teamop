@@ -32,6 +32,8 @@
    │ service worker (toutes les pages)           │ COUPÉ     │ l'inscription est refusée ; sw.js n'est même pas copié             │
    │ manifeste de l'application installable      │ COUPÉ     │ on n'installe pas un espace de test sur un téléphone                │
    │ Google Analytics (cookies.js)               │ COUPÉ     │ une visite d'essai ne compte pas dans les statistiques du site      │
+   │ price_… Stripe (recap-abonnement.html)      │ LAISSÉ ⚠️ │ ce sont les tarifs de PRODUCTION : le serveur de test (sk_test) répond │
+   │                                             │           │   « No such price » — le PAIEMENT n'est pas jouable (voir plus bas) │
    │ courrier-beta.teamop.fr (Tour)              │ COUPÉ     │ → un nom qui ne se résout jamais (.invalid) : le jeton d'essai ne   │
    │                                             │           │   part pas chez un autre service, la Tour dit « injoignable »        │
    │ msg-beta.teamop.fr (Tour, adresse de lien)  │ COUPÉ     │ idem — OP MESSAGES a son propre serveur (CLAUDE.md), pas rebranché  │
@@ -44,6 +46,14 @@
    │ adresses « @teamop.fr » (texte, mailto)     │ LAISSÉ    │ du texte ; en essai les courriels sont captés, rien ne part         │
    │ beta.html, dev.html, messages*.html         │ ABSENTES  │ autres canaux (bêta, OP MESSAGES fermé), diag-geste, google…html    │
    └─────────────────────────────────────────────┴───────────┴─────────────────────────────────────────────────────────────────────┘
+   ⚠️ LE PAIEMENT NE SE JOUE PAS ENCORE EN ESSAI (relecture adverse, 23 octobre 2026). `recap-abonnement.html` envoie à
+   `POST /api/stripe/checkout` un identifiant `price_…` de la table de la page, et le serveur n'accepte que les MÊMES (`STRIPE_PRIX_FORMULE`,
+   index.js) : ce sont des tarifs créés en mode réel, que Stripe ne connaît pas avec une clé `sk_test`. Rien ne part vers la production
+   (la clé de test ne peut pas payer pour de vrai) — mais la carte 4242 ne peut pas aboutir. Remplacer les 10 identifiants dans la page
+   sans que le serveur de test porte la même table donnerait `tarif_inconnu` : une demi-mesure qui change le message d'erreur sans
+   rendre le paiement jouable. La suite est donc DEUX gestes ensemble, à faire par le chantier serveur : une table de tarifs de test lue
+   dans la config de test (`stripe.prixEssai`, seulement si `espaceTest`), et ici un remplacement gardé des 10 identifiants. Tant que
+   ce n'est pas fait, `PAIEMENT_JOUABLE` vaut faux : essais.html le DIT, et aucune étape du parcours ne promet un paiement.
    ⚠️ Firebase n'existe plus dans app.html (plus aucun script gstatic ni googleapis) : la synchro passe par le serveur de test, qui n'a
    pas de clé d'administration Google. `FB_TEAM` est tout de même isolé, comme beta-build.js isole l'espace bêta.
    ⚠️ Une origine par environnement : les pages d'essai vivent sur test.teamop.fr, donc leur localStorage n'est PAS celui de teamop.fr
@@ -127,12 +137,22 @@ const PAGES = fs.readdirSync(RACINE).filter(f => /\.html$/.test(f) && !ABSENTES[
 /* ── le petit script injecté : il lit #essai=<base64url d'un JSON> ─────────────────────────────────────────────────────────────── */
 /* Contrat avec GET /api/essais/connexion : {"stockage":{clé:valeur}, "session":{clé:valeur}, "page":"espace.html"}.
    · « stockage » va dans localStorage, « session » (facultatif) dans sessionStorage ;
-   · les clés sont bornées (signes de nom de clé), les valeurs sont des textes (un objet est mis en JSON) : un fragment forgé ne peut
+   · les clés passent par une LISTE FERMÉE (`CLES_STOCKAGE`, `CLES_SESSION`, ci-dessous), les valeurs sont des textes (un objet est mis en JSON) : un fragment forgé ne peut
      pas écrire n'importe quoi ni rediriger hors du site ;
    · le fragment est EFFACÉ avant tout (un jeton ne reste ni dans l'historique ni dans un lien copié), puis la page se recharge, ou va à
      `page` (un chemin du site, jamais une adresse complète) ;
    · il est posé EN TÊTE du <head> : il passe avant tous les scripts de la page, qui lisent le stockage à leur démarrage.
    Injecté par ce build, jamais dans les vraies pages. */
+/* ⛔ UNE LISTE FERMÉE, PAS UNE FORME (relecture adverse, 23 octobre 2026) : un motif de forme laissait ranger `tour_token`, `tour_role`
+   ou toute la base de l'application (`elanT_gestion_v2`) à qui forgeait un lien `#essai=…` — la Tour de la victime s'ouvrait sur une
+   session choisie par l'envoyeur. Seules les clés qu'une connexion d'essai DOIT poser passent, séparément pour localStorage et
+   sessionStorage (la Tour lit `tour_*` dans l'un puis dans l'autre). Les clés sont celles que lisent les vraies pages (espace.html :
+   `teamop_portail_jeton`, `tour_*` ; connexion.html : `teamop_app`, `elan_sync_team`/`elan_entreprise_nom`/`elan_savedLogin` devenues
+   `elanT_…` par ce build). `elanT_gestion_v2` (la base de l'application) n'y est PAS : une session d'essai ne fabrique pas de données. Une
+   clé que la route de connexion du serveur de test voudrait poser et qui manque ici se lit dans la console (« clés refusées »). */
+const CLES_STOCKAGE = ['teamop_portail_jeton', 'teamop_app', 'tour_token', 'tour_nom', 'tour_role', 'tour_apps', 'elanT_sync_team', 'elanT_entreprise_nom', 'elanT_savedLogin'];
+const CLES_SESSION = ['tour_token', 'tour_nom', 'tour_role', 'tour_apps', 'tour_email'];
+const PAIEMENT_JOUABLE = false;   // vrai le jour où le serveur de test porte ses tarifs de test ET que la page les reçoit (voir l'inventaire)
 const SCRIPT_ESSAI = `<script id="essai-fragment">(function(){try{
 var h=location.hash||'';if(h.indexOf('#essai=')!==0)return;
 var corps=h.slice(7);history.replaceState(null,'',location.pathname+location.search);
@@ -140,15 +160,17 @@ var b=corps.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';
 var bin=atob(b),oct=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)oct[i]=bin.charCodeAt(i);
 var j=JSON.parse(new TextDecoder().decode(oct));
 if(!j||typeof j!=='object')return;
-function ranger(st,o){if(!o||typeof o!=='object')return 0;var n=0;
+var OK_LS=${JSON.stringify(CLES_STOCKAGE)},OK_SS=${JSON.stringify(CLES_SESSION)},refus=[];
+function ranger(st,o,ok){if(!o||typeof o!=='object')return 0;var n=0;
  Object.keys(o).slice(0,60).forEach(function(k){
-  if(!/^[A-Za-z0-9_.:-]{1,80}$/.test(k))return;
+  if(ok.indexOf(k)<0){refus.push(k);return;}
   var v=o[k];v=(typeof v==='string')?v:JSON.stringify(v);
   if(v==null||v.length>60000)return;
   try{st.setItem(k,v);n++;}catch(e){}});
  return n;}
-try{ranger(localStorage,j.stockage);}catch(e){}
-try{ranger(sessionStorage,j.session);}catch(e){}
+try{ranger(localStorage,j.stockage,OK_LS);}catch(e){}
+try{ranger(sessionStorage,j.session,OK_SS);}catch(e){}
+if(refus.length){try{console.warn('essai : clés refusées (hors liste)',refus.join(','));}catch(_){}}
 var p=typeof j.page==='string'?j.page:'';
 if(/^[A-Za-z0-9_][A-Za-z0-9_.\\/-]{0,80}(\\?[A-Za-z0-9_=&%.-]{0,200})?$/.test(p)&&p.indexOf('..')<0&&p.indexOf('//')<0){location.replace('/'+p);}
 else{location.reload();}
@@ -340,7 +362,8 @@ function pageEssais() {
 <meta name="robots" content="noindex,nofollow"><meta name="color-scheme" content="light dark"><title>[TEST] Les essais — TeamOP</title>
 ${CSS_ESSAI}</head><body><main>
 <h1>Espace de test</h1>
-<p class="doux">Rien de ce que tu fais ici n'atteint une vraie entreprise : les courriels sont captés, les paiements sont en mode test, les données sont à part.</p>
+<p class="doux">Rien de ce que tu fais ici n'atteint une vraie entreprise : les courriels sont captés, les données sont à part${PAIEMENT_JOUABLE ? ', les paiements sont en mode test (carte 4242)' : ''}.</p>
+${PAIEMENT_JOUABLE ? '' : '<div class="carte" id="limite-paiement"><p><b>Limite connue : le paiement ne se joue pas encore ici.</b> La page d\'abonnement porte les tarifs de production, que le mode test de Stripe ne connaît pas : la carte 4242 ne peut pas aboutir. Ne perds pas une étape dessus. Tout le reste (connexion, demandes, Tour, courriels) se joue normalement.</p></div>'}
 <div class="carte"><p><b>Ce qui est en essai :</b> la branche <code>${esc(BRANCHE)}</code>, au commit <code>${esc(COMMIT.slice(0, 7))}</code>.</p>
 <p class="doux">Serveur de test : <span class="etat" id="etat-serveur">vérification…</span></p></div>
 
@@ -465,6 +488,14 @@ const INTERDITS = [
   ['firestore.googleapis.com', /firestore\.googleapis\.com/], ['firebaseio.com', /firebaseio\.com/], ['identitytoolkit', /identitytoolkit\.googleapis/],
   ['une inscription de service worker', /navigator\.serviceWorker\.register\(/],
 ];
+/* Le jour où PAIEMENT_JOUABLE passe à vrai, les tarifs de PRODUCTION lus dans la vraie page ne doivent plus subsister nulle part :
+   sinon essais.html promettrait une carte 4242 que Stripe (clé de test) refuse. Les identifiants viennent de la page elle-même, pas d'une
+   liste écrite ici qui vieillirait. */
+if (PAIEMENT_JOUABLE) {
+  const prod = Array.from(new Set(lire('recap-abonnement.html').match(/price_[A-Za-z0-9]{8,}/g) || []));
+  if (!prod.length) echec('recap-abonnement.html ne porte plus aucun tarif price_… : le garde du paiement ne regarde rien — à revoir');
+  prod.forEach(id => INTERDITS.push(['tarif Stripe de production ' + id.slice(0, 12) + '…', new RegExp(id)]));
+}
 {
   const vus = [];
   (function marche(rel) {
