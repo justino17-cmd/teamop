@@ -1,5 +1,25 @@
 # Point stable TeamOP
 
+**Version stable : v772** — 23 octobre 2026 (Justin : « fais les 4 tout de suite », dont la publication de la version publique). Ce qui change
+pour une entreprise :
+- **L'application se règle sur son métier** : 23 métiers (dont le chauffage et la climatisation, avec le parc d'appareils, l'attestation en PDF,
+  les fluides et l'étanchéité, la visite annuelle) ; hors 3D, plus rien de l'anti-nuisibles ; les catégories de produits suivent le métier.
+- **Elle ne montre que les rubriques retenues pour elle** par TEAM OP (une entreprise pour qui rien n'est retenu voit tout, comme avant), et
+  chaque rubrique s'explique là où on la coche.
+- **« Validations DR » devient « Validation des mouvements »**, et « le valideur responsable » remplace « le DR » dans les textes du circuit.
+- **L'audit Apple, ses 36 corrections** : « plus de contraste », « moins de transparence » et « réduire les animations » du téléphone
+  respectés ; la taille du texte suit l'iPhone et l'iPad (réglage dans Paramètres › Apparence) ; une intervention se glisse au doigt dans le
+  planning ; un geste se défait (« ↩︎ Annuler ») au lieu d'une boîte du navigateur ; une photo s'ouvre en grand et se pince ; plus aucun survol
+  collé au doigt ; un champ manquant se désigne ; le jour et la nuit se fondent sans éclair blanc.
+- **Données** : une collection neuve, `appareils` (le parc du chauffage et de la climatisation). Un appareil resté en v770 peut ne pas la garder
+  en se synchronisant ; le premier appareil en v772 la réunit de nouveau (union par identifiant). Aucune entreprise n'utilise l'application
+  aujourd'hui (décision du 16 octobre) : rien à attendre avant d'exiger la version.
+- **La démonstration publique** (`demo.html`, sans réseau ni compte, un exemple par métier) est en ligne, avec son lien sur le site ; le service
+  worker ne la met jamais en cache.
+- Pas d'annonce par courriel : elle part d'un geste du patron dans la Tour, et aucune entreprise n'utilise l'application aujourd'hui.
+
+**Ancien point : v770.**
+
 **Version stable : v770** — 20 octobre 2026 (Justin : « traduis pour les autres qui ne l'ont pas »). Ce qui change pour une entreprise :
 dans OP Courrier, un mail se lit normalement (plus de « &Eacute; » ni de « &nbsp; »), ses liens se touchent (pas dans les indésirables), et
 **« Traduire en français »** traduit le mail ouvert, au geste (`/api/mail/traduire`, gardé par la clé de l'entreprise, 100 par jour) — le
