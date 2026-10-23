@@ -1759,6 +1759,8 @@ body.plans .reg-l.cli::before{display:none}
 @media(max-width:899px){ .eq-apps label{min-height:44px;padding:0 14px}
   .eq-apps input[type="checkbox"]{width:18px;height:18px;flex:none} }
 .eq-apps label i{width:10px;height:10px;border-radius:3px;background:var(--c)} .eq-apps .sous{color:var(--muted);font-size:12px} .eq-apps input{accent-color:var(--app)}
+/* Catégories d'OP GESTION (fiche d'une entreprise) : un titre de groupe au-dessus de ses cases, qui sont des .eq-apps */
+.cats-gt{font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 0}
 .app-sw button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;min-height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:-.005em;cursor:pointer}
 .app-sw button i{width:10px;height:10px;border-radius:3px;background:var(--c);flex-shrink:0}
 .app-sw button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--app-brd),0 1px 2px rgba(0,0,0,.06)}
@@ -5546,6 +5548,7 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu){
     '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">L\'espace est prêt. Il ne te reste qu\'à envoyer l\'e-mail au client.</div>'+
     '<div class="sec">FORMULE RÉSERVÉE</div><div style="margin:6px 0 14px;font-size:15px"><b>'+esc(F2[formule]||formule)+(q>1?' ×'+q:'')+'</b> '+
       (promo?'<span class="past p-vert">🎁 offerte jusqu’au '+esc(promo.finLe)+'</span>':dejaPaye?'<span class="past p-vert">💳 déjà réglée</span>':'<span class="past p-orange">⏸ suspendue jusqu’au paiement</span>')+'</div>'+
+    '<div class="encart" style="margin:0 0 14px"><div class="encart-tx">🧩 <b>Choisis ses catégories</b> dans sa fiche : l’application ne montrera à cette entreprise que celles que tu retiens (par défaut, toutes). <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>'+
     (codeDem&&!promo?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx">⚠️ Code promo « '+esc(codeDem)+' » de la demande non appliqué : '+esc(promoErr)+'</div></div>':'')+
     '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— c\'est elle qu\'on donne aux équipes</span></div>'+
     '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span id="acc-adr" class="mono" style="flex:1;word-break:break-all;font-size:14px;color:var(--link);font-weight:700">'+esc(adrF)+'</span><button class="btn-fant" onclick="tourCopie(\'acc-adr\',this)">Copier</button></div>'+
@@ -5662,7 +5665,9 @@ function optsPeindre(d){
 function packPeindre(){
   var el=document.getElementById('pack-info'); if(!el) return;
   if(!PACK.charge){ el.textContent=PACK.nom?'Chargement du statut…':''; return; }
-  if(PACK.err){ el.innerHTML='<span style="color:var(--redText)">'+esc(PACK.err)+'</span>'; return; }
+  if(PACK.err){ el.innerHTML='<span style="color:var(--redText)">'+esc(PACK.err)+'</span>';
+    var ce=document.getElementById('cats-info'); if(ce) ce.innerHTML='<span style="color:var(--redText)">Catégories illisibles\u202f: '+esc(PACK.err)+'</span>';   /* sans ça, « Chargement… » resterait pour toujours */
+    return; }
   var d=PACK.d||{};
   /* une fiche « Gratuit » d'avant la v2.78 : la liste n'a plus cette formule — elle reste VIDE, pour qu'on en choisisse une
      (l'enregistrement le demande), plutôt que d'afficher Pro qu'on enregistrerait sans l'avoir choisi */
@@ -5676,6 +5681,13 @@ function packPeindre(){
     sm.value=d.metier||dmM||'';
     if(mi) mi.innerHTML=d.metier?'Métier réglé\u202f: <b>'+esc(MET_L[d.metier]||d.metier)+'</b> — l’application le reçoit à sa prochaine ouverture.'
       :'Métier <b>non réglé</b> — l’application reste en 3D'+(dmM?'. Demandé\u202f: <b>'+esc(MET_L[dmM])+'</b>, à enregistrer.':'.'); }
+  /* les catégories d'OP GESTION : un tableau (celles qui sont retenues), `null` (rien de réglé : tout est ouvert) ou rien du tout
+     (un serveur d'avant, qui ne sait pas les régler — on le dit, on ne coche pas « tout » comme si on savait) */
+  var ci=document.getElementById('cats-info'), cc=d.cats;
+  CAT_CLES.forEach(function(k){ var c=document.getElementById('cat-'+k); if(c) c.checked=!Array.isArray(cc)||cc.indexOf(k)>=0; });
+  if(ci) ci.innerHTML=Array.isArray(cc)
+    ? '<b>'+cc.length+' catégorie'+(cc.length>1?'s':'')+' sur '+CAT_CLES.length+'</b> retenue'+(cc.length>1?'s':'')+' — l’application ne montre que celles-là, à sa prochaine ouverture.'
+    : (cc===null?'Toutes les catégories sont ouvertes.':'Le serveur ne sait pas encore régler les catégories — mets-le à jour.');
   var ST={auto:'automatique',actif:'activé par TEAM OP',essai:'en essai',impaye:'impayé',suspendu:'suspendu',annule:'annulé'};
   if(d.formule){
     /* la formule en toutes lettres, comme « l’application reçoit » juste après (et le toast de « 💳 Statut paiement ») :
@@ -5737,6 +5749,45 @@ function tourMetierEnregistrer(nom,btn){
     else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour');
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; } });
+}
+/* 🧩 22 octobre 2026 — les catégories d'OP GESTION de l'espace (liste fermée, vérifiée aussi par le serveur). Chaque essai écrit SON verdict
+   dans #cats-msg : un refus ne survit pas à la réussite qui le dément, et un refus se DIT à l'écran, pas seulement au toast. */
+function catsDire(h){ var m=document.getElementById('cats-msg'); if(m) m.innerHTML=h?'<span style="color:var(--redText)">'+h+'</span>':''; }
+function catsChoisies(){ return CAT_CLES.filter(function(k){ var c=document.getElementById('cat-'+k); return c&&c.checked; }); }
+function catsEnvoyer(nom,cats,btn,libelle,ok){
+  catsDire('');
+  if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
+  var rendre=function(){ if(btn){ btn.disabled=false; btn.textContent=libelle; } };
+  return apiPost('/api/monitor/espaces/cats',{nom:nom,cats:cats}).then(function(r){
+    if(r&&r.ok&&r.d&&r.d.ok){ toast(ok(r.d.cats)); tourPackPrefill(nom); }
+    else { var e=(r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour'; catsDire('⛔ '+esc(e)); toast(e); }
+    rendre();
+  }).catch(function(){ catsDire('⛔ Serveur injoignable.'); toast('Serveur injoignable'); rendre(); });
+}
+function tourCatsEnregistrer(nom,btn){
+  catsDire('');
+  if(MYROLE!=='patron'){ catsDire('⛔ Réservé au patron.'); toast('Réservé au patron'); return; }
+  /* tant que la fiche n'a pas parlé, les cases sont toutes cochées PAR DÉFAUT : enregistrer maintenant reviendrait à « tout rouvrir » */
+  if(!PACK.charge||PACK.nom!==nom||!PACK.d){ catsDire('⛔ Attends que la fiche soit chargée.'); toast('Attends que la fiche soit chargée'); return; }
+  var ch=catsChoisies();
+  if(!ch.length){ catsDire('⛔ Coche au moins une catégorie — « Tout rouvrir » ne restreint rien.'); toast('Coche au moins une catégorie'); return; }
+  /* tout coché = rien de restreint : le serveur retire le champ (une rubrique ajoutée plus tard à l'application doit s'ouvrir) */
+  var tout=(ch.length===CAT_CLES.length);
+  return catsEnvoyer(nom,tout?null:ch,btn,'💾 Enregistrer les catégories',function(c){
+    return Array.isArray(c)?('🧩 '+c.length+' catégorie'+(c.length>1?'s':'')+' retenue'+(c.length>1?'s':'')+' — l’application les reçoit à sa prochaine ouverture'):'🧩 Toutes les catégories sont ouvertes'; });
+}
+function tourCatsRouvrir(nom,btn){
+  catsDire('');
+  if(MYROLE!=='patron'){ catsDire('⛔ Réservé au patron.'); toast('Réservé au patron'); return; }
+  return catsEnvoyer(nom,null,btn,'Tout rouvrir',function(){ return '🧩 Toutes les catégories sont ouvertes — l’application les reçoit à sa prochaine ouverture'; });
+}
+/* le rappel après une acceptation ou une création d'accès : mène à la fiche, au bloc des catégories */
+function tourCatsAller(nom){
+  try{ tourPanneauFermer(); }catch(e){}
+  var k=espSlugJs(nom||''), o=(ENT.liste||[]).filter(function(x){ return x&&(espSlugJs(x.nom||'')===k||x.slug===k); })[0];
+  if(o&&o.t){ demOuvrirFiche(o.t); setTimeout(function(){ var b=document.getElementById('cats-bloc'); if(b&&b.scrollIntoView) b.scrollIntoView({behavior:'smooth',block:'start'}); },700); return; }
+  setTab('entreprises'); try{ chargerEntreprises(); }catch(e){}
+  toast('Ouvre sa fiche dans Entreprises : « Catégories d’OP GESTION »');
 }
 function chargerClients(){
   apiGet('/api/monitor/clients').then(function(d){
@@ -8168,7 +8219,7 @@ function ficheEntreprise(){
   if(g) t+=pleine(g.abonnement);
   t+=carteSi(blocUtilisateurs());
   /* SON ESPACE — où vivent ses données : l'espace, son métier, ses applications, son chiffrement */
-  t+=carteSi(blocEspaceDe(o)+(g?g.metier:'')+
+  t+=carteSi(blocEspaceDe(o)+(g?g.metier+g.cats:'')+
     '<div class="sous-sec"><div class="sec">APPLICATIONS ET CHIFFREMENT</div><div class="kv">'+(g?g.declare+g.opmsg:'')+ficheChiffrement(o)+'</div></div>');
   /* ACTIVITÉ — ce qu'ils font : usage, échecs, erreurs, connexions, écrans */
   t+=pleine((blocDossier()||'')+(g?g.connexions+g.activite:''));
@@ -8793,6 +8844,22 @@ function gestionClientParts(){
       '<button type="button" class="btn-plein" onclick="tourMetierEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer le métier</button></div>'+
       '<div class="note">'+esc(metDemande(c)?'Métier demandé à l’inscription : '+MET_L[metDemande(c)]:'Métier non précisé à la demande')+'</div>'+
       '<div id="met-info" class="note">Chargement…</div></div>';
+  /* 22 octobre 2026 — LES CATÉGORIES D'OP GESTION : ce que l'application montre à cette entreprise. Tout coché = rien de restreint. Le patron
+     seul écrit (le serveur le redit) : pour un collaborateur, les cases se lisent et ne bougent pas. */
+  parts.cats=(function(){
+    var pat=(MYROLE==='patron');
+    return '<div class="sous-sec" id="cats-bloc"><div class="sec">CATÉGORIES D’OP GESTION</div>'+
+      '<div class="note">Ce que l’application montre à cette entreprise : une catégorie décochée disparaît du menu, de la barre du bas et du tableau de bord. Le tableau de bord, les utilisateurs, les modules OP et les paramètres restent toujours ouverts. Ce réglage ne change pas le prix.</div>'+
+      '<div id="cats-info" class="note">Chargement…</div>'+
+      CAT_L.map(function(g){
+        return '<div class="cats-gt">'+esc(g[0])+'</div><div class="eq-apps">'+g[1].map(function(c){
+          return '<label><input type="checkbox" id="cat-'+c[0]+'" value="'+c[0]+'" checked'+(pat?'':' disabled')+'> '+esc(c[1])+'</label>'; }).join('')+'</div>'; }).join('')+
+      (pat?'<div class="form-rang">'+
+        '<button type="button" class="btn-plein" onclick="tourCatsEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer les catégories</button>'+
+        '<button type="button" class="btn-fant" onclick="tourCatsRouvrir(\''+jsq(nm)+'\',this)">Tout rouvrir</button></div>'
+        :'<div class="note">Réservé au patron : les cases se lisent, elles ne se règlent pas ici.</div>')+
+      '<div id="cats-msg" class="note" role="status" aria-live="polite"></div></div>';
+  })();
   /* Les applications de cette entreprise : ce qu'elle a DÉCLARÉ à l'inscription (chips), ce
      qui lui est OUVERT par TEAM OP, et ce qu'elle UTILISE vraiment (bloc CONNEXIONS, rangé dans Activité).
      OP MESSAGES est une application à part, avec son propre abonnement : elle s'ouvre et se
@@ -9430,6 +9497,24 @@ var ABN_F={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Pre
    les six métiers du site qui n'avaient pas de pack en ont un, et « Autre métier de terrain » est le réglage neutre. */
 var MET_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain'};
 function metDemande(c){ var d=((c&&c.demandes)||[]).filter(function(x){ return x&&typeof x==='object'&&MET_L[x.metier]; }).sort(function(a,b){ return (b.date||0)-(a.date||0); })[0]; return d?d.metier:''; }
+/* 22 octobre 2026 — LES CATÉGORIES D'OP GESTION qu'on retient pour une entreprise (Justin : « quand on crée un accès client, dans la Tour on
+   choisit les catégories dont ils ont besoin et pas besoin »). Les groupes et les libellés sont ceux de `NAV` (app.html) ; les
+   clés sont celles de `CATS_OK` (serveur). Ne figurent PAS ici — jamais cochables, toujours ouvertes : le tableau de bord, les
+   utilisateurs, les modules OP et les paramètres. `tests/test-2871.js` compare les trois listes : une rubrique ajoutée un jour à
+   `NAV` fait tomber le banc au lieu d'échapper au réglage. */
+var CAT_L=[
+['Tableau de bord',[['statistiques','Statistiques'],['historique','Historique'],['archives','Archives mensuelles']]],
+['Planification',[['planning','Planning'],['planningGeneral','Planning général'],['taches','Tâches'],['absences','Absences & congés']]],
+['Interventions',[['interventions','Interventions'],['rapports','Rapports'],['carteInt','Carte interventions'],['registre','Registre sanitaire'],['carteBox','Carte des box']]],
+['CRM',[['clients','Clients']]],
+['Ventes',[['devis','Devis'],['assistantDevis','Assistant devis'],['factures','Factures'],['contrats','Contrats'],['comptabilite','Comptabilité'],['devisXylo','Devis xylophage'],['telecollecte','Télécollecte']]],
+['Stock',[['produits','Produits'],['stock','Stock'],['mouvements','Mouvements stock'],['boxes','Boxes'],['saisieConso','Consommation produits'],['enveloppes','Enveloppes']]],
+['Temps & équipe',[['pointage','Temps de travail'],['vehicules','Véhicules'],['conducteurs','Conducteurs']]],
+['Communication / Fournisseurs',[['messagerie','Messagerie'],['boiteMail','Boîte mail'],['fournisseurs','Fournisseurs'],['bons','Bons de commande']]],
+['Achats internes',[['brouillon','Brouillon'],['demandes','Mes demandes'],['validations','Validations DR'],['commandes','Commandes en cours']]],
+['Administration',[['secteurs','Secteurs']]]
+];
+var CAT_CLES=[]; CAT_L.forEach(function(g){ g[1].forEach(function(c){ CAT_CLES.push(c[0]); }); });
 /* La formule que l'application REÇOIT (serveur : `formuleServie`) — celle que l'entreprise paie, ou celle qu'une période
    offerte sert — et l'écart quand ce n'est pas celle de la fiche. Justin, 29 septembre 2026 : « ils choisissent le tarif
    qu'ils veulent » ; un code promo sert le plus gros forfait « pour mieux montrer l'application ». Sans l'écart, une fiche
@@ -9600,7 +9685,9 @@ async function pbCreer(btn){
       '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b><br>Mot de passe provisoire : <b>'+esc(e.mdp||mdp)+'</b> <span style="color:var(--muted);font-size:12px">(l’app fait choisir le vrai mot de passe à la 1re connexion)</span></div>'+
       '<div class="encart"><div class="encart-tx">Cette adresse ouvre la <b>version publique</b>, avec ses vraies données. Elle n’a rien à voir avec un accès bêta : la bêta n’ouvre que la bêta.</div></div>'+
       /* v2.78 — sans formule, l'espace est SUSPENDU tant que rien n'est payé ni offert (Justin, 30 septembre 2026 : « Suspend ») */
-      '<div class="encart" style="margin-top:10px"><div class="encart-tx">⏸ <b>Sans formule, l’application s’ouvre suspendue</b> (rien de payé ni offert). Pour t’en servir : Entreprises → sa fiche → Abonnement → une formule et le statut « En essai » avec une date de fin.</div></div>');
+      '<div class="encart" style="margin-top:10px"><div class="encart-tx">⏸ <b>Sans formule, l’application s’ouvre suspendue</b> (rien de payé ni offert). Pour t’en servir : Entreprises → sa fiche → Abonnement → une formule et le statut « En essai » avec une date de fin.</div></div>'+
+      /* 22 octobre 2026 — les catégories d'OP GESTION se choisissent dans sa fiche */
+      '<div class="encart" style="margin-top:10px"><div class="encart-tx">🧩 <b>Choisis ses catégories</b> dans sa fiche : l’application ne montrera que celles que tu retiens (par défaut, toutes). <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>');
     /* Ce panneau n'a pas de message type : on oublie celui du panneau précédent, sinon
        lgMessagePoser irait réécrire une zone qui n'est plus à l'écran. */
     LG_MSG_MODELE=''; LG_ZONE='';
