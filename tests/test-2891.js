@@ -48,6 +48,8 @@ console.log('\n── 2891 · le métier est obligatoire à l\'abonnement, les r
   const FERME = NOUVEAUX[0];
   const prixPro = (/^\s*pro: \['(price_\w+)', '(price_\w+)'\]/m.exec(SRC) || [])[1];
   vrai('(population) le tarif Pro du serveur est lu', /^price_/.test(prixPro || ''), prixPro);
+  const prixMsg = (/^\s*msgpro: \['(price_\w+)'/m.exec(SRC) || [])[1];
+  vrai('(population) le tarif OP MESSAGES du serveur est lu, et ce n\'est pas celui d\'OP GESTION', /^price_/.test(prixMsg || '') && prixMsg !== prixPro, prixMsg);
 
   const MAINT = Date.now();
   const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
@@ -58,9 +60,10 @@ console.log('\n── 2891 · le métier est obligatoire à l\'abonnement, les r
   const T_ELAN = 't-elan-2891';
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify({ [cle('elan-banc')]: { t: T_ELAN, nom: 'elan-banc', email: mail('elan'), ts: MAINT - 1000, code: code64(T_ELAN),
     formule: 'pro', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc', aboStatut: 'actif', aboPar: 'Banc', aboTs: MAINT - 1000 } }));
-  const COMPTES = ['demande', 'ancien', 'messages', 'paie', 'elan', 'rien'], C = {}, J = {}, jetons = {};
+  const COMPTES = ['demande', 'ancien', 'messages', 'paie', 'elan', 'rien', 'variantes', 'msg', 'panne', 'curieux', 'ferme'], C = {}, J = {}, jetons = {};
   for (const id of COMPTES) { C[mail(id)] = { v: true, pr: 'Banc', no: id, so: 'Société ' + id };
     const brut = crypto.randomBytes(32).toString('hex'); J[sha(brut)] = { m: mail(id), g: 'session', exp: MAINT + 86400000 }; jetons[id] = brut; }
+  fs.writeFileSync(path.join(D, 'entreprises-fermees.json'), JSON.stringify({ emails: [mail('ferme')] }));   // un compte que la Tour a FERMÉ
   fs.writeFileSync(path.join(D, 'comptes-portail.json'), JSON.stringify({ c: C, j: J }));
   /* le client d'AVANT cette règle : une demande d'OP GESTION sans métier, déjà rangée (date 111) */
   const ANCIENNE = { app: 'OP GESTION', formule: 'Pro', statut: 'nouveau', date: 111, besoin: 'ancienne demande', users: '2', code: '', lien: 'ancien-banc', metier: '' };
@@ -78,6 +81,7 @@ globalThis.fetch = async function (url, opts) {
   if (!u.startsWith('https://api.stripe.com/')) return vrai.apply(this, arguments);
   fs.appendFileSync(${JSON.stringify(APPELS)}, JSON.stringify({ u, corps: String((opts && opts.body) || '') }) + '\\n');
   const json = (c, st) => new Response(JSON.stringify(c), { status: st || 200, headers: { 'content-type': 'application/json' } });
+  if (u.startsWith('https://api.stripe.com/v1/checkout/sessions') && String((opts && opts.body) || '').includes('panne')) return json({ error: { message: 'Stripe en panne (banc)' } }, 502);   // le compte « panne » : Stripe refuse de créer la page
   if (u.startsWith('https://api.stripe.com/v1/checkout/sessions')) return json({ id: 'cs_banc_2891', url: 'https://checkout.stripe.com/c/pay/banc-2891-' + (++n) });
   return json({ data: [], has_more: false });
 };\n`);
@@ -153,12 +157,30 @@ globalThis.fetch = async function (url, opts) {
     v('   … même avec un texte retouché (le métier et les rubriques n\'ont pas bougé)', rel2.s, 200);
     const rel3 = await sync('ancien', [ANCIENNE, dem({ metier: '', date: MAINT - 100 })]);
     v('⛔ … mais une demande NEUVE sans métier, glissée à côté de l\'ancienne, est refusée', [rel3.s, rel3.j.error], [400, 'metier_requis']);
+    /* ⛔ UNE DEMANDE D'AVANT NE COUVRE QU'UNE DEMANDE : une seconde de même date (la neuve, Business Premium, 50 utilisateurs) ne passe pas dessous */
+    const sec = Object.assign({}, ANCIENNE, { lien: 'second-banc', formule: 'Business Premium', users: '50' });
+    const dbl = await sync('ancien', [ANCIENNE, sec]);
+    v('⛔ deux demandes de MÊME DATE, la seconde neuve et sans métier : refusée (la première, d\'avant, ne la couvre pas)', [dbl.s, dbl.j.error], [400, 'metier_requis']);
+    const dbl2 = await sync('ancien', [ANCIENNE, Object.assign({}, sec, { metier: 'chauffage' })]);
+    v('   CONTRE-ÉPREUVE — la même seconde avec un métier ouvert passe, et la première, d\'avant, passe toujours', dbl2.s, 200);
+    const dbl3 = await sync('ancien', [ANCIENNE, Object.assign({}, sec, { lien: 'ancien-banc' })]);
+    v('⛔ … et la MÊME demande répétée (date, application et lien identiques) n\'a qu\'une seule couverture : la copie sans métier est refusée', [dbl3.s, dbl3.j.error], [400, 'metier_requis']);
     const rel4 = await sync('ancien', [Object.assign({}, ANCIENNE, { metier: FERME })]);
     v('   et l\'ancienne demande ne peut pas se voir donner un métier fermé', [rel4.s, rel4.j.error], [400, 'metier_ferme']);
     const rel5 = await sync('ancien', [Object.assign({}, ANCIENNE, { metier: 'peinture', cats: ['devis'] })]);
     const fa2 = await fiche('ancien');
     v('   ni la compléter d\'un métier ouvert : elle le prend (la modification est valide)', [rel5.s, fa2.demandes[0].metier, fa2.demandes[0].cats], [200, 'peinture', ['devis']]);
 
+    /* ⛔ « D'OP GESTION » SE JUGE COMME LA TOUR LE JUGE : tout ce qui ne contient pas « messages » */
+    for (const app of ['', 'op gestion', 'OP GESTION ', 'Op Gestion', 'GESTION', 'x']) {
+      const rv = await sync('variantes', [dem({ app, metier: '', date: MAINT - 777 })]);
+      v('⛔ une demande d\'application « ' + app + ' » sans métier est refusée (la Tour la range dans OP GESTION)', [rv.s, rv.j.error], [400, 'metier_requis']);
+    }
+    vrai('   (population) rien n\'a été rangé pour ce client', !(await fiche('variantes')));
+    for (const app of ['OP MESSAGES', 'op messages', 'Messages']) {
+      const rv = await sync('variantes', [dem({ app, metier: '', date: MAINT - 777 })]);
+      v('   CONTRE-ÉPREUVE — « ' + app + ' » (la Tour la range dans OP MESSAGES) passe sans métier', rv.s, 200);
+    }
     const msg = await sync('messages', [{ app: 'OP MESSAGES', formule: '', statut: 'nouveau', date: MAINT - 300, besoin: 'messagerie', users: '', code: '', lien: '', metier: '' }]);
     v('   une demande d\'OP MESSAGES n\'est pas un abonnement d\'OP GESTION : sans métier, elle passe', msg.s, 200);
     const rien = await sync('rien', []);
@@ -192,6 +214,30 @@ globalThis.fetch = async function (url, opts) {
     r = await payer('elan', { ref: T_ELAN });
     v('⛔ une entreprise qui EXISTE déjà (ELAN, sans métier : réglée avant ce chantier) achète une place de plus SANS être arrêtée', [r.s, /^https:\/\/checkout\.stripe\.com\//.test(r.j.url || '')], [200, true]);
     vrai('   … et aucun choix n\'est inventé pour elle', !(await fiche('elan')) || !(await fiche('elan')).choix);
+    /* ⛔ OP MESSAGES N'EST PAS UN ABONNEMENT D'OP GESTION : la page de paiement n'y demande pas de métier */
+    const n1 = sessionsStripe().length;
+    r = await payer('msg', { price: prixMsg });
+    v('⛔ un tarif d\'OP MESSAGES sans métier part chez Stripe (200) — la page ne propose aucune liste pour en choisir un', [r.s, /^https:\/\/checkout\.stripe\.com\//.test(r.j.url || ''), sessionsStripe().length - n1], [200, true, 1]);
+    vrai('   … et aucune fiche, aucun choix n\'est inventé', !(await fiche('msg')));
+    r = await payer('msg', { price: prixPro });
+    v('   CONTRE-ÉPREUVE — le même compte au tarif d\'OP GESTION, sans métier : refusé', [r.s, r.j.error], [400, 'metier_requis']);
+    /* ⛔ LA FICHE NAÎT D'UNE PAGE DE PAIEMENT RENDUE, PAS D'UN CLIC */
+    const fpa = await fiche('panne');
+    vrai('(population) le compte « panne » n\'a pas de fiche', !fpa);
+    r = await payer('panne', { metier: 'chauffage' });
+    v('⛔ Stripe en panne (502) : aucune fiche n\'est ouverte pour un paiement qui n\'a pas eu de page', [r.s, !(await fiche('panne'))], [502, true]);
+    r = await payer('ferme', { metier: 'chauffage' });
+    v('⛔ un compte FERMÉ par la Tour ne recrée pas de fiche en cliquant « Payer » (la synchro lui répond 410)', [r.s, !(await fiche('ferme'))], [200, true]);
+    r = await payer('curieux', { metier: 'chauffage' });
+    const fc = await fiche('curieux');
+    v('   CONTRE-ÉPREUVE — un paiement rendu range le choix sur une fiche marquée « de paiement »', [r.s, fc && fc.choix && fc.choix.metier, fc && fc.ficheDePaiement], [200, 'chauffage', true]);
+    const liste = (await appel('/api/monitor/comptes-site', undefined, PATRON)).j.comptes || [];
+    const lg = x => (liste.find(c => c.email === mail(x)) || {}).aUnEspace;
+    v('⛔ un clic sur « Payer » ne fait PAS passer le compte pour « avec espace » ; deux comptes qui ont synchronisé leur espace client (« demande », « paie » : sa fiche relayée a remplacé la fiche de paiement), si', [lg('curieux'), lg('demande'), lg('paie')], [false, true, true]);
+    r = await appel('/api/monitor/comptes-site/supprimer', { email: mail('demande') }, PATRON);
+    v('   la fiche d\'une vraie entreprise protège toujours le compte (409)', r.s, 409);
+    r = await appel('/api/monitor/comptes-site/supprimer', { email: mail('curieux') }, PATRON);
+    v('⛔ … celle d\'un simple clic sur « Payer » ne l\'empêche plus : compte supprimé, et la fiche part avec lui', [r.s, !(await fiche('curieux'))], [200, true]);
     r = await payer('rien', { metier: 'chauffage', ref: 'inconnue-de-l-annuaire' });
     v('   une référence INCONNUE de l\'annuaire ne dispense pas de métier : la souscription est neuve', [r.s], [200]);
     r = await payer('rien', { ref: 'inconnue-de-l-annuaire' });
@@ -210,7 +256,10 @@ globalThis.fetch = async function (url, opts) {
     console.log('\n5. Les trois portes passent par UNE vérification (dans le code)');
     const nChoix = (SRVN.match(/choixAbonnement\(/g) || []).length;
     v('⛔ `choixAbonnement` est appelée par la synchro et par le paiement (plus sa définition) — une troisième porte l\'appelle aussi, ou n\'existe pas', nChoix, 3);
-    vrai('   le refus du paiement vient AVANT la lecture de Stripe (avant `const qtes`)', SRVN.indexOf('let choixPaiement = null;') > 0 && SRVN.indexOf('let choixPaiement = null;') < SRVN.indexOf('const qtes = {};'));
+    const iCh = SRVN.indexOf('if (choixPaiement) choixAbonnementNoter(');
+    vrai('   ⛔ le choix n\'est rangé qu\'APRÈS la réponse de Stripe (après `!d.url`), jamais avant l\'appel', iCh > SRVN.indexOf('if (!r.ok || !d.url)') && SRVN.indexOf('if (!r.ok || !d.url)') > SRVN.indexOf("fetch('https://api.stripe.com/v1/checkout/sessions'"));
+    vrai('   le refus du paiement vient AVANT la création de la page chez Stripe, et seul un tarif d\'OP GESTION l\'exige', /if \(!optionSeule && rangDuPrix >= 0 && !visees\.length\) \{\s*const c = choixAbonnement\(/.test(SRVN));
+    vrai('   le refus du paiement vient AVANT la lecture de Stripe des options (avant `const qtes`)', SRVN.indexOf('let choixPaiement = null;') > 0 && SRVN.indexOf('let choixPaiement = null;') < SRVN.indexOf('const qtes = {};'));
   } finally { fin(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);

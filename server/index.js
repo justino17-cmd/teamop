@@ -792,10 +792,13 @@ app.post('/api/stripe/checkout', async (req, res) => {
     /* ⛔ UNE SOUSCRIPTION NEUVE CHOISIT SON MÉTIER (Justin, 23 octobre 2026 : « quand ils prennent un abonnement, ils choisissent le
        métier, et c'est obligatoire »). « Neuve » = aucune entreprise visée par la référence : on paie avant d'avoir son espace. Une
        entreprise qui existe déjà a son métier (ou ELAN, réglée avant ce chantier, n'en a pas et ne doit pas être bloquée pour acheter
-       une place de plus) ; un ajout d'option seule non plus. Le refus vient AVANT toute lecture de Stripe : rien n'est créé. Le choix
-       (métier + rubriques) est rangé sur la fiche du client : la Tour le lit à l'ouverture de son espace. */
+       une place de plus) ; un ajout d'option seule non plus. ⛔ Et seul un tarif d'OP GESTION (`rangDuPrix >= 0`) : un tarif d'OP MESSAGES
+       n'est pas un abonnement d'OP GESTION, la page de paiement n'y demande pas de métier (`groupe === 'gestion'`) — l'exiger ici
+       fermait le paiement sans offrir de liste pour le faire. Le refus vient APRÈS la lecture d'un impayé à régler (`factureImpayeARegler`,
+       plus haut : une entreprise visée ne passe pas ici) mais AVANT tout appel qui CRÉE quelque chose chez Stripe. Le choix (métier +
+       rubriques) est rangé sur la fiche du client APRÈS que Stripe a rendu sa page : la Tour le lit à l'ouverture de son espace. */
     let choixPaiement = null;
-    if (!optionSeule && !visees.length) {
+    if (!optionSeule && rangDuPrix >= 0 && !visees.length) {
       const c = choixAbonnement((req.body || {}).metier, (req.body || {}).cats);
       if (!c.ok) return res.status(400).json({ error: c.error, message: MESSAGES_CHOIX[c.error] });
       choixPaiement = c;
@@ -898,10 +901,10 @@ app.post('/api/stripe/checkout', async (req, res) => {
       p.append('client_reference_id', refGravee);
       p.append('subscription_data[metadata][espace]', refGravee);
     }
-    if (choixPaiement) choixAbonnementNoter(payeurMin, choixPaiement);
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: stripeEntetes(sk, { 'Content-Type': 'application/x-www-form-urlencoded' }), body: p.toString() });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.url) return res.status(502).json({ error: (d.error && d.error.message) || 'stripe erreur' });
+    if (choixPaiement) choixAbonnementNoter(payeurMin, choixPaiement);   // APRÈS la page de paiement rendue : un Stripe en panne ne laisse pas de fiche
     res.json({ url: d.url });
   } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
 });
@@ -2767,12 +2770,16 @@ const MESSAGES_CHOIX = {
    le plafond des fiches. Écriture différée comme le reste (`cliSave`). */
 function choixAbonnementNoter(email, c) {
   try {
+    /* ⛔ UN COMPTE FERMÉ PAR TEAMOP NE RECRÉE PAS DE FICHE par ce chemin (`/api/clients/sync` lui répond 410) : sans ce refus, cliquer
+       « Payer » rouvrait une fiche que la fermeture avait effacée, et la Tour reparlait d'un client fermé. */
+    if (entFermes.emails.includes(email)) return;
     let fiche = clientsData[email];
     if (!fiche) {
       if (Object.keys(clientsData).length >= 2000) return;   // même plafond silencieux que la synchro
       let compte = {}; try { compte = (comptes.liste().find(x => x.email === email)) || {}; } catch (e) { compte = {}; }
       fiche = clientsData[email] = { email, nom: ((compte.prenom || '') + ' ' + (compte.nom || '')).trim(), prenom: compte.prenom || '', nomFam: compte.nom || '', tel: '', entreprise: compte.societe || '',
-        inscrit: Date.now(), apps: [], demandes: [], plan: '', planStatus: '', promo: '', majTs: Date.now(), noteInterne: '', metier: '', metierPar: '', demandesTraitees: {} };
+        inscrit: Date.now(), apps: [], demandes: [], plan: '', planStatus: '', promo: '', majTs: Date.now(), noteInterne: '', metier: '', metierPar: '', demandesTraitees: {},
+        ficheDePaiement: true };   // ⛔ née d'un clic sur « Payer », pas d'une entreprise : elle ne compte pas comme un espace (`aUnEspace`) — la première synchro de l'espace client écrit une fiche neuve, sans ce drapeau
     }
     fiche.choix = { metier: c.metier, cats: c.cats, ts: Date.now(), source: 'paiement' };
     cliSave();
@@ -9607,10 +9614,17 @@ app.post('/api/clients/sync', async (req, res) => {
      refuse donc que ce qui est NEUF ou ce qui CHANGE (une demande déjà connue, relayée telle quelle, passe) — sinon un client
      d'avant verrait toute sa fiche refusée à chaque visite, et la Tour ne recevrait plus rien de lui. Seules les demandes
      d'OP GESTION sont concernées (OP MESSAGES n'est pas un abonnement d'OP GESTION). */
+  /* ⛔ « D'OP GESTION » SE JUGE COMME LA TOUR LE JUGE (`demEstGestion`, tour.html) : tout ce qui ne contient pas « messages ». Le test d'égalité
+     exacte à « OP GESTION » laissait passer une demande d'application '', 'gestion', 'Op Gestion', 'OP GESTION ' — rangée sans métier et
+     « À traiter » dans la Tour, que Justin pouvait accepter : l'espace s'ouvrait sans métier, ce que ce chantier devait rendre impossible.
+     ⛔ Et UNE demande d'avant ne couvre qu'UNE demande du corps : retrouvée par sa date ET son identité (application, lien), puis
+     CONSOMMÉE. Cherchée par la seule date, elle couvrait aussi une seconde demande de même date — la neuve, sans métier, passait. */
+  const restantes = avantDem.slice();
   for (const d of brutes) {
-    if (!d || monStr(d.app, 60) !== 'OP GESTION') continue;
+    if (!d || /messages/i.test(monStr(d.app, 60))) continue;
     const date = parseInt(d.date, 10) || 0;
-    const avant = date ? avantDem.find(x => x && x.date === date) : null;
+    const rang = date ? restantes.findIndex(x => x && x.date === date && (x.app || '') === monStr(d.app, 60) && (x.lien || '') === monStr(d.lien, 60)) : -1;
+    const avant = rang >= 0 ? restantes.splice(rang, 1)[0] : null;
     const meme = avant && JSON.stringify([monStr(d.metier, 20), catsDemande(d.cats)]) === JSON.stringify([avant.metier || '', avant.cats || null]);   // le métier tel qu'il est ÉCRIT : un métier fermé ne passe pas pour « inchangé »
     if (meme) continue;
     const c = choixAbonnement(d.metier, d.cats);
@@ -9808,6 +9822,10 @@ app.post('/api/clients/sync', async (req, res) => {
    l'adresse, les dates, et si un espace lui est rattaché. Firebase ne rend pas les mots de
    passe et on ne demande rien d'autre. Réservée à la Tour (monAdmin) : ce sont des adresses
    de clients réels. */
+/* Ce compte porte-t-il une entreprise ? Une fiche née d'un clic sur « Payer » (`ficheDePaiement`, voir `choixAbonnementNoter`) garde le
+   choix du métier pour la Tour mais n'est PAS une entreprise : la compter comme un espace bloquait la suppression d'un simple
+   curieux, et le montrait « avec espace » dans la liste des comptes. */
+const porteUnEspace = mail => !!(clientsData[mail] && !clientsData[mail].ficheDePaiement);
 app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
   const tok = await fbAdminJeton();
   /* Nos comptes (`comptes.js`) se listent même sans Google : c'est eux que le portail utilise
@@ -9871,7 +9889,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
           /* Le point décisif pour trier : ce compte porte-t-il une entreprise avec des
              données, ou n'est-ce qu'un compte d'essai qu'on peut effacer sans rien perdre ? */
           entreprise: clientsData[mail] ? (clientsData[mail].entreprise || clientsData[mail].nom || '') : '',
-          aUnEspace: !!clientsData[mail]
+          aUnEspace: porteUnEspace(mail)
         });
       }
       pageTok = j.nextPageToken || ''; if (!pageTok) break;
@@ -9891,7 +9909,7 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
         statut: String((dos && dos.status) || '').slice(0, 30),
         cree: c.cree || 0, derniere: c.maj || 0, verifie: c.verifie, desactive: false,
         entreprise: clientsData[c.email] ? (clientsData[c.email].entreprise || clientsData[c.email].nom || '') : '',
-        aUnEspace: !!clientsData[c.email], chezNous: true, aPoser: c.aPoser });
+        aUnEspace: porteUnEspace(c.email), chezNous: true, aPoser: c.aPoser });
     }
   }
   lignes.sort((a, b) => (b.cree || 0) - (a.cree || 0));
@@ -9905,13 +9923,14 @@ app.get('/api/monitor/comptes-site', monAdmin, async (req, res) => {
 app.post('/api/monitor/comptes-site/supprimer', monPatronStrict, async (req, res) => {
   const email = monStr((req.body || {}).email, 160).trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'adresse invalide' });
-  if (clientsData[email]) return res.status(409).json({
+  if (porteUnEspace(email)) return res.status(409).json({
     error: 'ce compte porte une entreprise — passe par « Fermer définitivement » dans Entreprises, qui efface aussi son espace et ses données'
   });
   const r = await compteSiteSupprimer(email);
   // Journal : l'adresse est masquée, on ne met pas de données personnelles dans les logs.
   console.log('compte site supprimé ' + masqueMail(email) + ' : ' + (r.fait ? 'ok' : 'échec — ' + r.motif));
   if (!r.fait) return res.status(400).json({ error: r.motif });
+  if (clientsData[email]) { delete clientsData[email]; cliSave(); }   // la fiche née d'un clic sur « Payer » part avec le compte : elle n'était qu'un choix de métier
   res.json({ ok: true, detail: r.motif });
 });
 
