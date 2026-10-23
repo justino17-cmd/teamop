@@ -62,7 +62,7 @@ module.exports = function documents(app, ctx) {
   function resumeDe(e) {
     const dos = e.dossier ? ' (' + e.dossier + ')' : '';
     if (e.type === 'mise_en_demeure') return 'Mise en demeure préparée' + dos + ' — à relire : elle ne part que si tu la valides';
-    if (e.type === 'annonce_clients') return 'Annonce à tous les clients — à relire : elle ne part que si tu la valides';
+    if (e.type === 'annonce_clients') return 'Annonce à tous les clients — ' + (e.aRevoir ? 'à revoir : ' + e.aRevoir : 'à relire') + ' : elle ne part que si tu la valides';
     const nom = { resiliation: 'Accusé de fin d’abonnement', relance: 'Relance d’impayé', rendez_vous: 'Rendez-vous avec un prospect' }[e.source] || 'Courriel d’un agent';
     return nom + dos + (e.aRevoir ? ' — à revoir : ' + e.aRevoir : ' — à relire avant envoi');
   }
