@@ -240,7 +240,8 @@ const poser = (Z, o) => { const m = msg(Object.assign({ ts: Z.horloge.t - 360000
 
   console.log('   … « Valider et envoyer » : la réponse part EN RÉPONSE au mail reçu');
   const { simpleParser } = require(path.join(RACINE, 'server', 'node_modules', 'mailparser'));
-  const dec = await S.post('/api/monitor/agents/validations/decider', { id: valP.id, decision: 'accepter' });
+  /* « Valider et envoyer » renvoie l'empreinte du texte LU (la garde d'acceptation l'exige depuis la relecture du 23 octobre 2026) */
+  const dec = await S.post('/api/monitor/agents/validations/decider', { id: valP.id, decision: 'accepter', empreinte: br.empreinte });
   v('le patron valide : 200, exécution « ok »', [dec.s, dec.j.validation && dec.j.validation.execution], [200, 'ok']);
   const lettres = await Promise.all(S.fact.recus.map(r => simpleParser(r)));
   const rep = lettres.filter(m => /prospect@secret-2863\.fr/.test(String((m.to && m.to.text) || '')));
@@ -250,7 +251,7 @@ const poser = (Z, o) => { const m = msg(Object.assign({ ts: Z.horloge.t - 360000
   vrai('…le texte du brouillon, puis la signature du Courrier', /Bien cordialement,\s+L'équipe TEAM OP/.test(String(r1.text)), String(r1.text).slice(-200));
   vrai('…le message d’origine passe « répondu » dans la boîte, et une copie va dans « Envoyés »', await S.attendre(async () => (S.imap().boites[BOITE].messages.find(m => m.uid === 1 && m.dossier === 'INBOX').flags || []).includes('\\Answered'), 6000) && (S.imap().boites[BOITE].ajouts || []).length >= 1);
   vrai('…et la lecture de Camille n’avait rien marqué « lu » (seul « répondu » a été posé)', !(S.imap().boites[BOITE].messages.find(m => m.uid === 1).flags || []).includes('\\Seen'));
-  const dec2 = await S.post('/api/monitor/agents/validations/decider', { id: valP.id, decision: 'accepter' });
+  const dec2 = await S.post('/api/monitor/agents/validations/decider', { id: valP.id, decision: 'accepter', empreinte: br.empreinte });
   await dormir(400);
   v('⛔ une seconde validation : 409, aucun second courriel', [dec2.s, (await Promise.all(S.fact.recus.map(r => simpleParser(r)))).filter(m => /prospect@secret-2863\.fr/.test(String((m.to && m.to.text) || ''))).length], [409, 1]);
 

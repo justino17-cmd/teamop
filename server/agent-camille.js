@@ -15,6 +15,10 @@
  *    notification « Nouveau compte » est l'affaire de Léa, et répondre à nos propres courriels ferait une boucle.
  * ⛔ Un mail DÉJÀ VU (Message-ID) ne se retraite pas ; un mail de plus de trois jours non plus (connecter une boîte relève de vieux messages non
  *    lus : ils ne doivent pas valoir à leurs auteurs une réponse commerciale d'une semaine en retard). Plafonds du jour : 30 brouillons, 100 examens.
+ * ⛔ Un expéditeur ne remplit pas la file à lui seul : DEUX brouillons en attente au plus pour une même adresse (les 20 validations de Camille et ses 30
+ *    brouillons du jour sont à tout le monde — un courriel reçu n'a prouvé aucune adresse, mais Justin relit tout, et le mode « auto » n'est pas ouvert).
+ * ⛔ Le MÊME Message-ID reçu dans deux boîtes (contact@ avec support@ en copie) ne produit qu'UN brouillon : l'empreinte est réservée AVANT le premier
+ *    appel à Claude, pas seulement notée après.
  * ⛔ Camille à l'ARRÊT (ou en pause) : le message n'est même pas lu dans la boîte. Rien ne casse la veille : le crochet ne jette jamais.
  * Toutes les dépendances sont INJECTÉES.
  */
@@ -27,6 +31,7 @@ const F = 'agents-camille.json';
 const BROUILLONS_PAR_JOUR = 30;
 const EXAMENS_PAR_JOUR = 100;
 const MAX_MIDS = 3000;
+const ATTENTES_PAR_EXPEDITEUR = 2;
 const AGE_MAX_MS = 3 * 86400000;
 const TEXTE_MAX = 6000;
 const JETONS = 2500;
@@ -66,6 +71,7 @@ module.exports = function camille(ctx) {
   const aujourdhui = () => new Date(maintenant()).toISOString().slice(0, 10);
   const deJour = () => { const j = aujourdhui(); if (reg.jour.j !== j) reg.jour = { j, brouillons: 0, examens: 0 }; return reg.jour; };
   const enCours = new Set();
+  const midsEnCours = new Set();   // les empreintes de Message-ID en cours de traitement (la même lettre dans deux boîtes)
 
   function noterVu(h) {
     reg.mids[h] = maintenant();
@@ -88,6 +94,7 @@ module.exports = function camille(ctx) {
       const cle = 'u:' + String(ev.boiteId) + ':' + String(ev.dossier) + ':' + String(ev.uid);
       if (enCours.has(cle)) return { saute: 'deja_en_cours' };
       enCours.add(cle);
+      let reserve = '';
       try {
         const jour = deJour();
         if (jour.examens >= EXAMENS_PAR_JOUR) return { saute: 'plafond_examens' };
@@ -97,12 +104,16 @@ module.exports = function camille(ctx) {
         if (!m) return { saute: 'introuvable' };
         if (m.protege || m.auto) return { saute: 'automatique' };
         const h = empreinte(m.mid || cle);
-        if (reg.mids[h]) return { saute: 'deja_vu' };
+        if (reg.mids[h] || midsEnCours.has(h)) return { saute: 'deja_vu' };
+        /* ⛔ réservé ICI, avant tout `await` : le contrôle ci-dessus et cette ligne se suivent sans rien entre eux, donc la seconde annonce du même mail (l'autre
+           boîte) voit la réservation de la première. Libérée dans le `finally`. */
+        midsEnCours.add(h); reserve = h;
         const a = String(m.de || '').trim().toLowerCase();
         if (!bonneAdresse(a)) return { saute: 'expediteur' };
         /* NOS adresses : jamais traitées (et marquées vues, pour ne pas les relire à chaque passage) */
         if (domainesNotres().some(d => d && domaineDe(a) === String(d).toLowerCase()) || adressesNotres().some(x => x && a === String(x).toLowerCase())) { noterVu(h); return { saute: 'interne' }; }
         if (m.ts && maintenant() - m.ts > AGE_MAX_MS) { noterVu(h); return { saute: 'ancien' }; }
+        if (typeof brouillons.nombreEnAttente === 'function' && brouillons.nombreEnAttente(ID, a) >= ATTENTES_PAR_EXPEDITEUR) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'un expéditeur a déjà ' + ATTENTES_PAR_EXPEDITEUR + ' brouillons en attente' }); return { saute: 'expediteur_deja_en_attente' }; }
         if (jour.brouillons >= BROUILLONS_PAR_JOUR) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'plafond du jour (' + BROUILLONS_PAR_JOUR + ' brouillons)' }); return { saute: 'plafond_jour' }; }
 
         const objet = lisible(m.objet).replace(/\s+/g, ' ').slice(0, 200);
@@ -126,7 +137,7 @@ module.exports = function camille(ctx) {
         if (!d.ok) return { saute: d.raison };
         jour.brouillons++; sauve();
         return { depose: true, ref: d.ref, voie: d.voie };
-      } finally { enCours.delete('u:' + String(ev.boiteId) + ':' + String(ev.dossier) + ':' + String(ev.uid)); }
+      } finally { enCours.delete('u:' + String(ev.boiteId) + ':' + String(ev.dossier) + ':' + String(ev.uid)); if (reserve) midsEnCours.delete(reserve); }
     } catch (e) {
       try { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'erreur', detail: String((e && e.message) || e).slice(0, 100) }); } catch (x) {}
       return { saute: 'erreur' };
@@ -137,3 +148,4 @@ module.exports = function camille(ctx) {
 module.exports.SYSTEM = SYSTEM;
 module.exports.BROUILLONS_PAR_JOUR = BROUILLONS_PAR_JOUR;
 module.exports.EXAMENS_PAR_JOUR = EXAMENS_PAR_JOUR;
+module.exports.ATTENTES_PAR_EXPEDITEUR = ATTENTES_PAR_EXPEDITEUR;

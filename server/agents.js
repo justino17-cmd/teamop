@@ -280,6 +280,23 @@ module.exports = function monterAgents(app, ctx) {
     executeurs.set(type, fn);
   }
 
+  /* Une GARDE d'acceptation : ce qu'un type de validation exige AVANT d'être accepté (rend '' si tout va bien, sinon la raison, dite telle quelle à la Tour
+     avec un 409 — la validation reste alors EN ATTENTE). Pour « envoyer_mail » : que le patron ait lu le texte qui partira, pas un texte réécrit depuis
+     (`agents-brouillons.js`). Un refus n'est jamais gardé : refuser ne coûte rien. */
+  const gardes = new Map();
+  function garde(type, fn) {
+    if (!TYPES_VALIDATION.includes(type) || typeof fn !== 'function') throw new Error('garde refusée : ' + type);
+    gardes.set(type, fn);
+  }
+
+  /* Une proposition de plus tiendrait-elle dans la file de CET agent ? Pour qui veut le savoir AVANT de payer un appel à Claude (Léa) : une réponse
+     rédigée puis jetée faute de place coûte un appel et ne sert à rien. */
+  function placeLibre(id) {
+    perimer();
+    const attente = validations.filter(v => v.statut === 'en_attente');
+    return attente.length < ATTENTE_MAX && attente.filter(v => v.agent === id).length < ATTENTE_PAR_AGENT;
+  }
+
   async function decider(id, decision, qui) {
     perimer();
     const v = validations.find(x => x.id === id);
@@ -367,6 +384,16 @@ module.exports = function monterAgents(app, ctx) {
     if (typeof b.id !== 'string' || !REF.test(b.id)) return res.status(400).json({ error: 'Identifiant manquant' });
     if (b.decision !== 'accepter' && b.decision !== 'refuser') return res.status(400).json({ error: 'Décision : accepter ou refuser' });
     try {
+      if (b.decision === 'accepter') {
+        perimer();
+        const v0 = validations.find(x => x.id === b.id);
+        const g = v0 && v0.statut === 'en_attente' ? gardes.get(v0.type) : null;
+        if (g) {
+          let refus = '';
+          try { refus = String(g(Object.assign({}, v0.params), b) || ''); } catch (e) { refus = 'Vérification impossible : la validation reste en attente'; }
+          if (refus) return res.status(409).json({ error: refus });
+        }
+      }
       const r = await decider(b.id, b.decision, req.tourUser.nom);
       if (r.code !== 200) return res.status(r.code).json({ error: r.error });
       res.json({ ok: true, validation: vue(r.validation) });
@@ -387,7 +414,7 @@ module.exports = function monterAgents(app, ctx) {
   /* Une validation de ce (type, champ = valeur) attend-elle encore le patron ? Pour un agent qui doit savoir si SON brouillon est encore sous les yeux de
      Justin (une validation refusée ou expirée n'attend plus personne : réécrire le brouillon qui lui correspond serait écrire dans le vide). */
   const enAttentePour = (type, champ, valeur) => { perimer(); return validations.some(v => v.statut === 'en_attente' && v.type === type && v.params && v.params[champ] === valeur); };
-  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour };
+  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

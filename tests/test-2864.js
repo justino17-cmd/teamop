@@ -17,8 +17,19 @@ const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; co
 const vrai = (t, c, d) => v(t + (d !== undefined && !c ? ' — ' + String(d).slice(0, 200) : ''), !!c, true);
 const JOUR = 86400000;
 setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 170 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }, 170000).unref();
-const decider = (Z, id, decision, qui) => Z.appeler('POST /api/monitor/agents/validations/decider', { tourUser: qui || Z.PATRON, body: { id, decision } });
 const apercu = async (Z, ref, qui) => (await Z.appeler('GET /api/monitor/agents/brouillons', { tourUser: qui === undefined ? Z.PATRON : qui, query: { refs: ref } }));
+/* Accepter = lire l'aperçu puis renvoyer SON empreinte, comme la Tour (la garde d'acceptation l'exige). `empreinte` : une valeur imposée (le test du texte changé), ou null pour n'en envoyer aucune. */
+const decider = async (Z, id, decision, qui, empreinte) => {
+  const body = { id, decision };
+  if (decision === 'accepter') {
+    if (empreinte === undefined) {
+      const vl = (await Z.validations()).find(x => x.id === id), fil = vl && vl.params && vl.params.fil;
+      const b = fil ? (await apercu(Z, fil)).corps : null;
+      if (b && b[fil]) body.empreinte = b[fil].empreinte;
+    } else if (empreinte !== null) body.empreinte = empreinte;
+  }
+  return Z.appeler('POST /api/monitor/agents/validations/decider', { tourUser: qui || Z.PATRON, body });
+};
 
 (async () => {
   console.log('\n── 2864 · ce qui fait partir un brouillon, et les routes de la Tour ──');
@@ -55,10 +66,16 @@ const apercu = async (Z, ref, qui) => (await Z.appeler('GET /api/monitor/agents/
     const ae = await decider(E, ide, 'accepter');
     v('l’échec de la messagerie : la décision est enregistrée, l’exécution est « echec »', [ae.status, ae.corps.validation.statut, ae.corps.validation.execution], [200, 'accepte', 'echec']);
     const be = E.fichierJson('agents-brouillons.json')[re.ref];
-    v('…le brouillon est « echec », l’erreur est notée SANS l’adresse', [be.etat, /client-secret|jean\.dupont/i.test(be.erreur || '')], ['echec', false]);
+    v('⛔ …le brouillon n’est PAS fini : il revient « attente » (1 échec), l’erreur est notée SANS l’adresse', [be.etat, be.echecs, /client-secret|jean\.dupont/i.test(be.erreur || '')], ['attente', 1, false]);
+    const vE = await E.validations();
+    v('⛔ …et une NOUVELLE validation est rouverte pour le même brouillon (l’ancienne reste acceptée)', [vE.length, vE.filter(x => x.statut === 'en_attente').map(x => x.params.fil), /envoi échoué/.test(vE.find(x => x.statut === 'en_attente').resume)], [2, [re.ref], true]);
     vrai('…le journal des agents ne porte aucune adresse', !/client-secret|jean\.dupont/i.test(JSON.stringify(E.journal())), JSON.stringify(E.journal()).slice(0, 300));
+    await decider(E, vE.find(x => x.statut === 'en_attente').id, 'accepter');
+    await decider(E, (await E.validations()).find(x => x.statut === 'en_attente').id, 'accepter');
+    const bf = E.fichierJson('agents-brouillons.json')[re.ref];
+    v('⛔ trois échecs au total : l’échec devient définitif (« echec »), plus de validation ouverte', [bf.etat, bf.echecs, (await E.validations()).filter(x => x.statut === 'en_attente').length], ['echec', 3, 0]);
     let l2 = ''; try { await E.brouillons.envoyer(re.ref); } catch (e) { l2 = e.message; }
-    v('⛔ un brouillon en échec ne repart pas tout seul (« en échec »)', l2, 'brouillon déjà en échec');
+    v('⛔ un brouillon en échec définitif ne repart pas tout seul (« en échec »)', l2, 'brouillon déjà en échec');
     E.nettoyer();
 
     console.log('   … une pause posée entre la demande et la validation');
@@ -66,7 +83,10 @@ const apercu = async (Z, ref, qui) => (await Z.appeler('GET /api/monitor/agents/
     const rp = await P.lea.surInscription({ entreprise: 'Toka Clim', email: 'p@pause-2864.fr' });
     await P.appeler('POST /api/monitor/agents/pause', { tourUser: P.PATRON, body: { pause: true } });
     const ap = await decider(P, (await P.validations())[0].id, 'accepter');
-    v('⛔ en PAUSE, accepter ne fait rien partir (exécution « pause »)', [ap.corps.validation.execution, P.envoyes.length, P.fichierJson('agents-brouillons.json')[rp.ref].etat], ['pause', 0, 'attente']);
+    v('⛔ en PAUSE, accepter est REFUSÉ (409, la demande reste en attente) : rien ne part, et le brouillon n’est pas laissé sans validation', [ap.status, /pause/.test(ap.corps.error), P.envoyes.length, P.fichierJson('agents-brouillons.json')[rp.ref].etat, (await P.validations())[0].statut], [409, true, 0, 'attente', 'en_attente']);
+    await P.appeler('POST /api/monitor/agents/pause', { tourUser: P.PATRON, body: { pause: false } });
+    const ap2 = await decider(P, (await P.validations())[0].id, 'accepter');
+    v('…la pause levée, la MÊME validation s’accepte et le courriel part', [ap2.status, ap2.corps.validation.execution, P.envoyes.length], [200, 'ok', 1]);
     P.nettoyer();
 
     console.log('   … deux envois SIMULTANÉS du même brouillon');
@@ -88,8 +108,8 @@ const apercu = async (Z, ref, qui) => (await Z.appeler('GET /api/monitor/agents/
     const ref = r.ref;
     v('LIRE : un collaborateur le peut', (await apercu(Z, ref, Z.COLLAB)).status, 200);
     v('LIRE : un anonyme non (401)', (await apercu(Z, ref, null)).status, 401);
-    v('LIRE : la réponse porte destinataire, objet, texte, source, entreprise, état et la signature du Courrier — pas l’objet du mail reçu, pas de fil',
-      Object.keys((await apercu(Z, ref)).corps[ref]).sort(), ['a', 'agent', 'entreprise', 'etat', 'objet', 'signature', 'source', 'texte']);
+    v('LIRE : la réponse porte destinataire, objet, texte, source, entreprise, état, l’empreinte du texte, le nombre d’échecs et la signature du Courrier — pas l’objet du mail reçu, pas de fil',
+      Object.keys((await apercu(Z, ref)).corps[ref]).sort(), ['a', 'agent', 'echecs', 'empreinte', 'entreprise', 'etat', 'objet', 'signature', 'source', 'texte']);
     v('LIRE : une référence mal formée ou inconnue est ignorée (jamais une erreur qui dit ce qui existe)', (await apercu(Z, ref + ',../etc/passwd,br000000000000,' + 'x'.repeat(40))).corps, { [ref]: (await apercu(Z, ref)).corps[ref] });
     const cinquante = []; for (let i = 0; i < 60; i++) cinquante.push('br' + String(i).padStart(12, '0'));
     v('⛔ LIRE : les noms que porte tout objet (constructor, __proto__, toString, hasOwnProperty) ne répondent pas comme des brouillons', (await apercu(Z, 'constructor,__proto__,toString,hasOwnProperty,valueOf')).corps, {});
@@ -149,7 +169,8 @@ const apercu = async (Z, ref, qui) => (await Z.appeler('GET /api/monitor/agents/
     await F.appeler('POST /api/monitor/agents/charte', { tourUser: F.PATRON, body: { gestes: { repondre_client: { auto: true } } } });
     F.messages['b-contact|INBOX|1'] = { uid: 1, dossier: 'INBOX', boite: 'b-contact', mid: '<f1@x>', de: 'prospect@exemple-2864.fr', objet: 'Question', texte: 'Que proposez-vous ?', ts: F.horloge.t - 1000, auto: false, protege: false };
     const rf = await F.camille.surNouveauMessage({ boiteId: 'b-contact', dossier: 'INBOX', uid: 1 });
-    v('auto + charte ouverte + messagerie en panne : pas d’exception, le brouillon est « echec », rien dans la file de validations', [rf.saute, F.fichierJson('agents-brouillons.json')[rf.ref || Object.keys(F.fichierJson('agents-brouillons.json'))[0]].etat, (await F.validations()).length], ['envoi', 'echec', 0]);
+    const rbF = F.fichierJson('agents-brouillons.json')[Object.keys(F.fichierJson('agents-brouillons.json'))[0]];
+    v('⛔ auto + charte ouverte + messagerie en panne : pas d’exception ; le brouillon n’est PAS perdu — il revient « attente » et UNE validation s’ouvre pour Justin', [rf.depose, rf.voie, rbF.etat, rbF.echecs, (await F.validations()).filter(x => x.statut === 'en_attente').length], [true, 'validation', 'attente', 1, 1]);
     F.nettoyer();
   }
 
@@ -248,38 +269,53 @@ const apercu = async (Z, ref, qui) => (await Z.appeler('GET /api/monitor/agents/
   if (!S.vivant) { console.log(S.journal().slice(0, 800)); await S.fin(); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }
   const ADR = 'nora.neuve@exemple-2864.fr';
 
-  const t0 = Date.now();
+  /* ⛔ LA ROUTE PUBLIQUE NE DÉCLENCHE PLUS LÉA (relecture adverse du 23 octobre 2026) : elle ne prouve aucune adresse. */
+  const mails = async () => Promise.all(S.fact.recus.map(r => simpleParser(r)));
   const ins = await S.public('/api/nouveau-compte', { email: ADR, prenom: 'Zéphyrin', nom: 'Quarantelle', company: 'Toka Clim' });
+  vrai('(population) la route publique a servi : elle répond ok et l’avis « Nouveau compte » est parti à l’équipe', ins.s === 200 && ins.j.ok === true && await S.attendre(async () => (await mails()).some(m => /Nouveau compte/.test(String(m.subject || ''))), 8000));
+  await dormir(2500);
+  v('⛔ …mais Léa n’a PAS été appelée : ni Claude, ni brouillon, ni validation (un anonyme ne prépare aucun courriel à l’adresse de son choix)', [S.claudeRecus().length, ((await S.get('/api/monitor/agents/validations')).j.validations || []).length], [0, 0]);
+  for (let k = 0; k < 12; k++) await S.public('/api/nouveau-compte', { email: 'bruit' + k + '@exemple-2864.fr', prenom: 'A', nom: 'B', company: 'Bruit ' + k });
+  await dormir(1500);
+  v('⛔ …même douze inscriptions factices de plus : aucun appel à Claude, aucune validation (le plafond du jour de Léa et sa file ne s’épuisent plus)', [S.claudeRecus().length, ((await S.get('/api/monitor/agents/validations')).j.validations || []).length], [0, 0]);
+
+  console.log('   … une adresse PROUVÉE : la première synchro du compte vérifié prépare le brouillon');
+  const H = crypto.createHash('sha256').update('teamop-portail:mot-de-passe-du-banc-2864').digest('hex');
+  await S.public('/api/compte/creer', { email: ADR, h: H, prenom: 'Nora', nom: 'Neuve', societe: 'Toka Clim' });
+  let jv = '';
+  await S.attendre(async () => { for (const m of await mails()) { const x = /mode=verifyEmail&jeton=([0-9a-f]{64})/.exec(String(m.text || '')); if (x) { jv = x[1]; return true; } } return false; }, 10000);
+  vrai('(population) le lien de confirmation du portail est parti au facteur', !!jv);
+  const cxAvant = await S.public('/api/compte/connexion', { email: ADR, h: H });
+  const syAvant = await S.http('POST', '/api/clients/sync', cxAvant.j.jeton || 'a'.repeat(64), { entreprise: 'Toka Clim', nom: 'Nora Neuve', demandes: [] });
+  await dormir(1500);
+  v('⛔ une session dont l’adresse n’est PAS encore prouvée : la synchro est refusée (403) et Léa n’est pas appelée', [syAvant.s === 403 || syAvant.s === 401, S.claudeRecus().length], [true, 0]);
+  await S.public('/api/compte/verifier', { jeton: jv });
+  const cx = await S.public('/api/compte/connexion', { email: ADR, h: H });
+  vrai('(population) une session du portail, adresse prouvée', /^[0-9a-f]{64}$/.test(cx.j.jeton || ''), JSON.stringify(cx.j).slice(0, 100));
+  const t0 = Date.now();
+  const sy0 = await S.http('POST', '/api/clients/sync', cx.j.jeton, { entreprise: 'Toka Clim', nom: 'Nora Neuve', prenom: 'Nora', nomFam: 'Neuve', tel: '06 55 44 33 22', demandes: [] });
   const dt = Date.now() - t0;
-  v('⛔ la route PUBLIQUE répond tout de suite, sans attendre Claude (Claude met 1,2 s)', [ins.s, ins.j.ok, dt < 1000], [200, true, true]);
+  v('⛔ la synchro répond tout de suite, sans attendre Claude (Claude met 1,2 s)', [sy0.s, dt < 1000], [200, true]);
   vrai('(population) la validation de Léa arrive ensuite', await S.attendre(async () => ((await S.get('/api/monitor/agents/validations')).j.validations || []).length > 0, 15000));
   const val = (await S.get('/api/monitor/agents/validations')).j.validations;
   v('UNE validation, de Léa, envoyer_mail, au résumé composé par le code', [val.length, val[0].agent, val[0].type, val[0].resume, val[0].params.boite], [1, 'lea', 'envoyer_mail', 'Réponse à l’inscription de Toka Clim — à relire avant envoi', 'contact']);
   const ref = val[0].params.fil;
   const tout = JSON.stringify(S.claudeRecus());
-  for (const [nom, jeton] of [['l’adresse', 'exemple-2864'], ['le début de l’adresse', 'nora.neuve'], ['le prénom', 'Zéphyrin'], ['le nom', 'Quarantelle']]) vrai('⛔ ' + nom + ' envoyés à l’inscription ne partent PAS chez Claude', !tout.includes(jeton));
+  for (const [nom, jeton] of [['l’adresse', 'exemple-2864'], ['le début de l’adresse', 'nora.neuve'], ['le prénom', 'Zéphyrin'], ['le nom', 'Quarantelle'], ['le téléphone', '55 44 33']]) vrai('⛔ ' + nom + ' ne part PAS chez Claude', !tout.includes(jeton));
   const ap = (await S.get('/api/monitor/agents/brouillons?refs=' + ref)).j[ref];
   v('l’aperçu (route de la Tour) : destinataire = l’adresse du compte, source « inscription »', [ap.a, ap.source, ap.etat], [ADR, 'inscription', 'attente']);
-  v('rien n’est parti vers le client (la seule lettre au facteur est l’avis à l’équipe)', (await Promise.all(S.fact.recus.map(r => simpleParser(r)))).filter(m => /nora\.neuve@/.test(String((m.to && m.to.text) || ''))).length, 0);
+  v('rien n’est parti vers le client (le brouillon attend ; seuls l’avis à l’équipe et le lien de confirmation ont voyagé)', (await mails()).filter(m => /nora\.neuve@/.test(String((m.to && m.to.text) || '')) && /OP GESTION pour votre activité/.test(String(m.subject || ''))).length, 0);
+  const sy1 = await S.http('POST', '/api/clients/sync', cx.j.jeton, { entreprise: 'Toka Clim', nom: 'Nora Neuve', demandes: [] });
+  await dormir(1200);
+  v('⛔ une seconde synchro (la fiche existe déjà) ne rappelle pas Claude : une réponse par adresse', [sy1.s, S.claudeRecus().length], [200, 1]);
 
   console.log('   … la demande d’application (portail) réécrit le brouillon qui attend');
-  const H = crypto.createHash('sha256').update('teamop-portail:mot-de-passe-du-banc-2864').digest('hex');
-  const mails = async () => Promise.all(S.fact.recus.map(r => simpleParser(r)));
-  await S.public('/api/compte/creer', { email: ADR, h: H, prenom: 'Nora', nom: 'Neuve', societe: 'Toka Clim' });
-  let jv = '';
-  await S.attendre(async () => { for (const m of await mails()) { const x = /mode=verifyEmail&jeton=([0-9a-f]{64})/.exec(String(m.text || '')); if (x) { jv = x[1]; return true; } } return false; }, 10000);
-  vrai('(population) le lien de confirmation du portail est parti au facteur', !!jv);
-  await S.public('/api/compte/verifier', { jeton: jv });
-  const cx = await S.public('/api/compte/connexion', { email: ADR, h: H });
-  vrai('(population) une session du portail, adresse prouvée', /^[0-9a-f]{64}$/.test(cx.j.jeton || ''), JSON.stringify(cx.j).slice(0, 100));
-  const avantSmtp = S.fact.recus.length;
   const sy = await S.http('POST', '/api/clients/sync', cx.j.jeton, { entreprise: 'Toka Clim', nom: 'Nora Neuve', prenom: 'Nora', nomFam: 'Neuve', tel: '06 55 44 33 22', demandes: [{ app: 'OP GESTION', formule: 'Pro', statut: 'en attente', date: Date.now(), besoin: 'suivre les fluides frigorigènes, appelez le 06 55 44 33 22', users: '5', metier: 'chauffage' }] });
   v('la synchro du portail répond 200', sy.s, 200);
   vrai('le brouillon est RÉÉCRIT (même référence, le texte à jour)', await S.attendre(async () => (((await S.get('/api/monitor/agents/brouillons?refs=' + ref)).j[ref] || {}).texte || '').includes(MARQUE), 15000));
   v('⛔ toujours UNE validation, la même', ((await S.get('/api/monitor/agents/validations')).j.validations || []).map(x => x.params.fil), [ref]);
   const q2 = S.claudeRecus()[1] ? S.claudeRecus()[1].messages[0].content : '';
   vrai('la seconde requête porte le métier, les utilisateurs, la formule et le besoin — sans le téléphone ni le nom', /Métier : Chauffage \/ Climatisation/.test(q2) && /utilisateurs souhaité : 5/.test(q2) && /Formule demandée : pro/.test(q2) && /fluides frigorigènes/.test(q2) && !/06 55 44|Neuve|nora/i.test(JSON.stringify(S.claudeRecus()[1])), q2);
-  void avantSmtp;
 
   console.log('   … la correction de Justin, puis « Valider et envoyer »');
   const corr = { ref, objet: 'Notre proposition pour Toka Clim', texte: 'Bonjour,\n\nTexte relu par Justin, avec la précision demandée par le client.\n\nBien cordialement,' };
@@ -296,7 +332,8 @@ const apercu = async (Z, ref, qui) => (await Z.appeler('GET /api/monitor/agents/
   await dormir(1500);
   v('⛔ une AUTRE demande n’écrase pas la correction de Justin (et Claude n’est pas rappelé)', [sy2.s, (await S.get('/api/monitor/agents/brouillons?refs=' + ref)).j[ref].texte, S.claudeRecus().length], [200, corr.texte, nClaude]);
 
-  const dec = await S.post('/api/monitor/agents/validations/decider', { id: val[0].id, decision: 'accepter' });
+  const empr = (await S.get('/api/monitor/agents/brouillons?refs=' + ref)).j[ref].empreinte;
+  const dec = await S.post('/api/monitor/agents/validations/decider', { id: val[0].id, decision: 'accepter', empreinte: empr });
   v('« Valider et envoyer » : 200, exécution « ok »', [dec.s, dec.j.validation && dec.j.validation.execution], [200, 'ok']);
   const recus = (await mails()).filter(m => /nora\.neuve@exemple-2864\.fr/.test(String((m.to && m.to.text) || '')) && /Notre proposition/.test(String(m.subject || '')));
   v('⛔ le facteur reçoit UN courriel de la proposition, au destinataire du compte', recus.length, 1);
@@ -305,19 +342,20 @@ const apercu = async (Z, ref, qui) => (await Z.appeler('GET /api/monitor/agents/
   vrai('…depuis la boîte de contact', /contact@banc-courrier\.fr/.test(String(m1.from.text)), m1.from.text);
   const copie = (S.imap().boites['contact@banc-courrier.fr'].ajouts || []).length;
   vrai('une copie est rangée dans « Envoyés » de la boîte', copie >= 1, copie);
-  const dec2 = await S.post('/api/monitor/agents/validations/decider', { id: val[0].id, decision: 'accepter' });
+  const dec2 = await S.post('/api/monitor/agents/validations/decider', { id: val[0].id, decision: 'accepter', empreinte: empr });
   await dormir(500);
   v('⛔ une seconde validation : 409, et le facteur ne reçoit rien de plus', [dec2.s, (await mails()).filter(m => /Notre proposition/.test(String(m.subject || ''))).length], [409, 1]);
 
   console.log('   … auto + charte fermée = validation ; charte ouverte = envoi direct');
   v('(population) Léa passe en AUTO (depuis brouillon)', (await S.post('/api/monitor/agents/mode', { agent: 'lea', mode: 'auto' })).s, 200);
-  await S.public('/api/nouveau-compte', { email: 'auto1@exemple-2864.fr', prenom: 'A', nom: 'B', company: 'Auto Un' });
+  await S.inscrire('auto1@exemple-2864.fr', 'Auto Un');
   vrai('une nouvelle validation attend', await S.attendre(async () => ((await S.get('/api/monitor/agents/validations')).j.validations || []).some(x => x.statut === 'en_attente'), 15000));
   await dormir(500);
-  v('⛔ AUTO mais charte fermée (le défaut du serveur) : validation, rien de plus au facteur', [((await S.get('/api/monitor/agents/validations')).j.validations || []).filter(x => x.statut === 'en_attente').length, (await mails()).filter(m => /auto1@/.test(String((m.to && m.to.text) || ''))).length], [1, 0]);
+  const reponseA = async re => (await mails()).filter(m => re.test(String((m.to && m.to.text) || '')) && /OP GESTION pour votre activité/.test(String(m.subject || '')));   // (le lien de confirmation du portail part aussi à l’adresse : on vise la RÉPONSE de Léa)
+  v('⛔ AUTO mais charte fermée (le défaut du serveur) : validation, rien de plus au facteur', [((await S.get('/api/monitor/agents/validations')).j.validations || []).filter(x => x.statut === 'en_attente').length, (await reponseA(/auto1@/)).length], [1, 0]);
   v('(population) le patron ouvre « répondre seul »', (await S.post('/api/monitor/agents/charte', { gestes: { repondre_client: { auto: true } } })).s, 200);
-  await S.public('/api/nouveau-compte', { email: 'auto2@exemple-2864.fr', prenom: 'A', nom: 'B', company: 'Auto Deux' });
-  vrai('auto + charte ouverte : le courriel part SANS validation', await S.attendre(async () => (await mails()).some(m => /auto2@/.test(String((m.to && m.to.text) || ''))), 15000));
+  await S.inscrire('auto2@exemple-2864.fr', 'Auto Deux');
+  vrai('auto + charte ouverte : le courriel part SANS validation', await S.attendre(async () => (await reponseA(/auto2@/)).length > 0, 15000));
   v('…et aucune validation de plus ne s’est ouverte', ((await S.get('/api/monitor/agents/validations')).j.validations || []).filter(x => x.statut === 'en_attente').length, 1);
   vrai('…le journal des agents le note', (((await S.get('/api/monitor/agents/journal?agent=lea')).j.journal) || []).some(e => e.action === 'réponse envoyée sans validation'));
   vrai('le journal du serveur ne porte ni adresse en clair, ni prénom, ni nom, ni texte de courriel (ses lignes d’adresse sont masquées)', !/Zéphyrin|Quarantelle|nora\.neuve@|Texte relu|auto1@|auto2@|fluides/.test(S.journal()), S.journal().slice(-300));

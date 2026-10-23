@@ -121,6 +121,22 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   S.get = (r, j) => http('GET', r, j === undefined ? S.TP : j);
   S.post = (r, c, j) => http('POST', r, j === undefined ? S.TP : j, c === undefined ? {} : c);
   S.public = (r, c) => http('POST', r, '', c);
+  /* Un compte du portail dont l'adresse est PROUVÉE, comme un vrai client : création, lien de confirmation lu dans le courriel du facteur, connexion, puis la
+     PREMIÈRE synchro (c'est elle qui déclenche Léa depuis la relecture du 23 octobre 2026 : la route publique `/api/nouveau-compte` ne la déclenche plus).
+     Rend { jeton, sync } ; `demandes` est la liste envoyée à la synchro (vide = une simple inscription). Exige `comptes: true` au démarrage. */
+  S.inscrire = async (adr, entreprise, demandes) => {
+    const { simpleParser } = require(path.join(RACINE, 'server', 'node_modules', 'mailparser'));
+    const H = sha('teamop-portail:mot-de-passe-du-banc-courrier');
+    await S.public('/api/compte/creer', { email: adr, h: H, prenom: 'Prénom', nom: 'Nom', societe: entreprise });
+    let jv = '';
+    await S.attendre(async () => { for (const r of S.fact.recus) { const m = await simpleParser(r); if (!String((m.to && m.to.text) || '').includes(adr)) continue; const x = /mode=verifyEmail&jeton=([0-9a-f]{64})/.exec(String(m.text || '')); if (x) { jv = x[1]; return true; } } return false; }, 10000);
+    if (!jv) return { jeton: '', sync: null };
+    await S.public('/api/compte/verifier', { jeton: jv });
+    const cx = await S.public('/api/compte/connexion', { email: adr, h: H });
+    const jeton = cx.j.jeton || '';
+    const sync = await S.http('POST', '/api/clients/sync', jeton, { entreprise, nom: 'Prénom Nom', prenom: 'Prénom', nomFam: 'Nom', demandes: demandes || [] });
+    return { jeton, sync };
+  };
   S.claudeRecus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
   S.imap = () => JSON.parse(fs.readFileSync(IMAP, 'utf8'));
   S.poserImap = (adr, f) => { const e = S.imap(); f(e.boites[adr]); fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e)); fs.renameSync(IMAP + '.tmp', IMAP); };

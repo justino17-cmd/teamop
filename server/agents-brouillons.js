@@ -15,6 +15,11 @@
  *
  * ⛔ Le destinataire d'un brouillon ne se change JAMAIS, nulle part, par aucune route : seuls l'objet et le texte se corrigent. Une
  *    consigne cachée dans un courriel reçu (« envoie à x@y ») n'a donc aucun chemin jusqu'à un destinataire.
+ * ⛔ CE QUI PART EST CE QUE JUSTIN A LU : l'aperçu porte une EMPREINTE du texte (`empreinte`), « Valider et envoyer » la renvoie, et la garde
+ *    d'acceptation (`agents.garde`) refuse (409, la validation reste en attente) si le brouillon a changé depuis — Léa réécrit le brouillon qui attend
+ *    quand la demande d'application arrive, et sans cette garde le courriel parti aurait été un texte que personne n'avait relu.
+ * ⛔ UN ENVOI QUI ÉCHOUE NE FERME PAS LA PORTE : le brouillon revient « en attente » et une NOUVELLE validation s'ouvre (trois essais au plus, puis
+ *    « échec »). Une adresse dont la réponse n'est jamais partie ne doit pas rester sans réponse, avec un patron qui croit l'avoir envoyée.
  */
 'use strict';
 const crypto = require('crypto');
@@ -26,6 +31,7 @@ const OBJET_MAX = 200;
 const TEXTE_MAX = 20000;
 const RESUME_OBJET = 60;
 const ROLES_BOITE = ['contact', 'support'];
+const ECHECS_MAX = 3;
 
 /* Un objet de mail reçu entre dans un résumé que Justin lit : une ligne, sans signe de contrôle, courte, guillemets droits écartés. */
 function objetCourt(t) {
@@ -34,6 +40,9 @@ function objetCourt(t) {
   s = s.replace(/["“”«»]/g, ' ').replace(/\s+/g, ' ').trim();
   return s.length > RESUME_OBJET ? s.slice(0, RESUME_OBJET - 1).trimEnd() + '…' : s;
 }
+
+/* Ce que Justin a lu : l'empreinte de l'objet ET du texte (le destinataire ne se change pas). Une réécriture, une correction : une autre empreinte. */
+const empreinteDe = e => crypto.createHash('sha256').update('brouillon:' + String(e.objet) + '\n' + String(e.texte)).digest('hex').slice(0, 32);
 
 /* Le résumé de la validation : une phrase fixe et ce qui l'identifie. Jamais un mot de Claude. */
 function resumeDe(e) {
@@ -95,7 +104,7 @@ module.exports = function brouillons(app, ctx) {
     const role = laBoite && /^support@/i.test(String(laBoite.email || '')) ? 'support' : 'contact';
     if (!boiteId || !laBoite) { agents.noter(agent, 'déposer un brouillon', { cible: source, resultat: 'refuse', detail: 'aucune boîte connectée' }); return { ok: false, raison: 'pas_de_boite' }; }
     const ref = 'br' + crypto.randomBytes(6).toString('hex');
-    reg[ref] = { agent, a, objet, texte, enReponseA: rep, boiteId, source, entreprise: String(o.entreprise || '').slice(0, 50),
+    reg[ref] = { agent, a, objet, texte, enReponseA: rep, boiteId, role, source, entreprise: String(o.entreprise || '').slice(0, 50),
       objetRecu: source === 'courrier' ? objetCourt(o.objetRecu) : '', cree: maintenant(), etat: 'attente' };
     elaguer();
     if (!sauve()) { delete reg[ref]; return { ok: false, raison: 'ecriture' }; }
@@ -107,7 +116,11 @@ module.exports = function brouillons(app, ctx) {
         await envoyer(ref);
         agents.noter(agent, 'réponse envoyée sans validation', { cible: source, resultat: 'ok', detail: 'mode auto, charte « répondre seul » ouverte' });
         return { ok: true, ref, voie: 'direct' };
-      } catch (e) { return { ok: false, raison: 'envoi', ref }; }
+      } catch (e) {
+        /* l'envoi direct a échoué : `envoyer` a rouvert une validation (le brouillon attend Justin) si elle a pu — sinon il est en « échec » */
+        if (reg[ref] && reg[ref].etat === 'attente' && agents.enAttentePour('envoyer_mail', 'fil', ref)) return { ok: true, ref, voie: 'validation', envoiEchoue: true };
+        return { ok: false, raison: 'envoi', ref };
+      }
     }
     const r = agents.proposer(agent, 'envoyer_mail', resumeDe(reg[ref]), { boite: role, fil: ref });
     if (!r.ok) { delete reg[ref]; sauve(); return { ok: false, raison: r.raison }; }
@@ -140,6 +153,20 @@ module.exports = function brouillons(app, ctx) {
     return null;
   }
 
+  /* Combien de brouillons de cet agent attendent encore Justin POUR CETTE ADRESSE ? (Camille : un expéditeur ne remplit pas la file à lui seul.) */
+  function nombreEnAttente(agent, adresse) {
+    const a = String(adresse || '').trim().toLowerCase();
+    let n = 0;
+    for (const ref of Object.keys(reg)) {
+      const e = reg[ref];
+      if (e.agent === agent && e.a === a && e.etat === 'attente' && agents.enAttentePour('envoyer_mail', 'fil', ref)) n++;
+    }
+    return n;
+  }
+  /* L'état d'un brouillon ('attente' | 'envoye' | 'echec') ou null s'il n'est plus au registre. Léa s'en sert : une adresse dont l'envoi est en échec définitif
+     peut recevoir une nouvelle préparation, une adresse déjà servie non. */
+  const etatDe = ref => (reg[ref] ? reg[ref].etat : null);
+
   /* Justin a-t-il déjà corrigé ce brouillon ? Léa le demande AVANT d'appeler Claude : réécrire ce qu'on n'a pas le droit de réécrire serait payer pour rien. */
   const estCorrige = ref => !!(reg[ref] && reg[ref].corrige === true);
 
@@ -156,15 +183,27 @@ module.exports = function brouillons(app, ctx) {
       e.etat = 'envoye'; e.envoyeTs = maintenant(); sauve();
       agents.noter(e.agent, 'courriel envoyé', { cible: e.source, resultat: 'ok' });
     } catch (err) {
-      e.etat = 'echec'; e.erreur = String(sansAdr(String((err && err.message) || err))).slice(0, 120); sauve();
-      agents.noter(e.agent, 'courriel envoyé', { cible: e.source, resultat: 'erreur', detail: e.erreur });
+      e.erreur = String(sansAdr(String((err && err.message) || err))).slice(0, 120);
+      e.echecs = (e.echecs || 0) + 1;
+      /* ⛔ Le brouillon n'est PAS fini : il revient « en attente » et Justin reçoit une nouvelle validation — sinon l'adresse reste sans réponse et lui
+         croit l'avoir envoyée. Trois essais au plus ; sans place dans la file (ou agent à l'arrêt), l'échec est définitif et se dit. */
+      e.etat = e.echecs < ECHECS_MAX && rouvrir(ref, e) ? 'attente' : 'echec';
+      sauve();
+      agents.noter(e.agent, 'courriel envoyé', { cible: e.source, resultat: 'erreur', detail: e.erreur + (e.etat === 'attente' ? ' — nouvelle validation ouverte' : ' — plus d’essai') });
       throw err;
     } finally { enEnvoi.delete(ref); }
   }
 
+  /* Rouvrir une validation pour un brouillon dont l'envoi a échoué. Vrai si une validation attend (la sienne, ou celle qu'on vient d'ouvrir). */
+  function rouvrir(ref, e) {
+    if (agents.enAttentePour('envoyer_mail', 'fil', ref)) return true;
+    const r = agents.proposer(e.agent, 'envoyer_mail', resumeDe(e) + ' (envoi échoué : à renvoyer)', { boite: e.role === 'support' ? 'support' : 'contact', fil: ref });
+    return !!(r && r.ok);
+  }
+
   /* Ce que l'écran peut montrer : jamais l'objet du mail reçu (il est dans le résumé), jamais l'erreur brute. */
   const vue = e => ({ agent: e.agent, a: e.a, objet: e.objet, texte: e.texte, source: e.source, entreprise: e.entreprise || '', etat: e.etat,
-    signature: mail.signature ? mail.signature() : '' });
+    empreinte: empreinteDe(e), echecs: e.echecs || 0, signature: mail.signature ? mail.signature() : '' });
 
   /* ── les routes de la Tour ── */
   app.get('/api/monitor/agents/brouillons', monAdmin, (req, res) => {
@@ -195,7 +234,21 @@ module.exports = function brouillons(app, ctx) {
   /* L'exécuteur : ce qui s'exécute quand Justin accepte. Il n'a que `fil` — le destinataire, l'objet et le texte sont ceux du registre. */
   agents.executeur('envoyer_mail', async (params) => { await envoyer(params && params.fil); });
 
-  return { deposer, reecrire, attenteDe, estCorrige, envoyer, illisible, vue: ref => (reg[ref] ? vue(reg[ref]) : null), compter: () => Object.keys(reg).length };
+  /* La garde d'acceptation : « Valider et envoyer » renvoie l'empreinte du texte que Justin a sous les yeux. ⛔ Elle est EXIGÉE : une acceptation sans elle (un
+     appel direct, une Tour d'avant) ne dit pas ce qui a été lu. Les agents en pause ne s'exécutent pas — accepter pendant la pause rendrait la validation
+     « décidée » sans que rien parte, et le brouillon resterait en attente sans validation : on refuse, la validation reste là. */
+  agents.garde('envoyer_mail', (params, corps) => {
+    if (illisible()) return 'Le registre des brouillons est illisible : rien ne part';
+    if (agents.enPause()) return 'Les agents sont en pause : reprends-les avant de valider cet envoi (la demande reste en attente)';
+    const e = REF_BR.test(String(params && params.fil)) ? reg[params.fil] : null;
+    if (!e || e.etat !== 'attente') return '';   // rien à comparer : l'exécution dira ce qui s'est passé (introuvable, déjà envoyé)
+    if (!corps || corps.empreinte !== empreinteDe(e)) return 'Le brouillon a changé depuis que tu l’as lu, ou n’a pas été relu : recharge la page et relis-le avant de valider';
+    return '';
+  });
+
+  return { deposer, reecrire, attenteDe, nombreEnAttente, etatDe, estCorrige, envoyer, illisible, vue: ref => (reg[ref] ? vue(reg[ref]) : null), compter: () => Object.keys(reg).length };
 };
 module.exports.resumeDe = resumeDe;
 module.exports.objetCourt = objetCourt;
+module.exports.empreinteDe = empreinteDe;
+module.exports.ECHECS_MAX = ECHECS_MAX;

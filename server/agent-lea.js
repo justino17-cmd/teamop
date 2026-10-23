@@ -5,10 +5,16 @@
  * le but c'est de vendre l'application. » Léa prépare ce courriel ; il ne part JAMAIS d'elle-même : c'est un brouillon, une validation de Justin
  * (`agents-brouillons.js`), sauf mode « auto » ET charte `repondre_client` ouverte (fermée par défaut).
  *
- * Deux déclencheurs, tous deux SANS ATTENDRE et sans jamais faire échouer la route qui les appelle :
- *   (a) une inscription (`/api/nouveau-compte`) : le nom de l'entreprise et l'adresse ;
- *   (b) une demande d'application (`/api/clients/sync`) : métier (liste fermée), nombre d'utilisateurs, formule, besoin.
- * Une seule réponse par adresse sur 30 jours. Si le brouillon de l'inscription attend encore Justin quand la demande arrive, Léa le RÉÉCRIT avec
+ * Deux déclencheurs, tous deux SANS ATTENDRE et sans jamais faire échouer la route qui les appelle, et tous deux dans `/api/clients/sync` — la SEULE
+ * route qui prouve l'adresse (une session de `comptes.js` dont `comptes.verifie(adresse)` est vrai) :
+ *   (a) la PREMIÈRE synchro d'un compte vérifié (= son inscription) : le nom de l'entreprise et l'adresse ;
+ *   (b) une demande d'application : métier (liste fermée), nombre d'utilisateurs, formule, besoin.
+ * ⛔ PLUS depuis la route publique `/api/nouveau-compte` (relecture adverse, 23 octobre 2026) : elle ne prouve aucune adresse, et chaque appel y préparait
+ *    un brouillon adressé à l'adresse CHOISIE PAR L'ANONYME — vingt inscriptions factices épuisaient les 20 appels du jour de Léa, remplissaient la file de
+ *    validations de Justin (le vrai prospect du lendemain obtenait « file pleine ») et lui faisaient valider un courriel à un tiers.
+ * Une seule réponse par adresse sur 30 jours ; trois préparations par heure et par adresse au plus (comme les « trois salves » du courriel au patron),
+ * trois réécritures par brouillon ; une inscription que le plafond du jour ou la file pleine a écartée se REPREND à la synchro suivante (`aRepriser`) au lieu
+ * de se perdre en silence. Si le brouillon de l'inscription attend encore Justin quand la demande arrive, Léa le RÉÉCRIT avec
  * ce que la demande apporte de plus (même référence : la validation que Justin voit est la même) — sauf s'il l'a déjà corrigé à la main.
  *
  * ⛔ CE QUI PART CHEZ CLAUDE : le nom de l'entreprise (s'il a la forme d'un nom — sinon « votre entreprise »), le métier (une valeur de liste,
@@ -35,6 +41,9 @@ const ADRESSES_MAX = 5000;
 const NOM = /^[\p{L}\p{N} '’.&-]{2,50}$/u;
 const FORMULES = ['pro', 'business', 'premium'];
 const JETONS = 2500;
+const ESSAIS_HEURE = 3;
+const REECRITURES_MAX = 3;
+const REPRISES_MAX = 3;
 
 const PLAN = [
   'PLAN DU COURRIEL (dans cet ordre, en courts paragraphes) :',
@@ -65,11 +74,12 @@ module.exports = function lea(ctx) {
   const fich = ctx.fichier;
   if (!agents || !cerveau || typeof cerveau.penser !== 'function' || !brouillons || !fich) {
     const sans = async () => ({ saute: 'pas_de_cerveau' });
-    return { surInscription: sans, surDemande: sans };
+    return { surInscription: sans, surDemande: sans, aRepriser: () => false };
   }
 
-  const reg = fich.charger(F, { adresses: {}, jour: { j: '', n: 0 } });
+  const reg = fich.charger(F, { adresses: {}, reprise: {}, jour: { j: '', n: 0 } });
   if (!reg.adresses || typeof reg.adresses !== 'object' || Array.isArray(reg.adresses)) reg.adresses = {};
+  if (!reg.reprise || typeof reg.reprise !== 'object' || Array.isArray(reg.reprise)) reg.reprise = {};
   if (!reg.jour || typeof reg.jour !== 'object') reg.jour = { j: '', n: 0 };
   const sauve = () => fich.ecrire(F, reg);
 
@@ -80,9 +90,38 @@ module.exports = function lea(ctx) {
   function elaguer() {
     const limite = maintenant() - JOURS_MEMOIRE * 86400000;
     for (const h of Object.keys(reg.adresses)) if (!(reg.adresses[h] && reg.adresses[h].ts > limite)) delete reg.adresses[h];
+    for (const h of Object.keys(reg.reprise)) if (!(reg.reprise[h] && reg.reprise[h].ts > limite)) delete reg.reprise[h];
     const hs = Object.keys(reg.adresses);
     if (hs.length > ADRESSES_MAX) for (const h of hs.sort((x, y) => reg.adresses[x].ts - reg.adresses[y].ts).slice(0, hs.length - ADRESSES_MAX)) delete reg.adresses[h];
   }
+
+  /* Trois préparations par heure et par adresse (en mémoire : un redémarrage les remet à zéro, le plafond du jour reste). Une liste de demandes qui s'allonge
+     et se vide en boucle, depuis un compte vérifié, ne fait plus payer qu'un appel à Claude par requête. */
+  const essais = new Map();
+  function essaiOk(h) {
+    const t = maintenant();
+    if (essais.size > 5000) essais.clear();
+    const l = (essais.get(h) || []).filter(x => t - x < 3600000);
+    if (l.length >= ESSAIS_HEURE) { essais.set(h, l); return false; }
+    l.push(t); essais.set(h, l);
+    return true;
+  }
+
+  /* Une inscription qu'on n'a pas pu préparer pour une raison qui PASSE (plafond du jour, file pleine, Claude muet, texte écarté) : on s'en souvient — par
+     empreinte, jamais l'adresse — et la synchro suivante du même compte la reprend, trois fois au plus. Sans ça, l'inscription n'a qu'UN déclencheur et la
+     première panne la perdait sans bruit. */
+  function retenir(h, source) {
+    if (source !== 'inscription') return;
+    const n = ((reg.reprise[h] && reg.reprise[h].n) || 0) + 1;
+    if (n >= REPRISES_MAX) delete reg.reprise[h]; else reg.reprise[h] = { ts: maintenant(), n };
+    sauve();
+  }
+  const aRepriser = email => {
+    const a = String(email || '').trim().toLowerCase();
+    if (!bonneAdresse(a)) return false;
+    const h = empreinte(a), r = reg.reprise[h];
+    return !!(r && r.ts > maintenant() - JOURS_MEMOIRE * 86400000 && !reg.adresses[h]);
+  };
 
   /* Un nom a la forme d'un nom ET ne cache pas un numéro (dix chiffres collés passent le motif : « 0612345678 » est une suite de chiffres, pas une entreprise). */
   const nomOk = e => { const s = String(e || '').replace(/\s+/g, ' ').trim(); return NOM.test(s) && K.sansTel(s) === s ? s : ''; };
@@ -131,7 +170,10 @@ module.exports = function lea(ctx) {
         const p2 = agents.peutAgir(ID);    // une pause posée pendant l'attente de la file arrête net
         if (!p2.ok) return { saute: p2.raison };
         elaguer();
-        const connu = reg.adresses[h];
+        let connu = reg.adresses[h];
+        /* l'envoi de la réponse précédente est en échec DÉFINITIF (trois essais, ou plus de place pour rouvrir une validation) : rien n'est parti, l'adresse
+           n'est pas servie — on peut préparer de nouveau */
+        if (connu && brouillons.etatDe && brouillons.etatDe(connu.ref) === 'echec') { delete reg.adresses[h]; connu = undefined; sauve(); }
         let refReecrire = null;
         if (connu) {
           /* déjà répondu dans les 30 jours : seule une DEMANDE, tant que le brouillon attend encore Justin, le met à jour */
@@ -139,29 +181,37 @@ module.exports = function lea(ctx) {
           if (!refReecrire) return { saute: 'deja_repondu' };
           /* ce que Justin a corrigé à la main ne se réécrit jamais — et on ne paie pas Claude pour un texte qu'on jetterait */
           if (brouillons.estCorrige(refReecrire)) return { saute: 'corrige_par_justin' };
+          if ((connu.nb || 0) >= REECRITURES_MAX) { agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'refuse', detail: 'brouillon déjà réécrit ' + REECRITURES_MAX + ' fois' }); return { saute: 'trop_de_reecritures' }; }
         }
+        if (!essaiOk(h)) { agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'refuse', detail: 'plafond par adresse (' + ESSAIS_HEURE + ' par heure)' }); return { saute: 'plafond_adresse' }; }
         const jour = deJour();
-        if (jour.n >= PAR_JOUR) { agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'refuse', detail: 'plafond du jour (' + PAR_JOUR + ')' }); return { saute: 'plafond_jour' }; }
+        if (jour.n >= PAR_JOUR) { agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'refuse', detail: 'plafond du jour (' + PAR_JOUR + ')' }); retenir(h, source); return { saute: 'plafond_jour' }; }
+        /* pas de place dans la file de Justin : inutile de payer un appel pour un texte qu'on jetterait — et on le DIT, on ne le perd pas en silence */
+        if (!refReecrire && typeof agents.placeLibre === 'function' && !agents.placeLibre(ID)) {
+          agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'refuse', detail: 'file de validations pleine : réponse non préparée' }); retenir(h, source); return { saute: 'file_pleine' };
+        }
 
         const r = await cerveau.penser(ID, SYSTEM, [{ role: 'user', content: demandeClaude(Object.assign({}, i, { source })) }], { maxTokens: JETONS });
-        if (!r.ok) return { saute: r.raison };
+        if (!r.ok) { retenir(h, source); return { saute: r.raison }; }
         jour.n++; sauve();   // l'appel a eu lieu (et coûté) : il compte, quoi qu'il rende
 
         const m = K.lireMail(r.texte);
-        if (!m || m.ignorer) { agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'erreur', detail: 'réponse de Claude sans « Objet : »' }); return { saute: 'forme' }; }
+        if (!m || m.ignorer) { agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'erreur', detail: 'réponse de Claude sans « Objet : »' }); retenir(h, source); return { saute: 'forme' }; }
         const corps = K.normaliserCorps(m.corps);
         const refus = K.refusDe(m.objet, corps);
-        if (refus) { agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'refuse', detail: 'texte écarté : ' + refus }); return { saute: 'texte_refuse', raison: refus }; }
+        if (refus) { agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'refuse', detail: 'texte écarté : ' + refus }); retenir(h, source); return { saute: 'texte_refuse', raison: refus }; }
 
         if (refReecrire) {
           const ok = brouillons.reecrire(refReecrire, m.objet, corps, source);
+          if (ok) { connu.nb = (connu.nb || 0) + 1; sauve(); }
           agents.noter(ID, 'brouillon réécrit', { cible: source, resultat: ok ? 'ok' : 'refuse', detail: ok ? 'la demande apporte plus que l’inscription' : 'déjà corrigé par Justin ou plus à jour' });
           return ok ? { reecrit: true, ref: refReecrire } : { saute: 'reecriture_refusee' };
         }
         const d = await brouillons.deposer({ agent: ID, a, objet: m.objet, texte: corps, enReponseA: null, role: 'contact', source,
           entreprise: nomOk(i.entreprise) || '' });
-        if (!d.ok) return { saute: d.raison };
-        reg.adresses[h] = { ts: maintenant(), ref: d.ref };
+        if (!d.ok) { retenir(h, source); return { saute: d.raison }; }
+        reg.adresses[h] = { ts: maintenant(), ref: d.ref, nb: 0 };
+        delete reg.reprise[h];
         sauve();
         return { depose: true, ref: d.ref, voie: d.voie };
       });
@@ -183,8 +233,11 @@ module.exports = function lea(ctx) {
       users: Number.isFinite(users) ? users : 0, formule: String(i.formule || '').trim().toLowerCase(), besoin: String(i.besoin || '').slice(0, 200) });
   }
 
-  return { surInscription, surDemande };
+  return { surInscription, surDemande, aRepriser };
 };
 module.exports.NOM = NOM;
 module.exports.SYSTEM = SYSTEM;
 module.exports.PAR_JOUR = PAR_JOUR;
+module.exports.ESSAIS_HEURE = ESSAIS_HEURE;
+module.exports.REECRITURES_MAX = REECRITURES_MAX;
+module.exports.REPRISES_MAX = REPRISES_MAX;

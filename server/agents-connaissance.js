@@ -39,6 +39,7 @@ const OFFRE = [
   '- Tu ne présentes comme existante AUCUNE fonction absente de la liste ci-dessus. Un besoin propre au métier du client qui n’y figure pas (par exemple le suivi des fluides frigorigènes d’un climaticien) se présente comme « une catégorie que nous pouvons créer pour vous », jamais comme une fonction déjà disponible.',
   '- Tu ne donnes aucun autre prix que « à partir de 15 € par mois et par utilisateur (TVA non applicable) », aucune date, aucune remise, aucune promesse de délai, aucun engagement juridique, aucun remboursement.',
   '- La période d’essai d’une semaine se propose APRÈS le retour du client, jamais dans le premier message : tu la présentes comme une possibilité « ensuite », sans la promettre.',
+  '- Tu n’écris jamais les mots « gratuit », « offert », « remise », « réduction », « illimité », « garanti », « remboursé », ni « sans engagement » : ce sont des promesses commerciales que personne n’a faites. Tu n’écris aucun nom de site ou d’adresse web autre que « teamop.fr ».',
 ].join('\n');
 
 /* La FORME du courriel, la même pour les deux. Ce que Justin a validé : professionnel, voix de l'entreprise, vouvoiement. */
@@ -81,6 +82,16 @@ function lireMail(brut) {
   return { objet: m[1].trim(), corps: m[2].trim() };
 }
 
+/* Les mots d'une PROMESSE que personne n'a faite (« trois mois gratuits », « formule illimitée », « sans engagement »). Cherchés sur le texte sans accents ni
+   majuscules, au début des mots (« garanti » attrape garantie, garantissons). Pas « offre » seul : c'est le nom de notre offre, et le mot revient partout. */
+const PROMESSES = /\b(?:gratuit|offert|offre\s+(?:speciale|exclusive)|offrons|offrirons|remise|rabais|reduction|promotion|illimite|garanti|garantissons|rembours|satisfait\s+ou|sans\s+engagement|sans\s+frais|sans\s+surcout|a\s+vie\b)/;
+const sansAccents = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+/* Un NOM DE DOMAINE nu (« teamop-paiement.example/pay », « bit.ly/3xYz ») : des étiquettes séparées par des points, une extension de lettres MINUSCULES (« fin.Merci » n'en est pas un). Seule abréviation
+   française qui en a la forme : « p.ex » (écartée par son nom, `ABREVIATIONS`). Les extensions de fichier courantes ne comptent pas comme des sites. */
+const DOMAINE = /(?<![A-Za-z0-9@.-])((?:[A-Za-z0-9][A-Za-z0-9-]{0,62}\.)+[a-z]{2,24})(?![A-Za-z0-9-])/g;
+const ABREVIATIONS = new Set(['p.ex']);
+const FICHIERS = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'gif', 'txt', 'zip', 'csv']);
+
 /* Ce que Claude écrit se vérifie avant d'être rangé : un texte venu d'un courriel hostile ne doit pas pouvoir y glisser un lien de
    paiement ou une adresse d'ailleurs. Seuls le site de TeamOP et ses adresses passent ; aucun numéro de téléphone (Claude n'en a reçu aucun,
    donc tout numéro est inventé). Rend `''` si le texte est sain, sinon la raison — pour le journal, jamais le texte. */
@@ -92,6 +103,13 @@ function refusDe(objet, corps) {
   for (const m of tout.matchAll(/[^\s<>"'(),;:[\]]+@([^\s<>"'(),;:[\]]+)/g)) if (!/(^|\.)teamop\.fr\.?$/i.test(m[1])) return 'adresse étrangère';
   if (/@/.test(tout.replace(/[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g, ''))) return 'adresse étrangère';
   for (const m of tout.matchAll(/(?:https?:\/\/|www\.)([^\s/?#)>"']+)/gi)) if (!/(^|\.)teamop\.fr$/i.test(m[1].replace(/^www\./i, '').replace(/:\d+$/, ''))) return 'lien étranger';
+  /* un domaine SANS « http » ni « www » est un lien aussi (le client clique, ou son courriel en fait un lien) : seul teamop.fr passe */
+  for (const m of tout.matchAll(DOMAINE)) {
+    const d = m[1].toLowerCase();
+    if (/(^|\.)teamop\.fr$/.test(d) || ABREVIATIONS.has(d) || FICHIERS.has(d.split('.').pop())) continue;
+    return 'lien étranger';
+  }
+  if (PROMESSES.test(sansAccents(tout))) return 'promesse commerciale';
   for (const m of tout.matchAll(TEL)) if (m[0].replace(/\D/g, '').length >= 9) return 'numéro de téléphone';
   /* Le SEUL prix permis est « 15 € » (le plancher de l'offre) : tout autre montant en euros est une promesse que personne n'a faite. Et un
      pourcentage est une remise. ⚠️ On lit le NOMBRE, pas le mot : « 150 € » contient « 15 » — une comparaison de texte le laisserait passer. */

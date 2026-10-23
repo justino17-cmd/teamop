@@ -222,3 +222,7 @@ tests/test-2861.js
 tests/test-2862.js
 tests/test-2863.js
 tests/test-2864.js
+# 23 octobre 2026, relecture adverse de Léa et de Camille : `test-2866` (domaines nus et promesses refusés, Léa hors de la route publique, plafonds par adresse, reprise d'une inscription écartée, envoi en échec rouvert,
+# texte envoyé = texte lu, une lettre dans deux boîtes, un expéditeur ne remplit pas la file ; puis le vrai serveur). ⛔ `test-2865` (la Tour) et `test-2867` (les pages juridiques) ne sont PAS ici : ils lisent des fichiers de la racine
+# que `main` ne sert pas encore — ils tournent dans la suite complète.
+tests/test-2866.js

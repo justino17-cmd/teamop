@@ -997,10 +997,10 @@ app.post('/api/nouveau-compte', (req, res) => {
         boutonTxt: 'Ouvrir la Tour de contrôle', boutonUrl: 'https://teamop.fr/tour.html' })
     }).catch(e => console.error('mail nouveau compte:', e.message));
   }
-  /* LÉA prépare une réponse commerciale en BROUILLON (Justin la relit avant tout envoi). SANS ATTENDRE et sans jamais faire échouer cette route
-     publique : un échec de Léa se tait. Elle ne reçoit que le nom de l'entreprise et l'adresse (qui ne sert qu'à l'empreinte et au destinataire
-     du brouillon) : le prénom et le nom ne lui sont PAS transmis. */
-  try { if (agentLea) Promise.resolve(agentLea.surInscription({ entreprise: societe, email })).catch(() => {}); } catch (e) {}
+  /* ⛔ LÉA N'EST PAS APPELÉE D'ICI. Cette route est PUBLIQUE et ne prouve aucune adresse : y déclencher Léa laissait un anonyme épuiser ses 20 appels du
+     jour, remplir la file de validations de Justin (le vrai prospect du lendemain recevait « file pleine ») et lui faire valider un courriel à l'adresse
+     de son choix (relecture adverse, 23 octobre 2026). Son premier déclencheur est la PREMIÈRE synchro d'un compte dont l'adresse est PROUVÉE
+     (`/api/clients/sync`, plus bas) — le courriel à l'équipe ci-dessus, lui, reste ici. */
   res.json({ ok: true });
 });
 
@@ -9467,6 +9467,10 @@ app.post('/api/clients/sync', async (req, res) => {
   if (entFermes.emails.includes(email)) return res.status(410).json({ error: 'compte fermé par TeamOP' });
   if (Object.keys(clientsData).length >= 2000 && !clientsData[email]) return res.json({ ok: true });   // cap silencieux
   const prev = clientsData[email] || {};
+  /* ⛔ L'ADRESSE EST-ELLE PROUVÉE ? Seule une session de `comptes.js` dont l'adresse est vérifiée le prouve (le test plus haut a déjà refusé le reste quand le
+     portail maison est allumé) ; un jeton Google, lui, ne prouve rien dès que `comptes` existe — et sans `comptes`, rien non plus. Léa n'écrit qu'à une adresse prouvée. */
+  const adresseProuvee = !!(cm && /^[0-9a-f]{64}$/i.test(brut) && cm.verifie(email));
+  const premiereSynchro = !clientsData[email];
   const demandes = (Array.isArray(b.demandes) ? b.demandes.slice(0, 20) : []).map(d => ({
     app: monStr(d && d.app, 60), formule: monStr(d && d.formule, 40), statut: monStr(d && d.statut, 20), date: parseInt(d && d.date, 10) || 0, besoin: monStr(d && d.besoin, 200), users: monStr(d && d.users, 10),
     code: monStr(d && d.code, 40), lien: monStr(d && d.lien, 60),
@@ -9647,10 +9651,15 @@ app.post('/api/clients/sync', async (req, res) => {
      au patron ci-dessus (qui dépend de l'envoi SMTP) ; SANS ATTENDRE, sans jamais faire échouer la synchro. Une demande qui ne vise qu'OP MESSAGES
      (pas encore vendu) ne déclenche rien : la démarche commerciale parle d'OP GESTION. */
   try {
-    if (agentLea && demandes.length > (prev.demandes || []).length) {
-      const nvL = demandes.slice((prev.demandes || []).length).filter(d => !/messages/i.test(String(d.app || '')));
-      const d = [...nvL].reverse().find(x => x.metier) || nvL[nvL.length - 1];
-      if (d) Promise.resolve(agentLea.surDemande({ email, entreprise: (clientsData[email] || {}).entreprise, metier: d.metier, users: d.users, formule: d.formule, besoin: d.besoin })).catch(() => {});
+    if (agentLea && adresseProuvee) {
+      /* (a) l'INSCRIPTION : la première synchro de ce compte vérifié — ou une inscription que le plafond du jour ou la file pleine a écartée (`aRepriser`).
+         Léa porte ses propres plafonds (une réponse par adresse sur 30 jours, trois préparations par heure et par adresse, vingt par jour). */
+      if (premiereSynchro || agentLea.aRepriser(email)) Promise.resolve(agentLea.surInscription({ entreprise: (clientsData[email] || {}).entreprise, email })).catch(() => {});
+      if (demandes.length > (prev.demandes || []).length) {
+        const nvL = demandes.slice((prev.demandes || []).length).filter(d => !/messages/i.test(String(d.app || '')));
+        const d = [...nvL].reverse().find(x => x.metier) || nvL[nvL.length - 1];
+        if (d) Promise.resolve(agentLea.surDemande({ email, entreprise: (clientsData[email] || {}).entreprise, metier: d.metier, users: d.users, formule: d.formule, besoin: d.besoin })).catch(() => {});
+      }
     }
   } catch (e) {}
   res.json({ ok: true });

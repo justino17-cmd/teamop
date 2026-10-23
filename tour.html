@@ -10354,7 +10354,8 @@ function agBrApercu(v){
   }
   return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.a)+'</b>'+(b.entreprise?' · '+esc(b.entreprise):'')+'</div>'+
     '<span class="obj">'+esc(b.objet)+'</span><p>'+esc(b.texte)+'</p>'+(b.signature?'<div class="sig">'+esc(b.signature)+'</div>':'')+
-    (b.etat!=='attente'?'<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ce brouillon est déjà '+(b.etat==='envoye'?'envoyé':'en échec')+'.</div>':'')+
+    (b.etat!=='attente'?'<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ce brouillon est déjà '+(b.etat==='envoye'?'envoyé':'en échec : le courriel n’est pas parti, plus aucun essai possible')+'.</div>':
+      (b.echecs>0?'<div class="note" style="margin-top:8px;color:var(--red);font-size:12.5px">Un envoi a échoué ('+esc(String(b.echecs))+' fois) : le courriel n’est pas parti. Valide de nouveau pour réessayer.</div>':''))+
     (MYROLE==='patron'&&b.etat==='attente'?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agBrModifier(\''+esc(ref)+'\')">Modifier</button></div>':'')+'</div>';
 }
 function agBrModifier(ref){
@@ -10372,15 +10373,31 @@ function agBrEnregistrer(ref){
     render();
   }).catch(function(){ AG.br.busy=false; AG.br.err=INJOIGNABLE; render(); });
 }
+/* Ce que le serveur a VRAIMENT fait d'une décision. ⛔ « Validée » ne veut pas dire « parti » : `validation.execution` dit si l'exécution a eu lieu ('ok'), a échoué
+   ('echec') ou a été retenue par la pause ('pause'). Dire « Demande validée » sur un courriel qui n'est pas parti laissait Justin croire la réponse envoyée. */
+function agDecisionMsg(r,decision){
+  if(!r.ok) return (r.d&&r.d.error)||'Décision refusée';
+  if(decision!=='accepter') return 'Demande refusée.';
+  var v=(r.d&&r.d.validation)||{}, mail=v.type==='envoyer_mail';
+  if(v.execution==='echec') return mail?'Validée, mais le courriel n’est PAS parti. Une nouvelle validation est rouverte si le brouillon peut encore partir : regarde la liste.':'Validée, mais l’exécution a échoué : rien n’a été fait.';
+  if(v.execution==='pause') return mail?'Validée, mais les agents sont en pause : le courriel n’est PAS parti.':'Validée, mais les agents sont en pause : rien n’a été exécuté.';
+  return mail&&v.execution==='ok'?'Courriel envoyé.':'Demande validée.';
+}
 function agDecider(id,decision){
   if(AG.busy||MYROLE!=='patron') return;
-  var vd=AG.validations.filter(function(x){ return x.id===id; })[0];
+  var vd=AG.validations.filter(function(x){ return x.id===id; })[0], corps={id:id,decision:decision};
+  if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'){
+    /* l’empreinte du texte que Justin a SOUS LES YEUX : le serveur refuse (409) si le brouillon a été réécrit depuis */
+    var bv=AG.br.d[agBrRef(vd)];
+    if(AG.br.lec!==1||!bv||!bv.empreinte){ toast('Le brouillon n’a pas été lu : recharge la liste avant de valider.'); return; }
+    corps.empreinte=bv.empreinte;
+  }
   if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'&&!confirm('Envoyer ce courriel maintenant ? Il part tel que tu le vois, avec la signature du Courrier.')) return;
   if(decision==='accepter'&&!(vd&&vd.type==='envoyer_mail')&&!confirm('Valider cette demande ? Elle sera exécutée si l’agent en a la charge.')) return;
   AG.busy=true; render();
-  return apiPost('/api/monitor/agents/validations/decider',{id:id,decision:decision}).then(function(r){
-    AG.busy=false; toast(r.ok?(decision==='accepter'?'Demande validée.':'Demande refusée.'):((r.d&&r.d.error)||'Décision refusée'));
-    chargerAgents();
+  return apiPost('/api/monitor/agents/validations/decider',corps).then(function(r){
+    AG.busy=false; toast(agDecisionMsg(r,decision));
+    chargerAgents();   /* aussi après un 409 « le brouillon a changé » : l’aperçu se recharge avec le texte à jour */
   }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
 }
 /* Hugo relit Stripe À LA DEMANDE (il le fait aussi seul, toutes les 15 minutes) : le verdict se dit tel que le serveur l'a rendu */
