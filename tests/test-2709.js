@@ -35,7 +35,7 @@ function fonction(nom) {
 /* `esc` tient sur UNE ligne et porte une apostrophe et un guillemet dans une expression régulière : le compteur d'accolades la prendrait pour des chaînes */
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'acSquel', 'fmtDate', 'agParId', 'agNom', 'agMode', 'agParams', 'agEnPause',
-  'chargerAgents', 'agSec', 'agMode_', 'agPause', 'agDecider', 'agHugo', 'agIllisible', 'vueAgents', 'fmtHeure',
+  'chargerAgents', 'agSec', 'agMode_', 'agPause', 'agDecider', 'agDecisionMsg', 'agBrRef', 'agBrCharger', 'agBrApercu', 'agBrModifier', 'agBrAnnuler', 'agBrEnregistrer', 'agHugo', 'agIllisible', 'vueAgents', 'fmtHeure',
   'agTachesDe', 'agDispo', 'agEnCoursTxt', 'agQuiFaitQuoi',   // lot 1 (f) : « qui fait quoi » de l'onglet Équipe
   'agDosCharger', 'agDosOuvrir', 'agDosFermer', 'agDosPaiement', 'agDosFiche', 'agDosListe', 'agCvCharger', 'agCvOuvrir', 'agCvFermer', 'agCvEnvoyer', 'agCvDossier', 'agCvMessage', 'agCvVue'];
 const i0 = CODE.indexOf('var AG={'), i1 = CODE.indexOf('\nfunction agParId(');
@@ -284,16 +284,25 @@ console.log('\n── 2709 · le panneau Agents de la Tour : ses vraies fonction
 
 
   /* ── « Parler » et ce que chaque carte dit de son cerveau (20 octobre 2026) ── */
-  vrai('⛔ le bouton « Parler » existe et ouvre le fil de l’agent', /function agParler\(id\)\{[^}]*agCvOuvrir\(id\)/.test(SRC) && /onclick="agParler\(/.test(SRC));
+  /* 23 octobre 2026 (v2.104) : « Parler à X » ouvre la MESSAGERIE sur le fil de l'agent (`messOuvrirFil`), plus l'onglet Conversations — test-2882 §9 et la sonde le gardent. */
+  vrai('⛔ le bouton « Parler » existe et ouvre le fil de l’agent', /function agParler\(id\)\{[^}]*messOuvrirFil\(id\)/.test(SRC) && /onclick="agParler\(/.test(SRC));
   vrai('le serveur dit quels agents ont un cerveau et si la clé est posée — deux booléens, jamais la clé', /cleOk: ctx\.cleCerveauPosee === true/.test(fs.readFileSync(path.join(RACINE, 'server/agents.js'), 'utf8')) && /cleCerveauPosee: !!\(config\.agents && config\.agents\.cleApi\)/.test(fs.readFileSync(path.join(RACINE, 'server/index.js'), 'utf8')));
   (function () {
     const A = Z.ctx.AG, avant = [A.agents, A.cleOk, A.loaded, A.err, A.sec];
     A.loaded = true; A.err = ''; A.sec = 'equipe';
-    A.agents = [{ id: 'hugo', nom: 'Hugo', role: 'r', couche: 'Clients', vague: 1, plafondUsd: 10, mode: 'arret', cerveau: true }, { id: 'camille', nom: 'Camille', role: 'r', couche: 'Clients', vague: 2, plafondUsd: 35, mode: 'arret', cerveau: false }];
+    /* (22 octobre 2026) Hugo est ici en BROUILLON : à l'arrêt, la carte ne dit plus « il répond » (il ne répond pas) mais « passe-le en Brouillon ».
+       Ce contrôle a donc changé de SENS, pas de force : « avec la clé, un agent branché qui peut agir dit qu'il répond » — l'ancien fixture
+       (mode 'arret') promettait une réponse qui ne viendrait pas. Le cas à l'arrêt est gardé juste dessous. */
+    A.agents = [{ id: 'hugo', nom: 'Hugo', role: 'r', couche: 'Clients', vague: 1, plafondUsd: 10, mode: 'brouillon', cerveau: true }, { id: 'camille', nom: 'Camille', role: 'r', couche: 'Clients', vague: 2, plafondUsd: 35, mode: 'arret', cerveau: false }];
     A.cleOk = false; const sansCle = Z.ctx.vueAgents(); A.cleOk = true; const avecCle = Z.ctx.vueAgents();
     vrai('sans clé, Hugo dit qu’il ne répond pas encore', /Branché, mais la clé Anthropic n’est pas posée/.test(sansCle) && !/Il répond quand tu lui écris/.test(sansCle));
     vrai('avec la clé, Hugo dit qu’il répond ; Camille dit « pas encore branché » dans les deux cas', /Il répond quand tu lui écris/.test(avecCle) && (sansCle.match(/Pas encore branché/g) || []).length === 1 && (avecCle.match(/Pas encore branché/g) || []).length === 1);
     vrai('chaque carte a son bouton « Parler à … »', /Parler à Hugo/.test(avecCle) && /Parler à Camille/.test(avecCle));
+    A.agents[0].mode = 'arret'; const arretee = Z.ctx.vueAgents();
+    vrai('⛔ branché + clé posée mais À L\'ARRÊT : la carte dit de le passer en Brouillon, et ne promet pas qu\'il répond', /Branché — à l’arrêt : passe-le en Brouillon pour qu’il te réponde/.test(arretee) && !/Il répond quand tu lui écris/.test(arretee));
+    vrai('…et « Pas encore branché » reste pour l\'agent non branché, une seule fois', (arretee.match(/Pas encore branché/g) || []).length === 1);
+    vrai('…la phrase d\'un agent à l\'arrêt n\'a pas la classe « ok » (verte)', !/ag-etat-cv ok">Branché — à l’arrêt/.test(arretee) && /ag-etat-cv">Branché — à l’arrêt/.test(arretee));
+    A.agents[0].mode = 'auto'; vrai('…en Auto il répond aussi', /Il répond quand tu lui écris/.test(Z.ctx.vueAgents()));
     A.agents = avant[0]; A.cleOk = avant[1]; A.loaded = avant[2]; A.err = avant[3]; A.sec = avant[4];
   })();
 

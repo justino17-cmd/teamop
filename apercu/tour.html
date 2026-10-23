@@ -2156,6 +2156,17 @@ body.plans .reg-l.cli::before{display:none}
 .ag-etiq.ok{background:var(--accBg);color:var(--acc-txt)}
 .ag-etiq.ko{color:var(--red)}
 .ag-act{display:flex;gap:8px;flex-wrap:wrap}
+.ag-ligne.ag-br{flex-wrap:wrap}
+.ag-apercu{flex:1 1 100%;order:3;min-width:0;padding:12px 14px;border-radius:var(--r-3);border:1px solid var(--line);background:var(--inset)}
+.ag-apercu .de{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.ag-apercu .de b{color:var(--text)}
+.ag-apercu .obj{display:block;margin:6px 0 8px;font-weight:700;overflow-wrap:anywhere}
+.ag-apercu p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.ag-apercu .sig{margin-top:10px;font-size:12.5px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}
+.ag-apercu input,.ag-apercu textarea{width:100%;box-sizing:border-box;padding:10px 12px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--surface,transparent);color:var(--text);font:inherit}
+.ag-apercu textarea{min-height:220px;resize:vertical;margin-top:8px}
+.ag-apercu .err{margin-top:8px;color:var(--red);font-size:13px}
+.ag-apercu .ag-act{margin-top:10px}
 .ag-fil{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .ag-msg{max-width:min(560px,92%);align-self:flex-start;padding:10px 14px;border-radius:var(--r-3);border:1px solid var(--line);background:var(--inset)}
 .ag-msg.moi{align-self:flex-end;border-color:var(--acc)}
@@ -2846,7 +2857,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.102</div>
+    <div class="lg-pied">console interne · v2.103</div>
   </div>
 </div>
 
@@ -2888,7 +2899,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.102</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.103</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2900,7 +2911,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.102</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.103</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3205,7 +3216,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.102';
+var TOUR_VERSION='v2.103';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -10139,7 +10150,8 @@ function vueJournal(){
    un mode ne s'affiche pas « Auto » parce qu'on l'a demandé, mais parce que le serveur l'a écrit. */
 var AG={dir:{rap:null,rapLec:0,charte:null,charteLec:0,contrats:null,contLec:0,ouvert:'',vers:null,texte:'',note:''},loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false,
   dos:{q:'',lec:0,liste:[],total:0,ouvert:'',fiche:null,ficheLec:0},
-  cv:{lec:0,fils:[],nonLus:0,ouvert:'',msgs:[],msgLec:0,brouillon:'',envoi:false}};
+  cv:{lec:0,fils:[],nonLus:0,ouvert:'',msgs:[],msgLec:0,brouillon:'',envoi:false},
+  br:{lec:0,d:{},edit:'',objet:'',texte:'',err:'',busy:false}};
 var AG_MODES=[['arret','À l’arrêt'],['brouillon','Brouillon'],['auto','Auto']];
 var AG_TYPES={creer_espace:'Créer un espace',suspendre_acces:'Suspendre un accès',envoyer_mail:'Envoyer un courriel',publier:'Publier',repondre_avis:'Répondre à un avis',correctif:'Proposer un correctif',
   verifier_paiement:'Vérifier un paiement',preparer_espace:'Préparer un espace',escalade_humain:'Passer la main à une personne',signaler_erreur:'Signaler une erreur',relire_envoi:'Relire un envoi'};
@@ -10174,18 +10186,22 @@ function agQuiFaitQuoi(){ var n={occupe:0,libre:0,arret:0,inconnu:0};
     tu(sait?att:'—','Tâches en attente',att?'var(--amber)':'')+'</div>'+
     (sait?'':'<div class="note" style="margin-bottom:8px">⚠️ '+(AG.lec.taches===0?'Lecture des tâches en cours…':'Les tâches entre agents n’ont pas pu être lues : on ne sait pas qui est occupé.')+'</div>'); }
 function chargerAgents(){
-  if(MYROLE!=='patron'){ AG.agents=[]; AG.loaded=true; AG.err='Réservé au patron — les agents ne se règlent que par lui.'; if(TAB==='agents') render(); return; }
-  apiGet('/api/monitor/agents').then(function(d){ if(!d) return;
+  if(MYROLE!=='patron'){ AG.agents=[]; AG.loaded=true; AG.err='Réservé au patron — les agents ne se règlent que par lui.'; if(TAB==='agents') render(); return Promise.resolve(); }
+  var ps=[];   /* promesses rendues : un banc peut attendre la fin du chargement, la page non */
+  ps.push(apiGet('/api/monitor/agents').then(function(d){ if(!d) return;
     AG.agents=d.agents||[]; AG.illisible=d.illisible===true; AG.cleOk=d.cleOk===true; AG.pause=d.pause||null; AG.enAttente=Number(d.enAttente)||0; AG.loaded=true; AG.err='';
     if(TAB==='agents') render();
-  }).catch(function(e){ AG.err=msgErreur(e); AG.loaded=true; if(TAB==='agents') render(); });
+  }).catch(function(e){ AG.err=msgErreur(e); AG.loaded=true; if(TAB==='agents') render(); }));
   agCvCharger();
   ['validations','journal','taches'].forEach(function(k){
-    apiGet('/api/monitor/agents/'+k+(k==='validations'?'?statut=tout':'')).then(function(d){ if(!d) return;
+    ps.push(apiGet('/api/monitor/agents/'+k+(k==='validations'?'?statut=tout':'')).then(function(d){ if(!d) return;
       if(Array.isArray(d[k])){ AG[k]=d[k]; AG.lec[k]=1; } else { AG.lec[k]=-1; }
+      var br=(k==='validations'&&AG.lec.validations===1)?agBrCharger():null;
       if(TAB==='agents') render();
-    }).catch(function(){ AG.lec[k]=-1; if(TAB==='agents') render(); });
+      return br;
+    }).catch(function(){ AG.lec[k]=-1; if(TAB==='agents') render(); }));
   });
+  return Promise.all(ps);
 }
 function agParler(id){ AG.sec='conv'; if(AG.cv.lec===0) agCvCharger(); agCvOuvrir(id); }
 function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); render(); }
@@ -10312,13 +10328,76 @@ function agPause(arreter){
     chargerAgents();
   }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
 }
+/* ── Les BROUILLONS de Léa et de Camille : une validation « envoyer_mail » montre ce qui partirait (destinataire, objet, texte), lu sur le serveur.
+   ⛔ Trois états par lecture comme partout (0 pas lu, 1 lu, −1 illisible) : un brouillon qu'on n'a pas pu lire ne se valide PAS — on ne valide pas
+   un courriel qu'on n'a pas vu. Le destinataire s'affiche mais ne se change nulle part : seuls l'objet et le texte se corrigent. */
+function agBrRef(v){ return v&&v.type==='envoyer_mail'&&v.params&&typeof v.params.fil==='string'?v.params.fil:''; }
+function agBrCharger(){
+  var refs=AG.validations.filter(function(v){ return v.statut==='en_attente'&&agBrRef(v); }).map(agBrRef).slice(0,50);
+  if(!refs.length){ AG.br.lec=1; AG.br.d={}; return Promise.resolve(); }
+  AG.br.lec=0;
+  return apiGet('/api/monitor/agents/brouillons?refs='+encodeURIComponent(refs.join(','))).then(function(d){
+    if(d&&typeof d==='object'&&!d.error){ AG.br.d=d; AG.br.lec=1; } else AG.br.lec=-1;
+    if(TAB==='agents') render();
+  }).catch(function(){ AG.br.lec=-1; if(TAB==='agents') render(); });
+}
+function agBrApercu(v){
+  var ref=agBrRef(v), b=AG.br.d[ref];
+  if(AG.br.lec===0) return '<div class="ag-apercu">'+acSquel()+'</div>';
+  if(AG.br.lec!==1||!b) return '<div class="ag-apercu"><div class="err" style="color:var(--red)">Le brouillon n’a pas pu être lu : on ne sait pas ce qui partirait. Ne valide pas avant de l’avoir vu — réessaie dans un instant.</div></div>';
+  if(AG.br.edit===ref){
+    return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.a)+'</b> · le destinataire ne se change pas</div>'+
+      '<input id="ag-br-o" type="text" maxlength="200" aria-label="Objet" value="'+esc(AG.br.objet)+'" oninput="AG.br.objet=this.value" style="margin-top:8px">'+
+      '<textarea id="ag-br-t" maxlength="20000" aria-label="Texte du courriel" oninput="AG.br.texte=this.value">'+esc(AG.br.texte)+'</textarea>'+
+      (AG.br.err?'<div class="err" role="alert">'+esc(AG.br.err)+'</div>':'')+
+      '<div class="ag-act"><button type="button" class="ag-btn"'+(AG.br.busy?' disabled':'')+' onclick="agBrAnnuler()">Annuler</button><button type="button" class="ag-btn ok"'+(AG.br.busy?' disabled':'')+' onclick="agBrEnregistrer(\''+esc(ref)+'\')">Enregistrer</button></div></div>';
+  }
+  return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.a)+'</b>'+(b.entreprise?' · '+esc(b.entreprise):'')+'</div>'+
+    '<span class="obj">'+esc(b.objet)+'</span><p>'+esc(b.texte)+'</p>'+(b.signature?'<div class="sig">'+esc(b.signature)+'</div>':'')+
+    (b.etat!=='attente'?'<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ce brouillon est déjà '+(b.etat==='envoye'?'envoyé':'en échec : le courriel n’est pas parti, plus aucun essai possible')+'.</div>':
+      (b.echecs>0?'<div class="note" style="margin-top:8px;color:var(--red);font-size:12.5px">Un envoi a échoué ('+esc(String(b.echecs))+' fois) : le courriel n’est pas parti. Valide de nouveau pour réessayer.</div>':''))+
+    (MYROLE==='patron'&&b.etat==='attente'?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agBrModifier(\''+esc(ref)+'\')">Modifier</button></div>':'')+'</div>';
+}
+function agBrModifier(ref){
+  var b=AG.br.d[ref]; if(!b||MYROLE!=='patron') return;
+  AG.br.edit=ref; AG.br.objet=b.objet; AG.br.texte=b.texte; AG.br.err=''; render();
+}
+function agBrAnnuler(){ AG.br.edit=''; AG.br.err=''; render(); }
+function agBrEnregistrer(ref){
+  if(AG.br.busy||MYROLE!=='patron') return;
+  AG.br.busy=true; AG.br.err=''; render();
+  return apiPost('/api/monitor/agents/brouillons/modifier',{ref:ref,objet:AG.br.objet,texte:AG.br.texte}).then(function(r){
+    AG.br.busy=false;
+    if(r.ok&&r.d&&r.d.brouillon){ AG.br.d[ref]=r.d.brouillon; AG.br.edit=''; AG.br.err=''; toast('Brouillon enregistré.'); }
+    else AG.br.err=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')');   /* le refus se DIT à l’écran, dans le formulaire resté ouvert */
+    render();
+  }).catch(function(){ AG.br.busy=false; AG.br.err=INJOIGNABLE; render(); });
+}
+/* Ce que le serveur a VRAIMENT fait d'une décision. ⛔ « Validée » ne veut pas dire « parti » : `validation.execution` dit si l'exécution a eu lieu ('ok'), a échoué
+   ('echec') ou a été retenue par la pause ('pause'). Dire « Demande validée » sur un courriel qui n'est pas parti laissait Justin croire la réponse envoyée. */
+function agDecisionMsg(r,decision){
+  if(!r.ok) return (r.d&&r.d.error)||'Décision refusée';
+  if(decision!=='accepter') return 'Demande refusée.';
+  var v=(r.d&&r.d.validation)||{}, mail=v.type==='envoyer_mail';
+  if(v.execution==='echec') return mail?'Validée, mais le courriel n’est PAS parti. Une nouvelle validation est rouverte si le brouillon peut encore partir : regarde la liste.':'Validée, mais l’exécution a échoué : rien n’a été fait.';
+  if(v.execution==='pause') return mail?'Validée, mais les agents sont en pause : le courriel n’est PAS parti.':'Validée, mais les agents sont en pause : rien n’a été exécuté.';
+  return mail&&v.execution==='ok'?'Courriel envoyé.':'Demande validée.';
+}
 function agDecider(id,decision){
   if(AG.busy||MYROLE!=='patron') return;
-  if(decision==='accepter'&&!confirm('Valider cette demande ? Elle sera exécutée si l’agent en a la charge.')) return;
+  var vd=AG.validations.filter(function(x){ return x.id===id; })[0], corps={id:id,decision:decision};
+  if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'){
+    /* l’empreinte du texte que Justin a SOUS LES YEUX : le serveur refuse (409) si le brouillon a été réécrit depuis */
+    var bv=AG.br.d[agBrRef(vd)];
+    if(AG.br.lec!==1||!bv||!bv.empreinte){ toast('Le brouillon n’a pas été lu : recharge la liste avant de valider.'); return; }
+    corps.empreinte=bv.empreinte;
+  }
+  if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'&&!confirm('Envoyer ce courriel maintenant ? Il part tel que tu le vois, avec la signature du Courrier.')) return;
+  if(decision==='accepter'&&!(vd&&vd.type==='envoyer_mail')&&!confirm('Valider cette demande ? Elle sera exécutée si l’agent en a la charge.')) return;
   AG.busy=true; render();
-  apiPost('/api/monitor/agents/validations/decider',{id:id,decision:decision}).then(function(r){
-    AG.busy=false; toast(r.ok?(decision==='accepter'?'Demande validée.':'Demande refusée.'):((r.d&&r.d.error)||'Décision refusée'));
-    chargerAgents();
+  return apiPost('/api/monitor/agents/validations/decider',corps).then(function(r){
+    AG.busy=false; toast(agDecisionMsg(r,decision));
+    chargerAgents();   /* aussi après un 409 « le brouillon a changé » : l’aperçu se recharge avec le texte à jour */
   }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
 }
 /* Hugo relit Stripe À LA DEMANDE (il le fait aussi seul, toutes les 15 minutes) : le verdict se dit tel que le serveur l'a rendu */
@@ -10431,7 +10510,7 @@ function vueAgents(){
         '<div class="ag-seg" role="group" aria-label="Mode de '+esc(a.nom)+'">'+AG_MODES.map(function(x){
           var off=AG.busy||(x[0]==='auto'&&m==='arret');
           return '<button type="button" data-m="'+x[0]+'" class="'+(m===x[0]?'on':'')+'" aria-pressed="'+(m===x[0])+'"'+(off?' disabled':'')+(x[0]==='auto'&&m==='arret'?' title="Passe d’abord par brouillon"':'')+' onclick="agMode_(\''+esc(a.id)+'\',\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>'+
-        '<div class="ag-etat-cv'+(a.cerveau===true&&AG.cleOk?' ok':'')+'">'+(a.cerveau===true?(AG.cleOk?'Il répond quand tu lui écris, tant qu’il n’est pas à l’arrêt.':'Branché, mais la clé Anthropic n’est pas posée : il ne répond pas encore.'):'Pas encore branché : il ne répond pas et n’agit pas.')+'</div>'+
+        '<div class="ag-etat-cv'+(a.cerveau===true&&AG.cleOk&&m!=='arret'?' ok':'')+'">'+(a.cerveau===true?(AG.cleOk?(m==='arret'?'Branché — à l’arrêt : passe-le en Brouillon pour qu’il te réponde.':'Il répond quand tu lui écris, tant qu’il n’est pas à l’arrêt.'):'Branché, mais la clé Anthropic n’est pas posée : il ne répond pas encore.'):'Pas encore branché : il ne répond pas et n’agit pas.')+'</div>'+
         '<button type="button" class="ag-btn" onclick="agParler(\''+esc(a.id)+'\')">Parler à '+esc(a.nom)+'</button>'+
         '<div class="ag-pied"><span>Plafond mensuel</span><b>'+esc(a.plafondUsd)+' $</b></div>'+
         (a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+'</article>';
@@ -10442,11 +10521,11 @@ function vueAgents(){
     if(AG.lec.validations!==1) h+=AG.lec.validations===0?acSquel():agIllisible('Les demandes n’ont pas pu être lues — on ne sait pas s’il y en a. Réessaie dans un instant.');
     else if(!AG.validations.length) h+='<div class="vide">Rien à valider pour l’instant.</div>';
     else h+='<div class="ag-liste">'+AG.validations.map(function(v){
-      var att=v.statut==='en_attente';
-      return '<div class="ag-ligne"><span class="ag-etiq">'+esc(agNom(v.agent))+'</span><div class="tx"><b>'+esc(v.resume||AG_TYPES[v.type]||v.type)+'</b><span>'+esc(AG_TYPES[v.type]||v.type)+' · '+agParams(v.params)+' · '+esc(fmtDate(v.ts))+
+      var att=v.statut==='en_attente', brRef=att?agBrRef(v):'', brOk=!brRef||(AG.br.lec===1&&!!AG.br.d[brRef]&&AG.br.edit!==brRef);
+      return '<div class="ag-ligne'+(brRef?' ag-br':'')+'"><span class="ag-etiq">'+esc(agNom(v.agent))+'</span><div class="tx"><b>'+esc(v.resume||AG_TYPES[v.type]||v.type)+'</b><span>'+esc(AG_TYPES[v.type]||v.type)+' · '+agParams(v.params)+' · '+esc(fmtDate(v.ts))+
         (v.decideTs?' · '+esc(AG_STATUTS[v.statut]||v.statut)+(v.decidePar?' par '+esc(v.decidePar):''):'')+(v.execution?' · exécution : '+esc(v.execution):'')+'</span></div>'+
-        (att?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'refuser\')">Refuser</button><button type="button" class="ag-btn ok"'+(AG.busy?' disabled':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'accepter\')">Valider</button></div>'
-          :'<span class="ag-etiq'+(v.statut==='accepte'?' ok':'')+'">'+esc(AG_STATUTS[v.statut]||v.statut)+'</span>')+'</div>'; }).join('')+'</div>'+
+        (att?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'refuser\')">Refuser</button><button type="button" class="ag-btn ok"'+(AG.busy||!brOk?' disabled':'')+(brRef&&!brOk?' title="Lis le brouillon (et enregistre ta correction) avant de valider"':'')+' onclick="agDecider(\''+esc(v.id)+'\',\'accepter\')">'+(brRef?'Valider et envoyer':'Valider')+'</button></div>'
+          :'<span class="ag-etiq'+(v.statut==='accepte'?' ok':'')+'">'+esc(AG_STATUTS[v.statut]||v.statut)+'</span>')+(brRef?agBrApercu(v):'')+'</div>'; }).join('')+'</div>'+
       '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Une demande non décidée expire au bout de 7 jours. Seul le patron valide : un agent ne se valide jamais lui-même.</div>';
   } else if(AG.sec==='journal'){
     if(AG.lec.journal!==1) h+=AG.lec.journal===0?acSquel():agIllisible('Le journal n’a pas pu être lu.');
