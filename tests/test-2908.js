@@ -64,10 +64,6 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 220 s'); console.lo
   vrai('⛔ Louis a proposé une entrée à Justin pour la question sans réponse (rien n’est validé)', await S.attendre(async () => ((await S.get('/api/monitor/agents/connaissances')).j.entrees || []).filter(e => e.etat === 'propose').length === 1, 8000));
   const lou = (await S.get('/api/monitor/agents/connaissances')).j.entrees || [];
   v('…elle est « propose », sans réponse inventée', [lou[0] && lou[0].etat, lou[0] && lou[0].reponse], ['propose', '']);
-  const tout = JSON.stringify(S.claudeRecus()) + JSON.stringify(S.juges());
-  vrai('⛔ controle@ n’est JAMAIS lue : ni appel à Claude, ni courriel vers zoe, ni trace dans le journal des agents', !/CONTROLE-2908|exemple-2908z/.test(tout) && (await versA('zoe@exemple-2908z.fr')).length === 0 && !/CONTROLE-2908|exemple-2908z/.test(JSON.stringify((await S.get('/api/monitor/agents/journal')).j)));
-  v('…et la lecture n’a rien marqué « lu » dans la boîte de contact', S.imap().boites[BOITE].messages.filter(m => m.dossier === 'INBOX' && (m.flags || []).includes('\\Seen')).length, 0);
-
   console.log('\n1. La chaîne : Léa répond seule, le prospect répond, Chloé envoie sa proposition');
   const adr = 'chaine@exemple-2908x.fr';
   const ins = await S.inscrire(adr, 'Toka Clim', [{ app: 'OP GESTION', formule: 'Business', statut: 'en attente', date: 1, besoin: 'planning', users: '4', metier: 'chauffage' }]);
@@ -83,6 +79,14 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 220 s'); console.lo
   vrai('…et Camille n’a pas répondu en plus (un seul courriel de Camille vers ce prospect)', (await versA(adr)).filter(m => /Camille — Assistante virtuelle/.test(m.text)).length === 0);
   const cl = (await S.get('/api/monitor/agents/signatures')).j;
   vrai('(population) la Tour lit la signature de chaque agent', cl && JSON.stringify(cl).includes('Assistante virtuelle'), JSON.stringify(cl).slice(0, 200));
+
+  /* ⛔ APRÈS la chaîne : le second passage de la veille (2 minutes) a eu lieu, donc la boîte controle@ a eu tout le temps d'être lue si quelque chose l'y autorisait. Et la POPULATION :
+     la veille a bien relevé les DEUX boîtes (elle a marqué le dernier message vu de controle@) — sans cela « jamais lue » passerait sur une boîte jamais visitée. */
+  const vu = JSON.parse(fs.readFileSync(path.join(S.D, 'mail-vu.json'), 'utf8'));
+  v('(population) la veille a relevé les deux boîtes (contact@ ET controle@)', [Number(vu['b-contact']) > 0, Number(vu['b-controle']) > 0], [true, true]);
+  const tout = JSON.stringify(S.claudeRecus()) + JSON.stringify(S.juges());
+  vrai('⛔ controle@ n’est JAMAIS lue : ni appel à Claude, ni courriel vers zoe, ni trace dans le journal des agents', !/CONTROLE-2908|exemple-2908z/.test(tout) && (await versA('zoe@exemple-2908z.fr')).length === 0 && !/CONTROLE-2908|exemple-2908z/.test(JSON.stringify((await S.get('/api/monitor/agents/journal')).j)));
+  v('…et la lecture n’a rien marqué « lu » dans la boîte de contact', S.imap().boites[BOITE].messages.filter(m => m.dossier === 'INBOX' && (m.flags || []).includes('\\Seen')).length, 0);
 
   console.log('\n2. La formule de signature : lue par la Tour, changée par le patron seul');
   const avant = (await S.get('/api/monitor/agents/signatures')).j;
