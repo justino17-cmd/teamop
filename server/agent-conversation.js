@@ -227,3 +227,9 @@ module.exports = function agentConversation(ctx) {
 module.exports.ROLES = ROLES;
 module.exports.fermer = fermer;
 module.exports.LISTE = LISTE;
+/* Repris par la messagerie des agents (`agent-equipe.js`) : une seule définition de la coupe, des masques et des phrases de panne. */
+module.exports.raccourcir = raccourcir;
+module.exports.sansTel = sansTel;
+module.exports.ADRESSE = ADRESSE;
+module.exports.CAUSES = CAUSES;
+module.exports.FORME_DOSSIER = FORME_DOSSIER;

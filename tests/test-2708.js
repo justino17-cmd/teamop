@@ -104,7 +104,9 @@ console.log('\n── 2708 · le cerveau des agents ──');
   let S = await serveur('avec-cle', 'sk-ant-' + 'api03-banc-2708-xxxxxxxxxxxxxxxx');
   vrai('le serveur annonce le cerveau', /cerveau : clé des agents posée/.test(S.journal()));
   await S.P('/api/monitor/conversations/envoyer', { fil: 'hugo', texte: 'Hugo, que sais-tu du dossier DOS-000001 ?' }); await dormir(500);
-  v('Hugo à l\'arrêt : aucun appel à Claude, aucune réponse', [recus().length, (await S.G('/api/monitor/conversations/hugo')).j.messages.length], [0, 1]);
+  /* 23 octobre 2026 : un agent à l'arrêt qu'on appelle laisse UNE ligne du système dans le fil (« Hugo est à l'arrêt : allume-le… »). Le contrôle reste entier :
+     aucun appel à Claude, et rien de plus que le message de Justin et cette ligne — aucune réponse de Hugo. */
+  v('Hugo à l\'arrêt : aucun appel à Claude, aucune réponse (le message de Justin, et la ligne du système qui dit qu\'il est à l\'arrêt)', [recus().length, (await S.G('/api/monitor/conversations/hugo')).j.messages.map(m => m.de + ':' + (m.de === 'systeme' ? /à l’arrêt/.test(m.texte) : 'x'))], [0, ['justin:x', 'systeme:true']]);
   await S.P('/api/monitor/agents/mode', { agent: 'hugo', mode: 'brouillon' });
   await S.P('/api/monitor/conversations/envoyer', { fil: 'max', texte: 'Max, un point ?' }); await dormir(500);
   v('un autre fil (Max) : aucun appel', recus().length, 0);

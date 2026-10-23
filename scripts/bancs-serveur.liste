@@ -214,3 +214,10 @@ tests/test-2805.js
 # personne ne part chez Claude, faits fermés par rôle, historique alterné, rien d'exécuté). `test-2861` lit aussi `tour.html` via `test-2709` (déjà ci-dessus).
 tests/test-2860.js
 tests/test-2861.js
+# 23 octobre 2026 : la messagerie des agents — `test-2880` (les modules réels, cerveau scripté : mentions, MEMBRES, qui est réveillé, profondeur et anti-boucle,
+# les outils prendre / passer / ecrire / terminer / demander_justin et leurs refus, Hugo et Margaux sans consigne libre d'un collègue, « X écrit… », l'arrêt dit une
+# fois par heure) et `test-2881` (le vrai serveur, un faux Claude qui joue des outils : une question reçoit la réponse de celui qui est interrogé, A↔B s'arrête à 3,
+# lecture incrémentale, routes gardées et déclarées dans MON_GESTES, et la santé lue par les agents ne vide plus la fenêtre de /health). Les routes, `test-2707`, `test-2708`
+# et `test-2861` en sont modifiés d'une ligne chacun (la ligne du système d'un agent à l'arrêt ; 3000 jetons et réflexion adaptative) — dits dans leurs en-têtes.
+tests/test-2880.js
+tests/test-2881.js

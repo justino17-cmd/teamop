@@ -516,7 +516,12 @@ process.on('unhandledRejection', (r) => {
   incidentNoter('rejet');
   console.error('⛔ promesse rejetée sans gestionnaire —', String((r && (r.code || r.name)) || typeof r).slice(0, 40), '·', incidentOu(r));
 });
-app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
+/* ⛔ L'ÉTAT DE SANTÉ EST UNE FONCTION, PAS SEULEMENT UNE ROUTE (23 octobre 2026). Les agents (Max, Inès…) en lisent des chiffres : ils le
+   faisaient en appelant /health par HTTP local, et chaque lecture VIDAIT la fenêtre des temps de réponse (`latQuantiles(true)`) que la
+   surveillance horaire de GitHub lit une fois par heure — une question à Max faussait la surveillance. `vider` n'est donc VRAI que pour la
+   route publique ; un agent appelle `santeCorps(false)`, mêmes champs, aucune fenêtre touchée. */
+app.get('/health', (req, res) => res.json(santeCorps(true)));
+function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
      la suite se déciderait à l'aveugle : /api/mail/cles est protégée par une clé de
@@ -535,7 +540,7 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
   /* ⛔ TROIS ÉTATS, PAS DEUX. `{actif:false}` seul ne distingue pas « éteint par décision » de
      « cassé au démarrage » — et ce dépôt a payé DEUX fois pour cette confusion précise
      (`_mailboxes`, `syncDecrypt`). Un socle qui refuse de se monter doit se voir. */
-  socle: (opSocle && opSocle.sante) ? opSocle.sante() : (opSocle ? { actif: false } : { actif: false, erreur: 'montage' }),
+  socle: (opSocle && opSocle.sante) ? opSocle.sante({ sansVider: vider === false }) : (opSocle ? { actif: false } : { actif: false, erreur: 'montage' }),
   /* Le portail client : voir `etatPortail` plus bas pour les trois états et pourquoi ce
      n'est PAS un nombre. `surveillance.js` alarme sur `erreur`, jamais sur `actif:false`
      seul — une alarme qui sonne sur un état voulu devient du bruit, puis une alarme qu'on
@@ -598,7 +603,7 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      révèle son existence à qui passe. « Bientôt ou pas » suffit à la surveillance, qui n'a
      besoin que de savoir s'il faut prévenir. `null` tant que la date n'est pas renseignée : on
      ne prétend pas savoir ce qu'on ignore. */
-  ghExpireBientot: (j => (j === null ? null : j <= 15))(ghJoursRestants()) }));
+  ghExpireBientot: (j => (j === null ? null : j <= 15))(ghJoursRestants()) }; }
 
 /* Jours avant l'expiration du jeton GitHub, d'après `github.expire` (AAAA-MM-JJ) dans
    config.json. Une date absente ou illisible rend null — jamais 0, qui voudrait dire
@@ -4419,6 +4424,7 @@ let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = p
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
+let agentEquipe = null;        // la messagerie des agents (`agent-equipe.js`) : `null` = pas montée ; la conversation d'avant (Hugo + les quinze) reste alors servie
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
 let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
@@ -10118,7 +10124,10 @@ try {
     conversationsMod = require('./conversations')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, sansAdresses, pousseNotif,
       formeDossier: dossiersMod.FORME, dossierExiste: n => dossiersMod.existe(n),
       /* Hugo a son module ; les quinze autres (et le fil « Équipe », que Victor tient) passent par la conversation générique. */
-      surMessagePatron: (fil, t) => fil === 'hugo' ? (agentHugo ? agentHugo.repondre(t) : null) : (agentsConversation ? agentsConversation.repondre(fil, t) : null) });
+      /* La messagerie des agents (`agent-equipe.js`) répond à tout message : le cité, l'agent du fil privé, le meneur du groupe. Si elle n'est pas
+         montée, la conversation d'avant reste servie (Hugo par son module, les quinze autres par la conversation générique) — mais seulement pour Justin. */
+      surMessage: (m) => agentEquipe ? agentEquipe.surMessage(m)
+        : (m.de !== 'justin' ? null : (m.fil === 'hugo' ? (agentHugo ? agentHugo.repondre(m.texte) : null) : (agentsConversation ? agentsConversation.repondre(m.fil, m.texte) : null))) });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
     const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '' });
     console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
@@ -10129,15 +10138,13 @@ try {
           paiement: f.paiement, formuleDemandee: ['pro', 'business', 'premium'].includes(String(f.client.plan).toLowerCase()) ? String(f.client.plan).toLowerCase() : '',
           /* ⛔ des valeurs d'une LISTE : ce que le client a écrit n'entre jamais dans le prompt */
           demandes: f.demandes.map(d => ({ app: ['OP GESTION', 'OP MESSAGES'].includes(d.app) ? d.app : 'autre', formule: ['pro', 'business', 'premium'].includes(String(d.formule).toLowerCase()) ? String(d.formule).toLowerCase() : '', statut: ['en attente', 'traitée', 'classée'].includes(d.statut) ? d.statut : 'autre' })) }; };
-    /* LA CONVERSATION DES QUINZE AUTRES AGENTS : ils répondent dans « Parler » (Claude, faits fermés, rien d'exécuté). Sous son propre `try` :
-       un échec de montage ne doit emporter ni Hugo ni la Messagerie — les agents se taisent, c'est tout. */
-    try {
-      agentsConversation = require('./agent-conversation')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod,
-        faits: {
-          /* le /health LOCAL du serveur (pas la copie publique d'un autre) : on n'en garde que des nombres et des booléens. Le port est lu comme
-             à l'écoute (`PORT`, plus bas) mais PAR l'environnement : la constante n'existe pas encore à l'exécution de ce bloc. */
+    /* Les relevés que les agents ont le droit de lire : UNE définition, partagée par la conversation d'avant et par la messagerie. */
+    const faitsAgents = {
+          /* l'état de santé du serveur (la même fonction que /health, sans vider sa fenêtre) : on n'en garde que des nombres et des booléens. */
           sante: async () => {
-            let j; try { const r = await fetch('http://127.0.0.1:' + (process.env.PORT || 8080) + '/health', { signal: AbortSignal.timeout(2000) }); j = r.ok ? await r.json() : null; } catch (e) { j = null; }
+            /* ⛔ PAS DE HTTP : `/health` vide la fenêtre des temps de réponse que lit la surveillance horaire. `santeCorps(false)` rend les mêmes
+               champs sans y toucher (`test-2881`). Le corps passe par JSON : ce que l'agent lit est ce que la route publierait, rien d'autre. */
+            let j; try { j = JSON.parse(JSON.stringify(santeCorps(false))); } catch (e) { j = null; }
             if (!j || typeof j !== 'object') return null;
             const nb = x => (typeof x === 'number' && Number.isFinite(x)) ? x : null, bo = x => typeof x === 'boolean' ? x : null;
             const sv = j.sauvegarde || {}, lim = j.limites || {}, pr = j.processus || {}, mr = j.mailRefus || {};
@@ -10149,9 +10156,19 @@ try {
           courrier: () => { if (!messagerieTour || typeof messagerieTour.compter !== 'function') return null; const c = messagerieTour.compter(); return { aTraiter: c.aTraiter, enCours: c.enCours }; },
           clients: () => { const l = Object.values(clientsData || {});
             return { clients: l.length, demandesEnAttente: l.reduce((n, c) => n + (Array.isArray(c && c.demandes) ? c.demandes.filter((d, i) => String(d && d.statut).toLowerCase() === 'en attente' && !(c.demandesTraitees && c.demandesTraitees[i])).length : 0), 0), espaces: Object.keys(espacesReg || {}).length }; },
-          dossier: faitsDossier } });
+          dossier: faitsDossier };
+    /* LA CONVERSATION DES QUINZE AUTRES AGENTS (celle d'avant, gardée en repli) : ils répondent dans « Parler » (Claude, faits fermés, rien d'exécuté).
+       Sous son propre `try` : un échec de montage ne doit emporter ni Hugo ni la Messagerie — les agents se taisent, c'est tout. */
+    try {
+      agentsConversation = require('./agent-conversation')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents });
       console.log('agents : conversation montée pour ' + agentsConversation.ids.length + ' agents');
     } catch (e) { agentsConversation = null; console.error('conversation des agents indisponible :', e.message); }
+    /* LA MESSAGERIE DES AGENTS : groupes, @mentions, réveil du cité, outils fermés (prendre, passer…), « X écrit… ». Elle remplace la conversation
+       d'avant sur tous les fils (Hugo compris) dès qu'elle est montée ; sous son propre `try`, comme la précédente. */
+    try {
+      agentEquipe = require('./agent-equipe')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents });
+      console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
+    } catch (e) { agentEquipe = null; console.error('messagerie des agents indisponible :', e.message); }
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
