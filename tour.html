@@ -10855,7 +10855,7 @@ function exBasculer(cle){ EX.ouvert[cle]=!EX.ouvert[cle]; render(); }
 function exLancer(){
   if(EX.busy||MYROLE!=='patron'||!EX.d) return;
   var l=EX.d.limites||{};
-  if(!confirm('Faire passer l’examen à l’équipe ?\n\nIl joue neuf scénarios avec le vrai modèle, sur une équipe d’essai : aucun vrai fil, aucun vrai client, aucun courriel réel.\n\nCoût : au plus '+l.appelsMax+' appels à Claude, soit '+l.usdMax+' $ au maximum, comptés dans le budget du mois des agents. Un examen par heure.')) return;
+  if(!confirm('Faire passer l’examen à l’équipe ?\n\nIl joue neuf scénarios avec le vrai modèle, sur une équipe d’essai : aucun vrai fil, aucun vrai client, aucun courriel réel.\n\nCoût : au plus '+l.appelsMax+' appels à Claude, soit '+l.usdMax+' $ au maximum, comptés dans le budget du mois des agents.'+(l.moisUsdMax?' L’examen a son propre plafond : '+l.moisUsdMax+' $ par mois.':'')+' Un examen par heure.')) return;
   EX.busy=true; render();
   apiPost('/api/monitor/agents/examen/lancer',{}).then(function(r){ EX.busy=false;
     if(r.ok){ toast('L’examen est lancé.'); EX.voir=''; } else toast((r.d&&r.d.error)||'Lancement refusé');
@@ -10929,7 +10929,7 @@ function exProgresHtml(c){
 function exCleHtml(){
   var d=EX.d, c=d.cle||{existe:false};
   var API_=API+'/api/monitor/agents/examen';
-  var h='<div class="ex-carte"><h3>Clé d’examen — pour que Claude Code teste et corrige sans te déranger</h3><p>Une clé qui ne permet que DEUX gestes : lancer l’examen et lire ses résultats (des données fictives uniquement). Elle ne donne accès à rien d’autre dans la Tour : ni clients, ni courrier, ni agents réels. Une seule clé vit à la fois ; elle est gardée sous forme d’empreinte, donc montrée une seule fois, ici, à sa création. Un examen par heure au plus, quelle que soit la façon de le lancer ; chaque usage est inscrit au journal des agents.</p>';
+  var h='<div class="ex-carte"><h3>Clé d’examen — pour que Claude Code teste et corrige sans te déranger</h3><p>Une clé qui ne permet que DEUX gestes : lancer l’examen et lire ses résultats (des données fictives uniquement). Elle ne donne accès à rien d’autre dans la Tour : ni clients, ni courrier, ni agents réels. Une seule clé vit à la fois ; elle est gardée sous forme d’empreinte, donc montrée une seule fois, ici, à sa création. Un examen par heure au plus, quelle que soit la façon de le lancer ; chaque usage est inscrit au journal des agents (les refus et les lectures répétés n’y font qu’une ligne par fenêtre, qui dit combien elle en recouvre).</p>';
   if(EX.cle){
     h+='<div class="ex-cle" role="alert"><strong>Copie cette clé maintenant : elle ne sera plus jamais affichée.</strong><code id="ex-cle-val">'+esc(EX.cle)+'</code><div class="ag-act"><button type="button" class="ag-btn ok" onclick="exCleCopier()">Copier la clé</button><button type="button" class="ag-btn" onclick="exCleCacher()">J’ai copié la clé</button></div></div>';
   }
@@ -10945,7 +10945,7 @@ function exVue(){
   var attente=d.prochainPossible&&d.prochainPossible>now?d.prochainPossible:0;
   var peut=!EX.busy&&!c&&!attente&&d.cleOk===true;
   var h='<div class="ex-carte"><h3>Faire passer l’examen à l’équipe</h3><p>Les neuf scénarios du cahier sont joués avec le vrai modèle, sur une équipe d’essai : une question à Margaux, un travail à Camille, « @tous », Camille et Hugo entre eux, un désaccord arbitré par Victor, le premier courriel de Léa, le courrier, les réunions du lundi et du vendredi, le ton. Rien de réel n’est touché : aucun vrai fil, aucun vrai client, aucun courriel envoyé.</p>'+
-    '<div class="ex-cout"><span>Au plus '+esc(l.appelsMax)+' appels à Claude</span><span>'+esc(l.usdMax)+' $ au maximum</span><span>comptés dans le budget du mois des agents</span><span>un examen par heure</span></div>'+
+    '<div class="ex-cout"><span>Au plus '+esc(l.appelsMax)+' appels à Claude</span><span>'+esc(l.usdMax)+' $ au maximum</span><span>comptés dans le budget du mois des agents</span>'+(l.moisUsdMax?'<span>'+esc(l.moisUsdMax)+' $ par mois au plus pour l’examen</span>':'')+'<span>un examen par heure</span></div>'+
     (d.cleOk!==true?'<div class="note" style="margin:6px 0;color:var(--amber);font-size:13px">La clé des agents n’est pas posée sur le serveur : l’examen ne peut pas jouer avec le vrai modèle.</div>':'')+
     (attente?'<p>Le prochain examen sera possible à '+esc(exHeure(attente))+'.</p>':'')+
     '<div class="ag-act"><button type="button" class="ag-btn ok"'+(peut?'':' disabled')+' onclick="exLancer()">'+(c?'Examen en cours…':EX.busy?'Lancement…':'Faire passer l’examen à l’équipe')+'</button></div></div>';

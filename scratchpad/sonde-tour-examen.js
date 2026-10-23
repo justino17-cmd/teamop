@@ -65,7 +65,7 @@ const SIMU = String.raw`
     var chemin=s.slice('https://api.teamop.fr'.length).split('?')[0], meth=((o&&o.method)||'GET').toUpperCase();
     if(chemin==='/api/monitor/agents/examen'&&meth==='GET'){ etat.gets++;
       if(etat.echec>0){ etat.echec--; return json(503,{error:'Les fichiers de l’examen sont illisibles'}); }
-      return json(200,{ok:true,cleOk:etat.cleOk,limites:{appelsMax:200,usdMax:12,parHeure:1,parJour:6},courant:etat.courant,dernier:0,prochainPossible:etat.prochain,
+      return json(200,{ok:true,cleOk:etat.cleOk,limites:{appelsMax:200,usdMax:12,moisUsdMax:40,parHeure:1,parJour:6},courant:etat.courant,dernier:0,prochainPossible:etat.prochain,
         cle:etat.cle?{existe:true,creeLe:N-2*H,par:'Justin'}:{existe:false},resultats:etat.resultats.map(resume)}); }
     if(chemin==='/api/monitor/agents/examen/resultat'&&meth==='GET'){ var id=(/id=([^&]+)/.exec(s)||[])[1]; var r=id?etat.complet(decodeURIComponent(id)):etat.resultats[0];
       return r?json(200,{ok:true,resultat:r}):json(404,{error:'Aucun résultat'}); }
@@ -130,7 +130,7 @@ async function main() {
       /* ── 1. repos : aucun résultat, aucune clé ── */
       let E = await ev(ETAT);
       v('population : l’onglet Examen est ouvert dans la barre (huit onglets, « Examen » choisi)', /Examen/.test(E.texte) && E.nCartes >= 2, JSON.stringify([E.nCartes]));
-      v('⛔ le coût est annoncé AVANT de lancer : 200 appels, 12 $, budget du mois, un par heure', E.conseil.length === 4 && /200 appels/.test(E.conseil[0]) && /12 \$/.test(E.conseil[1]) && /budget/.test(E.conseil[2]) && /par heure/.test(E.conseil[3]), JSON.stringify(E.conseil));
+      v('⛔ le coût est annoncé AVANT de lancer : 200 appels, 12 $, budget du mois, 40 $ par mois pour l’examen, un par heure', E.conseil.length === 5 && /200 appels/.test(E.conseil[0]) && /12 \$/.test(E.conseil[1]) && /budget/.test(E.conseil[2]) && /40 \$ par mois/.test(E.conseil[3]) && /par heure/.test(E.conseil[4]), JSON.stringify(E.conseil));
       v('le bouton « Faire passer l’examen à l’équipe » est actif', E.bouton.some(b => /Faire passer l’examen à l’équipe/.test(b.t) && !b.off), JSON.stringify(E.bouton));
       v('« Aucun examen n’a encore été joué » (la lecture a réussi) et « Aucune clé n’est vivante »', /Aucun examen n’a encore été joué/.test(E.texte) && /Aucune clé n’est vivante/.test(E.texte));
       v('les deux commandes à donner à Claude Code sont là, sans clé', E.cmd && /\$CLE_EXAMEN/.test(E.texte) && !/exam_[a-f0-9]{20}/.test(E.texte));
