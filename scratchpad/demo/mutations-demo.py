@@ -35,7 +35,31 @@ M = [
  ('M22 une catégorie hors liste du métier', MOD, "categorie: cats[p[1] % cats.length]", "categorie: 'TP14 — Rodenticide'"),
  ('M23 db.produits.push dans le semis', MOD, "produitCreer({ id: idProduit(p[0]),", "db.produits.push({ id: idProduit(p[0]),"),
  ('M24 la déconnexion rouvre l\'écran de connexion', MOD, "window.logout = function () { location.href = 'index.html'; };", ""),
+ # ── la relecture du 23 octobre 2026 : chaque correctif, remis à l'envers ──
+ ('M25 caches.keys() montre tous les caches de l\'origine', PF, "return ks.filter(miens); }); },", "return ks; }); },"),
+ ('M26 caches.delete() efface un cache étranger', PF, "delete: function (n) { if (miens(n)) return cachesReel.delete(n);", "delete: function (n) { if (true) return cachesReel.delete(n);"),
+ ('M27 forceUpdate vide les caches de l\'origine', BLD, "if(DEMO_PUBLIQUE){ location.reload(); return; }", "if(false){ location.reload(); return; }"),
+ ('M28 la dictée vocale revient', PF, "['SpeechRecognition', 'webkitSpeechRecognition'].forEach(", "[].forEach("),
+ ('M29 la vue du stockage n\'est plus relue', PF, "pose = W[nom] === vue;", "pose = true;"),
+ ('M30 top_monitor_off écrit même sans vue', PF, "if (lsPose) { try {", "if (true) { try {"),
+ ('M31 le démarrage ignore stockageIsole', MOD, "window.__demoPublique.stockageIsole === false) {", "false) {"),
+ ('M32 ?metier= remplace sans demander', MOD, "db.demoPublique.metier === deja && !confirm(", "db.demoPublique.metier === deja && false && !confirm("),
+ ('M33 une fonction async coupée rend undefined', MOD, "f.constructor.name === 'AsyncFunction')", "f.constructor.name === 'Zzz')"),
+ ('M34 syncReactivate n\'est plus coupée', MOD, "'syncPush', 'syncReactivate', ", "'syncPush', "),
+ ('M35 sms: n\'est plus détourné', BLD, "\"demoNav.href='sms:'+\", 4", "\"location.href='sms:'+\", 4"),
+ ('M36 mailto: (window.location) n\'est plus détourné', BLD, "'demoNav.href=`mailto:${mail}?subject=', 2", "'window.location.href=`mailto:${mail}?subject=', 2"),
+ ('M37 demoNav laisse la page naviguer', MOD, "set href(u) {", "set href(u) { location.href = u;"),
+ ('M38 Devis IA rappelle le serveur', BLD, "if(DEMO_PUBLIQUE){ show(demoPubliqueDevisIAMessage()); return; }", ""),
+ ('M39 l\'assistant devis redemande un code', BLD, "if(DEMO_PUBLIQUE){ demoPubliqueAssistantDevis(); return; }", ""),
+ ('M40 la carte Synchronisation reste dans Paramètres', MOD, "'Synchronisation de l\\'équipe', ", ""),
+ ('M41 Paramètres n\'est plus retouché', MOD, "  demoPubliqueParametresPoser();\n}", "}"),
+ ('M42 la carte Forfait n\'est plus réécrite', MOD, "if (t === DEMO_PARAM_FORFAIT) {", "if (false) {"),
+ ('M43 le bandeau ne dit plus ce qui manque', MOD, "Toutes les rubriques sont ouvertes ; l’IA, la synchro", "Toutes les rubriques ; l’IA, la synchro"),
+ ('M44 stockageIsole toujours vrai', PF, "W.__demoPublique.stockageIsole = lsPose && ssPose;", "W.__demoPublique.stockageIsole = true;"),
+ ('M45 les fenêtres vides perdent leur filet (form-action)', BLD, '"form-action \'none\''+'"', '"form-action *"'),
 ]
+SEULES = set(sys.argv[1].split(',')) if len(sys.argv) > 1 else None
+if SEULES: M = [m for m in M if m[0].split()[0] in SEULES]
 res = []
 for nom, f, a, b in M:
     src = open(os.path.join(R, f), encoding='utf-8').read()
