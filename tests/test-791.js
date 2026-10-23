@@ -174,7 +174,7 @@ vrai('… et le journal, lui, garde une ligne PAR PERSONNE qui a cliqué (une li
   const socle = appareil(BASE); socle.estampiller(); const commun = copie(socle.getDb());
   const valide = (g, qui, id) => { const d = g.getDb(), m = d.boxMvtAttente[0], b = d.boxes[0], cur = b.stock.P;
     const av = cur.u; cur.u = Math.max(0, av + m.du); const ru = cur.u - av;
-    g.traceBox(b, 'P', ru, 'u', 'Ajustement (validé DR)', m.par, qui, '', id); m.statut = 'valide'; m.drNom = qui; g.estampiller(); };
+    g.traceBox(b, 'P', ru, 'u', 'Ajustement (validé)', m.par, qui, '', id); m.statut = 'valide'; m.drNom = qui; g.estampiller(); };
   const scenario = ids => { const A = appareil(commun), B = appareil(commun);
     valide(A, 'DR Alexis', ids ? "mvv:mvtX:0:P:u" : ''); const t = Date.now(); while (Date.now() === t) {}
     valide(B, 'DR Justin', ids ? "mvv:mvtX:0:P:u" : '');

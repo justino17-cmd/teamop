@@ -1,6 +1,6 @@
 /* ══ g19 · stock#6 — « AUCUN MOUVEMENT » NE DIT PAS QUE LE JOURNAL EST VIDE QUAND IL NE L'EST PAS ═════
    `views.mouvements` n'affichait « Aucun mouvement ne correspond à ce filtre. » que pour un filtre de
-   type ou de box ; une RECHERCHE sans résultat (ou le filtre « Validés DR » sans rien de validé) tombait
+   type ou de box ; une RECHERCHE sans résultat (ou le filtre « Validés » sans rien de validé) tombait
    sur « Aucun mouvement pour l'instant. Ils apparaîtront automatiquement dès que le stock bouge. » —
    faux, le journal contient des mouvements. Boxes et Produits donnés, eux, savent dire « ne correspond ».
 
@@ -49,7 +49,7 @@ console.log('\n── 1163 · 1. une recherche sans résultat n\'efface pas le j
 }
 console.log('\n── 1163 · 2. un filtre sans résultat non plus ──');
 { const h = jouer([mvt()], { mvtFType: 'valide' });
-  vrai('⛔ le filtre « Validés DR » sans rien de validé : « ne correspond »', CORRESPOND.test(h) && !PAS.test(h), (h.match(/<p class="vide">[^<]*/) || [])[0]);
+  vrai('⛔ le filtre « Validés » sans rien de validé : « ne correspond »', CORRESPOND.test(h) && !PAS.test(h), (h.match(/<p class="vide">[^<]*/) || [])[0]);
   const h2 = jouer([mvt()], { mvtFType: 'sortie' });
   vrai('le filtre « Retirés » sans sortie : « ne correspond »', CORRESPOND.test(h2) && !PAS.test(h2));
   const h3 = jouer([mvt()], { mvtFBox: 'autre-box' });
