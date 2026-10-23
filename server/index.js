@@ -10349,21 +10349,23 @@ try {
         if (!sk) return { ok: false, raison: 'pas_de_stripe' };
         let liste; try { liste = await stripeListe(); } catch (err) { return { ok: false, raison: 'stripe' }; }
         if (!Array.isArray(liste) || !(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return { ok: false, raison: 'liste_perimee' };
-        const vus = new Set(), sortie = [];
+        const vus = new Set(), sortie = [], incertains = [];
         for (const [slug, e0] of Object.entries(espacesReg)) {
           if (!e0) continue;
           const e = Object.assign({ slug }, facturationDe(e0));
           const t = String(espaceT(e) || '').toLowerCase();
           if (!t || vus.has(t) || ESPACES_INTOUCHABLES.includes(t)) continue;
           vus.add(t);
-          let p; try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) { continue; }
+          /* ⛔ « on n'a pas pu savoir » n'est PAS « elle n'est plus impayée » : l'entreprise dont le verdict a jeté est rendue à part (`incertains`), et Margaux ne la compte pas réglée — sinon un incident passager
+             d'`espacePaye` effaçait ses relances, et la relance « dernière » repartait une seconde fois au retour de l'entreprise. */
+          let p; try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) { incertains.push(t); continue; }
           if (!(p && p.bloque === true && p.impayeStripe === true)) continue;
           let imp = null; try { imp = impayesGestion(e, liste); } catch (err) { imp = null; }
           const abo = imp && (imp.surs.includes(imp.abo) ? imp.abo : imp.surs[0]);
-          if (!abo || typeof abo.id !== 'string') continue;   // pas d'abonnement SÛREMENT à elle : on ne relance personne sur un doute
+          if (!abo || typeof abo.id !== 'string') { incertains.push(t); continue; }   // pas d'abonnement SÛREMENT à elle : on ne relance personne sur un doute — et on ne la dit pas réglée
           sortie.push({ cle: t, slug, dossier: dossierDeSlug(slug), aboId: abo.id, adresse: stripeClient(abo.customer).email.trim().toLowerCase(), entreprise: String(e.nom || slug) });
         }
-        return { ok: true, liste: sortie };
+        return { ok: true, liste: sortie, incertains };
       };
       /* la facture EN ATTENTE d'un abonnement, relue chez Stripe : numéro, montant (en euros), jour d'émission, page https — ou `null` s'il n'y en a pas. JETTE si Stripe est muet. */
       const factureMargaux = async (aboId) => {

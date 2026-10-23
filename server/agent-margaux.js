@@ -25,6 +25,7 @@ const JOURS_DEFAUT = [3, 7];
 const DEMEURE_APRES_JOURS = 14;       // la mise en demeure se prépare à J+14 — après la seconde relance, avec une marge pour que le client règle
 const PAR_PASSAGE = 20;
 const MS_JOUR = 86400000;
+const ABSENCES_REGLEE = 3;            // « réglé » ne se conclut pas d'UNE absence de la liste (un incident de Stripe, un passage interrompu) : trois passages de suite sans elle
 const OUBLI_MS = 120 * MS_JOUR;       // un impayé réglé reste au registre 120 jours (le journal de ce qui est parti), puis s'oublie
 
 module.exports = function margaux(ctx) {
@@ -90,13 +91,15 @@ module.exports = function margaux(ctx) {
       const now = maintenant();
       const jours = joursCharte();
       let examines = 0, relances = 0, demeures = 0, reglees = 0;
-      const vus = new Set();
+      /* ⛔ `vus` se remplit AVANT la boucle : un passage coupé (au-delà de PAR_PASSAGE, ou quand `peutAgir` tombe) ne doit pas faire passer pour « réglés » les impayés qu'il n'a pas eu le temps d'examiner. */
+      const vus = new Set(Array.isArray(lu.incertains) ? lu.incertains.filter(c => typeof c === 'string') : []);
+      for (const x of lu.liste.slice(0, 200)) if (x && typeof x.cle === 'string' && x.cle && typeof x.aboId === 'string' && x.aboId) vus.add(x.cle);
       for (const x of lu.liste.slice(0, 200)) {
         if (!x || typeof x.cle !== 'string' || !x.cle || typeof x.aboId !== 'string' || !x.aboId) continue;
-        vus.add(x.cle);
         let st = reg.impayes[x.cle];
         /* un autre abonnement refusé (un nouvel impayé, après un règlement) repart de zéro : une relance d'hier ne vaut pas pour une autre facture */
         if (!st || st.aboId !== x.aboId || st.reglee) { st = reg.impayes[x.cle] = { aboId: x.aboId, premierVu: now, etapes: {}, demeure: null, reglee: 0 }; sauve(); }
+        if (st.absences) { st.absences = 0; sauve(); }
         examines++;
         if (examines > PAR_PASSAGE) break;
         const faites = jours.every(j => st.etapes[String(j)]);
@@ -140,7 +143,11 @@ module.exports = function margaux(ctx) {
       /* ceux qui ne sont plus impayés : réglés (ou plus bloqués). Plus rien ne part pour eux. */
       for (const [cle, st] of Object.entries(reg.impayes)) {
         if (vus.has(cle)) continue;
-        if (!st.reglee) { st.reglee = now; reglees++; sauve(); }
+        if (!st.reglee) {
+          st.absences = (st.absences || 0) + 1;
+          if (st.absences >= ABSENCES_REGLEE) { st.reglee = now; reglees++; }
+          sauve();
+        }
         else if (now - st.reglee > OUBLI_MS) { delete reg.impayes[cle]; sauve(); }
       }
       if (relances > 0) dire('J’ai relancé ' + relances + ' client' + (relances > 1 ? 's' : '') + ' pour un impayé (ou déposé la relance dans « Validations »).', 'info');
