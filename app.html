@@ -4982,6 +4982,9 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
 /* Le DR corrige à la validation (v624) : une ligne par produit, la demande à gauche, l'accordé à
    droite. Le champ fait 16 px pour qu'iOS ne zoome pas dessus, et 44 px de haut pour le pouce. */
 .pl-row.mvc{flex-wrap:wrap;gap:10px 15px;cursor:default}
+.pl-row.cvc-l{flex-wrap:wrap;gap:8px 12px}   /* CVC : ligne d'un appareil ou d'une échéance — le texte garde SA place, la pastille et le geste passent dessous quand ça ne tient pas (une colonne qui cède tout s'allonge : mesuré à une lettre par ligne à 390 px) */
+.pl-row.cvc-l>.pl-info{flex:1 1 240px;min-width:0}
+.pl-row.cvc-l>.cvc-l-fin{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .pl-row.mvc>.pl-info{flex:1 0 100%}   /* le libellé prend sa ligne ; pastilles, lignes et boutons passent dessous */
 .mvl-st{flex:1 0 100%;display:flex;gap:6px;flex-wrap:wrap}
 /* min-width:0 : sans lui, le nom du produit (insécable) dicte la largeur de la colonne et la carte déborde de l'écran */
@@ -40210,10 +40213,11 @@ function cvcLibelle(a){ const t=cvcType(a), m=[a.marque,a.modele].filter(Boolean
    plusieurs fois par appareil). `cvcAvecIndex` bâtit UNE table appareil → interventions pour la durée d'un calcul, et la jette — jamais gardée d'un écran
    à l'autre : une intervention close entre deux affichages doit se voir. */
 let _cvcIdx=null;
-function cvcIndex(){ const ints=new Map();
-  (db.interventions||[]).forEach(i=>{ if(!i||i.statut==='annulee'||!Array.isArray(i.appareilIds)) return;
-    i.appareilIds.forEach(id=>{ if(!ints.has(id)) ints.set(id,[]); ints.get(id).push(i); }); });
-  return {ints}; }
+function cvcIndex(){ const ints=new Map(), fiches=new Map();
+  (db.interventions||[]).forEach(i=>{ if(!i||i.statut==='annulee') return;
+    (Array.isArray(i.appareilIds)?i.appareilIds:[]).forEach(id=>{ if(!ints.has(id)) ints.set(id,[]); ints.get(id).push(i); });
+    (Array.isArray(i.fichesFluides)?i.fichesFluides:[]).forEach(f=>{ if(!f||!f.appareilId) return; if(!fiches.has(f.appareilId)) fiches.set(f.appareilId,[]); fiches.get(f.appareilId).push(f); }); });
+  return {ints,fiches}; }
 function cvcAvecIndex(fn){ if(_cvcIdx) return fn(); _cvcIdx=cvcIndex(); try{ return fn(); } finally{ _cvcIdx=null; } }
 function cvcIntsDe(a){ if(_cvcIdx) return (_cvcIdx.ints.get(a.id)||[]).slice();
   return (db.interventions||[]).filter(i=>i&&i.statut!=='annulee'&&Array.isArray(i.appareilIds)&&i.appareilIds.indexOf(a.id)>=0); }
@@ -40248,18 +40252,22 @@ function cvcPropositions(auj){ return cvcAvecIndex(()=>cvcPropositionsCalc(auj))
 function cvcPropositionsCalc(auj){ auj=auj||todayISO();
   const vus=new Set(visibleClients(db.clients||[]).map(c=>c.id)), out=[];
   (db.appareils||[]).forEach(a=>{ if(!a||!vus.has(a.clientId)||cvcPlanifiee(a)) return;
-    const e=cvcEntretienEcheance(a); if(!e) return; const j=cvcJours(e.date,auj); if(j>CVC_RAPPEL_J) return;
-    out.push({cle:'ent:'+a.id+':'+e.date,kind:'entretien',clientId:a.clientId,date:e.date,j,appareilIds:[a.id],
-      titre:'Entretien — '+cvcLibelle(a),type:cvcTypeInterventionPour([a])}); });
+    const e=cvcEntretienEcheance(a), j=e?cvcJours(e.date,auj):null;
+    if(e&&j<=CVC_RAPPEL_J) out.push({cle:'ent:'+a.id+':'+e.date,kind:'entretien',clientId:a.clientId,date:e.date,j,appareilIds:[a.id],
+      titre:'Entretien — '+cvcLibelle(a),type:cvcTypeInterventionPour([a])});
+    /* l'étanchéité est une AUTRE obligation que l'entretien : sa propre ligne, sa propre échéance (règle : cvcEtancheiteRegle) */
+    const t=cvcEtancheiteEcheance(a), jt=t?cvcJours(t.date,auj):null;
+    if(t&&jt<=CVC_RAPPEL_J) out.push({cle:'etc:'+a.id+':'+t.date,kind:'etancheite',clientId:a.clientId,date:t.date,j:jt,appareilIds:[a.id],
+      titre:'Contrôle d’étanchéité — '+cvcLibelle(a),type:((typeof intTypes==='function'?intTypes():[]).indexOf('Contrôle d’étanchéité des fluides frigorigènes')>=0?'Contrôle d’étanchéité des fluides frigorigènes':'')}); });
   return out.sort((x,y)=>x.j-y.j); }
 function cvcPlanifier(cle){ if(!permGarde('int','ajouter','une intervention')) return;
   const p=cvcPropositions().find(x=>x.cle===cle); if(!p){ toast('Cette échéance est déjà traitée'); return; }
   try{ closeModal(); }catch(e){}
   formIntervention('',{clientId:p.clientId,titre:p.titre,date:p.j<0?todayISO():p.date,type:p.type||'',contratId:p.contratId||'',appareilIds:p.appareilIds.slice()}); }
-function cvcLigneProposition(p,peutAj){ return `<div class="pl-row" style="border-left:3px solid ${p.j<0?'var(--red)':p.j<=CVC_RAPPEL_J?'var(--org)':'transparent'}">
+function cvcLigneProposition(p,peutAj){ return `<div class="pl-row cvc-l" style="border-left:3px solid ${p.j<0?'var(--red)':p.j<=CVC_RAPPEL_J?'var(--org)':'transparent'}">
     <div class="pl-info"><div class="pl-title" style="overflow-wrap:anywhere">${esc(p.titre)}</div>
       <div class="pl-meta" style="overflow-wrap:anywhere">${esc(clientName(p.clientId))} · avant le ${esc(cvcDateTxt(p.date))}</div></div>
-    ${cvcPastille(p.j,'')}${peutAj?`<button type="button" class="btn sm" onclick="cvcPlanifier('${p.cle}')">Planifier</button>`:''}</div>`; }
+    <div class="cvc-l-fin">${cvcPastille(p.j,'')}${peutAj?`<button type="button" class="btn sm" onclick="cvcPlanifier('${p.cle}')">Planifier</button>`:''}</div></div>`; }
 /* Le bloc des Tâches : en tête de liste, seulement pour un métier à parc, seulement s'il y a quelque chose à proposer. */
 function cvcTachesBloc(){ if(!metierGereParc()) return '';
   const L=cvcPropositions(); if(!L.length) return '';
@@ -40326,12 +40334,14 @@ function cvcRegleTexte(a){ const r=cvcEtancheiteRegle(a);
 /* ── La section « Appareils » de la fiche client ── */
 function cvcLigneAppareil(a){
   const auj=todayISO(), d=cvcDerniereIntervention(a), e=cvcEntretienEcheance(a), j=e?cvcJours(e.date,auj):null;
+  const rg=cvcType(a).fluide?cvcEtancheiteRegle(a):null, et=rg&&rg.requis===true?cvcEtancheiteEcheance(a):null, jt=et?cvcJours(et.date,auj):null;
   const det=[a.puissance>0?cvcNbTxt(+a.puissance,1)+' kW':'',a.emplacement,a.serie?'n° '+a.serie:''].filter(Boolean).join(' · ');
-  return `<div class="pl-row" onclick="closeModal();formAppareil('${a.id}')" style="cursor:pointer">
+  return `<div class="pl-row cvc-l" onclick="closeModal();formAppareil('${a.id}')" style="cursor:pointer">
     <div class="pl-info"><div class="pl-title" style="overflow-wrap:anywhere">${esc(cvcLibelle(a))}</div>
       ${det?`<div class="pl-meta" style="overflow-wrap:anywhere">${esc(det)}</div>`:''}
-      <div class="pl-meta">${d?'Dernière intervention : '+esc(fmtShort(d.date)):'Aucune intervention enregistrée'}${e?' · prochain entretien '+esc(fmtShort(e.date)):''}</div></div>
-    ${cvcPastille(j,'Entretien')}</div>`; }
+      <div class="pl-meta">${d?'Dernière intervention : '+esc(fmtShort(d.date)):'Aucune intervention enregistrée'}${e?' · prochain entretien '+esc(fmtShort(e.date)):''}</div>
+      ${rg&&rg.requis===true?`<div class="pl-meta">Étanchéité : tous les ${rg.mois} mois${et?' · prochain contrôle '+esc(fmtShort(et.date)):' · aucun contrôle enregistré'}</div>`:''}</div>
+    <div class="cvc-l-fin">${cvcPastille(j,'Entretien')}${cvcPastille(jt,'Étanchéité')}</div></div>`; }
 function cvcSectionClient(c){ if(!metierGereParc()||!c) return '';
   const L=cvcAppareilsDe(c.id), peutAj=canCat('crm','ajouter');
   return `<div class="dt-lbl" id="cvc-parc" style="margin:16px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">🔥 Appareils <span class="tag">${L.length}</span><span style="flex:1"></span>${peutAj?`<button type="button" class="btn ghost sm" onclick="closeModal();formAppareil('','${c.id}')">＋ Appareil</button>`:''}</div>`
@@ -40367,6 +40377,7 @@ function formAppareil(id,clientId){ db.appareils=db.appareils||[];
       </div>
       <div class="field"><label>Entretien tous les … mois <span style="color:var(--t3);font-weight:400">(vide = ${T.mois} mois, la règle de ce type d’appareil)</span></label><input type="number" min="1" max="120" step="1" inputmode="numeric" name="periodeMois" value="${a.periodeMois>0?esc(a.periodeMois):''}"></div>
       <div class="field"><label>Note</label><textarea name="note" rows="2" maxlength="500">${esc(a.note||'')}</textarea></div>
+      ${id&&T.fluide?cvcEtancheiteInfo(a):''}
       ${id&&e?`<div style="font-size:12.5px;color:var(--t3);margin-bottom:8px">Prochain entretien calculé : <b style="color:var(--t1)">${esc(cvcDateTxt(e.date))}</b> (${e.base==='intervention'?'dernier entretien du '+esc(fmtShort(e.depuis)):'mise en service du '+esc(fmtShort(e.depuis))} + ${e.mois} mois)</div>`:''}
       <div class="modal-foot" style="flex-wrap:wrap">${id&&canCat('crm','supprimer')?`<button type="button" class="btn danger" onclick="delItem('appareils','${id}')">Retirer du parc</button>`:''}
         <button type="button" class="btn ghost" onclick="closeModal();ficheClient('${c.id}')">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Ajouter'}</button></div></form>`);
@@ -40672,9 +40683,118 @@ function cvcIntActions(i,vis){ if(!i||!vis||!vis.length) return '';
       b.push(fini?`<button type="button" class="btn ghost sm" onclick="cvcAttestationForm('${i.id}','${a.id}')">📄 Attestation d’entretien</button>`
         :`<button type="button" class="btn ghost sm" disabled title="Disponible une fois l’intervention terminée">📄 Attestation d’entretien</button>`);
       if(att) b.push(`<span class="tag">${att.envoyeeLe?'envoyée le '+esc(new Date(att.envoyeeLe).toLocaleDateString('fr-FR')):'établie le '+esc(fmtShort(att.etabliLe))}</span>`); }
-    return b.length?`<div class="cvc-act" style="margin-top:10px"><div style="font-size:12.5px;font-weight:700;overflow-wrap:anywhere">${esc(cvcLibelle(a))}</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:5px">${b.join('')}</div></div>`:''; }).join('');
+    if(cvcType(a).fluide&&i.statut!=='annulee'&&canCat('int','modifier')) b.push(`<button type="button" class="btn ghost sm" onclick="cvcFicheForm('${i.id}','${a.id}')">💧 ＋ Fiche fluides</button>`);
+    return b.length||cvcFichesDe(i,a.id).length?`<div class="cvc-act" style="margin-top:10px"><div style="font-size:12.5px;font-weight:700;overflow-wrap:anywhere">${esc(cvcLibelle(a))}</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:5px">${b.join('')}</div>${cvcIntFiches(i,a)}</div>`:''; }).join('');
   const attend=!fini&&vis.some(cvcAttestable);
   return lignes+(attend?'<div style="font-size:12px;color:var(--t3);margin-top:8px">L’attestation d’entretien se fait une fois l’intervention terminée.</div>':''); }
+/* ═══ CVC 3 — LES FICHES D'INTERVENTION « FLUIDES FRIGORIGÈNES » ET LE CALENDRIER DU CONTRÔLE D'ÉTANCHÉITÉ ═══
+   Pour un appareil qui CONTIENT un fluide (pompe à chaleur, climatiseur, chauffe-eau thermodynamique), une fiche est jointe à l'intervention :
+   nature de l'opération, fluide, quantités chargée et récupérée, contenant, n° de bordereau, contrôle d'étanchéité et son résultat, vignette.
+   Elle vit DANS l'intervention (`i.fichesFluides`) : une pièce de la visite, fusionnée avec elle. La périodicité du contrôle (règle plus haut,
+   `cvcEtancheiteRegle`) donne l'échéance de l'appareil — dernier contrôle enregistré + période — qui paraît sur sa ligne, dans les Tâches et sur
+   le tableau de bord quand elle approche.
+   ⛔ CE N'EST PAS LE CERFA OFFICIEL. Le n° 15497*04 est la fiche d'intervention fluides frigorigènes réglementaire — une par opération et par
+   équipement, conservée 5 ans par l'opérateur et par le détenteur, éventuellement sous forme électronique (R.543-83) ; il n'est pas reproduit à
+   l'identique ici, et l'écran le dit. L'application n'émet pas non plus le bordereau de suivi des déchets de fluide (Trackdéchets, arrêté du 26 juillet
+   2022) : elle en enregistre seulement le numéro.
+   Après un contrôle : vignette bleue (date du prochain contrôle) si tout est bon, rouge si la réparation est différée ; une réparation impossible
+   sous 4 jours ouvrés impose la mise à l'arrêt et la vidange du circuit (FFB, voir plus haut). */
+const CVC_NATURES=['Mise en service','Maintenance / entretien','Contrôle d’étanchéité','Réparation','Récupération / démantèlement','Autre'];
+const CVC_RESULTATS=[['conforme','Conforme — pas de fuite'],['fuite_reparee','Fuite constatée et réparée'],['fuite_differee','Fuite constatée, réparation différée']];
+function cvcFichesDe(i,aid){ return (Array.isArray(i&&i.fichesFluides)?i.fichesFluides:[]).filter(f=>f&&(!aid||f.appareilId===aid)); }
+/* Toutes les fiches d'un appareil, sur les interventions non annulées — la dernière en tête. */
+function cvcFiches(a){ const out=[];
+  if(_cvcIdx) (_cvcIdx.fiches.get(a.id)||[]).forEach(f=>out.push(f));
+  else (db.interventions||[]).forEach(i=>{ if(!i||i.statut==='annulee') return; cvcFichesDe(i,a.id).forEach(f=>out.push(f)); });
+  return out.sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))); }
+function cvcEtancheiteDernier(a){ return cvcFiches(a).find(f=>f.controle&&cvcIsoOk(f.date))||null; }
+/* Le prochain contrôle : dernier contrôle enregistré + période de la règle ; à défaut la mise en service + période ; sinon rien. */
+function cvcEtancheiteEcheance(a){ const r=cvcEtancheiteRegle(a); if(r.requis!==true) return null;
+  const d=cvcEtancheiteDernier(a);
+  if(d) return {date:cvcAddMois(d.date,r.mois),base:'controle',depuis:d.date,mois:r.mois,regle:r};
+  if(cvcIsoOk(a.miseEnService)) return {date:cvcAddMois(a.miseEnService,r.mois),base:'miseEnService',depuis:a.miseEnService,mois:r.mois,regle:r};
+  return null; }
+/* Sur le formulaire d'un appareil : le dernier contrôle enregistré et le prochain, calculés — en lecture seule. */
+function cvcEtancheiteInfo(a){ const r=cvcEtancheiteRegle(a); if(r.requis!==true) return ''; const d=cvcEtancheiteDernier(a), e=cvcEtancheiteEcheance(a);
+  return `<div style="font-size:12.5px;color:var(--t3);margin-bottom:8px;overflow-wrap:anywhere">Contrôle d’étanchéité : ${d?'dernier le <b style="color:var(--t1)">'+esc(cvcDateTxt(d.date))+'</b>':'aucun enregistré'}${e?', prochain le <b style="color:var(--t1)">'+esc(cvcDateTxt(e.date))+'</b>':''} (tous les ${r.mois} mois).</div>`; }
+function cvcFicheCtx(iid,aid){ const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
+  if(!i||!a){ toast('Intervention ou appareil introuvable'); return null; }
+  if(a.clientId!==i.clientId||!(Array.isArray(i.appareilIds)&&i.appareilIds.indexOf(aid)>=0)){ toast('Cet appareil n’est pas cité sur cette intervention'); return null; }
+  if(!cvcType(a).fluide){ toast('Cet appareil ne contient pas de fluide frigorigène'); return null; }
+  if(i.statut==='annulee'){ toast('Cette intervention est annulée'); return null; }
+  return {i,a}; }
+function cvcFicheForm(iid,aid,fid){ if(!permGarde('int','modifier','une intervention')) return;
+  const x=cvcFicheCtx(iid,aid); if(!x) return; const {i,a}=x;
+  const f=fid?cvcFichesDe(i,aid).find(k=>k.id===fid):{ date:cvcIsoOk(i.date)?i.date:todayISO(), fluide:a.fluide||'', prp:a.prp>0?a.prp:'', nature:'Maintenance / entretien', operateur:(currentUser&&fullName(currentUser))||'' };
+  if(!f){ toast('Cette fiche n’existe plus'); return; }
+  const sel=(n,L,v)=>`<select name="${n}">${L.map(o=>{ const k=Array.isArray(o)?o[0]:o, l=Array.isArray(o)?o[1]:o; return `<option value="${esc(k)}" ${k===v?'selected':''}>${esc(l)}</option>`; }).join('')}</select>`;
+  const inp=(n,l,v,ex)=>`<div class="field"><label>${l}</label><input name="${n}" ${ex||''} value="${esc(v==null?'':v)}"></div>`;
+  openModal(`<div class="modal-head"><h3>💧 Fiche fluides frigorigènes</h3><button class="modal-close" onclick="closeModal();renderIntDetail('${esc(iid)}')">✕</button></div>
+    <div style="font-size:13px;color:var(--t2);overflow-wrap:anywhere;margin:-4px 0 8px"><b>${esc(cvcLibelle(a))}</b>${a.serie?' · n° '+esc(a.serie):''}<br>${esc(clientName(i.clientId))}</div>
+    <div style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px">Cette fiche est <b>jointe à l’intervention</b> : ce n’est <b>pas</b> le Cerfa n° 15497*04, qui reste le document officiel (une fiche par opération et par équipement, conservée 5 ans). Le n° de bordereau de suivi des déchets se saisit sur Trackdéchets : ici, on n’en garde que le numéro.</div>
+    <form id="cvc-fiche" data-aid="${esc(aid)}" onsubmit="cvcFicheSauver(event,'${esc(iid)}','${esc(aid)}','${esc(fid||'')}')" oninput="cvcFicheMaj(this)" onchange="cvcFicheMaj(this)">
+      <div class="field-row"><div class="field"><label>Date de l’opération</label><input type="date" name="date" value="${esc(f.date||'')}" required></div>
+        <div class="field"><label>Nature</label>${sel('nature',CVC_NATURES,f.nature)}</div></div>
+      <div class="field-row"><div class="field"><label>Fluide</label><select name="fluide">${CVC_FLUIDES.map(k=>`<option value="${k.k}" ${k.k===f.fluide?'selected':''}>${esc(k.k)}</option>`).join('')}</select></div>
+        <div class="field"><label>PRP <span style="color:var(--t3);font-weight:400">(vide = tableau)</span></label><input type="number" step="any" min="0" inputmode="decimal" name="prp" value="${f.prp>0?esc(f.prp):''}"></div></div>
+      <div class="field-row"><div class="field"><label>Quantité chargée (kg)</label><input type="number" step="any" min="0" inputmode="decimal" name="charge" value="${f.charge>0||f.charge===0?esc(f.charge):''}"></div>
+        <div class="field"><label>Quantité récupérée (kg)</label><input type="number" step="any" min="0" inputmode="decimal" name="recup" value="${f.recup>0||f.recup===0?esc(f.recup):''}"></div></div>
+      ${inp('contenant','Identifiant de la bouteille ou du contenant',f.contenant,'maxlength="80"')}
+      ${inp('bordereau','N° de bordereau de suivi des déchets (Trackdéchets)',f.bordereau,'maxlength="80"')}
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0;cursor:pointer"><input type="checkbox" name="controle" ${f.controle?'checked':''} style="width:19px;height:19px;accent-color:var(--acc)">Contrôle d’étanchéité effectué pendant cette opération</label>
+      <div id="cvc-fiche-ctl" style="display:${f.controle?'':'none'}">
+        <div class="field-row"><div class="field"><label>Résultat</label>${sel('resultat',CVC_RESULTATS,f.resultat||'conforme')}</div>
+          <div class="field"><label>Vignette posée</label>${sel('vignette',[['','Aucune'],['bleue','Bleue (prochain contrôle)'],['rouge','Rouge (réparation différée)']],f.vignette||'')}</div></div>
+        ${inp('fuiteLieu','Localisation de la fuite',f.fuiteLieu,'maxlength="160"')}
+      </div>
+      <div id="cvc-fiche-info" style="font-size:12.5px;line-height:1.5;color:var(--t2);margin:2px 0 10px;overflow-wrap:anywhere"></div>
+      ${inp('attestation','N° d’attestation de capacité de l’opérateur',f.attestation,'maxlength="80"')}
+      ${inp('operateur','Opérateur',f.operateur,'maxlength="120"')}
+      <div class="field"><label>Observations</label><textarea name="obs" rows="2" maxlength="600">${esc(f.obs||'')}</textarea></div>
+      <div class="modal-foot" style="flex-wrap:wrap"><button type="button" class="btn ghost" onclick="closeModal();renderIntDetail('${esc(iid)}')">Annuler</button><button type="submit" class="btn">${fid?'Enregistrer':'Ajouter la fiche'}</button></div></form>`);
+  cvcFicheMaj(document.getElementById('cvc-fiche')); }
+/* Pendant la saisie : montre ou cache le contrôle, et dit ce que le résultat entraîne (échéance, mise à l'arrêt). */
+function cvcFicheMaj(f){ if(!f||!f.elements) return; const ctl=document.getElementById('cvc-fiche-ctl'), info=document.getElementById('cvc-fiche-info');
+  const on=!!(f.elements.controle&&f.elements.controle.checked); if(ctl) ctl.style.display=on?'':'none';
+  if(!info) return; const res=(f.elements.resultat||{}).value, d=(f.elements.date||{}).value;
+  let t='';
+  if(on&&res==='fuite_differee') t='⚠️ Vignette rouge : si la réparation n’est pas possible sous 4 jours ouvrés, l’équipement doit être mis à l’arrêt et son circuit vidangé.';
+  else if(on&&res==='fuite_reparee') t='Fuite réparée : notez-le dans les observations. La vignette bleue porte la date du prochain contrôle.';
+  else if(on&&cvcIsoOk(d)){ const aid=(f.dataset&&f.dataset.aid)||''; const a=(db.appareils||[]).find(k=>k.id===aid); const r=a?cvcEtancheiteRegle(a):null;
+    if(r&&r.requis===true) t='Prochain contrôle : '+cvcDateTxt(cvcAddMois(d,r.mois))+' ('+r.mois+' mois).'; }
+  info.textContent=t; info.style.color=/⚠️/.test(t)?'var(--red)':'var(--t2)'; info.style.fontWeight=/⚠️/.test(t)?'700':'400'; }
+function cvcFicheSauver(e,iid,aid,fid){ e.preventDefault(); if(!permGarde('int','modifier','une intervention')) return;
+  const x=cvcFicheCtx(iid,aid); if(!x) return; const {i,a}=x, form=e.target, g=n=>String((form.elements[n]||{}).value||'').trim();
+  const date=g('date'); if(!cvcIsoOk(date)){ champManque('Date de l’opération invalide',champDe(form,'date')); return; }
+  const fluide=g('fluide'); if(!cvcFluide(fluide)){ champManque('Choisis le fluide',champDe(form,'fluide')); return; }
+  const num=n=>{ const s=g(n); if(s==='') return ''; const v=cvcNum(s); return v; };
+  const charge=num('charge'), recup=num('recup'), prp=num('prp');
+  for(const [n,v,l] of [['charge',charge,'Quantité chargée'],['recup',recup,'Quantité récupérée'],['prp',prp,'PRP']])
+    if(v!==''&&!(v>=0&&v<=100000)){ champManque(l+' : un nombre de kg, positif',champDe(form,n)); return; }
+  const nature=g('nature'); if(CVC_NATURES.indexOf(nature)<0){ toast('Choisis la nature de l’opération'); return; }
+  const controle=!!(form.elements.controle&&form.elements.controle.checked);
+  let resultat=controle?g('resultat'):'', vignette=controle?g('vignette'):'';
+  if(controle&&!CVC_RESULTATS.some(r=>r[0]===resultat)){ champManque('Choisis le résultat du contrôle',champDe(form,'resultat')); return; }
+  if(vignette&&vignette!=='bleue'&&vignette!=='rouge') vignette='';
+  const d={appareilId:aid,appLabel:cvcLibelle(a)+(a.serie?' · n° '+a.serie:''),date,nature,fluide,prp,charge,recup,contenant:g('contenant').slice(0,80),bordereau:g('bordereau').slice(0,80),
+    controle,resultat,vignette,fuiteLieu:controle&&resultat!=='conforme'?g('fuiteLieu').slice(0,160):'',attestation:g('attestation').slice(0,80),operateur:g('operateur').slice(0,120),obs:g('obs').slice(0,600)};
+  i.fichesFluides=Array.isArray(i.fichesFluides)?i.fichesFluides:[];
+  if(fid){ const ex=i.fichesFluides.find(k=>k.id===fid); if(!ex){ toast('Cette fiche n’existe plus'); return; } Object.assign(ex,d); intHisto(i,'💧 Fiche fluides modifiée — '+d.appLabel); }
+  else{ i.fichesFluides.push({id:uid(),creeLe:todayISO(),creePar:(currentUser&&currentUser.id)||'',...d}); intHisto(i,'💧 Fiche fluides ajoutée — '+d.appLabel+' · '+fluide+(charge!==''?' · chargé '+cvcNbTxt(charge,2)+' kg':'')); }
+  save(); closeModal(); renderIntDetail(iid); toast('Fiche fluides enregistrée'); }
+function cvcFicheSupprimer(iid,fid){ if(!permGarde('int','modifier','une intervention')) return;
+  const i=(db.interventions||[]).find(x=>x.id===iid); if(!i) return; const f=cvcFichesDe(i).find(k=>k.id===fid); if(!f){ toast('Cette fiche n’existe plus'); return; }
+  if(!confirm('Supprimer cette fiche fluides ('+(f.fluide||'')+', '+fmtShort(f.date)+') ? Le Cerfa officiel, lui, se conserve 5 ans.')) return;
+  i.fichesFluides=i.fichesFluides.filter(k=>k.id!==fid); intHisto(i,'💧 Fiche fluides supprimée — '+(f.appLabel||'')); save(); renderIntDetail(iid); }
+function cvcFicheResume(f){ const q=x=>x===''||x==null?'—':cvcNbTxt(+x,2)+' kg';
+  const r=f.controle?(CVC_RESULTATS.find(k=>k[0]===f.resultat)||[0,'contrôle'])[1]:'';
+  return [f.fluide,'chargé '+q(f.charge),'récupéré '+q(f.recup)].join(' · ')+(f.controle?' · étanchéité : '+r:''); }
+/* Les lignes de fiches d'un appareil, sous les boutons de la carte de l'intervention. */
+function cvcIntFiches(i,a){ const L=cvcFichesDe(i,a.id), peut=canCat('int','modifier'); if(!cvcType(a).fluide) return '';
+  const lignes=L.map(f=>`<div class="pl-row" style="padding:6px 0"><div class="pl-info"><div class="pl-title" style="font-size:13px;overflow-wrap:anywhere">💧 ${esc(f.nature||'Fiche')} — ${esc(fmtShort(f.date))}</div>
+      <div class="pl-meta" style="overflow-wrap:anywhere">${esc(cvcFicheResume(f))}</div></div>
+      ${peut?`<button type="button" class="btn ghost sm" onclick="cvcFicheForm('${i.id}','${a.id}','${f.id}')" aria-label="Modifier la fiche fluides">✎</button><button type="button" class="btn ghost sm" onclick="cvcFicheSupprimer('${i.id}','${f.id}')" aria-label="Supprimer la fiche fluides">🗑</button>`:''}</div>`).join('');
+  return lignes; }
 /* ═══════════════ fin du bloc CVC ═══════════════ */
 
 /* ═══════════════ POINTAGE (temps de travail) ═══════════════
