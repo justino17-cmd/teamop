@@ -14,6 +14,25 @@ de ligne du tout.
 ---
 
 
+# 🔶 23 OCTOBRE 2026 (MATIN) — L'ÉQUIPE D'AGENTS AUTONOME : CE QUI PART AVEC LA TROISIÈME DEMANDE DE FUSION, ET LES GESTES DE JUSTIN
+- **En ligne depuis la nuit** (n° 160, n° 161) : les 16 agents parlent, la messagerie, les réunions, Léa et Camille en brouillon, les
+  catégories par client, le métier obligatoire à l'abonnement.
+- **Avec cette demande** (branche `claude/integration-autonomie`, Tour v2.105) : Léa, Chloé, Camille, Louis (contrôle qualité, signature de
+  l'agent posée par le serveur, envoi seul, recherche web, proposition sur mesure, connaissances validées par Justin) ; Hugo (fin
+  d'abonnement à la fin de la période), Margaux (relances J+3/J+7, mise en demeure PRÉPARÉE), Emma, Sarah ; Max, Jules, Théo, Nina, Inès,
+  Victor ; l'examen de l'équipe et sa clé. Les quatre chantiers relus chacun (`gardien`), puis l'assemblage relu deux fois.
+- ⛔ **Rien ne part seul sans deux gestes de Justin** : la charte « Répondre seul aux questions courantes par courrier » est FERMÉE par
+  défaut (`direction.js`) — un serveur qui n'a jamais enregistré sa charte ne la croit pas ouverte ; ET le mode de l'agent (à l'arrêt
+  par défaut, « Auto » se pose depuis « Brouillon »). Ordre conseillé : allumer en Brouillon, faire passer l'examen, lire, puis ouvrir la
+  charte et passer Léa, Chloé, Camille en Auto. Hugo reste en Brouillon pendant l'observation (en Auto il agit sur le classement de Claude).
+- ⚠️ **Avant d'ouvrir Camille en Auto** : poser `config.agents.authservIds` sur le VPS (nom du serveur de réception) — sans lui, aucun mail
+  reçu n'est « authentifié » et rien ne part seul ; puis envoyer depuis l'extérieur un mail avec un faux `Authentication-Results` et lire
+  la raison au journal. Le DKIM ne s'aligne que sur `header.d`.
+- **Litige** : un mail qui parle d'avocat, de plainte, d'huissier, de tribunal… va à Justin en « urgent », quelle que soit la catégorie que
+  Claude lui donne (`menaceDeLitige`, `test-2905` §7) — faux positifs possibles (un cabinet d'avocats prospect).
+- **Reste** : Camille ne passe pas encore une demande RGPD à Nina toute seule (elle la pose à Justin) ; `agentHugo` est monté hors de son
+  propre `try` (comme avant) ; relecture juridique des lignes Anthropic ; cinq autres « À CONFIRMER » dans les CGV.
+
 # 👉 23 OCTOBRE 2026 — L'ÉQUIPE D'AGENTS : RELECTURE DES PARTIES C1 À C3 (branche `claude/equipe-messagerie`, pas sur `main`)
 **Corrigé** (relecture adverse, chaque constat rejoué avant) :
 - ⛔ **Le texte libre des consignes n'est plus lu par tout compte actif de la Tour.** `/agents/taches` rend `params.texte` d'une consigne VIDE à un non-patron ;
