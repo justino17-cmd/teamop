@@ -10177,8 +10177,20 @@ try {
     /* LES DOSSIERS : un numéro par client (`DOS-000123`), la fiche pour le patron, la même fiche pour un agent à qui il le donne. */
     dossiersMod = require('./dossiers')(app, { DATA_DIR, monPatronStrict, clients: () => clientsData,
       espaceDe: (email) => { const m = String(email).toLowerCase(); const sl = Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').toLowerCase() === m); return sl ? Object.assign({ slug: sl }, espacesReg[sl]) : null; },
-      paiement: async (email) => {
+      paiement: async (email, slug) => {
         if (!(config.stripe && config.stripe.secretKey)) return { etat: 'inconnu' };
+        /* ⛔ UNE ENTREPRISE QUI A SON ESPACE SE JUGE COMME L'APPLICATION LA JUGE (23 octobre 2026) : le verdict d'`espacePaye` — rattachement par la RÉFÉRENCE gravée sur l'abonnement
+           ET par l'adresse. Jusque-là seule l'adresse du compte était cherchée chez Stripe : une entreprise dont la comptable a payé sous une autre adresse était « sans paiement »
+           pour Hugo, Margaux, Léa et Camille alors que son application était servie. Un impayé est un impayé (`bloque`) ; une période offerte n'est pas un paiement (« aucun »). */
+        if (slug && espacesReg[slug]) {
+          try {
+            const p = await espacePaye(Object.assign({ slug }, facturationDe(espacesReg[slug])), { lecture: true });
+            if (p && p.inconnu) return { etat: 'inconnu' };
+            if (p && p.bloque) return { etat: 'impaye' };
+            if (p && p.paye && !p.promoCode) return { etat: 'paye', formule: ['pro', 'business', 'premium'].includes(p.formuleServie) ? p.formuleServie : '' };
+            return { etat: 'aucun' };
+          } catch (e) { return { etat: 'inconnu' }; }
+        }
         let liste; try { liste = await stripeListe(); } catch (e) { return { etat: 'inconnu' }; }
         if (!(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return { etat: 'inconnu' };
         const e = { slug: '', email: String(email).toLowerCase(), nom: '', formule: '' };
@@ -10374,8 +10386,10 @@ try {
         if (!sk) return { numero: n, lecture: 'impossible' };
         let liste; try { liste = await stripeListe(); } catch (err) { return null; }
         if (!Array.isArray(liste) || !(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return null;
-        const e = { slug: '', email: mail, nom: '', formule: '' };
-        const st = espaceStripeDans(e, liste), im = espaceStripeDans(e, liste, STATUTS_IMPAYES);
+        /* l'entreprise qui a son espace : les règles de rattachement du serveur (référence ET adresse) ; un prospect sans espace : l'adresse seule */
+        const slugE = Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').trim().toLowerCase() === mail) || '';
+        const e = slugE ? Object.assign({ slug: slugE }, facturationDe(espacesReg[slugE])) : { slug: '', email: mail, nom: '', formule: '' };
+        let st = null, im = null; try { st = espaceStripeDans(e, liste); im = slugE ? impayesGestion(e, liste) : espaceStripeDans(e, liste, STATUTS_IMPAYES); } catch (err) { return null; }
         const abo = ((st && st.surs) || [])[0] || ((im && im.surs) || [])[0];
         if (!abo || !abo.customer || typeof abo.customer !== 'object' || !/^cus_[A-Za-z0-9]+$/.test(String(abo.customer.id || ''))) return { numero: n, nb: 0, factures: [] };
         const f = await stripeMonGet('https://api.stripe.com/v1/invoices?customer=' + encodeURIComponent(abo.customer.id) + '&limit=3', sk);
