@@ -70,6 +70,9 @@ function outilsValides(opts) {
 module.exports = function cerveau(ctx) {
   const { DATA_DIR, agents } = ctx;
   const cle = ctx.cleApi || '';
+  /* ⛔ LE PLAFOND DU MOIS SE BAISSE, JAMAIS SE RELÈVE (espace de test, 23 octobre 2026 : 10 $ pour tous les agents confondus). `ctx.plafondTotalUsd` n'est
+     passé par `index.js` QUE si `config.espaceTest === true` ; absent, hors forme ou au-dessus de 195, c'est `TOTAL_USD` — la production ne change pas d'un chiffre. */
+  const TOTAL = (typeof ctx.plafondTotalUsd === 'number' && Number.isFinite(ctx.plafondTotalUsd) && ctx.plafondTotalUsd > 0) ? Math.min(ctx.plafondTotalUsd, TOTAL_USD) : TOTAL_USD;
   const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
   const mois = () => new Date(maintenant()).toISOString().slice(0, 7);
   let illisible = false;
@@ -102,7 +105,7 @@ module.exports = function cerveau(ctx) {
     if (!p.ok) return { ok: false, raison: p.raison };
     moisCourant();
     if (depense(id) >= plafond(id)) return { ok: false, raison: 'plafond_agent' };
-    if (total() >= TOTAL_USD) return { ok: false, raison: 'plafond_total' };
+    if (total() >= TOTAL) return { ok: false, raison: 'plafond_total' };
     if (typeof system !== 'string' || !Array.isArray(messages) || !messages.length) return { ok: false, raison: 'requete' };
     let r;
     /* ⛔ `thinking: disabled`, EXPRÈS. Sans ce réglage, Claude Sonnet 5 réfléchit d'office (mode adaptatif) et cette réflexion est prise
@@ -143,7 +146,7 @@ module.exports = function cerveau(ctx) {
     if (recherche) sortie.recherches = recherches;
     return sortie;
   }
-  const etatBudget = () => ({ illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL_USD, parAgent: Object.assign({}, etat.parAgent), cle: !!cle });
+  const etatBudget = () => ({ illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL, parAgent: Object.assign({}, etat.parAgent), cle: !!cle });
   /* IMPUTER (l'examen de l'équipe, 23 octobre 2026) : une dépense faite ailleurs avec la MÊME clé — les appels de l'examen se font sur une équipe d'essai, avec son propre
      cerveau, donc hors de ce fichier de budget — compte pourtant dans les 195 $ du mois. Elle s'inscrit sous un nom qui n'est PAS celui d'un agent (« examen ») : aucun
      plafond d'agent n'en est entamé, seul le total du mois l'est. Rend faux (rien d'écrit) pour un nom d'agent, un montant hors forme, ou un budget illisible. */

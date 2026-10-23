@@ -12,6 +12,16 @@ const SUBS_PATH = path.join(DATA_DIR, 'subscriptions.json');
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
+/* ⛔⛔ L'ESPACE DE TEST (23 octobre 2026, `essais.js`) : ce même fichier, lancé avec `config.espaceTest === true` sur son propre port, sa propre config
+   et ses propres données. Tout ce qui s'y rapporte vit derrière `ESSAI` — sans lui, RIEN ne change (404 sur les trois routes, les courriels partent,
+   le plafond des agents reste à 195 $), ce que `tests/test-2981.js` joue sur le vrai serveur. Le démarrage passe ICI, avant la première lecture d'un
+   fichier de données : une remise à zéro demandée vide le dossier avant que quoi que ce soit s'en souvienne. */
+const ESSAI = config.espaceTest === true;
+const essaisMod = ESSAI ? require('./essais') : null;
+const essaiEtat = ESSAI ? essaisMod.demarrage({ dossier: DATA_DIR }) : null;
+const ESSAI_ORIGINE = ESSAI ? (/^https:\/\/[a-z0-9.-]+$/i.test(String(config.espaceTestOrigine || '').replace(/\/+$/, '')) ? String(config.espaceTestOrigine).replace(/\/+$/, '') : essaisMod.ORIGINE_DEFAUT) : '';
+if (ESSAI) console.log('⚠️ ESPACE DE TEST : courriels captés (rien ne part), origine ' + ESSAI_ORIGINE + (essaiEtat.remise ? ', remise à zéro faite' : '') + (essaiEtat.sur ? '' : ', REMISE À ZÉRO REFUSÉE (' + essaiEtat.raison + ')'));
+
 webpush.setVapidDetails('mailto:' + (config.contactEmail || 'contact@teamop.fr'), config.vapidPublicKey, config.vapidPrivateKey);
 
 // ── stockage des abonnements push : { endpoint: {sub, teamId, userId, userName, ts} }
@@ -27,7 +37,15 @@ function saveSubs() {
 
 // ── e-mail (optionnel : rempli dans config.json → smtp)
 let mailer = null;
-if (config.smtp && config.smtp.host) {
+const essaiCourriels = ESSAI ? essaisMod.depot({ dossier: DATA_DIR, origine: ESSAI_ORIGINE }) : null;
+if (ESSAI) {
+  /* ⛔ UN SERVEUR DE TEST N'ENVOIE JAMAIS UN VRAI COURRIEL, QUELLE QUE SOIT LA CONFIG : `courrielsCaptes` n'est pas un choix, c'est une garantie (un oubli se dit au journal, il
+     ne rouvre rien). Le transport de nodemailer lui-même est remplacé : les chemins directs (boîte du client, support, Messagerie) sont captés comme `mailerEnvoi`. */
+  if (config.courrielsCaptes !== true) console.warn('essais : `courrielsCaptes` n\'est pas posé — la capture est forcée quand même');
+  essaisMod.patcherNodemailer(require('nodemailer'), essaiCourriels);
+  config.smtp = { host: 'capture.invalid', port: 465, user: 'essai@exemple-essai.fr', pass: '', from: '"TEAM OP · essai" <essai@exemple-essai.fr>' };
+  mailer = essaiCourriels.transport();
+} else if (config.smtp && config.smtp.host) {
   const nodemailer = require('nodemailer');
   mailer = nodemailer.createTransport({
     host: config.smtp.host,
@@ -77,7 +95,7 @@ const jsonGros = express.json({ limit: '20mb' });
 app.use((req, res, next) => CHEMINS_GROS_JSON.test(req.path) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
-const ORIGINS = config.origins || ['https://teamop.fr', 'https://www.teamop.fr'];
+const ORIGINS = (config.origins || ['https://teamop.fr', 'https://www.teamop.fr']).concat(ESSAI ? [ESSAI_ORIGINE] : []);   // l'origine de test n'existe que dans le serveur de test
 app.use((req, res, next) => {
   const o = req.headers.origin;
   if (o && ORIGINS.includes(o)) {
@@ -2032,6 +2050,26 @@ function monTokensSave() { try { fs.writeFileSync(TOKENS_PATH, JSON.stringify([.
 const monLoginTries = new Map();      // ip -> { count, reset }
 const monLock = new Map();            // ident -> { fails, until } : 5 échecs consécutifs = verrou 15 min
 const monHash = p => crypto.createHash('sha256').update(String(p)).digest('hex');
+/* L'ESPACE DE TEST : les comptes de la Tour qu'il sème, et la session que rend « Se connecter comme patron / collaborateur ». Une session née ici est une
+   session ordinaire (`monTokens`) — celle que ferait `/api/monitor/login`. N'existe que dans le serveur de test. */
+const essaiTour = ESSAI ? {
+  semer(liste) {
+    for (const x of liste) {
+      let u = monUsers.find(y => y.nom === x.nom);
+      if (!u) { u = { id: 'u' + crypto.randomBytes(5).toString('hex'), nom: x.nom, email: x.email, role: x.role, actif: true, ts: Date.now(), creePar: 'espace de test' }; monUsers.push(u); }
+      u.email = x.email; u.role = x.role; u.actif = true; u.hash = monHash(x.mdp);
+    }
+    monSave();
+  },
+  session(nom) {
+    const u = monUsers.find(y => y.nom === nom && y.actif);
+    if (!u) return null;
+    const token = crypto.randomBytes(24).toString('hex'), apps = monApps(u);
+    monTokens.set(token, { exp: Date.now() + 24 * 3600000, userId: u.id, nom: u.nom, role: u.role, apps });
+    monTokensSave();
+    return { token, nom: u.nom, role: u.role, apps };
+  },
+} : null;
 setInterval(() => { const now = Date.now(); let ch = false; for (const [t, s] of monTokens) if (now > s.exp) { monTokens.delete(t); ch = true; } if (ch) monTokensSave(); }, 600000).unref();
 function monUA(req) {   // appareil simplifié pour le journal (jamais l'UA complet)
   const u = String(req.headers['user-agent'] || '');
@@ -6245,10 +6283,10 @@ const etatPortail = { comptes: { actif: false }, dossiers: { actif: false } };
 
 let comptes = null;
 try {
-  if (config.comptes && config.comptes.actif) {
+  if ((config.comptes && config.comptes.actif) || ESSAI) {   // l'espace de test a toujours les comptes du portail : c'est ce qu'il sert à essayer
     comptes = require('./comptes').monterComptes(app, {
       dossier: DATA_DIR, mailerEnvoi: (o) => mailerEnvoi(o), quotaOk, ligneContacts: ligneContactsServeur,
-      siteBase: 'https://teamop.fr',
+      siteBase: ESSAI ? ESSAI_ORIGINE : 'https://teamop.fr',
       journal: (...a) => console.log('comptes:', ...a),
     });
     etatPortail.comptes = { actif: true };
@@ -10439,7 +10477,9 @@ try {
       surMessage: (m) => agentEquipe ? agentEquipe.surMessage(m)
         : (m.de !== 'justin' ? null : (m.fil === 'hugo' ? (agentHugo ? agentHugo.repondre(m.texte) : null) : (agentsConversation ? agentsConversation.repondre(m.fil, m.texte) : null))) });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
-    const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '' });
+    const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '',
+      /* espace de test seulement : le plafond du mois, tous agents confondus (10 $ chez Justin, y compris quand le réglage manque). Jamais lu hors `espaceTest`. */
+      plafondTotalUsd: ESSAI ? essaisMod.plafondAgents(config.agents && config.agents.plafondMoisTotal) : undefined });
     console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
     /* ce qu'un agent peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note. UNE définition : Hugo
        et les agents de la conversation générique (Léa, Camille, Margaux) la partagent, une seconde copie divergerait. */
@@ -11817,6 +11857,15 @@ const routesDoublons = (() => {
    peut porter n'importe quoi) et le type d'erreur ; `/health` compte les 5xx de l'heure.
    Aucune route n'est montée après ce point (tous les modules se montent au chargement) : le
    404 ne peut en masquer aucune. */
+/* L'ESPACE DE TEST : ses trois routes (`/api/essais/*`), montées AVANT le 404 final et seulement si `espaceTest` est posé ET que la clé est bien formée (64 hexadécimaux).
+   Sans clé valable les routes n'existent pas : le courrier reste capté, mais personne n'entre par un lien. */
+if (ESSAI) {
+  if (essaisMod.cleBienFormee(config.espaceTestCle)) {
+    essaisMod.monter(app, { cle: config.espaceTestCle, origine: ESSAI_ORIGINE, depot: essaiCourriels, sur: essaiEtat, comptes, tour: essaiTour, dossier: DATA_DIR, quotaOk,
+      quitter: () => process.kill(process.pid, 'SIGTERM') });
+    console.log('essais : routes /api/essais montées');
+  } else console.error('essais : `espaceTestCle` absente ou mal formée (64 hexadécimaux attendus) — les routes /api/essais ne sont PAS montées');
+}
 app.use((req, res) => { res.status(404).type('text/plain').send('introuvable'); });
 app.use((err, req, res, next) => {
   const code = (err && Number.isInteger(err.status) && err.status >= 400 && err.status < 600) ? err.status : 500;
@@ -11831,7 +11880,18 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 8080;
-const serveur = app.listen(PORT, '127.0.0.1', () => console.log('TeamOP API sur 127.0.0.1:' + PORT));
+const serveur = app.listen(PORT, '127.0.0.1', () => {
+  console.log('TeamOP API sur 127.0.0.1:' + PORT);
+  /* L'ESPACE DE TEST sème ses comptes une fois à l'écoute (il joue les vraies routes), sans bloquer ni faire tomber le démarrage. */
+  /* ⛔ JAMAIS SUR UN DOSSIER QUI N'A PAS ÉTÉ RECONNU COMME UN DOSSIER DE TEST (`essaiEtat.sur`) : un `espaceTest` posé par erreur sur des données réelles n'y sème rien. */
+  if (ESSAI && comptes && essaiEtat.sur) {
+    const metiersConseil = (m) => { try { return metiersMod.conseil(m); } catch (e) { return null; } };
+    essaisMod.semis({ dossier: DATA_DIR, appeler: essaisMod.appelerLocal(PORT), comptes, tour: essaiTour, refs: { conseil: metiersConseil, cats: CATS_OK },
+      agents: (agentsMod ? require('./agents').AGENTS.map(a => a.id) : []) }).semer()
+      .then(r => { if (r.erreurs.length) console.error('essais : semis incomplet —', r.erreurs.join(' · ')); })
+      .catch(e => console.error('essais : semis impossible —', String((e && e.message) || e).slice(0, 160)));
+  }
+});
 
 /* ══ L'ARRÊT PROPRE ════════════════════════════════════════════════════════════════════════
    ⛔ SIGTERM ARRIVE À CHAQUE DÉPLOIEMENT, et un push sur `main` touchant `server/**` déploie —

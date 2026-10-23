@@ -63,7 +63,11 @@
 # 23 octobre 2026 (relecture juridique, Anthropic) : `test-2975` — ce qu'un incident envoie à Anthropic (« Expliquer la cause », « Proposer un correctif »)
 # est filtré des adresses et numéros, le vrai serveur contre un faux Anthropic (22 vérifications) — plancher relevé à 5122.
 # Relecture adverse du même jour : les numéros dans une URL (%20, +, %2B) et la demande de fusion GitHub (faux GitHub) entrent au banc — 30 vérifications, plancher 5130.
-#plancher 5130
+# 23 octobre 2026 (l'espace de test, `test.teamop.fr`) : `test-2980` (le module `server/essais.js` : clé à temps constant, dépôt des courriels, le VRAI nodemailer dont `createTransport` est
+# remplacé, le démarrage et la marque, le semis, la forme du code), `test-2981` (SANS `espaceTest`, le vrai serveur est celui d'avant : trois routes en 404, un courriel PART, CORS, plafond),
+# `test-2982` (AVEC : semis, clé, courriels captés dont le lien marche, « Se connecter comme… » ouvre la vraie fonction de `espace.html`, la Tour, un dossier non vierge ne reçoit rien),
+# `test-2983` (le plafond des agents : 10 $ tous agents confondus) et `test-2984` (la remise à zéro ne touche rien hors de TEAMOP_DATA) — 222 vérifications, plancher relevé à 5350.
+#plancher 5350
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -319,3 +323,9 @@ tests/test-2970.js
 tests/test-2976.js
 # 23 octobre 2026 : `test-2975` (ce qu'un incident envoie à Anthropic est filtré des adresses et numéros).
 tests/test-2975.js
+# 23 octobre 2026 (l'espace de test, `test.teamop.fr`) : le mode test du serveur. ⛔ Inerte sans `espaceTest` — `test-2981` le joue sur le vrai serveur.
+tests/test-2980.js
+tests/test-2981.js
+tests/test-2982.js
+tests/test-2983.js
+tests/test-2984.js

@@ -506,6 +506,25 @@ function monterComptes(app, deps) {
       return { email: m, prenom: c.pr || '', nom: c.no || '', societe: c.so || '', verifie: !!(c.v && !c.ap), aPoser: !!c.ap,
         cree: c.cree || 0, maj: c.maj || 0 }; }),
     combien: () => Object.keys(reg.c).length,
+    /* ⛔ POUR L'ESPACE DE TEST SEULEMENT (`essais.js`, monté si `config.espaceTest === true`) — aucune route n'y mène, et rien d'autre ne les appelle
+       (`tests/test-2980.js` le compte dans les sources). `semer` pose un compte VÉRIFIÉ au mot de passe tiré au hasard par l'appelant (jamais écrit
+       dans le dépôt), `sessionNeuve` ouvre une session sur un compte qui existe : c'est ce que rend le lien « Se connecter comme client ». */
+    semer: async (x) => {
+      const mail = normMail(x && x.email);
+      if (!mailOk(mail)) return false;
+      const emp = borne(x.empreinte, 200);
+      if (emp.length < 16) return false;
+      const sel = crypto.randomBytes(SEL_OCTETS).toString('hex');
+      const cle = await deriver(emp, sel);
+      reg.c[mail] = { s: sel, e: cle, pr: borne(x.prenom, 60), no: borne(x.nom, 60), so: borne(x.societe, 120), v: 1,
+        cree: Date.now(), maj: Date.now(), ech: 0, bloq: 0 };
+      ecrire();
+      return true;
+    },
+    sessionNeuve: (mail) => {
+      const m = normMail(mail), c = compte(m);
+      return (c && !c.ap) ? jetonNeuf(m, 'session', SESSION_VIE_MS) : '';
+    },
     sessions: () => Object.keys(reg.j).filter(k => reg.j[k] && reg.j[k].g === 'session').length,
     _reg: () => reg, _relire: lire,
   };
