@@ -69,6 +69,7 @@ console.log('\n── 2922 · Théo et Nina : les sauvegardes, la conservation, 
     v('…jamais deux fois pour le même épisode', B.textes('plateforme').filter(t => /^Sur la sauvegarde/.test(t)).length, 1);
     vrai('⛔ ni la clé du coffre ni le poids de l’archive ne sortent', !/chemin-secret-2922|987654321|archive\.tar/.test(JSON.stringify([B.fil('plateforme'), B.fil('theo'), B.journal(), B.issues, B.recus])));
     v('⛔ Théo n’a toujours rien relancé', B.espions.lancer, 0);
+    v('…et le motif est NOTÉ une seule fois au journal (le refus de doublon du fil ne doit pas masquer une répétition)', B.journal().filter(e => e.action === 'motif de la sauvegarde dit').length, 1);
     // la table fermée
     const M = require(S('agent-theo.js')).motifClasse;
     v('la table des motifs : dépôt, relecture, taille, empreinte, archive vide, trop volumineuse, socle', ['depot-403', 'depot-erreur', 'relecture-absente', 'relecture-404', 'relecture-differente', 'taille-differente', 'empreinte-differente', 'archive-vide', 'trop-volumineuse', 'socle-illisible', 'socle-incomplet', 'inactive', 'deja-en-cours', ''].map(m => M(m).cle),
@@ -84,6 +85,10 @@ console.log('\n── 2922 · Théo et Nina : les sauvegardes, la conservation, 
     const V = equipe();
     const max3 = require(S('agent-max.js'))({ agents: V.agents, conversations: V.conversations, etat: V.etat, incidents: V.incidents, maintenant: V.maintenant, sante: async () => JSON.parse(JSON.stringify(V.sante.j)) });
     V.sante.j.sauvegarde.ageH = 31; await max3.passer(); await V.theo.passer();
+    V.avancer(1800000); V.sante.j.sauvegarde.ageH = 32; await V.theo.passer();
+    V.avancer(1800000); V.sante.j.sauvegarde.ageH = 33; await V.theo.passer();
+    v('⛔ un texte qui CHANGE d’un passage à l’autre (l’âge monte) ne se répète pas non plus : une seule fois au journal et dans le fil', [V.journal().filter(e => e.action === 'motif de la sauvegarde dit').length, V.textes('plateforme').filter(t => /^Sur la sauvegarde/.test(t)).length], [1, 1]);
+    V.sante.j.sauvegarde.ageH = 31;
     v('sauvegarde trop vieille : Théo donne l’âge et la raison probable, sans relancer', V.textes('plateforme').filter(t => /^Sur la sauvegarde/.test(t)).map(t => t.replace(/ ; la dernière tentative.*?\./, '.')), ['Sur la sauvegarde : la dernière archive réussie date de 31 h. Le plus souvent la minuterie ne tourne plus (redémarrage, service bloqué). Elle réessaie chaque heure, je ne la relance pas à ta place.']);
     V.nettoyer();
   }
@@ -227,16 +232,17 @@ console.log('\n── 2922 · Théo et Nina : les sauvegardes, la conservation, 
     v('J-11 : rien', dire().length, 0);
     B.horloge.t = Date.UTC(2026, 10, 13, 8, 0);           // J-10
     await B.nina.passer(); await B.nina.passer();
-    v('J-10 : UN rappel, « important » (notifié)', [dire().length, /^Rappel RGPD : il reste 10 jours pour répondre à la demande reçue le 23 octobre 2026 \(jusqu’au 23 novembre 2026\)\.$/.test(dire()[0])], [1, true]);
+    v('J-10 : UN rappel, « important » (notifié : « Nina te parle »)', [dire().length, /^Rappel RGPD : il reste 10 jours pour répondre à la demande reçue le 23 octobre 2026 \(jusqu’au 23 novembre 2026\)\.$/.test(dire()[0]), B.pousses.map(p => p.titre).slice(-1)], [1, true, ['Nina te parle']]);
     B.horloge.t = Date.UTC(2026, 10, 14, 8, 0); await B.nina.passer();
     v('J-9 : rien de plus (le rappel de J-10 couvre jusqu’à J-4)', dire().length, 1);
     B.horloge.t = Date.UTC(2026, 10, 20, 8, 0); await B.nina.passer(); await B.nina.passer();
-    v('J-3 : un rappel « urgent »', [dire().length, /^Rappel RGPD : il reste 3 jours/.test(dire()[1])], [2, true]);
+    v('J-3 : un rappel « urgent » (notifié en rouge)', [dire().length, /^Rappel RGPD : il reste 3 jours/.test(dire()[1]), B.pousses.map(p => p.titre).slice(-1)], [2, true, ['🔴 Nina']]);
     B.horloge.t = Date.UTC(2026, 10, 23, 8, 0); await B.nina.passer();
     v('le jour même : « c’est aujourd’hui le dernier jour »', [dire().length, /^Justin, c’est aujourd’hui le dernier jour pour répondre à la demande RGPD \(reçue le 23 octobre 2026\)/.test(dire()[2])], [3, true]);
     B.horloge.t = Date.UTC(2026, 10, 24, 8, 0); await B.nina.passer();
     B.horloge.t = Date.UTC(2026, 10, 25, 8, 0); await B.nina.passer(); await B.nina.passer();
     v('⛔ chaque jour de retard : un rappel (1 jour, puis 2), chacun une fois', [dire().length, /RETARD de 1 jour : le délai légal d’un mois est dépassé depuis le 23 novembre 2026/.test(dire()[3]), /RETARD de 2 jours/.test(dire()[4])], [5, true, true]);
+    v('…et le retard notifie aussi en rouge', B.pousses.map(p => p.titre).slice(-2), ['🔴 Nina', '🔴 Nina']);
     vrai('…la demande tient bien PLUS DE 48 HEURES : la tâche de Camille a expiré depuis longtemps, la mémoire de Nina non', B.etat.agent('nina').rgpd.length === 1 && B.nina.rgpd()[0].joursRestants === -2);
     const id = B.nina.rgpd()[0].id;
     v('Justin la marque traitée dans la Tour : fin des rappels', [B.nina.cloturer(id, 'Justin'), B.nina.rgpd().length], [{ ok: true }, 0]);
