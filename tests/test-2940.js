@@ -50,7 +50,7 @@ const lancer = (dossier, sortie) => spawnSync(process.execPath, [path.join(dossi
     ['secuAFaire', 'function secuAFaire(u){ if(BETA_ESSAI) return false;'], ['emailRappelModal', 'function emailRappelModal(passe){ if(BETA_ESSAI) return;'],
     ['horsLigneDebut', 'function horsLigneDebut(motif){'], ['battement', 'async function battement(){\n  clearTimeout(_hbTimer);'], ['rep()', 'function rep(msg,src,line,stack){ try{'],
     ['service worker', "navigator.serviceWorker.register('sw.js')"], ['manifeste', '<link rel="manifest" href="manifest.webmanifest">\n'], ['titre', '<title>OP GESTION</title>'],
-    ["Changer d'application", "<button class=\"btn ghost sm\" onclick=\"try{localStorage.removeItem('teamop_app')}catch(e){};location.href='index.html?hub=1'\">Changer d'application</button>"], ['boîtes du courrier', "if(BETA_ESSAI){ const e=new Error('Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }"], ['rangée OP MESSAGES du menu', '<a id="suite-opmsg" href="messages.html"'], ['bouton flottant OP MESSAGES', '<a class="msg-flot" id="msg-flot" href="messages.html"'],
+    ["Changer d'application", "<button class=\"btn ghost sm\" onclick=\"try{localStorage.removeItem('teamop_app')}catch(e){};location.href='index.html?hub=1'\">Changer d'application</button>"], ['loadLeaflet', 'function loadLeaflet(){ return new Promise((res,rej)=>{\n  if(window.L) return res();'], ['boîtes du courrier', "if(BETA_ESSAI){ const e=new Error('Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }"], ['rangée OP MESSAGES du menu', '<a id="suite-opmsg" href="messages.html"'], ['bouton flottant OP MESSAGES', '<a class="msg-flot" id="msg-flot" href="messages.html"'],
     ['suiteRefresh', "const soOn=!!(can('opMessages')&&planOpMsg()&&opMsgDisponible());"], ['bandeau', 'try{ multiProposer(view); }catch(_e){}'],
     ['démarrage', 'try{ txtAppliquer(); }catch(e){}\nboot();\n'], ['haut de page', '<meta charset="utf-8">\n'],
     ['code d\'équipe devis', "'op_devis_code'"], ['préfixe', "const STORE_KEY = 'elan_gestion_v2';"]
@@ -283,7 +283,7 @@ function suite() {
   const CAT_LIST = evalue(litteral(N, 'const CAT_LIST=['));
   vrai('(population) 27 collections de données dans l\'application et 8 catégories historiques', COLLECTIONS.length === 27 && CAT_LIST.length === 8 && INT_TYPES.length >= 10);
   let c = 0; const uid = () => 'u' + (++c);
-  const NOMS = ['demoPubliqueSemer', 'metierServeurAppliquer', 'metierId', 'metierPack', 'metierPackDe', 'intTypes', 'categoriesProduit', 'produitCreer', 'idProduit', 'idCatalogue', 'slugNom', 'produitMemeNom', 'empreinteNom', 'produitCle', 'intNum', 'nextNum', 'numPlafond', 'shiftDay', 'demoTel'];
+  const NOMS = ['demoPubliqueSemer', 'metierServeurAppliquer', 'metierId', 'metierPack', 'metierPackDe', 'intTypes', 'categoriesProduit', 'produitCreer', 'idProduit', 'idCatalogue', 'slugNom', 'produitMemeNom', 'empreinteNom', 'produitCle', 'intNum', 'nextNum', 'numPlafond', 'shiftDay', 'demoTel', 'demoPubliqueJourOuvre'];
   const monde = () => {
     const db = {}; COLLECTIONS.forEach(k => { db[k] = []; }); db.users = []; db.produits = [];
     const traces = { save: 0, journal: [] };
@@ -325,7 +325,10 @@ function suite() {
     const st = new Set(db.interventions.map(i => i.statut));
     if (!['terminee', 'encours', 'planifiee', 'aplanifier'].every(s => st.has(s))) f.push('statuts : ' + [...st].join(','));
     const ecart = db.interventions.filter(i => i.date).map(i => Math.round((new Date(i.date + 'T00:00:00') - new Date(todayISO() + 'T00:00:00')) / 864e5));
-    if (Math.min(...ecart) < -2 || Math.max(...ecart) > 4) f.push('des interventions hors de la semaine : ' + Math.min(...ecart) + '…' + Math.max(...ecart));
+    /* quatre jours OUVRÉS avant et après : au plus 6 jours de calendrier (un vendredi → jeudi suivant, un lundi → jeudi précédent) */
+    if (Math.min(...ecart) < -4 || Math.max(...ecart) > 6) f.push('des interventions hors de la semaine : ' + Math.min(...ecart) + '…' + Math.max(...ecart));
+    const WE = db.interventions.filter(i => i.date && i.date !== todayISO() && [0, 6].indexOf(new Date(i.date + 'T00:00:00').getDay()) >= 0);
+    if (WE.length) f.push('une intervention un samedi ou un dimanche : ' + WE.map(i => i.date).join(','));
     if (db.forfait !== 'premium' || db.forfaitQty < 5) f.push('forfait');
     if (!db.demoPublique || db.demoPublique.metier !== k) f.push('marque de semis absente');
     if (traces.save < 1) f.push('rien n\'est rangé (save)');

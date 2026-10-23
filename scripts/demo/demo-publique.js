@@ -29,6 +29,13 @@ function demoPubliqueChoixLire() {
 function demoPubliqueChoixEcrire(id) { try { localStorage.setItem(DEMO_ETAT_CLE, JSON.stringify({ metier: id, v: 1 })); } catch (e) { /* le rangement est plein : la démonstration tient en mémoire */ } }
 function demoTel(n) { const p = function (x) { return String(x % 100).padStart(2, '0'); }; return '01 99 00 ' + p(n) + ' ' + p(n * 7 + 3); }
 
+/* n jours OUVRÉS avant (n < 0) ou après (n > 0) un jour : une semaine d'interventions ne tombe pas un dimanche */
+function demoPubliqueJourOuvre(iso, n) {
+  let d = iso; const pas = n < 0 ? -1 : 1;
+  for (let k = 0; k < Math.abs(n); k++) { for (;;) { d = shiftDay(d, pas); const w = new Date(d + 'T00:00:00').getDay(); if (w !== 0 && w !== 6) break; } }
+  return d;
+}
+
 /* Le semis. Rend vrai si la base est posée. Toute la base passe par les fonctions de l'application ; ce qui est écrit ici, ce sont
    les noms propres de l'exemple (scenarios.js) et la mise en forme de la semaine. */
 function demoPubliqueSemer(id) {
@@ -67,7 +74,7 @@ function demoPubliqueSemer(id) {
   const RELEVE = { 'bar': '1.8', 'L/min': '11', '°C': '55', 'm³': '1248', 'ppm': '8', '%': '92', 'kg': '2.4', 'Pa': '18', 'm²': '120', 'h': '3.5', 't': '1.6' };
   PLAN.forEach(function (p, i) {
     const cli = clients[i % clients.length], tech = techs[p[2]], type = types[i % types.length];
-    const date = shiftDay(today, p[0]);
+    const date = demoPubliqueJourOuvre(today, p[0]);
     /* hier et avant : terminées ; aujourd'hui : une terminée, une en cours ; ensuite : planifiées */
     const statut = p[0] < 0 ? 'terminee' : (p[0] === 0 ? (p[1] < '09:00' ? 'terminee' : (p[1] < '12:00' ? 'encours' : 'planifiee')) : 'planifiee');
     const it = { id: uid(), num: intNum(), titre: type + ' · ' + cli.nom, type: type, date: date, heure: p[1], duree: DUREES[i % DUREES.length], techId: tech.id, techIds: [tech.id], statut: statut,
@@ -117,6 +124,17 @@ function demoPubliqueSemer(id) {
   return true;
 }
 
+/* La zone d'une carte, quand le fond de carte ne peut pas venir : une phrase, pas un blanc */
+function demoPubliqueCarteMessage() {
+  setTimeout(function () {
+    ['map', 'plm-map'].forEach(function (id) {
+      const e = document.getElementById(id); if (!e || e.children.length) return;
+      e.innerHTML = '<div style="height:100%;min-height:160px;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;color:var(--t2);font-size:13.5px;line-height:1.6">'
+        + '🗺️ Dans la démonstration, le fond de carte ne se charge pas : rien ne sort de cette page. Les adresses et la tournée restent dans le planning.</div>';
+    });
+  }, 80);
+}
+
 /* ── Ce que la démonstration coupe dans l'application : les appels qui n'ont de sens qu'avec un serveur ───────────────────────── */
 const DEMO_FONCTIONS_COUPEES = ['annuaireDeposer', 'annuaireVeille', 'pushPropose', 'pushSubscribe', 'forfaitServeurSync', 'versionVerifier', 'ordresVerifier',
   'lienLisibleCharger', 'promoEssaiCheck', 'cnxSignaler', 'syncInit', 'syncPush', 'maybeProfilePhoto'];
@@ -143,6 +161,7 @@ function demoPubliqueStyle() {
     '.demo-bandeau .demo-act{display:flex;gap:6px;flex-wrap:wrap}',
     '.demo-bandeau button{font:inherit;font-size:12px;font-weight:600;min-height:32px;padding:4px 11px;border-radius:999px;cursor:pointer;color:var(--t1);background:transparent;border:1px solid var(--brd2)}',
     '.demo-bandeau button:hover{background:var(--hover-tint)}',
+    '@media (max-width:520px){.demo-bandeau{padding:7px 10px;font-size:11.5px;gap:4px 8px;margin-bottom:10px}.demo-bandeau b{display:none}.demo-bandeau button{min-height:30px;font-size:11.5px;padding:3px 10px}}',
     '.demo-choix{width:min(980px,100%);margin:0 auto;padding:28px 18px 40px;text-align:center;color:var(--t1)}',
     '.demo-choix h2{font-size:26px!important;letter-spacing:-.02em;margin:6px 0 8px}',
     '.demo-choix p{color:var(--t2);font-size:14.5px;line-height:1.6;max-width:640px;margin:0 auto 6px}',

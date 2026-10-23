@@ -93,6 +93,9 @@ if (/messages(-beta)?\.html/.test(s)) echec('un lien vers OP MESSAGES subsiste (
 /* la Boîte mail (OP Courrier) : aucune boîte ne se connecte ici — l'état « calme » du module, avec les mots de la démonstration */
 remplacer('boîtes du courrier', "if(BETA_ESSAI){ const e=new Error('Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }",
   "if(BETA_ESSAI||DEMO_PUBLIQUE){ const e=new Error(DEMO_PUBLIQUE?'Dans la démonstration, aucune boîte mail ne se connecte : rien n\\'est reçu, rien n\\'est envoyé.':'Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }");
+/* les cartes : le fond de carte vient d'un serveur de tuiles — rien ne sort d'ici. Le chargement de Leaflet échoue d'emblée (le code attend déjà un échec) et la zone dit pourquoi au lieu de rester un grand blanc */
+remplacer('loadLeaflet', 'function loadLeaflet(){ return new Promise((res,rej)=>{\n  if(window.L) return res();',
+  "function loadLeaflet(){ return new Promise((res,rej)=>{\n  if(window.L) return res();\n  if(DEMO_PUBLIQUE){ try{ demoPubliqueCarteMessage(); }catch(e){} return rej(new Error('démonstration : pas de fond de carte')); }");
 /* « Changer d'application » (Paramètres) emmène au portail du site : la démonstration y renvoie par un simple lien, sans toucher à rien de l'origine */
 remplacer("Changer d'application", `<button class="btn ghost sm" onclick="try{localStorage.removeItem('teamop_app')}catch(e){};location.href='index.html?hub=1'">Changer d'application</button>`,
   `<button class="btn ghost sm" onclick="location.href='index.html'">Retour au site</button>`);
