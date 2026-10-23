@@ -9102,7 +9102,7 @@ app.post('/api/monitor/expliquer', monAdmin, async (req, res) => {
     const extraitSur = s && s.extrait ? s.extrait.split('\n').map(incidentCode).join('\n') : '';
     const contexte = 'Incident\n'
       + '- application : ' + (incidentTexte(issue.app) || '?') + (issue.version ? ' v' + incidentTexte(issue.version) : '') + '\n'
-      + '- type : ' + (incidentTexte(issue.type) || '?') + ' · écran ouvert : ' + (incidentTexte(issue.categorie) || '?')
+      + '- type : ' + (issue.type || '?') + ' · écran ouvert : ' + (issue.categorie || '?')   // ces deux-là sortent d'une liste blanche (MON_TYPES, monCategorie) : rien de libre à filtrer
       + (issue.origine ? ' · origine : ' + incidentTexte(issue.origine) : '') + '\n'
       + '- message : ' + incidentTexte(issue.message) + '\n'
       + '- vu ' + (issue.count || 1) + ' fois, sur ' + Object.keys(issue.appareils || {}).length + ' appareil(s)\n'
