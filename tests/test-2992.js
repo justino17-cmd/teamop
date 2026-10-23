@@ -94,6 +94,10 @@ function fauxGoogle() {
   const MON = path.join(banc, 'monitor.json');
   const dispo = await attendre(() => fs.existsSync(MON), 40, 200);
   vrai('(population) le serveur a rangé monitor.json à côté de sa configuration', dispo);
+  const modeDe = (f) => { try { return (fs.statSync(f).mode & 0o777).toString(8); } catch (e) { return 'absent'; } };
+  v('⛔ monitor.json (comptes de la Tour) est créé en 0600 : lisible par le seul propriétaire dès sa naissance', modeDe(MON), '600');
+  await attendre(() => fs.existsSync(path.join(S.D, 'tour-sessions.json')), 40, 200);
+  v('⛔ tour-sessions.json (jetons de session VIVANTS de la Tour) est créé en 0600 aussi', modeDe(path.join(S.D, 'tour-sessions.json')), '600');
   const AVANT_RAZ = { issues: [{ id: 'i-banc-2992', app: 'espace', msg: 'incident d\'avant la remise à zéro' }], users: JSON.parse(fs.readFileSync(MON, 'utf8')).users || [], journal: [{ t: Date.now(), nom: 'Patron', ok: true, action: 'journal d\'avant la remise à zéro' }], archive: [], actions: [] };
   /* on arrête le serveur AVANT d'écrire (il réécrit ce fichier en place), comme le fait la vraie remise à zéro : on pose la demande puis on redémarre */
   const rz = await S.appel('/api/essais/remise-a-zero', {}, null, 'POST');
