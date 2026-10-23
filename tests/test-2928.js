@@ -2,7 +2,7 @@
      Trois routes publiques se laissent écrire par n'importe qui : le courrier refusé pour un espace que l'appelant choisit (`X-Teamop-Kh` + un teamId qui n'existe pas), les rapports des
      appareils (`/api/monitor/report`, type « erreur » et `count` jusqu'à 500), les erreurs d'application. Avant la correction, une seule requête anonyme donnait un push 🔴 à Justin, un incident
      « haute », un diagnostic de Jules (un appel à Claude) et un point de Victor devenu urgent ; trente incidents forgés d'un appel donnaient dix notifications.
-     Les VRAIS modules (`banc-plateforme.js`), Max, Jules, Nina et Victor ensemble :
+     Les VRAIS modules de `server/` (`banc-plateforme.js`), Max, Jules, Nina et Victor ensemble :
        · « inconnu » : jamais critique, jamais d'incident, aucune notification, aucun appel à Claude ; un vieil « invalide » ne se réveille PAS sur un « inconnu » forgé (`mailRefus.ts` ne dit pas
          quel motif a refusé : Nina compte ce qui monte, motif par motif) ; un vrai « invalide » qui monte est critique, et cinq épisodes dans la journée ne sonnent qu'UNE fois, n'ouvrent que DEUX incidents ;
        · trente incidents d'appareils forgés : au plus six signalements par jour de Max, AUCUNE notification de Jules, un point de Victor qui n'est pas urgent ; corroborés par le serveur (une personne

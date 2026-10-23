@@ -148,6 +148,15 @@ console.log('\n── 2925 · les six agents de la plateforme contre le vrai ser
     vrai('huit échecs sur ce compte : bloqué quinze minutes, dit par Nina sans l’adresse', (await msgs(S, 'plateforme')).some(m => m.de === 'nina' && /portail/.test(m.texte)) && !/portail-2925/.test(JSON.stringify(await msgs(S, 'plateforme'))), JSON.stringify([derniere.s, (await msgs(S, 'plateforme')).filter(m => m.de === 'nina').map(m => m.texte)]));
     const sec = (await S.G('/api/monitor/agents/plateforme')).j.securite;
     v('le relevé de sécurité : un verrou de chaque côté, aucune preuve de clé refusée', [sec.verrousTour, sec.verrousPortail, sec.preuvesRefuseesDepuisLeDemarrage], [1, 1, 0]);
+    /* revue du 23 octobre 2026 : UNE requête anonyme, un teamId inventé, une preuve de 64 hexadécimaux → motif « inconnu » dans /health. Elle réveillait Justin (🔴), ouvrait un incident « haute » et appelait Claude. */
+    const avantIncidents = (await S.G('/api/monitor/issues')).j.issues.filter(i => i.agent === 'nina').length, avantAppels = recus().length;
+    for (let k = 0; k < 3; k++) await fetch(S.B + '/api/replies?teamId=espace-inventé-2925', { headers: { 'X-Teamop-Kh': 'ab'.repeat(32), 'X-Forwarded-For': '10.9.' + k + '.1' } });
+    const inconnus = ((await (await fetch(S.B + '/health')).json()).mailRefus.parMotif || {}).inconnu;
+    vrai('(population) le VRAI serveur a compté les refus « inconnu » (' + inconnus + ')', inconnus >= 3, inconnus);
+    await passer(S, 'nina'); await passer(S, 'jules');
+    const niv = (await msgs(S, 'nina')).filter(m => m.de === 'nina').map(m => m.niveau);
+    v('⛔ des refus « inconnu » forgés : aucun message « urgent » de Nina, aucun incident de plus, aucun appel à Claude', [niv.includes('urgent'), (await S.G('/api/monitor/issues')).j.issues.filter(i => i.agent === 'nina').length - avantIncidents, recus().length - avantAppels], [false, 0, 0]);
+    vrai('…Nina le dit quand même, en une phrase d\'info dans « Plateforme »', (await msgs(S, 'plateforme')).some(m => m.de === 'nina' && /refus de courrier pour un espace que le serveur ne connaît pas/.test(m.texte) && m.niveau === 'info'));
   }
 
   console.log('\n5. Théo : ses relevés viennent du serveur, dans le prompt, sans secret');

@@ -1,5 +1,5 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LES CONSTATS DE LA REVUE DU 23 OCTOBRE 2026 SUR LES AGENTS DE LA PLATEFORME QUI NE SONT PAS DES DÉCLENCHEURS FORGEABLES (ceux-là : `test-2928`).
-     Les VRAIS modules assemblés (`agents-plateforme.js`), les routes rejouées avec leurs intergiciels :
+     Les VRAIS modules assemblés (`server/agents-plateforme.js`), les routes rejouées avec leurs intergiciels :
        · RGPD, le côté ÉMISSION : personne ne déposait de tâche « escalade_humain / rgpd » — Justin enregistre la demande avec sa date de RÉCEPTION (`/rgpd/declarer`, patron seul) ; le délai
          d'un mois court depuis ce jour-là ; une date future, ancienne de plus de quatre mois, inexistante (31 février) ou mal écrite est refusée sans écrire ; le plafond de demandes ouvertes ;
          rien d'une personne n'entre ; la demande saisie est ACCUSÉE et RAPPELÉE comme celle qu'aurait déposée Camille ;
