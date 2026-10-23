@@ -14,6 +14,17 @@
  * personne n'a regardée en sept jours peut être refaite).
  * ⛔ Il redemande `peutAgir` AVANT CHAQUE demande : une pause posée pendant le passage l'arrête net.
  * Toutes les dépendances sont INJECTÉES : le module ne touche ni `index.js`, ni Stripe, ni le disque lui-même.
+ *
+ * LA FIN D'ABONNEMENT (23 octobre 2026) — Justin : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois et après il arrête, c'est son choix. Mais il
+ * faut qu'il arrête l'abonnement. » Hugo reçoit une demande FERMÉE (la tâche `resilier_fin_periode` que Camille lui dépose quand l'expéditeur authentifié est l'adresse du
+ * compte, ou une demande de Justin) et programme la fin de l'abonnement À LA FIN DE LA PÉRIODE réglée — `resilier(slug)`, que l'index branche sur `stripe-resiliation.js` : jamais
+ * d'annulation immédiate, jamais de remboursement. Puis il accuse réception au client (le courriel est composé par le code et signé Hugo, `agents-courriers-ops.js`), met Justin
+ * au courant dans son fil, et dit à l'équipe (le groupe « Clients ») que c'est fait — par un numéro de dossier, jamais un nom.
+ * ⛔ « brouillon » : Hugo DÉPOSE la fin d'abonnement en validation (`resilier_fin_periode`) au lieu de l'exécuter ; « auto » : il l'exécute. L'accusé part seul dans les deux cas
+ * dès que la fin est programmée (Justin a validé, ou le mode « auto » l'autorise).
+ * ⛔ Il ne PREND que les tâches qu'il sait faire (`prendre(ID, TYPES_TACHES)`), et il refuse tout ce qui est douteux (plusieurs abonnements dont l'un n'est pas sûrement à elle, Stripe
+ * illisible) en le DISANT à Justin — une résiliation n'est jamais devinée.
+ * ⛔ Il répond aussi à une demande de collègue sur un paiement (`verifier_paiement`) : « payé », « en impayé », « aucun paiement » ou « je ne sais pas » — jamais un montant, jamais un nom.
  */
 'use strict';
 const SLUG = /^[a-z0-9][a-z0-9._-]{0,79}$/;
@@ -24,6 +35,10 @@ const CLIENTS_MAX = 500;
    d'autre) ne devient jamais un nom d'accès sous les yeux de Justin : le client est laissé à un humain. */
 const NOM = /^[\p{L}\p{N} '’.&-]{2,50}$/u;
 const MOTS_MAX = 6;           // clients examinés par passage
+const FORME_DOSSIER = /^DOS-\d{6}$/;
+const TYPES_TACHES = ['resilier_fin_periode', 'verifier_paiement'];   // ce que Hugo sait faire lui-même
+const TACHES_PAR_PASSAGE = 10;
+const OPS = require('./agents-courriers-ops');
 
 module.exports = function hugo(ctx) {
   const { agents, clients, espaceExiste, stripeListe, paiement, slug } = ctx;
@@ -42,6 +57,8 @@ module.exports = function hugo(ctx) {
     try {
       const p = agents.peutAgir(ID);
       if (!p.ok) return { saute: p.raison };
+      /* les demandes de ses collègues d'abord : elles ne dépendent pas de la lecture de Stripe qui suit */
+      try { await traiterTaches(); } catch (e) { agents.noter(ID, 'tâches', { cible: 'file', resultat: 'erreur', detail: String((e && e.message) || e).slice(0, 100) }); }
       let liste;
       try { liste = await stripeListe(); } catch (e) { liste = null; }
       if (!Array.isArray(liste)) {
@@ -77,6 +94,139 @@ module.exports = function hugo(ctx) {
     } finally { enCours = false; }
   }
 
+  /* ── LA FIN D'ABONNEMENT ET LA VÉRIFICATION D'UN PAIEMENT ───────────────────────────────────────────────────────────────────── */
+  const resilier = typeof ctx.resilier === 'function' ? ctx.resilier : null;                 // (slug) → { etat, finMs, adresse } — l'index le branche sur Stripe
+  const documents = ctx.documents && typeof ctx.documents.courrier === 'function' ? ctx.documents : null;
+  const dossierDe = typeof ctx.dossierDe === 'function' ? ctx.dossierDe : (() => '');         // (slug) → 'DOS-000123' | ''
+  const espaceDeDossier = typeof ctx.espaceDeDossier === 'function' ? ctx.espaceDeDossier : (() => '');   // ('DOS-000123') → slug | ''
+  const faitsPaiement = typeof ctx.faits === 'function' ? ctx.faits : null;
+  const fich = ctx.fichier || null;
+  const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
+  const F = 'agents-hugo.json';
+  const reg = fich ? fich.charger(F, { resiliations: {} }) : { resiliations: {} };
+  if (!reg.resiliations || typeof reg.resiliations !== 'object' || Array.isArray(reg.resiliations)) reg.resiliations = {};
+  const sauve = () => (fich ? fich.ecrire(F, reg) : true);
+  const registreIllisible = () => !!(fich && fich.illisible(F));
+  const nomDe = id => { const a = agents.AGENTS.find(x => x.id === id); return a ? a.nom : String(id); };
+  /* Un message pour l'équipe (le groupe « Clients ») : seulement un numéro de dossier et des faits fermés. Le collègue qui a fait la demande est cité (@) pour qu'il le lise. */
+  const direClients = (texte, niveau) => { if (!conv) return; try { conv.parler(ID, 'clients', texte, { niveau: niveau || 'info' }); } catch (e) {} };
+  const citation = de => (de && de !== 'justin' && agents.AGENTS.some(a => a.id === de) ? '@' + de + ' ' : '');
+  const jourLong = ms => OPS.dateLongue(ms);
+
+  /* Programmer la fin, dire ce qui s'est passé. `o` : { de, valide } — `valide` : Justin vient d'accepter la validation (le mode « brouillon » n'empêche pas l'accusé). */
+  async function executerResiliation(slug, o) {
+    o = o || {};
+    if (!resilier) return { ok: false, raison: 'pas_de_stripe' };
+    if (registreIllisible()) { agents.noter(ID, 'fin d’abonnement', { cible: 'registre', resultat: 'refuse', detail: 'registre de Hugo illisible' }); return { ok: false, raison: 'registre_illisible' }; }
+    const dossier = dossierDe(slug) || '';
+    const qui = citation(o.de);
+    let r; try { r = await resilier(slug); } catch (e) { r = { etat: 'echec' }; }
+    if (!r || typeof r !== 'object') r = { etat: 'echec' };
+    agents.noter(ID, 'fin d’abonnement', { cible: dossier || 'espace', resultat: (r.etat === 'ok' || r.etat === 'deja') ? 'ok' : 'erreur', detail: String(r.etat) });
+    const dos = dossier ? 'du dossier ' + dossier : 'd’une entreprise';
+    if (r.etat === 'ok' || r.etat === 'deja') {
+      const avant = reg.resiliations[slug];
+      const memeFin = !!(avant && avant.finMs === r.finMs && avant.accuse !== 'echec');
+      let accuse = memeFin ? 'deja' : 'aucun';
+      if (!memeFin) {
+        const m = OPS.accuseResiliation({ finMs: r.finMs });
+        if (m && documents && r.adresse) {
+          let c; try { c = await documents.courrier({ agent: ID, a: r.adresse, objet: m.objet, texte: m.texte, source: 'resiliation', dossier, porte: 'aucune', valide: o.valide === true }); } catch (e) { c = { ok: false }; }
+          accuse = c && c.ok ? c.voie : 'echec';
+        } else accuse = 'echec';
+      }
+      reg.resiliations[slug] = { ts: maintenant(), finMs: r.finMs, accuse };
+      sauve();
+      const quand = jourLong(r.finMs);
+      const mail = { direct: 'Accusé de réception envoyé au client.', validation: 'L’accusé de réception attend ta validation.', deja: 'Le client a déjà reçu son accusé.', echec: 'L’accusé de réception n’a PAS pu partir : à envoyer à la main.', aucun: '' }[accuse];
+      dire('Fin d’abonnement programmée ' + dos + ' : il s’arrête le ' + (quand || 'à la fin de la période') + ' (fin de période, aucun remboursement). ' + mail + (r.etat === 'deja' ? ' (elle l’était déjà.)' : ''), accuse === 'echec' ? 'urgent' : 'important');
+      direClients(qui + 'c’est fait pour le dossier ' + (dossier || '(sans numéro)') + ' : l’abonnement s’arrête le ' + (quand || 'à la fin de la période') + '. ' + mail, 'info');
+      return { ok: true, etat: r.etat, accuse };
+    }
+    const raisons = { rien: 'il n’a aucun abonnement actif à arrêter', doute: 'plusieurs abonnements dont l’un n’est pas sûrement à lui', illisible: 'je ne peux pas lire Stripe pour l’instant', inconnu: 'l’entreprise est introuvable', echec: 'Stripe a refusé ou n’a pas répondu' };
+    dire('Je n’ai PAS programmé la fin d’abonnement ' + dos + ' : ' + (raisons[r.etat] || 'raison inconnue') + '. Il faut que tu regardes.', 'urgent');
+    direClients(qui + 'je n’ai pas pu programmer la fin d’abonnement du dossier ' + (dossier || '(sans numéro)') + ' : ' + (raisons[r.etat] || 'raison inconnue') + '. J’ai prévenu Justin.', 'info');
+    return { ok: false, raison: r.etat };
+  }
+
+  /* La DEMANDE : en « auto » Hugo exécute ; en « brouillon » il dépose une validation (une seule à la fois par entreprise). */
+  async function demanderFinAbonnement(slug, o) {
+    o = o || {};
+    const p = agents.peutAgir(ID);
+    if (!p.ok) return { saute: p.raison };
+    if (typeof slug !== 'string' || !SLUG.test(slug)) return { saute: 'forme' };
+    if (p.mode !== 'auto') {
+      if (agents.enAttentePour('resilier_fin_periode', 'espace', slug)) return { propose: true, deja: true };
+      const dossier = dossierDe(slug);
+      const d = agents.proposer(ID, 'resilier_fin_periode', 'Programmer la fin d’abonnement' + (dossier ? ' (' + dossier + ')' : '') + ' à la fin de la période réglée — demande du client, reçue ' + (o.de === 'justin' ? 'par toi' : 'par ' + nomDe(o.de)) + ' ; rien n’est coupé avant', { espace: slug });
+      if (!d.ok) return { saute: d.raison };
+      dire('J’ai déposé la fin d’abonnement ' + (dossier ? 'du dossier ' + dossier : 'd’une entreprise') + ' dans « Validations » : tu valides, je programme la fin de période et j’accuse réception au client.', 'important');
+      return { propose: true };
+    }
+    return executerResiliation(slug, o);
+  }
+
+  /* « A-t-il payé ? » — la réponse d'un collègue-demandeur, dite dans le groupe : oui / non / impayé / je ne sais pas. Jamais un montant ni un nom. */
+  async function verifierPaiement(k) {
+    const slug = k.params.espace, dossier = dossierDe(slug) || '';
+    const qui = citation(k.de);
+    if (!dossier || !faitsPaiement) { direClients(qui + 'je ne retrouve pas de dossier pour cette demande de vérification : je ne peux pas te répondre.', 'info'); return { ok: false, resume: 'dossier introuvable' }; }
+    let f = null; try { f = await faitsPaiement(dossier); } catch (e) { f = null; }
+    const etat = f && f.paiement && typeof f.paiement.etat === 'string' ? f.paiement.etat : 'inconnu';
+    const phrase = { paye: 'il a payé : l’abonnement est à jour', impaye: 'son paiement est en IMPAYÉ (carte refusée) : l’accès payant est suspendu jusqu’au règlement', aucun: 'je ne vois aucun paiement', inconnu: 'je ne sais pas : Stripe ne m’a pas répondu' }[etat] || 'je ne sais pas';
+    direClients(qui + 'dossier ' + dossier + ' : ' + phrase + '.', 'info');
+    return { ok: etat !== 'inconnu', resume: etat };
+  }
+
+  /* Les tâches que Hugo a reçues de ses collègues. Une à la fois, jamais deux passages en même temps ; chaque tâche se clôt (faite ou en échec). */
+  let tachesEnCours = false;
+  async function traiterTaches() {
+    if (tachesEnCours) return { saute: 'deja_en_cours' };
+    if (typeof agents.prendre !== 'function') return { saute: 'pas_de_file' };   // pas de file de tâches (un socle réduit) : rien à prendre, et rien à redemander à `peutAgir`
+    tachesEnCours = true;
+    try {
+      let n = 0, faites = 0;
+      while (n < TACHES_PAR_PASSAGE) {
+        if (!agents.peutAgir(ID).ok) break;
+        const k = agents.prendre(ID, TYPES_TACHES);
+        if (!k) break;
+        n++;
+        let res;
+        try {
+          if (k.type === 'resilier_fin_periode') { const r = await demanderFinAbonnement(k.params.espace, { de: k.de }); res = { ok: !!(r && (r.ok || r.propose)), resume: r && (r.etat || (r.propose ? 'déposée en validation' : r.raison || r.saute)) }; }
+          else res = await verifierPaiement(k);
+        } catch (e) { res = { ok: false, resume: 'erreur' }; agents.noter(ID, 'tâche', { cible: k.type, resultat: 'erreur', detail: String((e && e.message) || e).slice(0, 100) }); }
+        agents.terminer(k.id, ID, res.ok ? 'ok' : 'echec', String(res.resume || ''));
+        if (res.ok) faites++;
+      }
+      return { prises: n, faites };
+    } finally { tachesEnCours = false; }
+  }
+
+  /* L'OUTIL de la messagerie (`agent-equipe.js`) : Justin écrit « @hugo, arrête l'abonnement du dossier DOS-000123 à la fin de la période ». ⛔ Il n'agit QUE si le message qui
+     réveille Hugo est de Justin : un collègue passe par la tâche fermée, un texte de client n'arrive jamais jusqu'ici. */
+  const OUTILS_EQUIPE = {
+    outils: [{ name: 'programmer_fin_abonnement',
+      description: 'Programmer la fin de l’abonnement OP GESTION d’un client À LA FIN DE LA PÉRIODE DÉJÀ RÉGLÉE (jamais d’arrêt immédiat, jamais de remboursement). À n’utiliser que si Justin le demande en citant un numéro de dossier (DOS- et six chiffres).',
+      input_schema: { type: 'object', properties: { dossier: { type: 'string' } }, required: ['dossier'], additionalProperties: false } }],
+    executer: async (nom, entree, c) => {
+      if (nom !== 'programmer_fin_abonnement') return { ok: false, raison: 'outil_inconnu' };
+      if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Hugo ne programme une fin d’abonnement que sur une demande de Justin : un collègue passe par la demande fermée.' };
+      const dossier = String((entree && entree.dossier) || '').toUpperCase();
+      if (!FORME_DOSSIER.test(dossier)) return { ok: false, raison: 'dossier', ligne: 'Hugo n’a pas reçu un numéro de dossier valide (DOS- et six chiffres).' };
+      const slug = espaceDeDossier(dossier);
+      if (!slug) return { ok: false, raison: 'espace', ligne: 'Hugo ne trouve pas d’espace pour le dossier ' + dossier + '.' };
+      const r = await demanderFinAbonnement(slug, { de: 'justin' });
+      return { ok: !!(r && (r.ok || r.propose)), raison: r && (r.raison || r.saute) };
+    },
+  };
+
+  /* L'exécuteur de la validation « resilier_fin_periode » : Justin a accepté, Hugo programme la fin et accuse réception. */
+  if (typeof agents.executeur === 'function') agents.executeur('resilier_fin_periode', async (params) => {
+    const r = await executerResiliation(params && params.espace, { de: 'justin', valide: true });
+    if (!r.ok) throw new Error('fin d’abonnement non programmée : ' + r.raison);
+  });
+
   /* ── la CONVERSATION : Justin écrit dans le fil de Hugo, Hugo répond (Claude). Il ne fait RIEN d'autre : il ne propose ni n'exécute
         par ce chemin. Le prompt ne reçoit que le texte de Justin et des FAITS fermés sur les dossiers qu'il nomme (jamais un nom, une
         adresse, un téléphone ni une note de client). ── */
@@ -98,6 +248,6 @@ module.exports = function hugo(ctx) {
     return d.ok ? { repondu: true } : { saute: d.raison };
   }
 
-  return { passer, repondre };
+  return { passer, repondre, traiterTaches, demanderFinAbonnement, executerResiliation, outilsEquipe: OUTILS_EQUIPE };
 };
 module.exports.FORMULES = FORMULES;

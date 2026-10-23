@@ -276,11 +276,12 @@ module.exports = function monterAgents(app, ctx) {
     return { ok: true, id: k.id };
   }
 
-  /* L'agent `id` prend sa plus ancienne tâche en attente — seulement s'il a le droit d'agir. */
-  function prendre(id) {
+  /* L'agent `id` prend sa plus ancienne tâche en attente — seulement s'il a le droit d'agir. `types` (facultatif) : ne prendre que ces types — un agent qui ne sait faire que
+     certaines demandes (Hugo : la fin d'abonnement, la vérification d'un paiement) ne « prend » pas, sans pouvoir la faire, une demande qui disparaîtrait au bout de 48 heures. */
+  function prendre(id, types) {
     if (!peutAgir(id).ok) return null;
     perimer();
-    const k = taches.find(x => x.vers === id && x.statut === 'attente');
+    const k = taches.find(x => x.vers === id && x.statut === 'attente' && (!Array.isArray(types) || types.includes(x.type)));
     if (!k) return null;
     k.statut = 'prise';
     if (!ecrire(F_TACHES, taches)) { k.statut = 'attente'; return null; }
