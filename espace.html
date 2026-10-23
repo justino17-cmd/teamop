@@ -16,6 +16,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/teamop-favicon-32.png">
 <title>Espace client — TEAM OP</title> <meta name="description" content="Espace client TEAM OP : créez votre compte, retrouvez vos applications, vos demandes d'accès et les nouveautés."> <link rel="canonical" href="https://teamop.fr/espace.html"> <meta property="og:type" content="website"> <meta property="og:locale" content="fr_FR"> <meta property="og:site_name" content="TEAM OP"> <meta property="og:title" content="Espace client — TEAM OP"> <meta property="og:description" content="Espace client TEAM OP : créez votre compte, retrouvez vos applications, vos demandes d'accès et les nouveautés."> <meta property="og:url" content="https://teamop.fr/espace.html"> <meta property="og:image" content="https://teamop.fr/vitrine/v2/captures/partage-tableau-jour.jpg"> <meta property="og:image:width" content="1200"> <meta property="og:image:height" content="630"> <meta property="og:image:alt" content="OP GESTION sur un Mac : le tableau de bord d'une entreprise de démonstration"> <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/vitrine/v2/theme.css">
+<link rel="stylesheet" href="/rubriques-choix.css">
 <style>
   /* ══ LE PORTAIL AU THÈME DU SITE (27 septembre 2026 au soir) ══════════════════════════════════════════════════════
      Justin, sur son iPhone : « au niveau des connexions ou création de compte, j'ai pas mon thème ». Cette page gardait
@@ -295,6 +296,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       .catch(function(){ err('Connexion impossible — réessaie dans un instant.'); });
   }
 </script>
+<script src="/rubriques-choix.js"></script>
 <script>
   try { document.getElementById('year').textContent = new Date().getFullYear(); } catch(_) {}
   if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
@@ -825,7 +827,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       statut:String((x&&x.statut)||'nouveau'), date:parseInt(x&&x.date,10)||0,
       besoin:String((x&&x.besoin)||'').slice(0,200), users:String((x&&x.users)||'').slice(0,10),
       code:String((x&&x.code)||'').slice(0,40), lien:String((x&&x.lien)||'').slice(0,60),
-      metier:String((x&&x.metier)||'').slice(0,20) }));
+      metier:String((x&&x.metier)||'').slice(0,20),
+      cats:(x&&Array.isArray(x.cats))?x.cats.filter(c=>typeof c==='string').slice(0,60).map(c=>c.slice(0,30)):null }));
     let promo='', promoCode='', promoFin='';
     try{ const pi=promoInfo(d); if(pi){ promo=(pi.code+' — '+pi.label+' (reste '+pi.jours+' j)').slice(0,60);
       promoCode=String(pi.code||'').toUpperCase().slice(0,40);
@@ -990,6 +993,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
             ${dm.tel?('📞 Téléphone : <b>'+esc(dm.tel)+'</b><br>'):''}
             ${dm.lien?('🔗 Nom du lien : <b>'+esc(dm.lien)+'</b><br>'):''}
             ${METIER_L[dm.metier]?('🧰 Métier : <b>'+esc(METIER_L[dm.metier])+'</b><br>'):''}
+            ${Array.isArray(dm.cats)?('🧩 Rubriques choisies : <b>'+dm.cats.length+'</b><br>'):''}
             ${dm.code?('🎁 Code : <b>'+esc(dm.code)+'</b><br>'):''}
             ${dm.users?('👥 Utilisateurs souhaités : <b>'+esc(String(dm.users))+'</b><br>'):''}
             ${dm.formule?('💼 Formule envisagée : <b>'+esc(dm.formule)+'</b><br>'):''}
@@ -1004,6 +1008,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         <b style="font-size:14.5px">✅ Votre demande est bien prise en compte</b>
         <p class="muted" style="margin-top:6px;line-height:1.6;font-size:13px">Notre équipe l'étudie et revient vers vous <b>au plus vite</b>. Si nous avons besoin de renseignements supplémentaires, nous vous contacterons via la <b>messagerie de votre espace</b> ou par e-mail.<br>Vous pouvez <b>modifier ou retirer votre demande à tout moment</b> ci-dessous.</p></div>` : '';
       const ed = window._demEdit ? dems.find(x=>x.date===window._demEdit) : null;
+      ratInit(ed);
       body = `${confirmBloc}${histo}
         <div style="border-top:1px solid var(--brd);margin:18px 0 14px"></div>
         <h4 style="font-family:var(--m-titre);font-size:15px;font-weight:600;margin-bottom:4px">${ed?'✏️ Modifier ma demande':'➕ Nouvelle demande d\'accès'}</h4>
@@ -1020,8 +1025,9 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         <div id="r-lien-msg" style="margin-top:6px;font-size:12.5px"></div></div>
         <div class="field"><label>Application</label><input value="OP GESTION" disabled style="opacity:.65"><input type="hidden" id="r-app" value="OP GESTION"></div>
         <p class="muted" style="margin:-6px 0 12px;font-size:12px">💬 <b>OP MESSAGES</b> est une application indépendante : compte personnel gratuit, abonnement à part — tout se passe directement dans l'application.</p>
-        <div class="field"><label>Votre métier *</label><select id="r-metier"><option value="" disabled ${ed&&ed.metier?'':'selected'}>— Choisissez votre métier —</option>${Object.keys(METIER_L).map(k=>`<option value="${k}" ${ed&&ed.metier===k?'selected':''}>${esc(METIER_L[k])}</option>`).join('')}</select>
-        <p class="muted" style="margin:6px 0 0;font-size:12px">Votre application est réglée sur votre métier : types d'intervention, fiche de terrain et modules.</p></div>
+        <div class="field"><label for="r-metier">Votre métier *</label><select id="r-metier" aria-required="true" onchange="ratMetierChange()"><option value="" disabled ${ed&&ed.metier?'':'selected'}>— Choisissez votre métier —</option>${ratOptions(ed&&ed.metier)}</select>
+        <p class="muted" style="margin:6px 0 0;font-size:12px">Votre application est réglée sur votre métier : types d'intervention, fiche de terrain et rubriques.</p></div>
+        <div id="r-rub" style="margin-bottom:14px">${ratZone()}</div>
         <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Nombre d'utilisateurs *</label><input id="r-users" type="number" min="1" max="250" placeholder="ex. 5" value="${ed&&ed.users?esc(String(ed.users)):''}"></div>
         <div class="field" style="flex:1.4"><label>Formule OP GESTION *</label><select id="r-formule"><option value="" disabled ${ed&&ed.formule&&ed.formule!=='Je ne sais pas encore'?'':'selected'}>— Choisissez votre formule —</option>${['Pro','Business','Business Premium'].map(o=>`<option ${ed&&ed.formule===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
         <div class="field"><label>Code teste / code promo (facultatif)</label>
@@ -1079,6 +1085,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 
     $('space').innerHTML=`<div class="subhead"><button class="btn ghost sm" onclick="renderMenu()">← Retour</button><h2>${esc(T[v]||'')}</h2></div><div class="panel">${body}</div>`;
     window.scrollTo(0,0);
+    if(v==='demandes') ratMonter();   // la grille des rubriques se branche une fois la vue écrite
     if(v==='news') loadNews('news-list',false);
     if(v==='support') listenMsgs(user.uid,'client');
   }
@@ -1268,6 +1275,89 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       return window._demCode;
     }catch(e){ msg.innerHTML='<div class="err" style="margin-top:8px">Vérification impossible — réessayez.</div>'; return null; }
   }
+  /* ═══════════ 🧰 LE MÉTIER ET LES RUBRIQUES DE LA DEMANDE (23 octobre 2026) ═══════════
+     Justin : « quand ils prennent un abonnement, ils choisissent le métier, et c'est obligatoire ; ils cochent les catégories ; et
+     quand ils cochent, ça explique la catégorie ». Le métier est obligatoire (l'écran le dit, le serveur le redit : `metier_requis`) ; les
+     rubriques d'OP GESTION sont PRÉ-COCHÉES selon le métier, chacune avec son titre et son explication (la grille est celle de
+     `rubriques-choix.js`, lue aussi par la page de paiement et la demande du site) ; le choix part avec la demande (`cats`, liste fermée
+     validée par le serveur). Le référentiel vient de l'API (`/api/metiers`, tiré de `metiers.json`) — jamais d'une copie ici : tant
+     qu'il n'est pas lu, la liste des métiers est `METIER_L` (les treize d'avant) et la grille dit pourquoi elle n'est pas là.
+     ⚠️ Des DÉCLARATIONS de fonction, hissées, comme `cliResume` : une vue peut s'afficher avant que le script arrive ici. */
+  function ratEtat(){ return window._rat||(window._rat={ ref:null, msg:'', metier:'', cats0:null, rub:null, enCours:false }); }
+  /* les métiers que la liste propose : ceux que le serveur ouvre au public, sinon les treize d'avant */
+  function ratMetiers(){
+    const r=ratEtat().ref; if(!(r&&Array.isArray(r.ouverts)&&r.metiers)) return METIER_L;
+    const o={}; r.ouverts.forEach(k=>{ o[k]=(r.metiers[k]&&r.metiers[k].nom)||METIER_L[k]||k; }); return o;
+  }
+  function ratOptions(sel){ const m=ratMetiers(); return Object.keys(m).map(k=>`<option value="${esc(k)}" ${sel===k?'selected':''}>${esc(m[k])}</option>`).join(''); }
+  /* la demande qu'on ouvre (`ed` : une demande qu'on modifie, sinon rien) : le métier et les rubriques de départ */
+  function ratInit(ed){
+    const E=ratEtat(); E.metier=(ed&&ed.metier)||''; E.cats0=(ed&&Array.isArray(ed.cats))?ed.cats:null; E.rub=null;
+    if(E.ref&&E.metier&&typeof OpRub!=='undefined') E.rub=OpRub.etat(E.ref,E.metier,E.cats0);
+    if(!E.ref&&!E.enCours) ratRefCharger();
+  }
+  async function ratRefCharger(){
+    const E=ratEtat(); E.enCours=true; E.msg='';
+    try{
+      const r=await fetch(API_PORTAIL+'/api/metiers'); const j=await r.json().catch(()=>null);
+      if(r.ok&&j&&j.ok&&j.metiers&&Array.isArray(j.ouverts)) E.ref=j;
+      else E.msg=(r.status===503?'Les rubriques ne sont pas disponibles pour le moment.':'Les rubriques n’ont pas pu être lues.');
+    }catch(e){ E.msg='Le service ne répond pas : les rubriques n’ont pas pu être lues.'; }
+    E.enCours=false;
+    if(E.ref&&E.metier&&!E.rub&&typeof OpRub!=='undefined') E.rub=OpRub.etat(E.ref,E.metier,E.cats0);
+    ratRepeindre();
+  }
+  /* ce que la zone « Vos rubriques » dit selon où on en est : rien choisi, en chargement, en panne (avec de quoi réessayer), ou la grille */
+  function ratZone(){
+    const E=ratEtat();
+    if(!E.metier) return '<p class="muted" style="font-size:12.5px;line-height:1.55">Choisissez votre métier : ses rubriques s’afficheront ici, pré-cochées, avec ce que fait chacune.</p>';
+    if(!E.ref) return E.msg
+      ? '<p class="err" role="alert" style="margin-bottom:8px">'+esc(E.msg)+' Votre demande peut partir sans : nous partirons du conseil de votre métier.</p><button type="button" class="btn sm ghost" onclick="ratRefCharger()">Réessayer</button>'
+      : '<p class="muted" role="status" style="font-size:12.5px">Chargement des rubriques de votre métier…</p>';
+    if(typeof OpRub==='undefined'||!E.rub) return '';
+    return '<div id="r-rub-grille"></div>';
+  }
+  /* la zone et la liste des métiers se réécrivent en place : la saisie du reste du formulaire n'est jamais touchée */
+  function ratRepeindre(){
+    const E=ratEtat(), sel=$('r-metier');
+    if(sel){ const v=sel.value; sel.innerHTML='<option value="" disabled '+(v?'':'selected')+'>— Choisissez votre métier —</option>'+ratOptions(v||E.metier); if(v) sel.value=v; }
+    ratMonter();
+  }
+  function ratMonter(){
+    const E=ratEtat(), z=$('r-rub'); if(!z) return;
+    z.innerHTML=ratZone();
+    const g=$('r-rub-grille');
+    if(g&&E.rub&&typeof OpRub!=='undefined') OpRub.monter(g,E.rub,'r',function(){});
+  }
+  /* « Votre métier » vient de changer : la grille se recale sur le conseil du nouveau métier */
+  function ratMetierChange(){
+    const E=ratEtat(), v=($('r-metier')&&$('r-metier').value)||'';
+    E.metier=v; E.cats0=null; E.rub=(E.ref&&v&&typeof OpRub!=='undefined')?OpRub.etat(E.ref,v):null;
+    ratMonter();
+  }
+  /* ce qui part avec la demande : le métier choisi, et les clés cochées dans l'ordre du menu (`null` : rien de coché, ou grille absente —
+     la Tour part alors du conseil du métier) */
+  function ratChoix(){
+    const E=ratEtat();
+    return { metier:($('r-metier')&&$('r-metier').value)||'', cats:(E.rub&&typeof OpRub!=='undefined')?OpRub.liste(E.rub):null };
+  }
+  /* ce que dit l'écran quand le serveur refuse le choix (ses codes, `server/index.js` → `choixAbonnement`) */
+  const RAT_REFUS={ metier_requis:'Choisissez votre métier : il règle votre application.', metier_ferme:'Ce métier n’est pas encore ouvert : choisissez-en un autre, ou écrivez-nous.', metier_inconnu:'Ce métier n’existe pas dans la liste : choisissez-en un.', cats_inconnues:'Une des rubriques cochées n’existe plus : rechargez la page, puis réessayez.' };
+  /* ⛔ LA DEMANDE SE RELAIE AU SERVEUR AVANT D'ÊTRE ÉCRITE (23 octobre 2026) : `cliSync` se tait sur un refus (best-effort, à chaque visite), et un
+     refus qu'on ne voit pas est une demande qui n'arrive jamais à la Tour. Ici le refus du CHOIX (métier absent ou fermé, rubriques hors
+     liste) se lit et se DIT ; une panne, une session à confirmer, un plafond ne bloquent rien — la demande s'écrit comme avant, le relais
+     se refait à la prochaine visite. */
+  async function cliRelayerDemande(user,d){
+    try{
+      if(!user||!window.fetch||!user.getIdToken) return {etat:'indispo'};
+      const corps=JSON.stringify(cliResume(user,d)), jeton=await user.getIdToken();
+      const r=await fetch(CLI_SYNC_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+jeton},body:corps});
+      if(r.ok){ try{ sessionStorage.setItem(CLI_SYNC_KEY,JSON.stringify({sig:cliSigne(corps),ts:Date.now()})); }catch(e){} return {etat:'ok'}; }
+      const j=await r.json().catch(()=>null);
+      if(r.status===400&&j&&typeof j.error==='string'&&RAT_REFUS[j.error]) return {etat:'refus',code:j.error};
+      return {etat:'indispo'};
+    }catch(e){ return {etat:'indispo'}; }
+  }
   async function sendRequest(uid){
     const app=$('r-app').value, company=($('r-company').value||'').trim(), besoin=($('r-besoin').value||'').trim();
     const users=($('r-users')&&$('r-users').value)?parseInt($('r-users').value,10):0;
@@ -1278,13 +1368,15 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const formule=codeInfo?codeInfo.lib:(($('r-formule')&&$('r-formule').value)||'');
     const prenom=($('r-prenom')&&$('r-prenom').value||'').trim(), nomF=($('r-nom')&&$('r-nom').value||'').trim(), tel=($('r-tel')&&$('r-tel').value||'').trim();
     const lienNom=($('r-lien')&&$('r-lien').value||'').trim();
-    const metier=($('r-metier')&&$('r-metier').value)||'';
+    const choix=ratChoix(), metier=choix.metier, cats=choix.cats;
+    const refE=ratEtat().ref;
     // Tous les champs sont obligatoires : on liste précisément ce qui manque.
     const manque=[];
     if(!prenom) manque.push('prénom'); if(!nomF) manque.push('nom'); if(!company) manque.push('entreprise');
     if(!tel) manque.push('téléphone'); if(!lienNom||!lienSlug(lienNom)) manque.push('nom du lien');
     if(!(users>=1)) manque.push('nombre d\'utilisateurs');
     if(!metier) manque.push('métier');
+    if(metier&&refE&&refE.ouverts.indexOf(metier)<0){ $('req-msg').innerHTML='<div class="err">⚠️ '+esc(RAT_REFUS.metier_ferme)+'</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
     if(!formule||formule==='Je ne sais pas encore') manque.push('formule'); if(!besoin) manque.push('besoin');
     if(manque.length){ $('req-msg').innerHTML='<div class="err">⚠️ Tous les champs sont obligatoires — il manque : <b>'+esc(manque.join(', '))+'</b>.</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
     if(!/^[0-9+][0-9 .()\/-]{8,19}$/.test(tel)){ $('req-msg').innerHTML='<div class="err">⚠️ Numéro de téléphone invalide (ex. 06 12 34 56 78).</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
@@ -1299,16 +1391,20 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       let dem;
       if(window._demEdit){
         const i=liste.findIndex(x=>x.date===window._demEdit);
-        dem=Object.assign({},(i>=0?liste[i]:{}),{app,company,besoin,users:users||null,formule,tel,lien:lienNom,metier,code:codeInfo?codeInfo.code:'',modifie:Date.now()});
+        dem=Object.assign({},(i>=0?liste[i]:{}),{app,company,besoin,users:users||null,formule,tel,lien:lienNom,metier,cats,code:codeInfo?codeInfo.code:'',modifie:Date.now()});
         if(!dem.date) dem.date=Date.now();
         if(i>=0) liste[i]=dem; else liste.push(dem);
+        { const rel=await cliRelayerDemande(auth.currentUser,Object.assign({},d,{app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,demandes:liste}));
+          if(rel.etat==='refus'){ $('req-msg').innerHTML='<div class="err">⚠️ '+esc(RAT_REFUS[rel.code])+' Rien n\'a été envoyé.</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; } }
         await fs.collection('teamop_requests').doc(uid).set({app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,demandes:liste,updatedAt:FV.serverTimestamp()},{merge:true});
-        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'✏️ Demande modifiée : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+(METIER_L[metier]?(' · métier '+METIER_L[metier]):'')+' — '+besoin,ts:FV.serverTimestamp()});
+        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'✏️ Demande modifiée : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+(METIER_L[metier]?(' · métier '+METIER_L[metier]):'')+(cats?(' · '+cats.length+' rubriques'):'')+' — '+besoin,ts:FV.serverTimestamp()});
       } else {
-        dem={app,company,besoin,users:users||null,formule,tel,lien:lienNom,metier,code:codeInfo?codeInfo.code:'',date:Date.now(),statut:'nouveau'};
+        dem={app,company,besoin,users:users||null,formule,tel,lien:lienNom,metier,cats,code:codeInfo?codeInfo.code:'',date:Date.now(),statut:'nouveau'};
         liste.push(dem);
+        { const rel=await cliRelayerDemande(auth.currentUser,Object.assign({},d,{app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,demandes:liste}));
+          if(rel.etat==='refus'){ $('req-msg').innerHTML='<div class="err">⚠️ '+esc(RAT_REFUS[rel.code])+' Rien n\'a été envoyé.</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; } }
         await fs.collection('teamop_requests').doc(uid).set({app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,status:'nouveau',email:auth.currentUser.email,uid,demandes:liste,updatedAt:FV.serverTimestamp()},{merge:true});
-        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'📩 Demande : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+(METIER_L[metier]?(' · métier '+METIER_L[metier]):'')+' — '+besoin,ts:FV.serverTimestamp()});
+        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'📩 Demande : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+(METIER_L[metier]?(' · métier '+METIER_L[metier]):'')+(cats?(' · '+cats.length+' rubriques'):'')+' — '+besoin,ts:FV.serverTimestamp()});
         try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'✅ Votre demande a bien été prise en compte ! Notre équipe l\'étudie et revient vers vous au plus vite. Si nous avons besoin de renseignements supplémentaires, nous vous contacterons ici même. Vous pouvez modifier votre demande à tout moment dans « Mes demandes d\'accès ».',ts:FV.serverTimestamp()}); }catch(e){}
       }
       _meDoc=Object.assign({},_meDoc,{status:(window._demEdit?(_meDoc&&_meDoc.status)||'nouveau':'nouveau'),app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,demandes:liste});

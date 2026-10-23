@@ -115,6 +115,37 @@ Connu, non corrigé : l'entretien se reconnaît au TYPE choisi (« Entretien… 
   partie J a changé). La suite locale était verte, la CI rouge. Avant d'ouvrir une demande de fusion, jouer AUSSI chaque étape de
   `verification.yml`, sur la fusion avec `main`.
 
+# 👉 23 OCTOBRE 2026 — L'ÉQUIPE D'AGENTS : RELECTURE DES PARTIES C1 À C3 (branche `claude/equipe-messagerie`, pas sur `main`)
+**Corrigé** (relecture adverse, chaque constat rejoué avant) :
+- ⛔ **Le texte libre des consignes n'est plus lu par tout compte actif de la Tour.** `/agents/taches` rend `params.texte` d'une consigne VIDE à un non-patron ;
+  `/agents/journal` retire le `detail` des lignes « prendre/passer une consigne » et « réunion : … » (`detailReserve:true` à la place) ; `/agents/reunions`
+  passe en `monPatronStrict` (compte rendu, objectifs, bilans, leçons). Rejoué sur le vrai serveur avec un compte `Collab` : `test-2881`, `test-2885`.
+  Note : l'objectif d'une réunion n'entre PAS au journal (seulement « N objectif(s) ») — le constat le citait à tort ; le préfixe « réunion : » est masqué quand même (une action neuve naît masquée).
+- ⛔ **Le plafond de 500 messages ne chasse plus un rappel de client non lu** (`conversations.js`, `elaguer`) : un message non lu qui porte un dossier ou le niveau
+  « urgent » reste ; ce sont les lignes ordinaires/du système, puis les lus, qui partent d'abord. Les protégés ne partent que s'il y en a plus de 500 (fichier borné).
+  Un échec d'écriture rend le registre tel qu'il était, évincés compris. `test-2707` § 1 ter.
+- **Une réunion annulée AVANT son premier appel ne consomme plus son créneau** (aucun agent allumé, clé absente, budget illisible) : `reessai`, relue à la minute
+  par `tic()` sans rien réécrire tant que rien ne change ; Justin rallume à 9 h 15, elle se tient. Dite UNE fois. `test-2884` § 2. La confirmation de la Tour dit
+  qu'un lancement à la main le jour même tient lieu de la réunion planifiée (inchangé côté serveur : voulu).
+- Les deux phrases de la Tour (« liste fermée ») disent désormais ce que le code fait (demandes d'argent et d'accès = liste fermée ; le travail confié en conversation =
+  phrase libre, jamais un texte de client) — gardées par `test-2882`, dont le contrôle des écritures couvre maintenant TOUTES les fonctions `ms*`/`mess*`/`agCv*`.
+**✅ Déclaré (commit `20185d38`, demande de fusion n° 160) — `sous-traitance.html` et `registre-traitements.html` disent désormais ce que la messagerie envoie (derniers messages du fil, consignes, objectifs et leçons, adresses et numéros retirés) ; la relecture par un juriste reste à faire, comme pour les autres lignes Anthropic. Le constat d'origine, pour mémoire :** (cahier §9) : depuis la messagerie, ce qui part chez
+Anthropic à chaque réveil d'un agent dépasse « le message que l'éditeur écrit à un agent » (ligne « Agents internes ») : les 15 derniers messages du fil (ceux des autres
+agents et des groupes compris), le texte libre des consignes en cours (celles de TOUTE l'équipe pour Victor), les objectifs et leçons, le déroulé du fil et des chiffres du
+journal pour une réunion. Les adresses et numéros sont masqués, PAS les noms : un nom de client que Justin tape dans un message ou une consigne repart à chaque réveil.
+Deux voies : étendre la ligne « Agents internes » (+ créer l'entrée du registre, qui ne mentionne aucun agent) — ou réduire le contexte (pas les consignes des autres
+à Victor, noms propres masqués). Non touché : c'est un texte juridique, ce n'est pas à un agent de le trancher.
+**Laissé** : (a) Hugo/Margaux et le texte d'une tâche rédigé d'après un message d'un collègue, validé par un « ok » de Justin : l'effet est une ligne dans une liste (aucun
+outil d'argent), pas d'urgence — options au constat (citer le dernier message de Justin, ou le rappeler au prompt) ; (b) le plancher de `scripts/bancs-serveur.liste`
+(4 630) est très en dessous du total mesuré : à relever à la fusion, sur la liste fusionnée.
+# 🔶 23 OCTOBRE 2026 — MÉTIERS ET RUBRIQUES À L'ABONNEMENT : OÙ ÇA EN EST (branche `claude/metiers-abonnement`, RIEN sur `main`, rien en ligne)
+- **Fait** : le référentiel `metiers.json` (23 métiers, l'interrupteur unique `ouverts`), le métier OBLIGATOIRE à la demande d'accès, au paiement et à la demande du site, la grille « Vos rubriques » (espace client, page de paiement, site), la grille pré-cochée dans la Tour (Demandes). Relecture adverse du 23 octobre : dix constats rejoués, tous corrigés (voir les commits « Relecture métiers »).
+- ⚠️ **Ce que l'application ne fait PAS encore** : `app.html` et `beta.html` ne LISENT PAS `cats` (`/api/espaces/etat` le sert, rien ne l'applique). Les textes sont donc vrais (« votre choix part avec votre demande et nous sert à ouvrir votre espace » ; Tour : « enregistrées sur l'espace… l'application ne les applique pas encore »). Le drapeau `CATS_APPLIQUEES` (tour.html) doit passer à `true` le jour où l'application les applique — `test-2893` tombe tant qu'il ne suit pas ce que lit `app.html`.
+- ⛔ **Ordre de mise en ligne** : le serveur EXIGE le métier au paiement d'OP GESTION (400 `metier_requis`) ; l'ancienne page de paiement ne sait pas le demander. `preparer-deploiement-serveur.sh` emporte la page (`recap-abonnement.html`, `rubriques-choix.*`, `metiers.json`) dans le MÊME commit que le serveur (`test-2891` § 6 le garde), mais Pages et le VPS ne se déploient pas à la même seconde : pendant l'écart (quelques minutes), un prospect qui paie depuis l'ancienne page lit « Choisissez votre métier » sans pouvoir le faire. Le script n'a PAS été joué ici (il lance la suite complète et prépare un commit pour `main`) : à jouer à la fusion, de préférence hors des heures de paiement.
+- **`metiers.json` n'est plus publié** sur teamop.fr (il porte la feuille de route : `aCreer`, `aVerifier`, notes). Le serveur le lit dans le dépôt cloné, les écrans lisent `GET /api/metiers` (filtré). `test-1008` exige son absence.
+- **Choix à la page de paiement** : la fiche du client (`ficheDePaiement`) naît APRÈS la page rendue par Stripe, jamais pour un compte fermé, ne compte pas comme un espace (`aUnEspace`, suppression d'un compte du site) ; elle part avec le compte supprimé. ⚠️ Un client qui a payé SANS jamais ouvrir son espace client n'a donc plus de « 409 : ce compte porte une entreprise » — la Tour le montre « sans espace » : vérifier dans Stripe avant de supprimer un compte.
+- **Reste à faire** : `apercu/tour.html` n'est PAS régénéré (à faire à la fusion : `bash scripts/apercu.sh tour.html` — une copie plus vieille que la page est pire que pas de copie) ; la Tour ne monte pas de version (`TOUR_VERSION`) ; l'acceptation d'une seconde demande pose toujours le MÉTIER de la demande sur un espace déjà ouvert (seules les rubriques sont protégées) ; sonde `scratchpad/sonde-tour-demande-ouverte.js` (54 ✓, jour/nuit, 1440/1100/390).
+
 # ✅ 20 OCTOBRE 2026 (SOIR) — OP MESSAGES : CAMPAGNE DE TESTS, DEUX DÉFAUTS CORRIGÉS ; OP COURRIER LISIBLE, LIENS, TRADUCTION (publié sur `main`)
 - **Publié** (Justin : « publie », « je t'autorise ») : l'administration d'OP MESSAGES réservée au patron (`monPatronStrict`, `test-1016`) ;
   un lien `#reunion=` collé au démarrage n'est plus refermé (la question « Courrier ouvert ? » part avec la session) ; le corps d'un mail

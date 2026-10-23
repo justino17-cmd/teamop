@@ -18,7 +18,14 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 
 # La racine : pages, scripts servis, manifestes, et ce que le domaine attend (CNAME, robots…).
-for f in *.html *.js *.webmanifest favicon.ico robots.txt llms.txt index.md sitemap.xml CNAME .nojekyll; do
+# ⚠️ `rubriques-choix.css` (la grille « Vos rubriques ») est NOMMÉ : un .css de la racine n'entre pas par sa forme, et une page qui le charge
+#    sans lui serait cassée chez le client (23 octobre 2026).
+# ⛔ `metiers.json` n'est PAS publié (relecture du 23 octobre 2026) : c'est le référentiel de travail — ce que chaque métier n'a pas encore
+#    (`aCreer`, `aVerifier`), les notes, les métiers écartés, les `pourquoi` de chaque métier fermé. Servi à https://teamop.fr/metiers.json,
+#    n'importe qui y lisait la feuille de route de 23 métiers (« aucun seuil de CO dans l'application de chauffage »). Aucune page ne le
+#    charge : l'espace client, la page de paiement et la Tour lisent `GET /api/metiers` (déjà filtré : métiers OUVERTS seulement, sans notes),
+#    le serveur le lit dans le dépôt cloné (`../metiers.json`) et `scripts/site-marine.js` à la génération. `tests/test-1008.js` exige son absence.
+for f in *.html *.js *.webmanifest rubriques-choix.css favicon.ico robots.txt llms.txt index.md sitemap.xml CNAME .nojekyll; do
   [ -f "$f" ] || continue
   case "$f" in
     beta-build.js) continue ;;   # fabrique beta.html depuis app.html : un outil, pas une page

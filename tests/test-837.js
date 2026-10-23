@@ -25,6 +25,7 @@
    que ce que le site vend, jamais moins — `test-835` §3 déclare cet écart et le referme tout seul. */
 'use strict';
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
+const OUTILS = require('./outils-metiers.js');   // le référentiel des métiers, la grille de rubriques et la session qui porte un choix (23 octobre 2026)
 const RACINE = path.join(__dirname, '..');
 const lire = f => fs.readFileSync(path.join(RACINE, f), 'utf8');
 const existe = f => fs.existsSync(path.join(RACINE, f));
@@ -176,11 +177,13 @@ function executer(PAGE, recherche) {
      porte donc la session d'un compte prouvé, et le faux serveur répond « qui suis-je ». */
   const fetchFaux = async (url, opts) => {
     if (/\/api\/compte\/moi$/.test(url)) return { ok: true, status: 200, json: async () => ({ ok: true, compte: { email: 'paie@entreprise-banc.fr', prenom: 'Camille', nom: 'Banc', verifie: true } }) };
+    if (OUTILS.estMetiers(url)) return OUTILS.reponseMetiers();   // le référentiel des métiers n'est pas un appel de compte
     envoye.push({ url, corps: JSON.parse(opts.body) }); return { ok: true, status: 200, json: async () => ({ url: 'https://checkout.stripe.com/c/banc' }) };
   };
-  const api = new Function('window', 'document', 'history', 'localStorage', 'fetch', 'alert',
+  const api = new Function('window', 'document', 'history', 'localStorage', 'sessionStorage', 'fetch', 'alert', 'OpRub',
     bloc + '\n;return { etat: () => ({ nbUsersVoulu, formuleActive }), FORMULES, MAX_ABONNEMENTS, STRIPE_PRICES, compteLu };')(
-    window, document, { replaceState() {} }, { getItem: k => (k === 'teamop_portail_jeton' ? 'e'.repeat(64) : null), removeItem() {} }, fetchFaux, () => {});
+    window, document, { replaceState() {} }, { getItem: k => (k === 'teamop_portail_jeton' ? 'e'.repeat(64) : null), removeItem() {} },
+    OUTILS.rangementDe(OUTILS.sessionAvecChoix('chauffage')), fetchFaux, () => {}, OUTILS.OPRUB);
   const paiement = () => texte(conteneurs.cartePaiement.innerHTML);
   const droits = () => texte(conteneurs.carteDroits.innerHTML);
   const html = () => conteneurs.cartePaiement.innerHTML;

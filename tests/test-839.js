@@ -84,11 +84,16 @@ function merci(fichier, recherche) {
   v('⛔ aucun fichier servi ne porte un lien de paiement Stripe (buy.stripe.com)', SERVIS.filter(f => /buy\.stripe\.com/.test(lire(f))), []);
 
   /* ── 3. la page de paiement, son vrai script, contre un faux serveur ────────────────────────────────────── */
+  /* 23 octobre 2026 — LE MÉTIER, OBLIGATOIRE À L'ABONNEMENT : la page lit le référentiel de l'API (`/api/metiers`) et la grille de
+     rubriques de `rubriques-choix.js`. Ce n'est PAS un appel de compte : le banc le sert de la même source que le vrai serveur
+     (`server/metiers.js` sur `metiers.json`) et ne le compte pas dans `appels` (« pas un seul appel au serveur » reste vrai). */
+  const OUTILS = require('./outils-metiers.js');
+  const OPRUB = OUTILS.OPRUB, REFERENTIEL = OUTILS.REFERENTIEL;
   function page(fichier, recherche, o) {
     const PAGE = lire(fichier);
     const bloc = [...PAGE.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(b => b.includes('const FORMULES = {'));
     if (!bloc) return null;
-    const derniers = {}, conteneurs = {}, appels = [], ecouteurs = {};
+    const derniers = {}, conteneurs = {}, appels = [], ecouteurs = {}, stables = {};
     const nouveau = id => {
       const el = { id, _h: {}, style: {}, dataset: {}, value: '', disabled: false, textContent: '', innerHTML: '',
         addEventListener(t, fn) { (this._h[t] = this._h[t] || []).push(fn); },
@@ -99,9 +104,13 @@ function merci(fichier, recherche) {
     const document = { title: '', visibilityState: 'visible', querySelectorAll() { return []; }, querySelector() { return null; },
       addEventListener(t, fn) { (ecouteurs['d:' + t] = ecouteurs['d:' + t] || []).push(fn); },
       getElementById(id) {
+        /* le bloc du métier (23 octobre 2026) : dans un vrai navigateur `getElementById` rend le MÊME élément tant que la carte n'a pas
+           été réécrite ; ce faux en fabriquait un neuf à chaque appel, et le banc ne pouvait plus atteindre l'écouteur de la liste */
+        if (/^(metierAbo|rubriquesAbo|metierReessayer|rubVolet)$/.test(id)) return stables[id] || (stables[id] = nouveau(id));
         if (!/^(selecteurFormules|carteDroits|cartePaiement)$/.test(id)) return nouveau(id);
         if (!conteneurs[id]) {
           conteneurs[id] = nouveau(id);
+          if (id === 'cartePaiement') Object.defineProperty(conteneurs[id], 'innerHTML', { get() { return this._ih || ''; }, set(x) { this._ih = x; for (const k of Object.keys(stables)) delete stables[k]; } });
           /* les pastilles de formule : relues depuis le HTML que la page vient d'écrire, pour que le banc les TOUCHE */
           if (id === 'selecteurFormules') conteneurs[id].querySelectorAll = function (sel) {
             if (sel !== '.puce-formule') return [];
@@ -115,17 +124,22 @@ function merci(fichier, recherche) {
       addEventListener(t, fn) { (ecouteurs['w:' + t] = ecouteurs['w:' + t] || []).push(fn); } };
     const stockage = o.stockage || new Map();
     const localStorage = { getItem: k => (stockage.has(k) ? stockage.get(k) : null), setItem: (k, x) => stockage.set(k, String(x)), removeItem: k => stockage.delete(k) };
+    const appelsMetiers = [];
     const fetchBanc = async (url, opts) => {
+      if (/\/api\/metiers$/.test(String(url))) { appelsMetiers.push(String(url)); return o.metiers ? o.metiers() : rep(200, REFERENTIEL); }
       const appel = { url: String(url), methode: (opts && opts.method) || 'GET', entetes: Object.assign({}, (opts && opts.headers) || {}), corps: opts && opts.body ? JSON.parse(opts.body) : null };
       appels.push(appel);
       return o.serveur(appel);
     };
-    const api = new Function('window', 'document', 'history', 'localStorage', 'fetch', 'alert',
-      bloc + '\n;return { etat: () => ({ compte, compteMsg, nbUsersVoulu, formuleActive, cycleAnnuel }), compteLu, relireCompte };')(
-      window, document, { replaceState() {} }, localStorage, fetchBanc, () => {});
+    const session = o.session || new Map();
+    const sessionStorage = { getItem: k => (session.has(k) ? session.get(k) : null), setItem: (k, x) => session.set(k, String(x)), removeItem: k => session.delete(k) };
+    if (o.choix) session.set('teamop_abo_choix', JSON.stringify(o.choix));
+    const api = new Function('window', 'document', 'history', 'localStorage', 'sessionStorage', 'fetch', 'alert', 'OpRub',
+      bloc + '\n;return { etat: () => ({ compte, compteMsg, nbUsersVoulu, formuleActive, cycleAnnuel, metierAbo, metierForce, refMetiers: !!refMetiers, rubAbo, metierRequis: metierRequis() }), compteLu, relireCompte, chargerMetiers };')(
+      window, document, { replaceState() {} }, localStorage, sessionStorage, fetchBanc, () => {}, OPRUB);
     const html = () => conteneurs.cartePaiement.innerHTML;
     const puce = cle => { const b = (conteneurs.puces || []).find(x => x.dataset.formule === cle); return b ? (b._h.click[0](), true) : false; };
-    return { api, derniers, appels, window, stockage, ecouteurs, html, texte: () => texte(html()), clic: id => derniers[id]._h.click[0](), puce };
+    return { api, derniers, appels, appelsMetiers, session, window, stockage, ecouteurs, html, texte: () => texte(html()), clic: id => derniers[id]._h.click[0](), puce };
   }
   const rep = (status, corps) => ({ ok: status >= 200 && status < 300, status, json: async () => { if (corps === undefined) throw new Error('pas du JSON'); return corps; } });
   const MOI = (verifie, prenom, nom) => rep(200, { ok: true, compte: { email: 'camille@entreprise-banc.fr', prenom: prenom === undefined ? 'Camille' : prenom, nom: nom === undefined ? 'Banc' : nom, verifie } });
@@ -493,7 +507,9 @@ globalThis.fetch = async function (url, opts) {
         /* la page de paiement, sur le même rangement ; son adresse d'API (api.teamop.fr) est redirigée vers le banc */
         const vers = a => fetch(a.url.replace('https://api.teamop.fr', B), { method: a.methode, headers: a.entetes, body: a.corps ? JSON.stringify(a.corps) : undefined })
           .then(async r => { const t = await r.text(); let j; try { j = JSON.parse(t); } catch (e) { j = undefined; } return rep(r.status, j); });
-        const recap = (recherche) => page(PAGES_PAIEMENT[0], recherche, { stockage: rangement, serveur: vers });
+        /* (le métier est choisi d'avance — `choix`, comme au retour du portail : ces parcours jouent le COMPTE, la référence et la fin d'essai ;
+           l'obligation du métier se joue plus bas, section 4 bis) */
+        const recap = (recherche, plus) => page(PAGES_PAIEMENT[0], recherche, Object.assign({ stockage: rangement, serveur: vers, choix: { metier: 'chauffage', cats: null } }, plus || {}));
 
         // sans compte : pas un appel
         const p0 = recap('?formule=business&utilisateurs=3');
@@ -664,6 +680,60 @@ globalThis.fetch = async function (url, opts) {
               [sansEssai && sansEssai.titre, !!sansEssai && sansEssai.message.includes('Un e-mail de confirmation avec ta facture vient de t\'être envoyé.')], ['Paiement confirmé', true]);
           } else vrai('⛔ le serveur du dépôt vérifie le tarif (`tarif_inconnu`) — absent, c\'est une garde retirée', false);
         } else vrai('⛔ le serveur du dépôt porte « B » (`compte_autre_entreprise`) — absent, c\'est une garde retirée', false);
+        /* ══ 4 bis · 23 octobre 2026 — LE MÉTIER EST OBLIGATOIRE À L'ABONNEMENT ══ la page le demande, le dit, le joint au paiement — et le vrai serveur le redit */
+        console.log('4 bis. le métier est obligatoire : la page le demande, le dit, le joint au paiement, et le vrai serveur le redit');
+        {
+          rangement.delete('elan_sync_team');
+          const checkouts = q => q.appels.filter(a => /stripe\/checkout/.test(a.url));
+          const q = recap('?formule=business&utilisateurs=2', { choix: null });
+          await q.api.compteLu; await q.api.chargerMetiers();
+          const e0 = q.api.etat();
+          vrai('(population) le référentiel est lu, le compte est prêt, aucun métier choisi', e0.refMetiers && e0.compte.etat === 'pret' && !e0.metierAbo && e0.metierRequis, JSON.stringify([e0.refMetiers, e0.compte.etat, e0.metierAbo, e0.metierRequis]));
+          const opts = [...q.html().matchAll(/<option value="([a-z0-9]*)"/g)].map(m => m[1]);
+          v('⛔ la carte porte « VOTRE MÉTIER · obligatoire » et la liste des métiers OUVERTS (le premier choix est vide) — aucun métier fermé',
+            [/VOTRE MÉTIER <span>· obligatoire<\/span>/.test(q.html()), opts], [true, [''].concat(REFERENTIEL.ouverts)]);
+          vrai('   … et pas encore de rubriques : elles viennent avec le métier', !/id="rubriquesAbo"/.test(q.html()));
+          const n0 = stripeRecu().length;
+          await q.clic('btnPayer');
+          v('⛔ « Payer » sans métier : la page le DIT, ne demande RIEN au serveur, et rien ne part chez Stripe',
+            [/Choisissez votre métier avant de payer/.test(q.texte()), checkouts(q).length, stripeRecu().length - n0], [true, 0, 0]);
+          q.derniers.metierAbo.value = 'chauffage'; q.derniers.metierAbo._h.change[0]();
+          const e1 = q.api.etat();
+          v('   on choisit « chauffage » : le métier est retenu, et la grille des rubriques est pré-cochée selon son conseil', [e1.metierAbo, OPRUB.liste(e1.rubAbo)], ['chauffage', REFERENTIEL.metiers.chauffage.rubriques]);
+          const grille = q.derniers.rubriquesAbo.innerHTML;
+          v('   … 32 cases (hors les six de la 3D), celles du conseil cochées, chacune avec son explication visible (pas une infobulle)',
+            [(grille.match(/type="checkbox"/g) || []).length, (grille.match(/ checked/g) || []).length, (grille.match(/class="rub-expl"/g) || []).length],
+            [32, REFERENTIEL.metiers.chauffage.rubriques.length, 32 + 4]);
+          q.derniers.rubriquesAbo._h.change[0]({ target: { getAttribute: k => (k === 'data-rub' ? 'stock' : null) } });
+          vrai('   on décoche « Stock » : la case est décochée, le compte baisse, le choix est gardé pour l\'aller-retour par le portail',
+            !OPRUB.liste(q.api.etat().rubAbo).includes('stock') && JSON.parse(q.session.get('teamop_abo_choix')).metier === 'chauffage' && !JSON.parse(q.session.get('teamop_abo_choix')).cats.includes('stock'));
+          const m0 = stripeRecu().length;
+          await q.clic('btnPayer');
+          const pc = checkouts(q)[0] || { corps: {} };
+          v('⛔ « Payer » : le choix PART avec le paiement (le métier, les rubriques cochées dans l\'ordre du menu) et le vrai serveur ouvre UNE page chez Stripe',
+            [pc.corps.metier, pc.corps.cats, stripeRecu().length - m0, q.window.location.href],
+            ['chauffage', REFERENTIEL.metiers.chauffage.rubriques.filter(k => k !== 'stock'), 1, 'https://checkout.stripe.com/c/pay/banc-839']);
+          /* l'appareil croit connaître son entreprise (une référence que l'annuaire a oubliée) : la page ne demande rien — le serveur, si */
+          rangement.set('elan_sync_team', 'banc-oubliee-t7');
+          const r = recap('?formule=pro&utilisateurs=2', { choix: null });
+          await r.api.compteLu; await r.api.chargerMetiers();
+          vrai('(population) avec une référence sur l\'appareil, la page ne montre pas la liste des métiers', !r.api.etat().metierRequis && !/id="metierAbo"/.test(r.html()));
+          const m1 = stripeRecu().length;
+          await r.clic('btnPayer');
+          v('⛔ le vrai serveur ne la connaît pas : il demande un métier (400 `metier_requis`), RIEN chez Stripe — et la page affiche alors la liste et le dit',
+            [checkouts(r).length, stripeRecu().length - m1, r.api.etat().metierForce, /id="metierAbo"/.test(r.html()), /Choisissez votre métier avant de payer/.test(r.texte())], [1, 0, true, true, true]);
+          r.derniers.metierAbo.value = 'peinture'; r.derniers.metierAbo._h.change[0]();
+          await r.clic('btnPayer');
+          v('   … on choisit, on repaie : le second clic part avec le métier, et le paiement s\'ouvre', [checkouts(r).length, (checkouts(r)[1] || { corps: {} }).corps.metier, stripeRecu().length - m1, r.window.location.href], [2, 'peinture', 1, 'https://checkout.stripe.com/c/pay/banc-839']);
+          /* le référentiel injoignable : la page le dit, propose de réessayer, et ne laisse pas payer sans métier */
+          rangement.delete('elan_sync_team');
+          const z = recap('?formule=business&utilisateurs=2', { choix: null, metiers: () => rep(503, { error: 'referentiel_indisponible' }) });
+          await z.api.compteLu; await z.api.chargerMetiers();
+          vrai('⛔ le référentiel indisponible (503) : la page le DIT et propose « Réessayer » — pas de liste vide muette', /role="alert"/.test(z.html()) && /id="metierReessayer"/.test(z.html()) && /ne sont pas disponibles/.test(z.texte()), z.texte().slice(0, 200));
+          const m2 = stripeRecu().length;
+          await z.clic('btnPayer');
+          v('   … et « Payer » ne part pas : rien au serveur, rien chez Stripe', [checkouts(z).length, stripeRecu().length - m2], [0, 0]);
+        }
         rangement.delete('elan_sync_team');
       }
     } finally {

@@ -32,7 +32,7 @@ vrai('(population) les fonctions de la fiche sont trouvées dans tour.html', SRC
 function fiche(o, avecCompte, pblCharge) {
   const REP = nom => () => '<div class="sous-sec"><div class="sec">[' + nom + ']</div></div>';
   const ctx = { console, JSON, String, Object, Array, Number, Math, Date, isFinite, encodeURIComponent, setTimeout() {}, clearTimeout() {}, window: {},
-    IC: {}, MYAPPS: ['gestion', 'messages'], MET_L: { nettoyage: 'Nettoyage' },
+    IC: {}, MYAPPS: ['gestion', 'messages'], MET_L: { nettoyage: 'Nettoyage' }, MYROLE: 'patron', CATS_APPLIQUEES: false, catExpl: () => '', CAT_L: [['Planification', [['planning', 'Planning']]]],   /* (22 octobre 2026) le bloc des catégories d'OP GESTION se range avec le métier, et lit le rôle */
     ENT: { sel: o.t, liste: [o] }, CLI: { sel: o.email, list: avecCompte ? [{ email: o.email, entreprise: o.nom, nom: 'Claire Martin', tel: '', inscrit: 1, majTs: 1, demandes: [], apps: ['OP GESTION'] }] : [] },
     PBL: { loaded: pblCharge !== false, liste: [{ nom: o.nom, slug: 'boulmartin', email: o.email, opMessages: true }] },
     cliStatut: () => ['Sans formule', 'p-gris'], demandesATraiter: () => [], optsCasesHtml: () => '<div class="opts">[cases]</div>', squelListe: () => '<div>…</div>',
@@ -54,10 +54,12 @@ const H = fiche(O, true);
   vrai('(rendu) la fiche d\'un espace technique dit « Espace par défaut — TEAM OP », pas son identifiant (le TEXTE rendu : l\'attribut du bouton garde l\'identifiant du code)', T.includes('Espace par défaut') && !/elan-gestion/.test(T.replace(/<[^>]*>/g, ' '))); }
 const secs = [...H.matchAll(/class="sec">([^<]*)</g)].map(m => m[1].replace(/&amp;/g, '&').trim());
 v('⛔ la fiche : une carte par sujet, dans cet ordre',
-  secs, ['FORMULE ET PAIEMENT', '[acces]', 'ABONNEMENT', '[utilisateurs]', '[espace]', 'MÉTIER', 'APPLICATIONS ET CHIFFREMENT', '[dossier]', 'CONNEXIONS', 'ACTIVITÉ PAR ONGLET & PROBLÈMES', 'CONTACT', 'DEMANDES DU SITE', '[comptes]', '[supprimer]']);
+  secs, ['FORMULE ET PAIEMENT', '[acces]', 'ABONNEMENT', '[utilisateurs]', '[espace]', 'MÉTIER', 'CATÉGORIES D’OP GESTION', 'APPLICATIONS ET CHIFFREMENT', '[dossier]', 'CONNEXIONS', 'ACTIVITÉ PAR ONGLET & PROBLÈMES', 'CONTACT', 'DEMANDES DU SITE', '[comptes]', '[supprimer]']);
 const nb = (re, h) => (String(h || H).match(re) || []).length;
 v('⛔ chaque geste n’a qu’UNE place : lien de connexion, Stripe, métier, abonnement, code promo, écrire',
   [nb(/tourLienEntreprise\(/g), nb(/dashboard\.stripe\.com/g), nb(/tourMetierEnregistrer\(/g), nb(/tourAboEnregistrer\(/g), nb(/tourPromoEntreprise\(/g), nb(/courrierEcrire\(/g)], [1, 1, 1, 1, 1, 1]);
+v('⛔ … et les catégories d\'OP GESTION aussi : une seule place pour « Enregistrer » et « Tout rouvrir », juste après le métier, dans la carte « Son espace »',
+  [nb(/tourCatsEnregistrer\(/g), nb(/tourCatsRouvrir\(/g), /MÉTIER<\/div>[\s\S]*?CATÉGORIES D’OP GESTION<\/div>[\s\S]*?APPLICATIONS ET CHIFFREMENT/.test(H)], [1, 1, true]);
 v('le lien de connexion est dans la carte Accès (avant l’abonnement), « Voir dans Stripe » dans l’abonnement',
   [H.indexOf('tourLienEntreprise(') < H.indexOf('class="sec">ABONNEMENT'), H.indexOf('dashboard.stripe.com') > H.indexOf('class="sec">ABONNEMENT') && H.indexOf('dashboard.stripe.com') < H.indexOf('[utilisateurs]')], [true, true]);
 v('⛔ la formule et l’argent : « Formule » n’est dite qu’une fois, OP MESSAGES et le chiffrement ne sont plus sous « Formule et paiement »',

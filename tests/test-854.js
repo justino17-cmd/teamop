@@ -114,7 +114,7 @@ function tour() {
     toast: t => toasts.push(String(t)), chargerEspaces: () => {}, CLI: { list: [], sel: '' }, ESP: { loaded: true, err: '', list: [] } };
   vm.createContext(ctx);
   vm.runInContext('var API="http://127.0.0.1:' + PORT + '", TOKEN=' + JSON.stringify(TOKEN) + ', PACK={nom:"",charge:false,err:"",d:null};\n'
-    + VARS.join('\n') + '\nvar OPT_CLES=' + CLES + ';\n' + FN.join('\n'), ctx);
+    + VARS.join('\n') + '\nvar OPT_CLES=' + CLES + ';\nvar CAT_CLES=[];   /* (22 octobre 2026) `packPeindre` peint aussi les cases des catégories : leurs clés, vides ici — test-2871 les joue */\n' + FN.join('\n'), ctx);
   /* le balisage RÉEL de la fiche : chaque `id` devient un élément, avec son `hidden` d'origine et son `value` */
   const html = vm.runInContext('optsCasesHtml()', ctx);
   for (const m of html.matchAll(/<[^>]*\bid="([^"]+)"[^>]*>/g)) E[m[1]] = { id: m[1], hidden: /\bhidden\b/.test(m[0].replace(/id="[^"]*"/, '')), value: (/value="([^"]*)"/.exec(m[0]) || [])[1] || '', checked: false, disabled: false, innerHTML: '', textContent: '' };
