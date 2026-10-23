@@ -274,7 +274,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const choixAbonnement = (m, c) => (m === 'chauffage' ? { ok: true, metier: m, cats: c || null } : { ok: false, error: m ? 'metier_inconnu' : 'metier_requis' });
     if (body && typeof body === 'object' && !('metier' in body)) body = Object.assign({ metier: 'chauffage' }, body);
     new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme', 'factureImpayeARegler',
-      'espaceStripeAchat', 'formuleEtPlaces', 'impayeOptionARegler', 'optionsServies', 'optionsPayeesQte', 'choixAbonnement', 'MESSAGES_CHOIX', 'choixAbonnementNoter',
+      'espaceStripeAchat', 'formuleEtPlaces', 'impayeOptionARegler', 'optionsServies', 'optionsPayeesQte', 'choixAbonnement', 'MESSAGES_CHOIX', 'choixAbonnementNoter', 'SITE_BASE',
       AIDES_ROUTE.join('\n') + '\n' + SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' }, promos: [{ code: 'ESSAI-BANC-727', formule: 'premium', mois: 3 }] },
       async (url, opts) => { appels++; envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
@@ -287,7 +287,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
          sans Pro. Ce bac à sable n'a pas de liste Stripe : rien n'est servi, rien n'est impayé — le comportement des options
          (couverture, ajout d'office, impayé d'option, codes d'erreur) se joue sur le VRAI serveur, `test-850` */
       async () => ({ s: null, fraiche: true }), () => ({ f: null, places: null }), async () => null, () => [], () => ({}),
-      choixAbonnement, {}, () => {});
+      choixAbonnement, {}, () => {}, 'https://teamop.fr');
     await faux._h({ body, headers: entetes === undefined ? { authorization: 'Bearer ' + JETON_PROUVE } : entetes },
       { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie, appels };
