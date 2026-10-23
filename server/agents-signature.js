@@ -32,9 +32,17 @@ const ADRESSE_BOITE = /^[^@\s<>",;]+@[^@\s<>",;]+\.[^@\s<>",;]+$/;
 /* LA mise en forme d'une signature d'agent — UNE seule, pour tous les agents (fusion de l'intégration, 23 octobre 2026) : le courrier (Léa, Camille, Chloé) la tient du registre ci-dessous, que
    Justin règle depuis la Tour ; Hugo, Margaux, Emma et Sarah (`agents-courriers-ops.js`) l'appellent avec leurs rôles par défaut quand aucun registre n'est branché. Deux chantiers avaient écrit
    chacun la leur (« Léa — Assistante virtuelle — Équipe TeamOP » d'un côté, trois lignes de l'autre) : un client aurait reçu deux présentations de la même équipe. */
-const formater = (prenom, role, equipe, adresseBoite) => {
+/* ⛔ LES TROIS AGENTS DU COURRIER DEMANDENT QU'ON ENREGISTRE LEUR ADRESSE (Justin, 23 octobre 2026 : « dis-le aux agents qui gèrent les mails »).
+   teamop.fr est un domaine jeune : ses courriels passent tous les contrôles (SPF, DKIM, DMARC, 10/10 au test du 23 octobre), et pourtant Gmail, Outlook et
+   Orange les rangent encore en indésirables, faute d'historique. Un expéditeur enregistré dans les contacts n'y est plus classé. Léa, Camille et Chloé écrivent
+   aux prospects et aux clients qui découvrent TeamOP : leur signature porte la demande, avec l'adresse de la boîte qui ENVOIE (celle qu'il faut enregistrer).
+   Les quatre agents de la gestion ne la portent pas : une fin d'abonnement ou une mise en demeure n'invite pas à se faire enregistrer. Posée par le SERVEUR, à
+   chaque envoi : écrite par Claude, elle serait oubliée une fois sur dix, ou porterait l'adresse d'une autre boîte que celle qui envoie. */
+const AGENTS_COURRIER = new Set(['lea', 'camille', 'chloe']);
+const ligneContacts = adr => 'Pour recevoir nos messages sans faute, ajoutez ' + adr + ' à vos contacts.';
+const formater = (prenom, role, equipe, adresseBoite, contacts) => {
   const adr = ADRESSE_BOITE.test(String(adresseBoite || '')) ? String(adresseBoite).toLowerCase() : 'contact@' + SITE;
-  return prenom + ' — ' + role + ' — ' + equipe + '\n' + adr + ' · ' + SITE;
+  return prenom + ' — ' + role + ' — ' + equipe + '\n' + adr + ' · ' + SITE + (contacts ? '\n' + ligneContacts(adr) : '');
 };
 
 module.exports = function signatures(app, ctx) {
@@ -50,7 +58,7 @@ module.exports = function signatures(app, ctx) {
   /* La signature d'un agent pour une boîte donnée (l'adresse de la boîte qui ENVOIE). Jamais vide pour un agent connu ; '' pour un inconnu — l'appelant refuse d'envoyer. */
   function composer(id, adresseBoite) {
     if (!IDS.has(id)) return '';
-    return formater(IDS.get(id), roleDe(id), reg.equipe, adresseBoite);
+    return formater(IDS.get(id), roleDe(id), reg.equipe, adresseBoite, AGENTS_COURRIER.has(id));
   }
   const vue = () => ({ equipe: reg.equipe, site: SITE, agents: agents.AGENTS.map(a => ({ agent: a.id, nom: a.nom, role: roleDe(a.id), defaut: roleDefaut(a.id), apercu: composer(a.id, 'contact@' + SITE) })) });
 
@@ -87,3 +95,5 @@ module.exports.roleDefaut = roleDefaut;
 module.exports.formater = formater;
 module.exports.EQUIPE_DEFAUT = EQUIPE_DEFAUT;
 module.exports.SITE = SITE;
+module.exports.AGENTS_COURRIER = AGENTS_COURRIER;
+module.exports.ligneContacts = ligneContacts;
