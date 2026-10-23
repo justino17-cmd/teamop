@@ -789,6 +789,17 @@ app.post('/api/stripe/checkout', async (req, res) => {
          quantités d'une option ne couvrirait plus les places (`optionsServies`, couverture stricte) et l'équipe entière perdrait
          son Stock en achetant UN utilisateur de plus ;
        · une option déjà souscrite mais IMPAYÉE se règle sur sa facture, elle ne se rachète pas (`impayeOptionARegler`). */
+    /* ⛔ UNE SOUSCRIPTION NEUVE CHOISIT SON MÉTIER (Justin, 23 octobre 2026 : « quand ils prennent un abonnement, ils choisissent le
+       métier, et c'est obligatoire »). « Neuve » = aucune entreprise visée par la référence : on paie avant d'avoir son espace. Une
+       entreprise qui existe déjà a son métier (ou ELAN, réglée avant ce chantier, n'en a pas et ne doit pas être bloquée pour acheter
+       une place de plus) ; un ajout d'option seule non plus. Le refus vient AVANT toute lecture de Stripe : rien n'est créé. Le choix
+       (métier + rubriques) est rangé sur la fiche du client : la Tour le lit à l'ouverture de son espace. */
+    let choixPaiement = null;
+    if (!optionSeule && !visees.length) {
+      const c = choixAbonnement((req.body || {}).metier, (req.body || {}).cats);
+      if (!c.ok) return res.status(400).json({ error: c.error, message: MESSAGES_CHOIX[c.error] });
+      choixPaiement = c;
+    }
     const qtes = {};   // la quantité de chaque ligne d'option : celle de la formule, sauf pour un ajout d'option seule (ce qui manque)
     if (refGravee && visees.length && (optionSeule || rangDuPrix === 0)) {
       const eV = Object.assign({ slug: visees[0].slug }, facturationDe(visees[0]));
@@ -887,6 +898,7 @@ app.post('/api/stripe/checkout', async (req, res) => {
       p.append('client_reference_id', refGravee);
       p.append('subscription_data[metadata][espace]', refGravee);
     }
+    if (choixPaiement) choixAbonnementNoter(payeurMin, choixPaiement);
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: stripeEntetes(sk, { 'Content-Type': 'application/x-www-form-urlencoded' }), body: p.toString() });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.url) return res.status(502).json({ error: (d.error && d.error.message) || 'stripe erreur' });
@@ -2659,10 +2671,9 @@ app.post('/api/monitor/espaces/lien-existant', monPatronStrict, (req, res) => {
    liste est refusée ici, parce que l'application l'ignorerait EN SILENCE. `tests/test-848.js` compare les deux listes.
    ⚠️ Vide veut dire « non réglé » : l'application garde alors ce qu'elle avait (ELAN, réglée avant ce chantier, ne
    reçoit rien et ne bouge pas). */
-const METIERS_OK = ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre'];
-const metierOk = m => (METIERS_OK.includes(m) ? m : '');
-const METIERS_LBL = { '3d': '3D — Hygiène anti-nuisibles', plomberie: 'Plomberie', electricite: 'Électricité', chauffage: 'Chauffage / Climatisation', serrurerie: 'Serrurerie', nettoyage: 'Nettoyage / Propreté',
-  maconnerie: 'Maçonnerie / Gros œuvre', menuiserie: 'Menuiserie', peinture: 'Peinture / Revêtements', paysagiste: 'Paysagiste / Espaces verts', couverture: 'Couverture / Zinguerie', multiservices: 'Multiservices / Maintenance', autre: 'Autre métier de terrain' };
+/* (`METIERS_OK`, `metierOk` et `METIERS_LBL` sont définis plus bas, juste après `CATS_TOUJOURS` : le référentiel des métiers a
+   besoin de la liste des rubriques cochables, et une `const` lue avant sa déclaration est en zone morte — les routes, elles,
+   ne les lisent qu'à l'appel.) */
 app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
   const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
   const e = espacesReg[slug];
@@ -2705,6 +2716,68 @@ const CATS_OK = ['statistiques', 'historique', 'archives', 'planning', 'planning
   'produits', 'stock', 'mouvements', 'boxes', 'saisieConso', 'enveloppes', 'pointage', 'vehicules', 'conducteurs',
   'messagerie', 'boiteMail', 'fournisseurs', 'bons', 'brouillon', 'demandes', 'validations', 'commandes', 'secteurs'];
 const CATS_TOUJOURS = ['dashboard', 'utilisateurs', 'modulesElan', 'parametres'];
+/* ⛔ LES MÉTIERS QUE LE PUBLIC PEUT CHOISIR — UN SEUL INTERRUPTEUR, `ouverts` de `metiers.json` (voir `server/metiers.js`).
+   Avant le 23 octobre 2026 c'était une liste écrite ici, recopiée dans la Tour, le portail et l'application, que `test-848`
+   comparait. Les treize métiers d'avant restent ouverts quoi qu'il arrive ; les dix nouveaux (incendie, froid, ascenseurs…)
+   ne s'ouvrent que quand l'application publique les connaît — sinon un client qui en choisirait un recevrait le pack par défaut.
+   `METIERS_OK` est un TABLEAU vivant : la route `/api/metiers` et les refus de `/api/clients/sync` lisent la même chose. */
+const metiersMod = require('./metiers')(path.join(__dirname, '..', 'metiers.json'), CATS_OK, CATS_TOUJOURS);
+const METIERS_OK = metiersMod.ouverts;
+const metierOk = m => (METIERS_OK.includes(m) ? m : '');
+const METIERS_LBL = metiersMod.libelles();
+/* Le référentiel tel que l'écran d'abonnement, la Tour et le site le lisent : les métiers OUVERTS, leurs rubriques conseillées
+   avec la raison de chacune, l'explication de chaque rubrique. Public par construction (le fichier est servi par le site) : ni
+   secret ni donnée de client. Un fichier absent se DIT (503) — l'écran propose alors de réessayer, il ne devine pas. */
+app.get('/api/metiers', (req, res) => {
+  const p = metiersMod.publique();
+  if (!p) return res.status(503).json({ error: 'referentiel_indisponible' });
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json(p);
+});
+/* ══ LE CHOIX DU CLIENT À L'ABONNEMENT : UN MÉTIER VALIDE, ET SES RUBRIQUES ══════════════════════════════════════════════
+   Justin, 23 octobre 2026 : « quand ils prennent un abonnement, ils choisissent le métier, et c'est obligatoire ; ils cochent les
+   catégories ; et quand ils cochent, ça explique la catégorie ». Trois portes où un abonnement commence (la demande d'accès de
+   l'espace client, le paiement, la demande de création du site) — UNE seule vérification, celle-ci :
+     · le métier est OBLIGATOIRE et doit être ouvert (`METIERS_OK`) : vide → `metier_requis`, hors du référentiel →
+       `metier_inconnu`, connu mais pas encore ouvert → `metier_ferme` (l'application publique ne le connaît pas : le client
+       recevrait la 3D) ;
+     · les rubriques sont une liste FERMÉE (`CATS_OK`) : une clé inconnue, un doublon, une forme qui n'est pas un tableau →
+       `cats_inconnues`. Absent ou vide = « le client n'a rien choisi » : `null`, et la Tour part du conseil de son métier ;
+     · ce que le client demande ne décide de rien (règle 1 de CLAUDE.md) : c'est la Tour qui POSE métier et rubriques. */
+function choixAbonnement(metierBrut, catsBrut) {
+  const metier = monStr(metierBrut, 20);
+  if (!metier) return { ok: false, error: 'metier_requis' };
+  if (!METIERS_OK.includes(metier)) return { ok: false, error: metiersMod.connu(metier) ? 'metier_ferme' : 'metier_inconnu' };
+  let cats = null;
+  if (catsBrut !== undefined && catsBrut !== null) {
+    if (!Array.isArray(catsBrut) || catsBrut.length > CATS_OK.length || catsBrut.some(k => typeof k !== 'string' || !CATS_OK.includes(k)) || new Set(catsBrut).size !== catsBrut.length) return { ok: false, error: 'cats_inconnues' };
+    cats = catsBrut.length ? CATS_OK.filter(k => catsBrut.includes(k)) : null;
+  }
+  return { ok: true, metier, cats };
+}
+/* ce que l'écran DIT à un client dont le choix est refusé (la page lit `error`, le message sert aux autres lecteurs) */
+const MESSAGES_CHOIX = {
+  metier_requis: 'Choisissez votre métier : il règle votre application (types d\'intervention, fiche de terrain, rubriques).',
+  metier_inconnu: 'Ce métier n\'existe pas dans la liste — choisissez-en un.',
+  metier_ferme: 'Ce métier n\'est pas encore ouvert : choisissez-en un autre, ou écrivez-nous.',
+  cats_inconnues: 'Une rubrique choisie n\'existe pas : rechargez la page.'
+};
+/* Range le choix fait à la page de paiement sur la fiche du client (la Tour la lit). Un prospect qui paie sans avoir jamais ouvert
+   l'espace client n'a pas de fiche : on en ouvre une, minimale, avec ce que son compte du site sait de lui — sans jamais dépasser
+   le plafond des fiches. Écriture différée comme le reste (`cliSave`). */
+function choixAbonnementNoter(email, c) {
+  try {
+    let fiche = clientsData[email];
+    if (!fiche) {
+      if (Object.keys(clientsData).length >= 2000) return;   // même plafond silencieux que la synchro
+      let compte = {}; try { compte = (comptes.liste().find(x => x.email === email)) || {}; } catch (e) { compte = {}; }
+      fiche = clientsData[email] = { email, nom: ((compte.prenom || '') + ' ' + (compte.nom || '')).trim(), prenom: compte.prenom || '', nomFam: compte.nom || '', tel: '', entreprise: compte.societe || '',
+        inscrit: Date.now(), apps: [], demandes: [], plan: '', planStatus: '', promo: '', majTs: Date.now(), noteInterne: '', metier: '', metierPar: '', demandesTraitees: {} };
+    }
+    fiche.choix = { metier: c.metier, cats: c.cats, ts: Date.now(), source: 'paiement' };
+    cliSave();
+  } catch (e) { console.error('choix à l\'abonnement non rangé :', String((e && e.message) || e).slice(0, 120)); }
+}
 /* Ce que le serveur SERT : le tableau (dans l'ordre de la liste, sans doublon, rien d'étranger — une valeur écrite à la main
    dans l'annuaire n'atteint jamais l'application), ou `null` quand rien n'est réglé. Un champ qui n'est pas un tableau
    vaut « jamais réglé », pas « rien d'ouvert » : dans le doute, on ne ferme rien. */
@@ -9526,10 +9599,28 @@ app.post('/api/clients/sync', async (req, res) => {
   if (entFermes.emails.includes(email)) return res.status(410).json({ error: 'compte fermé par TeamOP' });
   if (Object.keys(clientsData).length >= 2000 && !clientsData[email]) return res.json({ ok: true });   // cap silencieux
   const prev = clientsData[email] || {};
-  const demandes = (Array.isArray(b.demandes) ? b.demandes.slice(0, 20) : []).map(d => ({
+  const brutes = Array.isArray(b.demandes) ? b.demandes.slice(0, 20) : [];
+  const avantDem = Array.isArray(prev.demandes) ? prev.demandes : [];
+  const catsDemande = c => { const t = catsOk(c); return t && t.length ? t : null; };
+  /* ⛔ UN ABONNEMENT NE COMMENCE PAS SANS MÉTIER (Justin, 23 octobre 2026) — le serveur refuse aussi, pas seulement l'écran. La
+     fiche relayée porte TOUTES les demandes du dossier (vingt au plus), dont celles d'avant cette règle, sans métier : on ne
+     refuse donc que ce qui est NEUF ou ce qui CHANGE (une demande déjà connue, relayée telle quelle, passe) — sinon un client
+     d'avant verrait toute sa fiche refusée à chaque visite, et la Tour ne recevrait plus rien de lui. Seules les demandes
+     d'OP GESTION sont concernées (OP MESSAGES n'est pas un abonnement d'OP GESTION). */
+  for (const d of brutes) {
+    if (!d || monStr(d.app, 60) !== 'OP GESTION') continue;
+    const date = parseInt(d.date, 10) || 0;
+    const avant = date ? avantDem.find(x => x && x.date === date) : null;
+    const meme = avant && JSON.stringify([monStr(d.metier, 20), catsDemande(d.cats)]) === JSON.stringify([avant.metier || '', avant.cats || null]);   // le métier tel qu'il est ÉCRIT : un métier fermé ne passe pas pour « inchangé »
+    if (meme) continue;
+    const c = choixAbonnement(d.metier, d.cats);
+    if (!c.ok) return res.status(400).json({ error: c.error, message: MESSAGES_CHOIX[c.error] });
+  }
+  const demandes = brutes.map(d => ({
     app: monStr(d && d.app, 60), formule: monStr(d && d.formule, 40), statut: monStr(d && d.statut, 20), date: parseInt(d && d.date, 10) || 0, besoin: monStr(d && d.besoin, 200), users: monStr(d && d.users, 10),
     code: monStr(d && d.code, 40), lien: monStr(d && d.lien, 60),
-    metier: metierOk(d && d.metier) }));   // le métier DEMANDÉ : une liste fermée ; c'est la Tour qui le pose sur l'espace
+    metier: metierOk(d && d.metier),   // le métier DEMANDÉ : une liste fermée ; c'est la Tour qui le pose sur l'espace
+    cats: catsDemande(d && d.cats) }));   // les rubriques cochées par le client (liste fermée), `null` quand il n'a rien choisi : la Tour part alors du conseil du métier
   clientsData[email] = {
     email, nom: monStr(b.nom, 80), prenom: monStr(b.prenom, 40) || prev.prenom || '', nomFam: monStr(b.nomFam, 40) || prev.nomFam || '',
     tel: monStr(b.tel, 30) || prev.tel || '', entreprise: monStr(b.entreprise, 80),
@@ -9540,6 +9631,7 @@ app.post('/api/clients/sync', async (req, res) => {
     noteInterne: prev.noteInterne || '',            // les annotations internes du contrôle survivent aux synchros
     metier: prev.metier || '',                      // le métier est fixé depuis le contrôle, jamais par le client
     metierPar: prev.metierPar || '',
+    choix: prev.choix || undefined,                 // le métier et les rubriques choisis à la page de paiement : ce que la fiche relayée ne sait pas
     demandesTraitees: prev.demandesTraitees || {}
   };
   cliSave();
@@ -9666,7 +9758,7 @@ app.post('/api/clients/sync', async (req, res) => {
         'Contact : ' + (cli.nom || '—') + '\n' +
         'E-mail : ' + email + '\n' +
         'Téléphone : ' + (cli.tel || 'non renseigné') + '\n\n' +
-        nv.map(d => '• ' + (d.app || 'Application') + (d.formule ? ' — formule « ' + d.formule + ' »' : ' — formule non précisée') + (d.users ? '\n  Utilisateurs souhaités : ' + d.users : '') + (d.lien ? '\n  Nom de lien souhaité : ' + d.lien : '') + (d.metier ? '\n  Métier : ' + (METIERS_LBL[d.metier] || d.metier) : '\n  Métier : non précisé') + (d.besoin && d.besoin !== 'x' ? '\n  Besoin : ' + d.besoin : '')).join('\n') +
+        nv.map(d => '• ' + (d.app || 'Application') + (d.formule ? ' — formule « ' + d.formule + ' »' : ' — formule non précisée') + (d.users ? '\n  Utilisateurs souhaités : ' + d.users : '') + (d.lien ? '\n  Nom de lien souhaité : ' + d.lien : '') + (d.metier ? '\n  Métier : ' + (METIERS_LBL[d.metier] || d.metier) : '\n  Métier : non précisé') + (Array.isArray(d.cats) ? '\n  Rubriques cochées : ' + d.cats.length + ' sur ' + CATS_OK.length : '') + (d.besoin && d.besoin !== 'x' ? '\n  Besoin : ' + d.besoin : '')).join('\n') +
         '\n\n' + codeLigne +
         '\n── À faire ──\nRien n\'a été créé. Ouvre ta Tour → la fiche de cette entreprise → « ✅ Accepter la demande » : l\'espace se crée, la formule, le métier et le code promo s\'appliquent, puis « 📧 Envoyer par e-mail au client » lui envoie son lien et ses identifiants.\n\nhttps://teamop.fr/tour.html';
       mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,

@@ -264,11 +264,17 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   const PRIX_PRO = (/^\s*pro: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_PREMIUM = (/^\s*premium: \['(price_\w+)'/m.exec(SRC) || [])[1];
   vrai('les tarifs Pro et Business Premium du serveur sont lus', /^price_/.test(PRIX_PRO || '') && /^price_/.test(PRIX_PREMIUM || ''));
   const ESPACES_DEFAUT = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
+  /* ⛔ 23 octobre 2026 : une souscription NEUVE (aucune entreprise visée) exige un métier valide (`choixAbonnement`, `test-2891` le joue
+     sur le VRAI serveur : refus, métier fermé, rubriques hors liste, fiche rangée). Ici le référentiel n'existe pas : un faux qui
+     accepte « chauffage » et refuse le vide, et chaque corps en porte un par défaut — ce banc juge les tarifs, les références et les
+     adresses, pas le métier. Un corps qui le dit explicitement (`metier: ''`) reste refusé. */
   const appeler = async (body, entetes, comptes, espaces, usages, fermes) => {
     let envoye = '', statut = 0, sortie = null, appels = 0;
     const faux = { post: (chemin, h) => { faux._h = h; } };
+    const choixAbonnement = (m, c) => (m === 'chauffage' ? { ok: true, metier: m, cats: c || null } : { ok: false, error: m ? 'metier_inconnu' : 'metier_requis' });
+    if (body && typeof body === 'object' && !('metier' in body)) body = Object.assign({ metier: 'chauffage' }, body);
     new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme', 'factureImpayeARegler',
-      'espaceStripeAchat', 'formuleEtPlaces', 'impayeOptionARegler', 'optionsServies', 'optionsPayeesQte',
+      'espaceStripeAchat', 'formuleEtPlaces', 'impayeOptionARegler', 'optionsServies', 'optionsPayeesQte', 'choixAbonnement', 'MESSAGES_CHOIX', 'choixAbonnementNoter',
       AIDES_ROUTE.join('\n') + '\n' + SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' }, promos: [{ code: 'ESSAI-BANC-727', formule: 'premium', mois: 3 }] },
       async (url, opts) => { appels++; envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
@@ -280,7 +286,8 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
          `formuleEtPlaces`, `optionsServies`) pour ramener d'office les options déjà payées et refuser un ajout
          sans Pro. Ce bac à sable n'a pas de liste Stripe : rien n'est servi, rien n'est impayé — le comportement des options
          (couverture, ajout d'office, impayé d'option, codes d'erreur) se joue sur le VRAI serveur, `test-850` */
-      async () => ({ s: null, fraiche: true }), () => ({ f: null, places: null }), async () => null, () => [], () => ({}));
+      async () => ({ s: null, fraiche: true }), () => ({ f: null, places: null }), async () => null, () => [], () => ({}),
+      choixAbonnement, {}, () => {});
     await faux._h({ body, headers: entetes === undefined ? { authorization: 'Bearer ' + JETON_PROUVE } : entetes },
       { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie, appels };

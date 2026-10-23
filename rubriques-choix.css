@@ -1,0 +1,43 @@
+/* ══ « VOS RUBRIQUES » — la grille de choix de l'abonnement (voir rubriques-choix.js) ═══════════════════════════════
+   Lue par l'espace client, la page de paiement et la demande de création du site. Elle ne définit AUCUNE couleur : les pages qui
+   la chargent portent la palette du site, sous deux noms — `--m-…` (portail, paiement : /vitrine/v2/theme.css) ou sans préfixe
+   (le site : /vitrine/v2/site.css). Les jetons locaux `--rb-…` choisissent le premier qui existe, jour ET nuit (les deux palettes
+   suivent l'appareil, sans bouton — Justin, 29 septembre 2026). Une explication est du texte dans la page, jamais une infobulle :
+   un téléphone n'a pas de survol. Cibles de 44 px (le doigt), police de 16 px sur les champs (Safari ne zoome pas). */
+.rub {
+  --rb-texte: var(--m-text, var(--text)); --rb-corps: var(--m-body, var(--body)); --rb-doux: var(--m-sub, var(--sub));
+  --rb-ligne: var(--m-line, var(--line)); --rb-tuile: var(--m-tile, var(--tile)); --rb-carte: var(--m-card, var(--card));
+  --rb-lien: var(--m-link, var(--link)); --rb-accent: var(--m-accent, var(--accent)); --rb-sur-accent: var(--m-on-accent, var(--on-accent));
+  --rb-ok: var(--m-ok, var(--link)); --rb-seg: var(--m-seg, var(--seg));
+  display: block; margin: 8px 0 4px; color: var(--rb-corps); font-size: 14px; line-height: 1.5; text-align: left;
+}
+.rub * { box-sizing: border-box; }
+.rub-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.rub-titre { font-size: 16px; font-weight: 700; color: var(--rb-texte); }
+.rub-compte { font-size: 13px; font-weight: 600; color: var(--rb-lien); }
+.rub-aide { margin: 0 0 10px; font-size: 13px; color: var(--rb-doux); line-height: 1.55; }
+.rub-aide b { color: var(--rb-texte); font-weight: 600; }
+.rub-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.rub-btn { font: inherit; font-size: 13.5px; font-weight: 600; min-height: 44px; padding: 0 16px; border-radius: 999px; cursor: pointer; border: 1px solid var(--rb-ligne); background: var(--rb-tuile); color: var(--rb-texte); }
+.rub-btn:hover { border-color: var(--rb-lien); }
+.rub-btn:focus-visible, .rub-ligne:has(input:focus-visible) { outline: 2px solid var(--rb-lien); outline-offset: 2px; }
+.rub-groupe { margin: 0 0 12px; border: 1px solid var(--rb-ligne); border-radius: 18px; background: var(--rb-tuile); overflow: hidden; min-width: 0; }
+.rub-gt { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 11px 16px 9px; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--rb-doux); background: var(--rb-carte); border-bottom: 1px solid var(--rb-ligne); }
+.rub-gt small { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+.rub-ligne { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; min-height: 56px; cursor: pointer; border-top: 1px solid var(--rb-ligne); background: transparent; }
+.rub-gt + .rub-ligne { border-top: 0; }
+.rub-ligne input[type=checkbox] { flex: 0 0 auto; width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--rb-accent); cursor: pointer; }
+.rub-ligne.coche { background: color-mix(in srgb, var(--rb-lien) 6%, transparent); }
+.rub-corps { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.rub-nom { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 15px; font-weight: 600; color: var(--rb-texte); }
+.rub-nom i { font-style: normal; font-size: 16px; line-height: 1; }
+.rub-expl { font-size: 13.5px; color: var(--rb-corps); line-height: 1.5; }
+.rub-raison { font-size: 13px; color: var(--rb-doux); line-height: 1.5; }
+.rub-raison b { color: var(--rb-lien); font-weight: 600; }
+.rub-tag { font-style: normal; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: var(--rb-doux); background: var(--rb-seg); line-height: 1.4; }
+.rub-tag.inclus { color: var(--rb-ok); background: color-mix(in srgb, var(--rb-ok) 14%, transparent); }
+.rub-tag.propose { color: var(--rb-lien); background: color-mix(in srgb, var(--rb-lien) 12%, transparent); }
+.rub-toujours .rub-ligne { cursor: default; }
+.rub-fixe { flex: 0 0 22px; width: 22px; height: 22px; margin: 2px 0 0; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--rb-ok); background: color-mix(in srgb, var(--rb-ok) 14%, transparent); }
+@media (min-width: 760px) { .rub-ligne { padding: 13px 18px; } .rub-gt { padding-left: 18px; padding-right: 18px; } }
+@media (prefers-reduced-motion: no-preference) { .rub-ligne { transition: background .18s ease-out; } }

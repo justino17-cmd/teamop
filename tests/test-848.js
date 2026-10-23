@@ -97,8 +97,11 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
   console.log('\n1. Une seule liste de métiers, dans les quatre pièces');
   const ordreApp = evalue(litteral(APPN, 'const METIERS_ORDRE=['));
   const METIERS_APP = evalue(litteral(APPN, 'const METIERS={'));
-  const ordreSrv = evalue(litteral(SRVN, 'const METIERS_OK = ['));
-  const lblSrv = evalue(litteral(SRVN, 'const METIERS_LBL = {'));
+  /* 23 octobre 2026 : la liste du serveur n'est plus un littéral — elle vient de `metiers.json` (champ `ouverts`, l'interrupteur
+     unique) par `server/metiers.js`. On interroge donc le VRAI module, avec les vraies listes de rubriques du serveur. */
+  const modMetiers = require(path.join(RACINE, 'server', 'metiers.js'))(path.join(RACINE, 'metiers.json'),
+    evalue(litteral(SRVN, 'const CATS_OK = [')), evalue(litteral(SRVN, 'const CATS_TOUJOURS = [')));
+  const ordreSrv = modMetiers.ordre, lblSrv = modMetiers.libelles();
   const lblTour = evalue(litteral(TOURN, 'var MET_L={'));
   const lblPort = evalue(litteral(PORTN, 'const METIER_L={'));
   vrai('(population) les quatre listes se lisent dans le CODE (app.html, serveur, Tour, portail) et portent treize métiers (les douze du site, plus « Autre »)',
