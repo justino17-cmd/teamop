@@ -20,6 +20,8 @@ function quand(ts, maintenant) {
   if (p.date === veille.date) return 'hier à ' + heureParis(ts);
   return 'le ' + p.jour + ' ' + MOIS[p.mois] + ' à ' + heureParis(ts);
 }
+/* « 23 novembre 2026 » : un jour civil de Paris, en toutes lettres */
+const dateLongue = ts => { const p = parisParties(ts); return p.jour + ' ' + MOIS[p.mois] + ' ' + p.annee; };
 const cap = t => { t = String(t || ''); return t.charAt(0).toUpperCase() + t.slice(1); };
 const court = (t, n) => { t = String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 const pluriel = (n, un, plus) => (n === 1 ? un : plus);
@@ -37,4 +39,4 @@ function plusUnMois(ts) {
   const dernier = new Date(Date.UTC(a, mm, 0)).getUTCDate();
   return tsParis(a, mm, Math.min(p.jour, dernier), 23, 59);
 }
-module.exports = { heureParis, jourParis, quand, cap, court, pluriel, liste, joursEntre, plusUnMois, parisParties, tsParis, semaineIso };
+module.exports = { heureParis, jourParis, quand, dateLongue, cap, court, pluriel, liste, joursEntre, plusUnMois, parisParties, tsParis, semaineIso };

@@ -206,7 +206,18 @@ module.exports = function contrats(app, ctx) {
   app.post('/api/monitor/contrats/valider', monPatronStrict, (req, res) => { const b = req.body || {}; reponse(res, valider(String(b.type || ''), Number(b.n), req.tourUser && req.tourUser.nom)); });
   app.post('/api/monitor/contrats/retirer', monPatronStrict, (req, res) => { const b = req.body || {}; reponse(res, retirer(String(b.type || ''), Number(b.n), req.tourUser && req.tourUser.nom)); });
 
-  return { enVigueur, brouillon, valider, creerPourClient, creerPaquet, semer, marquerEnvoye, marquerAccepte, estIllisible: illisible, TYPES };
+  /* LA LECTURE DES AGENTS (23 octobre 2026) : des NOMBRES, jamais un texte de contrat, un numéro de dossier ni un nom — c'est ce que Nina relance et que Victor compte.
+     `null` si un registre est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
+  function etat() {
+    if (illisible()) return null;
+    const t = maintenant();
+    const attente = clients.filter(c => c.envoyeLe && !c.accepteLe);
+    const plus = attente.reduce((m, c) => Math.max(m, t - c.envoyeLe), 0);
+    return { total: clients.length, envoyes: clients.filter(c => c.envoyeLe).length, acceptes: clients.filter(c => c.accepteLe).length, enAttente: attente.length,
+      plusVieuxJours: Math.floor(plus / 86400000), paquetsBloques: Object.keys(PAQUETS).filter(k => paquetManquant(k).length).length, paquetsTotal: Object.keys(PAQUETS).length,
+      piecesAConfirmer: Object.keys(TYPES).filter(ty => versions(ty).some(x => x.statut === 'brouillon' && MARQUEUR.test(String(x.texte).normalize('NFC')))).length };
+  }
+  return { enVigueur, brouillon, valider, creerPourClient, creerPaquet, semer, marquerEnvoye, marquerAccepte, estIllisible: illisible, etat, TYPES };
 };
 module.exports.TYPES = TYPES;
 module.exports.PAQUETS = PAQUETS;

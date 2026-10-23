@@ -84,7 +84,9 @@ const SCHEMAS = {
   /* ce qu'un agent DEMANDE à un autre (file de tâches) */
   verifier_paiement: { espace: SLUG },
   preparer_espace:   { espace: SLUG, formule: REF },
-  escalade_humain:   { fil: REF, motif: ['demande_humain', 'litige', 'sensible', 'blocage', 'urgence'] },
+  /* `rgpd` (23 octobre 2026) : Camille passe à NINA une demande d'exercice de droits reçue par courrier (accès, effacement…). Le délai légal d'UN MOIS court dès
+     la réception ; Nina le tient (`agent-nina.js`). Le texte de la demande ne traverse pas : `fil` est une référence, rien d'autre. */
+  escalade_humain:   { fil: REF, motif: ['demande_humain', 'litige', 'sensible', 'blocage', 'urgence', 'rgpd'] },
   signaler_erreur:   { source: ['site', 'api', 'stripe', 'mail', 'sauvegarde', 'instagram'], ref: REF },
   relire_envoi:      { brouillon: REF },
 };

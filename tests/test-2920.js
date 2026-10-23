@@ -22,7 +22,7 @@ const R = require(S('plateforme-regles.js'));
 const IA = require(S('incidents-agents.js'));
 
 console.log('\n1. La table des règles');
-v('(population) 48 règles, des clés uniques', [R.REGLES.length, new Set(R.REGLES.map(r => r.cle)).size], [48, 48]);
+v('(population) 51 règles, des clés uniques', [R.REGLES.length, new Set(R.REGLES.map(r => r.cle)).size], [51, 51]);
 vrai('chaque règle a un propriétaire connu, un niveau et une zone de LISTES FERMÉES, une condition source et des pistes', R.REGLES.every(r => ['max', 'theo', 'nina'].includes(r.proprio) && R.NIVEAUX.includes(r.niveau) && R.ZONES.includes(r.zone) && r.ref && r.pistes && typeof r.test === 'function'));
 v('trois propriétaires, chacun a de quoi faire', ['max', 'theo', 'nina'].map(p => R.REGLES.filter(r => r.proprio === p).length > 0), [true, true, true]);
 v('⛔ un état de santé en BONNE FORME ne déclenche rien — pour aucun propriétaire', ['max', 'theo', 'nina'].map(p => R.evaluer(SANTE_BONNE(), p).size), [0, 0, 0]);
@@ -32,7 +32,11 @@ console.log('\n2. ⛔ LES SEUILS SONT CEUX DE surveillance.js — relus dans le 
 const SRC = fs.readFileSync(path.join(RACINE, '.github', 'scripts', 'surveillance.js'), 'utf8');
 const CODE = nu(SRC);
 v('(population) retirer les commentaires n’avale aucun code : autant de « problems.push( » avant qu’après', (CODE.match(/problems\.push\(/g) || []).length, (SRC.match(/problems\.push\(/g) || []).length);
-v('chaque condition source (`ref`) est encore écrite dans le code de la surveillance horaire', R.REGLES.filter(r => !CODE.includes(r.ref)).map(r => r.cle), []);
+v('chaque condition source (`ref`) est encore écrite dans le code de la surveillance horaire', R.REGLES.filter(r => !r.src && !CODE.includes(r.ref)).map(r => r.cle), []);
+/* les règles que le SERVEUR relève (verrous, preuve de clé refusée) ne sont pas dans la surveillance horaire : leur `ref` est relue dans le fichier du serveur qui les écrit */
+const DU_SERVEUR = R.REGLES.filter(r => r.src);
+v('(population) trois règles viennent du serveur lui-même (index.js, comptes.js)', DU_SERVEUR.map(r => r.cle), ['verrou_tour', 'verrou_portail', 'cle_invalide']);
+v('…et leur condition est encore écrite dans le fichier du serveur qui les porte (commentaires retirés)', DU_SERVEUR.filter(r => !nu(fs.readFileSync(path.join(RACINE, 'server', r.src), 'utf8')).includes(r.ref)).map(r => r.cle), []);
 /* les bornes sont tirées de la condition ELLE-MÊME : `j.chemin > N` / `>= N` */
 const parChemin = (chemin, valeur) => { const j = SANTE_BONNE(); let c = j; const ks = chemin.split('.').slice(1); for (let i = 0; i < ks.length - 1; i++) { c[ks[i]] = c[ks[i]] && typeof c[ks[i]] === 'object' ? c[ks[i]] : {}; c = c[ks[i]]; } c[ks[ks.length - 1]] = valeur; return j; };
 const numeriques = R.REGLES.filter(r => !r.composee).map(r => ({ r, m: /^(j\.[\w.]+) (>=|>) (\d+)$/.exec(r.ref) })).filter(x => x.m);

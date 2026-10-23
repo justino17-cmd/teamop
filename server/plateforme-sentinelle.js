@@ -85,7 +85,7 @@ module.exports = function sentinelle(ctx) {
         if (annonces >= ANNONCES_PAR_PASSAGE) break;
         const p2 = agents.peutAgir(proprio); if (!p2.ok) break;          // revérifié avant chaque geste
         /* 1. l'incident : le registre de la Tour, un texte de NOTRE code, aucune entreprise listée */
-        if (!e.incident) {
+        if (!e.incident && !(R.PAR_CLE.get(e.cle) || {}).sansIncident) {     // un verrou de connexion s'annonce, il n'ouvre pas d'incident
           const o = incidents.ouvrir({ agent: proprio, signature: 'agent|' + proprio + '|' + e.cle + '|' + e.id, gravite: R.GRAVITE[e.niveau], regle: e.cle,
             message: 'Surveillance — ' + O.cap(titre(e)) });
           if (o.ok) { etat.marquer(e.id, { incident: o.id }); e.incident = o.id; note('incident ouvert', { cible: e.cle, resultat: 'ok', detail: e.niveau }); }
@@ -132,7 +132,7 @@ module.exports = function sentinelle(ctx) {
           if (f.ok || f.raison === 'introuvable') etat.marquer(e.id, { incidentFerme: true });
         }
       }
-      return { actives: actives.size, nouveaux: suivi.nouveaux.length, annonces, retablis };
+      return { actives: actives.size, nouveaux: suivi.nouveaux.length, cles: suivi.nouveaux.map(e => e.cle), annonces, retablis };
     } catch (e) {
       note('passage', { cible: 'sante', resultat: 'erreur', detail: String((e && e.message) || e).slice(0, 100) });
       return { saute: 'erreur' };

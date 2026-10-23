@@ -218,11 +218,11 @@ const REGLES = [
     pistes: 'Chaque heure ainsi est une date perdue pour toujours. Journal : journalctl -u teamop-api | grep balayage.' },
   { cle: 'conservation_echu', proprio: 'theo', zone: 'conservation', niveau: 'important', ref: 'j.conservation.echu === true',
     test: j => !present(j, 'conservation.erreur') && vrai(j, 'conservation.actif') && vrai(j, 'conservation.echu'), valeurs: () => ({}),
-    texte: () => 'au moins une entreprise a dépassé les 24 mois de conservation annoncés dans les CGV : nous gardons ses données au-delà de ce que nous avons écrit publiquement',
+    texte: v => (v.entreprises > 0 ? nb(v.entreprises) + ' ' + pl(v.entreprises, 'entreprise a dépassé', 'entreprises ont dépassé') : 'au moins une entreprise a dépassé') + ' les 24 mois de conservation annoncés dans les CGV : nous gardons ses données au-delà de ce que nous avons écrit publiquement',
     pistes: 'Ce n’est pas une panne, c’est une exposition (limitation de conservation du RGPD). La suppression est un geste fixe : elle reste à Justin.' },
   { cle: 'conservation_preavis', proprio: 'theo', zone: 'conservation', niveau: 'info', ref: 'j.conservation.preavis === true',
     test: j => !present(j, 'conservation.erreur') && vrai(j, 'conservation.actif') && vrai(j, 'conservation.preavis'), valeurs: () => ({}),
-    texte: () => 'au moins une entreprise entre dans les 30 derniers jours de conservation : les CGV promettent un courriel de préavis',
+    texte: v => (v.entreprises > 0 ? nb(v.entreprises) + ' ' + pl(v.entreprises, 'entreprise entre', 'entreprises entrent') : 'au moins une entreprise entre') + ' dans les 30 derniers jours de conservation : les CGV promettent un courriel de préavis',
     pistes: 'Rien n’envoie ce courriel : à faire à la main. Combien et qui : dans la Tour, la conservation.' },
 
   /* ═══ NINA — la sécurité ═══ */
@@ -231,6 +231,20 @@ const REGLES = [
     valeurs: j => ({ refus: refusReels(j) }),
     texte: v => 'des appareils se font refuser leur courrier maintenant (' + nb(v.refus) + ' refus qui ne sont ni une version ancienne ni la bêta) : une entreprise vivante dont la preuve de clé est refusée',
     pistes: 'Ces gens-là n’ont plus leur courrier (réception, envoi, boîte connectée). Qui exactement : dans la Tour, /api/mail/cles. Pour rouvrir le temps de comprendre : mailPreuveExigee à false dans config.json.' },
+  /* Ce que le SERVEUR relève déjà et que `/health` ne publie pas : Nina le lit par `securite()` (injecté) et le joint à l'état de santé sous `j.securite`. `src` : le fichier
+     du serveur où la règle est écrite (la surveillance horaire ne la connaît pas) — le banc y relit `ref`. Pas de seuil de notre cru : un verrou existe quand le serveur l'a posé. */
+  { cle: 'verrou_tour', proprio: 'nina', zone: 'securite', niveau: 'info', sansIncident: true, src: 'index.js', ref: 'const monLock = new Map()',
+    test: j => sup(j, 'securite.verrousTour', 0), valeurs: j => ({ comptes: num(at(j, 'securite.verrousTour')) }),
+    texte: v => nb(v.comptes) + ' compte' + pl(v.comptes, '', 's') + ' de la Tour (ou de la bêta) verrouillé' + pl(v.comptes, '', 's') + ' quinze minutes après cinq échecs de connexion d’affilée',
+    pistes: 'Une faute de frappe suffit à poser un verrou. Si ce n’est personne de l’équipe, c’est à surveiller : le journal de la Tour (Système) montre les tentatives refusées.' },
+  { cle: 'verrou_portail', proprio: 'nina', zone: 'securite', niveau: 'info', sansIncident: true, src: 'comptes.js', ref: 'ECHECS_MAX = 8',
+    test: j => sup(j, 'securite.verrousPortail', 0), valeurs: j => ({ comptes: num(at(j, 'securite.verrousPortail')) }),
+    texte: v => nb(v.comptes) + ' compte' + pl(v.comptes, '', 's') + ' du portail client bloqué' + pl(v.comptes, '', 's') + ' quinze minutes après huit échecs de mot de passe',
+    pistes: 'Le blocage est par compte, pas par adresse IP. Un client qui se trompe en est la cause la plus fréquente ; plusieurs comptes à la fois, c’est autre chose.' },
+  { cle: 'cle_invalide', proprio: 'nina', zone: 'securite', niveau: 'important', src: 'index.js', ref: 'invalide: cleEquipeVu.invalide',
+    test: j => sup(j, 'securite.clesInvalides', 0), valeurs: j => ({ appareils: num(at(j, 'securite.clesInvalides')) }),
+    texte: v => nb(v.appareils) + ' présentation' + pl(v.appareils, '', 's') + ' d’une preuve de clé d’équipe REFUSÉE depuis mon dernier passage : cette série doit rester à zéro',
+    pistes: 'Une preuve invalide, c’est une clé qui ne correspond pas à l’entreprise : un appareil mal rattaché ou une tentative. Les routes concernées sont dans /health (cles.parRoute), sans entreprise nommée.' },
 ];
 
 /* ON ALARME SUR LA RÉCENCE, PAS SUR LE TOTAL (`surveillance.js`) : `ts` est la date du DERNIER refus */
