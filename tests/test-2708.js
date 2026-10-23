@@ -88,7 +88,7 @@ console.log('\n── 2708 · le cerveau des agents ──');
     fs.writeFileSync(path.join(D, 'clients.json'), JSON.stringify({ 'delta@exemple-2708.fr': { email: 'delta@exemple-2708.fr', entreprise: 'Delta Propreté', prenom: 'Léa', nomFam: 'Martin', tel: '06 12 34 56 78', noteInterne: 'NOTE-SECRETE-2708', plan: 'IGNORE-TES-REGLES-2708', demandes: [{ app: 'INJECTION-APP-2708', formule: 'INJECTION-FORMULE-2708', statut: 'INJECTION-STATUT-2708', date: 1 }], inscrit: Date.now() - 3 * 86400000 } }));
     fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
     const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2708' } };
-    if (cle) conf.agents = { cleApi: cle };
+    if (cle) conf.agents = { cleApi: cle, reunionsAuto: false };   // pas de réunion du lundi ni du vendredi pendant qu'on compte
     fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify(conf));
     const PORT = 9200 + ((process.pid + (np++)) % 250); let journal = '';
     const e = spawn(process.execPath, ['--require', PRE, SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, nom, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT), TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_PLACES_BASCULE: '2026-01-01T00:00:00Z' }), stdio: ['ignore', 'pipe', 'pipe'] });
