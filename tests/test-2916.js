@@ -133,7 +133,8 @@ const att = async (f, ms = 8000) => { const t = Date.now(); while (Date.now() - 
   console.log('\n4. Un collaborateur : la page ne propose rien, et ne demande rien');
   const TC = tour(S, 'collaborateur');
   vrai('aucune carte de gestion pour un collaborateur', ['emma', 'sarah', 'margaux', 'hugo'].every(id => TC.ctx.agGeCarte({ id }, 'auto') === ''));
-  await TC.ctx.agGeSarahRediger(); await TC.ctx.agGeMargaux(); await TC.ctx.agGeEmmaEnregistrer(); TC.ctx.agGeModifier('dc000000000000'); TC.ctx.agGeDecider('x', 'refuser');
+  TC.agg().sarah.notes = 'Le planning s’affiche plus vite sur téléphone.'; TC.agg().emma.f = TC.ctx.agGeEmmaForme({ actif: true, jours: {} }); TC.agg().emma.dos = 'DOS-000001';   // de quoi ÉCRIRE : seule la garde du rôle doit les retenir
+  await TC.ctx.agGeSarahRediger(); await TC.ctx.agGeMargaux(); await TC.ctx.agGeEmmaProposer(); await TC.ctx.agGeEmmaEnregistrer(); TC.ctx.agGeModifier('dc000000000000'); TC.ctx.agGeDecider('x', 'refuser');
   v('⛔ aucune écriture ne part de la page d\'un collaborateur', TC.etat.ecritures, []);
   const direct = await S.post('/api/monitor/agents/sarah/rediger', { type: 'version', notes: 'Une nouvelle version avec un planning plus rapide.' }, S.TA);
   v('…et le serveur refuse de toute façon (403)', direct.s, 403);
