@@ -42,7 +42,11 @@ console.log('\n── 2891 · le métier est obligatoire à l\'abonnement, les r
   catch (e) { console.log('  … SAUTÉ : server/node_modules absent (cd server && npm i)'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
   const CATS_OK = lit('CATS_OK');
   vrai('(population) CATS_OK (38 rubriques cochables) est lu dans le code du serveur', Array.isArray(CATS_OK) && CATS_OK.length === 38);
-  const METIERS = JSON.parse(fs.readFileSync(path.join(RACINE, 'metiers.json'), 'utf8'));
+  /* Le vrai `metiers.json` ouvre les vingt-trois métiers depuis le 23 octobre 2026 : le serveur de ce banc lit un référentiel FABRIQUÉ où
+     les dix nouveaux restent fermés (tests/metiers-banc.js), pour que « un métier fermé est refusé » prouve quelque chose. */
+  const REFB = require('./metiers-banc.js').ecrire(RACINE, banc);
+  vrai('(population) le référentiel du banc est FABRIQUÉ : le vrai fichier ouvre ' + REFB.reel.ouverts.length + ' métiers, celui du banc ' + REFB.json.ouverts.length, REFB.reel.ouverts.length === REFB.reel.ordreMetiers.length && REFB.json.ouverts.length === 13);
+  const METIERS = REFB.json;
   const OUVERTS = METIERS.ouverts, NOUVEAUX = METIERS.ordreMetiers.filter(k => !OUVERTS.includes(k));
   vrai('(population) le référentiel ferme encore des métiers (' + NOUVEAUX.length + ') — sinon « un métier fermé est refusé » ne prouverait rien', NOUVEAUX.length >= 1, NOUVEAUX.length);
   const FERME = NOUVEAUX[0];
@@ -75,7 +79,7 @@ console.log('\n── 2891 · le métier est obligatoire à l\'abonnement, les r
   /* Stripe simulé DANS le processus du serveur : il note chaque appel, et ne répond que ce qu'il faut à un paiement */
   const APPELS = path.join(banc, 'appels.jsonl');
   const PRE = path.join(banc, 'stripe-simule.js');
-  fs.writeFileSync(PRE, `const vrai = globalThis.fetch; const fs = require('fs'); let n = 0;
+  fs.writeFileSync(PRE, require('./metiers-banc.js').preload(RACINE, REFB.chemin) + `const vrai = globalThis.fetch; const fs = require('fs'); let n = 0;
 globalThis.fetch = async function (url, opts) {
   const u = String(url && url.url || url);
   if (!u.startsWith('https://api.stripe.com/')) return vrai.apply(this, arguments);

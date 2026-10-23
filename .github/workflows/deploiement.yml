@@ -11,7 +11,9 @@ name: Déploiement du serveur
 on:
   push:
     branches: [main]
-    paths: ['server/**', '.github/workflows/deploiement.yml']
+    # metiers.json : le serveur le lit AU DÉMARRAGE (`METIERS_OK = metiersMod.ouverts`). Sans lui ici, ouvrir un métier publiait le
+    # site, la Tour et le portail sans redémarrer l'API, qui refusait le métier (`metier_ferme`) — relecture du 23 octobre 2026.
+    paths: ['server/**', 'metiers.json', '.github/workflows/deploiement.yml']
   workflow_dispatch: {}      # lancement manuel : onglet Actions → « Déploiement du serveur » → Run workflow
 
 concurrency:

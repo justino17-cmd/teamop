@@ -125,14 +125,18 @@ const MAIL = (formule, corps) => 'FORMULE : ' + formule + '\nObjet : Notre propo
     Z.nettoyer();
     /* 23 octobre 2026 (fusion de l'intégration) : le référentiel du chantier métiers dit QUELS métiers s'abonnent (`ouverts`) — les autres (incendie, froid, piscine…) sont décrits mais fermés. Claude ne
        reçoit que les ouverts, et une clé fermée qu'il écrirait quand même n'est pas retenue : on n'annonce pas à un prospect les rubriques d'un métier qu'il ne peut pas souscrire. */
-    const fermes = Object.keys(REF.metiers).filter(k => !REF.ouverts.includes(k));
-    Z = monter(Object.assign({ modes: { chloe: 'brouillon' }, claude: () => 'METIER : ' + fermes[0] + '\n' + MAIL('pro', PROPOSITION.replace('OP GESTION Business, à 25 €', 'OP GESTION Pro, à 15 €')) }, inconnu));
+    /* Le vrai `metiers.json` ouvre les vingt-trois métiers depuis le 23 octobre 2026 : Chloé lit ici un référentiel FABRIQUÉ où les dix
+       nouveaux restent fermés (tests/metiers-banc.js) — sinon « une clé fermée n'est pas retenue » ne prouverait rien. */
+    const bacRef = fs.mkdtempSync(path.join(require('os').tmpdir(), 'b2904r-'));
+    const REFB = require('./metiers-banc.js').ecrire(RACINE, bacRef);
+    const fermes = REFB.fermes;
+    Z = monter(Object.assign({ modes: { chloe: 'brouillon' }, metiersPath: REFB.chemin, claude: () => 'METIER : ' + fermes[0] + '\n' + MAIL('pro', PROPOSITION.replace('OP GESTION Business, à 25 €', 'OP GESTION Pro, à 15 €')) }, inconnu));
     r = await Z.chloe.surReponse(ev());
     const liste = (/avec UNE clé de cette liste : ([^\n]+)/.exec(Z.recus[0].messages[0].content) || [])[1] || '';
-    vrai('(population) le référentiel décrit des métiers fermés ET des métiers ouverts', fermes.length >= 5 && REF.ouverts.length >= 10, fermes.length + ' fermés, ' + REF.ouverts.length + ' ouverts');
-    v('⛔ la liste donnée à Claude est celle des métiers OUVERTS, rien que eux', liste.split(', ').sort(), REF.ouverts.slice().sort());
+    vrai('(population) le référentiel du banc décrit des métiers fermés ET des métiers ouverts (le vrai fichier les ouvre tous : ' + REFB.reel.ouverts.length + ')', fermes.length >= 5 && REFB.json.ouverts.length >= 10, fermes.length + ' fermés, ' + REFB.json.ouverts.length + ' ouverts');
+    v('⛔ la liste donnée à Claude est celle des métiers OUVERTS, rien que eux', liste.split(', ').sort(), REFB.json.ouverts.slice().sort());
     vrai('⛔ …et une clé de métier FERMÉ écrite quand même n\'est pas retenue (aucune rubrique devinée : les emplacements restent, « à revoir »)', r.metier === '' && r.controle === 'a_revoir', JSON.stringify(r));
-    Z.nettoyer();
+    Z.nettoyer(); try { fs.rmSync(bacRef, { recursive: true, force: true }); } catch (e) {}
   }
 
   console.log('\n3. Une proposition par adresse ; plafonds ; arrêt ; référentiel ; registre ; hors sujet');
