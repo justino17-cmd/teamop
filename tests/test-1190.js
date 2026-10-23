@@ -36,7 +36,7 @@ const existe = h => APP.indexOf(h) >= 0;
 
 const FONCTIONS = ['function nextRecurDate(', 'function intRecurNext(', 'function prodLineUnit(', 'function rapportProduitsLibres(',
   'function rapportPdfStr(', 'async function printRapport(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(',
-  'const PH_MARQUE=', 'function photoPid(', 'function photoSrc(', 'function planImgSrc(', 'const MENTION_REGL=', 'function rapportChampsPerso('];
+  'const PH_MARQUE=', 'function photoPid(', 'function photoSrc(', 'function planImgSrc(', 'const MENTION_REGL=', 'function rapportChampsPerso(', 'function mentionRegl(', 'function ammVisible('];
 if (existe('function rapportDuree(')) FONCTIONS.splice(3, 0, 'function rapportDuree(');
 const SOURCES = FONCTIONS.map(decoupe);
 vrai('les déclarations sont extraites du fichier réel (' + SOURCES.length + ')', SOURCES.every(x => x.length > 10));
@@ -53,7 +53,7 @@ function monter(base) {
     function uid(){ return 'n'+(++__uid); } function intNum(){ return 'INT-2026-'+String(++__num+1).padStart(3,'0'); }
     function intTechIds(i){ return i.techIds||(i.techId?[i.techId]:[]); } function notifyTechNewInt(c){ __notifs.push(c.id); }
     function intHisto(i,t){ __histo.push(t); } function logEvent(){} function fmtShort(d){ return String(d||''); }
-    function todayISO(){ return '2026-10-16'; } function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+    function estMetier3D(){ return true; } /* ces bancs jouent la 3D : la mention et la colonne AMM y sont celles d'avant */ function todayISO(){ return '2026-10-16'; } function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
     function techNames(i){ return 'Tom Sonde'; } function produit(id){ return (db.produits||[]).find(p=>p.id===id)||{}; }
     function prodLineName(l){ return l.nomLibre||produit(l.produitId).nom||'—'; } function prodLineAmm(l){ return produit(l.produitId).amm||''; }
     function rapportConstatLignes(i){ return []; } function t3dPdfHtml(){ return ''; } function paPdfHtml(){ return ''; }

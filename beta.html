@@ -10169,6 +10169,9 @@ function metierPack(){ return METIERS[metierId()]; }
    · un document déjà ÉMIS se relit tel quel : les lignes d'un rapport ou d'une fiche se lisent sur la DONNÉE (présente ou
      non), jamais sur le métier d'aujourd'hui. */
 function estMetier3D(){ return metierId()==='3d'; }
+/* « Zones traitées » est un mot de la 3D ; ailleurs on parle de zones CONCERNÉES (la clôture guidée le disait déjà). Un seul libellé
+   pour la fiche, le rapport imprimé, le PDF, le courriel et la frise : le même document ne dit plus deux choses. */
+function libZones(){ return estMetier3D()?'Zones traitées':'Zones concernées'; }
 /* ⛔ v773 — LES CATÉGORIES DE PRODUITS SUIVENT LE MÉTIER (Justin, 22 octobre 2026 : « je vérifie bien les catégories d'OP
    GESTION par métier, car là je trouve ça léger »). Jusqu'ici `CAT_LIST` — les huit catégories de l'anti-nuisibles — servait à
    tout le monde : un plombier rangeait ses raccords sous « TP14 — Rodenticide ». UNE fonction rend la liste du métier courant :
@@ -10186,7 +10189,15 @@ function categorieListe(cat,nom){ const L=categoriesProduit(); if(L.includes(cat
   const n=norm(String(cat||'').trim()); return n?(L.find(c=>norm(c)===n)||''):''; }
 function intTypes(){ const p=metierPack(); return (p&&p.types)?p.types:INT_TYPES; }
 /* La beta voit tout : meme raison que planBloque (chercher BETA_ESSAI a cote de PLAN_BLOQUE). */
-function metierBloque(k){ if(BETA_ESSAI) return false; const p=metierPack(); return !!(p&&p.masque&&p.masque.indexOf(k)>=0); }
+/* ⛔ CE QUI EST SAISI SE LIT : le masque d'un métier ne ferme pas un écran dont l'entreprise a DÉJÀ des données. Une entreprise
+   abonnée sous un autre métier qui a rangé des enveloppes d'encaissement (registre d'espèces et de chèques, rien d'anti-nuisibles)
+   ou des mouvements de box (consommation box par box) perdrait sinon l'accès à l'écran qui les ouvre, sans un mot — les données
+   resteraient, plus rien ne les ouvrirait. Même règle que `certibVisible`. Les autres rubriques du masque (registre, box, carte
+   des box, devis xylophage) restent propres à la 3D. UNE seule fonction (les bancs la lisent par son nom). */
+function metierBloque(k){ if(BETA_ESSAI) return false; const p=metierPack(); if(!(p&&p.masque&&p.masque.indexOf(k)>=0)) return false;
+  try{ if(k==='enveloppes'&&(db.enveloppes||[]).length) return false;
+    if(k==='saisieConso'&&(db.mouvements||[]).some(m=>m&&m.boxId&&m.boxId!==STOCKAGE_ID)) return false; }catch(e){}
+  return true; }
 function metierSet(id){
   if(!METIERS[id]) return;
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
@@ -23900,11 +23911,11 @@ function intProdCard(i,edit){ const lines=i.produitsUtilises||[];
     ${lines.length?lines.map(l=>{ const cat3=l.categorie&&T3D_CATS[l.categorie];
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px"><b style="flex:1;min-width:0">${cat3?cat3.ic+' ':''}${esc(prodLineName(l))}</b>${prodLineAmm(l)?`<span class="tag mono" style="font-size:10px">AMM ${esc(prodLineAmm(l))}</span>`:(l.nomLibre?'<span class="tag" style="font-size:10px">hors stock</span>':'')}<span style="color:var(--t2)">× ${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</span></div>`; }).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:2px 0 8px">Aucun produit renseigné.</div>'}
-    ${i.stockDeduit?'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Stock déduit à sa clôture (règle d’avant).</div>':'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Noté sur le rapport et au registre — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.</div>'}
+    ${i.stockDeduit?'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Stock déduit à sa clôture (règle d’avant).</div>':`<div style="font-size:11.5px;color:var(--t3);margin-top:6px">${estMetier3D()?'Noté sur le rapport et au registre — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.':'Noté sur le rapport — le stock ne bouge pas : il baisse quand on se sert dans le stockage.'}</div>`}
     <div style="display:grid;gap:8px;margin-top:10px">
-      ${edit?`<div><div class="dt-lbl" style="margin-bottom:4px">Matériel utilisé</div><input value="${esc(i.materiel||'')}" placeholder="Ex : 2 pièges à glu, 1 grille anti-intrusion…" onchange="intEditField('${i.id}','materiel',this.value)" style="width:100%"></div>
-      <div><div class="dt-lbl" style="margin-bottom:4px">Zones traitées</div><input value="${esc(i.zones||'')}" placeholder="Ex : cuisine, cave, réserve…" onchange="intEditField('${i.id}','zones',this.value)" style="width:100%"></div>`
-      :roLine('Matériel utilisé',i.materiel)+roLine('Zones traitées',i.zones)}
+      ${edit?`<div><div class="dt-lbl" style="margin-bottom:4px">Matériel utilisé</div><input value="${esc(i.materiel||'')}" placeholder="${estMetier3D()?'Ex : 2 pièges à glu, 1 grille anti-intrusion…':'Ex : outillage, pièces, matériel posé…'}" onchange="intEditField('${i.id}','materiel',this.value)" style="width:100%"></div>
+      <div><div class="dt-lbl" style="margin-bottom:4px">${libZones()}</div><input value="${esc(i.zones||'')}" placeholder="${estMetier3D()?'Ex : cuisine, cave, réserve…':'Ex : salle de bain, cuisine, local technique…'}" onchange="intEditField('${i.id}','zones',this.value)" style="width:100%"></div>`
+      :roLine('Matériel utilisé',i.materiel)+roLine(libZones(),i.zones)}
     </div>
   </div>`; }
 /* ── B/F5. Note interne équipe (jamais sur le rapport) ── */
@@ -23928,6 +23939,14 @@ const RECO_3D=[
   'Équiper les aérations de grilles fines en bon état.',
   'Prévoir un passage de contrôle dans le délai recommandé.',
   'Nous informer immédiatement en cas de nouvelle activité observée.'];
+/* La mention des biocides (AMM, Certibiocide) ne regarde que l'anti-nuisibles : la 3D la porte comme avant, À L'IDENTIQUE ; un autre
+   métier ne la reçoit que si une ligne de produit PORTE une AMM (une base venue de la 3D : un document déjà émis se relit tel quel,
+   sur la donnée). Un plombier ne la lit donc ni à la clôture ni dans le PDF que son client reçoit. `lignes` : des lignes
+   `{produitId}` / `{nomLibre}` comme `produitsUtilises`. */
+function mentionRegl(lignes){ return ammVisible(lignes)?MENTION_REGL:''; }
+/* La colonne « N° AMM » d'un tableau de produits suit la même règle : la 3D l'a toujours ; un plombier ne reçoit pas un tableau dont
+   toute une colonne dit « — » ; une ligne qui porte une AMM la fait paraître (un document se relit tel quel). */
+function ammVisible(lignes){ return estMetier3D()||(lignes||[]).some(l=>!!prodLineAmm(l)); }
 const MENTION_REGL='Produits biocides utilisés conformément aux conditions de leurs autorisations de mise sur le marché (AMM indiquées). Utilisation par un personnel formé (Certibiocide). Tenir hors de portée des enfants et des animaux domestiques.';
 /* ═══════════ TRAITEMENTS PAR TYPE — questionnaires + matériel + produits RANGÉS PAR TYPE (style Organilog).
    · i.quest = { cat:{actif:true,reponses:{...}} }
@@ -25273,7 +25292,7 @@ function papImplPdfStr(cid,E,imgs,meta){
     const v=[String(po.num||''),(pl.nom||'')+(z?' — '+z:''),(PA_TYPES[po.type]||PA_TYPES.appat).lbl,pr.nom||'—',pr.amm||'—',po.secure?'Oui':'—'];
     v.forEach((t,k)=>TW(cols[k],y,k===0?8.4:8,t,k===0||(k===5&&po.secure)?1:0,DARK,larges[k])); y-=15; }));
   /* ─ mention réglementaire et signatures */
-  const ml=wrap(MENTION_REGL,118); if(y-ml.length*10-110<70) nouvellePage();
+  const mr=mentionRegl(plans.flatMap(pl=>(pl.postes||[]).map(po=>({produitId:po.produitId})))); const ml=mr?wrap(mr,118):[]; if(y-ml.length*10-110<70) nouvellePage();
   y-=8; ml.forEach(t=>{ T(M,y,7.6,t,0,GREY); y-=10; }); y-=10;
   const sw=(W-2*M-20)/2;
   [[M,'Signature du client','« Plan d’implantation reçu et approuvé »'],[M+sw+20,'Signature du technicien','']].forEach(([x,a,b])=>{
@@ -25526,7 +25545,7 @@ async function papDossierSanitaire(cid){
       ${ints.length?`<table><thead><tr><th>Date</th><th>Technicien</th><th>Postes relevés</th><th>États</th><th>Remarques</th></tr></thead><tbody>${relRows}</tbody></table>`:'<p class="muted">Aucun passage terminé.</p>'}
       <h2>3. Produits biocides utilisés</h2>
       ${prodRows?`<table><thead><tr><th>Produit</th><th>N° AMM</th><th>Matière active</th><th style="text-align:right">Qté (période)</th></tr></thead><tbody>${prodRows}</tbody></table>`:'<p class="muted">Aucun produit enregistré sur la période.</p>'}
-      <p style="font-size:9.5px;color:#777;margin-top:8px">${esc(MENTION_REGL)}</p>
+      ${mentionRegl(Object.values(prodMap).map(x=>({produitId:x.p.id})))?`<p style="font-size:9.5px;color:#777;margin-top:8px">${esc(MENTION_REGL)}</p>`:''}
       <h2>4. Certificats Certibiocide des techniciens</h2>
       ${techRows?`<table><thead><tr><th>Technicien</th><th>N° de certificat</th><th>Valide jusqu'au</th><th>Statut</th></tr></thead><tbody>${techRows}</tbody></table>`:'<p class="muted">Aucun technicien renseigné (n° Certibiocide à saisir dans la fiche équipe).</p>'}
       <h2>5. Courbe d'activité par zone — 12 derniers mois</h2>${curvesHtml}
@@ -25635,7 +25654,7 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
     ${!estMetier3D()?'':`    <div class="dt-lbl" style="margin-bottom:6px">Méthodes / actions</div>
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">${METHODES.map(n=>{ const on=intMeth.has(n); const ne=n.replace(/'/g,"\\'");
       return `<button type="button" onclick="intMeth.${on?'delete':'add'}('${ne}');assistRender()" style="cursor:pointer;font-size:12.5px;font-weight:700;padding:9px 13px;border-radius:14px;border:1px solid ${on?'var(--acc)':'var(--brd)'};background:${on?'var(--acc)':'var(--bg2)'};color:${on?'var(--on-acc)':'var(--t2)'}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')}</div>`}
-    <div class="field"><label>${estMetier3D()?'Zones traitées':'Zones concernées'}</label><input value="${esc(asW.zones)}" oninput="asW.zones=this.value" placeholder="${estMetier3D()?'Ex : cuisine, cave, réserve…':'Ex : salle de bain, cuisine, local technique…'}"></div>
+    <div class="field"><label>${libZones()}</label><input value="${esc(asW.zones)}" oninput="asW.zones=this.value" placeholder="${estMetier3D()?'Ex : cuisine, cave, réserve…':'Ex : salle de bain, cuisine, local technique…'}"></div>
     <div class="field"><label>Matériel utilisé</label><input value="${esc(asW.materiel)}" oninput="asW.materiel=this.value" placeholder="${estMetier3D()?'Ex : 2 pièges à glu, 1 grille anti-intrusion…':'Ex : outillage, pièces, matériel posé…'}"></div>`;
   } else if(s===2){ const lines=i.produitsUtilises=i.produitsUtilises||[];
     body=`<div class="form-sec" style="margin-top:0">3 · ${estMetier3D()?'Produits utilisés (registre)':'Produits et pièces utilisés'}</div>
@@ -25676,7 +25695,7 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
     <div class="field"><label>Signature du technicien ${asW.sigT?'✅':''}</label>
       <canvas id="as-sig-t" width="480" height="150" style="width:100%;height:150px;background:var(--deep);border:1px solid var(--brd);border-radius:10px;touch-action:none"></canvas>
       <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="asW.sigT='';clearSig('as-sig-t')">Effacer</button></div>
-    <div style="font-size:11.5px;color:var(--t3);margin:4px 0 12px">${esc(MENTION_REGL)}</div>
+    ${mentionRegl(i.produitsUtilises)?`<div style="font-size:11.5px;color:var(--t3);margin:4px 0 12px">${esc(MENTION_REGL)}</div>`:'<div style="height:4px"></div>'}
     <button type="button" class="btn" style="width:100%;justify-content:center;padding:15px;font-size:15.5px;font-weight:800;border-radius:100px" onclick="assistFinish('${i.id}')">✓ Clôturer l'intervention</button>
     <button type="button" class="btn ghost sm" style="width:100%;justify-content:center;margin-top:8px" onclick="closeModal();formRapport('${i.id}')">Ouvrir le formulaire complet à la place</button>`;
   }
@@ -26490,7 +26509,7 @@ function renderIntDetail(id){
         <select id="ip-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)"><option value="">— Produit —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.ref)} — ${esc(p.nom)}</option>`).join('')}</select>
         <input id="ip-qte" type="number" min="0.01" step="any" value="1" style="width:64px;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)">
         <button class="btn" onclick="intAddProduit('${id}')">＋</button></div>
-      <div style="font-size:12px;color:var(--t3);margin-top:8px">${i.stockDeduit?'Stock déduit à la clôture de cette intervention (règle d’avant).':'Noté sur le rapport et au registre — le stock ne bouge pas. Les n° AMM du catalogue apparaissent sur le rapport.'}</div>`;
+      <div style="font-size:12px;color:var(--t3);margin-top:8px">${i.stockDeduit?'Stock déduit à la clôture de cette intervention (règle d’avant).':(estMetier3D()?'Noté sur le rapport et au registre — le stock ne bouge pas. Les n° AMM du catalogue apparaissent sur le rapport.':'Noté sur le rapport — le stock ne bouge pas.')}</div>`;
   } else if(intTab==='equipement'){
     body=`${i.equipements.length? i.equipements.map((e,ix)=>`<div class="pl-row" style="cursor:default"><div class="pl-info"><div class="pl-title">${esc(e.nom)}</div><div class="pl-meta">${esc(e.reference)||'—'}${e.note?' · '+esc(e.note):''}</div></div><button class="btn danger sm" onclick="intDelEquip('${id}',${ix})">✕</button></div>`).join('')
       : '<div style="color:var(--t3);font-size:13px;padding:6px 0">Aucun équipement.</div>'}
@@ -27778,13 +27797,17 @@ async function aiGenRapport(id){ const i=db.interventions.find(x=>x.id===id); if
     'Société : '+soc,
     'Catégorie : '+(i.type||'—'),
     'Client : '+(clientName(i.clientId)||'—'),
-    'Adresse : '+(i.adresse||'—'),
+    'Adresse : '+(i.adresse||'—')
+  ].concat(estMetier3D()?[
     'Nuisibles : '+((i.nuisibles||[]).join(', ')||'—'),
     'Méthodes : '+((i.methodes||[]).join(', ')||'—'),
-    'Niveau d\'infestation : '+(rapConstat.infestation||'—'),
+    'Niveau d\'infestation : '+(rapConstat.infestation||'—')]:[]).concat([
     'Notes du technicien : '+(notes||'(aucune)')
-  ].join('\n');
-  const sys="Tu es un technicien expert en lutte anti-nuisibles en France. À partir des informations d'une intervention, rédige un COMPTE-RENDU d'intervention professionnel, clair et concis (4 à 8 phrases), à la première personne du pluriel (« nous avons »). Décris le constat, les actions réalisées et le traitement. Reste factuel, en français, sans inventer de produits ou de chiffres non fournis. Ne mets pas de titre, juste le paragraphe.";
+  ]).join('\n');
+  /* Hors 3D, ni la consigne ni le contexte ne parlent d'anti-nuisibles : un plombier ne reçoit pas un texte de dératiseur, et trois
+     lignes « — » (nuisibles, méthodes, infestation) ne partent pas chez Anthropic pour rien (sous-traitance.html). */
+  const sys=estMetier3D()?"Tu es un technicien expert en lutte anti-nuisibles en France. À partir des informations d'une intervention, rédige un COMPTE-RENDU d'intervention professionnel, clair et concis (4 à 8 phrases), à la première personne du pluriel (« nous avons »). Décris le constat, les actions réalisées et le traitement. Reste factuel, en français, sans inventer de produits ou de chiffres non fournis. Ne mets pas de titre, juste le paragraphe."
+    :"Tu es un technicien de terrain en France, dans le métier suivant : "+((metierPack()||{}).nom||'dépannage et entretien')+". À partir des informations d'une intervention, rédige un COMPTE-RENDU d'intervention professionnel, clair et concis (4 à 8 phrases), à la première personne du pluriel (« nous avons »). Décris ce qui a été constaté et les actions réalisées. Reste factuel, en français, sans inventer de pièces, de produits ou de chiffres non fournis. Ne mets pas de titre, juste le paragraphe.";
   if(ta){ ta.value='Rédaction en cours…'; ta.disabled=true; }
   try{
     const out=await callClaude(sys, ctx, 1200);
@@ -27984,7 +28007,7 @@ function rapportConstatLignes(i){ const co=i.constat||{}; const pk=Array.isArray
         if((i.methodes||[]).length) rows.push(['Méthodes employées',i.methodes.join(', ')]);
         if(co.infestation) rows.push(['Niveau d\'infestation',co.infestation]);
         else if(i.infestation) rows.push(['Niveau d\'infestation',{faible:'Faible',moyen:'Moyen',fort:'Fort'}[i.infestation]||i.infestation]);
-        if(i.zones) rows.push(['Zones traitées',i.zones]);
+        if(i.zones) rows.push([libZones(),i.zones]);
         if(i.materiel) rows.push(['Matériel utilisé',i.materiel]);
         if((co.indices||[]).length) rows.push(['Indices de présence',co.indices.join(', ')]);
         if(presta.length) rows.push(['Prestation réalisée',presta.join(', ')]);
@@ -28105,8 +28128,10 @@ function rapportPdfStr(i,E,imgs){
         else ligneLV(f.label||'',Array.isArray(v)?v.join(', '):v); }); y-=4; } }
   { const prods=rapportProduitsLibres(i);
     if(prods.length){ titre('Produits utilisés',30);
-      tableau([{t:'Désignation',x:M+6,w:236},{t:'Réf.',x:M+248,w:80},{t:'N° AMM',x:M+334,w:96},{t:'Qté',x:M+436,w:65,d:1}],
-        prods.map(l=>{ const p=produit(l.produitId); return [prodLineName(l),p.ref||'',prodLineAmm(l)||'—',(l.qte!=null?l.qte:1)+' '+prodLineUnit(l)]; })); } }
+      if(ammVisible(prods)) tableau([{t:'Désignation',x:M+6,w:236},{t:'Réf.',x:M+248,w:80},{t:'N° AMM',x:M+334,w:96},{t:'Qté',x:M+436,w:65,d:1}],
+        prods.map(l=>{ const p=produit(l.produitId); return [prodLineName(l),p.ref||'',prodLineAmm(l)||'—',(l.qte!=null?l.qte:1)+' '+prodLineUnit(l)]; }));
+      else tableau([{t:'Désignation',x:M+6,w:300},{t:'Réf.',x:M+312,w:118},{t:'Qté',x:M+436,w:65,d:1}],
+        prods.map(l=>{ const p=produit(l.produitId); return [prodLineName(l),p.ref||'',(l.qte!=null?l.qte:1)+' '+prodLineUnit(l)]; })); } }
 
   /* ─ le plan d'appâtage, postes à la couleur de LEUR ÉTAT sur ce passage (la légende du rapport imprimé) */
   { const plans=((db.plansSite||{})[i.clientId]||[]).filter(p=>p&&(p.postes||[]).length);
@@ -28159,7 +28184,7 @@ function rapportPdfStr(i,E,imgs){
     bloc(M,'1. Signature du client',imgs.sigCli,sm.cli,i.clientAbsent&&!i.signature);
     bloc(M+bw+24,'2. Signature du technicien',imgs.sigTech,sm.tech,false);
     y-=bh+30; }
-  if((i.produitsUtilises||[]).length){ y-=4; texte(MENTION_REGL,7.6,GREY); }
+  if((i.produitsUtilises||[]).length&&mentionRegl(i.produitsUtilises)){ y-=4; texte(MENTION_REGL,7.6,GREY); }
 
   pages.push(ops.join('\n'));
   const pied=(k,n)=>[LINE+' rg',M+' 56 '+L+' 0.8 re f',GREY+' rg','BT','/F1 7.2 Tf',M+' 44 Td',
@@ -28254,7 +28279,8 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
   /* v740 : nom, couleur, logo et coordonnées de la société de CETTE intervention (docEntete) */
   const H=docEntete(i.rapportModele), soc=H.nom, AC=H.couleur;
   // les produits rattachés à un type de traitement apparaissent dans leur section ; ici, les lignes « libres »
-  const prod=rapportProduitsLibres(i).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td><td>${esc(prodLineAmm(l)||'—')}</td><td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</td></tr>`;}).join('');
+  const prodAmm=ammVisible(rapportProduitsLibres(i));
+  const prod=rapportProduitsLibres(i).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td>${prodAmm?`<td>${esc(prodLineAmm(l)||'—')}</td>`:''}<td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</td></tr>`;}).join('');
   const equip=(i.equipements||[]).map(e=>`<tr><td>${esc(e.nom)}</td><td>${esc(e.reference)||''}</td></tr>`).join('');
   const champs=rapportChampsPerso(i).map(f=>{ const v=i.champs[f.id];
     if(f.type==='tableau'&&Array.isArray(v)) return `<div class="box"><b>${esc(f.label)}</b><table style="margin-top:6px"><thead><tr>${(f.colonnes||[]).map(co=>`<th>${esc(co)}</th>`).join('')}</tr></thead><tbody>${v.map(r=>`<tr>${(f.colonnes||[]).map((co,ci)=>`<td>${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
@@ -28279,13 +28305,13 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
       ${(()=>{ let t3=''; try{ t3=t3dPdfHtml(i); }catch(e){ t3=''; } return t3?`<h3 style="font-size:14px;margin-top:18px">Traitements réalisés — détail par type</h3>${t3}`:''; })()}
       ${(i.constat&&i.constat.recommandations)?`<div class="box" style="border-color:${AC}"><b>Recommandations</b><br>${esc(i.constat.recommandations).replace(/\n/g,'<br>')}</div>`:''}
       ${champs}
-      ${prod?`<h3 style="font-size:14px;margin-top:18px">Produits utilisés</h3><table><thead><tr><th>Désignation</th><th>Réf.</th><th>N° AMM</th><th style="text-align:right">Qté</th></tr></thead><tbody>${prod}</tbody></table>`:''}
+      ${prod?`<h3 style="font-size:14px;margin-top:18px">Produits utilisés</h3><table><thead><tr><th>Désignation</th><th>Réf.</th>${prodAmm?'<th>N° AMM</th>':''}<th style="text-align:right">Qté</th></tr></thead><tbody>${prod}</tbody></table>`:''}
       ${planApp}
       ${equip?`<h3 style="font-size:14px;margin-top:18px">Équipements</h3><table><thead><tr><th>Équipement</th><th>Référence</th></tr></thead><tbody>${equip}</tbody></table>`:''}
       ${photos?`<h3 style="font-size:14px;margin-top:18px">Photos</h3><div>${photos}</div>`:''}
       ${(()=>{ const sm=i.signatureMeta||{}; const meta=mt=>mt?`<div style="font-size:10px;color:#666;margin-top:3px">${esc(mt.nom||'')} — le ${new Date(mt.ts).toLocaleDateString('fr-FR')} à ${new Date(mt.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>`:'';
         return (i.signature||i.signatureTech||i.clientAbsent)?`<div style="margin-top:24px;display:flex;gap:30px">${i.clientAbsent?`<div><b>1. Signature client</b><br><div style="border:1px dashed #C26A10;border-radius:6px;max-width:220px;margin-top:6px;padding:16px 12px;font-size:11.5px;color:#C26A10;font-weight:bold">Client absent lors du passage — rapport non contresigné</div></div>`:(i.signature?`<div><b>1. Signature client</b><br><img src="${i.signature}" style="border:1px solid #E3E8F0;border-radius:6px;max-width:220px;margin-top:6px">${meta(sm.cli)}</div>`:'')}${i.signatureTech?`<div><b>2. Signature technicien</b><br><img src="${i.signatureTech}" style="border:1px solid #E3E8F0;border-radius:6px;max-width:220px;margin-top:6px">${meta(sm.tech)}</div>`:''}</div>`:''; })()}
-      ${(i.produitsUtilises||[]).length?`<p style="margin-top:18px;font-size:10px;color:#777">${esc(MENTION_REGL)}</p>`:''}
+      ${(i.produitsUtilises||[]).length&&mentionRegl(i.produitsUtilises)?`<p style="margin-top:18px;font-size:10px;color:#777">${esc(MENTION_REGL)}</p>`:''}
       <div class="ft">${esc(soc)} — Rapport généré le ${new Date().toLocaleDateString('fr-FR')}</div>
     </body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{ try{w.print();}catch(e){} },350);
@@ -28307,7 +28333,7 @@ function genRapportTexte(i){ const c=db.clients.find(x=>x.id===i.clientId)||{}; 
   if((i.methodes||[]).length) L.push('Méthodes employées : '+i.methodes.join(', '));
   if(co.infestation) L.push('Niveau d\'infestation : '+co.infestation);
   else if(i.infestation) L.push('Niveau d\'infestation : '+({faible:'Faible',moyen:'Moyen',fort:'Fort'}[i.infestation]||i.infestation));
-  if(i.zones) L.push('Zones traitées : '+i.zones);
+  if(i.zones) L.push(libZones()+' : '+i.zones);
   if(i.materiel) L.push('Matériel utilisé : '+i.materiel);
   if((co.indices||[]).length) L.push('Indices de présence : '+co.indices.join(', '));
   if((i.relevesPlan||[]).length){ const cnt={}; i.relevesPlan.forEach(r=>{ cnt[r.etat]=(cnt[r.etat]||0)+1; });
@@ -28324,7 +28350,7 @@ function genRapportTexte(i){ const c=db.clients.find(x=>x.id===i.clientId)||{}; 
   if(co.conformite) L.push('\nConformité : '+co.conformite);
   if(co.recommandations){ L.push(''); L.push('Recommandations :'); L.push(co.recommandations); }
   if(i.clientAbsent) L.push('\nClient absent lors du passage — rapport non contresigné.');
-  if((i.produitsUtilises||[]).length){ L.push(''); L.push(MENTION_REGL); }
+  if((i.produitsUtilises||[]).length&&mentionRegl(i.produitsUtilises)){ L.push(''); L.push(MENTION_REGL); }
   L.push(''); L.push('— '+rapportSociete(i.rapportModele));
   return L.join('\n');
 }
@@ -29075,6 +29101,9 @@ function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) re
   const LC=categoriesProduit();
   /* la 3D propose aussi les catégories déjà présentes (comme avant) ; un autre métier : SA liste fermée, plus la catégorie que cette
      fiche porte déjà si elle est hors liste (sans elle, enregistrer la fiche changerait sa catégorie en silence) */
+  /* une fiche SANS catégorie (très courante hors 3D : une ligne collée qui n'est pas dans la liste du métier) garde « Sans catégorie »
+     en tête : sans cette option, la première de la liste gagnait au premier « Enregistrer », et le prix corrigé changeait la
+     catégorie en silence. */
   const cats=estMetier3D()?[...LC,...new Set(db.produits.map(x=>x.categorie).filter(c=>c&&!LC.includes(c)))]:[...LC,...(p.categorie&&LC.indexOf(p.categorie)<0?[p.categorie]:[])];
   prodFours=new Set((p.fournisseurs||[]).map(f=>{ const up=f.toUpperCase(); if(up.includes('ORCAD')) return 'ORCAD'; if(up.includes('ENSYSTEX')) return 'ENSYSTEX'; return up; }));
   const bannerC=id?'var(--org)':'var(--acc)';
@@ -29095,7 +29124,7 @@ ${!estMetier3D()?'':`
         <div class="frow"><span class="frow-lbl">Matière active</span><div class="frow-val"><input name="matiereActive" value="${esc(p.matiereActive)}" placeholder="Ex : Brodifacoum 0,0025 % (facultatif)"></div></div>
       </div>`}
       <div class="form-sec">Catégorie *</div>
-      <div class="fgroup"><div class="frow"><select name="categorie" style="width:100%">${cats.map(c=>`<option ${p.categorie===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div></div>
+      <div class="fgroup"><div class="frow"><select name="categorie" style="width:100%">${(id&&!p.categorie)?'<option value="" selected>Sans catégorie</option>':''}${cats.map(c=>`<option ${p.categorie===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div></div>
 ${!estMetier3D()?'':`
       <div class="form-sec">Type de traitement <span style="font-weight:400;text-transform:none;letter-spacing:0">— filtre les produits proposés dans les questionnaires</span></div>
       <div class="fgroup"><div class="frow"><select name="categorie3d" style="width:100%">
@@ -38357,7 +38386,7 @@ function devisIAModal(){
          devis — même mécanisme que les bons de commande. -->
     <div class="field"><label>Société (en-tête du devis)</label><select id="dia-societe">${entSocietes().map(t=>`<option ${(entSocUnique()||'Modèle générique')===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
       <div style="font-size:11px;color:var(--t3);margin-top:4px">Son nom, sa couleur et son logo apparaîtront en tête du PDF (Paramètres → Mes sociétés).</div></div>
-    <div class="field"><label>La prestation à chiffrer *</label><textarea id="dia-demande" rows="4" placeholder="Ex : dératisation d'un restaurant de 120 m² avec cave, 8 postes d'appâtage, 3 passages sur 2 mois, à Strasbourg" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:10px 12px;color:var(--t1);font-family:inherit"></textarea>
+    <div class="field"><label>La prestation à chiffrer *</label><textarea id="dia-demande" rows="4" placeholder="${estMetier3D()?'Ex : dératisation d\'un restaurant de 120 m² avec cave, 8 postes d\'appâtage, 3 passages sur 2 mois, à Strasbourg':esc('Ex : '+(intTypes()[0]||'intervention')+' chez un client à Strasbourg, pièces et main-d’œuvre comprises, 2 passages sur 2 semaines')}" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:10px 12px;color:var(--t1);font-family:inherit"></textarea>
       <!-- Dictée : sur un chantier on a les mains prises. La reconnaissance vocale
            du navigateur écrit dans le même champ — rien ne part ailleurs, tout se
            passe sur l'appareil. -->
@@ -39858,7 +39887,7 @@ function interTout(i,l){
   if(co.conformite) mots.push(['📐','Conformité',txt(co.conformite)]);
   if(co.recommandations) mots.push(['💡','Recommandations',txt(co.recommandations)]);
   if(i.materiel) mots.push(['🧰','Matériel utilisé',txt(i.materiel)]);
-  if(i.zones) mots.push(['📍','Zones traitées',txt(i.zones)]);
+  if(i.zones) mots.push(['📍',libZones(),txt(i.zones)]);
   if(i.noteInterne) mots.push(['🔒','Note interne',txt(i.noteInterne)]);
   const tags=i.photoTags||[], med=[];
   if(i.tpePhoto) med.push([i.tpePhoto,'Ticket TPE']);
