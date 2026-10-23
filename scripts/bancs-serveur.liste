@@ -263,6 +263,7 @@ tests/test-2913.js
 tests/test-2914.js
 tests/test-2915.js
 tests/test-2917.js
+tests/test-2918.js
 # 23 octobre 2026 : les six agents de la plateforme (Max la sentinelle, Jules les incidents, Théo les sauvegardes et la conservation, Nina les accès, le RGPD et les contrats, Inès la qualité,
 # Victor le point du matin, la répartition et l'arbitrage) — `test-2920` (les règles : les seuils de `surveillance.js` relus et rejoués à leurs bornes, les épisodes annoncés une fois),
 # `test-2921` (Max et Jules : l'incident dans le registre de la Tour, le diagnostic proposé, la seconde barrière), `test-2922` (Théo et Nina), `test-2923` (Inès et Victor) et `test-2924`
