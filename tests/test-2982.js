@@ -96,7 +96,9 @@ function pageDuPortail(base, rangementInitial) {
   const lien = m && m.liens.find(u => /mode=verifyEmail/.test(u));
   vrai('   son lien pointe vers la page de TEST (https://test.teamop.fr/reinit.html?mode=verifyEmail&jeton=…)', lien && /^https:\/\/test\.teamop\.fr\/reinit\.html\?mode=verifyEmail&jeton=[0-9a-f]{64}$/.test(lien));
   v('   de, objet, date', [m && m.de.includes('essai@exemple-essai.fr'), m && m.objet, m && !Number.isNaN(Date.parse(m.date))], [true, 'Confirmez votre adresse — TEAM OP', true]);
-  const tous = (await S.appel(avecCle('/api/essais/courriels'))).j.courriels;
+  const tous0 = (await S.appel(avecCle('/api/essais/courriels'))).j, tous = tous0.courriels;
+  const deux = (await S.appel(avecCle('/api/essais/courriels') + '&n=2')).j;
+  v('   `?n=2` rend les deux plus récents (le total reste dit), `?n=0` ou n\'importe quoi rend tout', [deux.courriels.length, deux.nombre === tous0.nombre + 1 || deux.nombre > 2, deux.courriels[0].id === m.id || deux.courriels[0].date >= deux.courriels[1].date, (await S.appel(avecCle('/api/essais/courriels') + '&n=abc')).j.courriels.length === deux.nombre], [2, true, true, true]);
   vrai('   la liste va du plus récent au plus ancien', tous.length > 2 && tous.every((x, i) => i === 0 || Date.parse(tous[i - 1].date) >= Date.parse(x.date)));
   const jeton = lien && /jeton=([0-9a-f]{64})/.exec(lien)[1];
   v('⛔ le lien CAPTÉ marche : le jeton confirme l\'adresse', (await S.appel('/api/compte/verifier', { jeton })).s, 200);
@@ -160,7 +162,7 @@ function pageDuPortail(base, rangementInitial) {
   const cors = async (B, o) => (await fetch(B + '/health', { method: 'OPTIONS', headers: { Origin: o, 'Access-Control-Request-Method': 'POST' } })).headers.get('access-control-allow-origin');
   v('l\'origine de test (espaceTestOrigine) est admise, celle du site aussi, une autre non', [await cors(S.B, 'https://test.teamop.fr'), await cors(S.B, 'https://teamop.fr'), await cors(S.B, 'https://evil.example')], ['https://test.teamop.fr', 'https://teamop.fr', null]);
   await S.nettoyer();
-  const mal = await B2.lancer({ essai: true, config: { espaceTestCle: 'trop-courte', courrielsCaptes: false, mailPreuveExigee: false } }); vivants.push(mal);
+  const mal = await B2.lancer({ essai: true, config: { espaceTestCle: 'trop-courte', courrielsCaptes: false, mailPreuveExigee: false, comptes: { actif: false } } }); vivants.push(mal);
   vrai('démarre quand même', mal.vivant);
   v('⛔ une clé mal formée : les routes N\'EXISTENT PAS (404), même présentée à l\'identique', [(await mal.appel('/api/essais/courriels?cle=trop-courte')).s, (await mal.appel('/api/essais/remise-a-zero?cle=trop-courte', {})).s], [404, 404]);
   vrai('…le journal le dit', /espaceTestCle. absente ou mal formée/.test(mal.sortie()));

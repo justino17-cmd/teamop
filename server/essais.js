@@ -288,7 +288,9 @@ function monter(app, ctx) {
 
   app.get('/api/essais/courriels', (req, res) => {
     if (!garde(req, res)) return;
-    res.json({ ok: true, nombre: ctx.depot.nombre(), courriels: ctx.depot.liste(MAX_COURRIELS) });
+    /* `?n=` : les n plus récents (1 à 200). Une page qui se rafraîchit n'a pas besoin de tirer 200 corps de courriels à chaque fois. */
+    const n = Math.max(1, Math.min(MAX_COURRIELS, parseInt(req.query && req.query.n, 10) || MAX_COURRIELS));
+    res.json({ ok: true, nombre: ctx.depot.nombre(), courriels: ctx.depot.liste(n) });
   });
 
   app.get('/api/essais/connexion', (req, res) => {
