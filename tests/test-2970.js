@@ -191,6 +191,7 @@ try {
     v('mail.js : AUCUNE lecture ni écriture directe de ces fichiers', MAIL.match(/(readFileSync|writeFileSync)\([^)]*(BOITES_PATH|support-box)/g) || [], []);
     const COF = code('coffre-boites.js');
     vrai('le coffre ne connaît AUCUN algorithme : il appelle `socle.sceller` / `socle.desceller` (une seule définition du chiffrement)', /socle\.sceller\(/.test(COF) && /socle\.desceller\(/.test(COF) && !/createCipheriv|createDecipheriv/.test(COF));
+    vrai('l\'écriture passe par un temporaire puis un renommage (un arrêt en cours d\'écriture ne tronque jamais le fichier de toutes les boîtes)', /fs\.openSync\(tmp, 'w', 0o600\)/.test(COF) && /fs\.renameSync\(tmp, chemin\)/.test(COF));
     vrai('la clé est la clé maître du socle (`socle.kek()`), dérivée — pas une clé de plus à garder', /socle\.kek\(\)/.test(COF) && /hkdfSync/.test(COF));
     vrai('aucune route ne rend `pass` : ni `res.json(…pass…)` sur une boîte', !/res\.json\([^;]*\b(b|mb|box|supportBox)\.pass\b/.test(IDX + MAIL));
   }
