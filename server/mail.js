@@ -723,7 +723,9 @@ module.exports = function monterMessagerie(app, ctx) {
     const objet = monStr(String(o.objet || '').replace(/[\r\n]+/g, ' '), 300).trim() || '(sans objet)';
     let texte = String(o.texte || '').trim();
     if (!texte) throw new Error('message vide');
-    const sig = signature().trim();
+    /* Une signature PROPRE à l'appelant (Hugo, Margaux, Emma : « Hugo — Assistant virtuel · Équipe TeamOP », `agents-courriers-ops.js`) remplace celle du Courrier : un seul nom
+       au bas du courriel. Composée par le code de l'appelant, jamais par un texte de Claude ; absente, la signature réglée dans le Courrier s'ajoute comme avant. */
+    const sig = (typeof o.signature === 'string' && o.signature.trim() ? o.signature : signature()).trim();
     if (sig && !texte.endsWith(sig)) texte += '\n\n' + sig;   // déjà signé (Justin a collé sa signature en corrigeant) : pas deux fois
     texte = texte.slice(0, 60000);
     if (!quotaOk) throw new Error('la limite d’envoi n’est pas branchée');

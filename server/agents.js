@@ -87,9 +87,21 @@ const SCHEMAS = {
   escalade_humain:   { fil: REF, motif: ['demande_humain', 'litige', 'sensible', 'blocage', 'urgence'] },
   signaler_erreur:   { source: ['site', 'api', 'stripe', 'mail', 'sauvegarde', 'instagram'], ref: REF },
   relire_envoi:      { brouillon: REF },
+  /* ── HUGO, MARGAUX, EMMA, SARAH (23 octobre 2026, `agents-documents.js`) — leurs formes fermées, sur leurs lignes à elles ──
+     · `resilier_fin_periode` : la FIN D'ABONNEMENT à la fin de la période réglée, jamais un remboursement ni une annulation immédiate — une demande de Camille (tâche, quand
+       l'expéditeur authentifié est l'adresse du compte) ou de Justin ; en mode « brouillon » Hugo la dépose en validation à la place de l'exécuter ;
+     · `rendez_vous_prospect` / `choix_creneau` : Camille passe à Emma un prospect (par son numéro de dossier) qui veut être appelé, puis le créneau qu'il a choisi ;
+     · `courrier_agent`, `mise_en_demeure`, `annonce_clients` : un DOCUMENT rangé par `agents-documents.js` (`ref`) que Justin relit puis valide. La mise en demeure et l'annonce à
+       tous les clients ne partent JAMAIS autrement. */
+  resilier_fin_periode: { espace: SLUG },
+  rendez_vous_prospect: { dossier: REF },
+  choix_creneau:        { dossier: REF, creneau: ['1', '2', '3', '4', '5', 'aucun'] },
+  courrier_agent:       { ref: REF },
+  mise_en_demeure:      { ref: REF },
+  annonce_clients:      { ref: REF },
 };
-const TYPES_VALIDATION = ['creer_espace', 'suspendre_acces', 'envoyer_mail', 'publier', 'repondre_avis', 'correctif'];
-const TYPES_TACHE = ['verifier_paiement', 'preparer_espace', 'escalade_humain', 'signaler_erreur', 'relire_envoi'];
+const TYPES_VALIDATION = ['creer_espace', 'suspendre_acces', 'envoyer_mail', 'publier', 'repondre_avis', 'correctif', 'resilier_fin_periode', 'courrier_agent', 'mise_en_demeure', 'annonce_clients'];
+const TYPES_TACHE = ['verifier_paiement', 'preparer_espace', 'escalade_humain', 'signaler_erreur', 'relire_envoi', 'resilier_fin_periode', 'rendez_vous_prospect', 'choix_creneau'];
 
 const JOURNAL_MAX = 2000;
 const TACHES_MAX = 500;
