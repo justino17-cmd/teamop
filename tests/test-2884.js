@@ -265,13 +265,21 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
     vrai('⛔ une @mention dans la réunion ne RÉVEILLE PERSONNE par la messagerie (aucun appel avec les outils de la messagerie) : le déroulé donne la parole lui-même', H.appels.every(a => a.opts.outils.every(o => ['fixer_objectifs', 'juger_objectif', 'ajouter_lecon'].includes(o.name))) && H.appels.length === 1 + 14 + 1 + 3 + 1);
   }
   {
-    /* tout le monde cite tout le monde, toujours : la discussion s'arrête quand même */
-    const H = await monter({ depart: U(2026, 10, 19, 7, 0), script: (t) => rep('Point ' + (++cpt) + ' : @lea @camille @hugo @margaux @max @nina, vos avis ?') });
+    /* tout le monde cite tout le monde, toujours : quinze cités d'emblée, la discussion s'arrête à douze prises de parole */
+    const TOUS = TOUR.concat(['ines']).map(id => '@' + id).join(' ');
+    const H = await monter({ depart: U(2026, 10, 19, 7, 0), script: (t) => rep('Point ' + (++cpt) + ' : ' + TOUS + ', vos avis ?') });
     await H.tic();
-    const d = H.appels.filter(a => a.phase === 'discussion'), par = {}; d.forEach(a => { par[a.id] = (par[a.id] || 0) + 1; });
-    vrai('⛔ une discussion qui s’emballe s’arrête : au plus ' + REU.DISCUSSION_MAX + ' prises de parole, au plus 2 par agent', d.length <= REU.DISCUSSION_MAX && Object.values(par).every(k => k <= 2) && d.length > 0);
+    const d = H.appels.filter(a => a.phase === 'discussion');
+    v('⛔ une discussion qui s’emballe s’arrête à ' + REU.DISCUSSION_MAX + ' prises de parole EXACTEMENT (quinze cités, douze répondent)', d.length, REU.DISCUSSION_MAX);
     vrai('…et la réunion se termine quand même par la conclusion de Victor', H.reunions()[0].statut === 'terminee' && H.appels[H.appels.length - 1].phase === 'conclusion');
     vrai('…sans dépasser le plafond du fil des réunions (45 messages d’agents par heure)', H.messages().filter(m => m.de !== 'systeme').length <= 45);
+  }
+  {
+    /* deux agents qui se renvoient la balle : chacun reprend la parole deux fois au plus */
+    const H = await monter({ depart: U(2026, 10, 19, 7, 0), script: (t) => rep('Point ' + (++cpt) + (t.id === 'lea' ? ' : @camille, et toi ?' : t.id === 'camille' ? ' : @lea, et toi ?' : '.')) });
+    await H.tic();
+    const d = H.appels.filter(a => a.phase === 'discussion'), par = {}; d.forEach(a => { par[a.id] = (par[a.id] || 0) + 1; });
+    v('⛔ Léa et Camille se renvoient la balle : deux tours chacune, quatre prises de parole, pas une de plus', [par.lea, par.camille, Object.keys(par).length, d.length], [2, 2, 2, 4]);
   }
   {
     /* l'heure : chaque appel coûte 25 minutes d'horloge — la réunion de 9 h ne va pas au bout de son tour de table */
@@ -337,8 +345,8 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
         outil('juger_objectif', { objectif: 'o000000', statut: 'non', pourquoi: 'un objectif qui n’existe pas' }),
         outil('ajouter_lecon', { texte: 'Toujours répondre à une inscription le jour même.' })]);
       if (t.id === 'chloe') return rep('Mon bilan.', [outil('juger_objectif', { objectif: ids[0], statut: 'non', pourquoi: 'Le devis de référence est arrivé trop tard.' }),
-        outil('ajouter_lecon', { texte: 'Première leçon de Chloé, assez longue.' }), outil('ajouter_lecon', { texte: 'Deuxième leçon de Chloé, assez longue.' }), outil('ajouter_lecon', { texte: 'Troisième leçon de Chloé, refusée.' }),
-        outil('ajouter_lecon', { texte: 'Deuxième LEÇON de Chloé, assez longue.' })]);
+        outil('ajouter_lecon', { texte: 'Première leçon de Chloé, assez longue.' }), outil('ajouter_lecon', { texte: 'PREMIÈRE leçon de Chloé, assez longue.' }), outil('ajouter_lecon', { texte: 'Deuxième leçon de Chloé, assez longue.' }),
+        outil('ajouter_lecon', { texte: 'Troisième leçon de Chloé, refusée.' })]);
       if (t.id === 'margaux') return rep('RAS côté compta.', [outil('ajouter_lecon', { texte: 'court' }), outil('ajouter_lecon', {})]);
       return rep('Mon point ' + (++cpt) + '.');
     } });
