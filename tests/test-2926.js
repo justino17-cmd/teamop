@@ -79,8 +79,8 @@ const txt = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   console.log('\n1. Le temps relatif');
   {
     const { ctx } = monde();
-    v('« il y a » : à l\'instant, minutes, heures, jours, et « pas encore » sans date', [NOW, NOW - 20 * 1000, NOW - 5 * M, NOW - 59 * M, NOW - 2 * H, NOW - 3 * JOUR, 0].map(t => ctx.msPfIlYa(t)),
-      ['à l’instant', 'à l’instant', 'il y a 5 min', 'il y a 59 min', 'il y a 2 h', 'il y a 3 j', 'pas encore']);
+    v('« il y a » : à l\'instant, minutes, heures, jours, et « pas encore » sans date', [NOW, NOW - 20 * 1000, NOW - 90 * 1000, NOW - 5 * M, NOW - 59 * M, NOW - 2 * H, NOW - 3 * JOUR, 0].map(t => ctx.msPfIlYa(t)),
+      ['à l’instant', 'à l’instant', 'il y a 2 min', 'il y a 5 min', 'il y a 59 min', 'il y a 2 h', 'il y a 3 j', 'pas encore']);   /* 90 s s'arrondit à 2 min : le plancher dirait 1 */
   }
 
   console.log('\n2. Le HTML : trois états, le mot, le voyant, les pluriels');
