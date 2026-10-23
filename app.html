@@ -35936,7 +35936,7 @@ views.techniciens=function(){
   const rows=L.map(t=>{ const n=db.interventions.filter(i=>intTechIds(i).indexOf(t.id)>=0).length;   // v757 : second compris, pas seulement le premier
     return `<tr class="row-clk" onclick="ficheTech('${t.id}')"><td><div class="ppl"><span class="avatar av-tc" style="--tc:${techColor(t.id)}">${initials(t.nom)}</span> <span class="strong">${esc(t.nom)}</span></div></td><td>${esc(t.metier)||'—'}</td><td>${esc(t.tel)||'—'}</td>${certibColonne(L)?`<td>${certibVisible(t)?certibBadge(t):''}</td>`:''}<td>${n}</td>
     <td class="cel-gestes" style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">${peutModif?`<button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button>`:''}${peutModif&&peutSuppr?' ':''}${peutSuppr?`<button class="btn danger sm" onclick="delItem('techniciens','${t.id}')">🗑</button>`:''}</td></tr>`;}).join('');
-  $('content').innerHTML=L.length? tableCard(['Technicien','Rôle','Téléphone'].concat(certibColonne(L)?['Certibiocide']:[],['Interv.','']),rows)
+  $('content').innerHTML=L.length? tableCard(['Technicien','Rôle','Téléphone',certibColonne(L)?'Certibiocide':null,'Interv.',''].filter(h=>h!==null),rows)
     :`<div class="card">${peutAjout?emptyState('👷','Aucun technicien.','Ajouter','formTech()'):emptyState('👷','Aucune fiche du personnel n’est rattachée à ton compte.','','')}</div>`;
 }
 function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id===id);

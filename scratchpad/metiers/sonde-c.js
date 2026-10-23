@@ -39,7 +39,9 @@ const METIERS=process.argv.slice(2).length?process.argv.slice(2):['3d','plomberi
       // le formulaire
       await S.ev(`window.__fenetre=true; formProduit(); return 1;`); await dormir(700);
       const f=await S.ev(`const sel=document.querySelector('#modal select[name=categorie]'); return {n:sel?sel.options.length:0, liste:sel?[...sel.options].map(o=>o.text):[], biocide:/Biocide|N° AMM/.test((document.getElementById('modal')||{}).textContent||'')};`);
-      ligne(f.n===r.L.length && JSON.stringify(f.liste)===JSON.stringify(r.L) && (m==='3d'?f.biocide:!f.biocide), `${pn} ${theme} ${m} formulaire : ${f.n} catégories = la liste du métier, biocide ${f.biocide?'montré':'caché'}`);
+      /* la 3D propose sa liste PUIS les catégories déjà présentes dans la base (comme avant : ici celle de la fiche « d'avant ») ; un autre métier : SA liste fermée seule */
+      const attendue=m==='3d'?r.L.concat(["Catégorie d'une base d'avant"]):r.L;
+      ligne(JSON.stringify(f.liste)===JSON.stringify(attendue) && (m==='3d'?f.biocide:!f.biocide), `${pn} ${theme} ${m} formulaire : ${f.n} catégories (${m==='3d'?'la liste + celle d\'avant, comme avant':'la liste du métier, seule'}), biocide ${f.biocide?'montré':'caché'}`);
       await S.snap(`${OUT}/${pn}-${theme}-${m}-formulaire.png`);
       await S.ev(`try{ closeModal(); }catch(e){} return 1;`);
     }

@@ -18,7 +18,7 @@ const METIERS=process.argv.slice(2).length?process.argv.slice(2):['3d','plomberi
     const faux=xs.filter(e=>{ const b=e.getBoundingClientRect(), s=getComputedStyle(e); return !(b.height>8 && b.width>40 && s.opacity==='1' && s.visibility!=='hidden' && s.display!=='none' && parseFloat(s.fontSize)>=12 && e.scrollWidth<=e.clientWidth+1); }).map(e=>(e.textContent||'').slice(0,40));
     window.scrollTo(9999,0); const sx=window.scrollX; window.scrollTo(0,0);
     return {n:xs.length,faux,sx};`);
-  for(const [pn,theme] of [['bureau','light'],['bureau','dark'],['b1100','dark'],['b1100','light'],['tel','dark'],['tel','light']]){
+  for(const [pn,theme] of (process.env.PROFILS?process.env.PROFILS.split(',').map(x=>x.split(':')):[['bureau','light'],['bureau','dark'],['b1100','dark'],['b1100','light'],['tel','dark'],['tel','light']])){
     await S.profil(pn,theme);
     for(const m of METIERS){
       await S.metier(m);
@@ -28,6 +28,8 @@ const METIERS=process.argv.slice(2).length?process.argv.slice(2):['3d','plomberi
       let r=await mesureExpl(); await dormir(300); r=await mesureExpl();
       const attendu=await S.ev(`return ((METIERS['${m}']||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]).length;`);
       ligne(r.n===attendu && r.faux.length===0 && r.sx===0, `${pn} ${theme} ${m} · Mon métier : ${r.n}/${attendu} rubriques expliquées, ${r.faux.length} illisible(s), défilement latéral ${r.sx}`);
+      /* `mesureExpl` remet la page en haut (pour lire la largeur) : on revient sur la liste AVANT la capture, sinon elle montre le haut de la page */
+      await S.ev(`const d=document.querySelector('details.met-rub'); if(d) d.scrollIntoView({block:'start'}); window.scrollBy(0,-70); return 1;`); await dormir(400);
       await S.snap(`${OUT}/${pn}-${theme}-${m}-monmetier.png`);
       // 2. la grille des droits
       await S.ev(`go('utilisateurs'); return 1;`); await dormir(900);
@@ -36,6 +38,7 @@ const METIERS=process.argv.slice(2).length?process.argv.slice(2):['3d','plomberi
       r=await mesureExpl(); await dormir(300); r=await mesureExpl();
       const menus=await S.ev(`return document.querySelectorAll('.usr-d input[data-d^="mod_"]').length;`);
       ligne(r.n>=Math.min(menus,36) && r.faux.length===0 && r.sx===0, `${pn} ${theme} ${m} · droits : ${r.n} explications pour ${menus} menus, ${r.faux.length} illisible(s), défilement latéral ${r.sx}`);
+      await S.ev(`const c=document.querySelector('.usr-cat'); if(c) c.scrollIntoView({block:'start'}); window.scrollBy(0,-70); return 1;`); await dormir(400);
       await S.snap(`${OUT}/${pn}-${theme}-${m}-droits.png`);
       // 3. Modules OP
       await S.ev(`go('modulesElan'); return 1;`); await dormir(700);
