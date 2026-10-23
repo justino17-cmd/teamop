@@ -997,6 +997,10 @@ app.post('/api/nouveau-compte', (req, res) => {
         boutonTxt: 'Ouvrir la Tour de contrôle', boutonUrl: 'https://teamop.fr/tour.html' })
     }).catch(e => console.error('mail nouveau compte:', e.message));
   }
+  /* LÉA prépare une réponse commerciale en BROUILLON (Justin la relit avant tout envoi). SANS ATTENDRE et sans jamais faire échouer cette route
+     publique : un échec de Léa se tait. Elle ne reçoit que le nom de l'entreprise et l'adresse (qui ne sert qu'à l'empreinte et au destinataire
+     du brouillon) : le prénom et le nom ne lui sont PAS transmis. */
+  try { if (agentLea) Promise.resolve(agentLea.surInscription({ entreprise: societe, email })).catch(() => {}); } catch (e) {}
   res.json({ ok: true });
 });
 
@@ -2068,7 +2072,7 @@ const MON_GESTES = {
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
-  'agents/charte': 'a changé la charte d’autonomie des agents', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
+  'agents/charte': 'a changé la charte d’autonomie des agents', 'agents/brouillons/modifier': 'a corrigé un brouillon de réponse d’un agent avant de le valider', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
   'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
 };
 const MON_ACTIONS_MAX = 500;
@@ -4419,6 +4423,9 @@ let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = p
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
+let agentLea = null;         // Léa (`agent-lea.js`) : la réponse commerciale à une inscription ou une demande — `null` = pas montée, elle ne prépare rien
+let agentCamille = null;     // Camille (`agent-camille.js`) : la réponse à un mail reçu — `null` = pas montée (la veille du Courrier ne lui annonce rien)
+let brouillonsMod = null;    // les brouillons de Léa et de Camille, et ce qui les fait partir (`agents-brouillons.js`)
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
 let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
@@ -9636,6 +9643,16 @@ app.post('/api/clients/sync', async (req, res) => {
         .catch(e => console.error('accusé de demande:', sansAdresses(String((e && e.message) || e))));
     }
   } catch (e) { console.error('notif demande:', e && e.message); }
+  /* LÉA, sur une demande d'application NOUVELLE (la liste s'allonge) : métier (liste fermée), utilisateurs, formule et besoin. Indépendant du courriel
+     au patron ci-dessus (qui dépend de l'envoi SMTP) ; SANS ATTENDRE, sans jamais faire échouer la synchro. Une demande qui ne vise qu'OP MESSAGES
+     (pas encore vendu) ne déclenche rien : la démarche commerciale parle d'OP GESTION. */
+  try {
+    if (agentLea && demandes.length > (prev.demandes || []).length) {
+      const nvL = demandes.slice((prev.demandes || []).length).filter(d => !/messages/i.test(String(d.app || '')));
+      const d = [...nvL].reverse().find(x => x.metier) || nvL[nvL.length - 1];
+      if (d) Promise.resolve(agentLea.surDemande({ email, entreprise: (clientsData[email] || {}).entreprise, metier: d.metier, users: d.users, formule: d.formule, besoin: d.besoin })).catch(() => {});
+    }
+  } catch (e) {}
   res.json({ ok: true });
 });
 // lecture depuis le contrôle (patron ET collaborateurs)
@@ -10087,7 +10104,10 @@ try {
      ni les marquer (voir plus haut). Et on garde ses boîtes (sans mot de passe) : `supprDestLisible` doit
      savoir si le code d'une suppression y atterrirait. */
   messagerieTour = require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege,
-    quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages });
+    quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages,
+    /* La veille annonce chaque message neuf à Camille. Liaison TARDIVE : la Messagerie est montée avant les agents, `agentCamille` n'existe pas
+       encore ici. Le crochet ne jette jamais et n'est pas attendu (voir `mail.js`). */
+    surNouveauMessage: (ev) => (agentCamille ? agentCamille.surNouveauMessage(ev) : null) });
   console.log('messagerie : module chargé');
   /* L'ÉQUIPE D'AGENTS (`agents.js`) : son socle seulement — registre, journal, validations, pause, tâches. Monté DANS ce bloc parce
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
@@ -10152,6 +10172,34 @@ try {
           dossier: faitsDossier } });
       console.log('agents : conversation montée pour ' + agentsConversation.ids.length + ' agents');
     } catch (e) { agentsConversation = null; console.error('conversation des agents indisponible :', e.message); }
+    /* LÉA, CAMILLE ET LEURS BROUILLONS : une réponse commerciale PRÉPARÉE à chaque inscription, demande d'application et mail reçu — jamais envoyée
+       sans Justin (la validation « envoyer_mail »), sauf mode « auto » ET charte `repondre_client` ouverte (fermée par défaut). Chacune sous son
+       propre `try` : un échec de montage éteint ce module-là et RIEN d'autre (ni la conversation, ni Hugo, ni la Messagerie). Léa et Camille
+       répondent toujours dans « Parler » par le module générique ci-dessus. */
+    const MESSAGERIES_PUBLIQUES = /^(gmail|googlemail|outlook|hotmail|live|msn|yahoo|ymail|icloud|me|mac|orange|wanadoo|free|sfr|neuf|laposte|bbox|aol|proton|protonmail|gmx|web|numericable)\./i;
+    const nosAdressesCourrier = () => {
+      const adr = new Set(), dom = new Set(['teamop.fr']);
+      const ajoute = a => { const n = adrNue(a); const m = /^[^@\s<>]+@([^@\s<>]+)$/.exec(n); if (!m) return; adr.add(n); if (!MESSAGERIES_PUBLIQUES.test(m[1])) dom.add(m[1]); };
+      try { ajoute(config.smtp && (config.smtp.from || config.smtp.user)); ajoute(config.contactEmail); ajoute(config.alertEmail); } catch (x) {}
+      try { for (const b of (messagerieTour.boites() || [])) ajoute(b && b.email); } catch (x) {}
+      return { domaines: [...dom], adresses: [...adr] };
+    };
+    const fichierAgents = require('./agents-fichier')(DATA_DIR);
+    try {
+      brouillonsMod = require('./agents-brouillons')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, mail: messagerieTour, direction: directionMod,
+        fichier: fichierAgents, sansAdresses });
+    } catch (e) { brouillonsMod = null; console.error('brouillons des agents indisponibles :', e.message); }
+    try {
+      if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents,
+        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK });
+    } catch (e) { agentLea = null; console.error('Léa indisponible :', e.message); }
+    try {
+      if (brouillonsMod) agentCamille = require('./agent-camille')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, mail: messagerieTour, fichier: fichierAgents,
+        /* NOS domaines : celui de l'expéditeur de la configuration, teamop.fr et ceux des boîtes connectées — un mail de chez nous n'appelle jamais de réponse.
+           ⚠️ Mais un domaine de messagerie PUBLIQUE (gmail.com, orange.fr…) n'est pas « chez nous » parce qu'une de nos adresses y vit : pour lui, seules nos
+           adresses EXACTES comptent (`adressesNotres`) — sinon tous les clients qui écrivent depuis la même messagerie seraient ignorés. */
+        domainesNotres: () => nosAdressesCourrier().domaines, adressesNotres: () => nosAdressesCourrier().adresses });
+    } catch (e) { agentCamille = null; console.error('Camille indisponible :', e.message); }
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */

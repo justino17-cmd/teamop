@@ -384,7 +384,10 @@ module.exports = function monterAgents(app, ctx) {
       tachesEnAttente: illisibles.has(F_TACHES) ? null : taches.filter(k => k.statut === 'attente').length,
       tachesPrises: illisibles.has(F_TACHES) ? null : taches.filter(k => k.statut === 'prise').length };
   };
-  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes };
+  /* Une validation de ce (type, champ = valeur) attend-elle encore le patron ? Pour un agent qui doit savoir si SON brouillon est encore sous les yeux de
+     Justin (une validation refusée ou expirée n'attend plus personne : réécrire le brouillon qui lui correspond serait écrire dans le vide). */
+  const enAttentePour = (type, champ, valeur) => { perimer(); return validations.some(v => v.statut === 'en_attente' && v.type === type && v.params && v.params[champ] === valeur); };
+  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

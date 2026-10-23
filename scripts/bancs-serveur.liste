@@ -214,3 +214,11 @@ tests/test-2805.js
 # personne ne part chez Claude, faits fermés par rôle, historique alterné, rien d'exécuté). `test-2861` lit aussi `tour.html` via `test-2709` (déjà ci-dessus).
 tests/test-2860.js
 tests/test-2861.js
+# 23 octobre 2026 : Léa et Camille préparent une réponse commerciale EN BROUILLON (inscription, demande d'application, mail reçu) — jamais envoyée sans Justin.
+# `test-2862` (Léa), `test-2863` (Camille : modules, puis le vrai serveur — la veille du Courrier, la fausse boîte IMAP, le crochet d'index.js) et `test-2864` (l'exécuteur, les
+# deux routes, le mode auto fermé par défaut, puis le vrai serveur de l'inscription publique à « Valider et envoyer »). Établis communs : `tests/banc-agents-courrier.js` et
+# `tests/banc-serveur-courrier.js` (pas des suites : leur nom ne commence pas par test-). ⛔ `test-2865` (les vraies fonctions de la TOUR contre le vrai serveur) n'est PAS ici : il lit
+# la `tour.html` de la branche, que `main` ne sert pas encore — il tourne dans la suite complète.
+tests/test-2862.js
+tests/test-2863.js
+tests/test-2864.js

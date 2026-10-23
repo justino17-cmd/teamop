@@ -27,6 +27,7 @@ const MAX_PIECES = 12;
 const MAX_PIECES_OCTETS = 12 * 1024 * 1024;   // 12 Mo au total pour un envoi — environ 16 Mo de JSON une fois en base64, d'où l'analyseur à 20 Mo de `index.js`
 const PAR_PAGE = 30;
 const ENVOIS_PAR_HEURE = 60;           // par compte de la Tour, pas par boîte : c'est la session volée qu'on borne
+const ENVOIS_AGENTS_PAR_HEURE = 30;     // le budget des AGENTS (Léa, Camille), à part de celui de la Tour : un agent qui boucle ne mange pas les envois de Justin, ni l'inverse
 const BROUILLONS_PAR_HEURE = 30;        // un brouillon porte jusqu'à 12 Mo de pièces rangées dans la boîte : sans budget, une session remplit Brouillons
 const MAX_TRI = 1500;                  // messages les plus récents examinés pour filtrer par console (`tronque` quand le dossier est plus long)
 const MAX_REGLES = 2000;
@@ -53,6 +54,9 @@ module.exports = function monterMessagerie(app, ctx) {
      pas en notification. Le serveur les reconnaît à leur identifiant (`mailProtege`, server/index.js),
      tiré au sort à l'envoi : rien qu'un expéditeur du dehors puisse imiter. */
   const protege = typeof mailProtege === 'function' ? mailProtege : () => false;
+  /* Le crochet des agents (Camille) : chaque message neuf, « vrai » et non protégé de la Réception lui est annoncé. SANS ATTENDRE et sans
+     jamais casser la veille : un agent qui jette ou qui se fige ne retarde ni la notification de la Tour, ni la boîte suivante. */
+  const surNouveauMessage = typeof ctx.surNouveauMessage === 'function' ? ctx.surNouveauMessage : null;
   const REFUS_PROTEGE = 'E-mail de sécurité (code ou avis d\'une suppression) : la Tour ne le déplace pas, ne le supprime pas, ne le marque pas. Fais-le depuis ta messagerie habituelle.';
   const erreurProtege = () => Object.assign(new Error('protege'), { protege: true });
   async function verifierNonProtege(client, uid) {   // à appeler DANS la boîte ouverte, avant d'agir sur un message
@@ -60,6 +64,7 @@ module.exports = function monterMessagerie(app, ctx) {
     if (m && m.envelope && protege(m.envelope.messageId)) throw erreurProtege();
   }
   const envoiQuota = new Map();   // 'u:<compte>' -> { n, reset } (le format de `quotaOk`)
+  const agentsQuota = new Map();  // budget d'envoi des agents : une seule clé, 'agents'
   const brouillonQuota = new Map();   // même forme, budget à part : écrire des brouillons ne doit pas manger les envois
   const BOITES_PATH = path.join(DATA_DIR, 'mail-boites.json');
   const SUIVI_PATH = path.join(DATA_DIR, 'mail-suivi.json');
@@ -448,6 +453,51 @@ module.exports = function monterMessagerie(app, ctx) {
   });
 
   /* ═════════════════════ LECTURE D'UN MESSAGE ═════════════════════ */
+  /* UNE lecture, deux appelants : la route (qui MARQUE lu et crée le suivi, comme dans une vraie messagerie) et `lireMessage` (les agents), qui
+     ne touche à rien — un agent qui lit pour préparer un brouillon ne doit ni effacer la pastille « non lu » de la Tour, ni ouvrir un suivi
+     que Justin n'a pas ouvert. `marquer` est le seul interrupteur : une seconde copie du corps divergerait au premier champ ajouté. */
+  async function lireMessageDe(b, chemin, uid, marquer) {
+    const role = await roleDuChemin(b, chemin);   // avant d'ouvrir la boîte : voir `roleDuChemin`
+    return avecImap(b, async client => {
+      const lock = await client.getMailboxLock(chemin);
+      try {
+        const msg = await client.fetchOne(String(uid), { uid: true, envelope: true, flags: true, source: { maxLength: 4000000 } }, { uid: true });
+        if (!msg) return null;
+        const { simpleParser } = require('mailparser');
+        let p = {};
+        try { p = await simpleParser(msg.source); } catch (e) {}
+        const env = msg.envelope || {};
+        const de = adr1(env.from);
+        const texte = String(p.text || '').trim() || htmlEnTexte(typeof p.html === 'string' ? p.html : '');
+        const pieces = (p.attachments || []).map((a, i) => ({ idx: i, nom: String(a.filename || 'piece-' + (i + 1)).slice(0, 140), taille: a.size || 0, type: String(a.contentType || '').slice(0, 80) }))
+          .filter(a => a.nom).slice(0, MAX_PIECES);
+        // à l'ouverture, le message est marqué lu (comme dans une vraie messagerie) — sauf un e-mail de sécurité
+        const estProtege = protege(env.messageId);
+        if (marquer && !estProtege && !(msg.flags && msg.flags.has && msg.flags.has('\\Seen'))) { try { await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true }); nonLusOublier(b.id); } catch (_) {} }
+        const midCle = String(env.messageId || '');
+        if (marquer && !estProtege && midCle && !suivi[midCle] && role === 'inbox') {
+          const deAdr = de.adr;
+          suivi[midCle] = { statut: estNotification(deAdr, env.subject) ? 'resolu' : 'aTraiter', assigne: '', par: '',
+            /* l'en-tête Date: vient de l'EXPÉDITEUR : une date dans le futur se borne à l'heure où le serveur voit le message (relecture du 22 octobre 2026) */
+            ts: Date.now(), recuTs: Math.min((env.date && new Date(env.date).getTime()) || Date.now(), Date.now()), repTs: 0,
+            de: deAdr, objet: String(env.subject || '').slice(0, 160), auto: estNotification(deAdr, env.subject) ? 1 : 0 };
+          suiviSauve();
+        }
+        const pour = pers(env.to), copie = pers(env.cc);
+        const interlocuteur = interlocuteurDe(b, role, de.adr, pour, copie);
+        return { uid, dossier: chemin, boite: b.id, boiteEmail: b.email,
+          suivi: suivi[midCle] ? { statut: suivi[midCle].statut, assigne: suivi[midCle].assigne || '' } : null,
+          auto: estNotification(de.adr, env.subject),
+          interlocuteur, console: consoleDeAdresse(interlocuteur),
+          de: de.adr, deNom: de.nom, pour, copie,
+          objet: String(env.subject || '(sans objet)').slice(0, 300),
+          ts: env.date ? new Date(env.date).getTime() : 0,
+          texte: texte.slice(0, 40000), html: (typeof p.html === 'string' ? p.html : '').slice(0, 400000),
+          pieces, mid: String(env.messageId || '').slice(0, 300), protege: estProtege,
+          marque: msg.flags && msg.flags.has ? msg.flags.has('\\Flagged') : false };
+      } finally { lock.release(); }
+    });
+  }
   app.get('/api/monitor/mail/message', monAdmin, async (req, res) => {
     const b = trouve(req.query.boite);
     if (!b) return res.status(404).json({ error: 'boîte introuvable' });
@@ -455,50 +505,18 @@ module.exports = function monterMessagerie(app, ctx) {
     const uid = parseInt(req.query.uid, 10);
     if (!uid) return res.status(400).json({ error: 'message introuvable' });
     try {
-      const role = await roleDuChemin(b, chemin);   // avant d'ouvrir la boîte : voir `roleDuChemin`
-      const out = await avecImap(b, async client => {
-        const lock = await client.getMailboxLock(chemin);
-        try {
-          const msg = await client.fetchOne(String(uid), { uid: true, envelope: true, flags: true, source: { maxLength: 4000000 } }, { uid: true });
-          if (!msg) return null;
-          const { simpleParser } = require('mailparser');
-          let p = {};
-          try { p = await simpleParser(msg.source); } catch (e) {}
-          const env = msg.envelope || {};
-          const de = adr1(env.from);
-          const texte = String(p.text || '').trim() || htmlEnTexte(typeof p.html === 'string' ? p.html : '');
-          const pieces = (p.attachments || []).map((a, i) => ({ idx: i, nom: String(a.filename || 'piece-' + (i + 1)).slice(0, 140), taille: a.size || 0, type: String(a.contentType || '').slice(0, 80) }))
-            .filter(a => a.nom).slice(0, MAX_PIECES);
-          // à l'ouverture, le message est marqué lu (comme dans une vraie messagerie) — sauf un e-mail de sécurité
-          const estProtege = protege(env.messageId);
-          if (!estProtege && !(msg.flags && msg.flags.has && msg.flags.has('\\Seen'))) { try { await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true }); nonLusOublier(b.id); } catch (_) {} }
-          const midCle = String(env.messageId || '');
-          if (!estProtege && midCle && !suivi[midCle] && role === 'inbox') {
-            const deAdr = de.adr;
-            suivi[midCle] = { statut: estNotification(deAdr, env.subject) ? 'resolu' : 'aTraiter', assigne: '', par: '',
-              /* l'en-tête Date: vient de l'EXPÉDITEUR : une date dans le futur se borne à l'heure où le serveur voit le message (relecture du 22 octobre 2026) */
-              ts: Date.now(), recuTs: Math.min((env.date && new Date(env.date).getTime()) || Date.now(), Date.now()), repTs: 0,
-              de: deAdr, objet: String(env.subject || '').slice(0, 160), auto: estNotification(deAdr, env.subject) ? 1 : 0 };
-            suiviSauve();
-          }
-          const pour = pers(env.to), copie = pers(env.cc);
-          const interlocuteur = interlocuteurDe(b, role, de.adr, pour, copie);
-          return { uid, dossier: chemin, boite: b.id, boiteEmail: b.email,
-            suivi: suivi[midCle] ? { statut: suivi[midCle].statut, assigne: suivi[midCle].assigne || '' } : null,
-            auto: estNotification(de.adr, env.subject),
-            interlocuteur, console: consoleDeAdresse(interlocuteur),
-            de: de.adr, deNom: de.nom, pour, copie,
-            objet: String(env.subject || '(sans objet)').slice(0, 300),
-            ts: env.date ? new Date(env.date).getTime() : 0,
-            texte: texte.slice(0, 40000), html: (typeof p.html === 'string' ? p.html : '').slice(0, 400000),
-            pieces, mid: String(env.messageId || '').slice(0, 300), protege: estProtege,
-            marque: msg.flags && msg.flags.has ? msg.flags.has('\\Flagged') : false };
-        } finally { lock.release(); }
-      });
+      const out = await lireMessageDe(b, chemin, uid, true);
       if (!out) return res.status(404).json({ error: 'message introuvable' });
       res.json(out);
     } catch (e) { res.status(502).json({ error: 'lecture impossible : ' + sansAdr(String(e.message || e)).slice(0, 140) }); }
   });
+  /* Pour les agents : le même corps, SANS marquer lu et SANS créer de suivi. `null` : boîte ou message introuvable ; une panne IMAP jette. */
+  async function lireMessage(boiteId, dossier, uid) {
+    const b = trouve(boiteId);
+    const n = parseInt(uid, 10);
+    if (!b || !n) return null;
+    return lireMessageDe(b, String(dossier || '') || 'INBOX', n, false);
+  }
 
   /* ═════════════════════ PIÈCE JOINTE ═════════════════════ */
   app.get('/api/monitor/mail/piece', monAdmin, async (req, res) => {
@@ -637,6 +655,83 @@ module.exports = function monterMessagerie(app, ctx) {
     return String(v || '').split(/[,;]/).map(x => x.trim()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x.replace(/^.*</, '').replace(/>.*$/, ''))).slice(0, 20);
   }
 
+  /* L'ENVOI, UNE SEULE FOIS : la route de la Tour et les agents passent par ici. Message construit, copie brute pour « Envoyés », envoi SMTP,
+     copie rangée, suivi passé en « en cours », message d'origine marqué « répondu ». Les contrôles (destinataires, quota, longueur) restent à
+     l'appelant : ils ne sont pas les mêmes pour un humain et pour un agent. Un refus du serveur SMTP jette une erreur qui porte `refus`, la
+     phrase déjà nettoyée des adresses ; tout le reste (copie, suivi, drapeau) est du rangement et ne fait jamais échouer un envoi parti. */
+  async function envoyerCourriel(b, o) {
+    const rep = o.rep || null;   // { mid, dossier?, uid? }
+    const options = { from: '"' + (b.nom || 'TEAM OP') + '" <' + b.email + '>', to: o.to.join(', '), subject: o.objet, text: o.texte };
+    if (o.cc && o.cc.length) options.cc = o.cc.join(', ');
+    if (o.bcc && o.bcc.length) options.bcc = o.bcc.join(', ');
+    if (o.pieces && o.pieces.length) options.attachments = o.pieces;
+    if (rep && rep.mid) { options.inReplyTo = String(rep.mid).slice(0, 300); options.references = String(rep.mid).slice(0, 300); }
+
+    const nodemailer = require('nodemailer');
+    // 1) le message brut, pour en garder une copie dans « Envoyés »
+    let brut = null;
+    try {
+      const constructeur = nodemailer.createTransport({ streamTransport: true, buffer: true, newline: 'windows' });
+      const info = await constructeur.sendMail(options);
+      brut = info.message;
+    } catch (e) {}
+    // 2) l'envoi réel
+    try {
+      const t = nodemailer.createTransport({ host: b.smtpHost, port: b.smtpPort, secure: b.smtpPort === 465,
+        auth: { user: b.email, pass: b.pass }, connectionTimeout: 12000, greetingTimeout: 12000 });
+      await t.sendMail(options);
+    } catch (e) { throw Object.assign(new Error('envoi refusé'), { refus: 'envoi refusé : ' + sansAdr(String(e.message || e)).slice(0, 160) }); }
+    // 3) copie dans « Envoyés » + le message d'origine passe en « répondu »
+    let copieOk = false;
+    try {
+      const envoyes = await cheminRole(b, 'envoyes');
+      if (envoyes && brut) await avecImap(b, async client => { await client.append(envoyes, brut, ['\\Seen']); copieOk = true; });
+    } catch (e) {}
+    if (rep && rep.mid) {
+      const sv = suivi[String(rep.mid)];
+      if (sv) {
+        if (!sv.repTs) sv.repTs = Date.now();
+        if (sv.statut === 'aTraiter') sv.statut = 'enCours';
+        if (o.par) sv.assigne = sv.assigne || o.par;   // un agent ne s'assigne pas la demande : « personne » reste vrai tant qu'un humain ne la prend pas
+        suiviSauve();
+      }
+    }
+    if (rep && rep.dossier && rep.uid) {
+      try { await avecImap(b, async client => { const l = await client.getMailboxLock(rep.dossier); try { await client.messageFlagsAdd(String(parseInt(rep.uid, 10)), ['\\Answered'], { uid: true }); } finally { l.release(); } }); } catch (e) {}
+    }
+    return { copieOk };
+  }
+  /* Qui peut envoyer pour les agents : une boîte par son identifiant, jamais une adresse écrite par un agent. */
+  const ADRESSE_SIMPLE = /^[^@\s<>",;]+@[^@\s<>",;]+\.[^@\s<>",;]+$/;
+  /* La signature réglée dans le Courrier (`reglages.signature`) : les agents l'ajoutent à l'envoi, le client de la Tour l'ajoute de son côté. */
+  const signature = () => String(reglages.signature || '');
+  /* « contact » ou « support » : la boîte dont l'adresse COMMENCE par contact@ ou support@, à défaut la première boîte connectée. `null` : aucune boîte. */
+  function boiteParRole(role) {
+    const r = String(role || '').toLowerCase();
+    const b = boites.find(x => String(x.email || '').toLowerCase().startsWith(r + '@')) || boites[0];
+    return b ? b.id : null;
+  }
+  /* L'ENVOI D'UN AGENT, après validation de Justin (ou en mode auto, charte ouverte). Le destinataire est UNE adresse que l'appelant a prise
+     dans la base ou dans l'en-tête d'un mail reçu — jamais dans un texte de Claude ; la signature est ajoutée ici, une seule fois ; le
+     budget est celui des agents (30 par heure), séparé de celui de la Tour. */
+  async function envoyerAgent(o) {
+    o = o || {};
+    const b = trouve(o.boiteId);
+    if (!b) throw new Error('boîte introuvable');
+    const a = String(o.a || '').trim().toLowerCase();
+    if (!ADRESSE_SIMPLE.test(a) || a.length > 160) throw new Error('destinataire invalide');
+    const objet = monStr(String(o.objet || '').replace(/[\r\n]+/g, ' '), 300).trim() || '(sans objet)';
+    let texte = String(o.texte || '').trim();
+    if (!texte) throw new Error('message vide');
+    const sig = signature().trim();
+    if (sig && !texte.endsWith(sig)) texte += '\n\n' + sig;   // déjà signé (Justin a collé sa signature en corrigeant) : pas deux fois
+    texte = texte.slice(0, 60000);
+    if (!quotaOk) throw new Error('la limite d’envoi n’est pas branchée');
+    if (!quotaOk(agentsQuota, 'agents', ENVOIS_AGENTS_PAR_HEURE, 3600000)) throw new Error('limite d’envoi des agents atteinte (' + ENVOIS_AGENTS_PAR_HEURE + ' par heure)');
+    const r = await envoyerCourriel(b, { to: [a], objet, texte, pieces: [], rep: o.enReponseA || null, par: '' });
+    return { copieOk: r.copieOk };
+  }
+
   /* ⛔ LES DEUX ROUTES QUI PORTENT DES PIÈCES ONT LEUR PROPRE ANALYSEUR (`jsonGros`, 20 Mo), MONTÉ APRÈS `monAdmin`.
      Le plafond global d'`index.js` (6 Mo) refusait en 413 AVANT la route : « 12 pièces, 12 Mo » était une promesse que
      le serveur ne pouvait pas tenir, puisque 12 Mo d'octets font ~16 Mo de base64. Et l'ordre compte : lire 20 Mo avant
@@ -665,46 +760,9 @@ module.exports = function monterMessagerie(app, ctx) {
       return res.status(429).json({ error: 'trop d\'envois : ' + ENVOIS_PAR_HEURE + ' messages par heure et par compte — réessaie plus tard', limite: ENVOIS_PAR_HEURE, reessayerDans: attente });
     }
 
-    const rep = (req.body || {}).enReponseA || null;   // { mid }
-    const options = { from: '"' + (b.nom || 'TEAM OP') + '" <' + b.email + '>', to: to.join(', '),
-      subject: objet, text: texte };
-    if (cc.length) options.cc = cc.join(', ');
-    if (bcc.length) options.bcc = bcc.join(', ');
-    if (pieces.length) options.attachments = pieces;
-    if (rep && rep.mid) { options.inReplyTo = String(rep.mid).slice(0, 300); options.references = String(rep.mid).slice(0, 300); }
-
-    const nodemailer = require('nodemailer');
-    // 1) le message brut, pour en garder une copie dans « Envoyés »
-    let brut = null;
-    try {
-      const constructeur = nodemailer.createTransport({ streamTransport: true, buffer: true, newline: 'windows' });
-      const info = await constructeur.sendMail(options);
-      brut = info.message;
-    } catch (e) {}
-    // 2) l'envoi réel
-    try {
-      const t = nodemailer.createTransport({ host: b.smtpHost, port: b.smtpPort, secure: b.smtpPort === 465,
-        auth: { user: b.email, pass: b.pass }, connectionTimeout: 12000, greetingTimeout: 12000 });
-      await t.sendMail(options);
-    } catch (e) { return res.status(500).json({ error: 'envoi refusé : ' + sansAdr(String(e.message || e)).slice(0, 160) }); }
-    // 3) copie dans « Envoyés » + le message d'origine passe en « répondu »
-    let copieOk = false;
-    try {
-      const envoyes = await cheminRole(b, 'envoyes');
-      if (envoyes && brut) await avecImap(b, async client => { await client.append(envoyes, brut, ['\\Seen']); copieOk = true; });
-    } catch (e) {}
-    if (rep && rep.mid) {
-      const sv = suivi[String(rep.mid)];
-      if (sv) {
-        if (!sv.repTs) sv.repTs = Date.now();
-        if (sv.statut === 'aTraiter') sv.statut = 'enCours';
-        sv.assigne = sv.assigne || req.tourUser.nom;
-        suiviSauve();
-      }
-    }
-    if (rep && rep.dossier && rep.uid) {
-      try { await avecImap(b, async client => { const l = await client.getMailboxLock(rep.dossier); try { await client.messageFlagsAdd(String(parseInt(rep.uid, 10)), ['\\Answered'], { uid: true }); } finally { l.release(); } }); } catch (e) {}
-    }
+    let copieOk;
+    try { copieOk = (await envoyerCourriel(b, { to, cc, bcc, objet, texte, pieces, rep: (req.body || {}).enReponseA || null, par: req.tourUser.nom })).copieOk; }
+    catch (e) { return res.status(500).json({ error: e.refus || 'envoi impossible' }); }
     res.json({ ok: true, copieEnvoyes: copieOk, par: req.tourUser.nom });
   });
 
@@ -866,6 +924,11 @@ module.exports = function monterMessagerie(app, ctx) {
           });
           vusSauve();
           const vrais = (nouveaux || []).filter(m => !m.auto);
+          /* Chaque message « vrai » (jamais une notification, jamais un e-mail de sécurité : `protege` les a écartés plus haut) est annoncé aux
+             agents — SANS ATTENDRE, et sans que rien de ce qu'ils font puisse remonter ici : la notification de la Tour part dans tous les cas. */
+          if (surNouveauMessage) for (const m of vrais) {
+            Promise.resolve().then(() => surNouveauMessage({ boiteId: b.id, dossier: inbox, uid: m.uid })).catch(() => {});
+          }
           if (vrais.length && typeof pousseNotif === 'function') {
             const m = vrais[vrais.length - 1];
             const titre = vrais.length > 1 ? ('📬 ' + vrais.length + ' nouveaux messages') : '📬 Nouveau message support';
@@ -878,5 +941,5 @@ module.exports = function monterMessagerie(app, ctx) {
   setInterval(() => { veille().catch(() => {}); }, 120000);
   setTimeout(() => { veille().catch(() => {}); }, 20000);
 
-  return { boites: () => boites.map(publique), compter };
+  return { boites: () => boites.map(publique), compter, lireMessage, envoyerAgent, signature, boiteParRole };
 };
