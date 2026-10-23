@@ -164,6 +164,8 @@ console.log('\n── 2897 · 5. ce que l’écran DIT ──');
   vrai('le contrôle est masqué tant qu’il n’est pas coché', /id="cvc-fiche-ctl" style="display:none"/.test(h));
   const t = W.cvcIntCard(W.db.interventions[1], false);
   vrai('la carte de l’intervention propose « ＋ Fiche fluides » pour les appareils à fluide seulement', /cvcFicheForm\('i2','a2'\)/.test(t) && /cvcFicheForm\('i2','a3'\)/.test(t) && !/cvcFicheForm\('i2','a1'\)/.test(t));
+  { const W2 = monter({ db: BASE }); const h = W2.cvcIntCard(W2.db.interventions[0], false);
+    vrai('⛔ la ligne d’une fiche garde la place de son texte (classe cvc-l, gestes dans cvc-l-fin) — une lettre par ligne à 390 px sinon', /class="pl-row cvc-l"/.test(h) && /class="cvc-l-fin"/.test(h), h.slice(0, 120)); }
   const r = W.cvcFicheResume({ fluide: 'R32', charge: 0.3, recup: 0, controle: true, resultat: 'fuite_differee' });
   vrai('le résumé d’une fiche dit fluide, quantités et résultat', r === 'R32 · chargé 0,3 kg · récupéré 0 kg · étanchéité : Fuite constatée, réparation différée', r);
   vrai('une fiche sans quantités ne dit pas « 0 kg » à tort', /chargé — · récupéré —/.test(W.cvcFicheResume({ fluide: 'R32', charge: '', recup: '' })));

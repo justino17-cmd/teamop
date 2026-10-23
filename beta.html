@@ -40498,10 +40498,11 @@ function cvcAttestationForm(iid,aid){ if(!permGarde('int','modifier','une interv
     <div style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px">Ce document est <b>celui de votre entreprise</b>, établi à partir de cette visite : ce n’est pas un formulaire officiel reproduit. À remettre au client dans les 15 jours qui suivent la visite.</div>
     <form id="cvc-att" onsubmit="return false" oninput="cvcAttestationMaj(this)">
       <div class="form-sec" style="margin-top:0">Mesures</div>
-      <div class="field-row">${champ(CVC_ATT_MESURES[0])}${champ(CVC_ATT_MESURES[1])}</div>
-      <div id="cvc-att-co" style="font-size:12.5px;line-height:1.5;margin:-4px 0 10px"></div>
-      <div class="field-row">${champ(CVC_ATT_MESURES[2])}${champ(CVC_ATT_MESURES[3])}</div>
-      <div class="field-row">${champ(CVC_ATT_MESURES[4])}${champ(CVC_ATT_MESURES[5])}</div>
+      ${champ(CVC_ATT_MESURES[0])}
+      <div id="cvc-att-co" style="font-size:12.5px;line-height:1.5;margin:-4px 0 12px"></div>
+      <div class="field-row">${champ(CVC_ATT_MESURES[1])}${champ(CVC_ATT_MESURES[2])}</div>
+      <div class="field-row">${champ(CVC_ATT_MESURES[3])}${champ(CVC_ATT_MESURES[4])}</div>
+      ${champ(CVC_ATT_MESURES[5])}
       <div class="field"><label>Analyseur utilisé (marque et référence)</label><input name="instrument" maxlength="120" value="${esc(v.instrument||'')}"></div>
       ${(!(a.puissance>=70)&&/gaz|fioul/.test(a.type))?`<div class="field"><label>Classe énergétique <span style="color:var(--t3);font-weight:400">(chaudière gaz ou fioul de moins de 70 kW)</span></label><input name="classe" maxlength="120" value="${esc(v.classe||'')}" placeholder="Ex : A"></div>`:''}
       <div class="field"><label>Conseils d’usage, d’amélioration et de remplacement remis au client</label><textarea name="conseils" rows="3" maxlength="1500">${esc(v.conseils||'')}</textarea></div>
@@ -40513,7 +40514,9 @@ function cvcAttestationForm(iid,aid){ if(!permGarde('int','modifier','une interv
   cvcAttestationMaj(document.getElementById('cvc-att')); }
 /* Le verdict du CO se lit pendant la saisie : le technicien est prévenu avant de quitter le sous-sol. */
 function cvcAttestationMaj(f){ if(!f||!f.elements) return; const el=document.getElementById('cvc-att-co'); if(!el) return;
-  const r=cvcCoVerdict((f.elements.coAmbiant||{}).value); if(!r){ el.textContent=''; return; }
+  const r=cvcCoVerdict((f.elements.coAmbiant||{}).value);
+  /* le verdict se lit SOUS le champ du CO ambiant, jamais sous celui des fumées : posé après une rangée de deux champs, il paraissait juger les 180 ppm des fumées (capture, 390 px) */
+  if(!r){ el.textContent='Les seuils de 10 et 50 ppm s’appliquent au CO ambiant (dans la pièce), pas au CO des fumées.'; el.style.color='var(--t3)'; el.style.fontWeight='400'; return; }
   el.textContent=(r.niveau==='normal'?'✓ ':'⚠️ ')+r.texte; el.style.color=r.niveau==='danger'?'var(--red)':r.niveau==='anomalie'?'var(--org)':'var(--acc-txt)'; el.style.fontWeight=r.niveau==='normal'?'400':'700'; }
 function cvcAttestationSauver(iid,aid,silencieux){ if(!permGarde('int','modifier','une intervention')) return false;
   const x=cvcAttestationCtx(iid,aid); if(!x) return false; const f=document.getElementById('cvc-att'); if(!f) return false;
@@ -40795,9 +40798,9 @@ function cvcFicheResume(f){ const q=x=>x===''||x==null?'—':cvcNbTxt(+x,2)+' kg
   return [f.fluide,'chargé '+q(f.charge),'récupéré '+q(f.recup)].join(' · ')+(f.controle?' · étanchéité : '+r:''); }
 /* Les lignes de fiches d'un appareil, sous les boutons de la carte de l'intervention. */
 function cvcIntFiches(i,a){ const L=cvcFichesDe(i,a.id), peut=canCat('int','modifier'); if(!cvcType(a).fluide) return '';
-  const lignes=L.map(f=>`<div class="pl-row" style="padding:6px 0"><div class="pl-info"><div class="pl-title" style="font-size:13px;overflow-wrap:anywhere">💧 ${esc(f.nature||'Fiche')} — ${esc(fmtShort(f.date))}</div>
+  const lignes=L.map(f=>`<div class="pl-row cvc-l" style="padding:6px 0"><div class="pl-info"><div class="pl-title" style="font-size:13px;overflow-wrap:anywhere">💧 ${esc(f.nature||'Fiche')} — ${esc(fmtShort(f.date))}</div>
       <div class="pl-meta" style="overflow-wrap:anywhere">${esc(cvcFicheResume(f))}</div></div>
-      ${peut?`<button type="button" class="btn ghost sm" onclick="cvcFicheForm('${i.id}','${a.id}','${f.id}')" aria-label="Modifier la fiche fluides">✎</button><button type="button" class="btn ghost sm" onclick="cvcFicheSupprimer('${i.id}','${f.id}')" aria-label="Supprimer la fiche fluides">🗑</button>`:''}</div>`).join('');
+      ${peut?`<div class="cvc-l-fin"><button type="button" class="btn ghost sm" onclick="cvcFicheForm('${i.id}','${a.id}','${f.id}')" aria-label="Modifier la fiche fluides">✎</button><button type="button" class="btn ghost sm" onclick="cvcFicheSupprimer('${i.id}','${f.id}')" aria-label="Supprimer la fiche fluides">🗑</button></div>`:''}</div>`).join('');
   return lignes; }
 /* ═══ CVC 4 — LA VISITE DU CONTRAT D'ENTRETIEN : UNE PROPOSITION, JAMAIS UNE ÉCRITURE ═══
    Un contrat d'entretien lié à un client — et, au choix, à certains de ses appareils — propose de planifier la visite quand son échéance approche.

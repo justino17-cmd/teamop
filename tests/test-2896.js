@@ -84,6 +84,8 @@ console.log('\n── 2896 · 4. enregistrer ──');
   W.cvcAttestationForm('i1', 'a1');
   vrai('⛔ ouvrir le formulaire n’écrit rien', JSON.stringify(W.db) === avant && W.__saves === 0 && W.__modals.length === 1);
   vrai('le formulaire DIT que ce n’est pas un formulaire officiel reproduit, et le délai de 15 jours', /n’est pas un formulaire officiel reproduit/.test(W.__modals[0]) && /15 jours/.test(W.__modals[0]));
+  { const h = W.__modals[0], a = h.indexOf('name="coAmbiant"'), v0 = h.indexOf('id="cvc-att-co"'), f = h.indexOf('name="co"');
+    vrai('⛔ le verdict du CO ambiant est posé juste SOUS son champ, avant celui des fumées (sinon il paraît juger les fumées)', a > 0 && a < v0 && v0 < f, [a, v0, f]); }
   vrai('la classe énergétique est demandée pour une chaudière gaz de moins de 70 kW', /name="classe"/.test(W.__modals[0]));
   vrai('… pas pour une chaudière de 120 kW', !/name="classe"/.test((() => { const X = monter({ db: Object.assign(cdc(BASE), { appareils: [Object.assign({}, BASE.appareils[0], { puissance: 120 })] }), pack: PACK }); X.cvcAttestationForm('i1', 'a1'); return X.__modals[0]; })()));
   vrai('enregistrer écrit l’attestation (date, auteur), une ligne d’historique, un save', W.cvcAttestationSauver('i1', 'a1') === true && W.db.interventions[0].attestations.a1.coAmbiant === '12' && W.db.interventions[0].attestations.a1.etabliLe === '2026-10-23' && W.db.interventions[0].attestations.a1.etabliPar === 'Test Admin' && W.__saves === 1 && /Attestation d’entretien établie/.test(W.db.interventions[0].histo.join('|')));

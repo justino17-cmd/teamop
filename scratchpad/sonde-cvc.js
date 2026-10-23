@@ -182,7 +182,7 @@ let ok = 0, ko = 0; const c = (t, v, d) => { if (v) { ok++; console.log('  ✓ '
         const fl4 = await S.ev(`const f=document.getElementById('cvc-fiche'); return f&&{c:f.elements.charge.value, r:f.elements.resultat.value};`);
         c('✎ rouvre la fiche avec ses valeurs (charge 0.3, fuite différée)', !!fl4 && fl4.c === '0.3' && fl4.r === 'fuite_differee', fl4);
         await S.ev(`closeModal(true); renderIntDetail('i-cvc1'); return 1;`); await dormir(400); await calme();
-        await geste('#cvc-int button', souris, '🗑'); await dormir(400);
+        await geste('#cvc-int [aria-label="Supprimer la fiche fluides"]', souris); await dormir(400);
         c('🗑 supprime la fiche', (await S.ev(`return (db.interventions.find(x=>x.id==='i-cvc1').fichesFluides||[]).length;`)) === 0);
         /* le calendrier : la ligne d'appareil dit la périodicité, et Tâches propose le contrôle */
         await S.ev(`db.interventions=db.interventions.filter(i=>/^i-cvc[12]$/.test(i.id)); db.interventions.find(x=>x.id==='i-cvc1').appareilIds=['a-cvc1']; save(); ficheClient('c-cvc1'); return 1;`); await dormir(700); await calme();
@@ -252,13 +252,13 @@ let ok = 0, ko = 0; const c = (t, v, d) => { if (v) { ok++; console.log('  ✓ '
       const nI = await S.ev(`return db.interventions.length;`);
       await geste('#cvc-dash button', souris, 'Planifier');
       const p1 = await S.ev(`const f=document.getElementById('intform'); if(!f) return null; return {titre:f.elements.titre.value, date:f.elements.date.value, type:(f.elements.type||{}).value, cache:(f.elements.cvcAppareils||{}).value, n:db.interventions.length};`);
-      c('« Planifier » ouvre le formulaire d’intervention PRÉ-REMPLI, sans rien écrire (titre, date, type, appareil caché)', !!p1 && /^Entretien — /.test(p1.titre) && !!p1.date && !!p1.cache && p1.n === nI, p1);
+      c('« Planifier » ouvre le formulaire d’intervention PRÉ-REMPLI, sans rien écrire (titre, date, type, appareil caché)', !!p1 && /^(Entretien|Contrôle d’étanchéité) — /.test(p1.titre) && !!p1.date && !!p1.cache && p1.n === nI, p1);
       await capture('5-planifier-' + tag);
       await S.ev(`document.getElementById('intform').requestSubmit(); return 1;`); await dormir(900); await calme();
       const p2 = await S.ev(`const i=db.interventions[db.interventions.length-1]; return {n:db.interventions.length, titre:i.titre, ids:i.appareilIds, client:i.clientId, cache:i.cvcAppareils};`);
       c('⛔ valider crée l’intervention AVEC les appareils visés (liste), et le champ caché ne s’est pas glissé dans la fiche', p2.n === nI + 1 && Array.isArray(p2.ids) && p2.ids.length === 1 && p2.cache === undefined, p2);
       const t3 = await S.ev(`go('taches'); await new Promise(r=>setTimeout(r,500)); const b=document.getElementById('cvc-taches'); return {lignes:b?b.querySelectorAll('.pl-row').length:0};`);
-      c('l’échéance planifiée n’est plus proposée (' + t1.lignes + ' → ' + t3.lignes + ')', t3.lignes === t1.lignes - 1, t3);
+      c('l’échéance planifiée n’est plus proposée (' + t1.lignes + ' → ' + t3.lignes + ' ; l’intervention cite l’appareil : son entretien ET son étanchéité sont couverts)', t3.lignes < t1.lignes, t3);
       await S.ev(`db.interventions=db.interventions.filter(i=>/^i-cvc[12]$/.test(i.id)); save(); return 1;`);
 
       /* ── la contre-épreuve : le métier d'ELAN (3D) ne voit RIEN de neuf ── */
