@@ -13,6 +13,23 @@ de ligne du tout.
 
 ---
 
+# ⏳ 23 OCTOBRE 2026 — RELECTURE JURIDIQUE : LES TEXTES DISENT CE QUE LE CODE FAIT (branche de travail, RIEN SUR `main`)
+
+Justin : « tu as déjà tout de ça » — les réponses recommandées de la relecture, avec les faits du dépôt. Pages, contrats et `espace.html` corrigés ; `tests/test-2971.js` (94 ✓)
+garde le tout. Trois choses restent, et elles ne se règlent pas dans ce chantier :
+
+- ⛔ **Les pages suivent le CODE, pas la décision.** Les mots de passe des boîtes mail sont écrits EN CLAIR dans `mailboxes.json` aujourd'hui (`saveMailboxes`) : le registre le
+  dit (« sans chiffrement propre, seules les sauvegardes sont chiffrées »), et aucune page ne dit « conservé chiffré ». Le chiffrement (décision 10) vit sur une AUTRE branche
+  (`4e6b6d7d`, `server/coffre-boites.js`) ; de même « adresses et numéros retirés » (analyse d'un incident) attend le filtre de la branche des incidents (`incidentTexte`).
+  `test-2971` §4 lit le code des deux endroits : **le jour où l'une des deux branches est fusionnée, il tombe exprès** et demande de réécrire les phrases (registre, sous-traitance,
+  confidentialité, DPA, copies `apercu/`) — c'est le geste attendu, pas une panne. ⚠️ Le banc de cette branche s'appelle 2971 comme celui de la branche des boîtes : renuméroter l'un.
+- ⏳ **« Service 24h/24 » reste dans `app.html`** (`PLANS.premium.desc`, l'écran où le client choisit son abonnement). Justin : une phrase pour le publier. La bêta et la démonstration
+  publique le disent déjà juste (remplacement gardé de `beta-build.js` et `demo-build.js`, `test-2971` §1 les refabrique). Le jour de la phrase : remplacer dans `app.html`
+  « service 24h/24 » par « assistance prioritaire » (bumper la version et le cache), RETIRER les deux remplacements, vider `ECART_APPLICATION` du banc.
+- ⏳ **Sept brouillons « Révision du 23 octobre » attendent dans la Tour** (Contrats) : les comparer à la version en vigueur, puis valider. Le serveur refuse de valider un texte qui
+  garde un crochet `[À CONFIRMER PAR UN JURISTE …]` : restent à l'avocat le plafond de responsabilité (CG, DPA), le compte « Perso » d'OP MESSAGES, les transferts hors UE (Anthropic,
+  GitHub), le client non professionnel (DPA), la signature électronique simple (art. 1366-1367) et la durée de 24 mois ; la durée de conservation des messages d'OP MESSAGES n'est pas décidée.
+
 # ✅ 23 OCTOBRE 2026 — LES VINGT-TROIS MÉTIERS OUVERTS AU PUBLIC (geste de publication de la v772, Justin : « oui publie »)
 
 - **Fait** : OP GESTION v772 en ligne pour les clients (justino17-cmd/teamop#156), puis le geste de `tests/beta-en-avance.js`, dans un
