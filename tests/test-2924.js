@@ -75,6 +75,11 @@ console.log('\n── 2924 · les six agents de la plateforme, assemblés ──
     C.sante.panne = true; C.avancer(10 * MIN);
     const r = await C.P.tic();
     v('la santé illisible : Max le dit à sa façon (rien d’inventé), les autres agents passent quand même', [Object.keys(r), !!r.victor, !!r.jules], [['max', 'theo', 'nina', 'jules', 'ines', 'victor'], true, true]);
+    /* un agent qui JETTE n'arrête pas les suivants : il est noté « erreur », Jules et Victor passent */
+    C.P.max.passer = async () => { throw new Error('panne de Max'); };
+    C.avancer(10 * MIN);
+    const rp = await C.P.tic();
+    v('⛔ Max jette : le résultat dit « erreur » pour lui, et tous les agents d’après passent quand même', [rp.max, Object.keys(rp)], [{ saute: 'erreur' }, ['max', 'theo', 'nina', 'jules', 'ines', 'victor']]);
     C.nettoyer();
   }
 
@@ -111,6 +116,10 @@ console.log('\n── 2924 · les six agents de la plateforme, assemblés ──
       const r = f();
       v('le relevé « ' + nom + ' » est FERMÉ : `fermer()` n’en retire rien (ni texte, ni chaîne libre)', [r === null ? 'null' : JSON.stringify(AC.fermer(JSON.parse(JSON.stringify(r)))) === JSON.stringify(r)], [true]);
     }
+    const cv = B.P.victor.collecter();
+    vrai('⛔ Victor voit l’alarme ouverte dans SON relevé du matin (un nombre, jamais le texte)', cv.plateforme && Object.values(cv.plateforme).some(x => typeof x === 'number' && x >= 1), JSON.stringify(cv.plateforme));
+    const rel = B.P.resume();
+    vrai('⛔ le relevé de la Tour ne livre d’un épisode que ses champs (identifiant, règle, zone, niveau, dates, drapeaux, phrase du serveur) — pas ses valeurs brutes', rel.episodes.length >= 1 && rel.episodes.every(e => Object.keys(e).sort().join() === 'annonce,cle,depuis,fin,id,incident,niveau,pris,proprio,texte,zone'), JSON.stringify(rel.episodes[0]));
     const p = B.P.faits.plateforme();
     vrai('« plateforme » compte l’épisode ouvert, par clé de NOTRE table', p.episodesOuverts >= 1 && typeof p.actives === 'object' && Object.keys(p.actives).some(k => /^sauvegarde_/.test(k)), JSON.stringify(p));
     for (const id of Object.keys(ROLES_PLUS.AJOUTS)) {
