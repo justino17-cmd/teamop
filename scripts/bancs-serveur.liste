@@ -251,3 +251,15 @@ tests/test-2870.js
 tests/test-2891.js
 # 23 octobre 2026 (relecture) : `test-2890` (le référentiel des métiers et son interrupteur : « tout métier ouvert est connu de l'application » — sans lui, ouvrir un métier dans `metiers.json` sans que l'application publique le connaisse déclenchait un déploiement qui passait la porte, et un plombier lisait « Dératisation »). Mesuré contre l'`app.html` de `origin/main` (APP_FICHIER) : 60 ✓ 0 ✗. `test-2891` garde aussi que le script de déploiement emporte la page de paiement.
 tests/test-2890.js
+# 23 octobre 2026 : Hugo, Margaux, Emma, Sarah (la gestion des clients) — `test-2910` (la fin d'abonnement chez Stripe : fetch, fin de période seulement, clé d'idempotence, jamais un DELETE ni un
+# remboursement), `test-2911` (les courriers composés par le code et leur contrôle qualité), `test-2912` (les documents des agents : empreinte, acceptation, jamais d'envoi sans validation),
+# `test-2913` (Hugo : tâche fermée de Camille, accusé signé, « a-t-il payé ? »), `test-2914` (Margaux : relances J+3 / J+7 une fois chacune, mise en demeure PRÉPARÉE), `test-2915` (Emma : créneaux
+# libres à l'heure de Paris, jamais inventés ; Sarah : l'annonce rédigée, validée avant d'être envoyée) et `test-2917` (le VRAI serveur : Stripe simulé dans son processus, les verdicts de
+# l'application réutilisés, les routes — le patron seul écrit). `test-2916` (la Tour) lit le bloc `agGe…` de `tour.html`, que la `tour.html` de `main` n'a pas encore : il reste hors de cette liste jusqu'à la fusion.
+tests/test-2910.js
+tests/test-2911.js
+tests/test-2912.js
+tests/test-2913.js
+tests/test-2914.js
+tests/test-2915.js
+tests/test-2917.js
