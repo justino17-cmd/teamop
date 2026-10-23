@@ -468,7 +468,7 @@ module.exports = function monterReunions(app, ctx) {
     if (reunions.length > REUNIONS_MAX) reunions = reunions.slice(-REUNIONS_MAX);
     if (!ecrireReunions()) { reunions.pop(); return { ok: false, raison: 'ecriture' }; }
     if (emp) {
-      dire(emp, { cle: 'reunion-annulee:' + cle, parHeure: true });
+      dire(emp);   // dite UNE fois : `tic()` ne rappelle `demarrer` qu'une fois l'empêchement levé
       return { ok: true, id, annulee: true };
     }
     const suite = derouler(R).catch(e => {
