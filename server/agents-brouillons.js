@@ -23,6 +23,7 @@
  */
 'use strict';
 const crypto = require('crypto');
+const CTRL = require('./agents-controle');
 
 const F = 'agents-brouillons.json';
 const MAX = 500;
@@ -32,6 +33,12 @@ const TEXTE_MAX = 20000;
 const RESUME_OBJET = 60;
 const ROLES_BOITE = ['contact', 'support'];
 const ECHECS_MAX = 3;
+/* L'ENVOI SEUL (23 octobre 2026) — un courriel part sans Justin SEULEMENT si TOUT ceci est vrai : l'agent est en mode « auto », la charte `repondre_client` est ouverte, le
+   contrôle qualité a dit « bon » (code ET juge), l'expéditeur est authentifié (compte prouvé pour une inscription ; DKIM ou SPF du serveur de réception pour un courriel reçu),
+   l'appelant ne demande pas la validation (`forceValidation`), et cette adresse n'a pas déjà reçu `AUTO_PAR_ADRESSE_JOUR` courriels en 24 h. Le moindre doute : une validation. */
+const AUTO_PAR_ADRESSE_JOUR = 3;
+const JOUR_MS = 86400000;
+const ETATS_CONTROLE = ['bon', 'a_revoir', 'non_verifie'];
 
 /* Un objet de mail reçu entre dans un résumé que Justin lit : une ligne, sans signe de contrôle, courte, guillemets droits écartés. */
 function objetCourt(t) {
@@ -44,16 +51,28 @@ function objetCourt(t) {
 /* Ce que Justin a lu : l'empreinte de l'objet ET du texte (le destinataire ne se change pas). Une réécriture, une correction : une autre empreinte. */
 const empreinteDe = e => crypto.createHash('sha256').update('brouillon:' + String(e.objet) + '\n' + String(e.texte)).digest('hex').slice(0, 32);
 
-/* Le résumé de la validation : une phrase fixe et ce qui l'identifie. Jamais un mot de Claude. */
+/* Le résumé de la validation : une phrase fixe et ce qui l'identifie. Jamais un mot de Claude. Le contrôle qualité s'y lit d'un coup d'œil. */
 function resumeDe(e) {
-  if (e.source === 'courrier') return 'Réponse au mail “' + (objetCourt(e.objetRecu) || 'sans objet') + '” — à relire avant envoi';
+  const marque = e.controle && e.controle.etat === 'a_revoir' ? ' — À REVOIR (contrôle qualité)' : e.controle && e.controle.etat === 'non_verifie' ? ' — contrôle non fait' : '';
+  if (e.source === 'courrier') return 'Réponse au mail “' + (objetCourt(e.objetRecu) || 'sans objet') + '” — à relire avant envoi' + marque;
   const qui = e.entreprise ? ' de ' + e.entreprise : '';
-  if (e.source === 'demande') return 'Réponse à la demande' + qui + ' — à relire avant envoi';
-  return 'Réponse à l’inscription' + qui + ' — à relire avant envoi';
+  if (e.source === 'demande') return 'Réponse à la demande' + qui + ' — à relire avant envoi' + marque;
+  if (e.source === 'proposition') return 'Proposition sur mesure' + qui + ' — à relire avant envoi' + marque;
+  return 'Réponse à l’inscription' + qui + ' — à relire avant envoi' + marque;
+}
+/* Le verdict du contrôle qualité tel qu'on le range : une forme fermée (jamais un texte de l'appelant). Sans verdict, ou avec un verdict inconnu : « non vérifié » — jamais « bon ». */
+function controleRange(c) {
+  if (!c || typeof c !== 'object' || !ETATS_CONTROLE.includes(c.etat)) return { etat: 'non_verifie', fautes: [], juge: false };
+  return { etat: c.etat, fautes: (Array.isArray(c.fautes) ? c.fautes : []).filter(x => typeof x === 'string' && CTRL.FAUTES[x]).slice(0, 12), juge: c.juge === true,
+    raison: typeof c.raison === 'string' ? c.raison.slice(0, 80) : undefined };
 }
 
 module.exports = function brouillons(app, ctx) {
   const { agents, mail } = ctx;
+  /* La signature de chaque agent (`agents-signature.js`), posée à l'envoi : à défaut d'un module branché, la signature par défaut (un registre vide). */
+  const signatures = ctx.signatures && typeof ctx.signatures.composer === 'function' ? ctx.signatures : require('./agents-signature')(null, { agents, fichier: ctx.fichier || require('./agents-fichier')(ctx.DATA_DIR) });
+  /* Ce que Louis apprend d'une correction de Justin (`agent-louis.js`) : un crochet, jamais attendu, jamais cause d'échec. */
+  const surCorrection = typeof ctx.surCorrection === 'function' ? ctx.surCorrection : null;
   const monAdmin = ctx.monAdmin, monPatronStrict = ctx.monPatronStrict;
   const direction = ctx.direction || null;
   const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
@@ -91,7 +110,7 @@ module.exports = function brouillons(app, ctx) {
     const objet = String(o.objet || '').replace(/[\r\n]+/g, ' ').trim();
     const texte = String(o.texte || '').trim();
     if (!objet || objet.length > OBJET_MAX || !texte || texte.length > TEXTE_MAX) { agents.noter(agent, 'déposer un brouillon', { cible: o.source, resultat: 'refuse', detail: 'objet ou texte hors bornes' }); return { ok: false, raison: 'forme' }; }
-    const source = ['inscription', 'demande', 'courrier'].includes(o.source) ? o.source : null;
+    const source = ['inscription', 'demande', 'courrier', 'proposition'].includes(o.source) ? o.source : null;
     if (!source) return { ok: false, raison: 'source' };
     const rep = o.enReponseA && typeof o.enReponseA === 'object' && o.enReponseA.mid ? {
       mid: String(o.enReponseA.mid).slice(0, 300), boiteId: String(o.enReponseA.boiteId || '').slice(0, 40),
@@ -105,16 +124,26 @@ module.exports = function brouillons(app, ctx) {
     if (!boiteId || !laBoite) { agents.noter(agent, 'déposer un brouillon', { cible: source, resultat: 'refuse', detail: 'aucune boîte connectée' }); return { ok: false, raison: 'pas_de_boite' }; }
     const ref = 'br' + crypto.randomBytes(6).toString('hex');
     reg[ref] = { agent, a, objet, texte, enReponseA: rep, boiteId, role, source, entreprise: String(o.entreprise || '').slice(0, 50),
-      objetRecu: source === 'courrier' ? objetCourt(o.objetRecu) : '', cree: maintenant(), etat: 'attente' };
+      objetRecu: source === 'courrier' ? objetCourt(o.objetRecu) : '', cree: maintenant(), etat: 'attente', controle: controleRange(o.controle), authentifie: o.authentifie === true, reecrit: o.reecrit === true };
     elaguer();
     if (!sauve()) { delete reg[ref]; return { ok: false, raison: 'ecriture' }; }
 
-    /* Seul le mode « auto » ET la charte ouverte envoient sans Justin. Une charte illisible, un geste fermé, un mode « brouillon » : validation. */
-    const auto = p.mode === 'auto' && direction && typeof direction.autorise === 'function' && direction.autorise('repondre_client').auto === true;
+    /* Seul le mode « auto » ET la charte ouverte ET un contrôle « bon » ET un expéditeur authentifié envoient sans Justin. Une charte illisible, un geste fermé, un mode « brouillon »,
+       un doute du contrôle ou de l'authentification, trop de courriels déjà partis vers cette adresse : validation — et la raison s'écrit au journal. */
+    const pas = [];
+    if (p.mode !== 'auto') pas.push('mode ' + p.mode);
+    if (!(direction && typeof direction.autorise === 'function' && direction.autorise('repondre_client').auto === true)) pas.push('charte fermée');
+    if (reg[ref].controle.etat !== 'bon') pas.push('contrôle ' + reg[ref].controle.etat.replace('_', ' '));
+    if (o.authentifie !== true) pas.push('expéditeur non authentifié');
+    if (o.forceValidation === true) pas.push('validation demandée');
+    if (!pas.length && envoyesRecents(a) >= AUTO_PAR_ADRESSE_JOUR) pas.push('déjà ' + AUTO_PAR_ADRESSE_JOUR + ' courriels en 24 h à cette adresse');
+    const auto = pas.length === 0;
+    if (!auto && p.mode === 'auto') agents.noter(agent, 'réponse laissée à la validation', { cible: source, resultat: 'ok', detail: pas.join(' ; ') });
     if (auto) {
+      reg[ref].direct = true;   // parti SANS Justin : le bilan de la journée le distingue
       try {
         await envoyer(ref);
-        agents.noter(agent, 'réponse envoyée sans validation', { cible: source, resultat: 'ok', detail: 'mode auto, charte « répondre seul » ouverte' });
+        agents.noter(agent, 'réponse envoyée sans validation', { cible: source, resultat: 'ok', detail: 'mode auto, charte ouverte, contrôle qualité bon' + (reg[ref].controle.juge ? ' (code et juge)' : ' (gabarit)') });
         return { ok: true, ref, voie: 'direct' };
       } catch (e) {
         /* l'envoi direct a échoué : `envoyer` a rouvert une validation (le brouillon attend Justin) si elle a pu — sinon il est en « échec » */
@@ -129,7 +158,7 @@ module.exports = function brouillons(app, ctx) {
 
   /* Réécrire un brouillon qui attend encore (Léa, quand la demande d'application apporte plus que l'inscription). Même référence : la
      validation que Justin voit est la même, et son aperçu montre le texte à jour. */
-  function reecrire(ref, objet, texte, source) {
+  function reecrire(ref, objet, texte, source, controle) {
     const e = reg[ref];
     if (!e || e.etat !== 'attente' || illisible()) return false;
     /* ⛔ Ce que Justin a corrigé à la main ne se réécrit JAMAIS : sa correction vaut plus que la mienne, et la perdre en silence ferait relire
@@ -137,8 +166,9 @@ module.exports = function brouillons(app, ctx) {
     if (e.corrige) return false;
     const o = String(objet || '').replace(/[\r\n]+/g, ' ').trim(), t = String(texte || '').trim();
     if (!o || o.length > OBJET_MAX || !t || t.length > TEXTE_MAX) return false;
-    const avant = { objet: e.objet, texte: e.texte, source: e.source };
+    const avant = { objet: e.objet, texte: e.texte, source: e.source, controle: e.controle };
     e.objet = o; e.texte = t; if (source === 'demande') e.source = 'demande';
+    e.controle = controleRange(controle); e.reecrit = true;   // le verdict suit le NOUVEAU texte : un contrôle « bon » d'avant ne couvre pas ce qu'on vient de réécrire
     if (!sauve()) { Object.assign(e, avant); return false; }
     return true;
   }
@@ -167,6 +197,41 @@ module.exports = function brouillons(app, ctx) {
      peut recevoir une nouvelle préparation, une adresse déjà servie non. */
   const etatDe = ref => (reg[ref] ? reg[ref].etat : null);
 
+  /* Combien de courriels sont PARTIS vers cette adresse ces dernières 24 h ? (le plafond de l'envoi seul) */
+  function envoyesRecents(adresse) {
+    const a = String(adresse || '').trim().toLowerCase(), limite = maintenant() - JOUR_MS;
+    let n = 0;
+    for (const ref of Object.keys(reg)) { const e = reg[ref]; if (e.a === a && e.etat === 'envoye' && (e.envoyeTs || 0) > limite) n++; }
+    return n;
+  }
+  /* Le BILAN par agent (des NOMBRES, pour la conversation : « qu'as-tu envoyé aujourd'hui ? ») : envoyés et partis seuls ces 24 h, en attente, dont « à revoir ». */
+  function bilan() {
+    const now = maintenant(), out = {};
+    for (const ref of Object.keys(reg)) {
+      const e = reg[ref], o = out[e.agent] || (out[e.agent] = { envoyes24h: 0, partisSeuls24h: 0, enAttente: 0, aRevoir: 0 });
+      if (e.etat === 'envoye' && (e.envoyeTs || 0) > now - JOUR_MS) { o.envoyes24h++; if (e.direct) o.partisSeuls24h++; }
+      if (e.etat === 'attente') { o.enAttente++; if (e.controle && e.controle.etat === 'a_revoir') o.aRevoir++; }
+    }
+    return out;
+  }
+  /* Le dernier courriel ENVOYÉ à cette adresse par l'un de ces agents dans les `jours` derniers jours (Camille reconnaît ainsi la réponse d'un prospect à Léa). */
+  function dernierEnvoiA(adresse, ids, jours) {
+    const a = String(adresse || '').trim().toLowerCase(), limite = maintenant() - (jours || 60) * JOUR_MS;
+    let best = null;
+    for (const ref of Object.keys(reg)) {
+      const e = reg[ref];
+      if (e.a === a && e.etat === 'envoye' && (!ids || ids.includes(e.agent)) && (e.envoyeTs || 0) > limite && (!best || e.envoyeTs > best.envoyeTs)) best = { ref, agent: e.agent, source: e.source, envoyeTs: e.envoyeTs, entreprise: e.entreprise || '' };
+    }
+    return best;
+  }
+  /* Le courriel ENVOYÉ dont le Message-ID est l'un de ceux-ci (le In-Reply-To / References d'une réponse reçue). */
+  function parMessageId(mids, ids) {
+    const l = (Array.isArray(mids) ? mids : []).map(x => String(x)).filter(Boolean);
+    if (!l.length) return null;
+    for (const ref of Object.keys(reg)) { const e = reg[ref]; if (e.etat === 'envoye' && e.mid && l.includes(e.mid) && (!ids || ids.includes(e.agent))) return { ref, agent: e.agent, a: e.a, source: e.source, entreprise: e.entreprise || '' }; }
+    return null;
+  }
+
   /* Justin a-t-il déjà corrigé ce brouillon ? Léa le demande AVANT d'appeler Claude : réécrire ce qu'on n'a pas le droit de réécrire serait payer pour rien. */
   const estCorrige = ref => !!(reg[ref] && reg[ref].corrige === true);
 
@@ -179,8 +244,10 @@ module.exports = function brouillons(app, ctx) {
     if (enEnvoi.has(ref)) throw new Error('envoi déjà en cours');
     enEnvoi.add(ref);
     try {
-      await mail.envoyerAgent({ boiteId: e.boiteId, a: e.a, objet: e.objet, texte: e.texte, enReponseA: e.enReponseA });
-      e.etat = 'envoye'; e.envoyeTs = maintenant(); sauve();
+      const laBoite = (mail.boites() || []).find(b => b.id === e.boiteId);
+      const r = await mail.envoyerAgent({ boiteId: e.boiteId, a: e.a, objet: e.objet, texte: e.texte, enReponseA: e.enReponseA,
+        signature: signatures.composer(e.agent, laBoite && laBoite.email), deNom: (agents.AGENTS.find(x => x.id === e.agent) || {}).nom ? (agents.AGENTS.find(x => x.id === e.agent).nom + ' — TeamOP') : 'TeamOP' });
+      e.etat = 'envoye'; e.envoyeTs = maintenant(); if (r && typeof r.messageId === 'string') e.mid = r.messageId.slice(0, 300); sauve();
       agents.noter(e.agent, 'courriel envoyé', { cible: e.source, resultat: 'ok' });
     } catch (err) {
       e.erreur = String(sansAdr(String((err && err.message) || err))).slice(0, 120);
@@ -202,8 +269,13 @@ module.exports = function brouillons(app, ctx) {
   }
 
   /* Ce que l'écran peut montrer : jamais l'objet du mail reçu (il est dans le résumé), jamais l'erreur brute. */
-  const vue = e => ({ agent: e.agent, a: e.a, objet: e.objet, texte: e.texte, source: e.source, entreprise: e.entreprise || '', etat: e.etat,
-    empreinte: empreinteDe(e), echecs: e.echecs || 0, signature: mail.signature ? mail.signature() : '' });
+  const vue = e => {
+    const c = controleRange(e.controle), laBoite = (mail.boites() || []).find(b => b.id === e.boiteId);
+    /* la signature montrée est CELLE QUI PARTIRA : celle de l'agent, pour la boîte qui envoie (pas celle du Courrier de Justin) */
+    return { agent: e.agent, a: e.a, objet: e.objet, texte: e.texte, source: e.source, entreprise: e.entreprise || '', etat: e.etat,
+      empreinte: empreinteDe(e), echecs: e.echecs || 0, signature: signatures.composer(e.agent, laBoite && laBoite.email),
+      controle: { etat: c.etat, fautes: CTRL.phrasesDe(c.fautes), juge: c.juge, reecrit: e.reecrit === true }, authentifie: e.authentifie === true };
+  };
 
   /* ── les routes de la Tour ── */
   app.get('/api/monitor/agents/brouillons', monAdmin, (req, res) => {
@@ -228,6 +300,8 @@ module.exports = function brouillons(app, ctx) {
     e.objet = objet; e.texte = texte; e.corrige = true;
     if (!sauve()) { Object.assign(e, avant); if (avant.corrige === undefined) delete e.corrige; return res.status(503).json({ error: 'Correction non enregistrée' }); }
     agents.noter(e.agent, 'brouillon corrigé', { cible: b.ref, qui: req.tourUser && req.tourUser.nom });
+    /* Louis regarde ce que Justin a corrigé (sans attendre, sans jamais faire échouer la correction) : une connaissance PROPOSÉE, validée par Justin plus tard. */
+    if (surCorrection) { try { Promise.resolve(surCorrection({ agent: e.agent, avant: avant.texte, apres: e.texte })).catch(() => {}); } catch (x) {} }
     res.json({ ok: true, brouillon: vue(e) });
   });
 
@@ -246,9 +320,10 @@ module.exports = function brouillons(app, ctx) {
     return '';
   });
 
-  return { deposer, reecrire, attenteDe, nombreEnAttente, etatDe, estCorrige, envoyer, illisible, vue: ref => (reg[ref] ? vue(reg[ref]) : null), compter: () => Object.keys(reg).length };
+  return { deposer, reecrire, attenteDe, nombreEnAttente, etatDe, estCorrige, envoyer, illisible, envoyesRecents, dernierEnvoiA, parMessageId, bilan, vue: ref => (reg[ref] ? vue(reg[ref]) : null), compter: () => Object.keys(reg).length };
 };
 module.exports.resumeDe = resumeDe;
 module.exports.objetCourt = objetCourt;
 module.exports.empreinteDe = empreinteDe;
 module.exports.ECHECS_MAX = ECHECS_MAX;
+module.exports.AUTO_PAR_ADRESSE_JOUR = AUTO_PAR_ADRESSE_JOUR;

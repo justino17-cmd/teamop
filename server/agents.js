@@ -87,9 +87,12 @@ const SCHEMAS = {
   escalade_humain:   { fil: REF, motif: ['demande_humain', 'litige', 'sensible', 'blocage', 'urgence'] },
   signaler_erreur:   { source: ['site', 'api', 'stripe', 'mail', 'sauvegarde', 'instagram'], ref: REF },
   relire_envoi:      { brouillon: REF },
+  /* « Je veux arrêter » (23 octobre 2026) : Camille demande à Hugo de PROGRAMMER la fin de l'abonnement à la fin de la période réglée. Une forme FERMÉE : le numéro de dossier du client
+     (jamais une phrase de lui) ; Hugo retrouve l'espace et l'abonnement par ce numéro. Camille ne la dépose que si l'expéditeur est authentifié ET l'adresse du compte. */
+  resilier_fin_periode: { dossier: /^DOS-\d{6}$/ },
 };
 const TYPES_VALIDATION = ['creer_espace', 'suspendre_acces', 'envoyer_mail', 'publier', 'repondre_avis', 'correctif'];
-const TYPES_TACHE = ['verifier_paiement', 'preparer_espace', 'escalade_humain', 'signaler_erreur', 'relire_envoi'];
+const TYPES_TACHE = ['verifier_paiement', 'preparer_espace', 'escalade_humain', 'signaler_erreur', 'relire_envoi', 'resilier_fin_periode'];
 
 const JOURNAL_MAX = 2000;
 const TACHES_MAX = 500;

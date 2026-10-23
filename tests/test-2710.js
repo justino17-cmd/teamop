@@ -138,7 +138,7 @@ const P = jeton.patron, S = jeton.simple;
   const base = { creer_espace: { espace: 'dupont', formule: 'pro' }, suspendre_acces: { espace: 'dupont', motif: 'impaye' }, envoyer_mail: { boite: 'support', fil: 'f1' },
     publier: { canal: 'instagram', brouillon: 'b1' }, repondre_avis: { avis: 'a1', brouillon: 'b1' }, correctif: { issue: 'i1', branche: 'br1' },
     verifier_paiement: { espace: 'dupont' }, preparer_espace: { espace: 'dupont', formule: 'pro' }, escalade_humain: { fil: 'f1', motif: 'litige' },
-    signaler_erreur: { source: 'stripe', ref: 'r1' }, relire_envoi: { brouillon: 'b1' } };
+    signaler_erreur: { source: 'stripe', ref: 'r1' }, relire_envoi: { brouillon: 'b1' }, resilier_fin_periode: { dossier: 'DOS-000123' } };
   v('(population) un jeu sain existe pour chaque schéma, et il passe', Object.keys(monter.SCHEMAS).filter(t => !monter.paramsValides(t, base[t])), []);
   for (const type of Object.keys(monter.SCHEMAS)) {
     for (const champ of Object.keys(monter.SCHEMAS[type])) {

@@ -14,7 +14,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
-const { monter, COURRIEL } = require('./banc-agents-courrier.js');
+const { monter, COURRIEL, COURRIEL_TOKA, pourToka } = require('./banc-agents-courrier.js');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 400) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 400)); } };
 const vrai = (t, c, d) => v(t + (d !== undefined && !c ? ' — ' + String(d).slice(0, 200) : ''), !!c, true);
@@ -144,7 +144,7 @@ const msg = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', boit
   console.log('\n4. Le texte qui part est celui que Justin a lu');
   {
     const MARQUE = 'MARQUE-B-2866';
-    const Z = monter({ modes: { lea: 'brouillon' }, claude: (r, n) => (n === 1 ? COURRIEL : COURRIEL.replace('Nous avons bien noté votre activité.', 'Nous avons bien noté votre besoin (' + MARQUE + ').')) });
+    const Z = monter({ modes: { lea: 'brouillon' }, claude: (r, n) => (n === 1 ? COURRIEL_TOKA : pourToka('Nous avons bien noté votre besoin (' + MARQUE + ').')) });
     const r = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'lu@client-2866.fr' });
     const id = (await Z.validations())[0].id;
     const e1 = (await apercu(Z, r.ref)).empreinte;
@@ -198,8 +198,8 @@ const msg = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', boit
   try { require(path.join(RACINE, 'server', 'node_modules', 'web-push')); require.resolve('imapflow', { paths: [path.join(RACINE, 'server')] }); }
   catch (e) { console.log('  … SAUTÉ : server/node_modules absent'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
   const { demarrer, dormir } = require('./banc-serveur-courrier.js');
-  /* le faux Claude rend un texte sans « Objet : » la PREMIÈRE fois qu'il voit « Rep Clim » (l'inscription à reprendre), puis le courriel */
-  const S = await demarrer({ modes: { lea: 'brouillon' }, comptes: true, claude: "(r, n) => (/Rep Clim/.test(JSON.stringify(r)) && !globalThis.__rep ? (globalThis.__rep = 1, 'Je ne sais pas quoi écrire.') : " + JSON.stringify(COURRIEL) + ")" });
+  /* le faux Claude rend un texte sans « Objet : » les DEUX premières fois qu'il voit « Rep Clim » (la rédaction ET la réécriture de l'inscription à reprendre), puis le courriel */
+  const S = await demarrer({ modes: { lea: 'brouillon' }, comptes: true, claude: "(r, n) => (/Rep Clim/.test(JSON.stringify(r)) && (globalThis.__rep = (globalThis.__rep || 0) + 1) <= 2 ? 'Je ne sais pas quoi écrire.' : (" + require('./banc-agents-courrier.js').courrielPour.toString() + ")(r))" });
   vrai('le serveur démarre (portail des comptes allumé, faux Claude)', S.vivant);
   if (!S.vivant) { console.log(S.journal().slice(0, 800)); await S.fin(); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }
   for (let k = 0; k < 6; k++) await S.public('/api/nouveau-compte', { email: 'anonyme' + k + '@exemple-2866.fr', prenom: 'A', nom: 'B', company: 'Factice ' + k });

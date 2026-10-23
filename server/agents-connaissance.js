@@ -34,13 +34,30 @@ const OFFRE = [
   '- Une formule sur mesure : les catégories dont l’entreprise n’a pas besoin sont retirées, et elles ne sont pas facturées.',
   '- Des catégories peuvent être améliorées, ou créées pour les besoins de l’entreprise, et elles lui sont réservées (confidentielles).',
   '- Des tarifs maîtrisés : à partir de 15 € par mois et par utilisateur (TVA non applicable).',
+  '- Sans engagement de durée : l’abonnement se résilie à tout moment, depuis le Support de l’espace client ou en écrivant à contact@teamop.fr, et l’accès se poursuit jusqu’à la fin de la période réglée. (Seule cette formule exacte, « sans engagement de durée », est permise.)',
   '',
   'LIMITES, À RESPECTER À LA LETTRE :',
   '- Tu ne présentes comme existante AUCUNE fonction absente de la liste ci-dessus. Un besoin propre au métier du client qui n’y figure pas (par exemple le suivi des fluides frigorigènes d’un climaticien) se présente comme « une catégorie que nous pouvons créer pour vous », jamais comme une fonction déjà disponible.',
-  '- Tu ne donnes aucun autre prix que « à partir de 15 € par mois et par utilisateur (TVA non applicable) », aucune date, aucune remise, aucune promesse de délai, aucun engagement juridique, aucun remboursement.',
+  '- Tu ne donnes aucun autre prix que « à partir de 15 € par mois et par utilisateur (TVA non applicable) », aucune date, aucune remise, aucune promesse de délai, aucun engagement juridique autre que « sans engagement de durée », aucun remboursement.',
   '- La période d’essai d’une semaine se propose APRÈS le retour du client, jamais dans le premier message : tu la présentes comme une possibilité « ensuite », sans la promettre.',
-  '- Tu n’écris jamais les mots « gratuit », « offert », « remise », « réduction », « illimité », « garanti », « remboursé », ni « sans engagement » : ce sont des promesses commerciales que personne n’a faites. Tu n’écris aucun nom de site ou d’adresse web autre que « teamop.fr ».',
+  '- Tu n’écris jamais les mots « gratuit », « offert », « remise », « réduction », « illimité », « garanti », « remboursé », ni « sans engagement » seul : ce sont des promesses commerciales que personne n’a faites (« sans engagement de durée » est un fait, voir ci-dessus). Tu n’écris aucun nom de site ou d’adresse web autre que « teamop.fr ».',
 ].join('\n');
+
+/* LES TROIS FORMULES D'OP GESTION (23 octobre 2026) — recopiées des conditions particulières VALIDÉES (`server/contrats-textes/cp_op_gestion_*.txt`) et de `tarifs.html` ; rien des
+   « À CONFIRMER » de ces textes n'y entre (périmètre de la création sur mesure, délai du support prioritaire, disponibilité 24 h/24 : aucun engagement). Chloé en tire sa
+   proposition ; le SEUL endroit où paraissent 25 € et 50 € : `refusDe` les permet à son profil « proposition » et à lui seul. */
+const FORMULES = {
+  pro: { nom: 'OP GESTION Pro', prix: 15, inclus: ['planning des interventions (jour, semaine, mois)', 'fiches clients et historique des passages', 'rapports d’intervention avec photos, signatures et envoi en PDF',
+    'tournées du jour avec carte et ordre optimisé', 'récurrences (contrats) et passages multiples', 'conflits de planning et absences signalés', 'devis et factures', 'pointage des heures',
+    'exports CSV et notifications', 'application web et mobile (iPhone, Android, Mac, PC)'] },
+  business: { nom: 'OP GESTION Business', prix: 25, inclus: ['tout OP GESTION Pro', 'stock avec inventaire et seuils d’alerte', 'bons de commande fournisseurs en PDF, envoyés en un clic', 'commande suggérée, la réception crédite le stock',
+    'boîte mail intégrée, rattachée aux bons', 'télécollecte et comptabilité', 'droits utilisateur fins', 'logo de l’entreprise dans l’application', 'assistance par courriel avec traitement prioritaire'] },
+  premium: { nom: 'OP GESTION Business Premium', prix: 50, inclus: ['tout OP GESTION Business', 'toutes les fonctions d’OP GESTION pour le métier de l’entreprise', 'logo et couleur de l’entreprise pour toute l’équipe',
+    'OP MESSAGES inclus à son ouverture', 'accompagnement à la mise en route et assistance prioritaire'] },
+};
+const PRIX_FORMULES = Object.values(FORMULES).map(f => f.prix);
+const blocFormules = () => ['LES FORMULES D’OP GESTION (prix par mois et par utilisateur, TVA non applicable, sans engagement de durée) — et rien d’autre :'].concat(
+  Object.entries(FORMULES).map(([id, f]) => '- ' + f.nom + ' (' + id + ') : ' + f.prix + ' € ; comprend ' + f.inclus.join(' ; ') + '.')).join('\n');
 
 /* La FORME du courriel, la même pour les deux. Ce que Justin a validé : professionnel, voix de l'entreprise, vouvoiement. */
 const FORME = [
@@ -95,7 +112,9 @@ const FICHIERS = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jp
 /* Ce que Claude écrit se vérifie avant d'être rangé : un texte venu d'un courriel hostile ne doit pas pouvoir y glisser un lien de
    paiement ou une adresse d'ailleurs. Seuls le site de TeamOP et ses adresses passent ; aucun numéro de téléphone (Claude n'en a reçu aucun,
    donc tout numéro est inventé). Rend `''` si le texte est sain, sinon la raison — pour le journal, jamais le texte. */
-function refusDe(objet, corps) {
+function refusDe(objet, corps, opts) {
+  /* `opts.prix` : les montants permis, en euros (15 par défaut ; 15, 25 et 50 pour une proposition de formule — `PRIX_FORMULES`). */
+  const prixOk = opts && Array.isArray(opts.prix) && opts.prix.length ? opts.prix : [15];
   const o = String(objet || ''), c = String(corps || '');
   if (o.length < 3 || o.length > OBJET_MAX || /[\r\n]/.test(o)) return 'objet hors bornes';
   if (c.length < CORPS_MIN || c.length > CORPS_MAX) return 'texte hors bornes';
@@ -109,11 +128,12 @@ function refusDe(objet, corps) {
     if (/(^|\.)teamop\.fr$/.test(d) || ABREVIATIONS.has(d) || FICHIERS.has(d.split('.').pop())) continue;
     return 'lien étranger';
   }
-  if (PROMESSES.test(sansAccents(tout))) return 'promesse commerciale';
+  /* « sans engagement de durée » est un FAIT (tarifs.html, CGV art. 6) : seule cette formule exacte est permise, « sans engagement » seul reste une promesse refusée. */
+  if (PROMESSES.test(sansAccents(tout).replace(/sans\s+engagement\s+de\s+duree/g, ' '))) return 'promesse commerciale';
   for (const m of tout.matchAll(TEL)) if (m[0].replace(/\D/g, '').length >= 9) return 'numéro de téléphone';
   /* Le SEUL prix permis est « 15 € » (le plancher de l'offre) : tout autre montant en euros est une promesse que personne n'a faite. Et un
      pourcentage est une remise. ⚠️ On lit le NOMBRE, pas le mot : « 150 € » contient « 15 » — une comparaison de texte le laisserait passer. */
-  for (const m of tout.matchAll(/(\d[\d  .,]*)\s*(?:€|euros?\b|eur\b)/gi)) if (parseFloat(m[1].replace(/[^\d.,]/g, '').replace(',', '.')) !== 15) return 'prix étranger';
+  for (const m of tout.matchAll(/(\d[\d  .,]*)\s*(?:€|euros?\b|eur\b)/gi)) if (!prixOk.includes(parseFloat(m[1].replace(/[^\d.,]/g, '').replace(',', '.')))) return 'prix étranger';
   if (/\d\s*%|pour\s?cent/i.test(tout)) return 'pourcentage';
   return '';
 }
@@ -127,4 +147,4 @@ function normaliserCorps(corps) {
   return t.replace(/\n{3,}/g, '\n\n');
 }
 
-module.exports = { OFFRE, FORME, OBJET_MAX, CORPS_MIN, CORPS_MAX, ADRESSE, TEL, sansAdresses, sansTel, delimiter, lireMail, refusDe, normaliserCorps };
+module.exports = { OFFRE, FORMULES, PRIX_FORMULES, blocFormules, FORME, OBJET_MAX, CORPS_MIN, CORPS_MAX, ADRESSE, TEL, sansAdresses, sansTel, delimiter, lireMail, refusDe, normaliserCorps };
