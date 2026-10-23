@@ -1,5 +1,5 @@
-/* ══ test-2905 · LES RESTES DE L'ANTI-NUISIBLES DANS CE QU'UN CLIENT REÇOIT — ET LA 3D D'ELAN NE CHANGE PAS ══════════════════════════
-   23 octobre 2026, relecture du chantier « OP GESTION par métier » : `test-2901` jouait six ÉCRANS par métier et passait au vert
+/* ══ test-2955 · LES RESTES DE L'ANTI-NUISIBLES DANS CE QU'UN CLIENT REÇOIT — ET LA 3D D'ELAN NE CHANGE PAS ══════════════════════════
+   23 octobre 2026, relecture du chantier « OP GESTION par métier » : `test-2951` jouait six ÉCRANS par métier et passait au vert
    pendant que cinq endroits disaient encore « biocide » à un plombier — l'étape 6 de la clôture guidée, le PDF du rapport, le
    rapport imprimé, le courriel — pendant que l'IA rédigeait « comme un dératiseur » et que l'assistant devis donnait pour exemple
    « dératisation d'un restaurant… 8 postes d'appâtage ». Un banc qui joue des écrans listés ne dit rien de la POPULATION des textes

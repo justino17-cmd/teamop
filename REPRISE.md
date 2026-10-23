@@ -19,9 +19,9 @@ de ligne du tout.
   de la nuit du 22 au 23 octobre (« je veux que tu fasses bien OP GESTION en fonction des packs métiers qu'on propose »). Cinq parties,
   un commit chacune, `APP_VERSION` reste 772, `sw.js` ne bouge pas.
 - **A — les 23 métiers dans l'application.** `METIERS`, `METIERS_ORDRE` et `RUBRIQUES_INFO` sont ÉCRITS par `scripts/metiers-generer.js`
-  depuis `design/metiers-referentiel.json` (copie du référentiel de la nuit ; l'autre chantier pose `metiers.json` à la racine — `test-2900`
+  depuis `design/metiers-referentiel.json` (copie du référentiel de la nuit ; l'autre chantier pose `metiers.json` à la racine — `test-2950`
   les compare dès qu'il existe). Treize métiers enrichis (types, prestations, relevés à la suite des anciens), dix nouveaux : incendie, froid,
-  ascenseurs, portails, ramonage, assainissement, énergies, alarme, eau, piscine. `test-2900` relit le référentiel ET l'application
+  ascenseurs, portails, ramonage, assainissement, énergies, alarme, eau, piscine. `test-2950` relit le référentiel ET l'application
   (`app.html`, `beta.html`) et joue les vraies fonctions pour les 23. La 3D ne reprend PAS les deux types que le référentiel lui propose
   (« Désinfection de locaux », « Audit hygiène… ») : ELAN ne change pas d'un mot — écart nommé dans le banc ; les adopter est une décision.
   `saisieConso` et `enveloppes` rejoignent le masque des métiers hors 3D (la bêta voit tout). Le site, le serveur (`METIERS_OK`), la Tour
@@ -32,25 +32,25 @@ de ligne du tout.
 - **B — hors 3D, plus rien de l'anti-nuisibles** (`estMetier3D()`, une seule décision) : « Nuisibles ciblés », « Méthodes », étape
   « Constat » de la clôture guidée (garde le champ d'observations), niveau d'infestation, AMM / matière active / type de traitement,
   fournisseurs du catalogue 3D, « Dossier sanitaire », Certibiocide (colonne, fiche, formulaire), colonne CSV « Nuisibles », constat et
-  traitement du compte-rendu. On cache, on ne vide pas (`test-2901` : 96 contrôles, 18 mutations sur 18). Un Certibiocide déjà saisi reste
+  traitement du compte-rendu. On cache, on ne vide pas (`test-2951` : 96 contrôles, 18 mutations sur 18). Un Certibiocide déjà saisi reste
   visible. La 3D avant/après (`scratchpad/metiers/sonde-avant-apres.js`, 67 écrans) a trouvé TROIS phrases que les correctifs avaient retouchées :
   rétablies ; il ne reste que les différences voulues (cartes TEAM OP, explications des modules, « Valideur responsable »). **Pas fait** : le registre, les box, le devis xylophage, la clôture « Produits » restent propres à la 3D par le masque ; les
   générateurs de démonstration (`betaRemplir`, « test nuisibles ») sont des outils de la bêta, non touchés.
 - **C — catégories de produits par métier** (`categoriesProduit()`, `categorieListe()`, couleurs dans `CAT_COLORS`) : la 3D garde `CAT_LIST`
   (même objet) ; les 22 autres ont leur liste fermée du référentiel ; une catégorie inconnue d'une base d'avant s'affiche telle quelle ;
-  `migrate` ne range plus que la 3D. Règle de CLAUDE.md réécrite. `test-2902` : 60 contrôles, 9 mutations sur 9. Les noms de catégories sont
+  `migrate` ne range plus que la 3D. Règle de CLAUDE.md réécrite. `test-2952` : 60 contrôles, 9 mutations sur 9. Les noms de catégories sont
   ceux du référentiel — des PROPOSITIONS à valider avec chaque métier (« Fluides frigorigènes (par type) », 69 signes pour « Pièces de chaudière… »).
 - **D — « quand ils cochent, que ça explique »** : grille des droits et profils, « Accès au cas par cas », « Modules OP », et — nouveau —
-  Paramètres → Mon métier (rubriques conseillées dépliables) montrent l'explication du référentiel, sous le nom, sans survol (`test-2903` : 34
+  Paramètres → Mon métier (rubriques conseillées dépliables) montrent l'explication du référentiel, sous le nom, sans survol (`test-2953` : 34
   contrôles, 9 mutations sur 9). Le titre « Validations DR » et sa note de chantier ont quitté le référentiel de `design/` : à reporter dans la
   copie de l'autre chantier. **Pas fait** : la page d'abonnement et la Tour (autre chantier) ; les rubriques conseillées ne PRÉ-COCHENT rien ici
   (c'est le chantier « catégories par client », Tour + serveur).
 - **E — le menu de bureau tient sur une ligne : 284 px** (258 avant ; « Validation des mouvements » demande 181,6 px pour 171). Mesuré après,
   41 entrées × 3 langues × 1440/1100 px × jour/nuit : zéro entrée sur deux lignes, marge la plus faible 15,4 px. « Directeur régional
-  responsable » → « Valideur responsable » (le rôle `dr` et la donnée `drId` ne changent pas). `test-2904`.
+  responsable » → « Valideur responsable » (le rôle `dr` et la donnée `drId` ne changent pas). `test-2954`.
   ⛔ **Reste ouvert, à mesurer avant de toucher** : le menu « au doigt » (272 px : iPad portrait/paysage et tiroir du téléphone, texte à 15,5 px)
   demande 201 px pour ce libellé et n'en a que 191 — il passe sur deux lignes ; l'élargir touche les mises en page iPad de test-1421, 1432, 1433.
-- **F — relecture (23 octobre, `gardien`/`relecteur`) : cinq restes réels corrigés, `test-2905` (76 ✓, 17 mutations sur 17).** `mentionRegl` / `ammVisible` :
+- **F — relecture (23 octobre, `gardien`/`relecteur`) : cinq restes réels corrigés, `test-2955` (76 ✓, 17 mutations sur 17).** `mentionRegl` / `ammVisible` :
   la mention des biocides et la colonne « N° AMM » n'existent hors 3D que si une ligne de produit PORTE une AMM (étape 6, PDF, rapport imprimé,
   courriel, plan d'appâtage, dossier sanitaire) ; `libZones` (« Zones concernées ») ; `aiGenRapport` neutre au métier ; exemple de l'assistant devis
   et phrase du stock de la fiche d'intervention ; `metierBloque` laisse ouvertes « Enveloppes » (si `db.enveloppes`) et « Consommation produits »

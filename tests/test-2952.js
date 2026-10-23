@@ -1,4 +1,4 @@
-/* ══ test-2902 · LES CATÉGORIES DE PRODUITS SUIVENT LE MÉTIER — ET LA 3D GARDE LES SIENNES, À L'IDENTIQUE ═══════════════════════════
+/* ══ test-2952 · LES CATÉGORIES DE PRODUITS SUIVENT LE MÉTIER — ET LA 3D GARDE LES SIENNES, À L'IDENTIQUE ═══════════════════════════
    23 octobre 2026 (Justin : « je vérifie bien les catégories d'OP GESTION par métier, car là je trouve ça léger »). `CAT_LIST` — huit
    catégories d'anti-nuisibles — était la seule taxonomie : un plombier rangeait ses raccords sous « TP14 — Rodenticide ». Désormais
    UNE fonction, `categoriesProduit()`, rend la liste du métier courant ; toutes les lectures (formulaire produit, groupement du

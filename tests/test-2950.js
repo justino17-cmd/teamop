@@ -1,4 +1,4 @@
-/* ══ test-2900 · LES 23 MÉTIERS DE L'APPLICATION SONT CEUX DU RÉFÉRENTIEL — UNE VÉRITÉ, DEUX COPIES TENUES ÉGALES ═══════════════
+/* ══ test-2950 · LES 23 MÉTIERS DE L'APPLICATION SONT CEUX DU RÉFÉRENTIEL — UNE VÉRITÉ, DEUX COPIES TENUES ÉGALES ═══════════════
    23 octobre 2026 (Justin : « je veux que tu fasses bien OP GESTION en fonction des packs métiers qu'on propose »).
    Le référentiel (design/metiers-referentiel.json) dit, pour chaque métier, ses rubriques conseillées, ses types d'intervention,
    ses prestations, ses relevés, ses catégories de produits et ses documents ; pour chaque rubrique, un titre et une explication.

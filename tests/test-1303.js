@@ -35,7 +35,7 @@ function monde(aside) {
   vm.createContext(ctx);
   vm.runInContext(`${NAV}\n${DP}\n${TDR}\n${MR}\n${SA}
     function planBloque(){ return false; } function metierBloque(){ return false; } function catBloque(){ return false; } function validationsOuvertes(){ return false; }
-    function rubExplication(){ return ''; } function rubExplHtml(){ return ''; }   /* v773 : les explications des rubriques sont le sujet de test-2903 */
+    function rubExplication(){ return ''; } function rubExplHtml(){ return ''; }   /* v773 : les explications des rubriques sont le sujet de test-2953 */
     ${USM}
     db.permissions=defaultPerms();`, ctx);
   return ctx;

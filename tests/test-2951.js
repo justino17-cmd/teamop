@@ -1,4 +1,4 @@
-/* ══ test-2901 · HORS ANTI-NUISIBLES, PLUS RIEN DE L'ANTI-NUISIBLES — ET LA 3D D'ELAN NE CHANGE PAS ════════════════════════════════
+/* ══ test-2951 · HORS ANTI-NUISIBLES, PLUS RIEN DE L'ANTI-NUISIBLES — ET LA 3D D'ELAN NE CHANGE PAS ════════════════════════════════
    22-23 octobre 2026 (cahier des métiers, point 5 ; Justin : « tu fasses bien OP GESTION en fonction des packs métiers »). Un
    plombier recevait « Nuisibles ciblés », « Méthodes », une clôture guidée qui demande le niveau d'infestation, un champ « N° AMM »
    et un « Dossier sanitaire ». UNE fonction décide (`estMetier3D`), lue par chaque écran qui SAISIT quelque chose de propre à la 3D.

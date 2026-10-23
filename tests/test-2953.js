@@ -1,4 +1,4 @@
-/* ══ test-2903 · « QUAND ILS COCHENT, QUE ÇA EXPLIQUE » — CHAQUE RUBRIQUE A SON EXPLICATION OÙ ON LA COCHE ═══════════════════════════
+/* ══ test-2953 · « QUAND ILS COCHENT, QUE ÇA EXPLIQUE » — CHAQUE RUBRIQUE A SON EXPLICATION OÙ ON LA COCHE ═══════════════════════════
    23 octobre 2026 (Justin : « un système où ils cochent les catégories ; et quand ils cochent, que ça explique la catégorie »).
    Partout où l'application liste des rubriques à cocher — la grille des droits d'une personne ET d'un profil (`usrDroitsHtml`),
    « Accès au cas par cas » (`formAccess`), « Modules OP » (`views.modulesElan`), la liste conseillée du métier (Paramètres → Mon

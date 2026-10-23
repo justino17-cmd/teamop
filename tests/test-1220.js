@@ -53,7 +53,7 @@ function monde(o) {
     window: { open: () => ({ document: { write: h => { out.print = h; }, close() {} }, focus() {}, print() {} }) } };
   vm.createContext(ctx);
   vm.runInContext(`
-    /* v773 : ce banc joue la 3D (aucun métier réglé) — les autres métiers sont joués par test-2901 */
+    /* v773 : ce banc joue la 3D (aucun métier réglé) — les autres métiers sont joués par test-2951 */
     function certibVisible(t){ return true; } function certibColonne(){ return true; }
     var views={}, current='archives', archMonth=null;
     function can(c){ return !!__caps[c]; }

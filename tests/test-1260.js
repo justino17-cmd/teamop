@@ -47,7 +47,7 @@ function monde(opt) {
   ctx.window = ctx; ctx.document = { getElementById: id => (ctx.__champs && ctx.__champs[id]) || null, querySelectorAll: s => (s === '.int-tech.active' ? (ctx.__techsActifs || []) : []), querySelector: () => null };
   vm.createContext(ctx);
   vm.runInContext(`
-    /* v773 : ce banc joue la 3D (aucun métier réglé) — les autres métiers sont joués par test-2901 */
+    /* v773 : ce banc joue la 3D (aucun métier réglé) — les autres métiers sont joués par test-2951 */
     function estMetier3D(){ return true; }
     ${ESC}
     var __f={}; function FormData(t){ return Object.entries(__f); }

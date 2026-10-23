@@ -75,7 +75,7 @@ const ECARTS = {
      d'icône comprise : 149 px restaient au libellé et « Consommation produits » en demande 163 —
      trois rubriques passaient sur deux lignes. Les maquettes sont écrites en anglais ; la règle du
      dépôt tranche : « un libellé français est plus long — toute grille copiée d'une référence
-     anglophone doit être ÉLARGIE ». Mesuré après : 171 px disponibles, zéro rubrique sur deux lignes — puis « Validation des mouvements » (182 px) a demandé 284 : 197 disponibles, 15 de marge (test-2904).`,
+     anglophone doit être ÉLARGIE ». Mesuré après : 171 px disponibles, zéro rubrique sur deux lignes — puis « Validation des mouvements » (182 px) a demandé 284 : 197 disponibles, 15 de marge (test-2954).`,
   'pastille de la cloche': `la maquette peint le compteur de la cloche en rouge système #FF3B30,
      blanc dessus. Mesuré au pixel (24 septembre 2026, les deux thèmes, jour et nuit) : le blanc n'y
      tient que 3,58:1. On prend le rouge « contraste renforcé » d'Apple, #D70015 (5,4:1), par les

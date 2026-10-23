@@ -1,4 +1,4 @@
-/* ══ test-2904 · LE MENU DE BUREAU TIENT SUR UNE LIGNE — LE PLUS LONG LIBELLÉ, DANS LES TROIS LANGUES, PLUS UNE VRAIE MARGE ═══════════
+/* ══ test-2954 · LE MENU DE BUREAU TIENT SUR UNE LIGNE — LE PLUS LONG LIBELLÉ, DANS LES TROIS LANGUES, PLUS UNE VRAIE MARGE ═══════════
    23 octobre 2026. « Validations DR » est devenu « Validation des mouvements » : 181,6 px en français pour 171 de place à 258 px —
    deux lignes (59 px au lieu de 44) sur toute la barre latérale. La règle du dépôt (« on ÉLARGIT : tronquer cache une information,
    rapetisser descend sous le plancher de lisibilité ») : le menu de bureau passe à 284 px, soit 197 de place — quinze de marge (mesurés : 15,4 en français, 20,7 en espagnol, 39,4 en anglais).

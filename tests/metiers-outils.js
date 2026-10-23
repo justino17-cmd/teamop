@@ -1,4 +1,4 @@
-/* Outils communs des bancs « métiers » (test-2900 et suivants) : lire une FONCTION ou un LITTÉRAL d'app.html / beta.html dans le
+/* Outils communs des bancs « métiers » (test-2950 et suivants) : lire une FONCTION ou un LITTÉRAL d'app.html / beta.html dans le
    CODE (commentaires de tête de ligne retirés), jamais dans une phrase. Même découpe que test-848 et test-2875. */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');

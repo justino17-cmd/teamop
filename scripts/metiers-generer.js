@@ -4,7 +4,7 @@
    ⛔ UNE SEULE VÉRITÉ, DEUX COPIES TENUES ÉGALES PAR UN BANC. Le référentiel dit, pour chacun des 23 métiers, ses rubriques
    conseillées, ses types d'intervention, ses prestations, ses relevés, ses catégories de produits et ses documents ; et, pour
    chaque rubrique du menu, un titre et une explication. L'application doit marcher HORS LIGNE : elle embarque donc une copie,
-   écrite ICI par une machine, jamais à la main — `tests/test-2900.js` relit le référentiel ET l'application et exige qu'ils
+   écrite ICI par une machine, jamais à la main — `tests/test-2950.js` relit le référentiel ET l'application et exige qu'ils
    disent la même chose, rubrique par rubrique.
 
    Ce qui est généré (entre les deux lignes-repères d'app.html) : `METIERS`, `METIERS_ORDRE`, `RUBRIQUES_INFO`.

@@ -6582,7 +6582,7 @@ html[data-os="android"] .tabbar{border-top:0;box-shadow:0 -1px 0 var(--brd)}
    menu — 181,6 px en français (« Validación de movimientos » : 176,3 en espagnol, 13,4 de marge en anglais), pour 171 de place à
    258 : deux lignes, 59 px au lieu de 44. On ÉLARGIT (tronquer cache une information, rapetisser descend sous le plancher de
    lisibilité du terrain) : 284 laisse 197 px — 15 de marge en français, 20 en espagnol, 39 en anglais, mesurés
-   APRÈS à 1440 et 1100 px, jour et nuit (`scratchpad/metiers/sonde-e.js`, `tests/test-2904.js`). La fenêtre plein écran
+   APRÈS à 1440 et 1100 px, jour et nuit (`scratchpad/metiers/sonde-e.js`, `tests/test-2954.js`). La fenêtre plein écran
    (`.overlay.full`) commence au même bord. Le menu « au doigt » (272 px, tablettes et tiroir du téléphone) est une autre mesure :
    voir `REPRISE.md`. */
 html[data-kind="desktop"] .sidebar{width:284px}
@@ -9341,7 +9341,7 @@ function papSocOf(cid){ return rapportSociete(socDuClient(cid)); }
    portails, ramonage, assainissement, énergies, alarme, eau, piscine. Chaque pack porte ses rubriques conseillées
    (`rubriques`), ses types d'intervention, ses prestations, ses relevés, ses catégories de produits et ses documents.
    La source est design/metiers-referentiel.json ; le bloc ci-dessous est généré par scripts/metiers-generer.js, et
-   tests/test-2900.js exige que l'application et le référentiel disent la même chose. Pour changer un pack : corriger le
+   tests/test-2950.js exige que l'application et le référentiel disent la même chose. Pour changer un pack : corriger le
    référentiel, relancer le script — jamais éditer le bloc à la main. */
 // ⟦METIERS:DEBUT⟧ — GÉNÉRÉ par scripts/metiers-generer.js depuis design/metiers-referentiel.json. NE PAS ÉDITER ICI : on corrige le référentiel, puis on relance le script.
 const METIERS={
@@ -10163,7 +10163,7 @@ function metierPack(){ return METIERS[metierId()]; }
    seule fonction décide : `estMetier3D()`. Elle est lue par tout écran qui SAISIT quelque chose de propre à la 3D —
    « Nuisibles ciblés », « Méthodes », l'étape « Constat » de la clôture guidée, le constat et le traitement du compte-rendu,
    N° AMM / matière active / type de traitement d'un produit, le « Dossier sanitaire », le Certibiocide, la colonne CSV
-   « Nuisibles », les fournisseurs du catalogue 3D. Deux règles, qu'un banc garde (tests/test-2901.js) :
+   « Nuisibles », les fournisseurs du catalogue 3D. Deux règles, qu'un banc garde (tests/test-2951.js) :
    · on CACHE le champ, on ne le VIDE pas : une base venue de la 3D garde ses nuisibles, ses AMM, son constat — chaque
      enregistrement relit ce que la fiche portait déjà ;
    · un document déjà ÉMIS se relit tel quel : les lignes d'un rapport ou d'une fiche se lisent sur la DONNÉE (présente ou
@@ -29834,7 +29834,7 @@ const CAT_COLORS={'TP18 — Insecticide':'#EF9F27','TP14 — Rodenticide':'#E24B
 const FOUR_COLORS={'MABI':'#1E40AF','SODIF':'#059669','ARMOSA':'#DC2626','ENSYSTEX':'#7C3AED','ORCAD':'#EA580C','Laboratoires Orcad':'#EA580C','Ensystex':'#7C3AED'};
 /* v773 : les catégories des autres métiers ont leur couleur, posée UNE fois au chargement, dans l'ordre des métiers. Une catégorie
    déjà colorée (« EPI », partagée avec la 3D) la garde ; les autres prennent la première teinte de la palette que la liste de leur
-   métier n'a pas déjà — deux catégories d'un même métier ne se confondent jamais (tests/test-2902.js). */
+   métier n'a pas déjà — deux catégories d'un même métier ne se confondent jamais (tests/test-2952.js). */
 const CAT_PALETTE=['#378ADD','#1D9E75','#EF9F27','#7F77DD','#E24B4A','#5DCAA5','#BA7517','#D4537E','#4F8F2E','#C2603A','#6C7A89','#8B5A2B'];
 (function(){ METIERS_ORDRE.forEach(k=>{ if(k==='3d'||!Array.isArray(METIERS[k].produits)) return;
   const L=METIERS[k].produits, prises=new Set(L.filter(c=>CAT_COLORS[c]).map(c=>CAT_COLORS[c])); let ix=0;
