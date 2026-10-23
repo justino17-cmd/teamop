@@ -2032,7 +2032,7 @@ const MON_GESTES = {
   'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',
   'beta/toggle': 'a coupé ou rouvert un accès bêta', 'beta/delete': 'a supprimé un accès bêta',
   'espaces': 'a ouvert ou repris le lien de connexion d’une entreprise', 'espaces/lien-existant': null,
-  'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
+  'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/cats': 'a choisi les catégories d’OP GESTION d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
   'espaces/abonnement': 'a réglé l’abonnement d’une entreprise à la main', 'espaces/statut': null, 'entreprise/dossier': null,
   'espaces/activite': null, 'espaces/connexions': null, 'espaces/compteurs-zero': 'a remis à zéro ou rétabli les compteurs d’une entreprise',
   'connexions/effacer-tentatives': 'a effacé les tentatives de connexion refusées',
@@ -2582,6 +2582,9 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
     /* ⛔ le métier se reporte comme la formule (29 septembre 2026) : sans ça, « Revoir le lien de connexion » le
        remettait à « non réglé » — l'application garderait le sien, mais la Tour afficherait un métier à re-poser */
     metier: base.metier, metierPar: base.metierPar, metierTs: base.metierTs,
+    /* ⛔ et les catégories retenues (CATS_OK) : la même panne que le métier — cette route reconstruit l'entrée de zéro, et
+       « Revoir le lien de connexion » rouvrait toutes les rubriques d'une entreprise dont on venait de restreindre l'application */
+    cats: base.cats, catsPar: base.catsPar, catsTs: base.catsTs,
     /* ⛔⛔ L'ABONNEMENT RÉGLÉ À LA MAIN SE REPORTE AUSSI (30 septembre 2026). Cette route le perdait : une entreprise
        « abonnement activé par TEAM OP » (un virement, un accord) retombait sur Stripe, qui ne la connaît pas — l'application
        d'avant affichait « Paye ton abonnement » à toute l'équipe, et depuis qu'une entreprise qui ne paie pas est SUSPENDUE,
@@ -2681,6 +2684,66 @@ app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
     console.log('Tour :', req.tourUser.nom, 'règle le métier', m || '(aucun)', 'de l\'entreprise', espaceT(e) || '(sans identifiant)');
   }
   res.json({ ok: true, slug, metier: m });
+});
+/* ══ LES CATÉGORIES D'OP GESTION D'UNE ENTREPRISE — Justin : « quand on crée un accès client, dans la Tour on choisit les
+   catégories dont ils ont besoin et pas besoin ». L'application ne montre alors à cette entreprise que les rubriques retenues.
+   LE CONTRAT avec l'application (chantier à part, ne pas le changer sans elle) :
+     · `cats` est un tableau de clés de rubriques (celles de `NAV`, app.html). ABSENT = jamais réglé = TOUT est ouvert, comme
+       avant ce chantier ; `/api/espaces/etat` rend alors `cats: null`. Un tableau, même vide, est un choix explicite ;
+     · liste FERMÉE (`CATS_OK`) : une clé hors liste est refusée ici, parce que l'application l'ignorerait EN SILENCE ;
+     · quatre rubriques ne se cochent jamais et restent toujours ouvertes (`CATS_TOUJOURS`) : le tableau de bord (la garde de
+       `go()` y renvoie), les utilisateurs, les modules OP et les paramètres — sans eux l'administrateur ne pourrait plus
+       rouvrir ce qu'on a fermé ;
+     · `cats: null` revient à « tout » en SUPPRIMANT le champ. Le métier ne sait pas retirer sa valeur (vide = non réglé) ;
+       ici « jamais réglé » et « vide » sont deux choses, donc le retrait est un geste à part.
+   ⚠️ Ce réglage ne change PAS le prix : c'est Justin qui fixe la formule (`/espaces/formule`, `/espaces/abonnement`).
+   `tests/test-2870.js` garde cette liste contre `NAV` d'app.html : une rubrique ajoutée un jour au menu fait tomber le banc
+   au lieu d'échapper au réglage. */
+const CATS_OK = ['statistiques', 'historique', 'archives', 'planning', 'planningGeneral', 'taches', 'absences',
+  'interventions', 'rapports', 'carteInt', 'registre', 'carteBox', 'clients',
+  'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'devisXylo', 'telecollecte',
+  'produits', 'stock', 'mouvements', 'boxes', 'saisieConso', 'enveloppes', 'pointage', 'vehicules', 'conducteurs',
+  'messagerie', 'boiteMail', 'fournisseurs', 'bons', 'brouillon', 'demandes', 'validations', 'commandes', 'secteurs'];
+const CATS_TOUJOURS = ['dashboard', 'utilisateurs', 'modulesElan', 'parametres'];
+/* Ce que le serveur SERT : le tableau (dans l'ordre de la liste, sans doublon, rien d'étranger — une valeur écrite à la main
+   dans l'annuaire n'atteint jamais l'application), ou `null` quand rien n'est réglé. Un champ qui n'est pas un tableau
+   vaut « jamais réglé », pas « rien d'ouvert » : dans le doute, on ne ferme rien. */
+const catsOk = c => (Array.isArray(c) ? CATS_OK.filter(k => c.includes(k)) : null);
+app.post('/api/monitor/espaces/cats', monPatronStrict, (req, res) => {
+  const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
+  const e = espacesReg[slug];
+  if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son « Lien de connexion » (fiche entreprise)' });
+  const demande = (req.body || {}).cats;
+  let cats;
+  if (demande === null) cats = null;
+  else if (Array.isArray(demande)) {
+    if (demande.length > CATS_OK.length) return res.status(400).json({ error: 'trop de catégories' });
+    const inconnue = demande.find(k => typeof k !== 'string' || !CATS_OK.includes(k));
+    if (inconnue !== undefined) return res.status(400).json({ error: 'catégorie inconnue : ' + monStr(String(inconnue), 40) });
+    if (new Set(demande).size !== demande.length) return res.status(400).json({ error: 'catégorie en double' });
+    cats = CATS_OK.filter(k => demande.includes(k));
+  } else return res.status(400).json({ error: 'cats : un tableau de catégories, ou null pour tout rouvrir' });   // absent ≠ null : un oubli ne rouvre rien
+  /* Sur TOUS les noms de l'entreprise, comme le métier : posé sur un ancien nom, il n'atteindrait pas l'application (qui lit
+     le plus récent), et « Revoir le lien » sur un ancien nom le ferait revenir en arrière. */
+  const noms = nomsEntreprise(e).length ? nomsEntreprise(e) : [e];
+  const tel = x => JSON.stringify(catsOk(x.cats));
+  if (noms.some(x => tel(x) !== JSON.stringify(cats))) {
+    const CH = ['cats', 'catsPar', 'catsTs'];
+    const avant = noms.map(x => ({ x, v: CH.map(k => [k, x[k]]) }));
+    const ts = Date.now();
+    for (const x of noms) {
+      if (cats === null) CH.forEach(k => { delete x[k]; });
+      else { x.cats = cats.slice(); x.catsPar = req.tourUser.nom; x.catsTs = ts; }
+    }
+    /* écrit, ou on le dit — et on défait en mémoire (le champ revient tel qu'il était, absent compris) */
+    if (!espacesEcrire()) {
+      avant.forEach(a => a.v.forEach(([k, val]) => { if (val === undefined) delete a.x[k]; else a.x[k] = val; }));
+      return res.status(500).json({ error: 'L\'annuaire n\'a pas pu être enregistré — les catégories n\'ont pas changé.' });
+    }
+    /* (l'identifiant, jamais le nom d'accès : il est souvent celui d'une personne) */
+    console.log('Tour :', req.tourUser.nom, cats === null ? 'rouvre toutes les catégories' : 'retient ' + cats.length + ' catégories', 'pour l\'entreprise', espaceT(e) || '(sans identifiant)');
+  }
+  res.json({ ok: true, slug, cats });
 });
 /* ⛔ PLUS DE FORMULE GRATUITE (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu tant que
    c'est pas réglé »). Les deux routes qui posent une formule la refusent — une Tour d'avant qui l'enverrait encore reçoit la
@@ -3942,7 +4005,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   if (!espacesReg[slug]) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   const e = facturationDe(espacesReg[slug]);   // la fiche montre la facturation de l'ENTREPRISE : c'est elle que la Tour règle
   const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
-  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, inconnu: !!p.inconnu, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier),
+  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, inconnu: !!p.inconnu, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier), cats: catsOk(e.cats),
     impaye: !!p.bloque, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0,
     optionsServies: Array.isArray(p.optionsServies) ? p.optionsServies : [], options: optionsDeTour(e.options), optionsStripe: optionsLignesStripe(Object.assign({ slug }, e)) });
 });
@@ -5797,13 +5860,17 @@ app.post('/api/espaces/etat', (req, res) => {
   /* Le métier voyage comme `opMessages` : sur les quatre réponses d'un espace VIVANT, formule ou pas, payé ou pas — un
      impayé garde son métier (ce n'est pas une fonction payante), et une entreprise sans formule aussi. */
   const metier = metierOk(e && e.metier);
+  /* Les catégories retenues voyagent comme le métier — sur les cinq réponses d'un espace VIVANT, suspendue comprise (le menu
+     grisé ne change pas de contenu au règlement). TOUJOURS présent : le tableau, ou `null` quand rien n'est réglé ; une
+     réponse SANS la clé vient d'un serveur d'avant, et l'application n'y touche à rien (voir le contrat, `CATS_OK`). */
+  const cats = catsOk(e && e.cats);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
   /* ⛔⛔ UNE FICHE SANS FORMULE NE SORT PLUS ICI (Justin, 30 septembre 2026, « Suspend ») : elle passe par `espacePaye`, qui la
      traite comme une fiche « Gratuit » d'avant (`ficheSansFormule`) — une période offerte ou un abonnement la servent, rien
      de payé la suspend, un doute ne décide rien. Seule une entreprise ABSENTE de l'annuaire garde la réponse d'avant, sans
      formule ni suspension : elle ne se décide pas (un annuaire illisible au démarrage rendrait TOUT LE MONDE inconnu — les
      suspendre couperait toutes les entreprises d'un coup, sur une panne de notre côté). */
-  if (!e) return res.json({ ok: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
+  if (!e) return res.json({ ok: true, opMessages, metier, cats, versionMin, enLigne, suspendu, sursisJours });
   /* ⛔ la formule SERVIE (`formulePayee`) : celle que l'entreprise paie, pas forcément celle de la fiche (29 septembre 2026) */
   espacePaye(e).then(p => {
     /* ⛔⛔ UN IMPAYÉ SE SERT COMME UNE SUSPENSION AU SURSIS ÉCOULÉ, SANS FORMULE (Justin, 29 septembre 2026 : « leur accès sont
@@ -5829,23 +5896,23 @@ app.post('/api/espaces/etat', (req, res) => {
        lui rouvrirait tout pendant une semaine, plus qu'à une entreprise que la Tour n'a pas touchée. `test-761`. */
     /* ⛔ ON NE SAIT PAS (Stripe ou registre des codes illisible) : ni formule, ni suspension — l'application garde ce qu'elle
        savait (`payeInconnu`, relectures du 30 septembre 2026) */
-    if (p.inconnu) return res.json({ ok: true, verificationImpossible: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
+    if (p.inconnu) return res.json({ ok: true, verificationImpossible: true, opMessages, metier, cats, versionMin, enLigne, suspendu, sursisJours });
     const fServie = p.formuleServie || e.formule;
-    if (accesSuspenduPar(p, fServie)) return res.json({ ok: true, paye: false, motif: 'accès suspendu', opMessages, metier, versionMin, enLigne, suspendu: true, sursisJours: 0 });
+    if (accesSuspenduPar(p, fServie)) return res.json({ ok: true, paye: false, motif: 'accès suspendu', opMessages, metier, cats, versionMin, enLigne, suspendu: true, sursisJours: 0 });
     /* ⛔⛔ `options` : LES OPTIONS DU PRO PAYÉES (1er octobre 2026), dans la réponse PAYÉE et nulle part ailleurs. Un tableau — éventuellement
        VIDE : « le serveur sait, et il n'y en a pas » (toujours `[]` en Business, Business Premium et en période offerte : toutes les
        rubriques y sont déjà ouvertes, l'application n'en déduit aucun verrouillage). ABSENT quand le serveur ne sait pas (liste Stripe
        périmée, places illisibles, doute) : l'application garde alors ce qu'elle savait — jamais « rien » à la place de « on ne sait
        pas ». Les deux réponses suspendue et « vérification impossible » n'en portent pas : une option ne lève aucune suspension.
        Jamais dans `motif` (`motifPublic`) : c'est la Tour, gardée, qui lit le détail. Les applications v763 et v767 ignorent ce champ. */
-    res.json({ ok: true, formule: fServie, quantite: e.quantite || 1, places: placesServies(e, p), paye: true, motif: motifPublic(p.motif), opMessages, metier, versionMin, enLigne, suspendu, sursisJours,
+    res.json({ ok: true, formule: fServie, quantite: e.quantite || 1, places: placesServies(e, p), paye: true, motif: motifPublic(p.motif), opMessages, metier, cats, versionMin, enLigne, suspendu, sursisJours,
       ...((Array.isArray(p.optionsServies) && !p.doute) ? { options: p.optionsServies.slice() } : {}) });
   })
     /* ⛔ LA VÉRIFICATION IMPOSSIBLE NE DÉCIDE RIEN. Elle rendait la formule avec `paye:false` : à la moindre panne ici,
        l'application v763 réécrivait `db.forfait` au Gratuit chez une entreprise qui paie, et le répandait à toute l'équipe
        par la synchro. On le DIT (`verificationImpossible`) et on ne sert ni formule ni suspension de facturation :
        l'application garde ce qu'elle savait. « Dans le doute, on ne coupe pas. » */
-    .catch(() => res.json({ ok: true, verificationImpossible: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours }));
+    .catch(() => res.json({ ok: true, verificationImpossible: true, opMessages, metier, cats, versionMin, enLigne, suspendu, sursisJours }));
 });
 /* nom d'entreprise présentable (jamais une adresse e-mail mise là faute de mieux) */
 function espNomPropre(e) { const n = String((e && e.nom) || '').trim(); return (n && !/@/.test(n) && n.toLowerCase() !== String((e && e.email) || '').toLowerCase()) ? n : ''; }

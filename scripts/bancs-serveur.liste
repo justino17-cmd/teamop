@@ -209,3 +209,5 @@ tests/test-2709.js
 # 19 octobre 2026 : 4 420 contre les pages de `main` (65 suites), `test-2710` compris (+129) — plancher relevé à 4 280.
 # 20 octobre 2026 : `test-2805` (« Traduire en français » du Courrier de la Tour : vrai serveur, faux Claude ; aucun 5xx, rien du mail au journal).
 tests/test-2805.js
+# 22 octobre 2026 : `test-2870` (les catégories d'OP GESTION retenues par entreprise : la route de la Tour, ses refus, l'écriture sur tous les noms, « Revoir le lien » qui garde le réglage, `cats` sur les cinq formes vivantes de `/api/espaces/etat` et jamais sur la fermeture). Plancher inchangé : à relever après mesure sur les pages de `main`.
+tests/test-2870.js
