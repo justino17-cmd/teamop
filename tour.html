@@ -2177,6 +2177,29 @@ body.plans .reg-l.cli::before{display:none}
 .ag-msg p{margin:4px 0 6px;white-space:pre-wrap;overflow-wrap:anywhere}
 .ag-msg span{display:block;font-size:11.5px;color:var(--muted);margin-top:6px}
 @media (max-width:560px){.ag-ligne{flex-wrap:wrap}.ag-act{width:100%}.ag-act button{flex:1}}
+/* ── Hugo, Margaux, Emma, Sarah (23 octobre 2026) : les réglages sous leur carte — disponibilités d'Emma, annonce de Sarah, passage de Margaux. Mêmes jetons, jour ET nuit. */
+.ag-ge{border-top:1px solid var(--line);padding-top:6px}
+.ag-ge>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650;color:var(--text)}
+.ag-ge .gl{display:flex;align-items:center;gap:10px;min-height:44px}
+.ag-ge .gl input[type=checkbox]{width:20px;height:20px;flex:none}
+.ag-ge .gt{font-size:12.5px;color:var(--muted);line-height:1.4;margin:2px 0 8px}
+.ag-ge input[type=time],.ag-ge input[type=number],.ag-ge input[type=text],.ag-ge select,.ag-ge textarea{box-sizing:border-box;min-height:44px;padding:0 10px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit}
+.ag-ge textarea{width:100%;min-height:120px;padding:10px 12px;resize:vertical}
+.ag-ge .gj{display:grid;grid-template-columns:38px minmax(0,1fr);gap:4px 8px;align-items:center;margin-top:8px}
+.ag-ge .gj>b{font-size:13px;color:var(--muted);grid-row:span 2}
+.ag-ge .gp{display:flex;gap:6px;align-items:center;min-width:0}
+.ag-ge .gp input{flex:1;min-width:0}
+.ag-ge .gr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.ag-ge .gr label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+.ag-ge .gr select,.ag-ge .gr input{width:100%}
+.ag-ge .gc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.ag-ge .gc input[type=text]{flex:1;min-width:120px}
+.ag-ge .gm{font-size:12.5px;margin-top:8px;color:var(--muted)}
+.ag-ge .gm.ko{color:var(--red)}
+.ag-ge .gv{margin:8px 0 0;padding:0;list-style:none}
+.ag-ge .gv li{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:var(--inset);margin-top:6px;font-size:13px}
+.ag-ge .gv li b{font-weight:650}
+.ag-ge .gv li.passe{opacity:.55}
 
 /* ══ MESSAGERIE DES AGENTS (v2.104) ══ trois colonnes — conversations · fil · « Qui fait quoi » — sur les jetons de la Tour, jour ET nuit.
    La zone est son propre CONTENEUR : c'est sa largeur qui décide (à 1100 px d'écran, le menu en prend 258 et il reste 842 pour trois colonnes),
@@ -10390,7 +10413,7 @@ function chargerAgents(){
   ['validations','journal','taches'].forEach(function(k){
     ps.push(apiGet('/api/monitor/agents/'+k+(k==='validations'?'?statut=tout':'')).then(function(d){ if(!d) return;
       if(Array.isArray(d[k])){ AG[k]=d[k]; AG.lec[k]=1; } else { AG.lec[k]=-1; }
-      var br=(k==='validations'&&AG.lec.validations===1)?agBrCharger():null;
+      var br=(k==='validations'&&AG.lec.validations===1)?Promise.all([agBrCharger(),typeof agGeCharger==='function'?agGeCharger():null]):null;   /* + les documents de Hugo, Margaux, Emma, Sarah (bloc `agGe…`, gardé : un banc qui n'extrait qu'une partie de la page ne le voit pas) */
       if(TAB==='agents') render();
       return br;
     }).catch(function(){ AG.lec[k]=-1; if(TAB==='agents') render(); }));
@@ -10567,6 +10590,206 @@ function agBrEnregistrer(ref){
     render();
   }).catch(function(){ AG.br.busy=false; AG.br.err=INJOIGNABLE; render(); });
 }
+/* ══ HUGO, MARGAUX, EMMA, SARAH (23 octobre 2026) — le papier que Justin valide, et leurs réglages. UN BLOC À PART : l'état est `AGG`, les fonctions `agGe…`. ══
+   · TROIS sortes de papier (`agents-documents.js`) : le courriel d'un agent (accusé de fin d'abonnement, relance, créneaux), la MISE EN DEMEURE, l'ANNONCE à tous les clients. Chacune
+     s'aperçoit comme un brouillon (destinataire, objet, texte, signature) et se valide AVEC l'empreinte du texte lu : sans elle le serveur refuse (409). ⛔ Trois états par lecture comme
+     partout (0 pas lu, 1 lu, −1 illisible) : un document qu'on n'a pas pu lire ne se valide PAS — on ne valide pas un courrier qu'on n'a pas vu. Le destinataire s'affiche, il ne se change nulle part.
+   · Sous la carte d'Emma ses disponibilités (la seule source de ses créneaux — rien d'inventé) et les rendez-vous à tenir ; sous celle de Sarah le formulaire de l'annonce ; sous celle de
+     Margaux le passage en revue des impayés. Tout est réservé au patron (`chargerAgents` n'ouvre rien aux autres). */
+var AGG={lec:0,d:{},edit:'',objet:'',texte:'',err:'',busy:false,
+  emma:{lec:0,f:null,rdv:[],err:'',msg:'',busy:false,ouvert:false,dos:''},sarah:{type:'version',notes:'',msg:'',ko:false,busy:false,ouvert:false},margaux:{msg:'',ko:false,busy:false}};
+Object.assign(AG_TYPES,{resilier_fin_periode:'Programmer la fin d’un abonnement',courrier_agent:'Envoyer un courriel',mise_en_demeure:'Mise en demeure',annonce_clients:'Annonce à tous les clients',
+  rendez_vous_prospect:'Rendez-vous avec un prospect',choix_creneau:'Choix d’un créneau de rendez-vous'});
+var AGG_TYPES=['courrier_agent','mise_en_demeure','annonce_clients'];
+function agGeType(v){ return !!v&&AGG_TYPES.indexOf(v.type)>=0&&!!v.params&&typeof v.params.ref==='string'&&/^dc[0-9a-f]{12}$/.test(v.params.ref); }
+var AGG_JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+function agGeCharger(){
+  var ps=[];
+  var refs=AG.validations.filter(function(v){ return v.statut==='en_attente'&&agGeType(v); }).map(function(v){ return v.params.ref; }).slice(0,50);
+  if(!refs.length){ AGG.lec=1; AGG.d={}; }
+  else { if(AGG.lec!==1) AGG.lec=0;   /* une relecture ne remet pas le squelette : l'aperçu reste lisible pendant qu'on la refait */
+    ps.push(apiGet('/api/monitor/agents/documents?refs='+encodeURIComponent(refs.join(','))).then(function(d){
+      if(d&&typeof d==='object'&&!d.error){ AGG.d=d; AGG.lec=1; } else AGG.lec=-1;
+      if(TAB==='agents') render();
+    }).catch(function(){ AGG.lec=-1; if(TAB==='agents') render(); })); }
+  if(agParId('emma')) ps.push(agGeEmmaCharger());
+  return Promise.all(ps);
+}
+function agGeApercu(v){
+  var ref=v.params.ref, b=AGG.d[ref];
+  if(AGG.lec===0) return '<div class="ag-apercu">'+acSquel()+'</div>';
+  if(AGG.lec!==1||!b) return '<div class="ag-apercu"><div class="err" style="color:var(--red)">Le document n’a pas pu être lu : on ne sait pas ce qui partirait. Ne valide pas avant de l’avoir vu — réessaie dans un instant.</div></div>';
+  if(AGG.edit===ref){
+    return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.cible)+'</b> · le destinataire ne se change pas</div>'+
+      '<input id="agge-o" type="text" maxlength="200" aria-label="Objet" value="'+esc(AGG.objet)+'" oninput="AGG.objet=this.value" style="margin-top:8px">'+
+      '<textarea id="agge-t" maxlength="20000" aria-label="Texte" oninput="AGG.texte=this.value">'+esc(AGG.texte)+'</textarea>'+
+      (AGG.err?'<div class="err" role="alert">'+esc(AGG.err)+'</div>':'')+
+      '<div class="ag-act"><button type="button" class="ag-btn"'+(AGG.busy?' disabled':'')+' onclick="agGeAnnuler()">Annuler</button><button type="button" class="ag-btn ok"'+(AGG.busy?' disabled':'')+' onclick="agGeEnregistrer(\''+esc(ref)+'\')">Enregistrer</button></div></div>';
+  }
+  return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.cible)+'</b>'+(b.dossier?' · '+esc(b.dossier):'')+'</div>'+
+    (b.aRevoir?'<div class="err" role="alert">À revoir avant d’envoyer : '+esc(b.aRevoir)+'</div>':'')+
+    '<span class="obj">'+esc(b.objet)+'</span><p>'+esc(b.texte)+'</p>'+(b.signature?'<div class="sig">'+esc(b.signature)+'</div>':'')+
+    (b.echecs>0?'<div class="note" style="margin-top:8px;color:var(--red);font-size:12.5px">Un envoi a échoué ('+esc(String(b.echecs))+' fois) : rien n’est parti. Valide de nouveau pour réessayer.</div>':'')+
+    (MYROLE==='patron'?'<div class="ag-act"><button type="button" class="ag-btn"'+(AGG.busy?' disabled':'')+' onclick="agGeModifier(\''+esc(ref)+'\')">Modifier</button></div>':'')+'</div>';
+}
+/* La ligne d'une validation de ce papier-là : même disposition que les autres, avec SON aperçu et SON bouton « Valider et envoyer » (grisé tant que le document n'est pas lu). */
+function agGeLigne(v){
+  var ref=v.params.ref, ok=AGG.lec===1&&!!AGG.d[ref]&&AGG.edit!==ref;
+  var lbl=v.type==='mise_en_demeure'?'Valider et envoyer la mise en demeure':v.type==='annonce_clients'?'Valider et envoyer à tous':'Valider et envoyer';
+  return '<div class="ag-ligne ag-br"><span class="ag-etiq">'+esc(agNom(v.agent))+'</span><div class="tx"><b>'+esc(v.resume||AG_TYPES[v.type]||v.type)+'</b><span>'+esc(AG_TYPES[v.type]||v.type)+' · '+esc(fmtDate(v.ts))+'</span></div>'+
+    '<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agGeDecider(\''+esc(v.id)+'\',\'refuser\')">Refuser</button><button type="button" class="ag-btn ok"'+(AG.busy||!ok?' disabled':'')+
+    (!ok?' title="Lis le document (et enregistre ta correction) avant de valider"':'')+' onclick="agGeDecider(\''+esc(v.id)+'\',\'accepter\')">'+lbl+'</button></div>'+agGeApercu(v)+'</div>';
+}
+function agGeModifier(ref){ var b=AGG.d[ref]; if(!b||MYROLE!=='patron') return; AGG.edit=ref; AGG.objet=b.objet; AGG.texte=b.texte; AGG.err=''; render(); }
+function agGeAnnuler(){ AGG.edit=''; AGG.err=''; render(); }
+function agGeEnregistrer(ref){
+  if(AGG.busy||MYROLE!=='patron') return;
+  AGG.busy=true; AGG.err=''; render();
+  return apiPost('/api/monitor/agents/documents/modifier',{ref:ref,objet:AGG.objet,texte:AGG.texte}).then(function(r){
+    AGG.busy=false;
+    if(r.ok&&r.d&&r.d.document){ AGG.d[ref]=r.d.document; AGG.edit=''; AGG.err=''; toast('Document enregistré.'); }
+    else AGG.err=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')');   /* le refus se DIT à l'écran, dans le formulaire resté ouvert */
+    render();
+  }).catch(function(){ AGG.busy=false; AGG.err=INJOIGNABLE; render(); });
+}
+/* Ce que le serveur a VRAIMENT fait : « validée » ne veut pas dire « parti » (`validation.execution`). */
+function agGeMsg(r,decision,type){
+  if(!r.ok) return (r.d&&r.d.error)||'Décision refusée';
+  if(decision!=='accepter') return 'Demande refusée : rien n’est parti.';
+  var v=(r.d&&r.d.validation)||{}, nom=type==='mise_en_demeure'?'La mise en demeure':type==='annonce_clients'?'L’annonce':'Le courriel';
+  if(v.execution==='echec') return 'Validée, mais '+nom.toLowerCase()+' n’est PAS parti'+(type==='annonce_clients'?'e':'')+'. Une nouvelle validation est rouverte si cela peut encore se faire : regarde la liste.';
+  if(v.execution==='pause') return 'Validée, mais les agents sont en pause : rien n’est parti.';
+  return v.execution==='ok'?nom+(type==='annonce_clients'?' est partie.':' est parti.'):'Demande validée.';
+}
+function agGeDecider(id,decision){
+  if(AG.busy||MYROLE!=='patron') return;
+  var vd=AG.validations.filter(function(x){ return x.id===id; })[0]; if(!vd||!agGeType(vd)) return;
+  var corps={id:id,decision:decision}, b=AGG.d[vd.params.ref];
+  if(decision==='accepter'){
+    /* l'empreinte du texte que Justin a SOUS LES YEUX : le serveur refuse (409) si le document a été réécrit depuis */
+    if(AGG.lec!==1||!b||!b.empreinte){ toast('Le document n’a pas été lu : recharge la liste avant de valider.'); return; }
+    corps.empreinte=b.empreinte;
+    var q=vd.type==='mise_en_demeure'?'Envoyer cette MISE EN DEMEURE maintenant ? Elle part telle que tu la vois, à '+b.cible+', signée TEAM OP.'
+      :vd.type==='annonce_clients'?'Envoyer cette annonce à '+b.cible.replace(/^Tous les clients /,'')+' maintenant ? Elle part telle que tu la vois.'
+      :'Envoyer ce courriel maintenant ? Il part tel que tu le vois, avec la signature de l’agent.';
+    if(!confirm(q)) return;
+  }
+  AG.busy=true; render();
+  return apiPost('/api/monitor/agents/validations/decider',corps).then(function(r){
+    AG.busy=false; toast(agGeMsg(r,decision,vd.type));
+    chargerAgents();   /* aussi après un 409 « le document a changé » : l'aperçu se recharge avec le texte à jour */
+  }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+/* ── EMMA : les disponibilités (la forme fermée du serveur : `validerDispo`) et les rendez-vous à tenir ── */
+function agGeEmmaForme(d){
+  var f={actif:!!(d&&d.actif),dureeMin:(d&&d.dureeMin)||30,preavisH:(d&&d.preavisH)||24,nb:(d&&d.nb)||3,horizonJours:(d&&d.horizonJours)||14,jours:{}};
+  for(var j=1;j<=7;j++){ var pl=(d&&d.jours&&d.jours[j])||[]; f.jours[j]=[pl[0]?[pl[0][0],pl[0][1]]:['',''],pl[1]?[pl[1][0],pl[1][1]]:['','']]; }
+  return f;
+}
+function agGeEmmaCharger(){
+  if(AGG.emma.lec!==1) AGG.emma.lec=0;
+  return apiGet('/api/monitor/agents/emma/disponibilites').then(function(d){
+    /* ⛔ une relecture n'écrase JAMAIS ce que Justin est en train de régler (`sale`) : les rendez-vous se rafraîchissent, le formulaire non */
+    if(d&&d.dispo){ if(!AGG.emma.sale||!AGG.emma.f) AGG.emma.f=agGeEmmaForme(d.dispo); AGG.emma.rdv=Array.isArray(d.rendezVous)?d.rendezVous:[]; AGG.emma.lec=1; } else if(AGG.emma.lec!==1) AGG.emma.lec=-1;
+    if(TAB==='agents') render();
+  }).catch(function(){ AGG.emma.lec=-1; if(TAB==='agents') render(); });
+}
+function agGeEmmaChamp(k,val){ var f=AGG.emma.f; if(!f) return; if(k==='actif') f.actif=!!val; else f[k]=parseInt(val,10)||0; AGG.emma.sale=true; }
+function agGeEmmaPlage(j,p,k,val){ var f=AGG.emma.f; if(f&&f.jours[j]&&f.jours[j][p]) f.jours[j][p][k]=String(val||''); AGG.emma.sale=true; }
+function agGeEmmaEnregistrer(){
+  var e=AGG.emma, f=e.f; if(e.busy||!f||MYROLE!=='patron') return;
+  var jours={}, j, p, pl;
+  for(j=1;j<=7;j++){ pl=[]; for(p=0;p<2;p++){ var a=f.jours[j][p][0], b=f.jours[j][p][1];
+      if(a&&!b||!a&&b){ e.err='Jour '+AGG_JOURS[j-1]+' : une plage a besoin d’une heure de début ET d’une heure de fin.'; e.msg=''; render(); return; }
+      if(a&&b) pl.push([a,b]); }
+    jours[j]=pl; }
+  e.busy=true; e.err=''; e.msg=''; render();
+  return apiPost('/api/monitor/agents/emma/disponibilites',{dispo:{actif:f.actif,dureeMin:f.dureeMin,preavisH:f.preavisH,nb:f.nb,horizonJours:f.horizonJours,jours:jours}}).then(function(r){
+    e.busy=false;
+    if(r.ok&&r.d&&r.d.dispo){ e.f=agGeEmmaForme(r.d.dispo); e.sale=false; e.msg='Disponibilités enregistrées.'; e.err=''; toast('Disponibilités enregistrées.'); }
+    else e.err=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')');
+    render();
+  }).catch(function(){ e.busy=false; e.err=INJOIGNABLE; render(); });
+}
+function agGeEmmaProposer(){
+  var e=AGG.emma; if(e.busy||MYROLE!=='patron') return;
+  var dos=String(e.dos||'').trim().toUpperCase();
+  if(!/^DOS-\d{6}$/.test(dos)){ e.err='Numéro de dossier : DOS- suivi de six chiffres.'; e.msg=''; render(); return; }
+  e.busy=true; e.err=''; e.msg=''; render();
+  return apiPost('/api/monitor/agents/emma/proposer',{dossier:dos}).then(function(r){
+    e.busy=false;
+    if(r.ok&&r.d&&r.d.ok){ e.msg=r.d.saute?('Rien n’a été envoyé : '+({deja_proposee:'des créneaux ont déjà été proposés à ce dossier',adresse:'ce dossier n’a pas d’adresse',arret:'Emma est à l’arrêt',pause:'les agents sont en pause',courrier:'le courriel n’a pas pu être préparé'}[r.d.saute]||r.d.saute)+'.'):(r.d.creneaux?r.d.creneaux+' créneau'+(r.d.creneaux>1?'x':'')+' proposé'+(r.d.creneaux>1?'s':'')+(r.d.voie==='direct'?' au prospect.':' — le courriel attend ta validation.'):'Aucun créneau libre : le prospect est prévenu qu’on le rappelle.'); e.dos=''; }
+    else e.err=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')');
+    render(); chargerAgents();
+  }).catch(function(){ e.busy=false; e.err=INJOIGNABLE; render(); });
+}
+function agGeEmma(m){
+  var e=AGG.emma;
+  if(e.lec===0) return '<details class="ag-ge"><summary>Disponibilités et rendez-vous</summary>'+acSquel()+'</details>';
+  if(e.lec!==1||!e.f) return '<details class="ag-ge"><summary>Disponibilités et rendez-vous</summary><div class="gm ko">Les disponibilités n’ont pas pu être lues. <button type="button" class="ag-btn" onclick="agGeEmmaCharger()">Réessayer</button></div></details>';
+  var f=e.f, off=e.busy?' disabled':'';
+  var h='<details class="ag-ge"'+(e.ouvert?' open':'')+' ontoggle="AGG.emma.ouvert=this.open"><summary>Disponibilités et rendez-vous</summary>'+
+    '<div class="gt">Emma ne propose QUE ces créneaux, à l’heure de Paris. Sans disponibilités réglées, elle dit au prospect qu’on le rappelle et te prévient.</div>'+
+    '<label class="gl"><input type="checkbox"'+(f.actif?' checked':'')+off+' onchange="agGeEmmaChamp(\'actif\',this.checked)"> Proposer des créneaux aux prospects</label>';
+  for(var j=1;j<=7;j++){
+    h+='<div class="gj"><b>'+AGG_JOURS[j-1]+'</b>';
+    for(var p=0;p<2;p++) h+='<div class="gp"><input type="time" aria-label="'+AGG_JOURS[j-1]+' plage '+(p+1)+' début" value="'+esc(f.jours[j][p][0])+'"'+off+' onchange="agGeEmmaPlage('+j+','+p+',0,this.value)"> – <input type="time" aria-label="'+AGG_JOURS[j-1]+' plage '+(p+1)+' fin" value="'+esc(f.jours[j][p][1])+'"'+off+' onchange="agGeEmmaPlage('+j+','+p+',1,this.value)"></div>';
+    h+='</div>';
+  }
+  h+='<div class="gr">'+
+    '<label>Durée d’un appel<select'+off+' onchange="agGeEmmaChamp(\'dureeMin\',this.value)">'+[15,20,30,45,60,90,120].map(function(x){ return '<option value="'+x+'"'+(f.dureeMin===x?' selected':'')+'>'+x+' min</option>'; }).join('')+'</select></label>'+
+    '<label>Préavis<select'+off+' onchange="agGeEmmaChamp(\'preavisH\',this.value)">'+[[2,'2 h'],[4,'4 h'],[12,'12 h'],[24,'24 h'],[48,'48 h'],[72,'72 h']].map(function(x){ return '<option value="'+x[0]+'"'+(f.preavisH===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></label>'+
+    '<label>Créneaux proposés<select'+off+' onchange="agGeEmmaChamp(\'nb\',this.value)">'+[1,2,3,4,5].map(function(x){ return '<option value="'+x+'"'+(f.nb===x?' selected':'')+'>'+x+'</option>'; }).join('')+'</select></label>'+
+    '<label>Horizon<select'+off+' onchange="agGeEmmaChamp(\'horizonJours\',this.value)">'+[[7,'7 jours'],[14,'14 jours'],[21,'21 jours'],[30,'30 jours']].map(function(x){ return '<option value="'+x[0]+'"'+(f.horizonJours===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></label></div>'+
+    '<div class="gc"><button type="button" class="ag-btn ok"'+off+' onclick="agGeEmmaEnregistrer()">Enregistrer les disponibilités</button></div>'+
+    '<div class="gt" style="margin-top:12px">Rendez-vous à tenir</div>'+
+    (e.rdv.length?'<ul class="gv">'+e.rdv.map(function(r){ return '<li'+(r.passe?' class="passe"':'')+'><b>'+esc(r.libelle)+'</b><span>'+esc(r.dossier)+(r.passe?' · passé':'')+'</span></li>'; }).join('')+'</ul>':'<div class="gm">Aucun rendez-vous pour l’instant.</div>')+
+    '<div class="gt" style="margin-top:12px">Proposer des créneaux à un prospect</div>'+
+    '<div class="gc"><input type="text" maxlength="10" placeholder="DOS-000123" aria-label="Numéro de dossier du prospect" value="'+esc(e.dos)+'"'+off+' oninput="AGG.emma.dos=this.value"><button type="button" class="ag-btn"'+(off||m==='arret'?' disabled':'')+(m==='arret'?' title="Emma est à l’arrêt"':'')+' onclick="agGeEmmaProposer()">Proposer</button></div>'+
+    (e.err?'<div class="gm ko" role="alert">'+esc(e.err)+'</div>':e.msg?'<div class="gm" role="status">'+esc(e.msg)+'</div>':'')+'</details>';
+  return h;
+}
+/* ── SARAH : l'annonce — elle rédige à partir de TES notes, tu valides dans « Validations » ── */
+function agGeSarahRediger(){
+  var s=AGG.sarah; if(s.busy||MYROLE!=='patron') return;
+  if(String(s.notes||'').trim().length<10){ s.msg='Écris les points de l’annonce (dix caractères au moins).'; s.ko=true; render(); return; }
+  s.busy=true; s.msg=''; s.ko=false; render();
+  return apiPost('/api/monitor/agents/sarah/rediger',{type:s.type,notes:s.notes}).then(function(r){
+    s.busy=false;
+    if(r.ok&&r.d&&r.d.ok){ s.msg=r.d.aRevoir?'Annonce déposée dans « Validations », marquée « à revoir » : '+r.d.aRevoir+'.':'Annonce déposée dans « Validations » : relis-la, corrige-la si besoin, puis valide.'; s.ko=false; s.notes=''; }
+    else { s.msg=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')'); s.ko=true; }
+    render(); if(r.ok) chargerAgents();
+  }).catch(function(){ s.busy=false; s.msg=INJOIGNABLE; s.ko=true; render(); });
+}
+function agGeSarah(m){
+  var s=AGG.sarah, off=s.busy||m==='arret';
+  return '<details class="ag-ge"'+(s.ouvert?' open':'')+' ontoggle="AGG.sarah.ouvert=this.open"><summary>Rédiger une annonce aux clients</summary>'+
+    '<div class="gt">Dis à Sarah ce qui change ou ce qui est prévu. Elle écrit le courriel ; il ne part à tous les clients que si tu le valides.</div>'+
+    '<label class="gr" style="display:block"><span class="gt">Type</span><select'+(s.busy?' disabled':'')+' onchange="AGG.sarah.type=this.value"><option value="version"'+(s.type==='version'?' selected':'')+'>Nouvelle version d’OP GESTION</option><option value="maintenance"'+(s.type==='maintenance'?' selected':'')+'>Maintenance</option></select></label>'+
+    '<textarea maxlength="1500" aria-label="Les points de l’annonce" placeholder="Ex. : le planning s’affiche plus vite sur téléphone ; la fiche d’intervention garde les photos hors ligne."'+(s.busy?' disabled':'')+' oninput="AGG.sarah.notes=this.value" style="margin-top:8px">'+esc(s.notes)+'</textarea>'+
+    '<div class="gc"><button type="button" class="ag-btn ok"'+(off?' disabled':'')+(m==='arret'?' title="Sarah est à l’arrêt"':'')+' onclick="agGeSarahRediger()">Rédiger et déposer en validation</button></div>'+
+    (s.msg?'<div class="gm'+(s.ko?' ko':'')+'" role="'+(s.ko?'alert':'status')+'">'+esc(s.msg)+'</div>':'')+'</details>';
+}
+/* ── MARGAUX : passer les impayés en revue maintenant (elle le fait seule toutes les 30 minutes) ── */
+function agGeMargaux(){
+  var g=AGG.margaux; if(g.busy||MYROLE!=='patron') return;
+  g.busy=true; g.msg=''; g.ko=false; render();
+  return apiPost('/api/monitor/agents/margaux/passer',{}).then(function(r){
+    g.busy=false;
+    if(!r.ok){ g.msg=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')'); g.ko=true; }
+    else if(r.d.saute){ g.msg='Rien n’a été fait : '+({arret:'Margaux est à l’arrêt',pause:'les agents sont en pause',deja_en_cours:'un passage est déjà en cours',registre_illisible:'son registre est illisible'}[r.d.saute]||r.d.saute)+'.'; g.ko=true; }
+    else if(r.d.stripe===false){ g.msg='Stripe ne répond pas : personne n’est relancé tant que ça dure.'; g.ko=true; }
+    else g.msg=r.d.examines+' impayé'+(r.d.examines>1?'s':'')+' examiné'+(r.d.examines>1?'s':'')+' · '+r.d.relances+' relance'+(r.d.relances>1?'s':'')+(r.d.demeures?' · '+r.d.demeures+' mise en demeure préparée (à valider)':'')+'.';
+    render(); chargerAgents();
+  }).catch(function(){ g.busy=false; g.msg=INJOIGNABLE; g.ko=true; render(); });
+}
+function agGeCarte(a,m){
+  if(MYROLE!=='patron') return '';
+  if(a.id==='emma') return agGeEmma(m);
+  if(a.id==='sarah') return agGeSarah(m);
+  if(a.id==='margaux'&&m!=='arret') return '<button type="button" class="ag-btn"'+(AG.busy||AGG.margaux.busy?' disabled':'')+' onclick="agGeMargaux()">Passer les impayés en revue</button>'+(AGG.margaux.msg?'<div class="gm ag-ge'+(AGG.margaux.ko?' ko':'')+'" style="border:0;padding:0" role="status">'+esc(AGG.margaux.msg)+'</div>':'');
+  return '';
+}
 /* Ce que le serveur a VRAIMENT fait d'une décision. ⛔ « Validée » ne veut pas dire « parti » : `validation.execution` dit si l'exécution a eu lieu ('ok'), a échoué
    ('echec') ou a été retenue par la pause ('pause'). Dire « Demande validée » sur un courriel qui n'est pas parti laissait Justin croire la réponse envoyée. */
 function agDecisionMsg(r,decision){
@@ -10707,7 +10930,7 @@ function vueAgents(){
         '<div class="ag-etat-cv'+(a.cerveau===true&&AG.cleOk&&m!=='arret'?' ok':'')+'">'+(a.cerveau===true?(AG.cleOk?(m==='arret'?'Branché — à l’arrêt : passe-le en Brouillon pour qu’il te réponde.':'Il répond quand tu lui écris, tant qu’il n’est pas à l’arrêt.'):'Branché, mais la clé Anthropic n’est pas posée : il ne répond pas encore.'):'Pas encore branché : il ne répond pas et n’agit pas.')+'</div>'+
         '<button type="button" class="ag-btn" onclick="agParler(\''+esc(a.id)+'\')">Parler à '+esc(a.nom)+'</button>'+
         '<div class="ag-pied"><span>Plafond mensuel</span><b>'+esc(a.plafondUsd)+' $</b></div>'+
-        (a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+'</article>';
+        (a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+(typeof agGeCarte==='function'?agGeCarte(a,m):'')+'</article>';
     });
     if(c) h+='</div>';
     h+='<div class="encart bloc" style="margin-top:16px"><div class="tx" style="margin-top:0">Un agent neuf est à l’arrêt. Il passe par « brouillon » avant « auto ». Les dépenses ne se lisent pas ici : voir la Console Anthropic (espace « Agents Team OP », limite 195 $).</div></div>';
@@ -10715,6 +10938,7 @@ function vueAgents(){
     if(AG.lec.validations!==1) h+=AG.lec.validations===0?acSquel():agIllisible('Les demandes n’ont pas pu être lues — on ne sait pas s’il y en a. Réessaie dans un instant.');
     else if(!AG.validations.length) h+='<div class="vide">Rien à valider pour l’instant.</div>';
     else h+='<div class="ag-liste">'+AG.validations.map(function(v){
+      if(typeof agGeType==='function'&&agGeType(v)&&v.statut==='en_attente') return agGeLigne(v);   /* le papier de Hugo, Margaux, Emma, Sarah : SA ligne, SON aperçu (bloc `agGe…`) */
       var att=v.statut==='en_attente', brRef=att?agBrRef(v):'', brOk=!brRef||(AG.br.lec===1&&!!AG.br.d[brRef]&&AG.br.edit!==brRef);
       return '<div class="ag-ligne'+(brRef?' ag-br':'')+'"><span class="ag-etiq">'+esc(agNom(v.agent))+'</span><div class="tx"><b>'+esc(v.resume||AG_TYPES[v.type]||v.type)+'</b><span>'+esc(AG_TYPES[v.type]||v.type)+' · '+agParams(v.params)+' · '+esc(fmtDate(v.ts))+
         (v.decideTs?' · '+esc(AG_STATUTS[v.statut]||v.statut)+(v.decidePar?' par '+esc(v.decidePar):''):'')+(v.execution?' · exécution : '+esc(v.execution):'')+'</span></div>'+
