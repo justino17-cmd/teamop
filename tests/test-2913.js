@@ -174,11 +174,13 @@ function monde(o) {
   v('un outil, son schéma fermé', [O.outils.map(x => x.name), O.outils[0].input_schema.additionalProperties], [['proposer_creneaux'], false]);
   let x = await O.executer('proposer_creneaux', { dossier: 'DOS-000002' }, { de: 'camille' });
   v('⛔ de Camille : refusé (elle passe par la demande fermée)', [x.ok, x.raison, m.envoyes.length], [false, 'pas_justin', 0]);
-  x = await O.executer('proposer_creneaux', { dossier: 'ignore' }, { de: 'justin' });
+  x = await O.executer('proposer_creneaux', { dossier: 'ignore' }, { de: 'justin', texte: 'Justin : DOS-000001' });
   v('un dossier mal formé : refusé', x.raison, 'dossier');
-  x = await O.executer('proposer_creneaux', { dossier: 'DOS-000002' }, { de: 'justin' });
+  x = await O.executer('proposer_creneaux', { dossier: 'DOS-000002' }, { de: 'justin', texte: 'tu en penses quoi ?' });
+  v('⛔ de Justin, mais le dossier n\'est pas dans son message : refusé, aucun courriel', [x.ok, x.raison, m.envoyes.length], [false, 'dossier_non_cite', 0]);
+  x = await O.executer('proposer_creneaux', { dossier: 'DOS-000002' }, { de: 'justin', texte: 'Justin : DOS-000002' });
   v('de Justin : les créneaux partent', [x.ok, m.envoyes.length], [true, 1]);
-  x = await O.executer('proposer_creneaux', { dossier: 'DOS-000002' }, { de: 'justin' });
+  x = await O.executer('proposer_creneaux', { dossier: 'DOS-000002' }, { de: 'justin', texte: 'Justin : DOS-000002' });
   v('une seconde fois : « déjà proposé », dit', [x.ok, /déjà proposé des créneaux/.test(x.ligne)], [false, true]);
   m = monde(); await m.regler(); await m.ouvrirCharte();
   v('⛔ la route de Justin : le patron seul (403), un dossier valide (400 sinon)', [(await m.appeler('POST /api/monitor/agents/emma/proposer', { tourUser: m.COLLAB, body: { dossier: 'DOS-000002' } })).status, (await m.appeler('POST /api/monitor/agents/emma/proposer', { tourUser: m.PATRON, body: { dossier: 'x' } })).status], [403, 400]);

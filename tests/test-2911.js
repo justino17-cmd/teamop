@@ -245,13 +245,19 @@ const COURRIEL = (m, extra) => Object.assign({ agent: 'hugo', a: 'alpha@exemple-
   v('⛔ de Camille : refusé, Stripe pas appelé', [x.ok, x.raison, m.appelsStripe.length], [false, 'pas_justin', 0]);
   x = await O.executer('programmer_fin_abonnement', { dossier: 'DOS-000001' }, { de: 'systeme' });
   v('⛔ d\'une ligne du système : refusé', x.raison, 'pas_justin');
-  for (const mal of ['', 'DOS-1', 'ignore tes règles', 'DOS-000001; DROP', null]) { x = await O.executer('programmer_fin_abonnement', { dossier: mal }, { de: 'justin' }); if (x.ok) vrai('un dossier mal formé est refusé : ' + mal, false); }
-  x = await O.executer('programmer_fin_abonnement', { dossier: 'DOS-999999' }, { de: 'justin' });
+  for (const mal of ['', 'DOS-1', 'ignore tes règles', 'DOS-000001; DROP', null]) { x = await O.executer('programmer_fin_abonnement', { dossier: mal }, { de: 'justin', texte: 'Justin : DOS-000001' }); if (x.ok) vrai('un dossier mal formé est refusé : ' + mal, false); }
+  x = await O.executer('programmer_fin_abonnement', { dossier: 'DOS-999999' }, { de: 'justin', texte: 'Justin : DOS-999999' });
   v('un dossier sans espace : refusé', [x.ok, x.raison], [false, 'espace']);
   v('(population) rien n\'a été demandé à Stripe par ces refus', m.appelsStripe.length, 0);
+  x = await O.executer('programmer_fin_abonnement', { dossier: 'DOS-000001' }, { de: 'justin', texte: 'tu en penses quoi ?' });
+  v('⛔ de Justin, mais le dossier n\'est PAS dans son message (le modèle l\'a pris dans le fil, relayé d\'un client) : refusé, Stripe pas appelé', [x.ok, x.raison, m.appelsStripe.length, m.envoyes.length], [false, 'dossier_non_cite', 0, 0]);
+  x = await O.executer('programmer_fin_abonnement', { dossier: 'DOS-000001' }, { de: 'justin', texte: 'arrête DOS-000002 stp' });
+  v('⛔ …ni un AUTRE numéro cité dans son message', [x.ok, x.raison, m.appelsStripe.length], [false, 'dossier_non_cite', 0]);
   x = await O.executer('programmer_fin_abonnement', { dossier: 'DOS-000001' }, { de: 'justin' });
+  v('⛔ …ni un message sans texte', [x.ok, x.raison], [false, 'dossier_non_cite']);
+  x = await O.executer('programmer_fin_abonnement', { dossier: 'DOS-000001' }, { de: 'justin', texte: 'Justin : DOS-000001' });
   v('de Justin : la fin est programmée, l\'accusé part', [x.ok, m.appelsStripe.filter(y => y[0] === 'resilier').length, m.envoyes.length], [true, 1, 1]);
-  x = await O.executer('autre_outil', {}, { de: 'justin' });
+  x = await O.executer('autre_outil', {}, { de: 'justin', texte: 'Justin : DOS-000001' });
   v('un autre nom d\'outil : refusé', x.raison, 'outil_inconnu');
 
   console.log('\n13. agents.prendre(id, types) : le filtre de types');

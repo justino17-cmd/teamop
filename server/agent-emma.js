@@ -252,6 +252,8 @@ module.exports = function emma(app, ctx) {
       if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Emma ne propose des créneaux sur demande directe que pour Justin : un collègue passe par la demande fermée.' };
       const dossier = String((entree && entree.dossier) || '').toUpperCase();
       if (!FORME_DOSSIER.test(dossier)) return { ok: false, raison: 'dossier', ligne: 'Emma n’a pas reçu un numéro de dossier valide (DOS- et six chiffres).' };
+      /* ⛔ Le dossier doit VENIR du message de Justin, pas d'un texte relayé dans le fil. */
+      if (!(String((c && c.texte) || '').toUpperCase().match(/DOS-\d{6}/g) || []).includes(dossier)) return { ok: false, raison: 'dossier_non_cite', ligne: 'Emma ne propose des créneaux que pour un dossier que Justin cite lui-même dans son message.' };
       const r = await surDemandeRendezVous({ dossier, de: 'justin' });
       return { ok: !!(r && r.ok), raison: r && r.saute, ligne: r && r.saute === 'deja_proposee' ? 'Emma a déjà proposé des créneaux au dossier ' + dossier + ' : elle attend sa réponse.' : '' };
     },

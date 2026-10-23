@@ -166,6 +166,8 @@ module.exports = function margaux(ctx) {
       if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Margaux ne prépare une mise en demeure que sur une demande de Justin.' };
       const dossier = String((entree && entree.dossier) || '').toUpperCase();
       if (!/^DOS-\d{6}$/.test(dossier)) return { ok: false, raison: 'dossier', ligne: 'Margaux n’a pas reçu un numéro de dossier valide (DOS- et six chiffres).' };
+      /* ⛔ Le dossier doit VENIR du message de Justin, pas d'un texte relayé dans le fil. */
+      if (!(String((c && c.texte) || '').toUpperCase().match(/DOS-\d{6}/g) || []).includes(dossier)) return { ok: false, raison: 'dossier_non_cite', ligne: 'Margaux ne prépare une mise en demeure que pour un dossier que Justin cite lui-même dans son message.' };
       if (!agents.peutAgir(ID).ok) return { ok: false, raison: 'arret' };
       let lu; try { lu = await impayes(); } catch (e) { lu = null; }
       if (!lu || lu.ok !== true || !Array.isArray(lu.liste)) return { ok: false, raison: 'stripe', ligne: 'Margaux ne peut pas lire Stripe : elle ne prépare rien.' };

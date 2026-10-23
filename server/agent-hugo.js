@@ -214,6 +214,8 @@ module.exports = function hugo(ctx) {
       if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Hugo ne programme une fin d’abonnement que sur une demande de Justin : un collègue passe par la demande fermée.' };
       const dossier = String((entree && entree.dossier) || '').toUpperCase();
       if (!FORME_DOSSIER.test(dossier)) return { ok: false, raison: 'dossier', ligne: 'Hugo n’a pas reçu un numéro de dossier valide (DOS- et six chiffres).' };
+      /* ⛔ Le dossier doit VENIR du message de Justin : le modèle lit tout le fil, y compris ce que des collègues relaient d'un client — « le numéro vient du fil » ne vaut pas « Justin l'a cité ». */
+      if (!(String((c && c.texte) || '').toUpperCase().match(/DOS-\d{6}/g) || []).includes(dossier)) return { ok: false, raison: 'dossier_non_cite', ligne: 'Hugo ne programme une fin d’abonnement que pour un dossier que Justin cite lui-même dans son message.' };
       const slug = await espaceDeDossier(dossier);
       if (!slug) return { ok: false, raison: 'espace', ligne: 'Hugo ne trouve pas d’espace pour le dossier ' + dossier + '.' };
       const r = await demanderFinAbonnement(slug, { de: 'justin' });
