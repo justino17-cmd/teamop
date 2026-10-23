@@ -166,6 +166,22 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     v('…le lendemain le compte repart à zéro', [P.recusRecherche.length, P.fichierJson('agents-lea.json').jour.recherches], [7, 3]);
     P.nettoyer();
 
+    /* ⛔ UNE RECHERCHE QUI ÉCHOUE SE COMPTE QUAND MÊME (relecture du 23 octobre 2026) : le plafond n'était incrémenté que sur un retour réussi, donc un nom qui fait boucler la recherche
+       (erreur du modèle, réponse vide) coûtait ses requêtes sans jamais les compter — jusqu'à trois fois le plafond. Le pire cas est compté AVANT l'appel, corrigé à la baisse au retour. */
+    for (const [nom, rech] of [['une erreur du modèle', () => new Error('panne simulée')], ['une réponse vide après des recherches déjà payées', () => ({ texte: '', recherches: 3 })]]) {
+      const F = monter({ modes: { lea: 'brouillon' }, recherche: rech });
+      const fs2 = [];
+      for (let i = 0; i < 8; i++) { const x = await F.lea.surInscription({ entreprise: noms[i % noms.length] + ' Plomberie', email: 'f' + i + '@echec-2903.fr' }); fs2.push(x.depose); await F.appeler('POST /api/monitor/agents/validations/decider', { tourUser: F.PATRON, body: { id: (await F.validations()).find(y => y.statut === 'en_attente').id, decision: 'refuser' } }); }
+      v('⛔ ' + nom + ' : les recherches ÉCHOUÉES comptent aussi — six entreprises cherchées (18), les suivantes ne le sont plus, tous les courriels sont quand même déposés', [F.recusRecherche.length, fs2.every(Boolean), F.fichierJson('agents-lea.json').jour.recherches], [6, true, 18]);
+      F.nettoyer();
+    }
+    {
+      const F = monter({ modes: { lea: 'brouillon' }, recherche: () => ({ texte: 'IDENTIFIEE : non', recherches: 1 }) });
+      await F.lea.surInscription({ entreprise: 'Toka Clim', email: 'un@echec-2903.fr' });
+      v('(contre-épreuve) une recherche réussie qui n’en a fait qu’UNE compte une : le pire cas est corrigé à la baisse', F.fichierJson('agents-lea.json').jour.recherches, 1);
+      F.nettoyer();
+    }
+
     const A = monter({ recherche: () => ({ texte: 'IDENTIFIEE : non', recherches: 1 }) });
     const rA = await A.lea.surInscription({ entreprise: 'Toka Clim', email: 'a@arret-2903.fr' });
     v('⛔ Léa à l’ARRÊT : ni recherche, ni rédacteur, ni juge', [rA.saute, A.recusRecherche.length, A.recus.length, A.recusJuge.length], ['arret', 0, 0, 0]);

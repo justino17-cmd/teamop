@@ -9,10 +9,15 @@
  *   · une QUESTION sur l'application → une réponse juste, faite des seuls faits de l'offre (et des connaissances que Justin a validées) ; si l'offre ne répond pas → « nous revenons vers
  *     vous » + Louis propose une connaissance ;
  *   · une FACTURE → accusé de réception, et Camille passe la main à Margaux par la messagerie, avec sa raison ; un problème TECHNIQUE → à Jules, de même ;
- *   · « je veux ARRÊTER » → accusé de réception ET une demande FERMÉE à Hugo (« résiliation fin de période », `agents.deposer`), SEULEMENT si l'expéditeur est authentifié et que son
- *     adresse est celle d'un compte — sinon une question à Justin, et rien ne part ;
- *   · un REMBOURSEMENT → un refus poli et clair, écrit par le CODE (Justin, 23 octobre 2026 : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois et après il arrête,
- *     c'est son choix. Mais il faut qu'il arrête l'abonnement. ») ; une menace de LITIGE → une question à Justin, rien ne part ; tout le reste sensible → une question à Justin.
+ *   · « je veux ARRÊTER » → un accusé de réception SANS ENGAGEMENT (« transmise, nous revenons vers vous ») ET une demande FERMÉE à Hugo (« résiliation fin de période », `agents.deposer`),
+ *     SEULEMENT si l'expéditeur est authentifié et que son adresse est celle d'un compte — sinon une question à Justin, et rien ne part. ⛔ L'accusé ne dit JAMAIS « enregistrée » ni « aucun nouveau
+ *     prélèvement » tant qu'aucun exécuteur ne marque la tâche faite (relecture du 23 octobre 2026 : personne ne `prend` cette tâche, elle expire sans rien programmer — le client aurait eu une preuve
+ *     écrite de TeamOP qu'il ne serait plus prélevé, et l'aurait été). Le jour où un exécuteur existe : il relit l'abonnement, compare l'adresse du compte, ne résilie jamais immédiatement,
+ *     et c'est LUI (ou Justin) qui confirme la date au client, après coup ;
+ *   · un REMBOURSEMENT de ce qu'on a choisi d'arrêter → un refus poli et clair, écrit par le CODE (Justin, 23 octobre 2026 : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois
+ *     et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. ») ; ⛔ mais une ERREUR DE PRÉLÈVEMENT (en double, inattendu, contesté, après une résiliation) n'est pas « une
+ *     personne qui arrête » : elle va à Margaux et à Justin, l'accusé attend la validation — jamais un refus catégorique envoyé seul à quelqu'un que nous avons peut-être prélevé à tort (la
+ *     catégorie est celle de Claude ET un filtre du CODE sur le texte : le doute va vers la validation). Une menace de LITIGE → une question à Justin, rien ne part ; tout le reste sensible → idem.
  *
  * ⛔ UN TEXTE VENU D'UN CLIENT NE DEVIENT JAMAIS UN ORDRE NI UN DESTINATAIRE. Le DESTINATAIRE d'une réponse est l'EXPÉDITEUR du mail reçu, lu dans l'en-tête par le serveur — aucune route ne le
  *    change, Claude n'en écrit aucun. Ce qui passe aux autres agents est un numéro de dossier (une forme fermée) et des phrases composées ICI ; ce que Claude choisit est une CATÉGORIE d'une liste
@@ -22,7 +27,9 @@
  * ⛔ Les réponses sur les sujets qui engagent (remboursement, arrêt d'abonnement, facture, panne) sont des GABARITS écrits ici et gardés par `test-2905` : Claude ne rédige pas une phrase
  *    qui pourrait promettre un geste commercial. Le contrôle qualité couvre ce qu'il rédige (question, prospect) ; un gabarit est « bon » d'office (il est écrit par le code).
  * ⛔ Un mail de NOS adresses n'est jamais traité ; un mail DÉJÀ VU (Message-ID) ne se retraite pas ; un mail de plus de trois jours non plus ; la boîte controle@ n'est jamais lue
- *    (`mail.js`). Plafonds du jour : 30 réponses, 100 examens ; deux brouillons en attente au plus par expéditeur ; l'envoi seul est encore borné à trois courriels par adresse en 24 h.
+ *    (`mail.js`). Plafonds du jour : 30 réponses, 100 examens, 10 examens par DOMAINE d'expéditeur (un domaine à soi et cent adresses consommeraient tout le budget du jour ; les webmails publics
+ *    en sont dispensés : le plafond par adresse y suffit) ; deux brouillons en attente au plus par expéditeur ; l'envoi seul est encore borné à trois courriels par adresse en 24 h. Un plafond atteint
+ *    PRÉVIENT Justin (une fois par jour et par plafond) : un courrier légitime qui attend doit se savoir.
  * ⛔ Camille à l'ARRÊT (ou en pause) : le message n'est même pas lu dans la boîte. Rien ne casse la veille : le crochet ne jette jamais.
  * Toutes les dépendances sont INJECTÉES.
  */
@@ -35,13 +42,21 @@ const ID = 'camille';
 const F = 'agents-camille.json';
 const BROUILLONS_PAR_JOUR = 30;
 const EXAMENS_PAR_JOUR = 100;
+const EXAMENS_PAR_DOMAINE = 10;
+/* Les messageries publiques : des milliers de clients légitimes y partagent un domaine, le plafond par domaine n'y a pas de sens (celui par ADRESSE, trois en 24 h, y suffit). */
+const WEBMAILS = new Set(['gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.fr', 'outlook.com', 'outlook.fr', 'live.com', 'live.fr', 'msn.com', 'yahoo.com', 'yahoo.fr', 'orange.fr', 'wanadoo.fr', 'free.fr',
+  'sfr.fr', 'neuf.fr', 'laposte.net', 'bbox.fr', 'icloud.com', 'me.com', 'mac.com', 'proton.me', 'protonmail.com', 'gmx.fr', 'gmx.com', 'aol.com', 'numericable.fr', 'club-internet.fr']);
 const MAX_MIDS = 3000;
 const ATTENTES_PAR_EXPEDITEUR = 2;
 const AGE_MAX_MS = 3 * 86400000;
 const TEXTE_MAX = 6000;
 const JETONS = 2500;
 /* Les catégories que Claude peut choisir : une liste FERMÉE, lue par le code. */
-const CATEGORIES = ['ignorer', 'prospect', 'question', 'inconnu', 'facture', 'technique', 'resiliation', 'remboursement', 'litige', 'autre'];
+const CATEGORIES = ['ignorer', 'prospect', 'question', 'inconnu', 'facture', 'technique', 'resiliation', 'remboursement', 'erreur_paiement', 'litige', 'autre'];
+/* Un texte qui parle d'une ERREUR de notre côté (double prélèvement, montant contesté, prélevé après résiliation…) : le CODE le reconnaît lui-même, qu'elle que soit la catégorie choisie par Claude.
+   Il ne fait QUE détourner vers la validation (jamais l'inverse) : un client qui écrit ces mots pour obtenir un refus par erreur n'y gagne rien. Cherché sur le texte sans accents. */
+const ERREUR_PAIEMENT = /(?:en double|deux fois|\b2 fois|doublon|double (?:prelevement|facturation|paiement|debit|facture)|erreur|errone|\bindu(?:e|s|es)?\b|inattendu|sans (?:mon )?accord|non autorise|contest|n'ai (?:pas|jamais) (?:demande|souscrit|autorise|commande|signe)|(?:apres|depuis) (?:mon |ma |la |que j'ai )?(?:resiliation|resilie|arrete)|(?:j'ai|ai) (?:deja )?(?:resilie|arrete)|trop (?:preleve|paye|facture)|montant (?:incorrect|errone|different|anormal)|preleve (?:a tort|encore|toujours))/;
+const erreurDePaiement = t => ERREUR_PAIEMENT.test(String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘`]/g, "'"));
 
 const PLAN_PROSPECT = [
   'POUR UN PROSPECT, PLAN DU COURRIEL (dans cet ordre, en courts paragraphes) :',
@@ -64,10 +79,11 @@ const SYSTEM = [
   '- prospect : une entreprise qui s’intéresse à OP GESTION ou demande ce qu’on propose. Tu écris la démarche commerciale (plan ci-dessous).',
   '- question : un client (ou un prospect) pose une question sur l’application ou l’offre ET la réponse figure dans l’offre ci-dessous. Tu écris une réponse juste et courte, faite de ces seuls faits.',
   '- inconnu : une question sur l’application ou l’offre à laquelle l’offre ci-dessous ne répond PAS. Rien d’autre à écrire : le serveur répond que nous revenons vers la personne, et l’équipe cherche la réponse.',
-  '- facture : le message parle d’une facture, d’un paiement, d’un prélèvement ou d’un avoir (sauf une demande de remboursement). Rien d’autre à écrire.',
+  '- facture : le message parle d’une facture, d’un paiement, d’un prélèvement ou d’un avoir (sauf une demande de remboursement ou une erreur de prélèvement). Rien d’autre à écrire.',
   '- technique : un problème qui empêche d’utiliser l’application (panne, erreur, connexion impossible, donnée qui manque). Rien d’autre à écrire.',
   '- resiliation : la personne veut arrêter son abonnement. Rien d’autre à écrire.',
-  '- remboursement : la personne demande à être remboursée. Rien d’autre à écrire.',
+  '- remboursement : la personne demande à être remboursée d’un abonnement qu’elle a choisi, qu’elle ne veut plus ou dont elle n’a pas profité. Rien d’autre à écrire.',
+  '- erreur_paiement : la personne signale un prélèvement en double, inattendu, erroné, contesté, un montant qui ne correspond pas, une double facturation, ou un prélèvement après qu’elle a résilié — même si elle réclame « un remboursement ». Rien d’autre à écrire.',
   '- litige : la personne menace d’une action (avocat, plainte, opposition bancaire, tribunal). Rien d’autre à écrire.',
   '- autre : tout ce qui est sensible ou ne rentre nulle part (juridique, données personnelles, presse, partenariat, demande à parler à une personne). Rien d’autre à écrire.',
   'Seules les catégories « prospect » et « question » appellent un courriel : après la ligne CATEGORIE, une ligne « Objet : » suivie de l’objet (court, sans émoji), une ligne vide, puis le corps, de « Bonjour, » jusqu’à « Bien cordialement, » inclus. Pour toutes les autres, la ligne CATEGORIE suffit.',
@@ -81,7 +97,9 @@ const GABARITS = {
   facture: 'Bonjour,\n\nNous avons bien reçu votre message au sujet de votre facturation. Il est transmis à la personne qui s’en occupe, qui revient vers vous rapidement.' + FIN,
   technique: 'Bonjour,\n\nNous avons bien reçu votre message au sujet du problème que vous rencontrez. Il est transmis à la personne qui s’en occupe, qui revient vers vous rapidement.' + FIN,
   inconnu: 'Bonjour,\n\nNous avons bien reçu votre question. Nous revenons vers vous rapidement avec une réponse précise.' + FIN,
-  resiliation: 'Bonjour,\n\nNous avons bien reçu votre demande d’arrêt de l’abonnement. Elle est enregistrée : l’abonnement prendra fin à l’échéance de la période déjà réglée. Vous gardez l’accès à l’application jusqu’à cette date, et aucun nouveau prélèvement n’aura lieu ensuite.\n\nSi vous avez la moindre question d’ici là, répondez simplement à ce message.' + FIN,
+  /* ⛔ SANS ENGAGEMENT : ni « enregistrée », ni « aucun nouveau prélèvement », ni « prendra fin » tant qu'aucun exécuteur ne marque la tâche de Hugo faite (voir l'en-tête). Ce que cette lettre dit est vrai
+     quoi qu'il arrive ensuite : la demande est transmise, quelqu'un revient vers la personne, l'accès se poursuit jusqu'à la fin de la période réglée (CGV). */
+  resiliation: 'Bonjour,\n\nNous avons bien reçu votre demande d’arrêt de l’abonnement. Elle est transmise à la personne qui s’en occupe, qui revient vers vous rapidement pour vous confirmer la date de fin. Vous gardez l’accès à l’application jusqu’à la fin de la période déjà réglée.\n\nSi vous avez la moindre question d’ici là, répondez simplement à ce message.' + FIN,
   /* Justin, 23 octobre 2026 : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. » */
   remboursement: 'Bonjour,\n\nNous avons bien reçu votre demande de remboursement. Nous ne procédons à aucun remboursement : l’abonnement est sans engagement de durée et se résilie à tout moment, ce qui évite tout nouveau prélèvement. Aucune période commencée n’est remboursée, et votre accès se poursuit jusqu’à la fin de la période déjà réglée.\n\nPour arrêter l’abonnement, il suffit de le demander depuis le Support de votre espace client ou par courriel à contact@teamop.fr.\n\nNous restons à votre disposition pour toute question sur l’utilisation de l’application.' + FIN,
 };
@@ -121,13 +139,19 @@ module.exports = function camille(ctx) {
     return { surNouveauMessage: async () => ({ saute: 'pas_de_cerveau' }) };
   }
 
-  const reg = fich.charger(F, { mids: {}, jour: { j: '', brouillons: 0, examens: 0 } });
+  const reg = fich.charger(F, { mids: {}, jour: { j: '', brouillons: 0, examens: 0, domaines: {}, prevenu: {} } });
   if (!reg.mids || typeof reg.mids !== 'object' || Array.isArray(reg.mids)) reg.mids = {};
-  if (!reg.jour || typeof reg.jour !== 'object') reg.jour = { j: '', brouillons: 0, examens: 0 };
+  if (!reg.jour || typeof reg.jour !== 'object') reg.jour = { j: '', brouillons: 0, examens: 0, domaines: {}, prevenu: {} };
   const sauve = () => fich.ecrire(F, reg);
   const empreinte = x => crypto.createHash('sha256').update('camille:' + String(x)).digest('hex').slice(0, 32);
   const aujourdhui = () => new Date(maintenant()).toISOString().slice(0, 10);
-  const deJour = () => { const j = aujourdhui(); if (reg.jour.j !== j) reg.jour = { j, brouillons: 0, examens: 0 }; return reg.jour; };
+  const deJour = () => {
+    const j = aujourdhui();
+    if (reg.jour.j !== j) reg.jour = { j, brouillons: 0, examens: 0, domaines: {}, prevenu: {} };
+    if (!reg.jour.domaines || typeof reg.jour.domaines !== 'object' || Array.isArray(reg.jour.domaines)) reg.jour.domaines = {};   // un registre d'avant ce plafond
+    if (!reg.jour.prevenu || typeof reg.jour.prevenu !== 'object' || Array.isArray(reg.jour.prevenu)) reg.jour.prevenu = {};
+    return reg.jour;
+  };
   const enCours = new Set();
   const midsEnCours = new Set();   // les empreintes de Message-ID en cours de traitement (la même lettre dans deux boîtes)
 
@@ -147,6 +171,8 @@ module.exports = function camille(ctx) {
   const dire = (fil, texte, niveau) => { try { if (ctx.conversations && typeof ctx.conversations.parler === 'function') return ctx.conversations.parler(ID, fil, texte, { niveau: niveau || 'info' }); } catch (e) {} return { ok: false }; };
   const aJustin = (texte, niveau) => dire(ID, texte, niveau || 'important');
   const ref4 = h => h.slice(0, 4);
+  /* Un plafond atteint se DIT à Justin, une fois par jour et par plafond : sinon un courrier légitime attend sans que personne le sache. Aucune adresse, aucun nom — une phrase du code. */
+  const prevenirPlafond = (cle, texte) => { const jour = deJour(); if (jour.prevenu[cle]) return; jour.prevenu[cle] = true; sauve(); aJustin(texte, 'important'); };
 
   async function deposerReponse(o) {
     /* o : { m, ev, a, objet, texte, controle, forceValidation, reecrit } */
@@ -168,7 +194,10 @@ module.exports = function camille(ctx) {
       let reserve = '';
       try {
         const jour = deJour();
-        if (jour.examens >= EXAMENS_PAR_JOUR) return { saute: 'plafond_examens' };
+        if (jour.examens >= EXAMENS_PAR_JOUR) {
+          prevenirPlafond('examens', 'J’ai atteint mon plafond du jour (' + EXAMENS_PAR_JOUR + ' courriels examinés) : les courriels suivants attendent dans le Courrier, je n’y réponds plus avant demain. Regarde la Réception si tu attends quelqu’un.');
+          return { saute: 'plafond_examens' };
+        }
         let m = null;
         try { m = await mail.lireMessage(ev.boiteId, ev.dossier, ev.uid); }
         catch (e) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'erreur', detail: 'lecture impossible' }); return { saute: 'lecture' }; }
@@ -206,7 +235,19 @@ module.exports = function camille(ctx) {
           }
         }
 
-        if (jour.brouillons >= BROUILLONS_PAR_JOUR) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'plafond du jour (' + BROUILLONS_PAR_JOUR + ' réponses)' }); return { saute: 'plafond_jour' }; }
+        if (jour.brouillons >= BROUILLONS_PAR_JOUR) {
+          agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'plafond du jour (' + BROUILLONS_PAR_JOUR + ' réponses)' });
+          prevenirPlafond('reponses', 'J’ai atteint mon plafond du jour (' + BROUILLONS_PAR_JOUR + ' réponses) : les courriels suivants attendent dans le Courrier, je n’y réponds plus avant demain.');
+          return { saute: 'plafond_jour' };
+        }
+        /* Le plafond par DOMAINE d'expéditeur : un domaine à soi et cent adresses (le plafond de trois par adresse n'y fait rien) consommeraient tous les examens du jour. Réservé AVANT l'appel à Claude. */
+        const dom = domaineDe(a), compteDomaine = !WEBMAILS.has(dom);
+        if (compteDomaine && (jour.domaines[dom] || 0) >= EXAMENS_PAR_DOMAINE) {
+          agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'plafond par domaine d’expéditeur (' + EXAMENS_PAR_DOMAINE + ' par jour)' });
+          prevenirPlafond('domaine', 'Un même domaine d’expéditeur a déjà fait examiner ' + EXAMENS_PAR_DOMAINE + ' courriels aujourd’hui : je n’examine plus les siens avant demain (réf. ' + ref4(h) + '). Si c’est un client légitime, regarde le Courrier ; sinon c’est quelqu’un qui use mon budget.');
+          return { saute: 'plafond_domaine' };
+        }
+        if (compteDomaine) jour.domaines[dom] = (jour.domaines[dom] || 0) + 1;
 
         const objet = lisible(m.objet).replace(/\s+/g, ' ').slice(0, 200);
         const texte = lisible(m.texte).slice(0, TEXTE_MAX);
@@ -214,7 +255,7 @@ module.exports = function camille(ctx) {
           'Objet : <<<' + objet + '>>>', 'Texte :', '<<<', texte, '>>>', '', 'Commence par la ligne CATEGORIE, puis, seulement pour « prospect » et « question », « Objet : … » et le corps du courriel.'].join('\n');
         const systeme = SYSTEM + connaissances();
         const r = await cerveau.penser(ID, systeme, [{ role: 'user', content: demande }], { maxTokens: JETONS });
-        if (!r.ok) return { saute: r.raison };          // pas marqué vu : rien n'a été décidé (la veille ne le ré-annoncera pas, mais Justin le voit au Courrier)
+        if (!r.ok) { if (compteDomaine && jour.domaines[dom] > 0) jour.domaines[dom]--; return { saute: r.raison }; }          // pas marqué vu : rien n'a été décidé (la veille ne le ré-annoncera pas, mais Justin le voit au Courrier)
         jour.examens++;
         const lu = lireCategorie(r.texte);
         if (!lu) { noterVu(h); agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'erreur', detail: 'réponse de Claude sans ligne CATEGORIE' }); return { saute: 'forme' }; }
@@ -247,13 +288,13 @@ module.exports = function camille(ctx) {
           const hp = agents.peutAgir('hugo');
           const tache = hp.ok ? agents.deposer(ID, 'hugo', 'resilier_fin_periode', { dossier }) : { ok: false, raison: hp.raison };
           if (!tache.ok) {
-            aJustin('Un client authentifié demande l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ', mais Hugo ne peut pas recevoir la demande (' + String(tache.raison || 'erreur').replace(/_/g, ' ') + '). Je n’ai rien promis au client : le brouillon de l’accusé attend ta validation.', 'urgent');
+            aJustin('Un client authentifié demande l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ', mais Hugo ne peut pas recevoir la demande (' + String(tache.raison || 'erreur').replace(/_/g, ' ') + '). Je n’ai rien promis au client : le brouillon de l’accusé attend ta validation, et la fin d’abonnement est à programmer par toi.', 'urgent');
             const d0 = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: GABARITS.resiliation, controle: BON_GABARIT, forceValidation: true });
             if (d0.ok) { jour.brouillons++; sauve(); }
             return { justin: true, categorie, depose: d0.ok, ref: d0.ref };
           }
           dire('clients', '@Hugo demande fermée déposée : programmer la fin d’abonnement à la fin de la période pour ' + dossier + '. Le client a écrit depuis l’adresse du compte, authentifiée (réf. ' + rf + ').', 'info');
-          aJustin('Un client a demandé l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ' : j’ai accusé réception et demandé à Hugo de programmer la fin à l’échéance de la période réglée.', 'important');
+          aJustin('Un client a demandé l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ' : j’ai accusé réception SANS rien promettre (« transmise, nous revenons vers vous ») et déposé la demande fermée pour Hugo. ⚠️ Tant que personne ne programme la fin dans Stripe, l’abonnement continue : c’est à toi de le faire, et de confirmer la date au client.', 'urgent');
           agents.noter(ID, 'résiliation transmise à Hugo', { cible: 'courrier', resultat: 'ok', detail: 'demande fermée, expéditeur authentifié' });
           const d = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: GABARITS.resiliation, controle: BON_GABARIT });
           if (d.ok) { jour.brouillons++; sauve(); }
@@ -274,7 +315,19 @@ module.exports = function camille(ctx) {
           return { passe: collegue.toLowerCase(), categorie, depose: d.ok, ref: d.ref, voie: d.voie };
         }
 
-        /* Le remboursement : le refus poli et clair de Justin, écrit par le code. Aucun geste commercial. */
+        /* Une ERREUR DE PRÉLÈVEMENT (en double, inattendu, contesté, après une résiliation) n'est pas « une personne qui arrête » : le refus de remboursement ne lui est JAMAIS envoyé seul. La main
+           passe à Margaux ET à Justin, l'accusé de réception (sans engagement) attend la validation de Justin. Le CODE rattrape aussi un « remboursement » de Claude dont le texte parle d'une erreur. */
+        if (categorie === 'erreur_paiement' || (categorie === 'remboursement' && erreurDePaiement(objet + '\n' + texte))) {
+          noterVu(h);
+          dire('clients', '@Margaux un client signale une erreur possible sur un prélèvement ou une facture' + dos + ' (réf. ' + rf + '). Je n’ai rien répondu sur le fond : peux-tu regarder dans Stripe ce qui a été prélevé ? Justin décide de la réponse.', 'info');
+          aJustin('Un client signale un prélèvement qui semble erroné (double, inattendu ou contesté ; réf. ' + rf + ')' + dos + ' — peut-être une erreur de notre côté. Je n’ai PAS envoyé de refus de remboursement : j’ai demandé à Margaux de regarder, et un accusé de réception sans engagement attend ta validation.', 'urgent');
+          agents.noter(ID, 'passer la main à Margaux', { cible: 'courrier', resultat: 'ok', detail: 'erreur de prélèvement signalée' });
+          const d = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: GABARITS.facture, controle: BON_GABARIT, forceValidation: true });
+          if (d.ok) { jour.brouillons++; sauve(); }
+          return { passe: 'margaux', justin: true, categorie: 'erreur_paiement', depose: d.ok, ref: d.ref, voie: d.voie };
+        }
+
+        /* Le remboursement d'un abonnement qu'on a CHOISI d'arrêter : le refus poli et clair de Justin, écrit par le code. Aucun geste commercial. */
         if (categorie === 'remboursement') {
           noterVu(h);
           aJustin('Un client demande un remboursement (réf. ' + rf + ')' + dos + ' : j’ai répondu par le refus habituel (sans engagement, résiliable à tout moment, aucune période commencée n’est remboursée). S’il menace d’un litige, je te le dirai à part.', 'info');
@@ -334,6 +387,8 @@ module.exports = function camille(ctx) {
 module.exports.SYSTEM = SYSTEM;
 module.exports.GABARITS = GABARITS;
 module.exports.CATEGORIES = CATEGORIES;
+module.exports.erreurDePaiement = erreurDePaiement;
+module.exports.EXAMENS_PAR_DOMAINE = EXAMENS_PAR_DOMAINE;
 module.exports.lireCategorie = lireCategorie;
 module.exports.objetReponse = objetReponse;
 module.exports.BROUILLONS_PAR_JOUR = BROUILLONS_PAR_JOUR;

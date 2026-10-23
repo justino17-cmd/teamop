@@ -210,12 +210,16 @@ module.exports = function lea(ctx) {
     if (!rechercheActive || !ent) return null;
     const jour = deJour();
     if ((jour.recherches || 0) + RECHERCHE_USES > RECHERCHES_PAR_JOUR) { agents.noter(ID, 'se renseigner', { cible: 'web', resultat: 'refuse', detail: 'plafond de recherches du jour (' + RECHERCHES_PAR_JOUR + ')' }); return null; }
+    /* ⛔ Le PIRE CAS est compté AVANT l'appel (relecture du 23 octobre 2026) : une recherche qui échoue après avoir déjà payé ses requêtes — réponse vide, erreur du modèle — ne rendait pas `ok`, et ses
+       requêtes n'étaient jamais comptées (jusqu'à trois fois le plafond du jour). On corrige à la baisse au retour, avec ce que l'API a vraiment compté ; sur une exception, le pire cas reste. */
+    jour.recherches = (jour.recherches || 0) + RECHERCHE_USES; sauve();
+    const corriger = r => { if (r && Number.isInteger(r.recherches) && r.recherches >= 0 && r.recherches < RECHERCHE_USES) { jour.recherches = Math.max(0, jour.recherches - (RECHERCHE_USES - r.recherches)); sauve(); } };
     try {
       const q = ['Entreprise : <<<' + K.delimiter(ent) + '>>>'].concat(metierLbl ? ['Métier indiqué : ' + metierLbl] : [], ['', 'Cherche ce qu’elle fait, puis rends ta réponse au format demandé.']).join('\n');
       const r = await cerveau.penser(ID, RECHERCHE_SYSTEM, [{ role: 'user', content: q }], { maxTokens: 1500, recherche: { maxUses: RECHERCHE_USES } });
+      corriger(r);
       if (!r || !r.ok) { agents.noter(ID, 'se renseigner', { cible: 'web', resultat: 'erreur', detail: 'recherche impossible (' + ((r && r.raison) || 'erreur') + ') : le courriel s’écrit sans' }); return null; }
       const n = Number.isInteger(r.recherches) && r.recherches >= 0 ? r.recherches : RECHERCHE_USES;
-      jour.recherches = (jour.recherches || 0) + n; sauve();
       const f = lireFiche(r.texte, donnee);
       agents.noter(ID, 'se renseigner', { cible: 'web', resultat: 'ok', detail: n + ' recherche(s) ; ' + (f ? 'entreprise identifiée' : 'rien de fiable : le courriel s’écrit sans') + ' ; seul le nom de l’entreprise est parti' });
       return f;

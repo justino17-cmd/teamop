@@ -164,22 +164,22 @@ const poser = (Z, o) => { const m = msg(Object.assign({ ts: Z.horloge.t - 360000
     Z = monter({ modes: { camille: 'brouillon' } });
     let deposes = 0;
     for (let i = 1; i <= 30; i++) {
-      const r = await Z.camille.surNouveauMessage(poser(Z, { uid: i, mid: '<p' + i + '@x>' }));
+      const r = await Z.camille.surNouveauMessage(poser(Z, { uid: i, mid: '<p' + i + '@x>', de: 'p' + i + '@dom' + i + '-2863.fr' }));   // des domaines DIFFÉRENTS : le plafond par domaine (10 par jour) est gardé par test-2905
       if (r.depose) deposes++;
       const val = (await Z.validations()).filter(x => x.statut === 'en_attente');
       for (const x of val) await Z.appeler('POST /api/monitor/agents/validations/decider', { tourUser: Z.PATRON, body: { id: x.id, decision: 'refuser' } });   // la file d'attente (20 par agent) ne doit pas masquer le plafond du jour
     }
     v('(population) trente brouillons déposés dans la journée', deposes, 30);
-    const r31 = await Z.camille.surNouveauMessage(poser(Z, { uid: 31, mid: '<p31@x>' }));
+    const r31 = await Z.camille.surNouveauMessage(poser(Z, { uid: 31, mid: '<p31@x>', de: 'p31@dom31-2863.fr' }));
     v('⛔ le trente-et-unième : plafond du jour, Claude non appelé', [r31.saute, Z.recus.length], ['plafond_jour', 30]);
     Z.horloge.t += JOUR;
-    vrai('le lendemain, le plafond est levé', (await Z.camille.surNouveauMessage(poser(Z, { uid: 32, mid: '<p32@x>', ts: Z.horloge.t - 3600000 }))).depose === true);
+    vrai('le lendemain, le plafond est levé', (await Z.camille.surNouveauMessage(poser(Z, { uid: 32, mid: '<p32@x>', de: 'p32@dom32-2863.fr', ts: Z.horloge.t - 3600000 }))).depose === true);
     Z.nettoyer();
 
     Z = monter({ modes: { camille: 'brouillon' }, claude: () => 'IGNORER' });
-    for (let i = 1; i <= 100; i++) await Z.camille.surNouveauMessage(poser(Z, { uid: i, mid: '<e' + i + '@x>' }));
+    for (let i = 1; i <= 100; i++) await Z.camille.surNouveauMessage(poser(Z, { uid: i, mid: '<e' + i + '@x>', de: 'e' + i + '@dom' + i + '-2863.fr' }));
     v('(population) cent examens (tous IGNORER)', Z.recus.length, 100);
-    v('⛔ le cent-et-unième : plafond d’examens (un flot de publicités ne coûte pas indéfiniment)', [(await Z.camille.surNouveauMessage(poser(Z, { uid: 101, mid: '<e101@x>' }))).saute, Z.recus.length], ['plafond_examens', 100]);
+    v('⛔ le cent-et-unième : plafond d’examens (un flot de publicités ne coûte pas indéfiniment)', [(await Z.camille.surNouveauMessage(poser(Z, { uid: 101, mid: '<e101@x>', de: 'e101@dom101-2863.fr' }))).saute, Z.recus.length], ['plafond_examens', 100]);
     Z.nettoyer();
 
     Z = monter({ modes: { camille: 'brouillon' }, avant: D => fs.writeFileSync(path.join(D, 'agents-camille.json'), '{illisible') });
