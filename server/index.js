@@ -10550,9 +10550,15 @@ try {
           /* la part « qualité » d'Inès : les jours relus de la fenêtre (des nombres) — `null` si elle n'est pas montée */
           qualite: (debut, fin) => plateformeMod ? plateformeMod.qualite(debut, fin) : null } });
       const ticReunions = () => { try { reunionsMod.tic(); } catch (e) { console.error('réunions :', e.message); } };
-      setTimeout(ticReunions, 5000).unref();
-      setInterval(ticReunions, 60000).unref();
-      console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
+      /* ⛔ `agents.reunionsAuto: false` coupe la MINUTERIE, pas les réunions (les routes restent). C'est le réglage des BANCS qui démarrent le vrai serveur : sans
+         lui, un banc lancé le vendredi entre 18 h et 23 h (heure de Paris) ou le lundi matin voyait la réunion due partir pendant qu'il comptait les appels à Claude
+         et les messages des agents — trois suites tombaient chaque vendredi soir, déploiement compris (23 octobre 2026). Sans réglage, la minuterie tourne. */
+      if (config.agents && config.agents.reunionsAuto === false) console.log('agents : réunions montées SANS minuterie (agents.reunionsAuto: false)');
+      else {
+        setTimeout(ticReunions, 5000).unref();
+        setInterval(ticReunions, 60000).unref();
+        console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
+      }
     } catch (e) { reunionsMod = null; console.error('réunions des agents indisponibles :', e.message); }
     /* ══ HUGO, MARGAUX, EMMA, SARAH — LES CLIENTS (23 octobre 2026) ══════════════════════════════════════════════════════════════════════════
        Justin : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. S'il n'arrête

@@ -543,5 +543,16 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
     v('lancer sans aucun agent allumé : 200 et « annulée » (la ligne du système, une fois)', [an.code, an.corps.annulee, H4.messages().map(m => m.texte)], [200, true, ['Réunion annulée : aucun agent n’est allumé']]);
   }
 
+  /* LA MINUTERIE, dans index.js (23 octobre 2026) : armée sans réglage ; seule la valeur `false` de `agents.reunionsAuto` la coupe — c'est le réglage des BANCS qui
+     démarrent le vrai serveur (sans lui, la réunion due du vendredi soir ou du lundi matin partait pendant qu'ils comptaient). Lu dans le CODE, commentaires retirés. */
+  console.log('\nLa minuterie du serveur');
+  {
+    const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const i = IDX.indexOf('const ticReunions'), bloc = i < 0 ? '' : IDX.slice(i, i + 900);
+    vrai('(population) le câblage des réunions est trouvé dans index.js', bloc.length > 100 && /reunionsMod\.tic\(\)/.test(bloc));
+    vrai('⛔ sans réglage, la minuterie est armée : seule la valeur `false` de `agents.reunionsAuto` la coupe',
+      /if \(config\.agents && config\.agents\.reunionsAuto === false\)[^\n]*\n\s*else \{\s*setTimeout\(ticReunions, 5000\)\.unref\(\);\s*setInterval\(ticReunions, 60000\)\.unref\(\);/.test(bloc));
+  }
+
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ banc mort : ' + (e && e.stack || e)); process.exit(1); });
