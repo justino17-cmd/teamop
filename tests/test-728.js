@@ -199,12 +199,14 @@ if (fs.existsSync(dep)) {
   /* ⚠️ Dans le CODE du workflow, jamais dans ses commentaires (« un motif de banc vise du code, jamais une phrase ») : le
      2 octobre 2026, `verification.yml` a NOMMÉ le compteur dans un commentaire (son filet « SAUTÉ » est le même) sans l'appeler. */
   const utilise = fichiers.filter(f => /bancs-ci\.sh/.test(fs.readFileSync(path.join(DIR, f), 'utf8').replace(/^\s*#.*$/gm, '')));
-  /* ⛔ TROIS appelants, et c'est voulu : la CI (toute branche), le déploiement d'OP GESTION (`server/**`) et celui
-     d'OP MESSAGES (`server-msg/**`, 1er octobre 2026 — design/opmessages/SERVEUR.md § 3.10). Le troisième lance le
-     MÊME compteur avec SA liste (`scripts/bancs-messages.liste`) et son plancher : deux copies d'un compteur divergent
-     toujours, et un quatrième appelant doit être un geste conscient, pas un bloc recopié. `test-933` garde ce que le
-     troisième lance et dans quel ordre. */
-  v('   et les quatre workflows (dont celui d\'OP Courrier, éteint) l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement-courrier.yml', 'deploiement-messages.yml', 'deploiement.yml']);
+  /* ⛔ CINQ appelants, et c'est voulu : la CI (toute branche), le déploiement d'OP GESTION (`server/**`) et celui
+     d'OP MESSAGES (`server-msg/**`, 1er octobre 2026 — design/opmessages/SERVEUR.md § 3.10), celui d'OP Courrier
+     (éteint) et, depuis le 23 octobre 2026, celui de l'ESPACE DE TEST (`deploiement-test.yml`, mêmes bancs serveur que
+     le déploiement de la production : un commit qui ne les passe pas ne va pas sur le VPS, même en essai). Chacun
+     lance le MÊME compteur avec SA liste et son plancher : deux copies d'un compteur divergent toujours, et un
+     sixième appelant doit être un geste conscient, pas un bloc recopié. `test-933` garde ce que celui d'OP MESSAGES
+     lance et dans quel ordre. */
+  v('   et les cinq workflows (dont celui d\'OP Courrier, éteint, et celui de l\'espace de test) l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement-courrier.yml', 'deploiement-messages.yml', 'deploiement-test.yml', 'deploiement.yml']);
 }
 
 /* ⛔ LA LISTE DES BANCS DU SERVEUR — ce que le déploiement du serveur SEUL lance sur `main`
