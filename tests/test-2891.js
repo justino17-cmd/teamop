@@ -267,7 +267,7 @@ globalThis.fetch = async function (url, opts) {
     const lignesPages = PREP.split('\n').filter(l => /^\s*(?:PAGES_LIEES=\()|^\s*PAGES_LIEES=\(/.test(l));
     vrai('(population) le script déclare ses pages liées en DEUX formes (la normale, et celle de TOUR_EN_SERVICE=garder)', lignesPages.length === 2, lignesPages.length);
     for (const piece of ['recap-abonnement.html', 'metiers.json', 'rubriques-choix.js', 'rubriques-choix.css'])
-      vrai('⛔ « ' + piece + ' » part avec le serveur dans les deux formes — sans elle le serveur exige un métier que la page ne sait pas demander (400 `metier_requis`)', lignesPages.every(l => l.includes(piece)), lignesPages.map(l => l.includes(piece)).join('/'));
+      vrai('⛔ « ' + piece + ' » part avec le serveur dans les deux formes — sans elle le serveur exige un métier que la page ne sait pas demander (400 `metier_requis`)', lignesPages.every(l => ((/\(([^)]*)\)/.exec(l) || [])[1] || '').split(/\s+/).includes(piece)), lignesPages.map(l => l.includes(piece)).join('/'));   // le MOT entier : « apercu/recap-abonnement.html » ne vaut pas « recap-abonnement.html "
     vrai('   et ces pièces sont ajoutées au commit (`git add ... "${PAGES_LIEES[@]}"`), pas seulement relues par les bancs', /git add [\s\S]*"\$\{PAGES_LIEES\[@\]\}"/.test(PREP));
   } finally { fin(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
