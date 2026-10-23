@@ -31,7 +31,7 @@ const OFFRE = [
   '- Droits réglés personne par personne.',
   '',
   'NOS COURRIELS :',
-  '- Ils partent de l’adresse écrite dans la signature. Une personne qui ne les reçoit pas, ou qui les trouve dans les indésirables (le spam), regarde dans ce dossier, marque le message « non-spam » (« pas un courrier indésirable » dans Outlook) et enregistre l’adresse de la signature dans ses contacts : les suivants arrivent alors dans sa boîte de réception. Tu écris « l’adresse indiquée dans notre signature », jamais l’adresse elle-même (elle dépend de la boîte qui envoie, et la signature la porte déjà).',
+  '- Ils partent de l’adresse écrite dans la signature. Une personne qui ne les reçoit pas, ou qui les trouve dans les indésirables (le spam), regarde dans ce dossier, marque le message « non-spam » (« pas un courrier indésirable » dans Outlook) et enregistre l’adresse de la signature dans ses contacts : les suivants arrivent alors normalement dans sa boîte de réception (rien n’est garanti : chaque messagerie trie à sa façon). Tu écris « l’adresse indiquée dans notre signature », jamais l’adresse elle-même (elle dépend de la boîte qui envoie, et la signature la porte déjà).',
   '',
   'NOTRE DIFFÉRENCE :',
   '- Une formule sur mesure : les catégories dont l’entreprise n’a pas besoin sont retirées, et elles ne sont pas facturées.',

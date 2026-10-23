@@ -5,6 +5,7 @@
  *
  *   Léa — Assistante virtuelle — Équipe TeamOP
  *   contact@teamop.fr · teamop.fr
+ *   Pour recevoir nos messages sans faute, ajoutez contact@teamop.fr à vos contacts.   (Léa, Camille et Chloé seulement : `AGENTS_COURRIER`)
  *
  * ⛔ « Assistante VIRTUELLE » n'est pas une coquetterie : le règlement européen sur l'intelligence artificielle (article 50, en vigueur depuis le
  *    2 août 2026) oblige à dire à une personne qu'elle échange avec une IA. Par défaut chaque agent porte donc « Assistante virtuelle » / « Assistant
@@ -36,7 +37,8 @@ const ADRESSE_BOITE = /^[^@\s<>",;]+@[^@\s<>",;]+\.[^@\s<>",;]+$/;
    teamop.fr est un domaine jeune : ses courriels passent tous les contrôles (SPF, DKIM, DMARC, 10/10 au test du 23 octobre), et pourtant Gmail, Outlook et
    Orange les rangent encore en indésirables, faute d'historique. Un expéditeur enregistré dans les contacts n'y est plus classé. Léa, Camille et Chloé écrivent
    aux prospects et aux clients qui découvrent TeamOP : leur signature porte la demande, avec l'adresse de la boîte qui ENVOIE (celle qu'il faut enregistrer).
-   Les quatre agents de la gestion ne la portent pas : une fin d'abonnement ou une mise en demeure n'invite pas à se faire enregistrer. Posée par le SERVEUR, à
+   Camille la porte aussi sous ses accusés écrits par le code (résiliation, facture, remboursement…) : la réponse qui suit doit arriver.
+   Les quatre agents de la gestion ne la portent pas : la lettre de Hugo ou la mise en demeure de Margaux n'invite pas à se faire enregistrer. Posée par le SERVEUR, à
    chaque envoi : écrite par Claude, elle serait oubliée une fois sur dix, ou porterait l'adresse d'une autre boîte que celle qui envoie. */
 const AGENTS_COURRIER = new Set(['lea', 'camille', 'chloe']);
 const ligneContacts = adr => 'Pour recevoir nos messages sans faute, ajoutez ' + adr + ' à vos contacts.';

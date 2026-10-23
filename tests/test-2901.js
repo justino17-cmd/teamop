@@ -30,11 +30,13 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     v('un agent inconnu : rien (l’appelant refuse d’envoyer)', S.composer('personne', 'contact@teamop.fr'), '');
     /* ⛔ Justin, 23 octobre 2026 (« dis-le aux agents qui gèrent les mails ») : les trois agents du COURRIER demandent qu'on enregistre l'adresse qui envoie ; les autres non. */
     const DEMANDE = /\nPour recevoir nos messages sans faute, ajoutez ([^ ]+) à vos contacts\.$/;
+    const COURRIER = [...SIG.AGENTS_COURRIER];   // la liste du CODE : un agent ajouté au Courrier sans décision fait tomber le contrôle suivant
+    v('(décision de Justin) les agents du Courrier qui portent la demande : Léa, Camille et Chloé, et eux seuls', COURRIER.slice().sort(), ['camille', 'chloe', 'lea']);
     v('⛔ Léa, Camille et Chloé demandent d’enregistrer l’adresse de la boîte qui ENVOIE (la dernière ligne de leur signature)',
       ['lea', 'camille', 'chloe'].map(a => (DEMANDE.exec(S.composer(a, a === 'camille' ? 'support@teamop.fr' : 'contact@teamop.fr')) || [])[1]), ['contact@teamop.fr', 'support@teamop.fr', 'contact@teamop.fr']);
     v('⛔ les treize autres ne la portent pas (une fin d’abonnement, une mise en demeure n’invitent pas à se faire enregistrer)',
-      Z.agents.AGENTS.filter(a => !['lea', 'camille', 'chloe'].includes(a.id) && DEMANDE.test(S.composer(a.id, 'contact@teamop.fr'))).map(a => a.id), []);
-    v('(population) treize autres agents examinés', Z.agents.AGENTS.filter(a => !['lea', 'camille', 'chloe'].includes(a.id)).length, 13);
+      Z.agents.AGENTS.filter(a => !COURRIER.includes(a.id) && DEMANDE.test(S.composer(a.id, 'contact@teamop.fr'))).map(a => a.id), []);
+    v('(population) treize autres agents examinés', Z.agents.AGENTS.filter(a => !COURRIER.includes(a.id)).length, 13);
     v('une adresse de boîte invalide ou absente : contact@teamop.fr (jamais une adresse écrite par un agent)', [S.composer('lea', 'pas une adresse'), S.composer('lea')], [signatureDe('Léa'), signatureDe('Léa')]);
 
     const ecrit = (corps, qui) => Z.appeler('POST /api/monitor/agents/signatures', { tourUser: qui === undefined ? Z.PATRON : qui, body: corps });
