@@ -632,7 +632,7 @@ const PAGES = {
     ogDesc: 'Interventions, stock, registre sanitaire, encaissements et équipe, sur mobile, tablette et ordinateur.',
     corps: () => `<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Logiciel de gestion pour entreprises de terrain</h1>
       <p class="chapeau">${fr('OP GESTION regroupe les interventions, le stock et les encaissements. L\'application est déclarée pour iOS, Android, macOS, Windows et le Web.')}</p>
-      <div class="actions"><a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="applications.html">Découvrir les applications ›</a></div>
+      <div class="actions"><a class="bouton" href="${ESPACE()}">Créer mon compte</a>${lienDemo()}<a class="lien-suite" href="applications.html">Découvrir les applications ›</a></div>
       <div class="gages"><span>Chiffré AES-256</span><span>Sur tous vos appareils</span><span>Sans installation</span></div>
       <div class="appareils">${POUR_LA_RACINE ? `<div class="ap-duo">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration', { tot: true })}${iphone('iphone-tableau', 'OP GESTION sur un iPhone : le tableau de bord', { tot: true })}</div>` : carPaire('tableau', { tot: true })}</div></section>
       <div class="plateformes"><span>Mac · Windows</span><span>iPhone · Android</span><span>Navigateur</span></div>
@@ -764,7 +764,7 @@ const PAGES = {
   ...Object.fromEntries(Object.entries(FONCTIONS).map(([k, m]) => [k, { section: 'applications', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m, k) }])),
 
   tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Tarifs TEAM OP : Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, sans engagement, TVA non applicable.',
-    corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Choisissez votre formule, et changez-en quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
+    corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Choisissez votre formule, et changez-en quand votre équipe grandit. Sans engagement, sans frais cachés.', lienDemo(), { courte: true })
       + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="op-gestion"></span><span id="opmessages"></span><div class="tarifs-in">
         <p class="intro">${fr('Prix par mois, sans engagement — TVA non applicable (article 293 B du CGI). Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements. Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.')}</p>
         <div class="segment" role="tablist" aria-label="Application"><button type="button" role="tab" id="onglet-gestion" aria-controls="formules-gestion" aria-selected="true">OP GESTION</button><button type="button" role="tab" id="onglet-msg" aria-controls="formules-msg" aria-selected="false" tabindex="-1">OP MESSAGES</button></div>

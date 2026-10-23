@@ -187,7 +187,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
 
   try {
     console.log('\n2. Le portail DEMANDE le métier (les vraies `sendRequest` et `cliResume` d\'espace.html)');
-    const noms2 = ['lienSlug', 'sendRequest', 'planNom', 'cliResume', 'ratEtat', 'ratChoix', 'cliRelayerDemande'];   // (les trois derniers : le métier et les rubriques de la demande, 23 octobre 2026 — test-2892 les joue contre le vrai serveur)
+    const noms2 = ['lienSlug', 'sendRequest', 'planNom', 'cliResume', 'ratEtat', 'ratChoix', 'cliRelayerDemande', 'ratManque'];   // (les trois derniers : le métier et les rubriques de la demande, 23 octobre 2026 — test-2892 les joue contre le vrai serveur)
     const src2 = noms2.map(n => fonction(PORTN, n));
     const ligneMet = (/^[ \t]*const METIER_L=\{[^\n]*\};$/m.exec(PORTN) || [''])[0];
     vrai('(population) sendRequest, planNom, cliResume et la liste des métiers sont trouvés dans le code du portail', src2.every(Boolean) && !!ligneMet, noms2.filter((n, i) => !src2[i]).join(', '));
