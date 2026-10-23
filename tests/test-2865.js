@@ -22,9 +22,9 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 120 s'); console.lo
   catch (e) { console.log('  … SAUTÉ : server/node_modules absent'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(0); }
   const T = fs.readFileSync(process.env.TOUR_FICHIER ? path.resolve(process.env.TOUR_FICHIER) : path.join(RACINE, 'tour.html'), 'utf8');
   const corps = (src, entete) => { const i = src.indexOf(entete); if (i < 0) return ''; let j = src.indexOf('{', i), p = 0; for (let k = j; k < src.length; k++) { const c = src[k]; if (c === '{') p++; else if (c === '}') { p--; if (!p) return src.slice(i, k + 1); } } return ''; };
-  const FN = ['apiGet', 'apiPost', 'msgErreur', 'hAuth', 'srvRepond', 'srvMuet', 'esc', 'acSquel', 'fmtDate', 'agParId', 'agNom', 'agParams', 'agIllisible', 'agBrRef', 'agBrCharger', 'agBrApercu', 'agBrModifier', 'agBrAnnuler', 'agBrEnregistrer', 'agDecider', 'agDecisionMsg', 'chargerAgents']
+  const FN = ['apiGet', 'apiPost', 'msgErreur', 'hAuth', 'srvRepond', 'srvMuet', 'esc', 'acSquel', 'fmtDate', 'agParId', 'agNom', 'agParams', 'agIllisible', 'agBrRef', 'agBrCharger', 'agBrApercu', 'agBrCtrl', 'agBrModifier', 'agBrAnnuler', 'agBrEnregistrer', 'agDecider', 'agDecisionMsg', 'chargerAgents']
     .map(n => corps(T, 'function ' + n + '('));
-  v('(population) les vingt-deux fonctions de la page sont trouvées dans le fichier livré', FN.map(f => f.length > 30).filter(Boolean).length, 22);
+  v('(population) les vingt-trois fonctions de la page sont trouvées dans le fichier livré', FN.map(f => f.length > 30).filter(Boolean).length, 23);
   const iA = T.indexOf('var AG={'), jA = T.indexOf('};\nvar AG_MODES', iA);
   const AGSRC = iA > 0 && jA > iA ? T.slice(iA, jA + 2) : '';
   const TYPES = (/var AG_TYPES=\{[\s\S]*?\};/.exec(T) || [''])[0], STAT = (/var AG_STATUTS=\{[^}]*\};/.exec(T) || [''])[0];
