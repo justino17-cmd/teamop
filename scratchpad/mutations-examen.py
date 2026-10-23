@@ -5,7 +5,7 @@ Usage : python3 scratchpad/mutations-examen.py [début [fin]]   (indices dans la
 import subprocess, sys, os
 R = '/home/user/teamop-d4'
 os.chdir(R)
-BANCS = ['tests/test-2934.js', 'tests/test-2932.js', 'tests/test-2930.js', 'tests/test-2931.js', 'tests/test-2933.js']
+BANCS = [b for b in ['tests/test-2934.js', 'tests/test-2932.js', 'tests/test-2930.js', 'tests/test-2931.js', 'tests/test-2933.js'] if not (os.environ.get('SANS_STATIQUE') and b.endswith('2934.js'))]
 E = 'server/examen.js'; I = 'server/index.js'; C = 'server/cerveau.js'; T = 'tour.html'
 M = [
  (E, "crypto.timingSafeEqual(a, b)", "(a.toString() === b.toString())", 'comparaison de la clé hors temps constant'),
@@ -64,10 +64,10 @@ for i, (f, old, new, nom) in enumerate(M[deb:fin], start=deb):
     if s.count(old) != 1:
         mal.append((i, nom, s.count(old))); print(f'[{i}] ⚠ MOTIF INTROUVABLE ({s.count(old)}) : {nom}'); continue
     open(f, 'w', encoding='utf8').write(s.replace(old, new))
-    d = subprocess.run(['git', 'diff', '--stat'], capture_output=True, text=True).stdout
-    assert d.count('|') == 1, d
+    d = subprocess.run(['git', 'diff', '--stat', '--', f], capture_output=True, text=True).stdout
     tue = None
     try:
+        assert d.count('|') == 1, d
         for b in BANCS:
             ok, why = vert(b)
             if not ok: tue = b + (' (' + why + ')' if why else ''); break
@@ -75,6 +75,6 @@ for i, (f, old, new, nom) in enumerate(M[deb:fin], start=deb):
         subprocess.run(['git', 'checkout', '--', f], check=True)
     if tue: tombent += 1; print(f'[{i}] ✓ tombe sur {tue} : {nom}')
     else: survivantes.append((i, nom)); print(f'[{i}] ✗ SURVIT : {nom}')
-d = subprocess.run(['git', 'diff', '--stat'], capture_output=True, text=True).stdout.strip()
+d = subprocess.run(['git', 'diff', '--stat', '--', 'server', 'tour.html', 'tests'], capture_output=True, text=True).stdout.strip()
 print(f'\n{tombent} mutations tombent, {len(survivantes)} survivent, {len(mal)} mal visées ; git diff après restauration : {"VIDE" if not d else d}')
 for x in survivantes: print('  survivante :', x)
