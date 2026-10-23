@@ -26,7 +26,7 @@ const v = (t, a, b) => { const bon = JSON.stringify(a) === JSON.stringify(b); bo
   console.log('  ' + (bon ? '✓' : '✗') + ' ' + t + (bon ? '' : '  → attendu ' + JSON.stringify(b) + ', reçu ' + JSON.stringify(a))); };
 const vrai = (t, c) => v(t, !!c, true);
 
-const GEN = require('../scripts/site-marine.js');
+const GEN = require('./metiers-publics.js').chargerGenerateur(RACINE);   // 23 octobre 2026 : les dix métiers que le site n'ouvre pas encore sont retirés de ce que le générateur lit (tests/metiers-publics.js)
 const CLES = Object.keys(GEN.PAGES);
 const SITE = 'https://teamop.fr/';
 const METIERS = ['logiciel-anti-nuisibles', 'logiciel-plombier', 'logiciel-electricien', 'logiciel-chauffage-climatisation', 'logiciel-nettoyage'];

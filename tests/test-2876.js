@@ -38,6 +38,8 @@ function pieces(BRUT) {
     cats_: ligne('let _cats;'), catsConnues_: ligne('let _catsConnues;'),
     profilsDroits: bloc('function profilsDroits(){'), profilCompte: bloc('function profilCompte(pr){'), profilNomSw: ligne('const profilNomSw='),
     usrMenuLu: bloc('function usrMenuLu(zone,k){'), usrDroitsValider: bloc('function usrDroitsValider(uid,btn){'), usrDroitsHtml: bloc('function usrDroitsHtml(u,admin){'),
+    /* l'explication d'une rubrique sous son nom (chantier métiers) : la vraie table et les deux vraies fonctions, pour que la ligne des droits se dessine telle qu'elle est servie */
+    RUBRIQUES_INFO: constante('const RUBRIQUES_INFO={', '\n};'), rubExplication: ligne('function rubExplication(k){'), rubExplHtml: ligne('function rubExplHtml(k){'),
   };
 }
 
@@ -86,6 +88,7 @@ function monde(P, o) {
     ${[P.defaultPerms, P.moduleHeriteRole, P.reprise, P.tableDuRole, P.moduleReglage, P.userSeesModule, P.capDeduitRegle, P.userCap, P.can,
        P.catDeduitRegle, P.catDroit, P.valideSoumis, P.validationsOuvertes, P.validationsNote, P.boxValidRequis, P.droitsBorner, P.navLabel].join('\n')}
     ${[P.profilsDroits, P.profilCompte, P.profilNomSw].join('\n')}
+    ${[P.RUBRIQUES_INFO, P.rubExplication, P.rubExplHtml].join('\n')}
     ${[P.usrMenuLu, P.usrDroitsValider, P.usrDroitsHtml].join('\n')}
     db.permissions = defaultPerms(); reprendreDroitsImplicites();
     this.db = db; this.html = usrDroitsHtml; this.valider = usrDroitsValider; this.menuLu = usrMenuLu; this.voit = userSeesModule; this.bloque = catBloque;

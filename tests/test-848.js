@@ -101,20 +101,28 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
   const lblSrv = evalue(litteral(SRVN, 'const METIERS_LBL = {'));
   const lblTour = evalue(litteral(TOURN, 'var MET_L={'));
   const lblPort = evalue(litteral(PORTN, 'const METIER_L={'));
-  vrai('(population) les quatre listes se lisent dans le CODE (app.html, serveur, Tour, portail) et portent treize métiers (les douze du site, plus « Autre »)',
-    [ordreApp, ordreSrv, Object.keys(lblTour), Object.keys(lblPort)].every(l => Array.isArray(l) && l.length === 13), JSON.stringify(ordreApp));
-  v('⛔ le serveur accepte exactement les métiers de l\'application, dans le même ordre (METIERS_OK = METIERS_ORDRE)', ordreSrv, ordreApp);
-  v('⛔ la Tour propose exactement ces métiers (MET_L)', Object.keys(lblTour), ordreApp);
-  v('⛔ le portail demande exactement ces métiers (METIER_L)', Object.keys(lblPort), ordreApp);
+  /* 23 octobre 2026 : l'application connaît 23 métiers, les trois autres pièces (serveur, Tour, portail) en connaissent treize — les
+     dix nouveaux sont NOMMÉS dans tests/metiers-publics.js (un autre chantier les ouvre). Un métier de cette liste est toléré
+     absent d'une pièce, jamais exigé ; tout autre métier doit y être, dans l'ordre de l'application. */
+  const { PAS_ENCORE_OUVERTS, attendu, ouvertsPartout } = require('./metiers-publics.js');
+  const piecesCles = [ordreSrv, Object.keys(lblTour), Object.keys(lblPort)];
+  vrai('(population) les quatre listes se lisent dans le CODE (app.html, serveur, Tour, portail) : l\'application porte vingt-trois métiers, chaque autre pièce au moins les treize d\'avant',
+    Array.isArray(ordreApp) && ordreApp.length === 23 && piecesCles.every(l => Array.isArray(l) && l.length >= 13), JSON.stringify(ordreApp));
+  vrai('(population) la liste nommée « pas encore ouverts » est dans l\'application et ne contient pas les treize d\'avant', PAS_ENCORE_OUVERTS.length === 10 && PAS_ENCORE_OUVERTS.every(k => ordreApp.includes(k)) && ordreApp.slice(0, 13).every(k => PAS_ENCORE_OUVERTS.indexOf(k) < 0));
+  v('⛔ le serveur accepte exactement les métiers de l\'application, dans le même ordre (METIERS_OK = METIERS_ORDRE) — les « pas encore ouverts » tolérés absents', ordreSrv, attendu(ordreApp, ordreSrv));
+  v('⛔ la Tour propose exactement ces métiers (MET_L)', Object.keys(lblTour), attendu(ordreApp, Object.keys(lblTour)));
+  v('⛔ le portail demande exactement ces métiers (METIER_L)', Object.keys(lblPort), attendu(ordreApp, Object.keys(lblPort)));
+  v('   (rappel) un métier de la liste que le serveur, la Tour ET le portail connaissent tous : la liste doit s\'en défaire', ouvertsPartout(piecesCles), []);
   /* Jusqu'au 30 septembre 2026, le portail ajoutait « Un autre métier » à la main, hors de METIER_L : une valeur que le
      serveur jetait. « autre » est désormais un pack — une option écrite en plus ferait DEUX « autre » dans la liste. */
   v('   … et n\'en ajoute aucun à la main dans son <select> (les options viennent toutes de METIER_L)',
     [...PORTN.matchAll(/<option value="([a-z0-9]+)"/g)].map(m => m[1]).filter(k => Object.prototype.hasOwnProperty.call(lblPort, k)), []);
   v('⛔ chaque métier a un pack dans l\'application (METIERS)', ordreApp.map(k => !!(METIERS_APP[k] && METIERS_APP[k].nom)), ordreApp.map(() => true));
   const noms = ordreApp.map(k => METIERS_APP[k].nom);
-  v('   les libellés sont ceux des packs, partout (serveur, Tour, portail)', [ordreApp.map(k => lblSrv[k]), ordreApp.map(k => lblTour[k]), ordreApp.map(k => lblPort[k])], [noms, noms, noms]);
-  v('   les douze autres packs portent leurs propres types d\'intervention ; le 3D garde la liste historique', ordreApp.map(k => Array.isArray(METIERS_APP[k].types) && METIERS_APP[k].types.length > 3),
-    [false, true, true, true, true, true, true, true, true, true, true, true, true]);
+  v('   les libellés sont ceux des packs, partout (serveur, Tour, portail)', [ordreSrv.map(k => lblSrv[k]), Object.keys(lblTour).map(k => lblTour[k]), Object.keys(lblPort).map(k => lblPort[k])],
+    piecesCles.map(l => l.map(k => METIERS_APP[k].nom)));
+  v('   les vingt-deux autres packs portent leurs propres types d\'intervention ; le 3D garde la liste historique', ordreApp.map(k => Array.isArray(METIERS_APP[k].types) && METIERS_APP[k].types.length > 3),
+    ordreApp.map(k => k !== '3d'));
   const hors3D = ordreApp.filter(k => k !== '3d');
   v('⛔ chaque pack hors 3D masque les quatre modules du 3D (registre, carte des box, devis xylophage, box) — un maçon ne reçoit pas le registre sanitaire',
     hors3D.map(k => ['registre', 'carteBox', 'devisXylo', 'boxes'].every(m => (METIERS_APP[k].masque || []).indexOf(m) >= 0)), hors3D.map(() => true));

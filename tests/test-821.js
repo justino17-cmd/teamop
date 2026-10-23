@@ -77,6 +77,7 @@ function monde(opts) {
   vm.runInContext(`
     var db = { users: [], boxes: [], vehicules: [], profilsDroits: [] };
     function planBloque(k){ return __plan.includes(k); } function metierBloque(){ return false; } function catBloque(){ return false; }
+    function rubExplication(){ return ''; } function rubExplHtml(){ return ''; }   /* v773 : les explications des rubriques sont le sujet de test-2953 */
     function logEvent(){} function save(){} function toast(){} function t(x){ return x; }
     function estStockage(){ return false; } function showAside(){ return false; }
     function userBoxVoit(){} function userVehiculeVoit(){} function fullName(u){ return ((u.prenom||'')+' '+(u.nom||'')).trim()||u.login||''; }

@@ -32,7 +32,9 @@ function monde(texte) {
   const creees = [];
   const propre = { JSON, Math, Date, Set, Map, Object, Array, String, Number, console, parseInt, parseFloat, isFinite, RegExp,
     $: id => id === 'pl-texte' ? zone : id === 'pl-apercu' ? apercu : id === 'pl-count' ? compte : null,
-    CAT_LIST: ['TP18 — Insecticide', 'TP14 — Rodenticide', 'Matériel'], rangerCatFour: () => '', catColor: () => '#000', encreDonnee: () => '#000',
+    CAT_LIST: ['TP18 — Insecticide', 'TP14 — Rodenticide', 'Matériel'], rangerCatFour: () => '',
+    /* v773 : la liste du métier (ici la 3D) et la catégorie d'une ligne collée — la 3D garde sa liste et son traducteur */
+    categoriesProduit: () => ['TP18 — Insecticide', 'TP14 — Rodenticide', 'Matériel'], categorieListe: (c, n) => (['TP18 — Insecticide', 'TP14 — Rodenticide', 'Matériel'].includes(c) ? c : ''), catColor: () => '#000', encreDonnee: () => '#000',
     esc: s => String(s == null ? '' : s), db: { produits: [] }, permGarde: () => true, toast() {}, logEvent() {}, save() {}, closeModal() {},
     produitCle: p => String(p.nom || '').toLowerCase(), idProduit: n => 'id_' + n, prdOnglet: '', views: { produits() {} },
     produitCreer: (f) => { creees.push(f); propre.db.produits.push(f); return f; } };

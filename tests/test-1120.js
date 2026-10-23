@@ -47,6 +47,8 @@ function monde(db, opts) {
     __blobs: [], __modals: [], __toasts: [], __confirms: [], __saves: 0, __logs: [], __droit: opts.droit !== false, __confirmRep: opts.confirm !== false };
   vm.createContext(ctx);
   vm.runInContext(`
+    /* v773 : ce banc joue la 3D (aucun métier réglé) — les autres métiers sont joués par test-2951 */
+    function estMetier3D(){ return true; }
     class Blob { constructor(p){ this.texte=p.join(''); } }
     var URL={ createObjectURL(b){ __blobs.push(b.texte); return 'blob:x'; }, revokeObjectURL(){} };
     var document={ createElement(){ return { click(){}, remove(){} }; }, body:{ appendChild(){} } };

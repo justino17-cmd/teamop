@@ -655,7 +655,7 @@
 
   /* PERMISSIONS */
   .perm-row{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--brd);}
-  .perm-row .pn{flex:1;font-size:14px;}
+  .perm-row .pn{flex:1;min-width:0;font-size:14px;}
   .switch{position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer;}
   .switch input{display:none;}
   .switch .track{position:absolute;inset:0;background:var(--bg3);border-radius:100px;transition:.2s;}
@@ -5167,6 +5167,14 @@ html[data-refonte] .rf-tabs button:focus-visible{box-shadow:var(--anneau);border
 .usr-cb .perm-row:last-child{border-bottom:none}
 .usr-sec{font-size:10.5px;font-weight:800;letter-spacing:.09em;color:var(--t3);text-transform:uppercase;margin:12px 0 2px}
 .pn-d{font-size:11px;color:var(--t3);font-weight:400;margin-top:2px;line-height:1.4}
+/* v773 : l'EXPLICATION d'une rubrique, sous son nom, TOUJOURS visible (jamais au survol : au téléphone il n'y en a pas) — 12,5 px,
+   la couleur du texte courant et non la discrète : c'est ce qui aide à décider de cocher */
+.pn-x{font-size:12.5px;color:var(--t2);font-weight:400;margin-top:3px;line-height:1.45;overflow-wrap:anywhere}
+.met-rub{margin-top:12px;border:1px solid var(--brd);border-radius:12px;background:var(--card2);padding:2px 14px}
+.met-rub summary{cursor:pointer;font-weight:800;font-size:13px;padding:11px 0;color:var(--t1);list-style-position:inside}
+.met-rub-l{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-top:1px solid var(--brd);font-size:13px}
+.met-rub-l b{color:var(--t1)}
+.met-rub-l span{color:var(--t2);font-size:12.5px;line-height:1.45}
 .usr-lk{display:block;text-align:center;margin-top:10px;font-size:12.5px;color:var(--t3);text-decoration:underline;cursor:pointer}
 .usr-x{font-size:12.5px;color:var(--t3);line-height:1.55}
 .usr-b{margin-top:14px}
@@ -6489,7 +6497,7 @@ html[data-kind="mobile"] .sidebar{width:272px}
   /* Une fenêtre plein écran commence au bord du menu : elle partait de 226 ou 262 px, écrits
      pour d'anciennes largeurs — elle mordait sur le menu ou laissait une bande de page nue. */
   html[data-kind="mobile"] .overlay.full{left:272px}
-  html[data-kind="desktop"] .overlay.full{left:258px}
+  html[data-kind="desktop"] .overlay.full{left:284px}
 }
 @media(max-width:780px){ .content{padding-bottom:calc(var(--tabh) + 16px)} }
 html[data-kind="desktop"] .content{padding-bottom:22px}
@@ -6572,8 +6580,15 @@ html[data-os="android"] .tabbar{border-top:0;box-shadow:0 -1px 0 var(--brd)}
    pas reprise telle quelle. » 258 laisse 171 px pour 163 demandés — HUIT de marge, parce que deux ne suffisaient pas :
    mesuré, le libelle tenait sur le papier (dispo 165, besoin 163) et passait quand meme a la
    ligne. Sous-pixel, graisse de l'item actif, pastille de rappel. Une marge qui se compte sur
-   les doigts n'en est pas une — on mesure APRES, pas seulement avant. */
-html[data-kind="desktop"] .sidebar{width:258px}
+   les doigts n'en est pas une — on mesure APRES, pas seulement avant.
+   ⛔ 284 px DEPUIS LE 23 OCTOBRE 2026 : « Validation des mouvements » (ex « Validations DR ») est devenu le plus long libellé du
+   menu — 181,6 px en français (« Validación de movimientos » : 176,3 en espagnol, 13,4 de marge en anglais), pour 171 de place à
+   258 : deux lignes, 59 px au lieu de 44. On ÉLARGIT (tronquer cache une information, rapetisser descend sous le plancher de
+   lisibilité du terrain) : 284 laisse 197 px — 15 de marge en français, 20 en espagnol, 39 en anglais, mesurés
+   APRÈS à 1440 et 1100 px, jour et nuit (`scratchpad/metiers/sonde-e.js`, `tests/test-2954.js`). La fenêtre plein écran
+   (`.overlay.full`) commence au même bord. Le menu « au doigt » (272 px, tablettes et tiroir du téléphone) est une autre mesure :
+   voir `REPRISE.md`. */
+html[data-kind="desktop"] .sidebar{width:284px}
 html[data-kind="desktop"] .menu-btn{display:none!important}
 
 /* ── Le tiroir en verre, avec une encre qui tient sur une surface CLAIRE ──
@@ -9318,139 +9333,823 @@ function papSocOf(cid){ return rapportSociete(socDuClient(cid)); }
      diagnostic nuisibles par « prestations realisees + releves », et masque
      les modules propres au 3D (registre sanitaire, boxes, devis xylophage)
    ═══════════════════════════════════════════════════════════════════════════ */
+/* ⛔ UN PACK POUR CHAQUE MÉTIER DU SITE (Justin, 30 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
+   quand ils ont l'application, ça correspond à leur métier… pour tous » — puis « oui, fais ce qu'il faut »). Sans pack, une
+   entreprise ouvre en 3D (le défaut de `metierId`, gardé pour les entreprises d'avant le choix du métier). « Autre métier de
+   terrain » est le réglage NEUTRE : il ne parle ni de nuisibles ni d'un métier qu'on ne connaît pas. Mêmes modules masqués
+   pour tous les packs hors 3D : le registre, les box, le devis xylophage, la consommation box par box et les enveloppes
+   n'existent que pour le 3D.
+   ⛔ LES 23 PACKS SONT ÉCRITS PAR UNE MACHINE (23 octobre 2026, Justin : « je veux que tu fasses bien OP GESTION en fonction
+   des packs métiers qu'on propose »). Treize métiers existaient, dix sont nés de la recherche : incendie, froid, ascenseurs,
+   portails, ramonage, assainissement, énergies, alarme, eau, piscine. Chaque pack porte ses rubriques conseillées
+   (`rubriques`), ses types d'intervention, ses prestations, ses relevés, ses catégories de produits et ses documents.
+   La source est design/metiers-referentiel.json ; le bloc ci-dessous est généré par scripts/metiers-generer.js, et
+   tests/test-2950.js exige que l'application et le référentiel disent la même chose. Pour changer un pack : corriger le
+   référentiel, relancer le script — jamais éditer le bloc à la main. */
+// ⟦METIERS:DEBUT⟧ — GÉNÉRÉ par scripts/metiers-generer.js depuis design/metiers-referentiel.json. NE PAS ÉDITER ICI : on corrige le référentiel, puis on relance le script.
 const METIERS={
   '3d':{ nom:'3D — Hygiène anti-nuisibles', ic:'🐀', sous:'Dératisation · désinsectisation · désinfection',
-    complet:true, types:null, presta:null, releves:null, masque:[] },
+    complet:true,
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'registre', 'carteBox', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'devisXylo',
+      'produits', 'stock', 'mouvements', 'boxes', 'saisieConso', 'enveloppes', 'pointage', 'vehicules', 'messagerie',
+      'fournisseurs', 'bons', 'brouillon', 'demandes', 'validations', 'commandes', 'secteurs', 'utilisateurs',
+      'modulesElan', 'parametres'
+    ],
+    types:null, presta:null, releves:null, produits:null,
+    documents:[
+      'Fiche d\'intervention par passage', 'Plan d\'implantation des postes', 'Rapport de non-conformité',
+      'Bilan de tendance (courbe d\'infestation)', 'Rapport d\'audit client (HACCP / IFS)'
+    ],
+    masque:[] },
 
   'plomberie':{ nom:'Plomberie', ic:'🔧', sous:'Dépannage · sanitaire · réseaux',
-    types:['Dépannage fuite','Recherche de fuite','Débouchage / curage','Chauffe-eau / ballon','Robinetterie & sanitaire',
-           'Réseau & alimentation','Évacuation & eaux usées','Installation neuve','Contrat d’entretien','Visite technique / devis'],
-    presta:['Repérage et diagnostic','Coupure et remise en eau','Remplacement de pièce','Soudure / raccord',
-            'Débouchage mécanique','Hydrocurage','Purge du réseau','Détartrage','Remplacement de joint',
-            'Mise en service et essai','Contrôle d’étanchéité','Nettoyage du chantier'],
-    releves:[{k:'pression',l:'Pression relevée',u:'bar'},{k:'debit',l:'Débit',u:'L/min'},
-             {k:'tec',l:'Température eau chaude',u:'°C'},{k:'compteur',l:'Index compteur',u:'m³'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'telecollecte', 'produits',
+      'stock', 'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs',
+      'modulesElan', 'parametres'
+    ],
+    types:[
+      'Dépannage fuite', 'Recherche de fuite', 'Débouchage / curage', 'Chauffe-eau / ballon',
+      'Robinetterie & sanitaire', 'Réseau & alimentation', 'Évacuation & eaux usées', 'Installation neuve',
+      'Contrat d’entretien', 'Visite technique / devis', 'Installation gaz', 'Remplacement de groupe de sécurité',
+      'Test d\'étanchéité'
+    ],
+    presta:[
+      'Repérage et diagnostic', 'Coupure et remise en eau', 'Remplacement de pièce', 'Soudure / raccord',
+      'Débouchage mécanique', 'Hydrocurage', 'Purge du réseau', 'Détartrage', 'Remplacement de joint',
+      'Mise en service et essai', 'Contrôle d’étanchéité', 'Nettoyage du chantier',
+      'Taux horaire et frais de déplacement annoncés avant l\'intervention', 'Pièces remplacées proposées au client'
+    ],
+    releves:[
+      {k:'pression',l:'Pression relevée',u:'bar'}, {k:'debit',l:'Débit',u:'L/min'},
+      {k:'tec',l:'Température eau chaude',u:'°C'}, {k:'compteur',l:'Index compteur',u:'m³'},
+      {k:'compteurAvant',l:'Index compteur avant essai',u:'m³'},
+      {k:'compteurApres',l:'Index compteur après essai',u:'m³'},
+      {k:'terreReseau',l:'Mise à la terre du réseau vérifiée (oui / non)',u:'',txt:true}
+    ],
+    produits:[
+      'Raccords et fittings', 'Tubes (cuivre, PER, multicouche, PVC)', 'Robinetterie et mitigeurs',
+      'Flexibles et alimentation', 'Joints, filasse, pâtes', 'Sanitaire (WC, vasques)',
+      'Chauffe-eau et groupes de sécurité', 'Évacuation et siphons', 'Débouchage et curage (produits, furets)',
+      'Outillage consommable', 'EPI'
+    ],
+    documents:[
+      'Devis de dépannage avec les mentions de l\'arrêté de 2017',
+      'Note détaillée avant paiement (prestation de plus de 25 € TTC)', 'Rapport d\'intervention avec photos',
+      'Rapport de test d\'étanchéité daté', 'Suivi du certificat de conformité gaz (établi par un organisme agréé)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'electricite':{ nom:'Électricité', ic:'⚡', sous:'Installation · mise aux normes · dépannage',
-    types:['Dépannage / panne','Tableau électrique','Mise aux normes','Éclairage','Prises & circuits',
-           'Chauffage électrique','Borne de recharge','Interphone / VMC','Contrôle & vérification','Installation neuve','Visite technique / devis'],
-    presta:['Consignation / mise hors tension','Diagnostic de la panne','Remplacement de disjoncteur',
-            'Pose ou remplacement de prise','Pose de point lumineux','Tirage de câble','Raccordement au tableau',
-            'Repérage et étiquetage','Contrôle de continuité','Essais et remise sous tension','Nettoyage du chantier'],
-    releves:[{k:'terre',l:'Résistance de terre',u:'Ω'},{k:'isolement',l:'Isolement',u:'MΩ'},
-             {k:'tension',l:'Tension mesurée',u:'V'},{k:'intensite',l:'Intensité',u:'A'},
-             {k:'diff',l:'Déclenchement différentiel',u:'ms'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'telecollecte', 'produits',
+      'stock', 'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs',
+      'modulesElan', 'parametres'
+    ],
+    types:[
+      'Dépannage / panne', 'Tableau électrique', 'Mise aux normes', 'Éclairage', 'Prises & circuits',
+      'Chauffage électrique', 'Borne de recharge', 'Interphone / VMC', 'Contrôle & vérification',
+      'Installation neuve', 'Visite technique / devis', 'Dossier Consuel (attestation de conformité)'
+    ],
+    presta:[
+      'Consignation / mise hors tension', 'Diagnostic de la panne', 'Remplacement de disjoncteur',
+      'Pose ou remplacement de prise', 'Pose de point lumineux', 'Tirage de câble', 'Raccordement au tableau',
+      'Repérage et étiquetage', 'Contrôle de continuité', 'Essais et remise sous tension', 'Nettoyage du chantier',
+      'Mesure de la résistance de terre', 'Mesure d\'isolement', 'Test des différentiels'
+    ],
+    releves:[
+      {k:'terre',l:'Résistance de terre',u:'Ω'}, {k:'isolement',l:'Isolement',u:'MΩ'},
+      {k:'tension',l:'Tension mesurée',u:'V'}, {k:'intensite',l:'Intensité',u:'A'},
+      {k:'diff',l:'Déclenchement différentiel',u:'ms'},
+      {k:'verdict',l:'Verdict de la vérification (conforme / non conforme)',u:'',txt:true},
+      {k:'consuel',l:'N° d\'attestation Consuel',u:'',txt:true},
+      {k:'puissanceBorne',l:'Puissance de la borne installée',u:'kVA'}
+    ],
+    produits:[
+      'Protection (disjoncteurs, différentiels)', 'Appareillage (prises, interrupteurs)', 'Câbles et fils',
+      'Gaines et goulottes', 'Éclairage', 'Tableaux et coffrets', 'Bornes de recharge', 'Chauffage électrique',
+      'Domotique et interphonie', 'Outillage consommable', 'EPI'
+    ],
+    documents:[
+      'Devis de dépannage', 'Rapport d\'intervention avec les mesures relevées',
+      'Rapport de vérification / attestation d\'installation (mesures et verdict)', 'Suivi du dossier Consuel'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'chauffage':{ nom:'Chauffage / Climatisation', ic:'🔥', sous:'CVC · entretien · contrats annuels',
-    types:['Entretien annuel chaudière','Entretien pompe à chaleur','Entretien climatisation','Dépannage chauffage',
-           'Dépannage climatisation','Désembouage','Ramonage','Installation','Contrat d’entretien','Visite technique / devis'],
-    presta:['Nettoyage du corps de chauffe','Contrôle du brûleur','Analyse de combustion','Contrôle d’étanchéité gaz',
-            'Vérification du vase d’expansion','Purge des radiateurs','Nettoyage des filtres',
-            'Contrôle de la charge de fluide','Contrôle des organes de sécurité','Mise en service et essai',
-            'Attestation d’entretien remise au client'],
-    releves:[{k:'co',l:'Teneur en CO',u:'ppm'},{k:'co2',l:'CO₂',u:'%'},{k:'rdt',l:'Rendement',u:'%'},
-             {k:'tfum',l:'Température des fumées',u:'°C'},{k:'pcirc',l:'Pression du circuit',u:'bar'},
-             {k:'fluide',l:'Charge de fluide',u:'kg'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Entretien annuel chaudière', 'Entretien pompe à chaleur', 'Entretien climatisation', 'Dépannage chauffage',
+      'Dépannage climatisation', 'Désembouage', 'Ramonage', 'Installation', 'Contrat d’entretien',
+      'Visite technique / devis', 'Mise en service', 'Contrôle d\'étanchéité des fluides frigorigènes',
+      'Récupération de fluide / démantèlement', 'Entretien chaudière fioul ou bois'
+    ],
+    presta:[
+      'Nettoyage du corps de chauffe', 'Contrôle du brûleur', 'Analyse de combustion', 'Contrôle d’étanchéité gaz',
+      'Vérification du vase d’expansion', 'Purge des radiateurs', 'Nettoyage des filtres',
+      'Contrôle de la charge de fluide', 'Contrôle des organes de sécurité', 'Mise en service et essai',
+      'Attestation d’entretien remise au client', 'Contrôle du calorifugeage des canalisations',
+      'Contrôle de la régulation automatique', 'Contrôle de l\'embouage du circuit', 'Mesure du tirage',
+      'Contrôle d\'étanchéité du circuit frigorifique (détecteur de fuite)', 'Récupération et pesée du fluide',
+      'Pose de la vignette de contrôle d\'étanchéité',
+      'Conseils d\'usage, d\'amélioration et de remplacement remis au client'
+    ],
+    releves:[
+      {k:'co',l:'Teneur en CO',u:'ppm'}, {k:'co2',l:'CO₂',u:'%'}, {k:'rdt',l:'Rendement',u:'%'},
+      {k:'tfum',l:'Température des fumées',u:'°C'}, {k:'pcirc',l:'Pression du circuit',u:'bar'},
+      {k:'fluide',l:'Charge de fluide',u:'kg'}, {k:'tirage',l:'Tirage',u:'Pa'},
+      {k:'nox',l:'Émissions de NOx (valeur de l’analyseur)',u:''}, {k:'tdep',l:'Température de départ',u:'°C'},
+      {k:'tret',l:'Température de retour',u:'°C'}, {k:'pgaz',l:'Pression de gaz',u:'mbar'},
+      {k:'classe',l:'Classe énergétique (chaudière gaz ou fioul de moins de 70 kW)',u:'',txt:true},
+      {k:'instrument',l:'Marque et référence de l’analyseur utilisé',u:'',txt:true},
+      {k:'fluideType',l:'Fluide frigorigène (ex. R32)',u:'',txt:true},
+      {k:'prp',l:'PRP du fluide (plaque signalétique)',u:''},
+      {k:'tco2',l:'Équivalent CO₂ de la charge (PRP × charge / 1000)',u:'t'},
+      {k:'fluideCharge',l:'Quantité de fluide chargée',u:'kg'},
+      {k:'fluideRecup',l:'Quantité de fluide récupérée',u:'kg'},
+      {k:'contenant',l:'Identifiant de la bouteille ou du contenant',u:'',txt:true},
+      {k:'bordereau',l:'N° de bordereau de suivi des déchets de fluide (Trackdéchets)',u:'',txt:true},
+      {k:'fuite',l:'Fuite constatée (oui / non, localisation)',u:'',txt:true}
+    ],
+    produits:[
+      'Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)', 'Filtres et cartouches',
+      'Fluides frigorigènes (par type)', 'Radiateurs et robinets thermostatiques',
+      'Circulateurs et vases d\'expansion', 'Produits de désembouage et de traitement de l\'eau',
+      'Conduits et fumisterie', 'Régulation et thermostats', 'Pompes à chaleur et climatisation (unités et pièces)',
+      'Outillage consommable', 'EPI'
+    ],
+    documents:[
+      'Attestation d\'entretien de chaudière (une par chaudière, remise sous 15 jours)',
+      'Attestation d\'entretien de pompe à chaleur ou de climatisation',
+      'Fiche d\'intervention fluides frigorigènes (rubriques du Cerfa 15497*04, sans prétendre remplacer le Cerfa officiel)',
+      'Certificat de ramonage', 'Devis de dépannage',
+      'Suivi de la vignette de contrôle d\'étanchéité (bleue ou rouge)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'serrurerie':{ nom:'Serrurerie', ic:'🔑', sous:'Ouverture · sécurité · contrôle d’accès',
-    types:['Ouverture de porte','Changement de serrure','Cylindre & clés','Blindage / porte blindée',
-           'Contrôle d’accès','Volet roulant / rideau métallique','Coffre-fort','Dépannage urgent','Visite technique / devis'],
-    presta:['Ouverture fine sans dégât','Ouverture destructive','Dépose de l’ancienne serrure',
-            'Pose du nouveau cylindre','Réglage de la porte','Remise des clés au client',
-            'Contrôle du bon fonctionnement','Nettoyage du chantier'],
-    releves:[{k:'cles',l:'Nombre de clés remises',u:''},{k:'modele',l:'Marque / modèle posé',u:'',txt:true},
-             {k:'a2p',l:'Certification (A2P…)',u:'',txt:true}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'telecollecte', 'produits',
+      'stock', 'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs',
+      'modulesElan', 'parametres'
+    ],
+    types:[
+      'Ouverture de porte', 'Changement de serrure', 'Cylindre & clés', 'Blindage / porte blindée',
+      'Contrôle d’accès', 'Volet roulant / rideau métallique', 'Coffre-fort', 'Dépannage urgent',
+      'Visite technique / devis', 'Dépannage après effraction (mise en sécurité)'
+    ],
+    presta:[
+      'Ouverture fine sans dégât', 'Ouverture destructive', 'Dépose de l’ancienne serrure',
+      'Pose du nouveau cylindre', 'Réglage de la porte', 'Remise des clés au client',
+      'Contrôle du bon fonctionnement', 'Nettoyage du chantier', 'Photos de la porte avant et après l\'intervention',
+      'Bon de remise de clés signé', 'Taux horaire et frais de déplacement annoncés avant l\'intervention',
+      'Pièces remplacées proposées au client'
+    ],
+    releves:[
+      {k:'cles',l:'Nombre de clés remises',u:''}, {k:'modele',l:'Marque / modèle posé',u:'',txt:true},
+      {k:'a2p',l:'Certification (A2P…)',u:'',txt:true},
+      {k:'cause',l:'Nature de l’ouverture (porte claquée, forcée…)',u:'',txt:true},
+      {k:'etatPorte',l:'État de la porte avant intervention',u:'',txt:true},
+      {k:'clesDetail',l:'Clés remises : détail (numéros, copies)',u:'',txt:true}
+    ],
+    produits:[
+      'Cylindres et serrures', 'Portes blindées et blocs-portes', 'Verrous et ferme-portes',
+      'Contrôle d\'accès (badges, lecteurs)', 'Rideaux et volets métalliques', 'Coffres-forts',
+      'Clés et cylindres bruts', 'Quincaillerie', 'Outillage consommable'
+    ],
+    documents:[
+      'Devis de dépannage avec les mentions de l\'arrêté de 2017',
+      'Bon de remise de clés signé (nombre de clés, modèle, niveau A2P)',
+      'Rapport pour l\'assurance (état de la porte avant et après, photos, nature de l\'ouverture)',
+      'Registre des clés confiées'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'nettoyage':{ nom:'Nettoyage / Propreté', ic:'🧽', sous:'Bureaux · remise en état · vitrerie',
-    types:['Nettoyage de bureaux','Remise en état','Vitrerie','Nettoyage de fin de chantier','Nettoyage industriel',
-           'Copropriété / parties communes','Décapage & protection des sols','Désinfection des locaux',
-           'Contrat régulier','Visite technique / devis'],
-    presta:['Dépoussiérage des surfaces','Aspiration des sols','Lavage des sols','Nettoyage des sanitaires',
-            'Vidage des corbeilles','Nettoyage des vitres intérieures','Nettoyage des vitres extérieures',
-            'Désinfection des points de contact','Décapage','Pose d’émulsion / protection',
-            'Réapprovisionnement des consommables'],
-    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'agents',l:'Nombre d’agents',u:''},
-             {k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'pointage',
+      'messagerie', 'fournisseurs', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Nettoyage de bureaux', 'Remise en état', 'Vitrerie', 'Nettoyage de fin de chantier', 'Nettoyage industriel',
+      'Copropriété / parties communes', 'Décapage & protection des sols', 'Désinfection des locaux',
+      'Contrat régulier', 'Visite technique / devis', 'Contrôle qualité chez le client'
+    ],
+    presta:[
+      'Dépoussiérage des surfaces', 'Aspiration des sols', 'Lavage des sols', 'Nettoyage des sanitaires',
+      'Vidage des corbeilles', 'Nettoyage des vitres intérieures', 'Nettoyage des vitres extérieures',
+      'Désinfection des points de contact', 'Décapage', 'Pose d’émulsion / protection',
+      'Réapprovisionnement des consommables', 'Respect du plan de prévention du site',
+      'Dosage des produits et respect de la fiche de données de sécurité'
+    ],
+    releves:[
+      {k:'surface',l:'Surface traitée',u:'m²'}, {k:'agents',l:'Nombre d’agents',u:''},
+      {k:'tps',l:'Temps passé sur site',u:'h'}, {k:'heuresPrevues',l:'Heures prévues au contrat',u:'h'},
+      {k:'controleQualite',l:'Résultat du contrôle qualité (note, remarques)',u:'',txt:true}
+    ],
+    produits:[
+      'Détergents et désinfectants', 'Produits sols', 'Produits vitres', 'Sanitaires',
+      'Papier et consommables (essuie-mains, sacs)', 'Matériel (balais, chariots, mono-brosses)',
+      'Machines (autolaveuses)', 'EPI'
+    ],
+    documents:[
+      'Compte rendu de passage', 'Cahier des tâches du site', 'Fiche de contrôle qualité',
+      'Plan de prévention préparé pour signature'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
-  /* ⛔ UN PACK POUR CHAQUE MÉTIER DU SITE (Justin, 30 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
-     quand ils ont l'application, ça correspond à leur métier… pour tous » — puis « oui, fais ce qu'il faut »). Les six
-     suivants étaient « pack bientôt » ou « sur mesure » sur le site ; sans eux, ces entreprises ouvraient en 3D (le défaut
-     de `metierId`, gardé pour les entreprises d'avant le choix du métier). « Autre métier de terrain » est le réglage
-     NEUTRE : il ne parle ni de nuisibles ni d'un métier qu'on ne connaît pas. Mêmes quatre modules masqués que les autres
-     packs : le registre, les box et le devis xylophage n'existent que pour le 3D. */
   'maconnerie':{ nom:'Maçonnerie / Gros œuvre', ic:'🧱', sous:'Construction · rénovation · gros œuvre',
-    types:['Construction neuve','Rénovation','Extension / agrandissement','Dalle & fondations','Murs & cloisons',
-           'Enduits & façades','Ouverture de mur','Reprise de fissures','Dallage / terrasse','Visite technique / devis'],
-    presta:['Implantation et traçage','Terrassement / fouilles','Coffrage','Ferraillage','Coulage du béton',
-            'Montage de parpaings / briques','Pose de linteau','Enduit / crépi','Jointoiement',
-            'Évacuation des gravats','Nettoyage du chantier'],
-    releves:[{k:'surface',l:'Surface réalisée',u:'m²'},{k:'volume',l:'Béton coulé',u:'m³'},
-             {k:'lineaire',l:'Linéaire de mur',u:'ml'},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules', 'messagerie',
+      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Construction neuve', 'Rénovation', 'Extension / agrandissement', 'Dalle & fondations', 'Murs & cloisons',
+      'Enduits & façades', 'Ouverture de mur', 'Reprise de fissures', 'Dallage / terrasse',
+      'Visite technique / devis', 'Réception de chantier (procès-verbal)', 'Levée de réserves'
+    ],
+    presta:[
+      'Implantation et traçage', 'Terrassement / fouilles', 'Coffrage', 'Ferraillage', 'Coulage du béton',
+      'Montage de parpaings / briques', 'Pose de linteau', 'Enduit / crépi', 'Jointoiement', 'Évacuation des gravats',
+      'Nettoyage du chantier', 'Vérification du repérage amiante avant travaux', 'Procès-verbal de réception signé'
+    ],
+    releves:[
+      {k:'surface',l:'Surface réalisée',u:'m²'}, {k:'volume',l:'Béton coulé',u:'m³'},
+      {k:'lineaire',l:'Linéaire de mur',u:'ml'}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'avancement',l:'Avancement du lot',u:'%'},
+      {k:'reperageAmiante',l:'Repérage amiante avant travaux (référence du rapport)',u:'',txt:true}
+    ],
+    produits:[
+      'Liants (ciment, chaux, plâtre)', 'Agrégats (sable, gravier)', 'Éléments de maçonnerie (parpaings, briques)',
+      'Béton et prêt à l\'emploi', 'Ferraillage', 'Isolation', 'Étanchéité', 'Enduits', 'Coffrage', 'Outillage', 'EPI'
+    ],
+    documents:[
+      'Compte rendu de chantier avec photos', 'Situation de travaux (facture d\'acompte par lot)',
+      'Procès-verbal de réception avec réserves', 'Dossier de chantier (permis, repérage amiante, plan, assurance)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'menuiserie':{ nom:'Menuiserie', ic:'🚪', sous:'Pose · agencement · fermetures',
-    types:['Pose de fenêtres','Pose de portes','Volets & fermetures','Agencement intérieur','Placards & dressings',
-           'Escalier','Parquet','Réparation / dépannage','Prise de cotes','Visite technique / devis'],
-    presta:['Prise de cotes','Dépose de l’existant','Pose et calage','Réglage des ouvrants','Fixation et scellement',
-            'Pose de la quincaillerie','Calfeutrement et joints','Finitions (habillage, champlats)',
-            'Évacuation des déchets','Nettoyage du chantier'],
-    releves:[{k:'cotes',l:'Cotes relevées (L × H)',u:'',txt:true},{k:'elements',l:'Éléments posés',u:''},
-             {k:'materiau',l:'Matériau / essence',u:'',txt:true},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage', 'messagerie',
+      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Pose de fenêtres', 'Pose de portes', 'Volets & fermetures', 'Agencement intérieur', 'Placards & dressings',
+      'Escalier', 'Parquet', 'Réparation / dépannage', 'Prise de cotes', 'Visite technique / devis',
+      'Remplacement de vitrage', 'Dépannage bris de glace'
+    ],
+    presta:[
+      'Prise de cotes', 'Dépose de l’existant', 'Pose et calage', 'Réglage des ouvrants', 'Fixation et scellement',
+      'Pose de la quincaillerie', 'Calfeutrement et joints', 'Finitions (habillage, champlats)',
+      'Évacuation des déchets', 'Nettoyage du chantier', 'Croquis et plan joints à la prise de cotes',
+      'Réception de la commande du fabricant vérifiée'
+    ],
+    releves:[
+      {k:'cotes',l:'Cotes relevées (L × H)',u:'',txt:true}, {k:'elements',l:'Éléments posés',u:''},
+      {k:'materiau',l:'Matériau / essence',u:'',txt:true}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'delaiFab',l:'Date de livraison promise par le fabricant',u:'',txt:true},
+      {k:'vitrage',l:'Type de vitrage et épaisseur',u:'',txt:true}
+    ],
+    produits:[
+      'Fenêtres et portes-fenêtres', 'Portes', 'Volets et fermetures', 'Panneaux et bois', 'Parquet et sols',
+      'Quincaillerie', 'Joints et mousses', 'Escaliers', 'Colles et fixations', 'Vitrages et miroirs', 'Outillage'
+    ],
+    documents:[
+      'Fiche de prise de cotes avec plan, photos et croquis', 'Bon de commande au fabricant',
+      'Procès-verbal de réception avec réserves', 'Attestation de TVA réduite à faire signer (à vérifier)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'peinture':{ nom:'Peinture / Revêtements', ic:'🖌️', sous:'Intérieur · extérieur · sols',
-    types:['Peinture intérieure','Peinture extérieure / façade','Revêtements muraux','Revêtements de sol',
-           'Préparation des supports','Ravalement','Traitement anti-humidité','Décoration','Retouches / reprises',
-           'Visite technique / devis'],
-    presta:['Protection des sols et du mobilier','Lessivage','Rebouchage et ponçage','Impression / sous-couche',
-            'Première couche','Deuxième couche','Pose de papier peint / toile','Reprise des angles et raccords',
-            'Dépose des protections','Nettoyage du chantier'],
-    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'couches',l:'Nombre de couches',u:''},
-             {k:'teinte',l:'Teinte / référence',u:'',txt:true},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage', 'messagerie',
+      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Peinture intérieure', 'Peinture extérieure / façade', 'Revêtements muraux', 'Revêtements de sol',
+      'Préparation des supports', 'Ravalement', 'Traitement anti-humidité', 'Décoration', 'Retouches / reprises',
+      'Visite technique / devis', 'Visite avant travaux (amiante / plomb)'
+    ],
+    presta:[
+      'Protection des sols et du mobilier', 'Lessivage', 'Rebouchage et ponçage', 'Impression / sous-couche',
+      'Première couche', 'Deuxième couche', 'Pose de papier peint / toile', 'Reprise des angles et raccords',
+      'Dépose des protections', 'Nettoyage du chantier', 'Vérification du repérage amiante ou du CREP avant ponçage',
+      'Fiche de teinte remise au client'
+    ],
+    releves:[
+      {k:'surface',l:'Surface traitée',u:'m²'}, {k:'couches',l:'Nombre de couches',u:''},
+      {k:'teinte',l:'Teinte / référence',u:'',txt:true}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'rendement',l:'Rendement du produit',u:'m²/L'}, {k:'quantite',l:'Quantité de peinture utilisée',u:'L'}
+    ],
+    produits:[
+      'Peintures intérieures', 'Peintures extérieures et façades', 'Sous-couches et impressions',
+      'Enduits et rebouchage', 'Revêtements muraux (papier peint, toile)', 'Revêtements de sol', 'Lasures et vernis',
+      'Protection (bâches, adhésifs)', 'Outillage (rouleaux, pinceaux)', 'EPI'
+    ],
+    documents:[
+      'Métré et devis au m²', 'Fiche de teinte par client (référence, nuancier)', 'Procès-verbal de réception'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'paysagiste':{ nom:'Paysagiste / Espaces verts', ic:'🌿', sous:'Entretien · création · élagage',
-    types:['Tonte','Taille de haies','Élagage / abattage','Débroussaillage','Entretien de massifs','Création de jardin',
-           'Plantation','Arrosage automatique','Ramassage des feuilles','Contrat d’entretien','Visite technique / devis'],
-    presta:['Tonte et finitions','Taille','Désherbage','Scarification','Bêchage / griffage','Paillage','Plantation',
-            'Évacuation des déchets verts','Réglage de l’arrosage','Nettoyage du site'],
-    releves:[{k:'surface',l:'Surface entretenue',u:'m²'},{k:'haie',l:'Haie taillée',u:'ml'},
-             {k:'dechets',l:'Déchets verts évacués',u:'m³'},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'pointage', 'vehicules',
+      'messagerie', 'fournisseurs', 'bons', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Tonte', 'Taille de haies', 'Élagage / abattage', 'Débroussaillage', 'Entretien de massifs',
+      'Création de jardin', 'Plantation', 'Arrosage automatique', 'Ramassage des feuilles', 'Contrat d’entretien',
+      'Visite technique / devis', 'Abattage', 'Taille de haute tige'
+    ],
+    presta:[
+      'Tonte et finitions', 'Taille', 'Désherbage', 'Scarification', 'Bêchage / griffage', 'Paillage', 'Plantation',
+      'Évacuation des déchets verts', 'Réglage de l’arrosage', 'Nettoyage du site',
+      'Utilisation de nacelle ou de grimpe', 'Évacuation en déchetterie ou sur plateforme'
+    ],
+    releves:[
+      {k:'surface',l:'Surface entretenue',u:'m²'}, {k:'haie',l:'Haie taillée',u:'ml'},
+      {k:'dechets',l:'Déchets verts évacués',u:'m³'}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'hauteurArbre',l:'Hauteur de l’arbre',u:'m'}, {k:'nacelle',l:'Nacelle utilisée (oui / non)',u:'',txt:true},
+      {k:'destDechets',l:'Destination des déchets verts (déchetterie, plateforme)',u:'',txt:true}
+    ],
+    produits:[
+      'Végétaux (arbres, arbustes, vivaces, gazon)', 'Terreaux et amendements', 'Engrais', 'Paillage et gravier',
+      'Produits phytosanitaires (réservés aux certifiés)', 'Arrosage (tuyaux, programmateurs)', 'Carburant et huile',
+      'Outillage et consommables (fil, lames)', 'EPI'
+    ],
+    documents:[
+      'Compte rendu de passage', 'Fiche jardin (surface, haies, arbres, arrosage)',
+      'Suivi des déchets verts (volume, destination)',
+      'Attestation fiscale annuelle pour les particuliers (à vérifier)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'couverture':{ nom:'Couverture / Zinguerie', ic:'🏠', sous:'Toiture · gouttières · étanchéité',
-    types:['Réparation de toiture','Recherche de fuite','Remplacement de tuiles / ardoises','Gouttières & descentes',
-           'Zinguerie','Démoussage & traitement','Étanchéité de toit-terrasse','Fenêtre de toit','Isolation des combles',
-           'Visite technique / devis'],
-    presta:['Mise en sécurité (échafaudage, harnais)','Inspection de la toiture','Remplacement d’éléments de couverture',
-            'Réfection des faîtages','Nettoyage des gouttières','Pose / soudure du zinc','Démoussage',
-            'Application d’hydrofuge','Évacuation des déchets','Nettoyage du chantier'],
-    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'lineaire',l:'Gouttière / zinc posé',u:'ml'},
-             {k:'hauteur',l:'Hauteur de travail',u:'m'},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules', 'messagerie',
+      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Réparation de toiture', 'Recherche de fuite', 'Remplacement de tuiles / ardoises', 'Gouttières & descentes',
+      'Zinguerie', 'Démoussage & traitement', 'Étanchéité de toit-terrasse', 'Fenêtre de toit',
+      'Isolation des combles', 'Visite technique / devis', 'Dépannage après tempête', 'Réfection de toiture complète'
+    ],
+    presta:[
+      'Mise en sécurité (échafaudage, harnais)', 'Inspection de la toiture', 'Remplacement d’éléments de couverture',
+      'Réfection des faîtages', 'Nettoyage des gouttières', 'Pose / soudure du zinc', 'Démoussage',
+      'Application d’hydrofuge', 'Évacuation des déchets', 'Nettoyage du chantier',
+      'Photos avant et après de la toiture', 'Contrôle des plaques fragiles',
+      'Vérification de la présence d\'amiante (fibrociment, ardoises artificielles)'
+    ],
+    releves:[
+      {k:'surface',l:'Surface traitée',u:'m²'}, {k:'lineaire',l:'Gouttière / zinc posé',u:'ml'},
+      {k:'hauteur',l:'Hauteur de travail',u:'m'}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'garde',l:'Garde-corps ou protection collective en place (oui / non)',u:'',txt:true},
+      {k:'amiante',l:'Toiture amiantée (oui / non)',u:'',txt:true}
+    ],
+    produits:[
+      'Tuiles', 'Ardoises', 'Zinc et gouttières', 'Fixations et crochets', 'Isolation (combles)',
+      'Étanchéité (membranes, bitume)', 'Fenêtres de toit', 'Produits de traitement (démoussant, hydrofuge)',
+      'Échafaudage et protection', 'EPI antichute'
+    ],
+    documents:[
+      'Rapport d\'intervention avec photos avant et après', 'Fiche de mise en sécurité (échafaudage, harnais)',
+      'Procès-verbal de réception'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'multiservices':{ nom:'Multiservices / Maintenance', ic:'🛠️', sous:'Petits travaux · maintenance · contrats',
-    types:['Petits travaux','Maintenance préventive','Dépannage','Plomberie simple','Électricité simple',
-           'Montage / installation','Remplacement de pièce','Contrat de maintenance','Visite technique / devis'],
-    presta:['Diagnostic','Réparation','Remplacement de pièce','Réglage','Montage','Fixation',
-            'Contrôle du bon fonctionnement','Explications au client','Nettoyage du chantier'],
-    releves:[{k:'tps',l:'Temps passé sur site',u:'h'},{k:'materiel',l:'Pièces / matériel fournis',u:'',txt:true}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'pointage', 'vehicules', 'messagerie',
+      'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Petits travaux', 'Maintenance préventive', 'Dépannage', 'Plomberie simple', 'Électricité simple',
+      'Montage / installation', 'Remplacement de pièce', 'Contrat de maintenance', 'Visite technique / devis'
+    ],
+    presta:[
+      'Diagnostic', 'Réparation', 'Remplacement de pièce', 'Réglage', 'Montage', 'Fixation',
+      'Contrôle du bon fonctionnement', 'Explications au client', 'Nettoyage du chantier',
+      'Liste des pièces fournies', 'Taux horaire et frais de déplacement annoncés avant l\'intervention',
+      'Pièces remplacées proposées au client'
+    ],
+    releves:[
+      {k:'tps',l:'Temps passé sur site',u:'h'}, {k:'materiel',l:'Pièces / matériel fournis',u:'',txt:true}
+    ],
+    produits:[
+      'Plomberie simple', 'Électricité simple', 'Quincaillerie et fixations', 'Peinture et petites réparations',
+      'Serrurerie simple', 'Consommables', 'Outillage', 'EPI'
+    ],
+    documents:[
+      'Bon d\'intervention signé', 'Devis de dépannage', 'Liste des pièces fournies',
+      'Contrat de maintenance avec rappel'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'autre':{ nom:'Autre métier de terrain', ic:'🧰', sous:'Interventions · entretien · dépannage',
-    types:['Intervention','Dépannage','Entretien','Installation','Contrôle / vérification','Réparation',
-           'Contrat d’entretien','Visite technique / devis'],
-    presta:['Diagnostic','Intervention réalisée','Remplacement de pièce','Réglage','Essai et contrôle',
-            'Explications au client','Nettoyage du chantier'],
-    releves:[{k:'tps',l:'Temps passé sur site',u:'h'},{k:'materiel',l:'Matériel utilisé',u:'',txt:true}],
-    masque:['registre','carteBox','devisXylo','boxes'] }
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'pointage', 'messagerie', 'utilisateurs', 'modulesElan',
+      'parametres'
+    ],
+    types:[
+      'Intervention', 'Dépannage', 'Entretien', 'Installation', 'Contrôle / vérification', 'Réparation',
+      'Contrat d’entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Diagnostic', 'Intervention réalisée', 'Remplacement de pièce', 'Réglage', 'Essai et contrôle',
+      'Explications au client', 'Nettoyage du chantier'
+    ],
+    releves:[
+      {k:'tps',l:'Temps passé sur site',u:'h'}, {k:'materiel',l:'Matériel utilisé',u:'',txt:true}
+    ],
+    produits:[
+      'Pièces et fournitures', 'Consommables', 'Outillage', 'EPI'
+    ],
+    documents:[
+      'Rapport d\'intervention', 'Devis', 'Facture'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'incendie':{ nom:'Sécurité incendie', ic:'🧯', sous:'Extincteurs · désenfumage · RIA · alarme incendie',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Vérification annuelle des extincteurs', 'Vérification du désenfumage',
+      'Vérification des RIA (robinets d\'incendie armés)', 'Vérification de l\'alarme incendie',
+      'Remplacement ou recharge', 'Installation', 'Dépannage urgent',
+      'Formation du personnel (extincteurs, évacuation)', 'Contrat de vérification annuelle',
+      'Visite technique / devis'
+    ],
+    presta:[
+      'Contrôle visuel', 'Test de fonctionnement', 'Vérification du manomètre', 'Remplacement du scellé', 'Recharge',
+      'Remplacement d\'appareil', 'Pose de l\'étiquette de vérification',
+      'Mise à jour du plan de situation des appareils'
+    ],
+    releves:[
+      {k:'agent',l:'Type d\'agent (eau, poudre, CO₂)',u:'',txt:true}, {k:'capacite',l:'Capacité',u:'kg ou L'},
+      {k:'serie',l:'N° de série',u:'',txt:true}, {k:'annee',l:'Année de fabrication',u:''},
+      {k:'recharge',l:'Date de dernière recharge',u:'',txt:true}, {k:'manometre',l:'État du manomètre',u:'',txt:true},
+      {k:'scelle',l:'État du scellé',u:'',txt:true}, {k:'etat',l:'État visuel',u:'',txt:true},
+      {k:'resultat',l:'Résultat (conforme / non conforme / remplacé)',u:'',txt:true},
+      {k:'nbAppareils',l:'Nombre d\'appareils vérifiés',u:''}
+    ],
+    produits:[
+      'Extincteurs portatifs', 'Extincteurs mobiles', 'Agents extincteurs (poudre, eau, CO₂)', 'Pièces détachées',
+      'Signalétique', 'Accessoires de désenfumage'
+    ],
+    documents:[
+      'Rapport de vérification périodique (une ligne par appareil)', 'Étiquette ou vignette de vérification',
+      'Devis de remplacement', 'Attestation de formation'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'froid':{ nom:'Froid commercial / Frigoriste', ic:'❄️', sous:'Chambres froides · vitrines · groupes · fluides frigorigènes',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Mise en service', 'Contrôle d\'étanchéité', 'Maintenance préventive', 'Dépannage urgent',
+      'Charge ou récupération de fluide', 'Remplacement de compresseur', 'Nettoyage de condenseur', 'Installation',
+      'Contrat d\'entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Contrôle des températures de consigne', 'Contrôle des pressions haute et basse',
+      'Recherche de fuite (détecteur)', 'Contrôle du système permanent de détection de fuite',
+      'Récupération et pesée du fluide', 'Remplacement du filtre déshydrateur', 'Nettoyage du condenseur',
+      'Contrôle des organes électriques', 'Pose de la vignette de contrôle d\'étanchéité'
+    ],
+    releves:[
+      {k:'fluideType',l:'Fluide frigorigène (ex. R452A)',u:'',txt:true}, {k:'charge',l:'Charge totale',u:'kg'},
+      {k:'prp',l:'PRP du fluide (plaque signalétique)',u:''},
+      {k:'tco2',l:'Équivalent CO₂ de la charge (PRP × charge / 1000)',u:'t'},
+      {k:'fluideCharge',l:'Quantité de fluide chargée',u:'kg'},
+      {k:'fluideRecup',l:'Quantité de fluide récupérée',u:'kg'}, {k:'tconsigne',l:'Température de consigne',u:'°C'},
+      {k:'tdepart',l:'Température de départ',u:'°C'}, {k:'phaute',l:'Pression haute',u:'bar'},
+      {k:'pbasse',l:'Pression basse',u:'bar'}, {k:'etanch',l:'Résultat du contrôle d\'étanchéité',u:'',txt:true},
+      {k:'prochain',l:'Date du prochain contrôle',u:'',txt:true},
+      {k:'contenant',l:'Identifiant de la bouteille ou du contenant',u:'',txt:true},
+      {k:'bordereau',l:'N° de bordereau de suivi des déchets de fluide (Trackdéchets)',u:'',txt:true}
+    ],
+    produits:[
+      'Fluides frigorigènes (par type)', 'Compresseurs', 'Détendeurs', 'Filtres déshydrateurs', 'Pièces électriques',
+      'Isolants'
+    ],
+    documents:[
+      'Fiche d\'intervention fluide (rubriques du Cerfa 15497*04, sans prétendre le remplacer)',
+      'Étiquette de contrôle d\'étanchéité', 'Registre d\'équipement', 'Déclaration annuelle des quantités de fluide'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'ascenseurs':{ nom:'Ascenseurs', ic:'🛗', sous:'Maintenance · visites périodiques · dépannage · mise en sécurité',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Visite d\'entretien', 'Dépannage (appel de personne bloquée)', 'Mise en sécurité', 'Modernisation',
+      'Remise en service', 'Visite de contrôle', 'Contrat d\'entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Test de l\'interphone', 'Test de l\'arrêt d\'urgence', 'Contrôle des portes palières et de cabine',
+      'Contrôle des câbles', 'Graissage', 'Remplacement d\'une pièce d\'usure', 'Remise en service après arrêt',
+      'Report dans le carnet d\'entretien'
+    ],
+    releves:[
+      {k:'appareil',l:'N° de l\'appareil',u:'',txt:true}, {k:'etages',l:'Étages desservis',u:''},
+      {k:'charge',l:'Charge nominale',u:'kg'}, {k:'cables',l:'État du câblage',u:'',txt:true},
+      {k:'portes',l:'État des portes',u:'',txt:true},
+      {k:'interphone',l:'Test de l\'interphone (bon / défaillant)',u:'',txt:true},
+      {k:'arretUrgence',l:'Test de l\'arrêt d\'urgence (bon / défaillant)',u:'',txt:true}
+    ],
+    produits:[
+      'Câbles', 'Galets', 'Contacts', 'Cartes électroniques', 'Huiles', 'Pièces de portes'
+    ],
+    documents:[
+      'Compte rendu de visite', 'Carnet d\'entretien (par appareil)', 'Suivi du rapport de contrôle technique'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'portails':{ nom:'Portes et portails automatiques', ic:'🚧', sous:'Installation · maintenance semestrielle · dépannage',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'pointage',
+      'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Installation', 'Mise en service', 'Maintenance semestrielle', 'Dépannage',
+      'Remplacement de moteur ou de cellule', 'Réglage d\'effort', 'Contrat d\'entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Contrôle des cellules photoélectriques', 'Contrôle des bords sensibles', 'Test de l\'arrêt d\'urgence',
+      'Test des télécommandes', 'Contrôle des ressorts', 'Réglage de la force de fermeture', 'Graissage',
+      'Vérification après défaillance', 'Mise à jour du carnet d\'entretien'
+    ],
+    releves:[
+      {k:'force',l:'Force de fermeture',u:'N'},
+      {k:'cellules',l:'Cellules photoélectriques (bon / défaillant)',u:'',txt:true},
+      {k:'bords',l:'Bords sensibles (bon / défaillant)',u:'',txt:true},
+      {k:'arretUrgence',l:'Arrêt d\'urgence (bon / défaillant)',u:'',txt:true},
+      {k:'telecommandes',l:'Télécommandes (bon / défaillant)',u:'',txt:true},
+      {k:'ressorts',l:'État des ressorts',u:'',txt:true}
+    ],
+    produits:[
+      'Moteurs', 'Cellules photoélectriques', 'Télécommandes', 'Bords sensibles', 'Ressorts', 'Automates'
+    ],
+    documents:[
+      'Carnet d\'entretien (par porte)', 'Rapport de maintenance'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'ramonage':{ nom:'Ramonage', ic:'🧹', sous:'Cheminées · poêles · conduits · certificat de ramonage',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'telecollecte',
+      'produits', 'stock', 'pointage', 'vehicules', 'messagerie', 'secteurs', 'utilisateurs', 'modulesElan',
+      'parametres'
+    ],
+    types:[
+      'Ramonage de cheminée', 'Ramonage de poêle', 'Ramonage de chaudière',
+      'Débistrage (ramonage mécanique d\'un conduit encrassé)', 'Tubage', 'Pose de chapeau', 'Inspection par caméra',
+      'Dépannage tirage', 'Abonnement annuel', 'Visite technique / devis'
+    ],
+    presta:[
+      'Ramonage mécanique du conduit', 'Nettoyage du foyer ou de l\'appareil', 'Contrôle de la vacuité du conduit',
+      'Inspection par caméra', 'Mesure du tirage', 'Pose d\'une trappe de visite', 'Remise du certificat de ramonage'
+    ],
+    releves:[
+      {k:'conduit',l:'Type de conduit',u:'',txt:true}, {k:'combustible',l:'Combustible',u:'',txt:true},
+      {k:'hauteur',l:'Hauteur du conduit',u:'m'}, {k:'diametre',l:'Diamètre',u:'mm'},
+      {k:'etat',l:'État du conduit',u:'',txt:true}, {k:'tirage',l:'Tirage',u:'Pa'},
+      {k:'bistre',l:'Présence de bistre',u:'',txt:true}, {k:'anomalies',l:'Anomalies à signaler',u:'',txt:true}
+    ],
+    produits:[
+      'Hérissons et brosses', 'Tubage inox', 'Chapeaux', 'Trappes de visite', 'Produits de nettoyage'
+    ],
+    documents:[
+      'Certificat de ramonage (PDF daté, nom de l\'entreprise, adresse, nature du conduit), envoyé par e-mail à la clôture'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'assainissement':{ nom:'Assainissement / Vidange', ic:'🚛', sous:'Fosses · bacs à graisses · curage · bordereaux de suivi',
+    rubriques:[
+      'dashboard', 'statistiques', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions',
+      'rapports', 'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'pointage', 'vehicules',
+      'conducteurs', 'messagerie', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Vidange de fosse septique', 'Vidange de bac à graisses', 'Curage de canalisation', 'Inspection caméra',
+      'Débouchage', 'Pompage', 'Entretien de poste de relevage', 'Contrat de vidange périodique',
+      'Visite technique / devis'
+    ],
+    presta:[
+      'Pompage de l\'ouvrage', 'Curage haute pression', 'Inspection par caméra', 'Contrôle de l\'état de l\'ouvrage',
+      'Contrôle de la pompe du poste de relevage', 'Remise du bordereau de suivi', 'Nettoyage du site'
+    ],
+    releves:[
+      {k:'volume',l:'Volume pompé',u:'m³'}, {k:'volumeFosse',l:'Volume de la fosse',u:'m³'},
+      {k:'etat',l:'État de l\'ouvrage',u:'',txt:true}, {k:'elimination',l:'Lieu d\'élimination',u:'',txt:true},
+      {k:'bordereau',l:'N° du bordereau de suivi',u:'',txt:true}, {k:'commune',l:'Commune',u:'',txt:true}
+    ],
+    produits:[
+      'Consommables (flexibles, buses, joints)', 'Pièces de camion et de pompe', 'Outillage', 'EPI'
+    ],
+    documents:[
+      'Bordereau de suivi des matières de vidange (trois exemplaires)', 'Registre des vidanges (dix ans)',
+      'Bilan annuel par commune', 'Attestation de vidange'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'energies':{ nom:'Photovoltaïque et bornes de recharge', ic:'☀️', sous:'Panneaux · onduleurs · bornes IRVE · maintenance',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Étude de site', 'Pose', 'Mise en service', 'Maintenance annuelle', 'Nettoyage des panneaux',
+      'Dépannage onduleur', 'Installation de borne', 'Maintenance de borne', 'Contrôle de mise à la terre',
+      'Visite technique / devis'
+    ],
+    presta:[
+      'Contrôle des chaînes de panneaux', 'Contrôle de l\'onduleur', 'Mesure d\'isolement',
+      'Mesure de la résistance de terre', 'Nettoyage des panneaux', 'Relevé de production', 'Test de la borne',
+      'Contrôle des protections', 'Remise de la fiche de mise en service'
+    ],
+    releves:[
+      {k:'crete',l:'Puissance crête',u:'kWc'}, {k:'production',l:'Production relevée',u:'kWh'},
+      {k:'tensionChaine',l:'Tension des chaînes',u:'V'}, {k:'courantChaine',l:'Courant des chaînes',u:'A'},
+      {k:'onduleur',l:'État de l\'onduleur',u:'',txt:true}, {k:'isolement',l:'Isolement',u:'MΩ'},
+      {k:'terre',l:'Résistance de terre',u:'Ω'}, {k:'energieBorne',l:'Énergie délivrée par la borne',u:'kWh'}
+    ],
+    produits:[
+      'Panneaux', 'Onduleurs', 'Bornes', 'Câbles', 'Protections', 'Supports de fixation'
+    ],
+    documents:[
+      'Rapport de maintenance', 'Fiche de mise en service', 'Attestation de conformité (Consuel : à vérifier)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'alarme':{ nom:'Alarme, vidéosurveillance, contrôle d’accès', ic:'📹', sous:'Intrusion · caméras · badges · maintenance annuelle',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'pointage',
+      'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Installation', 'Mise en service', 'Maintenance préventive', 'Dépannage', 'Remplacement de batteries',
+      'Test de liaison avec le centre de télésurveillance', 'Modification de configuration', 'Contrat de maintenance',
+      'Visite technique / devis'
+    ],
+    presta:[
+      'Test des zones', 'Test des détecteurs', 'Contrôle des batteries', 'Test de la sirène',
+      'Test de liaison avec le centre de télésurveillance', 'Contrôle du champ de vision des caméras',
+      'Contrôle de l\'enregistreur', 'Mise à jour de la configuration', 'Remise du procès-verbal de réception'
+    ],
+    releves:[
+      {k:'batterie',l:'État de la batterie',u:'',txt:true}, {k:'signal',l:'Niveau de signal',u:'',txt:true},
+      {k:'zones',l:'Nombre de zones testées',u:''},
+      {k:'appelCentre',l:'Résultat de l’appel au centre de télésurveillance',u:'',txt:true},
+      {k:'datePose',l:'Date de pose du matériel remplacé',u:'',txt:true}
+    ],
+    produits:[
+      'Centrales', 'Détecteurs', 'Sirènes', 'Caméras', 'Enregistreurs', 'Badges et lecteurs', 'Batteries', 'Câbles'
+    ],
+    documents:[
+      'Rapport de maintenance', 'Procès-verbal de réception', 'Devis et facture'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'eau':{ nom:'Traitement de l’eau', ic:'💧', sous:'Adoucisseurs · filtres · osmoseurs · analyses',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Installation', 'Entretien annuel', 'Régénération', 'Remplacement de cartouche', 'Désinfection de circuit',
+      'Prélèvement d\'eau', 'Dépannage', 'Contrat d\'entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Mesure de la dureté', 'Remplacement des cartouches', 'Régénération des résines', 'Remplissage en sel',
+      'Contrôle de la pression et du débit', 'Désinfection du circuit', 'Prélèvement pour analyse',
+      'Contrôle de la lampe UV'
+    ],
+    releves:[
+      {k:'durete',l:'Dureté avant traitement',u:'TH'}, {k:'dureteApres',l:'Dureté après traitement',u:'TH'},
+      {k:'pression',l:'Pression',u:'bar'}, {k:'debit',l:'Débit',u:'L/min'}, {k:'temperature',l:'Température',u:'°C'},
+      {k:'chlore',l:'Chlore résiduel',u:'mg/L'}, {k:'legionelles',l:'Résultat d’analyse légionelles',u:'UFC/L'}
+    ],
+    produits:[
+      'Résines', 'Sel', 'Cartouches de filtration', 'Lampes UV', 'Membranes d\'osmose', 'Pompes doseuses'
+    ],
+    documents:[
+      'Carnet sanitaire', 'Rapport d\'analyse', 'Fiche d\'entretien'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'piscine':{ nom:'Pisciniste', ic:'🏊', sous:'Construction · entretien saisonnier · hivernage · sécurité',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'produits', 'stock',
+      'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan',
+      'parametres'
+    ],
+    types:[
+      'Ouverture de saison', 'Hivernage', 'Visite d\'entretien', 'Analyse d\'eau', 'Dépannage pompe ou filtration',
+      'Remplacement de liner', 'Mise en service', 'Installation de dispositif de sécurité', 'Construction',
+      'Contrat d\'entretien saisonnier', 'Visite technique / devis'
+    ],
+    presta:[
+      'Analyse de l\'eau', 'Équilibrage de l\'eau', 'Nettoyage du bassin', 'Contrôle de la filtration',
+      'Contrôle de la pompe', 'Mise en hivernage', 'Remise en route', 'Contrôle du dispositif de sécurité',
+      'Remise de la note technique de sécurité'
+    ],
+    releves:[
+      {k:'ph',l:'pH',u:''}, {k:'chlorelibre',l:'Chlore libre',u:'mg/L'}, {k:'chloretotal',l:'Chlore total',u:'mg/L'},
+      {k:'tac',l:'TAC',u:'°f'}, {k:'stabilisant',l:'Stabilisant',u:'mg/L'},
+      {k:'teau',l:'Température de l\'eau',u:'°C'}, {k:'pfiltre',l:'Pression du filtre',u:'bar'},
+      {k:'pompe',l:'État de la pompe',u:'',txt:true}
+    ],
+    produits:[
+      'Produits de traitement', 'Électrolyse', 'Filtration', 'Pompes', 'Liners', 'Robots', 'Couvertures', 'Éclairage'
+    ],
+    documents:[
+      'Rapport d\'analyse d\'eau', 'Fiche d\'ouverture / d\'hivernage',
+      'Note technique de sécurité remise à la réception'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] }
 };
-const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','serrurerie','nettoyage','maconnerie','menuiserie','peinture','paysagiste','couverture','multiservices','autre'];
+const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','serrurerie','nettoyage','maconnerie','menuiserie','peinture','paysagiste','couverture','multiservices','autre','incendie','froid','ascenseurs','portails','ramonage','assainissement','energies','alarme','eau','piscine'];
+/* Le titre et l'explication de chaque rubrique : [titre, explication, toujours ouverte]. Les mêmes textes que la page d'abonnement et la Tour. */
+const RUBRIQUES_INFO={
+  'dashboard':['Tableau de bord','Votre journée d\'un coup d\'œil : les interventions du jour, les devis en attente et les factures à encaisser.',1],
+  'statistiques':['Statistiques','Votre activité en chiffres : chiffre d\'affaires encaissé, factures en attente, taux de devis acceptés. Réservé aux comptes de direction.',0],
+  'historique':['Historique','Le journal de tout ce qui se passe dans l\'application : qui a fait quoi, et quand. Lecture seule, pratique pour retrouver une modification.',0],
+  'archives':['Archives mensuelles','Un récapitulatif de chaque mois à garder ou à imprimer en PDF. Réservé à l\'administrateur.',0],
+  'planning':['Planning','Qui intervient où et quand, technicien par technicien, au jour ou à la semaine.',0],
+  'planningGeneral':['Planning général','Toute l\'entreprise sur une seule page : tous les techniciens, plusieurs jours à la suite, pour repérer les trous et les doublons.',0],
+  'taches':['Tâches','Une liste de choses à faire avec une échéance, pour vous ou pour un collègue : relancer un client, commander une pièce, rappeler un devis.',0],
+  'absences':['Absences & congés','Les congés, arrêts et absences de l\'équipe, pour ne pas planifier quelqu\'un qui n\'est pas là.',0],
+  'interventions':['Interventions','Chaque passage chez un client est une fiche : date, technicien, adresse, photos, signature du client, compte rendu. C\'est le cœur de l\'application.',0],
+  'rapports':['Rapports','Les rapports d\'intervention prêts à envoyer au client en PDF, avec photos et signature, au nom de la bonne société.',0],
+  'carteInt':['Carte interventions','Les interventions du jour posées sur une carte, pour ordonner la tournée et perdre moins de temps sur la route.',0],
+  'registre':['Registre sanitaire','Le registre des interventions que l\'on doit pouvoir présenter à un contrôle. Aujourd\'hui conçu pour l\'hygiène anti-nuisibles (3D) ; il sera rendu utilisable par les autres métiers qui tiennent un registre.',0],
+  'carteBox':['Carte des box','La carte des box (postes et dispositifs de surveillance) posés chez vos clients, pour retrouver chacun d\'un coup d\'œil. Réservée à la 3D.',0],
+  'clients':['Clients','Votre fichier clients : coordonnées, sites, historique des interventions, devis et factures de chacun.',0],
+  'devis':['Devis','Préparez des devis, envoyez-les en PDF à vos clients et suivez ceux qui sont acceptés.',0],
+  'assistantDevis':['Assistant devis','Décrivez le chantier à voix haute ou au clavier : l\'assistant propose un devis que vous relisez avant de l\'envoyer. Accès par un code d\'équipe. L\'assistant s\'appuie sur une intelligence artificielle (Anthropic) à laquelle sont transmis le nom, l\'adresse et la ville du client : voir la page Sous-traitance.',0],
+  'factures':['Factures','Facturez, suivez ce qui est payé, ce qui est en attente et ce qui est en retard.',0],
+  'contrats':['Contrats','Gardez vos contrats d\'entretien : client, durée, tarif, passages prévus. Un contrat fixe vos visites dans l\'année.',0],
+  'comptabilite':['Comptabilité','Une synthèse de ce qui est encaissé, le registre des encaissements et un contrôle du jour. Réservé aux comptes autorisés.',0],
+  'devisXylo':['Devis xylophage','Un devis spécialisé pour le traitement du bois (insectes xylophages). Réservé à la 3D.',0],
+  'telecollecte':['Télécollecte','Notez les paiements encaissés sur place pendant la journée (espèces, chèques, carte) pour les rapprocher des factures le soir.',0],
+  'produits':['Produits','Votre catalogue de produits et de fournitures : références, prix, unités. Chaque entreprise y met ses propres références.',0],
+  'stock':['Stock','Ce qu\'il vous reste de chaque produit, pour ne pas partir en intervention sans la pièce ou le produit qu\'il faut.',0],
+  'mouvements':['Mouvements stock','Le journal automatique des entrées et des sorties de stock : qui a pris quoi, où, quand, validé par qui.',0],
+  'boxes':['Boxes','Les box (postes, dispositifs de surveillance) posées chez vos clients, avec leur contenu. Le Stockage de l\'entreprise s\'appuie sur le même mécanisme. Réservé à la 3D pour l\'instant.',0],
+  'saisieConso':['Consommation produits','Saisie et analyse de la consommation de produits box par box : qui consomme quoi, combien, depuis quand. Réservée à la 3D.',0],
+  'enveloppes':['Enveloppes','Les encaissements clients rangés par enveloppe : espèces et chèques remis au bureau, avec ce qui reste à rapprocher. Réservé à la 3D pour l\'instant.',0],
+  'pointage':['Temps de travail','Les heures de chaque personne : pointage depuis le terrain, total par jour et par semaine, base de la paie.',0],
+  'vehicules':['Véhicules','Votre parc de véhicules : une fiche par véhicule avec la plaque, le kilométrage, l\'assurance et son échéance, l\'assistance.',0],
+  'conducteurs':['Conducteurs','La liste des personnes autorisées à conduire vos véhicules, avec leur téléphone.',0],
+  'messagerie':['Messagerie','La messagerie de l\'équipe, entre le bureau et les techniciens, par conversation ou par groupe, sans passer par vos téléphones personnels.',0],
+  'boiteMail':['Boîte mail','Votre boîte mail professionnelle dans l\'application : lisez les réponses de vos clients et répondez sans changer d\'outil. Réservé aux comptes autorisés.',0],
+  'fournisseurs':['Fournisseurs','Votre carnet de fournisseurs : contacts, conditions, catalogues. Il alimente vos bons de commande.',0],
+  'bons':['Bons de commande','Préparez vos bons de commande, envoyez-les aux fournisseurs et suivez ce qui est livré.',0],
+  'brouillon':['Brouillon','Un panier où le technicien note les produits dont il a besoin, avant d\'en faire la demande.',0],
+  'demandes':['Mes demandes','Les demandes de matériel faites par l\'équipe : ce qui est en cours et tout l\'historique.',0],
+  'validations':['Validation des mouvements','Le responsable valide ou refuse les demandes de commande et les sorties de stock, pour que rien ne bouge sans son accord.',0],
+  'commandes':['Commandes en cours','Les bons envoyés, en livraison ou reçus à moitié : ce que vos fournisseurs vous doivent encore.',0],
+  'secteurs':['Secteurs','Découpez votre zone par département et attribuez des techniciens à chaque secteur.',0],
+  'utilisateurs':['Utilisateurs','Créez les comptes de votre équipe et réglez, pour chaque personne, ce qu\'elle voit et ce qu\'elle peut faire.',1],
+  'modulesElan':['Modules OP','La liste des modules mis de côté (rubriques spécialisées) que vous pouvez ouvrir selon vos droits.',1],
+  'parametres':['Paramètres','Les réglages de l\'entreprise : sociétés et en-têtes de documents, logo, apparence, langue, sauvegardes.',1]
+};
+// ⟦METIERS:FIN⟧
 /* Le pack produits et les fiches fournisseurs appartiennent AU MÉTIER, pas à l'application : ils sont
    rattachés ici plutôt que lus en constantes globales par cataloguePoser. Ce qui change : un métier
    sans pack (plomberie, nettoyage…) n'a ni bouton « ↻ Catalogue OP » ni fiches à poser — c'est la
@@ -9463,10 +10162,45 @@ METIERS['3d'].catalogue=CATALOGUE; METIERS['3d'].fournisseurs=FOURNISSEURS_3D;
 function metierPackDe(base){ const id=(base&&base.metier&&METIERS[base.metier])?base.metier:'3d'; return METIERS[id]||{}; }
 function metierId(){ try{ return (db&&db.metier&&METIERS[db.metier])?db.metier:'3d'; }catch(e){ return '3d'; } }
 function metierPack(){ return METIERS[metierId()]; }
+/* ⛔ v773 — HORS ANTI-NUISIBLES, PLUS RIEN DE L'ANTI-NUISIBLES (Justin, 22 octobre 2026, cahier des métiers, point 5). UNE
+   seule fonction décide : `estMetier3D()`. Elle est lue par tout écran qui SAISIT quelque chose de propre à la 3D —
+   « Nuisibles ciblés », « Méthodes », l'étape « Constat » de la clôture guidée, le constat et le traitement du compte-rendu,
+   N° AMM / matière active / type de traitement d'un produit, le « Dossier sanitaire », le Certibiocide, la colonne CSV
+   « Nuisibles », les fournisseurs du catalogue 3D. Deux règles, qu'un banc garde (tests/test-2951.js) :
+   · on CACHE le champ, on ne le VIDE pas : une base venue de la 3D garde ses nuisibles, ses AMM, son constat — chaque
+     enregistrement relit ce que la fiche portait déjà ;
+   · un document déjà ÉMIS se relit tel quel : les lignes d'un rapport ou d'une fiche se lisent sur la DONNÉE (présente ou
+     non), jamais sur le métier d'aujourd'hui. */
 function estMetier3D(){ return metierId()==='3d'; }
+/* « Zones traitées » est un mot de la 3D ; ailleurs on parle de zones CONCERNÉES (la clôture guidée le disait déjà). Un seul libellé
+   pour la fiche, le rapport imprimé, le PDF, le courriel et la frise : le même document ne dit plus deux choses. */
+function libZones(){ return estMetier3D()?'Zones traitées':'Zones concernées'; }
+/* ⛔ v773 — LES CATÉGORIES DE PRODUITS SUIVENT LE MÉTIER (Justin, 22 octobre 2026 : « je vérifie bien les catégories d'OP
+   GESTION par métier, car là je trouve ça léger »). Jusqu'ici `CAT_LIST` — les huit catégories de l'anti-nuisibles — servait à
+   tout le monde : un plombier rangeait ses raccords sous « TP14 — Rodenticide ». UNE fonction rend la liste du métier courant :
+   · la 3D garde `CAT_LIST`, À L'IDENTIQUE (le pack 3D porte `produits:null`) ;
+   · chaque autre métier a sa liste FERMÉE, celle du référentiel (`METIERS[k].produits`), avec sa couleur (`CAT_COLORS`).
+   Toute lecture de la liste passe par ici (formulaire, groupement du catalogue, liste collée) — plus aucune lecture directe de
+   `CAT_LIST` hors de la 3D. ⛔ Une catégorie inconnue d'une base d'avant (venue de la 3D, ou d'un autre métier) S'AFFICHE telle
+   quelle et n'est jamais effacée ni réécrite : la liste décide de ce qu'on PROPOSE, jamais de ce qui est déjà rangé.
+   `base` : le pack d'UNE base donnée (comme `metierPackDe`) ; sans lui, le métier de l'entreprise. */
+function categoriesProduit(base){ const p=base?metierPackDe(base):metierPack(); return (p&&Array.isArray(p.produits)&&p.produits.length)?p.produits:CAT_LIST; }
+/* La catégorie d'une ligne collée : la 3D la traduit comme avant (`rangerCatFour` lit les 171 rayons des catalogues
+   fournisseurs et le nom) ; un autre métier ne reconnaît que SA liste (casse et accents mis de côté), sinon « Sans catégorie ». */
+function categorieListe(cat,nom){ const L=categoriesProduit(); if(L.includes(cat)) return cat;
+  if(estMetier3D()) return rangerCatFour(cat,nom);
+  const n=norm(String(cat||'').trim()); return n?(L.find(c=>norm(c)===n)||''):''; }
 function intTypes(){ const p=metierPack(); return (p&&p.types)?p.types:INT_TYPES; }
 /* La beta voit tout : meme raison que planBloque (chercher BETA_ESSAI a cote de PLAN_BLOQUE). */
-function metierBloque(k){ if(BETA_ESSAI) return false; const p=metierPack(); return !!(p&&p.masque&&p.masque.indexOf(k)>=0); }
+/* ⛔ CE QUI EST SAISI SE LIT : le masque d'un métier ne ferme pas un écran dont l'entreprise a DÉJÀ des données. Une entreprise
+   abonnée sous un autre métier qui a rangé des enveloppes d'encaissement (registre d'espèces et de chèques, rien d'anti-nuisibles)
+   ou des mouvements de box (consommation box par box) perdrait sinon l'accès à l'écran qui les ouvre, sans un mot — les données
+   resteraient, plus rien ne les ouvrirait. Même règle que `certibVisible`. Les autres rubriques du masque (registre, box, carte
+   des box, devis xylophage) restent propres à la 3D. UNE seule fonction (les bancs la lisent par son nom). */
+function metierBloque(k){ if(BETA_ESSAI) return false; const p=metierPack(); if(!(p&&p.masque&&p.masque.indexOf(k)>=0)) return false;
+  try{ if(k==='enveloppes'&&(db.enveloppes||[]).length) return false;
+    if(k==='saisieConso'&&(db.mouvements||[]).some(m=>m&&m.boxId&&m.boxId!==STOCKAGE_ID)) return false; }catch(e){}
+  return true; }
 function metierSet(id){
   if(!METIERS[id]) return;
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
@@ -11164,7 +11898,9 @@ function migrate(d){
      premier save(), et la synchro propagera le rangement à toute l'entreprise par le chemin normal.
      Le faire à la main ici daterait aussi les fiches qu'on n'a pas touchées. */
   try{
-    if(typeof rangerCatFour==='function' && Array.isArray(d.produits)){
+    /* ⛔ v773 : hors 3D, rien ne se range au chargement — `rangerCatFour` est le traducteur de l'anti-nuisibles, il rangerait la
+       fiche d'un plombier sous « TP18 — Insecticide ». Une catégorie d'une base d'avant reste telle qu'elle est. */
+    if(typeof rangerCatFour==='function' && Array.isArray(d.produits) && !(d.metier&&d.metier!=='3d')){
       const brutes=new Set((typeof CATFOUR!=='undefined'?CATFOUR:[]).map(x=>x[1]).filter(Boolean));
       d.produits.forEach(p=>{ if(!p) return;
         /* Une fiche SANS catégorie : on remplit un champ vide, on n'écrase rien. C'est le même
@@ -17418,6 +18154,12 @@ document.addEventListener('click',function(e){
   if(c.tagName==='SELECT' && typeof c.showPicker==='function'){ try{ c.showPicker(); }catch(_){ } }
 });
 /* Nom lisible d'une page, pour dire au bouton retour d'où l'on vient */
+/* ⛔ v773 — « QUAND ILS COCHENT, QUE ÇA EXPLIQUE » (Justin, 22 octobre 2026). Chaque rubrique que l'application propose de cocher —
+   la grille des droits et les profils, « Accès au cas par cas », « Modules OP », la liste du métier — montre son explication, celle
+   du référentiel (`RUBRIQUES_INFO`, générée : les mêmes mots que la page d'abonnement et la Tour). Une seule table, une seule
+   fonction : une rubrique qui n'a pas de texte (« Produits donnés », sous-rubrique) n'en affiche pas, elle n'en invente pas. */
+function rubExplication(k){ const r=RUBRIQUES_INFO[k]; return r?r[1]:''; }
+function rubExplHtml(k){ const e=rubExplication(k); return e?'<div class="pn-x">'+esc(e)+'</div>':''; }
 function navLabel(k){ try{ const it=avecSousCats(NAV.flatMap(s2=>s2.items)).find(x=>x.k===k); return it?t(it.l):''; }catch(e){ return ''; } }
 /* Bouton « ← page précédente » : il n'apparaît que s'il y a vraiment où revenir */
 function navRetourBtn(){
@@ -22169,7 +22911,7 @@ views.modulesElan=function(){
   setHeader('Modules OP (mis de côté)', 'Rubriques métier, selon vos droits');
   $('content').innerHTML=`<div class="card" style="padding:16px">
     <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Ces modules métier (3D, circuits internes…) sont <b>mis de côté</b> du parcours principal. <b>Rien n'est supprimé</b> : les données restent enregistrées et synchronisées. Ouvrez-les ci-dessous ; leur place dans le menu de chaque personne se règle dans <b>Permissions</b>.</p>
-    ${items.map(x=>`<div class="pl-row" style="cursor:pointer" onclick="go('${x.k}')"><div class="pl-info"><div class="pl-title">${x.ic} ${esc(x.l)}</div></div><span style="color:var(--t3)">Ouvrir ›</span></div>`).join('')}
+    ${items.map(x=>`<div class="pl-row" style="cursor:pointer" onclick="go('${x.k}')"><div class="pl-info"><div class="pl-title">${x.ic} ${esc(x.l)}</div>${rubExplication(x.k)?`<div class="pl-meta" style="white-space:normal">${esc(rubExplication(x.k))}</div>`:''}</div><span style="color:var(--t3)">Ouvrir ›</span></div>`).join('')}
   </div>`;
 };
 let tacheFilter='afaire';
@@ -22890,8 +23632,8 @@ function csvLignes(rows,eol){ return rows.map(r=>r.map(csvCellule).join(';')).jo
 function csvDate(iso){ iso=String(iso||''); const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso); return m?m[3]+'/'+m[2]+'/'+m[1]:iso; }
 function csvDownload(name,heads,rows){ const txt='﻿'+csvLignes([heads,...rows],'\r\n');
   const blob=new Blob([txt],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); toast('Export téléchargé'); }
-function exportInterventionsCsv(){ const rows=visibleInts(db.interventions).map(i=>[i.num||'',i.date||'',i.heure||'',i.titre||'',i.type||'',clientName(i.clientId),techNames(i),(STATUT_INT[i.statut]||{}).l||i.statut||'',i.duree||'',i.adresse||'',csvCellMontant(i.montant),(i.nuisibles||[]).join(', '),i.compteRendu||'']);
-  csvDownload('interventions.csv',['N°','Date','Heure','Titre','Type','Client','Technicien','Statut','Durée (min)','Adresse','Montant','Nuisibles','Compte rendu'],rows); }
+function exportInterventionsCsv(){ const rows=visibleInts(db.interventions).map(i=>[i.num||'',i.date||'',i.heure||'',i.titre||'',i.type||'',clientName(i.clientId),techNames(i),(STATUT_INT[i.statut]||{}).l||i.statut||'',i.duree||'',i.adresse||'',csvCellMontant(i.montant)].concat(estMetier3D()?[(i.nuisibles||[]).join(', ')]:[],[i.compteRendu||'']));
+  csvDownload('interventions.csv',['N°','Date','Heure','Titre','Type','Client','Technicien','Statut','Durée (min)','Adresse','Montant'].concat(estMetier3D()?['Nuisibles']:[],['Compte rendu']),rows); }
 function exportClientsCsv(){ const ints=visibleInts(db.interventions); const rows=visibleClients(db.clients).map(c=>[c.nom||'',c.contact||'',c.tel||'',c.email||'',c.adresse||'',c.codePostal||'',c.ville||'',ints.filter(i=>i.clientId===c.id).length]);
   csvDownload('clients.csv',['Nom','Contact','Téléphone','Email','Adresse','Code postal','Ville','Nb interventions'],rows); }
 
@@ -23178,11 +23920,11 @@ function intProdCard(i,edit){ const lines=i.produitsUtilises||[];
     ${lines.length?lines.map(l=>{ const cat3=l.categorie&&T3D_CATS[l.categorie];
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--brd);font-size:13px"><b style="flex:1;min-width:0">${cat3?cat3.ic+' ':''}${esc(prodLineName(l))}</b>${prodLineAmm(l)?`<span class="tag mono" style="font-size:10px">AMM ${esc(prodLineAmm(l))}</span>`:(l.nomLibre?'<span class="tag" style="font-size:10px">hors stock</span>':'')}<span style="color:var(--t2)">× ${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</span></div>`; }).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:2px 0 8px">Aucun produit renseigné.</div>'}
-    ${i.stockDeduit?'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Stock déduit à sa clôture (règle d’avant).</div>':'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Noté sur le rapport et au registre — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.</div>'}
+    ${i.stockDeduit?'<div style="font-size:11.5px;color:var(--t3);margin-top:6px">Stock déduit à sa clôture (règle d’avant).</div>':`<div style="font-size:11.5px;color:var(--t3);margin-top:6px">${estMetier3D()?'Noté sur le rapport et au registre — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.':'Noté sur le rapport — le stock ne bouge pas : il baisse quand on se sert dans le stockage.'}</div>`}
     <div style="display:grid;gap:8px;margin-top:10px">
-      ${edit?`<div><div class="dt-lbl" style="margin-bottom:4px">Matériel utilisé</div><input value="${esc(i.materiel||'')}" placeholder="Ex : 2 pièges à glu, 1 grille anti-intrusion…" onchange="intEditField('${i.id}','materiel',this.value)" style="width:100%"></div>
-      <div><div class="dt-lbl" style="margin-bottom:4px">Zones traitées</div><input value="${esc(i.zones||'')}" placeholder="Ex : cuisine, cave, réserve…" onchange="intEditField('${i.id}','zones',this.value)" style="width:100%"></div>`
-      :roLine('Matériel utilisé',i.materiel)+roLine('Zones traitées',i.zones)}
+      ${edit?`<div><div class="dt-lbl" style="margin-bottom:4px">Matériel utilisé</div><input value="${esc(i.materiel||'')}" placeholder="${estMetier3D()?'Ex : 2 pièges à glu, 1 grille anti-intrusion…':'Ex : outillage, pièces, matériel posé…'}" onchange="intEditField('${i.id}','materiel',this.value)" style="width:100%"></div>
+      <div><div class="dt-lbl" style="margin-bottom:4px">${libZones()}</div><input value="${esc(i.zones||'')}" placeholder="${estMetier3D()?'Ex : cuisine, cave, réserve…':'Ex : salle de bain, cuisine, local technique…'}" onchange="intEditField('${i.id}','zones',this.value)" style="width:100%"></div>`
+      :roLine('Matériel utilisé',i.materiel)+roLine(libZones(),i.zones)}
     </div>
   </div>`; }
 /* ── B/F5. Note interne équipe (jamais sur le rapport) ── */
@@ -23206,6 +23948,14 @@ const RECO_3D=[
   'Équiper les aérations de grilles fines en bon état.',
   'Prévoir un passage de contrôle dans le délai recommandé.',
   'Nous informer immédiatement en cas de nouvelle activité observée.'];
+/* La mention des biocides (AMM, Certibiocide) ne regarde que l'anti-nuisibles : la 3D la porte comme avant, À L'IDENTIQUE ; un autre
+   métier ne la reçoit que si une ligne de produit PORTE une AMM (une base venue de la 3D : un document déjà émis se relit tel quel,
+   sur la donnée). Un plombier ne la lit donc ni à la clôture ni dans le PDF que son client reçoit. `lignes` : des lignes
+   `{produitId}` / `{nomLibre}` comme `produitsUtilises`. */
+function mentionRegl(lignes){ return ammVisible(lignes)?MENTION_REGL:''; }
+/* La colonne « N° AMM » d'un tableau de produits suit la même règle : la 3D l'a toujours ; un plombier ne reçoit pas un tableau dont
+   toute une colonne dit « — » ; une ligne qui porte une AMM la fait paraître (un document se relit tel quel). */
+function ammVisible(lignes){ return estMetier3D()||(lignes||[]).some(l=>!!prodLineAmm(l)); }
 const MENTION_REGL='Produits biocides utilisés conformément aux conditions de leurs autorisations de mise sur le marché (AMM indiquées). Utilisation par un personnel formé (Certibiocide). Tenir hors de portée des enfants et des animaux domestiques.';
 /* ═══════════ TRAITEMENTS PAR TYPE — questionnaires + matériel + produits RANGÉS PAR TYPE (style Organilog).
    · i.quest = { cat:{actif:true,reponses:{...}} }
@@ -24551,7 +25301,7 @@ function papImplPdfStr(cid,E,imgs,meta){
     const v=[String(po.num||''),(pl.nom||'')+(z?' — '+z:''),(PA_TYPES[po.type]||PA_TYPES.appat).lbl,pr.nom||'—',pr.amm||'—',po.secure?'Oui':'—'];
     v.forEach((t,k)=>TW(cols[k],y,k===0?8.4:8,t,k===0||(k===5&&po.secure)?1:0,DARK,larges[k])); y-=15; }));
   /* ─ mention réglementaire et signatures */
-  const ml=wrap(MENTION_REGL,118); if(y-ml.length*10-110<70) nouvellePage();
+  const mr=mentionRegl(plans.flatMap(pl=>(pl.postes||[]).map(po=>({produitId:po.produitId})))); const ml=mr?wrap(mr,118):[]; if(y-ml.length*10-110<70) nouvellePage();
   y-=8; ml.forEach(t=>{ T(M,y,7.6,t,0,GREY); y-=10; }); y-=10;
   const sw=(W-2*M-20)/2;
   [[M,'Signature du client','« Plan d’implantation reçu et approuvé »'],[M+sw+20,'Signature du technicien','']].forEach(([x,a,b])=>{
@@ -24804,7 +25554,7 @@ async function papDossierSanitaire(cid){
       ${ints.length?`<table><thead><tr><th>Date</th><th>Technicien</th><th>Postes relevés</th><th>États</th><th>Remarques</th></tr></thead><tbody>${relRows}</tbody></table>`:'<p class="muted">Aucun passage terminé.</p>'}
       <h2>3. Produits biocides utilisés</h2>
       ${prodRows?`<table><thead><tr><th>Produit</th><th>N° AMM</th><th>Matière active</th><th style="text-align:right">Qté (période)</th></tr></thead><tbody>${prodRows}</tbody></table>`:'<p class="muted">Aucun produit enregistré sur la période.</p>'}
-      <p style="font-size:9.5px;color:#777;margin-top:8px">${esc(MENTION_REGL)}</p>
+      ${mentionRegl(Object.values(prodMap).map(x=>({produitId:x.p.id})))?`<p style="font-size:9.5px;color:#777;margin-top:8px">${esc(MENTION_REGL)}</p>`:''}
       <h2>4. Certificats Certibiocide des techniciens</h2>
       ${techRows?`<table><thead><tr><th>Technicien</th><th>N° de certificat</th><th>Valide jusqu'au</th><th>Statut</th></tr></thead><tbody>${techRows}</tbody></table>`:'<p class="muted">Aucun technicien renseigné (n° Certibiocide à saisir dans la fiche équipe).</p>'}
       <h2>5. Courbe d'activité par zone — 12 derniers mois</h2>${curvesHtml}
@@ -24891,7 +25641,7 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
   let body='';
   if(s===0){ const sel=[...intNuis]; const all=[...NUIS_3D,...sel.filter(n=>!NUIS_3D.includes(n))];
     body=`<div class="form-sec" style="margin-top:0">1 · Constat — qu'as-tu trouvé sur place ?</div>
-    <div class="dt-lbl" style="margin-bottom:6px">Nuisible(s)</div>
+    ${!estMetier3D()?'':`    <div class="dt-lbl" style="margin-bottom:6px">Nuisible(s)</div>
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">${all.map(n=>{ const on=intNuis.has(n); const ne=n.replace(/'/g,"\\'");
       return `<button type="button" onclick="intNuis.${on?'delete':'add'}('${ne}');assistRender()" style="cursor:pointer;font-size:13px;font-weight:700;padding:10px 15px;border-radius:14px;border:1px solid ${on?'var(--acc)':'var(--brd)'};background:${on?'var(--acc)':'var(--bg2)'};color:${on?'var(--on-acc)':'var(--t2)'}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')}</div>
     <div class="dt-lbl" style="margin-bottom:6px">Niveau d'infestation</div>
@@ -24905,26 +25655,26 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
       if(!cats.length) return '';
       return `<div class="dt-lbl" style="margin:4px 0 6px">Questionnaires par type (repris sur le rapport)</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${cats.map(c2=>{ const on=!!((i.quest||{})[c2]||{}).actif;
-        return `<button type="button" class="chip ${on?'active':''}" onclick="t3dQuestModal('${i.id}','${c2}')">${T3D_CATS[c2].ic} ${esc(T3D_CATS[c2].lbl)}${on?' ✓':''}</button>`; }).join('')}</div>`; })()}
+        return `<button type="button" class="chip ${on?'active':''}" onclick="t3dQuestModal('${i.id}','${c2}')">${T3D_CATS[c2].ic} ${esc(T3D_CATS[c2].lbl)}${on?' ✓':''}</button>`; }).join('')}</div>`; })()}`}
     <div class="field" style="margin-top:8px"><label>Constat / observations (visible sur le rapport client)</label><textarea rows="4" oninput="asW.obs=this.value" placeholder="Ce que tu as constaté et fait sur place…">${esc(asW.obs)}</textarea></div>`;
   } else if(s===1){ const ck=i.checklist||[];
     body=`<div class="form-sec" style="margin-top:0">2 · Actions réalisées</div>
     ${ck.length?`<div class="dt-lbl" style="margin-bottom:6px">Checklist de l'intervention</div><div class="fgroup" style="margin-bottom:12px">${ck.map((x,k)=>`<label class="frow" style="cursor:pointer;gap:10px"><input type="checkbox" ${x.done?'checked':''} onchange="intCkToggleQuiet('${i.id}',${k})" style="width:24px;height:24px;accent-color:var(--acc);flex-shrink:0"><span style="flex:1;color:var(--t1);${x.done?'text-decoration:line-through;opacity:.6':''}">${esc(x.t)}</span></label>`).join('')}</div>`:''}
-    <div class="dt-lbl" style="margin-bottom:6px">Méthodes / actions</div>
+    ${!estMetier3D()?'':`    <div class="dt-lbl" style="margin-bottom:6px">Méthodes / actions</div>
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px">${METHODES.map(n=>{ const on=intMeth.has(n); const ne=n.replace(/'/g,"\\'");
-      return `<button type="button" onclick="intMeth.${on?'delete':'add'}('${ne}');assistRender()" style="cursor:pointer;font-size:12.5px;font-weight:700;padding:9px 13px;border-radius:14px;border:1px solid ${on?'var(--acc)':'var(--brd)'};background:${on?'var(--acc)':'var(--bg2)'};color:${on?'var(--on-acc)':'var(--t2)'}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')}</div>
-    <div class="field"><label>Zones traitées</label><input value="${esc(asW.zones)}" oninput="asW.zones=this.value" placeholder="Ex : cuisine, cave, réserve…"></div>
-    <div class="field"><label>Matériel utilisé</label><input value="${esc(asW.materiel)}" oninput="asW.materiel=this.value" placeholder="Ex : 2 pièges à glu, 1 grille anti-intrusion…"></div>`;
+      return `<button type="button" onclick="intMeth.${on?'delete':'add'}('${ne}');assistRender()" style="cursor:pointer;font-size:12.5px;font-weight:700;padding:9px 13px;border-radius:14px;border:1px solid ${on?'var(--acc)':'var(--brd)'};background:${on?'var(--acc)':'var(--bg2)'};color:${on?'var(--on-acc)':'var(--t2)'}">${on?'✓ ':''}${esc(n)}</button>`; }).join('')}</div>`}
+    <div class="field"><label>${libZones()}</label><input value="${esc(asW.zones)}" oninput="asW.zones=this.value" placeholder="${estMetier3D()?'Ex : cuisine, cave, réserve…':'Ex : salle de bain, cuisine, local technique…'}"></div>
+    <div class="field"><label>Matériel utilisé</label><input value="${esc(asW.materiel)}" oninput="asW.materiel=this.value" placeholder="${estMetier3D()?'Ex : 2 pièges à glu, 1 grille anti-intrusion…':'Ex : outillage, pièces, matériel posé…'}"></div>`;
   } else if(s===2){ const lines=i.produitsUtilises=i.produitsUtilises||[];
-    body=`<div class="form-sec" style="margin-top:0">3 · Produits utilisés (registre)</div>
+    body=`<div class="form-sec" style="margin-top:0">3 · ${estMetier3D()?'Produits utilisés (registre)':'Produits et pièces utilisés'}</div>
     ${lines.length?lines.map((l,ix)=>{ const p=produit(l.produitId);
-      return `<div class="fgroup" style="margin-bottom:8px"><div class="frow"><div style="flex:1;min-width:0"><b style="font-size:13.5px">${esc(p.nom||'—')}</b>${p.amm?`<div class="mono" style="font-size:11px;color:var(--t3)">AMM ${esc(p.amm)}</div>`:'<div style="font-size:11px;color:var(--t3)">AMM non renseignée (fiche produit)</div>'}</div>
+      return `<div class="fgroup" style="margin-bottom:8px"><div class="frow"><div style="flex:1;min-width:0"><b style="font-size:13.5px">${esc(p.nom||'—')}</b>${!estMetier3D()?'':(p.amm?`<div class="mono" style="font-size:11px;color:var(--t3)">AMM ${esc(p.amm)}</div>`:'<div style="font-size:11px;color:var(--t3)">AMM non renseignée (fiche produit)</div>')}</div>
         <div style="display:flex;align-items:center;gap:6px"><button type="button" class="btn ghost sm" onclick="asProdQte('${i.id}',${ix},-1)">−</button><b class="mono" style="min-width:26px;text-align:center">${l.qte||1}</b><button type="button" class="btn ghost sm" onclick="asProdQte('${i.id}',${ix},1)">＋</button><button type="button" class="btn danger sm" onclick="asProdDel('${i.id}',${ix})">✕</button></div></div></div>`; }).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:4px 0 10px">Aucun produit pour l’instant.</div>'}
     <div style="display:flex;gap:7px;align-items:center;margin-top:6px">
-      <select id="as-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:12px;color:var(--t1)"><option value="">— Ajouter un produit du registre —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.nom)}${p.amm?' · AMM '+esc(p.amm):''}</option>`).join('')}</select>
+      <select id="as-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:12px;color:var(--t1)"><option value="">${estMetier3D()?'— Ajouter un produit du registre —':'— Ajouter un produit ou une pièce —'}</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.nom)}${(estMetier3D()&&p.amm)?' · AMM '+esc(p.amm):''}</option>`).join('')}</select>
       <button type="button" class="btn" onclick="asProdAdd('${i.id}')">＋</button></div>
-    <div style="font-size:12px;color:var(--t3);margin-top:8px">Noté sur le rapport et au registre (n° AMM, traçabilité biocide) — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.</div>`;
+    <div style="font-size:12px;color:var(--t3);margin-top:8px">${estMetier3D()?'Noté sur le rapport et au registre (n° AMM, traçabilité biocide) — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage.':'Noté sur le rapport — le stock ne bouge pas : il baisse quand on se sert dans le stockage.'}</div>`;
   } else if(s===3){
     body=`<div class="form-sec" style="margin-top:0">4 · Photos avant / après</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:9px;margin-bottom:10px">
@@ -24938,9 +25688,9 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
     <div style="font-size:12px;color:var(--t3)">Touchez « étiqueter » pour marquer AVANT → APRÈS → sans étiquette. Les étiquettes apparaissent sur le rapport.</div>`;
   } else if(s===4){
     body=`<div class="form-sec" style="margin-top:0">5 · Recommandations au client</div>
-    <div class="dt-lbl" style="margin-bottom:6px">Phrases types (1 touche pour ajouter)</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${RECO_3D.map((r,ix)=>`<button type="button" onclick="asRecoAdd(${ix})" style="cursor:pointer;font-size:12px;padding:8px 12px;border-radius:12px;border:1px solid var(--brd);background:var(--bg2);color:var(--t2);text-align:left">💡 ${esc(r)}</button>`).join('')}</div>
-    <div class="field"><label>Recommandations (rapport client)</label><textarea id="as-reco" rows="5" oninput="asW.reco=this.value" placeholder="Mesures correctives, hygiène, prochaine visite…">${esc(asW.reco)}</textarea></div>
+    ${!estMetier3D()?'':`    <div class="dt-lbl" style="margin-bottom:6px">Phrases types (1 touche pour ajouter)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${RECO_3D.map((r,ix)=>`<button type="button" onclick="asRecoAdd(${ix})" style="cursor:pointer;font-size:12px;padding:8px 12px;border-radius:12px;border:1px solid var(--brd);background:var(--bg2);color:var(--t2);text-align:left">💡 ${esc(r)}</button>`).join('')}</div>`}
+    <div class="field"><label>Recommandations (rapport client)</label><textarea id="as-reco" rows="5" oninput="asW.reco=this.value" placeholder="${estMetier3D()?'Mesures correctives, hygiène, prochaine visite…':'Conseils d’entretien, travaux à prévoir, prochaine visite…'}">${esc(asW.reco)}</textarea></div>
     <div style="border:1px dashed color-mix(in srgb,var(--purple) 55%,transparent);background:color-mix(in srgb,var(--purple) 6%,transparent);border-radius:12px;padding:11px 12px;margin-top:6px">
       <div style="font-size:12px;font-weight:800;color:var(--purple);margin-bottom:6px">🔒 Note interne équipe — jamais sur le rapport</div>
       <textarea rows="2" oninput="asW.noteInterne=this.value" placeholder="Infos pour les collègues uniquement…" style="width:100%;background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:9px 11px;color:var(--t1);font-family:inherit;font-size:13px;resize:vertical">${esc(asW.noteInterne)}</textarea></div>`;
@@ -24954,7 +25704,7 @@ function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id=
     <div class="field"><label>Signature du technicien ${asW.sigT?'✅':''}</label>
       <canvas id="as-sig-t" width="480" height="150" style="width:100%;height:150px;background:var(--deep);border:1px solid var(--brd);border-radius:10px;touch-action:none"></canvas>
       <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="asW.sigT='';clearSig('as-sig-t')">Effacer</button></div>
-    <div style="font-size:11.5px;color:var(--t3);margin:4px 0 12px">${esc(MENTION_REGL)}</div>
+    ${mentionRegl(i.produitsUtilises)?`<div style="font-size:11.5px;color:var(--t3);margin:4px 0 12px">${esc(MENTION_REGL)}</div>`:'<div style="height:4px"></div>'}
     <button type="button" class="btn" style="width:100%;justify-content:center;padding:15px;font-size:15.5px;font-weight:800;border-radius:100px" onclick="assistFinish('${i.id}')">✓ Clôturer l'intervention</button>
     <button type="button" class="btn ghost sm" style="width:100%;justify-content:center;margin-top:8px" onclick="closeModal();formRapport('${i.id}')">Ouvrir le formulaire complet à la place</button>`;
   }
@@ -25055,7 +25805,7 @@ function formIntervention(id,preset){
             <input type="hidden" id="adr-cp"><input type="hidden" id="adr-ville"><input type="hidden" id="adr-lat"><input type="hidden" id="adr-lng">
             <div id="adr-list" class="soc-list" style="display:none"></div>
           </div>
-          <div class="frow"><input name="titre" required value="${esc(i.titre)}" placeholder="Titre (ex : Dératisation cuisine)"></div>
+          <div class="frow"><input name="titre" required value="${esc(i.titre)}" placeholder="${esc(estMetier3D()?'Titre (ex : Dératisation cuisine)':'Titre (ex : '+((intTypes()[0])||'Intervention')+')')}"></div>
         </div></div>
 
         <div class="fsec"><div class="form-sec">Affectation</div>
@@ -25102,11 +25852,13 @@ ${!id?`
         <div id="passage-dates"></div>
         <div style="font-size:12px;color:var(--t3);margin-top:6px;padding:0 4px">Plusieurs passages → le titre affichera « 1/2 passage », « 2/2 passage »… et chaque passage devient un rendez-vous.</div></div>`:''}
 
+${estMetier3D()?`
         <div class="fsec"><div class="form-sec">Nuisibles ciblés <span style="font-weight:400;text-transform:none;letter-spacing:0">— plusieurs possibles</span></div>
         <div class="fgroup" style="background:var(--bg1);padding:14px"><div id="int-nuis" style="display:flex;flex-wrap:wrap;gap:8px"></div></div></div>
 
         <div class="fsec"><div class="form-sec">Méthodes / actions <span style="font-weight:400;text-transform:none;letter-spacing:0">— plusieurs possibles</span></div>
         <div class="fgroup" style="background:var(--bg1);padding:14px"><div id="int-meth" style="display:flex;flex-wrap:wrap;gap:8px"></div></div></div>
+`:''}
 
         <div class="fsec"><div class="form-sec">Commentaires</div>
         <div class="fgroup">
@@ -25769,7 +26521,7 @@ function renderIntDetail(id){
         <select id="ip-prod" style="flex:1;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)"><option value="">— Produit —</option>${db.produits.map(p=>`<option value="${p.id}">${esc(p.ref)} — ${esc(p.nom)}</option>`).join('')}</select>
         <input id="ip-qte" type="number" min="0.01" step="any" value="1" style="width:64px;background:var(--deep);border:1px solid var(--brd);border-radius:10px;padding:10px;color:var(--t1)">
         <button class="btn" onclick="intAddProduit('${id}')">＋</button></div>
-      <div style="font-size:12px;color:var(--t3);margin-top:8px">${i.stockDeduit?'Stock déduit à la clôture de cette intervention (règle d’avant).':'Noté sur le rapport et au registre — le stock ne bouge pas. Les n° AMM du catalogue apparaissent sur le rapport.'}</div>`;
+      <div style="font-size:12px;color:var(--t3);margin-top:8px">${i.stockDeduit?'Stock déduit à la clôture de cette intervention (règle d’avant).':(estMetier3D()?'Noté sur le rapport et au registre — le stock ne bouge pas. Les n° AMM du catalogue apparaissent sur le rapport.':'Noté sur le rapport — le stock ne bouge pas.')}</div>`;
   } else if(intTab==='equipement'){
     body=`${i.equipements.length? i.equipements.map((e,ix)=>`<div class="pl-row" style="cursor:default"><div class="pl-info"><div class="pl-title">${esc(e.nom)}</div><div class="pl-meta">${esc(e.reference)||'—'}${e.note?' · '+esc(e.note):''}</div></div><button class="btn danger sm" onclick="intDelEquip('${id}',${ix})">✕</button></div>`).join('')
       : '<div style="color:var(--t3);font-size:13px;padding:6px 0">Aucun équipement.</div>'}
@@ -26712,7 +27464,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
       return hasPref?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;font-size:11px">${pp.jours&&pp.jours.length?`<span class="tag">📅 ${pp.jours.map(j=>['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][j]).join(' · ')}</span>`:''}${pp.creneau&&pp.creneau!=='indifferent'?`<span class="tag">🕘 ${pp.creneau==='matin'?'Matin':pp.creneau==='apresmidi'?'Après-midi':'Heure fixe '+(pp.heureFixe||'')}</span>`:''}${pp.techId?`<span class="tag">👷 ${esc(techName(pp.techId))}</span>`:''}${pp.prevenir48?'<span class="tag">📧 Prévenir 48 h avant</span>':''}${pp.appelerAvant?'<span class="tag">📞 Appeler avant</span>':''}</div>`:''; })()}
     ${garSectionHtml(c.id)}
     ${typeof cvcSectionClient==='function'?cvcSectionClient(c):''}
-    ${cliIsPro(c)?`<div style="background:var(--card2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;margin:10px 0">
+    ${(estMetier3D()&&cliIsPro(c))?`<div style="background:var(--card2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;margin:10px 0">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;font-size:13.5px">📕 Dossier sanitaire</b>
         <button class="btn sm" onclick="papDossierSanitaire('${c.id}')">Générer le dossier complet (PDF)</button></div>
       <div style="font-size:11.5px;color:var(--t3);margin-top:5px">Plan de lutte, relevés des 12 derniers passages, produits & n° AMM, Certibiocide des techniciens, courbe d'activité par zone, attestation de passage.</div>
@@ -26741,7 +27493,7 @@ function formClient(id){ const c=id?db.clients.find(x=>x.id===id):{};
           <div class="chip tc-chip ${(c.typeClient||'pro')!=='particulier'?'active':''}" data-v="pro" onclick="cliSetType(this)" style="flex:1;justify-content:center;text-align:center;padding:10px 8px">🏢 Professionnel</div>
           <div class="chip tc-chip ${(c.typeClient||'pro')==='particulier'?'active':''}" data-v="particulier" onclick="cliSetType(this)" style="flex:1;justify-content:center;text-align:center;padding:10px 8px">🏠 Particulier</div>
         </div>
-        <div style="font-size:11px;color:var(--t3);margin-top:4px">Professionnel : plan d'appâtage du site, conformité alimentaire et dossier sanitaire activés.</div></div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px">${estMetier3D()?'Professionnel : plan d\'appâtage du site, conformité alimentaire et dossier sanitaire activés.':'Professionnel : raison sociale, SIRET et contact du site. Particulier : un simple nom et une adresse.'}</div></div>
       <div class="field-row"><div class="field"><label>Contact</label><input name="contact" value="${esc(c.contact)}"></div>
         <div class="field"><label>Téléphone</label><input name="tel" value="${esc(c.tel)}"></div></div>
       <div class="field"><label>Email</label><input type="email" name="email" value="${esc(c.email)}"></div>
@@ -27058,13 +27810,17 @@ async function aiGenRapport(id){ const i=db.interventions.find(x=>x.id===id); if
     'Société : '+soc,
     'Catégorie : '+(i.type||'—'),
     'Client : '+(clientName(i.clientId)||'—'),
-    'Adresse : '+(i.adresse||'—'),
+    'Adresse : '+(i.adresse||'—')
+  ].concat(estMetier3D()?[
     'Nuisibles : '+((i.nuisibles||[]).join(', ')||'—'),
     'Méthodes : '+((i.methodes||[]).join(', ')||'—'),
-    'Niveau d\'infestation : '+(rapConstat.infestation||'—'),
+    'Niveau d\'infestation : '+(rapConstat.infestation||'—')]:[]).concat([
     'Notes du technicien : '+(notes||'(aucune)')
-  ].join('\n');
-  const sys="Tu es un technicien expert en lutte anti-nuisibles en France. À partir des informations d'une intervention, rédige un COMPTE-RENDU d'intervention professionnel, clair et concis (4 à 8 phrases), à la première personne du pluriel (« nous avons »). Décris le constat, les actions réalisées et le traitement. Reste factuel, en français, sans inventer de produits ou de chiffres non fournis. Ne mets pas de titre, juste le paragraphe.";
+  ]).join('\n');
+  /* Hors 3D, ni la consigne ni le contexte ne parlent d'anti-nuisibles : un plombier ne reçoit pas un texte de dératiseur, et trois
+     lignes « — » (nuisibles, méthodes, infestation) ne partent pas chez Anthropic pour rien (sous-traitance.html). */
+  const sys=estMetier3D()?"Tu es un technicien expert en lutte anti-nuisibles en France. À partir des informations d'une intervention, rédige un COMPTE-RENDU d'intervention professionnel, clair et concis (4 à 8 phrases), à la première personne du pluriel (« nous avons »). Décris le constat, les actions réalisées et le traitement. Reste factuel, en français, sans inventer de produits ou de chiffres non fournis. Ne mets pas de titre, juste le paragraphe."
+    :"Tu es un technicien de terrain en France, dans le métier suivant : "+((metierPack()||{}).nom||'dépannage et entretien')+". À partir des informations d'une intervention, rédige un COMPTE-RENDU d'intervention professionnel, clair et concis (4 à 8 phrases), à la première personne du pluriel (« nous avons »). Décris ce qui a été constaté et les actions réalisées. Reste factuel, en français, sans inventer de pièces, de produits ou de chiffres non fournis. Ne mets pas de titre, juste le paragraphe.";
   if(ta){ ta.value='Rédaction en cours…'; ta.disabled=true; }
   try{
     const out=await callClaude(sys, ctx, 1200);
@@ -27091,23 +27847,25 @@ function formRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)ret
     <div class="detail-grid" style="margin-bottom:8px"><div><div class="dt-lbl">Intervention</div><div class="dt-val">${esc(i.titre)}</div></div>
       <div><div class="dt-lbl">Client</div><div class="dt-val">${esc(clientName(i.clientId))}</div></div></div>
     <form id="rapform" onsubmit="saveRapport(event,'${id}')">
+${!estMetier3D()?'':`
       <div class="form-sec">Constat anti-nuisibles</div>
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">Niveau d'infestation</span><div class="frow-val"><select name="infestation">${['',...INFEST_NIV].map(n=>`<option ${rapConstat.infestation===n?'selected':''}>${n||'—'}</option>`).join('')}</select></div></div>
         <div class="frow"><span class="frow-lbl">Conformité</span><div class="frow-val"><select name="conformite">${['',...CONFORMITE].map(n=>`<option ${rapConstat.conformite===n?'selected':''}>${n||'—'}</option>`).join('')}</select></div></div>
       </div>
       <div class="form-sec">Indices de présence</div>
-      <div id="rap-indices" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+      <div id="rap-indices" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>`}
       <div class="form-sec">Observations & actions</div>
       <div class="field"><label>Compte-rendu / actions réalisées</label><textarea name="compteRendu" id="rap-cr" style="min-height:100px">${esc(i.compteRendu)}</textarea>
         <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="aiGenRapport('${id}')">Rédiger le rapport avec l'IA</button>
         <div style="font-size:12px;color:var(--t3);margin-top:4px">Écris quelques mots de ce que tu as fait → l'IA rédige un compte-rendu pro.</div></div>
-      <div class="field"><label>Recommandations au client</label><textarea name="recommandations" style="min-height:70px" placeholder="Mesures correctives, hygiène, prochaine visite…">${esc(rapConstat.recommandations)}</textarea></div>
+      <div class="field"><label>Recommandations au client</label><textarea name="recommandations" style="min-height:70px" placeholder="${estMetier3D()?'Mesures correctives, hygiène, prochaine visite…':'Conseils d’entretien, travaux à prévoir, prochaine visite…'}">${esc(rapConstat.recommandations)}</textarea></div>
+${!estMetier3D()?'':`
       <div class="form-sec">Traitement par nuisible <span style="font-weight:400;text-transform:none;letter-spacing:0">— coche Oui pour remplir la fiche</span></div>
       <div id="trait-inline" style="margin-bottom:14px"></div>
       <div id="rap-traitement"></div>
       <div id="rap-presta-wrap"><div class="form-sec">Prestation réalisée${rapNuis.length?' — '+esc(rapNuis.join(', ')):''}</div>
-      <div id="rap-presta" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div></div>
+      <div id="rap-presta" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div></div>`}
       <div id="rap-champs"></div>
       <div class="field"><label>Photos</label>
         <div id="rap-photos" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
@@ -27214,7 +27972,9 @@ function clearSig(cvId){ const cv=$(cvId||'sig-pad'); if(cv&&cv._ctx){ cv._ctx.c
 function saveRapport(e,id){ e.preventDefault(); if(!intStatutPermis(db.interventions.find(x=>x.id===id),'terminee')){ toast('Rédiger ou clore cette intervention n\'est pas autorisé pour ton compte (Permissions)'); return; } const f=e.target; const data=Object.fromEntries(new FormData(f)); const ix=db.interventions.findIndex(x=>x.id===id);
   const cv=$('sig-pad'); const sig = (cv&&cv.dataset.has) ? cv.toDataURL('image/png') : (db.interventions[ix].signature||'');
   const cvT=$('sig-pad-tech'); const sigT = (cvT&&cvT.dataset.has) ? cvT.toDataURL('image/png') : (db.interventions[ix].signatureTech||'');
-  const constat={infestation:data.infestation==='—'?'':data.infestation, conformite:data.conformite==='—'?'':data.conformite, recommandations:data.recommandations||'', indices:(rapConstat.indices||[]).slice()};
+  /* ⛔ hors 3D, le constat anti-nuisibles n'est pas à l'écran : `data.infestation` et `data.conformite` sont ABSENTS, pas vides —
+     on garde ce que la fiche portait (une base venue de la 3D), on ne l'efface pas */
+  const constat={infestation:data.infestation===undefined?((db.interventions[ix].constat||{}).infestation||''):(data.infestation==='—'?'':data.infestation), conformite:data.conformite===undefined?((db.interventions[ix].constat||{}).conformite||''):(data.conformite==='—'?'':data.conformite), recommandations:data.recommandations||'', indices:(rapConstat.indices||[]).slice()};
   delete data.infestation; delete data.conformite; delete data.recommandations;
   const prestation=[...rapPresta];
   const traitement=JSON.parse(JSON.stringify(rapTraitement||{}));
@@ -27260,7 +28020,7 @@ function rapportConstatLignes(i){ const co=i.constat||{}; const pk=Array.isArray
         if((i.methodes||[]).length) rows.push(['Méthodes employées',i.methodes.join(', ')]);
         if(co.infestation) rows.push(['Niveau d\'infestation',co.infestation]);
         else if(i.infestation) rows.push(['Niveau d\'infestation',{faible:'Faible',moyen:'Moyen',fort:'Fort'}[i.infestation]||i.infestation]);
-        if(i.zones) rows.push(['Zones traitées',i.zones]);
+        if(i.zones) rows.push([libZones(),i.zones]);
         if(i.materiel) rows.push(['Matériel utilisé',i.materiel]);
         if((co.indices||[]).length) rows.push(['Indices de présence',co.indices.join(', ')]);
         if(presta.length) rows.push(['Prestation réalisée',presta.join(', ')]);
@@ -27381,8 +28141,10 @@ function rapportPdfStr(i,E,imgs){
         else ligneLV(f.label||'',Array.isArray(v)?v.join(', '):v); }); y-=4; } }
   { const prods=rapportProduitsLibres(i);
     if(prods.length){ titre('Produits utilisés',30);
-      tableau([{t:'Désignation',x:M+6,w:236},{t:'Réf.',x:M+248,w:80},{t:'N° AMM',x:M+334,w:96},{t:'Qté',x:M+436,w:65,d:1}],
-        prods.map(l=>{ const p=produit(l.produitId); return [prodLineName(l),p.ref||'',prodLineAmm(l)||'—',(l.qte!=null?l.qte:1)+' '+prodLineUnit(l)]; })); } }
+      if(ammVisible(prods)) tableau([{t:'Désignation',x:M+6,w:236},{t:'Réf.',x:M+248,w:80},{t:'N° AMM',x:M+334,w:96},{t:'Qté',x:M+436,w:65,d:1}],
+        prods.map(l=>{ const p=produit(l.produitId); return [prodLineName(l),p.ref||'',prodLineAmm(l)||'—',(l.qte!=null?l.qte:1)+' '+prodLineUnit(l)]; }));
+      else tableau([{t:'Désignation',x:M+6,w:300},{t:'Réf.',x:M+312,w:118},{t:'Qté',x:M+436,w:65,d:1}],
+        prods.map(l=>{ const p=produit(l.produitId); return [prodLineName(l),p.ref||'',(l.qte!=null?l.qte:1)+' '+prodLineUnit(l)]; })); } }
 
   /* ─ le plan d'appâtage, postes à la couleur de LEUR ÉTAT sur ce passage (la légende du rapport imprimé) */
   { const plans=((db.plansSite||{})[i.clientId]||[]).filter(p=>p&&(p.postes||[]).length);
@@ -27435,7 +28197,7 @@ function rapportPdfStr(i,E,imgs){
     bloc(M,'1. Signature du client',imgs.sigCli,sm.cli,i.clientAbsent&&!i.signature);
     bloc(M+bw+24,'2. Signature du technicien',imgs.sigTech,sm.tech,false);
     y-=bh+30; }
-  if((i.produitsUtilises||[]).length){ y-=4; texte(MENTION_REGL,7.6,GREY); }
+  if((i.produitsUtilises||[]).length&&mentionRegl(i.produitsUtilises)){ y-=4; texte(MENTION_REGL,7.6,GREY); }
 
   pages.push(ops.join('\n'));
   const pied=(k,n)=>[LINE+' rg',M+' 56 '+L+' 0.8 re f',GREY+' rg','BT','/F1 7.2 Tf',M+' 44 Td',
@@ -27530,7 +28292,8 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
   /* v740 : nom, couleur, logo et coordonnées de la société de CETTE intervention (docEntete) */
   const H=docEntete(i.rapportModele), soc=H.nom, AC=H.couleur;
   // les produits rattachés à un type de traitement apparaissent dans leur section ; ici, les lignes « libres »
-  const prod=rapportProduitsLibres(i).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td><td>${esc(prodLineAmm(l)||'—')}</td><td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</td></tr>`;}).join('');
+  const prodAmm=ammVisible(rapportProduitsLibres(i));
+  const prod=rapportProduitsLibres(i).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td>${prodAmm?`<td>${esc(prodLineAmm(l)||'—')}</td>`:''}<td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</td></tr>`;}).join('');
   const equip=(i.equipements||[]).map(e=>`<tr><td>${esc(e.nom)}</td><td>${esc(e.reference)||''}</td></tr>`).join('');
   const champs=rapportChampsPerso(i).map(f=>{ const v=i.champs[f.id];
     if(f.type==='tableau'&&Array.isArray(v)) return `<div class="box"><b>${esc(f.label)}</b><table style="margin-top:6px"><thead><tr>${(f.colonnes||[]).map(co=>`<th>${esc(co)}</th>`).join('')}</tr></thead><tbody>${v.map(r=>`<tr>${(f.colonnes||[]).map((co,ci)=>`<td>${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
@@ -27555,13 +28318,13 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
       ${(()=>{ let t3=''; try{ t3=t3dPdfHtml(i); }catch(e){ t3=''; } return t3?`<h3 style="font-size:14px;margin-top:18px">Traitements réalisés — détail par type</h3>${t3}`:''; })()}
       ${(i.constat&&i.constat.recommandations)?`<div class="box" style="border-color:${AC}"><b>Recommandations</b><br>${esc(i.constat.recommandations).replace(/\n/g,'<br>')}</div>`:''}
       ${champs}
-      ${prod?`<h3 style="font-size:14px;margin-top:18px">Produits utilisés</h3><table><thead><tr><th>Désignation</th><th>Réf.</th><th>N° AMM</th><th style="text-align:right">Qté</th></tr></thead><tbody>${prod}</tbody></table>`:''}
+      ${prod?`<h3 style="font-size:14px;margin-top:18px">Produits utilisés</h3><table><thead><tr><th>Désignation</th><th>Réf.</th>${prodAmm?'<th>N° AMM</th>':''}<th style="text-align:right">Qté</th></tr></thead><tbody>${prod}</tbody></table>`:''}
       ${planApp}
       ${equip?`<h3 style="font-size:14px;margin-top:18px">Équipements</h3><table><thead><tr><th>Équipement</th><th>Référence</th></tr></thead><tbody>${equip}</tbody></table>`:''}
       ${photos?`<h3 style="font-size:14px;margin-top:18px">Photos</h3><div>${photos}</div>`:''}
       ${(()=>{ const sm=i.signatureMeta||{}; const meta=mt=>mt?`<div style="font-size:10px;color:#666;margin-top:3px">${esc(mt.nom||'')} — le ${new Date(mt.ts).toLocaleDateString('fr-FR')} à ${new Date(mt.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>`:'';
         return (i.signature||i.signatureTech||i.clientAbsent)?`<div style="margin-top:24px;display:flex;gap:30px">${i.clientAbsent?`<div><b>1. Signature client</b><br><div style="border:1px dashed #C26A10;border-radius:6px;max-width:220px;margin-top:6px;padding:16px 12px;font-size:11.5px;color:#C26A10;font-weight:bold">Client absent lors du passage — rapport non contresigné</div></div>`:(i.signature?`<div><b>1. Signature client</b><br><img src="${i.signature}" style="border:1px solid #E3E8F0;border-radius:6px;max-width:220px;margin-top:6px">${meta(sm.cli)}</div>`:'')}${i.signatureTech?`<div><b>2. Signature technicien</b><br><img src="${i.signatureTech}" style="border:1px solid #E3E8F0;border-radius:6px;max-width:220px;margin-top:6px">${meta(sm.tech)}</div>`:''}</div>`:''; })()}
-      ${(i.produitsUtilises||[]).length?`<p style="margin-top:18px;font-size:10px;color:#777">${esc(MENTION_REGL)}</p>`:''}
+      ${(i.produitsUtilises||[]).length&&mentionRegl(i.produitsUtilises)?`<p style="margin-top:18px;font-size:10px;color:#777">${esc(MENTION_REGL)}</p>`:''}
       <div class="ft">${esc(soc)} — Rapport généré le ${new Date().toLocaleDateString('fr-FR')}</div>
     </body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{ try{w.print();}catch(e){} },350);
@@ -27583,7 +28346,7 @@ function genRapportTexte(i){ const c=db.clients.find(x=>x.id===i.clientId)||{}; 
   if((i.methodes||[]).length) L.push('Méthodes employées : '+i.methodes.join(', '));
   if(co.infestation) L.push('Niveau d\'infestation : '+co.infestation);
   else if(i.infestation) L.push('Niveau d\'infestation : '+({faible:'Faible',moyen:'Moyen',fort:'Fort'}[i.infestation]||i.infestation));
-  if(i.zones) L.push('Zones traitées : '+i.zones);
+  if(i.zones) L.push(libZones()+' : '+i.zones);
   if(i.materiel) L.push('Matériel utilisé : '+i.materiel);
   if((co.indices||[]).length) L.push('Indices de présence : '+co.indices.join(', '));
   if((i.relevesPlan||[]).length){ const cnt={}; i.relevesPlan.forEach(r=>{ cnt[r.etat]=(cnt[r.etat]||0)+1; });
@@ -27600,7 +28363,7 @@ function genRapportTexte(i){ const c=db.clients.find(x=>x.id===i.clientId)||{}; 
   if(co.conformite) L.push('\nConformité : '+co.conformite);
   if(co.recommandations){ L.push(''); L.push('Recommandations :'); L.push(co.recommandations); }
   if(i.clientAbsent) L.push('\nClient absent lors du passage — rapport non contresigné.');
-  if((i.produitsUtilises||[]).length){ L.push(''); L.push(MENTION_REGL); }
+  if((i.produitsUtilises||[]).length&&mentionRegl(i.produitsUtilises)){ L.push(''); L.push(MENTION_REGL); }
   L.push(''); L.push('— '+rapportSociete(i.rapportModele));
   return L.join('\n');
 }
@@ -27928,7 +28691,7 @@ views.produits=function(){
      entreprise qui a tout créé elle-même, ce serait « Tous · 12 » et « Mes produits · 12 » — et un
      onglet « nuisibles » à zéro chez un plombier. */
   if(!nbC) prdOnglet='tous';
-  $('content').innerHTML=produitsDoublonsBandeau()+produitsDistinctsLigne()+(nbC?`<div class="filters" style="margin:0 0 8px">${[['tous','Tous · '+db.produits.length],['perso','Mes produits · '+nbP],['catalogue','Catalogue 3D (nuisibles) · '+nbC]].map(([k,l])=>`<div class="chip ${prdOnglet===k?'active':''}" onclick="prdOnglet='${k}';renderProduitsList()">${l}</div>`).join('')}</div>`:'')+`
+  $('content').innerHTML=produitsDoublonsBandeau()+produitsDistinctsLigne()+(nbC?`<div class="filters" style="margin:0 0 8px">${[['tous','Tous · '+db.produits.length],['perso','Mes produits · '+nbP],['catalogue',(estMetier3D()?'Catalogue 3D (nuisibles) · ':'Catalogue OP · ')+nbC]].map(([k,l])=>`<div class="chip ${prdOnglet===k?'active':''}" onclick="prdOnglet='${k}';renderProduitsList()">${l}</div>`).join('')}</div>`:'')+`
     <input class="search-inp" id="prd-search" placeholder="Rechercher un produit, une référence, un fournisseur…" value="${esc(prdSearch)}" oninput="prdSearch=this.value;rechDiffere(renderProduitsList)">
     <div id="prd-list"></div>`;
   renderProduitsList();
@@ -27947,8 +28710,8 @@ let _plLignes=[], _plRefus=[];
 function formProduitsListe(){ if(!permGarde('stock','ajouter','un produit')) return;
   _plLignes=[]; _plRefus=[];
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>Ajouter une liste</h3><button type="button" class="btn sm" onclick="plValider()">Tout ajouter (<span id="pl-count">0</span>)</button></div>
-    <p style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:10px">Colle ta liste : <b>un produit par ligne</b>. Tu peux préciser fournisseur, prix, référence et catégorie avec des points-virgules — <span class="mono" style="font-size:12px">Nom ; Fournisseur ; Prix</span>. La catégorie est trouvée toute seule d'après le nom, et tu peux la corriger avant de valider.</p>
-    <textarea id="pl-texte" rows="6" placeholder="Gel blattes Maxforce ; MABI ; 24,90&#10;MUSKIL bloc 10 kg ; SODIF&#10;Gants nitrile taille 9" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:12px;padding:12px;color:var(--t1);font-family:inherit;font-size:14px" oninput="plAnalyse()"></textarea>
+    <p style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:10px">Colle ta liste : <b>un produit par ligne</b>. Tu peux préciser fournisseur, prix, référence et catégorie avec des points-virgules — <span class="mono" style="font-size:12px">Nom ; Fournisseur ; Prix</span>. ${estMetier3D()?'La catégorie est trouvée toute seule d\'après le nom, et tu peux la corriger avant de valider.':'La catégorie se choisit dans la liste de ton métier, ligne par ligne, avant de valider.'}</p>
+    <textarea id="pl-texte" rows="6" placeholder="${estMetier3D()?'Gel blattes Maxforce ; MABI ; 24,90&#10;MUSKIL bloc 10 kg ; SODIF&#10;Gants nitrile taille 9':'Raccord laiton 20/27 ; Négoce Dupont ; 2,40&#10;Flexible inox 50 cm ; Négoce Dupont&#10;Gants nitrile taille 9'}" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:12px;padding:12px;color:var(--t1);font-family:inherit;font-size:14px" oninput="plAnalyse()"></textarea>
     <div id="pl-apercu" style="margin-top:12px"></div>`);
 }
 /* ⛔ g19 · stock#4 — LE PRIX D'UNE LISTE SE LIT COMME UN FRANÇAIS L'ÉCRIT. `parseFloat(x.replace(',','.'))`
@@ -27984,13 +28747,13 @@ function plAnalyse(){ const t=($('pl-texte')||{}).value||'';
        traduire les 171 étiquettes des catalogues fournisseurs et, à défaut, lire le nom. Mesuré sur
        les 2 809 références : sans lui, 64 % des produits collés arrivaient sans catégorie ; avec lui,
        20 %. C'est le même traducteur que l'onglet Fournisseurs, donc les deux chemins rangent pareil. */
-    return {nom:parts[0]||'',fournisseur:parts[1]||'',prix:prix,ref:parts[3]||'',categorie:CAT_LIST.includes(cat)?cat:rangerCatFour(cat,parts[0])}; }).filter(x=>x&&x.nom);
+    return {nom:parts[0]||'',fournisseur:parts[1]||'',prix:prix,ref:parts[3]||'',categorie:categorieListe(cat,parts[0])}; }).filter(x=>x&&x.nom);
   const c=$('pl-count'); if(c)c.textContent=_plLignes.length;
   const el=$('pl-apercu'); if(!el)return;
   /* Les lignes refusées se DISENT : sans cet avertissement, un produit au prix « -5 » aurait simplement
      disparu de la liste, et la personne chercherait pourquoi il en manque un. */
   const avert=_plRefus.length?`<div style="font-size:12.5px;color:var(--org);line-height:1.6;margin-bottom:10px">⚠ ${_plRefus.length} ligne${_plRefus.length>1?'s':''} ignorée${_plRefus.length>1?'s':''} : prix illisible ou négatif — ${_plRefus.slice(0,5).map(x=>esc(x.nom)+' (« '+esc(x.prix)+' »)').join(', ')}${_plRefus.length>5?' …':''}. Corrige le prix (un nombre positif, « 24,90 ») ou laisse la colonne vide.</div>`:'';
-  const cats=[...CAT_LIST,'Sans catégorie'];
+  const cats=[...categoriesProduit(),'Sans catégorie'];
   /* Au-delà de deux cents lignes, l'aperçu détaillé coûte plus qu'il ne rapporte : un menu de
      catégories PAR LIGNE, c'est deux mégaoctets de HTML posés d'un coup et l'écran qui se fige —
      mesuré à 770 ms pour 2 800 produits sur une machine rapide, bien pire sur un téléphone de
@@ -28320,7 +29083,8 @@ function renderProduitsList(){
     el.innerHTML=prdCataloguePont(q,false)+`<div class="card">${emptyState('📦',vide?'Ton catalogue est vide. Ajoute tes produits un par un (＋ Produit) ou colle ta liste entière (＋ Liste) : ils serviront ensuite dans les box, les interventions et les bons de commande.':prdOnglet==='perso'?'Aucun produit à toi pour l\'instant — ajoute-les un par un (＋ Produit) ou colle ta liste entière (＋ Liste).':'Aucun produit trouvé.','Ajouter','formProduit()')}</div>`; return; }
   // Regroupé par catégorie, dans l'ordre officiel ELAN puis les autres
   const groups={}; list.forEach(p=>{ const c=p.categorie||'Sans catégorie'; (groups[c]=groups[c]||[]).push(p); });
-  const orderedCats=[...CAT_LIST.filter(c=>groups[c]),...Object.keys(groups).filter(c=>!CAT_LIST.includes(c)).sort()];
+  const LC=categoriesProduit();   // la liste du métier ; les catégories d'une base d'avant (hors liste) suivent, telles quelles
+  const orderedCats=[...LC.filter(c=>groups[c]),...Object.keys(groups).filter(c=>!LC.includes(c)).sort()];
   el.innerHTML=(q?prdCataloguePont(q,true):'')+`<div style="font-size:12px;color:var(--t3);margin:2px 2px 10px">${list.length} produit(s) · ${orderedCats.length} catégorie(s)</div>`+orderedCats.map(cat=>{
     const col=catColor(cat); const prods=groups[cat].slice().sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
     const open = !!q || prdExpanded[cat];
@@ -28347,7 +29111,13 @@ function renderProduitsList(){
 let prodFours=new Set();
 const FOUR_PILLS=['MABI','SODIF','ARMOSA','ORCAD','ENSYSTEX'];
 function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) return; const p=id?produit(id):{};
-  const cats=[...CAT_LIST,...new Set(db.produits.map(x=>x.categorie).filter(c=>c&&!CAT_LIST.includes(c)))];
+  const LC=categoriesProduit();
+  /* la 3D propose aussi les catégories déjà présentes (comme avant) ; un autre métier : SA liste fermée, plus la catégorie que cette
+     fiche porte déjà si elle est hors liste (sans elle, enregistrer la fiche changerait sa catégorie en silence) */
+  /* une fiche SANS catégorie (très courante hors 3D : une ligne collée qui n'est pas dans la liste du métier) garde « Sans catégorie »
+     en tête : sans cette option, la première de la liste gagnait au premier « Enregistrer », et le prix corrigé changeait la
+     catégorie en silence. */
+  const cats=estMetier3D()?[...LC,...new Set(db.produits.map(x=>x.categorie).filter(c=>c&&!LC.includes(c)))]:[...LC,...(p.categorie&&LC.indexOf(p.categorie)<0?[p.categorie]:[])];
   prodFours=new Set((p.fournisseurs||[]).map(f=>{ const up=f.toUpperCase(); if(up.includes('ORCAD')) return 'ORCAD'; if(up.includes('ENSYSTEX')) return 'ENSYSTEX'; return up; }));
   const bannerC=id?'var(--org)':'var(--acc)';
   openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>${id?'Modifier produit':'Nouveau produit'}</h3><button type="submit" form="prodform" class="btn sm">${id?'Enregistrer':'Ajouter'}</button></div>
@@ -28357,20 +29127,22 @@ function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) re
         <div><div style="font-size:13px;font-weight:700;color:var(--t1)">${id?'Modifier produit':'Nouveau produit'}</div><div style="font-size:11px;color:var(--t2)">${id?'Produit du catalogue — modifiable':'Nouveau produit dans le catalogue'}</div></div>
       </div>
       <div class="form-sec">Nom du produit *</div>
-      <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="Ex : XILIX 1000" aria-label="Nom du produit"></div></div>
+      <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="${estMetier3D()?'Ex : XILIX 1000':'Ex : Raccord laiton 20/27'}" aria-label="Nom du produit"></div></div>
       <div class="form-sec">Référence fournisseur</div>
       <div class="fgroup"><div class="frow"><input name="ref" value="${esc(p.ref)}" placeholder="Optionnel — ex : SG051" class="mono"></div></div>
+${!estMetier3D()?'':`
       <div class="form-sec">Biocide <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour le registre réglementaire</span></div>
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">N° AMM</span><div class="frow-val"><input name="amm" value="${esc(p.amm)}" placeholder="Ex : FR-2020-0123 (facultatif)" class="mono"></div></div>
         <div class="frow"><span class="frow-lbl">Matière active</span><div class="frow-val"><input name="matiereActive" value="${esc(p.matiereActive)}" placeholder="Ex : Brodifacoum 0,0025 % (facultatif)"></div></div>
-      </div>
+      </div>`}
       <div class="form-sec">Catégorie *</div>
-      <div class="fgroup"><div class="frow"><select name="categorie" style="width:100%">${cats.map(c=>`<option ${p.categorie===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div></div>
+      <div class="fgroup"><div class="frow"><select name="categorie" style="width:100%">${(id&&!p.categorie)?'<option value="" selected>Sans catégorie</option>':''}${cats.map(c=>`<option ${p.categorie===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div></div>
+${!estMetier3D()?'':`
       <div class="form-sec">Type de traitement <span style="font-weight:400;text-transform:none;letter-spacing:0">— filtre les produits proposés dans les questionnaires</span></div>
       <div class="fgroup"><div class="frow"><select name="categorie3d" style="width:100%">
         ${[['rodonticide','🐀 Rodonticide (dératisation)'],['insecticide','🪳 Insecticide (rampants, volants)'],['desinfectant','🦠 Virucide / bactéricide (désinfection)'],['repulsif','🕊 Répulsif (volatiles)'],['','Autre / tous les types']].map(([k,l])=>`<option value="${k}" ${(p.categorie3d||'')===k?'selected':''}>${l}</option>`).join('')}</select></div>
-      <div style="font-size:11px;color:var(--t3);margin:4px 2px 0">Le produit sera proposé dans « ＋ Depuis le stock » des questionnaires de sa catégorie (« Autre » = proposé partout).</div></div>
+      <div style="font-size:11px;color:var(--t3);margin:4px 2px 0">Le produit sera proposé dans « ＋ Depuis le stock » des questionnaires de sa catégorie (« Autre » = proposé partout).</div></div>`}
       <div class="form-sec">Stock & prix</div>
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">Unité</span><div class="frow-val"><select name="unite">${['unité','kg','g','L','mL','carton','sachet','cartouche'].map(u=>`<option ${(p.unite||'unité')===u?'selected':''}>${u}</option>`).join('')}</select></div></div>
@@ -28389,7 +29161,7 @@ function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) re
   renderProdFours();
 }
 function renderProdFours(){ const el=$('prod-fours'); if(!el) return;
-  const all=[...new Set([...FOUR_PILLS,...db.fournisseurs.map(f=>(f.nom||'').trim().toUpperCase()).filter(Boolean),...prodFours])];
+  const all=[...new Set([...(estMetier3D()?FOUR_PILLS:[]),...db.fournisseurs.map(f=>(f.nom||'').trim().toUpperCase()).filter(Boolean),...prodFours])];
   el.innerHTML=all.map(f=>{ const on=prodFours.has(f); const c=fourColor(f);
     return `<button type="button" onclick="toggleProdFour('${f.replace(/'/g,"\\'")}')" style="cursor:pointer;font-size:11px;font-weight:700;padding:6px 12px;border-radius:14px;color:${on?aplatDe(c)[1]:encreDonnee(c)};background:${on?aplatDe(c)[0]:`color-mix(in srgb,${c} 12%,transparent)`};border:.5px solid ${c}">${esc(f)}</button>`;}).join(''); }
 function toggleProdFour(f){ if(prodFours.has(f)) prodFours.delete(f); else prodFours.add(f); renderProdFours(); }
@@ -29073,7 +29845,15 @@ views.mouvements=function(){
 /* ═══════════════ BOXES ═══════════════ */
 const CAT_COLORS={'TP18 — Insecticide':'#EF9F27','TP14 — Rodenticide':'#E24B4A','Xylophage':'#8B5A2B','Piégeage':'#BA7517','Matériel':'#378ADD','EPI':'#1D9E75','Proofing':'#7F77DD','Désinfection':'#5DCAA5'};
 const FOUR_COLORS={'MABI':'#1E40AF','SODIF':'#059669','ARMOSA':'#DC2626','ENSYSTEX':'#7C3AED','ORCAD':'#EA580C','Laboratoires Orcad':'#EA580C','Ensystex':'#7C3AED'};
-const BOX_CATS=CAT_LIST;
+/* v773 : les catégories des autres métiers ont leur couleur, posée UNE fois au chargement, dans l'ordre des métiers. Une catégorie
+   déjà colorée (« EPI », partagée avec la 3D) la garde ; les autres prennent la première teinte de la palette que la liste de leur
+   métier n'a pas déjà — deux catégories d'un même métier ne se confondent jamais (tests/test-2952.js). */
+const CAT_PALETTE=['#378ADD','#1D9E75','#EF9F27','#7F77DD','#E24B4A','#5DCAA5','#BA7517','#D4537E','#4F8F2E','#C2603A','#6C7A89','#8B5A2B'];
+(function(){ METIERS_ORDRE.forEach(k=>{ if(k==='3d'||!Array.isArray(METIERS[k].produits)) return;
+  const L=METIERS[k].produits, prises=new Set(L.filter(c=>CAT_COLORS[c]).map(c=>CAT_COLORS[c])); let ix=0;
+  L.forEach(c=>{ if(CAT_COLORS[c]) return; let col=CAT_PALETTE[ix%CAT_PALETTE.length], essais=0;
+    while(prises.has(col)&&essais++<CAT_PALETTE.length){ ix++; col=CAT_PALETTE[ix%CAT_PALETTE.length]; }
+    ix++; CAT_COLORS[c]=col; prises.add(col); }); }); })();
 function catColor(c){ return CAT_COLORS[c]||'var(--acc)'; }
 function catAbrev(c){ if(!c) return '??'; if(c.includes('TP18')) return '18'; if(c.includes('TP14')) return '14'; return c.replace(/\s/g,'').slice(0,2).toUpperCase(); }
 function fourColor(f){ return FOUR_COLORS[f]||'var(--t3)'; }
@@ -35182,6 +35962,10 @@ function journalView(title,sub){
 views.historique=function(){ journalView('Historique','Activité de l\'application — journal de traçabilité, en lecture seule'); };
 
 /* ═══════════════ TECHNICIENS ═══════════════ */
+/* Le Certibiocide est le certificat de l'anti-nuisibles : hors 3D, ni colonne, ni champ — SAUF si la fiche en porte déjà un
+   (une base venue de la 3D) : ce qui est saisi se lit, jamais ne disparaît. */
+function certibVisible(t){ return estMetier3D()||!!(t&&(t.certibiocide||t.certibiocideExp)); }
+function certibColonne(L){ return estMetier3D()||(L||[]).some(t=>certibVisible(t)); }
 function certibBadge(t){ if(!t||!t.certibiocideExp) return '<span class="st st-grey">—</span>';
   const days=Math.ceil((new Date(t.certibiocideExp)-new Date())/86400000);
   if(days<0) return '<span class="st st-red">Expiré</span>';
@@ -35194,9 +35978,9 @@ views.techniciens=function(){
   const nbDbl=(peutModif&&L.length===(db.techniciens||[]).length)?techDoublons().length:0;
   setHeader('Techniciens',`${L.length} membre(s)`,`${nbDbl?`<button class="btn ghost" onclick="techFusionnerDoublons()" title="Des fiches portent le même nom">🧹 Fusionner ${nbDbl} doublon(s)</button> `:''}${peutAjout?`<button class="btn" onclick="formTech()">＋ Technicien</button>`:''}`);
   const rows=L.map(t=>{ const n=db.interventions.filter(i=>intTechIds(i).indexOf(t.id)>=0).length;   // v757 : second compris, pas seulement le premier
-    return `<tr class="row-clk" onclick="ficheTech('${t.id}')"><td><div class="ppl"><span class="avatar av-tc" style="--tc:${techColor(t.id)}">${initials(t.nom)}</span> <span class="strong">${esc(t.nom)}</span></div></td><td>${esc(t.metier)||'—'}</td><td>${esc(t.tel)||'—'}</td><td>${certibBadge(t)}</td><td>${n}</td>
+    return `<tr class="row-clk" onclick="ficheTech('${t.id}')"><td><div class="ppl"><span class="avatar av-tc" style="--tc:${techColor(t.id)}">${initials(t.nom)}</span> <span class="strong">${esc(t.nom)}</span></div></td><td>${esc(t.metier)||'—'}</td><td>${esc(t.tel)||'—'}</td>${certibColonne(L)?`<td>${certibVisible(t)?certibBadge(t):''}</td>`:''}<td>${n}</td>
     <td class="cel-gestes" style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">${peutModif?`<button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button>`:''}${peutModif&&peutSuppr?' ':''}${peutSuppr?`<button class="btn danger sm" onclick="delItem('techniciens','${t.id}')">🗑</button>`:''}</td></tr>`;}).join('');
-  $('content').innerHTML=L.length? tableCard(['Technicien','Rôle','Téléphone','Certibiocide','Interv.',''],rows)
+  $('content').innerHTML=L.length? tableCard(['Technicien','Rôle','Téléphone',certibColonne(L)?'Certibiocide':null,'Interv.',''].filter(h=>h!==null),rows)
     :`<div class="card">${peutAjout?emptyState('👷','Aucun technicien.','Ajouter','formTech()'):emptyState('👷','Aucune fiche du personnel n’est rattachée à ton compte.','','')}</div>`;
 }
 function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id===id);
@@ -35217,7 +36001,7 @@ function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id=
       <div><div class="dt-lbl">Téléphone</div><div class="dt-val">${esc(t.tel)||'—'}</div></div>
       <div><div class="dt-lbl">Email</div><div class="dt-val">${esc(t.email)||'—'}</div></div>
       <div><div class="dt-lbl">Véhicule</div><div class="dt-val">${veh?esc(vPlaque(veh)):'—'}</div></div>
-      <div><div class="dt-lbl">Certibiocide</div><div class="dt-val">${esc(t.certibiocide)||'—'} ${certibBadge(t)}</div></div>
+      ${certibVisible(t)?`<div><div class="dt-lbl">Certibiocide</div><div class="dt-val">${esc(t.certibiocide)||'—'} ${certibBadge(t)}</div></div>`:''}
       ${t.certibiocideExp?`<div><div class="dt-lbl">Valide jusqu'au</div><div class="dt-val">${fmtShort(t.certibiocideExp)}</div></div>`:''}</div>
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:14px 0">
       ${k('🧰','rgba(96,165,250,.14)',ints.length,'Interventions')}
@@ -35250,7 +36034,7 @@ async function saveTech(e,id){ e.preventDefault();
   /* le rôle, verrouillé à l'écran pour qui n'est pas administrateur, ne se lit pas non plus au formulaire */
   if(id && !admin) d.metier=(db.techniciens.find(x=>x.id===id)||{}).metier||'Technicien';
   const gere=!id||fichesGere();
-  const obj={nom:d.nom,metier:d.metier||'Technicien',tel:d.tel,email:d.email,departements:d.departements,couleur:d.couleur,certibiocide:d.certibiocide||'',certibiocideExp:d.certibiocideExp||'',capMin:Math.round((parseFloat(String(d.capH||'').replace(',','.'))||7)*60),
+  const obj={nom:d.nom,metier:d.metier||'Technicien',tel:d.tel,email:d.email,departements:d.departements,couleur:d.couleur,certibiocide:d.certibiocide===undefined?((id&&(db.techniciens.find(x=>x.id===id)||{}).certibiocide)||''):(d.certibiocide||''),certibiocideExp:d.certibiocideExp===undefined?((id&&(db.techniciens.find(x=>x.id===id)||{}).certibiocideExp)||''):(d.certibiocideExp||''),capMin:Math.round((parseFloat(String(d.capH||'').replace(',','.'))||7)*60),
     droitConges:(d.droitConges===''||d.droitConges==null)?25:(parseFloat(String(d.droitConges).replace(',','.'))||0),
     chef:d.chef||''};
   if(!gere) ['departements','capMin','droitConges','chef'].forEach(k=>delete obj[k]);   // la fiche garde ce qu'elle avait
@@ -35321,9 +36105,10 @@ function formTech(id){ if(!permGarde('equipe', id?'modifier':'ajouter','un techn
         <div class="field"><label>Jours de congés par an</label><input name="droitConges"${fg} type="number" min="0" max="60" step="0.5" value="${t.droitConges!=null&&t.droitConges!==''?t.droitConges:25}" style="text-align:right"></div></div>
       <div class="field"><label>Rattaché à</label><select name="chef"${fg}><option value="">Personne — travaille seul</option>${db.techniciens.filter(x=>x.id!==id&&(gere||x.id===t.chef)).map(x=>`<option value="${x.id}" ${t.chef===x.id?'selected':''}>${esc(x.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">Sert à choisir toute une équipe d'un coup dans le planning général.</div></div>
       <div style="font-size:11px;color:var(--t3);margin:-6px 2px 10px">La capacité sert à la jauge de charge du planning (vert ≤ 75 %, orange 76-99 %, rouge ≥ 100 %), défaut 7 h. Les jours de congés servent au solde dans Absences &amp; congés, défaut 25 jours ouvrés.</div>
+${!certibVisible(t)?'':`
       <div class="field-row"><div class="field"><label>Certibiocide n°</label><input name="certibiocide" value="${esc(t.certibiocide)}" placeholder="N° du certificat" class="mono"></div>
         <div class="field"><label>Valide jusqu'au</label><input type="date" name="certibiocideExp" value="${t.certibiocideExp||''}"></div></div>
-      <div style="font-size:11px;color:var(--t3);margin:-6px 2px 10px">Certibiocide : obligatoire pour appliquer des produits biocides professionnels (validité 5 ans). Une alerte apparaît 60 jours avant l'expiration.</div>
+      <div style="font-size:11px;color:var(--t3);margin:-6px 2px 10px">Certibiocide : obligatoire pour appliquer des produits biocides professionnels (validité 5 ans). Une alerte apparaît 60 jours avant l'expiration.</div>`}
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`);
 }
 
@@ -35403,7 +36188,7 @@ function usrDroitsHtml(u,admin){
     '<p class="usr-x" style="margin-top:8px">🗑 <b>Par défaut, lui seul peut effacer</b> une commande, une livraison ou une demande d\'un historique, effacer les prix pré-remplis et revenir sur les « c\'est normal » des doublons. Il peut confier chacun de ces gestes à qui il veut : ce sont des cases, sur la ligne de la personne (Stock, Achats internes).</p></div>';
   const dis=admin?'':' disabled';
   const swH=(name,on,extra)=>'<label class="switch"><input type="checkbox" data-d="'+name+'"'+(on?' checked':'')+dis+(extra||'')+'><span class="track"></span><span class="knob"></span></label>';
-  const ligne=(lbl,desc,sw)=>'<div class="perm-row"><div class="pn">'+lbl+(desc?'<div class="pn-d">'+desc+'</div>':'')+'</div>'+sw+'</div>';
+  const ligne=(lbl,desc,sw,ex)=>'<div class="perm-row"><div class="pn">'+lbl+(desc?'<div class="pn-d">'+desc+'</div>':'')+(ex||'')+'</div>'+sw+'</div>';
   const capLbl=k=>{ const c=USER_CAPS.find(x=>x[0]===k); return c?[c[1],c[2]||'']:[k,'']; };
   /* v737 : une case DÉDUITE (capDeduitRegle) que rien n'a encore réglée porte data-deduit="1" —
      elle suit ses cases de base en direct, et la validation ne l'écrit pas (usrDeduireZone). */
@@ -35429,6 +36214,7 @@ function usrDroitsHtml(u,admin){
      elle part avec la case qui la donne. */
   const menuLigne=m=>{
     const nom=(m.parent?'↳ ':'')+m.ic+' '+esc(t(m.l)), sous=m.parent?'dans '+esc(navLabel(m.parent)):'';
+    const ex=rubExplHtml(m.k);   // v773 : l'explication de la rubrique, sous son nom, visible sans survol
     if(catBloque(m.k)){
       /* ⛔ « Validation des mouvements » reste ouverte d'office à qui valide ou attend une validation (`validationsOuvertes`) :
          `userSeesModule(…,horsCats)` la compte, donc la case s'affichait cochée et « Valider » (qui lit la case) l'écrivait comme un
@@ -35437,12 +36223,12 @@ function usrDroitsHtml(u,admin){
          sur la ligne ouverte), jamais l'ouverture d'office. */
       let on=userSeesModule(u,m.k,false,true);
       if(m.k==='validations'&&!planBloque(m.k)&&!metierBloque(m.k)){ const r=moduleReglage(u,'validations'); on=r?r.v:false; }
-      return ligne(nom,(sous?sous+' · ':'')+'non retenue pour l\'entreprise',swH('mod_'+m.k,on,dis?'':' disabled'));
+      return ligne(nom,(sous?sous+' · ':'')+'non retenue pour l\'entreprise',swH('mod_'+m.k,on,dis?'':' disabled'),ex);
     }
-    if(m.k!=='validations'||planBloque(m.k)||metierBloque(m.k)) return ligne(nom,sous,swH('mod_'+m.k,userSeesModule(u,m.k)));
+    if(m.k!=='validations'||planBloque(m.k)||metierBloque(m.k)) return ligne(nom,sous,swH('mod_'+m.k,userSeesModule(u,m.k)),ex);
     const force=validationsOuvertes(u), r=moduleReglage(u,'validations'), propre=r?r.v:false;
     const extra=' data-val="1" data-val-soumis="'+(u.role!=='__profil__'&&(db.validDRTous||u.boxValidDR)?1:0)+'" data-val-av="'+(propre?1:0)+'"'+(force?' data-val-force="1"'+(admin?' disabled':''):'');
-    return '<div class="perm-row"><div class="pn">'+nom+'<div class="pn-d" data-val-note style="'+(force?'':'display:none')+'">'+(force?esc(validationsNote(userCap(u,'validerDR'))):'')+'</div></div>'+swH('mod_validations',force||propre,extra)+'</div>';
+    return '<div class="perm-row"><div class="pn">'+nom+'<div class="pn-d" data-val-note style="'+(force?'':'display:none')+'">'+(force?esc(validationsNote(userCap(u,'validerDR'))):'')+'</div>'+ex+'</div>'+swH('mod_validations',force||propre,extra)+'</div>';
   };
   const cats=PERM_GRPS.map(([g,titre])=>{
     const ms=avecSousCats(NAV.filter(x=>PERM_GRP_OF[x.g]===g).flatMap(x=>x.items)).filter(it=>it.k!=='dashboard'&&it.k!=='permissions');
@@ -35877,7 +36663,8 @@ function nuProfilChange(pid){
 function formUser(id){ const u=id?db.users.find(x=>x.id===id):{}; window._formUserNew=!id; window._formUserRole0=u.role||'technicien';
   if(!id){ nuBoxes=new Set(); nuVehs=new Set(); nuBoxTout=false; nuStk=false; }
   // Rattachements vus depuis le DR : avec 65 techniciens, ouvrir 65 fiches n'a pas de sens.
-  // Même donnée que le champ « Directeur régional responsable », lue dans l'autre sens.
+  // Même donnée que le champ « Valideur responsable » (`drId`), lue dans l'autre sens. Le champ s'appelait « Directeur régional
+  // responsable » alors que tout le circuit dit « valideur » : le NOM du rôle (« DR ») ne change pas, la case qui valide s'appelle valideur.
   drRattaches = new Set((db.users||[]).filter(x=>x&&id&&x.drId===id).map(x=>x.id));
   const lt = u.techId ? (db.techniciens||[]).find(x=>x.id===u.techId) : null;
   const isTech = roleEstTech(u.role||'technicien');
@@ -35893,7 +36680,7 @@ function formUser(id){ const u=id?db.users.find(x=>x.id===id):{}; window._formUs
       <div class="field"><label>Chef d'équipe</label>
         <select name="chefId">${[`<option value="">— aucun —</option>`].concat(chefsPossibles(u.id).map(x=>`<option value="${x.id}" ${u.chefId===x.id?'selected':''}>${esc(fullName(x))}</option>`)).join('')}</select>
         <div style="font-size:11px;color:var(--t3);margin-top:4px">Dès qu'au moins une personne lui est rattachée, ce chef ne voit plus que SON équipe : leurs interventions, leurs clients, leurs devis, leurs pointages. Tant que personne ne l'est, il continue de tout voir — rien n'est retiré sans qu'on l'ait décidé.</div></div>
-      <div class="field"><label>Directeur régional responsable</label>
+      <div class="field"><label>Valideur responsable</label>
         <select name="drId">${[`<option value="">— aucun (tous les valideurs sont prévenus) —</option>`].concat(valideursDR().filter(x=>x.id!==u.id).map(x=>`<option value="${x.id}" ${u.drId===x.id?'selected':''}>${esc(fullName(x))}</option>`)).join('')}</select>
         <div style="font-size:11px;color:var(--t3);margin-top:4px">Ses demandes et ses mouvements de box partent à ce valideur, et lui seul les voit dans « Validation des mouvements ». Sans choix, tous les valideurs sont prévenus, comme avant.</div></div>
       ${!id?nuBoxHtml():''}
@@ -36318,7 +37105,7 @@ function formAccess(id){ const u=db.users.find(x=>x.id===id); if(!u)return; if(c
       <div class="form-sec">Droits d'action</div>
       <div class="fgroup">${caps.map(([k,l])=>`<div class="perm-row"><div class="pn">${l}</div><label class="switch"><input type="checkbox" ${userCap(u,k)?'checked':''} onchange="accessSetCap('${u.id}','${k}',this.checked)"><span class="track"></span><span class="knob"></span></label></div>`).join('')}</div>
       <div class="form-sec">Modules visibles</div>
-      <div class="fgroup">${mods.map(m=>`<div class="perm-row"><div class="pn">${m.ic} ${esc(m.l)}</div><label class="switch"><input type="checkbox" ${userSeesModule(u,m.k)?'checked':''} onchange="accessSetMod('${u.id}','${m.k}',this.checked)"><span class="track"></span><span class="knob"></span></label></div>`).join('')}</div>
+      <div class="fgroup">${mods.map(m=>`<div class="perm-row"><div class="pn">${m.ic} ${esc(m.l)}${rubExplHtml(m.k)}</div><label class="switch"><input type="checkbox" ${userSeesModule(u,m.k)?'checked':''} onchange="accessSetMod('${u.id}','${m.k}',this.checked)"><span class="track"></span><span class="knob"></span></label></div>`).join('')}</div>
     </div>`,'full');
 }
 function accessEnsure(u){ u.acces=u.acces||{}; u.acces.modules=u.acces.modules||{}; u.acces.caps=u.acces.caps||{}; }
@@ -36845,7 +37632,9 @@ views.parametres=function(){
             <span class="nm">${esc(m.nom)}</span>
             <span class="ss">${esc(m.sous)}</span>
             <span class="nb">${nb} catégories${m.presta?' · '+m.presta.length+' prestations':' · registre sanitaire &amp; biocides'}</span>
-          </div>`; }).join('')}</div>`; })()}
+          </div>`; }).join('')}</div>
+        ${(()=>{ const L=((METIERS[cur]||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]); if(!L.length) return '';
+          return `<details class="met-rub"><summary>📋 Les ${L.length} rubriques conseillées pour ton métier</summary>${L.map(k=>`<div class="met-rub-l"><b>${esc(RUBRIQUES_INFO[k][0])}</b><span>${esc(RUBRIQUES_INFO[k][1])}</span></div>`).join('')}</details>`; })()}`; })()}
       <div class="form-sec">🏢 Mes sociétés <span style="font-weight:400;text-transform:none;letter-spacing:0">— noms sur les documents (rapports, devis, factures, SMS…)</span></div>
       <p style="color:var(--t3);font-size:12px;line-height:1.55;margin-bottom:8px">Ajoute tes sociétés : elles remplacent la liste générique dans le sélecteur « Société » des interventions et documents. <b>Une seule société</b> → le sélecteur disparaît et elle est appliquée partout automatiquement.</p>
       <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:8px">${(db.societes||[]).map((s2,ix)=>{ const st=socStyle(s2); const cl=/^#[0-9a-fA-F]{6}$/.test(st.couleur||'')?st.couleur:'#1E7A4E';
@@ -37621,7 +38410,7 @@ function devisIAModal(){
          devis — même mécanisme que les bons de commande. -->
     <div class="field"><label>Société (en-tête du devis)</label><select id="dia-societe">${entSocietes().map(t=>`<option ${(entSocUnique()||'Modèle générique')===t?'selected':''}>${esc(t)}</option>`).join('')}</select>
       <div style="font-size:11px;color:var(--t3);margin-top:4px">Son nom, sa couleur et son logo apparaîtront en tête du PDF (Paramètres → Mes sociétés).</div></div>
-    <div class="field"><label>La prestation à chiffrer *</label><textarea id="dia-demande" rows="4" placeholder="Ex : dératisation d'un restaurant de 120 m² avec cave, 8 postes d'appâtage, 3 passages sur 2 mois, à Strasbourg" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:10px 12px;color:var(--t1);font-family:inherit"></textarea>
+    <div class="field"><label>La prestation à chiffrer *</label><textarea id="dia-demande" rows="4" placeholder="${estMetier3D()?'Ex : dératisation d\'un restaurant de 120 m² avec cave, 8 postes d\'appâtage, 3 passages sur 2 mois, à Strasbourg':esc('Ex : '+(intTypes()[0]||'intervention')+' chez un client à Strasbourg, pièces et main-d’œuvre comprises, 2 passages sur 2 semaines')}" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:10px 12px;color:var(--t1);font-family:inherit"></textarea>
       <!-- Dictée : sur un chantier on a les mains prises. La reconnaissance vocale
            du navigateur écrit dans le même champ — rien ne part ailleurs, tout se
            passe sur l'appareil. -->
@@ -39122,7 +39911,7 @@ function interTout(i,l){
   if(co.conformite) mots.push(['📐','Conformité',txt(co.conformite)]);
   if(co.recommandations) mots.push(['💡','Recommandations',txt(co.recommandations)]);
   if(i.materiel) mots.push(['🧰','Matériel utilisé',txt(i.materiel)]);
-  if(i.zones) mots.push(['📍','Zones traitées',txt(i.zones)]);
+  if(i.zones) mots.push(['📍',libZones(),txt(i.zones)]);
   if(i.noteInterne) mots.push(['🔒','Note interne',txt(i.noteInterne)]);
   const tags=i.photoTags||[], med=[];
   if(i.tpePhoto) med.push([i.tpePhoto,'Ticket TPE']);

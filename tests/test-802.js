@@ -31,7 +31,7 @@ const FONCTIONS = ['const PA_TYPES=', 'const MENTION_REGL=', 'const PH_MARQUE=',
   'function paReleveOf(', 'function paHistoPoste(', 'function paLastEtat(',
   'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(', 'function _pdfDessinPlans(',
   'function rapportDuree(',   /* g08 : la durée du rapport (réelle, sinon prévue) — rapportPdfStr l'appelle, comme printRapport */
-  'function rapportProduitsLibres(', 'function rapportChampsPerso(', 'const PAP_IMPL_MAX_B64=', 'function rapportPdfStr(',
+  'function rapportProduitsLibres(', 'function rapportChampsPerso(', 'function mentionRegl(', 'function ammVisible(', 'const PAP_IMPL_MAX_B64=', 'function rapportPdfStr(',
   'const _rapEnvoi=', 'async function rapportVia('];
 const SOURCES = FONCTIONS.map(decoupe);
 vrai('les déclarations sont extraites du fichier réel (' + SOURCES.length + ')', SOURCES.every(x => x.length > 10));
@@ -44,7 +44,7 @@ function monter(base, ext) {
   W.db = JSON.parse(JSON.stringify(base));
   vm.createContext(W);
   vm.runInContext(SOURCES.join('\n') + `
-    function todayISO(){ return '2026-09-24'; } function fmtShort(d){ return String(d||''); }
+    function estMetier3D(){ return true; } /* ces bancs jouent la 3D : la mention et la colonne AMM y sont celles d'avant */ function todayISO(){ return '2026-09-24'; } function fmtShort(d){ return String(d||''); }
     function techNames(i){ return (i.techNom||'Tom Sonde'); } function produit(id){ return (db.produits||[]).find(p=>p.id===id)||{}; }
     function prodLineName(l){ return l.nomLibre||produit(l.produitId).nom||'—'; } function prodLineAmm(l){ return produit(l.produitId).amm||''; }
     function prodLineUnit(l){ return l.unite||''; }
