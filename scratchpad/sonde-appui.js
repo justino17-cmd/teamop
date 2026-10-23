@@ -36,7 +36,7 @@ if (LIRE2 === LIRE) { console.log('⛔ la lecture de l’audit a changé de form
   for (const nomP of (process.env.PROFILS || 'tel,bureau').split(',')) {
     const P = PROFILS[nomP]; await poserProfil(S, P);
     await S.c.envoyer('Emulation.setEmulatedMedia', { features: [] });
-    await S.ev(`setPlatForce('${P.plat}'); setThemePref('${P.theme}'); return 1;`); await dormir(500);
+    await S.ev(`setPlatForce('${P.plat}'); setThemePref('${P.theme}'); return 1;`); await dormir(+(process.env.ATTENTE_THEME||2500));
     let vues = await S.ev(`return NAV.flatMap(s=>s.items).filter(it=>{ try{ return canSee(it); }catch(e){ return false; } }).map(it=>it.k).filter((k,i,a)=>views[k]&&a.indexOf(k)===i);`);
     if (process.env.SEULES) vues = vues.filter(v => process.env.SEULES.split(',').includes(v));
     const r = R[nomP] = { vues: 0, essais: 0, familles: {}, lents: {} };

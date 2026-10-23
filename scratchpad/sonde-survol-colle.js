@@ -36,7 +36,7 @@ const LIRE = /const LIRE = `([\s\S]*?)`;/.exec(AUDIT)[1];
        au Mac, on ne pose que la taille de l'écran */
     if (P.tac) await poserProfil(S, P); else await S.c.envoyer('Emulation.setDeviceMetricsOverride', { width: P.w, height: P.h, deviceScaleFactor: P.dpr, mobile: false });
     await S.c.envoyer('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }].concat(P.tac ? [{ name: 'hover', value: 'none' }, { name: 'pointer', value: 'coarse' }] : [{ name: 'hover', value: 'hover' }, { name: 'pointer', value: 'fine' }]) });
-    await S.ev(`setPlatForce('${P.plat}'); setThemePref('${P.theme}'); return 1;`); await dormir(500);
+    await S.ev(`setPlatForce('${P.plat}'); setThemePref('${P.theme}'); return 1;`); await dormir(+(process.env.ATTENTE_THEME||2500));
     const sansSurvol = await S.ev(`return matchMedia('(hover:none)').matches;`);
     if (!!P.tac !== sansSurvol) { console.log('⛔ ' + nomP + ' : le média du survol n’est pas celui attendu' + (P.tac ? '' : ' — ce Chromium n’a pas de souris : lancer avec OPG_ARGS (voir pilote.js) et PROFILS=bureau seul')); process.exit(2); }
     let vues = await S.ev(`return NAV.flatMap(s=>s.items).filter(it=>{ try{ return canSee(it); }catch(e){ return false; } }).map(it=>it.k).filter((k,i,a)=>views[k]&&a.indexOf(k)===i);`);
