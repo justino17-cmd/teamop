@@ -9031,6 +9031,15 @@ app.get('/api/monitor/issues/contexte', monAdmin, (req, res) => {
        collaborateur qui l'a demandée, et relisible. Une explication qu'on ne peut pas
        relire est une explication à laquelle on ne peut pas se fier. */
 const DEPOT = path.resolve(__dirname, '..');
+/* ⛔ CE QUI PART CHEZ ANTHROPIC N'EST PAS CE QUE LA TOUR AFFICHE. Le message, la trace, la source et l'origine d'un incident viennent de
+   /api/monitor/report — publique, sans preuve — et peuvent citer ce qu'un client avait saisi (une adresse dans un message d'erreur, un numéro
+   dans une URL). Justin les lit en entier dans la Tour (le stockage ne change pas) ; mais « Expliquer la cause » et « Proposer un correctif »
+   les passent par `incidentTexte` AVANT l'appel. UNE définition du filtre : celle des courriels reçus (`agents-connaissance.js`). `coupe` : ces
+   champs sont tronqués au stockage (300, 600, 200) — le bout d'une adresse ou d'un numéro est masqué aussi. Tout NOUVEAU champ d'incident
+   qui entre dans un `contexte` passe par ici ou n'y entre pas (`tests/test-2975.js` rejoue les deux routes contre un faux Anthropic). */
+const { pourAnthropic: incidentPourAnthropic } = require('./agents-connaissance');
+const incidentTexte = (t) => incidentPourAnthropic(t, { coupe: true });
+const incidentCode = (t) => incidentPourAnthropic(t);
 /* Le fichier désigné par une trace de sentinelle : un seul nom, à la racine du dépôt,
    et rien d'autre — pas de chemin, pas de remontée, pas d'autre extension. */
 function monSource(src, ligne) {
@@ -9089,16 +9098,18 @@ app.post('/api/monitor/expliquer', monAdmin, async (req, res) => {
       + "« ou » : le fichier et la ligne, repris EXACTEMENT de l'extrait fourni. Si aucun extrait n'est fourni, ou si l'extrait ne montre pas la cause, écris « emplacement non déterminé » — n'invente jamais un fichier ni un numéro de ligne.\n"
       + "« verifier » : ce qu'un humain doit regarder ou reproduire pour confirmer, en une phrase.\n"
       + "« confiance » : « haute » seulement si l'extrait montre la cause noir sur blanc ; « faible » si tu raisonnes sans voir le code fautif. Une explication plausible mais invérifiable est de confiance faible, dis-le.";
+    /* ⛔ chaque champ libre passe par `incidentTexte` APRÈS sa troncature, et séparément : le bout d'un champ n'est pas le bout du suivant. */
+    const extraitSur = s && s.extrait ? s.extrait.split('\n').map(l => { const k = l.indexOf(' ', 8); return k < 0 ? incidentCode(l) : l.slice(0, k + 1) + incidentCode(l.slice(k + 1)); }).join('\n') : '';
     const contexte = 'Incident\n'
-      + '- application : ' + (issue.app || '?') + (issue.version ? ' v' + issue.version : '') + '\n'
-      + '- type : ' + (issue.type || '?') + ' · écran ouvert : ' + (issue.categorie || '?')
-      + (issue.origine ? ' · origine : ' + issue.origine : '') + '\n'
-      + '- message : ' + (issue.message || '') + '\n'
+      + '- application : ' + (incidentTexte(issue.app) || '?') + (issue.version ? ' v' + incidentTexte(issue.version) : '') + '\n'
+      + '- type : ' + (incidentTexte(issue.type) || '?') + ' · écran ouvert : ' + (incidentTexte(issue.categorie) || '?')
+      + (issue.origine ? ' · origine : ' + incidentTexte(issue.origine) : '') + '\n'
+      + '- message : ' + incidentTexte(issue.message) + '\n'
       + '- vu ' + (issue.count || 1) + ' fois, sur ' + Object.keys(issue.appareils || {}).length + ' appareil(s)\n'
-      + (issue.stack ? '- trace :\n' + issue.stack + '\n' : '')
+      + (issue.stack ? '- trace :\n' + incidentTexte(issue.stack) + '\n' : '')
       + (s && s.extrait
-        ? '\nCode du dépôt autour de ' + s.fichier + ':' + s.ligne + ' (▶ = la ligne désignée) :\n' + s.extrait + '\n'
-        : '\nAucun extrait de code : la trace ne désigne pas un fichier du dépôt' + (issue.src ? ' (elle indique « ' + String(issue.src).slice(0, 120) + ' »)' : '') + '.\n');
+        ? '\nCode du dépôt autour de ' + s.fichier + ':' + s.ligne + ' (▶ = la ligne désignée) :\n' + extraitSur + '\n'
+        : '\nAucun extrait de code : la trace ne désigne pas un fichier du dépôt' + (issue.src ? ' (elle indique « ' + incidentTexte(String(issue.src).slice(0, 120)) + ' »)' : '') + '.\n');
 
     const msg = await getAnthropic().messages.create({
       model: 'claude-sonnet-5', max_tokens: 2000, system: sys,
@@ -9245,10 +9256,13 @@ app.post('/api/monitor/proposer', monPatronStrict, async (req, res) => {
       + "« verifier » : comment un humain confirme que c'est réglé, concrètement.\n"
       + "« risque » : « faible » si le correctif ne touche qu'un chemin d'exécution étroit ; « eleve » s'il touche du code partagé ou une donnée persistée.\n"
       + "Si le code fourni ne suffit pas pour corriger sûrement, renvoie « avant » et « apres » identiques : c'est la façon de dire que tu ne corriges pas à l'aveugle.";
-    const contexte = 'Incident : ' + (issue.message || '') + '\n'
-      + 'Cause établie : ' + (e.cause || '') + '\n'
+    /* Le message et la trace sont du texte de la route publique ; la cause est celle que le modèle a rendue (il peut recopier ce qu'il a lu) : les
+       trois sont filtrés. Le CODE de la fenêtre ne l'est pas — il est servi publiquement, et le modèle doit en recopier un fragment au caractère
+       près (verrou 2 : l'ancre se trouve une fois et une seule). */
+    const contexte = 'Incident : ' + incidentTexte(issue.message) + '\n'
+      + 'Cause établie : ' + incidentTexte(e.cause) + '\n'
       + 'Emplacement : ' + s.fichier + ' ligne ' + s.ligne + '\n'
-      + (issue.stack ? 'Trace :\n' + issue.stack + '\n' : '')
+      + (issue.stack ? 'Trace :\n' + incidentTexte(issue.stack) + '\n' : '')
       + '\nCode du dépôt (' + s.fichier + ', lignes ' + d + ' à ' + fin + ') :\n' + large;
 
     const msg = await getAnthropic().messages.create({

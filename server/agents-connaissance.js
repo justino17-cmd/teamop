@@ -87,6 +87,38 @@ const ADRESSE = /[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g;
 const TEL = /\+?\d[\d    .\-()]{6,}\d/g;
 const sansAdresses = t => String(t || '').replace(ADRESSE, '(adresse)');
 const sansTel = t => String(t || '').replace(TEL, m => (m.replace(/\D/g, '').length >= 9 ? '(numéro)' : m));
+/* ── Le texte libre d'un INCIDENT, avant qu'il parte chez Anthropic (23 octobre 2026) ────────────────────────────────────────────────
+   « Expliquer la cause » et « Proposer un correctif » (la Tour) envoient le message d'erreur, la trace et la source d'un incident. Ces champs
+   arrivent par /api/monitor/report, une route PUBLIQUE sans preuve : une erreur peut citer ce qu'un client avait saisi (« adresse invalide :
+   jean@… », un numéro dans une URL). La Tour GARDE l'original pour Justin ; seul ce qui part chez Anthropic passe ici — UNE définition, celle des
+   courriels reçus (`sansAdresses`, `sansTel`), plus ce que le texte d'un incident ajoute :
+   · NFKC d'abord : « ＠ » et les chiffres pleine chasse (« ０６… ») ne sont plus des échappatoires ;
+   · une arobase ENCODÉE (« %40 » d'une adresse web, « @ » écrit en toutes lettres, « &#64; ») redevient « @ » avant le filtre — la trace d'un
+     `fetch` cite des URL ;
+   · `coupe` : le texte a été COUPÉ à une longueur fixe (message 300, trace 600, source 200) — une adresse peut finir sur « jean.dupont@ » et un
+     numéro sur « 06 98 76 5 » (moins de neuf chiffres, donc laissé par `sansTel`) : le bout est masqué lui aussi. Une adresse coupée AVANT son
+     « @ » (« jean.dup ») ne se reconnaît pas : rien à faire, et rien d'identifiable non plus.
+   ⛔ Pas pour du CODE : une ligne qui finit par des chiffres ne doit pas être masquée (ni `coupe`). Le code du dépôt est servi publiquement et ne
+   cite aucun client ; l'extrait de « Proposer » reste donc tel quel, parce que le modèle doit en recopier un fragment au caractère près. */
+const AROBASE_ENCODEE = /%40|\\u0040|&#0*64;|&#x0*40;|&commat;/gi;
+/* Un IBAN dont le BBAN porte des lettres (« GB29 NWBK 6016 1331 9268 19 ») que `sansTel` ne voit pas ; un numéro écrit « 06/98/76/54/32 »
+   (la barre oblique n'est pas un séparateur de `TEL`, qui laisserait passer ce numéro tel quel). */
+const IBAN = /\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b/g;
+const TEL_BARRES = /\d[\d/]{7,}\d/g;
+function pourAnthropic(t, opts) {
+  let s = String(t == null ? '' : t);
+  try { s = s.normalize('NFKC'); } catch (e) {}
+  s = s.replace(AROBASE_ENCODEE, '@').replace(IBAN, '(IBAN)');
+  /* Une adresse dans une URL (« …/app.html?mail=jean@x.fr&t=1 ») : `ADRESSE` accepte « / ? = & » dans ses deux moitiés et avalerait le chemin avant
+     elle et la suite après — la trace perdrait le fichier qu'elle désigne. On coupe aux séparateurs d'URL qui touchent l'arobase, de part et d'autre. */
+  s = s.replace(/([?&=#/])(?=[^\s?&=#/@]+@)/g, '$1 ').replace(/(@[^\s?&#/]+)(?=[?&#/])/g, '$1 ');
+  s = sansTel(sansAdresses(s)).replace(TEL_BARRES, m => (m.replace(/\D/g, '').length >= 9 ? '(numéro)' : m));
+  if (opts && opts.coupe) {
+    s = s.replace(/[^\s<>"'(),;:[\]]+@$/, '(adresse)');
+    s = s.replace(/\+?\d[\d \u00a0\u202f\u2009.\-()]{4,}$/, m => (m.replace(/\D/g, '').length >= 6 ? '(numéro)' : m));
+  }
+  return s;
+}
 /* Une donnée venue de l'extérieur, présentée à Claude ENTRE DÉLIMITEURS : elle ne peut pas les contenir (on les remplace), donc elle ne
    peut pas « fermer » le bloc et faire passer la suite pour une consigne. */
 const delimiter = t => String(t || '').replace(/[<>]{3,}/g, ' ').replace(/[<>]/g, ' ');
@@ -181,4 +213,4 @@ function normaliserCorps(corps) {
   return t.replace(/\n{3,}/g, '\n\n');
 }
 
-module.exports = { montantEnLettres, DELAI, PROMESSES, OFFRE, FORMULES, PRIX_FORMULES, blocFormules, FORME, OBJET_MAX, CORPS_MIN, CORPS_MAX, ADRESSE, TEL, sansAdresses, sansTel, delimiter, lireMail, refusDe, normaliserCorps };
+module.exports = { montantEnLettres, DELAI, PROMESSES, OFFRE, FORMULES, PRIX_FORMULES, blocFormules, FORME, OBJET_MAX, CORPS_MIN, CORPS_MAX, ADRESSE, TEL, sansAdresses, sansTel, pourAnthropic, delimiter, lireMail, refusDe, normaliserCorps };
