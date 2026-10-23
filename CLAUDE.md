@@ -1644,8 +1644,13 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   tout nouvel appel qui construirait un identifiant à partir d'un nom libre. Même esprit : les décisions d'une box (`db.boxDecisions`) et les paires déclarées
   distinctes (`db.produitsDistincts`) sont des collections à part, fusionnées par enregistrement — ne pas
   les ranger sur la box ni sur la fiche produit, la fusion en bloc écraserait le stock ajusté ailleurs.
-- **Ne jamais écrire une catégorie de produit hors de `CAT_LIST`.** Les huit sont la seule taxonomie
-  de l'application : elles portent une couleur et groupent le stock des box. Les catalogues
+- ⛔ **Ne jamais écrire une catégorie de produit hors de la liste DU MÉTIER — `categoriesProduit()`, jamais `CAT_LIST` en direct.**
+  Jusqu'au 23 octobre 2026, les huit de `CAT_LIST` (anti-nuisibles) étaient la seule taxonomie : un plombier rangeait ses raccords
+  sous « TP14 — Rodenticide ». Justin (« je vérifie bien les catégories par métier, car là je trouve ça léger ») : la 3D garde
+  `CAT_LIST` À L'IDENTIQUE (son pack porte `produits:null`) ; chaque autre métier a sa liste FERMÉE, celle du référentiel
+  (`METIERS[k].produits`, couleurs dans `CAT_COLORS`), et toute lecture passe par la fonction. Une catégorie inconnue d'une base
+  d'avant s'affiche telle quelle — jamais effacée, jamais réécrite au chargement (`migrate` ne range plus que la 3D).
+  Ce qui suit vaut pour la 3D : les huit portent une couleur et groupent le stock des box. Les catalogues
   fournisseurs (`CATFOUR`) en ont 171 autres — les traduire par `rangerCatFour(étiquette, nom)`, jamais
   les recopier. Deux règles y sont gravées : le NOM passe avant l'étiquette (un rayon nomme une cible,
   le nom nomme l'objet), et rien qui nomme une cible ne se replie sur TP14 ni TP18 — ce sont les types

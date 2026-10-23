@@ -23,7 +23,7 @@ const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b
 /* Ce qu'aucun écran de saisie hors 3D ne doit dire. « sanitaire » seul n'y est pas (« Robinetterie & sanitaire » est un type de plomberie). */
 const ANTI = /nuisible|dératis|désinsect|rongeur|biocide|\bAMM\b|matière active|appât|xylophag|infestation|dossier sanitaire|registre sanitaire|\bTP ?1[48]\b|rodonticide|insecticide|virucide|répulsif|proofing|piégeage|glu\b/i;
 const METIERS_ESSAIS = ['plomberie', 'chauffage', 'incendie', 'piscine', 'autre'];
-const NOMS_BASE = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes'];   // (la liste de catégories du métier, `categoriesProduit`, est le sujet de test-2902)
+const NOMS_BASE = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'categoriesProduit', 'categorieListe'];
 
 (async () => {
 for (const fichier of ['app.html', 'beta.html']) {
@@ -111,7 +111,7 @@ for (const fichier of ['app.html', 'beta.html']) {
   { const R = {}; tous.forEach(m => { R[m] = rendu(m, ['formProduit', 'renderProdFours'], w => { w.b.fn.formProduit('p2'); w.els = {}; }, { $: id => { const o = {}; return o; } }); });
     vrai('(population) le formulaire produit se rend pour les six métiers', tous.every(m => R[m].html && R[m].html.length > 3000), tous.filter(m => !R[m].html).map(m => m + ' : ' + R[m].erreur));
     egal('⛔ la 3D garde « Biocide », « N° AMM », « Matière active » et « Type de traitement »', [/Biocide/.test(R['3d'].html), /N° AMM/.test(R['3d'].html), /Matière active/.test(R['3d'].html), /name="categorie3d"/.test(R['3d'].html), /TP14 — Rodenticide/.test(R['3d'].html)], [true, true, true, true, true]);
-    egal('⛔ hors 3D : ni biocide, ni AMM, ni matière active, ni type de traitement (les catégories de la liste : test-2902)', METIERS_ESSAIS.filter(m => /Biocide|N° AMM|Matière active|categorie3d|Type de traitement/.test(R[m].html)), []);
+    egal('⛔ hors 3D : ni biocide, ni AMM, ni matière active, ni type de traitement, ni catégorie de la 3D', METIERS_ESSAIS.filter(m => /Biocide|N° AMM|Matière active|categorie3d|Type de traitement|TP1[48]|Xylophage|Proofing/.test(R[m].html)), []);
     /* les pastilles de fournisseurs : les cinq noms du catalogue 3D ne sont proposés qu'à la 3D */
     const pills = m => { const w = essai(m, ['renderProdFours'], { $: id => (w.els[id] = w.els[id] || {}) }); w.els = {}; w.init.prodFours = new Set(); w.b.fn.renderProdFours(); return (w.els['prod-fours'] || {}).innerHTML || ''; };
     egal('⛔ la 3D propose MABI, SODIF, ARMOSA, ORCAD, ENSYSTEX', ['MABI', 'SODIF', 'ARMOSA', 'ORCAD', 'ENSYSTEX'].map(f => pills('3d').includes('>' + f + '<')), [true, true, true, true, true]);
