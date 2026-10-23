@@ -218,8 +218,10 @@ module.exports = function monterReunions(app, ctx) {
     if (charge) for (const a of agents.AGENTS) par[a.id].tachesEnCours = charge[a.id];
     let cp = {}; try { cp = agents.comptes() || {}; } catch (e) { cp = {}; }
     let incidents = null; try { incidents = typeof faitsExt.incidents === 'function' ? faitsExt.incidents(debut, R.ts) : null; } catch (e) { incidents = null; }
+    /* La part « qualité » d'Inès (`agent-ines.js`) : ses relectures de courriels de la semaine — des NOMBRES et des identifiants de critères. `null` quand elle n'a rien relu : « on ne sait pas ». */
+    let qualite = null; try { qualite = typeof faitsExt.qualite === 'function' ? faitsExt.qualite(debut, R.ts) : null; } catch (e) { qualite = null; }
     const faits = fermer({ journalLisible, parAgent: par, total, validationsEnAttente: cp.validationsEnAttente == null ? null : cp.validationsEnAttente,
-      tachesEnAttente: cp.tachesEnAttente == null ? null : cp.tachesEnAttente, incidents });
+      tachesEnAttente: cp.tachesEnAttente == null ? null : cp.tachesEnAttente, incidents, qualite });
     return { texte: JSON.stringify(Object.assign({ semaine: R.semaine, depuis: libelleCreneau(debut) }, faits)), faits };
   }
 
@@ -376,7 +378,7 @@ module.exports = function monterReunions(app, ctx) {
     const ordre = ORDRE.filter(id => R.participants.includes(id)).concat(R.participants.includes('ines') ? ['ines'] : []);
     for (const id of ordre) {
       if (finie()) { absent(id, 'temps'); continue; }
-      const extra = id === 'ines' ? ' Tu donnes aussi la qualité de la semaine : ce que tu relèves sur le travail de l’équipe, d’après les erreurs et les refus du bloc Faits.' : '';
+      const extra = id === 'ines' ? ' Tu donnes aussi la qualité de la semaine : ce que tu relèves sur le travail de l’équipe, d’après les erreurs et les refus du bloc Faits et le bloc qualite (tes relectures de courriels : combien sont partis, combien étaient conformes, quels critères reviennent).' : '';
       const o = await parole(id, R, run, consignes[R.type] + extra);
       if (o.cause && o.cause !== 'vide') { if (GLOBALES.includes(o.cause)) return abandon(o.cause); absent(id, o.cause); }
       else if (o.parle) { run.parles.add(id); citer(id, o.mentions); }

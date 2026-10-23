@@ -25,7 +25,7 @@ const SANTE_BONNE = () => ({ ok: true, email: true, atts: true, stripe: true, st
 function monter(o) {
   o = o || {};
   const D = fs.mkdtempSync(path.join(os.tmpdir(), 'bplateforme-'));
-  const horloge = { t: o.t0 || Date.UTC(2026, 9, 23, 7, 0, 0) };     // jeudi 23 octobre 2026, 9 h à Paris (heure d'été)
+  const horloge = { t: o.t0 || Date.UTC(2026, 9, 23, 7, 0, 0) };     // vendredi 23 octobre 2026, 9 h à Paris (heure d'été) — le samedi 24, le dimanche 25 (heure d'hiver), le lundi 26
   const maintenant = () => horloge.t;
   const routes = {};
   const app = { use() {} };

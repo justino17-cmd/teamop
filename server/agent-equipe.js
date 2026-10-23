@@ -85,7 +85,7 @@ function outilsDe(id, o) {
   o = o || {};
   const fils = Array.isArray(o.fils) ? o.fils : [];
   const collegues = Array.isArray(o.collegues) ? o.collegues : [];
-  return [
+  const outils = [
     { name: 'ecrire', description: 'Écrire un message dans un fil dont tu es membre (ton fil privé avec Justin, ou un groupe). Pour qu’un collègue le lise, cite-le avec @identifiant dans le texte (par exemple @lea). Pas besoin de cet outil pour répondre à ce qu’on te demande ici : ta réponse normale va déjà dans ce fil. 600 caractères au plus.',
       input_schema: { type: 'object', properties: { fil: { type: 'string', enum: fils }, texte: { type: 'string' } }, required: ['fil', 'texte'], additionalProperties: false } },
     { name: 'prendre', description: 'Accepter un travail : il devient TA tâche en cours, « demandée par » celui qui vient de te la demander. À n’utiliser que si tu t’en charges vraiment ; une simple question n’est pas un travail. Décris le travail en une phrase (500 caractères au plus).',
@@ -97,6 +97,13 @@ function outilsDe(id, o) {
     { name: 'demander_justin', description: 'Poser une question que Justin doit trancher : elle arrive dans ton fil privé avec lui, en « important » (il est notifié). Une question à la fois, courte.',
       input_schema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'], additionalProperties: false } },
   ];
+  /* L'ARBITRAGE (23 octobre 2026) : un SIXIÈME outil, pour Victor seul — `o.arbitre` n'est vrai que pour lui, et seulement quand le module qui range la décision est monté. La règle (deux agents, une décision
+     écrite, ce qui touche à l'argent ou aux accès devient une question à Justin) vit dans `agent-victor.js` : ce fichier-ci ne fait que l'offrir et passer l'appel. */
+  if (o.arbitre) {
+    outils.push({ name: 'arbitrer', description: 'Trancher un désaccord entre DEUX collègues : ta décision en une phrase et la raison ; elle est écrite et dite dans le fil. Si la question touche à l’argent, un contrat, un accès ou des données (ce qui est à Justin), remplis pour_justin avec la question à lui poser : tu ne tranches pas seul.',
+      input_schema: { type: 'object', properties: { entre: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 2 }, decision: { type: 'string' }, raison: { type: 'string' }, pour_justin: { type: 'string' } }, required: ['entre', 'decision', 'raison'], additionalProperties: false } });
+  }
+  return outils;
 }
 
 const MOTIFS_PASSER = {
@@ -157,7 +164,7 @@ module.exports = function agentEquipe(ctx) {
       '- Tu réponds toujours par un message, même court, avant ou avec tes outils. Pour parler à un collègue, cite-le dans ton message avec @ suivi de son identifiant (par exemple @lea) : c’est ainsi qu’il le lit. @tous cite tout le fil.\n' +
       '- Outil prendre : tu acceptes un travail, il devient ta tâche. Outil terminer : c’est fait. Outil passer : seulement si tu es vraiment chargé (une autre tâche en cours) et à un collègue libre, jamais Hugo ni Margaux, et tu en dis la raison ; un collègue libre peut aussi proposer de prendre une tâche d’un collègue chargé. Outil demander_justin : une décision qui lui revient.\n' +
       '- Hugo et Margaux (l’argent, les accès) ne reçoivent de consigne en texte libre que de Justin.\n' +
-      (id === 'victor' ? '- Tu vois la charge de chacun : si un collègue est débordé et qu’un autre est libre, tu peux redistribuer avec l’outil passer, et tu le dis dans le fil.\n' : '') +
+      (id === 'victor' ? '- Tu vois la charge de chacun : si un collègue est débordé et qu’un autre est libre, tu peux redistribuer avec l’outil passer, et tu le dis dans le fil. Quand deux collègues ne sont pas d’accord (ou qu’on te demande de trancher), tu arbitres avec l’outil arbitrer : une décision écrite ; ce qui touche à l’argent, un contrat, un accès ou des données est à Justin, tu lui poses la question avec pour_justin.\n' : '') +
       memoire(id);
   }
 
@@ -288,6 +295,11 @@ module.exports = function agentEquipe(ctx) {
       dire(c.fil, nom + ' a terminé ' + (avant.texte ? '« ' + court(avant.texte, 90) + ' »' : 'une tâche') + (resume ? ' : ' + resume : '') + '.');
       return bon('terminee');
     }
+    if (a.nom === 'arbitrer' && id === 'victor' && typeof ctx.arbitrer === 'function') {
+      const r = ctx.arbitrer(e, { fil: c.fil, prof: c.prof });
+      if (r && r.ok) return bon(r.attendJustin ? 'question à Justin' : 'décision');
+      return refus((r && r.raison) || 'arbitrage', nomDe(id) + ' voulait arbitrer : refusé' + ({ deux_agents: ', il faut deux collègues', decision: ', il faut une décision', arret: '', memoire_illisible: ', sa mémoire est illisible', ecriture: ', la décision n’a pas pu être écrite' }[r && r.raison] || '') + '.');
+    }
     if (a.nom === 'demander_justin') {
       const q = raccourcir(masquer(str('question')));
       if (!q) return refus('texte');
@@ -319,7 +331,7 @@ module.exports = function agentEquipe(ctx) {
     conversations.ecrit(fil, id, true);
     try {
       const system = systemDe(id) + blocCharge() + blocTaches(id) + await blocFaits(id, fil);
-      const outils = outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id) });
+      const outils = outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id), arbitre: id === 'victor' && typeof ctx.arbitrer === 'function' });
       const r = await cerveau.penser(id, system, messages, { outils, reflechir: true });
       if (!r.ok) return echec(id, fil, r.raison, prof);
       const sortie = { repondu: false, actions: [] };

@@ -505,7 +505,10 @@ module.exports = function monterAgents(app, ctx) {
   /* Une validation de ce (type, champ = valeur) attend-elle encore le patron ? Pour un agent qui doit savoir si SON brouillon est encore sous les yeux de
      Justin (une validation refusée ou expirée n'attend plus personne : réécrire le brouillon qui lui correspond serait écrire dans le vide). */
   const enAttentePour = (type, champ, valeur) => { perimer(); return validations.some(v => v.statut === 'en_attente' && v.type === type && v.params && v.params[champ] === valeur); };
-  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe };
+  /* Les validations EN ATTENTE, à la lecture (23 octobre 2026 : Inès les voit vieillir, Victor les compte) : { agent, type, ts } — jamais le résumé ni les paramètres, qui sont des phrases de
+     l'équipe. `null` si la file est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
+  const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
+  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

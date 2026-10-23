@@ -246,7 +246,11 @@ module.exports = function brouillons(app, ctx) {
     return '';
   });
 
-  return { deposer, reecrire, attenteDe, nombreEnAttente, etatDe, estCorrige, envoyer, illisible, vue: ref => (reg[ref] ? vue(reg[ref]) : null), compter: () => Object.keys(reg).length };
+  /* Les courriels PARTIS depuis `depuis` (23 octobre 2026 : Inès les relit avec les critères écrits). L'objet, le texte, l'agent et la source — JAMAIS l'adresse du destinataire. `null` si le
+     registre est illisible : « on ne sait pas » n'est pas « rien n'est parti ». */
+  const envoyes = depuis => (illisible() ? null : Object.keys(reg).map(ref => ({ ref, e: reg[ref] })).filter(x => x.e && x.e.etat === 'envoye' && (x.e.envoyeTs || 0) >= (depuis || 0))
+    .map(x => ({ ref: x.ref, agent: x.e.agent, source: x.e.source, objet: x.e.objet, texte: x.e.texte, ts: x.e.envoyeTs })));
+  return { deposer, reecrire, attenteDe, nombreEnAttente, etatDe, estCorrige, envoyer, illisible, envoyes, vue: ref => (reg[ref] ? vue(reg[ref]) : null), compter: () => Object.keys(reg).length };
 };
 module.exports.resumeDe = resumeDe;
 module.exports.objetCourt = objetCourt;
