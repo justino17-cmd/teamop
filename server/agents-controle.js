@@ -61,12 +61,14 @@ const FAUTES = {
   numero:              { phrase: 'Aucun numéro de téléphone.', grave: true },
   prix_etranger:       { phrase: 'Aucun montant autre que ceux de l’offre.', grave: true },
   pourcentage:         { phrase: 'Aucun pourcentage (c’est une remise que personne n’a faite).', grave: true },
-  promesse:            { phrase: 'Aucune promesse commerciale (gratuit, offert, remise, illimité, garanti, remboursement, « sans engagement » seul…).', grave: true },
+  promesse:            { phrase: 'Aucune promesse commerciale (gratuit, offert, remise, illimité, garanti, remboursement, geste commercial, dédommagement, indemnité, compensation, « sans engagement » seul…).', grave: true },
+  delai:               { phrase: 'Aucun délai promis (« sous 24 heures », « demain », « d’ici vendredi », « dans la journée ») : écrire que nous revenons vers la personne, sans date.', grave: true },
+  essai_promis:        { phrase: 'Ne pas offrir ni ouvrir d’essai dans cette réponse : l’essai d’une semaine se propose seulement après le retour d’un prospect, dans la démarche commerciale.' },
 };
 const JUGE_CODES = ['ton_robotique', 'hors_sujet', 'fait_invente', 'incoherent', 'impoli', 'metier_inadapte'];
 /* ce que `refusDe` (agents-connaissance) répond → le code de la faute */
 const DE_REFUS = { 'objet hors bornes': 'objet', 'texte hors bornes': 'longueur_longue', 'adresse étrangère': 'adresse_etrangere', 'lien étranger': 'lien_etranger',
-  'promesse commerciale': 'promesse', 'numéro de téléphone': 'numero', 'prix étranger': 'prix_etranger', 'pourcentage': 'pourcentage' };
+  'promesse commerciale': 'promesse', 'délai promis': 'delai', 'numéro de téléphone': 'numero', 'prix étranger': 'prix_etranger', 'pourcentage': 'pourcentage' };
 const estGrave = code => !!(FAUTES[code] && FAUTES[code].grave);
 const phrasesDe = codes => (Array.isArray(codes) ? codes : []).filter(c => FAUTES[c]).map(c => FAUTES[c].phrase);
 
@@ -132,6 +134,15 @@ function fautesDuCode(objet, corpsBrut, ctx) {
     if (ctx.activite) {
       const racines = plat(ctx.activite).split(' ').filter(w => w.length >= 5).map(w => w.slice(0, 7));
       if (racines.length && !racines.some(r => debut.includes(r))) f.push('accroche_activite');
+    }
+  }
+  /* Une RÉPONSE de support n'ouvre aucun essai (relecture du 23 octobre 2026 : « nous vous ouvrons dès maintenant un essai d'un mois » passait). Elle peut seulement CITER l'essai d'une semaine de l'offre :
+     le mot « essai » doit voisiner « semaine », sans durée en mois ou en jours, sans verbe qui l'ouvre (ouvrir, offrir, accorder, activer, dès maintenant). */
+  if (profil === 'support') {
+    const sa = norm(corps);
+    for (const m of sa.matchAll(/essai/g)) {
+      const voisin = sa.slice(Math.max(0, m.index - 120), m.index + 120);
+      if (!/semaine/.test(voisin) || /\b(?:mois|jours?|quinzaine|\d+\s*semaines|deux semaines|trois semaines|ouvr|offr|accord|activ|des maintenant|immediat|aujourd)/.test(voisin)) { f.push('essai_promis'); break; }
     }
   }
   if (profil === 'proposition') {

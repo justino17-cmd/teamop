@@ -104,6 +104,50 @@ const sans = (re, par) => BON.replace(re, par === undefined ? '' : par);
     vrai('⛔ un remboursement promis dans une réponse rédigée par Claude : « promesse »', fautes(REP.replace('Nous restons', 'Nous vous rembourserons.\n\nNous restons'), { profil: 'support' }).includes('promesse'));
   }
 
+  console.log('\n1 ter. Ce que le code ne voyait pas (relecture du 23 octobre 2026) : gestes commerciaux, délais, montants en lettres, devises, essai');
+  {
+    const REP = 'Bonjour,\n\nOP GESTION fonctionne sur ordinateur, tablette et téléphone, depuis le navigateur, sans installation : sur téléphone, vous pouvez l’ajouter à l’écran d’accueil.\n\nNous restons à votre disposition.\n\nBien cordialement,';
+    const sup = phrase => fautes(REP.replace('Nous restons à votre disposition.', phrase + '\n\nNous restons à votre disposition.'), { profil: 'support' }, 'Re : Question');
+    for (const [nom, phrase, code] of [
+      ['un geste commercial de deux mois', 'Nous vous accordons un geste commercial de deux mois sur votre abonnement.', 'promesse'],
+      ['un dédommagement', 'Une indemnité de dédommagement vous sera versée.', 'promesse'],
+      ['une compensation', 'Nous vous proposons une compensation pour la gêne.', 'promesse'],
+      ['« à titre gracieux »', 'Cette fonction vous est ouverte à titre gracieux.', 'promesse'],
+      ['un cadeau', 'Un cadeau de bienvenue vous attend.', 'promesse'],
+      ['un bonus', 'Vous recevez un bonus de fidélité.', 'promesse'],
+      ['la prise en charge de frais', 'Nous assurons la prise en charge des frais de déplacement.', 'promesse'],
+      ['« sous 24 heures »', 'Un technicien vous rappelle sous 24 heures.', 'delai'],
+      ['« sous 24 h »', 'Nous vous répondons sous 24 h.', 'delai'],
+      ['« demain matin »', 'Nous livrerons cette fonction demain matin.', 'delai'],
+      ['« d’ici vendredi »', 'La correction sera là d’ici vendredi.', 'delai'],
+      ['« dans les deux jours »', 'Vous serez recontacté dans les deux jours.', 'delai'],
+      ['« dans la journée »', 'Nous reviendrons vers vous dans la journée.', 'delai'],
+      ['« immédiatement »', 'Votre accès est activé immédiatement.', 'delai'],
+      ['un montant en lettres', 'Le tarif est de dix euros par mois pour vous.', 'prix_etranger'],
+      ['un montant en lettres composé', 'Comptez vingt-cinq euros par utilisateur.', 'prix_etranger'],
+      ['des dollars (symbole)', 'Le tarif est de 9,99 $ par mois.', 'prix_etranger'],
+      ['des livres (symbole devant)', 'Comptez £ 12 par mois.', 'prix_etranger'],
+      ['des francs suisses', 'Comptez 30 CHF par mois.', 'prix_etranger'],
+      ['un essai d’un mois ouvert tout de suite', 'Nous vous ouvrons dès maintenant un essai d’un mois de toutes les fonctions.', 'essai_promis'],
+      ['un essai de quinze jours', 'Vous avez droit à un essai de quinze jours.', 'essai_promis'],
+      ['un essai sans durée', 'Nous vous accordons un essai.', 'essai_promis'],
+    ]) {
+      const r = sup(phrase);
+      vrai('⛔ ' + nom + ' : « ' + code + ' »', r.includes(code), r.join(','));
+    }
+    for (const [nom, phrase] of [['« quinze euros » écrit en lettres = 15 € de l’offre', 'Le tarif démarre à quinze euros par mois et par utilisateur.'],
+      ['« rapidement » n’est pas un délai', 'Nous revenons vers vous rapidement avec une réponse précise.'], ['« d’ici là »', 'D’ici là, répondez simplement à ce message.'],
+      ['l’essai d’une semaine de l’offre, cité après le retour', 'Une période d’essai d’une semaine peut vous être proposée ensuite, après vos réponses.'],
+      ['« sous la forme » n’est pas un délai', 'Les rapports sont envoyés sous la forme d’un fichier PDF.']]) {
+      const r = sup(phrase);
+      vrai('(contre-épreuve) ' + nom + ' : permis', r.length === 0, r.join(','));
+    }
+    vrai('⛔ un délai promis dans un courriel de vente tombe aussi', fautes(BON.replace('Nous restons', 'Nous vous rappelons sous 48 heures.\n\nNous restons')).includes('delai'));
+    vrai('…et le BON courriel de vente, qui parle de l’essai « ensuite », ne porte toujours aucune faute', fautes(BON).length === 0);
+    v('les montants écrits en lettres se lisent comme des chiffres', ['dix', 'vingt-cinq', 'quatre-vingt-dix', 'soixante-quinze', 'deux cents', 'mille cinq cents', 'quinze', 'le tarif est de dix', 'les'].map(K.montantEnLettres), [10, 25, 90, 75, 200, 1500, 15, 10, null]);
+    vrai('…et les nouveaux défauts GRAVES (« delai » comme « promesse ») ne sont jamais rangés comme brouillon', C.estGrave('delai') && !C.estGrave('essai_promis'));
+  }
+
   console.log('\n2. Le juge : une sortie FERMÉE');
   {
     const L = C.lireVerdict;

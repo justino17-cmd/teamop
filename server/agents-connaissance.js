@@ -101,13 +101,39 @@ function lireMail(brut) {
 
 /* Les mots d'une PROMESSE que personne n'a faite (« trois mois gratuits », « formule illimitée », « sans engagement »). Cherchés sur le texte sans accents ni
    majuscules, au début des mots (« garanti » attrape garantie, garantissons). Pas « offre » seul : c'est le nom de notre offre, et le mot revient partout. */
-const PROMESSES = /\b(?:gratuit|offert|offre\s+(?:speciale|exclusive)|offrons|offrirons|remise|rabais|reduction|promotion|illimite|garanti|garantissons|rembours|satisfait\s+ou|sans\s+engagement|sans\s+frais|sans\s+surcout|a\s+vie\b)/;
+const PROMESSES = /\b(?:gratuit|offert|offre\s+(?:speciale|exclusive)|offrons|offrirons|remise|rabais|reduction|promotion|illimite|garanti|garantissons|rembours|satisfait\s+ou|sans\s+engagement|sans\s+frais|sans\s+surcout|a\s+vie\b|geste\s+commercial|dedommag|indemni|compensation|compenser|a\s+titre\s+gracieux|gracieusement|prise\s+en\s+charge\s+(?:de|des|d)\s*(?:'|\s)?\s*frais|cadeau|bonus|avoir\s+offert)/;
+/* UN DÉLAI promis (relecture du 23 octobre 2026) : « sous 24 heures », « demain matin », « d'ici vendredi », « dans les deux jours »… L'offre ne promet AUCUN délai (`OFFRE`), et un client qui lit
+   « un technicien vous rappelle sous 24 heures » attend ce rappel. « Rapidement » n'est pas un délai ; « d'une semaine » (l'essai) non plus : seuls sont visés « sous / dans / d'ici / avant » suivis
+   d'une durée ou d'un jour, et les mots du lendemain. Cherché sur le texte sans accents. */
+const DELAI = /\b(?:(?:sous|dans|d['’]ici|avant)\s+(?:(?:les|la|le|l['’])\s*)?(?:\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|douze|quinze|vingt|trente|quelques|plusieurs)?\s*(?:h\b|heures?|minutes?|jours?|journees?|semaines?|mois|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|fin\s+de\s+(?:semaine|mois|journee))|demain|apres-demain|ce\s+soir|cet\s+apres-midi|aujourd['’]hui\s+meme|immediatement|au\s+plus\s+tard)/;
 const sansAccents = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 /* Un NOM DE DOMAINE nu (« teamop-paiement.example/pay », « bit.ly/3xYz ») : des étiquettes séparées par des points, une extension de lettres MINUSCULES (« fin.Merci » n'en est pas un). Seule abréviation
    française qui en a la forme : « p.ex » (écartée par son nom, `ABREVIATIONS`). Les extensions de fichier courantes ne comptent pas comme des sites. */
 const DOMAINE = /(?<![A-Za-z0-9@.-])((?:[A-Za-z0-9][A-Za-z0-9-]{0,62}\.)+[a-z]{2,24})(?![A-Za-z0-9-])/g;
 const ABREVIATIONS = new Set(['p.ex']);
 const FICHIERS = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'gif', 'txt', 'zip', 'csv']);
+
+/* Un nombre écrit en lettres, de zéro à 9 999 (« vingt-cinq » → 25, « quatre-vingt-dix » → 90, « deux cents » → 200, « mille cinq cents » → 1 500). `null` si les mots qui précèdent « euros » ne forment
+   pas un nombre COMPLET (« les euros » n'est pas un montant). Lu sur le texte sans accents. */
+function montantEnLettres(mots) {
+  const U = { zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16,
+    vingt: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60 };
+  const w = String(mots || '').split(/[\s-]+/).filter(Boolean);
+  // on garde la plus longue FIN de phrase faite uniquement de mots-nombres
+  let k = w.length; while (k > 0 && (w[k - 1] in U || ['et', 'cent', 'cents', 'mille'].includes(w[k - 1]))) k--;
+  const nb = w.slice(k).filter(x => x !== 'et');
+  if (!nb.length) return null;
+  let total = 0, cours = 0;
+  for (const x of nb) {
+    if (x === 'cent' || x === 'cents') cours = (cours || 1) * 100;
+    else if (x === 'mille') { total += (cours || 1) * 1000; cours = 0; }
+    else if (x in U) cours += U[x];
+  }
+  // « quatre-vingt » : quatre × vingt
+  const txt = nb.join(' ');
+  if (/quatre vingts?/.test(txt)) { const r = txt.replace(/quatre vingts?/, 'X').split(' '); let c2 = 0, t2 = 0; for (const x of r) { if (x === 'X') c2 += 80; else if (x === 'cent' || x === 'cents') c2 = (c2 || 1) * 100; else if (x === 'mille') { t2 += (c2 || 1) * 1000; c2 = 0; } else if (x in U) c2 += U[x]; } return t2 + c2; }
+  return total + cours;
+}
 
 /* Ce que Claude écrit se vérifie avant d'être rangé : un texte venu d'un courriel hostile ne doit pas pouvoir y glisser un lien de
    paiement ou une adresse d'ailleurs. Seuls le site de TeamOP et ses adresses passent ; aucun numéro de téléphone (Claude n'en a reçu aucun,
@@ -130,10 +156,15 @@ function refusDe(objet, corps, opts) {
   }
   /* « sans engagement de durée » est un FAIT (tarifs.html, CGV art. 6) : seule cette formule exacte est permise, « sans engagement » seul reste une promesse refusée. */
   if (PROMESSES.test(sansAccents(tout).replace(/sans\s+engagement\s+de\s+duree/g, ' '))) return 'promesse commerciale';
+  if (DELAI.test(sansAccents(tout))) return 'délai promis';
   for (const m of tout.matchAll(TEL)) if (m[0].replace(/\D/g, '').length >= 9) return 'numéro de téléphone';
   /* Le SEUL prix permis est « 15 € » (le plancher de l'offre) : tout autre montant en euros est une promesse que personne n'a faite. Et un
      pourcentage est une remise. ⚠️ On lit le NOMBRE, pas le mot : « 150 € » contient « 15 » — une comparaison de texte le laisserait passer. */
   for (const m of tout.matchAll(/(\d[\d  .,]*)\s*(?:€|euros?\b|eur\b)/gi)) if (!prixOk.includes(parseFloat(m[1].replace(/[^\d.,]/g, '').replace(',', '.')))) return 'prix étranger';
+  /* un montant dans une AUTRE devise (« 9,99 $ », « £ 12 », « 20 dollars », « 30 CHF ») n'est jamais un prix de l'offre ; et un montant ÉCRIT EN LETTRES (« dix euros », « vingt-cinq euros ») se lit
+     comme un chiffre (« quinze euros » = 15 passe, comme « 15 € »). */
+  if (/\d\s*(?:\$|£|usd\b|gbp\b|chf\b|dollars?\b|livres?\s+sterling|francs?\b)|[$£]\s*\d/i.test(tout)) return 'prix étranger';
+  for (const m of sansAccents(tout).matchAll(/((?:[a-z]+[\s-]+){0,5}[a-z]+)\s+euros?\b/g)) { const v = montantEnLettres(m[1]); if (v !== null && !prixOk.includes(v)) return 'prix étranger'; }
   if (/\d\s*%|pour\s?cent/i.test(tout)) return 'pourcentage';
   return '';
 }
@@ -147,4 +178,4 @@ function normaliserCorps(corps) {
   return t.replace(/\n{3,}/g, '\n\n');
 }
 
-module.exports = { OFFRE, FORMULES, PRIX_FORMULES, blocFormules, FORME, OBJET_MAX, CORPS_MIN, CORPS_MAX, ADRESSE, TEL, sansAdresses, sansTel, delimiter, lireMail, refusDe, normaliserCorps };
+module.exports = { montantEnLettres, DELAI, PROMESSES, OFFRE, FORMULES, PRIX_FORMULES, blocFormules, FORME, OBJET_MAX, CORPS_MIN, CORPS_MAX, ADRESSE, TEL, sansAdresses, sansTel, delimiter, lireMail, refusDe, normaliserCorps };
