@@ -53,9 +53,13 @@ const lancer = (dossier, sortie) => spawnSync(process.execPath, [path.join(dossi
     ["Changer d'application", "<button class=\"btn ghost sm\" onclick=\"try{localStorage.removeItem('teamop_app')}catch(e){};location.href='index.html?hub=1'\">Changer d'application</button>"], ['loadLeaflet', 'function loadLeaflet(){ return new Promise((res,rej)=>{\n  if(window.L) return res();'], ['boîtes du courrier', "if(BETA_ESSAI){ const e=new Error('Espace de test : aucune vraie boîte mail ne se connecte ici. Les vrais mails se testent dans la Tour.'); e.calme=true; throw e; }"], ['rangée OP MESSAGES du menu', '<a id="suite-opmsg" href="messages.html"'], ['bouton flottant OP MESSAGES', '<a class="msg-flot" id="msg-flot" href="messages.html"'],
     ['suiteRefresh', "const soOn=!!(can('opMessages')&&planOpMsg()&&opMsgDisponible());"], ['bandeau', 'try{ multiProposer(view); }catch(_e){}'],
     ['démarrage', 'try{ txtAppliquer(); }catch(e){}\nboot();\n'], ['haut de page', '<meta charset="utf-8">\n'],
-    ['code d\'équipe devis', "'op_devis_code'"], ['préfixe', "const STORE_KEY = 'elan_gestion_v2';"]
+    ['code d\'équipe devis', "'op_devis_code'"], ['préfixe', "const STORE_KEY = 'elan_gestion_v2';"],
+    ['forceUpdate', 'async function forceUpdate(){'], ['Assistant devis', "  if(!adCode()){\n    $('content').innerHTML=`<div class=\"card\"><div class=\"card-head\"><h3>🔒 Code d'accès requis</h3></div>"],
+    ['Devis IA — message', "  if(demande.trim().length<5){ show('Décris la prestation d\\'abord.'); return; }\n"],
+    ['Devis IA — état', "  // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui\n  fetch(PUSH_API+'/api/devis/etat?team='"],
+    ['sms: (location.href)', "location.href='sms:'+"], ['mailto: (location.href)', "location.href='mailto:'+"], ['mailto: (window.location.href)', 'window.location.href=`mailto:${mail}?subject=']
   ];
-  vrai('(population) ' + GARDES.length + ' gardes à éprouver, chacune avec un motif qui existe UNE fois ou plus dans app.html', GARDES.length >= 20 && GARDES.every(g => APP.indexOf(g[1]) >= 0));
+  vrai('(population) ' + GARDES.length + ' gardes à éprouver, chacune avec un motif qui existe UNE fois ou plus dans app.html', GARDES.length >= 27 && GARDES.every(g => APP.indexOf(g[1]) >= 0));
   const tombees = [];
   GARDES.forEach(([nom, motif]) => {
     fs.writeFileSync(path.join(COPIE, 'app.html'), APP.split(motif).join('«MOTIF-RETIRÉ»'));
@@ -160,6 +164,12 @@ function fenetre(opts) {
     Notification: class { constructor() { appels.notif++; } }, PushManager: function () { },
     open: u => { appels.open.push(String(u)); return { fenetre: true }; }, toast: m => { appels.toasts.push(m); }
   };
+  /* le Cache Storage de l'ORIGINE : celui de la vraie application (teamop-…) et celui de la démonstration (elanD_…) */
+  const cachesReel = { m: new Set(['teamop-REEL', 'teamop-statique-v772', 'elanD_cache']), keys() { return Promise.resolve([...this.m]); }, has(n) { return Promise.resolve(this.m.has(n)); },
+    open(n) { this.m.add(n); return Promise.resolve({ cache: n }); }, delete(n) { return Promise.resolve(this.m.delete(n)); }, match() { return Promise.resolve('copie'); } };
+  W.caches = cachesReel;
+  W.SpeechRecognition = function () { }; W.webkitSpeechRecognition = function () { };
+  if (opts.figeStockage) Object.defineProperty(W, 'localStorage', { value: real, writable: false, configurable: false });   // un navigateur qui refuse la redéfinition
   /* des éléments dont `src` et `href` sont des accesseurs du prototype (comme dans un navigateur), et un innerHTML qui note ce qu'on lui donne */
   class El { dispatchEvent() { this.erreur = true; return true; } setAttribute(n, v) { appels.attr.push([n, String(v)]); } }
   ['src', 'href', 'data'].forEach(a => Object.defineProperty(El.prototype, a, { configurable: true, get() { return this['_' + a]; }, set(v) { appels.src.push(String(v)); this['_' + a] = v; } }));
@@ -168,7 +178,7 @@ function fenetre(opts) {
   Object.defineProperty(W.Element.prototype, 'innerHTML', { configurable: true, enumerable: true, get() { return ''; }, set(v) { appels.html.push(String(v)); } });
   W.window = W; W.Notification.permission = 'default'; W.Notification.requestPermission = () => Promise.resolve('granted');
   vm.runInNewContext('(function(window){' + PARE + '\n})(__W)', { __W: W, Proxy, Promise, Object, String, Array, Date, JSON, setTimeout: f => { f(); return 0; } });
-  return { W, appels, real };
+  return { W, appels, real, cachesReel };
 }
 (async () => {
   const { W, appels, real } = fenetre();
@@ -258,6 +268,146 @@ function fenetre(opts) {
     vrai('le métier se règle par metierServeurAppliquer (la fonction de la Tour), les types par intTypes(), les catégories par categoriesProduit() : aucune liste recopiée dans le semis',
       /metierServeurAppliquer\(\{\s*metier:\s*id\s*\}\)/.test(code) && /intTypes\(\)/.test(code) && /categoriesProduit\(\)/.test(code) && !/INT_TYPES\b|CAT_LIST\b/.test(code));
   }
+
+  console.log('\n   — le cache : la page ne voit que les siens (« Forcer la mise à jour » ne vide pas la copie hors ligne de la VRAIE application)');
+  {
+    const F = fenetre(), W2 = F.W;
+    egal('(population) l\'origine porte 3 caches : deux de la vraie application, un de la démonstration', [...F.cachesReel.m].sort(), ['elanD_cache', 'teamop-REEL', 'teamop-statique-v772']);
+    egal('caches.keys() ne rend QUE ceux de la démonstration (elanD_…)', await W2.caches.keys(), ['elanD_cache']);
+    await Promise.all((await W2.caches.keys()).map(k => W2.caches.delete(k)));   // le geste exact de forceUpdate
+    egal('⛔ le geste de forceUpdate (keys puis delete de chacun) laisse les caches de la vraie application', [...F.cachesReel.m].sort(), ['teamop-REEL', 'teamop-statique-v772']);
+    const dir = await W2.caches.delete('teamop-REEL'); let ouvert = null; try { await W2.caches.open('teamop-REEL'); } catch (e) { ouvert = e; }
+    vrai('⛔ delete / open / has / match visés sur un cache étranger : refusés ou muets, et le cache est intact', dir === false && !!(ouvert && ouvert.demo) && (await W2.caches.has('teamop-REEL')) === false && (await W2.caches.match('x')) === undefined && F.cachesReel.m.has('teamop-REEL'));
+    /* la vraie fonction de la page */
+    const rep = { reload: 0, keys: 0 };
+    const bf = bac('demo.html', ['forceUpdate'], { DEMO_PUBLIQUE: true, location: { reload: () => { rep.reload++; } }, caches: { keys: () => { rep.keys++; return Promise.resolve(['teamop-REEL']); }, delete: () => Promise.resolve(true) }, window: { caches: {} }, navigator: {} });
+    await bf.fn.forceUpdate();
+    vrai('⛔ forceUpdate() de la démonstration recharge la page et ne touche à AUCUN cache', rep.reload === 1 && rep.keys === 0, rep);
+    const rep2 = { reload: 0, keys: 0 };
+    const bf2 = bac('demo.html', ['forceUpdate'], { DEMO_PUBLIQUE: false, location: { reload: () => { rep2.reload++; } }, caches: { keys: () => { rep2.keys++; return Promise.resolve([]); }, delete: () => Promise.resolve(true) }, window: { caches: {} }, navigator: {} });
+    await bf2.fn.forceUpdate();
+    vrai('(contre-épreuve) sans le drapeau, la même fonction lit bien les caches — le banc la fait entrer', rep2.keys === 1, rep2);
+  }
+
+  console.log('\n   — la dictée : retirée (l\'audio partirait chez l\'éditeur du navigateur, hors de portée de la politique de contenu)');
+  {
+    const W2 = fenetre().W;
+    vrai('SpeechRecognition et webkitSpeechRecognition n\'existent plus dans la page (typeof « undefined »)', typeof W2.SpeechRecognition === 'undefined' && typeof W2.webkitSpeechRecognition === 'undefined');
+    const els = {}; const el = id => (els[id] = els[id] || { textContent: '' });
+    const bm = bac('demo.html', ['devisIAMic'], { window: W2, $: el });
+    bm.fn.devisIAMic();
+    vrai('la VRAIE devisIAMic() rencontre l\'absence et le dit : « Dictée non disponible sur ce navigateur »', els['dia-mic-etat'] && els['dia-mic-etat'].textContent === 'Dictée non disponible sur ce navigateur', els);
+    const Wm = { SpeechRecognition: function () { this.neuf = true; } }; const els2 = {}; const bm2 = bac('demo.html', ['devisIAMic'], { window: Wm, $: id => (els2[id] = els2[id] || { textContent: '' }) });
+    bm2.fn.devisIAMic();
+    vrai('(contre-épreuve) sur une fenêtre qui GARDE la reconnaissance, la même fonction la démarre : le banc voit la différence', !els2['dia-mic-etat'] || els2['dia-mic-etat'].textContent !== 'Dictée non disponible sur ce navigateur');
+  }
+
+  console.log('\n   — le stockage : un navigateur qui refuse la vue n\'ouvre RIEN, et n\'écrit rien chez les clients');
+  {
+    const bon = fenetre(), mauvais = fenetre({ figeStockage: true });
+    vrai('(population) la fenêtre normale pose sa vue (stockageIsole vrai) ; la fenêtre figée la refuse (faux)', bon.W.__demoPublique.stockageIsole === true && mauvais.W.__demoPublique.stockageIsole === false);
+    vrai('⛔ sans vue posée, le pare-feu n\'écrit PAS top_monitor_off sur le vrai rangement (il éteindrait la sentinelle de la vraie application) — et le note', mauvais.real._m.top_monitor_off === undefined
+      && Object.keys(mauvais.real._m).every(k => !/top_monitor/.test(k)) && mauvais.W.__demoPublique.refus.some(r => r.genre === 'stockage'), Object.keys(mauvais.real._m));
+    const appels = []; const els = {}; const el = id => (els[id] = els[id] || { style: {}, innerHTML: '' });
+    const mk = stockageIsole => bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris'], { window: { __demoPublique: { stockageIsole } }, document: { getElementById: el }, location: { search: '', pathname: '/demo.html' },
+      demoPubliqueBouchons: () => appels.push('bouchons'), demoPubliqueStyle: () => { }, demoPubliqueChoixLire: () => '', demoPubliqueMetiers: () => ['3d'], demoPubliqueChoix: () => appels.push('choix'),
+      demoPubliqueSemer: () => appels.push('semer'), demoPubliqueOuvrir: () => appels.push('ouvrir'), demoPubliqueChoixEcrire: () => { }, db: {} });
+    mk(false).fn.demoPubliqueBoot();
+    vrai('⛔ la VRAIE demoPubliqueBoot() sans vue du stockage : « Navigateur non pris en charge », aucun bouchon, aucun semis, aucune ouverture, aucun choix de métier', appels.length === 0 && /Navigateur non pris en charge/.test(els['login-box'].innerHTML), appels);
+    mk(true).fn.demoPubliqueBoot();
+    vrai('(contre-épreuve) avec la vue posée, la même fonction poursuit (bouchons, puis le choix du métier)', appels.join() === 'bouchons,choix', appels);
+  }
+
+  console.log('\n   — suivre le lien d\'un AUTRE métier ne remplace pas les essais sans le demander');
+  {
+    const cas = (search, deja, base, accepte) => {
+      const j = { confirm: 0, semer: [], ecrit: [], ouvrir: 0 };
+      const b = bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris'], { window: { __demoPublique: { stockageIsole: true } }, document: { getElementById: () => ({ style: {}, innerHTML: '' }) }, location: { search, pathname: '/demo.html' },
+        history: { replaceState: () => { j.replace = true; } }, confirm: () => { j.confirm++; return accepte; }, demoPubliqueBouchons: () => { }, demoPubliqueStyle: () => { }, demoPubliqueChoixLire: () => deja,
+        demoPubliqueMetiers: () => ['3d', 'plomberie', 'chauffage'], demoPubliqueChoix: () => { j.choix = true; }, demoPubliqueSemer: id => j.semer.push(id), demoPubliqueOuvrir: () => { j.ouvrir++; },
+        demoPubliqueChoixEcrire: id => j.ecrit.push(id), db: base });
+      b.fn.demoPubliqueBoot(); return j;
+    };
+    const posee = { demoPublique: { metier: '3d' }, techniciens: [{}] };
+    let j = cas('?metier=plomberie', '3d', posee, false);
+    vrai('⛔ une base 3D posée + ?metier=plomberie : on DEMANDE ; refusé, la base reste, rien n\'est resemé, l\'adresse est nettoyée', j.confirm === 1 && j.semer.length === 0 && j.ecrit.join() === '3d' && j.ouvrir === 1 && j.replace === true, j);
+    j = cas('?metier=plomberie', '3d', posee, true);
+    vrai('accepté : l\'exemple du nouveau métier remplace les essais (resemé une fois)', j.confirm === 1 && j.semer.join() === 'plomberie' && j.ecrit.join() === 'plomberie', j);
+    j = cas('?metier=3d', '3d', posee, false);
+    vrai('le MÊME métier que celui déjà posé : aucune question, rien n\'est resemé', j.confirm === 0 && j.semer.length === 0 && j.ouvrir === 1, j);
+    j = cas('?metier=chauffage', '', {}, false);
+    vrai('un premier passage (aucun métier encore choisi) : aucune question, l\'exemple se pose', j.confirm === 0 && j.semer.join() === 'chauffage', j);
+    j = cas('?metier=chauffage', '3d', {}, false);
+    vrai('un métier mémorisé mais SANS base (effacée) : aucune question — il n\'y a plus d\'essais à perdre', j.confirm === 0 && j.semer.join() === 'chauffage', j);
+  }
+
+  console.log('\n   — sms: et mailto: écrits par l\'application : détournés, jamais une messagerie qui s\'ouvre');
+  {
+    const toasts = [], loc = { href: 'http://127.0.0.1/demo.html' };
+    const nav = vm.runInNewContext('(' + litteral(MODULE, 'const demoNav = ') + ')', { location: loc, toast: m => toasts.push(m), DEMO_MSG: MSG, window: { __demoPublique: { refus: [] } }, String, Date });
+    ['sms:0199003441?&body=Bonjour', 'mailto:client@exemple.invalid?subject=Devis'].forEach(u => { nav.href = u; });
+    vrai('⛔ demoNav.href = sms: / mailto: : la page ne bouge pas, la personne lit « rien n\'est envoyé » et que la messagerie ne s\'ouvre pas', loc.href === 'http://127.0.0.1/demo.html' && toasts.length === 2
+      && toasts.every(t => t.indexOf(MSG) >= 0 && /messagerie ne s’ouvre pas/.test(t)), toasts);
+    const code = N;   // jamais le nettoyage « tout bloc /* … */ » : il avale du vrai code (CLAUDE.md)
+    egal('(population) sept affectations détournées vers demoNav.href dans la page ; AUCUNE affectation de location.href vers sms:, mailto: ou tel: ne subsiste',
+      [(code.match(/demoNav\.href\s*=/g) || []).length, /location\.href\s*=\s*['"`](?:sms|mailto|tel):/.test(code)], [7, false]);
+  }
+
+  console.log('\n   — les écrans qui promettaient une fonction absente d\'ici');
+  {
+    /* Paramètres : les cartes retirées existent dans app.html (un renommage les ferait réapparaître en silence) */
+    const RETIREES = evalue(litteral(MODULE, 'const DEMO_PARAM_RETIREES = ['));
+    const FORFAIT = evalue(litteral(MODULE, 'const DEMO_PARAM_FORFAIT = ').length ? '"' + (/const DEMO_PARAM_FORFAIT = '((?:[^'\\]|\\.)*)'/.exec(MODULE) || [])[1].replace(/\\'/g, '\'') + '"' : '""');
+    const titresApp = new Set(); (APP.match(/<h3>(?:[^<]*)<\/h3>/g) || []).forEach(h => titresApp.add(h.replace(/<\/?h3>/g, '').replace(/^[^A-Za-zÀ-ÿ]+/, '').trim()));
+    egal('(population) ' + RETIREES.length + ' cartes retirées de Paramètres + la carte Forfait : chaque titre est un <h3> d\'app.html', RETIREES.concat([FORFAIT]).filter(t => !titresApp.has(t)), []);
+    egal('les cartes retirées sont celles qui parlent à un serveur ou à une vraie boîte mail', RETIREES.slice().sort(), ['Devis IA', 'E-mails aux clients', 'Installer l\'application', 'Le lien de connexion de ton entreprise', 'Mes envois', 'Mon e-mail professionnel', 'Notifications', 'Synchronisation de l\'équipe']);
+    /* la VRAIE fonction, sur des cartes qui portent les titres tels que l'application les écrit (pictogramme devant) */
+    const cartes = ['⚙️ Contrôle des mouvements', 'Mon compte', '🔔 Notifications', '💼 Mon e-mail professionnel', 'Apparence', 'Forfait de l\'espace', 'Sauvegarde & synchronisation', '✨ Devis IA', 'Comptabilité',
+      'Installer l\'application', 'Synchronisation de l\'équipe', '🔗 Le lien de connexion de ton entreprise', 'Mon entreprise', 'Mes envois', '✉️ E-mails aux clients', 'Mise à jour'].map(t => ({ t, ote: false, html: null }));
+    const mkCarte = c => ({ parentNode: { removeChild: () => { c.ote = true; } }, querySelector: () => ({ textContent: c.t }), set innerHTML(v) { c.html = v; } });
+    const objets = cartes.map(mkCarte);
+    const contenu = { querySelectorAll: () => objets };
+    const bp = bac('demo.html', ['demoPubliqueParametres'], { document: { getElementById: () => contenu }, DEMO_PARAM_RETIREES: RETIREES, DEMO_PARAM_FORFAIT: FORFAIT });
+    bp.fn.demoPubliqueParametres();
+    egal('⛔ Paramètres : seules les 8 cartes à serveur / boîte mail sont retirées', cartes.filter(c => c.ote).map(c => c.t.replace(/^[^A-Za-zÀ-ÿ]+/, '')).sort(), RETIREES.slice().sort());
+    vrai('la carte « Forfait de l\'espace » est réécrite (formule de démonstration, tarifs) : plus d\'abonnement, de « Business Premium » ni de « 10 abonnements »', (() => { const f = cartes.find(c => c.t === 'Forfait de l\'espace'); return !f.ote && /toutes les rubriques sont ouvertes/.test(f.html) && /Aucun abonnement n’existe ici/.test(f.html) && !/Business|abonnements|Activer/.test(f.html.replace(/Aucun abonnement/, '')); })());
+    vrai('les autres cartes (Mon compte, Apparence, Sauvegarde, Comptabilité, Mon entreprise, Mise à jour…) restent intactes', cartes.filter(c => !c.ote && c.t !== 'Forfait de l\'espace').length === cartes.length - RETIREES.length - 1 && cartes.filter(c => !c.ote && c.html !== null && c.t !== 'Forfait de l\'espace').length === 0);
+    /* le crochet : views.parametres est enveloppée UNE fois, rend ce que rend l'originale, puis retouche */
+    let rendus = 0, retouches = 0; const views = { parametres: function () { rendus++; return 'RENDU'; } };
+    const bq = bac('demo.html', ['demoPubliqueParametresPoser'], { views, demoPubliqueParametres: () => { retouches++; } });
+    bq.fn.demoPubliqueParametresPoser(); bq.fn.demoPubliqueParametresPoser();
+    vrai('views.parametres est enveloppée UNE seule fois (poser deux fois ne double pas) ; elle rend le rendu de l\'originale et retouche l\'écran juste derrière', views.parametres() === 'RENDU' && rendus === 1 && retouches === 1);
+    vrai('… et demoPubliqueBouchons pose ce crochet', fonction(N, 'demoPubliqueBouchons').indexOf('demoPubliqueParametresPoser()') > 0);
+
+    /* Assistant devis : plus de « Code d'accès requis » */
+    const els = {}; const el = id => (els[id] = els[id] || { innerHTML: '' });
+    const ba = bac('demo.html', ['demoPubliqueAssistantDevis'].concat([]), { document: { getElementById: el } });
+    ba.fn.demoPubliqueAssistantDevis();
+    vrai('l\'assistant devis dit ce qu\'il en est dans la démonstration — ni « Code d\'accès requis », ni « Demande le code au responsable »', /Dans la démonstration, l’assistant ne répond pas/.test(els.content.innerHTML) && !/Code d'accès|Demande le code/.test(els.content.innerHTML) && /go\('devis'\)/.test(els.content.innerHTML));
+    const av = bac('demo.html', ['demoPubliqueAssistantDevis'], { document: { getElementById: el } }, ['views.assistantDevis=function(){']);
+    vrai('(le code) views.assistantDevis rend la main à la démonstration AVANT la branche du code d\'accès', (() => { const f = N.slice(N.indexOf('views.assistantDevis=function(){')); return f.indexOf('if(DEMO_PUBLIQUE){ demoPubliqueAssistantDevis(); return; }') > 0 && f.indexOf('if(DEMO_PUBLIQUE){ demoPubliqueAssistantDevis(); return; }') < f.indexOf('if(!adCode()){'); })() && typeof av.fn === 'object');
+
+    /* Devis IA : la VRAIE devisIAGo ne part plus vers le serveur et ne dit pas « Le serveur ne répond pas » */
+    const jeu = drapeau => {
+      const e = {}; const elx = id => (e[id] = e[id] || { style: {}, value: '', textContent: '', disabled: false });
+      elx('dia-demande').value = 'Remplacement d\'un chauffe-eau de 200 L'; let fetches = 0;
+      const bg = bac('demo.html', ['devisIAGo', 'demoPubliqueDevisIAMessage'], { DEMO_PUBLIQUE: drapeau, $: elx, can: () => true, permGarde: () => true, clientPropose: () => true, devisIACode: () => '', PUSH_API: 'https://api.teamop.fr', syncTeam: () => '',
+        fetch: () => { fetches++; return Promise.reject(new TypeError('refusé')); }, uid: () => 'u1', db: { devis: [] }, toast: () => { } });
+      return bg.fn.devisIAGo(false).then(() => ({ e, fetches }));
+    };
+    const dd = await jeu(true), dn = await jeu(false);
+    vrai('⛔ Devis IA : la VRAIE devisIAGo() de la démonstration n\'appelle AUCUN serveur et dit pourquoi (« rien n\'est envoyé ») — pas « Le serveur ne répond pas »', dd.fetches === 0 && /Dans la démonstration, la rédaction par l’IA n’est pas branchée/.test(dd.e['dia-err'].textContent) && !/serveur ne répond pas/.test(dd.e['dia-err'].textContent), dd.e['dia-err']);
+    vrai('(contre-épreuve) sans le drapeau, la même fonction appelle le serveur et affiche son échec — le banc la fait bien entrer jusque-là', dn.fetches === 1 && /Le serveur ne répond pas/.test(dn.e['dia-err'].textContent), dn.e['dia-err']);
+    vrai('la fenêtre « Devis IA » ne demande pas son état au serveur dans la démonstration (une phrase à la place)', /if\(DEMO_PUBLIQUE\) demoPubliqueDevisIAEtat\(\); else fetch\(PUSH_API\+'\/api\/devis\/etat\?team='/.test(N));
+    vrai('le bandeau annonce ce qui ne marche pas ici : l\'IA, la synchro, le courrier — et que toutes les rubriques sont ouvertes', /Toutes les rubriques sont ouvertes ; l’IA, la synchro et le courrier ne fonctionnent pas ici/.test(MODULE));
+  }
+
+  console.log('\n   — les fenêtres vides (impression, PDF) ne tiennent que par la politique de contenu héritée : on garde cette politique, directive par directive');
+  vrai('default-src \'none\', connect-src data: blob:, form-action \'none\', object-src et frame-src sans hôte : ce qu\'une fenêtre vide hérite', (DIRECTIVES['default-src'] || []).join() === '\'none\'' && (DIRECTIVES['connect-src'] || []).join() === 'data:,blob:'
+    && (DIRECTIVES['form-action'] || []).join() === '\'none\'' && (DIRECTIVES['frame-src'] || []).every(x => /^(blob|data):$/.test(x)) && (DIRECTIVES['object-src'] || []).every(x => /^(blob|data):$/.test(x)));
+  vrai('et pare-feu.js DIT que ces fenêtres n\'ont pas son pare-feu (une note, pour qu\'un gabarit neuf n\'y compte pas)', /fenêtres VIDES[\s\S]{0,400}n'ont PAS ce pare-feu/.test(PARE));
+  { const sw = lire('sw.js');
+    if (!/demo\.html/.test(sw)) console.log('  ⚠ PRÉREQUIS DE PUBLICATION (non compté) : sw.js n\'exclut pas demo.html — le worker rangerait la démonstration (4,3 Mo) dans le cache de la VRAIE application et annoncerait « Nouvelle version prête » à ses fenêtres. À poser (avec beta.html, tour.html, dev.html) AVANT de publier demo.html ; sw.js se décide hors de cette branche.'); }
   suite();
 })().catch(e => { ko++; console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); finir(); });
 
@@ -357,12 +507,19 @@ function suite() {
 
   console.log('\n6 bis. Les fonctions de l\'application que la démonstration coupe');
   { const COUPEES = evalue(litteral(MODULE, 'const DEMO_FONCTIONS_COUPEES = ['));
-    vrai('(population) ' + COUPEES.length + ' fonctions coupées, chacune DÉCLARÉE dans app.html (un renommage la sortirait de la liste en silence)', COUPEES.length >= 12 && COUPEES.every(n => fonction(nu(APP), n).length > 20), COUPEES.filter(n => !fonction(nu(APP), n)));
+    vrai('(population) ' + COUPEES.length + ' fonctions coupées, chacune DÉCLARÉE dans app.html (un renommage la sortirait de la liste en silence)', COUPEES.length >= 14 && COUPEES.every(n => fonction(nu(APP), n).length > 20), COUPEES.filter(n => !fonction(nu(APP), n)));
     const appels = []; const w = { location: { href: 'http://127.0.0.1/demo.html' } };
-    COUPEES.concat(['syncNow', 'syncEtat', 'srvMail', 'logout']).forEach(n => { w[n] = function () { appels.push(n); return 'ORIGINAL'; }; });
+    const ASYNC = COUPEES.filter(n => new RegExp('async function ' + n + '\\(').test(nu(APP)));
+    vrai('(population) ' + ASYNC.length + ' fonctions coupées sont `async` dans app.html (dont syncInit : `syncInit().then(…)` attend une promesse)', ASYNC.length >= 3 && ASYNC.indexOf('syncInit') >= 0, ASYNC);
+    COUPEES.concat(['syncNow', 'syncEtat', 'srvMail', 'logout']).forEach(n => { w[n] = ASYNC.indexOf(n) >= 0 ? async function () { appels.push(n); return 'ORIGINAL'; } : function () { appels.push(n); return 'ORIGINAL'; }; });
     const toasts = []; const b = bac('demo.html', ['demoPubliqueBouchons'], Object.assign({ window: w, location: w.location, DEMO_FONCTIONS_COUPEES: COUPEES, DEMO_MSG: CONSTS.DEMO_MSG, toast: m => toasts.push(m), _srvMailErr: '' }));
     b.fn.demoPubliqueBouchons();
-    egal('⛔ chaque fonction coupée ne fait plus rien (elle ne rend plus ce que rendait l\'originale, et ne se déclenche pas)', COUPEES.filter(n => w[n]() === 'ORIGINAL'), []);
+    const rendus = {}; COUPEES.forEach(n => { rendus[n] = w[n](); });
+    egal('⛔ chaque fonction coupée ne fait plus rien (elle ne rend plus ce que rendait l\'originale, et ne se déclenche pas)', COUPEES.filter(n => rendus[n] === 'ORIGINAL' || (rendus[n] && rendus[n].then && ASYNC.indexOf(n) < 0)), []);
+    egal('⛔ une fonction coupée `async` rend une PROMESSE (comme l\'originale), pas `undefined` : `syncInit().then(…)` levait une TypeError', ASYNC.filter(n => !(rendus[n] && typeof rendus[n].then === 'function')), []);
+    { const bs = bac('app.html', ['syncReactivate'], { localStorage: { removeItem: () => { } }, toast: () => { }, syncInit: w.syncInit, current: 'x', views: {} });
+      let err = null; try { bs.fn.syncReactivate(); } catch (e) { err = e; }
+      vrai('la VRAIE syncReactivate() d\'app.html, jouée sur le bouchon de syncInit, ne lève plus', err === null && COUPEES.indexOf('syncReactivate') >= 0, String(err)); }
     (async () => {
       const r = await w.srvMail('client@exemple.invalid', 'Devis', 'Bonjour');
       vrai('⛔ srvMail rend faux — le document RESTE un brouillon (envoiDoc ne marque « envoyé » que sur un vrai) — et le dit', r === false && toasts.some(t => t.indexOf(CONSTS.DEMO_MSG) >= 0) && w.location.href === 'http://127.0.0.1/demo.html', toasts);

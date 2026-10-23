@@ -100,6 +100,21 @@ remplacer('loadLeaflet', 'function loadLeaflet(){ return new Promise((res,rej)=>
 remplacer("Changer d'application", `<button class="btn ghost sm" onclick="try{localStorage.removeItem('teamop_app')}catch(e){};location.href='index.html?hub=1'">Changer d'application</button>`,
   `<button class="btn ghost sm" onclick="location.href='index.html'">Retour au site</button>`);
 
+/* « Forcer la mise à jour (vider le cache) » (Paramètres) effaçait tout le Cache Storage de l'origine — celui de la VRAIE application. La démonstration n'en a pas : elle recharge. */
+remplacer('forceUpdate', 'async function forceUpdate(){', "async function forceUpdate(){\n  if(DEMO_PUBLIQUE){ location.reload(); return; }   // le cache de l'origine est celui de la VRAIE application");
+/* l'assistant devis et le Devis IA passent par un serveur : une phrase de démonstration, pas « Code d'accès requis » ni « Le serveur ne répond pas » */
+remplacer('Assistant devis', "  if(!adCode()){\n    $('content').innerHTML=`<div class=\"card\"><div class=\"card-head\"><h3>🔒 Code d'accès requis</h3></div>",
+  "  if(DEMO_PUBLIQUE){ demoPubliqueAssistantDevis(); return; }\n  if(!adCode()){\n    $('content').innerHTML=`<div class=\"card\"><div class=\"card-head\"><h3>🔒 Code d'accès requis</h3></div>");
+remplacer('Devis IA — message', "  if(demande.trim().length<5){ show('Décris la prestation d\\'abord.'); return; }\n",
+  "  if(demande.trim().length<5){ show('Décris la prestation d\\'abord.'); return; }\n  if(DEMO_PUBLIQUE){ show(demoPubliqueDevisIAMessage()); return; }\n");
+remplacer('Devis IA — état', "  // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui\n  fetch(PUSH_API+'/api/devis/etat?team='",
+  "  // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui\n  if(DEMO_PUBLIQUE) demoPubliqueDevisIAEtat(); else fetch(PUSH_API+'/api/devis/etat?team='");
+/* les liens sms: et mailto: écrits par l'application ouvriraient la messagerie du visiteur avec le contenu de l'exemple : sept affectations, détournées vers `demoNav` */
+remplacer('sms: (location.href)', "location.href='sms:'+", "demoNav.href='sms:'+", 4);
+remplacer('mailto: (location.href)', "location.href='mailto:'+", "demoNav.href='mailto:'+", 1);
+remplacer('mailto: (window.location.href)', 'window.location.href=`mailto:${mail}?subject=', 'demoNav.href=`mailto:${mail}?subject=', 2);
+if (/location\.href\s*=\s*['"`](?:sms|mailto|tel):/.test(s)) echec('une affectation de location.href vers sms:/mailto:/tel: subsiste : elle ouvrirait la messagerie du visiteur');
+
 /* ── 7. LE BANDEAU, ET LE DÉMARRAGE : le choix du métier prend la place de boot() ──────────────────────────────────────────── */
 remplacer('bandeau', 'try{ multiProposer(view); }catch(_e){}', 'try{ multiProposer(view); }catch(_e){}\n  try{ if(DEMO_PUBLIQUE) demoPubliqueBandeau(); }catch(_e){}');
 {

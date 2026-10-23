@@ -95,11 +95,40 @@
     try { vrai = W[nom]; if (vrai) vrai.length; } catch (e) { vrai = null; }   // refusé (fenêtre privée, données bloquées) : mémoire de la séance
     var vue = vueStockage(vrai || memoire());
     try { Object.defineProperty(W, nom, { value: vue, configurable: true }); } catch (e) { try { W[nom] = vue; } catch (e2) { /* rien à faire de plus */ } }
+    /* ⛔ ON RELIT : un navigateur qui refuse la redéfinition laisserait la page sur le VRAI stockage, et ses clés sans préfixe
+       (`top_monitor_off`, `teamop_promo_en_attente`…) tomberaient sur celles de l'application des clients — même origine. */
+    var pose = false; try { pose = W[nom] === vue; } catch (e3) { pose = false; }
+    if (!pose) note('stockage', nom);
+    return pose;
   }
-  poserStockage('localStorage');
-  poserStockage('sessionStorage');
-  /* la sentinelle de la Tour (sentinelle technique, rapports d'erreurs) ne démarre pas : elle lit cette clé avant tout */
-  try { W.localStorage.setItem('top_monitor_off', '1'); } catch (e) { /* idem */ }
+  var lsPose = poserStockage('localStorage'), ssPose = poserStockage('sessionStorage');
+  /* faux : demo-publique.js n'ouvre alors AUCUNE démonstration et le dit (« navigateur non pris en charge ») */
+  W.__demoPublique.stockageIsole = lsPose && ssPose;
+  /* la sentinelle de la Tour (sentinelle technique, rapports d'erreurs) ne démarre pas : elle lit cette clé avant tout. Jamais sur le vrai stockage. */
+  if (lsPose) { try { W.localStorage.setItem('top_monitor_off', '1'); } catch (e) { /* idem */ } }
+
+  /* ── 1 bis. LE CACHE : la page ne voit que les siens ───────────────────────────────────────────────────────────────────────
+     Le Cache Storage est partagé par toute l'origine teamop.fr : il porte la copie hors ligne de la VRAIE application. Le bouton
+     « Forcer la mise à jour (vider le cache) » des Paramètres effaçait tout ce que `caches.keys()` rendait — donc la sienne. */
+  var cachesReel = null; try { cachesReel = W.caches || null; } catch (e) { cachesReel = null; }
+  if (cachesReel) {
+    var miens = function (n) { return String(n).indexOf('elanD_') === 0; };
+    var vueCaches = {
+      keys: function () { return Promise.resolve(cachesReel.keys()).then(function (ks) { return ks.filter(miens); }); },
+      has: function (n) { return miens(n) ? cachesReel.has(n) : Promise.resolve(false); },
+      open: function (n) { if (miens(n)) return cachesReel.open(n); return Promise.reject(refuser('caches.open', n)); },
+      delete: function (n) { if (miens(n)) return cachesReel.delete(n); note('caches.delete', n); return Promise.resolve(false); },
+      match: function () { return Promise.resolve(undefined); }
+    };
+    try { Object.defineProperty(W, 'caches', { get: function () { return vueCaches; }, configurable: true }); } catch (e) { /* idem */ }
+  }
+
+  /* ── 1 ter. LA DICTÉE : retirée ─────────────────────────────────────────────────────────────────────────────────────────────
+     La reconnaissance vocale d'un navigateur envoie l'AUDIO à un service vocal (Google sur Chrome) — hors de portée d'une politique
+     de contenu. L'application affiche alors « Dictée non disponible sur ce navigateur ». */
+  ['SpeechRecognition', 'webkitSpeechRecognition'].forEach(function (n) {
+    try { Object.defineProperty(W, n, { value: undefined, configurable: true, writable: true }); } catch (e) { try { W[n] = undefined; } catch (e2) { /* idem */ } }
+  });
 
   /* ── 2. LE RÉSEAU ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
   var fetchReel = W.fetch;
@@ -192,6 +221,10 @@
     } catch (e) { return false; }
   }
   var ouvrirReel = W.open;
+  /* ⚠️ Les fenêtres VIDES ouvertes ici (impression, PDF, dossier client : `window.open('')` puis `document.write`) n'ont PAS ce pare-feu —
+     leur `localStorage` est le vrai et leurs `fetch` ne sont pas bouchés. Elles ne tiennent que par la politique de contenu qu'elles héritent
+     (`connect-src data: blob:`, `form-action 'none'`, `default-src 'none'`) : tests/test-2940.js § 3 en garde la présence, directive par
+     directive. Les gabarits qui y écrivent échappent tout par `esc()` ; un gabarit neuf qui écrirait un script ne tiendrait que par ce filet. */
   W.open = function (u) {
     if (u == null || u === '' || u === 'about:blank' || local(u) || memePage(u)) return ouvrirReel.apply(W, arguments);   // fenêtre d'impression, PDF fabriqué ici
     note('open', u); dire('', MSG_LIEN);
@@ -9256,6 +9289,7 @@ function fixArmosaEmail(){
 }
 setTimeout(()=>{ try{ seedFournisseurs(); }catch(e){} try{ seedPrix(); }catch(e){} try{ restoreFournisseurEmails(); }catch(e){} try{ fixArmosaEmail(); }catch(e){} }, 3500);
 async function forceUpdate(){
+  if(DEMO_PUBLIQUE){ location.reload(); return; }   // le cache de l'origine est celui de la VRAIE application
   try{ if('caches' in window){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } }catch(e){}
   try{ if('serviceWorker' in navigator){ const rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r=>r.unregister())); } }catch(e){}
   location.reload(true);
@@ -19499,7 +19533,7 @@ async function orgaEnvoyer(){
     try{ intHisto(p.i,'Client prévenu par SMS de son créneau'); }catch(e){}
     save();
     toast('✉️ '+ok+' e-mail(s) envoyé(s)'+(ko?' · '+ko+' en échec':'')+' — ouverture du SMS pour '+(clientName(p.i.clientId)||'')+(sms.length>1?' ('+(sms.length-1)+' autre(s) à suivre)':''));
-    setTimeout(function(){ try{ location.href='sms:'+p.tel+'?&body='+encodeURIComponent(p.txt); }catch(e){} },600);
+    setTimeout(function(){ try{ demoNav.href='sms:'+p.tel+'?&body='+encodeURIComponent(p.txt); }catch(e){} },600);
     orgaRender(); views.planning(); return;
   }
   closeModal(); views.planning();
@@ -23634,7 +23668,7 @@ async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
      mailto: ne sait pas joindre de fichier, et le brouillon dirait « ci-joint » sans rien joindre.
      L'appelant (le plan d'implantation) le demande par `sansMailto` ; il n'écrit alors rien. */
   if(opts&&opts.sansMailto) return false;
-  location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent((opts&&opts.mailtoBody)||body);
+  demoNav.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent((opts&&opts.mailtoBody)||body);
   return false;
 }
 /* un courriel IDENTIQUE (destinataire, objet, texte, pièces, boîte) déjà en route ne repart pas : le second appel attend la
@@ -27445,7 +27479,7 @@ async function smsArrivee(id){ const i=db.interventions.find(x=>x.id===id); if(!
     ? ('Bonjour, le technicien '+soc+' arrivera dans environ '+eta+(hArrivee?' (vers '+hArrivee+')':'')+' pour votre intervention. À tout de suite.')
     : ('Bonjour, le technicien '+soc+' arrivera'+(i.heure?' vers '+i.heure.replace(':','h'):' prochainement')+' pour votre intervention.');
   try{ intHisto(i,'Client prévenu de l\'arrivée par SMS'+(hArrivee?' (vers '+hArrivee+')':'')); save(); }catch(e){}
-  location.href='sms:'+tel+'?&body='+encodeURIComponent(msg);
+  demoNav.href='sms:'+tel+'?&body='+encodeURIComponent(msg);
 }
 function intAddProduit(id){ const i=db.interventions.find(x=>x.id===id); const pid=$('ip-prod').value, q=parseFloat(String($('ip-qte').value).replace(',','.'))||1; if(!pid){toast('Choisis un produit');return;}
   i.produitsUtilises.push({produitId:pid,qte:q}); save(); renderIntDetail(id); }
@@ -28557,7 +28591,7 @@ async function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id)
     if($('rap-save')&&$('rap-save').checked&&c.id&&canCat('crm','modifier')){ c.tel=raw; toast('Numéro enregistré sur la fiche client'); }   // v738 : la fiche client, c'est « Clients → Modifier »
     const msg='Bonjour, votre rapport d\'intervention du '+fmtShort(i.date)+' ('+soc+') est disponible. Nous restons à votre disposition.';
     i.rapportEnvoye={ts:Date.now(),via:'sms',a:raw}; intHisto(i,'Rapport envoyé par SMS au '+raw); save();
-    closeModal(); setTimeout(()=>{ location.href='sms:'+tel+'?&body='+encodeURIComponent(msg); },300); toast('SMS préparé'); return; }
+    closeModal(); setTimeout(()=>{ demoNav.href='sms:'+tel+'?&body='+encodeURIComponent(msg); },300); toast('SMS préparé'); return; }
   if(!c.email){ toast('Ajoute l\'email du client dans sa fiche'); return; }
   const sujet='Rapport d\'intervention — '+fmtShort(i.date)+(i.type?' ('+i.type+')':'');
   const corps=genRapportTexte(i);
@@ -38579,7 +38613,7 @@ function devisIAModal(){
     <button id="dia-go2" class="btn" style="width:100%;justify-content:center;padding:13px;margin-top:8px;display:none" onclick="devisIAGo(true)">📐 Devis approfondi</button>
     <div id="dia-etat" style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center"></div>`);
   // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui
-  fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(syncTeam())).then(r=>r.json()).then(j=>{
+  if(DEMO_PUBLIQUE) demoPubliqueDevisIAEtat(); else fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(syncTeam())).then(r=>r.json()).then(j=>{
     const el=$('dia-etat'); if(!el||!j) return;
     if(j.approfondi){ const b2=$('dia-go2'); if(b2) b2.style.display=''; }
     if(j.equipe===false&&!devisIACode()){ el.innerHTML='⚠ <b>Devis IA n\'est pas encore activé pour ton entreprise.</b> Demande l\'activation à TeamOP (contact@teamop.fr) — c\'est immédiat et sans manipulation.'; el.style.color='var(--org)'; const b=$('dia-go'); if(b) b.disabled=true; const b2=$('dia-go2'); if(b2) b2.disabled=true; }
@@ -38594,6 +38628,7 @@ async function devisIAGo(profond){
   if(!can('devisIA')||!permGarde('ventes','ajouter','un devis')) return;   // v738 : avant l'appel, qui consomme le quota du jour
   if(clientId&&!clientPropose(clientId)){ show('Ce client ne te concerne pas.'); return; }
   if(demande.trim().length<5){ show('Décris la prestation d\'abord.'); return; }
+  if(DEMO_PUBLIQUE){ show(demoPubliqueDevisIAMessage()); return; }
   if(btn){ btn.disabled=true; btn.textContent='⏳ Génération en cours… (jusqu\'à une minute)'; }
   try{
     /* Le client choisi sert à RANGER le devis, pas à le calculer : son nom et son
@@ -39440,7 +39475,7 @@ function envoyerComptaComplet(){
   exportComptaTout();
   teles.forEach(r=>r.envoyeeCompta=true);
   logEvent('Compta envoyée à la comptable',`CA ${eur(caTotal)} · Télécollecte ${eur(teleTot)}`,'finance'); save(); views.comptabilite();
-  setTimeout(()=>{ window.location.href=`mailto:${mail}?subject=${encodeURIComponent('Récap comptable OP GESTION — '+fmtShort(todayISO()))}&body=${encodeURIComponent(corps)}`; },800);
+  setTimeout(()=>{ demoNav.href=`mailto:${mail}?subject=${encodeURIComponent('Récap comptable OP GESTION — '+fmtShort(todayISO()))}&body=${encodeURIComponent(corps)}`; },800);
   toast('Email comptable préparé + Excel téléchargé');
 }
 function factPayee(id){ if(!permGarde('ventes','modifier','une facture')) return; const f=db.factures.find(x=>x.id===id); if(f){ f.statut='payee'; if(!f.datePaiement)f.datePaiement=todayISO(); logEvent('Facture payée',f.num,'finance'); save(); go(current); } }
@@ -40626,7 +40661,7 @@ function envoyerTelecompta(id){ const r=(db.telecollectes||[]).find(x=>x.id===id
   printTelecollecte(id);
   logEvent('Télécollecte envoyée à la comptable',`${teleWho(r)} — ${eur(teleTotal(r))}`,'finance');
   r.envoyeeCompta=true; save(); views.telecollecte();
-  setTimeout(()=>{ window.location.href=`mailto:${mail}?subject=${sujet}&body=${corps}`; },800);
+  setTimeout(()=>{ demoNav.href=`mailto:${mail}?subject=${sujet}&body=${corps}`; },800);
   toast('Email comptable préparé');
 }
 let teleJourDate='';
@@ -41017,7 +41052,7 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
     else if(kind==='factures'&&d.statut==='brouillon'){ d.statut='envoyee'; save(); } };
   if(canal==='sms'){
     const tel=(c.tel||'').replace(/\s/g,''); if(!tel){ toast('Pas de numéro pour ce client'); return Promise.resolve(false); }
-    setTimeout(()=>{ location.href='sms:'+tel+'?&body='+encodeURIComponent(texte); },700);
+    setTimeout(()=>{ demoNav.href='sms:'+tel+'?&body='+encodeURIComponent(texte); },700);
     toast('SMS préparé pour '+(c.nom||tel)); marquer(); return Promise.resolve(true);
   } else {
     if(!c.email){ if(confirm('Ce client n\'a pas d\'email. Envoyer par SMS à la place ?')){ return envoiDoc(kind,id,'sms'); } toast('Ajoute un email au client (fiche) ou utilise le SMS'); return Promise.resolve(false); }
@@ -41969,6 +42004,7 @@ views.assistantDevis=function(){
     $('content').innerHTML=emptyState('🔒','L\'assistant devis demande les droits « Utiliser Devis IA » et « Ventes → Ajouter » — vois avec l\'administrateur.','',''); return; }
   setHeader('Assistant devis','Décris le chantier, il compose le devis',
     adCode()?`<button class="btn ghost sm" onclick="adOublierCode()">Oublier le code</button>`:'');
+  if(DEMO_PUBLIQUE){ demoPubliqueAssistantDevis(); return; }
   if(!adCode()){
     $('content').innerHTML=`<div class="card"><div class="card-head"><h3>🔒 Code d'accès requis</h3></div>
       <p style="font-size:13px;color:var(--t2);line-height:1.6">L'assistant devis est réservé à l'équipe. Demande le code au responsable, puis saisis-le une fois sur cet appareil.</p>
@@ -45941,17 +45977,70 @@ function demoPubliqueCarteMessage() {
   }, 80);
 }
 
+/* ── Les liens sms: et mailto: écrits par l'application (`location.href = …`) : jamais une messagerie qui s'ouvre avec le contenu de l'exemple ──
+   demo-build.js remplace ces sept affectations par `demoNav.href = …` (et refuse de générer s'il en reste une). Un lien <a href="mailto:"> est déjà
+   arrêté par le pare-feu ; `location.href` ne se remplace pas depuis un script, d'où le remplacement dans le texte de l'application. */
+const demoNav = {
+  get href() { return location.href; },
+  set href(u) {
+    try { toast('✉️ ' + DEMO_MSG + ' Votre messagerie ne s’ouvre pas.', 4500); } catch (e) { /* idem */ }
+    try { if (window.__demoPublique) window.__demoPublique.refus.push({ genre: 'lien-message', cible: String(u).slice(0, 12), t: Date.now() }); } catch (e) { /* idem */ }
+  }
+};
+
+/* ── Les écrans qui promettaient une fonction absente d'ici : une phrase de démonstration, ou rien ─────────────────────────────── */
+function demoPubliqueAssistantDevis() {
+  document.getElementById('content').innerHTML = '<div class="card"><div class="card-head"><h3>🤖 Assistant devis</h3></div>'
+    + '<p style="font-size:13px;color:var(--t2);line-height:1.6">Dans la démonstration, l’assistant ne répond pas : la rédaction par l’IA passe par un serveur, et rien n’est envoyé d’ici. '
+    + 'Dans l’application complète, vous décrivez le chantier en une phrase et il compose le devis, que vous relisez avant de l’envoyer.</p>'
+    + '<button class="btn" style="margin-top:12px" onclick="go(\'devis\')">Voir les devis d’exemple</button></div>';
+}
+function demoPubliqueDevisIAEtat() {
+  const el = document.getElementById('dia-etat'); if (!el) return;
+  el.textContent = 'Démonstration : la rédaction par l’IA n’est pas branchée ici, rien n’est envoyé.';
+}
+function demoPubliqueDevisIAMessage() { return 'Dans la démonstration, la rédaction par l’IA n’est pas branchée : rien n’est envoyé. Les devis d’exemple, eux, se modifient et s’impriment.'; }
+/* Paramètres : les cartes dont le geste n'a de sens qu'avec un serveur ou une vraie boîte mail, retirées de l'écran ; la carte « Forfait » dit ce qu'il en est.
+   Les titres se lisent dans le <h3> sans son pictogramme (il devient une icône après coup). tests/test-2940.js exige que chacun existe dans app.html. */
+const DEMO_PARAM_RETIREES = ['Notifications', 'Mon e-mail professionnel', 'Devis IA', 'Installer l\'application', 'Synchronisation de l\'équipe', 'Le lien de connexion de ton entreprise',
+  'Mes envois', 'E-mails aux clients'];
+const DEMO_PARAM_FORFAIT = 'Forfait de l\'espace';
+function demoPubliqueParametres() {
+  const c = document.getElementById('content'); if (!c) return;
+  const titre = function (card) { const h = card.querySelector('.card-head h3'); return h ? h.textContent.replace(/^[^A-Za-zÀ-ÿ]+/, '').trim() : ''; };
+  Array.prototype.slice.call(c.querySelectorAll('.card')).forEach(function (card) {
+    const t = titre(card);
+    if (DEMO_PARAM_RETIREES.indexOf(t) >= 0) { card.parentNode.removeChild(card); return; }
+    if (t === DEMO_PARAM_FORFAIT) {
+      card.innerHTML = '<div class="card-head"><h3>Formule</h3></div>'
+        + '<p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Dans la démonstration, toutes les rubriques sont ouvertes, comme avec la formule la plus complète. Aucun abonnement n’existe ici. Les formules et leurs prix se lisent sur la page des tarifs.</p>'
+        + '<button class="btn ghost sm" onclick="location.href=\'tarifs.html\'">Voir les tarifs</button>';
+    }
+  });
+}
+function demoPubliqueParametresPoser() {
+  if (!views || typeof views.parametres !== 'function' || views.parametres.__demo) return;
+  const v = views.parametres;
+  views.parametres = function () { const r = v.apply(this, arguments); try { demoPubliqueParametres(); } catch (e) { /* un écran qui change de forme ne doit pas casser la navigation */ } return r; };
+  views.parametres.__demo = 1;
+}
+
 /* ── Ce que la démonstration coupe dans l'application : les appels qui n'ont de sens qu'avec un serveur ───────────────────────── */
 const DEMO_FONCTIONS_COUPEES = ['annuaireDeposer', 'annuaireVeille', 'pushPropose', 'pushSubscribe', 'forfaitServeurSync', 'versionVerifier', 'ordresVerifier',
-  'lienLisibleCharger', 'promoEssaiCheck', 'cnxSignaler', 'syncInit', 'syncPush', 'maybeProfilePhoto'];
+  'lienLisibleCharger', 'promoEssaiCheck', 'cnxSignaler', 'syncInit', 'syncPush', 'syncReactivate', 'maybeProfilePhoto'];
 function demoPubliqueBouchons() {
-  DEMO_FONCTIONS_COUPEES.forEach(function (n) { if (typeof window[n] === 'function') window[n] = function () { return undefined; }; });
+  /* ⛔ une fonction `async` coupée rend une PROMESSE, comme l'originale : `syncInit().then(…)` (syncReactivate) levait une TypeError sur `undefined` */
+  DEMO_FONCTIONS_COUPEES.forEach(function (n) {
+    const f = window[n]; if (typeof f !== 'function') return;
+    window[n] = (f.constructor && f.constructor.name === 'AsyncFunction') ? function () { return Promise.resolve(undefined); } : function () { return undefined; };
+  });
   /* l'envoi de courriel : jamais un envoi, jamais un brouillon qui s'ouvre dans Mail — et le document reste ce qu'il était */
   window.srvMail = function () { try { _srvMailErr = 'démonstration'; } catch (e) { /* idem */ } try { toast('✉️ ' + DEMO_MSG, 4500); } catch (e) { /* idem */ } return Promise.resolve(false); };
   /* « Déconnexion » : il n'y a pas de compte à quitter — on sort de la démonstration, vers le site (la base reste là pour y revenir) */
   window.logout = function () { location.href = 'index.html'; };
   window.syncNow = function () { try { toast('Démonstration : il n’y a pas d’équipe à synchroniser — vos essais restent sur cet appareil.', 4500); } catch (e) { /* idem */ } };
   window.syncEtat = function () { return { c: '', t: 'Démonstration — rien n’est synchronisé' }; };
+  demoPubliqueParametresPoser();
 }
 
 /* ── Le bandeau, permanent, en tête de chaque écran ─────────────────────────────────────────────────────────────────────────── */
@@ -45987,7 +46076,7 @@ function demoPubliqueBandeau() {
   const c = document.getElementById('content'); if (!c || !currentUser) return;
   if (c.firstElementChild && c.firstElementChild.id === 'demo-bandeau') return;
   const b = document.createElement('div'); b.id = 'demo-bandeau'; b.className = 'demo-bandeau'; b.setAttribute('role', 'note');
-  b.innerHTML = '<b>Démonstration</b><span class="demo-txt">Démonstration — vos essais restent sur cet appareil, rien n\'est envoyé.</span>'
+  b.innerHTML = '<b>Démonstration</b><span class="demo-txt">Démonstration — vos essais restent sur cet appareil, rien n\'est envoyé. Toutes les rubriques sont ouvertes ; l’IA, la synchro et le courrier ne fonctionnent pas ici.</span>'
     + '<span class="demo-act"><button type="button" onclick="demoPubliqueChanger()">Changer de métier</button><button type="button" onclick="demoPubliqueRecommencer()">Recommencer</button></span>';
   c.insertBefore(b, c.firstChild);
 }
@@ -46056,12 +46145,29 @@ function demoPubliqueOuvrir() {
   demoPubliqueObserver();
   try { demoPubliqueBandeau(); } catch (e) { /* idem */ }
 }
+/* Le pare-feu n'a pas pu poser sa vue du stockage (navigateur qui refuse la redéfinition) : la page lirait et écrirait les clés de l'application des clients. On n'ouvre RIEN. */
+function demoPubliqueNonPris() {
+  demoPubliqueStyle();
+  document.getElementById('app-root').style.display = 'none';
+  document.getElementById('login').style.display = 'flex';
+  document.getElementById('login-box').innerHTML = '<div class="demo-choix"><h2>Navigateur non pris en charge</h2>'
+    + '<p>La démonstration ne peut pas isoler ses données de celles de l’application sur ce navigateur, alors elle ne s’ouvre pas. Essayez avec une version récente de Safari, Chrome ou Firefox.</p></div>';
+}
 function demoPubliqueBoot() {
+  if (window.__demoPublique && window.__demoPublique.stockageIsole === false) { demoPubliqueNonPris(); return; }
   demoPubliqueBouchons();
   demoPubliqueStyle();
   let id = '';
   const q = (location.search.match(/[?&]metier=([a-z0-9]+)/) || [])[1];   // le bouton du site : « Essayer la démo plombier »
-  if (q && demoPubliqueMetiers().indexOf(q) >= 0) id = q;
+  if (q && demoPubliqueMetiers().indexOf(q) >= 0) {
+    id = q;
+    /* ⛔ suivre le lien d'un AUTRE métier remplace les essais du visiteur : on le demande, comme « Changer de métier » */
+    const deja = demoPubliqueChoixLire();
+    if (deja && deja !== q && db.demoPublique && db.demoPublique.metier === deja && !confirm('Passer à ce métier ?\n\nVos essais sur cet appareil sont remplacés par l’exemple du nouveau métier.')) {
+      id = deja;
+      try { history.replaceState(null, '', location.pathname); } catch (e) { /* idem */ }
+    }
+  }
   if (!id) id = demoPubliqueChoixLire();
   if (!id) { demoPubliqueChoix(); return; }
   const semee = db.demoPublique && db.demoPublique.metier === id && (db.techniciens || []).length > 0;

@@ -135,17 +135,70 @@ function demoPubliqueCarteMessage() {
   }, 80);
 }
 
+/* ── Les liens sms: et mailto: écrits par l'application (`location.href = …`) : jamais une messagerie qui s'ouvre avec le contenu de l'exemple ──
+   demo-build.js remplace ces sept affectations par `demoNav.href = …` (et refuse de générer s'il en reste une). Un lien <a href="mailto:"> est déjà
+   arrêté par le pare-feu ; `location.href` ne se remplace pas depuis un script, d'où le remplacement dans le texte de l'application. */
+const demoNav = {
+  get href() { return location.href; },
+  set href(u) {
+    try { toast('✉️ ' + DEMO_MSG + ' Votre messagerie ne s’ouvre pas.', 4500); } catch (e) { /* idem */ }
+    try { if (window.__demoPublique) window.__demoPublique.refus.push({ genre: 'lien-message', cible: String(u).slice(0, 12), t: Date.now() }); } catch (e) { /* idem */ }
+  }
+};
+
+/* ── Les écrans qui promettaient une fonction absente d'ici : une phrase de démonstration, ou rien ─────────────────────────────── */
+function demoPubliqueAssistantDevis() {
+  document.getElementById('content').innerHTML = '<div class="card"><div class="card-head"><h3>🤖 Assistant devis</h3></div>'
+    + '<p style="font-size:13px;color:var(--t2);line-height:1.6">Dans la démonstration, l’assistant ne répond pas : la rédaction par l’IA passe par un serveur, et rien n’est envoyé d’ici. '
+    + 'Dans l’application complète, vous décrivez le chantier en une phrase et il compose le devis, que vous relisez avant de l’envoyer.</p>'
+    + '<button class="btn" style="margin-top:12px" onclick="go(\'devis\')">Voir les devis d’exemple</button></div>';
+}
+function demoPubliqueDevisIAEtat() {
+  const el = document.getElementById('dia-etat'); if (!el) return;
+  el.textContent = 'Démonstration : la rédaction par l’IA n’est pas branchée ici, rien n’est envoyé.';
+}
+function demoPubliqueDevisIAMessage() { return 'Dans la démonstration, la rédaction par l’IA n’est pas branchée : rien n’est envoyé. Les devis d’exemple, eux, se modifient et s’impriment.'; }
+/* Paramètres : les cartes dont le geste n'a de sens qu'avec un serveur ou une vraie boîte mail, retirées de l'écran ; la carte « Forfait » dit ce qu'il en est.
+   Les titres se lisent dans le <h3> sans son pictogramme (il devient une icône après coup). tests/test-2940.js exige que chacun existe dans app.html. */
+const DEMO_PARAM_RETIREES = ['Notifications', 'Mon e-mail professionnel', 'Devis IA', 'Installer l\'application', 'Synchronisation de l\'équipe', 'Le lien de connexion de ton entreprise',
+  'Mes envois', 'E-mails aux clients'];
+const DEMO_PARAM_FORFAIT = 'Forfait de l\'espace';
+function demoPubliqueParametres() {
+  const c = document.getElementById('content'); if (!c) return;
+  const titre = function (card) { const h = card.querySelector('.card-head h3'); return h ? h.textContent.replace(/^[^A-Za-zÀ-ÿ]+/, '').trim() : ''; };
+  Array.prototype.slice.call(c.querySelectorAll('.card')).forEach(function (card) {
+    const t = titre(card);
+    if (DEMO_PARAM_RETIREES.indexOf(t) >= 0) { card.parentNode.removeChild(card); return; }
+    if (t === DEMO_PARAM_FORFAIT) {
+      card.innerHTML = '<div class="card-head"><h3>Formule</h3></div>'
+        + '<p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Dans la démonstration, toutes les rubriques sont ouvertes, comme avec la formule la plus complète. Aucun abonnement n’existe ici. Les formules et leurs prix se lisent sur la page des tarifs.</p>'
+        + '<button class="btn ghost sm" onclick="location.href=\'tarifs.html\'">Voir les tarifs</button>';
+    }
+  });
+}
+function demoPubliqueParametresPoser() {
+  if (!views || typeof views.parametres !== 'function' || views.parametres.__demo) return;
+  const v = views.parametres;
+  views.parametres = function () { const r = v.apply(this, arguments); try { demoPubliqueParametres(); } catch (e) { /* un écran qui change de forme ne doit pas casser la navigation */ } return r; };
+  views.parametres.__demo = 1;
+}
+
 /* ── Ce que la démonstration coupe dans l'application : les appels qui n'ont de sens qu'avec un serveur ───────────────────────── */
 const DEMO_FONCTIONS_COUPEES = ['annuaireDeposer', 'annuaireVeille', 'pushPropose', 'pushSubscribe', 'forfaitServeurSync', 'versionVerifier', 'ordresVerifier',
-  'lienLisibleCharger', 'promoEssaiCheck', 'cnxSignaler', 'syncInit', 'syncPush', 'maybeProfilePhoto'];
+  'lienLisibleCharger', 'promoEssaiCheck', 'cnxSignaler', 'syncInit', 'syncPush', 'syncReactivate', 'maybeProfilePhoto'];
 function demoPubliqueBouchons() {
-  DEMO_FONCTIONS_COUPEES.forEach(function (n) { if (typeof window[n] === 'function') window[n] = function () { return undefined; }; });
+  /* ⛔ une fonction `async` coupée rend une PROMESSE, comme l'originale : `syncInit().then(…)` (syncReactivate) levait une TypeError sur `undefined` */
+  DEMO_FONCTIONS_COUPEES.forEach(function (n) {
+    const f = window[n]; if (typeof f !== 'function') return;
+    window[n] = (f.constructor && f.constructor.name === 'AsyncFunction') ? function () { return Promise.resolve(undefined); } : function () { return undefined; };
+  });
   /* l'envoi de courriel : jamais un envoi, jamais un brouillon qui s'ouvre dans Mail — et le document reste ce qu'il était */
   window.srvMail = function () { try { _srvMailErr = 'démonstration'; } catch (e) { /* idem */ } try { toast('✉️ ' + DEMO_MSG, 4500); } catch (e) { /* idem */ } return Promise.resolve(false); };
   /* « Déconnexion » : il n'y a pas de compte à quitter — on sort de la démonstration, vers le site (la base reste là pour y revenir) */
   window.logout = function () { location.href = 'index.html'; };
   window.syncNow = function () { try { toast('Démonstration : il n’y a pas d’équipe à synchroniser — vos essais restent sur cet appareil.', 4500); } catch (e) { /* idem */ } };
   window.syncEtat = function () { return { c: '', t: 'Démonstration — rien n’est synchronisé' }; };
+  demoPubliqueParametresPoser();
 }
 
 /* ── Le bandeau, permanent, en tête de chaque écran ─────────────────────────────────────────────────────────────────────────── */
@@ -181,7 +234,7 @@ function demoPubliqueBandeau() {
   const c = document.getElementById('content'); if (!c || !currentUser) return;
   if (c.firstElementChild && c.firstElementChild.id === 'demo-bandeau') return;
   const b = document.createElement('div'); b.id = 'demo-bandeau'; b.className = 'demo-bandeau'; b.setAttribute('role', 'note');
-  b.innerHTML = '<b>Démonstration</b><span class="demo-txt">Démonstration — vos essais restent sur cet appareil, rien n\'est envoyé.</span>'
+  b.innerHTML = '<b>Démonstration</b><span class="demo-txt">Démonstration — vos essais restent sur cet appareil, rien n\'est envoyé. Toutes les rubriques sont ouvertes ; l’IA, la synchro et le courrier ne fonctionnent pas ici.</span>'
     + '<span class="demo-act"><button type="button" onclick="demoPubliqueChanger()">Changer de métier</button><button type="button" onclick="demoPubliqueRecommencer()">Recommencer</button></span>';
   c.insertBefore(b, c.firstChild);
 }
@@ -250,12 +303,29 @@ function demoPubliqueOuvrir() {
   demoPubliqueObserver();
   try { demoPubliqueBandeau(); } catch (e) { /* idem */ }
 }
+/* Le pare-feu n'a pas pu poser sa vue du stockage (navigateur qui refuse la redéfinition) : la page lirait et écrirait les clés de l'application des clients. On n'ouvre RIEN. */
+function demoPubliqueNonPris() {
+  demoPubliqueStyle();
+  document.getElementById('app-root').style.display = 'none';
+  document.getElementById('login').style.display = 'flex';
+  document.getElementById('login-box').innerHTML = '<div class="demo-choix"><h2>Navigateur non pris en charge</h2>'
+    + '<p>La démonstration ne peut pas isoler ses données de celles de l’application sur ce navigateur, alors elle ne s’ouvre pas. Essayez avec une version récente de Safari, Chrome ou Firefox.</p></div>';
+}
 function demoPubliqueBoot() {
+  if (window.__demoPublique && window.__demoPublique.stockageIsole === false) { demoPubliqueNonPris(); return; }
   demoPubliqueBouchons();
   demoPubliqueStyle();
   let id = '';
   const q = (location.search.match(/[?&]metier=([a-z0-9]+)/) || [])[1];   // le bouton du site : « Essayer la démo plombier »
-  if (q && demoPubliqueMetiers().indexOf(q) >= 0) id = q;
+  if (q && demoPubliqueMetiers().indexOf(q) >= 0) {
+    id = q;
+    /* ⛔ suivre le lien d'un AUTRE métier remplace les essais du visiteur : on le demande, comme « Changer de métier » */
+    const deja = demoPubliqueChoixLire();
+    if (deja && deja !== q && db.demoPublique && db.demoPublique.metier === deja && !confirm('Passer à ce métier ?\n\nVos essais sur cet appareil sont remplacés par l’exemple du nouveau métier.')) {
+      id = deja;
+      try { history.replaceState(null, '', location.pathname); } catch (e) { /* idem */ }
+    }
+  }
   if (!id) id = demoPubliqueChoixLire();
   if (!id) { demoPubliqueChoix(); return; }
   const semee = db.demoPublique && db.demoPublique.metier === id && (db.techniciens || []).length > 0;

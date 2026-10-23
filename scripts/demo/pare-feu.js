@@ -87,11 +87,40 @@
     try { vrai = W[nom]; if (vrai) vrai.length; } catch (e) { vrai = null; }   // refusé (fenêtre privée, données bloquées) : mémoire de la séance
     var vue = vueStockage(vrai || memoire());
     try { Object.defineProperty(W, nom, { value: vue, configurable: true }); } catch (e) { try { W[nom] = vue; } catch (e2) { /* rien à faire de plus */ } }
+    /* ⛔ ON RELIT : un navigateur qui refuse la redéfinition laisserait la page sur le VRAI stockage, et ses clés sans préfixe
+       (`top_monitor_off`, `teamop_promo_en_attente`…) tomberaient sur celles de l'application des clients — même origine. */
+    var pose = false; try { pose = W[nom] === vue; } catch (e3) { pose = false; }
+    if (!pose) note('stockage', nom);
+    return pose;
   }
-  poserStockage('localStorage');
-  poserStockage('sessionStorage');
-  /* la sentinelle de la Tour (sentinelle technique, rapports d'erreurs) ne démarre pas : elle lit cette clé avant tout */
-  try { W.localStorage.setItem('top_monitor_off', '1'); } catch (e) { /* idem */ }
+  var lsPose = poserStockage('localStorage'), ssPose = poserStockage('sessionStorage');
+  /* faux : demo-publique.js n'ouvre alors AUCUNE démonstration et le dit (« navigateur non pris en charge ») */
+  W.__demoPublique.stockageIsole = lsPose && ssPose;
+  /* la sentinelle de la Tour (sentinelle technique, rapports d'erreurs) ne démarre pas : elle lit cette clé avant tout. Jamais sur le vrai stockage. */
+  if (lsPose) { try { W.localStorage.setItem('top_monitor_off', '1'); } catch (e) { /* idem */ } }
+
+  /* ── 1 bis. LE CACHE : la page ne voit que les siens ───────────────────────────────────────────────────────────────────────
+     Le Cache Storage est partagé par toute l'origine teamop.fr : il porte la copie hors ligne de la VRAIE application. Le bouton
+     « Forcer la mise à jour (vider le cache) » des Paramètres effaçait tout ce que `caches.keys()` rendait — donc la sienne. */
+  var cachesReel = null; try { cachesReel = W.caches || null; } catch (e) { cachesReel = null; }
+  if (cachesReel) {
+    var miens = function (n) { return String(n).indexOf('elanD_') === 0; };
+    var vueCaches = {
+      keys: function () { return Promise.resolve(cachesReel.keys()).then(function (ks) { return ks.filter(miens); }); },
+      has: function (n) { return miens(n) ? cachesReel.has(n) : Promise.resolve(false); },
+      open: function (n) { if (miens(n)) return cachesReel.open(n); return Promise.reject(refuser('caches.open', n)); },
+      delete: function (n) { if (miens(n)) return cachesReel.delete(n); note('caches.delete', n); return Promise.resolve(false); },
+      match: function () { return Promise.resolve(undefined); }
+    };
+    try { Object.defineProperty(W, 'caches', { get: function () { return vueCaches; }, configurable: true }); } catch (e) { /* idem */ }
+  }
+
+  /* ── 1 ter. LA DICTÉE : retirée ─────────────────────────────────────────────────────────────────────────────────────────────
+     La reconnaissance vocale d'un navigateur envoie l'AUDIO à un service vocal (Google sur Chrome) — hors de portée d'une politique
+     de contenu. L'application affiche alors « Dictée non disponible sur ce navigateur ». */
+  ['SpeechRecognition', 'webkitSpeechRecognition'].forEach(function (n) {
+    try { Object.defineProperty(W, n, { value: undefined, configurable: true, writable: true }); } catch (e) { try { W[n] = undefined; } catch (e2) { /* idem */ } }
+  });
 
   /* ── 2. LE RÉSEAU ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
   var fetchReel = W.fetch;
@@ -184,6 +213,10 @@
     } catch (e) { return false; }
   }
   var ouvrirReel = W.open;
+  /* ⚠️ Les fenêtres VIDES ouvertes ici (impression, PDF, dossier client : `window.open('')` puis `document.write`) n'ont PAS ce pare-feu —
+     leur `localStorage` est le vrai et leurs `fetch` ne sont pas bouchés. Elles ne tiennent que par la politique de contenu qu'elles héritent
+     (`connect-src data: blob:`, `form-action 'none'`, `default-src 'none'`) : tests/test-2940.js § 3 en garde la présence, directive par
+     directive. Les gabarits qui y écrivent échappent tout par `esc()` ; un gabarit neuf qui écrirait un script ne tiendrait que par ce filet. */
   W.open = function (u) {
     if (u == null || u === '' || u === 'about:blank' || local(u) || memePage(u)) return ouvrirReel.apply(W, arguments);   // fenêtre d'impression, PDF fabriqué ici
     note('open', u); dire('', MSG_LIEN);
