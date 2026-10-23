@@ -13,6 +13,7 @@ const { monter } = require('./banc-agents-gestion');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 300) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 300)); } };
 const vrai = (t, c) => v(t, !!c, true);
+vrai('(population) les modules du SERVEUR que ce banc monte sont là', ['agent-sarah.js', 'agents-documents.js', 'agents-courriers-ops.js'].every(f => fs.existsSync(path.join(RACINE, 'server', f))));
 const nettoyer = [];
 const BON = 'Objet : Une nouvelle version d’OP GESTION\n\nBonjour,\n\nVotre application OP GESTION vient de recevoir une mise à jour : le planning s’affiche plus vite sur téléphone, et la fiche d’intervention garde vos photos hors ligne.\n\nLa mise à jour s’installe d’elle-même : rouvrez simplement l’application.\n\nBien cordialement,';
 const NOTES = 'Version 770 : le planning s’affiche plus vite sur téléphone, la fiche d’intervention garde les photos hors ligne. Mise à jour automatique. Écris à justin@exemple-2914.fr ou appelle le 06 12 34 56 78 pour toute question.';

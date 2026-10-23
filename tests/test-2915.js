@@ -9,11 +9,13 @@
      · les outils propres ne sont offerts qu'à leur agent ;
      · Sarah écrit l'annonce à partir du message de Justin mot pour mot, la dépose en validation ; Emma envoie les créneaux ; Margaux dépose la mise en demeure ; Hugo programme la fin
        de période et accuse réception — chacun le DIT dans le fil. */
-const path = require('path');
+const fs = require('fs'), path = require('path');
+const RACINE = path.join(__dirname, '..');
 const { monter } = require('./banc-agents-gestion');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 300) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 300)); } };
 const vrai = (t, c) => v(t, !!c, true);
+vrai('(population) les modules du SERVEUR que ce banc monte sont là', ['agent-equipe.js', 'agent-hugo.js', 'agent-margaux.js', 'agent-emma.js', 'agent-sarah.js'].every(f => fs.existsSync(path.join(RACINE, 'server', f))));
 const nettoyer = [];
 const dormir = ms => new Promise(r => setTimeout(r, ms));
 const attendre = async (cond, n) => { for (let i = 0; i < (n || 60); i++) { if (await cond()) return true; await dormir(50); } return false; };

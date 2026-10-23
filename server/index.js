@@ -10356,7 +10356,7 @@ try {
           const t = String(espaceT(e) || '').toLowerCase();
           if (!t || vus.has(t) || ESPACES_INTOUCHABLES.includes(t)) continue;
           vus.add(t);
-          let p; try { p = await espacePaye(e, { lecture: true }); } catch (err) { continue; }
+          let p; try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) { continue; }
           if (!(p && p.bloque === true && p.impayeStripe === true)) continue;
           let imp = null; try { imp = impayesGestion(e, liste); } catch (err) { imp = null; }
           const abo = imp && (imp.surs.includes(imp.abo) ? imp.abo : imp.surs[0]);
