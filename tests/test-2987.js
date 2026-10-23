@@ -249,14 +249,15 @@ const parcourir = (n, f) => { f(n); for (const c of n.enfants) parcourir(c, f); 
     if (ms.length === 1) {
       const { document } = fauxDom();
       let intervalles = 0;
-      const appels = [];
+      const appels = [], entetes = [];
       const sb = { document, setInterval() { intervalles++; return 1; }, encodeURIComponent, Array, Date, String, isNaN,
-        fetch: (u, o) => { appels.push(u); return fetch(S.B + u, o); } };
+        fetch: (u, o) => { appels.push(u); entetes.push((o && o.headers) || {}); return fetch(S.B + u, o); } };
       vm.runInNewContext(ms[0], sb, { timeout: 3000 });
       const liste = document.getElementById('liste'), compte = document.getElementById('compte');
       const serveur = (await S.appel('/api/essais/courriels?cle=' + cle)).j;
       await attendre(() => /courriel/.test(compte.textContent), 80);
-      v('⛔ la page appelle la route avec la clé de son propre fichier', [appels.length >= 1, appels[0] && appels[0].startsWith('/api/essais/courriels?cle=') && appels[0].endsWith(cle)], [true, true]);
+      v('⛔ la page appelle la route avec la clé de son propre fichier, dans l\'EN-TÊTE X-Essai-Cle (le serveur l\'accepte : la liste s\'affiche)', [appels.length >= 1, appels[0], entetes[0] && entetes[0]['X-Essai-Cle'] === cle], [true, '/api/essais/courriels', true]);
+      vrai('⛔ …et la clé n\'est dans AUCUNE adresse demandée (une adresse s\'écrit dans le journal d\'accès de nginx)', appels.length >= 1 && !appels.some(u => String(u).includes(cle)));
       v('   elle affiche autant de cartes que le serveur de courriels', liste.enfants.filter(c => /carte/.test(c.attrs.class || '')).length, (serveur.courriels || []).length);
       vrai('   (population) il y a au moins un courriel à afficher', (serveur.courriels || []).length >= 1);
       let objetVu = false; const hrefs = [];

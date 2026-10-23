@@ -136,8 +136,9 @@ for (const c of ['client', 'prospect', 'patron', 'collaborateur'])
 vrai('« Voir les courriels captés » mène à /courriels.html', /id="lien-courriels" href="\/courriels\.html"/.test(ESSAIS));
 vrai('le commit et la branche en essai sont dits', ESSAIS.indexOf('<code>claude/essai-banc</code>') >= 0 && ESSAIS.indexOf('<code>abcdef1</code>') >= 0);
 { const code = ESSAIS.slice(ESSAIS.lastIndexOf('<script>'));
-  vrai('la remise à zéro demande confirmation, puis POSTE sur /api/essais/remise-a-zero avec la clé',
-    /window\.confirm\(/.test(code) && /fetch\('\/api\/essais\/remise-a-zero\?cle='\+encodeURIComponent\(CLE\),\{method:'POST'\}\)/.test(code) && code.indexOf('window.confirm(') < code.indexOf('/api/essais/remise-a-zero'));
+  vrai('la remise à zéro demande confirmation, puis POSTE sur /api/essais/remise-a-zero avec la clé dans l\'EN-TÊTE (jamais dans l\'adresse)',
+    /window\.confirm\(/.test(code) && /fetch\('\/api\/essais\/remise-a-zero',\{method:'POST',headers:\{'X-Essai-Cle':CLE\}\}\)/.test(code) && code.indexOf('window.confirm(') < code.indexOf('/api/essais/remise-a-zero') && !/remise-a-zero\?cle=/.test(code));
+  vrai('⛔ la remise à zéro n\'annonce « C\'est fait » qu\'APRÈS avoir attendu le serveur (/health puis la porte « client ») — scénarios exécutés plus bas', /attendreRedemarrage\(\)/.test(code) && code.indexOf('attendreRedemarrage()') < code.indexOf("C\\'est fait"));
   vrai('… et dit le refus (404 : pas un serveur de test ; 403 : clé refusée) au lieu de se taire', /r\.status===404/.test(code) && /r\.status===403/.test(code));
   vrai('les cases cochées se rangent par commit, derrière un try/catch (le stockage peut être vide ou fermé)', /MEMOIRE='essai_etapes_'\+COMMIT/.test(code) && /try\{ return JSON\.parse\(localStorage/.test(code) && /try\{ localStorage\.setItem\(MEMOIRE/.test(code)); }
 { const TITRES = ['Se connecter comme client', 'Se connecter comme prospect', 'Entrer dans la Tour comme patron', 'Entrer dans la Tour comme collaborateur', 'Lire les courriels captés', 'Remettre l\'espace à zéro'];
@@ -146,6 +147,11 @@ vrai('le commit et la branche en essai sont dits', ESSAIS.indexOf('<code>claude/
   vrai('… dans l\'ordre voulu : client, prospect, patron, collaborateur, courriels, remise à zéro', places.every((p, i) => p > 0 && (i === 0 || p > places[i - 1])), places);
   vrai('… et chacune dit ce qu\'il faut faire ET ce que l\'on doit voir', (ESSAIS.match(/Ce que tu dois voir :/g) || []).length === 6); }
 vrai('sans parcours de la modification, aucune section « Les tests de cette modification »', ESSAIS.indexOf('Les tests de cette modification') < 0);
+vrai('⛔ sans parcours de la modification, la page le DIT (« Aucun test propre à cette modification n\'est fourni ») au lieu de laisser croire que le parcours de base teste la modification', /id="sans-tests-modification"/.test(ESSAIS) && /Aucun test propre à cette modification n'est fourni/.test(ESSAIS) && /essais\/parcours\.json/.test(ESSAIS));
+vrai('⛔ l\'adresse des boutons « Se connecter » porte la clé : la page dit de ne pas la copier ni la coller dans la conversation', /id="avis-cle"/.test(ESSAIS) && /ne la copie pas et ne la colle pas/.test(ESSAIS) && ESSAIS.indexOf('id="avis-cle"') < ESSAIS.indexOf('id="lien-client"'));
+{ const patron = ESSAIS.slice(ESSAIS.indexOf('Entrer dans la Tour comme patron</b>'), ESSAIS.indexOf('Entrer dans la Tour comme collaborateur</b>')), cour = ESSAIS.slice(ESSAIS.indexOf('Lire les courriels captés</b>'), ESSAIS.indexOf('Remettre l\'espace à zéro</b>'));
+  vrai('⛔ l\'étape du patron désigne le bon onglet pour la demande du prospect (Demandes, pas Accès : l\'onglet Accès est autre chose)', /onglet Demandes/.test(patron) && !/accès à traiter/.test(patron), patron.slice(0, 400));
+  vrai('⛔ l\'étape des courriels dit ce qu\'on trouve SANS rien faire (quatre courriels déjà arrivés) et donne un geste précis pour en faire arriver un', /Quatre courriels/.test(cour) && /Mot de passe oublié/.test(cour) && /client@exemple-essai\.fr/.test(cour) && !/après un geste qui envoie/.test(cour), cour.slice(0, 500)); }
 { /* ⛔ LE PAIEMENT : ou bien la page de paiement ne porte plus les tarifs de production ET essais.html promet la carte 4242, ou bien la limite est DITE */
   const src = fs.readFileSync(BUILD, 'utf8'), jouable = /^const PAIEMENT_JOUABLE = true;/m.test(src), RECAP = lire(OUT, 'recap-abonnement.html');
   const prod = Array.from(new Set((fs.readFileSync(path.join(RACINE, 'recap-abonnement.html'), 'utf8').match(/price_[A-Za-z0-9]{8,}/g) || [])));
@@ -199,22 +205,24 @@ console.log('\n4. courriels.html — la vraie fonction, un faux DOM');
     setAttribute(k, v) { this.attrs[k] = String(v); } getAttribute(k) { return this.attrs[k]; } appendChild(c) { this.kids.push(c); return c; } addEventListener() {}
     get textContent() { return this._t; } set textContent(v) { this._t = String(v); this.kids = []; } }
   const elts = {}; const ge = id => elts[id] || (elts[id] = new El('#' + id));
-  const urls = [];
+  const urls = [], optsVues = [];
   const LISTE = {
     ok: [{ de: 'ne-pas-repondre@exemple-essai.fr', a: ['client@exemple-essai.fr', 'autre@exemple-essai.fr'], objet: 'Objet <img src=x onerror=alert(1)>', date: '2026-10-23T09:30:00Z', texte: '<b>texte brut</b>',
       html: '<p>Bonjour</p>', liens: ['https://test.teamop.fr/reinit.html?x=1', 'javascript:alert(1)', 'data:text/html,x', { href: 'http://test.teamop.fr/a', texte: 'La page A' }, { url: 'https://test.teamop.fr/b' }, { href: 'ftp://x/y' }, null, 42] }],
   };
   const scenario = async (reponse) => {
     const racine = new El('#racine'); Object.keys(elts).forEach(k => delete elts[k]);
-    const sb = { document: { getElementById: ge, createElement: nom => new El(nom), visibilityState: 'visible' }, fetch: u => { urls.push(String(u)); return Promise.resolve(reponse); }, setInterval() {}, encodeURIComponent, Array, Date, String, JSON, isNaN, console };
+    const sb = { document: { getElementById: ge, createElement: nom => new El(nom), visibilityState: 'visible' }, fetch: (u, o) => { urls.push(String(u)); optsVues.push(o); return Promise.resolve(reponse); }, setInterval() {}, encodeURIComponent, Array, Date, String, JSON, isNaN, console };
     vm.runInNewContext(code, sb, { timeout: 2000 });
     for (let i = 0; i < 12; i++) await new Promise(r => setImmediate(r));
     return ge('liste');
   };
   const parcourir = (e, f) => { f(e); (e.kids || []).forEach(k => parcourir(k, f)); };
   (async () => {
+    await remiseScenarios();
     const liste = await scenario({ status: 200, ok: true, json: () => Promise.resolve(LISTE.ok) });
-    vrai('la page interroge /api/essais/courriels avec la clé', urls.length >= 1 && urls[0] === '/api/essais/courriels?cle=' + CLE, urls);
+    vrai('la page interroge /api/essais/courriels avec la clé dans l\'EN-TÊTE X-Essai-Cle', urls.length >= 1 && urls[0] === '/api/essais/courriels' && optsVues[0] && optsVues[0].headers && optsVues[0].headers['X-Essai-Cle'] === CLE, [urls, optsVues[0]]);
+    vrai('⛔ …et la clé n\'est dans aucune adresse (le journal d\'accès de nginx écrit l\'adresse, chaîne de requête comprise)', urls.length >= 1 && !urls.some(u => u.includes(CLE)), urls);
     const ancres = [], cadres = [], pres = [], gras = [];
     parcourir(liste, e => { if (e.nom === 'a') ancres.push(e); if (e.nom === 'iframe') cadres.push(e); if (e.nom === 'pre') pres.push(e); if (e.nom === 'b') gras.push(e); });
     vrai('(population) un courriel est rendu : un titre, des liens, un texte, un cadre', gras.length === 1 && ancres.length > 0 && pres.length === 1 && cadres.length === 1, [gras.length, ancres.length, pres.length, cadres.length]);
@@ -238,6 +246,74 @@ console.log('\n4. courriels.html — la vraie fonction, un faux DOM');
     egal('la page accepte aussi {courriels:[…]} (sujet/from/to) sans casser sur une date illisible', titres, ['Autre forme']);
     fin();
   })().catch(e => { vrai('l\'exécution de courriels.html ne jette pas', false, String(e && e.stack || e).slice(0, 300)); fin(); });
+}
+
+/* ── 3 bis. LA REMISE À ZÉRO, EXÉCUTÉE : « C'est fait » SEULEMENT QUAND LE SERVEUR EST REVENU ET SEMÉ ─────────────────────────────────────────────
+   La route répond 200 puis ARRÊTE le serveur (une quinzaine de secondes de 502, puis le semis). Mesuré sur le vrai serveur : la page annonçait « C'est fait » sur le 200. Ici le VRAI
+   script de la page fabriquée tourne dans un faux DOM, avec un faux réseau et une horloge qui n'avance que par les attentes qu'il demande. */
+async function remiseScenarios() {
+  console.log('\n3 bis. essais.html — la remise à zéro attend le serveur');
+  const E = lire(OUT, 'essais.html'), code = E.slice(E.lastIndexOf('<script>') + 8, E.lastIndexOf('</script>'));
+  class El { constructor(id) { this.id = id; this._t = ''; this.className = ''; this.disabled = false; this.ecouteurs = {}; this.attrs = {}; }
+    get textContent() { return this._t; } set textContent(v) { this._t = String(v); } addEventListener(ev, f) { this.ecouteurs[ev] = f; } getAttribute(k) { return this.attrs[k]; } }
+  const jouer = async (reseau) => {
+    const els = {}; const ge = id => els[id] || (els[id] = new El(id));
+    let horloge = 0, avantClic = true; const vus = [], messages = [], ls = {};
+    const rep = (o) => Promise.resolve(Object.assign({ ok: true, status: 200, type: 'basic', json: () => Promise.resolve({}) }, o));
+    const sb = {
+      document: { getElementById: ge, querySelectorAll: () => [] }, Array, Date: { now: () => horloge }, Promise, JSON, String, encodeURIComponent, console: { warn() {}, log() {}, error() {} },
+      localStorage: { getItem: k => (k in ls ? ls[k] : null), setItem: (k, x) => { ls[k] = String(x); } },
+      window: { confirm: () => true },
+      setTimeout: (f, ms) => { horloge += ms; setImmediate(f); return 1; },
+      fetch: (u, o) => { vus.push({ u: String(u), o: o || {}, t: horloge }); if (avantClic && u === '/health') return rep({}); return reseau(String(u), o || {}, horloge); },
+    };
+    vm.runInNewContext(code, sb, { timeout: 3000 });
+    const msg = ge('remise-msg');
+    Object.defineProperty(msg, 'textContent', { get() { return this._t; }, set(v) { this._t = String(v); messages.push(String(v)); } });
+    avantClic = false;
+    ge('remise').ecouteurs.click();
+    for (let i = 0; i < 400; i++) await new Promise(r => setImmediate(r));
+    return { msgs: messages, final: msg.textContent, vus, bouton: ge('remise').disabled, horloge };
+  };
+  const connexion = (u) => u.startsWith('/api/essais/connexion?compte=client');
+  {   // nominal : /health répond (l'ancien serveur, pas encore arrêté), tombe, revient ; le semis n'est pas fini (503) puis l'est (302)
+    let sante = 0, sonde = 0, sondesAvantArret = 0, tombeVu = false, tombeAvantLaReussite = null;
+    const r = await jouer((u, o) => {
+      if (u === '/api/essais/remise-a-zero') return Promise.resolve({ ok: true, status: 200, type: 'basic' });
+      if (u === '/health') { sante++; if (sante === 1) return Promise.resolve({ ok: true, status: 200 }); if (sante <= 4) { tombeVu = true; return Promise.reject(new Error('502')); } return Promise.resolve({ ok: true, status: 200 }); }
+      /* tant que l'ANCIEN serveur répond (avant l'arrêt), sa porte « client » redirige déjà : s'y fier, ce serait annoncer « c'est fait » sur le serveur qu'on est en train d'arrêter */
+      if (connexion(u)) { if (!tombeVu) { sondesAvantArret++; return Promise.resolve({ ok: false, status: 0, type: 'opaqueredirect' }); } sonde++; if (sonde < 3) return Promise.resolve({ ok: false, status: 503, type: 'basic' }); if (tombeAvantLaReussite === null) tombeAvantLaReussite = tombeVu; return Promise.resolve({ ok: false, status: 0, type: 'opaqueredirect' }); }
+      return Promise.reject(new Error('inattendu ' + u));
+    });
+    const iFait = r.msgs.findIndex(m => /C'est fait/.test(m)), iRedem = r.msgs.findIndex(m => /redémarre/.test(m));
+    vrai('(population) le scénario a joué : le POST, cinq sondes de /health au moins, trois sondes de la porte « client »', r.vus.some(x => x.u === '/api/essais/remise-a-zero') && sante >= 5 && sonde === 3, [sante, sonde]);
+    vrai('⛔ la page dit d\'abord « Le serveur redémarre… », puis « C\'est fait » (jamais avant)', iRedem >= 0 && iFait > iRedem, r.msgs);
+    vrai('⛔ la page a VU le serveur tomber avant de croire à son retour : aucune sonde de la porte « client » sur l\'ancien serveur, et la sonde réussie vient après la chute', sondesAvantArret === 0 && tombeAvantLaReussite === true, [sondesAvantArret, tombeAvantLaReussite]);
+    vrai('⛔ « C\'est fait » n\'arrive qu\'APRÈS que la porte « client » a redirigé (semis fini) : la dernière requête est la sonde réussie', iFait === r.msgs.length - 1 && connexion(r.vus[r.vus.length - 1].u), r.vus.slice(-3).map(x => x.u));
+    vrai('…et le texte final dit de se reconnecter avec les boutons (les anciennes connexions ne valent plus)', /reconnecte-toi avec les boutons/.test(r.final), r.final);
+    vrai('⛔ la clé voyage en en-tête sur le POST et sur la sonde, jamais dans une adresse', r.vus.filter(x => x.u !== '/health').every(x => x.o.headers && x.o.headers['X-Essai-Cle'] === CLE) && !r.vus.some(x => x.u.includes(CLE)), r.vus.map(x => x.u));
+    vrai('le bouton est rendu à la fin', r.bouton === false);
+  }
+  {   // le serveur ne revient pas : au bout de 90 s la page le DIT, elle ne dit pas « C'est fait »
+    const r = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: true, status: 200 }) : (u === '/health' ? Promise.reject(new Error('502')) : Promise.reject(new Error('rien'))));
+    vrai('⛔ un serveur qui ne revient pas : pas de « C\'est fait », mais « n\'est pas revenu au bout de 90 secondes »', !r.msgs.some(m => /C'est fait/.test(m)) && /pas revenu au bout de 90 secondes/.test(r.final) && r.horloge >= 90000, [r.final, r.horloge]);
+    vrai('…et le bouton est rendu pour recommencer', r.bouton === false);
+  }
+  {   // /health ne tombe jamais (restart très rapide, ou arrêt jamais commencé) : la page ne reste pas figée, elle attend 8 s puis vérifie le semis
+    let sonde = 0;
+    const r = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: true, status: 200 }) : (u === '/health' ? Promise.resolve({ ok: true, status: 200 }) : (connexion(u) ? (++sonde, Promise.resolve({ ok: false, status: 0, type: 'opaqueredirect' })) : Promise.reject(new Error('x')))));
+    vrai('un /health qui ne tombe jamais : la page patiente 8 s (l\'arrêt n\'a peut-être pas commencé) puis vérifie le semis, et finit', /C'est fait/.test(r.final) && r.horloge >= 8000 && sonde >= 1, [r.final, r.horloge, sonde]);
+  }
+  {   // le semis n'en finit pas : 503 pour toujours alors que /health répond
+    const r = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: true, status: 200 }) : (u === '/health' ? Promise.resolve({ ok: true, status: 200 }) : Promise.resolve({ ok: false, status: 503, type: 'basic' })));
+    vrai('⛔ le semis jamais fini (503 pour toujours) : pas de « C\'est fait » non plus', !r.msgs.some(m => /C'est fait/.test(m)) && /pas revenu au bout de 90 secondes/.test(r.final), r.final);
+  }
+  {   // refus : 403 → clé refusée, 404 → pas un serveur de test ; dans les deux cas on n'attend rien
+    const r403 = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: false, status: 403 }) : Promise.reject(new Error('x')));
+    vrai('403 : « la clé d\'essais est refusée », sans attendre de serveur', /clé d'essais est refusée/.test(r403.final) && !r403.vus.some(x => x.u === '/health' && x.t > 0) && r403.bouton === false, r403.final);
+    const r404 = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: false, status: 404 }) : Promise.reject(new Error('x')));
+    vrai('404 : « ce serveur n\'est pas un serveur de test »', /pas un serveur de test/.test(r404.final), r404.final);
+  }
 }
 
 function fin() {

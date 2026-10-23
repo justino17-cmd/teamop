@@ -366,13 +366,13 @@ const PARCOURS_BASE = [
   { titre: 'Se connecter comme prospect', quoi: 'Appuie sur « Se connecter comme prospect ».',
     attendu: 'Mon espace s\'ouvre avec une demande d\'accès EN ATTENTE (métier plomberie, rubriques déjà choisies), pas d\'application ouverte. Si l\'entreprise est déjà ouverte ou si la demande a disparu : problème.' },
   { titre: 'Entrer dans la Tour comme patron', quoi: 'Appuie sur « Se connecter comme patron ».',
-    attendu: 'La Tour de contrôle s\'ouvre sans demander de mot de passe, avec tous ses onglets. Cherche « Clim Essai » dans les entreprises et la demande du prospect dans les accès à traiter.' },
+    attendu: 'La Tour de contrôle s\'ouvre sans demander de mot de passe, avec tous ses onglets. Cherche « Clim Essai » dans l\'onglet Entreprises, et la demande de « Plomberie Essai » dans l\'onglet Demandes (rubrique Clients).' },
   { titre: 'Entrer dans la Tour comme collaborateur', quoi: 'Appuie sur « Se connecter comme collaborateur ».',
     attendu: 'La Tour s\'ouvre avec les droits d\'un collaborateur : les onglets réservés au patron (par exemple les accès et la facturation) n\'y sont pas.' },
-  { titre: 'Lire les courriels captés', quoi: 'Appuie sur « Voir les courriels captés » après un geste qui envoie un courriel (une inscription, un lien de connexion).',
-    attendu: 'Le courriel est listé avec son expéditeur, son destinataire, son objet, et ses liens sont cliquables. Rien n\'est parti vers une vraie boîte : tout s\'arrête ici.' },
-  { titre: 'Remettre l\'espace à zéro', quoi: 'Quand l\'espace est encombré, appuie sur « Remettre l\'espace à zéro » et confirme.',
-    attendu: 'Les données d\'essai sont vidées et les quatre comptes reviennent propres. Recommence l\'étape 1 : tu dois retrouver « Clim Essai » comme au début.' },
+  { titre: 'Lire les courriels captés', quoi: 'Appuie sur « Voir les courriels captés ». Rien n\'est à faire avant : quatre courriels sont déjà arrivés à la préparation de l\'espace.',
+    attendu: 'Quatre courriels : deux « Nouvelle demande à traiter » pour le patron (Clim Essai et Plomberie Essai), deux « Votre demande est bien reçue » pour le client et le prospect. Chacun montre son expéditeur, son destinataire (une adresse en exemple-essai.fr), son objet. Appuie sur un lien : il ouvre une page de test.teamop.fr, jamais de teamop.fr. Rien n\'est parti vers une vraie boîte. Pour en faire arriver un de plus : dans une fenêtre privée, ouvre « Mon espace », appuie sur « Mot de passe oublié ? » et saisis client@exemple-essai.fr, puis reviens ici et appuie sur « Actualiser ».' },
+  { titre: 'Remettre l\'espace à zéro', quoi: 'Quand l\'espace est encombré, appuie sur « Remettre l\'espace à zéro » et confirme. La page attend que le serveur ait redémarré (une vingtaine de secondes) avant de dire que c\'est fait : ne recharge pas la page pendant ce temps.',
+    attendu: 'Le message passe de « Le serveur redémarre… » à « C\'est fait ». Les données d\'essai sont vidées — le journal et les incidents de la Tour compris — et les quatre comptes reviennent propres. Tes anciennes connexions (client, patron…) ne valent plus : reconnecte-toi avec les boutons. Recommence l\'étape 1 : tu dois retrouver « Clim Essai » comme au début.' },
 ];
 
 /* L'étape de paiement n'existe QUE si le paiement est jouable : une étape qui promettrait la carte 4242 sans que la page ait reçu ses tarifs de test
@@ -416,6 +416,7 @@ ${PAIEMENT_JOUABLE ? '' : '<div class="carte" id="limite-paiement"><p><b>Limite 
 <p class="doux">Serveur de test : <span class="etat" id="etat-serveur">vérification…</span></p></div>
 
 <h2>Se connecter, sans rien saisir</h2>
+<p class="doux" id="avis-cle">⛔ L'adresse de ces boutons porte la clé de cet espace de test : ne la copie pas et ne la colle pas dans la conversation. Ce qui se colle sans risque : la sortie de l'installation, <code>build.log</code> et <code>journalctl -u teamop-api-test -n 50</code>.</p>
 <div class="rangee">
 <a class="bouton" id="lien-client" href="${esc(lien('client'))}">Se connecter comme client</a>
 <a class="bouton" id="lien-prospect" href="${esc(lien('prospect'))}">Se connecter comme prospect</a>
@@ -432,7 +433,8 @@ ${PAIEMENT_JOUABLE ? '' : '<div class="carte" id="limite-paiement"><p><b>Limite 
 
 <h2>Les tests, dans l'ordre</h2>
 <p class="doux">Fais-les un par un, du haut vers le bas. Dès qu'une étape ne montre pas ce qui est écrit, arrête-toi, note ce que tu vois, et dis-le : on corrige avant de passer à la suivante. Ce que tu coches reste sur cet appareil.</p>
-${sup.length ? '<h2>Les tests de cette modification</h2><ol class="etapes">' + sup.map((e, i) => carteEtape(e, i + 1, 'm')).join('') + '</ol><h2>Le parcours de base</h2>' : ''}
+${sup.length ? '<h2>Les tests de cette modification</h2><ol class="etapes">' + sup.map((e, i) => carteEtape(e, i + 1, 'm')).join('') + '</ol><h2>Le parcours de base</h2>'
+  : '<div class="carte" id="sans-tests-modification"><p><b>Aucun test propre à cette modification n\'est fourni.</b> Le parcours ci-dessous vérifie que l\'espace de test lui-même marche (connexions, Tour, courriels, remise à zéro) ; il ne teste pas ce que cette modification change. Les tests d\'une modification s\'écrivent dans <code>essais/parcours.json</code>, porté par la demande de fusion.</p></div>'}
 <ol class="etapes">${PARCOURS_AFFICHE.map((e, i) => carteEtape(e, i + 1, 'b')).join('')}</ol>
 </main>
 ${bandeau()}
@@ -451,15 +453,35 @@ ${bandeau()}
     .then(function(){ etat.textContent='répond'; etat.className='etat ok'; },
           function(e){ etat.textContent='ne répond pas ('+(e&&e.message||'erreur')+')'; etat.className='etat pas'; });
   var btn=document.getElementById('remise'), msg=document.getElementById('remise-msg');
+  /* ⛔ « C'EST FAIT » SEULEMENT QUAND LE SERVEUR EST REVENU. La route répond 200 puis ARRÊTE le serveur (l'unité systemd le relance : une quinzaine de secondes, plus le semis des
+     comptes). Annoncer « c'est fait » sur le 200, c'était laisser cliquer « Se connecter comme client » sur un 502, ou sur {"error":"pas_encore_seme"}. On attend donc de VOIR le serveur
+     tomber puis répondre (/health), puis que le semis soit fini : la porte « client » redirige (302), au lieu de répondre 503. */
+  function pause(ms){ return new Promise(function(ok){ setTimeout(ok,ms); }); }
+  function vivant(){ return fetch('/health',{cache:'no-store'}).then(function(r){ return r.ok; },function(){ return false; }); }
+  function seme(){ return fetch('/api/essais/connexion?compte=client',{cache:'no-store',redirect:'manual',headers:{'X-Essai-Cle':CLE}}).then(function(r){ return r.type==='opaqueredirect'||r.status===302; },function(){ return false; }); }
+  function attendreRedemarrage(){
+    var debut=Date.now(), tombe=false;
+    msg.textContent='Le serveur redémarre… compte une vingtaine de secondes, ne recharge pas la page.';
+    function tour(){
+      if(Date.now()-debut>90000) return Promise.reject(new Error('le serveur n\\'est pas revenu au bout de 90 secondes — regarde « Serveur de test » plus haut, puis recommence'));
+      return pause(1000).then(vivant).then(function(v){
+        if(!v){ tombe=true; return tour(); }
+        if(!tombe && Date.now()-debut<8000) return tour();
+        return seme().then(function(pret){ return pret?true:tour(); });
+      });
+    }
+    return tour();
+  }
   btn.addEventListener('click',function(){
-    if(!window.confirm('Remettre l\\'espace de test à zéro ? Les données d\\'essai sont vidées et les quatre comptes reviennent comme au début.')) return;
+    if(!window.confirm('Remettre l\\'espace de test à zéro ? Les données d\\'essai sont vidées (le journal et les incidents de la Tour aussi) et les quatre comptes reviennent comme au début.')) return;
     btn.disabled=true; msg.textContent='Remise à zéro en cours…';
-    fetch('/api/essais/remise-a-zero?cle='+encodeURIComponent(CLE),{method:'POST'}).then(function(r){
+    fetch('/api/essais/remise-a-zero',{method:'POST',headers:{'X-Essai-Cle':CLE}}).then(function(r){
       if(r.status===404) throw new Error('ce serveur n\\'est pas un serveur de test (route absente)');
       if(r.status===403) throw new Error('la clé d\\'essais est refusée');
       if(!r.ok) throw new Error('le serveur a répondu '+r.status);
-      msg.textContent='C\\'est fait : l\\'espace est remis à zéro.';
-    }).catch(function(e){ msg.textContent='Ça n\\'a pas marché : '+(e&&e.message||'erreur'); }).then(function(){ btn.disabled=false; });
+      return attendreRedemarrage();
+    }).then(function(){ msg.textContent='C\\'est fait : l\\'espace est remis à zéro. Tes anciennes connexions ne valent plus : reconnecte-toi avec les boutons ci-dessus.'; })
+      .catch(function(e){ msg.textContent='Ça n\\'a pas marché : '+(e&&e.message||'erreur'); }).then(function(){ btn.disabled=false; });
   });
 })();
 </script>
@@ -500,7 +522,7 @@ ${bandeau()}
   }
   function dire(texte,cls){ liste.textContent=''; liste.appendChild(el('div',{'class':'carte'},texte)); compte.textContent=''; compte.className='etat '+(cls||''); }
   function charger(){
-    fetch('/api/essais/courriels?cle='+encodeURIComponent(CLE),{cache:'no-store'}).then(function(r){
+    fetch('/api/essais/courriels',{cache:'no-store',headers:{'X-Essai-Cle':CLE}}).then(function(r){
       if(r.status===404) throw new Error('ce serveur n\\'est pas un serveur de test (route absente)');
       if(r.status===403) throw new Error('la clé d\\'essais est refusée');
       if(!r.ok) throw new Error('le serveur a répondu '+r.status);
