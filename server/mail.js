@@ -74,7 +74,9 @@ function authentification(lignes, adresseDe, serveursOk) {
   const de = domaineNu(adresseDe);
   if (!de || de.indexOf('.') < 1) return { ok: false, raison: 'expéditeur sans domaine' };
   for (const m of morceaux) {
-    const dkim = /^dkim\s*=\s*pass\b/i.test(m) && /header\.(?:d|i)\s*=\s*"?@?([^\s";]+)/i.exec(m);
+    /* ⛔ `header.d` SEUL : c'est le domaine qui a SIGNÉ (le `d=` de la signature, celui dont la clé publique a été vérifiée). `header.i` est l'identité que le signataire DÉCLARE (`i=`) : il choisit ce qu'il y
+       met. `dkim=pass header.i=@victime.com header.d=evil.com` — signé par evil.com, qui prétend écrire pour victime.com — passait pour authentifié quand le premier des deux rencontrés décidait. */
+    const dkim = /^dkim\s*=\s*pass\b/i.test(m) && /(?:^|\s)header\.d\s*=\s*"?@?([^\s";]+)/i.exec(m);
     if (dkim && aligne(dkim[1], de)) return { ok: true, par: 'dkim', domaine: domaineNu(dkim[1]) };
     const spf = /^spf\s*=\s*pass\b/i.test(m) && /smtp\.mailfrom\s*=\s*"?([^\s";]+)/i.exec(m);
     if (spf && /@/.test(spf[1]) && aligne(spf[1], de)) return { ok: true, par: 'spf', domaine: domaineNu(spf[1]) };
