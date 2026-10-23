@@ -228,9 +228,11 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
   /* 23 octobre 2026 (cahier §6 et §7, Justin : « des agents qui réfléchissent comme des humains ») : la messagerie fait RÉFLÉCHIR l'agent (thinking adaptatif,
      3000 jetons — la réflexion est prise sur max_tokens) et lui donne cinq outils fermés. Le contrôle reste entier sur ce qui compte : jamais de réglage refusé. */
   vrai('chaque requête : réflexion adaptative, 3000 jetons, les cinq outils fermés en choix automatique, et JAMAIS temperature / top_p / top_k', corps.every(b => b.max_tokens === 3000 && b.thinking && b.thinking.type === 'adaptive' && !('temperature' in b) && !('top_p' in b) && !('top_k' in b)
-    && b.tool_choice && b.tool_choice.type === 'auto' && Array.isArray(b.tools) && b.tools.map(t => t.name).join().startsWith('ecrire,prendre,passer,terminer,demander_justin')
-    /* 23 octobre 2026 : Hugo, Margaux, Emma et Sarah ont UN outil propre de plus (fin d'abonnement, mise en demeure, créneaux, annonce) — `test-2915` les joue ; ici, une liste fermée */
-    && b.tools.slice(5).every(t => ['programmer_fin_abonnement', 'preparer_mise_en_demeure', 'proposer_creneaux', 'rediger_annonce'].includes(t.name))));
+    && b.tool_choice && b.tool_choice.type === 'auto' && Array.isArray(b.tools) && b.tools.map(t => t.name).slice(0, 5).join() === 'ecrire,prendre,passer,terminer,demander_justin'
+    /* 23 octobre 2026 (fusion) : Victor, et lui seul, a un sixième outil (l'arbitrage — `agents-plateforme.js`) ; Hugo, Margaux, Emma et Sarah ont UN outil propre de plus
+       (fin d'abonnement, mise en demeure, créneaux, annonce) — `test-2915` les joue ; ici, une liste fermée */
+    && (/^Tu es Victor,/.test(b.system) ? b.tools.map(t => t.name).slice(5).join() === 'arbitrer'
+      : b.tools.slice(5).every(t => ['programmer_fin_abonnement', 'preparer_mise_en_demeure', 'proposer_creneaux', 'rediger_annonce'].includes(t.name)))));
 
   console.log('\n3. Ce qui part chez Claude : rien d’une personne');
   const tout = corps.map(b => JSON.stringify(b)).join('\n');
@@ -248,8 +250,8 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
   const faitDe = (id, nom) => { const l = (lignesFaits(id) || []).find(x => x.startsWith(nom + ' ')); if (!l) return undefined; try { return JSON.parse(l.slice(l.indexOf('{'))); } catch (e) { return 'illisible'; } };
   let lignes = 0, toutesFermees = true, illisibles = 0;
   for (const id of QUINZE) for (const l of (lignesFaits(id) || [])) { const j = l.indexOf('{'); if (j < 0) continue; lignes++; let o; try { o = JSON.parse(l.slice(j)); } catch (e) { illisibles++; continue; } if (!fermee(o)) { toutesFermees = false; console.log('      non fermé : ' + l.slice(0, 200)); } }
-  /* 23 octobre 2026 : Margaux lit aussi la ligne « facture » du dossier cité (statut, montant, date de sa dernière facture — `faitsFacture`) : 14 lignes d'avant + 1 */
-  v('(population) les 15 lignes de faits attendues ont été relevées et lues (sinon « fermé » ne prouve rien sur du vide)', [lignes, illisibles], [15, 0]);
+  /* 23 octobre 2026 (fusion) : 14 lignes d'avant + 1 « facture » de Margaux (`faitsFacture`) + 11 relevés des six agents de la plateforme (`plateforme-roles.js`) */
+  v('(population) les 26 lignes de faits attendues ont été relevées et lues (sinon « fermé » ne prouve rien sur du vide)', [lignes, illisibles], [26, 0]);
   vrai('⛔ TOUTES les lignes de faits ne portent que nombres, booléens, valeurs de liste et numéros de dossier', toutesFermees);
   const quels = id => (lignesFaits(id) || []).map(l => l.split(' ')[0]).filter(x => /^(sante|equipe|courrier|clients|dossier)$/.test(x)).join(',');
   const ATTENDU = { victor: 'sante,equipe,courrier,clients', ines: 'sante', camille: 'courrier,dossier', margaux: 'dossier', lea: 'clients,dossier', max: 'sante', nina: 'sante', theo: 'sante', jules: 'sante', chloe: '', emma: '', louis: '', sarah: '', lola: '', noah: '' };

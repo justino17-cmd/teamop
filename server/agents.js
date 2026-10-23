@@ -85,7 +85,9 @@ const SCHEMAS = {
   /* ce qu'un agent DEMANDE à un autre (file de tâches) */
   verifier_paiement: { espace: SLUG },
   preparer_espace:   { espace: SLUG, formule: REF },
-  escalade_humain:   { fil: REF, motif: ['demande_humain', 'litige', 'sensible', 'blocage', 'urgence'] },
+  /* `rgpd` (23 octobre 2026) : Camille passe à NINA une demande d'exercice de droits reçue par courrier (accès, effacement…). Le délai légal d'UN MOIS court dès
+     la réception ; Nina le tient (`agent-nina.js`). Le texte de la demande ne traverse pas : `fil` est une référence, rien d'autre. */
+  escalade_humain:   { fil: REF, motif: ['demande_humain', 'litige', 'sensible', 'blocage', 'urgence', 'rgpd'] },
   signaler_erreur:   { source: ['site', 'api', 'stripe', 'mail', 'sauvegarde', 'instagram'], ref: REF },
   relire_envoi:      { brouillon: REF },
   /* ── HUGO, MARGAUX, EMMA, SARAH (23 octobre 2026, `agents-documents.js`) — leurs formes fermées, sur leurs lignes à elles ──
@@ -530,7 +532,10 @@ module.exports = function monterAgents(app, ctx) {
   /* Une validation de ce (type, champ = valeur) attend-elle encore le patron ? Pour un agent qui doit savoir si SON brouillon est encore sous les yeux de
      Justin (une validation refusée ou expirée n'attend plus personne : réécrire le brouillon qui lui correspond serait écrire dans le vide). */
   const enAttentePour = (type, champ, valeur) => { perimer(); return validations.some(v => v.statut === 'en_attente' && v.type === type && v.params && v.params[champ] === valeur); };
-  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe };
+  /* Les validations EN ATTENTE, à la lecture (23 octobre 2026 : Inès les voit vieillir, Victor les compte) : { agent, type, ts } — jamais le résumé ni les paramètres, qui sont des phrases de
+     l'équipe. `null` si la file est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
+  const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
+  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

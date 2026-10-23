@@ -2098,6 +2098,7 @@ const MON_GESTES = {
   'agents/emma/disponibilites': 'a réglé les disponibilités d’Emma', 'agents/emma/proposer': 'a demandé à Emma de proposer des créneaux à un prospect', 'agents/sarah/rediger': 'a demandé à Sarah de rédiger une annonce aux clients',
   'agents/charte': 'a changé la charte d’autonomie des agents', 'agents/brouillons/modifier': 'a corrigé un brouillon de réponse d’un agent avant de le valider', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
   'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
+  'agents/plateforme/passer': 'a fait passer un agent de la plateforme', 'agents/plateforme/point': 'a demandé le point de Victor', 'agents/plateforme/rgpd': 'a clos une demande RGPD suivie par Nina', 'agents/plateforme/rgpd/declarer': 'a enregistré une demande RGPD reçue (Nina en tient le délai)',
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
@@ -4584,6 +4585,7 @@ let agentEmma = null;        // Emma (`agent-emma.js`) : les rendez-vous avec le
 let agentSarah = null;       // Sarah (`agent-sarah.js`) : les annonces aux clients, rédigées pour la validation de Justin — `null` = pas montée
 let agentEquipe = null;        // la messagerie des agents (`agent-equipe.js`) : `null` = pas montée ; la conversation d'avant (Hugo + les quinze) reste alors servie
 let reunionsMod = null;        // les réunions du lundi et du vendredi (`reunions.js`) : `null` = pas montées ; les agents n'ont alors ni objectifs ni leçons
+let plateformeMod = null;      // les six agents de la plateforme (`agents-plateforme.js`) : `null` = pas montés ; ni surveillance par les agents, ni point du matin
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
 let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
@@ -10462,6 +10464,7 @@ try {
            agent non monté n'a simplement pas d'outil. Chacun ne vaut que d'un message de Justin (le module le vérifie, pas le prompt). */
         outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; }, get margaux() { return agentMargaux && agentMargaux.outilsEquipe; },
           get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; } },
+        arbitrer: (e, c) => plateformeMod ? plateformeMod.arbitrer(e, c) : { ok: false, raison: 'indisponible' },     // l'outil « arbitrer » de Victor (`agents-plateforme.js`)
         memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
     } catch (e) { agentEquipe = null; console.error('messagerie des agents indisponible :', e.message); }
@@ -10474,7 +10477,9 @@ try {
         /* Les incidents de la fenêtre : des NOMBRES (ouverts depuis le début, corrigés depuis, restant à traiter) — jamais le texte d'un incident, forgeable (/api/monitor/report est publique). */
         faits: { incidents: (debut, fin) => ({ ouverts: monIssues.filter(i => i.firstTs >= debut && i.firstTs <= fin).length,
           corriges: monIssues.filter(i => i.statut === 'corrige' && i.lastTs >= debut && i.lastTs <= fin).length,
-          aTraiter: monIssues.filter(i => i.statut === 'nouveau' || i.statut === 'encours').length }) } });
+          aTraiter: monIssues.filter(i => i.statut === 'nouveau' || i.statut === 'encours').length }),
+          /* la part « qualité » d'Inès : les jours relus de la fenêtre (des nombres) — `null` si elle n'est pas montée */
+          qualite: (debut, fin) => plateformeMod ? plateformeMod.qualite(debut, fin) : null } });
       const ticReunions = () => { try { reunionsMod.tic(); } catch (e) { console.error('réunions :', e.message); } };
       setTimeout(ticReunions, 5000).unref();
       setInterval(ticReunions, 60000).unref();
@@ -10595,6 +10600,25 @@ try {
       gestionClients = { dossierDeSlug, emailDeDossier, slugDeDossier, resilierEntreprise, impayesMargaux, factureMargaux };
     } catch (e) { console.error('adaptateurs des agents de gestion indisponibles :', e.message); }
 
+    /* LES AGENTS DE LA PLATEFORME : Max (surveillance), Jules (incidents), Théo (sauvegardes, conservation), Nina (accès, RGPD, contrats), Inès (qualité), Victor (le
+       point du matin, la répartition, l'arbitrage). UN bloc, sous son propre `try` : s'il échoue, la messagerie et les réunions continuent sans eux. Le CODE surveille
+       toutes les cinq minutes ; le modèle ne juge que ce qui est neuf. Rien ne s'exécute seul : un incident est ouvert dans le registre de la Tour, une proposition va à Justin. */
+    try {
+      plateformeMod = require('./agents-plateforme')(app, { agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, fichier: fichierAgents, monAdmin, monPatronStrict,
+        equipe: () => agentEquipe,
+        issues: () => monIssues, sauverIssues: monSave,
+        sante: () => santeCorps(false),            // ⛔ jamais /health : il vide la fenêtre des temps de réponse que lit la surveillance horaire
+        sauvegarde: { etat: () => (sauvegarde && typeof sauvegarde.etat === 'function' ? sauvegarde.etat() : null) },
+        conservation: { sante: () => (conservation && typeof conservation.sante === 'function' ? conservation.sante() : null) },
+        contrats: { etat: () => (contratsMod && typeof contratsMod.etat === 'function' ? contratsMod.etat() : null) },
+        /* ce que le serveur SAIT déjà de la sécurité : des NOMBRES (verrous posés en ce moment, preuves de clé refusées depuis le démarrage) — jamais une adresse */
+        securite: () => ({ verrousTour: [...monLock.values()].filter(l => l && l.until > Date.now()).length, verrousPortail: (comptes && typeof comptes.bloques === 'function') ? comptes.bloques() : null, clesInvalides: cleEquipeVu.invalide }),
+        courriels: (depuis) => (brouillonsMod && typeof brouillonsMod.envoyes === 'function' ? brouillonsMod.envoyes(depuis) : null),
+        courrier: faitsAgents.courrier, clients: faitsAgents.clients });
+      Object.assign(faitsAgents, plateformeMod.faits);          // plateforme, incidents, sauvegardes, conservation, securite, contrats, qualite (lus par la messagerie, rôle par rôle)
+      plateformeMod.demarrer();
+      console.log('agents : plateforme montée (Max, Jules, Théo, Nina, Inès, Victor)');
+    } catch (e) { plateformeMod = null; console.error('agents de la plateforme indisponibles :', e.message); }
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
