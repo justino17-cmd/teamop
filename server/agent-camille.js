@@ -90,7 +90,9 @@ const GABARITS = {
 function objetReponse(objetRecu) {
   let s = '';
   for (const c of String(objetRecu || '')) { const k = c.charCodeAt(0); s += (k < 32 || k === 127 || k === 0x2028 || k === 0x2029) ? ' ' : c; }
-  s = K.sansAdresses(s).replace(/^\s*(?:re|ré|fwd?|tr)\s*:\s*/i, '').replace(/[<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+  s = K.sansAdresses(s).replace(/[<>]/g, ' ').replace(/\s+/g, ' ').trim();
+  while (/^(?:re|ré|fwd?|tr)\s*:\s*/i.test(s)) s = s.replace(/^(?:re|ré|fwd?|tr)\s*:\s*/i, '');   // « Re: Re: Ma facture » : un seul « Re : » en tête
+  s = s.slice(0, 120);
   return s ? 'Re : ' + s : 'Votre message à TeamOP';
 }
 
@@ -262,7 +264,8 @@ module.exports = function camille(ctx) {
         if (categorie === 'facture' || categorie === 'technique') {
           noterVu(h);
           const collegue = categorie === 'facture' ? 'Margaux' : 'Jules';
-          dire('clients', categorie === 'facture'
+          /* Jules n'est pas membre du groupe « Clients » (il est dans « Plateforme », où Camille n'écrit pas) : une mention hors du fil ne réveille personne. Le problème technique passe donc par « Équipe », qui les réunit tous. */
+          dire(categorie === 'facture' ? 'clients' : 'equipe', categorie === 'facture'
             ? '@Margaux un client écrit à propos d’une facture' + dos + ' (réf. ' + rf + '). Je lui ai accusé réception ; peux-tu regarder où il en est ?'
             : '@Jules un client signale un problème technique' + dos + ' (réf. ' + rf + '). Je lui ai accusé réception ; peux-tu regarder si c’est connu côté application ou serveur ?', 'info');
           agents.noter(ID, 'passer la main à ' + collegue, { cible: 'courrier', resultat: 'ok', detail: categorie });

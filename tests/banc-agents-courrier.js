@@ -45,6 +45,7 @@ const COURRIEL = [
 /* Le courriel que Claude rendrait POUR CETTE DEMANDE (23 octobre 2026 : le contrôle qualité exige le nom de l'entreprise dans l'accroche) : il lit le nom et le métier dans le
    message de Léa et les écrit. Il passe le contrôle du code, quel que soit le nom. */
 function courrielPour(requete) {
+  if (String(requete && requete.system).startsWith('Tu es Chloé, l’assistante virtuelle « Devis et propositions »')) return 'FORMULE : business\nObjet : Notre proposition pour Toka Clim\n\n' + PROPOSITION;
   /* Camille ne rend plus un courriel nu : une ligne « CATEGORIE : … » d'abord (ici « prospect », la démarche commerciale) */
   if (String(requete && requete.system).startsWith('Tu es Camille, l’assistante virtuelle « Courrier et support »')) return 'CATEGORIE : prospect\n' + COURRIEL;
   const m = requete && requete.messages ? requete.messages[requete.messages.length - 1] : null;
@@ -54,6 +55,15 @@ function courrielPour(requete) {
   const metier = met && !/^non indiqué/.test(met[1]) ? met[1].trim() : '';
   return COURRIEL.replace('Nous avons bien noté votre activité.', (ent ? 'Nous avons bien noté que ' + ent + ' est une entreprise' + (metier ? ' de ' + metier.toLowerCase() : ' de terrain') + '.' : 'Nous avons bien noté votre activité.'));
 }
+/* La proposition que Chloé rendrait (23 octobre 2026) : la formule Business, les deux emplacements de rubriques, l'essai à la fin. Elle passe le contrôle du profil « proposition ». */
+const PROPOSITION = ['Bonjour,', '', 'Nous vous remercions pour vos réponses. Nous avons compris que Toka Clim intervient surtout en entretien de climatisation chez des particuliers, avec une équipe de quatre techniciens.', '',
+  'La formule que nous vous proposons est OP GESTION Business, à 25 € par mois et par utilisateur (TVA non applicable), sans engagement de durée. Elle comprend le planning des interventions, les rapports avec photos et signature, les devis et les factures, le stock avec seuils d’alerte et les bons de commande fournisseurs.', '',
+  '{{RUBRIQUES_CONSERVEES}}', '', '{{RUBRIQUES_RETIREES}}', '',
+  'Nous pouvons aussi créer pour vous une catégorie de suivi des fluides frigorigènes, réservée à votre entreprise : elle restera confidentielle, et le budget reste maîtrisé.', '',
+  'Si cette proposition vous convient, nous pouvons vous ouvrir une période d’essai d’une semaine pour la tester avec votre équipe. Dites-nous si vous souhaitez la démarrer ou ajuster la proposition.', '',
+  'Nous restons à votre disposition par retour de mail ou par téléphone.', '', 'Bien cordialement,'].join('\n');
+const CHLOE_DEBUT = 'Tu es Chloé, l’assistante virtuelle « Devis et propositions »';
+const LOUIS_DEBUT = 'Tu es Louis, l’assistant virtuel';
 const JUGE_DEBUT = 'Tu es le relecteur qualité', RECHERCHE_DEBUT = 'Tu es Léa, l’assistante virtuelle de TeamOP. Avant d’écrire';
 
 function monter(o) {
@@ -88,7 +98,7 @@ function monter(o) {
   /* Claude simulé : chaque requête est gardée ; `o.claude(requete, n)` choisit la réponse (texte brut, ou un objet d'erreur à jeter). */
   /* `recus` : les appels du RÉDACTEUR seulement ; le juge (`recusJuge`, réponse par défaut « VERDICT : OK », réglable par `o.juge(requete, n)`) et la recherche web (`recusRecherche`,
      par défaut « IDENTIFIEE : non », réglable par `o.recherche(requete, n)` qui peut rendre { texte, recherches }) ont les leurs. */
-  const recus = [], recusJuge = [], recusRecherche = [];
+  const recus = [], recusJuge = [], recusRecherche = [], recusLouis = [];
   const cerveau = require(S('cerveau.js'))({ DATA_DIR: D, agents, cleApi: o.sansCle ? '' : 'sk-ant-banc-2862-xxxxxxxxxxxxxxxx', maintenant,
     appeler: async (cle, requete) => {
       const copie = JSON.parse(JSON.stringify(requete));
@@ -103,6 +113,12 @@ function monter(o) {
         const r = o.recherche ? await o.recherche(requete, recusRecherche.length) : 'IDENTIFIEE : non';
         if (r instanceof Error) throw r;
         return typeof r === 'object' ? Object.assign({ entree: 1500, sortie: 200, stop_reason: 'end_turn' }, r) : { texte: r, entree: 1500, sortie: 200, stop_reason: 'end_turn', recherches: 0 };
+      }
+      if (String(requete.system).startsWith(LOUIS_DEBUT)) {
+        recusLouis.push(copie);
+        const r = o.louisClaude ? await o.louisClaude(requete, recusLouis.length) : 'RIEN';
+        if (r instanceof Error) throw r;
+        return { texte: r, entree: 1500, sortie: 100, stop_reason: 'end_turn' };
       }
       recus.push(copie);
       const r = o.claude ? await o.claude(requete, recus.length) : courrielPour(requete);
@@ -121,18 +137,22 @@ function monter(o) {
     envoyerAgent: async (x) => { if (o.panneEnvoi) throw new Error('smtp en panne pour jean.dupont@client-secret.fr'); envoyes.push(JSON.parse(JSON.stringify(x))); return { copieOk: true, messageId: '<banc' + envoyes.length + '@teamop.fr>' }; }
   };
   const fichier = require(S('agents-fichier.js'))(D);
-  const brouillons = require(S('agents-brouillons.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, mail, direction, fichier, maintenant });
+  const brouillons = require(S('agents-brouillons.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, mail, direction, fichier, maintenant, surCorrection: x => louis.surCorrection(x) });   // (Louis est créé plus bas : liaison tardive, comme dans index.js)
   const paroles = [];
-  const conversations = { parler: (de, fil, texte, opts) => { paroles.push({ de, fil, texte, niveau: (opts || {}).niveau }); return { ok: true }; } };
-  const lea = require(S('agent-lea.js'))({ agents, cerveau, brouillons, fichier, maintenant, conversations, recherche: o.recherche !== undefined || o.avecRecherche === true,
+  const conversations = o.conversations || { parler: (de, fil, texte, opts) => { paroles.push({ de, fil, texte, niveau: (opts || {}).niveau }); return { ok: true }; } };
+  const louis = require(S('agent-louis.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, cerveau, fichier, maintenant, conversations });
+  const lea = require(S('agent-lea.js'))({ agents, cerveau, brouillons, fichier, maintenant, conversations, louis, recherche: o.recherche !== undefined || o.avecRecherche === true,
     libelleMetier: m => ({ chauffage: 'Chauffage / Climatisation', nettoyage: 'Nettoyage' }[m] || ''), metiers: ['chauffage', 'nettoyage', 'autre'] });
-  const camille = require(S('agent-camille.js'))({ agents, cerveau, brouillons, mail, fichier, maintenant, domainesNotres: () => ['teamop.fr', 'notre-societe.fr'], adressesNotres: () => ['moi-meme@webmail-2863.example'] });
+  const chloe = require(S('agent-chloe.js'))({ agents, cerveau, brouillons, fichier, maintenant, conversations, louis, metiersPath: o.metiersPath,
+    libelleMetier: m => ({ chauffage: 'Chauffage / Climatisation', nettoyage: 'Nettoyage' }[m] || ''),
+    contexteClient: o.contexteClient || (() => ({ entreprise: 'Toka Clim', metier: 'chauffage', users: 4, formule: 'pro' })) });
+  const camille = require(S('agent-camille.js'))({ agents, cerveau, brouillons, mail, fichier, maintenant, conversations, louis, chloe: o.sansChloe ? null : chloe, dossierDe: o.dossierDe, domainesNotres: () => ['teamop.fr', 'notre-societe.fr'], adressesNotres: () => ['moi-meme@webmail-2863.example'] });
 
   const validations = async () => (await appeler('GET /api/monitor/agents/validations', { tourUser: PATRON, query: { statut: 'tout' } })).corps.validations;
   const journal = () => agents.lireJournal();
   const fichierJson = nom => JSON.parse(fs.readFileSync(path.join(D, nom), 'utf8'));
   const nettoyer = () => { try { fs.rmSync(D, { recursive: true, force: true }); } catch (e) {} };
-  return { D, horloge, agents, direction, cerveau, mail, brouillons, lea, camille, fichier, recus, recusJuge, recusRecherche, paroles, messages, lectures, envoyes, routes, appeler, PATRON, COLLAB,
+  return { D, horloge, agents, direction, cerveau, mail, brouillons, lea, camille, chloe, louis, fichier, recus, recusJuge, recusRecherche, recusLouis, paroles, messages, lectures, envoyes, routes, appeler, PATRON, COLLAB,
     validations, journal, fichierJson, nettoyer };
 }
 /* Le même courriel, pour une entreprise nommée « Toka Clim » (l'accroche doit porter le nom — contrôle qualité du 23 octobre 2026). `pourToka(x)` y ajoute une phrase. */
@@ -141,4 +161,4 @@ const COURRIEL_TOKA = COURRIEL.replace('Nous avons bien noté votre activité.',
 const pourToka = x => COURRIEL_TOKA.replace(NOTE_TOKA, NOTE_TOKA + ' ' + x);
 /* La signature qu'un agent porte à l'envoi (`agents-signature.js`), pour la boîte contact@. */
 const signatureDe = (nom, role) => nom + ' — ' + (role || 'Assistante virtuelle') + ' — Équipe TeamOP\ncontact@teamop.fr · teamop.fr';
-module.exports = { JUGE_DEBUT, RECHERCHE_DEBUT, monter, COURRIEL, COURRIEL_TOKA, pourToka, NOTE_TOKA, SIGNATURE, courrielPour, signatureDe };
+module.exports = { LOUIS_DEBUT, PROPOSITION, CHLOE_DEBUT, JUGE_DEBUT, RECHERCHE_DEBUT, monter, COURRIEL, COURRIEL_TOKA, pourToka, NOTE_TOKA, SIGNATURE, courrielPour, signatureDe };

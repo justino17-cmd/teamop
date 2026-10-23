@@ -70,22 +70,23 @@ async function demarrer(o) {
 
   /* Le faux Claude, chargé AVANT le serveur. Il garde chaque requête (une ligne JSON par appel) et répond selon `o.claude` (source d'une fonction
      `(requete, n) => texte`, évaluée dans le processus du serveur). */
-  const PRE = path.join(banc, 'claude.js'), TRACE = path.join(banc, 'recu.jsonl'), TRACE_JUGE = path.join(banc, 'juge.jsonl'), TRACE_RECH = path.join(banc, 'recherche.jsonl');
+  const PRE = path.join(banc, 'claude.js'), TRACE = path.join(banc, 'recu.jsonl'), TRACE_JUGE = path.join(banc, 'juge.jsonl'), TRACE_RECH = path.join(banc, 'recherche.jsonl'), TRACE_LOUIS = path.join(banc, 'louis.jsonl');
   const BA = require('./banc-agents-courrier.js');
   /* Le rédacteur par défaut écrit le courriel POUR l'entreprise nommée dans la demande (le contrôle qualité exige son nom dans l'accroche) ; le juge répond « VERDICT : OK »
      (ou `o.juge`, source JS d'une fonction `(requete, n) => texte`), la recherche web « IDENTIFIEE : non » (ou `o.recherche`, qui peut rendre { texte, recherches }). */
   const reponse = o.claude || "(r, n) => (" + BA.courrielPour.toString() + ")(r)";
   const COURRIEL_SRC = JSON.stringify(BA.COURRIEL);
-  fs.writeFileSync(PRE, `const vrai = globalThis.fetch; let n = 0, nj = 0, nr = 0; const COURRIEL = ${COURRIEL_SRC}; const rep = (${reponse});
-const repJuge = (${o.juge || "() => 'VERDICT : OK'"}), repRech = (${o.recherche || "() => 'IDENTIFIEE : non'"});
+  fs.writeFileSync(PRE, `const vrai = globalThis.fetch; let n = 0, nj = 0, nr = 0; const COURRIEL = ${COURRIEL_SRC}; const PROPOSITION = ${JSON.stringify(BA.PROPOSITION)}; const rep = (${reponse});
+const repJuge = (${o.juge || "() => 'VERDICT : OK'"}), repRech = (${o.recherche || "() => 'IDENTIFIEE : non'"}), repLouis = (${o.louisClaude || "() => 'RIEN'"});
 globalThis.fetch = async function (url, opts) { const u = String(url && url.url || url);
   if (u.startsWith('https://api.anthropic.com/')) { const corps = String(opts && opts.body);
     const j = JSON.parse(corps); const sys = String(j.system);
-    const trace = sys.startsWith(${JSON.stringify(BA.JUGE_DEBUT)}) ? ${JSON.stringify(TRACE_JUGE)} : sys.startsWith(${JSON.stringify(BA.RECHERCHE_DEBUT)}) ? ${JSON.stringify(TRACE_RECH)} : ${JSON.stringify(TRACE)};
+    const trace = sys.startsWith(${JSON.stringify(BA.JUGE_DEBUT)}) ? ${JSON.stringify(TRACE_JUGE)} : sys.startsWith(${JSON.stringify(BA.RECHERCHE_DEBUT)}) ? ${JSON.stringify(TRACE_RECH)} : sys.startsWith(${JSON.stringify(BA.LOUIS_DEBUT)}) ? ${JSON.stringify(TRACE_LOUIS)} : ${JSON.stringify(TRACE)};
     require('fs').appendFileSync(trace, corps + '\\n');
     let texte, usage = { input_tokens: 900, output_tokens: 400 };
     if (trace === ${JSON.stringify(TRACE_JUGE)}) { nj++; texte = await repJuge(j, nj); }
     else if (trace === ${JSON.stringify(TRACE_RECH)}) { nr++; const x = await repRech(j, nr); if (x && typeof x === 'object') { texte = x.texte; usage.server_tool_use = { web_search_requests: x.recherches || 0 }; } else texte = x; }
+    else if (trace === ${JSON.stringify(TRACE_LOUIS)}) { texte = await repLouis(j); }
     else { n++; texte = await rep(j, n); }
     return new Response(JSON.stringify({ id: 'msg_banc', type: 'message', role: 'assistant', model: 'claude-sonnet-5', stop_reason: 'end_turn', content: [{ type: 'text', text: texte }], usage }), { status: 200, headers: { 'content-type': 'application/json' } }); }
   return vrai.apply(this, arguments); };\n`);
@@ -152,6 +153,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   S.claudeRecus = () => lignes(TRACE);
   S.juges = () => lignes(TRACE_JUGE);
   S.recherches = () => lignes(TRACE_RECH);
+  S.louisRecus = () => lignes(TRACE_LOUIS);
   S.imap = () => JSON.parse(fs.readFileSync(IMAP, 'utf8'));
   S.poserImap = (adr, f) => { const e = S.imap(); f(e.boites[adr]); fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e)); fs.renameSync(IMAP + '.tmp', IMAP); };
   S.attendre = async (f, ms) => { const t = Date.now(); while (Date.now() - t < (ms || 8000)) { if (await f()) return true; await dormir(150); } return false; };

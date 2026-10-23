@@ -292,7 +292,7 @@ const P = jeton.patron, S = jeton.simple;
   const MOD = fs.readFileSync(path.join(RACINE, 'server', 'agents.js'), 'utf8'), CODE_MOD = nu(MOD);
   vrai('index.js monte le module', /require\('\.\/agents'\)\(app, \{[^}]*\bmonAdmin\b[^}]*\bmonPatronStrict\b[^}]*\}\)/.test(CODE));
   /* 22 octobre 2026 : fenêtre portée de 6000 à 12000 caractères — le bloc des agents a grandi de ~3 000 (la conversation des quinze autres agents, montée
-     dans son propre try), pas de sens : c'est toujours « le catch des agents est celui du try qui monte le socle ». */
+     dans son propre try), pas de sens : c'est toujours « le catch des agents est celui du try qui monte le socle ». Puis à 22000 (23 octobre : signatures, Louis, Chloé, Camille autonome). */
   vrai('… sous son propre try, pour ne pas emporter la Messagerie avec lui', /try \{\s*agentsMod = require\('\.\/agents'\)[\s\S]{0,12000}?catch \(e\) \{ console\.error\('agents indisponibles/.test(CODE));
   const routes = [...CODE_MOD.matchAll(/app\.(get|post)\('(\/api\/monitor\/[^']+)'/g)].map(m => [m[1], m[2]]);
   v('(population) sept routes : quatre lectures, trois écritures', [routes.filter(x => x[0] === 'get').length, routes.filter(x => x[0] === 'post').length], [4, 3]);
