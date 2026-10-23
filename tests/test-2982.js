@@ -170,6 +170,10 @@ function pageDuPortail(base, rangementInitial) {
   await mal.appel('/api/compte/creer', { email: 'zoe@exemple-essai.fr', h: emp });
   await dormir(1200);
   v('⛔ la capture est forcée : le courriel est rangé sur le disque, le faux facteur n\'a vu aucune connexion', [fs.existsSync(path.join(mal.D, 'courriels-essais.json')) && JSON.parse(fs.readFileSync(path.join(mal.D, 'courriels-essais.json'), 'utf8')).some(x => x.a.some(a => /zoe@/.test(a))), mal.smtp.connexions()], [true, 0]);
+  const tMal = 'banc-' + crypto.randomBytes(3).toString('hex');
+  await mal.appel('/api/connexions', { t: tMal, ev: 'connexion', login: 'x' });
+  const smMal = await mal.appel('/api/sendmail', { teamId: tMal, to: 'dest@exemple-essai.fr', subject: 'Direct', text: 'x', smtp: { host: '127.0.0.1', port: mal.smtp.s.address().port, user: 'u', pass: 'p' } });
+  v('⛔ …y compris par le chemin DIRECT de nodemailer (SMTP d\'un client) : `courrielsCaptes: false` ne le rouvre pas, le faux facteur n\'a vu aucune connexion', [smMal.s, mal.smtp.connexions()], [200, 0]);
   await mal.nettoyer();
 
   console.log('\n7. Un dossier qui n\'est pas vierge ne reçoit rien');
