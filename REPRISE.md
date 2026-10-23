@@ -13,22 +13,36 @@ de ligne du tout.
 
 ---
 
-# ⏳ 23 OCTOBRE 2026 — RELECTURE JURIDIQUE : LES TEXTES DISENT CE QUE LE CODE FAIT (branche de travail, RIEN SUR `main`)
+# 🔶 23 OCTOBRE 2026 (SOIR) — LA RELECTURE JURIDIQUE APPLIQUÉE (Justin : « tu as déjà tout de ça ») — branche `claude/relecture-juridique`
 
-Justin : « tu as déjà tout de ça » — les réponses recommandées de la relecture, avec les faits du dépôt. Pages, contrats et `espace.html` corrigés ; `tests/test-2971.js` (94 ✓)
-garde le tout. Trois choses restent, et elles ne se règlent pas dans ce chantier :
-
-- ⛔ **Les pages suivent le CODE, pas la décision.** Les mots de passe des boîtes mail sont écrits EN CLAIR dans `mailboxes.json` aujourd'hui (`saveMailboxes`) : le registre le
-  dit (« sans chiffrement propre, seules les sauvegardes sont chiffrées »), et aucune page ne dit « conservé chiffré ». Le chiffrement (décision 10) vit sur une AUTRE branche
-  (`4e6b6d7d`, `server/coffre-boites.js`) ; de même « adresses et numéros retirés » (analyse d'un incident) attend le filtre de la branche des incidents (`incidentTexte`).
-  `test-2971` §4 lit le code des deux endroits : **le jour où l'une des deux branches est fusionnée, il tombe exprès** et demande de réécrire les phrases (registre, sous-traitance,
-  confidentialité, DPA, copies `apercu/`) — c'est le geste attendu, pas une panne. ⚠️ Le banc de cette branche s'appelle 2971 comme celui de la branche des boîtes : renuméroter l'un.
-- ⏳ **« Service 24h/24 » reste dans `app.html`** (`PLANS.premium.desc`, l'écran où le client choisit son abonnement). Justin : une phrase pour le publier. La bêta et la démonstration
-  publique le disent déjà juste (remplacement gardé de `beta-build.js` et `demo-build.js`, `test-2971` §1 les refabrique). Le jour de la phrase : remplacer dans `app.html`
-  « service 24h/24 » par « assistance prioritaire » (bumper la version et le cache), RETIRER les deux remplacements, vider `ECART_APPLICATION` du banc.
-- ⏳ **Sept brouillons « Révision du 23 octobre » attendent dans la Tour** (Contrats) : les comparer à la version en vigueur, puis valider. Le serveur refuse de valider un texte qui
-  garde un crochet `[À CONFIRMER PAR UN JURISTE …]` : restent à l'avocat le plafond de responsabilité (CG, DPA), le compte « Perso » d'OP MESSAGES, les transferts hors UE (Anthropic,
-  GitHub), le client non professionnel (DPA), la signature électronique simple (art. 1366-1367) et la durée de 24 mois ; la durée de conservation des messages d'OP MESSAGES n'est pas décidée.
+- **Décisions** (les réponses recommandées du document de relecture, avec les faits du dépôt) : SIRET en cours d'attribution ; aucun taux de
+  disponibilité ; Anthropic n'entraîne pas ses modèles sur nos données (conditions commerciales de l'API) ; changement de formule à la période
+  suivante, sans prorata ; support Business sans délai garanti ; création sur mesure sur devis écrit ; plus de « 24h/24, 7j/7 » (tarifs, page de
+  paiement) ; OP MESSAGES sans date, rien de facturé avant ; hébergé chez IONOS en France (durée de conservation des messages : À DÉCIDER) ;
+  mots de passe des boîtes CHIFFRÉS. Les trois promesses non tenues sont réécrites au réel (accès envoyés à l'adresse confirmée une fois
+  l'espace ouvert ; « peuvent être supprimées après 24 mois », ni préavis ni suppression automatique ; plus de 24h/24).
+- **Code** : `server/coffre-boites.js` scelle le mot de passe de chaque boîte (`socle.sceller`, clé maître), migre l'ancien format au
+  démarrage sans perte, écrit par temporaire + renommage (`test-2970`, `test-2976`). `pourAnthropic` retire adresses, numéros (URL comprises),
+  IBAN de ce qu'un incident envoie à Anthropic et du corps de la demande de fusion GitHub de « Proposer un correctif » (`test-2975`) ;
+  l'extrait du code du dépôt n'est pas filtré dans « Proposer » (le modèle doit le recopier à l'identique ; c'est notre code, public).
+- **Textes** : `server/contrats-textes/*` (une table `REVISIONS` de `contrats.js` dépose UNE FOIS chaque texte changé comme brouillon
+  « Révision du 23 octobre » sur le registre du VPS — rien de validé ne bouge) ; pages `mentions-legales`, `confidentialite`,
+  `sous-traitance`, `registre-traitements`, `espace`, `recap-abonnement`, tarifs et pages métier régénérées. `test-2971` relie chaque
+  phrase au code dans les deux sens (« chiffré » et « adresses retirées » ne s'écrivent que si le code le fait) — assemblés, les trois
+  chantiers le passent (94 ✓).
+- 👉 **Gestes de Justin après la mise en ligne** : dans la Tour (Contrats), comparer puis valider les brouillons « Révision du 23 octobre »
+  des pièces sans crochet (les trois OP GESTION, OP MESSAGES Business Premium) ; les autres refusent tant qu'un crochet reste. À l'AVOCAT :
+  plafond de responsabilité (CG, DPA), régime du compte « Perso », transferts hors UE (Anthropic, GitHub), client non professionnel (DPA),
+  signature électronique simple (art. 1366-1367), durée de 24 mois. Le parcours d'acceptation en ligne n'existe pas : la signature électronique
+  reste en brouillon.
+- ⚠️ Restent : « service 24h/24 » dans `PLANS.premium.desc` d'`app.html` (une publication de l'application : le jour de la phrase, remplacer
+  par « assistance prioritaire », monter version et cache, RETIRER les remplacements de `beta-build.js` et `demo-build.js`, vider
+  `ECART_APPLICATION` de `test-2971`) ; `config.json` du VPS (`smtp.pass`, `imap.pass`) reste en clair (hors dépôt) ; les sauvegardes d'avant
+  le chiffrement portent les anciens mots de passe (archive déjà chiffrée) ; la clé maître devient nécessaire aux boîtes (même séquestre que le
+  socle) ; plusieurs définitions d'adresse/téléphone dans `server/` à unifier vers `agents-connaissance.js`.
+- **Bancs et réunions** : la réunion du vendredi (18 h-23 h, Paris) et du lundi matin partait aussi dans le vrai serveur des bancs —
+  `test-2709`, `2863`, `2864` tombaient chaque vendredi soir, et ils sont dans la liste du déploiement. `agents.reunionsAuto: false` coupe la
+  minuterie (bancs seulement ; sans réglage elle tourne), `test-2884` garde le défaut. Prouvé dans le créneau, trois mutations mordent.
 
 # ✅ 23 OCTOBRE 2026 — LES VINGT-TROIS MÉTIERS OUVERTS AU PUBLIC (geste de publication de la v772, Justin : « oui publie »)
 
@@ -51,7 +65,7 @@ garde le tout. Trois choses restent, et elles ne se règlent pas dans ce chantie
   voulu, rien ne plante) et ne lit pas les rubriques cochées. Exiger la 772 d'abord (`version.min`, Firestore ET API). Aucune entreprise
   ne travaille aujourd'hui (`VERSION-STABLE.md`, 16 octobre).
 
-# ⏳ 23 OCTOBRE 2026 — CHAUFFAGE / CLIMATISATION COMPLET (CVC) : PARC D'APPAREILS, ATTESTATION, FLUIDES, VISITES DES CONTRATS — BÊTA v772, RIEN SUR `main`
+# ✅ 23 OCTOBRE 2026 — CHAUFFAGE / CLIMATISATION COMPLET (CVC) : PARC D'APPAREILS, ATTESTATION, FLUIDES, VISITES DES CONTRATS — EN LIGNE AVEC LA v772 (publiée le 23 octobre)
 
 Branche `claude/chauffage-clim` (copie `~/teamop-clim`), demande de Justin du 23 octobre (« Chauffage / climatisation, fais-le aussi »). Un seul bloc d'`app.html`, entre
 les marqueurs `═══ CVC — LE PARC D'APPAREILS` et `═══ fin du bloc CVC ═══` ; UNE fonction décide que le métier a un parc, `metierGereParc()` (`CVC_METIERS` : chauffage,
@@ -86,7 +100,7 @@ Connu, non corrigé : l'entretien se reconnaît au TYPE choisi (« Entretien… 
 
 
 
-# ⏳ 23 OCTOBRE 2026 — OP GESTION PAR MÉTIER, CÔTÉ APPLICATION : 23 MÉTIERS, PLUS D'ANTI-NUISIBLES HORS 3D, CATÉGORIES PAR MÉTIER — BÊTA v772, RIEN SUR `main`
+# ✅ 23 OCTOBRE 2026 — OP GESTION PAR MÉTIER, CÔTÉ APPLICATION : 23 MÉTIERS, PLUS D'ANTI-NUISIBLES HORS 3D, CATÉGORIES PAR MÉTIER — EN LIGNE AVEC LA v772 (publiée le 23 octobre)
 - Branche `claude/metiers-app` (partie du commit `7d45d134` de la branche d'audit, à fusionner dans elle). Cahier : les demandes de Justin
   de la nuit du 22 au 23 octobre (« je veux que tu fasses bien OP GESTION en fonction des packs métiers qu'on propose »). Cinq parties,
   un commit chacune, `APP_VERSION` reste 772, `sw.js` ne bouge pas.
@@ -139,7 +153,7 @@ Connu, non corrigé : l'entretien se reconnaît au TYPE choisi (« Entretien… 
 - Preuves au navigateur (bêta servie en 127.0.0.1, captures regardées) : `scratchpad/metiers/` — `sonde-b` 162 ✓ (3 métiers × 6 tailles/thèmes × 9 écrans), `-c` 48 ✓, `-d` 60 ✓, `-e` 19 ✓, `-recense` (plomberie, piscine : rien de l'anti-nuisibles), `-avant-apres`. Elles lisent `beta.html` : régénérer (`node beta-build.js`) avant de les lancer. ⚠️ Deux contrôles de GitHub ne sont pas dans
   `bancs-ci.sh` (`verifier-version.js`, `verifier-propose.js`) : `app.html` change sans que `APP_VERSION` monte — à jouer avant la fusion.
 
-# ⏳ 22 OCTOBRE 2026 — AUDIT APPLE-DESIGN D'OP GESTION : LES 36 CORRIGÉS, BÊTA v771 — RIEN SUR `main`
+# ✅ 22 OCTOBRE 2026 — AUDIT APPLE-DESIGN D'OP GESTION : LES 36 CORRIGÉS — EN LIGNE AVEC LA v772 (publiée le 23 octobre)
 - Justin, 21 octobre : « audite toute l'interface avec le skill apple-design, liste chaque problème du plus grave au moins grave, puis
   corrige-les un par un ». La liste et les preuves : `design/AUDIT-APPLE-2026-10.md`. Branche `claude/audit-apple-op-gestion`, une
   partie par commit (A → X), demande de fusion **en brouillon** https://github.com/justino17-cmd/teamop/pull/156 — ⛔ la fusionner
