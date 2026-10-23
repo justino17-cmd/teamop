@@ -118,7 +118,17 @@ module.exports = function cerveau(ctx) {
     return outils.length ? { ok: true, texte, actions, cout } : { ok: true, texte, cout };
   }
   const etatBudget = () => ({ illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL_USD, parAgent: Object.assign({}, etat.parAgent), cle: !!cle });
-  return { penser, etatBudget, MODEL };
+  /* IMPUTER (l'examen de l'équipe, 23 octobre 2026) : une dépense faite ailleurs avec la MÊME clé — les appels de l'examen se font sur une équipe d'essai, avec son propre
+     cerveau, donc hors de ce fichier de budget — compte pourtant dans les 195 $ du mois. Elle s'inscrit sous un nom qui n'est PAS celui d'un agent (« examen ») : aucun
+     plafond d'agent n'en est entamé, seul le total du mois l'est. Rend faux (rien d'écrit) pour un nom d'agent, un montant hors forme, ou un budget illisible. */
+  function imputer(nom, usd) {
+    if (illisible || typeof nom !== 'string' || !/^[a-z]{1,20}$/.test(nom) || agents.AGENTS.some(a => a.id === nom)) return false;
+    if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0 || usd > 50) return false;
+    moisCourant(); etat.parAgent[nom] = depense(nom) + usd;
+    if (!ecrire()) { agents.noter('systeme', 'imputer', { cible: 'budget', resultat: 'erreur', detail: 'dépense non écrite : plus d’appel avant réparation' }); illisible = true; return false; }
+    return true;
+  }
+  return { penser, etatBudget, imputer, MODEL };
 };
 
 async function appelerAnthropic(cle, requete) {

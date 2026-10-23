@@ -2079,6 +2079,7 @@ const MON_GESTES = {
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
   'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   'agents/charte': 'a changé la charte d’autonomie des agents', 'agents/brouillons/modifier': 'a corrigé un brouillon de réponse d’un agent avant de le valider', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
+  'agents/examen/lancer': 'a lancé l’examen de l’équipe d’agents', 'agents/examen/cle': 'a créé la clé d’examen de l’équipe', 'agents/examen/cle/supprimer': 'a supprimé la clé d’examen de l’équipe',
   'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
 };
 const MON_ACTIONS_MAX = 500;
@@ -4434,6 +4435,7 @@ let agentCamille = null;     // Camille (`agent-camille.js`) : la réponse à un
 let brouillonsMod = null;    // les brouillons de Léa et de Camille, et ce qui les fait partir (`agents-brouillons.js`)
 let agentEquipe = null;        // la messagerie des agents (`agent-equipe.js`) : `null` = pas montée ; la conversation d'avant (Hugo + les quinze) reste alors servie
 let reunionsMod = null;        // les réunions du lundi et du vendredi (`reunions.js`) : `null` = pas montées ; les agents n'ont alors ni objectifs ni leçons
+let examenMod = null;          // l'examen de l'équipe et sa clé (`examen.js`) : `null` = pas monté ; la Tour n'a alors ni bouton ni clé d'examen
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
 let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
@@ -10245,6 +10247,19 @@ try {
       setInterval(ticReunions, 60000).unref();
       console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
     } catch (e) { reunionsMod = null; console.error('réunions des agents indisponibles :', e.message); }
+    /* L'EXAMEN DE L'ÉQUIPE (`examen.js`, cahier §13) : les neuf scénarios joués avec le VRAI modèle sur une équipe d'ESSAI (modules réels, dossier temporaire, faits et
+       courriels fictifs, fausse poste) — rien des vrais fils, files, compteurs ni courriels. Lancé par le patron depuis la Tour, ou par la clé d'examen (deux gestes : lancer,
+       lire). Sous son propre `try` : sans lui, la Tour n'a ni bouton ni clé, et rien d'autre ne bouge. `mail` ne porte QUE la lecture de la signature réglée (jamais `envoyerAgent`) : la poste d'essai
+       n'envoie rien, et le module ne pourrait de toute façon pas envoyer. `capacites` : ce que d'AUTRES chantiers livrent et que l'examen mesure déjà (« en attente de » tant qu'un module manque) — chacune se déclare par une
+       fonction ou une liste EXPORTÉE par le module qui la livre, jamais par un drapeau qu'on oublierait de lever. */
+    try {
+      const capaciteCamille = nom => { try { return (require('./agent-camille').CAPACITES || []).includes(nom); } catch (e) { return false; } };
+      examenMod = require('./examen')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, cerveau: cerveauMod, pousseNotif, mail: { signature: messagerieTour.signature },
+        cleApi: (config.agents && config.agents.cleApi) || '',
+        capacites: { signatureAgent: typeof messagerieTour.signatureDe === 'function', controleQualite: typeof require('./agents-connaissance').controleQualite === 'function',
+          remboursement: capaciteCamille('remboursement'), resiliation: capaciteCamille('resiliation') } });
+      console.log('agents : examen de l’équipe monté');
+    } catch (e) { examenMod = null; console.error('examen de l’équipe indisponible :', e.message); }
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */

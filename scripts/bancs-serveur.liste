@@ -244,3 +244,12 @@ tests/test-2883.js
 # pas de rejeu au redémarrage, le bilan du vendredi sur les objectifs du lundi, la mémoire dans le prompt d'une réponse puis retirée avec la leçon, lancement à la main, gardes, MON_GESTES).
 tests/test-2884.js
 tests/test-2885.js
+# 23 octobre 2026 : l'examen de l'équipe d'agents (cahier §13) — `test-2930` (les modules réels : les neuf scénarios avec un modèle SCRIPTÉ, chaque défaut joué tombe, une panne de Claude est « inconnu »,
+# les plafonds, les fichiers, la clé d'examen sur un vrai Express). Établi commun : `tests/banc-examen.js` (le faux Claude, pas une suite).
+tests/test-2930.js
+# `test-2931` (le vrai serveur, un faux Claude : l'examen se lance par la route de la Tour, rien de réel n'est touché — ni fils, ni files, ni registres, ni un client réel —, un défaut tombe, une panne est « inconnu », un redémarrage se dit),
+# `test-2932` (la clé d'examen contre le vrai serveur : en empreinte, nulle part sur le disque, deux gestes, REFUSÉE sur chacune des routes /api/monitor relevées dans les sources, CORS) et `test-2934` (la forme lue dans le code :
+# aucune donnée de client, aucun réseau, la poste n'envoie rien, la clé en temps constant). ⛔ `test-2933` (les vraies fonctions de la TOUR) n'est PAS ici : il lit la `tour.html` de la branche, que `main` ne sert pas encore.
+tests/test-2931.js
+tests/test-2932.js
+tests/test-2934.js
