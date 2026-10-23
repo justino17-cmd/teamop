@@ -18,14 +18,29 @@ fs.mkdirSync(DATA_DIR, { recursive: true });
    fichier de données : une remise à zéro demandée vide le dossier avant que quoi que ce soit s'en souvienne. */
 const ESSAI = config.espaceTest === true;
 const essaisMod = ESSAI ? require('./essais') : null;
-const essaiEtat = ESSAI ? essaisMod.demarrage({ dossier: DATA_DIR }) : null;
+const essaiEtat = ESSAI ? essaisMod.demarrage({ dossier: DATA_DIR, monitor: path.join(path.dirname(CONFIG_PATH), 'monitor.json') }) : null;   // monitor.json : voir `viderMonitor` (même formule que MONITOR_PATH, plus bas)
 const ESSAI_ORIGINE = ESSAI ? (/^https:\/\/[a-z0-9.-]+$/i.test(String(config.espaceTestOrigine || '').replace(/\/+$/, '')) ? String(config.espaceTestOrigine).replace(/\/+$/, '') : essaisMod.ORIGINE_DEFAUT) : '';
 /* ⛔ LA BASE DU SITE, UNE SEULE FOIS : en production `https://teamop.fr`, dans le serveur de test l'origine de test. Les liens que le serveur
    REND (retour de Stripe, lien de connexion d'un espace, adresse d'un espace dans la Tour) la lisent : écrits en dur, un paiement de test
    revenait sur la production, et la Tour de test offrait le lien d'une application où l'espace n'existe pas. Les courriels, eux, sont réécrits
    au rangement (`essais.js`). Sans `espaceTest`, la valeur est celle d'avant, au caractère près. */
 const SITE_BASE = ESSAI ? ESSAI_ORIGINE : 'https://teamop.fr';
-if (ESSAI) console.log('⚠️ ESPACE DE TEST : courriels captés (rien ne part), origine ' + ESSAI_ORIGINE + (essaiEtat.remise ? ', remise à zéro faite' : '') + (essaiEtat.sur ? '' : ', REMISE À ZÉRO REFUSÉE (' + essaiEtat.raison + ')'));
+if (ESSAI) console.log('⚠️ ESPACE DE TEST : courriels captés (rien ne part), origine ' + ESSAI_ORIGINE + (essaiEtat.remise ? ', remise à zéro faite' + (essaiEtat.monitorVide ? ' (journal et incidents de la Tour compris)' : '') : '') + (essaiEtat.sur ? '' : ', REMISE À ZÉRO REFUSÉE (' + essaiEtat.raison + ')'));
+/* ⛔ UN SERVEUR DE TEST NE PARLE JAMAIS À STRIPE EN MODE RÉEL (relecture adverse, 23 octobre 2026). L'installeur et `stripe-essai-prix.js` refusent une clé `sk_live_`, mais un
+   `config.json` retouché à la main, ou un oubli, la ferait accepter : la Tour de test listerait alors les abonnements, impayés et factures de VRAIS clients — ce que la règle
+   « le test ne touche jamais la production » interdit. La garde est ICI, avant la première lecture de `config.stripe.secretKey` (une dizaine plus bas), et elle VIDE la clé
+   plutôt que de refuser de démarrer : l'espace de test se joue très bien sans Stripe, et un serveur qui ne démarre pas ne dit rien à personne. Sans `espaceTest`, RIEN ne bouge. */
+if (ESSAI && config.stripe && typeof config.stripe === 'object' && config.stripe.secretKey && !/^(sk|rk)_test_/.test(String(config.stripe.secretKey))) {
+  config.stripe.secretKey = '';
+  console.error('essais : la clé Stripe de cette configuration n\'est PAS une clé de test (sk_test_…) — elle est IGNORÉE, Stripe reste éteint dans l\'espace de test (bash install-test.sh stripe)');
+}
+/* ⛔ FIREBASE DE PRODUCTION, VU D'UN SERVEUR DE TEST (relecture adverse, 23 octobre 2026). Pour supprimer ou faire renaître une entreprise sans clé d'administration, le serveur se fait un jeton
+   ANONYME sur le projet `elan-gestion` (clé web écrite en dur) puis efface `elan_teams/<t>` : depuis l'espace de test, c'était parler au Firestore de production, et seule la règle publiée chez Google
+   (qui refuse l'anonyme) l'en empêchait — une garde externe, que le dépôt ne tient pas. Dans le serveur de test : pas d'inscription anonyme, pas de suppression sans jeton, pas de projet ni de clé
+   par défaut (un projet qui n'existe pas). Une clé d'administration d'un projet de TEST, posée exprès (`TEAMOP_FB_ADMIN`), reste utilisable. Sans `espaceTest`, les trois valeurs sont celles d'avant. */
+const FB_ANONYME = !ESSAI;
+const FB_CLE_DEFAUT = ESSAI ? '' : 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8';
+const FB_PROJET_DEFAUT = ESSAI ? 'espace-de-test-sans-firebase' : 'elan-gestion';
 
 webpush.setVapidDetails('mailto:' + (config.contactEmail || 'contact@teamop.fr'), config.vapidPublicKey, config.vapidPrivateKey);
 
@@ -1857,7 +1872,7 @@ let monSaveTimer = null;
 function monSave() {
   clearTimeout(monSaveTimer);
   monSaveTimer = setTimeout(() => {
-    try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions })); } catch (e) { console.error('monitor save:', e.message); }
+    try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions }), { mode: 0o600 }); } catch (e) { console.error('monitor save:', e.message); }
   }, 500);
 }
 monPurge();
@@ -2051,7 +2066,8 @@ const monTokens = new Map();          // token -> { exp, userId, nom, role, apps
 // les sessions de la Tour survivent aux redémarrages du serveur
 const TOKENS_PATH = path.join(DATA_DIR, 'tour-sessions.json');
 try { for (const [t, v] of JSON.parse(fs.readFileSync(TOKENS_PATH, 'utf8'))) if (v && v.exp > Date.now()) monTokens.set(t, v); } catch (e) {}
-function monTokensSave() { try { fs.writeFileSync(TOKENS_PATH, JSON.stringify([...monTokens].filter(([, v]) => v.exp > Date.now()))); } catch (e) {} }
+/* des jetons de session VIVANTS de la Tour : lisibles par le seul propriétaire dès la création du fichier (le mode ne joue qu'à la création — un fichier déjà là garde le sien, voir design/ESPACE-DE-TEST.md) */
+function monTokensSave() { try { fs.writeFileSync(TOKENS_PATH, JSON.stringify([...monTokens].filter(([, v]) => v.exp > Date.now())), { mode: 0o600 }); } catch (e) {} }
 const monLoginTries = new Map();      // ip -> { count, reset }
 const monLock = new Map();            // ident -> { fails, until } : 5 échecs consécutifs = verrou 15 min
 const monHash = p => crypto.createHash('sha256').update(String(p)).digest('hex');
@@ -5635,8 +5651,8 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
   let efface = false;
   if (t) {
     let tok = await fbAdminJeton(), viaAdmin = !!tok;
-    if (!tok) { try {
-      const r0 = await fetch(IDTK_URL + '/accounts:signUp?key=' + ((config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8'),
+    if (!tok && FB_ANONYME) { try {
+      const r0 = await fetch(IDTK_URL + '/accounts:signUp?key=' + ((config.firebase && config.firebase.apiKey) || FB_CLE_DEFAUT),
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
       tok = ((await r0.json().catch(() => ({}))).idToken) || '';
     } catch (err) {} }
@@ -8318,14 +8334,14 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
   // Effacement DÉFINITIF des données chiffrées de l'entreprise sur Firestore :
   // plus rien n'est enregistré, la place est libérée. (Les appareils reliés se
   // vident de toute façon au prochain lancement via le blocage entFermes.)
-  const FB_CLE = (config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8';
+  const FB_CLE = (config.firebase && config.firebase.apiKey) || FB_CLE_DEFAUT;
   let effaces = 0;
   // Les règles Firestore exigent un utilisateur connecté : jeton anonyme jetable,
   // supprimé sitôt l'effacement terminé.
   let jeton = '', jetonAdmin = false;
   if (espacesAEffacer.length) {
     jeton = await fbAdminJeton(); jetonAdmin = !!jeton;   // la clé admin passe au-dessus des règles
-    if (!jeton) try {
+    if (!jeton && FB_ANONYME) try {
       const r = await fetch(IDTK_URL + '/accounts:signUp?key=' + FB_CLE,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
       const j = await r.json().catch(() => ({}));
@@ -8338,6 +8354,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      fermeture FAITE. */
   effaces = (await Promise.all(espacesAEffacer.map(async t => {
     let fait = false;
+    if (!FB_ANONYME && !jeton) return true;   // serveur de test, sans clé d'administration : AUCUNE requête vers Firestore — et rien à y effacer, l'espace de test n'y a jamais rien écrit
     try {
       const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
       const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
@@ -8848,16 +8865,17 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   // ── 8. Les données chiffrées, chez Firestore. En dernier : c'est la seule opération qui
   //       peut échouer pour une raison extérieure (réseau, jeton), et tout le reste doit
   //       déjà être fait pour qu'un échec ici ne laisse pas un demi-ménage.
-  const FB_CLE = (config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8';
+  const FB_CLE = (config.firebase && config.firebase.apiKey) || FB_CLE_DEFAUT;
   let jeton = await fbAdminJeton(); const jetonAdmin = !!jeton;
-  if (!jeton) try {
+  if (!jeton && FB_ANONYME) try {
     const r = await fetch(IDTK_URL + '/accounts:signUp?key=' + FB_CLE,
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
     const j = await r.json().catch(() => ({}));
     jeton = j.idToken || '';
   } catch (e) { console.error('suppression firestore jeton :', e.message); }
   fait.donneesEffacees = false;
-  try {
+  if (!FB_ANONYME && !jeton) fait.donneesEffacees = true;   // serveur de test sans clé d'administration : rien à effacer chez Google, et surtout aucune requête
+  else try {
     const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
     const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
       { method: 'DELETE', headers: jeton ? { 'Authorization': 'Bearer ' + jeton } : {}, signal: ctrl.signal });
@@ -9687,7 +9705,7 @@ function cliSave() {
 //    connaissant simplement son adresse e-mail. Le jeton est signé par Google : on contrôle
 //    la signature avec les certificats publics de Google, puis on ne retient QUE l'e-mail
 //    contenu dans le jeton — jamais celui envoyé dans le corps de la requête.
-const FB_PROJET = (config.firebase && config.firebase.projectId) || 'elan-gestion';
+const FB_PROJET = (config.firebase && config.firebase.projectId) || FB_PROJET_DEFAUT;
 /* Redirigeable pour les bancs, comme les trois autres adresses de Google (`urlBanc` : seul
    `http://127.0.0.1:<port>` est accepté) — sans elle, aucun banc ne pouvait présenter un VRAI
    jeton signé, et la garde de `/api/clients/sync` n'était éprouvée que sur des jetons refusés. */

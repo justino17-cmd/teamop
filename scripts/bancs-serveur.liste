@@ -336,3 +336,5 @@ tests/test-2984.js
 tests/test-2987.js
 # 23 octobre 2026 : le paiement de test (stripe-essai-prix.js, le remplacement des tarifs dans le serveur de test). Lit server/ et la page de paiement seulement.
 tests/test-2990.js
+# 23 octobre 2026 : `test-2992` (ce que l'espace de test ne peut pas atteindre de la production : clé Stripe réelle ignorée, aucune requête vers Firebase, monitor.json remis à zéro, la clé en en-tête, le plafond des agents en parallèle). Lit server/ seulement.
+tests/test-2992.js

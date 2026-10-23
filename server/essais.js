@@ -78,9 +78,9 @@ function demarrage(o) {
     /* la marque doit être un FICHIER ordinaire de ce dossier, pas un lien vers ailleurs */
     let st = null; try { st = fs.lstatSync(marque); } catch (e) { st = null; }
     if (!st || !st.isFile()) return { sur: false, raison: 'marque_invalide' };
-    let remise = false;
-    if (noms.includes(DEMANDE_RAZ)) { vider(dossier); remise = true; }
-    return { sur: true, remise };
+    let remise = false, monitorVide = false;
+    if (noms.includes(DEMANDE_RAZ)) { vider(dossier); remise = true; monitorVide = viderMonitor(o && o.monitor); }
+    return { sur: true, remise, monitorVide };
   }
   if (noms.length === 0) {
     try { fs.writeFileSync(marque, JSON.stringify({ ts: Date.now(), note: 'dossier de TEST : la remise à zéro y est permise' })); }
@@ -88,6 +88,17 @@ function demarrage(o) {
     return { sur: true, neuf: true };
   }
   return { sur: false, raison: 'dossier_non_vierge' };
+}
+/* ⛔ LE FICHIER DE LA TOUR VIT À CÔTÉ DE LA CONFIGURATION, PAS DANS LES DONNÉES (relecture adverse, 23 octobre 2026) : `monitor.json` — comptes de la Tour, incidents, journal, archive — est rangé par `index.js`
+   dans le dossier de `TEAMOP_CONFIG`, donc hors de `TEAMOP_DATA` que `vider()` balaie. La page promettait « les données d'essai sont vidées » : les incidents et le journal d'avant la remise
+   à zéro survivaient. Il est remis à `{}` au même moment (les comptes de la Tour reviennent par le semis), et SEULEMENT si c'est un fichier ordinaire nommé `monitor.json` qui existe déjà
+   (jamais créé ailleurs) et que ce n'est pas celui de la production, nommé en toutes lettres. Écrit EN PLACE, comme le fait `monSave()` : le service n'a le droit d'écrire que ce fichier-là. */
+const PROD_MONITOR = '/opt/teamop/monitor.json';
+function viderMonitor(chemin) {
+  if (typeof chemin !== 'string' || !chemin) return false;
+  const p = path.resolve(chemin);
+  if (path.basename(p) !== 'monitor.json' || p === PROD_MONITOR) return false;
+  try { if (!fs.lstatSync(p).isFile()) return false; fs.writeFileSync(p, '{}\n'); return true; } catch (e) { return false; }
 }
 /* Ce que la remise à zéro ne vide JAMAIS : la marque, et le COMPTEUR DE DÉPENSE des agents. Ce compteur dit combien de la vraie clé `agents.cleApi`
    a été consommé ce mois-ci : le vider, c'était racheter 10 $ de crédit réel à chaque clic sur « Remettre l'espace à zéro » (relecture adverse, 23 octobre 2026).
@@ -282,7 +293,10 @@ function monter(app, ctx) {
   const quotaFautes = new Map();
   const garde = (req, res) => {
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('Referrer-Policy', 'no-referrer'); res.setHeader('X-Robots-Tag', 'noindex');
-    if (cleOk(ctx.cle, req.query && req.query.cle)) return true;
+    /* La clé voyage de préférence dans l'EN-TÊTE `X-Essai-Cle` : une adresse (`?cle=`) s'écrit dans le journal d'accès de nginx, dans l'historique du navigateur et dans un lien copié.
+       Les pages l'envoient en en-tête pour leurs `fetch` ; seuls les liens « Se connecter comme… », qui sont de la navigation, gardent le paramètre (et nginx ne les journalise pas). */
+    const recue = typeof (req.headers && req.headers['x-essai-cle']) === 'string' ? req.headers['x-essai-cle'] : (req.query && req.query.cle);
+    if (cleOk(ctx.cle, recue)) return true;
     /* une clé fausse se compte (par IP) : trente par heure, puis on se tait */
     if (typeof ctx.quotaOk === 'function' && !ctx.quotaOk(quotaFautes, 'essai-cle:' + String(req.ip || ''), 30, 3600000)) { res.status(429).json({ error: 'trop_de_tentatives' }); return false; }
     res.status(403).json({ error: 'cle_refusee' });
@@ -327,4 +341,4 @@ function monter(app, ctx) {
   });
 }
 
-module.exports = { plafondAgents, PLAFOND_AGENTS_DEFAUT, appelerLocal, demarrage, vider, depot, patcherNodemailer, semis, monter, cleOk, cleBienFormee, reecrire, liens, adresses, COMPTES, MARQUE, DEMANDE_RAZ, F_COURRIELS, F_SEMIS, MAX_COURRIELS, ORIGINE_DEFAUT, DOMAINE };
+module.exports = { plafondAgents, PLAFOND_AGENTS_DEFAUT, appelerLocal, demarrage, vider, viderMonitor, depot, patcherNodemailer, semis, monter, cleOk, cleBienFormee, reecrire, liens, adresses, COMPTES, MARQUE, DEMANDE_RAZ, F_COURRIELS, F_SEMIS, MAX_COURRIELS, ORIGINE_DEFAUT, DOMAINE };
