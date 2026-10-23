@@ -45,7 +45,7 @@ const existe = rel => fs.existsSync(path.join(SITE, rel));
 console.log('\n1. Rien d\'interne');
 for (const rel of ['CLAUDE.md', 'REPRISE.md', 'VERSION-STABLE.md', '.claude', '.github', '.githooks', '.mcp.json',
   'skills-lock.json', 'firestore.rules', 'firestore-opmessages.rules', 'storage.rules', 'server', 'server-msg',
-  'tests', 'scripts', 'scratchpad', 'design', 'beta-build.js',
+  'tests', 'scripts', 'scratchpad', 'design', 'beta-build.js', 'demo-build.js',
   'metiers.json']) {   // ⛔ le référentiel de travail (aCreer, aVerifier, notes, métiers fermés) : l'API en sert l'extrait filtré, le fichier ne se publie pas
   v('absent du site : ' + rel, existe(rel), false);
 }

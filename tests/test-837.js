@@ -341,7 +341,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
      commentaires retirés. Les APPLICATIONS en sont écartées, nommées : elles fabriquent des devis et des factures, où
      « Total HT » et « prix unitaire HT » sont justes et obligatoires. */
   console.log('4 bis. le prix se dit TTC partout');
-  const APPLICATIONS = /^(apercu\/)?(app|beta|tour|messages|messages-beta)\.html$/;
+  const APPLICATIONS = /^(apercu\/)?(app|beta|demo|tour|messages|messages-beta)\.html$/;
   const DIT_HT = /\bPrix HT\b|\bHT\s*\/\s*mois|\bHT par mois|€\s*HT\b/, HORS_TAXES = /hors[ -]taxes?/i;
   const relus = SERVIS.filter(f => !APPLICATIONS.test(f));
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);
