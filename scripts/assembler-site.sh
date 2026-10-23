@@ -18,7 +18,10 @@ rm -rf "$DEST"
 mkdir -p "$DEST"
 
 # La racine : pages, scripts servis, manifestes, et ce que le domaine attend (CNAME, robots…).
-for f in *.html *.js *.webmanifest favicon.ico robots.txt llms.txt index.md sitemap.xml CNAME .nojekyll; do
+# ⚠️ `metiers.json` (le référentiel des métiers : l'espace client, la page de paiement et la demande du site le lisent par l'API, le site
+#    le publie aussi) et `rubriques-choix.css` (la grille « Vos rubriques ») sont NOMMÉS : un .json ou un .css de la racine n'entre pas par sa
+#    forme, et une page qui les charge sans eux serait cassée chez le client (23 octobre 2026).
+for f in *.html *.js *.webmanifest metiers.json rubriques-choix.css favicon.ico robots.txt llms.txt index.md sitemap.xml CNAME .nojekyll; do
   [ -f "$f" ] || continue
   case "$f" in
     beta-build.js) continue ;;   # fabrique beta.html depuis app.html : un outil, pas une page

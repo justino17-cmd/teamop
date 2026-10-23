@@ -1761,6 +1761,18 @@ body.plans .reg-l.cli::before{display:none}
 .eq-apps label i{width:10px;height:10px;border-radius:3px;background:var(--c)} .eq-apps .sous{color:var(--muted);font-size:12px} .eq-apps input{accent-color:var(--app)}
 /* Catégories d'OP GESTION (fiche d'une entreprise) : un titre de groupe au-dessus de ses cases, qui sont des .eq-apps */
 .cats-gt{font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 0}
+/* 23 octobre 2026 — chaque rubrique porte son explication, EN PETIT sous son titre (la fiche et la demande à accepter) : des lignes, plus des pastilles */
+.cats-liste{display:flex;flex-direction:column;margin:6px 0 14px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface);overflow:hidden}
+.cat-ligne{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;min-height:44px;cursor:pointer;border-top:1px solid var(--border);font-size:13px}
+.cat-ligne:first-child{border-top:0}
+.cat-ligne input[type="checkbox"]{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:var(--app)}
+.cat-ligne.coche{background:color-mix(in srgb,var(--app) 7%,transparent)}
+.cat-txt{display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
+.cat-txt b{font-size:13.5px;font-weight:600}
+.cat-expl{font-size:12px;line-height:1.45;color:var(--muted);font-weight:400}
+.cat-raison{font-size:12px;line-height:1.45;color:var(--text2)}
+.dem-cats{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.dem-cats-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
 .app-sw button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;min-height:32px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;letter-spacing:-.005em;cursor:pointer}
 .app-sw button i{width:10px;height:10px;border-radius:3px;background:var(--c);flex-shrink:0}
 .app-sw button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--app-brd),0 1px 2px rgba(0,0,0,.06)}
@@ -5280,7 +5292,7 @@ function tourCopie(id,btn){ var el=document.getElementById(id); if(!el) return;
    geste fait désormais TOUT ce qu'elle faisait, mais sur décision — l'espace, le code promo de la demande (vérifié par le
    serveur : il existe, il n'a pas déjà servi à cette entreprise), la formule et le nombre d'utilisateurs, et les demandes
    marquées traitées. Puis le panneau : l'adresse, les identifiants, et l'envoi en un clic. Plus aucun code d'accès. */
-async function tourAccepterDemande(email,nom,identVoulu,idxVoulu){
+async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
   var c=(CLI.list||[]).find(function(x){ return x.email===email; })||{};
   /* v2.88 — les demandes d'OP GESTION seulement (une demande d'OP MESSAGES ne fait pas une formule d'OP GESTION), et celle
      de la CARTE touchée quand on la connaît : la plus récente pouvait être une autre (relecture du 17 octobre 2026). */
@@ -5328,6 +5340,19 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu){
       if(rm&&rm.ok&&rm.d&&rm.d.ok) metierPose=metierDem; else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
     catch(err){ toast('Métier non posé (serveur injoignable) — règle-le dans la fiche'); }
   }
+  /* 23 octobre 2026 — LES RUBRIQUES RETENUES se posent avec le métier : ce que la grille de la demande montre coché (le choix du client, ajusté), sinon
+     le choix du client ou le conseil de son métier. Tout coché = rien de restreint (`null`, la route retire le champ). Refusé ou injoignable : on le DIT
+     dans le panneau — jamais un toast qui passe — et la fiche permet de les régler ensuite. */
+  var depart=demCatsDepart(dm), voulues=(Array.isArray(catsVoulues)&&catsVoulues.length)?catsVoulues:depart.liste, catsInfo={etat:'rien'};
+  if(Array.isArray(voulues)&&voulues.length){
+    var tout=(voulues.length===CAT_CLES.length);
+    var ajuste=Array.isArray(catsVoulues)&&depart.liste&&JSON.stringify(catsVoulues)!==JSON.stringify(depart.liste);
+    try{
+      var rc=await apiPost('/api/monitor/espaces/cats',{nom:e.nom,cats:tout?null:voulues});
+      if(rc&&rc.ok&&rc.d&&rc.d.ok) catsInfo={etat:'pose',n:voulues.length,tout:tout,origine:ajuste?'ajustées par toi':(depart.source==='client'?'le choix du client':'le conseil du métier')};
+      else catsInfo={etat:'refus',err:(rc&&rc.d&&rc.d.error)||'refusé'};
+    }catch(err){ catsInfo={etat:'refus',err:'serveur injoignable'}; }
+  }
   tourPackPrefill(e.nom);
   /* Les demandes de ce client sont traitées : c'est ce que la création automatique marquait, sans que personne les
      ait lues. Ici quelqu'un les a lues. */
@@ -5345,7 +5370,11 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu){
     '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">L\'espace est prêt. Il ne te reste qu\'à envoyer l\'e-mail au client.</div>'+
     '<div class="sec">FORMULE RÉSERVÉE</div><div style="margin:6px 0 14px;font-size:15px"><b>'+esc(F2[formule]||formule)+(q>1?' ×'+q:'')+'</b> '+
       (promo?'<span class="past p-vert">🎁 offerte jusqu’au '+esc(promo.finLe)+'</span>':dejaPaye?'<span class="past p-vert">💳 déjà réglée</span>':'<span class="past p-orange">⏸ suspendue jusqu’au paiement</span>')+'</div>'+
-    '<div class="encart" style="margin:0 0 14px"><div class="encart-tx">🧩 <b>Choisis ses catégories</b> dans sa fiche : l’application ne montrera à cette entreprise que celles que tu retiens (par défaut, toutes). <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>'+
+    (catsInfo.etat==='pose'
+      ?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg">🧩 <b>'+(catsInfo.tout?'Toutes les rubriques sont ouvertes':catsInfo.n+' rubrique'+(catsInfo.n>1?'s':'')+' sur '+CAT_CLES.length+' retenue'+(catsInfo.n>1?'s':''))+'</b> ('+esc(catsInfo.origine)+') — l’application ne montrera que celles-là. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Les revoir dans sa fiche →</button></div></div>'
+      :catsInfo.etat==='refus'
+        ?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg" role="alert">⛔ <b>Rubriques non posées</b> : '+esc(catsInfo.err)+'. L’espace est ouvert avec toutes les rubriques — règle-les dans sa fiche. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>'
+        :'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg">🧩 <b>Choisis ses catégories</b> dans sa fiche : l’application ne montrera à cette entreprise que celles que tu retiens (par défaut, toutes)'+(depart.source==='attente'?' — le référentiel des métiers n’était pas encore lu':'')+'. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>')+
     (codeDem&&!promo?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx">⚠️ Code promo « '+esc(codeDem)+' » de la demande non appliqué : '+esc(promoErr)+'</div></div>':'')+
     '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— c\'est elle qu\'on donne aux équipes</span></div>'+
     '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span id="acc-adr" class="mono" style="flex:1;word-break:break-all;font-size:14px;color:var(--link);font-weight:700">'+esc(adrF)+'</span><button class="btn-fant" onclick="tourCopie(\'acc-adr\',this)">Copier</button></div>'+
@@ -5578,6 +5607,27 @@ function tourCatsRouvrir(nom,btn){
   if(MYROLE!=='patron'){ catsDire('⛔ Réservé au patron.'); toast('Réservé au patron'); return; }
   return catsEnvoyer(nom,null,btn,'Tout rouvrir',function(){ return '🧩 Toutes les catégories sont ouvertes — l’application les reçoit à sa prochaine ouverture'; });
 }
+/* « Cocher le conseil du métier » / « Cocher le choix du client » : pré-cochent la fiche, SANS rien enregistrer (Justin lit, ajuste, puis enregistre) */
+function catsCocher(liste,texte){
+  CAT_CLES.forEach(function(k){ var c=document.getElementById('cat-'+k); if(c&&!c.disabled) c.checked=liste.indexOf(k)>=0; });
+  var ci=document.getElementById('cats-info'); if(ci) ci.innerHTML='<b>'+liste.length+' rubrique'+(liste.length>1?'s':'')+' sur '+CAT_CLES.length+'</b> cochées d’après '+texte+' — pas encore enregistrées.';
+}
+function catsCocherConseil(){
+  catsDire('');
+  var m=(document.getElementById('met-f')||{}).value||(PACK.d&&PACK.d.metier)||'';
+  if(!m){ catsDire('⛔ Choisis d’abord un métier : le conseil est celui du métier.'); return; }
+  var dep=demCatsDepart({metier:m});
+  if(!dep.liste){ catsDire('⛔ Pas de conseil pour ce métier'+(dep.source==='attente'?' : le référentiel des métiers n’est pas encore lu.':REFM.err?' : '+esc(REFM.err):'.')); return; }
+  catsCocher(dep.liste,'le conseil du métier « '+esc(MET_L[m]||m)+' »');
+}
+function catsCocherChoixClient(){
+  catsDire('');
+  var c=(CLI.list||[]).filter(function(x){ return x.email===CLI.sel; })[0], ch=catsChoixDe(c);
+  if(!ch){ catsDire('⛔ Ce client n’a coché aucune rubrique (ni à sa demande, ni à sa page de paiement).'); return; }
+  var l=CAT_CLES.filter(function(k){ return ch.cats.indexOf(k)>=0; });
+  if(!l.length){ catsDire('⛔ Son choix ne contient aucune rubrique connue.'); return; }
+  catsCocher(l,'le choix du client ('+ch.source+')');
+}
 /* le rappel après une acceptation ou une création d'accès : mène à la fiche, au bloc des catégories */
 function tourCatsAller(nom){
   try{ tourPanneauFermer(); }catch(e){}
@@ -5587,6 +5637,7 @@ function tourCatsAller(nom){
   toast('Ouvre sa fiche dans Entreprises : « Catégories d’OP GESTION »');
 }
 function chargerClients(){
+  refMetiersCharger();   // les métiers et l'explication de chaque rubrique : la grille de chaque demande et la fiche en ont besoin
   apiGet('/api/monitor/clients').then(function(d){
     if(!d) return;
     CLI.list=(d.clients||[]).slice().sort(function(a,b){ return (b.majTs||b.inscrit||0)-(a.majTs||a.inscrit||0); });
@@ -8440,7 +8491,7 @@ function vueComptesSite(){
    (Stripe, par son adresse), si un espace existe déjà à son adresse, et les trois gestes — accepter, écrire, classer.
    Une demande d'OP MESSAGES n'entre pas dans cette console : le portail ne les prend plus (espace.html fige
    « OP GESTION »), et une ancienne qui en porterait la mention reste à l'écart. */
-var DEM={vue:'atraiter',id:{}};
+var DEM={vue:'atraiter',id:{},cats:{}};
 function demEstGestion(d){ return String((d&&d.app)||'').toLowerCase().indexOf('messages')<0; }
 function demandesListe(){
   var l=[];
@@ -8510,15 +8561,61 @@ function demCarte(x){
       '<span class="dem-past">'+pastilles.join(' ')+'</span></div>'+
     (d.besoin?'<p class="dem-besoin">'+esc(d.besoin)+'</p>':'')+
     '<div class="kv">'+kv.map(function(p){ return '<div><span class="k">'+p[0]+'</span><span class="v">'+p[1]+'</span></div>'; }).join('')+'</div>'+
+    (!x.traitee&&MYROLE==='patron'?demCatsHtml(c,i,d):'')+
     '<div class="sous-act dem-gestes">'+gestes+'</div></div>';
 }
+/* La grille des rubriques d'une demande À TRAITER : pré-cochée avec le choix du client (sinon le conseil de son métier), chaque case avec son
+   explication en petit, et — pour une rubrique que le métier conseille — la raison propre à ce métier. Justin ajuste ; l'acceptation pose
+   ce qui est coché. L'état vit dans `DEM.cats` (un rendu de la Tour ne défait pas un réglage en cours). */
+function demCatsHtml(c,i,d){
+  var cle=demCatsCle(c.email,i), dep=demCatsDepart(d);
+  var tete='<div class="dem-cats"><div class="sec">RUBRIQUES D’OP GESTION</div>';
+  if(!DEM.cats[cle]&&dep.liste) DEM.cats[cle]=dep.liste.slice();
+  if(!DEM.cats[cle]) return tete+'<div class="note" role="status">'+(dep.source==='attente'?'Chargement du référentiel des métiers…'
+    :'Le référentiel des métiers est illisible'+(REFM.err?' : '+esc(REFM.err):'')+' — l’espace s’ouvrira avec toutes les rubriques, à régler ensuite dans sa fiche.')+'</div></div>';
+  var sel=DEM.cats[cle], m=REFM.d&&REFM.d.metiers&&d.metier?REFM.d.metiers[d.metier]:null, raisons=m&&m.pourquoi?m.pourquoi:{}, propose=m&&m.proposees?m.proposees:{};
+  var retour=dep.source==='client'?'Revenir au choix du client':'Revenir au conseil du métier « '+esc(MET_L[d.metier]||d.metier||'—')+' »';
+  var html=tete+'<div class="note" id="dc-info-'+cle+'" role="status" aria-live="polite">'+demCatsInfo(cle,dep)+'</div>'+
+    '<div class="dem-cats-actions"><button type="button" class="btn-fant" onclick="demCatsRevenir(\''+cle+'\')">'+retour+'</button>'+
+    '<button type="button" class="btn-fant" onclick="demCatsTout(\''+cle+'\')">Tout cocher</button></div>';
+  CAT_L.forEach(function(g){
+    html+='<div class="cats-gt">'+esc(g[0])+'</div><div class="cats-liste">'+g[1].map(function(r){
+      var k=r[0], on=sel.indexOf(k)>=0;
+      return '<label class="cat-ligne'+(on?' coche':'')+'"><input type="checkbox" id="dc-'+cle+'-'+k+'" '+(on?'checked ':'')+'onchange="demCatBasculer(\''+cle+'\',\''+k+'\',this)">'+
+        '<span class="cat-txt"><b>'+esc(r[1])+'</b><small class="cat-expl">'+esc(catExpl(k))+'</small>'+
+        (raisons[k]?'<small class="cat-raison"><b>Pour ce métier</b> '+esc(raisons[k])+'</small>':(propose[k]?'<small class="cat-raison"><b>Au choix</b> '+esc(propose[k])+'</small>':''))+'</span></label>'; }).join('')+'</div>';
+  });
+  return html+'</div>';
+}
+function demCatsInfo(cle,dep){
+  var sel=DEM.cats[cle]||[], depart=dep&&dep.liste?dep.liste:[], pareil=JSON.stringify(CAT_CLES.filter(function(k){ return sel.indexOf(k)>=0; }))===JSON.stringify(depart);
+  var qui=dep&&dep.source==='client'?'le choix du client':'le conseil du métier';
+  return '<b>'+sel.length+' rubrique'+(sel.length>1?'s':'')+' sur '+CAT_CLES.length+'</b> — '+(pareil?'pré-cochées avec '+qui:'ajustées (parti de '+qui+', '+depart.length+')')+
+    (sel.length===CAT_CLES.length?'. Tout coché : rien n’est restreint.':'. L’application ne montrera que celles-là.');
+}
+/* une case cochée ou décochée : l'état, la ligne et le compteur se mettent à jour EN PLACE (un rendu complet ferait perdre la place) */
+function demCatBasculer(cle,k,cb){
+  var l=(DEM.cats[cle]||[]).filter(function(x){ return x!==k; });
+  if(cb.checked) l.push(k);
+  DEM.cats[cle]=CAT_CLES.filter(function(x){ return l.indexOf(x)>=0; });
+  var ligne=cb.closest?cb.closest('label'):null; if(ligne&&ligne.classList) ligne.classList.toggle('coche',!!cb.checked);
+  var info=document.getElementById('dc-info-'+cle);
+  if(info){ var i=parseInt(cle,10), dem=null; (CLI.list||[]).forEach(function(c){ if(demCatsCle(c.email,i)===cle) dem=(c.demandes||[])[i]; });
+    info.innerHTML=demCatsInfo(cle,demCatsDepart(dem&&typeof dem==='object'?dem:{})); }
+}
+function demCatsTout(cle){ DEM.cats[cle]=CAT_CLES.slice(); render(); }
+function demCatsRevenir(cle){ delete DEM.cats[cle]; render(); }
 /* Un identifiant d'élément ne porte jamais une adresse en clair : on en garde une empreinte courte. */
 function sigleAdr(m){ var h=0, s=String(m||''); for(var k=0;k<s.length;k++){ h=((h<<5)-h+s.charCodeAt(k))|0; } return (h>>>0).toString(36); }
 async function demAccepter(email,nom,i,btn){
   var champ=$('dem-id-'+i+'-'+sigleAdr(email)), ident=((champ&&champ.value)||'').trim();
   if(!ident){ toast('Donne un identifiant de départ — son prénom, en général'); if(champ) champ.focus(); return; }
+  /* les rubriques que la grille de la demande montre cochées (rien si la grille n'a pas pu s'afficher : l'acceptation part alors du choix du client
+     ou du conseil du métier, ou ne pose rien et le dit) */
+  var cats=DEM.cats[demCatsCle(email,i)];
+  if(cats&&!cats.length){ toast('Coche au moins une rubrique — ou « Tout cocher »'); return; }
   if(btn){ btn.disabled=true; btn.textContent='Ouverture de l’espace…'; }
-  try{ await tourAccepterDemande(email,nom,ident,i); }
+  try{ await tourAccepterDemande(email,nom,ident,i,cats); }
   finally{ if(btn&&btn.isConnected){ btn.disabled=false; btn.textContent='✅ Accepter et ouvrir l’espace'; } }
 }
 function demClasser(email,i,traite){
@@ -8647,9 +8744,12 @@ function gestionClientParts(){
       '<div class="note">Ce que l’application montre à cette entreprise : une catégorie décochée disparaît du menu, de la barre du bas et du tableau de bord. Le tableau de bord, les utilisateurs, les modules OP et les paramètres restent toujours ouverts. Ce réglage ne change pas le prix.</div>'+
       '<div id="cats-info" class="note">Chargement…</div>'+
       CAT_L.map(function(g){
-        return '<div class="cats-gt">'+esc(g[0])+'</div><div class="eq-apps">'+g[1].map(function(c){
-          return '<label><input type="checkbox" id="cat-'+c[0]+'" value="'+c[0]+'" checked'+(pat?'':' disabled')+'> '+esc(c[1])+'</label>'; }).join('')+'</div>'; }).join('')+
+        return '<div class="cats-gt">'+esc(g[0])+'</div><div class="cats-liste">'+g[1].map(function(c){
+          return '<label class="cat-ligne"><input type="checkbox" id="cat-'+c[0]+'" value="'+c[0]+'" checked'+(pat?'':' disabled')+'><span class="cat-txt"><b>'+esc(c[1])+'</b><small class="cat-expl" data-expl="'+c[0]+'">'+esc(catExpl(c[0]))+'</small></span></label>'; }).join('')+'</div>'; }).join('')+
       (pat?'<div class="form-rang">'+
+        '<button type="button" class="btn-fant" onclick="catsCocherConseil()">Cocher le conseil du métier</button>'+
+        '<button type="button" class="btn-fant" onclick="catsCocherChoixClient()">Cocher le choix du client</button></div>'+
+        '<div class="form-rang">'+
         '<button type="button" class="btn-plein" onclick="tourCatsEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer les catégories</button>'+
         '<button type="button" class="btn-fant" onclick="tourCatsRouvrir(\''+jsq(nm)+'\',this)">Tout rouvrir</button></div>'
         :'<div class="note">Réservé au patron : les cases se lisent, elles ne se règlent pas ici.</div>')+
@@ -9291,7 +9391,9 @@ var ABN_F={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Pre
    dans le même ordre — `tests/test-848.js` compare les trois listes. v2.78 (30 septembre 2026, « oui, fais ce qu'il faut ») :
    les six métiers du site qui n'avaient pas de pack en ont un, et « Autre métier de terrain » est le réglage neutre. */
 var MET_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain'};
-function metDemande(c){ var d=((c&&c.demandes)||[]).filter(function(x){ return x&&typeof x==='object'&&MET_L[x.metier]; }).sort(function(a,b){ return (b.date||0)-(a.date||0); })[0]; return d?d.metier:''; }
+function metDemande(c){ var d=((c&&c.demandes)||[]).filter(function(x){ return x&&typeof x==='object'&&MET_L[x.metier]; }).sort(function(a,b){ return (b.date||0)-(a.date||0); })[0];
+  /* à défaut de demande, le métier choisi à la page de paiement (23 octobre 2026) */
+  return d?d.metier:(c&&c.choix&&MET_L[c.choix.metier]?c.choix.metier:''); }
 /* 22 octobre 2026 — LES CATÉGORIES D'OP GESTION qu'on retient pour une entreprise (Justin : « quand on crée un accès client, dans la Tour on
    choisit les catégories dont ils ont besoin et pas besoin »). Les groupes et les libellés sont ceux de `NAV` (app.html) ; les
    clés sont celles de `CATS_OK` (serveur). Ne figurent PAS ici — jamais cochables, toujours ouvertes : le tableau de bord, les
@@ -9310,6 +9412,45 @@ var CAT_L=[
 ['Administration',[['secteurs','Secteurs']]]
 ];
 var CAT_CLES=[]; CAT_L.forEach(function(g){ g[1].forEach(function(c){ CAT_CLES.push(c[0]); }); });
+/* ═══ 23 octobre 2026 — LE RÉFÉRENTIEL DES MÉTIERS (`GET /api/metiers`, tiré de `metiers.json`) ═══
+   Justin : « quand ils prennent un abonnement, ils choisissent le métier ; ils cochent les catégories ; et quand ils cochent, ça explique la
+   catégorie ». La demande arrive avec le métier et les rubriques que le CLIENT a cochées ; la Tour les propose PRÉ-COCHÉES (sinon le conseil du
+   métier), chaque case avec son explication en petit ; Justin ajuste, et l'acceptation pose les rubriques retenues (la même route que la fiche,
+   `/api/monitor/espaces/cats`). Le référentiel n'est jamais recopié ici : lu une fois, il sert la demande ET la fiche. */
+var REFM={d:null,err:'',enCours:false};
+function refMetiersCharger(){
+  if(REFM.enCours||REFM.d) return Promise.resolve();
+  REFM.enCours=true; REFM.err='';
+  return apiGet('/api/metiers').then(function(d){
+      if(d&&d.ok&&d.metiers&&d.rubriques) REFM.d=d; else if(d!==null) REFM.err='Le référentiel des métiers n’a pas pu être lu.';
+    }).catch(function(e){ REFM.err=(e&&e.status===503)?'Le serveur n’a pas le référentiel des métiers (metiers.json) — mets-le à jour.':msgErreur(e); })
+    .then(function(){ REFM.enCours=false;
+      try{ if(TAB==='demandes') render(); else catsExplicationsPeindre(); }catch(e){} });
+}
+/* l'explication d'une rubrique (vide tant que le référentiel n'est pas lu — la fiche la complète en place à son arrivée) */
+function catExpl(k){ var r=REFM.d&&REFM.d.rubriques&&REFM.d.rubriques[k]; return r&&r.explication?r.explication:''; }
+function catsExplicationsPeindre(){
+  var l=document.querySelectorAll?document.querySelectorAll('[data-expl]'):[];
+  for(var i=0;i<l.length;i++) l[i].textContent=catExpl(l[i].getAttribute('data-expl'));
+}
+/* les rubriques à pré-cocher pour une demande : le choix du client (filtré sur les rubriques cochables), sinon le conseil de son métier, sinon rien
+   — `source` dit lequel, pour que l'écran le DISE : « choix du client », « conseil du métier », « attente » (référentiel pas encore lu) ou « aucun » */
+function demCatsDepart(d){
+  var ok=function(l){ return CAT_CLES.filter(function(k){ return l.indexOf(k)>=0; }); };
+  if(d&&Array.isArray(d.cats)&&d.cats.length){ var l=ok(d.cats); if(l.length) return {liste:l,source:'client'}; }
+  var m=REFM.d&&REFM.d.metiers&&d&&d.metier?REFM.d.metiers[d.metier]:null;
+  if(m&&Array.isArray(m.rubriques)&&m.rubriques.length) return {liste:ok(m.rubriques),source:'conseil'};
+  return {liste:null,source:(REFM.d||REFM.err)?'aucun':'attente'};
+}
+/* ce que le CLIENT a choisi pour une adresse : sa dernière demande qui porte des rubriques, sinon le choix de sa page de paiement */
+function catsChoixDe(c){
+  var d=((c&&c.demandes)||[]).filter(function(x){ return x&&typeof x==='object'&&Array.isArray(x.cats)&&x.cats.length; }).sort(function(a,b){ return (b.date||0)-(a.date||0); })[0];
+  if(d) return {cats:d.cats,metier:d.metier||'',source:'sa demande'};
+  if(c&&c.choix&&Array.isArray(c.choix.cats)&&c.choix.cats.length) return {cats:c.choix.cats,metier:c.choix.metier||'',source:'sa page de paiement'};
+  return null;
+}
+/* l'état des grilles des demandes ouvertes : une liste de clés par demande, gardée d'un rendu à l'autre */
+function demCatsCle(email,i){ return i+'-'+sigleAdr(email); }
 /* La formule que l'application REÇOIT (serveur : `formuleServie`) — celle que l'entreprise paie, ou celle qu'une période
    offerte sert — et l'écart quand ce n'est pas celle de la fiche. Justin, 29 septembre 2026 : « ils choisissent le tarif
    qu'ils veulent » ; un code promo sert le plus gros forfait « pour mieux montrer l'application ». Sans l'écart, une fiche

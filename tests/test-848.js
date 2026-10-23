@@ -179,7 +179,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
 
   try {
     console.log('\n2. Le portail DEMANDE le métier (les vraies `sendRequest` et `cliResume` d\'espace.html)');
-    const noms2 = ['lienSlug', 'sendRequest', 'planNom', 'cliResume'];
+    const noms2 = ['lienSlug', 'sendRequest', 'planNom', 'cliResume', 'ratEtat', 'ratChoix', 'cliRelayerDemande'];   // (les trois derniers : le métier et les rubriques de la demande, 23 octobre 2026 — test-2892 les joue contre le vrai serveur)
     const src2 = noms2.map(n => fonction(PORTN, n));
     const ligneMet = (/^[ \t]*const METIER_L=\{[^\n]*\};$/m.exec(PORTN) || [''])[0];
     vrai('(population) sendRequest, planNom, cliResume et la liste des métiers sont trouvés dans le code du portail', src2.every(Boolean) && !!ligneMet, noms2.filter((n, i) => !src2[i]).join(', '));
@@ -194,9 +194,9 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
         fetch: async (u) => ({ ok: true, json: async () => (/\/espaces\/libre/.test(u) ? { libre: true } : {}) }),
         fs: { collection: nom => ({ doc: id => docRef(nom, id) }) }, FV: { serverTimestamp: () => 'TS' },
         auth: { currentUser: { email: MAIL } }, openView: v => vues.push(v), verifCodeDemande: async () => null,
-        clientApps: () => [], APPS: {}, promoInfo: () => null };
+        clientApps: () => [], APPS: {}, promoInfo: () => null, OpRub: require(path.join(RACINE, 'rubriques-choix.js')), sessionStorage: { setItem() {} } };
       vm.createContext(ctx);
-      vm.runInContext('var _meDoc={}; const esc=s=>String(s==null?"":s);\n' + ligneMet + '\n' + src2.join('\n') + '\nthis.sendRequest=sendRequest; this.cliResume=cliResume;', ctx);
+      vm.runInContext('var _meDoc={}; const esc=s=>String(s==null?"":s);\nconst RAT_REFUS={};\n' + ligneMet + '\n' + src2.join('\n') + '\nthis.sendRequest=sendRequest; this.cliResume=cliResume;', ctx);
       return { ctx, el, ecrits, fil, vues };
     };
     const FORM = { 'r-app': 'OP GESTION', 'r-company': 'Plomberie Banc', 'r-besoin': 'Dépannages et entretien', 'r-users': '3', 'r-code': '', 'r-formule': 'Pro',
@@ -219,10 +219,15 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
       /\$\{\['Pro','Business','Business Premium'\]\.map\(o=>/.test(PORTN) && !/\['Gratuit','Pro','Business','Business Premium'\]/.test(PORTN), true);
 
     console.log('\n3. Le serveur GARDE le métier demandé (liste fermée) — `/api/clients/sync`, la vraie session du plombier');
-    const rs = await appel('/api/clients/sync', resume, brut);
+    /* 23 octobre 2026 : une demande NEUVE dont le métier est hors liste n'est plus « vidée » en silence — le serveur la REFUSE (400
+       `metier_inconnu`), avec le reste de la fiche relayée, et rien n'est rangé (`test-2891` joue tous les refus) */
+    const refus = await appel('/api/clients/sync', resume, brut);
+    const cliRefus = ((await appel('/api/monitor/clients', undefined, PATRON)).j.clients || []).find(c => c.email === MAIL);
+    v('⛔ une demande neuve au métier hors liste est REFUSÉE (400 `metier_inconnu`), et rien n\'est rangé', [refus.s, refus.j.error, !cliRefus], [400, 'metier_inconnu', true]);
+    const rs = await appel('/api/clients/sync', Object.assign({}, resume, { demandes: resume.demandes.slice(0, 1) }), brut);
     v('la fiche arrive (200)', rs.s, 200);
     const cli = ((await appel('/api/monitor/clients', undefined, PATRON)).j.clients || []).find(c => c.email === MAIL) || {};
-    v('⛔ la Tour lit le métier DEMANDÉ ; une valeur hors liste ne passe pas (vide, jamais du texte du client)', (cli.demandes || []).map(d => d.metier), ['chauffage', '']);
+    v('⛔ la Tour lit le métier DEMANDÉ (une liste fermée : jamais du texte du client)', (cli.demandes || []).map(d => d.metier), ['chauffage']);
 
     console.log('\n4. La Tour le POSE sur l\'espace, et le serveur le REND (`/api/espaces/etat`)');
     v('avant tout réglage : le métier n\'est pas servi (vide)', (await etat('plombier-banc')).metier, '');
@@ -371,7 +376,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     v('   une réponse de serveur d\'AVANT (sans le champ) : rien', X.appliquer({ ok: true, formule: 'pro' }), false);
 
     console.log('\n6. La Tour (vraies `tourAccepterDemande`, `tourMetierEnregistrer`, `packPeindre`) contre ce serveur');
-    const NOMS6 = ['hAuth', 'apiPost', 'metDemande', 'tourMetierEnregistrer', 'packPeindre', 'optsPeindre', 'tourAccepterDemande', 'demPaiement', 'demEstGestion'];   // v2.88 : seules les demandes d'OP GESTION s'acceptent   // v2.87 : « déjà payé ? »   // v2.80 : `packPeindre` peint aussi les options (sans bloc dans ce faux DOM, `optsPeindre` rend la main — test-854 les joue)
+    const NOMS6 = ['hAuth', 'apiPost', 'metDemande', 'tourMetierEnregistrer', 'packPeindre', 'optsPeindre', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'demCatsDepart'];   // v2.88 : seules les demandes d'OP GESTION s'acceptent   // v2.87 : « déjà payé ? »   // v2.80 : `packPeindre` peint aussi les options (sans bloc dans ce faux DOM, `optsPeindre` rend la main — test-854 les joue)
     const FN6 = NOMS6.map(n => fonction(TOURN, n));
     const ligneMetL = (/^var MET_L=\{[^\n]*\};$/m.exec(TOURN) || [''])[0];
     vrai('(population) les fonctions et la liste des métiers sont trouvées dans le code de la Tour', FN6.every(Boolean) && !!ligneMetL, NOMS6.filter((n, i) => !FN6[i]).join(', '));
@@ -386,7 +391,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
         espSlugJs: s => String(s), esc: s => String(s == null ? '' : s), jsq: s => String(s), ST: {}, ABN_F: {}, abnEcart: () => '',
         lgMessagePoser: () => {}, tourCopie: () => {}, tourMailAcces: () => {} };
       vm.createContext(ctx);
-      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var CAT_CLES=[]; var CLI={list:' + JSON.stringify(cliList || []) + ', sel:' + JSON.stringify(sel || '') + '}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="", LG_MAIL="", LG_ZONE="";\n'
+      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var CAT_CLES=[]; var REFM={d:null,err:"",enCours:false}; var CLI={list:' + JSON.stringify(cliList || []) + ', sel:' + JSON.stringify(sel || '') + '}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="", LG_MAIL="", LG_ZONE="";\n'
         + ligneMetL + '\n' + FN6.join('\n'), ctx);
       return { ctx, el, toasts, panneaux, prefills };
     };

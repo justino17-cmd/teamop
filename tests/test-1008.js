@@ -53,7 +53,7 @@ v('…et ce jumeau-là est bien publié (et lui seul parmi les .md)', fichiers.f
 
 console.log('\n2. Tout ce qui se sert');
 for (const rel of ['index.html', 'app.html', 'beta.html', 'tour.html', 'espace.html', 'connexion.html', 'tarifs.html',
-  'sw.js', 'op-fs.js', 'CNAME', '.nojekyll', 'robots.txt', 'sitemap.xml', 'favicon.ico', 'manifest.webmanifest',
+  'sw.js', 'op-fs.js', 'metiers.json', 'rubriques-choix.js', 'rubriques-choix.css', 'CNAME', '.nojekyll', 'robots.txt', 'sitemap.xml', 'favicon.ico', 'manifest.webmanifest',
   '.well-known/assetlinks.json']) {
   vrai('présent : ' + rel, existe(rel));
 }

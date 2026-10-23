@@ -755,6 +755,9 @@ let rubAbo = null;          // l'état de la grille des rubriques (OpRub.etat)
 let rubOuvert = true;       // le volet « Vos rubriques » est ouvert
 let metierForce = false;     // le serveur a demandé un métier alors que l'appareil croit connaître une entreprise (une référence que l'annuaire ne connaît plus)
 const metierRequis = () => !modeAjout && !!FORMULES[formuleActive] && FORMULES[formuleActive].groupe === 'gestion' && (metierForce || !espaceDeAppareil());
+/* ce qui part avec le paiement : le métier choisi et les rubriques cochées (dans l'ordre du menu, `null` si rien n'est coché) — rien
+   quand aucun métier n'est choisi (une entreprise qui existe déjà : le serveur ne le demande pas) */
+function choixPaiement() { return metierAbo ? { metier: metierAbo, cats: rubAbo && typeof OpRub !== 'undefined' ? OpRub.liste(rubAbo) : null } : {}; }
 function choixGarder() {
   try { sessionStorage.setItem(CLE_CHOIX, JSON.stringify({ metier: metierAbo, cats: rubAbo && typeof OpRub !== 'undefined' ? OpRub.liste(rubAbo) : null })); } catch (e) {}
 }
@@ -1179,7 +1182,7 @@ function rendrePaiement() {
     let r = null, j = null;
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
     try {
-      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify(Object.assign({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef(), options: optionsEnvoyees }, metierAbo ? { metier: metierAbo, cats: rubAbo && typeof OpRub !== 'undefined' ? OpRub.liste(rubAbo) : null } : {})), signal: ctl.signal });
+      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef(), options: optionsEnvoyees, ...choixPaiement() }), signal: ctl.signal });
       j = await r.json().catch(() => null);
     } catch (e) { r = null; }
     finally { clearTimeout(to); }
