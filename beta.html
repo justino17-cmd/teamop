@@ -40472,7 +40472,7 @@ function cvcAttestationDe(i,aid){ return (i&&i.attestations&&i.attestations[aid]
 /* Les valeurs de départ du formulaire : l'attestation déjà établie, sinon les relevés de l'intervention (copiés, pas liés). */
 function cvcAttestationDepart(i,aid){ const ex=cvcAttestationDe(i,aid); if(ex) return Object.assign({},ex);
   const r=(i&&i.relevesMetier)||{}, o={};
-  CVC_ATT_DEPUIS_RELEVES.forEach(k=>{ if(r[k]!==undefined&&r[k]!=='') o[k]=String(r[k]); });
+  CVC_ATT_DEPUIS_RELEVES.forEach(k=>{ if(r[k]!==undefined&&r[k]!=='') o[k]=String(r[k]).replace(',','.'); });   // le point : un champ numérique n'affiche pas « 94,2 »
   if(r.classe) o.classe=String(r.classe); if(r.instrument) o.instrument=String(r.instrument);
   return o; }
 /* Les points contrôlés : les prestations cochées sur l'intervention, dans l'ordre du pack. */
@@ -40480,7 +40480,7 @@ function cvcAttestationPoints(i){ const p=(typeof metierPack==='function'&&metie
   const ordre=(p.presta||[]).filter(x=>sel.indexOf(x)>=0).concat(sel.filter(x=>(p.presta||[]).indexOf(x)<0));
   return ordre.filter(x=>!/^Attestation d.entretien/i.test(x)); }
 function cvcAttestationLire(f){ const g=n=>String((f.elements[n]||{}).value||'').trim(), o={};
-  CVC_ATT_MESURES.forEach(m=>{ const s=g(m.k); if(s!==''){ const n=cvcNum(s); o[m.k]=isFinite(n)?String(n).replace('.',','):s.slice(0,20); } });
+  CVC_ATT_MESURES.forEach(m=>{ const s=g(m.k); if(s!==''){ const n=cvcNum(s); o[m.k]=isFinite(n)?String(n):s.slice(0,20); } });   // rangé AVEC le point : rouvert, un champ numérique vide « 12,5 » ; la virgule ne se met qu'à l'écriture du PDF
   ['classe','instrument'].forEach(k=>{ if(g(k)) o[k]=g(k).slice(0,120); });
   ['conseils','travaux'].forEach(k=>{ if(g(k)) o[k]=g(k).slice(0,1500); });
   return o; }
@@ -40581,7 +40581,7 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
     else texte('Voir le compte rendu de la visite.',9,GREY); y-=4; }
 
   /* ─ les mesures, et le verdict sur le CO ambiant (l'article 3 de l'arrêté) */
-  { const rows=CVC_ATT_MESURES.filter(m=>att[m.k]!==undefined&&att[m.k]!=='').map(m=>[m.l,att[m.k]+(m.u?' '+m.u:'')]);
+  { const rows=CVC_ATT_MESURES.filter(m=>att[m.k]!==undefined&&att[m.k]!=='').map(m=>[m.l,String(att[m.k]).replace('.',',')+(m.u?' '+m.u:'')]);
     titre('Mesures et résultats',16+Math.min(rows.length,6)*12.5+30);
     if(rows.length) rows.forEach(r=>ligneLV(r[0],r[1])); else texte('Aucune mesure renseignée.',9,GREY);
     if(att.instrument) ligneLV('Analyseur utilisé',att.instrument);

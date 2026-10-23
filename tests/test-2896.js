@@ -64,14 +64,14 @@ console.log('\n── 2896 · 3. le formulaire part des relevés, l’attestatio
 {
   const W = monter({ db: BASE, pack: PACK });
   const i = W.db.interventions[0];
-  v('copie CO fumées, rendement, température, tirage depuis les Prestations', W.cvcAttestationDepart(i, 'a1'), { co: '180', rdt: '94,2', tfum: '121', tirage: '12' });
+  v('copie CO fumées, rendement, température, tirage depuis les Prestations — rangés avec le POINT (un champ numérique n’affiche pas « 94,2 »)', W.cvcAttestationDepart(i, 'a1'), { co: '180', rdt: '94.2', tfum: '121', tirage: '12' });
   vrai('⛔ le CO des fumées ne devient JAMAIS le CO ambiant (sinon « danger » sur une chaudière saine)', W.cvcAttestationDepart(i, 'a1').coAmbiant === undefined);
   i.attestations = { a1: { coAmbiant: '4', conseils: 'RAS' } };
   v('une attestation déjà établie l’emporte', W.cvcAttestationDepart(i, 'a1'), { coAmbiant: '4', conseils: 'RAS' });
   v('les points contrôlés : prestations cochées dans l’ordre du pack, sans « Attestation … remise »', W.cvcAttestationPoints(i), ['Nettoyage du corps de chauffe', 'Analyse de combustion', 'Purge ⏰ des radiateurs']);
   const F = formulaire({ coAmbiant: '7,5', co: '180', co2: '9', rdt: '', tfum: 'abc', tirage: '12', instrument: 'Testo 310 réf. 0563', classe: 'A', conseils: 'x'.repeat(2000), travaux: 'Remplacer le vase' });
   const L = W.cvcAttestationLire(F);
-  vrai('lecture : virgule gardée, vide ignoré, texte libre conservé tel quel dans un champ numérique', L.coAmbiant === '7,5' && L.rdt === undefined && L.tfum === 'abc' && L.co === '180');
+  vrai('lecture : virgule saisie rangée avec le POINT (rouvert, le champ numérique l’affiche), vide ignoré, texte libre conservé', L.coAmbiant === '7.5' && L.rdt === undefined && L.tfum === 'abc' && L.co === '180');
   vrai('lecture : conseils coupés à 1500', L.conseils.length === 1500 && L.travaux === 'Remplacer le vase' && L.classe === 'A');
 }
 
@@ -102,7 +102,7 @@ console.log('\n── 2896 · 5. un vrai PDF ──');
   const i = W.db.interventions[0], a = W.db.appareils[0];
   const E = { nom: 'Alpha Chauffage', couleur: '#C0392B', lignes: ['2 quai Alpha, 33000 Bordeaux', 'SIRET 222 222 222 00022 · TVA FR12222222222'] };
   const IM = (w, h, nom) => ({ b64: JPEG1, w, h, nom });
-  const att = { coAmbiant: '4', co: '180', co2: '9,1', rdt: '94,2', tfum: '121', tirage: '12', instrument: 'Testo 310', classe: 'A', conseils: 'Prévoir le remplacement → du brûleur ⚠️ d’ici 2 ans, ≥ 10 ans d’âge. 🔥 Étanchéité du conduit à surveiller.', travaux: 'Remplacer le vase d’expansion • purger le circuit' };
+  const att = { coAmbiant: '4', co: '180', co2: '9.1', rdt: '94.2', tfum: '121', tirage: '12', instrument: 'Testo 310', classe: 'A', conseils: 'Prévoir le remplacement → du brûleur ⚠️ d’ici 2 ans, ≥ 10 ans d’âge. 🔥 Étanchéité du conduit à surveiller.', travaux: 'Remplacer le vase d’expansion • purger le circuit' };
   const pdf = W.cvcAttestationPdfStr(i, a, att, E, { sigCli: IM(3, 1, 'S1'), sigTech: IM(3, 1, 'S2') });
   /* une ligne « Libellé : valeur » s'écrit en DEUX morceaux (gras, puis normal) à la même hauteur : on les recolle pour lire ce que l'œil lit */
   const lignesDe = P0 => { const L = []; P0.textes.forEach(t => { const d = L[L.length - 1]; if (d && d.y === t.y) d.u += t.u; else L.push({ y: t.y, u: t.u }); }); return L.map(l => l.u); };
@@ -189,6 +189,8 @@ console.log('\n── 2896 · 6. l’aperçu : la fenêtre s’ouvre DANS le ges
     vrai('client sans e-mail : on le dit, rien ne part', N.__mails.length === 0 && /e-mail du client/.test(N.__toasts.join('|')));
     const D = mk({ droits: { 'int.modifier': false } }); await D.cvcAttestationEnvoyer('i1', 'a1');
     vrai('⛔ sans la case « Interventions → Modifier » : rien ne part', D.__mails.length === 0 && D.__saves === 0);
+    const D2 = monter({ db: BASE, pack: PACK, jpeg: JPEG1, droits: { 'int.modifier': false } }); await D2.cvcAttestationEnvoyer('i1', 'a1');
+    vrai('⛔ … même sans formulaire ouvert (la garde de l’envoi ne repose pas sur celle de l’enregistrement)', D2.__mails.length === 0 && D2.__saves === 0);
     const X = mk(); await X.cvcAttestationEnvoyer('i2', 'a1');
     vrai('intervention non terminée : rien ne part', X.__mails.length === 0);
   }
