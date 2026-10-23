@@ -111,7 +111,7 @@ console.log('\n── 2871 · les catégories d\'OP GESTION : la Tour et le serv
   console.log('\n2. Le bloc « Catégories d\'OP GESTION » de la fiche (le vrai gabarit, joué pour un patron et pour un collaborateur)');
   const iPart = TOURN.indexOf('parts.cats=(function(){'), fPart = iPart < 0 ? -1 : TOURN.indexOf('})();', iPart);
   vrai('(population) le gabarit du bloc est trouvé dans le code de la Tour', iPart > 0 && fPart > iPart);
-  const gabarit = (role) => { const ctx = { MYROLE: role, CAT_L, catExpl: () => '', nm: 'plombier-banc', esc: s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'), jsq: s => String(s), parts: {} };
+  const gabarit = (role) => { const ctx = { CATS_APPLIQUEES: false, MYROLE: role, CAT_L, catExpl: () => '', nm: 'plombier-banc', esc: s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'), jsq: s => String(s), parts: {} };
     vm.createContext(ctx); vm.runInContext(TOURN.slice(iPart, fPart + 5), ctx); return ctx.parts.cats; };
   const hp = gabarit('patron'), hc = gabarit('collaborateur');
   v('⛔ une case par rubrique cochable, chacune avec son identifiant `cat-<clé>` (c\'est ce que la fiche peint et lit)', CATS_OK.filter(k => !hp.includes('id="cat-' + k + '"')), []);
@@ -161,7 +161,7 @@ console.log('\n── 2871 · les catégories d\'OP GESTION : la Tour et le serv
   vrai('(population) le patron et un collaborateur ont une session', typeof PATRON === 'string' && PATRON.length > 10 && typeof COLLAB === 'string' && COLLAB.length > 10);
 
   console.log('\n3. Cocher → enregistrer → la fiche relit la même liste (vraies `tourPackPrefill`, `packPeindre`, `tourCatsEnregistrer`, `tourCatsRouvrir`)');
-  const NOMS = ['hAuth', 'apiPost', 'tourPackPrefill', 'packPeindre', 'catsDire', 'catsChoisies', 'catsEnvoyer', 'tourCatsEnregistrer', 'tourCatsRouvrir', 'metDemande'];
+  const NOMS = ['hAuth', 'apiPost', 'tourPackPrefill', 'packPeindre', 'catsDire', 'catsChoisies', 'catsEnvoyer', 'tourCatsEnregistrer', 'tourCatsRouvrir', 'metDemande', 'catsEffet'];
   const FN = NOMS.map(n => fonction(TOURN, n));
   const ligneCle = (/^var CAT_CLES=\[\]; CAT_L\.forEach[^\n]*$/m.exec(TOURN) || [''])[0];
   vrai('(population) les fonctions de la Tour et la construction de CAT_CLES sont trouvées dans le code', FN.every(Boolean) && !!ligneCle, NOMS.filter((n, i) => !FN[i]).join(', '));
@@ -176,7 +176,7 @@ console.log('\n── 2871 · les catégories d\'OP GESTION : la Tour et le serv
       document: { getElementById: id => el[id] || null }, toast: t => toasts.push(String(t)), esc: s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'),
       CLI: { list: [], sel: '' }, MET_L: {}, ST: {}, ABN_F: {}, abnEcart: () => '', optsPeindre: () => {} };
     vm.createContext(ctx);
-    vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(jeton) + ', MYROLE=' + JSON.stringify(role) + '; var PACK={nom:"",charge:false,err:"",d:null};\nvar CAT_L=' + JSON.stringify(CAT_L) + ';\n' + ligneCle + '\n' + FN.join('\n'), ctx);
+    vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(jeton) + ', MYROLE=' + JSON.stringify(role) + '; var PACK={nom:"",charge:false,err:"",d:null}; var CATS_APPLIQUEES=false;\nvar CAT_L=' + JSON.stringify(CAT_L) + ';\n' + ligneCle + '\n' + FN.join('\n'), ctx);
     const attendre = async (cond) => { for (let i = 0; i < 100; i++) { if (cond()) return true; await dormir(50); } return false; };
     const charge = async (nom) => { ctx.tourPackPrefill(nom); return attendre(() => vm.runInContext('PACK.charge', ctx)); };
     const coche = liste => CATS_OK.forEach(k => { el['cat-' + k].checked = liste.includes(k); });
@@ -263,7 +263,7 @@ console.log('\n── 2871 · les catégories d\'OP GESTION : la Tour et le serv
   v('   (une réponse sans la clé laisse les cases comme la valeur « tout » — c\'est la ligne qui prévient)', P.cochees().length, CATS_OK.length);
 
   console.log('\n5. Le rappel « Choisis ses catégories dans sa fiche », après une acceptation et après un accès public');
-  const NOMS5 = ['hAuth', 'apiPost', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'metDemande', 'demCatsDepart'];
+  const NOMS5 = ['hAuth', 'apiPost', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'metDemande', 'demCatsDepart', 'demEspace', 'catsEffet', 'catsPromesse'];
   const FN5 = NOMS5.map(n => fonction(TOURN, n));
   const ligneMetL = (/^var MET_L=\{[^\n]*\};$/m.exec(TOURN) || [''])[0];
   vrai('(population) `tourAccepterDemande` et ses voisines sont trouvées dans le code de la Tour', FN5.every(Boolean) && !!ligneMetL, NOMS5.filter((n, i) => !FN5[i]).join(', '));
@@ -276,21 +276,21 @@ console.log('\n── 2871 · les catégories d\'OP GESTION : la Tour et le serv
     lgMessagePoser: () => {}, tourCopie: () => {}, tourMailAcces: () => {} };
   vm.createContext(ctx5);
   const cli = { email: 'plo@exemple-2871.fr', entreprise: 'plombier-banc', demandes: [{ app: 'OP GESTION', formule: 'Pro', users: '2', metier: 'plomberie', date: Date.now() }] };
-  vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var REFM={d:null,err:"",enCours:false}; var CAT_CLES=[]; var CLI={list:' + JSON.stringify([cli]) + ', sel:"plo@exemple-2871.fr"}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="",LG_MAIL="",LG_ZONE="";\n' + ligneMetL + '\n' + FN5.join('\n'), ctx5);
+  vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var REFM={d:null,err:"",enCours:false}; var ENT={loaded:true,liste:[]}; var CATS_APPLIQUEES=false; var CAT_CLES=[]; var CLI={list:' + JSON.stringify([cli]) + ', sel:"plo@exemple-2871.fr"}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="",LG_MAIL="",LG_ZONE="";\n' + ligneMetL + '\n' + FN5.join('\n'), ctx5);
   await ctx5.tourAccepterDemande('plo@exemple-2871.fr', 'plombier-banc');
   const pa = panneaux.join('\n');
   vrai('(population) l\'acceptation a bien ouvert son panneau (« Demande acceptée »)', /Demande acceptée/.test(pa), pa.slice(0, 200) + ' | ' + toasts5.join(' / '));
   vrai('⛔ le panneau d\'acceptation porte le rappel « Choisis ses catégories dans sa fiche » et un bouton qui y mène (`tourCatsAller` avec le nom de l\'espace)',
     /Choisis ses catégories<\/b> dans sa fiche/.test(pa) && /onclick="tourCatsAller\('plombier-banc'\)"/.test(pa), pa.slice(0, 300));
   /* l'accès public : la vraie `pbCreer` */
-  const FNP = fonction(TOURN, 'pbCreer');
+  const FNP = fonction(TOURN, 'pbCreer') + '\n' + fonction(TOURN, 'catsPromesse');
   vrai('(population) `pbCreer` est trouvée dans le code de la Tour', !!FNP);
   const pan2 = [];
   const ctxP = { JSON, Object, Array, String, Math, Date, Promise, setTimeout, console, document: { getElementById: () => null }, localStorage: { getItem: () => '{}', setItem() {} },
     toast: () => {}, confirm: () => true, tourPanneau: h => pan2.push(String(h)), chargerAccesPublics: () => {}, chargerEssais: () => {},
     tourEspaceDe: async () => ({ nom: 'acces-banc', slug: 'acces-banc', ident: 'paul', mdp: 'Mdp-provisoire' }), espSlugJs: s => String(s), esc: s => String(s == null ? '' : s), jsq: s => String(s) };
   vm.createContext(ctxP);
-  vm.runInContext('var PB={nom:"acces-banc",email:"acces@exemple-2871.fr",ident:"paul",pass:"Mdp-provisoire"}; var LG_MSG_MODELE="",LG_ZONE="";\n' + FNP, ctxP);
+  vm.runInContext('var PB={nom:"acces-banc",email:"acces@exemple-2871.fr",ident:"paul",pass:"Mdp-provisoire"}; var LG_MSG_MODELE="",LG_ZONE=""; var CATS_APPLIQUEES=false;\n' + FNP, ctxP);
   await ctxP.pbCreer(null);
   const pp = pan2.join('\n');
   vrai('⛔ l\'accès public ouvert porte le même rappel, avec son bouton', /Accès version publique/.test(pp) && /Choisis ses catégories<\/b> dans sa fiche/.test(pp) && /onclick="tourCatsAller\('acces-banc'\)"/.test(pp), pp.slice(0, 200));

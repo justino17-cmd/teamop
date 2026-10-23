@@ -91,7 +91,10 @@
     var nom = m && m.nom ? m.nom : '';
     var h = '<div class="rub" data-rub-racine="' + esc(id) + '">';
     h += '<div class="rub-tete"><b class="rub-titre">Vos rubriques</b><span class="rub-compte" id="' + esc(id) + '-compte" role="status" aria-live="polite">' + fr(OpRub.texteCompte(e)) + '</span></div>';
-    h += '<p class="rub-aide">Cochez ce dont vous avez besoin : votre application ne montrera que ces rubriques. '
+    /* ⛔ une promesse VRAIE (23 octobre 2026) : l'application publique ne lit pas encore les rubriques d'une entreprise — elle les reçoit, mais ne les applique pas.
+       Le choix part avec la demande, et c'est nous qui ouvrons l'espace en le lisant. Le jour où l'application les applique, ce texte le dira
+       (`tests/test-2893.js` compare ce texte à ce que lit app.html). */
+    h += '<p class="rub-aide">Cochez ce dont vous avez besoin : votre choix part avec votre demande et nous sert à ouvrir votre espace. '
       + (nom ? 'Elles sont pré-cochées pour <b>' + fr(nom) + '</b>. ' : '')
       + 'Vous pourrez toujours en ouvrir d’autres ensuite, et rien de ce que vous aurez saisi n’est perdu.</p>';
     h += '<div class="rub-actions"><button type="button" class="rub-btn" data-rub-act="tout">Tout cocher</button>'

@@ -5373,6 +5373,10 @@ app.get('/api/monitor/entreprises', monAdmin, (req, res) => {
       suspendu: entFermes.espaces.includes(t),
       promo: promoPar[t] || null,
       metier: (cli && cli.metier) || '',
+      /* ⛔ les rubriques d'OP GESTION RETENUES pour cette entreprise (`catsOk` : le tableau dans l'ordre du menu, ou `null` = rien de restreint). La grille d'une
+         demande d'une entreprise DÉJÀ OUVERTE part de celles-là — pas du conseil du métier, qui lui aurait retiré des rubriques à l'acceptation. Une entreprise
+         hors annuaire n'en a pas (`null`) ; un serveur d'avant ne rend pas le champ du tout, et la Tour le lit comme « tout ». */
+      cats: e ? catsOk(e.cats) : null,
       derniere: r.derniere || 0,
       utilisateurs7: r.utilisateurs7 || 0,
       appareils7: r.appareils7 || 0,

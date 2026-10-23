@@ -95,10 +95,13 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
   const cle = nom => String(nom).toLowerCase().replace(/[^a-z0-9]+/g, '');
   const code = (t, nom) => Buffer.from(JSON.stringify({ t, k: 'k-' + t + '-' + 'x'.repeat(24), a: 'paul', n: nom }), 'utf8').toString('base64').replace(/=+$/, '');
   const paye = { formule: 'pro', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc', aboStatut: 'actif', aboPar: 'Banc', aboTs: MAINT - 1000 };
-  const T_CH = 't-chauffe-2892', T_PL = 't-plomb-2892', T_TO = 't-tout-2892', T_RE = 't-refus-2892';
+  const T_CH = 't-chauffe-2892', T_PL = 't-plomb-2892', T_TO = 't-tout-2892', T_RE = 't-refus-2892', T_RS = 't-restreint-2892', T_LI = 't-libre-2892';
   const esp = (t, nom) => Object.assign({ t, nom, email: cle(nom) + '@exemple-2892.fr', ts: MAINT - 1000, code: code(t, nom) }, paye);
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify({ [cle('chauffe-banc')]: esp(T_CH, 'chauffe-banc'), [cle('plomb-banc')]: esp(T_PL, 'plomb-banc'),
-    [cle('tout-banc')]: esp(T_TO, 'tout-banc'), [cle('refus-banc')]: esp(T_RE, 'refus-banc') }));
+    [cle('tout-banc')]: esp(T_TO, 'tout-banc'), [cle('refus-banc')]: esp(T_RE, 'refus-banc'),
+    /* deux entreprises DÉJÀ OUVERTES, à l'adresse de leur demande : l'une a restreint ses rubriques (trois), l'autre travaille avec tout (ELAN) */
+    [cle('restreint-banc')]: Object.assign(esp(T_RS, 'restreint-banc'), { email: 'restreint@exemple-2892.fr', cats: ['factures', 'devis', 'clients'], catsPar: 'Banc', catsTs: MAINT - 500 }),
+    [cle('libre-banc')]: Object.assign(esp(T_LI, 'libre-banc'), { email: 'libre@exemple-2892.fr' }) }));
   const MAIL = 'chantal@exemple-2892.fr', MAIL2 = 'paul@exemple-2892.fr';
   const brut = crypto.randomBytes(32).toString('hex'), brut2 = crypto.randomBytes(32).toString('hex');
   fs.writeFileSync(path.join(D, 'comptes-portail.json'), JSON.stringify({ c: { [MAIL]: { v: true, pr: 'Chantal', no: 'Chaud', so: 'Chauffe Banc' }, [MAIL2]: { v: true, pr: 'Paul', no: 'Plomb', so: 'Plomb Banc' } },
@@ -238,10 +241,10 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     /* ══ 2. LA TOUR — la grille de la demande arrive pré-cochée ══ */
     console.log('\n2. La Tour (les vraies fonctions de tour.html) : la demande arrive avec le choix du client, chaque case expliquée');
     const NOMS_T = ['hAuth', 'apiGet', 'apiPost', 'srvRepond', 'srvMuet', 'msgErreur', 'refMetiersCharger', 'catExpl', 'catsExplicationsPeindre', 'demCatsDepart', 'catsChoixDe', 'demCatsCle', 'demCatsHtml', 'demCatsInfo', 'demCatBasculer',
-      'demCatsTout', 'demCatsRevenir', 'sigleAdr', 'demAccepter', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'metDemande'];
+      'demCatsTout', 'demCatsRevenir', 'sigleAdr', 'demAccepter', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'metDemande', 'demEspace', 'catsEffet', 'catsPromesse'];
     const FN_T = NOMS_T.map(n => fonction(TOURN, n));
     const L_MET = ligne(TOURN, /^var MET_L=\{[^\n]*\};$/m), L_CATCLES = ligne(TOURN, /^var CAT_CLES=\[\]; CAT_L\.forEach[^\n]*$/m), CAT_L_SRC = litteral(TOURN, 'var CAT_L=[');
-    vrai('(population) les 23 fonctions de la Tour, la liste des métiers, CAT_L et CAT_CLES sont trouvés dans son code', FN_T.every(Boolean) && !!L_MET && !!L_CATCLES && !!CAT_L_SRC, NOMS_T.filter((n, i) => !FN_T[i]).join(', '));
+    vrai('(population) les 26 fonctions de la Tour, la liste des métiers, CAT_L et CAT_CLES sont trouvés dans son code', FN_T.every(Boolean) && !!L_MET && !!L_CATCLES && !!CAT_L_SRC, NOMS_T.filter((n, i) => !FN_T[i]).join(', '));
     const tour = (clients, plus) => {
       plus = plus || {};
       const toasts = [], panneaux = [], posts = [], el = {}, rend = [];
@@ -256,7 +259,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
         espSlugJs: s => String(s), esc: s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'), jsq: s => String(s), ST: {}, ABN_F: {}, abnEcart: () => '',
         lgMessagePoser: () => {}, tourCopie: () => {}, tourMailAcces: () => {}, srvEtat: () => {}, INJOIGNABLE: 'injoignable', MYROLE: 'patron', TAB: 'demandes', API_X: 1 };
       vm.createContext(ctx);
-      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var DEM={vue:"atraiter",id:{},cats:{}}; var REFM={d:null,err:"",enCours:false}; var CLI={list:' + JSON.stringify(clients) + ', sel:""}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="",LG_MAIL="",LG_ZONE="";\n'
+      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var DEM={vue:"atraiter",id:{},cats:{}}; var CATS_APPLIQUEES=false; var ENT={loaded:' + (plus.entNonLue ? 'false' : 'true') + ',liste:' + JSON.stringify(plus.ent || []) + '}; var REFM={d:null,err:"",enCours:false}; var CLI={list:' + JSON.stringify(clients) + ', sel:""}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="",LG_MAIL="",LG_ZONE="";\n'
         + 'var CAT_L=' + CAT_L_SRC + ';\n' + L_CATCLES + '\n' + L_MET + '\n' + FN_T.join('\n') + '\nthis.__DEM=function(){ return DEM; }; this.__REFM=function(){ return REFM; };', ctx);
       return { ctx, el, toasts, panneaux, posts, rend };
     };
@@ -298,7 +301,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
 
     /* la fiche : les explications */
     const iPart = TOURN.indexOf('parts.cats=(function(){'), fPart = TOURN.indexOf('})();', iPart);
-    const gab = (refCharge) => { const ctx = { MYROLE: 'patron', CAT_L: evalue(CAT_L_SRC), nm: 'chauffe-banc', esc: T0.ctx.esc, jsq: s => String(s), parts: {}, catExpl: refCharge ? T0.ctx.catExpl : () => '' };
+    const gab = (refCharge) => { const ctx = { CATS_APPLIQUEES: false, MYROLE: 'patron', CAT_L: evalue(CAT_L_SRC), nm: 'chauffe-banc', esc: T0.ctx.esc, jsq: s => String(s), parts: {}, catExpl: refCharge ? T0.ctx.catExpl : () => '' };
       vm.createContext(ctx); vm.runInContext(TOURN.slice(iPart, fPart + 5), ctx); return ctx.parts.cats; };
     const fi = gab(true);
     vrai('⛔ la fiche de l\'entreprise montre aussi l\'explication de chaque rubrique (référentiel lu), sous son titre', CATS_OK.every(k => fi.includes('data-expl="' + k + '">' + T0.ctx.esc(REF.rubriques[k].explication) + '</small>')) && (fi.match(/type="checkbox"/g) || []).length === 38);
@@ -366,6 +369,60 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     const avantPosts = Tf.posts.length;
     await Tf.ctx.demAccepter(MAIL, 'chauffe-banc', 0, null);
     v('⛔ aucune rubrique cochée : l\'acceptation s\'arrête (« Coche au moins une rubrique »), rien n\'est ouvert, rien n\'est posé', [Tf.posts.length - avantPosts, Tf.toasts.some(t => /Coche au moins une rubrique/.test(t))], [0, true]);
+
+    /* ══ 3 bis. UN ESPACE DÉJÀ OUVERT GARDE SES RUBRIQUES (relecture du 23 octobre 2026) ══
+       Une entreprise qui travaille envoie une SECONDE demande : la grille part de ce que son espace a DÉJÀ — pas du conseil de son métier — et « Accepter »
+       sans toucher à la grille ne retire rien. Avant, elle posait le conseil (20 à 36 rubriques) par-dessus, sans qu'aucun écran dise l'écart. */
+    console.log('\n3 bis. Un espace déjà ouvert : la grille part de ses rubriques actuelles, et « Accepter » sans y toucher ne change rien');
+    const ENT_REEL = ((await appel('/api/monitor/entreprises', undefined, PATRON)).j.entreprises) || [];
+    const eRS = ENT_REEL.find(x => x.email === 'restreint@exemple-2892.fr'), eLI = ENT_REEL.find(x => x.email === 'libre@exemple-2892.fr');
+    v('⛔ le vrai serveur sert à la Tour les rubriques actuelles de chaque espace (`cats` : le tableau dans l\'ordre du menu, ou `null` = tout)', [eRS && eRS.cats, eLI && eLI.cats], [CATS_OK.filter(k => ['factures', 'devis', 'clients'].includes(k)), null]);
+    const TROIS = CATS_OK.filter(k => ['factures', 'devis', 'clients'].includes(k));
+    const dRS = { app: 'OP GESTION', formule: 'Pro', users: '3', metier: 'chauffage', date: MAINT - 30 };   // le conseil du chauffage serait ~20 rubriques
+    const cliRS = { email: 'restreint@exemple-2892.fr', entreprise: 'Restreint Banc', demandes: [dRS] };
+    const cliLI = { email: 'libre@exemple-2892.fr', entreprise: 'Libre Banc', demandes: [Object.assign({}, dRS, { date: MAINT - 20 })] };
+    const nbCats = p => p.filter(x => /espaces\/cats/.test(x.u));
+    /* a · l'espace restreint : départ = ses trois rubriques */
+    const Tg = tour([cliRS], { espace: 'restreint-banc', ent: ENT_REEL });
+    await Tg.ctx.refMetiersCharger();
+    v('   la grille part des rubriques ACTUELLES de l\'espace (3), pas du conseil du métier', [Tg.ctx.demCatsDepart(dRS, Tg.ctx.demEspace(cliRS.email)).liste, Tg.ctx.demCatsDepart(dRS, Tg.ctx.demEspace(cliRS.email)).source], [TROIS, 'espace']);
+    vrai('   (population) le conseil du chauffage, lui, en compte bien plus que trois — la différence est ce que l\'ancien code aurait posé', Tg.ctx.demCatsDepart(dRS).liste.length > 10, Tg.ctx.demCatsDepart(dRS).liste.length);
+    const htmlRS = Tg.ctx.demCatsHtml(cliRS, 0, dRS);
+    vrai('⛔ la grille DIT « Espace déjà ouvert » et que les cases remplacent ses rubriques, et ne coche que ses trois', /Espace déjà ouvert/.test(htmlRS) && /3 sur 38/.test(htmlRS) && /les REMPLACE/.test(htmlRS) && (htmlRS.match(/type="checkbox"[^>]* checked/g) || []).length === 3 && /Revenir aux rubriques actuelles de l’espace/.test(htmlRS), [/Espace déjà ouvert/.test(htmlRS), /3 sur 38/.test(htmlRS), /les REMPLACE/.test(htmlRS), (htmlRS.match(/type="checkbox"[^>]* checked/g) || []).length, /Revenir aux rubriques actuelles de l’espace/.test(htmlRS)].join('/'));
+    Tg.el['dem-id-0-' + Tg.ctx.sigleAdr(cliRS.email)] = { value: 'paul' };
+    await Tg.ctx.demAccepter(cliRS.email, 'restreint-banc', 0, null);
+    v('⛔ « Accepter » SANS toucher à la grille ne pose AUCUNE rubrique (et le vrai serveur garde les trois)', [nbCats(Tg.posts).length, (await etat(T_RS)).cats], [0, TROIS]);
+    vrai('   le panneau le dit (« Rubriques de l’espace inchangées », 3 sur 38)', /Rubriques de l’espace inchangées/.test(Tg.panneaux.join('\n')) && /3 sur 38/.test(Tg.panneaux.join('\n')), Tg.panneaux.join('\n').slice(0, 300));
+    /* b · un geste sur la grille, lui, remplace */
+    const Th = tour([cliRS], { espace: 'restreint-banc', ent: ENT_REEL });
+    await Th.ctx.refMetiersCharger();
+    Th.ctx.demCatsHtml(cliRS, 0, dRS);
+    Th.ctx.demCatBasculer(Th.ctx.demCatsCle(cliRS.email, 0), 'stock', { checked: true, closest: () => null });
+    Th.el['dem-id-0-' + Th.ctx.sigleAdr(cliRS.email)] = { value: 'paul' };
+    await Th.ctx.demAccepter(cliRS.email, 'restreint-banc', 0, null);
+    const QUATRE = CATS_OK.filter(k => ['factures', 'devis', 'clients', 'stock'].includes(k));
+    v('⛔ cocher « Stock » puis accepter : les rubriques deviennent les quatre, par la route de la fiche — et c\'est le seul cas', [nbCats(Th.posts).map(p => p.corps.cats), (await etat(T_RS)).cats], [[QUATRE], QUATRE]);
+    vrai('   le panneau dit « ajustées par toi »', /ajustées par toi/.test(Th.panneaux.join('\n')));
+    /* c · l'espace qui travaille avec tout (ELAN) */
+    const Ti = tour([cliLI], { espace: 'libre-banc', ent: ENT_REEL });
+    await Ti.ctx.refMetiersCharger();
+    v('   un espace sans rubriques réglées part de TOUTES (38), pas du conseil', Ti.ctx.demCatsDepart(cliLI.demandes[0], Ti.ctx.demEspace(cliLI.email)).liste.length, 38);
+    Ti.ctx.demCatsHtml(cliLI, 0, cliLI.demandes[0]);
+    Ti.el['dem-id-0-' + Ti.ctx.sigleAdr(cliLI.email)] = { value: 'paul' };
+    await Ti.ctx.demAccepter(cliLI.email, 'libre-banc', 0, null);
+    v('⛔ l\'entreprise qui travaille avec tout : « Accepter » sans toucher ne lui retire RIEN (le conseil du chauffage ne se pose pas)', [nbCats(Ti.posts).length, (await etat(T_LI)).cats], [0, null]);
+    vrai('   le panneau dit « toutes ouvertes »', /toutes ouvertes/.test(Ti.panneaux.join('\n')), Ti.panneaux.join('\n').slice(0, 200));
+    /* d · la liste des entreprises n'est pas encore lue : on ne sait pas si l'espace existe — on ne pose rien sans un geste */
+    const Tj = tour([cliLI], { espace: 'libre-banc', entNonLue: true });
+    await Tj.ctx.refMetiersCharger();
+    const htmlJ = Tj.ctx.demCatsHtml(cliLI, 0, cliLI.demandes[0]);
+    vrai('   la grille avertit que la liste n\'est pas lue', /pas encore lue/.test(htmlJ), htmlJ.slice(0, 300));
+    Tj.el['dem-id-0-' + Tj.ctx.sigleAdr(cliLI.email)] = { value: 'paul' };
+    await Tj.ctx.demAccepter(cliLI.email, 'libre-banc', 0, null);
+    v('⛔ liste des entreprises pas lue : « Accepter » sans toucher ne pose aucune rubrique (un espace existant ne se fait pas écraser par le conseil)', [nbCats(Tj.posts).length, (await etat(T_LI)).cats], [0, null]);
+    /* e · les textes ne promettent pas ce que l'application ne fait pas */
+    const infoRS = Tg.ctx.demCatsInfo(Tg.ctx.demCatsCle(cliRS.email, 0), { liste: TROIS, source: 'espace' });
+    vrai('⛔ le compteur de la grille ne dit pas « l\'application ne montrera que celles-là » (elle ne lit pas encore les rubriques) mais ce qui est vrai', !/ne montrera/.test(infoRS) && /ne les applique pas encore/.test(infoRS), infoRS);
 
     /* ══ 4. LES LISTES SE TIENNENT ══ */
     console.log('\n4. Les trois listes de métiers de secours disent la même chose que l\'interrupteur');

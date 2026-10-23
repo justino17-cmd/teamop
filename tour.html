@@ -5343,10 +5343,15 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
   /* 23 octobre 2026 — LES RUBRIQUES RETENUES se posent avec le métier : ce que la grille de la demande montre coché (le choix du client, ajusté), sinon
      le choix du client ou le conseil de son métier. Tout coché = rien de restreint (`null`, la route retire le champ). Refusé ou injoignable : on le DIT
      dans le panneau — jamais un toast qui passe — et la fiche permet de les régler ensuite. */
-  var depart=demCatsDepart(dm), voulues=(Array.isArray(catsVoulues)&&catsVoulues.length)?catsVoulues:depart.liste, catsInfo={etat:'rien'};
-  if(Array.isArray(voulues)&&voulues.length){
+  /* ⛔ Un espace qui existe déjà garde ses rubriques : la grille est partie de CELLES-LÀ (`demCatsDepart`), et seul un geste de Justin sur la grille les change.
+     Annuaire des entreprises pas encore lu (`ENT.loaded` faux) : on ne sait pas si l'espace existe, même prudence. */
+  var espEx=demEspace(email), protege=!!(espEx||!ENT.loaded);
+  var depart=demCatsDepart(dm,espEx), voulues=(Array.isArray(catsVoulues)&&catsVoulues.length)?catsVoulues:depart.liste, catsInfo={etat:'rien'};
+  var ajuste=Array.isArray(catsVoulues)&&depart.liste&&JSON.stringify(catsVoulues)!==JSON.stringify(depart.liste);
+  if(protege&&!ajuste){
+    if(espEx&&depart.liste) catsInfo={etat:'inchange',n:depart.liste.length,tout:depart.liste.length===CAT_CLES.length};
+  } else if(Array.isArray(voulues)&&voulues.length){
     var tout=(voulues.length===CAT_CLES.length);
-    var ajuste=Array.isArray(catsVoulues)&&depart.liste&&JSON.stringify(catsVoulues)!==JSON.stringify(depart.liste);
     try{
       var rc=await apiPost('/api/monitor/espaces/cats',{nom:e.nom,cats:tout?null:voulues});
       if(rc&&rc.ok&&rc.d&&rc.d.ok) catsInfo={etat:'pose',n:voulues.length,tout:tout,origine:ajuste?'ajustées par toi':(depart.source==='client'?'le choix du client':'le conseil du métier')};
@@ -5371,10 +5376,12 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
     '<div class="sec">FORMULE RÉSERVÉE</div><div style="margin:6px 0 14px;font-size:15px"><b>'+esc(F2[formule]||formule)+(q>1?' ×'+q:'')+'</b> '+
       (promo?'<span class="past p-vert">🎁 offerte jusqu’au '+esc(promo.finLe)+'</span>':dejaPaye?'<span class="past p-vert">💳 déjà réglée</span>':'<span class="past p-orange">⏸ suspendue jusqu’au paiement</span>')+'</div>'+
     (catsInfo.etat==='pose'
-      ?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg">🧩 <b>'+(catsInfo.tout?'Toutes les rubriques sont ouvertes':catsInfo.n+' rubrique'+(catsInfo.n>1?'s':'')+' sur '+CAT_CLES.length+' retenue'+(catsInfo.n>1?'s':''))+'</b> ('+esc(catsInfo.origine)+') — l’application ne montrera que celles-là. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Les revoir dans sa fiche →</button></div></div>'
+      ?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg">🧩 <b>'+(catsInfo.tout?'Toutes les rubriques sont ouvertes':catsInfo.n+' rubrique'+(catsInfo.n>1?'s':'')+' sur '+CAT_CLES.length+' retenue'+(catsInfo.n>1?'s':''))+'</b> ('+esc(catsInfo.origine)+') — '+catsEffet()+'. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Les revoir dans sa fiche →</button></div></div>'
+      :catsInfo.etat==='inchange'
+        ?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg">🧩 <b>Rubriques de l’espace inchangées</b> ('+(catsInfo.tout?'toutes ouvertes':catsInfo.n+' sur '+CAT_CLES.length)+') — tu n’as pas touché à la grille. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Les revoir dans sa fiche →</button></div></div>'
       :catsInfo.etat==='refus'
         ?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg" role="alert">⛔ <b>Rubriques non posées</b> : '+esc(catsInfo.err)+'. L’espace est ouvert avec toutes les rubriques — règle-les dans sa fiche. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>'
-        :'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg">🧩 <b>Choisis ses catégories</b> dans sa fiche : l’application ne montrera à cette entreprise que celles que tu retiens (par défaut, toutes)'+(depart.source==='attente'?' — le référentiel des métiers n’était pas encore lu':'')+'. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>')+
+        :'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg">🧩 <b>Choisis ses catégories</b> dans sa fiche : '+catsPromesse()+(depart.source==='attente'?' — le référentiel des métiers n’était pas encore lu':'')+'. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>')+
     (codeDem&&!promo?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx">⚠️ Code promo « '+esc(codeDem)+' » de la demande non appliqué : '+esc(promoErr)+'</div></div>':'')+
     '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— c\'est elle qu\'on donne aux équipes</span></div>'+
     '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span id="acc-adr" class="mono" style="flex:1;word-break:break-all;font-size:14px;color:var(--link);font-weight:700">'+esc(adrF)+'</span><button class="btn-fant" onclick="tourCopie(\'acc-adr\',this)">Copier</button></div>'+
@@ -5512,7 +5519,7 @@ function packPeindre(){
   var ci=document.getElementById('cats-info'), cc=d.cats;
   CAT_CLES.forEach(function(k){ var c=document.getElementById('cat-'+k); if(c) c.checked=!Array.isArray(cc)||cc.indexOf(k)>=0; });
   if(ci) ci.innerHTML=Array.isArray(cc)
-    ? '<b>'+cc.length+' catégorie'+(cc.length>1?'s':'')+' sur '+CAT_CLES.length+'</b> retenue'+(cc.length>1?'s':'')+' — l’application ne montre que celles-là, à sa prochaine ouverture.'
+    ? '<b>'+cc.length+' catégorie'+(cc.length>1?'s':'')+' sur '+CAT_CLES.length+'</b> retenue'+(cc.length>1?'s':'')+' — '+(CATS_APPLIQUEES?'l’application ne montre que celles-là, à sa prochaine ouverture':catsEffet())+'.'
     : (cc===null?'Toutes les catégories sont ouvertes.':'Le serveur ne sait pas encore régler les catégories — mets-le à jour.');
   var ST={auto:'automatique',actif:'activé par TEAM OP',essai:'en essai',impaye:'impayé',suspendu:'suspendu',annule:'annulé'};
   if(d.formule){
@@ -8568,13 +8575,16 @@ function demCarte(x){
    explication en petit, et — pour une rubrique que le métier conseille — la raison propre à ce métier. Justin ajuste ; l'acceptation pose
    ce qui est coché. L'état vit dans `DEM.cats` (un rendu de la Tour ne défait pas un réglage en cours). */
 function demCatsHtml(c,i,d){
-  var cle=demCatsCle(c.email,i), dep=demCatsDepart(d);
+  var esp=demEspace(c.email);
+  var cle=demCatsCle(c.email,i), dep=demCatsDepart(d,esp);
   var tete='<div class="dem-cats"><div class="sec">RUBRIQUES D’OP GESTION</div>';
+  if(dep.source==='espace'&&dep.liste) tete+='<div class="note" role="status"><b>Espace déjà ouvert.</b> Les cases partent de ses rubriques actuelles ('+(dep.liste.length===CAT_CLES.length?'toutes ouvertes':dep.liste.length+' sur '+CAT_CLES.length)+'). Ce que tu coches ou décoches les REMPLACE à l’acceptation ; sans y toucher, rien n’est changé.</div>';
+  else if(!esp&&!ENT.loaded) tete+='<div class="note" role="status">La liste des entreprises n’est pas encore lue : si l’espace existe déjà, ses rubriques ne changeront que si tu touches à la grille.</div>';
   if(!DEM.cats[cle]&&dep.liste) DEM.cats[cle]=dep.liste.slice();
   if(!DEM.cats[cle]) return tete+'<div class="note" role="status">'+(dep.source==='attente'?'Chargement du référentiel des métiers…'
     :'Le référentiel des métiers est illisible'+(REFM.err?' : '+esc(REFM.err):'')+' — l’espace s’ouvrira avec toutes les rubriques, à régler ensuite dans sa fiche.')+'</div></div>';
   var sel=DEM.cats[cle], m=REFM.d&&REFM.d.metiers&&d.metier?REFM.d.metiers[d.metier]:null, raisons=m&&m.pourquoi?m.pourquoi:{}, propose=m&&m.proposees?m.proposees:{};
-  var retour=dep.source==='client'?'Revenir au choix du client':'Revenir au conseil du métier « '+esc(MET_L[d.metier]||d.metier||'—')+' »';
+  var retour=dep.source==='espace'?'Revenir aux rubriques actuelles de l’espace':dep.source==='client'?'Revenir au choix du client':'Revenir au conseil du métier « '+esc(MET_L[d.metier]||d.metier||'—')+' »';
   var html=tete+'<div class="note" id="dc-info-'+cle+'" role="status" aria-live="polite">'+demCatsInfo(cle,dep)+'</div>'+
     '<div class="dem-cats-actions"><button type="button" class="btn-fant" onclick="demCatsRevenir(\''+cle+'\')">'+retour+'</button>'+
     '<button type="button" class="btn-fant" onclick="demCatsTout(\''+cle+'\')">Tout cocher</button></div>';
@@ -8589,9 +8599,9 @@ function demCatsHtml(c,i,d){
 }
 function demCatsInfo(cle,dep){
   var sel=DEM.cats[cle]||[], depart=dep&&dep.liste?dep.liste:[], pareil=JSON.stringify(CAT_CLES.filter(function(k){ return sel.indexOf(k)>=0; }))===JSON.stringify(depart);
-  var qui=dep&&dep.source==='client'?'le choix du client':'le conseil du métier', dequi=dep&&dep.source==='client'?'du choix du client':'du conseil du métier';
+  var src=dep&&dep.source, qui=src==='espace'?'les rubriques actuelles de l’espace':src==='client'?'le choix du client':'le conseil du métier', dequi=src==='espace'?'des rubriques actuelles de l’espace':src==='client'?'du choix du client':'du conseil du métier';
   return '<b>'+sel.length+' rubrique'+(sel.length>1?'s':'')+' sur '+CAT_CLES.length+'</b> — '+(pareil?'pré-cochées avec '+qui:'ajustées (parti '+dequi+', '+depart.length+')')+
-    (sel.length===CAT_CLES.length?'. Tout coché : rien n’est restreint.':'. L’application ne montrera que celles-là.');
+    (sel.length===CAT_CLES.length?'. Tout coché : rien n’est restreint.':'. '+catsEffet(true)+'.');
 }
 /* une case cochée ou décochée : l'état, la ligne et le compteur se mettent à jour EN PLACE (un rendu complet ferait perdre la place) */
 function demCatBasculer(cle,k,cb){
@@ -8600,8 +8610,8 @@ function demCatBasculer(cle,k,cb){
   DEM.cats[cle]=CAT_CLES.filter(function(x){ return l.indexOf(x)>=0; });
   var ligne=cb.closest?cb.closest('label'):null; if(ligne&&ligne.classList) ligne.classList.toggle('coche',!!cb.checked);
   var info=document.getElementById('dc-info-'+cle);
-  if(info){ var i=parseInt(cle,10), dem=null; (CLI.list||[]).forEach(function(c){ if(demCatsCle(c.email,i)===cle) dem=(c.demandes||[])[i]; });
-    info.innerHTML=demCatsInfo(cle,demCatsDepart(dem&&typeof dem==='object'?dem:{})); }
+  if(info){ var i=parseInt(cle,10), dem=null, espD=null; (CLI.list||[]).forEach(function(c){ if(demCatsCle(c.email,i)===cle){ dem=(c.demandes||[])[i]; espD=demEspace(c.email); } });
+    info.innerHTML=demCatsInfo(cle,demCatsDepart(dem&&typeof dem==='object'?dem:{},espD)); }
 }
 function demCatsTout(cle){ DEM.cats[cle]=CAT_CLES.slice(); render(); }
 function demCatsRevenir(cle){ delete DEM.cats[cle]; render(); }
@@ -8741,7 +8751,7 @@ function gestionClientParts(){
   parts.cats=(function(){
     var pat=(MYROLE==='patron');
     return '<div class="sous-sec" id="cats-bloc"><div class="sec">CATÉGORIES D’OP GESTION</div>'+
-      '<div class="note">Ce que l’application montre à cette entreprise : une catégorie décochée disparaît du menu, de la barre du bas et du tableau de bord. Le tableau de bord, les utilisateurs, les modules OP et les paramètres restent toujours ouverts. Ce réglage ne change pas le prix.</div>'+
+      '<div class="note">'+(CATS_APPLIQUEES?'Ce que l’application montre à cette entreprise : une catégorie décochée disparaît du menu, de la barre du bas et du tableau de bord.':'Les catégories retenues pour cette entreprise, enregistrées sur son espace. L’application publique ne les applique pas encore dans cette version : une catégorie décochée disparaîtra du menu, de la barre du bas et du tableau de bord le jour où elle les lira.')+' Le tableau de bord, les utilisateurs, les modules OP et les paramètres restent toujours ouverts. Ce réglage ne change pas le prix.</div>'+
       '<div id="cats-info" class="note">Chargement…</div>'+
       CAT_L.map(function(g){
         return '<div class="cats-gt">'+esc(g[0])+'</div><div class="cats-liste">'+g[1].map(function(c){
@@ -9433,10 +9443,27 @@ function catsExplicationsPeindre(){
   var l=document.querySelectorAll?document.querySelectorAll('[data-expl]'):[];
   for(var i=0;i<l.length;i++) l[i].textContent=catExpl(l[i].getAttribute('data-expl'));
 }
+/* ⛔ L'APPLICATION PUBLIQUE APPLIQUE-T-ELLE LES RUBRIQUES D'UNE ENTREPRISE ? (relecture du 23 octobre 2026) Le serveur les enregistre sur l'espace et les rend à
+   chaque ouverture (`cats` de `/api/espaces/etat`) ; `app.html` et `beta.html` ne les lisent pas encore. Tant que c'est ainsi, aucun texte de la Tour ne
+   promet « l'application ne montrera que celles-là » : il dit ce qui est vrai. `tests/test-2893.js` compare ce drapeau à ce que lit `app.html` — le jour
+   où l'application applique `cats`, le banc tombe jusqu'à ce qu'il passe à `true`, et tous les textes suivent d'eux-mêmes. */
+var CATS_APPLIQUEES=false;
+function catsEffet(maj){
+  var t=CATS_APPLIQUEES?'l’application ne montrera que celles-là':'enregistrées sur l’espace et servies à l’application, qui ne les applique pas encore dans cette version';
+  return maj?t.charAt(0).toUpperCase()+t.slice(1):t;
+}
+function catsPromesse(){
+  return CATS_APPLIQUEES?'l’application ne montrera à cette entreprise que celles que tu retiens (par défaut, toutes)'
+    :'elles s’enregistrent sur son espace (par défaut, toutes) ; l’application publique ne les applique pas encore dans cette version';
+}
 /* les rubriques à pré-cocher pour une demande : le choix du client (filtré sur les rubriques cochables), sinon le conseil de son métier, sinon rien
    — `source` dit lequel, pour que l'écran le DISE : « choix du client », « conseil du métier », « attente » (référentiel pas encore lu) ou « aucun » */
-function demCatsDepart(d){
+function demCatsDepart(d,esp){
   var ok=function(l){ return CAT_CLES.filter(function(k){ return l.indexOf(k)>=0; }); };
+  /* ⛔ UN ESPACE DÉJÀ OUVERT A SES RUBRIQUES (23 octobre 2026, relecture) : la grille part de CELLES-LÀ — `cats` absent ou `null` = tout est ouvert —, pas du
+     conseil du métier. Sinon « Accepter » sur la seconde demande d'une entreprise qui travaille avec tout (ELAN) lui retirait 2 à 20 rubriques sans qu'aucun
+     écran dise l'écart. Seul un geste sur la grille change quelque chose (`tourAccepterDemande`). */
+  if(esp) return {liste:Array.isArray(esp.cats)?ok(esp.cats):CAT_CLES.slice(),source:'espace'};
   if(d&&Array.isArray(d.cats)&&d.cats.length){ var l=ok(d.cats); if(l.length) return {liste:l,source:'client'}; }
   var m=REFM.d&&REFM.d.metiers&&d&&d.metier?REFM.d.metiers[d.metier]:null;
   if(m&&Array.isArray(m.rubriques)&&m.rubriques.length) return {liste:ok(m.rubriques),source:'conseil'};
@@ -9623,7 +9650,7 @@ async function pbCreer(btn){
       /* v2.78 — sans formule, l'espace est SUSPENDU tant que rien n'est payé ni offert (Justin, 30 septembre 2026 : « Suspend ») */
       '<div class="encart" style="margin-top:10px"><div class="encart-tx">⏸ <b>Sans formule, l’application s’ouvre suspendue</b> (rien de payé ni offert). Pour t’en servir : Entreprises → sa fiche → Abonnement → une formule et le statut « En essai » avec une date de fin.</div></div>'+
       /* 22 octobre 2026 — les catégories d'OP GESTION se choisissent dans sa fiche */
-      '<div class="encart" style="margin-top:10px"><div class="encart-tx">🧩 <b>Choisis ses catégories</b> dans sa fiche : l’application ne montrera que celles que tu retiens (par défaut, toutes). <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>');
+      '<div class="encart" style="margin-top:10px"><div class="encart-tx">🧩 <b>Choisis ses catégories</b> dans sa fiche : '+catsPromesse()+'. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>');
     /* Ce panneau n'a pas de message type : on oublie celui du panneau précédent, sinon
        lgMessagePoser irait réécrire une zone qui n'est plus à l'écran. */
     LG_MSG_MODELE=''; LG_ZONE='';
