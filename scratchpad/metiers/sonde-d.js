@@ -24,6 +24,10 @@ const METIERS=process.argv.slice(2).length?process.argv.slice(2):['3d','plomberi
       await S.metier(m);
       // 1. Mon métier
       await S.ev(`go('parametres'); return 1;`); await dormir(900);
+      /* les cartes des métiers (TEAM OP les voit toutes : 23) — capture avant de déplier la liste conseillée */
+      const cartes=await S.ev(`const c=document.querySelector('.met-cards'); if(c) c.scrollIntoView({block:'start'}); window.scrollBy(0,-70); return {n:document.querySelectorAll('.met-card').length, on:(document.querySelector('.met-card.on .nm')||{}).textContent};`); await dormir(400);
+      ligne(cartes.n===23 && !!cartes.on, `${pn} ${theme} ${m} · Mon métier : ${cartes.n} cartes de métier (TEAM OP), actif « ${cartes.on} »`);
+      await S.snap(`${OUT}/${pn}-${theme}-${m}-cartes.png`);
       await S.ev(`const d=document.querySelector('details.met-rub'); if(d){ d.open=true; d.scrollIntoView({block:'start'}); } return 1;`); await dormir(500);
       let r=await mesureExpl(); await dormir(300); r=await mesureExpl();
       const attendu=await S.ev(`return ((METIERS['${m}']||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]).length;`);
