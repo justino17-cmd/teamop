@@ -62,7 +62,8 @@
 # 23 octobre 2026 (relecture des métiers) : 5 168 mesurés (79 suites, `test-2890` et `test-2891` compris) — plancher relevé à 5100.
 # 23 octobre 2026 (relecture juridique, Anthropic) : `test-2975` — ce qu'un incident envoie à Anthropic (« Expliquer la cause », « Proposer un correctif »)
 # est filtré des adresses et numéros, le vrai serveur contre un faux Anthropic (22 vérifications) — plancher relevé à 5122.
-#plancher 5122
+# Relecture adverse du même jour : les numéros dans une URL (%20, +, %2B) et la demande de fusion GitHub (faux GitHub) entrent au banc — 30 vérifications, plancher 5130.
+#plancher 5130
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js

@@ -13,6 +13,10 @@
      4. `/api/monitor/proposer` : message, trace ET la cause rendue par le modèle (qui a recopié une adresse) sont filtrés ; le CODE de la fenêtre reste
         tel quel (le modèle doit en recopier un fragment au caractère près) ;
      5. ⛔ la Tour GARDE l'original : `GET /api/monitor/issues` rend toujours l'adresse et le numéro en clair.
+     6. ⛔ un numéro écrit DANS une URL (« 06%2098%2076… », « 06+98+76… », « %2B33%206… ») ou en paires (« 06_98_76_54_32 », « 06,98,76,54,32 ») est masqué ;
+        une liste de nombres ou « 3+4 » reste lisible ;
+     7. ⛔ `/api/monitor/proposer` jusqu'au bout, contre un FAUX GitHub (`TEAMOP_GITHUB_API_URL`) : le corps, le titre de la demande de fusion ET le message de
+        commit ne portent ni adresse ni numéro (le message et la cause de l'incident, le titre / le pourquoi / le « à vérifier » du modèle) ; la Tour garde l'original.
    Chaque « n'arrive pas » a sa CONTRE-ÉPREUVE (le marqueur du même texte arrive) et sa population (l'appel a eu lieu). Jetons de recherche : des
    lettres HORS de [0-9a-f] (CLAUDE.md : un jeton court tombe au hasard dans une empreinte). Rien ne sort d'ici : 127.0.0.1. */
 'use strict';
@@ -47,11 +51,19 @@ const fuites = corps => INTERDITS.filter(x => corps.includes(x));
   if (!fs.existsSync(path.join(RACINE, 'server', 'node_modules'))) { console.log('  … SAUTÉE (partie serveur) : server/node_modules absent'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
 
   const recus = [];
+  let PROPOSITION = null;   /* null : « aucun correctif sûr » (avant = après) ; une fonction : une vraie proposition, pour la section 7 */
+  const gh = [];            /* ce que reçoit le FAUX GitHub */
+  const fauxGh = http.createServer((q, r) => { let b = ''; q.on('data', d => { b += d; }); q.on('end', () => {
+    gh.push({ m: q.method, url: q.url, brut: b });
+    const rep = /\/git\/ref\/heads\/main/.test(q.url) ? { object: { sha: 'aaaa' } } : /\/contents\//.test(q.url) && q.method === 'GET' ? { sha: 'bbbb' } : /\/pulls$/.test(q.url) ? { html_url: 'http://127.0.0.1/pr/1', number: 1 } : {};
+    r.writeHead(200, { 'Content-Type': 'application/json' }); r.end(JSON.stringify(rep));
+  }); });
+  await new Promise(r => fauxGh.listen(0, '127.0.0.1', r));
   const faux = http.createServer((q, r) => { let b = ''; q.on('data', d => { b += d; }); q.on('end', () => {
     let j = {}; try { j = JSON.parse(b); } catch (e) {} recus.push({ url: q.url, brut: b, corps: j });
     const props = (((j.output_config || {}).format || {}).schema || {}).properties || {};
     const texte = props.avant
-      ? JSON.stringify({ titre: 't', pourquoi: 'p', fichier: 'opcourrier.js', avant: 'x', apres: 'x', verifier: 'v', risque: 'faible' })
+      ? JSON.stringify(PROPOSITION ? PROPOSITION() : { titre: 't', pourquoi: 'p', fichier: 'opcourrier.js', avant: 'x', apres: 'x', verifier: 'v', risque: 'faible' })
       : JSON.stringify({ cause: 'Le champ lu vaut zqxwvu.echo@entreprise-zqxw.test (MARQUEUR-CAUSE) et le téléphone 06 98 76 54 32.', ou: 'opcourrier.js', verifier: 'Rejouer', confiance: 'moyenne' });
     r.writeHead(200, { 'Content-Type': 'application/json' });
     r.end(JSON.stringify({ id: 'msg_x', type: 'message', role: 'assistant', model: j.model, stop_reason: 'end_turn', content: [{ type: 'text', text: texte }], usage: { input_tokens: 1, output_tokens: 1 } }));
@@ -66,7 +78,7 @@ const fuites = corps => INTERDITS.filter(x => corps.includes(x));
   fs.writeFileSync(path.join(banc, 'monitor.json'), JSON.stringify({ issues: [], journal: [], archive: [], users: [{ id: 'upatron', nom: 'Patron', hash: kh(MDP), role: 'patron', actif: true, ts: Date.now() }] }));
   const port = await libre(), B = 'http://127.0.0.1:' + port; let sortie = '';
   srv = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: CONFIG, TEAMOP_DATA: D, PORT: String(port),
-    TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), ANTHROPIC_BASE_URL: 'http://127.0.0.1:' + faux.address().port }), stdio: ['ignore', 'pipe', 'pipe'] });
+    TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), ANTHROPIC_BASE_URL: 'http://127.0.0.1:' + faux.address().port, TEAMOP_GITHUB_API_URL: 'http://127.0.0.1:' + fauxGh.address().port }), stdio: ['ignore', 'pipe', 'pipe'] });
   srv.stdout.on('data', d => { sortie += d; }); srv.stderr.on('data', d => { sortie += d; });
   let vivant = false; for (let i = 0; i < 150 && !vivant; i++) { await dormir(100); try { vivant = (await fetch(B + '/health')).ok; } catch (e) {} }
   v('le vrai serveur démarre', vivant, true);
@@ -127,9 +139,36 @@ const fuites = corps => INTERDITS.filter(x => corps.includes(x));
   v('⛔ le message, la trace ET la cause rendue par le modèle (qui avait recopié une adresse et un numéro) sont filtrés', [fuites(sansCode), sansCode.includes('MARQUEUR-MSG'), sansCode.includes('MARQUEUR-PILE'), sansCode.includes('MARQUEUR-CAUSE')], [[], true, true, true]);
   v('le CODE de la fenêtre reste tel quel : le modèle doit en recopier un fragment au caractère près (l\'adresse du dépôt y est encore)', ctx4.includes('contact@exemple.fr'), true);
 
+  /* ── 6 · un numéro DANS une URL, ou en paires ── */
+  const FORMES_URL = ['06%2098%2076%2054%2032', '06+98+76+54+32', '%2B33%206%2098%2076%2054%2032', '+33+6+98+76+54+32', '06_98_76_54_32', '06,98,76,54,32'];
+  const PILE_URL = 'Error: appel\n at f (https://127.0.0.1/api/x?a=' + FORMES_URL.slice(0, 4).join('&b=') + '&c=' + FORMES_URL[4] + '&d=' + FORMES_URL[5] + '&n=3+4%205 MARQUEUR-URL)';
+  await rapporter({ signature: 'sig-url', message: 'Paramètres : tel=' + FORMES_URL[0] + ' puis ' + FORMES_URL[1] + ' MARQUEUR-MSGURL', stack: PILE_URL, src: 'opcourrier.js', line: LIGNE_ADR });
+  const i6 = await trouver('sig-url');
+  v('(population) les six formes sont dans l\'incident stocké, EN CLAIR (ce que la Tour montre)', FORMES_URL.every(f => (i6.message + i6.stack).includes(f)), true);
+  n0 = recus.length; r = await post('/api/monitor/expliquer', { id: i6.id });
+  const e6 = recus[recus.length - 1] || { brut: '', corps: {} }, ctx6 = ((e6.corps.messages || [])[0] || {}).content || '';
+  v('⛔ aucune des six formes d\'un numéro (%20, +, %2B, paires « _ » et « , ») n\'arrive chez Anthropic — ni un morceau de chiffres', [r.s, recus.length - n0, FORMES_URL.filter(f => ctx6.includes(f)), /98(?:%20|\+|_|,)76/.test(ctx6)], [200, 1, [], false]);
+  v('…le reste arrive (contre-épreuve : les marqueurs, et « 3+4%205 », qui n\'est pas un téléphone, reste lisible)', [ctx6.includes('MARQUEUR-MSGURL'), ctx6.includes('MARQUEUR-URL'), ctx6.includes('n=3+4%205'), ctx6.includes('(numéro)')], [true, true, true, true]);
+
+  /* ── 7 · Proposer jusqu'à la demande de fusion : ce que reçoit GitHub ── */
+  const FICHIER_BRUT = fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8');
+  const FRAG = COUR.map(l => l.trim()).find(t => t.length > 30 && t.length < 90 && /;$/.test(t) && !/^(\/\/|\*|\/\*)/.test(t) && !/[@'`]/.test(t) && FICHIER_BRUT.split(t).length === 2);
+  v('(population) un fragment du dépôt qui n\'apparaît qu\'UNE fois, pour que la proposition passe tous les verrous', !!FRAG, true);
+  PROPOSITION = () => ({ titre: 'Titre MARQUEUR-TITRE zqxwvu.titre@entreprise-zqxw.test', fichier: 'opcourrier.js', avant: FRAG, apres: FRAG + ' ',
+    pourquoi: 'Le champ vaut zqxwvu.pourquoi@entreprise-zqxw.test, tel 06%2098%2076%2054%2032 MARQUEUR-POURQUOI.', verifier: 'Rejouer avec 06 98 76 54 32 et zqxwvu.verif@entreprise-zqxw.test MARQUEUR-VERIF', risque: 'faible' });
+  n0 = recus.length; const g0 = gh.length;
+  r = await post('/api/monitor/proposer', { id: i1.id, refaire: true });
+  v('Proposer va au bout : 200, une proposition ouverte chez le faux GitHub (branche, fichier, demande de fusion)', [r.s, !!(r.j && r.j.proposition), gh.slice(g0).filter(x => x.m === 'POST' && /\/pulls$/.test(x.url)).length, gh.slice(g0).filter(x => x.m === 'PUT').length], [200, true, 1, 1]);
+  const pull = JSON.parse((gh.slice(g0).find(x => /\/pulls$/.test(x.url)) || { brut: '{}' }).brut), put = JSON.parse((gh.slice(g0).find(x => x.m === 'PUT') || { brut: '{}' }).brut);
+  const visible = [pull.body, pull.title, put.message].join('\n=====\n');
+  v('(population) le corps, le titre et le message de commit portent bien l\'incident, la cause et le texte du modèle', [pull.body.includes('MARQUEUR-MSG'), pull.body.includes('MARQUEUR-CAUSE'), pull.body.includes('MARQUEUR-POURQUOI'), pull.body.includes('MARQUEUR-VERIF'), pull.title.includes('MARQUEUR-TITRE'), put.message.includes('MARQUEUR-TITRE')], [true, true, true, true, true, true]);
+  v('⛔ rien d\'une adresse ni d\'un numéro n\'arrive chez GitHub (corps, titre, message de commit)', [fuites(visible), ['zqxwvu.titre', 'zqxwvu.pourquoi', 'zqxwvu.verif', '06%2098', 'entreprise-zqxw'].filter(x => visible.includes(x))], [[], []]);
+  const ex7 = (await issues()).find(i => i.id === i1.id);
+  v('⛔ la Tour GARDE l\'original : le message de l\'incident et la cause établie sont intacts', [ex7.message === MESSAGE, ex7.explication.cause.includes('zqxwvu.echo@entreprise-zqxw.test')], [true, true]);
+
   /* ── 5 · rien du texte brut au journal du serveur ── */
   await dormir(200);
   v('⛔ rien de l\'adresse ni du numéro de l\'incident n\'entre au journal du serveur', [sortie.includes('zqxwvu'), sortie.includes('0698765432')], [false, false]);
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
-  faux.close(); process.exit(ko ? 1 : 0);
+  faux.close(); fauxGh.close(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ le banc a jeté : ' + (e && e.stack)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });

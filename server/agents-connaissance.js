@@ -105,6 +105,14 @@ const AROBASE_ENCODEE = /%40|\\u0040|&#0*64;|&#x0*40;|&commat;/gi;
    (la barre oblique n'est pas un séparateur de `TEL`, qui laisserait passer ce numéro tel quel). */
 const IBAN = /\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b/g;
 const TEL_BARRES = /\d[\d/]{7,}\d/g;
+/* Un numéro écrit DANS une URL : l'espace y devient « %20 » ou « + », le « + » international « %2B » (la trace d'un `fetch` cite l'adresse
+   appelée, donc ce qu'elle porte en paramètre). `TEL` n'admet que l'espace lui-même, le point, le tiret et les parenthèses : « tel=06%2098%2076
+   %2054%2032 » traversait. On reconnaît la FORME encodée, on compte les chiffres sans les chiffres des « %20 » eux-mêmes, et on ne masque qu'à
+   neuf chiffres — « a+b » ou « 3+4 » restent ce qu'ils sont. */
+const TEL_URL = /(?:%2B|\+)?\d(?:[\d.\-]|%20|%2D|%C2%A0|%2B|\+){6,}\d/gi;
+/* « 06_98_76_54_32 » et « 06,98,76,54,32 » : cinq paires, la première commençant par 0 — la forme d'un numéro français, pas celle d'une liste de
+   nombres (« 1,2,3,4,5,6,7,8,9 » dans une trace n'est pas un téléphone). */
+const TEL_PAIRES = /\b0\d(?:[_,]\d\d){4}\b/g;
 function pourAnthropic(t, opts) {
   let s = String(t == null ? '' : t);
   try { s = s.normalize('NFKC'); } catch (e) {}
@@ -112,6 +120,7 @@ function pourAnthropic(t, opts) {
   /* Une adresse dans une URL (« …/app.html?mail=jean@x.fr&t=1 ») : `ADRESSE` accepte « / ? = & » dans ses deux moitiés et avalerait le chemin avant
      elle et la suite après — la trace perdrait le fichier qu'elle désigne. On coupe aux séparateurs d'URL qui touchent l'arobase, de part et d'autre. */
   s = s.replace(/([?&=#/])(?=[^\s?&=#/@]+@)/g, '$1 ').replace(/(@[^\s?&#/]+)(?=[?&#/])/g, '$1 ');
+  s = s.replace(TEL_URL, m => (m.replace(/%[0-9A-F]{2}/gi, '').replace(/\D/g, '').length >= 9 ? '(numéro)' : m)).replace(TEL_PAIRES, '(numéro)');
   s = sansTel(sansAdresses(s)).replace(TEL_BARRES, m => (m.replace(/\D/g, '').length >= 9 ? '(numéro)' : m));
   if (opts && opts.coupe) {
     s = s.replace(/[^\s<>"'(),;:[\]]+@$/, '(adresse)');

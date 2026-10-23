@@ -9040,6 +9040,10 @@ const DEPOT = path.resolve(__dirname, '..');
 const { pourAnthropic: incidentPourAnthropic } = require('./agents-connaissance');
 const incidentTexte = (t) => incidentPourAnthropic(t, { coupe: true });
 const incidentCode = (t) => incidentPourAnthropic(t);
+/* ⛔ Le MÊME filtre vaut pour ce qui part vers GitHub : le corps, le titre et le message de commit d'une proposition de correctif sont lus sur un dépôt
+   (public, vraisemblablement : il publie le site). Le message vient de la route publique, la cause et le texte de la proposition viennent du modèle, qui
+   recopie ce qu'il a lu. La Tour garde l'original ; GitHub reçoit `incidentTexte` (texte COUPÉ au stockage) ou `incidentModele` (texte du modèle, jamais coupé). */
+const incidentModele = incidentCode;
 /* Le fichier désigné par une trace de sentinelle : un seul nom, à la racine du dépôt,
    et rien d'autre — pas de chemin, pas de remontée, pas d'autre extension. */
 function monSource(src, ligne) {
@@ -9311,18 +9315,18 @@ app.post('/api/monitor/proposer', monPatronStrict, async (req, res) => {
       await gh('/contents/' + encodeURIComponent(nomF), {
         method: 'PUT',
         body: JSON.stringify({
-          message: monStr(p.titre, 120) + '\n\nIncident #' + String(issue.id).slice(-6) + ' — proposition ouverte depuis la Tour par ' + req.tourUser.nom + '.',
+          message: monStr(incidentModele(p.titre), 120) + '\n\nIncident #' + String(issue.id).slice(-6) + ' — proposition ouverte depuis la Tour par ' + req.tourUser.nom + '.',
           content: Buffer.from(fichiers[nomF], 'utf8').toString('base64'),
           branch: branche, sha: actuel.sha
         })
       });
     }
-    const corps = '## Ce qui ne va pas\n\n' + (issue.message || '') + '\n\n'
+    const corps = '## Ce qui ne va pas\n\n' + incidentTexte(issue.message || '') + '\n\n'
       + '_Incident #' + String(issue.id).slice(-6) + ' · vu ' + (issue.count || 1) + ' fois sur '
-      + Object.keys(issue.appareils || {}).length + ' appareil(s) · ' + (issue.categorie || '') + '_\n\n'
-      + '## La cause\n\n' + (e.cause || '') + '\n\n`' + s.fichier + '` ligne ' + s.ligne + '\n\n'
-      + '## Ce que change ce correctif\n\n' + (p.pourquoi || '') + '\n\n'
-      + '## À vérifier avant de fusionner\n\n' + (p.verifier || '') + '\n\n'
+      + Object.keys(issue.appareils || {}).length + ' appareil(s) · ' + incidentTexte(issue.categorie || '') + '_\n\n'
+      + '## La cause\n\n' + incidentTexte(e.cause || '') + '\n\n`' + s.fichier + '` ligne ' + s.ligne + '\n\n'
+      + '## Ce que change ce correctif\n\n' + incidentModele(p.pourquoi || '') + '\n\n'
+      + '## À vérifier avant de fusionner\n\n' + incidentModele(p.verifier || '') + '\n\n'
       + '```\nnode scripts/verifier-syntaxe.js\nnode scripts/verifier-lien-jeton.js\nnode scripts/verifier-explique.js\n```\n\n'
       + '## Ce que cette proposition n\'a pas fait\n\n'
       + '- Elle n\'est **pas** fusionnée, et rien dans le serveur ne peut la fusionner.\n'
@@ -9332,7 +9336,7 @@ app.post('/api/monitor/proposer', monPatronStrict, async (req, res) => {
       + new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) + '.\n';
     const pr = await gh('/pulls', {
       method: 'POST',
-      body: JSON.stringify({ title: monStr(p.titre, 120), head: branche, base: 'main', body: corps, draft: true })
+      body: JSON.stringify({ title: monStr(incidentModele(p.titre), 120), head: branche, base: 'main', body: corps, draft: true })
     });
 
     issue.proposition = {
