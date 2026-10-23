@@ -7,11 +7,12 @@
        2. la résiliation : la demande fermée à Hugo n'existe que pour un expéditeur authentifié ET adresse d'un compte ; Hugo qui ne peut pas la recevoir → le client n'a rien promis ;
        3. le mail piégé : le destinataire reste l'expéditeur, aucun texte du mail n'atteint un collègue ni une adresse ;
        4. une question sans réponse : l'accusé attend Justin (jamais seul) et Louis propose une connaissance ;
-       5. l'envoi seul, les plafonds, la lecture de la catégorie. */
+       5. l'envoi seul, les plafonds, la lecture de la catégorie ;
+       7. une menace de litige (avocat, plainte, tribunal, rétrofacturation, mise en demeure…) est reconnue par le CODE : quelle que soit la catégorie de Claude, rien ne part et rien ne se programme, Justin décide. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
-const { monter, COURRIEL, signatureDe, CHARTE_OUVERTE } = require('./banc-agents-courrier.js');
+const { monter, COURRIEL, signatureDe, CHARTE_OUVERTE, courrielPour } = require('./banc-agents-courrier.js');
 const CAM = require(path.join(RACINE, 'server', 'agent-camille.js'));
 const CTRL = require(path.join(RACINE, 'server', 'agents-controle.js'));
 let ok = 0, ko = 0;
@@ -261,6 +262,77 @@ const avec = (cat, plus) => ({ claude: () => 'CATEGORIE : ' + cat + (plus || '')
     v('⛔ le plafond de 100 examens : le 101e et la suite sont refusés, Claude n’est plus appelé', [apres, Z.recus.length], [['plafond_examens', 'plafond_examens', 'plafond_examens'], 100]);
     v('…Justin en est prévenu UNE fois (« courriels examinés »), pas trois', Z.paroles.filter(p => /plafond du jour \(100 courriels examinés\)/.test(p.texte)).length, 1);
     Z.nettoyer();
+  }
+
+  console.log('\n7. Une menace de litige est reconnue par le CODE, quelle que soit la catégorie de Claude (cahier §2 : « menace de litige → Justin »)');
+  {
+    /* ── le filtre seul : les mots et tournures d'un recours, lus sans accents ni casse ni apostrophe typographique ── */
+    const L = CAM.menaceDeLitige;
+    const MENACES = ['Remboursez-moi sinon j’appelle mon AVOCAT.', 'Je vais porter plainte contre vous.', 'Vous aurez de mes nouvelles au tribunal.', 'Je saisis la justice.', 'Un huissier vous écrira.',
+      'Je vous préviens : action en justice.', 'Mon service juridique va vous répondre.', 'Je vous attends au procès.', 'J’ai fait opposition auprès de ma banque.', 'Je demande une rétrofacturation.',
+      'Je lance un chargeback.', 'Je vous envoie une mise en demeure.', 'J’ai saisi la DGCCRF.', 'Je contacte 60 Millions de Consommateurs.', 'Je préviens l’UFC Que Choisir.', 'Je saisis le médiateur de la consommation.',
+      'Ce litige n’est pas réglé.', 'Je vais aux prud’hommes.', 'J’écris à SignalConso.', 'Cabinet d’avocats Martin, nous défendons M. Durand.', 'je vais consulter un avocat\nsous huitaine', 'mise  en\ndemeure'];
+    v('(population) ' + MENACES.length + ' tournures de recours, toutes reconnues', MENACES.filter(t => !L(t)), []);
+    const BENINS = ['Bonjour, pouvez-vous me renvoyer ma facture de septembre ?', 'Je voudrais arrêter mon abonnement à la fin du mois.', 'Je ne me sers plus de l’application, je veux être remboursé.', 'Quel est le processus de création d’un compte ?',
+      'Je souhaite poursuivre mon abonnement.', 'Merci pour la justification de la facture.', 'Mon planning ne s’affiche plus.', 'Le refuge de mon quartier utilise-t-il OP GESTION ?', '', null, undefined];
+    v('(contre-épreuve) des phrases ordinaires — « processus », « justification », « refuge » — ne sont PAS prises pour un recours', BENINS.filter(t => L(t)), []);
+    v('⛔ aucun gabarit de TeamOP ne contient de mot de recours (un client qui répond en CITANT notre refus ne se détourne pas lui-même)', Object.keys(CAM.GABARITS).filter(k => L(CAM.GABARITS[k])), []);
+
+    /* ── le geste, par la VRAIE Camille : « remboursement », « résiliation », « facture », « question », « prospect » reçoivent le même traitement ── */
+    const TEXTE = 'Remboursez-moi sinon j’appelle mon avocat. Mon numéro 06 12 34 56 78.';
+    for (const [cat, plus] of [['remboursement', ''], ['resiliation', ''], ['facture', ''], ['erreur_paiement', ''], ['technique', ''], ['inconnu', ''], ['question', '\nObjet : Re : x\n\nBonjour,\n\nOP GESTION fonctionne sur ordinateur, tablette et téléphone, depuis le navigateur, sans installation.\n\nBien cordialement,'],
+      ['prospect', '\n' + COURRIEL]]) {
+      const Z = monter({ charte: CHARTE_OUVERTE, modes: { camille: 'auto', hugo: 'brouillon', margaux: 'brouillon' }, dossierDe: () => 'DOS-000123', claude: () => 'CATEGORIE : ' + cat + plus });
+      const r = await Z.camille.surNouveauMessage(poser(Z, { texte: TEXTE }));
+      v('⛔ « ' + cat + ' » + menace d’avocat : Justin décide — aucun courriel, aucun brouillon, aucune validation', [r.justin, r.categorie, r.parLeCode, r.classee, Z.envoyes.length, fs.existsSync(path.join(Z.D, 'agents-brouillons.json')), (await Z.validations()).length], [true, 'litige', true, cat, 0, false, 0]);
+      vrai('…rien n’est confié à Hugo ni à Margaux, et rien ne part dans « Clients »', !Z.agents.prendre('hugo') && !Z.paroles.some(p => p.fil === 'clients'));
+      vrai('…Justin est prévenu en « urgent », par une phrase du CODE (réf., dossier, jamais le texte du client ni son numéro)', Z.paroles.filter(p => p.fil === 'camille' && p.niveau === 'urgent' && /menace d’une action \(litige\)/.test(p.texte) && /dossier DOS-000123/.test(p.texte)).length === 1
+        && !/sinon|j’appelle|Remboursez|06 12|exemple-2905/i.test(JSON.stringify(Z.paroles)), JSON.stringify(Z.paroles).slice(0, 300));
+      vrai('…le journal dit que ce sont les mots du code', Z.journal().some(e => e.action === 'passer la main à Justin' && /litige \(mots du code\) : /.test(e.detail || '')));
+      Z.nettoyer();
+    }
+    {
+      /* l'objet compte aussi */
+      const Z = monter({ charte: CHARTE_OUVERTE, modes: { camille: 'auto' }, claude: () => 'CATEGORIE : facture' });
+      const r = await Z.camille.surNouveauMessage(poser(Z, { objet: 'Mise en demeure', texte: 'Bonjour, voici ma demande.' }));
+      v('une menace dans l’OBJET seul : détournée de même', [r.justin, r.parLeCode, Z.envoyes.length], [true, true, 0]);
+      Z.nettoyer();
+    }
+    {
+      /* « ignorer » (publicité, spam) ne dérange pas Justin : le filtre ne s'applique qu'à ce qui aurait reçu une réponse */
+      const Z = monter({ charte: CHARTE_OUVERTE, modes: { camille: 'auto' }, claude: () => 'CATEGORIE : ignorer' });
+      const r = await Z.camille.surNouveauMessage(poser(Z, { texte: 'Cabinet d’avocats : offre de recouvrement.' }));
+      v('« ignorer » + un mot de recours (un démarchage) : ignoré, Justin n’est pas dérangé', [r.ignore, r.justin, Z.paroles.length], [true, undefined, 0]);
+      Z.nettoyer();
+    }
+
+    /* ── contre-épreuves : la même chaîne, sans menace, répond TOUJOURS seule ── */
+    {
+      const Z = monter({ charte: CHARTE_OUVERTE, modes: { camille: 'auto', margaux: 'brouillon' }, dossierDe: () => 'DOS-000123', claude: () => 'CATEGORIE : facture' });
+      const r = await Z.camille.surNouveauMessage(poser(Z, { texte: 'Bonjour, pouvez-vous me renvoyer ma facture de septembre ? Merci pour le processus de création.' }));
+      v('(contre-épreuve) une question de facture ordinaire : l’accusé part SEUL et Margaux est appelée, comme avant', [r.passe, r.voie, Z.envoyes.length, Z.envoyes[0] && Z.envoyes[0].texte === CAM.GABARITS.facture], ['margaux', 'direct', 1, true]);
+      Z.nettoyer();
+      const R = monter({ charte: CHARTE_OUVERTE, modes: { camille: 'auto', hugo: 'brouillon' }, dossierDe: () => 'DOS-000123', claude: () => 'CATEGORIE : resiliation' });
+      const rr = await R.camille.surNouveauMessage(poser(R, { texte: 'Bonjour, je souhaite arrêter mon abonnement à la fin du mois, merci.' }));
+      v('(contre-épreuve) « je veux arrêter » sans menace : l’accusé part seul et Hugo reçoit sa demande', [rr.voie, R.envoyes.length, !!R.agents.prendre('hugo')], ['direct', 1, true]);
+      R.nettoyer();
+    }
+
+    /* ── le prospect qui répond à Léa en menaçant n'attend pas une proposition de Chloé ── */
+    {
+      const Z = monter({ charte: CHARTE_OUVERTE, modes: { lea: 'auto', chloe: 'auto', camille: 'auto' }, claude: (r) => (/Camille/.test(String(r.system)) ? 'CATEGORIE : prospect\n' + COURRIEL : courrielPour(r)) });
+      await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'prospect@exemple-2905.fr' });
+      const avant = Z.envoyes.length;
+      const r = await Z.camille.surNouveauMessage(poser(Z, { uid: 5, mid: '<rep5@banc-2905>', de: 'prospect@exemple-2905.fr', objet: 'Re : OP GESTION', texte: 'Arrêtez de m’écrire ou je porte plainte.' }));
+      v('⛔ une réponse à Léa qui menace de porter plainte : pas de proposition de Chloé, Justin décide, rien ne part', [r.chloe, r.justin, r.parLeCode, Z.envoyes.length - avant, (await Z.validations()).filter(x => x.agent === 'chloe').length], [undefined, true, true, 0, 0]);
+      Z.nettoyer();
+    }
+
+    /* ── le code, et pas seulement la phrase : le filtre est lu AVANT les branches qui répondent, et par la fonction réelle ── */
+    const code = fs.readFileSync(path.join(RACINE, 'server', 'agent-camille.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+    const iM = code.indexOf("if (menaceDeLitige(objet + '\\n' + texte)) {");
+    const iBranches = ["if (categorie === 'resiliation') {", "if (categorie === 'facture' || categorie === 'technique') {", "if (categorie === 'erreur_paiement' ||", "if (categorie === 'remboursement') {", "if (categorie === 'inconnu') {", 'CTRL.produire('].map(x => code.indexOf(x));
+    vrai('⛔ le filtre de litige est lu AVANT chacune des six branches qui répondent', iM > 0 && iBranches.every(i => i > iM), iM + ' / ' + iBranches.join(','));
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

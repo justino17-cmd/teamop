@@ -17,7 +17,7 @@
  *   · un REMBOURSEMENT de ce qu'on a choisi d'arrêter → un refus poli et clair, écrit par le CODE (Justin, 23 octobre 2026 : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois
  *     et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. ») ; ⛔ mais une ERREUR DE PRÉLÈVEMENT (en double, inattendu, contesté, après une résiliation) n'est pas « une
  *     personne qui arrête » : elle va à Margaux et à Justin, l'accusé attend la validation — jamais un refus catégorique envoyé seul à quelqu'un que nous avons peut-être prélevé à tort (la
- *     catégorie est celle de Claude ET un filtre du CODE sur le texte : le doute va vers la validation). Une menace de LITIGE → une question à Justin, rien ne part ; tout le reste sensible → idem.
+ *     catégorie est celle de Claude ET un filtre du CODE sur le texte : le doute va vers la validation). Une menace de LITIGE → une question à Justin, rien ne part ; tout le reste sensible → idem. ⛔ La menace n'est pas seulement la catégorie « litige » choisie par Claude : un FILTRE DU CODE (`menaceDeLitige` : avocat, plainte, tribunal, huissier, rétrofacturation, mise en demeure…) la rattrape sous n'importe quelle catégorie — « remboursez-moi sinon j'appelle mon avocat » classé « remboursement » recevait sinon le gabarit de refus en direct. Il ne fait que détourner vers Justin.
  *
  * ⛔ UN TEXTE VENU D'UN CLIENT NE DEVIENT JAMAIS UN ORDRE NI UN DESTINATAIRE. Le DESTINATAIRE d'une réponse est l'EXPÉDITEUR du mail reçu, lu dans l'en-tête par le serveur — aucune route ne le
  *    change, Claude n'en écrit aucun. Ce qui passe aux autres agents est un numéro de dossier (une forme fermée) et des phrases composées ICI ; ce que Claude choisit est une CATÉGORIE d'une liste
@@ -57,6 +57,18 @@ const CATEGORIES = ['ignorer', 'prospect', 'question', 'inconnu', 'facture', 'te
    Il ne fait QUE détourner vers la validation (jamais l'inverse) : un client qui écrit ces mots pour obtenir un refus par erreur n'y gagne rien. Cherché sur le texte sans accents. */
 const ERREUR_PAIEMENT = /(?:en double|deux fois|\b2 fois|doublon|double (?:prelevement|facturation|paiement|debit|facture)|erreur|errone|\bindu(?:e|s|es)?\b|inattendu|sans (?:mon )?accord|non autorise|contest|n'ai (?:pas|jamais) (?:demande|souscrit|autorise|commande|signe)|(?:apres|depuis) (?:mon |ma |la |que j'ai )?(?:resiliation|resilie|arrete)|(?:j'ai|ai) (?:deja )?(?:resilie|arrete)|trop (?:preleve|paye|facture)|montant (?:incorrect|errone|different|anormal)|preleve (?:a tort|encore|toujours))/;
 const erreurDePaiement = t => ERREUR_PAIEMENT.test(String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘`]/g, "'"));
+
+/* UNE MENACE DE LITIGE (cahier §2 : « Menace de litige → escalade à Justin »). La catégorie « litige » ne vient que de Claude : « remboursez-moi sinon j'appelle mon avocat » classé « remboursement »
+   recevait le gabarit de refus EN DIRECT — un refus poli, envoyé seul à quelqu'un qui vient d'écrire qu'il saisit la justice, et que Justin n'a jamais su. Le CODE rattrape donc les mots et tournures d'un
+   recours (avocat, plainte, tribunal, huissier, procès, opposition bancaire, rétrofacturation, mise en demeure, DGCCRF, UFC, médiateur…), quelle que soit la catégorie choisie, et détourne vers Justin :
+   rien ne part, rien ne se programme. Comme `erreurDePaiement`, il ne fait QUE détourner — jamais l'inverse : un faux positif coûte un message à Justin, un faux négatif un refus envoyé à un menaçant.
+   Cherché sur le texte sans accents, apostrophes unifiées, en MOTS ENTIERS (« procès » n'est pas « processus », « ufc » n'est pas dans « refuge »). Les gabarits de TeamOP n'en contiennent aucun
+   (`test-2905` le vérifie : un client qui répond en citant notre refus ne se détourne pas lui-même). */
+const MENACE_LITIGE = new RegExp('(?:^|[^a-z0-9])(?:' + [
+  'avocat(?:e|s|es)?', 'plaintes?', 'tribunal|tribunaux', 'prud\'? ?hom\\w*', 'justice', 'judiciaires?', 'huissiers?', 'juridi(?:que|ques|ction|ctions)', 'juristes?', 'proces',
+  'opposition', 'retro-? ?facturation', 'charge-? ?back', 'litig\\w*', 'mises? en demeure', 'dgccrf', '60 millions? de consommateurs', 'ufc', 'que choisir', 'mediat(?:eur|rice|ion)', 'conciliat\\w+', 'signal-? ?conso',
+].join('|') + ')(?![a-z0-9])');
+const menaceDeLitige = t => MENACE_LITIGE.test(String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘`]/g, "'").replace(/\s+/g, ' '));
 
 const PLAN_PROSPECT = [
   'POUR UN PROSPECT, PLAN DU COURRIEL (dans cet ordre, en courts paragraphes) :',
@@ -218,7 +230,8 @@ module.exports = function camille(ctx) {
         /* ── LE PROSPECT QUI RÉPOND À LÉA → Chloé ── */
         if (ctx.chloe && typeof ctx.chloe.surReponse === 'function' && typeof brouillons.parMessageId === 'function') {
           const lien = brouillons.parMessageId(m.enReponseDe, ['lea']) || brouillons.dernierEnvoiA(a, ['lea'], 60);
-          if (lien) {
+          /* Un prospect qui répond à Léa en menaçant d'un recours n'attend pas une proposition commerciale : il passe par le tri ordinaire, où le filtre de litige le détourne vers Justin. */
+          if (lien && !menaceDeLitige(String(m.objet || '') + '\n' + String(m.texte || ''))) {
             const rc = await ctx.chloe.surReponse({ adresse: a, texte: String(m.texte || '').slice(0, TEXTE_MAX), objetRecu: m.objet, mid: m.mid || '', boiteId: ev.boiteId, dossier: ev.dossier, uid: ev.uid, authentifie: m.authentifie === true });
             if (rc.depose) { noterVu(h); jour.brouillons++; sauve(); agents.noter(ID, 'passer à Chloé', { cible: 'courrier', resultat: 'ok', detail: 'un prospect a répondu à Léa : la proposition est à Chloé' }); return { chloe: true, depose: true, ref: rc.ref, voie: rc.voie }; }
             if (rc.saute === 'arret' || rc.saute === 'pause' || rc.saute === 'etat_illisible') {
@@ -275,6 +288,15 @@ module.exports = function camille(ctx) {
           aJustin((categorie === 'litige' ? 'Un client menace d’une action (litige) dans un courriel' : 'Un courriel sensible ou hors de mes sujets') + ' (réf. ' + rf + ')' + dos + '. Je n’ai rien répondu : c’est à toi de voir, dans le Courrier.', 'urgent');
           agents.noter(ID, 'passer la main à Justin', { cible: 'courrier', resultat: 'ok', detail: categorie });
           return { justin: true, categorie };
+        }
+
+        /* ⛔ LA MENACE DE LITIGE, RECONNUE PAR LE CODE : quelle que soit la catégorie choisie par Claude (remboursement, résiliation, facture, question…), un texte qui parle d'avocat, de plainte, de
+           tribunal, de rétrofacturation… ne reçoit AUCUNE réponse automatique ni ne programme rien chez Hugo : c'est Justin qui décide (cahier §2). Placé AVANT toutes les branches qui répondent. */
+        if (menaceDeLitige(objet + '\n' + texte)) {
+          noterVu(h);
+          aJustin('Un client menace d’une action (litige) dans un courriel (réf. ' + rf + ')' + dos + ' : Claude l’a rangé en « ' + categorie.replace(/_/g, ' ') + ' », mais le texte contient des mots de recours (avocat, plainte, tribunal, rétrofacturation…). Je n’ai rien répondu ni programmé : c’est à toi de voir, dans le Courrier.', 'urgent');
+          agents.noter(ID, 'passer la main à Justin', { cible: 'courrier', resultat: 'ok', detail: 'litige (mots du code) : ' + categorie });
+          return { justin: true, categorie: 'litige', parLeCode: true, classee: categorie };
         }
 
         /* La résiliation : accusé ET demande fermée à Hugo, seulement si l'expéditeur est authentifié ET l'adresse d'un compte. Sinon, une question à Justin. */
@@ -391,6 +413,7 @@ module.exports.CATEGORIES = CATEGORIES;
    Une LISTE dérivée de ce qu'elle sait faire — jamais un drapeau levé à la main. */
 module.exports.CAPACITES = ['remboursement', 'resiliation'].filter(c => CATEGORIES.includes(c) && typeof GABARITS[c] === 'string');
 module.exports.erreurDePaiement = erreurDePaiement;
+module.exports.menaceDeLitige = menaceDeLitige;
 module.exports.EXAMENS_PAR_DOMAINE = EXAMENS_PAR_DOMAINE;
 module.exports.lireCategorie = lireCategorie;
 module.exports.objetReponse = objetReponse;
