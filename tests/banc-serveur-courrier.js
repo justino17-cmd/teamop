@@ -96,6 +96,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', agents: { cleApi: 'sk-ant-banc-courrier-xxxxxxxxxxxxxxxx' },
     smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' }, contactEmail: o.contactEmail || 'contact@banc-courrier.fr' };
   if (o.promos) conf.promos = o.promos;
+  if (o.authservIds) conf.agents.authservIds = o.authservIds;   // les serveurs de réception dont l'Authentication-Results fait foi (AUCUN par défaut : mail.js)
   if (o.comptes) conf.comptes = { actif: true };
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify(conf));
   const PORT = await new Promise(res => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });

@@ -19,7 +19,7 @@ const JOUR = 86400000;
 setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }, 90000).unref();
 
 const ligne = l => ({ key: 'authentication-results', line: 'Authentication-Results: ' + l });
-const A = (lignes, de, serveurs) => MAIL.authentification(lignes, de, serveurs || ['ionos.fr']);
+const A = (lignes, de, serveurs) => MAIL.authentification(lignes, de, serveurs || ['mx1.ionos.fr']);
 
 (async () => {
   console.log('\n── 2902 · L’envoi autonome et ses gardes ──');
@@ -30,11 +30,21 @@ const A = (lignes, de, serveurs) => MAIL.authentification(lignes, de, serveurs |
     v('dkim=pass aligné sur le domaine « De » : oui, par dkim', A([ligne(BON)], 'contact@client.fr'), { ok: true, par: 'dkim', domaine: 'client.fr' });
     v('un en-tête sur plusieurs lignes (repliement) se lit pareil', A([{ key: 'authentication-results', line: 'Authentication-Results: mx1.ionos.fr;\r\n\tdkim=pass\r\n\theader.d=client.fr' }], 'x@client.fr').ok, true);
     v('spf=pass seul, smtp.mailfrom aligné : oui, par spf', A([ligne('mx1.ionos.fr; dkim=none; spf=pass smtp.mailfrom=bounce@client.fr')], 'x@client.fr'), { ok: true, par: 'spf', domaine: 'client.fr' });
-    v('un domaine signataire SOUS-domaine du domaine « De » (mail.client.fr) : aligné', A([ligne('mx1.ionos.fr; dkim=pass header.d=mail.client.fr')], 'x@client.fr').ok, true);
+    v('le domaine « De » est un SOUS-domaine du domaine signataire (From mail.client.fr, signé client.fr) : aligné', A([ligne('mx1.ionos.fr; dkim=pass header.d=client.fr')], 'x@mail.client.fr').ok, true);
+    v('⛔ …mais pas l’inverse : un domaine signataire ENFANT du domaine « De » (signé mail.client.fr, From client.fr) n’est plus accepté (un seul sens)', A([ligne('mx1.ionos.fr; dkim=pass header.d=mail.client.fr')], 'x@client.fr').ok, false);
     v('header.i=user@client.fr (identité) : lu', A([ligne('mx1.ionos.fr; dkim=pass header.i=user@client.fr')], 'x@client.fr').ok, true);
     v('« DKIM=PASS » en majuscules, header.d entre guillemets : lu', A([ligne('MX1.IONOS.FR; DKIM=PASS header.d="client.fr"')], 'x@client.fr').ok, true);
-    v('le serveur connu est un SOUS-domaine du réglage (mx1.ionos.fr, réglage ionos.fr) : oui', A([ligne(BON)], 'x@client.fr', ['ionos.fr']).ok, true);
-    v('(contre-épreuve) le réglage est un nom d’hôte exact : oui aussi', A([ligne(BON)], 'x@client.fr', ['mx1.ionos.fr']).ok, true);
+    v('⛔ le réglage est comparé EXACTEMENT : mx1.ionos.fr n’est pas « ionos.fr » (plus de suffixe), ni l’inverse', [A([ligne(BON)], 'x@client.fr', ['ionos.fr']).ok, A([ligne('ionos.fr; dkim=pass header.d=client.fr')], 'x@client.fr', ['mx1.ionos.fr']).ok], [false, false]);
+    v('(contre-épreuve) le réglage est le nom d’hôte exact, en majuscules ou avec des espaces : oui', [A([ligne(BON)], 'x@client.fr', ['mx1.ionos.fr']).ok, A([ligne(BON)], 'x@client.fr', [' MX1.Ionos.FR ']).ok], [true, true]);
+    /* ⛔ LE FAUX EN-TÊTE QUI PASSAIT (relecture du 23 octobre 2026) : « teamop.fr » et la racine de l'hôte IMAP servaient de repli — des noms PUBLICS qu'un expéditeur écrit lui-même. */
+    v('⛔ « teamop.fr; dkim=pass header.d=victime.com » écrit par l’expéditeur, SANS réglage : non', [A([ligne('teamop.fr; dkim=pass header.d=victime.com')], 'c@victime.com', []).ok, A([ligne('mx.teamop.fr; spf=pass smtp.mailfrom=c@victime.com')], 'c@victime.com', []).ok], [false, false]);
+    v('⛔ …ni quand le réglage nomme un AUTRE serveur (teamop.fr n’est plus un repli)', A([ligne('teamop.fr; dkim=pass header.d=victime.com')], 'c@victime.com', ['mx1.ionos.fr']).ok, false);
+    v('⛔ …ni quand les serveurs sont absents ou ne sont pas une liste', [MAIL.authentification([ligne('teamop.fr; dkim=pass header.d=victime.com')], 'c@victime.com', null).ok, MAIL.authentification([ligne('teamop.fr; dkim=pass header.d=victime.com')], 'c@victime.com', undefined).ok, MAIL.authentification([ligne('teamop.fr; dkim=pass header.d=victime.com')], 'c@victime.com', 'teamop.fr').ok], [false, false, false]);
+    /* l'alignement ne va que dans un sens, et jamais sur un domaine à une étiquette ou un suffixe public */
+    v('⛔ « dkim=pass header.d=com » pour un From @victime.com : non', A([ligne('mx1.ionos.fr; dkim=pass header.d=com')], 'a@victime.com').ok, false);
+    v('⛔ « spf=pass smtp.mailfrom=a@fr » pour un From @victime.fr : non', A([ligne('mx1.ionos.fr; spf=pass smtp.mailfrom=a@fr')], 'a@victime.fr').ok, false);
+    v('⛔ un suffixe public (« co.uk ») ne signe pour personne', A([ligne('mx1.ionos.fr; dkim=pass header.d=co.uk')], 'a@victime.co.uk').ok, false);
+    v('(contre-épreuve) le vrai domaine d’un .co.uk signe pour lui-même', A([ligne('mx1.ionos.fr; dkim=pass header.d=victime.co.uk')], 'a@victime.co.uk').ok, true);
     for (const [nom, lignes, de, serveurs, raison] of [
       ['aucun en-tête', [], 'x@client.fr', null, 'aucun en-tête'],
       ['un autre en-tête que Authentication-Results', [{ key: 'received-spf', line: 'Received-SPF: pass' }], 'x@client.fr', null, 'aucun en-tête'],

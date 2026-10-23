@@ -19,6 +19,10 @@
 
 const F = 'agents-signatures.json';
 const ROLE_RE = /^[\p{L}][\p{L} '’-]{1,59}$/u;
+/* ⛔ Le rôle dit TOUJOURS que c'est une IA (règlement européen sur l'IA, art. 50) : « virtuel », « virtuelle » ou « IA ». Sans cette condition, le patron pouvait régler
+   « Directrice commerciale » et retirer la mention des courriels que reçoivent les clients (relecture du 23 octobre 2026). Le nom de l'ÉQUIPE n'est pas concerné. */
+const ROLE_IA = /(?:^|[^\p{L}])(?:virtuel(?:le)?|ia)(?![\p{L}])/iu;
+const roleValide = r => typeof r === 'string' && ROLE_RE.test(r) && ROLE_IA.test(r) && !/justin/i.test(r);
 const EQUIPE_DEFAUT = 'Équipe TeamOP';
 const SITE = 'teamop.fr';
 /* Les prénoms féminins du registre : « Assistante virtuelle ». Les autres : « Assistant virtuel ». */
@@ -34,7 +38,7 @@ module.exports = function signatures(app, ctx) {
   const IDS = new Map(agents.AGENTS.map(a => [a.id, a.nom]));
   const sauve = () => fich.ecrire(F, reg);
 
-  const roleDe = id => { const r = reg.roles[id]; return typeof r === 'string' && ROLE_RE.test(r) && !/justin/i.test(r) ? r : roleDefaut(id); };
+  const roleDe = id => { const r = reg.roles[id]; return roleValide(r) ? r : roleDefaut(id); };   // un rôle rangé sans la mention (fichier d'avant, édité à la main) retombe sur le défaut
   /* La signature d'un agent pour une boîte donnée (l'adresse de la boîte qui ENVOIE). Jamais vide pour un agent connu ; '' pour un inconnu — l'appelant refuse d'envoyer. */
   function composer(id, adresseBoite) {
     if (!IDS.has(id)) return '';
@@ -60,7 +64,7 @@ module.exports = function signatures(app, ctx) {
       if (b.agent !== undefined) {
         if (typeof b.agent !== 'string' || !IDS.has(b.agent) || typeof b.role !== 'string') { Object.assign(reg, JSON.parse(avant)); return res.status(400).json({ error: 'Un agent du registre et son rôle sont attendus' }); }
         const r = b.role.replace(/\s+/g, ' ').trim();
-        if (!ROLE_RE.test(r) || /justin/i.test(r)) { Object.assign(reg, JSON.parse(avant)); return res.status(400).json({ error: 'Le rôle : des lettres seulement (pas d’adresse, de lien, de chiffre ni « Justin »), 2 à 60 caractères' }); }
+        if (!roleValide(r)) { Object.assign(reg, JSON.parse(avant)); return res.status(400).json({ error: 'Le rôle : des lettres seulement (pas d’adresse, de lien, de chiffre ni « Justin »), 2 à 60 caractères, et il dit que c’est une IA (« virtuel », « virtuelle » ou « IA »)' }); }
         reg.roles[b.agent] = r;
       }
       if (!sauve()) { const o = JSON.parse(avant); reg.roles = o.roles; reg.equipe = o.equipe; return res.status(503).json({ error: 'Signature non enregistrée' }); }
@@ -71,5 +75,6 @@ module.exports = function signatures(app, ctx) {
   return { composer, roleDe, vue, illisible: () => fich.illisible(F) };
 };
 module.exports.ROLE_RE = ROLE_RE;
+module.exports.ROLE_IA = ROLE_IA;
 module.exports.roleDefaut = roleDefaut;
 module.exports.SITE = SITE;

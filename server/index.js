@@ -10131,8 +10131,8 @@ try {
     /* La veille annonce chaque message neuf à Camille. Liaison TARDIVE : la Messagerie est montée avant les agents, `agentCamille` n'existe pas
        encore ici. Le crochet ne jette jamais et n'est pas attendu (voir `mail.js`). */
     surNouveauMessage: (ev) => (agentCamille ? agentCamille.surNouveauMessage(ev) : null),
-    /* Les serveurs de RÉCEPTION dont l'en-tête Authentication-Results fait foi (`config.agents.authservIds`, une liste de noms d'hôtes) : sans réglage, `mail.js` retient le domaine de
-       l'hôte IMAP de la boîte et teamop.fr. Un courriel n'est répondu SEUL que si ce serveur-là dit dkim=pass ou spf=pass pour le domaine de l'expéditeur. */
+    /* Les serveurs de RÉCEPTION dont l'en-tête Authentication-Results fait foi (`config.agents.authservIds`, une liste de noms d'hôtes, comparés EXACTEMENT). ⛔ Sans réglage il n'y en a AUCUN :
+       personne n'est authentifié, donc aucun courriel reçu n'est répondu SEUL (brouillon, « serveur inconnu »). Les anciens replis (hôte IMAP, teamop.fr) sont des noms publics qu'un expéditeur écrit lui-même. */
     authservIds: () => ((config.agents && Array.isArray(config.agents.authservIds)) ? config.agents.authservIds.filter(x => typeof x === 'string').slice(0, 10) : []) });
   console.log('messagerie : module chargé');
   /* L'ÉQUIPE D'AGENTS (`agents.js`) : son socle seulement — registre, journal, validations, pause, tâches. Monté DANS ce bloc parce

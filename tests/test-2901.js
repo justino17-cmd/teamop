@@ -44,6 +44,16 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
       const x = await ecrit(corps);
       vrai('⛔ ' + nom + ' : 400, rien n’est écrit', x.status === 400 && fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8') === avant, x.status + ' ' + JSON.stringify(x.corps));
     }
+    /* ⛔ Le rôle dit TOUJOURS que c'est une IA (règlement européen, art. 50) : relecture du 23 octobre 2026 — « Directrice commerciale » passait. */
+    for (const role of ['Directrice commerciale', 'Conseillère clientèle', 'Responsable', 'Assistante virtualisée', 'Assistante via la route']) {
+      const avant = fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8');
+      const x = await ecrit({ agent: 'lea', role });
+      vrai('⛔ le rôle « ' + role + ' » ne dit pas que c’est une IA : 400, rien n’est écrit, la signature garde sa mention', x.status === 400 && /IA|virtuel/.test(x.corps.error || '') && fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8') === avant && /virtuel|IA/.test(S.composer('lea', 'contact@teamop.fr').split('\n')[0]), x.status + ' ' + JSON.stringify(x.corps));
+    }
+    for (const role of ['Assistant virtuel', 'Assistante IA', 'Conseillère virtuelle', 'Agent IA']) {
+      const x = await ecrit({ agent: 'lea', role });
+      v('(contre-épreuve) le rôle « ' + role + ' » est accepté', [x.status, S.composer('lea', 'contact@teamop.fr').split('\n')[0].includes(role)], [200, true]);
+    }
     {
       const x = await ecrit({ agent: 'lea', role: 'Assistante\nvirtuelle' });
       vrai('un saut de ligne dans le rôle est ramené à une espace : la signature reste sur UNE ligne', x.status === 200 && S.composer('lea', 'contact@teamop.fr').split('\n')[0] === 'Léa — Assistante virtuelle — Équipe TeamOP Clients', S.composer('lea', 'contact@teamop.fr'));
@@ -59,6 +69,12 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     const w = await I.appeler('POST /api/monitor/agents/signatures', { tourUser: I.PATRON, body: { agent: 'lea', role: 'Assistante virtuelle senior' } });
     v('⛔ …et l’écriture dit 503 sans écraser le fichier', [w.status, fs.readFileSync(path.join(I.D, 'agents-signatures.json'), 'utf8')], [503, '{pas du json']);
     I.nettoyer();
+    {
+      const J = monter({ modes: { lea: 'brouillon' }, avant: D => fs.writeFileSync(path.join(D, 'agents-signatures.json'), JSON.stringify({ roles: { lea: 'Directrice commerciale', camille: 'Assistante IA' }, equipe: 'Équipe TeamOP' })) });
+      const SJ = SIG({ get() {}, post() {} }, { agents: J.agents, monAdmin: (rq, rs, n) => n(), monPatronStrict: (rq, rs, n) => n(), fichier: J.fichier });
+      v('⛔ un rôle RANGÉ sans la mention d’IA (fichier d’avant, édité à la main) retombe sur le défaut ; celui qui la porte est gardé', [SJ.composer('lea', 'contact@teamop.fr').split('\n')[0], SJ.composer('camille', 'contact@teamop.fr').split('\n')[0]], ['Léa — Assistante virtuelle — Équipe TeamOP', 'Camille — Assistante IA — Équipe TeamOP']);
+      J.nettoyer();
+    }
     const src = fs.readFileSync(path.join(RACINE, 'server', 'agents-signature.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
     vrai('les deux routes sont déclarées EN ENTIER, la lecture par monAdmin, l’écriture par monPatronStrict', /app\.get\('\/api\/monitor\/agents\/signatures', monAdmin/.test(src) && /app\.post\('\/api\/monitor\/agents\/signatures', monPatronStrict/.test(src));
     const idx = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
@@ -121,11 +137,31 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
 
     v('⛔ controle@ nommée par son identifiant : refusée', await refus(Object.assign({}, base, { boiteId: 'b-ctrl', signature: SIGL })), 'boîte réservée : les agents ne l’utilisent pas');
     v('⛔ boiteParRole choisit contact@ et support@, jamais controle@ (qui est pourtant la PREMIÈRE boîte connectée)', [m.boiteParRole('contact'), m.boiteParRole('support')], ['b-contact', 'b-supp']);
-    v('⛔ …ni en dernier recours : un rôle inconnu retombe sur une boîte permise, pas sur controle@', m.boiteParRole('direction'), 'b-contact');
+    v('⛔ …ni en dernier recours : un rôle inconnu retombe sur contact@, pas sur controle@', m.boiteParRole('direction'), 'b-contact');
     const seule = faireMail([boite('b-ctrl', 'controle@banc-2901.fr')]);
     v('⛔ si controle@ est la SEULE boîte connectée : aucune boîte (null), jamais elle', [seule.boiteParRole('contact'), seule.boiteParRole('support')], [null, null]);
     v('⛔ la lecture d’un message de controle@ par un agent : null (même sans réseau, elle n’est pas tentée)', [await seule.lireMessage('b-ctrl', 'INBOX', 1), await m.lireMessage('b-ctrl', 'INBOX', 1)], [null, null]);
     v('(population) la réponse de boites() porte toujours les trois boîtes pour la Tour (rien n’est caché à Justin)', m.boites().map(b => b.id), ['b-ctrl', 'b-contact', 'b-supp']);
+
+    /* ⛔ UNE LISTE D'AUTORISATION, PAS D'EXCLUSION (relecture du 23 octobre 2026) : seules contact@ et support@ sont ouvertes aux agents. */
+    const AUTRES = ['controle+x@banc-2901.fr', 'contrôle@banc-2901.fr', 'ctrl@banc-2901.fr', 'compta@banc-2901.fr', 'justin@banc-2901.fr', 'ancien-contact@banc-2901.fr', 'contact.perso@gmail.com', 'xcontact@banc-2901.fr'];
+    const mx = faireMail(AUTRES.map((e, i) => boite('b-x' + i, e)).concat([boite('b-contact', 'contact@banc-2901.fr')]));
+    const refusX = await Promise.all(AUTRES.map((e, i) => mx.envoyerAgent(Object.assign({}, base, { boiteId: 'b-x' + i, signature: SIGL })).then(() => 'parti', er => er.message)));
+    v('⛔ une boîte qui n’est NI contact@ NI support@ (controle+x@, contrôle@, ctrl@, compta@, perso, un webmail…) : envoi refusé, même nommée par son identifiant', refusX, AUTRES.map(() => 'boîte réservée : les agents ne l’utilisent pas'));
+    v('⛔ …lecture refusée (null) pour chacune', await Promise.all(AUTRES.map((e, i) => mx.lireMessage('b-x' + i, 'INBOX', 1))), AUTRES.map(() => null));
+    v('⛔ …et boiteParRole ne les rend JAMAIS : seule contact@ est choisie, pour les deux rôles', [mx.boiteParRole('contact'), mx.boiteParRole('support'), mx.boiteParRole('direction')], ['b-contact', 'b-contact', 'b-contact']);
+    const sansLes2 = faireMail(AUTRES.map((e, i) => boite('b-x' + i, e)));
+    v('⛔ …et SANS contact@ ni support@ connectée : aucune boîte (null) — jamais « la première boîte venue » comme expéditeur et signature', [sansLes2.boiteParRole('contact'), sansLes2.boiteParRole('support')], [null, null]);
+    v('(contre-épreuve) support@ et CONTACT@ en majuscules sont ouvertes', [faireMail([boite('b-S', 'SUPPORT@banc-2901.fr')]).boiteParRole('support'), faireMail([boite('b-C', 'Contact@banc-2901.fr')]).boiteParRole('contact')], ['b-S', 'b-C']);
+    v('…la Tour voit toutes les boîtes (rien n’est caché à Justin)', mx.boites().length, AUTRES.length + 1);
+
+    /* ⛔ Un courriel d'AGENT se déclare automatique (RFC 3834) : un robot d'un tiers ne lui répond pas. */
+    const nb = f.recus.length;
+    await m.envoyerAgent(Object.assign({}, base, { signature: SIGL, enReponseA: { mid: '<orig@exemple-2901.fr>' } }));
+    await m.envoyerAgent(Object.assign({}, base, { signature: SIGL }));
+    const [lr, lg] = [await simpleParser(f.recus[nb]), await simpleParser(f.recus[nb + 1])];
+    v('⛔ une RÉPONSE d’agent porte « Auto-Submitted: auto-replied » ; un premier courriel (Léa) « auto-generated »', [lr.headers.get('auto-submitted'), lg.headers.get('auto-submitted')], ['auto-replied', 'auto-generated']);
+    v('…et la réponse reste rattachée au message d’origine (In-Reply-To)', lr.inReplyTo, '<orig@exemple-2901.fr>');
     const src = fs.readFileSync(path.join(RACINE, 'server', 'mail.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
     vrai('la veille n’annonce RIEN aux agents pour une boîte exclue (code : surNouveauMessage && boiteAgentOk(b))', /if \(surNouveauMessage && boiteAgentOk\(b\)\) for \(const m of vrais\)/.test(src));
     f.s.close();
