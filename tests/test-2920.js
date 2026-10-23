@@ -116,6 +116,10 @@ console.log('\n5. La mémoire des épisodes');
   v('deux passages clairs de suite : rétabli, UNE fois', [r.retablis.map(e => e.id), E.ouverts('max').length], [[id], 0]);
   r = E.suivre('max', new Map());
   v('…et il est reproposé tant que le « rétabli » n’est pas dit', r.retablis.map(e => e.id), [id]);
+  /* l'alarme revient AVANT que le « rétabli » soit parti : l'épisode se rouvre, personne n'est prévenu deux fois */
+  r = E.suivre('max', actives());
+  v('⛔ elle revient avant que le « rétabli » soit dit : le MÊME épisode se rouvre, rien à annoncer, rien à rétablir', [r.nouveaux.length, r.retablis.length, E.ouverts('max').map(e => e.id), E.ouverts('max')[0].fin], [0, 0, [id], 0]);
+  E.suivre('max', new Map()); E.suivre('max', new Map());
   E.marquer(id, { retabliDit: true });
   v('rétabli dit, sans incident à fermer : l’épisode passe à l’historique', [E.episodes('max').length, E.recidives('bugs_applications', 30)], [0, 1]);
   r = E.suivre('max', actives());
