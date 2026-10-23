@@ -96,6 +96,14 @@ const dormir = ms => new Promise(r => setTimeout(r, ms));
     vrai('⛔ ' + f + ' : la réponse d’un prospect, la recherche web (entreprise et métier, jamais une personne) et le contrôle qualité sont déclarés',
       /réponse d’un prospect/.test(L) && /recherche sur le web/.test(L) && /nom de l’entreprise et le métier/.test(L) && /jamais le nom d’une personne/.test(L) && /contrôle qualité/.test(L), L.slice(0, 120));
   }
+  /* ⛔ Relecture du 23 octobre 2026 : Louis envoie à Claude le texte d'une question de client et l'avant/après d'un de NOS courriels corrigés — ce flux n'était déclaré nulle part ; et le « nom de
+     l'entreprise » de la recherche web peut être le nom d'une personne (entreprise individuelle) : « jamais le nom d'une personne » était trop absolu. */
+  for (const f of ['sous-traitance.html', 'registre-traitements.html', 'apercu/sous-traitance.html', 'apercu/registre-traitements.html']) {
+    const P = plat(f), i = P.indexOf('Anthropic PBC'), L = i >= 0 ? P.slice(i, i + 5200) : '';
+    vrai('⛔ ' + f + ' : la base de connaissances de Louis est déclarée (question de client restée sans réponse, courriel avant et après correction, validation par l’éditeur)',
+      /base de connaissances/.test(L) && /question[^;]{0,120}pas su répondre|question de client restée sans réponse/.test(L) && /avant et après (?:sa )?correction/.test(L) && /(?:relue|relit) et valide|(?:relue|relit) (?:et validée|par l’éditeur)|valide/.test(L), L.slice(0, 120));
+    vrai('⛔ …et la recherche web nuance « jamais le nom d’une personne » pour une entreprise individuelle', /jamais le nom d’une personne \(sauf lorsque l’entreprise porte elle-même ce nom, comme une entreprise individuelle/.test(L), L.slice(0, 120));
+  }
   vrai('l’aperçu de mentions-legales.html est à jour (la règle y est aussi)', /Aucune période commencée n’est remboursée/.test(plat('apercu/mentions-legales.html')));
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ le banc a levé : ' + (e && e.stack || e)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });
