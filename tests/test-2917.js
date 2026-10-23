@@ -163,6 +163,23 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   const recuSarah = S.claudeRecus().find(q => /^Tu es Sarah, l’agent « Communication » de TeamOP\./.test(q.system || ''));
   vrai('la rédaction est partie des notes de Justin mot pour mot', recuSarah && /le planning s’affiche plus vite sur téléphone et la fiche d’intervention garde les photos hors ligne/.test(recuSarah.messages[0].content));
 
+  /* une SECONDE annonce, dont le facteur refuse UN destinataire en recopiant son adresse dans l'erreur (« 550 5.1.1 <adresse> … ») : le journal du serveur n'en garde aucune (constat de relecture) */
+  S.fact.refuserA = 'beta@exemple-2917.fr';
+  await S.post('/api/monitor/conversations/envoyer', { fil: 'sarah', texte: msgSarah + ' (seconde version)' });
+  await S.attendre(async () => (await S.get('/api/monitor/agents/validations')).j.validations.some(x => x.type === 'annonce_clients'));
+  const vals2 = (await S.get('/api/monitor/agents/validations')).j.validations.filter(x => x.type === 'annonce_clients');
+  const doc2 = (await S.get('/api/monitor/agents/documents?refs=' + vals2[0].params.ref)).j[vals2[0].params.ref];
+  const avantRefus = (await S.courriels()).length;
+  await S.post('/api/monitor/agents/validations/decider', { id: vals2[0].id, decision: 'accepter', empreinte: doc2.empreinte });
+  await S.attendre(() => /annonce de Sarah validée par Justin → \d+ entreprises \(1 refus\)/.test(S.journal()));
+  vrai('(population) le facteur a refusé UN destinataire et le serveur l\'a compté (« 1 refus »), un courriel est quand même parti à l\'autre', /annonce de Sarah validée par Justin → 1 entreprises \(1 refus\)/.test(S.journal()) && (await S.courriels()).length === avantRefus + 1);
+  vrai('(population) la ligne de refus est dans le journal du serveur', /annonce \(Sarah\) → \w\*\*\*@/.test(S.journal()));
+  vrai('⛔ …et AUCUNE adresse de client en clair dans le journal, ni celle du destinataire ni celle que l\'erreur SMTP recopie', !/beta@exemple-2917|alpha@exemple-2917/.test(S.journal()));
+  const ancienne = await S.post('/api/monitor/annonce');
+  v('l\'ancienne route d\'annonce de la Tour (même défaut avant ce correctif) : un refus compté, un courriel part', [ancienne.s, ancienne.j.envoyes, ancienne.j.refus], [200, 1, 1]);
+  vrai('⛔ …et son journal ne porte aucune adresse non plus (la ligne « annonce → » masquée)', /annonce → \w\*\*\*@/.test(S.journal()) && !/beta@exemple-2917|alpha@exemple-2917/.test(S.journal()));
+  S.fact.refuserA = '';
+
   console.log('\n7. Emma : les créneaux d\'un prospect, à l\'adresse de son dossier');
   const dispo = { actif: true, dureeMin: 30, preavisH: 24, nb: 3, horizonJours: 14, jours: { 1: [['09:00', '12:00']], 2: [['09:00', '12:00']], 3: [['09:00', '12:00']], 4: [['09:00', '12:00']], 5: [['09:00', '12:00']], 6: [], 7: [] } };
   v('Justin règle ses disponibilités', (await S.post('/api/monitor/agents/emma/disponibilites', { dispo })).s, 200);
@@ -170,9 +187,9 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   await S.post('/api/monitor/agents/charte', { gestes: { repondre_client: { auto: true } } });
   r = await S.post('/api/monitor/agents/emma/proposer', { dossier: 'DOS-000003' });
   v('Justin demande des créneaux pour le prospect du dossier 3 : trois créneaux', [r.s, r.j.ok, r.j.creneaux], [200, true, 3]);
-  await S.attendre(async () => (await S.courriels()).length >= 4);
+  await S.attendre(async () => (await S.courriels()).some(c => c.to.includes('gamma@exemple-2917.fr')));
   cs = await S.courriels();
-  const cr = cs[3];
+  const cr = cs.find(c => c.to.includes('gamma@exemple-2917.fr')) || cs[cs.length - 1];
   vrai('le courriel part à l\'adresse du DOSSIER (celle de Gamma, qui n\'a pas d\'espace), signé Emma, trois créneaux à l\'heure de Paris', cr.to.includes('gamma@exemple-2917.fr') && /Emma\s+Assistante virtuelle/.test(cr.text) && /1\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && /3\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && !/Justin|Gamma/.test(cr.text));
   vrai('…et le rendez-vous à venir se lit dans la Tour une fois choisi (liste vide pour l\'instant)', (await S.get('/api/monitor/agents/emma/disponibilites')).j.rendezVous.length === 0);
   vrai('les fils ne portent ni nom ni adresse (Emma, Hugo, Margaux, Sarah, Clients)', !/Alpha|Beta|Gamma|exemple-2917/.test(JSON.stringify(await Promise.all(['emma', 'hugo', 'margaux', 'sarah', 'clients'].map(async f => (await S.get('/api/monitor/conversations/' + f)).j.messages)))));

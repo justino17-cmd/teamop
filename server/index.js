@@ -5535,7 +5535,7 @@ async function diffuserAnnonceClients(a) {
         html: mailTeamOP({ desabo: true, chip: 'Annonce', chipBg: '#E7F0FE', chipColor: '#1D4ED8', titre: objet, corpsHtml,
           boutonTxt: 'Ouvrir mon application', boutonUrl: 'https://teamop.fr/app.html', bouton2Txt: 'Mon espace client', bouton2Url: 'https://teamop.fr/espace.html' }) });
       envoyes++;
-    } catch (err) { refus++; console.error('annonce (Sarah) →', ad.replace(/^[^@]{0,2}[^@]*/, '***'), ':', String(err.message || err).slice(0, 120)); }
+    } catch (err) { refus++; console.error('annonce (Sarah) →', masqueMail(ad), ':', sansAdresses(String(err.message || err)).slice(0, 120));   /* l'erreur SMTP recopie l'adresse (« 550 5.1.1 <adresse> … ») : journalctl n'en garde aucune */ }
   }
   console.log('annonce de Sarah validée par Justin →', envoyes, 'entreprises', refus ? ('(' + refus + ' refus)') : '');
   return { envoyes, refus };
@@ -5564,7 +5564,7 @@ app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
           boutonTxt: 'Ouvrir mon application', boutonUrl: 'https://teamop.fr/app.html',
           bouton2Txt: 'Mon espace client', bouton2Url: 'https://teamop.fr/espace.html' }) });
       envoyes++;
-    } catch (err) { refus++; console.error('annonce →', ad, ':', String(err.message || err).slice(0, 120)); }
+    } catch (err) { refus++; console.error('annonce →', masqueMail(ad), ':', sansAdresses(String(err.message || err)).slice(0, 120)); }
   }
   console.log('Tour :', req.tourUser.nom, 'a envoyé l\'annonce v' + ANNONCE.version, '→', envoyes, 'entreprises', refus ? ('(' + refus + ' refus)') : '');
   res.json({ ok: true, envoyes, refus, version: ANNONCE.version });

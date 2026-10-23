@@ -34,6 +34,7 @@ function facteur() {
         if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
         else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
         else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
+        else if (h.startsWith('RCPT') && f.refuserA && h.includes(String(f.refuserA).toUpperCase())) c.write('550 5.1.1 ' + l.replace(/^RCPT TO:\s*/i, '') + ': Recipient address rejected: User unknown\r\n');   // f.refuserA : un destinataire refusé, adresse recopiée dans l'erreur comme le font les vrais serveurs
         else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
         else c.write('250 ok\r\n');
       }
