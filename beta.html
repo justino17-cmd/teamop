@@ -9315,139 +9315,823 @@ function papSocOf(cid){ return rapportSociete(socDuClient(cid)); }
      diagnostic nuisibles par « prestations realisees + releves », et masque
      les modules propres au 3D (registre sanitaire, boxes, devis xylophage)
    ═══════════════════════════════════════════════════════════════════════════ */
+/* ⛔ UN PACK POUR CHAQUE MÉTIER DU SITE (Justin, 30 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
+   quand ils ont l'application, ça correspond à leur métier… pour tous » — puis « oui, fais ce qu'il faut »). Sans pack, une
+   entreprise ouvre en 3D (le défaut de `metierId`, gardé pour les entreprises d'avant le choix du métier). « Autre métier de
+   terrain » est le réglage NEUTRE : il ne parle ni de nuisibles ni d'un métier qu'on ne connaît pas. Mêmes modules masqués
+   pour tous les packs hors 3D : le registre, les box, le devis xylophage, la consommation box par box et les enveloppes
+   n'existent que pour le 3D.
+   ⛔ LES 23 PACKS SONT ÉCRITS PAR UNE MACHINE (23 octobre 2026, Justin : « je veux que tu fasses bien OP GESTION en fonction
+   des packs métiers qu'on propose »). Treize métiers existaient, dix sont nés de la recherche : incendie, froid, ascenseurs,
+   portails, ramonage, assainissement, énergies, alarme, eau, piscine. Chaque pack porte ses rubriques conseillées
+   (`rubriques`), ses types d'intervention, ses prestations, ses relevés, ses catégories de produits et ses documents.
+   La source est design/metiers-referentiel.json ; le bloc ci-dessous est généré par scripts/metiers-generer.js, et
+   tests/test-2900.js exige que l'application et le référentiel disent la même chose. Pour changer un pack : corriger le
+   référentiel, relancer le script — jamais éditer le bloc à la main. */
+// ⟦METIERS:DEBUT⟧ — GÉNÉRÉ par scripts/metiers-generer.js depuis design/metiers-referentiel.json. NE PAS ÉDITER ICI : on corrige le référentiel, puis on relance le script.
 const METIERS={
   '3d':{ nom:'3D — Hygiène anti-nuisibles', ic:'🐀', sous:'Dératisation · désinsectisation · désinfection',
-    complet:true, types:null, presta:null, releves:null, masque:[] },
+    complet:true,
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'registre', 'carteBox', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'devisXylo',
+      'produits', 'stock', 'mouvements', 'boxes', 'saisieConso', 'enveloppes', 'pointage', 'vehicules', 'messagerie',
+      'fournisseurs', 'bons', 'brouillon', 'demandes', 'validations', 'commandes', 'secteurs', 'utilisateurs',
+      'modulesElan', 'parametres'
+    ],
+    types:null, presta:null, releves:null, produits:null,
+    documents:[
+      'Fiche d\'intervention par passage', 'Plan d\'implantation des postes', 'Rapport de non-conformité',
+      'Bilan de tendance (courbe d\'infestation)', 'Rapport d\'audit client (HACCP / IFS)'
+    ],
+    masque:[] },
 
   'plomberie':{ nom:'Plomberie', ic:'🔧', sous:'Dépannage · sanitaire · réseaux',
-    types:['Dépannage fuite','Recherche de fuite','Débouchage / curage','Chauffe-eau / ballon','Robinetterie & sanitaire',
-           'Réseau & alimentation','Évacuation & eaux usées','Installation neuve','Contrat d’entretien','Visite technique / devis'],
-    presta:['Repérage et diagnostic','Coupure et remise en eau','Remplacement de pièce','Soudure / raccord',
-            'Débouchage mécanique','Hydrocurage','Purge du réseau','Détartrage','Remplacement de joint',
-            'Mise en service et essai','Contrôle d’étanchéité','Nettoyage du chantier'],
-    releves:[{k:'pression',l:'Pression relevée',u:'bar'},{k:'debit',l:'Débit',u:'L/min'},
-             {k:'tec',l:'Température eau chaude',u:'°C'},{k:'compteur',l:'Index compteur',u:'m³'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'telecollecte', 'produits',
+      'stock', 'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs',
+      'modulesElan', 'parametres'
+    ],
+    types:[
+      'Dépannage fuite', 'Recherche de fuite', 'Débouchage / curage', 'Chauffe-eau / ballon',
+      'Robinetterie & sanitaire', 'Réseau & alimentation', 'Évacuation & eaux usées', 'Installation neuve',
+      'Contrat d’entretien', 'Visite technique / devis', 'Installation gaz', 'Remplacement de groupe de sécurité',
+      'Test d\'étanchéité'
+    ],
+    presta:[
+      'Repérage et diagnostic', 'Coupure et remise en eau', 'Remplacement de pièce', 'Soudure / raccord',
+      'Débouchage mécanique', 'Hydrocurage', 'Purge du réseau', 'Détartrage', 'Remplacement de joint',
+      'Mise en service et essai', 'Contrôle d’étanchéité', 'Nettoyage du chantier',
+      'Taux horaire et frais de déplacement annoncés avant l\'intervention', 'Pièces remplacées proposées au client'
+    ],
+    releves:[
+      {k:'pression',l:'Pression relevée',u:'bar'}, {k:'debit',l:'Débit',u:'L/min'},
+      {k:'tec',l:'Température eau chaude',u:'°C'}, {k:'compteur',l:'Index compteur',u:'m³'},
+      {k:'compteurAvant',l:'Index compteur avant essai',u:'m³'},
+      {k:'compteurApres',l:'Index compteur après essai',u:'m³'},
+      {k:'terreReseau',l:'Mise à la terre du réseau vérifiée (oui / non)',u:'',txt:true}
+    ],
+    produits:[
+      'Raccords et fittings', 'Tubes (cuivre, PER, multicouche, PVC)', 'Robinetterie et mitigeurs',
+      'Flexibles et alimentation', 'Joints, filasse, pâtes', 'Sanitaire (WC, vasques)',
+      'Chauffe-eau et groupes de sécurité', 'Évacuation et siphons', 'Débouchage et curage (produits, furets)',
+      'Outillage consommable', 'EPI'
+    ],
+    documents:[
+      'Devis de dépannage avec les mentions de l\'arrêté de 2017',
+      'Note détaillée avant paiement (prestation de plus de 25 € TTC)', 'Rapport d\'intervention avec photos',
+      'Rapport de test d\'étanchéité daté', 'Suivi du certificat de conformité gaz (établi par un organisme agréé)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'electricite':{ nom:'Électricité', ic:'⚡', sous:'Installation · mise aux normes · dépannage',
-    types:['Dépannage / panne','Tableau électrique','Mise aux normes','Éclairage','Prises & circuits',
-           'Chauffage électrique','Borne de recharge','Interphone / VMC','Contrôle & vérification','Installation neuve','Visite technique / devis'],
-    presta:['Consignation / mise hors tension','Diagnostic de la panne','Remplacement de disjoncteur',
-            'Pose ou remplacement de prise','Pose de point lumineux','Tirage de câble','Raccordement au tableau',
-            'Repérage et étiquetage','Contrôle de continuité','Essais et remise sous tension','Nettoyage du chantier'],
-    releves:[{k:'terre',l:'Résistance de terre',u:'Ω'},{k:'isolement',l:'Isolement',u:'MΩ'},
-             {k:'tension',l:'Tension mesurée',u:'V'},{k:'intensite',l:'Intensité',u:'A'},
-             {k:'diff',l:'Déclenchement différentiel',u:'ms'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'telecollecte', 'produits',
+      'stock', 'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs',
+      'modulesElan', 'parametres'
+    ],
+    types:[
+      'Dépannage / panne', 'Tableau électrique', 'Mise aux normes', 'Éclairage', 'Prises & circuits',
+      'Chauffage électrique', 'Borne de recharge', 'Interphone / VMC', 'Contrôle & vérification',
+      'Installation neuve', 'Visite technique / devis', 'Dossier Consuel (attestation de conformité)'
+    ],
+    presta:[
+      'Consignation / mise hors tension', 'Diagnostic de la panne', 'Remplacement de disjoncteur',
+      'Pose ou remplacement de prise', 'Pose de point lumineux', 'Tirage de câble', 'Raccordement au tableau',
+      'Repérage et étiquetage', 'Contrôle de continuité', 'Essais et remise sous tension', 'Nettoyage du chantier',
+      'Mesure de la résistance de terre', 'Mesure d\'isolement', 'Test des différentiels'
+    ],
+    releves:[
+      {k:'terre',l:'Résistance de terre',u:'Ω'}, {k:'isolement',l:'Isolement',u:'MΩ'},
+      {k:'tension',l:'Tension mesurée',u:'V'}, {k:'intensite',l:'Intensité',u:'A'},
+      {k:'diff',l:'Déclenchement différentiel',u:'ms'},
+      {k:'verdict',l:'Verdict de la vérification (conforme / non conforme)',u:'',txt:true},
+      {k:'consuel',l:'N° d\'attestation Consuel',u:'',txt:true},
+      {k:'puissanceBorne',l:'Puissance de la borne installée',u:'kVA'}
+    ],
+    produits:[
+      'Protection (disjoncteurs, différentiels)', 'Appareillage (prises, interrupteurs)', 'Câbles et fils',
+      'Gaines et goulottes', 'Éclairage', 'Tableaux et coffrets', 'Bornes de recharge', 'Chauffage électrique',
+      'Domotique et interphonie', 'Outillage consommable', 'EPI'
+    ],
+    documents:[
+      'Devis de dépannage', 'Rapport d\'intervention avec les mesures relevées',
+      'Rapport de vérification / attestation d\'installation (mesures et verdict)', 'Suivi du dossier Consuel'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'chauffage':{ nom:'Chauffage / Climatisation', ic:'🔥', sous:'CVC · entretien · contrats annuels',
-    types:['Entretien annuel chaudière','Entretien pompe à chaleur','Entretien climatisation','Dépannage chauffage',
-           'Dépannage climatisation','Désembouage','Ramonage','Installation','Contrat d’entretien','Visite technique / devis'],
-    presta:['Nettoyage du corps de chauffe','Contrôle du brûleur','Analyse de combustion','Contrôle d’étanchéité gaz',
-            'Vérification du vase d’expansion','Purge des radiateurs','Nettoyage des filtres',
-            'Contrôle de la charge de fluide','Contrôle des organes de sécurité','Mise en service et essai',
-            'Attestation d’entretien remise au client'],
-    releves:[{k:'co',l:'Teneur en CO',u:'ppm'},{k:'co2',l:'CO₂',u:'%'},{k:'rdt',l:'Rendement',u:'%'},
-             {k:'tfum',l:'Température des fumées',u:'°C'},{k:'pcirc',l:'Pression du circuit',u:'bar'},
-             {k:'fluide',l:'Charge de fluide',u:'kg'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Entretien annuel chaudière', 'Entretien pompe à chaleur', 'Entretien climatisation', 'Dépannage chauffage',
+      'Dépannage climatisation', 'Désembouage', 'Ramonage', 'Installation', 'Contrat d’entretien',
+      'Visite technique / devis', 'Mise en service', 'Contrôle d\'étanchéité des fluides frigorigènes',
+      'Récupération de fluide / démantèlement', 'Entretien chaudière fioul ou bois'
+    ],
+    presta:[
+      'Nettoyage du corps de chauffe', 'Contrôle du brûleur', 'Analyse de combustion', 'Contrôle d’étanchéité gaz',
+      'Vérification du vase d’expansion', 'Purge des radiateurs', 'Nettoyage des filtres',
+      'Contrôle de la charge de fluide', 'Contrôle des organes de sécurité', 'Mise en service et essai',
+      'Attestation d’entretien remise au client', 'Contrôle du calorifugeage des canalisations',
+      'Contrôle de la régulation automatique', 'Contrôle de l\'embouage du circuit', 'Mesure du tirage',
+      'Contrôle d\'étanchéité du circuit frigorifique (détecteur de fuite)', 'Récupération et pesée du fluide',
+      'Pose de la vignette de contrôle d\'étanchéité',
+      'Conseils d\'usage, d\'amélioration et de remplacement remis au client'
+    ],
+    releves:[
+      {k:'co',l:'Teneur en CO',u:'ppm'}, {k:'co2',l:'CO₂',u:'%'}, {k:'rdt',l:'Rendement',u:'%'},
+      {k:'tfum',l:'Température des fumées',u:'°C'}, {k:'pcirc',l:'Pression du circuit',u:'bar'},
+      {k:'fluide',l:'Charge de fluide',u:'kg'}, {k:'tirage',l:'Tirage',u:'Pa'},
+      {k:'nox',l:'Émissions de NOx (valeur de l’analyseur)',u:''}, {k:'tdep',l:'Température de départ',u:'°C'},
+      {k:'tret',l:'Température de retour',u:'°C'}, {k:'pgaz',l:'Pression de gaz',u:'mbar'},
+      {k:'classe',l:'Classe énergétique (chaudière gaz ou fioul de moins de 70 kW)',u:'',txt:true},
+      {k:'instrument',l:'Marque et référence de l’analyseur utilisé',u:'',txt:true},
+      {k:'fluideType',l:'Fluide frigorigène (ex. R32)',u:'',txt:true},
+      {k:'prp',l:'PRP du fluide (plaque signalétique)',u:''},
+      {k:'tco2',l:'Équivalent CO₂ de la charge (PRP × charge / 1000)',u:'t'},
+      {k:'fluideCharge',l:'Quantité de fluide chargée',u:'kg'},
+      {k:'fluideRecup',l:'Quantité de fluide récupérée',u:'kg'},
+      {k:'contenant',l:'Identifiant de la bouteille ou du contenant',u:'',txt:true},
+      {k:'bordereau',l:'N° de bordereau de suivi des déchets de fluide (Trackdéchets)',u:'',txt:true},
+      {k:'fuite',l:'Fuite constatée (oui / non, localisation)',u:'',txt:true}
+    ],
+    produits:[
+      'Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)', 'Filtres et cartouches',
+      'Fluides frigorigènes (par type)', 'Radiateurs et robinets thermostatiques',
+      'Circulateurs et vases d\'expansion', 'Produits de désembouage et de traitement de l\'eau',
+      'Conduits et fumisterie', 'Régulation et thermostats', 'Pompes à chaleur et climatisation (unités et pièces)',
+      'Outillage consommable', 'EPI'
+    ],
+    documents:[
+      'Attestation d\'entretien de chaudière (une par chaudière, remise sous 15 jours)',
+      'Attestation d\'entretien de pompe à chaleur ou de climatisation',
+      'Fiche d\'intervention fluides frigorigènes (rubriques du Cerfa 15497*04, sans prétendre remplacer le Cerfa officiel)',
+      'Certificat de ramonage', 'Devis de dépannage',
+      'Suivi de la vignette de contrôle d\'étanchéité (bleue ou rouge)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'serrurerie':{ nom:'Serrurerie', ic:'🔑', sous:'Ouverture · sécurité · contrôle d’accès',
-    types:['Ouverture de porte','Changement de serrure','Cylindre & clés','Blindage / porte blindée',
-           'Contrôle d’accès','Volet roulant / rideau métallique','Coffre-fort','Dépannage urgent','Visite technique / devis'],
-    presta:['Ouverture fine sans dégât','Ouverture destructive','Dépose de l’ancienne serrure',
-            'Pose du nouveau cylindre','Réglage de la porte','Remise des clés au client',
-            'Contrôle du bon fonctionnement','Nettoyage du chantier'],
-    releves:[{k:'cles',l:'Nombre de clés remises',u:''},{k:'modele',l:'Marque / modèle posé',u:'',txt:true},
-             {k:'a2p',l:'Certification (A2P…)',u:'',txt:true}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'telecollecte', 'produits',
+      'stock', 'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs',
+      'modulesElan', 'parametres'
+    ],
+    types:[
+      'Ouverture de porte', 'Changement de serrure', 'Cylindre & clés', 'Blindage / porte blindée',
+      'Contrôle d’accès', 'Volet roulant / rideau métallique', 'Coffre-fort', 'Dépannage urgent',
+      'Visite technique / devis', 'Dépannage après effraction (mise en sécurité)'
+    ],
+    presta:[
+      'Ouverture fine sans dégât', 'Ouverture destructive', 'Dépose de l’ancienne serrure',
+      'Pose du nouveau cylindre', 'Réglage de la porte', 'Remise des clés au client',
+      'Contrôle du bon fonctionnement', 'Nettoyage du chantier', 'Photos de la porte avant et après l\'intervention',
+      'Bon de remise de clés signé', 'Taux horaire et frais de déplacement annoncés avant l\'intervention',
+      'Pièces remplacées proposées au client'
+    ],
+    releves:[
+      {k:'cles',l:'Nombre de clés remises',u:''}, {k:'modele',l:'Marque / modèle posé',u:'',txt:true},
+      {k:'a2p',l:'Certification (A2P…)',u:'',txt:true},
+      {k:'cause',l:'Nature de l’ouverture (porte claquée, forcée…)',u:'',txt:true},
+      {k:'etatPorte',l:'État de la porte avant intervention',u:'',txt:true},
+      {k:'clesDetail',l:'Clés remises : détail (numéros, copies)',u:'',txt:true}
+    ],
+    produits:[
+      'Cylindres et serrures', 'Portes blindées et blocs-portes', 'Verrous et ferme-portes',
+      'Contrôle d\'accès (badges, lecteurs)', 'Rideaux et volets métalliques', 'Coffres-forts',
+      'Clés et cylindres bruts', 'Quincaillerie', 'Outillage consommable'
+    ],
+    documents:[
+      'Devis de dépannage avec les mentions de l\'arrêté de 2017',
+      'Bon de remise de clés signé (nombre de clés, modèle, niveau A2P)',
+      'Rapport pour l\'assurance (état de la porte avant et après, photos, nature de l\'ouverture)',
+      'Registre des clés confiées'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'nettoyage':{ nom:'Nettoyage / Propreté', ic:'🧽', sous:'Bureaux · remise en état · vitrerie',
-    types:['Nettoyage de bureaux','Remise en état','Vitrerie','Nettoyage de fin de chantier','Nettoyage industriel',
-           'Copropriété / parties communes','Décapage & protection des sols','Désinfection des locaux',
-           'Contrat régulier','Visite technique / devis'],
-    presta:['Dépoussiérage des surfaces','Aspiration des sols','Lavage des sols','Nettoyage des sanitaires',
-            'Vidage des corbeilles','Nettoyage des vitres intérieures','Nettoyage des vitres extérieures',
-            'Désinfection des points de contact','Décapage','Pose d’émulsion / protection',
-            'Réapprovisionnement des consommables'],
-    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'agents',l:'Nombre d’agents',u:''},
-             {k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'pointage',
+      'messagerie', 'fournisseurs', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Nettoyage de bureaux', 'Remise en état', 'Vitrerie', 'Nettoyage de fin de chantier', 'Nettoyage industriel',
+      'Copropriété / parties communes', 'Décapage & protection des sols', 'Désinfection des locaux',
+      'Contrat régulier', 'Visite technique / devis', 'Contrôle qualité chez le client'
+    ],
+    presta:[
+      'Dépoussiérage des surfaces', 'Aspiration des sols', 'Lavage des sols', 'Nettoyage des sanitaires',
+      'Vidage des corbeilles', 'Nettoyage des vitres intérieures', 'Nettoyage des vitres extérieures',
+      'Désinfection des points de contact', 'Décapage', 'Pose d’émulsion / protection',
+      'Réapprovisionnement des consommables', 'Respect du plan de prévention du site',
+      'Dosage des produits et respect de la fiche de données de sécurité'
+    ],
+    releves:[
+      {k:'surface',l:'Surface traitée',u:'m²'}, {k:'agents',l:'Nombre d’agents',u:''},
+      {k:'tps',l:'Temps passé sur site',u:'h'}, {k:'heuresPrevues',l:'Heures prévues au contrat',u:'h'},
+      {k:'controleQualite',l:'Résultat du contrôle qualité (note, remarques)',u:'',txt:true}
+    ],
+    produits:[
+      'Détergents et désinfectants', 'Produits sols', 'Produits vitres', 'Sanitaires',
+      'Papier et consommables (essuie-mains, sacs)', 'Matériel (balais, chariots, mono-brosses)',
+      'Machines (autolaveuses)', 'EPI'
+    ],
+    documents:[
+      'Compte rendu de passage', 'Cahier des tâches du site', 'Fiche de contrôle qualité',
+      'Plan de prévention préparé pour signature'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
-  /* ⛔ UN PACK POUR CHAQUE MÉTIER DU SITE (Justin, 30 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
-     quand ils ont l'application, ça correspond à leur métier… pour tous » — puis « oui, fais ce qu'il faut »). Les six
-     suivants étaient « pack bientôt » ou « sur mesure » sur le site ; sans eux, ces entreprises ouvraient en 3D (le défaut
-     de `metierId`, gardé pour les entreprises d'avant le choix du métier). « Autre métier de terrain » est le réglage
-     NEUTRE : il ne parle ni de nuisibles ni d'un métier qu'on ne connaît pas. Mêmes quatre modules masqués que les autres
-     packs : le registre, les box et le devis xylophage n'existent que pour le 3D. */
   'maconnerie':{ nom:'Maçonnerie / Gros œuvre', ic:'🧱', sous:'Construction · rénovation · gros œuvre',
-    types:['Construction neuve','Rénovation','Extension / agrandissement','Dalle & fondations','Murs & cloisons',
-           'Enduits & façades','Ouverture de mur','Reprise de fissures','Dallage / terrasse','Visite technique / devis'],
-    presta:['Implantation et traçage','Terrassement / fouilles','Coffrage','Ferraillage','Coulage du béton',
-            'Montage de parpaings / briques','Pose de linteau','Enduit / crépi','Jointoiement',
-            'Évacuation des gravats','Nettoyage du chantier'],
-    releves:[{k:'surface',l:'Surface réalisée',u:'m²'},{k:'volume',l:'Béton coulé',u:'m³'},
-             {k:'lineaire',l:'Linéaire de mur',u:'ml'},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules', 'messagerie',
+      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Construction neuve', 'Rénovation', 'Extension / agrandissement', 'Dalle & fondations', 'Murs & cloisons',
+      'Enduits & façades', 'Ouverture de mur', 'Reprise de fissures', 'Dallage / terrasse',
+      'Visite technique / devis', 'Réception de chantier (procès-verbal)', 'Levée de réserves'
+    ],
+    presta:[
+      'Implantation et traçage', 'Terrassement / fouilles', 'Coffrage', 'Ferraillage', 'Coulage du béton',
+      'Montage de parpaings / briques', 'Pose de linteau', 'Enduit / crépi', 'Jointoiement', 'Évacuation des gravats',
+      'Nettoyage du chantier', 'Vérification du repérage amiante avant travaux', 'Procès-verbal de réception signé'
+    ],
+    releves:[
+      {k:'surface',l:'Surface réalisée',u:'m²'}, {k:'volume',l:'Béton coulé',u:'m³'},
+      {k:'lineaire',l:'Linéaire de mur',u:'ml'}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'avancement',l:'Avancement du lot',u:'%'},
+      {k:'reperageAmiante',l:'Repérage amiante avant travaux (référence du rapport)',u:'',txt:true}
+    ],
+    produits:[
+      'Liants (ciment, chaux, plâtre)', 'Agrégats (sable, gravier)', 'Éléments de maçonnerie (parpaings, briques)',
+      'Béton et prêt à l\'emploi', 'Ferraillage', 'Isolation', 'Étanchéité', 'Enduits', 'Coffrage', 'Outillage', 'EPI'
+    ],
+    documents:[
+      'Compte rendu de chantier avec photos', 'Situation de travaux (facture d\'acompte par lot)',
+      'Procès-verbal de réception avec réserves', 'Dossier de chantier (permis, repérage amiante, plan, assurance)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'menuiserie':{ nom:'Menuiserie', ic:'🚪', sous:'Pose · agencement · fermetures',
-    types:['Pose de fenêtres','Pose de portes','Volets & fermetures','Agencement intérieur','Placards & dressings',
-           'Escalier','Parquet','Réparation / dépannage','Prise de cotes','Visite technique / devis'],
-    presta:['Prise de cotes','Dépose de l’existant','Pose et calage','Réglage des ouvrants','Fixation et scellement',
-            'Pose de la quincaillerie','Calfeutrement et joints','Finitions (habillage, champlats)',
-            'Évacuation des déchets','Nettoyage du chantier'],
-    releves:[{k:'cotes',l:'Cotes relevées (L × H)',u:'',txt:true},{k:'elements',l:'Éléments posés',u:''},
-             {k:'materiau',l:'Matériau / essence',u:'',txt:true},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage', 'messagerie',
+      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Pose de fenêtres', 'Pose de portes', 'Volets & fermetures', 'Agencement intérieur', 'Placards & dressings',
+      'Escalier', 'Parquet', 'Réparation / dépannage', 'Prise de cotes', 'Visite technique / devis',
+      'Remplacement de vitrage', 'Dépannage bris de glace'
+    ],
+    presta:[
+      'Prise de cotes', 'Dépose de l’existant', 'Pose et calage', 'Réglage des ouvrants', 'Fixation et scellement',
+      'Pose de la quincaillerie', 'Calfeutrement et joints', 'Finitions (habillage, champlats)',
+      'Évacuation des déchets', 'Nettoyage du chantier', 'Croquis et plan joints à la prise de cotes',
+      'Réception de la commande du fabricant vérifiée'
+    ],
+    releves:[
+      {k:'cotes',l:'Cotes relevées (L × H)',u:'',txt:true}, {k:'elements',l:'Éléments posés',u:''},
+      {k:'materiau',l:'Matériau / essence',u:'',txt:true}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'delaiFab',l:'Date de livraison promise par le fabricant',u:'',txt:true},
+      {k:'vitrage',l:'Type de vitrage et épaisseur',u:'',txt:true}
+    ],
+    produits:[
+      'Fenêtres et portes-fenêtres', 'Portes', 'Volets et fermetures', 'Panneaux et bois', 'Parquet et sols',
+      'Quincaillerie', 'Joints et mousses', 'Escaliers', 'Colles et fixations', 'Vitrages et miroirs', 'Outillage'
+    ],
+    documents:[
+      'Fiche de prise de cotes avec plan, photos et croquis', 'Bon de commande au fabricant',
+      'Procès-verbal de réception avec réserves', 'Attestation de TVA réduite à faire signer (à vérifier)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'peinture':{ nom:'Peinture / Revêtements', ic:'🖌️', sous:'Intérieur · extérieur · sols',
-    types:['Peinture intérieure','Peinture extérieure / façade','Revêtements muraux','Revêtements de sol',
-           'Préparation des supports','Ravalement','Traitement anti-humidité','Décoration','Retouches / reprises',
-           'Visite technique / devis'],
-    presta:['Protection des sols et du mobilier','Lessivage','Rebouchage et ponçage','Impression / sous-couche',
-            'Première couche','Deuxième couche','Pose de papier peint / toile','Reprise des angles et raccords',
-            'Dépose des protections','Nettoyage du chantier'],
-    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'couches',l:'Nombre de couches',u:''},
-             {k:'teinte',l:'Teinte / référence',u:'',txt:true},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage', 'messagerie',
+      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Peinture intérieure', 'Peinture extérieure / façade', 'Revêtements muraux', 'Revêtements de sol',
+      'Préparation des supports', 'Ravalement', 'Traitement anti-humidité', 'Décoration', 'Retouches / reprises',
+      'Visite technique / devis', 'Visite avant travaux (amiante / plomb)'
+    ],
+    presta:[
+      'Protection des sols et du mobilier', 'Lessivage', 'Rebouchage et ponçage', 'Impression / sous-couche',
+      'Première couche', 'Deuxième couche', 'Pose de papier peint / toile', 'Reprise des angles et raccords',
+      'Dépose des protections', 'Nettoyage du chantier', 'Vérification du repérage amiante ou du CREP avant ponçage',
+      'Fiche de teinte remise au client'
+    ],
+    releves:[
+      {k:'surface',l:'Surface traitée',u:'m²'}, {k:'couches',l:'Nombre de couches',u:''},
+      {k:'teinte',l:'Teinte / référence',u:'',txt:true}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'rendement',l:'Rendement du produit',u:'m²/L'}, {k:'quantite',l:'Quantité de peinture utilisée',u:'L'}
+    ],
+    produits:[
+      'Peintures intérieures', 'Peintures extérieures et façades', 'Sous-couches et impressions',
+      'Enduits et rebouchage', 'Revêtements muraux (papier peint, toile)', 'Revêtements de sol', 'Lasures et vernis',
+      'Protection (bâches, adhésifs)', 'Outillage (rouleaux, pinceaux)', 'EPI'
+    ],
+    documents:[
+      'Métré et devis au m²', 'Fiche de teinte par client (référence, nuancier)', 'Procès-verbal de réception'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'paysagiste':{ nom:'Paysagiste / Espaces verts', ic:'🌿', sous:'Entretien · création · élagage',
-    types:['Tonte','Taille de haies','Élagage / abattage','Débroussaillage','Entretien de massifs','Création de jardin',
-           'Plantation','Arrosage automatique','Ramassage des feuilles','Contrat d’entretien','Visite technique / devis'],
-    presta:['Tonte et finitions','Taille','Désherbage','Scarification','Bêchage / griffage','Paillage','Plantation',
-            'Évacuation des déchets verts','Réglage de l’arrosage','Nettoyage du site'],
-    releves:[{k:'surface',l:'Surface entretenue',u:'m²'},{k:'haie',l:'Haie taillée',u:'ml'},
-             {k:'dechets',l:'Déchets verts évacués',u:'m³'},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'pointage', 'vehicules',
+      'messagerie', 'fournisseurs', 'bons', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Tonte', 'Taille de haies', 'Élagage / abattage', 'Débroussaillage', 'Entretien de massifs',
+      'Création de jardin', 'Plantation', 'Arrosage automatique', 'Ramassage des feuilles', 'Contrat d’entretien',
+      'Visite technique / devis', 'Abattage', 'Taille de haute tige'
+    ],
+    presta:[
+      'Tonte et finitions', 'Taille', 'Désherbage', 'Scarification', 'Bêchage / griffage', 'Paillage', 'Plantation',
+      'Évacuation des déchets verts', 'Réglage de l’arrosage', 'Nettoyage du site',
+      'Utilisation de nacelle ou de grimpe', 'Évacuation en déchetterie ou sur plateforme'
+    ],
+    releves:[
+      {k:'surface',l:'Surface entretenue',u:'m²'}, {k:'haie',l:'Haie taillée',u:'ml'},
+      {k:'dechets',l:'Déchets verts évacués',u:'m³'}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'hauteurArbre',l:'Hauteur de l’arbre',u:'m'}, {k:'nacelle',l:'Nacelle utilisée (oui / non)',u:'',txt:true},
+      {k:'destDechets',l:'Destination des déchets verts (déchetterie, plateforme)',u:'',txt:true}
+    ],
+    produits:[
+      'Végétaux (arbres, arbustes, vivaces, gazon)', 'Terreaux et amendements', 'Engrais', 'Paillage et gravier',
+      'Produits phytosanitaires (réservés aux certifiés)', 'Arrosage (tuyaux, programmateurs)', 'Carburant et huile',
+      'Outillage et consommables (fil, lames)', 'EPI'
+    ],
+    documents:[
+      'Compte rendu de passage', 'Fiche jardin (surface, haies, arbres, arrosage)',
+      'Suivi des déchets verts (volume, destination)',
+      'Attestation fiscale annuelle pour les particuliers (à vérifier)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'couverture':{ nom:'Couverture / Zinguerie', ic:'🏠', sous:'Toiture · gouttières · étanchéité',
-    types:['Réparation de toiture','Recherche de fuite','Remplacement de tuiles / ardoises','Gouttières & descentes',
-           'Zinguerie','Démoussage & traitement','Étanchéité de toit-terrasse','Fenêtre de toit','Isolation des combles',
-           'Visite technique / devis'],
-    presta:['Mise en sécurité (échafaudage, harnais)','Inspection de la toiture','Remplacement d’éléments de couverture',
-            'Réfection des faîtages','Nettoyage des gouttières','Pose / soudure du zinc','Démoussage',
-            'Application d’hydrofuge','Évacuation des déchets','Nettoyage du chantier'],
-    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'lineaire',l:'Gouttière / zinc posé',u:'ml'},
-             {k:'hauteur',l:'Hauteur de travail',u:'m'},{k:'tps',l:'Temps passé sur site',u:'h'}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules', 'messagerie',
+      'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Réparation de toiture', 'Recherche de fuite', 'Remplacement de tuiles / ardoises', 'Gouttières & descentes',
+      'Zinguerie', 'Démoussage & traitement', 'Étanchéité de toit-terrasse', 'Fenêtre de toit',
+      'Isolation des combles', 'Visite technique / devis', 'Dépannage après tempête', 'Réfection de toiture complète'
+    ],
+    presta:[
+      'Mise en sécurité (échafaudage, harnais)', 'Inspection de la toiture', 'Remplacement d’éléments de couverture',
+      'Réfection des faîtages', 'Nettoyage des gouttières', 'Pose / soudure du zinc', 'Démoussage',
+      'Application d’hydrofuge', 'Évacuation des déchets', 'Nettoyage du chantier',
+      'Photos avant et après de la toiture', 'Contrôle des plaques fragiles',
+      'Vérification de la présence d\'amiante (fibrociment, ardoises artificielles)'
+    ],
+    releves:[
+      {k:'surface',l:'Surface traitée',u:'m²'}, {k:'lineaire',l:'Gouttière / zinc posé',u:'ml'},
+      {k:'hauteur',l:'Hauteur de travail',u:'m'}, {k:'tps',l:'Temps passé sur site',u:'h'},
+      {k:'garde',l:'Garde-corps ou protection collective en place (oui / non)',u:'',txt:true},
+      {k:'amiante',l:'Toiture amiantée (oui / non)',u:'',txt:true}
+    ],
+    produits:[
+      'Tuiles', 'Ardoises', 'Zinc et gouttières', 'Fixations et crochets', 'Isolation (combles)',
+      'Étanchéité (membranes, bitume)', 'Fenêtres de toit', 'Produits de traitement (démoussant, hydrofuge)',
+      'Échafaudage et protection', 'EPI antichute'
+    ],
+    documents:[
+      'Rapport d\'intervention avec photos avant et après', 'Fiche de mise en sécurité (échafaudage, harnais)',
+      'Procès-verbal de réception'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'multiservices':{ nom:'Multiservices / Maintenance', ic:'🛠️', sous:'Petits travaux · maintenance · contrats',
-    types:['Petits travaux','Maintenance préventive','Dépannage','Plomberie simple','Électricité simple',
-           'Montage / installation','Remplacement de pièce','Contrat de maintenance','Visite technique / devis'],
-    presta:['Diagnostic','Réparation','Remplacement de pièce','Réglage','Montage','Fixation',
-            'Contrôle du bon fonctionnement','Explications au client','Nettoyage du chantier'],
-    releves:[{k:'tps',l:'Temps passé sur site',u:'h'},{k:'materiel',l:'Pièces / matériel fournis',u:'',txt:true}],
-    masque:['registre','carteBox','devisXylo','boxes'] },
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'pointage', 'vehicules', 'messagerie',
+      'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Petits travaux', 'Maintenance préventive', 'Dépannage', 'Plomberie simple', 'Électricité simple',
+      'Montage / installation', 'Remplacement de pièce', 'Contrat de maintenance', 'Visite technique / devis'
+    ],
+    presta:[
+      'Diagnostic', 'Réparation', 'Remplacement de pièce', 'Réglage', 'Montage', 'Fixation',
+      'Contrôle du bon fonctionnement', 'Explications au client', 'Nettoyage du chantier',
+      'Liste des pièces fournies', 'Taux horaire et frais de déplacement annoncés avant l\'intervention',
+      'Pièces remplacées proposées au client'
+    ],
+    releves:[
+      {k:'tps',l:'Temps passé sur site',u:'h'}, {k:'materiel',l:'Pièces / matériel fournis',u:'',txt:true}
+    ],
+    produits:[
+      'Plomberie simple', 'Électricité simple', 'Quincaillerie et fixations', 'Peinture et petites réparations',
+      'Serrurerie simple', 'Consommables', 'Outillage', 'EPI'
+    ],
+    documents:[
+      'Bon d\'intervention signé', 'Devis de dépannage', 'Liste des pièces fournies',
+      'Contrat de maintenance avec rappel'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
   'autre':{ nom:'Autre métier de terrain', ic:'🧰', sous:'Interventions · entretien · dépannage',
-    types:['Intervention','Dépannage','Entretien','Installation','Contrôle / vérification','Réparation',
-           'Contrat d’entretien','Visite technique / devis'],
-    presta:['Diagnostic','Intervention réalisée','Remplacement de pièce','Réglage','Essai et contrôle',
-            'Explications au client','Nettoyage du chantier'],
-    releves:[{k:'tps',l:'Temps passé sur site',u:'h'},{k:'materiel',l:'Matériel utilisé',u:'',txt:true}],
-    masque:['registre','carteBox','devisXylo','boxes'] }
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'pointage', 'messagerie', 'utilisateurs', 'modulesElan',
+      'parametres'
+    ],
+    types:[
+      'Intervention', 'Dépannage', 'Entretien', 'Installation', 'Contrôle / vérification', 'Réparation',
+      'Contrat d’entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Diagnostic', 'Intervention réalisée', 'Remplacement de pièce', 'Réglage', 'Essai et contrôle',
+      'Explications au client', 'Nettoyage du chantier'
+    ],
+    releves:[
+      {k:'tps',l:'Temps passé sur site',u:'h'}, {k:'materiel',l:'Matériel utilisé',u:'',txt:true}
+    ],
+    produits:[
+      'Pièces et fournitures', 'Consommables', 'Outillage', 'EPI'
+    ],
+    documents:[
+      'Rapport d\'intervention', 'Devis', 'Facture'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'incendie':{ nom:'Sécurité incendie', ic:'🧯', sous:'Extincteurs · désenfumage · RIA · alarme incendie',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Vérification annuelle des extincteurs', 'Vérification du désenfumage',
+      'Vérification des RIA (robinets d\'incendie armés)', 'Vérification de l\'alarme incendie',
+      'Remplacement ou recharge', 'Installation', 'Dépannage urgent',
+      'Formation du personnel (extincteurs, évacuation)', 'Contrat de vérification annuelle',
+      'Visite technique / devis'
+    ],
+    presta:[
+      'Contrôle visuel', 'Test de fonctionnement', 'Vérification du manomètre', 'Remplacement du scellé', 'Recharge',
+      'Remplacement d\'appareil', 'Pose de l\'étiquette de vérification',
+      'Mise à jour du plan de situation des appareils'
+    ],
+    releves:[
+      {k:'agent',l:'Type d\'agent (eau, poudre, CO₂)',u:'',txt:true}, {k:'capacite',l:'Capacité',u:'kg ou L'},
+      {k:'serie',l:'N° de série',u:'',txt:true}, {k:'annee',l:'Année de fabrication',u:''},
+      {k:'recharge',l:'Date de dernière recharge',u:'',txt:true}, {k:'manometre',l:'État du manomètre',u:'',txt:true},
+      {k:'scelle',l:'État du scellé',u:'',txt:true}, {k:'etat',l:'État visuel',u:'',txt:true},
+      {k:'resultat',l:'Résultat (conforme / non conforme / remplacé)',u:'',txt:true},
+      {k:'nbAppareils',l:'Nombre d\'appareils vérifiés',u:''}
+    ],
+    produits:[
+      'Extincteurs portatifs', 'Extincteurs mobiles', 'Agents extincteurs (poudre, eau, CO₂)', 'Pièces détachées',
+      'Signalétique', 'Accessoires de désenfumage'
+    ],
+    documents:[
+      'Rapport de vérification périodique (une ligne par appareil)', 'Étiquette ou vignette de vérification',
+      'Devis de remplacement', 'Attestation de formation'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'froid':{ nom:'Froid commercial / Frigoriste', ic:'❄️', sous:'Chambres froides · vitrines · groupes · fluides frigorigènes',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Mise en service', 'Contrôle d\'étanchéité', 'Maintenance préventive', 'Dépannage urgent',
+      'Charge ou récupération de fluide', 'Remplacement de compresseur', 'Nettoyage de condenseur', 'Installation',
+      'Contrat d\'entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Contrôle des températures de consigne', 'Contrôle des pressions haute et basse',
+      'Recherche de fuite (détecteur)', 'Contrôle du système permanent de détection de fuite',
+      'Récupération et pesée du fluide', 'Remplacement du filtre déshydrateur', 'Nettoyage du condenseur',
+      'Contrôle des organes électriques', 'Pose de la vignette de contrôle d\'étanchéité'
+    ],
+    releves:[
+      {k:'fluideType',l:'Fluide frigorigène (ex. R452A)',u:'',txt:true}, {k:'charge',l:'Charge totale',u:'kg'},
+      {k:'prp',l:'PRP du fluide (plaque signalétique)',u:''},
+      {k:'tco2',l:'Équivalent CO₂ de la charge (PRP × charge / 1000)',u:'t'},
+      {k:'fluideCharge',l:'Quantité de fluide chargée',u:'kg'},
+      {k:'fluideRecup',l:'Quantité de fluide récupérée',u:'kg'}, {k:'tconsigne',l:'Température de consigne',u:'°C'},
+      {k:'tdepart',l:'Température de départ',u:'°C'}, {k:'phaute',l:'Pression haute',u:'bar'},
+      {k:'pbasse',l:'Pression basse',u:'bar'}, {k:'etanch',l:'Résultat du contrôle d\'étanchéité',u:'',txt:true},
+      {k:'prochain',l:'Date du prochain contrôle',u:'',txt:true},
+      {k:'contenant',l:'Identifiant de la bouteille ou du contenant',u:'',txt:true},
+      {k:'bordereau',l:'N° de bordereau de suivi des déchets de fluide (Trackdéchets)',u:'',txt:true}
+    ],
+    produits:[
+      'Fluides frigorigènes (par type)', 'Compresseurs', 'Détendeurs', 'Filtres déshydrateurs', 'Pièces électriques',
+      'Isolants'
+    ],
+    documents:[
+      'Fiche d\'intervention fluide (rubriques du Cerfa 15497*04, sans prétendre le remplacer)',
+      'Étiquette de contrôle d\'étanchéité', 'Registre d\'équipement', 'Déclaration annuelle des quantités de fluide'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'ascenseurs':{ nom:'Ascenseurs', ic:'🛗', sous:'Maintenance · visites périodiques · dépannage · mise en sécurité',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Visite d\'entretien', 'Dépannage (appel de personne bloquée)', 'Mise en sécurité', 'Modernisation',
+      'Remise en service', 'Visite de contrôle', 'Contrat d\'entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Test de l\'interphone', 'Test de l\'arrêt d\'urgence', 'Contrôle des portes palières et de cabine',
+      'Contrôle des câbles', 'Graissage', 'Remplacement d\'une pièce d\'usure', 'Remise en service après arrêt',
+      'Report dans le carnet d\'entretien'
+    ],
+    releves:[
+      {k:'appareil',l:'N° de l\'appareil',u:'',txt:true}, {k:'etages',l:'Étages desservis',u:''},
+      {k:'charge',l:'Charge nominale',u:'kg'}, {k:'cables',l:'État du câblage',u:'',txt:true},
+      {k:'portes',l:'État des portes',u:'',txt:true},
+      {k:'interphone',l:'Test de l\'interphone (bon / défaillant)',u:'',txt:true},
+      {k:'arretUrgence',l:'Test de l\'arrêt d\'urgence (bon / défaillant)',u:'',txt:true}
+    ],
+    produits:[
+      'Câbles', 'Galets', 'Contacts', 'Cartes électroniques', 'Huiles', 'Pièces de portes'
+    ],
+    documents:[
+      'Compte rendu de visite', 'Carnet d\'entretien (par appareil)', 'Suivi du rapport de contrôle technique'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'portails':{ nom:'Portes et portails automatiques', ic:'🚧', sous:'Installation · maintenance semestrielle · dépannage',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'pointage',
+      'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Installation', 'Mise en service', 'Maintenance semestrielle', 'Dépannage',
+      'Remplacement de moteur ou de cellule', 'Réglage d\'effort', 'Contrat d\'entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Contrôle des cellules photoélectriques', 'Contrôle des bords sensibles', 'Test de l\'arrêt d\'urgence',
+      'Test des télécommandes', 'Contrôle des ressorts', 'Réglage de la force de fermeture', 'Graissage',
+      'Vérification après défaillance', 'Mise à jour du carnet d\'entretien'
+    ],
+    releves:[
+      {k:'force',l:'Force de fermeture',u:'N'},
+      {k:'cellules',l:'Cellules photoélectriques (bon / défaillant)',u:'',txt:true},
+      {k:'bords',l:'Bords sensibles (bon / défaillant)',u:'',txt:true},
+      {k:'arretUrgence',l:'Arrêt d\'urgence (bon / défaillant)',u:'',txt:true},
+      {k:'telecommandes',l:'Télécommandes (bon / défaillant)',u:'',txt:true},
+      {k:'ressorts',l:'État des ressorts',u:'',txt:true}
+    ],
+    produits:[
+      'Moteurs', 'Cellules photoélectriques', 'Télécommandes', 'Bords sensibles', 'Ressorts', 'Automates'
+    ],
+    documents:[
+      'Carnet d\'entretien (par porte)', 'Rapport de maintenance'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'ramonage':{ nom:'Ramonage', ic:'🧹', sous:'Cheminées · poêles · conduits · certificat de ramonage',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'telecollecte',
+      'produits', 'stock', 'pointage', 'vehicules', 'messagerie', 'secteurs', 'utilisateurs', 'modulesElan',
+      'parametres'
+    ],
+    types:[
+      'Ramonage de cheminée', 'Ramonage de poêle', 'Ramonage de chaudière',
+      'Débistrage (ramonage mécanique d\'un conduit encrassé)', 'Tubage', 'Pose de chapeau', 'Inspection par caméra',
+      'Dépannage tirage', 'Abonnement annuel', 'Visite technique / devis'
+    ],
+    presta:[
+      'Ramonage mécanique du conduit', 'Nettoyage du foyer ou de l\'appareil', 'Contrôle de la vacuité du conduit',
+      'Inspection par caméra', 'Mesure du tirage', 'Pose d\'une trappe de visite', 'Remise du certificat de ramonage'
+    ],
+    releves:[
+      {k:'conduit',l:'Type de conduit',u:'',txt:true}, {k:'combustible',l:'Combustible',u:'',txt:true},
+      {k:'hauteur',l:'Hauteur du conduit',u:'m'}, {k:'diametre',l:'Diamètre',u:'mm'},
+      {k:'etat',l:'État du conduit',u:'',txt:true}, {k:'tirage',l:'Tirage',u:'Pa'},
+      {k:'bistre',l:'Présence de bistre',u:'',txt:true}, {k:'anomalies',l:'Anomalies à signaler',u:'',txt:true}
+    ],
+    produits:[
+      'Hérissons et brosses', 'Tubage inox', 'Chapeaux', 'Trappes de visite', 'Produits de nettoyage'
+    ],
+    documents:[
+      'Certificat de ramonage (PDF daté, nom de l\'entreprise, adresse, nature du conduit), envoyé par e-mail à la clôture'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'assainissement':{ nom:'Assainissement / Vidange', ic:'🚛', sous:'Fosses · bacs à graisses · curage · bordereaux de suivi',
+    rubriques:[
+      'dashboard', 'statistiques', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions',
+      'rapports', 'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'pointage', 'vehicules',
+      'conducteurs', 'messagerie', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Vidange de fosse septique', 'Vidange de bac à graisses', 'Curage de canalisation', 'Inspection caméra',
+      'Débouchage', 'Pompage', 'Entretien de poste de relevage', 'Contrat de vidange périodique',
+      'Visite technique / devis'
+    ],
+    presta:[
+      'Pompage de l\'ouvrage', 'Curage haute pression', 'Inspection par caméra', 'Contrôle de l\'état de l\'ouvrage',
+      'Contrôle de la pompe du poste de relevage', 'Remise du bordereau de suivi', 'Nettoyage du site'
+    ],
+    releves:[
+      {k:'volume',l:'Volume pompé',u:'m³'}, {k:'volumeFosse',l:'Volume de la fosse',u:'m³'},
+      {k:'etat',l:'État de l\'ouvrage',u:'',txt:true}, {k:'elimination',l:'Lieu d\'élimination',u:'',txt:true},
+      {k:'bordereau',l:'N° du bordereau de suivi',u:'',txt:true}, {k:'commune',l:'Commune',u:'',txt:true}
+    ],
+    produits:[
+      'Consommables (flexibles, buses, joints)', 'Pièces de camion et de pompe', 'Outillage', 'EPI'
+    ],
+    documents:[
+      'Bordereau de suivi des matières de vidange (trois exemplaires)', 'Registre des vidanges (dix ans)',
+      'Bilan annuel par commune', 'Attestation de vidange'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'energies':{ nom:'Photovoltaïque et bornes de recharge', ic:'☀️', sous:'Panneaux · onduleurs · bornes IRVE · maintenance',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Étude de site', 'Pose', 'Mise en service', 'Maintenance annuelle', 'Nettoyage des panneaux',
+      'Dépannage onduleur', 'Installation de borne', 'Maintenance de borne', 'Contrôle de mise à la terre',
+      'Visite technique / devis'
+    ],
+    presta:[
+      'Contrôle des chaînes de panneaux', 'Contrôle de l\'onduleur', 'Mesure d\'isolement',
+      'Mesure de la résistance de terre', 'Nettoyage des panneaux', 'Relevé de production', 'Test de la borne',
+      'Contrôle des protections', 'Remise de la fiche de mise en service'
+    ],
+    releves:[
+      {k:'crete',l:'Puissance crête',u:'kWc'}, {k:'production',l:'Production relevée',u:'kWh'},
+      {k:'tensionChaine',l:'Tension des chaînes',u:'V'}, {k:'courantChaine',l:'Courant des chaînes',u:'A'},
+      {k:'onduleur',l:'État de l\'onduleur',u:'',txt:true}, {k:'isolement',l:'Isolement',u:'MΩ'},
+      {k:'terre',l:'Résistance de terre',u:'Ω'}, {k:'energieBorne',l:'Énergie délivrée par la borne',u:'kWh'}
+    ],
+    produits:[
+      'Panneaux', 'Onduleurs', 'Bornes', 'Câbles', 'Protections', 'Supports de fixation'
+    ],
+    documents:[
+      'Rapport de maintenance', 'Fiche de mise en service', 'Attestation de conformité (Consuel : à vérifier)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'alarme':{ nom:'Alarme, vidéosurveillance, contrôle d’accès', ic:'📹', sous:'Intrusion · caméras · badges · maintenance annuelle',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'pointage',
+      'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Installation', 'Mise en service', 'Maintenance préventive', 'Dépannage', 'Remplacement de batteries',
+      'Test de liaison avec le centre de télésurveillance', 'Modification de configuration', 'Contrat de maintenance',
+      'Visite technique / devis'
+    ],
+    presta:[
+      'Test des zones', 'Test des détecteurs', 'Contrôle des batteries', 'Test de la sirène',
+      'Test de liaison avec le centre de télésurveillance', 'Contrôle du champ de vision des caméras',
+      'Contrôle de l\'enregistreur', 'Mise à jour de la configuration', 'Remise du procès-verbal de réception'
+    ],
+    releves:[
+      {k:'batterie',l:'État de la batterie',u:'',txt:true}, {k:'signal',l:'Niveau de signal',u:'',txt:true},
+      {k:'zones',l:'Nombre de zones testées',u:''},
+      {k:'appelCentre',l:'Résultat de l’appel au centre de télésurveillance',u:'',txt:true},
+      {k:'datePose',l:'Date de pose du matériel remplacé',u:'',txt:true}
+    ],
+    produits:[
+      'Centrales', 'Détecteurs', 'Sirènes', 'Caméras', 'Enregistreurs', 'Badges et lecteurs', 'Batteries', 'Câbles'
+    ],
+    documents:[
+      'Rapport de maintenance', 'Procès-verbal de réception', 'Devis et facture'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'eau':{ nom:'Traitement de l’eau', ic:'💧', sous:'Adoucisseurs · filtres · osmoseurs · analyses',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Installation', 'Entretien annuel', 'Régénération', 'Remplacement de cartouche', 'Désinfection de circuit',
+      'Prélèvement d\'eau', 'Dépannage', 'Contrat d\'entretien', 'Visite technique / devis'
+    ],
+    presta:[
+      'Mesure de la dureté', 'Remplacement des cartouches', 'Régénération des résines', 'Remplissage en sel',
+      'Contrôle de la pression et du débit', 'Désinfection du circuit', 'Prélèvement pour analyse',
+      'Contrôle de la lampe UV'
+    ],
+    releves:[
+      {k:'durete',l:'Dureté avant traitement',u:'TH'}, {k:'dureteApres',l:'Dureté après traitement',u:'TH'},
+      {k:'pression',l:'Pression',u:'bar'}, {k:'debit',l:'Débit',u:'L/min'}, {k:'temperature',l:'Température',u:'°C'},
+      {k:'chlore',l:'Chlore résiduel',u:'mg/L'}, {k:'legionelles',l:'Résultat d’analyse légionelles',u:'UFC/L'}
+    ],
+    produits:[
+      'Résines', 'Sel', 'Cartouches de filtration', 'Lampes UV', 'Membranes d\'osmose', 'Pompes doseuses'
+    ],
+    documents:[
+      'Carnet sanitaire', 'Rapport d\'analyse', 'Fiche d\'entretien'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'piscine':{ nom:'Pisciniste', ic:'🏊', sous:'Construction · entretien saisonnier · hivernage · sécurité',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'produits', 'stock',
+      'mouvements', 'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan',
+      'parametres'
+    ],
+    types:[
+      'Ouverture de saison', 'Hivernage', 'Visite d\'entretien', 'Analyse d\'eau', 'Dépannage pompe ou filtration',
+      'Remplacement de liner', 'Mise en service', 'Installation de dispositif de sécurité', 'Construction',
+      'Contrat d\'entretien saisonnier', 'Visite technique / devis'
+    ],
+    presta:[
+      'Analyse de l\'eau', 'Équilibrage de l\'eau', 'Nettoyage du bassin', 'Contrôle de la filtration',
+      'Contrôle de la pompe', 'Mise en hivernage', 'Remise en route', 'Contrôle du dispositif de sécurité',
+      'Remise de la note technique de sécurité'
+    ],
+    releves:[
+      {k:'ph',l:'pH',u:''}, {k:'chlorelibre',l:'Chlore libre',u:'mg/L'}, {k:'chloretotal',l:'Chlore total',u:'mg/L'},
+      {k:'tac',l:'TAC',u:'°f'}, {k:'stabilisant',l:'Stabilisant',u:'mg/L'},
+      {k:'teau',l:'Température de l\'eau',u:'°C'}, {k:'pfiltre',l:'Pression du filtre',u:'bar'},
+      {k:'pompe',l:'État de la pompe',u:'',txt:true}
+    ],
+    produits:[
+      'Produits de traitement', 'Électrolyse', 'Filtration', 'Pompes', 'Liners', 'Robots', 'Couvertures', 'Éclairage'
+    ],
+    documents:[
+      'Rapport d\'analyse d\'eau', 'Fiche d\'ouverture / d\'hivernage',
+      'Note technique de sécurité remise à la réception'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] }
 };
-const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','serrurerie','nettoyage','maconnerie','menuiserie','peinture','paysagiste','couverture','multiservices','autre'];
+const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','serrurerie','nettoyage','maconnerie','menuiserie','peinture','paysagiste','couverture','multiservices','autre','incendie','froid','ascenseurs','portails','ramonage','assainissement','energies','alarme','eau','piscine'];
+/* Le titre et l'explication de chaque rubrique : [titre, explication, toujours ouverte]. Les mêmes textes que la page d'abonnement et la Tour. */
+const RUBRIQUES_INFO={
+  'dashboard':['Tableau de bord','Votre journée d\'un coup d\'œil : les interventions du jour, les devis en attente et les factures à encaisser.',1],
+  'statistiques':['Statistiques','Votre activité en chiffres : chiffre d\'affaires encaissé, factures en attente, taux de devis acceptés. Réservé aux comptes de direction.',0],
+  'historique':['Historique','Le journal de tout ce qui se passe dans l\'application : qui a fait quoi, et quand. Lecture seule, pratique pour retrouver une modification.',0],
+  'archives':['Archives mensuelles','Un récapitulatif de chaque mois à garder ou à imprimer en PDF. Réservé à l\'administrateur.',0],
+  'planning':['Planning','Qui intervient où et quand, technicien par technicien, au jour ou à la semaine.',0],
+  'planningGeneral':['Planning général','Toute l\'entreprise sur une seule page : tous les techniciens, plusieurs jours à la suite, pour repérer les trous et les doublons.',0],
+  'taches':['Tâches','Une liste de choses à faire avec une échéance, pour vous ou pour un collègue : relancer un client, commander une pièce, rappeler un devis.',0],
+  'absences':['Absences & congés','Les congés, arrêts et absences de l\'équipe, pour ne pas planifier quelqu\'un qui n\'est pas là.',0],
+  'interventions':['Interventions','Chaque passage chez un client est une fiche : date, technicien, adresse, photos, signature du client, compte rendu. C\'est le cœur de l\'application.',0],
+  'rapports':['Rapports','Les rapports d\'intervention prêts à envoyer au client en PDF, avec photos et signature, au nom de la bonne société.',0],
+  'carteInt':['Carte interventions','Les interventions du jour posées sur une carte, pour ordonner la tournée et perdre moins de temps sur la route.',0],
+  'registre':['Registre sanitaire','Le registre des interventions que l\'on doit pouvoir présenter à un contrôle. Aujourd\'hui conçu pour l\'hygiène anti-nuisibles (3D) ; il sera rendu utilisable par les autres métiers qui tiennent un registre.',0],
+  'carteBox':['Carte des box','La carte des box (postes et dispositifs de surveillance) posés chez vos clients, pour retrouver chacun d\'un coup d\'œil. Réservée à la 3D.',0],
+  'clients':['Clients','Votre fichier clients : coordonnées, sites, historique des interventions, devis et factures de chacun.',0],
+  'devis':['Devis','Préparez des devis, envoyez-les en PDF à vos clients et suivez ceux qui sont acceptés.',0],
+  'assistantDevis':['Assistant devis','Décrivez le chantier à voix haute ou au clavier : l\'assistant propose un devis que vous relisez avant de l\'envoyer. Accès par un code d\'équipe. L\'assistant s\'appuie sur une intelligence artificielle (Anthropic) à laquelle sont transmis le nom, l\'adresse et la ville du client : voir la page Sous-traitance.',0],
+  'factures':['Factures','Facturez, suivez ce qui est payé, ce qui est en attente et ce qui est en retard.',0],
+  'contrats':['Contrats','Gardez vos contrats d\'entretien : client, durée, tarif, passages prévus. Un contrat fixe vos visites dans l\'année.',0],
+  'comptabilite':['Comptabilité','Une synthèse de ce qui est encaissé, le registre des encaissements et un contrôle du jour. Réservé aux comptes autorisés.',0],
+  'devisXylo':['Devis xylophage','Un devis spécialisé pour le traitement du bois (insectes xylophages). Réservé à la 3D.',0],
+  'telecollecte':['Télécollecte','Notez les paiements encaissés sur place pendant la journée (espèces, chèques, carte) pour les rapprocher des factures le soir.',0],
+  'produits':['Produits','Votre catalogue de produits et de fournitures : références, prix, unités. Chaque entreprise y met ses propres références.',0],
+  'stock':['Stock','Ce qu\'il vous reste de chaque produit, pour ne pas partir en intervention sans la pièce ou le produit qu\'il faut.',0],
+  'mouvements':['Mouvements stock','Le journal automatique des entrées et des sorties de stock : qui a pris quoi, où, quand, validé par qui.',0],
+  'boxes':['Boxes','Les box (postes, dispositifs de surveillance) posées chez vos clients, avec leur contenu. Le Stockage de l\'entreprise s\'appuie sur le même mécanisme. Réservé à la 3D pour l\'instant.',0],
+  'saisieConso':['Consommation produits','Saisie et analyse de la consommation de produits box par box : qui consomme quoi, combien, depuis quand. Réservée à la 3D.',0],
+  'enveloppes':['Enveloppes','Les encaissements clients rangés par enveloppe : espèces et chèques remis au bureau, avec ce qui reste à rapprocher. Réservé à la 3D pour l\'instant.',0],
+  'pointage':['Temps de travail','Les heures de chaque personne : pointage depuis le terrain, total par jour et par semaine, base de la paie.',0],
+  'vehicules':['Véhicules','Votre parc de véhicules : une fiche par véhicule avec la plaque, le kilométrage, l\'assurance et son échéance, l\'assistance.',0],
+  'conducteurs':['Conducteurs','La liste des personnes autorisées à conduire vos véhicules, avec leur téléphone.',0],
+  'messagerie':['Messagerie','La messagerie de l\'équipe, entre le bureau et les techniciens, par conversation ou par groupe, sans passer par vos téléphones personnels.',0],
+  'boiteMail':['Boîte mail','Votre boîte mail professionnelle dans l\'application : lisez les réponses de vos clients et répondez sans changer d\'outil. Réservé aux comptes autorisés.',0],
+  'fournisseurs':['Fournisseurs','Votre carnet de fournisseurs : contacts, conditions, catalogues. Il alimente vos bons de commande.',0],
+  'bons':['Bons de commande','Préparez vos bons de commande, envoyez-les aux fournisseurs et suivez ce qui est livré.',0],
+  'brouillon':['Brouillon','Un panier où le technicien note les produits dont il a besoin, avant d\'en faire la demande.',0],
+  'demandes':['Mes demandes','Les demandes de matériel faites par l\'équipe : ce qui est en cours et tout l\'historique.',0],
+  'validations':['Validation des mouvements','Le responsable valide ou refuse les demandes de commande et les sorties de stock, pour que rien ne bouge sans son accord.',0],
+  'commandes':['Commandes en cours','Les bons envoyés, en livraison ou reçus à moitié : ce que vos fournisseurs vous doivent encore.',0],
+  'secteurs':['Secteurs','Découpez votre zone par département et attribuez des techniciens à chaque secteur.',0],
+  'utilisateurs':['Utilisateurs','Créez les comptes de votre équipe et réglez, pour chaque personne, ce qu\'elle voit et ce qu\'elle peut faire.',1],
+  'modulesElan':['Modules OP','La liste des modules mis de côté (rubriques spécialisées) que vous pouvez ouvrir selon vos droits.',1],
+  'parametres':['Paramètres','Les réglages de l\'entreprise : sociétés et en-têtes de documents, logo, apparence, langue, sauvegardes.',1]
+};
+// ⟦METIERS:FIN⟧
 /* Le pack produits et les fiches fournisseurs appartiennent AU MÉTIER, pas à l'application : ils sont
    rattachés ici plutôt que lus en constantes globales par cataloguePoser. Ce qui change : un métier
    sans pack (plomberie, nettoyage…) n'a ni bouton « ↻ Catalogue OP » ni fiches à poser — c'est la
