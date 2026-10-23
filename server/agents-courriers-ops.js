@@ -13,10 +13,11 @@
  *    « Justin ». Il rend la LISTE des fautes (jamais le texte) : l'appelant la met au journal.
  * ⛔ LA SIGNATURE EST AJOUTÉE PAR LE SERVEUR au moment de l'envoi (`signatureAgent`) : prénom, rôle « Assistant(e) virtuel(le) » (règlement européen sur l'IA, art. 50),
  *    « Équipe TeamOP », adresse et site. Un texte qui la porte déjà est refusé.
- * Aucune dépendance : ni Stripe, ni le courrier, ni le disque.
+ * Aucune dépendance : ni Stripe, ni le courrier, ni le disque (seule la MISE EN FORME de la signature vient de `agents-signature.js`, qui ne touche à rien au chargement).
  */
 'use strict';
 
+const SIG = require('./agents-signature');
 const FUSEAU = 'Europe/Paris';
 const SIGNATURES = {
   hugo:    { prenom: 'Hugo',    role: 'Assistant virtuel' },
@@ -30,7 +31,8 @@ const ADRESSE_CONTACT = 'contact@teamop.fr';
 function signatureAgent(id, adresse) {
   const s = Object.prototype.hasOwnProperty.call(SIGNATURES, id) ? SIGNATURES[id] : null;
   if (!s) return '';
-  return s.prenom + '\n' + s.role + ' · Équipe TeamOP\n' + (/^[a-z0-9._-]+@teamop\.fr$/i.test(String(adresse || '')) ? adresse : ADRESSE_CONTACT) + ' · teamop.fr';
+  /* La mise en forme est celle de TOUS les agents (`agents-signature.js`, `formater`) ; seule l'adresse est bornée ici à nos boîtes (@teamop.fr) : une adresse étrangère ne se glisse pas dans la signature. */
+  return SIG.formater(s.prenom, s.role, SIG.EQUIPE_DEFAUT, /^[a-z0-9._-]+@teamop\.fr$/i.test(String(adresse || '')) ? adresse : ADRESSE_CONTACT);
 }
 
 /* ── les dates : toujours à l'heure de Paris (le serveur tourne en UTC) ── */

@@ -2181,6 +2181,14 @@ body.plans .reg-l.cli::before{display:none}
 .ag-apercu textarea{min-height:220px;resize:vertical;margin-top:8px}
 .ag-apercu .err{margin-top:8px;color:var(--red);font-size:13px}
 .ag-apercu .ag-act{margin-top:10px}
+.ag-ctrl{margin-top:10px;padding:10px 12px;border-radius:var(--r-3);border:1px solid var(--line);font-size:12.5px;line-height:1.45;overflow-wrap:anywhere;color:var(--text)}
+.ag-ctrl.revoir{border-color:var(--red)}
+.ag-ctrl.bon{color:var(--muted)}
+.ag-ctrl ul{margin:6px 0 0;padding-left:18px}
+.ag-sav{align-items:flex-start;flex-wrap:wrap}
+.ag-sav .tx{flex:1 1 260px;min-width:0}
+.ag-sav-l{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.ag-sav-l input,.ag-sav-l textarea{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:10px 12px;font:inherit;font-size:16px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--surface);color:var(--text)}
 .ag-fil{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .ag-msg{max-width:min(560px,92%);align-self:flex-start;padding:10px 14px;border-radius:var(--r-3);border:1px solid var(--line);background:var(--inset)}
 .ag-msg.moi{align-self:flex-end;border-color:var(--acc)}
@@ -10691,10 +10699,11 @@ function vueJournal(){
 var AG={dir:{rap:null,rapLec:0,charte:null,charteLec:0,contrats:null,contLec:0,ouvert:'',vers:null,texte:'',note:''},loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false,
   dos:{q:'',lec:0,liste:[],total:0,ouvert:'',fiche:null,ficheLec:0},
   cv:{lec:0,fils:[],nonLus:0,ouvert:'',msgs:[],msgLec:0,brouillon:'',envoi:false},
-  br:{lec:0,d:{},edit:'',objet:'',texte:'',err:'',busy:false}};
+  br:{lec:0,d:{},edit:'',objet:'',texte:'',err:'',busy:false},
+  cour:{sigLec:0,sig:null,conLec:0,con:[],nq:'',nr:''}};
 var AG_MODES=[['arret','À l’arrêt'],['brouillon','Brouillon'],['auto','Auto']];
 var AG_TYPES={creer_espace:'Créer un espace',suspendre_acces:'Suspendre un accès',envoyer_mail:'Envoyer un courriel',publier:'Publier',repondre_avis:'Répondre à un avis',correctif:'Proposer un correctif',
-  verifier_paiement:'Vérifier un paiement',preparer_espace:'Préparer un espace',escalade_humain:'Passer la main à une personne',signaler_erreur:'Signaler une erreur',relire_envoi:'Relire un envoi'};
+  verifier_paiement:'Vérifier un paiement',preparer_espace:'Préparer un espace',escalade_humain:'Passer la main à une personne',signaler_erreur:'Signaler une erreur',relire_envoi:'Relire un envoi',resilier_fin_periode:'Programmer une fin d’abonnement'};
 var AG_STATUTS={en_attente:'à valider',accepte:'acceptée',refuse:'refusée',expire:'expirée',attente:'en attente',prise:'en cours',faite:'terminée',echec:'échec',expiree:'expirée'};
 function agParId(id){ for(var i=0;i<AG.agents.length;i++) if(AG.agents[i].id===id) return AG.agents[i]; return null; }
 function agNom(id){ var a=agParId(id); return a?a.nom:(id==='systeme'?'Système':String(id||'')); }
@@ -10744,7 +10753,7 @@ function chargerAgents(){
   return Promise.all(ps);
 }
 function agParler(id){ messOuvrirFil(id); }   /* v2.104 : « Parler à X » ouvre la Messagerie sur son fil privé (l'onglet Conversations d'avant reste, sans bouton qui y mène) */
-function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); if(s==='examen') exEntrer(); render(); }
+function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); if(s==='examen') exEntrer(); if(s==='courrier'&&AG.cour.sigLec===0&&AG.cour.conLec===0) agCourCharger(); render(); }
 /* ── les CONVERSATIONS : un fil privé par agent, un fil « Équipe » ; trois états comme partout (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
 function agCvCharger(){
   apiGet('/api/monitor/conversations').then(function(d){ if(!d) return;
@@ -10893,7 +10902,7 @@ function agBrApercu(v){
       '<div class="ag-act"><button type="button" class="ag-btn"'+(AG.br.busy?' disabled':'')+' onclick="agBrAnnuler()">Annuler</button><button type="button" class="ag-btn ok"'+(AG.br.busy?' disabled':'')+' onclick="agBrEnregistrer(\''+esc(ref)+'\')">Enregistrer</button></div></div>';
   }
   return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.a)+'</b>'+(b.entreprise?' · '+esc(b.entreprise):'')+'</div>'+
-    '<span class="obj">'+esc(b.objet)+'</span><p>'+esc(b.texte)+'</p>'+(b.signature?'<div class="sig">'+esc(b.signature)+'</div>':'')+
+    '<span class="obj">'+esc(b.objet)+'</span><p>'+esc(b.texte)+'</p>'+(b.signature?'<div class="sig">'+esc(b.signature)+'</div>':'')+agBrCtrl(b)+
     (b.etat!=='attente'?'<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ce brouillon est déjà '+(b.etat==='envoye'?'envoyé':'en échec : le courriel n’est pas parti, plus aucun essai possible')+'.</div>':
       (b.echecs>0?'<div class="note" style="margin-top:8px;color:var(--red);font-size:12.5px">Un envoi a échoué ('+esc(String(b.echecs))+' fois) : le courriel n’est pas parti. Valide de nouveau pour réessayer.</div>':''))+
     (MYROLE==='patron'&&b.etat==='attente'?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agBrModifier(\''+esc(ref)+'\')">Modifier</button></div>':'')+'</div>';
@@ -10921,7 +10930,8 @@ function agBrEnregistrer(ref){
      Margaux le passage en revue des impayés. Tout est réservé au patron (`chargerAgents` n'ouvre rien aux autres). */
 var AGG={lec:0,d:{},edit:'',objet:'',texte:'',err:'',busy:false,
   emma:{lec:0,f:null,rdv:[],err:'',msg:'',busy:false,ouvert:false,dos:''},sarah:{type:'version',notes:'',msg:'',ko:false,busy:false,ouvert:false},margaux:{msg:'',ko:false,busy:false}};
-Object.assign(AG_TYPES,{resilier_fin_periode:'Programmer la fin d’un abonnement',courrier_agent:'Envoyer un courriel',mise_en_demeure:'Mise en demeure',annonce_clients:'Annonce à tous les clients',
+/* `resilier_fin_periode` (« Programmer une fin d’abonnement ») n'est PAS redit ici : son libellé est écrit une seule fois, dans la table d'origine — deux chantiers l'avaient écrit chacun, et le second écrasait le premier en silence. */
+Object.assign(AG_TYPES,{courrier_agent:'Envoyer un courriel',mise_en_demeure:'Mise en demeure',annonce_clients:'Annonce à tous les clients',
   rendez_vous_prospect:'Rendez-vous avec un prospect',choix_creneau:'Choix d’un créneau de rendez-vous'});
 var AGG_TYPES=['courrier_agent','mise_en_demeure','annonce_clients'];
 function agGeType(v){ return !!v&&AGG_TYPES.indexOf(v.type)>=0&&!!v.params&&typeof v.params.ref==='string'&&/^dc[0-9a-f]{12}$/.test(v.params.ref); }
@@ -11132,7 +11142,7 @@ function agDecider(id,decision){
     if(AG.br.lec!==1||!bv||!bv.empreinte){ toast('Le brouillon n’a pas été lu : recharge la liste avant de valider.'); return; }
     corps.empreinte=bv.empreinte;
   }
-  if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'&&!confirm('Envoyer ce courriel maintenant ? Il part tel que tu le vois, avec la signature du Courrier.')) return;
+  if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'&&!confirm('Envoyer ce courriel maintenant ? Il part tel que tu le vois, avec la signature de l’agent'+(bv&&bv.signature?' (« '+String(bv.signature).split('\n')[0]+' »)':'')+'.')) return;
   if(decision==='accepter'&&!(vd&&vd.type==='envoyer_mail')&&!confirm('Valider cette demande ? Elle sera exécutée si l’agent en a la charge.')) return;
   AG.busy=true; render();
   return apiPost('/api/monitor/agents/validations/decider',corps).then(function(r){
@@ -11223,6 +11233,76 @@ function agContratBloc(t){
   }
   return h;
 }
+/* ══ COURRIER DES AGENTS (23 octobre 2026) ══ ce que Léa, Camille et Chloé disent d'elles-mêmes (la signature) et ce qu'elles savent (les connaissances que Louis propose
+   et que Justin SEUL valide). ⛔ L'écran ne décide de rien : la signature est composée par le SERVEUR (nom, rôle, adresse, site), la connaissance validée est celle que Justin a sous
+   les yeux ; trois états pour chaque lecture (0 pas lue, 1 lue, −1 on n'a pas pu savoir : jamais « aucune connaissance » sur une liste illisible). */
+function agBrCtrl(b){
+  var c=b.controle||{}, h='';
+  if(c.etat==='a_revoir') h+='<div class="ag-ctrl revoir" role="note"><b>À revoir — le contrôle qualité n’a pas laissé partir ce courriel seul.</b>'+((c.fautes||[]).length?'<ul>'+c.fautes.map(function(f){ return '<li>'+esc(f)+'</li>'; }).join('')+'</ul>':'')+(c.reecrit?'<div>Il a déjà été réécrit une fois.</div>':'')+'</div>';
+  else if(c.etat==='non_verifie') h+='<div class="ag-ctrl revoir" role="note"><b>Contrôle qualité non fait</b> (le relecteur n’a pas répondu) : relis ce courriel avec soin, il ne partira pas seul.</div>';
+  else if(c.etat==='bon') h+='<div class="ag-ctrl bon" role="note"><b>Contrôle qualité passé</b>'+(c.reecrit?' après une réécriture':'')+'.</div>';
+  if(b.source==='courrier'||b.source==='proposition') h+='<div class="ag-ctrl'+(b.authentifie?' bon':'')+'" role="note">'+(b.authentifie?'<b>Expéditeur vérifié</b> par notre serveur de réception.':'<b>Expéditeur non vérifié</b> : ce courriel ne partira jamais seul, tu le valides.')+'</div>';
+  return h;
+}
+function agCourCharger(){
+  var C=AG.cour; C.sigLec=0; C.conLec=0;
+  apiGet('/api/monitor/agents/signatures').then(function(d){ if(d&&Array.isArray(d.agents)){ C.sig=d; C.sigLec=1; } else C.sigLec=-1; if(TAB==='agents') render(); }).catch(function(){ C.sigLec=-1; if(TAB==='agents') render(); });
+  apiGet('/api/monitor/agents/connaissances').then(function(d){ if(d&&Array.isArray(d.entrees)){ C.con=d.entrees; C.conLec=1; } else C.conLec=-1; if(TAB==='agents') render(); }).catch(function(){ C.conLec=-1; if(TAB==='agents') render(); });
+}
+function agSigEnreg(agent){
+  if(AG.busy||MYROLE!=='patron') return;
+  var el=document.getElementById(agent==='equipe'?'ag-sig-equipe':'ag-sig-'+agent), v=el?String(el.value||'').trim():'';
+  var corps=agent==='equipe'?{equipe:v}:{agent:agent,role:v};
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/signatures',corps).then(function(r){ AG.busy=false; toast(r.ok?'Signature enregistrée.':((r.d&&r.d.error)||'Refusé')); agCourCharger(); }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agCnDecider(id,decision){
+  if(AG.busy||MYROLE!=='patron') return;
+  var corps={id:id,decision:decision}, q=document.getElementById('ag-cn-q-'+id), r=document.getElementById('ag-cn-r-'+id);
+  if(decision==='valider'){
+    if(q) corps.question=String(q.value||'').trim(); if(r) corps.reponse=String(r.value||'').trim();
+    if(!corps.reponse){ toast('Écris la réponse avant de valider : Louis ne la connaissait pas.'); return; }
+    if(!confirm('Valider cette connaissance ? Léa, Camille et Chloé la liront et pourront la reprendre dans leurs courriels.')) return;
+  } else if(decision==='retirer'&&!confirm('Retirer cette connaissance ? Les agents ne la liront plus.')) return;
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/connaissances/decider',corps).then(function(x){ AG.busy=false; toast(x.ok?(decision==='valider'?'Connaissance validée.':decision==='refuser'?'Proposition refusée.':'Connaissance retirée.'):((x.d&&x.d.error)||'Refusé')); agCourCharger(); }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agCnAjouter(){
+  if(AG.busy||MYROLE!=='patron') return;
+  var q=document.getElementById('ag-cn-nq'), r=document.getElementById('ag-cn-nr'); AG.cour.nq=q?String(q.value||''):''; AG.cour.nr=r?String(r.value||''):'';
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/connaissances/decider',{decision:'ajouter',question:AG.cour.nq.trim(),reponse:AG.cour.nr.trim()}).then(function(x){ AG.busy=false; if(x.ok){ AG.cour.nq=''; AG.cour.nr=''; } toast(x.ok?'Connaissance ajoutée.':((x.d&&x.d.error)||'Refusé')); agCourCharger(); }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agCourVue(){
+  var C=AG.cour, h='', off=(AG.busy||MYROLE!=='patron')?' disabled':'';
+  if(C.sigLec===0&&C.conLec===0) agCourCharger();
+  h+='<h3 class="ag-h">Signature des assistantes</h3><div class="note" style="margin-top:6px;color:var(--muted);font-size:12.5px">Chaque courriel dit qui l’écrit : un assistant virtuel, jamais toi (règlement européen sur l’IA, article 50). Le serveur pose la signature ; tu règles ici le rôle et le nom de l’équipe.</div>';
+  if(C.sigLec!==1) h+=C.sigLec===0?acSquel():agIllisible('Les signatures n’ont pas pu être lues : les formules par défaut servent, rien ne part sans signature.');
+  else {
+    h+='<div class="ag-liste">'+C.sig.agents.filter(function(a){ return a.agent==='lea'||a.agent==='camille'||a.agent==='chloe'; }).map(function(a){
+      return '<div class="ag-ligne ag-sav"><div class="tx"><b>'+esc(a.nom)+'</b><span class="sig" style="white-space:pre-wrap">'+esc(a.apercu||'')+'</span>'+
+        '<label class="ag-sav-l">Rôle<input id="ag-sig-'+esc(a.agent)+'" type="text" maxlength="60" value="'+esc(a.role||'')+'"'+off+'></label></div>'+
+        '<div class="ag-act"><button type="button" class="ag-btn"'+off+' onclick="agSigEnreg(\''+esc(a.agent)+'\')">Enregistrer</button></div></div>'; }).join('')+
+      '<div class="ag-ligne ag-sav"><div class="tx"><b>Nom de l’équipe</b><label class="ag-sav-l">Après le rôle<input id="ag-sig-equipe" type="text" maxlength="60" value="'+esc(C.sig.equipe||'')+'"'+off+'></label></div>'+
+      '<div class="ag-act"><button type="button" class="ag-btn"'+off+' onclick="agSigEnreg(\'equipe\')">Enregistrer</button></div></div></div>';
+  }
+  h+='<h3 class="ag-h" style="margin-top:22px">Connaissances de Léa, Camille et Chloé</h3><div class="note" style="margin-top:6px;color:var(--muted);font-size:12.5px">Louis propose une réponse quand Camille n’a pas su répondre ou quand tu corriges un brouillon. Rien n’est lu par les assistantes avant ta validation ; le texte d’un client ne devient jamais une connaissance tout seul.</div>';
+  if(C.conLec!==1) h+=C.conLec===0?acSquel():agIllisible('Les connaissances n’ont pas pu être lues : on ne sait pas ce que savent les assistantes.');
+  else {
+    var pr=C.con.filter(function(e){ return e.etat==='propose'; }), va=C.con.filter(function(e){ return e.etat==='valide'; });
+    h+='<h4 class="ag-h" style="margin-top:14px">À valider ('+pr.length+')</h4>';
+    h+=pr.length?'<div class="ag-liste">'+pr.map(function(e){ return '<div class="ag-ligne ag-sav"><div class="tx"><label class="ag-sav-l">Question<input id="ag-cn-q-'+esc(e.id)+'" type="text" maxlength="200" value="'+esc(e.question)+'"'+off+'></label>'+
+        '<label class="ag-sav-l">Réponse<textarea id="ag-cn-r-'+esc(e.id)+'" maxlength="600" rows="3"'+off+'>'+esc(e.reponse)+'</textarea></label>'+(e.reponse?'':'<span>Louis n’a pas la réponse : écris-la.</span>')+'</div>'+
+        '<div class="ag-act"><button type="button" class="ag-btn ok"'+off+' onclick="agCnDecider(\''+esc(e.id)+'\',\'valider\')">Valider</button><button type="button" class="ag-btn"'+off+' onclick="agCnDecider(\''+esc(e.id)+'\',\'refuser\')">Refuser</button></div></div>'; }).join('')+'</div>'
+      :'<div class="vide">Aucune proposition en attente.</div>';
+    h+='<h4 class="ag-h" style="margin-top:18px">Validées ('+va.length+')</h4>';
+    h+=va.length?'<div class="ag-liste">'+va.map(function(e){ return '<div class="ag-ligne"><div class="tx"><b>'+esc(e.question)+'</b><span>'+esc(e.reponse)+(e.decidePar?' · validée par '+esc(e.decidePar):'')+'</span></div>'+
+        '<div class="ag-act"><button type="button" class="ag-btn"'+off+' onclick="agCnDecider(\''+esc(e.id)+'\',\'retirer\')">Retirer</button></div></div>'; }).join('')+'</div>':'<div class="vide">Aucune connaissance validée : les assistantes ne s’appuient que sur l’offre.</div>';
+    h+='<h4 class="ag-h" style="margin-top:18px">Ajouter une connaissance</h4><div class="ag-liste"><div class="ag-ligne ag-sav"><div class="tx"><label class="ag-sav-l">Question<input id="ag-cn-nq" type="text" maxlength="200" value="'+esc(C.nq)+'"'+off+'></label>'+
+      '<label class="ag-sav-l">Réponse<textarea id="ag-cn-nr" maxlength="600" rows="3"'+off+'>'+esc(C.nr)+'</textarea></label></div><div class="ag-act"><button type="button" class="ag-btn ok"'+off+' onclick="agCnAjouter()">Ajouter</button></div></div></div>';
+  }
+  return h;
+}
 function agIllisible(txt){ return '<div class="encart bloc"><div class="tx" style="margin-top:0">'+esc(txt)+'</div></div>'; }
 function vueAgents(){
   var tete=enTete('Agents','Les agents IA qui gèrent Team OP. Tu décides ce que chacun a le droit de faire : à l’arrêt, il ne fait rien ; en brouillon, il prépare et tu relis ; en auto, il agit seul dans ses droits. Pour lui écrire, touche « Parler » sur sa carte.');
@@ -11236,7 +11316,7 @@ function vueAgents(){
     ' · '+allumes+' allumé'+(allumes>1?'s':'')+' sur '+AG.agents.length+'</b>'+
     (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
   var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
-  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['examen','Examen'],['direction','Direction']].map(function(o){
+  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['courrier','Courrier des agents'],['examen','Examen'],['direction','Direction']].map(function(o){
     return '<button type="button" role="tab" class="'+(AG.sec===o[0]?'on':'')+'" aria-selected="'+(AG.sec===o[0])+'" onclick="agSec(\''+o[0]+'\')">'+o[1]+
       (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
@@ -11278,6 +11358,8 @@ function vueAgents(){
     h+=agCvVue();
   } else if(AG.sec==='examen'){
     h+=exVue();
+  } else if(AG.sec==='courrier'){
+    h+=agCourVue();
   } else if(AG.sec==='direction'){
     h+=agDirVue();
   } else if(AG.sec==='dossiers'){

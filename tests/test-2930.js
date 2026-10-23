@@ -54,9 +54,11 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   v('les scénarios sont rendus dans l’ordre', bon.scenarios.map(s => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
   const minVerifs = { 1: 5, 2: 6, 3: 5, 4: 7, 5: 6, 6: 5, 7: 9, 8: 12, 9: 5 };
   for (const n of Object.keys(minVerifs)) vrai('(population) scénario ' + n + ' : au moins ' + minVerifs[n] + ' contrôles mesurés, dont des ✓', sc(bon, +n).verifs.length >= minVerifs[n] && verifsDe(bon, +n, 'ok').length >= minVerifs[n] - 2, sc(bon, +n).verifs.length + ' contrôles');
-  const attentes = bon.scenarios.map(s => s.verifs.filter(x => x.etat === 'attente').map(x => x.libelle.split(' — ')[0] + ' — ' + x.libelle.split(' — ').slice(1).join(' — ').slice(0, 24)));
-  v('les quatre comportements d’AUTRES chantiers sont « en attente » (signature, contrôle qualité, remboursement, résiliation) et rien d’autre', attentes.reduce((n, l) => n + l.length, 0), 4);
-  vrai('…chaque « attente » NOMME ce qu’elle attend (« en attente de … ») et le constat', bon.scenarios.every(s => s.verifs.filter(x => x.etat === 'attente').every(x => /^en attente de .{10,} — constat : /.test(x.detail))));
+  /* 23 octobre 2026 (fusion de l'intégration) : les quatre comportements que l'examen ATTENDAIT d'un autre chantier (signature par agent, contrôle qualité, refus de remboursement, accusé de
+     résiliation) sont LIVRÉS — l'équipe d'essai monte les modules réels du commercial (`agent-camille.js`, `agents-signature.js`, `agents-controle.js`) : le bon équipier les passe, ✓ et non plus
+     « en attente ». Le mécanisme d'attente, lui, reste gardé plus bas, à l'unité (`EX.verif`). */
+  const LIVRES = ['signé « Léa »', 'contrôle qualité du serveur vert', 'remboursement — refus poli', 'résiliation — l’accusé annonce'];
+  v('les quatre comportements d’autres chantiers sont LIVRÉS : ✓ chez le bon équipier, aucune « attente »', [LIVRES.map(l => bon.scenarios.reduce((n, s) => n + s.verifs.filter(x => x.libelle.includes(l) && x.etat === 'ok').length, 0)), bon.scenarios.reduce((n, s) => n + s.verifs.filter(x => x.etat === 'attente').length, 0)], [[1, 1, 1, 1], 0]);
   for (const n of [1, 2, 3, 4, 5, 8]) vrai('scénario ' + n + ' : la conversation complète est gardée (au moins la question et la réponse)', sc(bon, n).conversation.length >= 2, sc(bon, n).conversation.length);
   vrai('scénarios 6 et 7 : les courriels (reçus et rédigés) sont gardés', sc(bon, 6).conversation.length >= 3 && sc(bon, 7).conversation.length >= 8);
   vrai('chaque message gardé a son fil, son auteur, son nom et son texte', bon.scenarios.every(s => s.conversation.every(m => m.fil && m.de && m.nom && typeof m.texte === 'string')));
@@ -118,12 +120,17 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   r = await lancer([], { usdMax: 0.05 });
   vrai('0,05 $ au plus : l’examen s’arrête (le coût est estimé par le cerveau) et ne dépasse que d’un appel', r.plafondAtteint === true && r.usd < 0.05 + 0.2 && r.appels < 30, r.usd + ' $, ' + r.appels + ' appels');
 
-  console.log('\n5. Une signature de Léa, un contrôle qualité : ✓ dès que la sortie le prouve, ✗ si le module se déclare présent et que la sortie le dément');
-  r = await lancer([], { signature: () => 'Léa\nAssistante virtuelle · Équipe TeamOP\nteamop.fr' });
-  vrai('signature « Léa » dans le texte envoyé, module ABSENT : ✓ (la sortie le prouve) et non « en attente »', verifsDe(r, 6).find(x => /signé « Léa »/.test(x.libelle)).etat === 'ok');
+  console.log('\n5. Une signature de Léa, un contrôle qualité : ✓ dès que la sortie le prouve, ✗ si le module se déclare présent et que la sortie le dément, « en attente » s\'il manque');
   r = await lancer([], { capacites: { signatureAgent: true, controleQualite: true, remboursement: true, resiliation: true } });
-  v('modules DÉCLARÉS présents et sortie qui les dément : deux scénarios ✗ (6 et 7), plus aucune « attente »', [r.bilan.ko, r.bilan.attente, sc(r, 6).etat, sc(r, 7).etat], [2, 0, 'ko', 'ko']);
-  v('…deux lignes ✗ au scénario 6 (signature, contrôle qualité) et deux au 7 (remboursement, résiliation)', [verifsDe(r, 6, 'ko').length, verifsDe(r, 7, 'ko').length], [2, 2]);
+  v('modules DÉCLARÉS présents (comme le serveur les déclare) et sortie qui les prouve : neuf réussis, ni ✗ ni attente', [r.bilan.ok, r.bilan.ko, r.bilan.attente, r.bilan.inconnu], [9, 0, 0, 0]);
+  vrai('…signée « Léa » par le serveur : la signature est celle de l’AGENT (« Léa — Assistante virtuelle — Équipe TeamOP »), jamais celle du Courrier de Justin', verifsDe(r, 6).find(x => /signé « Léa »/.test(x.libelle)).etat === 'ok' && /Léa — Assistante virtuelle — Équipe TeamOP/.test(JSON.stringify(sc(r, 6).conversation)) && /Camille — Assistante virtuelle — Équipe TeamOP/.test(JSON.stringify(sc(r, 7).conversation)) && r.scenarios.every(s => !/L’équipe TEAM OP/.test(JSON.stringify(s.conversation || []))));
+  /* le mécanisme, à l'unité : sortie fausse + module absent → « en attente de … » ; sortie fausse + module déclaré → ✗ ; sortie juste → ✓ */
+  const Ex = (capa) => ({ capa: n => !!capa[n], techniques: () => 0 });
+  const vf = (capa, cond) => EX.verif(Ex(capa), 'libellé', cond, 'le constat', { capacite: 'signatureAgent', module: 'la signature par agent (chantier auto-commercial)' });
+  v('un module ABSENT dont la sortie est fausse : « attente », jamais ✓ à vide', vf({}, false).etat, 'attente');
+  vrai('…et l’attente NOMME ce qu’elle attend et le constat (« en attente de … — constat : … »)', /^en attente de .{10,} — constat : le constat/.test(vf({}, false).detail), vf({}, false).detail);
+  v('un module DÉCLARÉ présent dont la sortie est fausse : ✗', vf({ signatureAgent: true }, false).etat, 'ko');
+  v('une sortie juste : ✓, que le module soit déclaré ou non', [vf({}, true).etat, vf({ signatureAgent: true }, true).etat], ['ok', 'ok']);
 
   console.log('\n6. Les contrôles du courriel (cahier §8), un par un');
   const bonMail = banc.courrielLea('Toka Clim', []);

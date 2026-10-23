@@ -2100,6 +2100,7 @@ const MON_GESTES = {
   'agents/examen/lancer': 'a lancé l’examen de l’équipe d’agents', 'agents/examen/cle': 'a créé la clé d’examen de l’équipe', 'agents/examen/cle/supprimer': 'a supprimé la clé d’examen de l’équipe',
   'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
   'agents/plateforme/passer': 'a fait passer un agent de la plateforme', 'agents/plateforme/point': 'a demandé le point de Victor', 'agents/plateforme/rgpd': 'a clos une demande RGPD suivie par Nina', 'agents/plateforme/rgpd/declarer': 'a enregistré une demande RGPD reçue (Nina en tient le délai)',
+  'agents/signatures': 'a changé la signature des agents', 'agents/connaissances/decider': 'a décidé d’une connaissance proposée par Louis',
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
@@ -4584,6 +4585,9 @@ let docsAgentsMod = null;     // les courriels d'agents de gestion, la mise en d
 let agentMargaux = null;     // Margaux (`agent-margaux.js`) : les relances d'impayé et la mise en demeure préparée — `null` = pas montée
 let agentEmma = null;        // Emma (`agent-emma.js`) : les rendez-vous avec les prospects — `null` = pas montée
 let agentSarah = null;       // Sarah (`agent-sarah.js`) : les annonces aux clients, rédigées pour la validation de Justin — `null` = pas montée
+let signaturesMod = null;    // la signature de chaque agent, posée par le serveur à l'envoi (`agents-signature.js`)
+let louisMod = null;         // Louis : la base de connaissances que Justin valide (`agent-louis.js`)
+let chloeMod = null;         // Chloé : la proposition sur mesure après la réponse du prospect (`agent-chloe.js`)
 let agentEquipe = null;        // la messagerie des agents (`agent-equipe.js`) : `null` = pas montée ; la conversation d'avant (Hugo + les quinze) reste alors servie
 let reunionsMod = null;        // les réunions du lundi et du vendredi (`reunions.js`) : `null` = pas montées ; les agents n'ont alors ni objectifs ni leçons
 let plateformeMod = null;      // les six agents de la plateforme (`agents-plateforme.js`) : `null` = pas montés ; ni surveillance par les agents, ni point du matin
@@ -9880,9 +9884,11 @@ app.post('/api/clients/sync', async (req, res) => {
     if (agentLea && adresseProuvee) {
       /* (a) l'INSCRIPTION : la première synchro de ce compte vérifié — ou une inscription que le plafond du jour ou la file pleine a écartée (`aRepriser`).
          Léa porte ses propres plafonds (une réponse par adresse sur 30 jours, trois préparations par heure et par adresse, vingt par jour). */
-      if (premiereSynchro || agentLea.aRepriser(email)) Promise.resolve(agentLea.surInscription({ entreprise: (clientsData[email] || {}).entreprise, email })).catch(() => {});
+      /* Léa écrit désormais SEULE (charte ouverte) : si la demande d'application arrive dans la MÊME synchro que l'inscription, c'est ELLE qui déclenche le courriel — avec le métier, le
+         nombre d'utilisateurs et le besoin — plutôt qu'un premier courriel sans métier, parti seul, suivi d'un second qu'on ne peut plus réécrire. */
+      const nvL = demandes.length > (prev.demandes || []).length ? demandes.slice((prev.demandes || []).length).filter(d => !/messages/i.test(String(d.app || ''))) : [];
+      if ((premiereSynchro || agentLea.aRepriser(email)) && !nvL.length) Promise.resolve(agentLea.surInscription({ entreprise: (clientsData[email] || {}).entreprise, email })).catch(() => {});
       if (demandes.length > (prev.demandes || []).length) {
-        const nvL = demandes.slice((prev.demandes || []).length).filter(d => !/messages/i.test(String(d.app || '')));
         const d = [...nvL].reverse().find(x => x.metier) || nvL[nvL.length - 1];
         if (d) Promise.resolve(agentLea.surDemande({ email, entreprise: (clientsData[email] || {}).entreprise, metier: d.metier, users: d.users, formule: d.formule, besoin: d.besoin })).catch(() => {});
       }
@@ -10347,7 +10353,10 @@ try {
     quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages,
     /* La veille annonce chaque message neuf à Camille. Liaison TARDIVE : la Messagerie est montée avant les agents, `agentCamille` n'existe pas
        encore ici. Le crochet ne jette jamais et n'est pas attendu (voir `mail.js`). */
-    surNouveauMessage: (ev) => (agentCamille ? agentCamille.surNouveauMessage(ev) : null) });
+    surNouveauMessage: (ev) => (agentCamille ? agentCamille.surNouveauMessage(ev) : null),
+    /* Les serveurs de RÉCEPTION dont l'en-tête Authentication-Results fait foi (`config.agents.authservIds`, une liste de noms d'hôtes, comparés EXACTEMENT). ⛔ Sans réglage il n'y en a AUCUN :
+       personne n'est authentifié, donc aucun courriel reçu n'est répondu SEUL (brouillon, « serveur inconnu »). Les anciens replis (hôte IMAP, teamop.fr) sont des noms publics qu'un expéditeur écrit lui-même. */
+    authservIds: () => ((config.agents && Array.isArray(config.agents.authservIds)) ? config.agents.authservIds.filter(x => typeof x === 'string').slice(0, 10) : []) });
   console.log('messagerie : module chargé');
   /* L'ÉQUIPE D'AGENTS (`agents.js`) : son socle seulement — registre, journal, validations, pause, tâches. Monté DANS ce bloc parce
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
@@ -10422,6 +10431,9 @@ try {
           courrier: () => { if (!messagerieTour || typeof messagerieTour.compter !== 'function') return null; const c = messagerieTour.compter(); return { aTraiter: c.aTraiter, enCours: c.enCours }; },
           clients: () => { const l = Object.values(clientsData || {});
             return { clients: l.length, demandesEnAttente: l.reduce((n, c) => n + (Array.isArray(c && c.demandes) ? c.demandes.filter((d, i) => String(d && d.statut).toLowerCase() === 'en attente' && !(c.demandesTraitees && c.demandesTraitees[i])).length : 0), 0), espaces: Object.keys(espacesReg || {}).length }; },
+          /* le travail commercial de Léa, Chloé, Camille et Louis : des NOMBRES seulement (courriels partis seuls, en attente, « à revoir », connaissances à valider) */
+          commercial: () => { const b = brouillonsMod ? brouillonsMod.bilan() : {}; const l = louisMod ? louisMod.compter() : { propose: 0, valide: 0 };
+            return { lea: b.lea || {}, chloe: b.chloe || {}, camille: b.camille || {}, louis: { connaissancesAValider: l.propose, connaissancesValidees: l.valide } }; },
           dossier: faitsDossier };
     /* LA CONVERSATION DES QUINZE AUTRES AGENTS (celle d'avant, gardée en repli) : ils répondent dans « Parler » (Claude, faits fermés, rien d'exécuté).
        Sous son propre `try` : un échec de montage ne doit emporter ni Hugo ni la Messagerie — les agents se taisent, c'est tout. */
@@ -10443,16 +10455,36 @@ try {
       return { domaines: [...dom], adresses: [...adr] };
     };
     const fichierAgents = require('./agents-fichier')(DATA_DIR);
+    /* LA SIGNATURE DES AGENTS (« Léa — Assistante virtuelle — Équipe TeamOP »), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
+    try { signaturesMod = require('./agents-signature')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, fichier: fichierAgents }); }
+    catch (e) { signaturesMod = null; console.error('signatures des agents indisponibles :', e.message); }
     try {
       brouillonsMod = require('./agents-brouillons')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, mail: messagerieTour, direction: directionMod,
-        fichier: fichierAgents, sansAdresses });
+        fichier: fichierAgents, sansAdresses, signatures: signaturesMod,
+        /* Louis regarde ce que Justin corrige (liaison tardive : il est monté après) */
+        surCorrection: (o) => (louisMod ? louisMod.surCorrection(o) : null) });
     } catch (e) { brouillonsMod = null; console.error('brouillons des agents indisponibles :', e.message); }
+    /* LOUIS : la base de connaissances de Léa, Chloé et Camille — il PROPOSE, Justin VALIDE dans la Tour ; seules les entrées validées sont lues. */
+    try { louisMod = require('./agent-louis')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, cerveau: cerveauMod, fichier: fichierAgents, conversations: conversationsMod }); }
+    catch (e) { louisMod = null; console.error('Louis indisponible :', e.message); }
     try {
       if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents,
-        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK });
+        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod });
     } catch (e) { agentLea = null; console.error('Léa indisponible :', e.message); }
+    /* CHLOÉ : la proposition sur mesure quand le prospect répond à Léa. Les faits qu'elle reçoit sur le prospect sont des VALEURS DE LISTE (métier, nombre, formule) + le nom d'entreprise
+       s'il a la forme d'un nom : jamais l'adresse, le téléphone, le prénom ni le nom de la personne. */
+    try {
+      if (brouillonsMod) chloeMod = require('./agent-chloe')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents, conversations: conversationsMod, louis: louisMod,
+        libelleMetier: m => METIERS_LBL[m] || '',
+        contexteClient: (adr) => { const c = (clientsData || {})[adrNue(adr)]; if (!c) return {}; const d = [...(Array.isArray(c.demandes) ? c.demandes : [])].reverse().find(x => x && METIERS_OK.includes(x.metier)) || {};
+          const u = parseInt(String(d.users || '').replace(/[^\d]/g, ''), 10); const f = String(d.formule || '').trim().toLowerCase();
+          return { entreprise: c.entreprise, metier: METIERS_OK.includes(d.metier) ? d.metier : '', users: Number.isFinite(u) ? u : 0, formule: ['pro', 'business', 'premium'].includes(f) ? f : '' }; } });
+    } catch (e) { chloeMod = null; console.error('Chloé indisponible :', e.message); }
     try {
       if (brouillonsMod) agentCamille = require('./agent-camille')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, mail: messagerieTour, fichier: fichierAgents,
+        conversations: conversationsMod, chloe: chloeMod, louis: louisMod,
+        /* le numéro de dossier d'une adresse qui est celle d'un COMPTE du portail (la fiche existe), '' sinon — sans jamais en créer un pour un inconnu */
+        dossierDe: (adr) => { const a = adrNue(adr); return (a && Object.prototype.hasOwnProperty.call(clientsData || {}, a) && dossiersMod) ? dossiersMod.numeroDe(a) : ''; },
         /* NOS domaines : celui de l'expéditeur de la configuration, teamop.fr et ceux des boîtes connectées — un mail de chez nous n'appelle jamais de réponse.
            ⚠️ Mais un domaine de messagerie PUBLIQUE (gmail.com, orange.fr…) n'est pas « chez nous » parce qu'une de nos adresses y vit : pour lui, seules nos
            adresses EXACTES comptent (`adressesNotres`) — sinon tous les clients qui écrivent depuis la même messagerie seraient ignorés. */
@@ -10597,6 +10629,8 @@ try {
       /* LES DOCUMENTS : courriels d'agents, mise en demeure, annonce — la validation de Justin, l'aperçu, l'empreinte. */
       try {
         docsAgentsMod = require('./agents-documents')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, mail: messagerieTour, direction: directionMod, fichier: fichierGestion, sansAdresses,
+          /* la signature des quatre agents de la gestion est celle du registre que Justin règle depuis la Tour — la même que celle de Léa, Camille et Chloé (`agents-signature.js`) */
+          signatures: signaturesMod,
           diffuser: diffuserAnnonceClients, destinataires: () => annonceDestinataires().size });
       } catch (e) { docsAgentsMod = null; console.error('documents des agents indisponibles :', e.message); }
       gestionClients = { dossierDeSlug, emailDeDossier, slugDeDossier, resilierEntreprise, impayesMargaux, factureMargaux };
@@ -10630,7 +10664,7 @@ try {
       const capaciteCamille = nom => { try { return (require('./agent-camille').CAPACITES || []).includes(nom); } catch (e) { return false; } };
       examenMod = require('./examen')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, cerveau: cerveauMod, pousseNotif, mail: { signature: messagerieTour.signature },
         cleApi: (config.agents && config.agents.cleApi) || '',
-        capacites: { signatureAgent: typeof messagerieTour.signatureDe === 'function', controleQualite: typeof require('./agents-connaissance').controleQualite === 'function',
+        capacites: { signatureAgent: !!(signaturesMod && typeof signaturesMod.composer === 'function'), controleQualite: typeof require('./agents-controle').fautesDuCode === 'function',
           remboursement: capaciteCamille('remboursement'), resiliation: capaciteCamille('resiliation') } });
       console.log('agents : examen de l’équipe monté');
     } catch (e) { examenMod = null; console.error('examen de l’équipe indisponible :', e.message); }

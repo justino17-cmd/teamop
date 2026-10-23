@@ -95,8 +95,9 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   const res = (await S.G('/api/monitor/agents/examen/resultat?id=' + L.j.id)).j.resultat;
   v('le bilan : 9 réussis, aucun échec, rien d’inconnu', [res.bilan.ok, res.bilan.ko, res.bilan.inconnu, res.etat, res.source], [9, 0, 0, 'termine', 'tour']);
   v('les neuf scénarios, dans l’ordre, avec leurs contrôles et leurs conversations', [res.scenarios.map(s => s.n), res.scenarios.every(s => s.verifs.length >= 5 && s.titre.length > 20)], [[1, 2, 3, 4, 5, 6, 7, 8, 9], true]);
-  v('les quatre comportements d’autres chantiers sont « en attente » (signature, contrôle qualité, remboursement, résiliation)', res.scenarios.reduce((n, s) => n + s.verifs.filter(x => x.etat === 'attente').length, 0), 4);
-  vrai('…et ils NOMMENT le chantier qui les livre', res.scenarios.every(s => s.verifs.filter(x => x.etat === 'attente').every(x => /chantier auto-commercial/.test(x.detail))));
+  /* 23 octobre 2026 (fusion de l'intégration) : le serveur DÉCLARE les quatre capacités du chantier commercial (signature par agent, contrôle qualité, refus de remboursement, résiliation) à partir des
+     modules qu'il monte — et la sortie les PROUVE : aucune n'est plus « en attente », aucune n'est ✗. */
+  v('les quatre comportements du chantier commercial sont livrés : ✓ (déclarés par le serveur, prouvés par la sortie), aucune « attente »', [res.scenarios.reduce((n, s) => n + s.verifs.filter(x => x.etat === 'attente').length, 0), ['signé « Léa »', 'contrôle qualité du serveur vert', 'remboursement — refus poli', 'résiliation — l’accusé annonce'].map(l => res.scenarios.reduce((n, s) => n + s.verifs.filter(x => x.libelle.includes(l) && x.etat === 'ok').length, 0))], [0, [1, 1, 1, 1]]);
   vrai('le coût réel de l’examen est dit : appels, dollars, durée', res.appels > 20 && res.appels === recus().length && res.usd > 0 && res.duree >= 0, res.appels + ' appels ; ' + recus().length + ' reçus');
   vrai('le résumé de la liste ne porte pas les conversations (léger), le détail oui', g1.resultats[0].scenarios.every(s => !('conversation' in s)) && res.scenarios.filter(s => s.n < 9).every(s => s.conversation.length >= 2));
 

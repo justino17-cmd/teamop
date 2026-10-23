@@ -96,7 +96,7 @@ const SCHEMAS = {
      · `rendez_vous_prospect` / `choix_creneau` : Camille passe à Emma un prospect (par son numéro de dossier) qui veut être appelé, puis le créneau qu'il a choisi ;
      · `courrier_agent`, `mise_en_demeure`, `annonce_clients` : un DOCUMENT rangé par `agents-documents.js` (`ref`) que Justin relit puis valide. La mise en demeure et l'annonce à
        tous les clients ne partent JAMAIS autrement. */
-  resilier_fin_periode: { espace: SLUG },
+  resilier_fin_periode: { espace: SLUG },   // la forme de la VALIDATION (et de la demande de Justin) ; la TÂCHE de Camille porte le dossier : voir `AUTRES_FORMES_TACHE`
   rendez_vous_prospect: { dossier: REF },
   choix_creneau:        { dossier: REF, creneau: ['1', '2', '3', '4', '5', 'aucun'] },
   courrier_agent:       { ref: REF },
@@ -105,6 +105,13 @@ const SCHEMAS = {
 };
 const TYPES_VALIDATION = ['creer_espace', 'suspendre_acces', 'envoyer_mail', 'publier', 'repondre_avis', 'correctif', 'resilier_fin_periode', 'courrier_agent', 'mise_en_demeure', 'annonce_clients'];
 const TYPES_TACHE = ['verifier_paiement', 'preparer_espace', 'escalade_humain', 'signaler_erreur', 'relire_envoi', 'resilier_fin_periode', 'rendez_vous_prospect', 'choix_creneau'];
+/* DEUX FORMES POUR UNE MÊME DEMANDE (fusion de l'intégration, 23 octobre 2026). « Je veux arrêter » : Camille (le courrier) ne connaît que le NUMÉRO DE DOSSIER du client
+   (jamais un nom d'accès : elle ne lit pas l'annuaire) et le dépose à Hugo (`{ dossier }`) quand l'expéditeur est authentifié ET l'adresse du compte ; Hugo (la gestion) retrouve
+   l'espace par ce numéro (`espaceDeDossier`), et c'est lui qui écrit la VALIDATION, sur l'espace (`{ espace }`), que Justin accepte. Deux chantiers avaient écrit chacun leur forme
+   pour le même type : l'une est la forme de la validation, l'autre celle de la tâche — aucune ne sert l'autre usage. Les formes alternatives ne valent QUE pour `deposer` (une
+   tâche) : `proposer` (une validation) n'accepte que la forme principale de `SCHEMAS`, celle que l'exécuteur de Hugo lit. */
+const DOSSIER = /^DOS-\d{6}$/;
+const AUTRES_FORMES_TACHE = { resilier_fin_periode: [{ dossier: DOSSIER }] };
 
 const JOURNAL_MAX = 2000;
 const TACHES_MAX = 500;
@@ -126,9 +133,8 @@ const SANS_CONSIGNE_LIBRE = ['hugo', 'margaux'];   // l'argent et les accès : d
 /* Valide `params` contre le schéma de `type`. Rend les paramètres NETTOYÉS (uniquement les champs du
    schéma, rien d'autre ne passe) ou null. Un champ en trop, un champ manquant, une valeur hors forme,
    un type de valeur autre que chaîne : null. */
-function paramsValides(type, params) {
-  const schema = Object.prototype.hasOwnProperty.call(SCHEMAS, type) ? SCHEMAS[type] : null;
-  if (!schema || !params || typeof params !== 'object' || Array.isArray(params)) return null;
+function formeValide(schema, params) {
+  if (!params || typeof params !== 'object' || Array.isArray(params)) return null;
   const cles = Object.keys(params);
   if (cles.length !== Object.keys(schema).length) return null;
   const propre = {};
@@ -140,6 +146,18 @@ function paramsValides(type, params) {
     propre[k] = v;
   }
   return propre;
+}
+/* `tache` (vrai pour `deposer` seulement) : les formes alternatives d'une demande entre agents sont permises. */
+function paramsValides(type, params, tache) {
+  const schema = Object.prototype.hasOwnProperty.call(SCHEMAS, type) ? SCHEMAS[type] : null;
+  if (!schema) return null;
+  const propre = formeValide(schema, params);
+  if (propre || !tache) return propre;
+  for (const alt of (Object.prototype.hasOwnProperty.call(AUTRES_FORMES_TACHE, type) ? AUTRES_FORMES_TACHE[type] : [])) {
+    const q = formeValide(alt, params);
+    if (q) return q;
+  }
+  return null;
 }
 
 module.exports = function monterAgents(app, ctx) {
@@ -264,7 +282,7 @@ module.exports = function monterAgents(app, ctx) {
     if (!p.ok) { noter(de, 'deposer', { cible: type, resultat: 'refuse', detail: p.raison }); return { ok: false, raison: p.raison }; }
     if (!IDS.has(vers) || vers === de) { noter(de, 'deposer', { cible: type, resultat: 'refuse', detail: 'destinataire' }); return { ok: false, raison: 'destinataire' }; }
     if (!TYPES_TACHE.includes(type)) { noter(de, 'deposer', { cible: type, resultat: 'refuse', detail: 'type inconnu' }); return { ok: false, raison: 'type_inconnu' }; }
-    const propre = paramsValides(type, params);
+    const propre = paramsValides(type, params, true);
     if (!propre) { noter(de, 'deposer', { cible: type, resultat: 'refuse', detail: 'paramètres hors forme' }); return { ok: false, raison: 'params' }; }
     perimer();
     const k = { id: nouvelId(), ts: maintenant(), de, vers, type, params: propre, statut: 'attente' };
@@ -540,6 +558,7 @@ module.exports = function monterAgents(app, ctx) {
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;
 module.exports.SCHEMAS = SCHEMAS;
+module.exports.AUTRES_FORMES_TACHE = AUTRES_FORMES_TACHE;
 module.exports.TYPES_VALIDATION = TYPES_VALIDATION;
 module.exports.TYPES_TACHE = TYPES_TACHE;
 module.exports.paramsValides = paramsValides;

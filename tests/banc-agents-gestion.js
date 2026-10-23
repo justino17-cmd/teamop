@@ -65,7 +65,9 @@ function monter(o) {
   };
   const fichier = require(S('agents-fichier.js'))(D);
   const diffusions = [];
-  const documents = require(S('agents-documents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, mail, direction, fichier, maintenant,
+  /* `o.signatures` : le REGISTRE des signatures du chantier commercial (`agents-signature.js`, réglable par la Tour) branché sur les documents — comme le fait `index.js` ; sans lui, la signature par défaut du module. */
+  const signatures = o.signatures ? require(S('agents-signature.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, fichier }) : undefined;
+  const documents = require(S('agents-documents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, mail, direction, fichier, maintenant, signatures,
     diffuser: async (doc) => { if (o.panneDiffusion) throw new Error('smtp en panne'); diffusions.push(doc); return { envoyes: o.destinataires === undefined ? 12 : o.destinataires, refus: 0 }; },
     destinataires: () => (o.destinataires === undefined ? 12 : o.destinataires) });
 

@@ -183,9 +183,17 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   vrai('…provenance, coût et durée : « depuis la Tour », appels, dollars', /depuis la Tour/.test(h) && /\d+ appels/.test(h) && /\d+(,\d+)? \$/.test(h));
   for (let n = 1; n <= 9; n++) vrai('scénario ' + n + ' : son titre et son verdict (« Réussi »)', new RegExp(n + '\\. ' + T.EX.res[R0.id].scenarios[n - 1].titre.slice(0, 18).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(h.replace(/&#39;/g, '\'')) && T.EX.res[R0.id].scenarios[n - 1].etat === 'ok');
   vrai('chaque contrôle porte son signe (✓) et un libellé lisible', (T.exVue().match(/class="ex-v ok"/g) || []).length > 40, (T.exVue().match(/class="ex-v ok"/g) || []).length);
-  vrai('⛔ les quatre comportements « en attente » sont montrés avec leur signe « … », sans passer pour des ✓', (T.exVue().match(/class="ex-v attente"/g) || []).length === 4 && /en attente de la signature par agent/.test(h) && /en attente de le contrôle qualité/.test(h) && /en attente de la réponse « pas de remboursement/.test(h) && /en attente de l’accusé de résiliation/.test(h));
-  vrai('…et le scénario qui en porte dit « 2 en attente d’un module »', (h.match(/2 en attente d’un module/g) || []).length === 2);
-  vrai('chaque verdict a aussi un texte pour un lecteur d’écran (« Réussi : », « En attente : »)', /Réussi : /.test(h) && /En attente : /.test(h));
+  /* 23 octobre 2026 (fusion de l'intégration) : le serveur LIVRE désormais les quatre comportements du chantier commercial — le résultat réel n'a plus aucune ligne « en attente ». L'écran sait pourtant
+     toujours MONTRER une attente (un module qui manquerait) : on le prouve sur un scénario fabriqué, jamais en la faisant passer pour un ✓. */
+  vrai('⛔ le résultat réel : les quatre comportements du chantier commercial sont livrés — aucune ligne « en attente » à l\'écran', (T.exVue().match(/class="ex-v attente"/g) || []).length === 0 && !/en attente de /.test(h) && !/en attente d’un module/.test(h));
+  const ATT = { n: 6, titre: 'Le premier courriel de Léa, signé et contrôlé', etat: 'attente', appels: 3, duree: 4, conversation: [],
+    verifs: [{ libelle: 'Léa — signé « Léa » par le serveur (prénom de l’agent, ajouté à l’envoi)', etat: 'attente', detail: 'en attente de la signature par agent (chantier auto-commercial) — constat : signature ajoutée : « »' },
+      { libelle: 'Léa — contrôle qualité du serveur vert sur chaque courriel', etat: 'attente', detail: 'en attente de le contrôle qualité automatique des mails (chantier auto-commercial) — constat : le contrôle qualité des mails n’est pas dans ce serveur' },
+      { libelle: 'Léa — « Bonjour, » en tête', etat: 'ok', detail: '' }] };
+  const hAtt = T.exScenarioHtml(ATT, 'att');
+  vrai('⛔ une ATTENTE (module absent) est montrée avec son signe « … », nommée, sans passer pour un ✓', (hAtt.match(/class="ex-v attente"/g) || []).length === 2 && /en attente de la signature par agent/.test(texte(hAtt)) && /en attente de le contrôle qualité/.test(texte(hAtt)) && (hAtt.match(/class="ex-v ok"/g) || []).length === 1);
+  vrai('…et le scénario qui en porte dit « 2 en attente d’un module »', /2 en attente d’un module/.test(texte(hAtt)), texte(hAtt).slice(0, 300));
+  vrai('chaque verdict a aussi un texte pour un lecteur d’écran (« Réussi : », « En attente : »)', /Réussi : /.test(h) && /En attente : /.test(hAtt));
   vrai('la conversation est repliée par défaut (bouton « Voir la conversation (n) »)', /Voir la conversation \(\d+\)/.test(h) && !/class="ex-conv"/.test(T.exVue()));
   T.exBasculer(R0.id + ':1');
   let h1 = T.exVue();

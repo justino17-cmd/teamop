@@ -118,7 +118,18 @@ module.exports = function documents(app, ctx) {
     return r.ok ? proposer(r.ref) : r;
   }
 
-  const signatureDe = e => (e.type === 'mise_en_demeure' ? SIGNATURE_LETTRE : OPS.signatureAgent(e.agent));
+  /* LA SIGNATURE (fusion de l'intégration, 23 octobre 2026) : celle du registre des signatures (`agents-signature.js`, que Justin règle depuis la Tour — le rôle de chacun, le nom de l'équipe),
+     composée avec l'adresse de la boîte qui ENVOIE ; à défaut de registre branché, celle de `agents-courriers-ops.js` — la même mise en forme. Seuls les quatre agents de la gestion en ont une
+     (`OPS.signatureAgent` rend '' pour les autres : pas de signature, pas de courriel). */
+  const signatures = ctx.signatures && typeof ctx.signatures.composer === 'function' ? ctx.signatures : null;
+  const adresseBoite = () => { try { const id = mail.boiteParRole('contact'); const b = (typeof mail.boites === 'function' ? mail.boites() : []).find(x => x && x.id === id); return (b && b.email) || ''; } catch (e) { return ''; } };
+  const signatureDe = e => {
+    if (e.type === 'mise_en_demeure') return SIGNATURE_LETTRE;
+    const base = OPS.signatureAgent(e.agent);
+    if (!base || !signatures) return base;
+    let s = ''; try { s = signatures.composer(e.agent, adresseBoite()); } catch (x) { s = ''; }
+    return s || base;
+  };
 
   /* L'ENVOI d'un document déjà rangé. Jette s'il n'existe pas, n'attend plus, ou part déjà. */
   async function envoyer(ref) {

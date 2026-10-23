@@ -48,7 +48,7 @@ const lesEnvois = m => m.envoyes.map(e => e.objet);
   r = await m.margaux.passer();
   v('à J+3 : UNE relance, envoyée seule (mode « auto », charte « relancer un impayé » ouverte)', [r.relances, m.envoyes.length], [1, 1]);
   const e3 = m.envoyes[0];
-  v('…à l\'adresse de FACTURATION de Stripe (pas celle du compte), par la boîte contact, signée Margaux', [e3.a, e3.boiteId, e3.signature.split('\n').slice(0, 2).join(' | ')], ['facturation-alpha@exemple-2912.fr', 'b-contact', 'Margaux | Assistante virtuelle · Équipe TeamOP']);
+  v('…à l\'adresse de FACTURATION de Stripe (pas celle du compte), par la boîte contact, signée Margaux', [e3.a, e3.boiteId, e3.signature.split('\n')[0]], ['facturation-alpha@exemple-2912.fr', 'b-contact', 'Margaux — Assistante virtuelle — Équipe TeamOP']);
   vrai('…avec le lien de la facture relue chez Stripe, son numéro et son montant — et ton courtois', e3.texte.includes(URL1) && /AB12-0001/.test(e3.texte) && /15 €/.test(e3.texte) && !/recouvrement/.test(e3.texte));
   vrai('…ni nom ni adresse du compte dans ce qui part', !/Alpha/.test(e3.texte + e3.objet) && !/@exemple-2911/.test(e3.texte));
   vrai('…et une ligne de journal « relance J+3 », sans adresse', m.journal().some(e => e.action === 'relance J+3' && e.resultat === 'ok' && e.cible === 'DOS-000001') && !/exemple-2912/.test(JSON.stringify(m.journal())));

@@ -72,7 +72,7 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   let cs = await S.courriels();
   v('l\'accusé de réception part à l\'adresse du COMPTE d\'Alpha (celle de l\'annuaire), par la boîte contact', [cs.length, cs[0].to.includes('alpha@exemple-2917.fr'), /Votre demande d’arrêt/.test(cs[0].subject)], [1, true, true]);
   const finTxt = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(FIN_SEC * 1000));
-  vrai('…avec la date de fin de période de Stripe, la signature de Hugo, sans remboursement ni arrêt immédiat', cs[0].text.includes(finTxt) && /Hugo\s+Assistant virtuel · Équipe TeamOP/.test(cs[0].text) && !/rembours|immédiat/i.test(cs[0].text) && !/SIGNATURE|L'équipe TEAM OP\nsupport/.test(cs[0].text));
+  vrai('…avec la date de fin de période de Stripe, la signature de Hugo, sans remboursement ni arrêt immédiat', cs[0].text.includes(finTxt) && /Hugo — Assistant virtuel — Équipe TeamOP/.test(cs[0].text) && !/rembours|immédiat/i.test(cs[0].text) && !/SIGNATURE|L'équipe TEAM OP\nsupport/.test(cs[0].text));
   const fh = (await S.get('/api/monitor/conversations/hugo')).j.messages.filter(m => m.de === 'hugo');
   vrai('Justin est prévenu dans le fil de Hugo : le dossier, la date, « aucun remboursement » — sans nom ni adresse', fh.some(m => /DOS-000001/.test(m.texte) && /aucun remboursement/.test(m.texte)) && !/Alpha|exemple-2917/.test(JSON.stringify(fh)));
   const fc = (await S.get('/api/monitor/conversations/clients')).j.messages.filter(m => m.de === 'hugo').map(m => m.texte);
@@ -91,7 +91,7 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   cs = await S.courriels();
   const rel = cs[1];
   v('la relance part à l\'adresse de FACTURATION de Stripe (pas celle du compte)', [cs.length, rel.to.includes('facturation-beta@exemple-2917.fr'), rel.to.includes('beta@exemple-2917.fr') && !rel.to.includes('facturation-beta')], [2, true, false]);
-  vrai('…avec la page de la facture en attente RELUE chez Stripe, son numéro, son montant ; signée Margaux ; ton courtois', rel.text.includes('https://invoice.stripe.com/i/acct_banc/live_beta') && /BETA-0001/.test(rel.text) && /15 €/.test(rel.text) && /Margaux\s+Assistante virtuelle · Équipe TeamOP/.test(rel.text) && !/recouvrement/.test(rel.text));
+  vrai('…avec la page de la facture en attente RELUE chez Stripe, son numéro, son montant ; signée Margaux ; ton courtois', rel.text.includes('https://invoice.stripe.com/i/acct_banc/live_beta') && /BETA-0001/.test(rel.text) && /15 €/.test(rel.text) && /Margaux — Assistante virtuelle — Équipe TeamOP/.test(rel.text) && !/recouvrement/.test(rel.text));
   vrai('…et aucune écriture chez Stripe pour ça', S.stripe().appels.filter(a => a.m !== 'GET').length === 1);
   await S.post('/api/monitor/agents/margaux/passer');
   v('⛔ un second passage le même jour : AUCUNE autre relance', (await S.courriels()).length, 2);
@@ -190,7 +190,7 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   await S.attendre(async () => (await S.courriels()).some(c => c.to.includes('gamma@exemple-2917.fr')));
   cs = await S.courriels();
   const cr = cs.find(c => c.to.includes('gamma@exemple-2917.fr')) || cs[cs.length - 1];
-  vrai('le courriel part à l\'adresse du DOSSIER (celle de Gamma, qui n\'a pas d\'espace), signé Emma, trois créneaux à l\'heure de Paris', cr.to.includes('gamma@exemple-2917.fr') && /Emma\s+Assistante virtuelle/.test(cr.text) && /1\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && /3\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && !/Justin|Gamma/.test(cr.text));
+  vrai('le courriel part à l\'adresse du DOSSIER (celle de Gamma, qui n\'a pas d\'espace), signé Emma, trois créneaux à l\'heure de Paris', cr.to.includes('gamma@exemple-2917.fr') && /Emma — Assistante virtuelle — Équipe TeamOP/.test(cr.text) && /1\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && /3\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && !/Justin|Gamma/.test(cr.text));
   vrai('…et le rendez-vous à venir se lit dans la Tour une fois choisi (liste vide pour l\'instant)', (await S.get('/api/monitor/agents/emma/disponibilites')).j.rendezVous.length === 0);
   vrai('les fils ne portent ni nom ni adresse (Emma, Hugo, Margaux, Sarah, Clients)', !/Alpha|Beta|Gamma|exemple-2917/.test(JSON.stringify(await Promise.all(['emma', 'hugo', 'margaux', 'sarah', 'clients'].map(async f => (await S.get('/api/monitor/conversations/' + f)).j.messages)))));
   await fermer(S);
@@ -230,6 +230,27 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   vrai('(population) la liste a été relue et l\'abonnement sûr d\'Alpha y est : seul le doute a retenu la main', S.stripe().appels.some(a => a.m === 'GET' && /^\/v1\/subscriptions\?/.test(a.u)) && S.stripe().abos.some(a => a.id === 'sub_alpha'));
   await fermer(S);
 
+  /* ═══════════════ LA TÂCHE DE CAMILLE PORTE UN NUMÉRO DE DOSSIER (fusion de l'intégration, 23 octobre 2026) ═══════════════
+     Camille (le courrier) ne connaît que le dossier du client : sa demande fermée est `{ dossier }`, celle de Justin et de la file de validations est `{ espace }` (`AUTRES_FORMES_TACHE`, agents.js).
+     Hugo retrouve l'espace par le numéro, avec l'annuaire du SERVEUR — et un numéro qu'il ne retrouve pas ne devine rien. */
+  console.log('\n9 bis. La demande de Camille par numéro de dossier');
+  const TACHE_DOSSIER = (id, dossier) => Object.assign(TACHE(id, 'resilier_fin_periode', 'x'), { params: { dossier } });
+  S = await demarrer({ modes: MODES, clients: CLIENTS, espaces: ESPACES, abos: ABOS(), taches: [TACHE_DOSSIER('k1', 'DOS-000001')] });
+  serveurs.push(S);
+  if (!S.vivant) { console.log(S.journal().slice(0, 800)); process.exit(1); }
+  await S.post('/api/monitor/agents/hugo/passer');
+  await S.attendre(async () => (await S.courriels()).length >= 1);
+  v('⛔ la tâche « dossier » de Camille : UNE écriture chez Stripe, celle de l\'abonnement du dossier DOS-000001 (Alpha), et l\'accusé part à l\'adresse de SON compte', [S.stripe().appels.filter(a => a.m !== 'GET').map(a => [a.m, a.u, a.corps]), (await S.courriels()).length, (await S.courriels())[0].to.includes('alpha@exemple-2917.fr'), (await S.get('/api/monitor/agents/taches')).j.taches.find(t => t.id === 'k1').statut],
+    [[['POST', '/v1/subscriptions/sub_alpha', 'cancel_at_period_end=true']], 1, true, 'faite']);
+  await fermer(S);
+  S = await demarrer({ modes: MODES, clients: CLIENTS, espaces: ESPACES, abos: ABOS(), taches: [TACHE_DOSSIER('k1', 'DOS-999999')] });
+  serveurs.push(S);
+  if (!S.vivant) { console.log(S.journal().slice(0, 800)); process.exit(1); }
+  await S.post('/api/monitor/agents/hugo/passer');
+  v('⛔ un numéro de dossier INTROUVABLE ne devine aucun espace : aucune écriture chez Stripe, aucun accusé, la tâche en échec — et Justin le sait', [S.stripe().appels.filter(a => a.m !== 'GET').length, (await S.courriels()).length, (await S.get('/api/monitor/agents/taches')).j.taches.find(t => t.id === 'k1').statut,
+    (await S.get('/api/monitor/conversations/hugo')).j.messages.some(m => m.de === 'hugo' && /DOS-999999/.test(m.texte) && /Il faut que tu regardes/.test(m.texte))], [0, 0, 'echec', true]);
+  await fermer(S);
+
   /* ═══════════════ LE BILAN DE TOUT LE BANC : CE QUI A ÉTÉ ÉCRIT CHEZ STRIPE ═══════════════ */
   console.log('\n9. Tout ce banc : les écritures vers Stripe');
   const tous = bilans.flatMap(b => b.appels);
@@ -243,6 +264,7 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   /* ce qui part chez Anthropic est DÉCLARÉ : le fait « facture » de Margaux (statut, montant, jour/mois/année) est lu dans le CODE (pas dans une phrase), puis cherché dans les deux pages */
   const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   vrai('(population) le serveur produit bien le fait « facture » (statut, montantEur, annee) pour les agents', /faitsAgents\.facture\s*=\s*async/.test(CODE) && /montantEur:\s*Number\.isFinite\(x\.amount_due\)/.test(CODE));
+  vrai('⛔ le serveur branche le REGISTRE des signatures sur les documents des agents de gestion (la signature de Hugo, Margaux, Emma et Sarah est celle que Justin règle dans la Tour)', /require\('\.\/agents-documents'\)\(app, \{[^}]*\bsignatures: signaturesMod\b/.test(CODE));
   for (const page of ['sous-traitance.html', 'registre-traitements.html']) {
     const h = fs.readFileSync(path.join(RACINE, page), 'utf8').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
     vrai('⛔ ' + page + ' déclare le statut, le montant et la date des dernières factures transmis à Anthropic pour l\'agent de facturation', /statut, le montant en euros et le jour, le mois et l.année d.émission des\s+trois dernières factures/.test(h));

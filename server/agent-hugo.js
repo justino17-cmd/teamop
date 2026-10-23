@@ -193,7 +193,19 @@ module.exports = function hugo(ctx) {
         n++;
         let res;
         try {
-          if (k.type === 'resilier_fin_periode') { const r = await demanderFinAbonnement(k.params.espace, { de: k.de }); res = { ok: !!(r && (r.ok || r.propose)), resume: r && (r.etat || (r.propose ? 'déposée en validation' : r.raison || r.saute)) }; }
+          if (k.type === 'resilier_fin_periode') {
+            /* Deux formes de la même demande (`AUTRES_FORMES_TACHE`, agents.js) : `{ espace }` (Justin, la file de validations) ou `{ dossier }` (Camille, qui ne connaît que le numéro de dossier
+               du client). Le dossier se retrouve en espace ICI, par l'annuaire du serveur : un dossier qu'on ne retrouve pas ne devine aucun espace, il se DIT à Justin. */
+            let slug = k.params.espace || '';
+            if (!slug && k.params.dossier) { try { slug = (await espaceDeDossier(k.params.dossier)) || ''; } catch (e) { slug = ''; } }
+            if (!slug) {
+              dire('Je n’ai PAS programmé la fin d’abonnement du dossier ' + (k.params.dossier || '(sans numéro)') + ' : je ne retrouve pas d’entreprise pour ce numéro. Il faut que tu regardes.', 'urgent');
+              res = { ok: false, resume: 'dossier introuvable' };
+            } else {
+              const r = await demanderFinAbonnement(slug, { de: k.de });
+              res = { ok: !!(r && (r.ok || r.propose)), resume: r && (r.etat || (r.propose ? 'déposée en validation' : r.raison || r.saute)) };
+            }
+          }
           else res = await verifierPaiement(k);
         } catch (e) { res = { ok: false, resume: 'erreur' }; agents.noter(ID, 'tâche', { cible: k.type, resultat: 'erreur', detail: String((e && e.message) || e).slice(0, 100) }); }
         agents.terminer(k.id, ID, res.ok ? 'ok' : 'echec', String(res.resume || ''));

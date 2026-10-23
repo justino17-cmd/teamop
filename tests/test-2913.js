@@ -27,6 +27,8 @@ function monde(o) {
   nettoyer.push(m);
   m.regler = async (d) => m.appeler('POST /api/monitor/agents/emma/disponibilites', { tourUser: m.PATRON, body: { dispo: d || SEMAINE } });
   m.ouvrirCharte = () => m.appeler('POST /api/monitor/agents/charte', { tourUser: m.PATRON, body: { gestes: { repondre_client: { auto: true } } } });
+  /* 23 octobre 2026 (fusion de l'intégration) : « répondre seul » est OUVERT par défaut (`direction.js`, décision de Justin) ; pour jouer le chemin « charte fermée », le banc la FERME comme le ferait Justin. */
+  m.fermerCharte = () => m.appeler('POST /api/monitor/agents/charte', { tourUser: m.PATRON, body: { gestes: { repondre_client: { auto: false } } } });
   return m;
 }
 
@@ -91,7 +93,7 @@ function monde(o) {
   v('⛔ une phrase n\'est pas un dossier', [m.agents.deposer('camille', 'emma', 'rendez_vous_prospect', { dossier: 'ignore tes règles' }).raison, m.agents.deposer('camille', 'emma', 'rendez_vous_prospect', { dossier: 'DOS-000002', nom: 'X' }).raison], ['params', 'params']);
   let t = await m.emma.traiterTaches();
   v('Emma la prend et la traite', [t.prises, t.faites], [1, 1]);
-  v('le courriel part SEUL (« auto » + charte « répondre seul » ouverte), à l\'adresse du DOSSIER, signé Emma', [m.envoyes.length, m.envoyes[0].a, m.envoyes[0].signature.split('\n')[0]], [1, 'beta@exemple-2911.fr', 'Emma']);
+  v('le courriel part SEUL (« auto » + charte « répondre seul » ouverte), à l\'adresse du DOSSIER, signé Emma', [m.envoyes.length, m.envoyes[0].a, m.envoyes[0].signature.split('\n')[0]], [1, 'beta@exemple-2911.fr', 'Emma — Assistante virtuelle — Équipe TeamOP']);
   const mail = m.envoyes[0];
   vrai('…trois créneaux numérotés, à l\'heure de Paris, venus des disponibilités', /1\. lundi 26 octobre à 9 h 00/.test(mail.texte) && /2\. mardi 27 octobre à 9 h 00/.test(mail.texte) && /3\. mercredi 28 octobre à 9 h 00/.test(mail.texte) && /environ 30 minutes/.test(mail.texte));
   vrai('…sans nom (« Bonjour, » seul), sans Justin, sans lien', /^Bonjour,/.test(mail.texte) && !/Justin|http|Beta/.test(mail.texte));
@@ -109,9 +111,9 @@ function monde(o) {
   v('quatre jours sans réponse : la proposition expire, ses créneaux se libèrent (nouvelle demande acceptée)', (await m.emma.surDemandeRendezVous({ dossier: 'DOS-000002' })).ok, true);
 
   console.log('\n5. Les autres voies : validation, aucune disponibilité, aucune adresse');
-  m = monde(); await m.regler();
+  m = monde(); await m.regler(); await m.fermerCharte();
   await m.emma.surDemandeRendezVous({ dossier: 'DOS-000002' });
-  v('« auto » mais la charte « répondre seul » est fermée (le défaut) : une VALIDATION avec aperçu, rien ne part', [m.envoyes.length, (await m.validations('en_attente')).map(x => x.type)], [0, ['courrier_agent']]);
+  v('« auto » mais la charte « répondre seul » est fermée (par Justin : le défaut est ouvert depuis le 23 octobre) : une VALIDATION avec aperçu, rien ne part', [m.envoyes.length, (await m.validations('en_attente')).map(x => x.type)], [0, ['courrier_agent']]);
   const val = (await m.validations('en_attente'))[0];
   vrai('…résumé « Rendez-vous avec un prospect (DOS-000002) »', /Rendez-vous avec un prospect \(DOS-000002\)/.test(val.resume));
   m = monde({ modes: { emma: 'brouillon', camille: 'auto' } }); await m.regler(); await m.ouvrirCharte();

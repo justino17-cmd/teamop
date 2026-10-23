@@ -69,7 +69,7 @@ console.log('\n4. Le serveur : montage, journal des gestes, déclaration');
 vrai('`let examenMod = null;` est déclaré avec les autres modules d’agents', /^let examenMod = null;/m.test(IC));
 vrai('le montage est sous son propre `try` (un échec éteint l’examen et rien d’autre)', /try \{\s*const capaciteCamille[\s\S]{0,200}examenMod = require\('\.\/examen'\)[\s\S]*?\} catch \(e\) \{ examenMod = null; console\.error\('examen de l’équipe indisponible/.test(IC));
 vrai('⛔ les trois écritures sont dans `MON_GESTES` avec une phrase', ["'agents/examen/lancer': 'a lancé l’examen de l’équipe d’agents'", "'agents/examen/cle': 'a créé la clé d’examen de l’équipe'", "'agents/examen/cle/supprimer': 'a supprimé la clé d’examen de l’équipe'"].every(l => INDEX.includes(l)));
-vrai('les capacités d’autres chantiers se lisent dans les modules (fonction ou liste EXPORTÉE), jamais un drapeau levé à la main', /signatureAgent: typeof messagerieTour\.signatureDe === 'function'/.test(IC) && /controleQualite: typeof require\('\.\/agents-connaissance'\)\.controleQualite === 'function'/.test(IC) && /require\('\.\/agent-camille'\)\.CAPACITES/.test(IC) && !/capacites:\s*\{[^}]*:\s*true/.test(montage));
+vrai('les capacités d’autres chantiers se lisent dans les modules (fonction ou liste EXPORTÉE), jamais un drapeau levé à la main', /signatureAgent: !!\(signaturesMod && typeof signaturesMod\.composer === 'function'\)/.test(IC) && /controleQualite: typeof require\('\.\/agents-controle'\)\.fautesDuCode === 'function'/.test(IC) && /require\('\.\/agent-camille'\)\.CAPACITES/.test(IC) && /module\.exports\.CAPACITES = \[[^\]]*\]\.filter\(/.test(lire('server/agent-camille.js')) && !/capacites:\s*\{[^}]*:\s*true/.test(montage));
 
 console.log('\n5. La Tour : la clé ne se range nulle part');
 const exFns = (TOUR.match(/\nfunction ex[A-Z]\w*\(/g) || []);
@@ -88,7 +88,9 @@ vrai('entrer dans l’onglet relit le serveur (`exEntrer`)', /if\(s==='examen'\)
 console.log('\n6. Les bancs sont dans la liste');
 const liste = lire('scripts/bancs-serveur.liste').split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
 v('les bancs du serveur de l’examen sont dans la liste du déploiement', ['tests/test-2930.js', 'tests/test-2931.js', 'tests/test-2932.js', 'tests/test-2934.js'].filter(f => !liste.includes(f)), []);
-vrai('…test-2933 (la Tour) n’y est PAS : il lit `tour.html`, que `main` ne sert pas encore — il tourne dans la suite complète', !liste.includes('tests/test-2933.js') && fs.existsSync(path.join(__dirname, 'test-2933.js')));
+/* 23 octobre 2026 (fusion de l'intégration) : test-2933 (les vraies fonctions de la Tour) est ENTRÉ dans la liste, avec 2916, 2926 et 2927 — sans eux, le bloc Tour des agents n'aurait aucune porte au
+   déploiement du serveur seul (la liste elle-même le dit). Cette ligne affirmait l'inverse depuis la création de 2934 : elle est restée fausse quand la liste a changé. */
+vrai('…test-2933 (la Tour) y est AUSSI : il lit `tour.html`, qui part avec le serveur dans l’intégration, et sans lui l’écran de l’examen n’aurait aucune porte', liste.includes('tests/test-2933.js') && fs.existsSync(path.join(__dirname, 'test-2933.js')));
 vrai('…et l’établi commun existe sans être une suite (son nom ne commence pas par test-)', fs.existsSync(path.join(__dirname, 'banc-examen.js')) && !liste.includes('tests/banc-examen.js'));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

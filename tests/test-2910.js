@@ -99,10 +99,20 @@ const FIN = Math.floor(Date.parse('2026-11-12T10:00:00Z') / 1000);
   vrai('… et jamais api.stripe.com autrement que comme base par défaut', (SRC.match(/api\.stripe\.com/g) || []).length === 1 && /const BASE = 'https:\/\/api\.stripe\.com'/.test(SRC));
 
   console.log('\n2. La signature d\'un agent : composée par le code');
-  v('Hugo', O.signatureAgent('hugo'), 'Hugo\nAssistant virtuel · Équipe TeamOP\ncontact@teamop.fr · teamop.fr');
-  v('Margaux, Emma, Sarah : « Assistante virtuelle »', ['margaux', 'emma', 'sarah'].map(a => O.signatureAgent(a).split('\n')[1]), ['Assistante virtuelle · Équipe TeamOP', 'Assistante virtuelle · Équipe TeamOP', 'Assistante virtuelle · Équipe TeamOP']);
+  /* 23 octobre 2026 (fusion de l'intégration) : la mise en forme est CELLE DE TOUS LES AGENTS (`agents-signature.js`, `formater`) — « Hugo — Assistant virtuel — Équipe TeamOP », puis l'adresse. */
+  v('Hugo', O.signatureAgent('hugo'), 'Hugo — Assistant virtuel — Équipe TeamOP\ncontact@teamop.fr · teamop.fr');
+  v('Margaux, Emma, Sarah : « Assistante virtuelle »', ['margaux', 'emma', 'sarah'].map(a => O.signatureAgent(a).split('\n')[0]), ['Margaux — Assistante virtuelle — Équipe TeamOP', 'Emma — Assistante virtuelle — Équipe TeamOP', 'Sarah — Assistante virtuelle — Équipe TeamOP']);
   v('un agent inconnu, ou un nom piégé (propriété d\'objet), n\'a pas de signature', ['pirate', 'constructor', '__proto__', 'toString', '', null].map(a => O.signatureAgent(a)), ['', '', '', '', '', '']);
-  v('une adresse étrangère ne se glisse pas dans la signature', O.signatureAgent('hugo', 'x@pirate.example').split('\n')[2], 'contact@teamop.fr · teamop.fr');
+  v('une adresse étrangère ne se glisse pas dans la signature', O.signatureAgent('hugo', 'x@pirate.example').split('\n')[1], 'contact@teamop.fr · teamop.fr');
+  v('l\'adresse de la boîte qui envoie (@teamop.fr) est celle de la signature', O.signatureAgent('hugo', 'support@teamop.fr').split('\n')[1], 'support@teamop.fr · teamop.fr');
+  /* UNE définition : la signature du registre que Justin règle depuis la Tour (`composer`) et celle de ce module sont la même mise en forme, pour les quatre agents, à rôle par défaut */
+  {
+    const SIG = require(path.join(RACINE, 'server', 'agents-signature.js'));
+    const agentsListe = require(path.join(RACINE, 'server', 'agents.js')).AGENTS;
+    const registre = SIG(null, { agents: { AGENTS: agentsListe }, fichier: { charger: (n, d) => d, ecrire: () => true, illisible: () => false } });
+    v('(population) les quatre agents de la gestion sont au registre des signatures', ['hugo', 'margaux', 'emma', 'sarah'].filter(a => !agentsListe.some(x => x.id === a)), []);
+    v('⛔ UNE mise en forme : la signature du registre (rôles par défaut) est identique à celle de ce module, pour chacun des quatre et pour chaque boîte', ['hugo', 'margaux', 'emma', 'sarah'].flatMap(a => ['contact@teamop.fr', 'support@teamop.fr'].map(b => registre.composer(a, b) === O.signatureAgent(a, b))), Array(8).fill(true));
+  }
 
   console.log('\n3. Les modèles passent leur propre contrôle, remplis de valeurs hostiles');
   const sain = (nom, m, o) => { const f = O.controle(m && m.objet, m && m.texte, Object.assign({}, m && m.autorises, o)); v(nom, f, []); };
@@ -168,6 +178,7 @@ const FIN = Math.floor(Date.parse('2026-11-12T10:00:00Z') / 1000);
     ['« Justin »', OK.replace('Rien n’est perdu', 'Justin vous écrit. Rien n’est perdu'), 'nom du patron'],
     ['« je suis »', OK.replace('Rien n’est perdu', 'Je suis Hugo. Rien n’est perdu'), 'première personne du singulier'],
     ['une signature écrite à la main', OK + '\n\nHugo\nAssistant virtuel · Équipe TeamOP', 'signature écrite à la main'],
+    ['la signature du serveur écrite à la main', OK + '\n\nHugo — Assistant virtuel — Équipe TeamOP\ncontact@teamop.fr · teamop.fr', 'signature écrite à la main'],
     ['trop court', 'Bonjour,\n\nBien cordialement,', 'longueur hors bornes'],
   ];
   for (const [nom, texte, attendue] of fautif) { const f = avec(texte); vrai('la faute « ' + nom + ' » est refusée (' + attendue + ')', f.includes(attendue)); }
@@ -176,7 +187,7 @@ const FIN = Math.floor(Date.parse('2026-11-12T10:00:00Z') / 1000);
   vrai('un lien teamop.fr est permis', O.controle(base.objet, OK.replace('Rien n’est perdu', 'Voyez https://teamop.fr/tarifs.html. Rien n’est perdu'), base.autorises).length === 0);
   vrai('le numéro de facture autorisé n\'est pas pris pour un téléphone (9 chiffres ou plus)', O.controle(base.objet, OK.replace('A-1', '2026-10-123456'), { liens: [url], montants: [15], permis: ['2026-10-123456'] }).length === 0
     && O.controle(base.objet, OK.replace('A-1', '2026-10-123456'), { liens: [url], montants: [15] }).includes('numéro de téléphone'));
-  vrai('(population) 21 fautes jouées, aucune ne passe', fautif.every(([, texte]) => avec(texte).length > 0) && fautif.length === 21);
+  vrai('(population) 22 fautes jouées, aucune ne passe', fautif.every(([, texte]) => avec(texte).length > 0) && fautif.length === 22);
   const lettre = O.controle(md.objet, md.texte, Object.assign({ lettre: true }, md.autorises));
   v('la lettre n\'est pas contrôlée comme un courriel (« Madame, Monsieur, » … « Cordialement, »)', lettre, []);
   vrai('…mais un courriel contrôlé comme lettre ne passe pas', O.controle(base.objet, OK, Object.assign({ lettre: true }, base.autorises)).includes('ne commence pas par la formule d’appel'));

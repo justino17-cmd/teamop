@@ -19,7 +19,10 @@ const GESTES = {
   envoyer_acces:    { libelle: 'Envoyer les accès une fois le contrat accepté',        auto: true },
   relancer_impaye:  { libelle: 'Relancer un impayé',                                   auto: true,  jours: [3, 7], bornes: { min: 1, max: 60, n: 4 } },
   suspendre_impaye: { libelle: 'Suspendre un impayé',                                  auto: true,  apresJours: 14, bornes: { min: 3, max: 90 } },
-  repondre_client:  { libelle: 'Répondre seul aux questions courantes par courrier',   auto: false },
+  /* OUVERT PAR DÉFAUT depuis le 23 octobre 2026 (Justin : « je veux que tous mes agents soient autonomes et se débrouillent sans moi »). Ce que le serveur a DÉJÀ enregistré reste
+     tel quel : `charger` relit `agents-charte.json` par-dessus ce défaut. Ouvert ne veut pas dire « sans contrôle » : un courriel ne part seul que si le MODE de l'agent est « auto »
+     (Justin les passe un à un), que le contrôle qualité l'a jugé bon, que l'expéditeur est authentifié, et dans les plafonds — voir `agents-brouillons.js`. */
+  repondre_client:  { libelle: 'Répondre seul aux questions courantes par courrier',   auto: true },
   rembourser:       { libelle: 'Rembourser ou faire un geste commercial',              auto: false, plafondEur: 0, bornes: { min: 0, max: 500 } },
   mise_en_demeure:  { libelle: 'Mise en demeure',                                      auto: false, fixe: true },
   changer_contrat:  { libelle: 'Changer le texte d’un contrat',                        auto: false, fixe: true },

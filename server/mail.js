@@ -33,6 +33,62 @@ const MAX_TRI = 1500;                  // messages les plus récents examinés p
 const MAX_REGLES = 2000;
 const NON_LUS_MS = Math.max(1, parseInt(process.env.TEAMOP_MAIL_NONLUS_MS, 10) || 20000);   // les non-lus se périment vite, et tout geste qui les change les oublie aussitôt (la variable : pour les bancs seulement)
 
+/* ── CE QUE LES AGENTS ONT LE DROIT DE TOUCHER (23 octobre 2026) ──────────────────────────────────────────────────────────────
+   Justin : « Contrôle, ils ne l'utilisent pas. » ET le cahier : Léa, Chloé et Camille écrivent depuis contact@ ; Camille lit aussi support@. Une LISTE D'AUTORISATION, pas d'exclusion
+   (relecture du 23 octobre 2026) : une exclusion de `controle@` laissait passer `controle+x@`, `ctrl@`, une boîte personnelle ou `compta@` connectée au Courrier — Camille y aurait
+   lu le courrier et répondu seule à des tiers, avec « contact@teamop.fr » en signature, et ces messages seraient partis chez Anthropic. Seules contact@ et support@ sont ouvertes aux
+   agents : la boîte n'est ni lue (la veille ne l'annonce à personne, `lireMessage` rend `null`), ni choisie pour envoyer (`boiteParRole` ne rend qu'elles, `envoyerAgent` refuse
+   toute autre boîte même nommée par son identifiant). Le domaine n'est pas contrôlé : la boîte est une boîte de LA TOUR, ajoutée par le patron. */
+const BOITES_AGENTS = /^(?:contact|support)@/i;
+const boiteAgentOk = b => !!b && BOITES_AGENTS.test(String(b.email || '').trim());
+
+/* ── L'EXPÉDITEUR EST-IL AUTHENTIFIÉ ? — l'en-tête Authentication-Results de NOTRE serveur de réception (RFC 8601), pas celui que l'expéditeur y glisse.
+   Un MTA ajoute son en-tête EN TÊTE du message : le PREMIER est celui du dernier relais (le nôtre), les suivants viennent d'ailleurs et un expéditeur peut en
+   forger autant qu'il veut. On ne lit donc que le premier, ET seulement si son « authserv-id » (le nom du serveur qui l'a écrit) est EXACTEMENT l'un de ceux que le
+   patron a déclarés dans `config.agents.authservIds`. ⛔ AUCUN réglage par défaut (relecture du 23 octobre 2026) : le domaine de l'hôte IMAP et « teamop.fr » servaient
+   de repli, mais ce sont des noms PUBLICS — un expéditeur qui écrit `Authentication-Results: teamop.fr; dkim=pass header.d=victime.com` dans son propre message passait pour
+   authentifié, dès qu'aucun relais ne posait d'en-tête au-dessus du sien. Sans réglage : personne n'est authentifié, donc aucun courriel reçu n'est répondu SEUL (brouillon).
+   Comparaison EXACTE, pas par suffixe : « mx.teamop.fr » n'est pas « teamop.fr ». Reste à vérifier une fois sur le VPS (voir REPRISE) qu'un faux en-tête envoyé de l'extérieur arrive
+   SOUS le vrai : le code ne peut pas le voir.
+   Sans en-tête, avec un authserv-id inconnu, ou sans « dkim=pass » / « spf=pass » ALIGNÉ sur le domaine de l'adresse « De » : non authentifié. Un doute ne vaut jamais « oui ». */
+const domaineNu = d => String(d || '').toLowerCase().replace(/^.*@/, '').replace(/[>\s.;]+$/g, '').replace(/^\.+/, '');
+/* Les suffixes à deux étiquettes les plus courants : « co.uk » n'est le domaine de personne, il ne peut donc pas SIGNER pour tous les .co.uk. (Liste partielle : un parent à deux
+   étiquettes est par ailleurs exigé, c'est le plancher.) */
+const SUFFIXES_PUBLICS = new Set(['co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'com.au', 'net.au', 'org.au', 'co.nz', 'co.jp', 'com.br', 'co.za', 'com.mx', 'co.in', 'com.cn', 'com.tr', 'co.il']);
+/* ALIGNÉ, dans UN seul sens : le domaine qui signe (ou celui du chemin SPF) est le domaine « De », ou l'un de ses PARENTS — jamais l'inverse, et jamais « com » ou « fr » tout seuls.
+   (Un domaine signataire enfant du domaine « De » est refusé : plus strict que le DMARC relaxé, et sans coût — le courriel reste en brouillon.) */
+const aligne = (signe, de) => {
+  signe = domaineNu(signe); de = domaineNu(de);
+  if (!signe || !de || signe.split('.').length < 2 || SUFFIXES_PUBLICS.has(signe)) return false;
+  return de === signe || de.endsWith('.' + signe);
+};
+function authentification(lignes, adresseDe, serveursOk) {
+  const faux = { ok: false, raison: 'aucun en-tête' };
+  const premiere = (Array.isArray(lignes) ? lignes : []).find(h => h && h.key === 'authentication-results');
+  if (!premiere) return faux;
+  const brut = String(premiere.line || '').replace(/^[^:]*:/, '').replace(/\r?\n[ \t]+/g, ' ').trim();
+  const morceaux = brut.split(';').map(x => x.trim()).filter(Boolean);
+  const id = String((morceaux.shift() || '').split(/\s+/)[0] || '').toLowerCase();
+  const connus = (Array.isArray(serveursOk) ? serveursOk : []).map(x => String(x).trim().toLowerCase()).filter(Boolean);
+  if (!id || !connus.includes(id)) return { ok: false, raison: 'serveur inconnu' };
+  const de = domaineNu(adresseDe);
+  if (!de || de.indexOf('.') < 1) return { ok: false, raison: 'expéditeur sans domaine' };
+  for (const m of morceaux) {
+    const dkim = /^dkim\s*=\s*pass\b/i.test(m) && /header\.(?:d|i)\s*=\s*"?@?([^\s";]+)/i.exec(m);
+    if (dkim && aligne(dkim[1], de)) return { ok: true, par: 'dkim', domaine: domaineNu(dkim[1]) };
+    const spf = /^spf\s*=\s*pass\b/i.test(m) && /smtp\.mailfrom\s*=\s*"?([^\s";]+)/i.exec(m);
+    if (spf && /@/.test(spf[1]) && aligne(spf[1], de)) return { ok: true, par: 'spf', domaine: domaineNu(spf[1]) };
+  }
+  return { ok: false, raison: 'ni dkim ni spf aligné' };
+}
+/* Un message AUTOMATIQUE (réponse d'absence, liste de diffusion, accusé) ne reçoit jamais de réponse d'un agent : deux robots qui se répondent bouclent. */
+function enteteAutomatique(headers) {
+  const v = n => { const x = headers && headers.get ? headers.get(n) : undefined; return x == null ? '' : String(typeof x === 'object' && !Array.isArray(x) && x.text ? x.text : x).toLowerCase(); };
+  const sub = v('auto-submitted');
+  if (sub && sub.trim() !== 'no') return true;
+  if (/\b(bulk|list|junk|auto_reply)\b/.test(v('precedence'))) return true;
+  return !!(headers && headers.has && (headers.has('list-id') || headers.has('list-unsubscribe') || headers.has('x-auto-response-suppress') || headers.has('x-autoreply') || headers.has('x-autorespond')));
+}
 module.exports = function monterMessagerie(app, ctx) {
   const { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege } = ctx;
   /* Ce que `server/index.js` branche : le budget horaire (`quotaOk`, le même mécanisme que partout), le masquage
@@ -57,6 +113,8 @@ module.exports = function monterMessagerie(app, ctx) {
   /* Le crochet des agents (Camille) : chaque message neuf, « vrai » et non protégé de la Réception lui est annoncé. SANS ATTENDRE et sans
      jamais casser la veille : un agent qui jette ou qui se fige ne retarde ni la notification de la Tour, ni la boîte suivante. */
   const surNouveauMessage = typeof ctx.surNouveauMessage === 'function' ? ctx.surNouveauMessage : null;
+  /* Les serveurs de RÉCEPTION dont l'en-tête Authentication-Results fait foi (`config.agents.authservIds`, branché par `index.js`). Sans réglage : AUCUN — voir `authentification`. */
+  const authservIds = typeof ctx.authservIds === 'function' ? ctx.authservIds : (() => []);
   const REFUS_PROTEGE = 'E-mail de sécurité (code ou avis d\'une suppression) : la Tour ne le déplace pas, ne le supprime pas, ne le marque pas. Fais-le depuis ta messagerie habituelle.';
   const erreurProtege = () => Object.assign(new Error('protege'), { protege: true });
   async function verifierNonProtege(client, uid) {   // à appeler DANS la boîte ouverte, avant d'agir sur un message
@@ -485,7 +543,15 @@ module.exports = function monterMessagerie(app, ctx) {
         }
         const pour = pers(env.to), copie = pers(env.cc);
         const interlocuteur = interlocuteurDe(b, role, de.adr, pour, copie);
-        return { uid, dossier: chemin, boite: b.id, boiteEmail: b.email,
+        /* Pour les AGENTS seulement (la route de la Tour ne les rend pas) : l'expéditeur est-il authentifié par NOTRE serveur de réception, le message est-il automatique,
+           et à quel message répond-il (In-Reply-To / References). */
+        const extras = marquer ? {} : (() => {
+          let serveurs = []; try { serveurs = (authservIds() || []).slice(); } catch (e) {}   // le SEUL réglage : `config.agents.authservIds` (aucun repli — voir `authentification`)
+          const au = authentification(p.headerLines, de.adr, serveurs);
+          const refs = [].concat(p.inReplyTo || [], p.references || []).map(x => String(x).slice(0, 300)).slice(0, 20);
+          return { authentifie: au.ok === true, authPar: au.ok ? au.par : '', authRaison: au.ok ? '' : au.raison, enteteAuto: enteteAutomatique(p.headers), enReponseDe: refs };
+        })();
+        return Object.assign({ uid, dossier: chemin, boite: b.id, boiteEmail: b.email,
           suivi: suivi[midCle] ? { statut: suivi[midCle].statut, assigne: suivi[midCle].assigne || '' } : null,
           auto: estNotification(de.adr, env.subject),
           interlocuteur, console: consoleDeAdresse(interlocuteur),
@@ -494,7 +560,7 @@ module.exports = function monterMessagerie(app, ctx) {
           ts: env.date ? new Date(env.date).getTime() : 0,
           texte: texte.slice(0, 40000), html: (typeof p.html === 'string' ? p.html : '').slice(0, 400000),
           pieces, mid: String(env.messageId || '').slice(0, 300), protege: estProtege,
-          marque: msg.flags && msg.flags.has ? msg.flags.has('\\Flagged') : false };
+          marque: msg.flags && msg.flags.has ? msg.flags.has('\\Flagged') : false }, extras);
       } finally { lock.release(); }
     });
   }
@@ -514,7 +580,7 @@ module.exports = function monterMessagerie(app, ctx) {
   async function lireMessage(boiteId, dossier, uid) {
     const b = trouve(boiteId);
     const n = parseInt(uid, 10);
-    if (!b || !n) return null;
+    if (!b || !n || !boiteAgentOk(b)) return null;   // controle@ : jamais lue par un agent
     return lireMessageDe(b, String(dossier || '') || 'INBOX', n, false);
   }
 
@@ -661,7 +727,11 @@ module.exports = function monterMessagerie(app, ctx) {
      phrase déjà nettoyée des adresses ; tout le reste (copie, suivi, drapeau) est du rangement et ne fait jamais échouer un envoi parti. */
   async function envoyerCourriel(b, o) {
     const rep = o.rep || null;   // { mid, dossier?, uid? }
-    const options = { from: '"' + (b.nom || 'TEAM OP') + '" <' + b.email + '>', to: o.to.join(', '), subject: o.objet, text: o.texte };
+    const options = { from: '"' + (o.deNom || b.nom || 'TEAM OP') + '" <' + b.email + '>', to: o.to.join(', '), subject: o.objet, text: o.texte };
+    /* Un courriel d'AGENT se déclare automatique (RFC 3834) : le robot d'un tiers qui lit cet en-tête ne répond pas, donc deux automates ne s'écrivent pas en boucle. « auto-replied » pour
+       une réponse à un message reçu, « auto-generated » pour un premier courriel (Léa à une inscription). Jamais sur un envoi de la Tour (un humain). */
+    if (o.auto) options.headers = { 'Auto-Submitted': o.auto === 'auto-replied' ? 'auto-replied' : 'auto-generated' };
+    if (o.messageId) options.messageId = o.messageId;
     if (o.cc && o.cc.length) options.cc = o.cc.join(', ');
     if (o.bcc && o.bcc.length) options.bcc = o.bcc.join(', ');
     if (o.pieces && o.pieces.length) options.attachments = o.pieces;
@@ -703,35 +773,42 @@ module.exports = function monterMessagerie(app, ctx) {
   }
   /* Qui peut envoyer pour les agents : une boîte par son identifiant, jamais une adresse écrite par un agent. */
   const ADRESSE_SIMPLE = /^[^@\s<>",;]+@[^@\s<>",;]+\.[^@\s<>",;]+$/;
-  /* La signature réglée dans le Courrier (`reglages.signature`) : les agents l'ajoutent à l'envoi, le client de la Tour l'ajoute de son côté. */
+  /* La signature réglée dans le Courrier (`reglages.signature`) : celle de JUSTIN, ajoutée par le client de la Tour. Les agents n'en usent plus (depuis le 23 octobre 2026) : la leur vient d'`agents-signature.js`. */
   const signature = () => String(reglages.signature || '');
-  /* « contact » ou « support » : la boîte dont l'adresse COMMENCE par contact@ ou support@, à défaut la première boîte connectée. `null` : aucune boîte. */
+  /* « contact » ou « support » : la boîte dont l'adresse COMMENCE par ce rôle, à défaut l'AUTRE des deux. `null` : aucune des deux n'est connectée — jamais « la première boîte
+     venue » (relecture du 23 octobre 2026 : elle devenait expéditeur ET signature de n'importe quelle boîte non exclue). */
   function boiteParRole(role) {
     const r = String(role || '').toLowerCase();
-    const b = boites.find(x => String(x.email || '').toLowerCase().startsWith(r + '@')) || boites[0];
+    const permises = boites.filter(boiteAgentOk);
+    const b = permises.find(x => String(x.email || '').toLowerCase().startsWith(r + '@')) || permises.find(x => String(x.email || '').toLowerCase().startsWith('contact@')) || permises[0];
     return b ? b.id : null;
   }
   /* L'ENVOI D'UN AGENT, après validation de Justin (ou en mode auto, charte ouverte). Le destinataire est UNE adresse que l'appelant a prise
-     dans la base ou dans l'en-tête d'un mail reçu — jamais dans un texte de Claude ; la signature est ajoutée ici, une seule fois ; le
+     dans la base ou dans l'en-tête d'un mail reçu — jamais dans un texte de Claude ; la signature de L'AGENT (fournie par l'appelant) est ajoutée ici, une seule fois ; le
      budget est celui des agents (30 par heure), séparé de celui de la Tour. */
   async function envoyerAgent(o) {
     o = o || {};
     const b = trouve(o.boiteId);
     if (!b) throw new Error('boîte introuvable');
+    if (!boiteAgentOk(b)) throw new Error('boîte réservée : les agents ne l’utilisent pas');
     const a = String(o.a || '').trim().toLowerCase();
     if (!ADRESSE_SIMPLE.test(a) || a.length > 160) throw new Error('destinataire invalide');
     const objet = monStr(String(o.objet || '').replace(/[\r\n]+/g, ' '), 300).trim() || '(sans objet)';
     let texte = String(o.texte || '').trim();
     if (!texte) throw new Error('message vide');
-    /* Une signature PROPRE à l'appelant (Hugo, Margaux, Emma : « Hugo — Assistant virtuel · Équipe TeamOP », `agents-courriers-ops.js`) remplace celle du Courrier : un seul nom
-       au bas du courriel. Composée par le code de l'appelant, jamais par un texte de Claude ; absente, la signature réglée dans le Courrier s'ajoute comme avant. */
-    const sig = (typeof o.signature === 'string' && o.signature.trim() ? o.signature : signature()).trim();
-    if (sig && !texte.endsWith(sig)) texte += '\n\n' + sig;   // déjà signé (Justin a collé sa signature en corrigeant) : pas deux fois
+    /* ⛔ La signature d'un agent est SA signature (« Léa — Assistante virtuelle — Équipe TeamOP »), posée par le serveur et fournie par l'appelant : jamais celle
+       du Courrier de Justin (qui peut porter son nom — Justin : « c'est hyper contradictoire de mettre Justin si c'est un agent qui répond »). Sans elle, rien ne part (Hugo, Margaux, Emma et Sarah la fournissent aussi : `agents-documents.js` — une seule règle d'envoi pour tous les agents, jamais un repli sur
+       le Courrier de Justin). */
+    const sig = String(o.signature || '').trim();
+    if (!sig) throw new Error('signature de l’agent absente : rien ne part');
+    if (!texte.endsWith(sig)) texte += '\n\n' + sig;   // déjà signé (le texte repart d'un envoi échoué) : pas deux fois
     texte = texte.slice(0, 60000);
     if (!quotaOk) throw new Error('la limite d’envoi n’est pas branchée');
     if (!quotaOk(agentsQuota, 'agents', ENVOIS_AGENTS_PAR_HEURE, 3600000)) throw new Error('limite d’envoi des agents atteinte (' + ENVOIS_AGENTS_PAR_HEURE + ' par heure)');
-    const r = await envoyerCourriel(b, { to: [a], objet, texte, pieces: [], rep: o.enReponseA || null, par: '' });
-    return { copieOk: r.copieOk };
+    const deNom = String(o.deNom || '').replace(/["\r\n<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+    const messageId = '<' + crypto.randomBytes(12).toString('hex') + '@' + (String(b.email).split('@')[1] || 'teamop.fr') + '>';   // connu AVANT l'envoi : la réponse du prospect s'y rattache (In-Reply-To)
+    const r = await envoyerCourriel(b, { to: [a], objet, texte, pieces: [], rep: o.enReponseA || null, par: '', deNom, messageId, auto: o.enReponseA && o.enReponseA.mid ? 'auto-replied' : 'auto-generated' });
+    return { copieOk: r.copieOk, messageId };
   }
 
   /* ⛔ LES DEUX ROUTES QUI PORTENT DES PIÈCES ONT LEUR PROPRE ANALYSEUR (`jsonGros`, 20 Mo), MONTÉ APRÈS `monAdmin`.
@@ -928,7 +1005,7 @@ module.exports = function monterMessagerie(app, ctx) {
           const vrais = (nouveaux || []).filter(m => !m.auto);
           /* Chaque message « vrai » (jamais une notification, jamais un e-mail de sécurité : `protege` les a écartés plus haut) est annoncé aux
              agents — SANS ATTENDRE, et sans que rien de ce qu'ils font puisse remonter ici : la notification de la Tour part dans tous les cas. */
-          if (surNouveauMessage) for (const m of vrais) {
+          if (surNouveauMessage && boiteAgentOk(b)) for (const m of vrais) {
             Promise.resolve().then(() => surNouveauMessage({ boiteId: b.id, dossier: inbox, uid: m.uid })).catch(() => {});
           }
           if (vrais.length && typeof pousseNotif === 'function') {
@@ -945,3 +1022,6 @@ module.exports = function monterMessagerie(app, ctx) {
 
   return { boites: () => boites.map(publique), compter, lireMessage, envoyerAgent, signature, boiteParRole };
 };
+module.exports.authentification = authentification;
+module.exports.enteteAutomatique = enteteAutomatique;
+module.exports.boiteAgentOk = boiteAgentOk;
