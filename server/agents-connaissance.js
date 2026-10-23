@@ -30,17 +30,37 @@ const OFFRE = [
   '- Pointage des heures.',
   '- Droits réglés personne par personne.',
   '',
+  'NOS COURRIELS :',
+  '- Ils partent de l’adresse écrite dans la signature. Une personne qui ne les reçoit pas, ou qui les trouve dans les indésirables (le spam), regarde dans ce dossier, marque le message « non-spam » (« pas un courrier indésirable » dans Outlook) et enregistre l’adresse de la signature dans ses contacts : les suivants arrivent alors normalement dans sa boîte de réception (rien n’est garanti : chaque messagerie trie à sa façon). Tu écris « l’adresse indiquée dans notre signature », jamais l’adresse elle-même (elle dépend de la boîte qui envoie, et la signature la porte déjà).',
+  '',
   'NOTRE DIFFÉRENCE :',
   '- Une formule sur mesure : les catégories dont l’entreprise n’a pas besoin sont retirées, et elles ne sont pas facturées.',
   '- Des catégories peuvent être améliorées, ou créées pour les besoins de l’entreprise, et elles lui sont réservées (confidentielles).',
   '- Des tarifs maîtrisés : à partir de 15 € par mois et par utilisateur (TVA non applicable).',
+  '- Sans engagement de durée : l’abonnement se résilie à tout moment, depuis le Support de l’espace client ou en écrivant à contact@teamop.fr, et l’accès se poursuit jusqu’à la fin de la période réglée. (Seule cette formule exacte, « sans engagement de durée », est permise.)',
   '',
   'LIMITES, À RESPECTER À LA LETTRE :',
   '- Tu ne présentes comme existante AUCUNE fonction absente de la liste ci-dessus. Un besoin propre au métier du client qui n’y figure pas (par exemple le suivi des fluides frigorigènes d’un climaticien) se présente comme « une catégorie que nous pouvons créer pour vous », jamais comme une fonction déjà disponible.',
-  '- Tu ne donnes aucun autre prix que « à partir de 15 € par mois et par utilisateur (TVA non applicable) », aucune date, aucune remise, aucune promesse de délai, aucun engagement juridique, aucun remboursement.',
+  '- Tu ne donnes aucun autre prix que « à partir de 15 € par mois et par utilisateur (TVA non applicable) », aucune date, aucune remise, aucune promesse de délai, aucun engagement juridique autre que « sans engagement de durée », aucun remboursement.',
   '- La période d’essai d’une semaine se propose APRÈS le retour du client, jamais dans le premier message : tu la présentes comme une possibilité « ensuite », sans la promettre.',
-  '- Tu n’écris jamais les mots « gratuit », « offert », « remise », « réduction », « illimité », « garanti », « remboursé », ni « sans engagement » : ce sont des promesses commerciales que personne n’a faites. Tu n’écris aucun nom de site ou d’adresse web autre que « teamop.fr ».',
+  '- Tu n’écris jamais les mots « gratuit », « offert », « remise », « réduction », « illimité », « garanti », « remboursé », ni « sans engagement » seul : ce sont des promesses commerciales que personne n’a faites (« sans engagement de durée » est un fait, voir ci-dessus). Tu n’écris aucun nom de site ou d’adresse web autre que « teamop.fr ».',
 ].join('\n');
+
+/* LES TROIS FORMULES D'OP GESTION (23 octobre 2026) — recopiées des conditions particulières VALIDÉES (`server/contrats-textes/cp_op_gestion_*.txt`) et de `tarifs.html` ; rien des
+   « À CONFIRMER » de ces textes n'y entre (périmètre de la création sur mesure, délai du support prioritaire, disponibilité 24 h/24 : aucun engagement). Chloé en tire sa
+   proposition ; le SEUL endroit où paraissent 25 € et 50 € : `refusDe` les permet à son profil « proposition » et à lui seul. */
+const FORMULES = {
+  pro: { nom: 'OP GESTION Pro', prix: 15, inclus: ['planning des interventions (jour, semaine, mois)', 'fiches clients et historique des passages', 'rapports d’intervention avec photos, signatures et envoi en PDF',
+    'tournées du jour avec carte et ordre optimisé', 'récurrences (contrats) et passages multiples', 'conflits de planning et absences signalés', 'devis et factures', 'pointage des heures',
+    'exports CSV et notifications', 'application web et mobile (iPhone, Android, Mac, PC)'] },
+  business: { nom: 'OP GESTION Business', prix: 25, inclus: ['tout OP GESTION Pro', 'stock avec inventaire et seuils d’alerte', 'bons de commande fournisseurs en PDF, envoyés en un clic', 'commande suggérée, la réception crédite le stock',
+    'boîte mail intégrée, rattachée aux bons', 'télécollecte et comptabilité', 'droits utilisateur fins', 'logo de l’entreprise dans l’application', 'assistance par courriel avec traitement prioritaire'] },
+  premium: { nom: 'OP GESTION Business Premium', prix: 50, inclus: ['tout OP GESTION Business', 'toutes les fonctions d’OP GESTION pour le métier de l’entreprise', 'logo et couleur de l’entreprise pour toute l’équipe',
+    'OP MESSAGES inclus à son ouverture', 'accompagnement à la mise en route et assistance prioritaire'] },
+};
+const PRIX_FORMULES = Object.values(FORMULES).map(f => f.prix);
+const blocFormules = () => ['LES FORMULES D’OP GESTION (prix par mois et par utilisateur, TVA non applicable, sans engagement de durée) — et rien d’autre :'].concat(
+  Object.entries(FORMULES).map(([id, f]) => '- ' + f.nom + ' (' + id + ') : ' + f.prix + ' € ; comprend ' + f.inclus.join(' ; ') + '.')).join('\n');
 
 /* La FORME du courriel, la même pour les deux. Ce que Justin a validé : professionnel, voix de l'entreprise, vouvoiement. */
 const FORME = [
@@ -84,7 +104,11 @@ function lireMail(brut) {
 
 /* Les mots d'une PROMESSE que personne n'a faite (« trois mois gratuits », « formule illimitée », « sans engagement »). Cherchés sur le texte sans accents ni
    majuscules, au début des mots (« garanti » attrape garantie, garantissons). Pas « offre » seul : c'est le nom de notre offre, et le mot revient partout. */
-const PROMESSES = /\b(?:gratuit|offert|offre\s+(?:speciale|exclusive)|offrons|offrirons|remise|rabais|reduction|promotion|illimite|garanti|garantissons|rembours|satisfait\s+ou|sans\s+engagement|sans\s+frais|sans\s+surcout|a\s+vie\b)/;
+const PROMESSES = /\b(?:gratuit|offert|offre\s+(?:speciale|exclusive)|offrons|offrirons|remise|rabais|reduction|promotion|illimite|garanti|garantissons|rembours|satisfait\s+ou|sans\s+engagement|sans\s+frais|sans\s+surcout|a\s+vie\b|geste\s+commercial|dedommag|indemni|compensation|compenser|a\s+titre\s+gracieux|gracieusement|prise\s+en\s+charge\s+(?:de|des|d)\s*(?:'|\s)?\s*frais|cadeau|bonus|avoir\s+offert)/;
+/* UN DÉLAI promis (relecture du 23 octobre 2026) : « sous 24 heures », « demain matin », « d'ici vendredi », « dans les deux jours »… L'offre ne promet AUCUN délai (`OFFRE`), et un client qui lit
+   « un technicien vous rappelle sous 24 heures » attend ce rappel. « Rapidement » n'est pas un délai ; « d'une semaine » (l'essai) non plus : seuls sont visés « sous / dans / d'ici / avant » suivis
+   d'une durée ou d'un jour, et les mots du lendemain. Cherché sur le texte sans accents. */
+const DELAI = /\b(?:(?:sous|dans|d['’]ici|avant)\s+(?:(?:les|la|le|l['’])\s*)?(?:\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|douze|quinze|vingt|trente|quelques|plusieurs)?\s*(?:h\b|heures?|minutes?|jours?|journees?|semaines?|mois|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|fin\s+de\s+(?:semaine|mois|journee))|demain|apres-demain|ce\s+soir|cet\s+apres-midi|aujourd['’]hui\s+meme|immediatement|au\s+plus\s+tard)/;
 const sansAccents = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 /* Un NOM DE DOMAINE nu (« teamop-paiement.example/pay », « bit.ly/3xYz ») : des étiquettes séparées par des points, une extension de lettres MINUSCULES (« fin.Merci » n'en est pas un). Seule abréviation
    française qui en a la forme : « p.ex » (écartée par son nom, `ABREVIATIONS`). Les extensions de fichier courantes ne comptent pas comme des sites. */
@@ -92,10 +116,34 @@ const DOMAINE = /(?<![A-Za-z0-9@.-])((?:[A-Za-z0-9][A-Za-z0-9-]{0,62}\.)+[a-z]{2
 const ABREVIATIONS = new Set(['p.ex']);
 const FICHIERS = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg', 'gif', 'txt', 'zip', 'csv']);
 
+/* Un nombre écrit en lettres, de zéro à 9 999 (« vingt-cinq » → 25, « quatre-vingt-dix » → 90, « deux cents » → 200, « mille cinq cents » → 1 500). `null` si les mots qui précèdent « euros » ne forment
+   pas un nombre COMPLET (« les euros » n'est pas un montant). Lu sur le texte sans accents. */
+function montantEnLettres(mots) {
+  const U = { zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16,
+    vingt: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60 };
+  const w = String(mots || '').split(/[\s-]+/).filter(Boolean);
+  // on garde la plus longue FIN de phrase faite uniquement de mots-nombres
+  let k = w.length; while (k > 0 && (w[k - 1] in U || ['et', 'cent', 'cents', 'mille'].includes(w[k - 1]))) k--;
+  const nb = w.slice(k).filter(x => x !== 'et');
+  if (!nb.length) return null;
+  let total = 0, cours = 0;
+  for (const x of nb) {
+    if (x === 'cent' || x === 'cents') cours = (cours || 1) * 100;
+    else if (x === 'mille') { total += (cours || 1) * 1000; cours = 0; }
+    else if (x in U) cours += U[x];
+  }
+  // « quatre-vingt » : quatre × vingt
+  const txt = nb.join(' ');
+  if (/quatre vingts?/.test(txt)) { const r = txt.replace(/quatre vingts?/, 'X').split(' '); let c2 = 0, t2 = 0; for (const x of r) { if (x === 'X') c2 += 80; else if (x === 'cent' || x === 'cents') c2 = (c2 || 1) * 100; else if (x === 'mille') { t2 += (c2 || 1) * 1000; c2 = 0; } else if (x in U) c2 += U[x]; } return t2 + c2; }
+  return total + cours;
+}
+
 /* Ce que Claude écrit se vérifie avant d'être rangé : un texte venu d'un courriel hostile ne doit pas pouvoir y glisser un lien de
    paiement ou une adresse d'ailleurs. Seuls le site de TeamOP et ses adresses passent ; aucun numéro de téléphone (Claude n'en a reçu aucun,
    donc tout numéro est inventé). Rend `''` si le texte est sain, sinon la raison — pour le journal, jamais le texte. */
-function refusDe(objet, corps) {
+function refusDe(objet, corps, opts) {
+  /* `opts.prix` : les montants permis, en euros (15 par défaut ; 15, 25 et 50 pour une proposition de formule — `PRIX_FORMULES`). */
+  const prixOk = opts && Array.isArray(opts.prix) && opts.prix.length ? opts.prix : [15];
   const o = String(objet || ''), c = String(corps || '');
   if (o.length < 3 || o.length > OBJET_MAX || /[\r\n]/.test(o)) return 'objet hors bornes';
   if (c.length < CORPS_MIN || c.length > CORPS_MAX) return 'texte hors bornes';
@@ -109,11 +157,17 @@ function refusDe(objet, corps) {
     if (/(^|\.)teamop\.fr$/.test(d) || ABREVIATIONS.has(d) || FICHIERS.has(d.split('.').pop())) continue;
     return 'lien étranger';
   }
-  if (PROMESSES.test(sansAccents(tout))) return 'promesse commerciale';
+  /* « sans engagement de durée » est un FAIT (tarifs.html, CGV art. 6) : seule cette formule exacte est permise, « sans engagement » seul reste une promesse refusée. */
+  if (PROMESSES.test(sansAccents(tout).replace(/sans\s+engagement\s+de\s+duree/g, ' '))) return 'promesse commerciale';
+  if (DELAI.test(sansAccents(tout))) return 'délai promis';
   for (const m of tout.matchAll(TEL)) if (m[0].replace(/\D/g, '').length >= 9) return 'numéro de téléphone';
   /* Le SEUL prix permis est « 15 € » (le plancher de l'offre) : tout autre montant en euros est une promesse que personne n'a faite. Et un
      pourcentage est une remise. ⚠️ On lit le NOMBRE, pas le mot : « 150 € » contient « 15 » — une comparaison de texte le laisserait passer. */
-  for (const m of tout.matchAll(/(\d[\d  .,]*)\s*(?:€|euros?\b|eur\b)/gi)) if (parseFloat(m[1].replace(/[^\d.,]/g, '').replace(',', '.')) !== 15) return 'prix étranger';
+  for (const m of tout.matchAll(/(\d[\d  .,]*)\s*(?:€|euros?\b|eur\b)/gi)) if (!prixOk.includes(parseFloat(m[1].replace(/[^\d.,]/g, '').replace(',', '.')))) return 'prix étranger';
+  /* un montant dans une AUTRE devise (« 9,99 $ », « £ 12 », « 20 dollars », « 30 CHF ») n'est jamais un prix de l'offre ; et un montant ÉCRIT EN LETTRES (« dix euros », « vingt-cinq euros ») se lit
+     comme un chiffre (« quinze euros » = 15 passe, comme « 15 € »). */
+  if (/\d\s*(?:\$|£|usd\b|gbp\b|chf\b|dollars?\b|livres?\s+sterling|francs?\b)|[$£]\s*\d/i.test(tout)) return 'prix étranger';
+  for (const m of sansAccents(tout).matchAll(/((?:[a-z]+[\s-]+){0,5}[a-z]+)\s+euros?\b/g)) { const v = montantEnLettres(m[1]); if (v !== null && !prixOk.includes(v)) return 'prix étranger'; }
   if (/\d\s*%|pour\s?cent/i.test(tout)) return 'pourcentage';
   return '';
 }
@@ -127,4 +181,4 @@ function normaliserCorps(corps) {
   return t.replace(/\n{3,}/g, '\n\n');
 }
 
-module.exports = { OFFRE, FORME, OBJET_MAX, CORPS_MIN, CORPS_MAX, ADRESSE, TEL, sansAdresses, sansTel, delimiter, lireMail, refusDe, normaliserCorps };
+module.exports = { montantEnLettres, DELAI, PROMESSES, OFFRE, FORMULES, PRIX_FORMULES, blocFormules, FORME, OBJET_MAX, CORPS_MIN, CORPS_MAX, ADRESSE, TEL, sansAdresses, sansTel, delimiter, lireMail, refusDe, normaliserCorps };

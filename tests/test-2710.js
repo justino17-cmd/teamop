@@ -139,6 +139,9 @@ const P = jeton.patron, S = jeton.simple;
     publier: { canal: 'instagram', brouillon: 'b1' }, repondre_avis: { avis: 'a1', brouillon: 'b1' }, correctif: { issue: 'i1', branche: 'br1' },
     verifier_paiement: { espace: 'dupont' }, preparer_espace: { espace: 'dupont', formule: 'pro' }, escalade_humain: { fil: 'f1', motif: 'litige' },
     signaler_erreur: { source: 'stripe', ref: 'r1' }, relire_envoi: { brouillon: 'b1' } };
+  /* 23 octobre 2026 : les formes fermées de Hugo, Margaux, Emma et Sarah (`agents.js`, `agents-documents.js`) — leur jeu sain, sur leur ligne */
+  Object.assign(base, { resilier_fin_periode: { espace: 'dupont' }, rendez_vous_prospect: { dossier: 'DOS-000001' }, choix_creneau: { dossier: 'DOS-000001', creneau: '2' },
+    courrier_agent: { ref: 'dc1' }, mise_en_demeure: { ref: 'dc1' }, annonce_clients: { ref: 'dc1' } });
   v('(population) un jeu sain existe pour chaque schéma, et il passe', Object.keys(monter.SCHEMAS).filter(t => !monter.paramsValides(t, base[t])), []);
   for (const type of Object.keys(monter.SCHEMAS)) {
     for (const champ of Object.keys(monter.SCHEMAS[type])) {
@@ -150,7 +153,30 @@ const P = jeton.patron, S = jeton.simple;
     essais++; const m = Object.assign({}, base[type]); delete m[Object.keys(m)[0]]; if (monter.paramsValides(type, m)) passes++;   // un champ manquant
     essais++; if (monter.paramsValides(type, [base[type]])) passes++;                                                          // un tableau
   }
-  vrai('(population) ' + essais + ' paramètres hostiles jetés sur les onze schémas', essais > 300, essais);
+  /* 23 octobre 2026 (fusion de l'intégration) : une demande entre agents peut avoir une AUTRE forme fermée (`AUTRES_FORMES_TACHE`) — « arrêter l'abonnement » porte l'espace
+     (la validation de Justin) OU le numéro de dossier (la tâche de Camille). Même assaut sur chaque forme alternative, et elle ne vaut que pour une TÂCHE. */
+  const AUTRES = monter.AUTRES_FORMES_TACHE, saines = { resilier_fin_periode: [{ dossier: 'DOS-000123' }] };
+  v('(population) chaque type à forme alternative est connu de SCHEMAS et a son jeu sain', Object.keys(AUTRES).filter(t => !monter.SCHEMAS[t] || !saines[t] || saines[t].length !== AUTRES[t].length), []);
+  let altEssais = 0, altPasses = 0;
+  for (const type of Object.keys(AUTRES)) {
+    AUTRES[type].forEach((forme, i) => {
+      const sain = saines[type][i];
+      v('la forme alternative de « ' + type + ' » passe pour une tâche', monter.paramsValides(type, sain, true), sain);
+      v('… mais pas pour une VALIDATION (Hugo n\'y écrit que l\'espace, et son exécuteur ne lit que lui)', monter.paramsValides(type, sain), null);
+      for (const champ of Object.keys(forme)) {
+        for (const sale of pires.concat([42, null, true, ['pro'], { $ne: 1 }, undefined, 'DOS-12345', 'DOS-1234567', 'dos-000123', 'DOS-000123 ', 'DOS-00012a'])) {
+          altEssais++; if (monter.paramsValides(type, Object.assign({}, sain, { [champ]: sale }), true)) altPasses++;
+        }
+      }
+      altEssais++; if (monter.paramsValides(type, Object.assign({}, sain, { en_trop: 'x' }), true)) altPasses++;                    // un champ en trop
+      altEssais++; if (monter.paramsValides(type, Object.assign({}, sain, { espace: 'dupont' }), true)) altPasses++;                // les DEUX formes à la fois : ni l'une ni l'autre
+      altEssais++; if (monter.paramsValides(type, {}, true)) altPasses++;                                                           // rien
+      altEssais++; if (monter.paramsValides(type, [sain], true)) altPasses++;                                                       // un tableau
+    });
+  }
+  vrai('(population) ' + altEssais + ' paramètres hostiles jetés sur les formes alternatives', altEssais > 20, altEssais);
+  v('⛔ AUCUN ne passe sur une forme alternative non plus', altPasses, 0);
+  vrai('(population) ' + essais + ' paramètres hostiles jetés sur les schémas', essais > 300, essais);
   v('⛔ AUCUN ne passe : une phrase de client ne peut pas donner d\'ordre à l\'agent qui touche à Stripe', passes, 0);
   v('un type qui n\'est pas dans la table (propriété de l\'objet : constructor, __proto__) n\'a pas de schéma', [monter.paramsValides('constructor', {}), monter.paramsValides('__proto__', {}), monter.paramsValides('toString', {})], [null, null, null]);
   p = s.api.proposer('hugo', 'creer_espace', 'x', { espace: injection, formule: 'pro' });
@@ -291,9 +317,11 @@ const P = jeton.patron, S = jeton.simple;
   const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8'), CODE = nu(IDX);
   const MOD = fs.readFileSync(path.join(RACINE, 'server', 'agents.js'), 'utf8'), CODE_MOD = nu(MOD);
   vrai('index.js monte le module', /require\('\.\/agents'\)\(app, \{[^}]*\bmonAdmin\b[^}]*\bmonPatronStrict\b[^}]*\}\)/.test(CODE));
-  /* 22 octobre 2026 : fenêtre portée de 6000 à 12000 caractères — le bloc des agents a grandi de ~3 000 (la conversation des quinze autres agents, montée
-     dans son propre try), pas de sens : c'est toujours « le catch des agents est celui du try qui monte le socle ». */
-  vrai('… sous son propre try, pour ne pas emporter la Messagerie avec lui', /try \{\s*agentsMod = require\('\.\/agents'\)[\s\S]{0,12000}?catch \(e\) \{ console\.error\('agents indisponibles/.test(CODE));
+  /* 23 octobre 2026 (fusion de l'intégration) : 36000, MESURÉ — le bloc fusionné fait 26 615 caractères de code (24 430 côté gestion et plateforme, 12 765 côté commercial, avant leur
+     jonction). Hugo, Margaux, Emma, Sarah (~12 000), les six agents de la plateforme (~8 000) ET les signatures, Louis, Chloé, Camille autonome (~12 000) sont dans le même try ;
+     historique : 6000 → 12000 (la conversation des quinze autres agents) → 24000 / 32000 selon le chantier. Pas de sens : c'est toujours « le catch des agents est celui du try qui
+     monte le socle ». Un chantier de plus qui entre ici relit CE chiffre, mesuré, et garde ~9 000 caractères de marge. */
+  vrai('… sous son propre try, pour ne pas emporter la Messagerie avec lui', /try \{\s*agentsMod = require\('\.\/agents'\)[\s\S]{0,36000}?catch \(e\) \{ console\.error\('agents indisponibles/.test(CODE));
   const routes = [...CODE_MOD.matchAll(/app\.(get|post)\('(\/api\/monitor\/[^']+)'/g)].map(m => [m[1], m[2]]);
   v('(population) sept routes : quatre lectures, trois écritures', [routes.filter(x => x[0] === 'get').length, routes.filter(x => x[0] === 'post').length], [4, 3]);
   const i0 = IDX.indexOf('const MON_GESTES = {'), i1 = IDX.indexOf('\n};', i0);

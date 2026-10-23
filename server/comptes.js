@@ -76,6 +76,11 @@ function monterComptes(app, deps) {
      derrière nginx (`trust proxy`), et un en-tête fourni par le client se falsifie. */
   const parIp = (req, genre, max) => quotaOk(quota, genre + '-ip:' + String((req && req.ip) || ''), max, 3600000);
   const base = String(d.siteBase || 'https://teamop.fr').replace(/\/+$/, '');
+  /* Le pied de nos courriels : qui écrit, et la demande d'enregistrer l'adresse qui envoie (23 octobre 2026). teamop.fr passe tous les contrôles,
+     mais reste un domaine jeune que Gmail ou Outlook rangent encore en indésirables ; un expéditeur enregistré n'y est plus classé. La phrase vient
+     du serveur (`ligneContacts`, la même que celle des agents du Courrier) ; sans elle, le pied se tait plutôt que de nommer une adresse au hasard. */
+  const pied = () => { let l = ''; try { l = typeof d.ligneContacts === 'function' ? String(d.ligneContacts() || '') : ''; } catch (e) { l = ''; }
+    return '\n—\nTEAM OP · teamop.fr\n' + (l ? l + '\n' : ''); };
   const journal = d.journal || ((...a) => console.log('comptes:', ...a));
   /* Un courriel qui part DERRIÈRE la réponse. ⚠️ `mailerEnvoi` jette de façon SYNCHRONE quand le
      courrier n'est pas configuré (`mailer.sendMail` sur `null`) : un simple `.catch()` laisserait
@@ -181,7 +186,7 @@ function monterComptes(app, deps) {
     const jv = jetonNeuf(mail, 'verif', VERIF_VIE_MS);
     envoyerDerriere({ to: mail, confidentiel: true, subject: 'Confirmez votre adresse — TEAM OP',
       text: salut + ',\n\nConfirmez votre adresse pour activer votre espace :\n'
-        + base + '/reinit.html?mode=verifyEmail&jeton=' + jv + '\n\nCe lien est valable 7 jours.\n' },
+        + base + '/reinit.html?mode=verifyEmail&jeton=' + jv + '\n\nCe lien est valable 7 jours.\n' + pied() },
       'courriel de vérification non envoyé');
   };
 
@@ -219,7 +224,7 @@ function monterComptes(app, deps) {
               + 'un mot de passe avec « Mot de passe oublié » sur cette page :\n' + base + '/espace.html\n\n'
             : 'qui a déjà un compte. Si c\'était vous, connectez-vous simplement :\n' + base + '/espace.html\n\n'
               + 'Vous avez oublié votre mot de passe ? Utilisez « Mot de passe oublié » sur cette page.\n\n')
-          + 'Si ce n\'était pas vous, il n\'y a rien à faire : aucun compte n\'a été créé et le vôtre n\'a pas bougé.\n' },
+          + 'Si ce n\'était pas vous, il n\'y a rien à faire : aucun compte n\'a été créé et le vôtre n\'a pas bougé.\n' + pied() },
         'avis de doublon non envoyé');
       return res.json(RIEN_DIRE);
     }
@@ -396,7 +401,7 @@ function monterComptes(app, deps) {
         text: 'Bonjour,\n\nPour choisir un nouveau mot de passe :\n'
           + base + '/reinit.html?mode=resetPassword&jeton=' + j + '\n\n'
           + 'Ce lien est valable une heure et ne fonctionne qu\'une fois.\n'
-          + 'Si vous n\'avez rien demandé, ignorez ce message : votre mot de passe n\'a pas changé.\n' },
+          + 'Si vous n\'avez rien demandé, ignorez ce message : votre mot de passe n\'a pas changé.\n' + pied() },
         'courriel de mot de passe non envoyé');
     }
     /* Adresse inconnue : on répond exactement pareil et on n'envoie rien. */
@@ -442,6 +447,9 @@ function monterComptes(app, deps) {
        Rend l'adresse, ou '' — jamais un objet qu'on pourrait prendre pour une autorisation. */
     parJeton: (brut) => { const e = jetonLire(brut, 'session'); const c = e && compte(e.m); return (c && !c.ap) ? e.m : ''; },
     vue,
+    /* Combien de comptes sont bloqués EN CE MOMENT (huit échecs de mot de passe d'affilée, quinze minutes) — un NOMBRE, jamais une adresse. Lu par Nina (`agent-nina.js`) :
+       elle ne voit d'un compte que ce chiffre. Registre illisible ou absent : `null` (« on ne sait pas », pas zéro). */
+    bloques: () => { try { const n = Date.now(); return Object.values(reg.c || {}).filter(c => c && c.bloq && c.bloq > n).length; } catch (e) { return null; } },
     /* L'adresse de ce compte a-t-elle été prouvée (lien de vérification, ou lien de mot de passe
        reçu dans sa boîte) ? `portail.js` le demande avant de montrer un dossier repris de Google
        ou d'y déposer un code d'accès. */

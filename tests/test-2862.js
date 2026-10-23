@@ -14,7 +14,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
-const { monter, COURRIEL } = require('./banc-agents-courrier.js');
+const { monter, COURRIEL, COURRIEL_TOKA, pourToka, signatureDe, CHARTE_OUVERTE } = require('./banc-agents-courrier.js');
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 400) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 400)); } };
 const vrai = (t, c, d) => v(t + (d !== undefined && !c ? ' — ' + String(d).slice(0, 200) : ''), !!c, true);
@@ -37,7 +37,9 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
       ['pointage', /Pointage des heures/], ['droits personne par personne', /Droits réglés personne par personne/],
       ['formule sur mesure (catégories retirées, non facturées)', /catégories dont l’entreprise n’a pas besoin sont retirées, et elles ne sont pas facturées/],
       ['catégories créées, réservées à l’entreprise', /créées pour les besoins de l’entreprise, et elles lui sont réservées/],
-      ['à partir de 15 € par mois et par utilisateur, TVA non applicable', /à partir de 15 € par mois et par utilisateur \(TVA non applicable\)/]]) vrai('l’offre dit : ' + nom, motif.test(O));
+      ['à partir de 15 € par mois et par utilisateur, TVA non applicable', /à partir de 15 € par mois et par utilisateur \(TVA non applicable\)/],
+      ['nos courriels en indésirables : regarder ce dossier, « non-spam », enregistrer l’adresse de la signature (23 octobre 2026)', /marque le message « non-spam »[^']*enregistre l’adresse de la signature dans ses contacts/],
+      ['…sans jamais écrire l’adresse elle-même (elle dépend de la boîte qui envoie ; la signature la porte)', /jamais l’adresse elle-même/]]) vrai('l’offre dit : ' + nom, motif.test(O));
     vrai('⛔ les interdits sont écrits : aucune fonction absente comme existante, la « catégorie que nous pouvons créer pour vous », aucun autre prix / date / remise / engagement juridique',
       /AUCUNE fonction absente/.test(O) && /catégorie que nous pouvons créer pour vous/.test(O) && /aucun autre prix/.test(O) && /aucune date, aucune remise/.test(O) && /aucun engagement juridique/.test(O));
     vrai('⛔ la période d’essai se propose APRÈS le retour du client, jamais dans le premier message', /APRÈS le retour du client, jamais dans le premier message/.test(O));
@@ -66,7 +68,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     const b = (await Z.appeler('GET /api/monitor/agents/brouillons', { tourUser: Z.COLLAB, query: { refs: r.ref } })).corps[r.ref];
     v('le destinataire est l’adresse du compte', b.a, ADR);
     v('l’objet et le texte sont ceux de Claude, le texte commence par « Bonjour, » et finit par « Bien cordialement, »', [b.objet, /^Bonjour,/.test(b.texte), /Bien cordialement,$/.test(b.texte)], ['TeamOP — OP GESTION pour votre activité', true, true]);
-    vrai('⛔ la signature n’est PAS dans le texte rangé (le serveur d’envoi l’ajoute) mais l’aperçu la montre', !b.texte.includes('Justin Dupont') && b.signature === 'Justin Dupont\nTeamOP — OP GESTION');
+    vrai('⛔ la signature n’est PAS dans le texte rangé (le serveur d’envoi l’ajoute) mais l’aperçu montre CELLE DE LÉA — jamais celle du Courrier de Justin', !b.texte.includes('Justin Dupont') && b.signature === signatureDe('Léa'));
     v('source « inscription », entreprise rangée, état « attente »', [b.source, b.entreprise, b.etat], ['inscription', 'Toka Clim', 'attente']);
     v('⛔ UN appel à Claude, jamais un second', Z.recus.length, 1);
     const q = Z.recus[0], tout = JSON.stringify(q);
@@ -77,7 +79,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
       vrai('⛔ ' + nom + ' ne part JAMAIS chez Claude', !tout.includes(jeton));
     vrai('⛔ aucune adresse électronique (aucun « @ ») dans ce que le client a donné à lire', !q.messages[0].content.includes('@'));
     v('le message à Claude est une seule entrée « user »', q.messages.map(m => m.role), ['user']);
-    v('le journal : une proposition, aucun refus', Z.journal().filter(e => e.agent === 'lea').map(e => e.action + ':' + e.resultat), ['proposer:propose']);
+    v('le journal : une proposition, aucun refus', Z.journal().filter(e => e.agent === 'lea').map(e => e.action + ':' + e.resultat), ['contrôle qualité:ok', 'proposer:propose']);
     Z.nettoyer();
   }
 
@@ -161,7 +163,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
   console.log('\n5. La demande d’application RÉÉCRIT le brouillon qui attend');
   {
     let n = 0;
-    const Z = monter({ modes: { lea: 'brouillon' }, claude: () => { n++; return n === 1 ? COURRIEL : COURRIEL.replace('Nous avons bien noté votre activité.', 'Nous avons bien noté votre besoin : le suivi des fluides frigorigènes, une catégorie que nous pouvons créer pour vous.'); } });
+    const Z = monter({ modes: { lea: 'brouillon' }, claude: () => { n++; return n === 1 ? COURRIEL_TOKA : pourToka('Nous avons bien noté votre besoin : le suivi des fluides frigorigènes, une catégorie que nous pouvons créer pour vous.'); } });
     const ADR = 'gerant@toka-2862.fr';
     const r1 = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: ADR });
     const r2 = await Z.lea.surDemande({ email: ADR, entreprise: 'Toka Clim', metier: 'chauffage', users: '5', formule: 'pro', besoin: 'fluides frigorigènes' });
@@ -234,7 +236,6 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
       sortie('un autre prix (150 €)', COURRIEL.replace('à partir de 15 €', 'à partir de 150 €')),
       sortie('un prix en toutes lettres (9 euros)', COURRIEL.replace('à partir de 15 €', 'à partir de 9 euros')),
       sortie('une remise en pourcentage', COURRIEL.replace('Nous restons', 'Nous vous offrons 20 % de remise.\n\nNous restons')),
-      sortie('un texte trop court', 'Objet : Court\n\nBonjour,'),
       sortie('un objet vide', 'Objet :\n\n' + COURRIEL.split('\n').slice(2).join('\n')),
     ];
     for (const m of MAUVAIS) {
@@ -243,7 +244,14 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
       vrai('⛔ ' + m.t + ' : rien n’est rangé', !rr.depose && (await Y.validations()).length === 0 && !fs.existsSync(path.join(Y.D, 'agents-brouillons.json')), JSON.stringify(rr));
       Y.nettoyer();
     }
-    const Y = monter({ modes: { lea: 'brouillon' }, claude: () => COURRIEL.replace('à partir de 15 €', 'à partir de 15,00 €') });
+    {
+      /* un texte trop court n'est pas un défaut GRAVE (rien d'hostile) : après la réécriture, il reste « à revoir » pour Justin, jamais « bon » — donc jamais envoyé seul */
+      const C = monter({ modes: { lea: 'auto' }, charte: CHARTE_OUVERTE, claude: () => 'Objet : Court\n\nBonjour,' });   // (charte OUVERTE : c'est le contrôle qui doit retenir le courriel, pas la charte fermée)
+      const rc = await C.lea.surInscription({ entreprise: 'Toka Clim', email: 'c@court-2862.fr' });
+      vrai('⛔ un texte trop court : un brouillon « à revoir » (deux rédactions, jamais envoyé seul)', rc.depose === true && rc.controle === 'a_revoir' && rc.voie === 'validation' && C.recus.length === 2 && C.envoyes.length === 0, JSON.stringify(rc));
+      C.nettoyer();
+    }
+    const Y = monter({ modes: { lea: 'brouillon' }, claude: () => COURRIEL_TOKA.replace('à partir de 15 €', 'à partir de 15,00 €') });
     vrai('(contre-épreuve) « 15,00 € » reste permis : le garde lit le NOMBRE, pas le mot', (await Y.lea.surInscription({ entreprise: 'Toka Clim', email: 'k@bon-2862.fr' })).depose === true);
     Y.nettoyer();
     const U = monter({ modes: { lea: 'brouillon' }, claude: () => '**Objet : Gras**\n' + COURRIEL });

@@ -177,6 +177,11 @@ function mailerEnvoi(opts) {
   // trace : ce qu'on garde d'un e-mail confidentiel (destinataire, lien envoyé, espace…) — jamais le secret lui-même
   const ent = mailsJournal(opts.to, opts.subject, opts.text, secret, opts.trace);
   const o2 = Object.assign({}, opts); delete o2.confidentiel; delete o2.trace; delete o2.diffusion;
+  /* ⛔ AUCUN COURRIEL NE PART SANS EXPÉDITEUR (23 octobre 2026). Les trois courriels du portail (`comptes.js` : confirmation d'adresse,
+     changement d'adresse, mot de passe) n'en donnaient pas : nodemailer les envoyait sans « From: », avec « MAIL FROM:<> » et un
+     identifiant « @localhost » — Gmail refuse un tel message, et les autres le rangent en indésirables. Chaque client qui s'inscrivait
+     attendait une confirmation qui n'arrivait pas. L'expéditeur réglé (`config.smtp`) est donc le défaut ICI, pour tout appelant. */
+  if (!o2.from && config.smtp) o2.from = config.smtp.from || config.smtp.user;
   try {
     const moi = String(config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').toLowerCase();
     /* La copie à soi-même est utile pour un envoi unitaire — on garde une trace de ce qu'on a
@@ -1687,6 +1692,8 @@ const MAIL_STYLE = '<style>' +
   '}' +
   '@media (max-width:600px){.m-int{padding-left:20px!important;padding-right:20px!important}}' +
   '</style>';
+/* une déclaration de fonction, pas une constante : `mailTeamOP` est remontée, une constante ne l'est pas (zone morte temporelle, voir `test-726`) */
+function escHtmlPied(x) { return String(x || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function mailTeamOP(o) {
   const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const int = (haut, bas) => 'padding:' + haut + 'px 36px ' + bas + 'px';
@@ -1717,7 +1724,7 @@ function mailTeamOP(o) {
     ((bouton || bouton2) ? '<tr><td class="m-int" style="' + int(26, 8) + '">' + bouton + bouton2 + '</td></tr>' : '<tr><td style="height:8px;line-height:8px;font-size:0">&nbsp;</td></tr>') +
     '<tr><td class="m-int m-pied" style="' + int(18, 22) + ';border-top:1px solid #EDF0F5;font-size:12px;line-height:18px;color:#8593AB">TEAM OP · la suite de gestion des pros du terrain · <a href="https://teamop.fr" style="color:#1E7A4E;text-decoration:none">teamop.fr</a>' + desabo + '</td></tr>' +
     '</table>' +
-    '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%"><tr><td class="m-muet" style="padding:14px 8px 0;font-size:11.5px;line-height:17px;color:#8593AB;font-family:' + MAIL_POLICE + '">Vous recevez cet e-mail parce que vous avez un compte TEAM OP.</td></tr></table>' +
+    '<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%"><tr><td class="m-muet" style="padding:14px 8px 0;font-size:11.5px;line-height:17px;color:#8593AB;font-family:' + MAIL_POLICE + '">Vous recevez cet e-mail parce que vous avez un compte TEAM OP. ' + escHtmlPied(ligneContactsServeur()) + '</td></tr></table>' +
     '</td></tr></table></body></html>';
 }
 
@@ -2093,8 +2100,14 @@ const MON_GESTES = {
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
   'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
+  /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
+  'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
+  'agents/emma/disponibilites': 'a réglé les disponibilités d’Emma', 'agents/emma/proposer': 'a demandé à Emma de proposer des créneaux à un prospect', 'agents/sarah/rediger': 'a demandé à Sarah de rédiger une annonce aux clients',
   'agents/charte': 'a changé la charte d’autonomie des agents', 'agents/brouillons/modifier': 'a corrigé un brouillon de réponse d’un agent avant de le valider', 'contrats/brouillon': 'a enregistré un brouillon de contrat',
+  'agents/examen/lancer': 'a lancé l’examen de l’équipe d’agents', 'agents/examen/cle': 'a créé la clé d’examen de l’équipe', 'agents/examen/cle/supprimer': 'a supprimé la clé d’examen de l’équipe',
   'contrats/valider': 'a validé une version de contrat (tampon)', 'contrats/retirer': 'a retiré une version de contrat',
+  'agents/plateforme/passer': 'a fait passer un agent de la plateforme', 'agents/plateforme/point': 'a demandé le point de Victor', 'agents/plateforme/rgpd': 'a clos une demande RGPD suivie par Nina', 'agents/plateforme/rgpd/declarer': 'a enregistré une demande RGPD reçue (Nina en tient le délai)',
+  'agents/signatures': 'a changé la signature des agents', 'agents/connaissances/decider': 'a décidé d’une connaissance proposée par Louis',
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
@@ -4565,6 +4578,12 @@ function uneLigne(s, max) {   // une ligne, sans caractère de contrôle ni sép
   return out.replace(/ {2,}/g, ' ').trim().slice(0, max || 200);
 }
 function adrNue(s) { const m = /<([^<>]*)>\s*$/.exec(String(s || '')); return String(m ? m[1] : (s || '')).trim().toLowerCase(); }
+/* L'ADRESSE QU'UN CLIENT ENREGISTRE DANS SES CONTACTS (23 octobre 2026) : celle qui ENVOIE les courriels du serveur (`config.smtp`), si c'est une boîte
+   @teamop.fr — sinon contact@teamop.fr. La phrase est celle des agents du Courrier (`agents-signature.js`, `ligneContacts`) : une seule rédaction. */
+function ligneContactsServeur() {
+  const a = adrNue(config.smtp && (config.smtp.from || config.smtp.user));
+  return require('./agents-signature').ligneContacts(/^[a-z0-9._%+-]+@teamop\.fr$/.test(a) ? a : 'contact@teamop.fr');
+}
 function supprDest() { return String(config.securiteEmail || config.notifDemandes || (config.smtp && (config.smtp.from || config.smtp.user)) || '').trim(); }
 function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
@@ -4575,8 +4594,17 @@ let agentsConversation = null; // la conversation des quinze autres agents (`age
 let agentLea = null;         // Léa (`agent-lea.js`) : la réponse commerciale à une inscription ou une demande — `null` = pas montée, elle ne prépare rien
 let agentCamille = null;     // Camille (`agent-camille.js`) : la réponse à un mail reçu — `null` = pas montée (la veille du Courrier ne lui annonce rien)
 let brouillonsMod = null;    // les brouillons de Léa et de Camille, et ce qui les fait partir (`agents-brouillons.js`)
+let docsAgentsMod = null;     // les courriels d'agents de gestion, la mise en demeure et l'annonce à tous, validés par Justin (`agents-documents.js`) : `null` = pas monté
+let agentMargaux = null;     // Margaux (`agent-margaux.js`) : les relances d'impayé et la mise en demeure préparée — `null` = pas montée
+let agentEmma = null;        // Emma (`agent-emma.js`) : les rendez-vous avec les prospects — `null` = pas montée
+let agentSarah = null;       // Sarah (`agent-sarah.js`) : les annonces aux clients, rédigées pour la validation de Justin — `null` = pas montée
+let signaturesMod = null;    // la signature de chaque agent, posée par le serveur à l'envoi (`agents-signature.js`)
+let louisMod = null;         // Louis : la base de connaissances que Justin valide (`agent-louis.js`)
+let chloeMod = null;         // Chloé : la proposition sur mesure après la réponse du prospect (`agent-chloe.js`)
 let agentEquipe = null;        // la messagerie des agents (`agent-equipe.js`) : `null` = pas montée ; la conversation d'avant (Hugo + les quinze) reste alors servie
 let reunionsMod = null;        // les réunions du lundi et du vendredi (`reunions.js`) : `null` = pas montées ; les agents n'ont alors ni objectifs ni leçons
+let plateformeMod = null;      // les six agents de la plateforme (`agents-plateforme.js`) : `null` = pas montés ; ni surveillance par les agents, ni point du matin
+let examenMod = null;          // l'examen de l'équipe et sa clé (`examen.js`) : `null` = pas monté ; la Tour n'a alors ni bouton ni clé d'examen
 let contratsMod = null;       // le registre des contrats (`contrats.js`) : versions, validation par un humain, tampon
 let directionMod = null;     // la charte d'autonomie et le rapport du jour (`direction.js`), montés juste après les agents
 let agentsMod = null;        // posée au montage de l'équipe d'agents (`agents.js`, juste après la Messagerie) : `null` = module non monté, aucun agent ne peut agir
@@ -5646,14 +5674,44 @@ const ANNONCE = {
   ],
   fin: 'Votre adresse et vos identifiants OP GESTION ne changent pas.'
 };
-app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
-  if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
-  // une adresse par entreprise, la plus récente gagne
+/* Les destinataires d'une annonce à tous : UNE adresse par entreprise, la plus récente gagne. UNE définition, lue par la route ci-dessous et par la diffusion que Sarah prépare
+   (`diffuserAnnonceClients`, validée par Justin) : deux copies finiraient par écrire à deux listes. */
+function annonceDestinataires() {
   const parMail = new Map();
   for (const [slug, e] of Object.entries(espacesReg)) {
     const ad = String(e.email || '').toLowerCase().trim();
     if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ad)) parMail.set(ad, e.nom || slug);
   }
+  return parMail;
+}
+/* L'annonce de SARAH, une fois que Justin l'a validée (`agents-documents.js`, type `annonce_clients`) : le même gabarit TeamOP, le même journal, la même liste que la route ci-dessous.
+   Le texte est celui que Justin a lu : chaque paragraphe est ÉCHAPPÉ (rien de ce que Claude a écrit n'entre dans le HTML autrement que comme du texte). Rend { envoyes, refus }. */
+async function diffuserAnnonceClients(a) {
+  if (!mailer) throw new Error('e-mail non configuré sur le serveur');
+  const parMail = annonceDestinataires();
+  if (!parMail.size) throw new Error('aucune entreprise avec une adresse e-mail');
+  const objet = String((a && a.objet) || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 200);
+  const texte = String((a && a.texte) || '').trim().slice(0, 20000);
+  if (!objet || !texte) throw new Error('annonce vide');
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const paragraphes = texte.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+  const corpsHtml = paragraphes.map(p => esc(p).replace(/\n/g, '<br>')).join('<br><br>');
+  let envoyes = 0, refus = 0;
+  for (const [ad] of parMail) {
+    try {
+      await mailerEnvoi({ diffusion: true, from: config.smtp.from || config.smtp.user, to: ad, subject: objet, text: texte + '\n\n— L\'équipe TEAM OP · teamop.fr',
+        html: mailTeamOP({ desabo: true, chip: 'Annonce', chipBg: '#E7F0FE', chipColor: '#1D4ED8', titre: objet, corpsHtml,
+          boutonTxt: 'Ouvrir mon application', boutonUrl: 'https://teamop.fr/app.html', bouton2Txt: 'Mon espace client', bouton2Url: 'https://teamop.fr/espace.html' }) });
+      envoyes++;
+    } catch (err) { refus++; console.error('annonce (Sarah) →', masqueMail(ad), ':', sansAdresses(String(err.message || err)).slice(0, 120));   /* l'erreur SMTP recopie l'adresse (« 550 5.1.1 <adresse> … ») : journalctl n'en garde aucune */ }
+  }
+  console.log('annonce de Sarah validée par Justin →', envoyes, 'entreprises', refus ? ('(' + refus + ' refus)') : '');
+  return { envoyes, refus };
+}
+app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
+  if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
+  // une adresse par entreprise, la plus récente gagne
+  const parMail = annonceDestinataires();
   if (!parMail.size) return res.status(404).json({ error: 'aucune entreprise avec une adresse e-mail' });
   const blocs = ANNONCE.points.map(([t, d]) =>
     '<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F7FB;border:1px solid #E3E8F1;border-radius:12px;margin-bottom:10px"><tr><td style="padding:14px 18px">' +
@@ -5674,7 +5732,7 @@ app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
           boutonTxt: 'Ouvrir mon application', boutonUrl: 'https://teamop.fr/app.html',
           bouton2Txt: 'Mon espace client', bouton2Url: 'https://teamop.fr/espace.html' }) });
       envoyes++;
-    } catch (err) { refus++; console.error('annonce →', ad, ':', String(err.message || err).slice(0, 120)); }
+    } catch (err) { refus++; console.error('annonce →', masqueMail(ad), ':', sansAdresses(String(err.message || err)).slice(0, 120)); }
   }
   console.log('Tour :', req.tourUser.nom, 'a envoyé l\'annonce v' + ANNONCE.version, '→', envoyes, 'entreprises', refus ? ('(' + refus + ' refus)') : '');
   res.json({ ok: true, envoyes, refus, version: ANNONCE.version });
@@ -6185,7 +6243,7 @@ let comptes = null;
 try {
   if (config.comptes && config.comptes.actif) {
     comptes = require('./comptes').monterComptes(app, {
-      dossier: DATA_DIR, mailerEnvoi: (o) => mailerEnvoi(o), quotaOk,
+      dossier: DATA_DIR, mailerEnvoi: (o) => mailerEnvoi(o), quotaOk, ligneContacts: ligneContactsServeur,
       siteBase: 'https://teamop.fr',
       journal: (...a) => console.log('comptes:', ...a),
     });
@@ -9839,9 +9897,11 @@ app.post('/api/clients/sync', async (req, res) => {
     if (agentLea && adresseProuvee) {
       /* (a) l'INSCRIPTION : la première synchro de ce compte vérifié — ou une inscription que le plafond du jour ou la file pleine a écartée (`aRepriser`).
          Léa porte ses propres plafonds (une réponse par adresse sur 30 jours, trois préparations par heure et par adresse, vingt par jour). */
-      if (premiereSynchro || agentLea.aRepriser(email)) Promise.resolve(agentLea.surInscription({ entreprise: (clientsData[email] || {}).entreprise, email })).catch(() => {});
+      /* Léa écrit désormais SEULE (charte ouverte) : si la demande d'application arrive dans la MÊME synchro que l'inscription, c'est ELLE qui déclenche le courriel — avec le métier, le
+         nombre d'utilisateurs et le besoin — plutôt qu'un premier courriel sans métier, parti seul, suivi d'un second qu'on ne peut plus réécrire. */
+      const nvL = demandes.length > (prev.demandes || []).length ? demandes.slice((prev.demandes || []).length).filter(d => !/messages/i.test(String(d.app || ''))) : [];
+      if ((premiereSynchro || agentLea.aRepriser(email)) && !nvL.length) Promise.resolve(agentLea.surInscription({ entreprise: (clientsData[email] || {}).entreprise, email })).catch(() => {});
       if (demandes.length > (prev.demandes || []).length) {
-        const nvL = demandes.slice((prev.demandes || []).length).filter(d => !/messages/i.test(String(d.app || '')));
         const d = [...nvL].reverse().find(x => x.metier) || nvL[nvL.length - 1];
         if (d) Promise.resolve(agentLea.surDemande({ email, entreprise: (clientsData[email] || {}).entreprise, metier: d.metier, users: d.users, formule: d.formule, besoin: d.besoin })).catch(() => {});
       }
@@ -10306,7 +10366,10 @@ try {
     quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages,
     /* La veille annonce chaque message neuf à Camille. Liaison TARDIVE : la Messagerie est montée avant les agents, `agentCamille` n'existe pas
        encore ici. Le crochet ne jette jamais et n'est pas attendu (voir `mail.js`). */
-    surNouveauMessage: (ev) => (agentCamille ? agentCamille.surNouveauMessage(ev) : null) });
+    surNouveauMessage: (ev) => (agentCamille ? agentCamille.surNouveauMessage(ev) : null),
+    /* Les serveurs de RÉCEPTION dont l'en-tête Authentication-Results fait foi (`config.agents.authservIds`, une liste de noms d'hôtes, comparés EXACTEMENT). ⛔ Sans réglage il n'y en a AUCUN :
+       personne n'est authentifié, donc aucun courriel reçu n'est répondu SEUL (brouillon, « serveur inconnu »). Les anciens replis (hôte IMAP, teamop.fr) sont des noms publics qu'un expéditeur écrit lui-même. */
+    authservIds: () => ((config.agents && Array.isArray(config.agents.authservIds)) ? config.agents.authservIds.filter(x => typeof x === 'string').slice(0, 10) : []) });
   console.log('messagerie : module chargé');
   /* L'ÉQUIPE D'AGENTS (`agents.js`) : son socle seulement — registre, journal, validations, pause, tâches. Monté DANS ce bloc parce
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
@@ -10322,8 +10385,20 @@ try {
     /* LES DOSSIERS : un numéro par client (`DOS-000123`), la fiche pour le patron, la même fiche pour un agent à qui il le donne. */
     dossiersMod = require('./dossiers')(app, { DATA_DIR, monPatronStrict, clients: () => clientsData,
       espaceDe: (email) => { const m = String(email).toLowerCase(); const sl = Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').toLowerCase() === m); return sl ? Object.assign({ slug: sl }, espacesReg[sl]) : null; },
-      paiement: async (email) => {
+      paiement: async (email, slug) => {
         if (!(config.stripe && config.stripe.secretKey)) return { etat: 'inconnu' };
+        /* ⛔ UNE ENTREPRISE QUI A SON ESPACE SE JUGE COMME L'APPLICATION LA JUGE (23 octobre 2026) : le verdict d'`espacePaye` — rattachement par la RÉFÉRENCE gravée sur l'abonnement
+           ET par l'adresse. Jusque-là seule l'adresse du compte était cherchée chez Stripe : une entreprise dont la comptable a payé sous une autre adresse était « sans paiement »
+           pour Hugo, Margaux, Léa et Camille alors que son application était servie. Un impayé est un impayé (`bloque`) ; une période offerte n'est pas un paiement (« aucun »). */
+        if (slug && espacesReg[slug]) {
+          try {
+            const p = await espacePaye(Object.assign({ slug }, facturationDe(espacesReg[slug])), { lecture: true });
+            if (p && p.inconnu) return { etat: 'inconnu' };
+            if (p && p.bloque) return { etat: 'impaye' };
+            if (p && p.paye && !p.promoCode) return { etat: 'paye', formule: ['pro', 'business', 'premium'].includes(p.formuleServie) ? p.formuleServie : '' };
+            return { etat: 'aucun' };
+          } catch (e) { return { etat: 'inconnu' }; }
+        }
         let liste; try { liste = await stripeListe(); } catch (e) { return { etat: 'inconnu' }; }
         if (!(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return { etat: 'inconnu' };
         const e = { slug: '', email: String(email).toLowerCase(), nom: '', formule: '' };
@@ -10369,6 +10444,9 @@ try {
           courrier: () => { if (!messagerieTour || typeof messagerieTour.compter !== 'function') return null; const c = messagerieTour.compter(); return { aTraiter: c.aTraiter, enCours: c.enCours }; },
           clients: () => { const l = Object.values(clientsData || {});
             return { clients: l.length, demandesEnAttente: l.reduce((n, c) => n + (Array.isArray(c && c.demandes) ? c.demandes.filter((d, i) => String(d && d.statut).toLowerCase() === 'en attente' && !(c.demandesTraitees && c.demandesTraitees[i])).length : 0), 0), espaces: Object.keys(espacesReg || {}).length }; },
+          /* le travail commercial de Léa, Chloé, Camille et Louis : des NOMBRES seulement (courriels partis seuls, en attente, « à revoir », connaissances à valider) */
+          commercial: () => { const b = brouillonsMod ? brouillonsMod.bilan() : {}; const l = louisMod ? louisMod.compter() : { propose: 0, valide: 0 };
+            return { lea: b.lea || {}, chloe: b.chloe || {}, camille: b.camille || {}, louis: { connaissancesAValider: l.propose, connaissancesValidees: l.valide } }; },
           dossier: faitsDossier };
     /* LA CONVERSATION DES QUINZE AUTRES AGENTS (celle d'avant, gardée en repli) : ils répondent dans « Parler » (Claude, faits fermés, rien d'exécuté).
        Sous son propre `try` : un échec de montage ne doit emporter ni Hugo ni la Messagerie — les agents se taisent, c'est tout. */
@@ -10390,16 +10468,36 @@ try {
       return { domaines: [...dom], adresses: [...adr] };
     };
     const fichierAgents = require('./agents-fichier')(DATA_DIR);
+    /* LA SIGNATURE DES AGENTS (« Léa — Assistante virtuelle — Équipe TeamOP »), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
+    try { signaturesMod = require('./agents-signature')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, fichier: fichierAgents }); }
+    catch (e) { signaturesMod = null; console.error('signatures des agents indisponibles :', e.message); }
     try {
       brouillonsMod = require('./agents-brouillons')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, mail: messagerieTour, direction: directionMod,
-        fichier: fichierAgents, sansAdresses });
+        fichier: fichierAgents, sansAdresses, signatures: signaturesMod,
+        /* Louis regarde ce que Justin corrige (liaison tardive : il est monté après) */
+        surCorrection: (o) => (louisMod ? louisMod.surCorrection(o) : null) });
     } catch (e) { brouillonsMod = null; console.error('brouillons des agents indisponibles :', e.message); }
+    /* LOUIS : la base de connaissances de Léa, Chloé et Camille — il PROPOSE, Justin VALIDE dans la Tour ; seules les entrées validées sont lues. */
+    try { louisMod = require('./agent-louis')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, cerveau: cerveauMod, fichier: fichierAgents, conversations: conversationsMod }); }
+    catch (e) { louisMod = null; console.error('Louis indisponible :', e.message); }
     try {
       if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents,
-        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK });
+        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod });
     } catch (e) { agentLea = null; console.error('Léa indisponible :', e.message); }
+    /* CHLOÉ : la proposition sur mesure quand le prospect répond à Léa. Les faits qu'elle reçoit sur le prospect sont des VALEURS DE LISTE (métier, nombre, formule) + le nom d'entreprise
+       s'il a la forme d'un nom : jamais l'adresse, le téléphone, le prénom ni le nom de la personne. */
+    try {
+      if (brouillonsMod) chloeMod = require('./agent-chloe')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents, conversations: conversationsMod, louis: louisMod,
+        libelleMetier: m => METIERS_LBL[m] || '',
+        contexteClient: (adr) => { const c = (clientsData || {})[adrNue(adr)]; if (!c) return {}; const d = [...(Array.isArray(c.demandes) ? c.demandes : [])].reverse().find(x => x && METIERS_OK.includes(x.metier)) || {};
+          const u = parseInt(String(d.users || '').replace(/[^\d]/g, ''), 10); const f = String(d.formule || '').trim().toLowerCase();
+          return { entreprise: c.entreprise, metier: METIERS_OK.includes(d.metier) ? d.metier : '', users: Number.isFinite(u) ? u : 0, formule: ['pro', 'business', 'premium'].includes(f) ? f : '' }; } });
+    } catch (e) { chloeMod = null; console.error('Chloé indisponible :', e.message); }
     try {
       if (brouillonsMod) agentCamille = require('./agent-camille')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, mail: messagerieTour, fichier: fichierAgents,
+        conversations: conversationsMod, chloe: chloeMod, louis: louisMod,
+        /* le numéro de dossier d'une adresse qui est celle d'un COMPTE du portail (la fiche existe), '' sinon — sans jamais en créer un pour un inconnu */
+        dossierDe: (adr) => { const a = adrNue(adr); return (a && Object.prototype.hasOwnProperty.call(clientsData || {}, a) && dossiersMod) ? dossiersMod.numeroDe(a) : ''; },
         /* NOS domaines : celui de l'expéditeur de la configuration, teamop.fr et ceux des boîtes connectées — un mail de chez nous n'appelle jamais de réponse.
            ⚠️ Mais un domaine de messagerie PUBLIQUE (gmail.com, orange.fr…) n'est pas « chez nous » parce qu'une de nos adresses y vit : pour lui, seules nos
            adresses EXACTES comptent (`adressesNotres`) — sinon tous les clients qui écrivent depuis la même messagerie seraient ignorés. */
@@ -10409,6 +10507,11 @@ try {
        d'avant sur tous les fils (Hugo compris) dès qu'elle est montée ; sous son propre `try`, comme la précédente. */
     try {
       agentEquipe = require('./agent-equipe')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents,
+        /* les outils propres à Hugo, Margaux, Emma et Sarah (fin d'abonnement, mise en demeure, créneaux, annonce) : liaison TARDIVE — leurs modules sont montés plus bas, et un
+           agent non monté n'a simplement pas d'outil. Chacun ne vaut que d'un message de Justin (le module le vérifie, pas le prompt). */
+        outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; }, get margaux() { return agentMargaux && agentMargaux.outilsEquipe; },
+          get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; } },
+        arbitrer: (e, c) => plateformeMod ? plateformeMod.arbitrer(e, c) : { ok: false, raison: 'indisponible' },     // l'outil « arbitrer » de Victor (`agents-plateforme.js`)
         memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
     } catch (e) { agentEquipe = null; console.error('messagerie des agents indisponible :', e.message); }
@@ -10421,18 +10524,172 @@ try {
         /* Les incidents de la fenêtre : des NOMBRES (ouverts depuis le début, corrigés depuis, restant à traiter) — jamais le texte d'un incident, forgeable (/api/monitor/report est publique). */
         faits: { incidents: (debut, fin) => ({ ouverts: monIssues.filter(i => i.firstTs >= debut && i.firstTs <= fin).length,
           corriges: monIssues.filter(i => i.statut === 'corrige' && i.lastTs >= debut && i.lastTs <= fin).length,
-          aTraiter: monIssues.filter(i => i.statut === 'nouveau' || i.statut === 'encours').length }) } });
+          aTraiter: monIssues.filter(i => i.statut === 'nouveau' || i.statut === 'encours').length }),
+          /* la part « qualité » d'Inès : les jours relus de la fenêtre (des nombres) — `null` si elle n'est pas montée */
+          qualite: (debut, fin) => plateformeMod ? plateformeMod.qualite(debut, fin) : null } });
       const ticReunions = () => { try { reunionsMod.tic(); } catch (e) { console.error('réunions :', e.message); } };
       setTimeout(ticReunions, 5000).unref();
       setInterval(ticReunions, 60000).unref();
       console.log('agents : réunions montées (lundi 9 h, vendredi 18 h, heure de Paris)');
     } catch (e) { reunionsMod = null; console.error('réunions des agents indisponibles :', e.message); }
+    /* ══ HUGO, MARGAUX, EMMA, SARAH — LES CLIENTS (23 octobre 2026) ══════════════════════════════════════════════════════════════════════════
+       Justin : « On ne fera pas de remboursement. Une personne qui s'abonne pour le mois et après il arrête, c'est son choix. Mais il faut qu'il arrête l'abonnement. S'il n'arrête
+       pas l'abonnement et qu'il ne paye pas, là on fait les démarches pour les faire payer. »
+       Ce bloc ne décide RIEN du payé ni du bloqué : il branche les modules des agents sur les verdicts du serveur (`espaceStripeDans`, `impayesGestion`, `impayeBloque`, `espacePaye`,
+       `facturationDe`) — jamais une seconde règle. Chaque adaptateur rend des FORMES FERMÉES (un numéro de dossier, un état d'une liste, des nombres) ; l'adresse d'un client n'en sort
+       que comme DESTINATAIRE d'un courriel que le code compose, jamais dans un fil ni un journal. Chaque module est monté sous son propre `try` : un échec éteint cet agent-là seul. */
+    let gestionClients = null;
+    try {
+      const stripeFinPeriode = require('./stripe-resiliation');
+      const cleStripe = () => (config.stripe && config.stripe.secretKey) || '';
+      /* le numéro de dossier d'une entreprise (par l'adresse de son compte), et l'espace d'un numéro de dossier — l'un et l'autre FERMÉS */
+      const dossierDeSlug = slug => { const e = espacesReg[slug]; return (e && e.email && dossiersMod) ? (dossiersMod.numeroDe(e.email) || '') : ''; };
+      const emailDeDossier = async n => { if (!dossiersMod) return ''; const f = await dossiersMod.fiche(n); return (f && !f.supprime && f.client) ? String(f.client.email || '').trim().toLowerCase() : ''; };
+      const slugDeDossier = async n => { const m = await emailDeDossier(n); if (!m) return ''; return Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').trim().toLowerCase() === m) || ''; };
+
+      /* HUGO — la fin d'abonnement À LA FIN DE LA PÉRIODE. Une lecture FRAÎCHE de Stripe (comme un achat : `espaceStripeAchat`), les abonnements d'OP GESTION SÛREMENT à l'entreprise
+         (payés, puis en impayé) ; un doute (un abonnement trouvé par l'adresse mais pas sûrement à elle) ne se tranche pas ici. Rend { etat, finMs, adresse, nb } où etat ∈ ok | deja |
+         rien | doute | illisible | echec | inconnu. */
+      const resilierEntreprise = async (slug) => {
+        const e0 = espacesReg[slug];
+        if (!e0) return { etat: 'inconnu' };
+        const sk = cleStripe();
+        if (!sk) return { etat: 'illisible' };
+        const e = Object.assign({ slug }, facturationDe(e0));
+        let achat; try { achat = await espaceStripeAchat(e); } catch (err) { achat = null; }
+        if (!achat || !achat.fraiche || !Array.isArray(espStripeCache.data)) return { etat: 'illisible' };   // une liste ancienne ne décide pas d'une fin d'abonnement
+        const liste = espStripeCache.data;
+        let st = null, imp = null; try { st = espaceStripeDans(e, liste); imp = impayesGestion(e, liste); } catch (err) { return { etat: 'illisible' }; }
+        const payes = ((st && st.surs) || []).filter(aboDeGestion), impayes = ((imp && imp.surs) || []);
+        const douteux = ((st && st.douteux) || []).filter(aboDeGestion);
+        const autresImpayes = ((imp && imp.tous) || []).filter(sb => !impayes.includes(sb));
+        if (douteux.length || autresImpayes.length) return { etat: 'doute' };
+        const cibles = payes.concat(impayes).filter((sb, i, a) => a.indexOf(sb) === i);
+        if (!cibles.length) return { etat: 'rien' };
+        let finMs = 0, toutDeja = true;
+        for (const sb of cibles) {
+          const r = await stripeFinPeriode.programmerFin({ aboId: String(sb.id || ''), sk, entetes: stripeEntetes, jour: new Date().toISOString().slice(0, 10) });
+          if (!r.ok) return { etat: 'echec', nb: cibles.length };
+          if (!r.deja) toutDeja = false;
+          finMs = Math.max(finMs, r.finSec * 1000);
+        }
+        return { etat: toutDeja ? 'deja' : 'ok', finMs, adresse: String(e0.email || '').trim().toLowerCase(), nb: cibles.length };
+      };
+
+      /* MARGAUX — les impayés : les entreprises que le serveur dit BLOQUÉES par un impayé d'OP GESTION (le verdict d'`espacePaye`, pas le sien), une par identifiant, avec l'abonnement
+         SÛREMENT à elles et l'adresse de FACTURATION de Stripe. Une liste ancienne ou illisible : `ok:false`, personne n'est relancé sur un « on ne sait pas ». */
+      const impayesMargaux = async () => {
+        const sk = cleStripe();
+        if (!sk) return { ok: false, raison: 'pas_de_stripe' };
+        let liste; try { liste = await stripeListe(); } catch (err) { return { ok: false, raison: 'stripe' }; }
+        if (!Array.isArray(liste) || !(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return { ok: false, raison: 'liste_perimee' };
+        const vus = new Set(), sortie = [], incertains = [];
+        for (const [slug, e0] of Object.entries(espacesReg)) {
+          if (!e0) continue;
+          const e = Object.assign({ slug }, facturationDe(e0));
+          const t = String(espaceT(e) || '').toLowerCase();
+          if (!t || vus.has(t) || ESPACES_INTOUCHABLES.includes(t)) continue;
+          vus.add(t);
+          /* ⛔ « on n'a pas pu savoir » n'est PAS « elle n'est plus impayée » : l'entreprise dont le verdict a jeté est rendue à part (`incertains`), et Margaux ne la compte pas réglée — sinon un incident passager
+             d'`espacePaye` effaçait ses relances, et la relance « dernière » repartait une seconde fois au retour de l'entreprise. */
+          let p; try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) { incertains.push(t); continue; }
+          if (!(p && p.bloque === true && p.impayeStripe === true)) continue;
+          let imp = null; try { imp = impayesGestion(e, liste); } catch (err) { imp = null; }
+          const abo = imp && (imp.surs.includes(imp.abo) ? imp.abo : imp.surs[0]);
+          if (!abo || typeof abo.id !== 'string') { incertains.push(t); continue; }   // pas d'abonnement SÛREMENT à elle : on ne relance personne sur un doute — et on ne la dit pas réglée
+          sortie.push({ cle: t, slug, dossier: dossierDeSlug(slug), aboId: abo.id, adresse: stripeClient(abo.customer).email.trim().toLowerCase(), entreprise: String(e.nom || slug) });
+        }
+        return { ok: true, liste: sortie, incertains };
+      };
+      /* la facture EN ATTENTE d'un abonnement, relue chez Stripe : numéro, montant (en euros), jour d'émission, page https — ou `null` s'il n'y en a pas. JETTE si Stripe est muet. */
+      const factureMargaux = async (aboId) => {
+        const sk = cleStripe();
+        if (!sk || !/^sub_[A-Za-z0-9]{1,80}$/.test(String(aboId))) return null;
+        const d = await stripeMonGet('https://api.stripe.com/v1/subscriptions/' + encodeURIComponent(aboId) + '?expand[]=latest_invoice', sk);
+        if (!d || !STATUTS_IMPAYES.includes(d.status)) return null;
+        let li = d.latest_invoice && typeof d.latest_invoice === 'object' && d.latest_invoice.status === 'open' ? d.latest_invoice : null;
+        if (!li) { const f = await stripeMonGet('https://api.stripe.com/v1/invoices?subscription=' + encodeURIComponent(aboId) + '&status=open&limit=1', sk); li = f && Array.isArray(f.data) ? f.data[0] : null; }
+        if (!li) return null;
+        const eur = li.currency === 'eur' && Number.isFinite(li.amount_due) ? li.amount_due / 100 : 0;
+        return { numero: /^[A-Za-z0-9][A-Za-z0-9_-]{0,40}$/.test(String(li.number || '')) ? String(li.number) : '', montantEur: eur, emiseMs: Number.isFinite(li.created) ? li.created * 1000 : 0,
+          url: /^https:\/\//.test(String(li.hosted_invoice_url || '')) ? String(li.hosted_invoice_url) : '' };
+      };
+      /* « la dernière facture de ce client », pour que Margaux réponde à Camille dans la messagerie : des NOMBRES et des valeurs d'une LISTE (statut, montant, jour, mois, année). */
+      faitsAgents.facture = async (n) => {
+        const mail = await emailDeDossier(n);
+        if (!mail) return { numero: n, existe: false };
+        const sk = cleStripe();
+        if (!sk) return { numero: n, lecture: 'impossible' };
+        let liste; try { liste = await stripeListe(); } catch (err) { return null; }
+        if (!Array.isArray(liste) || !(espStripeCache.data && Date.now() - espStripeCache.ts <= 3 * STRIPE_CACHE_MS)) return null;
+        /* l'entreprise qui a son espace : les règles de rattachement du serveur (référence ET adresse) ; un prospect sans espace : l'adresse seule */
+        const slugE = Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').trim().toLowerCase() === mail) || '';
+        const e = slugE ? Object.assign({ slug: slugE }, facturationDe(espacesReg[slugE])) : { slug: '', email: mail, nom: '', formule: '' };
+        let st = null, im = null; try { st = espaceStripeDans(e, liste); im = slugE ? impayesGestion(e, liste) : espaceStripeDans(e, liste, STATUTS_IMPAYES); } catch (err) { return null; }
+        const abo = ((st && st.surs) || [])[0] || ((im && im.surs) || [])[0];
+        if (!abo || !abo.customer || typeof abo.customer !== 'object' || !/^cus_[A-Za-z0-9]+$/.test(String(abo.customer.id || ''))) return { numero: n, nb: 0, factures: [] };
+        const f = await stripeMonGet('https://api.stripe.com/v1/invoices?customer=' + encodeURIComponent(abo.customer.id) + '&limit=3', sk);
+        const jourFr = ts => { const p = {}; for (const x of new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(new Date(ts * 1000))) p[x.type] = +x.value; return p; };
+        const lignes = (f && Array.isArray(f.data) ? f.data : []).slice(0, 3).map(x => {
+          const p = jourFr(x.created || 0);
+          return { statut: x.status === 'paid' ? 'paye' : (x.status === 'open' || x.status === 'uncollectible') ? 'impaye' : 'autre',
+            montantEur: Number.isFinite(x.amount_due) ? x.amount_due / 100 : 0, jour: p.day || 0, mois: p.month || 0, annee: p.year || 0 };
+        });
+        return { numero: n, nb: lignes.length, factures: lignes };
+      };
+
+      const fichierGestion = fichierAgents;
+      /* LES DOCUMENTS : courriels d'agents, mise en demeure, annonce — la validation de Justin, l'aperçu, l'empreinte. */
+      try {
+        docsAgentsMod = require('./agents-documents')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, mail: messagerieTour, direction: directionMod, fichier: fichierGestion, sansAdresses,
+          /* la signature des quatre agents de la gestion est celle du registre que Justin règle depuis la Tour — la même que celle de Léa, Camille et Chloé (`agents-signature.js`) */
+          signatures: signaturesMod,
+          diffuser: diffuserAnnonceClients, destinataires: () => annonceDestinataires().size });
+      } catch (e) { docsAgentsMod = null; console.error('documents des agents indisponibles :', e.message); }
+      gestionClients = { dossierDeSlug, emailDeDossier, slugDeDossier, resilierEntreprise, impayesMargaux, factureMargaux };
+    } catch (e) { console.error('adaptateurs des agents de gestion indisponibles :', e.message); }
+
+    /* LES AGENTS DE LA PLATEFORME : Max (surveillance), Jules (incidents), Théo (sauvegardes, conservation), Nina (accès, RGPD, contrats), Inès (qualité), Victor (le
+       point du matin, la répartition, l'arbitrage). UN bloc, sous son propre `try` : s'il échoue, la messagerie et les réunions continuent sans eux. Le CODE surveille
+       toutes les cinq minutes ; le modèle ne juge que ce qui est neuf. Rien ne s'exécute seul : un incident est ouvert dans le registre de la Tour, une proposition va à Justin. */
+    try {
+      plateformeMod = require('./agents-plateforme')(app, { agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, fichier: fichierAgents, monAdmin, monPatronStrict,
+        equipe: () => agentEquipe,
+        issues: () => monIssues, sauverIssues: monSave,
+        sante: () => santeCorps(false),            // ⛔ jamais /health : il vide la fenêtre des temps de réponse que lit la surveillance horaire
+        sauvegarde: { etat: () => (sauvegarde && typeof sauvegarde.etat === 'function' ? sauvegarde.etat() : null) },
+        conservation: { sante: () => (conservation && typeof conservation.sante === 'function' ? conservation.sante() : null) },
+        contrats: { etat: () => (contratsMod && typeof contratsMod.etat === 'function' ? contratsMod.etat() : null) },
+        /* ce que le serveur SAIT déjà de la sécurité : des NOMBRES (verrous posés en ce moment, preuves de clé refusées depuis le démarrage) — jamais une adresse */
+        securite: () => ({ verrousTour: [...monLock.values()].filter(l => l && l.until > Date.now()).length, verrousPortail: (comptes && typeof comptes.bloques === 'function') ? comptes.bloques() : null, clesInvalides: cleEquipeVu.invalide }),
+        courriels: (depuis) => (brouillonsMod && typeof brouillonsMod.envoyes === 'function' ? brouillonsMod.envoyes(depuis) : null),
+        courrier: faitsAgents.courrier, clients: faitsAgents.clients });
+      Object.assign(faitsAgents, plateformeMod.faits);          // plateforme, incidents, sauvegardes, conservation, securite, contrats, qualite (lus par la messagerie, rôle par rôle)
+      plateformeMod.demarrer();
+      console.log('agents : plateforme montée (Max, Jules, Théo, Nina, Inès, Victor)');
+    } catch (e) { plateformeMod = null; console.error('agents de la plateforme indisponibles :', e.message); }
+    /* L'EXAMEN DE L'ÉQUIPE (`examen.js`, cahier §13) : les neuf scénarios joués avec le VRAI modèle sur une équipe d'ESSAI (modules réels, dossier temporaire, faits et
+       courriels fictifs, fausse poste) — rien des vrais fils, files, compteurs ni courriels. Lancé par le patron depuis la Tour, ou par la clé d'examen (deux gestes : lancer,
+       lire). Sous son propre `try` : sans lui, la Tour n'a ni bouton ni clé, et rien d'autre ne bouge. `mail` ne porte QUE la lecture de la signature réglée (jamais `envoyerAgent`) : la poste d'essai
+       n'envoie rien, et le module ne pourrait de toute façon pas envoyer. `capacites` : ce que d'AUTRES chantiers livrent et que l'examen mesure déjà (« en attente de » tant qu'un module manque) — chacune se déclare par une
+       fonction ou une liste EXPORTÉE par le module qui la livre, jamais par un drapeau qu'on oublierait de lever. */
+    try {
+      const capaciteCamille = nom => { try { return (require('./agent-camille').CAPACITES || []).includes(nom); } catch (e) { return false; } };
+      examenMod = require('./examen')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, cerveau: cerveauMod, pousseNotif, mail: { signature: messagerieTour.signature },
+        cleApi: (config.agents && config.agents.cleApi) || '',
+        capacites: { signatureAgent: !!(signaturesMod && typeof signaturesMod.composer === 'function'), controleQualite: typeof require('./agents-controle').fautesDuCode === 'function',
+          remboursement: capaciteCamille('remboursement'), resiliation: capaciteCamille('resiliation') } });
+      console.log('agents : examen de l’équipe monté');
+    } catch (e) { examenMod = null; console.error('examen de l’équipe indisponible :', e.message); }
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
     agentHugo = require('./agent-hugo')({
       agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, slug: espSlug,
       faits: faitsDossier,
+      /* la fin d'abonnement (23 octobre 2026) : les adaptateurs du bloc ci-dessus, les documents (l'accusé de réception) et le registre de Hugo */
+      documents: docsAgentsMod, fichier: fichierAgents,
+      resilier: gestionClients ? gestionClients.resilierEntreprise : null, dossierDe: gestionClients ? gestionClients.dossierDeSlug : (() => ''), espaceDeDossier: gestionClients ? gestionClients.slugDeDossier : (async () => ''),
       clients: () => Object.values(clientsData || {}).map(c => ({ email: c && c.email, entreprise: c && c.entreprise })),
       espaceExiste: (email, sl) => !!espacesReg[sl] || Object.values(espacesReg).some(x => x && String(x.email || '').toLowerCase() === String(email).toLowerCase()),
       /* ⛔ `stripeListe` rend `[]` quand la lecture a échoué et qu'aucune liste n'a jamais été lue (une minute d'attente après un échec) :
@@ -10456,6 +10713,32 @@ try {
       catch (e) { console.error('hugo :', e.message); res.status(500).json({ error: 'Passage non traité' }); }
     });
     setInterval(() => { agentHugo.passer().catch(e => console.error('hugo :', e.message)); }, 15 * 60000).unref();
+    /* les demandes fermées que ses collègues lui déposent (la fin d'un abonnement, « a-t-il payé ? ») : chaque minute — c'est une lecture de la file, pas de Stripe */
+    setInterval(() => { agentHugo.traiterTaches().catch(e => console.error('hugo (tâches) :', e.message)); }, 60000).unref();
+
+    /* MARGAUX : les relances d'impayé (J+3, J+7 de la charte) et la mise en demeure PRÉPARÉE — jamais envoyée sans Justin. Toutes les 30 minutes, et à la demande du patron. */
+    try {
+      if (docsAgentsMod && gestionClients) {
+        agentMargaux = require('./agent-margaux')({ agents: agentsMod, conversations: conversationsMod, documents: docsAgentsMod, direction: directionMod, fichier: fichierAgents,
+          impayes: gestionClients.impayesMargaux, facture: gestionClients.factureMargaux });
+        app.post('/api/monitor/agents/margaux/passer', monPatronStrict, async (req, res) => {
+          try { res.json(Object.assign({ ok: true }, await agentMargaux.passer())); }
+          catch (e) { console.error('margaux :', e.message); res.status(500).json({ error: 'Passage non traité' }); }
+        });
+        setInterval(() => { agentMargaux.passer().catch(e => console.error('margaux :', e.message)); }, 30 * 60000).unref();
+      }
+    } catch (e) { agentMargaux = null; console.error('Margaux indisponible :', e.message); }
+    /* EMMA : les rendez-vous avec les prospects qui veulent un appel (disponibilités réglées par Justin dans la Tour). L'adresse du prospect est celle de son DOSSIER. */
+    try {
+      if (docsAgentsMod && gestionClients) {
+        agentEmma = require('./agent-emma')(app, { agents: agentsMod, conversations: conversationsMod, documents: docsAgentsMod, fichier: fichierAgents, monAdmin, monPatronStrict, adresseDe: gestionClients.emailDeDossier });
+        setInterval(() => { agentEmma.traiterTaches().catch(e => console.error('emma :', e.message)); }, 60000).unref();
+      }
+    } catch (e) { agentEmma = null; console.error('Emma indisponible :', e.message); }
+    /* SARAH : l'annonce aux clients, rédigée à partir des notes de Justin — déposée en validation, jamais envoyée seule. */
+    try {
+      if (docsAgentsMod) agentSarah = require('./agent-sarah')(app, { agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, documents: docsAgentsMod, fichier: fichierAgents, monPatronStrict });
+    } catch (e) { agentSarah = null; console.error('Sarah indisponible :', e.message); }
   } catch (e) { console.error('agents indisponibles :', e.message); }
 } catch (e) { console.error('messagerie indisponible :', e.message); }
 

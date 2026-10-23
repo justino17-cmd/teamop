@@ -39,7 +39,10 @@ jobs:
     # tournent ici (6deee9d), « Les suites du dépôt passent » prend 12 min 56 s, et chaque lot d'OP MESSAGES en
     # ajoute (le lot 3 : quatre suites de plus ; sur la branche, l'étape des bancs en est à 13 min 37 s). Relevé
     # AVANT qu'il coupe un job vert, comme le run 526 l'a fait à 10 minutes.
-    timeout-minutes: 30
+    # ⛔ 45 ET NON PLUS 30 (23 octobre 2026) : avec les bancs de l'équipe d'agents (le vrai serveur pour chaque agent, l'examen,
+    # la veille du courrier attendue deux fois dans test-2908), le job a fait TOUTES ses étapes en vert et a quand même été
+    # coupé à 33 min (demande de fusion n° 162, run 39925746438) : la durée normale avait rejoint le plafond.
+    timeout-minutes: 45
     steps:
       # ⛔ `fetch-depth: 2` N'EST PAS DU CONFORT. Par défaut, actions/checkout ne ramène QU'UN
       # commit : « verifier-version.js » n'aurait alors aucun point de comparaison et ne

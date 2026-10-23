@@ -251,3 +251,61 @@ tests/test-2870.js
 tests/test-2891.js
 # 23 octobre 2026 (relecture) : `test-2890` (le référentiel des métiers et son interrupteur : « tout métier ouvert est connu de l'application » — sans lui, ouvrir un métier dans `metiers.json` sans que l'application publique le connaisse déclenchait un déploiement qui passait la porte, et un plombier lisait « Dératisation »). Mesuré contre l'`app.html` de `origin/main` (APP_FICHIER) : 60 ✓ 0 ✗. `test-2891` garde aussi que le script de déploiement emporte la page de paiement.
 tests/test-2890.js
+# 23 octobre 2026 : Hugo, Margaux, Emma, Sarah (la gestion des clients) — `test-2910` (la fin d'abonnement chez Stripe : fetch, fin de période seulement, clé d'idempotence, jamais un DELETE ni un
+# remboursement), `test-2911` (les courriers composés par le code et leur contrôle qualité), `test-2912` (les documents des agents : empreinte, acceptation, jamais d'envoi sans validation),
+# `test-2913` (Hugo : tâche fermée de Camille, accusé signé, « a-t-il payé ? »), `test-2914` (Margaux : relances J+3 / J+7 une fois chacune, mise en demeure PRÉPARÉE), `test-2915` (Emma : créneaux
+# libres à l'heure de Paris, jamais inventés ; Sarah : l'annonce rédigée, validée avant d'être envoyée) et `test-2917` (le VRAI serveur : Stripe simulé dans son processus, les verdicts de
+# l'application réutilisés, les routes — le patron seul écrit). `test-2916` (la Tour : le bloc `agGe…` de `tour.html`) est entré dans cette liste à la fusion de l'intégration (relecture du `gardien`).
+tests/test-2910.js
+tests/test-2911.js
+tests/test-2912.js
+tests/test-2913.js
+tests/test-2914.js
+tests/test-2915.js
+tests/test-2917.js
+tests/test-2918.js
+# 23 octobre 2026 : les six agents de la plateforme (Max la sentinelle, Jules les incidents, Théo les sauvegardes et la conservation, Nina les accès, le RGPD et les contrats, Inès la qualité,
+# Victor le point du matin, la répartition et l'arbitrage) — `test-2920` (les règles : les seuils de `surveillance.js` relus et rejoués à leurs bornes, les épisodes annoncés une fois),
+# `test-2921` (Max et Jules : l'incident dans le registre de la Tour, le diagnostic proposé, la seconde barrière), `test-2922` (Théo et Nina), `test-2923` (Inès et Victor) et `test-2924`
+# (l'assemblage : la cadence, de bout en bout, les relevés fermés, les routes, le câblage d'index.js). Un faux Claude partout ; aucun ne vise api.anthropic.com.
+tests/test-2920.js
+tests/test-2921.js
+tests/test-2922.js
+tests/test-2923.js
+tests/test-2924.js
+# …et `test-2925` : le VRAI serveur, un faux Claude — une erreur d'application ouvre un épisode, un incident dans la Tour et UN diagnostic ; le texte forgé des appareils ne part jamais chez Claude ;
+# les verrous de la Tour et du portail, les relevés de Théo et de Max dans le prompt, le point de Victor, les gestes au journal, la minuterie armée par index.js.
+tests/test-2925.js
+# …et `test-2928` (revue du 23 octobre) : un déclencheur FORGEABLE reste borné — « inconnu » ne réveille personne, un push urgent par règle et par jour, des incidents d'appareils forgés qui ne sonnent pas.
+tests/test-2928.js
+# …et `test-2929` (revue du 23 octobre) : l'amont du RGPD (la demande saisie avec sa date de réception), le relevé de la Tour, « passer maintenant » en liste fermée, Inès relit, le point de Victor ne se redit pas.
+tests/test-2929.js
+# 23 octobre 2026 : l'examen de l'équipe d'agents (cahier §13) — `test-2930` (les modules réels : les neuf scénarios avec un modèle SCRIPTÉ, chaque défaut joué tombe, une panne de Claude est « inconnu »,
+# les plafonds, les fichiers, la clé d'examen sur un vrai Express). Établi commun : `tests/banc-examen.js` (le faux Claude, pas une suite).
+tests/test-2930.js
+# `test-2931` (le vrai serveur, un faux Claude : l'examen se lance par la route de la Tour, rien de réel n'est touché — ni fils, ni files, ni registres, ni un client réel —, un défaut tombe, une panne est « inconnu », un redémarrage se dit),
+# `test-2932` (la clé d'examen contre le vrai serveur : en empreinte, nulle part sur le disque, deux gestes, REFUSÉE sur chacune des routes /api/monitor relevées dans les sources, CORS) et `test-2934` (la forme lue dans le code :
+# aucune donnée de client, aucun réseau, la poste n'envoie rien, la clé en temps constant). `test-2933` (les vraies fonctions de la TOUR) y entre à la fusion de l'intégration, avec `test-2916`, `test-2926` et `test-2927` (le panneau de la plateforme) : sans eux, le bloc Tour des agents n'aurait aucune porte au déploiement du serveur seul.
+tests/test-2931.js
+tests/test-2932.js
+tests/test-2934.js
+tests/test-2916.js
+tests/test-2926.js
+tests/test-2927.js
+tests/test-2933.js
+tests/test-2909.js
+# 23 octobre 2026 : Léa, Chloé, Camille (et Louis) AUTONOMES — `test-2900` (le contrôle qualité : fautes du code, juge fermé, une réécriture, « Bonjour Louca… je suis Justin » tombe), `test-2901` (la signature posée
+# par le SERVEUR, jamais « Justin » ; controle@ exclue des agents), `test-2902` (l'authentification de l'en-tête de NOTRE serveur de réception, les gardes de l'envoi seul, la charte ouverte par défaut),
+# `test-2903` (la recherche web côté serveur : requête, pause_turn, plafonds, aucune donnée personnelle), `test-2904` (Chloé : la proposition sur mesure), `test-2905` (Camille : catégories, gabarits, résiliation
+# fermée vers Hugo, remboursement refusé, mail piégé), `test-2906` (Louis : Justin seul valide une connaissance), `test-2907` (la messagerie : la main passe par un fil dont le collègue est membre, annonces,
+# aucune donnée personnelle) et `test-2908` (le vrai serveur : dkim=pass aligné part seul, en-tête absent / forgé / d'un autre domaine reste en brouillon, controle@ jamais lue, la chaîne Léa → Camille → Chloé ;
+# ~2 min : il attend le second passage de la veille). ⛔ `test-2909` (la Tour et les pages juridiques) n'est PAS ici : il lit `tour.html` et des pages que `main` ne sert pas encore.
+tests/test-2900.js
+tests/test-2901.js
+tests/test-2902.js
+tests/test-2903.js
+tests/test-2904.js
+tests/test-2905.js
+tests/test-2906.js
+tests/test-2907.js
+tests/test-2908.js

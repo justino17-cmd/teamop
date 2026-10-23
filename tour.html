@@ -2181,6 +2181,14 @@ body.plans .reg-l.cli::before{display:none}
 .ag-apercu textarea{min-height:220px;resize:vertical;margin-top:8px}
 .ag-apercu .err{margin-top:8px;color:var(--red);font-size:13px}
 .ag-apercu .ag-act{margin-top:10px}
+.ag-ctrl{margin-top:10px;padding:10px 12px;border-radius:var(--r-3);border:1px solid var(--line);font-size:12.5px;line-height:1.45;overflow-wrap:anywhere;color:var(--text)}
+.ag-ctrl.revoir{border-color:var(--red)}
+.ag-ctrl.bon{color:var(--muted)}
+.ag-ctrl ul{margin:6px 0 0;padding-left:18px}
+.ag-sav{align-items:flex-start;flex-wrap:wrap}
+.ag-sav .tx{flex:1 1 260px;min-width:0}
+.ag-sav-l{display:block;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.ag-sav-l input,.ag-sav-l textarea{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:10px 12px;font:inherit;font-size:16px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--surface);color:var(--text)}
 .ag-fil{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .ag-msg{max-width:min(560px,92%);align-self:flex-start;padding:10px 14px;border-radius:var(--r-3);border:1px solid var(--line);background:var(--inset)}
 .ag-msg.moi{align-self:flex-end;border-color:var(--acc)}
@@ -2191,6 +2199,86 @@ body.plans .reg-l.cli::before{display:none}
 .ag-msg p{margin:4px 0 6px;white-space:pre-wrap;overflow-wrap:anywhere}
 .ag-msg span{display:block;font-size:11.5px;color:var(--muted);margin-top:6px}
 @media (max-width:560px){.ag-ligne{flex-wrap:wrap}.ag-act{width:100%}.ag-act button{flex:1}}
+/* ── Hugo, Margaux, Emma, Sarah (23 octobre 2026) : les réglages sous leur carte — disponibilités d'Emma, annonce de Sarah, passage de Margaux. Mêmes jetons, jour ET nuit. */
+.ag-ge{border-top:1px solid var(--line);padding-top:6px}
+.ag-ge>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650;color:var(--text)}
+.ag-ge .gl{display:flex;align-items:center;gap:10px;min-height:44px}
+.ag-ge .gl input[type=checkbox]{width:20px;height:20px;flex:none}
+.ag-ge .gt{font-size:12.5px;color:var(--muted);line-height:1.4;margin:2px 0 8px}
+.ag-ge input[type=time],.ag-ge input[type=number],.ag-ge input[type=text],.ag-ge select,.ag-ge textarea{box-sizing:border-box;min-height:44px;padding:0 10px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit}
+.ag-ge textarea{width:100%;min-height:120px;padding:10px 12px;resize:vertical}
+.ag-ge .gj{display:grid;grid-template-columns:38px minmax(0,1fr);gap:4px 8px;align-items:center;margin-top:8px}
+.ag-ge .gj>b{font-size:13px;color:var(--muted);grid-row:span 2}
+.ag-ge .gp{display:flex;gap:6px;align-items:center;min-width:0}
+.ag-ge .gp input{flex:1;min-width:0}
+.ag-ge .gr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.ag-ge .gr label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+.ag-ge .gr select,.ag-ge .gr input{width:100%}
+.ag-ge .gc{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.ag-ge .gc input[type=text]{flex:1;min-width:120px}
+.ag-ge .gm{font-size:12.5px;margin-top:8px;color:var(--muted)}
+.ag-ge .gm.ko{color:var(--red)}
+.ag-ge .gv{margin:8px 0 0;padding:0;list-style:none}
+.ag-ge .gv li{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:var(--inset);margin-top:6px;font-size:13px}
+.ag-ge .gv li b{font-weight:650}
+.ag-ge .gv li.passe{opacity:.55}
+
+/* ══ L'EXAMEN DE L'ÉQUIPE (Tour, 23 octobre 2026) ══ les jetons de la Tour, jour ET nuit : rien n'est écrit en couleur dure, un état se lit aussi par son SIGNE (✓ ✗ … ?), jamais par la seule teinte. */
+.ex-carte{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:16px;margin-top:16px}
+.ex-carte h3{margin:0 0 6px;font-size:16px}
+.ex-carte p{margin:0 0 10px;color:var(--muted);font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
+.ex-carte .ag-act{margin-top:10px}
+.ex-cout{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.ex-cout span{font-size:12.5px;font-weight:650;padding:4px 10px;border-radius:99px;background:var(--inset);color:var(--text)}
+.ex-prog{display:grid;gap:6px;margin:10px 0 0;padding:0;list-style:none}
+.ex-prog li{display:flex;align-items:center;gap:10px;font-size:13.5px;min-height:34px}
+.ex-prog li b{font-weight:650}
+.ex-badge{flex:none;min-width:28px;height:28px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;background:var(--inset);color:var(--muted)}
+.ex-badge.ok{background:var(--vertBg);color:var(--green-txt)}
+.ex-badge.ko{background:var(--rougeBg);color:var(--redText)}
+.ex-badge.attente{background:var(--ambreBg);color:var(--amber)}
+.ex-badge.inconnu,.ex-badge.en_cours{background:var(--grisBg);color:var(--gray)}
+.ex-badge.en_cours{animation:exPulse 1.4s ease-in-out infinite}
+@keyframes exPulse{50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.ex-badge.en_cours{animation:none}}
+.ex-bilan{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+.ex-bilan span{font-size:13px;font-weight:700;padding:4px 12px;border-radius:99px;background:var(--inset)}
+.ex-bilan .ok{background:var(--vertBg);color:var(--green-txt)}
+.ex-bilan .ko{background:var(--rougeBg);color:var(--redText)}
+.ex-bilan .attente{background:var(--ambreBg);color:var(--amber)}
+.ex-sc{border-top:1px solid var(--line);padding:14px 0}
+.ex-sc:first-of-type{border-top:0}
+.ex-sc-tete{display:flex;gap:10px;align-items:flex-start}
+.ex-sc-tx{min-width:0;flex:1}
+.ex-sc-tx b{display:block;overflow-wrap:anywhere}
+.ex-sc-tx span{color:var(--muted);font-size:12.5px}
+.ex-vs{margin:8px 0 0 38px}
+.ex-v{display:flex;gap:8px;padding:5px 0;font-size:13px;line-height:1.45}
+.ex-v i{font-style:normal;font-weight:800;width:16px;flex:none;text-align:center}
+.ex-v.ok i{color:var(--green-txt)}
+.ex-v.ko i,.ex-v.ko>div>b{color:var(--redText)}
+.ex-v.attente i{color:var(--amber)}
+.ex-v.inconnu i{color:var(--gray)}
+.ex-v>div{min-width:0;overflow-wrap:anywhere}
+.ex-v small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.ex-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ex-bas{margin:8px 0 0 38px;min-height:44px}
+.ex-conv{margin:8px 0 0 38px;padding:10px 12px;background:var(--inset);border-radius:var(--r-3);max-height:420px;overflow:auto}
+.ex-msg{padding:7px 0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;border-top:1px solid var(--line)}
+.ex-msg:first-child{border-top:0}
+.ex-msg b{display:block;font-size:12px;color:var(--muted)}
+.ex-msg.sys{color:var(--muted);font-style:italic}
+.ex-liste{margin:10px 0 0;padding:0;list-style:none}
+.ex-liste li{border-top:1px solid var(--line)}
+.ex-liste li:first-child{border-top:0}
+.ex-liste button{display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;min-height:44px;padding:8px 2px;background:none;border:0;color:var(--text);text-align:left;font-size:13.5px}
+.ex-liste button[aria-current="true"]{font-weight:700}
+.ex-liste small{color:var(--muted);font-size:12.5px}
+.ex-cle{margin:10px 0;padding:12px 14px;border-radius:var(--r-3);border:1px solid var(--amber);background:var(--ambreBg)}
+.ex-cle code{display:block;margin:8px 0;padding:10px 12px;border-radius:var(--r-3);background:var(--inset);color:var(--text);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;word-break:break-all;user-select:all}
+.ex-cle strong{display:block;font-size:13.5px}
+.ex-cmd{margin:8px 0 0;padding:10px 12px;border-radius:var(--r-3);background:var(--inset);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
+@media (max-width:560px){.ex-vs,.ex-bas,.ex-conv{margin-left:0}.ex-sc-tete{align-items:center}}
 
 /* ══ MESSAGERIE DES AGENTS (v2.104) ══ trois colonnes — conversations · fil · « Qui fait quoi » — sur les jetons de la Tour, jour ET nuit.
    La zone est son propre CONTENEUR : c'est sa largeur qui décide (à 1100 px d'écran, le menu en prend 258 et il reste 842 pour trois colonnes),
@@ -2331,6 +2419,7 @@ body.jour .ms-tq{box-shadow:0 0 0 1px var(--line)}
 .ms-reu-t small{color:var(--muted);font-size:12.5px;line-height:1.35}
 .ms-reu-bd.cours .ms-reu-t small{color:var(--text2)}
 .ms-reu-a{display:flex;gap:8px;flex-wrap:wrap}
+.ms-reu-c>.ms-reu-a{grid-column:1/-1}      /* le bouton « Enregistrer une demande reçue » est une rangée à lui, pas une carte de plus dans la grille */
 .ms-reu-btn{min-height:36px;padding:0 12px;border:0;border-radius:var(--r-3);background:var(--inset);color:var(--text);font:inherit;font-size:13px;font-weight:650;cursor:pointer;white-space:nowrap}
 .ms-reu-btn:hover:not(:disabled){background:var(--hover)}
 .ms-reu-btn:disabled{opacity:.5;cursor:default}
@@ -2358,6 +2447,13 @@ body.jour .ms-reu-ag{box-shadow:0 0 0 1px var(--line)}
   .ms-reu[data-plie="1"] .ms-reu-a,.ms-reu[data-plie="1"] .ms-reu-s,.ms-reu[data-plie="1"] .ms-reu-t small{display:none}
   .ms-reu{max-height:min(34%,230px)} .ms-reu-bd{padding:8px 12px;gap:6px} .ms-reu-a{width:100%} .ms-reu-btn{flex:1 1 0;white-space:normal;line-height:1.2;padding:4px 8px} .ms-reu-h{padding:0 12px} .ms-reu-c{padding:0 12px 10px} }
 @media(pointer:coarse){ .ms-reu-btn,.ms-reu-h,.ms-reu-plier{min-height:44px} }
+/* LES AGENTS DE LA PLATEFORME (23 octobre 2026) : le panneau réemploie `.ms-reu-*` ; seul le voyant d'état est à lui. Le sens d'un état ne suit pas la teinte : vert, ambre, rouge. */
+.ms-pf-pt{width:10px;height:10px;border-radius:50%;flex:none;box-sizing:border-box;background:var(--gray)}
+.ms-pf-pt.ok{background:var(--green)}
+.ms-pf-pt.alerte{background:var(--amber)}
+.ms-pf-pt.crit{background:var(--red)}
+.ms-pf .ms-lien:disabled{opacity:.45;cursor:default;text-decoration:none}
+@media(pointer:coarse){ .ms-pf .ms-lien{min-height:44px;display:inline-flex;align-items:center} }
 @container mess (max-width:1000px){
   .ms{grid-template-columns:240px minmax(0,1fr)}
   .ms-btn-tq{display:inline-flex;align-items:center}
@@ -3060,7 +3156,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.104</div>
+    <div class="lg-pied">console interne · v2.106</div>
   </div>
 </div>
 
@@ -3102,7 +3198,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.104</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.106</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3114,7 +3210,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.104</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.106</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3419,7 +3515,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.104';
+var TOUR_VERSION='v2.106';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -6075,6 +6171,9 @@ function renderVue(v){
 
 /* ── outils partagés ── */
 function gravite(i){
+  /* Un incident ouvert par un AGENT (Max, Théo, Nina) porte sa propre gravité, décidée par la règle qui l'a ouvert : sans type, sans occurrences ni entreprise, le calcul ci-dessous
+     le rendait « faible » (une sauvegarde échouée, Stripe illisible…). Même règle que `gravite()` de server/incidents-agents.js — test-2920 les compare. */
+  if(['max','theo','nina'].indexOf(i.agent)>=0&&['haute','moyenne','faible'].indexOf(i.gravite)>=0) return i.gravite;
   var nbEnt=(i.entreprises||[]).length;
   if(i.type==='erreur') return (i.count>=10||nbEnt>=3)?'haute':'moyenne';
   if(i.type==='lenteur') return 'moyenne';
@@ -10600,10 +10699,11 @@ function vueJournal(){
 var AG={dir:{rap:null,rapLec:0,charte:null,charteLec:0,contrats:null,contLec:0,ouvert:'',vers:null,texte:'',note:''},loaded:false,err:'',illisible:false,pause:null,agents:[],enAttente:0,validations:[],journal:[],taches:[],lec:{validations:0,journal:0,taches:0},sec:'equipe',busy:false,
   dos:{q:'',lec:0,liste:[],total:0,ouvert:'',fiche:null,ficheLec:0},
   cv:{lec:0,fils:[],nonLus:0,ouvert:'',msgs:[],msgLec:0,brouillon:'',envoi:false},
-  br:{lec:0,d:{},edit:'',objet:'',texte:'',err:'',busy:false}};
+  br:{lec:0,d:{},edit:'',objet:'',texte:'',err:'',busy:false},
+  cour:{sigLec:0,sig:null,conLec:0,con:[],nq:'',nr:''}};
 var AG_MODES=[['arret','À l’arrêt'],['brouillon','Brouillon'],['auto','Auto']];
 var AG_TYPES={creer_espace:'Créer un espace',suspendre_acces:'Suspendre un accès',envoyer_mail:'Envoyer un courriel',publier:'Publier',repondre_avis:'Répondre à un avis',correctif:'Proposer un correctif',
-  verifier_paiement:'Vérifier un paiement',preparer_espace:'Préparer un espace',escalade_humain:'Passer la main à une personne',signaler_erreur:'Signaler une erreur',relire_envoi:'Relire un envoi'};
+  verifier_paiement:'Vérifier un paiement',preparer_espace:'Préparer un espace',escalade_humain:'Passer la main à une personne',signaler_erreur:'Signaler une erreur',relire_envoi:'Relire un envoi',resilier_fin_periode:'Programmer une fin d’abonnement'};
 var AG_STATUTS={en_attente:'à valider',accepte:'acceptée',refuse:'refusée',expire:'expirée',attente:'en attente',prise:'en cours',faite:'terminée',echec:'échec',expiree:'expirée'};
 function agParId(id){ for(var i=0;i<AG.agents.length;i++) if(AG.agents[i].id===id) return AG.agents[i]; return null; }
 function agNom(id){ var a=agParId(id); return a?a.nom:(id==='systeme'?'Système':String(id||'')); }
@@ -10645,7 +10745,7 @@ function chargerAgents(){
   ['validations','journal','taches'].forEach(function(k){
     ps.push(apiGet('/api/monitor/agents/'+k+(k==='validations'?'?statut=tout':'')).then(function(d){ if(!d) return;
       if(Array.isArray(d[k])){ AG[k]=d[k]; AG.lec[k]=1; } else { AG.lec[k]=-1; }
-      var br=(k==='validations'&&AG.lec.validations===1)?agBrCharger():null;
+      var br=(k==='validations'&&AG.lec.validations===1)?Promise.all([agBrCharger(),typeof agGeCharger==='function'?agGeCharger():null]):null;   /* + les documents de Hugo, Margaux, Emma, Sarah (bloc `agGe…`, gardé : un banc qui n'extrait qu'une partie de la page ne le voit pas) */
       if(TAB==='agents') render();
       return br;
     }).catch(function(){ AG.lec[k]=-1; if(TAB==='agents') render(); }));
@@ -10653,7 +10753,7 @@ function chargerAgents(){
   return Promise.all(ps);
 }
 function agParler(id){ messOuvrirFil(id); }   /* v2.104 : « Parler à X » ouvre la Messagerie sur son fil privé (l'onglet Conversations d'avant reste, sans bouton qui y mène) */
-function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); render(); }
+function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); if(s==='examen') exEntrer(); if(s==='courrier'&&AG.cour.sigLec===0&&AG.cour.conLec===0) agCourCharger(); render(); }
 /* ── les CONVERSATIONS : un fil privé par agent, un fil « Équipe » ; trois états comme partout (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
 function agCvCharger(){
   apiGet('/api/monitor/conversations').then(function(d){ if(!d) return;
@@ -10802,7 +10902,7 @@ function agBrApercu(v){
       '<div class="ag-act"><button type="button" class="ag-btn"'+(AG.br.busy?' disabled':'')+' onclick="agBrAnnuler()">Annuler</button><button type="button" class="ag-btn ok"'+(AG.br.busy?' disabled':'')+' onclick="agBrEnregistrer(\''+esc(ref)+'\')">Enregistrer</button></div></div>';
   }
   return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.a)+'</b>'+(b.entreprise?' · '+esc(b.entreprise):'')+'</div>'+
-    '<span class="obj">'+esc(b.objet)+'</span><p>'+esc(b.texte)+'</p>'+(b.signature?'<div class="sig">'+esc(b.signature)+'</div>':'')+
+    '<span class="obj">'+esc(b.objet)+'</span><p>'+esc(b.texte)+'</p>'+(b.signature?'<div class="sig">'+esc(b.signature)+'</div>':'')+agBrCtrl(b)+
     (b.etat!=='attente'?'<div class="note" style="margin-top:8px;color:var(--muted);font-size:12.5px">Ce brouillon est déjà '+(b.etat==='envoye'?'envoyé':'en échec : le courriel n’est pas parti, plus aucun essai possible')+'.</div>':
       (b.echecs>0?'<div class="note" style="margin-top:8px;color:var(--red);font-size:12.5px">Un envoi a échoué ('+esc(String(b.echecs))+' fois) : le courriel n’est pas parti. Valide de nouveau pour réessayer.</div>':''))+
     (MYROLE==='patron'&&b.etat==='attente'?'<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agBrModifier(\''+esc(ref)+'\')">Modifier</button></div>':'')+'</div>';
@@ -10821,6 +10921,207 @@ function agBrEnregistrer(ref){
     else AG.br.err=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')');   /* le refus se DIT à l’écran, dans le formulaire resté ouvert */
     render();
   }).catch(function(){ AG.br.busy=false; AG.br.err=INJOIGNABLE; render(); });
+}
+/* ══ HUGO, MARGAUX, EMMA, SARAH (23 octobre 2026) — le papier que Justin valide, et leurs réglages. UN BLOC À PART : l'état est `AGG`, les fonctions `agGe…`. ══
+   · TROIS sortes de papier (`agents-documents.js`) : le courriel d'un agent (accusé de fin d'abonnement, relance, créneaux), la MISE EN DEMEURE, l'ANNONCE à tous les clients. Chacune
+     s'aperçoit comme un brouillon (destinataire, objet, texte, signature) et se valide AVEC l'empreinte du texte lu : sans elle le serveur refuse (409). ⛔ Trois états par lecture comme
+     partout (0 pas lu, 1 lu, −1 illisible) : un document qu'on n'a pas pu lire ne se valide PAS — on ne valide pas un courrier qu'on n'a pas vu. Le destinataire s'affiche, il ne se change nulle part.
+   · Sous la carte d'Emma ses disponibilités (la seule source de ses créneaux — rien d'inventé) et les rendez-vous à tenir ; sous celle de Sarah le formulaire de l'annonce ; sous celle de
+     Margaux le passage en revue des impayés. Tout est réservé au patron (`chargerAgents` n'ouvre rien aux autres). */
+var AGG={lec:0,d:{},edit:'',objet:'',texte:'',err:'',busy:false,
+  emma:{lec:0,f:null,rdv:[],err:'',msg:'',busy:false,ouvert:false,dos:''},sarah:{type:'version',notes:'',msg:'',ko:false,busy:false,ouvert:false},margaux:{msg:'',ko:false,busy:false}};
+/* `resilier_fin_periode` (« Programmer une fin d’abonnement ») n'est PAS redit ici : son libellé est écrit une seule fois, dans la table d'origine — deux chantiers l'avaient écrit chacun, et le second écrasait le premier en silence. */
+Object.assign(AG_TYPES,{courrier_agent:'Envoyer un courriel',mise_en_demeure:'Mise en demeure',annonce_clients:'Annonce à tous les clients',
+  rendez_vous_prospect:'Rendez-vous avec un prospect',choix_creneau:'Choix d’un créneau de rendez-vous'});
+var AGG_TYPES=['courrier_agent','mise_en_demeure','annonce_clients'];
+function agGeType(v){ return !!v&&AGG_TYPES.indexOf(v.type)>=0&&!!v.params&&typeof v.params.ref==='string'&&/^dc[0-9a-f]{12}$/.test(v.params.ref); }
+var AGG_JOURS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+function agGeCharger(){
+  var ps=[];
+  var refs=AG.validations.filter(function(v){ return v.statut==='en_attente'&&agGeType(v); }).map(function(v){ return v.params.ref; }).slice(0,50);
+  if(!refs.length){ AGG.lec=1; AGG.d={}; }
+  else { if(AGG.lec!==1) AGG.lec=0;   /* une relecture ne remet pas le squelette : l'aperçu reste lisible pendant qu'on la refait */
+    ps.push(apiGet('/api/monitor/agents/documents?refs='+encodeURIComponent(refs.join(','))).then(function(d){
+      if(d&&typeof d==='object'&&!d.error){ AGG.d=d; AGG.lec=1; } else AGG.lec=-1;
+      if(TAB==='agents') render();
+    }).catch(function(){ AGG.lec=-1; if(TAB==='agents') render(); })); }
+  if(agParId('emma')) ps.push(agGeEmmaCharger());
+  return Promise.all(ps);
+}
+function agGeApercu(v){
+  var ref=v.params.ref, b=AGG.d[ref];
+  if(AGG.lec===0) return '<div class="ag-apercu">'+acSquel()+'</div>';
+  if(AGG.lec!==1||!b) return '<div class="ag-apercu"><div class="err" style="color:var(--red)">Le document n’a pas pu être lu : on ne sait pas ce qui partirait. Ne valide pas avant de l’avoir vu — réessaie dans un instant.</div></div>';
+  if(AGG.edit===ref){
+    return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.cible)+'</b> · le destinataire ne se change pas</div>'+
+      '<input id="agge-o" type="text" maxlength="200" aria-label="Objet" value="'+esc(AGG.objet)+'" oninput="AGG.objet=this.value" style="margin-top:8px">'+
+      '<textarea id="agge-t" maxlength="20000" aria-label="Texte" oninput="AGG.texte=this.value">'+esc(AGG.texte)+'</textarea>'+
+      (AGG.err?'<div class="err" role="alert">'+esc(AGG.err)+'</div>':'')+
+      '<div class="ag-act"><button type="button" class="ag-btn"'+(AGG.busy?' disabled':'')+' onclick="agGeAnnuler()">Annuler</button><button type="button" class="ag-btn ok"'+(AGG.busy?' disabled':'')+' onclick="agGeEnregistrer(\''+esc(ref)+'\')">Enregistrer</button></div></div>';
+  }
+  return '<div class="ag-apercu"><div class="de">À : <b>'+esc(b.cible)+'</b>'+(b.dossier?' · '+esc(b.dossier):'')+'</div>'+
+    (b.aRevoir?'<div class="err" role="alert">À revoir avant d’envoyer : '+esc(b.aRevoir)+'</div>':'')+
+    '<span class="obj">'+esc(b.objet)+'</span><p>'+esc(b.texte)+'</p>'+(b.signature?'<div class="sig">'+esc(b.signature)+'</div>':'')+
+    (b.echecs>0?'<div class="note" style="margin-top:8px;color:var(--red);font-size:12.5px">Un envoi a échoué ('+esc(String(b.echecs))+' fois) : rien n’est parti. Valide de nouveau pour réessayer.</div>':'')+
+    (MYROLE==='patron'?'<div class="ag-act"><button type="button" class="ag-btn"'+(AGG.busy?' disabled':'')+' onclick="agGeModifier(\''+esc(ref)+'\')">Modifier</button></div>':'')+'</div>';
+}
+/* La ligne d'une validation de ce papier-là : même disposition que les autres, avec SON aperçu et SON bouton « Valider et envoyer » (grisé tant que le document n'est pas lu). */
+function agGeLigne(v){
+  var ref=v.params.ref, ok=AGG.lec===1&&!!AGG.d[ref]&&AGG.edit!==ref;
+  var lbl=v.type==='mise_en_demeure'?'Valider et envoyer la mise en demeure':v.type==='annonce_clients'?'Valider et envoyer à tous':'Valider et envoyer';
+  return '<div class="ag-ligne ag-br"><span class="ag-etiq">'+esc(agNom(v.agent))+'</span><div class="tx"><b>'+esc(v.resume||AG_TYPES[v.type]||v.type)+'</b><span>'+esc(AG_TYPES[v.type]||v.type)+' · '+esc(fmtDate(v.ts))+'</span></div>'+
+    '<div class="ag-act"><button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agGeDecider(\''+esc(v.id)+'\',\'refuser\')">Refuser</button><button type="button" class="ag-btn ok"'+(AG.busy||!ok?' disabled':'')+
+    (!ok?' title="Lis le document (et enregistre ta correction) avant de valider"':'')+' onclick="agGeDecider(\''+esc(v.id)+'\',\'accepter\')">'+lbl+'</button></div>'+agGeApercu(v)+'</div>';
+}
+function agGeModifier(ref){ var b=AGG.d[ref]; if(!b||MYROLE!=='patron') return; AGG.edit=ref; AGG.objet=b.objet; AGG.texte=b.texte; AGG.err=''; render(); }
+function agGeAnnuler(){ AGG.edit=''; AGG.err=''; render(); }
+function agGeEnregistrer(ref){
+  if(AGG.busy||MYROLE!=='patron') return;
+  AGG.busy=true; AGG.err=''; render();
+  return apiPost('/api/monitor/agents/documents/modifier',{ref:ref,objet:AGG.objet,texte:AGG.texte}).then(function(r){
+    AGG.busy=false;
+    if(r.ok&&r.d&&r.d.document){ AGG.d[ref]=r.d.document; AGG.edit=''; AGG.err=''; toast('Document enregistré.'); }
+    else AGG.err=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')');   /* le refus se DIT à l'écran, dans le formulaire resté ouvert */
+    render();
+  }).catch(function(){ AGG.busy=false; AGG.err=INJOIGNABLE; render(); });
+}
+/* Ce que le serveur a VRAIMENT fait : « validée » ne veut pas dire « parti » (`validation.execution`). */
+function agGeMsg(r,decision,type){
+  if(!r.ok) return (r.d&&r.d.error)||'Décision refusée';
+  if(decision!=='accepter') return 'Demande refusée : rien n’est parti.';
+  var v=(r.d&&r.d.validation)||{}, nom=type==='mise_en_demeure'?'La mise en demeure':type==='annonce_clients'?'L’annonce':'Le courriel';
+  if(v.execution==='echec') return 'Validée, mais '+nom.toLowerCase()+' n’est PAS parti'+(type==='annonce_clients'?'e':'')+'. Une nouvelle validation est rouverte si cela peut encore se faire : regarde la liste.';
+  if(v.execution==='pause') return 'Validée, mais les agents sont en pause : rien n’est parti.';
+  return v.execution==='ok'?nom+(type==='annonce_clients'?' est partie.':' est parti.'):'Demande validée.';
+}
+function agGeDecider(id,decision){
+  if(AG.busy||MYROLE!=='patron') return;
+  var vd=AG.validations.filter(function(x){ return x.id===id; })[0]; if(!vd||!agGeType(vd)) return;
+  var corps={id:id,decision:decision}, b=AGG.d[vd.params.ref];
+  if(decision==='accepter'){
+    /* l'empreinte du texte que Justin a SOUS LES YEUX : le serveur refuse (409) si le document a été réécrit depuis */
+    if(AGG.lec!==1||!b||!b.empreinte){ toast('Le document n’a pas été lu : recharge la liste avant de valider.'); return; }
+    corps.empreinte=b.empreinte;
+    var q=vd.type==='mise_en_demeure'?'Envoyer cette MISE EN DEMEURE maintenant ? Elle part telle que tu la vois, à '+b.cible+', signée TEAM OP.'
+      :vd.type==='annonce_clients'?'Envoyer cette annonce à '+b.cible.replace(/^Tous les clients /,'')+' maintenant ? Elle part telle que tu la vois.'
+      :'Envoyer ce courriel maintenant ? Il part tel que tu le vois, avec la signature de l’agent.';
+    if(!confirm(q)) return;
+  }
+  AG.busy=true; render();
+  return apiPost('/api/monitor/agents/validations/decider',corps).then(function(r){
+    AG.busy=false; toast(agGeMsg(r,decision,vd.type));
+    chargerAgents();   /* aussi après un 409 « le document a changé » : l'aperçu se recharge avec le texte à jour */
+  }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+/* ── EMMA : les disponibilités (la forme fermée du serveur : `validerDispo`) et les rendez-vous à tenir ── */
+function agGeEmmaForme(d){
+  var f={actif:!!(d&&d.actif),dureeMin:(d&&d.dureeMin)||30,preavisH:(d&&d.preavisH)||24,nb:(d&&d.nb)||3,horizonJours:(d&&d.horizonJours)||14,jours:{}};
+  for(var j=1;j<=7;j++){ var pl=(d&&d.jours&&d.jours[j])||[]; f.jours[j]=[pl[0]?[pl[0][0],pl[0][1]]:['',''],pl[1]?[pl[1][0],pl[1][1]]:['','']]; }
+  return f;
+}
+function agGeEmmaCharger(){
+  if(AGG.emma.lec!==1) AGG.emma.lec=0;
+  return apiGet('/api/monitor/agents/emma/disponibilites').then(function(d){
+    /* ⛔ une relecture n'écrase JAMAIS ce que Justin est en train de régler (`sale`) : les rendez-vous se rafraîchissent, le formulaire non */
+    if(d&&d.dispo){ if(!AGG.emma.sale||!AGG.emma.f) AGG.emma.f=agGeEmmaForme(d.dispo); AGG.emma.rdv=Array.isArray(d.rendezVous)?d.rendezVous:[]; AGG.emma.lec=1; } else if(AGG.emma.lec!==1) AGG.emma.lec=-1;
+    if(TAB==='agents') render();
+  }).catch(function(){ AGG.emma.lec=-1; if(TAB==='agents') render(); });
+}
+function agGeEmmaChamp(k,val){ var f=AGG.emma.f; if(!f) return; if(k==='actif') f.actif=!!val; else f[k]=parseInt(val,10)||0; AGG.emma.sale=true; }
+function agGeEmmaPlage(j,p,k,val){ var f=AGG.emma.f; if(f&&f.jours[j]&&f.jours[j][p]) f.jours[j][p][k]=String(val||''); AGG.emma.sale=true; }
+function agGeEmmaEnregistrer(){
+  var e=AGG.emma, f=e.f; if(e.busy||!f||MYROLE!=='patron') return;
+  var jours={}, j, p, pl;
+  for(j=1;j<=7;j++){ pl=[]; for(p=0;p<2;p++){ var a=f.jours[j][p][0], b=f.jours[j][p][1];
+      if(a&&!b||!a&&b){ e.err='Jour '+AGG_JOURS[j-1]+' : une plage a besoin d’une heure de début ET d’une heure de fin.'; e.msg=''; render(); return; }
+      if(a&&b) pl.push([a,b]); }
+    jours[j]=pl; }
+  e.busy=true; e.err=''; e.msg=''; render();
+  return apiPost('/api/monitor/agents/emma/disponibilites',{dispo:{actif:f.actif,dureeMin:f.dureeMin,preavisH:f.preavisH,nb:f.nb,horizonJours:f.horizonJours,jours:jours}}).then(function(r){
+    e.busy=false;
+    if(r.ok&&r.d&&r.d.dispo){ e.f=agGeEmmaForme(r.d.dispo); e.sale=false; e.msg='Disponibilités enregistrées.'; e.err=''; toast('Disponibilités enregistrées.'); }
+    else e.err=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')');
+    render();
+  }).catch(function(){ e.busy=false; e.err=INJOIGNABLE; render(); });
+}
+function agGeEmmaProposer(){
+  var e=AGG.emma; if(e.busy||MYROLE!=='patron') return;
+  var dos=String(e.dos||'').trim().toUpperCase();
+  if(!/^DOS-\d{6}$/.test(dos)){ e.err='Numéro de dossier : DOS- suivi de six chiffres.'; e.msg=''; render(); return; }
+  e.busy=true; e.err=''; e.msg=''; render();
+  return apiPost('/api/monitor/agents/emma/proposer',{dossier:dos}).then(function(r){
+    e.busy=false;
+    if(r.ok&&r.d&&r.d.ok){ e.msg=r.d.saute?('Rien n’a été envoyé : '+({deja_proposee:'des créneaux ont déjà été proposés à ce dossier',adresse:'ce dossier n’a pas d’adresse',arret:'Emma est à l’arrêt',pause:'les agents sont en pause',courrier:'le courriel n’a pas pu être préparé'}[r.d.saute]||r.d.saute)+'.'):(r.d.creneaux?r.d.creneaux+' créneau'+(r.d.creneaux>1?'x':'')+' proposé'+(r.d.creneaux>1?'s':'')+(r.d.voie==='direct'?' au prospect.':' — le courriel attend ta validation.'):'Aucun créneau libre : le prospect est prévenu qu’on le rappelle.'); e.dos=''; }
+    else e.err=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')');
+    render(); chargerAgents();
+  }).catch(function(){ e.busy=false; e.err=INJOIGNABLE; render(); });
+}
+function agGeEmma(m){
+  var e=AGG.emma;
+  if(e.lec===0) return '<details class="ag-ge"><summary>Disponibilités et rendez-vous</summary>'+acSquel()+'</details>';
+  if(e.lec!==1||!e.f) return '<details class="ag-ge"><summary>Disponibilités et rendez-vous</summary><div class="gm ko">Les disponibilités n’ont pas pu être lues. <button type="button" class="ag-btn" onclick="agGeEmmaCharger()">Réessayer</button></div></details>';
+  var f=e.f, off=e.busy?' disabled':'';
+  var h='<details class="ag-ge"'+(e.ouvert?' open':'')+' ontoggle="AGG.emma.ouvert=this.open"><summary>Disponibilités et rendez-vous</summary>'+
+    '<div class="gt">Emma ne propose QUE ces créneaux, à l’heure de Paris. Sans disponibilités réglées, elle dit au prospect qu’on le rappelle et te prévient.</div>'+
+    '<label class="gl"><input type="checkbox"'+(f.actif?' checked':'')+off+' onchange="agGeEmmaChamp(\'actif\',this.checked)"> Proposer des créneaux aux prospects</label>';
+  for(var j=1;j<=7;j++){
+    h+='<div class="gj"><b>'+AGG_JOURS[j-1]+'</b>';
+    for(var p=0;p<2;p++) h+='<div class="gp"><input type="time" aria-label="'+AGG_JOURS[j-1]+' plage '+(p+1)+' début" value="'+esc(f.jours[j][p][0])+'"'+off+' onchange="agGeEmmaPlage('+j+','+p+',0,this.value)"> – <input type="time" aria-label="'+AGG_JOURS[j-1]+' plage '+(p+1)+' fin" value="'+esc(f.jours[j][p][1])+'"'+off+' onchange="agGeEmmaPlage('+j+','+p+',1,this.value)"></div>';
+    h+='</div>';
+  }
+  h+='<div class="gr">'+
+    '<label>Durée d’un appel<select'+off+' onchange="agGeEmmaChamp(\'dureeMin\',this.value)">'+[15,20,30,45,60,90,120].map(function(x){ return '<option value="'+x+'"'+(f.dureeMin===x?' selected':'')+'>'+x+' min</option>'; }).join('')+'</select></label>'+
+    '<label>Préavis<select'+off+' onchange="agGeEmmaChamp(\'preavisH\',this.value)">'+[[2,'2 h'],[4,'4 h'],[12,'12 h'],[24,'24 h'],[48,'48 h'],[72,'72 h']].map(function(x){ return '<option value="'+x[0]+'"'+(f.preavisH===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></label>'+
+    '<label>Créneaux proposés<select'+off+' onchange="agGeEmmaChamp(\'nb\',this.value)">'+[1,2,3,4,5].map(function(x){ return '<option value="'+x+'"'+(f.nb===x?' selected':'')+'>'+x+'</option>'; }).join('')+'</select></label>'+
+    '<label>Horizon<select'+off+' onchange="agGeEmmaChamp(\'horizonJours\',this.value)">'+[[7,'7 jours'],[14,'14 jours'],[21,'21 jours'],[30,'30 jours']].map(function(x){ return '<option value="'+x[0]+'"'+(f.horizonJours===x[0]?' selected':'')+'>'+x[1]+'</option>'; }).join('')+'</select></label></div>'+
+    '<div class="gc"><button type="button" class="ag-btn ok"'+off+' onclick="agGeEmmaEnregistrer()">Enregistrer les disponibilités</button></div>'+
+    '<div class="gt" style="margin-top:12px">Rendez-vous à tenir</div>'+
+    (e.rdv.length?'<ul class="gv">'+e.rdv.map(function(r){ return '<li'+(r.passe?' class="passe"':'')+'><b>'+esc(r.libelle)+'</b><span>'+esc(r.dossier)+(r.passe?' · passé':'')+'</span></li>'; }).join('')+'</ul>':'<div class="gm">Aucun rendez-vous pour l’instant.</div>')+
+    '<div class="gt" style="margin-top:12px">Proposer des créneaux à un prospect</div>'+
+    '<div class="gc"><input type="text" maxlength="10" placeholder="DOS-000123" aria-label="Numéro de dossier du prospect" value="'+esc(e.dos)+'"'+off+' oninput="AGG.emma.dos=this.value"><button type="button" class="ag-btn"'+(off||m==='arret'?' disabled':'')+(m==='arret'?' title="Emma est à l’arrêt"':'')+' onclick="agGeEmmaProposer()">Proposer</button></div>'+
+    (e.err?'<div class="gm ko" role="alert">'+esc(e.err)+'</div>':e.msg?'<div class="gm" role="status">'+esc(e.msg)+'</div>':'')+'</details>';
+  return h;
+}
+/* ── SARAH : l'annonce — elle rédige à partir de TES notes, tu valides dans « Validations » ── */
+function agGeSarahRediger(){
+  var s=AGG.sarah; if(s.busy||MYROLE!=='patron') return;
+  if(String(s.notes||'').trim().length<10){ s.msg='Écris les points de l’annonce (dix caractères au moins).'; s.ko=true; render(); return; }
+  s.busy=true; s.msg=''; s.ko=false; render();
+  return apiPost('/api/monitor/agents/sarah/rediger',{type:s.type,notes:s.notes}).then(function(r){
+    s.busy=false;
+    if(r.ok&&r.d&&r.d.ok){ s.msg=r.d.aRevoir?'Annonce déposée dans « Validations », marquée « à revoir » : '+r.d.aRevoir+'.':'Annonce déposée dans « Validations » : relis-la, corrige-la si besoin, puis valide.'; s.ko=false; s.notes=''; }
+    else { s.msg=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')'); s.ko=true; }
+    render(); if(r.ok) chargerAgents();
+  }).catch(function(){ s.busy=false; s.msg=INJOIGNABLE; s.ko=true; render(); });
+}
+function agGeSarah(m){
+  var s=AGG.sarah, off=s.busy||m==='arret';
+  return '<details class="ag-ge"'+(s.ouvert?' open':'')+' ontoggle="AGG.sarah.ouvert=this.open"><summary>Rédiger une annonce aux clients</summary>'+
+    '<div class="gt">Dis à Sarah ce qui change ou ce qui est prévu. Elle écrit le courriel ; il ne part à tous les clients que si tu le valides.</div>'+
+    '<label class="gr" style="display:block"><span class="gt">Type</span><select'+(s.busy?' disabled':'')+' onchange="AGG.sarah.type=this.value"><option value="version"'+(s.type==='version'?' selected':'')+'>Nouvelle version d’OP GESTION</option><option value="maintenance"'+(s.type==='maintenance'?' selected':'')+'>Maintenance</option></select></label>'+
+    '<textarea maxlength="1500" aria-label="Les points de l’annonce" placeholder="Ex. : le planning s’affiche plus vite sur téléphone ; la fiche d’intervention garde les photos hors ligne."'+(s.busy?' disabled':'')+' oninput="AGG.sarah.notes=this.value" style="margin-top:8px">'+esc(s.notes)+'</textarea>'+
+    '<div class="gc"><button type="button" class="ag-btn ok"'+(off?' disabled':'')+(m==='arret'?' title="Sarah est à l’arrêt"':'')+' onclick="agGeSarahRediger()">Rédiger et déposer en validation</button></div>'+
+    (s.msg?'<div class="gm'+(s.ko?' ko':'')+'" role="'+(s.ko?'alert':'status')+'">'+esc(s.msg)+'</div>':'')+'</details>';
+}
+/* ── MARGAUX : passer les impayés en revue maintenant (elle le fait seule toutes les 30 minutes) ── */
+function agGeMargaux(){
+  var g=AGG.margaux; if(g.busy||MYROLE!=='patron') return;
+  g.busy=true; g.msg=''; g.ko=false; render();
+  return apiPost('/api/monitor/agents/margaux/passer',{}).then(function(r){
+    g.busy=false;
+    if(!r.ok){ g.msg=(r.d&&r.d.error)||('Le serveur a refusé ('+r.status+')'); g.ko=true; }
+    else if(r.d.saute){ g.msg='Rien n’a été fait : '+({arret:'Margaux est à l’arrêt',pause:'les agents sont en pause',deja_en_cours:'un passage est déjà en cours',registre_illisible:'son registre est illisible'}[r.d.saute]||r.d.saute)+'.'; g.ko=true; }
+    else if(r.d.stripe===false){ g.msg='Stripe ne répond pas : personne n’est relancé tant que ça dure.'; g.ko=true; }
+    else g.msg=r.d.examines+' impayé'+(r.d.examines>1?'s':'')+' examiné'+(r.d.examines>1?'s':'')+' · '+r.d.relances+' relance'+(r.d.relances>1?'s':'')+(r.d.demeures?' · '+r.d.demeures+' mise en demeure préparée (à valider)':'')+'.';
+    render(); chargerAgents();
+  }).catch(function(){ g.busy=false; g.msg=INJOIGNABLE; g.ko=true; render(); });
+}
+function agGeCarte(a,m){
+  if(MYROLE!=='patron') return '';
+  if(a.id==='emma') return agGeEmma(m);
+  if(a.id==='sarah') return agGeSarah(m);
+  if(a.id==='margaux'&&m!=='arret') return '<button type="button" class="ag-btn"'+(AG.busy||AGG.margaux.busy?' disabled':'')+' onclick="agGeMargaux()">Passer les impayés en revue</button>'+(AGG.margaux.msg?'<div class="gm ag-ge'+(AGG.margaux.ko?' ko':'')+'" style="border:0;padding:0" role="status">'+esc(AGG.margaux.msg)+'</div>':'');
+  return '';
 }
 /* Ce que le serveur a VRAIMENT fait d'une décision. ⛔ « Validée » ne veut pas dire « parti » : `validation.execution` dit si l'exécution a eu lieu ('ok'), a échoué
    ('echec') ou a été retenue par la pause ('pause'). Dire « Demande validée » sur un courriel qui n'est pas parti laissait Justin croire la réponse envoyée. */
@@ -10841,7 +11142,7 @@ function agDecider(id,decision){
     if(AG.br.lec!==1||!bv||!bv.empreinte){ toast('Le brouillon n’a pas été lu : recharge la liste avant de valider.'); return; }
     corps.empreinte=bv.empreinte;
   }
-  if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'&&!confirm('Envoyer ce courriel maintenant ? Il part tel que tu le vois, avec la signature du Courrier.')) return;
+  if(decision==='accepter'&&vd&&vd.type==='envoyer_mail'&&!confirm('Envoyer ce courriel maintenant ? Il part tel que tu le vois, avec la signature de l’agent'+(bv&&bv.signature?' (« '+String(bv.signature).split('\n')[0]+' »)':'')+'.')) return;
   if(decision==='accepter'&&!(vd&&vd.type==='envoyer_mail')&&!confirm('Valider cette demande ? Elle sera exécutée si l’agent en a la charge.')) return;
   AG.busy=true; render();
   return apiPost('/api/monitor/agents/validations/decider',corps).then(function(r){
@@ -10932,6 +11233,76 @@ function agContratBloc(t){
   }
   return h;
 }
+/* ══ COURRIER DES AGENTS (23 octobre 2026) ══ ce que Léa, Camille et Chloé disent d'elles-mêmes (la signature) et ce qu'elles savent (les connaissances que Louis propose
+   et que Justin SEUL valide). ⛔ L'écran ne décide de rien : la signature est composée par le SERVEUR (nom, rôle, adresse, site), la connaissance validée est celle que Justin a sous
+   les yeux ; trois états pour chaque lecture (0 pas lue, 1 lue, −1 on n'a pas pu savoir : jamais « aucune connaissance » sur une liste illisible). */
+function agBrCtrl(b){
+  var c=b.controle||{}, h='';
+  if(c.etat==='a_revoir') h+='<div class="ag-ctrl revoir" role="note"><b>À revoir — le contrôle qualité n’a pas laissé partir ce courriel seul.</b>'+((c.fautes||[]).length?'<ul>'+c.fautes.map(function(f){ return '<li>'+esc(f)+'</li>'; }).join('')+'</ul>':'')+(c.reecrit?'<div>Il a déjà été réécrit une fois.</div>':'')+'</div>';
+  else if(c.etat==='non_verifie') h+='<div class="ag-ctrl revoir" role="note"><b>Contrôle qualité non fait</b> (le relecteur n’a pas répondu) : relis ce courriel avec soin, il ne partira pas seul.</div>';
+  else if(c.etat==='bon') h+='<div class="ag-ctrl bon" role="note"><b>Contrôle qualité passé</b>'+(c.reecrit?' après une réécriture':'')+'.</div>';
+  if(b.source==='courrier'||b.source==='proposition') h+='<div class="ag-ctrl'+(b.authentifie?' bon':'')+'" role="note">'+(b.authentifie?'<b>Expéditeur vérifié</b> par notre serveur de réception.':'<b>Expéditeur non vérifié</b> : ce courriel ne partira jamais seul, tu le valides.')+'</div>';
+  return h;
+}
+function agCourCharger(){
+  var C=AG.cour; C.sigLec=0; C.conLec=0;
+  apiGet('/api/monitor/agents/signatures').then(function(d){ if(d&&Array.isArray(d.agents)){ C.sig=d; C.sigLec=1; } else C.sigLec=-1; if(TAB==='agents') render(); }).catch(function(){ C.sigLec=-1; if(TAB==='agents') render(); });
+  apiGet('/api/monitor/agents/connaissances').then(function(d){ if(d&&Array.isArray(d.entrees)){ C.con=d.entrees; C.conLec=1; } else C.conLec=-1; if(TAB==='agents') render(); }).catch(function(){ C.conLec=-1; if(TAB==='agents') render(); });
+}
+function agSigEnreg(agent){
+  if(AG.busy||MYROLE!=='patron') return;
+  var el=document.getElementById(agent==='equipe'?'ag-sig-equipe':'ag-sig-'+agent), v=el?String(el.value||'').trim():'';
+  var corps=agent==='equipe'?{equipe:v}:{agent:agent,role:v};
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/signatures',corps).then(function(r){ AG.busy=false; toast(r.ok?'Signature enregistrée.':((r.d&&r.d.error)||'Refusé')); agCourCharger(); }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agCnDecider(id,decision){
+  if(AG.busy||MYROLE!=='patron') return;
+  var corps={id:id,decision:decision}, q=document.getElementById('ag-cn-q-'+id), r=document.getElementById('ag-cn-r-'+id);
+  if(decision==='valider'){
+    if(q) corps.question=String(q.value||'').trim(); if(r) corps.reponse=String(r.value||'').trim();
+    if(!corps.reponse){ toast('Écris la réponse avant de valider : Louis ne la connaissait pas.'); return; }
+    if(!confirm('Valider cette connaissance ? Léa, Camille et Chloé la liront et pourront la reprendre dans leurs courriels.')) return;
+  } else if(decision==='retirer'&&!confirm('Retirer cette connaissance ? Les agents ne la liront plus.')) return;
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/connaissances/decider',corps).then(function(x){ AG.busy=false; toast(x.ok?(decision==='valider'?'Connaissance validée.':decision==='refuser'?'Proposition refusée.':'Connaissance retirée.'):((x.d&&x.d.error)||'Refusé')); agCourCharger(); }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agCnAjouter(){
+  if(AG.busy||MYROLE!=='patron') return;
+  var q=document.getElementById('ag-cn-nq'), r=document.getElementById('ag-cn-nr'); AG.cour.nq=q?String(q.value||''):''; AG.cour.nr=r?String(r.value||''):'';
+  AG.busy=true; render();
+  apiPost('/api/monitor/agents/connaissances/decider',{decision:'ajouter',question:AG.cour.nq.trim(),reponse:AG.cour.nr.trim()}).then(function(x){ AG.busy=false; if(x.ok){ AG.cour.nq=''; AG.cour.nr=''; } toast(x.ok?'Connaissance ajoutée.':((x.d&&x.d.error)||'Refusé')); agCourCharger(); }).catch(function(){ AG.busy=false; toast(INJOIGNABLE); render(); });
+}
+function agCourVue(){
+  var C=AG.cour, h='', off=(AG.busy||MYROLE!=='patron')?' disabled':'';
+  if(C.sigLec===0&&C.conLec===0) agCourCharger();
+  h+='<h3 class="ag-h">Signature des assistantes</h3><div class="note" style="margin-top:6px;color:var(--muted);font-size:12.5px">Chaque courriel dit qui l’écrit : un assistant virtuel, jamais toi (règlement européen sur l’IA, article 50). Le serveur pose la signature ; tu règles ici le rôle et le nom de l’équipe.</div>';
+  if(C.sigLec!==1) h+=C.sigLec===0?acSquel():agIllisible('Les signatures n’ont pas pu être lues : les formules par défaut servent, rien ne part sans signature.');
+  else {
+    h+='<div class="ag-liste">'+C.sig.agents.filter(function(a){ return a.agent==='lea'||a.agent==='camille'||a.agent==='chloe'; }).map(function(a){
+      return '<div class="ag-ligne ag-sav"><div class="tx"><b>'+esc(a.nom)+'</b><span class="sig" style="white-space:pre-wrap">'+esc(a.apercu||'')+'</span>'+
+        '<label class="ag-sav-l">Rôle<input id="ag-sig-'+esc(a.agent)+'" type="text" maxlength="60" value="'+esc(a.role||'')+'"'+off+'></label></div>'+
+        '<div class="ag-act"><button type="button" class="ag-btn"'+off+' onclick="agSigEnreg(\''+esc(a.agent)+'\')">Enregistrer</button></div></div>'; }).join('')+
+      '<div class="ag-ligne ag-sav"><div class="tx"><b>Nom de l’équipe</b><label class="ag-sav-l">Après le rôle<input id="ag-sig-equipe" type="text" maxlength="60" value="'+esc(C.sig.equipe||'')+'"'+off+'></label></div>'+
+      '<div class="ag-act"><button type="button" class="ag-btn"'+off+' onclick="agSigEnreg(\'equipe\')">Enregistrer</button></div></div></div>';
+  }
+  h+='<h3 class="ag-h" style="margin-top:22px">Connaissances de Léa, Camille et Chloé</h3><div class="note" style="margin-top:6px;color:var(--muted);font-size:12.5px">Louis propose une réponse quand Camille n’a pas su répondre ou quand tu corriges un brouillon. Rien n’est lu par les assistantes avant ta validation ; le texte d’un client ne devient jamais une connaissance tout seul.</div>';
+  if(C.conLec!==1) h+=C.conLec===0?acSquel():agIllisible('Les connaissances n’ont pas pu être lues : on ne sait pas ce que savent les assistantes.');
+  else {
+    var pr=C.con.filter(function(e){ return e.etat==='propose'; }), va=C.con.filter(function(e){ return e.etat==='valide'; });
+    h+='<h4 class="ag-h" style="margin-top:14px">À valider ('+pr.length+')</h4>';
+    h+=pr.length?'<div class="ag-liste">'+pr.map(function(e){ return '<div class="ag-ligne ag-sav"><div class="tx"><label class="ag-sav-l">Question<input id="ag-cn-q-'+esc(e.id)+'" type="text" maxlength="200" value="'+esc(e.question)+'"'+off+'></label>'+
+        '<label class="ag-sav-l">Réponse<textarea id="ag-cn-r-'+esc(e.id)+'" maxlength="600" rows="3"'+off+'>'+esc(e.reponse)+'</textarea></label>'+(e.reponse?'':'<span>Louis n’a pas la réponse : écris-la.</span>')+'</div>'+
+        '<div class="ag-act"><button type="button" class="ag-btn ok"'+off+' onclick="agCnDecider(\''+esc(e.id)+'\',\'valider\')">Valider</button><button type="button" class="ag-btn"'+off+' onclick="agCnDecider(\''+esc(e.id)+'\',\'refuser\')">Refuser</button></div></div>'; }).join('')+'</div>'
+      :'<div class="vide">Aucune proposition en attente.</div>';
+    h+='<h4 class="ag-h" style="margin-top:18px">Validées ('+va.length+')</h4>';
+    h+=va.length?'<div class="ag-liste">'+va.map(function(e){ return '<div class="ag-ligne"><div class="tx"><b>'+esc(e.question)+'</b><span>'+esc(e.reponse)+(e.decidePar?' · validée par '+esc(e.decidePar):'')+'</span></div>'+
+        '<div class="ag-act"><button type="button" class="ag-btn"'+off+' onclick="agCnDecider(\''+esc(e.id)+'\',\'retirer\')">Retirer</button></div></div>'; }).join('')+'</div>':'<div class="vide">Aucune connaissance validée : les assistantes ne s’appuient que sur l’offre.</div>';
+    h+='<h4 class="ag-h" style="margin-top:18px">Ajouter une connaissance</h4><div class="ag-liste"><div class="ag-ligne ag-sav"><div class="tx"><label class="ag-sav-l">Question<input id="ag-cn-nq" type="text" maxlength="200" value="'+esc(C.nq)+'"'+off+'></label>'+
+      '<label class="ag-sav-l">Réponse<textarea id="ag-cn-nr" maxlength="600" rows="3"'+off+'>'+esc(C.nr)+'</textarea></label></div><div class="ag-act"><button type="button" class="ag-btn ok"'+off+' onclick="agCnAjouter()">Ajouter</button></div></div></div>';
+  }
+  return h;
+}
 function agIllisible(txt){ return '<div class="encart bloc"><div class="tx" style="margin-top:0">'+esc(txt)+'</div></div>'; }
 function vueAgents(){
   var tete=enTete('Agents','Les agents IA qui gèrent Team OP. Tu décides ce que chacun a le droit de faire : à l’arrêt, il ne fait rien ; en brouillon, il prépare et tu relis ; en auto, il agit seul dans ses droits. Pour lui écrire, touche « Parler » sur sa carte.');
@@ -10945,7 +11316,7 @@ function vueAgents(){
     ' · '+allumes+' allumé'+(allumes>1?'s':'')+' sur '+AG.agents.length+'</b>'+
     (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
   var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
-  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['direction','Direction']].map(function(o){
+  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['courrier','Courrier des agents'],['examen','Examen'],['direction','Direction']].map(function(o){
     return '<button type="button" role="tab" class="'+(AG.sec===o[0]?'on':'')+'" aria-selected="'+(AG.sec===o[0])+'" onclick="agSec(\''+o[0]+'\')">'+o[1]+
       (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
@@ -10962,7 +11333,7 @@ function vueAgents(){
         '<div class="ag-etat-cv'+(a.cerveau===true&&AG.cleOk&&m!=='arret'?' ok':'')+'">'+(a.cerveau===true?(AG.cleOk?(m==='arret'?'Branché — à l’arrêt : passe-le en Brouillon pour qu’il te réponde.':'Il répond quand tu lui écris, tant qu’il n’est pas à l’arrêt.'):'Branché, mais la clé Anthropic n’est pas posée : il ne répond pas encore.'):'Pas encore branché : il ne répond pas et n’agit pas.')+'</div>'+
         '<button type="button" class="ag-btn" onclick="agParler(\''+esc(a.id)+'\')">Parler à '+esc(a.nom)+'</button>'+
         '<div class="ag-pied"><span>Plafond mensuel</span><b>'+esc(a.plafondUsd)+' $</b></div>'+
-        (a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+'</article>';
+        (a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+(typeof agGeCarte==='function'?agGeCarte(a,m):'')+'</article>';
     });
     if(c) h+='</div>';
     h+='<div class="encart bloc" style="margin-top:16px"><div class="tx" style="margin-top:0">Un agent neuf est à l’arrêt. Il passe par « brouillon » avant « auto ». Les dépenses ne se lisent pas ici : voir la Console Anthropic (espace « Agents Team OP », limite 195 $).</div></div>';
@@ -10970,6 +11341,7 @@ function vueAgents(){
     if(AG.lec.validations!==1) h+=AG.lec.validations===0?acSquel():agIllisible('Les demandes n’ont pas pu être lues — on ne sait pas s’il y en a. Réessaie dans un instant.');
     else if(!AG.validations.length) h+='<div class="vide">Rien à valider pour l’instant.</div>';
     else h+='<div class="ag-liste">'+AG.validations.map(function(v){
+      if(typeof agGeType==='function'&&agGeType(v)&&v.statut==='en_attente') return agGeLigne(v);   /* le papier de Hugo, Margaux, Emma, Sarah : SA ligne, SON aperçu (bloc `agGe…`) */
       var att=v.statut==='en_attente', brRef=att?agBrRef(v):'', brOk=!brRef||(AG.br.lec===1&&!!AG.br.d[brRef]&&AG.br.edit!==brRef);
       return '<div class="ag-ligne'+(brRef?' ag-br':'')+'"><span class="ag-etiq">'+esc(agNom(v.agent))+'</span><div class="tx"><b>'+esc(v.resume||AG_TYPES[v.type]||v.type)+'</b><span>'+esc(AG_TYPES[v.type]||v.type)+' · '+agParams(v.params)+' · '+esc(fmtDate(v.ts))+
         (v.decideTs?' · '+esc(AG_STATUTS[v.statut]||v.statut)+(v.decidePar?' par '+esc(v.decidePar):''):'')+(v.execution?' · exécution : '+esc(v.execution):'')+'</span></div>'+
@@ -10984,6 +11356,10 @@ function vueAgents(){
         (e.cible?esc(e.cible)+' · ':'')+(e.detail?esc(e.detail)+' · ':'')+(e.qui?'par '+esc(e.qui)+' · ':'')+esc(fmtDate(e.ts))+'</span></div></div>'; }).join('')+'</div>';
   } else if(AG.sec==='conv'){
     h+=agCvVue();
+  } else if(AG.sec==='examen'){
+    h+=exVue();
+  } else if(AG.sec==='courrier'){
+    h+=agCourVue();
   } else if(AG.sec==='direction'){
     h+=agDirVue();
   } else if(AG.sec==='dossiers'){
@@ -10996,6 +11372,167 @@ function vueAgents(){
       '<div class="note" style="margin-top:10px;color:var(--muted);font-size:12.5px">Les demandes d’argent et d’accès ne passent entre agents que sous une forme fermée : un identifiant, une valeur d’une liste. Le travail confié en conversation est une phrase libre, celle de Justin ou d’un collègue — jamais un texte de client.</div>';
   }
   return h;
+}
+
+/* ══ L'EXAMEN DE L'ÉQUIPE ══ (Justin, 23 octobre 2026, cahier `design/EQUIPE-AGENTS.md` §13 ; le serveur : `server/examen.js`)
+   « Je veux une vraie équipe d'entreprise, une vraie communication humaine ; je veux que tu testes tout comme je te l'explique quand tout est en ligne. »
+   Le bouton fait passer les neuf scénarios à l'équipe, avec le VRAI modèle, sur une équipe d'essai. ⛔ L'ÉCRAN NE SIMULE RIEN : que rien de réel ne soit touché (aucun vrai fil,
+   aucun vrai client, aucun courriel) est une garantie du SERVEUR, que `test-2931` mesure ; cet écran lit ce que le serveur a trouvé et le montre.
+   · ⛔ TROIS ÉTATS pour chaque lecture (0 pas encore lue, 1 lue, −1 on n'a pas pu savoir) : un examen qu'on n'a pas pu lire ne se dessine jamais « aucun examen n'a eu lieu ».
+   · ⛔ LE COÛT SE DIT AVANT DE LANCER (appels, dollars, budget du mois) et le bouton ne dit pas « lancé » avant que le serveur ait répondu 202.
+   · QUATRE verdicts, chacun avec son SIGNE : ✓ réussi, ✗ échec, … en attente (un module qu'un autre chantier livre : il manque, ce n'est pas un ✓), ? à relancer (Claude était en panne).
+   · ⛔ LA CLÉ D'EXAMEN n'existe à l'écran que dans la réponse qui la crée, et cinq minutes au plus (ou jusqu'à « J'ai copié la clé ») : le serveur ne la rend plus jamais. */
+var EX={lec:0,d:null,err:'',busy:false,voir:'',res:{},resLec:{},ouvert:{},cle:'',tCle:0,tPoll:0};
+var EX_LIB={ok:'Réussi',ko:'Échec',attente:'En attente',inconnu:'À relancer'};
+var EX_ICO={ok:'✓',ko:'✗',attente:'…',inconnu:'?'};
+var EX_PROG={a_venir:'à venir',en_cours:'en cours…',ok:'réussi',ko:'échec',attente:'en attente d’un module',inconnu:'à relancer'};
+var EX_FILS={equipe:'Équipe',clients:'Clients',plateforme:'Plateforme',reunions:'Réunions',courrier:'Courrier'};
+function exHeure(ts){ if(!ts) return '—'; var d=new Date(ts), p=function(n){ return (n<10?'0':'')+n; }; return p(d.getHours())+' h '+p(d.getMinutes()); }
+function exUsd(x){ return (Math.round((+x||0)*100)/100).toString().replace('.',',')+' $'; }
+function exEcran(){ return TAB==='agents'&&AG.sec==='examen'; }
+function exEntrer(){ EX.cle=''; clearTimeout(EX.tCle); exCharger(); }
+function exCharger(){
+  if(MYROLE!=='patron'){ EX.lec=-1; EX.err='Réservé au patron — l’examen ne se lance que par lui.'; if(exEcran()) render(); return Promise.resolve(); }
+  return apiGet('/api/monitor/agents/examen').then(function(d){ if(!d) return;
+    var etait=!!(EX.d&&EX.d.courant);
+    if(d&&Array.isArray(d.resultats)){ EX.d=d; EX.lec=1; EX.err=''; } else { EX.lec=-1; EX.err='réponse inattendue du serveur'; }
+    if(EX.lec===1){
+      var r=d.resultats[0];
+      if(etait&&!d.courant&&r){ EX.voir=r.id; delete EX.resLec[r.id]; exOuvrir(r.id); toast('L’examen est terminé : '+nMot(r.bilan.ok,'réussi','réussis')+', '+nMot(r.bilan.ko,'échec','échecs')+'.'); }
+      else if(!EX.voir&&r) exOuvrir(r.id);
+      if(d.courant) exSurveiller();
+    }
+    if(exEcran()) render();
+  }).catch(function(e){ EX.lec=-1; EX.err=msgErreur(e); if(exEcran()) render(); });
+}
+/* Tant qu'un examen tourne ET que l'écran est ouvert : on relit toutes les quatre secondes. Quitter l'écran arrête la minuterie (elle repart à l'entrée). */
+function exSurveiller(){
+  if(EX.tPoll) return;
+  EX.tPoll=setTimeout(function(){ EX.tPoll=0;
+    if(!exEcran()) return;
+    if(typeof document!=='undefined'&&document.visibilityState==='hidden'){ exSurveiller(); return; }
+    exCharger(); },4000);
+}
+function exOuvrir(id){
+  if(!id) return Promise.resolve();
+  EX.voir=id;
+  if(EX.resLec[id]===1){ if(exEcran()) render(); return Promise.resolve(); }
+  EX.resLec[id]=0; if(exEcran()) render();
+  return apiGet('/api/monitor/agents/examen/resultat?id='+encodeURIComponent(id)).then(function(d){ if(!d) return;
+    if(d&&d.resultat&&typeof d.resultat==='object'){ EX.res[id]=d.resultat; EX.resLec[id]=1; } else EX.resLec[id]=-1;
+    if(exEcran()) render();
+  }).catch(function(){ EX.resLec[id]=-1; if(exEcran()) render(); });
+}
+function exBasculer(cle){ EX.ouvert[cle]=!EX.ouvert[cle]; render(); }
+function exLancer(){
+  if(EX.busy||MYROLE!=='patron'||!EX.d) return;
+  var l=EX.d.limites||{};
+  if(!confirm('Faire passer l’examen à l’équipe ?\n\nIl joue neuf scénarios avec le vrai modèle, sur une équipe d’essai : aucun vrai fil, aucun vrai client, aucun courriel réel.\n\nCoût : au plus '+l.appelsMax+' appels à Claude, soit '+l.usdMax+' $ au maximum, comptés dans le budget du mois des agents.'+(l.moisUsdMax?' L’examen a son propre plafond : '+l.moisUsdMax+' $ par mois.':'')+' Un examen par heure.')) return;
+  EX.busy=true; render();
+  apiPost('/api/monitor/agents/examen/lancer',{}).then(function(r){ EX.busy=false;
+    if(r.ok){ toast('L’examen est lancé.'); EX.voir=''; } else toast((r.d&&r.d.error)||'Lancement refusé');
+    exCharger();
+  }).catch(function(){ EX.busy=false; toast(INJOIGNABLE); render(); });
+}
+function exCleCreer(){
+  if(EX.busy||MYROLE!=='patron'||!EX.d) return;
+  if(EX.d.cle&&EX.d.cle.existe&&!confirm('Créer une nouvelle clé remplace l’ancienne : elle cessera de fonctionner à l’instant. Continuer ?')) return;
+  EX.busy=true; render();
+  apiPost('/api/monitor/agents/examen/cle',{}).then(function(r){ EX.busy=false;
+    if(r.ok&&r.d&&typeof r.d.cle==='string'){
+      EX.cle=r.d.cle; clearTimeout(EX.tCle); EX.tCle=setTimeout(function(){ EX.cle=''; if(exEcran()) render(); },300000);
+      toast('Clé créée : copie-la maintenant, elle ne sera plus montrée.');
+    } else toast((r.d&&r.d.error)||'Clé non créée');
+    exCharger();
+  }).catch(function(){ EX.busy=false; toast(INJOIGNABLE); render(); });
+}
+function exCleSupprimer(){
+  if(EX.busy||MYROLE!=='patron'||!EX.d) return;
+  if(!confirm('Supprimer la clé d’examen ? Elle cessera de fonctionner à l’instant.')) return;
+  EX.busy=true; EX.cle=''; clearTimeout(EX.tCle); render();
+  apiPost('/api/monitor/agents/examen/cle/supprimer',{}).then(function(r){ EX.busy=false;
+    toast(r.ok?'Clé supprimée.':((r.d&&r.d.error)||'Suppression refusée'));
+    exCharger();
+  }).catch(function(){ EX.busy=false; toast(INJOIGNABLE); render(); });
+}
+function exCleCopier(){
+  var c=EX.cle; if(!c) return;
+  var mal=function(){ toast('Copie impossible : sélectionne la clé et copie-la à la main.'); };
+  try{ navigator.clipboard.writeText(c).then(function(){ toast('Clé copiée.'); },mal); }catch(e){ mal(); }
+}
+function exCleCacher(){ EX.cle=''; clearTimeout(EX.tCle); render(); }
+
+function exVerifHtml(v){
+  var e=EX_ICO[v.etat]?v.etat:'inconnu';
+  return '<div class="ex-v '+e+'" role="listitem"><i aria-hidden="true">'+EX_ICO[e]+'</i><div><span class="ex-sr">'+esc(EX_LIB[e])+' : </span>'+esc(v.libelle)+(v.detail?'<small>'+esc(v.detail)+'</small>':'')+'</div></div>';
+}
+function exFilLib(f){ return EX_FILS[f]||agNom(f); }
+function exConvHtml(c){
+  return '<div class="ex-conv">'+c.map(function(m){ return '<div class="ex-msg'+(m.systeme?' sys':'')+'"><b>'+esc(m.nom||m.de)+(m.fil?' · '+esc(exFilLib(m.fil)):'')+'</b>'+esc(m.texte)+'</div>'; }).join('')+'</div>';
+}
+function exScenarioHtml(s,id){
+  var e=EX_ICO[s.etat]?s.etat:'inconnu', cle=id+':'+s.n, ouvert=!!EX.ouvert[cle], v=Array.isArray(s.verifs)?s.verifs:[], conv=Array.isArray(s.conversation)?s.conversation:[];
+  var att=v.filter(function(x){ return x.etat==='attente'; }).length;
+  return '<section class="ex-sc"><div class="ex-sc-tete"><span class="ex-badge '+e+'" aria-hidden="true">'+EX_ICO[e]+'</span><div class="ex-sc-tx"><b>'+esc(s.n)+'. '+esc(s.titre)+'</b><span><span class="ex-sr">Verdict : </span>'+esc(EX_LIB[e])+' · '+nMot(v.length,'contrôle','contrôles')+(att?' · '+nMot(att,'en attente d’un module','en attente d’un module'):'')+' · '+nMot(s.appels||0,'appel','appels')+' · '+(+s.duree||0)+' s</span></div></div>'+
+    '<div class="ex-vs" role="list">'+v.map(exVerifHtml).join('')+'</div>'+
+    (conv.length?'<button type="button" class="ag-btn ex-bas" aria-expanded="'+ouvert+'" onclick="exBasculer(\''+esc(cle)+'\')">'+(ouvert?'Masquer':'Voir')+' la conversation ('+conv.length+')</button>'+(ouvert?exConvHtml(conv):''):'')+'</section>';
+}
+function exBilanHtml(b){
+  b=b||{};
+  return '<div class="ex-bilan"><span class="ok">✓ '+nMot(b.ok||0,'réussi','réussis')+'</span><span class="ko">✗ '+nMot(b.ko||0,'échec','échecs')+'</span>'+(b.attente?'<span class="attente">… '+b.attente+' en attente</span>':'')+(b.inconnu?'<span>? '+nMot(b.inconnu,'à relancer','à relancer')+'</span>':'')+'</div>';
+}
+function exSourceLib(s){ return s==='cle'?'par la clé d’examen':s==='tour'?'depuis la Tour':''; }
+function exResultatHtml(id){
+  var l=EX.resLec[id], r=EX.res[id];
+  if(l===0||l===undefined) return acSquel();
+  if(l===-1||!r) return agIllisible('Ce résultat n’a pas pu être lu — on ne sait pas ce qu’il dit.')+'<button type="button" class="ag-btn" onclick="delete EX.resLec[\''+esc(id)+'\'];exOuvrir(\''+esc(id)+'\')">Réessayer</button>';
+  var tete='<div class="ex-sc-tx"><span>Examen du '+esc(fmtDate(r.debut))+' '+esc(exSourceLib(r.source))+' · '+nMot(r.appels||0,'appel','appels')+' · '+esc(exUsd(r.usd))+' · '+(+r.duree||0)+' s</span></div>';
+  if(r.etat==='interrompu') return tete+'<div class="encart bloc"><div class="tx" style="margin-top:0">Cet examen a été interrompu : '+esc(r.raison||'raison inconnue')+'. Rien n’a été rejoué ; relance-le quand tu veux.</div></div>';
+  if(r.etat==='erreur') return tete+agIllisible('Cet examen s’est arrêté sur une erreur du serveur'+(r.erreur?' : '+r.erreur:'')+'.');
+  return tete+exBilanHtml(r.bilan)+(r.plafondAtteint?'<div class="note" style="margin:6px 0;color:var(--amber);font-size:13px">Le plafond de l’examen a été atteint : ce qui n’a pas pu se jouer est « à relancer ».</div>':'')+
+    (Array.isArray(r.scenarios)?r.scenarios.map(function(s){ return exScenarioHtml(s,id); }).join(''):'');
+}
+function exProgresHtml(c){
+  var f=c.scenarios.filter(function(s){ return s.etat!=='a_venir'&&s.etat!=='en_cours'; }).length;
+  return '<div class="ex-carte" aria-live="polite"><h3>Examen en cours</h3><p>Lancé à '+esc(exHeure(c.debut))+' '+esc(exSourceLib(c.source))+'. '+f+' scénario'+(f>1?'s':'')+' sur '+c.scenarios.length+' terminé'+(f>1?'s':'')+' · '+nMot(c.appels||0,'appel','appels')+' sur '+esc(c.appelsMax)+' au plus · '+esc(exUsd(c.usd))+' sur '+esc(c.usdMax)+' $ au plus. La page se met à jour toute seule.</p>'+
+    '<ul class="ex-prog">'+c.scenarios.map(function(s){ var e=EX_PROG[s.etat]?s.etat:'inconnu';
+      return '<li><span class="ex-badge '+(e==='a_venir'?'':e)+'" aria-hidden="true">'+(e==='a_venir'?'·':e==='en_cours'?'…':EX_ICO[e]||'?')+'</span><span><b>'+esc(s.n)+'.</b> '+esc(s.titre)+' <small style="color:var(--muted)">— '+esc(EX_PROG[e])+'</small></span></li>'; }).join('')+'</ul></div>';
+}
+function exCleHtml(){
+  var d=EX.d, c=d.cle||{existe:false};
+  var API_=API+'/api/monitor/agents/examen';
+  var h='<div class="ex-carte"><h3>Clé d’examen — pour que Claude Code teste et corrige sans te déranger</h3><p>Une clé qui ne permet que DEUX gestes : lancer l’examen et lire ses résultats (des données fictives uniquement). Elle ne donne accès à rien d’autre dans la Tour : ni clients, ni courrier, ni agents réels. Une seule clé vit à la fois ; elle est gardée sous forme d’empreinte, donc montrée une seule fois, ici, à sa création. Un examen par heure au plus, quelle que soit la façon de le lancer ; chaque usage est inscrit au journal des agents (les refus et les lectures répétés n’y font qu’une ligne par fenêtre, qui dit combien elle en recouvre).</p>';
+  if(EX.cle){
+    h+='<div class="ex-cle" role="alert"><strong>Copie cette clé maintenant : elle ne sera plus jamais affichée.</strong><code id="ex-cle-val">'+esc(EX.cle)+'</code><div class="ag-act"><button type="button" class="ag-btn ok" onclick="exCleCopier()">Copier la clé</button><button type="button" class="ag-btn" onclick="exCleCacher()">J’ai copié la clé</button></div></div>';
+  }
+  h+=c.existe?'<p>Une clé est vivante depuis le '+esc(fmtDate(c.creeLe))+(c.par?' (créée par '+esc(c.par)+')':'')+'.</p>':'<p>Aucune clé n’est vivante.</p>';
+  h+='<div class="ag-act"><button type="button" class="ag-btn '+(c.existe?'':'ok')+'"'+(EX.busy?' disabled':'')+' onclick="exCleCreer()">'+(c.existe?'Remplacer la clé':'Créer une clé')+'</button>'+(c.existe?'<button type="button" class="ag-btn danger"'+(EX.busy?' disabled':'')+' onclick="exCleSupprimer()">Supprimer la clé</button>':'')+'</div>';
+  h+='<p style="margin-top:12px">Pour s’en servir (la clé se lit dans une variable, jamais dans la commande) :</p><div class="ex-cmd">curl -sS -X POST '+esc(API_)+'/lancer -H "Authorization: Bearer $CLE_EXAMEN"\ncurl -sS '+esc(API_)+'/resultat -H "Authorization: Bearer $CLE_EXAMEN"</div></div>';
+  return h;
+}
+function exVue(){
+  if(EX.lec===0) return acSquel();
+  if(EX.lec===-1||!EX.d) return agIllisible('L’examen n’a pas pu être lu ('+(EX.err||'raison inconnue')+') : on ne sait pas si un examen est en cours.')+'<button type="button" class="ag-btn" onclick="exCharger()">Réessayer</button>';
+  var d=EX.d, l=d.limites||{}, c=d.courant, now=Date.now();
+  var attente=d.prochainPossible&&d.prochainPossible>now?d.prochainPossible:0;
+  var peut=!EX.busy&&!c&&!attente&&d.cleOk===true;
+  var h='<div class="ex-carte"><h3>Faire passer l’examen à l’équipe</h3><p>Les neuf scénarios du cahier sont joués avec le vrai modèle, sur une équipe d’essai : une question à Margaux, un travail à Camille, « @tous », Camille et Hugo entre eux, un désaccord arbitré par Victor, le premier courriel de Léa, le courrier, les réunions du lundi et du vendredi, le ton. Rien de réel n’est touché : aucun vrai fil, aucun vrai client, aucun courriel envoyé.</p>'+
+    '<div class="ex-cout"><span>Au plus '+esc(l.appelsMax)+' appels à Claude</span><span>'+esc(l.usdMax)+' $ au maximum</span><span>comptés dans le budget du mois des agents</span>'+(l.moisUsdMax?'<span>'+esc(l.moisUsdMax)+' $ par mois au plus pour l’examen</span>':'')+'<span>un examen par heure</span></div>'+
+    (d.cleOk!==true?'<div class="note" style="margin:6px 0;color:var(--amber);font-size:13px">La clé des agents n’est pas posée sur le serveur : l’examen ne peut pas jouer avec le vrai modèle.</div>':'')+
+    (attente?'<p>Le prochain examen sera possible à '+esc(exHeure(attente))+'.</p>':'')+
+    '<div class="ag-act"><button type="button" class="ag-btn ok"'+(peut?'':' disabled')+' onclick="exLancer()">'+(c?'Examen en cours…':EX.busy?'Lancement…':'Faire passer l’examen à l’équipe')+'</button></div></div>';
+  if(c) h+=exProgresHtml(c);
+  var rs=d.resultats||[];
+  if(!rs.length){ h+=c?'':'<div class="vide" style="margin-top:16px">Aucun examen n’a encore été joué.</div>'; }
+  else {
+    var id=EX.voir&&rs.some(function(x){ return x.id===EX.voir; })?EX.voir:rs[0].id;
+    h+='<div class="ex-carte"><h3>Résultat</h3>'+exResultatHtml(id)+'</div>';
+    if(rs.length>1){
+      h+='<div class="ex-carte"><h3>Les examens gardés</h3><ul class="ex-liste">'+rs.map(function(x){
+        return '<li><button type="button" aria-current="'+(x.id===id)+'" onclick="exOuvrir(\''+esc(x.id)+'\')"><span>'+esc(fmtDate(x.debut))+'</span><span class="ag-etiq'+(x.bilan.ko?' ko':x.etat==='interrompu'?'':' ok')+'">'+(x.etat==='interrompu'?'interrompu':x.etat==='erreur'?'erreur':'✓ '+x.bilan.ok+' · ✗ '+x.bilan.ko)+'</span><small>'+esc(exSourceLib(x.source))+'</small></button></li>'; }).join('')+'</ul></div>';
+    }
+  }
+  return h+exCleHtml();
 }
 
 /* ══ LA MESSAGERIE DES AGENTS ══ (Justin, 23 octobre 2026, cahier `design/EQUIPE-AGENTS.md` §6 et §11 ; modèle visuel : `design/propositions/maquette-tour.html`)
@@ -11222,7 +11759,7 @@ function messTachesCharger(){
     messPeindreTaches();
   }).catch(function(){ if(MS.tachesLec!==1) MS.tachesLec=-1; messPeindreTaches(); });
 }
-function messToutCharger(){ return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
+function messToutCharger(){ if(MS.fil==='plateforme') messPfCharger(); return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
 /* La lecture d'un fil : entière à l'ouverture, INCRÉMENTALE ensuite (`?apres=`). Une réponse qui arrive après un changement de fil est jetée. */
 function messFilCharger(incr){
   var fil=MS.fil; if(incr&&MS.msgLec===-1) incr=false;   /* un fil qu'on n'a pas pu lire se retente tout seul, en entier */
@@ -11342,6 +11879,135 @@ function messVeiller(){
     if(TAB!=='messagerie'||!MS.inst) return;
     if(document.visibilityState==='visible'){ messToutCharger(); messFilCharger(true); messTimers(true); } else messTimers(false); }); }catch(e){}
 }
+/* ══════════ LES AGENTS DE LA PLATEFORME (23 octobre 2026) — au-dessus du fil « Plateforme » ══════════
+   Max (surveillance), Jules (incidents), Théo (sauvegardes, conservation), Nina (accès, RGPD, contrats), Inès (qualité), Victor (le point, la répartition, l'arbitrage).
+   Ce panneau LIT `GET /api/monitor/agents/plateforme` (des nombres, des clés, des phrases composées par le serveur — jamais un texte venu d'un client) et porte trois gestes du patron :
+   faire passer un agent maintenant, demander le point de Victor, marquer une demande RGPD traitée. Trois états comme partout : lu, en lecture, PAS PU LIRE (on ne dit pas « rien
+   d'anormal » d'une lecture qui a échoué). Ouvrir n'écrit rien. Il réemploie les classes du panneau des réunions (`ms-reu-*`) : une seule apparence pour les deux. */
+var MS_PF_AG_CLAUDE=['jules','victor'];   /* ceux qui peuvent appeler Claude à leur passage : on demande avant */
+var MS_PF_MODE={arret:'à l’arrêt',brouillon:'brouillon',auto:'allumé'};
+var MS_PF_NIV={critique:'Critique',important:'Important',info:'Info'};
+MS.pf={lec:0,d:null,err:'',enVol:false,occ:'',ouvert:{ep:true,ag:false,rgpd:true},plie:(typeof matchMedia==='function'?matchMedia('(max-width:899px)').matches:false)};
+function msPfIlYa(ts){
+  if(!ts) return 'pas encore';
+  var m=Math.max(0,Math.round((Date.now()-ts)/60000));
+  return m<1?'à l’instant':m<60?'il y a '+m+' min':m<1440?'il y a '+Math.round(m/60)+' h':'il y a '+Math.round(m/1440)+' j';
+}
+function msPfNom(id){ var a=msAgentsParId()[id]; return a?a.nom:id; }
+function msPfCartes(vide,groupes){
+  var ids=Object.keys(groupes).filter(function(k){ return groupes[k].length; });
+  if(!ids.length) return '<p class="ms-reu-vide">'+esc(vide)+'</p>';
+  return ids.map(function(k){ return '<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(msPfNom(k)).charAt(0).toUpperCase())+'</span><b>'+esc(msPfNom(k))+'</b></div><ul>'+groupes[k].join('')+'</ul></div>'; }).join('');
+}
+function msPfHtml(){
+  var R=MS.pf, d=R.d;
+  if(R.lec===0&&!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>Plateforme</b><small>Lecture…</small></div></div>';
+  if(!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>L’état des agents de la plateforme n’a pas pu être lu</b><small>'+esc(R.err||'On ne sait pas ce qu’ils ont relevé.')+'</small></div>'+
+    '<div class="ms-reu-a"><button type="button" class="ms-reu-btn" data-act="pfRecharger">Réessayer</button></div></div>';
+  var ouverts=(d.episodes||[]).filter(function(e){ return !e.fin; }), crit=ouverts.filter(function(e){ return e.niveau==='critique'; }).length;
+  var rgpd=Array.isArray(d.rgpd)?d.rgpd:[], retard=rgpd.filter(function(g){ return g.joursRestants<0; }).length;
+  var cls=crit||retard?'crit':ouverts.length||rgpd.length?'alerte':'ok';
+  var titre=ouverts.length?ouverts.length+(ouverts.length>1?' épisodes en cours':' épisode en cours')+(crit?' dont '+crit+' critique'+(crit>1?'s':''):''):'Rien d’anormal sur la plateforme';
+  var max=d.agents&&d.agents.max?d.agents.max:null;
+  var sous=d.illisible?'La mémoire des agents est illisible : ils se taisent plutôt que de deviner.':(max&&max.dernier?'Max a relu la santé '+msPfIlYa(max.dernier)+' (toutes les 5 minutes).':'Max n’a pas encore relu la santé depuis le démarrage.')+(rgpd.length?' · '+rgpd.length+' demande'+(rgpd.length>1?'s':'')+' RGPD à suivre.':'');
+  var h='<div class="ms-reu-bd"><span class="ms-pf-pt '+cls+'" aria-hidden="true"></span><div class="ms-reu-t"><b>'+esc(titre)+'</b><small>'+esc(sous)+'</small></div>'+
+    '<button type="button" class="ms-reu-plier" data-act="pfPlier" aria-expanded="'+!R.plie+'">'+(R.plie?'Détails':'Réduire')+'</button>'+
+    '<div class="ms-reu-a"><button type="button" class="ms-reu-btn" data-act="pfPoint"'+(R.occ?' disabled':'')+'>Dire le point de Victor</button></div></div>';
+  var o=R.ouvert;
+  /* les épisodes : en cours, puis rétablis cette semaine */
+  var par={}; ouverts.forEach(function(e){ (par[e.proprio]=par[e.proprio]||[]).push('<li><span>'+esc(e.texte)+'</span><small>'+esc(MS_PF_NIV[e.niveau]||e.niveau)+' · depuis '+esc(msPfIlYa(e.depuis).replace('il y a ',''))+(e.incident?' · incident ouvert dans la Tour':'')+(e.annonce?'':' · pas encore annoncé')+'</small></li>'); });
+  var rec=(d.recents||[]).slice(0,6).map(function(x){ return '<li><span>'+esc(x.texte)+'</span><small>'+esc(MS_PF_NIV[x.niveau]||x.niveau)+' · rétabli '+esc(msPfIlYa(x.fin))+'</small></li>'; });
+  h+='<section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="pfSection" data-s="ep" aria-expanded="'+!!o.ep+'">Épisodes <small>'+ouverts.length+' en cours · '+rec.length+' rétabli'+(rec.length>1?'s':'')+' sur 7 jours</small></button>';
+  if(o.ep) h+='<div class="ms-reu-c">'+msPfCartes('Aucun épisode en cours. Max, Théo et Nina relisent l’état de santé toutes les cinq minutes, avec les seuils de la surveillance horaire.',par)+(rec.length?'<div class="ms-reu-ag"><b>Rétablis</b><ul>'+rec.join('')+'</ul></div>':'')+'</div>';
+  /* les six agents */
+  h+='</section><section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="pfSection" data-s="ag" aria-expanded="'+!!o.ag+'">Les six agents <small>dernier passage et passage à la demande</small></button>';
+  if(o.ag){
+    h+='<div class="ms-reu-c">'+['max','jules','theo','nina','ines','victor'].map(function(id){
+      var a=(d.agents||{})[id]||{}, m=a.mode||'arret', det='';
+      if(id==='ines'&&a.derniere&&a.derniere.courriels) det=' · '+a.derniere.courriels.conformes+' courriel'+(a.derniere.courriels.conformes>1?'s':'')+' conforme'+(a.derniere.courriels.conformes>1?'s':'')+' sur '+a.derniere.courriels.envoyes;
+      if(id==='victor'&&a.dernierPoint) det=' · point '+(a.dernierPoint.statut==='fait'?'dit '+msPfIlYa(a.dernierPoint.ts):'à redire');
+      if(id==='jules') det=' · '+(a.diagnosticsAujourdhui||0)+' diagnostic'+((a.diagnosticsAujourdhui||0)>1?'s':'')+' aujourd’hui';
+      var dernier=id==='ines'?(a.relu||''):msPfIlYa(a.dernier);
+      return '<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(msPfNom(id)).charAt(0).toUpperCase())+'</span><b>'+esc(msPfNom(id))+'</b> <small>'+esc(MS_PF_MODE[m]||m)+'</small></div>'+
+        '<ul><li><span>Dernier passage : '+esc(id==='ines'?(a.relu?'relu le '+a.relu:'pas encore relu'):dernier)+esc(det)+'</span><button type="button" class="ms-lien" data-act="pfPasser" data-agent="'+id+'"'+(m==='arret'||R.occ?' disabled':'')+' aria-label="Faire passer '+esc(msPfNom(id))+' maintenant">Passer maintenant</button></li></ul></div>';
+    }).join('')+'</div>';
+    var dec=(d.victor&&d.victor.decisions)||[];
+    if(dec.length) h+='<div class="ms-reu-c"><div class="ms-reu-ag"><b>Décisions de Victor</b><ul>'+dec.map(function(x){ return '<li><span>'+esc(x.decision)+'</span><small>'+esc((x.entre||[]).map(msPfNom).join(' et '))+' · '+esc(msPfIlYa(x.ts))+(x.statut==='attend_justin'?' · attend ta décision':'')+'</small></li>'; }).join('')+'</ul></div></div>';
+  }
+  /* les demandes RGPD suivies par Nina */
+  h+='</section><section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="pfSection" data-s="rgpd" aria-expanded="'+!!o.rgpd+'">Demandes RGPD <small>'+rgpd.length+' à suivre · délai légal : un mois</small></button>';
+  if(o.rgpd) h+='<div class="ms-reu-c">'+(rgpd.length?'<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">N</span><b>Nina</b></div><ul>'+rgpd.map(function(g){
+    return '<li><span>Reçue le '+esc(fmtDate(g.recu))+' · échéance le '+esc(fmtDate(g.limite).split(' · ')[0])+' — '+(g.joursRestants<0?'en retard de '+(-g.joursRestants)+' jour'+(g.joursRestants<-1?'s':''):g.joursRestants===0?'dernier jour':'il reste '+g.joursRestants+' jour'+(g.joursRestants>1?'s':''))+(g.accusee?' · accusé de réception envoyé':'')+'</span>'+
+      '<button type="button" class="ms-lien" data-act="pfRgpd" data-id="'+esc(g.id)+'"'+(R.occ?' disabled':'')+' aria-label="Marquer cette demande RGPD traitée">Marquer traitée</button></li>'; }).join('')+'</ul></div>'
+    :'<p class="ms-reu-vide">Aucune demande en cours. Quand tu reçois une demande d’exercice de droits (RGPD), enregistre-la ici avec sa date de réception : Nina tient le délai légal d’un mois, en accuse réception dans « Équipe » et te rappelle à J-10, J-3 et le jour même.</p>')+
+    '<div class="ms-reu-a"><button type="button" class="ms-reu-btn" data-act="pfRgpdNouvelle"'+(R.occ?' disabled':'')+'>Enregistrer une demande reçue</button></div></div>';
+  return h+'</section>';
+}
+function messPeindrePf(){
+  var c=$('ms-pf'); if(!c||!MS.inst) return;
+  if(MS.fil!=='plateforme'){ if(!c.hidden){ c.hidden=true; c.innerHTML=''; c.removeAttribute('data-h'); } return; }
+  var h=msPfHtml();
+  c.hidden=false; c.setAttribute('data-plie',MS.pf.plie?'1':'0');
+  if(c.getAttribute('data-h')===h) return;
+  var act=document.activeElement, garde=act&&c.contains(act)&&act.getAttribute?(act.getAttribute('data-act')+'|'+(act.getAttribute('data-s')||act.getAttribute('data-agent')||act.getAttribute('data-id')||'')):'';
+  c.setAttribute('data-h',h); c.innerHTML=h;
+  if(garde){ var p=garde.split('|'), n=c.querySelector('[data-act="'+p[0]+'"]'+(p[1]?'[data-s="'+p[1]+'"],[data-act="'+p[0]+'"][data-agent="'+p[1]+'"],[data-act="'+p[0]+'"][data-id="'+p[1]+'"]':'')); if(n) n.focus({preventScroll:true}); }
+}
+function messPfCharger(){
+  var R=MS.pf; if(R.enVol) return Promise.resolve(); R.enVol=true;
+  return apiGet('/api/monitor/agents/plateforme').then(function(d){
+    R.enVol=false; if(!d) return;
+    if(d.ok&&d.agents){ R.d=d; R.lec=1; R.err=''; } else if(!R.d){ R.lec=-1; R.err=''; }
+    messPeindrePf();
+  },function(e){ R.enVol=false; if(!R.d){ R.lec=-1; R.err=msgErreur(e); } messPeindrePf(); });
+}
+/* un geste du patron : on grise les boutons le temps de l'appel, puis on relit (l'écran dit ce que le serveur a répondu, pas ce qu'on espérait) */
+function messPfGeste(url,corps,ok){
+  var R=MS.pf; if(R.occ) return Promise.resolve(null);
+  R.occ=url; messPeindrePf();
+  return apiPost(url,corps).then(function(x){
+    R.occ='';
+    if(x.ok) toast(typeof ok==='function'?ok(x.d):ok); else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    messPfCharger(); messFilTot(); messPeindrePf(); return x;
+  },function(){ R.occ=''; toast(INJOIGNABLE); messPeindrePf(); return null; });
+}
+function messPfPasser(agent){
+  if(MS_PF_AG_CLAUDE.indexOf(agent)>=0&&!confirm('Faire passer '+msPfNom(agent)+' maintenant ?\n\nIl peut appeler Claude, sur le budget des agents.')) return Promise.resolve(null);
+  return messPfGeste('/api/monitor/agents/plateforme/passer',{agent:agent},function(d){ return msPfNom(agent)+' est passé.'; });
+}
+function messPfPoint(){
+  if(!confirm('Dire le point de Victor maintenant dans « Équipe » ?\n\nIl le dit une fois de plus, en plus de celui du matin.')) return Promise.resolve(null);
+  return messPfGeste('/api/monitor/agents/plateforme/point',{},'Le point de Victor est dit dans « Équipe ».');
+}
+function messPfRgpd(id){
+  if(!confirm('Marquer cette demande RGPD comme traitée ?\n\nNina arrête ses rappels. Tu as répondu à la personne ?')) return Promise.resolve(null);
+  return messPfGeste('/api/monitor/agents/plateforme/rgpd',{id:id},'Demande RGPD marquée traitée.');
+}
+/* Une demande RGPD reçue (courriel, courrier) : Justin la saisit avec le JOUR où elle est arrivée — le délai d'un mois court depuis ce jour-là, pas depuis celui de la saisie. */
+function msPfDateSaisie(txt){
+  var t=String(txt||'').trim(), a, m;
+  if((m=/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/.exec(t))) a=[m[3],('0'+m[2]).slice(-2),('0'+m[1]).slice(-2)];
+  else if((m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(t))) a=[m[1],m[2],m[3]];
+  return a?a.join('-'):'';
+}
+function messPfRgpdNouvelle(){
+  var j=new Date(), auj=('0'+j.getDate()).slice(-2)+'/'+('0'+(j.getMonth()+1)).slice(-2)+'/'+j.getFullYear();
+  var s=prompt('Date de réception de la demande RGPD (JJ/MM/AAAA) ?\n\nLe délai légal d’un mois court depuis ce jour-là. Ne saisis rien d’autre : ni nom, ni adresse.',auj);
+  if(s===null) return Promise.resolve(null);
+  var iso=msPfDateSaisie(s);
+  if(!iso){ toast('Date non comprise : écris JJ/MM/AAAA.'); return Promise.resolve(null); }
+  return messPfGeste('/api/monitor/agents/plateforme/rgpd/declarer',{recu:iso},'Demande RGPD enregistrée : Nina tient le délai d’un mois.');
+}
+function messPfClic(el){
+  var a=el.getAttribute('data-act');
+  if(a==='pfRecharger'){ MS.pf.lec=0; messPeindrePf(); messPfCharger(); }
+  else if(a==='pfPlier'){ MS.pf.plie=!MS.pf.plie; messPeindrePf(); }
+  else if(a==='pfSection'){ var k=el.getAttribute('data-s'); MS.pf.ouvert[k]=!MS.pf.ouvert[k]; messPeindrePf(); }
+  else if(a==='pfPasser') messPfPasser(el.getAttribute('data-agent'));
+  else if(a==='pfPoint') messPfPoint();
+  else if(a==='pfRgpd') messPfRgpd(el.getAttribute('data-id'));
+  else if(a==='pfRgpdNouvelle') messPfRgpdNouvelle();
+}
 /* Les minuteries : seulement écran ouvert ET page visible. Chaque tour revérifie — et s'éteint lui-même si l'écran a été quitté. */
 function messTimers(oui){
   clearInterval(MS.tFil); clearInterval(MS.tListe); MS.tFil=0; MS.tListe=0;
@@ -11371,8 +12037,9 @@ function messChoisir(fil){
   MS.liste.ouverte=false;
   var t2=$('ms-ta'); if(t2){ t2.value=MS.brouillons[fil]||''; messMiroir(); }   /* chaque fil garde son brouillon */
   messMentionPeindre();
-  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau();
+  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindrePf(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau();
   if(fil==='reunions') messReunionsCharger();
+  if(fil==='plateforme') messPfCharger();
   messFilCharger(false);
 }
 function messDossier(n){ AG.sec='dossiers'; setTab('agents'); agDosOuvrir(n); }
@@ -11384,6 +12051,7 @@ function messMonter(){
     '<aside class="ms-gauche" aria-label="Conversations"><div class="ms-gt"><h1>Messagerie</h1><p>Les agents et toi</p></div><div class="ms-fils" id="ms-fils"></div></aside>'+
     '<section class="ms-centre" aria-label="Conversation"><header class="ms-hd" id="ms-hd"></header>'+
       '<div class="ms-reu" id="ms-reu" aria-label="Les réunions de l’équipe" hidden></div>'+
+      '<div class="ms-reu ms-pf" id="ms-pf" aria-label="Les agents de la plateforme" hidden></div>'+
       '<div class="ms-zone-flux"><div class="ms-flux" id="ms-flux" role="log" aria-live="polite" aria-label="Messages" tabindex="0"></div><button type="button" class="ms-nouv" id="ms-nouv" data-act="nouv" hidden>↓ Nouveaux messages</button></div>'+
       '<p class="ms-regle">Règle de sécurité : les demandes d’argent et d’accès passent entre agents par une liste fermée ; le travail confié en conversation est une phrase libre, jamais un texte de client. Un texte venu d’un client ne devient jamais un ordre, et seules tes consignes vont, telles quelles, à Hugo et Margaux (argent et comptes).</p>'+
       '<div class="ms-comp" id="ms-comp"></div></section>'+
@@ -11395,7 +12063,7 @@ function messMonter(){
   zone.removeEventListener('click',messClic); zone.addEventListener('click',messClic);
   zone.addEventListener('mousedown',function(e){ if(e.target.closest&&e.target.closest('.ms-mi')) e.preventDefault(); });   /* choisir dans la liste ne retire pas le focus à la saisie */
   var fl=$('ms-flux'); fl.addEventListener('scroll',function(){ if(messColle()) messNouvCacher(); });
-  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau(); messPeindreTaches();
+  messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindrePf(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau(); messPeindreTaches();
   messAjuster(); messTimers(true);
   if(MS.msgLec===1) messLire(MS.msgs);   /* la lecture a pu finir AVANT que l'écran existe : « lu » se pose une fois le fil affiché */
 }
@@ -11420,6 +12088,7 @@ function messClic(ev){
   else if(a==='reuSection'){ var k=el.getAttribute('data-s'); MS.reu.ouvert[k]=!MS.reu.ouvert[k]; messPeindreReunions(); }
   else if(a==='reuLancer') messReunionLancer(el.getAttribute('data-type'));
   else if(a==='reuRetirer') messLeconRetirer(el.getAttribute('data-agent'),el.getAttribute('data-id'));
+  else if(a.indexOf('pf')===0) messPfClic(el);
 }
 function messPeindreListe(){
   var c=$('ms-fils'); if(!c||!MS.inst) return;
