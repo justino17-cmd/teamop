@@ -133,7 +133,7 @@ vrai('(population) les trois sources du code sont lues', DEVIS.length > 3000 && 
 vrai('le code ne passe que 60 clients à l’assistant de devis (le serveur ET l’application)', (DEVIS.match(/\.slice\(0, 60\)/g) || []).length >= 2 && /visibleClients\(db\.clients\|\|\[\]\)\.slice\(0,60\)/.test(APP));
 vrai('le code plafonne la traduction à 100 par entreprise et par jour', /TRAD_ENTREPRISE_MAX = 100\b/.test(INDEX) && /traduireMail\(req, res, [^,]+, TRAD_ENTREPRISE_MAX\)/.test(INDEX));
 vrai('le « Devis IA » rapide n’envoie que la demande (jamais un client)', /fetch\(PUSH_API\+'\/api\/devis\/generer',\{method:'POST',headers:\{'Content-Type':'application\/json'\},\s*body:JSON\.stringify\(\{team:syncTeam\(\),code:code\|\|undefined,demande,profond:!!profond\}\)/.test(APP));
-vrai('l’explication d’un incident envoie message, trace, écran et extrait de code (« Expliquer la cause »)', /'- message : ' \+ \(issue\.message/.test(INDEX) && /issue\.stack \? '- trace/.test(INDEX) && /écran ouvert : ' \+ \(issue\.categorie/.test(INDEX) && /Code du dépôt autour de/.test(INDEX));
+vrai('l’explication d’un incident envoie message, trace, écran et extrait de code (« Expliquer la cause »)', /'- message : ' \+ [^\n]*issue\.message/.test(INDEX) && /issue\.stack \? '- trace/.test(INDEX) && /écran ouvert : ' \+ \(issue\.categorie/.test(INDEX) && /Code du dépôt autour de/.test(INDEX));
 const ANTH = [['conditions_generales.txt', CG], ['dpa.txt', DPA], ['sous-traitance.html', SOUS], ['registre-traitements.html', REG], ['confidentialite.html', CONF]];
 for (const [f, T] of ANTH) {
   vrai('⛔ ' + f + ' : ' + '« ne servent pas à entraîner ses modèles, selon ses conditions commerciales applicables à l’API »', /ne servent pas à entraîner ses modèles, selon ses conditions commerciales applicables à l.API|ne s.en sert pas pour entraîner ses modèles, selon ses conditions commerciales applicables à l.API/.test(T));
@@ -146,7 +146,7 @@ for (const [f, T] of ANTH) {
 const routeIncident = (chemin) => { const d = INDEX.indexOf("app.post('" + chemin + "'"); if (d < 0) return ''; const f = INDEX.indexOf('\napp.', d + 10); return INDEX.slice(d, f < 0 ? d + 12000 : f); };
 const ROUTES_INCIDENT = ['/api/monitor/expliquer', '/api/monitor/proposer'].map(routeIncident);
 vrai('(population) les deux routes d’analyse d’un incident sont trouvées et lisent le message de l’incident', ROUTES_INCIDENT.every(r => r.length > 800 && /issue\.message/.test(r) && /issue\.stack/.test(r)), ROUTES_INCIDENT.map(r => r.length));
-const BRUT_INCIDENT = /\+\s*\(?\s*issue\.(?:message|stack)\b/;
+const BRUT_INCIDENT = /\+\s*issue\.(?:message|stack)\b|\+\s*\(\s*issue\.(?:message|stack)\s*(?:\|\|[^()]*)?\)/;   // « + issue.message » ou « + (issue.message || '') » ; pas « + (issue.stack ? … » (une condition)
 const FILTRE_INCIDENT = ROUTES_INCIDENT.every(r => !BRUT_INCIDENT.test(r));
 for (const [f, T] of [['dpa.txt', DPA], ['sous-traitance.html', SOUS], ['registre-traitements.html', REG]]) {
   const bout = T.slice(T.indexOf('Expliquer la cause'));
