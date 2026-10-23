@@ -1,6 +1,6 @@
 /* ⛔ TEST-2918 — À CHAQUE AGENT SON OUTIL, SUR LE VRAI SERVEUR (23 octobre 2026, relecture du `gardien` sur l'assemblage).
  *
- * `index.js` branche les outils propres des agents par des liaisons TARDIVES (`outilsAgents` : un getter par agent ; `arbitrer` pour Victor). La mutation
+ * `server/index.js` branche les outils propres des agents (offerts par `server/agent-equipe.js`) par des liaisons TARDIVES (`outilsAgents` : un getter par agent ; `arbitrer` pour Victor). La mutation
  * « Hugo reçoit l'outil de Margaux » ne faisait tomber AUCUN banc : `test-2861` ne réveille pas ces agents, et les bancs de module montent chaque agent seul.
  * Ici, le vrai serveur (`banc-serveur-gestion.js` : faux Claude qui garde chaque requête, Stripe simulé), Justin écrit dans le fil privé de six agents allumés,
  * et on relève les outils OFFERTS à chacun : les cinq communs, puis le sien et lui seul ; aucun pour Max. Rien ne sort de 127.0.0.1.
