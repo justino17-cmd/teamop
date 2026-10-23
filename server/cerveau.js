@@ -31,6 +31,27 @@ function jetonsDemandes(opts) {
   if (typeof n !== 'number' || !Number.isFinite(n)) return opts && typeof opts === 'object' && opts.reflechir === true ? MAX_TOKENS_REFLEXION : MAX_TOKENS;
   return Math.min(Math.max(Math.floor(n), MAX_TOKENS_MIN), MAX_TOKENS_MAX);
 }
+/* LA RECHERCHE SUR LE WEB (23 octobre 2026, Justin : « ils se renseignent sur ce qu'ils font, ils regardent un peu partout ») — l'outil de recherche CÔTÉ SERVEUR de
+   l'API Messages : Anthropic la fait, notre serveur ne visite aucun site. `opts.recherche = { maxUses }` l'ajoute à la requête.
+   ⛔ VERSION EXACTE : `web_search_20260209` (recherche avec filtrage dynamique) — la variante documentée pour Claude Sonnet 5, notre modèle ; `web_search_20250305` est la
+      variante simple des modèles plus anciens (et de Vertex). Vérifié dans le SDK installé (`resources/messages/messages.d.ts`) ET dans la documentation de l'API le 23 octobre 2026.
+      Le filtrage dynamique exécute du code CÔTÉ ANTHROPIC, à l'intérieur de l'outil : on ne déclare PAS `code_execution` à côté (un second environnement troublerait le modèle).
+   ⛔ `max_uses` borne les recherches d'UNE requête (3 pour Léa) ; le plafond du JOUR est celui de l'appelant (`usage.server_tool_use.web_search_requests`, rendu par
+      `penser` en `recherches`). Les erreurs de l'outil ne jettent pas (HTTP 200, un bloc `web_search_tool_result` d'erreur) : le texte final, lui, manque, et l'appelant continue sans.
+   ⛔ `pause_turn` : la boucle côté serveur de l'API s'arrête à 10 itérations ; on renvoie la réponse telle quelle (SANS message « continue ») et le serveur reprend. Trois reprises
+      au plus, puis on rend ce qu'on a. Les blocs de résultats ne sont jamais lus comme du texte : ce qu'un site contient est une DONNÉE, jamais une consigne.
+   ⛔ Chaque recherche se PAIE en plus des jetons (10 $ les 1000 : 0,012 $ comptés, un peu au-dessus), et entre dans le budget de l'agent comme le reste. */
+const OUTIL_RECHERCHE = 'web_search_20260209';
+const USD_RECHERCHE = 0.012;
+const REPRISES_PAUSE_MAX = 3;
+const MAX_USES_MAX = 5;
+function outilRecherche(opts) {
+  const r = opts && typeof opts === 'object' ? opts.recherche : null;
+  if (!r || typeof r !== 'object') return null;
+  const n = Number.isInteger(r.maxUses) ? Math.min(Math.max(r.maxUses, 1), MAX_USES_MAX) : 2;
+  return { type: OUTIL_RECHERCHE, name: 'web_search', max_uses: n, user_location: { type: 'approximate', country: 'FR', timezone: 'Europe/Paris' } };
+}
+
 /* Les OUTILS qu'un agent peut appeler (tool use de l'API) : une liste FERMÉE que l'appelant écrit, jamais un réglage venu d'ailleurs. On ne garde
    d'une définition que son nom, sa description et son schéma d'entrée — une définition mal formée est écartée, pas corrigée. */
 const NOM_OUTIL = /^[a-z][a-z_]{0,39}$/;
@@ -90,13 +111,16 @@ module.exports = function cerveau(ctx) {
        raisonne pas à longue portée : tous les jetons vont à la réponse. */
     const reflechir = !!(opts && typeof opts === 'object' && opts.reflechir === true);
     const outils = outilsValides(opts);
+    const recherche = outilRecherche(opts);
     const requete = { model: MODEL, max_tokens: jetonsDemandes(opts), thinking: reflechir ? { type: 'adaptive' } : { type: 'disabled' }, system, messages };
     /* `tool_choice: auto` : le modèle choisit d'appeler un outil ou de répondre — les seuls choix compatibles avec la réflexion. Et c'est le CODE
        de l'appelant qui valide chaque appel d'outil : ce que Claude « décide » n'est jamais exécuté tel quel. */
-    if (outils.length) { requete.tools = outils; requete.tool_choice = { type: 'auto' }; }
+    if (outils.length || recherche) { requete.tools = outils.concat(recherche ? [recherche] : []); requete.tool_choice = { type: 'auto' }; }
     try { r = await (ctx.appeler || appelerAnthropic)(cle, requete); }
     catch (e) { agents.noter(id, 'penser', { cible: 'claude', resultat: 'erreur', detail: String(e && e.message || e).slice(0, 120) }); return { ok: false, raison: 'erreur_api' }; }
-    const cout = ((Number(r.entree) || 0) * USD_ENTREE_M + (Number(r.sortie) || 0) * USD_SORTIE_M) / 1e6;
+    /* les recherches se paient en plus : ce que l'API compte (`recherches`), à défaut — réponse sans le compte — le plafond demandé (on se trompe vers le HAUT) */
+    const recherches = recherche ? (Number.isInteger(r.recherches) && r.recherches >= 0 ? r.recherches : recherche.max_uses) : 0;
+    const cout = ((Number(r.entree) || 0) * USD_ENTREE_M + (Number(r.sortie) || 0) * USD_SORTIE_M) / 1e6 + recherches * USD_RECHERCHE;
     moisCourant(); etat.parAgent[id] = depense(id) + (Number.isFinite(cout) ? cout : 0);
     if (!ecrire()) { agents.noter(id, 'penser', { cible: 'budget', resultat: 'erreur', detail: 'dépense non écrite : plus d’appel avant réparation' }); illisible = true; }
     const texte = String(r.texte || '').trim();
@@ -105,7 +129,7 @@ module.exports = function cerveau(ctx) {
     if (outils.length && Array.isArray(r.actions)) for (const x of r.actions.slice(0, 8)) {
       if (x && typeof x.nom === 'string' && outils.some(o => o.name === x.nom) && x.entree && typeof x.entree === 'object' && !Array.isArray(x.entree)) actions.push({ id: String(x.id || ''), nom: x.nom, entree: x.entree });
     }
-    if (!texte && actions.length) return { ok: true, texte: '', actions, cout };
+    if (!texte && actions.length) return { ok: true, texte: '', actions, cout, recherches };
     if (!texte) {
       /* Aucun texte parce que la réponse a atteint sa limite : ce n'est pas « vide », c'est « trop long » — l'appelant peut le DIRE
          (et le journal le garde, pour qu'on sache qu'il faut relever `maxTokens` plutôt que chercher une panne). */
@@ -115,19 +139,51 @@ module.exports = function cerveau(ctx) {
       }
       return { ok: false, raison: 'vide' };
     }
-    return outils.length ? { ok: true, texte, actions, cout } : { ok: true, texte, cout };
+    const sortie = outils.length ? { ok: true, texte, actions, cout } : { ok: true, texte, cout };
+    if (recherche) sortie.recherches = recherches;
+    return sortie;
   }
   const etatBudget = () => ({ illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL_USD, parAgent: Object.assign({}, etat.parAgent), cle: !!cle });
-  return { penser, etatBudget, MODEL };
+  /* IMPUTER (l'examen de l'équipe, 23 octobre 2026) : une dépense faite ailleurs avec la MÊME clé — les appels de l'examen se font sur une équipe d'essai, avec son propre
+     cerveau, donc hors de ce fichier de budget — compte pourtant dans les 195 $ du mois. Elle s'inscrit sous un nom qui n'est PAS celui d'un agent (« examen ») : aucun
+     plafond d'agent n'en est entamé, seul le total du mois l'est. Rend faux (rien d'écrit) pour un nom d'agent, un montant hors forme, ou un budget illisible. */
+  function imputer(nom, usd) {
+    if (illisible || typeof nom !== 'string' || !/^[a-z]{1,20}$/.test(nom) || agents.AGENTS.some(a => a.id === nom)) return false;
+    if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0 || usd > 50) return false;
+    moisCourant(); etat.parAgent[nom] = depense(nom) + usd;
+    if (!ecrire()) { agents.noter('systeme', 'imputer', { cible: 'budget', resultat: 'erreur', detail: 'dépense non écrite : plus d’appel avant réparation' }); illisible = true; return false; }
+    return true;
+  }
+  return { penser, etatBudget, imputer, MODEL };
 };
 
 async function appelerAnthropic(cle, requete) {
   const Anthropic = require('@anthropic-ai/sdk');
   const client = new Anthropic({ apiKey: cle, timeout: TIMEOUT_MS, maxRetries: 0 });
-  const rep = await client.messages.create(requete);
-  if (rep.stop_reason === 'refusal') return { texte: '', entree: (rep.usage || {}).input_tokens, sortie: (rep.usage || {}).output_tokens, stop_reason: rep.stop_reason };
-  /* Les blocs `thinking` ne sont jamais lus ; les blocs `tool_use` deviennent des actions à valider. */
-  const blocs = rep.content || [];
-  return { texte: blocs.filter(b => b.type === 'text').map(b => b.text).join('\n'), entree: (rep.usage || {}).input_tokens, sortie: (rep.usage || {}).output_tokens, stop_reason: rep.stop_reason,
+  /* Une requête avec la recherche peut se mettre en PAUSE (`pause_turn`) : on renvoie sa réponse telle quelle, sans message de plus, et le serveur reprend. */
+  const avecRecherche = Array.isArray(requete.tools) && requete.tools.some(t => t && t.type === OUTIL_RECHERCHE);
+  let messages = requete.messages, entree = 0, sortie = 0, recherches = 0, rep, reprises = 0;
+  for (;;) {
+    rep = await client.messages.create(avecRecherche ? Object.assign({}, requete, { messages }) : requete);
+    const u = rep.usage || {};
+    entree += Number(u.input_tokens) || 0; sortie += Number(u.output_tokens) || 0;
+    recherches += Number(u.server_tool_use && u.server_tool_use.web_search_requests) || 0;
+    if (!(avecRecherche && rep.stop_reason === 'pause_turn' && reprises < REPRISES_PAUSE_MAX)) break;
+    reprises++;
+    messages = messages.concat([{ role: 'assistant', content: rep.content }]);
+  }
+  if (rep.stop_reason === 'refusal') return { texte: '', entree, sortie, stop_reason: rep.stop_reason, recherches };
+  /* Les blocs `thinking` ne sont jamais lus ; les blocs `tool_use` deviennent des actions à valider. Avec la recherche, le texte rendu est celui qui SUIT le dernier bloc d'outil
+     du serveur (la réponse finale) : ce que le modèle dit entre deux recherches (« je vais chercher… ») n'est pas la réponse. */
+  let blocs = rep.content || [];
+  if (avecRecherche) {
+    let dernier = -1;
+    blocs.forEach((b, i) => { if (b && (b.type === 'server_tool_use' || b.type === 'web_search_tool_result')) dernier = i; });
+    if (dernier >= 0) blocs = blocs.slice(dernier + 1);
+  }
+  return { texte: blocs.filter(b => b.type === 'text').map(b => b.text).join('\n'), entree, sortie, stop_reason: rep.stop_reason, recherches,
     actions: blocs.filter(b => b.type === 'tool_use').map(b => ({ id: b.id, nom: b.name, entree: b.input })) };
 }
+module.exports.appelerAnthropic = appelerAnthropic;
+module.exports.OUTIL_RECHERCHE = OUTIL_RECHERCHE;
+module.exports.USD_RECHERCHE = USD_RECHERCHE;

@@ -442,6 +442,9 @@ function monterComptes(app, deps) {
        Rend l'adresse, ou '' — jamais un objet qu'on pourrait prendre pour une autorisation. */
     parJeton: (brut) => { const e = jetonLire(brut, 'session'); const c = e && compte(e.m); return (c && !c.ap) ? e.m : ''; },
     vue,
+    /* Combien de comptes sont bloqués EN CE MOMENT (huit échecs de mot de passe d'affilée, quinze minutes) — un NOMBRE, jamais une adresse. Lu par Nina (`agent-nina.js`) :
+       elle ne voit d'un compte que ce chiffre. Registre illisible ou absent : `null` (« on ne sait pas », pas zéro). */
+    bloques: () => { try { const n = Date.now(); return Object.values(reg.c || {}).filter(c => c && c.bloq && c.bloq > n).length; } catch (e) { return null; } },
     /* L'adresse de ce compte a-t-elle été prouvée (lien de vérification, ou lien de mot de passe
        reçu dans sa boîte) ? `portail.js` le demande avant de montrer un dossier repris de Google
        ou d'y déposer un code d'accès. */

@@ -34,6 +34,7 @@ function facteur() {
         if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
         else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
         else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
+        else if (h.startsWith('RCPT') && f.refuserA && h.includes(String(f.refuserA).toUpperCase())) c.write('550 5.1.1 ' + l.replace(/^RCPT TO:\s*/i, '') + ': Recipient address rejected: User unknown\r\n');   // f.refuserA : un destinataire refusé, adresse recopiée dans l'erreur comme le font les vrais serveurs
         else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
         else c.write('250 ok\r\n');
       }
@@ -70,13 +71,25 @@ async function demarrer(o) {
 
   /* Le faux Claude, chargé AVANT le serveur. Il garde chaque requête (une ligne JSON par appel) et répond selon `o.claude` (source d'une fonction
      `(requete, n) => texte`, évaluée dans le processus du serveur). */
-  const PRE = path.join(banc, 'claude.js'), TRACE = path.join(banc, 'recu.jsonl');
-  const reponse = o.claude || "(r, n) => " + JSON.stringify(require('./banc-agents-courrier.js').COURRIEL);
-  fs.writeFileSync(PRE, `const vrai = globalThis.fetch; let n = 0; const rep = (${reponse});
+  const PRE = path.join(banc, 'claude.js'), TRACE = path.join(banc, 'recu.jsonl'), TRACE_JUGE = path.join(banc, 'juge.jsonl'), TRACE_RECH = path.join(banc, 'recherche.jsonl'), TRACE_LOUIS = path.join(banc, 'louis.jsonl');
+  const BA = require('./banc-agents-courrier.js');
+  /* Le rédacteur par défaut écrit le courriel POUR l'entreprise nommée dans la demande (le contrôle qualité exige son nom dans l'accroche) ; le juge répond « VERDICT : OK »
+     (ou `o.juge`, source JS d'une fonction `(requete, n) => texte`), la recherche web « IDENTIFIEE : non » (ou `o.recherche`, qui peut rendre { texte, recherches }). */
+  const reponse = o.claude || "(r, n) => (" + BA.courrielPour.toString() + ")(r)";
+  const COURRIEL_SRC = JSON.stringify(BA.COURRIEL);
+  fs.writeFileSync(PRE, `const vrai = globalThis.fetch; let n = 0, nj = 0, nr = 0; const COURRIEL = ${COURRIEL_SRC}; const PROPOSITION = ${JSON.stringify(BA.PROPOSITION)}; const rep = (${reponse});
+const repJuge = (${o.juge || "() => 'VERDICT : OK'"}), repRech = (${o.recherche || "() => 'IDENTIFIEE : non'"}), repLouis = (${o.louisClaude || "() => 'RIEN'"});
 globalThis.fetch = async function (url, opts) { const u = String(url && url.url || url);
-  if (u.startsWith('https://api.anthropic.com/')) { const corps = String(opts && opts.body); require('fs').appendFileSync(${JSON.stringify(TRACE)}, corps + '\\n');
-    const j = JSON.parse(corps); n++; const texte = await rep(j, n);
-    return new Response(JSON.stringify({ id: 'msg_banc', type: 'message', role: 'assistant', model: 'claude-sonnet-5', stop_reason: 'end_turn', content: [{ type: 'text', text: texte }], usage: { input_tokens: 900, output_tokens: 400 } }), { status: 200, headers: { 'content-type': 'application/json' } }); }
+  if (u.startsWith('https://api.anthropic.com/')) { const corps = String(opts && opts.body);
+    const j = JSON.parse(corps); const sys = String(j.system);
+    const trace = sys.startsWith(${JSON.stringify(BA.JUGE_DEBUT)}) ? ${JSON.stringify(TRACE_JUGE)} : sys.startsWith(${JSON.stringify(BA.RECHERCHE_DEBUT)}) ? ${JSON.stringify(TRACE_RECH)} : sys.startsWith(${JSON.stringify(BA.LOUIS_DEBUT)}) ? ${JSON.stringify(TRACE_LOUIS)} : ${JSON.stringify(TRACE)};
+    require('fs').appendFileSync(trace, corps + '\\n');
+    let texte, usage = { input_tokens: 900, output_tokens: 400 };
+    if (trace === ${JSON.stringify(TRACE_JUGE)}) { nj++; texte = await repJuge(j, nj); }
+    else if (trace === ${JSON.stringify(TRACE_RECH)}) { nr++; const x = await repRech(j, nr); if (x && typeof x === 'object') { texte = x.texte; usage.server_tool_use = { web_search_requests: x.recherches || 0 }; } else texte = x; }
+    else if (trace === ${JSON.stringify(TRACE_LOUIS)}) { texte = await repLouis(j); }
+    else { n++; texte = await rep(j, n); }
+    return new Response(JSON.stringify({ id: 'msg_banc', type: 'message', role: 'assistant', model: 'claude-sonnet-5', stop_reason: 'end_turn', content: [{ type: 'text', text: texte }], usage }), { status: 200, headers: { 'content-type': 'application/json' } }); }
   return vrai.apply(this, arguments); };\n`);
 
   const webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push'));
@@ -84,6 +97,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', agents: { cleApi: 'sk-ant-' + 'banc-courrier-xxxxxxxxxxxxxxxx' },
     smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' }, contactEmail: o.contactEmail || 'contact@banc-courrier.fr' };
   if (o.promos) conf.promos = o.promos;
+  if (o.authservIds) conf.agents.authservIds = o.authservIds;   // les serveurs de réception dont l'Authentication-Results fait foi (AUCUN par défaut : mail.js)
   if (o.comptes) conf.comptes = { actif: true };
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify(conf));
   const PORT = await new Promise(res => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
@@ -137,7 +151,11 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
     const sync = await S.http('POST', '/api/clients/sync', jeton, { entreprise, nom: 'Prénom Nom', prenom: 'Prénom', nomFam: 'Nom', demandes: demandes || [] });
     return { jeton, sync };
   };
-  S.claudeRecus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
+  const lignes = f => fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
+  S.claudeRecus = () => lignes(TRACE);
+  S.juges = () => lignes(TRACE_JUGE);
+  S.recherches = () => lignes(TRACE_RECH);
+  S.louisRecus = () => lignes(TRACE_LOUIS);
   S.imap = () => JSON.parse(fs.readFileSync(IMAP, 'utf8'));
   S.poserImap = (adr, f) => { const e = S.imap(); f(e.boites[adr]); fs.writeFileSync(IMAP + '.tmp', JSON.stringify(e)); fs.renameSync(IMAP + '.tmp', IMAP); };
   S.attendre = async (f, ms) => { const t = Date.now(); while (Date.now() - t < (ms || 8000)) { if (await f()) return true; await dormir(150); } return false; };

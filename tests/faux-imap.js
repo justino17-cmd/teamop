@@ -26,7 +26,7 @@
      { "boites": { "<adresse en minuscules>": { dossiers?, messages: [...], actions: [...], ajouts: [...], statuts: {…} } },
        "pannes": { "<adresse>": "le message de l'erreur" } }
    Sans la clé `boites` (le format de `test-834`), l'état entier est LA boîte — la compatibilité tient à ça.
-   Un message : { uid, messageId, dossier ('INBOX' par défaut), from, fromNom?, to, cc?, subject, text, html?,
+   Un message : { uid, messageId, dossier ('INBOX' par défaut), from, fromNom?, to, cc?, subject, text, html?, entetes?: ['Authentication-Results: …'],
                   pieces?: [{ nom, type?, taille?, b64? }], ts, flags: [] }
    `actions` note chaque geste (`{ action, messageId, dossier }`), `ajouts` chaque `append`, `statuts` chaque
    `status` demandé par dossier. */
@@ -76,7 +76,8 @@ const b64Lignes = (buf) => (Buffer.isBuffer(buf) ? buf : Buffer.from(String(buf)
 function source(m) {
   if (m.raw) return Buffer.from(m.raw, 'base64');
   const pieces = m.pieces || [];
-  const tete = 'Message-ID: ' + m.messageId + '\r\nDate: ' + new Date(m.ts || Date.now()).toUTCString()
+  /* `entetes` (23 octobre 2026, bancs de l'autonomie) : des lignes d'en-tête brutes posées EN TÊTE, comme le fait un relais de réception (Authentication-Results, Auto-Submitted, In-Reply-To…). */
+  const tete = (Array.isArray(m.entetes) ? m.entetes.map(l => String(l).replace(/\r?\n/g, '\r\n') + '\r\n').join('') : '') + 'Message-ID: ' + m.messageId + '\r\nDate: ' + new Date(m.ts || Date.now()).toUTCString()
     + '\r\nFrom: ' + enteteAdr([{ address: m.from, name: m.fromNom || '' }]) + '\r\nTo: ' + enteteAdr(personnes(m.to))
     + (m.cc ? '\r\nCc: ' + enteteAdr(personnes(m.cc)) : '') + '\r\nSubject: ' + enc2047(m.subject) + '\r\nMIME-Version: 1.0\r\n';
   const texte = 'Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n' + b64Lignes(m.text || '');
