@@ -66,6 +66,8 @@ function pieces(SRC) {
     catsConnues_: ligne(SRC, /^let _catsConnues;[^\n]*$/m),
     ONGLETS: ligne(SRC, /^const ONGLETS_DEFAUT=[^\n]*;$/m) + '\n' + ligne(SRC, /^const ONGLETS_MAX=[^\n]*;$/m),
     garde: (() => { const i = SRC.indexOf("if(view!=='dashboard'&&view!=='suspendu'&&currentUser){ try{"), j = SRC.indexOf('  closeModal();', i); return i < 0 || j < 0 ? '' : SRC.slice(i, j); })(),
+    /* l'ouverture par adresse (#v=…) : une garde à elle, AVANT go() — elle ne passait par aucun banc */
+    hash: (() => { const i = SRC.indexOf('(function(){ const m=location.hash.match(/v='), fin = 'go(v); })();', j = SRC.indexOf(fin, i); return i < 0 || j < 0 ? '' : SRC.slice(i, j + fin.length); })(),
   };
   ['catsCle', 'catsConnues', 'catsListe', 'catsServeurAppliquer', 'catBloque', 'userSeesModule', 'canSee', 'tableDuRole', 'moduleReglage', 'defaultPerms', 'showAside',
     'ongletsDispo', 'ongletsLire', 'notifVoitModule', 'espaceQuitter', 'forfaitServeurSync'].forEach(n => { P[n] = fonction(SRC, n); });
@@ -87,7 +89,7 @@ function monde(PI, o) {
   const vu = { nav: 0, vues: [], toasts: [], gos: [], idb: [], saves: 0 };
   const code = `
     let STORE_KEY=${JSON.stringify(o.storeKey || 'elan_gestion_v2')}; const BETA_ESSAI=${o.beta ? 'true' : 'false'};
-    let currentUser=null; let current=${JSON.stringify(o.current || 'dashboard')}; let db={};
+    let currentUser=null; let current=${JSON.stringify(o.current || 'dashboard')}; let db={}; let location={hash:''};
     ${P.NAV}
     ${P.SOUS_CATS}
     ${P.VUE_PARENT}
@@ -117,6 +119,7 @@ function monde(PI, o) {
     db.permissions=defaultPerms();
     return {
       comme(u){ currentUser=u; }, vue(v){ current=v; },
+      ouvrirParAdresse(h){ location={hash:h}; ${P.hash} },
       sync(j){ return catsServeurAppliquer(j); },
       bloque: k=>catBloque(k),
       voit: (u,k)=>userSeesModule(u,k),
@@ -134,6 +137,7 @@ function monde(PI, o) {
   const A = new Function('localStorage', 'renderNav', 'toast', 'go', 'views', 'save', 'logEvent', 'indexedDB', 'lienLisibleOublier', 'renderOnglets', code)(
     ls, () => { vu.nav++; }, toast, v => { vu.gos.push(v); }, views, () => { vu.saves++; }, () => {}, { deleteDatabase: n => vu.idb.push(n), open: () => ({}) }, () => {}, () => {});
   A.ls = ls; A.vu = vu;
+  const ouvrir = A.ouvrirParAdresse; A.adresse = h => { const n = vu.gos.length; ouvrir(h); return vu.gos.length > n ? vu.gos[vu.gos.length - 1] : '(go() jamais appelé)'; };
   A.admin = { id: 'u-adm', role: 'admin', acces: {} };
   A.tech = { id: 'u-tec', role: 'technicien', acces: {} };
   A.comme(A.admin);
@@ -221,6 +225,29 @@ const base = path.join(__dirname, '..');
       W.sync({ cats: ['planning'] });
       vrai('⛔ Box NON retenues : la sous-catégorie est fermée avec son parent (menu, droit et go())',
         W.bloque('produitsDonnes') === true && W.voit(W.tech, 'produitsDonnes') === false && W.garde('produitsDonnes') === 'dashboard' && W.garde('boxes') === 'dashboard'); }
+
+    console.log('\n── 4 bis. la carte retenue SANS les Box (relecture adverse, v772) ──');
+    { const W = monde(PI);
+      W.sync({ cats: ['carteBox'] });
+      vrai('population : la carte est retenue, les Box non (' + W.bloque('carteBox') + ' / ' + W.bloque('boxes') + ')', W.bloque('carteBox') === false && W.bloque('boxes') === true);
+      vrai('⛔ le MENU de l\'administrateur montre la carte', W.menu().indexOf('carteBox') >= 0 && W.menu().indexOf('boxes') < 0, W.menu());
+      egal('⛔ … et go(\'carteBox\') la LAISSE PASSER (avant : refusée au clic, alors que le menu la montrait)', W.garde('carteBox'), 'carteBox');
+      egal('… sans message de refus', W.vu.toasts.filter(t => /pas ouverte/.test(t)).length, 0);
+      egal('⛔ … l\'adresse #v=carteBox aussi', W.adresse('#v=carteBox'), 'carteBox');
+      egal('… mais go(\'boxes\') et #v=boxes restent refusés (les Box ne sont pas retenues)', [W.garde('boxes'), W.adresse('#v=boxes')], ['dashboard', 'dashboard']);
+      W.comme(W.tech);
+      egal('… le technicien (qui a les droits des box) passe lui aussi, par go() et par l\'adresse', [W.garde('carteBox'), W.adresse('#v=carteBox')], ['carteBox', 'carteBox']);
+      W.comme({ id: 'u-sans', role: 'technicien', acces: { modules: { boxes: false, carteBox: false } } });
+      egal('⛔ … mais une personne SANS les droits des box n\'y entre pas : retenir la carte ne donne aucun droit (go() et adresse)', [W.garde('carteBox'), W.adresse('#v=carteBox')], ['dashboard', 'dashboard']); }
+    { const W = monde(PI);
+      W.sync({ cats: ['boxes'] });
+      egal('⛔ contre-épreuve : les Box retenues SANS la carte, la carte reste fermée par go() ET par l\'adresse', [W.garde('carteBox'), W.adresse('#v=carteBox')], ['dashboard', 'dashboard']);
+      W.sync({ cats: ['boxes', 'carteBox'] });
+      egal('… les deux retenues : elle passe par les deux', [W.garde('carteBox'), W.adresse('#v=carteBox')], ['carteBox', 'carteBox']);
+      W.sync({ cats: ['planning'] });
+      egal('… ni l\'une ni l\'autre : fermée par les deux, avec le message de l\'ENTREPRISE', [W.garde('carteBox'), W.adresse('#v=carteBox'), /entreprise/.test(W.vu.toasts[W.vu.toasts.length - 1] || '')], ['dashboard', 'dashboard', true]);
+      W.sync({ cats: null });
+      egal('… sans réglage : ouverte (rien ne change pour une entreprise sans liste)', [W.garde('carteBox'), W.adresse('#v=carteBox')], ['carteBox', 'carteBox']); }
 
     console.log('\n── 5. null : tout se rouvre ──');
     { const W = monde(PI, { current: 'interventions' });

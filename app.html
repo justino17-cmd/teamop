@@ -17294,11 +17294,16 @@ function go(view){
   if(view!=='dashboard'&&view!=='suspendu'&&currentUser){ try{
     const cible=(view==='carteBox'||VUE_PARENT[view]==='boxes')?'boxes':view;   // la carte des box et les sous-catégories suivent les droits des box
     let item=null; NAV.forEach(s=>s.items.forEach(it=>{ if(it.k===cible) item=it; }));
+    /* ⛔ LA CARTE SE JUGE EN DEUX MOITIÉS, CHACUNE SUR SA CLÉ. Les droits de la PERSONNE sont ceux des box (`boxes`, hors
+       catégories) ; ce que l'ENTREPRISE a retenu, c'est la clé `carteBox` (`catBloque(view)`, plus bas). Jugée par `canSee(item)`
+       sur `boxes`, une carte retenue SANS les Box était refusée au clic alors que le menu la montrait (relecture adverse, v772). */
+    const carte=(view==='carteBox'); if(carte) item=null;
     /* … et une sous-catégorie a AUSSI ses propres droits : « Produits donnés » est fermé au
        commercial et à la comptable par défaut (`defaultPerms`), même quand ils voient les Box. */
     /* v772 : une rubrique retirée par catégories se refuse sous SA clé aussi — `carteBox` est ramenée à `boxes` plus haut, et
        les Box peuvent être retenues sans leur carte */
-    if((item && !canSee(item)) || (VUE_PARENT[view] && !userSeesModule(currentUser,view)) || catBloque(view)){ const parCat=catBloque(view)||catBloque(cible); view='dashboard'; try{ toast(parCat?'🔒 Cette rubrique n\'est pas ouverte à ton entreprise':'🔒 Cette rubrique n\'est pas ouverte à ton compte (réglable dans Permissions)'); }catch(e){} }
+    const parCat=catBloque(view);   // calculé AVANT le si : la redirection reste la première instruction du bloc (test-747 la lit)
+    if((item && !canSee(item)) || (carte && !userSeesModule(currentUser,'boxes',false,true)) || (VUE_PARENT[view] && !userSeesModule(currentUser,view)) || parCat){ view='dashboard'; try{ toast(parCat?'🔒 Cette rubrique n\'est pas ouverte à ton entreprise':'🔒 Cette rubrique n\'est pas ouverte à ton compte (réglable dans Permissions)'); }catch(e){} }
   }catch(e){} }
   closeModal();
   planPleinQuitteSiBesoin(view);
@@ -35414,7 +35419,16 @@ function usrDroitsHtml(u,admin){
      elle part avec la case qui la donne. */
   const menuLigne=m=>{
     const nom=(m.parent?'↳ ':'')+m.ic+' '+esc(t(m.l)), sous=m.parent?'dans '+esc(navLabel(m.parent)):'';
-    if(catBloque(m.k)) return ligne(nom,(sous?sous+' · ':'')+'non retenue pour l\'entreprise',swH('mod_'+m.k,userSeesModule(u,m.k,false,true),dis?'':' disabled'));
+    if(catBloque(m.k)){
+      /* ⛔ « Validation des mouvements » reste ouverte d'office à qui valide ou attend une validation (`validationsOuvertes`) :
+         `userSeesModule(…,horsCats)` la compte, donc la case s'affichait cochée et « Valider » (qui lit la case) l'écrivait comme un
+         réglage PROPRE de la personne — il lui restait quand la case de validation tombait ou que la rubrique était rouverte. La
+         ligne grisée montre donc la valeur PROPRE (son réglage, sinon la liste de son rôle, sinon fermé : celle de `data-val-av`
+         sur la ligne ouverte), jamais l'ouverture d'office. */
+      let on=userSeesModule(u,m.k,false,true);
+      if(m.k==='validations'&&!planBloque(m.k)&&!metierBloque(m.k)){ const r=moduleReglage(u,'validations'); on=r?r.v:false; }
+      return ligne(nom,(sous?sous+' · ':'')+'non retenue pour l\'entreprise',swH('mod_'+m.k,on,dis?'':' disabled'));
+    }
     if(m.k!=='validations'||planBloque(m.k)||metierBloque(m.k)) return ligne(nom,sous,swH('mod_'+m.k,userSeesModule(u,m.k)));
     const force=validationsOuvertes(u), r=moduleReglage(u,'validations'), propre=r?r.v:false;
     const extra=' data-val="1" data-val-soumis="'+(u.role!=='__profil__'&&(db.validDRTous||u.boxValidDR)?1:0)+'" data-val-av="'+(propre?1:0)+'"'+(force?' data-val-force="1"'+(admin?' disabled':''):'');
@@ -42751,7 +42765,7 @@ function enterApp(u){ currentUser=u;
   save();
   try{ cnxSignaler(_cnxVia==='session'?'session':'connexion',{user:u}); _cnxVia='identifiants'; }catch(e){}
   // vue demandée par l'adresse (#v=…) : seulement si ce compte y a droit — sinon tableau de bord, sans message (l'adresse peut venir d'un autre compte sur le même appareil)
-  (function(){ const m=location.hash.match(/v=([A-Za-z0-9_-]+)/); let v=m&&views[m[1]]?m[1]:'dashboard'; try{ if(v!=='dashboard'){ let it=null; NAV.forEach(s=>s.items.forEach(x=>{ if(x.k===(v==='carteBox'?'boxes':v)) it=x; })); if(it&&!canSee(it)) v='dashboard'; } }catch(e){} go(v); })();
+  (function(){ const m=location.hash.match(/v=([A-Za-z0-9_-]+)/); let v=m&&views[m[1]]?m[1]:'dashboard'; try{ if(v!=='dashboard'){ let it=null; NAV.forEach(s=>s.items.forEach(x=>{ if(x.k===(v==='carteBox'?'boxes':v)) it=x; })); if(it&&!(v==='carteBox'?(userSeesModule(currentUser,'boxes',false,true)&&!catBloque('carteBox')):canSee(it))) v='dashboard'; } }catch(e){} go(v); })();
   if(getLang()!=='fr') setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },50);
   if(!prefLocalLire('elan_lang')) setTimeout(openLangPicker,300);
   maybeDemoTelecollecte();
