@@ -13,7 +13,38 @@ de ligne du tout.
 
 ---
 
-# 🔶 23 OCTOBRE 2026 (SOIR) — LA RELECTURE JURIDIQUE APPLIQUÉE (Justin : « tu as déjà tout de ça ») — branche `claude/relecture-juridique`
+# 🔶 24 OCTOBRE 2026 (NUIT) — L'ESPACE DE TEST (test.teamop.fr) — branche `claude/espace-de-test`, ATTEND LES GESTES DE JUSTIN SUR LE VPS
+
+Justin, 23 octobre 2026 : « toute modification, site, application, la Tour, je veux des espaces de test, et après on pousse ; chaque test
+expliqué dans un ordre ». Ses quatre choix : `test.teamop.fr` ; courriels CAPTÉS sur une page (rien ne part) ; le vrai Claude plafonné à
+10 $/mois (clé Anthropic DÉDIÉE, jamais celle de la production) ; Stripe en mode test (sk_test, carte 4242).
+- **Le serveur de test** est le même `server/index.js`, lancé avec `config.espaceTest === true` (`server/essais.js`) : capture des courriels
+  (`createTransport` remplacé sur le module), routes `/api/essais/{courriels,connexion,remise-a-zero}` sous la clé `X-Essai-Cle`, semis
+  (Clim Essai, un prospect, un patron et un collaborateur de la Tour), remise à zéro au redémarrage, plafond des agents réservé, clé Stripe
+  réelle vidée au démarrage, aucun appel à Firebase, tarifs de test (`server/stripe-essai-prix.js`, `stripe.prixEssai`). ⛔ Sans
+  `espaceTest`, RIEN ne change : prouvé côte à côte (ancien et nouveau serveur, 18 requêtes identiques) et par `test-2981`, `test-2992`.
+- **Les pages** : `scripts/essais-build.js` fabrique tout le site pour l'origine de test (préfixe `elanT_`, bandeau, noindex), plus
+  `essais.html` (se connecter comme client / prospect / patron / collaborateur, remise à zéro, le parcours de la modification lu dans
+  `essais/parcours.json` du commit) et `courriels.html`. Liste FERMÉE des clés du fragment `#essai=`.
+- **Le VPS** : unité `teamop-api-test` (port 8095 — 8090 est à OP MESSAGES), `/opt/teamop/test/`, utilisateur `teamoptest`, clé maître de
+  test, Caddy OU nginx (`server/caddy-teamop-test.caddy`, `server/nginx-teamop-test.conf`), mot de passe sur les pages. ⛔ Root n'exécute
+  jamais ce qu'une branche a écrit : le déployeur vit en `/usr/local/sbin/deployer-test` (posé par l'installeur au SHA exact — le relancer est
+  le SEUL moyen de le changer), `npm ci` et la fabrication des pages tournent dans une cellule `systemd-run` (`deployer-test --sonde` la
+  vérifie sur la vraie machine à l'installation).
+- **La CI** : `.github/workflows/deploiement-test.yml`, sur chaque demande de fusion vers `main`, environnement `essai-test` (relecteur
+  obligatoire : Justin), clé `VPS_SSH_KEY_TEST` à commande forcée — `VPS_SSH_KEY` (root de la production) n'y est plus. Sans la clé, le
+  workflow le dit et sort en vert.
+- **Bancs** : `test-2980` à `test-2992` (dont `test-2987`, la COUTURE : les vraies pages fabriquées parlent au vrai serveur de test).
+  Trois relectures adverses (serveur, pages, VPS), puis deux sur l'ensemble (sécurité, parcours de Justin) : tous les constats rejoués et
+  corrigés, dont un bloquant (root relançait le déployeur venu de la branche) et le proxy (le VPS est sous Caddy, l'installeur exigeait nginx).
+- **Reste ouvert** : (1) les GESTES de Justin, une étape à la fois (`design/ESPACE-DE-TEST.md` : proxy, préparation des clés, DNS `test` →
+  217.154.6.139, environnement GitHub, installation) ; (2) la cellule `systemd-run` et le modèle Caddy ne sont validés que par de faux
+  outils — le premier vrai essai est l'installation elle-même (elle s'arrête et remet tout comme avant si la cellule fuit ou si Caddy refuse) ;
+  (3) `VPS_SSH_KEY` de PRODUCTION reste un secret du DÉPÔT, lisible par toute branche qui modifie un workflow — la déplacer dans un
+  environnement protégé est un chantier à part (`deploiement.yml`).
+- **Les tests de Justin** vivent sur sa page de tests (artefact « parcours ») : un lot par modification, un test à la fois.
+
+# ✅ 23 OCTOBRE 2026 (SOIR) — LA RELECTURE JURIDIQUE APPLIQUÉE (Justin : « tu as déjà tout de ça », puis « Publié ») — EN LIGNE (demande n° 167, fusionnée le 23 à 22 h 43 UTC, serveur redéployé)
 
 - **Décisions** (les réponses recommandées du document de relecture, avec les faits du dépôt) : SIRET en cours d'attribution ; aucun taux de
   disponibilité ; Anthropic n'entraîne pas ses modèles sur nos données (conditions commerciales de l'API) ; changement de formule à la période

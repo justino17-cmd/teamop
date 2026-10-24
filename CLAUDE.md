@@ -45,7 +45,7 @@ Pas de compilation, pas de bundler. Ce qui est écrit est ce qui est servi.
 puis redoublé, depuis la première rédaction de cette fiche — se méfier des chiffres de cette
 page plus vieux que quelques jours, celui-ci compris : il a vieilli de 90 lignes dans la
 journée même où il a été corrigé). Écoute sur `127.0.0.1:8080`,
-**derrière nginx** (d'où `app.set('trust proxy', 1)`).
+**derrière un proxy — Caddy, pas nginx** (vérifié sur le VPS le 7 octobre 2026 : nginx inactif ; d'où `app.set('trust proxy', 1)`).
 
 Dépendances : `express`, `imapflow` + `mailparser` (réception des courriels),
 `nodemailer` (envoi), `web-push` (notifications), `@anthropic-ai/sdk`.
