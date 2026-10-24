@@ -41108,14 +41108,14 @@ function cvcTachesBlocCalc(){
   return `<div class="card" id="cvc-taches" style="margin-bottom:12px"><div class="card-head"><h3>🔥 Entretiens à planifier</h3><span class="tag">${L.length}</span></div>
     <div style="font-size:12.5px;color:var(--t3);margin-bottom:6px">Calculé à partir du parc d’appareils de vos clients. « Planifier » ouvre une intervention pré-remplie : rien n’est créé tant que vous ne validez pas.</div>
     ${L.slice(0,12).map(p=>cvcLigneProposition(p,peutAj)).join('')}${L.length>12?`<div style="text-align:center;color:var(--t3);font-size:12px;padding:8px">+ ${L.length-12} autre(s)</div>`:''}</div>`; }
-/* La ligne de la CLOCHE (24 octobre 2026) — même liste que les Tâches et le tableau de bord (`cvcPropositions`), seulement ce qui presse : dépassé, ou dans les
-   CVC_RAPPEL_J jours. UNE ligne regroupée, comme les retards ; son identifiant porte le compte et les clés, donc elle revient « non lue » quand la liste change.
+/* La ligne de la CLOCHE (24 octobre 2026) — la même liste que les Tâches et le tableau de bord (`cvcPropositions`, qui ne garde déjà que le dépassé et ce qui
+   tombe dans les CVC_RAPPEL_J jours : pas de second filtre ici, il ferait double emploi). UNE ligne regroupée, comme les retards ; son identifiant porte le compte et les clés, donc elle revient « non lue » quand la liste change.
    null pour un métier sans parc ; un calcul qui jette rend null (la cloche ne casse pas pour une échéance). `computeNotifs` ne l'appelle que pour qui voit les interventions. */
 function cvcNotif(){ if(!metierGereParc()) return null;
   let L=[]; try{ L=cvcPropositions(); }catch(e){ return null; }
-  const urg=L.filter(p=>p.j<=CVC_RAPPEL_J); if(!urg.length) return null;
-  const dep=urg.filter(p=>p.j<0).length, n=urg.length;
-  return {id:'cvc:'+n+':'+dep+':'+urg.map(p=>p.cle).sort().join('|').slice(-40),ic:'🔥',
+  if(!L.length) return null;
+  const dep=L.filter(p=>p.j<0).length, n=L.length;
+  return {id:'cvc:'+n+':'+dep+':'+L.map(p=>p.cle).sort().join('|').slice(-40),ic:'🔥',
     txt:`<b>${n} entretien${n>1?'s':''} à planifier</b>${dep?` — dont <b>${dep} dépassé${dep>1?'s':''}</b>`:` dans les ${CVC_RAPPEL_J} jours`}`,act:"go('taches')"}; }
 /* La carte du tableau de bord — même liste. Rendue SEULEMENT pour qui voit les interventions (une carte n'ouvre jamais un écran interdit). */
 function cvcDashSection(voitVue){ if(!metierGereParc()) return '';
