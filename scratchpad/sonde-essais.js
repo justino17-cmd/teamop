@@ -65,7 +65,7 @@ function repondre(q, r) {
   const json = (code, o, extra) => { r.writeHead(code, Object.assign({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }, extra || {})); r.end(JSON.stringify(o)); };
   if (u.pathname === '/health') return json(200, { ok: true });
   if (u.pathname.startsWith('/api/essais/')) {
-    if (u.searchParams.get('cle') !== CLE) return json(403, { error: 'cle' });
+    if ((q.headers['x-essai-cle'] || u.searchParams.get('cle')) !== CLE) return json(403, { error: 'cle' });   // l'en-tête (les fetch des pages) ou le paramètre (les liens de connexion)
     if (u.pathname === '/api/essais/connexion') {
       const c = COMPTES[u.searchParams.get('compte')];
       if (!c) return json(400, { error: 'compte' });
@@ -186,8 +186,10 @@ function cdp(ws) {
   console.log('\nE. remise à zéro');
   await aller('https://' + HOTE + '/essais.html');
   await attendre("!!document.getElementById('remise')");
+  const nAvantRemise = ACCES.length;
   await ev("window.confirm=function(){return true;}; document.getElementById('remise').click();");
-  vrai('la remise à zéro appelle POST /api/essais/remise-a-zero et le dit', await attendre("document.getElementById('remise-msg').textContent.indexOf('remis à zéro')>=0"), await ev("document.getElementById('remise-msg').textContent"));
+  vrai('la remise à zéro appelle POST /api/essais/remise-a-zero, ATTEND le serveur (ici il ne tombe jamais : 8 s, puis la porte « client » redirige) et dit « C\'est fait » seulement après', await attendre("document.getElementById('remise-msg').textContent.indexOf('remis à zéro')>=0 && document.getElementById('remise-msg').textContent.indexOf('fait')>=0", 40000), await ev("document.getElementById('remise-msg').textContent"));
+  vrai('(…) la page a bien sondé la porte « client » AVANT de dire que c\'est fait (au navigateur, avec redirect:manual)', ACCES.slice(nAvantRemise).indexOf('GET /api/essais/connexion') >= 0 && ACCES.slice(nAvantRemise).filter(x => x === 'GET /health').length >= 6);
   vrai('(…) la requête est bien un POST avec la clé', ACCES.indexOf('POST /api/essais/remise-a-zero') >= 0);
 
   /* ── F. l'application de test : un stockage à part, jamais la production ───────────────────────────────────────────────────── */
