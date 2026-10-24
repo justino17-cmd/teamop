@@ -13,7 +13,7 @@ const { spawnSync } = require('child_process');
 const RACINE_DEPOT = path.join(__dirname, '..');
 const SHA_A = 'a'.repeat(40), SHA_B = 'b'.repeat(40), SHA_C = 'c'.repeat(40), SHA_D = 'd'.repeat(40), SHA_E = 'e'.repeat(40), SHA_F = 'f'.repeat(40);
 const CANARI_BUILD = 'CANARI_CLE_ESSAIS_9f3a';        // ce que le faux fabricant de pages imprime : ne doit JAMAIS sortir à l'écran
-const CANARI_AGENTS = 'sk-ant-CANARI-AGENTS-0001';     // la clé d'agents de la « production » du bac
+const CANARI_AGENTS = 'sk-ant-CANARI-AGENTS-0001-PRODUCTION';     // la clé d'agents de la « production » du bac
 
 function ecrire(p, texte, mode) { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, texte); if (mode) fs.chmodSync(p, mode); }
 function faux(dir, nom, corps) { ecrire(path.join(dir, nom), '#!/bin/bash\n' + corps, 0o755); }
@@ -154,7 +154,7 @@ esac
 exit 0
 `);
   faux(BIN, 'curl', `
-E="$BAC_ETAT"; R="$BAC_RACINE"
+E="$BAC_ETAT"; R="$BAC_RACINE"; FIX="$E/fix"
 url="\${@: -1}"
 case "$url" in
   http://127.0.0.1:*/health)
@@ -203,6 +203,7 @@ exit 0
 `);
   faux(BIN, 'caddy', `
 R="$BAC_RACINE"
+case "$1" in version) echo "\${BAC_CADDY_VERSION:-v2.6.2} h1:bac"; exit 0 ;; esac
 echo "caddy $*" >> "$BAC_ETAT/log"
 case "$1" in
   validate)
