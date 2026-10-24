@@ -294,6 +294,23 @@ outil d'argent), pas d'urgence — options au constat (citer le dernier message 
 - **Choix à la page de paiement** : la fiche du client (`ficheDePaiement`) naît APRÈS la page rendue par Stripe, jamais pour un compte fermé, ne compte pas comme un espace (`aUnEspace`, suppression d'un compte du site) ; elle part avec le compte supprimé. ⚠️ Un client qui a payé SANS jamais ouvrir son espace client n'a donc plus de « 409 : ce compte porte une entreprise » — la Tour le montre « sans espace » : vérifier dans Stripe avant de supprimer un compte.
 - **Reste à faire** : `apercu/tour.html` n'est PAS régénéré (à faire à la fusion : `bash scripts/apercu.sh tour.html` — une copie plus vieille que la page est pire que pas de copie) ; la Tour ne monte pas de version (`TOUR_VERSION`) ; ✅ l'acceptation d'une seconde demande ne change plus le MÉTIER d'un espace qui en a un (24 octobre 2026, Tour v2.109 : `siVide`, le métier du nom le plus récent est gardé et
   le panneau le dit ; `test-2892` § 3 ter) — ⚠️ un espace déjà ouvert SANS métier reçoit celui de la demande, comme avant (rien à protéger côté serveur) ; sonde `scratchpad/sonde-tour-demande-ouverte.js` (54 ✓, jour/nuit, 1440/1100/390).
+
+# 🔶 24 OCTOBRE 2026 (SOIR) — EXAMEN DE 21 H 07, LE PREMIER SUR LE SERVEUR CORRIGÉ : 5 RÉUSSIS, 4 ÉCHECS, CORRIGÉS (branche `claude/examen-corrections-2`)
+- ⚠️ **L'examen de 17 h 43 ne comptait pas** : il a tourné sur l'ANCIEN serveur (le déploiement de la demande n° 171 s'est fini à 17 h 50). Celui de 21 h 07 est le premier qui juge les corrections.
+- **Scénario 2** (Camille passe une tâche) : elle donnait l'INTITULÉ au lieu de l'identifiant → le schéma de `passer` et `terminer` offre la liste FERMÉE des identifiants de ses tâches
+  (`champTache`, `tachesOffertes` ; toute l'équipe pour Victor). On ne devine jamais un intitulé (relecture du gardien : « répondre au prospect Dupont » attrapait la tâche Martin).
+- **Scénario 4** (Camille demande à Hugo) : elle n'avait rien écrit dans le fil de Justin (un seul outil, la question dans un AUTRE fil) → quand Justin écrit et que l'agent ne
+  rend que des outils, UN second appel, sans outil, avec le résultat des outils et l'état d'après, lui demande son message pour ce fil — sauf si un outil y a déjà écrit.
+- **Scénario 6** (premiers courriels de Léa) : deux brouillons sur trois, et trois critères « illisibles » → le juge de l'examen lit chaque objet de premier niveau (un objet
+  incomplet rend tout illisible, jamais vrai) ; le juge QUALITÉ tolère le gras et les puces, et un juge bavard (un verdict suivi de phrases) est relancé UNE fois, la forme
+  stricte décide (relecture du gardien : aucune phrase libre n'est déclarée innocente). ⚠️ **La cause des deux brouillons n'est PAS prouvée** : le prochain examen dit, pour
+  chaque brouillon, le verdict du contrôle, ses fautes et sa raison (`pourquoiBrouillon`).
+- **Scénario 9** (le ton) : « je confirme mes objectifs », « rien à ajouter » en DISCUSSION de réunion → `sansRedites` retire la formule, garde le reste de la phrase
+  (un engagement, un @, une alerte) ; chaque critère du juge affiche SA raison (`raisonDe`).
+- Bancs : `test-2996` (20, dans la liste serveur), `test-2900`, `test-2930` adaptés ; 13 mutations, toutes mordent. Relecture adverse du `gardien` : un bloquant et quatre
+  « à corriger », tous traités dans le second commit.
+- ⏳ **Reste** : fusion, déploiement, puis relancer l'examen — avec la Tour v2.109 (demande n° 174), le bouton « 📋 Copier le résultat pour Claude » donne tout en un clic.
+
 # 🔶 24 OCTOBRE 2026 — PREMIER EXAMEN RÉEL : 3 RÉUSSIS, 6 ÉCHECS, CORRIGÉS (branche `claude/examen-corrections`)
 - **Le résultat** (Tour, 15 h 05, 66 appels, 1,49 $, 212 s) : ✓ 1 (Margaux), 3 (@tous), 7 (courrier) ; ✗ 2, 4, 5, 6, 8, 9. **Trois échecs venaient de l'EXAMEN** : « tes » lu dans
   « complètes » (`\b` ignore les accents), « 15 euros » refusé alors que le serveur l'accepte, des avantages numérotés comptés comme des questions (deux courriels justes restés

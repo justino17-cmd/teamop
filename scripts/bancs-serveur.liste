@@ -340,3 +340,4 @@ tests/test-2990.js
 tests/test-2992.js
 # 24 octobre 2026 : `test-2993` (les six échecs de l'examen de 15 h 05 : un agent ne répond pas deux fois au même message, « RAS » à un collègue ne s'écrit pas, une question = une ligne numérotée finie par « ? », « complètes » ne tutoie pas, « 15 euros » vaut « 15 € », un verdict du juge aux guillemets droits se lit). Lit server/ seulement.
 tests/test-2993.js
+tests/test-2996.js
