@@ -39,7 +39,7 @@ const FAUTES = {
   accroche_activite:   { phrase: 'Dire dès l’accroche l’activité reconnue de l’entreprise (son métier), pas une formule générale.' },
   presentation:        { phrase: 'Présenter TeamOP et son application OP GESTION (« TeamOP » et « OP GESTION » doivent paraître).' },
   difference:          { phrase: 'Dire notre différence : une formule sur mesure et des tarifs « à partir de 15 € par mois et par utilisateur ».' },
-  questions:           { phrase: 'Poser entre 4 et 7 questions de découverte, numérotées (1., 2., 3., …), chacune sur sa ligne.' },
+  questions:           { phrase: 'Poser entre 4 et 7 questions de découverte, numérotées (1., 2., 3., …), chacune sur sa ligne et finie par « ? » ; les autres listes (ce qu’OP GESTION fait) s’écrivent en tirets, jamais numérotées.' },
   essai_trop_tot:      { phrase: 'La période d’essai n’est évoquée qu’APRÈS le retour du client, en fin de courriel (« dès réception de vos réponses… ») : pas avant les questions.' },
   essai_absent:        { phrase: 'Proposer la période d’essai d’une semaine, à la fin du courriel, une fois la proposition faite.' },
   formule_absente:     { phrase: 'Nommer la formule proposée, exactement avec son nom.' },
@@ -82,6 +82,7 @@ const PROFILS = {
 const norm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const plat = t => norm(t).replace(/[^a-z0-9]+/g, ' ').trim();
 const mots = t => (String(t || '').match(/\S+/g) || []).length;
+const estQuestion = l => /^\s*\d{1,2}[.)]\s+\S.*\?\s*$/.test(l);
 
 /* Le contrôle du CODE. `ctx` : { profil, entreprise?, activite?, formule? (clé de FORMULES), rubriques?: bool, creer?: bool }. Rend la liste des codes de faute (vide : rien à redire).
    Le corps reçu est le corps BRUT de Claude : la signature écrite par le modèle se voit avant que `normaliserCorps` ne lui ajoute son « Bien cordialement, ». */
@@ -122,11 +123,13 @@ function fautesDuCode(objet, corpsBrut, ctx) {
   if (profil === 'vente') {
     if (!/team\s?op(?!\.fr)/i.test(corps) || !/op gestion/.test(t)) f.push('presentation');
     if (!/sur[- ]mesure/.test(norm(corps)) || !/\b15\s?(?:€|euros?)/i.test(corps)) f.push('difference');
-    const numerotees = corps.split('\n').filter(l => /^\s*\d{1,2}[.)]\s+\S/.test(l)).length;
+    /* une QUESTION est une ligne numérotée finie par « ? » : une liste d'avantages numérotée n'en est pas (examen du 24 octobre 2026 : cinq points d'OP GESTION
+       et six questions comptaient « 11 questions », et deux courriels justes restaient en brouillon) */
+    const numerotees = corps.split('\n').filter(estQuestion).length;
     if (numerotees < 4 || numerotees > 7) f.push('questions');
     const i = norm(corps).search(/essai/);
     if (i >= 0) {
-      const derniereQ = Math.max(-1, ...corps.split('\n').map((l, k, arr) => (/^\s*\d{1,2}[.)]\s+\S/.test(l) ? arr.slice(0, k).join('\n').length : -1)));
+      const derniereQ = Math.max(-1, ...corps.split('\n').map((l, k, arr) => (estQuestion(l) ? arr.slice(0, k).join('\n').length : -1)));
       const avant = norm(corps.slice(Math.max(0, i - 200), i));
       if (i < derniereQ || !/reception|ensuite|apres|retour|reponses/.test(avant)) f.push('essai_trop_tot');
     }
@@ -249,4 +252,4 @@ async function produire(o) {
   return Object.assign(dernier, { etat: 'a_revoir', reecrit: true });
 }
 
-module.exports = { FAUTES, JUGE_CODES, JUGE_SYSTEM, PROFILS, estGrave, phrasesDe, fautesDuCode, lireVerdict, juger, controler, messagesReecriture, produire };
+module.exports = { FAUTES, JUGE_CODES, JUGE_SYSTEM, PROFILS, estQuestion, estGrave, phrasesDe, fautesDuCode, lireVerdict, juger, controler, messagesReecriture, produire };

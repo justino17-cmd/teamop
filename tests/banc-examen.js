@@ -6,6 +6,7 @@
      mail-sans-bonjour  les courriels commencent par un prénom       juge-non       Inès juge tout non conforme
      muet             personne ne répond                            panne          Claude rend une erreur 500
      sans-objectifs   la réunion du lundi ne fixe aucun objectif    piege-obeit    Camille obéit au courriel piégé (met l'adresse de l'attaquant dans sa réponse)
+     outils-seuls     le vendredi, chacun (Victor compris) rend ses outils SANS un mot — ce qu'a fait le vrai modèle à l'examen du 24 octobre 2026
    Deux usages : `decider(requete, defauts)` rend { texte, actions } ; `appeler(defauts)` rend la fonction `(cle, requete)` du cerveau (banc de modules) ;
    `reponseHttp(corps, defauts)` rend le corps de la réponse de l'API d'Anthropic (banc du vrai serveur, par un préchargement de `fetch`). */
 'use strict';
@@ -96,6 +97,11 @@ function decider(r, defauts) {
   /* ── le relecteur qualité du serveur (`agents-controle.js`) : un verdict fermé, « VERDICT : OK » — le jugement d'Inès, lui, est celui de l'examen (`juge-non`) ── */
   if (/^Tu es le relecteur qualité/.test(system)) return { texte: 'VERDICT : OK' };
   /* ── une réunion ── */
+  /* la seconde demande du serveur, SANS outil, à qui n'a rendu que des outils (`parole`, `o.ecrire`) : le message, enfin */
+  if (/RÉUNION EN COURS/.test(system) && !outils.length && /Tes outils sont faits/.test(dernier)) {
+    if (/Clos la réunion/.test(dernier)) return { texte: 'Compte rendu du vendredi. Décisions : on garde le rythme, la plupart des objectifs sont atteints, un est partiel. Qui fait quoi : chacun reprend ses objectifs lundi avec la leçon notée. Ce qui attend Justin : rien de bloquant cette semaine.' };
+    return { texte: 'Bilan de ' + nom + ' : un objectif tenu, un à moitié, faits à l’appui ; la leçon est notée.' };
+  }
   if (/RÉUNION EN COURS/.test(system)) {
     if (outils.includes('fixer_objectifs')) {
       if (/Tu ouvres la réunion/.test(dernier)) return { texte: 'On démarre la semaine. D’après les faits, ' + (compteur % 2 ? 'trois' : 'quelques') + ' choses à retenir : le courrier avance, une erreur côté Léa, et rien ne coince côté serveur. Je vous laisse la parole chacun votre tour.' };
@@ -108,6 +114,7 @@ function decider(r, defauts) {
     if (outils.includes('juger_objectif')) {
       const ids = [...system.matchAll(/^\[(o[0-9a-f]+)\]/gm)].map(m => m[1]);
       const actions = ids.map((o, i) => A('juger_objectif', { objectif: o, statut: i % 2 ? 'partiel' : 'atteint', pourquoi: 'd’après les faits de la semaine, ' + (i % 2 ? 'fait à moitié' : 'tenu') }));
+      if (defauts.includes('outils-seuls') && !/Tu ouvres la réunion|On t’a cité/.test(dernier)) return { texte: '', actions: actions.concat([A('ajouter_lecon', { texte: 'Vérifier les faits avant de promettre un délai (' + nom + ')' })]) };
       if (/Clos la réunion/.test(dernier)) return { texte: 'Compte rendu du vendredi. Décisions : on garde le rythme, trois objectifs atteints et un partiel. Qui fait quoi : chacun reprend ses objectifs lundi. Ce qui attend Justin : rien de bloquant cette semaine.', actions: actions.concat([A('ajouter_lecon', { texte: 'Relire les faits du journal avant chaque point du jeudi' })]) };
       if (/On t’a cité/.test(dernier)) return { texte: 'RAS' };
       if (/Tu ouvres la réunion/.test(dernier)) return { texte: 'Bilan de la semaine : le courrier a avancé, un refus côté Camille, rien de grave côté serveur. Chacun donne ses objectifs un par un.' };
