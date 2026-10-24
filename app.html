@@ -41612,7 +41612,7 @@ function cvcFicheForm(iid,aid,fid){ if(!permGarde('int','modifier','une interven
         ${inp('fuiteLieu','Localisation de la fuite',f.fuiteLieu,'maxlength="160"')}
       </div>
       <div id="cvc-fiche-info" style="font-size:12.5px;line-height:1.5;color:var(--t2);margin:2px 0 10px;overflow-wrap:anywhere"></div>
-      ${inp('attestation','N° d’attestation de capacité de l’opérateur',f.attestation,'maxlength="80"')}
+      ${inp('attestation','N° d’attestation de capacité de l’opérateur (obligatoire)',f.attestation||cvcDerniereAttestation(),'maxlength="80" required')}
       ${inp('operateur','Opérateur',f.operateur,'maxlength="120"')}
       <div class="field"><label>Observations</label><textarea name="obs" rows="2" maxlength="600">${esc(f.obs||'')}</textarea></div>
       <div class="modal-foot" style="flex-wrap:wrap"><button type="button" class="btn ghost" onclick="closeModal();renderIntDetail('${esc(iid)}')">Annuler</button><button type="submit" class="btn">${fid?'Enregistrer':'Ajouter la fiche'}</button></div></form>`);
@@ -41627,6 +41627,10 @@ function cvcFicheMaj(f){ if(!f||!f.elements) return; const ctl=document.getEleme
   else if(on&&cvcIsoOk(d)){ const aid=(f.dataset&&f.dataset.aid)||''; const a=(db.appareils||[]).find(k=>k.id===aid); const r=a?cvcEtancheiteRegle(a):null;
     if(r&&r.requis===true) t='Prochain contrôle : '+cvcDateTxt(cvcAddMois(d,r.mois))+' ('+r.mois+' mois).'; }
   info.textContent=t; info.style.color=/⚠️/.test(t)?'var(--red)':'var(--t2)'; info.style.fontWeight=/⚠️/.test(t)?'700':'400'; }
+/* Le dernier n° d'attestation de capacité saisi sur une fiche fluides (le plus récent par date) : c'est celui de l'ENTREPRISE, il ne change pas d'une fiche à l'autre. */
+function cvcDerniereAttestation(){ let best=null;
+  (db.interventions||[]).forEach(i=>(Array.isArray(i&&i.fichesFluides)?i.fichesFluides:[]).forEach(f=>{ if(f&&f.attestation&&(!best||String(f.date||'')>String(best.date||''))) best=f; }));
+  return best?best.attestation:''; }
 function cvcFicheSauver(e,iid,aid,fid){ e.preventDefault(); if(!permGarde('int','modifier','une intervention')) return;
   const x=cvcFicheCtx(iid,aid); if(!x) return; const {i,a}=x, form=e.target, g=n=>String((form.elements[n]||{}).value||'').trim();
   const date=g('date'); if(!cvcIsoOk(date)){ champManque('Date de l’opération invalide',champDe(form,'date')); return; }
@@ -41642,6 +41646,10 @@ function cvcFicheSauver(e,iid,aid,fid){ e.preventDefault(); if(!permGarde('int',
   if(vignette&&vignette!=='bleue'&&vignette!=='rouge') vignette='';
   const d={appareilId:aid,appLabel:cvcLibelle(a)+(a.serie?' · n° '+a.serie:''),date,nature,fluide,prp,charge,recup,contenant:g('contenant').slice(0,80),bordereau:g('bordereau').slice(0,80),
     controle,resultat,vignette,fuiteLieu:controle&&resultat!=='conforme'?g('fuiteLieu').slice(0,160):'',attestation:g('attestation').slice(0,80),operateur:g('operateur').slice(0,120),obs:g('obs').slice(0,600)};
+  /* ⛔ PAS DE FICHE FLUIDES SANS N° D'ATTESTATION DE CAPACITÉ (24 octobre 2026) : seule une entreprise titulaire de cette attestation peut manipuler des fluides
+     frigorigènes (code de l'environnement, art. R543-99), et la fiche d'intervention porte son numéro. Une fiche sans lui serait un document que l'entreprise
+     ne peut pas produire en contrôle : on ne l'enregistre pas, et on le DIT (le champ se pré-remplit avec le dernier numéro saisi : `cvcDerniereAttestation`). */
+  if(!d.attestation){ champManque('Le n° d’attestation de capacité de l’opérateur est obligatoire sur une fiche fluides',champDe(form,'attestation')); return; }
   i.fichesFluides=Array.isArray(i.fichesFluides)?i.fichesFluides:[];
   if(fid){ const ex=i.fichesFluides.find(k=>k.id===fid); if(!ex){ toast('Cette fiche n’existe plus'); return; } Object.assign(ex,d); intHisto(i,'💧 Fiche fluides modifiée — '+d.appLabel); }
   else{ i.fichesFluides.push({id:uid(),creeLe:todayISO(),creePar:(currentUser&&currentUser.id)||'',...d}); intHisto(i,'💧 Fiche fluides ajoutée — '+d.appLabel+' · '+fluide+(charge!==''?' · chargé '+cvcNbTxt(charge,2)+' kg':'')); }
