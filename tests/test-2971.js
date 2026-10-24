@@ -30,11 +30,9 @@ console.log('\n── 2971 · relecture juridique : les textes disent ce qui se 
 
 console.log('\n1. Plus aucune promesse « 24h/24 » ni « 7j/7 »');
 const PROMESSE = /24 ?h ?\/ ?24|7 ?j ?\/ ?7/i;
-/* ÉCART DÉCLARÉ : la description de la formule Business Premium dans l'application elle-même (PLANS.premium.desc). Elle ne change dans `app.html` que sur une phrase de Justin
-   (CLAUDE.md : « tout sur la bêta ») — mais la BÊTA et la DÉMONSTRATION PUBLIQUE, elles, sont fabriquées par des générateurs qui disent déjà « assistance prioritaire » (remplacement gardé de
-   beta-build.js et de demo-build.js) : ces deux pages sont relues comme les autres, et refabriquées ici pour le prouver. Le jour où app.html est corrigé, ce banc oblige à vider la liste ET à
-   retirer les deux remplacements. */
-const ECART_APPLICATION = ['app.html'];
+/* L'ÉCART EST REFERMÉ (v773, 24 octobre 2026, Justin : « publie tout ») : la description Business Premium d'`app.html` dit elle-même « assistance prioritaire ». La liste reste, VIDE, pour
+   qu'un écart futur se déclare ici et nulle part ailleurs ; app.html est relue comme les autres pages, et les générateurs ne portent plus de remplacement (contrôle plus bas). */
+const ECART_APPLICATION = [];
 /* ce n'est pas une promesse : un commentaire de code d'OP MESSAGES qui explique qu'« 24h/24 » n'est pas une heure à lire dans un mail */
 const SANS_RAPPORT = ['apercu/opmessages/index.html'];
 const racineHtml = fs.readdirSync(RACINE).filter(f => /\.html$/.test(f));
@@ -46,6 +44,8 @@ v('⛔ …ni aucun texte de contrat', typesTxt.filter(t => PROMESSE.test(txt(t))
 vrai('(population) les contrats relus sont les onze pièces', typesTxt.length === 11, typesTxt.length);
 for (const f of ECART_APPLICATION) vrai('écart déclaré : ' + f + ' porte encore la description « service 24h/24 » (la retirer d’ici le jour où elle est corrigée)', PROMESSE.test(lire(f)));
 vrai('(population) la bêta et la démonstration publique sont parmi les pages relues', pagesServies.includes('beta.html') && pagesServies.includes('demo.html'));
+vrai('(population) l’application elle-même (app.html) est parmi les pages relues', pagesServies.includes('app.html'));
+v('⛔ les générateurs ne corrigent plus la description au passage (app.html la dit juste : un remplacement resté là masquerait un retour du texte)', ['beta-build.js', 'demo-build.js'].filter(g => /24 ?h ?\/ ?24/.test(sansJsCom(lire(g)))), []);
 { /* refabriqués pour de bon : le générateur fait ce qu'on dit, pas seulement le fichier rangé */
   const cp = require('child_process'), tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'op2971-'));
   for (const [gen, sortie] of [['beta-build.js', 'beta.html'], ['demo-build.js', 'demo.html']]) {

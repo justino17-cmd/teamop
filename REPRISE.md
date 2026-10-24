@@ -71,9 +71,9 @@ expliqué dans un ordre ». Ses quatre choix : `test.teamop.fr` ; courriels CAPT
   plafond de responsabilité (CG, DPA), régime du compte « Perso », transferts hors UE (Anthropic, GitHub), client non professionnel (DPA),
   signature électronique simple (art. 1366-1367), durée de 24 mois. Le parcours d'acceptation en ligne n'existe pas : la signature électronique
   reste en brouillon.
-- ⚠️ Restent : « service 24h/24 » dans `PLANS.premium.desc` d'`app.html` (une publication de l'application : le jour de la phrase, remplacer
-  par « assistance prioritaire », monter version et cache, RETIRER les remplacements de `beta-build.js` et `demo-build.js`, vider
-  `ECART_APPLICATION` de `test-2971`) ; `config.json` du VPS (`smtp.pass`, `imap.pass`) reste en clair (hors dépôt) ; les sauvegardes d'avant
+- ✅ « service 24h/24 » retiré de `PLANS.premium.desc` d'`app.html` : **v773, 24 octobre 2026** (Justin : « Ok bon publie tout ») — « assistance
+  prioritaire », remplacements de `beta-build.js` et `demo-build.js` retirés, `ECART_APPLICATION` vidé (`test-2971` refuse leur retour).
+- ⚠️ Restent : `config.json` du VPS (`smtp.pass`, `imap.pass`) reste en clair (hors dépôt) ; les sauvegardes d'avant
   le chiffrement portent les anciens mots de passe (archive déjà chiffrée) ; la clé maître devient nécessaire aux boîtes (même séquestre que le
   socle) ; plusieurs définitions d'adresse/téléphone dans `server/` à unifier vers `agents-connaissance.js`.
 - **Bancs et réunions** : la réunion du vendredi (18 h-23 h, Paris) et du lundi matin partait aussi dans le vrai serveur des bancs —
