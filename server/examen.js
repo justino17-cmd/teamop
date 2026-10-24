@@ -292,19 +292,31 @@ const SYSTEM_JUGE = [
 const delim = t => String(t == null ? '' : t).replace(/[<>]{3,}/g, ' ').replace(/[<>]/g, ' ');
 /* Lit la ligne JSON du juge : exactement les critères demandés, des booléens, une raison courte. Tout le reste est « illisible ». Pur, rejouable au banc. */
 /* ⛔ PLUSIEURS OBJETS, UN VERDICT (examen du 24 octobre 2026, scénario 6 : trois critères « illisibles » — trois courriels à juger, et le juge rendait, au plus
-   probable, un objet par courriel : l'expression gourmande prenait du premier « { » au dernier « } », et rien ne se lisait). Chaque objet PLAT qui porte tous les
-   critères compte ; un critère n'est respecté que s'il l'est dans TOUS (le plus prudent), et les raisons se mettent bout à bout. Sinon, l'ancienne lecture (un
-   objet, éventuellement abîmé par sa raison). */
+   probable, un objet par courriel : l'expression gourmande prenait du premier « { » au dernier « } », et rien ne se lisait). Les objets de PREMIER niveau se
+   comptent, accolades hors des chaînes (une raison qui cite « {entreprise} » ne coupe rien). Chacun doit porter TOUS les critères en booléens, sinon le verdict
+   entier est illisible (relecture du gardien : un objet fautif écarté rendait son critère vrai) ; un critère n'est respecté que s'il l'est dans TOUS, et les
+   raisons se mettent bout à bout. Un texte dont les guillemets ne se referment pas : l'ancienne lecture (un objet, éventuellement abîmé par sa raison). */
+function objetsDe(s) {
+  const out = []; let prof = 0, debut = -1, chaine = false, echap = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (chaine) { if (echap) echap = false; else if (c === '\\') echap = true; else if (c === '"') chaine = false; continue; }
+    if (c === '"') { if (prof > 0) chaine = true; continue; }
+    if (c === '{') { if (prof === 0) debut = i; prof++; }
+    else if (c === '}' && prof > 0) { prof--; if (prof === 0) out.push(s.slice(debut, i + 1)); }
+  }
+  return prof === 0 && !chaine ? out : null;
+}
 function lireVerdict(texte, cles) {
   const s = String(texte || '');
-  const plats = [];
-  for (const x of s.matchAll(/\{[^{}]*\}/g)) {
-    let j; try { j = JSON.parse(x[0]); } catch (e) { j = verdictAbime(x[0], cles); }
-    if (j && typeof j === 'object' && !Array.isArray(j) && cles.every(c => typeof j[c] === 'boolean')) plats.push(j);
-  }
+  const objets = objetsDe(s);
   let j;
-  if (plats.length) j = plats.length === 1 ? plats[0] : Object.assign(Object.fromEntries(cles.map(c => [c, plats.every(p => p[c] === true)])),
-    { raison: [...new Set(plats.map(p => typeof p.raison === 'string' ? p.raison.trim() : '').filter(Boolean))].join(' ; ') });
+  if (objets && objets.length) {
+    const lus = objets.map(o => { let x; try { x = JSON.parse(o); } catch (e) { x = verdictAbime(o, cles); } return x; });
+    if (lus.some(x => !x || typeof x !== 'object' || Array.isArray(x) || !cles.every(c => typeof x[c] === 'boolean'))) return null;
+    j = lus.length === 1 ? lus[0] : Object.assign(Object.fromEntries(cles.map(c => [c, lus.every(x => x[c] === true)])),
+      { raison: [...new Set(lus.map(x => typeof x.raison === 'string' ? x.raison.trim() : '').filter(Boolean))].join(' ; ') });
+  } else if (objets) return null;
   else {
     const m = /\{[\s\S]*\}/.exec(s); if (!m) return null;
     try { j = JSON.parse(m[0]); } catch (e) { j = verdictAbime(m[0], cles); }

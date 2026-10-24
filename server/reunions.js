@@ -48,9 +48,24 @@ const DISCUSSION_MAX = 12, TOURS_PAR_AGENT = 2;
    « confirmé ses objectifs » — sept redites. La consigne disait déjà « si tu n'as rien à ajouter, RAS » ; elle ne suffisait pas. En DISCUSSION (pas au tour de
    table, où dire ses objectifs EST la parole attendue), une phrase qui ne fait que reconfirmer ses objectifs ou dire qu'on n'a rien à ajouter est retirée avant
    la publication ; s'il ne reste rien, c'est un « RAS » (rien n'est écrit, et les @ de la phrase retirée ne réveillent personne). Pur, rejouable au banc. */
-const REDITE = /^(?:(?:confirm[ée]e?|ok|parfait|d['’]accord|entendu|not[ée]|[çc]a marche)\s*[,.!:]?\s*)?(?:je|on)\s+(?:confirme|garde|maintiens|conserve|retiens)\s+(?:donc\s+|bien\s+)?(?:mes|nos|les|ces)\s+(?:\S+\s+){0,3}?objectifs\b|^(?:je n['’]ai\s+)?rien\s+(?:d['’]autre\s+|de plus\s+)?(?:à|a)\s+(?:ajouter|signaler)\b/i;
+/* (relecture du gardien) seule la FORMULE part : « je confirme mes objectifs, et je m'engage à livrer vendredi » garde « Je m'engage à livrer vendredi » ;
+   « rien à signaler sur le planning, en revanche la livraison a deux jours de retard » reste entière (la formule n'y est que le début d'une autre phrase) ;
+   « je retiens les objectifs de Léa : 20 inscriptions » aussi (ce sont ceux d'une autre, et un chiffre). */
+const REDITE_TETE = /^(?:(?:confirm[ée]e?|ok|parfait|d['’]accord|entendu|not[ée]|[çc]a marche)\s*[,!]?\s*)?(?:je|on)\s+(?:confirme|garde|maintiens|conserve)\s+(?:donc\s+|bien\s+)?(?:mes|ces)\s+(?:(?:deux|trois|quatre)\s+)?objectifs(?:\s+(?:de la semaine|pour la semaine|pour cette semaine|tels que (?:pos[ée]s|fix[ée]s|dits)|tels quels|comme pr[ée]vu))*/i;
+const REDITE_RIEN = /^(?:je n['’]ai\s+)?rien\s+(?:d['’]autre\s+|de plus\s+)?(?:à|a)\s+(?:ajouter|signaler)(?:\s+(?:de mon c[ôo]t[ée]|pour moi|pour l['’]instant|sur les autres dossiers))*/i;
 function sansRedites(texte) {
-  const t = String(texte || '').split(/(?<=[.!?])\s+/).filter(p => !REDITE.test(p.trim())).join(' ').trim();
+  const gardees = [];
+  for (const p of String(texte || '').split(/(?<=[.!?])\s+/)) {
+    const q = p.trim(), m = REDITE_TETE.exec(q) || REDITE_RIEN.exec(q);
+    if (!m) { if (q) gardees.push(q); continue; }
+    const reste = q.slice(m[0].length);
+    if (/^\s*[.!]?\s*$/.test(reste)) continue;                                        // la phrase EST la redite
+    const lien = /^\s*[,:;]\s*(?:(?:et|mais|par contre|en revanche)\s+)?/i.exec(reste);
+    if (!lien) { gardees.push(q); continue; }                                            // la formule ouvre une autre phrase : tout reste
+    const r = reste.slice(lien[0].length).trim();
+    if (r) gardees.push(r.charAt(0).toUpperCase() + r.slice(1));
+  }
+  const t = gardees.join(' ').trim();
   return /[\p{L}\p{N}]/u.test(t.replace(/@[\p{L}\p{N}_]+/gu, '')) ? t : '';
 }
 const PAROLE_MAX = 600, COMPTE_RENDU_MAX = 1500, OBJECTIF_MAX = 160, LECON_MAX = 200, POURQUOI_MAX = 200;

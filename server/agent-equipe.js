@@ -100,15 +100,21 @@ function outilsDe(id, o) {
   o = o || {};
   const fils = Array.isArray(o.fils) ? o.fils : [];
   const collegues = Array.isArray(o.collegues) ? o.collegues : [];
+  /* ⛔ LA TÂCHE EST UNE LISTE FERMÉE (examen du 24 octobre 2026, scénario 2 ; relecture du gardien) : Camille donnait l'INTITULÉ d'une tâche (« la mise à jour de
+     la FAQ support ») au lieu de son identifiant, et l'outil refusait. La deviner à ses mots pouvait clôturer ou passer la MAUVAISE tâche (« répondre au prospect
+     Dupont » attrapait la tâche Martin) : on ne devine pas. Le schéma offre les identifiants de SES tâches en cours (`o.taches`, celles de l'équipe pour Victor) :
+     le modèle choisit dans la liste, et `passerConsigne` / `terminer` revérifient tout. Sans tâche, la chaîne reste libre (l'outil refusera). */
+  const taches = Array.isArray(o.taches) ? o.taches.filter(t => typeof t === 'string' && t).slice(0, 40) : [];
+  const champTache = Object.assign({ type: 'string', description: 'l’identifiant de la tâche, celui entre crochets dans « Tes tâches en cours »' }, taches.length ? { enum: taches } : {});
   const communs = [
     { name: 'ecrire', description: 'Écrire un message dans un fil dont tu es membre (ton fil privé avec Justin, ou un groupe). Pour qu’un collègue le lise, cite-le avec @identifiant dans le texte (par exemple @lea). Pas besoin de cet outil pour répondre à ce qu’on te demande ici : ta réponse normale va déjà dans ce fil. 600 caractères au plus.',
       input_schema: { type: 'object', properties: { fil: { type: 'string', enum: fils }, texte: { type: 'string' } }, required: ['fil', 'texte'], additionalProperties: false } },
     { name: 'prendre', description: 'Accepter un travail : il devient TA tâche en cours, « demandée par » celui qui vient de te la demander. À n’utiliser que si tu t’en charges vraiment ; une simple question n’est pas un travail. Décris le travail en une phrase (500 caractères au plus).',
       input_schema: { type: 'object', properties: { texte: { type: 'string' } }, required: ['texte'], additionalProperties: false } },
     { name: 'passer', description: 'Passer une de tes tâches en cours à un collègue LIBRE (aucune tâche en cours), seulement si tu es réellement chargé (tu as au moins une autre tâche en cours). Jamais Hugo ni Margaux. Dis la raison, elle sera écrite dans le fil.',
-      input_schema: { type: 'object', properties: { vers: { type: 'string', enum: collegues }, tache: { type: 'string', description: 'l’identifiant de la tâche, celui entre crochets dans « Tes tâches en cours »' }, raison: { type: 'string' } }, required: ['vers', 'tache', 'raison'], additionalProperties: false } },
+      input_schema: { type: 'object', properties: { vers: { type: 'string', enum: collegues }, tache: champTache, raison: { type: 'string' } }, required: ['vers', 'tache', 'raison'], additionalProperties: false } },
     { name: 'terminer', description: 'Marquer une de tes tâches en cours comme terminée, avec un résumé d’une phrase.',
-      input_schema: { type: 'object', properties: { tache: { type: 'string', description: 'l’identifiant de la tâche, celui entre crochets dans « Tes tâches en cours »' }, resume: { type: 'string' } }, required: ['tache', 'resume'], additionalProperties: false } },
+      input_schema: { type: 'object', properties: { tache: champTache, resume: { type: 'string' } }, required: ['tache', 'resume'], additionalProperties: false } },
     { name: 'demander_justin', description: 'Poser une question que Justin doit trancher : elle arrive dans ton fil privé avec lui, en « important » (il est notifié). Une question à la fois, courte.',
       input_schema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'], additionalProperties: false } },
   ];
@@ -123,8 +129,6 @@ function outilsDe(id, o) {
   return communs.concat((Array.isArray(o.propres) ? o.propres : []).filter(t => t && typeof t.name === 'string' && !noms.has(t.name)));
 }
 
-/* Les mots qui ne désignent pas une tâche (`resoudreTache`) : sans eux, « faire la tâche pour Justin » ressemblerait à toutes les tâches. */
-const MOTS_VIDES = new Set(['pour', 'dans', 'avec', 'sans', 'cette', 'tache', 'taches', 'travail', 'faire', 'justin', 'demande', 'demandee', 'tout', 'tous', 'toutes', 'leur', 'leurs', 'plus', 'avant', 'apres', 'semaine', 'aujourd']);
 const MOTIFS_PASSER = {
   tache: 'cette tâche n’existe pas ou n’est plus en cours',
   pas_le_tien: 'ce n’est pas sa tâche',
@@ -272,24 +276,21 @@ module.exports = function agentEquipe(ctx) {
     return messages;
   }
 
-  /* ⛔ LA TÂCHE DÉSIGNÉE PAR SON INTITULÉ (examen du 24 octobre 2026, scénario 2) : chargée, Camille passait « la mise à jour de la FAQ support » à Louis — refusé,
-     « cette tâche n'existe pas » — alors qu'elle l'avait bien (« Mettre à jour la liste des questions fréquentes du support »). Les outils passer et terminer
-     attendent l'identifiant entre crochets de « Tes tâches en cours » ; le modèle écrit parfois ses crochets, ou l'intitulé. On reconnaît d'abord l'identifiant
-     (crochets et guillemets ôtés), puis un intitulé qui ne désigne qu'UNE tâche : au moins deux mots de quatre lettres en commun, la moitié au moins des mots
-     donnés, et aucune autre tâche aussi proche. Rien d'autre n'est deviné : un doute reste un refus, que l'agent lit dans le fil. `equipe` (Victor) : les tâches
-     de toute l'équipe, comme son bloc des tâches. */
-  const motsTache = t => new Set(String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter(w => w.length >= 4 && !MOTS_VIDES.has(w)));
+  /* L'identifiant d'une tâche, tel que le modèle l'écrit : parfois avec ses crochets ou ses guillemets, parfois dans une autre casse. Rien d'autre n'est reconnu —
+     un intitulé ne désigne pas une tâche (le schéma offre la liste fermée des identifiants : `champTache`, dans `outilsDe`). `equipe` : Victor, toute l'équipe. */
   function resoudreTache(id, ref, equipe) {
     const brut = String(ref || '').trim().replace(/^[\[«"'“\s]+|[\]»"'”\s.]+$/g, '');
     if (!brut) return '';
     let l = [];
     try { l = agents.tachesDe(id).slice(); if (equipe) for (const x of ids) if (x !== id) l = l.concat(agents.tachesDe(x)); } catch (e) { return brut; }
-    if (l.some(t => t.id === brut)) return brut;
-    const m = motsTache(brut); if (m.size < 2) return brut;
-    const notes = l.filter(t => t.type === 'consigne').map(t => { const w = motsTache(t.texte); let n = 0; for (const x of m) if (w.has(x)) n++; return { t, n }; }).sort((a, b) => b.n - a.n);
-    const [b1, b2] = notes;
-    if (b1 && b1.n >= 2 && b1.n * 2 >= m.size && !(b2 && b2.n === b1.n)) return b1.t.id;
-    return brut;
+    const t = l.find(x => x.id === brut) || l.find(x => String(x.id).toLowerCase() === brut.toLowerCase());
+    return t ? t.id : brut;
+  }
+  /* Les identifiants offerts au schéma : SES tâches en cours (celles de toute l'équipe pour Victor, qui redistribue). */
+  function tachesOffertes(id) {
+    let l = [];
+    try { l = agents.tachesDe(id).slice(); if (id === 'victor') for (const x of ids) if (x !== id) l = l.concat(agents.tachesDe(x).filter(t => t.type === 'consigne')); } catch (e) { l = []; }
+    return l.map(t => t.id);
   }
 
   const journal = (id, action, resultat, detail) => { try { agents.noter(id, action, { cible: 'conversation', resultat, detail }); } catch (e) {} };
@@ -414,7 +415,7 @@ module.exports = function agentEquipe(ctx) {
     conversations.ecrit(fil, id, true);
     try {
       const system = systemDe(id) + blocCharge() + blocTaches(id) + await blocFaits(id, fil);
-      const outils = outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id), propres: outilsPropres(id), arbitre: id === 'victor' && typeof ctx.arbitrer === 'function' });
+      const outils = outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id), taches: tachesOffertes(id), propres: outilsPropres(id), arbitre: id === 'victor' && typeof ctx.arbitrer === 'function' });
       const r = await cerveau.penser(id, system, messages, { outils, reflechir: true });
       if (!r.ok) return echec(id, fil, r.raison, prof);
       if (dernierLu) { vus.set(fil + ':' + id, dernierLu); if (vus.size > 2000) vus.clear(); }
@@ -428,20 +429,23 @@ module.exports = function agentEquipe(ctx) {
       }
       for (const a of (Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
         let x; try { x = await executer(id, a, { fil, d, prof }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
-        sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison });
+        sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison, ici: !!(x.ok && ((a.nom === 'ecrire' && a.entree && a.entree.fil === fil) || (a.nom === 'demander_justin' && fil === id))) });
       }
       /* ⛔ DES OUTILS ET PAS UN MOT À JUSTIN (examen du 24 octobre 2026, scénario 4) : priée de demander à Hugo et de rapporter sa réponse, Camille n'a rien dit
          dans le fil de Justin — un seul appel d'outil, la question écrite dans un AUTRE fil. Justin ne voyait rien, et Hugo, cité ailleurs, répondait à côté. Une
          règle du prompt (« tu réponds toujours par un message ») ne suffisait pas : quand JUSTIN écrit et que l'agent n'a rendu que des outils, UN second appel,
          SANS outil (rien ne s'exécute deux fois), lui demande son message pour CE fil. Comme les réunions (`parole`, reunions.js). */
-      if (!r.texte && d.de === 'justin' && sortie.actions.length && !sortie.saute) {
-        const faits = sortie.actions.map(a => a.nom + (a.ok ? '' : ' (refusé)')).join(', ');
+      /* (relecture du gardien) pas de relance si un outil a DÉJÀ écrit dans ce fil — elle doublerait le message ; et elle voit le résultat de chaque outil, et
+         l'état d'APRÈS (charge, tâches) : sinon elle décrirait un travail passé comme s'il était encore à faire. */
+      if (!r.texte && d.de === 'justin' && sortie.actions.length && !sortie.saute && !sortie.actions.some(a => a.ici)) {
+        const faits = sortie.actions.map(a => a.nom + (a.ok ? ' : fait' : ' : refusé (' + (MOTIFS_PASSER[a.raison] || a.raison || 'refus') + ')')).join(' ; ');
+        let systemApres = system; try { systemApres = systemDe(id) + blocCharge() + blocTaches(id) + await blocFaits(id, fil); } catch (err) { systemApres = system; }
         const suite = messages.map(m => Object.assign({}, m));
         const fin = suite[suite.length - 1];
         const relance = 'Tes outils sont faits (' + faits + ') : ne les rappelle pas. Écris maintenant, sans outil, ton message pour ce fil, à Justin qui te l’a demandé ici.';
         if (fin && fin.role === 'user') fin.content += '\n\n' + relance; else suite.push({ role: 'user', content: relance });
         let r2 = null;
-        try { r2 = await cerveau.penser(id, system, suite, { reflechir: true }); } catch (err) { r2 = null; }
+        try { r2 = await cerveau.penser(id, systemApres, suite, { reflechir: true }); } catch (err) { r2 = null; }
         if (r2 && r2.ok && r2.texte && !RAS.test(r2.texte)) {
           const dit = conversations.parler(id, fil, raccourcir(masquer(r2.texte)), { niveau: 'info', prof });
           if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }

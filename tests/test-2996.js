@@ -39,7 +39,7 @@ console.log('\n── 2996 · les quatre échecs de l’examen du 24 octobre 202
     const agents = AG(app, { DATA_DIR: D, monAdmin() {}, monPatronStrict() {}, maintenant: () => horloge });
     const appels = []; let eq = null;
     const conv = CV(app, { DATA_DIR: D, monAdmin() {}, monPatronStrict() {}, agents, maintenant: () => (horloge += 1000), pousseNotif: () => Promise.resolve(), surMessage: m => eq.surMessage(m) });
-    const cerveau = { penser: async (id, system, messages, opts) => { const dernier = messages[messages.length - 1].content; appels.push({ id, dernier, outils: !!(opts && opts.outils && opts.outils.length) }); return script(id, dernier, system); } };
+    const cerveau = { penser: async (id, system, messages, opts) => { const dernier = messages[messages.length - 1].content; appels.push({ id, dernier, outils: !!(opts && opts.outils && opts.outils.length), schema: opts && opts.outils }); return script(id, dernier, system); } };
     eq = EQ({ agents, conversations: conv, cerveau, faits: {} });
     const res = () => { const r = { code: 200, corps: null, status(c) { r.code = c; return r; }, json(x) { r.corps = x; return r; } }; return r; };
     const envoyer = async (fil, texte) => { const r = res(); await routes.post['/api/monitor/conversations/envoyer']({ body: { fil, texte }, tourUser: { nom: 'Justin' }, query: {} }, r); return r; };
@@ -56,41 +56,34 @@ console.log('\n── 2996 · les quatre échecs de l’examen du 24 octobre 202
   };
   const tacheDe = (E, texte) => { for (const id of REG) for (const t of E.agents.tachesDe(id)) if (t.texte === texte) return Object.assign({ vers: id }, t); return null; };
 
-  console.log('\n1. ⛔ Scénario 2 — une tâche se passe aussi par son INTITULÉ, jamais au hasard');
+  console.log('\n1. ⛔ Scénario 2 — une tâche se désigne par son IDENTIFIANT, choisi dans une liste fermée ; on ne devine jamais');
   {
-    const E = await monter(id => id === 'camille' ? rep('Je m’en occupe ; je suis sur trois dossiers, je passe la FAQ à Louis.', [passer('louis', 'la mise à jour de la FAQ support', 'je suis sur trois dossiers, c’est dans ses cordes')]) : rep('RAS'));
+    const E = await monter(id => id === 'camille' ? rep('Je m’en occupe ; je suis sur trois dossiers, je passe la FAQ à Louis.', [passer('louis', 'la mise à jour de la FAQ support', 'je suis sur trois dossiers')]) : rep('RAS'));
     charger(E);
     await E.envoyer('clients', '@Camille, il me faudrait aussi une réponse type pour les demandes de facture, avant ce soir.');
     await calme();
-    const t = tacheDe(E, 'Mettre à jour la liste des questions fréquentes du support');
-    v('⛔ l’intitulé « la mise à jour de la FAQ support » désigne SA tâche « Mettre à jour la liste des questions fréquentes du support » : elle passe à Louis', [t && t.vers, t && t.de], ['louis', 'justin']);
-    const ligne = (await E.messages('clients')).find(m => m.de === 'systeme' && /a passé/.test(m.texte));
-    vrai('   le fil le dit, avec la raison (« Camille a passé « … » à Louis : … »)', ligne && /a passé « Mettre à jour la liste des questions fréquentes du support » à Louis : je suis sur trois dossiers/.test(ligne.texte), ligne && ligne.texte);
-  }
-  {
-    const E = await monter(id => id === 'camille' ? rep('Je passe une relecture à Louis.', [passer('louis', 'relire les courriels', 'je suis chargée')]) : rep('RAS'));
-    E.agents.consigner('justin', 'camille', 'Relire les courriels de lundi');
-    E.agents.consigner('justin', 'camille', 'Relire les courriels de mardi');
-    await E.envoyer('camille', 'Camille, tu en es où ?');
-    await calme();
-    const ms = await E.messages('camille');
-    v('⛔ un intitulé qui désigne DEUX tâches aussi bien (« relire les courriels ») : rien ne passe, le refus se dit', [tacheDe(E, 'Relire les courriels de lundi').vers, tacheDe(E, 'Relire les courriels de mardi').vers, ms.some(m => m.de === 'systeme' && /refusé, cette tâche n’existe pas/.test(m.texte))], ['camille', 'camille', true]);
+    const siens = E.agents.tachesDe('camille').map(t => t.id).sort();
+    const sch = (E.appels.find(a => a.id === 'camille') || {}).schema || [];
+    const champ = o => { const t = sch.find(x => x.name === o); return t && t.input_schema.properties.tache; };
+    v('⛔ le schéma de passer ET de terminer offre la liste FERMÉE de ses tâches en cours (l’intitulé ne peut plus être pris pour un identifiant)', [(champ('passer') || {}).enum && champ('passer').enum.slice().sort(), (champ('terminer') || {}).enum && champ('terminer').enum.slice().sort()], [siens, siens]);
+    v('⛔ un INTITULÉ n’est pas deviné (« répondre au prospect Dupont » attrapait la tâche Martin) : rien ne passe, le refus se dit', [tacheDe(E, 'Mettre à jour la liste des questions fréquentes du support').vers, (await E.messages('clients')).some(m => m.de === 'systeme' && /refusé, cette tâche n’existe pas/.test(m.texte))], ['camille', true]);
   }
   {
     let idVoulu = '';
-    const E = await monter(id => id === 'camille' ? rep('Je passe la relecture à Louis.', [passer('louis', '[' + idVoulu + ']', 'je suis chargée')]) : rep('RAS'));
+    const E = await monter(id => id === 'camille' ? rep('Je passe la relecture à Louis.', [passer('louis', '[' + idVoulu.toUpperCase() + ']', 'je suis chargée')]) : rep('RAS'));
     charger(E);
     idVoulu = tacheDe(E, 'Relire les douze courriels restés sans réponse depuis lundi').id;
     await E.envoyer('camille', 'Camille, tu en es où ?');
     await calme();
-    v('   l’identifiant écrit AVEC ses crochets (« [k…] ») est reconnu', tacheDe(E, 'Relire les douze courriels restés sans réponse depuis lundi').vers, 'louis');
+    v('   l’identifiant écrit avec ses crochets, dans une autre casse, est reconnu', tacheDe(E, 'Relire les douze courriels restés sans réponse depuis lundi').vers, 'louis');
   }
   {
-    const E = await monter(id => id === 'camille' ? rep('Je passe la comptabilité à Louis.', [passer('louis', 'la comptabilité du mois', 'je suis chargée')]) : rep('RAS'));
-    charger(E);
-    await E.envoyer('camille', 'Camille, tu en es où ?');
+    const E = await monter(id => rep('RAS'));
+    await E.envoyer('camille', 'Camille, tu es là ?');
     await calme();
-    v('   un intitulé qui ne ressemble à AUCUNE tâche : rien ne passe', REG.filter(id => id !== 'camille').map(id => E.agents.tachesDe(id).length).reduce((a, b) => a + b, 0), 0);
+    const sch = (E.appels.find(a => a.id === 'camille') || {}).schema || [];
+    const t = sch.find(x => x.name === 'passer');
+    v('   sans tâche en cours, l’outil reste offert (la liste des outils ne change pas) avec un champ libre', [!!t, t && t.input_schema.properties.tache.enum], [true, undefined]);
   }
 
   console.log('\n2. ⛔ Scénario 4 — des outils et pas un mot à JUSTIN : un second appel, sans outil, pour ce fil');
@@ -104,7 +97,7 @@ console.log('\n── 2996 · les quatre échecs de l’examen du 24 octobre 202
     await E.envoyer('clients', '@Camille, un client dit avoir payé le dossier DOS-900002. Demande à @Hugo, et dis-moi ce qu’il répond.');
     await calme();
     const cam = E.appels.filter(a => a.id === 'camille');
-    v('⛔ Camille est rappelée UNE fois, sans outil, avec ce qu’elle vient de faire', [cam.length, cam[1] && cam[1].outils, cam[1] && /Tes outils sont faits \(ecrire\)/.test(cam[1].dernier)], [2, false, true]);
+    v('⛔ Camille est rappelée UNE fois, sans outil, avec ce que ses outils ont donné', [cam.length, cam[1] && cam[1].outils, cam[1] && /Tes outils sont faits \(ecrire : fait\)/.test(cam[1].dernier)], [2, false, true]);
     const ms = await E.messages('clients');
     vrai('   et Justin LIT sa réponse, dans son fil', ms.some(m => m.de === 'camille' && /J’ai posé la question à @hugo/.test(m.texte)), JSON.stringify(ms.map(m => [m.de, m.texte])));
   }
@@ -124,17 +117,34 @@ console.log('\n── 2996 · les quatre échecs de l’examen du 24 octobre 202
     await calme();
     v('   une réponse AVEC du texte et des outils : un seul appel', E.appels.filter(a => a.id === 'camille').length, 1);
   }
+  {
+    const E = await monter(id => id === 'camille' ? rep('', [{ id: 'v', nom: 'ecrire', entree: { fil: 'clients', texte: 'Je regarde le dossier et je te redis.' } }]) : rep('RAS'));
+    await E.envoyer('clients', '@Camille, tu peux regarder le dossier DOS-900003 ?');
+    await calme();
+    v('⛔ un outil a DÉJÀ écrit dans ce fil (ecrire vers ce fil) : pas de relance, pas de doublon (relecture du gardien)', [E.appels.filter(a => a.id === 'camille').length, (await E.messages('clients')).filter(m => m.de === 'camille').length], [1, 1]);
+  }
+  {
+    const E = await monter(id => id === 'camille' ? rep('', [{ id: 'u', nom: 'demander_justin', entree: { question: 'Je relance le client ou j’attends lundi ?' } }]) : rep('RAS'));
+    await E.envoyer('camille', 'Camille, pour le client Sigma, tu fais quoi ?');
+    await calme();
+    v('   la question à Justin posée dans SON fil privé : pas de relance non plus', E.appels.filter(a => a.id === 'camille').length, 1);
+  }
 
   console.log('\n3. ⛔ Scénario 9 — les redites de réunion ne se publient pas');
   {
     const R = RE.sansRedites;
-    v('les phrases de l’examen : redites retirées, le reste gardé', [
-      'Confirmé, je garde ces trois objectifs pour la semaine. Rien à ajouter sur les autres dossiers, tout est clair de mon côté.',
-      'Je confirme mes objectifs de la semaine : finaliser ma proposition en attente, répondre sous 24h.',
-      'Ça marche @ines, je te transmets le détail de mes 2 mails dès que tu veux. Je confirme mes objectifs de la semaine.',
-      'Je garde mes objectifs tels que posés : diagnostic avant vendredi. Je repasse par les logs avant de proposer quoi que ce soit à Justin.',
-      'Rien à signaler.', '@victor @max', 'Je garde un œil sur les trois dossiers ouverts.', 'On garde le cap : 0 double annonce cette semaine.'].map(R),
-      ['', '', 'Ça marche @ines, je te transmets le détail de mes 2 mails dès que tu veux.', 'Je repasse par les logs avant de proposer quoi que ce soit à Justin.', '', '', 'Je garde un œil sur les trois dossiers ouverts.', 'On garde le cap : 0 double annonce cette semaine.']);
+    const cas = [
+      ['Confirmé, je garde ces trois objectifs pour la semaine. Rien à ajouter sur les autres dossiers, tout est clair de mon côté.', 'Tout est clair de mon côté.'],
+      ['Je confirme mes objectifs de la semaine : finaliser ma proposition en attente, répondre sous 24h.', 'Finaliser ma proposition en attente, répondre sous 24h.'],
+      ['Ça marche @ines, je te transmets le détail de mes 2 mails dès que tu veux. Je confirme mes objectifs de la semaine.', 'Ça marche @ines, je te transmets le détail de mes 2 mails dès que tu veux.'],
+      ['Rien à signaler.', ''], ['@victor @max', ''], ['Je garde un œil sur les trois dossiers ouverts.', 'Je garde un œil sur les trois dossiers ouverts.']];
+    v('les phrases de l’examen : la FORMULE retirée, le reste gardé', cas.map(x => R(x[0])), cas.map(x => x[1]));
+    const utiles = [
+      ['Je confirme mes objectifs, et je m’engage à livrer le rapport vendredi.', 'Je m’engage à livrer le rapport vendredi.'],
+      ['Je garde mes objectifs, mais @hugo doit vérifier le paiement avant mardi.', '@hugo doit vérifier le paiement avant mardi.'],
+      ['Rien à signaler sur le planning, en revanche la livraison de Max a deux jours de retard.', 'Rien à signaler sur le planning, en revanche la livraison de Max a deux jours de retard.'],
+      ['Parfait, je retiens les objectifs de Léa : 20 inscriptions avant le 30.', 'Parfait, je retiens les objectifs de Léa : 20 inscriptions avant le 30.']];
+    v('⛔ une phrase UTILE qui commence comme une redite garde son engagement, sa demande et son @ (relecture du gardien)', utiles.map(x => R(x[0])), utiles.map(x => x[1]));
     const SRC = sans(fs.readFileSync(path.join(RACINE, 'server', 'reunions.js'), 'utf8'));
     vrai('⛔ la DISCUSSION les retire (`redites: true`), et une parole vidée est un « RAS » qui ne s’écrit pas', /On t’a cité dans la discussion\.[^']*', \{ ras: true, redites: true \}\)/.test(SRC) && /if \(o\.redites\) \{ t = sansRedites\(t\); if \(!t\) return Object\.assign\(sortie, \{ ras: true \}\); \}/.test(SRC));
     vrai('   …pas le tour de table, où dire ses objectifs EST la parole attendue', /consignes\[R\.type\] \+ extra, \{ ecrire: true \}\)/.test(SRC));
@@ -147,7 +157,8 @@ console.log('\n── 2996 · les quatre échecs de l’examen du 24 octobre 202
     v('⛔ trois objets (un par courriel) : un critère n’est respecté que s’il l’est dans TOUS', EX.lireVerdict(un(true, true, true, 'Toka : rien') + '\n' + un(false, true, true, 'c1 : Dupont promet un envoi automatique') + '\n' + un(true, true, true, 'rien'), c),
       { valeurs: { c1: false, c2: true, c3: true }, raison: 'Toka : rien ; c1 : Dupont promet un envoi automatique ; rien' });
     v('   un seul objet après une analyse : lu', EX.lireVerdict('Analyse rapide. ' + un(true, false, true, 'c2 : générique'), c).valeurs, { c1: true, c2: false, c3: true });
-    v('   un objet incomplet parmi d’autres ne compte pas ; aucun complet : illisible', [EX.lireVerdict('{"c1":true,"raison":"x"} ' + un(true, true, false, 'c3 : x'), c).valeurs, EX.lireVerdict('{"c1":true} {"c2":false}', c)], [{ c1: true, c2: true, c3: false }, null]);
+    v('⛔ un objet INCOMPLET parmi d’autres rend tout illisible (écarté, il rendait son critère vrai — relecture du gardien)', [EX.lireVerdict(un(true, true, true, 'rien') + ' {"c1":false,"raison":"x"}', c), EX.lireVerdict('{"c1":true} {"c2":false}', c)], [null, null]);
+    v('⛔ une raison qui cite « {entreprise} » ne coupe pas son objet : le critère faux reste faux', EX.lireVerdict(un(true, true, true, 'rien') + '\n' + un(true, false, true, 'c2 : le courriel contient {entreprise} non remplacé'), c).valeurs, { c1: true, c2: false, c3: true });
     const cl = ['c1', 'c2', 'c3', 'c4'];
     v('⛔ la raison d’UN critère est la sienne (l’examen de 21 h 07 affichait la phrase des réunions sous les courriels)', [EX.raisonDe('c2 : formules répétées « je confirme mes objectifs » ; c4 : un courriel finit sans politesse', 'c2', cl), EX.raisonDe('c2 : formules répétées ; c4 : un courriel finit sec', 'c4', cl), EX.raisonDe('Ton naturel mais formules répétées', 'c4', cl)],
       ['formules répétées « je confirme mes objectifs »', 'un courriel finit sec', 'Ton naturel mais formules répétées']);
