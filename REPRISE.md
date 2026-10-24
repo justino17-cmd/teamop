@@ -13,6 +13,21 @@ de ligne du tout.
 
 ---
 
+# 🔶 24 OCTOBRE 2026 (SOIR) — SUITE CVC, BÊTA v774 — branche `claude/cvc-suite`, `app.html` ATTEND LA PHRASE DE JUSTIN
+
+Ce qui manquait au chauffage / climatisation après la v773 (liste du point du 24) :
+- **les appareils visités au rapport d'intervention** (`rapportConstatLignes`, donc le rapport imprimé ET le PDF, `test-2997`) ;
+- **la cloche** annonce les entretiens à planifier dans les 30 jours et ceux dépassés (`cvcNotif`, lit `cvcPropositions` — une seule règle, `test-2998`) ;
+- **pas de fiche fluides sans n° d'attestation de capacité** (R543-99), pré-rempli avec le dernier saisi (`cvcFicheSauver`, `cvcDerniereAttestation`, `test-2999`) ;
+- **le certificat de ramonage** (décret n° 2023-641 : vacuité du conduit sur toute sa longueur, remis sous 15 jours) — `i.ramonages[appareil]`, conduit et
+  vacuité EXIGÉS, le PDF de l'attestation en genre « ramonage », la trace d'envoi seulement si le courriel est parti (`test-3000`, 6 mutations sur 6 mordent).
+  ⛔ Le texte de l'arrêté n'a pas été relu : c'est le document DE L'ENTREPRISE, l'écran et le PDF le disent (comme l'attestation d'entretien).
+Restent, non commencés : l'attestation PAC / clim (arrêté du 24 juillet 2020 à relire avant d'écrire), le suivi des bouteilles de fluide, les rappels
+aux CLIENTS à 30 / 7 jours (un courriel qui part chez un client : à décider avec Justin). Publication : `beta.html` seule sur `main` ; `app.html`, `sw.js`
+et les bancs qui lisent `app.html` restent sur la branche jusqu'à sa phrase.
+
+---
+
 # 🔶 24 OCTOBRE 2026 (NUIT) — L'ESPACE DE TEST (test.teamop.fr) — branche `claude/espace-de-test`, ATTEND LES GESTES DE JUSTIN SUR LE VPS
 
 Justin, 23 octobre 2026 : « toute modification, site, application, la Tour, je veux des espaces de test, et après on pousse ; chaque test
