@@ -126,7 +126,8 @@ jobs:
       # Sans la clé de l'environnement, l'espace de test n'est pas encore branché sur la CI : on le DIT et on sort en vert (un vert ne veut alors pas dire « déployé »).
       - name: Sans clé de déploiement de test
         if: ${{ env.CLE_SSH == '' }}
-        run: echo "::notice::VPS_SSH_KEY_TEST est absent de l'environnement essai-test : la clé de déploiement de l'espace de test n'est pas posée — rien n'a été déployé (design/ESPACE-DE-TEST.md)."
+        run: |
+          echo "::notice::VPS_SSH_KEY_TEST est absent de l'environnement essai-test : la clé de déploiement de l'espace de test n'est pas posée — rien n'a été déployé (design/ESPACE-DE-TEST.md)."
 
       # La clé vient de l'environnement ; l'empreinte de l'hôte, elle, est écrite en clair ici — une clé publique d'hôte n'est pas un secret, et la voir dans le diff est précisément ce
       # qui permet de vérifier qu'elle n'a pas changé en douce.
