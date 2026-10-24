@@ -302,8 +302,13 @@ outil d'argent), pas d'urgence — options au constat (citer le dernier message 
 - **Corrigé** : `dejaLu` (agent-equipe.js), « RAS » à un collègue, règles du prompt (passer à trois tâches, question fermée à Hugo), seconde demande sans outil dans `parole`
   (reunions.js), `estQuestion` partagé (agents-controle.js ↔ examen.js), Léa numérote les seules questions. Bancs `test-2993` (neuf) et `test-2930` (« outils-seuls » ; « bavard »
   est désormais CONTENU par le serveur, 15 appels au lieu du plafond). 13 mutations, toutes mordent (`scratchpad/mutations-examen.py`).
-- ⏳ **Reste** : relancer l'examen une fois fusionné (un par heure) ; aucun agent en Auto avant un examen relu ensemble. Vu au passage : la Tour propose « Faire signer » sur une
-  pièce jointe qui n'est pas un PDF (rapport DMARC de Google) — à corriger avec la prochaine version de la Tour.
+- ⏳ **Reste** : relancer l'examen une fois fusionné (un par heure) ; aucun agent en Auto avant un examen relu ensemble. Vu au passage : la Tour proposait « Faire signer » sur une
+  pièce jointe qui n'est pas un PDF (rapport DMARC de Google) — ✅ corrigé le 24 au soir (branche `claude/courrier-signer-pdf`) : `canSign` et `signFrom` lisent
+  `estPDF` dans `opcourrier.js` (copies d'aperçu et d'OP MESSAGES régénérées), `test-2994` (15 contrôles, 3 mutations mordent), sonde navigateur
+  `sonde-signer-pdf.js` du brouillon (PDF : présent ; .zip et .xml.gz : absents ; sur main, le défaut se reproduit). ⚠️ `scratchpad/courrier/sign_check.js` est
+  PÉRIMÉE : elle attend un champ `#sgType` que la feuille de signature n'a plus, et tombe aussi sur main — à réécrire avant de s'y fier.
+- ⚠️ **L'examen de 17 h 43 (4 réussis, 5 échecs) a tourné sur l'ANCIEN serveur** : le déploiement de la demande n° 171 s'est fini à 17 h 50 (redémarrage vu sur
+  `/health`). Il ne dit rien des corrections ; le premier examen qui les juge est celui de 18 h 43.
 
 # ⏳ 23 OCTOBRE 2026 — L'EXAMEN DE L'ÉQUIPE D'AGENTS ET LA CLÉ D'EXAMEN (branche `claude/auto-examen`, RIEN en ligne)
 - **Ce que c'est** (cahier §13) : `server/examen.js` joue les neuf scénarios avec le VRAI modèle sur une équipe d'ESSAI (les vrais modules agents / messagerie / réunions / Léa / Camille sur un dossier
