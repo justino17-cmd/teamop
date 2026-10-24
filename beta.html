@@ -8616,7 +8616,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '773-beta';
+const APP_VERSION = '774-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -28021,6 +28021,11 @@ function rapportConstatLignes(i){ const co=i.constat||{}; const pk=Array.isArray
         const rows=[];
         if(i.type) rows.push(['Prestation',i.type]);
         if(i.passageTotal>1) rows.push(['Passage',i.passageNum+'/'+i.passageTotal]);
+        /* Chauffage / climatisation (24 octobre 2026) : les appareils VISITÉS pendant ce passage — le client lit sur son rapport quelles machines ont été vues.
+           Seulement pour un métier qui a un parc (`metierGereParc`), seulement les appareils de CE client ; un appareil retiré du parc depuis n'est plus cité. */
+        if(typeof metierGereParc==='function'&&metierGereParc()&&Array.isArray(i.appareilIds)&&i.appareilIds.length){
+          const vus=(db.appareils||[]).filter(a=>a&&i.appareilIds.indexOf(a.id)>=0&&a.clientId===i.clientId).map(a=>cvcLibelle(a)+(a.emplacement?' — '+a.emplacement:''));
+          if(vus.length) rows.push(['Appareils visités',vus.join(', ')]); }
         if((i.nuisibles||[]).length) rows.push(['Nuisibles ciblés',i.nuisibles.join(', ')]);
         if((i.methodes||[]).length) rows.push(['Méthodes employées',i.methodes.join(', ')]);
         if(co.infestation) rows.push(['Niveau d\'infestation',co.infestation]);
@@ -41103,6 +41108,15 @@ function cvcTachesBlocCalc(){
   return `<div class="card" id="cvc-taches" style="margin-bottom:12px"><div class="card-head"><h3>🔥 Entretiens à planifier</h3><span class="tag">${L.length}</span></div>
     <div style="font-size:12.5px;color:var(--t3);margin-bottom:6px">Calculé à partir du parc d’appareils de vos clients. « Planifier » ouvre une intervention pré-remplie : rien n’est créé tant que vous ne validez pas.</div>
     ${L.slice(0,12).map(p=>cvcLigneProposition(p,peutAj)).join('')}${L.length>12?`<div style="text-align:center;color:var(--t3);font-size:12px;padding:8px">+ ${L.length-12} autre(s)</div>`:''}</div>`; }
+/* La ligne de la CLOCHE (24 octobre 2026) — la même liste que les Tâches et le tableau de bord (`cvcPropositions`, qui ne garde déjà que le dépassé et ce qui
+   tombe dans les CVC_RAPPEL_J jours : pas de second filtre ici, il ferait double emploi). UNE ligne regroupée, comme les retards ; son identifiant porte le compte et les clés, donc elle revient « non lue » quand la liste change.
+   null pour un métier sans parc ; un calcul qui jette rend null (la cloche ne casse pas pour une échéance). `computeNotifs` ne l'appelle que pour qui voit les interventions. */
+function cvcNotif(){ if(!metierGereParc()) return null;
+  let L=[]; try{ L=cvcPropositions(); }catch(e){ return null; }
+  if(!L.length) return null;
+  const dep=L.filter(p=>p.j<0).length, n=L.length;
+  return {id:'cvc:'+n+':'+dep+':'+L.map(p=>p.cle).sort().join('|').slice(-40),ic:'🔥',
+    txt:`<b>${n} entretien${n>1?'s':''} à planifier</b>${dep?` — dont <b>${dep} dépassé${dep>1?'s':''}</b>`:` dans les ${CVC_RAPPEL_J} jours`}`,act:"go('taches')"}; }
 /* La carte du tableau de bord — même liste. Rendue SEULEMENT pour qui voit les interventions (une carte n'ouvre jamais un écran interdit). */
 function cvcDashSection(voitVue){ if(!metierGereParc()) return '';
   if(typeof voitVue==='function'&&!voitVue('interventions')) return '';
@@ -41400,7 +41414,8 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
   R(0,H-6,W,6,ACC); y=H-M-16;
   let nx=M; if(E.logo&&E.logo.b64){ const lh=34, lw=Math.round(E.logo.w*(lh/E.logo.h)); image('L1',M,y-9,lw,lh); nx=M+lw+12; }
   TW(nx,y,19,E.nom||'',1,ACC,RGT-215-nx);
-  TR(RGT,y+3,14,'ATTESTATION D’ENTRETIEN',1,DARK);
+  const RAM=att.genre==='ramonage';   // le certificat de ramonage (24 octobre 2026) emprunte cette mise en page : mêmes en-tête, client, appareil, signatures, pied
+  TR(RGT,y+3,14,RAM?'CERTIFICAT DE RAMONAGE':'ATTESTATION D’ENTRETIEN',1,DARK);
   TR(RGT,y-12,9,dateFr(i.date),0,GREY);
   if(i.num) TR(RGT,y-24,8.5,'Intervention '+i.num,1,GREY);
   const lgMax=RGT-235-nx; let ey=y-14;
@@ -41408,19 +41423,30 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
   y=Math.min(y-(i.num?38:30),ey-6); R(M,y,L,1.4,ACC); y-=16;
 
   /* ─ le client et l'appareil */
-  { const cl=[['Client',c.nom||'—'],['Adresse',i.adresse||c.adresse||''],['Visite du',dateFr(i.date)],['Technicien(s)',techNames(i)||'—']].filter(r=>r[1]);
+  { const cl=[['Client',c.nom||'—'],['Adresse',i.adresse||c.adresse||''],[RAM?'Ramonage du':'Visite du',dateFr(i.date)],['Technicien(s)',techNames(i)||'—']].filter(r=>r[1]);
     cl.forEach(r=>ligneLV(r[0],r[1])); y-=4; }
-  titre('Appareil entretenu',20);
+  titre(RAM?'Appareil raccordé au conduit':'Appareil entretenu',20);
   { const T0=cvcType(a), lignesA=[['Type',T0.l],['Marque et modèle',[a.marque,a.modele].filter(Boolean).join(' ')],['N° de série',a.serie||''],
       ['Puissance',a.puissance>0?cvcNbTxt(+a.puissance,1)+' kW':''],['Emplacement',a.emplacement||''],['Mise en service',cvcIsoOk(a.miseEnService)?dateFr(a.miseEnService):'']].filter(r=>r[1]);
     lignesA.forEach(r=>ligneLV(r[0],r[1])); y-=4; }
-  { const pts=cvcAttestationPoints(i);
+  if(RAM){
+    titre('Ramonage',16+4*12.5+30);
+    ligneLV('Conduit(s) ramoné(s)',att.conduits||'—');
+    if(att.methode) ligneLV('Méthode',att.methode);
+    if(att.etat) ligneLV('État constaté',att.etat);
+    /* LA déclaration du certificat : la vacuité du conduit sur toute sa longueur — dite en clair, en couleur, comme le verdict du CO */
+    { const vide=att.vacuite==='oui', col=vide?VERT:ROUGE;
+      const tl=lignes(vide?'Vacuité : le conduit est vide sur toute sa longueur.':'Vacuité NON constatée : le conduit n’est pas vide sur toute sa longueur — l’appareil ne doit pas être utilisé avant la remise en état.',9,1,L-20);
+      y-=3; place(tl.length*12.5+10); R(M,y-tl.length*12.5-1,3,tl.length*12.5+8,col); tl.forEach(t=>{ T(M+10,y,9,t,1,col); y-=12.5; }); y-=4; }
+    if(att.anomalies){ titre('Anomalies et recommandations',24); texte(att.anomalies,9.2,DARK); }
+    y-=4; }
+  if(!RAM){ const pts=cvcAttestationPoints(i);
     titre('Points contrôlés',16+Math.min(pts.length,3)*12);
     if(pts.length) pts.forEach(p=>{ place(12); T(M+4,y,9,'-',1,ACC); texte(p,9,DARK,M+14,L-14); });
     else texte('Voir le compte rendu de la visite.',9,GREY); y-=4; }
 
   /* ─ les mesures, et le verdict sur le CO ambiant (l'article 3 de l'arrêté) */
-  { const rows=CVC_ATT_MESURES.filter(m=>att[m.k]!==undefined&&att[m.k]!=='').map(m=>[m.l,String(att[m.k]).replace('.',',')+(m.u?' '+m.u:'')]);
+  if(!RAM){ const rows=CVC_ATT_MESURES.filter(m=>att[m.k]!==undefined&&att[m.k]!=='').map(m=>[m.l,String(att[m.k]).replace('.',',')+(m.u?' '+m.u:'')]);
     titre('Mesures et résultats',16+Math.min(rows.length,6)*12.5+30);
     if(rows.length) rows.forEach(r=>ligneLV(r[0],r[1])); else texte('Aucune mesure renseignée.',9,GREY);
     if(att.instrument) ligneLV('Analyseur utilisé',att.instrument);
@@ -41442,7 +41468,9 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
   pages.push(ops.join('\n'));
   /* ⛔ la mention est la phrase qui dit que ce n'est PAS un formulaire officiel : elle se COUPE EN LIGNES (trois au plus), jamais d'une ligne unique
      « … ce… » qui perdrait cette moitié-là avec un nom d'entreprise long ; le nom, lui, se borne. */
-  const mention='Document établi par '+_pdfCoupe(net(E.nom||'l’entreprise'),7.2,0,240)+' à la suite de la visite du '+dateFr(i.date)+' — ce n’est pas un formulaire officiel reproduit. À conserver par le client (2 ans au moins).';
+  const mention=RAM
+    ?'Certificat établi par '+_pdfCoupe(net(E.nom||'l’entreprise'),7.2,0,240)+' à la suite du ramonage du '+dateFr(i.date)+' (code de la santé publique, décret n° 2023-641 du 20 juillet 2023) — ce n’est pas un formulaire officiel reproduit ; le règlement sanitaire départemental peut imposer davantage. À conserver par le client.'
+    :'Document établi par '+_pdfCoupe(net(E.nom||'l’entreprise'),7.2,0,240)+' à la suite de la visite du '+dateFr(i.date)+' — ce n’est pas un formulaire officiel reproduit. À conserver par le client (2 ans au moins).';
   const mentionL=lignes(mention,7.2,0,L-70).slice(0,3);
   const pied=(k,n)=>[LINE+' rg',M+' 56 '+L+' 0.8 re f',GREY+' rg'].concat(...mentionL.map((l,q)=>['BT','/F1 7.2 Tf',M+' '+(46-9*q)+' Td','('+_pdfTxt(l)+') Tj','ET']),
     [GREY+' rg','BT','/F1 7.5 Tf',(RGT-40)+' 44 Td','('+_pdfTxt('Page '+k+'/'+n)+') Tj','ET']).join('\n');
@@ -41524,6 +41552,107 @@ async function cvcAttestationEnvoyer(iid,aid){
     intHisto(i,'Attestation d’entretien envoyée par e-mail à '+c.email+' (PDF joint)'); save();
     try{ closeModal(); renderIntDetail(iid); }catch(e){}
   } finally { delete _cvcEnvoi[iid+aid]; } }
+/* ══ LE CERTIFICAT DE RAMONAGE (24 octobre 2026) ══
+   Depuis le décret n° 2023-641 du 20 juillet 2023 (en vigueur le 1er octobre 2023), le ramonage des conduits de fumée relève du code de la santé
+   publique, et l'arrêté du même jour en fixe les modalités : le professionnel remet dans les QUINZE JOURS un certificat qui atteste la VACUITÉ du
+   conduit sur toute sa longueur (FFB : https://www.ffbatiment.fr/actualites-batiment/actualite-bam/ramonage-quelles-sont-les-nouvelles-obligations ;
+   CAPEB : https://www.capeb.fr/www/capeb/media//jura/document/article%20ramonage%2024-10-2023.pdf). Le certificat porte ce que ces recensements
+   demandent : l'entreprise et son SIRET (en-tête `docEntete`), le client et l'adresse, la date, l'appareil raccordé, le ou les conduits ramonés, la
+   méthode, le constat de vacuité, l'état et les anomalies. ⛔ Le texte même de l'arrêté n'a pas été relu ici : comme l'attestation d'entretien, c'est
+   le document DE L'ENTREPRISE, pas un formulaire officiel — l'écran et le pied du PDF le disent, et le règlement sanitaire départemental peut imposer
+   davantage (deux ramonages par an dans certains départements). Il vit dans `i.ramonages[appareilId]`, à côté des attestations ; il partage leur PDF
+   (`cvcAttestationPdfStr`, genre « ramonage »). Un appareil à combustion seulement (`cvcAttestable`), une intervention terminée seulement. */
+const CVC_RAM_METHODES=['Mécanique par le haut','Mécanique par le bas','Mécanique par le haut et par le bas'];
+function cvcRamonageDe(i,aid){ return (i&&i.ramonages&&i.ramonages[aid])||null; }
+function cvcRamonageCtx(iid,aid){ const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
+  if(!i||!a){ toast('Intervention ou appareil introuvable'); return null; }
+  if(a.clientId!==i.clientId||!(Array.isArray(i.appareilIds)&&i.appareilIds.indexOf(aid)>=0)){ toast('Cet appareil n’est pas cité sur cette intervention'); return null; }
+  if(!cvcAttestable(a)){ toast('Le certificat de ramonage concerne les appareils à combustion raccordés à un conduit'); return null; }
+  if(i.statut!=='terminee'){ toast('Le certificat se fait une fois l’intervention terminée'); return null; }
+  return {i,a}; }
+function cvcRamonageLire(f){ const g=n=>String((f.elements[n]||{}).value||'').trim(), o={genre:'ramonage'};
+  o.conduits=g('conduits').slice(0,200); o.methode=CVC_RAM_METHODES.indexOf(g('methode'))>=0?g('methode'):''; o.vacuite=['oui','non'].indexOf(g('vacuite'))>=0?g('vacuite'):'';
+  o.etat=g('etat').slice(0,200); o.anomalies=g('anomalies').slice(0,1500); return o; }
+function cvcRamonageForm(iid,aid){ if(!permGarde('int','modifier','une intervention')) return;
+  const x=cvcRamonageCtx(iid,aid); if(!x) return; const {i,a}=x, v=cvcRamonageDe(i,aid)||{};
+  const opt=(val,l,cur)=>`<option value="${esc(val)}"${cur===val?' selected':''}>${esc(l)}</option>`;
+  openModal(`<div class="modal-head"><h3>🧹 Certificat de ramonage</h3><button class="modal-close" onclick="closeModal();renderIntDetail('${esc(iid)}')">✕</button></div>
+    <div style="font-size:13px;color:var(--t2);overflow-wrap:anywhere;margin:-4px 0 8px"><b>${esc(cvcLibelle(a))}</b>${a.emplacement?' · '+esc(a.emplacement):''}<br>${esc(clientName(i.clientId))} · ramonage du ${esc(fmtLong(i.date))}</div>
+    <div style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px">Ce certificat est <b>celui de votre entreprise</b> : il atteste la vacuité du conduit, à remettre au client dans les 15 jours. Ce n’est pas un formulaire officiel reproduit ; le règlement sanitaire de votre département peut demander davantage.</div>
+    <form id="cvc-ram" onsubmit="return false">
+      <div class="field"><label>Conduit(s) ramoné(s)</label><input name="conduits" maxlength="200" required placeholder="Ex. conduit de la chaudière, tubage inox Ø 130, 8 m" value="${esc(v.conduits||'')}"></div>
+      <div class="field"><label>Méthode</label><select name="methode">${opt('','— Choisir —',v.methode||'')}${CVC_RAM_METHODES.map(m=>opt(m,m,v.methode||'')).join('')}</select></div>
+      <div class="field"><label>Vacuité du conduit sur toute sa longueur</label><select name="vacuite" required>${opt('','— Constater —',v.vacuite||'')}${opt('oui','Oui : le conduit est vide sur toute sa longueur',v.vacuite||'')}${opt('non','Non : le conduit n’est pas vide',v.vacuite||'')}</select></div>
+      <div class="field"><label>État constaté</label><input name="etat" maxlength="200" placeholder="Ex. bon état, dépôts normaux" value="${esc(v.etat||'')}"></div>
+      <div class="field"><label>Anomalies et recommandations</label><textarea name="anomalies" rows="3" maxlength="1500">${esc(v.anomalies||'')}</textarea></div>
+      ${v.envoyeLe?`<div style="font-size:12.5px;color:var(--t3);margin-bottom:8px">Déjà envoyé à ${esc(v.envoyeA||'')} le ${esc(new Date(v.envoyeLe).toLocaleDateString('fr-FR'))}.</div>`:''}
+      <div class="modal-foot" style="flex-wrap:wrap"><button type="button" class="btn ghost" onclick="cvcRamonageApercu('${esc(iid)}','${esc(aid)}')">Aperçu PDF</button>
+        <button type="button" class="btn ghost" onclick="cvcRamonageSauver('${esc(iid)}','${esc(aid)}')">Enregistrer</button>
+        <button type="button" class="btn" onclick="cvcRamonageEnvoyer('${esc(iid)}','${esc(aid)}')">Envoyer au client</button></div></form>`); }
+/* ⛔ pas de certificat sans conduit ni sans constat de vacuité : c'est ce qu'il atteste — un certificat muet sur la vacuité ne vaut rien en cas de sinistre */
+function cvcRamonageSauver(iid,aid,silencieux){ if(!permGarde('int','modifier','une intervention')) return false;
+  const x=cvcRamonageCtx(iid,aid); if(!x) return false; const f=document.getElementById('cvc-ram'); if(!f) return false;
+  const r=cvcRamonageLire(f);
+  if(!r.conduits){ champManque('Indique le ou les conduits ramonés',champDe(f,'conduits')); return false; }
+  if(!r.vacuite){ champManque('Constate la vacuité du conduit (oui ou non) : c’est ce que le certificat atteste',champDe(f,'vacuite')); return false; }
+  Object.assign(r,{etabliLe:todayISO(),etabliPar:(currentUser&&fullName(currentUser))||''});
+  const ex=cvcRamonageDe(x.i,aid); if(ex&&ex.envoyeLe){ r.envoyeLe=ex.envoyeLe; r.envoyeA=ex.envoyeA; }
+  x.i.ramonages=(x.i.ramonages&&typeof x.i.ramonages==='object')?x.i.ramonages:{};
+  x.i.ramonages[aid]=r; intHisto(x.i,'🧹 Certificat de ramonage établi — '+cvcLibelle(x.a));
+  save(); if(!silencieux) toast('Certificat enregistré'); return true; }
+/* Le document : la mise en page de l'attestation (genre « ramonage »), son nom de fichier à lui. Rend {pdf,b64,nom,manque} ou {err}. */
+async function cvcRamonageDocument(iid,aid,r){
+  const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
+  if(!i||!a) return {err:'Intervention ou appareil introuvable.'};
+  const att=Object.assign({},r||cvcRamonageDe(i,aid)||{},{genre:'ramonage'});
+  const H=docEntete(i.rapportModele), E={nom:H.nom,couleur:H.couleur,lignes:docCoordLignes(H)};
+  let logo=null; try{ logo=H.logo?await devisLogoJpeg(H.logo):null; }catch(e){}
+  for(const [max,q] of [[600,0.85],[400,0.7]]){
+    const imgs={}; if(i.signature){ const j=await papImplJpeg(i.signature,max,q); if(j) imgs.sigCli=Object.assign({},j,{nom:'S1'}); }
+    if(i.signatureTech){ const j=await papImplJpeg(i.signatureTech,max,q); if(j) imgs.sigTech=Object.assign({},j,{nom:'S2'}); }
+    let pdf; try{ pdf=cvcAttestationPdfStr(i,a,att,Object.assign({},E,{logo}),imgs); }
+    catch(e){ return {err:'Le certificat PDF n’a pas pu être construit ('+(e&&e.message||e)+') — rien n’est parti.'}; }
+    const b64=btoa(pdf);
+    if(b64.length<=PAP_IMPL_MAX_B64){
+      const cl=(db.clients||[]).find(x=>x.id===i.clientId)||{};
+      const nom='Certificat-ramonage-'+String(cl.nom||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)+'-'+String(i.date||todayISO())+'.pdf';
+      const manque=[]; if(H.logo&&!logo) manque.push('le logo'); if(i.signature&&!imgs.sigCli) manque.push('la signature du client'); if(i.signatureTech&&!imgs.sigTech) manque.push('la signature du technicien');
+      return {pdf,b64,nom,E,manque}; } }
+  return {err:'Le certificat dépasse la taille qu’un courriel peut porter — rien n’est parti.'}; }
+async function cvcRamonageApercu(iid,aid){
+  const x=cvcRamonageCtx(iid,aid); if(!x) return;
+  const f=document.getElementById('cvc-ram'), r=f?cvcRamonageLire(f):cvcRamonageDe(x.i,aid)||{};
+  const w=window.open('','_blank'); if(!w){ toast('Autorise les pop-ups pour voir le PDF'); return; }
+  try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation du certificat…</p>'); w.document.close(); }catch(e){}
+  const d=await cvcRamonageDocument(iid,aid,r);
+  if(d.err){ try{ w.close(); }catch(e){} toast(d.err); return; }
+  if(d.manque&&d.manque.length) toast('⚠️ Non jointe au PDF : '+d.manque.join(', '),9000);
+  const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
+  const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+  w.location.href=u; setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000); }
+/* L'envoi : enregistré d'abord (conduit et vacuité exigés), le PDF fabriqué, le courriel part — et la trace s'écrit SEULEMENT s'il est parti. */
+async function cvcRamonageEnvoyer(iid,aid){
+  if(!permGarde('int','modifier','une intervention')) return;
+  const x=cvcRamonageCtx(iid,aid); if(!x) return; const c=(db.clients||[]).find(k=>k.id===x.i.clientId)||{};
+  if(!c.email){ toast('Ajoute l’e-mail du client dans sa fiche'); return; }
+  if(_cvcEnvoi['ram'+iid+aid]) return; _cvcEnvoi['ram'+iid+aid]=1;
+  try{
+    if(document.getElementById('cvc-ram')&&!cvcRamonageSauver(iid,aid,true)) return;
+    if(!cvcRamonageDe(x.i,aid)){ toast('Remplis et enregistre le certificat d’abord'); return; }
+    toast('🧹 Préparation du certificat PDF…',3000);
+    const d=await cvcRamonageDocument(iid,aid);
+    if(d.err){ toast(d.err,9000); return; }
+    if(d.manque&&d.manque.length&&!confirm('Le PDF ne porte pas '+d.manque.join(', ')+' (l’image n’a pas pu être lue). L’envoyer quand même au client ?')) return;
+    const i=(db.interventions||[]).find(k=>k.id===iid)||x.i;
+    const sujet='Certificat de ramonage — '+fmtShort(i.date)+' ('+cvcLibelle(x.a)+')';
+    const corps='Bonjour,\n\nVous trouverez ci-joint le certificat de ramonage de votre conduit ('+cvcLibelle(x.a)+'), établi à la suite de notre passage du '+fmtShort(i.date)+'. Conservez-le : il peut vous être demandé par votre assureur.\n\nNous restons à votre disposition.';
+    const ok=await srvMail(c.email,sujet,corps,'✉️ Certificat envoyé à '+c.email+' — PDF joint','rapport',null,Object.assign({},intSocMailOpts(i)||{},{atts:[{filename:d.nom,content:d.b64}],sansMailto:true}));
+    if(!ok) return;
+    i.ramonages=(i.ramonages&&typeof i.ramonages==='object')?i.ramonages:{};
+    const r=i.ramonages[aid]||{}; r.envoyeLe=Date.now(); r.envoyeA=c.email; i.ramonages[aid]=r;
+    intHisto(i,'Certificat de ramonage envoyé par e-mail à '+c.email+' (PDF joint)'); save();
+    try{ closeModal(); renderIntDetail(iid); }catch(e){}
+  } finally { delete _cvcEnvoi['ram'+iid+aid]; } }
 /* Les gestes propres à chaque appareil visité, sous les puces de la carte de l'intervention. */
 function cvcIntActions(i,vis){ if(!i||!vis||!vis.length) return '';
   const fini=i.statut==='terminee';
@@ -41531,7 +41660,11 @@ function cvcIntActions(i,vis){ if(!i||!vis||!vis.length) return '';
     if(cvcAttestable(a)){ const att=cvcAttestationDe(i,a.id);
       b.push(fini?`<button type="button" class="btn ghost sm" onclick="cvcAttestationForm('${i.id}','${a.id}')">📄 Attestation d’entretien</button>`
         :`<button type="button" class="btn ghost sm" disabled title="Disponible une fois l’intervention terminée">📄 Attestation d’entretien</button>`);
-      if(att) b.push(`<span class="tag">${att.envoyeeLe?'envoyée le '+esc(new Date(att.envoyeeLe).toLocaleDateString('fr-FR')):'établie le '+esc(fmtShort(att.etabliLe))}</span>`); }
+      if(att) b.push(`<span class="tag">${att.envoyeeLe?'envoyée le '+esc(new Date(att.envoyeeLe).toLocaleDateString('fr-FR')):'établie le '+esc(fmtShort(att.etabliLe))}</span>`);
+      const ram=cvcRamonageDe(i,a.id);
+      b.push(fini?`<button type="button" class="btn ghost sm" onclick="cvcRamonageForm('${i.id}','${a.id}')">🧹 Certificat de ramonage</button>`
+        :`<button type="button" class="btn ghost sm" disabled title="Disponible une fois l’intervention terminée">🧹 Certificat de ramonage</button>`);
+      if(ram) b.push(`<span class="tag">${ram.envoyeLe?'envoyé le '+esc(new Date(ram.envoyeLe).toLocaleDateString('fr-FR')):'établi le '+esc(fmtShort(ram.etabliLe))}</span>`); }
     if(cvcType(a).fluide&&i.statut!=='annulee'&&canCat('int','modifier')) b.push(`<button type="button" class="btn ghost sm" onclick="cvcFicheForm('${i.id}','${a.id}')">💧 ＋ Fiche fluides</button>`);
     return b.length||cvcFichesDe(i,a.id).length?`<div class="cvc-act" style="margin-top:10px"><div style="font-size:12.5px;font-weight:700;overflow-wrap:anywhere">${esc(cvcLibelle(a))}</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:5px">${b.join('')}</div>${cvcIntFiches(i,a)}</div>`:''; }).join('');
   const attend=!fini&&vis.some(cvcAttestable);
@@ -41598,7 +41731,7 @@ function cvcFicheForm(iid,aid,fid){ if(!permGarde('int','modifier','une interven
         ${inp('fuiteLieu','Localisation de la fuite',f.fuiteLieu,'maxlength="160"')}
       </div>
       <div id="cvc-fiche-info" style="font-size:12.5px;line-height:1.5;color:var(--t2);margin:2px 0 10px;overflow-wrap:anywhere"></div>
-      ${inp('attestation','N° d’attestation de capacité de l’opérateur',f.attestation,'maxlength="80"')}
+      ${inp('attestation','N° d’attestation de capacité de l’opérateur (obligatoire)',f.attestation||cvcDerniereAttestation(),'maxlength="80" required')}
       ${inp('operateur','Opérateur',f.operateur,'maxlength="120"')}
       <div class="field"><label>Observations</label><textarea name="obs" rows="2" maxlength="600">${esc(f.obs||'')}</textarea></div>
       <div class="modal-foot" style="flex-wrap:wrap"><button type="button" class="btn ghost" onclick="closeModal();renderIntDetail('${esc(iid)}')">Annuler</button><button type="submit" class="btn">${fid?'Enregistrer':'Ajouter la fiche'}</button></div></form>`);
@@ -41613,6 +41746,10 @@ function cvcFicheMaj(f){ if(!f||!f.elements) return; const ctl=document.getEleme
   else if(on&&cvcIsoOk(d)){ const aid=(f.dataset&&f.dataset.aid)||''; const a=(db.appareils||[]).find(k=>k.id===aid); const r=a?cvcEtancheiteRegle(a):null;
     if(r&&r.requis===true) t='Prochain contrôle : '+cvcDateTxt(cvcAddMois(d,r.mois))+' ('+r.mois+' mois).'; }
   info.textContent=t; info.style.color=/⚠️/.test(t)?'var(--red)':'var(--t2)'; info.style.fontWeight=/⚠️/.test(t)?'700':'400'; }
+/* Le dernier n° d'attestation de capacité saisi sur une fiche fluides (le plus récent par date) : c'est celui de l'ENTREPRISE, il ne change pas d'une fiche à l'autre. */
+function cvcDerniereAttestation(){ let best=null;
+  (db.interventions||[]).forEach(i=>(Array.isArray(i&&i.fichesFluides)?i.fichesFluides:[]).forEach(f=>{ if(f&&f.attestation&&(!best||String(f.date||'')>String(best.date||''))) best=f; }));
+  return best?best.attestation:''; }
 function cvcFicheSauver(e,iid,aid,fid){ e.preventDefault(); if(!permGarde('int','modifier','une intervention')) return;
   const x=cvcFicheCtx(iid,aid); if(!x) return; const {i,a}=x, form=e.target, g=n=>String((form.elements[n]||{}).value||'').trim();
   const date=g('date'); if(!cvcIsoOk(date)){ champManque('Date de l’opération invalide',champDe(form,'date')); return; }
@@ -41628,6 +41765,10 @@ function cvcFicheSauver(e,iid,aid,fid){ e.preventDefault(); if(!permGarde('int',
   if(vignette&&vignette!=='bleue'&&vignette!=='rouge') vignette='';
   const d={appareilId:aid,appLabel:cvcLibelle(a)+(a.serie?' · n° '+a.serie:''),date,nature,fluide,prp,charge,recup,contenant:g('contenant').slice(0,80),bordereau:g('bordereau').slice(0,80),
     controle,resultat,vignette,fuiteLieu:controle&&resultat!=='conforme'?g('fuiteLieu').slice(0,160):'',attestation:g('attestation').slice(0,80),operateur:g('operateur').slice(0,120),obs:g('obs').slice(0,600)};
+  /* ⛔ PAS DE FICHE FLUIDES SANS N° D'ATTESTATION DE CAPACITÉ (24 octobre 2026) : seule une entreprise titulaire de cette attestation peut manipuler des fluides
+     frigorigènes (code de l'environnement, art. R543-99), et la fiche d'intervention porte son numéro. Une fiche sans lui serait un document que l'entreprise
+     ne peut pas produire en contrôle : on ne l'enregistre pas, et on le DIT (le champ se pré-remplit avec le dernier numéro saisi : `cvcDerniereAttestation`). */
+  if(!d.attestation){ champManque('Le n° d’attestation de capacité de l’opérateur est obligatoire sur une fiche fluides',champDe(form,'attestation')); return; }
   i.fichesFluides=Array.isArray(i.fichesFluides)?i.fichesFluides:[];
   if(fid){ const ex=i.fichesFluides.find(k=>k.id===fid); if(!ex){ toast('Cette fiche n’existe plus'); return; } Object.assign(ex,d); intHisto(i,'💧 Fiche fluides modifiée — '+d.appLabel); }
   else{ i.fichesFluides.push({id:uid(),creeLe:todayISO(),creePar:(currentUser&&currentUser.id)||'',...d}); intHisto(i,'💧 Fiche fluides ajoutée — '+d.appLabel+' · '+fluide+(charge!==''?' · chargé '+cvcNbTxt(charge,2)+' kg':'')); }
@@ -43219,6 +43360,8 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
     const retard=visibleInts(db.interventions||[]).filter(i=>i.date&&i.date<today&&(i.statut==='planifiee'||i.statut==='encours'));
     if(retard.length){ const plusVieille=retard.reduce((m,i)=>i.date<m?i.date:m,today);
       out.push({id:'retard:'+retard.length+':'+plusVieille,ic:'⏰',txt:`<b>${retard.length} intervention${retard.length>1?'s':''} en retard</b> — non effectuée${retard.length>1?'s':''}, la plus ancienne du ${fmtShort(plusVieille)}`,act:"go('interventions')"}); } }
+  /* chauffage / climatisation : les entretiens qui pressent (une ligne, `cvcNotif`) — pour qui voit les interventions */
+  if(typeof cvcNotif==='function'&&notifVoitModule('interventions')){ const n=cvcNotif(); if(n) out.push(n); }
   if(can('voirCompta') && (notifVoitModule('factures')||notifVoitModule('comptabilite'))){
     const imp=(db.factures||[]).filter(f=>f.statut==='envoyee'||f.statut==='retard');
     if(imp.length) out.push({id:'impayees:'+imp.length+':'+imp.map(f=>f.id).sort().join('').slice(-16),ic:'⏳',txt:`<b>${imp.length} facture${imp.length>1?'s':''} impayée${imp.length>1?'s':''}</b>`,act:"go('comptabilite')"}); }

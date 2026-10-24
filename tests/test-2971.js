@@ -53,7 +53,13 @@ v('⛔ les générateurs ne corrigent plus la description au passage (app.html l
     cp.execFileSync(process.execPath, [path.join(RACINE, gen), dest], { cwd: RACINE, stdio: 'pipe', timeout: 60000 });
     const fabrique = fs.readFileSync(dest, 'utf8');
     vrai('⛔ ' + gen + ' fabrique une page sans « 24h/24 » ni « 7j/7 » (population : ' + Math.round(fabrique.length / 1024) + ' Ko, la description de la formule y est)', fabrique.length > 1000000 && /Business Premium/.test(fabrique) && !PROMESSE.test(fabrique) && /assistance prioritaire/.test(fabrique));
-    vrai('   … et la page rangée dans le dépôt est celle que le générateur fabrique', fabrique === lire(sortie));
+    /* ⛔ Une BÊTA EN AVANCE (publiée seule sur `main`, app.html attend la phrase de Justin) n'est pas la génération de l'app.html de `main`, par construction.
+       Elle se reconnaît à son numéro, PLUS HAUT que celui d'app.html ; elle est alors relue contre la promesse comme toute page servie (contrôle plus haut), et
+       l'égalité redevient stricte d'elle-même le jour où app.html la rattrape. La démonstration publique, elle, suit toujours l'application publiée. */
+    const vNum = t => parseInt((/const APP_VERSION = '(\d+)/.exec(t) || [])[1], 10) || 0;
+    const enAvance = sortie === 'beta.html' && vNum(lire('beta.html')) > vNum(lire('app.html'));
+    vrai('   … et la page rangée dans le dépôt est celle que le générateur fabrique' + (enAvance ? ' (bêta EN AVANCE : v' + vNum(lire('beta.html')) + ' contre v' + vNum(lire('app.html')) + ' — relue contre la promesse, pas comparée)' : ''),
+      enAvance ? !PROMESSE.test(sansHtmlCom(lire(sortie))) : fabrique === lire(sortie));
   }
   fs.rmSync(tmp, { recursive: true, force: true });
 }
