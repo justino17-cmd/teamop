@@ -179,15 +179,26 @@ const JUGE_SYSTEM = [
 ].join('\n');
 
 /* Lire la réponse du juge. Rend { etat:'ok' } | { etat:'echec', fautes:[codes] } | { etat:'indisponible' }. Tout ce qui n'a pas la forme fermée est « indisponible ». */
+/* ⛔ UNE LIGNE D'EXPLICATION N'EST PAS UN VERDICT ILLISIBLE (examen du 24 octobre 2026, scénario 6 : deux premiers courriels de Léa sur trois restés en brouillon,
+   « non vérifiés »). La forme reste FERMÉE là où elle décide — le verdict est la PREMIÈRE ligne, une seule fois ; chaque « FAUTE : » porte un code de la liste —, mais
+   le gras et les puces d'un modèle (« **VERDICT : OK** », « - FAUTE : … ») ne cassent plus la lecture, et une phrase qui EXPLIQUE (« Le courriel est clair et
+   professionnel. ») est ignorée. Une phrase qui parle d'un défaut sans le coder (« mais FAUTE de ton », « échec », un code nommé hors d'une ligne FAUTE) reste
+   « indisponible » : dans le doute, Justin relit — jamais « bon ». */
+const NETTOIE_LIGNE = l => l.replace(/\*\*|`/g, '').replace(/^\s*(?:[-•>#]+\s*)+/, '').trim();
 function lireVerdict(texte) {
-  const lignes = String(texte || '').replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
-  const m = lignes.length ? /^VERDICT\s*:\s*(OK|ECHEC)\s*$/i.exec(lignes[0]) : null;
+  const lignes = String(texte || '').replace(/\r/g, '').split('\n').map(NETTOIE_LIGNE).filter(Boolean);
+  const m = lignes.length ? /^VERDICT\s*:\s*(OK|ECHEC)\s*[.!]?$/i.exec(lignes[0]) : null;
   if (!m) return { etat: 'indisponible' };
   const fautes = [];
   for (const l of lignes.slice(1)) {
-    const x = /^FAUTE\s*:\s*([a-z_]+)\s*$/i.exec(l);
-    if (!x || !JUGE_CODES.includes(x[1].toLowerCase())) return { etat: 'indisponible' };
-    if (!fautes.includes(x[1].toLowerCase())) fautes.push(x[1].toLowerCase());
+    const x = /^FAUTE\s*:\s*([a-z_]+)\s*[.]?$/i.exec(l);
+    if (x) {
+      if (!JUGE_CODES.includes(x[1].toLowerCase())) return { etat: 'indisponible' };
+      if (!fautes.includes(x[1].toLowerCase())) fautes.push(x[1].toLowerCase());
+      continue;
+    }
+    /* une explication : ignorée — sauf si elle parle d'un défaut, d'un verdict, ou nomme un code hors d'une ligne FAUTE */
+    if (/\bverdict\b|\bfaute|[ée]chec|\bd[ée]faut/i.test(l) || JUGE_CODES.some(c => l.toLowerCase().includes(c))) return { etat: 'indisponible' };
   }
   if (m[1].toUpperCase() === 'OK') return fautes.length ? { etat: 'echec', fautes } : { etat: 'ok' };
   return { etat: 'echec', fautes: fautes.length ? fautes : ['jugement_defavorable'] };
