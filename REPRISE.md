@@ -17,7 +17,7 @@ de ligne du tout.
 
 Justin, 24 octobre 2026 : BabyLoveGrowth (blog.teamop.fr) demandait 600 € — « toi tu peux faire ce que BabyLoveGrowth fait », « bah go le
 faire, je vais pas payer ». Son abonnement BLG est inactif (rien n'a été prélevé) ; les quatre articles du 21 au 24 octobre y sont encore en ligne.
-- **Le blog** : sources dans `contenu/blog/` (NON publié — `articles.json` + un fragment HTML par article + `SUJETS.md`, la file des sujets
+- **Le blog** : sources dans `contenu/blog/` (NON publié — `articles.json` + un fragment HTML `<slug>.htm` par article + `SUJETS.md`, la file des sujets
   et les règles d'écriture), images WebP dans `blog/img/`, pages FABRIQUÉES par `scripts/blog.js` (index, articles, flux RSS). Même en-tête et
   même pied que le site (exportés par `site-marine.js`), feuille `vitrine/v2/blog.css`. Données structurées BlogPosting + fil d'Ariane + FAQ.
 - **Le site** : le pied mène à `/blog/` (plus à blog.teamop.fr), le plan du site liste le blog (`sitemap()` appelle `entreesSitemap()`),

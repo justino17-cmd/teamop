@@ -87,7 +87,7 @@ faux({ date: '24/10/2026' }, 'date invalide');
 faux({ slug: 'Avec Espace' }, 'slug invalide');
 faux({ slug: 'article-sans-corps' }, 'corps absent');
 const essai = (html, attendu) => { const orig = fs.readFileSync;
-  fs.readFileSync = function (f, e) { return String(f).endsWith(tous[0].slug + '.html') && String(f).includes('contenu') ? html : orig.apply(fs, arguments); };
+  fs.readFileSync = function (f, e) { return String(f).endsWith(tous[0].slug + '.htm') && String(f).includes('contenu') ? html : orig.apply(fs, arguments); };
   try { vrai('il voit : ' + attendu, B.verifier([tous[0]]).some(x => x.includes(attendu))); } finally { fs.readFileSync = orig; } };
 essai('<p><a href="#nulle-part">x</a></p>', 'ancre absente');
 essai('<p>Appelez le <a href="tel:+33600000000">06</a></p>', 'mention interdite');

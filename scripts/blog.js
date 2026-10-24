@@ -7,7 +7,8 @@
    CE QUI EST SOURCE, CE QUI EST FABRIQUÉ :
    · `contenu/blog/articles.json` — la fiche de chaque article (slug, titre, description, date, image de couverture,
      FAQ pour les données structurées). Le plus récent en tête.
-   · `contenu/blog/<slug>.html` — le corps de l'article : un fragment HTML (h2, h3, p, listes, tableaux, figures).
+   · `contenu/blog/<slug>.htm` — le corps de l'article : un fragment HTML (h2, h3, p, listes, tableaux, figures). En `.htm`
+     et pas `.html` : ce n'est pas une page (`tests/test-846.js` exige `lang="fr"` de chaque `*.html` du dépôt).
      `contenu/` n'est PAS publié (`scripts/assembler-site.sh` est une liste blanche) : seules les pages fabriquées partent.
    · `blog/img/` — les images, en WebP 1200 × 675.
    · FABRIQUÉS ici, jamais retouchés à la main : `blog/index.html`, `blog/<slug>.html`, `blog/flux.xml` (RSS).
@@ -35,7 +36,7 @@ const ARTICLES = () => JSON.parse(fs.readFileSync(path.join(SOURCES, 'articles.j
   .sort((a, b) => b.date.localeCompare(a.date) || a.slug.localeCompare(b.slug));
 /* les insécables de la typographie française (« : ; ! ? » et guillemets), posés dans le TEXTE seulement — jamais dans une balise */
 const insecables = html => html.replace(/>([^<]+)</g, (m, t) => '>' + t.replace(/ ([:;!?»])/g, '\u202f$1').replace(/« /g, '«\u202f') + '<');
-const corpsDe = slug => insecables(fs.readFileSync(path.join(SOURCES, slug + '.html'), 'utf8').trim());
+const corpsDe = slug => insecables(fs.readFileSync(path.join(SOURCES, slug + '.htm'), 'utf8').trim());
 const urlArticle = a => URL_BLOG + a.slug + '.html';
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const dateFr = iso => { const [y, m, d] = iso.split('-').map(Number); return d + (d === 1 ? 'er' : '') + ' ' + MOIS[m - 1] + ' ' + y; };
@@ -185,7 +186,7 @@ function verifier(tous) {
     if (!a.description || a.description.length > 170) pb.push(a.slug + ' : description absente ou trop longue');
     if (!fs.existsSync(path.join(DEST, 'img', a.image))) pb.push(a.slug + ' : couverture absente ' + a.image);
     if (!a.imageAlt) pb.push(a.slug + ' : couverture sans texte alternatif');
-    if (!fs.existsSync(path.join(SOURCES, a.slug + '.html'))) { pb.push(a.slug + ' : corps absent (contenu/blog/' + a.slug + '.html)'); continue; }
+    if (!fs.existsSync(path.join(SOURCES, a.slug + '.htm'))) { pb.push(a.slug + ' : corps absent (contenu/blog/' + a.slug + '.htm)'); continue; }
     const c = corpsDe(a.slug);
     for (const m of c.matchAll(/src="([^"]+)"/g)) if (!m[1].startsWith('/blog/img/') || !fs.existsSync(path.join(RACINE, m[1]))) pb.push(a.slug + ' : image ' + m[1]);
     const ids = new Set([...c.matchAll(/\sid="([^"]+)"/g)].map(m => m[1]));
