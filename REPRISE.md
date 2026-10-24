@@ -293,6 +293,18 @@ outil d'argent), pas d'urgence — options au constat (citer le dernier message 
 - **`metiers.json` n'est plus publié** sur teamop.fr (il porte la feuille de route : `aCreer`, `aVerifier`, notes). Le serveur le lit dans le dépôt cloné, les écrans lisent `GET /api/metiers` (filtré). `test-1008` exige son absence.
 - **Choix à la page de paiement** : la fiche du client (`ficheDePaiement`) naît APRÈS la page rendue par Stripe, jamais pour un compte fermé, ne compte pas comme un espace (`aUnEspace`, suppression d'un compte du site) ; elle part avec le compte supprimé. ⚠️ Un client qui a payé SANS jamais ouvrir son espace client n'a donc plus de « 409 : ce compte porte une entreprise » — la Tour le montre « sans espace » : vérifier dans Stripe avant de supprimer un compte.
 - **Reste à faire** : `apercu/tour.html` n'est PAS régénéré (à faire à la fusion : `bash scripts/apercu.sh tour.html` — une copie plus vieille que la page est pire que pas de copie) ; la Tour ne monte pas de version (`TOUR_VERSION`) ; l'acceptation d'une seconde demande pose toujours le MÉTIER de la demande sur un espace déjà ouvert (seules les rubriques sont protégées) ; sonde `scratchpad/sonde-tour-demande-ouverte.js` (54 ✓, jour/nuit, 1440/1100/390).
+# 🔶 24 OCTOBRE 2026 — PREMIER EXAMEN RÉEL : 3 RÉUSSIS, 6 ÉCHECS, CORRIGÉS (branche `claude/examen-corrections`)
+- **Le résultat** (Tour, 15 h 05, 66 appels, 1,49 $, 212 s) : ✓ 1 (Margaux), 3 (@tous), 7 (courrier) ; ✗ 2, 4, 5, 6, 8, 9. **Trois échecs venaient de l'EXAMEN** : « tes » lu dans
+  « complètes » (`\b` ignore les accents), « 15 euros » refusé alors que le serveur l'accepte, des avantages numérotés comptés comme des questions (deux courriels justes restés
+  en brouillon, donc « non signés »), un « contrôle qualité absent » qui ne l'était pas (détail figé), et sept verdicts du juge « illisibles » (des guillemets droits dans sa raison).
+  **Trois venaient de l'ÉQUIPE** : Camille chargée gardait tout (la règle permettait de passer, sans le demander) ; Camille croyait ne pas pouvoir poser une question à Hugo
+  (« consigne en texte libre ») ; Victor tranchait deux fois (cité par Justin puis par Léa) ; le vendredi, chacun ne rendait que ses outils — bilan muet, « Compte rendu non écrit. ».
+- **Corrigé** : `dejaLu` (agent-equipe.js), « RAS » à un collègue, règles du prompt (passer à trois tâches, question fermée à Hugo), seconde demande sans outil dans `parole`
+  (reunions.js), `estQuestion` partagé (agents-controle.js ↔ examen.js), Léa numérote les seules questions. Bancs `test-2993` (neuf) et `test-2930` (« outils-seuls » ; « bavard »
+  est désormais CONTENU par le serveur, 15 appels au lieu du plafond). 13 mutations, toutes mordent (`scratchpad/mutations-examen.py`).
+- ⏳ **Reste** : relancer l'examen une fois fusionné (un par heure) ; aucun agent en Auto avant un examen relu ensemble. Vu au passage : la Tour propose « Faire signer » sur une
+  pièce jointe qui n'est pas un PDF (rapport DMARC de Google) — à corriger avec la prochaine version de la Tour.
+
 # ⏳ 23 OCTOBRE 2026 — L'EXAMEN DE L'ÉQUIPE D'AGENTS ET LA CLÉ D'EXAMEN (branche `claude/auto-examen`, RIEN en ligne)
 - **Ce que c'est** (cahier §13) : `server/examen.js` joue les neuf scénarios avec le VRAI modèle sur une équipe d'ESSAI (les vrais modules agents / messagerie / réunions / Léa / Camille sur un dossier
   temporaire, faits et courriels FICTIFS, fausse poste qui note sans envoyer). Rien de réel n'est touché (fils, files, registres, journal : seulement « examen lancé / terminé »). Onglet **Examen** de la page
