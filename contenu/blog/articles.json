@@ -1,0 +1,114 @@
+[
+ {
+  "slug": "signature-electronique-devis",
+  "titre": "Signature électronique de devis : valeur, niveaux et marche à suivre",
+  "description": "Signer un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.",
+  "date": "2026-10-24",
+  "image": "signature-devis-couverture.webp",
+  "imageAlt": "Technicienne qui fait signer un devis sur tablette à une cliente",
+  "faq": [
+   {
+    "q": "Une signature électronique sur un devis a-t-elle une valeur juridique ?",
+    "r": "Oui. Selon l’article 1366 du Code civil, l’écrit électronique a la même force probante que l’écrit papier si son auteur est identifiable et si son intégrité est garantie. La signature doit reposer sur un procédé fiable d’identification. Seule la signature qualifiée est explicitement équivalente à la signature manuscrite dans tous les pays de l’Union européenne."
+   },
+   {
+    "q": "Peut-on signer un devis par e-mail ?",
+    "r": "Oui, le client peut signer à partir d’un lien reçu par e-mail, parfois avec un code de vérification. Un simple retour de message sans lien avec la version exacte du devis est en revanche une preuve fragile. Conservez toujours l’e-mail, le devis et la date ensemble."
+   },
+   {
+    "q": "OP GESTION propose-t-il la signature électronique des devis ?",
+    "r": "Non. Le devis PDF comporte un cadre « Bon pour accord » que le client date et signe. L’entreprise passe ensuite le devis en « accepté » et le convertit en facture. La signature sur téléphone est réservée aux fiches d’intervention."
+   },
+   {
+    "q": "Quel niveau de signature choisir pour un devis ?",
+    "r": "La signature simple suffit pour de nombreux devis courants, la signature avancée convient aux montants élevés ou aux clients à risque. La signature qualifiée reste exceptionnelle. Si un client ou un donneur d’ordre impose un niveau, suivez son exigence."
+   },
+   {
+    "q": "Combien de temps conserver un devis signé ?",
+    "r": "La durée dépend de la nature du document et de votre activité. La durée par défaut proposée par les outils, souvent dix ans, ne correspond pas nécessairement à vos obligations réelles. Faites-la valider par votre expert-comptable."
+   }
+  ]
+ },
+ {
+  "slug": "suivi-des-interventions",
+  "titre": "Suivi des interventions : méthode et outil pour le terrain",
+  "description": "Statuts, fiche terrain, historique client, stock et alertes : comment suivre vos interventions de bout en bout avec un outil mobile pensé pour les TPE de terrain.",
+  "date": "2026-10-23",
+  "image": "suivi-couverture.webp",
+  "imageAlt": "Technicienne qui consulte son intervention sur son téléphone, devant chez un client",
+  "faq": [
+   {
+    "q": "Quelle différence entre suivi et traçabilité des interventions ?",
+    "r": "Le suivi répond à « où en est l’intervention ? » : statut, technicien, date. La traçabilité répond à « que s’est-il passé, et pouvons-nous le prouver ? » : fiche, photos, signature, historique du client. Un bon outil assure les deux avec la même saisie."
+   },
+   {
+    "q": "Faut-il géolocaliser les techniciens pour suivre les interventions ?",
+    "r": "Non. Les statuts, le planning et la fiche renseignée sur place donnent l’essentiel. La CNIL encadre strictement la géolocalisation des véhicules de salariés, et OP GESTION ne propose pas de suivi GPS en temps réel."
+   },
+   {
+    "q": "Le stock est-il déduit automatiquement à chaque intervention ?",
+    "r": "Non. L’intervention enregistre les produits utilisés, mais ne modifie pas les quantités. Le stock évolue seulement par une sortie indiquant pour qui, un arrivage ou une correction."
+   },
+   {
+    "q": "Le client peut-il signer son devis sur le téléphone ?",
+    "r": "Non, la signature sur téléphone est réservée aux fiches d’intervention. Le devis PDF comporte un cadre « Bon pour accord » que le client date et signe. Vous passez ensuite le devis en « accepté », puis vous le convertissez en facture."
+   }
+  ]
+ },
+ {
+  "slug": "ordre-de-travail",
+  "titre": "Ordre de travail : définition, mentions, modèle et suivi",
+  "description": "Ordre de travail, ordre de mission ou ordre de service : les différences, les mentions utiles, un modèle à copier et comment le suivre sans ressaisie.",
+  "date": "2026-10-22",
+  "image": "ordre-de-travail-couverture.webp",
+  "imageAlt": "À gauche, un ordre de service remis sur un chantier ; à droite, une technicienne qui consulte son ordre de travail sur tablette",
+  "faq": [
+   {
+    "q": "Quelle est la différence entre un ordre de travail et un bon d’intervention ?",
+    "r": "Dans la pratique, les deux désignent le même type de document : celui qui décrit une intervention et autorise le technicien à la réaliser. Selon les entreprises, on parle d’OT, de bon de travail ou de bon d’intervention. Certains réservent “bon d’intervention” au compte rendu signé en fin de visite, qui correspond alors à l’OT clôturé."
+   },
+   {
+    "q": "Un ordre de travail est-il obligatoire ?",
+    "r": "Pour les interventions courantes, aucun texte ne vous impose un format d’OT. Il reste très recommandé, car il organise le travail et sert de preuve en cas de litige, surtout s’il est signé par le client. L’ordre de mission, lui, répond à des enjeux de protection sociale du salarié en déplacement, et l’ordre de service est encadré dans les marchés de travaux."
+   },
+   {
+    "q": "Qu’est-ce qu’un ordre de service dans le bâtiment, et quel délai pour le contester ?",
+    "r": "C’est la décision du maître d’œuvre ou du maître d’ouvrage qui précise comment exécuter le marché. D’après marche-public.info , le titulaire dispose de 15 jours pour formuler ses observations, faute de quoi il risque d’être considéré comme ayant accepté. En cas de doute sur un OS qui modifie prix ou délais, rapprochez-vous de votre conseil juridique avant l’expiration de ce délai."
+   },
+   {
+    "q": "Peut-on faire un ordre de travail sur Excel ?",
+    "r": "Oui, c’est un bon point de départ avec le modèle ci-dessus. La limite vient du volume : plusieurs techniciens, des photos, des signatures et des devis à produire. À partir de là, la ressaisie coûte plus cher que l’outil, et un logiciel de gestion d’interventions devient plus rentable."
+   }
+  ]
+ },
+ {
+  "slug": "gestion-des-interventions",
+  "titre": "Gestion des interventions : organiser le terrain sans ressaisie",
+  "description": "Comment organiser la gestion des interventions d'une TPE de terrain : demande, planning, fiche, facturation, outils et pièges à éviter, avec exemples par métier.",
+  "date": "2026-10-21",
+  "image": "gestion-interventions-couverture.webp",
+  "imageAlt": "Technicienne qui consigne une intervention sur site",
+  "faq": [
+   {
+    "q": "Quelle est la différence entre gestion des interventions et gestion de la maintenance ?",
+    "r": "La gestion des interventions organise le travail des équipes qui se déplacent : demande, planning, réalisation, compte-rendu. La gestion de la maintenance a un périmètre plus large, centré sur le parc d’équipements et les plans d’entretien préventif. Les deux se recoupent dès que vos interventions portent sur des installations de clients."
+   },
+   {
+    "q": "Faut-il un logiciel quand on a seulement deux ou trois techniciens ?",
+    "r": "Oui, c’est souvent le bon moment. À cette taille, le dirigeant fait encore le planning et la facturation lui-même, et chaque ressaisie lui coûte des soirées.Un abonnement à partir de 15 € par mois et par utilisateur permet de s’équiper sans engagement lourd."
+   },
+   {
+    "q": "Comment organiser ses interventions en urgence ?",
+    "r": "Créez la fiche dès l’appel avec adresse, nature du problème et accès, puis consultez le planning partagé pour désigner le technicien le plus proche ou le plus disponible. Il reçoit la mission sur son téléphone et peut compléter la fiche sur place. Le planning se met à jour pour toute l’équipe, sans coup de fil."
+   },
+   {
+    "q": "Mes techniciens vont-ils accepter l’outil ?",
+    "r": "Ils l’adoptent plus facilement s’ils sont impliqués dès le choix et si l’outil leur retire de la paperasse au lieu d’en ajouter. Commencez avec des volontaires, gardez des fiches courtes et adaptées au métier, et montrez les gains concrets : moins de ressaisie, historique client immédiat."
+   },
+   {
+    "q": "Quel logiciel choisir pour la gestion des interventions ?",
+    "r": "Le meilleur est celui qui épouse votre métier : fiches adaptées, planning partagé, devis et factures reliés, usage sur tous vos appareils. Testez-le sur de vraies interventions avant de vous engager, de préférence avec vos techniciens."
+   }
+  ]
+ }
+]

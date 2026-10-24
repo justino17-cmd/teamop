@@ -28,6 +28,9 @@ seule mémoire qui passe de l'une à l'autre. Le tenir à jour quand un chantier
   script, sinon il n'est pas en ligne — `tests/test-1008.js` refuse une page qui pointe vers un fichier perdu.
 - **`server/`** — API Node/Express déployée sur un VPS, hors GitHub Pages
 - **`.github/workflows/`** — surveillance horaire du site et de l'API
+- **`blog/`** — teamop.fr/blog/, FABRIQUÉ par `node scripts/blog.js` depuis `contenu/blog/` (non publié : `articles.json`, un
+  fragment HTML par article, `SUJETS.md` = file des sujets et règles d'écriture). ⛔ On écrit dans `contenu/blog/`, jamais dans `blog/*.html`
+  (`tests/test-3000.js` exige la sortie du générateur) ; après un article neuf, relancer aussi `node scripts/site-marine.js --racine` (sitemap).
 - **`scripts/web/`** — lire un site (Crawl4AI, installé à la première utilisation, dans une session du cloud comme sur le Mac) : `bash scripts/web/lire-site.sh <url> [--liens|--pages N]` — voir son `LISEZMOI.md` (et le cadre RGPD avant de prendre des coordonnées)
 - **`scripts/controle/`** — le CONTRÔLE de bout en bout (17 octobre 2026, skill `/controle`, agent `client-mystere`) :
   `node scripts/controle/controle.js <sortie>` monte un JUMEAU sur 127.0.0.1 (le site assemblé servi sous ses vraies

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<script>/* le jour et la nuit suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on efface le choix qu'avait rangé l'ancien bouton ☀︎/☾, que plus rien ne lit (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>
+<title>Ordre de travail : définition, mentions, modèle et suivi | Blog TEAM OP</title>
+<meta name="description" content="Ordre de travail, ordre de mission ou ordre de service : les différences, les mentions utiles, un modèle à copier et comment le suivre sans ressaisie.">
+<link rel="canonical" href="https://teamop.fr/blog/ordre-de-travail.html">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="TEAM OP">
+<meta property="og:title" content="Ordre de travail : définition, mentions, modèle et suivi">
+<meta property="og:description" content="Ordre de travail, ordre de mission ou ordre de service : les différences, les mentions utiles, un modèle à copier et comment le suivre sans ressaisie.">
+<meta property="og:url" content="https://teamop.fr/blog/ordre-de-travail.html">
+<meta property="og:image" content="https://teamop.fr/blog/img/ordre-de-travail-couverture.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="675">
+<meta property="og:image:alt" content="À gauche, un ordre de service remis sur un chantier ; à droite, une technicienne qui consulte son ordre de travail sur tablette">
+<meta property="article:published_time" content="2026-10-22">
+<meta property="article:author" content="Justin Biret">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" type="application/rss+xml" title="Blog TEAM OP" href="/blog/flux.xml">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "@id": "https://teamop.fr/blog/ordre-de-travail.html#article",
+      "headline": "Ordre de travail : définition, mentions, modèle et suivi",
+      "description": "Ordre de travail, ordre de mission ou ordre de service : les différences, les mentions utiles, un modèle à copier et comment le suivre sans ressaisie.",
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://teamop.fr/blog/img/ordre-de-travail-couverture.webp",
+        "width": 1200,
+        "height": 675
+      },
+      "datePublished": "2026-10-22",
+      "dateModified": "2026-10-22",
+      "inLanguage": "fr-FR",
+      "mainEntityOfPage": "https://teamop.fr/blog/ordre-de-travail.html",
+      "author": {
+        "@type": "Person",
+        "name": "Justin Biret",
+        "jobTitle": "Fondateur de TEAM OP",
+        "url": "https://teamop.fr/pourquoi.html"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://teamop.fr/#organisation",
+        "name": "TEAM OP",
+        "url": "https://teamop.fr/",
+        "logo": "https://teamop.fr/icons/teamop-192.png"
+      },
+      "wordCount": 2595
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Accueil",
+          "item": "https://teamop.fr/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://teamop.fr/blog/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Ordre de travail : définition, mentions, modèle et suivi",
+          "item": "https://teamop.fr/blog/ordre-de-travail.html"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Quelle est la différence entre un ordre de travail et un bon d’intervention ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Dans la pratique, les deux désignent le même type de document : celui qui décrit une intervention et autorise le technicien à la réaliser. Selon les entreprises, on parle d’OT, de bon de travail ou de bon d’intervention. Certains réservent “bon d’intervention” au compte rendu signé en fin de visite, qui correspond alors à l’OT clôturé."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Un ordre de travail est-il obligatoire ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Pour les interventions courantes, aucun texte ne vous impose un format d’OT. Il reste très recommandé, car il organise le travail et sert de preuve en cas de litige, surtout s’il est signé par le client. L’ordre de mission, lui, répond à des enjeux de protection sociale du salarié en déplacement, et l’ordre de service est encadré dans les marchés de travaux."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Qu’est-ce qu’un ordre de service dans le bâtiment, et quel délai pour le contester ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "C’est la décision du maître d’œuvre ou du maître d’ouvrage qui précise comment exécuter le marché. D’après marche-public.info , le titulaire dispose de 15 jours pour formuler ses observations, faute de quoi il risque d’être considéré comme ayant accepté. En cas de doute sur un OS qui modifie prix ou délais, rapprochez-vous de votre conseil juridique avant l’expiration de ce délai."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Peut-on faire un ordre de travail sur Excel ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, c’est un bon point de départ avec le modèle ci-dessus. La limite vient du volume : plusieurs techniciens, des photos, des signatures et des devis à produire. À partir de là, la ressaisie coûte plus cher que l’outil, et un logiciel de gestion d’interventions devient plus rentable."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/teamop-192.png">
+<link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
+<link rel="manifest" href="/manifest-teamop.webmanifest">
+<link rel="stylesheet" href="/vitrine/v2/site.css">
+<link rel="stylesheet" href="/vitrine/v2/blog.css">
+<link rel="preload" as="image" href="/blog/img/ordre-de-travail-couverture.webp" fetchpriority="high">
+</head>
+<body>
+<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
+      <a class="marque" href="/"><img src="/icons/teamop-192.png" width="22" height="22" alt="TEAM OP"><span aria-hidden="true">TEAM OP</span></a>
+      <div class="nav-liens"><a href="/applications.html" data-fly="applications" aria-haspopup="true" aria-expanded="false">Applications</a><a href="/metiers.html" data-fly="metiers" aria-haspopup="true" aria-expanded="false">Métiers</a><a href="/tarifs.html" data-fly="tarifs" aria-haspopup="true" aria-expanded="false">Tarifs</a><a href="/pourquoi.html" data-fly="pourquoi" aria-haspopup="true" aria-expanded="false">Pourquoi TEAM OP</a></div>
+      <div class="nav-droite"><a class="pilule" href="/espace.html">Espace client</a>
+        <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    </div><div class="fly" id="fly-applications"><div class="fly-in"><div><div class="fly-t">Explorer les applications</div><div class="fly-grand"><a href="/op-gestion.html"><b>OP GESTION</b><small>Gestion tout-en-un : interventions, stock, compta</small></a><a href="/opmessages.html"><b>OP MESSAGES</b><small>Messagerie d'équipe — bientôt disponible</small></a><a href="/creer.html"><b>Créer votre application</b><small>Décrivez votre besoin, on le construit</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div></div></div></div><div class="fly" id="fly-metiers"><div class="fly-in"><div><div class="fly-t">Explorer les métiers</div><div class="fly-grand"><a href="/logiciel-anti-nuisibles.html"><b>3D — Anti-nuisibles</b><small>Pack complet : registre sanitaire, biocides</small></a><a href="/logiciel-plombier.html"><b>Plomberie</b></a><a href="/logiciel-electricien.html"><b>Électricité</b></a><a href="/logiciel-chauffage-climatisation.html"><b>Chauffage / Climatisation</b></a><a href="/logiciel-nettoyage.html"><b>Nettoyage / Propreté</b></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/metiers.html">Tous les métiers</a></div></div></div></div><div class="fly" id="fly-tarifs"><div class="fly-in"><div><div class="fly-t">Explorer les tarifs</div><div class="fly-grand"><a href="/tarifs.html#op-gestion"><b>Tarifs OP GESTION</b><small>Pro 15 € · Business 25 € · Business Premium 50 €</small></a><a href="/tarifs.html#opmessages"><b>Tarifs OP MESSAGES</b><small>Perso · Pro · Premium — bientôt disponible</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div></div></div></div><div class="fly" id="fly-pourquoi"><div class="fly-in"><div><div class="fly-t">Pourquoi TEAM OP</div><div class="fly-grand"><a href="/pourquoi.html#partenaire"><b>Au service des entreprises</b><small>On écoute, on adapte, on construit avec vous</small></a><a href="/pourquoi.html#engagements"><b>Sécurité et engagements</b><small>Chiffrement AES-256, vos données à vous</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></div></div></div></div></nav>
+    <div class="menu-mobile" id="menu-mobile"><section><div class="fly-t">TEAM OP</div><a href="/">Accueil</a></section><section><div class="fly-t">Applications</div><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></section><section><div class="fly-t">Métiers</div><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></section><section><div class="fly-t">Tarifs</div><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></section><section><div class="fly-t">Pourquoi TEAM OP</div><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></section></div>
+  </header><div class="voile" aria-hidden="true"></div>
+<main>
+<article class="billet">
+<nav class="fil" aria-label="Fil d'Ariane"><a href="/">Accueil</a><span aria-hidden="true">›</span><a href="/blog/">Blog</a></nav>
+<header class="billet-tete">
+<h1>Ordre de travail : définition, mentions, modèle et suivi</h1>
+<p class="billet-meta">Par Justin Biret · <time datetime="2026-10-22">22 octobre 2026</time> · 12 min de lecture</p>
+</header>
+<figure class="billet-couverture"><img src="/blog/img/ordre-de-travail-couverture.webp" alt="À gauche, un ordre de service remis sur un chantier ; à droite, une technicienne qui consulte son ordre de travail sur tablette" width="1200" height="675" fetchpriority="high" decoding="async"></figure>
+<div class="billet-corps">
+<figure><img alt="Ordre de travail : définition, mentions, modèle et suivi" decoding="async" height="675" loading="lazy" src="/blog/img/ordre-de-travail-schema.webp" width="1200"/></figure>
+<p>Un ordre de travail (OT) est le document qui autorise et décrit une intervention précise : qui la réalise, chez quel client, avec quelles pièces, avant quelle échéance. Il est souvent appelé bon de travail ou bon d’intervention. Il ne faut pas le confondre avec l’ordre de mission (un déplacement professionnel) ni avec l’ordre de service (une décision du maître d’ouvrage ou du maître d’œuvre sur un marché de travaux). Cet article pose les trois définitions, donne un modèle d’OT à reprendre tel quel, puis montre comment le suivre sans le retaper trois fois.</p>
+<aside class="billet-encart" aria-label="OP GESTION"><p class="surtitre">OP GESTION</p>
+<p class="encart-titre">Interventions, planning, devis et factures, dans une seule application.</p>
+<p>Pour les entreprises de terrain, sur téléphone, tablette et ordinateur. À partir de 15 € par mois et par utilisateur, sans engagement.</p>
+<p class="encart-actions"><a class="bouton" href="/op-gestion.html">Découvrir OP GESTION</a><a class="lien-suite" href="/demo.html">Essayer la démonstration ›</a></p></aside>
+<h2 id="en-bref">En bref</h2>
+<ul>
+<li><strong>Ordre de travail</strong> : document interne qui déclenche et cadre une intervention technique (dépannage, maintenance, installation).</li>
+<li><strong>Ordre de mission</strong> : document formel qui encadre le déplacement d’un salarié, avec des enjeux de protection sociale et de remboursement de frais.</li>
+<li><strong>Ordre de service</strong> : décision notifiée dans un marché de travaux, qui peut modifier délais ou prix. Le délai de contestation est court.</li>
+<li>Un OT bien rempli sur le terrain peut alimenter directement le devis et la facture, ce qui compte avec la réforme de la facturation électronique.</li>
+</ul>
+<h2 id="table-des-matieres">Table des matières</h2>
+<ul>
+<li><a href="#ordre-de-travail-ordre-de-mission-ordre-de-service-ne-pas-les-melanger">Ordre de travail, ordre de mission, ordre de service : ne pas les mélanger</a></li>
+<li><a href="#les-mentions-dun-bon-ordre-de-travail">Les mentions d’un bon ordre de travail</a></li>
+<li><a href="#ou-lordre-de-travail-se-perd">Où l’ordre de travail se perd</a></li>
+<li><a href="#pourquoi-relier-ot-et-facturation-en-2026">Pourquoi relier OT et facturation en 2026</a></li>
+<li><a href="#notre-point-de-vue-lot-doit-servir-trois-fois">Notre point de vue : l’OT doit servir trois fois</a></li>
+<li><a href="#passer-du-papier-a-un-ot-numerique-par-ou-commencer">Passer du papier à un OT numérique : par où commencer</a></li>
+<li><a href="#ordre-de-travail-avec-op-gestion">Ordre de travail avec OP GESTION</a></li>
+<li><a href="#choisir-son-outil-les-criteres-qui-comptent">Choisir son outil : les critères qui comptent</a></li>
+<li><a href="#faq">FAQ</a></li>
+<li><a href="#sources">Sources</a></li>
+</ul>
+<h2 id="ordre-de-travail-ordre-de-mission-ordre-de-service-ne-pas-les-melanger">Ordre de travail, ordre de mission, ordre de service : ne pas les mélanger</h2>
+<p>Les trois expressions se ressemblent, et les moteurs de recherche les mélangent. Pourtant, elles n’ont ni le même auteur, ni la même valeur, ni les mêmes conséquences si on les oublie.</p>
+<div class="tableau"><table><thead><tr><th></th><th>Ordre de travail (OT)</th><th>Ordre de mission</th><th>Ordre de service (OS)</th></tr></thead><tbody><tr><td>Objet</td><td>Autoriser et guider une intervention</td><td>Encadrer un déplacement professionnel</td><td>Préciser l’exécution d’un marché de travaux</td></tr><tr><td>Émis par</td><td>L’entreprise, en interne</td><td>L’employeur</td><td>Le maître d’œuvre ou le maître d’ouvrage</td></tr><tr><td>Destinataire</td><td>Le technicien ou l’équipe</td><td>Le salarié</td><td>Le titulaire du marché</td></tr><tr><td>Enjeu principal</td><td>Organisation, traçabilité, preuve</td><td>Protection sociale, frais</td><td>Délais, prix, droit de contester</td></tr><tr><td>Valeur</td><td>Opérationnelle, preuve en cas de litige</td><td>Contractuelle</td><td>Contractuelle, peut modifier le marché</td></tr></tbody></table></div>
+<h3 id="lordre-de-travail-loutil-de-lentreprise-de-terrain">L’ordre de travail : l’outil de l’entreprise de terrain</h3>
+<p>Selon <a href="https://www.1life.fr/lexique/definition/ordre-travail/" rel="noopener">le lexique de 1Life</a>, l’OT est un document opérationnel qui autorise et guide l’exécution d’une tâche (réparation, maintenance, installation). Il rassemble le descriptif, les ressources (pièces et main-d’œuvre), le technicien assigné, la priorité et les échéances. Il peut aussi servir de preuve en cas de litige avec un client, puisqu’il date et situe la prestation. <a href="https://open-prod.com/lexique/ordre-de-travail/" rel="noopener">Open-Prod</a> le décrit de la même façon : un document qui contient les spécifications d’un service à exécuter et autorise les techniciens de terrain à le faire.</p>
+<p>Pour un plombier, un électricien, une entreprise de nettoyage ou de dépannage, c’est le quotidien : un appel arrive, on crée l’OT, on l’affecte, le technicien l’ouvre sur place, le clôture, et la facture en découle.</p>
+<figure><img alt="La technicienne fait signer la cliente sur son smartphone en fin d’intervention" decoding="async" height="675" loading="lazy" src="/blog/img/ordre-de-travail-signature.webp" width="1200"/></figure>
+<h3 id="lordre-de-mission-un-document-sur-le-deplacement">L’ordre de mission : un document sur le déplacement</h3>
+<p>L’ordre de mission concerne le salarié qui se déplace en dehors de son lieu de travail habituel. D’après <a href="https://blog.swile.co/deplacements-professionnels/ordre-mission-modele" rel="noopener">Swile</a>, c’est un écrit daté et signé qui précise les dates, les lieux, le motif et les moyens de transport. Il encadre aussi les remboursements de frais. <a href="https://www.concur.fr/blog/article/ordre-de-mission-definition-et-modele" rel="noopener">Concur</a> rappelle qu’un simple e-mail n’offre pas la même sécurité en cas de contentieux, et qu’il vaut mieux faire signer le document avant le départ.</p>
+<p>Un exemple concret : votre technicien part trois jours installer une chaudière à 400 km. L’OT décrit le chantier. L’ordre de mission couvre le trajet, l’hôtel et les repas. Les deux documents coexistent et ne se remplacent pas.</p>
+<h3 id="lordre-de-service-le-vocabulaire-des-marches-de-travaux">L’ordre de service : le vocabulaire des marchés de travaux</h3>
+<p>L’ordre de service est la décision du maître d’œuvre ou du maître d’ouvrage qui précise les modalités d’exécution de tout ou partie des prestations du marché, comme le rappelle <a href="https://www.marche-public.info/ordres-service-ccag-travaux-2021/" rel="noopener">le rappel du CCAG Travaux 2021 sur marche-public.info</a>. Pour une entreprise du bâtiment titulaire d’un marché, c’est un document à surveiller : selon cette même page, le titulaire dispose de 15 jours pour formuler ses observations, faute de quoi il peut être réputé avoir accepté les nouvelles conditions. Si vous recevez un OS qui change un délai ou ajoute une prestation, notez la date de réception le jour même et faites relire le texte par la personne qui suit vos marchés, ou par un avocat en droit de la construction si l’enjeu financier est important.</p>
+<p>Autre point utile, souvent confondu : un OS est notifié par écrit et peut modifier le contrat, alors qu’un OT interne n’engage pas le client dans les mêmes termes. Pour le texte officiel des marchés publics de travaux, l’<a href="https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000043315636" rel="noopener">article 28 du CCAG Travaux sur Légifrance</a> traite de la préparation des travaux.</p>
+<h2 id="les-mentions-dun-bon-ordre-de-travail">Les mentions d’un bon ordre de travail</h2>
+<p>Un OT trop léger ne sert à rien le jour où le client conteste. Un OT trop long ne sera jamais rempli par un technicien debout dans une cave. Voici l’équilibre qui fonctionne, à partir des éléments que <a href="https://www.1life.fr/lexique/definition/ordre-travail/" rel="noopener">1Life</a> cite comme typiques (numéro, date et heures, client, tâches, ressources, avancement et état).</p>
+<ol>
+<li><strong>Numéro d’OT</strong> unique, qui se retrouvera sur le devis et la facture.</li>
+<li><strong>Date et horaires</strong> prévus, puis réels.</li>
+<li><strong>Client et lieu</strong> : nom, adresse d’intervention, contact sur place, code d’accès si besoin.</li>
+<li><strong>Nature de l’intervention</strong> : dépannage, entretien, pose, contrôle.</li>
+<li><strong>Descriptif des tâches</strong> à réaliser, en quelques lignes précises.</li>
+<li><strong>Technicien ou équipe</strong> assignés.</li>
+<li><strong>Priorité</strong> : urgence, planifié, à reprogrammer.</li>
+<li><strong>Pièces et matériel</strong> prévus, puis réellement utilisés.</li>
+<li><strong>Temps passé</strong> par technicien.</li>
+<li><strong>Observations et photos</strong> avant et après.</li>
+<li><strong>Signature du client</strong> à la fin, avec la date.</li>
+<li><strong>Statut</strong> : à planifier, planifié, en cours, terminé, facturé.</li>
+</ol>
+<h3 id="un-modele-dot-a-copier">Un modèle d’OT à copier</h3>
+<p>Vous pouvez reprendre ce canevas dans un tableur ou un traitement de texte :</p>
+<pre><code>ORDRE DE TRAVAIL N° ____   Date : __/__/____   Priorité : ☐ Urgent ☐ Planifié
+Client : ______________  Adresse d'intervention : ______________
+Contact sur place : ______________  Tél. : ______________
+Technicien(s) : ______________  Créneau prévu : __h__ à __h__
+Nature : ☐ Dépannage ☐ Entretien ☐ Installation ☐ Contrôle
+Travaux à réaliser : ______________________________________
+Pièces prévues : ______________  Pièces utilisées : ______________
+Heure d'arrivée : __h__  Heure de départ : __h__
+Compte rendu et photos : _________________________________
+Signature du client : ________  Signature du technicien : ________
+Statut : ☐ Terminé ☐ À reprendre  ☐ Devis complémentaire
+</code></pre>
+<p>Ce modèle suffit pour démarrer. Sa limite apparaît vite : chaque case remplie à la main devra être retapée pour établir le devis, puis la facture. Dans OP GESTION, ces mêmes champs se remplissent sur le téléphone du technicien, et la facture les reprend directement.</p>
+<h2 id="ou-lordre-de-travail-se-perd">Où l’ordre de travail se perd</h2>
+<p>Dans les petites structures, le papier voyage mal. Voici les pertes les plus courantes que l’on observe chez les entreprises de terrain, et leur remède.</p>
+<ul>
+<li><strong>Le bon laissé dans le véhicule.</strong> Résultat : une intervention non facturée pendant des semaines. Remède : clôturer l’OT chez le client, pas le soir.</li>
+<li><strong>Les pièces oubliées.</strong> Le technicien utilise trois raccords et n’en note aucun. Remède : une ligne “pièces utilisées” obligatoire à la clôture.</li>
+<li><strong>La double saisie.</strong> Le dirigeant retape le bon en facture le week-end. Remède : un OT dont les données alimentent directement le devis ou la facture.</li>
+<li><strong>L’absence de preuve.</strong> Le client conteste le temps passé. Remède : horodatage, photos et signature sur l’OT.</li>
+<li><strong>Les urgences qui bousculent le planning.</strong> Remède : un planning visible par tous, où l’on déplace un OT en un geste.</li>
+</ul>
+<h2 id="pourquoi-relier-ot-et-facturation-en-2026">Pourquoi relier OT et facturation en 2026</h2>
+<p>La réforme de la facturation électronique change la nature du sujet. Le dépliant officiel des impôts, <a href="https://www.impots.gouv.fr/sites/default/files/media/1_metier/2_professionnel/EV/2_gestion/290_facturation_electronique/facturation-electronique---depliant-generique.pdf" rel="noopener">“La facturation électronique arrive en 2026”</a>, indique qu’à partir du 1er septembre 2026 les factures doivent transiter par une plateforme agréée, avec un calendrier d’émission qui dépend de la taille de l’entreprise. Nous sommes en octobre 2026 : la réception de factures électroniques concerne donc déjà toutes les entreprises. Pour l’émission, vérifiez votre échéance exacte sur le site des impôts, car elle varie selon votre taille (les plus petites structures disposent d’un délai supplémentaire).</p>
+<p>Conséquence pratique : des factures bâties sur des données propres. Une adresse mal saisie, une TVA oubliée ou un client mal identifié deviennent des rejets, pas seulement des erreurs. Si l’OT est rempli correctement sur le terrain et que ses données nourrissent la facture, vous réduisez ces risques à la source. C’est exactement l’idée de ne plus gérer les interventions et la facturation en deux silos.</p>
+<h2 id="notre-point-de-vue-lot-doit-servir-trois-fois">Notre point de vue : l’OT doit servir trois fois</h2>
+<p>Nous développons OP GESTION pour des plombiers, des électriciens, des entreprises de nettoyage, de dépannage ou de lutte contre les nuisibles. Le constat est toujours le même : l’OT est le premier document de la chaîne, et c’est celui qu’on soigne le moins.</p>
+<p>Notre conviction tient en trois points.</p>
+<p><strong>Une seule saisie.</strong> L’information que le technicien inscrit sur la fiche d’intervention (temps, pièces, photos, signature) doit servir ensuite au devis, à la facture et au suivi de stock. Chaque ressaisie est une occasion d’erreur et une heure perdue pour le dirigeant.</p>
+<p><strong>Un OT adapté au métier.</strong> Un plombier n’a pas besoin des mêmes champs qu’une entreprise anti-nuisibles qui doit produire un rapport d’intervention, ni qu’une équipe de nettoyage qui planifie des passages récurrents. C’est pourquoi nos modules et réglages métier sont prêts dès l’ouverture, avec des fiches et rapports personnalisables.</p>
+<p><strong>Un outil que le technicien ouvre vraiment.</strong> Si la fiche est lourde, elle sera remplie le soir, de mémoire. Une application sur le téléphone, qui fonctionne sur iOS, Android, macOS, Windows et sur le Web, sans installation compliquée, change l’habitude.</p>
+<p>Une bonne pratique simple, quel que soit votre outil : choisissez le moment de clôture de l’OT (chez le client, signature faite) et ne facturez que depuis un OT clos. Cette discipline vaut autant sur papier que dans un logiciel.</p>
+<p class="signature">— Justin Biret, fondateur de TEAM OP</p>
+<h2 id="passer-du-papier-a-un-ot-numerique-par-ou-commencer">Passer du papier à un OT numérique : par où commencer</h2>
+<p>Vous n’avez pas besoin de tout changer en une semaine. Une migration progressive fonctionne mieux.</p>
+<ol>
+<li><strong>Listez vos types d’interventions</strong> (dépannage, entretien annuel, pose, contrôle) et un modèle de fiche par type.</li>
+<li><strong>Numérotez</strong> vos OT de façon continue, sans trou, en commençant par un test sur un technicien.</li>
+<li><strong>Reliez le planning</strong> : un OT créé doit apparaître dans l’agenda du technicien concerné. Pour cela, un <a href="/logiciel-planning-interventions.html">logiciel de planning des interventions</a> évite les doubles saisies entre agenda et bons.</li>
+<li><strong>Faites remplir sur place</strong> : temps, pièces, photos, signature.</li>
+<li><strong>Générez le devis ou la facture depuis l’OT</strong>, avec la bonne TVA (10 % ou 20 % selon les travaux). Un <a href="/logiciel-devis-factures.html">logiciel de devis et factures pour artisans</a> sert précisément à cela.</li>
+<li><strong>Suivez les heures</strong> si vous facturez au temps passé : un <a href="/logiciel-pointage.html">outil de pointage des heures d’équipe</a> évite les écarts.</li>
+</ol>
+<h3 id="exemples-par-metier">Exemples par métier</h3>
+<ul>
+<li><strong>Plomberie</strong> :l’OT liste les raccords et pièces utilisés, pour savoir ce qui est parti sur chaque chantier. Voir le logiciel pour plombiers, pensé pour les interventions et le stock.</li>
+<li><strong>Électricité</strong> : l’OT devient un compte rendu de travaux, puis une facture. Le <a href="/logiciel-electricien.html">logiciel pour électriciens</a> relie interventions et devis.</li>
+<li><strong>Nettoyage</strong> : les OT sont récurrents, par site et par équipe. Une <a href="/logiciel-nettoyage.html">solution pour entreprises de nettoyage</a> organise les passages et les équipes.</li>
+<li><strong>Nuisibles</strong> : l’OT se transforme en rapport d’intervention, avec registre. Voir le <a href="/logiciel-anti-nuisibles.html">logiciel anti-nuisibles</a>.</li>
+<li><strong>Chauffage et climatisation</strong> : entretiens périodiques et suivi des équipements, avec un <a href="/logiciel-chauffage-climatisation.html">logiciel de suivi chauffage et climatisation</a>.</li>
+</ul>
+<h2 id="ordre-de-travail-avec-op-gestion">Ordre de travail avec OP GESTION</h2>
+<p>OP GESTION centralise les interventions, le planning des techniciens, le stock, les devis et la facturation dans une seule application. Les techniciens remplissent leurs fiches d’intervention sur le terrain, avec photos, signature et rapport PDF. Un agent IA prépare les devis, avec la TVA à 10 % ou 20 % gérée. Vous pouvez découvrir OP GESTION et comparer les trois formules ci-dessous.</p>
+<p>Les offres payantes sont facturées par utilisateur et par mois :</p>
+<div class="tableau"><table><thead><tr><th>Formule</th><th>Prix</th></tr></thead><tbody><tr><td>OP GESTION Pro</td><td>15 € par mois et par utilisateur</td></tr><tr><td>OP GESTION Business</td><td>25 € par mois et par utilisateur</td></tr><tr><td>OP GESTION Business Premium</td><td>50 € par mois et par utilisateur</td></tr></tbody></table></div>
+<p>Le détail de chaque formule se trouve sur la <a href="/tarifs.html">page des tarifs</a>. Pour une TPE qui part d’Excel ou du carnet de bons, le plus simple est de tester avec un ou deux techniciens avant d’équiper toute l’équipe.</p>
+<h2 id="choisir-son-outil-les-criteres-qui-comptent">Choisir son outil : les critères qui comptent</h2>
+<p>Que vous choisissiez notre solution ou une autre famille d’outils, posez ces questions.</p>
+<ul>
+<li><strong>Le technicien peut-il remplir l’OT en moins de deux minutes sur son téléphone ?</strong> Sinon, il ne le fera pas.</li>
+<li><strong>L’OT alimente-t-il le devis et la facture sans ressaisie ?</strong> C’est le gain principal.</li>
+<li><strong>Les champs s’adaptent-ils à votre métier ?</strong> Un outil générique oblige à tout configurer.</li>
+<li><strong>Le stock est-il tracé ? Qui a pris quoi, pour quel chantier :</strong> important pour les plombiers et électriciens.</li>
+<li><strong>Les données sont-elles protégées ?</strong> Demandez ce qu’il en est du chiffrement et de l’hébergement.</li>
+<li><strong>Le prix est-il lisible ?</strong> Un tarif par utilisateur et par mois se compare facilement à votre coût actuel de ressaisie.</li>
+<li><strong>Fonctionne-t-il sur tous vos appareils ?</strong> Bureau, tablette et téléphone ne sont pas toujours de la même marque.</li>
+</ul>
+<p>À l’inverse, les logiciels de maintenance industrielle (GMAO) visent plutôt des parcs de machines et des services maintenance intégrés. Pour une entreprise d’artisans ou de services de terrain, ils sont souvent plus lourds que nécessaire.</p>
+<h2 id="faq">FAQ</h2>
+<h3 id="quelle-est-la-difference-entre-un-ordre-de-travail-et-un-bon-dintervention">Quelle est la différence entre un ordre de travail et un bon d’intervention ?</h3>
+<p>Dans la pratique, les deux désignent le même type de document : celui qui décrit une intervention et autorise le technicien à la réaliser. Selon les entreprises, on parle d’OT, de bon de travail ou de bon d’intervention. Certains réservent “bon d’intervention” au compte rendu signé en fin de visite, qui correspond alors à l’OT clôturé.</p>
+<h3 id="un-ordre-de-travail-est-il-obligatoire">Un ordre de travail est-il obligatoire ?</h3>
+<p>Pour les interventions courantes, aucun texte ne vous impose un format d’OT. Il reste très recommandé, car il organise le travail et sert de preuve en cas de litige, surtout s’il est signé par le client. L’ordre de mission, lui, répond à des enjeux de protection sociale du salarié en déplacement, et l’ordre de service est encadré dans les marchés de travaux.</p>
+<h3 id="quest-ce-quun-ordre-de-service-dans-le-batiment-et-quel-delai-pour-le-contester">Qu’est-ce qu’un ordre de service dans le bâtiment, et quel délai pour le contester ?</h3>
+<p>C’est la décision du maître d’œuvre ou du maître d’ouvrage qui précise comment exécuter le marché. D’après <a href="https://www.marche-public.info/ordres-service-ccag-travaux-2021/" rel="noopener">marche-public.info</a>, le titulaire dispose de 15 jours pour formuler ses observations, faute de quoi il risque d’être considéré comme ayant accepté. En cas de doute sur un OS qui modifie prix ou délais, rapprochez-vous de votre conseil juridique avant l’expiration de ce délai.</p>
+<h3 id="peut-on-faire-un-ordre-de-travail-sur-excel">Peut-on faire un ordre de travail sur Excel ?</h3>
+<p>Oui, c’est un bon point de départ avec le modèle ci-dessus. La limite vient du volume : plusieurs techniciens, des photos, des signatures et des devis à produire. À partir de là, la ressaisie coûte plus cher que l’outil, et un logiciel de gestion d’interventions devient plus rentable.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://www.1life.fr/lexique/definition/ordre-travail/" rel="noopener">Un ordre de travail, qu’est-ce que c’est ? (1Life)</a></li>
+<li><a href="https://open-prod.com/lexique/ordre-de-travail/" rel="noopener">Qu’est-ce qu’un OT ? (Open-Prod)</a></li>
+<li><a href="https://blog.swile.co/deplacements-professionnels/ordre-mission-modele" rel="noopener">Ordre de mission : modèle et explications (Swile)</a></li>
+<li><a href="https://www.concur.fr/blog/article/ordre-de-mission-definition-et-modele" rel="noopener">Ordre de mission (Concur)</a></li>
+<li><a href="https://www.marche-public.info/ordres-service-ccag-travaux-2021/" rel="noopener">Ordres de service, CCAG-Travaux 2021 (marche-public.info)</a></li>
+<li><a href="https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000043315636" rel="noopener">Article 28 du CCAG Travaux (Légifrance)</a></li>
+<li><a href="https://www.impots.gouv.fr/sites/default/files/media/1_metier/2_professionnel/EV/2_gestion/290_facturation_electronique/facturation-electronique---depliant-generique.pdf" rel="noopener">La facturation électronique arrive en 2026 (impots.gouv.fr)</a></li>
+</ul>
+<h2 id="recommandations">Recommandations</h2>
+<ul>
+<li><a href="/logiciel-bons-de-commande.html">Bons de commande fournisseurs en ligne</a></li>
+<li><a href="/logiciel-planning-interventions.html">Logiciel de planning des interventions</a></li>
+<li><a href="/logiciel-gestion-de-stock.html">Logiciel de gestion de stock pour le terrain</a></li>
+</ul>
+</div>
+<footer class="billet-auteur"><img src="/icons/teamop-192.png" width="48" height="48" alt="" loading="lazy"><div><b>Justin Biret</b><span>Fondateur de TEAM OP. Une question sur cet article : <a href="mailto:contact@teamop.fr">contact@teamop.fr</a></span></div></footer>
+</article>
+<section class="blog-suite" aria-labelledby="a-lire"><h2 id="a-lire">À lire aussi</h2><div class="blog-grille"><a class="blog-carte" href="/blog/signature-electronique-devis.html"><img src="/blog/img/signature-devis-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-24">24 octobre 2026</time><b>Signature électronique de devis : valeur, niveaux et marche à suivre</b><span>Signer un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.</span></span></a><a class="blog-carte" href="/blog/suivi-des-interventions.html"><img src="/blog/img/suivi-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-23">23 octobre 2026</time><b>Suivi des interventions : méthode et outil pour le terrain</b><span>Statuts, fiche terrain, historique client, stock et alertes : comment suivre vos interventions de bout en bout avec un outil mobile pensé pour les TPE de terrain.</span></span></a><a class="blog-carte" href="/blog/gestion-des-interventions.html"><img src="/blog/img/gestion-interventions-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-21">21 octobre 2026</time><b>Gestion des interventions : organiser le terrain sans ressaisie</b><span>Comment organiser la gestion des interventions d'une TPE de terrain : demande, planning, fiche, facturation, outils et pièges à éviter, avec exemples par métier.</span></span></a></div></section>
+<section class="commencer" id="commencer"><div class="commencer-in"><div><h2>Prêt en trois étapes.</h2><ol>
+    <li><b>1</b><span>Créez votre compte TEAM OP.</span></li><li><b>2</b><span>Demandez l'accès à une application.</span></li><li><b>3</b><span>Votre équipe travaille, tout se synchronise.</span></li></ol></div>
+    <div class="boutons"><a href="/espace.html">Créer mon compte</a><a href="/connexion.html?choix=1">Se connecter ›</a></div></div></section>
+</main>
+<footer class="pied"><div class="pied-in"><div class="cols"><div><b>Applications</b><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div><div><b>Métiers</b><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></div><div><b>Tarifs</b><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div><div><b>TEAM OP</b><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/blog/">Blog</a><a href="/espace.html">Espace client</a><a href="/connexion.html?choix=1">Se connecter</a></div><div class="contact"><b>Contact</b><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><small>Une question, une demande</small></div></div>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Sans engagement ; TVA non applicable (article 293 B du CGI).</p>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="/confidentialite.html">Confidentialité</a><a href="/mentions-legales.html">Mentions légales et CGV</a><a href="#" data-cookies>Gestion des cookies</a><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><span class="fin">France</span></div>
+  </div></footer>
+<script src="/vitrine/v2/site.js" defer></script>
+<script src="/cookies.js" defer></script>
+</body>
+</html>

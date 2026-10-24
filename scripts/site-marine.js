@@ -273,9 +273,10 @@ function entete(section, sousnav) {
 const CONTACTS = [['contact@teamop.fr', 'Une question, une demande']];
 function pied() {
   const cols = [['Applications', VOLETS.applications], ['Métiers', VOLETS.metiers], ['Tarifs', VOLETS.tarifs]].map(([t, v]) => `<div><b>${t}</b>` + v.grands.concat(v.petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div>').join('')
-    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="https://blog.teamop.fr">Blog</a><a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`
-    /* « Blog » (21 octobre 2026, Justin) : blog.teamop.fr, hébergé par BabyLoveGrowth (CNAME OVH) — un lien depuis le
-       site aide Google et les IA à trouver les articles. */
+    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="/blog/">Blog</a><a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`
+    /* « Blog » (21 octobre 2026, Justin) : un lien depuis le site aide Google et les IA à trouver les articles. Le blog vit à
+       teamop.fr/blog/ depuis le 24 octobre 2026 (Justin : « je vais pas payer » BabyLoveGrowth) — généré par `scripts/blog.js`,
+       articles dans `contenu/blog/`. Adresse absolue : il n'a pas de copie d'aperçu. */
     /* ⛔ LA COLONNE « Contact » : contact@ seul (voir `CONTACTS`) — `test-835` § 4 l'exige au pied de chaque page, et rien d'autre. */
     + `<div class="contact"><b>Contact</b>${CONTACTS.map(([m, r]) => `<a href="mailto:${m}">${m}</a><small>${fr(r)}</small>`).join('')}</div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
@@ -856,7 +857,9 @@ const HORS_GENERATEUR = [['confidentialite.html', '0.2'], ['mentions-legales.htm
 function sitemap() {
   const u = (loc, pr, maj) => `  <url><loc>${loc}</loc><lastmod>${maj || MAJ}</lastmod><priority>${pr}</priority></url>`;
   return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    + Object.keys(PAGES).map(c => u(urlDe(c), PAGES[c].priorite || PRIORITE[c] || '0.6', PAGES[c].maj)).concat(HORS_GENERATEUR.map(([f, pr]) => u(SITE_URL + f, pr))).join('\n')
+    + Object.keys(PAGES).map(c => u(urlDe(c), PAGES[c].priorite || PRIORITE[c] || '0.6', PAGES[c].maj)).concat(HORS_GENERATEUR.map(([f, pr]) => u(SITE_URL + f, pr)))
+      /* le blog (`scripts/blog.js`) : l'index et chaque article, à la date de l'article — requis ICI et pas en tête : blog.js requiert ce fichier */
+      .concat(require('./blog.js').entreesSitemap().map(([loc, pr, maj]) => u(loc, pr, maj))).join('\n')
     + '\n</urlset>\n';
 }
 
@@ -924,6 +927,10 @@ function jumeauMd(cle) {
   return '# ' + PAGES[cle].titre + '\n\n' + t.replace(/^# /, '## ').replace(/\n# /g, '\n## ') + '\n';
 }
 
+/* `scripts/blog.js` habille ses pages du MÊME en-tête et du MÊME pied : il les reçoit d'ici, il ne les recopie pas */
+const pourLaRacine = b => { POUR_LA_RACINE = b; };
+module.exports = { entete, pied, commencer, ICONES, RES, esc, fr, pourLaRacine, jumeauMd, PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE };
+
 if (require.main === module) {
   fs.mkdirSync(DEST, { recursive: true });
   for (const cle of Object.keys(PAGES)) {
@@ -933,4 +940,3 @@ if (require.main === module) {
   }
   if (A_LA_RACINE) { fs.writeFileSync(path.join(RACINE, 'sitemap.xml'), sitemap()); console.log('✓ sitemap.xml'); fs.writeFileSync(path.join(RACINE, 'index.md'), jumeauMd('index')); console.log('✓ index.md'); }
 }
-module.exports = { jumeauMd, PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE };

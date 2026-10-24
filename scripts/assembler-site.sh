@@ -34,8 +34,9 @@ for f in *.html *.js *.webmanifest rubriques-choix.css favicon.ico robots.txt ll
   cp "$f" "$DEST/"
 done
 
-# Les dossiers servis tels quels. `.well-known` porte assetlinks.json (l'application Android).
-for d in icons vitrine sons screenshots apercu .well-known; do
+# Les dossiers servis tels quels. `.well-known` porte assetlinks.json (l'application Android). `blog` : les pages FABRIQUÉES
+# par scripts/blog.js (24 octobre 2026) — ses sources, `contenu/blog/`, restent hors du site.
+for d in icons vitrine sons screenshots apercu blog .well-known; do
   [ -d "$d" ] && cp -R "$d" "$DEST/"
 done
 

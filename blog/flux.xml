@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+<title>Blog TEAM OP</title>
+<link>https://teamop.fr/blog/</link>
+<atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
+<description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
+<language>fr-FR</language>
+<lastBuildDate>Sat, 24 Oct 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Signature électronique de devis : valeur, niveaux et marche à suivre</title>
+<link>https://teamop.fr/blog/signature-electronique-devis.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/signature-electronique-devis.html</guid>
+<pubDate>Sat, 24 Oct 2026 06:00:00 GMT</pubDate>
+<description>Signer un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.</description>
+<enclosure url="https://teamop.fr/blog/img/signature-devis-couverture.webp" type="image/webp" length="51576"/>
+</item>
+<item>
+<title>Suivi des interventions : méthode et outil pour le terrain</title>
+<link>https://teamop.fr/blog/suivi-des-interventions.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/suivi-des-interventions.html</guid>
+<pubDate>Fri, 23 Oct 2026 06:00:00 GMT</pubDate>
+<description>Statuts, fiche terrain, historique client, stock et alertes : comment suivre vos interventions de bout en bout avec un outil mobile pensé pour les TPE de terrain.</description>
+<enclosure url="https://teamop.fr/blog/img/suivi-couverture.webp" type="image/webp" length="46652"/>
+</item>
+<item>
+<title>Ordre de travail : définition, mentions, modèle et suivi</title>
+<link>https://teamop.fr/blog/ordre-de-travail.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/ordre-de-travail.html</guid>
+<pubDate>Thu, 22 Oct 2026 06:00:00 GMT</pubDate>
+<description>Ordre de travail, ordre de mission ou ordre de service : les différences, les mentions utiles, un modèle à copier et comment le suivre sans ressaisie.</description>
+<enclosure url="https://teamop.fr/blog/img/ordre-de-travail-couverture.webp" type="image/webp" length="69032"/>
+</item>
+<item>
+<title>Gestion des interventions : organiser le terrain sans ressaisie</title>
+<link>https://teamop.fr/blog/gestion-des-interventions.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/gestion-des-interventions.html</guid>
+<pubDate>Wed, 21 Oct 2026 06:00:00 GMT</pubDate>
+<description>Comment organiser la gestion des interventions d'une TPE de terrain : demande, planning, fiche, facturation, outils et pièges à éviter, avec exemples par métier.</description>
+<enclosure url="https://teamop.fr/blog/img/gestion-interventions-couverture.webp" type="image/webp" length="54804"/>
+</item>
+</channel>
+</rss>
