@@ -28021,6 +28021,11 @@ function rapportConstatLignes(i){ const co=i.constat||{}; const pk=Array.isArray
         const rows=[];
         if(i.type) rows.push(['Prestation',i.type]);
         if(i.passageTotal>1) rows.push(['Passage',i.passageNum+'/'+i.passageTotal]);
+        /* Chauffage / climatisation (24 octobre 2026) : les appareils VISITÉS pendant ce passage — le client lit sur son rapport quelles machines ont été vues.
+           Seulement pour un métier qui a un parc (`metierGereParc`), seulement les appareils de CE client ; un appareil retiré du parc depuis n'est plus cité. */
+        if(typeof metierGereParc==='function'&&metierGereParc()&&Array.isArray(i.appareilIds)&&i.appareilIds.length){
+          const vus=(db.appareils||[]).filter(a=>a&&i.appareilIds.indexOf(a.id)>=0&&a.clientId===i.clientId).map(a=>cvcLibelle(a)+(a.emplacement?' — '+a.emplacement:''));
+          if(vus.length) rows.push(['Appareils visités',vus.join(', ')]); }
         if((i.nuisibles||[]).length) rows.push(['Nuisibles ciblés',i.nuisibles.join(', ')]);
         if((i.methodes||[]).length) rows.push(['Méthodes employées',i.methodes.join(', ')]);
         if(co.infestation) rows.push(['Niveau d\'infestation',co.infestation]);
@@ -41103,6 +41108,15 @@ function cvcTachesBlocCalc(){
   return `<div class="card" id="cvc-taches" style="margin-bottom:12px"><div class="card-head"><h3>🔥 Entretiens à planifier</h3><span class="tag">${L.length}</span></div>
     <div style="font-size:12.5px;color:var(--t3);margin-bottom:6px">Calculé à partir du parc d’appareils de vos clients. « Planifier » ouvre une intervention pré-remplie : rien n’est créé tant que vous ne validez pas.</div>
     ${L.slice(0,12).map(p=>cvcLigneProposition(p,peutAj)).join('')}${L.length>12?`<div style="text-align:center;color:var(--t3);font-size:12px;padding:8px">+ ${L.length-12} autre(s)</div>`:''}</div>`; }
+/* La ligne de la CLOCHE (24 octobre 2026) — même liste que les Tâches et le tableau de bord (`cvcPropositions`), seulement ce qui presse : dépassé, ou dans les
+   CVC_RAPPEL_J jours. UNE ligne regroupée, comme les retards ; son identifiant porte le compte et les clés, donc elle revient « non lue » quand la liste change.
+   null pour un métier sans parc ; un calcul qui jette rend null (la cloche ne casse pas pour une échéance). `computeNotifs` ne l'appelle que pour qui voit les interventions. */
+function cvcNotif(){ if(!metierGereParc()) return null;
+  let L=[]; try{ L=cvcPropositions(); }catch(e){ return null; }
+  const urg=L.filter(p=>p.j<=CVC_RAPPEL_J); if(!urg.length) return null;
+  const dep=urg.filter(p=>p.j<0).length, n=urg.length;
+  return {id:'cvc:'+n+':'+dep+':'+urg.map(p=>p.cle).sort().join('|').slice(-40),ic:'🔥',
+    txt:`<b>${n} entretien${n>1?'s':''} à planifier</b>${dep?` — dont <b>${dep} dépassé${dep>1?'s':''}</b>`:` dans les ${CVC_RAPPEL_J} jours`}`,act:"go('taches')"}; }
 /* La carte du tableau de bord — même liste. Rendue SEULEMENT pour qui voit les interventions (une carte n'ouvre jamais un écran interdit). */
 function cvcDashSection(voitVue){ if(!metierGereParc()) return '';
   if(typeof voitVue==='function'&&!voitVue('interventions')) return '';
@@ -43219,6 +43233,8 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
     const retard=visibleInts(db.interventions||[]).filter(i=>i.date&&i.date<today&&(i.statut==='planifiee'||i.statut==='encours'));
     if(retard.length){ const plusVieille=retard.reduce((m,i)=>i.date<m?i.date:m,today);
       out.push({id:'retard:'+retard.length+':'+plusVieille,ic:'⏰',txt:`<b>${retard.length} intervention${retard.length>1?'s':''} en retard</b> — non effectuée${retard.length>1?'s':''}, la plus ancienne du ${fmtShort(plusVieille)}`,act:"go('interventions')"}); } }
+  /* chauffage / climatisation : les entretiens qui pressent (une ligne, `cvcNotif`) — pour qui voit les interventions */
+  if(typeof cvcNotif==='function'&&notifVoitModule('interventions')){ const n=cvcNotif(); if(n) out.push(n); }
   if(can('voirCompta') && (notifVoitModule('factures')||notifVoitModule('comptabilite'))){
     const imp=(db.factures||[]).filter(f=>f.statut==='envoyee'||f.statut==='retard');
     if(imp.length) out.push({id:'impayees:'+imp.length+':'+imp.map(f=>f.id).sort().join('').slice(-16),ic:'⏳',txt:`<b>${imp.length} facture${imp.length>1?'s':''} impayée${imp.length>1?'s':''}</b>`,act:"go('comptabilite')"}); }
