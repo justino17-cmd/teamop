@@ -81,14 +81,6 @@ if (s.indexOf("FB_TEAM='opgestion-beta'") < 0) { console.error('ÉCHEC : l\'espa
    perdus — c'est la dernière barrière avant un fichier publié. */
 if (s.indexOf("SYNC_SECRET_DEFAULT='ELAN-GESTION-7F3A9C2E-cloud-2026'") < 0) { console.error('ÉCHEC : SYNC_SECRET_DEFAULT a été modifié — c\'est le MOT DE PASSE de chiffrement, pas un nom'); process.exit(1); }
 if (s.indexOf("SYNC_SALT='RUxBTi1HRVNUSU9OLXNhbHQtdjE='") < 0) { console.error('ÉCHEC : SYNC_SALT a été modifié — c\'est le SEL de chiffrement, pas un nom'); process.exit(1); }
-/* ⛔ « SERVICE 24H/24 » N'EST PLUS UNE PROMESSE DE TEAM OP (relecture juridique du 23 octobre 2026 ; Justin : « assistance prioritaire »). La description de la formule Business
-   Premium (PLANS.premium.desc) l'écrivait encore, sur l'écran où le client choisit son abonnement — alors que la page tarifs, la page de paiement et les contrats disent « assistance
-   prioritaire », sans délai garanti. `app.html` ne change que sur une phrase de Justin (CLAUDE.md) : la bêta, elle, porte déjà le texte juste, par ce remplacement. Le jour où app.html
-   le dit lui-même, le motif n'y est plus et cette ligne ne fait plus rien — elle se retire alors (tests/test-2971.js §1 le rappelle). Plus d'un exemplaire : on refuse, on ne devine pas. */
-const PROMESSE_24H = 'service 24h/24', DIT_ASSISTANCE = 'assistance prioritaire';
-const n24h = s.split(PROMESSE_24H).length - 1;
-if (n24h > 1) { console.error('ÉCHEC : « ' + PROMESSE_24H + ' » est écrit ' + n24h + ' fois dans app.html — le remplacement vise la description de la formule, une seule fois'); process.exit(1); }
-s = s.split(PROMESSE_24H).join(DIT_ASSISTANCE);
 // Sortie par défaut : beta.html. Un chemin en argument sert au canal d'aperçu
 // (scripts/apercu.sh), qui veut la même isolation des données sous /apercu/.
 // La route PROPOSE du serveur exécute ce fichier dans un bac à sable dont le faux

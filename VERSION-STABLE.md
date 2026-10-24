@@ -1,5 +1,13 @@
 # Point stable TeamOP
 
+**Version stable : v773** — 24 octobre 2026 (Justin : « Ok bon publie tout »). Ce qui change pour une entreprise : sur l'écran où elle
+choisit son abonnement, la formule Business Premium promet **« assistance prioritaire »** au lieu de « service 24h/24 » — comme la page des
+tarifs, la page de paiement et les contrats depuis la relecture juridique du 23 octobre. Rien d'autre ne change : aucun format de données,
+aucune règle. La bêta et la démonstration publique, qui corrigeaient ce texte au passage, n'ont plus besoin de le faire. Pas d'annonce par
+courriel : un mot retiré ne s'annonce pas.
+
+**Ancien point : v772.**
+
 **Version stable : v772** — 23 octobre 2026 (Justin : « fais les 4 tout de suite », dont la publication de la version publique). Ce qui change
 pour une entreprise :
 - **L'application se règle sur son métier** : 23 métiers (dont le chauffage et la climatisation, avec le parc d'appareils, l'attestation en PDF,
