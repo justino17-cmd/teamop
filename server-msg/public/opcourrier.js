@@ -2425,7 +2425,9 @@ var MARKUP = `
     if(trOk&&tr&&tr.etat==="ok"&&tr.vue) bodyHtml=tr.body.map(function(p){ return "<p>"+corpsLu(p,true)+"</p>"; }).join("");
     if(trOk) bodyHtml='<div class="rtrad"><button type="button" class="lnk" data-act="traduire"'+(tr&&tr.etat==="cours"?' disabled aria-busy="true"':'')+'>'+
       H(!tr?"Traduire en français":tr.etat==="cours"?"Traduction…":tr.vue?"Voir l’original":"Voir la traduction")+'</button>'+(tr&&tr.etat==="ok"&&tr.vue?'<span class="rtrad-n">Traduit automatiquement</span>':'')+'</div>'+bodyHtml;
-    var canSign=!m.sign&&k0==="pro"&&m.att.some(function(a){ return a.kind!=="img"; })&&m.folder!=="junk"&&m.folder!=="trash";
+    // « Faire signer » ne se propose que sur un PDF : une signature porte sur un document, et un rapport DMARC (.zip, .xml.gz),
+    // une feuille de calcul ou un .docx ouvraient une demande de signature sans document (vu le 24 octobre 2026 dans la Tour).
+    var canSign=!m.sign&&k0==="pro"&&m.att.some(estPDF)&&m.folder!=="junk"&&m.folder!=="trash";
     var dlOk=!!m.src&&CAP.telechargerPiece&&typeof SRC.piece==="function";
     var att=m.att.length?'<div class="attbar">'+m.att.map(function(a,i){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(m.sign&&estPDF(a)?boutonApercu(i,"data-pv-att"):'')+(dlOk&&a.id!=null?'<button type="button" class="att-dl" data-dl="'+i+'" aria-label="Télécharger '+H(a.name)+'" title="Télécharger">'+I.down+'</button>':'')+'</div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn" data-act="signFrom">'+I.sign+'<span>Faire signer</span></button>':'')+'</div>':'';
     var vip=m.vip?'<span class="vip" title="VIP">'+I.star+'<span class="sr">VIP</span></span>':'';
@@ -3048,7 +3050,7 @@ var MARKUP = `
         .catch(function(e){ fin(); if(vivant) toast("Téléchargement impossible : "+msgErr(e,"échec")); }); }
     else fin(); }
   function signAct(act,m){
-    if(act==="signFrom"){ openSignRequest({acct:m.acct,title:m.subject.replace(/^\s*(re|tr|fwd?)\s*:\s*/i,""),att:m.att.filter(function(a){return a.kind!=="img";}),signers:m.from?[{name:m.from.name,email:m.from.email}]:[]}); return; }
+    if(act==="signFrom"){ openSignRequest({acct:m.acct,title:m.subject.replace(/^\s*(re|tr|fwd?)\s*:\s*/i,""),att:m.att.filter(estPDF),signers:m.from?[{name:m.from.name,email:m.from.email}]:[]}); return; }
     if(act==="signNew"){ openSignRequest(); return; }
     if(!m.sign) return;
     var g=m.sign;
