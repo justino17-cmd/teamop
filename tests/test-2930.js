@@ -89,10 +89,16 @@ const verifsDe = (res, n, etat) => sc(res, n).verifs.filter(x => !etat || x.etat
   vrai('…avec la raison en clair (elle « passe la demande » à Victor)', verifsDe(r, 1, 'ko').some(x => /passe la demande/.test(x.detail)));
   r = await tombe('camille-garde', [2], true);
   vrai('…Camille chargée a gardé ses quatre tâches : le constat le dit', verifsDe(r, 2, 'ko').some(x => /charge de Camille : 4/.test(x.detail)));
+  /* « bavard » (chacun cite quatre collègues à chaque réponse) : jusqu'au 24 octobre 2026, la boucle allait jusqu'au plafond du scénario (30 appels) et l'examen
+     la disait ✗. Depuis, le SERVEUR la contient : un agent ne se réveille plus pour un message qu'il avait déjà lu en répondant (`dejaLu`, agent-equipe.js) —
+     c'est ce qui faisait trancher Victor deux fois. Le banc garde donc le comportement neuf : la même équipe bavarde reste sous la moitié du plafond. */
   r = await lancer(['bavard']);
-  vrai('« bavard » : le scénario « @tous » est ✗', sc(r, 3).etat === 'ko', sc(r, 3).etat);
-  vrai('…la boucle : il atteint SON plafond d’appels et le DIT (✗, pas « inconnu »)', verifsDe(r, 3, 'ko').some(x => /plafond du scénario/.test(x.detail)));
+  vrai('« bavard » : la boucle est contenue par le serveur — « @tous » reste ✓, sous la moitié du plafond du scénario', sc(r, 3).etat === 'ok' && sc(r, 3).appels <= 15, sc(r, 3).etat + ', ' + sc(r, 3).appels + ' appels');
   vrai('…et la boucle ne dépasse jamais le plafond du scénario ni celui de l’examen', sc(r, 3).appels <= 30 && r.appels <= EX.MAX_APPELS && r.scenarios.every(s => s.appels <= EX.SCENARIOS.find(d => d.n === s.n).appelsMax), sc(r, 3).appels + ' / ' + r.appels);
+  /* « outils-seuls » : ce que le vrai modèle a fait le vendredi 24 octobre — des jugements d'objectifs sans un mot, et « Compte rendu non écrit. ». Le serveur
+     redemande alors le message, sans outil (`parole`, `o.ecrire`, reunions.js) : le bilan se lit dans le fil, et Victor écrit son compte rendu. */
+  r = await lancer(['outils-seuls']);
+  vrai('« outils-seuls » : des outils sans un mot → le serveur redemande le message ; le compte rendu du vendredi est écrit, scénario 8 ✓', sc(r, 8).etat === 'ok' && verifsDe(r, 8, 'ok').some(x => /Victor écrit le compte rendu du bilan/.test(x.libelle)), sc(r, 8).etat + ' — ' + verifsDe(r, 8, 'ko').map(x => x.libelle + ' : ' + x.detail).join(' ; '));
   r = await tombe('mail-tutoie', [6, 7, 9]);
   vrai('…le tutoiement est nommé (« ton »)', verifsDe(r, 6, 'ko').some(x => /tutoiement/.test(x.detail)));
   r = await tombe('mail-sans-bonjour', [6], true);

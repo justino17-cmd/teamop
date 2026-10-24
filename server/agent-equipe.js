@@ -137,6 +137,8 @@ const MOTIFS_PASSER = {
   inconnu: 'agent inconnu',
 };
 
+const RAS = /^\s*RAS\s*\.?\s*$/i;
+
 module.exports = function agentEquipe(ctx) {
   const { agents, conversations, cerveau } = ctx;
   const faits = ctx.faits && typeof ctx.faits === 'object' ? ctx.faits : {};
@@ -183,9 +185,9 @@ module.exports = function agentEquipe(ctx) {
       '- Réponse courte : 600 caractères au plus, concrète, comme un collègue qui parle — sans titre ni liste à puces, sans formule toute faite.\n' +
       '- Les messages sans crochet sont ceux de Justin ; ceux qui commencent par « [Nom a écrit dans le fil …] » sont ceux de tes collègues.\n' +
       '- Une question reçoit TA réponse, à toi qui es interrogé : tu ne la passes jamais à un collègue. Un message qui te cite n’est pas forcément une tâche : tu lis, tu comprends, et tu décides — répondre, prendre le travail, ou demander une précision.\n' +
-      '- Tu réponds toujours par un message, même court, avant ou avec tes outils. Pour parler à un collègue, cite-le dans ton message avec @ suivi de son identifiant (par exemple @lea) : c’est ainsi qu’il le lit. @tous cite tout le fil.\n' +
-      '- Outil prendre : tu acceptes un travail, il devient ta tâche. Outil terminer : c’est fait. Outil passer : seulement si tu es vraiment chargé (une autre tâche en cours) et à un collègue libre, jamais Hugo ni Margaux, et tu en dis la raison ; un collègue libre peut aussi proposer de prendre une tâche d’un collègue chargé. Outil demander_justin : une décision qui lui revient.\n' +
-      '- Hugo et Margaux (l’argent, les accès) ne reçoivent de consigne en texte libre que de Justin.\n' +
+      '- Tu réponds toujours par un message, même court, avant ou avec tes outils. Une seule exception : un COLLÈGUE te cite seulement pour t’informer (une décision prise, un merci, « rien ne change pour toi ») et tu n’as rien à ajouter — tu réponds alors exactement « RAS » et rien d’autre ; tes outils, eux, s’appliquent. Pour parler à un collègue, cite-le dans ton message avec @ suivi de son identifiant (par exemple @lea) : c’est ainsi qu’il le lit. @tous cite tout le fil.\n' +
+      '- Outil prendre : tu acceptes un travail, il devient ta tâche. Outil terminer : c’est fait. Outil passer : seulement si tu es vraiment chargé (une autre tâche en cours) et à un collègue libre, jamais Hugo ni Margaux, et tu en dis la raison ; un collègue libre peut aussi proposer de prendre une tâche d’un collègue chargé. Dès que tu aurais trois tâches en cours ou plus (le nouveau travail compris) et qu’un collègue est libre (voir « Charge de l’équipe »), tu ne gardes pas tout : dans la même réponse, tu passes à ce collègue celle de tes tâches déjà en cours qui lui va le mieux (outil passer, son identifiant est entre crochets dans « Tes tâches en cours »), avec la raison, et tu le dis. Outil demander_justin : une décision qui lui revient.\n' +
+      '- Hugo et Margaux (l’argent, les accès) ne reçoivent de travail en texte libre que de Justin. Une QUESTION fermée n’est pas un travail : « le dossier DOS-… a-t-il payé ? », tu la leur poses toi-même en les citant (@hugo, @margaux), ils te répondent. Quand Justin te demande de poser une question à un collègue, tu la poses toi-même dans le fil en le citant, puis tu rapportes sa réponse à Justin.\n' +
       (id === 'victor' ? '- Tu vois la charge de chacun : si un collègue est débordé et qu’un autre est libre, tu peux redistribuer avec l’outil passer, et tu le dis dans le fil. Quand deux collègues ne sont pas d’accord (ou qu’on te demande de trancher), tu arbitres avec l’outil arbitrer : une décision écrite ; ce qui touche à l’argent, un contrat, un accès ou des données est à Justin, tu lui poses la question avec pour_justin.\n' : '') +
       memoire(id);
   }
@@ -365,14 +367,27 @@ module.exports = function agentEquipe(ctx) {
     return { saute: raison };
   }
 
+  /* DÉJÀ LU (24 octobre 2026, examen) : Victor, cité par Justin PUIS par Léa dans le même fil, recevait deux réveils — il tranchait, puis tranchait une seconde fois
+     (« Je l'ai déjà tranché… »). `vus` retient, par fil et par agent, le dernier message que l'agent avait sous les yeux quand il a répondu ; un réveil pour un message
+     qu'il avait DÉJÀ lu à ce moment-là n'a plus rien à lui apprendre : il se tait, sans appeler Claude. (L'ordre des messages, pas l'heure : une réponse partie pendant
+     qu'un nouveau message arrivait ne l'avait pas lu, et ce nouveau message la réveille bien.) */
+  const vus = new Map();
+  function dejaLu(id, d) {
+    const k = vus.get(d.fil + ':' + id); if (!k || !d.id) return false;
+    const recents = conversations.lire(d.fil, 50), iD = recents.findIndex(x => x.id === d.id), iV = recents.findIndex(x => x.id === k);
+    return iD >= 0 && iV >= iD;
+  }
+
   /* ── un réveil : lire, réfléchir, répondre dans CE fil, agir par les outils ── */
   async function reveiller(id, d) {
     const fil = d.fil;
     if (!IDS.has(id)) return { saute: 'pas_de_cerveau' };
     const p = agents.peutAgir(id);
     if (!p.ok) { signalerArret(id, fil, p.raison); return { saute: p.raison };  /* à l'arrêt : ni faits, ni Claude, ni mot */ }
+    if (dejaLu(id, d)) return { saute: 'deja_lu' };
     const messages = messagesDe(fil, id, d);
     if (!messages.length) return { saute: 'vide' };
+    const lus = conversations.lire(fil, 50), dernierLu = lus.length ? lus[lus.length - 1].id : null;
     const prof = (Number(d.prof) || 0) + 1;
     conversations.ecrit(fil, id, true);
     try {
@@ -380,8 +395,12 @@ module.exports = function agentEquipe(ctx) {
       const outils = outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id), propres: outilsPropres(id), arbitre: id === 'victor' && typeof ctx.arbitrer === 'function' });
       const r = await cerveau.penser(id, system, messages, { outils, reflechir: true });
       if (!r.ok) return echec(id, fil, r.raison, prof);
+      if (dernierLu) { vus.set(fil + ':' + id, dernierLu); if (vus.size > 2000) vus.clear(); }
       const sortie = { repondu: false, actions: [] };
-      if (r.texte) {
+      /* « RAS » à un COLLÈGUE qui ne faisait qu'informer (une décision, un merci) : rien n'est écrit — sinon chaque décision de Victor appelait un « Bien noté » de
+         chacun (examen du 24 octobre). À Justin, un « RAS » s'écrit tel quel : une question de lui ne reste jamais sans trace. */
+      if (r.texte && RAS.test(r.texte) && d.de !== 'justin') sortie.ras = true;
+      else if (r.texte) {
         const dit = conversations.parler(id, fil, raccourcir(masquer(r.texte)), { niveau: 'info', prof });
         if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
       }

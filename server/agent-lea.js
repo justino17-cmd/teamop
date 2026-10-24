@@ -61,9 +61,9 @@ const PLAN = [
   'PLAN DU COURRIEL (dans cet ordre, en courts paragraphes) :',
   '1. Accroche : « Nous vous remercions pour votre inscription sur teamop.fr. » puis, dans la même phrase ou la suivante, l’activité de l’entreprise telle que tu l’as comprise (métier indiqué, ou déduit du nom ; si tu ne peux pas la déduire, parle d’« entreprise de terrain » et demande-lui son activité dans les questions).',
   '2. Qui nous sommes : TeamOP et ses deux applications ; présente OP GESTION comme celle qui correspond à l’entreprise.',
-  '3. Ce qu’OP GESTION peut faire pour ELLE : choisis, dans la liste ci-dessus, ce qui sert le métier de ce client (trois à cinq points, pas toute la liste), et rien d’autre.',
+  '3. Ce qu’OP GESTION peut faire pour ELLE : choisis, dans la liste ci-dessus, ce qui sert le métier de ce client (trois à cinq points, pas toute la liste), et rien d’autre. Ces points s’écrivent en tirets (« - »), jamais numérotés : la numérotation est réservée aux questions.',
   '4. Notre différence : une formule sur mesure (catégories inutiles retirées et non facturées, catégories améliorées ou créées pour son besoin et réservées à l’entreprise) et des tarifs maîtrisés, à partir de 15 € par mois et par utilisateur (TVA non applicable).',
-  '5. Questions de découverte : entre 4 et 7, numérotées, adaptées à SON métier — taille de l’équipe et nombre de techniciens, répartition de l’activité, type de clientèle, outils utilisés aujourd’hui, attentes principales.',
+  '5. Questions de découverte : entre 4 et 7, numérotées (1., 2., 3., …), chacune sur sa ligne et finie par « ? », adaptées à SON métier — taille de l’équipe et nombre de techniciens, répartition de l’activité, type de clientèle, outils utilisés aujourd’hui, attentes principales.',
   '6. La suite : « Dès réception de vos réponses, nous vous adresserons une proposition adaptée ; nous pourrons ensuite vous ouvrir une période d’essai d’une semaine. » (l’essai n’est évoqué qu’ici, jamais avant).',
   '7. Fermeture : « Nous restons à votre disposition par retour de mail ou par téléphone. » puis « Bien cordialement, ».',
 ].join('\n');
