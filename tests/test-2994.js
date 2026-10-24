@@ -16,11 +16,19 @@ const lEst = CODE.match(/function estPDF\(a\)\{[^\n]*?\}(?=\n)/);
 vrai('estPDF est trouvée dans le code', !!lEst);
 const estPDF = new Function(lEst[0] + '; return estPDF;')();
 
-const lCan = CODE.match(/var canSign=([^;\n]+);/);
+// Une expression se découpe aux parenthèses APPARIÉES, pas au premier « ) » ni au premier « ; » : l'ancienne règle portait une
+// fonction en ligne (`function(a){ return …; }`), et un motif naïf la coupait en deux — la mutation faisait jeter le banc au lieu
+// de le faire tomber sur le contrôle qui la vise.
+function jusquA(txt, i, fin) { let n = 0; for (let j = i; j < txt.length; j++) { const c = txt[j];
+  if (c === '(' || c === '{' || c === '[') n++; else if (c === ')' || c === '}' || c === ']') { if (n === 0) return txt.slice(i, j); n--; }
+  else if (n === 0 && fin.includes(c)) return txt.slice(i, j); } return null; }
+const iCan = CODE.indexOf('var canSign=');
+const lCan = iCan >= 0 && [null, jusquA(CODE, iCan + 'var canSign='.length, ';')];
 vrai('l\'expression de canSign est trouvée dans le code', !!lCan);
 const canSign = new Function('m', 'k0', 'estPDF', 'return (' + lCan[1] + ');');
 
-const lSF = CODE.match(/if\(act==="signFrom"\)\{[^\n]*?att:(m\.att\.filter\([^)]*\))/);
+const iSF = CODE.indexOf('if(act==="signFrom")'), iAtt = iSF >= 0 ? CODE.indexOf('att:', iSF) : -1;
+const lSF = iAtt >= 0 && iAtt - iSF < 300 && [null, jusquA(CODE, iAtt + 4, ',}')];
 vrai('le filtre des pièces de « signFrom » est trouvé dans le code', !!lSF);
 const piecesSignees = new Function('m', 'estPDF', 'return ' + lSF[1] + ';');
 
