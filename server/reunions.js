@@ -323,12 +323,12 @@ module.exports = function monterReunions(app, ctx) {
     o = o || {};
     const p = agents.peutAgir(id);
     if (!p.ok) return { cause: p.raison };
-    let r;
+    let r, system, demande;
     conversations.ecrit(FIL, id, true);
     try {
-      const system = equipe().systemDe(id) + blocReunion(R, run.faits) + blocObjectifs(R, id);
-      const messages = [{ role: 'user', content: 'Le fil de la réunion jusqu’ici :\n' + transcript(R) + '\n\n' + consigne }];
-      r = await cerveau.penser(id, system, messages, { outils: outilsReunion(R.type), reflechir: true });
+      system = equipe().systemDe(id) + blocReunion(R, run.faits) + blocObjectifs(R, id);
+      demande = 'Le fil de la réunion jusqu’ici :\n' + transcript(R) + '\n\n' + consigne;
+      r = await cerveau.penser(id, system, [{ role: 'user', content: demande }], { outils: outilsReunion(R.type), reflechir: true });
     } catch (e) { return { cause: 'erreur_api' }; }
     finally { conversations.ecrit(FIL, id, false); }
     if (!r || !r.ok) return { cause: (r && r.raison) || 'erreur_api' };
@@ -337,7 +337,19 @@ module.exports = function monterReunions(app, ctx) {
       let x; try { x = executer(id, a, R, run); } catch (e) { x = { ok: false, raison: 'erreur' }; }
       sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison });
     }
-    const t = couper(masquer(r.texte), o.max || PAROLE_MAX);
+    let t = couper(masquer(r.texte), o.max || PAROLE_MAX);
+    /* DES OUTILS ET PAS UN MOT (examen du 24 octobre 2026, réunion du vendredi) : six agents sur huit ont jugé leurs objectifs par juger_objectif sans rien dire,
+       et Victor, qui juge aussi les siens en concluant, a rendu ses outils sans le compte rendu — « Compte rendu non écrit. ». Quand la parole est ATTENDUE
+       (`o.ecrire` : le tour de table, le compte rendu), UN second appel, SANS outil (rien ne s'enregistre deux fois), lui demande son message. */
+    if (!t && o.ecrire && sortie.actions.length) {
+      const faits = sortie.actions.map(a => a.nom + (a.ok ? '' : ' (refusé)')).join(', ');
+      let r2 = null;
+      conversations.ecrit(FIL, id, true);
+      try { r2 = await cerveau.penser(id, system, [{ role: 'user', content: demande + '\n\nTes outils sont faits (' + faits + ') : ne les rappelle pas. Écris maintenant, sans outil, ton message pour le fil.' }], { reflechir: true }); }
+      catch (e) { r2 = null; }
+      finally { conversations.ecrit(FIL, id, false); }
+      if (r2 && r2.ok) t = couper(masquer(r2.texte), o.max || PAROLE_MAX);
+    }
     if (!t) return Object.assign(sortie, { cause: r.actions && r.actions.length ? '' : 'vide' });
     if (o.ras && RAS.test(t)) return Object.assign(sortie, { ras: true });
     const d = conversations.parler(id, FIL, t, { niveau: 'info', prof: 1, reunion: true, max: o.max });
@@ -373,13 +385,13 @@ module.exports = function monterReunions(app, ctx) {
     /* 2. Le tour de table : un agent après l'autre ; Inès en dernier, avec la qualité. */
     const consignes = {
       objectifs: 'C’est ton tour. Dis ce que tu retiens de tes leçons (si tu en as), donne 2 ou 3 objectifs MESURABLES pour cette semaine — tu les enregistres avec l’outil fixer_objectifs —, et une amélioration concrète que tu fais pour y arriver. Cite un collègue avec @ (par exemple @lea) seulement si tu as vraiment besoin de lui.',
-      bilan: 'C’est ton tour. Reprends tes objectifs un par un : atteint, partiel ou non, et pourquoi, faits à l’appui — tu enregistres chaque jugement avec l’outil juger_objectif. Puis, si tu en tires quelque chose, 0 à 2 leçons avec ajouter_lecon. Cite un collègue avec @ (par exemple @lea) seulement si tu as vraiment besoin de lui.',
+      bilan: 'C’est ton tour. Dis à l’équipe, en quelques phrases, où tu en es de tes objectifs un par un : atteint, partiel ou non, et pourquoi, faits à l’appui — et tu enregistres chaque jugement avec l’outil juger_objectif. Puis, si tu en tires quelque chose, 0 à 2 leçons avec ajouter_lecon. Cite un collègue avec @ (par exemple @lea) seulement si tu as vraiment besoin de lui.',
     };
     const ordre = ORDRE.filter(id => R.participants.includes(id)).concat(R.participants.includes('ines') ? ['ines'] : []);
     for (const id of ordre) {
       if (finie()) { absent(id, 'temps'); continue; }
       const extra = id === 'ines' ? ' Tu donnes aussi la qualité de la semaine : ce que tu relèves sur le travail de l’équipe, d’après les erreurs et les refus du bloc Faits et le bloc qualite (tes relectures de courriels : combien sont partis, combien étaient conformes, quels critères reviennent).' : '';
-      const o = await parole(id, R, run, consignes[R.type] + extra);
+      const o = await parole(id, R, run, consignes[R.type] + extra, { ecrire: true });
       if (o.cause && o.cause !== 'vide') { if (GLOBALES.includes(o.cause)) return abandon(o.cause); absent(id, o.cause); }
       else if (o.parle) { run.parles.add(id); citer(id, o.mentions); }
     }
@@ -406,7 +418,7 @@ module.exports = function monterReunions(app, ctx) {
     if (R.participants.includes('victor')) {
       const siens = R.type === 'objectifs' ? ' Enregistre aussi TES objectifs de la semaine (outil fixer_objectifs), sans les détailler dans le compte rendu.'
         : ' Juge aussi TES propres objectifs (outil juger_objectif) et note une leçon si tu en as une (outil ajouter_lecon), sans les détailler dans le compte rendu.';
-      const o = await parole('victor', R, run, 'Clos la réunion par le compte rendu : les décisions prises, qui fait quoi, et ce qui attend Justin — rien d’inventé, seulement ce qui s’est dit ici. ' + COMPTE_RENDU_MAX + ' caractères au plus. Ne cite personne avec @.' + siens, { max: COMPTE_RENDU_MAX });
+      const o = await parole('victor', R, run, 'Clos la réunion par le compte rendu : les décisions prises, qui fait quoi, et ce qui attend Justin — rien d’inventé, seulement ce qui s’est dit ici. ' + COMPTE_RENDU_MAX + ' caractères au plus. Ne cite personne avec @.' + siens, { max: COMPTE_RENDU_MAX, ecrire: true });
       if (o.parle) R.compteRendu = o.texte; else dire('Compte rendu non écrit' + (o.cause ? ' : ' + (CAUSES[o.cause] || o.cause) : '') + '.');
     }
     termine(R, 'terminee');

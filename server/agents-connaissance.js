@@ -67,7 +67,7 @@ const FORME = [
   'FORME DU COURRIEL :',
   '- Un courriel professionnel, écrit au nom de l’entreprise TeamOP (« nous »), en français, au vouvoiement.',
   '- Il commence par « Bonjour, » (jamais un prénom ni un nom : tu n’en connais pas) et finit par « Bien cordialement, ».',
-  '- Structuré en courts paragraphes séparés par une ligne vide ; une liste numérotée simple (1., 2., 3.) pour les questions.',
+  '- Structuré en courts paragraphes séparés par une ligne vide ; une liste numérotée simple (1., 2., 3.) pour les questions, et pour elles seules (une liste d’avantages s’écrit en tirets « - »).',
   '- Texte brut : ni Markdown (pas d’astérisques, pas de dièses), ni titres en capitales, ni émoji, ni lien, ni adresse électronique, ni numéro de téléphone.',
   '- Tu n’écris PAS de signature : le serveur l’ajoute après « Bien cordialement, ».',
 ].join('\n');
