@@ -70,6 +70,17 @@ function outilsValides(opts) {
 module.exports = function cerveau(ctx) {
   const { DATA_DIR, agents } = ctx;
   const cle = ctx.cleApi || '';
+  /* ⛔ LE PLAFOND DU MOIS SE BAISSE, JAMAIS SE RELÈVE (espace de test, 23 octobre 2026 : 10 $ pour tous les agents confondus). `ctx.plafondTotalUsd` n'est
+     passé par `index.js` QUE si `config.espaceTest === true` ; absent, hors forme ou au-dessus de 195, c'est `TOTAL_USD` — la production ne change pas d'un chiffre. */
+  const TOTAL = (typeof ctx.plafondTotalUsd === 'number' && Number.isFinite(ctx.plafondTotalUsd) && ctx.plafondTotalUsd > 0) ? Math.min(ctx.plafondTotalUsd, TOTAL_USD) : TOTAL_USD;
+  /* ⛔ DANS LE SERVEUR DE TEST, ON RÉSERVE AVANT D'APPELER (relecture adverse, 23 octobre 2026). `penser` vérifie `total() >= TOTAL` AVANT l'appel et n'enregistre le coût qu'APRÈS : seize
+     agents lancés ensemble (`@tous`, une réunion) passaient tous la vérification avec le même total, et le dépassement n'était borné que par leur nombre. Quand un plafond de test est
+     fixé (`ctx.plafondTotalUsd`, que `index.js` ne passe QUE si `config.espaceTest === true`), chaque appel RÉSERVE le pire coût qu'il peut avoir (sortie au maximum demandé, entrée estimée à
+     un jeton pour trois signes, recherches au maximum) ; la vérification compte les réservations des appels DÉJÀ en vol, et la réservation est rendue dès la réponse. Près du plafond,
+     un seul appel passe à la fois — le dépassement possible est celui d'UN appel, plus celui de seize. Sans plafond de test,
+     `reserver` vaut faux : le chemin de la production est celui d'avant, au caractère près. */
+  const reserver = typeof ctx.plafondTotalUsd === 'number' && Number.isFinite(ctx.plafondTotalUsd) && ctx.plafondTotalUsd > 0;
+  let enVol = 0;
   const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
   const mois = () => new Date(maintenant()).toISOString().slice(0, 7);
   let illisible = false;
@@ -102,7 +113,7 @@ module.exports = function cerveau(ctx) {
     if (!p.ok) return { ok: false, raison: p.raison };
     moisCourant();
     if (depense(id) >= plafond(id)) return { ok: false, raison: 'plafond_agent' };
-    if (total() >= TOTAL_USD) return { ok: false, raison: 'plafond_total' };
+    if (total() >= TOTAL) return { ok: false, raison: 'plafond_total' };
     if (typeof system !== 'string' || !Array.isArray(messages) || !messages.length) return { ok: false, raison: 'requete' };
     let r;
     /* ⛔ `thinking: disabled`, EXPRÈS. Sans ce réglage, Claude Sonnet 5 réfléchit d'office (mode adaptatif) et cette réflexion est prise
@@ -116,8 +127,15 @@ module.exports = function cerveau(ctx) {
     /* `tool_choice: auto` : le modèle choisit d'appeler un outil ou de répondre — les seuls choix compatibles avec la réflexion. Et c'est le CODE
        de l'appelant qui valide chaque appel d'outil : ce que Claude « décide » n'est jamais exécuté tel quel. */
     if (outils.length || recherche) { requete.tools = outils.concat(recherche ? [recherche] : []); requete.tool_choice = { type: 'auto' }; }
+    let reserve = 0;
+    if (reserver) {
+      reserve = ((JSON.stringify(system).length + JSON.stringify(messages).length) / 3 * USD_ENTREE_M + requete.max_tokens * USD_SORTIE_M) / 1e6 + (recherche ? recherche.max_uses * USD_RECHERCHE : 0);
+      if (total() + enVol >= TOTAL) return { ok: false, raison: 'plafond_total' };   // les appels DÉJÀ en vol comptent ; le sien, non : un seul appel peut passer juste sous le plafond (comme avant)
+      enVol += reserve;
+    }
     try { r = await (ctx.appeler || appelerAnthropic)(cle, requete); }
-    catch (e) { agents.noter(id, 'penser', { cible: 'claude', resultat: 'erreur', detail: String(e && e.message || e).slice(0, 120) }); return { ok: false, raison: 'erreur_api' }; }
+    catch (e) { enVol -= reserve; agents.noter(id, 'penser', { cible: 'claude', resultat: 'erreur', detail: String(e && e.message || e).slice(0, 120) }); return { ok: false, raison: 'erreur_api' }; }
+    enVol -= reserve;
     /* les recherches se paient en plus : ce que l'API compte (`recherches`), à défaut — réponse sans le compte — le plafond demandé (on se trompe vers le HAUT) */
     const recherches = recherche ? (Number.isInteger(r.recherches) && r.recherches >= 0 ? r.recherches : recherche.max_uses) : 0;
     const cout = ((Number(r.entree) || 0) * USD_ENTREE_M + (Number(r.sortie) || 0) * USD_SORTIE_M) / 1e6 + recherches * USD_RECHERCHE;
@@ -143,7 +161,7 @@ module.exports = function cerveau(ctx) {
     if (recherche) sortie.recherches = recherches;
     return sortie;
   }
-  const etatBudget = () => ({ illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL_USD, parAgent: Object.assign({}, etat.parAgent), cle: !!cle });
+  const etatBudget = () => ({ illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL, parAgent: Object.assign({}, etat.parAgent), cle: !!cle });
   /* IMPUTER (l'examen de l'équipe, 23 octobre 2026) : une dépense faite ailleurs avec la MÊME clé — les appels de l'examen se font sur une équipe d'essai, avec son propre
      cerveau, donc hors de ce fichier de budget — compte pourtant dans les 195 $ du mois. Elle s'inscrit sous un nom qui n'est PAS celui d'un agent (« examen ») : aucun
      plafond d'agent n'en est entamé, seul le total du mois l'est. Rend faux (rien d'écrit) pour un nom d'agent, un montant hors forme, ou un budget illisible. */

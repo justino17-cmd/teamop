@@ -12,6 +12,36 @@ const SUBS_PATH = path.join(DATA_DIR, 'subscriptions.json');
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
+/* ⛔⛔ L'ESPACE DE TEST (23 octobre 2026, `essais.js`) : ce même fichier, lancé avec `config.espaceTest === true` sur son propre port, sa propre config
+   et ses propres données. Tout ce qui s'y rapporte vit derrière `ESSAI` — sans lui, RIEN ne change (404 sur les trois routes, les courriels partent,
+   le plafond des agents reste à 195 $), ce que `tests/test-2981.js` joue sur le vrai serveur. Le démarrage passe ICI, avant la première lecture d'un
+   fichier de données : une remise à zéro demandée vide le dossier avant que quoi que ce soit s'en souvienne. */
+const ESSAI = config.espaceTest === true;
+const essaisMod = ESSAI ? require('./essais') : null;
+const essaiEtat = ESSAI ? essaisMod.demarrage({ dossier: DATA_DIR, monitor: path.join(path.dirname(CONFIG_PATH), 'monitor.json') }) : null;   // monitor.json : voir `viderMonitor` (même formule que MONITOR_PATH, plus bas)
+const ESSAI_ORIGINE = ESSAI ? (/^https:\/\/[a-z0-9.-]+$/i.test(String(config.espaceTestOrigine || '').replace(/\/+$/, '')) ? String(config.espaceTestOrigine).replace(/\/+$/, '') : essaisMod.ORIGINE_DEFAUT) : '';
+/* ⛔ LA BASE DU SITE, UNE SEULE FOIS : en production `https://teamop.fr`, dans le serveur de test l'origine de test. Les liens que le serveur
+   REND (retour de Stripe, lien de connexion d'un espace, adresse d'un espace dans la Tour) la lisent : écrits en dur, un paiement de test
+   revenait sur la production, et la Tour de test offrait le lien d'une application où l'espace n'existe pas. Les courriels, eux, sont réécrits
+   au rangement (`essais.js`). Sans `espaceTest`, la valeur est celle d'avant, au caractère près. */
+const SITE_BASE = ESSAI ? ESSAI_ORIGINE : 'https://teamop.fr';
+if (ESSAI) console.log('⚠️ ESPACE DE TEST : courriels captés (rien ne part), origine ' + ESSAI_ORIGINE + (essaiEtat.remise ? ', remise à zéro faite' + (essaiEtat.monitorVide ? ' (journal et incidents de la Tour compris)' : '') : '') + (essaiEtat.sur ? '' : ', REMISE À ZÉRO REFUSÉE (' + essaiEtat.raison + ')'));
+/* ⛔ UN SERVEUR DE TEST NE PARLE JAMAIS À STRIPE EN MODE RÉEL (relecture adverse, 23 octobre 2026). L'installeur et `stripe-essai-prix.js` refusent une clé `sk_live_`, mais un
+   `config.json` retouché à la main, ou un oubli, la ferait accepter : la Tour de test listerait alors les abonnements, impayés et factures de VRAIS clients — ce que la règle
+   « le test ne touche jamais la production » interdit. La garde est ICI, avant la première lecture de `config.stripe.secretKey` (une dizaine plus bas), et elle VIDE la clé
+   plutôt que de refuser de démarrer : l'espace de test se joue très bien sans Stripe, et un serveur qui ne démarre pas ne dit rien à personne. Sans `espaceTest`, RIEN ne bouge. */
+if (ESSAI && config.stripe && typeof config.stripe === 'object' && config.stripe.secretKey && !/^(sk|rk)_test_/.test(String(config.stripe.secretKey))) {
+  config.stripe.secretKey = '';
+  console.error('essais : la clé Stripe de cette configuration n\'est PAS une clé de test (sk_test_…) — elle est IGNORÉE, Stripe reste éteint dans l\'espace de test (bash install-test.sh stripe)');
+}
+/* ⛔ FIREBASE DE PRODUCTION, VU D'UN SERVEUR DE TEST (relecture adverse, 23 octobre 2026). Pour supprimer ou faire renaître une entreprise sans clé d'administration, le serveur se fait un jeton
+   ANONYME sur le projet `elan-gestion` (clé web écrite en dur) puis efface `elan_teams/<t>` : depuis l'espace de test, c'était parler au Firestore de production, et seule la règle publiée chez Google
+   (qui refuse l'anonyme) l'en empêchait — une garde externe, que le dépôt ne tient pas. Dans le serveur de test : pas d'inscription anonyme, pas de suppression sans jeton, pas de projet ni de clé
+   par défaut (un projet qui n'existe pas). Une clé d'administration d'un projet de TEST, posée exprès (`TEAMOP_FB_ADMIN`), reste utilisable. Sans `espaceTest`, les trois valeurs sont celles d'avant. */
+const FB_ANONYME = !ESSAI;
+const FB_CLE_DEFAUT = ESSAI ? '' : 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8';
+const FB_PROJET_DEFAUT = ESSAI ? 'espace-de-test-sans-firebase' : 'elan-gestion';
+
 webpush.setVapidDetails('mailto:' + (config.contactEmail || 'contact@teamop.fr'), config.vapidPublicKey, config.vapidPrivateKey);
 
 // ── stockage des abonnements push : { endpoint: {sub, teamId, userId, userName, ts} }
@@ -27,7 +57,15 @@ function saveSubs() {
 
 // ── e-mail (optionnel : rempli dans config.json → smtp)
 let mailer = null;
-if (config.smtp && config.smtp.host) {
+const essaiCourriels = ESSAI ? essaisMod.depot({ dossier: DATA_DIR, origine: ESSAI_ORIGINE }) : null;
+if (ESSAI) {
+  /* ⛔ UN SERVEUR DE TEST N'ENVOIE JAMAIS UN VRAI COURRIEL, QUELLE QUE SOIT LA CONFIG : `courrielsCaptes` n'est pas un choix, c'est une garantie (un oubli se dit au journal, il
+     ne rouvre rien). Le transport de nodemailer lui-même est remplacé : les chemins directs (boîte du client, support, Messagerie) sont captés comme `mailerEnvoi`. */
+  if (config.courrielsCaptes !== true) console.warn('essais : `courrielsCaptes` n\'est pas posé — la capture est forcée quand même');
+  essaisMod.patcherNodemailer(require('nodemailer'), essaiCourriels);
+  config.smtp = { host: 'capture.invalid', port: 465, user: 'essai@exemple-essai.fr', pass: '', from: '"TEAM OP · essai" <essai@exemple-essai.fr>' };
+  mailer = essaiCourriels.transport();
+} else if (config.smtp && config.smtp.host) {
   const nodemailer = require('nodemailer');
   mailer = nodemailer.createTransport({
     host: config.smtp.host,
@@ -77,7 +115,7 @@ const jsonGros = express.json({ limit: '20mb' });
 app.use((req, res, next) => CHEMINS_GROS_JSON.test(req.path) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
-const ORIGINS = config.origins || ['https://teamop.fr', 'https://www.teamop.fr'];
+const ORIGINS = (config.origins || ['https://teamop.fr', 'https://www.teamop.fr']).concat(ESSAI ? [ESSAI_ORIGINE] : []);   // l'origine de test n'existe que dans le serveur de test
 app.use((req, res, next) => {
   const o = req.headers.origin;
   if (o && ORIGINS.includes(o)) {
@@ -893,8 +931,8 @@ app.post('/api/stripe/checkout', async (req, res) => {
        tout de suite pendant que la formule attend. */
     const essai = (rangDuPrix >= 0 || optionSeule) ? finEssaiPeriode(visees, payeurMin) : null;
     if (essai) p.append('subscription_data[trial_end]', String(essai.fin));
-    p.append('success_url', 'https://teamop.fr/merci.html' + (essai ? '?debut=' + essai.debut : ''));
-    p.append('cancel_url', 'https://teamop.fr/recap-abonnement.html');
+    p.append('success_url', SITE_BASE + '/merci.html' + (essai ? '?debut=' + essai.debut : ''));
+    p.append('cancel_url', SITE_BASE + '/recap-abonnement.html');
     p.append('customer_email', payeur);
     p.append('metadata[compte]', payeur);
     p.append('subscription_data[metadata][compte]', payeur);
@@ -1834,7 +1872,7 @@ let monSaveTimer = null;
 function monSave() {
   clearTimeout(monSaveTimer);
   monSaveTimer = setTimeout(() => {
-    try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions })); } catch (e) { console.error('monitor save:', e.message); }
+    try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions }), { mode: 0o600 }); } catch (e) { console.error('monitor save:', e.message); }
   }, 500);
 }
 monPurge();
@@ -2028,10 +2066,31 @@ const monTokens = new Map();          // token -> { exp, userId, nom, role, apps
 // les sessions de la Tour survivent aux redémarrages du serveur
 const TOKENS_PATH = path.join(DATA_DIR, 'tour-sessions.json');
 try { for (const [t, v] of JSON.parse(fs.readFileSync(TOKENS_PATH, 'utf8'))) if (v && v.exp > Date.now()) monTokens.set(t, v); } catch (e) {}
-function monTokensSave() { try { fs.writeFileSync(TOKENS_PATH, JSON.stringify([...monTokens].filter(([, v]) => v.exp > Date.now()))); } catch (e) {} }
+/* des jetons de session VIVANTS de la Tour : lisibles par le seul propriétaire dès la création du fichier (le mode ne joue qu'à la création — un fichier déjà là garde le sien, voir design/ESPACE-DE-TEST.md) */
+function monTokensSave() { try { fs.writeFileSync(TOKENS_PATH, JSON.stringify([...monTokens].filter(([, v]) => v.exp > Date.now())), { mode: 0o600 }); } catch (e) {} }
 const monLoginTries = new Map();      // ip -> { count, reset }
 const monLock = new Map();            // ident -> { fails, until } : 5 échecs consécutifs = verrou 15 min
 const monHash = p => crypto.createHash('sha256').update(String(p)).digest('hex');
+/* L'ESPACE DE TEST : les comptes de la Tour qu'il sème, et la session que rend « Se connecter comme patron / collaborateur ». Une session née ici est une
+   session ordinaire (`monTokens`) — celle que ferait `/api/monitor/login`. N'existe que dans le serveur de test. */
+const essaiTour = ESSAI ? {
+  semer(liste) {
+    for (const x of liste) {
+      let u = monUsers.find(y => y.nom === x.nom);
+      if (!u) { u = { id: 'u' + crypto.randomBytes(5).toString('hex'), nom: x.nom, email: x.email, role: x.role, actif: true, ts: Date.now(), creePar: 'espace de test' }; monUsers.push(u); }
+      u.email = x.email; u.role = x.role; u.actif = true; u.hash = monHash(x.mdp);
+    }
+    monSave();
+  },
+  session(nom) {
+    const u = monUsers.find(y => y.nom === nom && y.actif);
+    if (!u) return null;
+    const token = crypto.randomBytes(24).toString('hex'), apps = monApps(u);
+    monTokens.set(token, { exp: Date.now() + 24 * 3600000, userId: u.id, nom: u.nom, role: u.role, apps });
+    monTokensSave();
+    return { token, nom: u.nom, role: u.role, apps };
+  },
+} : null;
 setInterval(() => { const now = Date.now(); let ch = false; for (const [t, s] of monTokens) if (now > s.exp) { monTokens.delete(t); ch = true; } if (ch) monTokensSave(); }, 600000).unref();
 function monUA(req) {   // appareil simplifié pour le journal (jamais l'UA complet)
   const u = String(req.headers['user-agent'] || '');
@@ -3745,6 +3804,31 @@ const OPTIONS_PRIX_MOIS = { stock: 9, achats: 6, compta: 6, sanitaire: 6 };   //
 const OPTIONS_LBL = { stock: 'Stock (et box pour la 3D)', achats: 'Achats fournisseurs', compta: 'Encaissements et compta', sanitaire: 'Registre sanitaire (métier 3D)' };
 const OPTIONS_COURT = { stock: 'Stock', achats: 'Achats', compta: 'Compta', sanitaire: 'Registre sanitaire (3D)' };   // les courriels
 function placesQ(e) { return Math.max(1, Math.min(50, parseInt(e && e.quantite, 10) || 1)); }
+/* ⛔⛔ L'ESPACE DE TEST PAIE AVEC SES PROPRES TARIFS (23 octobre 2026, `stripe-essai-prix.js`). Les dix identifiants de `STRIPE_PRIX_FORMULE` sont des tarifs du mode
+   RÉEL de Stripe : avec une clé `sk_test_`, Stripe répond « No such price » et la carte 4242 ne peut pas aboutir. `server/stripe-essai-prix.js` crée chez Stripe, en mode
+   test, les dix tarifs équivalents et écrit dans la config de TEST la table `stripe.prixEssai` { price_ de production → price_ de test }. Ici, et ici SEULEMENT, le serveur
+   de test remplace ses identifiants par leurs correspondants — à la place, dans les mêmes tableaux, pour que TOUS les lecteurs (la route de paiement, `classerLigne`,
+   `ligneMessages`, les places, la formule payée) lisent la même chose : un seul lieu de remplacement. ⛔ Sans `espaceTest`, RIEN ne bouge (la table, même présente
+   dans la config de production, est ignorée : une clé réelle avec des tarifs de test ferait refuser tout paiement vrai). ⛔ Tout ou rien : une table incomplète ou mal formée
+   ne remplace RIEN (une moitié de tarifs de test laisserait l'autre au mode réel) et le journal le dit. Posé APRÈS `STRIPE_PRIX_FORMULE` (zone morte temporelle) et hors du
+   bloc des constantes que `test-727` extrait. Les options du Pro n'ont pas de tarif de test : `STRIPE_PRIX_OPTION` est vide en production aussi. */
+if (ESSAI) {
+  const table = config.stripe && config.stripe.prixEssai, prod = [].concat(...Object.values(STRIPE_PRIX_FORMULE));
+  const propre = x => !!x && typeof x === 'object' && !Array.isArray(x);
+  const aLui = (k) => propre(table) && Object.prototype.hasOwnProperty.call(table, k) ? table[k] : undefined;
+  const test = prod.map(aLui);
+  const complete = propre(table) && test.every(v => typeof v === 'string' && /^price_[A-Za-z0-9]+$/.test(v))
+    && new Set(test).size === test.length && test.every(v => !prod.includes(v));
+  if (complete) {
+    for (const k of Object.keys(STRIPE_PRIX_FORMULE)) STRIPE_PRIX_FORMULE[k] = STRIPE_PRIX_FORMULE[k].map(aLui);
+    STRIPE_PRIX_MESSAGES.splice(0, STRIPE_PRIX_MESSAGES.length, ...STRIPE_PRIX_FORMULE.msgpro.concat(STRIPE_PRIX_FORMULE.msgpremium));
+    console.log('⚠️ ESPACE DE TEST : les ' + prod.length + ' tarifs de formule sont ceux du mode TEST de Stripe (stripe.prixEssai)');
+  } else if (table !== undefined) {
+    console.error('essais : `stripe.prixEssai` est incomplète ou mal formée — AUCUN tarif remplacé (le paiement de test n\'aboutira pas) ; relancer : bash install-test.sh stripe');
+  } else {
+    console.log('ESPACE DE TEST : pas de `stripe.prixEssai` — les tarifs de production sont gardés, le paiement de test n\'aboutira pas (bash install-test.sh stripe)');
+  }
+}
 /* a-t-elle eu un code promo, un jour ? Le repère « (code) » de `formulePar` s'efface quand la Tour règle la formule
    ensuite : on lit `codePromo` et le registre des codes, qui restent. Registre illisible → oui, dans le doute. */
 function placesPromoDejaEu(e) {
@@ -5567,8 +5651,8 @@ app.post('/api/monitor/espaces/renaitre', monPatronStrict, async (req, res) => {
   let efface = false;
   if (t) {
     let tok = await fbAdminJeton(), viaAdmin = !!tok;
-    if (!tok) { try {
-      const r0 = await fetch(IDTK_URL + '/accounts:signUp?key=' + ((config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8'),
+    if (!tok && FB_ANONYME) { try {
+      const r0 = await fetch(IDTK_URL + '/accounts:signUp?key=' + ((config.firebase && config.firebase.apiKey) || FB_CLE_DEFAUT),
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
       tok = ((await r0.json().catch(() => ({}))).idToken) || '';
     } catch (err) {} }
@@ -6245,10 +6329,10 @@ const etatPortail = { comptes: { actif: false }, dossiers: { actif: false } };
 
 let comptes = null;
 try {
-  if (config.comptes && config.comptes.actif) {
+  if ((config.comptes && config.comptes.actif) || ESSAI) {   // l'espace de test a toujours les comptes du portail : c'est ce qu'il sert à essayer
     comptes = require('./comptes').monterComptes(app, {
       dossier: DATA_DIR, mailerEnvoi: (o) => mailerEnvoi(o), quotaOk, ligneContacts: ligneContactsServeur,
-      siteBase: 'https://teamop.fr',
+      siteBase: SITE_BASE,
       journal: (...a) => console.log('comptes:', ...a),
     });
     etatPortail.comptes = { actif: true };
@@ -6427,7 +6511,7 @@ function espaceT(e) {
 /* Le lien de connexion d'un espace porte le CODE (#entreprise=…), jamais le nom
    (#e=nom) : un nom se devine, un code non. Le mot de passe provisoire n'y figure
    pas — codeMdpHache l'a remplacé par son empreinte. */
-function lienEspaceCode(e) { return 'https://teamop.fr/app.html#entreprise=' + codeMdpHache(e.code); }
+function lienEspaceCode(e) { return SITE_BASE + '/app.html#entreprise=' + codeMdpHache(e.code); }
 /* ══ OUVRIR SON ESPACE AVEC UN CODE D'ACCÈS — HISTORIQUE : RETIRÉ LE 28 SEPTEMBRE 2026 (voir « PLUS DE CODE D'ACCÈS ») ══
    Taper le nom de l'entreprise ne peut pas suffire : le lien de connexion porte la CLÉ qui
    déchiffre les données de l'espace (syncKey la dérive en PBKDF2), et un nom se lit sur un
@@ -6532,7 +6616,7 @@ app.post('/api/monitor/espaces/identifiants', monPatronStrict, (req, res) => {
      forcément le semis précédent. Sans ça, le patron dicterait un identifiant pendant que
      l'ancien continuerait d'ouvrir. */
   annuaireSemerDepuisCode(t, neuf, true).catch(() => {});
-  res.json({ ok: true, ident: ident, lien: 'https://teamop.fr/app.html#entreprise=' + neuf });
+  res.json({ ok: true, ident: ident, lien: SITE_BASE + '/app.html#entreprise=' + neuf });
 });
 /* ══ SE CONNECTER AVEC SON IDENTIFIANT, SANS LIEN NI CODE ═══════════════════════════════════
    Le problème posé, en clair : le lien (#entreprise=…) et le code d'accès à dix caractères
@@ -7047,7 +7131,7 @@ app.post('/api/monitor/espaces/renommer', monPatronStrict, (req, res) => {
      changement, et l'écran doit pouvoir le montrer plutôt que l'affirmer. */
   const adresse = e.slug || slug;
   console.log('Tour :', req.tourUser.nom, 'renomme l\'espace', t, '(adresse inchangée, ' + cles.length + ' entrée(s) mise(s) à jour)');
-  res.json({ ok: true, slug: adresse, nom, adresseInchangee: true, adresse: 'https://teamop.fr/e/' + adresse, lien: lienEspaceCode(espacesReg[cles[0]]) });
+  res.json({ ok: true, slug: adresse, nom, adresseInchangee: true, adresse: SITE_BASE + '/e/' + adresse, lien: lienEspaceCode(espacesReg[cles[0]]) });
 });
 /* ══ SUSPENDRE OU ROUVRIR UN ACCÈS, DEPUIS LA TOUR ══════════════════════════════════════════
    Couper un accès sans rien effacer. C'est le pendant de « Couper » sur un accès bêta, et la
@@ -7843,7 +7927,11 @@ const retraitCodes = new Map();   // email -> { code, exp, tries }
    service → « Générer une nouvelle clé privée »). Quand elle est posée sur le serveur,
    la fermeture d'une entreprise supprime AUSSI son compte du site (espace client),
    sa fiche et sa messagerie — plus rien n'est enregistré nulle part. */
-const FB_ADMIN_PATH = process.env.TEAMOP_FB_ADMIN || '/opt/teamop/firebase-admin.json';
+/* ⛔ LE SERVEUR DE TEST NE LIT JAMAIS LA CLÉ DE PRODUCTION (relecture adverse, 23 octobre 2026). Sans `TEAMOP_FB_ADMIN`, le défaut est le fichier de
+   production, lisible par le même utilisateur : « ne pas la définir » dans l'unité de test la chargeait donc, et un `/api/` joignable d'Internet
+   aurait tenu la clé d'administration de `elan-gestion` (fiches de vrais clients, coupure de sessions, jetons signés). En test, pas de défaut :
+   une clé de test ne vient que d'un `TEAMOP_FB_ADMIN` posé exprès. */
+const FB_ADMIN_PATH = process.env.TEAMOP_FB_ADMIN || (ESSAI ? '' : '/opt/teamop/firebase-admin.json');
 /* ⛔ LES ADRESSES DE BANC NE VISENT QUE 127.0.0.1 (`gardien`, 25 septembre 2026, N3). Posée par
    erreur sur le VPS, `TEAMOP_FB_OAUTH_URL` enverrait une assertion SIGNÉE par la clé
    d'administration (échangeable une heure contre un jeton qui passe au-dessus des règles), et
@@ -7857,7 +7945,7 @@ const FIRESTORE_URL = urlBanc(process.env.TEAMOP_FIRESTORE_URL, 'https://firesto
    au-dessus : seul `http://127.0.0.1:<port>` est accepté, et rien ne se règle sur le VPS. */
 const IDTK_URL = urlBanc(process.env.TEAMOP_IDTK_URL, 'https://identitytoolkit.googleapis.com/v1');
 let fbAdminCle = null;
-try { fbAdminCle = JSON.parse(fs.readFileSync(FB_ADMIN_PATH, 'utf8')); } catch (e) {}
+if (FB_ADMIN_PATH) { try { fbAdminCle = JSON.parse(fs.readFileSync(FB_ADMIN_PATH, 'utf8')); } catch (e) {} }
 const fbAdminTok = { jeton: '', exp: 0 };
 async function fbAdminJeton() {
   if (!fbAdminCle || !fbAdminCle.client_email || !fbAdminCle.private_key) return '';
@@ -8246,14 +8334,14 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
   // Effacement DÉFINITIF des données chiffrées de l'entreprise sur Firestore :
   // plus rien n'est enregistré, la place est libérée. (Les appareils reliés se
   // vident de toute façon au prochain lancement via le blocage entFermes.)
-  const FB_CLE = (config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8';
+  const FB_CLE = (config.firebase && config.firebase.apiKey) || FB_CLE_DEFAUT;
   let effaces = 0;
   // Les règles Firestore exigent un utilisateur connecté : jeton anonyme jetable,
   // supprimé sitôt l'effacement terminé.
   let jeton = '', jetonAdmin = false;
   if (espacesAEffacer.length) {
     jeton = await fbAdminJeton(); jetonAdmin = !!jeton;   // la clé admin passe au-dessus des règles
-    if (!jeton) try {
+    if (!jeton && FB_ANONYME) try {
       const r = await fetch(IDTK_URL + '/accounts:signUp?key=' + FB_CLE,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
       const j = await r.json().catch(() => ({}));
@@ -8266,6 +8354,7 @@ app.post('/api/monitor/clients/retirer', monPatronStrict, async (req, res) => {
      fermeture FAITE. */
   effaces = (await Promise.all(espacesAEffacer.map(async t => {
     let fait = false;
+    if (!FB_ANONYME && !jeton) return true;   // serveur de test, sans clé d'administration : AUCUNE requête vers Firestore — et rien à y effacer, l'espace de test n'y a jamais rien écrit
     try {
       const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
       const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
@@ -8776,16 +8865,17 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   // ── 8. Les données chiffrées, chez Firestore. En dernier : c'est la seule opération qui
   //       peut échouer pour une raison extérieure (réseau, jeton), et tout le reste doit
   //       déjà être fait pour qu'un échec ici ne laisse pas un demi-ménage.
-  const FB_CLE = (config.firebase && config.firebase.apiKey) || 'AIzaSyAbah03sO4f4LyNhvmig0Pn00lz1sHSpT8';
+  const FB_CLE = (config.firebase && config.firebase.apiKey) || FB_CLE_DEFAUT;
   let jeton = await fbAdminJeton(); const jetonAdmin = !!jeton;
-  if (!jeton) try {
+  if (!jeton && FB_ANONYME) try {
     const r = await fetch(IDTK_URL + '/accounts:signUp?key=' + FB_CLE,
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
     const j = await r.json().catch(() => ({}));
     jeton = j.idToken || '';
   } catch (e) { console.error('suppression firestore jeton :', e.message); }
   fait.donneesEffacees = false;
-  try {
+  if (!FB_ANONYME && !jeton) fait.donneesEffacees = true;   // serveur de test sans clé d'administration : rien à effacer chez Google, et surtout aucune requête
+  else try {
     const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 8000);
     const r = await fetch(FIRESTORE_URL + '/projects/' + FB_PROJET + '/databases/(default)/documents/elan_teams/' + encodeURIComponent(t) + '?key=' + FB_CLE,
       { method: 'DELETE', headers: jeton ? { 'Authorization': 'Bearer ' + jeton } : {}, signal: ctrl.signal });
@@ -9615,7 +9705,7 @@ function cliSave() {
 //    connaissant simplement son adresse e-mail. Le jeton est signé par Google : on contrôle
 //    la signature avec les certificats publics de Google, puis on ne retient QUE l'e-mail
 //    contenu dans le jeton — jamais celui envoyé dans le corps de la requête.
-const FB_PROJET = (config.firebase && config.firebase.projectId) || 'elan-gestion';
+const FB_PROJET = (config.firebase && config.firebase.projectId) || FB_PROJET_DEFAUT;
 /* Redirigeable pour les bancs, comme les trois autres adresses de Google (`urlBanc` : seul
    `http://127.0.0.1:<port>` est accepté) — sans elle, aucun banc ne pouvait présenter un VRAI
    jeton signé, et la garde de `/api/clients/sync` n'était éprouvée que sur des jetons refusés. */
@@ -10439,7 +10529,9 @@ try {
       surMessage: (m) => agentEquipe ? agentEquipe.surMessage(m)
         : (m.de !== 'justin' ? null : (m.fil === 'hugo' ? (agentHugo ? agentHugo.repondre(m.texte) : null) : (agentsConversation ? agentsConversation.repondre(m.fil, m.texte) : null))) });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
-    const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '' });
+    const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '',
+      /* espace de test seulement : le plafond du mois, tous agents confondus (10 $ chez Justin, y compris quand le réglage manque). Jamais lu hors `espaceTest`. */
+      plafondTotalUsd: ESSAI ? essaisMod.plafondAgents(config.agents && config.agents.plafondMoisTotal) : undefined });
     console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
     /* ce qu'un agent peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note. UNE définition : Hugo
        et les agents de la conversation générique (Léa, Camille, Margaux) la partagent, une seconde copie divergerait. */
@@ -11817,6 +11909,15 @@ const routesDoublons = (() => {
    peut porter n'importe quoi) et le type d'erreur ; `/health` compte les 5xx de l'heure.
    Aucune route n'est montée après ce point (tous les modules se montent au chargement) : le
    404 ne peut en masquer aucune. */
+/* L'ESPACE DE TEST : ses trois routes (`/api/essais/*`), montées AVANT le 404 final et seulement si `espaceTest` est posé ET que la clé est bien formée (64 hexadécimaux).
+   Sans clé valable les routes n'existent pas : le courrier reste capté, mais personne n'entre par un lien. */
+if (ESSAI) {
+  if (essaisMod.cleBienFormee(config.espaceTestCle)) {
+    essaisMod.monter(app, { cle: config.espaceTestCle, origine: ESSAI_ORIGINE, depot: essaiCourriels, sur: essaiEtat, comptes, tour: essaiTour, dossier: DATA_DIR, quotaOk,
+      quitter: () => process.kill(process.pid, 'SIGTERM') });
+    console.log('essais : routes /api/essais montées');
+  } else console.error('essais : `espaceTestCle` absente ou mal formée (64 hexadécimaux attendus) — les routes /api/essais ne sont PAS montées');
+}
 app.use((req, res) => { res.status(404).type('text/plain').send('introuvable'); });
 app.use((err, req, res, next) => {
   const code = (err && Number.isInteger(err.status) && err.status >= 400 && err.status < 600) ? err.status : 500;
@@ -11831,7 +11932,18 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 8080;
-const serveur = app.listen(PORT, '127.0.0.1', () => console.log('TeamOP API sur 127.0.0.1:' + PORT));
+const serveur = app.listen(PORT, '127.0.0.1', () => {
+  console.log('TeamOP API sur 127.0.0.1:' + PORT);
+  /* L'ESPACE DE TEST sème ses comptes une fois à l'écoute (il joue les vraies routes), sans bloquer ni faire tomber le démarrage. */
+  /* ⛔ JAMAIS SUR UN DOSSIER QUI N'A PAS ÉTÉ RECONNU COMME UN DOSSIER DE TEST (`essaiEtat.sur`) : un `espaceTest` posé par erreur sur des données réelles n'y sème rien. */
+  if (ESSAI && comptes && essaiEtat.sur) {
+    const metiersConseil = (m) => { try { return metiersMod.conseil(m); } catch (e) { return null; } };
+    essaisMod.semis({ dossier: DATA_DIR, appeler: essaisMod.appelerLocal(PORT), comptes, tour: essaiTour, refs: { conseil: metiersConseil, cats: CATS_OK },
+      agents: (agentsMod ? require('./agents').AGENTS.map(a => a.id) : []) }).semer()
+      .then(r => { if (r.erreurs.length) console.error('essais : semis incomplet —', r.erreurs.join(' · ')); })
+      .catch(e => console.error('essais : semis impossible —', String((e && e.message) || e).slice(0, 160)));
+  }
+});
 
 /* ══ L'ARRÊT PROPRE ════════════════════════════════════════════════════════════════════════
    ⛔ SIGTERM ARRIVE À CHAQUE DÉPLOIEMENT, et un push sur `main` touchant `server/**` déploie —

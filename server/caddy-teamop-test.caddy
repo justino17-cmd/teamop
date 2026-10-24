@@ -1,0 +1,76 @@
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+#  test.teamop.fr — l'ESPACE DE TEST (pages + API de test), version CADDY
+#  Jumeau de `server/nginx-teamop-test.conf` : même site, même règles, pour un VPS dont les ports 80 et 443 sont tenus par Caddy
+#  (OP MESSAGES et OP Courrier y sont servis par Caddy, REPRISE.md, 7 octobre 2026 — l'installeur ne suppose plus nginx).
+#
+#  Posé par `server/install-test.sh`, qui remplace les mots encadrés de deux arobases PUIS valide avec `caddy validate` AVANT de recharger, et
+#  remet l'ancien état si Caddy refuse. Ne pas l'installer à la main : ces mots sont des trous, pas du Caddyfile.
+#  Ce fichier est LE SEUL que l'espace de test pose dans Caddy (avec UNE ligne `import` dans le Caddyfile) : le bloc d'api.teamop.fr n'est pas touché.
+#  Caddy obtient et renouvelle le certificat tout seul (pas de certbot).
+#
+#  ── CE QU'IL FAIT ──────────────────────────────────────────────────────────────────────────
+#  · les PAGES (@@PAGES@@ : un lien vers la dernière fabrication) sont derrière un mot de passe (@@BASIC@@, hachage bcrypt) : l'espace de test montre des versions pas
+#    encore publiées, et une page de test n'est pas faite pour être trouvée ;
+#  · `/api/*` et `/health` vont au serveur de test (127.0.0.1:@@PORT@@) — MÊME ORIGINE que les pages, donc aucun CORS à ouvrir ;
+#  · X-Robots-Tag: noindex partout : aucun moteur de recherche ne doit garder une page de test.
+#
+#  ⛔ `/api/*` N'EST PAS DERRIÈRE LE MOT DE PASSE, ET C'EST TOUT LE POINT (même raison que pour nginx) : les pages parlent à l'API avec `Authorization: Bearer …`.
+#     Si l'API demandait aussi le mot de passe de la page, le navigateur remplacerait ce Bearer par l'identifiant d'authentification : tout tomberait en 401.
+#     Ce qui protège les routes d'essai (`/api/essais/…`), c'est leur propre clé, que le serveur compare à temps constant. Un `Authorization: Basic …` que le
+#     navigateur ajouterait de lui-même à une requête vers l'API est RETIRÉ ici ; un Bearer passe tel quel.
+#  ⛔ Aucun journal d'accès : Caddy n'en écrit que si on le lui demande, et on ne le demande pas — les liens « Se connecter comme… » portent la clé des routes d'essai
+#     dans leur adresse (nginx, lui, ne journalise pas `/api/essais/`).
+#  ⛔ Pas de HSTS : c'est une porte à sens unique, et un domaine d'essai n'en vaut pas la peine.
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+
+(entetes_essai) {
+    header {
+        X-Robots-Tag "noindex, nofollow, noarchive"
+        X-Content-Type-Options "nosniff"
+    }
+}
+
+@@DOMAINE@@ {
+    encode zstd gzip
+
+    # La racine mène à l'accueil des essais (comme nginx : avant toute authentification).
+    @racine path /
+    redir @racine /essais.html 302
+
+    # ── L'API DE TEST : sans mot de passe de page (voir plus haut), avec ses propres gardes ────────
+    @api path /api/* /health
+    handle @api {
+        import entetes_essai
+        # Le plus gros corps que le serveur accepte (pièces jointes, photos) ; au-delà Caddy répond 413.
+        request_body {
+            max_size 64MB
+        }
+        @basic header_regexp basic Authorization ^Basic\s
+        request_header @basic -Authorization
+        reverse_proxy 127.0.0.1:@@PORT@@ {
+            # Les flux (SSE) ne doivent pas être retenus dans un tampon.
+            flush_interval -1
+            # X-Forwarded-For ÉCRASÉ par l'adresse vue ici, jamais complété (req.ip, trust proxy 1).
+            header_up X-Forwarded-For {remote_host}
+        }
+    }
+
+    # ── Les pages : le mot de passe d'abord, puis le dossier de la dernière fabrication ───────────
+    handle {
+        import entetes_essai
+        header {
+            Referrer-Policy "strict-origin-when-cross-origin"
+            Permissions-Policy "geolocation=(self), microphone=(self), camera=(self), payment=()"
+            # Les pages changent à chaque déploiement : revalider toujours.
+            Cache-Control "no-cache"
+        }
+        @@BASIC@@ {
+            essai @@HASH@@
+        }
+        # Ce qui ne se sert pas : un fichier ou un dossier caché.
+        @points path_regexp /\.
+        respond @points 404
+        root * @@PAGES@@
+        file_server
+    }
+}

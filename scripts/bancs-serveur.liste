@@ -63,7 +63,14 @@
 # 23 octobre 2026 (relecture juridique, Anthropic) : `test-2975` — ce qu'un incident envoie à Anthropic (« Expliquer la cause », « Proposer un correctif »)
 # est filtré des adresses et numéros, le vrai serveur contre un faux Anthropic (22 vérifications) — plancher relevé à 5122.
 # Relecture adverse du même jour : les numéros dans une URL (%20, +, %2B) et la demande de fusion GitHub (faux GitHub) entrent au banc — 30 vérifications, plancher 5130.
-#plancher 5130
+# 23 octobre 2026 (l'espace de test, `test.teamop.fr`) : `test-2980` (le module `server/essais.js` : clé à temps constant, dépôt des courriels, le VRAI nodemailer dont `createTransport` est
+# remplacé, le démarrage et la marque, le semis, la forme du code), `test-2981` (SANS `espaceTest`, le vrai serveur est celui d'avant : trois routes en 404, un courriel PART, CORS, plafond),
+# `test-2982` (AVEC : semis, clé, courriels captés dont le lien marche, « Se connecter comme… » ouvre la vraie fonction de `espace.html`, la Tour, un dossier non vierge ne reçoit rien),
+# `test-2983` (le plafond des agents : 10 $ tous agents confondus) et `test-2984` (la remise à zéro ne touche rien hors de TEAMOP_DATA) — 222 vérifications, plancher relevé à 5350.
+# La couture : `test-2987` (les vraies pages fabriquées parlent au vrai serveur de test) — 93 vérifications. Le paiement de test : `test-2990` (le script qui crée les dix tarifs de
+# test chez un FAUX Stripe, idempotent, qui refuse une clé live ou une config sans `espaceTest` ; le vrai serveur qui les accepte en essai et ne change RIEN sans `espaceTest`) —
+# 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
+#plancher 5490
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -319,3 +326,15 @@ tests/test-2970.js
 tests/test-2976.js
 # 23 octobre 2026 : `test-2975` (ce qu'un incident envoie à Anthropic est filtré des adresses et numéros).
 tests/test-2975.js
+# 23 octobre 2026 (l'espace de test, `test.teamop.fr`) : le mode test du serveur. ⛔ Inerte sans `espaceTest` — `test-2981` le joue sur le vrai serveur.
+tests/test-2980.js
+tests/test-2981.js
+tests/test-2982.js
+tests/test-2983.js
+tests/test-2984.js
+# 23 octobre 2026 : `test-2987` (la COUTURE : les vraies pages fabriquées par `scripts/essais-build.js` parlent au vrai serveur de test — le Location de chaque compte, le vrai script injecté, une session ouverte avec ce qu'il a rangé, un courriel capté lu par `courriels.html`) — 93 vérifications.
+tests/test-2987.js
+# 23 octobre 2026 : le paiement de test (stripe-essai-prix.js, le remplacement des tarifs dans le serveur de test). Lit server/ et la page de paiement seulement.
+tests/test-2990.js
+# 23 octobre 2026 : `test-2992` (ce que l'espace de test ne peut pas atteindre de la production : clé Stripe réelle ignorée, aucune requête vers Firebase, monitor.json remis à zéro, la clé en en-tête, le plafond des agents en parallèle). Lit server/ seulement.
+tests/test-2992.js

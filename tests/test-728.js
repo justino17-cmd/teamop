@@ -127,6 +127,26 @@ for (const f of fichiers) {
   let m;
   while ((m = re.exec(src))) if (/['"`]/.test(m[1])) mauvais.push(m[0]);
   v('⛔ [' + f + '] aucun ${var:?mot} ne porte de quote dans son mot', mauvais, []);
+
+  /* 4. Un scalaire NU qui porte « : » (deux-points PUIS espace) n'est pas du YAML : GitHub refuse le fichier ENTIER, et le
+     workflow tombe à chaque poussée sans qu'aucun job ne parte (pris le 24 octobre 2026 : `run: echo "…essai-test : la clé…"`
+     dans deploiement-test.yml, trois runs rouges nommés par leur chemin ; le parse bash ci-dessus ne voit que le CORPS des run).
+     On saute le contenu des blocs `|` et `>`, les valeurs entre guillemets ou entre crochets, et les commentaires. */
+  const nus = [];
+  let seuil = -1;   // indentation de la clé qui a ouvert un bloc `|` ou `>` : ce qui est plus indenté est du texte, pas du YAML
+  src.split('\n').forEach((l, i) => {
+    if (!l.trim()) return;
+    const ind = l.match(/^ */)[0].length;
+    if (seuil >= 0) { if (ind > seuil) return; seuil = -1; }
+    if (/^\s*#/.test(l)) return;
+    const m = /^\s*(?:-\s+)?[A-Za-z0-9_.-]+:\s+(.*)$/.exec(l);
+    if (!m) return;
+    const val = m[1].startsWith('#') ? '' : m[1].replace(/\s+#.*$/, '');
+    if (/^[|>][+-]?\d*\s*$/.test(val)) { seuil = ind; return; }
+    if (/^["'\[{&*!]/.test(val)) return;
+    if (/:\s/.test(val)) nus.push((i + 1) + ': ' + l.trim().slice(0, 80));
+  });
+  v('⛔ [' + f + '] aucun scalaire nu ne porte « : » (le fichier serait refusé par GitHub)', nus, []);
 }
 
 vrai('au moins un bloc run a été éprouvé', totalBlocs > 0);
@@ -199,12 +219,14 @@ if (fs.existsSync(dep)) {
   /* ⚠️ Dans le CODE du workflow, jamais dans ses commentaires (« un motif de banc vise du code, jamais une phrase ») : le
      2 octobre 2026, `verification.yml` a NOMMÉ le compteur dans un commentaire (son filet « SAUTÉ » est le même) sans l'appeler. */
   const utilise = fichiers.filter(f => /bancs-ci\.sh/.test(fs.readFileSync(path.join(DIR, f), 'utf8').replace(/^\s*#.*$/gm, '')));
-  /* ⛔ TROIS appelants, et c'est voulu : la CI (toute branche), le déploiement d'OP GESTION (`server/**`) et celui
-     d'OP MESSAGES (`server-msg/**`, 1er octobre 2026 — design/opmessages/SERVEUR.md § 3.10). Le troisième lance le
-     MÊME compteur avec SA liste (`scripts/bancs-messages.liste`) et son plancher : deux copies d'un compteur divergent
-     toujours, et un quatrième appelant doit être un geste conscient, pas un bloc recopié. `test-933` garde ce que le
-     troisième lance et dans quel ordre. */
-  v('   et les quatre workflows (dont celui d\'OP Courrier, éteint) l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement-courrier.yml', 'deploiement-messages.yml', 'deploiement.yml']);
+  /* ⛔ CINQ appelants, et c'est voulu : la CI (toute branche), le déploiement d'OP GESTION (`server/**`) et celui
+     d'OP MESSAGES (`server-msg/**`, 1er octobre 2026 — design/opmessages/SERVEUR.md § 3.10), celui d'OP Courrier
+     (éteint) et, depuis le 23 octobre 2026, celui de l'ESPACE DE TEST (`deploiement-test.yml`, mêmes bancs serveur que
+     le déploiement de la production : un commit qui ne les passe pas ne va pas sur le VPS, même en essai). Chacun
+     lance le MÊME compteur avec SA liste et son plancher : deux copies d'un compteur divergent toujours, et un
+     sixième appelant doit être un geste conscient, pas un bloc recopié. `test-933` garde ce que celui d'OP MESSAGES
+     lance et dans quel ordre. */
+  v('   et les cinq workflows (dont celui d\'OP Courrier, éteint, et celui de l\'espace de test) l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement-courrier.yml', 'deploiement-messages.yml', 'deploiement-test.yml', 'deploiement.yml']);
 }
 
 /* ⛔ LA LISTE DES BANCS DU SERVEUR — ce que le déploiement du serveur SEUL lance sur `main`

@@ -1,0 +1,323 @@
+/* ══ test-2986 · LE SCRIPT INJECTÉ (#essai=…), L'ACCUEIL DES ESSAIS ET LA LISTE DES COURRIELS — EXÉCUTÉS ═════════════════════════════════════════
+   23 octobre 2026. `scripts/essais-build.js` pose en tête de chaque page de test un petit script qui lit `#essai=<base64url d'un JSON>`,
+   range ce que le serveur de test a préparé pour être connecté (localStorage, sessionStorage), efface le fragment, puis recharge ou va à
+   une page du site. C'est une PORTE : un lien forgé ne doit ni écrire n'importe quelle clé, ni envoyer hors du site. Ce banc EXÉCUTE le vrai
+   script (extrait d'une page fabriquée) dans un contexte simulé qui note chaque écriture, chaque `replaceState`, chaque redirection ; puis
+   ÉPROUVE chaque règle en la retirant du générateur (une copie mutilée fabrique des pages, le même scénario doit tomber).
+   Il exécute aussi la page `courriels.html` (un faux DOM, la vraie fonction) : un lien `javascript:` n'est pas rendu cliquable, le texte d'un
+   courriel entre par textContent (jamais en HTML), le courriel « tel que le client le voit » va dans un cadre isolé. Et il lit essais.html :
+   les quatre liens de connexion avec la clé, le bouton de remise à zéro (POST, confirmation), le parcours dans l'ordre, les tests de la
+   modification AVANT le parcours de base.
+   Ce que ce banc ne voit pas — le navigateur qui enchaîne 302, fragment, rechargement, Mon espace connecté — est dans scratchpad/sonde-essais.js
+   (43 ✓ 0 ✗ le 23/10/2026). Population comptée avant chaque absence.                                                                         */
+'use strict';
+const fs = require('fs'), os = require('os'), path = require('path'), vm = require('vm'), crypto = require('crypto');
+const { spawnSync } = require('child_process');
+let ok = 0, ko = 0;
+const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + (typeof d === 'string' ? d : JSON.stringify(d)) : '')); } };
+const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b]);
+
+const RACINE = path.join(__dirname, '..');
+const BUILD = path.join(RACINE, 'scripts', 'essais-build.js');
+const CLE = crypto.randomBytes(32).toString('hex');
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'essais2986-'));
+let n = 0;
+const neuf = () => path.join(TMP, 's-' + (++n));
+function construire(sortie, o) {
+  const opt = o || {}, env = Object.assign({}, process.env, { ESSAIS_CLE: CLE, ESSAIS_RACINE: RACINE }); delete env.TEAMOP_CONFIG; delete env.ESSAIS_PARCOURS;
+  return spawnSync(process.execPath, [opt.script || BUILD, sortie, 'abcdef1', 'claude/essai-banc'].concat(opt.args || []), { encoding: 'utf8', env, timeout: 120000 });
+}
+const lire = (d, f) => fs.readFileSync(path.join(d, f), 'utf8');
+const b64u = o => Buffer.from(typeof o === 'string' ? o : JSON.stringify(o), 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const scriptDe = d => { const m = /<script id="essai-fragment">([\s\S]*?)<\/script>/.exec(lire(d, 'espace.html')); return m ? m[1] : ''; };
+
+/* ── le contexte simulé ──────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+function jouer(SCRIPT, hash, opt) {
+  const o = opt || {}, j = { ls: {}, ss: {}, replaceState: [], replace: [], reload: 0, warn: 0 };
+  const stock = (cible) => ({ setItem(k, v) { if (o.quota) throw new Error('quota'); cible[String(k)] = String(v); } });
+  const sb = {
+    location: { hash, pathname: '/espace.html', search: '?x=1', replace(u) { j.replace.push(u); }, reload() { j.reload++; } },
+    history: { replaceState(a, b, c) { j.replaceState.push(c); } },
+    localStorage: stock(j.ls), sessionStorage: stock(j.ss),
+    atob, TextDecoder, console: { warn() { j.warn++; } },
+  };
+  vm.runInNewContext(SCRIPT, sb, { timeout: 2000 });
+  return j;
+}
+/* tous les scénarios, rendus en booléens nommés : le même jeu sert au vrai script et aux scripts mutilés */
+function verdicts(SCRIPT) {
+  const v = {}, par = (cle, f) => { try { v[cle] = !!f(); } catch (e) { v[cle] = false; } };
+  const client = { stockage: { teamop_portail_jeton: 'jeton-essai-1' }, page: 'espace.html' };
+  par('écrit la clé et va à la page', () => { const j = jouer(SCRIPT, '#essai=' + b64u(client)); return j.ls.teamop_portail_jeton === 'jeton-essai-1' && j.replace.length === 1 && j.replace[0] === '/espace.html' && j.reload === 0; });
+  par('efface le fragment AVANT tout', () => { const j = jouer(SCRIPT, '#essai=' + b64u(client)); return j.replaceState.length === 1 && j.replaceState[0] === '/espace.html?x=1'; });
+  par('sans page : recharge', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { teamop_app: 'app.html' } })); return j.reload === 1 && j.replace.length === 0 && j.ls.teamop_app === 'app.html'; });
+  const REFUSEES = ['//exemple.fr/x', 'https://exemple.fr/x', 'javascript:alert(1)', '../x.html', 'a/../../x', '/etc/passwd', 'a b.html', 'x.html#h', 'a//b', 'é.html', ''];
+  for (const p of REFUSEES) par('page refusée : ' + JSON.stringify(p), () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { teamop_app: '1' }, page: p })); return j.replace.length === 0 && j.reload === 1; });
+  for (const [p, att] of [['tour.html', '/tour.html'], ['a/b.html?x=1&y=2', '/a/b.html?x=1&y=2'], ['espace.html?mode=resetPassword&oobCode=a-b_c', '/espace.html?mode=resetPassword&oobCode=a-b_c']])
+    par('page acceptée : ' + p, () => { const j = jouer(SCRIPT, '#essai=' + b64u({ page: p })); return j.replace.length === 1 && j.replace[0] === att && j.reload === 0; });
+  /* ⛔ LISTE FERMÉE (relecture adverse) : ce qui n'est pas attendu ne s'écrit pas, quelle que soit sa forme */
+  const ATTENDUES_LS = ['teamop_portail_jeton', 'teamop_app', 'tour_token', 'tour_nom', 'tour_role', 'tour_apps', 'elanT_sync_team', 'elanT_entreprise_nom', 'elanT_savedLogin'];
+  const ATTENDUES_SS = ['tour_token', 'tour_nom', 'tour_role', 'tour_apps', 'tour_email'];
+  const HORS_LISTE = { elanT_gestion_v2: '{"produits":[]}', top_monitor_off: '1', teamop_portail_jetonX: 'j', top_client_sync: '{}', elan_sync_team: 'prod', constructor: 'x', toString: 'x', 'a b': '1', 'clé': '1', '': '1', ['x'.repeat(81)]: '1' };
+  par('clés hors liste : aucune écriture (la base d\'essai, le jeton d\'une autre session, la forme d\'une clé ne suffisent pas)', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: Object.assign({}, HORS_LISTE, { teamop_portail_jeton: 'jeton-ok' }), session: Object.assign({}, HORS_LISTE, { tour_token: 't-ok' }) })); return Object.keys(j.ls).join() === 'teamop_portail_jeton' && Object.keys(j.ss).join() === 'tour_token'; });
+  par('clés hors liste : la navigation a lieu quand même, et la console les NOMME', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { elanT_gestion_v2: '{}' }, page: 'espace.html' })); return j.replace.length === 1 && j.warn === 1 && Object.keys(j.ls).length === 0; });
+  par('la liste de localStorage : toutes les clés attendues passent (' + ATTENDUES_LS.length + ')', () => { const o = {}; ATTENDUES_LS.forEach(k => { o[k] = 'v'; }); const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: o })); return Object.keys(j.ls).sort().join() === ATTENDUES_LS.slice().sort().join(); });
+  par('la liste de sessionStorage : toutes les clés attendues passent (' + ATTENDUES_SS.length + ')', () => { const o = {}; ATTENDUES_SS.forEach(k => { o[k] = 'v'; }); const j = jouer(SCRIPT, '#essai=' + b64u({ session: o })); return Object.keys(j.ss).sort().join() === ATTENDUES_SS.slice().sort().join(); });
+  par('une clé de session n\'entre pas dans localStorage, ni l\'inverse (jeton du portail : localStorage seulement)', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { tour_email: 'a@exemple-essai.fr' }, session: { teamop_portail_jeton: 'j', teamop_app: 'app.html' } })); return Object.keys(j.ls).length === 0 && Object.keys(j.ss).length === 0; });
+  par('valeur non texte : mise en JSON', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { teamop_app: { a: 1 }, tour_nom: 5, tour_apps: ['x'] } })); return j.ls.teamop_app === '{"a":1}' && j.ls.tour_nom === '5' && j.ls.tour_apps === '["x"]'; });
+  par('valeur trop longue refusée (60 001), 60 000 gardée', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { tour_apps: 'x'.repeat(60001), tour_nom: 'x'.repeat(60000) } })); return !('tour_apps' in j.ls) && j.ls.tour_nom.length === 60000; });
+  par('au plus 60 clés regardées (une clé attendue en 61e position n\'est pas lue)', () => { const s = {}; for (let i = 0; i < 100; i++) s['k' + i] = '1'; s.teamop_app = 'app.html'; const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: s })); return Object.keys(j.ls).length === 0; });
+  par('« session » va dans sessionStorage, pas dans localStorage', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ session: { tour_token: 't' } })); return j.ss.tour_token === 't' && Object.keys(j.ls).length === 0; });
+  par('UTF-8 : é€ revient intact', () => { const j = jouer(SCRIPT, '#essai=' + b64u({ stockage: { tour_nom: 'Élodie 12 €' } })); return j.ls.tour_nom === 'Élodie 12 €'; });
+  par('base64 invalide : aucune écriture, aucune exception', () => { const j = jouer(SCRIPT, '#essai=%%%%'); return Object.keys(j.ls).length === 0 && j.replace.length === 0 && j.replaceState.length === 1; });
+  par('pas du JSON : aucune écriture, aucune exception', () => { const j = jouer(SCRIPT, '#essai=' + b64u('bonjour')); return Object.keys(j.ls).length === 0 && j.replace.length === 0; });
+  par('JSON « null » : aucune écriture, aucun rechargement', () => { const j = jouer(SCRIPT, '#essai=' + b64u('null')); return Object.keys(j.ls).length === 0 && j.reload === 0 && j.replace.length === 0; });
+  for (const h of ['', '#v=dashboard', '#essaiX=1', '#/essai=1', '#entreprise=abc'])
+    par('autre fragment ' + JSON.stringify(h) + ' : rien du tout', () => { const j = jouer(SCRIPT, h); return j.replaceState.length === 0 && j.reload === 0 && j.replace.length === 0 && Object.keys(j.ls).length === 0; });
+  par('stockage plein (setItem jette) : la navigation a lieu quand même', () => { const j = jouer(SCRIPT, '#essai=' + b64u(client), { quota: true }); return j.replace.length === 1; });
+  return v;
+}
+
+/* ── 1. LE VRAI SCRIPT ──────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+console.log('\n1. Le vrai script injecté, exécuté');
+const OUT = neuf(); const r0 = construire(OUT);
+vrai('les pages se fabriquent', r0.status === 0, (r0.stderr || '').slice(0, 300));
+if (r0.status !== 0) { console.log('\n════ test-2986 : ' + ok + ' ✓  ' + ko + ' ✗ ════'); process.exit(1); }
+const SCRIPT = scriptDe(OUT);
+vrai('(population) le script est trouvé dans une page fabriquée', SCRIPT.length > 500 && /essai=/.test(SCRIPT), SCRIPT.length);
+const V0 = verdicts(SCRIPT), noms = Object.keys(V0);
+vrai('(population) ' + noms.length + ' scénarios joués (plus de 30)', noms.length > 30, noms.length);
+for (const k of noms) vrai(k, V0[k]);
+{ // le script est identique dans toutes les pages d'entrée (une seule définition, injectée)
+  const pages = ['espace.html', 'tour.html', 'app.html', 'connexion.html', 'reinit.html', 'index.html'];
+  egal('le même script est injecté dans les ' + pages.length + ' pages d\'entrée (espace, tour, app, connexion, reinit, accueil)', pages.filter(f => scriptDe_(f) !== SCRIPT), []);
+  function scriptDe_(f) { const m = /<script id="essai-fragment">([\s\S]*?)<\/script>/.exec(lire(OUT, f)); return m ? m[1] : null; }
+}
+vrai('le script ne contient AUCUNE adresse (il n\'envoie rien, il ne lit que le fragment)', !/https?:\/\//.test(SCRIPT) && !/fetch\(|XMLHttpRequest|sendBeacon|WebSocket/.test(SCRIPT));
+
+/* ── 2. CHAQUE RÈGLE, ÉPROUVÉE EN LA RETIRANT ─────────────────────────────────────────────────────────────────────────────────────────── */
+console.log('\n2. Chaque règle du script tombe quand on la retire (générateur mutilé, mêmes scénarios)');
+{
+  const src = fs.readFileSync(BUILD, 'utf8');
+  const MUTS = [
+    ["le refus d'une page « // » (hors du site)", "&&p.indexOf('//')<0", '', /^page refusée : "(\/\/exemple\.fr\/x|a\/\/b)"$/],
+    ['le refus de « .. » (remonter le dossier)', "&&p.indexOf('..')<0", '', /^page refusée : "(\.\.\/x\.html|a\/\.\.\/\.\.\/x)"$/],
+    ['la forme d\'une page (chemin du site, signes sûrs)', "[A-Za-z0-9_][A-Za-z0-9_.\\\\/-]{0,80}(\\\\?[A-Za-z0-9_=&%.-]{0,200})?", '.*', /^(page refusée|sans page)/],
+    ['la liste fermée des clés (le contrôle d\'appartenance retiré)', "if(ok.indexOf(k)<0){refus.push(k);return;}", '', /^clés hors liste : aucune écriture/],
+    ['la liste de localStorage élargie à la base de l\'application', "const CLES_STOCKAGE = ['teamop_portail_jeton',", "const CLES_STOCKAGE = ['elanT_gestion_v2', 'teamop_portail_jeton',", /^clés hors liste : aucune écriture/],
+    ['la liste de la Tour élargie au jeton de la Tour en localStorage ET au portail en session', "const CLES_SESSION = ['tour_token',", "const CLES_SESSION = ['teamop_portail_jeton', 'tour_token',", /^(clés hors liste : aucune écriture|une clé de session)/],
+    ['les deux listes confondues (la session lit celle de localStorage)', 'try{ranger(sessionStorage,j.session,OK_SS);}catch(e){}', 'try{ranger(sessionStorage,j.session,OK_LS);}catch(e){}', /^(clés hors liste : aucune écriture|une clé de session|la liste de sessionStorage)/],
+    ['la console nomme les clés refusées', "if(refus.length){try{console.warn(", "if(false){try{console.warn(", /^clés hors liste : la navigation/],
+    ['la limite de 60 clés', '.slice(0,60)', '', /^au plus 60 clés/],
+    ['la limite de taille d\'une valeur', 'v.length>60000', 'false', /^valeur trop longue/],
+    ['l\'effacement du fragment', "history.replaceState(null,'',location.pathname+location.search);", '', /^efface le fragment/],
+    ['la lecture de « session » dans sessionStorage', 'try{ranger(sessionStorage,j.session,OK_SS);}catch(e){}', 'try{ranger(localStorage,j.session,OK_SS);}catch(e){}', /^« session »/],
+    ['le décodage UTF-8', 'new TextDecoder().decode(oct)', 'bin', /^UTF-8/],
+    ['le filtre « commence par #essai= »', "if(h.indexOf('#essai=')!==0)return;", '', /^autre fragment/],
+  ];
+  for (const [nom, motif, remplace, attendu] of MUTS) {
+    const compte = src.split(motif).length - 1;
+    if (compte !== 1) { vrai('règle « ' + nom + ' » : le motif est trouvé une fois dans le générateur', false, compte); continue; }
+    const f = path.join(TMP, 'muet-' + (++n) + '.js'); fs.writeFileSync(f, src.replace(motif, () => remplace));
+    const D = neuf(), r = construire(D, { script: f });
+    const S = r.status === 0 ? scriptDe(D) : '';
+    if (!S) { vrai('règle « ' + nom + ' » : la copie mutilée fabrique des pages', false, (r.stderr || '').slice(0, 160)); continue; }
+    const V = verdicts(S), tombes = Object.keys(V).filter(k => !V[k]);
+    vrai('règle « ' + nom + ' » : retirée, au moins un scénario tombe (' + tombes.length + ')', tombes.length > 0 && tombes.some(k => attendu.test(k)), tombes.slice(0, 4));
+    vrai('   … et c\'est bien SON scénario, aucun sans rapport', tombes.length > 0 && tombes.every(k => attendu.test(k) || /^(écrit la clé|sans page|efface le fragment|autre fragment|base64|pas du JSON|JSON|clés hors liste|une clé de session|la liste de|« session »|au plus 60)/.test(k)), tombes);
+  }
+}
+
+/* ── 3. L'ACCUEIL DES ESSAIS ────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+console.log('\n3. essais.html');
+const ESSAIS = lire(OUT, 'essais.html');
+for (const c of ['client', 'prospect', 'patron', 'collaborateur'])
+  vrai('le lien « Se connecter comme ' + c + ' » mène à /api/essais/connexion?compte=' + c + ' avec la clé', ESSAIS.indexOf('href="/api/essais/connexion?compte=' + c + '&amp;cle=' + CLE + '"') >= 0);
+vrai('« Voir les courriels captés » mène à /courriels.html', /id="lien-courriels" href="\/courriels\.html"/.test(ESSAIS));
+vrai('le commit et la branche en essai sont dits', ESSAIS.indexOf('<code>claude/essai-banc</code>') >= 0 && ESSAIS.indexOf('<code>abcdef1</code>') >= 0);
+{ const code = ESSAIS.slice(ESSAIS.lastIndexOf('<script>'));
+  vrai('la remise à zéro demande confirmation, puis POSTE sur /api/essais/remise-a-zero avec la clé dans l\'EN-TÊTE (jamais dans l\'adresse)',
+    /window\.confirm\(/.test(code) && /fetch\('\/api\/essais\/remise-a-zero',\{method:'POST',headers:\{'X-Essai-Cle':CLE\}\}\)/.test(code) && code.indexOf('window.confirm(') < code.indexOf('/api/essais/remise-a-zero') && !/remise-a-zero\?cle=/.test(code));
+  vrai('⛔ la remise à zéro n\'annonce « C\'est fait » qu\'APRÈS avoir attendu le serveur (/health puis la porte « client ») — scénarios exécutés plus bas', /attendreRedemarrage\(\)/.test(code) && code.indexOf('attendreRedemarrage()') < code.indexOf("C\\'est fait"));
+  vrai('… et dit le refus (404 : pas un serveur de test ; 403 : clé refusée) au lieu de se taire', /r\.status===404/.test(code) && /r\.status===403/.test(code));
+  vrai('les cases cochées se rangent par commit, derrière un try/catch (le stockage peut être vide ou fermé)', /MEMOIRE='essai_etapes_'\+COMMIT/.test(code) && /try\{ return JSON\.parse\(localStorage/.test(code) && /try\{ localStorage\.setItem\(MEMOIRE/.test(code)); }
+{ const TITRES = ['Se connecter comme client', 'Se connecter comme prospect', 'Entrer dans la Tour comme patron', 'Entrer dans la Tour comme collaborateur', 'Lire les courriels captés', 'Remettre l\'espace à zéro'];
+  const places = TITRES.map(t => ESSAIS.indexOf('<b>' + t.replace(/'/g, '\'') + '</b>'));
+  vrai('(population) le parcours de base compte ses 6 étapes, numérotées par une liste ordonnée', (ESSAIS.match(/<li class="carte" data-etape="b\d"/g) || []).length === 6 && /<ol class="etapes">/.test(ESSAIS), places);
+  vrai('… dans l\'ordre voulu : client, prospect, patron, collaborateur, courriels, remise à zéro', places.every((p, i) => p > 0 && (i === 0 || p > places[i - 1])), places);
+  vrai('… et chacune dit ce qu\'il faut faire ET ce que l\'on doit voir', (ESSAIS.match(/Ce que tu dois voir :/g) || []).length === 6); }
+vrai('sans parcours de la modification, aucune section « Les tests de cette modification »', ESSAIS.indexOf('Les tests de cette modification') < 0);
+vrai('⛔ sans parcours de la modification, la page le DIT (« Aucun test propre à cette modification n\'est fourni ») au lieu de laisser croire que le parcours de base teste la modification', /id="sans-tests-modification"/.test(ESSAIS) && /Aucun test propre à cette modification n'est fourni/.test(ESSAIS) && /essais\/parcours\.json/.test(ESSAIS));
+vrai('⛔ l\'adresse des boutons « Se connecter » porte la clé : la page dit de ne pas la copier ni la coller dans la conversation', /id="avis-cle"/.test(ESSAIS) && /ne la copie pas et ne la colle pas/.test(ESSAIS) && ESSAIS.indexOf('id="avis-cle"') < ESSAIS.indexOf('id="lien-client"'));
+{ const patron = ESSAIS.slice(ESSAIS.indexOf('Entrer dans la Tour comme patron</b>'), ESSAIS.indexOf('Entrer dans la Tour comme collaborateur</b>')), cour = ESSAIS.slice(ESSAIS.indexOf('Lire les courriels captés</b>'), ESSAIS.indexOf('Remettre l\'espace à zéro</b>'));
+  vrai('⛔ l\'étape du patron désigne le bon onglet pour la demande du prospect (Demandes, pas Accès : l\'onglet Accès est autre chose)', /onglet Demandes/.test(patron) && !/accès à traiter/.test(patron), patron.slice(0, 400));
+  vrai('⛔ l\'étape des courriels dit ce qu\'on trouve SANS rien faire (quatre courriels déjà arrivés) et donne un geste précis pour en faire arriver un', /Quatre courriels/.test(cour) && /Mot de passe oublié/.test(cour) && /client@exemple-essai\.fr/.test(cour) && !/après un geste qui envoie/.test(cour), cour.slice(0, 500)); }
+{ /* ⛔ LE PAIEMENT : ou bien la page de paiement ne porte plus les tarifs de production ET essais.html promet la carte 4242, ou bien la limite est DITE */
+  const src = fs.readFileSync(BUILD, 'utf8'), jouable = /^const PAIEMENT_JOUABLE = true;/m.test(src), RECAP = lire(OUT, 'recap-abonnement.html');
+  const prod = Array.from(new Set((fs.readFileSync(path.join(RACINE, 'recap-abonnement.html'), 'utf8').match(/price_[A-Za-z0-9]{8,}/g) || [])));
+  vrai('(population) la vraie page de paiement porte des tarifs price_… (sinon ce contrôle ne regarde rien)', prod.length >= 10, prod.length);
+  const restent = prod.filter(id => RECAP.indexOf(id) >= 0);
+  if (jouable) {
+    egal('le paiement est annoncé jouable : AUCUN tarif de production ne reste dans la page de paiement', restent, []);
+    vrai('… et essais.html promet la carte de test', /4242/.test(ESSAIS) && ESSAIS.indexOf('id="limite-paiement"') < 0);
+  } else {
+    vrai('le paiement n\'est pas jouable : essais.html DIT la limite (carte 4242, tarifs de production) au lieu de promettre un paiement', ESSAIS.indexOf('id="limite-paiement"') > 0 && /Limite connue : le paiement ne se joue pas encore/.test(ESSAIS) && /tarifs de production/.test(ESSAIS));
+    vrai('… aucune étape du parcours ne dit de payer, et la page n\'affirme plus « les paiements sont en mode test »', !/paiements sont en mode test/.test(ESSAIS) && !/payer avec/i.test(ESSAIS));
+    vrai('… et les tarifs de production restent (ils sont ceux du serveur : le remplacement seul donnerait tarif_inconnu)', restent.length === prod.length, [restent.length, prod.length]);
+  }
+  /* éprouvé : le générateur qui se croit « jouable » alors que la page porte encore les tarifs de production doit REFUSER de fabriquer */
+  const mut = src.replace(/^const PAIEMENT_JOUABLE = PRIX_ESSAI !== null;/m, 'const PAIEMENT_JOUABLE = true;');   // « jouable » déclaré À LA MAIN, sans table de tarifs de test : la page garde ceux de production
+  vrai('(mutation) le motif PAIEMENT_JOUABLE est trouvé dans le générateur', mut !== src || jouable);
+  if (mut !== src) {
+    const f = path.join(TMP, 'jouable-' + (++n) + '.js'); fs.writeFileSync(f, mut);
+    const D = neuf(), r = construire(D, { script: f });
+    vrai('⛔ « jouable » avec les tarifs de production encore dans la page : la fabrication ÉCHOUE et ne livre rien', r.status !== 0 && /tarif Stripe de production/.test(r.stderr || '') && (!fs.existsSync(D) || fs.readdirSync(D).length === 0), (r.stderr || '').slice(0, 200));
+  }
+}
+
+/* le parcours de la modification : AVANT le parcours de base, échappé */
+{
+  const pf = path.join(TMP, 'parcours.json');
+  fs.writeFileSync(pf, JSON.stringify([
+    { titre: 'Le devis <b>change</b> de couleur', quoi: 'Ouvre un devis & regarde le titre.', attendu: 'Le titre est vert "foncé".', lien: 'app.html' },
+    { titre: 'Le second test', quoi: 'Rien à faire.', attendu: 'Rien ne bouge.' },
+  ]));
+  const D = neuf(), r = construire(D, { args: ['--parcours', pf] });
+  vrai('un parcours de modification se fabrique', r.status === 0, (r.stderr || '').slice(0, 200));
+  const E = r.status === 0 ? lire(D, 'essais.html') : '';
+  const iMod = E.indexOf('Les tests de cette modification'), iBase = E.indexOf('Le parcours de base'), iPremier = E.indexOf('Le devis &lt;b&gt;change'), iSecond = E.indexOf('Le second test');
+  vrai('les tests de la modification viennent AVANT le parcours de base, dans l\'ordre donné', iMod > 0 && iPremier > iMod && iSecond > iPremier && iBase > iSecond && E.indexOf('Se connecter comme client</b>') > iBase, [iMod, iPremier, iSecond, iBase]);
+  vrai('⛔ le texte du parcours est ÉCHAPPÉ (jamais du HTML venu d\'un fichier)', E.indexOf('<b>change</b>') < 0 && E.indexOf('Ouvre un devis &amp; regarde') >= 0 && E.indexOf('&quot;foncé&quot;') >= 0);
+  vrai('le lien d\'une étape devient un chemin du site', /<a class="bouton creux" href="\/app\.html">Ouvrir<\/a>/.test(E));
+  vrai('les étapes de la modification se cochent à part (m1, m2), celles du parcours de base aussi (b1…)', /data-coche="m1"/.test(E) && /data-coche="m2"/.test(E) && /data-coche="b1"/.test(E));
+}
+
+/* ── 4. LA LISTE DES COURRIELS, EXÉCUTÉE ─────────────────────────────────────────────────────────────────────────────────────────────── */
+console.log('\n4. courriels.html — la vraie fonction, un faux DOM');
+{
+  const COURR = lire(OUT, 'courriels.html'), code = COURR.slice(COURR.lastIndexOf('<script>') + 8, COURR.lastIndexOf('</script>'));
+  const sansCom = code.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  vrai('⛔ aucun innerHTML, outerHTML ni document.write : tout ce que dit un courriel entre par textContent', !/innerHTML|outerHTML|document\.write|insertAdjacentHTML/.test(sansCom));
+  vrai('le cadre « tel que le client le voit » est isolé (sandbox vide) et sans référent', /sandbox:''/.test(sansCom) && /referrerpolicy:'no-referrer'/.test(sansCom));
+  vrai('un lien s\'ouvre dans un autre onglet sans donner la main à la page (noopener)', /target:'_blank',rel:'noopener'/.test(sansCom));
+
+  class El { constructor(nom) { this.nom = nom; this.attrs = {}; this.kids = []; this._t = ''; this.srcdoc = ''; }
+    setAttribute(k, v) { this.attrs[k] = String(v); } getAttribute(k) { return this.attrs[k]; } appendChild(c) { this.kids.push(c); return c; } addEventListener() {}
+    get textContent() { return this._t; } set textContent(v) { this._t = String(v); this.kids = []; } }
+  const elts = {}; const ge = id => elts[id] || (elts[id] = new El('#' + id));
+  const urls = [], optsVues = [];
+  const LISTE = {
+    ok: [{ de: 'ne-pas-repondre@exemple-essai.fr', a: ['client@exemple-essai.fr', 'autre@exemple-essai.fr'], objet: 'Objet <img src=x onerror=alert(1)>', date: '2026-10-23T09:30:00Z', texte: '<b>texte brut</b>',
+      html: '<p>Bonjour</p>', liens: ['https://test.teamop.fr/reinit.html?x=1', 'javascript:alert(1)', 'data:text/html,x', { href: 'http://test.teamop.fr/a', texte: 'La page A' }, { url: 'https://test.teamop.fr/b' }, { href: 'ftp://x/y' }, null, 42] }],
+  };
+  const scenario = async (reponse) => {
+    const racine = new El('#racine'); Object.keys(elts).forEach(k => delete elts[k]);
+    const sb = { document: { getElementById: ge, createElement: nom => new El(nom), visibilityState: 'visible' }, fetch: (u, o) => { urls.push(String(u)); optsVues.push(o); return Promise.resolve(reponse); }, setInterval() {}, encodeURIComponent, Array, Date, String, JSON, isNaN, console };
+    vm.runInNewContext(code, sb, { timeout: 2000 });
+    for (let i = 0; i < 12; i++) await new Promise(r => setImmediate(r));
+    return ge('liste');
+  };
+  const parcourir = (e, f) => { f(e); (e.kids || []).forEach(k => parcourir(k, f)); };
+  (async () => {
+    await remiseScenarios();
+    const liste = await scenario({ status: 200, ok: true, json: () => Promise.resolve(LISTE.ok) });
+    vrai('la page interroge /api/essais/courriels avec la clé dans l\'EN-TÊTE X-Essai-Cle', urls.length >= 1 && urls[0] === '/api/essais/courriels' && optsVues[0] && optsVues[0].headers && optsVues[0].headers['X-Essai-Cle'] === CLE, [urls, optsVues[0]]);
+    vrai('⛔ …et la clé n\'est dans aucune adresse (le journal d\'accès de nginx écrit l\'adresse, chaîne de requête comprise)', urls.length >= 1 && !urls.some(u => u.includes(CLE)), urls);
+    const ancres = [], cadres = [], pres = [], gras = [];
+    parcourir(liste, e => { if (e.nom === 'a') ancres.push(e); if (e.nom === 'iframe') cadres.push(e); if (e.nom === 'pre') pres.push(e); if (e.nom === 'b') gras.push(e); });
+    vrai('(population) un courriel est rendu : un titre, des liens, un texte, un cadre', gras.length === 1 && ancres.length > 0 && pres.length === 1 && cadres.length === 1, [gras.length, ancres.length, pres.length, cadres.length]);
+    egal('seuls les liens http(s) deviennent cliquables (javascript:, data:, ftp: écartés, ainsi que null et 42)', ancres.map(a => a.attrs.href), ['https://test.teamop.fr/reinit.html?x=1', 'http://test.teamop.fr/a', 'https://test.teamop.fr/b']);
+    egal('le texte d\'un lien est celui du courriel (ou l\'adresse à défaut)', ancres.map(a => a.textContent), ['https://test.teamop.fr/reinit.html?x=1', 'La page A', 'https://test.teamop.fr/b']);
+    vrai('chaque ancre s\'ouvre dans un autre onglet (noopener)', ancres.every(a => a.attrs.target === '_blank' && /noopener/.test(a.attrs.rel)));
+    vrai('⛔ l\'objet piégé (<img onerror>) entre comme TEXTE, pas comme élément', gras[0].textContent === 'Objet <img src=x onerror=alert(1)>' && gras[0].kids.length === 0);
+    vrai('le texte du courriel entre comme texte', pres[0].textContent === '<b>texte brut</b>');
+    vrai('le cadre du courriel tel que le client le voit : sandbox vide, contenu dans srcdoc', cadres[0].attrs.sandbox === '' && cadres[0].srcdoc === '<p>Bonjour</p>');
+    let enTete = ''; parcourir(liste, e => { if (e.nom === 'p' && /exemple-essai/.test(e._t)) enTete = e._t; });
+    vrai('les destinataires multiples sont joints (« à a, b ») et l\'expéditeur dit', /de ne-pas-repondre@exemple-essai\.fr — à client@exemple-essai\.fr, autre@exemple-essai\.fr/.test(enTete), enTete);
+    vrai('le compteur dit « 1 courriel »', ge('compte').textContent === '1 courriel');
+    const vide = await scenario({ status: 200, ok: true, json: () => Promise.resolve([]) });
+    vrai('aucun courriel : la page le dit au lieu de rester blanche', /Aucun courriel capté/.test(vide.kids.map(k => k.textContent).join('')), vide.kids.map(k => k.textContent));
+    const non = await scenario({ status: 404, ok: false, json: () => Promise.resolve({}) });
+    vrai('route absente (404) : « ce serveur n\'est pas un serveur de test »', /pas un serveur de test/.test(non.kids.map(k => k.textContent).join('')), non.kids.map(k => k.textContent));
+    const refus = await scenario({ status: 403, ok: false, json: () => Promise.resolve({}) });
+    vrai('clé refusée (403) : la page le dit', /clé d'essais est refusée/.test(refus.kids.map(k => k.textContent).join('')), refus.kids.map(k => k.textContent));
+    const forme = await scenario({ status: 200, ok: true, json: () => Promise.resolve({ courriels: [{ sujet: 'Autre forme', from: 'x@exemple-essai.fr', to: 'y@exemple-essai.fr', date: 'pas une date' }] }) });
+    let titres = []; parcourir(forme, e => { if (e.nom === 'b') titres.push(e.textContent); });
+    egal('la page accepte aussi {courriels:[…]} (sujet/from/to) sans casser sur une date illisible', titres, ['Autre forme']);
+    fin();
+  })().catch(e => { vrai('l\'exécution de courriels.html ne jette pas', false, String(e && e.stack || e).slice(0, 300)); fin(); });
+}
+
+/* ── 3 bis. LA REMISE À ZÉRO, EXÉCUTÉE : « C'est fait » SEULEMENT QUAND LE SERVEUR EST REVENU ET SEMÉ ─────────────────────────────────────────────
+   La route répond 200 puis ARRÊTE le serveur (une quinzaine de secondes de 502, puis le semis). Mesuré sur le vrai serveur : la page annonçait « C'est fait » sur le 200. Ici le VRAI
+   script de la page fabriquée tourne dans un faux DOM, avec un faux réseau et une horloge qui n'avance que par les attentes qu'il demande. */
+async function remiseScenarios() {
+  console.log('\n3 bis. essais.html — la remise à zéro attend le serveur');
+  const E = lire(OUT, 'essais.html'), code = E.slice(E.lastIndexOf('<script>') + 8, E.lastIndexOf('</script>'));
+  class El { constructor(id) { this.id = id; this._t = ''; this.className = ''; this.disabled = false; this.ecouteurs = {}; this.attrs = {}; }
+    get textContent() { return this._t; } set textContent(v) { this._t = String(v); } addEventListener(ev, f) { this.ecouteurs[ev] = f; } getAttribute(k) { return this.attrs[k]; } }
+  const jouer = async (reseau) => {
+    const els = {}; const ge = id => els[id] || (els[id] = new El(id));
+    let horloge = 0, avantClic = true; const vus = [], messages = [], ls = {};
+    const rep = (o) => Promise.resolve(Object.assign({ ok: true, status: 200, type: 'basic', json: () => Promise.resolve({}) }, o));
+    const sb = {
+      document: { getElementById: ge, querySelectorAll: () => [] }, Array, Date: { now: () => horloge }, Promise, JSON, String, encodeURIComponent, console: { warn() {}, log() {}, error() {} },
+      localStorage: { getItem: k => (k in ls ? ls[k] : null), setItem: (k, x) => { ls[k] = String(x); } },
+      window: { confirm: () => true },
+      setTimeout: (f, ms) => { horloge += ms; setImmediate(f); return 1; },
+      fetch: (u, o) => { vus.push({ u: String(u), o: o || {}, t: horloge }); if (avantClic && u === '/health') return rep({}); return reseau(String(u), o || {}, horloge); },
+    };
+    vm.runInNewContext(code, sb, { timeout: 3000 });
+    const msg = ge('remise-msg');
+    Object.defineProperty(msg, 'textContent', { get() { return this._t; }, set(v) { this._t = String(v); messages.push(String(v)); } });
+    avantClic = false;
+    ge('remise').ecouteurs.click();
+    for (let i = 0; i < 400; i++) await new Promise(r => setImmediate(r));
+    return { msgs: messages, final: msg.textContent, vus, bouton: ge('remise').disabled, horloge };
+  };
+  const connexion = (u) => u.startsWith('/api/essais/connexion?compte=client');
+  {   // nominal : /health répond (l'ancien serveur, pas encore arrêté), tombe, revient ; le semis n'est pas fini (503) puis l'est (302)
+    let sante = 0, sonde = 0, sondesAvantArret = 0, tombeVu = false, tombeAvantLaReussite = null;
+    const r = await jouer((u, o) => {
+      if (u === '/api/essais/remise-a-zero') return Promise.resolve({ ok: true, status: 200, type: 'basic' });
+      if (u === '/health') { sante++; if (sante === 1) return Promise.resolve({ ok: true, status: 200 }); if (sante <= 4) { tombeVu = true; return Promise.reject(new Error('502')); } return Promise.resolve({ ok: true, status: 200 }); }
+      /* tant que l'ANCIEN serveur répond (avant l'arrêt), sa porte « client » redirige déjà : s'y fier, ce serait annoncer « c'est fait » sur le serveur qu'on est en train d'arrêter */
+      if (connexion(u)) { if (!tombeVu) { sondesAvantArret++; return Promise.resolve({ ok: false, status: 0, type: 'opaqueredirect' }); } sonde++; if (sonde < 3) return Promise.resolve({ ok: false, status: 503, type: 'basic' }); if (tombeAvantLaReussite === null) tombeAvantLaReussite = tombeVu; return Promise.resolve({ ok: false, status: 0, type: 'opaqueredirect' }); }
+      return Promise.reject(new Error('inattendu ' + u));
+    });
+    const iFait = r.msgs.findIndex(m => /C'est fait/.test(m)), iRedem = r.msgs.findIndex(m => /redémarre/.test(m));
+    vrai('(population) le scénario a joué : le POST, cinq sondes de /health au moins, trois sondes de la porte « client »', r.vus.some(x => x.u === '/api/essais/remise-a-zero') && sante >= 5 && sonde === 3, [sante, sonde]);
+    vrai('⛔ la page dit d\'abord « Le serveur redémarre… », puis « C\'est fait » (jamais avant)', iRedem >= 0 && iFait > iRedem, r.msgs);
+    vrai('⛔ la page a VU le serveur tomber avant de croire à son retour : aucune sonde de la porte « client » sur l\'ancien serveur, et la sonde réussie vient après la chute', sondesAvantArret === 0 && tombeAvantLaReussite === true, [sondesAvantArret, tombeAvantLaReussite]);
+    vrai('⛔ « C\'est fait » n\'arrive qu\'APRÈS que la porte « client » a redirigé (semis fini) : la dernière requête est la sonde réussie', iFait === r.msgs.length - 1 && connexion(r.vus[r.vus.length - 1].u), r.vus.slice(-3).map(x => x.u));
+    vrai('…et le texte final dit de se reconnecter avec les boutons (les anciennes connexions ne valent plus)', /reconnecte-toi avec les boutons/.test(r.final), r.final);
+    vrai('⛔ la clé voyage en en-tête sur le POST et sur la sonde, jamais dans une adresse', r.vus.filter(x => x.u !== '/health').every(x => x.o.headers && x.o.headers['X-Essai-Cle'] === CLE) && !r.vus.some(x => x.u.includes(CLE)), r.vus.map(x => x.u));
+    vrai('le bouton est rendu à la fin', r.bouton === false);
+  }
+  {   // le serveur ne revient pas : au bout de 90 s la page le DIT, elle ne dit pas « C'est fait »
+    const r = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: true, status: 200 }) : (u === '/health' ? Promise.reject(new Error('502')) : Promise.reject(new Error('rien'))));
+    vrai('⛔ un serveur qui ne revient pas : pas de « C\'est fait », mais « n\'est pas revenu au bout de 90 secondes »', !r.msgs.some(m => /C'est fait/.test(m)) && /pas revenu au bout de 90 secondes/.test(r.final) && r.horloge >= 90000, [r.final, r.horloge]);
+    vrai('…et le bouton est rendu pour recommencer', r.bouton === false);
+  }
+  {   // /health ne tombe jamais (restart très rapide, ou arrêt jamais commencé) : la page ne reste pas figée, elle attend 8 s puis vérifie le semis
+    let sonde = 0;
+    const r = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: true, status: 200 }) : (u === '/health' ? Promise.resolve({ ok: true, status: 200 }) : (connexion(u) ? (++sonde, Promise.resolve({ ok: false, status: 0, type: 'opaqueredirect' })) : Promise.reject(new Error('x')))));
+    vrai('un /health qui ne tombe jamais : la page patiente 8 s (l\'arrêt n\'a peut-être pas commencé) puis vérifie le semis, et finit', /C'est fait/.test(r.final) && r.horloge >= 8000 && sonde >= 1, [r.final, r.horloge, sonde]);
+  }
+  {   // le semis n'en finit pas : 503 pour toujours alors que /health répond
+    const r = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: true, status: 200 }) : (u === '/health' ? Promise.resolve({ ok: true, status: 200 }) : Promise.resolve({ ok: false, status: 503, type: 'basic' })));
+    vrai('⛔ le semis jamais fini (503 pour toujours) : pas de « C\'est fait » non plus', !r.msgs.some(m => /C'est fait/.test(m)) && /pas revenu au bout de 90 secondes/.test(r.final), r.final);
+  }
+  {   // refus : 403 → clé refusée, 404 → pas un serveur de test ; dans les deux cas on n'attend rien
+    const r403 = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: false, status: 403 }) : Promise.reject(new Error('x')));
+    vrai('403 : « la clé d\'essais est refusée », sans attendre de serveur', /clé d'essais est refusée/.test(r403.final) && !r403.vus.some(x => x.u === '/health' && x.t > 0) && r403.bouton === false, r403.final);
+    const r404 = await jouer((u) => u === '/api/essais/remise-a-zero' ? Promise.resolve({ ok: false, status: 404 }) : Promise.reject(new Error('x')));
+    vrai('404 : « ce serveur n\'est pas un serveur de test »', /pas un serveur de test/.test(r404.final), r404.final);
+  }
+}
+
+function fin() {
+  try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) { /* idem */ }
+  console.log('\n════ test-2986 : ' + ok + ' ✓  ' + ko + ' ✗ ════');
+  process.exit(ko ? 1 : 0);
+}

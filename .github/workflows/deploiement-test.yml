@@ -1,0 +1,187 @@
+# Déploiement de l'ESPACE DE TEST (https://test.teamop.fr).
+#
+# Décision de Justin (23 octobre 2026) : « toute modification, site, application, la Tour, je veux des
+# espaces de test, et après on pousse ». Chaque demande de fusion vers main met donc sa branche en essai
+# sur test.teamop.fr — pages ET serveur de test — AVANT que quoi que ce soit n'atteigne un client.
+# Mode d'emploi : design/ESPACE-DE-TEST.md. Installation (une fois, par Justin) : server/install-test.sh.
+#
+# ⛔ CE WORKFLOW NE TOUCHE JAMAIS À LA PRODUCTION. Il n'appelle que `deployer-test`, qui ne
+# relance que `teamop-api-test` et n'écrit que sous /opt/teamop/test. Ni `teamop-api`, ni
+# /opt/teamop/data, ni /opt/teamop/config.json, ni /opt/teamop/repo. `tests/test-2988.js` lit le
+# script ET ce fichier, et refuse toute commande qui sortirait de cet espace.
+#
+# ⛔ ET IL N'A PAS LA CLÉ DE LA PRODUCTION (relecture adverse, 23 octobre 2026). Une demande de fusion d'une branche DU DÉPÔT exécute le workflow de CETTE branche : celle qui modifie ce
+# fichier lit les secrets du dépôt, et `VPS_SSH_KEY` ouvre un shell root sur la machine de la production. Ce workflow utilise donc UNE AUTRE clé, `VPS_SSH_KEY_TEST`, qui :
+#   · est un secret de l'ENVIRONNEMENT `essai-test` (Réglages → Environnements, relecteur obligatoire : Justin) — le job `deployer` attend son approbation AVANT de recevoir le moindre
+#     secret, comme `msg-prod` pour OP MESSAGES (`deploiement-messages.yml`) ;
+#   · est à COMMANDE FORCÉE côté VPS (`restrict,command="/usr/local/sbin/deployer-test --ssh"`) : elle ne sait lancer que le déployeur de l'espace de test, qui valide « <sha> <branche> » ;
+#     et ce déployeur est un fichier de root, jamais celui de la branche. Une clé volée ne donne PAS un shell.
+# `VPS_SSH_KEY` (déploiement de la production) n'est utilisée par AUCUN job de ce fichier.
+#
+# Tant que l'installation n'est pas faite sur le VPS, le script distant répond « non installé » et
+# sort en 0 : la CI ne rougit pas pour une machine qu'on n'a pas préparée (et le dit, pour qu'un vert
+# ne se lise pas comme « déployé »).
+name: Espace de test
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:         # lancement manuel : onglet Actions → « Espace de test » → Run workflow. ⚠️ Ce bouton n'existe qu'UNE FOIS CE FICHIER SUR main : avant la fusion de ce workflow,
+                             # relancer par « Re-run all jobs » dans la demande de fusion (même approbation de l'environnement `essai-test`).
+    inputs:
+      sha:
+        description: "Commit à mettre en essai (40 hexadécimaux) — vide : le dernier commit de la branche choisie"
+        required: false
+        default: ""
+      branche:
+        description: "Nom de la branche affiché dans le bandeau de test (facultatif)"
+        required: false
+        default: ""
+
+concurrency:
+  group: deploiement-test    # jamais deux déploiements de test en même temps
+  cancel-in-progress: false  # et on ne coupe pas un déploiement en cours (le suivant attend, le plus récent passe)
+
+permissions:
+  contents: read
+
+jobs:
+  # ⛔ UN SEUL commit décide de tout : celui-ci. Les bancs le TESTENT (checkout de ce SHA, pas du commit de
+  # fusion que GitHub fabrique pour une demande de fusion, ni du sommet de la branche choisie à la main) et
+  # le VPS le REÇOIT (même sortie, lue par les deux jobs). Calculés chacun de leur côté, ils pouvaient
+  # diverger : un lancement manuel avec un sha faisait vérifier la branche et déployer le sha demandé
+  # (relecture adverse du 23 octobre 2026). `tests/test-2988.js` relie le `ref:` du checkout au SHA déployé.
+  cible:
+    name: Quel commit, quelle branche
+    # Une demande de fusion venue d'un FORK n'a pas accès aux secrets (et ne doit pas en avoir) :
+    # elle n'est pas déployée en essai. Les jobs suivants en dépendent : ils sautent avec elle.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      sha: ${{ steps.cible.outputs.sha }}
+      branche: ${{ steps.cible.outputs.branche }}
+    steps:
+      # Le commit et la branche viennent du contexte GitHub, donc d'un humain (un nom de branche peut
+      # contenir « $ », « ; » ou une apostrophe). Ils passent par l'ENVIRONNEMENT, jamais collés dans
+      # une commande, et sont validés avant de partir sur le VPS — qui les revalide.
+      - name: Quel commit, quelle branche
+        id: cible
+        env:
+          SHA_PR: ${{ github.event.pull_request.head.sha }}
+          BRANCHE_PR: ${{ github.event.pull_request.head.ref }}
+          SHA_MANUEL: ${{ github.event.inputs.sha }}
+          BRANCHE_MANUELLE: ${{ github.event.inputs.branche }}
+          SHA_COURANT: ${{ github.sha }}
+          BRANCHE_COURANTE: ${{ github.ref_name }}
+        run: |
+          # On met en essai le commit de la BRANCHE de la demande de fusion (ce que l'auteur a poussé),
+          # pas le commit de fusion que GitHub fabrique : c'est la branche qu'on veut juger.
+          SHA="${SHA_PR:-${SHA_MANUEL:-$SHA_COURANT}}"
+          BRANCHE="${BRANCHE_PR:-${BRANCHE_MANUELLE:-$BRANCHE_COURANTE}}"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::commit illisible (40 hexadécimaux attendus)"; exit 1; }
+          [[ "$BRANCHE" =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || BRANCHE="branche-inconnue"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "branche=$BRANCHE" >> "$GITHUB_OUTPUT"
+
+  # Les mêmes bancs que le déploiement du serveur : un commit dont le serveur ne passe pas ses
+  # bancs ne va pas sur le VPS, même en essai (le serveur de test est un vrai serveur, sur la
+  # même machine que la production).
+  bancs:
+    name: Bancs du serveur (avant de toucher au VPS)
+    needs: cible
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Le commit qui sera déployé, pas celui que GitHub choisirait seul (voir le job « cible »).
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.cible.outputs.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # ⚠️ Sans les dépendances, les suites qui montent le VRAI serveur SAUTENT d'elles-mêmes
+      # et se déclarent vertes sans rien avoir exécuté — le pire des faux verts.
+      - name: Dépendances du serveur
+        run: npm ci --omit=dev --no-audit --no-fund --prefix server
+      - name: Syntaxe des pages
+        run: node scripts/verifier-syntaxe.js
+      - name: Syntaxe des fichiers serveur
+        run: for f in server/*.js; do node --check "$f" || exit 1; done
+      - name: Les bancs d'essai
+        run: BANCS_PLANCHER=$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste) bash scripts/bancs-ci.sh $(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-serveur.liste)
+
+  deployer:
+    name: Mettre en essai (approbation de Justin)
+    needs: [cible, bancs]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    # ⛔ L'ENVIRONNEMENT QUI PORTE LA PHRASE DE JUSTIN : le job attend l'approbation du relecteur obligatoire AVANT de recevoir `VPS_SSH_KEY_TEST`. Sans cet `environment:`, le secret serait
+    # lisible par toute branche qui modifie ce fichier (relecture adverse du 23 octobre 2026).
+    environment: essai-test
+    env:
+      CLE_SSH: ${{ secrets.VPS_SSH_KEY_TEST }}
+    steps:
+      # Sans la clé de l'environnement, l'espace de test n'est pas encore branché sur la CI : on le DIT et on sort en vert (un vert ne veut alors pas dire « déployé »).
+      - name: Sans clé de déploiement de test
+        if: ${{ env.CLE_SSH == '' }}
+        run: |
+          echo "::notice::VPS_SSH_KEY_TEST est absent de l'environnement essai-test : la clé de déploiement de l'espace de test n'est pas posée — rien n'a été déployé (design/ESPACE-DE-TEST.md)."
+
+      # La clé vient de l'environnement ; l'empreinte de l'hôte, elle, est écrite en clair ici — une clé publique d'hôte n'est pas un secret, et la voir dans le diff est précisément ce
+      # qui permet de vérifier qu'elle n'a pas changé en douce.
+      # Empreinte attendue : SHA256:roC/SIeqnxPTGhAe/88vEXbcn7oNWQWC0T26mBDv1vQ
+      - name: Préparer l'accès SSH
+        if: ${{ env.CLE_SSH != '' }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$CLE_SSH" > ~/.ssh/id_deploy_test
+          chmod 600 ~/.ssh/id_deploy_test
+          cat > ~/.ssh/known_hosts <<'EOF'
+          api.teamop.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn
+          217.154.6.139 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn
+          EOF
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Mettre en essai sur test.teamop.fr
+        if: ${{ env.CLE_SSH != '' }}
+        env:
+          SHA: ${{ needs.cible.outputs.sha }}
+          BRANCHE: ${{ needs.cible.outputs.branche }}
+        run: |
+          # ⚠️ Le SHA et la branche viennent de l'ENVIRONNEMENT (jamais collés dans la commande) et ont été validés par le job `cible` (hexadécimaux / lettres, chiffres, . _ / -).
+          # La clé est à COMMANDE FORCÉE : ce qui est demandé ici n'arrive que dans SSH_ORIGINAL_COMMAND, que `deployer-test --ssh` revalide. Si l'espace de test n'est pas installé, il
+          # répond « non installé » et sort en 0 : la CI ne rougit pas pour une machine qu'on n'a pas préparée.
+          # ⛔ Pas de journalctl ici : ce dépôt est PUBLIC, les journaux d'un job sont lisibles par n'importe qui pendant 90 jours, et le journal du VPS porte des identifiants d'espace.
+          ssh -i ~/.ssh/id_deploy_test -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 root@api.teamop.fr "$SHA $BRANCHE"
+
+      # Ce que le VPS ne peut pas vérifier lui-même : que l'espace de test répond depuis l'EXTÉRIEUR,
+      # à travers nginx (ou Caddy), et qu'il est bien FERMÉ à qui n'a pas le mot de passe.
+      - name: Vérifier l'espace de test de l'extérieur
+        if: ${{ env.CLE_SSH != '' }}
+        env:
+          SHA: ${{ needs.cible.outputs.sha }}
+          BRANCHE: ${{ needs.cible.outputs.branche }}
+        run: |
+          # Si l'installation n'est pas faite, test.teamop.fr ne répond pas encore : rien à vérifier.
+          if ! curl -s --max-time 10 -o /dev/null https://test.teamop.fr/health; then
+            echo "::notice::test.teamop.fr ne répond pas — l'espace de test n'est pas encore installé (design/ESPACE-DE-TEST.md)."
+            exit 0
+          fi
+          SANTE=$(curl -sf --max-time 10 https://test.teamop.fr/health) || { echo "::error::test.teamop.fr répond mais /health est en erreur."; exit 1; }
+          echo "$SANTE" | grep -q '"ok":true' || { echo "::error::test.teamop.fr répond, mais pas ok:true."; exit 1; }
+          # Les pages doivent demander le mot de passe : un 200 ici voudrait dire des versions pas
+          # encore publiées ouvertes à tout le monde.
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://test.teamop.fr/essais.html)
+          [ "$CODE" = "401" ] || { echo "::error::les pages de test répondent $CODE sans mot de passe (401 attendu)."; exit 1; }
+          # Les routes d'essai ne s'ouvrent pas sans leur clé : jamais un 200.
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://test.teamop.fr/api/essais/courriels)
+          [ "$CODE" != "200" ] || { echo "::error::/api/essais/courriels répond 200 SANS clé."; exit 1; }
+          {
+            echo "### Espace de test"
+            echo "Branche \`$BRANCHE\` · commit \`${SHA:0:8}\`"
+            echo ""
+            echo "https://test.teamop.fr/essais.html (identifiant \`essai\` ; le mot de passe est celui que Justin a choisi)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Espace de test en ligne et fermé : $BRANCHE ${SHA:0:8}."
