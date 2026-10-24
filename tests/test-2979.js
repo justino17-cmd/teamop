@@ -64,7 +64,9 @@ function monde(D) {
     const sd = sondes(banc), D = path.join(banc, 'data');
     fs.mkdirSync(D, { recursive: true });
     const m = monde(D);
-    const S = await B2.lancer(Object.assign({ banc, dossier: D, requis: [sd.pre], config: { mailPreuveExigee: false, stripe: { secretKey: 'sk_de_banc_2979' } } }, o)); vivants.push(S);
+    /* une clé de la forme `sk_test_` : le serveur de test VIDE toute autre clé au démarrage (garde de la relecture adverse, `test-2992`) — avec une autre forme, le
+       paiement de test ne partirait jamais et ce banc ne verrait plus les adresses de retour. */
+    const S = await B2.lancer(Object.assign({ banc, dossier: D, requis: [sd.pre], config: { mailPreuveExigee: false, stripe: { secretKey: 'sk_test_banc_2979' } } }, o)); vivants.push(S);
     vrai(nom + ' : le serveur démarre', S.vivant);
     const T = await S.tour();
     const versions = (await S.appel('/api/monitor/version', undefined, T)).j;
