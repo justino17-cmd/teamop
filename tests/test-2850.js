@@ -74,7 +74,10 @@ vrai('(population) au moins 25 validations passent par champManque', APPELS.leng
 const ids = APPELS.flatMap(a => [...a.args.matchAll(/\$\('([\w-]+)'\)/g)].map(m => m[1]));
 const noms = APPELS.flatMap(a => [...a.args.matchAll(/champDe\(\w+(?:\.target)?,'(\w+)'\)/g)].map(m => m[1]));
 const idsAbsents = [...new Set(ids)].filter(i => CODE.indexOf('id="' + i + '"') < 0);
-const nomsAbsents = [...new Set(noms)].filter(n => CODE.indexOf('name="' + n + '"') < 0);
+/* un champ fabriqué par l'aide `inp(nom, libellé, …)` d'un formulaire (la fiche fluides) : son nom n'est pas écrit en clair — il compte s'il est APPELÉ
+   ainsi ET que l'aide écrit bien `name="${n}"` (lue dans le code, pas supposée) */
+const AIDE_INP = /const inp=\(n,[^=]*=>`[^`]*<input name="\$\{n\}"/.test(CODE);
+const nomsAbsents = [...new Set(noms)].filter(n => CODE.indexOf('name="' + n + '"') < 0 && !(AIDE_INP && CODE.indexOf("inp('" + n + "',") >= 0));
 vrai('chaque champ désigné par son identifiant existe dans la page (' + new Set(ids).size + ')', ids.length > 10 && !idsAbsents.length, idsAbsents);
 vrai('chaque champ désigné par son nom de formulaire existe dans la page (' + new Set(noms).size + ')', noms.length > 10 && !nomsAbsents.length, nomsAbsents);
 vrai('chaque appel désigne au moins un champ', APPELS.every(a => /\$\(|champDe\(|,sel\b/.test(a.args)), APPELS.filter(a => !/\$\(|champDe\(|,sel\b/.test(a.args)).map(a => a.msg));
