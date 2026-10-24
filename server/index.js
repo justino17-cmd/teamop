@@ -2773,6 +2773,16 @@ app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
      sur un ancien nom, il n'atteignait pas l'application (qui lit le plus récent), et « Revoir le lien » sur un ancien nom
      le faisait revenir en arrière. Comme la facturation (`facturationPartager`). */
   const noms = nomsEntreprise(e).length ? nomsEntreprise(e) : [e];
+  /* ⛔ UNE DEMANDE ACCEPTÉE NE CHANGE PAS LE MÉTIER D'UNE ENTREPRISE QUI EN A DÉJÀ UN (24 octobre 2026). L'acceptation dans la Tour
+     (`tourAccepterDemande`) passe `siVide` : sur un espace déjà ouvert, une SECONDE demande (un ajout de places, une autre formule)
+     reposait le métier qu'elle portait — l'application changeait de types d'intervention, de fiche de terrain et de modules chez
+     une équipe qui travaillait, sans que personne l'ait décidé. Les rubriques étaient déjà protégées ainsi (`protege`, tour.html).
+     Le métier « actuel » est celui que l'application reçoit : l'entrée la plus récente (`espaceParT`), lue par `metierOk`. Changer
+     le métier d'une entreprise reste un geste de la fiche (« MÉTIER »), qui n'envoie pas `siVide`. Une Tour d'avant n'envoie rien :
+     elle garde l'ancien comportement, comme un serveur d'avant qui ignore le champ. */
+  const recent = noms.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0))[0];
+  const actuel = metierOk(recent && recent.metier);
+  if ((req.body || {}).siVide === true && actuel && actuel !== m) return res.json({ ok: true, slug, metier: actuel, garde: true });
   if (noms.some(x => (x.metier || '') !== m)) {
     const avant = noms.map(x => ({ x, v: { metier: x.metier, metierPar: x.metierPar, metierTs: x.metierTs } }));
     const ts = Date.now();
