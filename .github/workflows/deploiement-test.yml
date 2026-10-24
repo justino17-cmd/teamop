@@ -5,10 +5,18 @@
 # sur test.teamop.fr — pages ET serveur de test — AVANT que quoi que ce soit n'atteigne un client.
 # Mode d'emploi : design/ESPACE-DE-TEST.md. Installation (une fois, par Justin) : server/install-test.sh.
 #
-# ⛔ CE WORKFLOW NE TOUCHE JAMAIS À LA PRODUCTION. Il n'appelle que `deployer-test.sh`, qui ne
+# ⛔ CE WORKFLOW NE TOUCHE JAMAIS À LA PRODUCTION. Il n'appelle que `deployer-test`, qui ne
 # relance que `teamop-api-test` et n'écrit que sous /opt/teamop/test. Ni `teamop-api`, ni
 # /opt/teamop/data, ni /opt/teamop/config.json, ni /opt/teamop/repo. `tests/test-2988.js` lit le
 # script ET ce fichier, et refuse toute commande qui sortirait de cet espace.
+#
+# ⛔ ET IL N'A PAS LA CLÉ DE LA PRODUCTION (relecture adverse, 23 octobre 2026). Une demande de fusion d'une branche DU DÉPÔT exécute le workflow de CETTE branche : celle qui modifie ce
+# fichier lit les secrets du dépôt, et `VPS_SSH_KEY` ouvre un shell root sur la machine de la production. Ce workflow utilise donc UNE AUTRE clé, `VPS_SSH_KEY_TEST`, qui :
+#   · est un secret de l'ENVIRONNEMENT `essai-test` (Réglages → Environnements, relecteur obligatoire : Justin) — le job `deployer` attend son approbation AVANT de recevoir le moindre
+#     secret, comme `msg-prod` pour OP MESSAGES (`deploiement-messages.yml`) ;
+#   · est à COMMANDE FORCÉE côté VPS (`restrict,command="/usr/local/sbin/deployer-test --ssh"`) : elle ne sait lancer que le déployeur de l'espace de test, qui valide « <sha> <branche> » ;
+#     et ce déployeur est un fichier de root, jamais celui de la branche. Une clé volée ne donne PAS un shell.
+# `VPS_SSH_KEY` (déploiement de la production) n'est utilisée par AUCUN job de ce fichier.
 #
 # Tant que l'installation n'est pas faite sur le VPS, le script distant répond « non installé » et
 # sort en 0 : la CI ne rougit pas pour une machine qu'on n'a pas préparée (et le dit, pour qu'un vert
@@ -19,7 +27,8 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
-  workflow_dispatch:         # lancement manuel : onglet Actions → « Espace de test » → Run workflow
+  workflow_dispatch:         # lancement manuel : onglet Actions → « Espace de test » → Run workflow. ⚠️ Ce bouton n'existe qu'UNE FOIS CE FICHIER SUR main : avant la fusion de ce workflow,
+                             # relancer par « Re-run all jobs » dans la demande de fusion (même approbation de l'environnement `essai-test`).
     inputs:
       sha:
         description: "Commit à mettre en essai (40 hexadécimaux) — vide : le dernier commit de la branche choisie"
@@ -104,19 +113,30 @@ jobs:
         run: BANCS_PLANCHER=$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste) bash scripts/bancs-ci.sh $(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-serveur.liste)
 
   deployer:
+    name: Mettre en essai (approbation de Justin)
     needs: [cible, bancs]
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    # ⛔ L'ENVIRONNEMENT QUI PORTE LA PHRASE DE JUSTIN : le job attend l'approbation du relecteur obligatoire AVANT de recevoir `VPS_SSH_KEY_TEST`. Sans cet `environment:`, le secret serait
+    # lisible par toute branche qui modifie ce fichier (relecture adverse du 23 octobre 2026).
+    environment: essai-test
+    env:
+      CLE_SSH: ${{ secrets.VPS_SSH_KEY_TEST }}
     steps:
-      # La clé de déploiement vient des secrets du dépôt ; l'empreinte de l'hôte, elle, est
-      # écrite en clair ici — une clé publique d'hôte n'est pas un secret, et la voir dans le
-      # diff est précisément ce qui permet de vérifier qu'elle n'a pas changé en douce.
+      # Sans la clé de l'environnement, l'espace de test n'est pas encore branché sur la CI : on le DIT et on sort en vert (un vert ne veut alors pas dire « déployé »).
+      - name: Sans clé de déploiement de test
+        if: ${{ env.CLE_SSH == '' }}
+        run: echo "::notice::VPS_SSH_KEY_TEST est absent de l'environnement essai-test : la clé de déploiement de l'espace de test n'est pas posée — rien n'a été déployé (design/ESPACE-DE-TEST.md)."
+
+      # La clé vient de l'environnement ; l'empreinte de l'hôte, elle, est écrite en clair ici — une clé publique d'hôte n'est pas un secret, et la voir dans le diff est précisément ce
+      # qui permet de vérifier qu'elle n'a pas changé en douce.
       # Empreinte attendue : SHA256:roC/SIeqnxPTGhAe/88vEXbcn7oNWQWC0T26mBDv1vQ
       - name: Préparer l'accès SSH
+        if: ${{ env.CLE_SSH != '' }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$CLE_SSH" > ~/.ssh/id_deploy_test
+          chmod 600 ~/.ssh/id_deploy_test
           cat > ~/.ssh/known_hosts <<'EOF'
           api.teamop.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn
           217.154.6.139 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn
@@ -124,34 +144,21 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
       - name: Mettre en essai sur test.teamop.fr
+        if: ${{ env.CLE_SSH != '' }}
         env:
           SHA: ${{ needs.cible.outputs.sha }}
           BRANCHE: ${{ needs.cible.outputs.branche }}
         run: |
-          # ⚠️ Le SHA et la branche passent en ARGUMENTS de `bash -s`, pas par interpolation dans le
-          # heredoc : celui-ci est protégé (<<'DISTANT') exprès, pour que tout soit évalué SUR LE VPS.
-          # Les deux valeurs ont été validées à l'étape précédente (hexadécimaux / lettres, chiffres, . _ / -).
-          ssh -i ~/.ssh/id_deploy -o BatchMode=yes -o ConnectTimeout=15 \
-              root@api.teamop.fr "bash -euo pipefail -s '$SHA' '$BRANCHE'" <<'DISTANT'
-            # ⛔ PAS D’APOSTROPHE DANS LE MOT DE `${var:?mot}` — bash y RE-INTERPRÈTE les quotes, y
-            # compris entre guillemets doubles : le corps entier ne se parserait plus et AUCUNE
-            # commande ne s’exécuterait sur le VPS (voir deploiement.yml, 19 septembre 2026).
-            SHA="${1:?SHA attendu non transmis}"
-            BRANCHE="${2:?branche attendue non transmise}"
-            DEPLOYEUR=/opt/teamop/test/repo/server/deployer-test.sh
-            # Pas installé : on le dit et on sort en 0 (voir l'en-tête de ce fichier).
-            if [ ! -f "$DEPLOYEUR" ]; then
-              echo "non installé : l’espace de test n’est pas installé sur ce serveur — rien n’a été déployé"
-              exit 0
-            fi
-            # ⛔ Pas de journalctl ici : ce dépôt est PUBLIC, les journaux d’un job sont lisibles par
-            # n’importe qui pendant 90 jours, et le journal du VPS porte des identifiants d’espace.
-            bash "$DEPLOYEUR" "$SHA" "$BRANCHE"
-          DISTANT
+          # ⚠️ Le SHA et la branche viennent de l'ENVIRONNEMENT (jamais collés dans la commande) et ont été validés par le job `cible` (hexadécimaux / lettres, chiffres, . _ / -).
+          # La clé est à COMMANDE FORCÉE : ce qui est demandé ici n'arrive que dans SSH_ORIGINAL_COMMAND, que `deployer-test --ssh` revalide. Si l'espace de test n'est pas installé, il
+          # répond « non installé » et sort en 0 : la CI ne rougit pas pour une machine qu'on n'a pas préparée.
+          # ⛔ Pas de journalctl ici : ce dépôt est PUBLIC, les journaux d'un job sont lisibles par n'importe qui pendant 90 jours, et le journal du VPS porte des identifiants d'espace.
+          ssh -i ~/.ssh/id_deploy_test -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 root@api.teamop.fr "$SHA $BRANCHE"
 
       # Ce que le VPS ne peut pas vérifier lui-même : que l'espace de test répond depuis l'EXTÉRIEUR,
-      # à travers nginx, et qu'il est bien FERMÉ à qui n'a pas le mot de passe.
+      # à travers nginx (ou Caddy), et qu'il est bien FERMÉ à qui n'a pas le mot de passe.
       - name: Vérifier l'espace de test de l'extérieur
+        if: ${{ env.CLE_SSH != '' }}
         env:
           SHA: ${{ needs.cible.outputs.sha }}
           BRANCHE: ${{ needs.cible.outputs.branche }}

@@ -2,9 +2,17 @@
 # ══════════════════════════════════════════════════════════════════════════════════════════════
 #  Déployeur de l'ESPACE DE TEST — met un commit en essai sur test.teamop.fr.
 #
-#  Usage (sur le VPS, en root) :   /opt/teamop/test/repo/server/deployer-test.sh <sha de 40 hexadécimaux> <branche>
-#  Appelé par `.github/workflows/deploiement-test.yml` à chaque poussée d'une demande de fusion, et par
-#  `server/install-test.sh` pour le premier déploiement. Mode d'emploi : design/ESPACE-DE-TEST.md.
+#  ⛔ CE FICHIER VIT EN /usr/local/sbin/deployer-test (root:root, 0755), POSÉ PAR `server/install-test.sh` — JAMAIS dans un dossier que
+#  le compte `teamoptest` peut écrire, et jamais relancé depuis une release (relecture adverse, 23 octobre 2026 : le déployeur d'avant se
+#  relançait depuis le commit déployé, c'est-à-dire qu'une demande de fusion choisissait le script que root allait exécuter). Un déployeur
+#  corrigé dans une demande de fusion ne sert qu'après une RÉINSTALLATION VOULUE (`bash /root/install-test.sh`, qui le retélécharge au
+#  commit exact, par son SHA). Racine sur la branche = racine sur la machine : c'est le prix, et il est payé une fois, par Justin, les yeux ouverts.
+#
+#  Usage (sur le VPS, en root) :   deployer-test <sha de 40 hexadécimaux> <branche>
+#          (par la CI)         :   clé SSH à COMMANDE FORCÉE `deployer-test --ssh`, la demande arrive dans SSH_ORIGINAL_COMMAND (« <sha> <branche> »)
+#          (contrôle)          :   deployer-test --sonde        la cellule tient-elle ? (appelé par l'installeur avant le premier déploiement)
+#  Appelé par `.github/workflows/deploiement-test.yml` (environnement protégé `essai-test`) et par `server/install-test.sh`.
+#  Mode d'emploi : design/ESPACE-DE-TEST.md.
 #
 #  ⛔ CE SCRIPT NE TOUCHE JAMAIS À LA PRODUCTION. Il n'écrit rien dans /opt/teamop/data, ni dans
 #  /opt/teamop/config.json, ni dans /opt/teamop/repo, ne relance ni n'arrête `teamop-api` : tout ce
@@ -14,31 +22,57 @@
 #  Ce qu'il fait, dans l'ordre — et RIEN n'est basculé tant que tout ce qui précède n'a pas réussi :
 #    1. un verrou (un seul déploiement à la fois) ;
 #    2. la mise à jour de SON miroir du dépôt (fetch du commit demandé, rien d'autre) ;
-#    3. l'export du commit dans releases/<sha> (git archive) et `npm ci` EN TANT QUE `teamoptest` ;
-#    4. si le déployeur de CE commit diffère de celui qui tourne, on repasse la main au plus récent
-#       (le miroir garde le déployeur du jour de l'installation : sans ça, corriger ce fichier dans
-#       une demande de fusion ne servirait qu'après une réinstallation) ;
-#    5. la fabrication des pages dans un dossier NEUF (`scripts/essais-build.js`) ;
-#    6. SEULEMENT ALORS la bascule du code (lien `current`), le redémarrage, le contrôle de /health ;
+#    3. l'export du commit dans releases/<sha> (git archive → tar) et `npm ci`, chacun dans une CELLULE ;
+#    4. la fabrication des pages dans un dossier NEUF (`scripts/essais-build.js`), dans une cellule, avec les tests de la modification
+#       s'ils existent (`essais/parcours.json` du commit) ;
+#    5. SEULEMENT ALORS la bascule du code (lien `current`), le redémarrage, le contrôle de /health ;
 #       s'il ne répond pas sain : RETOUR au code d'avant, dit en toutes lettres ;
-#    7. la bascule des pages (lien `pages`, par renommage : atomique), puis le ménage.
+#    6. la bascule des pages (lien `pages`, par renommage : atomique), puis le ménage.
 #  Un déploiement raté laisse donc l'ancien en service, et le DIT.
+#
+#  ⛔ LA CELLULE (`cellule`, relecture adverse du 23 octobre 2026). Tout ce qui exécute ou décompresse le CODE D'UNE BRANCHE (tar, npm ci, la
+#  fabrication des pages) tourne dans une unité systemd éphémère (`systemd-run`), sous `teamoptest`, avec : un système de fichiers en lecture
+#  seule SAUF le seul dossier qu'elle doit écrire ; la production, ses sauvegardes, les clés et les certificats INVISIBLES ; pas de privilèges
+#  (NoNewPrivileges) ; et PAS DE RÉSEAU sauf pour `npm ci` (qui va chercher ses paquets). Avant, ces étapes passaient par un simple `runuser` :
+#  le code d'une branche voyait tout le disque et pouvait sortir par le réseau. `deployer-test --sonde` le vérifie sur la machine réelle.
+#  Si `systemd-run` manque ou refuse, le déploiement ÉCHOUE : on ne retombe jamais sur un `runuser` nu.
 #
 #  ⛔ IL N'AFFICHE JAMAIS UN JOURNAL NI UNE CONFIGURATION. La sortie d'un job GitHub est publique (le
 #  dépôt l'est) et conservée 90 jours. La fabrication des pages connaît la clé des routes d'essai
 #  (`espaceTestCle`) : sa sortie va dans un fichier du VPS (build.log, 0600), jamais à l'écran.
 #
-#  Variable pour les BANCS seulement : TEAMOP_TEST_RACINE (préfixe de tous les chemins).
+#  Variable pour les BANCS seulement : TEAMOP_TEST_RACINE (préfixe de tous les chemins). ⛔ Sous ssh elle est IGNORÉE : un chemin
+#  ne se décide jamais depuis l'extérieur de la machine.
 # ══════════════════════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
-SHA="${1:-}"
-BRANCHE="${2:-}"
-[[ "$SHA" =~ ^[0-9a-f]{40}$ ]]            || { echo "refusé : il faut un SHA complet (40 hexadécimaux)"; exit 2; }
-[[ "$BRANCHE" =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || { echo "refusé : nom de branche illisible (lettres, chiffres, . _ / - seulement)"; exit 2; }
-[ "$#" -eq 2 ] || { echo "refusé : usage : deployer-test.sh <sha> <branche>"; exit 2; }
+SONDE=0
+if [ -n "${SSH_ORIGINAL_COMMAND:-}" ]; then
+  # Appelé par la clé de la CI. ⛔ Cette clé est bornée à CE script par la ligne `command=` d'authorized_keys ; ce que le client demande
+  # n'arrive que dans SSH_ORIGINAL_COMMAND, et c'est ICI qu'on le valide. Une clé sans cette borne (ligne écrite à la main) est refusée.
+  R=""
+  [ "$#" -eq 1 ] && [ "${1:-}" = "--ssh" ] || { echo "refusé : cette clé ne sert qu'à mettre un commit en essai (deployer-test --ssh)"; exit 2; }
+  case "$SSH_ORIGINAL_COMMAND" in
+    *$'\n'*|*$'\r'*) echo "refusé : la demande doit tenir sur une ligne"; exit 2 ;;
+  esac
+  read -r SHA BRANCHE RESTE <<<"$SSH_ORIGINAL_COMMAND" || true
+  [ -z "${RESTE:-}" ] || { echo "refusé : trop de mots dans la demande (« <sha> <branche> » attendu)"; exit 2; }
+else
+  R="${TEAMOP_TEST_RACINE:-}"
+  if [ "${1:-}" = "--sonde" ]; then
+    SONDE=1; SHA=""; BRANCHE=""
+    [ "$#" -eq 1 ] || { echo "refusé : usage : deployer-test --sonde"; exit 2; }
+  else
+    SHA="${1:-}"
+    BRANCHE="${2:-}"
+    [ "$#" -eq 2 ] || { echo "refusé : usage : deployer-test <sha> <branche>"; exit 2; }
+  fi
+fi
+if [ "$SONDE" = "0" ]; then
+  [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]               || { echo "refusé : il faut un SHA complet (40 hexadécimaux)"; exit 2; }
+  [[ "$BRANCHE" =~ ^[A-Za-z0-9._/-]{1,100}$ ]] || { echo "refusé : nom de branche illisible (lettres, chiffres, . _ / - seulement)"; exit 2; }
+fi
 
-R="${TEAMOP_TEST_RACINE:-}"
 OPT="$R/opt/teamop/test"
 MIROIR="$OPT/repo"
 RELEASES="$OPT/releases"
@@ -51,6 +85,55 @@ UNITE="teamop-api-test"
 FICHIER_UNITE="$R/etc/systemd/system/$UNITE.service"
 COURT="${SHA:0:8}"
 
+# ── La cellule : tout ce qui touche au code d'une branche passe par ici, et par nulle part ailleurs ────────────────────────
+# Ce que la cellule ne voit JAMAIS (le `-` devant chaque chemin : « ignorer s'il n'existe pas ») : la production d'OP GESTION (données, configuration,
+# fichier de la Tour, dépôt, clé d'administration Firebase), celle d'OP MESSAGES et d'OP Courrier, la clé maître et les certificats, les
+# configurations des deux proxys (le mot de passe des pages y est), et le dossier de root. Les chemins sont ABSOLUS même dans un banc : ce sont ceux de la vraie machine.
+INVISIBLES="-/opt/teamop/data -/opt/teamop/config.json -/opt/teamop/monitor.json -/opt/teamop/repo -/opt/teamop/firebase-admin.json -/opt/opmsg -/opt/opcourrier -/etc/teamop -/etc/letsencrypt -/etc/nginx -/etc/caddy -/root"
+# Les mêmes, plus ce que ces étapes-là n'ont aucune raison de lire : la configuration de TEST (clés d'essai, Stripe de test, clé des agents) et ses données.
+INVISIBLES_STRICT="$INVISIBLES -/opt/teamop/test/config.json -/opt/teamop/test/data -/opt/teamop/test/monitor.json"
+cellule() {   # cellule <oui|non : réseau> <dossier de travail> <dossier inscriptible> <invisibles> [VAR=valeur…] -- commande…
+  local reseau="$1" cwd="$2" rw="$3" invisibles="$4"; shift 4
+  local env=()
+  while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do env+=( -E "$1" ); shift; done
+  [ "${1:-}" = "--" ] || { echo "✗ cellule : « -- » attendu avant la commande"; return 2; }
+  shift
+  local net=yes; [ "$reseau" != "oui" ] || net=no
+  systemd-run --quiet --wait --pipe --collect \
+    -p User=teamoptest -p Group=teamoptest \
+    -p NoNewPrivileges=yes -p PrivateTmp=yes -p PrivateDevices=yes -p ProtectHome=yes -p ProtectSystem=strict \
+    -p ProtectKernelTunables=yes -p ProtectKernelModules=yes -p ProtectControlGroups=yes -p RestrictSUIDSGID=yes \
+    -p "PrivateNetwork=$net" -p "WorkingDirectory=$cwd" -p "ReadWritePaths=$rw" -p "InaccessiblePaths=$invisibles" \
+    ${env[@]+"${env[@]}"} -- "$@"
+}
+
+# ── 0. Le contrôle de la cellule (--sonde) : elle tient, ou on ne déploie rien ────────────────────────────────────────────
+if [ "$SONDE" = "1" ]; then
+  command -v systemd-run >/dev/null 2>&1 || { echo "✗ systemd-run est absent : la cellule ne peut pas exister, rien ne sera déployé"; exit 1; }
+  # Le script est écrit EN TOUTES LETTRES (rien n'est calculé depuis l'extérieur). Il tourne dans une cellule SANS réseau, dossier inscriptible : un dossier jetable.
+  SONDE_DOSSIER="$OPT/sonde.d"
+  rm -rf "$SONDE_DOSSIER"; mkdir -p "$SONDE_DOSSIER"; chown teamoptest:teamoptest "$SONDE_DOSSIER"
+  # shellcheck disable=SC2016
+  SCRIPT_SONDE='fuite=0
+for p in /opt/teamop/data /opt/teamop/config.json /opt/teamop/monitor.json /opt/teamop/repo /opt/teamop/firebase-admin.json /etc/teamop /etc/letsencrypt /etc/nginx /root; do
+  if [ -r "$p" ] || [ -x "$p" ]; then echo "  ✗ visible depuis la cellule : $p"; fuite=1; fi
+done
+if ( : > "$1/ecriture-hors-cellule" ) 2>/dev/null; then echo "  ✗ la cellule peut écrire HORS de son dossier ($1)"; rm -f "$1/ecriture-hors-cellule"; fuite=1; fi
+if ( : > "$2/permis" ) 2>/dev/null; then rm -f "$2/permis"; else echo "  ✗ la cellule ne peut pas écrire dans SON dossier"; fuite=1; fi
+if ( exec 3<>/dev/tcp/1.1.1.1/53 ) 2>/dev/null; then echo "  ✗ la cellule a du RÉSEAU"; fuite=1; fi
+[ "$fuite" = 0 ] && echo "  la cellule tient" || true
+exit $fuite'
+  CODE_SONDE=0
+  cellule non "$SONDE_DOSSIER" "$SONDE_DOSSIER" "$INVISIBLES_STRICT" -- bash -c "$SCRIPT_SONDE" teamop-sonde "$MIROIR" "$SONDE_DOSSIER" || CODE_SONDE=$?
+  rm -rf "$SONDE_DOSSIER"
+  if [ "$CODE_SONDE" != "0" ]; then
+    echo "✗ la cellule NE TIENT PAS (code $CODE_SONDE) : le code d'une branche pourrait voir ou atteindre ce qu'il ne doit pas. Rien ne sera déployé. Recolle ce message."
+    exit 1
+  fi
+  echo "✓ la cellule tient : production invisible, écriture bornée à son dossier, pas de réseau"
+  exit 0
+fi
+
 # ⛔ « NON INSTALLÉ » SORT EN 0. On peut fusionner ce code avant que Justin ait installé l'espace de
 # test : la CI ne doit pas rougir pour une machine qu'on n'a pas encore préparée. Et la phrase est
 # dite, pour qu'un « vert » ne se lise pas comme « déployé ».
@@ -60,15 +143,14 @@ if [ ! -f "$FICHIER_UNITE" ] || [ ! -d "$MIROIR" ] || [ ! -f "$CONFIG" ]; then
 fi
 PORT="$(sed -n 's/^Environment=PORT=\([0-9]\{2,5\}\)$/\1/p' "$FICHIER_UNITE" | head -1)"
 [ -n "$PORT" ] || { echo "✗ le port du serveur de test est illisible ($FICHIER_UNITE)"; exit 1; }
+command -v systemd-run >/dev/null 2>&1 || { echo "✗ systemd-run est absent : on ne lance jamais le code d'une branche hors de sa cellule — rien n'a changé, l'ancien reste en service"; exit 1; }
 
 # ── 1. Un seul déploiement à la fois ──────────────────────────────────────────────────────
 mkdir -p "$OPT"
 exec 9>"$OPT/deployer.lock"
 flock -w 600 9 || { echo "✗ un autre déploiement de l'espace de test dure depuis plus de 10 minutes"; exit 1; }
 
-# Tout ce qui touche au code ou aux dépendances tourne EN TANT QUE `teamoptest`, jamais en root :
-# un script d'installation d'une dépendance, ou un fabricant de pages venu d'une branche pas encore
-# relue, ne doit pas disposer des droits de qui l'appelle.
+# Git ne lance jamais le code d'une branche (fetch, cat-file, archive) : il tourne sous `teamoptest`, dans SON miroir.
 EN_TANT_QUE() { runuser -u teamoptest -- "$@"; }
 export GIT_TERMINAL_PROMPT=0
 git_miroir() { EN_TANT_QUE git -c credential.helper= -C "$MIROIR" "$@"; }
@@ -91,13 +173,15 @@ ACTUEL=""
 PAGES_ACTUELLES=""
 [ -L "$LIEN_PAGES" ] && PAGES_ACTUELLES="$(readlink "$LIEN_PAGES")"
 
-# ── 3. La release : export, dépendances EN TANT QUE teamoptest ────────────────────────────
+# ── 3. La release : export et dépendances, chacun dans sa cellule ─────────────────────────
 DEST="$RELEASES/$SHA"
 if [ ! -f "$DEST/.pret" ]; then
+  echo "  (le code et ses dépendances s'installent : compte une à deux minutes, rien ne s'affiche pendant ce temps)"
   rm -rf "$DEST"
   mkdir -p "$DEST"
   chown teamoptest:teamoptest "$DEST"
-  if ! git_miroir archive --format=tar "$SHA" | EN_TANT_QUE tar -x -C "$DEST"; then
+  # git archive lit le dépôt (sous teamoptest) ; tar DÉCOMPRESSE le code de la branche : c'est lui qui est en cellule, écriture bornée à la release, sans réseau.
+  if ! git_miroir archive --format=tar "$SHA" | cellule non "$DEST" "$DEST" "$INVISIBLES_STRICT" -- tar -x -C "$DEST"; then
     rm -rf "$DEST"
     echo "✗ l'export de $COURT a échoué — rien n'a changé, l'ancien reste en service (${ACTUEL:0:8})"
     exit 1
@@ -107,8 +191,8 @@ if [ ! -f "$DEST/.pret" ]; then
     echo "✗ $COURT ne porte pas server/package.json et server/index.js — rien n'a changé, l'ancien reste en service"
     exit 1
   fi
-  # `--ignore-scripts` : aucun script d'installation ne s'exécute (le serveur n'en a pas besoin).
-  if ! EN_TANT_QUE env HOME="$DEST" npm_config_cache="$DEST/.npm-cache" \
+  # `--ignore-scripts` : aucun script d'installation ne s'exécute (le serveur n'en a pas besoin). Le réseau est ouvert (le registre npm), rien d'autre ne l'est.
+  if ! cellule oui "$DEST" "$DEST" "$INVISIBLES_STRICT" HOME="$DEST" npm_config_cache="$DEST/.npm-cache" -- \
        npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix "$DEST/server" >/dev/null 2>&1; then
     rm -rf "$DEST"
     echo "✗ npm ci a échoué pour $COURT — rien n'a changé, l'ancien reste en service (${ACTUEL:0:8})"
@@ -118,14 +202,7 @@ if [ ! -f "$DEST/.pret" ]; then
   : > "$DEST/.pret"
 fi
 
-# ── 4. Le déployeur de CE commit, s'il diffère ────────────────────────────────────────────
-if [ -z "${TEAMOP_TEST_RELANCE:-}" ] && [ -f "$DEST/server/deployer-test.sh" ] \
-   && ! cmp -s "$0" "$DEST/server/deployer-test.sh"; then
-  echo "le déployeur de $COURT diffère de celui qui tourne — on repasse la main au plus récent"
-  TEAMOP_TEST_RELANCE=1 exec bash "$DEST/server/deployer-test.sh" "$SHA" "$BRANCHE"
-fi
-
-# ── 5. Les pages, dans un dossier NEUF ────────────────────────────────────────────────────
+# ── 4. Les pages, dans un dossier NEUF ────────────────────────────────────────────────────
 # Le fabricant lit la configuration de test (la clé des routes d'essai s'imprime dans les liens de
 # `essais.html`) : sa sortie ne va JAMAIS à l'écran — voir l'en-tête.
 STAMP="$(date +%Y%m%d%H%M%S)"
@@ -141,9 +218,18 @@ if [ ! -f "$DEST/scripts/essais-build.js" ]; then
   echo "✗ $COURT ne porte pas scripts/essais-build.js (le fabricant des pages de test) — rien n'a changé, l'ancien reste en service"
   exit 1
 fi
+# Les tests PROPRES À CETTE MODIFICATION : un fichier du commit, donc porté par la demande de fusion (`essais/parcours.json`). Sans lui, la page de test
+# le DIT (« Aucun test propre à cette modification n'est fourni ») — jamais un parcours de base qu'on prendrait pour celui de la modification.
+ARGS_PARCOURS=()
+if [ -f "$DEST/essais/parcours.json" ]; then
+  ARGS_PARCOURS=( --parcours "$DEST/essais/parcours.json" )
+  echo "tests de la modification : essais/parcours.json"
+else
+  echo "tests de la modification : aucun (pas de essais/parcours.json dans ce commit) — la page de test le dit"
+fi
 CODE=0
-( cd "$DEST" && EN_TANT_QUE env TEAMOP_CONFIG="$CONFIG" TEAMOP_DATA="$DATA" \
-    node scripts/essais-build.js "$PAGES_NEUVES" "$SHA" "$BRANCHE" ) >"$JOURNAL_BUILD" 2>&1 || CODE=$?
+cellule non "$DEST" "$PAGES_NEUVES" "$INVISIBLES" TEAMOP_CONFIG="$CONFIG" TEAMOP_DATA="$DATA" -- \
+    node scripts/essais-build.js "$PAGES_NEUVES" "$SHA" "$BRANCHE" ${ARGS_PARCOURS[@]+"${ARGS_PARCOURS[@]}"} >"$JOURNAL_BUILD" 2>&1 || CODE=$?
 if [ "$CODE" != "0" ] || [ ! -f "$PAGES_NEUVES/essais.html" ]; then
   rm -rf "$PAGES_NEUVES"
   echo "✗ la fabrication des pages a échoué (code $CODE) — rien n'a changé, l'ancien reste en service (${ACTUEL:0:8})"
@@ -152,7 +238,7 @@ if [ "$CODE" != "0" ] || [ ! -f "$PAGES_NEUVES/essais.html" ]; then
 fi
 chmod -R a+rX "$PAGES_NEUVES"
 
-# ── 6. Le code : bascule, redémarrage, contrôle — et RETOUR si ça ne tient pas ────────────
+# ── 5. Le code : bascule, redémarrage, contrôle — et RETOUR si ça ne tient pas ────────────
 ESSAIS_SANTE=40; PAUSE_SANTE=1
 [ -z "$R" ] || { ESSAIS_SANTE="${TEAMOP_TEST_ESSAIS_SANTE:-40}"; PAUSE_SANTE="${TEAMOP_TEST_PAUSE_SANTE:-1}"; }
 verifier() {   # $1 = SHA attendu ; imprime l'état et rend 0 si /health est ok (et, s'il publie un sha, le bon)
@@ -218,7 +304,7 @@ ROUTES="absentes (ce commit ne porte pas le mode test)"
 CODE_ROUTE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:$PORT/api/essais/courriels" 2>/dev/null || true)"
 case "$CODE_ROUTE" in 401|403) ROUTES="présentes (fermées sans la clé : $CODE_ROUTE)" ;; 200) ROUTES="⚠️ ouvertes SANS clé (200) — à corriger" ;; esac
 
-# ── 7. Les pages : bascule par renommage, puis le ménage ──────────────────────────────────
+# ── 6. Les pages : bascule par renommage, puis le ménage ──────────────────────────────────
 if [ -e "$LIEN_PAGES" ] && [ ! -L "$LIEN_PAGES" ]; then
   # Une seule fois : le dossier d'avant (l'installeur pose un LIEN, pas un dossier). On le range à part.
   mv "$LIEN_PAGES" "$PAGES_D/ancien-$STAMP"
@@ -243,10 +329,5 @@ find "$PAGES_D" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -rn | 
 if ! grep -q "${SHA:0:7}" "$PAGES_NEUVES/essais.html" 2>/dev/null; then
   echo "⚠️ essais.html ne cite pas le commit ${SHA:0:7} — vérifier la fabrication des pages"
 fi
-# Le miroir suit ce qui vient d'être servi : le prochain déploiement lance alors le déployeur du jour sans
-# avoir à lui repasser la main (étape 4), et une réinstallation repart d'un miroir à jour. Sans danger pour
-# le script qui tourne : soit il vient de la release (relancé à l'étape 4), soit il est identique à celui du
-# commit (le dépôt ne réécrit pas un fichier qui ne change pas). Un échec ici n'est pas un échec du déploiement.
-git_miroir checkout --quiet --force --detach "$SHA" >/dev/null 2>&1 || true
 echo "routes d'essai : $ROUTES"
 echo "déployé : $BRANCHE $COURT — https://test.teamop.fr/essais.html"

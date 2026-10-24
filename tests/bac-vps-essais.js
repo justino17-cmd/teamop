@@ -31,14 +31,15 @@ function creerBac() {
   ecrire(path.join(R, 'etc/systemd/system/teamop-api.service'), '[Service]\nExecStart=/usr/bin/node index.js\n');
   ecrire(path.join(R, 'etc/teamop/kek'), 'f'.repeat(64), 0o600);
   ecrire(path.join(R, 'etc/nginx/sites-available/api.teamop.fr'), 'server { server_name api.teamop.fr; }\n');
+  ecrire(path.join(R, 'etc/caddy/Caddyfile'), 'api.teamop.fr {\n    reverse_proxy 127.0.0.1:8080\n}\n');   // sentinelle : seul le mode Caddy y ajoute UNE ligne d'import
 
   /* ── Les « commits » du faux dépôt : un arbre par SHA, avec le VRAI déployeur et le VRAI modèle nginx ── */
   const arbre = (sha, extra) => {
     const d = path.join(FIX, sha);
     ecrire(path.join(d, 'server/index.js'), '// serveur ' + sha);
     ecrire(path.join(d, 'server/package.json'), '{"name":"teamop-api"}');
-    for (const f of ['deployer-test.sh', 'install-test.sh', 'nginx-teamop-test.conf'])
-      ecrire(path.join(d, 'server', f), fs.readFileSync(path.join(RACINE_DEPOT, 'server', f), 'utf8'), 0o755);
+    for (const f of ['deployer-test.sh', 'install-test.sh', 'nginx-teamop-test.conf', 'caddy-teamop-test.caddy'])
+      if (fs.existsSync(path.join(RACINE_DEPOT, 'server', f))) ecrire(path.join(d, 'server', f), fs.readFileSync(path.join(RACINE_DEPOT, 'server', f), 'utf8'), 0o755);
     /* Un FAUX créateur de tarifs : le vrai (server/stripe-essai-prix.js) parle à api.stripe.com, ce que le bac ne doit jamais faire — il est éprouvé par test-2990 contre un faux Stripe.
        Celui-ci note l'appel (qui, quelle config) et écrit une table de dix tarifs dans la config, comme le vrai. Il n'imprime rien d'autre qu'une ligne. */
     ecrire(path.join(d, 'server/stripe-essai-prix.js'), `
@@ -57,9 +58,11 @@ const [dir, sha, branche] = process.argv.slice(2);
 const E = process.env.BAC_ETAT, R = process.env.BAC_RACINE;
 const lien = n => { try { return path.basename(fs.readlinkSync(path.join(R, 'opt/teamop/test', n))); } catch (e) { return '-'; } };
 fs.appendFileSync(E + '/log', 'build as=' + process.env.BAC_UTILISATEUR + ' sha=' + sha.slice(0, 8) + ' branche=' + branche + ' current=' + lien('current').slice(0, 8) + ' pages=' + lien('pages') + ' cfg=' + process.env.TEAMOP_CONFIG + ' data=' + process.env.TEAMOP_DATA + ' cwd=' + process.cwd() + '\\n');
+const iP = process.argv.indexOf('--parcours'), parcours = iP > 0 ? process.argv[iP + 1] : '';
+fs.appendFileSync(E + '/log', 'build-args parcours=' + (parcours || '-') + ' arguments=' + (process.argv.length - 2) + '\\n');
 console.log('espaceTestCle=${CANARI_BUILD}');
 if (fs.existsSync(E + '/build_echec')) { console.error('boum ${CANARI_BUILD}'); process.exit(3); }
-fs.writeFileSync(path.join(dir, 'essais.html'), '<p>' + branche + ' ' + sha.slice(0, 7) + '</p>');
+fs.writeFileSync(path.join(dir, 'essais.html'), '<p>' + branche + ' ' + sha.slice(0, 7) + '</p>' + (parcours ? '<!--parcours:' + fs.readFileSync(parcours, 'utf8') + '-->' : ''));
 `);
     if (extra) extra(d);
     return d;
@@ -85,6 +88,9 @@ case "$cmd" in
   archive) tar -c -C "$FIX/\${@: -1}" . ;;
   clone) dir="\${@: -1}"; mkdir -p "$dir/.git"; cp -r "$FIX/mirror/." "$dir/" ;;
   rev-parse) [ -f "$E/branche_absente" ] && exit 1; cat "$FIX/HEAD" ;;
+  ls-remote) # « git ls-remote <dépôt> refs/heads/<branche> » : la tête de la branche, lue PAR ROOT (jamais depuis le miroir de teamoptest)
+    [ -f "$E/branche_absente" ] && exit 0
+    ref="\${@: -1}"; printf '%s\\t%s\\n' "$(cat "$FIX/HEAD")" "$ref" ;;
   checkout) # comme le vrai : un fichier identique n'est pas réécrit (le script qui tourne n'est jamais tronqué)
     sha="\${@: -1}"
     if [ -d "$FIX/$sha" ] && [ -n "$REPO" ]; then
@@ -97,7 +103,35 @@ exit 0
 # runuser -u USER -- commande… : exécute la commande ; la trace dit « en tant que qui »
 user="$2"; shift 3
 echo "runuser $user $1" >> "$BAC_ETAT/log"
+# « test -r/-x <chemin> » : ce que le compte de test PEUT lire est dit par le fichier « lisibles » du bac (rien par défaut : les droits de la production tiennent)
+if [ "$1" = "test" ]; then grep -qxF "$3" "$BAC_ETAT/lisibles" 2>/dev/null; exit $?; fi
 BAC_UTILISATEUR="$user" exec "$@"
+`);
+  /* Le faux systemd-run : il n'APPLIQUE aucune restriction (le bac ne peut pas — c'est `deployer-test --sonde` qui le vérifie sur la vraie machine, et le dit), mais il fait ce que ferait
+     systemd de pire côté usage : il REFUSE une option ou une propriété qu'il ne connaît pas (une faute de frappe dans la cellule échoue ici comme là-bas), il note les propriétés posées
+     (c'est ce journal qui prouve ce que chaque étape a le droit de faire) et lance la commande sous l'utilisateur demandé, dans le dossier de travail demandé. */
+  faux(BIN, 'systemd-run', `
+props=(); envs=()
+while [ $# -gt 0 ]; do case "$1" in
+  --quiet|--wait|--pipe|--collect) shift ;;
+  -p) props+=("$2"); shift 2 ;;
+  -E) envs+=("$2"); shift 2 ;;
+  --) shift; break ;;
+  *) echo "systemd-run (faux) : option inconnue $1" >&2; exit 64 ;;
+esac; done
+get() { local p; for p in "\${props[@]}"; do case "$p" in "$1="*) printf '%s' "\${p#*=}"; return ;; esac; done; }
+CONNUES=" User Group NoNewPrivileges PrivateTmp PrivateDevices ProtectHome ProtectSystem ProtectKernelTunables ProtectKernelModules ProtectControlGroups RestrictSUIDSGID PrivateNetwork WorkingDirectory ReadWritePaths InaccessiblePaths "
+for p in "\${props[@]}"; do case "$CONNUES" in *" \${p%%=*} "*) ;; *) echo "systemd-run (faux) : propriété inconnue \${p%%=*}" >&2; exit 65 ;; esac; done
+noms=""; for e in "\${envs[@]}"; do noms="$noms \${e%%=*}"; done
+echo "cellule user=$(get User) net=$(get PrivateNetwork) systeme=$(get ProtectSystem) nopriv=$(get NoNewPrivileges) cwd=$(get WorkingDirectory) rw=$(get ReadWritePaths) inv=$(get InaccessiblePaths) env=\${noms# } cmd=$1" >> "$BAC_ETAT/log"
+[ -f "$BAC_ETAT/cellule_refuse" ] && exit 1
+case " $* " in *" teamop-sonde "*)
+  if [ -f "$BAC_ETAT/cellule_percee" ]; then echo "  ✗ visible depuis la cellule : /etc/nginx"; echo "  ✗ la cellule a du RÉSEAU"; exit 1; fi
+  echo "  la cellule tient"; exit 0 ;;
+esac
+for e in "\${envs[@]}"; do export "$e"; done
+cd "$(get WorkingDirectory)" || exit 1
+BAC_UTILISATEUR="$(get User)" exec "$@"
 `);
   faux(BIN, 'npm', `
 echo "npm $1 as=\${BAC_UTILISATEUR:--} args=$*" >> "$BAC_ETAT/log"
@@ -112,7 +146,9 @@ cur="$(basename "$(readlink "$R/opt/teamop/test/current" 2>/dev/null)" 2>/dev/nu
 pag="$(basename "$(readlink "$R/opt/teamop/test/pages" 2>/dev/null)" 2>/dev/null)"
 echo "systemctl $* | current=$cur pages=$pag" >> "$E/log"
 case "$1" in
-  is-active) [ -f "$E/nginx_inactif" ] && [ "$3" = "nginx" ] && exit 3; exit 0 ;;
+  is-active) [ -f "$E/nginx_inactif" ] && [ "$3" = "nginx" ] && exit 3
+             [ "$3" = "caddy" ] && [ ! -f "$E/caddy_actif" ] && exit 3   # Caddy n'est actif que si le bac le dit
+             exit 0 ;;
   restart) [ -f "$E/restart_echec" ] && exit 1; exit 0 ;;
 esac
 exit 0
@@ -127,6 +163,14 @@ case "$url" in
     if [ -n "$cur" ] && grep -qx "$cur" "$E/malsains" 2>/dev/null; then exit 22; fi
     echo '{"ok":true,"v":5}' ;;
   http://127.0.0.1:*/api/essais/courriels) printf '%s' "$(cat "$E/routes" 2>/dev/null || echo 403)" ;;
+  https://raw.githubusercontent.com/justino17-cmd/teamop/*)
+    # un fichier du dépôt, lu PAR SON SHA (immuable : pas de cache périmé) — ce que l'installeur pose en root
+    rest="\${url#https://raw.githubusercontent.com/justino17-cmd/teamop/}"; sha="\${rest%%/*}"; chemin="\${rest#*/}"
+    echo "curl raw sha=\${sha:0:8} $chemin" >> "$E/log"
+    [ -f "$E/raw_echec" ] && exit 22
+    f="$FIX/$sha/$chemin"; [ -f "$f" ] || exit 22
+    out=""; prev=""; for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done
+    if [ -f "$E/raw_vide" ]; then : > "$out"; else cp "$f" "$out"; fi ;;
   https://*essais.html) printf '%s' "$(cat "$E/pages_code" 2>/dev/null || echo 401)" ;;
   *) exit 7 ;;
 esac
@@ -156,6 +200,24 @@ case "$1" in
       exit 0 ;;
 esac
 exit 0
+`);
+  faux(BIN, 'caddy', `
+R="$BAC_RACINE"
+echo "caddy $*" >> "$BAC_ETAT/log"
+case "$1" in
+  validate)
+    cp "$R/etc/caddy/Caddyfile" "$BAC_ETAT/caddyfile-au-validate" 2>/dev/null || true
+    if grep -rq '@@' "$R/etc/caddy/teamop-test" 2>/dev/null; then echo "caddy: trou du modèle non rempli" >&2; exit 1; fi
+    [ -f "$BAC_ETAT/caddy_refuse" ] && { echo "caddy: refus de test" >&2; exit 1; }
+    exit 0 ;;
+esac
+exit 0
+`);
+  /* Un faux htpasswd : le mot de passe arrive par l'ENTRÉE STANDARD (jamais en argument) ; il rend un hachage bcrypt d'apparence ($2y$10$…) dérivé du mot de passe. */
+  faux(BIN, 'htpasswd', `
+echo "htpasswd $*" >> "$BAC_ETAT/log"
+mdp="$(cat)"
+printf 'essai:$2y$10$%s\\n' "$(printf '%s' "$mdp" | sha256sum | cut -c1-53)"
 `);
   faux(BIN, 'certbot', `
 R="$BAC_RACINE"
@@ -187,23 +249,28 @@ exit 0
     poser: (nom, contenu) => fs.writeFileSync(path.join(E, nom), contenu === undefined ? '1' : contenu),
     retirer: (nom) => fs.rmSync(path.join(E, nom), { force: true }),
     /* Pose le VPS « installé » : l'unité, la configuration, le miroir avec un déployeur ANCIEN (il diffère du vrai). */
+    /* Pose le VPS « installé » : l'unité, la configuration, le miroir (un dossier — rien n'y est exécuté), et LE DÉPLOYEUR DE ROOT dans /usr/local/sbin, là où l'installeur le pose.
+       ⛔ Il n'y a plus de déployeur dans le miroir : un déployeur que le compte de test peut écrire, c'est un script que root exécute et que la branche écrit. */
     installer(opts) {
       opts = opts || {};
       ecrire(path.join(R, 'etc/systemd/system/teamop-api-test.service'), '[Service]\nEnvironment=PORT=8095\nUser=teamoptest\n');
       ecrire(path.join(R, 'opt/teamop/test/config.json'), JSON.stringify({ espaceTest: true, espaceTestCle: '1'.repeat(64) }), 0o640);
-      const vrai = fs.readFileSync(path.join(RACINE_DEPOT, 'server/deployer-test.sh'), 'utf8');
-      ecrire(path.join(R, 'opt/teamop/test/repo/server/deployer-test.sh'), opts.identique ? vrai : vrai + '\n# version du jour de l\'installation\n', 0o755);
+      this.poserDeployeur();
+      fs.mkdirSync(path.join(R, 'opt/teamop/test/repo'), { recursive: true });
       fs.mkdirSync(path.join(R, 'opt/teamop/test/data'), { recursive: true });
       if (opts.pagesVides) {
         ecrire(path.join(R, 'opt/teamop/test/pages.d/vide/essais.html'), 'attente');
         fs.symlinkSync('pages.d/vide', path.join(R, 'opt/teamop/test/pages'));
       }
     },
-    deployer(sha, branche, extraEnv) {
-      const script = path.join(R, 'opt/teamop/test/repo/server/deployer-test.sh');
-      const r = spawnSync('bash', [script].concat(sha === undefined ? [] : [sha], branche === undefined ? [] : [branche]), { encoding: 'utf8', env: Object.assign({}, env, extraEnv || {}), timeout: 60000 });
+    poserDeployeur() { ecrire(path.join(R, 'usr/local/sbin/deployer-test'), fs.readFileSync(path.join(RACINE_DEPOT, 'server/deployer-test.sh'), 'utf8'), 0o755); },
+    /* Le déployeur, tel que root le lance : arguments libres (« <sha> <branche> », « --sonde », « --ssh »), environnement libre (SSH_ORIGINAL_COMMAND…). */
+    lancer(args, extraEnv) {
+      const script = path.join(R, 'usr/local/sbin/deployer-test');
+      const r = spawnSync('bash', [script].concat(args), { encoding: 'utf8', env: Object.assign({}, env, extraEnv || {}), timeout: 60000 });
       return { rc: r.status, sortie: String(r.stdout || '') + String(r.stderr || ''), out: String(r.stdout || ''), err: String(r.stderr || '') };
     },
+    deployer(sha, branche, extraEnv) { return this.lancer([].concat(sha === undefined ? [] : [sha], branche === undefined ? [] : [branche]), extraEnv); },
     nettoyer() { try { fs.rmSync(B, { recursive: true, force: true }); } catch (e) {} },
   };
 }
