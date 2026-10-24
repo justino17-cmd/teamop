@@ -43,6 +43,11 @@ expliqué dans un ordre ». Ses quatre choix : `test.teamop.fr` ; courriels CAPT
   (3) `VPS_SSH_KEY` de PRODUCTION reste un secret du DÉPÔT, lisible par toute branche qui modifie un workflow — la déplacer dans un
   environnement protégé est un chantier à part (`deploiement.yml`).
 - **Les tests de Justin** vivent sur sa page de tests (artefact « parcours ») : un lot par modification, un test à la fois.
+- **Dette ouverte la même nuit (dépendances)** : quatre avis `npm audit` publiés le 23 octobre faisaient tomber « Secrets et dépendances ».
+  Seuls body-parser (1.20.9, ÉLEVÉ) et ip-address (10.7.4) sont montés (demande n° 169, reportée ici). ⛔ nodemailer RESTE en 10.0.13 (et
+  mailparser en 3.9.32) : la 10.2.1 fait tomber `test-997` d'OP MESSAGES trois fois sur quatre (le second code de « mot de passe oublié »
+  n'arrive plus au relais du banc ; 10.0.13 : trois sur trois), et `test-900` exige les mêmes versions dans les deux serveurs. Ses avis sont
+  MODÉRÉS (analyseur d'adresses : un nom affiché piégé peut devenir destinataire) — à reprendre en comprenant d'abord ce que la 10.2 change.
 
 # ✅ 23 OCTOBRE 2026 (SOIR) — LA RELECTURE JURIDIQUE APPLIQUÉE (Justin : « tu as déjà tout de ça », puis « Publié ») — EN LIGNE (demande n° 167, fusionnée le 23 à 22 h 43 UTC, serveur redéployé)
 
