@@ -3156,7 +3156,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.108</div>
+    <div class="lg-pied">console interne · v2.109</div>
   </div>
 </div>
 
@@ -3198,7 +3198,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.108</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.109</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3210,7 +3210,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.108</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.109</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3515,7 +3515,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.108';
+var TOUR_VERSION='v2.109';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -5633,10 +5633,13 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
   /* v2.77 — le métier de la demande se pose avec la formule : c'est lui qui règle l'application (types d'intervention,
      fiche de terrain, modules). Refusé ou injoignable : on le DIT, et le reste de l'acceptation continue — il se règle
      ensuite dans la fiche (« MÉTIER »). */
-  var metierDem=MET_L[dm.metier]?dm.metier:'', metierPose='';
+  /* v2.109 — `siVide` : un espace qui a DÉJÀ un métier le garde (une seconde demande ne le change pas, comme ses rubriques) ; le serveur
+     rend alors le métier gardé, que le panneau et le message de bienvenue disent. Le changer reste un geste de la fiche. */
+  var metierDem=MET_L[dm.metier]?dm.metier:'', metierPose='', metierGarde=false;
   if(metierDem){
-    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem});
-      if(rm&&rm.ok&&rm.d&&rm.d.ok) metierPose=metierDem; else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
+    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem,siVide:true});
+      if(rm&&rm.ok&&rm.d&&rm.d.ok){ metierPose=MET_L[rm.d.metier]?rm.d.metier:metierDem; metierGarde=!!rm.d.garde&&metierPose!==metierDem; }
+      else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
     catch(err){ toast('Métier non posé (serveur injoignable) — règle-le dans la fiche'); }
   }
   /* 23 octobre 2026 — LES RUBRIQUES RETENUES se posent avec le métier : ce que la grille de la demande montre coché (le choix du client, ajusté), sinon
@@ -5681,6 +5684,7 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
       :catsInfo.etat==='refus'
         ?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg" role="alert">⛔ <b>Rubriques non posées</b> : '+esc(catsInfo.err)+'. L’espace est ouvert avec toutes les rubriques — règle-les dans sa fiche. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>'
         :'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg">🧩 <b>Choisis ses catégories</b> dans sa fiche : '+catsPromesse()+(depart.source==='attente'?' — le référentiel des métiers n’était pas encore lu':'')+'. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>')+
+    (metierGarde?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-metier-msg">🧰 <b>Métier de l’espace gardé : '+esc(MET_L[metierPose])+'</b> — sa demande dit « '+esc(MET_L[metierDem])+' ». Une seconde demande ne change pas le métier d’une entreprise déjà ouverte ; s’il faut le changer, c’est dans sa fiche (MÉTIER).</div></div>':'')+
     (codeDem&&!promo?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx">⚠️ Code promo « '+esc(codeDem)+' » de la demande non appliqué : '+esc(promoErr)+'</div></div>':'')+
     '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— c\'est elle qu\'on donne aux équipes</span></div>'+
     '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span id="acc-adr" class="mono" style="flex:1;word-break:break-all;font-size:14px;color:var(--link);font-weight:700">'+esc(adrF)+'</span><button class="btn-fant" onclick="tourCopie(\'acc-adr\',this)">Copier</button></div>'+

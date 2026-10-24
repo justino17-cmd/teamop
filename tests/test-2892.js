@@ -258,6 +258,8 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
       const toasts = [], panneaux = [], posts = [], el = {}, rend = [];
       const ctx = { fetch: async (u, o) => { if (o && o.method === 'POST') posts.push({ u: String(u), corps: JSON.parse(o.body) });
           if (plus.refuseCats && /espaces\/cats/.test(u)) return { ok: false, status: 400, json: async () => ({ error: 'catégorie inconnue : essai' }) };
+          /* un SERVEUR D'AVANT le 24 octobre 2026 : il ignore `siVide` — un relais le retire avant de transmettre */
+          if (plus.serveurAvant && /espaces\/metier/.test(u)) { const c = JSON.parse(o.body); delete c.siVide; o = Object.assign({}, o, { body: JSON.stringify(c) }); }
           return fetch(u, o); },
         JSON, Object, Array, String, Math, Date, Promise, parseInt, setTimeout, console,
         document: { getElementById: id => el[id] || null, querySelectorAll: () => [] }, $: id => el[id] || null,
@@ -431,6 +433,36 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     /* e · les textes ne promettent pas ce que l'application ne fait pas */
     const infoRS = Tg.ctx.demCatsInfo(Tg.ctx.demCatsCle(cliRS.email, 0), { liste: TROIS, source: 'espace' });
     vrai('⛔ le compteur de la grille ne dit pas « l\'application ne montrera que celles-là » (elle ne lit pas encore les rubriques) mais ce qui est vrai', !/ne montrera/.test(infoRS) && /ne les applique pas encore/.test(infoRS), infoRS);
+
+    /* ══ 3 ter. UNE SECONDE DEMANDE NE CHANGE PAS LE MÉTIER D'UN ESPACE DÉJÀ OUVERT (24 octobre 2026) ══
+       Avant : l'acceptation reposait le métier de la demande sur un espace qui travaillait déjà — l'application changeait de types
+       d'intervention, de fiche de terrain et de modules sans que personne l'ait décidé (seules les rubriques étaient protégées). */
+    console.log('\n3 ter. Une seconde demande acceptée sur un espace qui a déjà un métier : le métier est GARDÉ, et la Tour le dit');
+    v('(population) « chauffe-banc » a déjà un métier, posé par la première acceptation (§ 3 a, qui envoyait déjà `siVide`)', [(await etat(T_CH)).metier, Ta.posts.filter(p => /espaces\/metier/.test(p.u)).map(p => p.corps.siVide)], ['chauffage', [true]]);
+    const cliSec = { email: MAIL, entreprise: 'Chauffe Banc', demandes: [{ app: 'OP GESTION', formule: 'Pro', users: '3', metier: 'plomberie', date: MAINT + 10 }] };
+    const Tk = tour([cliSec], { espace: 'chauffe-banc' });
+    await Tk.ctx.refMetiersCharger();
+    await Tk.ctx.tourAccepterDemande(MAIL, 'chauffe-banc');
+    v('⛔ l\'acceptation ne demande le métier de la demande que s\'il n\'y en a pas (`siVide`)', Tk.posts.filter(p => /espaces\/metier/.test(p.u)).map(p => [p.corps.metier, p.corps.siVide]), [['plomberie', true]]);
+    v('⛔ LA COUTURE : l\'application reçoit toujours le métier d\'avant, pas celui de la seconde demande', (await etat(T_CH)).metier, 'chauffage');
+    const pK = Tk.panneaux.join('\n');
+    vrai('   le panneau le DIT : le métier gardé, celui de la demande, et où le changer', /Métier de l’espace gardé : Chauffage \/ Climatisation/.test(pK) && /sa demande dit « Plomberie »/.test(pK) && /dans sa fiche \(MÉTIER\)/.test(pK), pK.slice(0, 500));
+    vrai('   le message de bienvenue nomme le métier RÉEL de l\'application, pas celui de la demande', /réglée pour ton métier : Chauffage \/ Climatisation\./.test(String(Tk.ctx.LG_MSG_MODELE)) && !/Plomberie/.test(String(Tk.ctx.LG_MSG_MODELE)), String(Tk.ctx.LG_MSG_MODELE).slice(0, 300));
+    /* même métier que l'espace : rien n'est « gardé », rien à dire */
+    const cliMeme = { email: MAIL, entreprise: 'Chauffe Banc', demandes: [{ app: 'OP GESTION', formule: 'Pro', users: '3', metier: 'chauffage', date: MAINT + 20 }] };
+    const Tm = tour([cliMeme], { espace: 'chauffe-banc' });
+    await Tm.ctx.refMetiersCharger();
+    await Tm.ctx.tourAccepterDemande(MAIL, 'chauffe-banc');
+    vrai('   la demande porte le métier de l\'espace : aucun encart « gardé »', !/Métier de l’espace gardé/.test(Tm.panneaux.join('\n')) && (await etat(T_CH)).metier === 'chauffage');
+    /* le geste de la fiche (sans `siVide`) change toujours le métier : la protection ne fige rien */
+    const rFiche = await appel('/api/monitor/espaces/metier', { nom: 'chauffe-banc', metier: 'plomberie' }, PATRON);
+    v('⛔ le geste de la FICHE (sans `siVide`) change toujours le métier, et l\'application le reçoit', [rFiche.s, rFiche.j && rFiche.j.garde, (await etat(T_CH)).metier], [200, undefined, 'plomberie']);
+    await appel('/api/monitor/espaces/metier', { nom: 'chauffe-banc', metier: 'chauffage' }, PATRON);
+    /* les deux ordres de publication : la Tour neuve devant un serveur d'avant ne PRÉTEND pas avoir gardé le métier */
+    const Tn = tour([cliSec], { espace: 'chauffe-banc', serveurAvant: true });
+    await Tn.ctx.refMetiersCharger();
+    await Tn.ctx.tourAccepterDemande(MAIL, 'chauffe-banc');
+    v('   Tour neuve, serveur d\'avant (le champ retiré en route) : le comportement d\'avant, et la Tour ne dit PAS « gardé » — elle annonce le métier vraiment posé', [(await etat(T_CH)).metier, /Métier de l’espace gardé/.test(Tn.panneaux.join('\n')), /réglée pour ton métier : Plomberie\./.test(String(Tn.ctx.LG_MSG_MODELE))], ['plomberie', false, true]);
 
     /* ══ 4. LES LISTES SE TIENNENT ══ */
     console.log('\n4. Les trois listes de métiers de secours disent la même chose que l\'interrupteur');
