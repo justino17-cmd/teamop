@@ -49,7 +49,7 @@ function corps(entete) {
 const fonction = nom => corps('\nfunction ' + nom + '(').trim();
 const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
-const NOMS = ['exHeure', 'exUsd', 'exEcran', 'exEntrer', 'exCharger', 'exSurveiller', 'exOuvrir', 'exBasculer', 'exLancer', 'exCleCreer', 'exCleSupprimer', 'exCleCopier', 'exCleCacher', 'exVerifHtml', 'exFilLib', 'exConvHtml',
+const NOMS = ['exHeure', 'exUsd', 'exEcran', 'exEntrer', 'exCharger', 'exSurveiller', 'exOuvrir', 'exBasculer', 'exLancer', 'exCleCreer', 'exCleSupprimer', 'exCleCopier', 'exCleCacher', 'exCopier', 'exVerifHtml', 'exFilLib', 'exConvHtml',
   'exScenarioHtml', 'exBilanHtml', 'exSourceLib', 'exResultatHtml', 'exProgresHtml', 'exCleHtml', 'exVue', 'nMot', 'fmtDate', 'msgErreur', 'apiGet', 'apiPost', 'acSquel', 'agIllisible', 'agNom', 'agParId', 'agSec'];
 const FN = NOMS.map(fonction);
 const VARS = ['var EX=', 'var EX_LIB=', 'var EX_ICO=', 'var EX_PROG=', 'var EX_FILS=', 'var INJOIGNABLE='].map(ligne).join('\n');
