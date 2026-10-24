@@ -352,7 +352,6 @@ console.log('\n── 8. Le workflow de déploiement de test (code seul)');
   const secretsUtilises = wf.match(/secrets\.[A-Z_]+/g) || [];
   v('⛔ le seul secret utilisé est VPS_SSH_KEY_TEST (jamais VPS_SSH_KEY, la clé de la production, qui ouvre un shell root)', Array.from(new Set(secretsUtilises)), ['secrets.VPS_SSH_KEY_TEST']);
   vrai('⛔ …et `VPS_SSH_KEY` (sans _TEST) n\'apparaît dans AUCUNE ligne de code du workflow', !/VPS_SSH_KEY(?!_TEST)/.test(wf));
-  vrai('⛔ le job qui reçoit la clé déclare l\'ENVIRONNEMENT `essai-test` (relecteur obligatoire : le secret n\'est remis qu\'APRÈS l\'approbation de Justin)', /deployer:\n(\s+[^\n]*\n)*?\s+environment: essai-test\n/.test(wf));
   vrai('⛔ le secret n\'est lu qu\'au niveau du job `deployer` (pas du workflow, pas des bancs)', (wf.match(/CLE_SSH: \$\{\{ secrets\.VPS_SSH_KEY_TEST \}\}/g) || []).length === 1 && !/^env:/m.test(wf));
   vrai('⛔ aucune expression ${{ }} n\'est collée dans la commande ssh (injection par nom de branche) : le SHA et la branche viennent de l\'environnement', (() => { const i = wf.indexOf('ssh -i'); return i > 0 && !/\$\{\{/.test(wf.slice(i, wf.indexOf('\n', i))); })());
   const ligneSsh = (wf.match(/^\s*ssh -i [^\n]*$/m) || [''])[0].trim();
@@ -371,6 +370,7 @@ console.log('\n── 8. Le workflow de déploiement de test (code seul)');
     const jobs = {}; let cour = null;
     for (const l of dans.split('\n').slice(1)) { const m = l.match(/^  ([a-z]+):\s*$/); if (m) { cour = m[1]; jobs[cour] = ''; } else if (cour) jobs[cour] += l + '\n'; }
     v('le workflow a exactement trois jobs : cible, bancs, deployer', Object.keys(jobs), ['cible', 'bancs', 'deployer']);
+    vrai('⛔ le job qui reçoit la clé déclare l\'ENVIRONNEMENT `essai-test` (relecteur obligatoire : le secret n\'est remis qu\'APRÈS l\'approbation de Justin) — et lui seul', /^    environment: essai-test$/m.test(jobs.deployer) && (wf.match(/^\s+environment:/gm) || []).length === 1);
     vrai('⛔ ni `cible` ni `bancs` ne touchent à un secret ni à un environnement (le code d\'une branche y tourne sans clé)', !/secrets\./.test(jobs.cible + jobs.bancs) && !/environment:/.test(jobs.cible + jobs.bancs));
     const ref = ((jobs.bancs || '').match(/uses: actions\/checkout@v4\n\s+with:\n\s+ref: (\$\{\{ needs\.cible\.outputs\.sha \}\})/) || [])[1];
     vrai('⛔ les bancs font leur checkout du commit CALCULÉ par `cible` (`ref: ${{ needs.cible.outputs.sha }}`), jamais celui que GitHub choisirait seul', !!ref && /needs: cible/.test(jobs.bancs));
