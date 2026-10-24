@@ -99,13 +99,16 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
   const cle = nom => String(nom).toLowerCase().replace(/[^a-z0-9]+/g, '');
   const code = (t, nom) => Buffer.from(JSON.stringify({ t, k: 'k-' + t + '-' + 'x'.repeat(24), a: 'paul', n: nom }), 'utf8').toString('base64').replace(/=+$/, '');
   const paye = { formule: 'pro', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc', aboStatut: 'actif', aboPar: 'Banc', aboTs: MAINT - 1000 };
-  const T_CH = 't-chauffe-2892', T_PL = 't-plomb-2892', T_TO = 't-tout-2892', T_RE = 't-refus-2892', T_RS = 't-restreint-2892', T_LI = 't-libre-2892';
+  const T_DN = 't-deuxnoms-2892', T_CH = 't-chauffe-2892', T_PL = 't-plomb-2892', T_TO = 't-tout-2892', T_RE = 't-refus-2892', T_RS = 't-restreint-2892', T_LI = 't-libre-2892';
   const esp = (t, nom) => Object.assign({ t, nom, email: cle(nom) + '@exemple-2892.fr', ts: MAINT - 1000, code: code(t, nom) }, paye);
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify({ [cle('chauffe-banc')]: esp(T_CH, 'chauffe-banc'), [cle('plomb-banc')]: esp(T_PL, 'plomb-banc'),
     [cle('tout-banc')]: esp(T_TO, 'tout-banc'), [cle('refus-banc')]: esp(T_RE, 'refus-banc'),
     /* deux entreprises DÉJÀ OUVERTES, à l'adresse de leur demande : l'une a restreint ses rubriques (trois), l'autre travaille avec tout (ELAN) */
     [cle('restreint-banc')]: Object.assign(esp(T_RS, 'restreint-banc'), { email: 'restreint@exemple-2892.fr', cats: ['factures', 'devis', 'clients'], catsPar: 'Banc', catsTs: MAINT - 500 }),
-    [cle('libre-banc')]: Object.assign(esp(T_LI, 'libre-banc'), { email: 'libre@exemple-2892.fr' }) }));
+    [cle('libre-banc')]: Object.assign(esp(T_LI, 'libre-banc'), { email: 'libre@exemple-2892.fr' }),
+    /* une entreprise à DEUX noms (même `t`) : l'ancien d'abord dans l'annuaire, le récent ensuite — l'application lit le plus récent (`espaceParT`) */
+    [cle('deux-ancien')]: Object.assign(esp(T_DN, 'deux-ancien'), { ts: MAINT - 5000, metier: 'nettoyage' }),
+    [cle('deux-recent')]: Object.assign(esp(T_DN, 'deux-recent'), { ts: MAINT - 1000, metier: 'plomberie' }) }));
   const MAIL = 'chantal@exemple-2892.fr', MAIL2 = 'paul@exemple-2892.fr';
   const brut = crypto.randomBytes(32).toString('hex'), brut2 = crypto.randomBytes(32).toString('hex');
   fs.writeFileSync(path.join(D, 'comptes-portail.json'), JSON.stringify({ c: { [MAIL]: { v: true, pr: 'Chantal', no: 'Chaud', so: 'Chauffe Banc' }, [MAIL2]: { v: true, pr: 'Paul', no: 'Plomb', so: 'Plomb Banc' } },
@@ -458,6 +461,15 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     const rFiche = await appel('/api/monitor/espaces/metier', { nom: 'chauffe-banc', metier: 'plomberie' }, PATRON);
     v('⛔ le geste de la FICHE (sans `siVide`) change toujours le métier, et l\'application le reçoit', [rFiche.s, rFiche.j && rFiche.j.garde, (await etat(T_CH)).metier], [200, undefined, 'plomberie']);
     await appel('/api/monitor/espaces/metier', { nom: 'chauffe-banc', metier: 'chauffage' }, PATRON);
+    /* une entreprise à deux noms : « le métier actuel » est celui que l'application reçoit, celui du nom le PLUS RÉCENT (pas le premier de l'annuaire) */
+    v('(population) l\'entreprise à deux noms : l\'application reçoit le métier du nom le plus récent', (await etat(T_DN)).metier, 'plomberie');
+    const rDeux = await appel('/api/monitor/espaces/metier', { nom: 'deux-ancien', metier: 'nettoyage', siVide: true }, PATRON);
+    v('⛔ `siVide` posé par l\'ancien nom, avec le métier de l\'ancien nom : le serveur garde celui que l\'application reçoit (le plus récent), et le dit', [rDeux.s, rDeux.j && rDeux.j.garde, rDeux.j && rDeux.j.metier, (await etat(T_DN)).metier], [200, true, 'plomberie', 'plomberie']);
+    const rMeme = await appel('/api/monitor/espaces/metier', { nom: 'deux-ancien', metier: 'plomberie', siVide: true }, PATRON);
+    v('   le même métier que celui servi : rien de « gardé », l\'entreprise entière porte ce métier', [rMeme.j && rMeme.j.garde, (await etat(T_DN)).metier], [undefined, 'plomberie']);
+    const rTxt = await appel('/api/monitor/espaces/metier', { nom: 'deux-recent', metier: 'nettoyage', siVide: 'oui' }, PATRON);
+    v('   `siVide` vaut seulement `true` : « oui » n\'est pas une demande de garde (le geste passe, comme la fiche)', [rTxt.j && rTxt.j.garde, (await etat(T_DN)).metier], [undefined, 'nettoyage']);
+
     /* les deux ordres de publication : la Tour neuve devant un serveur d'avant ne PRÉTEND pas avoir gardé le métier */
     const Tn = tour([cliSec], { espace: 'chauffe-banc', serveurAvant: true });
     await Tn.ctx.refMetiersCharger();

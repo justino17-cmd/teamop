@@ -5638,7 +5638,7 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
   var metierDem=MET_L[dm.metier]?dm.metier:'', metierPose='', metierGarde=false;
   if(metierDem){
     try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem,siVide:true});
-      if(rm&&rm.ok&&rm.d&&rm.d.ok){ metierPose=MET_L[rm.d.metier]?rm.d.metier:metierDem; metierGarde=!!rm.d.garde&&metierPose!==metierDem; }
+      if(rm&&rm.ok&&rm.d&&rm.d.ok){ metierGarde=!!rm.d.garde&&rm.d.metier!==metierDem; metierPose=metierGarde?(MET_L[rm.d.metier]?rm.d.metier:''):(MET_L[rm.d.metier]?rm.d.metier:metierDem); }
       else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
     catch(err){ toast('Métier non posé (serveur injoignable) — règle-le dans la fiche'); }
   }
@@ -5684,7 +5684,7 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
       :catsInfo.etat==='refus'
         ?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg" role="alert">⛔ <b>Rubriques non posées</b> : '+esc(catsInfo.err)+'. L’espace est ouvert avec toutes les rubriques — règle-les dans sa fiche. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>'
         :'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-cats-msg">🧩 <b>Choisis ses catégories</b> dans sa fiche : '+catsPromesse()+(depart.source==='attente'?' — le référentiel des métiers n’était pas encore lu':'')+'. <button type="button" class="btn-fant" onclick="tourCatsAller(\''+jsq(e.nom)+'\')">Choisir ses catégories →</button></div></div>')+
-    (metierGarde?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-metier-msg">🧰 <b>Métier de l’espace gardé : '+esc(MET_L[metierPose])+'</b> — sa demande dit « '+esc(MET_L[metierDem])+' ». Une seconde demande ne change pas le métier d’une entreprise déjà ouverte ; s’il faut le changer, c’est dans sa fiche (MÉTIER).</div></div>':'')+
+    (metierGarde?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx" id="acc-metier-msg">🧰 <b>Métier de l’espace gardé'+(metierPose?' : '+esc(MET_L[metierPose]):'')+'</b> — sa demande dit « '+esc(MET_L[metierDem])+' ». Une seconde demande ne change pas le métier d’une entreprise déjà ouverte ; s’il faut le changer, c’est dans sa fiche (MÉTIER).</div></div>':'')+
     (codeDem&&!promo?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx">⚠️ Code promo « '+esc(codeDem)+' » de la demande non appliqué : '+esc(promoErr)+'</div></div>':'')+
     '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— c\'est elle qu\'on donne aux équipes</span></div>'+
     '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span id="acc-adr" class="mono" style="flex:1;word-break:break-all;font-size:14px;color:var(--link);font-weight:700">'+esc(adrF)+'</span><button class="btn-fant" onclick="tourCopie(\'acc-adr\',this)">Copier</button></div>'+
@@ -11485,6 +11485,15 @@ function exCleCopier(){
   try{ navigator.clipboard.writeText(c).then(function(){ toast('Clé copiée.'); },mal); }catch(e){ mal(); }
 }
 function exCleCacher(){ EX.cle=''; clearTimeout(EX.tCle); render(); }
+/* v2.109 — TOUT le résultat en un clic (contrôles, verdicts, conversations), tel que le serveur l'a rendu : c'est ce que Claude Code lit pour corriger,
+   au lieu de captures écran par écran (Justin, 24 octobre 2026 : « j'ai pas le temps de gérer tes erreurs »). L'équipe d'essai ne porte que des données
+   FICTIVES et le résultat ne contient aucune clé ; rien d'autre ne part que ce qu'on colle soi-même. */
+function exCopier(id){
+  var r=EX.res[id]; if(!r) return;
+  var t='Résultat de l’examen de l’équipe d’agents — '+fmtDate(r.debut)+'\n'+JSON.stringify(r,null,1);
+  var mal=function(){ toast('Copie impossible : sélectionne le résultat et copie-le à la main.'); };
+  try{ navigator.clipboard.writeText(t).then(function(){ toast('Résultat copié : colle-le tel quel dans la conversation avec Claude.'); },mal); }catch(e){ mal(); }
+}
 
 function exVerifHtml(v){
   var e=EX_ICO[v.etat]?v.etat:'inconnu';
@@ -11510,7 +11519,8 @@ function exResultatHtml(id){
   var l=EX.resLec[id], r=EX.res[id];
   if(l===0||l===undefined) return acSquel();
   if(l===-1||!r) return agIllisible('Ce résultat n’a pas pu être lu — on ne sait pas ce qu’il dit.')+'<button type="button" class="ag-btn" onclick="delete EX.resLec[\''+esc(id)+'\'];exOuvrir(\''+esc(id)+'\')">Réessayer</button>';
-  var tete='<div class="ex-sc-tx"><span>Examen du '+esc(fmtDate(r.debut))+' '+esc(exSourceLib(r.source))+' · '+nMot(r.appels||0,'appel','appels')+' · '+esc(exUsd(r.usd))+' · '+(+r.duree||0)+' s</span></div>';
+  var tete='<div class="ex-sc-tx"><span>Examen du '+esc(fmtDate(r.debut))+' '+esc(exSourceLib(r.source))+' · '+nMot(r.appels||0,'appel','appels')+' · '+esc(exUsd(r.usd))+' · '+(+r.duree||0)+' s</span></div>'+
+    '<div class="ag-act" style="margin:6px 0 10px"><button type="button" class="ag-btn" onclick="exCopier(\''+esc(id)+'\')">📋 Copier le résultat pour Claude</button></div>';
   if(r.etat==='interrompu') return tete+'<div class="encart bloc"><div class="tx" style="margin-top:0">Cet examen a été interrompu : '+esc(r.raison||'raison inconnue')+'. Rien n’a été rejoué ; relance-le quand tu veux.</div></div>';
   if(r.etat==='erreur') return tete+agIllisible('Cet examen s’est arrêté sur une erreur du serveur'+(r.erreur?' : '+r.erreur:'')+'.');
   return tete+exBilanHtml(r.bilan)+(r.plafondAtteint?'<div class="note" style="margin:6px 0;color:var(--amber);font-size:13px">Le plafond de l’examen a été atteint : ce qui n’a pas pu se jouer est « à relancer ».</div>':'')+
