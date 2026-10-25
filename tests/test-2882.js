@@ -43,14 +43,14 @@ function corps(entete) {
 const fonction = nom => corps('\nfunction ' + nom + '(').trim();
 const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
-const NOMS = ['msNorm', 'msMentions', 'msIds', 'msColorer', 'msContexte', 'msPropositions', 'msInserer', 'msTouche', 'msHeureCourte', 'msJourLib', 'msAgentsParId', 'msEtat', 'msNomFil',
+const NOMS = ['msNorm', 'msMentions', 'msIds', 'msColorer', 'msContexte', 'msPropositions', 'msInserer', 'msTouche', 'msHeureCourte', 'msJourLib', 'msAgentsParId', 'msEtat', 'msEstGroupe', 'msGroupePerso', 'msIconeHtml', 'msNomFil',
   'msBulleHtml', 'msEnvoiHtml', 'msEcritTexte', 'msEcritHtml', 'msFluxHtml', 'msLigneFil', 'msListeHtml', 'msTacheTxt', 'msTachesHtml', 'msSousTitre', 'msPlaceholder',
   'msAjouterServeur', 'msEnvoyer', 'msEnvoiFaire', 'msReessayer', 'msRetirer', 'messListeCharger', 'messAgentsCharger', 'messTachesCharger', 'messToutCharger', 'messFilCharger', 'messLire', 'messFilTot',
   'messTimers', 'messDemonter', 'messOuvrir', 'messOuvrirFil', 'messChoisir', 'messDossier', 'messNonLusCharger', 'messReleve',
   'fmtHeure', 'agParams', 'apiGet', 'apiPost', 'acSquel', 'agAvatar'];
 const FN = NOMS.map(fonction);
 const VAR_MS = corps('var MS={') + ';';
-const VARS = [ligne('var MS_GROUPES_LIB='), ligne('var MS_ETAT_LIB='), ligne('var AG_PHOTOS='), corps('var AG_TYPES=') + ';'].join('\n');
+const VARS = [ligne('var MS_GROUPES_LIB='), ligne('var MS_COULEURS='), ligne('var MS_ETAT_LIB='), ligne('var AG_PHOTOS='), corps('var AG_TYPES=') + ';'].join('\n');
 vrai('(population) les ' + NOMS.length + ' fonctions, MS et les tables sont trouvés dans le fichier livré', ESC && FN.every(f => f.length > 30) && VAR_MS.length > 100 && VARS.length > 100,
   NOMS.filter((n, i) => FN[i].length <= 30).join(', '));
 
@@ -504,8 +504,9 @@ console.log('\n6. L\'envoi : le message paraît à l\'instant ; un refus se dit 
     vrai('(population) la page déclare des dizaines de fonctions `ms*` / `mess*`, toutes trouvées avec leur corps', nomsMs.length > 50 && nomsMs.every(n => fonction(n).length > 20), nomsMs.filter(n => fonction(n).length <= 20).join(', '));
     const ROUTE_MS = /apiPost\('(\/api\/monitor\/(?:conversations|agents\/reunions|agents\/lecons)[^']*)'/g;
     const dansMs = nomsMs.map(n => [n, [...fonction(n).matchAll(ROUTE_MS)].map(m => m[1])]).filter(x => x[1].length);
-    v('⛔ les seules écritures de la messagerie : l\'envoi, « lu », le lancement d\'une réunion et le retrait d\'une leçon — exactement quatre routes DISTINCTES', [...new Set(dansMs.map(x => x[1]).reduce((t, l) => t.concat(l), []))].sort(),
-      ['/api/monitor/agents/lecons/retirer', '/api/monitor/agents/reunions/lancer', '/api/monitor/conversations/envoyer', '/api/monitor/conversations/lire']);
+    v('⛔ les seules écritures de la messagerie : l\'envoi, « lu », le visage d\'un groupe (v2.112), le lancement d\'une réunion et le retrait d\'une leçon — exactement cinq routes DISTINCTES', [...new Set(dansMs.map(x => x[1]).reduce((t, l) => t.concat(l), []))].sort(),
+      ['/api/monitor/agents/lecons/retirer', '/api/monitor/agents/reunions/lancer', '/api/monitor/conversations/envoyer', '/api/monitor/conversations/groupe', '/api/monitor/conversations/lire']);
+    vrai('⛔ le visage d\'un groupe ne s\'écrit que par le patron : la fonction qui poste refuse AVANT d\'appeler (MYROLE)', /if\(MYROLE!=='patron'\|\|MS\.groupeBusy\|\|!msEstGroupe\(fil\)\) return Promise\.resolve\(null\);\s*MS\.groupeBusy=true;/.test(fonction('msGroupeEnvoyer')));
     v('…et aucune de ces routes n\'est écrite HORS de ces fonctions (une cinquième écriture ailleurs dans la page ferait tomber ce contrôle)', [...CODE.matchAll(ROUTE_MS)].length, dansMs.reduce((n, x) => n + x[1].length, 0));
     /* ⛔ les deux phrases de sécurité DISENT ce que le code fait (relecture C1-C3) : les consignes portent du texte libre entre agents ; seules les demandes d'argent et d'accès sont en liste fermée */
     const phrases = [...SRC.matchAll(/ms-regle">([^<]*)</g)].map(m => m[1]).concat([...SRC.matchAll(/Les demandes d’argent et d’accès ne passent[^<]*/g)].map(m => m[0]));

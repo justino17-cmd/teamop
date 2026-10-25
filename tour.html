@@ -2125,41 +2125,72 @@ body.plans .reg-l.cli::before{display:none}
 }
 
 /* ══ AGENTS (v2.90) ══ l'équipe d'agents IA : modes, pause générale, demandes à valider, journal. Jetons de la Tour uniquement. */
-.ag-barre{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:12px 14px;margin-top:16px}
+.ag-barre{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-4);padding:10px 14px;margin-top:16px}
 .ag-barre .ag-pt{width:10px;height:10px;border-radius:50%;background:var(--acc);flex:none}
+.ag-barre.rien .ag-pt{background:var(--muted)}
 .ag-barre.stop .ag-pt{background:var(--red)}
 .ag-barre b{flex:1;min-width:180px}
 .ag-btn{min-height:44px;padding:0 16px;border-radius:var(--r-3);font-weight:650;border:0;background:var(--inset);color:var(--text)}
 .ag-btn.ok{background:var(--acc-fill);color:var(--on-acc)}
 .ag-btn.danger{color:var(--red)}
 .ag-btn[disabled]{opacity:.45;cursor:not-allowed}
-.ag-onglets{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-top:18px;overflow-x:auto}
+.ag-onglets{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-top:18px;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+.ag-onglets::-webkit-scrollbar{display:none}
 .ag-onglets button{min-height:44px;padding:0 14px;color:var(--muted);font-weight:600;white-space:nowrap;background:none;border:0;border-bottom:2px solid transparent}
 .ag-onglets button.on{color:var(--text);border-bottom-color:var(--acc)}
 .ag-n{display:inline-block;min-width:20px;margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--acc-fill);color:var(--on-acc);font-size:11.5px;font-weight:700;text-align:center}
-.ag-couche{margin:18px 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.ag-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
-.ag-carte{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:14px;display:flex;flex-direction:column;gap:12px}
-.ag-haut{display:flex;gap:12px;align-items:center}
+/* ── Équipe (Tour v2.112, 25 octobre 2026) — Justin : « revoir tout l'onglet Agents car il n'est pas super bien fait, ni pro, ni simple ».
+   Une LISTE GROUPÉE par couche (le réglage de Réglages d'iOS) : une rangée par agent — visage, nom et rôle, un mot d'état, le segmenté de mode, « Parler ».
+   Les quatre tuiles et les redites sont parties ; « vague » et « plafond » sont du petit texte. Jetons de la Tour uniquement, jour ET nuit. */
+.ag-couche{margin:22px 4px 8px;font-size:13px;font-weight:650;color:var(--muted)}
+.ag-lg{container:aglg/inline-size;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-4);overflow:hidden}
+.ag-rang{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id parler" "seg seg";gap:10px 12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.ag-rang.plus{grid-template-areas:"id parler" "seg seg" "plus plus"}
+.ag-rang:first-child{border-top:0}
+.ag-rg-id{grid-area:id;display:flex;gap:12px;align-items:flex-start;min-width:0}
+.ag-rg-tx{flex:1;min-width:0}
+.ag-rang h3{margin:0;font-size:15.5px;font-weight:650;letter-spacing:-.01em;line-height:1.3}
+.ag-role{color:var(--muted);font-size:13px;line-height:1.35}
+.ag-meta{display:inline-block;white-space:nowrap;font-size:12px}
 .ag-av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--accBg);color:var(--acc-txt);flex:none}
-.ag-carte[data-etat=arret] .ag-av{background:var(--inset);color:var(--muted)}
-.ag-haut h3{margin:0;font-size:15px}
-.ag-role{color:var(--muted);font-size:13px}
-.ag-vague{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--inset);padding:3px 8px;border-radius:99px;white-space:nowrap}
-.ag-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--inset);border-radius:var(--r-3);padding:3px}
-.ag-seg button{min-height:44px;border-radius:9px;font-weight:600;color:var(--muted);background:none;border:0}
+.ag-rang .ag-av{width:44px;height:44px}
+.ag-rang[data-etat=arret] .ag-av{background:var(--inset);color:var(--muted)}
+.ag-encours{margin-top:4px;font-size:13px;line-height:1.4;color:var(--text2)}
+.ag-etat{display:inline-flex;align-items:center;gap:6px;font-weight:650}
+.ag-etat::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.ag-etat[data-e=auto]{color:var(--acc-txt)}
+.ag-etat[data-e=brouillon]{color:var(--amber)}
+.ag-etat[data-e=arret],.ag-etat[data-e=externe]{color:var(--muted)}
+.ag-etat[data-e=pause]{color:var(--redText)}
+.ag-aide{color:var(--muted)}
+.ag-aide b{color:var(--text);font-weight:600}
+.ag-encours[data-d=inconnu] .ag-aide{color:var(--amber)}
+.ag-seg{grid-area:seg;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--inset);border-radius:var(--r-3);padding:3px}
+.ag-seg button{min-height:44px;border-radius:calc(var(--r-3) - 2px);font-weight:600;color:var(--muted);background:none;border:0;transition:transform 100ms ease-out}
+.ag-seg button:active:not([disabled]){transform:scale(.97)}
 .ag-seg button.on{background:var(--surface);color:var(--text)}
 .ag-seg button[data-m=auto].on{background:var(--acc-fill);color:var(--on-acc)}
 .ag-seg button[data-m=brouillon].on{background:var(--accBg);color:var(--acc-txt)}
 .ag-seg button[disabled]{opacity:.4;cursor:not-allowed}
-.ag-etat-cv{font-size:12.5px;color:var(--muted);line-height:1.4}
-/* lot 1 (f) — ce que l'agent fait en ce moment : une ligne, sur sa carte */
-.ag-encours{font-size:13px;line-height:1.4;color:var(--text2);padding:8px 10px;border-radius:10px;background:var(--inset)}
-.ag-encours b{color:var(--text);font-weight:600}
-.ag-encours[data-d=occupe]{background:var(--accBg)}
-.ag-encours[data-d=arret],.ag-encours[data-d=inconnu]{color:var(--muted)}
-.ag-etat-cv.ok{color:var(--ok,var(--muted))}
-.ag-pied{display:flex;justify-content:space-between;color:var(--muted);font-size:12.5px}
+.ag-parler{grid-area:parler;align-self:start;display:inline-flex;align-items:center;gap:6px;padding:0 14px;background:none;color:var(--acc-txt);box-shadow:inset 0 0 0 1px var(--border);transition:transform 100ms ease-out}
+.ag-parler:active{transform:scale(.97)}
+.ag-parler svg{width:16px;height:16px;flex:none}
+.ag-rg-plus{grid-area:plus;display:flex;flex-direction:column;gap:8px;min-width:0}
+.ag-rg-plus .ag-btn{align-self:flex-start}
+.ag-rang.ag-ext{grid-template-columns:minmax(0,1fr);grid-template-areas:"id" "plus"}
+.ag-ext-note{margin:0;font-size:13px;line-height:1.45;color:var(--muted)}
+.ag-voir>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650;color:var(--text)}
+.ag-voir ul{margin:0 0 6px;padding-left:20px;font-size:13px;line-height:1.6;color:var(--text2)}
+.ag-voir p{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
+@container aglg (min-width:640px){
+  .ag-rang{grid-template-columns:minmax(0,1fr) 264px auto;grid-template-areas:"id seg parler";gap:10px 16px}
+  .ag-rang.plus{grid-template-areas:"id seg parler" "plus plus plus"}
+  .ag-rang.ag-ext{grid-template-columns:minmax(0,1fr);grid-template-areas:"id" "plus"}
+  .ag-parler{align-self:center}
+}
+@media (pointer:fine){ @container aglg (min-width:640px){ .ag-rang .ag-seg button,.ag-rang .ag-parler{min-height:36px} } }
+@media (max-width:560px){ .ag-barre b{flex-basis:100%} .ag-barre>.ag-btn{flex:1} }
+@media (prefers-reduced-motion:reduce){ .ag-seg button,.ag-parler{transition:none} .ag-seg button:active:not([disabled]),.ag-parler:active{transform:none} }
 .ag-liste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-top:14px}
 .ag-ligne{display:flex;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
 .ag-ligne:first-child{border-top:0}
@@ -2326,7 +2357,34 @@ body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backd
 .ms-av>img,.ag-av>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .ms-av{width:32px;height:32px;border-radius:50%;background:var(--accBg);color:var(--acc-txt);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
 .ms-av.p{width:26px;height:26px;font-size:12px}
-.ms-av.g{border-radius:9px;background:var(--inset);color:var(--text2)}
+.ms-av.g{border-radius:50%;background:var(--inset);color:var(--text2)}
+.ms-av.g:not(.p){font-size:15px}
+.ms-av.h{width:36px;height:36px;font-size:14px}
+.ms-av.g.h{font-size:17px}
+.ms-av.g.cb-bleu,.mg-pas.cb-bleu{--cg:var(--bleu);--cf:var(--bleuBg)}
+.ms-av.g.cb-vert,.mg-pas.cb-vert{--cg:var(--green);--cf:var(--vertBg)}
+.ms-av.g.cb-orange,.mg-pas.cb-orange{--cg:var(--amber);--cf:var(--ambreBg)}
+.ms-av.g.cb-rouge,.mg-pas.cb-rouge{--cg:var(--redText);--cf:var(--rougeBg)}
+.ms-av.g.cb-violet,.mg-pas.cb-violet{--cg:var(--violet);--cf:var(--violetBg)}
+.ms-av.g.cb-gris,.mg-pas.cb-gris{--cg:var(--gray);--cf:var(--grisBg)}
+.ms-av.g[class*=cb-]{background:var(--cf);color:var(--cg)}
+.ms-hid{display:flex;align-items:center;gap:10px;min-width:0}
+/* la feuille « Modifier le groupe » */
+.mg{display:flex;flex-direction:column;gap:12px;min-width:min(420px,100%)}
+.mg-t{margin:0;font-size:18px;font-weight:650;letter-spacing:-.01em}
+.mg-l{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:var(--text2)}
+.mg-l small{font-weight:400;color:var(--muted)}
+.mg-l input,.mg-l textarea{box-sizing:border-box;width:100%;min-height:44px;padding:10px 12px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--inset);color:var(--text);font:inherit;font-size:16px;font-weight:400}
+.mg-l textarea{resize:vertical}
+.mg-cl{display:grid;grid-template-columns:repeat(6,minmax(44px,1fr));justify-items:center;gap:4px;margin-top:-4px;padding:4px 0 6px}
+.mg-pas{width:44px;height:44px;border-radius:50%;border:0;padding:0;background:var(--cg);cursor:pointer;position:relative;transition:transform 100ms ease-out}
+.mg-pas:active{transform:scale(.94)}
+.mg-pas.on{box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--text)}
+.mg-pas.on::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:var(--bg);font-weight:800;font-size:18px}
+.mg-err{min-height:18px;font-size:13px;color:var(--redText)}
+.mg-act{display:flex;flex-wrap:wrap;gap:8px}
+.mg-def{margin-left:auto;color:var(--redText)}
+@media(prefers-reduced-motion:reduce){ .mg-pas{transition:none} .mg-pas:active{transform:none} }
 .ms-nl{min-width:20px;padding:1px 7px;border-radius:99px;background:var(--acc-fill);color:var(--on-acc);font-size:11.5px;font-weight:700;text-align:center;flex:none}
 /* l'état d'un agent se lit par la FORME autant que par la couleur : plein = allumé, anneau = brouillon, creux = à l'arrêt */
 .ms-pt{width:10px;height:10px;border-radius:50%;flex:none;box-sizing:border-box}
@@ -2341,10 +2399,10 @@ body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backd
 .ms-ha{display:flex;align-items:center;gap:10px;flex:none}
 .ms-bientot{font-size:12.5px;color:var(--muted);white-space:nowrap}
 .ms-bientot b{font-weight:650;color:var(--text2);background:var(--inset);border-radius:99px;padding:2px 8px;margin-left:2px}
-.ms-btn-tq,.ms-retour{min-height:36px;padding:0 12px;border-radius:var(--r-3);border:0;background:var(--inset);color:var(--text);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ms-btn-tq,.ms-retour,.ms-btn-mod{min-height:36px;padding:0 12px;border-radius:var(--r-3);border:0;background:var(--inset);color:var(--text);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .ms-btn-tq{display:none}
 .ms-retour{display:none;padding:0 10px;background:transparent;color:var(--acc-txt)}
-.ms-btn-tq:focus-visible,.ms-retour:focus-visible{outline:0;box-shadow:var(--anneau-int)}
+.ms-btn-tq:focus-visible,.ms-retour:focus-visible,.ms-btn-mod:focus-visible{outline:0;box-shadow:var(--anneau-int)}
 .ms-zone-flux{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
 .ms-flux{flex:1;min-height:0;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain}
 .ms-flux:focus-visible{outline:0;box-shadow:var(--anneau-int)}
@@ -2488,13 +2546,13 @@ body.jour .ms-reu-ag{box-shadow:0 0 0 1px var(--line)}
   .ms-gauche{border-right:0}
   .ms-retour{display:inline-flex;align-items:center;margin-left:-8px}
   .ms-hd{flex-wrap:wrap;gap:2px 12px;padding:8px 12px}   /* le titre passe sur sa propre ligne : « # Cli… » ne dit rien */
-  .ms-ht{order:3;flex:1 1 100%}
+  .ms-hid{order:3;flex:1 1 100%}
   .ms-ha{margin-left:auto}
   .ms-flux{padding:12px 12px}
   .ms-comp{padding:8px 10px 10px}
   .ms-regle{display:none}
 }
-@media(pointer:coarse){ .ms-puces button{min-height:44px} .ms-lien{min-height:44px;display:inline-flex;align-items:center} .ms-btn-tq,.ms-retour{min-height:44px} .ms-dos{min-height:44px} .ms-mi{min-height:48px} }
+@media(pointer:coarse){ .ms-puces button{min-height:44px} .ms-lien{min-height:44px;display:inline-flex;align-items:center} .ms-btn-tq,.ms-retour,.ms-btn-mod{min-height:44px} .ms-dos{min-height:44px} .ms-mi{min-height:48px} }
 </style>
 <style id="theme-tour">
 /* ══ THÈME DE LA TOUR ═══ maquette « TeamOp Tour HIG », validée par Justin (26 septembre 2026) ══════════
@@ -3175,7 +3233,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.111</div>
+    <div class="lg-pied">console interne · v2.112</div>
   </div>
 </div>
 
@@ -3217,7 +3275,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.111</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.112</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3229,7 +3287,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.111</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.112</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3536,7 +3594,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.111';
+var TOUR_VERSION='v2.112';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -10808,20 +10866,22 @@ function agDispo(a){ if(agMode(a)==='arret'||agEnPause()) return 'arret'; var t=
   return t.some(function(k){ return k.statut==='prise'; })?'occupe':'libre'; }
 function agEnCoursTxt(a){ var d=agDispo(a), t=agTachesDe(a.id)||[], pr=t.filter(function(k){ return k.statut==='prise'; })[0], at=t.filter(function(k){ return k.statut==='attente'; });
   var tache=function(k){ return '<b>'+esc(AG_TYPES[k.type]||k.type)+'</b> · demandé par '+esc(agNom(k.de)); };
-  /* à l'arrêt, une tâche PRISE est interrompue : elle l'attend aussi */
-  if(d==='arret') return (agEnPause()?'Pause générale : ne fait rien':'Ne fait rien tant que tu ne l’allumes pas')+(t.length?' · '+t.length+' tâche'+(t.length>1?'s l’attendent':' l’attend'):'');
+  /* Une rangée ne dit que ce qui apporte quelque chose (Tour v2.112) : « ne fait rien » et « rien en cours » se lisent déjà dans le mot d'état. À l'arrêt, une tâche PRISE est interrompue : elle l'attend aussi. */
+  if(d==='arret') return t.length?t.length+' tâche'+(t.length>1?'s l’attendent':' l’attend'):'';
   if(d==='inconnu') return 'On ne sait pas : les tâches n’ont pas pu être lues';
   if(pr) return 'En ce moment : '+tache(pr)+(at.length?' · puis '+at.length+' en attente':'');
   if(at.length) return 'En attente : '+tache(at[0])+(at.length>1?' · +'+(at.length-1):'');
-  return 'Rien en cours'; }
-function agQuiFaitQuoi(){ var n={occupe:0,libre:0,arret:0,inconnu:0};
-  AG.agents.forEach(function(a){ n[agDispo(a)]++; });
-  var sait=AG.lec.taches===1, att=sait?AG.taches.filter(function(k){ return k.statut==='attente'; }).length:null;
-  var tu=function(v,l,coul){ return '<div class="kpi"><div class="n"'+(coul?' style="color:'+coul+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
-  return '<div class="grille-kpi abn-kpi" style="margin:16px 0 6px">'+
-    tu(sait?n.occupe:'—','Au travail',sait&&n.occupe?'var(--link)':'')+tu(sait?n.libre:'—','Disponibles')+tu(n.arret,'À l’arrêt')+
-    tu(sait?att:'—','Tâches en attente',att?'var(--amber)':'')+'</div>'+
-    (sait?'':'<div class="note" style="margin-bottom:8px">⚠️ '+(AG.lec.taches===0?'Lecture des tâches en cours…':'Les tâches entre agents n’ont pas pu être lues : on ne sait pas qui est occupé.')+'</div>'); }
+  return ''; }
+/* La ligne d'état de la barre : « 3 en auto · 2 en brouillon · 11 à l'arrêt · 1 tâche en attente ». ⛔ Tâches illisibles : on le dit, jamais « 0 » ; pas encore lues : on n'en parle pas. */
+function agQuiFaitQuoi(){ var n={auto:0,brouillon:0,arret:0};
+  AG.agents.forEach(function(a){ n[agMode(a)]++; });
+  var p=[]; if(n.auto) p.push(n.auto+' en auto'); if(n.brouillon) p.push(n.brouillon+' en brouillon'); p.push(n.arret+' à l’arrêt');
+  if(AG.lec.taches===1){ var att=AG.taches.filter(function(k){ return k.statut==='attente'; }).length; if(att) p.push(att+' tâche'+(att>1?'s':'')+' en attente'); }
+  else if(AG.lec.taches===-1) p.push('tâches illisibles');
+  return p.join(' · '); }
+/* La seule phrase d'aide d'une rangée, et seulement si elle sert : pas branché, ou ce qu'il fait / ce qui l'attend. La clé Anthropic absente se dit UNE fois, au-dessus de la liste (elle vaut pour tous). */
+function agAide(a){ if(a.cerveau!==true) return 'Pas encore branché : il ne répond pas et n’agit pas';
+  return agEnCoursTxt(a); }
 function chargerAgents(){
   if(MYROLE!=='patron'){ AG.agents=[]; AG.loaded=true; AG.err='Réservé au patron — les agents ne se règlent que par lui.'; if(TAB==='agents') render(); return Promise.resolve(); }
   var ps=[];   /* promesses rendues : un banc peut attendre la fin du chargement, la page non */
@@ -11413,15 +11473,14 @@ function agCourVue(){
 }
 function agIllisible(txt){ return '<div class="encart bloc"><div class="tx" style="margin-top:0">'+esc(txt)+'</div></div>'; }
 function vueAgents(){
-  var tete=enTete('Agents','Les agents IA qui gèrent Team OP. Tu décides ce que chacun a le droit de faire : à l’arrêt, il ne fait rien ; en brouillon, il prépare et tu relis ; en auto, il agit seul dans ses droits. Pour lui écrire, touche « Parler » sur sa carte.');
+  var tete=enTete('Agents','Les agents IA qui gèrent Team OP. À l’arrêt, un agent ne fait rien ; en brouillon, il prépare et tu relis ; en auto, il agit seul dans ses droits.');
   if(!AG.loaded) return tete+acSquel();
   if(AG.err) return tete+agIllisible(AG.err);
   var h=tete;
   if(AG.illisible) h+=agIllisible('L’état des agents est illisible sur le serveur : ils restent tous à l’arrêt et rien n’est modifié tant que ce fichier n’est pas réparé.');
   var stop=agEnPause(), allumes=AG.agents.filter(function(a){ return agMode(a)!=='arret'; }).length;
-  h+='<div class="ag-barre'+(stop?' stop':'')+'"><span class="ag-pt" aria-hidden="true"></span><b>'+
-    (AG.illisible?'État illisible : les agents sont arrêtés':stop?'Pause générale : tous les agents sont à l’arrêt'+(AG.pause&&AG.pause.par?' (posée par '+esc(AG.pause.par)+')':''):'Les agents peuvent travailler')+
-    ' · '+allumes+' allumé'+(allumes>1?'s':'')+' sur '+AG.agents.length+'</b>'+
+  h+='<div class="ag-barre'+(stop?' stop':!allumes?' rien':'')+'"><span class="ag-pt" aria-hidden="true"></span><b>'+
+    (AG.illisible?'État illisible : les agents sont arrêtés':stop?'Pause générale : tous les agents sont à l’arrêt'+(AG.pause&&AG.pause.par?' (posée par '+esc(AG.pause.par)+')':''):agQuiFaitQuoi())+'</b>'+
     (AG.illisible||MYROLE!=='patron'||allumes>=AG.agents.length?'':'<button type="button" class="ag-btn ok"'+(AG.busy?' disabled':'')+' onclick="agToutBrouillon()">Toute l’équipe au travail</button>')+
     (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
   var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
@@ -11430,22 +11489,27 @@ function vueAgents(){
       (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
     var c='';
-    h+=agQuiFaitQuoi();
+    if(AG.cleOk!==true&&AG.agents.some(function(a){ return a.cerveau===true; })) h+='<div class="note" style="margin-top:12px">⚠️ La clé Anthropic n’est pas posée : les agents branchés ne répondent pas encore.</div>';
     AG.agents.forEach(function(a){
-      if(a.couche!==c){ if(c) h+='</div>'; c=a.couche; h+='<div class="ag-couche">'+esc(c)+'</div><div class="ag-grille">'; }
-      var m=agMode(a);
-      h+='<article class="ag-carte" data-etat="'+m+'"><div class="ag-haut">'+agAvatar(a.id,a.nom,'ag-av')+'<div><h3>'+esc(a.nom)+'</h3><div class="ag-role">'+esc(a.role)+'</div></div><span class="ag-vague">Vague '+esc(a.vague)+'</span></div>'+
-        '<div class="ag-encours" data-d="'+agDispo(a)+'">'+agEnCoursTxt(a)+'</div>'+
+      if(a.couche!==c){ if(c) h+='</div>'; c=a.couche; h+='<div class="ag-couche">'+esc(c)+'</div><div class="ag-lg">'; }
+      var m=agMode(a), extra=(a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+(typeof agGeCarte==='function'?agGeCarte(a,m):''),
+        aide=agAide(a), etat=stop?'pause':m, lib=stop?'En pause':(AG_MODES.filter(function(x){ return x[0]===m; })[0]||['','À l’arrêt'])[1];
+      h+='<article class="ag-rang'+(extra?' plus':'')+'" data-etat="'+m+'"><div class="ag-rg-id">'+agAvatar(a.id,a.nom,'ag-av')+'<div class="ag-rg-tx"><h3>'+esc(a.nom)+'</h3>'+
+        '<div class="ag-role">'+esc(a.role)+' <span class="ag-meta">· vague '+esc(a.vague)+' · plafond '+esc(a.plafondUsd)+' $ par mois</span></div>'+
+        '<div class="ag-encours" data-d="'+agDispo(a)+'"><span class="ag-etat" data-e="'+etat+'">'+lib+'</span>'+(aide?'<span class="ag-aide"> · '+aide+'</span>':'')+'</div></div></div>'+
         '<div class="ag-seg" role="group" aria-label="Mode de '+esc(a.nom)+'">'+AG_MODES.map(function(x){
           var off=AG.busy||(x[0]==='auto'&&m==='arret');
           return '<button type="button" data-m="'+x[0]+'" class="'+(m===x[0]?'on':'')+'" aria-pressed="'+(m===x[0])+'"'+(off?' disabled':'')+(x[0]==='auto'&&m==='arret'?' title="Passe d’abord par brouillon"':'')+' onclick="agMode_(\''+esc(a.id)+'\',\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>'+
-        '<div class="ag-etat-cv'+(a.cerveau===true&&AG.cleOk&&m!=='arret'?' ok':'')+'">'+(a.cerveau===true?(AG.cleOk?(m==='arret'?'Branché — à l’arrêt : passe-le en Brouillon pour qu’il te réponde.':'Il répond quand tu lui écris, tant qu’il n’est pas à l’arrêt.'):'Branché, mais la clé Anthropic n’est pas posée : il ne répond pas encore.'):'Pas encore branché : il ne répond pas et n’agit pas.')+'</div>'+
-        '<button type="button" class="ag-btn" onclick="agParler(\''+esc(a.id)+'\')">Parler à '+esc(a.nom)+'</button>'+
-        '<div class="ag-pied"><span>Plafond mensuel</span><b>'+esc(a.plafondUsd)+' $</b></div>'+
-        (a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+(typeof agGeCarte==='function'?agGeCarte(a,m):'')+'</article>';
+        '<button type="button" class="ag-btn ag-parler" aria-label="Parler à '+esc(a.nom)+'" onclick="agParler(\''+esc(a.id)+'\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4.5 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>Parler</button>'+
+        (extra?'<div class="ag-rg-plus">'+extra+'</div>':'')+'</article>';
     });
     if(c) h+='</div>';
-    h+='<div class="encart bloc" style="margin-top:16px"><div class="tx" style="margin-top:0">Un agent neuf est à l’arrêt. Il passe par « brouillon » avant « auto ». Les dépenses ne se lisent pas ici : voir la Console Anthropic (espace « Agents Team OP », limite 195 $).</div></div>';
+    /* Pauline ne vit pas sur le serveur : elle tourne sur le Mac de Justin (avec Harvey). Aucun segmenté — elle ne se pilote pas d'ici — et AUCUN chiffre tant que le pont Mac → serveur n'existe pas. */
+    h+='<div class="ag-couche">Prospection — sur ton Mac</div><div class="ag-lg"><article class="ag-rang ag-ext plus" data-etat="externe" data-ext="pauline"><div class="ag-rg-id">'+agAvatar('pauline','Pauline','ag-av')+'<div class="ag-rg-tx"><h3>Pauline</h3>'+
+      '<div class="ag-role">Prospection (Harvey, sur ton Mac)</div><div class="ag-encours" data-d="externe"><span class="ag-etat" data-e="externe">Relevé pas encore branché</span></div></div></div>'+
+      '<div class="ag-rg-plus"><p class="ag-ext-note">Elle ne se pilote pas d’ici : ses accords d’envoi se donnent dans son tableau de bord, sur ton Mac.</p>'+
+      '<details class="ag-voir"><summary>Ce que tu verras ici</summary><ul><li>Les recherches lancées</li><li>Les entreprises trouvées</li><li>Les courriels envoyés</li><li>Les réponses reçues</li><li>Les chiffres du jour</li></ul><p>Rien ne s’affiche tant que le Mac ne transmet pas de relevé au serveur.</p></details></div></article></div>';
+    h+='<div class="encart bloc" style="margin-top:16px"><div class="tx" style="margin-top:0">Un agent neuf est à l’arrêt. Il passe par « brouillon » avant « auto », et ne répond dans « Parler » qu’à partir de « brouillon ». Les dépenses ne se lisent pas ici : voir la Console Anthropic (espace « Agents Team OP », limite 195 $).</div></div>';
   } else if(AG.sec==='valid'){
     if(AG.lec.validations!==1) h+=AG.lec.validations===0?acSquel():agIllisible('Les demandes n’ont pas pu être lues — on ne sait pas s’il y en a. Réessaie dans un instant.');
     else if(!AG.validations.length) h+='<div class="vide">Rien à valider pour l’instant.</div>';
@@ -11756,7 +11820,7 @@ function msJourLib(ts,now){
 /* Les visages de l'équipe (icons/agents/<id>.jpg, 256 px, générés pour TeamOP : des personnes FICTIVES). L'initiale reste
    DESSOUS la photo : une image qui ne vient pas (hors ligne, fichier absent) s'efface et laisse l'initiale, jamais un rond vide.
    Un identifiant hors de la liste (un fil de groupe, un nom inconnu) n'a que l'initiale — on ne demande pas une image qui n'existe pas. */
-var AG_PHOTOS={victor:1,ines:1,camille:1,hugo:1,margaux:1,lea:1,max:1,nina:1,theo:1,jules:1,chloe:1,emma:1,louis:1,sarah:1,lola:1,noah:1};
+var AG_PHOTOS={pauline:1,victor:1,ines:1,camille:1,hugo:1,margaux:1,lea:1,max:1,nina:1,theo:1,jules:1,chloe:1,emma:1,louis:1,sarah:1,lola:1,noah:1};
 function agAvatar(id,nom,cls){
   var ini=esc(String(nom||id||'?').charAt(0).toUpperCase());
   var img=Object.prototype.hasOwnProperty.call(AG_PHOTOS,id)?'<img src="icons/agents/'+id+'.jpg" alt="" width="256" height="256" loading="lazy" decoding="async" onerror="this.remove()">':'';
@@ -11765,7 +11829,22 @@ function agAvatar(id,nom,cls){
 function msAgentsParId(){ var o={}; MS.agents.forEach(function(a){ o[a.id]=a; }); return o; }
 /* allumé (auto) · brouillon · à l'arrêt — la pause générale ou un état illisible = à l'arrêt, comme `agEnPause`. */
 function msEtat(a){ if(!a||MS.pause||MS.illisible) return 'arret'; return a.mode==='auto'?'allume':a.mode==='brouillon'?'brouillon':'arret'; }
-function msNomFil(f){ return MS_GROUPES_LIB[f]||(msAgentsParId()[f]||{}).nom||f; }
+/* ── LES GROUPES SE PERSONNALISENT (Tour v2.112, Justin, 25 octobre 2026) : nom, icône, couleur, description. Le SERVEUR porte `perso` sur chaque groupe de la liste
+   (`{nom,icone,couleur,description}`) ; absent = les valeurs d'origine, et la page marche sans lui (un serveur d'avant). ⛔ Tout ce qui vient de `perso` est une donnée : lue
+   avec ses bornes, jamais prise telle quelle (une couleur hors liste = aucune, un nom ou une description trop longs sont coupés), et ÉCHAPPÉE à l'affichage. */
+var MS_COULEURS=[['bleu','Bleu'],['vert','Vert'],['orange','Orange'],['rouge','Rouge'],['violet','Violet'],['gris','Gris']];
+/* Un groupe est une CLÉ PROPRE de la table : « constructor » ou « __proto__ » n'en sont pas (la table est un objet, elle hérite du prototype). */
+function msEstGroupe(fil){ return Object.prototype.hasOwnProperty.call(MS_GROUPES_LIB,fil); }
+function msGroupePerso(fil){
+  var f=null; MS.fils.forEach(function(x){ if(x&&x.fil===fil&&x.groupe) f=x; });
+  var p=f&&f.perso&&typeof f.perso==='object'?f.perso:{}, txt=function(v,n){ return typeof v==='string'?v.trim().slice(0,n):''; };
+  var nom=txt(p.nom,40), ico=typeof p.icone==='string'?Array.from(p.icone.trim()).slice(0,4).join(''):'', desc=txt(p.description,120);
+  var coul=MS_COULEURS.some(function(c){ return c[0]===p.couleur; })?p.couleur:'';
+  return {nom:nom||(msEstGroupe(fil)?MS_GROUPES_LIB[fil]:String(fil)), icone:ico||'#', couleur:coul, description:desc, perso:!!(nom||ico||coul||desc)};
+}
+function msNomFil(f){ return msEstGroupe(f)?msGroupePerso(f).nom:((msAgentsParId()[f]||{}).nom||f); }
+/* L'icône d'un groupe dans son rond de couleur (la liste, l'en-tête). */
+function msIconeHtml(fil,cls){ var p=msGroupePerso(fil); return '<span class="'+cls+(p.couleur?' cb-'+p.couleur:'')+'" aria-hidden="true">'+esc(p.icone)+'</span>'; }
 /* ── les morceaux d'HTML : des fonctions de leurs données, rien d'autre ── */
 function msBulleHtml(m,membres,agents){
   if(m.systeme||m.de==='systeme') return '<div class="ms-sys" data-id="'+esc(m.id)+'">'+esc(m.texte)+'<small> · '+esc(fmtHeure(m.ts))+'</small></div>';
@@ -11797,10 +11876,10 @@ function msFluxHtml(msgs,membres,agents,apres){
 }
 function msLigneFil(f,agents,fil){
   var ag=agents[f.fil], nom=msNomFil(f.fil), der=f.dernier, ec=msEcritTexte(f.ecrit);
-  var l3=ec?ec:der?((der.de==='justin'?'Toi : ':der.de==='systeme'?'':((agents[der.de]||{}).nom||'')+' : ')+der.texte):(ag?ag.role:'Aucun message');
+  var l3=ec?ec:der?((der.de==='justin'?'Toi : ':der.de==='systeme'?'':((agents[der.de]||{}).nom||'')+' : ')+der.texte):(ag?ag.role:(f.groupe&&msGroupePerso(f.fil).description)||'Aucun message');
   var et=ag?msEtat(ag):'';
   return '<button type="button" class="ms-cv" data-fil="'+esc(f.fil)+'" aria-current="'+(fil===f.fil)+'">'+
-    (f.groupe?'<span class="ms-av g" aria-hidden="true">#</span>':agAvatar(f.fil,nom,'ms-av'))+
+    (f.groupe?msIconeHtml(f.fil,'ms-av g'):agAvatar(f.fil,nom,'ms-av'))+
     '<span class="ms-cc"><span class="ms-l1"><b>'+esc(nom)+'</b>'+(der?'<small>'+esc(msHeureCourte(der.ts))+'</small>':'')+'</span>'+
     '<span class="ms-l3'+(ec?' ecrit':'')+'">'+esc(l3)+'</span></span>'+
     (f.nonLus?'<span class="ms-nl" aria-label="'+f.nonLus+' non lu'+(f.nonLus>1?'s':'')+'">'+f.nonLus+'</span>':'')+
@@ -11832,6 +11911,7 @@ function msTachesHtml(){
 function msSousTitre(){
   var ag=msAgentsParId(), a=ag[MS.fil];
   if(a) return esc(a.role)+' · '+MS_ETAT_LIB[msEtat(a)].toLowerCase();
+  if(MS_GROUPES_LIB[MS.fil]&&msGroupePerso(MS.fil).description) return esc(msGroupePerso(MS.fil).description);
   var n=MS.membres.length, tous=n&&n>=MS.agents.length&&MS.agents.length>0;
   var qui=tous?'les '+n+' agents et toi':MS.membres.map(function(m){ return m.nom; }).join(', ')+' et toi';
   var men=MS.meneur&&ag[MS.meneur]?' · sans @mention, '+ag[MS.meneur].nom+' répond':'';
@@ -12207,6 +12287,7 @@ function messClic(ev){
   else if(a==='dossier') messDossier(el.getAttribute('data-dos'));
   else if(a==='retour'){ MS.vueMob='liste'; var r=MS.inst&&MS.inst.zone.firstChild; if(r) r.setAttribute('data-mob','liste'); }
   else if(a==='panneau'){ MS.panneau=!MS.panneau; messPeindrePanneau(); }
+  else if(a==='groupeModifier') msGroupeModifier(MS.fil);
   else if(a==='nouv'){ messDescendre(); }
   else if(a==='rechargerListe'){ MS.lec=0; messPeindreListe(); messToutCharger(); }
   else if(a==='rechargerFil'){ MS.msgLec=0; messPeindreFil(true); messFilCharger(false); }
@@ -12230,15 +12311,54 @@ function messPeindreListe(){
   c.innerHTML=h;
   if(garde){ var n=c.querySelector('[data-fil="'+garde+'"]'); if(n) n.focus({preventScroll:true}); }
 }
+/* L'en-tête d'un fil : la PHOTO de l'agent devant son nom (l'icône du groupe, dans son rond, à la même place) ; « Modifier » dans l'en-tête d'un groupe, patron seul. Fonction pure : un banc l'exécute. */
+function msEnteteHtml(){
+  var ouv=MS.taches.filter(function(k){ return k.statut==='prise'||k.statut==='attente'; }).length, grp=!!MS_GROUPES_LIB[MS.fil], nom=msNomFil(MS.fil);
+  return '<button type="button" class="ms-retour" data-act="retour" aria-label="Toutes les conversations">‹ Conversations</button>'+
+    '<div class="ms-hid">'+(grp?msIconeHtml(MS.fil,'ms-av g h'):agAvatar(MS.fil,nom,'ms-av h'))+'<div class="ms-ht"><h2>'+esc(nom)+'</h2><p>'+msSousTitre()+'</p></div></div>'+
+    '<div class="ms-ha">'+(grp&&MYROLE==='patron'?'<button type="button" class="ms-btn-mod" data-act="groupeModifier" aria-label="Modifier le groupe '+esc(nom)+'">Modifier</button>':'')+
+    '<span class="ms-bientot" title="OP MESSAGES se rebranchera plus tard">Suivre dans OP MESSAGES · <b>Bientôt</b></span>'+
+    '<button type="button" class="ms-btn-tq" data-act="panneau" aria-expanded="'+MS.panneau+'" aria-controls="ms-droite">Qui fait quoi'+(MS.tachesLec===1&&ouv?'<span class="ag-n">'+ouv+'</span>':'')+'</button></div>';
+}
 function messPeindreEntete(){
   var hd=$('ms-hd'); if(!hd||!MS.inst) return;
-  var ouv=MS.taches.filter(function(k){ return k.statut==='prise'||k.statut==='attente'; }).length, grp=!!MS_GROUPES_LIB[MS.fil];
-  var h='<button type="button" class="ms-retour" data-act="retour" aria-label="Toutes les conversations">‹ Conversations</button>'+
-    '<div class="ms-ht"><h2>'+(grp?'# ':'')+esc(msNomFil(MS.fil))+'</h2><p>'+msSousTitre()+'</p></div>'+
-    '<div class="ms-ha"><span class="ms-bientot" title="OP MESSAGES se rebranchera plus tard">Suivre dans OP MESSAGES · <b>Bientôt</b></span>'+
-    '<button type="button" class="ms-btn-tq" data-act="panneau" aria-expanded="'+MS.panneau+'" aria-controls="ms-droite">Qui fait quoi'+(MS.tachesLec===1&&ouv?'<span class="ag-n">'+ouv+'</span>':'')+'</button></div>';
+  var h=msEnteteHtml();
   if(hd.getAttribute('data-h')===h) return; hd.setAttribute('data-h',h); hd.innerHTML=h;
 }
+/* ── la feuille « Modifier le groupe » : nom (≤ 40), icône (un émoji ou 1 à 2 lettres, ≤ 4 caractères), couleur (six pastilles), description (≤ 120). Elle passe par la fenêtre de la Tour. ── */
+function msGroupeFeuille(fil){
+  var p=msGroupePerso(fil), c=p.couleur||'gris', f=esc(fil);
+  return '<div class="mg" data-fil="'+f+'"><h3 class="mg-t">Modifier le groupe</h3>'+
+    '<label class="mg-l">Nom<input id="mg-nom" type="text" maxlength="40" value="'+esc(p.nom)+'" autocomplete="off"></label>'+
+    '<label class="mg-l">Icône <small>un émoji, ou 1 à 2 lettres</small><input id="mg-ico" type="text" maxlength="8" value="'+esc(p.icone)+'" autocomplete="off"></label>'+
+    '<div class="mg-l" id="mg-cl">Couleur</div><div class="mg-cl" role="radiogroup" aria-labelledby="mg-cl">'+MS_COULEURS.map(function(x){
+      return '<button type="button" role="radio" aria-checked="'+(x[0]===c)+'" class="mg-pas cb-'+x[0]+(x[0]===c?' on':'')+'" data-c="'+x[0]+'" aria-label="'+x[1]+'" onclick="msGroupeCouleur(\''+x[0]+'\')"></button>'; }).join('')+'</div>'+
+    '<label class="mg-l">Description <small>120 caractères au plus</small><textarea id="mg-desc" maxlength="120" rows="2">'+esc(p.description)+'</textarea></label>'+
+    '<div class="mg-err" id="mg-err" role="alert"></div>'+
+    '<div class="mg-act"><button type="button" class="ag-btn ok" id="mg-ok" onclick="msGroupeEnregistrer(\''+f+'\')">Enregistrer</button><button type="button" class="ag-btn" onclick="tourPanneauFermer()">Annuler</button>'+
+    '<button type="button" class="ag-btn mg-def" onclick="msGroupeDefaut(\''+f+'\')"'+(p.perso?'':' disabled')+'>Remettre par défaut</button></div></div>';
+}
+function msGroupeModifier(fil){ if(MYROLE!=='patron'||!msEstGroupe(fil)) return; tourPanneau(msGroupeFeuille(fil),{sansFermer:true}); var n=$('mg-nom'); if(n) n.focus({preventScroll:true}); }
+function msGroupeCouleur(c){ [].forEach.call(document.querySelectorAll('#tour-panneau .mg-pas'),function(b){ var on=b.getAttribute('data-c')===c; b.classList.toggle('on',on); b.setAttribute('aria-checked',String(on)); }); }
+function msGroupeErr(t){ var e=$('mg-err'); if(e) e.textContent=t||''; }
+/* L'envoi : un seul à la fois (un double toucher n'envoie pas deux fois). Un refus est AFFICHÉ tel que le serveur le dit, la feuille reste ouverte ; rien ne change à l'écran avant qu'il ait dit oui. */
+function msGroupeEnvoyer(fil,corps){
+  if(MYROLE!=='patron'||MS.groupeBusy||!msEstGroupe(fil)) return Promise.resolve(null);
+  MS.groupeBusy=true; msGroupeErr(''); var ok=$('mg-ok'); if(ok) ok.disabled=true;
+  return apiPost('/api/monitor/conversations/groupe',Object.assign({fil:fil},corps)).then(function(x){
+    MS.groupeBusy=false; if(ok) ok.disabled=false;
+    if(!x.ok){ msGroupeErr((x.d&&x.d.error)?String(x.d.error):x.status===403?'Réservé au patron.':'Le serveur a refusé ('+x.status+')'); return x; }
+    MS.fils.forEach(function(f){ if(f&&f.fil===fil&&f.groupe){ if(corps.defaut) delete f.perso; else f.perso=(x.d&&x.d.perso&&typeof x.d.perso==='object')?x.d.perso:{nom:corps.nom,icone:corps.icone,couleur:corps.couleur,description:corps.description}; } });
+    tourPanneauFermer(); messPeindreListe(); messPeindreEntete(); toast(corps.defaut?'Groupe remis par défaut.':'Groupe enregistré.'); return x;
+  },function(){ MS.groupeBusy=false; if(ok) ok.disabled=false; msGroupeErr(INJOIGNABLE); return null; });
+}
+function msGroupeEnregistrer(fil){
+  var v=function(id){ var e=$(id); return e?String(e.value):''; }, nom=v('mg-nom').trim(), ico=v('mg-ico').trim(), desc=v('mg-desc').trim(), b=document.querySelector('#tour-panneau .mg-pas.on'), c=b?b.getAttribute('data-c'):'gris';
+  var err=!nom?'Donne un nom au groupe.':nom.length>40?'Le nom tient en 40 caractères au plus.':!ico?'Choisis une icône : un émoji, ou 1 à 2 lettres.':Array.from(ico).length>4?'L’icône tient en 4 caractères au plus.':desc.length>120?'La description tient en 120 caractères au plus.':'';
+  if(err){ msGroupeErr(err); return Promise.resolve(null); }
+  return msGroupeEnvoyer(fil,{nom:nom,icone:ico,couleur:c,description:desc});
+}
+function msGroupeDefaut(fil){ return msGroupeEnvoyer(fil,{defaut:true}); }
 function messPeindrePanneau(){ var r=MS.inst&&MS.inst.zone.firstChild; if(!r) return; r.setAttribute('data-tq',MS.panneau?'1':'0'); var b=r.querySelector('.ms-btn-tq'); if(b) b.setAttribute('aria-expanded',String(MS.panneau)); r.setAttribute('data-mob',MS.vueMob); }
 function messPeindreTaches(){ var c=$('ms-taches'); if(!c||!MS.inst) return; var h=msTachesHtml(); if(c.getAttribute('data-h')!==h){ c.setAttribute('data-h',h); c.innerHTML=h; } messPeindreEntete(); }
 function messColle(){ var f=$('ms-flux'); return !f||f.scrollHeight-f.scrollTop-f.clientHeight<=60; }

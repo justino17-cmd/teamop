@@ -2,6 +2,8 @@
    Justin : « il faudrait aussi que tous mes agents aient une photo de profil, j'aime bien mettre un visage sur un nom ». Les photos ont été
    générées par Justin (Gemini) : des personnes FICTIVES, 256 px, dans icons/agents/<id>.jpg. Ce banc garde quatre choses :
      · une photo par agent du registre (server/agents.js), ni plus ni moins — un agent ajouté sans visage, ou un fichier orphelin, fait tomber ;
+       ⛔ EXCEPTION DÉCLARÉE, une seule : Pauline (la prospection, Tour v2.112) tourne sur le Mac de Justin, elle n'est PAS dans le registre du serveur. Elle figure dans EXTERNES ci-dessous,
+       par son nom, et nulle part ailleurs : un second agent « externe » doit être ajouté à cette liste à la main (un fichier orphelin quelconque continue de faire tomber) ;
      · la VRAIE `agAvatar` de tour.html : la photo pour un agent connu, l'initiale DESSOUS (une image qui ne vient pas s'efface et la laisse),
        rien d'autre pour un fil de groupe ou un identifiant inconnu, et rien d'injecté par un nom ou un identifiant hostile ;
      · plus aucun avatar d'agent dessiné à la main dans la page (les neuf endroits passent par `agAvatar`) ;
@@ -19,12 +21,16 @@ const BRUT = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const CODE = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 const { AGENTS } = require(path.join(RACINE, 'server', 'agents.js'));
 const DOSSIER = path.join(RACINE, 'icons', 'agents');
+/* Les agents EXTERNES : des visages dans la Tour, mais hors du registre serveur (ils ne se pilotent pas d'ici). */
+const EXTERNES = ['pauline'];
 
 /* 1. Les fichiers, face au registre. */
 const ids = (AGENTS || []).map(a => a.id).sort();
 const fichiers = fs.existsSync(DOSSIER) ? fs.readdirSync(DOSSIER).filter(f => !f.startsWith('.')).sort() : [];
+const attendus = ids.concat(EXTERNES).sort();
 vrai('(population) le registre des agents est lu : 16 agents', ids.length === 16, ids.join(','));
-vrai('une photo par agent, ni plus ni moins (icons/agents/<id>.jpg)', JSON.stringify(fichiers) === JSON.stringify(ids.map(i => i + '.jpg')), fichiers.join(','));
+vrai('une photo par agent du registre, plus celle des externes déclarés — ni plus ni moins (icons/agents/<id>.jpg)', JSON.stringify(fichiers) === JSON.stringify(attendus.map(i => i + '.jpg')), fichiers.join(','));
+vrai('(population) les externes déclarés ne sont PAS dans le registre du serveur (sinon ce n\u2019est plus une exception)', EXTERNES.length === 1 && EXTERNES.every(e => !ids.includes(e)), EXTERNES.join(','));
 for (const f of fichiers) {
   const b = fs.readFileSync(path.join(DOSSIER, f));
   /* un JPEG commence par FF D8 ; la taille se lit dans le premier segment SOF (C0 ou C2) */
@@ -50,7 +56,7 @@ const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(ESC + '\n' + TABLE + '\n' + FN, ctx);
 const table = Object.keys(ctx.AG_PHOTOS || {}).sort();
-vrai('la table des photos de la page est celle du registre', JSON.stringify(table) === JSON.stringify(ids), table.join(','));
+vrai('la table des photos de la page est celle du registre, plus les externes déclarés', JSON.stringify(table) === JSON.stringify(attendus), table.join(','));
 const h = ctx.agAvatar('camille', 'Camille', 'ms-av');
 vrai('un agent connu : l’initiale, puis sa photo par-dessus, dans le rond', /^<span class="ms-av" aria-hidden="true">C<img src="icons\/agents\/camille\.jpg" alt=""[^>]*><\/span>$/.test(h), h);
 vrai('la photo s’efface si elle ne vient pas (l’initiale reste), et se charge sans bloquer la page', /onerror="this\.remove\(\)"/.test(h) && /loading="lazy"/.test(h), h);
@@ -68,7 +74,9 @@ vrai('un nom absent retombe sur l’identifiant, puis sur « ? »', ctx.agAvatar
 const aLaMain = (CODE.match(/class="(?:ms-av(?: p)?|ag-av)" aria-hidden="true">'\+esc\(/g) || []).length;
 vrai('aucun avatar d’agent dessiné à la main : les initiales passent toutes par agAvatar', aLaMain === 0, aLaMain);
 const appels = (CODE.match(/\bagAvatar\(/g) || []).length - 1;
-vrai('(population) les neuf endroits qui montrent un agent appellent agAvatar (fiches, bulles, conversations, tâches, réunions ×3, RGPD, mentions)', appels === 9, appels);
+vrai('(population) les onze endroits qui montrent un agent appellent agAvatar (rangées de l\u2019équipe, Pauline, en-tête d\u2019un fil, liste, bulles, tâches, réunions ×3, RGPD, mentions)', appels === 11, appels);
+const pau = ctx.agAvatar('pauline', 'Pauline', 'ag-av');
+vrai('Pauline, agent externe : l\u2019initiale, puis sa photo par-dessus', /^<span class="ag-av" aria-hidden="true">P<img src="icons\/agents\/pauline\.jpg"/.test(pau), pau);
 vrai('la carte de Nina (RGPD) porte sa photo, plus un « N » écrit en dur', /agAvatar\('nina','Nina','ms-av p'\)/.test(CODE) && !/aria-hidden="true">N<\/span><b>Nina/.test(CODE));
 
 /* 4. La règle qui pose l'image dans le rond. */

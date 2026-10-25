@@ -36,7 +36,7 @@ function fonction(nom) {
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const NOMS = ['agAvatar', 'hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'acSquel', 'fmtDate', 'agParId', 'agNom', 'agMode', 'agParams', 'agEnPause',
   'chargerAgents', 'agSec', 'agMode_', 'agPause', 'agDecider', 'agDecisionMsg', 'agBrRef', 'agBrCharger', 'agBrApercu', 'agBrModifier', 'agBrAnnuler', 'agBrEnregistrer', 'agHugo', 'agIllisible', 'vueAgents', 'fmtHeure',
-  'agTachesDe', 'agDispo', 'agEnCoursTxt', 'agQuiFaitQuoi',   // lot 1 (f) : « qui fait quoi » de l'onglet Équipe
+  'agTachesDe', 'agDispo', 'agEnCoursTxt', 'agQuiFaitQuoi', 'agAide',   // lot 1 (f) : « qui fait quoi » de l'onglet Équipe
   'agDosCharger', 'agDosOuvrir', 'agDosFermer', 'agDosPaiement', 'agDosFiche', 'agDosListe', 'agCvCharger', 'agCvOuvrir', 'agCvFermer', 'agCvEnvoyer', 'agCvDossier', 'agCvMessage', 'agCvVue'];
 const i0 = CODE.indexOf('var AG={'), i1 = CODE.indexOf('\nfunction agParId(');
 vrai('le bloc des agents est trouvé dans la Tour', i0 > 0 && i1 > i0);
@@ -108,7 +108,7 @@ console.log('\n── 2709 · le panneau Agents de la Tour : ses vraies fonction
   let h = T.ctx.vueAgents();
   vrai('« à l’arrêt » est celui qui est allumé sur une carte', /data-m="arret" class="on"/.test(h));
   vrai('« Auto » est refusé tant que l’agent est à l’arrêt (désactivé)', /data-m="auto" class=""[^>]*disabled/.test(h));
-  vrai('le bandeau dit que les agents peuvent travailler, 0 allumé', /peuvent travailler · 0 allumé sur 16/.test(h));
+  vrai('la barre dit « 16 à l’arrêt » (la ligne d’état : rien en auto, rien en brouillon)', />16 à l’arrêt( · [^<]*)?<\/b>/.test(h) && !/en auto|en brouillon/.test(h.split('ag-onglets')[0]));
   vrai('aucun montant de dépense inventé', !/ \$ \/ /.test(h) && /Console Anthropic/.test(h));
 
   console.log('\n2. Changer un mode : seul le serveur le fait changer à l’écran');
@@ -295,14 +295,14 @@ console.log('\n── 2709 · le panneau Agents de la Tour : ses vraies fonction
        (mode 'arret') promettait une réponse qui ne viendrait pas. Le cas à l'arrêt est gardé juste dessous. */
     A.agents = [{ id: 'hugo', nom: 'Hugo', role: 'r', couche: 'Clients', vague: 1, plafondUsd: 10, mode: 'brouillon', cerveau: true }, { id: 'camille', nom: 'Camille', role: 'r', couche: 'Clients', vague: 2, plafondUsd: 35, mode: 'arret', cerveau: false }];
     A.cleOk = false; const sansCle = Z.ctx.vueAgents(); A.cleOk = true; const avecCle = Z.ctx.vueAgents();
-    vrai('sans clé, Hugo dit qu’il ne répond pas encore', /Branché, mais la clé Anthropic n’est pas posée/.test(sansCle) && !/Il répond quand tu lui écris/.test(sansCle));
-    vrai('avec la clé, Hugo dit qu’il répond ; Camille dit « pas encore branché » dans les deux cas', /Il répond quand tu lui écris/.test(avecCle) && (sansCle.match(/Pas encore branché/g) || []).length === 1 && (avecCle.match(/Pas encore branché/g) || []).length === 1);
-    vrai('chaque carte a son bouton « Parler à … »', /Parler à Hugo/.test(avecCle) && /Parler à Camille/.test(avecCle));
+    /* Tour v2.112 : plus de phrase « Branché — … » sur CHAQUE rangée. La clé absente se dit UNE fois, au-dessus de la liste (elle vaut pour tous) ; « pas encore branché » reste sur la rangée de l'agent concerné. */
+    vrai('sans clé, la page le dit UNE fois (« la clé Anthropic n’est pas posée »), pas sur chaque rangée', (sansCle.match(/La clé Anthropic n’est pas posée/g) || []).length === 1 && !/Il répond quand tu lui écris|Branché, mais/.test(sansCle));
+    vrai('avec la clé, la mention disparaît ; Camille dit « pas encore branché » dans les deux cas, une seule fois', !/La clé Anthropic n’est pas posée/.test(avecCle) && (sansCle.match(/Pas encore branché/g) || []).length === 1 && (avecCle.match(/Pas encore branché/g) || []).length === 1);
+    vrai('chaque rangée a son bouton « Parler » (nommé « Parler à … » pour un lecteur d’écran) qui appelle agParler', /aria-label="Parler à Hugo"[^>]*onclick="agParler\('hugo'\)"/.test(avecCle) && /aria-label="Parler à Camille"[^>]*onclick="agParler\('camille'\)"/.test(avecCle) && (avecCle.match(/>Parler<\/button>/g) || []).length === 2);
     A.agents[0].mode = 'arret'; const arretee = Z.ctx.vueAgents();
-    vrai('⛔ branché + clé posée mais À L\'ARRÊT : la carte dit de le passer en Brouillon, et ne promet pas qu\'il répond', /Branché — à l’arrêt : passe-le en Brouillon pour qu’il te réponde/.test(arretee) && !/Il répond quand tu lui écris/.test(arretee));
+    vrai('⛔ branché + clé posée mais À L\'ARRÊT : la rangée ne promet pas qu\'il répond (« À l’arrêt » seul), et la phrase commune dit qu’il faut au moins « brouillon »', !/Il répond quand tu lui écris/.test(arretee) && /data-e="arret">À l’arrêt<\/span><\/div>/.test(arretee) && /ne répond dans « Parler » qu’à partir de « brouillon »/.test(arretee));
     vrai('…et « Pas encore branché » reste pour l\'agent non branché, une seule fois', (arretee.match(/Pas encore branché/g) || []).length === 1);
-    vrai('…la phrase d\'un agent à l\'arrêt n\'a pas la classe « ok » (verte)', !/ag-etat-cv ok">Branché — à l’arrêt/.test(arretee) && /ag-etat-cv">Branché — à l’arrêt/.test(arretee));
-    A.agents[0].mode = 'auto'; vrai('…en Auto il répond aussi', /Il répond quand tu lui écris/.test(Z.ctx.vueAgents()));
+    A.agents[0].mode = 'auto'; vrai('…en Auto, le mot d’état dit « Auto » et la rangée ne dit rien de plus', /data-e="auto">Auto<\/span><\/div>/.test(Z.ctx.vueAgents()));
     A.agents = avant[0]; A.cleOk = avant[1]; A.loaded = avant[2]; A.err = avant[3]; A.sec = avant[4];
   })();
 
