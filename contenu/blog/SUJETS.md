@@ -32,7 +32,7 @@ publication.
 - [x] ordre de travail — 2026-10-22 — `ordre-de-travail`
 - [x] suivi des interventions — 2026-10-23 — `suivi-des-interventions`
 - [x] signature électronique devis — 2026-10-24 — `signature-electronique-devis`
-- [ ] bon d'intervention — modèle, mentions, valeur de preuve, version mobile — /logiciel-planning-interventions.html
+- [x] bon d'intervention — 2026-10-25 — `bon-d-intervention`
 - [ ] planning des techniciens — organiser une semaine d'équipe, urgences, tournées — /logiciel-planning-interventions.html
 - [ ] gestion de stock camionnette — suivre ce que chaque technicien emporte, inventaire, réassort — /logiciel-gestion-de-stock.html
 - [ ] facture d'intervention — mentions obligatoires, délais, facturation électronique 2026-2027 — /logiciel-devis-factures.html
