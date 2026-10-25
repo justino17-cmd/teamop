@@ -28,6 +28,14 @@ faire, je vais pas payer ». Son abonnement BLG est inactif (rien n'a été pré
   nouveau plan du site après la fusion ; (4) la tâche planifiée « Article du blog » (deux par semaine) écrit chaque article dans une demande
   de fusion — Justin relit et fusionne, rien ne part sans lui ; (5) Facebook / Instagram : partage des articles après la liaison du 31 octobre.
 
+# ✅ 24 OCTOBRE 2026 (SOIR) — NODEMAILER 10.2.1 ET MAILPARSER 3.12.4 — branche `claude/nodemailer-10-2`
+
+`npm audit --omit=dev` rendait des failles connues sur les deux serveurs (`server/` : nodemailer + mailparser ; `server-msg/` : nodemailer). Montés :
+0 faille sur les deux. Listes jouées en entier : serveur 139 suites · 9 196 vérifications, OP MESSAGES 182 suites · 11 914 vérifications.
+⚠️ Un seul banc tombait, `test-997` §7 ter, et le défaut était dans le BANC : nodemailer 10.2 mesure ses délais par `Date.now`, et l'horloge du banc
+(`lib-horloge-msg.js`) sautait de 61 s PENDANT un envoi encore en cours — ETIMEDOUT. Le banc attend désormais que le relais ait reçu le courriel avant
+d'avancer l'horloge (4 passages sur 4, contre 3 échecs sur 4). La fusion redéploie les DEUX serveurs.
+
 ---
 
 # 🔶 24 OCTOBRE 2026 (NUIT) — L'ESPACE DE TEST (test.teamop.fr) — branche `claude/espace-de-test`, ATTEND LES GESTES DE JUSTIN SUR LE VPS
@@ -309,7 +317,25 @@ outil d'argent), pas d'urgence — options au constat (citer le dernier message 
 - ⛔ **Ordre de mise en ligne** : le serveur EXIGE le métier au paiement d'OP GESTION (400 `metier_requis`) ; l'ancienne page de paiement ne sait pas le demander. `preparer-deploiement-serveur.sh` emporte la page (`recap-abonnement.html`, `rubriques-choix.*`, `metiers.json`) dans le MÊME commit que le serveur (`test-2891` § 6 le garde), mais Pages et le VPS ne se déploient pas à la même seconde : pendant l'écart (quelques minutes), un prospect qui paie depuis l'ancienne page lit « Choisissez votre métier » sans pouvoir le faire. Le script n'a PAS été joué ici (il lance la suite complète et prépare un commit pour `main`) : à jouer à la fusion, de préférence hors des heures de paiement.
 - **`metiers.json` n'est plus publié** sur teamop.fr (il porte la feuille de route : `aCreer`, `aVerifier`, notes). Le serveur le lit dans le dépôt cloné, les écrans lisent `GET /api/metiers` (filtré). `test-1008` exige son absence.
 - **Choix à la page de paiement** : la fiche du client (`ficheDePaiement`) naît APRÈS la page rendue par Stripe, jamais pour un compte fermé, ne compte pas comme un espace (`aUnEspace`, suppression d'un compte du site) ; elle part avec le compte supprimé. ⚠️ Un client qui a payé SANS jamais ouvrir son espace client n'a donc plus de « 409 : ce compte porte une entreprise » — la Tour le montre « sans espace » : vérifier dans Stripe avant de supprimer un compte.
-- **Reste à faire** : `apercu/tour.html` n'est PAS régénéré (à faire à la fusion : `bash scripts/apercu.sh tour.html` — une copie plus vieille que la page est pire que pas de copie) ; la Tour ne monte pas de version (`TOUR_VERSION`) ; l'acceptation d'une seconde demande pose toujours le MÉTIER de la demande sur un espace déjà ouvert (seules les rubriques sont protégées) ; sonde `scratchpad/sonde-tour-demande-ouverte.js` (54 ✓, jour/nuit, 1440/1100/390).
+- **Reste à faire** : `apercu/tour.html` n'est PAS régénéré (à faire à la fusion : `bash scripts/apercu.sh tour.html` — une copie plus vieille que la page est pire que pas de copie) ; la Tour ne monte pas de version (`TOUR_VERSION`) ; ✅ l'acceptation d'une seconde demande ne change plus le MÉTIER d'un espace qui en a un (24 octobre 2026, Tour v2.109 : `siVide`, le métier du nom le plus récent est gardé et
+  le panneau le dit ; `test-2892` § 3 ter) — ⚠️ un espace déjà ouvert SANS métier reçoit celui de la demande, comme avant (rien à protéger côté serveur) ; sonde `scratchpad/sonde-tour-demande-ouverte.js` (54 ✓, jour/nuit, 1440/1100/390).
+
+# 🔶 24 OCTOBRE 2026 (SOIR) — EXAMEN DE 21 H 07, LE PREMIER SUR LE SERVEUR CORRIGÉ : 5 RÉUSSIS, 4 ÉCHECS, CORRIGÉS (branche `claude/examen-corrections-2`)
+- ⚠️ **L'examen de 17 h 43 ne comptait pas** : il a tourné sur l'ANCIEN serveur (le déploiement de la demande n° 171 s'est fini à 17 h 50). Celui de 21 h 07 est le premier qui juge les corrections.
+- **Scénario 2** (Camille passe une tâche) : elle donnait l'INTITULÉ au lieu de l'identifiant → le schéma de `passer` et `terminer` offre la liste FERMÉE des identifiants de ses tâches
+  (`champTache`, `tachesOffertes` ; toute l'équipe pour Victor). On ne devine jamais un intitulé (relecture du gardien : « répondre au prospect Dupont » attrapait la tâche Martin).
+- **Scénario 4** (Camille demande à Hugo) : elle n'avait rien écrit dans le fil de Justin (un seul outil, la question dans un AUTRE fil) → quand Justin écrit et que l'agent ne
+  rend que des outils, UN second appel, sans outil, avec le résultat des outils et l'état d'après, lui demande son message pour ce fil — sauf si un outil y a déjà écrit.
+- **Scénario 6** (premiers courriels de Léa) : deux brouillons sur trois, et trois critères « illisibles » → le juge de l'examen lit chaque objet de premier niveau (un objet
+  incomplet rend tout illisible, jamais vrai) ; le juge QUALITÉ tolère le gras et les puces, et un juge bavard (un verdict suivi de phrases) est relancé UNE fois, la forme
+  stricte décide (relecture du gardien : aucune phrase libre n'est déclarée innocente). ⚠️ **La cause des deux brouillons n'est PAS prouvée** : le prochain examen dit, pour
+  chaque brouillon, le verdict du contrôle, ses fautes et sa raison (`pourquoiBrouillon`).
+- **Scénario 9** (le ton) : « je confirme mes objectifs », « rien à ajouter » en DISCUSSION de réunion → `sansRedites` retire la formule, garde le reste de la phrase
+  (un engagement, un @, une alerte) ; chaque critère du juge affiche SA raison (`raisonDe`).
+- Bancs : `test-2996` (20, dans la liste serveur), `test-2900`, `test-2930` adaptés ; 13 mutations, toutes mordent. Relecture adverse du `gardien` : un bloquant et quatre
+  « à corriger », tous traités dans le second commit.
+- ⏳ **Reste** : fusion, déploiement, puis relancer l'examen — avec la Tour v2.109 (demande n° 174), le bouton « 📋 Copier le résultat pour Claude » donne tout en un clic.
+
 # 🔶 24 OCTOBRE 2026 — PREMIER EXAMEN RÉEL : 3 RÉUSSIS, 6 ÉCHECS, CORRIGÉS (branche `claude/examen-corrections`)
 - **Le résultat** (Tour, 15 h 05, 66 appels, 1,49 $, 212 s) : ✓ 1 (Margaux), 3 (@tous), 7 (courrier) ; ✗ 2, 4, 5, 6, 8, 9. **Trois échecs venaient de l'EXAMEN** : « tes » lu dans
   « complètes » (`\b` ignore les accents), « 15 euros » refusé alors que le serveur l'accepte, des avantages numérotés comptés comme des questions (deux courriels justes restés
@@ -319,8 +345,13 @@ outil d'argent), pas d'urgence — options au constat (citer le dernier message 
 - **Corrigé** : `dejaLu` (agent-equipe.js), « RAS » à un collègue, règles du prompt (passer à trois tâches, question fermée à Hugo), seconde demande sans outil dans `parole`
   (reunions.js), `estQuestion` partagé (agents-controle.js ↔ examen.js), Léa numérote les seules questions. Bancs `test-2993` (neuf) et `test-2930` (« outils-seuls » ; « bavard »
   est désormais CONTENU par le serveur, 15 appels au lieu du plafond). 13 mutations, toutes mordent (`scratchpad/mutations-examen.py`).
-- ⏳ **Reste** : relancer l'examen une fois fusionné (un par heure) ; aucun agent en Auto avant un examen relu ensemble. Vu au passage : la Tour propose « Faire signer » sur une
-  pièce jointe qui n'est pas un PDF (rapport DMARC de Google) — à corriger avec la prochaine version de la Tour.
+- ⏳ **Reste** : relancer l'examen une fois fusionné (un par heure) ; aucun agent en Auto avant un examen relu ensemble. Vu au passage : la Tour proposait « Faire signer » sur une
+  pièce jointe qui n'est pas un PDF (rapport DMARC de Google) — ✅ corrigé le 24 au soir (branche `claude/courrier-signer-pdf`) : `canSign` et `signFrom` lisent
+  `estPDF` dans `opcourrier.js` (copies d'aperçu et d'OP MESSAGES régénérées), `test-2994` (15 contrôles, 3 mutations mordent), sonde navigateur
+  `sonde-signer-pdf.js` du brouillon (PDF : présent ; .zip et .xml.gz : absents ; sur main, le défaut se reproduit). ⚠️ `scratchpad/courrier/sign_check.js` est
+  PÉRIMÉE : elle attend un champ `#sgType` que la feuille de signature n'a plus, et tombe aussi sur main — à réécrire avant de s'y fier.
+- ⚠️ **L'examen de 17 h 43 (4 réussis, 5 échecs) a tourné sur l'ANCIEN serveur** : le déploiement de la demande n° 171 s'est fini à 17 h 50 (redémarrage vu sur
+  `/health`). Il ne dit rien des corrections ; le premier examen qui les juge est celui de 18 h 43.
 
 # ⏳ 23 OCTOBRE 2026 — L'EXAMEN DE L'ÉQUIPE D'AGENTS ET LA CLÉ D'EXAMEN (branche `claude/auto-examen`, RIEN en ligne)
 - **Ce que c'est** (cahier §13) : `server/examen.js` joue les neuf scénarios avec le VRAI modèle sur une équipe d'ESSAI (les vrais modules agents / messagerie / réunions / Léa / Camille sur un dossier

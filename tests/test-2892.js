@@ -99,13 +99,16 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
   const cle = nom => String(nom).toLowerCase().replace(/[^a-z0-9]+/g, '');
   const code = (t, nom) => Buffer.from(JSON.stringify({ t, k: 'k-' + t + '-' + 'x'.repeat(24), a: 'paul', n: nom }), 'utf8').toString('base64').replace(/=+$/, '');
   const paye = { formule: 'pro', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc', aboStatut: 'actif', aboPar: 'Banc', aboTs: MAINT - 1000 };
-  const T_CH = 't-chauffe-2892', T_PL = 't-plomb-2892', T_TO = 't-tout-2892', T_RE = 't-refus-2892', T_RS = 't-restreint-2892', T_LI = 't-libre-2892';
+  const T_DN = 't-deuxnoms-2892', T_CH = 't-chauffe-2892', T_PL = 't-plomb-2892', T_TO = 't-tout-2892', T_RE = 't-refus-2892', T_RS = 't-restreint-2892', T_LI = 't-libre-2892';
   const esp = (t, nom) => Object.assign({ t, nom, email: cle(nom) + '@exemple-2892.fr', ts: MAINT - 1000, code: code(t, nom) }, paye);
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify({ [cle('chauffe-banc')]: esp(T_CH, 'chauffe-banc'), [cle('plomb-banc')]: esp(T_PL, 'plomb-banc'),
     [cle('tout-banc')]: esp(T_TO, 'tout-banc'), [cle('refus-banc')]: esp(T_RE, 'refus-banc'),
     /* deux entreprises DÉJÀ OUVERTES, à l'adresse de leur demande : l'une a restreint ses rubriques (trois), l'autre travaille avec tout (ELAN) */
     [cle('restreint-banc')]: Object.assign(esp(T_RS, 'restreint-banc'), { email: 'restreint@exemple-2892.fr', cats: ['factures', 'devis', 'clients'], catsPar: 'Banc', catsTs: MAINT - 500 }),
-    [cle('libre-banc')]: Object.assign(esp(T_LI, 'libre-banc'), { email: 'libre@exemple-2892.fr' }) }));
+    [cle('libre-banc')]: Object.assign(esp(T_LI, 'libre-banc'), { email: 'libre@exemple-2892.fr' }),
+    /* une entreprise à DEUX noms (même `t`) : l'ancien d'abord dans l'annuaire, le récent ensuite — l'application lit le plus récent (`espaceParT`) */
+    [cle('deux-ancien')]: Object.assign(esp(T_DN, 'deux-ancien'), { ts: MAINT - 5000, metier: 'nettoyage' }),
+    [cle('deux-recent')]: Object.assign(esp(T_DN, 'deux-recent'), { ts: MAINT - 1000, metier: 'plomberie' }) }));
   const MAIL = 'chantal@exemple-2892.fr', MAIL2 = 'paul@exemple-2892.fr';
   const brut = crypto.randomBytes(32).toString('hex'), brut2 = crypto.randomBytes(32).toString('hex');
   fs.writeFileSync(path.join(D, 'comptes-portail.json'), JSON.stringify({ c: { [MAIL]: { v: true, pr: 'Chantal', no: 'Chaud', so: 'Chauffe Banc' }, [MAIL2]: { v: true, pr: 'Paul', no: 'Plomb', so: 'Plomb Banc' } },
@@ -258,6 +261,8 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
       const toasts = [], panneaux = [], posts = [], el = {}, rend = [];
       const ctx = { fetch: async (u, o) => { if (o && o.method === 'POST') posts.push({ u: String(u), corps: JSON.parse(o.body) });
           if (plus.refuseCats && /espaces\/cats/.test(u)) return { ok: false, status: 400, json: async () => ({ error: 'catégorie inconnue : essai' }) };
+          /* un SERVEUR D'AVANT le 24 octobre 2026 : il ignore `siVide` — un relais le retire avant de transmettre */
+          if (plus.serveurAvant && /espaces\/metier/.test(u)) { const c = JSON.parse(o.body); delete c.siVide; o = Object.assign({}, o, { body: JSON.stringify(c) }); }
           return fetch(u, o); },
         JSON, Object, Array, String, Math, Date, Promise, parseInt, setTimeout, console,
         document: { getElementById: id => el[id] || null, querySelectorAll: () => [] }, $: id => el[id] || null,
@@ -431,6 +436,45 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     /* e · les textes ne promettent pas ce que l'application ne fait pas */
     const infoRS = Tg.ctx.demCatsInfo(Tg.ctx.demCatsCle(cliRS.email, 0), { liste: TROIS, source: 'espace' });
     vrai('⛔ le compteur de la grille ne dit pas « l\'application ne montrera que celles-là » (elle ne lit pas encore les rubriques) mais ce qui est vrai', !/ne montrera/.test(infoRS) && /ne les applique pas encore/.test(infoRS), infoRS);
+
+    /* ══ 3 ter. UNE SECONDE DEMANDE NE CHANGE PAS LE MÉTIER D'UN ESPACE DÉJÀ OUVERT (24 octobre 2026) ══
+       Avant : l'acceptation reposait le métier de la demande sur un espace qui travaillait déjà — l'application changeait de types
+       d'intervention, de fiche de terrain et de modules sans que personne l'ait décidé (seules les rubriques étaient protégées). */
+    console.log('\n3 ter. Une seconde demande acceptée sur un espace qui a déjà un métier : le métier est GARDÉ, et la Tour le dit');
+    v('(population) « chauffe-banc » a déjà un métier, posé par la première acceptation (§ 3 a, qui envoyait déjà `siVide`)', [(await etat(T_CH)).metier, Ta.posts.filter(p => /espaces\/metier/.test(p.u)).map(p => p.corps.siVide)], ['chauffage', [true]]);
+    const cliSec = { email: MAIL, entreprise: 'Chauffe Banc', demandes: [{ app: 'OP GESTION', formule: 'Pro', users: '3', metier: 'plomberie', date: MAINT + 10 }] };
+    const Tk = tour([cliSec], { espace: 'chauffe-banc' });
+    await Tk.ctx.refMetiersCharger();
+    await Tk.ctx.tourAccepterDemande(MAIL, 'chauffe-banc');
+    v('⛔ l\'acceptation ne demande le métier de la demande que s\'il n\'y en a pas (`siVide`)', Tk.posts.filter(p => /espaces\/metier/.test(p.u)).map(p => [p.corps.metier, p.corps.siVide]), [['plomberie', true]]);
+    v('⛔ LA COUTURE : l\'application reçoit toujours le métier d\'avant, pas celui de la seconde demande', (await etat(T_CH)).metier, 'chauffage');
+    const pK = Tk.panneaux.join('\n');
+    vrai('   le panneau le DIT : le métier gardé, celui de la demande, et où le changer', /Métier de l’espace gardé : Chauffage \/ Climatisation/.test(pK) && /sa demande dit « Plomberie »/.test(pK) && /dans sa fiche \(MÉTIER\)/.test(pK), pK.slice(0, 500));
+    vrai('   le message de bienvenue nomme le métier RÉEL de l\'application, pas celui de la demande', /réglée pour ton métier : Chauffage \/ Climatisation\./.test(String(Tk.ctx.LG_MSG_MODELE)) && !/Plomberie/.test(String(Tk.ctx.LG_MSG_MODELE)), String(Tk.ctx.LG_MSG_MODELE).slice(0, 300));
+    /* même métier que l'espace : rien n'est « gardé », rien à dire */
+    const cliMeme = { email: MAIL, entreprise: 'Chauffe Banc', demandes: [{ app: 'OP GESTION', formule: 'Pro', users: '3', metier: 'chauffage', date: MAINT + 20 }] };
+    const Tm = tour([cliMeme], { espace: 'chauffe-banc' });
+    await Tm.ctx.refMetiersCharger();
+    await Tm.ctx.tourAccepterDemande(MAIL, 'chauffe-banc');
+    vrai('   la demande porte le métier de l\'espace : aucun encart « gardé »', !/Métier de l’espace gardé/.test(Tm.panneaux.join('\n')) && (await etat(T_CH)).metier === 'chauffage');
+    /* le geste de la fiche (sans `siVide`) change toujours le métier : la protection ne fige rien */
+    const rFiche = await appel('/api/monitor/espaces/metier', { nom: 'chauffe-banc', metier: 'plomberie' }, PATRON);
+    v('⛔ le geste de la FICHE (sans `siVide`) change toujours le métier, et l\'application le reçoit', [rFiche.s, rFiche.j && rFiche.j.garde, (await etat(T_CH)).metier], [200, undefined, 'plomberie']);
+    await appel('/api/monitor/espaces/metier', { nom: 'chauffe-banc', metier: 'chauffage' }, PATRON);
+    /* une entreprise à deux noms : « le métier actuel » est celui que l'application reçoit, celui du nom le PLUS RÉCENT (pas le premier de l'annuaire) */
+    v('(population) l\'entreprise à deux noms : l\'application reçoit le métier du nom le plus récent', (await etat(T_DN)).metier, 'plomberie');
+    const rDeux = await appel('/api/monitor/espaces/metier', { nom: 'deux-ancien', metier: 'nettoyage', siVide: true }, PATRON);
+    v('⛔ `siVide` posé par l\'ancien nom, avec le métier de l\'ancien nom : le serveur garde celui que l\'application reçoit (le plus récent), et le dit', [rDeux.s, rDeux.j && rDeux.j.garde, rDeux.j && rDeux.j.metier, (await etat(T_DN)).metier], [200, true, 'plomberie', 'plomberie']);
+    const rMeme = await appel('/api/monitor/espaces/metier', { nom: 'deux-ancien', metier: 'plomberie', siVide: true }, PATRON);
+    v('   le même métier que celui servi : rien de « gardé », l\'entreprise entière porte ce métier', [rMeme.j && rMeme.j.garde, (await etat(T_DN)).metier], [undefined, 'plomberie']);
+    const rTxt = await appel('/api/monitor/espaces/metier', { nom: 'deux-recent', metier: 'nettoyage', siVide: 'oui' }, PATRON);
+    v('   `siVide` vaut seulement `true` : « oui » n\'est pas une demande de garde (le geste passe, comme la fiche)', [rTxt.j && rTxt.j.garde, (await etat(T_DN)).metier], [undefined, 'nettoyage']);
+
+    /* les deux ordres de publication : la Tour neuve devant un serveur d'avant ne PRÉTEND pas avoir gardé le métier */
+    const Tn = tour([cliSec], { espace: 'chauffe-banc', serveurAvant: true });
+    await Tn.ctx.refMetiersCharger();
+    await Tn.ctx.tourAccepterDemande(MAIL, 'chauffe-banc');
+    v('   Tour neuve, serveur d\'avant (le champ retiré en route) : le comportement d\'avant, et la Tour ne dit PAS « gardé » — elle annonce le métier vraiment posé', [(await etat(T_CH)).metier, /Métier de l’espace gardé/.test(Tn.panneaux.join('\n')), /réglée pour ton métier : Plomberie\./.test(String(Tn.ctx.LG_MSG_MODELE))], ['plomberie', false, true]);
 
     /* ══ 4. LES LISTES SE TIENNENT ══ */
     console.log('\n4. Les trois listes de métiers de secours disent la même chose que l\'interrupteur');

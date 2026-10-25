@@ -43,6 +43,31 @@ const JOURS_EN = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
 
 const REUNIONS_MAX = 40, SEMAINES_MAX = 12, LECONS_MAX = 20, LECONS_PAR_BILAN = 2, OBJECTIFS_MAX = 3;
 const DISCUSSION_MAX = 12, TOURS_PAR_AGENT = 2;
+/* ⛔ LES REDITES NE SE PUBLIENT PAS (examen du 24 octobre 2026, scénario 9 : « formules répétées type “je confirme mes objectifs” et “rien à ajouter” d'un agent
+   à l'autre »). Au tour de table, Camille avait CITÉ Margaux, Jules et Hugo pour dire à qui elle route le travail ; la discussion les a fait reparler, et chacun a
+   « confirmé ses objectifs » — sept redites. La consigne disait déjà « si tu n'as rien à ajouter, RAS » ; elle ne suffisait pas. En DISCUSSION (pas au tour de
+   table, où dire ses objectifs EST la parole attendue), une phrase qui ne fait que reconfirmer ses objectifs ou dire qu'on n'a rien à ajouter est retirée avant
+   la publication ; s'il ne reste rien, c'est un « RAS » (rien n'est écrit, et les @ de la phrase retirée ne réveillent personne). Pur, rejouable au banc. */
+/* (relecture du gardien) seule la FORMULE part : « je confirme mes objectifs, et je m'engage à livrer vendredi » garde « Je m'engage à livrer vendredi » ;
+   « rien à signaler sur le planning, en revanche la livraison a deux jours de retard » reste entière (la formule n'y est que le début d'une autre phrase) ;
+   « je retiens les objectifs de Léa : 20 inscriptions » aussi (ce sont ceux d'une autre, et un chiffre). */
+const REDITE_TETE = /^(?:(?:confirm[ée]e?|ok|parfait|d['’]accord|entendu|not[ée]|[çc]a marche)\s*[,!]?\s*)?(?:je|on)\s+(?:confirme|garde|maintiens|conserve)\s+(?:donc\s+|bien\s+)?(?:mes|ces)\s+(?:(?:deux|trois|quatre)\s+)?objectifs(?:\s+(?:de la semaine|pour la semaine|pour cette semaine|tels que (?:pos[ée]s|fix[ée]s|dits)|tels quels|comme pr[ée]vu))*/i;
+const REDITE_RIEN = /^(?:je n['’]ai\s+)?rien\s+(?:d['’]autre\s+|de plus\s+)?(?:à|a)\s+(?:ajouter|signaler)(?:\s+(?:de mon c[ôo]t[ée]|pour moi|pour l['’]instant|sur les autres dossiers))*/i;
+function sansRedites(texte) {
+  const gardees = [];
+  for (const p of String(texte || '').split(/(?<=[.!?])\s+/)) {
+    const q = p.trim(), m = REDITE_TETE.exec(q) || REDITE_RIEN.exec(q);
+    if (!m) { if (q) gardees.push(q); continue; }
+    const reste = q.slice(m[0].length);
+    if (/^\s*[.!]?\s*$/.test(reste)) continue;                                        // la phrase EST la redite
+    const lien = /^\s*[,:;]\s*(?:(?:et|mais|par contre|en revanche)\s+)?/i.exec(reste);
+    if (!lien) { gardees.push(q); continue; }                                            // la formule ouvre une autre phrase : tout reste
+    const r = reste.slice(lien[0].length).trim();
+    if (r) gardees.push(r.charAt(0).toUpperCase() + r.slice(1));
+  }
+  const t = gardees.join(' ').trim();
+  return /[\p{L}\p{N}]/u.test(t.replace(/@[\p{L}\p{N}_]+/gu, '')) ? t : '';
+}
 const PAROLE_MAX = 600, COMPTE_RENDU_MAX = 1500, OBJECTIF_MAX = 160, LECON_MAX = 200, POURQUOI_MAX = 200;
 const RATTRAPAGE_COURT_MS = 20 * 60000;   // une réunion rattrapée après son heure garde au moins vingt minutes de discussion
 
@@ -352,6 +377,7 @@ module.exports = function monterReunions(app, ctx) {
     }
     if (!t) return Object.assign(sortie, { cause: r.actions && r.actions.length ? '' : 'vide' });
     if (o.ras && RAS.test(t)) return Object.assign(sortie, { ras: true });
+    if (o.redites) { t = sansRedites(t); if (!t) return Object.assign(sortie, { ras: true }); }
     const d = conversations.parler(id, FIL, t, { niveau: 'info', prof: 1, reunion: true, max: o.max });
     if (!d.ok) return Object.assign(sortie, { cause: d.raison });
     return Object.assign(sortie, { parle: true, texte: t, mentions: d.mentions || [] });
@@ -401,7 +427,7 @@ module.exports = function monterReunions(app, ctx) {
     while (run.queue.length && prises < DISCUSSION_MAX && !finie()) {
       const id = run.queue.shift();
       run.tours[id] = (run.tours[id] || 0) + 1; prises++;
-      const o = await parole(id, R, run, 'On t’a cité dans la discussion. Réponds court (300 caractères au plus) à ce qu’on te demande. Si tu n’as rien à ajouter, réponds exactement « RAS » et rien d’autre. Cite un collègue avec @ seulement s’il a vraiment quelque chose à répondre.', { ras: true });
+      const o = await parole(id, R, run, 'On t’a cité dans la discussion. Réponds court (300 caractères au plus) à ce qu’on te demande. Ne redis pas tes objectifs et ne les confirme pas : ils sont notés. Si tu n’as rien à ajouter, réponds exactement « RAS » et rien d’autre. Cite un collègue avec @ seulement s’il a vraiment quelque chose à répondre.', { ras: true, redites: true });
       if (o.cause && o.cause !== 'vide') { if (GLOBALES.includes(o.cause)) return abandon(o.cause); absent(id, o.cause); }
       else if (o.parle) { run.parles.add(id); citer(id, o.mentions); }
     }
@@ -551,6 +577,7 @@ module.exports = function monterReunions(app, ctx) {
 
   return { tic, demarrer, memoire, attendre: () => (enCours ? enCours.promesse : Promise.resolve()), enCours: () => enCours && { id: enCours.id, type: enCours.type, fin: enCours.fin }, estIllisible: illisible };
 };
+module.exports.sansRedites = sansRedites;
 module.exports.parisParties = parisParties;
 module.exports.tsParis = tsParis;
 module.exports.semaineIso = semaineIso;

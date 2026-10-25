@@ -235,6 +235,10 @@ const sansAleas = (r) => JSON.stringify({ code: r.code, j: r.j });
       svc.avancer(3600000 + 1000);
       const atk = T.client(svc.base, { xff: '10.4.0.1' }), vic = T.client(svc.base, { xff: '10.4.1.1' }), n0 = relais.messages.length;
       v('l\'attaquant demande un code pour l\'adresse de la personne (200)', (await atk.post('/api/mel/oubli', { courriel: ADR })).code, 200);
+      /* ⛔ on attend que le PREMIER code soit arrivé avant d'avancer l'horloge (24 octobre 2026) : nodemailer 10.2 mesure ses délais avec Date.now, et l'horloge du banc
+         qui saute de 61 s PENDANT l'envoi le lui faisait abandonner (« Connection timeout ») — un artefact du banc, pas du service : en production l'heure ne saute pas
+         d'une minute en plein envoi. Rejoué hors du service : 10.2.1 rend ETIMEDOUT sur l'envoi en cours, 10.0.13 non. */
+      await T.attendre(() => relais.messages.length >= n0 + 1, 8000, 25);
       svc.avancer(61000);
       v('puis la personne demande le sien (200)', (await vic.post('/api/mel/oubli', { courriel: ADR })).code, 200);
       vrai('⛔ DEUX codes sont partis (un par appareil) : la personne n\'est pas privée du sien', await T.attendre(() => relais.messages.length >= n0 + 2, 8000, 25));
