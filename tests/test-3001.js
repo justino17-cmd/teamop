@@ -60,6 +60,7 @@ const sans = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/
     const J = juge(['Je relis le courriel attentivement.\nVERDICT : OK', 'VERDICT : OK']);
     const v = await CTRL.juger({ cerveau: J.cerveau, agent: 'lea', objet: 'Objet', corps: 'Bonjour,\n\nTexte.\n\nBien cordialement,', contexte: [] });
     vrai('⛔ une réponse hors forme qui ne COMMENCE pas par « VERDICT » a droit à UNE relance (ici : verdict OK)', v.etat === 'ok' && J.vus.length === 2, JSON.stringify([v, J.vus]));
+    vrai('⛔ … À NEUF : la première réponse (peut-être influencée par un courriel piégé) n’est PAS remise en tour « assistant » (relecture du gardien)', J.vus[1] === 1, JSON.stringify(J.vus));
   }
   {
     const J = juge(['Le courriel me paraît correct.', 'Il est très bien.']);
@@ -77,7 +78,7 @@ const sans = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/
     vrai('   la relance est lue avec la même rigueur (un ÉCHEC reste un échec, ses fautes comprises)', v.etat === 'echec' && v.fautes.join() === 'incoherent');
   }
   const LEA = sans(fs.readFileSync(path.join(RACINE, 'server', 'agent-lea.js'), 'utf8'));
-  vrai('⛔ Léa dit au juge d’où vient l’activité (indiquée, déduite du site, ou à déduire du nom)', /\(indiquée par l’inscrit\)/.test(LEA) && /\(déduite de son site\)/.test(LEA) && /le courriel peut la déduire du nom de l’entreprise/.test(LEA));
+  vrai('⛔ Léa dit au juge d’où vient l’activité (indiquée, déduite du site, ou à déduire du nom)', /\(indiquée par l’inscrit\)/.test(LEA) && /\(déduite d’une recherche sur l’entreprise\)/.test(LEA) && /le courriel peut la déduire du nom de l’entreprise/.test(LEA));
   const BR = sans(fs.readFileSync(path.join(RACINE, 'server', 'agents-brouillons.js'), 'utf8'));
   vrai('⛔ la vue d’un brouillon dit la RAISON d’un contrôle « non vérifié » (un code du serveur, borné par controleRange)', /controle: \{ etat: c\.etat, fautes: CTRL\.phrasesDe\(c\.fautes\), juge: c\.juge, reecrit: e\.reecrit === true, raison: c\.raison \}/.test(BR));
 

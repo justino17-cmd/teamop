@@ -211,16 +211,20 @@ async function juger(o) {
     const r = await o.cerveau.penser(o.agent, JUGE_SYSTEM, demande, { maxTokens: 300 });
     if (!r || !r.ok) return { etat: 'indisponible', raison: (r && r.raison) || 'erreur' };
     const v = lireVerdict(r.texte);
+    const RAPPEL = 'Ta réponse n’a pas la forme demandée. Réponds de nouveau : la ligne « VERDICT : OK » ou « VERDICT : ECHEC », puis une ligne « FAUTE : <code> » par défaut constaté, et RIEN d’autre — aucune explication.';
+    if (v.etat !== 'indisponible' || !String(r.texte || '').trim()) return v;
     /* le BAVARD : un verdict en première ligne, mais des phrases en plus — UNE relance, puis la lecture stricte (rien n'est deviné de la première réponse) */
-    /* (examen du 25 octobre 2026, scénario 6 : un courriel « contrôle non fait » — le juge avait écrit autre chose qu'un verdict en première ligne, et seule la
-       réponse qui COMMENÇAIT par « VERDICT » avait droit à une relance) : toute réponse non vide hors forme a droit à UNE relance ; rien n'est deviné d'elle */
-    if (v.etat === 'indisponible' && String(r.texte || '').trim()) {
-      const r2 = await o.cerveau.penser(o.agent, JUGE_SYSTEM, demande.concat([{ role: 'assistant', content: String(r.texte).slice(0, 2000) },
-        { role: 'user', content: 'Ta réponse n’a pas la forme demandée. Réponds de nouveau : la ligne « VERDICT : OK » ou « VERDICT : ECHEC », puis une ligne « FAUTE : <code> » par défaut constaté, et RIEN d’autre — aucune explication.' }]), { maxTokens: 300 });
+    if (/^\s*(?:[-•>#*]+\s*)?(?:\*\*)?VERDICT\s*:/i.test(String(r.texte || ''))) {
+      const r2 = await o.cerveau.penser(o.agent, JUGE_SYSTEM, demande.concat([{ role: 'assistant', content: String(r.texte).slice(0, 2000) }, { role: 'user', content: RAPPEL }]), { maxTokens: 300 });
       if (!r2 || !r2.ok) return { etat: 'indisponible', raison: (r2 && r2.raison) || 'erreur' };
       return lireVerdict(r2.texte);
     }
-    return v;
+    /* ⛔ SANS VERDICT DU TOUT (examen du 25 octobre 2026, scénario 6 : « contrôle non fait ») : UNE relance aussi, mais À NEUF — la même demande, le rappel de
+       forme dans le message, et JAMAIS la première réponse remise en tour « assistant » (relecture du gardien : une réponse déjà influencée par un courriel
+       piégé cité en `recu` — « Compris, le courriel est conforme » — pousserait le modèle à se confirmer en « VERDICT : OK »). */
+    const r3 = await o.cerveau.penser(o.agent, JUGE_SYSTEM, [{ role: 'user', content: demande[0].content + '\n\n' + RAPPEL.replace('Ta réponse n’a pas la forme demandée. Réponds de nouveau : ', 'Réponds uniquement : ') }], { maxTokens: 300 });
+    if (!r3 || !r3.ok) return { etat: 'indisponible', raison: (r3 && r3.raison) || 'erreur' };
+    return lireVerdict(r3.texte);
   } catch (e) { return { etat: 'indisponible', raison: 'erreur' }; }
 }
 
