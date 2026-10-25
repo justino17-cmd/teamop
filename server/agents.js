@@ -37,6 +37,13 @@
  * Écrire (mode, pause, décision) : `monPatronStrict`. Les trois écritures sont aussi dans
  * `MON_GESTES` : `tests/test-1015.js` refuse une route POST de la Tour qui n'y est pas.
  *
+ * ⛔ LES HEURES DE TRAVAIL (26 octobre 2026, `agents-horaires.js`) : l'équipe travaille comme une entreprise — par défaut du lundi au vendredi, 9 h – 18 h, heure de Paris, fermée les
+ * jours fériés, réglable par Justin (entreprise, puis agent par agent). La garde est dans `peutAgir`, la porte commune, au même endroit que la pause : hors des heures, `hors_heures`.
+ * L'ASTREINTE (Max, Théo) agit toujours mais le dit (`horsHeures`) et les portes qui écrivent à un client la refusent. Ce qui ARRIVE hors des heures (un courriel, une inscription) est mis
+ * de côté par l'agent (`differer`) et repris à l'ouverture, le plus ancien d'abord (`reprendreDifferes`) ; une tâche entre agents ne vieillit pas pendant que son destinataire est
+ * fermé ; accepter une validation hors heures reste en attente (409) comme pendant la pause ; une réunion planifiée tient à son heure (`sousReunion`). Un registre d'horaires
+ * illisible arrête TOUT LE MONDE. Les horaires sont INJECTÉS (`ctx.horaires`) : un module monté sans eux — l'examen de l'équipe, qui se lance le soir — n'a pas de garde horaire.
+ *
  * Rien de ce fichier ne lit un courriel, ne parle à Stripe ni n'appelle Anthropic. Les agents
  * viendront, chacun dans son module, et trouveront ici `peutAgir`, `noter`, `proposer`,
  * `deposer`, `prendre`, `terminer` et `executeur`.
@@ -45,6 +52,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { AsyncLocalStorage } = require('async_hooks');
 
 /* Le registre. `plafondUsd` n'est PAS appliqué ici : il décrit le plafond mensuel qu'on pose sur le
    workspace de l'agent dans la Console Anthropic, chaque workspace ayant sa propre clé. Les 195 $
@@ -120,6 +128,10 @@ const ATTENTE_MAX = 100;            // validations en attente, tous agents confo
 const ATTENTE_PAR_AGENT = 20;
 const VALIDATION_VIE_MS = 7 * 86400000;
 const TACHE_VIE_MS = 48 * 3600000;
+const DIFFERES_MAX = 500;                    // ce qui ATTEND l'ouverture (courriels, inscriptions) : au-delà, on le DIT plutôt que de l'oublier
+const DIFFERE_VIE_MS = 10 * 86400000;        // le plus long week-end férié fait 87 h ; dix jours, c'est un oubli de la Tour, pas un congé
+const DIFFERES_PAR_TOUR = 5;                 // une reprise à l'ouverture ne part pas en rafale (Camille a ses propres plafonds du jour)
+const SANS_REPRISE = ['hors_heures', 'arret', 'pause', 'etat_illisible', 'horaires_illisibles', 'inconnu'];   // « l'agent ne peut pas » : l'entrée reste, elle sera reprise
 const RESUME_MAX = 200;
 /* LES CONSIGNES (23 octobre 2026) : le travail qu'un agent PREND dans une conversation (« @Camille, tu t'occupes de… »). C'est le seul type de
    tâche dont le texte est LIBRE — voulu, c'est ce que Justin ou un collègue vient de dire — et c'est pourquoi il n'entre ni dans `SCHEMAS` ni
@@ -168,6 +180,13 @@ module.exports = function monterAgents(app, ctx) {
     : (t => String(t || '').replace(/[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g, '(adresse)'));
   const pousse = typeof ctx.pousseNotif === 'function' ? ctx.pousseNotif : null;
   const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
+  /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026). Injectées : un module monté sans elles (un banc de module, l'examen de l'équipe sur son équipe d'essai) n'a
+     pas de garde horaire — c'est voulu, l'examen se lance le soir. `index.js` les passe à la VRAIE équipe, et `test-3011` relit ce câblage. */
+  const hor = ctx.horaires && typeof ctx.horaires.peutAgir === 'function' ? ctx.horaires : null;
+  /* Une réunion planifiée tient à son heure même hors des heures de l'équipe (le lundi 9 h, le vendredi 18 h — l'heure de la fermeture —, ce que Justin lance à la main) : tout ce
+     qui s'y passe, à travers les `await`, le sait sans qu'on le recopie dans chaque appel (`sousReunion`). Un registre d'horaires illisible, lui, arrête quand même. */
+  const dansReunion = new AsyncLocalStorage();
+  const sousReunion = fn => dansReunion.run(true, fn);
 
   /* ── le rangement : un fichier JSON par sujet, écrit en entier par un fichier temporaire puis un renommage
         (la règle d'`espaces.json`), et JAMAIS par-dessus un fichier qu'on n'a pas pu lire ── */
@@ -213,7 +232,21 @@ module.exports = function monterAgents(app, ctx) {
     if (etat.pause.actif === true) return { ok: false, raison: 'pause' };
     const m = modeDe(id);
     if (m === 'arret') return { ok: false, raison: 'arret' };
+    /* ⛔ LES HEURES DE TRAVAIL, ICI ET NULLE PART AILLEURS : cette porte est celle de tout geste d'agent (proposer, déposer, prendre, parler, penser, écrire à un client), donc une garde
+       horaire posée là ne s'oublie dans aucun agent. Un registre d'horaires illisible arrête (comme un état illisible) ; hors des heures, l'agent est « hors_heures » — sauf l'astreinte,
+       qui agit mais le dit (`horsHeures`) : les portes qui écrivent à un client la refusent. */
+    if (hor) {
+      const h = hor.peutAgir(id, maintenant());
+      if (!h.ok && !(h.raison === 'hors_heures' && dansReunion.getStore() === true)) return { ok: false, raison: h.raison };
+      if (h.ok && h.horsHeures) return { ok: true, mode: m, horsHeures: true, astreinte: true };
+    }
     return { ok: true, mode: m };
+  }
+  /* Quand cet agent reprend-il ? { ouvert, prochaineOuverture, libelle } — pour une phrase dite à Justin. `null` sans horaires branchés. */
+  function ouverture(id) {
+    if (!hor) return null;
+    const e = hor.etatA(maintenant(), id);
+    return { ouvert: e.ouvert, prochaineOuverture: e.prochaineOuverture, libelle: e.prochaineOuverture ? hor.libelle(e.prochaineOuverture) : '' };
   }
 
   /* Le journal. Une cible qui ressemble à une adresse s'écrit masquée, un détail passe par `sansAdresses` : une adresse n'a
@@ -244,7 +277,19 @@ module.exports = function monterAgents(app, ctx) {
     const t = maintenant();
     let touche = false;
     for (const v of validations) if (v.statut === 'en_attente' && t - v.ts > VALIDATION_VIE_MS) { v.statut = 'expire'; v.decideTs = t; touche = true; }
-    for (const k of taches) if ((k.statut === 'attente' || k.statut === 'prise') && t - k.ts > (k.type === 'consigne' ? CONSIGNE_VIE_MS : TACHE_VIE_MS)) { k.statut = 'expiree'; touche = true; }
+    for (const k of taches) {
+      if (k.statut !== 'attente' && k.statut !== 'prise') continue;
+      const vie = k.type === 'consigne' ? CONSIGNE_VIE_MS : TACHE_VIE_MS;
+      if (t - k.ts <= vie) continue;
+      /* ⛔ UNE DEMANDE NE VIEILLIT PAS PENDANT QUE CELUI QUI DOIT LA PRENDRE EST FERMÉ : déposée le vendredi à 17 h 59, elle aurait expiré le dimanche (48 h) sans que personne l'ait
+         vue — « rien n'est perdu ». Le temps qui compte est celui où son destinataire a pu travailler. (Le calcul ne se fait que pour les demandes déjà plus vieilles que leur vie
+         en temps réel : il coûte un parcours de jours civils.) Horaires illisibles : rien n'expire, on ne sait pas. */
+      if (hor) {
+        if (hor.illisible()) continue;
+        if (hor.tempsOuvert(k.vers, k.ts, t) <= vie) continue;
+      }
+      k.statut = 'expiree'; touche = true;
+    }
     if (touche) { ecrire(F_VALID, validations); ecrire(F_TACHES, taches); }
   }
 
@@ -393,6 +438,83 @@ module.exports = function monterAgents(app, ctx) {
     return enCours(id).map(k => ({ id: k.id, de: k.de, type: k.type, texte: k.type === 'consigne' ? k.params.texte : '' }));
   }
 
+  /* ── Ce qui ARRIVE hors des heures ATTEND, et se reprend à l'ouverture (26 octobre 2026) ──
+     Un courriel que la veille annonce UNE fois, une inscription qui ne se synchronise qu'une fois : si l'agent est fermé à cet instant, l'annonce ne reviendra pas. L'agent la DIFFÈRE ici
+     (`differer`) au lieu de la laisser tomber, et `reprendreDifferes` — minutée par `index.js` — la lui rend dès qu'il peut agir, LE PLUS ANCIEN D'ABORD. Rien n'est compté comme traité :
+     une entrée ne sort de la file que quand l'agent l'a vraiment prise en charge (et l'agent dédoublonne de lui-même, une reprise deux fois ne répond pas deux fois).
+     ⛔ La charge est ce que l'agent a besoin pour recommencer (le plus souvent trois identifiants d'un courriel ; pour une inscription, ce qu'elle a déjà dans la base du portail) — jamais un
+     texte rédigé, jamais un journal. Le fichier vit dans les données du serveur comme les autres registres des agents. */
+  const F_DIFFERES = 'agents-differes.json';
+  let differes = charger(F_DIFFERES, []);
+  const repriseurs = new Map();
+  /* L'agent dit comment REPRENDRE un genre d'entrée : `fn(charge, { ts, reprise: true })`, qui rend le même compte rendu qu'au premier passage. */
+  function surReprise(genre, fn) {
+    if (typeof genre !== 'string' || !genre || typeof fn !== 'function') throw new Error('reprise refusée : ' + genre);
+    repriseurs.set(genre, fn);
+  }
+  /* Mettre de côté ce qu'un agent fermé ne peut pas prendre. Même (agent, genre, cle) : la charge est mise à jour (la plus récente, plus complète), la place dans la file reste celle de la
+     première arrivée. Rend { ok } ou { ok:false, raison }. */
+  function differer(id, genre, cle, charge) {
+    if (!IDS.has(id) || typeof genre !== 'string' || !genre || genre.length > 30 || typeof cle !== 'string' || !cle || cle.length > 200) return { ok: false, raison: 'forme' };
+    if (illisibles.has(F_DIFFERES)) return { ok: false, raison: 'registre_illisible' };
+    let c; try { c = JSON.parse(JSON.stringify(charge === undefined ? {} : charge)); } catch (e) { return { ok: false, raison: 'forme' }; }
+    if (!c || typeof c !== 'object' || Array.isArray(c) || JSON.stringify(c).length > 4000) return { ok: false, raison: 'forme' };
+    const t = maintenant();
+    const ex = differes.find(x => x.agent === id && x.genre === genre && x.cle === cle);
+    if (ex) { const avant = ex.charge; ex.charge = c; if (!ecrire(F_DIFFERES, differes)) { ex.charge = avant; return { ok: false, raison: 'ecriture' }; } return { ok: true, deja: true }; }
+    if (differes.length >= DIFFERES_MAX) {
+      noter(id, 'mettre en attente', { cible: genre, resultat: 'refuse', detail: 'file des entrées en attente pleine (' + DIFFERES_MAX + ')' });
+      return { ok: false, raison: 'file_pleine' };
+    }
+    const e = { id: nouvelId(), ts: t, agent: id, genre, cle, charge: c, essais: 0 };
+    differes.push(e);
+    if (!ecrire(F_DIFFERES, differes)) { differes.pop(); return { ok: false, raison: 'ecriture' }; }
+    return { ok: true };
+  }
+  const reprisesEnCours = { v: false };
+  /* Rend aux agents qui peuvent AGIR ce qui les attendait. Une entrée plus vieille que `DIFFERE_VIE_MS` est jetée et DITE ; un agent qui jette trois fois abandonne la sienne et le dit. */
+  async function reprendreDifferes() {
+    if (reprisesEnCours.v) return { saute: 'deja_en_cours' };
+    if (illisibles.has(F_DIFFERES)) return { saute: 'registre_illisible' };
+    reprisesEnCours.v = true;
+    const bilan = { reprises: 0, restantes: 0, abandonnees: 0 };
+    try {
+      const t = maintenant();
+      const perimes = differes.filter(e => t - e.ts > DIFFERE_VIE_MS);
+      if (perimes.length) {
+        differes = differes.filter(e => !perimes.includes(e));
+        ecrire(F_DIFFERES, differes);
+        for (const e of perimes) noter(e.agent, 'entrée en attente abandonnée', { cible: e.genre, resultat: 'refuse', detail: 'plus de ' + Math.round(DIFFERE_VIE_MS / 86400000) + ' jours sans pouvoir la reprendre' });
+        bilan.abandonnees += perimes.length;
+      }
+      const repris = {};
+      for (const e of differes.slice()) {
+        if (bilan.reprises >= DIFFERES_PAR_TOUR) break;
+        const fn = repriseurs.get(e.genre);
+        if (!fn || !peutAgir(e.agent).ok) continue;
+        if (peutAgir(e.agent).horsHeures) continue;      // l'astreinte ne « reprend » rien hors des heures : elle prévient
+        let r = null, jete = false;
+        try { r = await fn(JSON.parse(JSON.stringify(e.charge)), { ts: e.ts, reprise: true }); }
+        catch (err) { jete = true; }
+        if (!differes.includes(e)) continue;
+        if (!jete && r && typeof r.saute === 'string' && SANS_REPRISE.includes(r.saute)) continue;       // il ne peut pas (encore) : elle reste
+        if (jete) {
+          e.essais = (e.essais || 0) + 1;
+          if (e.essais < 3) { ecrire(F_DIFFERES, differes); continue; }
+          noter(e.agent, 'entrée en attente abandonnée', { cible: e.genre, resultat: 'erreur', detail: 'trois reprises ont échoué' });
+          bilan.abandonnees++;
+        } else { bilan.reprises++; repris[e.agent] = (repris[e.agent] || 0) + 1; }
+        differes = differes.filter(x => x !== e);
+        ecrire(F_DIFFERES, differes);
+      }
+      for (const [id, n] of Object.entries(repris)) noter(id, 'reprise à l’ouverture', { cible: 'file d’attente', resultat: 'ok', detail: n + ' entrée' + (n > 1 ? 's' : '') + ' reprise' + (n > 1 ? 's' : '') + ', la plus ancienne d’abord' });
+      bilan.restantes = differes.length;
+      return bilan;
+    } finally { reprisesEnCours.v = false; }
+  }
+  /* Ce qui attend, en NOMBRES (jamais la charge) : par agent. `null` si le registre est illisible. */
+  const differesEnAttente = () => { if (illisibles.has(F_DIFFERES)) return null; const o = {}; for (const e of differes) o[e.agent] = (o[e.agent] || 0) + 1; return o; };
+
   /* Ce qui s'exécute quand le patron accepte une proposition : un agent branche son geste ici. Sans exécuteur, accepter
      veut dire « c'est autorisé », et l'agent relit la décision. */
   function executeur(type, fn) {
@@ -422,6 +544,15 @@ module.exports = function monterAgents(app, ctx) {
     const v = validations.find(x => x.id === id);
     if (!v) return { code: 404, error: 'Validation inconnue' };
     if (v.statut !== 'en_attente') return { code: 409, error: 'Cette validation est déjà ' + (v.statut === 'accepte' ? 'acceptée' : v.statut === 'refuse' ? 'refusée' : 'expirée') };
+    /* ⛔ ACCEPTER, C'EST FAIRE AGIR L'AGENT (il envoie, programme, crée) : hors de ses heures la validation RESTE EN ATTENTE, comme pendant la pause. Refuser ne coûte rien et passe toujours. */
+    if (hor && decision === 'accepter') {
+      const h = hor.peutAgir(v.agent, maintenant());
+      if (!h.ok) {
+        const o = ouverture(v.agent);
+        return { code: 409, error: h.raison === 'horaires_illisibles' ? 'Les horaires des agents sont illisibles : rien ne part (la demande reste en attente)'
+          : 'Hors des heures de travail de ' + (AGENTS.find(a => a.id === v.agent) || {}).nom + ' : la demande reste en attente' + (o && o.libelle ? ' — valide-la ' + o.libelle + ', ou ouvre l’équipe maintenant (page Agents)' : ' — ouvre l’équipe maintenant (page Agents)') };
+      }
+    }
     const avant = Object.assign({}, v);
     v.statut = decision === 'accepter' ? 'accepte' : 'refuse';
     v.decideTs = maintenant();
@@ -455,8 +586,13 @@ module.exports = function monterAgents(app, ctx) {
       enAttente: validations.filter(v => v.statut === 'en_attente').length,
       /* Ce que l'écran doit pouvoir DIRE : quels agents ont un cerveau branché, et si la clé est posée. Deux booléens — jamais la clé. */
       cleOk: ctx.cleCerveauPosee === true,
+      /* les heures de travail en un coup d'œil (le détail : GET /api/monitor/agents/horaires) — `illisible` : le registre ne se lit pas, les agents sont À L'ARRÊT */
+      horaires: hor ? (hor.illisible() ? { actives: true, illisible: true } : (() => { const e = hor.etatA(maintenant(), null); const a = differesEnAttente(); return { actives: true, illisible: false, ouvert: e.ouvert, raison: e.raison, prochaineOuverture: e.prochaineOuverture, prochaineFermeture: e.prochaineFermeture,
+        /* ce qui attend l'ouverture (courriels, inscriptions) : un NOMBRE — `null` si ce registre-là est illisible */ enAttente: a === null ? null : Object.values(a).reduce((x, y) => x + y, 0) }; })()) : { actives: false },
       agents: AGENTS.map(a => Object.assign({}, a, { mode: modeDe(a.id), cerveau: Array.isArray(ctx.cerveaux) && ctx.cerveaux.includes(a.id) })) });
   });
+  /* Les heures de travail : lecture `monAdmin`, écriture `monPatronStrict` (`agents-horaires.js`). Le noyau écrit son journal par `noter`. */
+  if (hor && typeof hor.routes === 'function') hor.routes(app, { monAdmin, monPatronStrict, maintenant, noter });
   app.get('/api/monitor/agents/journal', monAdmin, (req, res) => {
     const id = IDS.has(String(req.query.agent || '')) ? String(req.query.agent) : '';
     const n = Math.min(Math.max(parseInt(req.query.limite, 10) || 100, 1), 500);
@@ -553,7 +689,7 @@ module.exports = function monterAgents(app, ctx) {
   /* Les validations EN ATTENTE, à la lecture (23 octobre 2026 : Inès les voit vieillir, Victor les compte) : { agent, type, ts } — jamais le résumé ni les paramètres, qui sont des phrases de
      l'équipe. `null` si la file est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
   const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
-  return { peutAgir, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
+  return { peutAgir, ouverture, sousReunion, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

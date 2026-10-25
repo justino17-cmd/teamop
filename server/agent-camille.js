@@ -198,7 +198,15 @@ module.exports = function camille(ctx) {
   async function surNouveauMessage(ev) {
     try {
       const p = agents.peutAgir(ID);
-      if (!p.ok) return { saute: p.raison };            // à l'arrêt : le message n'est même pas lu
+      if (!p.ok) {
+        /* ⛔ HORS DES HEURES, LE COURRIEL ATTEND — il n'est pas perdu : la veille ne l'annonce qu'UNE fois, donc on le met de côté (ses trois identifiants, jamais son texte) et Camille le reprend
+           à l'ouverture, le plus ancien d'abord (`agents.reprendreDifferes`). À l'arrêt ou en pause : comme avant, le message n'est même pas lu. */
+        if (p.raison === 'hors_heures' && ev && !ev.reprise && typeof agents.differer === 'function') {
+          const d = agents.differer(ID, 'courrier', 'u:' + String(ev.boiteId) + ':' + String(ev.dossier) + ':' + String(ev.uid), { boiteId: ev.boiteId, dossier: ev.dossier, uid: ev.uid });
+          return { saute: p.raison, differe: d.ok === true };
+        }
+        return { saute: p.raison };
+      }
       if (fich.illisible(F)) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'registre illisible' }); return { saute: 'registre_illisible' }; }
       ev = ev || {};
       const cle = 'u:' + String(ev.boiteId) + ':' + String(ev.dossier) + ':' + String(ev.uid);
@@ -225,7 +233,8 @@ module.exports = function camille(ctx) {
         if (!bonneAdresse(a)) return { saute: 'expediteur' };
         /* NOS adresses : jamais traitées (et marquées vues, pour ne pas les relire à chaque passage) */
         if (domainesNotres().some(d => d && domaineDe(a) === String(d).toLowerCase()) || adressesNotres().some(x => x && a === String(x).toLowerCase())) { noterVu(h); return { saute: 'interne' }; }
-        if (m.ts && maintenant() - m.ts > AGE_MAX_MS) { noterVu(h); return { saute: 'ancien' }; }
+        /* l'âge se juge à l'instant où le courriel est ARRIVÉ à Camille (`ev.differeTs`, quand il a attendu l'ouverture) : un week-end férié de 87 h ne rend pas « ancien » un courriel de vendredi soir */
+        if (m.ts && (ev.differeTs || maintenant()) - m.ts > AGE_MAX_MS) { noterVu(h); return { saute: 'ancien' }; }
         if (typeof brouillons.nombreEnAttente === 'function' && brouillons.nombreEnAttente(ID, a) >= ATTENTES_PAR_EXPEDITEUR) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'un expéditeur a déjà ' + ATTENTES_PAR_EXPEDITEUR + ' brouillons en attente' }); return { saute: 'expediteur_deja_en_attente' }; }
 
         /* ── LE PROSPECT QUI RÉPOND À LÉA → Chloé ── */
@@ -409,6 +418,12 @@ module.exports = function camille(ctx) {
       return { saute: 'erreur' };
     }
   }
+  /* la reprise des courriels qui ont attendu l'ouverture : le même passage qu'à l'arrivée, avec l'heure de leur arrivée pour juger leur âge */
+  if (typeof agents.surReprise === 'function') agents.surReprise('courrier', async (charge, meta) => {
+    const r = await surNouveauMessage({ boiteId: charge.boiteId, dossier: charge.dossier, uid: charge.uid, reprise: true, differeTs: meta && meta.ts });
+    if (r && r.saute === 'lecture') throw new Error('lecture impossible');      // la boîte n'a pas répondu : l'entrée reste, trois essais (à l'arrivée, ce cas-là n'avait pas de seconde chance)
+    return r;
+  });
   return { surNouveauMessage };
 };
 module.exports.SYSTEM = SYSTEM;
