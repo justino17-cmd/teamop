@@ -112,7 +112,9 @@ app.set('trust proxy', 1);
 const CHEMINS_GROS_JSON = /^\/api\/monitor\/mail\/(envoyer|brouillon)\/?$/i;
 const jsonCourant = express.json({ limit: '6mb' }); // large : les e-mails peuvent porter un PDF en pièce jointe (base64)
 const jsonGros = express.json({ limit: '20mb' });
-app.use((req, res, next) => CHEMINS_GROS_JSON.test(req.path) ? next() : jsonCourant(req, res, next));
+/* `/api/audience/vue` (publique) lit son propre corps, en texte, 2 Ko au plus (`server/audience.js`) : le plafond de 6 Mo ne doit pas le lire avant elle. */
+const CHEMIN_AUDIENCE = /^\/api\/audience\/vue\/?$/i;
+app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path)) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
 const ORIGINS = (config.origins || ['https://teamop.fr', 'https://www.teamop.fr']).concat(ESSAI ? [ESSAI_ORIGINE] : []);   // l'origine de test n'existe que dans le serveur de test
@@ -6208,8 +6210,9 @@ try {
 /* ══ L'AUDIENCE DU SITE (25 octobre 2026) ══ des compteurs par jour, sans cookie ni identifiant ni adresse IP écrite (`server/audience.js`,
    conditions de la CNIL écrites en tête). `/api/audience/vue` est public (c'est le site qui l'appelle, `/audience.js`) et n'accepte que
    les origines de `ORIGINS` ; la Tour lit `/api/monitor/audience` (patron). Un échec de montage n'arrête rien d'autre. */
+let audienceMod = null;
 try {
-  require('./audience')(app, { DATA_DIR, monPatronStrict, origines: ORIGINS });
+  audienceMod = require('./audience')(app, { DATA_DIR, monPatronStrict, origines: ORIGINS });
 } catch (e) {
   console.error('audience non montée :', e.message);
 }
@@ -11990,6 +11993,7 @@ function arretPropre(signal) {
      de 5 s sortait, « socle fermé » n'était jamais écrit et le WAL restait sur le disque — à
      chaque déploiement. Relâcher d'abord fait aboutir `close()` en quelques millisecondes. */
   try { if (opSocle && opSocle.relacher) console.log('flux relâchés :', opSocle.relacher()); } catch (e) {}
+  try { if (audienceMod) audienceMod.ecrire(); } catch (e) {}   // la dernière minute de comptage de l'audience (sinon perdue à chaque déploiement)
   const fermerSocle = () => {
     try { if (opSocle && opSocle.fermer) console.log('socle fermé :', JSON.stringify(opSocle.fermer())); }
     catch (e) { console.error('socle non fermé :', e.code || 'erreur'); }

@@ -35,6 +35,11 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
   v('un courriel de Léa (« ?de=lea ») : sa source et sa campagne', [L({ p: '/', de: 'lea' }, 'x').source, L({ p: '/', de: 'lea' }, 'x').campagne], ['Courriel de Léa', 'agent:lea']);
   v('⛔ un « de » inconnu ne devient jamais une source (liste fermée)', L({ p: '/', de: 'pirate', r: '' }, 'x').source, 'Accès direct');
   v('un lien marqué utm : la source et la campagne, nettoyées', [L({ p: '/', us: 'Facebook', um: 'social', uc: 'Article <b>1</b>' }, 'x').source, L({ p: '/', us: 'Facebook', um: 'social', uc: 'Article <b>1</b>' }, 'x').campagne], ['Lien marqué : facebook', 'facebook / social / articleb1b']);
+  /* relecture du gardien (25 octobre 2026) */
+  v('⛔ une adresse IP, « localhost », un hôte sans vrai domaine : jamais écrits, « Autre site »', ['http://192.168.1.5:8080/x?token=abc', 'http://localhost:3000/', 'http://[::1]/', 'https://intranet/'].map(r => L({ p: '/', r }, 'x').source), ['Autre site', 'Autre site', 'Autre site', 'Autre site']);
+  v('⛔ un sous-domaine (qui peut porter un nom) est réduit à son domaine', [L({ p: '/', r: 'https://jean-dupont.wixsite.com/site' }, 'x').source, L({ p: '/', r: 'https://www.entreprise.co.uk/' }, 'x').source], ['wixsite.com', 'entreprise.co.uk']);
+  v('⛔ un chemin qui n’a pas la forme d’une page du site (un jeton dans le chemin) ne compte pas', ['/' + 'a1'.repeat(32) + '/reset', '/blog/x/y.html', '/Tarifs.HTML'].map(p => L({ p }, 'x').ignore), ['page', 'page', 'page']);
+  v('une page absente du plan du site compte dans « (autre page) »', [L({ p: '/inventee.html' }, 'x', new Set(['/'])).page, L({ p: '/' }, 'x', new Set(['/'])).page], ['(autre page)', '/']);
   v('l’écran se déduit de la largeur', [380, 900, 1400, 0, 'x'].map(l => L({ p: '/', l }, 'x').ecran), ['téléphone', 'tablette', 'ordinateur', 'inconnu', 'inconnu']);
 
   console.log('\n2. Le module, sur disque');
@@ -59,6 +64,17 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
   t = Date.UTC(2028, 11, 1);
   M.enregistrer({ p: '/' }, 'Mozilla'); M.elaguer(); M.ecrire();
   vrai('⛔ au-delà de 25 mois, un jour est effacé', !/"2026-10-25"/.test(fs.readFileSync(path.join(D, 'audience.json'), 'utf8')));
+  { const D4 = fs.mkdtempSync(path.join(os.tmpdir(), 'aud-')); const M4 = A(null, { DATA_DIR: D4, sansMinuterie: true, maintenant: () => t });
+    for (let i = 0; i < 3; i++) M4.enregistrer({ p: '/', us: 'constructor' }, 'Mozilla');
+    M4.enregistrer({ p: '/', r: 'https://constructor/' }, 'Mozilla'); M4.enregistrer({ p: '/', us: '__proto__' }, 'Mozilla');
+    for (let i = 0; i < 150; i++) M4.enregistrer({ p: '/', r: 'https://site' + i + '-inonde.fr/' }, 'Mozilla');
+    M4.enregistrer({ p: '/', r: 'https://www.google.fr/' }, 'Mozilla');
+    M4.enregistrer({ p: '/', r: 'https://www.google.com/' }, 'Mozilla');
+    const R4 = M4.resume(1), toutes = Object.fromEntries(R4.sources.concat(R4.campagnes));
+    v('⛔ « constructor » se compte comme un nombre (3), « __proto__ » est écarté', [R4.campagnes.find(x => x[0] === 'constructor'), R4.campagnes.some(x => x[0] === '__proto__')], [['constructor', 3], false]);
+    vrai('⛔ 150 sites inventés n’effacent pas Google : il garde sa ligne', R4.sources.some(x => x[0] === 'Google'), JSON.stringify(R4.sources.slice(0, 3)));
+    vrai('…et les sites inconnus sont plafonnés (le reste dans « (autres) »)', toutes['(autres)'] >= 49, JSON.stringify(R4.sources.slice(0, 3)));
+    fs.rmSync(D4, { recursive: true, force: true }); }
   v('une période inconnue retombe sur 7 jours', M.resume(12).jours, 7);
   const D2 = fs.mkdtempSync(path.join(os.tmpdir(), 'aud-'));
   fs.writeFileSync(path.join(D2, 'audience.json'), '{ cassé');
@@ -80,8 +96,12 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
       v('…avec l’en-tête CORS pour teamop.fr', (await vue({ p: '/' }, 'https://teamop.fr')).headers.get('access-control-allow-origin'), 'https://teamop.fr');
       v('⛔ sans origine, ou depuis un autre site : 403', [(await vue({ p: '/' })).status, (await vue({ p: '/' }, 'https://pirate.example')).status], [403, 403]);
       v('un corps illisible : 400', (await fetch(S.B + '/api/audience/vue', { method: 'POST', headers: { 'Content-Type': 'text/plain', Origin: 'https://teamop.fr' }, body: '{ pas du json' })).status, 400);
+      v('⛔ un corps qui n’est pas du texte (application/json) : 415, rien n’est lu', (await fetch(S.B + '/api/audience/vue', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://teamop.fr' }, body: JSON.stringify({ p: '/', x: 'y'.repeat(100000) }) })).status, 415);
+      v('⛔ plus de 2 Ko en texte : 413', (await fetch(S.B + '/api/audience/vue', { method: 'POST', headers: { 'Content-Type': 'text/plain', Origin: 'https://teamop.fr' }, body: JSON.stringify({ p: '/', x: 'y'.repeat(3000) }) })).status, 413);
+      const rafale = []; for (let i = 0; i < 31; i++) rafale.push((await fetch(S.B + '/api/audience/vue', { method: 'POST', headers: { 'Content-Type': 'text/plain', Origin: 'https://teamop.fr', 'X-Forwarded-For': '2001:db8:aa:bb:' + i + '::1' }, body: '{"p":"/blog/"}' })).status);
+      v('⛔ trente pages par 10 min pour un même abonné IPv6 (le /64), même en changeant d’adresse : la 31ᵉ est refusée', [rafale.slice(0, 30).every(c => c === 204), rafale[30]], [true, 429]);
       const p = await S.get('/api/monitor/audience?jours=7');
-      v('le patron lit : 2 pages vues, 2 visites, Bing parmi les sources', [p.s, p.j.totaux && p.j.totaux.vues, p.j.totaux && p.j.totaux.visites, (p.j.sources || []).map(x => x[0])], [200, 2, 2, ['Bing', 'Accès direct']]);
+      v('le patron lit : 32 pages vues et 32 visites (2 + la rafale, arrivées sans page d’origine), Bing parmi les sources', [p.s, p.j.totaux && p.j.totaux.vues, p.j.totaux && p.j.totaux.visites, (p.j.sources || []).map(x => x[0])], [200, 32, 32, ['Accès direct', 'Bing']]);
       v('⛔ un collaborateur et un anonyme ne lisent pas : 403', [(await S.get('/api/monitor/audience', S.TA)).s, (await S.get('/api/monitor/audience', '')).s], [403, 403]);
     }
     await S.fin();
