@@ -75,6 +75,10 @@ const ecranDe = l => { const w = Number(l); return !Number.isFinite(w) || w <= 0
 /* le jour de PARIS : « aujourd'hui » dans la Tour est celui de Justin, pas celui de l'UTC */
 const JOUR_FR = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' });
 const jourDe = ts => JOUR_FR.format(new Date(ts));
+/* ⛔ LE JOUR « i jours avant » SE COMPTE AU CALENDRIER, JAMAIS EN RETIRANT i × 24 HEURES. Le 25 octobre 2026 au soir (passage à l'heure d'hiver), « maintenant moins
+   24 heures » tombait encore le 25 à Paris : le même jour était additionné DEUX fois (64 pages vues pour 32, attrapé par `test-3002` sur la CI). Au printemps, à
+   l'inverse, un jour de 23 heures aurait été SAUTÉ. On part de la date de Paris et on recule d'un jour de calendrier. */
+const joursAvant = (ts, i) => { const [y, m, d] = jourDe(ts).split('-').map(Number); return new Date(Date.UTC(y, m - 1, d - i)).toISOString().slice(0, 10); };
 /* ⛔ `hasOwnProperty`, jamais `in` : « constructor » est « dans » tout objet, et son compteur devenait un texte qui grossissait (relecture du gardien). */
 const aSoi = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 function plus(map, cle, libre) {
@@ -197,7 +201,7 @@ module.exports = function audience(app, ctx) {
     const n = [1, 7, 30, 90, 365].includes(jours) ? jours : 7;
     const t = now(), L = [], tot = { vues: 0, visites: 0 }, cumul = { pages: {}, entrees: {}, sources: {}, campagnes: {}, ecrans: {} };
     for (let i = n - 1; i >= 0; i--) {
-      const d = jourDe(t - i * 86400000), J = reg.jours[d];
+      const d = joursAvant(t, i), J = reg.jours[d];
       L.push({ d, vues: J ? J.vues : 0, visites: J ? J.visites : 0 });
       if (!J) continue;
       tot.vues += J.vues; tot.visites += J.visites;
@@ -237,5 +241,6 @@ module.exports.lireVue = lireVue;
 module.exports.sourceDe = sourceDe;
 module.exports.cheminDe = cheminDe;
 module.exports.jourDe = jourDe;
+module.exports.joursAvant = joursAvant;
 module.exports.AGENTS = AGENTS;
 module.exports.GARDE_JOURS = GARDE_JOURS;

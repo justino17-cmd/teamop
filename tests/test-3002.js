@@ -75,6 +75,17 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     vrai('⛔ 150 sites inventés n’effacent pas Google : il garde sa ligne', R4.sources.some(x => x[0] === 'Google'), JSON.stringify(R4.sources.slice(0, 3)));
     vrai('…et les sites inconnus sont plafonnés (le reste dans « (autres) »)', toutes['(autres)'] >= 49, JSON.stringify(R4.sources.slice(0, 3)));
     fs.rmSync(D4, { recursive: true, force: true }); }
+  /* ⛔ le changement d'heure (25 octobre 2026, 23 h 08 à Paris : la CI a compté le même jour deux fois) — et celui du printemps, qui sautait un jour */
+  for (const [nom, ts] of [['automne, 25 octobre 2026 à 23 h 08 (Paris)', Date.UTC(2026, 9, 25, 22, 8)], ['printemps, 30 mars 2026 à 0 h 30 (Paris)', Date.UTC(2026, 2, 29, 22, 30)]]) {
+    const l = Array.from({ length: 7 }, (_, i) => A.joursAvant(ts, 6 - i));
+    v('⛔ ' + nom + ' : sept jours DIFFÉRENTS et qui se suivent', [new Set(l).size, l.every((d, i) => !i || Date.parse(d) - Date.parse(l[i - 1]) === 86400000), l[6]], [7, true, A.jourDe(ts)]);
+  }
+  { const D5 = fs.mkdtempSync(path.join(os.tmpdir(), 'aud-')); let t5 = Date.UTC(2026, 9, 25, 22, 8);
+    const M5 = A(null, { DATA_DIR: D5, sansMinuterie: true, maintenant: () => t5 });
+    M5.enregistrer({ p: '/' }, 'Mozilla'); M5.enregistrer({ p: '/' }, 'Mozilla');
+    const R5 = M5.resume(7);
+    v('⛔ la nuit du changement d’heure : 2 pages vues comptées 2 fois, pas 4', [R5.totaux.vues, R5.parJour.length, new Set(R5.parJour.map(x => x.d)).size], [2, 7, 7]);
+    fs.rmSync(D5, { recursive: true, force: true }); }
   v('une période inconnue retombe sur 7 jours', M.resume(12).jours, 7);
   const D2 = fs.mkdtempSync(path.join(os.tmpdir(), 'aud-'));
   fs.writeFileSync(path.join(D2, 'audience.json'), '{ cassé');
