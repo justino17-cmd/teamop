@@ -2152,6 +2152,8 @@ body.plans .reg-l.cli::before{display:none}
 .ag-rang h3{margin:0;font-size:15.5px;font-weight:650;letter-spacing:-.01em;line-height:1.3}
 .ag-role{color:var(--muted);font-size:13px;line-height:1.35}
 .ag-meta{display:inline-block;white-space:nowrap;font-size:12px}
+.ag-meta::before{content:"· "}
+@container aglg (max-width:639px){ .ag-meta{display:block}.ag-meta::before{content:none} }
 .ag-av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--accBg);color:var(--acc-txt);flex:none}
 .ag-rang .ag-av{width:44px;height:44px}
 .ag-rang[data-etat=arret] .ag-av{background:var(--inset);color:var(--muted)}
@@ -2190,6 +2192,7 @@ body.plans .reg-l.cli::before{display:none}
 }
 @media (pointer:fine){ @container aglg (min-width:640px){ .ag-rang .ag-seg button,.ag-rang .ag-parler{min-height:36px} } }
 @media (max-width:560px){ .ag-barre b{flex-basis:100%} .ag-barre>.ag-btn{flex:1} }
+@media (max-width:700px){ .ag-onglets{padding-right:28px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)} }
 @media (prefers-reduced-motion:reduce){ .ag-seg button,.ag-parler{transition:none} .ag-seg button:active:not([disabled]),.ag-parler:active{transform:none} }
 .ag-liste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-top:14px}
 .ag-ligne{display:flex;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
@@ -11495,7 +11498,7 @@ function vueAgents(){
       var m=agMode(a), extra=(a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+(typeof agGeCarte==='function'?agGeCarte(a,m):''),
         aide=agAide(a), etat=stop?'pause':m, lib=stop?'En pause':(AG_MODES.filter(function(x){ return x[0]===m; })[0]||['','À l’arrêt'])[1];
       h+='<article class="ag-rang'+(extra?' plus':'')+'" data-etat="'+m+'"><div class="ag-rg-id">'+agAvatar(a.id,a.nom,'ag-av')+'<div class="ag-rg-tx"><h3>'+esc(a.nom)+'</h3>'+
-        '<div class="ag-role">'+esc(a.role)+' <span class="ag-meta">· vague '+esc(a.vague)+' · plafond '+esc(a.plafondUsd)+' $ par mois</span></div>'+
+        '<div class="ag-role">'+esc(a.role)+' <span class="ag-meta">vague '+esc(a.vague)+' · plafond '+esc(a.plafondUsd)+' $ par mois</span></div>'+
         '<div class="ag-encours" data-d="'+agDispo(a)+'"><span class="ag-etat" data-e="'+etat+'">'+lib+'</span>'+(aide?'<span class="ag-aide"> · '+aide+'</span>':'')+'</div></div></div>'+
         '<div class="ag-seg" role="group" aria-label="Mode de '+esc(a.nom)+'">'+AG_MODES.map(function(x){
           var off=AG.busy||(x[0]==='auto'&&m==='arret');
