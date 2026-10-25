@@ -6205,6 +6205,14 @@ try {
 } catch (e) {
   console.error('pièces jointes non montées :', e.message);
 }
+/* ══ L'AUDIENCE DU SITE (25 octobre 2026) ══ des compteurs par jour, sans cookie ni identifiant ni adresse IP écrite (`server/audience.js`,
+   conditions de la CNIL écrites en tête). `/api/audience/vue` est public (c'est le site qui l'appelle, `/audience.js`) et n'accepte que
+   les origines de `ORIGINS` ; la Tour lit `/api/monitor/audience` (patron). Un échec de montage n'arrête rien d'autre. */
+try {
+  require('./audience')(app, { DATA_DIR, monPatronStrict, origines: ORIGINS });
+} catch (e) {
+  console.error('audience non montée :', e.message);
+}
 /* ══ LA SAUVEGARDE HORS SITE ═══════════════════════════════════════════════════════════════
    Montée ICI parce qu'elle a besoin de `monPatronStrict` pour ses deux routes — une
    déclaration de fonction, donc hissée, mais on garde la proximité avec les pièces jointes :

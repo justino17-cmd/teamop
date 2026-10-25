@@ -167,5 +167,5 @@ const COURRIEL_TOKA = COURRIEL.replace('Nous avons bien noté votre activité.',
 const pourToka = x => COURRIEL_TOKA.replace(NOTE_TOKA, NOTE_TOKA + ' ' + x);
 /* La signature qu'un agent porte à l'envoi (`agents-signature.js`), pour la boîte contact@. */
 /* La signature d'un agent du Courrier (Léa, Camille, Chloé) : depuis le 23 octobre 2026, elle demande d'enregistrer l'adresse qui envoie (`agents-signature.js`). */
-const signatureDe = (nom, role, adr) => nom + ' — ' + (role || 'Assistante virtuelle') + ' — Équipe TeamOP\n' + (adr || 'contact@teamop.fr') + ' · teamop.fr\nPour recevoir nos messages sans faute, ajoutez ' + (adr || 'contact@teamop.fr') + ' à vos contacts.';
+const signatureDe = (nom, role, adr) => nom + ' — ' + (role || 'Assistante virtuelle') + ' — Équipe TeamOP\n' + (adr || 'contact@teamop.fr') + ' · https://teamop.fr/?de=' + nom.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() + '\nPour recevoir nos messages sans faute, ajoutez ' + (adr || 'contact@teamop.fr') + ' à vos contacts.';
 module.exports = { CHARTE_OUVERTE, LOUIS_DEBUT, PROPOSITION, CHLOE_DEBUT, JUGE_DEBUT, RECHERCHE_DEBUT, monter, COURRIEL, COURRIEL_TOKA, pourToka, NOTE_TOKA, SIGNATURE, courrielPour, signatureDe };

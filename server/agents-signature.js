@@ -4,7 +4,7 @@
  * Assistante, Léa par exemple. Équipe TeamOP. »
  *
  *   Léa — Assistante virtuelle — Équipe TeamOP
- *   contact@teamop.fr · teamop.fr
+ *   contact@teamop.fr · https://teamop.fr/?de=lea      (le lien porte le nom de l'agent : Léa, Camille et Chloé seulement — voir `lienSite`)
  *   Pour recevoir nos messages sans faute, ajoutez contact@teamop.fr à vos contacts.   (Léa, Camille et Chloé seulement : `AGENTS_COURRIER`)
  *
  * ⛔ « Assistante VIRTUELLE » n'est pas une coquetterie : le règlement européen sur l'intelligence artificielle (article 50, en vigueur depuis le
@@ -42,9 +42,14 @@ const ADRESSE_BOITE = /^[^@\s<>",;]+@[^@\s<>",;]+\.[^@\s<>",;]+$/;
    chaque envoi : écrite par Claude, elle serait oubliée une fois sur dix, ou porterait l'adresse d'une autre boîte que celle qui envoie. */
 const AGENTS_COURRIER = new Set(['lea', 'camille', 'chloe']);
 const ligneContacts = adr => 'Pour recevoir nos messages sans faute, ajoutez ' + adr + ' à vos contacts.';
-const formater = (prenom, role, equipe, adresseBoite, contacts) => {
+/* ⛔ LE LIEN DU SITE PORTE LE NOM DE L'AGENT (25 octobre 2026, Justin : « voir si cet agent est lié à ce lien-là par rapport aux démarches qu'il fait »).
+   Les courriels partent en texte brut : le lien qu'on lit EST celui qu'on touche. « https://teamop.fr/?de=lea » reste court et honnête, et l'onglet Audience
+   de la Tour compte « Courriel de Léa » (`server/audience.js`, liste FERMÉE des agents). Sans `de`, une visite venue d'un courriel se perdait dans « Accès direct ».
+   Seuls les trois agents du courrier (`AGENTS_COURRIER`) le portent : ce sont eux qui écrivent aux prospects. */
+const lienSite = de => (/^[a-z]{2,20}$/.test(String(de || '')) ? 'https://' + SITE + '/?de=' + de : SITE);
+const formater = (prenom, role, equipe, adresseBoite, contacts, de) => {
   const adr = ADRESSE_BOITE.test(String(adresseBoite || '')) ? String(adresseBoite).toLowerCase() : 'contact@' + SITE;
-  return prenom + ' — ' + role + ' — ' + equipe + '\n' + adr + ' · ' + SITE + (contacts ? '\n' + ligneContacts(adr) : '');
+  return prenom + ' — ' + role + ' — ' + equipe + '\n' + adr + ' · ' + lienSite(de) + (contacts ? '\n' + ligneContacts(adr) : '');
 };
 
 module.exports = function signatures(app, ctx) {
@@ -60,7 +65,7 @@ module.exports = function signatures(app, ctx) {
   /* La signature d'un agent pour une boîte donnée (l'adresse de la boîte qui ENVOIE). Jamais vide pour un agent connu ; '' pour un inconnu — l'appelant refuse d'envoyer. */
   function composer(id, adresseBoite) {
     if (!IDS.has(id)) return '';
-    return formater(IDS.get(id), roleDe(id), reg.equipe, adresseBoite, AGENTS_COURRIER.has(id));
+    return formater(IDS.get(id), roleDe(id), reg.equipe, adresseBoite, AGENTS_COURRIER.has(id), AGENTS_COURRIER.has(id) ? id : '');
   }
   const vue = () => ({ equipe: reg.equipe, site: SITE, agents: agents.AGENTS.map(a => ({ agent: a.id, nom: a.nom, role: roleDe(a.id), defaut: roleDefaut(a.id), apercu: composer(a.id, 'contact@' + SITE) })) });
 
@@ -99,3 +104,4 @@ module.exports.EQUIPE_DEFAUT = EQUIPE_DEFAUT;
 module.exports.SITE = SITE;
 module.exports.AGENTS_COURRIER = AGENTS_COURRIER;
 module.exports.ligneContacts = ligneContacts;
+module.exports.lienSite = lienSite;

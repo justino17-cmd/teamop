@@ -2230,6 +2230,23 @@ body.plans .reg-l.cli::before{display:none}
 .ex-carte .ag-act{margin-top:10px}
 .ex-cout{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .ex-cout span{font-size:12.5px;font-weight:650;padding:4px 10px;border-radius:99px;background:var(--inset);color:var(--text)}
+
+/* ══ AUDIENCE DU SITE (Tour v2.110, 25 octobre 2026) ══ des barres et des chiffres, jour ET nuit sur les jetons ; un rang se lit à son NOMBRE, la barre ne fait que l'illustrer */
+.aud-jours{display:flex;align-items:flex-end;gap:3px;height:120px;margin:14px 0 4px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3)}
+.aud-jours i{flex:1;min-width:2px;background:var(--acc);border-radius:3px 3px 0 0;opacity:.85}
+.aud-jours i.vide{background:var(--line);opacity:1}
+.aud-axe{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:0 12px}
+.aud-l{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:9px 14px;border-top:1px solid var(--hairline);font-size:14px}
+.aud-l:first-child{border-top:0}
+.aud-l .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.aud-l .n{font-weight:650;font-variant-numeric:tabular-nums;color:var(--text)}
+.aud-l .b{grid-column:1/-1;height:4px;border-radius:2px;background:var(--inset);overflow:hidden}
+.aud-l .b i{display:block;height:100%;background:var(--acc);border-radius:2px}
+.aud-l .s{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.aud-direct{display:inline-flex;align-items:center;gap:6px}
+.aud-direct::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green)}
+@media (prefers-reduced-motion:no-preference){.aud-direct::before{animation:audPouls 2s ease-in-out infinite}}
+@keyframes audPouls{50%{opacity:.35}}
 .ex-prog{display:grid;gap:6px;margin:10px 0 0;padding:0;list-style:none}
 .ex-prog li{display:flex;align-items:center;gap:10px;font-size:13.5px;min-height:34px}
 .ex-prog li b{font-weight:650}
@@ -3156,7 +3173,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.109</div>
+    <div class="lg-pied">console interne · v2.110</div>
   </div>
 </div>
 
@@ -3198,7 +3215,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.109</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.110</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3210,7 +3227,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.109</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.110</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3267,6 +3284,8 @@ var MENU=[
   {section:'Support',vues:[['support','Courrier','gestion','bdg-supp'],['surveillance','Surveillance','gestion messages','bdg-surv'],['incidents','Incidents','gestion messages','','',1]]},
   {section:'Juridique',vues:[['contrats','Contrats','gestion messages','','',1]]},
   {section:'Équipe d’agents',vues:[['agents','Agents','gestion'],['messagerie','Messagerie','gestion','bdg-msgr'],['rapport','Rapport','gestion','','',1]]},
+  /* v2.110 (25 octobre 2026) — Justin : « le nombre de personnes qui ont cliqué, comment ils sont venus, par quel site […] en temps réel » */
+  {section:'Site',vues:[['audience','Audience','gestion','','',1]]},
   /* v2.88 — le 5ᵉ champ RATTACHE une vue à une autre : elle quitte le menu et la barre du bas, et paraît en onglet en tête
      de sa vue de tête (Justin, 17 octobre 2026 : « améliore et simplifie-la »). Équipe est « qui peut entrer », comme Accès ;
      les Sauvegardes et le Journal sont les deux écrans de contrôle qu'on ouvre rarement. Dix entrées deviennent huit. */
@@ -3292,7 +3311,7 @@ function groupeOnglets(t){ var l=groupeDe(t); if(l.length<2) return '';
 /* ⚠️ Lot 1 (relecture du 22 octobre 2026) : Facturation, Contrats et Rapport sont au patron dans le MENU seulement. Leurs lectures
    restent ouvertes à un collaborateur côté serveur (« l'administrateur lit, le patron seul écrit » : contrats.js, direction.js,
    /stripe/paiements que les Abonnements montrent déjà) — fermer ces routes est une décision de Justin, posée dans REPRISE.md. */
-var PATRON_SEUL=['essais','equipe','journal','agents','messagerie','donnees','facturation','contrats','rapport'];
+var PATRON_SEUL=['essais','equipe','journal','agents','messagerie','donnees','facturation','contrats','rapport','audience'];
 /* ⛔ v2.87 (17 octobre 2026, Justin : « les catégories qui servent à quelque chose, les autres qui servent à rien —
    je range ») : Connexions et Devis IA quittent le menu, rien ne se perd. Connexions devient un onglet d'Entreprises
    (elle doublait la fiche et les compteurs d'Entreprises), Devis IA un onglet d'Abonnements (c'est une option qu'on
@@ -3515,7 +3534,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.109';
+var TOUR_VERSION='v2.110';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -3598,6 +3617,8 @@ var IC={
   contrats:'<path d="M7 3h7l4 4v14H7z"></path><path d="M14 3v4h4M9.5 16c1.2-1.4 2.2-.4 3 0 .8.4 1.6.2 2.5-.6"></path>',
   messagerie:'<path d="M4 5.5h11v8H8.5L5 16.5v-3H4z"></path><path d="M15 9h5v8h-1v3l-3.5-3H11v-2.5"></path>',
   rapport:'<path d="M4 20h16"></path><path d="M7 16v-5M12 16V7M17 16v-8"></path>',
+  /* un œil : ce que voient les visiteurs du site */
+  audience:'<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle>',
   accueil:'<path d="M4 11 12 4l8 7"></path><path d="M6 10v10h12V10"></path>',
   surveillance:'<path d="M3 12h4l2-6 4 12 2-6h6"></path>',
   /* Un cylindre de base de données : c'est le socle, pas un dossier. */
@@ -3715,7 +3736,7 @@ var BAS=BAS_DEFAUT.slice(0,BAS_MAX);
    dans `aria-label` : un lecteur d'écran ne lit pas des abréviations. */
 var BAS_LIB={comptes:'Comptes',accueil:'Accueil',surveillance:'Surveill.',demandes:'Demandes',entreprises:'Entreprises',essais:'Accès',
   abonnements:'Abonn.',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal',agents:'Agents',
-  facturation:'Factur.',incidents:'Incidents',contrats:'Contrats',rapport:'Rapport',messagerie:'Messag.'};
+  facturation:'Factur.',incidents:'Incidents',contrats:'Contrats',rapport:'Rapport',messagerie:'Messag.',audience:'Audience'};
 /* Les vues que CE compte voit dans CETTE console, à plat, dans l'ordre du menu, avec leur compteur. */
 function barreDispo(){
   var l=[]; menuVisible().forEach(function(g){ g.vues.forEach(function(x){ l.push({t:x[0],lib:x[1],bdg:x[3]||''}); }); });
@@ -4298,6 +4319,7 @@ function setTab(t,sansAnim){
   if(t==='facturation'&&(!ABO.loaded||ABO.err)) chargerAbos();
   if(t==='incidents'&&(!INC.loaded||INC.err)) chargerIncidents();
   if(t==='contrats') chargerContrats();
+  if(t==='audience') chargerAudience();   /* relue à chaque ouverture, puis toutes les 30 secondes tant que l'écran est ouvert (audTic) */
   if(t==='rapport') chargerRapportAgents();   /* lot 1 (g) : relu à chaque ouverture — le journal bouge à chaque geste */   /* lot 1 (e) : relu à chaque ouverture — une version a pu être validée depuis la Direction */   /* lot 1 (d) : la même liste que la Surveillance */   /* lot 1 (c) : les factures viennent de la même lecture de Stripe */
   if(t==='abonnements'){ if(!ABO.loaded||ABO.err) chargerAbos(); if(!PRO.loaded||PRO.err) chargerPromos(); }
   if(t==='equipe'&&(!EQ.loaded||EQ.err)) chargerEquipe();   /* v2.88 : un échec au chargement figeait l'écran pour toute la séance */
@@ -6161,6 +6183,7 @@ function renderVue(v){
   else if(TAB==='incidents') v.innerHTML=vueIncidents();
   else if(TAB==='contrats') v.innerHTML=vueContrats();
   else if(TAB==='rapport') v.innerHTML=vueRapport();
+  else if(TAB==='audience') v.innerHTML=vueAudience();
   else if(VUES_BIENTOT[TAB]) v.innerHTML=vueBientot(TAB);
   if(v.classList.contains('entre')) compterKpi(v);
   /* ICI et pas dans render() : renderAnime() appelle renderVue() directement, sans passer par
@@ -9368,6 +9391,65 @@ function vueRapport(){
 function agNomRpj(id){ var R=RPJ.rap, i, l=((R&&R.parAgent)||[]).concat((R&&R.lignes)||[]);
   for(i=0;i<l.length;i++) if(l[i].agent===id&&l[i].nom) return l[i].nom;
   var a=(typeof agParId==='function')&&agParId(id); return a?a.nom:String(id||''); }
+/* ══ AUDIENCE DU SITE (Tour v2.110, 25 octobre 2026) ══
+   Justin : « le nombre de personnes qui ont cliqué sur les liens, comment ils sont venus, par quel site […] en temps réel, un peu comme BabyLoveGrowth ».
+   Les chiffres viennent de `server/audience.js` (/api/monitor/audience, patron) : des TOTAUX par jour, sans cookie ni identifiant — tout le monde est
+   compté, à la différence de Google Analytics (seulement ceux qui acceptent le bandeau). « Visite » = une arrivée sur le site depuis l'extérieur : c'est
+   une estimation, pas un comptage de personnes, et l'écran le dit. Les courriels de Léa, Camille et Chloé portent « ?de=<agent> » (`agents-signature.js`).
+   ⛔ Trois états par lecture : un registre illisible ne se dessine jamais « aucune visite ». Le temps réel se relit toutes les 30 s, écran ouvert seulement. */
+var AUD={j:7,lec:0,d:null,err:'',t:null,h:0};
+function chargerAudience(){
+  var j=AUD.j, h=++AUD.h; if(AUD.t){ clearTimeout(AUD.t); AUD.t=null; }
+  apiGet('/api/monitor/audience?jours='+j).then(function(d){ if(h!==AUD.h) return;
+    if(d&&d.ok&&d.totaux&&Array.isArray(d.parJour)){ AUD.d=d; AUD.lec=1; } else { AUD.lec=-1; AUD.err='Réponse inattendue du serveur.'; }
+    audTic(); if(TAB==='audience') render(); },
+    function(e){ if(h!==AUD.h) return; AUD.lec=-1; AUD.err=(e&&e.corps)||msgErreur(e); audTic(); if(TAB==='audience') render(); });
+}
+function audTic(){ if(AUD.t) clearTimeout(AUD.t); AUD.t=setTimeout(function(){ AUD.t=null; if(TAB==='audience'&&!document.hidden) chargerAudience(); },30000); }
+function audPeriode(j){ j=Number(j)||7; if(j===AUD.j) return; AUD.j=j; AUD.lec=0; AUD.d=null; chargerAudience(); render(); }
+function audNb(n){ return (Number(n)||0).toLocaleString('fr-FR'); }
+function audListe(l,total,lib){
+  if(!l||!l.length) return '<div class="aud-l"><span class="t" style="color:var(--muted)">Rien sur cette période.</span></div>';
+  var max=l[0][1]||1;
+  return l.map(function(x){ var pc=total?Math.round(100*x[1]/total):0;
+    return '<div class="aud-l"><span class="t" title="'+esc(x[0])+'">'+esc(lib?lib(x[0]):x[0])+'</span><span class="n">'+audNb(x[1])+(total?' <span style="color:var(--muted);font-weight:500">· '+pc+' %</span>':'')+'</span>'+
+      '<span class="b" aria-hidden="true"><i style="width:'+Math.max(2,Math.round(100*x[1]/max))+'%"></i></span></div>'; }).join('');
+}
+function audCampagne(c){ var m=/^agent:(lea|camille|chloe)$/.exec(c); return m?'Courriels de '+({lea:'Léa',camille:'Camille',chloe:'Chloé'})[m[1]]:c; }
+function audJour(d){ var p=String(d).split('-'); return p[2]+'/'+p[1]; }
+function vueAudience(){
+  var per={1:'aujourd’hui',7:'les 7 derniers jours',30:'les 30 derniers jours',90:'les 90 derniers jours',365:'les 12 derniers mois'}[AUD.j]||AUD.j+' jours';
+  var tete=enTete('Audience',
+    'Les visites du site et du blog, comptées sans cookie : tout le monde est compté, sans rien garder qui désigne une personne. Une « visite », c’est une arrivée sur le site depuis l’extérieur (Google, un courriel, un favori…).','')+
+    teteListe('Sur '+per,'Période',[['1','Aujourd’hui'],['7','7 jours'],['30','30 jours'],['90','90 jours'],['365','12 mois']],String(AUD.j),'audPeriode(');
+  if(AUD.lec===0) return tete+acSquel();
+  if(AUD.lec===-1) return tete+acErr('L’audience ne répond pas',AUD.err+' — on ne sait pas combien de visites il y a eu.','chargerAudience()');
+  var D=AUD.d, T=D.totaux, L=D.parJour, maxJ=1;
+  L.forEach(function(x){ if(x.visites>maxJ) maxJ=x.visites; });
+  var ppv=T.visites?(T.vues/T.visites).toFixed(1).replace('.',','):'—';
+  var h=tete+'<div class="grille-kpi abn-kpi" style="margin-top:6px">'+
+    '<div class="kpi"><div class="n" style="color:var(--green)">'+audNb(D.direct.visites)+'</div><div class="l"><span class="aud-direct">En ce moment</span> (30 min)</div></div>'+
+    '<div class="kpi"><div class="n">'+audNb(T.visites)+'</div><div class="l">Visites</div></div>'+
+    '<div class="kpi"><div class="n">'+audNb(T.vues)+'</div><div class="l">Pages vues</div></div>'+
+    '<div class="kpi"><div class="n">'+ppv+'</div><div class="l">Pages par visite</div></div></div>';
+  if(L.length>1) h+='<div class="aud-jours" role="img" aria-label="Visites par jour, '+esc(per)+'">'+L.map(function(x){
+      return '<i'+(x.visites?'':' class="vide"')+' title="'+esc(audJour(x.d))+' : '+nMot(x.visites,'visite','visites')+', '+nMot(x.vues,'page vue','pages vues')+'" style="height:'+Math.max(3,Math.round(100*x.visites/maxJ))+'%"></i>'; }).join('')+'</div>'+
+    '<div class="aud-axe"><span>'+esc(audJour(L[0].d))+'</span><span>'+esc(audJour(L[L.length-1].d))+'</span></div>';
+  var G=[];
+  G.push(abnGroupe('D’où viennent les visites',D.sources.length,'Le moteur de recherche, le réseau social ou le site d’où l’on arrive. « Accès direct » : une adresse tapée, un favori, ou une application qui ne dit pas d’où elle vient.',false,'<div class="reg-bloc">'+audListe(D.sources,T.visites)+'</div>'));
+  G.push(abnGroupe('Courriels des agents et liens marqués',D.campagnes.length,'Les visites venues d’un lien de la signature de Léa, Camille ou Chloé (« ?de=… »), ou d’un lien marqué « utm_source » (une publication Facebook, une campagne).',true,'<div class="reg-bloc">'+audListe(D.campagnes,0,audCampagne)+'</div>'));
+  G.push(abnGroupe('Pages les plus lues',D.pages.length,'Toutes les pages vues, navigation dans le site comprise.',true,'<div class="reg-bloc">'+audListe(D.pages,T.vues)+'</div>'));
+  G.push(abnGroupe('Pages d’arrivée',D.entrees.length,'La première page de chaque visite : c’est elle qui a attiré le visiteur.',true,'<div class="reg-bloc">'+audListe(D.entrees,T.visites)+'</div>'));
+  G.push(abnGroupe('Écrans',D.ecrans.length,'D’après la largeur de la fenêtre.',true,'<div class="reg-bloc">'+audListe(D.ecrans,T.visites)+'</div>'));
+  var R=D.direct.derniers||[];
+  G.push(abnGroupe('<span class="aud-direct">Les 30 dernières minutes</span>',R.length,'Relu toutes les 30 secondes tant que cet écran est ouvert.',true,'<div class="reg-bloc">'+(R.length?R.map(function(e){
+      return '<div class="aud-l"><span class="t">'+esc(e.page)+'</span><span class="n" style="font-weight:500;color:var(--muted)">'+esc(fmtAgo(e.ts))+'</span>'+
+        '<span class="s">'+(e.source?esc(e.source)+' · ':'suite de la visite · ')+esc(e.ecran)+'</span></div>'; }).join(''):'<div class="aud-l"><span class="t" style="color:var(--muted)">Personne sur le site en ce moment.</span></div>')+'</div>'));
+  h+='<div class="reg" style="margin-top:22px">'+G.join('')+'</div>';
+  h+='<div class="encart bloc" style="margin-top:18px"><div class="tx" style="margin-top:0">'+(D.depuis?'Comptage commencé le '+esc(audJour(D.depuis))+'. ':'Aucune visite comptée pour l’instant : le comptage commence avec la mise en ligne. ')+
+    'Ce que les gens tapent dans Google, c’est <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Search Console</a> qui le dit ; le détail des visiteurs qui acceptent les cookies, <a href="https://analytics.google.com/" target="_blank" rel="noopener">Google Analytics</a>.</div></div>';
+  return h;
+}
 /* ══ CONTRATS (lot 1 de la refonte, partie e — 21 octobre 2026) ══
    Le registre des contrats (`server/contrats.js`), EN LECTURE : chaque pièce et sa version en vigueur (qui l'a validée, quand), les
    abonnements qu'un texte manquant bloque, et les contrats des clients — envoyés, signés, en attente (`/contrats/clients`, qu'aucun
