@@ -47,10 +47,10 @@ const NOMS = ['msNorm', 'msMentions', 'msIds', 'msColorer', 'msContexte', 'msPro
   'msBulleHtml', 'msEnvoiHtml', 'msEcritTexte', 'msEcritHtml', 'msFluxHtml', 'msLigneFil', 'msListeHtml', 'msTacheTxt', 'msTachesHtml', 'msSousTitre', 'msPlaceholder',
   'msAjouterServeur', 'msEnvoyer', 'msEnvoiFaire', 'msReessayer', 'msRetirer', 'messListeCharger', 'messAgentsCharger', 'messTachesCharger', 'messToutCharger', 'messFilCharger', 'messLire', 'messFilTot',
   'messTimers', 'messDemonter', 'messOuvrir', 'messOuvrirFil', 'messChoisir', 'messDossier', 'messNonLusCharger', 'messReleve',
-  'fmtHeure', 'agParams', 'apiGet', 'apiPost', 'acSquel'];
+  'fmtHeure', 'agParams', 'apiGet', 'apiPost', 'acSquel', 'agAvatar'];
 const FN = NOMS.map(fonction);
 const VAR_MS = corps('var MS={') + ';';
-const VARS = [ligne('var MS_GROUPES_LIB='), ligne('var MS_ETAT_LIB='), corps('var AG_TYPES=') + ';'].join('\n');
+const VARS = [ligne('var MS_GROUPES_LIB='), ligne('var MS_ETAT_LIB='), ligne('var AG_PHOTOS='), corps('var AG_TYPES=') + ';'].join('\n');
 vrai('(population) les ' + NOMS.length + ' fonctions, MS et les tables sont trouvés dans le fichier livré', ESC && FN.every(f => f.length > 30) && VAR_MS.length > 100 && VARS.length > 100,
   NOMS.filter((n, i) => FN[i].length <= 30).join(', '));
 
@@ -194,7 +194,7 @@ console.log('\n5. Les morceaux d\'écran : échappés, et honnêtes sur ce qu\'i
   ctx.MS.illisible = false;
   const m1 = { id: 'm1', ts: Date.now(), de: 'camille', nom: 'Camille', texte: 'Bonjour @Hugo <img src=x onerror=alert(1)>', niveau: 'info', mentions: ['hugo'] };
   const h1 = ctx.msBulleHtml(m1, M, ag);
-  vrai('une bulle d\'agent : initiale, nom, rôle, mention colorée, texte échappé', /<span class="ms-av"[^>]*>C<\/span>/.test(h1) && /<b>Camille<\/b>/.test(h1) && /Courrier et support/.test(h1) && /<mark class="ms-m">@Hugo<\/mark>/.test(h1) && !/<img/.test(h1) && /&lt;img src=x/.test(h1), h1);
+  vrai('une bulle d\'agent : initiale sous sa photo, nom, rôle, mention colorée, texte échappé (la seule image est la photo)', /<span class="ms-av"[^>]*>C<img src="icons\/agents\/camille\.jpg"[^>]*><\/span>/.test(h1) && /<b>Camille<\/b>/.test(h1) && /Courrier et support/.test(h1) && /<mark class="ms-m">@Hugo<\/mark>/.test(h1) && (h1.match(/<img/g) || []).length === 1 && /&lt;img src=x/.test(h1), h1);
   const h2 = ctx.msBulleHtml({ id: 'm2', ts: Date.now(), de: 'justin', nom: 'Toi', texte: 'ok', niveau: 'info', mentions: [] }, M, ag);
   vrai('ma bulle : classe « moi », pas d\'avatar', /class="ms-b moi"/.test(h2) && !/ms-av/.test(h2), h2);
   const h3 = ctx.msBulleHtml({ id: 'm3', ts: Date.now(), de: 'systeme', nom: 'Système', texte: 'Camille a pris « <i>x</i> »', systeme: true, mentions: [] }, M, ag);
