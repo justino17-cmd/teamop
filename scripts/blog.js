@@ -82,7 +82,7 @@ ${o.precharger ? `<link rel="preload" as="image" href="${o.precharger}" fetchpri
 function habiller(debut, main) {
   S.pourLaRacine(true);
   return debut + absolus(S.entete(null)) + `\n<main>\n${main}\n${S.commencer()}\n</main>\n` + absolus(S.pied())
-    + `\n<script src="${S.RES}site.js" defer></script>\n<script src="/cookies.js" defer></script>\n</body>\n</html>\n`;
+    + `\n<script src="${S.RES}site.js" defer></script>\n<script src="/cookies.js" defer></script>\n<script src="/audience.js" defer></script>\n</body>\n</html>\n`;
 }
 
 const ORGA = { '@type': 'Organization', '@id': S.SITE_URL + '#organisation', name: 'TEAM OP', url: S.SITE_URL, logo: S.SITE_URL + 'icons/teamop-192.png' };

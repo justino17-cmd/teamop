@@ -1,4 +1,4 @@
-/* 3008 — LES VISAGES DE L'ÉQUIPE DANS LA TOUR (v2.110, 25 octobre 2026).
+/* 3008 — LES VISAGES DE L'ÉQUIPE DANS LA TOUR (v2.111, 25 octobre 2026).
    Justin : « il faudrait aussi que tous mes agents aient une photo de profil, j'aime bien mettre un visage sur un nom ». Les photos ont été
    générées par Justin (Gemini) : des personnes FICTIVES, 256 px, dans icons/agents/<id>.jpg. Ce banc garde quatre choses :
      · une photo par agent du registre (server/agents.js), ni plus ni moins — un agent ajouté sans visage, ou un fichier orphelin, fait tomber ;
