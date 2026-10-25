@@ -1,5 +1,35 @@
 [
  {
+  "slug": "bon-d-intervention",
+  "titre": "Bon d’intervention : modèle, mentions et valeur de preuve",
+  "description": "Bon d’intervention : les mentions à prévoir, un modèle à reprendre, sa valeur de preuve face à un client et ce que change une version sur téléphone.",
+  "date": "2026-10-25",
+  "image": "bon-d-intervention-couverture.webp",
+  "imageAlt": "Couverture bleu nuit avec le titre : Bon d’intervention, modèle, mentions et valeur de preuve",
+  "faq": [
+   {
+    "q": "Un bon d’intervention est-il obligatoire ?",
+    "r": "Aucun texte n’impose un document sous ce nom. En revanche, pour un dépannage, une réparation ou un entretien au domicile d’un particulier, un devis écrit est obligatoire dès le premier euro, et une note détaillée au-delà de 25 € TTC. Le bon d’intervention complète ces documents en décrivant ce qui a été fait."
+   },
+   {
+    "q": "Quelle différence entre un bon d’intervention et une facture ?",
+    "r": "Le bon d’intervention décrit la visite et le fait constater par le client. La facture, ou la note pour un particulier, demande le paiement et porte des mentions fixées par la loi. Le bon sert souvent à préparer la facture, mais il ne la remplace pas."
+   },
+   {
+    "q": "Un bon d’intervention signé engage-t-il le client sur le prix ?",
+    "r": "Pas à lui seul. Le prix doit être communiqué avant les travaux, par écrit et de façon lisible. La Cour de cassation a jugé en 2018 qu’une mention imprimée « tarif communiqué » sur un bon signé ne suffisait pas à prouver que le client avait été informé."
+   },
+   {
+    "q": "Peut-on faire signer un bon d’intervention sur téléphone ?",
+    "r": "Oui. Un écrit électronique a la même force probante qu’un écrit papier si son auteur est identifiable et si son intégrité est garantie. Gardez ensemble la signature, le nom du signataire, la date et le contenu du bon, et envoyez son exemplaire au client le jour même."
+   },
+   {
+    "q": "Que faire des pièces remplacées ?",
+    "r": "Chez un particulier, le client peut les conserver. S’il n’en veut pas, faites-lui signer une décharge. Le plus simple est de prévoir une ligne pour cela sur le bon d’intervention."
+   }
+  ]
+ },
+ {
   "slug": "signature-electronique-devis",
   "titre": "Signature électronique de devis : valeur, niveaux et marche à suivre",
   "description": "Signer un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.",

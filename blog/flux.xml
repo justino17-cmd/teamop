@@ -6,7 +6,15 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Sat, 24 Oct 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 25 Oct 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Bon d’intervention : modèle, mentions et valeur de preuve</title>
+<link>https://teamop.fr/blog/bon-d-intervention.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/bon-d-intervention.html</guid>
+<pubDate>Sun, 25 Oct 2026 06:00:00 GMT</pubDate>
+<description>Bon d’intervention : les mentions à prévoir, un modèle à reprendre, sa valeur de preuve face à un client et ce que change une version sur téléphone.</description>
+<enclosure url="https://teamop.fr/blog/img/bon-d-intervention-couverture.webp" type="image/webp" length="16728"/>
+</item>
 <item>
 <title>Signature électronique de devis : valeur, niveaux et marche à suivre</title>
 <link>https://teamop.fr/blog/signature-electronique-devis.html</link>
