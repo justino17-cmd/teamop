@@ -50,9 +50,9 @@ const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.sli
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const NOMS = ['msNorm', 'msMentions', 'msIds', 'msColorer', 'msAgentsParId', 'msEtat', 'msNomFil', 'msBulleHtml', 'msEnvoiHtml', 'msEcritTexte', 'msEcritHtml', 'msFluxHtml', 'msListeHtml', 'msLigneFil', 'msHeureCourte', 'msJourLib',
   'msTacheTxt', 'msTachesHtml', 'msSousTitre', 'msAjouterServeur', 'msEnvoyer', 'msEnvoiFaire', 'msReessayer', 'msRetirer', 'messListeCharger', 'messAgentsCharger', 'messTachesCharger', 'messToutCharger', 'messFilCharger', 'messLire', 'messFilTot',
-  'fmtHeure', 'agParams', 'apiGet', 'apiPost', 'acSquel'];
+  'fmtHeure', 'agParams', 'apiGet', 'apiPost', 'acSquel', 'agAvatar'];
 const FN = NOMS.map(fonction);
-const VARS = [ligne('var MS_GROUPES_LIB='), ligne('var MS_ETAT_LIB='), corps('var AG_TYPES=') + ';', corps('var MS={') + ';'].join('\n');
+const VARS = [ligne('var MS_GROUPES_LIB='), ligne('var MS_ETAT_LIB='), ligne('var AG_PHOTOS='), corps('var AG_TYPES=') + ';', corps('var MS={') + ';'].join('\n');
 vrai('(population) les fonctions de la messagerie sont trouvées dans le fichier livré', ESC && FN.every(f => f.length > 30) && VARS.length > 200, NOMS.filter((n, i) => FN[i].length <= 30).join(', '));
 const { analyserMentions } = require(path.join(RACINE, 'server', 'conversations.js'));
 
