@@ -1,4 +1,4 @@
-/* test-3000 — Chauffage : le CERTIFICAT DE RAMONAGE (24 octobre 2026).
+/* test-3002 — Chauffage : le CERTIFICAT DE RAMONAGE (24 octobre 2026).
    Depuis le décret n° 2023-641 du 20 juillet 2023, le professionnel remet dans les quinze jours un certificat qui atteste la VACUITÉ du conduit sur toute sa
    longueur. Le VRAI bloc CVC (monté par cvc-monter.js) : un appareil à combustion cité sur une intervention TERMINÉE reçoit un certificat
    (`i.ramonages[appareil]`) — conduit et vacuité exigés —, son PDF (la mise en page de l'attestation, genre « ramonage ») porte le titre, le conduit, la méthode,
@@ -64,6 +64,6 @@ const ram = (W, iid, aid) => ((W.db.interventions.find(i => i.id === iid) || {})
     vrai('   et pas pour la climatisation', !/cvcRamonageForm\('i1','a2'\)/.test(h));
     const h2 = W.cvcIntActions(W.db.interventions[1], [W.db.appareils[0]]);
     vrai('   avant la fin de l’intervention, il est grisé', /disabled[^>]*>🧹 Certificat de ramonage/.test(h2) && !/cvcRamonageForm/.test(h2)); }
-  console.log(`\ntest-3000 : ${ok} ✓ ${ko} ✗`);
+  console.log(`\ntest-3002 : ${ok} ✓ ${ko} ✗`);
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
