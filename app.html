@@ -41093,10 +41093,40 @@ function cvcPlanifier(cle){ if(!permGarde('int','ajouter','une intervention')) r
   const p=cvcPropositions().find(x=>x.cle===cle); if(!p){ toast('Cette échéance est déjà traitée'); return; }
   try{ closeModal(); }catch(e){}
   formIntervention('',{clientId:p.clientId,titre:p.titre,date:p.j<0?todayISO():p.date,type:p.type||'',contratId:p.contratId||'',appareilIds:p.appareilIds.slice()}); }
+/* ══ LE RAPPEL D'ENTRETIEN AU CLIENT (25 octobre 2026) ══
+   À 30 jours de l'échéance, puis à 7 jours (ou une fois dépassée), la ligne d'un entretien à planifier propose « ✉️ Rappel au client ». ⛔ Les données
+   d'une entreprise sont chiffrées : le serveur ne peut pas les lire, donc pas d'envoi tout seul la nuit — le courriel part sur UN toucher (rien ne
+   s'écrit au seul chargement), et la trace se pose sur l'appareil (`a.rappels[échéance]` = les étapes envoyées) SEULEMENT s'il est parti, pour ne
+   jamais l'envoyer deux fois. Le texte suit le rappel de rendez-vous existant (`mailClientRdv`) : même ton, même signature de la société du client. */
+function cvcRappelEtape(p){ return p&&p.kind==='entretien'&&Array.isArray(p.appareilIds)&&p.appareilIds.length?(p.j<=7?'j7':'j30'):''; }
+function cvcRappelFait(p,etape){ return (p.appareilIds||[]).every(id=>{ const a=(db.appareils||[]).find(x=>x.id===id), r=a&&a.rappels&&a.rappels[p.date]; return Array.isArray(r)&&r.indexOf(etape)>=0; }); }
+function cvcRappelTexte(p){ const c=(db.clients||[]).find(x=>x.id===p.clientId)||{}, soc=socDuClient(p.clientId);
+  const lib=(p.appareilIds||[]).map(id=>(db.appareils||[]).find(x=>x.id===id)).filter(Boolean).map(cvcLibelle).join(', ')||'votre appareil', d=cvcDateTxt(p.date);
+  const sujet=(p.j<0?'Entretien à prévoir rapidement — ':'Entretien à prévoir avant le '+d+' — ')+lib;
+  const corps='Bonjour'+(c.contact?' '+c.contact:'')+',\n\n'+(p.j<0?'L’entretien de votre appareil ('+lib+') devait être fait avant le '+d+'.':'L’entretien de votre appareil ('+lib+') est à faire avant le '+d+'.')
+    +'\n\nPour convenir d’un rendez-vous, répondez simplement à ce message.\n\nCordialement,\n'+rapportSociete(soc);
+  return {sujet,corps,soc}; }
+const _cvcRappel={};
+async function cvcRappelEnvoyer(cle){ if(!permGarde('int','ajouter','une intervention')) return;
+  const p=cvcPropositions().find(x=>x.cle===cle), etape=cvcRappelEtape(p); if(!p||!etape){ toast('Cette échéance est déjà traitée'); return; }
+  if(cvcRappelFait(p,etape)){ toast('Le rappel est déjà parti pour cette échéance'); return; }
+  const c=(db.clients||[]).find(x=>x.id===p.clientId)||{}; if(!c.email){ toast('Ajoute l’e-mail du client dans sa fiche'); return; }
+  if(_cvcRappel[cle]) return; _cvcRappel[cle]=1;
+  try{ const t=cvcRappelTexte(p);
+    const ok=await srvMail(c.email,t.sujet,t.corps,'✉️ Rappel d’entretien envoyé à '+c.email,'rdv',null,docMailOpts(t.soc));
+    if(!ok) return;   // srvMail a dit pourquoi ; rien n'est parti, rien ne se trace
+    (p.appareilIds||[]).forEach(id=>{ const a=(db.appareils||[]).find(x=>x.id===id); if(!a) return;
+      a.rappels=(a.rappels&&typeof a.rappels==='object')?a.rappels:{};
+      const r=Array.isArray(a.rappels[p.date])?a.rappels[p.date]:[]; if(r.indexOf(etape)<0) r.push(etape); a.rappels[p.date]=r;
+      Object.keys(a.rappels).filter(k=>k!==p.date&&cvcIsoOk(k)&&k<p.date).forEach(k=>delete a.rappels[k]); });   // les échéances passées s'oublient : la fiche ne grossit pas
+    save(); try{ refreshEcran(); }catch(e){}   // la ligne montre « rappel envoyé » à la place du bouton
+  } finally { delete _cvcRappel[cle]; } }
 function cvcLigneProposition(p,peutAj){ return `<div class="pl-row cvc-l" style="border-left:3px solid ${p.j<0?'var(--red)':p.j<=CVC_RAPPEL_J?'var(--org)':'transparent'}">
     <div class="pl-info"><div class="pl-title" style="overflow-wrap:anywhere">${esc(p.titre)}</div>
       <div class="pl-meta" style="overflow-wrap:anywhere">${esc(clientName(p.clientId))} · avant le ${esc(cvcDateTxt(p.date))}</div></div>
-    <div class="cvc-l-fin">${cvcPastille(p.j,'')}${peutAj?`<button type="button" class="btn sm" onclick="cvcPlanifier('${p.cle}')">Planifier</button>`:''}</div></div>`; }
+    <div class="cvc-l-fin">${cvcPastille(p.j,'')}${peutAj?`<button type="button" class="btn sm" onclick="cvcPlanifier('${p.cle}')">Planifier</button>`:''}${(()=>{ const e=cvcRappelEtape(p); if(!peutAj||!e) return '';
+      if(cvcRappelFait(p,e)) return `<span class="tag">rappel ${e==='j7'?'à 7 jours':'à 30 jours'} envoyé</span>`;
+      const c=(db.clients||[]).find(x=>x.id===p.clientId)||{}; return c.email?`<button type="button" class="btn ghost sm" onclick="cvcRappelEnvoyer('${p.cle}')">✉️ Rappel au client</button>`:''; })()}</div></div>`; }
 /* Le bloc des Tâches : en tête de liste, seulement pour un métier à parc, seulement s'il y a quelque chose à proposer. */
 /* ⛔ un calcul qui jette ne fait pas disparaître la carte SANS un mot : elle dit que les échéances sont indisponibles (et la console garde la cause). */
 function cvcIndisponible(id){ return `<div class="card" id="${id}" style="margin-bottom:12px"><div class="card-head"><h3>🔥 Entretiens à planifier</h3></div><div style="font-size:12.5px;color:var(--t3)">Échéances d’entretien indisponibles pour le moment — rouvrez l’écran ; si cela persiste, prévenez le support.</div></div>`; }
