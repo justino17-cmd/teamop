@@ -9,3 +9,8 @@
 - [Métiers](https://teamop.fr/metiers.html)
 - [Tarifs](https://teamop.fr/tarifs.html)
 - [Pourquoi TEAM OP](https://teamop.fr/pourquoi.html)
+
+## Blog
+
+- [Blog TEAM OP](https://teamop.fr/blog/) : conseils pour les entreprises de terrain (interventions, ordres de travail, devis, factures)
+- [Flux RSS du blog](https://teamop.fr/blog/flux.xml)

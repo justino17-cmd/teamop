@@ -13,6 +13,21 @@ de ligne du tout.
 
 ---
 
+# 🔶 24 OCTOBRE 2026 (SOIR) — LE BLOG RAPATRIÉ À teamop.fr/blog/ — branche `claude/blog-maison`, ATTEND LA FUSION DE JUSTIN
+
+Justin, 24 octobre 2026 : BabyLoveGrowth (blog.teamop.fr) demandait 600 € — « toi tu peux faire ce que BabyLoveGrowth fait », « bah go le
+faire, je vais pas payer ». Son abonnement BLG est inactif (rien n'a été prélevé) ; les quatre articles du 21 au 24 octobre y sont encore en ligne.
+- **Le blog** : sources dans `contenu/blog/` (NON publié — `articles.json` + un fragment HTML `<slug>.htm` par article + `SUJETS.md`, la file des sujets
+  et les règles d'écriture), images WebP dans `blog/img/`, pages FABRIQUÉES par `scripts/blog.js` (index, articles, flux RSS). Même en-tête et
+  même pied que le site (exportés par `site-marine.js`), feuille `vitrine/v2/blog.css`. Données structurées BlogPosting + fil d'Ariane + FAQ.
+- **Le site** : le pied mène à `/blog/` (plus à blog.teamop.fr), le plan du site liste le blog (`sitemap()` appelle `entreesSitemap()`),
+  `llms.txt` le cite, l'assemblage publie `blog/`. Retirés des articles : les encarts de BLG, le téléphone (règle du site : contact@ seul),
+  le crédit « Written with BabyLoveGrowth ». Banc : `tests/test-3000.js`.
+- **Reste ouvert** : (1) la fusion par Justin ; (2) **blog.teamop.fr** pointe toujours chez BLG (CNAME OVH) : une redirection OVH vers
+  `https://teamop.fr/blog/` évitera les liens morts quand BLG coupera — geste de Justin chez OVH ; (3) Search Console : soumettre le
+  nouveau plan du site après la fusion ; (4) la tâche planifiée « Article du blog » (deux par semaine) écrit chaque article dans une demande
+  de fusion — Justin relit et fusionne, rien ne part sans lui ; (5) Facebook / Instagram : partage des articles après la liaison du 31 octobre.
+
 # ✅ 24 OCTOBRE 2026 (SOIR) — NODEMAILER 10.2.1 ET MAILPARSER 3.12.4 — branche `claude/nodemailer-10-2`
 
 `npm audit --omit=dev` rendait des failles connues sur les deux serveurs (`server/` : nodemailer + mailparser ; `server-msg/` : nodemailer). Montés :
