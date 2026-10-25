@@ -803,7 +803,7 @@ module.exports = function monterMessagerie(app, ctx) {
     const objet = monStr(String(o.objet || '').replace(/[\r\n]+/g, ' '), 300).trim() || '(sans objet)';
     let texte = String(o.texte || '').trim();
     if (!texte) throw new Error('message vide');
-    /* ⛔ La signature d'un agent est SA signature (« Léa — Assistante virtuelle — Équipe TeamOP »), posée par le serveur et fournie par l'appelant : jamais celle
+    /* ⛔ La signature d'un agent est SA signature (« Léa — Assistante de TeamOP », et la mention de l'IA dessous), posée par le serveur et fournie par l'appelant : jamais celle
        du Courrier de Justin (qui peut porter son nom — Justin : « c'est hyper contradictoire de mettre Justin si c'est un agent qui répond »). Sans elle, rien ne part (Hugo, Margaux, Emma et Sarah la fournissent aussi : `agents-documents.js` — une seule règle d'envoi pour tous les agents, jamais un repli sur
        le Courrier de Justin). */
     const sig = String(o.signature || '').trim();

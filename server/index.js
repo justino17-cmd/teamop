@@ -10603,7 +10603,7 @@ try {
       return { domaines: [...dom], adresses: [...adr] };
     };
     const fichierAgents = require('./agents-fichier')(DATA_DIR);
-    /* LA SIGNATURE DES AGENTS (« Léa — Assistante virtuelle — Équipe TeamOP »), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
+    /* LA SIGNATURE DES AGENTS (« Léa — Assistante de TeamOP », et la mention de l'IA dessous), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
     try { signaturesMod = require('./agents-signature')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, fichier: fichierAgents }); }
     catch (e) { signaturesMod = null; console.error('signatures des agents indisponibles :', e.message); }
     try {
