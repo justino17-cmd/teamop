@@ -5,7 +5,7 @@
    Ce banc EXÉCUTE le vrai bloc CVC d'app.html et les VRAIES fonctions d'écriture PDF (`_pdfTxt` écrit, `_pdfLarg` mesure), et
    LIT le PDF qui sort :
      1. les seuils du CO (arrêté du 15 septembre 2009, article 3), aux frontières — et le CO des FUMÉES ne reçoit AUCUN verdict ;
-     2. qui peut recevoir une attestation : une chaudière, d'une intervention TERMINÉE qui la cite — jamais une pompe à chaleur ;
+     2. qui peut recevoir une attestation : une chaudière (et, depuis le 25 octobre 2026, une pompe à chaleur ou une climatisation — test-3003), d'une intervention TERMINÉE qui la cite ;
      3. le formulaire part des relevés de l'intervention (copiés), l'attestation déjà établie l'emporte ;
      4. l'enregistrement : droit lu dans la fonction qui écrit, une ligne d'historique, rien d'écrit à l'ouverture ;
      5. un vrai PDF : structure, pages, images, société, textes — ⛔ aucun « ? » pour une flèche, un émoji, un « ≥ », et aucune ligne
@@ -55,7 +55,11 @@ console.log('\n── 2896 · 2. qui peut recevoir une attestation ──');
   refus('intervention non terminée', 'i2', 'a1', /une fois l’intervention terminée/);
   refus('appareil non cité sur l’intervention', 'i1', 'a3', /pas cité/);
   refus('appareil d’un autre client', 'i3', 'a1', /pas cité/);
-  refus('pompe à chaleur', 'i1', 'a2', /que les chaudières/);
+  /* 25 octobre 2026 : la pompe à chaleur reçoit SON attestation (arrêté du 24 juillet 2020, test-3003) ; un chauffe-eau thermodynamique, exclu de l'arrêté, non */
+  vrai('pompe à chaleur + terminée + citée : accordée (attestation « thermo », test-3003)', !!W.cvcAttestationCtx('i1', 'a2'));
+  W.db.appareils.push({ id: 'a9', clientId: 'c1', type: 'cet', marque: 'Thermor' }); W.db.interventions[0].appareilIds.push('a9');
+  refus('chauffe-eau thermodynamique (exclu de l’arrêté)', 'i1', 'a9', /chaudières, les pompes à chaleur et les climatisations/);
+  W.db.appareils.pop(); W.db.interventions[0].appareilIds.pop();
   refus('intervention inconnue', 'iX', 'a1', /introuvable/);
   vrai('chaudière + terminée + citée : accordée', !!W.cvcAttestationCtx('i1', 'a1'));
 }
@@ -221,7 +225,7 @@ console.log('\n── 2896 · 6. l’aperçu : la fenêtre s’ouvre DANS le ges
     const W = monter({ db: BASE, pack: PACK });
     const t = W.cvcIntCard(W.db.interventions[0], false);
     vrai('chaudière visitée + terminée : bouton « Attestation d’entretien » actif', /cvcAttestationForm\('i1','a1'\)/.test(t) && !/disabled/.test(t.slice(t.indexOf('Attestation') - 200, t.indexOf('Attestation'))), t.slice(0, 80));
-    vrai('⛔ la pompe à chaleur visitée n’a PAS de bouton d’attestation', !/cvcAttestationForm\('i1','a2'\)/.test(t));
+    vrai('la pompe à chaleur visitée a SON bouton d’attestation (25 octobre 2026), mais pas de certificat de ramonage', /cvcAttestationForm\('i1','a2'\)/.test(t) && !/cvcRamonageForm\('i1','a2'\)/.test(t));
     const p = W.cvcIntCard(W.db.interventions[1], false);
     vrai('intervention planifiée : bouton grisé, avec la raison', /disabled/.test(p) && /une fois l’intervention terminée/.test(p));
     W.db.interventions[0].attestations = { a1: { etabliLe: '2026-10-21', envoyeeLe: 1790000000000, envoyeeA: 'elise@exemple.fr' } };
