@@ -174,6 +174,7 @@ const JUGE_SYSTEM = [
   '- impoli : le ton est familier, froid ou déplacé pour un courriel professionnel entre entreprises.',
   '- metier_inadapte : le contenu n’a aucun rapport avec l’activité du destinataire quand elle est donnée.',
   'Ne signale que de vrais défauts. Un style sobre et professionnel est bon. Ne juge ni l’orthographe de détail ni la mise en page : le code s’en charge.',
+  'Quand le contexte dit que l’activité est DÉDUITE (ou non indiquée), le courriel a le droit de la déduire du nom de l’entreprise s’il le présente comme une déduction et invite à la corriger (« d’après votre nom, nous comprenons… ; précisez-nous votre activité si nous faisons erreur ») : c’est voulu, ce n’est ni incohérent ni inventé.',
   '',
   'FORMAT STRICT DE TA RÉPONSE, rien d’autre : une première ligne « VERDICT : OK » ou « VERDICT : ECHEC » ; si ECHEC, une ligne « FAUTE : <code> » par défaut constaté (codes de la liste ci-dessus uniquement).',
 ].join('\n');
@@ -211,7 +212,9 @@ async function juger(o) {
     if (!r || !r.ok) return { etat: 'indisponible', raison: (r && r.raison) || 'erreur' };
     const v = lireVerdict(r.texte);
     /* le BAVARD : un verdict en première ligne, mais des phrases en plus — UNE relance, puis la lecture stricte (rien n'est deviné de la première réponse) */
-    if (v.etat === 'indisponible' && /^\s*(?:[-•>#*]+\s*)?(?:\*\*)?VERDICT\s*:/i.test(String(r.texte || ''))) {
+    /* (examen du 25 octobre 2026, scénario 6 : un courriel « contrôle non fait » — le juge avait écrit autre chose qu'un verdict en première ligne, et seule la
+       réponse qui COMMENÇAIT par « VERDICT » avait droit à une relance) : toute réponse non vide hors forme a droit à UNE relance ; rien n'est deviné d'elle */
+    if (v.etat === 'indisponible' && String(r.texte || '').trim()) {
       const r2 = await o.cerveau.penser(o.agent, JUGE_SYSTEM, demande.concat([{ role: 'assistant', content: String(r.texte).slice(0, 2000) },
         { role: 'user', content: 'Ta réponse n’a pas la forme demandée. Réponds de nouveau : la ligne « VERDICT : OK » ou « VERDICT : ECHEC », puis une ligne « FAUTE : <code> » par défaut constaté, et RIEN d’autre — aucune explication.' }]), { maxTokens: 300 });
       if (!r2 || !r2.ok) return { etat: 'indisponible', raison: (r2 && r2.raison) || 'erreur' };

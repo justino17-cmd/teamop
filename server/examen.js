@@ -370,7 +370,9 @@ function verifsJuge(E, j, criteres) {
 /* ═════════════ LES SCÉNARIOS ═════════════ */
 const RENVOI = /passe (?:la|cette) demande|je (?:le )?transmets|je te renvoie vers|je laisse (?:victor|@)|c['’]est (?:plut[ôo]t )?(?:[àa] )?(?:victor|@)/i;
 const DIT_IMPAYE = /impay|pas (?:encore )?(?:pay|r[ée]gl)|n['’]a pas (?:pay|r[ée]gl)|non (?:pay|r[ée]gl)|rien (?:de )?(?:pay|r[ée]gl)/i;
-const PAS_D_IMPAYE = /(?:pas d['’]|aucun |sans )impay\w*/gi;
+/* une NÉGATION d'impayé n'est pas un impayé : « pas d'impayé », « aucun impayé », et aussi « pas de dossier en impayé », « aucun dossier impayé »
+   (examen du 25 octobre 2026, scénario 1 : Margaux disait « payé » et « pas de dossier en impayé sur ma liste » — lu comme un impayé) */
+const PAS_D_IMPAYE = /(?:pas d['’]|pas de (?:dossier|client|facture)s? (?:en )?|aucune? (?:(?:dossier|client|facture)s? )?(?:en )?|sans |rien en )impay\w*/gi;
 const ditImpaye = t => DIT_IMPAYE.test(String(t || '').replace(PAS_D_IMPAYE, ' '));
 const DIT_PAYE = /pay[ée]|r[ée]gl[ée]|[àa] jour/i;
 const parAgent = (ms, id) => ms.filter(m => m.de === id);
@@ -680,13 +682,18 @@ async function sc9(E, X) {
   const echantillon = internes.slice(0, 30).map(m => '[' + (NOM[m.de] || m.de) + ' à ' + (m.a || 'Justin ou l’équipe') + '] ' + coupe(m.texte, 420)).join('\n');
   const courriels = mails.slice(0, 5).map(m => '[courriel de ' + (NOM[m.de] || m.de) + ' à un client]\n' + coupe(m.texte, 2600)).join('\n\n');
   const crit = [{ cle: 'c1', libelle: 'ton humain : des collègues qui parlent, pas un robot', texte: 'Les messages sonnent comme ceux de vrais collègues : voix personnelle, réponse adaptée à la question, phrases naturelles ; pas de ton d’assistant automatique.' },
-    { cle: 'c2', libelle: 'sans formule toute faite', texte: 'Aucune formule creuse ou stéréotypée répétée d’un agent à l’autre (mêmes ouvertures, mêmes conclusions de politesse).' },
+    { cle: 'c2', libelle: 'sans formule toute faite', texte: 'Aucune formule creuse ou stéréotypée répétée d’un agent à l’autre (mêmes ouvertures, mêmes conclusions de politesse). ⛔ Les phrases que le MODÈLE DE COURRIEL de TeamOP impose mot pour mot à tous ses courriels (la voix de l’entreprise, validée par Justin) ne comptent pas : ' + FORMULES_MAISON.map(f => '« ' + f + ' »').join(', ') + ', et « Bien cordialement, ». Ne juge que ce que les agents écrivent d’eux-mêmes.' },
     { cle: 'c3', libelle: 'les agents tutoient Justin', texte: 'Dans les messages adressés à Justin ou à l’équipe, les agents tutoient Justin (jamais « vous » pour lui parler).' },
     { cle: 'c4', libelle: 'les courriels aux clients vouvoient et sonnent professionnels', texte: 'Les courriels aux clients vouvoient, sont courtois et professionnels, sans familiarité. Ils sont donnés SANS leur signature (le serveur l’ajoute à l’envoi) et l’examen masque les adresses en « (adresse) » : ni l’un ni l’autre n’est un défaut.' }];
   const j = await juger(X.juge, crit, 'Messages des agents :\n' + echantillon + '\n\n' + courriels);
   for (const x of verifsJuge(E, j, crit)) v.push(x);
   return v;
 }
+
+/* Les phrases que le modèle de courriel (agent-lea.js, agent-camille.js, agent-chloe.js : « Accroche », « Fermeture ») impose mot pour mot : le juge du ton ne les
+   compte pas comme formules toutes faites (examen du 25 octobre 2026, scénario 9). test-3001 vérifie qu'elles sont toujours dans le cahier d'un agent — une
+   phrase retirée du cahier qui resterait ici serait une exemption pour du vide. */
+const FORMULES_MAISON = ['Nous vous remercions pour votre message.', 'Nous restons à votre disposition par retour de mail ou par téléphone.'];
 
 const SCENARIOS = [
   { n: 1, cle: 'question', titre: 'Une question à Margaux reçoit la réponse de Margaux', jouer: sc1, appelsMax: 8, dureeMax: 240000 },
@@ -966,6 +973,9 @@ module.exports.juger = juger;
 module.exports.verif = verif;
 module.exports.verifTraite = verifTraite;
 module.exports.etatDuScenario = etatDuScenario;
+module.exports.FORMULES_MAISON = FORMULES_MAISON;
+module.exports.ditImpaye = ditImpaye;
+module.exports.DIT_PAYE = DIT_PAYE;
 module.exports.SCENARIOS = SCENARIOS;
 module.exports.MAX_APPELS = MAX_APPELS;
 module.exports.USD_MAX = USD_MAX;
