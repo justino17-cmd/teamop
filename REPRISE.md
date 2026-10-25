@@ -13,6 +13,16 @@ de ligne du tout.
 
 ---
 
+# ✅ 24 OCTOBRE 2026 (SOIR) — NODEMAILER 10.2.1 ET MAILPARSER 3.12.4 — branche `claude/nodemailer-10-2`
+
+`npm audit --omit=dev` rendait des failles connues sur les deux serveurs (`server/` : nodemailer + mailparser ; `server-msg/` : nodemailer). Montés :
+0 faille sur les deux. Listes jouées en entier : serveur 139 suites · 9 196 vérifications, OP MESSAGES 182 suites · 11 914 vérifications.
+⚠️ Un seul banc tombait, `test-997` §7 ter, et le défaut était dans le BANC : nodemailer 10.2 mesure ses délais par `Date.now`, et l'horloge du banc
+(`lib-horloge-msg.js`) sautait de 61 s PENDANT un envoi encore en cours — ETIMEDOUT. Le banc attend désormais que le relais ait reçu le courriel avant
+d'avancer l'horloge (4 passages sur 4, contre 3 échecs sur 4). La fusion redéploie les DEUX serveurs.
+
+---
+
 # 🔶 24 OCTOBRE 2026 (NUIT) — L'ESPACE DE TEST (test.teamop.fr) — branche `claude/espace-de-test`, ATTEND LES GESTES DE JUSTIN SUR LE VPS
 
 Justin, 23 octobre 2026 : « toute modification, site, application, la Tour, je veux des espaces de test, et après on pousse ; chaque test
