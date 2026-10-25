@@ -28,6 +28,10 @@ const vrai = (t, c, info) => { if (c) { ok++; console.log('  ✓ ' + t); } else 
   vrai('⛔ les vrais messages de ce soir (« Si tu as besoin… », « Je te la sors ») : Justin est tutoyé', r && r.etat === 'ok', JSON.stringify(r));
   r = await jouer(base.concat([{ de: 'margaux', a: 'margaux', texte: 'Pourriez-vous me dire si vous souhaitez le détail de la facture ?' }]));
   vrai('⛔ un agent qui VOUVOIE Justin dans son fil privé : échec, et le message est cité', r && r.etat === 'ko' && /Pourriez-vous/.test(r.detail), JSON.stringify(r));
+  r = await jouer(base.concat([{ de: 'camille', a: 'camille', texte: 'Je te prépare la liste.' }, { de: 'margaux', a: 'margaux', texte: 'Souhaitez-vous que je vous envoie le détail ?' }]));
+  vrai('⛔ un message tutoie, un AUTRE vouvoie : échec quand même (aucun ne le vouvoie)', r && r.etat === 'ko' && /Souhaitez-vous/.test(r.detail), JSON.stringify(r));
+  r = await jouer(base.concat([{ de: 'margaux', a: 'margaux', texte: 'Le dossier DOS-900001 est payé, formule pro.' }]));
+  vrai('⛔ des messages à Justin, mais aucun ne le tutoie : échec', r && r.etat === 'ko' && /aucun message ne le tutoie/.test(r.detail), JSON.stringify(r));
   r = await jouer(base);
   vrai('   aucun message dans un fil privé : échec (rien à compter n’est pas un succès)', r && r.etat === 'ko' && /aucun message dans un fil privé/.test(r.detail), JSON.stringify(r));
   r = await jouer(base.concat([{ de: 'camille', a: 'camille', texte: 'Le client nous écrit « vous êtes injoignables », je te prépare une réponse.' }]));
