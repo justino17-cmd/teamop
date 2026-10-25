@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<script>/* le jour et la nuit suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on efface le choix qu'avait rangé l'ancien bouton ☀︎/☾, que plus rien ne lit (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>
+<title>Signature électronique de devis : valeur, niveaux et marche à suivre | Blog TEAM OP</title>
+<meta name="description" content="Signer un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.">
+<link rel="canonical" href="https://teamop.fr/blog/signature-electronique-devis.html">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="TEAM OP">
+<meta property="og:title" content="Signature électronique de devis : valeur, niveaux et marche à suivre">
+<meta property="og:description" content="Signer un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.">
+<meta property="og:url" content="https://teamop.fr/blog/signature-electronique-devis.html">
+<meta property="og:image" content="https://teamop.fr/blog/img/signature-devis-couverture.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="675">
+<meta property="og:image:alt" content="Technicienne qui fait signer un devis sur tablette à une cliente">
+<meta property="article:published_time" content="2026-10-24">
+<meta property="article:author" content="Justin Biret">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" type="application/rss+xml" title="Blog TEAM OP" href="/blog/flux.xml">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "@id": "https://teamop.fr/blog/signature-electronique-devis.html#article",
+      "headline": "Signature électronique de devis : valeur, niveaux et marche à suivre",
+      "description": "Signer un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.",
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://teamop.fr/blog/img/signature-devis-couverture.webp",
+        "width": 1200,
+        "height": 675
+      },
+      "datePublished": "2026-10-24",
+      "dateModified": "2026-10-24",
+      "inLanguage": "fr-FR",
+      "mainEntityOfPage": "https://teamop.fr/blog/signature-electronique-devis.html",
+      "author": {
+        "@type": "Person",
+        "name": "Justin Biret",
+        "jobTitle": "Fondateur de TEAM OP",
+        "url": "https://teamop.fr/pourquoi.html"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://teamop.fr/#organisation",
+        "name": "TEAM OP",
+        "url": "https://teamop.fr/",
+        "logo": "https://teamop.fr/icons/teamop-192.png"
+      },
+      "wordCount": 2533
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Accueil",
+          "item": "https://teamop.fr/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://teamop.fr/blog/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Signature électronique de devis : valeur, niveaux et marche à suivre",
+          "item": "https://teamop.fr/blog/signature-electronique-devis.html"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Une signature électronique sur un devis a-t-elle une valeur juridique ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui. Selon l’article 1366 du Code civil, l’écrit électronique a la même force probante que l’écrit papier si son auteur est identifiable et si son intégrité est garantie. La signature doit reposer sur un procédé fiable d’identification. Seule la signature qualifiée est explicitement équivalente à la signature manuscrite dans tous les pays de l’Union européenne."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Peut-on signer un devis par e-mail ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, le client peut signer à partir d’un lien reçu par e-mail, parfois avec un code de vérification. Un simple retour de message sans lien avec la version exacte du devis est en revanche une preuve fragile. Conservez toujours l’e-mail, le devis et la date ensemble."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "OP GESTION propose-t-il la signature électronique des devis ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Non. Le devis PDF comporte un cadre « Bon pour accord » que le client date et signe. L’entreprise passe ensuite le devis en « accepté » et le convertit en facture. La signature sur téléphone est réservée aux fiches d’intervention."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Quel niveau de signature choisir pour un devis ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "La signature simple suffit pour de nombreux devis courants, la signature avancée convient aux montants élevés ou aux clients à risque. La signature qualifiée reste exceptionnelle. Si un client ou un donneur d’ordre impose un niveau, suivez son exigence."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Combien de temps conserver un devis signé ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "La durée dépend de la nature du document et de votre activité. La durée par défaut proposée par les outils, souvent dix ans, ne correspond pas nécessairement à vos obligations réelles. Faites-la valider par votre expert-comptable."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/teamop-192.png">
+<link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
+<link rel="manifest" href="/manifest-teamop.webmanifest">
+<link rel="stylesheet" href="/vitrine/v2/site.css">
+<link rel="stylesheet" href="/vitrine/v2/blog.css">
+<link rel="preload" as="image" href="/blog/img/signature-devis-couverture.webp" fetchpriority="high">
+</head>
+<body>
+<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
+      <a class="marque" href="/"><img src="/icons/teamop-192.png" width="22" height="22" alt="TEAM OP"><span aria-hidden="true">TEAM OP</span></a>
+      <div class="nav-liens"><a href="/applications.html" data-fly="applications" aria-haspopup="true" aria-expanded="false">Applications</a><a href="/metiers.html" data-fly="metiers" aria-haspopup="true" aria-expanded="false">Métiers</a><a href="/tarifs.html" data-fly="tarifs" aria-haspopup="true" aria-expanded="false">Tarifs</a><a href="/pourquoi.html" data-fly="pourquoi" aria-haspopup="true" aria-expanded="false">Pourquoi TEAM OP</a></div>
+      <div class="nav-droite"><a class="pilule" href="/espace.html">Espace client</a>
+        <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    </div><div class="fly" id="fly-applications"><div class="fly-in"><div><div class="fly-t">Explorer les applications</div><div class="fly-grand"><a href="/op-gestion.html"><b>OP GESTION</b><small>Gestion tout-en-un : interventions, stock, compta</small></a><a href="/opmessages.html"><b>OP MESSAGES</b><small>Messagerie d'équipe — bientôt disponible</small></a><a href="/creer.html"><b>Créer votre application</b><small>Décrivez votre besoin, on le construit</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div></div></div></div><div class="fly" id="fly-metiers"><div class="fly-in"><div><div class="fly-t">Explorer les métiers</div><div class="fly-grand"><a href="/logiciel-anti-nuisibles.html"><b>3D — Anti-nuisibles</b><small>Pack complet : registre sanitaire, biocides</small></a><a href="/logiciel-plombier.html"><b>Plomberie</b></a><a href="/logiciel-electricien.html"><b>Électricité</b></a><a href="/logiciel-chauffage-climatisation.html"><b>Chauffage / Climatisation</b></a><a href="/logiciel-nettoyage.html"><b>Nettoyage / Propreté</b></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/metiers.html">Tous les métiers</a></div></div></div></div><div class="fly" id="fly-tarifs"><div class="fly-in"><div><div class="fly-t">Explorer les tarifs</div><div class="fly-grand"><a href="/tarifs.html#op-gestion"><b>Tarifs OP GESTION</b><small>Pro 15 € · Business 25 € · Business Premium 50 €</small></a><a href="/tarifs.html#opmessages"><b>Tarifs OP MESSAGES</b><small>Perso · Pro · Premium — bientôt disponible</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div></div></div></div><div class="fly" id="fly-pourquoi"><div class="fly-in"><div><div class="fly-t">Pourquoi TEAM OP</div><div class="fly-grand"><a href="/pourquoi.html#partenaire"><b>Au service des entreprises</b><small>On écoute, on adapte, on construit avec vous</small></a><a href="/pourquoi.html#engagements"><b>Sécurité et engagements</b><small>Chiffrement AES-256, vos données à vous</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></div></div></div></div></nav>
+    <div class="menu-mobile" id="menu-mobile"><section><div class="fly-t">TEAM OP</div><a href="/">Accueil</a></section><section><div class="fly-t">Applications</div><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></section><section><div class="fly-t">Métiers</div><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></section><section><div class="fly-t">Tarifs</div><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></section><section><div class="fly-t">Pourquoi TEAM OP</div><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></section></div>
+  </header><div class="voile" aria-hidden="true"></div>
+<main>
+<article class="billet">
+<nav class="fil" aria-label="Fil d'Ariane"><a href="/">Accueil</a><span aria-hidden="true">›</span><a href="/blog/">Blog</a></nav>
+<header class="billet-tete">
+<h1>Signature électronique de devis : valeur, niveaux et marche à suivre</h1>
+<p class="billet-meta">Par Justin Biret · <time datetime="2026-10-24">24 octobre 2026</time> · 12 min de lecture</p>
+</header>
+<figure class="billet-couverture"><img src="/blog/img/signature-devis-couverture.webp" alt="Technicienne qui fait signer un devis sur tablette à une cliente" width="1200" height="675" fetchpriority="high" decoding="async"></figure>
+<div class="billet-corps">
+<p>Oui, un devis peut être signé en ligne en France, et cette signature peut engager le client, à condition qu’elle identifie son auteur et que le document reste intact. Pour un artisan ou une entreprise de terrain, la vraie question n’est donc pas « est-ce légal ? » mais « quel niveau de preuve me faut-il, et comment garder une trace propre de l’accord ? ». Cet article répond aux deux, et dit franchement comment OP GESTION gère l’accord client sur un devis, sans signature électronique intégrée.</p>
+<aside class="billet-encart" aria-label="OP GESTION"><p class="surtitre">OP GESTION</p>
+<p class="encart-titre">Interventions, planning, devis et factures, dans une seule application.</p>
+<p>Pour les entreprises de terrain, sur téléphone, tablette et ordinateur. À partir de 15 € par mois et par utilisateur, sans engagement.</p>
+<p class="encart-actions"><a class="bouton" href="/op-gestion.html">Découvrir OP GESTION</a><a class="lien-suite" href="/demo.html">Essayer la démonstration ›</a></p></aside>
+<h2 id="en-bref">En bref</h2>
+<ul>
+<li>Le Code civil reconnaît l’écrit électronique comme preuve, si l’auteur est identifiable et si l’intégrité du document est garantie.</li>
+<li>Une signature électronique ne peut pas être rejetée au seul motif qu’elle est électronique ; seule la signature qualifiée est explicitement équivalente à la signature manuscrite dans toute l’Union européenne.</li>
+<li>Pour un devis courant, le sujet est surtout la preuve : qui a signé, quand, quel document, et sa conservation.</li>
+<li>OP GESTION ne propose pas de signature électronique des devis : le PDF porte un cadre « Bon pour accord » que le client date et signe, puis le devis passe en « accepté » et se convertit en facture.</li>
+</ul>
+<h2 id="table-des-matieres">Table des matières</h2>
+<ul>
+<li><a href="#ce-que-dit-la-loi-sur-la-signature-dun-devis">Ce que dit la loi sur la signature d’un devis</a></li>
+<li><a href="#signature-electronique-ou-signature-numerique-la-difference">Signature électronique ou signature numérique : la différence</a></li>
+<li><a href="#les-trois-niveaux-de-signature-et-celui-quil-vous-faut">Les trois niveaux de signature et celui qu’il vous faut</a></li>
+<li><a href="#comment-un-client-signe-un-devis-en-ligne">Comment un client signe un devis en ligne</a></li>
+<li><a href="#ce-que-fait-op-gestion-et-ce-quil-ne-fait-pas">Ce que fait OP GESTION, et ce qu’il ne fait pas</a></li>
+<li><a href="#les-preuves-a-conserver-apres-laccord">Les preuves à conserver après l’accord</a></li>
+<li><a href="#les-erreurs-qui-fragilisent-un-devis-signe">Les erreurs qui fragilisent un devis signé</a></li>
+<li><a href="#un-exemple-de-dossier-de-bout-en-bout">Un exemple de dossier de bout en bout</a></li>
+<li><a href="#notre-point-de-vue">Notre point de vue</a></li>
+<li><a href="#op-gestion-pour-gerer-devis-interventions-et-factures">OP GESTION pour gérer devis, interventions et factures</a></li>
+<li><a href="#faq">FAQ</a></li>
+<li><a href="#sources">Sources</a></li>
+</ul>
+<h2 id="ce-que-dit-la-loi-sur-la-signature-dun-devis">Ce que dit la loi sur la signature d’un devis</h2>
+<p>Un devis accepté devient la base d’un contrat : prix, périmètre, délais. En cas de litige, c’est à celui qui s’appuie sur l’accord de le prouver. C’est là que la signature intervient.</p>
+<p>Le <a href="https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000006070721/LEGISCTA000032037827/2025-05-14/" rel="noopener">Code civil, articles 1363 à 1380</a> pose les règles de la preuve par écrit. L’article 1366 donne à l’écrit électronique la même force probante que l’écrit sur support papier, sous deux conditions : la personne dont il émane doit pouvoir être identifiée, et l’écrit doit être établi et conservé dans des conditions qui garantissent son intégrité. L’article 1367 ajoute que la signature, quand elle est électronique, doit reposer sur un procédé fiable d’identification, lié à l’acte auquel elle s’attache.</p>
+<p>Traduit pour un chef d’entreprise : ce qui compte n’est pas le dessin de la signature, mais la capacité à démontrer trois choses.</p>
+<ol>
+<li><strong>Qui</strong> a accepté (identité du signataire).</li>
+<li><strong>Quoi</strong> : le devis exact, sans modification après coup.</li>
+<li><strong>Quand</strong> : la date de l’acceptation.</li>
+</ol>
+<p>Au niveau européen, la Commission explique dans sa <a href="https://ec.europa.eu/digital-building-blocks/sites/spaces/DIGITAL/pages/880312429/eSignature+FAQ" rel="noopener">FAQ sur la signature électronique</a> qu’une signature électronique ne peut pas être privée d’effet juridique ni refusée comme preuve au seul motif qu’elle est électronique ou non qualifiée. Elle précise aussi que seule la signature qualifiée bénéficie, dans tous les États membres, d’un effet équivalent à la signature manuscrite.</p>
+<h2 id="signature-electronique-ou-signature-numerique-la-difference">Signature électronique ou signature numérique : la différence</h2>
+<p>Dans les recherches, les deux termes se mélangent. Pour un devis, la distinction est simple.</p>
+<ul>
+<li>La <strong>signature électronique</strong> est la notion juridique, définie par le règlement européen eIDAS : des données électroniques jointes à un document pour exprimer l’accord de son signataire.</li>
+<li>La <strong>signature numérique</strong> désigne généralement la technique cryptographique (certificats, clés) qui permet de produire ou de vérifier certaines signatures.</li>
+</ul>
+<p>Toutes les signatures électroniques ne reposent donc pas sur une signature numérique cryptographique. Un client qui coche une case après avoir reçu un code par e-mail a fait un geste électronique ; un client qui signe avec un certificat qualifié a fait un geste de niveau supérieur. Les deux sont des signatures électroniques au sens du droit.</p>
+<h2 id="les-trois-niveaux-de-signature-et-celui-quil-vous-faut">Les trois niveaux de signature et celui qu’il vous faut</h2>
+<p>Le cadre européen distingue trois niveaux : simple, avancée et qualifiée.</p>
+<div class="tableau"><table><thead><tr><th>Niveau</th><th>Ce qu’il apporte</th><th>Usage typique pour un devis</th></tr></thead><tbody><tr><td>Simple</td><td>Un geste électronique d’acceptation, preuve à apprécier au cas par cas</td><td>Devis courants, petits montants, client connu</td></tr><tr><td>Avancée</td><td>Lien unique avec le signataire, identification, contrôle exclusif, détection de toute modification ultérieure</td><td>Chantiers importants, clients à risque d’impayé ou de contestation</td></tr><tr><td>Qualifiée</td><td>Équivalence explicite avec la signature manuscrite dans toute l’UE</td><td>Cas rares : marchés très encadrés, exigences contractuelles particulières</td></tr></tbody></table></div>
+<p>La définition de la signature avancée vient de la <a href="https://ec.europa.eu/digital-building-blocks/sites/spaces/DIGITAL/pages/880312429/eSignature+FAQ" rel="noopener">FAQ de la Commission européenne</a> : elle doit être liée de manière unique au signataire, permettre de l’identifier, rester sous son contrôle et révéler toute modification du document après signature.</p>
+<h3 id="comment-choisir">Comment choisir</h3>
+<p>Le bon niveau dépend du risque, pas de la mode. Posez-vous quatre questions.</p>
+<ul>
+<li><strong>Quel est le montant ?</strong> Un dépannage à 180 € et une rénovation électrique à 14 000 € n’appellent pas le même dossier de preuve.</li>
+<li><strong>Qui est le client ?</strong> Un particulier que vous avez rencontré sur place, un syndic ou une entreprise avec plusieurs interlocuteurs : le risque de contestation n’est pas le même.</li>
+<li><strong>Le devis sera-t-il modifié ?</strong> Dès que le périmètre bouge, il faut une nouvelle version, jamais une retouche silencieuse du document déjà accepté.</li>
+<li><strong>Quelqu’un vous demande-t-il un niveau précis ?</strong> Un donneur d’ordre, un assureur ou un marché public peuvent l’exiger. C’est alors à lui de vous dire lequel.</li>
+</ul>
+<p>Pour les formalités d’entreprise et le choix du niveau selon l’usage, le guide de <a href="https://www.francenum.gouv.fr/guides-et-conseils/pilotage-de-lentreprise/dematerialisation-des-documents/la-signature" rel="noopener">France Num sur la signature électronique</a> est la référence publique à consulter.</p>
+<h2 id="comment-un-client-signe-un-devis-en-ligne">Comment un client signe un devis en ligne</h2>
+<p>Les services de signature en ligne suivent à peu près tous le même parcours.</p>
+<ol>
+<li>L’entreprise sélectionne ou crée le devis, renseigne l’e-mail et l’identité du destinataire.</li>
+<li>Le client reçoit un lien sécurisé par e-mail, sans créer de compte.</li>
+<li>Il vérifie son adresse, saisit parfois un code reçu par e-mail, lit le devis et valide.</li>
+<li>Chaque partie reçoit une copie du document signé, avec un dossier de preuve.</li>
+</ol>
+<p>L’article 1375 du Code civil précise que lorsqu’un acte doit être établi en plusieurs originaux, l’exigence est satisfaite pour un acte électronique si chaque partie peut accéder à un exemplaire durable. Concrètement : le client doit repartir avec son devis signé, pas seulement vous.</p>
+<p>À cela s’ajoute un point pratique : un devis signé « par mail » n’a de valeur que si le mail et la pièce jointe sont conservés ensemble, avec leur date. Un simple « OK pour moi » dans une messagerie, sans lien clair avec la version exacte du devis, est une preuve fragile.</p>
+<h2 id="ce-que-fait-op-gestion-et-ce-quil-ne-fait-pas">Ce que fait OP GESTION, et ce qu’il ne fait pas</h2>
+<p>Précisons notre position, parce qu’elle compte pour votre choix : <strong>OP GESTION ne propose pas de signature électronique des devis.</strong> Nous préférons le dire clairement plutôt que de laisser croire le contraire.</p>
+<p>Voici le circuit réel :</p>
+<ol>
+<li>Vous créez le devis dans l’application, depuis le chantier ou depuis votre poste. L’agent IA peut préparer le devis, avec la TVA à 10 % ou 20 % gérée.</li>
+<li>Le devis est généré en PDF. Il porte un cadre « Bon pour accord » que le client date et signe.</li>
+<li>Une fois l’accord reçu, vous passez le devis en « accepté ».</li>
+<li>Vous le convertissez en facture, sans ressaisie.</li>
+</ol>
+<p>La signature sur téléphone existe, elle, pour les <strong>fiches d’intervention</strong> : le technicien fait signer le client sur son smartphone ou sa tablette à la fin de l’intervention, avec photos et rapport PDF. C’est un autre document, avec un autre rôle : attester que le travail a été réalisé et constaté, non engager le client sur un prix.</p>
+<p>Pour qui ce circuit convient-il ? Pour la majorité des devis de petite et moyenne taille d’une TPE de terrain : dépannage, entretien, remplacement d’équipement, chantier chez un particulier. Le client lit le montant, date, signe, vous le renvoie, et vous gardez le tout rattaché au dossier. Si vous traitez des chantiers à fort enjeu financier ou si un donneur d’ordre exige un niveau de signature précis, vous pouvez compléter avec un service de signature spécialisé pour ces cas seulement, et réintégrer le PDF signé au dossier du client.</p>
+<h2 id="les-preuves-a-conserver-apres-laccord">Les preuves à conserver après l’accord</h2>
+<p>Signer ne suffit pas, il faut pouvoir produire le dossier des années plus tard. D’après France Num, l’archivage électronique doit garantir l’intégrité des documents, pour qu’ils ne puissent pas être altérés. Le même guide rappelle que la durée de conservation proposée par défaut, souvent dix ans, ne correspond pas forcément à vos obligations réelles : à vérifier selon la nature du document et de votre activité, éventuellement avec votre expert-comptable.</p>
+<p>Un dossier d’accord solide contient en général :</p>
+<ul>
+<li>le devis final, dans la version exacte acceptée, avec ses annexes ;</li>
+<li>vos conditions générales de vente, si elles ont été remises avec le devis ;</li>
+<li>la preuve de l’acceptation : signature datée sur le cadre « Bon pour accord », ou fichier de preuve d’un service de signature (certificats, horodatage) ;</li>
+<li>les échanges qui précisent le périmètre ;</li>
+<li>la facture qui en découle.</li>
+</ul>
+<p>La question de l’intégrité, du lien entre un document signé et sa preuve, se pose dans tous les métiers qui signent à distance, y compris la maintenance industrielle ; cet éclairage sur la <a href="https://manutentya.it/blog/gestione-dpi-firma-digitale-e-sicurezza-innovazione-nella-manutenzione-industriale-20261017" rel="noopener">signature digitale en maintenance</a> montre bien pourquoi on conserve le fichier signé et sa preuve ensemble.</p>
+<h3 id="quand-le-chantier-change">Quand le chantier change</h3>
+<p>Un devis accepté ne se retouche pas. Si le client ajoute une prise, une zone à traiter ou un équipement, créez une nouvelle version ou un avenant, à faire accepter à son tour. Vous protégez ainsi les deux parties et évitez la discussion « ce n’était pas dans le devis ».</p>
+<h2 id="les-erreurs-qui-fragilisent-un-devis-signe">Les erreurs qui fragilisent un devis signé</h2>
+<ul>
+<li><strong>Un devis sans date de validité ni délai</strong>, qui laisse la porte ouverte aux contestations.</li>
+<li><strong>Un accord par texto ou messagerie</strong> sans lien avec le document exact.</li>
+<li><strong>Un devis modifié après signature</strong> sans nouvelle version.</li>
+<li><strong>Des documents éparpillés</strong> : le devis dans un dossier, la signature dans une boîte mail, la facture ailleurs.</li>
+<li><strong>Un archivage non maîtrisé</strong>, sans garantie d’intégrité ni durée de conservation réfléchie.</li>
+<li><strong>Une facture qui ne correspond pas au devis accepté</strong>, faute de lien entre les deux documents.</li>
+</ul>
+<p>Le dernier point est celui qu’un logiciel de gestion règle le mieux : quand la facture naît du devis accepté, l’écart disparaît et l’historique du dossier reste lisible.</p>
+<h2 id="un-exemple-de-dossier-de-bout-en-bout">Un exemple de dossier de bout en bout</h2>
+<p>Prenons un plombier qui remplace un chauffe-eau chez un particulier. Il établit le devis depuis son smartphone, dans la camionnette, devant la maison. Le PDF part par e-mail avec le cadre « Bon pour accord ». Le client le date, le signe et le renvoie le lendemain. Le plombier passe le devis en « accepté », planifie l’intervention, puis le jour J, il enregistre les produits utilisés sur la fiche d’intervention et fait signer le client sur le téléphone pour attester la réalisation. Il convertit enfin le devis en facture.</p>
+<figure><img alt="Parcours du devis signé à la facture" decoding="async" height="675" loading="lazy" src="/blog/img/signature-devis-parcours.webp" width="1200"/></figure>
+<p>À aucun moment il ne ressaisit une ligne. Et en cas de question, tout est rattaché à la même fiche client : devis accepté, fiche d’intervention signée, photos, facture. Pour les stocks, une intervention n’en déduit rien : elle enregistre seulement les produits utilisés, et le stock ne bouge que par une sortie qui précise pour qui, un arrivage ou une correction. Vous voyez ainsi exactement ce qui a été posé et ce qui a été sorti. Découvrez ce circuit dans notre <a href="/logiciel-plombier.html">logiciel pour plombiers</a>, ou, côté installations, dans notre <a href="/logiciel-electricien.html">logiciel électricien</a>.</p>
+<h2 id="notre-point-de-vue">Notre point de vue</h2>
+<p>Nous travaillons tous les jours avec des plombiers, des électriciens, des équipes de nettoyage et des techniciens anti-nuisibles. Ce que nous voyons, c’est que le problème n’est presque jamais la signature elle-même : c’est le temps perdu entre le devis, l’accord, l’intervention et la facture. Un devis qui dort dans une boîte mail, une facture retapée à la main, un accord impossible à retrouver : voilà ce qui coûte de l’argent.</p>
+<p>C’est pourquoi nous avons choisi un circuit sobre et honnête. Le devis PDF porte son cadre « Bon pour accord », le client le date et le signe, l’entreprise passe le devis en « accepté » puis le convertit en facture. Nous ne vendons pas de signature électronique des devis, et nous préférons que vous le sachiez avant de vous abonner. En revanche, la signature sur téléphone des fiches d’intervention est solide, simple, et pensée pour le terrain.</p>
+<p>Notre conseil : choisissez le niveau de preuve d’après le risque de chaque devis, pas d’après un effet de mode, et gardez toujours le devis, l’accord et la facture dans le même dossier.</p>
+<p class="signature">— Justin Biret, fondateur de TEAM OP</p>
+<h2 id="op-gestion-pour-gerer-devis-interventions-et-factures">OP GESTION pour gérer devis, interventions et factures</h2>
+<p>OP GESTION centralise les devis, les interventions, le planning des techniciens, le stock et la facturation, sur iOS, Android, macOS, Windows et Web. Trois formules, facturées par utilisateur et par mois : Pro à 15 €, Business à 25 € et Business Premium à 50 €. Le détail est sur la <a href="/tarifs.html">page des tarifs</a>. Pour la partie devis et facturation, voyez aussi notre <a href="/logiciel-devis-factures.html">logiciel de devis et factures pour artisans</a>.</p>
+<p>L’assistance est joignable du lundi au vendredi, de 9 h à 12 h et de 14 h à 18 h.</p>
+<h2 id="faq">FAQ</h2>
+<h3 id="une-signature-electronique-sur-un-devis-a-t-elle-une-valeur-juridique">Une signature électronique sur un devis a-t-elle une valeur juridique ?</h3>
+<p>Oui. Selon l’article 1366 du Code civil, l’écrit électronique a la même force probante que l’écrit papier si son auteur est identifiable et si son intégrité est garantie. La signature doit reposer sur un procédé fiable d’identification. Seule la signature qualifiée est explicitement équivalente à la signature manuscrite dans tous les pays de l’Union européenne.</p>
+<h3 id="peut-on-signer-un-devis-par-e-mail">Peut-on signer un devis par e-mail ?</h3>
+<p>Oui, le client peut signer à partir d’un lien reçu par e-mail, parfois avec un code de vérification. Un simple retour de message sans lien avec la version exacte du devis est en revanche une preuve fragile. Conservez toujours l’e-mail, le devis et la date ensemble.</p>
+<h3 id="op-gestion-propose-t-il-la-signature-electronique-des-devis">OP GESTION propose-t-il la signature électronique des devis ?</h3>
+<p>Non. Le devis PDF comporte un cadre « Bon pour accord » que le client date et signe. L’entreprise passe ensuite le devis en « accepté » et le convertit en facture. La signature sur téléphone est réservée aux fiches d’intervention.</p>
+<h3 id="quel-niveau-de-signature-choisir-pour-un-devis">Quel niveau de signature choisir pour un devis ?</h3>
+<p>La signature simple suffit pour de nombreux devis courants, la signature avancée convient aux montants élevés ou aux clients à risque. La signature qualifiée reste exceptionnelle. Si un client ou un donneur d’ordre impose un niveau, suivez son exigence.</p>
+<h3 id="combien-de-temps-conserver-un-devis-signe">Combien de temps conserver un devis signé ?</h3>
+<p>La durée dépend de la nature du document et de votre activité. La durée par défaut proposée par les outils, souvent dix ans, ne correspond pas nécessairement à vos obligations réelles. Faites-la valider par votre expert-comptable.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000006070721/LEGISCTA000032037827/2025-05-14/" rel="noopener">Code civil, articles 1363 à 1380 : la preuve par écrit (Légifrance)</a></li>
+<li><a href="https://ec.europa.eu/digital-building-blocks/sites/spaces/DIGITAL/pages/880312429/eSignature+FAQ" rel="noopener">eSignature FAQ (Commission européenne)</a></li>
+<li><a href="https://www.francenum.gouv.fr/guides-et-conseils/pilotage-de-lentreprise/dematerialisation-des-documents/la-signature" rel="noopener">La signature électronique (France Num)</a></li>
+<li><a href="https://manutentya.it/blog/gestione-dpi-firma-digitale-e-sicurezza-innovazione-nella-manutenzione-industriale-20261017" rel="noopener">Signature digitale en maintenance</a></li>
+</ul><h2 id="recommandations">Recommandations</h2>
+<ul>
+<li><a href="/logiciel-devis-factures.html">Logiciel de devis et factures pour artisans</a></li>
+<li><a href="/logiciel-electricien.html">Logiciel électricien : interventions et devis</a></li>
+</ul>
+<p>Cet article est rédigé avec l’aide d’un outil d’IA et relu par l’équipe TEAM OP. Il est fourni à titre d’information générale et ne remplace pas l’avis d’un expert-comptable ou d’un juriste.</p>
+</div>
+<footer class="billet-auteur"><img src="/icons/teamop-192.png" width="48" height="48" alt="" loading="lazy"><div><b>Justin Biret</b><span>Fondateur de TEAM OP. Une question sur cet article : <a href="mailto:contact@teamop.fr">contact@teamop.fr</a></span></div></footer>
+</article>
+<section class="blog-suite" aria-labelledby="a-lire"><h2 id="a-lire">À lire aussi</h2><div class="blog-grille"><a class="blog-carte" href="/blog/bon-d-intervention.html"><img src="/blog/img/bon-d-intervention-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-25">25 octobre 2026</time><b>Bon d’intervention : modèle, mentions et valeur de preuve</b><span>Bon d’intervention : les mentions à prévoir, un modèle à reprendre, sa valeur de preuve face à un client et ce que change une version sur téléphone.</span></span></a><a class="blog-carte" href="/blog/suivi-des-interventions.html"><img src="/blog/img/suivi-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-23">23 octobre 2026</time><b>Suivi des interventions : méthode et outil pour le terrain</b><span>Statuts, fiche terrain, historique client, stock et alertes : comment suivre vos interventions de bout en bout avec un outil mobile pensé pour les TPE de terrain.</span></span></a><a class="blog-carte" href="/blog/ordre-de-travail.html"><img src="/blog/img/ordre-de-travail-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-22">22 octobre 2026</time><b>Ordre de travail : définition, mentions, modèle et suivi</b><span>Ordre de travail, ordre de mission ou ordre de service : les différences, les mentions utiles, un modèle à copier et comment le suivre sans ressaisie.</span></span></a></div></section>
+<section class="commencer" id="commencer"><div class="commencer-in"><div><h2>Prêt en trois étapes.</h2><ol>
+    <li><b>1</b><span>Créez votre compte TEAM OP.</span></li><li><b>2</b><span>Demandez l'accès à une application.</span></li><li><b>3</b><span>Votre équipe travaille, tout se synchronise.</span></li></ol></div>
+    <div class="boutons"><a href="/espace.html">Créer mon compte</a><a href="/connexion.html?choix=1">Se connecter ›</a></div></div></section>
+</main>
+<footer class="pied"><div class="pied-in"><div class="cols"><div><b>Applications</b><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div><div><b>Métiers</b><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></div><div><b>Tarifs</b><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div><div><b>TEAM OP</b><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/blog/">Blog</a><a href="/espace.html">Espace client</a><a href="/connexion.html?choix=1">Se connecter</a></div><div class="contact"><b>Contact</b><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><small>Une question, une demande</small></div></div>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Sans engagement ; TVA non applicable (article 293 B du CGI).</p>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="/confidentialite.html">Confidentialité</a><a href="/mentions-legales.html">Mentions légales et CGV</a><a href="#" data-cookies>Gestion des cookies</a><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><span class="fin">France</span></div>
+  </div></footer>
+<script src="/vitrine/v2/site.js" defer></script>
+<script src="/cookies.js" defer></script>
+</body>
+</html>

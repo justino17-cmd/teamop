@@ -108,9 +108,8 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
     liens++;
     const u = brut;
     if (/^mailto:/.test(u)) { if (u !== 'mailto:contact@teamop.fr') morts.push(c + ' → ' + u); continue; }
-    /* UNE seule adresse externe permise, nommée : le blog (21 octobre 2026) — un sous-domaine À NOUS (CNAME OVH vers
-       BabyLoveGrowth), pas un site tiers. Une autre adresse reste un lien mort à trancher. */
-    if (u === 'https://blog.teamop.fr') continue;
+    /* ⛔ AUCUNE adresse externe : le blog, seule exception du 21 octobre 2026 (blog.teamop.fr, chez BabyLoveGrowth), vit à /blog/
+       depuis le 24 octobre 2026 (`scripts/blog.js`). Une adresse externe est un lien mort à trancher. */
     if (/^https?:/.test(u)) { morts.push(c + ' → adresse externe ' + u); continue; }
     const [chemin, ancre] = u.split('#');
     const sansQ = chemin.split('?')[0];
