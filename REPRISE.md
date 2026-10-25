@@ -13,6 +13,17 @@ de ligne du tout.
 
 ---
 
+# ✅ 25 OCTOBRE 2026, SOIR — LES AGENTS ONT UN VISAGE (Tour v2.111) — branche `claude/photos-agents`
+
+Justin : « tous mes agents doivent avoir une photo de profil, j'aime bien mettre un visage sur un nom ». Les photos sont de Justin
+(Gemini, personnes FICTIVES, 22 à 29 ans) ; la description de chacun est dans le brouillon (`photos-agents-gemini.md`).
+- `icons/agents/<id>.jpg`, 256 px, 7 à 12 Ko ; `agAvatar(id, nom, classe)` dans `tour.html` pose la photo PAR-DESSUS l'initiale (une
+  image qui ne vient pas s'efface et laisse l'initiale). Neuf endroits : fiches, bulles, conversations, tâches, réunions ×3, RGPD, « @ ».
+- ⛔ Un agent ajouté au registre (`server/agents.js`) sans photo fait tomber `test-3008` : on lui fait son visage, ou on l'écarte du banc
+  par écrit.
+- ⛔ Pauline (Harvey, sur le Mac de Justin) n'est PAS dans la Tour : sa photo reste hors du dépôt. Et une photo d'une VRAIE personne
+  (Justin en a proposé une, trouvée en ligne) ne devient jamais le visage d'un agent qui écrit à des prospects.
+
 # 🔶 25 OCTOBRE 2026 (SOIR) — L'AUDIENCE DU SITE DANS LA TOUR, ET LE BLOG SUR teamop.fr — branche `claude/audience`, ATTEND LA FUSION DE JUSTIN
 
 Justin : « le nombre de personnes qui a cliqué sur les liens, comment ils sont venus, par quel site […] en temps réel, un peu comme BabyLoveGrowth » ; « voir si cet

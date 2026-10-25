@@ -23,9 +23,9 @@ const T = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const corps = (src, entete) => { const i = src.indexOf(entete); if (i < 0) return ''; let j = src.indexOf('{', i), p = 0; for (let k = j; k < src.length; k++) { const c = src[k]; if (c === '{') p++; else if (c === '}') { p--; if (!p) return src.slice(i, k + 1); } } return ''; };
 const ligne = d => { const i = T.indexOf(d); return i < 0 ? '' : T.slice(i, T.indexOf('\n', i)); };
 const NEUVES = ['agTachesDe', 'agDispo', 'agEnCoursTxt', 'agQuiFaitQuoi'];
-const FN = NEUVES.concat(['vueAgents', 'chargerAgents', 'agMode', 'agEnPause', 'agNom', 'agParId', 'agParams', 'esc', 'apiGet', 'fmtDate', 'fmtHeure']).map(n => corps(T, 'function ' + n + '('));
-const VARS = ['var AG_MODES=', 'var AG_STATUTS='].map(ligne).concat([corps(T, 'var AG_TYPES=')]);
-v('(population) les 15 fonctions et les trois tables sont trouvées dans le fichier livré', [FN.filter(f => f.length < 30).length, VARS.map(x => x.length > 40)], [0, [true, true, true]]);
+const FN = NEUVES.concat(['vueAgents', 'chargerAgents', 'agMode', 'agEnPause', 'agNom', 'agParId', 'agParams', 'esc', 'apiGet', 'fmtDate', 'fmtHeure', 'agAvatar']).map(n => corps(T, 'function ' + n + '('));
+const VARS = ['var AG_MODES=', 'var AG_STATUTS=', 'var AG_PHOTOS='].map(ligne).concat([corps(T, 'var AG_TYPES=')]);
+v('(population) les 16 fonctions et les quatre tables sont trouvées dans le fichier livré', [FN.filter(f => f.length < 30).length, VARS.map(x => x.length > 40)], [0, [true, true, true, true]]);
 v('⛔ les fonctions neuves n\'écrivent rien (aucun apiPost, aucun fetch)', FN.slice(0, NEUVES.length).filter(f => /apiPost|fetch\(/.test(f)).length, 0);
 
 const MDP = 'banc-2815-patron', now = Date.now();
