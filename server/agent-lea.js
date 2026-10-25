@@ -285,7 +285,7 @@ module.exports = function lea(ctx) {
           agent: ID, cerveau, demande, connaissances: connaissances(),
           ctx: { profil: 'vente', entreprise: ent, activite: metierLbl || (fiche && fiche.activite) || '' },
           contexteJuge: ['Source : ' + (source === 'demande' ? 'demande d’application' : 'inscription') + ' sur teamop.fr', 'Entreprise : ' + (ent || 'nom non exploitable'),
-            'Activité : ' + (metierLbl || (fiche && fiche.activite) || 'non indiquée')],
+            'Activité : ' + (metierLbl ? metierLbl + ' (indiquée par l’inscrit)' : (fiche && fiche.activite) ? fiche.activite + ' (déduite d’une recherche sur l’entreprise)' : 'non indiquée — le courriel peut la déduire du nom de l’entreprise, en le disant')],
           ecrire: async (msgs) => {
             const r = await cerveau.penser(ID, systeme, msgs || [{ role: 'user', content: demande }], { maxTokens: JETONS });
             if (r && r.ok && premier) { premier = false; jour.n++; sauve(); }   // l'appel a eu lieu (et coûté) : il compte, quoi qu'il rende — UNE fois par courriel, la réécriture est dans le même

@@ -274,7 +274,7 @@ module.exports = function brouillons(app, ctx) {
     /* la signature montrée est CELLE QUI PARTIRA : celle de l'agent, pour la boîte qui envoie (pas celle du Courrier de Justin) */
     return { agent: e.agent, a: e.a, objet: e.objet, texte: e.texte, source: e.source, entreprise: e.entreprise || '', etat: e.etat,
       empreinte: empreinteDe(e), echecs: e.echecs || 0, signature: signatures.composer(e.agent, laBoite && laBoite.email),
-      controle: { etat: c.etat, fautes: CTRL.phrasesDe(c.fautes), juge: c.juge, reecrit: e.reecrit === true }, authentifie: e.authentifie === true };
+      controle: { etat: c.etat, fautes: CTRL.phrasesDe(c.fautes), juge: c.juge, reecrit: e.reecrit === true, raison: c.raison }, authentifie: e.authentifie === true };
   };
 
   /* ── les routes de la Tour ── */
