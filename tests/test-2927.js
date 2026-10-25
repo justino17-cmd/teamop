@@ -85,9 +85,9 @@ console.log('\n── 2927 · les six agents de la plateforme contre le vrai ser
   const fonction = nom => corpsDe('\nfunction ' + nom + '(').trim();
   const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
   const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
-  const NOMS = ['msPfIlYa', 'msPfNom', 'msPfCartes', 'msPfHtml', 'messPeindrePf', 'messPfCharger', 'messPfGeste', 'messPfPasser', 'messPfPoint', 'messPfRgpd', 'msPfDateSaisie', 'messPfRgpdNouvelle', 'messPfClic', 'msAgentsParId', 'fmtDate'];
+  const NOMS = ['msPfIlYa', 'msPfNom', 'msPfCartes', 'msPfHtml', 'messPeindrePf', 'messPfCharger', 'messPfGeste', 'messPfPasser', 'messPfPoint', 'messPfRgpd', 'msPfDateSaisie', 'messPfRgpdNouvelle', 'messPfClic', 'msAgentsParId', 'fmtDate', 'agAvatar'];
   const FN = NOMS.map(fonction);
-  const VARS = [ligne('var MS_PF_AG_CLAUDE='), ligne('var MS_PF_MODE='), ligne('var MS_PF_NIV='), ligne('MS.pf={')].join('\n');
+  const VARS = [ligne('var MS_PF_AG_CLAUDE='), ligne('var MS_PF_MODE='), ligne('var MS_PF_NIV='), ligne('MS.pf={'), ligne('var AG_PHOTOS=')].join('\n');
   vrai('(population) les fonctions et le coffre de la page sont trouvés dans le fichier livré', ESC && FN.every(f => f.length > 30) && VARS.split('\n').every(l => l.length > 20));
 
   const recus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];

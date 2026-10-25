@@ -2322,6 +2322,8 @@ body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backd
 .ms-l1 small{color:var(--muted);font-size:11.5px;flex:none}
 .ms-l3{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ms-l3.ecrit{color:var(--acc-txt);font-style:italic}
+.ms-av,.ag-av{position:relative;overflow:hidden}
+.ms-av>img,.ag-av>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
 .ms-av{width:32px;height:32px;border-radius:50%;background:var(--accBg);color:var(--acc-txt);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
 .ms-av.p{width:26px;height:26px;font-size:12px}
 .ms-av.g{border-radius:9px;background:var(--inset);color:var(--text2)}
@@ -3173,7 +3175,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.110</div>
+    <div class="lg-pied">console interne · v2.111</div>
   </div>
 </div>
 
@@ -3215,7 +3217,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.110</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.111</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3227,7 +3229,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.110</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.111</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3534,7 +3536,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.110';
+var TOUR_VERSION='v2.111';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -11432,7 +11434,7 @@ function vueAgents(){
     AG.agents.forEach(function(a){
       if(a.couche!==c){ if(c) h+='</div>'; c=a.couche; h+='<div class="ag-couche">'+esc(c)+'</div><div class="ag-grille">'; }
       var m=agMode(a);
-      h+='<article class="ag-carte" data-etat="'+m+'"><div class="ag-haut"><div class="ag-av" aria-hidden="true">'+esc(String(a.nom||'?').charAt(0))+'</div><div><h3>'+esc(a.nom)+'</h3><div class="ag-role">'+esc(a.role)+'</div></div><span class="ag-vague">Vague '+esc(a.vague)+'</span></div>'+
+      h+='<article class="ag-carte" data-etat="'+m+'"><div class="ag-haut">'+agAvatar(a.id,a.nom,'ag-av')+'<div><h3>'+esc(a.nom)+'</h3><div class="ag-role">'+esc(a.role)+'</div></div><span class="ag-vague">Vague '+esc(a.vague)+'</span></div>'+
         '<div class="ag-encours" data-d="'+agDispo(a)+'">'+agEnCoursTxt(a)+'</div>'+
         '<div class="ag-seg" role="group" aria-label="Mode de '+esc(a.nom)+'">'+AG_MODES.map(function(x){
           var off=AG.busy||(x[0]==='auto'&&m==='arret');
@@ -11751,6 +11753,15 @@ function msJourLib(ts,now){
   if(d.toDateString()===new Date(n.getFullYear(),n.getMonth(),n.getDate()-1).toDateString()) return 'Hier';
   return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
 }
+/* Les visages de l'équipe (icons/agents/<id>.jpg, 256 px, générés pour TeamOP : des personnes FICTIVES). L'initiale reste
+   DESSOUS la photo : une image qui ne vient pas (hors ligne, fichier absent) s'efface et laisse l'initiale, jamais un rond vide.
+   Un identifiant hors de la liste (un fil de groupe, un nom inconnu) n'a que l'initiale — on ne demande pas une image qui n'existe pas. */
+var AG_PHOTOS={victor:1,ines:1,camille:1,hugo:1,margaux:1,lea:1,max:1,nina:1,theo:1,jules:1,chloe:1,emma:1,louis:1,sarah:1,lola:1,noah:1};
+function agAvatar(id,nom,cls){
+  var ini=esc(String(nom||id||'?').charAt(0).toUpperCase());
+  var img=Object.prototype.hasOwnProperty.call(AG_PHOTOS,id)?'<img src="icons/agents/'+id+'.jpg" alt="" width="256" height="256" loading="lazy" decoding="async" onerror="this.remove()">':'';
+  return '<span class="'+cls+'" aria-hidden="true">'+ini+img+'</span>';
+}
 function msAgentsParId(){ var o={}; MS.agents.forEach(function(a){ o[a.id]=a; }); return o; }
 /* allumé (auto) · brouillon · à l'arrêt — la pause générale ou un état illisible = à l'arrêt, comme `agEnPause`. */
 function msEtat(a){ if(!a||MS.pause||MS.illisible) return 'arret'; return a.mode==='auto'?'allume':a.mode==='brouillon'?'brouillon':'arret'; }
@@ -11760,7 +11771,7 @@ function msBulleHtml(m,membres,agents){
   if(m.systeme||m.de==='systeme') return '<div class="ms-sys" data-id="'+esc(m.id)+'">'+esc(m.texte)+'<small> · '+esc(fmtHeure(m.ts))+'</small></div>';
   var moi=m.de==='justin', ag=agents&&agents[m.de], nom=moi?'Toi':(m.nom||(ag&&ag.nom)||m.de), role=(!moi&&ag&&ag.role)?ag.role:'';
   var niv=m.niveau==='urgent'?'Urgent':m.niveau==='important'?'Important':'';
-  return '<div class="ms-b'+(moi?' moi':'')+(niv?' '+m.niveau:'')+'" data-id="'+esc(m.id)+'">'+(moi?'':'<span class="ms-av" aria-hidden="true">'+esc(String(nom).charAt(0))+'</span>')+
+  return '<div class="ms-b'+(moi?' moi':'')+(niv?' '+m.niveau:'')+'" data-id="'+esc(m.id)+'">'+(moi?'':agAvatar(m.de,nom,'ms-av'))+
     '<div class="ms-bc"><div class="ms-bh"><b>'+esc(nom)+'</b>'+(niv?'<span class="ms-niv">'+niv+'</span>':'')+'<small>'+(role?esc(role)+' · ':'')+esc(fmtHeure(m.ts))+'</small></div>'+
     '<p>'+msColorer(m.texte,membres,Array.isArray(m.mentions)?m.mentions:[])+'</p>'+
     (m.dossier?'<button type="button" class="ms-dos" data-act="dossier" data-dos="'+esc(m.dossier)+'">Ouvrir le dossier '+esc(m.dossier)+'</button>':'')+'</div></div>';
@@ -11789,7 +11800,7 @@ function msLigneFil(f,agents,fil){
   var l3=ec?ec:der?((der.de==='justin'?'Toi : ':der.de==='systeme'?'':((agents[der.de]||{}).nom||'')+' : ')+der.texte):(ag?ag.role:'Aucun message');
   var et=ag?msEtat(ag):'';
   return '<button type="button" class="ms-cv" data-fil="'+esc(f.fil)+'" aria-current="'+(fil===f.fil)+'">'+
-    (f.groupe?'<span class="ms-av g" aria-hidden="true">#</span>':'<span class="ms-av" aria-hidden="true">'+esc(String(nom).charAt(0))+'</span>')+
+    (f.groupe?'<span class="ms-av g" aria-hidden="true">#</span>':agAvatar(f.fil,nom,'ms-av'))+
     '<span class="ms-cc"><span class="ms-l1"><b>'+esc(nom)+'</b>'+(der?'<small>'+esc(msHeureCourte(der.ts))+'</small>':'')+'</span>'+
     '<span class="ms-l3'+(ec?' ecrit':'')+'">'+esc(l3)+'</span></span>'+
     (f.nonLus?'<span class="ms-nl" aria-label="'+f.nonLus+' non lu'+(f.nonLus>1?'s':'')+'">'+f.nonLus+'</span>':'')+
@@ -11814,7 +11825,7 @@ function msTachesHtml(){
   var nom=function(id){ return id==='justin'?'toi':(ag[id]||{}).nom||String(id||''); };
   return ouv.map(function(k){
     var pp=Array.isArray(k.passePar)&&k.passePar.length?k.passePar[k.passePar.length-1]:'';
-    return '<div class="ms-tq"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(nom(k.vers)).charAt(0).toUpperCase())+'</span><b>'+esc(nom(k.vers))+'</b>'+
+    return '<div class="ms-tq"><div class="ms-th">'+agAvatar(k.vers,nom(k.vers),'ms-av p')+'<b>'+esc(nom(k.vers))+'</b>'+
       '<span class="ms-ep '+(k.statut==='prise'?'cours':'att')+'">'+(k.statut==='prise'?'en cours':'en attente')+'</span></div>'+
       '<p>'+esc(msTacheTxt(k))+'</p><small>demandée par '+esc(nom(k.de))+(pp?' · déléguée, d’abord à '+esc(nom(pp)):'')+' · '+esc(msHeureCourte(k.ts))+'</small></div>'; }).join('');
 }
@@ -11915,7 +11926,7 @@ function msReuAgentsHtml(parAgent,vide,fn){
   var ids=Object.keys(parAgent||{}).filter(function(id){ return (parAgent[id]||[]).length; });
   if(!ids.length) return '<p class="ms-reu-vide">'+esc(vide)+'</p>';
   return ids.map(function(id){ var nom=msReuNom(id);
-    return '<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(nom).charAt(0).toUpperCase())+'</span><b>'+esc(nom)+'</b></div><ul>'+parAgent[id].map(function(x){ return fn(id,x); }).join('')+'</ul></div>'; }).join('');
+    return '<div class="ms-reu-ag"><div class="ms-th">'+agAvatar(id,nom,'ms-av p')+'<b>'+esc(nom)+'</b></div><ul>'+parAgent[id].map(function(x){ return fn(id,x); }).join('')+'</ul></div>'; }).join('');
 }
 function msReuHtml(){
   var R=MS.reu, d=R.d;
@@ -12014,7 +12025,7 @@ function msPfNom(id){ var a=msAgentsParId()[id]; return a?a.nom:id; }
 function msPfCartes(vide,groupes){
   var ids=Object.keys(groupes).filter(function(k){ return groupes[k].length; });
   if(!ids.length) return '<p class="ms-reu-vide">'+esc(vide)+'</p>';
-  return ids.map(function(k){ return '<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(msPfNom(k)).charAt(0).toUpperCase())+'</span><b>'+esc(msPfNom(k))+'</b></div><ul>'+groupes[k].join('')+'</ul></div>'; }).join('');
+  return ids.map(function(k){ return '<div class="ms-reu-ag"><div class="ms-th">'+agAvatar(k,msPfNom(k),'ms-av p')+'<b>'+esc(msPfNom(k))+'</b></div><ul>'+groupes[k].join('')+'</ul></div>'; }).join('');
 }
 function msPfHtml(){
   var R=MS.pf, d=R.d;
@@ -12045,7 +12056,7 @@ function msPfHtml(){
       if(id==='victor'&&a.dernierPoint) det=' · point '+(a.dernierPoint.statut==='fait'?'dit '+msPfIlYa(a.dernierPoint.ts):'à redire');
       if(id==='jules') det=' · '+(a.diagnosticsAujourdhui||0)+' diagnostic'+((a.diagnosticsAujourdhui||0)>1?'s':'')+' aujourd’hui';
       var dernier=id==='ines'?(a.relu||''):msPfIlYa(a.dernier);
-      return '<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">'+esc(String(msPfNom(id)).charAt(0).toUpperCase())+'</span><b>'+esc(msPfNom(id))+'</b> <small>'+esc(MS_PF_MODE[m]||m)+'</small></div>'+
+      return '<div class="ms-reu-ag"><div class="ms-th">'+agAvatar(id,msPfNom(id),'ms-av p')+'<b>'+esc(msPfNom(id))+'</b> <small>'+esc(MS_PF_MODE[m]||m)+'</small></div>'+
         '<ul><li><span>Dernier passage : '+esc(id==='ines'?(a.relu?'relu le '+a.relu:'pas encore relu'):dernier)+esc(det)+'</span><button type="button" class="ms-lien" data-act="pfPasser" data-agent="'+id+'"'+(m==='arret'||R.occ?' disabled':'')+' aria-label="Faire passer '+esc(msPfNom(id))+' maintenant">Passer maintenant</button></li></ul></div>';
     }).join('')+'</div>';
     var dec=(d.victor&&d.victor.decisions)||[];
@@ -12053,7 +12064,7 @@ function msPfHtml(){
   }
   /* les demandes RGPD suivies par Nina */
   h+='</section><section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="pfSection" data-s="rgpd" aria-expanded="'+!!o.rgpd+'">Demandes RGPD <small>'+rgpd.length+' à suivre · délai légal : un mois</small></button>';
-  if(o.rgpd) h+='<div class="ms-reu-c">'+(rgpd.length?'<div class="ms-reu-ag"><div class="ms-th"><span class="ms-av p" aria-hidden="true">N</span><b>Nina</b></div><ul>'+rgpd.map(function(g){
+  if(o.rgpd) h+='<div class="ms-reu-c">'+(rgpd.length?'<div class="ms-reu-ag"><div class="ms-th">'+agAvatar('nina','Nina','ms-av p')+'<b>Nina</b></div><ul>'+rgpd.map(function(g){
     return '<li><span>Reçue le '+esc(fmtDate(g.recu))+' · échéance le '+esc(fmtDate(g.limite).split(' · ')[0])+' — '+(g.joursRestants<0?'en retard de '+(-g.joursRestants)+' jour'+(g.joursRestants<-1?'s':''):g.joursRestants===0?'dernier jour':'il reste '+g.joursRestants+' jour'+(g.joursRestants>1?'s':''))+(g.accusee?' · accusé de réception envoyé':'')+'</span>'+
       '<button type="button" class="ms-lien" data-act="pfRgpd" data-id="'+esc(g.id)+'"'+(R.occ?' disabled':'')+' aria-label="Marquer cette demande RGPD traitée">Marquer traitée</button></li>'; }).join('')+'</ul></div>'
     :'<p class="ms-reu-vide">Aucune demande en cours. Quand tu reçois une demande d’exercice de droits (RGPD), enregistre-la ici avec sa date de réception : Nina tient le délai légal d’un mois, en accuse réception dans « Équipe » et te rappelle à J-10, J-3 et le jour même.</p>')+
@@ -12316,7 +12327,7 @@ function messMentionPeindre(){
   if(!MS.liste.ouverte){ ta.removeAttribute('aria-activedescendant'); return; }
   l.innerHTML=MS.liste.items.map(function(it,i){
     return '<div class="ms-mi" role="option" id="ms-mi-'+i+'" data-mi="'+i+'" aria-selected="'+(i===MS.liste.actif)+'">'+
-      (it.tous?'<span class="ms-av p g" aria-hidden="true">@</span>':'<span class="ms-av p" aria-hidden="true">'+esc(String(it.nom).charAt(0))+'</span>')+
+      (it.tous?'<span class="ms-av p g" aria-hidden="true">@</span>':agAvatar(it.id,it.nom,'ms-av p'))+
       '<span class="ms-mt"><b>'+(it.tous?'@tous':esc(it.nom))+'</b><small>'+esc(it.tous?it.detail:((ag[it.id]||{}).role||''))+'</small></span></div>'; }).join('');
   ta.setAttribute('aria-activedescendant','ms-mi-'+MS.liste.actif);
   var a=$('ms-mi-'+MS.liste.actif); if(a&&a.scrollIntoView) a.scrollIntoView({block:'nearest'});
