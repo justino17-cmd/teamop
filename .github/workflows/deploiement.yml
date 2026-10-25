@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -66,7 +66,7 @@ jobs:
     # aucun déploiement. Une fois posé et un déploiement réussi, le secret du dépôt se SUPPRIME (sinon la porte reste ouverte).
     environment: serveur-prod
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # La clé de déploiement vient des secrets du dépôt ; l'empreinte de l'hôte, elle, est
       # écrite en clair ici — une clé publique d'hôte n'est pas un secret, et la voir dans le
