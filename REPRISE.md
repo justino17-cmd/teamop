@@ -13,6 +13,17 @@ de ligne du tout.
 
 ---
 
+# ✅ 25 OCTOBRE 2026, SOIR — LES AGENTS ONT UN VISAGE (Tour v2.110) — branche `claude/photos-agents`
+
+Justin : « tous mes agents doivent avoir une photo de profil, j'aime bien mettre un visage sur un nom ». Les photos sont de Justin
+(Gemini, personnes FICTIVES, 22 à 29 ans) ; la description de chacun est dans le brouillon (`photos-agents-gemini.md`).
+- `icons/agents/<id>.jpg`, 256 px, 7 à 12 Ko ; `agAvatar(id, nom, classe)` dans `tour.html` pose la photo PAR-DESSUS l'initiale (une
+  image qui ne vient pas s'efface et laisse l'initiale). Neuf endroits : fiches, bulles, conversations, tâches, réunions ×3, RGPD, « @ ».
+- ⛔ Un agent ajouté au registre (`server/agents.js`) sans photo fait tomber `test-3008` : on lui fait son visage, ou on l'écarte du banc
+  par écrit.
+- ⛔ Pauline (Harvey, sur le Mac de Justin) n'est PAS dans la Tour : sa photo reste hors du dépôt. Et une photo d'une VRAIE personne
+  (Justin en a proposé une, trouvée en ligne) ne devient jamais le visage d'un agent qui écrit à des prospects.
+
 # 🔶 25 OCTOBRE 2026 — LES AGENTS : L'EXAMEN DOIT TOURNER EN BOUCLE, PAR CLAUDE CODE, PLUS PAR JUSTIN — branche `claude/examen-25-10`
 
 Justin, 25 octobre 2026 : « les agents doivent répondre comme des humains… qu'ils travaillent sur eux-mêmes, qu'ils parlent entre eux pour s'aider, sans que je
