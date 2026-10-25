@@ -22942,7 +22942,7 @@ views.taches=function(){ db.taches=db.taches||[];
       </div>
       ${canCat('plan','supprimer')?`<button class="btn ghost sm" onclick="delTache('${t.id}')">🗑</button>`:''}
     </div>`; }).join('');
-  $('content').innerHTML=(typeof cvcTachesBloc==='function'?cvcTachesBloc():'')+`<div class="filters">${Object.keys(labels).map(k=>`<div class="chip ${tacheFilter===k?'active':''}" onclick="tacheFilter='${k}';views.taches()">${labels[k]}</div>`).join('')}</div>`
+  $('content').innerHTML=(typeof cvcTachesBloc==='function'?cvcTachesBloc():'')+(typeof cvcBouteillesBloc==='function'?cvcBouteillesBloc():'')+`<div class="filters">${Object.keys(labels).map(k=>`<div class="chip ${tacheFilter===k?'active':''}" onclick="tacheFilter='${k}';views.taches()">${labels[k]}</div>`).join('')}</div>`
     +(rows||`<div class="card">${emptyState('✅','Aucune tâche dans ce filtre.','＋ Tâche','formTache()')}</div>`);
 };
 function formTache(id){ db.taches=db.taches||[]; const t=id?db.taches.find(x=>x.id===id):{};
@@ -41825,7 +41825,7 @@ function cvcFicheForm(iid,aid,fid){ if(!permGarde('int','modifier','une interven
         <div class="field"><label>PRP <span style="color:var(--t3);font-weight:400">(vide = tableau)</span></label><input type="number" step="any" min="0" inputmode="decimal" name="prp" value="${f.prp>0?esc(f.prp):''}"></div></div>
       <div class="field-row"><div class="field"><label>Quantité chargée (kg)</label><input type="number" step="any" min="0" inputmode="decimal" name="charge" value="${f.charge>0||f.charge===0?esc(f.charge):''}"></div>
         <div class="field"><label>Quantité récupérée (kg)</label><input type="number" step="any" min="0" inputmode="decimal" name="recup" value="${f.recup>0||f.recup===0?esc(f.recup):''}"></div></div>
-      ${inp('contenant','Identifiant de la bouteille ou du contenant',f.contenant,'maxlength="80"')}
+      ${inp('contenant','Identifiant de la bouteille ou du contenant',f.contenant,'maxlength="80" list="cvc-bt" autocomplete="off"')}<datalist id="cvc-bt">${(()=>{ try{ return cvcBouteilles(fid).map(b=>`<option value="${esc(b.nom)}"></option>`).join(''); }catch(e){ return ''; } })()}</datalist>
       ${inp('bordereau','N° de bordereau de suivi des déchets (Trackdéchets)',f.bordereau,'maxlength="80"')}
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0;cursor:pointer"><input type="checkbox" name="controle" ${f.controle?'checked':''} style="width:19px;height:19px;accent-color:var(--acc)">Contrôle d’étanchéité effectué pendant cette opération</label>
       <div id="cvc-fiche-ctl" style="display:${f.controle?'':'none'}">
@@ -41853,6 +41853,30 @@ function cvcFicheMaj(f){ if(!f||!f.elements) return; const ctl=document.getEleme
 function cvcDerniereAttestation(){ let best=null;
   (db.interventions||[]).forEach(i=>(Array.isArray(i&&i.fichesFluides)?i.fichesFluides:[]).forEach(f=>{ if(f&&f.attestation&&(!best||String(f.date||'')>String(best.date||''))) best=f; }));
   return best?best.attestation:''; }
+/* ══ LES BOUTEILLES DE FLUIDE (25 octobre 2026) ══
+   Le suivi se DÉDUIT des fiches fluides (`contenant`, quantités chargée et récupérée, fluide) : aucune donnée de plus, donc rien de neuf dans la synchro.
+   Une bouteille se reconnaît à son identifiant, sans tenir compte de la casse ni des espaces. ⛔ On ne mélange pas deux fluides dans une bouteille de
+   RÉCUPÉRATION (un mélange ne se régénère pas, il part en destruction) : le registre le signale en tête, et la fiche le demande avant d'enregistrer —
+   une question, pas un refus, car une bouteille rendue vide au distributeur peut revenir sous le même numéro. `sauf` : la fiche qu'on modifie. */
+function cvcBouteilleCle(s){ return String(s==null?'':s).trim().replace(/\s+/g,' ').toUpperCase(); }
+function cvcBouteilles(sauf){ const m=new Map();
+  (db.interventions||[]).forEach(i=>cvcFichesDe(i).forEach(f=>{ if(sauf&&f.id===sauf) return; const k=cvcBouteilleCle(f.contenant); if(!k) return;
+    let b=m.get(k); if(!b){ b={cle:k,nom:String(f.contenant).trim(),charge:0,recup:0,fluidesCharges:[],fluidesRecup:[],fiches:0,dernier:''}; m.set(k,b); }
+    b.fiches++; if(String(f.date||'')>b.dernier) b.dernier=String(f.date||'');
+    if(+f.charge>0){ b.charge+=+f.charge; if(b.fluidesCharges.indexOf(f.fluide)<0) b.fluidesCharges.push(f.fluide); }
+    if(+f.recup>0){ b.recup+=+f.recup; if(b.fluidesRecup.indexOf(f.fluide)<0) b.fluidesRecup.push(f.fluide); } }));
+  return [...m.values()].map(b=>Object.assign(b,{melange:b.fluidesRecup.length>1}))
+    .sort((x,y)=>(y.melange-x.melange)||String(y.dernier).localeCompare(String(x.dernier))); }
+function cvcBouteillesBloc(){ if(!metierGereParc()) return '';
+  let L=[]; try{ L=cvcBouteilles(); }catch(e){ console.error(e); return ''; }
+  if(!L.length) return '';
+  const ligne=b=>`<div class="pl-row cvc-l" style="border-left:3px solid ${b.melange?'var(--red)':'transparent'}">
+    <div class="pl-info"><div class="pl-title" style="overflow-wrap:anywhere">${esc(b.nom)} <span style="color:var(--t3);font-weight:400">· ${esc((b.fluidesRecup.concat(b.fluidesCharges.filter(f=>b.fluidesRecup.indexOf(f)<0))).join(', ')||'—')}</span></div>
+      <div class="pl-meta" style="overflow-wrap:anywhere">${b.charge>0?'chargé '+esc(cvcNbTxt(b.charge,2))+' kg · ':''}${b.recup>0?'récupéré '+esc(cvcNbTxt(b.recup,2))+' kg · ':''}${b.fiches} fiche${b.fiches>1?'s':''}${b.dernier?' · dernière le '+esc(cvcDateTxt(b.dernier)):''}</div>
+      ${b.melange?`<div style="font-size:12.5px;color:var(--red);font-weight:700;margin-top:4px;overflow-wrap:anywhere">⚠️ Deux fluides récupérés dans cette bouteille (${esc(b.fluidesRecup.join(', '))}) : on ne mélange pas les fluides dans une bouteille de récupération.</div>`:''}</div></div>`;
+  return `<div class="card" id="cvc-bouteilles" style="margin-bottom:12px"><div class="card-head"><h3>💧 Bouteilles de fluide</h3><span class="tag">${L.length}</span></div>
+    <div style="font-size:12.5px;color:var(--t3);margin-bottom:6px">D’après les fiches fluides de vos interventions (champ « bouteille ou contenant »).</div>
+    ${L.slice(0,12).map(ligne).join('')}${L.length>12?`<div style="text-align:center;color:var(--t3);font-size:12px;padding:8px">+ ${L.length-12} autre(s)</div>`:''}</div>`; }
 function cvcFicheSauver(e,iid,aid,fid){ e.preventDefault(); if(!permGarde('int','modifier','une intervention')) return;
   const x=cvcFicheCtx(iid,aid); if(!x) return; const {i,a}=x, form=e.target, g=n=>String((form.elements[n]||{}).value||'').trim();
   const date=g('date'); if(!cvcIsoOk(date)){ champManque('Date de l’opération invalide',champDe(form,'date')); return; }
@@ -41872,6 +41896,8 @@ function cvcFicheSauver(e,iid,aid,fid){ e.preventDefault(); if(!permGarde('int',
      frigorigènes (code de l'environnement, art. R543-99), et la fiche d'intervention porte son numéro. Une fiche sans lui serait un document que l'entreprise
      ne peut pas produire en contrôle : on ne l'enregistre pas, et on le DIT (le champ se pré-remplit avec le dernier numéro saisi : `cvcDerniereAttestation`). */
   if(!d.attestation){ champManque('Le n° d’attestation de capacité de l’opérateur est obligatoire sur une fiche fluides',champDe(form,'attestation')); return; }
+  if(d.recup>0&&d.contenant){ const b=cvcBouteilles(fid).find(x=>x.cle===cvcBouteilleCle(d.contenant)), autres=b?b.fluidesRecup.filter(f=>f!==fluide):[];
+    if(autres.length&&!confirm('La bouteille « '+b.nom+' » a déjà servi à récupérer du '+autres.join(', ')+'. On ne mélange pas deux fluides dans une bouteille de récupération. A-t-elle été vidée et rendue depuis ? Enregistrer quand même ?')) return; }
   i.fichesFluides=Array.isArray(i.fichesFluides)?i.fichesFluides:[];
   if(fid){ const ex=i.fichesFluides.find(k=>k.id===fid); if(!ex){ toast('Cette fiche n’existe plus'); return; } Object.assign(ex,d); intHisto(i,'💧 Fiche fluides modifiée — '+d.appLabel); }
   else{ i.fichesFluides.push({id:uid(),creeLe:todayISO(),creePar:(currentUser&&currentUser.id)||'',...d}); intHisto(i,'💧 Fiche fluides ajoutée — '+d.appLabel+' · '+fluide+(charge!==''?' · chargé '+cvcNbTxt(charge,2)+' kg':'')); }
