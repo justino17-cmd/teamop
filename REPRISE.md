@@ -24,7 +24,7 @@ Justin : « tous mes agents doivent avoir une photo de profil, j'aime bien mettr
 - ⛔ Pauline (Harvey, sur le Mac de Justin) n'est PAS dans la Tour : sa photo reste hors du dépôt. Et une photo d'une VRAIE personne
   (Justin en a proposé une, trouvée en ligne) ne devient jamais le visage d'un agent qui écrit à des prospects.
 
-# 🔶 25 OCTOBRE 2026 (SOIR) — L'AUDIENCE DU SITE DANS LA TOUR, ET LE BLOG SUR teamop.fr — branche `claude/audience`, ATTEND LA FUSION DE JUSTIN
+# ✅ 25 OCTOBRE 2026 (SOIR) — L'AUDIENCE DU SITE DANS LA TOUR, ET LE BLOG SUR teamop.fr — EN LIGNE (n° 184, heure d'hiver n° 185, registre n° 187, fusionnés le 25-26/10)
 
 Justin : « le nombre de personnes qui a cliqué sur les liens, comment ils sont venus, par quel site […] en temps réel, un peu comme BabyLoveGrowth » ; « voir si cet
 agent est lié à ce lien-là par rapport aux démarches qu'il fait ». Il a choisi « les deux » (Google Analytics ET un tableau à nous) et le marquage des liens des agents.
@@ -35,8 +35,8 @@ agent est lié à ce lien-là par rapport aux démarches qu'il fait ». Il a cho
   posé à côté de `cookies.js` par `site-marine.js` et `blog.js` ; onglet **Audience** de la Tour v2.110 (section « Site », patron seul, relu toutes les 30 s) ;
   `confidentialite.html` § 2 le dit ; la signature de Léa, Camille et Chloé porte `https://teamop.fr/?de=<agent>` (`lienSite`), compté « Courriel de Léa ».
   Banc : `test-3002` (43 contrôles, 9 mutations mordent), dans `scripts/bancs-serveur.liste`.
-- **Reste** : (1) la fusion par Justin, qui déploie le serveur ; (2) `registre-traitements.html` ne cite ni Google Analytics ni cette mesure — à ajouter ;
-  (3) Google Analytics : relier Search Console (Administration → Associations) ; (4) une « visite » est une ESTIMATION (une arrivée depuis l'extérieur), pas des personnes.
+- **Fait** : (1) fusion et déploiement ; (2) `registre-traitements.html` cite la mesure et Google Analytics (n° 187) ; la nuit du passage à l'heure d'hiver ne
+  compte plus deux fois le même jour (n° 185, jours au calendrier). **Reste (Justin)** : (3) Google Analytics : relier Search Console (Administration → Associations) ; (4) une « visite » est une ESTIMATION (une arrivée depuis l'extérieur), pas des personnes.
 
 # ✅ 26 OCTOBRE 2026 (NUIT) — « ASSISTANTE DE TEAMOP », PLUS « VIRTUELLE » — branche `claude/agents-sans-virtuel`
 
