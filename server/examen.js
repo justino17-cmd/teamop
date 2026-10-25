@@ -679,11 +679,16 @@ async function sc9(E, X) {
   v.push(verif(E, 'aucune formule toute faite répétée : pas quatre messages qui commencent par les mêmes mots', repetee.length === 0, repetee.join(' ; ')));
   v.push(verif(E, 'ni titre, ni liste à puces, ni gras dans une conversation', markdown.length === 0, markdown.slice(0, 2).map(m => '« ' + coupe(m.texte, 90) + ' »').join(' ; ')));
   v.push(verif(E, 'les courriels aux clients vouvoient (jamais « tu »)', mails.length > 0 && tutoyes.length === 0 && vouvoient.length >= Math.ceil(mails.length * 0.6), tutoyes.length + ' courriel(s) tutoient ; ' + vouvoient.length + ' sur ' + mails.length + ' vouvoient'));
+  /* ⛔ (examen du 25 octobre 2026 au soir) le juge disait « aucune occurrence vérifiable de tutoiement » sur « Si tu as besoin… », « Je te la sors » : le
+     tutoiement de Justin se COMPTE dans les fils privés (le fil d'un agent est celui de Justin avec lui) — au moins un message le tutoie, aucun ne le vouvoie */
+  const TE = /(?:^|[^\p{L}\p{N}])te(?![\p{L}\p{N}])/iu, VOUS = /(?:^|[^\p{L}\p{N}])vous(?![\p{L}\p{N}])/iu;
+  const aJustin = internes.filter(m => m.a === m.de), tutoie = aJustin.filter(m => TU.test(m.texte) || TE.test(m.texte)), vouvoie = aJustin.filter(m => VOUS.test(m.texte) && !TU.test(m.texte) && !TE.test(m.texte));
+  v.push(verif(E, 'les agents tutoient Justin', aJustin.length > 0 && tutoie.length > 0 && !vouvoie.length,
+    !aJustin.length ? 'aucun message dans un fil privé avec Justin' : vouvoie.length ? vouvoie.slice(0, 2).map(m => '« ' + coupe(m.texte, 90) + ' »').join(' ; ') : 'aucun message ne le tutoie'));
   const echantillon = internes.slice(0, 30).map(m => '[' + (NOM[m.de] || m.de) + ' à ' + (m.a || 'Justin ou l’équipe') + '] ' + coupe(m.texte, 420)).join('\n');
   const courriels = mails.slice(0, 5).map(m => '[courriel de ' + (NOM[m.de] || m.de) + ' à un client]\n' + coupe(m.texte, 2600)).join('\n\n');
   const crit = [{ cle: 'c1', libelle: 'ton humain : des collègues qui parlent, pas un robot', texte: 'Les messages sonnent comme ceux de vrais collègues : voix personnelle, réponse adaptée à la question, phrases naturelles ; pas de ton d’assistant automatique.' },
     { cle: 'c2', libelle: 'sans formule toute faite', texte: 'Aucune formule creuse ou stéréotypée répétée d’un agent à l’autre (mêmes ouvertures, mêmes conclusions de politesse). ⛔ Les phrases que le MODÈLE DE COURRIEL de TeamOP impose mot pour mot à tous ses courriels (la voix de l’entreprise, validée par Justin) ne comptent pas : ' + FORMULES_MAISON.map(f => '« ' + f + ' »').join(', ') + ', et « Bien cordialement, ». Ne juge que ce que les agents écrivent d’eux-mêmes.' },
-    { cle: 'c3', libelle: 'les agents tutoient Justin', texte: 'Dans les messages adressés à Justin ou à l’équipe, les agents tutoient Justin (jamais « vous » pour lui parler).' },
     { cle: 'c4', libelle: 'les courriels aux clients vouvoient et sonnent professionnels', texte: 'Les courriels aux clients vouvoient, sont courtois et professionnels, sans familiarité. Ils sont donnés SANS leur signature (le serveur l’ajoute à l’envoi) et l’examen masque les adresses en « (adresse) » : ni l’un ni l’autre n’est un défaut.' }];
   const j = await juger(X.juge, crit, 'Messages des agents :\n' + echantillon + '\n\n' + courriels);
   for (const x of verifsJuge(E, j, crit)) v.push(x);
@@ -695,13 +700,15 @@ async function sc9(E, X) {
    phrase retirée du cahier qui resterait ici serait une exemption pour du vide. */
 const FORMULES_MAISON = ['Nous vous remercions pour votre message.', 'Nous restons à votre disposition par retour de mail ou par téléphone.'];
 
+/* sc6 : 18 appels (examen du 25 octobre 2026 au soir — « Dupont Plomberie : plafond_total ») : trois courriels, chacun au plus rédigé, jugé, relancé,
+   réécrit, jugé, relancé. À 9, la relance du juge (posée le même jour) épuisait le plafond au troisième courriel. */
 const SCENARIOS = [
   { n: 1, cle: 'question', titre: 'Une question à Margaux reçoit la réponse de Margaux', jouer: sc1, appelsMax: 8, dureeMax: 240000 },
   { n: 2, cle: 'travail', titre: 'Un travail à Camille : elle le prend ; chargée, elle en passe un à un collègue libre en disant pourquoi', jouer: sc2, appelsMax: 16, dureeMax: 300000 },
   { n: 3, cle: 'tous', titre: '« @tous » dans le groupe Clients : ceux qui ont à dire répondent, sans boucle', jouer: sc3, appelsMax: 30, dureeMax: 360000 },
   { n: 4, cle: 'entre-agents', titre: 'Camille demande à Hugo si un client a payé : Hugo répond', jouer: sc4, appelsMax: 14, dureeMax: 300000 },
   { n: 5, cle: 'desaccord', titre: 'Un désaccord entre deux agents : Victor arbitre', jouer: sc5, appelsMax: 16, dureeMax: 300000 },
-  { n: 6, cle: 'vente', titre: 'Trois inscriptions (climatisation, nettoyage, plomberie) : le premier courriel de Léa vend l’application', jouer: sc6, appelsMax: 9, dureeMax: 300000 },
+  { n: 6, cle: 'vente', titre: 'Trois inscriptions (climatisation, nettoyage, plomberie) : le premier courriel de Léa vend l’application', jouer: sc6, appelsMax: 18, dureeMax: 300000 },
   { n: 7, cle: 'courrier', titre: 'Le courrier : une question, un remboursement, « je veux arrêter », un spam, un courriel piégé', jouer: sc7, appelsMax: 14, dureeMax: 360000 },
   { n: 8, cle: 'reunions', titre: 'Les réunions du lundi et du vendredi, jouées en accéléré', jouer: sc8, appelsMax: 70, dureeMax: 1500000, reunions: true, allumes: REUNION_AGENTS },
   { n: 9, cle: 'ton', titre: 'Le ton : humain, sans formule toute faite, tutoiement de Justin, vouvoiement des clients', jouer: sc9, appelsMax: 4, dureeMax: 240000, dernier: true },

@@ -169,7 +169,7 @@ const JUGE_SYSTEM = [
   'CRITÈRES (un seul code par défaut constaté) :',
   '- ton_robotique : le ton est mécanique, bourré de formules toutes faites, ou on dirait un modèle de lettre.',
   '- hors_sujet : le courriel ne répond pas à ce qui est demandé ou ignore le contexte donné.',
-  '- fait_invente : il affirme une fonction, un délai, un engagement ou un prix qui ne figure pas dans l’OFFRE ci-dessous.',
+  '- fait_invente : il affirme une fonction, un délai, un engagement ou un prix qui ne figure pas dans l’OFFRE ci-dessous. Tu ne le signales que si tu peux nommer CE QUI manque à l’OFFRE : une reformulation fidèle d’une ligne de l’OFFRE (d’autres mots, le même sens — « signalement automatique des conflits » pour « les conflits sont signalés ») n’en est pas un, ni l’activité du destinataire déduite de son nom.',
   '- incoherent : il se contredit, ou comporte une erreur de sens ou de logique.',
   '- impoli : le ton est familier, froid ou déplacé pour un courriel professionnel entre entreprises.',
   '- metier_inadapte : le contenu n’a aucun rapport avec l’activité du destinataire quand elle est donnée.',
