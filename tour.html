@@ -3285,7 +3285,7 @@ var MENU=[
   {section:'Juridique',vues:[['contrats','Contrats','gestion messages','','',1]]},
   {section:'Équipe d’agents',vues:[['agents','Agents','gestion'],['messagerie','Messagerie','gestion','bdg-msgr'],['rapport','Rapport','gestion','','',1]]},
   /* v2.110 (25 octobre 2026) — Justin : « le nombre de personnes qui ont cliqué, comment ils sont venus, par quel site […] en temps réel » */
-  {section:'Site',vues:[['audience','Audience','gestion','','',1]]},
+  {section:'Site',vues:[['audience','Audience','gestion']]},
   /* v2.88 — le 5ᵉ champ RATTACHE une vue à une autre : elle quitte le menu et la barre du bas, et paraît en onglet en tête
      de sa vue de tête (Justin, 17 octobre 2026 : « améliore et simplifie-la »). Équipe est « qui peut entrer », comme Accès ;
      les Sauvegardes et le Journal sont les deux écrans de contrôle qu'on ouvre rarement. Dix entrées deviennent huit. */
@@ -9416,12 +9416,13 @@ function audListe(l,total,lib){
       '<span class="b" aria-hidden="true"><i style="width:'+Math.max(2,Math.round(100*x[1]/max))+'%"></i></span></div>'; }).join('');
 }
 function audCampagne(c){ var m=/^agent:(lea|camille|chloe)$/.exec(c); return m?'Courriels de '+({lea:'Léa',camille:'Camille',chloe:'Chloé'})[m[1]]:c; }
+function audPage(p){ return p==='/'?'Accueil ( / )':p==='/blog/'?'Blog — accueil ( /blog/ )':p; }
 function audJour(d){ var p=String(d).split('-'); return p[2]+'/'+p[1]; }
 function vueAudience(){
   var per={1:'aujourd’hui',7:'les 7 derniers jours',30:'les 30 derniers jours',90:'les 90 derniers jours',365:'les 12 derniers mois'}[AUD.j]||AUD.j+' jours';
   var tete=enTete('Audience',
     'Les visites du site et du blog, comptées sans cookie : tout le monde est compté, sans rien garder qui désigne une personne. Une « visite », c’est une arrivée sur le site depuis l’extérieur (Google, un courriel, un favori…).','')+
-    teteListe('Sur '+per,'Période',[['1','Aujourd’hui'],['7','7 jours'],['30','30 jours'],['90','90 jours'],['365','12 mois']],String(AUD.j),'audPeriode(');
+    teteListe('Sur '+per,'Période',[['1','Jour'],['7','7 j'],['30','30 j'],['90','90 j'],['365','1 an']],String(AUD.j),'audPeriode(');
   if(AUD.lec===0) return tete+acSquel();
   if(AUD.lec===-1) return tete+acErr('L’audience ne répond pas',AUD.err+' — on ne sait pas combien de visites il y a eu.','chargerAudience()');
   var D=AUD.d, T=D.totaux, L=D.parJour, maxJ=1;
@@ -9438,12 +9439,12 @@ function vueAudience(){
   var G=[];
   G.push(abnGroupe('D’où viennent les visites',D.sources.length,'Le moteur de recherche, le réseau social ou le site d’où l’on arrive. « Accès direct » : une adresse tapée, un favori, ou une application qui ne dit pas d’où elle vient.',false,'<div class="reg-bloc">'+audListe(D.sources,T.visites)+'</div>'));
   G.push(abnGroupe('Courriels des agents et liens marqués',D.campagnes.length,'Les visites venues d’un lien de la signature de Léa, Camille ou Chloé (« ?de=… »), ou d’un lien marqué « utm_source » (une publication Facebook, une campagne).',true,'<div class="reg-bloc">'+audListe(D.campagnes,0,audCampagne)+'</div>'));
-  G.push(abnGroupe('Pages les plus lues',D.pages.length,'Toutes les pages vues, navigation dans le site comprise.',true,'<div class="reg-bloc">'+audListe(D.pages,T.vues)+'</div>'));
-  G.push(abnGroupe('Pages d’arrivée',D.entrees.length,'La première page de chaque visite : c’est elle qui a attiré le visiteur.',true,'<div class="reg-bloc">'+audListe(D.entrees,T.visites)+'</div>'));
+  G.push(abnGroupe('Pages les plus lues',D.pages.length,'Toutes les pages vues, navigation dans le site comprise.',true,'<div class="reg-bloc">'+audListe(D.pages,T.vues,audPage)+'</div>'));
+  G.push(abnGroupe('Pages d’arrivée',D.entrees.length,'La première page de chaque visite : c’est elle qui a attiré le visiteur.',true,'<div class="reg-bloc">'+audListe(D.entrees,T.visites,audPage)+'</div>'));
   G.push(abnGroupe('Écrans',D.ecrans.length,'D’après la largeur de la fenêtre.',true,'<div class="reg-bloc">'+audListe(D.ecrans,T.visites)+'</div>'));
   var R=D.direct.derniers||[];
   G.push(abnGroupe('<span class="aud-direct">Les 30 dernières minutes</span>',R.length,'Relu toutes les 30 secondes tant que cet écran est ouvert.',true,'<div class="reg-bloc">'+(R.length?R.map(function(e){
-      return '<div class="aud-l"><span class="t">'+esc(e.page)+'</span><span class="n" style="font-weight:500;color:var(--muted)">'+esc(fmtAgo(e.ts))+'</span>'+
+      return '<div class="aud-l"><span class="t">'+esc(audPage(e.page))+'</span><span class="n" style="font-weight:500;color:var(--muted)">'+esc(fmtAgo(e.ts))+'</span>'+
         '<span class="s">'+(e.source?esc(e.source)+' · ':'suite de la visite · ')+esc(e.ecran)+'</span></div>'; }).join(''):'<div class="aud-l"><span class="t" style="color:var(--muted)">Personne sur le site en ce moment.</span></div>')+'</div>'));
   h+='<div class="reg" style="margin-top:22px">'+G.join('')+'</div>';
   h+='<div class="encart bloc" style="margin-top:18px"><div class="tx" style="margin-top:0">'+(D.depuis?'Comptage commencé le '+esc(audJour(D.depuis))+'. ':'Aucune visite comptée pour l’instant : le comptage commence avec la mise en ligne. ')+

@@ -13,6 +13,20 @@ de ligne du tout.
 
 ---
 
+# 🔶 25 OCTOBRE 2026 (SOIR) — L'AUDIENCE DU SITE DANS LA TOUR, ET LE BLOG SUR teamop.fr — branche `claude/audience`, ATTEND LA FUSION DE JUSTIN
+
+Justin : « le nombre de personnes qui a cliqué sur les liens, comment ils sont venus, par quel site […] en temps réel, un peu comme BabyLoveGrowth » ; « voir si cet
+agent est lié à ce lien-là par rapport aux démarches qu'il fait ». Il a choisi « les deux » (Google Analytics ET un tableau à nous) et le marquage des liens des agents.
+- **Fait ce jour, hors dépôt** : `blog.teamop.fr` → `https://teamop.fr/blog/` (bloc Caddy ajouté au Caddyfile du VPS, copie `/etc/caddy/Caddyfile.avant-blog` ;
+  CNAME OVH `blog` → `api.teamop.fr.`) : les quatre anciennes adresses `/blog/<slug>` répondent 301 vers `/blog/<slug>.html` (vérifié). BabyLoveGrowth est résilié.
+  Search Console : propriété `https://teamop.fr/` vérifiée, `sitemap.xml` envoyé (27 pages découvertes) ; 37 clics sur un mois, 5 pages indexées, 17 non.
+- **Sur la branche** : `server/audience.js` (des totaux par jour, ni cookie, ni identifiant, ni IP écrite, 25 mois — conditions CNIL en tête du fichier) ; `/audience.js`
+  posé à côté de `cookies.js` par `site-marine.js` et `blog.js` ; onglet **Audience** de la Tour v2.110 (section « Site », patron seul, relu toutes les 30 s) ;
+  `confidentialite.html` § 2 le dit ; la signature de Léa, Camille et Chloé porte `https://teamop.fr/?de=<agent>` (`lienSite`), compté « Courriel de Léa ».
+  Banc : `test-3002` (43 contrôles, 9 mutations mordent), dans `scripts/bancs-serveur.liste`.
+- **Reste** : (1) la fusion par Justin, qui déploie le serveur ; (2) `registre-traitements.html` ne cite ni Google Analytics ni cette mesure — à ajouter ;
+  (3) Google Analytics : relier Search Console (Administration → Associations) ; (4) une « visite » est une ESTIMATION (une arrivée depuis l'extérieur), pas des personnes.
+
 # 🔶 25 OCTOBRE 2026 — LES AGENTS : L'EXAMEN DOIT TOURNER EN BOUCLE, PAR CLAUDE CODE, PLUS PAR JUSTIN — branche `claude/examen-25-10`
 
 Justin, 25 octobre 2026 : « les agents doivent répondre comme des humains… qu'ils travaillent sur eux-mêmes, qu'ils parlent entre eux pour s'aider, sans que je

@@ -342,3 +342,5 @@ tests/test-2992.js
 tests/test-2993.js
 tests/test-2996.js
 tests/test-3001.js
+# 25 octobre 2026 : `test-3002` (l'audience du site sans cookie : `server/audience.js` et ses deux routes sur le vrai serveur, `/audience.js` sur chaque page qui porte `cookies.js`, le lien « ?de=<agent> » de la signature).
+tests/test-3002.js
