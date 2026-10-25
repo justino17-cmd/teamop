@@ -39,9 +39,9 @@ function corps(entete) {
 const fonction = nom => corps('\nfunction ' + nom + '(').trim();
 const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
-const NOMS = ['msPfIlYa', 'msPfNom', 'msPfCartes', 'msPfHtml', 'messPeindrePf', 'messPfCharger', 'messPfGeste', 'messPfPasser', 'messPfPoint', 'messPfRgpd', 'msPfDateSaisie', 'messPfRgpdNouvelle', 'messPfClic', 'msAgentsParId', 'fmtDate'];
+const NOMS = ['msPfIlYa', 'msPfNom', 'msPfCartes', 'msPfHtml', 'messPeindrePf', 'messPfCharger', 'messPfGeste', 'messPfPasser', 'messPfPoint', 'messPfRgpd', 'msPfDateSaisie', 'messPfRgpdNouvelle', 'messPfClic', 'msAgentsParId', 'fmtDate', 'agAvatar'];
 const FN = NOMS.map(fonction);
-const VARS = [ligne('var MS_PF_AG_CLAUDE='), ligne('var MS_PF_MODE='), ligne('var MS_PF_NIV='), ligne('MS.pf={')].join('\n');
+const VARS = [ligne('var MS_PF_AG_CLAUDE='), ligne('var MS_PF_MODE='), ligne('var MS_PF_NIV='), ligne('MS.pf={'), ligne('var AG_PHOTOS=')].join('\n');
 vrai('(population) les ' + NOMS.length + ' fonctions, le coffre MS.pf et les tables sont trouvés dans le fichier livré', ESC && FN.every(f => f.length > 30) && VARS.split('\n').every(l => l.length > 20), NOMS.filter((n, i) => FN[i].length <= 30).join(', ') + ' | ' + VARS.slice(0, 200));
 
 function faux(id) {
