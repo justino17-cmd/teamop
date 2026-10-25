@@ -24,6 +24,15 @@
  *    qui borne deux agents qui se répondent (sans elle, ils videraient le budget) ; la borne est appliquée par l'équipe (`agent-equipe.js`).
  *  · « X écrit… » est un état EN MÉMOIRE (`ecrit`) : il ne se range pas, il ne survit pas à un redémarrage, et il expire seul.
  *  · Un message `systeme` dit ce qui s'est passé (« Camille a pris… », « X est à l'arrêt ») : il n'est jamais une consigne et personne n'y répond.
+ *
+ * LES GROUPES PERSONNALISÉS (25 octobre 2026) — Justin choisit pour chaque groupe un nom, une icône, une couleur, une description
+ * (`POST /api/monitor/conversations/groupe`, registre `conversations-groupes.json`). ⛔ SEUL L'AFFICHAGE CHANGE : l'identifiant (equipe, clients,
+ * plateforme, reunions) reste celui que les agents, les @mentions (« @tous ») et les réunions lisent, et `nom()` — que les agents mettent dans
+ * leurs consignes (`agent-equipe.js`, `agent-victor.js`) — rend TOUJOURS le nom d'origine : le comportement d'un agent ne dépend jamais d'un mot
+ * choisi par un humain. Le choix voyage à part, dans `perso` (liste des fils), présent seulement si le groupe est personnalisé.
+ * ⛔ Une valeur du corps n'entre au registre qu'après `validerGroupe` (liste de caractères PERMIS, pas liste de refus), et elle est REVALIDÉE à la
+ * lecture du fichier : un registre modifié à la main ne sert pas ce que la route aurait refusé. Registre illisible : 503 à l'écriture, liste servie
+ * sans `perso` (le défaut), jamais écrasé.
  */
 'use strict';
 const fs = require('fs');
@@ -53,6 +62,37 @@ const MENEUR = { equipe: 'victor', clients: 'lea', plateforme: 'max', reunions: 
 const NOMS_GROUPES = { equipe: 'Équipe', clients: 'Clients', plateforme: 'Plateforme', reunions: 'Réunions' };
 const GROUPES = Object.keys(MEMBRES);
 
+/* ── LA PERSONNALISATION D'UN GROUPE — validation, une seule définition (la route ET la relecture du fichier). ── */
+const F_GROUPES = 'conversations-groupes.json';
+const COULEURS = ['bleu', 'vert', 'orange', 'rouge', 'violet', 'gris'];
+const NOM_MAX = 40, DESCRIPTION_MAX = 120;
+const CTRL = /[\u0000-\u001f\u007f-\u009f\u200b\u200c\u200e\u200f\u2028-\u202e\u2060-\u2064\ufeff]/;   // contrôles, retours, caractères invisibles et de sens d'écriture
+const NOM_PERMIS = /^[\p{L}\p{N} '’.,:;!?&()\-–_/+]+$/u;
+const DESCRIPTION_PERMISE = /^[\p{L}\p{N} '’.,:;!?&()\-–—_/+%€…«»*#°]*$/u;
+const AVEC_LIEN = /(?:[a-z][a-z0-9+.-]*:\/\/|\bwww\.|\bmailto:|[\p{L}\p{N}-]\.\p{L}{2,})/iu;                // « exemple.fr », « http://… », « www. » — un point suivi d'un espace n'en est pas un
+const UN_EMOJI = /^(?:\p{RI}{2}|[0-9#*]\uFE0F?\u20E3|\p{Extended_Pictographic}(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}])?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|[\u{1F3FB}-\u{1F3FF}])?)*)$/u;
+const unEspace = t => t.replace(/ {2,}/g, ' ').trim();
+/* `{ok:true, perso}` ou `{ok:false, erreur}` (un texte lisible, en français). `sansAdr` : la même détection d'adresse que les fils. */
+function validerGroupe(b, sansAdr) {
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return { ok: false, erreur: 'Demande vide' };
+  for (const k of ['nom', 'icone', 'couleur']) if (typeof b[k] !== 'string') return { ok: false, erreur: k === 'nom' ? 'Donne un nom au groupe' : k === 'icone' ? 'Choisis une icône' : 'Choisis une couleur' };
+  if (b.description != null && typeof b.description !== 'string') return { ok: false, erreur: 'La description doit être un texte' };
+  if ([b.nom, b.icone, b.couleur, b.description || ''].some(x => CTRL.test(x))) return { ok: false, erreur: 'Le texte contient un caractère interdit' };
+  const nom = unEspace(b.nom.normalize('NFC')), icone = b.icone.normalize('NFC').trim(), description = unEspace(String(b.description || '').normalize('NFC'));
+  const longueur = t => Array.from(t).length;
+  if (!nom) return { ok: false, erreur: 'Donne un nom au groupe' };
+  if (longueur(nom) > NOM_MAX) return { ok: false, erreur: 'Le nom est trop long (' + NOM_MAX + ' caractères au plus)' };
+  if (!NOM_PERMIS.test(nom) || !/[\p{L}\p{N}]/u.test(nom)) return { ok: false, erreur: 'Le nom ne peut contenir que des lettres, des chiffres, des espaces et une ponctuation simple' };
+  if (norm(nom).includes('justin')) return { ok: false, erreur: 'Le nom ne peut pas porter le prénom de Justin' };
+  if (AVEC_LIEN.test(nom) || nom !== sansAdr(nom)) return { ok: false, erreur: 'Le nom ne peut pas contenir de lien ni d’adresse' };
+  if (!(UN_EMOJI.test(icone) && icone.length <= 16) && !/^\p{L}{1,2}$/u.test(icone)) return { ok: false, erreur: 'L’icône est un émoji, ou une ou deux lettres' };
+  if (!COULEURS.includes(b.couleur)) return { ok: false, erreur: 'Couleur inconnue (' + COULEURS.join(', ') + ')' };
+  if (longueur(description) > DESCRIPTION_MAX) return { ok: false, erreur: 'La description est trop longue (' + DESCRIPTION_MAX + ' caractères au plus)' };
+  if (!DESCRIPTION_PERMISE.test(description)) return { ok: false, erreur: 'La description ne peut contenir que des lettres, des chiffres, des espaces et une ponctuation simple' };
+  if (AVEC_LIEN.test(description) || description !== sansAdr(description)) return { ok: false, erreur: 'La description ne peut pas contenir de lien ni d’adresse' };
+  return { ok: true, perso: { nom, icone, couleur: b.couleur, description } };
+}
+
 /* Sans accent ni casse : « @Léa », « @lea » et « @LÉA » sont la même personne. */
 const norm = t => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 /* Les @mentions d'un texte, rendues comme une liste d'identifiants d'agents, sans doublon, dans l'ordre où elles paraissent. `membres` : `[{id, nom}]`
@@ -81,7 +121,7 @@ module.exports = function monterConversations(app, ctx) {
   const dossierExiste = typeof ctx.dossierExiste === 'function' ? ctx.dossierExiste : (() => true);
   const IDS = new Map(agents.AGENTS.map(a => [a.id, a.nom]));
   const filValide = f => GROUPES.includes(f) || IDS.has(f);
-  const nomDuFil = f => NOMS_GROUPES[f] || (IDS.get(f) || f);
+  const nomDuFil = f => NOMS_GROUPES[f] || (IDS.get(f) || f);   // ⛔ le nom D'ORIGINE, toujours : `nom()` nourrit les consignes des agents (voir l'en-tête)
   /* Les agents d'un fil, `[{id, nom}]` : ceux du registre seulement (un identifiant de la table qui n'y serait plus ne fait pas un fantôme). */
   const membresDe = f => (MEMBRES[f] === '*' ? [...IDS.keys()] : Array.isArray(MEMBRES[f]) ? MEMBRES[f].filter(id => IDS.has(id)) : (IDS.has(f) ? [f] : [])).map(id => ({ id, nom: IDS.get(id) }));
   const meneurDe = f => (MENEUR[f] && IDS.has(MENEUR[f])) ? MENEUR[f] : '';
@@ -117,6 +157,21 @@ module.exports = function monterConversations(app, ctx) {
     try { const f = path.join(DATA_DIR, F), tmp = f + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(messages)); fs.renameSync(tmp, f); return true; }
     catch (e) { console.error(F + ' non écrit :', e.message); return false; }
   }
+  /* Les groupes personnalisés : { fil → { nom, icone, couleur, description } }, seulement pour les quatre groupes. Jamais d'objet de la requête recopié tel quel :
+     on ne garde que les clés de GROUPES (ni `__proto__` ni `constructor` n'entrent), et chaque entrée est revalidée (un fichier modifié à la main). */
+  const fichier = typeof ctx.fichier === 'object' && ctx.fichier && typeof ctx.fichier.charger === 'function' ? ctx.fichier : require('./agents-fichier')(DATA_DIR);
+  const lireGroupes = () => {
+    const brut = fichier.charger(F_GROUPES, {}), sortie = {};
+    for (const g of GROUPES) {
+      if (!Object.prototype.hasOwnProperty.call(brut, g)) continue;
+      const v = validerGroupe(brut[g], sansAdr);
+      if (v.ok) sortie[g] = v.perso; else console.error(F_GROUPES + ' : l’entrée « ' + g + ' » est refusée à la relecture (' + v.erreur + ') — le groupe garde son nom d’origine');
+    }
+    return sortie;
+  };
+  let groupes = lireGroupes();
+  const groupesIllisible = () => fichier.illisible(F_GROUPES);
+  const persoDe = f => (!groupesIllisible() && GROUPES.includes(f) && Object.prototype.hasOwnProperty.call(groupes, f)) ? Object.assign({}, groupes[f]) : null;
   const propre = (t, n) => String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
   /* ⛔ Un message qu'on n'a pas encore lu et qui porte un dossier ou le niveau « urgent » (le rappel d'un client) n'existe QU'ICI : le chasser du registre,
      c'est que Justin ne rappelle jamais ce client, sans erreur ni trace — le dossier est toujours là, plus l'alerte. */
@@ -223,8 +278,10 @@ module.exports = function monterConversations(app, ctx) {
   /* Un fil pour la liste : le dernier message, son heure, les non-lus de Justin, les membres, le meneur, qui écrit. */
   const resume = f => {
     const ms = messages.filter(m => m.fil === f); const d = ms[ms.length - 1];
-    return { fil: f, nom: nomDuFil(f), groupe: GROUPES.includes(f), nonLus: nonLus(f), membres: membresDe(f), meneur: meneurDe(f), ecrit: quiEcrit(f),
+    const r = { fil: f, nom: nomDuFil(f), groupe: GROUPES.includes(f), nonLus: nonLus(f), membres: membresDe(f), meneur: meneurDe(f), ecrit: quiEcrit(f),
       dernier: d ? { ts: d.ts, de: d.de, texte: d.texte.slice(0, 120), niveau: d.niveau } : null };
+    const perso = persoDe(f); if (perso) r.perso = perso;   // présent SEULEMENT si Justin a personnalisé ce groupe
+    return r;
   };
 
   app.get('/api/monitor/conversations', monPatronStrict, (req, res) => {
@@ -269,6 +326,31 @@ module.exports = function monterConversations(app, ctx) {
     res.json({ ok: true, lus: touches.length });
   });
 
+  /* Personnaliser un groupe — ou le remettre par défaut. Seul le patron (`monPatronStrict`). L'écriture est tout ou rien : un registre qui ne s'écrit pas
+     laisse le groupe exactement comme il était (503). Le journal dit le GESTE et le groupe (son identifiant), jamais le nom ni la description choisis. */
+  app.post('/api/monitor/conversations/groupe', monPatronStrict, (req, res) => {
+    const b = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
+    if (typeof b.fil !== 'string' || !GROUPES.includes(b.fil)) return res.status(400).json({ error: 'Groupe inconnu' });
+    const fil = b.fil;
+    req._gesteCible = fil;   // la cible du journal des gestes : l'identifiant du groupe — sinon `nom` (le texte choisi) y passerait en premier
+    let perso = null;
+    if (b.defaut === true) { /* remise par défaut */ }
+    else {
+      const v = validerGroupe(b, sansAdr);
+      if (!v.ok) return res.status(400).json({ error: v.erreur });
+      perso = v.perso;
+    }
+    /* la demande est jugée d'abord (une faute de frappe reste un 400), le registre ensuite : illisible, on n'écrit rien par-dessus */
+    if (groupesIllisible()) return res.status(503).json({ error: 'Les groupes personnalisés sont illisibles' });
+    const suite = {};
+    for (const g of GROUPES) if (g !== fil && Object.prototype.hasOwnProperty.call(groupes, g)) suite[g] = groupes[g];
+    if (perso) suite[fil] = perso;
+    if (!fichier.ecrire(F_GROUPES, suite)) return res.status(503).json({ error: 'Le choix n’a pas pu être enregistré' });
+    groupes = suite;
+    try { agents.noter('systeme', perso ? 'groupe personnalisé' : 'groupe remis par défaut', { cible: fil, resultat: 'ok' }); } catch (e) {}
+    res.json({ ok: true, perso: perso ? Object.assign({}, perso) : null });
+  });
+
   /* Les `n` derniers messages d'un fil (1 à 50), du plus ancien au plus récent : `[{de, texte, ts}]`. Pour qu'un agent REPRENNE la conversation
      sans qu'on lui recopie tout. Le texte est celui qui est rangé : sans caractère de contrôle, borné ; il n'est PAS passé par `sansAdresses`
      côté patron (seuls les agents y passent à l'écriture) — l'appelant qui l'envoie hors du serveur le nettoie lui-même. Un fil inconnu ou
@@ -293,5 +375,6 @@ module.exports.MOTIFS = MOTIFS;
 module.exports.MEMBRES = MEMBRES;
 module.exports.MENEUR = MENEUR;
 module.exports.GROUPES = GROUPES;
+module.exports.COULEURS = COULEURS;
 module.exports.analyserMentions = analyserMentions;
 module.exports.PAR_HEURE_FIL = PAR_HEURE_FIL;
