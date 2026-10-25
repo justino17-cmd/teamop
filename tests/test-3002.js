@@ -64,7 +64,8 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
   fs.writeFileSync(path.join(D2, 'audience.json'), '{ cassé');
   const M2 = A(null, { DATA_DIR: D2, sansMinuterie: true });
   M2.enregistrer({ p: '/' }, 'Mozilla');
-  v('⛔ un registre illisible n’est JAMAIS réécrit', [M2.lisible(), fs.readFileSync(path.join(D2, 'audience.json'), 'utf8')], [false, '{ cassé']);
+  const ecrit2 = M2.ecrire();
+  v('⛔ un registre illisible n’est JAMAIS réécrit', [M2.lisible(), fs.readFileSync(path.join(D2, 'audience.json'), 'utf8'), ecrit2], [false, '{ cassé', true]);
   fs.rmSync(D, { recursive: true, force: true }); fs.rmSync(D2, { recursive: true, force: true });
 
   console.log('\n3. Le vrai serveur');
@@ -108,6 +109,11 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
   v('Léa, Camille, Chloé : le lien porte leur nom', ['lea', 'camille', 'chloe'].map(a => SIG.formater('X', 'Assistante virtuelle', 'Équipe TeamOP', 'contact@teamop.fr', true, a).split('\n')[1]),
     ['contact@teamop.fr · https://teamop.fr/?de=lea', 'contact@teamop.fr · https://teamop.fr/?de=camille', 'contact@teamop.fr · https://teamop.fr/?de=chloe']);
   v('les autres (Hugo…) : « teamop.fr » tout court', SIG.formater('Hugo', 'Assistant virtuel', 'Équipe TeamOP', 'contact@teamop.fr').split('\n')[1], 'contact@teamop.fr · teamop.fr');
+  const D3 = fs.mkdtempSync(path.join(os.tmpdir(), 'aud-'));
+  const S3 = SIG(null, { DATA_DIR: D3, agents: { AGENTS: [{ id: 'lea', nom: 'Léa' }, { id: 'hugo', nom: 'Hugo' }] } });
+  v('⛔ par la vraie composition : Léa porte « ?de=lea », Hugo non', [S3.composer('lea', 'contact@teamop.fr').split('\n')[1], S3.composer('hugo', 'contact@teamop.fr').split('\n')[1]],
+    ['contact@teamop.fr · https://teamop.fr/?de=lea', 'contact@teamop.fr · teamop.fr']);
+  fs.rmSync(D3, { recursive: true, force: true });
   v('⛔ chaque agent marqué est connu de l’audience (sinon ses visites tomberaient dans « Accès direct »)', [...SIG.AGENTS_COURRIER].filter(a => !A.AGENTS[a]), []);
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
