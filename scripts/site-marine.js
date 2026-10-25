@@ -878,7 +878,9 @@ const ICONES = cle => cle === 'opmessages'
 <link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">`;
 /* ⛔ MESURE D'AUDIENCE (21 octobre 2026, Justin) : `/cookies.js` — bandeau Refuser / Accepter, Google Analytics
    (G-BW7P0K94BZ) chargé SEULEMENT après « Accepter » (CNIL). À la racine seulement : l'aperçu ne se mesure pas. Le lien
-   « Gestion des cookies » du pied rouvre le bandeau (`data-cookies`) ; `confidentialite.html` § 2 le dit. */
+   « Gestion des cookies » du pied rouvre le bandeau (`data-cookies`) ; `confidentialite.html` § 2 le dit.
+   ⛔ ET `/audience.js` (25 octobre 2026) : la mesure SANS cookie, qui compte tout le monde (`server/audience.js`, l'onglet Audience de la Tour).
+   Posée à côté de `cookies.js`, aux mêmes pages, à la racine seulement. */
 function page(cle, o) {
   const P = PAGES[cle], racine = o ? !!o.racine : A_LA_RACINE;
   POUR_LA_RACINE = racine;
@@ -903,7 +905,7 @@ ${P.cta === false ? '' : commencer()}
 </main>
 ${pied()}
 ${P.scripts ? P.scripts() : ''}<script src="${RES}site.js" defer></script>
-${racine ? '<script src="/cookies.js" defer></script>\n' : ''}${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
+${racine ? '<script src="/cookies.js" defer></script>\n<script src="/audience.js" defer></script>\n' : ''}${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
 </html>
 `;
 }
