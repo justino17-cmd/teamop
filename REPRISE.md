@@ -13,6 +13,20 @@ de ligne du tout.
 
 ---
 
+# 🔶 25 OCTOBRE 2026 — LES AGENTS : L'EXAMEN DOIT TOURNER EN BOUCLE, PAR CLAUDE CODE, PLUS PAR JUSTIN — branche `claude/examen-25-10`
+
+Justin, 25 octobre 2026 : « les agents doivent répondre comme des humains… qu'ils travaillent sur eux-mêmes, qu'ils parlent entre eux pour s'aider, sans que je
+sois tout le temps derrière… tout ce qui n'est pas fait, on passe pas à autre chose ». Constat : deux jours d'allers-retours, parce que SEUL Justin lançait
+l'examen — un échec corrigé, un examen, une demi-journée.
+- **Examen de 13 h 28 (5 ✓, 4 ✗), corrigé** sur cette branche (`test-3001`, 27 contrôles, 8 mutations mordent ; `test-2900` à la nouvelle règle de relance) :
+  sc1 (défaut de l'EXAMEN : « pas de dossier en impayé » lu comme un impayé), sc2 (un travail de Justin se PREND, la question va dans le même message), sc6 (le
+  juge sait qu'une activité déduite du nom est voulue ; une réponse du juge sans verdict a UNE relance, À NEUF — relecture du gardien : jamais la première
+  réponse remise en tour « assistant » ; la vue d'un brouillon dit la raison d'un « non vérifié »), sc9 (les deux phrases du modèle de courriel ne comptent plus
+  comme formules toutes faites — `FORMULES_MAISON`, vérifiées dans le cahier).
+- ⛔ **LA SUITE : LA BOUCLE.** Dès que `CLE_EXAMEN` est posée dans les réglages de l'environnement (Justin la crée dans la Tour, onglet Examen ; jamais dans une
+  conversation), Claude Code lance lui-même l'examen (commandes plus bas, § 23 octobre), lit le résultat, corrige, fait déployer, relance une heure plus tard —
+  jusqu'à TROIS examens verts de suite (un vert seul ne prouve pas grand-chose : le modèle varie d'un passage à l'autre). Sans cette clé, la boucle repasse par Justin.
+
 # ✅ 24 OCTOBRE 2026 (SOIR) — NODEMAILER 10.2.1 ET MAILPARSER 3.12.4 — branche `claude/nodemailer-10-2`
 
 `npm audit --omit=dev` rendait des failles connues sur les deux serveurs (`server/` : nodemailer + mailparser ; `server-msg/` : nodemailer). Montés :
