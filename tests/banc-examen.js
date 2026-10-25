@@ -130,7 +130,7 @@ function decider(r, defauts) {
   }
   if (id === 'margaux' && /tu en es où/i.test(dernier)) {
     if (defauts.includes('margaux-renvoie')) return dit('Je passe la demande à @victor, il saura mieux te répondre.');
-    return dit('Sur la compta globale je ne vois que ce que le serveur me donne : pas de vue d’ensemble. Pour DOS-900001, oui, il a bien payé, formule pro, tout est à jour.');
+    return dit('Sur la compta globale, je te le dis franchement, je ne vois que ce que le serveur me donne : pas de vue d’ensemble. Pour DOS-900001, oui, il a bien payé, formule pro, tout est à jour.');   // un bon équipier TUTOIE Justin (scénario 9, compté dans ses fils privés)
   }
   if (id === 'camille' && /prépare-moi la liste des questions/i.test(dernier)) return { texte: 'C’est pris, je m’en occupe aujourd’hui.', actions: [A('prendre', { texte: 'Préparer la liste des questions qui reviennent le plus dans le courrier de la semaine' })] };
   if (id === 'camille' && /réponse type pour les demandes de facture/i.test(dernier)) {
