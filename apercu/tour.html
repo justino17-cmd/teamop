@@ -2181,7 +2181,10 @@ body.plans .reg-l.cli::before{display:none}
 .ag-rg-plus .ag-btn{align-self:flex-start}
 .ag-rang.ag-ext{grid-template-columns:minmax(0,1fr);grid-template-areas:"id" "plus"}
 .ag-ext-note{margin:0;font-size:13px;line-height:1.45;color:var(--muted)}
-.ag-voir>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650;color:var(--text)}
+.ag-voir>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650;color:var(--text);list-style:none}
+.ag-voir>summary::-webkit-details-marker{display:none}
+.ag-voir>summary::after{content:"";width:7px;height:7px;margin:0 4px 0 auto;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform 160ms ease-out}
+.ag-voir[open]>summary::after{transform:rotate(45deg)}
 .ag-voir ul{margin:0 0 6px;padding-left:20px;font-size:13px;line-height:1.6;color:var(--text2)}
 .ag-voir p{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
 @container aglg (min-width:640px){
@@ -2191,9 +2194,9 @@ body.plans .reg-l.cli::before{display:none}
   .ag-parler{align-self:center}
 }
 @media (pointer:fine){ @container aglg (min-width:640px){ .ag-rang .ag-seg button,.ag-rang .ag-parler{min-height:36px} } }
-@media (max-width:560px){ .ag-barre b{flex-basis:100%} .ag-barre>.ag-btn{flex:1} }
+@media (max-width:560px){ .ag-barre b{flex:1 1 calc(100% - 24px);min-width:0} .ag-barre>.ag-btn{flex:1} }
 @media (max-width:700px){ .ag-onglets{padding-right:28px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)} }
-@media (prefers-reduced-motion:reduce){ .ag-seg button,.ag-parler{transition:none} .ag-seg button:active:not([disabled]),.ag-parler:active{transform:none} }
+@media (prefers-reduced-motion:reduce){ .ag-voir>summary::after{transition:none} .ag-seg button,.ag-parler{transition:none} .ag-seg button:active:not([disabled]),.ag-parler:active{transform:none} }
 .ag-liste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-top:14px}
 .ag-ligne{display:flex;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
 .ag-ligne:first-child{border-top:0}
