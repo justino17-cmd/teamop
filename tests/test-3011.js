@@ -102,8 +102,9 @@ const texteDe = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 const etat = () => bac.paEtatLigne();
 PA.lec = 1; PA.d = { ok: true, recuLe: null }; PA.luLe = Date.now();
 vrai('rien reçu (`recuLe:null`) : « Pas encore de relevé — le Mac n’a rien envoyé », sans chiffre ni liste', etat().lib === 'Pas encore de relevé — le Mac n’a rien envoyé' && !/\d/.test(texteDe(pauR())) && !/<details/.test(pauR()));
-PA.lec = -2; PA.err = ''; vrai('pont pas configuré (503/404) : « Pont pas encore configuré »', etat().lib === 'Pont pas encore configuré' && etat().e === 'externe');
-PA.err = '<b>Le fichier est illisible</b>'; vrai('…avec le texte du serveur pour un 503, ÉCHAPPÉ', /&lt;b&gt;Le fichier est illisible/.test(pauR()) && !/<b>Le fichier/.test(pauR()));
+PA.lec = -2; PA.err = ''; vrai('serveur sans la route (404) : « Pont pas encore configuré »', etat().lib === 'Pont pas encore configuré' && etat().e === 'externe');
+PA.lec = -3; PA.err = '<b>Le fichier est illisible</b>'; vrai('503 (relevé illisible sur le serveur) : « Relevé illisible sur le serveur », en ambre — jamais « pas configuré » ni « rien reçu »', etat().lib === 'Relevé illisible sur le serveur' && etat().e === 'retard');
+vrai('…avec le texte du serveur, ÉCHAPPÉ', /&lt;b&gt;Le fichier est illisible/.test(pauR()) && !/<b>Le fichier/.test(pauR()));
 PA.lec = -1; vrai('lecture impossible : le dit, en ambre (jamais « rien reçu »)', etat().lib === 'Le relevé n’a pas pu être lu' && etat().e === 'retard');
 const rel = (o) => Object.assign({ version: 1, genereLe: iso(1),
   chauffe: { debut: '2026-10-20', jour: 5, plafondDuJour: 10, plafondMax: 40, phase: 'chauffe' },
@@ -280,8 +281,8 @@ const mettre = (nom, ico, desc, coul) => { els['mg-nom'] = { value: nom, focus: 
   vrai('…et se rétablit à la lecture suivante', PA.echec === false && !/impossible/.test(etat().lib));
   get(() => Promise.reject(Object.assign(new Error('http'), { status: 404 }))); await bac.chargerPauline();
   vrai('404 (serveur sans la route) : « Pont pas encore configuré », sans relevé', PA.lec === -2 && PA.d === null && etat().lib === 'Pont pas encore configuré');
-  get(() => Promise.reject(Object.assign(new Error('http'), { status: 503, corps: 'Pauline : pont non configuré' }))); await bac.chargerPauline();
-  vrai('503 : « Pont pas encore configuré » et la raison du serveur', PA.lec === -2 && /Pauline : pont non configuré/.test(pauR()));
+  get(() => Promise.reject(Object.assign(new Error('http'), { status: 503, corps: 'Le relevé de Pauline est illisible' }))); await bac.chargerPauline();
+  vrai('503 : « Relevé illisible sur le serveur » et la raison du serveur', PA.lec === -3 && etat().lib === 'Relevé illisible sur le serveur' && /Le relevé de Pauline est illisible/.test(pauR()));
   PA.lec = 0; get(() => Promise.reject(new Error('réseau'))); await bac.chargerPauline();
   vrai('coupure à la première lecture : « n’a pas pu être lu » (on ne sait pas), pas « rien reçu »', PA.lec === -1 && etat().lib === 'Le relevé n’a pas pu être lu');
   get(() => Promise.resolve({ ok: true, recuLe: null })); await bac.chargerPauline();

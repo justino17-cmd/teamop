@@ -10956,6 +10956,7 @@ function paAge(){ var d=PA.d||{}, t=paMs(d.recuLe);
 function paEtatLigne(){
   if(PA.lec===0) return {e:'externe',lib:'Lecture du relevé…'};
   if(PA.lec===-2) return {e:'externe',lib:'Pont pas encore configuré'};
+  if(PA.lec===-3) return {e:'retard',lib:'Relevé illisible sur le serveur'};
   if(PA.lec!==1) return {e:'retard',lib:'Le relevé n’a pas pu être lu'};
   if(!PA.d||!PA.d.recuLe) return {e:'externe',lib:'Pas encore de relevé — le Mac n’a rien envoyé'};
   var a=paAge(), fin=PA.echec?' — relecture impossible':'';
@@ -10995,7 +10996,7 @@ function paLigne(k,x,i,idx){
 }
 function agPaulineHtml(){
   var h='<p class="ag-ext-note">Elle ne se pilote pas d’ici : ses accords d’envoi se donnent dans son tableau de bord, sur ton Mac.</p>';
-  if(PA.lec===-2&&PA.err) h+='<p class="ag-ext-note">'+esc(PA.err)+'</p>';
+  if((PA.lec===-2||PA.lec===-3)&&PA.err) h+='<p class="ag-ext-note">'+esc(PA.err)+'</p>';
   var r=PA.lec===1&&PA.d&&PA.d.recuLe&&paObj(PA.d.releve)?PA.d.releve:null;
   if(!r) return h;
   var ch=paChiffres(r), cf=paChauffe(r);
@@ -11022,7 +11023,10 @@ function chargerPauline(){
     var sig=JSON.stringify([d.recuLe||null,d.releve||null]), chg=PA.lec!==1||PA.sig!==sig||PA.echec;
     PA.d=d; PA.lec=1; PA.err=''; PA.echec=false; PA.sig=sig; PA.luLe=Date.now(); paApres(chg);
   }).catch(function(e){ PA.enVol=null;
-    if(e&&(e.status===503||e.status===404)){ PA.lec=-2; PA.err=(e.status===503&&e.corps)?String(e.corps).slice(0,200):''; PA.d=null; PA.sig=''; }
+    /* ⛔ 404 = ce serveur n'a pas la route (pont absent). 503 = le serveur a un relevé qu'il NE PEUT PAS LIRE (fichier cassé, clé maître absente) : « pas encore de relevé » (200, recuLe null)
+       est un autre état, et dire « pas configuré » d'un relevé illisible serait mentir (test-3022, le vrai serveur). */
+    if(e&&e.status===404){ PA.lec=-2; PA.err=''; PA.d=null; PA.sig=''; }
+    else if(e&&e.status===503){ PA.lec=-3; PA.err=e.corps?String(e.corps).slice(0,200):''; PA.d=null; PA.sig=''; }
     else if(PA.lec===1) PA.echec=true; else PA.lec=-1;
     paApres(true); });
   return PA.enVol;
