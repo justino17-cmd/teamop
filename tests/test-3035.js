@@ -60,8 +60,8 @@ const heure = (t) => String(new Date(t).getHours()).padStart(2, '0') + ':' + Str
   console.log('\n2. `occurrencesDuJour` : la réunion est dans chacun de ses jours');
   const jours = [22, 23, 24, 25, 26].map(j => F.occurrencesDuJour(JOUR(j)));
   v('⛔ le séminaire est dans le 23, le 24 et le 25 — pas le 22 ni le 26', jours.map(l => l.filter(x => x.r.id === 'r_trois').length), [0, 1, 1, 1, 0]);
-  v('… avec son rang : 1/3, 2/3, 3/3', jours.slice(1, 4).map(l => l.find(x => x.r.id === 'r_trois').suite), [{ n: 1, total: 3 }, { n: 2, total: 3 }, { n: 3, total: 3 }]);
-  v('… et c\'est TOUJOURS la même occurrence (même début : la fiche s\'ouvre sur la bonne date)', jours.slice(1, 4).map(l => l.find(x => x.r.id === 'r_trois').o.debut), [oc.debut, oc.debut, oc.debut]);
+  v('… avec son rang : 1/3, 2/3, 3/3', jours.slice(1, 4).map(l => (l.find(x => x.r.id === 'r_trois') || {}).suite), [{ n: 1, total: 3 }, { n: 2, total: 3 }, { n: 3, total: 3 }]);
+  v('… et c\'est TOUJOURS la même occurrence (même début : la fiche s\'ouvre sur la bonne date)', jours.slice(1, 4).map(l => (l.find(x => x.r.id === 'r_trois') || { o: {} }).o.debut), [oc.debut, oc.debut, oc.debut]);
   v('⛔ la réunion d\'un jour n\'est que dans le sien (contre-épreuve), sans rang', jours.map(l => l.filter(x => x.r.id === 'r_un').map(x => x.suite)), [[], [], [null], [], []]);
   v('le 24 : le jour de suite du séminaire passe AVANT le point de 10:00 (il a commencé avant)', jours[2].map(x => x.r.id), ['r_trois', 'r_un']);
   const R3b = Object.assign({}, R3, { annulee: true });
@@ -69,6 +69,7 @@ const heure = (t) => String(new Date(t).getHours()).padStart(2, '0') + ':' + Str
 
   console.log('\n3. La ligne de la liste du jour');
   const x24 = jours[2].find(x => x.r.id === 'r_trois'), x23 = jours[1].find(x => x.r.id === 'r_trois'), x25 = jours[3].find(x => x.r.id === 'r_trois');
+  if (!x24 || !x23 || !x25) { vrai('⛔ le séminaire manque à l\'un de ses jours : la suite (ligne, puce, case) ne peut pas être jouée', false); fin(); return; }
   const l24 = F.ligneReunion(x24.r, x24.o, x24.suite), l23 = F.ligneReunion(x23.r, x23.o, x23.suite);
   vrai('⛔ le samedi : « Jour 2 sur 3 » sur la ligne, « Suite » dans la colonne de l\'heure, l\'étiquette vocale dit « jour 2 sur 3 »', /Jour 2 sur 3/.test(l24) && /<span class="reunion-heure">Suite<\/span>/.test(l24) && /aria-label="[^"]*jour 2 sur 3/.test(l24));
   vrai('⛔ le vendredi (premier jour) : « Jour 1 sur 3 » ET son heure de début (09:00), pas « Suite »', /Jour 1 sur 3/.test(l23) && /<span class="reunion-heure">09:00<\/span>/.test(l23) && !/Suite/.test(l23));

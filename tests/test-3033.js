@@ -116,7 +116,7 @@ const monter = (over) => {
     const n = monter({ source: { demarrerAppel: async () => ({ id: 'a8' }) } });
     n.D.etat.route = route({ conv: 'c_x' });
     await n.F.lancerAppel({ membres: ['p_x'], video: false }, null, false, null);
-    v('depuis une conversation (pas de feuille) : l\'origine est la conversation, la couche est POUSSÉE', [n.D.etat.origineAppel.route.conv, n.D.etat.origineAppel.route.feuille, n.D.poses.length], ['c_x', false, 1]);
+    v('depuis une conversation (pas de feuille) : l\'origine est la conversation, la couche est POUSSÉE', [n.D.etat.origineAppel && n.D.etat.origineAppel.route.conv, n.D.etat.origineAppel && n.D.etat.origineAppel.route.feuille, n.D.poses.length], ['c_x', false, 1]);
     const ref = monter({ source: { demarrerAppel: async () => { throw new Error('refus'); } } });
     ref.D.etat.route = route({ feuille: FEUILLE });
     const ko = await ref.F.lancerAppel({ membres: ['p_x'] }, null, true, null);
