@@ -953,21 +953,22 @@ l'administrateur les attribue ; le formulaire Box n'a pas la reprise de brouillo
 dit le jour d'une arrivée d'hier même pour une soirée.
 
 **⏳ OP MESSAGES — ce qui attend une décision de Justin** (rien n'est fait, chaque point change ce que l'utilisateur connaît) :
-- **contacts#1** — ce que devient la conversation d'un contact BLOQUÉ (règle du service, `server-msg/`).
+- ✅ **contacts#1** — TRANCHÉ ET FAIT le 26 octobre 2026 (branche `claude/opmsg-groupes-conversations`, `test-3040`) : le contact BLOQUÉ voit sa conversation chez soi en LECTURE SEULE (phrase + « Débloquer » ; Infos : « Débloquer ce contact ») ;
+  lui n'est averti de rien : il écrit (201), son message est RANGÉ et MASQUÉ pour qui l'a bloqué (`msg_masque`, `ecritureSilencieuse`) — jamais remis, jamais notifié, la conversation ne remonte pas. Un groupe n'est pas touché ; débloquer ne ramène PAS les messages de la période.
+  ⚠️ Doutes : un message de la période peut paraître « Lu » chez Ben si Ana, débloquée, lit plus tard (le `lu_seq` passe par-dessus) ; les réactions et les sondages d'un bloqué restent refusés (404).
 - **la fiche d'une réunion TERMINÉE** garde « Répondre », le rappel et le trajet : les retirer ? (salle#2 n'a retiré que « Rejoindre » et l'audio.)
 - **salle#4** — la bannière « réunion en cours » d'une AUTRE conversation reste, et intercepte le toucher (elle protège d'un départ involontaire).
 - **salle@4** — un refus d'entrer ramène tout de suite à l'écran d'avant : rendre la phrase durable ? **salle@10** — ajouter du contenu à l'écran de fin.
 - **agenda@2 / pro@3** — déplacer ou retirer un geste connu de l'agenda ; **agenda@5** — des rangées de réunion plus denses (plancher tactile de 64 px).
 - **appels@6** — « revenir » après un appel (il faudrait ranger un état sur l'appareil) ; **appels@2** — regrouper autrement les manqués d'affilée.
-- **groupes@5** — un nom de groupe par défaut ; **groupes@3** — dire « supprimé » plutôt que « retiré » quand un canal est supprimé ; **groupes@2** — une
-  phrase à la place de « Activité du groupe » sur les lignes système.
-- **conversations@1** — une conversation épinglée reste AUSSI dans la liste (« Désépingler » en dépend) : la retirer de la liste ?
-- **pro@5** — une information de plus à l'écran des heures ; **pro@6** — masquer une ligne en Perso.
-- **temps-reel@3** — le prénom dans « … écrit » en groupe, et le délai de 6 s avant de l'effacer.
-- **n#5** — deux limites (40 et 80) pour une même chose : laquelle ?
+- ✅ **groupes@5, groupes@3, groupes@2, conversations@1, pro@5/pro@6, temps-reel@3, n#5** — TRANCHÉS ET FAITS le 26 octobre 2026 (même branche ; `test-3041`, `test-3042`, `test-3043`, sonde `sonde-opmessages-groupes-conversations.js`) :
+  nom par défaut « Léa, Hugo et 2 autres » (envoyé au service, filigrane du champ) ; canal supprimé = « supprimé » (événement `retire` + `supprime`) ; ligne système = phrase dans la LISTE (groupes et canaux — pas les réunions) ;
+  épinglée : EN HAUT seulement (liste, recherche, « Modifier », « Archivées » : une seule fois à l'écran), « Désépingler » à l'appui long / clic droit sur l'épingle ; pro@5 : rien de plus (non) ; pro@6 : « Confirmer l'envoi » masquée en Perso ;
+  « Léa écrit… » / « Léa et Hugo écrivent… » en groupe (6 s gardées) ; UNE limite de nom de groupe : 80 (création et renommage).
 - **une réunion de plusieurs jours** se montre sur CHACUN de ses jours (q01 dit désormais le jour de fin) : voulu ?
 - **l'organisateur qui « Quitte »** : sa phrase annonce un intérim qui n'a, lui, aucun des gestes de l'hôte.
-- **quandRdv / ligneEvenement** ne disent que les heures, jamais le fuseau.
+- **quandRdv / ligneEvenement** ne disent que les heures, jamais le fuseau — NON FAIT le 26 octobre 2026 : ce sont des fonctions de l'AGENDA (autre chantier, même fichier) et elles ne reçoivent aucun fuseau d'interlocuteur (`quandRdv(d, f, journee, jours)`) ;
+  il faudrait d'abord que l'événement porte le fuseau de l'autre, puis décider quoi montrer pour un rendez-vous sans interlocuteur.
 - **les 83 améliorations** que les testeurs ont proposées en utilisant l'application, rangées par partie, chacune avec la raison qui en fait une
   décision : `scratchpad/campagne-octobre-2026/a-decider-op-messages.md` (dans le dépôt).
 

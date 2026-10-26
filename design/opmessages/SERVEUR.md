@@ -197,12 +197,16 @@ Codes communs : 400 `champ_invalide`, 401 `session_requise`, 402 `formule_requis
 **Contacts, signalement**
 - `GET /api/contacts` ; `/api/contacts/lien {max, jours}` (V) ; `/api/liens/lire {code}` (S, aperçu, n'accepte rien) ; `/api/liens/accepter {code}` (V).
 - `/api/contacts/retirer`, `/bloquer`, `/debloquer` (un blocage coupe messages, appels et présence).
+  ⛔ **Bloquer ne se dit pas à qui est bloqué (décision de Justin, 26 octobre 2026).** Chez qui bloque, la directe reste dans la liste, LISIBLE, marquée `bloque: true` (liste et détail ; jamais chez l'autre) — la page n'y montre plus de champ,
+  une phrase et « Débloquer ». Chez le bloqué, rien ne change : sa conversation existante s'ouvre toujours, il écrit (201, la frappe répond `ok`, le dépôt de pièces passe) ; ses messages sont RANGÉS mais naissent masqués pour qui a bloqué
+  (`msg_masque`, `ecritureSilencieuse`) : ni liste, ni aperçu, ni pastille, ni recherche, ni pièce, ni événement, ni notification, et la conversation ne remonte pas. Ils ne reviennent JAMAIS, même après un déblocage. Si les deux se sont
+  bloqués, chacun est « celui qui a bloqué » : personne n'écrit (404). Un groupe n'est pas touché. `tests/test-3040.js`.
 - `GET /api/personnes/:id` (V, 404 hors contact, espace ou conversation commune) ; `/api/signalements {cible, motif, messages?}` (V).
 - **Pas d'annuaire, pas de liste, pas de recherche par nom.** On trouve quelqu'un par lien, par QR, par espace commun — et, depuis le 1er octobre 2026 (décision de Justin, « comme WhatsApp »), par son NUMÉRO EXACT : `POST /api/contacts/chercher`. ⛔ Ce n'est un annuaire que si on le laisse en être un : 30 recherches par jour et par compte (10 pour un compte de moins de 24 h, 5 par minute, plafond durable en base), même latence que le numéro existe ou non, même réponse neutre pour « pas de compte », « il m'a bloqué », « il ne veut pas être trouvé » et « c'est moi », et un réglage « qui peut me trouver par mon numéro » (tous | personne). Voir l'étape 2.
 
 **Conversations et groupes**
 - `GET /api/conversations` (S : dernier message, non-lus, épinglé, sourdine).
-- `/api/conversations/directe {uid}` (V) : 404 si bloqué, sans contact ni espace commun.
+- `/api/conversations/directe {uid}` (V) : 404 sans contact ni espace commun — et pour une conversation NEUVE avec quelqu'un qui nous a bloqués ; celle qui existe déjà se rouvre (200) chez le bloqué, qui ne doit pas l'apprendre.
 - `/api/conversations/groupe {nom, membres[], annonces_seules, ephemere_s, avatar_piece?}` (V) → 201 `{conversation, non_ajoutes[]}`.
   - Seuls des contacts mutuels ou des membres d'un espace commun sont ajoutés directement. Les autres reçoivent un lien (plus d'ajout de force).
   - Plafond de 256 membres en Perso, 1 024 en Pro.

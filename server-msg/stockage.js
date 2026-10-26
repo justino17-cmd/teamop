@@ -1161,6 +1161,20 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (contactActif(a, b)) return true;
     return !contactBloque(a, b) && collegues(a, b);
   }
+  /* ⛔ BLOQUER NE SE DIT PAS À CELUI QU'ON BLOQUE (Justin, 26 octobre 2026) : sa conversation reste chez lui, il écrit toujours — ses messages sont RANGÉS mais ne sont plus REMIS.
+     `aBloque(a, b)` : `a` a posé un blocage sur `b` (sa ligne, son point de vue — celle de `b` vers `a` n'en dit rien).
+     `ecritureSilencieuse(conv, uid)` : une directe où l'AUTRE m'a bloqué et où je ne l'ai pas bloqué : je peux écrire (le service répond comme à un envoi ordinaire), et chaque message
+     est masqué pour lui à sa naissance (`msg_masque`, le même mécanisme que « supprimer pour moi » : ni liste, ni aperçu, ni pastille, ni recherche, ni pièce, ni événement, ni notification).
+     Si c'est MOI qui ai bloqué (les deux, ou seulement moi), je n'écris pas : mon écran le dit, et le service refuse comme avant — on ne se cache pas à soi-même. */
+  function aBloque(a, b) {
+    const l = Q('SELECT etat FROM contact WHERE de = ? AND vers = ?').get(a, b);
+    return !!l && l.etat === 'bloque';
+  }
+  function ecritureSilencieuse(conv, uid) {
+    const c = convBrute(conv); if (!c || c.type !== 'direct') return false;
+    const autre = autreDirect(conv, uid);
+    return !!autre && aBloque(autre, uid) && !aBloque(uid, autre);
+  }
 
   /* ══ LIENS (invitation de contact ou de groupe) ═════════════════════════════════════════ */
   function lienCreer({ h, genre, cible, par, ttlMs, max }) {
@@ -1256,7 +1270,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS, transfere, expireMax }) {
     const dej = Q('SELECT seq, ts, id FROM message WHERE conv = ? AND auteur = ? AND cid = ?').get(conv, auteur, cid);
     if (dej) return { deja: true, seq: dej.seq, ts: dej.ts, id: dej.id };
-    const c = Q('SELECT dernier_seq, ephemere_s FROM conversation WHERE id = ?').get(conv);
+    const c = Q('SELECT dernier_seq, dernier_ts, ephemere_s FROM conversation WHERE id = ?').get(conv);
     if (!c) throw erreur('introuvable');
     /* ⛔ `seq` S'ATTRIBUE ICI, dans la transaction : lu au-dessus de BEGIN, deux envois simultanés
        recevraient le même numéro. */
@@ -1273,11 +1287,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const expire = echeances.length ? Math.min(...echeances) : null;
     Q('INSERT INTO message(conv, seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, expire_ts) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(conv, seq, id, auteur, cid, ts, type, corps, metaCh, repondA == null ? null : repondA, expire);
-    Q('UPDATE conversation SET dernier_seq = ?, dernier_ts = ? WHERE id = ?').run(seq, ts, conv);
+    /* ⛔ UN MESSAGE ÉCRIT À QUI NOUS A BLOQUÉS n'est pas remis : il naît masqué pour lui (`ecritureSilencieuse`), et la conversation ne remonte pas dans SA liste (`dernier_ts` ne bouge
+       pas : un blocage qui fait remonter la conversation du bloqueur à chaque message dirait à lui seul qu'il se passe quelque chose). L'auteur, lui, voit son message comme tous les autres. */
+    const silence = type !== 'systeme' && ecritureSilencieuse(conv, auteur);
+    if (silence) Q('INSERT OR IGNORE INTO msg_masque(conv, seq, uid) VALUES(?, ?, ?)').run(conv, seq, autreDirect(conv, auteur));
+    Q('UPDATE conversation SET dernier_seq = ?, dernier_ts = ? WHERE id = ?').run(seq, silence ? c.dernier_ts : ts, conv);
     /* ⛔ UNE CONVERSATION ARCHIVÉE REVIENT QUAND ON Y ÉCRIT (9 octobre 2026, le geste « Archiver » de la liste) — sauf chez qui l'a mise en SOURDINE : archiver range, la sourdine
        fait taire ; les deux ensemble disent « ne m'en parle plus » (la règle de Telegram). Sans elle, un message de travail dormirait dans les Archivées sans que personne le voie.
        Celui qui écrit la ressort aussi (il s'en sert) ; un message SYSTÈME (quelqu'un arrive, un nom change) ne ressort rien. */
-    if (type !== 'systeme') Q('UPDATE membre SET archive = 0 WHERE conv = ? AND archive = 1 AND quitte_le IS NULL AND (uid = ? OR muet_jusqua <= ?)').run(conv, auteur, ts);
+    if (type !== 'systeme') Q('UPDATE membre SET archive = 0 WHERE conv = ? AND archive = 1 AND quitte_le IS NULL AND (uid = ? OR (muet_jusqua <= ? AND ? = 0))').run(conv, auteur, ts, silence ? 1 : 0);   // ⛔ pas chez qui a bloqué : un message qu'il ne reçoit pas ne sort rien de ses Archivées
     if (sondage) sondageCreerDansTx({ conv, seq, auteur, choix: sondage.choix, regles: sondage.regles, t: ts });       // dans la MÊME transaction : jamais un « 📊 » sans ses choix
     /* ⛔ ENVOYER N'EST PAS LIRE. Celui qui écrit a lu son propre message, pas ce qui précède : `lu_seq` ne suit son
        message que si RIEN n'attendait d'être lu (`lu_seq = seq - 1`). L'ancienne version le portait à `seq` quoi qu'il
@@ -1305,6 +1323,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     /* une conversation de RÉUNION dit laquelle (pour ouvrir sa fiche) ; les autres conversations n'ont pas ce champ */
     if (c.type === 'reunion') { const k = Q('SELECT id FROM reunion WHERE conv = ?').get(conv); if (k) rang.reunion = k.id; }
     if (c.type === 'direct') { const iv = invitationEtat(conv, uid); if (iv) rang.invitation = iv; }      // seule une directe en a une ; les autres n'ont pas le champ
+    /* ⛔ `bloque` : J'AI bloqué l'autre — ma conversation reste lisible, en lecture seule, avec un geste pour débloquer. Jamais l'inverse : qui est bloqué n'a ni champ ni indice (il écrit, rien n'arrive) */
+    if (c.type === 'direct') { const a = autreDirect(conv, uid); if (a && aBloque(uid, a)) rang.bloque = true; }
     const th = THEMES ? Q('SELECT theme FROM membre WHERE conv = ? AND uid = ?').get(conv, uid) : null;     // le thème (migration 18) : une requête à part — une base plus ancienne n'a pas la colonne
     return { conv: rang, moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive, theme: (th && th.theme) || null } };
   }
@@ -1341,6 +1361,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   function nbAdmins(conv) { return num(Q(`SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL AND role = 'admin'`).get(conv).n); }
 
+  /* La directe qui existe DÉJÀ entre deux personnes (jamais créée ici) → son identifiant, ou null. Sert à rouvrir sa conversation à qui a été bloqué : elle ne s'en crée pas de neuve, il n'y aurait personne pour la recevoir. */
+  function convDirecteExistante(a, b) {
+    const c = Q('SELECT id FROM conversation WHERE cle_directe = ?').get(cleDirecte(a, b));
+    return c ? c.id : null;
+  }
   function convDirecteObtenir(a, b) {
     return tx(() => {
       const cle = cleDirecte(a, b);
@@ -1393,6 +1418,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      `noter: false` : le REJEU d'un effacement de compte après une restauration (`espaceQuitterTout`). La conversation qu'il retire est un artefact de la COPIE (un canal que le compte effacé
      faisait seul dans la copie, alors que le service vivant en avait d'autres) : l'écrire au registre le ferait retirer, à la restauration suivante, d'une copie où il a d'autres membres.
      Les pièces, elles, se notent toujours — leurs fichiers partent vraiment. */
+  /* ⛔ DIRE « SUPPRIMÉ » À CEUX QUI PERDENT LEUR CANAL (26 octobre 2026) : un canal qui disparaît de la liste de ses membres se lisait « Tu as été retiré du canal » — comme si l'on avait été
+     mis dehors, alors que le canal n'existe plus. Un événement `retire` adressé à chacun, marqué `supprime`, APRÈS la suppression (elle efface le journal de la conversation). */
+  function suppressionDire(conv, uids) {
+    return tx(() => { for (const u of uids) journalAjouter('retire', conv, u, 'supprime'); });
+  }
   function convSupprimer(id, { noter = true } = {}) {
     return tx(() => {
       const pieces = Q('SELECT id FROM piece WHERE conv = ?').all(id).map(r => r.id);
@@ -1590,6 +1620,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
                                       SUM(CASE WHEN y.uid IN (SELECT b.uid FROM espace_membre a JOIN espace_membre b ON a.espace = b.espace WHERE a.uid = ?) THEN 1 ELSE 0 END) AS c
                                FROM membre m JOIN membre y ON y.conv = m.conv AND y.quitte_le IS NULL AND y.uid <> m.uid
                                WHERE m.uid = ? AND m.quitte_le IS NULL GROUP BY y.conv`).all(uid, uid).map(r => [r.conv, r]));
+    /* ceux que J'AI bloqués, en UNE requête : leur directe se dit `bloque` (lecture seule chez moi) */
+    const mesBloques = new Set(Q(`SELECT vers FROM contact WHERE de = ? AND etat = 'bloque'`).all(uid).map(r => r.vers));
     return lignes.map(l => {
       const o = {
         id: l.id, type: l.type, nom: nomDe(l.id, l.nom_ch), avatar: l.avatar_piece || null, annonces_seules: !!l.annonces_seules, ephemere_s: l.ephemere_s,
@@ -1613,10 +1645,23 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
           clair = p.type === 'photo' && clair && clair.trim() ? '📷 ' + clair : apercuPiece(p.type, meta);
         }
         o.apercu = { seq: p.seq, auteur: p.auteur, type: p.type, supprime: !!p.supprime_le, texte: clair === null ? null : debut(clair, 120) };
+        /* ⛔ UNE LIGNE SYSTÈME SE LIT EN PHRASE DANS LA LISTE (26 octobre 2026) : « Léa a ajouté Hugo », « Hugo a quitté le groupe » — pas « Activité du groupe ». L'aperçu porte donc ce que le fil porte
+           déjà (la méta du message, lue ICI chez le membre qui y a droit) et le nom de la personne visée (`pour`) : sans eux la page ne sait pas qui a fait quoi.
+           ⛔ GROUPES ET CANAUX SEULEMENT : une réunion garde « Activité de la réunion » — ses invités ne se nomment pas entre eux (`test-976` : un invité ajouté puis retiré reste « Quelqu'un » pour qui ne le connaît pas). */
+        if (p.type === 'systeme' && !p.supprime_le && p.meta_ch && (l.type === 'groupe' || l.type === 'canal')) {
+          let meta = null; try { meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(l.id, p.seq, p.auteur), p.meta_ch)); } catch (e) { meta = null; }
+          if (meta && typeof meta === 'object' && typeof meta.k === 'string') {
+            o.apercu.meta = meta;
+            if (typeof meta.uid === 'string') {
+              const v = Q(`SELECT p.id, p.prenom, p.nom FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid = ? AND p.etat = 'actif'`).get(l.id, meta.uid);
+              if (v) o.apercu.pour = { id: v.id, prenom: v.prenom, nom: v.nom };
+            }
+          }
+        }
         /* ⛔ le NOM de l'auteur d'un aperçu de groupe : sans lui, la liste disait « Quelqu'un : … » pour tout membre qui n'est pas dans mes contacts (le cas
            central d'un groupe par lien) et ne le corrigeait qu'à l'ouverture. Seulement quelqu'un qui est MEMBRE ACTIF de cette conversation — ses noms
            sont déjà dans `membresDetail` de la même conversation, rien de plus n'est dit. */
-        if ((l.type === 'groupe' || l.type === 'canal') && p.type !== 'systeme' && p.auteur) {
+        if ((l.type === 'groupe' || l.type === 'canal') && p.auteur) {
           const a = Q(`SELECT p.id, p.prenom, p.nom FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid = ? AND m.quitte_le IS NULL`).get(l.id, p.auteur);
           if (a) o.apercu.par = { id: a.id, prenom: a.prenom, nom: a.nom };
         }
@@ -1626,6 +1671,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         const a = Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, p.etat FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid <> ?`).get(l.id, uid);
         if (a) {
           o.autre = { id: a.id, prenom: a.prenom, nom: a.nom, avatar: avatarPour(uid, a.id, a.avatar_piece) };
+          if (mesBloques.has(a.id)) o.bloque = true;      // sa directe reste dans ma liste, en lecture seule (jamais dit à l'autre : le champ n'existe que chez celui qui a bloqué)
           if (a.etat === 'supprime') o.autre.supprime = true;   // ⛔ un compte supprimé n'a plus de nom : la page écrit « Compte supprimé » (un historique reste, comme chez WhatsApp)
         }
         const iv = invitationEtat(l.id, uid); if (iv) o.invitation = iv;      // 'envoyee' | 'recue' (la page la range dans « Invitations ») — 'refusee' quitte la liste, ci-dessous
@@ -2403,7 +2449,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       }
       case 'sondage': return { gid, event: 'sondage', data: { conv: j.conv, seq: parseInt(j.ref, 10) } };      // « relis-le » : chacun le relit avec SES droits (anonyme, résultats cachés)
       case 'conv_maj': return { gid, event: 'conversation', data: { conv: j.conv } };
-      case 'retire': return { gid, event: 'retire', data: { conv: j.conv } };
+      /* `supprime` : la conversation n'a pas été quittée, elle a été SUPPRIMÉE (un canal par son administrateur) — la page dit « supprimé », pas « retiré » */
+      case 'retire': return { gid, event: 'retire', data: j.ref === 'supprime' ? { conv: j.conv, supprime: true } : { conv: j.conv } };
       case 'lu': {
         const [u, s] = String(j.ref).split(':');
         /* ⛔ RÉCIPROQUE : qui a coupé ses accusés ne reçoit pas ceux des autres (les siens, venus de ses autres appareils, lui arrivent toujours) */
@@ -4996,8 +5043,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     invitationApercu, invitationAccepter, invitationsRevoquer, invitationsVivantes, invitationEspace, espaceUids,
     canalDe, canauxVisibles, canalCreer, canalPourAdmin, canalMembresAjouter, canalMembreRetirer, canalQuitter,
     abonnementLire, abonnementSession, abonnementSessionOubliee, abonnementPoser, abonnementsARelire,
-    convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
-    membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
+    convDirecteObtenir, convDirecteExistante, convCreerGroupe, convSupprimer, suppressionDire, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
+    membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee, ecritureSilencieuse, aBloque,
     messageEnvoyer, messageATransferer, messageDejaEnvoye, messagesChercher, requeteRech, mediasDe, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
     transcriptionDemander, transcriptionPoser, transcriptionsInterrompues, transcriptionVue,
     transcriptionEnAttente, transcriptionsEchues,

@@ -48,13 +48,16 @@ const cid = (p) => 'cid-' + p + '-' + hex() + hex();
       const D = d.j.conversation.id;
       v('avant tout blocage, Eve écrit à Alice', (await envoyer(P.eve, D, 'bonjour')).code, 201);
       v('Alice bloque Eve', (await P.alice.post('/api/contacts/bloquer', { uid: P.eve.moi.id })).code, 200);
-      v('Eve n\'écrit plus (404)', (await envoyer(P.eve, D, 'encore')).code, 404);
+      /* ⛔ RÈGLE DU 26 OCTOBRE 2026 (Justin, contacts#1) : qui est bloqué écrit toujours (201) et rien n'est remis à qui a bloqué — `test-3040` joue la règle en entier. */
+      const lus = async () => ((await P.alice.get('/api/conversations/' + D + '/messages')).j.messages || []).map(m => m.texte).filter(Boolean);
+      v('Eve écrit toujours (201), sans apprendre qu\'elle est bloquée…', (await envoyer(P.eve, D, 'encore')).code, 201);
+      v('…et Alice ne reçoit rien (population : « bonjour », d\'avant, est bien là)', await lus(), ['bonjour']);
       v('⛔ Eve « retire » Alice de ses contacts : accepté', (await P.eve.post('/api/contacts/retirer', { uid: P.alice.moi.id })).code, 200);
       const l = (await P.alice.get('/api/contacts')).j.contacts.find(c => c.id === P.eve.moi.id);
       vrai('⛔ …et Alice la tient TOUJOURS pour bloquée (le retrait de Eve n\'a pas levé le blocage d\'Alice)', l && l.bloque === true);
       const re = await P.eve.post('/api/liens/accepter', { code });
       v('⛔ Eve réutilise le lien multi-usage d\'Alice : refusé (410), le contact n\'est pas rétabli', re.code, 410);
-      v('⛔ et elle n\'écrit toujours pas à Alice', (await envoyer(P.eve, D, 'me revoici')).code, 404);
+      v('⛔ et ce qu\'elle écrit n\'arrive toujours pas à Alice (le message est rangé, masqué pour elle)', [(await envoyer(P.eve, D, 'me revoici')).code, await lus()], [201, ['bonjour']]);
       v('⛔ Alice qui « bloque et retire » ne débloque pas non plus : le blocage survit à SON propre retrait',
         [(await P.alice.post('/api/contacts/retirer', { uid: P.eve.moi.id })).code, ((await P.alice.get('/api/contacts')).j.contacts.find(c => c.id === P.eve.moi.id) || {}).bloque], [200, true]);
       v('   et le lien reste refusé après ce retrait', (await P.eve.post('/api/liens/accepter', { code })).code, 410);
@@ -72,7 +75,7 @@ const cid = (p) => 'cid-' + p + '-' + hex() + hex();
       await P.alice.post('/api/contacts/bloquer', { uid: P.gus.moi.id });
       const avant = fa.evenements.filter(e => e.event === 'saisie').length;
       await T.dort(2100);   // le plafond de saisie (1 par 2 s) ne doit pas être ce qui refuse
-      v('⛔ Gus bloqué : sa saisie est refusée (404)', (await P.gus.post('/api/conversations/' + D + '/saisie', { actif: true })).code, 404);
+      v('⛔ Gus bloqué : sa saisie reçoit « ok » comme avant (un refus lui dirait le blocage), mais rien ne part (règle du 26 octobre 2026)…', (await P.gus.post('/api/conversations/' + D + '/saisie', { actif: true })).code, 200);
       await T.dort(150);
       v('⛔ …et Alice n\'a reçu aucun événement de saisie de plus', fa.evenements.filter(e => e.event === 'saisie').length, avant);
       v('⛔ Gus bloqué ne lit plus le profil d\'Alice (404)', (await P.gus.get('/api/personnes/' + P.alice.moi.id)).code, 404);

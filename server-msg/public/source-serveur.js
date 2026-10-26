@@ -60,7 +60,7 @@
    blanc : `{support, ouvreur, permis, items}` — `support` vaut « ecran:<uid> », « tableau » ou null ; l'événement 'salle-annot' (id) dit qu'il a changé). ⛔ « Couper le micro » n'est qu'une DEMANDE : la page de la personne l'honore ou non.
    Événements en plus : 'salles' (les bannières à relire), 'salle-reaction' (id, uid, emoji), 'salle-micro' (id, de : l'hôte demande de couper le micro), 'salle-parle' (id : qui parle a changé).
    Les événements de `ecouter(cb)` : 'liste', 'appels' (l'historique a changé), 'appel' (id : un appel a changé), 'appel-entrant' (id : il sonne pour moi), 'appel-flux' (id : l'autre a une piste de plus), 'reunions' (id, supprime : une réunion a changé, ici ou ailleurs), 'conversation' (id), 'contacts', 'espaces' (id : un espace a changé), 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
-   afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation), 'avis' (texte : un refus arrivé après coup),
+   afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation ; `supprime: true` quand la conversation n'existe plus — un canal supprimé), 'avis' (texte : un refus arrivé après coup),
    'moi' (mon profil a changé : nom, statut ou photo, ici ou sur un autre appareil),
    'ouvrir' (conv, ou reunion : une notification touchée demande d'ouvrir cette conversation, ou la fiche de cette réunion).
 
@@ -2241,13 +2241,16 @@
       const supprime = direct && !!c.autre && c.autre.supprime === true;     // l'autre a supprimé son compte : la conversation reste lisible, on n'y écrit plus
       if (supprime) supprimesIds.add(c.autre.id);
       else if (direct && c.autre) noter(c.autre);
+      if (c.apercu && c.apercu.pour) noter(c.apercu.pour);   // la personne visée par une ligne système (« Léa a ajouté Hugo ») : son nom vient avec l'aperçu
       if (c.apercu && c.apercu.par) noter(c.apercu.par);   // ⛔ l'auteur du dernier message d'un GROUPE : son nom vient avec l'aperçu (sinon « Quelqu'un » tant que la conversation n'est pas ouverte)
       const canal = c.type === 'canal';
       const nom = direct ? (supprime ? NOM_SUPPRIME : nomComplet(c.autre)) : (c.nom || (canal ? 'Canal' : 'Groupe'));
       let apercu = '';
       if (c.apercu) {
         const a = c.apercu;
-        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? (canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe') : (a.texte || '');
+        /* ⛔ une ligne système est une PHRASE (« Léa a ajouté Hugo », « Hugo a quitté le groupe ») — la même que celle du fil (`texteSysteme`), faite de la méta que le service joint à l'aperçu.
+           Sans méta (un service d'avant, une méta illisible) : l'ancien libellé générique, jamais une phrase inventée. */
+        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? (a.meta && typeof a.meta.k === 'string' ? texteSysteme({ meta: a.meta, auteur: a.auteur }, canal ? 'canal' : c.type === 'reunion' ? 'reunion' : '') : (canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe')) : (a.texte || '');
         corps = corps.replace(/\s+/g, ' ').slice(0, 160);
         const prefixe = a.type === 'systeme' ? '' : estMoi(a.auteur) ? 'Vous : ' : (!direct ? prenomDe(a.auteur) + ' : ' : '');
         apercu = prefixe + corps;
@@ -2266,6 +2269,8 @@
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false, enReunion: direct && c.autre ? enReunion.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
+        /* ⛔ J'AI bloqué cette personne : sa conversation reste dans ma liste, LISIBLE, sans champ pour écrire (le service ne dit jamais l'inverse à celui qu'on a bloqué) */
+        bloque: direct && c.bloque === true,
         /* l'échéance de la sourdine de CETTE personne (0 : pas en sourdine) — la même lecture que `infos()` : la liste dessine un croissant de lune barré, et grise le point « non lu » */
         sourdine: c.muet_jusqua > maintenant() ? c.muet_jusqua : 0,
         /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
@@ -2544,12 +2549,15 @@
       /* l'invitation : la LISTE la tient à jour (relue à chaque événement) ; une conversation qui n'y est pas (une invitation refusée, ouverte par son adresse) prend celle du détail */
       const iv = resumeConv ? resumeConv.invitation : d.conversation.invitation;
       base.invitation = d.conversation.type === 'direct' && (iv === 'envoyee' || iv === 'recue' || iv === 'refusee') ? iv : null;
+      base.bloque = d.conversation.type === 'direct' && (resumeConv ? resumeConv.bloque === true : d.conversation.bloque === true);      // la LISTE le tient à jour (relue après bloquer / débloquer)
       const auto = piecesAuto(c.messages);
       const vues = c.messages.map(m => vueMessage(id, c, m, auto));
       for (const p of file) if (p.conv === id) vues.push(vueEnAttente(p));
-      const S = saisies.get(id); let qui = null;
-      if (S) for (const u of S.keys()) { if (!estMoi(u)) { qui = u; break; } }
-      return Object.assign(base, { messages: vues, saisie: qui ? { contact: qui } : null, aPlus: c.aPlus });
+      const S = saisies.get(id), quiTous = [];
+      if (S) for (const u of S.keys()) { if (!estMoi(u)) quiTous.push(u); }
+      const qui = quiTous.length ? quiTous[0] : null;
+      /* `contacts` : TOUS ceux qui écrivent, dans l'ordre où ils ont commencé — en groupe, la page dit leurs prénoms (« Léa et Hugo écrivent… ») ; `contact` reste le premier (l'ancien contrat) */
+      return Object.assign(base, { messages: vues, saisie: qui ? { contact: qui, contacts: quiTous } : null, aPlus: c.aPlus });
     }
     /* ── RETROUVER (9 octobre 2026) : chercher dans les messages d'une conversation, en lister les photos, les fichiers, les liens. Le SERVICE ouvre les messages scellés
        (le texte n'est lisible que de lui) ; la source ne garde RIEN — ni la requête, ni les résultats : la page les tient le temps de la feuille. `avant` : la `suite` rendue. ── */
@@ -2957,6 +2965,8 @@
         sourdine: d.moi && d.moi.muet_jusqua > maintenant() ? d.moi.muet_jusqua : 0,
         membres: d.membres.map(x => vueMembre(c, x)), moiAdmin: d.moi.role === 'admin', annoncesSeulement: !!d.conversation.annonces_seules, ephemeres: d.conversation.ephemere_s || 0,
         enLigne: autre ? enLigne.has(autre.id) : false, enReunion: autre ? enReunion.has(autre.id) : false,
+        /* J'AI bloqué cette personne (la LISTE le tient à jour, relue après bloquer / débloquer) : les Infos proposent « Débloquer » au lieu de « Bloquer » */
+        bloque: !!autre && ((convsApi.find(x => x.id === id) || d.conversation).bloque === true),
         /* un canal dit son espace (l'identifiant que les gestes de l'administrateur réclament) et s'il est privé */
         espace: canal && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canal && d.conversation.prive === true,
       };
@@ -3170,7 +3180,7 @@
         const fin = () => { if (c && convs.get(d.conv) !== c) { relireListePlusTard(); return; } emettre({ type: 'conversation', id: d.conv }); relireListePlusTard(); };
         if (c && c.detail) rafraichirDetail(d.conv).then(fin, fin); else fin();
       },
-      retire: (d) => { convs.delete(d.conv); const S = saisies.get(d.conv); if (S) { for (const h of S.values()) annuler(h); saisies.delete(d.conv); } emettre({ type: 'retire', id: d.conv }); relireListePlusTard(); },
+      retire: (d) => { convs.delete(d.conv); const S = saisies.get(d.conv); if (S) { for (const h of S.values()) annuler(h); saisies.delete(d.conv); } emettre(d.supprime === true ? { type: 'retire', id: d.conv, supprime: true } : { type: 'retire', id: d.conv }); relireListePlusTard(); },
       lu: (d) => {
         if (estMoi(d.uid)) { const r = convsApi.find(x => x.id === d.conv); if (r && d.seq > r.lu_seq) { r.lu_seq = d.seq; relireListePlusTard(); } const c = convs.get(d.conv); if (c) c.luLocal = Math.max(c.luLocal || 0, d.seq); return; }
         lecteursDe(d.conv).set(d.uid, { seq: d.seq, ts: d.ts || maintenant() });
@@ -3411,8 +3421,14 @@
       return r;
     }
     const bloques = () => contactsTous.filter(c => c.bloque).map(c => Object.assign(vuePersonne(c), { bloque: true }));
-    async function bloquer(uid) { await A.bloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
-    async function debloquer(uid) { await A.debloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
+    /* ⛔ BLOQUER / DÉBLOQUER REDIT LES CONVERSATIONS DE LA PERSONNE : sa directe reste dans ma liste, mais en lecture seule (`bloque`) — la liste est relue TOUT DE SUITE (pas « plus tard »), puis
+       chaque conversation de cette personne est redite : celle qui est ouverte se redessine sans champ pour écrire, ou avec. */
+    async function apresBlocage(uid) {
+      try { await relireListe(); emettre({ type: 'liste' }); } catch (e) { relireListePlusTard(); return; }
+      for (const x of convsApi) if (x.autre && x.autre.id === uid) emettre({ type: 'conversation', id: x.id });
+    }
+    async function bloquer(uid) { await A.bloquer(uid); await rafraichirContacts(); await apresBlocage(uid); }
+    async function debloquer(uid) { await A.debloquer(uid); await rafraichirContacts(); await apresBlocage(uid); }
     /* ⛔ LE FAVORI SE POSE D'ABORD CHEZ LE SERVICE : l'étoile ne change qu'une fois la réponse reçue (un refus laisse la liste comme elle était), puis la liste est relue — un autre appareil
        de la même personne le verra à sa prochaine lecture des contacts. */
     /* CE QU'ON A EN COMMUN avec une personne (la fiche d'un contact) : les réunions à venir où l'on est invités tous les deux (la prochaine d'abord, et SA réponse), les groupes et les espaces.
