@@ -93,6 +93,26 @@ Justin : « tous mes agents doivent avoir une photo de profil, j'aime bien mettr
 - ⛔ Pauline (Harvey, sur le Mac de Justin) n'est PAS dans la Tour : sa photo reste hors du dépôt. Et une photo d'une VRAIE personne
   (Justin en a proposé une, trouvée en ligne) ne devient jamais le visage d'un agent qui écrit à des prospects.
 
+# 🔧 26 OCTOBRE 2026 (SOIR) — LE BLOG SE PUBLIE SEUL, IMAGES PAR GEMINI (branche `claude/publication-auto-blog`)
+
+Justin : « je veux que les publications soient automatiques et que les images soient gérées avec Gemini » ; « je veux que tu
+fasses tout comme babylovegrowth.ai ».
+- **Fait** : `.github/workflows/blog-publication.yml` termine la demande de fusion d'un article (`claude/blog-*`) : photo de
+  couverture et images du texte par Gemini (`scripts/blog-gemini.js`, consignes fixes : personnes fictives, tenue bleu marine,
+  ni texte ni logo ; clé dans l'en-tête, jamais dans une adresse), posées en WebP (`scripts/blog-images.py`), pages refaites,
+  bancs du blog (3000, 835, 846, 1008, 3060), fusion, puis `publication-site.yml` lancé à la main (une fusion par GITHUB_TOKEN
+  ne déclenche rien sur `main`). ⛔ Une demande qui touche autre chose que `blog/`, `contenu/blog/`, `sitemap.xml` n'est pas
+  fusionnée. ⛔ Gemini absent ou en panne : l'article part avec la couverture sans photo, et une figure en attente est RETIRÉE
+  (jamais une image d'attente en ligne). Banc : `tests/test-3060.js` (40 ✓, faux Gemini sur 127.0.0.1) ; Pillow : sonde
+  `scratchpad/sonde-blog-images.sh` (figure et couverture 1200 × 675, nom de couverture de la fiche respecté).
+- **Geste de Justin (une fois)** : GitHub → Réglages → Secrets and variables → Actions → « New repository secret » :
+  `GEMINI_API_KEY` = la clé Gemini (celle du Devis IA convient si son projet a la génération d'images ; ne la coller nulle part
+  ailleurs). Facultatif : une VARIABLE `GEMINI_MODELE_IMAGE` pour imposer un modèle (sinon le plus récent « flash » d'image).
+- **Tâche planifiée « Article du blog »** (`trig_01XV79hD4SnMHWZds8SSudzQ`) : du lundi au vendredi, images `data-gemini`,
+  file des sujets réalimentée quand il en reste moins de cinq. ⛔ Pas repris de BabyLoveGrowth : l'échange de liens (réseau de
+  « backlinks » — contraire aux règles anti-spam de Google), les commentaires Reddit/Quora qui glissent la marque (publicité
+  déguisée), l'effacement des marques « image générée par IA » (C2PA).
+
 # ✅ 25 OCTOBRE 2026 (SOIR) — L'AUDIENCE DU SITE DANS LA TOUR, ET LE BLOG SUR teamop.fr — EN LIGNE (n° 184, heure d'hiver n° 185, registre n° 187, fusionnés le 25-26/10)
 
 Justin : « le nombre de personnes qui a cliqué sur les liens, comment ils sont venus, par quel site […] en temps réel, un peu comme BabyLoveGrowth » ; « voir si cet
