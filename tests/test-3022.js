@@ -119,8 +119,8 @@ const fil = (fils, id) => (fils || []).filter(f => f.fil === id)[0] || {};
   vrai('⛔ icône et description hostiles (gardées OU refusées par le serveur) : jamais une balise de plus dans l’en-tête, la feuille ni l’icône', sansBalise(E4) === true && (r4b.status !== 200 || (/&lt;img src=x onerror=alert\(2\)&gt;/.test(E4) && /&lt;\/textarea&gt;&lt;script&gt;/.test(E4))), sansBalise(E4));
   await bac.msGroupeDefaut('plateforme');
 
-  const r5 = await bac.msGroupeDefaut('clients'); await bac.messListeCharger();
-  v('« Remettre par défaut » : 200, la page retire `perso`, la liste relue chez le serveur n’en a plus', [r5.status, 'perso' in fil(MS.fils, 'clients'), msNom()], [200, false, 'Clients']);
+  const r5 = await bac.msGroupeDefaut('clients'); const tout = 'perso' in fil(MS.fils, 'clients'); await bac.messListeCharger();
+  v('« Remettre par défaut » : 200, la page retire `perso` TOUT DE SUITE (avant de relire), et la liste relue chez le serveur n’en a plus', [r5.status, tout, 'perso' in fil(MS.fils, 'clients'), msNom()], [200, false, false, 'Clients']);
   function msNom() { return bac.msNomFil('clients'); }
   v('…et le registre du serveur ne garde plus que l’autre groupe, s’il a été accepté', Object.keys(S.fichier('conversations-groupes.json')).filter(k => k === 'clients'), []);
 
@@ -172,8 +172,9 @@ const fil = (fils, id) => (fils || []).filter(f => f.fil === id)[0] || {};
   vrai('⛔ aucun gestionnaire d’attribut ne porte un champ du relevé (clé fixe ou numéro de rangée)', gest.length > 4 && gest.every(a => /^(agPaOuvrir\('(recherches|entreprises|courriels|reponses)',this\.open\)|agPaTexte\(\d+,this\.open\)|agPaTout\('(recherches|entreprises|courriels|reponses)'\))$/.test(a)), gest);
 
   /* relire le même relevé : l'âge change, le relevé non — aucun redessin */
-  rendus.n = 0; await bac.chargerPauline();
-  v('⛔ relire le MÊME relevé du vrai serveur ne redessine pas l’écran (l’âge change, la signature non)', [rendus.n, PA.lec], [0, 1]);
+  await new Promise(r => setTimeout(r, 1300));   /* l'âge, en secondes entières, a bougé : seule la signature du relevé décide d'un redessin */
+  const age0 = PA.d.age; rendus.n = 0; await bac.chargerPauline();
+  v('⛔ relire le MÊME relevé du vrai serveur ne redessine pas l’écran (l’âge a changé, la signature non)', [rendus.n, PA.lec, PA.d.age > age0], [0, 1, true]);
   const bon2 = await post2(Object.assign({}, rel, { genereLe: iso(1000), jour: Object.assign({}, rel.jour, { envoyes: 4 }) }), JETON);
   await bac.chargerPauline();
   v('un second relevé REMPLACE le premier : la page se redessine et lit « 4 envoyés »', [bon2.s, rendus.n, /<b>4<\/b> envoyés/.test(bac.agPaulineHtml())], [200, 1, true]);
