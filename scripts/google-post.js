@@ -87,7 +87,7 @@ function verifierPost(rec) {
 /* ---------- rédaction (déterministe) ---------- */
 function sansPiege(t) {
   // un prix n'entre jamais dans un post (même ceux de la grille : un seuil légal « 25 € TTC » n'est pas un tarif)
-  return phrases(t).filter(f => !/€|euros?\b/i.test(f) && !/n['’]?\s?h[ée]sitez/i.test(f) && !FORMULES.some(re => re.test(f)) && !TUTOIEMENT.test(f)).join(' ');
+  return phrases(t).filter(f => !/€|euros?\b/i.test(f) && !/n['’]?\s?h[ée]sitez/i.test(f) && !FORMULES.some(re => re.test(f)) && !TUTOIEMENT.test(f) && !TELEPHONE.some(re => re.test(f))).join(' ');
 }
 function rediger(art, htm) {
   const titre = enTexte(art.titre), desc = sansPiege(enTexte(art.description));

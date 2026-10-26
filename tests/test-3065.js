@@ -36,7 +36,7 @@ const piege = { slug: 'piege-test', titre: 'Suivre ses interventions sans ressai
   description: 'Tu peux gagner 1 200 € par mois, n’hésitez pas. Un outil pour suivre vos interventions sans ressaisie. Offre garantie gratuite.', faq: [] };
 fs.writeFileSync(R('contenu/blog/articles.json'), JSON.stringify([...arts, piege]));
 for (const a of arts) { fs.copyFileSync(path.join(RACINE, 'contenu/blog', a.slug + '.htm'), R('contenu/blog/' + a.slug + '.htm')); fs.copyFileSync(path.join(RACINE, 'blog/img', a.image), R('blog/img/' + a.image)); }
-fs.writeFileSync(R('contenu/blog/piege-test.htm'), '<p>x</p><h2 id="en-bref">En bref</h2><ul><li>Le devis coûte 120 € TTC à la visite.</li><li>Appelez-nous au 01 23 45 67 89 pour un devis.</li><li>Tu verras, ton planning se remplit seul.</li><li>Un technicien voit sa journée sur son téléphone, avec les fiches et les photos du client.</li></ul>');
+fs.writeFileSync(R('contenu/blog/piege-test.htm'), '<p>x</p><h2 id="en-bref">En bref</h2><ul><li>Le devis coûte 120 € TTC à la visite.</li><li>Appelez-nous au 01 23 45 67 89 pour un devis.</li><li>Notre ligne directe : 06 12 34 56 78.</li><li>Tu verras, ton planning se remplit seul.</li><li>Un technicien voit sa journée sur son téléphone, avec les fiches et les photos du client.</li></ul>');
 
 const lancer = (args, env, cwd) => new Promise(res => {
   const p = spawn(process.execPath, [SCRIPT, ...args], { env: { PATH: process.env.PATH, BLOG_RACINE: tmp, ...env }, cwd: cwd || tmp });
