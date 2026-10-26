@@ -352,3 +352,6 @@ tests/test-3016.js
 # 26 octobre 2026 : `test-3021` (les heures de travail des agents : le vrai module aux deux saisons, la nuit du 25 octobre, fériés, astreinte, attente et reprise, ouvrir maintenant, registre illisible, réunions, examen, puis le vrai serveur). Lit server/ seulement.
 tests/test-3021.js
 # 26 octobre 2026 : 9 455 mesurés (143 suites) avec `test-3021` (166 vérifications) — plancher relevé à 9400 (il était resté à 5490 depuis le 23 octobre).
+# 26 octobre 2026 (publication de la Tour v2.112) : `test-3022` et `test-3024` — la couture de la page Agents de la Tour (Pauline, horaires, messagerie) contre le VRAI serveur, entrées à la publication de `tour.html`, comme prévu par REPRISE.md.
+tests/test-3022.js
+tests/test-3024.js
