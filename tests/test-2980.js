@@ -166,9 +166,9 @@ const neuf = (nom) => { const d = path.join(tmp, nom); fs.mkdirSync(d, { recursi
   const r = await E.semis(faux).semer();
   v('le semis réussit sans erreur', [r.deja, r.erreurs], [false, []]);
   const routes = appels.map(a => a.m + ' ' + a.p);
-  v('il joue les VRAIES routes, dans l\'ordre : dossier et fiche du client, espace, métier, rubriques, abonnement, fiche, demande traitée, puis le prospect, puis les agents',
+  v('il joue les VRAIES routes, dans l\'ordre : dossier et fiche du client, espace, métier, rubriques, abonnement, fiche, demande traitée, puis le prospect, puis les heures de travail des agents (24 h sur 24), puis les agents',
     routes, ['POST /api/portail/demande', 'POST /api/clients/sync', 'POST /api/monitor/espaces', 'POST /api/monitor/espaces/metier', 'POST /api/monitor/espaces/cats', 'POST /api/monitor/espaces/abonnement',
-      'POST /api/monitor/clients/metier', 'POST /api/monitor/clients/demande', 'POST /api/portail/demande', 'POST /api/clients/sync', 'POST /api/monitor/agents/mode', 'POST /api/monitor/agents/mode', 'POST /api/monitor/agents/mode']);
+      'POST /api/monitor/clients/metier', 'POST /api/monitor/clients/demande', 'POST /api/portail/demande', 'POST /api/clients/sync', 'POST /api/monitor/agents/horaires', 'POST /api/monitor/agents/mode', 'POST /api/monitor/agents/mode', 'POST /api/monitor/agents/mode']);
   v('le client : session du portail pour sa fiche, jeton du patron pour la Tour', [appels[0].jeton, appels[1].jeton, appels[2].jeton, appels[8].jeton], ['Sclient', 'Sclient', 'TPatron', 'Sprospect']);
   const ab = appels.find(a => /abonnement$/.test(a.p)).corps;
   v('Clim Essai : formule Pro, 3 places, en essai, fin dans ~30 jours', [ab.formule, ab.quantite, ab.statut, Math.abs(Math.round((Date.parse(ab.fin) - Date.now()) / 86400000) - 30) <= 1], ['pro', 3, 'essai', true]);

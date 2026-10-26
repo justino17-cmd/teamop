@@ -48,8 +48,9 @@ module.exports = function agentMax(ctx) {
       const nbEnt = f.entreprises, qui = nbEnt === 0 ? 'sans entreprise identifiée' : 'chez ' + nbEnt + ' ' + O.pluriel(nbEnt, 'entreprise', 'entreprises');
       const tache = 'Incident venu des appareils [' + id + '] : ' + f.occurrences + ' occurrences, ' + qui + ', catégorie ' + f.categorie;
       let c = { ok: false }; try { c = agents.consigner('max', 'jules', tache); } catch (e) { c = { ok: false }; }
+      /* hors des heures de travail Jules ne peut pas prendre la consigne : Max PRÉVIENT (c'est l'astreinte), l'incident reste dans la Tour, et Jules le voit à l'ouverture */
       const texte = 'Un incident de gravité haute vient d’arriver des appareils : ' + f.occurrences + ' ' + O.pluriel(f.occurrences, 'occurrence', 'occurrences') + ', ' + qui + ', catégorie ' + f.categorie + '.' +
-        (c.ok ? ' Je le passe à Jules.' : '');
+        (c.ok ? ' Je le passe à Jules.' : c.raison === 'hors_heures' ? ' Jules est hors des heures de travail : l’incident l’attend dans la Tour (Incidents).' : '');
       const d = conversations.parler('max', 'plateforme', texte, { niveau: 'info' });
       if (d.ok || d.raison === 'doublon') { m.clientsVus[id] = now; m.clientsJour.n++; dits++; try { agents.noter('max', 'incident client signalé', { cible: id, resultat: 'ok', detail: f.categorie }); } catch (e) {} }
     }

@@ -2164,6 +2164,7 @@ const MON_GESTES = {
   'op/couper': 'a coupé le stockage d’une entreprise',
   /* l'équipe d'agents (agents.js) : le patron seul allume, éteint, arrête et décide */
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
+  'agents/horaires': 'a réglé les heures de travail des agents', 'agents/horaires/ouvrir': 'a ouvert l’équipe d’agents hors de ses heures', 'agents/horaires/fermer': 'a mis fin à l’ouverture forcée de l’équipe d’agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
   'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
@@ -10519,8 +10520,14 @@ try {
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
      emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
   try {
-    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif,
+    /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026) : lundi – vendredi, 9 h – 18 h, heure de Paris, fermé les jours fériés, sauf réglage de Justin. Montées DANS l'appel qui monte les
+       agents, sous le même `try` : si le module ne se charge pas, les agents ne se montent pas non plus — jamais des agents ouverts parce que leur garde horaire a manqué. Elles entrent dans
+       `peutAgir` (agents.js), la porte de tout geste d'agent ; l'examen de l'équipe, lui, monte sa propre équipe d'essai SANS elles (il se lance le soir). */
+    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif, horaires: require('./agents-horaires')({ DATA_DIR }),
       cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
+    /* Ce qui est arrivé hors des heures (courriels, inscriptions) est repris à l'ouverture, le plus ancien d'abord : une vérification par minute. */
+    setTimeout(() => { agentsMod.reprendreDifferes().catch(e => console.error('reprise des agents :', e && e.message)); }, 15000).unref();
+    setInterval(() => { agentsMod.reprendreDifferes().catch(e => console.error('reprise des agents :', e && e.message)); }, 60000).unref();
     console.log('agents : socle chargé');
     /* LA DIRECTION : la charte d'autonomie (ce que chaque geste a le droit de faire seul) et le rapport du jour. Elle ne fait agir personne. */
     directionMod = require('./direction')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod });

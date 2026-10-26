@@ -98,7 +98,8 @@ function monter(o) {
   if (o.charte) fs.writeFileSync(path.join(D, 'agents-charte.json'), JSON.stringify(o.charte));
   if (o.avant) o.avant(D);
 
-  const agents = require(S('agents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, maintenant, pousseNotif: async () => 0, cerveaux: [], cleCerveauPosee: true });
+  const agents = require(S('agents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, maintenant, pousseNotif: async () => 0, cerveaux: [], cleCerveauPosee: true,
+    horaires: typeof o.horaires === 'function' ? o.horaires(D) : undefined });   // les heures de travail (`test-3021`) : une FABRIQUE (le dossier n'existe qu'ici) ; sans elle, pas de garde horaire comme avant
   const direction = require(S('direction.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, maintenant });
 
   /* Claude simulé : chaque requête est gardée ; `o.claude(requete, n)` choisit la réponse (texte brut, ou un objet d'erreur à jeter). */

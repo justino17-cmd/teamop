@@ -482,7 +482,12 @@ module.exports = function monterReunions(app, ctx) {
   }
 
   /* ── LANCER (le calendrier ET le bouton de Justin passent ici) ── */
-  function demarrer(type, o) {
+  /* ⛔ UNE RÉUNION PLANIFIÉE TIENT À SON HEURE, MÊME HORS DES HEURES DE L'ÉQUIPE (26 octobre 2026) : le vendredi 18 h est l'heure de la FERMETURE, et un lundi férié ne l'annule pas.
+     Tout ce qui s'y passe — la liste des participants, chaque prise de parole, l'appel à Claude, les outils — s'exécute sous `sousReunion` (`agents.js`), qui lève la seule garde
+     horaire de `peutAgir`. La pause générale, l'arrêt d'un agent et un registre d'horaires illisible continuent d'arrêter. */
+  const sousReunion = fn => (typeof agents.sousReunion === 'function' ? agents.sousReunion(fn) : fn());
+  function demarrer(type, o) { return sousReunion(() => demarrerDans(type, o)); }
+  function demarrerDans(type, o) {
     o = o || {};
     if (!CRENEAUX[type]) return { ok: false, raison: 'type' };
     if (enCours) return { ok: false, raison: 'en_cours' };
@@ -521,7 +526,8 @@ module.exports = function monterReunions(app, ctx) {
   }
 
   /* La vérification de chaque minute : la réunion due est-elle déjà inscrite ? Sinon on la tient. */
-  function tic() {
+  function tic() { return sousReunion(() => ticDans()); }
+  function ticDans() {
     if (enCours) return { saute: 'en_cours' };
     const now = maintenant(), d = dueA(now);
     if (!d) return { saute: 'pas_l_heure' };

@@ -244,7 +244,16 @@ module.exports = function lea(ctx) {
     try {
       /* l'arrêt AVANT tout : ni lecture du registre, ni Claude */
       const p = agents.peutAgir(ID);
-      if (!p.ok) return { saute: p.raison };
+      if (!p.ok) {
+        /* ⛔ HORS DES HEURES, L'INSCRIPTION ATTEND : elle n'a qu'un déclencheur (la première synchro du compte), qui ne reviendra pas. On la met de côté et Léa la reprend à
+           l'ouverture, la plus ancienne d'abord. À l'arrêt ou en pause : comme avant, rien ne se prépare. */
+        const a0 = String(i && i.email || '').trim().toLowerCase();
+        if (p.raison === 'hors_heures' && !(i && i.reprise) && typeof agents.differer === 'function' && bonneAdresse(a0)) {
+          const d = agents.differer(ID, source, source + ':' + empreinte(a0), Object.assign({}, i));
+          return { saute: p.raison, differe: d.ok === true };
+        }
+        return { saute: p.raison };
+      }
       if (fich.illisible(F)) { agents.noter(ID, 'préparer une réponse', { cible: source, resultat: 'refuse', detail: 'registre illisible' }); return { saute: 'registre_illisible' }; }
       const a = String(i && i.email || '').trim().toLowerCase();
       if (!bonneAdresse(a)) return { saute: 'adresse' };
@@ -334,6 +343,8 @@ module.exports = function lea(ctx) {
       users: Number.isFinite(users) ? users : 0, formule: String(i.formule || '').trim().toLowerCase(), besoin: String(i.besoin || '').slice(0, 200) });
   }
 
+  /* la reprise de ce qui a attendu l'ouverture : le même passage, `reprise` empêche de le remettre de côté */
+  if (typeof agents.surReprise === 'function') for (const genre of ['inscription', 'demande']) agents.surReprise(genre, charge => traiter(genre, Object.assign({}, charge, { reprise: true })));
   return { surInscription, surDemande, aRepriser };
 };
 module.exports.NOM = NOM;
