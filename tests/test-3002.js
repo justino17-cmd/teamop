@@ -33,6 +33,8 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
   const interne = L({ p: '/tarifs.html', r: 'https://teamop.fr/' }, 'x');
   v('⛔ une navigation DANS le site : une page vue, pas une visite, pas de source', [interne.visite, interne.source], [false, '']);
   v('un courriel de Léa (« ?de=lea ») : sa source et sa campagne', [L({ p: '/', de: 'lea' }, 'x').source, L({ p: '/', de: 'lea' }, 'x').campagne], ['Courriel de Léa', 'agent:lea']);
+  v('Pauline (« ?de=pauline », la prospection de Harvey) : « Courriel de Pauline » et sa campagne', [L({ p: '/', de: 'pauline' }, 'x').source, L({ p: '/', de: 'pauline' }, 'x').campagne], ['Courriel de Pauline', 'agent:pauline']);
+  v('⛔ la liste fermée des agents est exactement Léa, Camille, Chloé et Pauline (en ajouter un est un geste conscient)', Object.keys(A.AGENTS).sort(), ['camille', 'chloe', 'lea', 'pauline']);
   v('⛔ un « de » inconnu ne devient jamais une source (liste fermée)', L({ p: '/', de: 'pirate', r: '' }, 'x').source, 'Accès direct');
   v('un lien marqué utm : la source et la campagne, nettoyées', [L({ p: '/', us: 'Facebook', um: 'social', uc: 'Article <b>1</b>' }, 'x').source, L({ p: '/', us: 'Facebook', um: 'social', uc: 'Article <b>1</b>' }, 'x').campagne], ['Lien marqué : facebook', 'facebook / social / articleb1b']);
   /* relecture du gardien (25 octobre 2026) */

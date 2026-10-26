@@ -35,7 +35,8 @@ const ECRIRE_MS = 60 * 1000;
 
 /* Les agents qui écrivent aux prospects : leur signature porte « ?de=<id> » (`agents-signature.js`). Liste FERMÉE : une valeur
    inconnue ne devient jamais une source (sinon n'importe qui écrirait ce qu'il veut dans la Tour). */
-const AGENTS = { lea: 'Léa', camille: 'Camille', chloe: 'Chloé' };
+/* Pauline n'est pas un agent de ce serveur (c'est Harvey, sur le Mac de Justin — `server/pauline.js`) : sa signature à elle doit porter « https://teamop.fr/?de=pauline » pour que ses visites comptent ici. */
+const AGENTS = { lea: 'Léa', camille: 'Camille', chloe: 'Chloé', pauline: 'Pauline' };
 
 /* D'un nom de domaine à une source lisible. Ce qui n'est pas connu garde son nom de domaine (réduit, sans « www. »). */
 const SOURCES = [
