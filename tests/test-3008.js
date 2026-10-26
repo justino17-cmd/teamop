@@ -19,12 +19,16 @@ const BRUT = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const CODE = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 const { AGENTS } = require(path.join(RACINE, 'server', 'agents.js'));
 const DOSSIER = path.join(RACINE, 'icons', 'agents');
+/* Les agents EXTERNES : des visages dans la Tour, mais hors du registre serveur. Pauline (la prospection) tourne sur le Mac de Justin ;
+   sa photo arrive avant la Tour v2.112 qui l'affiche (l'aperçu la montre déjà). Un second externe s'ajoute ici à la main, par son nom. */
+const EXTERNES = ['pauline'];
 
 /* 1. Les fichiers, face au registre. */
 const ids = (AGENTS || []).map(a => a.id).sort();
 const fichiers = fs.existsSync(DOSSIER) ? fs.readdirSync(DOSSIER).filter(f => !f.startsWith('.')).sort() : [];
 vrai('(population) le registre des agents est lu : 16 agents', ids.length === 16, ids.join(','));
-vrai('une photo par agent, ni plus ni moins (icons/agents/<id>.jpg)', JSON.stringify(fichiers) === JSON.stringify(ids.map(i => i + '.jpg')), fichiers.join(','));
+vrai('une photo par agent du registre, plus celle des externes déclarés — ni plus ni moins (icons/agents/<id>.jpg)', JSON.stringify(fichiers) === JSON.stringify(ids.concat(EXTERNES).sort().map(i => i + '.jpg')), fichiers.join(','));
+vrai('(population) les externes déclarés ne sont PAS dans le registre du serveur (sinon ce n\u2019est plus une exception)', EXTERNES.length === 1 && EXTERNES.every(e => !ids.includes(e)), EXTERNES.join(','));
 for (const f of fichiers) {
   const b = fs.readFileSync(path.join(DOSSIER, f));
   /* un JPEG commence par FF D8 ; la taille se lit dans le premier segment SOF (C0 ou C2) */
