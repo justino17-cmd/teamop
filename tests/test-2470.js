@@ -60,7 +60,9 @@ const MIN = 60000, JOUR = 86400000;
     const s1 = await A.post('/api/agenda/' + R.id + '/reporter', { dans: 10 });
     v('« 10 min » : dans 10 minutes d\'AUJOURD\'HUI (à la minute près)', [s1.code, s1.j.evenement.debut >= t3 + 10 * MIN && s1.j.evenement.debut <= t3 + 12 * MIN], [200, true]);
     const s2 = await A.post('/api/agenda/' + R.id + '/reporter', { dans: 'demain' });
-    v('« demain 9 h » : demain, à 9 h, compté depuis aujourd\'hui', [s2.code, new Date(s2.j.evenement.debut).toISOString()], [200, new Date(Date.parse(jourLocal(maintenant()) + 'T09:00:00Z') + JOUR).toISOString()]);
+    /* le lendemain du jour où « 10 min » vient de le poser — aujourd'hui, sauf quand ces 10 minutes passent minuit (UTC, le fuseau de l'événement) :
+       lancée vers 23 h 10 UTC, la vérification de la n° 206 attendait le 27 quand le service rendait, à juste titre, le 28 (26 octobre 2026) */
+    v('« demain 9 h » : demain, à 9 h, compté depuis aujourd\'hui', [s2.code, new Date(s2.j.evenement.debut).toISOString()], [200, new Date(Date.parse(jourLocal(s1.j.evenement.debut) + 'T09:00:00Z') + JOUR).toISOString()]);
 
     console.log('\n4. Une journée entière : seulement « demain », depuis son jour s\'il est à venir');
     const jd = dans(5 * 24 * 60);
