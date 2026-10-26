@@ -36,6 +36,12 @@ const OUVERTURE_FORCEE_MAX_MS = 7 * 86400000;
 const OUVERTURE_FORCEE_MIN_MS = 60000;
 const HORIZON_JOURS = 400;                 // jusqu'où on cherche la prochaine ouverture (une année et plus : un réglage qui ferme tout ne boucle pas)
 const ASTREINTE_DEFAUT = ['max', 'theo'];
+/* LA PERMANENCE DU WEEK-END (Justin, 26 octobre 2026 : « deux agents qui tournent tous les week-ends, que ce soit jamais les mêmes », puis « Clients en
+   rotation ») : chaque samedi et dimanche, DEUX agents de la liste travaillent comme en semaine (pas une astreinte : ils écrivent aux clients). Chaque binôme
+   compte au moins un « pilier » — Camille lit le courrier, Hugo arrête un abonnement : sans l'un d'eux, une résiliation reçue le samedi attendrait lundi. Le
+   binôme change chaque week-end (jamais le même deux fois de suite), au calendrier de Paris (jamais « +7 × 24 h »). */
+const PERMANENCE_DEFAUT = { actif: true, agents: ['camille', 'hugo', 'margaux', 'lea'], piliers: ['camille', 'hugo'], debut: '09:00', fin: '18:00' };
+const SAMEDI_REPERE = Date.UTC(2026, 9, 31) / 86400000;      // samedi 31 octobre 2026 : le week-end n° 0 de la rotation
 const CHAMPS_LECTURE = ['ok', 'maintenant', 'ouvertJusqua', 'agents', 'illisible', 'feriesAVenir', 'fuseau', 'ts', 'astreinteNote'];   // ce que la lecture rend en plus : renvoyé tel quel par un écran, ignoré à l'écriture
 
 /* ── l'heure de Paris : pur, rejouable au banc ───────────────────────────────────────────────────────────────────────────────────── */
@@ -100,7 +106,35 @@ const minutesDe = hm => { const m = /^(\d\d):(\d\d)$/.exec(hm); return m ? (+m[1
 const jourOuvre = () => ({ ouvert: true, debut: '09:00', fin: '18:00' });
 const jourFerme = () => ({ ouvert: false, debut: '09:00', fin: '18:00' });
 const defautEntreprise = () => ({ jours: [jourOuvre(), jourOuvre(), jourOuvre(), jourOuvre(), jourOuvre(), jourFerme(), jourFerme()], feries: true });
-const defaut = () => ({ entreprise: defautEntreprise(), parAgent: {}, astreinte: ASTREINTE_DEFAUT.slice(), ouvertJusqua: null, maj: { ts: 0, par: '' } });
+const defaut = () => ({ entreprise: defautEntreprise(), parAgent: {}, astreinte: ASTREINTE_DEFAUT.slice(), permanence: JSON.parse(JSON.stringify(PERMANENCE_DEFAUT)), ouvertJusqua: null, maj: { ts: 0, par: '' } });
+/* Les binômes possibles, dans l'ordre de passage : chaque paire de la liste qui compte un pilier (tous si aucun pilier), rangée pour que deux week-ends qui se
+   suivent partagent le moins de monde possible. Une fonction pure de la liste : deux serveurs, ou deux lectures, rendent la même rotation. */
+function binomes(perm) {
+  const a = perm.agents, pil = perm.piliers.filter(x => a.includes(x));
+  const tous = [];
+  for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) if (!pil.length || pil.includes(a[i]) || pil.includes(a[j])) tous.push([a[i], a[j]]);
+  const ordre = tous.length ? [tous.shift()] : [];
+  while (tous.length) {
+    const der = ordre[ordre.length - 1];
+    let k = 0, best = 3;
+    tous.forEach((b, i) => { const c = b.filter(x => der.includes(x)).length; if (c < best) { best = c; k = i; } });
+    ordre.push(tous.splice(k, 1)[0]);
+  }
+  return ordre;
+}
+/* Le numéro du week-end d'un jour de Paris (samedi et dimanche partagent le même) : des jours CIVILS comptés depuis le samedi repère. */
+function numeroWeekEnd(p) {
+  const sam = p.jourSemaine === 7 ? jourPlus(p, -1) : p;
+  return Math.floor((Date.UTC(sam.annee, sam.mois - 1, sam.jour) / 86400000 - SAMEDI_REPERE) / 7);
+}
+function deGarde(perm, p) {
+  if (!perm || !perm.actif || (p.jourSemaine !== 6 && p.jourSemaine !== 7)) return [];
+  const l = binomes(perm);
+  if (!l.length) return [];
+  const n = numeroWeekEnd(p);
+  return l[((n % l.length) + l.length) % l.length].slice();
+}
+
 
 /* Un jour : { ouvert, debut, fin }. `ouvert` est un booléen STRICT (« false » en chaîne ne ferme pas, et n'ouvre pas non plus : refus). Ouvert, il exige un début avant une fin
    (« HH:MM », la fin peut être « 24:00 ») ; fermé, ses heures sont gardées pour la réouverture. Rend { jour } ou { erreur }. */
@@ -133,6 +167,25 @@ function joursValides(l, nom, nulsPermis) {
   return { jours: out };
 }
 const dedans = (o, cles) => Object.keys(o).every(k => cles.includes(k));
+/* La permanence, validée champ par champ. Rend { perm } ou { erreur } (une phrase lisible). */
+function permanenceValide(v, ids) {
+  if (!v || typeof v !== 'object' || Array.isArray(v) || !dedans(v, ['actif', 'agents', 'piliers', 'debut', 'fin'])) return { erreur: 'permanence : { actif, agents, piliers, debut, fin } attendu' };
+  if (typeof v.actif !== 'boolean') return { erreur: 'permanence : « actif » doit valoir true ou false' };
+  if (!Array.isArray(v.agents) || v.agents.length < 2 || v.agents.length > ids.size) return { erreur: 'permanence : au moins deux agents dans la rotation' };
+  for (const x of v.agents) if (typeof x !== 'string' || !ids.has(x)) return { erreur: 'permanence : agent inconnu « ' + String(x).slice(0, 30) + ' »' };
+  const agents = v.agents.filter((x, i, a) => a.indexOf(x) === i);
+  if (agents.length < 2) return { erreur: 'permanence : au moins deux agents dans la rotation' };
+  const piliers = v.piliers === undefined ? [] : v.piliers;
+  if (!Array.isArray(piliers)) return { erreur: 'permanence : « piliers » doit être une liste' };
+  for (const x of piliers) if (typeof x !== 'string' || !agents.includes(x)) return { erreur: 'permanence : un pilier doit être dans la rotation (« ' + String(x).slice(0, 30) + ' »)' };
+  const debut = v.debut === undefined ? '09:00' : v.debut, fin = v.fin === undefined ? '18:00' : v.fin;
+  if (typeof debut !== 'string' || !HM.test(debut)) return { erreur: 'permanence : heure de début au format HH:MM' };
+  if (typeof fin !== 'string' || !(HM.test(fin) || fin === '24:00')) return { erreur: 'permanence : heure de fin au format HH:MM' };
+  if (minutesDe(debut) >= minutesDe(fin)) return { erreur: 'permanence : le début doit précéder la fin' };
+  const perm = { actif: v.actif, agents, piliers: piliers.filter((x, i, a) => a.indexOf(x) === i), debut, fin };
+  if (perm.actif && !binomes(perm).length) return { erreur: 'permanence : aucun binôme possible avec ces piliers' };
+  return { perm };
+}
 
 module.exports = function horaires(o) {
   o = o || {};
@@ -176,10 +229,12 @@ module.exports = function horaires(o) {
       if (!Array.isArray(b.astreinte) || b.astreinte.some(x => typeof x !== 'string' || !ids.has(x))) return { erreur: 'astreinte' };
       astreinte = b.astreinte.filter((x, i, a) => a.indexOf(x) === i);
     }
+    let permanence = JSON.parse(JSON.stringify(PERMANENCE_DEFAUT));
+    if (b.permanence !== undefined) { const pv = permanenceValide(b.permanence, ids); if (pv.erreur) return { erreur: 'permanence' }; permanence = pv.perm; }
     let ouvertJusqua = null;
     if (b.ouvertJusqua !== undefined && b.ouvertJusqua !== null) { if (!Number.isFinite(b.ouvertJusqua) || b.ouvertJusqua < 0) return { erreur: 'ouvertJusqua' }; ouvertJusqua = b.ouvertJusqua; }
     const maj = b.maj && typeof b.maj === 'object' ? { ts: Number(b.maj.ts) || 0, par: String(b.maj.par || '').slice(0, 60) } : { ts: 0, par: '' };
-    return { cfg: { entreprise: { jours: jours.jours, feries: e.feries }, parAgent, astreinte, ouvertJusqua, maj } };
+    return { cfg: { entreprise: { jours: jours.jours, feries: e.feries }, parAgent, astreinte, permanence, ouvertJusqua, maj } };
   }
   charger();
 
@@ -194,6 +249,16 @@ module.exports = function horaires(o) {
   }
   /* La fenêtre de ce jour civil : { debut, fin } (instants UTC) ou { cause } quand on ne travaille pas ('ferie' avec son nom, 'jour_ferme'). */
   function fenetre(id, p) {
+    /* De garde ce week-end : la fenêtre de la permanence, férié ou pas (une résiliation n'attend pas la Toussaint) — sauf si l'agent travaille déjà ce jour-là. */
+    if (id && deGarde(cfg.permanence, p).includes(id)) {
+      const eff0 = effectif(id), j0 = eff0.jours[p.jourSemaine - 1];
+      if (!j0.ouvert || (eff0.feries && ferieDe(p))) {
+        const [h1, m1] = cfg.permanence.debut.split(':').map(Number), [h2, m2] = cfg.permanence.fin.split(':').map(Number);
+        const debut = tsParis(p.annee, p.mois, p.jour, h1, m1);
+        const fin = h2 === 24 ? (() => { const s = jourPlus(p, 1); return tsParis(s.annee, s.mois, s.jour, 0, 0); })() : tsParis(p.annee, p.mois, p.jour, h2, m2);
+        return { debut, fin, cause: '', permanence: true };
+      }
+    }
     const eff = effectif(id);
     if (eff.feries) { const nom = ferieDe(p); if (nom) return { debut: null, fin: null, cause: 'ferie', ferie: nom }; }
     const j = eff.jours[p.jourSemaine - 1];
@@ -268,7 +333,13 @@ module.exports = function horaires(o) {
       const e = etatA(ts, id), q = peutAgir(id, ts);
       agents[id] = { ouvert: e.ouvert, agit: q.ok === true, raison: e.raison, prochaineOuverture: e.prochaineOuverture, astreinte: cfg.astreinte.includes(id), horairesPropres: !!cfg.parAgent[id] };
     }
+    /* Le week-end en cours (ou le prochain) et celui d'après : qui est de garde, pour la Tour. */
+    const p0 = parisParties(ts);
+    const samedi = p0.jourSemaine === 6 ? p0 : p0.jourSemaine === 7 ? jourPlus(p0, -1) : jourPlus(p0, 6 - p0.jourSemaine);
+    const garde = q => ({ samedi: dateDe(q), agents: deGarde(cfg.permanence, q) });
+    for (const id of deGarde(cfg.permanence, samedi)) if (agents[id]) agents[id].deGarde = true;
     return { ok: true, fuseau: FUSEAU, ts, illisible: false, entreprise: copie(cfg.entreprise), parAgent: copie(cfg.parAgent), astreinte: cfg.astreinte.slice(),
+      permanence: Object.assign(copie(cfg.permanence), { ceWeekEnd: garde(samedi), suivant: garde(jourPlus(samedi, 7)) }),
       ouvertJusqua: forcee(ts) ? cfg.ouvertJusqua : null,
       maintenant: Object.assign({ ouvert: ent.ouvert, prochaineOuverture: ent.prochaineOuverture, prochaineFermeture: ent.prochaineFermeture, raison: ent.raison, libelleOuverture: ent.prochaineOuverture ? libelle(ent.prochaineOuverture) : '' }, ent.ferie ? { ferie: ent.ferie } : {}),
       agents, feriesAVenir: feriesAVenir(ts, 5) };
@@ -278,8 +349,8 @@ module.exports = function horaires(o) {
   /* `b` : { entreprise?: { jours?, feries? }, parAgent?: { id: { jours?, feries? } | null }, astreinte?: [id] }. Rend { cfg } (le neuf, rien n'est encore écrit) ou { erreur }. */
   function appliquer(b) {
     if (!b || typeof b !== 'object' || Array.isArray(b)) return { erreur: 'Corps attendu : { entreprise, parAgent, astreinte }' };
-    for (const k of Object.keys(b)) if (!['entreprise', 'parAgent', 'astreinte'].includes(k) && !CHAMPS_LECTURE.includes(k)) return { erreur: 'Champ inconnu : « ' + String(k).slice(0, 30) + ' »' };
-    if (b.entreprise === undefined && b.parAgent === undefined && b.astreinte === undefined) return { erreur: 'Rien à modifier : entreprise, parAgent ou astreinte' };
+    for (const k of Object.keys(b)) if (!['entreprise', 'parAgent', 'astreinte', 'permanence'].includes(k) && !CHAMPS_LECTURE.includes(k)) return { erreur: 'Champ inconnu : « ' + String(k).slice(0, 30) + ' »' };
+    if (b.entreprise === undefined && b.parAgent === undefined && b.astreinte === undefined && b.permanence === undefined) return { erreur: 'Rien à modifier : entreprise, parAgent, astreinte ou permanence' };
     const neuf = copie(cfg);
     if (b.entreprise !== undefined) {
       const e = b.entreprise;
@@ -312,6 +383,14 @@ module.exports = function horaires(o) {
       if (!Array.isArray(b.astreinte) || b.astreinte.length > ids.size) return { erreur: 'astreinte : une liste d’agents attendue' };
       for (const x of b.astreinte) if (typeof x !== 'string' || !ids.has(x)) return { erreur: 'astreinte : agent inconnu « ' + String(x).slice(0, 30) + ' »' };
       neuf.astreinte = b.astreinte.filter((x, i, a) => a.indexOf(x) === i);
+    }
+    if (b.permanence !== undefined) {
+      /* La vue rend la permanence avec `ceWeekEnd` et `suivant` (lecture seule) : un écran qui renvoie la vue telle quelle ne se fait pas refuser. */
+      const v = b.permanence && typeof b.permanence === 'object' && !Array.isArray(b.permanence) ? Object.assign({}, b.permanence) : b.permanence;
+      if (v && typeof v === 'object') { delete v.ceWeekEnd; delete v.suivant; }
+      const pv = permanenceValide(v, ids);
+      if (pv.erreur) return { erreur: pv.erreur };
+      neuf.permanence = pv.perm;
     }
     return { cfg: neuf };
   }
@@ -386,3 +465,6 @@ module.exports.defaut = defaut;
 module.exports.FICHIER = F;
 module.exports.OUVERTURE_FORCEE_MAX_MS = OUVERTURE_FORCEE_MAX_MS;
 module.exports.ASTREINTE_DEFAUT = ASTREINTE_DEFAUT;
+module.exports.PERMANENCE_DEFAUT = PERMANENCE_DEFAUT;
+module.exports.binomes = binomes;
+module.exports.deGarde = deGarde;
