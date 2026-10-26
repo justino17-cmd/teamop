@@ -433,7 +433,15 @@ config_a '(.stripe.secretKey // "") | test("^(sk|rk)_test_")' \
 # Le script lancé ici est celui TÉLÉCHARGÉ au commit exact (root le lance : il ne vient pas du miroir).
 if config_a '(.stripe.secretKey // "") | test("^(sk|rk)_test_")'; then
   if a_demander stripe || ! config_a '((.stripe.prixEssai // {}) | length) == 10'; then
-    if SORTIE_PRIX="$(TEAMOP_CONFIG="$CONFIG" node "$SRC_ROOT/stripe-essai-prix.js" 2>&1)"; then
+    # ⛔ Le créateur lit la grille dans `index.js` À CÔTÉ DE LUI et dans `../recap-abonnement.html` : seul dans $SRC_ROOT, il ne trouvait
+    # ni l'un ni l'autre (« server/index.js illisible », première installation du 26 octobre 2026). On lui rebâtit la forme du dépôt,
+    # avec les deux sources téléchargées AU MÊME COMMIT — jamais celles du miroir, que root n'exécute ni ne lit.
+    PRIX_DIR="$SRC_ROOT/prix"
+    mkdir -p "$PRIX_DIR/server"
+    cp "$SRC_ROOT/stripe-essai-prix.js" "$PRIX_DIR/server/stripe-essai-prix.js"
+    if ! telecharger server/index.js "$PRIX_DIR/server/index.js" || ! telecharger recap-abonnement.html "$PRIX_DIR/recap-abonnement.html"; then
+      echo "  ⚠️ server/index.js ou recap-abonnement.html introuvable au commit ${SRC_SHA:0:8} : les tarifs de test n'ont pas pu être créés. Relance : bash install-test.sh stripe"
+    elif SORTIE_PRIX="$(TEAMOP_CONFIG="$CONFIG" node "$PRIX_DIR/server/stripe-essai-prix.js" 2>&1)"; then
       printf '%s\n' "$SORTIE_PRIX" | tail -n 3 | sed 's/^/  /'
       echo "  tarifs de test : prêts (table écrite dans la configuration, clé non affichée)"
     else
