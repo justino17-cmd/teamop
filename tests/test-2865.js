@@ -72,7 +72,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 120 s'); console.lo
   v('⛔ (population) le chargement de l’onglet lit les deux aperçus par la vraie route (c’est lui qui enchaîne validations puis aperçus)', [AG.lec.validations, AG.br.lec, Object.keys(AG.br.d).sort()], [1, 1, [refA, refB].sort()]);
   h = bac.liste();
   vrai('l’aperçu montre le destinataire, l’objet et le texte', h.includes('a@tour-2865.fr') && h.includes('TeamOP — OP GESTION pour votre activité') && h.includes('Nous vous remercions pour votre inscription sur teamop.fr'), h.slice(0, 400));
-  vrai('…et la signature DE L’AGENT qui sera ajoutée à l’envoi (« Léa — Assistante virtuelle — Équipe TeamOP », pas celle du Courrier de Justin)', h.includes('Léa — Assistante virtuelle — Équipe TeamOP') && !h.includes('L\'équipe TEAM OP') && !h.includes('L&#39;équipe TEAM OP'));
+  vrai('…et la signature DE L’AGENT qui sera ajoutée à l’envoi (« Léa — Assistante de TeamOP », pas celle du Courrier de Justin)', h.includes('Léa — Assistante de TeamOP') && !h.includes('L\'équipe TEAM OP') && !h.includes('L&#39;équipe TEAM OP'));
   vrai('⛔ le bouton principal s’appelle « Valider et envoyer » et il est ALLUMÉ ; « Modifier » est proposé au patron',
     (h.match(/<button[^>]*class="ag-btn ok"(?![^>]*disabled)[^>]*>Valider et envoyer<\/button>/g) || []).length === 2 && (h.match(/>Modifier<\/button>/g) || []).length === 2, h.slice(-800));
   vrai('aucun autre bouton ne s’appelle plus simplement « Valider » pour ces deux lignes', !/>Valider<\/button>/.test(h));

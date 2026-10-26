@@ -99,9 +99,9 @@ const FIN = Math.floor(Date.parse('2026-11-12T10:00:00Z') / 1000);
   vrai('… et jamais api.stripe.com autrement que comme base par défaut', (SRC.match(/api\.stripe\.com/g) || []).length === 1 && /const BASE = 'https:\/\/api\.stripe\.com'/.test(SRC));
 
   console.log('\n2. La signature d\'un agent : composée par le code');
-  /* 23 octobre 2026 (fusion de l'intégration) : la mise en forme est CELLE DE TOUS LES AGENTS (`agents-signature.js`, `formater`) — « Hugo — Assistant virtuel — Équipe TeamOP », puis l'adresse. */
-  v('Hugo', O.signatureAgent('hugo'), 'Hugo — Assistant virtuel — Équipe TeamOP\ncontact@teamop.fr · teamop.fr');
-  v('Margaux, Emma, Sarah : « Assistante virtuelle »', ['margaux', 'emma', 'sarah'].map(a => O.signatureAgent(a).split('\n')[0]), ['Margaux — Assistante virtuelle — Équipe TeamOP', 'Emma — Assistante virtuelle — Équipe TeamOP', 'Sarah — Assistante virtuelle — Équipe TeamOP']);
+  /* 23 octobre 2026 (fusion de l'intégration) : la mise en forme est CELLE DE TOUS LES AGENTS (`agents-signature.js`, `formater`) — « Hugo — Assistant de TeamOP », puis l'adresse. */
+  v('Hugo', O.signatureAgent('hugo'), 'Hugo — Assistant de TeamOP\ncontact@teamop.fr · teamop.fr\nMessage préparé par un assistant automatique de TeamOP.');
+  v('Margaux, Emma, Sarah : « Assistante de TeamOP »', ['margaux', 'emma', 'sarah'].map(a => O.signatureAgent(a).split('\n')[0]), ['Margaux — Assistante de TeamOP', 'Emma — Assistante de TeamOP', 'Sarah — Assistante de TeamOP']);
   v('un agent inconnu, ou un nom piégé (propriété d\'objet), n\'a pas de signature', ['pirate', 'constructor', '__proto__', 'toString', '', null].map(a => O.signatureAgent(a)), ['', '', '', '', '', '']);
   v('une adresse étrangère ne se glisse pas dans la signature', O.signatureAgent('hugo', 'x@pirate.example').split('\n')[1], 'contact@teamop.fr · teamop.fr');
   v('l\'adresse de la boîte qui envoie (@teamop.fr) est celle de la signature', O.signatureAgent('hugo', 'support@teamop.fr').split('\n')[1], 'support@teamop.fr · teamop.fr');
@@ -178,7 +178,7 @@ const FIN = Math.floor(Date.parse('2026-11-12T10:00:00Z') / 1000);
     ['« Justin »', OK.replace('Rien n’est perdu', 'Justin vous écrit. Rien n’est perdu'), 'nom du patron'],
     ['« je suis »', OK.replace('Rien n’est perdu', 'Je suis Hugo. Rien n’est perdu'), 'première personne du singulier'],
     ['une signature écrite à la main', OK + '\n\nHugo\nAssistant virtuel · Équipe TeamOP', 'signature écrite à la main'],
-    ['la signature du serveur écrite à la main', OK + '\n\nHugo — Assistant virtuel — Équipe TeamOP\ncontact@teamop.fr · teamop.fr', 'signature écrite à la main'],
+    ['la signature du serveur écrite à la main', OK + '\n\nHugo — Assistant de TeamOP\ncontact@teamop.fr · teamop.fr\nMessage préparé par un assistant automatique de TeamOP.', 'signature écrite à la main'],
     ['trop court', 'Bonjour,\n\nBien cordialement,', 'longueur hors bornes'],
   ];
   for (const [nom, texte, attendue] of fautif) { const f = avec(texte); vrai('la faute « ' + nom + ' » est refusée (' + attendue + ')', f.includes(attendue)); }

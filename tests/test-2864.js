@@ -337,7 +337,7 @@ const decider = async (Z, id, decision, qui, empreinte) => {
   const recus = (await mails()).filter(m => /nora\.neuve@exemple-2864\.fr/.test(String((m.to && m.to.text) || '')) && /Notre proposition/.test(String(m.subject || '')));
   v('⛔ le facteur reçoit UN courriel de la proposition, au destinataire du compte', recus.length, 1);
   const m1 = recus[0] || { text: '', subject: '', to: { text: '' }, from: { text: '' } };
-  v('…objet et texte de Justin, puis la signature DE LÉA (jamais celle du Courrier de Justin), ajoutée par le serveur UNE fois', [m1.subject, String(m1.text).includes('Texte relu par Justin'), (String(m1.text).match(/Léa — Assistante virtuelle — Équipe TeamOP/g) || []).length, /Bien cordialement,\s+Léa — Assistante virtuelle — Équipe TeamOP\s+contact@banc-courrier\.fr · https:\/\/teamop\.fr\/\?de=lea/.test(String(m1.text)), /Justin Biret|L'équipe TEAM OP/.test(String(m1.text))], ['Notre proposition pour Toka Clim', true, 1, true, false]);
+  v('…objet et texte de Justin, puis la signature DE LÉA (jamais celle du Courrier de Justin), ajoutée par le serveur UNE fois', [m1.subject, String(m1.text).includes('Texte relu par Justin'), (String(m1.text).match(/Léa — Assistante de TeamOP/g) || []).length, /Bien cordialement,\s+Léa — Assistante de TeamOP\s+contact@banc-courrier\.fr · https:\/\/teamop\.fr\/\?de=lea/.test(String(m1.text)), /Justin Biret|L'équipe TEAM OP/.test(String(m1.text))], ['Notre proposition pour Toka Clim', true, 1, true, false]);
   vrai('…l’expéditeur affiché est celui de Léa', /Léa/.test(String(m1.from.text)), m1.from.text);
   vrai('…depuis la boîte de contact', /contact@banc-courrier\.fr/.test(String(m1.from.text)), m1.from.text);
   const copie = (S.imap().boites['contact@banc-courrier.fr'].ajouts || []).length;
