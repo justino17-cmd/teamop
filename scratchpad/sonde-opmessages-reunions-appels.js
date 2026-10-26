@@ -35,6 +35,8 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
     for (const l of ['ben', 'cleo']) { const k = await C.ana.post('/api/contacts/lien', {}); await C[l].post('/api/liens/accepter', { code: k.j.code }); }
     const kb = await C.ben.post('/api/contacts/lien', {}); await C.cleo.post('/api/liens/accepter', { code: kb.j.code });
     const AB = (await C.ana.post('/api/conversations/directe', { uid: C.ben.moi.id })).j.conversation.id;
+    /* une session d'essai de la bêta est COURTE : sur une passe longue elle expire (401 `session_requise`) — chaque partie rouvre les trois clients de l'API (les contacts, eux, tiennent aux comptes) */
+    const relier = async () => { await quitterTous(); for (const l of Object.keys(MOTS)) C[l] = await T.connecter(svc, og, l, MOTS[l]); };       // ⛔ on raccroche AVEC les anciens clients : un appel est lié à la session qui y est entrée (`appareil_non_lie` sinon)
     const quitterTous = async () => { for (const c of Object.values(C)) { const r = await c.get('/api/appels'); if (r.j && r.j.actif) await c.post('/api/appels/' + r.j.actif.id + '/quitter', {}); } };
 
     /* ── une session = un navigateur d'un profil, connecté ── */
@@ -82,6 +84,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
 
     /* ═══ #9 — « 3 appels manqués » ═══ */
     if (joue('manques')) {
+      await relier();
       console.log('\n── #9 : trois appels manqués d\'affilée ──');
       for (let i = 0; i < 3; i++) { const a = await C.ana.post('/api/appels', { uid: C.ben.moi.id, type: 'audio' }); const id = a.j.appel && a.j.appel.id; if (id) await C.ana.post('/api/appels/' + id + '/quitter', {}); }
       for (const [nomP, nuit] of [['iphone', false], ['bureau', true]]) {
@@ -98,6 +101,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
 
     /* ═══ #17 — une réunion de plusieurs jours, chaque jour ═══ */
     if (joue('jours')) {
+      await relier();
       console.log('\n── #17 : un séminaire de trois jours ──');
       const demain = new Date(); demain.setDate(demain.getDate() + 1); demain.setHours(9, 0, 0, 0);
       const fn = new Date(demain); fn.setDate(fn.getDate() + 2); fn.setHours(12, 0, 0, 0);
@@ -112,7 +116,11 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
           const dt = await S.page.evaluate((k) => { const b = Array.from(document.querySelectorAll('#sem-jours .jour')); const i0 = b.findIndex(x => x.classList.contains('avec')); const x = b[i0 + k]; if (x) { x.click(); return x.dataset.jour; } return null; }, k);
           await S.attendre((d) => { const x = document.querySelector('#sem-jours .jour[data-jour="' + d + '"]'); return x && x.getAttribute('aria-pressed') === 'true'; }, dt);
           await S.poser();
-          return S.page.evaluate(() => Array.from(document.querySelectorAll('#liste-reunions li')).map(li => li.textContent.replace(/\s+/g, ' ').trim()));
+          /* la liste du jour se relit jusqu'à ce qu'elle soit STABLE (deux lectures de suite égales) : elle se redessine après le toucher, jamais au même instant */
+          const lireListe = () => S.page.evaluate(() => Array.from(document.querySelectorAll('#liste-reunions li')).map(li => li.textContent.replace(/\s+/g, ' ').trim()));
+          let prec = null, cur = await lireListe();
+          for (let i = 0; i < 8 && JSON.stringify(prec) !== JSON.stringify(cur); i++) { prec = cur; await T.dort(250); cur = await lireListe(); }
+          return cur;
         };
         const jours = [await lire(0), await lire(1), await lire(2), await lire(3)];
         console.log('   ' + nomP + ' · ' + (nuit ? 'nuit' : 'jour') + ' : ' + JSON.stringify(jours));
@@ -127,6 +135,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
 
     /* ═══ #5 — la fin d'une réunion ═══ */
     if (joue('fin')) {
+      await relier();
       console.log('\n── #5 : la réunion se termine pour tous ──');
       for (const [nomP, nuit] of [['iphone', false], ['bureau', true]]) {
         await quitterTous();
@@ -166,6 +175,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
 
     /* ═══ #4 et #8 — un refus d'entrer reste à l'écran ; « Retour » rouvre la fiche d'où l'on est parti ═══ */
     if (joue('refus')) {
+      await relier();
       console.log('\n── #4 / #8 : refusé à la porte ──');
       for (const [nomP, nuit] of [['iphone', true], ['bureau', false]]) {
         await quitterTous();
@@ -197,6 +207,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
 
     /* ═══ #8 — après un appel, on revient à l'écran de départ (les détails d'un appel) ═══ */
     if (joue('retour')) {
+      await relier();
       console.log('\n── #8 : appeler depuis les détails d\'un appel, raccrocher ──');
       for (const [nomP, nuit] of [['iphone', false], ['bureau', true]]) {
         await quitterTous();
@@ -204,7 +215,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
         const S = await ouvrir(nomP, 'ben', { nuit });
         await S.aller('#appels');
         vrai('population : la liste des appels de Ben a au moins une ligne (' + nomP + ')', await S.attendre(() => document.querySelectorAll('#liste-appels .appel-ligne').length > 0));
-        await S.toucher('#liste-appels [data-infos]');
+        await S.toucher('#liste-appels li:has(.appel-nom-ligne:text-is("Ana Martin")) [data-infos]');       // la ligne d'Ana (un appel à deux), pas celle d'une salle d'une partie d'avant
         vrai('population : la feuille des détails de l\'appel est ouverte', await S.attendre(() => !!document.querySelector('[data-info-act="rappeler"]')));
         const nomFiche = await S.page.evaluate(() => document.querySelector('#info-corps .info-nom').textContent);
         await S.capture('details-appel');
@@ -220,7 +231,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
         vrai('un retour système ferme les détails (la feuille est cachée) : la liste des appels reste', await S.cache('#info-corps .info-nom', nomFiche) && await S.page.evaluate(() => document.documentElement.dataset.vue === 'appels'));
         /* ⛔ contre-épreuve : « Message » pendant l'appel ne rouvre PAS les détails au raccrochage */
         await S.aller('#appels');
-        await S.toucher('#liste-appels [data-infos]');
+        await S.toucher('#liste-appels li:has(.appel-nom-ligne:text-is("Ana Martin")) [data-infos]');       // la ligne d'Ana (un appel à deux), pas celle d'une salle d'une partie d'avant
         await S.attendre(() => !!document.querySelector('[data-info-act="rappeler"]'));
         await S.toucher('[data-info-act="rappeler"]');
         await S.attendre(() => document.documentElement.hasAttribute('data-appel'));
@@ -236,6 +247,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
 
     /* ═══ #3 — la bannière d'un message pendant une réunion ═══ */
     if (joue('banniere')) {
+      await relier();
       console.log('\n── #3 : un message arrive pendant la réunion ──');
       for (const [nomP, nuit] of [['iphone', false], ['bureau', true]]) {
         await quitterTous();
@@ -271,6 +283,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
 
     /* ═══ #18 — l'organisateur qui « Quitte » ═══ */
     if (joue('quitter')) {
+      await relier();
       console.log('\n── #18 : Ana quitte sa réunion, Ben devient l\'organisateur ──');
       for (const [pa, pb, nuit] of [['bureau', 'iphone', false], ['iphone', 'bureau', true]]) {
         await quitterTous();
@@ -307,6 +320,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
 
     /* ═══ #2 — la fiche d'une réunion terminée ═══ */
     if (joue('fiche')) {
+      await relier();
       console.log('\n── #2 : la fiche d\'une réunion terminée, et celle d\'une réunion à venir ──');
       await quitterTous();
       const rT = await programmer({ titre: 'Réunion finie' });
