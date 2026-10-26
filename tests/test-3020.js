@@ -309,7 +309,26 @@ function releve() {
     v('le plist launchd est un plist valide : toutes les 15 minutes, au chargement, le journal dans data/, le dossier de Harvey en argument', [pj.StartInterval, pj.RunAtLoad, pj.ProgramArguments, pj.StandardOutPath], [900, true, ['/Users/x/harvey/.venv/bin/python', '/Users/x/harvey/outils/pauline-releve.py', '--harvey', '/Users/x/harvey'], '/Users/x/harvey/data/pauline-releve.log']);
     vrai('…et il ne contient aucun jeton ni aucune empreinte', !/[0-9a-f]{64}/.test(fs.readFileSync(path.join(RACINE, 'outils', 'pauline-releve.plist'), 'utf8')));
     const sh = spawnSync('bash', ['-n', path.join(RACINE, 'server', 'set-pauline.sh')], { encoding: 'utf8' });
-    vrai('server/set-pauline.sh passe bash -n, et ne demande JAMAIS le jeton (une empreinte seulement)', sh.status === 0 && !/jeton\)? *:/i.test(fs.readFileSync(path.join(RACINE, 'server', 'set-pauline.sh'), 'utf8').split('\n').filter(l => /read /.test(l)).join('\n')), sh.stderr);
+    vrai('server/set-pauline.sh passe bash -n', sh.status === 0, sh.stderr);
+    /* …et il SE JOUE : une configuration jetable, un systemctl et un curl de banc dans le PATH */
+    const bacSh = fs.mkdtempSync(path.join(os.tmpdir(), 'pau-sh-')); tmp.push(bacSh);
+    fs.mkdirSync(path.join(bacSh, 'bin'));
+    fs.writeFileSync(path.join(bacSh, 'bin', 'systemctl'), '#!/bin/sh\necho redemarre >> "$0.appels"\n', { mode: 0o755 });
+    fs.writeFileSync(path.join(bacSh, 'bin', 'curl'), '#!/bin/sh\necho \'{"ok":true}\'\n', { mode: 0o755 });
+    const cfgSh = path.join(bacSh, 'config.json');
+    const jouer = (entree, avant) => { if (avant) fs.writeFileSync(cfgSh, avant, { mode: 0o640 }); const r = spawnSync('bash', [path.join(RACINE, 'server', 'set-pauline.sh')], { input: entree, encoding: 'utf8', env: Object.assign({}, process.env, { PATH: path.join(bacSh, 'bin') + ':' + process.env.PATH, TEAMOP_CONFIG: cfgSh }) }); return { code: r.status, sortie: r.stdout + r.stderr, cfg: JSON.parse(fs.readFileSync(cfgSh, 'utf8')) }; };
+    const emp = sha('autre-jeton');
+    const a1 = jouer(emp.toUpperCase() + '\n', JSON.stringify({ a: 1 }));
+    v('set-pauline.sh : une empreinte (même en MAJUSCULES) est rangée en minuscules, le reste de la configuration est gardé, les droits passent à 600, le serveur redémarre', [a1.code, a1.cfg, (fs.statSync(cfgSh).mode & 0o777).toString(8), fs.existsSync(path.join(bacSh, 'bin', 'systemctl.appels'))], [0, { a: 1, pauline: { jetonSha256: emp } }, '600', true]);
+    const a2 = jouer('pas une empreinte\n', JSON.stringify({ a: 1, pauline: { jetonSha256: emp } }));
+    v('⛔ set-pauline.sh : un texte qui n’est pas une empreinte est refusé (code 1) et la configuration reste intacte', [a2.code, a2.cfg, /Ce n.est pas une empreinte/.test(a2.sortie)], [1, { a: 1, pauline: { jetonSha256: emp } }, true]);
+    const a3 = jouer('abcd\n', JSON.stringify({ a: 1 }));
+    v('⛔ …même une empreinte trop courte', [a3.code, a3.cfg], [1, { a: 1 }]);
+    const a4 = jouer('retirer\n', JSON.stringify({ a: 1, pauline: { jetonSha256: emp } }));
+    v('set-pauline.sh : « retirer » ferme le pont (le champ disparaît, le reste reste)', [a4.code, a4.cfg], [0, { a: 1 }]);
+    const a5 = jouer('\n', JSON.stringify({ a: 1 }));
+    v('set-pauline.sh : Entrée seule ne change rien', [a5.code, a5.cfg, /Rien n.a été changé/.test(a5.sortie)], [0, { a: 1 }, true]);
+    vrai('…et la question qu’il pose est celle de l’EMPREINTE (jamais « le jeton » seul)', /read [^\n]*Empreinte SHA-256/.test(fs.readFileSync(path.join(RACINE, 'server', 'set-pauline.sh'), 'utf8')));
     const dos = fs.mkdtempSync(path.join(os.tmpdir(), 'pau-mac-')); tmp.push(dos);
     const fab = spawnSync('python3', ['-I', path.join(__dirname, 'pauline-releve-test.py'), '--construire', dos], { encoding: 'utf8' });
     vrai('(population) la fausse base de Harvey est construite', fab.status === 0 && fs.existsSync(path.join(dos, 'data', 'harvey.db')), fab.stderr);
@@ -322,7 +341,7 @@ function releve() {
       const direct = await poster(S, JETON, essai.stdout);
       v('⛔ LA COUTURE : le relevé que fabrique le script est accepté par le vrai serveur SANS UNE LIGNE ÉCARTÉE ni tronquée', [direct.s, direct.j.ecartes], [200, { entreprises: 0, courriels: 0, recherches: 0, reponses: 0, tronque: [] }]);
       const mac = JSON.parse(essai.stdout);
-      v('…avec toute la population : 6 entreprises, 7 courriels, 3 recherches de découverte plus un cycle, 2 réponses', [direct.j.recu.entreprises, direct.j.recu.courriels, direct.j.recu.recherches, direct.j.recu.reponses], [6, 7, mac.recherches.length, 2]);
+      v('…avec toute la population : 7 entreprises, 7 courriels, 3 recherches de découverte plus un cycle, 2 réponses', [direct.j.recu.entreprises, direct.j.recu.courriels, direct.j.recu.recherches, direct.j.recu.reponses], [7, 7, mac.recherches.length, 2]);
       const reel = spawnSync('python3', ['-I', script, '--harvey', dos, '--url', S.B + '/api/pauline/releve'], { encoding: 'utf8', timeout: 60000 });
       v('l’envoi réel du script (jeton lu dans .env) : code 0, « Relevé envoyé »', [reel.status, /Relevé envoyé/.test(reel.stdout)], [0, true]);
       vrai('…et le jeton n’apparaît ni sur la sortie ni sur l’erreur', !(reel.stdout + reel.stderr).includes(JETON));

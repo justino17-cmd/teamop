@@ -78,6 +78,8 @@ def construire(dossier):
     ins("companies", id="c-envoye", name="Clim Atlantique", industry="climatisation", location="Rochefort", created_at=h(-60), updated_at=h(-3, " "))
     ins("companies", id="c-repondu", name="Plomberie Aunis", industry="plomberie", location="La Rochelle", created_at=h(-80), updated_at=h(-1))
     ins("companies", id="c-refus", name="Insectes Services", industry="nuisibles", location="Niort", created_at=h(-90), updated_at=h(-4))
+    ins("companies", id="c-optout", name="Désinscrite SARL", industry="nettoyage", location="Niort", created_at=h(-70), updated_at=h(-70))
+    ins("prospects", id="p-optout", company_id="c-optout", first_name="Eva", last_name="Sortie", email="eva@sortie.example", status="opted_out", updated_at=h(-70))
     ins("prospects", id="p-pret", company_id="c-pret", first_name="Karim", last_name="Benali", email="Karim@Zebulon.example", status="new", updated_at=h(-2))
     ins("prospects", id="p-envoye", company_id="c-envoye", first_name="", last_name="", email="contact@clim-atlantique.example", status="contacted", source="company_inbox", updated_at=h(-3))
     ins("prospects", id="p-repondu", company_id="c-repondu", first_name="Alice", last_name="Aunis", email="alice@aunis.example", status="replied", updated_at=h(-1))
@@ -184,12 +186,12 @@ class TestReleve(unittest.TestCase):
 
     def test_la_population_existe(self):
         # une assertion sur un ensemble vide passe et ne prouve rien : on compte d'abord
-        self.assertEqual(len(self.ent), 6)       # 5 fiches + le prospect sans fiche
+        self.assertEqual(len(self.ent), 7)       # 6 fiches + le prospect sans fiche
         self.assertEqual(len(self.cou), 7)       # 8 lignes moins le courriel de 120 jours
 
     def test_etats_des_entreprises(self):
         e = {k: v["etat"] for k, v in self.ent.items()}
-        self.assertEqual(e, {"c-trouvee": "trouvee", "c-pret": "courriel_pret", "c-envoye": "envoye", "c-repondu": "a_repondu", "c-refus": "refus", "p-p-orphelin": "courriel_pret"})
+        self.assertEqual(e, {"c-trouvee": "trouvee", "c-pret": "courriel_pret", "c-envoye": "envoye", "c-repondu": "a_repondu", "c-refus": "refus", "c-optout": "refus", "p-p-orphelin": "courriel_pret"})
 
     def test_champs_des_entreprises(self):
         c = self.ent["c-pret"]

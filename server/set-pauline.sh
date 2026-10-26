@@ -3,7 +3,7 @@
 # L'empreinte n'est PAS un secret : c'est ce que « python3 pauline-releve.py --fabriquer-jeton » imprime sur le Mac. Le JETON, lui, n'arrive jamais ici.
 # Usage : ssh -t root@api.teamop.fr "cd /opt/teamop/repo && git pull -q && bash server/set-pauline.sh"
 set -e
-CONFIG=/opt/teamop/config.json
+CONFIG="${TEAMOP_CONFIG:-/opt/teamop/config.json}"   # TEAMOP_CONFIG : pour le banc d'essai seulement
 
 echo ""
 echo "=== Pont de Pauline (relevé envoyé depuis le Mac) ==="
@@ -25,10 +25,10 @@ if [ "$EMP" != "retirer" ]; then
   fi
 fi
 
-python3 - "$EMP" <<'PYEOF'
+python3 - "$EMP" "$CONFIG" <<'PYEOF'
 import json, os, sys
 emp = sys.argv[1]
-chemin = '/opt/teamop/config.json'
+chemin = sys.argv[2]
 with open(chemin) as f:
     c = json.load(f)
 if emp == 'retirer':
