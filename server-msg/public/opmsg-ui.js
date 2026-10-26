@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '8b3f229ff91f';
+  const OPMSG_BUILD = '5773fe0b1d72';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 266;
+  const OPMSG_VERSION = 268;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -707,7 +707,7 @@
     const veutAppel = r.appel || null;
     if (veutAppel && veutAppel === etat.appelId && etat.appelReduit) restaurerAppel();
     else if (veutAppel !== etat.appelId && !(veutAppel === null && etat.appelReduit)) {
-      if (veutAppel) { if (etat.appelReduit) quitterAppel(); afficherAppel(veutAppel); }
+      if (veutAppel) { if (etat.appelReduit || (etat.appelUI && etat.appelUI.sortie)) quitterAppel(); afficherAppel(veutAppel); }
       else if (appelReductible()) reduireAppel(); else quitterAppel();
     }
     etat.raccrocher = false;
@@ -2387,6 +2387,8 @@
     /* une demande de contact se TOUCHE : la bannière mène à l'onglet Contacts, où l'on accepte ou refuse */
     const vers = cible === 'contacts' && ORDRE.includes('contacts') ? 'contacts' : cible === 'invitations' ? 'invitations' : /^conv:c_[0-9a-f]{32}$/.test(cible || '') ? cible : '';
     $('notif').dataset.vers = vers; $('notif').classList.toggle('touchable', !!vers);
+    /* le bouton « Ouvrir » (visible seulement pendant un appel, voir la feuille de style) dit où il mène — la bannière, elle, ne reçoit plus de toucher alors */
+    $('notif-ouvrir').hidden = !vers; $('notif-ouvrir').setAttribute('aria-label', vers === 'contacts' ? 'Ouvrir les contacts' : vers === 'invitations' ? 'Ouvrir les invitations' : vers ? 'Ouvrir la conversation' : 'Ouvrir');
     $('notif').classList.add('on');
     minNotif = setTimeout(() => $('notif').classList.remove('on'), 3600);   // ~3,5 s : le paquet dit 3,6 dans la maquette
   }
@@ -2961,8 +2963,10 @@
   /* ⛔ l'ISSUE d'un appel sortant qui n'a pas abouti passe devant le sens (lot m19, appels@2) : « Appel sortant » d'un appel que l'autre a refusé faisait croire qu'il avait eu lieu */
   const ISSUE_APPEL = { annule: ' annulé', refuse: ' refusé', manque: ' sans réponse', occupe: ' occupé' };
   function libelleAppel(a) {
+    /* ⛔ LES MANQUÉS D'AFFILÉE D'UNE MÊME PERSONNE SONT UNE LIGNE QUI DIT COMBIEN (26 octobre 2026, Justin : « comme l'iPhone ») : « 3 appels manqués », plus « Appel manqué (3) ». Le regroupement est
+       fait par la source (`repetitions`) ; ici seulement la phrase. Le type n'est pas dit : les trois peuvent être un audio et une vidéo, et la ligne n'en garde qu'un. */
+    if (!a.groupe && a.sens === 'manque' && a.repetitions > 1) return a.repetitions + ' appels manqués';
     let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (ISSUE_APPEL[a.issue] || SENS_APPEL[a.sens] || '');
-    if (a.sens === 'manque' && a.repetitions > 1) t += ' (' + a.repetitions + ')';
     if (a.groupe) t += ' · ' + (a.membres.length + 1) + ' participants';
     if (a.duree > 0) t += ' · ' + dureeCourte(a.duree);
     return t;
@@ -3023,6 +3027,7 @@
     let refus = null;
     if (!id) { try { const c = await source.conversationPour(membres); id = c && c.id; } catch (e) { id = null; refus = e; } }
     if (!id) { mot(phrase(refus, 'La conversation n\'a pas pu être ouverte.')); return; }
+    origineAppelEffacer();                      // aller à la conversation est un CHOIX : le raccrochage qui suit ne rouvre pas la feuille d'où l'appel est parti
     const cible = { vue: 'messages', conv: id, feuille: false, photo: null, appel: null }, h = entree();
     if (h && h.n > 0 && h.p && memeRoute(h.p, cible)) rendreEntree(); else remplacer(cible);
   }
@@ -3051,15 +3056,19 @@
     }       // un refus du service se DIT (« Cette personne est déjà dans un appel… »), jamais une phrase générique
     etat.declencheurAppel = declencheurEl && declencheurEl.id ? '#' + declencheurEl.id : declencheurEl && declencheurEl.dataset && declencheurEl.dataset.rappeler ? '[data-rappeler="' + declencheurEl.dataset.rappeler.replace(/"/g, '') + '"]' : null;
     const r = Object.assign({}, etat.route, { feuille: false, photo: null, appel: c.id });
+    origineAppelPoser(c.id);
     if (depuisFeuille && etat.route.feuille) remplacer(r); else pousser(r);
     return true;
   }
   /* (version servie) un appel arrive : l'écran d'appel prend la place de ce qui est ouvert, comme un appel qu'on lance — jamais deux appels sur un écran */
   function surAppelEntrant(id) {
-    if (!CAP.appelsMedias || etat.appelId || etat.appelDemarre) return;
+    /* l'écran de sortie d'une salle ne retient pas un appel qui arrive : il prend sa place (`appliquer` referme l'ancien par `quitterAppel`, la sortie unique) */
+    const surSortie = !!(etat.appelUI && etat.appelUI.sortie);
+    if (!CAP.appelsMedias || (etat.appelId && !surSortie) || etat.appelDemarre) return;
     etat.declencheurAppel = null;
     const r = Object.assign({}, etat.route, { feuille: false, photo: null, appel: id });
-    if (etat.route.feuille) remplacer(r); else pousser(r);
+    origineAppelPoser(id);
+    if (surSortie || etat.route.feuille) remplacer(r); else pousser(r);
   }
   const ouvrirAppels = () => { if (!etat.appelId) remplacer({ vue: 'appels', conv: null, feuille: false, photo: null, appel: null }); };
 
@@ -3361,7 +3370,7 @@
   }
   /* l'écran DIT l'état : la mise en page, le nom, les vignettes (refaites seulement quand ce qui les décide change), les commandes */
   function rendreAppel() {
-    const A = etat.appelUI; if (!A || !A.snap) return;
+    const A = etat.appelUI; if (!A || !A.snap || A.sortie) return;          // (l'écran de sortie tient la place : la salle n'est plus redessinée dessous)
     const s = A.snap, E = $('appel-ecran');
     if (enSalle(A)) { rendreSalle(A); return; }                       // (salle) une salle où l'on est entré a son propre écran ; la sonnerie, elle, reste ici
     delete document.documentElement.dataset.salle;
@@ -3410,6 +3419,8 @@
     synchroInert();
     let snap = null; try { snap = await source.appel(id); } catch (e) { snap = null; }
     if (jeton !== etat.jetonAppel) return;                       // raccroché pendant l'attente
+    /* ⛔ ENTRER DANS UNE SALLE QUI EST DÉJÀ FINIE (un lien ancien, une bannière périmée) NE RAMÈNE PAS TOUT DE SUITE EN ARRIÈRE : l'écran reste et dit pourquoi, avec « Retour » (26 octobre 2026) */
+    { const so = snap && snap.etat === 'termine' && snap.salle && !etat.appelReduit ? sortieDe(null, snap, true) : null; if (so) { A.snap = snap; sortieMontrer(A, so); return; } }
     if (!snap || snap.etat === 'termine') { remplacer(parentDe(etat.route)); mot((snap && snap.avis) || 'Cet appel est terminé.'); return; }
     A.snap = snap; rendreAppel();
     garderEcran(true);
@@ -3421,9 +3432,13 @@
   /* un changement dit par la source (quelqu'un répond, l'appel est fini ailleurs) */
   async function rafraichirAppel() {
     const A = etat.appelUI; if (!A || !A.snap) return;
+    if (A.sortie) return;                                                    // l'écran de sortie est posé : rien de plus à dire, la couche se ferme par son bouton
     let snap = null; try { snap = await source.appel(A.id); } catch (e) { snap = null; }
     if (perime(A) || !snap) return;
-    const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant; A.snap = snap;
+    const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant, prec = A.snap; A.snap = snap;
+    /* ⛔ UNE SALLE QUI SE TERMINE SOUS NOS YEUX (refus de l'hôte, retrait, fin de la réunion, réunion annulée) LAISSE UN ÉCRAN, pas une phrase de 2,4 s sur la page d'avant. Réduite (on est ailleurs),
+       la salle se referme comme avant : un écran plein ne tombe pas sur ce qu'on lit. */
+    if (snap.etat === 'termine' && !etat.appelReduit && !etat.raccrocher) { const so = sortieDe(prec, snap, false); if (so) { sortieMontrer(A, so); return; } }
     if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); A.finiParAutre = avant === 'en-cours' && !snap.avis; raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer (raccrocherCouche le sait)
     if (etaitEntrant && !snap.entrant) arreterSonnerie();
     if (avant === 'sonne' && snap.etat === 'en-cours') annonceAppel('Appel connecté');
@@ -3437,11 +3452,53 @@
   }
   /* ⛔ LA SORTIE UNIQUE : tout chemin qui retire la couche « appel » de la route passe ici, et rien d'autre ne raccroche. Les pistes sont arrêtées d'ABORD, de façon synchrone ;
      la source l'apprend ensuite (terminerAppel crée la ligne d'historique), et l'écran en garde une phrase pour le lecteur d'écran. */
-  function quitterAppel() {
-    const A = etat.appelUI, id = etat.appelId, cle = etat.declencheurAppel;
-    const parAutre = !!(A && A.finiParAutre), enSalleAvant = !!(A && enSalle(A)), premier = A && A.snap && A.snap.membres && A.snap.membres[0] ? A.snap.membres[0].prenom : '';        // lus AVANT que l'appel soit défait
-    etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null; etat.appelReduit = false;
-    delete document.documentElement.dataset.appelReduit;
+  /* ═══ L'ÉCRAN DE SORTIE D'UNE SALLE (26 octobre 2026, Justin : « fait les 18 » — salle@4, salle@10) ═══
+     Deux cas, un seul écran, dans la couche de l'appel (la route ne change pas : le retour système, Échap et les onglets le ferment comme n'importe quelle couche) :
+       · « refus » — on n'est pas entré (l'hôte n'a pas accepté, retiré, salle déjà finie, réunion annulée) : le titre, la RAISON que dit le service, « Retour » ;
+       · « fin » — la réunion vient de finir : sa durée, qui était là, « Revenir à la conversation ».
+     Une salle qui finit parce que la connexion est perdue ou que l'appel est pris ailleurs garde son avis d'avant (ce n'est ni un refus ni la fin voulue). Les appels à deux, eux aussi. → null si rien à montrer */
+  const ISSUES_SANS_ECRAN = ['perdu', 'compte', 'pris_ailleurs', 'parti_ailleurs'];
+  function sortieDe(prec, snap, auChargement) {
+    if (!snap || !snap.salle || snap.etat !== 'termine' || ISSUES_SANS_ECRAN.includes(snap.issue)) return null;
+    const reunion = snap.genre === 'reunion', issue = snap.issue || '';
+    const avis = snap.avis || '';
+    if (auChargement) return { mode: 'refus', titre: reunion ? 'Cette réunion est terminée' : 'Cet appel est terminé', raison: avis || 'Tu ne peux plus y entrer.' };
+    if (issue === 'exclu') return { mode: 'refus', titre: 'Tu as été retiré', raison: avis || 'L\'hôte t\'a retiré.' };
+    if (issue === 'annulee' || issue === 'supprimee') return { mode: 'refus', titre: issue === 'annulee' ? 'Réunion annulée' : 'Réunion supprimée', raison: avis };
+    if (issue === 'refuse_hote' || (prec && prec.attente)) return { mode: 'refus', titre: reunion ? 'Tu n\'es pas entré dans la réunion' : 'Tu n\'es pas entré', raison: avis || (reunion ? 'La réunion s\'est terminée avant que tu entres.' : 'L\'appel s\'est terminé avant que tu entres.') };
+    if (reunion) return { mode: 'fin', titre: 'Réunion terminée', raison: avis, duree: snap.duree > 0 ? snap.duree : 0, conv: snap.conv || null };
+    return null;
+  }
+  /* ceux qui étaient là : « Toi, Ana, Ben et 2 autres » — la salle les montrait tous à chacun, l'écran de fin ne dit rien de plus */
+  function sortiePresents(A) {
+    const noms = A.sx && A.sx.venus ? Array.from(A.sx.venus.values()) : [];
+    if (!noms.length) return 'Toi seul';
+    return 'Toi, ' + (noms.length <= 4 ? noms.slice(0, -1).join(', ') + (noms.length > 1 ? ' et ' : '') + noms[noms.length - 1] : noms.slice(0, 3).join(', ') + ' et ' + (noms.length - 3) + ' autres');
+  }
+  function sortieMontrer(A, so) {
+    if (!A || !so || A.sortie) return;
+    A.sortie = so;
+    appelLacherMedias(A);                         // la caméra et le micro s'éteignent tout de suite ; la couche, elle, reste jusqu'au bouton
+    $('sortie-titre').textContent = so.titre;
+    $('sortie-raison').textContent = so.raison || '';
+    const faits = $('sortie-faits'); faits.textContent = '';
+    if (so.mode === 'fin') {
+      const ligne = (dt, dd) => { const d = document.createElement('div'), a = document.createElement('dt'), b = document.createElement('dd'); a.textContent = dt; b.textContent = dd; d.append(a, b); faits.append(d); };
+      if (so.duree > 0) ligne('Durée', dureeSeance(so.duree));
+      ligne('Présents', sortiePresents(A));
+    }
+    const b = $('sortie-bouton'); so.versConv = so.mode === 'fin' && !!so.conv; b.textContent = so.versConv ? 'Revenir à la conversation' : 'Retour';
+    document.documentElement.dataset.sortie = '1';
+    synchroInert();
+    annonceAppel(so.titre + (so.raison ? '. ' + so.raison : ''));
+    $('sortie-ecran').focus({ preventScroll: true });
+  }
+  $('sortie-bouton').addEventListener('click', () => {
+    const A = etat.appelUI; if (!A || !A.sortie) return;
+    if (A.sortie.versConv) ouvrirConversationAvec([], A.sortie.conv); else raccrocherCouche();
+  });
+  /* le relâchement des médias et des minuteries d'un appel : commun à la sortie (`quitterAppel`) et à l'écran de sortie (la caméra ne reste pas allumée derrière « Réunion terminée ») */
+  function appelLacherMedias(A) {
     if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }
     if (A) { if (A.rec) recArreter(A, false); salleNettoyer(A); }
     arreterSonnerie();
@@ -3449,10 +3506,49 @@
     if (document.pictureInPictureElement) { try { const p = document.exitPictureInPicture(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* déjà refermée */ } }
     { const au = $('appel-audio-distant'); if (au.srcObject) au.srcObject = null; }
     avisAppelEffacer();
-    delete document.documentElement.dataset.appel; delete document.documentElement.dataset.salle;
+  }
+  /* ⛔ APRÈS UN APPEL, ON REVIENT D'OÙ L'ON EST PARTI (26 octobre 2026, Justin ; testeur « appels@6 ») : un appel lancé depuis une FEUILLE (la fiche d'une réunion, les détails d'un appel, un contact) la
+     REMPLACE dans l'historique, et raccrocher ramenait à la liste, feuille perdue. L'écran de départ se note à l'appel (`origineAppelPoser`) et se rouvre au raccrochage — seulement si l'écran d'appel
+     était sous les yeux, et jamais par-dessus un autre choix (« Message », un onglet). ⛔ Cet état est à l'APPAREIL (mémoire de la page, doublée dans `sessionStorage` de l'onglet) : il ne part JAMAIS
+     dans les données partagées, et un rangement refusé ne casse rien. Les feuilles qu'on ne rouvre pas : les sélecteurs (« Nouvel appel », « Nouveau groupe ») — on a choisi, on a appelé, c'est fini —
+     et « avant d'entrer » (la feuille qu'on rouvre est celle d'en dessous). */
+  const CLE_ORIGINE = 'opmsg_origine_appel', FEUILLES_RETOUR = ['reunion', 'info', 'contact', 'convinfo', 'personne', 'evenement'];
+  function origineAppelPoser(id) {
+    let r = etat.route; if (!r || !id) return;
+    if (cleFeuille(r.feuille) === 'avant') { const h = entree(); r = h && h.p ? h.p : Object.assign({}, r, { feuille: false }); }
+    const o = { id, route: { vue: r.vue, conv: r.conv || null, sec: r.sec || null, feuille: r.feuille || false } };
+    etat.origineAppel = o;
+    try { sessionStorage.setItem(CLE_ORIGINE, JSON.stringify(o)); } catch (e) { /* rangement refusé : la mémoire de la page suffit */ }
+  }
+  function origineAppelLire(id) {
+    let o = etat.origineAppel;
+    if (!o) { try { o = JSON.parse(sessionStorage.getItem(CLE_ORIGINE) || 'null'); } catch (e) { o = null; } }
+    return o && o.id === id && o.route ? o : null;
+  }
+  function origineAppelEffacer() { etat.origineAppel = null; try { sessionStorage.removeItem(CLE_ORIGINE); } catch (e) { /* rien à retirer */ } }
+  function origineAppelRetour(id, visible) {
+    const o = id ? origineAppelLire(id) : null;
+    if (o) origineAppelEffacer();                  // (l'origine d'un appel NEUF, posée avant que celui-ci remplace l'ancien, n'est pas celle qu'on solde ici)
+    if (!o || !visible || !o.route.feuille || !FEUILLES_RETOUR.includes(cleFeuille(o.route.feuille).split(':')[0])) return;
+    /* le départ de la route est différé : `quitterAppel` tourne DANS `appliquer`, une route de plus à l'intérieur ne se pose qu'après */
+    setTimeout(() => {
+      const r = etat.route, b = o.route;
+      if (!r || etat.appelId || r.feuille || r.appel || r.photo || r.vue !== b.vue || (r.conv || null) !== (b.conv || null) || (r.sec || null) !== (b.sec || null)) return;      // l'écran d'arrivée n'est plus le même : on ne tire personne
+      pousser(Object.assign({}, r, { feuille: b.feuille }));
+    }, 0);
+  }
+  function quitterAppel() {
+    const A = etat.appelUI, id = etat.appelId, cle = etat.declencheurAppel;
+    const parAutre = !!(A && A.finiParAutre), enSalleAvant = !!(A && enSalle(A)), premier = A && A.snap && A.snap.membres && A.snap.membres[0] ? A.snap.membres[0].prenom : '';        // lus AVANT que l'appel soit défait
+    const visible = !etat.appelReduit;                 // l'écran d'appel était SOUS LES YEUX (réduit, on est ailleurs : on n'y ramène personne)
+    etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null; etat.appelReduit = false;
+    delete document.documentElement.dataset.appelReduit;
+    appelLacherMedias(A);
+    delete document.documentElement.dataset.appel; delete document.documentElement.dataset.salle; delete document.documentElement.dataset.sortie;
     $('appel-ecran').removeAttribute('data-entrant');         // ⛔ l'écran qui se ferme n'est plus « entrant » : le suivant (un appel qu'on lance) ne reprend ni « Répondre » ni « Refuser » d'une sonnerie perdue — l'appel pris sur l'autre appareil (relecture, T4)
     synchroInert();
     requestAnimationFrame(() => { const b = cle && document.querySelector(cle); if (b && !etat.appelId && b.getClientRects().length) b.focus({ preventScroll: true }); });
+    origineAppelRetour(id, visible);
     if (id) source.terminerAppel(id).then(rec => {
       annonceAppel(rec.duree > 0 || !CAP.appelsMedias ? 'Appel terminé · ' + dureeAppel(rec.duree) : 'Appel terminé');
       const dit = enSalleAvant ? null : phraseFinAppel(parAutre, premier, rec.duree);          // une salle a son propre message de sortie
@@ -5877,9 +5973,21 @@
     if (reu.decalerEnAttente && etat.groupe.ouvert && etat.groupe.mode === 'decaler') rendreDecaler(reu.decalerEnAttente);
   }
   /* les occurrences de la semaine, rangées par jour (le jour où elles COMMENCENT, à l'heure de l'appareil) */
+  /* ⛔ UNE RÉUNION SUR PLUSIEURS JOURS SE MONTRE CHAQUE JOUR, AVEC SON RANG (26 octobre 2026, Justin : « chaque jour, avec "jour 2 sur 3" ») : avant, elle n'était rangée que le jour où elle COMMENCE, et les deux
+     jours suivants de l'agenda la cachaient — alors que l'organisateur y est attendu. « Plusieurs jours » = 24 heures ou plus : une soirée qui passe minuit (22:00 → 02:00) reste UN jour, comme dans
+     `jourFinDit`. Le rang se compte en jours de l'appareil (la minuit locale), jamais en tranches de 24 h. → { n, total } ou null */
+  function suiteReunion(o, jour) {
+    if (!o || o.fin - o.debut < 86400000) return null;
+    const d0 = debutDeJour(o.debut), total = Math.round((debutDeJour(o.fin - 1) - d0) / 86400000) + 1, n = Math.round((debutDeJour(jour) - d0) / 86400000) + 1;
+    return total > 1 && n >= 1 && n <= total ? { n, total } : null;
+  }
+  const texteSuite = x => x && x.suite ? 'jour ' + x.suite.n + ' sur ' + x.suite.total : '';
   function occurrencesDuJour(jour) {
     const fin = plusJours(jour, 1), sortie = [];
-    for (const r of reu.liste) if (duCote(coteReu(r))) for (const o of r.occurrences) if (o.debut >= jour && o.debut < fin) sortie.push({ r, o });
+    for (const r of reu.liste) if (duCote(coteReu(r))) for (const o of r.occurrences) {
+      if (o.debut >= jour && o.debut < fin) sortie.push({ r, o, suite: suiteReunion(o, jour) });
+      else if (o.debut < jour && o.fin > jour) { const suite = suiteReunion(o, jour); if (suite) sortie.push({ r, o, suite }); }       // un jour DE PLUS d'une réunion commencée avant : la même occurrence, le même début (la fiche s'ouvre sur la bonne date)
+    }
     /* les événements de l'agenda personnel : ceux qui TOUCHENT le jour (une journée entière, ou qui déborde de la veille), rangés avec les réunions — les journées entières d'abord */
     for (const e of (CAP.agenda ? reu.evenements : [])) if (e.debut < fin && e.fin > jour && duCote(coteEvt(e))) sortie.push({ e, o: { debut: e.journee || e.debut < jour ? jour - 1 : e.debut, fin: e.fin } });
     return sortie.sort((a, b) => a.o.debut - b.o.debut || (a.r ? a.r.id : a.e.id).localeCompare(b.r ? b.r.id : b.e.id));
@@ -5905,25 +6013,26 @@
   }
   /* « 42 min », « 1 h 05 » : la durée d'une séance */
   const dureeSeance = s => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
-  function ligneReunion(r, o) {
+  function ligneReunion(r, o, suite) {
     const { h, note, hz, ville } = libelleHoraire(r, o);
+    const rang = suite ? 'jour ' + suite.n + ' sur ' + suite.total : '';
     /* ⛔ UNE OCCURRENCE QUI A EU LIEU LE DIT (8 octobre 2026 : « une fois que la réunion est terminée pour tous, ça le marque, avec les participants, la durée ») : « Terminée », combien de temps,
        combien sont venus — et, pour l'organisateur, qui (le service ne donne les noms qu'à lui). Plus de « Rejoindre » tant qu'aucune salle n'est rouverte. */
     const se = occTerminee(r, o) ? o.seance : null;
     const etatTxt = se && !r.annulee ? 'Terminée' : libelleEtat(r);
     /* MON trajet (14 octobre 2026) : l'heure de PARTIR pour cette date, tant qu'elle est à venir — jamais pour une réunion annulée, refusée ou finie */
     const tr = r.moi.trajet, partir = tr && !se && !r.annulee && r.moi.statut !== 'decline' && o.debut > Date.now() ? 'Partir à ' + FMT_HEURE.format(o.debut - (tr.minutes + tr.avance) * 60000) : '';
-    const sous = se ? [r.lieu, 'Durée ' + dureeSeance(se.dureeS), se.n + (se.n > 1 ? ' présents' : ' présent')].filter(Boolean)
-      : [r.lieu, partir, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
+    const sous = se ? [maj1(rang), r.lieu, 'Durée ' + dureeSeance(se.dureeS), se.n + (se.n > 1 ? ' présents' : ' présent')].filter(Boolean)
+      : [maj1(rang), r.lieu, partir, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
     const qui = se && se.presents && se.presents.length ? se.presents.map(id => id === MOI.id ? 'Vous' : nomPersonne(id)).join(', ') : '';
     const rej = CAP.salles && r.rejoignable && !r.annulee && !se ? '<button type="button" class="reunion-rejoindre presse" data-rejoindre="' + esc(r.id) + '" aria-label="' + esc('Rejoindre ' + (r.titre || 'la réunion')) + '">Rejoindre</button>' : '';
     /* ⛔ ET UNE OCCURRENCE TERMINÉE NE S'OUVRE PLUS (8 octobre 2026, capture à l'appui : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus ») : la fiche proposait encore
        « Accepter / Peut-être / Refuser » et « Me rappeler » pour une réunion finie. La ligne n'est plus un bouton — un simple bloc de texte, lu tel quel. L'organisateur garde le rapport de
        présence par la conversation de la réunion (son titre mène à la fiche) ; les autres occurrences d'une série, elles, restent des boutons. */
     const ouvre = se ? '<div class="reunion-ligne terminee' + (r.annulee ? ' annulee' : '') + '">'
-      : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
+      : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (rang ? ', ' + rang : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
     return '<li' + (rej ? ' class="reunion-li"' : '') + '>' + ouvre +
-      heureEmpilee(o.debut, o.fin) +
+      heureEmpilee(o.debut, o.fin, suite && suite.n > 1 ? 'Suite' : '') +
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (qui ? '<span class="reunion-sous">' + esc(qui) + '</span>' : '') + (note && !se ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
       (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + rej + '</li>';
   }
@@ -5950,16 +6059,17 @@
   function puceAgenda(x, t) {
     const journee = journeeElt(x, t), titre = titreElt(x), termine = termineeElt(x);
     const cls = 'mjour-elt' + (journee ? ' journee' : '') + (x.r && x.r.annulee ? ' annulee' : '') + (termine ? ' terminee' : '') + (x.e && x.e.fait ? ' fait' : '');
-    const corps = (journee ? '' : '<time>' + esc(FMT_HEURE.format(x.o.debut)) + '</time>') + esc(titre);
+    const suite = x.suite && x.suite.n > 1;                                   // un jour de plus d'une réunion commencée avant : pas l'heure de son début, le rang
+    const corps = (journee ? '' : '<time>' + esc(suite ? 'J' + x.suite.n + '/' + x.suite.total : FMT_HEURE.format(x.o.debut)) + '</time>') + esc(titre);
     if (termine) return '<span class="' + cls + '" aria-hidden="true">' + corps + '</span>';         // une séance finie ne s'ouvre plus (comme dans la liste du jour) : la case la dit
     const etatTxt = x.r ? libelleEtat(x.r) : x.e.fait ? 'Fait' : '';
-    const lab = titre + ', ' + (journee ? 'toute la journée' : plageLongue(x.o.debut, x.o.fin)) + (etatTxt ? ', ' + etatTxt : '');
+    const lab = titre + ', ' + (journee ? 'toute la journée' : plageLongue(x.o.debut, x.o.fin)) + (x.suite ? ', ' + texteSuite(x) : '') + (etatTxt ? ', ' + etatTxt : '');
     return '<button type="button" class="' + cls + (peutDecaler(x) ? ' bouge' : '') + ' presse" data-ag="' + (x.e ? 'e' : 'r') + '" data-id="' + esc(x.e ? x.e.id : x.r.id) + '" data-debut="' + (+(x.e ? x.e.debut : x.o.debut) || 0) + '" aria-label="' + esc(lab) + '">' + corps + '</button>';
   }
   function caseJour(t, auj, max, semaine) {
     const l = reu.charge ? occurrencesDuJour(t) : [], hors = !semaine && premierDuMois(t) !== reu.mois;
     const vus = l.slice(0, max), reste = l.length - vus.length;
-    const dit = vus.map(x => (journeeElt(x, t) ? '' : FMT_HEURE.format(x.o.debut) + ' ') + titreElt(x)).join(', ') + (reste > 0 ? ' et ' + reste + ' autre' + (reste > 1 ? 's' : '') : '');
+    const dit = vus.map(x => (journeeElt(x, t) || (x.suite && x.suite.n > 1) ? '' : FMT_HEURE.format(x.o.debut) + ' ') + titreElt(x) + (x.suite ? ' (' + texteSuite(x) + ')' : '')).join(', ') + (reste > 0 ? ' et ' + reste + ' autre' + (reste > 1 ? 's' : '') : '');
     return '<div class="mjour' + (hors ? ' hors' : '') + (l.length ? ' avec' : '') + (t === reu.jour ? ' choisi' : '') + '" data-case="' + t + '">' +
       '<button type="button" class="mjour-num presse" data-jour="' + t + '" aria-pressed="' + (t === reu.jour ? 'true' : 'false') + '"' + (t === auj ? ' aria-current="date"' : '') +
         ' aria-label="' + esc(maj1(FMT_JOUR_LONG.format(t)) + ', ' + (l.length ? nombreElts(l) + ' : ' + dit : 'rien de prévu')) + '">' +
@@ -6400,7 +6510,7 @@
     if (reu.panne) $('reu-erreur-texte').textContent = phrase(reu.panne, 'L\'agenda n\'a pas pu être chargé.');
     $('liste-reunions').setAttribute('aria-busy', reu.charge ? 'false' : 'true');
     $('liste-reunions').innerHTML = !reu.charge && !reu.panne ? '<li class="vide">Chargement…</li>'
-      : lignes.length ? lignes.map(x => x.e ? ligneEvenement(x.e, reu.jour) : ligneReunion(x.r, x.o)).join('')
+      : lignes.length ? lignes.map(x => x.e ? ligneEvenement(x.e, reu.jour) : ligneReunion(x.r, x.o, x.suite)).join('')
       : reu.panne ? '' : '<li class="vide">' + (CAP.agenda ? 'Rien de prévu ce jour-là' : 'Aucune réunion ce jour-là') + '</li>';
   }
   /* ═══ LE TABLEAU DE BORD — « côté pro » (7 octobre 2026 : « un tableau de bord avec les réunions prévues, les rappels, les appels manqués mais importants ») ═══
@@ -7993,14 +8103,18 @@
     /* l'ordre du jour (8 octobre 2026) : chacun le coche ; l'organisateur le pose dans « Modifier la réunion » */
     if (d.ordreDuJour && d.ordreDuJour.length) s += '<div class="rubrique"><span>Ordre du jour</span><span>' + d.ordreDuJour.filter(p => p.fait).length + ' / ' + d.ordreDuJour.length + '</span></div><div class="carte" role="group" aria-label="Ordre du jour">' +
       d.ordreDuJour.map(p => '<button type="button" class="reglage presse odj-point' + (p.fait ? ' fait' : '') + '" role="checkbox" aria-checked="' + (p.fait ? 'true' : 'false') + '" data-reu="odj" data-point="' + esc(p.id) + '"' + (d.annulee ? ' disabled' : '') + '><span class="evt-rond' + (p.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span class="reglage-texte" dir="auto">' + esc(p.texte) + '</span></button>').join('') + '</div>';
+    /* ⛔ UNE RÉUNION TERMINÉE NE SE RÉPOND PLUS, NE SE RAPPELLE PLUS, NE SE PRÉPARE PLUS (26 octobre 2026, Justin : « retirer Répondre, le rappel et le trajet ; garder les participants et la durée ») :
+       la fiche d'une séance finie (`F.seance`, lue dans la liste — la même règle que la ligne) ne propose ni « Ta réponse », ni « Me rappeler », ni la zone du trajet. Ce qui reste est ce qui s'est passé :
+       la durée et les présents (la phrase plus haut) et la liste des participants. */
+    const finie = !!F.seance && !d.annulee;
     /* ma réponse (un invité, une réunion qui vit encore) */
-    if (!hote && !d.annulee) s += '<div class="rubrique"><span>Ta réponse</span></div><div class="g-choix" role="radiogroup" aria-label="Ta réponse">' +
+    if (!hote && !d.annulee && !finie) s += '<div class="rubrique"><span>Ta réponse</span></div><div class="g-choix" role="radiogroup" aria-label="Ta réponse">' +
       STATUTS_REPONSE.map(x => '<button type="button" class="g-pilule presse" role="radio" aria-checked="' + (d.moi.statut === x[0] ? 'true' : 'false') + '" data-reu="reponse" data-statut="' + x[0] + '">' + esc(x[1]) + '</button>').join('') + '</div>';
     /* mes rappels */
-    if (!d.annulee) s += '<div class="rubrique"><span>Me rappeler</span></div><div class="carte rappels-puces" id="reu-rappels" role="group" aria-label="Mes rappels">' + rappelsHtml + '</div>' +
+    if (!d.annulee && !finie) s += '<div class="rubrique"><span>Me rappeler</span></div><div class="carte rappels-puces" id="reu-rappels" role="group" aria-label="Mes rappels">' + rappelsHtml + '</div>' +
       (d.moi.rappelsPerso ? '<div class="carte"><button type="button" class="reglage presse" data-reu="rappels-defaut"><span class="reglage-texte">Rétablir les rappels de la réunion<small>Ceux que l\'organisateur a choisis</small></span></button></div>' : '');
     /* MON trajet (14 octobre 2026) : sa zone, peinte à part (`peindreTrajetReu`) — un calcul en cours ne redessine pas toute la fiche */
-    s += '<div id="reu-trajet-zone"></div>';
+    if (!finie) s += '<div id="reu-trajet-zone"></div>';
     /* les participants */
     s += '<div class="rubrique"><span>Participants</span><span>' + d.invites.length + (d.plafond ? ' / ' + d.plafond : '') + '</span></div><div class="carte">' + d.invites.map(p => htmlParticipant(d, p, hote)).join('') + '</div>';
     /* inviter d'autres personnes (l'hôte) */
@@ -8561,7 +8675,7 @@
   }
   /* « qui parle » change sans qu'aucun cliché ne soit refait : on ne touche qu'aux contours */
   async function majParle() {
-    const A = etat.appelUI; if (!enSalle(A)) return;
+    const A = etat.appelUI; if (!enSalle(A) || A.sortie) return;
     let s = null; try { s = await source.appel(A.id); } catch (e) { s = null; }
     if (perime(A) || !s || !s.salle) return;
     A.snap = s;
@@ -8593,6 +8707,7 @@
     if (!s.attente && !A.mediasDemandes) acquerirMedias(A, s.type === 'video');           // en salle d'attente, ni micro ni caméra : on ne s'ouvre à personne avant d'être admis
     if (s.conv && !s.attente && !X.discutee) { X.discutee = true; salleDiscussionCharger(A, true); }           // le fil tel qu'il est à mon ENTRÉE : ce qui arrive ensuite est « nouveau » (la pastille du bouton Discussion)
     $('salle-titre').textContent = s.nom;
+    if (!s.attente) { if (!X.venus) X.venus = new Map(); for (const m of s.membres) if (m.statut === 'present') X.venus.set(m.id, nomM(m)); }      // qui était là : l'écran de fin le dit (tout ce que la salle montrait déjà à chacun)
     $('salle-nb').textContent = s.attente ? '' : s.nb + (s.nb > 1 ? ' participants' : ' participant');
     const rec = $('salle-rec'); rec.hidden = !s.rec; rec.setAttribute('role', 'img'); rec.setAttribute('aria-label', s.rec ? 'Enregistrement en cours' + (s.rec.nom === 'vous' ? ' par vous' : ' par ' + s.rec.nom) : '');
     const recPar = s.rec ? s.rec.par : null;
@@ -8917,7 +9032,12 @@
       '<p class="salle-note">Les raccourcis ne jouent pas quand tu écris dans un champ.</p>';
   }
   function htmlQuitter(A) {
-    return '<p class="salle-note">Tu es l\'hôte de cette salle. Si tu pars, le rôle passe à une autre personne ; tu peux aussi mettre fin à la salle pour tout le monde.</p>' +
+    /* ⛔ LA PHRASE DIT CE QUE LE SERVICE FAIT (26 octobre 2026, Justin : « le participant suivant devient le nouvel organisateur, avec TOUS les gestes de l'hôte »). Dans la salle d'une réunion, le suivant — un
+       invité nommé : un co-hôte d'abord, puis le plus ancien — reçoit l'organisation entière (`salleSuccesseur`, côté service) ; la phrase ne parle plus d'« une autre personne », ni d'un rôle qui « passe » sans
+       dire ce qu'il contient. Dans un appel de groupe, le rôle passe aussi, avec tous les gestes. */
+    return '<p class="salle-note">' + (A.snap.genre === 'reunion'
+      ? 'Tu organises cette réunion. Si tu pars, l\'invité suivant dans la salle en devient l\'organisateur, avec tous les gestes d\'un hôte : exclure, verrouiller, régler la salle, mettre fin pour tout le monde. Tu peux aussi la terminer pour tous.'
+      : 'Tu es l\'hôte de cet appel. Si tu pars, le participant suivant en devient l\'hôte, avec tous tes gestes. Tu peux aussi y mettre fin pour tout le monde.') + '</p>' +
       '<div class="salle-form"><button type="button" class="salle-btn plein presse" data-sa="quitter-simple">Quitter la salle</button><button type="button" class="salle-btn danger presse" data-sa="terminer-confirmer">Terminer pour tous</button><button type="button" class="salle-btn presse" data-sa="panneau-fermer">Rester</button></div>';
   }
   function htmlDiscussion(A) {
@@ -9179,7 +9299,7 @@
   });
   /* ⛔ Échap : un écouteur à part, en CAPTURE, qui passe avant celui de la page (la chaîne « photo, feuille, appel, enregistrement, conversation » reste telle qu'elle est). Il ferme ce qui est ouvert PAR-DESSUS la salle (un panneau, l'annotation) ; il ne quitte JAMAIS une salle toute seule — une touche tapée par erreur n'arrête pas une réunion de vingt personnes */
   function salleEchap() {
-    const A = etat.appelUI; if (!enSalle(A)) return false;
+    const A = etat.appelUI; if (!enSalle(A) || A.sortie) return false;       // (l'écran de sortie se ferme par la touche de la page : Échap ferme la couche)
     const X = sx(A);
     if (X.annoter) {                                                         // en annotant : le champ de texte, puis la palette, puis le mode lui-même
       const N = annotEtat(A);

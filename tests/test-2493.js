@@ -135,7 +135,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
     v('chez Ben, l\'appelé : aucune issue (« manqué » et « entrant » restent ce qu\'ils étaient)', hB.map(x => x && [x.sens, x.issue || null]), [['entrant', null], ['manque', null], ['entrant', null]]);
     if (libelle) {
       v('⛔ la page l\'écrit : « Appel refusé », « Appel vidéo annulé », « Appel sans réponse » — et l\'appel répondu garde « Appel sortant »', hA.map(x => libelle(x)), ['Appel refusé', 'Appel vidéo annulé', 'Appel sans réponse', 'Appel sortant' + (hA[3].duree > 0 ? ' · ' + hA[3].duree + ' s' : '')]);
-      v('chez Ben : « Appel entrant », « Appel manqué (2) », puis l\'appel répondu', hB.map(x => libelle(x)), ['Appel entrant', 'Appel manqué (2)', 'Appel entrant' + (hB[2].duree > 0 ? ' · ' + hB[2].duree + ' s' : '')]);
+      v('chez Ben : « Appel entrant », « 2 appels manqués » (26 octobre 2026), puis l\'appel répondu', hB.map(x => libelle(x)), ['Appel entrant', '2 appels manqués', 'Appel entrant' + (hB[2].duree > 0 ? ' · ' + hB[2].duree + ' s' : '')]);
       v('un appel de l\'aperçu (sans issue) garde « Appel sortant · 3 min » ; un appel occupé se dit « Appel occupé »', [libelle({ groupe: false, type: 'audio', sens: 'sortant', duree: 190, membres: ['c1'] }), libelle({ groupe: false, type: 'audio', sens: 'sortant', issue: 'occupe', duree: 0, membres: ['c1'] })], ['Appel sortant · 3 min', 'Appel occupé']);
     }
   } finally {
