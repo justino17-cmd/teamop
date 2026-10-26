@@ -666,7 +666,7 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .notif-texte { font-size: 15px; line-height: 20px; letter-spacing: -.01em; text-wrap: pretty; overflow-wrap: anywhere; }
 .notif-aide { font-size: 13px; line-height: 17px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .notif-aide:empty { display: none; }
-/* ⛔ PENDANT UN APPEL OU UNE RÉUNION, LA BANNIÈRE D'UNE AUTRE CONVERSATION RESTE, PLUS FINE, ET NE REÇOIT QUE LE TOUCHER DE SON BOUTON (26 octobre 2026, Justin ; testeur « salle#4 ») : posée sur le titre et sur « Quitter »
+/* ⛔ PENDANT UN APPEL OU UNE RÉUNION, LA BANNIÈRE D'UNE AUTRE CONVERSATION RESTE, PLUS FINE, ET NE REÇOIT QUE LE TOUCHER DE SON BOUTON (décision du 26 octobre 2026 ; testeur « salle#4 ») : posée sur le titre et sur « Quitter »
    de la salle, elle ouvrait la conversation — et réduisait la salle — au moindre toucher du coin de l'écran où elle passait. Elle se lit toujours (c'est ce qui prévient d'un message) ; le geste qui quitte la salle est
    maintenant un bouton à elle, « Ouvrir ». Hors appel, rien ne change : toute la bannière se touche, comme avant. */
 .notif-ouvrir { display: none; }
@@ -1911,7 +1911,7 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-btn.plein { background: #fff; color: #000; }
 .salle-btn.danger { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-btn[aria-disabled="true"], .salle-btn:disabled { opacity: .5; }
-/* ⛔ L'ÉCRAN DE SORTIE D'UNE SALLE (26 octobre 2026, Justin) : un refus d'entrer ne ramène plus « tout de suite à l'écran d'avant » avec une phrase de 2,4 s qu'on n'a pas lue — l'écran RESTE, avec la raison et « Retour » ;
+/* ⛔ L'ÉCRAN DE SORTIE D'UNE SALLE (décision du 26 octobre 2026) : un refus d'entrer ne ramène plus « tout de suite à l'écran d'avant » avec une phrase de 2,4 s qu'on n'a pas lue — l'écran RESTE, avec la raison et « Retour » ;
    la fin d'une réunion montre la durée et qui était là, avec « Revenir à la conversation ». Même géométrie que la salle (elle occupe la zone de contenu, la barre latérale reste), même fond sombre. */
 .sortie-ecran {
   position: fixed; z-index: 37; top: var(--hl-h); left: 0; right: 0; bottom: 0; display: none; align-items: center; justify-content: center; overflow-y: auto; overscroll-behavior: contain;

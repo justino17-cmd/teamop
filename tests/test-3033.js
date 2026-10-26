@@ -2,7 +2,7 @@
    données partagées).
 
    Avant : un appel lancé depuis une FEUILLE (la fiche d'une réunion, les détails d'un appel, un contact) ou reçu pendant qu'une feuille était ouverte REMPLAÇAIT cette feuille dans l'historique :
-   raccrocher ramenait à la liste, feuille perdue. Maintenant l'écran de départ se note à l'appel (`origineAppelPoser`, en mémoire de la page ET dans `sessionStorage` de l'onglet) et se rouvre au
+   raccrocher ramenait à la liste, feuille perdue. Maintenant l'écran de départ se note à l'appel (`origineAppelPoser`, en mémoire de la page, doublée par le MODULE DE DONNÉES dans le stockage de l'onglet : la page n'écrit sur aucun stockage, `test-856`) et se rouvre au
    raccrochage (`origineAppelRetour`) — SI l'écran d'appel était sous les yeux, JAMAIS par-dessus un autre choix (« Message », un onglet : l'appel réduit n'y ramène personne), et pas pour un
    sélecteur (« Nouvel appel », « Nouveau groupe » : on a choisi, on a appelé).
 
@@ -19,6 +19,13 @@
 const T = require('./outils-msg');
 const { v, vrai, fin } = T.compteur();
 const P = require('./outils-page-reunions');
+const fs = require('fs'), path = require('path');
+
+/* les trois gestes du module de données (`server-msg/public/source-serveur.js`) : les VRAIES fonctions, extraites du fichier, sur un faux stockage d'onglet */
+const SOURCE_SERVEUR = fs.readFileSync(path.join(P.RACINE, 'server-msg/public/source-serveur.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+const iA = SOURCE_SERVEUR.indexOf('const stockageOnglet ='), iB = SOURCE_SERVEUR.indexOf('const CLE_ORIGINE_APPEL ='), iC = SOURCE_SERVEUR.indexOf('function origineAppelEffacer()');
+const CODE_SOURCE = iA > 0 && iB > 0 && iC > 0 ? SOURCE_SERVEUR.slice(iA, SOURCE_SERVEUR.indexOf('\n', iA)) + '\n' + SOURCE_SERVEUR.slice(iB, SOURCE_SERVEUR.indexOf('\n', iC)) : '';
+const fabriqueSource = (st) => new Function('sessionStorage', CODE_SOURCE + '\nreturn { origineAppelNoter, origineAppelLire, origineAppelEffacer };')(st);
 
 const dormir = (ms) => new Promise((ok) => setTimeout(ok, ms));
 function stockage(refuse) {
@@ -39,7 +46,8 @@ const FEUILLE = 'reunion:r_' + 'a'.repeat(8);
 const route = (o) => Object.assign({ vue: 'messages', conv: null, sec: null, feuille: false, photo: null, appel: null }, o || {});
 const monter = (over) => {
   const D = monde(over);
-  const M = P.monter({ CLE_ORIGINE: P.ligne('const CLE_ORIGINE ='), origineAppelPoser: P.decl('function origineAppelPoser('), origineAppelLire: P.decl('function origineAppelLire('), origineAppelEffacer: P.decl('function origineAppelEffacer('),
+  D.source = Object.assign({}, CODE_SOURCE ? fabriqueSource(D.sessionStorage) : {}, (over && over.source) || {});
+  const M = P.monter({ FEUILLES_RETOUR: P.ligne('const FEUILLES_RETOUR ='), origineAppelPoser: P.decl('function origineAppelPoser('), origineAppelLire: P.decl('function origineAppelLire('), origineAppelEffacer: P.decl('function origineAppelEffacer('),
     origineAppelRetour: P.decl('function origineAppelRetour('), lancerAppel: P.decl('async function lancerAppel('), surAppelEntrant: P.decl('function surAppelEntrant('), ouvrirConversationAvec: P.decl('async function ouvrirConversationAvec('),
     memeRoute: P.ligne('const memeRoute =') }, D);
   return { M, D, F: M.F };
@@ -56,7 +64,7 @@ const monter = (over) => {
     D.etat.route = route({ conv: 'c_x', feuille: FEUILLE });
     F.origineAppelPoser('a1');
     v('⛔ la route de départ, FEUILLE comprise, est notée en mémoire…', D.etat.origineAppel, { id: 'a1', route: { vue: 'messages', conv: 'c_x', sec: null, feuille: FEUILLE } });
-    v('… et doublée dans le rangement de l\'ONGLET (jamais ailleurs) : la clé, une chaîne JSON de la même note', [Array.from(D.sessionStorage.m.keys()), JSON.parse(D.sessionStorage.m.get('opmsg_origine_appel'))], [['opmsg_origine_appel'], D.etat.origineAppel]);
+    v('… et doublée dans le rangement de l\'ONGLET (jamais ailleurs) : la clé, une chaîne JSON de la même note', [Array.from(D.sessionStorage.m.keys()), JSON.parse(D.sessionStorage.m.get('opmsg-origine-appel'))], [['opmsg-origine-appel'], D.etat.origineAppel]);
     const r = monter({ sessionStorage: stockage(true) }); r.D.etat.route = route({ feuille: FEUILLE });
     let leve = null; try { r.F.origineAppelPoser('a2'); } catch (e) { leve = e; }
     vrai('⛔ un rangement qui REFUSE (mode privé, plein) ne casse rien : la mémoire de la page suffit', leve === null && r.D.etat.origineAppel && r.D.etat.origineAppel.route.feuille === FEUILLE);
@@ -102,9 +110,9 @@ const monter = (over) => {
   v('⛔ un AUTRE appel a commencé entre-temps (un appel entrant) : on ne rouvre rien par-dessus', r8.D.poses.length, 0);
   const r9 = await retour(FEUILLE, { id: 'a2' });
   v('⛔ l\'origine d\'un AUTRE appel n\'est ni lue ni effacée (celle du vrai appel reste notée)', [r9.D.poses.length, r9.D.etat.origineAppel && r9.D.etat.origineAppel.id], [0, 'a1']);
-  const r10 = await (async () => { const m = monter(); m.D.sessionStorage.m.set('opmsg_origine_appel', JSON.stringify({ id: 'a1', route: { vue: 'messages', conv: null, sec: null, feuille: FEUILLE } })); m.D.etat.route = route(); m.F.origineAppelRetour('a1', true); await dormir(10); return m; })();
+  const r10 = await (async () => { const m = monter(); m.D.sessionStorage.m.set('opmsg-origine-appel', JSON.stringify({ id: 'a1', route: { vue: 'messages', conv: null, sec: null, feuille: FEUILLE } })); m.D.etat.route = route(); m.F.origineAppelRetour('a1', true); await dormir(10); return m; })();
   v('la mémoire de la page est vide (la page a été rechargée) : l\'origine se relit dans le rangement de l\'onglet', [r10.D.poses.length, r10.D.poses[0] && r10.D.poses[0].feuille], [1, FEUILLE]);
-  const r11 = await (async () => { const m = monter(); m.D.sessionStorage.m.set('opmsg_origine_appel', '{pas du json'); m.D.etat.route = route(); let e = null; try { m.F.origineAppelRetour('a1', true); await dormir(10); } catch (x) { e = x; } return [e, m.D.poses.length]; })();
+  const r11 = await (async () => { const m = monter(); m.D.sessionStorage.m.set('opmsg-origine-appel', '{pas du json'); m.D.etat.route = route(); let e = null; try { m.F.origineAppelRetour('a1', true); await dormir(10); } catch (x) { e = x; } return [e, m.D.poses.length]; })();
   v('un rangement illisible ne casse rien et ne rouvre rien', r11, [null, 0]);
 
   console.log('\n3. Qui pose l\'origine, qui l\'efface');
@@ -125,13 +133,37 @@ const monter = (over) => {
     e.F.surAppelEntrant('a9');
     v('⛔ un appel qui ARRIVE pendant qu\'une feuille est ouverte : l\'origine est notée, la feuille remplacée par la couche de l\'appel', [e.D.etat.origineAppel && e.D.etat.origineAppel.id, e.D.etat.origineAppel && e.D.etat.origineAppel.route.feuille, e.D.remplaces.length], ['a9', FEUILLE, 1]);
     const c = monter({ source: { conversationPour: async () => ({ id: 'c_z' }) }, entree: () => null });
-    c.D.etat.origineAppel = { id: 'a1', route: { vue: 'messages', conv: null, sec: null, feuille: FEUILLE } }; c.D.sessionStorage.m.set('opmsg_origine_appel', '{}');
+    c.D.etat.origineAppel = { id: 'a1', route: { vue: 'messages', conv: null, sec: null, feuille: FEUILLE } }; c.D.sessionStorage.m.set('opmsg-origine-appel', '{}');
     await c.F.ouvrirConversationAvec(['p_x'], null);
     v('⛔ « Message » / « Revenir à la conversation » EFFACE l\'origine : aller à la conversation est un choix, le raccrochage qui suit ne rouvre pas la fiche', [c.D.etat.origineAppel, c.D.sessionStorage.m.size, c.D.remplaces.length], [null, 0, 1]);
     const c2 = monter({ source: { conversationPour: async () => null }, mot: () => {} });
     c2.D.etat.origineAppel = { id: 'a1', route: { vue: 'messages', conv: null, sec: null, feuille: FEUILLE } };
     await c2.F.ouvrirConversationAvec(['p_x'], null);
     vrai('… mais une conversation qui ne s\'ouvre pas ne l\'efface pas (rien n\'a changé d\'écran)', c2.D.etat.origineAppel !== null);
+  }
+
+  console.log('\n3 bis. Le module de données range (les trois gestes de `source-serveur.js`, les vrais, sur un faux stockage d\'onglet)');
+  {
+    vrai('(population) les trois gestes sont extraits du module de données', CODE_SOURCE.length > 100 && /origineAppelNoter/.test(CODE_SOURCE) && /origineAppelLire/.test(CODE_SOURCE) && /origineAppelEffacer/.test(CODE_SOURCE));
+    const st = stockage(false), so = fabriqueSource(st);
+    const o = { id: 'a1', route: { vue: 'appels', conv: null, sec: null, feuille: 'info:h1' } };
+    so.origineAppelNoter(o);
+    v('une route se range sous UNE clé de l\'onglet, et se relit pour le bon appel', [Array.from(st.m.keys()), so.origineAppelLire('a1')], [['opmsg-origine-appel'], o]);
+    v('⛔ la note d\'un AUTRE appel ne se relit pas pour celui-ci', so.origineAppelLire('a2'), null);
+    so.origineAppelNoter({ id: 'a1', route: { vue: 'appels', feuille: 'info:h1', contenu: 'secret', conv: 'c_x'.repeat(1) }, message: 'jamais rangé' });
+    v('⛔ on ne range qu\'une ROUTE (vue, conversation, rubrique, feuille) : aucun autre champ ne passe', Object.keys(JSON.parse(st.m.get('opmsg-origine-appel')).route).sort().concat(Object.keys(JSON.parse(st.m.get('opmsg-origine-appel'))).sort()), ['conv', 'feuille', 'sec', 'vue', 'id', 'route']);
+    so.origineAppelEffacer();
+    v('effacer vide le rangement', [st.m.size, so.origineAppelLire('a1')], [0, null]);
+    so.origineAppelNoter(o); so.origineAppelNoter(null);
+    v('noter `null` efface aussi (jamais une note orpheline)', st.m.size, 0);
+    st.m.set('opmsg-origine-appel', '{pas du json');
+    v('un rangement illisible se lit « rien », sans exception', so.origineAppelLire('a1'), null);
+    const refus = fabriqueSource(stockage(true));
+    let leve = null; try { refus.origineAppelNoter(o); refus.origineAppelEffacer(); } catch (e) { leve = e; }
+    v('⛔ un stockage qui REFUSE (mode privé, plein) ne casse rien : ni noter ni effacer ne jettent', [leve, refus.origineAppelLire('a1')], [null, null]);
+    const sans = fabriqueSource(undefined);
+    v('sans stockage du tout (un navigateur qui n\'en a pas) : rien ne jette, rien ne se relit', (() => { let e = null; try { sans.origineAppelNoter(o); sans.origineAppelEffacer(); } catch (x) { e = x; } return [e, sans.origineAppelLire('a1')]; })(), [null, null]);
+    vrai('⛔ la PAGE n\'écrit sur aucun stockage elle-même (`test-856`) : le mot ne figure pas dans son code', !/sessionStorage|localStorage/.test(P.JS));
   }
 
   console.log('\n4. `quitterAppel` solde l\'origine en sachant si l\'écran d\'appel était visible');

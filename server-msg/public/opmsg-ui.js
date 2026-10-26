@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '17ffe3e73149';
+  const OPMSG_BUILD = '1c39b742dcb7';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 270;
+  const OPMSG_VERSION = 271;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2963,7 +2963,7 @@
   /* ⛔ l'ISSUE d'un appel sortant qui n'a pas abouti passe devant le sens (lot m19, appels@2) : « Appel sortant » d'un appel que l'autre a refusé faisait croire qu'il avait eu lieu */
   const ISSUE_APPEL = { annule: ' annulé', refuse: ' refusé', manque: ' sans réponse', occupe: ' occupé' };
   function libelleAppel(a) {
-    /* ⛔ LES MANQUÉS D'AFFILÉE D'UNE MÊME PERSONNE SONT UNE LIGNE QUI DIT COMBIEN (26 octobre 2026, Justin : « comme l'iPhone ») : « 3 appels manqués », plus « Appel manqué (3) ». Le regroupement est
+    /* ⛔ LES MANQUÉS D'AFFILÉE D'UNE MÊME PERSONNE SONT UNE LIGNE QUI DIT COMBIEN (décision du 26 octobre 2026 : « comme l'iPhone ») : « 3 appels manqués », plus « Appel manqué (3) ». Le regroupement est
        fait par la source (`repetitions`) ; ici seulement la phrase. Le type n'est pas dit : les trois peuvent être un audio et une vidéo, et la ligne n'en garde qu'un. */
     if (!a.groupe && a.sens === 'manque' && a.repetitions > 1) return a.repetitions + ' appels manqués';
     let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (ISSUE_APPEL[a.issue] || SENS_APPEL[a.sens] || '');
@@ -3452,7 +3452,7 @@
   }
   /* ⛔ LA SORTIE UNIQUE : tout chemin qui retire la couche « appel » de la route passe ici, et rien d'autre ne raccroche. Les pistes sont arrêtées d'ABORD, de façon synchrone ;
      la source l'apprend ensuite (terminerAppel crée la ligne d'historique), et l'écran en garde une phrase pour le lecteur d'écran. */
-  /* ═══ L'ÉCRAN DE SORTIE D'UNE SALLE (26 octobre 2026, Justin : « fait les 18 » — salle@4, salle@10) ═══
+  /* ═══ L'ÉCRAN DE SORTIE D'UNE SALLE (décision du 26 octobre 2026 : « fait les 18 » — salle@4, salle@10) ═══
      Deux cas, un seul écran, dans la couche de l'appel (la route ne change pas : le retour système, Échap et les onglets le ferment comme n'importe quelle couche) :
        · « refus » — on n'est pas entré (l'hôte n'a pas accepté, retiré, salle déjà finie, réunion annulée) : le titre, la RAISON que dit le service, « Retour » ;
        · « fin » — la réunion vient de finir : sa durée, qui était là, « Revenir à la conversation ».
@@ -3507,25 +3507,25 @@
     { const au = $('appel-audio-distant'); if (au.srcObject) au.srcObject = null; }
     avisAppelEffacer();
   }
-  /* ⛔ APRÈS UN APPEL, ON REVIENT D'OÙ L'ON EST PARTI (26 octobre 2026, Justin ; testeur « appels@6 ») : un appel lancé depuis une FEUILLE (la fiche d'une réunion, les détails d'un appel, un contact) la
+  /* ⛔ APRÈS UN APPEL, ON REVIENT D'OÙ L'ON EST PARTI (décision du 26 octobre 2026 ; testeur « appels@6 ») : un appel lancé depuis une FEUILLE (la fiche d'une réunion, les détails d'un appel, un contact) la
      REMPLACE dans l'historique, et raccrocher ramenait à la liste, feuille perdue. L'écran de départ se note à l'appel (`origineAppelPoser`) et se rouvre au raccrochage — seulement si l'écran d'appel
-     était sous les yeux, et jamais par-dessus un autre choix (« Message », un onglet). ⛔ Cet état est à l'APPAREIL (mémoire de la page, doublée dans `sessionStorage` de l'onglet) : il ne part JAMAIS
+     était sous les yeux, et jamais par-dessus un autre choix (« Message », un onglet). ⛔ Cet état est à l'APPAREIL (mémoire de la page, doublée par le module de données dans le stockage de l'onglet) : il ne part JAMAIS
      dans les données partagées, et un rangement refusé ne casse rien. Les feuilles qu'on ne rouvre pas : les sélecteurs (« Nouvel appel », « Nouveau groupe ») — on a choisi, on a appelé, c'est fini —
      et « avant d'entrer » (la feuille qu'on rouvre est celle d'en dessous). */
-  const CLE_ORIGINE = 'opmsg_origine_appel', FEUILLES_RETOUR = ['reunion', 'info', 'contact', 'convinfo', 'personne', 'evenement'];
+  const FEUILLES_RETOUR = ['reunion', 'info', 'contact', 'convinfo', 'personne', 'evenement'];
   function origineAppelPoser(id) {
     let r = etat.route; if (!r || !id) return;
     if (cleFeuille(r.feuille) === 'avant') { const h = entree(); r = h && h.p ? h.p : Object.assign({}, r, { feuille: false }); }
     const o = { id, route: { vue: r.vue, conv: r.conv || null, sec: r.sec || null, feuille: r.feuille || false } };
     etat.origineAppel = o;
-    try { sessionStorage.setItem(CLE_ORIGINE, JSON.stringify(o)); } catch (e) { /* rangement refusé : la mémoire de la page suffit */ }
+    if (typeof source.origineAppelNoter === 'function') { try { source.origineAppelNoter(o); } catch (e) { /* refusé : la mémoire de la page suffit */ } }       // ⛔ le rangement est celui du MODULE DE DONNÉES (le stockage de l'onglet) : la page n'écrit sur aucun stockage
   }
   function origineAppelLire(id) {
     let o = etat.origineAppel;
-    if (!o) { try { o = JSON.parse(sessionStorage.getItem(CLE_ORIGINE) || 'null'); } catch (e) { o = null; } }
+    if (!o && typeof source.origineAppelLire === 'function') { try { o = source.origineAppelLire(id); } catch (e) { o = null; } }
     return o && o.id === id && o.route ? o : null;
   }
-  function origineAppelEffacer() { etat.origineAppel = null; try { sessionStorage.removeItem(CLE_ORIGINE); } catch (e) { /* rien à retirer */ } }
+  function origineAppelEffacer() { etat.origineAppel = null; if (typeof source.origineAppelEffacer === 'function') { try { source.origineAppelEffacer(); } catch (e) { /* rien à retirer */ } } }
   function origineAppelRetour(id, visible) {
     const o = id ? origineAppelLire(id) : null;
     if (o) origineAppelEffacer();                  // (l'origine d'un appel NEUF, posée avant que celui-ci remplace l'ancien, n'est pas celle qu'on solde ici)
@@ -5973,7 +5973,7 @@
     if (reu.decalerEnAttente && etat.groupe.ouvert && etat.groupe.mode === 'decaler') rendreDecaler(reu.decalerEnAttente);
   }
   /* les occurrences de la semaine, rangées par jour (le jour où elles COMMENCENT, à l'heure de l'appareil) */
-  /* ⛔ UNE RÉUNION SUR PLUSIEURS JOURS SE MONTRE CHAQUE JOUR, AVEC SON RANG (26 octobre 2026, Justin : « chaque jour, avec "jour 2 sur 3" ») : avant, elle n'était rangée que le jour où elle COMMENCE, et les deux
+  /* ⛔ UNE RÉUNION SUR PLUSIEURS JOURS SE MONTRE CHAQUE JOUR, AVEC SON RANG (décision du 26 octobre 2026 : « chaque jour, avec "jour 2 sur 3" ») : avant, elle n'était rangée que le jour où elle COMMENCE, et les deux
      jours suivants de l'agenda la cachaient — alors que l'organisateur y est attendu. « Plusieurs jours » = 24 heures ou plus : une soirée qui passe minuit (22:00 → 02:00) reste UN jour, comme dans
      `jourFinDit`. Le rang se compte en jours de l'appareil (la minuit locale), jamais en tranches de 24 h. → { n, total } ou null */
   function suiteReunion(o, jour) {
@@ -8103,7 +8103,7 @@
     /* l'ordre du jour (8 octobre 2026) : chacun le coche ; l'organisateur le pose dans « Modifier la réunion » */
     if (d.ordreDuJour && d.ordreDuJour.length) s += '<div class="rubrique"><span>Ordre du jour</span><span>' + d.ordreDuJour.filter(p => p.fait).length + ' / ' + d.ordreDuJour.length + '</span></div><div class="carte" role="group" aria-label="Ordre du jour">' +
       d.ordreDuJour.map(p => '<button type="button" class="reglage presse odj-point' + (p.fait ? ' fait' : '') + '" role="checkbox" aria-checked="' + (p.fait ? 'true' : 'false') + '" data-reu="odj" data-point="' + esc(p.id) + '"' + (d.annulee ? ' disabled' : '') + '><span class="evt-rond' + (p.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span class="reglage-texte" dir="auto">' + esc(p.texte) + '</span></button>').join('') + '</div>';
-    /* ⛔ UNE RÉUNION TERMINÉE NE SE RÉPOND PLUS, NE SE RAPPELLE PLUS, NE SE PRÉPARE PLUS (26 octobre 2026, Justin : « retirer Répondre, le rappel et le trajet ; garder les participants et la durée ») :
+    /* ⛔ UNE RÉUNION TERMINÉE NE SE RÉPOND PLUS, NE SE RAPPELLE PLUS, NE SE PRÉPARE PLUS (décision du 26 octobre 2026 : « retirer Répondre, le rappel et le trajet ; garder les participants et la durée ») :
        la fiche d'une séance finie (`F.seance`, lue dans la liste — la même règle que la ligne) ne propose ni « Ta réponse », ni « Me rappeler », ni la zone du trajet. Ce qui reste est ce qui s'est passé :
        la durée et les présents (la phrase plus haut) et la liste des participants. */
     const finie = !!F.seance && !d.annulee;
@@ -9032,7 +9032,7 @@
       '<p class="salle-note">Les raccourcis ne jouent pas quand tu écris dans un champ.</p>';
   }
   function htmlQuitter(A) {
-    /* ⛔ LA PHRASE DIT CE QUE LE SERVICE FAIT (26 octobre 2026, Justin : « le participant suivant devient le nouvel organisateur, avec TOUS les gestes de l'hôte »). Dans la salle d'une réunion, le suivant — un
+    /* ⛔ LA PHRASE DIT CE QUE LE SERVICE FAIT (décision du 26 octobre 2026 : « le participant suivant devient le nouvel organisateur, avec TOUS les gestes de l'hôte »). Dans la salle d'une réunion, le suivant — un
        invité nommé : un co-hôte d'abord, puis le plus ancien — reçoit l'organisation entière (`salleSuccesseur`, côté service) ; la phrase ne parle plus d'« une autre personne », ni d'un rôle qui « passe » sans
        dire ce qu'il contient. Dans un appel de groupe, le rôle passe aussi, avec tous les gestes. */
     return '<p class="salle-note">' + (A.snap.genre === 'reunion'
