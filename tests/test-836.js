@@ -290,6 +290,7 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
     'messages.html': 'OP MESSAGES (fermée, OPMSG_EN_TRAVAUX) : son propre thème d\'application',
     'messages-beta.html': 'OP MESSAGES bêta : même thème',
     'server-msg/public/index.html': 'le front d\'OP MESSAGES servi par SON serveur (étape 1) : une application, pas une page du site — il suit l\'appareil (prefers-color-scheme), sans bouton, et déclare color-scheme pour que ses champs suivent aussi',
+    'server-msg/public/invite.html': 'la page d\'un INVITÉ sans compte d\'OP MESSAGES, servie par SON serveur : même règle que son front — elle suit l\'appareil (prefers-color-scheme), sans bouton, et déclare color-scheme pour ses champs',
     'scratchpad/courrier/essai.html': 'page d\'ESSAI du module OP Courrier (sondes, 127.0.0.1) : un hôte factice qui rejoue le data-theme d\'OP GESTION — ni une page du site, ni servie',
     'tour.html': 'la Tour : la console du patron, avec son propre jour et nuit — ce n\'est pas le site',
     'apercu/tour.html': 'la Tour en aperçu : même chose',

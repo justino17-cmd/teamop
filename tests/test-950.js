@@ -1363,6 +1363,7 @@ const horlogeFixe = (h) => () => h.t;
         code_tel: 'codes de connexion par SMS (quelques minutes)', code_mel: 'codes reçus par courriel pour s\'inscrire ou changer de mot de passe (quinze minutes)', appareil_mel: 'appareils reconnus d\'un compte par adresse (refaits à la connexion suivante)', jeton: 'jetons à usage unique', meta: 'témoin de clé et version du schéma (contrôlés à part)',
         recherche_tel: 'compteurs anti-énumération (une fenêtre de temps)', session: 'sessions (recréées à la reconnexion)',
         sms_bouclier: 'état du bouclier SMS (recalculé)', sms_tentative: 'tentatives de saisie d\'un code (une fenêtre de temps)',
+        invite_sans_compte: 'un invité SANS COMPTE, le temps d\'une séance (sa session est coupée quand la salle finit, son nom part avec la séance ; une salle restaurée est une salle finie)', invite_lien_mort: 'la mémoire d\'un jeton d\'invité mort, pour dire pourquoi (le REGISTRE DES PURGES, lui, est copié et rejoué : genre `invite_lien`)',
       };
       vrai('population : ' + tables.length + ' tables dans le schéma, ' + comptees.length + ' comptées par la copie, ' + Object.keys(TRANSITOIRES).length + ' déclarées transitoires', tables.length >= 15 && comptees.length >= 12);
       v('⛔ toute table du schéma est comptée par la copie ou déclarée transitoire avec sa raison — une table NEUVE oblige à trancher ici (et à l\'ajouter dans `TABLES_COMPTEES` ET dans `sonde()`)',

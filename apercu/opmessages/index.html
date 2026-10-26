@@ -3997,7 +3997,8 @@ a.menu-action { text-decoration: none; }
     let h = '<span class="carte-msg compte-rendu ' + sens + '" role="group" aria-label="' + esc('Compte rendu : ' + x.titre) + '">' +
       '<span class="cr-tete">' + icone('i-agenda') + '<span><b>Compte rendu</b><span class="cr-titre" dir="auto">' + esc(x.titre) + '</span></span></span>' +
       (quand ? '<span class="cr-quand">' + esc(quand) + '</span>' : '') +
-      '<span class="cr-rub">Présents (' + x.presentsN + ')</span>' + liste(x.presents, x.presentsN, p => dureeCr(p.dureeS));
+      '<span class="cr-rub">Présents (' + x.presentsN + ')</span>' + liste(x.presents, x.presentsN, p => dureeCr(p.dureeS)) +
+      (x.sansCompteN ? '<span class="cr-docs">' + esc(x.sansCompteN > 1 ? x.sansCompteN + ' invités sans compte' : 'Un invité sans compte') + '</span>' : '');
     if (x.absentsN) h += '<span class="cr-rub">Absents (' + x.absentsN + ')</span>' + liste(x.absents, x.absentsN, p => REPONSE_CR[p.reponse] || 'sans réponse');
     if (x.points.length) h += '<span class="cr-rub">Ordre du jour · ' + x.points.filter(p => p.fait).length + ' / ' + x.points.length + '</span><ul class="cr-liste cr-points">' +
       x.points.map(p => '<li' + (p.fait ? ' class="fait"' : '') + '><span class="evt-rond' + (p.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span dir="auto">' + esc(p.texte) + '</span><span class="sr-seul">' + (p.fait ? ', traité' : ', pas traité') + '</span></li>').join('') + '</ul>';
@@ -11211,7 +11212,13 @@ a.menu-action { text-decoration: none; }
       if (CAP.salles && !d.annulee) s += '<div class="rubrique"><span>Salle</span></div><div class="carte">' +
         '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Tu admets chaque personne</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité</span></button>' +
-        '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>';
+        '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>' +
+        /* ⛔ LE LIEN « INVITÉ (SANS COMPTE) » (26 octobre 2026, la demande : « ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux ») : un client sans compte et sans application ouvre le lien dans son navigateur, tape son nom,
+           et ATTEND à la porte — c'est TOI qui le fais entrer. Le lien meurt avec la réunion ; le régénérer tue l'ancien. */
+        '<div class="rubrique"><span>Invité (sans compte)</span></div><div class="carte">' +
+        '<button type="button" class="reglage presse" data-reu="inv-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien invité<small>Sans compte, sans rien installer : tu fais entrer chaque personne</small></span></button>' +
+        (typeof navigator !== 'undefined' && typeof navigator.share === 'function' ? '<button type="button" class="reglage presse" data-reu="inv-partager">' + icone('i-partager') + '<span class="reglage-texte">Partager le lien invité</span></button>' : '') +
+        '<button type="button" class="reglage presse" data-reu="inv-regenerer"><span class="reglage-texte">Régénérer le lien invité<small>L\'ancien cesse de marcher ; ceux qui attendent sont renvoyés</small></span></button></div>';
       if (d.annulee) s += '<div class="rubrique"><span>Organisateur</span></div>';
       s += F.confirme ? htmlConfirmation(d) : '<div class="carte">' + (d.annulee ? '' : '<button type="button" class="reglage presse danger" data-reu="annuler-demander"><span class="reglage-texte">Annuler la réunion<small>Elle reste dans l\'agenda, marquée « Annulée »</small></span></button>') +
         '<button type="button" class="reglage presse danger" data-reu="supprimer-demander"><span class="reglage-texte">Supprimer la réunion<small>Elle disparaît pour tout le monde, avec sa conversation</small></span></button></div>';
@@ -11356,6 +11363,11 @@ a.menu-action { text-decoration: none; }
           b.removeAttribute('aria-disabled');
           const ok = await copier(location.href.split('#')[0] + '#reunion=' + code);
           mot(act === 'lien-copier' ? (ok ? 'Lien d\'invité copié' : 'Le lien n\'a pas pu être copié') : (ok ? 'Nouveau lien copié : l\'ancien ne marche plus' : 'Lien renouvelé : l\'ancien ne marche plus'));
+        }
+        else if (act === 'inv-copier' || act === 'inv-partager' || act === 'inv-regenerer') {
+          b.setAttribute('aria-disabled', 'true');
+          try { await lienInviteGeste(act === 'inv-copier' ? 'copier' : act === 'inv-partager' ? 'partager' : 'regenerer', id, d.titre); }
+          finally { b.removeAttribute('aria-disabled'); }
         }
         else if (act === 'modifier') ouvrirFeuille('reunion-edit:' + id);
         else if (act === 'presence') { b.setAttribute('aria-disabled', 'true'); F.presence = await source.presenceReunion(id); await relire(); }
@@ -11857,7 +11869,7 @@ a.menu-action { text-decoration: none; }
     if (X.bandeauMuet && !X.bandeauMic) h += '<div class="salle-bandeau" role="status"><span class="texte">Tu parles ? Ton micro est coupé.</span><button type="button" class="salle-btn plein presse" data-sa="muet-activer">Activer le micro</button><button type="button" class="salle-btn presse" data-sa="muet-ok">OK</button></div>';
     if (X.bandeauMic) h += '<div class="salle-bandeau" role="status"><span class="texte">' + esc(X.bandeauMic.tous ? 'L\'hôte a demandé à tous de couper le micro.' : X.bandeauMic.de + ' a coupé ton micro.') + '</span>' +
       '<button type="button" class="salle-btn plein presse" data-sa="micro-rouvrir">Réactiver le micro</button><button type="button" class="salle-btn presse" data-sa="micro-ok">OK</button></div>';
-    if (attendent.length) h += '<div class="salle-bandeau" role="status"><span class="texte">' + esc(attendent.length === 1 ? nomM(attendent[0]) + ' attend d\'être admis.' : attendent.length + ' personnes attendent d\'être admises.') + '</span>' +
+    if (attendent.length) h += '<div class="salle-bandeau" role="status"><span class="texte">' + esc(attendent.length === 1 ? nomM(attendent[0]) + (attendent[0].invite ? ' (invité sans compte)' : '') + ' attend d\'être admis.' : attendent.length + ' personnes attendent d\'être admises.') + '</span>' +
       '<button type="button" class="salle-btn plein presse" data-sa="' + (attendent.length === 1 ? 'admettre' : 'tout-admettre') + '"' + (attendent.length === 1 ? ' data-uid="' + esc(attendent[0].id) + '"' : '') + '>Admettre' + (attendent.length > 1 ? ' tout le monde' : '') + '</button><button type="button" class="salle-btn presse" data-sa="voir-participants">Voir</button></div>';
     if (so && X.masque !== so.id) {
       const total = so.total | 0;
@@ -11977,14 +11989,14 @@ a.menu-action { text-decoration: none; }
     if (rendreFocus !== false && d && d.isConnected) d.focus({ preventScroll: true });
   }
   const rangAvatar = m => '<span class="avatar av' + (((m.avatar | 0) % 6 + 6) % 6) + '"' + (blob(m.photo) ? ' style="background-image:url(' + esc(m.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(m.photo) ? '' : esc(m.initiales || '')) + '</span>';
-  function etiquettesM(m) { return [m.grade >= 2 ? 'Hôte' : m.grade === 1 ? 'Co-hôte' : '', m.micro ? '' : 'micro coupé', m.main ? 'main levée' : '', m.partage ? 'partage son écran' : '', reseauDit(m.reseau), m.relais ? 'par relais' : ''].filter(Boolean).join(' · '); }
+  function etiquettesM(m) { return [m.grade >= 2 ? 'Hôte' : m.grade === 1 ? 'Co-hôte' : '', m.invite ? 'invité sans compte' : '', m.micro ? '' : 'micro coupé', m.main ? 'main levée' : '', m.partage ? 'partage son écran' : '', reseauDit(m.reseau), m.relais ? 'par relais' : ''].filter(Boolean).join(' · '); }
   function htmlParticipants(A) {
     const s = A.snap, X = sx(A), hote = s.moi.hote, moiGrade = s.moi.grade | 0;
     const attendent = hote ? s.membres.filter(m => m.statut === 'attente') : [], presents = s.membres.filter(m => m.statut === 'present'), sonnent = s.membres.filter(m => m.statut === 'invite');
     let h = '';
     if (attendent.length) {
       h += '<div class="salle-rub"><span>En attente d\'admission</span><span>' + attendent.length + '</span></div><div class="salle-liste">' +
-        attendent.map(m => '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + '</span><button type="button" class="salle-btn plein presse" data-sa="admettre" data-uid="' + esc(m.id) + '">Admettre</button><button type="button" class="salle-btn presse" data-sa="refuser" data-uid="' + esc(m.id) + '">Refuser</button></div>').join('') +
+        attendent.map(m => '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + (m.invite ? '<small>invité sans compte</small>' : '') + '</span><button type="button" class="salle-btn plein presse" data-sa="admettre" data-uid="' + esc(m.id) + '">Admettre</button><button type="button" class="salle-btn presse" data-sa="refuser" data-uid="' + esc(m.id) + '">Refuser</button></div>').join('') +
         (attendent.length > 1 ? '<div class="salle-rang libre"><button type="button" class="salle-btn plein presse" data-sa="tout-admettre">Tout admettre</button></div>' : '') + '</div>';
     }
     h += '<div class="salle-rub"><span>Dans la salle</span><span>' + s.nb + (s.capacite ? ' / ' + s.capacite : '') + '</span></div><div class="salle-liste">';
@@ -12009,7 +12021,8 @@ a.menu-action { text-decoration: none; }
     h += '</div>';
     if (sonnent.length) h += '<div class="salle-rub"><span>Sonnerie en cours</span><span>' + sonnent.length + '</span></div><div class="salle-liste">' + sonnent.map(m => '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + '<small>Sonnerie…</small></span></div>').join('') + '</div>';
     if (hote && s.outils && !s.moi.interim && presents.length) h += '<p class="salle-note"><button type="button" class="salle-btn presse" data-sa="couper-tous">Demander à tous de couper le micro</button></p>';
-    if (hote && s.genre === 'reunion' && s.reunion && ID_REUNION.test(s.reunion)) h += '<div class="salle-rub"><span>Inviter</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte"><small>Un lien d\'invité ouvre la salle à qui a un compte OP MESSAGES.</small></span><button type="button" class="salle-btn presse" data-sa="lien-copier">' + icone('i-lien') + 'Copier le lien</button></div></div>';
+    if (hote && s.genre === 'reunion' && s.reunion && ID_REUNION.test(s.reunion)) h += '<div class="salle-rub"><span>Inviter</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte"><small>Un lien d\'invité ouvre la salle à qui a un compte OP MESSAGES.</small></span><button type="button" class="salle-btn presse" data-sa="lien-copier">' + icone('i-lien') + 'Copier le lien</button></div>' +
+      '<div class="salle-rang libre"><span class="texte"><small>Le lien invité ouvre la porte à un client sans compte : il attend, tu le fais entrer.</small></span><button type="button" class="salle-btn presse" data-sa="inv-copier">' + icone('i-lien') + 'Copier le lien invité</button></div></div>';
     return h;
   }
   function htmlPlus(A) {
@@ -12203,7 +12216,12 @@ a.menu-action { text-decoration: none; }
       case 'micro-ok': X.bandeauMic = null; salleBandeaux(A); return;
       case 'micro-rouvrir': X.bandeauMic = null; if (A.audio) { A.micro = true; A.audio.enabled = true; pousserPistes(A); } rendreAppel(); annonceAppel('Micro activé'); return;
       case 'admettre': await salleGeste(A, 'admettre', { uid }, 'Cette personne n\'a pas pu être admise.'); return;
-      case 'tout-admettre': await salleGeste(A, 'admettre', { tous: true }, 'Ces personnes n\'ont pas pu être admises.'); return;
+      case 'tout-admettre': {
+        const r = await salleGeste(A, 'admettre', { tous: true }, 'Ces personnes n\'ont pas pu être admises.');
+        /* ⛔ « tout admettre » saute les invités sans compte au-delà du maximum de la salle : on le DIT, sinon l'organisateur croit tout le monde entré */
+        if (r && r.invites_restent > 0) mot(r.invites_restent + (r.invites_restent > 1 ? ' invités sans compte restent à la porte' : ' invité sans compte reste à la porte') + ' : la salle en reçoit ' + (r.invites_max || '') + ' au plus.');
+        return;
+      }
       case 'refuser': await salleGeste(A, 'refuser', { uid }); return;
       case 'ligne': X.actions = X.actions === uid ? null : uid; X.retirer = null; sallePanneauRendre(A, true); return;
       case 'couper': if (el.getAttribute('aria-disabled') === 'true') { mot('Son micro est déjà coupé.'); return; } if (await salleGeste(A, 'couperMicro', { uid }, 'La demande n\'est pas partie.')) mot('Demande envoyée'); return;
@@ -12266,6 +12284,7 @@ a.menu-action { text-decoration: none; }
         mot(code && await copier(location.href.split('#')[0] + '#reunion=' + code) ? 'Lien d\'invité copié' : 'Le lien n\'a pas pu être copié.');
         return;
       }
+      case 'inv-copier': await lienInviteGeste('copier', s.reunion, s.nom); return;
       case 'terminer-demander': salleOuvrirPanneau(A, 'quitter', $('salle-plus')); return;
       case 'terminer-confirmer': salleFermerPanneau(A, false); await salleGeste(A, 'terminerPourTous', {}, 'La salle n\'a pas pu être terminée.'); return;
       case 'quitter-simple': salleFermerPanneau(A, false); raccrocherCouche(); return;
@@ -13191,6 +13210,25 @@ a.menu-action { text-decoration: none; }
   /* ── le lien d'invité : « #reunion=<code> » — la feuille montre la réunion (l'aperçu public du service) et laisse choisir ── */
   const reunionDansAdresse = () => { const m = /(?:^|[#&])reunion=([A-Za-z0-9_-]{20,64})/.exec(location.hash || ''); return m ? m[1] : null; };
   const invite = { code: null, apercu: null, jeton: 0 };
+  /* ── le lien « Invité (sans compte) » (26 octobre 2026) : le JETON vit dans le FRAGMENT de `invite.html` — le navigateur ne l'envoie à personne, aucun journal ne le voit. La page ne le range nulle part. ── */
+  const urlInvite = (jeton) => location.href.split('#')[0].replace(/[^/]*$/, '') + 'invite.html#i=' + jeton;
+  async function lienInviteGeste(quoi, reunion, titre) {
+    if (!reunion || typeof source.lienInviteReunion !== 'function') { mot('Le lien invité n\'est pas disponible ici.'); return; }
+    let jeton = '', coupes = 0;
+    try {
+      if (quoi === 'regenerer') { const r = await source.regenererLienInviteReunion(reunion); jeton = r.jeton; coupes = r.coupes; }
+      else jeton = await source.lienInviteReunion(reunion);
+    } catch (e) { mot(phrase(e, 'Le lien invité n\'a pas pu être créé.')); return; }
+    if (!jeton) { mot('Le lien invité n\'a pas pu être créé.'); return; }
+    const lien = urlInvite(jeton);
+    if (quoi === 'partager' && typeof navigator.share === 'function') {
+      try { await navigator.share({ title: titre || 'Réunion', text: 'Rejoindre la réunion « ' + (titre || '') + ' » (sans compte, sans rien installer) :', url: lien }); mot('Lien invité partagé'); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; /* le partage a échoué : on copie à la place */ }
+    }
+    const ok = await copier(lien);
+    mot(quoi === 'regenerer' ? (ok ? 'Nouveau lien invité copié : l\'ancien ne marche plus' : 'Lien invité renouvelé : l\'ancien ne marche plus') + (coupes ? ' · ' + coupes + (coupes > 1 ? ' personnes renvoyées' : ' personne renvoyée') : '')
+      : (ok ? 'Lien invité copié' : 'Le lien invité n\'a pas pu être copié'));
+  }
   async function rendreInviteReunion() {
     const corps = $('info-corps'), code = etat.codeReunion || invite.code; etat.codeReunion = null; invite.code = code; invite.apercu = null;
     const n = ++invite.jeton;

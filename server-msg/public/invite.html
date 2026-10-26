@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<!-- ⛔ LA PAGE DE L'INVITÉ SANS COMPTE (26 octobre 2026) — une SOURCE, comme `api.js` : le générateur (`scripts/opmsg-public.js`) ne la réécrit pas, il REFUSE qu'elle mente (voir son contrôle « invite »).
+     Elle ne charge que des scripts de cette origine, n'appelle que `/api/invite/…`, et ne construit rien avec `innerHTML` : un nom tapé par un inconnu n'est JAMAIS du balisage. Le jeton du lien est dans le FRAGMENT de l'adresse :
+     le navigateur ne l'envoie à personne. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob: data:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; connect-src 'self' wss:; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1633" media="(prefers-color-scheme: dark)">
+<title>Rejoindre la réunion · OP MESSAGES</title>
+<link rel="icon" href="opmsg-favicon-32.png" type="image/png" sizes="32x32">
+<style>
+/* Les jetons sont ceux de l'application (`apercu/opmessages/index.html`, § 1) : le client reconnaît la maison. Jour et nuit suivent l'appareil, sans bouton. */
+:root {
+  --text: #000; --sub: rgba(60,60,67,.8); --faint: rgba(60,60,67,.3); --accent: #2a4a9c; --fill: #2a4a9c; --on-fill: #fff;
+  --card: #fff; --field: rgba(118,118,128,.12); --base: #f2f2f7; --line: .5px solid rgba(60,60,67,.29);
+  --rouge: #d70015; --on-rouge: #fff; --erreur: #b8001a; --vert: #1f9d55;
+  --salle-fond: #0b0d12; --salle-tuile: #1b1f2b; --salle-bord: rgba(255,255,255,.18); --salle-sub: rgba(255,255,255,.78);
+  --bar-bas: max(14px, env(safe-area-inset-bottom, 0px));
+}
+@media (prefers-color-scheme: dark) {
+  :root { --text: #fff; --sub: rgba(220,228,250,.78); --faint: rgba(220,228,250,.3); --accent: #9db8f5; --fill: #3b63c4; --card: #16244b; --field: rgba(120,140,200,.18);
+    --base: #0b1633; --line: .5px solid rgba(120,140,200,.32); --erreur: #ff8a82; --vert: #4ade80; }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { color-scheme: light dark; background: var(--base); -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; min-height: 100vh; min-height: 100dvh; color: var(--text); background: var(--base);
+  font: 17px/1.4 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Helvetica, system-ui, sans-serif; }
+[hidden] { display: none !important; }
+.page { max-width: 460px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top, 0px)) 16px max(28px, env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 14px; }
+.marque { display: flex; align-items: center; gap: 10px; color: var(--sub); font-weight: 600; font-size: 15px; }
+.marque img { width: 28px; height: 28px; border-radius: 7px; }
+h1 { margin: 6px 0 0; font-size: 26px; line-height: 1.15; letter-spacing: -.01em; overflow-wrap: anywhere; }
+p { margin: 0; overflow-wrap: anywhere; }
+.sous { color: var(--sub); }
+.note { color: var(--sub); font-size: 14px; }
+#rgpd a { display: inline-block; min-height: 44px; padding: 13px 2px; box-sizing: border-box; color: var(--accent); }      /* les deux liens de la mention RGPD se touchent du doigt : 44 px de haut */
+.carte { background: var(--card); border: var(--line); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--sub); font-weight: 600; }
+label small { font-weight: 400; }
+input[type=text] { font: inherit; font-size: 17px; color: var(--text); background: var(--field); border: 0; border-radius: 12px; padding: 12px 14px; min-height: 48px; width: 100%; }
+input[type=text]:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+h1[tabindex="-1"]:focus { outline: none; }        /* un titre reçoit le foyer à chaque écran (pour le lecteur d'écran) : il n'a pas à s'encadrer */
+button { font: inherit; cursor: pointer; border: 0; }
+.plein { background: var(--fill); color: var(--on-fill); border-radius: 14px; min-height: 50px; padding: 0 18px; font-weight: 600; }
+.plein[disabled] { opacity: .5; cursor: default; }
+.discret { background: transparent; color: var(--accent); min-height: 44px; padding: 0 12px; border-radius: 12px; font-weight: 600; }
+.erreur { color: var(--erreur); font-size: 15px; font-weight: 600; }
+.apercu { position: relative; aspect-ratio: 4 / 3; width: 100%; background: #10131b; border-radius: 22px; overflow: hidden; display: grid; place-items: center; }
+.apercu video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); opacity: 0; }
+.apercu[data-camera="on"] video { opacity: 1; }
+.apercu .init, .tuile .init { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; font-size: 34px; font-weight: 600; color: #fff; background: #3b63c4; }
+.apercu[data-camera="on"] .init { display: none; }
+.niveau { position: absolute; left: 12px; right: 12px; bottom: 12px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.22); overflow: hidden; }
+.niveau i { display: block; height: 100%; width: 100%; background: #4ade80; transform-origin: left; transform: scaleX(0); }
+.cmds { display: flex; gap: 14px; justify-content: center; }
+.cmd { display: flex; flex-direction: column; align-items: center; gap: 6px; background: transparent; color: var(--text); font-size: 13px; min-width: 72px; min-height: 44px; }
+.rond { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: var(--line); color: var(--text); }
+.cmd[aria-pressed="true"] .rond { background: var(--rouge); color: var(--on-rouge); border-color: transparent; }
+.cmd[data-actif="true"] .rond { background: var(--fill); color: var(--on-fill); border-color: transparent; }
+.rond svg { width: 26px; height: 26px; }
+.roue { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--faint); border-top-color: var(--accent); animation: tourne 1s linear infinite; align-self: flex-start; }
+@keyframes tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .roue { animation: none; } }
+/* — la salle : sombre de jour comme de nuit, comme celle de l'application — */
+.salle { position: fixed; inset: 0; background: var(--salle-fond); color: #fff; display: flex; flex-direction: column; }
+.salle-haut { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: max(12px, env(safe-area-inset-top, 0px)) 16px 8px; }
+.salle-haut b { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.salle-haut span { color: var(--salle-sub); font-size: 14px; white-space: nowrap; }
+.grille { flex: 1; min-height: 0; display: grid; gap: 8px; padding: 8px 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); grid-auto-rows: minmax(0, 1fr); align-content: center; }
+.tuile { position: relative; background: var(--salle-tuile); border-radius: 18px; overflow: hidden; display: grid; place-items: center; min-height: 120px; border: 2px solid transparent; }
+.tuile[data-parle="true"] { border-color: #4ade80; }
+.tuile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.tuile[data-camera="on"] video { opacity: 1; }
+.tuile[data-camera="on"] .init { display: none; }
+.tuile[data-moi="true"] video { transform: scaleX(-1); }
+.tuile .nom { position: absolute; left: 8px; bottom: 8px; right: 8px; display: flex; gap: 6px; align-items: center; font-size: 14px; }
+.tuile .nom b { background: rgba(0,0,0,.55); padding: 3px 9px; border-radius: 10px; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tuile .puce { background: rgba(0,0,0,.55); border-radius: 10px; padding: 2px 8px; font-size: 13px; }
+.bandeau { margin: 0 12px 6px; padding: 10px 14px; border-radius: 14px; background: rgba(255,255,255,.14); font-size: 15px; }
+.barre { display: flex; justify-content: center; gap: 12px; padding: 10px 12px var(--bar-bas); }
+.barre .cmd { color: #fff; }
+.barre .rond { background: rgba(255,255,255,.16); border: 0; color: #fff; }
+.barre .cmd[aria-pressed="true"] .rond { background: #fff; color: #111; }
+.barre .cmd[data-actif="true"] .rond { background: #fff; color: #111; }
+.barre .quitter .rond { background: var(--rouge); color: var(--on-rouge); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-mic" viewBox="0 0 24 24"><path fill="currentColor" d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 0 0-7 0v6A3.5 3.5 0 0 0 12 15Zm6-3.5a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.91V20H9.5a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2H13v-2.59A6 6 0 0 0 18 11.5Z"/></symbol>
+    <symbol id="i-mic-off" viewBox="0 0 24 24"><path fill="currentColor" d="M4.7 3.3a1 1 0 0 0-1.4 1.4l4.2 4.2v2.6a4.5 4.5 0 0 0 6.7 3.9l1.1 1.1A6 6 0 0 1 6 11.5a1 1 0 1 0-2 0 8 8 0 0 0 7 7.94V21H9.5a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2H13v-1.56a7.9 7.9 0 0 0 3.2-1.15l3.1 3.1a1 1 0 0 0 1.4-1.4L4.7 3.3ZM12 2a3.5 3.5 0 0 1 3.5 3.5v5.2l-1.8-1.8V5.5a1.7 1.7 0 0 0-3.4 0v.9L8.5 4.6A3.5 3.5 0 0 1 12 2Zm8 9.5a1 1 0 1 0-2 0c0 .7-.14 1.37-.38 2l1.5 1.5c.55-1.04.88-2.2.88-3.5Z"/></symbol>
+    <symbol id="i-video" viewBox="0 0 24 24"><path fill="currentColor" d="M4.5 5.5A2.5 2.5 0 0 0 2 8v8a2.5 2.5 0 0 0 2.5 2.5h8A2.5 2.5 0 0 0 15 16v-1.7l4.3 2.6A1 1 0 0 0 20.8 16V8a1 1 0 0 0-1.5-.9L15 9.7V8a2.5 2.5 0 0 0-2.5-2.5h-8Z"/></symbol>
+    <symbol id="i-video-off" viewBox="0 0 24 24"><path fill="currentColor" d="M3.3 3.3a1 1 0 0 0 0 1.4l.5.5A2.5 2.5 0 0 0 2 7.5v9A2.5 2.5 0 0 0 4.5 19h8c.5 0 .95-.14 1.34-.4l4.46 4.46a1 1 0 0 0 1.4-1.42L4.7 3.3a1 1 0 0 0-1.4 0ZM15 9.7l4.3-2.6a1 1 0 0 1 1.5.9v8a1 1 0 0 1-.4.8L15 13.4V9.7Zm-2.5-4.2A2.5 2.5 0 0 1 15 8v.2l-7.7-.9A2.5 2.5 0 0 1 9.5 5.5h3Z"/></symbol>
+    <symbol id="i-main" viewBox="0 0 24 24"><path fill="currentColor" d="M9 3.5a1.5 1.5 0 0 1 3 0V10h1V4.5a1.5 1.5 0 0 1 3 0V10h1V6.5a1.5 1.5 0 0 1 3 0V15c0 4.4-3 7-6.5 7S8 19.8 6.4 17.2l-2.1-3.6a1.4 1.4 0 0 1 2.4-1.4L9 15V3.5Z"/></symbol>
+    <symbol id="i-quitter" viewBox="0 0 24 24"><path fill="currentColor" d="M12 8c-3.4 0-6.4 1.2-8.5 3.1-.6.6-.6 1.5 0 2l1.4 1.4c.5.5 1.3.5 1.8.1l1.7-1.3c.4-.3.6-.7.6-1.2v-1.2a11 11 0 0 1 6 0v1.2c0 .5 .2.9.6 1.2l1.7 1.3c.5.4 1.3.4 1.8-.1l1.4-1.4c.6-.5.6-1.4 0-2C18.4 9.2 15.4 8 12 8Z"/></symbol>
+  </defs>
+</svg>
+
+<main class="page" id="p-charge" aria-busy="true"><div class="marque"><img src="opmsg-192.png" alt="" width="28" height="28"><span>OP MESSAGES</span></div><div class="roue" aria-hidden="true"></div><p class="sous">Ouverture du lien…</p></main>
+
+<main class="page" id="p-mort" hidden>
+  <div class="marque"><img src="opmsg-192.png" alt="" width="28" height="28"><span>OP MESSAGES</span></div>
+  <h1 id="mort-titre" tabindex="-1"></h1>
+  <p class="sous" id="mort-texte"></p>
+</main>
+
+<main class="page" id="p-identite" hidden>
+  <div class="marque"><img src="opmsg-192.png" alt="" width="28" height="28"><span>OP MESSAGES</span></div>
+  <h1 id="identite-titre" tabindex="-1"></h1>
+  <p class="sous" id="identite-org"></p>
+  <form class="carte" id="f-identite" autocomplete="on" novalidate>
+    <label>Votre nom<input type="text" id="c-nom" name="name" autocomplete="name" maxlength="60" required enterkeyhint="next"></label>
+    <label>Votre entreprise <small>(facultatif)</small><input type="text" id="c-ent" name="organization" autocomplete="organization" maxlength="80" enterkeyhint="go"></label>
+    <p class="erreur" id="identite-erreur" role="alert" hidden></p>
+    <button type="submit" class="plein" id="b-continuer">Continuer</button>
+  </form>
+  <p class="note">Aucun compte à créer, rien à installer. L'organisateur verra votre nom et vous laissera entrer.</p>
+  <p class="note" id="rgpd">Vos données : TEAM OP, responsable du traitement, traite votre nom et votre entreprise pour une seule finalité, vous faire participer à cette réunion. Elles sont conservées chiffrées jusqu'à 30 jours après la fin de la réunion, puis effacées. Vous pouvez demander l'accès ou l'effacement à <a href="mailto:contact@teamop.fr">contact@teamop.fr</a>. <a href="https://teamop.fr/confidentialite.html" target="_blank" rel="noopener noreferrer">Politique de confidentialité</a></p>
+</main>
+
+<main class="page" id="p-prepa" hidden>
+  <div class="marque"><img src="opmsg-192.png" alt="" width="28" height="28"><span>OP MESSAGES</span></div>
+  <h1 id="prepa-titre" tabindex="-1">Avant d'entrer</h1>
+  <p class="sous" id="prepa-sous"></p>
+  <div class="apercu" id="apercu" data-camera="off"><span class="init" id="prepa-init" aria-hidden="true"></span><video id="prepa-video" muted playsinline autoplay aria-label="Votre caméra"></video><span class="niveau" role="meter" aria-label="Niveau de votre micro" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="niveau"><i id="niveau-i"></i></span></div>
+  <div class="cmds" role="group" aria-label="En entrant">
+    <button type="button" class="cmd" id="prepa-micro" aria-pressed="false" aria-label="Couper le micro"><span class="rond"><svg aria-hidden="true"><use href="#i-mic"/></svg></span><span>Micro</span></button>
+    <button type="button" class="cmd" id="prepa-cam" aria-pressed="false" aria-label="Couper la caméra"><span class="rond"><svg aria-hidden="true"><use href="#i-video"/></svg></span><span>Caméra</span></button>
+  </div>
+  <p class="erreur" id="prepa-erreur" role="alert" hidden></p>
+  <p class="note" id="prepa-note" role="status" hidden></p>
+  <button type="button" class="plein" id="b-entrer">Demander à entrer</button>
+  <button type="button" class="discret" id="b-prepa-retour">Retour</button>
+  <p class="note">Personne ne vous voit ni ne vous entend avant que l'organisateur vous laisse entrer.</p>
+</main>
+
+<main class="page" id="p-attente" hidden>
+  <div class="marque"><img src="opmsg-192.png" alt="" width="28" height="28"><span>OP MESSAGES</span></div>
+  <div class="roue" aria-hidden="true"></div>
+  <h1 id="attente-titre" tabindex="-1">En attente d'admission</h1>
+  <p class="sous" id="attente-texte" role="status"></p>
+  <p class="note">Gardez cette page ouverte : vous entrerez dès que l'organisateur vous aura laissé entrer.</p>
+  <button type="button" class="discret" id="b-annuler">Annuler</button>
+</main>
+
+<main class="page" id="p-refus" hidden>
+  <div class="marque"><img src="opmsg-192.png" alt="" width="28" height="28"><span>OP MESSAGES</span></div>
+  <h1 id="refus-titre" tabindex="-1">Entrée refusée</h1>
+  <p class="sous" id="refus-texte" role="alert"></p>
+  <button type="button" class="plein" id="b-refus-retour">Retour</button>
+</main>
+
+<main class="page" id="p-fin" hidden>
+  <div class="marque"><img src="opmsg-192.png" alt="" width="28" height="28"><span>OP MESSAGES</span></div>
+  <h1 id="fin-titre" tabindex="-1">La réunion est terminée</h1>
+  <p class="sous" id="fin-texte"></p>
+</main>
+
+<section class="salle" id="p-salle" hidden aria-label="Réunion">
+  <header class="salle-haut"><b id="salle-titre"></b><span id="salle-etat" role="status"></span></header>
+  <div class="grille" id="grille"></div>
+  <p class="bandeau" id="salle-bandeau" role="status" hidden></p>
+  <nav class="barre" aria-label="Commandes de la réunion">
+    <button type="button" class="cmd" id="b-micro" aria-pressed="false" aria-label="Couper le micro"><span class="rond"><svg aria-hidden="true"><use href="#i-mic"/></svg></span><span>Micro</span></button>
+    <button type="button" class="cmd" id="b-cam" aria-pressed="false" aria-label="Couper la caméra"><span class="rond"><svg aria-hidden="true"><use href="#i-video"/></svg></span><span>Caméra</span></button>
+    <button type="button" class="cmd" id="b-main" data-actif="false" aria-pressed="false" aria-label="Lever la main"><span class="rond"><svg aria-hidden="true"><use href="#i-main"/></svg></span><span>Main</span></button>
+    <button type="button" class="cmd quitter" id="b-quitter" aria-label="Quitter la réunion"><span class="rond"><svg aria-hidden="true"><use href="#i-quitter"/></svg></span><span>Quitter</span></button>
+  </nav>
+</section>
+
+<script src="api.js"></script>
+<script src="source-serveur.js"></script>
+<script src="invite.js"></script>
+</body>
+</html>

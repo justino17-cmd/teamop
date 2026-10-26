@@ -22,6 +22,8 @@ const { SUPPRESSION_DELAI_MS } = require('./compte');
 const { REUNION_PERSONNES_MAX } = require('./formule');
 const heuresPro = require('./heures-pro');
 
+/* ⛔ ID_INVITE : un invité SANS COMPTE (`g_…`, `stockage.js` migration 30) — jamais un compte : aucune route de compte ne l'accepte, seules la salle (admettre, refuser, exclure, relayer un signal) le nomment */
+const ID_INVITE = /^g_[0-9a-f]{32}$/;
 const ID_CONV = /^c_[0-9a-f]{32}$/, ID_PERS = /^p_[0-9a-f]{32}$/, CID = /^[A-Za-z0-9_-]{8,64}$/, CODE = /^[A-Za-z0-9_-]{20,64}$/;
 const EPHEMERES = [0, 86400, 604800, 7776000];
 const MSG_MAX = 8000, SESSION_MS = 30 * 86400000, JOUR = 86400000;
@@ -1022,4 +1024,4 @@ function creerHandlers(ctx) {
   return H;
 }
 
-module.exports = { creerHandlers, ID_CONV, ID_PERS, CID, CODE, nettoyerNom, nettoyerTexte, MSG_MAX, EPHEMERES };
+module.exports = { creerHandlers, ID_CONV, ID_PERS, ID_INVITE, CID, CODE, nettoyerNom, nettoyerTexte, MSG_MAX, EPHEMERES };

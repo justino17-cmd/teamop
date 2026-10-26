@@ -481,6 +481,21 @@ $H2_ON
         proxy_send_timeout 3700s;
     }
 
+    # le flux de l'invité sans compte : même flux SSE, autre porte — retenu en tampon il ne livrerait « Faire entrer » qu'au bout d'une minute
+    location = /api/invite/flux {
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Connection \"\";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        gzip off;
+        proxy_read_timeout 3700s;
+        proxy_send_timeout 3700s;
+    }
+
     location / {
         limit_req zone=opmsg_$INSTANCE burst=60 nodelay;
         proxy_pass http://127.0.0.1:$PORT;
