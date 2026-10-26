@@ -88,6 +88,11 @@ const sansBalise = h => [...h.matchAll(/<([a-z0-9]+)([^>]*)>/gi)].filter(t => /^
   for (let i = 0; i < 5; i++) bac.hoSet('e', i, 'ouvert', false); bac.hoSet('e', 5, 'ouvert', false); bac.hoSet('e', 6, 'ouvert', false);
   const r3 = await bac.hoEnregistrer(); vrai('aucun jour ouvert : refusé (400), le serveur renvoie vers la pause générale, la page le dit telle quelle', r3.status === 400 && /pause générale/.test(HO.msg), [r3.status, HO.msg]); bac.hoAnnuler();
 
+  /* ⛔ le serveur lit l'HORLOGE RÉELLE : pour forcer une ouverture il faut que l'équipe soit FERMÉE à cet instant, quelle que soit l'heure où le banc tourne (en heures ouvrées, « ouverte » l'emporte sur « ouverture forcée »).
+     On règle donc chaque jour sur une fenêtre de 30 minutes, douze heures plus loin que Paris maintenant : fermée, à coup sûr. */
+  const hp = bac.hoParis(Date.now()).h, hh = ('0' + ((hp + 12) % 24)).slice(-2);
+  for (let i = 0; i < 7; i++) { bac.hoSet('e', i, 'ouvert', true); bac.hoSet('e', i, 'debut', hh + ':00'); bac.hoSet('e', i, 'fin', hh + ':30'); }
+  const rf = await bac.hoEnregistrer(); vrai('une fenêtre de 30 minutes, 12 h plus loin : acceptée, l’équipe est fermée maintenant', rf.status === 200 && HO.d.maintenant.ouvert === false && HO.d.maintenant.raison !== 'heures_ouvrees', [rf.status, HO.d.maintenant]);
   const o1 = await bac.hoOuvrir();
   vrai('« Ouvrir maintenant » 1 h : le vrai serveur ouvre (ouverture forcée), la page dit « exceptionnellement » et propose de remettre aux heures normales', o1.status === 200 && HO.d.maintenant.raison === 'ouverture_forcee' && /exceptionnellement/.test(bac.hoPhrase(AG.horaires)[1]) && /hoFermer/.test(bac.hoVue()), [o1.status, HO.d.maintenant]);
   vrai('…la fin forcée vaut maintenant + 1 h (à la minute près)', Math.abs(HO.d.ouvertJusqua - (Date.now() + 3600000)) < 120000, HO.d.ouvertJusqua - Date.now());
@@ -103,9 +108,9 @@ const sansBalise = h => [...h.matchAll(/<([a-z0-9]+)([^>]*)>/gi)].filter(t => /^
   const tp = jeton; jeton = S.TA;
   const lectureCollab = await bac.apiGet('/api/monitor/agents/horaires').catch(e => ({ erreur: e.status }));
   vrai('le serveur laisse LIRE un collaborateur', lectureCollab.ok === true && Array.isArray(lectureCollab.entreprise.jours), lectureCollab.erreur);
-  bac.MYROLE = 'patron'; HO.sale = false; bac.hoSet('e', 1, 'fin', '17:00');
+  const fin1 = HO.d.entreprise.jours[1].fin; bac.MYROLE = 'patron'; HO.sale = false; bac.hoSet('e', 1, 'fin', fin1 === '17:00' ? '17:15' : '17:00');
   const rc = await bac.hoEnregistrer();
-  vrai('⛔ si la page croyait (à tort) qu’il est patron : le vrai serveur refuse (403), la page affiche un refus sans rien inventer', rc.status === 403 && HO.ko === true && HO.msg.length > 3 && HO.d.entreprise.jours[1].fin === '18:00', [rc.status, HO.msg]);
+  vrai('⛔ si la page croyait (à tort) qu’il est patron : le vrai serveur refuse (403), la page affiche un refus sans rien inventer', rc.status === 403 && HO.ko === true && HO.msg.length > 3 && HO.d.entreprise.jours[1].fin === fin1, [rc.status, HO.msg]);
   const oc = await bac.hoOuvrir(); const fc = await bac.hoFermer();
   vrai('…ni ouvrir ni fermer (403 et 403)', oc.status === 403 && fc.status === 403, [oc.status, fc.status]);
   jeton = tp; bac.MYROLE = 'patron';
