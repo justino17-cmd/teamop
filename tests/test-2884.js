@@ -87,6 +87,8 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
     const cerveau = {
       etatBudget: o.etatBudget || (() => ({ illisible: false, cle: true })),
       penser: async (id, system, messages, opts) => {
+        /* le second appel qui ENREGISTRE des objectifs dits sans l'outil (examen du 26 octobre 2026 à 23 h 25) a son banc, test-3064 : ici il ne rend rien et ne compte pas */
+        if (opts && opts.forcerOutil) return rep('');
         actifs++; maxActifs = Math.max(maxActifs, actifs);
         const trace = { id, system, messages: JSON.parse(JSON.stringify(messages)), opts, quand: horloge.t, fil: null, ecritPendant: conv.quiEcrit('reunions').map(x => x.id) }; trace.phase = phase(trace); appels.push(trace);
         try { await dormir(2); if (o.avance) horloge.t += o.avance; return o.script ? await o.script(trace, appels.length) : rep('Voici mon point numéro ' + (++cpt) + '.'); }

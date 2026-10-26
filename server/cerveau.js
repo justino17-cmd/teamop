@@ -126,7 +126,10 @@ module.exports = function cerveau(ctx) {
     const requete = { model: MODEL, max_tokens: jetonsDemandes(opts), thinking: reflechir ? { type: 'adaptive' } : { type: 'disabled' }, system, messages };
     /* `tool_choice: auto` : le modèle choisit d'appeler un outil ou de répondre — les seuls choix compatibles avec la réflexion. Et c'est le CODE
        de l'appelant qui valide chaque appel d'outil : ce que Claude « décide » n'est jamais exécuté tel quel. */
-    if (outils.length || recherche) { requete.tools = outils.concat(recherche ? [recherche] : []); requete.tool_choice = { type: 'auto' }; }
+    /* `opts.forcerOutil` : UN outil nommé, imposé (`tool_choice: tool`) — seulement sans réflexion (l'API refuse les deux ensemble) et seulement un outil offert.
+       Pour la parole qui a DIT ce qu'elle devait enregistrer sans l'enregistrer (les objectifs du lundi, examen du 26 octobre 2026 à 23 h 25). */
+    const forcer = !reflechir && opts && typeof opts.forcerOutil === 'string' && outils.some(o => o.name === opts.forcerOutil) ? opts.forcerOutil : '';
+    if (outils.length || recherche) { requete.tools = outils.concat(recherche ? [recherche] : []); requete.tool_choice = forcer ? { type: 'tool', name: forcer } : { type: 'auto' }; }
     let reserve = 0;
     if (reserver) {
       reserve = ((JSON.stringify(system).length + JSON.stringify(messages).length) / 3 * USD_ENTREE_M + requete.max_tokens * USD_SORTIE_M) / 1e6 + (recherche ? recherche.max_uses * USD_RECHERCHE : 0);

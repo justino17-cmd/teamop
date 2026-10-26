@@ -123,7 +123,11 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     vrai('…Hugo, cité par Camille, a répondu « RAS » : cela n’a pas été publié, et il a parlé une fois (son tour)', ag.filter(m => m.de === 'hugo').length === 1 && !ag.some(m => /^RAS/.test(m.texte)));
     const ap = recus().slice(n0);
     const reu = ap.filter(enReunion);
-    v('⛔ le nombre d’appels : 1 ouverture + 14 tours + Inès + 1 discussion (Hugo) + 1 conclusion', [reu.length, ap.length], [18, 18]);
+    /* les objectifs DITS sans l'outil (examen du 26 octobre 2026 à 23 h 25) : un second appel par agent qui a parlé sans fixer_objectifs — ici les quatorze autres que Léa.
+       Le faux Claude n'y répond que du texte (rien n'est enregistré : la suite du banc reste la même) ; test-3064 éprouve l'enregistrement. */
+    const forces = ap.filter(b => /Tu viens de dire, à la réunion du lundi/.test(String((b.messages[0] || {}).content || '')));
+    v('⛔ le nombre d’appels : 1 ouverture + 14 tours + Inès + 1 discussion (Hugo) + 1 conclusion, et 14 seconds appels « enregistre tes objectifs »', [reu.length, forces.length, ap.length], [18, 14, 32]);
+    vrai('⛔ …chaque second appel IMPOSE fixer_objectifs (seul outil), sans réflexion — la forme que l’API accepte', forces.every(b => b.tool_choice && b.tool_choice.type === 'tool' && b.tool_choice.name === 'fixer_objectifs' && b.tools.length === 1 && b.thinking && b.thinking.type === 'disabled'), JSON.stringify(forces[0] && { tc: forces[0].tool_choice, th: forces[0].thinking }));
     vrai('…tous demandent la réflexion adaptative, 3000 jetons, JAMAIS temperature / top_p / top_k', reu.every(b => b.thinking && b.thinking.type === 'adaptive' && b.max_tokens === 3000 && !('temperature' in b) && !('top_p' in b) && !('top_k' in b)));
     vrai('…et les seuls outils de la réunion du lundi sont fixer_objectifs (les outils de la messagerie ne sont pas là)', reu.every(b => b.tools.length === 1 && b.tools[0].name === 'fixer_objectifs'));
     const faits = JSON.parse((/ta seule source de chiffres\) : (\{.*\})/.exec(reu[0].system) || [])[1] || 'null');
