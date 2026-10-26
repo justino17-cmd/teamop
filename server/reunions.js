@@ -403,6 +403,21 @@ module.exports = function monterReunions(app, ctx) {
     return Object.assign(sortie, { parle: true, texte: t, mentions: d.mentions || [] });
   }
 
+  /* ⛔ DES OBJECTIFS DITS ET PAS ENREGISTRÉS (examen du 26 octobre 2026 à 23 h 25, scénario 8 : Léa et Max ont donné trois objectifs chiffrés dans le fil, sans appeler
+     fixer_objectifs — « Sans objectif enregistré : Léa, Max », et rien à juger le vendredi). Un SECOND appel, qui n'a qu'un outil et doit l'appeler (`forcerOutil`, sans
+     réflexion), reprend ce que l'agent vient de dire. Rien n'est publié : le fil a déjà son message. Un refus, une panne : on garde le constat « sans objectif ». */
+  async function enregistrerObjectifsDits(id, R, run, dit) {
+    const fixer = outilsReunion('objectifs').filter(x => x.name === 'fixer_objectifs');
+    if (!fixer.length || !dit) return;
+    let r = null;
+    try {
+      r = await cerveau.penser(id, equipe().systemDe(id) + blocReunion(R, run.faits), [{ role: 'user', content: 'Tu viens de dire, à la réunion du lundi :\n<<<\n' + dit + '\n>>>\n\nTu n’as pas enregistré tes objectifs. Enregistre maintenant, avec fixer_objectifs, les 2 ou 3 objectifs que tu viens de donner (mêmes objectifs, chacun avec sa mesure). N’en invente pas d’autres.' }], { outils: fixer, forcerOutil: 'fixer_objectifs', maxTokens: 800 });
+    } catch (e) { return; }
+    for (const a of (r && r.ok && Array.isArray(r.actions) ? r.actions : []).filter(a => a.nom === 'fixer_objectifs').slice(0, 1)) {
+      try { executer(id, a, R, run); } catch (e) { /* le constat « sans objectif » le dira */ }
+    }
+  }
+
   /* ── LE DÉROULÉ ── */
   let enCours = null;     // { id, type, fin, promesse } — une seule réunion à la fois
   const termine = (R, statut) => { R.statut = statut; R.finReelle = maintenant(); ecrireReunions(); };
@@ -439,7 +454,7 @@ module.exports = function monterReunions(app, ctx) {
       const extra = id === 'ines' ? ' Tu donnes aussi la qualité de la semaine : ce que tu relèves sur le travail de l’équipe, d’après les erreurs et les refus du bloc Faits et le bloc qualite (tes relectures de courriels : combien sont partis, combien étaient conformes, quels critères reviennent).' : '';
       const o = await parole(id, R, run, consignes[R.type] + extra, { ecrire: true });
       if (o.cause && o.cause !== 'vide') { if (GLOBALES.includes(o.cause)) return abandon(o.cause); absent(id, o.cause); }
-      else if (o.parle) { run.parles.add(id); citer(id, o.mentions); }
+      else if (o.parle) { run.parles.add(id); citer(id, o.mentions); if (R.type === 'objectifs' && !objectifsDe(R.semaine, id).length) await enregistrerObjectifsDits(id, R, run, o.texte); }
     }
 
     /* 3. La discussion : ceux qu'on a cités répondent, dans l'ordre, jusqu'à ce que plus personne n'ait rien à ajouter — ou que l'heure soit finie. */

@@ -83,6 +83,10 @@ const DOSSIERS = {
 const TU = /(?:^|[^\p{L}\p{N}])(?:tu|toi|ton|tes|ta)(?![\p{L}\p{N}])|(?:^|[^\p{L}\p{N}])t['’](?=\p{L})/iu;
 const FORMULES_ROBOT = [/en tant qu['’](?:ia|assistant|intelligence)/i, /je suis (?:l[àa] pour|un assistant|une ia)/i, /n['’]h[ée]site(?:z)? pas [àa]/i, /je reste [àa] (?:votre|ta) disposition/i,
   /puis-je (?:vous|t['’])\s?aider/i, /excellente question/i, /\bbien (?:re[çc]u|not[ée]) ?!/i, /\babsolument ?!/i, /\bbien s[ûu]r ?!/i, /comme demand[ée]/i, /\bje vous en prie\b/i];
+/* ⛔ UNE FORMULE CITÉE N'EST PAS UNE FORMULE DITE (examen du 26 octobre 2026 à 23 h 25 : Léa conseillait d'éviter « un vague "n'hésitez pas à nous contacter" » — et le
+   scénario 9 l'accusait de l'écrire). Ce qui est entre guillemets (« », " ", “ ”) est retiré avant de chercher une formule. */
+const horsCitations = t => String(t || '').replace(/«[^»]{0,300}»|"[^"\n]{0,300}"|“[^”]{0,300}”/g, ' ');
+const formuleRobot = t => FORMULES_ROBOT.some(re => re.test(horsCitations(t)));
 const PROMESSE_REMBOURSEMENT = /(?:nous|je) (?:vous )?(?:rembours(?:ons|erons|erai)|procéd(?:ons|erons) au remboursement|ferons un geste)|vous serez rembours|remboursement (?:sera|vous sera|est accord|est effectu)|geste commercial/i;
 const ACTIVITES = {
   climatisation: /climatisation|clim\b|climatiseur|froid|pompe [àa] chaleur|frigorifi/i,
@@ -332,6 +336,23 @@ function lireVerdict(texte, cles) {
   const raison = typeof j.raison === 'string' ? coupe(sansAdr(j.raison.replace(/\s+/g, ' ').trim()), 300) : '';
   return { valeurs, raison };
 }
+/* ⛔ UN VERDICT INCOMPLET DIT CE QU'IL DIT (examen du 26 octobre 2026 à 23 h 25, scénario 9 : le juge a rendu deux fois `{"c1":true,"c2":true,"raison":…}` sans `c3`, et les
+   TROIS critères sont sortis « inconnus »). Après les deux essais, et seulement alors : UN objet de verdict (jamais plusieurs — un objet par courriel manquant ne doit
+   rendre aucun critère vrai), lu clé par clé ; un critère présent en booléen garde sa valeur, un critère absent reste inconnu. Rien n'est deviné. */
+function lireVerdictPartiel(texte, cles) {
+  const s = String(texte || ''), objets = objetsDe(s);
+  if (!objets) return null;
+  const vs = objets.filter(o => cles.some(c => o.includes('"' + c + '"')));
+  if (vs.length !== 1) return null;
+  const valeurs = {};
+  for (const c of cles) {
+    const vals = [...vs[0].matchAll(new RegExp('"' + c + '"\\s*:\\s*(true|false)(?![\\w"])', 'g'))].map(x => x[1]);
+    if (vals.length && new Set(vals).size === 1) valeurs[c] = vals[0] === 'true';
+  }
+  if (!Object.keys(valeurs).length) return null;
+  const r = /"raison"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(vs[0]);
+  return { valeurs, raison: r ? coupe(sansAdr(r[1].replace(/\\"/g, '"').replace(/\s+/g, ' ').trim()), 300) : '', manque: cles.filter(c => !(c in valeurs)) };
+}
 /* La raison d'UN critère, quand le juge les a données clé par clé (« c2 : … ; c4 : … ») : sinon toute la raison. Avant le 24 octobre, la même phrase sur les
    formules répétées d'une réunion s'affichait sous « les courriels aux clients… sonnent professionnels », qui n'avait rien à voir. */
 function raisonDe(raison, cle, cles) {
@@ -371,9 +392,13 @@ async function juger(J, criteres, donnees) {
   /* 24 000 caractères : trois premiers courriels de Léa et la liste de l'offre en font plus de 9 000 — le troisième arrivait coupé au juge */
   const msg = 'Critères :\n' + numerotes.map(c => c.cle + ' : ' + c.texte).join('\n') + '\n\nÀ juger :\n<<<\n' + delim(donnees).slice(0, 24000) + '\n>>>';
   const cles = numerotes.map(c => c.cle);
-  let cause = '';
+  let cause = '', dernier = '';
+  /* la forme exacte, avec les clés de CE jugement : « c1, c2… » ne suffisait pas à un juge qui en rendait deux sur trois */
+  const forme = '{' + cles.map(c => '"' + c + '":true').join(',') + ',"raison":"…"}';
   for (let essai = 0; essai < 2; essai++) {
-    const r = await J.penser('ines', SYSTEM_JUGE, [{ role: 'user', content: essai ? msg + '\n\n' + RAPPEL_JUGE : msg }], { maxTokens: 1000 });
+    const p = essai && dernier ? lireVerdictPartiel(dernier, cles) : null;
+    const rappel = RAPPEL_JUGE + ' Forme attendue : ' + forme + (p && p.manque.length ? ' Ta réponse précédente ne portait pas ' + p.manque.join(', ') + ' : rends-les aussi.' : '');
+    const r = await J.penser('ines', SYSTEM_JUGE, [{ role: 'user', content: essai ? msg + '\n\n' + rappel : msg }], { maxTokens: 1000 });
     if (!r.ok) { cause = r.raison; if (LIMITES_CLAUDE.has(r.raison)) continue; return { ok: false, cause }; }
     const v = lireVerdict(r.texte, cles);
     if (v) {
@@ -381,12 +406,19 @@ async function juger(J, criteres, donnees) {
       const raison = v.raison.replace(/\bc(\d+)\b/g, (m, n) => vers['c' + n] || m);
       return { ok: true, valeurs: Object.fromEntries(numerotes.map(c => [c.orig, v.valeurs[c.cle]])), raison };
     }
-    cause = 'illisible : « ' + coupe(sansAdr(String(r.texte || '').replace(/\s+/g, ' ').trim()), 140) + ' »';
+    dernier = String(r.texte || '');
+    cause = 'illisible : « ' + coupe(sansAdr(dernier.replace(/\s+/g, ' ').trim()), 140) + ' »';
+  }
+  const p = dernier ? lireVerdictPartiel(dernier, cles) : null;
+  if (p) {
+    const raison = p.raison.replace(/\bc(\d+)\b/g, (m, n) => vers['c' + n] || m);
+    return { ok: true, partiel: true, valeurs: Object.fromEntries(numerotes.filter(c => c.cle in p.valeurs).map(c => [c.orig, p.valeurs[c.cle]])), raison };
   }
   return { ok: false, cause };
 }
 function verifsJuge(E, j, criteres) {
-  return criteres.map(c => j.ok ? verif(E, c.libelle, j.valeurs[c.cle] === true, 'jugement d’Inès : ' + (raisonDe(j.raison, c.cle, criteres.map(x => x.cle)) || 'non conforme'))
+  return criteres.map(c => j.ok && typeof j.valeurs[c.cle] === 'boolean' ? verif(E, c.libelle, j.valeurs[c.cle] === true, 'jugement d’Inès : ' + (raisonDe(j.raison, c.cle, criteres.map(x => x.cle)) || 'non conforme'))
+    : j.ok ? { libelle: c.libelle, etat: 'inconnu', detail: 'le juge n’a pas rendu ce critère (deux fois) — à relancer' }
     : { libelle: c.libelle, etat: 'inconnu', detail: 'le juge n’a pas rendu de verdict lisible (' + j.cause + ') — à relancer' });
 }
 
@@ -694,7 +726,7 @@ async function sc9(E, X) {
   const v = [];
   const internes = X.partage.messages.filter(m => m.texte);
   const mails = X.partage.mails;
-  const robot = internes.filter(m => FORMULES_ROBOT.some(re => re.test(m.texte)));
+  const robot = internes.filter(m => formuleRobot(m.texte));
   const markdown = internes.filter(m => MARKDOWN_INTERNE.test(m.texte));
   const tutoyes = mails.filter(m => TU.test(m.texte)), vouvoient = mails.filter(m => /\b(?:vous|votre|vos)\b/i.test(m.texte));
   const debuts = {}; for (const m of internes) { const d = norm(m.texte).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 4).join(' '); if (d.split(' ').length >= 4) debuts[d] = (debuts[d] || 0) + 1; }
@@ -1020,3 +1052,6 @@ module.exports.MAILS = MAILS;
 module.exports.PROSPECTS = PROSPECTS;
 module.exports.TU = TU;
 module.exports.premierCreneau = premierCreneau;
+module.exports.lireVerdictPartiel = lireVerdictPartiel;
+module.exports.formuleRobot = formuleRobot;
+module.exports.juger = juger;
