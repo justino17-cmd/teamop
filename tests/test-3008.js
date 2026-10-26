@@ -75,7 +75,7 @@ vrai('un nom absent retombe sur l’identifiant, puis sur « ? »', ctx.agAvatar
 const aLaMain = (CODE.match(/class="(?:ms-av(?: p)?|ag-av)" aria-hidden="true">'\+esc\(/g) || []).length;
 vrai('aucun avatar d’agent dessiné à la main : les initiales passent toutes par agAvatar', aLaMain === 0, aLaMain);
 const appels = (CODE.match(/\bagAvatar\(/g) || []).length - 1;
-vrai('(population) les onze endroits qui montrent un agent appellent agAvatar (rangées de l\u2019équipe, Pauline, en-tête d\u2019un fil, liste, bulles, tâches, réunions ×3, RGPD, mentions)', appels === 11, appels);
+vrai('(population) les douze endroits qui montrent un agent appellent agAvatar (rangées de l\u2019équipe, Pauline, binôme de la permanence, en-tête d\u2019un fil, liste, bulles, tâches, réunions ×3, RGPD, mentions)', appels === 12, appels);
 const pau = ctx.agAvatar('pauline', 'Pauline', 'ag-av');
 vrai('Pauline, agent externe : l\u2019initiale, puis sa photo par-dessus', /^<span class="ag-av" aria-hidden="true">P<img src="icons\/agents\/pauline\.jpg"/.test(pau), pau);
 vrai('la carte de Nina (RGPD) porte sa photo, plus un « N » écrit en dur', /agAvatar\('nina','Nina','ms-av p'\)/.test(CODE) && !/aria-hidden="true">N<\/span><b>Nina/.test(CODE));
