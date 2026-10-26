@@ -1,4 +1,4 @@
-/* 3060 — L'EXAMEN DU 26 OCTOBRE 2026 (17 h 36), SCÉNARIO 6 « VENTE » : deux courriels sur trois restés « à revoir » pour `fait_invente`.
+/* 3063 — L'EXAMEN DU 26 OCTOBRE 2026 (17 h 36), SCÉNARIO 6 « VENTE » : deux courriels sur trois restés « à revoir » pour `fait_invente`.
    Trois inscriptions fictives ; Toka Clim est parti, Brillance Services et Dupont Plomberie sont restés en brouillon avec « le courriel affirme une fonction, un délai ou un
    engagement qui ne figure pas dans l'offre » — SANS que rien dise laquelle des phrases. Ce que la lecture a établi (`scratchpad/mots-absents.js`) :
      · `fait_invente` ne peut venir que du JUGE (`fautesDuCode` ne le produit pas) ;

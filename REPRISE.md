@@ -16,7 +16,7 @@ de ligne du tout.
 # 🔶 26 OCTOBRE 2026 (SOIR) — EXAMEN DE 17 H 36 : 6 RÉUSSIS, 1 ÉCHEC, 2 « INCONNU » — CORRIGÉS (branche `claude/examen-26-octobre`, pas fusionnée)
 
 - **Scénario 6 « vente » (✗)** : Toka Clim parti, Brillance Services et Dupont Plomberie restés « à revoir » pour `fait_invente`. `fait_invente` ne vient QUE du juge (`fautesDuCode` ne le produit
-  pas). Relevé des mots de chaque phrase candidate contre la liste de l'offre (`test-3060` § 0) : Brillance « rapport PDF envoyé automatiquement » = une QUALITÉ ajoutée (l'offre dit « envoyé
+  pas). Relevé des mots de chaque phrase candidate contre la liste de l'offre (`test-3063` § 0) : Brillance « rapport PDF envoyé automatiquement » = une QUALITÉ ajoutée (l'offre dit « envoyé
   au client ») — vraie faute ; Dupont : tout vient de l'offre (seuls « clôture » pour « terminée », « paiements » pour « payées » sont des synonymes) — faux positif du juge. ⚠️ **Laquelle des
   phrases a vraiment déclenché chaque faute n'est PAS prouvé** (la réponse brute du juge n'était pas gardée). Pourquoi la réécriture unique n'a pas suffi : elle recevait « ne garder que les
   faits de l'offre » SANS la phrase en cause. Corrigé : le juge **cite** la phrase (`CITE : …`, seulement après `fait_invente`, et seulement si c'est un FRAGMENT du courriel jugé — jamais un
@@ -34,7 +34,7 @@ de ligne du tout.
   (`2e8e2ea1`) le critère c3 a quitté le juge, le scénario a demandé « c1, c2, c4 » — un modèle corrige en c1, c2, c3 et un verdict sans `c4` est illisible ; c'est le premier examen depuis. Corrigé à la
   racine (`juger`, `examen.js`) : les critères sont TOUJOURS numérotés c1…cN sans trou et les clés de l'appelant reviennent dans la réponse ; une réponse illisible ou vide est redemandée UNE fois ;
   un verdict qui reste illisible DIT le début de la réponse du juge ; un objet qui ne nomme aucun critère (« {formules} » dans une phrase d'avant) n'est plus pris pour un verdict incomplet.
-- Bancs : `test-3060` (40), `test-3061` (25), `test-3062` (26), tous dans `scripts/bancs-serveur.liste` (plancher relevé à 9900 : 148 suites, 9 986 mesurées) ; `test-3001` suit la forme de la vue.
+- Bancs : `test-3063` (40), `test-3061` (25), `test-3062` (26), tous dans `scripts/bancs-serveur.liste` (plancher relevé à 9900 : 148 suites, 9 986 mesurées) ; `test-3001` suit la forme de la vue.
   Mutations : `scratchpad/mutations-examen-26.py`. ⏳ **Reste** : fusion, déploiement, puis relancer l'examen (un par heure) : le résultat dira, pour un brouillon resté « à revoir », la phrase en cause.
 
 # ⏳ 26 OCTOBRE 2026 — OP MESSAGES BÊTA : L'INVITÉ SANS COMPTE (branche `claude/opmsg-invite-sans-compte`, pas encore fusionnée ni déployée)
