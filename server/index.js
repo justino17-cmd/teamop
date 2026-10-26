@@ -114,7 +114,9 @@ const jsonCourant = express.json({ limit: '6mb' }); // large : les e-mails peuve
 const jsonGros = express.json({ limit: '20mb' });
 /* `/api/audience/vue` (publique) lit son propre corps, en texte, 2 Ko au plus (`server/audience.js`) : le plafond de 6 Mo ne doit pas le lire avant elle. */
 const CHEMIN_AUDIENCE = /^\/api\/audience\/vue\/?$/i;
-app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path)) ? next() : jsonCourant(req, res, next));
+/* `/api/pauline/releve` (le pont de Pauline) lit AUSSI son propre corps, 2 Mo au plus, et seulement APRÈS avoir vérifié le jeton (`server/pauline.js`) : lire 6 Mo pour un inconnu serait le moyen le moins cher de remplir la mémoire. */
+const CHEMIN_PAULINE = /^\/api\/pauline\/releve\/?$/i;
+app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path) || CHEMIN_PAULINE.test(req.path)) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
 const ORIGINS = (config.origins || ['https://teamop.fr', 'https://www.teamop.fr']).concat(ESSAI ? [ESSAI_ORIGINE] : []);   // l'origine de test n'existe que dans le serveur de test
@@ -2164,6 +2166,7 @@ const MON_GESTES = {
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
+  'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
   'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
@@ -6215,6 +6218,14 @@ try {
   audienceMod = require('./audience')(app, { DATA_DIR, monPatronStrict, origines: ORIGINS });
 } catch (e) {
   console.error('audience non montée :', e.message);
+}
+/* ══ LE PONT DE PAULINE (25 octobre 2026) ══ l'agente de prospection (Harvey) tourne sur le Mac de Justin ; elle envoie ici un RELEVÉ complet toutes les quinze minutes
+   (`outils/pauline-releve.py`), la Tour le lit (`/api/monitor/pauline`, patron). Fermé sans `config.pauline.jetonSha256` (503). Les données de prospects n'entrent dans aucun journal
+   (`server/pauline.js`, contrat du relevé en tête). Un échec de montage n'arrête rien d'autre. */
+try {
+  require('./pauline')(app, { config, DATA_DIR, monPatronStrict });
+} catch (e) {
+  console.error('pont de Pauline non monté :', e.message);
 }
 /* ══ LA SAUVEGARDE HORS SITE ═══════════════════════════════════════════════════════════════
    Montée ICI parce qu'elle a besoin de `monPatronStrict` pour ses deux routes — une
@@ -10603,7 +10614,7 @@ try {
       return { domaines: [...dom], adresses: [...adr] };
     };
     const fichierAgents = require('./agents-fichier')(DATA_DIR);
-    /* LA SIGNATURE DES AGENTS (« Léa — Assistante virtuelle — Équipe TeamOP »), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
+    /* LA SIGNATURE DES AGENTS (« Léa — Assistante de TeamOP », et la mention de l'IA dessous), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
     try { signaturesMod = require('./agents-signature')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, fichier: fichierAgents }); }
     catch (e) { signaturesMod = null; console.error('signatures des agents indisponibles :', e.message); }
     try {
