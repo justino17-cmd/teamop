@@ -668,9 +668,10 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .notif-ouvrir { display: none; }
 html[data-appel] .notif { padding: 6px 8px 6px 12px; gap: 8px; border-radius: 18px; }
 html[data-appel] .notif img { width: 24px; height: 24px; border-radius: 7px; }
-html[data-appel] .notif-tete span, html[data-appel] .notif-aide { display: none; }
-html[data-appel] .notif-tete b { font-size: 13px; }
-html[data-appel] .notif-texte { font-size: 14px; line-height: 18px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-tete { display: none; }                                 /* « OP MESSAGES · maintenant » : la salle est déjà dans OP MESSAGES — l'expéditeur et son message suffisent */
+html[data-appel] .notif-texte { font-size: 14px; line-height: 18px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-aide { font-size: 13px; line-height: 17px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-aide:empty { display: none; }
 html[data-appel] .notif.on.touchable { pointer-events: none; cursor: default; }
 html[data-appel] .notif-ouvrir:not([hidden]) { display: inline-flex; align-items: center; position: relative; flex: none; min-height: 32px; padding: 0 14px; border-radius: 999px; background: var(--fill); color: var(--on-fill); font-size: 14px; font-weight: 600; pointer-events: auto; cursor: pointer; }
 html[data-appel] .notif-ouvrir::after { content: ""; position: absolute; inset: -6px -4px; }      /* la zone du doigt : 44 px de haut, la banderole reste fine */
@@ -6424,7 +6425,7 @@ a.menu-action { text-decoration: none; }
   }
   /* ceux qui étaient là : « Toi, Ana, Ben et 2 autres » — la salle les montrait tous à chacun, l'écran de fin ne dit rien de plus */
   function sortiePresents(A) {
-    const noms = A.sx && A.sx.venus ? Array.from(A.sx.venus.values()) : [];
+    const noms = A.sx && A.sx.etaientLa ? Array.from(A.sx.etaientLa.values()) : [];
     if (!noms.length) return 'Toi seul';
     return 'Toi, ' + (noms.length <= 4 ? noms.slice(0, -1).join(', ') + (noms.length > 1 ? ' et ' : '') + noms[noms.length - 1] : noms.slice(0, 3).join(', ') + ' et ' + (noms.length - 3) + ' autres');
   }
@@ -11660,7 +11661,7 @@ a.menu-action { text-decoration: none; }
     if (!s.attente && !A.mediasDemandes) acquerirMedias(A, s.type === 'video');           // en salle d'attente, ni micro ni caméra : on ne s'ouvre à personne avant d'être admis
     if (s.conv && !s.attente && !X.discutee) { X.discutee = true; salleDiscussionCharger(A, true); }           // le fil tel qu'il est à mon ENTRÉE : ce qui arrive ensuite est « nouveau » (la pastille du bouton Discussion)
     $('salle-titre').textContent = s.nom;
-    if (!s.attente) { if (!X.venus) X.venus = new Map(); for (const m of s.membres) if (m.statut === 'present') X.venus.set(m.id, nomM(m)); }      // qui était là : l'écran de fin le dit (tout ce que la salle montrait déjà à chacun)
+    if (!s.attente) { if (!X.etaientLa) X.etaientLa = new Map(); for (const m of s.membres) if (m.statut === 'present') X.etaientLa.set(m.id, nomM(m)); }      // qui était là : l'écran de fin le dit (tout ce que la salle montrait déjà à chacun) — ⛔ PAS `X.venus`, qui est déjà un Set d'identifiants pour la fin d'un enregistrement (un `.add` sur ma Map jetait, vu à la sonde)
     $('salle-nb').textContent = s.attente ? '' : s.nb + (s.nb > 1 ? ' participants' : ' participant');
     const rec = $('salle-rec'); rec.hidden = !s.rec; rec.setAttribute('role', 'img'); rec.setAttribute('aria-label', s.rec ? 'Enregistrement en cours' + (s.rec.nom === 'vous' ? ' par vous' : ' par ' + s.rec.nom) : '');
     const recPar = s.rec ? s.rec.par : null;

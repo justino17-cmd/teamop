@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '5773fe0b1d72';
+  const OPMSG_BUILD = '17ffe3e73149';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 268;
+  const OPMSG_VERSION = 270;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3471,7 +3471,7 @@
   }
   /* ceux qui étaient là : « Toi, Ana, Ben et 2 autres » — la salle les montrait tous à chacun, l'écran de fin ne dit rien de plus */
   function sortiePresents(A) {
-    const noms = A.sx && A.sx.venus ? Array.from(A.sx.venus.values()) : [];
+    const noms = A.sx && A.sx.etaientLa ? Array.from(A.sx.etaientLa.values()) : [];
     if (!noms.length) return 'Toi seul';
     return 'Toi, ' + (noms.length <= 4 ? noms.slice(0, -1).join(', ') + (noms.length > 1 ? ' et ' : '') + noms[noms.length - 1] : noms.slice(0, 3).join(', ') + ' et ' + (noms.length - 3) + ' autres');
   }
@@ -8707,7 +8707,7 @@
     if (!s.attente && !A.mediasDemandes) acquerirMedias(A, s.type === 'video');           // en salle d'attente, ni micro ni caméra : on ne s'ouvre à personne avant d'être admis
     if (s.conv && !s.attente && !X.discutee) { X.discutee = true; salleDiscussionCharger(A, true); }           // le fil tel qu'il est à mon ENTRÉE : ce qui arrive ensuite est « nouveau » (la pastille du bouton Discussion)
     $('salle-titre').textContent = s.nom;
-    if (!s.attente) { if (!X.venus) X.venus = new Map(); for (const m of s.membres) if (m.statut === 'present') X.venus.set(m.id, nomM(m)); }      // qui était là : l'écran de fin le dit (tout ce que la salle montrait déjà à chacun)
+    if (!s.attente) { if (!X.etaientLa) X.etaientLa = new Map(); for (const m of s.membres) if (m.statut === 'present') X.etaientLa.set(m.id, nomM(m)); }      // qui était là : l'écran de fin le dit (tout ce que la salle montrait déjà à chacun) — ⛔ PAS `X.venus`, qui est déjà un Set d'identifiants pour la fin d'un enregistrement (un `.add` sur ma Map jetait, vu à la sonde)
     $('salle-nb').textContent = s.attente ? '' : s.nb + (s.nb > 1 ? ' participants' : ' participant');
     const rec = $('salle-rec'); rec.hidden = !s.rec; rec.setAttribute('role', 'img'); rec.setAttribute('aria-label', s.rec ? 'Enregistrement en cours' + (s.rec.nom === 'vous' ? ' par vous' : ' par ' + s.rec.nom) : '');
     const recPar = s.rec ? s.rec.par : null;

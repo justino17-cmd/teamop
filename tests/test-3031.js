@@ -2,14 +2,14 @@
    testeur « salle#4 »).
 
    Avant : la bannière d'arrivée d'un message (« Ana — Tu viens ? ») descendait par-dessus le titre et « Quitter » de la salle, et se touchait tout entière : un doigt qui visait « Quitter » ou le titre
-   ouvrait la conversation de l'autre — et réduisait la salle. Maintenant, tant que l'écran d'appel est sous les yeux (`html[data-appel]`), elle est plus fine (une ligne de titre, le texte sur deux
-   lignes au plus, une icône de 24 px, ni « maintenant » ni l'aide), son corps laisse passer le toucher (`pointer-events: none`) et son seul bouton, « Ouvrir », le reçoit (sa zone de toucher fait 44 px
+   ouvrait la conversation de l'autre — et réduisait la salle. Maintenant, tant que l'écran d'appel est sous les yeux (`html[data-appel]`), elle est plus fine (l'expéditeur et son message sur une ligne chacun,
+   une icône de 24 px, ni « OP MESSAGES · maintenant »), son corps laisse passer le toucher (`pointer-events: none`) et son seul bouton, « Ouvrir », le reçoit (sa zone de toucher fait 44 px
    de haut, la bannière reste fine). Hors d'un appel, RIEN ne change : toute la bannière se touche, sans bouton.
 
    Ce banc MESURE dans un vrai Chromium (127.0.0.1, la page de l'aperçu, jour et nuit, un téléphone de 390 px et un bureau de 1280 px) — jamais le texte de la feuille de style :
      1. HORS APPEL : la bannière touchable reçoit le toucher partout (le point au centre est elle), le bouton « Ouvrir » n'existe pas à l'écran, la bannière garde sa hauteur d'avant ;
      2. ⛔ EN APPEL : le point au centre de la bannière est CE QUI EST DESSOUS (l'écran d'appel : le toucher passe), le bouton « Ouvrir » est là, 44 px de zone de toucher, sa pointe reçoit le toucher ;
-        la bannière est plus fine que hors appel ; elle n'a plus « maintenant » ni l'aide ;
+        la bannière est plus fine que hors appel ; elle n'a plus « OP MESSAGES · maintenant », mais GARDE l'expéditeur et le texte du message (une ligne chacun) ;
      3. un vrai clic au corps de la bannière ne fait RIEN (elle reste affichée, rien n'est ouvert) ; un vrai clic sur « Ouvrir » l'ouvre (la bannière part) ;
      4. une bannière qui ne mène nulle part n'a pas de bouton « Ouvrir » (même en appel) ; l'étiquette vocale du bouton dit où il mène ;
      5. le bouton est lisible : contraste ≥ 4,5:1 de jour comme de nuit.
@@ -90,7 +90,7 @@ const CONV = 'conv:c_' + 'a1b2c3d4'.repeat(4);
         const fb = rgb(bs.backgroundColor), fc = rgb(bs.color), ratio = fb && fc ? (Math.max(lum(fb), lum(fc)) + 0.05) / (Math.min(lum(fb), lum(fc)) + 0.05) : 0;
         return { haut: Math.round(r.height), larg: Math.round(r.width), pe: cs.pointerEvents, bpe: bs.pointerEvents, bdisp: bs.display, bh: Math.round(br.height), bhaut: !!(haut && haut.closest('#notif-ouvrir')),
           centreNotif: !!(centre && centre.closest('#notif')), centreSous: centre ? (centre.closest('#appel-ecran') ? 'appel' : centre.closest('#salle-ecran') ? 'salle' : centre.tagName) : null, pointeBouton: !!(pointe && pointe.closest('#notif-ouvrir')),
-          maintenant: getComputedStyle(n.querySelector('.notif-tete span')).display, aide: getComputedStyle(document.getElementById('notif-aide')).display, ratio: Math.round(ratio * 100) / 100, opac: cs.opacity,
+          tete: getComputedStyle(n.querySelector('.notif-tete')).display, aide: getComputedStyle(document.getElementById('notif-aide')).display, aideH: Math.round(document.getElementById('notif-aide').getBoundingClientRect().height), texteH: Math.round(document.getElementById('notif-texte').getBoundingClientRect().height), ratio: Math.round(ratio * 100) / 100, opac: cs.opacity,
           img: Math.round(n.querySelector('img').getBoundingClientRect().width) };
       });
       const aide = 'Ouvrir pour répondre à tout le groupe sans quitter ce que tu fais.';
@@ -100,7 +100,7 @@ const CONV = 'conv:c_' + 'a1b2c3d4'.repeat(4);
       await (DOSSIER ? (fs.mkdirSync(DOSSIER, { recursive: true }), page.screenshot({ path: path.join(DOSSIER, 'banniere-' + nom + (nuit ? '-nuit' : '-jour') + '-hors-appel.png') })) : null);
       v('(population) hors appel : la bannière est affichée et touchable', [hors.opac, hors.pe], ['1', 'auto']);
       v('⛔ hors appel : le centre de la bannière EST la bannière (elle reçoit le toucher partout, comme avant)', hors.centreNotif, true);
-      v('hors appel : le bouton « Ouvrir » n\'est pas à l\'écran, « maintenant » et l\'aide si', [hors.bdisp, hors.maintenant === 'none', hors.aide === 'none'], ['none', false, false]);
+      v('hors appel : le bouton « Ouvrir » n\'est pas à l\'écran, la ligne « OP MESSAGES · maintenant » et l\'aide si', [hors.bdisp, hors.tete === 'none', hors.aide === 'none'], ['none', false, false]);
       vrai('hors appel : la bannière garde sa hauteur d\'avant (au-delà de 70 px avec l\'aide, icône de 38 px)', hors.haut >= 70 && hors.img === 38);
       /* — en appel : on pose l'écran d'appel comme `afficherAppel` (data-appel) — */
       await page.evaluate(() => { document.documentElement.dataset.appel = '1'; }); await poserBanniere({ vers: CONV, aide }); await poser();
@@ -110,7 +110,7 @@ const CONV = 'conv:c_' + 'a1b2c3d4'.repeat(4);
       v('⛔ en appel : le centre de la bannière n\'est PLUS la bannière : le toucher passe à l\'écran d\'appel qui est dessous', [en.pe, en.centreNotif, en.centreSous], ['none', false, 'appel']);
       v('⛔ en appel : le bouton « Ouvrir » est là, reçoit le toucher à sa pointe, et sa zone de toucher fait 44 px (un point à 5 px au-dessus de lui est encore lui)', [en.bdisp, en.bpe, en.pointeBouton, en.bhaut, en.bh >= 32], ['flex', 'auto', true, true, true]);
       vrai('⛔ en appel : la bannière est plus FINE (' + en.haut + ' px contre ' + hors.haut + ' hors appel) et tient en deux lignes de texte au plus : ≤ 56 px', en.haut < hors.haut && en.haut <= 56);
-      v('… sans « maintenant » ni l\'aide, avec une icône de 24 px', [en.maintenant, en.aide, en.img], ['none', 'none', 24]);
+      v('⛔ … sans la ligne « OP MESSAGES · maintenant », mais l\'expéditeur ET le texte du message restent, une ligne chacun (17 à 18 px de haut), avec une icône de 24 px', [en.tete, en.aide !== 'none', en.texteH === 18, en.aideH === 17, en.img], ['none', true, true, true, 24]);
       vrai('elle tient dans l\'écran (largeur ≤ celle de l\'écran, 440 au plus)', en.larg <= pf.viewport.width && en.larg <= 440);
       vrai('⛔ le bouton est lisible : contraste ' + en.ratio + ':1 (≥ 4,5)', en.ratio >= 4.5);
       /* — un vrai clic au corps de la bannière — */

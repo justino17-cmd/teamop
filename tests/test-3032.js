@@ -75,7 +75,7 @@ const monter = (over) => {
   console.log('\n2. `rafraichirAppel` et `afficherAppel` jouent la décision');
   async function rafraichir(prec, s, over) {
     const m = monter(Object.assign({ source: { appel: async () => s } }, over || {}));
-    const A = { id: 'a1', snap: prec, fini: false, sx: { venus: new Map([['u1', 'Ana']]) } }; m.W.D.etat.appelUI = A;
+    const A = { id: 'a1', snap: prec, fini: false, sx: { etaientLa: new Map([['u1', 'Ana']]) } }; m.W.D.etat.appelUI = A;
     m.W.D.etat.appelId = 'a1';
     m.M.F.rafraichirAppel && await m.M.F.rafraichirAppel();
     return { A, W: m.W };
@@ -118,7 +118,7 @@ const monter = (over) => {
   console.log('\n3. `sortieMontrer` : ce que l\'écran dit');
   async function montrer(so, A0) {
     const m = monter();
-    const A = Object.assign({ id: 'a1', snap: snap(), sx: { venus: new Map([['u1', 'Ana'], ['u2', 'Ben']]) } }, A0 || {});
+    const A = Object.assign({ id: 'a1', snap: snap(), sx: { etaientLa: new Map([['u1', 'Ana'], ['u2', 'Ben']]) } }, A0 || {});
     m.M.F.sortieMontrer(A, so);
     return { A, W: m.W, D: m.W.D };
   }
@@ -139,7 +139,7 @@ const monter = (over) => {
   v('sans verdict (`null`), rien n\'est posé : aucun média lâché, pas de `data-sortie` (la couche n\'est pas figée sur un écran vide)', rienPose, [0, null]);
 
   console.log('\n4. `sortiePresents`');
-  const pres = (n) => { const m = monter(); return m.M.F.sortiePresents({ sx: { venus: new Map(Array.from({ length: n }, (_, i) => ['u' + i, ['Ana', 'Ben', 'Cléo', 'Dan', 'Eve', 'Fay'][i]])) } }); };
+  const pres = (n) => { const m = monter(); return m.M.F.sortiePresents({ sx: { etaientLa: new Map(Array.from({ length: n }, (_, i) => ['u' + i, ['Ana', 'Ben', 'Cléo', 'Dan', 'Eve', 'Fay'][i]])) } }); };
   v('0, 1, 2, 4, 5, 6 présents', [0, 1, 2, 4, 5, 6].map(pres), ['Toi seul', 'Toi, Ana', 'Toi, Ana et Ben', 'Toi, Ana, Ben, Cléo et Dan', 'Toi, Ana, Ben, Cléo et 2 autres', 'Toi, Ana, Ben, Cléo et 3 autres']);
   v('une salle sans mémoire des présents (`sx` absent) : « Toi seul », sans exception', (() => { const m = monter(); return m.M.F.sortiePresents({}); })(), 'Toi seul');
 
@@ -150,7 +150,7 @@ const monter = (over) => {
   vrai('Échap : `salleEchap` ne tient pas une salle sur son écran de sortie (la touche ferme la couche, comme un retour)', /function salleEchap\(\) \{\s*const A = etat\.appelUI; if \(!enSalle\(A\) \|\| A\.sortie\) return false;/.test(JS));
   vrai('un appel qui arrive pendant l\'écran de sortie y prend la place (`surAppelEntrant` ne l\'ignore pas), et `appliquer` referme l\'ancien par la sortie unique', /const surSortie = !!\(etat\.appelUI && etat\.appelUI\.sortie\);/.test(JS) && /\(etat\.appelId && !surSortie\)/.test(JS) && /if \(etat\.appelReduit \|\| \(etat\.appelUI && etat\.appelUI\.sortie\)\) quitterAppel\(\); afficherAppel\(veutAppel\);/.test(corps('function appliquer(r)')));
   vrai('la couche qui se ferme retire `data-sortie` (quitterAppel) ; la salle ni l\'appel ne sont redessinés dessous (`rendreAppel`, `majParle`, `rafraichirAppel` se taisent)', /delete document\.documentElement\.dataset\.sortie;/.test(corps('function quitterAppel(')) && /if \(!A \|\| !A\.snap \|\| A\.sortie\) return;/.test(corps('function rendreAppel(')) && /if \(!enSalle\(A\) \|\| A\.sortie\) return;/.test(corps('async function majParle(')) && /if \(A\.sortie\) return;/.test(corps('async function rafraichirAppel(')));
-  vrai('`rendreSalle` note qui était là (`X.venus`, les seuls présents, jamais ceux de la salle d\'attente)', /if \(!s\.attente\) \{ if \(!X\.venus\) X\.venus = new Map\(\); for \(const m of s\.membres\) if \(m\.statut === 'present'\) X\.venus\.set\(m\.id, nomM\(m\)\); \}/.test(corps('function rendreSalle(')));
+  vrai('`rendreSalle` note qui était là (`X.etaientLa`, les seuls présents, jamais ceux de la salle d\'attente — et surtout PAS `X.venus`, déjà un Set d\'identifiants pour la fin d\'un enregistrement : vu à la sonde, `.add` jetait)', /if \(!s\.attente\) \{ if \(!X\.etaientLa\) X\.etaientLa = new Map\(\); for \(const m of s\.membres\) if \(m\.statut === 'present'\) X\.etaientLa\.set\(m\.id, nomM\(m\)\); \}/.test(corps('function rendreSalle(')) && (JS.match(/etaientLa/g) || []).length === 5);
   vrai('l\'écran existe dans le balisage (section, titre, raison, faits, bouton) et sa feuille cache la salle et l\'appel', ['sortie-ecran', 'sortie-titre', 'sortie-raison', 'sortie-faits', 'sortie-bouton'].every(id => P.PAGE.includes('id="' + id + '"')) && /html\[data-sortie\] \.appel-ecran, html\[data-sortie\] \.salle-ecran \{ display: none; \}/.test(P.PAGE) && /html\[data-sortie\] \.sortie-ecran \{ display: flex; \}/.test(P.PAGE));
   fin();
 })().catch((e) => { console.error('✗ le banc est mort :', e && e.stack || e); process.exit(1); });

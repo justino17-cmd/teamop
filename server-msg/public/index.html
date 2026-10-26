@@ -672,9 +672,10 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .notif-ouvrir { display: none; }
 html[data-appel] .notif { padding: 6px 8px 6px 12px; gap: 8px; border-radius: 18px; }
 html[data-appel] .notif img { width: 24px; height: 24px; border-radius: 7px; }
-html[data-appel] .notif-tete span, html[data-appel] .notif-aide { display: none; }
-html[data-appel] .notif-tete b { font-size: 13px; }
-html[data-appel] .notif-texte { font-size: 14px; line-height: 18px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-tete { display: none; }                                 /* « OP MESSAGES · maintenant » : la salle est déjà dans OP MESSAGES — l'expéditeur et son message suffisent */
+html[data-appel] .notif-texte { font-size: 14px; line-height: 18px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-aide { font-size: 13px; line-height: 17px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-aide:empty { display: none; }
 html[data-appel] .notif.on.touchable { pointer-events: none; cursor: default; }
 html[data-appel] .notif-ouvrir:not([hidden]) { display: inline-flex; align-items: center; position: relative; flex: none; min-height: 32px; padding: 0 14px; border-radius: 999px; background: var(--fill); color: var(--on-fill); font-size: 14px; font-weight: 600; pointer-events: auto; cursor: pointer; }
 html[data-appel] .notif-ouvrir::after { content: ""; position: absolute; inset: -6px -4px; }      /* la zone du doigt : 44 px de haut, la banderole reste fine */
