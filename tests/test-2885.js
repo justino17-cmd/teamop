@@ -113,7 +113,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     const vu = await att(async () => { const r = await reunions(A); return r.enCours && r.enCours.type; }, 14000);
     const g = vu ? (await reunions(A)) : null;
     vrai('(population) la minuterie a lancé la réunion sans aucun geste, et la lecture la voit « en cours »', vu === 'objectifs');
-    v('⛔ « en cours » dit laquelle et jusqu’à quelle heure (10 h, heure de Paris)', g && [g.enCours.titre, g.enCours.jusqua, g.enCours.fin > Date.now()], ['Réunion du lundi', '10 h', true]);
+    v('⛔ « en cours » dit laquelle et jusqu’à quelle heure (10 h, heure de Paris)', g && [g.enCours.titre, g.enCours.jusqua, g.enCours.fin > U(2026, 10, 26, 8, 5)], ['Réunion du lundi', '10 h', true]);
     const fini = await att(async () => { const r = await reunions(A); return r.reunions[0] && r.reunions[0].statut === 'terminee'; }, 30000);
     vrai('(population) la réunion va au bout', fini);
     const ms = (await A.G('/api/monitor/conversations/reunions')).j.messages;
