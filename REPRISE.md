@@ -956,17 +956,22 @@ dit le jour d'une arrivée d'hier même pour une soirée.
 - ✅ **contacts#1** — TRANCHÉ ET FAIT le 26 octobre 2026 (branche `claude/opmsg-groupes-conversations`, `test-3040`) : le contact BLOQUÉ voit sa conversation chez soi en LECTURE SEULE (phrase + « Débloquer » ; Infos : « Débloquer ce contact ») ;
   lui n'est averti de rien : il écrit (201), son message est RANGÉ et MASQUÉ pour qui l'a bloqué (`msg_masque`, `ecritureSilencieuse`) — jamais remis, jamais notifié, la conversation ne remonte pas. Un groupe n'est pas touché ; débloquer ne ramène PAS les messages de la période.
   ⚠️ Doutes : un message de la période peut paraître « Lu » chez Ben si Ana, débloquée, lit plus tard (le `lu_seq` passe par-dessus) ; les réactions et les sondages d'un bloqué restent refusés (404).
-- **la fiche d'une réunion TERMINÉE** garde « Répondre », le rappel et le trajet : les retirer ? (salle#2 n'a retiré que « Rejoindre » et l'audio.)
-- **salle#4** — la bannière « réunion en cours » d'une AUTRE conversation reste, et intercepte le toucher (elle protège d'un départ involontaire).
-- **salle@4** — un refus d'entrer ramène tout de suite à l'écran d'avant : rendre la phrase durable ? **salle@10** — ajouter du contenu à l'écran de fin.
-- **agenda@2 / pro@3** — déplacer ou retirer un geste connu de l'agenda ; **agenda@5** — des rangées de réunion plus denses (plancher tactile de 64 px).
-- **appels@6** — « revenir » après un appel (il faudrait ranger un état sur l'appareil) ; **appels@2** — regrouper autrement les manqués d'affilée.
+- ✅ **RÉUNIONS ET APPELS — TRANCHÉ PAR JUSTIN LE 26 OCTOBRE 2026 (« fait les 18 »), FAIT SUR LA BRANCHE `claude/opmsg-reunions-appels` (bêta d'OP MESSAGES, pas encore fusionnée)** :
+  la fiche d'une réunion TERMINÉE n'a plus « Ta réponse », « Me rappeler » ni la zone du trajet (la durée, les présents et les participants restent — `test-3030`) ; la bannière d'une AUTRE conversation
+  pendant un appel ou une réunion reste, plus fine (l'expéditeur et son message, une ligne chacun), son corps laisse passer le toucher et son bouton « Ouvrir » seul le reçoit (`test-3031`, mesuré au navigateur) ;
+  un refus d'entrer (l'hôte n'a pas accepté, retiré, réunion annulée, salle déjà finie) RESTE à l'écran avec sa raison et « Retour » ; la fin d'une réunion montre la durée, qui était là et « Revenir à la
+  conversation » — la caméra et le micro s'éteignent dès l'écran de fin (`test-3032`) ; après un appel on revient à l'écran d'où l'on est parti, feuille comprise (fiche d'une réunion, détails d'un appel, contact),
+  l'état est à l'appareil (le module de données le range dans le stockage de l'onglet, la page n'écrit sur aucun stockage — `test-856`), jamais dans les données partagées (`test-3033`) ; « 3 appels manqués » à la place de « Appel manqué (3) » (`test-3034`) ; une réunion de plusieurs jours (24 h ou
+  plus) se montre chaque jour avec « Jour 2 sur 3 » (`test-3035`) ; quand l'organisateur QUITTE, l'invité nommé suivant (un co-hôte d'abord) devient l'organisateur avec TOUS les gestes, côté SERVICE
+  (`server-msg/stockage.js`, `salleSuccesseur` — `test-3036`, `test-2400` mis à jour), la phrase du panneau « Quitter » le dit. **Gardés tels quels (« on garde »)** : agenda@2 / pro@3 (Reporter), agenda@5 (rangées).
+  Preuves : `scratchpad/sonde-opmessages-reunions-appels.js` (183 contrôles au navigateur sur la VRAIE page servie, 390 px et 1280 px, jour et nuit — elle a trouvé une collision de nom, `X.venus`, que les bancs ne voyaient
+  pas), `scratchpad/mutations-opmessages-reunions-appels.py` (65 mutations, toutes tombent). ⚠️ Limites connues : une salle de RÉUNION dont seuls des invités entrés par le LIEN restent garde l'intérim d'avant (la porte, pas
+  les armes) ; un successeur nommé GARDE son rôle quand l'organisateur revient (deux hôtes) ; l'origine d'un appel lancé depuis un sélecteur (« Nouvel appel ») n'est pas rouverte (on a choisi, on a appelé) ; les nouveaux
+  bancs ne sont PAS dans `scripts/bancs-messages.liste` (`test-900` borne les numéros à 900-2699) : ils tournent dans la suite complète.
 - ✅ **groupes@5, groupes@3, groupes@2, conversations@1, pro@5/pro@6, temps-reel@3, n#5** — TRANCHÉS ET FAITS le 26 octobre 2026 (même branche ; `test-3041`, `test-3042`, `test-3043`, sonde `sonde-opmessages-groupes-conversations.js`) :
   nom par défaut « Léa, Hugo et 2 autres » (envoyé au service, filigrane du champ) ; canal supprimé = « supprimé » (événement `retire` + `supprime`) ; ligne système = phrase dans la LISTE (groupes et canaux — pas les réunions) ;
   épinglée : EN HAUT seulement (liste, recherche, « Modifier », « Archivées » : une seule fois à l'écran), « Désépingler » à l'appui long / clic droit sur l'épingle ; pro@5 : rien de plus (non) ; pro@6 : « Confirmer l'envoi » masquée en Perso ;
   « Léa écrit… » / « Léa et Hugo écrivent… » en groupe (6 s gardées) ; UNE limite de nom de groupe : 80 (création et renommage).
-- **une réunion de plusieurs jours** se montre sur CHACUN de ses jours (q01 dit désormais le jour de fin) : voulu ?
-- **l'organisateur qui « Quitte »** : sa phrase annonce un intérim qui n'a, lui, aucun des gestes de l'hôte.
 - **quandRdv / ligneEvenement** ne disent que les heures, jamais le fuseau — NON FAIT le 26 octobre 2026 : ce sont des fonctions de l'AGENDA (autre chantier, même fichier) et elles ne reçoivent aucun fuseau d'interlocuteur (`quandRdv(d, f, journee, jours)`) ;
   il faudrait d'abord que l'événement porte le fuseau de l'autre, puis décider quoi montrer pour un rendez-vous sans interlocuteur.
 - **les 83 améliorations** que les testeurs ont proposées en utilisant l'application, rangées par partie, chacune avec la raison qui en fait une

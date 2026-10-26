@@ -4182,9 +4182,19 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      un exclu, rien ne le réadmet), ne verrouille pas, ne règle ni la salle d'attente ni le partage, n'enregistre pas, ne nomme pas de co-hôte (permanent), ne demande pas à tous de couper le micro.
      Il se RECONNAÎT sans champ de plus : grade 2 dans une salle de RÉUNION et pas l'organisateur de cette réunion (qui est `reunion.hote`). Un co-hôte (grade 1) nommé par l'organisateur n'est pas concerné ;
      l'organisateur qui entre fait redescendre l'intérimaire à 0 (`appelRejoindre`). → booléen */
+  /* ⛔ …ET CELUI QUI SUCCÈDE À L'ORGANISATEUR N'EST PAS UN INTÉRIMAIRE (26 octobre 2026, Justin : « quand l'organisateur Quitte, le participant suivant devient le nouvel organisateur, avec TOUS les gestes de
+     l'hôte »). La salle a eu son organisateur : il est ENTRÉ, puis il est PARTI (sa ligne dit `parti` — ou `present` s'il est revenu depuis : le successeur garde son rôle). La personne qui reçoit alors le grade 2 est nommée par l'organisateur lui-même (un invité NOMMÉ : `invite_par`
+     non vide) — elle exclut, verrouille, règle la salle, enregistre, nomme des co-hôtes, termine pour tous. Rien n'a changé pour l'autre cas : tant que l'organisateur n'est JAMAIS venu, ou que la personne n'est
+     entrée que par le lien, le grade 2 reste celui de l'intérim, la porte sans les armes. */
+  function salleSuccesseur(a, uid, hote) {
+    if (!a || !hote) return false;
+    const org = appelPart(a.id, hote);
+    return !!org && (org.statut === 'parti' || org.statut === 'present') && !!Q('SELECT 1 FROM reunion_invite WHERE reunion = ? AND uid = ? AND invite_par IS NOT NULL').get(a.reunion, uid);
+  }
   function salleInterim(a, uid, grade) {
     if (!a || a.genre !== 'reunion' || !a.reunion || num(grade) < GRADE_HOTE) return false;
-    return (Q('SELECT hote FROM reunion WHERE id = ?').get(a.reunion) || {}).hote !== uid;
+    const hote = (Q('SELECT hote FROM reunion WHERE id = ?').get(a.reunion) || {}).hote;
+    return hote !== uid && !salleSuccesseur(a, uid, hote);
   }
   function appelBrut(id) { return Q('SELECT id, type, etat, cree, sonne_jusqua, repondu, fin, motif, genre, conv, reunion, capacite, verrou, attente, partage_ok, rec_par, visio FROM appel WHERE id = ?').get(id) || null; }
   const appelPart = (id, uid) => Q('SELECT role, session, statut, grade, entre, gen FROM appel_part WHERE appel = ? AND uid = ?').get(id, uid) || null;
@@ -4513,7 +4523,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (!attend) presenceEntrer(id, uid, t);
       /* l'organisateur qui arrive REPREND la main : celui qui la tenait à sa place (l'intérimaire : dans une réunion, tout autre grade 2 l'est) redevient simple participant. Il ne devient PAS co-hôte : ce serait
          lui donner pour toujours les gestes qu'on lui refusait — exclure, verrouiller — sans que personne les lui ait confiés. Un co-hôte NOMMÉ (grade 1) n'est pas touché. */
-      if (hoteReunion && !attend) Q(`UPDATE appel_part SET grade = 0 WHERE appel = ? AND uid <> ? AND grade = ?`).run(id, uid, GRADE_HOTE);
+      /* …sauf le SUCCESSEUR : l'organisateur était parti, la salle a donné l'organisation à un invité nommé (`salleSuccesseur`), et ce rôle lui a été confié, pas prêté — il le garde. Seul l'intérim s'efface. */
+      if (hoteReunion && !attend) {
+        if (p && p.statut === 'parti') Q(`UPDATE appel_part SET grade = 0 WHERE appel = ? AND uid <> ? AND grade = ? AND uid NOT IN (SELECT uid FROM reunion_invite WHERE reunion = ? AND invite_par IS NOT NULL)`).run(id, uid, GRADE_HOTE, a.reunion);
+        else Q(`UPDATE appel_part SET grade = 0 WHERE appel = ? AND uid <> ? AND grade = ?`).run(id, uid, GRADE_HOTE);
+      }
       if (!attend) salleDemarrerSiDeux(id, t);
       return { deja: false, attente: attend, gids: appelEvenements(id, [uid]), vue: appelVue(uid, id), etat: appelBrut(id).etat };
     });
@@ -4589,11 +4603,18 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       presenceSortir(id, uid, t);
       Q(`UPDATE appel_part SET statut = 'parti', session = NULL, grade = CASE WHEN grade = ? THEN 0 ELSE grade END WHERE appel = ? AND uid = ?`).run(GRADE_HOTE, id, uid);
       if (a.rec_par === uid) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
-      /* l'hôte qui part passe la main au suivant (un co-hôte d'abord). ⛔ Dans une RÉUNION, seulement si plus personne n'y tient la porte : un co-hôte nommé par l'organisateur la tient, et le promouvoir en
-         ferait un grade 2 que `salleInterim` prendrait pour un intérimaire — il perdrait ses gestes, puis son grade au retour de l'organisateur. */
-      if (num(p.grade) === GRADE_HOTE && p.statut === 'present'
-        && !(a.genre === 'reunion' && num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present' AND uid <> ? AND grade >= ?`).get(id, uid, GRADE_COHOTE).n) > 0)) {
-        const s = Q(`SELECT uid FROM appel_part WHERE appel = ? AND statut = 'present' AND uid <> ? ORDER BY grade DESC, entre, uid LIMIT 1`).get(id, uid);
+      /* l'hôte qui part passe la main au suivant (un co-hôte d'abord).
+         ⛔ Dans la salle d'une RÉUNION, quand c'est l'ORGANISATEUR qui part (sa ligne dit `parti`, la nôtre vient de l'écrire), le suivant est un invité NOMMÉ — un co-hôte d'abord, puis le plus ancien — et il devient
+         le nouvel organisateur avec TOUS les gestes (`salleSuccesseur`) ; un co-hôte présent n'empêche plus la passation. Sans invité nommé présent (il n'y a que des gens entrés par le lien), ou quand c'est
+         un intérimaire qui part, la règle d'avant reste : seulement si plus personne n'y tient la porte, et le suivant n'a que la porte. */
+      if (num(p.grade) === GRADE_HOTE && p.statut === 'present') {
+        const hoteR = a.genre === 'reunion' && a.reunion ? (Q('SELECT hote FROM reunion WHERE id = ?').get(a.reunion) || {}).hote : null;
+        const organisateurPasse = !!hoteR && (appelPart(id, hoteR) || {}).statut === 'parti';
+        let s = organisateurPasse ? Q(`SELECT p.uid AS uid FROM appel_part p WHERE p.appel = ? AND p.statut = 'present' AND p.uid <> ?
+                                       AND EXISTS (SELECT 1 FROM reunion_invite i WHERE i.reunion = ? AND i.uid = p.uid AND i.invite_par IS NOT NULL)
+                                       ORDER BY p.grade DESC, p.entre, p.uid LIMIT 1`).get(id, uid, a.reunion) : null;
+        if (!s && !(a.genre === 'reunion' && num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present' AND uid <> ? AND grade >= ?`).get(id, uid, GRADE_COHOTE).n) > 0))
+          s = Q(`SELECT uid FROM appel_part WHERE appel = ? AND statut = 'present' AND uid <> ? ORDER BY grade DESC, entre, uid LIMIT 1`).get(id, uid);
         if (s) Q('UPDATE appel_part SET grade = ? WHERE appel = ? AND uid = ?').run(GRADE_HOTE, id, s.uid);
       }
     } else if (p.statut === 'invite') {

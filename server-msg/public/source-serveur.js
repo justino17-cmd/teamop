@@ -3489,6 +3489,19 @@
       const st = stockageOnglet(); if (!st) return {};
       try { const x = st.getItem(CLE_BROUILLONS); if (!x) return {}; st.removeItem(CLE_BROUILLONS); const o = JSON.parse(x); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; }
     }
+    /* ⛔ L'ÉCRAN D'OÙ UN APPEL EST PARTI (décision du 26 octobre 2026 : « l'état se range sur l'appareil, jamais dans les données partagées ») : la page le note à l'appel et le relit au raccrochage pour rouvrir la
+       fiche ou les détails d'où l'on a appelé. Le stockage de l'ONGLET, comme les brouillons : jamais `localStorage`, jamais le service, un rangement refusé ne casse rien. La PAGE n'écrit sur aucun
+       stockage (`test-856`) : elle passe par ces trois gestes, et sans eux (l'aperçu) elle garde la note en mémoire. On ne range qu'une route (vue, conversation, rubrique, feuille) — jamais un contenu. */
+    const CLE_ORIGINE_APPEL = 'opmsg-origine-appel';
+    function origineAppelNoter(o) {
+      const st = stockageOnglet(); if (!st) return;
+      try { if (o && typeof o === 'object' && typeof o.id === 'string' && o.route && typeof o.route === 'object') st.setItem(CLE_ORIGINE_APPEL, JSON.stringify({ id: o.id.slice(0, 80), route: { vue: String(o.route.vue || ''), conv: o.route.conv ? String(o.route.conv) : null, sec: o.route.sec ? String(o.route.sec) : null, feuille: o.route.feuille ? String(o.route.feuille) : false } })); else st.removeItem(CLE_ORIGINE_APPEL); } catch (e) { /* refusé : la mémoire de la page suffit */ }
+    }
+    function origineAppelLire(id) {
+      const st = stockageOnglet(); if (!st) return null;
+      try { const o = JSON.parse(st.getItem(CLE_ORIGINE_APPEL) || 'null'); return o && o.id === id && o.route && typeof o.route.vue === 'string' ? o : null; } catch (e) { return null; }
+    }
+    function origineAppelEffacer() { const st = stockageOnglet(); if (!st) return; try { st.removeItem(CLE_ORIGINE_APPEL); } catch (e) { /* rien à retirer */ } }
     /* `min` : le numéro de page en dessous duquel le service refuse d'écrire (la Tour le pose) ; `numero` : celui de la page qu'il sert — un entier, ou null quand il ne le dit pas */
     async function versionServie() {
       const c = await A.config();
@@ -4051,7 +4064,7 @@
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
       modeTravail, choisirMode, modeAuto, modeChoisiLe, choisirModeAuto, relireCote, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions, vitesseVocal, choisirVitesseVocal,                                                                            // Perso / Pro
-      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
+      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons, origineAppelNoter, origineAppelLire, origineAppelEffacer,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifPauseReunion, notifHeuresPro, heuresPro, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */

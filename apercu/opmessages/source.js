@@ -24,7 +24,7 @@
                                   ('invalide'). Un appel de l'historique :
                                   { id, type:'audio'|'video', sens:'entrant'|'sortant'|'manque', groupe, conv:<id de conversation>|null,
                                     membres:[<id de contact>] (les AUTRES : jamais moi), nom, court, initiales, avatar, photo,
-                                    repetitions (≥ 1 : « Appel manqué (2) » = deux manqués d'affilée de la même personne), t (ms, début), duree (secondes,
+                                    repetitions (≥ 1 : « 2 appels manqués » = deux manqués d'affilée de la même personne), t (ms, début), duree (secondes,
                                     0 pour un manqué ou un appel annulé avant qu'on réponde) }
      demarrerAppel({membres, video, conv}) → l'appel EN COURS (voir appel()). membres = au moins un contact connu (doublons et inconnus écartés) ;
                                   conv facultatif (sinon la source retrouve la conversation qui réunit exactement ces personnes, ou null).
