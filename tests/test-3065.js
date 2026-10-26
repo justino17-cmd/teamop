@@ -208,7 +208,7 @@ const srv = http.createServer((q, r) => {
   const W = fs.readFileSync(path.join(RACINE, '.github/workflows/blog-publication.yml'), 'utf8').replace(/^\s*#.*$/gm, '');
   const i = s => W.indexOf(s);
   vrai('le post est PRÉPARÉ avant les bancs et avant la fusion', i('google-post.js preparer') > 0 && i('node scripts/blog.js') < i('google-post.js preparer') && i('google-post.js preparer') < i('for t in 3000') && i('google-post.js preparer') < i('gh pr merge'));
-  vrai('il est PUBLIÉ après la publication du site', i('google-post.js publier') > i('gh workflow run publication-site.yml'));
+  vrai('il est PUBLIÉ après la publication du site', i('gh workflow run publication-site.yml') > 0 && i('google-post.js publier') > i('gh workflow run publication-site.yml'));
   vrai('⛔ jamais bloquant : préparation en `|| echo ::warning`, publication en continue-on-error', /google-post\.js preparer "\$s" \|\| echo "::warning::/.test(W) && /Publier le post sur la fiche Google\n\s+if: [^\n]+\n\s+continue-on-error: true/.test(W));
   for (const k of ['GBP_CLIENT_ID', 'GBP_CLIENT_SECRET', 'GBP_REFRESH_TOKEN', 'GBP_ACCOUNT_ID', 'GBP_LOCATION_ID'])
     vrai(`${k} ne vient que du secret du même nom`, new RegExp(`${k}: \\$\\{\\{ secrets\\.${k} \\}\\}`).test(W) && (W.match(new RegExp('secrets\\.' + k, 'g')) || []).length === 1);
