@@ -6,12 +6,13 @@ blanc), une photo à droite. Sans photo, le panneau prend toute la largeur.
 
     python3 scripts/blog-couverture.py <slug> "<titre>" [photo.jpg|png|webp]
 
-La photo vient de Justin (Gemini) ou d'une banque libre de droits ; jamais une image qui montre une marque, un logo ou
+La photo vient de Gemini (scripts/blog-gemini.js, à la publication) ou d'une banque libre de droits ; jamais une image qui montre une marque, un logo ou
 un personnage connus. Pillow suffit (aucune autre dépendance)."""
 import sys, os
 from PIL import Image, ImageDraw, ImageFont
 
-RACINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+# BLOG_RACINE : les bancs travaillent dans un dossier jetable (tests/test-3060.js), jamais dans blog/img/ du dépôt
+RACINE = os.environ.get('BLOG_RACINE') or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 L, H = 1200, 675
 NUIT = (11, 20, 38)
 POLICES = ['/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf',

@@ -1,8 +1,12 @@
 # Blog TEAM OP — file des sujets
 
-La tâche planifiée « Article du blog » prend le **premier sujet non coché**, écrit l'article, le coche ici avec sa date
-et son slug, et ouvre une demande de fusion. Justin relit et fusionne : c'est la fusion qui publie (un push sur `main`
-publie le site). Rien ne part sans lui.
+La tâche planifiée « Article du blog » (du lundi au vendredi) prend le **premier sujet non coché**, écrit l'article, le
+coche ici avec sa date et son slug, et ouvre une demande de fusion. **La publication est automatique** (Justin, 26 octobre
+2026 : « je veux que les publications soient automatiques et que les images soient gérées avec Gemini ») :
+`.github/workflows/blog-publication.yml` fait dessiner les images par Gemini, refait les pages, repasse les bancs du blog,
+fusionne et publie. Une demande qui touche autre chose que le blog, ou un banc qui tombe, n'est PAS fusionnée.
+Quand il reste moins de cinq sujets non cochés, la tâche en ajoute dix (recherche des questions que posent les entreprises
+de terrain, mots-clés que le site ne couvre pas encore), à la fin de la file.
 
 Ajouter un sujet : une ligne `- [ ] mot-clé visé — angle — page du site à citer`. L'ordre de la liste est l'ordre de
 publication.
@@ -25,6 +29,13 @@ publication.
   articles déjà publiés (`/blog/<slug>.html`).
 - Images : une couverture 1200 × 675 et une ou deux images dans le texte, WebP, dans `blog/img/`. Pas de marque, de
   logo ni de personnage connus. Texte alternatif qui décrit vraiment l'image.
+  · la couverture : `python3 scripts/blog-couverture.py <slug> "<titre>"` (le panneau seul) ; à la publication, Gemini
+    dessine la photo de droite. Pour orienter la scène, un champ `"photo"` dans la fiche (en anglais, une phrase) ;
+  · une image dans le texte que Gemini dessinera : `python3 scripts/blog-images.py --attente blog/img/<nom>.webp`, puis
+    `<figure><img alt="…" data-gemini="la scène, en anglais, une phrase" decoding="async" height="675" loading="lazy"
+    src="/blog/img/<nom>.webp" width="1200"/></figure>`. Si Gemini ne peut pas la dessiner, la figure est retirée ;
+  · les consignes fixes de chaque image (personnes fictives, tenue bleu marine, ni texte, ni logo) sont dans
+    `scripts/blog-gemini.js` : inutile de les répéter.
 
 ## File
 

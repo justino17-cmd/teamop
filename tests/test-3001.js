@@ -80,7 +80,7 @@ const sans = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/
   const LEA = sans(fs.readFileSync(path.join(RACINE, 'server', 'agent-lea.js'), 'utf8'));
   vrai('⛔ Léa dit au juge d’où vient l’activité (indiquée, déduite du site, ou à déduire du nom)', /\(indiquée par l’inscrit\)/.test(LEA) && /\(déduite d’une recherche sur l’entreprise\)/.test(LEA) && /le courriel peut la déduire du nom de l’entreprise/.test(LEA));
   const BR = sans(fs.readFileSync(path.join(RACINE, 'server', 'agents-brouillons.js'), 'utf8'));
-  vrai('⛔ la vue d’un brouillon dit la RAISON d’un contrôle « non vérifié » (un code du serveur, borné par controleRange)', /controle: \{ etat: c\.etat, fautes: CTRL\.phrasesDe\(c\.fautes\), juge: c\.juge, reecrit: e\.reecrit === true, raison: c\.raison \}/.test(BR));
+  vrai('⛔ la vue d’un brouillon dit la RAISON d’un contrôle « non vérifié » (un code du serveur, borné par controleRange)', /controle: \{ etat: c\.etat, fautes: CTRL\.phrasesDe\(c\.fautes\), juge: c\.juge, reecrit: e\.reecrit === true, raison: c\.raison(?:, citations: c\.citations)? \}/.test(BR));
 
   console.log('\n4. Scénario 9 — les formules du modèle de courriel ne sont pas des formules toutes faites');
   vrai('(population) deux formules maison déclarées', Array.isArray(EX.FORMULES_MAISON) && EX.FORMULES_MAISON.length === 2, JSON.stringify(EX.FORMULES_MAISON));

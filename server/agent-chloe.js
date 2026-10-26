@@ -213,7 +213,7 @@ module.exports = function chloe(ctx) {
           return { saute: res.raison === 'forme' ? 'forme' : 'texte_refuse', raison: res.raison };
         }
         agents.noter(ID, 'contrôle qualité', { cible: 'proposition', resultat: res.etat === 'bon' ? 'ok' : 'refuse', detail: res.etat + (res.reecrit ? ' après une réécriture' : '') + (res.fautes.length ? ' : ' + res.fautes.join(', ') : '') });
-        const controle = { etat: res.etat, fautes: res.fautes, juge: res.juge === true, raison: res.raison };
+        const controle = { etat: res.etat, fautes: res.fautes, juge: res.juge === true, raison: res.raison, citations: res.citations };
         const d = await brouillons.deposer({ agent: ID, a, objet: res.objet, texte: res.corps, source: 'proposition', role: 'contact', boiteId: ev.boiteId,
           enReponseA: ev.mid ? { mid: ev.mid, boiteId: ev.boiteId, dossier: ev.dossier, uid: ev.uid } : null,
           entreprise: c.entreprise || '', controle, authentifie: ev.authentifie === true, reecrit: res.reecrit === true });
