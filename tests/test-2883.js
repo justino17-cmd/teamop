@@ -81,7 +81,7 @@ console.log('\n── 2883 · la messagerie de la Tour contre le vrai serveur �
   const kh = k => crypto.createHash('sha256').update(k).digest('hex'); const MDP = 'mot-de-passe-du-banc-2883';
   async function serveur(nom, o) {
     o = o || {};
-    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true });
+    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ce banc (`test-3021`)
     fs.writeFileSync(path.join(D, 'clients.json'), '{}'); fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
     if (o.illisible) fs.writeFileSync(path.join(D, 'agents-messages.json'), '{ tronqué');
     const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2883' } };

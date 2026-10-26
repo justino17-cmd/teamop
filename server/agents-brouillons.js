@@ -104,6 +104,7 @@ module.exports = function brouillons(app, ctx) {
     if (!agents.AGENTS.some(a => a.id === agent)) return { ok: false, raison: 'agent' };
     const p = agents.peutAgir(agent);
     if (!p.ok) return { ok: false, raison: p.raison };
+    if (p.horsHeures) return { ok: false, raison: 'hors_heures' };       // l'astreinte (Max, Théo) veille hors des heures mais n'écrit JAMAIS à un client
     if (illisible()) { agents.noter(agent, 'déposer un brouillon', { cible: o.source, resultat: 'refuse', detail: 'registre des brouillons illisible' }); return { ok: false, raison: 'registre_illisible' }; }
     const a = String(o.a || '').trim().toLowerCase();
     if (!bonneAdresse(a)) { agents.noter(agent, 'déposer un brouillon', { cible: o.source, resultat: 'refuse', detail: 'destinataire invalide' }); return { ok: false, raison: 'destinataire' }; }

@@ -38,7 +38,8 @@ function monter(o) {
   fs.writeFileSync(path.join(D, 'agents-etat.json'), JSON.stringify({ pause: { actif: false, par: '', depuis: 0, motif: '' }, modes }));
   if (o.avant) o.avant(D);
 
-  const agents = require(S('agents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, maintenant, pousseNotif: async () => 0, cerveaux: [], cleCerveauPosee: true });
+  const agents = require(S('agents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, maintenant, pousseNotif: async () => 0, cerveaux: [], cleCerveauPosee: true,
+    horaires: typeof o.horaires === 'function' ? o.horaires(D) : undefined });   // les heures de travail (`test-3021`) : une FABRIQUE ; sans elle, pas de garde horaire
   const direction = require(S('direction.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, maintenant });
   let equipe = null;
   const conversations = require(S('conversations.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, maintenant, pousseNotif: async () => 0,

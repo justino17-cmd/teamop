@@ -65,7 +65,7 @@ console.log('\n── 2709 · le panneau Agents de la Tour : ses vraies fonction
   const MDP = 'mot-de-passe-du-banc-2709';
   let numero = 0;
   async function serveur(nom, preparer) {
-    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true });
+    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ce banc (`test-3021`)
     preparer(D);
     const vap = webpush.generateVAPIDKeys();
     fs.writeFileSync(path.join(banc, nom, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), agents: { reunionsAuto: false } }));   // la réunion due (vendredi 18 h-23 h, lundi matin) écrirait dans agents-messages.json pendant que le banc les compte

@@ -165,7 +165,7 @@ console.log('\n── 2707 · conversations Tour ↔ agents ──');
     return new Response(JSON.stringify(u.startsWith('https://api.stripe.com/v1/subscriptions') ? { data: [${JSON.stringify(abo)}], has_more: false } : { data: [], has_more: false }), { status: 200, headers: { 'content-type': 'application/json' } }); }
   return vrai.apply(this, arguments); };\n`);
   const kh = k => crypto.createHash('sha256').update(k).digest('hex'); const MDP = 'mot-de-passe-du-banc-2707';
-  const D = path.join(banc, 'srv', 'data'); fs.mkdirSync(D, { recursive: true });
+  const D = path.join(banc, 'srv', 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ce banc (`test-3021`)
   fs.writeFileSync(path.join(D, 'clients.json'), JSON.stringify({ 'alpha@exemple-2707.fr': { email: 'alpha@exemple-2707.fr', entreprise: 'Alpha Propreté', inscrit: Date.now() - 86400000 } }));
   fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
   const vap = webpush.generateVAPIDKeys();
