@@ -54,6 +54,7 @@ function bac(o) {
     pousser: r => N.pousses.push(r), remplacer: r => N.remplaces.push(r), rafraichirListe: () => { N.rafraichis++; },
     ouvrirFeuille: (nom, x) => N.feuilles.push([nom, x]), avantArreter: () => {}, avant: {}, TJ: { lieux: null },
     document: { querySelector: () => null, querySelectorAll: () => [] },
+    origineAppelPoser: () => {},          // (26 octobre 2026) `lancerAppel` note l'écran de départ : test-3033 le joue ; ici seul le refus d'un second appel compte
     source: {},
   };
   vm.createContext(ctx);

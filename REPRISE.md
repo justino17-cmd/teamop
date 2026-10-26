@@ -954,19 +954,24 @@ dit le jour d'une arrivée d'hier même pour une soirée.
 
 **⏳ OP MESSAGES — ce qui attend une décision de Justin** (rien n'est fait, chaque point change ce que l'utilisateur connaît) :
 - **contacts#1** — ce que devient la conversation d'un contact BLOQUÉ (règle du service, `server-msg/`).
-- **la fiche d'une réunion TERMINÉE** garde « Répondre », le rappel et le trajet : les retirer ? (salle#2 n'a retiré que « Rejoindre » et l'audio.)
-- **salle#4** — la bannière « réunion en cours » d'une AUTRE conversation reste, et intercepte le toucher (elle protège d'un départ involontaire).
-- **salle@4** — un refus d'entrer ramène tout de suite à l'écran d'avant : rendre la phrase durable ? **salle@10** — ajouter du contenu à l'écran de fin.
-- **agenda@2 / pro@3** — déplacer ou retirer un geste connu de l'agenda ; **agenda@5** — des rangées de réunion plus denses (plancher tactile de 64 px).
-- **appels@6** — « revenir » après un appel (il faudrait ranger un état sur l'appareil) ; **appels@2** — regrouper autrement les manqués d'affilée.
+- ✅ **RÉUNIONS ET APPELS — TRANCHÉ PAR JUSTIN LE 26 OCTOBRE 2026 (« fait les 18 »), FAIT SUR LA BRANCHE `claude/opmsg-reunions-appels` (bêta d'OP MESSAGES, pas encore fusionnée)** :
+  la fiche d'une réunion TERMINÉE n'a plus « Ta réponse », « Me rappeler » ni la zone du trajet (la durée, les présents et les participants restent — `test-3030`) ; la bannière d'une AUTRE conversation
+  pendant un appel ou une réunion reste, plus fine (l'expéditeur et son message, une ligne chacun), son corps laisse passer le toucher et son bouton « Ouvrir » seul le reçoit (`test-3031`, mesuré au navigateur) ;
+  un refus d'entrer (l'hôte n'a pas accepté, retiré, réunion annulée, salle déjà finie) RESTE à l'écran avec sa raison et « Retour » ; la fin d'une réunion montre la durée, qui était là et « Revenir à la
+  conversation » — la caméra et le micro s'éteignent dès l'écran de fin (`test-3032`) ; après un appel on revient à l'écran d'où l'on est parti, feuille comprise (fiche d'une réunion, détails d'un appel, contact),
+  l'état est à l'appareil (`sessionStorage` de l'onglet), jamais dans les données partagées (`test-3033`) ; « 3 appels manqués » à la place de « Appel manqué (3) » (`test-3034`) ; une réunion de plusieurs jours (24 h ou
+  plus) se montre chaque jour avec « Jour 2 sur 3 » (`test-3035`) ; quand l'organisateur QUITTE, l'invité nommé suivant (un co-hôte d'abord) devient l'organisateur avec TOUS les gestes, côté SERVICE
+  (`server-msg/stockage.js`, `salleSuccesseur` — `test-3036`, `test-2400` mis à jour), la phrase du panneau « Quitter » le dit. **Gardés tels quels (« on garde »)** : agenda@2 / pro@3 (Reporter), agenda@5 (rangées).
+  Preuves : `scratchpad/sonde-opmessages-reunions-appels.js` (168 contrôles au navigateur sur la VRAIE page servie, 390 px et 1280 px, jour et nuit — elle a trouvé une collision de nom, `X.venus`, que les bancs ne voyaient
+  pas), `scratchpad/mutations-opmessages-reunions-appels.py` (66 mutations, toutes tombent). ⚠️ Limites connues : une salle de RÉUNION dont seuls des invités entrés par le LIEN restent garde l'intérim d'avant (la porte, pas
+  les armes) ; un successeur nommé GARDE son rôle quand l'organisateur revient (deux hôtes) ; l'origine d'un appel lancé depuis un sélecteur (« Nouvel appel ») n'est pas rouverte (on a choisi, on a appelé) ; les nouveaux
+  bancs ne sont PAS dans `scripts/bancs-messages.liste` (`test-900` borne les numéros à 900-2699) : ils tournent dans la suite complète.
 - **groupes@5** — un nom de groupe par défaut ; **groupes@3** — dire « supprimé » plutôt que « retiré » quand un canal est supprimé ; **groupes@2** — une
   phrase à la place de « Activité du groupe » sur les lignes système.
 - **conversations@1** — une conversation épinglée reste AUSSI dans la liste (« Désépingler » en dépend) : la retirer de la liste ?
 - **pro@5** — une information de plus à l'écran des heures ; **pro@6** — masquer une ligne en Perso.
 - **temps-reel@3** — le prénom dans « … écrit » en groupe, et le délai de 6 s avant de l'effacer.
 - **n#5** — deux limites (40 et 80) pour une même chose : laquelle ?
-- **une réunion de plusieurs jours** se montre sur CHACUN de ses jours (q01 dit désormais le jour de fin) : voulu ?
-- **l'organisateur qui « Quitte »** : sa phrase annonce un intérim qui n'a, lui, aucun des gestes de l'hôte.
 - **quandRdv / ligneEvenement** ne disent que les heures, jamais le fuseau.
 - **les 83 améliorations** que les testeurs ont proposées en utilisant l'application, rangées par partie, chacune avec la raison qui en fait une
   décision : `scratchpad/campagne-octobre-2026/a-decider-op-messages.md` (dans le dépôt).

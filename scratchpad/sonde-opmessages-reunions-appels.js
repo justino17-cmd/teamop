@@ -177,9 +177,10 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
     if (joue('refus')) {
       await relier();
       console.log('\n── #4 / #8 : refusé à la porte ──');
-      for (const [nomP, nuit] of [['iphone', true], ['bureau', false]]) {
+      /* trois façons de fermer l'écran de refus : le bouton « Retour », la touche Échap (bureau), le retour système (téléphone) — chacune rouvre la fiche d'où l'on est parti */
+      for (const [nomP, nuit, geste] of [['iphone', true, 'bouton'], ['bureau', false, 'echap'], ['iphone', false, 'retour']]) {
         await quitterTous();
-        const rid = await programmer({ titre: 'Réunion à porte ' + nomP, salle_attente: true });
+        const rid = await programmer({ titre: 'Réunion à porte ' + nomP + geste, salle_attente: true });
         await C.ana.post('/api/reunions/' + rid + '/rejoindre', { type: 'audio' });
         const sid = await sidDe(C.ana);
         const S = await ouvrir(nomP, 'ben', { nuit });
@@ -197,9 +198,10 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
         await S.capture('refus');
         await T.dort(3500);
         vrai('⛔ l\'écran RESTE plus de 3 secondes (le toast d\'avant s\'effaçait en 2,4 s : on n\'avait pas le temps de lire)', await S.page.evaluate(() => document.documentElement.hasAttribute('data-sortie') && document.getElementById('sortie-ecran').getClientRects().length > 0));
-        await S.toucher('#sortie-bouton');
-        vrai('⛔ « Retour » ferme la couche ET rouvre la fiche de la réunion d\'où Ben est parti (#8) : la fiche est VISIBLE et porte le titre', await S.attendre(() => !document.documentElement.hasAttribute('data-sortie') && !document.documentElement.hasAttribute('data-appel')) && await S.voit('#info-corps .info-nom', 'Réunion à porte ' + nomP));
-        await S.capture('retour-fiche');
+        if (geste === 'bouton') await S.toucher('#sortie-bouton'); else if (geste === 'echap') await S.page.keyboard.press('Escape'); else await S.page.goBack();
+        vrai('⛔ ' + geste + ' : ferme la couche ET la fiche de la réunion d\'où Ben est parti est VISIBLE et porte le titre (#8)', await S.attendre(() => !document.documentElement.hasAttribute('data-sortie') && !document.documentElement.hasAttribute('data-appel')) && await S.voit('#info-corps .info-nom', 'Réunion à porte ' + nomP + geste));
+        if (geste === 'retour') { await S.page.goBack(); vrai('… et un second retour système ferme la fiche (une seule entrée a été posée, pas deux)', await S.cache('#info-corps .info-nom', 'Réunion à porte ' + nomP + geste)); }
+        await S.capture('retour-fiche-' + geste);
         v('aucune erreur JavaScript', S.erreurs, []);
         await S.ctx.close();
       }
