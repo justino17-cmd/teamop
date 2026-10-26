@@ -39,6 +39,7 @@ h1 { margin: 6px 0 0; font-size: 26px; line-height: 1.15; letter-spacing: -.01em
 p { margin: 0; overflow-wrap: anywhere; }
 .sous { color: var(--sub); }
 .note { color: var(--sub); font-size: 14px; }
+#rgpd a { display: inline-block; min-height: 44px; padding: 13px 2px; box-sizing: border-box; color: var(--accent); }      /* les deux liens de la mention RGPD se touchent du doigt : 44 px de haut */
 .carte { background: var(--card); border: var(--line); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--sub); font-weight: 600; }
 label small { font-weight: 400; }
@@ -122,6 +123,7 @@ button { font: inherit; cursor: pointer; border: 0; }
     <button type="submit" class="plein" id="b-continuer">Continuer</button>
   </form>
   <p class="note">Aucun compte à créer, rien à installer. L'organisateur verra votre nom et vous laissera entrer.</p>
+  <p class="note" id="rgpd">Vos données : TEAM OP, responsable du traitement, traite votre nom et votre entreprise pour une seule finalité, vous faire participer à cette réunion. Elles sont conservées chiffrées jusqu'à 30 jours après la fin de la réunion, puis effacées. Vous pouvez demander l'accès ou l'effacement à <a href="mailto:contact@teamop.fr">contact@teamop.fr</a>. <a href="https://teamop.fr/confidentialite.html" target="_blank" rel="noopener noreferrer">Politique de confidentialité</a></p>
 </main>
 
 <main class="page" id="p-prepa" hidden>

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'd692bb486720';
+  const OPMSG_BUILD = 'c025a0e3c3b2';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 275;
+  const OPMSG_VERSION = 276;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -9251,7 +9251,12 @@
       case 'micro-ok': X.bandeauMic = null; salleBandeaux(A); return;
       case 'micro-rouvrir': X.bandeauMic = null; if (A.audio) { A.micro = true; A.audio.enabled = true; pousserPistes(A); } rendreAppel(); annonceAppel('Micro activé'); return;
       case 'admettre': await salleGeste(A, 'admettre', { uid }, 'Cette personne n\'a pas pu être admise.'); return;
-      case 'tout-admettre': await salleGeste(A, 'admettre', { tous: true }, 'Ces personnes n\'ont pas pu être admises.'); return;
+      case 'tout-admettre': {
+        const r = await salleGeste(A, 'admettre', { tous: true }, 'Ces personnes n\'ont pas pu être admises.');
+        /* ⛔ « tout admettre » saute les invités sans compte au-delà du maximum de la salle : on le DIT, sinon l'organisateur croit tout le monde entré */
+        if (r && r.invites_restent > 0) mot(r.invites_restent + (r.invites_restent > 1 ? ' invités sans compte restent à la porte' : ' invité sans compte reste à la porte') + ' : la salle en reçoit ' + (r.invites_max || '') + ' au plus.');
+        return;
+      }
       case 'refuser': await salleGeste(A, 'refuser', { uid }); return;
       case 'ligne': X.actions = X.actions === uid ? null : uid; X.retirer = null; sallePanneauRendre(A, true); return;
       case 'couper': if (el.getAttribute('aria-disabled') === 'true') { mot('Son micro est déjà coupé.'); return; } if (await salleGeste(A, 'couperMicro', { uid }, 'La demande n\'est pas partie.')) mot('Demande envoyée'); return;

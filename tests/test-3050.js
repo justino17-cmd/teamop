@@ -56,7 +56,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
     const anon = T.client(svc.base);
     const ap = await anon.post('/api/invite/apercu', { jeton });
     v('un anonyme lit l\'aperçu (200)', ap.code, 200);
-    v('⛔ il ne contient que le titre et l\'organisateur — pas un identifiant, un horaire, un participant, un lieu', [Object.keys(ap.j), Object.keys(ap.j.reunion).sort()], [['reunion'], ['organisateur', 'titre']]);
+    v('⛔ il ne contient que le titre et l\'organisateur — pas un identifiant, un horaire, un participant, un lieu', [Object.keys(ap.j).sort(), Object.keys(ap.j.reunion).sort(), ap.j.ici], [['ici', 'reunion'], ['organisateur', 'titre'], false]);
     v('… le titre de la réunion et le nom de son organisateur', [ap.j.reunion.titre, ap.j.reunion.organisateur], ['Devis Durand', 'Ana Banc']);
     v('… l\'aperçu n\'est jamais mis en cache', ap.h.get('cache-control'), 'no-store');
     const faux = [['inconnu', 'A'.repeat(32)], ['trop court', jeton.slice(0, 31)], ['trop long', jeton + 'x'], ['caractères interdits', jeton.slice(0, 30) + '<>'], ['vide', ''], ['absent', undefined], ['un nombre', 12345678901234567890123456789012], ['un objet', { x: 1 }]];
@@ -184,6 +184,12 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
     await a8.post('/api/salles/' + sid8 + '/verrouiller', { actif: false });
     const rouvert = await B.invite(j8, 'Rouvert', '');
     v('déverrouillée, elle le reçoit de nouveau (201)', rouvert.rep.code, 201);
+
+    /* ═══ le cookie d'un autre lien ═══ */
+    console.log('9. `ici` : la session que ce navigateur porte est-elle celle de CE lien ?');
+    const sien = await rouvert.c.post('/api/invite/apercu', { jeton: j8 }), etranger = await rouvert.c.post('/api/invite/apercu', { jeton: j7 }), sansCookie = await T.client(svc.base).post('/api/invite/apercu', { jeton: j8 });
+    v('⛔ avec SA session, l\'aperçu de son propre lien dit `ici: true` ; avec le lien d\'une AUTRE réunion, `ici: false` ; sans cookie, `ici: false` — la page quitte la vieille session au lieu d\'entrer dans la salle d\'hier', [sien.j.ici, etranger.j.ici, sansCookie.j.ici], [true, false, false]);
+    v('… et le titre de l\'autre réunion est lu (200) : c\'est bien un aperçu, pas un refus', etranger.code, 200);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   finally { await B.arreter(); }
   fin();

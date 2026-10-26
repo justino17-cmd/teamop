@@ -114,7 +114,9 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
     if (!acces.session || acces.session !== sessionH) throw erreur('appareil_non_lie');
     const p = personne(moi.id), ig = p ? null : stockage.inviteIdentite(moi.id);        // un invité sans compte porte le nom qu'il a tapé (et seulement lui)
     const nom = p ? ((p.prenom || '') + ' ' + (p.nom || '')).trim() : (ig ? ig.nom : '');
-    return { url: visio.url(), jeton: visio.jetonEntree({ salle: nomVisio(acces.id), identite: moi.id, nom, audioSeul: acces.type !== 'video', maxParticipants: acces.capacite || undefined }) };
+    /* ⛔ UN INVITÉ SANS COMPTE NE PARTAGE PAS SON ÉCRAN, ET ICI C'EST LE JETON QUI LE DIT : `invite` ne laisse à LiveKit que le micro et la caméra (le micro seul en audio) — `screen_share` n'est jamais signé pour lui.
+       En maille (sans visio), il n'y a pas de jeton : le refus est une politique d'interface, que la route `invite.media` fait respecter à l'annonce. */
+    return { url: visio.url(), jeton: visio.jetonEntree({ salle: nomVisio(acces.id), identite: moi.id, nom, audioSeul: acces.type !== 'video', invite: stockage.estInvite(moi.id), maxParticipants: acces.capacite || undefined }) };
   }
 
   /* ── le relais ── */
@@ -557,9 +559,9 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
     if (!a || a.statut !== 'present') return { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: false, annot: annotVue(null) };
     return Object.assign(etatSalle(appel, id), { outils: false });
   }
-  function inviteEntrer({ jeton, nom, entreprise, sessionH, essai = false }) {
+  function inviteEntrer({ jeton, nom, entreprise, sessionH, reseau = null, essai = false }) {
     echoir();
-    const r = stockage.inviteEntrer({ jeton, nom, entreprise, sessionH, apresMs: apresMsInvite(), attenteMax: cfg.invitesAttenteMax, essai });
+    const r = stockage.inviteEntrer({ jeton, nom, entreprise, sessionH, apresMs: apresMsInvite(), attenteMax: cfg.invitesAttenteMax, reseau, reseauMax: cfg.invitesReseauMax, lignesMax: cfg.invitesLignesMax, essai });
     if (essai) return r;
     vivre(r.appel, r.id);
     reveiller(Object.keys(r.gids));
@@ -622,6 +624,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
   /* ⛔ « EN RÉUNION » (8 octobre 2026) : qui est DANS une salle, vu à chaque passage — une entrée ou une sortie se dit aux contacts (`hub.reunionChangee`), et une sortie libère le résumé des
      notifications retenues (`push.relacherSorties`). En mémoire : un redémarrage repart vide, le premier passage redit qui est dedans. */
   let dansSalles = new Set();
+  const seulsDepuis = new Map();                       // salle → depuis quand il n'y reste que des invités sans compte
   /* UN PASSAGE. Synchrone, ne lève jamais. → { echus, perdus } */
   function balayer() {
     const t = horloge(), bilan = { echus: 0, perdus: 0 };
@@ -669,12 +672,27 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
       }
       for (const u of presents) if (!dansSalles.has(u) && hub && typeof hub.reunionChangee === 'function') hub.reunionChangee(u, true);
       for (const u of dansSalles) if (!presents.has(u) && hub && typeof hub.reunionChangee === 'function') hub.reunionChangee(u, false);
+      /* ⛔ SEULS ENTRE INVITÉS : l'hôte dont l'appareil s'est tu (`perdu`) laisse la salle aux invités sans compte — elle attend son retour `invitesGraceMs` (deux minutes), puis finit. Une démonstration ne meurt pas sur un trou de réseau. */
+      const seuls = new Set(stockage.sallesSeulesInvites());
+      for (const id of seuls) {
+        if (!seulsDepuis.has(id)) seulsDepuis.set(id, t);
+        if (t - seulsDepuis.get(id) < cfg.invitesGraceMs) continue;
+        seulsDepuis.delete(id);
+        const f = stockage.salleSeulsFinir(id);
+        if (f.deja) continue;
+        reveiller(Object.keys(f.gids));
+        manquesDe(id, 'audio', f.notifs || []);
+        if (f.hote) reunionFinie(id, personne(f.hote));
+        visioFermer(id);
+      }
+      for (const id of Array.from(seulsDepuis.keys())) if (!seuls.has(id)) seulsDepuis.delete(id);
       dansSalles = presents;
       if (push && typeof push.relacherSorties === 'function') push.relacherSorties();
       for (const k of Array.from(vus.keys())) if (!vivants.has(k.slice(0, k.indexOf('|')))) vus.delete(k);
       for (const k of Array.from(salles.keys())) if (!vivants.has(k)) oublierSalle(k);          // une salle finie n'a plus d'éphémère
       if (t - etat.dernierElagage >= ELAGAGE_PERIODE_MS) {
         stockage.appelsElaguer(t - cfg.historiqueJours * 86400000);
+        stockage.inviteElaguer(t - cfg.invitesPurgeJours * 86400000);          // ⛔ le nom d'un invité sans compte ne survit pas trente jours à sa salle
         etat.dernierElagage = t;
       }
       etat.echecs = 0;

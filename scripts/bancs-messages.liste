@@ -401,7 +401,7 @@ tests/test-3040.js
 tests/test-3041.js
 tests/test-3042.js
 tests/test-3043.js
-# ── L'invité SANS COMPTE (26 octobre 2026, Justin : « ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux, et quand ça se coupe, le lien est mort ») : le lien et la porte (3050), la salle (3051), l'anti-abus (3052), la page et le générateur (3053), les données — RGPD (3054), la vie du lien et des sessions (3055), la migration 30 (3056), l'organisateur et le service (3057).
+# ── L'invité SANS COMPTE (26 octobre 2026, Justin : « ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux, et quand ça se coupe, le lien est mort ») : le lien et la porte (3050), la salle (3051), l'anti-abus (3052), la page et le générateur (3053), les données — RGPD (3054), la vie du lien et des sessions (3055), la migration 30 (3056), l'organisateur et le service (3057) ; puis, après la relecture du gardien : l'insistance — un refus tient, les lignes bornées, le nom (3058) — et la visio, la grâce, la durée de conservation (3059).
 tests/test-3050.js
 tests/test-3051.js
 tests/test-3052.js
@@ -410,3 +410,5 @@ tests/test-3054.js
 tests/test-3055.js
 tests/test-3056.js
 tests/test-3057.js
+tests/test-3058.js
+tests/test-3059.js

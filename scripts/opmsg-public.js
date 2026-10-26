@@ -172,7 +172,10 @@ function generer(o) {
   if (invScripts.join(',') !== 'api.js,source-serveur.js,invite.js') jette('invite.html : l\'ordre des scripts doit être api.js, source-serveur.js, invite.js (obtenu : ' + invScripts.join(', ') + ')');
   if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(invMarque)) jette('invite.html : un <script> en ligne (script-src \'self\' le refuserait)');
   if (/\son[a-z]+\s*=\s*["']/i.test(invMarque)) jette('invite.html : un gestionnaire d\'événement en attribut (onclick=…)');
-  if (/(src|href|action)\s*=\s*["']\s*(https?:)?\/\//i.test(invMarque)) jette('invite.html : une ressource d\'un autre domaine est référencée');
+  /* la SEULE adresse d'un autre domaine que la page porte : le lien (navigation, pas ressource) vers la politique de confidentialité de TEAM OP, que la mention RGPD de l'écran d'identité cite */
+  const invSansLien = invMarque.replace(/<a\s[^>]*\bhref="https:\/\/teamop\.fr\/confidentialite\.html"[^>]*>/g, '<a>');
+  if (!/<a href="mailto:contact@teamop\.fr">/.test(invMarque) || !/https:\/\/teamop\.fr\/confidentialite\.html/.test(invMarque) || !/30 jours/.test(invMarque)) jette('invite.html : la mention RGPD (responsable, finalité, durée de 30 jours, droits, contact, politique de confidentialité) manque sur l\'écran d\'identité');
+  if (/(src|href|action)\s*=\s*["']\s*(https?:)?\/\//i.test(invSansLien)) jette('invite.html : une ressource d\'un autre domaine est référencée');
   const invCsp = (/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/.exec(invHtml) || [])[1] || '';
   if (!/script-src 'self'(;|$)/.test(invCsp) || !/default-src 'none'/.test(invCsp) || !/connect-src 'self' wss:/.test(invCsp) || /unsafe-eval|unsafe-inline.*script|\*/.test(invCsp.replace(/style-src 'unsafe-inline'/, ''))) jette('invite.html : la politique de la page n\'est pas celle du service (script \'self\', rien d\'ouvert d\'autre)');
   if (/\b(innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\s*\(|new\s+Function)\b/.test(invCode)) jette('invite.js construit du balisage ou exécute du texte : un nom tapé par un inconnu doit rester du TEXTE (textContent)');

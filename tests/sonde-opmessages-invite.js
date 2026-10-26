@@ -126,6 +126,7 @@ async function parcours(base, svc, B, b, teinte) {
     await mesure(C, 'identité', PROFILS.telephone);
     vrai('population : le client n\'a aucun cookie de compte', (await ctxC.cookies()).filter(c => c.name === 'opm').length === 0);
     await C.page.click('#b-continuer');
+    v('⛔ la MENTION RGPD est lisible sur l\'écran d\'identité (responsable, 30 jours, contact) et ses deux liens sont ceux de TEAM OP', [await visible(C, '#rgpd'), /responsable du traitement/.test(await texte(C, '#rgpd')), /30 jours/.test(await texte(C, '#rgpd')), await C.page.evaluate(() => Array.from(document.querySelectorAll('#rgpd a')).map(a => a.getAttribute('href')))], [true, true, true, ['mailto:contact@teamop.fr', 'https://teamop.fr/confidentialite.html']]);
     v('⛔ un nom vide est refusé sur la page (rien n\'est envoyé)', [await visible(C, '#identite-erreur'), C.requetes.filter(r => r.chemin === '/api/invite/entrer').length], [true, 0]);
     await C.page.fill('#c-nom', 'Paul'); await C.page.fill('#c-ent', 'Plomberie Durand');
     await C.page.click('#b-continuer');
@@ -314,7 +315,30 @@ async function annexes(base, svc, B, b, teinte) {
     await mesure(k.C, 'refus', PROFILS.telephone);
     v('⛔ il n\'est pas dans la salle : l\'organisateur n\'y voit que lui', await o.H.page.evaluate(() => (document.getElementById('salle-ecran').innerText.match(/Marc/g) || []).length === 0 || !/Dans la salle[\s\S]*Marc/.test(document.body.innerText)), true);
     v('… et son entrée est refusée par le service : redemander → 403 `refuse`', await k.C.page.evaluate(async () => { const r = await fetch('/api/invite/redemander', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-OPM': '1' }, body: '{}' }); return [r.status, (await r.json()).error]; }), [403, 'refuse']);
-    await fermer(o, k);
+    /* ⛔ LE REFUS TIENT : un navigateur NEUF derrière la même adresse, par le même lien, lit l'écran de refus — il n'entre pas, et l'organisateur ne revoit personne à la porte */
+    const k2 = await ouvrirClient(o.jeton, 'Marc', 'Rival SA');
+    vrai('⛔ un navigateur neuf, même adresse, même lien : l\'écran de refus (403 `refuse`) — pas de seconde attente', await attendre(k2.C, () => !document.getElementById('p-refus').hidden));
+    v('… l\'organisateur ne voit personne à la porte', await o.H.page.evaluate(() => !/attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent)), true);
+    await fermer(o, k, k2);
+  }
+
+  /* — un vieux cookie d'un AUTRE lien — */
+  console.log('2 bis. le navigateur porte la session d\'une autre réunion : le lien qu\'on vient de cliquer l\'emporte');
+  {
+    const oa = await ouvrirHote('LienA'), ob = await ouvrirHote('LienB');
+    const k = await ouvrirClient(oa.jeton, 'Théo', 'Deux rendez-vous');
+    vrai('population : le client attend à la porte de la réunion A', await attendre(k.C, () => !document.getElementById('p-attente').hidden));
+    await attendre(oa.H, () => /attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent));
+    await k.C.page.goto('about:blank');
+    await k.C.page.goto(base + '/invite.html#i=' + ob.jeton);
+    vrai('⛔ avec le lien de la réunion B, il lit l\'écran d\'IDENTITÉ de B (pas la salle d\'attente de A)', await attendre(k.C, () => !document.getElementById('p-identite').hidden));
+    v('… son titre est celui de B', await texte(k.C, '#identite-titre'), 'Réunion LienB ' + teinte);
+    vrai('⛔ et sa place à la porte de A est rendue : l\'organisateur de A ne voit plus personne attendre', await attendre(oa.H, () => !/attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent)));
+    await k.C.page.fill('#c-nom', 'Théo'); await k.C.page.click('#b-continuer');
+    await attendre(k.C, () => !document.getElementById('p-prepa').hidden && document.getElementById('apercu').dataset.camera !== undefined);
+    await k.C.page.click('#b-entrer');
+    vrai('puis il attend à la porte de B', await attendre(k.C, () => !document.getElementById('p-attente').hidden) && await attendre(ob.H, () => /attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent)));
+    await fermer(oa, ob, k);
   }
 
   /* — le lien régénéré — */

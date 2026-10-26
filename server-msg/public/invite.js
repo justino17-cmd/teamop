@@ -16,7 +16,7 @@
   const $ = (id) => document.getElementById(id);
   const ECRANS = ['charge', 'mort', 'identite', 'prepa', 'attente', 'refus', 'fin', 'salle'];
   const RE_JETON = /(?:^|[#&])i=([A-Za-z0-9_-]{32})(?:&|$)/;
-  const RELANCE_MS = 30000, RELANCE_MAX = 40;           // l'organisateur n'est pas encore là : on redemande toutes les 30 s, vingt minutes au plus (le plafond du service est de 90 essais par heure et par réseau)
+  const RELANCE_MS = 30000, RELANCE_MAX = 40;           // l'organisateur n'est pas encore là : on redemande toutes les 30 s, vingt minutes au plus (le seau des essais du service est de 600 par heure et par réseau : trois collègues derrière une même adresse passent)
 
   const ST = {
     jeton: null, titre: '', organisateur: '', nom: '', ent: '', moiId: null, appelId: null, micro: true, cam: true,
@@ -51,6 +51,8 @@
       case 'pas_ouverte': return 'L\'organisateur n\'est pas encore arrivé.';
       case 'verrouillee': return 'L\'organisateur a verrouillé la réunion : personne ne peut plus y entrer.';
       case 'invites_attente_max': return 'Trop de personnes attendent déjà à la porte. Réessayez dans un instant.';
+      case 'invites_lignes_max': return 'Cette réunion ne peut plus recevoir d\'invités sans compte. Demandez à l\'organisateur de vous inviter autrement.';
+      case 'refuse': return REFUS.refuse;
       case 'nom_requis': return 'Tapez votre nom pour que l\'organisateur sache qui vous êtes.';
       case 'quota_atteint': return 'Trop d\'essais en peu de temps. Réessayez dans quelques minutes.';
       case 'reseau': return 'Le réseau ne répond pas. Vérifiez votre connexion et réessayez.';
@@ -379,6 +381,7 @@
       bouton.disabled = false;
       const c = e && e.code;
       if (c === 'lien_invalide' || c === 'reunion_terminee' || c === 'lien_remplace') { mort(c); return; }
+      if (c === 'refuse') { arreterTout(); $('refus-texte').textContent = REFUS.refuse; ST.fini = true; montrer('refus'); return; }       // ⛔ l'organisateur a refusé ce réseau : pas de nouvel essai
       if (c === 'pas_ouverte' && ST.essais < RELANCE_MAX) {
         ST.essais++;
         if (ST.ecran !== 'prepa') montrer('prepa');
@@ -449,6 +452,15 @@
     /* 1. une session existe déjà (la page a été rechargée) : on reprend là où l'on en était */
     let etat = null;
     try { etat = await G('/api/invite/etat'); } catch (e) { etat = null; }
+    /* ⛔ UN VIEUX COOKIE NE L'EMPORTE PAS SUR LE LIEN QU'ON VIENT DE CLIQUER : si le navigateur porte une session d'une AUTRE réunion (un client qui a deux rendez-vous), on la quitte pour de bon et on entre par le lien
+       neuf — sinon il atterrirait dans la salle d'hier. Le service dit si la session est celle de CE lien (`ici`) ; un lien mort s'affiche mort, quelle que soit la session. */
+    if (etat && etat.invite && etat.appel && ST.jeton) {
+      let ap0 = null;
+      try { ap0 = await P('/api/invite/apercu', { jeton: ST.jeton }); }
+      catch (e) { const c0 = e && e.code; if (c0 === 'reunion_terminee' || c0 === 'lien_remplace' || c0 === 'lien_invalide') { mort(c0); return; } }
+      if (ap0 && ap0.ici === false) { try { await P('/api/invite/quitter', { definitif: true }); } catch (e) { /* la session d'avant sera remplacée à l'entrée */ } etat = null; }
+      else if (ap0) history.replaceState(null, '', location.pathname);
+    }
     if (etat && etat.invite && etat.appel) {
       ST.moiId = etat.invite.id; ST.nom = etat.invite.nom; ST.ent = etat.invite.entreprise || '';
       ST.appelId = etat.appel.id; ST.titre = etat.appel.titre || '';

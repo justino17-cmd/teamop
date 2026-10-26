@@ -77,7 +77,8 @@ function installerSalles(H, ctx) {
     if (!tous && !uid) return refus(res, 400, 'champ_invalide');
     if (!gesteHote(req, res)) return;
     const r = appels.admettre({ moi: req.moi, id: req.appel.id, uid, tous });
-    res.json({ ok: true, admis: r.admis.length, restent: r.restent.length, appel: vue(req) });
+    /* `invites_restent` : des invités sans compte que « tout admettre » a LAISSÉS à la porte parce que la salle en tient déjà `invites_max` — l'organisateur doit le savoir, sinon il croit les avoir fait entrer */
+    res.json({ ok: true, admis: r.admis.length, restent: r.restent.length, invites_restent: r.invitesRestent || 0, invites_max: r.invitesMax || null, appel: vue(req) });
   });
   H['salles.refuser'] = garder((req, res) => {
     const uid = uidDe(corps(req)); if (!uid) return refus(res, 400, 'champ_invalide');

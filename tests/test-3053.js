@@ -51,6 +51,12 @@ function refuse(titre, f, fn, motif) {
   vrai('la page ne cite aucun jeton réel (aucun opi_ ni 32 signes d\'un jeton dans le fichier)', !/opi_[A-Za-z0-9_-]{20}/.test(js + html) && !/#i=[A-Za-z0-9_-]{32}/.test(js + html));
 
   console.log('\nLe générateur REFUSE une page qui mentirait (copies mutées)');
+  vrai('⛔ l\'écran d\'identité porte la MENTION RGPD : responsable (TEAM OP), finalité, 30 jours, droits, contact@teamop.fr et la politique de confidentialité',
+    /responsable du traitement/.test(html) && /une seule finalité/.test(html) && /30 jours/.test(html) && /accès ou l'effacement/.test(html) && /mailto:contact@teamop\.fr/.test(html) && /https:\/\/teamop\.fr\/confidentialite\.html/.test(html));
+  vrai('… et elle est DANS l\'écran d\'identité (avant le bouton « Demander à entrer »), pas dans un coin que personne ne lit', html.indexOf('id="p-identite"') < html.indexOf('id="rgpd"') && html.indexOf('id="rgpd"') < html.indexOf('id="p-prepa"'));
+  refuse('la mention RGPD disparaît (plus de durée de 30 jours)', 'server-msg/public/invite.html', s => s.replace('30 jours', 'quelque temps'), /RGPD/);
+  refuse('la mention RGPD perd le contact', 'server-msg/public/invite.html', s => s.replace('mailto:contact@teamop.fr', 'mailto:x@exemple.invalid'), /RGPD/);
+  refuse('un lien vers un AUTRE domaine que la politique de confidentialité', 'server-msg/public/invite.html', s => s.replace('https://teamop.fr/confidentialite.html', 'https://exemple.invalid/p.html'), /RGPD|autre domaine/);
   refuse('un <script> en ligne dans invite.html', 'server-msg/public/invite.html', s => s.replace('</body>', '<script>window.x=1</script></body>'), /script/i);
   refuse('un gestionnaire d\'événement en attribut (onclick=)', 'server-msg/public/invite.html', s => s.replace('<body', '<body onclick="x()"'), /gestionnaire/);
   refuse('une ressource d\'un autre domaine', 'server-msg/public/invite.html', s => s.replace('</head>', '<link rel="stylesheet" href="https://exemple.invalid/x.css"></head>'), /autre domaine/);

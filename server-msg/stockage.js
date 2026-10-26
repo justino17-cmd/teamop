@@ -727,7 +727,8 @@ const MIGRATIONS = [
          HMAC) le retrouve, le jeton SCELLÉ (`inv_ch`) le redit à l'organisateur seul. Il MEURT à la fin de la salle, à son renouvellement, à l'annulation de la réunion, à son échéance.
        · `invite_lien_mort` — la mémoire d'un jeton mort (l'empreinte seule) et de la raison : « terminée » (la salle a fini) ou « remplacé » (l'organisateur en a fait un autre). C'est ce qui permet de DIRE « Cette réunion
          est terminée » au lieu de « lien inconnu » ; elle ne porte aucun nom. Elle part avec la réunion.
-       · `invite_sans_compte` — la PERSONNE qui a ouvert le lien, le temps d'une salle : son nom et son entreprise (scellés), l'empreinte de sa session (`session_h`, NULL une fois coupée), la salle où elle est (`appel`).
+       · `invite_sans_compte` — la PERSONNE qui a ouvert le lien, le temps d'une salle : son nom et son entreprise (scellés), l'empreinte de sa session (`session_h`, NULL une fois coupée), la salle où elle est (`appel`),
+         l'empreinte de son RÉSEAU dans cette salle (`reseau_h`, HMAC de la salle et de l'adresse vue par nginx — jamais l'adresse) et `bloque` : l'organisateur l'a refusée ou exclue, et ce réseau n'entre plus dans CETTE salle.
          Ce n'est PAS un compte : pas de `personne`, pas de mot de passe, pas de contact, pas de conversation — rien d'autre que cette ligne et sa ligne de participant. Elle part avec la séance (`ON DELETE CASCADE`) ou la réunion.
        · `appel_part` est RECONSTRUITE sans la clé étrangère `uid → personne` : la ligne d'un invité sans compte y porte son identifiant `g_…` (la salle, la présence, l'admission, l'exclusion, le relais des signaux sont ceux
          d'un participant ordinaire — une seule mécanique, pas une seconde). Toute autre colonne est recopiée telle quelle. */
@@ -747,9 +748,10 @@ const MIGRATIONS = [
        reunion TEXT NOT NULL REFERENCES reunion(id) ON DELETE CASCADE,
        nom_ch BLOB NOT NULL, ent_ch BLOB,
        session_h TEXT,
+       reseau_h TEXT, bloque INTEGER NOT NULL DEFAULT 0,
        cree INTEGER NOT NULL, exp INTEGER NOT NULL)`,
     `CREATE UNIQUE INDEX IF NOT EXISTS invite_sans_compte_session ON invite_sans_compte(session_h) WHERE session_h IS NOT NULL`,
-    `CREATE INDEX IF NOT EXISTS invite_sans_compte_appel ON invite_sans_compte(appel)`,
+    `CREATE INDEX IF NOT EXISTS invite_sans_compte_appel ON invite_sans_compte(appel, reseau_h)`,
     `CREATE TABLE appel_part_v30(
        appel TEXT NOT NULL REFERENCES appel(id) ON DELETE CASCADE,
        uid TEXT NOT NULL,
@@ -3760,11 +3762,25 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const m = Q('SELECT motif FROM invite_lien_mort WHERE h = ?').get(h);
     return m ? { mort: m.motif } : null;
   }
-  const nettoyerInvite = (v, max) => Array.from(String(v === undefined || v === null ? '' : v).normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, ' ').replace(/\s+/g, ' ').trim()).slice(0, max).join('');
+  /* ⛔ UN NOM QU'UN INCONNU TAPE S'AFFICHE CHEZ L'ORGANISATEUR : il ne peut pas être INVISIBLE ni se faire passer pour un autre. Les caractères de contrôle et de séparation de ligne deviennent une espace ; tout ce qui ne se voit
+     pas (format Unicode : espaces de largeur nulle, jonctions, sens d'écriture ; cellule braille vide, remplisseurs hangul, sélecteurs de variation, étiquettes) est RETIRÉ, sans couper un mot en deux ; les marques combinantes
+     s'arrêtent à deux par lettre (le « zalgo » ne mange pas la ligne du dessus) ; et il faut une LETTRE ou un CHIFFRE — « ⠀⠀ » ou « ... » n'est pas un nom. */
+  const INVITE_CONTROLES = /[\p{Cc}\p{Zl}\p{Zp}]/gu;
+  const INVITE_INVISIBLES = /[\p{Cf}\u2800\u3164\u115f\u1160\uffa0\u180e\ufe00-\ufe0f\u{e0100}-\u{e01ef}]/gu;
+  function nettoyerInvite(v, max) {
+    const t = String(v === undefined || v === null ? '' : v).normalize('NFC').replace(INVITE_CONTROLES, ' ').replace(INVITE_INVISIBLES, '').replace(/\s+/g, ' ').trim();
+    const sortie = []; let marques = 0;
+    for (const c of t) { if (/\p{M}/u.test(c)) { if (++marques > 2) continue; } else marques = 0; sortie.push(c); }
+    const n = sortie.slice(0, max).join('').trim();
+    return /[\p{L}\p{N}]/u.test(n) ? n : '';
+  }
   /* ENTRER (à la porte) : la salle de la réunion doit être OUVERTE et tenue par quelqu'un (un hôte ou un co-hôte PRÉSENT) — un invité sans compte n'ouvre jamais une salle et ne reste jamais seul dans une salle sans
      personne pour l'admettre. Il arrive TOUJOURS à la porte, que la salle d'attente soit demandée ou non pour les comptes ; verrouillée, la salle ne reçoit personne. Les plafonds d'attente (`attenteMax`) sont jugés ici.
      `essai` : tout est jugé et rien n'est écrit. → { id (de l'invité), appel, gids, vue } */
-  function inviteEntrer({ jeton, nom, entreprise, sessionH, apresMs, attenteMax, essai = false }) {
+  /* ⛔ LE RÉSEAU D'UN INVITÉ, DANS UNE SALLE : l'empreinte de (salle + adresse vue par nginx), jamais l'adresse. Elle dit « déjà refusé ici » et « combien depuis ce réseau », et part avec la ligne (30 jours après la fin de la salle). */
+  const reseauInvite = (salle, reseau) => typeof reseau === 'string' && reseau ? scelleur.hmac('invite', 'reseau_h', salle + '|' + reseau) : null;
+  const inviteReseauBloque = (salle, rh) => !!rh && !!Q('SELECT 1 AS x FROM invite_sans_compte WHERE appel = ? AND reseau_h = ? AND bloque = 1 LIMIT 1').get(salle, rh);
+  function inviteEntrer({ jeton, nom, entreprise, sessionH, apresMs, attenteMax, reseau = null, reseauMax = 2, lignesMax = 40, essai = false }) {
     return tx(() => {
       const l = inviteLienLire(jeton, apresMs);
       if (!l) throw erreur('lien_invalide');
@@ -3776,11 +3792,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const a = appelBrut(salle);
       if (num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present' AND grade >= ?`).get(salle, GRADE_COHOTE).n) === 0) throw erreur('pas_ouverte');
       if (a.verrou) throw erreur('verrouillee');
+      /* ⛔ UN REFUS TIENT : l'organisateur qui a refusé ou exclu quelqu'un n'a pas à le revoir revenir avec un navigateur neuf — ce RÉSEAU n'entre plus dans cette salle (403 `refuse`) */
+      const rh = reseauInvite(salle, reseau);
+      if (inviteReseauBloque(salle, rh)) throw erreur('refuse');
       if (num(Q(`SELECT COUNT(*) AS n FROM invite_sans_compte g JOIN appel_part p ON p.appel = g.appel AND p.uid = g.id WHERE g.appel = ? AND p.statut = 'attente'`).get(salle).n) >= attenteMax) throw erreur('invites_attente_max');
+      if (rh && num(Q(`SELECT COUNT(*) AS n FROM invite_sans_compte g JOIN appel_part p ON p.appel = g.appel AND p.uid = g.id WHERE g.appel = ? AND g.reseau_h = ? AND p.statut = 'attente'`).get(salle, rh).n) >= reseauMax) throw erreur('invites_attente_max');
+      if (num(Q('SELECT COUNT(*) AS n FROM invite_sans_compte WHERE appel = ?').get(salle).n) >= lignesMax) throw erreur('invites_lignes_max');      // ⛔ un lien qui circule ne remplit pas la base : une salle borne ses lignes d'invité, refusés compris
       if (essai) return { essai: true };                      // ⛔ à blanc : tout est jugé, rien n'est écrit (la route compte les ESSAIS et les ENTRÉES avec deux plafonds)
       const t = horloge(), id = 'g_' + crypto.randomBytes(16).toString('hex');
-      Q('INSERT INTO invite_sans_compte(id, appel, reunion, nom_ch, ent_ch, session_h, cree, exp) VALUES(?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(id, salle, l.reunion.id, sceller('invite', 'nom_ch', aadInvNom(id), n), e ? sceller('invite', 'ent_ch', aadInvEnt(id), e) : null, sessionH, t, t + INVITE_SESSION_MS);
+      Q('INSERT INTO invite_sans_compte(id, appel, reunion, nom_ch, ent_ch, session_h, reseau_h, cree, exp) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, salle, l.reunion.id, sceller('invite', 'nom_ch', aadInvNom(id), n), e ? sceller('invite', 'ent_ch', aadInvEnt(id), e) : null, sessionH, rh, t, t + INVITE_SESSION_MS);
       Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, 0, ?, 0)').run(salle, id, 'appele', sessionH, 'attente', t);
       return { id, appel: salle, gids: appelEvenements(salle, [id]), vue: appelVue(id, salle) };
     });
@@ -3798,6 +3819,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (!p) throw erreur('session_invalide');
       if (p.statut === 'exclu') throw erreur('exclu');
       if (p.statut === 'refuse') throw erreur('refuse');
+      const rh = (Q('SELECT reseau_h FROM invite_sans_compte WHERE id = ?').get(id) || {}).reseau_h || null;
+      if (inviteReseauBloque(g.appel, rh)) throw erreur('refuse');          // ⛔ le réseau d'un refusé ou d'un exclu ne redemande pas non plus (un autre navigateur, derrière la même adresse)
       if (p.statut === 'present' || p.statut === 'attente') return { deja: true, appel: g.appel, gids: {}, vue: appelVue(id, g.appel) };
       if (a.verrou) throw erreur('verrouillee');
       if (num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present' AND grade >= ?`).get(g.appel, GRADE_COHOTE).n) === 0) throw erreur('pas_ouverte');
@@ -3845,6 +3868,31 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('UPDATE invite_sans_compte SET session_h = NULL WHERE id = ?').run(g.id);
       coupuresInvites.push(g.h);
     }
+  }
+  /* ⛔ SEULS ENTRE INVITÉS, APRÈS LA GRÂCE : l'hôte dont l'appareil a perdu le réseau (`perdu`) ne finit pas la salle tout de suite — une démonstration ne meurt pas sur un trou de réseau —, le balayeur attend `invitesGraceMs`
+     puis appelle ceci. Rejugé ICI, dans la transaction : si quelqu'un est revenu entre-temps (un compte présent), rien ne finit. → { deja } ou { fini:true, gids, hote, … } */
+  function salleSeulsFinir(id) {
+    return tx(() => {
+      const a = appelBrut(id);
+      if (!a || a.genre !== 'reunion' || (a.etat !== 'sonne' && a.etat !== 'en_cours')) return { deja: true, gids: {} };
+      const dedans = sallePresents(id);
+      if (!dedans || dedans !== inviteNb(id, 'present')) return { deja: true, gids: {} };
+      const f = salleFinirDans(id, a.etat === 'en_cours' ? 'fini' : 'annule', 'seuls', horloge(), null);
+      return Object.assign(f, { fini: true, hote: ((a.reunion && Q('SELECT hote FROM reunion WHERE id = ?').get(a.reunion)) || {}).hote || null });
+    });
+  }
+  /* Les salles de réunion où il ne reste, PRÉSENTS, que des invités sans compte (et au moins un) — le balayeur les suit : passé la grâce, elles finissent. */
+  const sallesSeulesInvites = () => Q(`SELECT a.id AS id FROM appel a WHERE a.genre = 'reunion' AND a.etat IN ('sonne', 'en_cours')
+      AND EXISTS (SELECT 1 FROM appel_part p WHERE p.appel = a.id AND p.statut = 'present')
+      AND NOT EXISTS (SELECT 1 FROM appel_part p WHERE p.appel = a.id AND p.statut = 'present' AND p.uid NOT IN (SELECT g.id FROM invite_sans_compte g WHERE g.appel = a.id))`).all().map(r => r.id);
+  /* ⛔ LA DURÉE DE CONSERVATION DU NOM : trente jours après la FIN de la salle (`invitesPurgeJours`), la ligne de l'invité sans compte (nom et entreprise scellés, empreinte de réseau) et sa ligne de salle sont EFFACÉES — l'historique des
+     appels, lui, en garde cent quatre-vingts. Le rapport de présence perd alors ces lignes-là, pas celles des comptes. → le nombre d'invités effacés */
+  function inviteElaguer(avant) {
+    return tx(() => {
+      const ids = Q(`SELECT g.id AS id FROM invite_sans_compte g JOIN appel a ON a.id = g.appel WHERE a.etat NOT IN ('sonne', 'en_cours') AND COALESCE(a.fin, a.cree) < ?`).all(avant).map(r => r.id);
+      for (const id of ids) { Q('DELETE FROM appel_part WHERE uid = ?').run(id); Q('DELETE FROM invite_sans_compte WHERE id = ?').run(id); }
+      return ids.length;
+    });
   }
   /* Une session échue (six heures) qu'un balayage retrouve : on la coupe aussi (et la salle d'une réunion de plusieurs jours n'en garde pas une éternellement). → les empreintes à fermer */
   function inviteSessionsEchues(t) {
@@ -4865,7 +4913,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const dedans = sallePresents(id);
     /* ⛔ UN INVITÉ SANS COMPTE NE TIENT PAS UNE SALLE OUVERTE : quand le dernier COMPTE s'en va, il ne reste personne pour admettre, refuser ni terminer — la salle finit (et le lien avec elle). Les invités encore présents
        en reçoivent la fin comme tout le monde. */
-    const restentSeuls = dedans > 0 && a.genre === 'reunion' && dedans === inviteNb(id, 'present');
+    const restentSeuls = dedans > 0 && a.genre === 'reunion' && dedans === inviteNb(id, 'present') && motif !== 'perdu';   // ⛔ « perdu » (l'appareil de l'hôte s'est tu) : un DÉLAI DE GRÂCE — voir `salleSeulsFinir`, appelé par le balayeur
     if (dedans === 0 || restentSeuls) {
       const f = salleFinirDans(id, a.etat === 'en_cours' ? 'fini' : 'annule', motif, t, uid);
       return Object.assign(f, { fini: true, successeur: null });
@@ -4918,17 +4966,17 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const attendent = Q(`SELECT uid FROM appel_part WHERE appel = ? AND statut = 'attente' ORDER BY entre, uid`).all(id).map(r => r.uid).filter(u => tous === true || u === uid);
       if (!attendent.length) throw erreur('introuvable');
       const t = horloge(), admis = [];
-      let invitesDedans = inviteNb(id, 'present');
+      let invitesDedans = inviteNb(id, 'present'), invitesRestent = 0;
       for (const u of attendent) {
         if (sallePresents(id) >= num(a.capacite)) break;
-        if (estInvite(u)) { if (invitesDedans >= invitesMax) { if (!tous) throw Object.assign(erreur('invites_max'), { max: invitesMax }); continue; } invitesDedans++; }      // ⛔ au plus `invitesMax` invités sans compte dans la salle (`appels.invitesSalleMax`)
+        if (estInvite(u)) { if (invitesDedans >= invitesMax) { if (!tous) throw Object.assign(erreur('invites_max'), { max: invitesMax }); invitesRestent++; continue; } invitesDedans++; }      // ⛔ au plus `invitesMax` invités sans compte dans la salle (`appels.invitesSalleMax`)
         Q(`UPDATE appel_part SET statut = 'present', gen = gen + 1, entre = ? WHERE appel = ? AND uid = ? AND statut = 'attente'`).run(t, id, u);
         presenceEntrer(id, u, t);
         admis.push(u);
       }
       if (!admis.length) throw Object.assign(erreur('appel_complet'), { max: num(a.capacite) });
       salleDemarrerSiDeux(id, t);
-      return { admis, restent: attendent.filter(u => !admis.includes(u)), gids: appelEvenements(id, admis) };
+      return { admis, restent: attendent.filter(u => !admis.includes(u)), invitesRestent, invitesMax, gids: appelEvenements(id, admis) };
     });
   }
   /* Refuser : on ne laisse pas entrer (la personne peut redemander — l'hôte qui ne veut plus la voir l'exclut). */
@@ -4936,6 +4984,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return tx(() => {
       salleVivante(id); salleCommandant(id, par, GRADE_COHOTE);
       if (!num(Q(`UPDATE appel_part SET statut = 'refuse', session = NULL WHERE appel = ? AND uid = ? AND statut = 'attente'`).run(id, uid).changes)) throw erreur('introuvable');
+      if (estInvite(uid)) Q('UPDATE invite_sans_compte SET bloque = 1 WHERE id = ?').run(uid);          // ⛔ refusé : son réseau n'entre plus dans cette salle
       return { gids: appelEvenements(id, [uid]) };
     });
   }
@@ -4951,6 +5000,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (num(p.grade) >= GRADE_COHOTE && num(moi.grade) < GRADE_HOTE) throw erreur('interdit');
       presenceSortir(id, uid, horloge());
       Q(`UPDATE appel_part SET statut = 'exclu', session = NULL, grade = 0 WHERE appel = ? AND uid = ?`).run(id, uid);
+      if (estInvite(uid)) Q('UPDATE invite_sans_compte SET bloque = 1 WHERE id = ?').run(uid);          // ⛔ exclu : idem
       if (a.rec_par === uid) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
       return { deja: false, gids: appelEvenements(id, [uid]), etait: p.statut };
     });
@@ -5344,7 +5394,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, pieceAccesNoter, pieceSuivi, membreRecuTout, exportPiecesOuvertes, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     reunionTrajetPoser, reunionTrajetsSelon,   // …le trajet de chacun (migration 29)
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
-    inviteLien, inviteLienRegenerer, inviteLienLire, inviteEntrer, inviteRedemander, inviteParSession, inviteIdentite, inviteSessionCouper, inviteSessionsEchues, inviteCoupures, inviteNb, estInvite,   // …et leur lien d'invité SANS COMPTE
+    inviteLien, inviteLienRegenerer, inviteLienLire, inviteEntrer, inviteRedemander, inviteParSession, inviteIdentite, inviteSessionCouper, inviteSessionsEchues, inviteCoupures, inviteNb, estInvite, salleSeulsFinir, sallesSeulesInvites, inviteElaguer,   // …et leur lien d'invité SANS COMPTE
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions, reunionOdj, reunionOdjPoser, reunionOdjCocher, reunionOdjRemettre, reunionSeanceSignaler, piecesPartagees,                                                                                                                  // …et le courriel d'invitation
     appelVue, appelAcces, appelEstVisio, appelActifDe, appelActifVue, enSalle, presentsEnSalle, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux

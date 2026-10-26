@@ -8,7 +8,8 @@
  *   POST /api/reunions/:id/invite/regenerer          H   un autre jeton : l'ANCIEN MEURT (et ceux qui attendent encore avec lui sont renvoyés) ; dix par heure et par réunion
  *   POST /api/invite/apercu {jeton}                  P   ce qu'il faut pour DÉCIDER d'entrer : le titre et l'organisateur — rien d'autre. 410 `lien_invalide` (inconnu), `reunion_terminee`, `lien_remplace`
  *   POST /api/invite/entrer {jeton, nom, entreprise?}  P   se présenter : ARRIVE TOUJOURS À LA PORTE (même sans salle d'attente demandée), sa session naît (cookie `HttpOnly`, jamais lisible par la page) ;
- *                                                         409 `pas_ouverte` (l'organisateur n'est pas là : on réessaie), 423 `verrouillee`, 409 `invites_attente_max`, 429
+ *                                                         409 `pas_ouverte` (l'organisateur n'est pas là : on réessaie), 423 `verrouillee`, 403 `refuse` (ce réseau a été refusé ou exclu
+ *                                                         de CETTE salle), 409 `invites_attente_max` (la porte, ou ce réseau : deux au plus) ou `invites_lignes_max`, 429
  *   GET  /api/invite/etat                            G   où j'en suis : ma place, la salle telle qu'un invité la voit, ce qu'elle a dit d'éphémère (rien tant que je suis à la porte)
  *   GET  /api/invite/flux                            G   le flux d'événements (SSE) — les mêmes que pour un participant, pour MA place seulement
  *   POST /api/invite/redemander                      G   revenir à la porte après être parti (jamais après un refus ni une exclusion)
@@ -20,8 +21,10 @@
  * ⛔ CE QU'UN INVITÉ SANS COMPTE NE PEUT PAS (la liste est FERMÉE : seules les routes ci-dessus acceptent sa session, la garde `G` n'est montée nulle part ailleurs) :
  *   · aucune route de compte, de contact, de conversation, d'agenda, de recherche ni de profil — `garde.S` ne lit pas son cookie, il reçoit 401 partout ;
  *   · il n'est JAMAIS promu : ni hôte (l'intérim ne revient qu'à un invité nommé), ni co-hôte (`salleCohote` refuse), ni successeur de l'organisateur (la requête du successeur écarte les `g_…`) ;
- *   · il ne partage PAS son écran (403 `partage_interdit` — décision prudente : un client n'a aucune raison de montrer son écran dans une présentation, et le service ne voit pas un média, donc ne peut pas le
- *     juger après coup), n'enregistre pas, ne dessine pas, ne lance ni sondage, ni minuteur, ni épingle ;
+ *   · il ne partage PAS son écran — décision prudente : un client n'a aucune raison de montrer son écran dans une présentation. EN VISIO, c'est un RÉGLAGE DU JETON : `visio.jetonEntree({ invite })` ne
+ *     signe pour lui que la caméra et le micro (le micro seul en audio), jamais `screen_share`, et LiveKit refuse la publication. EN MAILLE (sans visio), le service ne voit pas un média : c'est une POLITIQUE D'INTERFACE
+ *     — l'annonce d'un partage est refusée (403 `partage_interdit`) et la page ne l'offre pas — qu'un navigateur modifié contournerait pour ses PROPRES liaisons ; l'organisateur peut exclure. N'enregistre pas,
+ *     ne dessine pas, ne lance ni sondage, ni minuteur, ni épingle ;
  *   · à la porte, il ne lit rien de la salle : ni qui est dedans, ni combien, ni les mains levées (voir `stockage.appelRangGroupe` et `appels.etatSalleInvite`).
  * ⛔ LES JOURNAUX NE PORTENT NI NOM NI JETON : rien d'ici n'écrit au journal que des compteurs ; le jeton ne voyage QUE dans le corps d'une requête (jamais dans une adresse ni un en-tête), et la page le tient
  * dans le FRAGMENT de l'adresse, que le navigateur n'envoie à personne.
@@ -43,7 +46,7 @@ function installerInvites(H, ctx) {
   const CODES = {
     lien_invalide: [410, 'lien_invalide'], pas_ouverte: [409, 'pas_ouverte'], verrouillee: [423, 'verrouillee'], invites_attente_max: [409, 'invites_attente_max'], nom_requis: [400, 'nom_requis'],
     session_invalide: [401, 'session_requise'], exclu: [403, 'exclu'], refuse: [403, 'refuse'], appel_fini: [409, 'appel_fini'], introuvable: [404, 'introuvable'], interdit: [403, 'interdit'],
-    appel_pas_en_cours: [409, 'appel_pas_en_cours'], appareil_non_lie: [403, 'appareil_non_lie'], pas_de_visio: [409, 'pas_de_visio'], visio_indisponible: [503, 'visio_indisponible'],
+    reunion_annulee: [409, 'reunion_annulee'], invites_lignes_max: [409, 'invites_lignes_max'], appel_pas_en_cours: [409, 'appel_pas_en_cours'], appareil_non_lie: [403, 'appareil_non_lie'], pas_de_visio: [409, 'pas_de_visio'], visio_indisponible: [503, 'visio_indisponible'],
   };
   const garder = (f) => (req, res, next) => {
     const traduire = (e) => {
@@ -91,18 +94,23 @@ function installerInvites(H, ctx) {
     res.set('Cache-Control', 'no-store');
     if (!l) return refus(res, 410, 'lien_invalide');
     if (l.mort) return refus(res, 410, l.mort === 'remplace' ? 'lien_remplace' : 'reunion_terminee');
-    res.json({ reunion: { titre: l.reunion.titre, organisateur: l.reunion.organisateur } });
+    /* `ici` : la session d'invité que ce navigateur PORTE DÉJÀ est celle de CETTE réunion — la page s'en sert pour ne pas laisser un vieux cookie l'emporter sur le jeton d'un AUTRE lien (elle quitte alors, puis entre par le nouveau).
+       Le cookie ne se lit qu'ici, pour comparer : il ne dit rien de plus à qui le porte. */
+    const m = new RegExp('(?:^|;\\s*)' + nomCookie.replace(/[^A-Za-z0-9_-]/g, '') + '=(opi_[A-Za-z0-9_-]{43})').exec(String(req.headers.cookie || ''));
+    const g = m ? stockage.inviteParSession(SHA(m[1])) : null;
+    res.json({ reunion: { titre: l.reunion.titre, organisateur: l.reunion.organisateur }, ici: !!(g && g.reunion === l.reunion.id) });
   });
   H['invite.entrer'] = garder((req, res) => {
     const b = corps(req);
-    /* ⛔ QUATRE PLAFONDS, dans cet ordre. Les ESSAIS (un client attend que l'organisateur arrive : la page redemande toutes les 30 s) : par réseau, puis par jeton. Les ENTRÉES (une ligne d'invité naît) : par réseau, puis par
-       jeton — jugées APRÈS un essai à blanc, pour que l'attente d'un organisateur absent ne consomme pas le droit d'entrer. Un jeton faux consomme un essai : c'est ce qu'on veut compter. */
-    if (!plafond(res, 'invite_entrer', reseau(req), { max: 90, fenetreMs: 3600000 })) return;
+    /* ⛔ DEUX SORTES DE PLAFOND, et elles ne se mélangent pas. Les ESSAIS (un client attend que l'organisateur arrive : la page redemande toutes les 30 s, et trois collègues peuvent être derrière une même adresse) : un seau LARGE,
+       par réseau puis par jeton — il ne protège que le service d'un déluge. Les CRÉATIONS (une ligne d'invité naît) : le seau SERRÉ, par réseau et par jeton, jugé APRÈS un essai à blanc — pour que l'attente d'un organisateur
+       absent ne consomme jamais le droit d'entrer. Un jeton faux consomme un essai : c'est ce qu'on veut compter. */
+    if (!plafond(res, 'invite_essai', reseau(req), { max: 600, fenetreMs: 3600000 })) return;
     if (typeof b.jeton !== 'string' || !JETON_LIEN.test(b.jeton)) return refus(res, 410, 'lien_invalide');
-    if (!plafond(res, 'invite_entrer_jeton', SHA(b.jeton), { max: 240, fenetreMs: 3600000 })) return;
+    if (!plafond(res, 'invite_essai_jeton', SHA(b.jeton), { max: 1500, fenetreMs: 3600000 })) return;
     if (typeof b.nom !== 'string' || (b.entreprise !== undefined && b.entreprise !== null && typeof b.entreprise !== 'string')) return refus(res, 400, 'champ_invalide');
-    const corpsEntree = { jeton: b.jeton, nom: b.nom, entreprise: b.entreprise || '' };
-    appels.inviteEntrer(Object.assign({ sessionH: '', essai: true }, corpsEntree));        // tout est jugé (lien, salle ouverte et tenue, verrou, porte pleine, nom) et rien n'est écrit
+    const corpsEntree = { jeton: b.jeton, nom: b.nom, entreprise: b.entreprise || '', reseau: reseau(req) };
+    appels.inviteEntrer(Object.assign({ sessionH: '', essai: true }, corpsEntree));        // tout est jugé (lien, salle ouverte et tenue, verrou, réseau refusé, porte pleine, nom) et rien n'est écrit
     if (!plafond(res, 'invite_cree', reseau(req), { max: 12, fenetreMs: 3600000 })) return;
     if (!plafond(res, 'invite_cree_jeton', SHA(b.jeton), { max: 60, fenetreMs: 3600000 })) return;
     const session = 'opi_' + crypto.randomBytes(32).toString('base64url');

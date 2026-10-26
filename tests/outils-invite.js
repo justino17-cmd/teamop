@@ -20,7 +20,7 @@ const JOUR = 86400000;
 
 async function monter(opts = {}) {
   /* Les bancs relâchent les plafonds de l'invité (cinquante entrées depuis la même adresse locale) ; `test-3052` les joue à leur valeur de production (`opts.quotasProd`). */
-  const detendus = { invite_apercu: 100000, invite_entrer: 100000, invite_entrer_jeton: 100000, invite_cree: 100000, invite_cree_jeton: 100000, invite_redemander: 100000, invite_regenerer: 100000 };
+  const detendus = { invite_apercu: 100000, invite_essai: 100000, invite_essai_jeton: 100000, invite_cree: 100000, invite_cree_jeton: 100000, invite_redemander: 100000, invite_regenerer: 100000 };
   const quotas = Object.assign({}, opts.quotasProd ? {} : Object.fromEntries(Object.entries(detendus).map(([k, m]) => [k, { max: m, fenetreMs: 3600000 }])), (opts.service && opts.service.config && opts.service.config.quotas) || {});
   const cfg = Object.assign({ appels: { balayageMs: 1000, perduMs: 600000 } }, (opts.service && opts.service.config) || {}, { quotas });
   const svc = await T.lancerService(Object.assign({ horloge: true }, opts.service || {}, { config: cfg }));
@@ -37,7 +37,10 @@ async function monter(opts = {}) {
   };
   const lien = async (hote, rid) => { const r = await hote.post('/api/reunions/' + rid + '/invite/lien', {}); if (r.code !== 200) throw new Error('lien refusé : ' + r.code + ' ' + (r.j && r.j.error)); return r.j.jeton; };
   const entrerSalle = async (c, rid, type) => { const r = await c.post('/api/reunions/' + rid + '/rejoindre', { type: type || 'audio' }); if (r.code !== 200) throw new Error('entrée refusée : ' + r.code + ' ' + (r.j && r.j.error)); return r.j.appel.id; };
-  const clientInvite = () => T.client(svc.base, { nomCookie: 'opm-i' });
+  /* ⛔ chaque client d'invité a SON réseau (une adresse à lui, `X-Forwarded-For`) : le service ne laisse que deux invités en attente par réseau et par salle, et un refus fait taire tout un réseau — sans ça, tous les
+     clients du banc (127.0.0.1) seraient un seul réseau. Un banc qui joue un réseau précis passe son propre client (`T.client(base, { nomCookie: 'opm-i', xff })`). */
+  let nReseau = 0;
+  const clientInvite = (xff) => T.client(svc.base, { nomCookie: 'opm-i', xff: xff || ('10.250.' + Math.floor(++nReseau / 250) + '.' + (nReseau % 250 + 1)) });
   const invite = async (jeton, nom, entreprise, c) => {
     c = c || clientInvite();
     const rep = await c.post('/api/invite/entrer', { jeton, nom, entreprise });
