@@ -35,7 +35,10 @@ const arts = JSON.parse(fs.readFileSync(path.join(RACINE, 'contenu/blog/articles
 const piege = { slug: 'piege-test', titre: 'Suivre ses interventions sans ressaisie', date: '2026-10-26', image: arts[0].image, imageAlt: 'x',
   description: 'Tu peux gagner 1 200 € par mois, n’hésitez pas. Un outil pour suivre vos interventions sans ressaisie. Offre garantie gratuite.', faq: [] };
 fs.writeFileSync(R('contenu/blog/articles.json'), JSON.stringify([...arts, piege]));
-for (const a of arts) { fs.copyFileSync(path.join(RACINE, 'contenu/blog', a.slug + '.htm'), R('contenu/blog/' + a.slug + '.htm')); fs.copyFileSync(path.join(RACINE, 'blog/img', a.image), R('blog/img/' + a.image)); }
+/* l'image JPEG déjà commitée part avec la copie : la vérification de GitHub n'a pas Pillow (« verifier » de la n° 208, 26 octobre 2026),
+   et la publication, elle, l'installe — ici on éprouve la RÉDACTION, pas la conversion (blog-google-image.py a son propre contrôle plus bas) */
+for (const a of arts) { fs.copyFileSync(path.join(RACINE, 'contenu/blog', a.slug + '.htm'), R('contenu/blog/' + a.slug + '.htm')); fs.copyFileSync(path.join(RACINE, 'blog/img', a.image), R('blog/img/' + a.image));
+  const jpg = a.image.replace(/\.webp$/i, '') + '-google.jpg'; if (fs.existsSync(path.join(RACINE, 'blog/img', jpg))) fs.copyFileSync(path.join(RACINE, 'blog/img', jpg), R('blog/img/' + jpg)); }
 fs.writeFileSync(R('contenu/blog/piege-test.htm'), '<p>x</p><h2 id="en-bref">En bref</h2><ul><li>Le devis coûte 120 € TTC à la visite.</li><li>Appelez-nous au 01 23 45 67 89 pour un devis.</li><li>Notre ligne directe : 06 12 34 56 78.</li><li>Tu verras, ton planning se remplit seul.</li><li>Un technicien voit sa journée sur son téléphone, avec les fiches et les photos du client.</li></ul>');
 
 const lancer = (args, env, cwd) => new Promise(res => {
