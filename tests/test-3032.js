@@ -15,7 +15,7 @@
         et « Retour » si la conversation n'est pas connue), `data-sortie` posé, les médias lâchés UNE fois, un second appel sans effet ;
      4. `sortiePresents` : « Toi seul », « Toi, Ana », « Toi, Ana et Ben », « … et 2 autres » (quatre noms au plus) ;
      5. le CÂBLAGE (le code, commentaires retirés) : le bouton, Échap, un appel qui arrive, `appliquer`, `quitterAppel`, `rendreAppel`/`majParle` qui se taisent, `rendreSalle` qui note qui était là.
-   La mesure au navigateur (la couche reste, la caméra s'éteint, les captures) : scratchpad/opmsg-a/sonde-sortie.js.
+   La mesure au navigateur (la couche reste, la caméra s'éteint, les captures) : scratchpad/sonde-opmessages-reunions-appels.js (parties « fin » et « refus »).
    ⛔ Une assertion sur un ensemble vide passe et ne prouve rien : chaque « rien n'est posé » est précédé du cas où l'écran est posé. */
 'use strict';
 const T = require('./outils-msg');

@@ -13,7 +13,7 @@
         pas si une feuille est déjà ouverte, pas si un autre appel a commencé, pas pour un sélecteur ; l'origine d'un AUTRE appel n'est ni lue ni effacée ;
      3. `lancerAppel` et `surAppelEntrant` posent l'origine (avant de remplacer la feuille) ; `ouvrirConversationAvec` l'efface (aller à la conversation est un choix) ; `quitterAppel` la solde en
         sachant si l'écran d'appel était visible.
-   La mesure de bout en bout au navigateur (la route, l'historique, le retour système) : scratchpad/opmsg-a/sonde-retour-appel.js.
+   La mesure de bout en bout au navigateur (la route, l'historique, le retour système) : scratchpad/sonde-opmessages-reunions-appels.js (parties « refus » et « retour »).
    ⛔ Une assertion sur un ensemble vide passe et ne prouve rien : chaque « rien ne se rouvre » est précédé du cas où la feuille se rouvre. */
 'use strict';
 const T = require('./outils-msg');
