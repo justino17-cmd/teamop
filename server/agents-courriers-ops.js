@@ -11,8 +11,8 @@
  *    adresse, un lien ou un numéro de téléphone que l'appelant n'a pas AUTORISÉ un par un, un montant hors de la liste autorisée, un pourcentage, un mot de promesse
  *    (gratuit, remise, remboursement…), un crochet ou une accolade (un modèle mal rempli), un titre en capitales, du Markdown, une signature écrite à la main, ou
  *    « Justin ». Il rend la LISTE des fautes (jamais le texte) : l'appelant la met au journal.
- * ⛔ LA SIGNATURE EST AJOUTÉE PAR LE SERVEUR au moment de l'envoi (`signatureAgent`) : prénom, rôle « Assistant(e) virtuel(le) » (règlement européen sur l'IA, art. 50),
- *    « Équipe TeamOP », adresse et site. Un texte qui la porte déjà est refusé.
+ * ⛔ LA SIGNATURE EST AJOUTÉE PAR LE SERVEUR au moment de l'envoi (`signatureAgent`) : prénom, rôle « Assistant(e) de TeamOP », adresse et site,
+ *    et la mention « Message préparé par un assistant automatique de TeamOP. » (règlement européen sur l'IA, art. 50 — `agents-signature.js`). Un texte qui la porte déjà est refusé.
  * Aucune dépendance : ni Stripe, ni le courrier, ni le disque (seule la MISE EN FORME de la signature vient de `agents-signature.js`, qui ne touche à rien au chargement).
  */
 'use strict';
@@ -20,10 +20,10 @@
 const SIG = require('./agents-signature');
 const FUSEAU = 'Europe/Paris';
 const SIGNATURES = {
-  hugo:    { prenom: 'Hugo',    role: 'Assistant virtuel' },
-  margaux: { prenom: 'Margaux', role: 'Assistante virtuelle' },
-  emma:    { prenom: 'Emma',    role: 'Assistante virtuelle' },
-  sarah:   { prenom: 'Sarah',   role: 'Assistante virtuelle' },
+  hugo:    { prenom: 'Hugo',    role: 'Assistant de TeamOP' },
+  margaux: { prenom: 'Margaux', role: 'Assistante de TeamOP' },
+  emma:    { prenom: 'Emma',    role: 'Assistante de TeamOP' },
+  sarah:   { prenom: 'Sarah',   role: 'Assistante de TeamOP' },
 };
 const ADRESSE_CONTACT = 'contact@teamop.fr';
 
@@ -98,7 +98,7 @@ function controle(objet, texte, o) {
   if (!o.lettre && /(^|[^\p{L}])(?:tu|toi|ton|ta|tes|te)(?=[^\p{L}]|$)/iu.test(nu)) f.push('tutoiement');
   if (/(^|[^\p{L}])je\s+suis(?=[^\p{L}]|$)/iu.test(nu)) f.push('première personne du singulier');
   if (!o.lettre && /\bJustin\b/.test(nu)) f.push('nom du patron');
-  if (/Assistante?\s+virtuel|Équipe\s+TeamOP/i.test(nu)) f.push('signature écrite à la main');
+  if (/Assistante?\s+virtuel|Assistante?\s+de\s+TeamOP|Équipe\s+TeamOP/i.test(nu)) f.push('signature écrite à la main');
   return f;
 }
 

@@ -1,7 +1,8 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LA SIGNATURE EST CELLE DE L'AGENT, POSÉE PAR LE SERVEUR, ET « CONTRÔLE » N'EST PAS AUX AGENTS (23 octobre 2026).
      Justin : « C'est hyper contradictoire de mettre Justin si c'est un agent qui répond. La signature, c'est le nom de l'agent. Assistante, Léa par exemple. Équipe TeamOP. »
      et « Contrôle, ils ne l'utilisent pas. » Règlement européen sur l'IA, article 50 : on dit à la personne qu'elle échange avec une IA.
-       0. `agents-signature.js` : « Léa — Assistante virtuelle — Équipe TeamOP » + l'adresse de la boîte + le site ; « Assistant virtuel » pour Louis ; jamais « Justin » ;
+       0. `agents-signature.js` : « Léa — Assistante de TeamOP » + l'adresse de la boîte + le site + la mention de l'IA ; « Assistant de TeamOP » pour Louis ; jamais
+          « Justin » ni « virtuel » (Justin, 25 octobre 2026) — la mention de l'IA (art. 50) est une LIGNE posée sous chaque signature, que le rôle ne retire pas ;
           la formule se règle depuis la Tour (le patron seul), bornée : des lettres, ni adresse, ni lien, ni chiffre, ni « Justin » ; un registre illisible n'est pas écrasé ;
        1. les brouillons : l'aperçu montre la signature DE L'AGENT pour la boîte qui envoie, le texte rangé n'en porte pas, l'envoi la fournit à `mail.envoyerAgent` avec le nom d'expéditeur ;
        2. `mail.js` SEUL : l'envoi d'un agent EXIGE une signature (sans elle rien ne part), l'ajoute UNE fois, jamais celle du Courrier de Justin ; `controle@` n'est ni lue, ni choisie,
@@ -24,12 +25,13 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     const Z = monter({ modes: { lea: 'brouillon' } });
     const S = SIG(Z.routes ? { get: (p, ...h) => { Z.routes['GET ' + p] = h; }, post: (p, ...h) => { Z.routes['POST ' + p] = h; } } : null, { agents: Z.agents, monAdmin: (rq, rs, n) => (rq.tourUser ? n() : rs.status(401).json({})), monPatronStrict: (rq, rs, n) => (rq.tourUser && rq.tourUser.role === 'patron' ? n() : rs.status(403).json({})), fichier: Z.fichier });
     v('Léa : prénom, rôle féminin, équipe, adresse de la boîte, site, et la demande d’enregistrer cette adresse', S.composer('lea', 'contact@teamop.fr'), signatureDe('Léa'));
-    v('Chloé et Camille : « Assistante virtuelle » aussi, la boîte de support pour Camille', [S.composer('chloe', 'contact@teamop.fr').split('\n')[0], S.composer('camille', 'support@teamop.fr')], ['Chloé — Assistante virtuelle — Équipe TeamOP', signatureDe('Camille', '', 'support@teamop.fr')]);
-    v('Louis, Hugo, Max : « Assistant virtuel » (le masculin)', ['louis', 'hugo', 'max'].map(a => S.composer(a, 'contact@teamop.fr').split('\n')[0].split(' — ')[1]), ['Assistant virtuel', 'Assistant virtuel', 'Assistant virtuel']);
-    vrai('(population) seize agents, seize signatures, aucune ne dit « Justin », toutes disent qu’elles sont virtuelles', Z.agents.AGENTS.length === 16 && Z.agents.AGENTS.every(a => { const s = S.composer(a.id, 'contact@teamop.fr'); return !/justin/i.test(s) && /virtuel/.test(s) && s.startsWith(a.nom + ' — '); }));
+    v('Chloé et Camille : « Assistante de TeamOP » aussi, la boîte de support pour Camille', [S.composer('chloe', 'contact@teamop.fr').split('\n')[0], S.composer('camille', 'support@teamop.fr')], ['Chloé — Assistante de TeamOP', signatureDe('Camille', '', 'support@teamop.fr')]);
+    v('Louis, Hugo, Max : « Assistant de TeamOP » (le masculin)', ['louis', 'hugo', 'max'].map(a => S.composer(a, 'contact@teamop.fr').split('\n')[0].split(' — ')[1]), ['Assistant de TeamOP', 'Assistant de TeamOP', 'Assistant de TeamOP']);
+    vrai('(population) seize agents, seize signatures, aucune ne dit « Justin » ni « virtuel », TOUTES finissent par la mention de l’IA', Z.agents.AGENTS.length === 16 && Z.agents.AGENTS.every(a => { const s = S.composer(a.id, 'contact@teamop.fr'); return !/justin/i.test(s) && !/virtuel/i.test(s) && s.startsWith(a.nom + ' — ') && s.endsWith('\n' + SIG.MENTION_IA); }));
+    v('la mention de l’IA, mot pour mot', SIG.MENTION_IA, 'Message préparé par un assistant automatique de TeamOP.');
     v('un agent inconnu : rien (l’appelant refuse d’envoyer)', S.composer('personne', 'contact@teamop.fr'), '');
     /* ⛔ Justin, 23 octobre 2026 (« dis-le aux agents qui gèrent les mails ») : les trois agents du COURRIER demandent qu'on enregistre l'adresse qui envoie ; les autres non. */
-    const DEMANDE = /\nPour recevoir nos messages sans faute, ajoutez ([^ ]+) à vos contacts\.$/;
+    const DEMANDE = /\nPour recevoir nos messages sans faute, ajoutez ([^ ]+) à vos contacts\.\n/;
     const COURRIER = [...SIG.AGENTS_COURRIER];   // la liste du CODE : un agent ajouté au Courrier sans décision fait tomber le contrôle suivant
     v('(décision de Justin) les agents du Courrier qui portent la demande : Léa, Camille et Chloé, et eux seuls', COURRIER.slice().sort(), ['camille', 'chloe', 'lea']);
     v('⛔ Léa, Camille et Chloé demandent d’enregistrer l’adresse de la boîte qui ENVOIE (la dernière ligne de leur signature)',
@@ -42,46 +44,47 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     const ecrit = (corps, qui) => Z.appeler('POST /api/monitor/agents/signatures', { tourUser: qui === undefined ? Z.PATRON : qui, body: corps });
     v('⛔ LIRE : un collaborateur le peut, un anonyme non', [(await Z.appeler('GET /api/monitor/agents/signatures', { tourUser: Z.COLLAB })).status, (await Z.appeler('GET /api/monitor/agents/signatures', { tourUser: null })).status], [200, 401]);
     v('⛔ ÉCRIRE : un collaborateur est refusé (403), un anonyme aussi, rien ne bouge', [(await ecrit({ agent: 'lea', role: 'Conseillère' }, Z.COLLAB)).status, (await ecrit({ agent: 'lea', role: 'Conseillère' }, null)).status, S.composer('lea').includes('Conseillère')], [403, 403, false]);
-    const r = await ecrit({ agent: 'lea', role: 'Assistante commerciale virtuelle' });
-    v('le patron règle la formule de Léa : 200, la signature change, le fichier la garde', [r.status, S.composer('lea', 'contact@teamop.fr').split('\n')[0], JSON.parse(fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8')).roles.lea], [200, 'Léa — Assistante commerciale virtuelle — Équipe TeamOP', 'Assistante commerciale virtuelle']);
-    v('…celle de Camille n’a pas bougé', S.composer('camille', 'contact@teamop.fr').split('\n')[0], 'Camille — Assistante virtuelle — Équipe TeamOP');
-    v('le patron règle le nom de l’équipe', [(await ecrit({ equipe: 'Équipe TeamOP Clients' })).status, S.composer('camille', 'contact@teamop.fr').split('\n')[0]], [200, 'Camille — Assistante virtuelle — Équipe TeamOP Clients']);
+    const r = await ecrit({ agent: 'lea', role: 'Assistante commerciale' });
+    v('le patron règle la formule de Léa : 200, la signature change (le rôle ne nomme pas TeamOP : l’équipe suit), le fichier la garde, la mention de l’IA reste', [r.status, S.composer('lea', 'contact@teamop.fr').split('\n')[0], JSON.parse(fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8')).roles.lea, S.composer('lea', 'contact@teamop.fr').endsWith(SIG.MENTION_IA)], [200, 'Léa — Assistante commerciale — Équipe TeamOP', 'Assistante commerciale', true]);
+    v('…celle de Camille n’a pas bougé', S.composer('camille', 'contact@teamop.fr').split('\n')[0], 'Camille — Assistante de TeamOP');
+    v('le patron règle le nom de l’équipe : il suit un rôle qui ne nomme pas TeamOP, pas « Assistante de TeamOP » (qui ne se répète pas)', [(await ecrit({ equipe: 'Équipe TeamOP Clients' })).status, S.composer('lea', 'contact@teamop.fr').split('\n')[0], S.composer('camille', 'contact@teamop.fr').split('\n')[0]], [200, 'Léa — Assistante commerciale — Équipe TeamOP Clients', 'Camille — Assistante de TeamOP']);
     for (const [nom, corps] of [['« Justin » dans le rôle', { agent: 'lea', role: 'Assistante de Justin' }], ['« justin » dans l’équipe', { equipe: 'Équipe de justin' }], ['une adresse', { agent: 'lea', role: 'Assistante a@b.fr' }],
       ['un lien', { agent: 'lea', role: 'Assistante teamop.fr/x' }], ['un chiffre', { agent: 'lea', role: 'Assistante 24h' }], ['un rôle d’un caractère', { agent: 'lea', role: 'A' }],
-      ['un rôle de 61 caractères', { agent: 'lea', role: 'A'.repeat(61) }], ['un agent inconnu', { agent: 'personne', role: 'Assistante virtuelle' }], ['un rôle qui n’est pas un texte', { agent: 'lea', role: 42 }], ['un agent sans rôle', { agent: 'lea' }]]) {
+      ['un rôle de 61 caractères', { agent: 'lea', role: 'A'.repeat(61) }], ['un agent inconnu', { agent: 'personne', role: 'Assistante de TeamOP' }], ['un rôle qui n’est pas un texte', { agent: 'lea', role: 42 }], ['un agent sans rôle', { agent: 'lea' }]]) {
       const avant = fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8');
       const x = await ecrit(corps);
       vrai('⛔ ' + nom + ' : 400, rien n’est écrit', x.status === 400 && fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8') === avant, x.status + ' ' + JSON.stringify(x.corps));
     }
-    /* ⛔ Le rôle dit TOUJOURS que c'est une IA (règlement européen, art. 50) : relecture du 23 octobre 2026 — « Directrice commerciale » passait. */
-    for (const role of ['Directrice commerciale', 'Conseillère clientèle', 'Responsable', 'Assistante virtualisée', 'Assistante via la route']) {
+    /* ⛔ « virtuel » n'entre plus dans un rôle (Justin, 25 octobre 2026) ; la mention de l'IA n'en dépend plus : un rôle « Directrice commerciale » la garde (relecture du
+       23 octobre 2026 : c'est ce rôle qui la retirait quand elle vivait DANS le rôle). */
+    for (const role of ['Assistante virtuelle', 'Conseillère virtuelle', 'Assistant Virtuel']) {
       const avant = fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8');
       const x = await ecrit({ agent: 'lea', role });
-      vrai('⛔ le rôle « ' + role + ' » ne dit pas que c’est une IA : 400, rien n’est écrit, la signature garde sa mention', x.status === 400 && /IA|virtuel/.test(x.corps.error || '') && fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8') === avant && /virtuel|IA/.test(S.composer('lea', 'contact@teamop.fr').split('\n')[0]), x.status + ' ' + JSON.stringify(x.corps));
+      vrai('⛔ le rôle « ' + role + ' » : 400 (plus de « virtuel »), rien n’est écrit', x.status === 400 && /virtuel/.test(x.corps.error || '') && fs.readFileSync(path.join(Z.D, 'agents-signatures.json'), 'utf8') === avant, x.status + ' ' + JSON.stringify(x.corps));
     }
-    for (const role of ['Assistant virtuel', 'Assistante IA', 'Conseillère virtuelle', 'Agent IA']) {
+    for (const role of ['Directrice commerciale', 'Conseillère clientèle', 'Assistante de TeamOP']) {
       const x = await ecrit({ agent: 'lea', role });
-      v('(contre-épreuve) le rôle « ' + role + ' » est accepté', [x.status, S.composer('lea', 'contact@teamop.fr').split('\n')[0].includes(role)], [200, true]);
+      v('(contre-épreuve) le rôle « ' + role + ' » est accepté, et la signature finit TOUJOURS par la mention de l’IA', [x.status, S.composer('lea', 'contact@teamop.fr').split('\n')[0].includes(role), S.composer('lea', 'contact@teamop.fr').endsWith('\n' + SIG.MENTION_IA)], [200, true, true]);
     }
     {
-      const x = await ecrit({ agent: 'lea', role: 'Assistante\nvirtuelle' });
-      vrai('un saut de ligne dans le rôle est ramené à une espace : la signature reste sur UNE ligne', x.status === 200 && S.composer('lea', 'contact@teamop.fr').split('\n')[0] === 'Léa — Assistante virtuelle — Équipe TeamOP Clients', S.composer('lea', 'contact@teamop.fr'));
+      const x = await ecrit({ agent: 'lea', role: 'Assistante\nde TeamOP' });
+      vrai('un saut de ligne dans le rôle est ramené à une espace : la signature reste sur UNE ligne', x.status === 200 && S.composer('lea', 'contact@teamop.fr').split('\n')[0] === 'Léa — Assistante de TeamOP', S.composer('lea', 'contact@teamop.fr'));
     }
     vrai('…le journal note le geste (qui, quoi — sans le texte de la formule)', Z.journal().some(e => e.agent === 'systeme' && e.action === 'signature des agents modifiée' && e.qui === 'Justin'));
     const g = (await Z.appeler('GET /api/monitor/agents/signatures', { tourUser: Z.COLLAB })).corps;
-    vrai('LIRE rend les seize agents, avec la valeur par défaut et un aperçu', g.agents.length === 16 && g.agents.every(a => a.defaut && a.apercu && a.role) && g.site === 'teamop.fr' && g.agents.find(a => a.agent === 'lea').defaut === 'Assistante virtuelle');
+    vrai('LIRE rend les seize agents, avec la valeur par défaut et un aperçu', g.agents.length === 16 && g.agents.every(a => a.defaut && a.apercu && a.role) && g.site === 'teamop.fr' && g.agents.find(a => a.agent === 'lea').defaut === 'Assistante de TeamOP');
     Z.nettoyer();
 
     const I = monter({ modes: { lea: 'brouillon' }, avant: D => fs.writeFileSync(path.join(D, 'agents-signatures.json'), '{pas du json') });
     const SI = SIG({ get: (p, ...h) => { I.routes['GET ' + p] = h; }, post: (p, ...h) => { I.routes['POST ' + p] = h; } }, { agents: I.agents, monAdmin: (rq, rs, n) => n(), monPatronStrict: (rq, rs, n) => n(), fichier: I.fichier });
-    v('registre illisible : la signature par défaut sert (une signature ne manque jamais)', SI.composer('lea', 'contact@teamop.fr').split('\n')[0], 'Léa — Assistante virtuelle — Équipe TeamOP');
-    const w = await I.appeler('POST /api/monitor/agents/signatures', { tourUser: I.PATRON, body: { agent: 'lea', role: 'Assistante virtuelle senior' } });
+    v('registre illisible : la signature par défaut sert (une signature ne manque jamais)', SI.composer('lea', 'contact@teamop.fr').split('\n')[0], 'Léa — Assistante de TeamOP');
+    const w = await I.appeler('POST /api/monitor/agents/signatures', { tourUser: I.PATRON, body: { agent: 'lea', role: 'Assistante senior' } });
     v('⛔ …et l’écriture dit 503 sans écraser le fichier', [w.status, fs.readFileSync(path.join(I.D, 'agents-signatures.json'), 'utf8')], [503, '{pas du json']);
     I.nettoyer();
     {
-      const J = monter({ modes: { lea: 'brouillon' }, avant: D => fs.writeFileSync(path.join(D, 'agents-signatures.json'), JSON.stringify({ roles: { lea: 'Directrice commerciale', camille: 'Assistante IA' }, equipe: 'Équipe TeamOP' })) });
+      const J = monter({ modes: { lea: 'brouillon' }, avant: D => fs.writeFileSync(path.join(D, 'agents-signatures.json'), JSON.stringify({ roles: { lea: 'Assistante virtuelle', camille: 'Assistante IA' }, equipe: 'Équipe TeamOP' })) });
       const SJ = SIG({ get() {}, post() {} }, { agents: J.agents, monAdmin: (rq, rs, n) => n(), monPatronStrict: (rq, rs, n) => n(), fichier: J.fichier });
-      v('⛔ un rôle RANGÉ sans la mention d’IA (fichier d’avant, édité à la main) retombe sur le défaut ; celui qui la porte est gardé', [SJ.composer('lea', 'contact@teamop.fr').split('\n')[0], SJ.composer('camille', 'contact@teamop.fr').split('\n')[0]], ['Léa — Assistante virtuelle — Équipe TeamOP', 'Camille — Assistante IA — Équipe TeamOP']);
+      v('⛔ un rôle RANGÉ avec « virtuelle » (le défaut d’avant le 25 octobre 2026) retombe sur le nouveau défaut ; un autre rôle est gardé', [SJ.composer('lea', 'contact@teamop.fr').split('\n')[0], SJ.composer('camille', 'contact@teamop.fr').split('\n')[0]], ['Léa — Assistante de TeamOP', 'Camille — Assistante IA — Équipe TeamOP']);
       J.nettoyer();
     }
     const src = fs.readFileSync(path.join(RACINE, 'server', 'agents-signature.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
@@ -96,7 +99,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     const r = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'sig1@client-2901.fr' });
     const ap = (await Z.appeler('GET /api/monitor/agents/brouillons', { tourUser: Z.PATRON, query: { refs: r.ref } })).corps[r.ref];
     v('l’aperçu montre la signature de LÉA pour la boîte « contact »', ap.signature, signatureDe('Léa'));
-    vrai('⛔ le texte rangé ne porte aucune signature (le serveur l’ajoute à l’envoi)', !/Assistante virtuelle|Justin|Équipe TeamOP/.test(Z.fichierJson('agents-brouillons.json')[r.ref].texte));
+    vrai('⛔ le texte rangé ne porte aucune signature (le serveur l’ajoute à l’envoi)', !/Assistante virtuelle|Assistante de TeamOP|assistant automatique|Justin|Équipe TeamOP/.test(Z.fichierJson('agents-brouillons.json')[r.ref].texte));
     vrai('…et ce n’est PAS celle du Courrier de Justin', ap.signature !== Z.mail.signature() && !/Justin Dupont/.test(ap.signature));
     const vl = (await Z.validations())[0];
     await Z.appeler('POST /api/monitor/agents/validations/decider', { tourUser: Z.PATRON, body: { id: vl.id, decision: 'accepter', empreinte: ap.empreinte } });
@@ -134,11 +137,11 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     vrai('avec sa signature : le courriel part ; le Message-ID est connu AVANT l’envoi et rendu', r1.copieOk !== undefined && /^<[0-9a-f]{24}@banc-2901\.fr>$/.test(r1.messageId), JSON.stringify(r1));
     const { simpleParser } = require(path.join(RACINE, 'server', 'node_modules', 'mailparser'));
     const l1 = await simpleParser(f.recus[0]);
-    v('…le texte, puis la signature de l’agent UNE fois ; jamais celle du Courrier', [String(l1.text).trim(), (String(l1.text).match(/Équipe TeamOP/g) || []).length], ['Texte du courriel.\n\n' + SIGL, 1]);
+    v('…le texte, puis la signature de l’agent UNE fois ; jamais celle du Courrier', [String(l1.text).trim(), (String(l1.text).match(/assistant automatique de TeamOP/g) || []).length], ['Texte du courriel.\n\n' + SIGL, 1]);
     v('…l’expéditeur affiché est « Léa — TeamOP », depuis la boîte de contact, avec le Message-ID annoncé', [l1.from.value[0].name, l1.from.value[0].address, l1.messageId], ['Léa — TeamOP', 'contact@banc-2901.fr', r1.messageId]);
     await m.envoyerAgent(Object.assign({}, base, { texte: 'Texte déjà signé.\n\n' + SIGL, signature: SIGL }));
     const l2 = await simpleParser(f.recus[1]);
-    v('un texte déjà signé (un envoi repris) n’est pas signé deux fois', (String(l2.text).match(/Équipe TeamOP/g) || []).length, 1);
+    v('un texte déjà signé (un envoi repris) n’est pas signé deux fois', (String(l2.text).match(/assistant automatique de TeamOP/g) || []).length, 1);
     const inj = await m.envoyerAgent(Object.assign({}, base, { signature: SIGL, deNom: 'Faux "Nom" <x@y.z>\r\nBcc: z@z.z' }));
     const l3 = await simpleParser(f.recus[2]);
     vrai('⛔ un nom d’expéditeur avec guillemets, chevrons ou saut de ligne ne fabrique ni en-tête ni adresse', !/^Bcc:/mi.test(f.recus[2].split('\n\n')[0]) && l3.from.value.length === 1 && l3.from.value[0].address === 'contact@banc-2901.fr', f.recus[2].split('\n\n')[0].slice(0, 300));
