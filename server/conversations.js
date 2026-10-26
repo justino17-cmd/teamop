@@ -85,7 +85,9 @@ function validerGroupe(b, sansAdr) {
   if (!NOM_PERMIS.test(nom) || !/[\p{L}\p{N}]/u.test(nom)) return { ok: false, erreur: 'Le nom ne peut contenir que des lettres, des chiffres, des espaces et une ponctuation simple' };
   if (norm(nom).includes('justin')) return { ok: false, erreur: 'Le nom ne peut pas porter le prénom de Justin' };
   if (AVEC_LIEN.test(nom) || nom !== sansAdr(nom)) return { ok: false, erreur: 'Le nom ne peut pas contenir de lien ni d’adresse' };
-  if (!(UN_EMOJI.test(icone) && icone.length <= 16) && !/^\p{L}{1,2}$/u.test(icone)) return { ok: false, erreur: 'L’icône est un émoji, ou une ou deux lettres' };
+  /* « # » est l'icône d'ORIGINE des groupes : la Tour la pré-remplit quand le groupe n'a jamais été personnalisé. La refuser ferait
+     tomber le premier « Enregistrer » de Justin sur un refus, alors qu'il n'a changé que le nom ou la couleur. */
+  if (icone !== '#' && !(UN_EMOJI.test(icone) && icone.length <= 16) && !/^\p{L}{1,2}$/u.test(icone)) return { ok: false, erreur: 'L’icône est un émoji, ou une ou deux lettres' };
   if (!COULEURS.includes(b.couleur)) return { ok: false, erreur: 'Couleur inconnue (' + COULEURS.join(', ') + ')' };
   if (longueur(description) > DESCRIPTION_MAX) return { ok: false, erreur: 'La description est trop longue (' + DESCRIPTION_MAX + ' caractères au plus)' };
   if (!DESCRIPTION_PERMISE.test(description)) return { ok: false, erreur: 'La description ne peut contenir que des lettres, des chiffres, des espaces et une ponctuation simple' };

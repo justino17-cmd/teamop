@@ -122,9 +122,9 @@ const fil = (m, f) => m.liste().corps.fils.find(x => x.fil === f);
     m.groupe({ fil: 'clients', defaut: true });
     console.log('  ── l’icône');
     refus('icône absente', { fil: 'clients', nom: 'Clients', couleur: 'bleu' }, /icône/);
-    for (const x of ['', ' ', 'abc', 'abcde', '12', 'a1', '1a', '😀😀', '🔥🔥🔥🔥', '🙂x', 'x🙂', 'texte libre', '<b>', '<img', '@', '..', 'é́', '​', '🙂​', '😀\n', 123, null, ['⭐'], { a: 1 }, '🏴󠁧󠁢󠁥󠁮󠁧󠁿', '\u{1F600}'.repeat(2)])
+    for (const x of ['', ' ', 'abc', 'abcde', '12', 'a1', '1a', '😀😀', '🔥🔥🔥🔥', '🙂x', 'x🙂', 'texte libre', '<b>', '<img', '@', '..', '##', 'é́', '​', '🙂​', '😀\n', 123, null, ['⭐'], { a: 1 }, '🏴󠁧󠁢󠁥󠁮󠁧󠁿', '\u{1F600}'.repeat(2)])
       if (x !== '\u{1F600}') refus('icône refusée : ' + JSON.stringify(x), avec({ icone: x }), /icône|texte|caractère/);
-    for (const x of ['⭐', '🙂', '👍🏽', '👨‍👩‍👧', '🇫🇷', '1️⃣', 'A', 'é', 'Cl', 'Éé', '☎️']) accepte('icône acceptée : ' + JSON.stringify(x), avec({ icone: x }));
+    for (const x of ['⭐', '🙂', '👍🏽', '👨‍👩‍👧', '🇫🇷', '1️⃣', 'A', 'é', 'Cl', 'Éé', '☎️', '#']) accepte('icône acceptée : ' + JSON.stringify(x), avec({ icone: x }));
     console.log('  ── la couleur');
     refus('couleur absente', { fil: 'clients', nom: 'Clients', icone: '⭐' }, /couleur/i);
     for (const x of ['', 'rose', 'jaune', 'BLEU', 'Bleu', 'bleu ', ' bleu', '#ff0000', 'red', 'bleu;', 'bleu"><', ['bleu'], 3, null, { a: 'bleu' }]) refus('couleur refusée : ' + JSON.stringify(x), avec({ couleur: x }), /ouleur/);
