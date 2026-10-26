@@ -454,7 +454,7 @@ module.exports = function monterReunions(app, ctx) {
       const extra = id === 'ines' ? ' Tu donnes aussi la qualité de la semaine : ce que tu relèves sur le travail de l’équipe, d’après les erreurs et les refus du bloc Faits et le bloc qualite (tes relectures de courriels : combien sont partis, combien étaient conformes, quels critères reviennent).' : '';
       const o = await parole(id, R, run, consignes[R.type] + extra, { ecrire: true });
       if (o.cause && o.cause !== 'vide') { if (GLOBALES.includes(o.cause)) return abandon(o.cause); absent(id, o.cause); }
-      else if (o.parle) { run.parles.add(id); citer(id, o.mentions); if (R.type === 'objectifs' && !objectifsDe(R.semaine, id).length) await enregistrerObjectifsDits(id, R, run, o.texte); }
+      else if (o.parle) { run.parles.add(id); citer(id, o.mentions); if (R.type === 'objectifs' && !objectifsDe(R.semaine, id).length && !o.actions.some(a => a.nom === 'fixer_objectifs')) await enregistrerObjectifsDits(id, R, run, o.texte); }
     }
 
     /* 3. La discussion : ceux qu'on a cités répondent, dans l'ordre, jusqu'à ce que plus personne n'ait rien à ajouter — ou que l'heure soit finie. */
