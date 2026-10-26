@@ -53,6 +53,16 @@ const DISCUSSION_MAX = 12, TOURS_PAR_AGENT = 2;
    « je retiens les objectifs de Léa : 20 inscriptions » aussi (ce sont ceux d'une autre, et un chiffre). */
 const REDITE_TETE = /^(?:(?:confirm[ée]e?|ok|parfait|d['’]accord|entendu|not[ée]|[çc]a marche)\s*[,!]?\s*)?(?:je|on)\s+(?:confirme|garde|maintiens|conserve)\s+(?:donc\s+|bien\s+)?(?:mes|ces)\s+(?:(?:deux|trois|quatre)\s+)?objectifs(?:\s+(?:de la semaine|pour la semaine|pour cette semaine|tels que (?:pos[ée]s|fix[ée]s|dits)|tels quels|comme pr[ée]vu))*/i;
 const REDITE_RIEN = /^(?:je n['’]ai\s+)?rien\s+(?:d['’]autre\s+|de plus\s+)?(?:à|a)\s+(?:ajouter|signaler)(?:\s+(?:de mon c[ôo]t[ée]|pour moi|pour l['’]instant|sur les autres dossiers))*/i;
+/* ⛔ UN ACCUSÉ DE RÉCEPTION N'EST PAS UNE PRISE DE PAROLE (examen du 26 octobre 2026, scénario 8 : après les objectifs, Jules, Max, Léa et Inès se sont renvoyé six « @max ok… »,
+   « @jules ok… » — chacun cité par l'autre, donc rappelé, jusqu'à épuiser leurs deux tours, pendant que la réunion consommait ses appels et son heure avant le compte rendu). Une
+   phrase qui ne fait que dire ok / merci / noté (huit mots au plus une fois les @ retirés, sans question, sans chiffre) est retirée comme une redite : rien n'est publié, et ses @
+   ne réveillent personne. « Ok, je regarde les relances de Léa demain » reste (c'est un engagement) ; « ok, tu peux me redire quand ? » aussi (c'est une question). */
+const ACCUSE_TETE = /^(?:ok|okay|d['’]accord|merci|noté|bien noté|entendu|parfait|compris|très bien|top|super|bien reçu|reçu|ça marche|c['’]est noté|je note)\b/i;
+function accuseSeul(texte) {
+  const sans = String(texte || '').replace(/@[\p{L}\p{N}_]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  if (!sans || /[?\d]/.test(sans)) return false;
+  return (sans.match(/[\p{L}\p{N}'’-]+/gu) || []).length <= 8 && ACCUSE_TETE.test(sans.replace(/^[\s,.;:!-]+/, ''));
+}
 function sansRedites(texte) {
   const gardees = [];
   for (const p of String(texte || '').split(/(?<=[.!?])\s+/)) {
@@ -66,6 +76,7 @@ function sansRedites(texte) {
     if (r) gardees.push(r.charAt(0).toUpperCase() + r.slice(1));
   }
   const t = gardees.join(' ').trim();
+  if (accuseSeul(t)) return '';
   return /[\p{L}\p{N}]/u.test(t.replace(/@[\p{L}\p{N}_]+/gu, '')) ? t : '';
 }
 const PAROLE_MAX = 600, COMPTE_RENDU_MAX = 1500, OBJECTIF_MAX = 160, LECON_MAX = 200, POURQUOI_MAX = 200;
@@ -356,26 +367,35 @@ module.exports = function monterReunions(app, ctx) {
       r = await cerveau.penser(id, system, [{ role: 'user', content: demande }], { outils: outilsReunion(R.type), reflechir: true });
     } catch (e) { return { cause: 'erreur_api' }; }
     finally { conversations.ecrit(FIL, id, false); }
-    if (!r || !r.ok) return { cause: (r && r.raison) || 'erreur_api' };
+    /* ⛔ LA PAROLE ATTENDUE NE SE PERD PAS (examen du 26 octobre 2026, scénario 8 : « Compte rendu non écrit. » au bilan du vendredi, sans cause, alors que le plafond n'était pas
+       atteint). Le compte rendu et le tour de table sont une parole ATTENDUE (`o.ecrire`) ; une réponse vide ou coupée n'est pas une raison de se taire : on la redemande, sans outil
+       et SANS réflexion (adaptive, elle est prise sur la longueur permise et pouvait ne laisser aucun mot), au plus deux fois. Et ce qui a empêché de parler est DIT : la cause de
+       la dernière demande, jamais une cause vide. */
+    let causeEcrire = '';
+    const sansMot = r && r.ok ? '' : (r && r.raison) || 'erreur_api';
+    if (sansMot && !(o.ecrire && ['vide', 'trop_long'].includes(sansMot))) return { cause: sansMot };
     const sortie = { parle: false, mentions: [], texte: '', actions: [] };
-    for (const a of (Array.isArray(r.actions) ? r.actions : []).slice(0, 6)) {
+    for (const a of (r && r.ok && Array.isArray(r.actions) ? r.actions : []).slice(0, 6)) {
       let x; try { x = executer(id, a, R, run); } catch (e) { x = { ok: false, raison: 'erreur' }; }
       sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison });
     }
-    let t = couper(masquer(r.texte), o.max || PAROLE_MAX);
+    let t = couper(masquer(r && r.ok ? r.texte : ''), o.max || PAROLE_MAX);
     /* DES OUTILS ET PAS UN MOT (examen du 24 octobre 2026, réunion du vendredi) : six agents sur huit ont jugé leurs objectifs par juger_objectif sans rien dire,
        et Victor, qui juge aussi les siens en concluant, a rendu ses outils sans le compte rendu — « Compte rendu non écrit. ». Quand la parole est ATTENDUE
-       (`o.ecrire` : le tour de table, le compte rendu), UN second appel, SANS outil (rien ne s'enregistre deux fois), lui demande son message. */
-    if (!t && o.ecrire && sortie.actions.length) {
+       (`o.ecrire` : le tour de table, le compte rendu), un second appel, SANS outil (rien ne s'enregistre deux fois), lui demande son message. La consigne de CE appel est
+       `o.consigneEcrire` quand elle existe (le compte rendu seul, sans « juge aussi tes objectifs » : demander un outil à qui n'en a plus lui fait chercher un). */
+    for (let essai = 0; !t && o.ecrire && essai < 2; essai++) {
       const faits = sortie.actions.map(a => a.nom + (a.ok ? '' : ' (refusé)')).join(', ');
       let r2 = null;
       conversations.ecrit(FIL, id, true);
-      try { r2 = await cerveau.penser(id, system, [{ role: 'user', content: demande + '\n\nTes outils sont faits (' + faits + ') : ne les rappelle pas. Écris maintenant, sans outil, ton message pour le fil.' }], { reflechir: true }); }
+      try { r2 = await cerveau.penser(id, system, [{ role: 'user', content: 'Le fil de la réunion jusqu’ici :\n' + transcript(R) + '\n\n' + (o.consigneEcrire || consigne) + '\n\n' + (faits ? 'Tes outils sont faits (' + faits + ') : ne les rappelle pas. Écris maintenant, sans outil, ton message pour le fil.' : 'Écris maintenant, sans outil, ton message pour le fil.') }], { maxTokens: o.max ? 1500 : 800 }); }
       catch (e) { r2 = null; }
       finally { conversations.ecrit(FIL, id, false); }
-      if (r2 && r2.ok) t = couper(masquer(r2.texte), o.max || PAROLE_MAX);
+      if (r2 && r2.ok) { t = couper(masquer(r2.texte), o.max || PAROLE_MAX); causeEcrire = t ? '' : 'vide'; }
+      else causeEcrire = (r2 && r2.raison) || 'erreur_api';
+      if (GLOBALES.includes(causeEcrire)) break;   // plus rien ne passera : inutile de redemander
     }
-    if (!t) return Object.assign(sortie, { cause: r.actions && r.actions.length ? '' : 'vide' });
+    if (!t) return Object.assign(sortie, { cause: causeEcrire || (sortie.actions.length ? '' : 'vide') });
     if (o.ras && RAS.test(t)) return Object.assign(sortie, { ras: true });
     if (o.redites) { t = sansRedites(t); if (!t) return Object.assign(sortie, { ras: true }); }
     const d = conversations.parler(id, FIL, t, { niveau: 'info', prof: 1, reunion: true, max: o.max });
@@ -444,7 +464,7 @@ module.exports = function monterReunions(app, ctx) {
     if (R.participants.includes('victor')) {
       const siens = R.type === 'objectifs' ? ' Enregistre aussi TES objectifs de la semaine (outil fixer_objectifs), sans les détailler dans le compte rendu.'
         : ' Juge aussi TES propres objectifs (outil juger_objectif) et note une leçon si tu en as une (outil ajouter_lecon), sans les détailler dans le compte rendu.';
-      const o = await parole('victor', R, run, 'Clos la réunion par le compte rendu : les décisions prises, qui fait quoi, et ce qui attend Justin — rien d’inventé, seulement ce qui s’est dit ici. ' + COMPTE_RENDU_MAX + ' caractères au plus. Ne cite personne avec @.' + siens, { max: COMPTE_RENDU_MAX, ecrire: true });
+      const o = await parole('victor', R, run, 'Clos la réunion par le compte rendu : les décisions prises, qui fait quoi, et ce qui attend Justin — rien d’inventé, seulement ce qui s’est dit ici. ' + COMPTE_RENDU_MAX + ' caractères au plus. Ne cite personne avec @.' + siens, { max: COMPTE_RENDU_MAX, ecrire: true, consigneEcrire: 'Clos la réunion par le compte rendu : les décisions prises, qui fait quoi, et ce qui attend Justin — rien d’inventé, seulement ce qui s’est dit ici. ' + COMPTE_RENDU_MAX + ' caractères au plus. Ne cite personne avec @.' });
       if (o.parle) R.compteRendu = o.texte; else dire('Compte rendu non écrit' + (o.cause ? ' : ' + (CAUSES[o.cause] || o.cause) : '') + '.');
     }
     termine(R, 'terminee');

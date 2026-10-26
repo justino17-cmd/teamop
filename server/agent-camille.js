@@ -405,7 +405,7 @@ module.exports = function camille(ctx) {
           return { saute: res.raison === 'forme' ? 'forme' : 'texte_refuse', raison: res.raison };
         }
         agents.noter(ID, 'contrôle qualité', { cible: 'courrier', resultat: res.etat === 'bon' ? 'ok' : 'refuse', detail: res.etat + (res.reecrit ? ' après une réécriture' : '') + (res.fautes.length ? ' : ' + res.fautes.join(', ') : '') });
-        const controle = { etat: res.etat, fautes: res.fautes, juge: res.juge === true, raison: res.raison };
+        const controle = { etat: res.etat, fautes: res.fautes, juge: res.juge === true, raison: res.raison, citations: res.citations };
         const d = await deposerReponse({ m, ev, a, objet: res.objet, texte: res.corps, controle, reecrit: res.reecrit });
         if (!d.ok) return { saute: d.raison };
         jour.brouillons++; sauve();

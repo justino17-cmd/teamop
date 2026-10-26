@@ -13,6 +13,30 @@ de ligne du tout.
 
 ---
 
+# 🔶 26 OCTOBRE 2026 (SOIR) — EXAMEN DE 17 H 36 : 6 RÉUSSIS, 1 ÉCHEC, 2 « INCONNU » — CORRIGÉS (branche `claude/examen-26-octobre`, pas fusionnée)
+
+- **Scénario 6 « vente » (✗)** : Toka Clim parti, Brillance Services et Dupont Plomberie restés « à revoir » pour `fait_invente`. `fait_invente` ne vient QUE du juge (`fautesDuCode` ne le produit
+  pas). Relevé des mots de chaque phrase candidate contre la liste de l'offre (`test-3063` § 0) : Brillance « rapport PDF envoyé automatiquement » = une QUALITÉ ajoutée (l'offre dit « envoyé
+  au client ») — vraie faute ; Dupont : tout vient de l'offre (seuls « clôture » pour « terminée », « paiements » pour « payées » sont des synonymes) — faux positif du juge. ⚠️ **Laquelle des
+  phrases a vraiment déclenché chaque faute n'est PAS prouvé** (la réponse brute du juge n'était pas gardée). Pourquoi la réécriture unique n'a pas suffi : elle recevait « ne garder que les
+  faits de l'offre » SANS la phrase en cause. Corrigé : le juge **cite** la phrase (`CITE : …`, seulement après `fait_invente`, et seulement si c'est un FRAGMENT du courriel jugé — jamais un
+  texte neuf), la réécriture la reçoit avec la seule issue (les mots exacts de l'offre, ou la retirer), le brouillon la garde (`controle.citations`) et l'examen la montre (« phrase en cause »).
+  L'offre et le plan de Léa disent de reprendre les MOTS de la ligne (pas d'« automatiquement » ajouté) ; le juge sait ce qu'est une reformulation fidèle (pluriel, synonyme). **Rien n'est relâché** :
+  une citation qui n'est pas dans le courriel est écartée, la faute reste. ⚠️ La Tour (v2.112) ne montre pas `controle.citations` (page non touchée) : l'examen et l'API le donnent.
+- **Scénario 8 « réunions » (inconnu)** : « Compte rendu non écrit. » SANS cause = Victor a rendu des outils seuls (le vendredi il juge ses propres objectifs en concluant) et la seule redemande, sans
+  outil, n'a rien rendu non plus. Ce n'est NI un plafond (une réunion tient en ~30 messages sous les 45 de l'heure du fil ; 85 appels sur 200 à l'examen), NI le délai (l'horloge de l'examen ne
+  bouge pas). Corrigé (`reunions.js`, `parole`) : une parole ATTENDUE (compte rendu, tour de table) est redemandée jusqu'à DEUX fois, sans outil, **sans réflexion adaptative** (prise sur la
+  longueur permise), avec la consigne du compte rendu seule (plus de « juge aussi tes objectifs (outil juger_objectif) » à qui n'a plus d'outil), 1 500 caractères permis ; une première demande
+  « vide » ou « trop longue » est aussi redemandée ; la CAUSE de l'échec est dite (« Compte rendu non écrit : sa réponse dépassait la longueur permise. »), et une cause globale (budget) n'est pas
+  répétée. Les six « @max ok… » : un accusé de réception (≤ 8 mots hors @, sans question ni chiffre) n'est plus publié en discussion — il citait, donc rappelait l'autre (`accuseSeul`). ⚠️ La cause
+  réelle de la redemande vide n'est PAS prouvée (aucune réponse brute gardée) ; la correction rend le compte rendu robuste à ses trois formes connues.
+- **Scénario 9 « ton » (inconnu)** : « 0 appel, conversation vide » est NORMAL (ce scénario ne fait parler personne, Inès juge les huit autres). Cause la plus probable : le 25 octobre au soir
+  (`2e8e2ea1`) le critère c3 a quitté le juge, le scénario a demandé « c1, c2, c4 » — un modèle corrige en c1, c2, c3 et un verdict sans `c4` est illisible ; c'est le premier examen depuis. Corrigé à la
+  racine (`juger`, `examen.js`) : les critères sont TOUJOURS numérotés c1…cN sans trou et les clés de l'appelant reviennent dans la réponse ; une réponse illisible ou vide est redemandée UNE fois ;
+  un verdict qui reste illisible DIT le début de la réponse du juge ; un objet qui ne nomme aucun critère (« {formules} » dans une phrase d'avant) n'est plus pris pour un verdict incomplet.
+- Bancs : `test-3063` (40), `test-3061` (25), `test-3062` (26), tous dans `scripts/bancs-serveur.liste` (plancher relevé à 9900 : 148 suites, 9 986 mesurées) ; `test-3001` suit la forme de la vue.
+  Mutations : `scratchpad/mutations-examen-26.py`. ⏳ **Reste** : fusion, déploiement, puis relancer l'examen (un par heure) : le résultat dira, pour un brouillon resté « à revoir », la phrase en cause.
+
 # ⏳ 26 OCTOBRE 2026 — OP MESSAGES BÊTA : L'INVITÉ SANS COMPTE (branche `claude/opmsg-invite-sans-compte`, pas encore fusionnée ni déployée)
 
 Justin : « quand on va présenter l'application au client, sans qu'ils aient besoin d'installer : ça passe par le Web, ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux, et quand ça se coupe, le lien est mort. »
@@ -92,6 +116,26 @@ Justin : « tous mes agents doivent avoir une photo de profil, j'aime bien mettr
   par écrit.
 - ⛔ Pauline (Harvey, sur le Mac de Justin) n'est PAS dans la Tour : sa photo reste hors du dépôt. Et une photo d'une VRAIE personne
   (Justin en a proposé une, trouvée en ligne) ne devient jamais le visage d'un agent qui écrit à des prospects.
+
+# 🔧 26 OCTOBRE 2026 (SOIR) — LE BLOG SE PUBLIE SEUL, IMAGES PAR GEMINI (branche `claude/publication-auto-blog`)
+
+Justin : « je veux que les publications soient automatiques et que les images soient gérées avec Gemini » ; « je veux que tu
+fasses tout comme babylovegrowth.ai ».
+- **Fait** : `.github/workflows/blog-publication.yml` termine la demande de fusion d'un article (`claude/blog-*`) : photo de
+  couverture et images du texte par Gemini (`scripts/blog-gemini.js`, consignes fixes : personnes fictives, tenue bleu marine,
+  ni texte ni logo ; clé dans l'en-tête, jamais dans une adresse), posées en WebP (`scripts/blog-images.py`), pages refaites,
+  bancs du blog (3000, 835, 846, 1008, 3060), fusion, puis `publication-site.yml` lancé à la main (une fusion par GITHUB_TOKEN
+  ne déclenche rien sur `main`). ⛔ Une demande qui touche autre chose que `blog/`, `contenu/blog/`, `sitemap.xml` n'est pas
+  fusionnée. ⛔ Gemini absent ou en panne : l'article part avec la couverture sans photo, et une figure en attente est RETIRÉE
+  (jamais une image d'attente en ligne). Banc : `tests/test-3060.js` (40 ✓, faux Gemini sur 127.0.0.1) ; Pillow : sonde
+  `scratchpad/sonde-blog-images.sh` (figure et couverture 1200 × 675, nom de couverture de la fiche respecté).
+- **Geste de Justin (une fois)** : GitHub → Réglages → Secrets and variables → Actions → « New repository secret » :
+  `GEMINI_API_KEY` = la clé Gemini (celle du Devis IA convient si son projet a la génération d'images ; ne la coller nulle part
+  ailleurs). Facultatif : une VARIABLE `GEMINI_MODELE_IMAGE` pour imposer un modèle (sinon le plus récent « flash » d'image).
+- **Tâche planifiée « Article du blog »** (`trig_01XV79hD4SnMHWZds8SSudzQ`) : du lundi au vendredi, images `data-gemini`,
+  file des sujets réalimentée quand il en reste moins de cinq. ⛔ Pas repris de BabyLoveGrowth : l'échange de liens (réseau de
+  « backlinks » — contraire aux règles anti-spam de Google), les commentaires Reddit/Quora qui glissent la marque (publicité
+  déguisée), l'effacement des marques « image générée par IA » (C2PA).
 
 # ✅ 25 OCTOBRE 2026 (SOIR) — L'AUDIENCE DU SITE DANS LA TOUR, ET LE BLOG SUR teamop.fr — EN LIGNE (n° 184, heure d'hiver n° 185, registre n° 187, fusionnés le 25-26/10)
 
