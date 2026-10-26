@@ -26,7 +26,10 @@ async function fluxInvite(c) {
 }
 
 (async () => {
-  const I = await IV.monter();
+  /* ⛔ SANS BALAYAGE RAPIDE : la boucle de fond ferme aussi les flux des sessions coupées, à la seconde. Elle ne repasse ici qu'au bout d'une minute (elle passe une fois au démarrage) : un flux refermé dans les secondes
+     qui suivent « Régénérer » l'a été par la ROUTE elle-même, pas par le balayage. */
+  const I = await IV.monter({ service: { config: { appels: { balayageMs: 60000, perduMs: 600000 } } } });
+  await T.dort(1600);
   try {
     const hote = I.pers('Hote');
     const cH = I.cl(hote);
