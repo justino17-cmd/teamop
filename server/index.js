@@ -114,7 +114,9 @@ const jsonCourant = express.json({ limit: '6mb' }); // large : les e-mails peuve
 const jsonGros = express.json({ limit: '20mb' });
 /* `/api/audience/vue` (publique) lit son propre corps, en texte, 2 Ko au plus (`server/audience.js`) : le plafond de 6 Mo ne doit pas le lire avant elle. */
 const CHEMIN_AUDIENCE = /^\/api\/audience\/vue\/?$/i;
-app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path)) ? next() : jsonCourant(req, res, next));
+/* `/api/pauline/releve` (le pont de Pauline) lit AUSSI son propre corps, 2 Mo au plus, et seulement APRÈS avoir vérifié le jeton (`server/pauline.js`) : lire 6 Mo pour un inconnu serait le moyen le moins cher de remplir la mémoire. */
+const CHEMIN_PAULINE = /^\/api\/pauline\/releve\/?$/i;
+app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path) || CHEMIN_PAULINE.test(req.path)) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
 const ORIGINS = (config.origins || ['https://teamop.fr', 'https://www.teamop.fr']).concat(ESSAI ? [ESSAI_ORIGINE] : []);   // l'origine de test n'existe que dans le serveur de test
@@ -6215,6 +6217,14 @@ try {
   audienceMod = require('./audience')(app, { DATA_DIR, monPatronStrict, origines: ORIGINS });
 } catch (e) {
   console.error('audience non montée :', e.message);
+}
+/* ══ LE PONT DE PAULINE (25 octobre 2026) ══ l'agente de prospection (Harvey) tourne sur le Mac de Justin ; elle envoie ici un RELEVÉ complet toutes les quinze minutes
+   (`outils/pauline-releve.py`), la Tour le lit (`/api/monitor/pauline`, patron). Fermé sans `config.pauline.jetonSha256` (503). Les données de prospects n'entrent dans aucun journal
+   (`server/pauline.js`, contrat du relevé en tête). Un échec de montage n'arrête rien d'autre. */
+try {
+  require('./pauline')(app, { config, DATA_DIR, monPatronStrict });
+} catch (e) {
+  console.error('pont de Pauline non monté :', e.message);
 }
 /* ══ LA SAUVEGARDE HORS SITE ═══════════════════════════════════════════════════════════════
    Montée ICI parce qu'elle a besoin de `monPatronStrict` pour ses deux routes — une
