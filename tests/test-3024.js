@@ -36,9 +36,9 @@ const fonction = nom => corps('\nfunction ' + nom + '(').trim();
 const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const FNS = ['apiGet', 'apiPost', 'agIllisible', 'paObj', 'agMode', 'agEnPause', 'hoNb', 'hoParis', 'hoLib', 'hoFin', 'hoPhrase', 'hoLigne', 'agHorsHeures', 'hoCopieJour', 'hoRepartir', 'hoHeure', 'hoVersServeur', 'hoEcrit', 'hoAgentConnu', 'hoCible', 'hoSet', 'hoHerite',
-  'hoFeries', 'hoAstreinte', 'hoAgentOuvrir', 'hoAgentPropres', 'hoDuree', 'hoAnnuler', 'hoCorps', 'hoEnvoyer', 'hoEnregistrer', 'hoMinuit', 'hoOuvrir', 'hoFermer', 'hoResume', 'chargerHoraires', 'hoApres', 'hoJourHtml', 'hoVue'];
+  'hoFeries', 'hoAstreinte', 'hoAgentOuvrir', 'hoAgentPropres', 'hoDuree', 'hoAnnuler', 'hoPerm', 'hoPermActif', 'hoPermAgent', 'hoPermPilier', 'hoPermHeure', 'hoBinome', 'hoSamedi', 'hoPermanenceHtml', 'agDeGarde', 'agAvatar', 'hoCorps', 'hoEnvoyer', 'hoEnregistrer', 'hoMinuit', 'hoOuvrir', 'hoFermer', 'hoResume', 'chargerHoraires', 'hoApres', 'hoJourHtml', 'hoVue'];
 const FN = FNS.map(fonction);
-const VARS = [ligne('var AG_MODES='), ligne('var HO_JOURS='), ligne('var HO_DUREES='), ligne('var INJOIGNABLE='), corps('var HO={') + ';'].join('\n');
+const VARS = [ligne('var AG_PHOTOS='), ligne('var AG_MODES='), ligne('var HO_JOURS='), ligne('var HO_DUREES='), ligne('var INJOIGNABLE='), corps('var HO={') + ';'].join('\n');
 vrai('(population) les ' + FNS.length + ' fonctions de la page sont trouvées', FN.every(f => f.length > 30) && VARS.length > 200, FNS.filter((n, i) => FN[i].length <= 30).join(','));
 let jeton = '';
 const bac = { JSON, Date, Intl, String, Array, Math, Object, Number, Promise, Error, console, fetch, MYROLE: 'patron', TAB: 'agents', API: '',
@@ -103,6 +103,30 @@ const sansBalise = h => [...h.matchAll(/<([a-z0-9]+)([^>]*)>/gi)].filter(t => /^
   bac.hoDuree('24h'); const o2 = await bac.hoOuvrir(); vrai('24 h : accepté, fin = maintenant + 24 h', o2.status === 200 && Math.abs(HO.d.ouvertJusqua - (Date.now() + 86400000)) < 120000);
   bac.hoDuree('minuit'); const o3 = await bac.hoOuvrir(); vrai('jusqu’à minuit : accepté, et c’est minuit à Paris', o3.status === 200 && (p => p.h === 0 && p.m === 0)(bac.hoParis(HO.d.ouvertJusqua)) && HO.d.ouvertJusqua > Date.now() + 60000 && HO.d.ouvertJusqua <= Date.now() + 25 * 3600000 + 60000, new Date(HO.d.ouvertJusqua).toISOString());
   await bac.hoFermer();
+
+  /* la permanence du week-end : jouée dès que le serveur la porte (PR n° 197) ; un serveur d'avant n'en parle pas, et la page ne montre alors aucune section */
+  await bac.chargerHoraires();
+  if (!('permanence' in HO.d)) { console.log('  (la permanence du week-end n’est pas encore sur ce serveur : ses contrôles jouent dès qu’il la porte)'); vrai('sans permanence côté serveur : la page n’en dessine aucune et n’en envoie aucune', !/Permanence du week-end/.test(bac.hoVue()) && !('permanence' in bac.hoCorps())); }
+  else {
+    const pm = HO.d.permanence, nomsDe = ids => ids.map(id => (AG.agents.filter(a => a.id === id)[0] || {}).nom);
+    vrai('le serveur rend la permanence par défaut : active, rotation Camille · Hugo · Margaux · Léa, piliers Camille et Hugo, 9 h – 18 h', pm.actif === true && pm.agents.slice().sort().join() === 'camille,hugo,lea,margaux' && pm.piliers.slice().sort().join() === 'camille,hugo' && pm.debut === '09:00' && pm.fin === '18:00', pm);
+    const gardes = Object.keys(HO.d.agents).filter(id => HO.d.agents[id].deGarde === true).sort();
+    vrai('⛔ le binôme de « ce week-end » est le même chez `permanence.ceWeekEnd` et chez `agents[id].deGarde` ; il compte un pilier ; le suivant est un AUTRE binôme', pm.ceWeekEnd.agents.length === 2 && gardes.join() === pm.ceWeekEnd.agents.slice().sort().join() && pm.ceWeekEnd.agents.some(x => pm.piliers.includes(x)) && pm.suivant.agents.slice().sort().join() !== gardes.join(), [pm.ceWeekEnd, pm.suivant, gardes]);
+    const vp = bac.hoVue(), noms = nomsDe(pm.ceWeekEnd.agents);
+    vrai('la page l’écrit : « Ce week-end : » avec leurs noms et leurs photos, la date du samedi', new RegExp('Ce week-end : [\\s\\S]*?' + noms[0] + '[\\s\\S]*?' + noms[1]).test(vp) && /ho-av/.test(vp) && bac.hoSamedi(pm.ceWeekEnd.samedi).length > 8 && vp.indexOf(bac.hoSamedi(pm.ceWeekEnd.samedi)) > 0);
+    vrai('…et les rangées des agents de garde le savent (`agDeGarde` ⇔ ce que dit le serveur)', AG.agents.every(a => bac.agDeGarde(a) === (HO.d.agents[a.id].deGarde === true)));
+    bac.hoPermAgent('lea', false); bac.hoPermPilier('camille', false); bac.hoPermHeure('debut', '08:00'); bac.hoPermHeure('fin', '00:00');
+    const rp = await bac.hoEnregistrer();
+    vrai('Enregistrer : le vrai serveur accepte les cinq champs que la page envoie (200) ; « 00:00 » est devenu « 24:00 »', rp.status === 200 && HO.d.permanence.agents.slice().sort().join() === 'camille,hugo,margaux' && HO.d.permanence.piliers.join() === 'hugo' && HO.d.permanence.debut === '08:00' && HO.d.permanence.fin === '24:00', [rp.status, HO.d.permanence]);
+    vrai('…le binôme de ce week-end vient de la NOUVELLE rotation, et contient Hugo (le seul pilier)', HO.d.permanence.ceWeekEnd.agents.every(x => HO.d.permanence.agents.includes(x)) && HO.d.permanence.ceWeekEnd.agents.includes('hugo'), HO.d.permanence.ceWeekEnd);
+    const rel = (await S.get('/api/monitor/agents/horaires')).j.permanence;
+    vrai('⛔ relu chez le serveur : IDENTIQUE à ce que la page affiche', JSON.stringify(rel) === JSON.stringify(HO.d.permanence));
+    bac.hoPermAgent('margaux', false); bac.hoPermAgent('camille', false); const r1 = await bac.hoEnregistrer();
+    vrai('⛔ une rotation de moins de deux agents : refusée (400), la phrase du serveur s’affiche telle quelle, les cases restent', r1.status === 400 && HO.msg === r1.d.error && /deux agents/.test(HO.msg) && HO.ed.perm.agents.join() === 'hugo', [r1.status, HO.msg]);
+    bac.hoAnnuler(); bac.hoPermActif(false); const r2 = await bac.hoEnregistrer();
+    vrai('désactiver : accepté ; plus de binôme annoncé, plus aucun agent « de garde »', r2.status === 200 && HO.d.permanence.actif === false && HO.d.permanence.ceWeekEnd.agents.length === 0 && Object.values(HO.d.agents).every(a => !a.deGarde) && /Désactivée/.test(bac.hoVue()), [r2.status, HO.d.permanence]);
+    bac.hoPermActif(true); await bac.hoEnregistrer();
+  }
 
   console.log('\n2. Un collaborateur lit, il n’écrit pas');
   const tp = jeton; jeton = S.TA;

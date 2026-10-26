@@ -35,9 +35,9 @@ const fonction = nom => corps('\nfunction ' + nom + '(').trim();
 const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const FNS = ['agIllisible', 'paObj', 'agMode', 'agEnPause', 'hoNb', 'hoParis', 'hoLib', 'hoFin', 'hoPhrase', 'hoLigne', 'agHorsHeures', 'hoCopieJour', 'hoRepartir', 'hoHeure', 'hoVersServeur', 'hoEcrit', 'hoAgentConnu', 'hoCible', 'hoSet', 'hoHerite',
-  'hoFeries', 'hoAstreinte', 'hoAgentOuvrir', 'hoAgentPropres', 'hoDuree', 'hoAnnuler', 'hoCorps', 'hoEnvoyer', 'hoEnregistrer', 'hoMinuit', 'hoOuvrir', 'hoFermer', 'hoResume', 'chargerHoraires', 'hoApres', 'hoJourHtml', 'hoVue'];
+  'hoFeries', 'hoAstreinte', 'hoAgentOuvrir', 'hoAgentPropres', 'hoDuree', 'hoAnnuler', 'hoPerm', 'hoPermActif', 'hoPermAgent', 'hoPermPilier', 'hoPermHeure', 'hoBinome', 'hoSamedi', 'hoPermanenceHtml', 'agDeGarde', 'agAvatar', 'hoCorps', 'hoEnvoyer', 'hoEnregistrer', 'hoMinuit', 'hoOuvrir', 'hoFermer', 'hoResume', 'chargerHoraires', 'hoApres', 'hoJourHtml', 'hoVue'];
 const FN = FNS.map(fonction);
-const VARS = [ligne('var AG_MODES='), ligne('var HO_JOURS='), ligne('var HO_DUREES='), ligne('var INJOIGNABLE='), corps('var HO={') + ';'].join('\n');
+const VARS = [ligne('var AG_PHOTOS='), ligne('var AG_MODES='), ligne('var HO_JOURS='), ligne('var HO_DUREES='), ligne('var INJOIGNABLE='), corps('var HO={') + ';'].join('\n');
 vrai('(population) les ' + FNS.length + ' fonctions et les tables sont trouvées', FN.every(f => f.length > 30) && VARS.length > 200, FNS.filter((n, i) => FN[i].length <= 30).join(','));
 
 /* ── le bac : une horloge qu'on règle, un apiGet/apiPost scripté, un DOM minimal ── */
@@ -170,6 +170,33 @@ const sansBalise = h => { const bal = [...h.matchAll(/<([a-z0-9]+)([^>]*)>/gi)],
   vrai('…et l’état redevient « Fermée »', /^Fermée/.test(bac.hoPhrase(AG.horaires)[1]));
   bac.__post = () => ({ ok: false, status: 400, d: { error: 'Une ouverture forcée dure une semaine au plus : choisis une fin plus proche' } }); await bac.hoOuvrir();
   vrai('un refus d’ouverture s’affiche tel quel', HO.msg === 'Une ouverture forcée dure une semaine au plus : choisis une fin plus proche' && HO.ko);
+
+  console.log('\n7 bis. La permanence du week-end');
+  const sauveAgents = AG.agents; AG.agents = ['camille', 'hugo', 'margaux', 'lea', 'max'].map(id => ({ id, nom: id[0].toUpperCase() + id.slice(1), mode: 'auto' }));
+  const perm = o => Object.assign({ actif: true, agents: ['camille', 'hugo', 'margaux', 'lea'], piliers: ['camille', 'hugo'], debut: '09:00', fin: '18:00', ceWeekEnd: { samedi: '2026-10-31', agents: ['camille', 'hugo'] }, suivant: { samedi: '2026-11-07', agents: ['camille', 'margaux'] } }, o || {});
+  const vueP = (o, q) => vue(Object.assign({ permanence: perm(q), agents: Object.assign({}, vue().agents, { camille: { ouvert: false, agit: true, astreinte: false, deGarde: true }, hugo: { ouvert: false, agit: true, astreinte: false, deGarde: true }, margaux: { ouvert: false, agit: false, astreinte: false }, lea: { ouvert: false, agit: false } }) }, o || {}));
+  await charger(vueP()); let vq = bac.hoVue();
+  vrai('la section dit la règle en une phrase claire', /Permanence du week-end<\/h4><p class="ho-aide">Deux agents travaillent chaque samedi et dimanche, à tour de rôle ; jamais le même binôme deux week-ends de suite\.<\/p>/.test(vq));
+  vrai('« Ce week-end : Camille et Hugo (samedi 31 octobre) », avec leurs photos, puis « Le suivant : Camille et Margaux »', /Ce week-end : <span class="ho-gd"><span class="ag-av ho-av" aria-hidden="true">C<img src="icons\/agents\/camille\.jpg"[^>]*><\/span>Camille<\/span> et <span class="ho-gd"><span class="ag-av ho-av" aria-hidden="true">H<img src="icons\/agents\/hugo\.jpg"[^>]*><\/span>Hugo<\/span> <span class="ho-ph">\(samedi 31 octobre\)<\/span><br><span class="ho-ph">Le suivant : <\/span><span class="ho-gd">[\s\S]*?Camille<\/span> et <span class="ho-gd">[\s\S]*?Margaux<\/span>/.test(vq), vq.slice(vq.indexOf('Ce week-end') - 40, vq.indexOf('Ce week-end') + 500));
+  vrai('l’interrupteur, la rotation (cases), les piliers (parmi la rotation seulement), les heures', /<input type="checkbox" checked onchange="hoPermActif\(this\.checked\)">/.test(vq) && (vq.match(/onchange="hoPermAgent\('/g) || []).length === 5 && (vq.match(/onchange="hoPermPilier\('/g) || []).length === 4 && /aria-label="Début de la permanence" value="09:00"/.test(vq) && /aria-label="Fin de la permanence" value="18:00"/.test(vq), (vq.match(/hoPermPilier/g) || []).length);
+  vrai('⛔ un serveur sans permanence (avant la PR n° 197) : aucune section, et rien de permanence ne repart', (await charger(vue()), !/Permanence du week-end/.test(bac.hoVue()) && HO.ed.perm === null && !('permanence' in bac.hoCorps())));
+  await charger(vueP()); bac.hoPermAgent('lea', false); bac.hoPermAgent('camille', false); bac.hoPermAgent('max', true); bac.hoPermPilier('max', true); bac.hoPermPilier('margaux', true); bac.hoPermPilier('lea', true); bac.hoPermHeure('fin', '00:00'); bac.hoPermHeure('debut', '08:30'); bac.hoPermActif(false);
+  egal('⛔ un agent retiré de la rotation perd son rang de pilier ; un pilier doit être dans la rotation ; minuit = « 24:00 » ; le corps ne porte QUE les cinq champs', bac.hoCorps().permanence, { actif: false, agents: ['hugo', 'margaux', 'max'], piliers: ['hugo', 'max', 'margaux'], debut: '08:30', fin: '24:00' });
+  bac.hoPermAgent('constructor', true); bac.hoPermPilier('zzz', true); bac.hoPermHeure('zzz', '10:00'); vrai('un identifiant inconnu ou un champ inconnu : ignorés', JSON.stringify(bac.hoCorps().permanence.agents) === '["hugo","margaux","max"]' && !('zzz' in HO.ed.perm));
+  await charger(vueP(), 'collaborateur'); bac.hoPermActif(false); bac.hoPermAgent('lea', false); vrai('⛔ un collaborateur lit la permanence, il ne la modifie pas (cases éteintes)', HO.ed.perm.actif === true && HO.ed.perm.agents.length === 4 && !HO.sale && /hoPermActif[\s\S]*?disabled|disabled[^>]*onchange="hoPermActif/.test(bac.hoVue()));
+  await charger(vueP({}, { actif: false, ceWeekEnd: { samedi: '2026-10-31', agents: [] }, suivant: { samedi: '2026-11-07', agents: [] } })); vq = bac.hoVue();
+  vrai('permanence désactivée : « le week-end suit les heures de l’entreprise », pas de binôme annoncé', /Désactivée : le week-end suit les heures de l’entreprise/.test(vq) && !/Ce week-end :/.test(vq));
+  await charger(vueP()); bac.hoPermAgent('lea', false); bac.hoPermAgent('margaux', false); bac.hoPermAgent('camille', false);
+  bac.__post = () => ({ ok: false, status: 400, d: { error: 'permanence : au moins deux agents dans la rotation' } }); await bac.hoEnregistrer();
+  vrai('⛔ un refus de la permanence s’affiche tel quel, les cases restent comme le patron les a laissées', HO.msg === 'permanence : au moins deux agents dans la rotation' && HO.ko && HO.ed.perm.agents.join() === 'hugo' && HO.sale);
+  AG.agents[1].nom = '<img src=x onerror=alert(1)>'; await charger(vueP()); vq = bac.hoVue();
+  vrai('⛔ un nom d’agent hostile : échappé dans le binôme et dans les cases (seules les photos du registre sont des images)', sansBalise(vq.replace(/<img src="icons\/agents\/[a-z]+\.jpg"[^>]*>/g, '')) === true && /&lt;img src=x onerror=alert\(1\)&gt;/.test(vq) && !/onerror=alert/.test(vq.replace(/&lt;[^&]*&gt;/g, '')));
+  AG.agents = sauveAgents;
+  await charger(vueP({}, { ceWeekEnd: null, suivant: 'x' })); vrai('une vue de permanence incomplète (sans `ceWeekEnd`) ne jette pas et n’annonce personne', !/Ce week-end :/.test(bac.hoVue()));
+  await charger(vueP()); const gd = id => bac.agDeGarde({ id });
+  vrai('« De garde ce week-end » : seulement les agents que le serveur dit de garde (Camille, Hugo), jamais un identifiant du prototype', gd('camille') === true && gd('hugo') === true && gd('margaux') === false && gd('constructor') === false);
+  HO.lec = -3; vrai('…et rien quand les horaires n’ont pas été lus', bac.agDeGarde({ id: 'camille' }) === false); HO.lec = 1;
+  vrai('(code) la rangée d’un agent de garde dit « De garde ce week-end » (aucun nom en dur)', /agDeGarde\(a\)\?'<span class="ag-aide ag-gd2"> · De garde ce week-end<\/span>'/.test(CODE));
 
   console.log('\n8. Les horaires par agent, les fériés, l’astreinte');
   await charger(); AG.agents[1].nom = '<img src=x onerror=alert(1)>'; bac.hoAgentOuvrir('lola', true);
