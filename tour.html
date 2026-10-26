@@ -1687,6 +1687,10 @@ body.plans .reg-l.cli::before{display:none}
 
 /* ── ÉTATS VIDES : un cadre plein, une tuile grise, un titre, un geste — et le NOM de la console ── */
 .vide{border:1px solid var(--border);background:var(--inset);border-radius:var(--r-3);padding:28px 20px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
+/* Une carte vide posée SOUS une rangée de compteurs (Facturation, Incidents) : elle n'a pas de marge à elle, et ses voisines
+   « pleines » (.reg) portent 26 px en ligne — la vide touchait les compteurs (Justin, 26 octobre 2026, capture Safari). L'écart est
+   dit ICI, une fois, pour toute vue qui empile compteurs puis carte vide ; avec ou sans la note de limite entre les deux. */
+.grille-kpi + .vide, .grille-kpi + .note + .vide{margin-top:26px}
 .vide .ic{width:36px;height:36px;border-radius:9px;background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;margin:0 auto 10px;color:var(--dim)}
 .vide b{display:block;font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
 .vide .btn-fant{margin-top:12px}

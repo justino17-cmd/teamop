@@ -615,5 +615,23 @@ console.log('\n7. Ce que la relecture a trouvé en chemin');
 vrai('la note des copies de sauvegarde ne promet plus « la v621 » (toute la flotte est bien au-delà)',
   CH.some(s => /aucune encore \(elles se font toutes seules, au plus une par demi-heure et par appareil\)/.test(s)) && !CH.some(s => /arrivent avec la v\d/.test(s)));
 
+console.log('\n8. Une carte vide sous une rangée de compteurs ne la touche pas (Facturation, Incidents — Justin, 26 octobre 2026)');
+{
+  /* Capture Safari : « Aucune facture pour l'instant » collée sous les quatre compteurs. La carte pleine portait 26 px EN LIGNE, la vide
+     (videTour) n'a pas de style : 0 px, aux trois largeurs, de jour et de nuit (scratchpad/fact/ecart.js, au navigateur). On garde ce que la
+     cascade DONNE à la carte vide, pas le texte d'une règle ; et la population : les deux vues qui empilent compteurs puis videTour. */
+  const pop = ['vueFacturation', 'vueIncidents'].map(n => ({ n, f: fonction(n) }));
+  vrai('population : Facturation et Incidents empilent des compteurs puis une carte vide (videTour, qui n’a aucun style en ligne)',
+    pop.every(x => /grille-kpi/.test(x.f) && /videTour\(/.test(x.f)) && /return '<div class="vide">'\+/.test(fonction('videTour')) && !/style=/.test(fonction('videTour')),
+    pop.map(x => x.n + ':' + x.f.length).join(' '));
+  const cas = [].concat(...[...LARG_TEL, ...LARG_BUREAU].map(L => ['body', 'body.jour'].map(c => ({ L, c }))));
+  partout('la carte vide posée sous les compteurs prend au moins l’écart des cartes pleines (26 px), par une règle qui NOMME les compteurs', cas, ({ L, c }) => {
+    const x = L < 900 ? TEL(L) : BUREAU(L), m = lire('margin-top', 'div.vide', ['html', c, 'div#app.on', 'main#vue'], x);
+    if (!(px(m.val) >= 26)) return L + ' px ' + c + ' : marge haute ' + m.val + ' par ' + qui(m.g);
+    if (!m.g || !/grille-kpi/.test(m.g.r.sel)) return L + ' px ' + c + ' : la marge ne vient pas d’une règle liée aux compteurs (' + qui(m.g) + ') — elle écarterait aussi des cartes vides sans compteurs';
+    return '';
+  });
+}
+
 console.log('\n══ test-830 : ' + ok + ' ✓ ' + ko + ' ✗ ══');
 process.exit(ko ? 1 : 0);
