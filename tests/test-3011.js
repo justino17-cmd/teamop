@@ -10,7 +10,9 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const RACINE = path.join(__dirname, '..');
-let ok = 0, ko = 0;
+let ok = 0, ko = 0, fini = false;
+/* ⛔ un banc qui s'arrête SANS finir (une promesse jamais résolue vide la boucle d'événements) sortait en 0 : on le dit, et on sort en 1 */
+process.on('exit', () => { if (!fini) { console.log('  ✗ banc interrompu avant la fin (une attente n’a jamais abouti)'); process.exitCode = 1; } });
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? ' — ' + String(typeof d === 'string' ? d : JSON.stringify(d)).slice(0, 400) : '')); } };
 console.log('── test-3011 : Équipe en listes groupées, Pauline, en-tête avec visage, groupes personnalisables ──');
 const BRUT = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
@@ -110,6 +112,8 @@ const rel = (o) => Object.assign({ version: 1, genereLe: iso(1),
 const poser = (releve, age) => { PA.lec = 1; PA.echec = false; PA.err = ''; PA.d = { ok: true, recuLe: iso((age || 300) / 60), age: age === undefined ? 300 : age, releve }; PA.luLe = Date.now(); };
 poser(rel(), 720);
 vrai('âge : « Dernier relevé il y a 12 min » (l\u2019âge mesuré par le serveur)', etat().lib === 'Dernier relevé il y a 12 min' && etat().e === 'ok', etat());
+poser(rel(), 20); PA.luLe = Date.now() - 120000; poser(rel(), 300); PA.luLe = Date.now() - 120000;
+vrai('l’âge ajoute le temps écoulé depuis la lecture : 300 s + 2 min = « il y a 7 min »', etat().lib === 'Dernier relevé il y a 7 min', etat());
 poser(rel(), 20); vrai('moins d’une minute : « à l’instant »', etat().lib === 'Dernier relevé à l’instant');
 poser(rel(), 3 * 3600 + 120); vrai('⛔ plus de 2 h sans relevé : en AMBRE, « Le Mac ne répond plus depuis 3 h »', etat().lib === 'Le Mac ne répond plus depuis 3 h' && etat().e === 'retard', etat());
 poser(rel(), 7200); vrai('pile 2 h : pas encore en retard (au-delà seulement)', etat().e === 'ok');
@@ -183,7 +187,7 @@ vrai('⛔ les seuls gestionnaires de la carte sont les nôtres, avec une clé fi
 vrai('…le texte hostile est là, en TEXTE échappé', /&lt;img src=x onerror=alert\(1\)&gt;/.test(h1) && /&lt;script&gt;alert\(2\)&lt;\/script&gt;/.test(h1) && /javascript:alert\(3\)/.test(h1));
 vrai('un état inconnu ou venu du prototype s’écrit « — », jamais une couleur inventée', !/data-t="(?!ok|att|ko|n")/.test(h1) && (h1.match(/<span class="pa-e" data-t="n">—<\/span>/g) || []).length >= 3);
 poser(rel({ entreprises: [{ id: 'e1', nom: 'X', etat: 'constructor' }, { id: 'e2', nom: 'Y', etat: '__proto__' }], reponses: [{ entrepriseId: '__proto__', nature: 'toString', resume: 'a', quand: iso(1) }, { entrepriseId: 'constructor', nature: 'autre', quand: iso(1) }] }));
-h1 = pauR(); vrai('identifiants et états du prototype (`constructor`, `__proto__`, `toString`) : « — » et « entreprise inconnue »', !/function|Object/.test(h1.replace(/<[^>]+>/g, ' ')) && /entreprise inconnue/.test(h1));
+h1 = pauR(); vrai('identifiants et états du prototype (`constructor`, `__proto__`, `toString`) : « — » et « entreprise inconnue », jamais « undefined »', !/function|Object|undefined/.test(h1.replace(/<[^>]+>/g, ' ')) && !/data-t="(?!ok|att|ko|n")/.test(h1) && (h1.match(/<span class="pa-e" data-t="n">—<\/span>/g) || []).length >= 3 && /entreprise inconnue/.test(h1), h1.slice(-700));
 const long = 'Z'.repeat(9000); poser(rel({ entreprises: [{ id: 'e1', nom: long, ville: long, metier: long, etat: 'trouvee', majLe: iso(1) }], courriels: [{ id: 'c', entrepriseId: 'e1', etat: 'envoye', objet: long, texte: long, quand: iso(1) }], reponses: [{ entrepriseId: 'e1', resume: long, nature: 'autre', quand: iso(1) }] }));
 vrai('des textes démesurés sont coupés à l’affichage (nom 120, objet 200, texte 5 000, résumé 400)', pauR().length < 20000, pauR().length);
 
@@ -339,6 +343,7 @@ const mettre = (nom, ico, desc, coul) => { els['mg-nom'] = { value: nom, focus: 
   vrai('⛔ un identifiant qui n’est pas un groupe (agent, prototype) : ni envoi, ni feuille', appels.length === 0 && !panneau.ouvert);
   bac.msGroupeModifier('clients');
   vrai('le patron ouvre la feuille d’un groupe', panneau.ouvert && /class="mg" data-fil="clients"/.test(panneau.html));
+  fini = true;
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ banc mort : ' + (e && e.stack || e)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });
