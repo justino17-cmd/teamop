@@ -87,6 +87,9 @@ console.log('\n── 3011 · les heures de travail des agents ──');
     v('⛔ vendredi 18 h (été) → la réouverture est lundi 26 octobre 9 h CET = 08:00 UTC (trois fois 24 h donneraient 07:00 UTC, 8 h à Paris)', [g.etatA(vendrediSoir, null).prochaineOuverture, g.etatA(vendrediSoir, null).prochaineOuverture === vendrediSoir + 3 * 24 * HEURE - 9 * HEURE], [U(2026, 10, 26, 8), false]);
     v('…le samedi à midi et le dimanche à minuit, la même réouverture', [g.etatA(U(2026, 10, 24, 10), null).prochaineOuverture, g.etatA(U(2026, 10, 25, 23), null).prochaineOuverture], [U(2026, 10, 26, 8), U(2026, 10, 26, 8)]);
     v('…et au printemps 2028 (changement d’heure le dimanche 26 mars) : vendredi 24 mars 18 h CET = 17:00 UTC → lundi 27 mars 9 h CEST = 07:00 UTC', g.etatA(U(2028, 3, 24, 17), null).prochaineOuverture, U(2028, 3, 27, 7));
+    /* ⛔ le dimanche 28 mars 2027 n'a que 23 heures : « + 24 h » depuis le samedi 23 h 30 saute carrément un jour civil */
+    const dim = fab(cfgDe({ parAgent: { lola: { jours: SEMAINE_SEULE(6, '08:00', '12:00') } } })).h;
+    v('⛔ la nuit de PRINTEMPS (23 heures) : Lola travaille le dimanche 28 mars 2027 de 8 h à 12 h (CEST = 06:00 – 10:00 UTC) ; samedi 27 à 23 h 30 CET (22:30 UTC), sa prochaine ouverture est CE dimanche — pas le lundi', [dim.etatA(U(2027, 3, 27, 22, 30), 'lola').prochaineOuverture, dim.etatA(U(2027, 3, 28, 6), 'lola').ouvert, dim.etatA(U(2027, 3, 28, 10), 'lola').ouvert], [U(2027, 3, 28, 6), true, false]);
     v('le temps où l’équipe a pu travailler, vendredi 18 h → lundi 14 h CET (13:00 UTC) : cinq heures', g.tempsOuvert('camille', vendrediSoir, U(2026, 10, 26, 13)), 5 * HEURE);
     v('…et de lundi 9 h à mardi 9 h CET : neuf heures (et non vingt-quatre)', g.tempsOuvert('camille', U(2026, 10, 26, 8), U(2026, 10, 27, 8)), 9 * HEURE);
     v('…l’astreinte travaille tout le temps (le week-end entier compte)', g.tempsOuvert('max', vendrediSoir, U(2026, 10, 26, 8)), U(2026, 10, 26, 8) - vendrediSoir);
@@ -162,7 +165,19 @@ console.log('\n── 3011 · les heures de travail des agents ──');
     vrai('…l’incident est ouvert dans la Tour (Surveillance) — sans aucune entreprise : aucun courriel à un client ne peut en partir', B.issues.length === 1 && Array.isArray(B.issues[0].entreprises) && B.issues[0].entreprises.length === 0, JSON.stringify(B.issues));
     vrai('…« Plateforme » le dit, Justin est prévenu à part (fil de Max, urgent) ET notifié', B.textes('plateforme').length === 1 && B.fil('max').some(m => m.texte.startsWith('Justin, c’est sérieux')) && B.pousses.length >= 1, JSON.stringify(B.pousses));
     v('…Jules, lui, est fermé : il ne prend rien', (await jules.passer()).saute, 'hors_heures');
+    /* un incident de gravité haute venu des appareils : Max PRÉVIENT (« Plateforme »), Jules est fermé — la consigne attend, et la phrase le dit */
+    const client = { id: 'i1a2b3c4d5e60', signature: 'opgestion|x', app: 'opgestion', type: 'erreur', categorie: 'Planning', message: 'MESSAGE-SECRET-3011', stack: 'x', src: 'x', origine: 'x', count: 14, firstTs: B.horloge.t - 3600000, lastTs: B.horloge.t - 600000,
+      entreprises: [{ nom: 'Société Secrète 3011' }, { nom: 'Autre 3011' }, { nom: 'Troisième 3011' }], appareils: { a: 1 }, statut: 'nouveau', notes: 'x', mailEnvoye: false };
+    B.issues.push(client);
+    const r2 = await max.passer();
+    v('un incident venu des appareils : Max le DIT dans « Plateforme », et dit que Jules est hors des heures (l’incident l’attend dans la Tour) — sans nom d’entreprise', [r2.clients, B.textes('plateforme').filter(t => /^Un incident de gravité haute/.test(t))], [1, ['Un incident de gravité haute vient d’arriver des appareils : 14 occurrences, chez 3 entreprises, catégorie Planning. Jules est hors des heures de travail : l’incident l’attend dans la Tour (Incidents).']]);
+    v('…et aucune consigne n’est donnée à un Jules fermé', B.agents.tachesDe('jules'), []);
     B.nettoyer();
+    const G = require('./banc-agents-gestion.js').monter({ modes: { max: 'auto', camille: 'auto' }, t0: SAMEDI, horaires: D => HOR({ DATA_DIR: D }) });
+    const doc = a => G.documents.ranger({ type: 'courrier_agent', agent: a, a: 'client@exemple-3011.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'relance' });
+    v('⛔ les DOCUMENTS (relances, accusés, annonces) refusent l’astreinte comme les brouillons : Max, samedi → hors_heures, rien de rangé', [(await doc('max')).raison, fs.existsSync(path.join(G.D, 'agents-documents.json'))], ['hors_heures', false]);
+    v('…le courrier direct de Max aussi', (await G.documents.courrier({ agent: 'max', a: 'client@exemple-3011.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'relance', porte: 'aucune' })).raison, 'hors_heures');
+    G.nettoyer();
     /* les portes qui écrivent à un client refusent l'astreinte */
     const Z = avecHeures({ modes: Object.assign({}, TOUS, { max: 'auto' }) });
     const depot = a => Z.brouillons.deposer({ agent: a, a: 'client@exemple-3011.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'courrier', enReponseA: null });
@@ -381,12 +396,13 @@ console.log('\n── 3011 · les heures de travail des agents ──');
     const CV = require(S('conversations.js')), EQ = require(S('agent-equipe.js')), REU = require(S('reunions.js'));
     const monterReunion = async (o) => {
       const Z = avecHeures(Object.assign({ claude: () => 'Voici mon point de réunion.' }, o));
-      const app = { get() {}, post() {} };
+      const routes = {};
+      const app = { get() {}, post(p, ...h) { routes[p] = h[h.length - 1]; } };
       let eq = null, reu = null;
       const conv = CV(app, { DATA_DIR: Z.D, monAdmin() {}, monPatronStrict() {}, agents: Z.agents, maintenant: () => Z.horloge.t, pousseNotif: () => Promise.resolve(), surMessage: m => (eq ? eq.surMessage(m) : null) });
       eq = EQ({ agents: Z.agents, conversations: conv, cerveau: Z.cerveau, faits: {}, memoire: id => (reu ? reu.memoire(id) : '') });
       reu = REU(app, { DATA_DIR: Z.D, monAdmin() {}, monPatronStrict() {}, agents: Z.agents, conversations: conv, cerveau: Z.cerveau, pousseNotif: () => Promise.resolve(), equipe: () => eq, maintenant: () => Z.horloge.t });
-      return Object.assign(Z, { conv, reu });
+      return Object.assign(Z, { conv, reu, routes });
     };
     let Z = await monterReunion({ t0: U(2026, 10, 23, 16) });         // vendredi 23 octobre 18 h à Paris : l'heure de la FERMETURE
     v('vendredi 18 h : l’équipe est fermée (hors_heures)… (le coup d’œil direct)', Z.agents.peutAgir('victor').raison, 'hors_heures');
@@ -394,6 +410,21 @@ console.log('\n── 3011 · les heures de travail des agents ──');
     vrai('⛔ …et la réunion du vendredi se tient quand même : Claude a parlé, les agents ont pris la parole', r.lancee && !r.annulee && Z.recus.length > 3 && Z.conv.lire('reunions', 50).filter(m => m.de !== 'systeme').length > 3, JSON.stringify(r) + ' / ' + Z.recus.length);
     v('…et le serveur la compte tenue (statut « terminée »)', (JSON.parse(fs.readFileSync(path.join(Z.D, 'agents-reunions.json'), 'utf8')).reunions || []).map(x => x.statut), ['terminee']);
     v('⛔ l’exemption ne FUIT pas : une fois la réunion finie, Victor est de nouveau « hors_heures » (elle ne tient qu’à l’intérieur)', Z.agents.peutAgir('victor').raison, 'hors_heures');
+    Z.nettoyer();
+    /* le lancement à la main de Justin, un soir : la route passe par `demarrer` sans `tic` */
+    Z = await monterReunion({ t0: U(2026, 10, 24, 17) });            // samedi 24 octobre, 19 h à Paris
+    { const res = { code: 200, corps: null, status(c) { res.code = c; return res; }, json(x) { res.corps = x; return res; } };
+      await Z.routes['/api/monitor/agents/reunions/lancer']({ body: { type: 'objectifs' }, tourUser: Z.PATRON, query: {} }, res); await Z.reu.attendre();
+      vrai('⛔ Justin lance une réunion un samedi soir : elle se tient (les agents parlent)', res.code === 200 && Z.recus.length > 3 && Z.conv.lire('reunions', 50).filter(m => m.de !== 'systeme').length > 3, JSON.stringify(res.corps) + ' / ' + Z.recus.length); }
+    Z.nettoyer();
+    /* une réunion annulée faute d'agent allumé se REPREND quand ils le sont (le créneau n'est pas consommé) — même fermés */
+    Z = await monterReunion({ t0: U(2026, 10, 23, 16), modes: {} });
+    for (const id of REG) await Z.appeler('POST /api/monitor/agents/mode', { tourUser: Z.PATRON, body: { agent: id, mode: 'arret' } });
+    let r0 = Z.reu.tic();
+    v('vendredi 18 h, aucun agent allumé : « Réunion annulée », sans consommer le créneau, aucun appel', [!!r0.annulee, Z.recus.length], [true, 0]);
+    for (const id of REG) await Z.appeler('POST /api/monitor/agents/mode', { tourUser: Z.PATRON, body: { agent: id, mode: 'brouillon' } });
+    r0 = Z.reu.tic(); await Z.reu.attendre();
+    vrai('⛔ …Justin rallume les agents à 18 h 05 : la réunion est reprise (le contrôle de ses participants est lui aussi hors des heures)', !!r0.lancee && Z.recus.length > 3, JSON.stringify(r0));
     Z.nettoyer();
     Z = await monterReunion({ t0: U(2027, 3, 29, 7) });              // lundi de Pâques 2027, 9 h CEST : férié
     v('le lundi de Pâques 2027, 9 h : férié', Z.agents.peutAgir('victor').raison, 'hors_heures');
