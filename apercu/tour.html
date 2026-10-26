@@ -2129,7 +2129,12 @@ body.plans .reg-l.cli::before{display:none}
 .ag-barre .ag-pt{width:10px;height:10px;border-radius:50%;background:var(--acc);flex:none}
 .ag-barre.rien .ag-pt{background:var(--muted)}
 .ag-barre.stop .ag-pt{background:var(--red)}
-.ag-barre b{flex:1;min-width:180px}
+.ag-barre-tx{flex:1;min-width:180px;display:flex;flex-direction:column;gap:2px}
+.ag-hor{font-size:13px;font-weight:600;color:var(--muted)}
+.ag-hor[data-h=ouvert],.ag-hor[data-h=force]{color:var(--acc-txt)}
+.ag-hor[data-h=ferme]{color:var(--amber)}
+.ag-hor[data-h=illisible]{color:var(--redText)}
+.ag-aide.ag-hh{color:var(--amber)}
 .ag-btn{min-height:44px;padding:0 16px;border-radius:var(--r-3);font-weight:650;border:0;background:var(--inset);color:var(--text)}
 .ag-btn.ok{background:var(--acc-fill);color:var(--on-acc)}
 .ag-btn.danger{color:var(--red)}
@@ -2188,6 +2193,43 @@ body.plans .reg-l.cli::before{display:none}
 .ag-voir>summary::after{content:"";width:7px;height:7px;margin:0 4px 0 auto;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform 160ms ease-out}
 .ag-voir[open]>summary::after{transform:rotate(45deg)}
 .ag-voir ul{margin:0 0 6px;padding-left:20px;font-size:13px;line-height:1.6;color:var(--text2)}
+/* les heures de travail (v2.112) */
+.ho{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.ho-etat{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:14px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r-4);background:var(--surface)}
+.ho-etat .ag-hor{font-size:15px}
+.ho-sous{flex:1 1 100%;font-size:12.5px;color:var(--muted)}
+.ho .ag-h{margin:14px 4px 2px;font-size:13px;font-weight:650;color:var(--muted)}
+.ho .ag-h small{font-weight:400;margin-left:6px}
+.ho-aide{margin:0 4px;font-size:12.5px;line-height:1.45;color:var(--muted)}
+.ho-ouvrir{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ho-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;flex:1 1 280px;background:var(--inset);border-radius:var(--r-3);padding:3px}
+.ho-seg button{min-height:44px;border-radius:calc(var(--r-3) - 2px);font-weight:600;color:var(--muted);background:none;border:0}
+.ho-seg button.on{background:var(--surface);color:var(--text)}
+.ho-seg button[disabled]{opacity:.5}
+.ho-jours{display:flex;flex-direction:column}
+.ho-j{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;padding:4px 14px;min-height:52px;border-top:1px solid var(--line)}
+.ho-j:first-child{border-top:0}
+.ho-sw{display:inline-flex;align-items:center;gap:12px;min-height:44px;cursor:pointer}
+.ho-sw input{width:22px;height:22px;accent-color:var(--acc);flex:none;cursor:pointer}
+.ho-n{font-weight:600;min-width:84px}
+.ho-ph{color:var(--muted);font-size:13px}
+.ho-h{display:inline-flex;align-items:center;gap:8px;color:var(--muted)}
+.ho-h input,.ho-l select{box-sizing:border-box;min-height:44px;padding:0 10px;border-radius:var(--r-3);border:1px solid var(--border);background:var(--inset);color:var(--text);font:inherit;font-size:16px}
+.ho-h input{width:136px}
+.ho-pt{min-height:44px;padding:0 12px;font-size:13px}
+.ho-fer{margin:2px 4px}
+.ho-ast{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0 12px;padding:0 4px}
+.ho-par>summary{margin-top:6px}
+.ho-ag{padding:6px 14px;border-top:1px solid var(--line)}
+.ho-ag:first-child{border-top:0}
+.ho-agt{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;min-height:52px}
+.ho-agt b{flex:1;min-width:90px}
+.ho-agj{display:flex;flex-direction:column;margin:0 -14px;padding:0 0 8px}
+.ho-agj .ag-btn.danger{margin:6px 14px 0;align-self:flex-start}
+.ho-l{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:6px 14px;font-weight:600}
+.ho-pied{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
+.ho-msg{flex:1 1 200px;font-size:13px;color:var(--acc-txt)}
+.ho-msg.ko{color:var(--redText)}
 /* le relevé de Pauline (v2.112) */
 .pa-ligne{margin:0;font-size:13.5px;line-height:1.45;color:var(--text2)}
 .pa-ligne b{color:var(--text);font-weight:650}
@@ -2213,7 +2255,7 @@ body.plans .reg-l.cli::before{display:none}
   .ag-parler{align-self:center}
 }
 @media (pointer:fine){ @container aglg (min-width:640px){ .ag-rang .ag-seg button,.ag-rang .ag-parler{min-height:36px} } }
-@media (max-width:560px){ .ag-barre b{flex:1 1 calc(100% - 24px);min-width:0} .ag-barre>.ag-btn{flex:1} }
+@media (max-width:560px){ .ag-barre-tx{flex:1 1 calc(100% - 24px);min-width:0} .ag-barre>.ag-btn{flex:1} }
 @media (max-width:700px){ .ag-onglets{padding-right:28px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)} }
 @media (prefers-reduced-motion:reduce){ .ag-voir>summary::after{transition:none} .ag-seg button,.ag-parler{transition:none} .ag-seg button:active:not([disabled]),.ag-parler:active{transform:none} }
 .ag-liste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-top:14px}
@@ -4410,7 +4452,7 @@ function setTab(t,sansAnim){
   if(t==='equipe'&&(!EQ.loaded||EQ.err)) chargerEquipe();   /* v2.88 : un échec au chargement figeait l'écran pour toute la séance */
   if(t==='journal') chargerJournal();
   /* les agents se relisent à CHAQUE ouverture : un mode ou une demande a pu changer depuis un autre appareil */
-  if(t==='agents'){ chargerAgents(); chargerPauline(); }
+  if(t==='agents'){ chargerAgents(); chargerPauline(); chargerHoraires(); }
   if(t==='messagerie') messOuvrir();   /* la messagerie se relit à CHAQUE ouverture : un agent a pu écrire depuis un autre appareil */
   window.scrollTo(0,0);
   tiroirRafraichir();
@@ -10911,7 +10953,7 @@ function chargerAgents(){
   if(MYROLE!=='patron'){ AG.agents=[]; AG.loaded=true; AG.err='Réservé au patron — les agents ne se règlent que par lui.'; if(TAB==='agents') render(); return Promise.resolve(); }
   var ps=[];   /* promesses rendues : un banc peut attendre la fin du chargement, la page non */
   ps.push(apiGet('/api/monitor/agents').then(function(d){ if(!d) return;
-    AG.agents=d.agents||[]; AG.illisible=d.illisible===true; AG.cleOk=d.cleOk===true; AG.pause=d.pause||null; AG.enAttente=Number(d.enAttente)||0; AG.loaded=true; AG.err='';
+    AG.agents=d.agents||[]; AG.horaires=(d.horaires&&typeof d.horaires==='object'&&!Array.isArray(d.horaires))?d.horaires:null; AG.illisible=d.illisible===true; AG.cleOk=d.cleOk===true; AG.pause=d.pause||null; AG.enAttente=Number(d.enAttente)||0; AG.loaded=true; AG.err='';
     if(TAB==='agents') render();
   }).catch(function(e){ AG.err=msgErreur(e); AG.loaded=true; if(TAB==='agents') render(); }));
   agCvCharger();
@@ -10926,6 +10968,140 @@ function chargerAgents(){
   return Promise.all(ps);
 }
 function agParler(id){ messOuvrirFil(id); }
+/* ══ LES HEURES DE TRAVAIL DES AGENTS (Tour v2.112) ══ Justin : « je voudrais pouvoir choisir les heures de travail des agents, comme une vraie entreprise ». Le SERVEUR décide (server/agents-horaires.js :
+   l'heure de Paris, les jours fériés, l'astreinte) ; cet écran LIT `GET /api/monitor/agents/horaires` et ÉCRIT par trois routes du patron (`POST …/horaires`, `…/ouvrir`, `…/fermer`).
+   · ⛔ Un registre illisible arrête les agents : la page le DIT (503), jamais « ouvert ». Un serveur sans la route (404) le dit aussi. Un refus 400 est affiché TEL QUEL (sa raison est lisible).
+   · Un seul envoi à la fois ; le patron seul écrit (les autres lisent, champs éteints) ; rien ne change à l'écran avant que le serveur ait dit oui. Tout est échappé.
+   · « 24:00 » (fermeture à minuit) s'écrit « 00:00 » dans un champ d'heure : un `<input type="time">` n'a pas de 24 h, la page convertit dans les deux sens. */
+var HO={lec:0,d:null,err:'',ed:null,sale:false,busy:false,msg:'',ko:false,duree:'1h',ag:{},enVol:null};
+var HO_JOURS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+var HO_DUREES=[['1h','1 h'],['minuit','Jusqu’à minuit'],['24h','24 h']];
+function hoNb(v){ return typeof v==='number'&&isFinite(v)?v:null; }
+function hoParis(ts){ var o={}; new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'numeric',minute:'numeric',second:'numeric',hourCycle:'h23'}).formatToParts(ts).forEach(function(x){ o[x.type]=x.value; });
+  o.h=(+o.hour)%24; o.m=+o.minute; o.s=+o.second; o.date=o.year+'-'+o.month+'-'+o.day; return o; }
+/* « lundi 26 octobre à 9 h » (l'heure de Paris, comme le serveur) */
+function hoLib(ts){ var t=hoNb(ts); if(t===null) return ''; var p=hoParis(t); return p.weekday+' '+p.day+' '+p.month+' à '+p.h+' h'+(p.m?' '+(p.m<10?'0':'')+p.m:''); }
+/* une fin de journée : « 18 h » le jour même, sinon la date entière */
+function hoFin(ts){ var t=hoNb(ts); if(t===null) return ''; var p=hoParis(t), n=hoParis(Date.now()); return p.date===n.date?p.h+' h'+(p.m?' '+(p.m<10?'0':'')+p.m:''):hoLib(t); }
+/* [clé, phrase] — la ligne d'état de l'onglet Équipe, tirée du résumé que rend `GET /api/monitor/agents` (`AG.horaires`) */
+function hoPhrase(h){
+  if(!paObj(h)||h.actives!==true) return null;
+  if(h.illisible===true) return ['illisible','Horaires illisibles — les agents restent à l’arrêt'];
+  var att=hoNb(h.enAttente), plus=att>0?' · '+att+' en attente d’ouverture':'';
+  if(h.ouvert===true){ var f=hoFin(h.prochaineFermeture); return h.raison==='ouverture_forcee'?['force','Ouverte exceptionnellement'+(f?' jusqu’à '+f:'')+plus]:['ouvert','Ouverte'+(f?' jusqu’à '+f:'')+plus]; }
+  if(h.ouvert===false){ var o=hoLib(h.prochaineOuverture); return ['ferme','Fermée'+(o?' — reprend '+o:' — aucune réouverture prévue')+plus]; }
+  return null;
+}
+function hoLigne(){ var x=hoPhrase(AG.horaires); return x?'<span class="ag-hor" data-h="'+x[0]+'">'+esc(x[1])+'</span>':''; }
+/* sur la rangée d'un agent qui travaille : « Hors heures » ou « D'astreinte » (Max, Théo la nuit : ils préviennent, n'écrivent à personne) */
+function agHorsHeures(a){ var x=HO.lec===1&&HO.d&&paObj(HO.d.agents)&&Object.prototype.hasOwnProperty.call(HO.d.agents,a.id)?HO.d.agents[a.id]:null;
+  if(!x||x.ouvert!==false||agMode(a)==='arret'||agEnPause()) return ''; return x.agit===true&&x.astreinte===true?'D’astreinte':'Hors heures'; }
+function hoCopieJour(j){ return {ouvert:j.ouvert===true,debut:typeof j.debut==='string'?j.debut:'09:00',fin:typeof j.fin==='string'?j.fin:'18:00'}; }
+/* la copie de travail : ce que le patron modifie avant d'enregistrer */
+function hoRepartir(){ var d=HO.d; if(!paObj(d)||!paObj(d.entreprise)||!Array.isArray(d.entreprise.jours)){ HO.ed=null; return; }
+  var ed={jours:d.entreprise.jours.map(hoCopieJour),feries:d.entreprise.feries!==false,astreinte:(Array.isArray(d.astreinte)?d.astreinte:[]).filter(function(x){ return typeof x==='string'; }),parAgent:{}};
+  var pa=paObj(d.parAgent)?d.parAgent:{};
+  Object.keys(pa).forEach(function(id){ var v=pa[id]; if(!paObj(v)) return;
+    ed.parAgent[id]={jours:(Array.isArray(v.jours)?v.jours:[]).concat([null,null,null,null,null,null,null]).slice(0,7).map(function(j){ return paObj(j)?hoCopieJour(j):null; }),feries:typeof v.feries==='boolean'?v.feries:null}; });
+  HO.ed=ed; HO.sale=false; }
+function hoHeure(v,fin){ return v==='24:00'&&fin?'00:00':String(v||''); }
+function hoVersServeur(v,fin){ return fin&&v==='00:00'?'24:00':v; }
+function hoEcrit(){ return MYROLE==='patron'&&!HO.busy; }
+function hoAgentConnu(id){ return typeof id==='string'&&AG.agents.some(function(a){ return a.id===id; }); }
+function hoCible(c){ if(c==='e') return HO.ed; if(!hoAgentConnu(c)||!HO.ed) return null; return HO.ed.parAgent[c]||null; }
+function hoSet(c,i,champ,val){ var t=hoCible(c); if(!t||!hoEcrit()||!(i>=0&&i<7)||['debut','fin','ouvert'].indexOf(champ)<0) return;
+  var j=t.jours[i]; if(!j){ j=t.jours[i]=hoCopieJour(HO.ed.jours[i]); }
+  if(champ==='ouvert') j.ouvert=!!val; else j[champ]=hoVersServeur(String(val),champ==='fin');
+  HO.sale=true; render(); }
+function hoHerite(c,i,herite){ var t=hoCible(c); if(c==='e'||!t||!hoEcrit()||!(i>=0&&i<7)) return; t.jours[i]=herite?null:hoCopieJour(HO.ed.jours[i]); HO.sale=true; render(); }
+function hoFeries(c,val){ if(!hoEcrit()||!HO.ed) return; if(c==='e'){ HO.ed.feries=!!val; } else { var t=hoCible(c); if(!t) return; t.feries=val===''||val==null?null:(val==='oui'||val===true); } HO.sale=true; render(); }
+function hoAstreinte(id,on){ if(!hoEcrit()||!HO.ed||!hoAgentConnu(id)) return; var l=HO.ed.astreinte.filter(function(x){ return x!==id; }); if(on) l.push(id); HO.ed.astreinte=l; HO.sale=true; render(); }
+function hoAgentOuvrir(id,on){ if(!hoAgentConnu(id)) return; HO.ag[id]=!!on; render(); }
+function hoAgentPropres(id,oui){ if(!hoEcrit()||!HO.ed||!hoAgentConnu(id)) return;
+  if(oui) HO.ed.parAgent[id]={jours:[null,null,null,null,null,null,null],feries:null}; else delete HO.ed.parAgent[id];
+  HO.ag[id]=!!oui; HO.sale=true; render(); }
+function hoDuree(k){ if(HO_DUREES.some(function(x){ return x[0]===k; })){ HO.duree=k; render(); } }
+function hoAnnuler(){ if(HO.busy) return; HO.msg=''; HO.ko=false; hoRepartir(); render(); }
+/* ce que `POST …/horaires` reçoit : l'entreprise, les agents qui ont (ou avaient) leurs horaires — `null` retire les leurs — et l'astreinte */
+function hoCorps(){ var ed=HO.ed, d=HO.d, pa={}, avant=paObj(d&&d.parAgent)?d.parAgent:{};
+  Object.keys(avant).forEach(function(id){ if(!ed.parAgent[id]) pa[id]=null; });
+  Object.keys(ed.parAgent).forEach(function(id){ var v=ed.parAgent[id], o={jours:v.jours.map(function(j){ return j?{ouvert:j.ouvert,debut:j.debut,fin:j.fin}:null; })}; if(typeof v.feries==='boolean') o.feries=v.feries; pa[id]=o; });
+  return {entreprise:{jours:ed.jours.map(function(j){ return {ouvert:j.ouvert,debut:j.debut,fin:j.fin}; }),feries:ed.feries},parAgent:pa,astreinte:ed.astreinte.slice()}; }
+/* un geste d'écriture : un seul à la fois, le patron seul ; le serveur rend la vue entière, qui REMPLACE ce que la page croyait */
+function hoEnvoyer(route,corps,ok){
+  if(MYROLE!=='patron'||HO.busy||HO.lec!==1) return Promise.resolve(null);
+  HO.busy=true; HO.msg=''; HO.ko=false; render();
+  return apiPost('/api/monitor/agents/horaires'+route,corps).then(function(x){ HO.busy=false;
+    if(!x.ok){ HO.msg=(x.d&&x.d.error)?String(x.d.error):'Le serveur a refusé ('+x.status+')'; HO.ko=true; render(); return x; }
+    if(paObj(x.d)&&x.d.ok===true&&paObj(x.d.entreprise)){ HO.d=x.d; hoResume(); hoRepartir(); } HO.msg=ok; render(); chargerAgents(); return x;
+  },function(){ HO.busy=false; HO.msg=INJOIGNABLE; HO.ko=true; render(); return null; });
+}
+function hoEnregistrer(){ if(!HO.ed||!HO.sale) return Promise.resolve(null); return hoEnvoyer('',hoCorps(),'Heures enregistrées.'); }
+/* « jusqu'à ce soir minuit » : le prochain minuit de Paris, jour de changement d'heure compris (on corrige l'écart lu à l'arrivée) */
+function hoMinuit(){ var t=Date.now(), p=hoParis(t); t+=(86400-(p.h*3600+p.m*60+p.s))*1000;
+  for(var k=0;k<2;k++){ var q=hoParis(t); if(q.h!==0||q.m!==0){ t-=((q.h<12?q.h:q.h-24)*3600+q.m*60+q.s)*1000; } }
+  return t; }
+function hoOuvrir(){ var k=HO.duree, t=k==='minuit'?hoMinuit():Date.now()+(k==='24h'?86400000:3600000); return hoEnvoyer('/ouvrir',{jusqua:t},'Équipe ouverte jusqu’à '+hoFin(t)+'.'); }
+function hoFermer(){ return hoEnvoyer('/fermer',{},'Retour aux heures normales.'); }
+/* le résumé de la barre suit la vue détaillée : le serveur a répondu plus récemment que la liste des agents */
+function hoResume(){ var d=HO.d; if(!paObj(d)||!paObj(d.maintenant)) return; var m=d.maintenant;
+  AG.horaires={actives:true,illisible:false,ouvert:m.ouvert===true,raison:m.raison,prochaineOuverture:m.prochaineOuverture,prochaineFermeture:m.prochaineFermeture,enAttente:AG.horaires&&AG.horaires.enAttente!==undefined?AG.horaires.enAttente:null}; }
+function chargerHoraires(){
+  if(MYROLE!=='patron'&&MYROLE!=='collaborateur') return Promise.resolve();
+  if(HO.enVol) return HO.enVol;
+  HO.enVol=apiGet('/api/monitor/agents/horaires').then(function(d){ HO.enVol=null; if(!d) return;
+    if(!paObj(d)||d.ok!==true||!paObj(d.entreprise)){ if(HO.lec!==1) HO.lec=-1; return hoApres(); }
+    HO.d=d; HO.lec=1; HO.err=''; hoResume();
+    if(!HO.sale||!HO.ed) hoRepartir();   /* une modification en cours n'est jamais écrasée par une relecture */
+    hoApres();
+  }).catch(function(e){ HO.enVol=null;
+    if(e&&e.status===404){ HO.lec=-2; HO.err=''; HO.d=null; }
+    else if(e&&e.status===503){ HO.lec=-3; HO.err=e.corps?String(e.corps).slice(0,300):''; HO.d=null; }
+    else if(HO.lec!==1) HO.lec=-1;
+    hoApres(); });
+  return HO.enVol;
+}
+function hoApres(){ if(TAB==='agents'&&(AG.sec==='horaires'||AG.sec==='equipe')) render(); }
+function hoJourHtml(c,i,j,herite,lecture){
+  var nom=HO_JOURS[i], id='ho-'+c+'-'+i, off=lecture?' disabled':'';
+  if(c!=='e'&&!j) return '<div class="ho-j"><span class="ho-n">'+nom+'</span><span class="ho-ph">comme l’entreprise</span>'+(lecture?'':'<button type="button" class="ag-btn ho-pt" onclick="hoHerite(\''+c+'\','+i+',false)" aria-label="Régler le '+nom.toLowerCase()+'">Régler</button>')+'</div>';
+  return '<div class="ho-j"><label class="ho-sw"><input type="checkbox" id="'+id+'"'+(j.ouvert?' checked':'')+off+' onchange="hoSet(\''+c+'\','+i+',\'ouvert\',this.checked)"><span class="ho-n">'+nom+'</span></label>'+
+    (j.ouvert?'<span class="ho-h"><input type="time" aria-label="Ouverture du '+nom.toLowerCase()+'" value="'+esc(j.debut)+'"'+off+' onchange="hoSet(\''+c+'\','+i+',\'debut\',this.value)"><span aria-hidden="true">–</span><input type="time" aria-label="Fermeture du '+nom.toLowerCase()+'" value="'+esc(hoHeure(j.fin,true))+'"'+off+' onchange="hoSet(\''+c+'\','+i+',\'fin\',this.value)"></span>':'<span class="ho-ph">fermé</span>')+
+    (c!=='e'&&!lecture?'<button type="button" class="ag-btn ho-pt" onclick="hoHerite(\''+c+'\','+i+',true)" aria-label="Le '+nom.toLowerCase()+' comme l’entreprise">Comme l’entreprise</button>':'')+'</div>';
+}
+function hoVue(){
+  if(HO.lec===0) return acSquel();
+  if(HO.lec===-2) return agIllisible('Ce serveur ne connaît pas encore les heures de travail des agents : ils travaillent comme avant.');
+  if(HO.lec===-3) return agIllisible('Les horaires des agents sont illisibles sur le serveur : les agents restent à l’arrêt jusqu’à la réparation du fichier. '+(HO.err||''));
+  if(HO.lec!==1||!HO.ed||!HO.d) return agIllisible('Les heures de travail n’ont pas pu être lues. Réessaie dans un instant.');
+  var d=HO.d, ed=HO.ed, patron=MYROLE==='patron', lecture=!patron||HO.busy, off=lecture?' disabled':'', m=paObj(d.maintenant)?d.maintenant:{};
+  var forcee=typeof d.ouvertJusqua==='number'&&d.ouvertJusqua>Date.now()&&m.raison==='ouverture_forcee';
+  var h='<div class="ho">';
+  h+='<div class="ho-etat">'+hoLigne()+(forcee?'<span class="ho-sous">Jusqu’à '+esc(hoFin(d.ouvertJusqua))+' · les heures réglées reprennent ensuite.</span>':'')+
+    (forcee&&patron?'<button type="button" class="ag-btn" onclick="hoFermer()"'+(HO.busy?' disabled':'')+'>Remettre aux heures normales</button>':'')+'</div>';
+  if(!patron) h+='<div class="note" style="margin-top:8px">Lecture seule : seul le patron règle les heures de travail.</div>';
+  if(patron){
+    h+='<h4 class="ag-h">Ouvrir maintenant</h4><div class="ho-ouvrir"><div class="ho-seg" role="group" aria-label="Durée de l’ouverture">'+HO_DUREES.map(function(x){ return '<button type="button" class="'+(HO.duree===x[0]?'on':'')+'" aria-pressed="'+(HO.duree===x[0])+'"'+off+' onclick="hoDuree(\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>'+
+      '<button type="button" class="ag-btn ok"'+off+' onclick="hoOuvrir()">Ouvrir</button></div><p class="ho-aide">L’équipe travaille en dehors de ses heures, pour la durée choisie (une semaine au plus).</p>';
+  }
+  h+='<h4 class="ag-h">Heures de l’entreprise <small>heure de Paris</small></h4><div class="ag-lg ho-jours">'+ed.jours.map(function(j,i){ return hoJourHtml('e',i,j,false,lecture); }).join('')+'</div>';
+  h+='<label class="ho-sw ho-fer"><input type="checkbox"'+(ed.feries?' checked':'')+off+' onchange="hoFeries(\'e\',this.checked)"><span class="ho-n">Fermé les jours fériés</span></label>';
+  var fa=Array.isArray(d.feriesAVenir)?d.feriesAVenir.filter(paObj).slice(0,5):[];
+  if(fa.length) h+='<p class="ho-aide">Prochains : '+fa.map(function(f){ var t=Date.parse(typeof f.date==='string'?f.date+'T12:00:00Z':''); return esc(typeof f.nom==='string'?f.nom.slice(0,60):'')+(isNaN(t)?'':' ('+esc(new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short',timeZone:'UTC'}))+')'); }).join(' · ')+'.</p>';
+  h+='<h4 class="ag-h">Astreinte</h4><p class="ho-aide">Hors des heures, un agent d’astreinte prévient seulement Justin : il n’écrit à aucun client, il ne décide de rien.</p><div class="ho-ast">'+
+    AG.agents.map(function(a){ return '<label class="ho-sw"><input type="checkbox"'+(ed.astreinte.indexOf(a.id)>=0?' checked':'')+off+' onchange="hoAstreinte(\''+esc(a.id)+'\',this.checked)"><span class="ho-n">'+esc(a.nom)+'</span></label>'; }).join('')+'</div>';
+  h+='<details class="ag-voir ho-par"><summary>Horaires par agent</summary><div class="ag-lg">'+AG.agents.map(function(a){
+    var v=ed.parAgent[a.id], ouv=HO.ag[a.id]===true&&!!v;
+    return '<div class="ho-ag"><div class="ho-agt"><b>'+esc(a.nom)+'</b><span class="ho-ph">'+(v?'horaires propres':'hérite de l’entreprise')+'</span>'+
+      (patron?(v?'<button type="button" class="ag-btn ho-pt" onclick="hoAgentOuvrir(\''+esc(a.id)+'\','+(!ouv)+')"'+off+'>'+(ouv?'Replier':'Modifier')+'</button>':'<button type="button" class="ag-btn ho-pt" onclick="hoAgentPropres(\''+esc(a.id)+'\',true)"'+off+'>Horaires propres</button>'):'')+'</div>'+
+      (ouv?'<div class="ho-agj">'+v.jours.map(function(j,i){ return hoJourHtml(a.id,i,j,true,lecture); }).join('')+
+        '<label class="ho-l">Jours fériés <select'+off+' onchange="hoFeries(\''+esc(a.id)+'\',this.value)"><option value=""'+(v.feries===null?' selected':'')+'>Comme l’entreprise</option><option value="oui"'+(v.feries===true?' selected':'')+'>Fermé</option><option value="non"'+(v.feries===false?' selected':'')+'>Ouvert</option></select></label>'+
+        '<button type="button" class="ag-btn danger"'+off+' onclick="hoAgentPropres(\''+esc(a.id)+'\',false)">Revenir à l’entreprise</button></div>':'')+'</div>'; }).join('')+'</div></details>';
+  if(patron) h+='<div class="ho-pied"><button type="button" class="ag-btn ok" onclick="hoEnregistrer()"'+(lecture||!HO.sale?' disabled':'')+'>Enregistrer</button>'+(HO.sale?'<button type="button" class="ag-btn" onclick="hoAnnuler()"'+(HO.busy?' disabled':'')+'>Annuler</button>':'')+
+    '<span class="ho-msg'+(HO.ko?' ko':'')+'" role="status">'+esc(HO.msg)+'</span></div>';
+  return h+'</div>';
+}
+setInterval(function(){ if(document.visibilityState==='visible'&&TAB==='agents'&&(AG.sec==='horaires'||AG.sec==='equipe')&&!HO.busy) chargerHoraires(); },60000);
 /* ══ PAULINE : LE RELEVÉ DU MAC (Tour v2.112) ══ Justin : « un onglet dans la Tour qui me dit les recherches, les mails envoyés, tout ça ».
    Pauline n'est pas un agent du serveur : Harvey tourne sur le Mac de Justin et lui envoie un RELEVÉ (un instantané) que `GET /api/monitor/pauline` rend (patron seul ;
    le contrat est en tête de server/pauline.js). Cet écran LIT, il n'écrit rien et ne pilote rien.
@@ -11032,7 +11208,7 @@ function chargerPauline(){
   return PA.enVol;
 }
 setInterval(function(){ if(document.visibilityState==='visible'&&TAB==='agents'&&AG.sec==='equipe') chargerPauline(); },60000);   /* v2.104 : « Parler à X » ouvre la Messagerie sur son fil privé (l'onglet Conversations d'avant reste, sans bouton qui y mène) */
-function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); if(s==='examen') exEntrer(); if(s==='courrier'&&AG.cour.sigLec===0&&AG.cour.conLec===0) agCourCharger(); if(s==='equipe'&&typeof chargerPauline==='function') chargerPauline(); render(); }
+function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); if(s==='examen') exEntrer(); if(s==='courrier'&&AG.cour.sigLec===0&&AG.cour.conLec===0) agCourCharger(); if(s==='equipe'&&typeof chargerPauline==='function') chargerPauline(); if((s==='horaires'||s==='equipe')&&typeof chargerHoraires==='function') chargerHoraires(); render(); }
 /* ── les CONVERSATIONS : un fil privé par agent, un fil « Équipe » ; trois états comme partout (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
 function agCvCharger(){
   apiGet('/api/monitor/conversations').then(function(d){ if(!d) return;
@@ -11610,12 +11786,12 @@ function vueAgents(){
   var h=tete;
   if(AG.illisible) h+=agIllisible('L’état des agents est illisible sur le serveur : ils restent tous à l’arrêt et rien n’est modifié tant que ce fichier n’est pas réparé.');
   var stop=agEnPause(), allumes=AG.agents.filter(function(a){ return agMode(a)!=='arret'; }).length;
-  h+='<div class="ag-barre'+(stop?' stop':!allumes?' rien':'')+'"><span class="ag-pt" aria-hidden="true"></span><b>'+
-    (AG.illisible?'État illisible : les agents sont arrêtés':stop?'Pause générale : tous les agents sont à l’arrêt'+(AG.pause&&AG.pause.par?' (posée par '+esc(AG.pause.par)+')':''):agQuiFaitQuoi())+'</b>'+
+  h+='<div class="ag-barre'+(stop?' stop':!allumes?' rien':'')+'"><span class="ag-pt" aria-hidden="true"></span><div class="ag-barre-tx"><b>'+
+    (AG.illisible?'État illisible : les agents sont arrêtés':stop?'Pause générale : tous les agents sont à l’arrêt'+(AG.pause&&AG.pause.par?' (posée par '+esc(AG.pause.par)+')':''):agQuiFaitQuoi())+'</b>'+((AG.illisible||stop||typeof hoLigne!=='function')?'':hoLigne())+'</div>'+
     (AG.illisible||MYROLE!=='patron'||allumes>=AG.agents.length?'':'<button type="button" class="ag-btn ok"'+(AG.busy?' disabled':'')+' onclick="agToutBrouillon()">Toute l’équipe au travail</button>')+
     (AG.illisible?'':'<button type="button" class="ag-btn '+(stop?'ok':'danger')+'"'+(AG.busy?' disabled':'')+' onclick="agPause('+(stop?'false':'true')+')">'+(stop?'Reprendre':'Tout arrêter')+'</button>')+'</div>';
   var n=AG.lec.validations===1?AG.validations.filter(function(v){ return v.statut==='en_attente'; }).length:AG.enAttente;
-  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['courrier','Courrier des agents'],['examen','Examen'],['direction','Direction']].map(function(o){
+  h+='<div class="ag-onglets" role="tablist">'+[['equipe','Équipe'],['horaires','Heures de travail'],['valid','Validations'],['journal','Journal'],['conv','Conversations'],['taches','Tâches entre agents'],['dossiers','Dossiers'],['courrier','Courrier des agents'],['examen','Examen'],['direction','Direction']].map(function(o){
     return '<button type="button" role="tab" class="'+(AG.sec===o[0]?'on':'')+'" aria-selected="'+(AG.sec===o[0])+'" onclick="agSec(\''+o[0]+'\')">'+o[1]+
       (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
@@ -11624,10 +11800,10 @@ function vueAgents(){
     AG.agents.forEach(function(a){
       if(a.couche!==c){ if(c) h+='</div>'; c=a.couche; h+='<div class="ag-couche">'+esc(c)+'</div><div class="ag-lg">'; }
       var m=agMode(a), extra=(a.id==='hugo'&&m!=='arret'?'<button type="button" class="ag-btn"'+(AG.busy?' disabled':'')+' onclick="agHugo()">Relire Stripe maintenant</button>':'')+(typeof agGeCarte==='function'?agGeCarte(a,m):''),
-        aide=agAide(a), etat=stop?'pause':m, lib=stop?'En pause':(AG_MODES.filter(function(x){ return x[0]===m; })[0]||['','À l’arrêt'])[1];
+        aide=agAide(a), hh=typeof agHorsHeures==='function'?agHorsHeures(a):'', etat=stop?'pause':m, lib=stop?'En pause':(AG_MODES.filter(function(x){ return x[0]===m; })[0]||['','À l’arrêt'])[1];
       h+='<article class="ag-rang'+(extra?' plus':'')+'" data-etat="'+m+'"><div class="ag-rg-id">'+agAvatar(a.id,a.nom,'ag-av')+'<div class="ag-rg-tx"><h3>'+esc(a.nom)+'</h3>'+
         '<div class="ag-role">'+esc(a.role)+' <span class="ag-meta">vague '+esc(a.vague)+' · plafond '+esc(a.plafondUsd)+' $ par mois</span></div>'+
-        '<div class="ag-encours" data-d="'+agDispo(a)+'"><span class="ag-etat" data-e="'+etat+'">'+lib+'</span>'+(aide?'<span class="ag-aide"> · '+aide+'</span>':'')+'</div></div></div>'+
+        '<div class="ag-encours" data-d="'+agDispo(a)+'"><span class="ag-etat" data-e="'+etat+'">'+lib+'</span>'+(aide?'<span class="ag-aide"> · '+aide+'</span>':'')+(hh?'<span class="ag-aide ag-hh"> · '+hh+'</span>':'')+'</div></div></div>'+
         '<div class="ag-seg" role="group" aria-label="Mode de '+esc(a.nom)+'">'+AG_MODES.map(function(x){
           var off=AG.busy||(x[0]==='auto'&&m==='arret');
           return '<button type="button" data-m="'+x[0]+'" class="'+(m===x[0]?'on':'')+'" aria-pressed="'+(m===x[0])+'"'+(off?' disabled':'')+(x[0]==='auto'&&m==='arret'?' title="Passe d’abord par brouillon"':'')+' onclick="agMode_(\''+esc(a.id)+'\',\''+x[0]+'\')">'+x[1]+'</button>'; }).join('')+'</div>'+
@@ -11640,6 +11816,8 @@ function vueAgents(){
       '<div class="ag-role">Prospection (Harvey, sur ton Mac)</div><div class="ag-encours" data-d="externe"><span class="ag-etat" id="pa-etat" data-e="'+pe.e+'">'+esc(pe.lib)+'</span></div></div></div>'+
       '<div class="ag-rg-plus">'+(typeof agPaulineHtml==='function'?agPaulineHtml():'<p class="ag-ext-note">Elle ne se pilote pas d’ici : ses accords d’envoi se donnent dans son tableau de bord, sur ton Mac.</p>')+'</div></article></div>';
     h+='<div class="encart bloc" style="margin-top:16px"><div class="tx" style="margin-top:0">Un agent neuf est à l’arrêt. Il passe par « brouillon » avant « auto », et ne répond dans « Parler » qu’à partir de « brouillon ». Les dépenses ne se lisent pas ici : voir la Console Anthropic (espace « Agents Team OP », limite 195 $).</div></div>';
+  } else if(AG.sec==='horaires'){
+    h+=typeof hoVue==='function'?hoVue():'';
   } else if(AG.sec==='valid'){
     if(AG.lec.validations!==1) h+=AG.lec.validations===0?acSquel():agIllisible('Les demandes n’ont pas pu être lues — on ne sait pas s’il y en a. Réessaie dans un instant.');
     else if(!AG.validations.length) h+='<div class="vide">Rien à valider pour l’instant.</div>';
