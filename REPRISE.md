@@ -65,7 +65,7 @@ Sa branche est `claude/tour-agents-refonte`. Ses bancs :
 - `test-3022` et `test-3024` : la couture contre le vrai serveur ;
 - 84 suites, 5 452 vérifications.
 
-⛔ `tour.html` reste en v2.111 jusqu'au « publie » de Justin. Le jour de la publication :
+✅ Publiée le 26 octobre 2026 au soir (Justin : « fais tout ça sauf Facebook ») — ce jour-là :
 - `icons/agents/pauline.jpg` part avec elle (et `test-3008` en déclare l'externe) ;
 - 3022 et 3024 entrent dans `scripts/bancs-serveur.liste`.
 

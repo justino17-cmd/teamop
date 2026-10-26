@@ -31,7 +31,7 @@ function fonction(nom) {
 }
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'acSquel', 'fmtDate', 'agParId', 'agNom', 'agMode', 'agParams', 'agEnPause', 'chargerAgents', 'agSec', 'agBrRef', 'agBrCharger', 'agBrApercu',
-  'agBrModifier', 'agBrAnnuler', 'agBrEnregistrer', 'agIllisible', 'fmtHeure', 'agTachesDe', 'agDispo', 'agEnCoursTxt', 'agQuiFaitQuoi', 'agDecisionMsg', 'agDecider',
+  'agBrModifier', 'agBrAnnuler', 'agBrEnregistrer', 'agIllisible', 'fmtHeure', 'agTachesDe', 'agDispo', 'agEnCoursTxt', 'agQuiFaitQuoi', 'agAide', 'agDecisionMsg', 'agDecider',
   'agDosCharger', 'agDosOuvrir', 'agDosFermer', 'agDosPaiement', 'agDosFiche', 'agDosListe', 'agCvCharger', 'agCvOuvrir', 'agCvFermer', 'agCvEnvoyer', 'agCvDossier', 'agCvMessage', 'agCvVue'];
 const i0 = CODE.indexOf('var AG={'), i1 = CODE.indexOf('\nfunction agParId(');
 const g0 = CODE.indexOf('var AGG={'), g1 = CODE.indexOf('\nfunction agDecisionMsg(');

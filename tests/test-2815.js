@@ -22,7 +22,7 @@ let webpush; try { webpush = require(path.join(RACINE, 'server', 'node_modules',
 const T = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const corps = (src, entete) => { const i = src.indexOf(entete); if (i < 0) return ''; let j = src.indexOf('{', i), p = 0; for (let k = j; k < src.length; k++) { const c = src[k]; if (c === '{') p++; else if (c === '}') { p--; if (!p) return src.slice(i, k + 1); } } return ''; };
 const ligne = d => { const i = T.indexOf(d); return i < 0 ? '' : T.slice(i, T.indexOf('\n', i)); };
-const NEUVES = ['agTachesDe', 'agDispo', 'agEnCoursTxt', 'agQuiFaitQuoi'];
+const NEUVES = ['agTachesDe', 'agDispo', 'agEnCoursTxt', 'agQuiFaitQuoi', 'agAide'];
 const FN = NEUVES.concat(['vueAgents', 'chargerAgents', 'agMode', 'agEnPause', 'agNom', 'agParId', 'agParams', 'esc', 'apiGet', 'fmtDate', 'fmtHeure', 'agAvatar']).map(n => corps(T, 'function ' + n + '('));
 const VARS = ['var AG_MODES=', 'var AG_STATUTS=', 'var AG_PHOTOS='].map(ligne).concat([corps(T, 'var AG_TYPES=')]);
 v('(population) les 16 fonctions et les quatre tables sont trouvées dans le fichier livré', [FN.filter(f => f.length < 30).length, VARS.map(x => x.length > 40)], [0, [true, true, true, true]]);
@@ -80,26 +80,30 @@ const TACHES = [
   vm.runInContext(VARS.join('\n') + '\n' + FN.join('\n') + '\n' + NEUVES.concat(['vueAgents', 'chargerAgents']).map(n => 'this.' + n + '=' + n + ';').join(''), bac);
   const texte = h => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
   const lire = async () => { bac.AG.loaded = false; bac.AG.lec = { validations: 0, journal: 0, taches: 0 }; bac.chargerAgents(); for (let i = 0; i < 80 && !(bac.AG.loaded && bac.AG.lec.taches); i++) await dormir(25); };
-  const carte = (H, nom) => (H.match(new RegExp('<h3>' + nom + '</h3>[\\s\\S]*?<div class="ag-encours" data-d="([a-z]+)">([\\s\\S]*?)</div>')) || []).slice(1);
+  /* Tour v2.112 : la ligne d'une rangée = le mot d'état (« Auto », « À l'arrêt »…) puis, SEULEMENT s'il sert, une phrase d'aide. On lit [data-d, aide] ; aide = '' quand rien n'est dit. */
+  const carte = (H, nom) => { const m = H.match(new RegExp('<h3>' + nom + '</h3>[\\s\\S]*?<div class="ag-encours" data-d="([a-z]+)"><span class="ag-etat" data-e="[a-z]+">[^<]*</span>(?:<span class="ag-aide"> · ([\\s\\S]*?)</span>)?</div>')); return m ? [m[1], m[2] || ''] : null; };
+  const compte = (H, d) => (H.match(new RegExp('<div class="ag-encours" data-d="' + d + '">', 'g')) || []).length;
   await lire();
   v('la vraie chargerAgents lit les agents et la file de tâches du vrai serveur', [bac.AG.loaded, bac.AG.err, bac.AG.agents.length, bac.AG.lec.taches, bac.AG.taches.length], [true, '', 16, 1, 9]);
   const H = bac.vueAgents(), X = texte(H);
-  vrai('les tuiles : 1 au travail, 2 disponibles, 13 à l\'arrêt, 4 tâches en attente', /1 Au travail 2 Disponibles 13 À l’arrêt 4 Tâches en attente/.test(X), X.slice(0, 300));
+  vrai('la ligne d\'état : 2 en auto · 1 en brouillon · 13 à l\'arrêt · 4 tâches en attente (plus de tuiles)', /2 en auto · 1 en brouillon · 13 à l’arrêt · 4 tâches en attente/.test(X) && !/Au travail|Disponibles/.test(X), X.slice(0, 300));
+  v('(population) la répartition « au travail / disponibles / à l\'arrêt » tient dans les données des rangées : 1 · 2 · 13', [compte(H, 'occupe'), compte(H, 'libre'), compte(H, 'arret')], [1, 2, 13]);
   v('Camille : au travail sur SA tâche prise, puis une en attente', carte(H, 'Camille'), ['occupe', 'En ce moment : <b>Passer la main à une personne</b> · demandé par Victor · puis 1 en attente']);
   v('Max : disponible, une tâche l\'attend', carte(H, 'Max'), ['libre', 'En attente : <b>Vérifier un paiement</b> · demandé par Victor']);
-  v('⛔ Jules, à l\'arrêt : il ne fait rien — et ce qui l\'attend est dit', carte(H, 'Jules'), ['arret', 'Ne fait rien tant que tu ne l’allumes pas · 1 tâche l’attend']);
-  v('⛔ Nina, à l\'arrêt avec une tâche « prise » : elle ne travaille PAS — la tâche interrompue l\'attend', carte(H, 'Nina'), ['arret', 'Ne fait rien tant que tu ne l’allumes pas · 1 tâche l’attend']);
+  v('⛔ Jules, à l\'arrêt : il ne fait rien — et ce qui l\'attend est dit', carte(H, 'Jules'), ['arret', '1 tâche l’attend']);
+  v('⛔ Nina, à l\'arrêt avec une tâche « prise » : elle ne travaille PAS — la tâche interrompue l\'attend', carte(H, 'Nina'), ['arret', '1 tâche l’attend']);
   const hugo = carte(H, 'Hugo');
   vrai('⛔ Hugo : sa tâche finie ne compte pas ; un type inconnu est ÉCHAPPÉ', hugo[0] === 'libre' && /^En attente : <b>&lt;img src=x/.test(hugo[1]) && H.indexOf('<img src=x') < 0, hugo);
-  v('un agent allumé sans rien dans la file : « Rien en cours »', bac.agEnCoursTxt({ id: 'zzz', mode: 'auto' }), 'Rien en cours');
-  vrai('la ligne paraît sous le rôle de CHAQUE carte (16)', (H.match(/<div class="ag-encours" data-d="/g) || []).length === 16);
+  v('un agent allumé sans rien dans la file : rien à dire (le mot « Auto » suffit — plus de « Rien en cours »)', bac.agEnCoursTxt({ id: 'zzz', mode: 'auto' }), '');
+  v('un agent à l\'arrêt sans tâche : rien à dire non plus (plus de « Ne fait rien tant que tu ne l\'allumes pas »)', carte(H, 'Louis'), ['arret', '']);
+  vrai('la ligne d\'état paraît sous le rôle de CHAQUE rangée (16, hors Pauline qui est externe), et plus aucune redite « Branché — … »', (H.match(/<div class="ag-encours" data-d="(?!externe)/g) || []).length === 16 && (H.match(/data-d="externe"/g) || []).length === 1 && !/Branché|Ne fait rien tant que|Rien en cours/.test(H), [(H.match(/<div class="ag-encours" data-d="(?!externe)/g) || []).length, (H.match(/Branché|Ne fait rien tant que|Rien en cours/) || [])[0]]);
 
   /* pause générale, par la VRAIE route du patron */
   const pz = await fetch(S.API + '/api/monitor/agents/pause', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + S.TP }, body: JSON.stringify({ pause: true, motif: 'banc' }) });
   v('le patron pose la pause générale (vraie route)', pz.status, 200);
   await lire();
   const HP = bac.vueAgents(), XP = texte(HP);
-  vrai('⛔ pause générale : les 16 à l\'arrêt, personne « au travail », Camille ne fait rien', /0 Au travail 0 Disponibles 16 À l’arrêt/.test(XP) && carte(HP, 'Camille')[0] === 'arret' && /^Pause générale : ne fait rien · 2 tâches l’attendent/.test(carte(HP, 'Camille')[1]), XP.slice(0, 300));
+  vrai('⛔ pause générale : les 16 à l\'arrêt, personne « au travail », Camille ne fait rien — le mot d\'état dit « En pause »', compte(HP, 'arret') === 16 && compte(HP, 'occupe') + compte(HP, 'libre') === 0 && /Pause générale : tous les agents sont à l’arrêt/.test(XP) && (HP.match(/data-e="pause">En pause</g) || []).length === 16 && carte(HP, 'Camille')[0] === 'arret' && carte(HP, 'Camille')[1] === '2 tâches l’attendent', XP.slice(0, 300));
 
   /* ⛔ un second serveur, file de tâches ILLISIBLE */
   const P2 = preparer('{ tronqué'); bancs.push(P2.banc);
@@ -108,14 +112,14 @@ const TACHES = [
   bac.API = S2.API; jeton = S2.TP;
   await lire();
   const HI = bac.vueAgents(), XI = texte(HI);
-  vrai('⛔ file illisible (503) : « — » au lieu d\'un nombre, et la page DIT qu\'on ne sait pas qui est occupé', bac.AG.lec.taches === -1 && /— Au travail — Disponibles 13 À l’arrêt — Tâches en attente/.test(XI) && /on ne sait pas qui est occupé/.test(XI), XI.slice(0, 400));
+  vrai('⛔ file illisible (503) : la ligne d\'état DIT « tâches illisibles » (jamais « 0 tâche »), et aucun agent allumé n\'est « disponible »', bac.AG.lec.taches === -1 && /13 à l’arrêt · tâches illisibles/.test(XI) && !/0 tâche/.test(XI) && compte(HI, 'libre') === 0 && compte(HI, 'occupe') === 0, XI.slice(0, 400));
   v('⛔ …et Camille, allumée, n\'est ni « disponible » ni « rien en cours »', carte(HI, 'Camille'), ['inconnu', 'On ne sait pas : les tâches n’ont pas pu être lues']);
-  v('…Jules, à l\'arrêt, l\'est toujours (le mode, lui, a été lu)', carte(HI, 'Jules'), ['arret', 'Ne fait rien tant que tu ne l’allumes pas']);
+  v('…Jules, à l\'arrêt, l\'est toujours (le mode, lui, a été lu)', carte(HI, 'Jules'), ['arret', '']);
   bac.AG.lec.taches = 0;
-  vrai('pendant la lecture : « Lecture des tâches en cours… », jamais un zéro', /Lecture des tâches en cours/.test(texte(bac.vueAgents())) && /— Au travail/.test(texte(bac.vueAgents())));
+  vrai('pendant la lecture : la ligne d\'état ne parle pas des tâches (jamais un zéro), et personne n\'est « disponible »', !/tâche/.test(texte(bac.vueAgents()).split('Équipe Heures de travail')[0].replace('Les agents IA','')) && compte(bac.vueAgents(), 'libre') === 0);
 
   const SANS = T.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
-  vrai('le résumé est en tête de l\'onglet Équipe', /if\(AG\.sec==='equipe'\)\{\s*var c='';\s*h\+=agQuiFaitQuoi\(\);/.test(SANS));
+  vrai('la ligne d\'état est dans la barre du haut, avec les deux boutons globaux', /<b>'\+\s*\(AG\.illisible\?'État illisible[^\n]*:agQuiFaitQuoi\(\)\)\+'<\/b>'\+/.test(SANS));
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   fin(); process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ exception : ' + (e && e.stack || e)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });
