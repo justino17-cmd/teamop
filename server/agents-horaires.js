@@ -15,7 +15,7 @@
  * ⛔ L'HEURE EST CELLE DE PARIS, COMPTÉE AU CALENDRIER — JAMAIS EN AJOUTANT 24 h. Le serveur tourne en UTC ; le dimanche 25 octobre 2026 a duré
  *    25 heures, et « lundi 9 h » vaut 07 h UTC l'été, 08 h UTC l'hiver. Un jour est une date civile de Paris (`jourPlus`), son ouverture se demande
  *    à `tsParis` : trois fois 24 h après vendredi 9 h d'été donneraient lundi 8 h d'hiver. Le même piège a fait tomber deux défauts du dépôt le
- *    25 octobre ; les bancs (`test-3011`) jouent les deux saisons et la nuit du changement.
+ *    25 octobre ; les bancs (`test-3021`) jouent les deux saisons et la nuit du changement.
  * ⛔ UN REGISTRE ILLISIBLE ARRÊTE LES AGENTS, IL NE LES OUVRE PAS (la règle d'`agents.js`, « on ne sait pas » n'est pas « ouvert »). `agents-horaires.json`
  *    est écrit en entier par un fichier temporaire puis un renommage, jamais par-dessus un fichier qu'on n'a pas pu lire, et une forme qui n'est pas
  *    celle qu'on a écrite (un jour qui manque, une heure absurde) vaut illisible autant qu'un JSON cassé. La Tour le DIT (503, `illisible: true`).

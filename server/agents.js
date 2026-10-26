@@ -181,7 +181,7 @@ module.exports = function monterAgents(app, ctx) {
   const pousse = typeof ctx.pousseNotif === 'function' ? ctx.pousseNotif : null;
   const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
   /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026). Injectées : un module monté sans elles (un banc de module, l'examen de l'équipe sur son équipe d'essai) n'a
-     pas de garde horaire — c'est voulu, l'examen se lance le soir. `index.js` les passe à la VRAIE équipe, et `test-3011` relit ce câblage. */
+     pas de garde horaire — c'est voulu, l'examen se lance le soir. `index.js` les passe à la VRAIE équipe, et `test-3021` relit ce câblage. */
   const hor = ctx.horaires && typeof ctx.horaires.peutAgir === 'function' ? ctx.horaires : null;
   /* Une réunion planifiée tient à son heure même hors des heures de l'équipe (le lundi 9 h, le vendredi 18 h — l'heure de la fermeture —, ce que Justin lance à la main) : tout ce
      qui s'y passe, à travers les `await`, le sait sans qu'on le recopie dans chaque appel (`sousReunion`). Un registre d'horaires illisible, lui, arrête quand même. */

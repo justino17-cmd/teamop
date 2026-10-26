@@ -51,7 +51,7 @@ function monter(o) {
   const pousses = [];
   const pousseNotif = async (titre, corps) => { pousses.push({ titre, corps }); return 1; };
   const agents = require(S('agents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, maintenant, pousseNotif, cerveaux: [], cleCerveauPosee: true,
-    horaires: typeof o.horaires === 'function' ? o.horaires(D) : undefined });   // les heures de travail (`test-3011`) : une FABRIQUE (le dossier n'existe qu'ici) ; sans elle, pas de garde horaire
+    horaires: typeof o.horaires === 'function' ? o.horaires(D) : undefined });   // les heures de travail (`test-3021`) : une FABRIQUE (le dossier n'existe qu'ici) ; sans elle, pas de garde horaire
   const conversations = require(S('conversations.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, maintenant, pousseNotif, surMessage: m => (o.surMessage ? o.surMessage(m) : null) });
 
   const recus = [];

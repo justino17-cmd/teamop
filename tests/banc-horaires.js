@@ -3,7 +3,7 @@
  * Depuis les heures de travail (`server/agents-horaires.js`), un serveur neuf n'a plus d'agent qui agisse la nuit, le week-end ou un jour férié — c'est le réglage par défaut voulu
  * par Justin. Un banc qui démarre le VRAI serveur pour voir un agent répondre, proposer ou relire Stripe ne doit pas dépendre de l'heure à laquelle il tourne (la CI tourne la
  * nuit, le vendredi soir, le dimanche) : il pose CE registre dans son dossier de données AVANT de lancer le serveur. C'est exactement ce que ferait Justin depuis la Tour en
- * réglant « tous les jours, de 00:00 à 24:00, fériés compris ». Les heures elles-mêmes sont gardées par `test-3011`, et par lui seul.
+ * réglant « tous les jours, de 00:00 à 24:00, fériés compris ». Les heures elles-mêmes sont gardées par `test-3021`, et par lui seul.
  */
 'use strict';
 const fs = require('fs'), path = require('path');

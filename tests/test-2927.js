@@ -41,7 +41,7 @@ console.log('\n── 2927 · les six agents de la plateforme contre le vrai ser
   return vrai.apply(this, arguments); };\n`);
   const kh = k => crypto.createHash('sha256').update(k).digest('hex'); const MDP = 'mot-de-passe-du-banc-2927';
   async function serveur(nom, cle, socle) {
-    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ce banc (`test-3011`)
+    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ce banc (`test-3021`)
     fs.writeFileSync(path.join(D, 'clients.json'), '{}'); fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
     const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2927' } };
     conf.agents = Object.assign(cle ? { cleApi: cle } : {}, { reunionsAuto: false });   // pas de réunion due pendant le banc (vendredi 18 h-23 h, lundi matin, heure de Paris)

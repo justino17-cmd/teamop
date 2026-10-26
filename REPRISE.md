@@ -22,7 +22,7 @@ Justin : « je voudrais pouvoir choisir les heures de travail des agents ; je ve
 - Ce qui arrive hors des heures ATTEND : Camille (courriel) et Léa (inscription, demande) `differer` → `agents-differes.json` (trois identifiants par courriel ; pour Léa l'adresse et le nom d'entreprise de l'inscrit)
   → `reprendreDifferes` (une fois par minute, `index.js`) à l'ouverture, le plus ancien d'abord, 5 par passage. Une tâche entre agents ne vieillit pas pendant que son destinataire est fermé (`tempsOuvert`).
 - Accepter une validation hors heures : 409, elle reste en attente (comme pendant la pause) ; refuser passe toujours. Une réunion planifiée tient à son heure (`sousReunion`, AsyncLocalStorage) : vendredi 18 h, lundi férié.
-- L'examen de l'équipe monte sa propre équipe d'essai SANS horaires (jamais bloqué) — `test-3011` § 12.
+- L'examen de l'équipe monte sa propre équipe d'essai SANS horaires (jamais bloqué) — `test-3021` § 12.
 - ⚠️ **Les bancs qui démarrent le VRAI serveur et attendent qu'un agent AGISSE posent `tests/banc-horaires.js` (`toujoursOuvert(D)`) dans leur dossier de données** — sans quoi ils tombent la nuit et le week-end.
 - **Reste à décider / à faire** : l'écran (contrat : `GET/POST /api/monitor/agents/horaires`, `POST …/ouvrir`, `…/fermer`) ; un message de Justin à un agent fermé n'est pas rejoué à l'ouverture (l'agent dit seulement qu'il est
   hors heures) ; une demande de résiliation reçue le vendredi soir attend le lundi (Camille ET Hugo fermés) — à confirmer avec Justin si un prélèvement tombe dans le week-end ; Louis n'apprend pas des corrections faites la nuit ;

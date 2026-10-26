@@ -26,7 +26,7 @@ const libre = () => new Promise(res => { const s = net.createServer(); s.listen(
 const U = (a, m, j, h, mi) => Date.UTC(a, m - 1, j, h, mi || 0);                    // un instant UTC, mois de 1 à 12
 const HEURE = 3600000;
 const nu = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
-const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'b3011-'));
+const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'b3021-'));
 const enfants = [];
 const fin = () => { enfants.forEach(e => { try { e.kill('SIGKILL'); } catch (x) {} }); try { fs.rmSync(banc, { recursive: true, force: true }); } catch (x) {} };
 process.on('exit', fin);
@@ -44,7 +44,7 @@ const cfgDe = mod => Object.assign(defaut(), mod || {});
 const jour = (debut, fin) => ({ ouvert: true, debut, fin });
 const SEMAINE_SEULE = (i, d, f) => { const l = [null, null, null, null, null, null, null]; l[i] = jour(d, f); return l; };
 
-console.log('\n── 3011 · les heures de travail des agents ──');
+console.log('\n── 3021 · les heures de travail des agents ──');
 (async () => {
   console.log('\n1. Le calendrier : Pâques et les onze jours fériés — à la main');
   {
@@ -130,7 +130,7 @@ console.log('\n── 3011 · les heures de travail des agents ──');
   const SAMEDI = U(2026, 10, 24, 10);                       // samedi 24 octobre 2026, 12 h à Paris
   const LUNDI = U(2026, 10, 26, 8);                         // lundi 26 octobre 2026, 9 h à Paris (heure d'hiver)
   const avecHeures = o => monter(Object.assign({ modes: TOUS, t0: SAMEDI, horaires: D => HOR({ DATA_DIR: D }) }, o));
-  const poserMail = (Z, uid, de, o) => { const m = Object.assign({ uid, dossier: 'INBOX', boite: 'b-contact', mid: '<c' + uid + '@banc-3011>', de, deNom: '', pour: 'contact@teamop.fr', objet: 'Demande de remboursement n°' + uid,
+  const poserMail = (Z, uid, de, o) => { const m = Object.assign({ uid, dossier: 'INBOX', boite: 'b-contact', mid: '<c' + uid + '@banc-3021>', de, deNom: '', pour: 'contact@teamop.fr', objet: 'Demande de remboursement n°' + uid,
     texte: 'Bonjour, je veux un remboursement.', ts: Z.horloge.t - HEURE, auto: false, protege: false, authentifie: true }, o); Z.messages[m.boite + '|' + m.dossier + '|' + uid] = m; return { boiteId: m.boite, dossier: m.dossier, uid }; };
 
   console.log('\n5. `peutAgir`, la porte commune : hors heures, l’astreinte, l’arrêt, l’illisible');
@@ -166,21 +166,21 @@ console.log('\n── 3011 · les heures de travail des agents ──');
     vrai('…« Plateforme » le dit, Justin est prévenu à part (fil de Max, urgent) ET notifié', B.textes('plateforme').length === 1 && B.fil('max').some(m => m.texte.startsWith('Justin, c’est sérieux')) && B.pousses.length >= 1, JSON.stringify(B.pousses));
     v('…Jules, lui, est fermé : il ne prend rien', (await jules.passer()).saute, 'hors_heures');
     /* un incident de gravité haute venu des appareils : Max PRÉVIENT (« Plateforme »), Jules est fermé — la consigne attend, et la phrase le dit */
-    const client = { id: 'i1a2b3c4d5e60', signature: 'opgestion|x', app: 'opgestion', type: 'erreur', categorie: 'Planning', message: 'MESSAGE-SECRET-3011', stack: 'x', src: 'x', origine: 'x', count: 14, firstTs: B.horloge.t - 3600000, lastTs: B.horloge.t - 600000,
-      entreprises: [{ nom: 'Société Secrète 3011' }, { nom: 'Autre 3011' }, { nom: 'Troisième 3011' }], appareils: { a: 1 }, statut: 'nouveau', notes: 'x', mailEnvoye: false };
+    const client = { id: 'i1a2b3c4d5e60', signature: 'opgestion|x', app: 'opgestion', type: 'erreur', categorie: 'Planning', message: 'MESSAGE-SECRET-3021', stack: 'x', src: 'x', origine: 'x', count: 14, firstTs: B.horloge.t - 3600000, lastTs: B.horloge.t - 600000,
+      entreprises: [{ nom: 'Société Secrète 3021' }, { nom: 'Autre 3021' }, { nom: 'Troisième 3021' }], appareils: { a: 1 }, statut: 'nouveau', notes: 'x', mailEnvoye: false };
     B.issues.push(client);
     const r2 = await max.passer();
     v('un incident venu des appareils : Max le DIT dans « Plateforme », et dit que Jules est hors des heures (l’incident l’attend dans la Tour) — sans nom d’entreprise', [r2.clients, B.textes('plateforme').filter(t => /^Un incident de gravité haute/.test(t))], [1, ['Un incident de gravité haute vient d’arriver des appareils : 14 occurrences, chez 3 entreprises, catégorie Planning. Jules est hors des heures de travail : l’incident l’attend dans la Tour (Incidents).']]);
     v('…et aucune consigne n’est donnée à un Jules fermé', B.agents.tachesDe('jules'), []);
     B.nettoyer();
     const G = require('./banc-agents-gestion.js').monter({ modes: { max: 'auto', camille: 'auto' }, t0: SAMEDI, horaires: D => HOR({ DATA_DIR: D }) });
-    const doc = a => G.documents.ranger({ type: 'courrier_agent', agent: a, a: 'client@exemple-3011.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'relance' });
+    const doc = a => G.documents.ranger({ type: 'courrier_agent', agent: a, a: 'client@exemple-3021.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'relance' });
     v('⛔ les DOCUMENTS (relances, accusés, annonces) refusent l’astreinte comme les brouillons : Max, samedi → hors_heures, rien de rangé', [(await doc('max')).raison, fs.existsSync(path.join(G.D, 'agents-documents.json'))], ['hors_heures', false]);
-    v('…le courrier direct de Max aussi', (await G.documents.courrier({ agent: 'max', a: 'client@exemple-3011.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'relance', porte: 'aucune' })).raison, 'hors_heures');
+    v('…le courrier direct de Max aussi', (await G.documents.courrier({ agent: 'max', a: 'client@exemple-3021.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'relance', porte: 'aucune' })).raison, 'hors_heures');
     G.nettoyer();
     /* les portes qui écrivent à un client refusent l'astreinte */
     const Z = avecHeures({ modes: Object.assign({}, TOUS, { max: 'auto' }) });
-    const depot = a => Z.brouillons.deposer({ agent: a, a: 'client@exemple-3011.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'courrier', enReponseA: null });
+    const depot = a => Z.brouillons.deposer({ agent: a, a: 'client@exemple-3021.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'courrier', enReponseA: null });
     v('⛔ Max (astreinte, samedi) dépose un brouillon pour un client : REFUSÉ, rien n’est rangé, rien ne part', [(await depot('max')).raison, fs.existsSync(path.join(Z.D, 'agents-brouillons.json')), Z.envoyes.length], ['hors_heures', false, 0]);
     v('…Théo de même', (await depot('theo')).raison, 'hors_heures');
     v('…Camille, fermée, aussi (autre raison : pas d’astreinte)', (await depot('camille')).raison, 'hors_heures');
@@ -193,13 +193,13 @@ console.log('\n── 3011 · les heures de travail des agents ──');
   console.log('\n7. ⛔ Ce qui arrive hors des heures ATTEND, et se reprend à l’ouverture — le plus ancien d’abord');
   {
     const Z = avecHeures({ claude: () => 'CATEGORIE : remboursement' });
-    const evs = [poserMail(Z, 1, 'premier@exemple-3011.fr'), poserMail(Z, 2, 'second@exemple-3011.fr'), poserMail(Z, 3, 'troisieme@exemple-3011.fr')];
+    const evs = [poserMail(Z, 1, 'premier@exemple-3021.fr'), poserMail(Z, 2, 'second@exemple-3021.fr'), poserMail(Z, 3, 'troisieme@exemple-3021.fr')];
     const rs = []; for (const ev of evs) rs.push(await Z.camille.surNouveauMessage(ev));
     v('samedi : les trois courriels sont mis de côté, aucun n’est lu ni examiné', [rs.map(r => r.saute + ':' + r.differe), Z.lectures.length, Z.recus.length], [['hors_heures:true', 'hors_heures:true', 'hors_heures:true'], 0, 0]);
     v('⛔ rien n’est compté comme traité : pas de registre de Camille, pas de brouillon, pas de validation, pas d’examen au compteur', [fs.existsSync(path.join(Z.D, 'agents-camille.json')), fs.existsSync(path.join(Z.D, 'agents-brouillons.json')), (await Z.validations()).length], [false, false, 0]);
     v('…ils attendent : trois entrées pour Camille, et la liste des agents en donne le NOMBRE', [Z.agents.differesEnAttente(), (await Z.appeler('GET /api/monitor/agents', { tourUser: Z.PATRON })).corps.horaires.enAttente], [{ camille: 3 }, 3]);
     const brut = fs.readFileSync(path.join(Z.D, 'agents-differes.json'), 'utf8');
-    vrai('⛔ …le fichier ne porte que trois identifiants par courriel — ni adresse, ni objet, ni texte', !/exemple-3011|remboursement|premier|second|troisieme/i.test(brut), brut.slice(0, 300));
+    vrai('⛔ …le fichier ne porte que trois identifiants par courriel — ni adresse, ni objet, ni texte', !/exemple-3021|remboursement|premier|second|troisieme/i.test(brut), brut.slice(0, 300));
     v('(contre-épreuve de la file) deux annonces du même courriel ne font qu’une entrée', [(await Z.camille.surNouveauMessage(evs[0])).saute, Z.agents.differesEnAttente()], ['hors_heures', { camille: 3 }]);
     let b = await Z.agents.reprendreDifferes();
     v('samedi encore : la reprise n’y touche pas (personne ne peut agir)', [b.reprises, b.restantes, Z.recus.length], [0, 3, 0]);
@@ -216,22 +216,22 @@ console.log('\n── 3011 · les heures de travail des agents ──');
   {
     /* ⛔ un long week-end férié (jeudi 24 décembre 18 h → lundi 28 décembre 9 h : 87 heures) ne rend pas « ancien » un courriel que Camille reçoit à 18 h 30 */
     const Z = avecHeures({ t0: U(2026, 12, 24, 17, 32), claude: () => 'CATEGORIE : remboursement' });
-    const ev = poserMail(Z, 7, 'noel@exemple-3011.fr', { ts: U(2026, 12, 24, 17, 30) });
+    const ev = poserMail(Z, 7, 'noel@exemple-3021.fr', { ts: U(2026, 12, 24, 17, 30) });
     await Z.camille.surNouveauMessage(ev);
     Z.horloge.t = U(2026, 12, 28, 8);
     const b = await Z.agents.reprendreDifferes();
     v('⛔ jeudi 24 décembre 18 h 32 → lundi 28 à 9 h (87 h, plus de trois jours) : le courriel de 18 h 30 est repris, pas jeté comme « ancien »', [b.reprises, Z.recus.length, (await Z.validations()).length], [1, 1, 1]);
     Z.nettoyer();
     const Y = monter({ modes: TOUS, t0: U(2026, 12, 28, 8) });
-    poserMail(Y, 8, 'ancien@exemple-3011.fr', { ts: U(2026, 12, 24, 17, 30) });
+    poserMail(Y, 8, 'ancien@exemple-3021.fr', { ts: U(2026, 12, 24, 17, 30) });
     const r = await Y.camille.surNouveauMessage({ boiteId: 'b-contact', dossier: 'INBOX', uid: 8 });
     v('(contre-épreuve) le même courriel, arrivé SANS avoir attendu l’ouverture, est bien « ancien » (plus de trois jours)', [r.saute, Y.recus.length], ['ancien', 0]);
     Y.nettoyer();
   }
   {
     const Z = avecHeures();
-    const a = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'toka@exemple-3011.fr' });
-    const a2 = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'toka@exemple-3011.fr' });
+    const a = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'toka@exemple-3021.fr' });
+    const a2 = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'toka@exemple-3021.fr' });
     v('⛔ samedi : l’inscription ne prépare rien (ni Claude, ni brouillon, ni mémoire de Léa) — elle attend, UNE fois', [a.saute, a.differe, a2.differe, Z.recus.length, fs.existsSync(path.join(Z.D, 'agents-lea.json')), Z.agents.differesEnAttente()], ['hors_heures', true, true, 0, false, { lea: 1 }]);
     Z.horloge.t = LUNDI;
     const b = await Z.agents.reprendreDifferes();
@@ -239,7 +239,7 @@ console.log('\n── 3011 · les heures de travail des agents ──');
     v('lundi 9 h : Léa la prend — un courriel préparé pour Justin, une réponse enregistrée par empreinte', [b.reprises, Z.recus.length, val.length, val[0] && /Réponse à l’inscription de Toka Clim/.test(val[0].resume), Object.keys(Z.fichierJson('agents-lea.json').adresses).length], [1, 1, 1, true, 1]);
     Z.nettoyer();
     const Y = avecHeures({ modes: Object.assign({}, TOUS, { lea: 'arret' }) });
-    const r = await Y.lea.surInscription({ entreprise: 'Toka Clim', email: 'toka@exemple-3011.fr' });
+    const r = await Y.lea.surInscription({ entreprise: 'Toka Clim', email: 'toka@exemple-3021.fr' });
     v('(contre-épreuve) Léa À L’ARRÊT : rien n’est mis de côté — l’arrêt n’est pas une attente', [r.saute, r.differe, Y.agents.differesEnAttente()], ['arret', undefined, {}]);
     Y.nettoyer();
   }
@@ -270,7 +270,7 @@ console.log('\n── 3011 · les heures de travail des agents ──');
   console.log('\n8. « Ouvrir maintenant » — Justin fait travailler l’équipe un samedi, puis l’arrête');
   {
     const Z = avecHeures({ claude: () => 'CATEGORIE : remboursement' });
-    await Z.camille.surNouveauMessage(poserMail(Z, 1, 'attente@exemple-3011.fr'));
+    await Z.camille.surNouveauMessage(poserMail(Z, 1, 'attente@exemple-3021.fr'));
     const ouvrir = jusqua => Z.appeler('POST /api/monitor/agents/horaires/ouvrir', { tourUser: Z.PATRON, body: { jusqua } });
     let r = await ouvrir(Z.horloge.t + 2 * HEURE);
     v('POST …/horaires/ouvrir { jusqua } : 200, l’équipe est ouverte « par ouverture forcée », et dit jusqu’à quand', [r.status, r.corps.maintenant.ouvert, r.corps.maintenant.raison, r.corps.ouvertJusqua, r.corps.maintenant.prochaineFermeture], [200, true, 'ouverture_forcee', SAMEDI + 2 * HEURE, SAMEDI + 2 * HEURE]);
@@ -383,7 +383,7 @@ console.log('\n── 3011 · les heures de travail des agents ──');
       const p = await Z.appeler('POST /api/monitor/agents/horaires', { tourUser: Z.PATRON, body: { astreinte: ['nina'] } });
       const o = await Z.appeler('POST /api/monitor/agents/horaires/ouvrir', { tourUser: Z.PATRON, body: { jusqua: LUNDI + HEURE } });
       v('…la Tour le DIT : GET, POST et « ouvrir » rendent 503 « illisible », et le fichier n’est PAS réécrit', [g.status, g.corps.illisible, /illisibles/.test(g.corps.error), p.status, o.status, fs.readFileSync(path.join(Z.D, 'agents-horaires.json'), 'utf8') === brut], [503, true, true, 503, 503, true]);
-      v('…la liste des agents le dit aussi, et un dépôt de Camille est refusé', [(await Z.appeler('GET /api/monitor/agents', { tourUser: Z.PATRON })).corps.horaires, (await Z.brouillons.deposer({ agent: 'camille', a: 'c@exemple-3011.fr', objet: 'x', texte: 'y', source: 'courrier' })).raison], [{ actives: true, illisible: true }, 'horaires_illisibles']);
+      v('…la liste des agents le dit aussi, et un dépôt de Camille est refusé', [(await Z.appeler('GET /api/monitor/agents', { tourUser: Z.PATRON })).corps.horaires, (await Z.brouillons.deposer({ agent: 'camille', a: 'c@exemple-3021.fr', objet: 'x', texte: 'y', source: 'courrier' })).raison], [{ actives: true, illisible: true }, 'horaires_illisibles']);
       Z.nettoyer();
     }
     const Z = monter({ modes: TOUS, t0: LUNDI, horaires: D => HOR({ DATA_DIR: D }) });
@@ -445,7 +445,7 @@ console.log('\n── 3011 · les heures de travail des agents ──');
   console.log('\n12. ⛔ L’examen de l’équipe n’est JAMAIS bloqué par les heures — Justin le lance le soir');
   {
     const EX = require(S('examen.js'));
-    const E = EX.monterEquipe({ cle: 'sk-ant-banc-3011-xxxxxxxxxxxxxxxx', maintenant: () => U(2026, 10, 25, 23, 30), allumes: ['camille', 'lea', 'hugo'],
+    const E = EX.monterEquipe({ cle: 'sk-ant-banc-3021-xxxxxxxxxxxxxxxx', maintenant: () => U(2026, 10, 25, 23, 30), allumes: ['camille', 'lea', 'hugo'],
       appeler: async () => ({ texte: 'CATEGORIE : ignorer', entree: 100, sortie: 10, stop_reason: 'end_turn' }) });
     v('dimanche 0 h 30 à Paris : l’équipe d’essai agit', [E.agents.peutAgir('camille').ok, E.agents.peutAgir('lea').ok, E.agents.ouverture('camille')], [true, true, null]);
     E.poste.recevoir(7, { de: 'spam@essai.test', objet: 'GAGNEZ', texte: 'Bonjour cher ami' });
@@ -473,7 +473,7 @@ console.log('\n── 3011 · les heures de travail des agents ──');
     vrai('la garde horaire est dans `peutAgir`, entre le mode et le retour — pas dans chaque agent', /if \(m === 'arret'\) return \{ ok: false, raison: 'arret' \};\s*if \(hor\) \{\s*const h = hor\.peutAgir\(id, maintenant\(\)\)/.test(ag));
     /* accepter une validation hors heures : elle RESTE en attente (comme pendant la pause) */
     const Z = avecHeures({ t0: LUNDI, claude: () => 'CATEGORIE : remboursement' });
-    const r = await Z.camille.surNouveauMessage(poserMail(Z, 1, 'valid@exemple-3011.fr'));
+    const r = await Z.camille.surNouveauMessage(poserMail(Z, 1, 'valid@exemple-3021.fr'));
     const val = (await Z.validations())[0];
     vrai('lundi 9 h : Camille prépare une réponse, une validation attend Justin', r.depose === true && val && val.statut === 'en_attente', JSON.stringify(r));
     Z.horloge.t = U(2026, 10, 26, 17, 30);          // 18 h 30 à Paris
@@ -485,7 +485,7 @@ console.log('\n── 3011 · les heures de travail des agents ──');
     const jour2 = await decider(val.id, 'accepter');
     v('mardi 9 h : la même acceptation passe, le courriel part', [jour2.status, Z.envoyes.length], [200, 1]);
     const Y = avecHeures({ t0: U(2026, 10, 26, 17, 30), claude: () => 'CATEGORIE : remboursement' });
-    Y.horloge.t = LUNDI; await Y.camille.surNouveauMessage(poserMail(Y, 1, 'refus@exemple-3011.fr')); Y.horloge.t = U(2026, 10, 26, 17, 30);
+    Y.horloge.t = LUNDI; await Y.camille.surNouveauMessage(poserMail(Y, 1, 'refus@exemple-3021.fr')); Y.horloge.t = U(2026, 10, 26, 17, 30);
     const v2 = (await Y.validations())[0];
     v('REFUSER passe toujours, à toute heure (refuser ne coûte rien)', [(await Y.appeler('POST /api/monitor/agents/validations/decider', { tourUser: Y.PATRON, body: { id: v2.id, decision: 'refuser' } })).status, (await Y.validations())[0].statut], [200, 'refuse']);
     Z.nettoyer(); Y.nettoyer();
@@ -503,13 +503,13 @@ console.log('\n── 3011 · les heures de travail des agents ──');
           return new Response(JSON.stringify({ id: 'msg_banc', type: 'message', role: 'assistant', model: 'claude-sonnet-5', stop_reason: 'end_turn', content: [{ type: 'text', text: 'Réponse ' + n + ' : je note.' }], usage: { input_tokens: 400, output_tokens: 60 } }), { status: 200, headers: { 'content-type': 'application/json' } }); }
         if (u.startsWith('https://api.stripe.com/')) return new Response('{"data":[],"has_more":false}', { status: 200, headers: { 'content-type': 'application/json' } });
         return vrai.apply(this, arguments); };\n`);
-      const kh = k => crypto.createHash('sha256').update(k).digest('hex'); const MDP = 'mot-de-passe-du-banc-3011';
+      const kh = k => crypto.createHash('sha256').update(k).digest('hex'); const MDP = 'mot-de-passe-du-banc-3021';
       const recus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).length : 0;
       const D = path.join(banc, 'serveur', 'data'); fs.mkdirSync(D, { recursive: true });
       fs.writeFileSync(path.join(D, 'espaces.json'), '{}'); fs.writeFileSync(path.join(D, 'clients.json'), '{}');
       const vap = webpush.generateVAPIDKeys();
-      fs.writeFileSync(path.join(banc, 'serveur', 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_3011' },
-        agents: { cleApi: 'sk-ant-api03-banc-3011-xxxxxxxxxxxxxxxx', reunionsAuto: false } }));
+      fs.writeFileSync(path.join(banc, 'serveur', 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_3021' },
+        agents: { cleApi: 'sk-ant-api03-banc-3021-xxxxxxxxxxxxxxxx', reunionsAuto: false } }));
       let nreq = 0;
       async function serveur() {
         const PORT = await libre(); let journal = '';
