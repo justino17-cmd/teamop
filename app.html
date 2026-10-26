@@ -7186,6 +7186,48 @@ html[data-verre="1"] .sidebar .nav-label{font-weight:640!important}
 .nav-fav-vide{padding:4px 12px 10px;font-size:12px;line-height:1.5;color:var(--side-mut)}
 /* La coupe qui suit les favoris sépare deux familles, pas deux écrans : elle respire plus. */
 .nav-item-fav + .nav-label,.nav-fav-vide + .nav-label{padding-top:22px!important}
+
+/* ══ AUDIT DES APPAREILS DU 26 OCTOBRE 2026 — LE MENU LATÉRAL ═══════════════════════════════════
+   ⛔ DE JOUR, SUR VERRE, LE TEXTE SECONDAIRE DU MENU TOMBAIT SOUS 4,5:1. `--side-mut` vaut 52 %
+   de l'encre du thème, mélangés à la transparence : lu au pixel sur le verre clair (iPad portrait,
+   Mac 1440, Windows 1366), les titres de groupe (FAVORIS, PLANIFICATION…), « BÊTA TESTE »
+   (`#brand-plan`) et la phrase d'aide des favoris sortaient à 3,7:1 — un texte de 11 à 12 px.
+   Trois lecteurs, une seule cause : ils lisent tous `--side-mut` (la règle `.sidebar .nav-label`,
+   `#brand-plan`, `.nav-fav-vide`). On corrige donc la SOURCE, pas les trois : le menu de jour
+   prend le second plan que le thème écrit déjà pour tout le reste de la page (`--vr-encre3`,
+   #5A616F : 6,0:1 sur le verre clair). Aucune couleur neuve. De nuit, rien ne bouge — la règle
+   est bornée au thème clair, et `--side-mut` n'y est pas touché. */
+html[data-verre="1"][data-theme="light"] .sidebar{--side-mut:var(--vr-encre3)}
+
+/* ══ ET AU DOIGT : « Modifier » (favoris) ET LA LOUPE RÉPONDAIENT SUR 18 ET 20 PX ═══════════════
+   Un plancher tactile se pose sous `(pointer:coarse)` — le doigt, pas la largeur (un iPad de 820
+   px a un menu permanent ET un doigt). La rangée « Favoris » porte son bouton : elle grandit avec
+   lui plutôt que de le faire déborder sur le voisin, et le texte reste centré. La loupe est un
+   champ DANS une pilule : seul l'`input` répondait (20 px) ; il prend toute la hauteur de la
+   pilule, qui monte à 44. */
+@media (pointer:coarse){
+  html[data-refonte] .sidebar .nav-label.nav-label-fav{align-items:center;padding-top:6px!important;padding-bottom:0!important}
+  html[data-refonte] .nav-fav-edit{min-height:44px;min-width:44px;padding:0 8px}
+  html[data-refonte] .nav-loupe{min-height:44px;padding-top:0;padding-bottom:0}
+  html[data-refonte] .nav-loupe input{align-self:stretch;min-height:44px;margin:-1px 0}
+  html[data-refonte] .nav-loupe button{min-width:44px;min-height:44px}
+}
+
+/* ══ AUDIT DU 26 OCTOBRE 2026 — LA VUE DU TECHNICIEN ET LES CASES OUI / NON ═════════════════════
+   · « ▸ En retard · 1 » (le résumé repliable des interventions du technicien) répondait sur 18 px :
+     un texte de 12 px sans rembourrage. Il devient une ligne de liste de 44 px, texte centré.
+     (`!important` : sa marge est écrite EN LIGNE, et un style en ligne bat la feuille.)
+   · « Ouvrir mon planning » (`.btn.sm` de l'en-tête du planning) : 40 px, le plancher d'un filtre —
+     c'est ici une commande d'en-tête, comme « Créer » : 44.
+   · les cases Oui / Non de la fiche d'intervention (`label` autour d'un rond de 19 px) : 18 px.
+     Le label devient la cible, pas le rond. La classe vaut en lecture comme en modification : la fiche
+     ne doit pas sauter de cent pixels quand on touche « Modifier » (et la mesure de l'audit les comptait
+     toutes les deux). */
+@media (pointer:coarse){
+  .mj-resume{display:flex!important;align-items:center;min-height:44px;margin:0 2px!important}
+  html[data-refonte] .tdb-hd .btn{min-height:44px}
+  .qoui{display:inline-flex;align-items:center;gap:8px;min-height:44px;min-width:44px}
+}
 </style>
 <style id="theme-final">
 /* ══ THÈME FINAL — OP GESTION au style Apple (Justin, 24 septembre 2026) ═════════════════════
@@ -8616,7 +8658,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '775';
+const APP_VERSION = '776';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -23834,7 +23876,7 @@ function renderIntTechDay(SRC){
   const plusTard=act.filter(i=>(!i.date&&i.statut!=='terminee')||(i.date&&i.date>shiftDay(today,7)&&i.statut!=='terminee')).sort((a,b)=>((a.date||'9999')+(a.heure||'')).localeCompare((b.date||'9999')+(b.heure||'')));
   const done=SRC.filter(i=>i.statut==='terminee').sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||''))).slice(0,10);
   const nextId=(auj.find(i=>i.statut==='planifiee')||{}).id;
-  const secD=(title,color,arr,open,opts)=>arr.length?`<details ${open?'open':''}><summary style="cursor:pointer;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:${color};margin:14px 2px 8px;font-weight:800;list-style:none">▸ ${title} · ${arr.length}</summary>${arr.map(i=>intTechCard(i,Object.assign({},opts,{startBtn:false}))).join('')}</details>`:'';
+  const secD=(title,color,arr,open,opts)=>arr.length?`<details ${open?'open':''}><summary class="mj-resume" style="cursor:pointer;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:${color};margin:14px 2px 8px;font-weight:800;list-style:none">▸ ${title} · ${arr.length}</summary>${arr.map(i=>intTechCard(i,Object.assign({},opts,{startBtn:false}))).join('')}</details>`:'';
   $('content').innerHTML=`<div class="mj">
     ${secD('🔴 En retard','var(--red)',retard,true,{showDate:true})}
     <div style="font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--acc-txt);margin:14px 2px 8px;font-weight:800">▶ Aujourd'hui — ${new Date(today+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
@@ -26493,7 +26535,7 @@ function renderIntDetail(id){
         ${(()=>{ const ta=intEdit
           ? (f,lbl)=>`<div style="margin-bottom:14px"><div class="comm-lbl" style="margin-bottom:6px">${lbl} :</div><textarea rows="2" placeholder="${lbl} :" oninput="(db.interventions.find(x=>x.id==='${id}')||{}).${f}=this.value" onchange="save()" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:10px 12px;color:var(--t1);font-family:inherit;font-size:13.5px;resize:vertical">${esc(i[f]||'')}</textarea></div>`
           : (f,lbl)=>`<div style="margin-bottom:16px"><div class="comm-lbl" style="margin-bottom:6px">${lbl} :</div><div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);min-height:19px;white-space:pre-wrap">${esc(i[f]||'')}</div></div>`;
-          const oui=(f,lbl)=>`<div style="margin-bottom:14px"><div class="comm-lbl" style="margin-bottom:7px">${lbl} :</div><label style="margin-right:22px;font-size:14px;color:var(--t1);${intEdit?'cursor:pointer':''}"><input type="radio" name="q-${f}" ${i[f]==='oui'?'checked':''} ${intEdit?`onclick="intQSet('${id}','${f}','oui')"`:'disabled'} style="width:19px;height:19px;accent-color:var(--acc);vertical-align:-4px"> Oui</label><label style="font-size:14px;color:var(--t1);${intEdit?'cursor:pointer':''}"><input type="radio" name="q-${f}" ${i[f]==='non'?'checked':''} ${intEdit?`onclick="intQSet('${id}','${f}','non')"`:'disabled'} style="width:19px;height:19px;accent-color:var(--acc);vertical-align:-4px"> Non</label></div>`;
+          const oui=(f,lbl)=>`<div style="margin-bottom:14px"><div class="comm-lbl" style="margin-bottom:7px">${lbl} :</div><label class="qoui" style="margin-right:22px;font-size:14px;color:var(--t1);${intEdit?'cursor:pointer':''}"><input type="radio" name="q-${f}" ${i[f]==='oui'?'checked':''} ${intEdit?`onclick="intQSet('${id}','${f}','oui')"`:'disabled'} style="width:19px;height:19px;accent-color:var(--acc);vertical-align:-4px"> Oui</label><label class="qoui" style="font-size:14px;color:var(--t1);${intEdit?'cursor:pointer':''}"><input type="radio" name="q-${f}" ${i[f]==='non'?'checked':''} ${intEdit?`onclick="intQSet('${id}','${f}','non')"`:'disabled'} style="width:19px;height:19px;accent-color:var(--acc);vertical-align:-4px"> Non</label></div>`;
           const mp=intEdit
           ? `<div style="margin-bottom:14px"><div class="comm-lbl" style="margin-bottom:6px">Moyen de paiement :</div><select onchange="(db.interventions.find(x=>x.id==='${id}')||{}).moyenPaiement=this.value==='Aucun'?'':this.value;save()" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:11px 12px;color:var(--t1);font-family:inherit;font-size:14px">${intMoyenPaiementOptions(i.moyenPaiement)}</select></div>`
           : `<div style="margin-bottom:16px"><div class="comm-lbl" style="margin-bottom:6px">Moyen de paiement :</div><div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);min-height:19px">${esc(i.moyenPaiement||'')}</div></div>`;
