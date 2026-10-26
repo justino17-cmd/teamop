@@ -8,7 +8,7 @@
      1. L'INTÉRIMAIRE GARDE LA PORTE : il admet et refuse à l'entrée (salle d'attente allumée par l'organisatrice) ; la salle dit qu'il est intérimaire (`moi.interim`) ;
      2. IL PERD CE QUI ENGAGE LES AUTRES : exclure, verrouiller, salle d'attente, partage, enregistrer, couper les micros de TOUS, nommer un co-hôte — 403 `interdit`, et RIEN n'est écrit ;
      3. L'ORGANISATRICE QUI ARRIVE REPREND LA MAIN : l'ex-intérimaire retombe à grade 0 (il n'est PAS co-hôte) ; l'invité qu'il n'a pas pu exclure peut toujours entrer ;
-     4. UN CO-HÔTE NOMMÉ PAR ELLE N'EST PAS UN INTÉRIMAIRE : il garde ses gestes (exclure un participant), quand elle part comme quand elle revient ;
+     4. UN CO-HÔTE NOMMÉ PAR ELLE N'EST PAS UN INTÉRIMAIRE : il garde ses gestes (exclure un participant) ; quand elle PART, il devient l'organisateur (26 octobre 2026, Justin — `test-3036`) et le reste à son retour ;
      5. CONTRE-ÉPREUVE : si l'organisatrice entre la première, les mêmes gestes d'un invité font 403 (l'état d'avant), et elle, elle les fait.
 
    ⛔ UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN : avant chaque « rien n'est écrit », la population qu'il aurait pu changer est comptée. */
@@ -81,9 +81,10 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
     v('Ana nomme Cléo co-hôte (200, grade 1)', [(await POST(a1, sid, 'cohote', { uid: cleo.id, actif: true })).code, ligne(sid, cleo.id).grade], [200, 1]);
     v('… Cléo (co-hôte) exclut un participant : Dan (200) — le geste qu\'on refuse à l\'intérimaire reste celui d\'un co-hôte nommé', [(await POST(c1, sid, 'exclure', { uid: dan.id })).code, ligne(sid, dan.id).statut], [200, 'exclu']);
     await quitter(a1);
-    v('Ana PART : Cléo reste co-hôte (grade 1 — personne n\'est promu par-dessus elle), et Ana, partie, est à grade 0', [ligne(sid, cleo.id), ligne(sid, ana.id).grade], [{ statut: 'present', grade: 1 }, 0]);
+    /* 26 octobre 2026 (Justin, #18) : quand l'ORGANISATRICE part, le suivant — un co-hôte d'abord — devient le nouvel organisateur, avec tous les gestes (test-3036) : Cléo passe de co-hôte à hôte */
+    v('Ana PART : Cléo, co-hôte nommée, devient la nouvelle organisatrice (grade 2 — test-3036), et Ana, partie, est à grade 0', [ligne(sid, cleo.id), ligne(sid, ana.id).grade], [{ statut: 'present', grade: 2 }, 0]);
     const rb = await a1.post('/api/reunions/' + rid + '/rejoindre', {});
-    v('Ana REVIENT : hôte de nouveau, et Cléo est TOUJOURS co-hôte (l\'arrivée de l\'organisatrice ne touche pas un co-hôte nommé)', [rb.code, rb.j.appel.moi.grade, ligne(sid, cleo.id).grade], [200, 2, 1]);
+    v('Ana REVIENT : hôte de nouveau, et Cléo GARDE son rôle (l\'organisation lui a été confiée, pas prêtée — seul l\'intérim s\'efface)', [rb.code, rb.j.appel.moi.grade, ligne(sid, cleo.id).grade], [200, 2, 2]);
     await quitter(a1); await quitter(c1);
 
     /* ═══ 5. CONTRE-ÉPREUVE : L'ORGANISATRICE ENTRE LA PREMIÈRE ══════════════════════════════════════════════════════════════════════════ */
@@ -100,11 +101,11 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
 
     /* ═══ 6. QUAND L'ORGANISATRICE PART SEULE, LA SALLE RESTE À UN INTÉRIMAIRE — SA PORTE, PAS SES ARMES ═══════════════════════════════════
        (Dan est seul avec Ana ; elle part : il est promu pour que la salle ait quelqu'un à la porte, et il est intérimaire.) */
-    console.log('\nL\'organisatrice part : le suivant tient la porte, en intérimaire');
+    console.log('\nL\'organisatrice part : le suivant devient l\'organisateur, avec tous les gestes (Justin, 26 octobre 2026)');
     await quitter(a1);
     const apresDepart = await d1.get('/api/salles/' + sid2);
-    v('Ana part : Dan (le seul présent) passe à grade 2 ET la salle le dit intérimaire', [ligne(sid2, dan.id).grade, apresDepart.j.appel && apresDepart.j.appel.moi.grade, apresDepart.j.appel && apresDepart.j.appel.moi.interim], [2, 2, true]);
-    v('… et il ne peut toujours pas verrouiller (403)', dit(await POST(d1, sid2, 'verrouiller', { actif: true })), [403, 'interdit']);
+    v('Ana part : Dan (le seul présent, invité NOMMÉ) passe à grade 2 et la salle ne le dit PLUS intérimaire — il est le nouvel organisateur', [ligne(sid2, dan.id).grade, apresDepart.j.appel && apresDepart.j.appel.moi.grade, !!(apresDepart.j.appel && apresDepart.j.appel.moi.interim)], [2, 2, false]);
+    v('… et il verrouille (200) : ce que l\'intérimaire ne pouvait pas (le détail des gestes : test-3036)', dit(await POST(d1, sid2, 'verrouiller', { actif: true })), [200, undefined]);
   } finally {
     await svc.arreter();
   }
