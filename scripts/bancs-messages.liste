@@ -127,7 +127,9 @@
 # porte, dans les conditions de la CI, toutes vertes (commit 8df53f6e) — plancher 11455 (le total moins 14, jamais une addition).
 # 26 octobre 2026, l'invité sans compte (3050-3057, huit suites ; test-905, 931, 933, 900 étendus) : 194 suites, 12 236 vérifications mesurées par la commande de la porte, dans les conditions de la CI
 # (`CHROME_MSG=/nonexistent` : test-2600 se saute), toutes vertes — plancher 12222 (le total moins 14, jamais une addition). (La liste portait encore 11455 depuis le 17 octobre : les suites 3040-3043 n'avaient pas relevé le plancher.)
-#plancher 12222
+# 26 octobre 2026, la relecture du gardien de l'invité sans compte (3058 l'insistance, 3059 la visio, la grâce et la conservation ; 3050 à 3053 étendus) : 196 suites, 12 301 vérifications mesurées par la commande de la porte,
+# dans les conditions de la CI, toutes vertes — plancher 12287 (le total moins 14, jamais une addition).
+#plancher 12287
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

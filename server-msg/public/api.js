@@ -182,7 +182,6 @@
     invites_attente_max: 'Trop de personnes sans compte attendent déjà à la porte de cette salle.',
     invites_max: 'La salle accueille déjà le maximum d\'invités sans compte.',
     invites_lignes_max: 'Cette salle ne reçoit plus d\'invités sans compte.',
-    reunion_annulee: 'Cette réunion est annulée.',
     reunion_terminee: 'Cette réunion est terminée.',
     lien_remplace: 'Ce lien a été remplacé par un autre.',
     nom_requis: 'Tape ton nom pour entrer.',
