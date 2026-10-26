@@ -13,6 +13,30 @@ de ligne du tout.
 
 ---
 
+# 🔶 26 OCTOBRE 2026 (SOIR) — EXAMEN DE 17 H 36 : 6 RÉUSSIS, 1 ÉCHEC, 2 « INCONNU » — CORRIGÉS (branche `claude/examen-26-octobre`, pas fusionnée)
+
+- **Scénario 6 « vente » (✗)** : Toka Clim parti, Brillance Services et Dupont Plomberie restés « à revoir » pour `fait_invente`. `fait_invente` ne vient QUE du juge (`fautesDuCode` ne le produit
+  pas). Relevé des mots de chaque phrase candidate contre la liste de l'offre (`test-3060` § 0) : Brillance « rapport PDF envoyé automatiquement » = une QUALITÉ ajoutée (l'offre dit « envoyé
+  au client ») — vraie faute ; Dupont : tout vient de l'offre (seuls « clôture » pour « terminée », « paiements » pour « payées » sont des synonymes) — faux positif du juge. ⚠️ **Laquelle des
+  phrases a vraiment déclenché chaque faute n'est PAS prouvé** (la réponse brute du juge n'était pas gardée). Pourquoi la réécriture unique n'a pas suffi : elle recevait « ne garder que les
+  faits de l'offre » SANS la phrase en cause. Corrigé : le juge **cite** la phrase (`CITE : …`, seulement après `fait_invente`, et seulement si c'est un FRAGMENT du courriel jugé — jamais un
+  texte neuf), la réécriture la reçoit avec la seule issue (les mots exacts de l'offre, ou la retirer), le brouillon la garde (`controle.citations`) et l'examen la montre (« phrase en cause »).
+  L'offre et le plan de Léa disent de reprendre les MOTS de la ligne (pas d'« automatiquement » ajouté) ; le juge sait ce qu'est une reformulation fidèle (pluriel, synonyme). **Rien n'est relâché** :
+  une citation qui n'est pas dans le courriel est écartée, la faute reste. ⚠️ La Tour (v2.112) ne montre pas `controle.citations` (page non touchée) : l'examen et l'API le donnent.
+- **Scénario 8 « réunions » (inconnu)** : « Compte rendu non écrit. » SANS cause = Victor a rendu des outils seuls (le vendredi il juge ses propres objectifs en concluant) et la seule redemande, sans
+  outil, n'a rien rendu non plus. Ce n'est NI un plafond (une réunion tient en ~30 messages sous les 45 de l'heure du fil ; 85 appels sur 200 à l'examen), NI le délai (l'horloge de l'examen ne
+  bouge pas). Corrigé (`reunions.js`, `parole`) : une parole ATTENDUE (compte rendu, tour de table) est redemandée jusqu'à DEUX fois, sans outil, **sans réflexion adaptative** (prise sur la
+  longueur permise), avec la consigne du compte rendu seule (plus de « juge aussi tes objectifs (outil juger_objectif) » à qui n'a plus d'outil), 1 500 caractères permis ; une première demande
+  « vide » ou « trop longue » est aussi redemandée ; la CAUSE de l'échec est dite (« Compte rendu non écrit : sa réponse dépassait la longueur permise. »), et une cause globale (budget) n'est pas
+  répétée. Les six « @max ok… » : un accusé de réception (≤ 8 mots hors @, sans question ni chiffre) n'est plus publié en discussion — il citait, donc rappelait l'autre (`accuseSeul`). ⚠️ La cause
+  réelle de la redemande vide n'est PAS prouvée (aucune réponse brute gardée) ; la correction rend le compte rendu robuste à ses trois formes connues.
+- **Scénario 9 « ton » (inconnu)** : « 0 appel, conversation vide » est NORMAL (ce scénario ne fait parler personne, Inès juge les huit autres). Cause la plus probable : le 25 octobre au soir
+  (`2e8e2ea1`) le critère c3 a quitté le juge, le scénario a demandé « c1, c2, c4 » — un modèle corrige en c1, c2, c3 et un verdict sans `c4` est illisible ; c'est le premier examen depuis. Corrigé à la
+  racine (`juger`, `examen.js`) : les critères sont TOUJOURS numérotés c1…cN sans trou et les clés de l'appelant reviennent dans la réponse ; une réponse illisible ou vide est redemandée UNE fois ;
+  un verdict qui reste illisible DIT le début de la réponse du juge ; un objet qui ne nomme aucun critère (« {formules} » dans une phrase d'avant) n'est plus pris pour un verdict incomplet.
+- Bancs : `test-3060` (40), `test-3061` (25), `test-3062` (26), tous dans `scripts/bancs-serveur.liste` (plancher relevé à 9900 : 148 suites, 9 986 mesurées) ; `test-3001` suit la forme de la vue.
+  Mutations : `scratchpad/mutations-examen-26.py`. ⏳ **Reste** : fusion, déploiement, puis relancer l'examen (un par heure) : le résultat dira, pour un brouillon resté « à revoir », la phrase en cause.
+
 # ⏳ 26 OCTOBRE 2026 — OP MESSAGES BÊTA : L'INVITÉ SANS COMPTE (branche `claude/opmsg-invite-sans-compte`, pas encore fusionnée ni déployée)
 
 Justin : « quand on va présenter l'application au client, sans qu'ils aient besoin d'installer : ça passe par le Web, ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux, et quand ça se coupe, le lien est mort. »

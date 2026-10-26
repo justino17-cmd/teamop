@@ -70,7 +70,7 @@
 # La couture : `test-2987` (les vraies pages fabriquées parlent au vrai serveur de test) — 93 vérifications. Le paiement de test : `test-2990` (le script qui crée les dix tarifs de
 # test chez un FAUX Stripe, idempotent, qui refuse une clé live ou une config sans `espaceTest` ; le vrai serveur qui les accepte en essai et ne change RIEN sans `espaceTest`) —
 # 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
-#plancher 9400
+#plancher 9900
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -352,3 +352,8 @@ tests/test-3016.js
 # 26 octobre 2026 : `test-3021` (les heures de travail des agents : le vrai module aux deux saisons, la nuit du 25 octobre, fériés, astreinte, attente et reprise, ouvrir maintenant, registre illisible, réunions, examen, puis le vrai serveur). Lit server/ seulement.
 tests/test-3021.js
 # 26 octobre 2026 : 9 455 mesurés (143 suites) avec `test-3021` (166 vérifications) — plancher relevé à 9400 (il était resté à 5490 depuis le 23 octobre).
+# 26 octobre 2026 (examen de 17 h 36) : `test-3060` (scénario 6 « vente » : le juge cite la phrase en cause, la réécriture la reçoit, Léa reprend les mots de l'offre — les vrais modules dans l'établi des courriers), `test-3061` (scénario 8 « réunions » : le compte rendu de Victor est redemandé sans outil ni réflexion, la cause est dite, un accusé de réception n'est pas une prise de parole — le vrai reunions.js), `test-3062` (scénario 9 « ton » : le juge de l'examen voit c1…cN sans trou, une réponse illisible est redemandée et dite). Lisent server/ seulement.
+tests/test-3060.js
+tests/test-3061.js
+tests/test-3062.js
+# 26 octobre 2026 (soir) : 9 986 mesurés (148 suites) avec `test-3060` à `test-3062` — plancher relevé à 9900.

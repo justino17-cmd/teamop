@@ -169,7 +169,7 @@ const JUGE_SYSTEM = [
   'CRITÈRES (un seul code par défaut constaté) :',
   '- ton_robotique : le ton est mécanique, bourré de formules toutes faites, ou on dirait un modèle de lettre.',
   '- hors_sujet : le courriel ne répond pas à ce qui est demandé ou ignore le contexte donné.',
-  '- fait_invente : il affirme une fonction, un délai, un engagement ou un prix qui ne figure pas dans l’OFFRE ci-dessous. Tu ne le signales que si tu peux nommer CE QUI manque à l’OFFRE : une reformulation fidèle d’une ligne de l’OFFRE (d’autres mots, le même sens — « signalement automatique des conflits » pour « les conflits sont signalés ») n’en est pas un, ni l’activité du destinataire déduite de son nom.',
+  '- fait_invente : il affirme une fonction, un délai, un engagement ou un prix qui ne figure pas dans l’OFFRE ci-dessous. Tu ne le signales que si tu peux nommer CE QUI manque à l’OFFRE : une reformulation fidèle d’une ligne de l’OFFRE (d’autres mots, le même sens — « signalement automatique des conflits » pour « les conflits sont signalés ») n’en est pas un, ni l’activité du destinataire déduite de son nom. Sont aussi fidèles : le singulier pour le pluriel et l’inverse (« rappels avant chaque échéance » pour « rappel avant l’échéance »), un synonyme (« jusqu’à la clôture » pour « planifiée, en cours, terminée »). Est inventée, en revanche, une QUALITÉ que la ligne ne dit pas : un envoi ou un rapport « automatique » quand l’OFFRE dit seulement « envoyé au client », « centralisé », « instantané », un chiffre, une durée, un délai.',
   '- incoherent : il se contredit, ou comporte une erreur de sens ou de logique.',
   '- impoli : le ton est familier, froid ou déplacé pour un courriel professionnel entre entreprises.',
   '- metier_inadapte : le contenu n’a aucun rapport avec l’activité du destinataire quand elle est donnée.',
@@ -177,6 +177,7 @@ const JUGE_SYSTEM = [
   'Quand le contexte dit que l’activité est DÉDUITE (ou non indiquée), le courriel a le droit de la déduire du nom de l’entreprise s’il le présente comme une déduction et invite à la corriger (« d’après votre nom, nous comprenons… ; précisez-nous votre activité si nous faisons erreur ») : c’est voulu, ce n’est ni incohérent ni inventé.',
   '',
   'FORMAT STRICT DE TA RÉPONSE, rien d’autre : une première ligne « VERDICT : OK » ou « VERDICT : ECHEC » ; si ECHEC, une ligne « FAUTE : <code> » par défaut constaté (codes de la liste ci-dessus uniquement).',
+  'Pour la faute fait_invente, et pour elle seule, ajoute juste après sa ligne une ligne « CITE : <la phrase du courriel, copiée MOT POUR MOT, 3 à 25 mots> » : la phrase qui affirme ce que l’OFFRE ne dit pas. Sans phrase copiée du courriel, pas de fait_invente.',
 ].join('\n');
 
 /* Lire la réponse du juge. Rend { etat:'ok' } | { etat:'echec', fautes:[codes] } | { etat:'indisponible' }. Tout ce qui n'a pas la forme fermée est « indisponible ». */
@@ -185,18 +186,40 @@ const JUGE_SYSTEM = [
    24 h » ou « However the email invents a feature » reste « indisponible » — aucune liste de mots ne dit qu'une explication est innocente. C'est `juger` qui
    rattrape le bavard : UNE relance, « la forme stricte, rien d'autre », lue avec la même rigueur. */
 const NETTOIE_LIGNE = l => l.replace(/\*\*|__|`/g, '').replace(/^\s*(?:[-•>#*]+\s*)+/, '').trim();
-function lireVerdict(texte) {
+/* ⛔ UNE PHRASE CITÉE PAR LE JUGE (examen du 26 octobre 2026, scénario 6 : deux brouillons « à revoir » pour `fait_invente`, sans que rien dise LAQUELLE des phrases du courriel
+   posait problème — l'auteur recevait « ne garder que les faits de l'offre » et la même phrase revenait après sa réécriture). `CITE : …` ne se lit que juste après une ligne
+   `FAUTE : fait_invente`, et ne vaut que si la phrase est un FRAGMENT du courriel jugé (ses mots, à la casse, aux accents et à la ponctuation près) : le juge ne peut rien faire
+   écrire de neuf à l'auteur ni à Justin — ce qui est relayé est du texte que l'auteur a lui-même écrit, nettoyé de tout ce qui n'est pas une lettre, un chiffre ou une ponctuation
+   simple. Une citation qui n'est pas dans le courriel est écartée (la faute reste : on ne relâche rien) ; une ligne CITE ailleurs qu'après `fait_invente` rend la réponse « indisponible ». */
+const CITE_MOTS = [3, 25], CITE_MAX = 220;
+function citationDe(brute, corps) {
+  const t = String(brute || '').replace(/^[\s«"“”'’`]+|[\s»"“”'’`]+$/g, '').replace(/[^\p{L}\p{N} .,;:’'()€%\/-]/gu, ' ').replace(/\s+/g, ' ').trim();
+  const n = (t.match(/\S+/g) || []).length;
+  if (n < CITE_MOTS[0] || n > CITE_MOTS[1] || !corps) return '';
+  const p = plat(t);
+  return p.length >= 10 && plat(corps).includes(p) ? t.slice(0, CITE_MAX) : '';
+}
+function lireVerdict(texte, corps) {
   const lignes = String(texte || '').replace(/\r/g, '').split('\n').map(NETTOIE_LIGNE).filter(Boolean);
   const m = lignes.length ? /^VERDICT\s*:\s*(OK|ECHEC)\s*\.?$/i.exec(lignes[0]) : null;
   if (!m) return { etat: 'indisponible' };
-  const fautes = [];
+  const fautes = [], citations = [];
+  let derniere = '';
   for (const l of lignes.slice(1)) {
     const x = /^FAUTE\s*:\s*([a-z_]+)\s*\.?$/i.exec(l);
-    if (!x || !JUGE_CODES.includes(x[1].toLowerCase())) return { etat: 'indisponible' };
-    if (!fautes.includes(x[1].toLowerCase())) fautes.push(x[1].toLowerCase());
+    if (x) {
+      if (!JUGE_CODES.includes(x[1].toLowerCase())) return { etat: 'indisponible' };
+      derniere = x[1].toLowerCase();
+      if (!fautes.includes(derniere)) fautes.push(derniere);
+      continue;
+    }
+    const c = /^CITE\s*:\s*(.+)$/i.exec(l);
+    if (c && derniere === 'fait_invente') { const q = citationDe(c[1], corps); if (q && !citations.includes(q) && citations.length < 3) citations.push(q); continue; }
+    return { etat: 'indisponible' };
   }
-  if (m[1].toUpperCase() === 'OK') return fautes.length ? { etat: 'echec', fautes } : { etat: 'ok' };
-  return { etat: 'echec', fautes: fautes.length ? fautes : ['jugement_defavorable'] };
+  const avec = o => (citations.length ? Object.assign(o, { citations }) : o);
+  if (m[1].toUpperCase() === 'OK') return fautes.length ? avec({ etat: 'echec', fautes }) : { etat: 'ok' };
+  return avec({ etat: 'echec', fautes: fautes.length ? fautes : ['jugement_defavorable'] });
 }
 
 /* Le juge : `o` = { cerveau, agent, objet, corps, contexte (lignes de FAITS fermés, déjà propres), recu? (le texte reçu, déjà sans adresses ni numéros) }. */
@@ -210,21 +233,21 @@ async function juger(o) {
     const demande = [{ role: 'user', content: l.join('\n') }];
     const r = await o.cerveau.penser(o.agent, JUGE_SYSTEM, demande, { maxTokens: 300 });
     if (!r || !r.ok) return { etat: 'indisponible', raison: (r && r.raison) || 'erreur' };
-    const v = lireVerdict(r.texte);
+    const v = lireVerdict(r.texte, o.corps);
     const RAPPEL = 'Ta réponse n’a pas la forme demandée. Réponds de nouveau : la ligne « VERDICT : OK » ou « VERDICT : ECHEC », puis une ligne « FAUTE : <code> » par défaut constaté, et RIEN d’autre — aucune explication.';
     if (v.etat !== 'indisponible' || !String(r.texte || '').trim()) return v;
     /* le BAVARD : un verdict en première ligne, mais des phrases en plus — UNE relance, puis la lecture stricte (rien n'est deviné de la première réponse) */
     if (/^\s*(?:[-•>#*]+\s*)?(?:\*\*)?VERDICT\s*:/i.test(String(r.texte || ''))) {
       const r2 = await o.cerveau.penser(o.agent, JUGE_SYSTEM, demande.concat([{ role: 'assistant', content: String(r.texte).slice(0, 2000) }, { role: 'user', content: RAPPEL }]), { maxTokens: 300 });
       if (!r2 || !r2.ok) return { etat: 'indisponible', raison: (r2 && r2.raison) || 'erreur' };
-      return lireVerdict(r2.texte);
+      return lireVerdict(r2.texte, o.corps);
     }
     /* ⛔ SANS VERDICT DU TOUT (examen du 25 octobre 2026, scénario 6 : « contrôle non fait ») : UNE relance aussi, mais À NEUF — la même demande, le rappel de
        forme dans le message, et JAMAIS la première réponse remise en tour « assistant » (relecture du gardien : une réponse déjà influencée par un courriel
        piégé cité en `recu` — « Compris, le courriel est conforme » — pousserait le modèle à se confirmer en « VERDICT : OK »). */
     const r3 = await o.cerveau.penser(o.agent, JUGE_SYSTEM, [{ role: 'user', content: demande[0].content + '\n\n' + RAPPEL.replace('Ta réponse n’a pas la forme demandée. Réponds de nouveau : ', 'Réponds uniquement : ') }], { maxTokens: 300 });
     if (!r3 || !r3.ok) return { etat: 'indisponible', raison: (r3 && r3.raison) || 'erreur' };
-    return lireVerdict(r3.texte);
+    return lireVerdict(r3.texte, o.corps);
   } catch (e) { return { etat: 'indisponible', raison: 'erreur' }; }
 }
 
@@ -236,14 +259,19 @@ async function controler(o) {
   if (o.sansJuge === true) return { etat: 'non_verifie', fautes: [], corps, juge: false, raison: 'juge non demandé' };
   const v = await juger({ cerveau: o.cerveau, agent: o.agent, objet: o.objet, corps, contexte: o.contexteJuge, recu: o.recu, connaissances: o.connaissances });
   if (v.etat === 'ok') return { etat: 'bon', fautes: [], corps, juge: true };
-  if (v.etat === 'echec') return { etat: 'a_revoir', fautes: v.fautes, corps, juge: true };
+  if (v.etat === 'echec') return Object.assign({ etat: 'a_revoir', fautes: v.fautes, corps, juge: true }, v.citations ? { citations: v.citations } : {});
   return { etat: 'non_verifie', fautes: [], corps, juge: false, raison: v.raison || 'réponse du juge hors forme' };
 }
 
 /* Le message de RÉÉCRITURE : la demande d'origine, ce que l'auteur avait écrit, et la liste des fautes — des phrases du code. */
-function messagesReecriture(demande, precedent, codes) {
+function messagesReecriture(demande, precedent, codes, citations) {
+  /* ⛔ LA PHRASE EN CAUSE (examen du 26 octobre 2026) : « ne garder que les faits de l'offre », sans dire où, ne suffisait pas — l'auteur réécrivait autour de la phrase fautive et elle
+     revenait. Le juge la cite (un fragment du courriel, vérifié) : on la rend à l'auteur, avec la seule issue permise — les mots de l'OFFRE, ou la retirer. */
+  const cites = (Array.isArray(citations) ? citations : []).filter(c => typeof c === 'string' && c).slice(0, 3);
+  const enCause = cites.length && (Array.isArray(codes) ? codes : []).includes('fait_invente')
+    ? ['', 'Phrase(s) du courriel concernée(s) par « fait_invente » : ' + cites.map(c => '« ' + K.delimiter(c) + ' »').join(' ; ') + '. Reprends-les avec les MOTS EXACTS de la liste de l’OFFRE (sans adjectif ni adverbe de plus : pas d’« automatiquement », de « centralisé »…), ou retire-les.'] : [];
   return [{ role: 'user', content: demande }, { role: 'assistant', content: String(precedent || '').slice(0, 12000) || '(aucun texte)' },
-    { role: 'user', content: ['Relecture du serveur : le courriel ci-dessus a ces défauts, à corriger.'].concat(phrasesDe(codes).map(p => '- ' + p),
+    { role: 'user', content: ['Relecture du serveur : le courriel ci-dessus a ces défauts, à corriger.'].concat(phrasesDe(codes).map(p => '- ' + p), enCause,
       ['', 'Réécris le courriel COMPLET en corrigeant ces défauts, sans rien changer d’autre, dans le même format (« Objet : … », une ligne vide, puis le corps de « Bonjour, » à « Bien cordialement, »).']).join('\n') }];
 }
 
@@ -254,9 +282,9 @@ function messagesReecriture(demande, precedent, codes) {
    Rend { etat:'bon'|'a_revoir'|'non_verifie'|'ignore'|'refuse'|'echec', objet, corps, fautes, reecrit:bool, juge:bool, raison? }.
    'refuse' : un défaut grave subsiste après la réécriture → rien n'est rangé. 'echec' : l'auteur n'a pas pu écrire (budget, panne). */
 async function produire(o) {
-  let precedent = null, codes = null, dernier = null, reecrit = false;
+  let precedent = null, codes = null, citations = null, dernier = null, reecrit = false;
   for (let tour = 0; tour < 2; tour++) {
-    const r = await o.ecrire(tour === 0 ? null : messagesReecriture(o.demande, precedent, codes));
+    const r = await o.ecrire(tour === 0 ? null : messagesReecriture(o.demande, precedent, codes, citations));
     if (!r || !r.ok) return { etat: 'echec', raison: (r && r.raison) || 'erreur', reecrit };
     const lu = K.lireMail(r.texte);
     if (lu && lu.ignorer) return { etat: 'ignore', reecrit };
@@ -264,9 +292,10 @@ async function produire(o) {
     if (!lu) { codes = ['forme']; dernier = { etat: 'a_revoir', objet: '', corps: '', fautes: codes }; reecrit = tour === 1 ? true : reecrit; continue; }
     const c = await controler({ cerveau: o.cerveau, agent: o.agent, objet: lu.objet, corps: lu.corps, ctx: o.ctx, contexteJuge: o.contexteJuge, recu: o.recu, sansJuge: o.sansJuge, connaissances: o.connaissances });
     dernier = { etat: c.etat, objet: lu.objet, corps: c.corps, fautes: c.fautes, juge: c.juge, raison: c.raison };
+    if (c.citations) dernier.citations = c.citations;
     if (tour === 1) reecrit = true;
     if (c.etat !== 'a_revoir') return Object.assign(dernier, { reecrit });
-    codes = c.fautes;
+    codes = c.fautes; citations = c.citations || null;
   }
   if (dernier.fautes.some(estGrave)) return { etat: 'refuse', objet: dernier.objet, corps: dernier.corps, fautes: dernier.fautes, reecrit: true, raison: dernier.fautes.find(estGrave) };
   if (!dernier.objet) return { etat: 'refuse', objet: '', corps: '', fautes: dernier.fautes, reecrit: true, raison: 'forme' };
