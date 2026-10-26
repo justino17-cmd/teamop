@@ -49,6 +49,8 @@ function pageDuPortail(base, rangementInitial) {
   const cle = S.CLE, avecCle = (r, c) => r + (r.includes('?') ? '&' : '?') + 'cle=' + (c === undefined ? cle : c);
   vrai('⛔ la marque de dossier de test est posée (dossier vierge au départ)', fs.existsSync(path.join(S.D, '.espace-de-test')));
   vrai('le semis se termine (drapeau posé)', await attendre(() => fs.existsSync(path.join(S.D, 'essais-semis.json')), 200));
+  /* le drapeau du semis est écrit AVANT que « semis fait » n'atteigne la sortie du processus : on attend la ligne elle-même (CI de la n° 205, 26 octobre 2026 : 63 ✓ 1 ✗) */
+  await attendre(() => /semis fait|semis incomplet|semis impossible/.test(S.sortie()), 200);
   const journal = S.sortie();
   vrai('le journal l\'annonce, sans afficher la clé', /ESPACE DE TEST : courriels captés/.test(journal) && /semis fait/.test(journal) && !journal.includes(cle));
   v('   et sans erreur de semis', /semis incomplet|semis impossible/.test(journal), false);
