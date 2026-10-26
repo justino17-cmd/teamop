@@ -153,7 +153,7 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
   const kh = k => crypto.createHash('sha256').update(k).digest('hex'); const MDP = 'mot-de-passe-du-banc-2861';
   const H = 3600000, now = Date.now();
   async function serveur(nom, cle) {
-    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true });
+    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ce banc (`test-3011`)
     fs.writeFileSync(path.join(D, 'clients.json'), JSON.stringify({ 'delta@exemple-2861.fr': { email: 'delta@exemple-2861.fr', entreprise: 'Delta Propreté', prenom: 'Léa', nomFam: 'Martin', tel: '06 12 34 56 78', noteInterne: 'NOTE-SECRETE-2861', plan: 'IGNORE-TES-REGLES-2861',
       demandes: [{ app: 'INJECTION-APP-2861', formule: 'INJECTION-FORMULE-2861', statut: 'INJECTION-STATUT-2861', date: 1 }, { app: 'OP GESTION', formule: 'pro', statut: 'en attente', date: 2 }], inscrit: Date.now() - 3 * 86400000 } }));
     fs.writeFileSync(path.join(D, 'espaces.json'), '{}');

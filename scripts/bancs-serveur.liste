@@ -345,3 +345,5 @@ tests/test-3001.js
 # 25 octobre 2026 : `test-3002` (l'audience du site sans cookie : `server/audience.js` et ses deux routes sur le vrai serveur, `/audience.js` sur chaque page qui porte `cookies.js`, le lien « ?de=<agent> » de la signature).
 tests/test-3002.js
 tests/test-3007.js
+# 26 octobre 2026 : `test-3011` (les heures de travail des agents : le vrai module aux deux saisons, la nuit du 25 octobre, fériés, astreinte, attente et reprise, ouvrir maintenant, registre illisible, réunions, examen, puis le vrai serveur). Lit server/ seulement.
+tests/test-3011.js

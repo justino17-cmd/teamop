@@ -254,7 +254,9 @@ function semis(ctx) {
       company: COMPTES.prospect.societe, tel: '0600000001', status: 'nouveau', apps: [], plan: 'Pro', demandes: [demandeP] }, 'dossier du prospect');
     await P(sProspect, 'POST', '/api/clients/sync', Object.assign(fiche(COMPTES.prospect, demandeP, 'Pro'), { apps: [] }), 'fiche du prospect');
 
-    /* 5 · les agents : tous en Brouillon (ils préparent, rien ne part sans le patron) */
+    /* 5 · les agents : tous en Brouillon (ils préparent, rien ne part sans le patron), et ils travaillent 24 h sur 24 — l'espace de test sert à les essayer à toute heure, le soir et le week-end
+       compris (les heures de travail de l'entreprise, `agents-horaires.js`, y sont ouvertes en permanence, jours fériés compris) */
+    await T('POST', '/api/monitor/agents/horaires', { entreprise: { jours: [0, 1, 2, 3, 4, 5, 6].map(() => ({ ouvert: true, debut: '00:00', fin: '24:00' })), feries: false } }, 'heures de travail des agents (24 h sur 24)');
     for (const id of (ctx.agents || [])) await T('POST', '/api/monitor/agents/mode', { agent: id, mode: 'brouillon' }, 'agent ' + id);
 
     if (erreurs.length) { journal('semis INCOMPLET —', erreurs.join(' · ')); return { deja: false, erreurs }; }

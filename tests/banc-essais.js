@@ -59,6 +59,7 @@ async function lancer(o) {
   const banc = o.banc || fs.mkdtempSync(path.join(os.tmpdir(), 'bessai-'));
   const D = o.dossier || path.join(banc, 'data');
   fs.mkdirSync(D, { recursive: true });
+  if (!o.essai) require('./banc-horaires.js').toujoursOuvert(D);   // un serveur SANS espace de test : les heures de travail ne regardent pas ce banc (`test-3011`). L'espace de test, lui, part d'un dossier VIERGE et ouvre ses agents 24 h sur 24 par son semis (`essais.js`)
   if (o.donnees) o.donnees(D);
   const smtp = o.smtp || facteur();
   if (!o.smtp) await new Promise(res => smtp.s.listen(0, '127.0.0.1', res));

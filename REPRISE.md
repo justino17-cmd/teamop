@@ -13,6 +13,21 @@ de ligne du tout.
 
 ---
 
+# 🔶 26 OCTOBRE 2026 — LES HEURES DE TRAVAIL DES AGENTS (SERVEUR SEUL) — branche `claude/agents-horaires`, ATTEND L'ÉCRAN (page Agents de la Tour) ET LA FUSION DE JUSTIN
+
+Justin : « je voudrais pouvoir choisir les heures de travail des agents ; je veux que ce soit comme une vraie entreprise ». Fait côté SERVEUR (la Tour n'est pas touchée, une refonte de la page Agents y est en cours ailleurs).
+- `server/agents-horaires.js` : par défaut lundi → vendredi, 9 h – 18 h, **heure de Paris**, fermé les jours fériés français (calculés, Pâques comprise) ; horaires PAR AGENT qui surchargent jour par jour ;
+  astreinte (Max, Théo) ; « ouvrir maintenant » (une semaine au plus). Registre `agents-horaires.json` ; **illisible ou de forme inattendue = tous les agents arrêtés**, et la Tour le dit (503, `illisible: true`).
+- La garde est dans **`peutAgir`** (`agents.js`), la porte commune, à côté de la pause. L'astreinte agit mais le dit (`horsHeures`) ; `agents-brouillons.js` et `agents-documents.js` la refusent (jamais un client).
+- Ce qui arrive hors des heures ATTEND : Camille (courriel) et Léa (inscription, demande) `differer` → `agents-differes.json` (trois identifiants par courriel ; pour Léa l'adresse et le nom d'entreprise de l'inscrit)
+  → `reprendreDifferes` (une fois par minute, `index.js`) à l'ouverture, le plus ancien d'abord, 5 par passage. Une tâche entre agents ne vieillit pas pendant que son destinataire est fermé (`tempsOuvert`).
+- Accepter une validation hors heures : 409, elle reste en attente (comme pendant la pause) ; refuser passe toujours. Une réunion planifiée tient à son heure (`sousReunion`, AsyncLocalStorage) : vendredi 18 h, lundi férié.
+- L'examen de l'équipe monte sa propre équipe d'essai SANS horaires (jamais bloqué) — `test-3011` § 12.
+- ⚠️ **Les bancs qui démarrent le VRAI serveur et attendent qu'un agent AGISSE posent `tests/banc-horaires.js` (`toujoursOuvert(D)`) dans leur dossier de données** — sans quoi ils tombent la nuit et le week-end.
+- **Reste à décider / à faire** : l'écran (contrat : `GET/POST /api/monitor/agents/horaires`, `POST …/ouvrir`, `…/fermer`) ; un message de Justin à un agent fermé n'est pas rejoué à l'ouverture (l'agent dit seulement qu'il est
+  hors heures) ; une demande de résiliation reçue le vendredi soir attend le lundi (Camille ET Hugo fermés) — à confirmer avec Justin si un prélèvement tombe dans le week-end ; Louis n'apprend pas des corrections faites la nuit ;
+  l'Alsace-Moselle (Vendredi saint, 26 décembre) n'est pas dans les fériés.
+
 # ✅ 25 OCTOBRE 2026, SOIR — LES AGENTS ONT UN VISAGE (Tour v2.111) — branche `claude/photos-agents`
 
 Justin : « tous mes agents doivent avoir une photo de profil, j'aime bien mettre un visage sur un nom ». Les photos sont de Justin
