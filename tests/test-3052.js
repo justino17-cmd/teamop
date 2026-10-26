@@ -114,6 +114,35 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (150 s)');
     for (let i = 0; i < 11; i++) reg.push((await a5.post('/api/reunions/' + rid5 + '/invite/regenerer', {})).code);
     v('⛔ dix régénérations passent (200), la onzième est refusée (429)', [reg.slice(0, 10).every(c => c === 200), reg[10]], [true, 429]);
     v('… et le dernier jeton émis est le dernier qui vit (un seul jeton vivant par réunion)', un('SELECT COUNT(*) AS n FROM reunion WHERE id = ? AND inv_h IS NOT NULL', rid5).n, 1);
+
+    /* ═══ 6. LES QUATRE AUTRES PLAFONDS DE L'ENTRÉE, UN PAR UN ═══
+       Chacun doit être le SEUL à refuser : on les isole par la forme de la charge (une seule adresse qui insiste, une foule d'adresses sur un même lien, des entrées refusées une à une). */
+    console.log('5. les essais par adresse (90), par lien (240), les entrées par lien (60), « redemander » (20)');
+    const ana6 = B.pers('Ana6'), a6 = B.cl(ana6), rid6 = await B.programmer(a6), j6 = await B.lien(a6, rid6);       // salle jamais ouverte : 409 `pas_ouverte`, rien n'est écrit
+    const D = depuis('192.0.2.90');
+    const e90 = [];
+    for (let i = 0; i < 91; i++) e90.push((await D.post('/api/invite/entrer', { jeton: j6, nom: 'Paul' })).code);
+    v('⛔ quatre-vingt-dix essais depuis une même adresse passent (409 `pas_ouverte`), le quatre-vingt-onzième est refusé (429)', [e90.slice(0, 90).every(c => c === 409), e90[90]], [true, 429]);
+    const ana7 = B.pers('Ana7'), a7 = B.cl(ana7), rid7 = await B.programmer(a7), j7 = await B.lien(a7, rid7);
+    const parLien = [];
+    for (let i = 0; i < 241; i++) parLien.push((await depuis('10.7.' + Math.floor(i / 250) + '.' + (i % 250 + 1)).post('/api/invite/entrer', { jeton: j7, nom: 'Paul' })).code);
+    v('⛔ deux cent quarante essais sur UN lien, chacun d\'une adresse différente, passent (409) ; le deux cent quarante et unième est refusé (429) : l\'adresse seule ne protège pas un lien qui circule',
+      [parLien.slice(0, 240).every(c => c === 409), parLien[240]], [true, 429]);
+    const ana8 = B.pers('Ana8'), a8 = B.cl(ana8), rid8 = await B.programmer(a8), j8 = await B.lien(a8, rid8), sid8 = await B.entrerSalle(a8, rid8, 'audio');
+    const cree = [];
+    for (let i = 0; i < 61; i++) {
+      const g = await B.invite(j8, 'C' + i, '', depuis('10.8.0.' + (i + 1)));
+      cree.push(g.rep.code);
+      if (g.rep.code === 201) await a8.post('/api/salles/' + sid8 + '/refuser', { uid: g.id });
+    }
+    v('⛔ soixante entrées sur UN lien, chacune d\'une adresse différente, créent un invité (201) ; la soixante et unième est refusée (429)', [cree.slice(0, 60).every(c => c === 201), cree[60]], [true, 429]);
+    v('… et elle ne laisse aucune ligne : soixante lignes d\'invité', un('SELECT COUNT(*) AS n FROM invite_sans_compte WHERE reunion = ?', rid8).n, 60);
+    const ana9 = B.pers('Ana9'), a9 = B.cl(ana9), rid9 = await B.programmer(a9), j9 = await B.lien(a9, rid9);
+    await B.entrerSalle(a9, rid9, 'audio');
+    const q9 = await B.invite(j9, 'Marc', '', depuis('10.9.0.1'));
+    const red = [];
+    for (let i = 0; i < 21; i++) red.push((await q9.c.post('/api/invite/redemander', {})).code);
+    v('⛔ vingt « redemander » par invité passent (200), le vingt et unième est refusé (429)', [red.slice(0, 20).every(c => c === 200), red[20]], [true, 429]);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   finally { await B.arreter(); }
   fin();

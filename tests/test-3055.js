@@ -159,6 +159,29 @@ async function fluxInvite(c, chemin = '/api/invite/flux') {
     svc.avancer(5 * 3600000);                                    // la réunion finissait dans une heure, la fenêtre d'entrée dure trois heures de plus : il y a cinq heures de plus
     v('⛔ cinq heures plus tard : le jeton est mort (410 `reunion_terminee`), à l\'aperçu comme à l\'entrée', [await aper(j8), dit((await B.invite(j8, 'Après', '')).rep)], [[410, 'reunion_terminee'], [410, 'reunion_terminee']]);
     v('… l\'organisateur qui redemande son lien en reçoit un NEUF (et l\'ancien reste mort)', await (async () => { const nj = await a8.post('/api/reunions/' + rid8 + '/invite/lien', {}); return [nj.code, nj.j.jeton !== j8]; })(), [200, true]);
+
+    /* ═══ 7. SANS BALAYAGE : LA SESSION ÉCHUE ET LE JETON DE QUATORZE JOURS SE JUGENT D'EUX-MÊMES ═══
+       Au balayage (une seconde), la session échue est coupée par la boucle de fond : la garde qui la juge à la LECTURE n'est alors jamais seule à la voir. Un second service dont le balayage ne repasse qu'au bout d'une minute
+       (il passe une fois au démarrage) prouve chacune des deux gardes : la session lue après six heures, et le jeton d'une réunion très longue, mort quatorze jours après sa pose. */
+    console.log('8. sans balayage : six heures pour la session, quatorze jours pour le jeton');
+    const B2 = await O.monter({ service: { config: { appels: { balayageMs: 60000, perduMs: 600000 } } } });
+    try {
+      const raw2 = () => new (require('node:sqlite').DatabaseSync)(path.join(B2.svc.data, 'msg.db'));
+      const ana9 = B2.pers('Ana9'), a9 = B2.cl(ana9), rid9 = await B2.programmer(a9), j9 = await B2.lien(a9, rid9);
+      await B2.entrerSalle(a9, rid9, 'audio');
+      const paul9 = await B2.invite(j9, 'Paul', 'Plomberie Durand');
+      v('population : Paul est à la porte, sa session vit (200)', [paul9.rep.code, (await paul9.c.get('/api/invite/etat')).code], [201, 200]);
+      /* une réunion de SIX SEMAINES : sa fin plus la fenêtre d'entrée dépasse de loin quatorze jours */
+      const ana10 = B2.pers('Ana10'), a10 = B2.cl(ana10), rid10 = await B2.programmer(a10), j10 = await B2.lien(a10, rid10);
+      { const d = raw2(); try { d.prepare('UPDATE reunion SET fin = ? WHERE id = ?').run(Date.now() + 42 * 86400000, rid10); } finally { d.close(); } }
+      v('population : le jeton de la réunion longue est vivant (200)', (await T.client(B2.svc.base).post('/api/invite/apercu', { jeton: j10 })).code, 200);
+      await T.dort(1600);                                       // le balayage du démarrage est passé : ni lui ni la boucle ne coupent plus rien d'ici une minute
+      B2.svc.avancer(7 * 3600000);
+      v('⛔ sept heures plus tard, SANS balayage : la session d\'invité est échue, elle est refusée à la lecture (401 `session_requise`)', dit(await paul9.c.get('/api/invite/etat')), [401, 'session_requise']);
+      v('… le jeton de la réunion longue, lui, vit encore (200) : la fin de la réunion est dans six semaines', (await T.client(B2.svc.base).post('/api/invite/apercu', { jeton: j10 })).code, 200);
+      B2.svc.avancer(15 * 86400000);
+      v('⛔ quinze jours après sa pose : le jeton de la réunion longue est MORT (410 `reunion_terminee`), bien que la réunion finisse dans quatre semaines', dit(await T.client(B2.svc.base).post('/api/invite/apercu', { jeton: j10 })), [410, 'reunion_terminee']);
+    } finally { await B2.arreter(); }
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   finally { await B.arreter(); }
   fin();

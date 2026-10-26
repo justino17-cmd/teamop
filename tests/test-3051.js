@@ -111,6 +111,12 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (150 s)');
     const q = await B.invite(j4, 'Quentin', 'Durand SA');
     await a4.post('/api/salles/' + sid4 + '/admettre', { uid: q.id });
     vrai('population : Quentin est admis', (await q.c.get('/api/invite/etat')).j.appel.moi.statut === 'present');
+    /* ⛔ ce que SA vue d'appel porte : ni l'identifiant de la réunion, ni celui de la conversation, ni la liste des comptes (`membres`) — mis en regard de la vue de l'hôte, qui, elle, porte la réunion */
+    {
+      const sien = (await q.c.get('/api/invite/etat')).j.appel, hoteVue = (await a4.get('/api/salles/' + sid4)).j.appel;
+      vrai('population : la vue de l\'hôte porte la réunion (' + (hoteVue && hoteVue.reunion) + ') et la vue de Quentin existe', !!(hoteVue && hoteVue.reunion === rid4) && !!sien);
+      v('⛔ la vue de Quentin ne porte NI la réunion, NI la conversation, NI aucun membre (les comptes de la salle ne lui sont pas listés)', [sien.reunion, sien.conv, sien.membres, sien.autre], [null, null, [], null]);
+    }
     v('il lève la main, réagit, dit l\'état de son micro et de sa caméra (200 chacun)', [(await q.c.post('/api/invite/main', { actif: true })).code, (await q.c.post('/api/invite/reaction', { emoji: 'pouce' })).code, (await q.c.post('/api/invite/media', { micro: false, camera: false })).code], [200, 200, 200]);
     v('une réaction hors liste : 400', (await q.c.post('/api/invite/reaction', { emoji: 'x' })).code, 400);
     v('⛔ il ne partage PAS son écran : 403 `partage_interdit` (annoncer un partage est refusé par le service)', dit(await q.c.post('/api/invite/media', { partage: true })), [403, 'partage_interdit']);

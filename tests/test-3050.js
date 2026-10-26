@@ -170,6 +170,20 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
     v('⛔ le jeton d\'une réunion dont la salle n\'est pas ouverte n\'entre dans AUCUNE autre salle (409 `pas_ouverte`), quoique celles de Devis Durand soient ouvertes', dit(x.rep), [409, 'pas_ouverte']);
     v('… aucune ligne d\'invité n\'a été écrite pour lui', lignes('SELECT COUNT(*) AS n FROM invite_sans_compte WHERE reunion = ?', rid7)[0].n, 0);
     vrai('population : une salle de Devis Durand est bien ouverte pendant cet essai', lignes('SELECT COUNT(*) AS n FROM appel WHERE etat IN (\'sonne\', \'en_cours\')')[0].n >= 3);
+
+    /* ═══ la porte verrouillée ═══ */
+    console.log('8. une salle verrouillée ne reçoit pas un invité sans compte');
+    const ana8 = B.pers('Ana8'), a8 = B.cl(ana8), rid8 = await B.programmer(a8), j8 = await B.lien(a8, rid8), sid8 = await B.entrerSalle(a8, rid8, 'audio');
+    const avantVerrou = await B.invite(j8, 'Avant', '');
+    v('population : avant le verrou, l\'invité arrive à la porte (201)', avantVerrou.rep.code, 201);
+    const verr = await a8.post('/api/salles/' + sid8 + '/verrouiller', { actif: true });
+    v('population : Ana verrouille la salle (200)', verr.code, 200);
+    const apresVerrou = await B.invite(j8, 'Apres', '');
+    v('⛔ verrouillée, la salle ne reçoit personne : 423 `verrouillee`, aucune ligne, aucun cookie', [dit(apresVerrou.rep), lignes('SELECT COUNT(*) AS n FROM invite_sans_compte WHERE reunion = ?', rid8)[0].n, apresVerrou.c.cookie()], [[423, 'verrouillee'], 1, null]);
+    await a8.post('/api/salles/' + sid8 + '/refuser', { uid: avantVerrou.id });
+    await a8.post('/api/salles/' + sid8 + '/verrouiller', { actif: false });
+    const rouvert = await B.invite(j8, 'Rouvert', '');
+    v('déverrouillée, elle le reçoit de nouveau (201)', rouvert.rep.code, 201);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   finally { await B.arreter(); }
   fin();

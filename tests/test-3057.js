@@ -14,6 +14,16 @@ const IV = require('./outils-invite');
 const { v, vrai, fin } = T.compteur();
 const OPMSG = require(path.join(T.SERVICE, 'public', 'api.js'));
 const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-serveur.js'));
+const FETCH = globalThis.fetch;
+
+/* le flux d'un invité (`GET /api/invite/flux`, que `T.flux` ne sait pas ouvrir) : { statut, ferme } — `ferme` devient vrai quand le SERVICE referme le flux */
+async function fluxInvite(c) {
+  const ctrl = new AbortController();
+  const r = await FETCH(c.base + '/api/invite/flux', { headers: { Accept: 'text/event-stream', Cookie: c.enteteCookie() }, signal: ctrl.signal });
+  const f = { statut: r.status, ferme: false, abandonner() { ctrl.abort(); } };
+  if (r.status === 200) (async () => { try { const l = r.body.getReader(); for (;;) { const { done } = await l.read(); if (done) break; } } catch (e) { /* abandonné par le banc */ } f.ferme = true; })();
+  return f;
+}
 
 (async () => {
   const I = await IV.monter();
@@ -43,6 +53,9 @@ const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-se
     vrai('population : un invité attend à la porte avec l\'ancien lien (201, attente)', attend.rep.code === 201 && attend.rep.j.attente === true);
     const etatAvant = await attend.c.get('/api/invite/etat');
     vrai('… et sa session marche avant la régénération', etatAvant.code === 200);
+    const flAttend = await fluxInvite(attend.c);
+    await T.dort(300);
+    vrai('population : son flux est ouvert (200) et le service ne l\'a pas fermé', flAttend.statut === 200 && flAttend.ferme === false);
     const r = await src.regenererLienInviteReunion(rid);
     vrai('un AUTRE jeton, de la même forme', r.jeton !== j1 && /^[A-Za-z0-9_-]{32}$/.test(r.jeton));
     v('le nombre de personnes renvoyées est un entier, et il compte celui qui attendait', [Number.isInteger(r.coupes), r.coupes >= 1], [true, true]);
@@ -52,6 +65,10 @@ const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-se
     v('le nouveau marche', neuf.code, 200);
     const apres = await attend.c.get('/api/invite/etat');
     v('⛔ celui qui attendait avec l\'ancien lien a perdu sa session (401)', apres.code, 401);
+    vrai('⛔ … son FLUX est refermé par le service, tout de suite (pas à la prochaine panne de réseau)', await T.attendre(() => flAttend.ferme, 4000, 50));
+    flAttend.abandonner();
+    const raw = new (require('node:sqlite').DatabaseSync)(path.join(I.svc.data, 'msg.db'));
+    try { v('⛔ … et sa place à la porte est RENDUE : l\'organisateur ne le voit plus en attente (statut `refuse`)', raw.prepare('SELECT statut FROM appel_part WHERE uid = ?').get(attend.id).statut, 'refuse'); } finally { raw.close(); }
     const re = await I.invite(j1, 'Paul', 'Plomberie Durand');
     vrai('⛔ et ne rentre pas de nouveau avec l\'ancien lien', re.rep.code === 410);
     const sans = await src.lienInviteReunion(rid);
