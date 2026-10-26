@@ -178,7 +178,8 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
     v('pas de saisie : rien', p(Object.assign({ saisie: null }, grp)), '');
     v('⛔ un doublon d\'identifiant ne fait pas « Léa et Léa écrivent… »', p(Object.assign({ saisie: { contact: 'u1', contacts: ['u1', 'u1'] } }, grp)), 'Léa écrit…');
   }
-  vrai('la phrase est posée dans l\'indicateur du fil (le nom visible, l\'étiquette lisible à voix haute)', /<span class="saisie-qui" aria-hidden="true">' \+ esc\(qui\) \+ '<\/span>/.test(JS) && /\.saisie-qui \{/.test(CSS));
+  vrai('la phrase est posée dans l\'indicateur du fil (le nom visible, l\'étiquette lisible à voix haute)', /<span class="saisie-qui" aria-hidden="true">' \+ esc\(qui\) \+ '<\/span>/.test(JS) && /\.saisie-qui \{[^}]*color: var\(--sub-meta\);/.test(CSS));
+  vrai('⛔ le prénom de « écrit… » est en `--sub-meta` : lisible sur la bulle reçue (`--sub` n\'y fait que 3,19:1, mesuré à la sonde du 26 octobre 2026)', !/\.saisie-qui \{[^}]*color: var\(--sub\);/.test(CSS));
 
   /* ═══ 6. #14 : « CONFIRMER L'ENVOI » SE CACHE EN PERSO ═══════════════════════════════════════════════════════════════════════════════ */
   console.log('\n6. #14 — la ligne « Confirmer l\'envoi » est masquée en Perso (pro@6) ; rien de plus aux heures (pro@5)');
