@@ -116,7 +116,7 @@ const TACHES = [
   v('⛔ …et Camille, allumée, n\'est ni « disponible » ni « rien en cours »', carte(HI, 'Camille'), ['inconnu', 'On ne sait pas : les tâches n’ont pas pu être lues']);
   v('…Jules, à l\'arrêt, l\'est toujours (le mode, lui, a été lu)', carte(HI, 'Jules'), ['arret', '']);
   bac.AG.lec.taches = 0;
-  vrai('pendant la lecture : la ligne d\'état ne parle pas des tâches (jamais un zéro), et personne n\'est « disponible »', !/tâche/.test(texte(bac.vueAgents()).split('Équipe Validations')[0].replace('Les agents IA','')) && compte(bac.vueAgents(), 'libre') === 0);
+  vrai('pendant la lecture : la ligne d\'état ne parle pas des tâches (jamais un zéro), et personne n\'est « disponible »', !/tâche/.test(texte(bac.vueAgents()).split('Équipe Heures de travail')[0].replace('Les agents IA','')) && compte(bac.vueAgents(), 'libre') === 0);
 
   const SANS = T.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
   vrai('la ligne d\'état est dans la barre du haut, avec les deux boutons globaux', /<b>'\+\s*\(AG\.illisible\?'État illisible[^\n]*:agQuiFaitQuoi\(\)\)\+'<\/b>'\+/.test(SANS));

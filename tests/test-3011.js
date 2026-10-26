@@ -293,7 +293,7 @@ const mettre = (nom, ico, desc, coul) => { els['mg-nom'] = { value: nom, focus: 
   bac.MYROLE = 'collaborateur'; get(() => Promise.resolve({})); await bac.chargerPauline(); bac.MYROLE = 'patron';
   vrai('⛔ hors patron : aucun appel', bac.apiGetAppels.length === 0);
   vrai('(code) aucune écriture : la lecture du relevé est un GET, rien ne se poste', !/apiPost\([^)]*pauline/i.test(CODE));
-  vrai('(code) relu à l’ouverture de l’onglet, à l’entrée dans la section, puis chaque minute tant qu’elle est visible', /if\(t==='agents'\)\{ chargerAgents\(\); chargerPauline\(\); \}/.test(CODE) && /if\(s==='equipe'&&typeof chargerPauline==='function'\) chargerPauline\(\); render\(\); \}/.test(CODE) && /setInterval\(function\(\)\{ if\(document\.visibilityState==='visible'&&TAB==='agents'&&AG\.sec==='equipe'\) chargerPauline\(\); \},60000\);/.test(CODE));
+  vrai('(code) relu à l’ouverture de l’onglet, à l’entrée dans la section, puis chaque minute tant qu’elle est visible', /if\(t==='agents'\)\{ chargerAgents\(\); chargerPauline\(\); chargerHoraires\(\); \}/.test(CODE) && /if\(s==='equipe'&&typeof chargerPauline==='function'\) chargerPauline\(\);/.test(CODE) && /setInterval\(function\(\)\{ if\(document\.visibilityState==='visible'&&TAB==='agents'&&AG\.sec==='equipe'\) chargerPauline\(\); \},60000\);/.test(CODE));
   PA.lec = 0; PA.d = null;
   MS.fils[1].perso = { nom: 'Clients', icone: '💬', couleur: 'bleu', description: '' };
   const err = () => els['mg-err'].textContent;
