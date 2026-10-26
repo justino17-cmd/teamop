@@ -151,6 +151,7 @@ console.log('\n── 2709 · le panneau Agents de la Tour : ses vraies fonction
   vrai('le compteur de l’onglet dit 3', /ag-n">3</.test(T.ctx.vueAgents()));
   T.ctx.agDecider('val-a1', 'refuser');
   vrai('le serveur a refusé val-a1', await att(() => ((S.lire('agents-validations.json') || []).find(x => x.id === 'val-a1') || {}).statut === 'refuse'));
+  await att(() => !T.ctx.AG.busy);   // la page ignore un geste tant que le précédent n'a pas rendu la main : le serveur écrit son fichier AVANT que la réponse ne libère `AG.busy` (course vue en CI le 26 octobre 2026)
   T.ctx.agDecider('val-a2', 'accepter');
   vrai('le serveur a accepté val-a2, signée « Patron »', await att(() => { const x = (S.lire('agents-validations.json') || []).find(y => y.id === 'val-a2') || {}; return x.statut === 'accepte' && x.decidePar === 'Patron'; }));
   await att(() => T.ctx.AG.validations.filter(x => x.statut === 'en_attente').length === 1);
@@ -173,6 +174,7 @@ console.log('\n── 2709 · le panneau Agents de la Tour : ses vraies fonction
   const NON = tour(S.B, S.jeton, 'patron', false); NON.ctx.chargerAgents(); await att(() => NON.ctx.AG.loaded);
   NON.ctx.agDecider('val-a4', 'accepter'); await dormir(400);
   v('« Annuler » à la confirmation de « Valider » : val-a4 reste à valider', ((S.lire('agents-validations.json') || []).find(x => x.id === 'val-a4') || {}).statut, 'en_attente');
+  await att(() => !T.ctx.AG.busy);   // la page ignore un geste tant que le précédent n'a pas rendu la main : le serveur écrit son fichier AVANT que la réponse ne libère `AG.busy` (course vue en CI le 26 octobre 2026)
   T.ctx.agDecider('val-a4', 'refuser');
   vrai('…puis refusée : plus rien à valider, les quatre demandes restent lisibles', await att(() => ((S.lire('agents-validations.json') || []).find(x => x.id === 'val-a4') || {}).statut === 'refuse')
     && await att(() => T.ctx.AG.validations.every(x => x.statut !== 'en_attente')) && (T.ctx.agSec('valid'), !/Valider<\/button>/.test(T.etat.html)));

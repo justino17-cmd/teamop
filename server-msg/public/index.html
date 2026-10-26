@@ -841,6 +841,9 @@ button.photo:active { transform: scale(.97); }
 .statut { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
 .saisie-ind { align-self: flex-start; display: flex; align-items: center; gap: 4px; padding: 10px 14px; margin-top: 8px; border-radius: 20px 20px 20px 6px; background: var(--bubble-in); }
 .saisie-ind i { width: 7px; height: 7px; border-radius: 50%; background: var(--sub); animation: saisie 1.2s infinite; }
+.saisie-ind.avec-nom { max-width: 100%; box-sizing: border-box; }
+.saisie-ind i { flex: none; }
+.saisie-qui { min-width: 0; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 17px; color: var(--sub-meta); }      /* `--sub-meta`, pas `--sub` : sur la bulle reçue, `--sub` ne fait que 3,19:1 (mesuré à la sonde) */      /* « Léa écrit… » : en groupe seulement */
 .saisie-ind i:nth-child(2) { animation-delay: .2s; }
 .saisie-ind i:nth-child(3) { animation-delay: .4s; }
 @keyframes saisie { 0%, 60%, 100% { opacity: .35; transform: none; } 30% { opacity: 1; transform: translateY(-2px); } }
@@ -1382,6 +1385,8 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .reglage[aria-haspopup="menu"] .reglage-texte { color: var(--text); }
 .reglage[aria-haspopup="menu"] .reglage-valeur { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-txt); }
 .reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+.epingle-bouton[aria-expanded="true"] { anchor-name: --deroule; }      /* l'épingle dont le menu « Désépingler » est ouvert */
+.epingle-bouton { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }      /* l'appui long ouvre NOTRE menu : pas la loupe ni la sélection du navigateur */
 #btn-agenda-plus[aria-expanded="true"], .mini.membre-gerer[aria-expanded="true"] { anchor-name: --deroule; }      /* le « + » de l'Agenda (15 octobre 2026 : son menu sort de lui, comme le « + » du Calendrier d'Apple) et le « … » d'un membre — sans ancre, le menu tombait au pied de la feuille */
 .chev-ud { width: 9px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .deroule { min-width: 232px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 6px; border: var(--line); border-radius: 20px; overflow: auto; overscroll-behavior: contain;
@@ -1390,6 +1395,8 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .deroule:popover-open { animation: deroule-sort .2s cubic-bezier(.2,.8,.2,1) both; }
 @supports (anchor-name: --deroule) {
   .deroule { position-anchor: --deroule; inset: auto; top: anchor(bottom); right: anchor(right); margin: 6px 0 0; position-try-fallbacks: flip-block; transform-origin: 85% 0; }
+  /* le menu d'une épingle sort À GAUCHE de l'épingle (elles sont rangées à gauche de l'écran : aligné à droite, un menu de 232 px sortirait de l'écran) */
+  .deroule.depuis-epingle { right: auto; left: anchor(left); transform-origin: 15% 0; }
 }
 @keyframes deroule-sort { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
 
@@ -2750,6 +2757,10 @@ a.menu-action { text-decoration: none; }
         <button type="button" class="compo-bouton envoyer presse" id="enreg-envoyer" aria-label="Envoyer le message vocal"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
       </div>
       <p class="compo-ferme" id="compo-ferme" hidden>Seuls les admins peuvent écrire dans ce groupe.</p>
+      <div class="compo-invit compo-bloque" id="compo-bloque" role="group" aria-labelledby="compo-bloque-texte" hidden>
+        <p id="compo-bloque-texte"></p>
+        <div class="compo-invit-gestes"><button type="button" class="accepter presse" data-debloquer>Débloquer</button></div>
+      </div>
       <div class="compo-invit" id="compo-invit" role="group" aria-labelledby="compo-invit-texte" hidden>
         <p id="compo-invit-texte"></p>
         <div class="compo-invit-gestes"><button type="button" class="accepter presse" data-invit="accepter">Accepter</button><button type="button" class="presse" data-invit="refuser">Refuser</button><button type="button" class="bloquer presse" data-invit="bloquer">Bloquer</button></div>

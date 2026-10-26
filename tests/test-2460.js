@@ -9,7 +9,8 @@
         (`chargerCollegues`, relus à chaque ouverture), sans jamais proposer — côté Perso — un collègue non-contact, ni un collègue que J'AI bloqué (le service refuserait) ;
      3. groupes#1 — LE REFUS SE DIT. Un contact refusé par le service (`non_ajoutes` : il m'a bloqué) naissait absent du groupe, sans un mot. La réponse du service est lue par `source.creerGroupe`
         (`nonAjoutes`) et la page dit « Dan n'a pas pu être ajouté. » — et ne dit rien quand tout le monde est entré ;
-     4. groupes@11 — LE NOM SE COMPTE EN SIGNES. `maxlength="40"` compte des unités UTF-16 : 45 émojis tapés, 20 gardés. La page coupe au signe (40 points de code), sans couper un signe en deux, et
+     4. groupes@11 — LE NOM SE COMPTE EN SIGNES. `maxlength` compte des unités UTF-16 : 45 émojis tapés, 20 gardés. La page coupe au signe (80 points de code depuis le 26 octobre 2026 : UNE seule limite,
+        celle du service — la création coupait à 40), sans couper un signe en deux, et
         `source.creerGroupe` ne coupe plus à 80 UNITÉS (le service compte 80 signes).
 
    ⛔ UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN : chaque « absent » est précédé de la population qui aurait pu s'y trouver (les collègues LUS par le service, les contacts, les membres réels). */
@@ -226,13 +227,13 @@ async function essai(titre, f) { try { await f(); } catch (e) { vrai('⛔ ' + ti
     const nm = faireBac(src, caps, { mode: 'pro' });
     const c45 = champ('😀'.repeat(45));
     nm.limiter(c45);
-    v('45 émojis tapés : 40 signes gardés (avant : 20, la limite comptait des unités UTF-16)', [Array.from(c45.value).length, nm.etat().groupe.nom === c45.value], [40, true]);
-    const cmix = champ('é' + '😀'.repeat(50));
+    v('45 émojis tapés : 45 signes gardés (avant : 20, la limite comptait des unités UTF-16 ; la limite est 80 depuis le 26 octobre 2026)', [Array.from(c45.value).length, nm.etat().groupe.nom === c45.value], [45, true]);
+    const cmix = champ('é' + '😀'.repeat(90));
     nm.limiter(cmix);
-    v('un signe n\'est jamais coupé en deux : aucune moitié de paire de substitution en bout de nom', [Array.from(cmix.value).length, /[\uD800-\uDBFF]$/.test(cmix.value)], [40, false]);
+    v('un signe n\'est jamais coupé en deux : aucune moitié de paire de substitution en bout de nom', [Array.from(cmix.value).length, /[\uD800-\uDBFF]$/.test(cmix.value)], [80, false]);
     const ctexte = champ('a'.repeat(39)); nm.limiter(ctexte);
     v('39 lettres ordinaires : rien n\'est touché (population : le nom est resté de 39 signes)', Array.from(ctexte.value).length, 39);
-    v('40 lettres : gardées ; 41 : la 41e est refusée', [(() => { const c = champ('b'.repeat(40)); nm.limiter(c); return c.value.length; })(), (() => { const c = champ('b'.repeat(41)); nm.limiter(c); return c.value.length; })()], [40, 40]);
+    v('80 lettres : gardées ; 81 : la 81e est refusée (une seule limite : celle du service)', [(() => { const c = champ('b'.repeat(80)); nm.limiter(c); return c.value.length; })(), (() => { const c = champ('b'.repeat(81)); nm.limiter(c); return c.value.length; })()], [80, 80]);
     vrai('le champ n\'a plus de `maxlength` (il compterait des unités UTF-16) — aperçu et page servie', [HTML, SERVI_HTML].every(h => { const m = /<input[^>]*id="g-nom"[^>]*>/.exec(h); return !!m && !/maxlength/.test(m[0]); }));
     vrai('la composition (clavier chinois, accents morts) est attendue jusqu\'à sa fin avant de couper', /addEventListener\('input', e => \{ if \(!e\.isComposing\) limiterNomGroupe\(e\.target\)/.test(APERCU) && /addEventListener\('compositionend', e => limiterNomGroupe\(e\.target\)\)/.test(APERCU));
     const gros = await src.creerGroupe({ nom: '😀'.repeat(45), membres: [ids.ana] });

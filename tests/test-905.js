@@ -712,11 +712,14 @@ const ATTENDU = {
       v('population : avant le blocage, Ben écrit à Ana', (await cB.post('/api/conversations/' + D + '/messages', { cid: 'cid-bloc-0002', texte: 'salut' })).code, 201);
       S.contactEtat(A.id, B.id, 'bloque');
       const e = await cB.post('/api/conversations/' + D + '/messages', { cid: 'cid-bloc-0003', texte: 'je suis bloqué' });
-      v('⛔ Ben, BLOQUÉ par Ana, n\'écrit plus : 404 introuvable (il ne doit pas apprendre qu\'il est bloqué)', [e.code, e.j.error], [404, 'introuvable']);
+      /* ⛔ RÈGLE DU 26 OCTOBRE 2026 (Justin, contacts#1) : qui est bloqué ÉCRIT toujours — le service répond comme à un envoi ordinaire (un 404 lui dirait qu'il est bloqué) — mais son message n'est
+         plus REMIS : masqué pour Ana (`test-3040` joue la règle en entier). Avant, il recevait 404 `introuvable`. */
+      v('⛔ Ben, BLOQUÉ par Ana, écrit toujours : 201 (il ne doit pas apprendre qu\'il est bloqué)…', [e.code, Number.isInteger(e.j.seq)], [201, true]);
+      v('⛔ …mais Ana ne reçoit rien de ce qu\'il écrit désormais (population : « salut », d\'avant, est bien là)', (await cA.get('/api/conversations/' + D + '/messages')).j.messages.map(m => m.texte).filter(Boolean), ['avant le blocage', 'salut']);
       const e2 = await cA.post('/api/conversations/' + D + '/messages', { cid: 'cid-bloc-0004', texte: 'je bloque et j\'écris' });
       v('Ana, qui a bloqué, n\'écrit pas non plus tant qu\'elle n\'a pas débloqué', e2.code, 404);
       v('l\'historique reste lisible des deux côtés', [(await cA.get('/api/conversations/' + D + '/messages')).code, (await cB.get('/api/conversations/' + D + '/messages')).code], [200, 200]);
-      v('⛔ Ben ne peut plus ouvrir de directe avec Ana (404) tant qu\'il est bloqué', (await cB.post('/api/conversations/directe', { uid: A.id })).code, 404);
+      v('⛔ Ben rouvre sa conversation avec Ana comme avant (200, la même) — le blocage ne se lit pas à un 404', [(await cB.post('/api/conversations/directe', { uid: A.id })).code], [200]);
       v('⛔ ni réagir dans cette directe', (await cB.post('/api/conversations/' + D + '/messages/reagir', { seq: 1, emoji: '👍' })).code, 404);
       S.contactEtat(A.id, B.id, 'ok');
       v('débloqué, l\'écriture reprend', (await cB.post('/api/conversations/' + D + '/messages', { cid: 'cid-bloc-0005', texte: 'de nouveau' })).code, 201);

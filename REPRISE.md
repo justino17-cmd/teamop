@@ -953,7 +953,9 @@ l'administrateur les attribue ; le formulaire Box n'a pas la reprise de brouillo
 dit le jour d'une arrivée d'hier même pour une soirée.
 
 **⏳ OP MESSAGES — ce qui attend une décision de Justin** (rien n'est fait, chaque point change ce que l'utilisateur connaît) :
-- **contacts#1** — ce que devient la conversation d'un contact BLOQUÉ (règle du service, `server-msg/`).
+- ✅ **contacts#1** — TRANCHÉ ET FAIT le 26 octobre 2026 (branche `claude/opmsg-groupes-conversations`, `test-3040`) : le contact BLOQUÉ voit sa conversation chez soi en LECTURE SEULE (phrase + « Débloquer » ; Infos : « Débloquer ce contact ») ;
+  lui n'est averti de rien : il écrit (201), son message est RANGÉ et MASQUÉ pour qui l'a bloqué (`msg_masque`, `ecritureSilencieuse`) — jamais remis, jamais notifié, la conversation ne remonte pas. Un groupe n'est pas touché ; débloquer ne ramène PAS les messages de la période.
+  ⚠️ Doutes : un message de la période peut paraître « Lu » chez Ben si Ana, débloquée, lit plus tard (le `lu_seq` passe par-dessus) ; les réactions et les sondages d'un bloqué restent refusés (404).
 - ✅ **RÉUNIONS ET APPELS — TRANCHÉ PAR JUSTIN LE 26 OCTOBRE 2026 (« fait les 18 »), FAIT SUR LA BRANCHE `claude/opmsg-reunions-appels` (bêta d'OP MESSAGES, pas encore fusionnée)** :
   la fiche d'une réunion TERMINÉE n'a plus « Ta réponse », « Me rappeler » ni la zone du trajet (la durée, les présents et les participants restent — `test-3030`) ; la bannière d'une AUTRE conversation
   pendant un appel ou une réunion reste, plus fine (l'expéditeur et son message, une ligne chacun), son corps laisse passer le toucher et son bouton « Ouvrir » seul le reçoit (`test-3031`, mesuré au navigateur) ;
@@ -966,13 +968,12 @@ dit le jour d'une arrivée d'hier même pour une soirée.
   pas), `scratchpad/mutations-opmessages-reunions-appels.py` (65 mutations, toutes tombent). ⚠️ Limites connues : une salle de RÉUNION dont seuls des invités entrés par le LIEN restent garde l'intérim d'avant (la porte, pas
   les armes) ; un successeur nommé GARDE son rôle quand l'organisateur revient (deux hôtes) ; l'origine d'un appel lancé depuis un sélecteur (« Nouvel appel ») n'est pas rouverte (on a choisi, on a appelé) ; les nouveaux
   bancs ne sont PAS dans `scripts/bancs-messages.liste` (`test-900` borne les numéros à 900-2699) : ils tournent dans la suite complète.
-- **groupes@5** — un nom de groupe par défaut ; **groupes@3** — dire « supprimé » plutôt que « retiré » quand un canal est supprimé ; **groupes@2** — une
-  phrase à la place de « Activité du groupe » sur les lignes système.
-- **conversations@1** — une conversation épinglée reste AUSSI dans la liste (« Désépingler » en dépend) : la retirer de la liste ?
-- **pro@5** — une information de plus à l'écran des heures ; **pro@6** — masquer une ligne en Perso.
-- **temps-reel@3** — le prénom dans « … écrit » en groupe, et le délai de 6 s avant de l'effacer.
-- **n#5** — deux limites (40 et 80) pour une même chose : laquelle ?
-- **quandRdv / ligneEvenement** ne disent que les heures, jamais le fuseau.
+- ✅ **groupes@5, groupes@3, groupes@2, conversations@1, pro@5/pro@6, temps-reel@3, n#5** — TRANCHÉS ET FAITS le 26 octobre 2026 (même branche ; `test-3041`, `test-3042`, `test-3043`, sonde `sonde-opmessages-groupes-conversations.js`) :
+  nom par défaut « Léa, Hugo et 2 autres » (envoyé au service, filigrane du champ) ; canal supprimé = « supprimé » (événement `retire` + `supprime`) ; ligne système = phrase dans la LISTE (groupes et canaux — pas les réunions) ;
+  épinglée : EN HAUT seulement (liste, recherche, « Modifier », « Archivées » : une seule fois à l'écran), « Désépingler » à l'appui long / clic droit sur l'épingle ; pro@5 : rien de plus (non) ; pro@6 : « Confirmer l'envoi » masquée en Perso ;
+  « Léa écrit… » / « Léa et Hugo écrivent… » en groupe (6 s gardées) ; UNE limite de nom de groupe : 80 (création et renommage).
+- **quandRdv / ligneEvenement** ne disent que les heures, jamais le fuseau — NON FAIT le 26 octobre 2026 : ce sont des fonctions de l'AGENDA (autre chantier, même fichier) et elles ne reçoivent aucun fuseau d'interlocuteur (`quandRdv(d, f, journee, jours)`) ;
+  il faudrait d'abord que l'événement porte le fuseau de l'autre, puis décider quoi montrer pour un rendez-vous sans interlocuteur.
 - **les 83 améliorations** que les testeurs ont proposées en utilisant l'application, rangées par partie, chacune avec la raison qui en fait une
   décision : `scratchpad/campagne-octobre-2026/a-decider-op-messages.md` (dans le dépôt).
 

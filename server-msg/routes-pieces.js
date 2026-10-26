@@ -113,7 +113,7 @@ function installerPieces(H, ctx) {
       if (!r) return refus(res, 404, 'introuvable');
       conv = q.conv;
       /* on ne dépose pas dans une conversation où l'on n'a plus le droit d'écrire (directe bloquée ou sans contact, groupe d'annonces) */
-      if (!stockage.ecritureAutorisee(conv, uid)) return refus(res, 404, 'introuvable');
+      if (!stockage.ecritureAutorisee(conv, uid) && !stockage.ecritureSilencieuse(conv, uid)) return refus(res, 404, 'introuvable');      // celui qu'on a bloqué dépose comme avant : son message partira, masqué pour l'autre
       if (r.conv.type === 'direct' && stockage.invitationEtat(conv, uid) === 'envoyee') return refus(res, 403, 'invitation_texte');     // une invitation qui attend : du texte seul (`routes.js`)
       if (r.conv.type === 'groupe' && r.conv.annonces_seules && r.moi.role !== 'admin') return refus(res, 403, 'annonces_seules');
     }

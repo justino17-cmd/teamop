@@ -394,3 +394,8 @@ tests/test-2690.js
 tests/test-2691.js
 # ── OP Courrier dans le côté Pro d'OP MESSAGES (18 octobre 2026) : la rubrique, sur la bêta seulement, VIDE ; la source du service ; le service sert le module lui-même (2695).
 tests/test-2695.js
+# ── Les décisions du 26 octobre 2026, parties contacts / groupes / conversations / pro / temps réel : le blocage qui ne se dit pas (3040), la phrase système et le canal supprimé (3041), la page (3042), l'appareil et le service (3043).
+tests/test-3040.js
+tests/test-3041.js
+tests/test-3042.js
+tests/test-3043.js

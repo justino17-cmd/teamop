@@ -157,7 +157,8 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)');
       v('créer un canal public : son nom, public, et la liste des canaux que je vois', [k.nom, k.prive, k.canaux.map(x => [x.nom, x.prive, x.membres])], ['annonces', false, [['annonces', false, 2]]]);
       vrai('Bob le trouve dans sa liste de conversations : type « canal », son espace, public, signé « # » (initiales)', !!(await att(async () => (await C.src.lister(true)).some(x => x.id === k.id && x.type === 'canal' && x.espace === E && x.prive === false && x.initiales === '#' && x.nom === 'annonces'))));
       const apercu = (await A.src.lister(true)).find(x => x.id === k.id);
-      v('Alice le voit aussi, avec le message système du service', [apercu.type, apercu.apercu], ['canal', 'Activité du canal']);
+      /* ⛔ 26 octobre 2026 (Justin, groupes#2) : la ligne système d'un canal est une PHRASE dans la liste, pas « Activité du canal » (la méta et le nom de l'auteur viennent du service). */
+      v('Alice le voit aussi, avec le message système du service — en phrase (« Vous avez créé le canal »)', [apercu.type, apercu.apercu], ['canal', 'Vous avez créé le canal']);
       const m = await C.src.envoyer(k.id, { texte: 'Bonne journée à tous' });
       vrai('Bob écrit dans le canal', !!m.id);
       const ouvert = await A.src.ouvrir(k.id);

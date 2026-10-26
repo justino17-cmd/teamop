@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '1c39b742dcb7';
+  const OPMSG_BUILD = '631f1dcfddc6';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 271;
+  const OPMSG_VERSION = 272;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -287,7 +287,11 @@
     if (!archivees.length) etat.listeArchives = false;
     /* ⛔ une RECHERCHE cherche partout : des deux côtés, et dans les Archivées */
     const base = etat.listeInvit ? invits : etat.listeArchives ? archivees : etat.conversations.filter(c => c.invitation !== 'recue' && (q || (dansMode(c) && !c.archive)));     // ⛔ une RECHERCHE cherche des deux côtés : on ne perd pas une conversation parce qu'on est du mauvais
-    const vues = base.filter(c => !q || norme(c.nom).includes(q) || norme(c.apercu).includes(q));
+    /* ⛔ UNE CONVERSATION ÉPINGLÉE N'EST QUE EN HAUT (décision du 26 octobre 2026 : « elle ne s'affiche plus en double, en haut ET dans la liste ») — tant que la rangée du haut est visible. Une recherche, le
+       mode « Modifier » (qui coche des lignes), « Archivées » et « Invitations » cachent cette rangée : la conversation reste alors dans la liste, UNE seule fois chaque fois. */
+    const epingleHaut = !etat.listeInvit && !etat.listeArchives && !etat.selection && !q;
+    const enHaut = c => epingleHaut && c.epingle && !c.archive && c.invitation !== 'recue' && dansMode(c);
+    const vues = base.filter(c => !enHaut(c) && (!q || norme(c.nom).includes(q) || norme(c.apercu).includes(q)));
     /* une conversation PARTIE (quittée, passée de l'autre côté) ne reste pas cochée — une conversation que la recherche cache, si : effacer la recherche la rend cochée */
     if (etat.selection) for (const id of Array.from(etat.selection)) if (!etat.conversations.some(c => c.id === id && dansMode(c))) etat.selection.delete(id);
     const tete = etat.listeArchives ? '<li class="liste-invit-tete"><button type="button" class="presse" data-archives-retour>' + icone('i-gauche') + '<span>Messages</span></button><h2>Archivées</h2></li>' +
@@ -299,16 +303,54 @@
        recherche (qui refait toute la liste) rejouerait l'entrée de chaque groupe créé depuis le début */
     const neuves = new Set(etat.neuves); etat.neuves.clear();
     const pied = !etat.listeInvit && !etat.listeArchives && !q && !etat.selection && archivees.length ? ligneArchives(archivees) : '';
-    $('liste-conv').innerHTML = tete + (vues.length || tete || pied ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') + pied :
+    /* toutes les conversations du côté sont épinglées : la rangée du haut les porte, la liste n'a rien à dire (« Aucune conversation » serait faux) */
+    const toutesEnHaut = !vues.length && !tete && !pied && etat.conversations.some(enHaut);
+    $('liste-conv').innerHTML = tete + (toutesEnHaut ? '' : vues.length || tete || pied ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') + pied :
       (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>'
         : !q && modesActifs() ? '<li class="vide">' + (etat.mode === 'pro' ? 'Aucune conversation Pro pour l\'instant : les canaux de ton entreprise, tes réunions et tes échanges avec tes collègues viennent ici.' : 'Aucune conversation Perso pour l\'instant.') + '</li>'
         : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
-    const pins = etat.listeInvit || etat.listeArchives || etat.selection ? [] : etat.conversations.filter(c => c.epingle && !c.archive && c.invitation !== 'recue' && dansMode(c));
+    const pins = epingleHaut ? etat.conversations.filter(enHaut) : [];
     $('epingles').innerHTML = pins.map(boutonEpingle).join('');
     $('epingles').hidden = !pins.length;
     peindreSelection(); majBadge(); peindreMode();
   }
+  /* ⛔ « DÉSÉPINGLER » SE TROUVE SUR L'ÉPINGLE (décision du 26 octobre 2026) : une conversation épinglée n'est plus dans la liste, donc plus de ligne où la cocher — l'appui long sur l'épingle (le doigt), le clic droit
+     ou la touche Menu (la souris, le clavier) propose « Désépingler ». Le relâcher d'un appui long produit un clic sur l'épingle : on l'avale (un appui long n'OUVRE pas la conversation), et
+     seulement le premier, dans la demi-seconde qui suit. « Modifier » reste un autre chemin (il coche aussi les épinglées, qu'il remet alors dans la liste). */
+  const EPINGLE_LONG_MS = 480;
+  let epingleAppui = null;
+  function menuEpingle(bouton, auDoigt) {
+    const id = bouton.dataset.ouvrir; if (!id || etat.selection || etat.rangement || typeof source.rangerConvs !== 'function') return;
+    const c = etat.conversations.find(x => x.id === id); if (!c || !c.epingle) return;
+    etat.epingleLong = auDoigt ? { relache: 0 } : null;      // le doigt est encore posé : son relâcher (puis le clic qui le suit) ne doit rien ouvrir
+    ouvrirDeroule(bouton, 'Conversation épinglée', c.court || c.nom, [{ valeur: 'desepingler', libelle: 'Désépingler' }], async v => {
+      if (v !== 'desepingler') return;
+      try {
+        const r = await source.rangerConvs([id], 'desepingler');
+        mot(r.faits < r.total ? 'L\'épingle n\'a pas pu être retirée.' : RANGE_DIT.desepingler[0]);
+      } catch (er) { avis(phrase(er, 'L\'épingle n\'a pas pu être retirée.')); }
+      rendreListe();
+    });
+    $('deroule').classList.add('depuis-epingle');
+  }
+  $('epingles').addEventListener('pointerdown', e => {
+    const b = e.target.closest('.epingle-bouton'); if (!b || e.pointerType === 'mouse' || e.button > 0) return;
+    clearTimeout(epingleAppui && epingleAppui.h);
+    epingleAppui = { x: e.clientX, y: e.clientY, h: setTimeout(() => { epingleAppui = null; menuEpingle(b, true); }, EPINGLE_LONG_MS) };
+  });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('epingles').addEventListener(ev, () => { if (epingleAppui) { clearTimeout(epingleAppui.h); epingleAppui = null; } });
+  $('epingles').addEventListener('pointermove', e => { if (epingleAppui && Math.hypot(e.clientX - epingleAppui.x, e.clientY - epingleAppui.y) > 10) { clearTimeout(epingleAppui.h); epingleAppui = null; } });
+  $('epingles').addEventListener('contextmenu', e => {
+    const b = e.target.closest('.epingle-bouton'); if (!b) return;
+    e.preventDefault(); if (epingleAppui) { clearTimeout(epingleAppui.h); epingleAppui = null; }
+    if (!etat.deroule) menuEpingle(b);
+  });
+  /* le relâcher d'un appui long est noté (le PREMIER seulement), et le premier clic qui le suit, dans la demi-seconde, est avalé — OÙ QU'IL TOMBE sur l'épingle : un appui long n'en produit pas toujours,
+     et passé une demi-seconde c'est un nouveau geste (même règle que le menu d'un message). Jamais mesuré depuis l'ouverture du menu : un doigt peut rester posé aussi longtemps qu'il veut. */
+  document.addEventListener('pointerup', e => { if (etat.epingleLong && !etat.epingleLong.relache && e.pointerType !== 'mouse') etat.epingleLong.relache = Date.now(); }, true);
+  const epingleClicAvale = e => { const L = etat.epingleLong; if (!L || !L.relache) return false; etat.epingleLong = null; return !!(e.target.closest && e.target.closest('.epingle-bouton')) && Date.now() - L.relache < 500; };
+
   /* ══ PERSO / PRO (la feuille de style dit le pourquoi) ══
      Le côté d'une conversation vient du service (`cote` : le côté rangé à la main, sinon l'automatique — un canal, une réunion, un collègue, un groupe de collègues : Pro). Le côté où
      l'on travaille est une préférence du COMPTE (`source.modeTravail`, rien n'est rangé sur l'appareil). Ouvrir une conversation de l'autre côté (une recherche, une bannière, un
@@ -372,6 +414,7 @@
       if (etat.route) marquerNav(etat.route.vue);
     }
     if (etat.route && VUES[etat.route.vue]) document.title = VUES[etat.route.vue].titre + suffixeTitre();
+    if (typeof peindreConfirmer === 'function') peindreConfirmer();       // « Confirmer l'envoi » : visible en Pro seulement
   }
   /* depuisCompte : le côté vient du compte (choisi sur un autre appareil) — on le suit sans le réécrire (une écriture par appareil, et chacune repousserait l'événement) */
   async function changerMode(m, depuisOuverture, muet, depuisCompte) {
@@ -750,6 +793,7 @@
     if (e.target.closest('[data-invitations]')) { etat.listeInvit = true; etat.selection = null; rendreListe(); const r = document.querySelector('[data-invit-retour]'); if (r) r.focus({ preventScroll: true }); return; }
     if (e.target.closest('[data-invit-retour]')) { etat.listeInvit = false; rendreListe(); const r = document.querySelector('[data-invitations]'); if (r) r.focus({ preventScroll: true }); return; }
     const o = e.target.closest('[data-ouvrir]');
+    if (o && epingleClicAvale(e)) return;
     if (o) ouvrirDepuisListe(o.dataset.ouvrir, o);
   });
 
@@ -774,6 +818,18 @@
     majBanniereSalle(c);                     // (version servie) une salle est ouverte pour cette conversation : la bannière propose d'y entrer
   }
   const nomAuteur = id => { const c = contactDe(id); return c ? prenom(c) : '?'; };
+  /* ⛔ EN GROUPE, « ÉCRIT… » DIT QUI (décision du 26 octobre 2026) : « Léa écrit… », « Léa et Hugo écrivent… », « Léa, Hugo et 1 autre écrivent… » — les prénoms, dans l'ordre où ils ont commencé. Une conversation à deux
+     n'a pas besoin de nom (c'est l'autre) : elle garde ses trois points seuls et `''` ici. Le service éteint chaque frappe après 6 s sans nouvelle (`delaiSaisieMs`) : la phrase suit l'ensemble de ceux qui écrivent. */
+  function phraseSaisie(c) {
+    if (!c || !c.saisie || !multi(c)) return '';
+    const ids = Array.isArray(c.saisie.contacts) && c.saisie.contacts.length ? c.saisie.contacts : [c.saisie.contact];
+    const noms = ids.filter((x, i, t) => x && t.indexOf(x) === i).map(id => { const n = nomAuteur(id); return n === '?' ? 'Quelqu\'un' : n; });
+    if (!noms.length) return '';
+    if (noms.length === 1) return noms[0] + ' écrit…';
+    if (noms.length === 2) return noms[0] + ' et ' + noms[1] + ' écrivent…';
+    const reste = noms.length - 2;
+    return noms[0] + ', ' + noms[1] + ' et ' + reste + ' autre' + (reste > 1 ? 's' : '') + ' écrivent…';
+  }
 
   /* ═══ LES MENTIONS (8 octobre 2026 : « @prénom dans un groupe, et la personne est prévenue ») ═══
      Dans un groupe, un canal ou une réunion, « @ » propose les membres (sans moi) ; choisir écrit « @Prénom ». Un prénom se reconnaît SANS accents ni casse, après une non-lettre.
@@ -1053,7 +1109,11 @@
       P.push(htmlMessage(c, m, !serie, dernierEnvoye && m.id === dernierEnvoye.id));
       prec = m;
     });
-    if (c.saisie) P.push({ h: '<div class="saisie-ind" role="img" aria-label="' + esc(nomAuteur(c.saisie.contact)) + ' est en train d\'écrire"><i></i><i></i><i></i></div>', st: null });
+    if (c.saisie) {
+      const qui = phraseSaisie(c);
+      P.push({ h: qui ? '<div class="saisie-ind avec-nom" role="img" aria-label="' + esc(qui) + '"><i></i><i></i><i></i><span class="saisie-qui" aria-hidden="true">' + esc(qui) + '</span></div>'
+        : '<div class="saisie-ind" role="img" aria-label="' + esc(nomAuteur(c.saisie.contact)) + ' est en train d\'écrire"><i></i><i></i><i></i></div>', st: null });
+    }
     return P;
   }
   function majStatut(el, st) {
@@ -1105,7 +1165,12 @@
     const ferme = !!compoFerme(c);
     /* une invitation REÇUE (ou refusée) : on lit, on répond par un geste — pas de champ ; ENVOYÉE : on écrit, une ligne dit ce qui se passe de l'autre côté */
     const iv = c && c.invitation, recue = iv === 'recue' || iv === 'refusee';
-    $('compo').hidden = ferme || recue || !!enr.etat && enr.etat !== 'repos'; $('compo-ferme').hidden = !ferme;
+    /* ⛔ UN CONTACT QUE J'AI BLOQUÉ (décision du 26 octobre 2026) : sa conversation reste chez moi, LISIBLE, sans champ pour écrire — une phrase le dit, avec le geste pour débloquer. L'autre, lui, ne voit rien
+       changer : c'est le service qui ne lui remet plus rien (`ecritureSilencieuse`). Plus d'appel non plus (le service le refuserait). */
+    const bloque = !!(c && c.bloque && !c.supprime) && !recue;
+    $('compo').hidden = ferme || recue || bloque || !!enr.etat && enr.etat !== 'repos'; $('compo-ferme').hidden = !ferme;
+    $('compo-bloque').hidden = ferme || !bloque; $('conv-cam').hidden = bloque;
+    if (bloque) { fermerConfirmation(); $('compo-bloque-texte').textContent = 'Tu as bloqué ' + ((c.court || c.nom || '').split(' ')[0] || 'cette personne') + '. Tu peux relire cette conversation, plus y écrire.'; }
     if (ferme) $('compo-ferme').textContent = compoFerme(c);
     $('compo-invit').hidden = ferme || !recue;
     if (recue && !ferme) {
@@ -1145,6 +1210,15 @@
     finally { document.querySelectorAll('#compo-invit [data-invit]').forEach(x => { x.removeAttribute('aria-disabled'); if (x.dataset.invit === 'bloquer') x.textContent = 'Bloquer'; }); }
   });
   const trouverMessage = mid => etat.convDonnees && etat.convDonnees.messages.find(m => m.id === mid);
+  /* débloquer depuis la conversation : le même geste que dans « Contacts bloqués » ; l'écran se redessine quand la source a relu la liste (la conversation redevient inscriptible) */
+  $('compo-bloque').addEventListener('click', async e => {
+    const b = e.target.closest('[data-debloquer]'), c = etat.convDonnees;
+    if (!b || b.getAttribute('aria-disabled') === 'true' || !c || !c.autre) return;
+    b.setAttribute('aria-disabled', 'true');
+    try { await source.debloquer(c.autre); mot('Contact débloqué'); if (etat.conv === c.id) rafraichirConv(); }
+    catch (er) { avis(phrase(er, 'Le contact n\'a pas pu être débloqué.')); }
+    finally { b.removeAttribute('aria-disabled'); }
+  });
   /* ── LA TRANSCRIPTION D'UN VOCAL (11 octobre 2026 : « une transcription écrite, comme sur Instagram ») ──
      « Voir la transcription » sous un vocal : la demande part au service, qui la calcule UNE fois (sur notre serveur — aucune voix ne sort) et la partage avec tous ceux qui
      peuvent écouter ce vocal. Le texte arrive par le flux ; d'ici là, « Transcription en cours… ». Ce qu'on a ouvert ne vaut que pour cette visite : rien n'est rangé sur l'appareil.
@@ -1416,6 +1490,9 @@
      du champ : une photo, un vocal, une carte passent déjà par leur propre geste d'envoi. Ce qu'on retape annule la demande (on ne confirme jamais un texte qu'on n'a pas relu). */
   const CONFIRMER = [['jamais', 'Jamais'], ['groupes', 'Groupes et canaux'], ['partout', 'Partout (côté Pro)']];      // « Partout » ne vaut que du côté Pro : une conversation Perso part sans demander (`confirmationRequise`)
   const confirmerActif = () => !!(etat.pro && CAP.confirmerEnvoi && typeof source.confirmerEnvoi === 'function');
+  /* ⛔ LA LIGNE « CONFIRMER L'ENVOI » SE CACHE EN PERSO (décision du 26 octobre 2026) : ce réglage ne vaut que du côté Pro (une conversation Perso part sans demander, `confirmationRequise`) — la montrer en Perso
+     promettait un réglage qui ne ferait rien. Elle reste dans le Profil, masquée, et reparaît dès qu'on passe en Pro. */
+  const confirmerMasque = () => modesActifs() && etat.mode !== 'pro';
   /* ⛔ la conversation ouverte : ses données, ou — pendant qu'elles se chargent (`ouvrirConv` remet `convDonnees` à null, une seconde en 4G) — son résumé de la liste. Sans ça, un envoi
      fait dans cette fenêtre passait pour une conversation à deux et partait sans demander (relecture du 7 octobre 2026). */
   const convCourante = () => (etat.convDonnees && etat.convDonnees.id === etat.conv ? etat.convDonnees : null) || etat.conversations.find(x => x.id === etat.conv) || null;
@@ -2567,6 +2644,8 @@
       return '<li><button type="button" class="puce presse" data-retirer="' + esc(id) + '" aria-label="Retirer ' + esc(prenom(c)) + (G.mode === 'appel' ? ' de l\'appel' : ' du groupe') + '">' + avatar(c) +
         '<span class="puce-x" aria-hidden="true">' + icone('i-croix') + '</span><span class="puce-nom">' + esc(prenom(c)) + '</span></button></li>'; }).join('');
     $('g-compteur').textContent = G.choisis.length + ' / ' + choix.length;
+    /* le filigrane du champ DIT le nom qu'aura le groupe si on n'en tape pas (« Léa, Hugo et 2 autres ») */
+    $('g-nom').placeholder = G.mode === 'chat' && G.choisis.length ? nomGroupeParDefaut(G.choisis.map(id => prenom(contactDe(id) || { nom: '' }))) : 'Nom du groupe';
     const transf = G.mode === 'transferer';
     $('g-creer').setAttribute('aria-disabled', (transf ? G.tVers.length && !G.tEnvoi : G.choisis.length) ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
@@ -2725,9 +2804,9 @@
     if (etat.creation) return;
     etat.creation = true;
     const prenoms = G.choisis.map(id => prenom(contactDe(id)));
-    const nom = G.nom.trim() || 'Nouveau groupe';
+    const nom = G.nom.trim() || nomGroupeParDefaut(prenoms);      // sans nom saisi : les prénoms des membres (« Léa, Hugo et 2 autres »)
     let c = null, refus = null;
-    try { c = await source.creerGroupe({ nom: G.nom, membres: G.choisis, photo: G.photo, photoBlob: G.photoBlob, annonces: G.annonces, ephemeres: G.ephemeres }); }
+    try { c = await source.creerGroupe({ nom, membres: G.choisis, photo: G.photo, photoBlob: G.photoBlob, annonces: G.annonces, ephemeres: G.ephemeres }); }
     catch (e) { c = null; refus = e; }
     etat.creation = false;
     if (!c) { mot(phrase(refus, 'Le groupe n\'a pas pu être créé.')); return; }
@@ -2863,13 +2942,18 @@
     if (ligne && !ligne.hidden) ligne.focus({ preventScroll: true });
   });
   /* ⛔ (m13) la limite du nom d'un groupe se compte en SIGNES (points de code), comme le service (`Array.from(nom).length <= 80`) : `maxlength` compte des unités UTF-16, un émoji en pèse deux —
-     45 émojis tapés, 20 gardés en silence. On coupe ici, au signe près, sans jamais couper un signe en deux. Pendant une composition (clavier chinois, japonais, accents morts) on attend sa fin. */
-  const NOM_GROUPE_MAX = 40;
-  /* ⛔ (p04) UN SEUL COMPTEUR pour le nom d'un groupe, deux limites qui ne bougent pas : la création coupe à 40 (`NOM_GROUPE_MAX`, lot m13), le renommage garde la limite du service, 80 (`NOM_RENOMMAGE_MAX`,
-     `Array.from(nom).length <= 80` dans routes.js) — celle que l'utilisateur connaît (m04 : « maxlength 80 comme le service »). Le défaut n'était pas la limite mais l'UNITÉ : `maxlength="80"` compte des unités
-     UTF-16, 40 émojis pour 80. On ne raccourcit donc rien (un nom de 41 à 80 signes, déjà enregistré, se corrige sans être raboté) ; que la création et le renommage diffèrent (40 contre 80) est une décision
-     de produit, à trancher (REPRISE.md). */
-  const NOM_RENOMMAGE_MAX = 80;
+     45 émojis tapés, 20 gardés en silence. On coupe ici, au signe près, sans jamais couper un signe en deux. Pendant une composition (clavier chinois, japonais, accents morts) on attend sa fin.
+     ⛔ UNE SEULE LIMITE (décision du 26 octobre 2026 : « deux limites, 40 et 80, pour une même chose » → la plus grande) : 80, celle du service, à la création comme au renommage. La création coupait à
+     40 depuis le lot m13 pendant que le renommage et le service acceptaient 80 : un nom de 60 signes se renommait mais ne se créait pas. Rien ne raccourcit un nom déjà enregistré. */
+  const NOM_GROUPE_MAX = 80;
+  /* ⛔ UN GROUPE SANS NOM S'APPELLE PAR SES MEMBRES (décision du 26 octobre 2026, « comme iMessage ») : « Léa », « Léa et Hugo », « Léa, Hugo et Sam », puis « Léa, Hugo et 2 autres » — les deux premiers
+     prénoms, le compte des autres. Fonction PURE (le banc la joue) ; le champ la montre en filigrane avant la création, et le nom reste modifiable depuis les Infos. Le service exige un nom : c'est
+     celui-ci qu'on lui envoie quand le champ est vide (il tient dans la limite du nom, comptée en signes). */
+  const nomGroupeParDefaut = prenoms => {
+    const l = (prenoms || []).map(x => String(x == null ? '' : x).trim()).filter(Boolean);
+    const t = !l.length ? 'Nouveau groupe' : l.length === 1 ? l[0] : l.length === 2 ? l[0] + ' et ' + l[1] : l.length === 3 ? l[0] + ', ' + l[1] + ' et ' + l[2] : l[0] + ', ' + l[1] + ' et ' + (l.length - 2) + ' autres';
+    return Array.from(t).slice(0, NOM_GROUPE_MAX).join('');
+  };
   function limiterNomSignes(champ, max) {
     const signes = Array.from(champ.value);
     if (signes.length > max) champ.value = signes.slice(0, max).join('');
@@ -4149,6 +4233,7 @@
   }
   function peindreConfirmer() {
     const b = $('reg-confirmer'); if (!b || !confirmerActif()) return;
+    b.hidden = confirmerMasque();
     const x = source.confirmerEnvoi();
     b.dataset.valeur = x;
     $('reg-v-confirmer').innerHTML = esc((CONFIRMER.find(y => y[0] === x) || CONFIRMER[0])[1]) + CHEVRON_UD;
@@ -4165,7 +4250,7 @@
           regLigne('confidentialite', 'bleu', 'i-cadenas', 'Confidentialité') +
           (CAP.notifications ? regLigne('notifications', 'rouge', 'i-cloche', 'Notifications', '<span class="reglage-valeur" id="reg-v-notif"></span>') : '') +
           /* (15 octobre 2026, « plus simple ») « Confirmer l'envoi » (côté Pro) rejoint la première carte, sous Notifications — il avait sa carte à lui, en bas, après « À propos », pour UNE ligne */
-          (confirmerActif() ? '<button type="button" class="reglage presse" id="reg-confirmer" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reg-tuile t-indigo" aria-hidden="true">' + icone('i-chat') + '</span><span class="reglage-texte">Confirmer l\'envoi</span><span class="reglage-valeur" id="reg-v-confirmer"></span></button>' : '') +
+          (confirmerActif() ? '<button type="button" class="reglage presse" id="reg-confirmer" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"' + (confirmerMasque() ? ' hidden' : '') + '><span class="reg-tuile t-indigo" aria-hidden="true">' + icone('i-chat') + '</span><span class="reglage-texte">Confirmer l\'envoi</span><span class="reglage-valeur" id="reg-v-confirmer"></span></button>' : '') +
           regLigne('contacts', 'vert', 'i-groupe', 'Contacts', '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>') +
           (lieuxPossibles() ? regLigne('lieux', 'sarcelle', 'i-lieu', 'Mes lieux', '<span class="reglage-valeur" id="reg-v-lieux"></span>') : '') +
         '</div><div class="carte reg-menu">' +
@@ -4853,7 +4938,7 @@
     etat.deroule = null;
     const D = $('deroule');
     if (typeof D.hidePopover === 'function') try { D.hidePopover(); } catch (e) { /* déjà fermé */ }
-    D.hidden = true; $('deroule-liste').innerHTML = '';
+    D.hidden = true; $('deroule-liste').innerHTML = ''; D.classList.remove('depuis-epingle');
     if (o.declencheur.isConnected) { o.declencheur.setAttribute('aria-expanded', 'false'); if (rendreFocusLigne) rendreFocus(o.declencheur); }
   }
   $('deroule-liste').addEventListener('click', e => {
@@ -4970,7 +5055,8 @@
       if (modifiable) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="can-supprimer"><span class="reglage-texte">Supprimer le canal<small>Ses messages sont effacés pour tous.</small></span></button></div>';
     } else if (CAP.reglages) {
       const autre = i.membres.find(m => !m.moi);
-      if (autre) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="bloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Bloquer ce contact</span></button></div>';
+      if (autre && i.bloque) h += '<div class="carte"><button type="button" class="reglage presse" data-act="debloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Débloquer ce contact<small>Tu peux relire cette conversation, plus y écrire.</small></span></button></div>';
+      else if (autre) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="bloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Bloquer ce contact</span></button></div>';
     }
     const dr = etat.deroule && corps.contains(etat.deroule.declencheur) ? etat.deroule.declencheur : null;
     corps.innerHTML = h;
@@ -5105,11 +5191,11 @@
       if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && !/lien|copier|quitter/.test(act)) rendreConvInfo();
     } catch (er) { erreurInfo(act === 'ecrire' ? phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.', 'Cette action n\'a pas pu se faire.') : phrase(er, 'Cette action n\'a pas pu se faire.')); }
   });
-  /* ⛔ (p04) le champ « Renommer » d'un groupe coupe au SIGNE, à la limite du service (`NOM_RENOMMAGE_MAX`, 80) — la feuille se redessine, l'écouteur est donc posé sur son corps. Pendant une composition
+  /* ⛔ (p04) le champ « Renommer » d'un groupe coupe au SIGNE, à la limite du service (`NOM_GROUPE_MAX`, 80) — la feuille se redessine, l'écouteur est donc posé sur son corps. Pendant une composition
      (clavier chinois, japonais, accents morts) on attend sa fin. Le service refuse au-delà de 80 : un nom enregistré n'est jamais plus long, et rien n'est coupé en dessous. */
   const limiterRenommage = e => {
     if (!e.target || e.target.id !== 'gr-renom' || (e.type === 'input' && e.isComposing)) return;
-    limiterNomSignes(e.target, NOM_RENOMMAGE_MAX);
+    limiterNomSignes(e.target, NOM_GROUPE_MAX);
   };
   $('info-corps').addEventListener('input', limiterRenommage);
   $('info-corps').addEventListener('compositionend', limiterRenommage);
@@ -5718,16 +5804,18 @@
   const convQuittees = new Map();
   /* ce que le toast dit à qui est retiré d'une conversation qu'il regardait : le NOM du groupe ou du canal (« on croit à un bug » quand la page revient à la liste sans l'expliquer), et — si un
      message était en cours — qu'il n'est pas parti. Rien n'est rangé sur l'appareil pour le garder (voulu) : on le DIT, c'est tout. */
-  const motRetire = (c, brouillon) => {
+  const motRetire = (c, brouillon, supprime) => {
     /* le nom passe par une variable : il part dans mot() (textContent), jamais dans du balisage — et test-857 refuse toute concaténation NUE d'un nom, ce qui oblige à le dire */
     const nom = c && c.nom ? String(c.nom) : '';
-    const base = nom && c.type === 'groupe' ? `Tu as été retiré de ${nom}.` : nom && c.type === 'canal' ? `Tu as été retiré du canal ${nom}.` : 'Tu n\'es plus dans cette conversation.';
+    /* ⛔ « SUPPRIMÉ », PAS « RETIRÉ » (décision du 26 octobre 2026) : un canal que son administrateur supprime n'a plus personne à qui l'on ait été « retiré » — il n'existe plus. Le service le dit (`retire` avec
+       `supprime`) ; sans cette indication (un événement venu d'une simple relecture de la liste), on ne sait pas, et la phrase d'avant reste. */
+    const base = supprime && nom && c.type === 'canal' ? `Le canal ${nom} a été supprimé.` : nom && c.type === 'groupe' ? `Tu as été retiré de ${nom}.` : nom && c.type === 'canal' ? `Tu as été retiré du canal ${nom}.` : 'Tu n\'es plus dans cette conversation.';
     return base + (brouillon ? ' Ton message en cours n\'a pas été envoyé.' : '');
   };
-  function surRetire(id) {
+  function surRetire(id, supprime) {
     const voulu = Date.now() - (convQuittees.get(id) || 0) < 30000; convQuittees.delete(id);
     const brouillon = etat.conv === id && !!$('saisie').value.trim();
-    const avis = motRetire(etat.conversations.find(x => x.id === id), brouillon);      // lu AVANT la relecture de la liste (dernière ligne) : le nom vient de la liste que la page avait
+    const avis = motRetire(etat.conversations.find(x => x.id === id), brouillon, supprime === true);      // lu AVANT la relecture de la liste (dernière ligne) : le nom vient de la liste que la page avait
     if (etat.groupe.ouvert && etat.groupe.convId === id) remplacer(Object.assign({}, etat.route, { feuille: false }));
     if (etat.conv === id) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); if (!voulu) mot(avis); }
     rafraichirListe();
@@ -10242,7 +10330,7 @@
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') { verifierVersion(); relireCompte(); } }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);
       if (ev.type === 'notification') { if (ev.nature === 'mention') surMention(ev); else notifier(ev.titre || 'OP MESSAGES', ev.texte || '', ev.nature === 'contact_demande' ? 'contacts' : ''); }
-      if (ev.type === 'retire') surRetire(ev.id);
+      if (ev.type === 'retire') surRetire(ev.id, ev.supprime === true);
       if (ev.type === 'avis') avis(ev.texte);
       if (ev.type === 'ouvrir') { if (ev.evenement) { if (CAP.agenda && ID_EVT.test(ev.evenement)) remplacer({ vue: 'reunions', conv: null, feuille: 'evenement:' + ev.evenement, photo: null, appel: null }); } else if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else if (ev.contacts && ORDRE.includes('contacts')) remplacer({ vue: 'contacts', conv: null, feuille: false, photo: null, appel: null }); else if (ev.conv) ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
     });

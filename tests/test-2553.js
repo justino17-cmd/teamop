@@ -80,7 +80,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
       v('en sourdine, le point de l\'épingle est grisé', /epingle-point muet/.test(muette), true);
       vrai('le point est posé par-dessus l\'avatar (position absolue dans un bouton relatif)', /\.epingle-bouton \{ position: relative; \}/.test(CSS) && /\.epingle-point \{ position: absolute;/.test(CSS));
       vrai('rendreListe appelle `boutonEpingle` pour la rangée du haut (le filtre des épinglées est celui que garde test-857)', /\$\('epingles'\)\.innerHTML = pins\.map\(boutonEpingle\)\.join\(''\);/.test(JS)
-        && /etat\.conversations\.filter\(c => c\.epingle && !c\.archive && c\.invitation !== 'recue' && dansMode\(c\)\)/.test(JS));
+        && /const enHaut = c => epingleHaut && c\.epingle && !c\.archive && c\.invitation !== 'recue' && dansMode\(c\);/.test(JS) && /const pins = epingleHaut \? etat\.conversations\.filter\(enHaut\) : \[\];/.test(JS));
     }
 
   }
