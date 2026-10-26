@@ -185,7 +185,7 @@ async function controler(PAGE, SRC, DOC) {
     v('creerGroupe : nom nettoyé « Équipe test (3) » (membres dédoublés, inconnus écartés), de moi admin, annonces et éphémères gardés, photo, non lu, en tête de liste', [g.nom, g.court, g.membres, g.admins, g.annoncesSeulement, g.ephemeres, g.photo, g.nonLu, (await S.lister())[0].id === g.id], ['Équipe test (3)', 'Équipe test', ['moi', 'c1', 'c2'], ['moi'], true, 86400, 'blob:p', true, true]);
     const og = await S.ouvrir(g.id);
     v('creerGroupe : son premier message est un message système « Vous avez créé le groupe · Camille, Mathis », et l\'aperçu de la liste le reprend', [og.messages.length, !!og.messages[0].systeme, og.messages[0].texte, g.apercu], [1, true, 'Vous avez créé le groupe · Camille, Mathis', 'Vous avez créé le groupe · Camille, Mathis']);
-    v('creerGroupe sans nom devient « Nouveau groupe (n) » ; le nom est plafonné à 40 signes', [(await S.creerGroupe({ nom: '   ', membres: ['c3'] })).court, (await S.creerGroupe({ nom: 'M'.repeat(60), membres: ['c3'] })).court.length], ['Nouveau groupe', 40]);
+    v('creerGroupe sans nom devient « Nouveau groupe (n) » ; le nom est plafonné à 80 signes — UNE seule limite, celle du service (décision du 26 octobre 2026 : elle était de 40)', [(await S.creerGroupe({ nom: '   ', membres: ['c3'] })).court, (await S.creerGroupe({ nom: 'M'.repeat(100), membres: ['c3'] })).court.length, (await S.creerGroupe({ nom: 'M'.repeat(60), membres: ['c3'] })).court.length], ['Nouveau groupe', 80, 60]);
     v('creerGroupe sans membre refuse (« vide »), avec des membres inconnus aussi', [await rejet(S.creerGroupe({ nom: 'x', membres: [] })), await rejet(S.creerGroupe({ nom: 'x', membres: ['zz'] }))], ['vide', 'vide']);
     /* ecouter */
     desabo(); const e3 = evts.length; await S.marquerLu('v2'); await S.envoyer('v4', { texte: 'a' });
@@ -327,7 +327,7 @@ async function controler(PAGE, SRC, DOC) {
     /const archivees = etat\.conversations\.filter\(c => c\.archive && c\.invitation !== 'recue' && dansMode\(c\)\);/.test(JS) && /: etat\.listeArchives \? archivees :/.test(JS)
       && /etat\.conversations\.filter\(c => c\.invitation !== 'recue' && \(q \|\| \(dansMode\(c\) && !c\.archive\)\)\)/.test(JS)
       && /const pied = !etat\.listeInvit && !etat\.listeArchives && !q && !etat\.selection && archivees\.length \? ligneArchives\(archivees\) : '';/.test(JS)
-      && /etat\.conversations\.filter\(c => c\.epingle && !c\.archive && c\.invitation !== 'recue' && dansMode\(c\)\)/.test(JS));
+      && /const enHaut = c => epingleHaut && c\.epingle && !c\.archive && c\.invitation !== 'recue' && dansMode\(c\);/.test(JS) && /const pins = epingleHaut \? etat\.conversations\.filter\(enHaut\) : \[\];/.test(JS));
   vrai('« Modifier » : en mode sélection une ligne se COCHE (data-choisir, aria-pressed) au lieu de s\'ouvrir ; on en sort en changeant de vue ou de côté',
     /'<button type="button" class="conv presse conv-choix" data-choisir="' \+ esc\(c\.id\) \+ '" aria-pressed="' \+ pris \+ '">/.test(JS)
       && /if \(r\.vue !== 'messages' && etat\.selection\) quitterSelection\(\);/.test(JS) && /etat\.mode = m; etat\.vcCat = null; etat\.selection = null; etat\.listeArchives = false;/.test(JS));

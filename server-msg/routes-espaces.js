@@ -287,6 +287,7 @@ function installerEspaces(H, ctx) {
     const k = canalDeAdmin(req, res); if (!k) return;
     const membres = stockage.membresActifs(k.cid);
     const r = stockage.convSupprimer(k.cid);
+    stockage.suppressionDire(k.cid, membres);      // « supprimé », pas « retiré » : chaque membre l'apprend par un événement qui le dit
     effacer(r.pieces);
     hub.reveiller({ uids: membres });
     prevenir(membres, req.espace.espace.id);

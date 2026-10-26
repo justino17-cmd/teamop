@@ -234,7 +234,7 @@ async function flux(c, opts = {}) {
   const h = { Accept: 'text/event-stream' };
   const ck = c.enteteCookie(); if (ck) h.Cookie = ck;
   if (opts.lastEventId !== undefined && opts.lastEventId !== null) h['Last-Event-ID'] = String(opts.lastEventId);
-  const r = await FETCH(c.base + '/api/flux' + (opts.requete || ''), { headers: h, signal: ctrl.signal });
+  const r = await FETCH(c.base + (opts.chemin || '/api/flux') + (opts.requete || ''), { headers: h, signal: ctrl.signal });   // `chemin` : le flux de l'invité sans compte (`/api/invite/flux`) a le sien
   const f = { statut: r.status, evenements: [], commentaires: 0, ferme: false, retourne: r, entetes: r.headers };
   if (r.status !== 200) { try { f.corps = await r.json(); } catch (e) {} return Object.assign(f, { fermer() {} }); }
   const etat = { tampon: '' };

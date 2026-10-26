@@ -98,7 +98,8 @@ const NOMS = ['alice', 'bruno', 'carla', 'dave', 'eve', 'fanny'];
     const BE = r.j.conv;
     v('Bruno écrit à Eve (invitation)', [r.j.resultat, (await dire(B, BE, 'Bonjour Eve')).code], ['envoyee', 201]);
     v('Eve bloque Bruno', (await E.post('/api/contacts/bloquer', { uid: B.moi.id })).code, 200);
-    v('⛔ Bruno ne peut plus écrire (404), et ce n\'est plus une invitation', [(await dire(B, BE, 'Encore moi')).code, (await detail(B, BE)).conversation.invitation], [404, undefined]);
+    /* ⛔ 26 octobre 2026 (Justin, contacts#1) : Bruno, bloqué, écrit toujours (201) sans rien apprendre — son message n'est pas remis à Eve (`test-3040`) — et ce n'est plus une invitation. */
+    v('⛔ Bruno écrit toujours (201, rien n\'est remis à Eve), et ce n\'est plus une invitation', [(await dire(B, BE, 'Encore moi')).code, (await detail(B, BE)).conversation.invitation], [201, undefined]);
     const ficheE = ((await B.get('/api/conversations/' + G + '/messages')).j.messages || []).find(m => m.seq === sE);
     v('⛔ la fiche d\'Eve, chez Bruno qu\'elle a bloqué, se lit « introuvable » (comme une personne qui ne se laisse pas trouver) — chez Alice, non', [ficheE && ficheE.meta, (((await A.get('/api/conversations/' + G + '/messages')).j.messages || []).find(m => m.seq === sE) || {}).meta.uid], [{ k: 'contact', uid: null, prenom: null, identifiant: null }, E.moi.id]);
 

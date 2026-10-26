@@ -60,7 +60,7 @@
    blanc : `{support, ouvreur, permis, items}` — `support` vaut « ecran:<uid> », « tableau » ou null ; l'événement 'salle-annot' (id) dit qu'il a changé). ⛔ « Couper le micro » n'est qu'une DEMANDE : la page de la personne l'honore ou non.
    Événements en plus : 'salles' (les bannières à relire), 'salle-reaction' (id, uid, emoji), 'salle-micro' (id, de : l'hôte demande de couper le micro), 'salle-parle' (id : qui parle a changé).
    Les événements de `ecouter(cb)` : 'liste', 'appels' (l'historique a changé), 'appel' (id : un appel a changé), 'appel-entrant' (id : il sonne pour moi), 'appel-flux' (id : l'autre a une piste de plus), 'reunions' (id, supprime : une réunion a changé, ici ou ailleurs), 'conversation' (id), 'contacts', 'espaces' (id : un espace a changé), 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
-   afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation), 'avis' (texte : un refus arrivé après coup),
+   afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation ; `supprime: true` quand la conversation n'existe plus — un canal supprimé), 'avis' (texte : un refus arrivé après coup),
    'moi' (mon profil a changé : nom, statut ou photo, ici ou sur un autre appareil),
    'ouvrir' (conv, ou reunion : une notification touchée demande d'ouvrir cette conversation, ou la fiche de cette réunion).
 
@@ -930,7 +930,7 @@
     function membreVue(c, p) {
       const pers = personneDe(p.id), pr = c.pairs.get(p.id), e = c.salle.etats[p.id] || {};
       return {
-        id: p.id, nom: pers.nom, prenom: pers.prenom, initiales: pers.initiales, avatar: pers.avatar, photo: pers.photo,
+        id: p.id, nom: pers.nom, prenom: pers.prenom, initiales: pers.initiales, avatar: pers.avatar, photo: pers.photo, invite: pers.invite === true, entreprise: pers.entreprise || '',
         statut: p.statut, grade: p.grade || 0, etat: p.statut === 'invite' ? 'sonne' : p.statut === 'attente' ? 'attente' : (pr && pr.etat === 'connecte' ? 'connecte' : 'connexion'),
         liaison: pr ? pr.etat : 'attente', relais: !!(pr && pr.relais), reseau: pr && pr.etat === 'connecte' && p.statut === 'present' ? pr.reseau || null : null,
         camera: !!e.camera && p.statut === 'present', micro: e.micro !== false, partage: !!e.partage, main: c.salle.mains.includes(p.id), parle: c.parlent.has(p.id), epingle: c.salle.epingle === p.id,
@@ -2192,12 +2192,18 @@
       if (!p || typeof p.id !== 'string') return;
       const avant = registre.get(p.id) || {};
       registre.set(p.id, { id: p.id, prenom: p.prenom !== undefined ? p.prenom : avant.prenom, nom: p.nom !== undefined ? p.nom : avant.nom, statut: p.statut !== undefined ? p.statut : avant.statut,
-        avatar: p.avatar !== undefined ? p.avatar : avant.avatar });
+        avatar: p.avatar !== undefined ? p.avatar : avant.avatar,
+        /* un INVITÉ SANS COMPTE (26 octobre 2026) : le service le signale (`invite_sans_compte`) et dit son entreprise — la salle écrit « Paul — Plomberie Durand » et « invité sans compte » à côté */
+        invite: p.invite_sans_compte === true ? true : avant.invite === true, entreprise: typeof p.entreprise === 'string' ? p.entreprise.slice(0, 80) : (avant.entreprise || '') });
     }
     /* `avatar` d'une vue = l'indice de couleur du repli (un nombre) ; `photo` = l'adresse blob: de la photo de profil quand elle est arrivée, sinon null */
     const vueSupprimee = (id) => ({ id, nom: NOM_SUPPRIME, prenom: NOM_SUPPRIME, initiales: '?', avatar: indexAvatar(id), photo: null, supprime: true });
     const noterSupprimes = (liste) => { if (Array.isArray(liste)) for (const id of liste) if (typeof id === 'string') supprimesIds.add(id); };
-    const vuePersonne = (p) => { if (supprimesIds.has(p.id)) return vueSupprimee(p.id); const n = nomComplet(p); return { id: p.id, nom: n, prenom: (p.prenom || n).split(' ')[0] || n, initiales: initialesDe(n), avatar: indexAvatar(p.id), photo: photoPiece(p.avatar) }; };
+    const vuePersonne = (p) => {
+      if (supprimesIds.has(p.id)) return vueSupprimee(p.id);
+      const n = nomComplet(p), ent = p.invite === true && p.entreprise ? p.entreprise : '';
+      return Object.assign({ id: p.id, nom: ent ? n + ' — ' + ent : n, prenom: (p.prenom || n).split(' ')[0] || n, initiales: initialesDe(n), avatar: indexAvatar(p.id), photo: photoPiece(p.avatar) }, p.invite === true ? { invite: true, entreprise: ent } : {});
+    };
     const personne = (id) => { if (supprimesIds.has(id)) return vueSupprimee(id); const p = registre.get(id); return p ? vuePersonne(p) : null; };
     const estMoi = (id) => !!moiApi && id === moiApi.id;
     const prenomDe = (id) => estMoi(id) ? 'Vous' : supprimesIds.has(id) ? NOM_SUPPRIME : (registre.has(id) ? vuePersonne(registre.get(id)).prenom : 'Quelqu\'un');
@@ -2241,13 +2247,16 @@
       const supprime = direct && !!c.autre && c.autre.supprime === true;     // l'autre a supprimé son compte : la conversation reste lisible, on n'y écrit plus
       if (supprime) supprimesIds.add(c.autre.id);
       else if (direct && c.autre) noter(c.autre);
+      if (c.apercu && c.apercu.pour) noter(c.apercu.pour);   // la personne visée par une ligne système (« Léa a ajouté Hugo ») : son nom vient avec l'aperçu
       if (c.apercu && c.apercu.par) noter(c.apercu.par);   // ⛔ l'auteur du dernier message d'un GROUPE : son nom vient avec l'aperçu (sinon « Quelqu'un » tant que la conversation n'est pas ouverte)
       const canal = c.type === 'canal';
       const nom = direct ? (supprime ? NOM_SUPPRIME : nomComplet(c.autre)) : (c.nom || (canal ? 'Canal' : 'Groupe'));
       let apercu = '';
       if (c.apercu) {
         const a = c.apercu;
-        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? (canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe') : (a.texte || '');
+        /* ⛔ une ligne système est une PHRASE (« Léa a ajouté Hugo », « Hugo a quitté le groupe ») — la même que celle du fil (`texteSysteme`), faite de la méta que le service joint à l'aperçu.
+           Sans méta (un service d'avant, une méta illisible) : l'ancien libellé générique, jamais une phrase inventée. */
+        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? (a.meta && typeof a.meta.k === 'string' ? texteSysteme({ meta: a.meta, auteur: a.auteur }, canal ? 'canal' : c.type === 'reunion' ? 'reunion' : '') : (canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe')) : (a.texte || '');
         corps = corps.replace(/\s+/g, ' ').slice(0, 160);
         const prefixe = a.type === 'systeme' ? '' : estMoi(a.auteur) ? 'Vous : ' : (!direct ? prenomDe(a.auteur) + ' : ' : '');
         apercu = prefixe + corps;
@@ -2266,6 +2275,8 @@
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false, enReunion: direct && c.autre ? enReunion.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
+        /* ⛔ J'AI bloqué cette personne : sa conversation reste dans ma liste, LISIBLE, sans champ pour écrire (le service ne dit jamais l'inverse à celui qu'on a bloqué) */
+        bloque: direct && c.bloque === true,
         /* l'échéance de la sourdine de CETTE personne (0 : pas en sourdine) — la même lecture que `infos()` : la liste dessine un croissant de lune barré, et grise le point « non lu » */
         sourdine: c.muet_jusqua > maintenant() ? c.muet_jusqua : 0,
         /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
@@ -2459,7 +2470,7 @@
       if (x.k === 'compte_rendu') {
         const ent = (n) => Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0, txt = (s, max) => typeof s === 'string' ? s.slice(0, max) : '';
         return { compteRendu: { titre: txt(x.titre, 120) || 'Réunion', debut: ent(x.debut), fin: ent(x.fin), dureeS: ent(x.duree_s),
-          presents: (Array.isArray(x.presents) ? x.presents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', dureeS: ent(p && p.duree_s) })), presentsN: ent(x.presents_n),
+          presents: (Array.isArray(x.presents) ? x.presents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', dureeS: ent(p && p.duree_s) })), presentsN: ent(x.presents_n), sansCompteN: ent(x.sans_compte_n),
           absents: (Array.isArray(x.absents) ? x.absents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', reponse: STATUTS_INVITE.indexOf(p && p.reponse) >= 0 ? p.reponse : 'attente' })), absentsN: ent(x.absents_n),
           points: (Array.isArray(x.points) ? x.points : []).slice(0, 20).map(p => ({ texte: txt(p && p.texte, 200), fait: !!(p && p.fait === true) })), documents: ent(x.documents) } };
       }
@@ -2544,12 +2555,15 @@
       /* l'invitation : la LISTE la tient à jour (relue à chaque événement) ; une conversation qui n'y est pas (une invitation refusée, ouverte par son adresse) prend celle du détail */
       const iv = resumeConv ? resumeConv.invitation : d.conversation.invitation;
       base.invitation = d.conversation.type === 'direct' && (iv === 'envoyee' || iv === 'recue' || iv === 'refusee') ? iv : null;
+      base.bloque = d.conversation.type === 'direct' && (resumeConv ? resumeConv.bloque === true : d.conversation.bloque === true);      // la LISTE le tient à jour (relue après bloquer / débloquer)
       const auto = piecesAuto(c.messages);
       const vues = c.messages.map(m => vueMessage(id, c, m, auto));
       for (const p of file) if (p.conv === id) vues.push(vueEnAttente(p));
-      const S = saisies.get(id); let qui = null;
-      if (S) for (const u of S.keys()) { if (!estMoi(u)) { qui = u; break; } }
-      return Object.assign(base, { messages: vues, saisie: qui ? { contact: qui } : null, aPlus: c.aPlus });
+      const S = saisies.get(id), quiTous = [];
+      if (S) for (const u of S.keys()) { if (!estMoi(u)) quiTous.push(u); }
+      const qui = quiTous.length ? quiTous[0] : null;
+      /* `contacts` : TOUS ceux qui écrivent, dans l'ordre où ils ont commencé — en groupe, la page dit leurs prénoms (« Léa et Hugo écrivent… ») ; `contact` reste le premier (l'ancien contrat) */
+      return Object.assign(base, { messages: vues, saisie: qui ? { contact: qui, contacts: quiTous } : null, aPlus: c.aPlus });
     }
     /* ── RETROUVER (9 octobre 2026) : chercher dans les messages d'une conversation, en lister les photos, les fichiers, les liens. Le SERVICE ouvre les messages scellés
        (le texte n'est lisible que de lui) ; la source ne garde RIEN — ni la requête, ni les résultats : la page les tient le temps de la feuille. `avant` : la `suite` rendue. ── */
@@ -2957,6 +2971,8 @@
         sourdine: d.moi && d.moi.muet_jusqua > maintenant() ? d.moi.muet_jusqua : 0,
         membres: d.membres.map(x => vueMembre(c, x)), moiAdmin: d.moi.role === 'admin', annoncesSeulement: !!d.conversation.annonces_seules, ephemeres: d.conversation.ephemere_s || 0,
         enLigne: autre ? enLigne.has(autre.id) : false, enReunion: autre ? enReunion.has(autre.id) : false,
+        /* J'AI bloqué cette personne (la LISTE le tient à jour, relue après bloquer / débloquer) : les Infos proposent « Débloquer » au lieu de « Bloquer » */
+        bloque: !!autre && ((convsApi.find(x => x.id === id) || d.conversation).bloque === true),
         /* un canal dit son espace (l'identifiant que les gestes de l'administrateur réclament) et s'il est privé */
         espace: canal && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canal && d.conversation.prive === true,
       };
@@ -3170,7 +3186,7 @@
         const fin = () => { if (c && convs.get(d.conv) !== c) { relireListePlusTard(); return; } emettre({ type: 'conversation', id: d.conv }); relireListePlusTard(); };
         if (c && c.detail) rafraichirDetail(d.conv).then(fin, fin); else fin();
       },
-      retire: (d) => { convs.delete(d.conv); const S = saisies.get(d.conv); if (S) { for (const h of S.values()) annuler(h); saisies.delete(d.conv); } emettre({ type: 'retire', id: d.conv }); relireListePlusTard(); },
+      retire: (d) => { convs.delete(d.conv); const S = saisies.get(d.conv); if (S) { for (const h of S.values()) annuler(h); saisies.delete(d.conv); } emettre(d.supprime === true ? { type: 'retire', id: d.conv, supprime: true } : { type: 'retire', id: d.conv }); relireListePlusTard(); },
       lu: (d) => {
         if (estMoi(d.uid)) { const r = convsApi.find(x => x.id === d.conv); if (r && d.seq > r.lu_seq) { r.lu_seq = d.seq; relireListePlusTard(); } const c = convs.get(d.conv); if (c) c.luLocal = Math.max(c.luLocal || 0, d.seq); return; }
         lecteursDe(d.conv).set(d.uid, { seq: d.seq, ts: d.ts || maintenant() });
@@ -3411,8 +3427,14 @@
       return r;
     }
     const bloques = () => contactsTous.filter(c => c.bloque).map(c => Object.assign(vuePersonne(c), { bloque: true }));
-    async function bloquer(uid) { await A.bloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
-    async function debloquer(uid) { await A.debloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
+    /* ⛔ BLOQUER / DÉBLOQUER REDIT LES CONVERSATIONS DE LA PERSONNE : sa directe reste dans ma liste, mais en lecture seule (`bloque`) — la liste est relue TOUT DE SUITE (pas « plus tard »), puis
+       chaque conversation de cette personne est redite : celle qui est ouverte se redessine sans champ pour écrire, ou avec. */
+    async function apresBlocage(uid) {
+      try { await relireListe(); emettre({ type: 'liste' }); } catch (e) { relireListePlusTard(); return; }
+      for (const x of convsApi) if (x.autre && x.autre.id === uid) emettre({ type: 'conversation', id: x.id });
+    }
+    async function bloquer(uid) { await A.bloquer(uid); await rafraichirContacts(); await apresBlocage(uid); }
+    async function debloquer(uid) { await A.debloquer(uid); await rafraichirContacts(); await apresBlocage(uid); }
     /* ⛔ LE FAVORI SE POSE D'ABORD CHEZ LE SERVICE : l'étoile ne change qu'une fois la réponse reçue (un refus laisse la liste comme elle était), puis la liste est relue — un autre appareil
        de la même personne le verra à sa prochaine lecture des contacts. */
     /* CE QU'ON A EN COMMUN avec une personne (la fiche d'un contact) : les réunions à venir où l'on est invités tous les deux (la prochaine d'abord, et SA réponse), les groupes et les espaces.
@@ -3473,6 +3495,19 @@
       const st = stockageOnglet(); if (!st) return {};
       try { const x = st.getItem(CLE_BROUILLONS); if (!x) return {}; st.removeItem(CLE_BROUILLONS); const o = JSON.parse(x); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; }
     }
+    /* ⛔ L'ÉCRAN D'OÙ UN APPEL EST PARTI (décision du 26 octobre 2026 : « l'état se range sur l'appareil, jamais dans les données partagées ») : la page le note à l'appel et le relit au raccrochage pour rouvrir la
+       fiche ou les détails d'où l'on a appelé. Le stockage de l'ONGLET, comme les brouillons : jamais `localStorage`, jamais le service, un rangement refusé ne casse rien. La PAGE n'écrit sur aucun
+       stockage (`test-856`) : elle passe par ces trois gestes, et sans eux (l'aperçu) elle garde la note en mémoire. On ne range qu'une route (vue, conversation, rubrique, feuille) — jamais un contenu. */
+    const CLE_ORIGINE_APPEL = 'opmsg-origine-appel';
+    function origineAppelNoter(o) {
+      const st = stockageOnglet(); if (!st) return;
+      try { if (o && typeof o === 'object' && typeof o.id === 'string' && o.route && typeof o.route === 'object') st.setItem(CLE_ORIGINE_APPEL, JSON.stringify({ id: o.id.slice(0, 80), route: { vue: String(o.route.vue || ''), conv: o.route.conv ? String(o.route.conv) : null, sec: o.route.sec ? String(o.route.sec) : null, feuille: o.route.feuille ? String(o.route.feuille) : false } })); else st.removeItem(CLE_ORIGINE_APPEL); } catch (e) { /* refusé : la mémoire de la page suffit */ }
+    }
+    function origineAppelLire(id) {
+      const st = stockageOnglet(); if (!st) return null;
+      try { const o = JSON.parse(st.getItem(CLE_ORIGINE_APPEL) || 'null'); return o && o.id === id && o.route && typeof o.route.vue === 'string' ? o : null; } catch (e) { return null; }
+    }
+    function origineAppelEffacer() { const st = stockageOnglet(); if (!st) return; try { st.removeItem(CLE_ORIGINE_APPEL); } catch (e) { /* rien à retirer */ } }
     /* `min` : le numéro de page en dessous duquel le service refuse d'écrire (la Tour le pose) ; `numero` : celui de la page qu'il sert — un entier, ou null quand il ne le dit pas */
     async function versionServie() {
       const c = await A.config();
@@ -4035,7 +4070,7 @@
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
       modeTravail, choisirMode, modeAuto, modeChoisiLe, choisirModeAuto, relireCote, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions, vitesseVocal, choisirVitesseVocal,                                                                            // Perso / Pro
-      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
+      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons, origineAppelNoter, origineAppelLire, origineAppelEffacer,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifPauseReunion, notifHeuresPro, heuresPro, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */
@@ -4062,6 +4097,9 @@
       rejoindreParCode: (code, type) => entrerSalle(() => moteurSalle.rejoindreParCode(code, type)),
       apercuReunion: async (code) => { const r = await A.apercuReunion(String(code || '')); const x = r && r.reunion ? r.reunion : null; return x ? { titre: String(x.titre || ''), debut: x.debut, fin: x.fin, enCours: x.en_cours === true, attente: x.attente === true, compteRequis: r.compte_requis !== false } : null; },
       lienReunion: async (id) => { const r = await pourReunion(A.lienReunion(id)); return String(r.code || ''); },
+      /* le lien « Invité (sans compte) » (26 octobre 2026) : le JETON (192 bits, 32 caractères) que la page met dans le fragment de `invite.html` — jamais rangé sur l'appareil ; le régénérer tue l'ancien */
+      lienInviteReunion: async (id) => { const r = await pourReunion(A.lienInvite(id)); return String(r.jeton || ''); },
+      regenererLienInviteReunion: async (id) => { const r = await pourReunion(A.regenererLienInvite(id)); return { jeton: String(r.jeton || ''), coupes: Number.isInteger(r.coupes) ? r.coupes : 0 }; },
       renouvelerLienReunion: async (id) => { const r = await pourReunion(A.renouvelerLienReunion(id)); return String(r.code || ''); },
       salleAction: (id, nom, args) => moteurSalle.action(id, nom, args),
       salleAnnotations: (id) => moteurSalle.annotations(id),
@@ -4074,6 +4112,10 @@
     return source;
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, creerMoteurAppels, creerMoteurSalle, serveursSurs, candidatSur, erreurLocale, initialesDe, couperNom, qualiteLiaison, qualiteVisioDe };
-  else { racine.OPMSG_creerSourceServeur = creerSourceServeur; racine.OPMSG_SOURCE = creerSourceServeur(); }
+  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, creerMoteurAppels, creerMoteurSalle, visioReel, serveursSurs, candidatSur, erreurLocale, initialesDe, couperNom, qualiteLiaison, qualiteVisioDe };
+  else {
+    racine.OPMSG_creerSourceServeur = creerSourceServeur; racine.OPMSG_SOURCE = creerSourceServeur();
+    /* le MOTEUR DE SALLE seul, pour la page de l'invité sans compte (`invite.js`) : elle n'a ni conversations, ni contacts — elle ne sait que tenir UNE salle, avec les mêmes liaisons que l'application */
+    racine.OPMSG_MOTEUR_SALLE = { creerMoteurSalle, erreurLocale, visioReel };
+  }
 })(typeof window !== 'undefined' ? window : globalThis);

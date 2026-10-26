@@ -1,13 +1,13 @@
 /* ══ OP MESSAGES — RENOMMER UN GROUPE SE COMPTE EN SIGNES, À LA LIMITE DU SERVICE (80) (lot p04 : groupes n#5) ═════════════════════════════════════════════
    Le champ « Renommer » des Infos portait `maxlength="80"`, qui compte des unités UTF-16 : 40 émojis (80 unités) passaient, un texte ordinaire montait à 80 signes. Le défaut est l'UNITÉ, pas la limite :
-   le service accepte 80 SIGNES (`Array.from(nom).length <= 80`, routes.js) et c'est la limite que l'utilisateur connaît du renommage (m04). La création, elle, coupe à 40 (`NOM_GROUPE_MAX`, m13) — une
-   différence qui n'est pas à corriger ici (décision de produit, Justin). ⛔ Une première version de ce lot ramenait le renommage à 40 : la relecture l'a refusée (raccourcir ce qu'on connaît, rogner
-   un nom de 41 à 80 signes dès la première frappe). Le compteur est partagé (`limiterNomSignes`), la limite du renommage est `NOM_RENOMMAGE_MAX`.
+   le service accepte 80 SIGNES (`Array.from(nom).length <= 80`, routes.js) et c'est la limite que l'utilisateur connaît du renommage (m04). ⛔ LA CRÉATION COUPAIT À 40 (`NOM_GROUPE_MAX`, m13) : la
+   décision de Justin du 26 octobre 2026 (« deux limites pour une même chose : la plus grande ») la met à 80 aussi — il n'y a plus qu'une constante, `NOM_GROUPE_MAX`. Une première version de ce lot
+   ramenait le renommage à 40 : la relecture l'a refusée (raccourcir ce qu'on connaît, rogner un nom de 41 à 80 signes dès la première frappe). Le compteur est partagé (`limiterNomSignes`).
    Ce que ce banc garde — les VRAIES fonctions de la page :
      1. le champ « Renommer » n'a plus de `maxlength` (le balisage, lu dans le code sans ses commentaires) et son écouteur est posé sur `input` ET `compositionend` ;
      2. la coupe : 90 émojis donnent 80 émojis (pas 40), 90 lettres donnent 80 (comme avant), un nom court n'est pas touché, un signe n'est jamais coupé en deux ;
      3. pendant une composition on n'y touche pas, à sa fin on coupe ; un autre champ des Infos n'est jamais coupé ;
-     4. la création garde sa règle (40 signes, `g().nom` suit) ;
+     4. la création a la MÊME limite (80 signes, `g().nom` suit) ;
      5. ⛔ rien n'est raccourci : un nom enregistré de 41 à 80 signes (lettres OU émojis) reste entier quand on y tape ; la limite du renommage est celle du service (lue dans routes.js).
    ⛔ Une absence se prouve sur une population : chaque morceau de la page est exigé trouvé avant de croire un contrôle. */
 'use strict';
@@ -56,8 +56,11 @@ if (!F || !F.renommage) { fin(); } else {
   v('80 lettres exactement : gardées ; 81 : la 81e est refusée', [evt('b'.repeat(80)).length, evt('b'.repeat(81)).length], [80, 80]);
   v('un nom court n\'est pas touché', evt('Chantier Sud'), 'Chantier Sud');
   v('des accents et du chinois comptent un signe chacun', [signes(evt('é'.repeat(100))), signes(evt('字'.repeat(100)))], [80, 80]);
+  /* ⛔ UNE SEULE LIMITE (Justin, 26 octobre 2026, n#5 : « 40 et 80 pour une même chose » → la plus grande) : la création coupe à 80 comme le renommage et le service. */
   const creation = { value: '😀'.repeat(45) }; F.creation(creation);
-  v('(création, inchangée) 45 émojis : 40 signes, et `g().nom` suit', [signes(creation.value), ctx.__g.nom === creation.value], [40, true]);
+  v('⛔ (création) 45 émojis : tous gardés (80 signes comme le renommage — avant : 40), et `g().nom` suit', [signes(creation.value), ctx.__g.nom === creation.value], [45, true]);
+  const creation90 = { value: '😀'.repeat(90) }; F.creation(creation90);
+  v('⛔ (création) 90 émojis : 80 signes, la même limite que le renommage', signes(creation90.value), 80);
   ctx.__g.nom = 'avant';
   evt('y'.repeat(90));
   v('⛔ le renommage n\'écrit JAMAIS dans le brouillon de la création (`g().nom`)', ctx.__g.nom, 'avant');

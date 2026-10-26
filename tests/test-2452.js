@@ -147,9 +147,10 @@ const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
     vrai('(population) l\'écouteur de Cléo reçoit bien les présences d\'Ana', await att(() => evC.some(e => e.type === 'presence' && e.id === ma.id)));
     v('⛔ un TIERS (Cléo) ne reçoit RIEN sur la présence de Ben à ce sujet', evC.filter(e => e.type === 'presence' && e.id === mb.id), []);
     const f1 = await cA.get('/api/personnes/' + mb.id + '/commun');
-    v('la fiche et l\'envoi refusent toujours : 404 « introuvable » (le blocage reste silencieux)', [f1.code, f1.j && f1.j.error], [404, 'introuvable']);
+    v('la fiche refuse toujours : 404 « introuvable » (le blocage reste silencieux)', [f1.code, f1.j && f1.j.error], [404, 'introuvable']);
     const e1 = await cA.post('/api/conversations/' + conv + '/messages', { cid: 'c' + Date.now().toString(36) + 'aa', texte: 'Ben ?' });
-    v('…l\'envoi aussi', [e1.code, e1.j && e1.j.error], [404, 'introuvable']);
+    /* ⛔ 26 octobre 2026 (Justin, contacts#1) : l'envoi n'est plus refusé à qui est bloqué — il répond 201 comme à un envoi ordinaire, et rien n'est remis (`test-3040`). Un 404 lui aurait dit le blocage. */
+    v('…l\'envoi, lui, répond comme avant (201) : le message est rangé, jamais remis (règle du 26 octobre 2026)', [e1.code, e1.j && e1.j.error], [201, undefined]);
     vrai('⛔ et aucune de ces réponses ne dit « bloqué »', !/bloqu/i.test(JSON.stringify([f1.j, e1.j])));
     /* le bloqueur : Ben n'a plus la présence d'Ana non plus — sur la ligne de leur conversation, SANS relecture (l'événement) */
     vrai('⛔ Ben (le bloqueur) ne voit plus Ana en ligne non plus : la ligne de leur conversation s\'éteint, sans relecture', await att(async () => { const l = (await B.src.lister()).find(x => x.id === conv); return l && l.enLigne === false; }));

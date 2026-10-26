@@ -10,7 +10,7 @@
      lister()                   → [résumé] triés du plus récent au plus ancien :
                                   { id, type:'direct'|'groupe', nom, court, initiales, avatar, photo, epingle, membres[], admins[],
                                     annoncesSeulement, ephemeres, nonLu, nonLus, apercu, t }
-     ouvrir(id)                 → résumé + { messages:[…], saisie:{contact}|null }, ou null si l'identifiant est inconnu
+     ouvrir(id)                 → résumé + { messages:[…], saisie:{contact, contacts?}|null }, ou null si l'identifiant est inconnu
      envoyer(id, brouillon)     → le message créé. brouillon = { texte } | { photos:[{url,w,h}] } | { vocal:{url,dur,bars} }
                                   refuse (promesse rejetée, `erreur.code`) : 'introuvable' · 'vide' · 'trop-long' · 'interdit'
      marquerLu(id)              → remet à zéro les non-lus de la conversation
@@ -24,7 +24,7 @@
                                   ('invalide'). Un appel de l'historique :
                                   { id, type:'audio'|'video', sens:'entrant'|'sortant'|'manque', groupe, conv:<id de conversation>|null,
                                     membres:[<id de contact>] (les AUTRES : jamais moi), nom, court, initiales, avatar, photo,
-                                    repetitions (≥ 1 : « Appel manqué (2) » = deux manqués d'affilée de la même personne), t (ms, début), duree (secondes,
+                                    repetitions (≥ 1 : « 2 appels manqués » = deux manqués d'affilée de la même personne), t (ms, début), duree (secondes,
                                     0 pour un manqué ou un appel annulé avant qu'on réponde) }
      demarrerAppel({membres, video, conv}) → l'appel EN COURS (voir appel()). membres = au moins un contact connu (doublons et inconnus écartés) ;
                                   conv facultatif (sinon la source retrouve la conversation qui réunit exactement ces personnes, ou null).
@@ -222,7 +222,7 @@
         spec = spec || {};
         const membres = (spec.membres || []).filter((x, i, tab) => contactDe(x) && tab.indexOf(x) === i);
         if (!membres.length) return Promise.reject(erreur('vide'));
-        const nom = Array.from(String(spec.nom || '').trim()).slice(0, 40).join('') || 'Nouveau groupe';      // des signes, pas des unités UTF-16 (un émoji en pèse deux)
+        const nom = Array.from(String(spec.nom || '').trim()).slice(0, 80).join('') || 'Nouveau groupe';      // des signes, pas des unités UTF-16 (un émoji en pèse deux)
         const t = maintenant();
         const c = {
           id: 'g' + (++seq), type: 'groupe', nom: nom + ' (' + (membres.length + 1) + ')', court: nom, membres: ['moi'].concat(membres), admins: ['moi'],

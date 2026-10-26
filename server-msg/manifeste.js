@@ -233,6 +233,22 @@ const MANIFESTE = [
      réunion où l'on est invité s'ouvre par R (l'hôte en est un) ; le lien se lit et se renouvelle par H (l'ancien meurt). */
   { id: 'reunions.apercu',   m: 'POST', p: '/api/reunions/apercu',                   garde: 'P' },
   { id: 'reunions.rejoindre_code', m: 'POST', p: '/api/reunions/rejoindre',          garde: 'S' },
+  /* L'INVITÉ SANS COMPTE (26 octobre 2026, `routes-invites.js`) : le lien de l'organisateur (H), l'aperçu et l'entrée à la porte (P : publics et plafonnés par réseau), puis le peu que sa session ouvre (G : sa
+     session ; GS : et une place dans la salle). Aucune autre route n'accepte sa session. */
+  { id: 'reunions.invite_lien',       m: 'POST', p: '/api/reunions/:id/invite/lien',        garde: 'H' },
+  { id: 'reunions.invite_regenerer',  m: 'POST', p: '/api/reunions/:id/invite/regenerer',   garde: 'H' },
+  { id: 'invite.apercu',     m: 'POST', p: '/api/invite/apercu',                     garde: 'P' },
+  { id: 'invite.entrer',     m: 'POST', p: '/api/invite/entrer',                     garde: 'P' },
+  { id: 'invite.etat',       m: 'GET',  p: '/api/invite/etat',                       garde: 'G' },
+  { id: 'invite.flux',       m: 'GET',  p: '/api/invite/flux',                       garde: 'G' },
+  { id: 'invite.redemander', m: 'POST', p: '/api/invite/redemander',                 garde: 'G' },
+  { id: 'invite.quitter',    m: 'POST', p: '/api/invite/quitter',                    garde: 'G' },
+  { id: 'invite.ice',        m: 'GET',  p: '/api/invite/ice',                        garde: 'GS' },
+  { id: 'invite.signal',     m: 'POST', p: '/api/invite/signal',                     garde: 'GS' },
+  { id: 'invite.main',       m: 'POST', p: '/api/invite/main',                       garde: 'GS' },
+  { id: 'invite.reaction',   m: 'POST', p: '/api/invite/reaction',                   garde: 'GS' },
+  { id: 'invite.media',      m: 'POST', p: '/api/invite/media',                      garde: 'GS' },
+  { id: 'invite.visio',      m: 'POST', p: '/api/invite/visio',                      garde: 'GS' },
   { id: 'reunions.rejoindre', m: 'POST', p: '/api/reunions/:id/rejoindre',           garde: 'R' },
   { id: 'reunions.presence', m: 'GET',  p: '/api/reunions/:id/presence',             garde: 'H' },   // le rapport de présence (l'organisateur seul)
   { id: 'reunions.lien',     m: 'POST', p: '/api/reunions/:id/lien',                 garde: 'H' },

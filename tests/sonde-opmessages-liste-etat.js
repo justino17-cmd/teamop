@@ -78,13 +78,15 @@ const TEL = { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: t
     for (const [nom, pf] of [['telephone', TEL], ['bureau', BUREAU]]) {
       console.log('\n' + nom + ' : la liste d\'Ana');
       const A = await ouvrir('ana', pf);
-      vrai('population : les trois conversations sont dans la liste', await att(A, (n) => document.querySelectorAll('#liste-conv [data-ouvrir]').length >= n, 3));
+      /* ⛔ 26 octobre 2026 : une épinglée n'est qu'EN HAUT — la liste ne garde que Ben et Dan, Cléo est dans la rangée du haut (et nulle part ailleurs) */
+      vrai('population : les deux conversations non épinglées sont dans la liste', await att(A, (n) => document.querySelectorAll('#liste-conv [data-ouvrir]').length >= n, 2));
       await att(A, (id) => !!document.querySelector('#epingles [data-ouvrir="' + id + '"]'), D.cleo);
       const e = await ecran(A);
       await capture(A, 'liste-etat-' + nom);
       const ben = e.lignes[D.ben] || {}, cleo = e.lignes[D.cleo] || {}, dan = e.lignes[D.dan] || {};
       v('⛔ Ben (en sourdine, non lu) : un croissant visible « En sourdine », et un point GRIS', [ben.croissant, ben.croissantLabel, !!ben.tailleCroissant && ben.tailleCroissant[0] > 8 && ben.tailleCroissant[1] > 8, ben.point, ben.muet], [true, 'En sourdine', true, true, true]);
-      v('Cléo (ordinaire, épinglée, non lue) n\'a ni croissant ni point gris', [cleo.croissant, cleo.muet], [false, false]);
+      v('⛔ Cléo (épinglée) n\'est PAS dans la liste : une seule fois à l\'écran, en haut', [e.lignes[D.cleo] === undefined, Object.keys(e.epingles).includes(D.cleo)], [true, true]);
+      void cleo;
       v('⛔ Dan : le dernier mot est celui d\'Ana — « Vous : Au dépôt à 8 h », aucun point « non lu », alors que le service en compte un', [dan.apercu.replace(/^.*Vous/, 'Vous'), dan.point], ['Vous : Au dépôt à 8 h', false]);
       const rc = e.epingles[D.cleo] || {};
       v('⛔ Cléo, épinglée et non lue : un point sur son bouton de la rangée du haut, sur l\'avatar, dans l\'écran', [rc.point, rc.surAvatar, rc.dansLEcran, rc.dansLeBouton], [true, true, true, true]);

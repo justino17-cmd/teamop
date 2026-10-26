@@ -55,6 +55,7 @@ function verifierJwt(jeton, cle, secret, maintenantMs) {
 /* Ce qu'une personne peut publier dans une salle : la caméra et l'écran seulement dans une salle VIDÉO (comme la maille). Les noms sont ceux de LiveKit (`TrackSource` en minuscules). */
 const SOURCES_VIDEO = ['camera', 'microphone', 'screen_share', 'screen_share_audio'];
 const SOURCES_AUDIO = ['microphone'];
+const SOURCES_INVITE = ['camera', 'microphone'];          // un invité sans compte : jamais `screen_share` ni `screen_share_audio`
 
 /**
  * @param {object} o
@@ -77,14 +78,14 @@ function creerVisio({ visio, horloge = Date.now, appeler = (...a) => fetch(...a)
   /* Le jeton d'ENTRÉE d'une personne dans une salle. `identite` : l'identifiant que la page et les avis se partagent (la personne) ; `nom` : ce que les autres voient s'afficher
      par LiveKit — la page affiche, elle, le nom que le SERVICE connaît (un nom n'entre jamais dans une décision). `canPublishData` faux : les gestes (main, réactions, ordre du
      jour) passent par le service, jamais par LiveKit — une seule vérité, et des plafonds qui s'appliquent. `canUpdateOwnMetadata` faux : personne ne se renomme chez les autres. */
-  function jetonEntree({ salle, identite, nom, audioSeul, maxParticipants }) {
+  function jetonEntree({ salle, identite, nom, audioSeul, invite = false, maxParticipants }) {
     if (!configure) throw new Error('visio: pas de serveur de visio');
     if (typeof salle !== 'string' || !salle || typeof identite !== 'string' || !identite) throw new Error('visio: salle et identité obligatoires');
     const maintenant = t();
     const charge = {
       iss: v.cle, sub: identite, nbf: maintenant - 10, exp: maintenant + v.ttlS,
       name: typeof nom === 'string' ? nom.slice(0, 80) : '',
-      video: { roomJoin: true, room: salle, canSubscribe: true, canPublish: true, canPublishData: false, canUpdateOwnMetadata: false, canPublishSources: audioSeul ? SOURCES_AUDIO : SOURCES_VIDEO }
+      video: { roomJoin: true, room: salle, canSubscribe: true, canPublish: true, canPublishData: false, canUpdateOwnMetadata: false, canPublishSources: audioSeul ? SOURCES_AUDIO : invite ? SOURCES_INVITE : SOURCES_VIDEO }
     };
     /* La salle que LiveKit crée à la première entrée porte NOTRE plafond (`max_participants`) : le service juge déjà la capacité, LiveKit la tient aussi, au cas où. */
     if (Number.isInteger(maxParticipants) && maxParticipants > 0) charge.roomConfig = { maxParticipants, emptyTimeout: 60, departureTimeout: 20 };
@@ -188,4 +189,4 @@ function creerVisio({ visio, horloge = Date.now, appeler = (...a) => fetch(...a)
   };
 }
 
-module.exports = { creerVisio, signer, verifierJwt, SOURCES_VIDEO, SOURCES_AUDIO };
+module.exports = { creerVisio, signer, verifierJwt, SOURCES_VIDEO, SOURCES_AUDIO, SOURCES_INVITE };

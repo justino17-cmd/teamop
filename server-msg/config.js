@@ -372,13 +372,17 @@ function courrielConfig(cfg, instance) {
      sur de vrais appareils) ; `groupeInvitesMax` (12) : le plus de personnes qu'un appel de groupe fait SONNER d'un coup (un groupe plus grand ne lance pas d'appel : 409 `groupe_trop_grand`) ; `groupeSignalMax` (600
      par minute et par participant : une maille de six ouvre cinq liaisons, chacune négocie et envoie ses candidats) ; `salleEvtMax` (120 gestes éphémères par minute et par participant : main, réaction, état, sondage) ;
      `reunionAvantMin` (15) et `reunionApresMin` (180) : on entre dans la salle d'une réunion programmée de quinze minutes avant son début à trois heures après sa fin.
+   · L'INVITÉ SANS COMPTE (26 octobre 2026) : `invitesAttenteMax` (5) — combien de personnes SANS COMPTE attendent à la porte d'une même salle ; `invitesReseauMax` (2) — combien, depuis un MÊME réseau ; `invitesSalleMax` (8) —
+     combien y sont admises à la fois (la capacité de la salle reste la première limite) ; `invitesLignesMax` (40) — combien de lignes d'invité une salle accepte AU TOTAL, refusés compris (un lien qui circule ne remplit pas
+     la base) ; `invitesGraceMs` (120 000) — le temps qu'une salle où il ne reste que des invités sans compte attend le retour d'un hôte dont la connexion a lâché, avant de finir ; `invitesPurgeJours` (30) — la durée de
+     conservation du nom et de l'entreprise après la fin de la salle (l'historique des appels, lui, en garde 180). Le lien d'une réunion n'est jamais une porte ouverte à une foule : l'organisateur voit les noms, et peut régénérer le lien.
    · `relais` : le relais d'appel (coturn). SANS ce bloc, il n'y a pas de relais et la page le DIT ; JAMAIS de serveur STUN d'un tiers (Google…) en repli — rien ne sort de nos machines.
      `secret` : le secret PARTAGÉ avec coturn (`static-auth-secret`), posé par `install-turn.sh` sur le VPS sans jamais s'afficher ; il se lit (`relais.secret`) mais ne se COPIE ni ne se SÉRIALISE (propriété
      non énumérable, comme le mot de passe du relais SMTP) et aucune erreur de configuration ne le cite. `hote` : le nom du relais (`turn.teamop.fr`) ; `port` (3478, UDP et TCP) ; `portTls` (5349) ou absent :
      pas de `turns:` (le certificat n'a pas pu être obtenu) ; `ttlS` : la durée de vie d'un identifiant — QUINZE MINUTES (900), entre une minute et une heure : un identifiant vole en une requête, et coturn ne
      le re-vérifie jamais sur une allocation déjà ouverte (mesuré) ; la page les renouvelle aux trois quarts de leur vie, tant que l'appel court. */
 const APPELS_DEFAUT = { sonnerieMs: 45000, perduMs: 45000, balayageMs: 2000, historiqueJours: 180, listeMax: 100, parHeure: 30, parPaireHeure: 6, entrantsParHeure: 30, signalMax: 240, signalFenetreMs: 60000, iceParHeure: 120,
-  maxVideo: 4, maxAudio: 6, groupeInvitesMax: 12, groupeSignalMax: 600, salleEvtMax: 120, reunionAvantMin: 15, reunionApresMin: 180 };
+  maxVideo: 4, maxAudio: 6, groupeInvitesMax: 12, groupeSignalMax: 600, salleEvtMax: 120, reunionAvantMin: 15, reunionApresMin: 180, invitesAttenteMax: 5, invitesSalleMax: 8, invitesReseauMax: 2, invitesLignesMax: 40, invitesGraceMs: 120000, invitesPurgeJours: 30 };
 const RE_SECRET_RELAIS = /^[A-Za-z0-9_-]{32,128}$/;
 function appelsConfig(cfg, instance) {
   const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
@@ -388,7 +392,7 @@ function appelsConfig(cfg, instance) {
   const o = Object.assign({}, APPELS_DEFAUT, { relais: null });
   const bornes = { sonnerieMs: prod ? [20000, 120000] : [200, 300000], perduMs: prod ? [20000, 180000] : [200, 600000], balayageMs: prod ? [500, 10000] : [20, 60000], historiqueJours: [1, 3650], listeMax: [1, 500],
     parHeure: [1, 1000], parPaireHeure: [1, 100], entrantsParHeure: [1, 600], signalMax: [10, 2000], signalFenetreMs: [1000, 600000], iceParHeure: [1, 1000],
-    maxVideo: [2, 8], maxAudio: [2, 12], groupeInvitesMax: [1, 30], groupeSignalMax: [10, 5000], salleEvtMax: [10, 1000], reunionAvantMin: [0, 120], reunionApresMin: [15, 1440] };
+    maxVideo: [2, 8], maxAudio: [2, 12], groupeInvitesMax: [1, 30], groupeSignalMax: [10, 5000], salleEvtMax: [10, 1000], reunionAvantMin: [0, 120], reunionApresMin: [15, 1440], invitesAttenteMax: [1, 20], invitesSalleMax: [1, 12], invitesReseauMax: [1, 10], invitesLignesMax: [1, 500], invitesGraceMs: [0, 600000], invitesPurgeJours: [1, 3650] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     if (brut[k] === undefined) continue;
     if (!Number.isInteger(brut[k]) || brut[k] < min || brut[k] > max) throw err('appels.' + k + ' doit être un entier entre ' + min + ' et ' + max + (prod && (k === 'sonnerieMs' || k === 'perduMs' || k === 'balayageMs') ? ' en production' : ''));

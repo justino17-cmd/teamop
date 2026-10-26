@@ -172,7 +172,10 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cléo Banc' };
 
     console.log('\n4 bis. « Confirmer l\'envoi » (côté pro)');
     await A.page.evaluate(() => { location.hash = '#reglages'; });
-    vrai('Profil : la ligne « Confirmer l\'envoi », « Jamais »', await att(A, () => { const r = document.getElementById('reg-confirmer'); return !!r && r.getClientRects().length > 0 && document.getElementById('reg-v-confirmer').textContent.trim() === 'Jamais'; }));
+    /* ⛔ 26 octobre 2026 (pro@6) : la ligne « Confirmer l'envoi » ne vaut que du côté Pro — côté Perso elle est masquée (sans prendre de place) ; elle paraît quand on passe côté Pro */
+    vrai('population : le Profil est ouvert côté Perso — la ligne « Confirmer l\'envoi » est dans la page mais MASQUÉE (aucune place prise)', await att(A, () => { const r = document.getElementById('reg-confirmer'); return !!r && r.hidden && r.getClientRects().length === 0 && document.documentElement.dataset.cote === 'perso'; }));
+    await A.page.locator('.cote-seg-profil [data-cote="pro"]').filter({ visible: true }).first().tap();
+    vrai('Profil, côté Pro : la ligne « Confirmer l\'envoi », « Jamais »', await att(A, () => { const r = document.getElementById('reg-confirmer'); return !!r && r.getClientRects().length > 0 && document.getElementById('reg-v-confirmer').textContent.trim() === 'Jamais'; }));
     await toucher(A, '#reg-confirmer');
     vrai('son menu : Jamais (coché), Groupes et canaux, Partout (côté Pro) — le mot « Partout » seul laissait croire qu\'une conversation Perso demandait aussi (lot m14, pro@6)', await att(A, () => document.getElementById('deroule').matches(':popover-open') && Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(x => x.textContent.trim() + (x.getAttribute('aria-checked') === 'true' ? '✓' : '')).join('|') === 'Jamais✓|Groupes et canaux|Partout (côté Pro)'));
     await A.page.locator('#deroule-liste .deroule-choix[data-valeur="groupes"]').tap();

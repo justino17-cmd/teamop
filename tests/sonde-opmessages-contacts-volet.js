@@ -120,8 +120,13 @@ const BUREAU = { w: 1440, h: 900 };
     v('(population) Alice programme une réunion (elle seule)', prog.code, 201);
     vrai('population : la fiche relit « En commun » et le service répond « introuvable » : elle se vide', await attendre(() => { const c = document.querySelector('#vc-fiche .fc-commun'); return !!c && c.children.length === 0; }, null, 12000));
     v('⛔ la fiche ne montre ni « Introuvable… », ni « Réessayer », ni rubrique « En commun » en erreur (contacts#6)', await page.evaluate(() => ({ note: !!document.querySelector('#vc-fiche .fc-note'), reessayer: !!document.querySelector('#vc-fiche [data-fiche="relire"]'), texte: /Introuvable|supprimée|n.y es plus/.test(document.getElementById('vc-fiche').innerText) })), { note: false, reessayer: false, texte: false });
+    /* ⛔ 26 octobre 2026 (contacts#1) : celui qui est BLOQUÉ ne voit rien changer — « Message » depuis la fiche de qui l'a bloqué OUVRE la conversation qui existait (aucun avis d'échec). Le refus neutre
+       (« Cette conversation n'a pas pu s'ouvrir. ») ne vaut plus que pour une conversation NEUVE (`test-3040`). */
     await page.locator('#vc-fiche [data-fiche="ecrire"]').click();
-    vrai('⛔ « Message » depuis la fiche (aucune conversation ouverte) dit « Cette conversation n\'a pas pu s\'ouvrir. », pas « supprimée ou tu n\'y es plus »', await attendre(() => { const m = document.getElementById('mot'); return m.classList.contains('on') && m.textContent === 'Cette conversation n\'a pas pu s\'ouvrir.'; }, null, 12000));
+    vrai('⛔ « Message » depuis la fiche de Bruno (qui a bloqué) OUVRE la conversation d\'avant — et ne dit aucun échec', await attendre(() => document.documentElement.hasAttribute('data-conv') && !document.getElementById('mot').classList.contains('on'), null, 12000));
+    await page.evaluate(() => { history.back(); });
+    await attendre(() => !document.documentElement.hasAttribute('data-conv'), null, 12000);
+    if (!await page.evaluate(() => !!document.querySelector('#vc-fiche [data-fiche="appel"]'))) { await page.evaluate(() => { location.hash = '#contacts'; }); await choisir('Bruno Petit'); }
     /* « Appeler » et « Vidéo » depuis la même fiche (POST /api/appels → 404 « introuvable » : routes-appels.js) — la relecture du lot a trouvé qu'ils disaient la phrase générale (accusation de suppression) */
     vrai('population : la fiche porte « Appeler » et « Vidéo »', await attendre(() => !!document.querySelector('#vc-fiche [data-fiche="appel"][data-video="0"]') && !!document.querySelector('#vc-fiche [data-fiche="appel"][data-video="1"]'), null, 12000));
     for (const [video, nom] of [['0', 'Appeler'], ['1', 'Vidéo']]) {
@@ -133,8 +138,11 @@ const BUREAU = { w: 1440, h: 900 };
     await page.evaluate((id) => { location.hash = '#messages/' + id; }, convAB);
     vrai('population : la conversation avec Bruno (celle d\'avant le blocage) s\'ouvre', await attendre(() => /^#messages\/./.test(location.hash) && !!document.getElementById('saisie') && document.getElementById('saisie').getClientRects().length > 0));
     await page.locator('#saisie').fill('Bruno ?'); await page.keyboard.press('Enter');
-    vrai('⛔ l\'envoi dit « Ce message n\'a pas pu être remis. » (ni suppression, ni « tu n\'y es plus », ni « bloqué »)', await attendre(() => { const a = document.getElementById('avis'); return !a.hidden && a.textContent === 'Ce message n\'a pas pu être remis.'; }, null, 12000));
-    v('…le texte reste dans le champ (rien n\'est perdu)', await page.evaluate(() => document.getElementById('saisie').value), 'Bruno ?');
+    /* ⛔ 26 octobre 2026 (contacts#1) : celui qui est BLOQUÉ ne voit rien changer — l'envoi réussit comme avant (le service rend 201 et masque le message pour Bruno) : aucun avis d'échec, le texte part, et le
+       message paraît dans la conversation de qui l'a écrit. Ce que Bruno reçoit : rien (`test-3040`). */
+    vrai('⛔ l\'envoi réussit sans avis d\'échec (aucun « n\'a pas pu être remis »), le champ se vide', await attendre(() => document.getElementById('saisie').value === '' && document.getElementById('avis').hidden, null, 12000));
+    vrai('…et le message est dans la conversation d\'Alice, comme tout envoi', await attendre(() => /Bruno \?/.test(document.getElementById('conv-messages').textContent), null, 12000));
+    v('…et Bruno, lui, ne le reçoit pas (le service le masque)', ((await C.bruno.get('/api/conversations/' + convAB + '/messages')).j.messages || []).some(m => m.texte === 'Bruno ?'), false);
 
     console.log('\n── 7. rien ne casse ──');
     v('aucune erreur JavaScript', erreurs, []);

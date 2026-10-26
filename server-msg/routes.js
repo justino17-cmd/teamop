@@ -22,6 +22,8 @@ const { SUPPRESSION_DELAI_MS } = require('./compte');
 const { REUNION_PERSONNES_MAX } = require('./formule');
 const heuresPro = require('./heures-pro');
 
+/* ⛔ ID_INVITE : un invité SANS COMPTE (`g_…`, `stockage.js` migration 30) — jamais un compte : aucune route de compte ne l'accepte, seules la salle (admettre, refuser, exclure, relayer un signal) le nomment */
+const ID_INVITE = /^g_[0-9a-f]{32}$/;
 const ID_CONV = /^c_[0-9a-f]{32}$/, ID_PERS = /^p_[0-9a-f]{32}$/, CID = /^[A-Za-z0-9_-]{8,64}$/, CODE = /^[A-Za-z0-9_-]{20,64}$/;
 const EPHEMERES = [0, 86400, 604800, 7776000];
 const MSG_MAX = 8000, SESSION_MS = 30 * 86400000, JOUR = 86400000;
@@ -408,7 +410,12 @@ function creerHandlers(ctx) {
     const u = cibleContact(req, res); if (!u) return;
     /* Pas de contact, ou un blocage dans un sens ou dans l'autre : 404, comme si la personne
        n'existait pas — on ne dit pas à qui nous a bloqué qu'il l'est. */
-    if (!stockage.peutEcrire(req.moi.id, u)) return refus(res, 404, 'introuvable');   // un contact mutuel, ou un collègue d'un même espace (« Contacts de l'entreprise ») — jamais quelqu'un qui a bloqué
+    if (!stockage.peutEcrire(req.moi.id, u)) {
+      /* ⛔ QUI A ÉTÉ BLOQUÉ ne voit rien changer : sa conversation existante s'ouvre toujours (il y écrit, rien n'est remis — `ecritureSilencieuse`). Une conversation NEUVE, non : personne n'est là pour la recevoir. */
+      const ex = stockage.aBloque(u, req.moi.id) && !stockage.aBloque(req.moi.id, u) ? stockage.convDirecteExistante(req.moi.id, u) : null;
+      if (!ex) return refus(res, 404, 'introuvable');
+      return res.status(200).json(detail(req.moi.id, ex));
+    }
     const r = stockage.convDirecteObtenir(req.moi.id, u);
     res.status(r.cree ? 201 : 200).json(detail(req.moi.id, r.id));
   };
@@ -566,8 +573,11 @@ function creerHandlers(ctx) {
   H['conv.saisie'] = (req, res) => {
     const a = corps(req).actif;
     if (typeof a !== 'boolean') return refus(res, 400, 'champ_invalide');
-    /* ⛔ Une directe bloquée (ou sans contact mutuel) ne reçoit plus rien, pas même une frappe : même règle que l'envoi. */
-    if (!stockage.ecritureAutorisee(req.conv.conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
+    /* ⛔ Une directe bloquée (ou sans contact mutuel) ne reçoit plus rien, pas même une frappe : même règle que l'envoi. Celui qu'on a bloqué, lui, reçoit « ok » et rien ne part : un refus lui dirait le blocage. */
+    if (!stockage.ecritureAutorisee(req.conv.conv.id, req.moi.id)) {
+      if (stockage.ecritureSilencieuse(req.conv.conv.id, req.moi.id)) return res.json({ ok: true });
+      return refus(res, 404, 'introuvable');
+    }
     if (!plafond(res, 'saisie', req.moi.id + ':' + req.conv.conv.id, { max: 1, fenetreMs: 2000 })) return;
     hub.emettre(stockage.membresActifs(req.conv.conv.id).filter(u => u !== req.moi.id), 'saisie', { conv: req.conv.conv.id, uid: req.moi.id, actif: a });
     res.json({ ok: true });
@@ -644,8 +654,8 @@ function creerHandlers(ctx) {
   function refusEcriture(conv, uid, role, type) {
     /* Écrire à un compte SUPPRIMÉ : on le DIT (410), au lieu d'un « introuvable » qui ferait croire à une panne — la page montrait déjà « Compte supprimé » */
     if (conv.type === 'direct' && stockage.autreSupprime(conv.id, uid)) return [410, 'compte_supprime'];
-    /* Une directe n'accepte plus d'écriture sans contact mutuel ni dans un blocage. */
-    if (!stockage.ecritureAutorisee(conv.id, uid)) return [404, 'introuvable'];
+    /* Une directe n'accepte plus d'écriture sans contact mutuel ni dans un blocage — SAUF pour celui qu'on a bloqué : son message est rangé et masqué pour l'autre (`ecritureSilencieuse`, `envoyerDansTx`). */
+    if (!stockage.ecritureAutorisee(conv.id, uid) && !stockage.ecritureSilencieuse(conv.id, uid)) return [404, 'introuvable'];
     /* ⛔ UNE INVITATION QUI ATTEND (relecture du gardien, 7 octobre 2026) : du TEXTE seul — ni photo, ni fichier, ni carte — et cinq messages au plus, tant que la personne n'a pas accepté.
        Sinon son dossier « Invitations » se remplissait de ce que voulait un inconnu, et un refus n'arrêtait rien. */
     if (conv.type === 'direct' && stockage.invitationEtat(conv.id, uid) === 'envoyee') {
@@ -1014,4 +1024,4 @@ function creerHandlers(ctx) {
   return H;
 }
 
-module.exports = { creerHandlers, ID_CONV, ID_PERS, CID, CODE, nettoyerNom, nettoyerTexte, MSG_MAX, EPHEMERES };
+module.exports = { creerHandlers, ID_CONV, ID_PERS, ID_INVITE, CID, CODE, nettoyerNom, nettoyerTexte, MSG_MAX, EPHEMERES };
