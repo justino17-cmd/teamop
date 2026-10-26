@@ -21,7 +21,8 @@ const BRUT = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const CODE = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 const { AGENTS } = require(path.join(RACINE, 'server', 'agents.js'));
 const DOSSIER = path.join(RACINE, 'icons', 'agents');
-/* Les agents EXTERNES : des visages dans la Tour, mais hors du registre serveur (ils ne se pilotent pas d'ici). */
+/* Les agents EXTERNES : des visages dans la Tour, mais hors du registre serveur. Pauline (la prospection) tourne sur le Mac de Justin ;
+   sa photo arrive avant la Tour v2.112 qui l'affiche (l'aperçu la montre déjà). Un second externe s'ajoute ici à la main, par son nom. */
 const EXTERNES = ['pauline'];
 
 /* 1. Les fichiers, face au registre. */

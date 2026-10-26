@@ -13,7 +13,53 @@ de ligne du tout.
 
 ---
 
-# 🔶 26 OCTOBRE 2026 — LES HEURES DE TRAVAIL DES AGENTS (SERVEUR SEUL) — branche `claude/agents-horaires`, ATTEND L'ÉCRAN (page Agents de la Tour) ET LA FUSION DE JUSTIN
+# 👉 26 OCTOBRE 2026 (NUIT) — CE QUI EST EN LIGNE, CE QUI ATTEND JUSTIN (à lire en premier)
+
+**En service sur le serveur** :
+- n° 188 : « Assistante / Assistant de TeamOP » dans les signatures, la mention de l'IA posée par le serveur.
+- n° 189 : les groupes de la messagerie personnalisables (route patron).
+- n° 190 : le pont de Pauline (`/api/pauline/releve`, fermé en 503 tant que l'empreinte n'est pas posée).
+- n° 193 : les heures de travail (lundi–vendredi 9 h–18 h Paris, fériés fermés, Max et Théo d'astreinte).
+- Vérifié en ligne après déploiement : `/health` ok ; le pont répond 503 ; les routes de la Tour répondent 403 sans session.
+
+**En aperçu seulement** (n° 192, https://teamop.fr/apercu/tour.html), la Tour v2.112 :
+- page Agents refaite ;
+- Pauline et son relevé ;
+- la messagerie : photo en tête, « Modifier » un groupe ;
+- le sous-onglet « Heures de travail ».
+
+Sa branche est `claude/tour-agents-refonte`. Ses bancs :
+- `test-3011` et `test-3023` : les vraies fonctions de la page ;
+- `test-3022` et `test-3024` : la couture contre le vrai serveur ;
+- 84 suites, 5 452 vérifications.
+
+⛔ `tour.html` reste en v2.111 jusqu'au « publie » de Justin. Le jour de la publication :
+- `icons/agents/pauline.jpg` part avec elle (et `test-3008` en déclare l'externe) ;
+- 3022 et 3024 entrent dans `scripts/bancs-serveur.liste`.
+
+**Incident évité** : le commit `ff2fd96a` (n° 188) avait embarqué un LIEN `server/node_modules`, posé dans un arbre de travail. Le déploiement 138 a été annulé avant le VPS, le lien retiré par la n° 191, et `.gitignore` le retient désormais sans barre finale (une règle « dossier » ne retient pas un lien). Après un `ln -s` dans un arbre de travail : jamais `git add` d'un répertoire, et `git show --stat` avant de pousser.
+
+**Gestes de Justin** (le zip `pauline-demain.zip` lui a été envoyé, avec `DEMAIN.md`) :
+- Pauline sur le Mac :
+  - copier les fichiers du pont ;
+  - ajouter le lien `?de=pauline` au pied de page ;
+  - `--essai`, puis `--fabriquer-jeton`, puis `set-pauline.sh` sur le VPS ;
+  - premier envoi, puis launchd ;
+  - `harvey discover` ;
+  - date de chauffe.
+- Regarder l'aperçu de la Tour et dire « publie » ou ce qui ne va pas. À trancher :
+  - la pastille orange, qui paraît brune de jour ;
+  - Camille ou Hugo d'astreinte pour une résiliation reçue le week-end ;
+  - rejouer à l'ouverture un message envoyé à un agent fermé.
+- Toujours ouverts :
+  - Google (associer Search Console et Analytics, les 3 sujets AutoSEO, WebLex) ;
+  - la clé SSH du VPS ;
+  - « Mouvements à valider » ;
+  - OP GESTION v775 ;
+  - repasser l'examen, puis les agents en Auto ;
+  - Facebook et Instagram (rappel programmé le 31/10).
+
+# ✅ 26 OCTOBRE 2026 — LES HEURES DE TRAVAIL DES AGENTS — EN LIGNE (n° 193) ; l'écran est dans l'aperçu de la Tour v2.112 (n° 192)
 
 Justin : « je voudrais pouvoir choisir les heures de travail des agents ; je veux que ce soit comme une vraie entreprise ». Fait côté SERVEUR (la Tour n'est pas touchée, une refonte de la page Agents y est en cours ailleurs).
 - `server/agents-horaires.js` : par défaut lundi → vendredi, 9 h – 18 h, **heure de Paris**, fermé les jours fériés français (calculés, Pâques comprise) ; horaires PAR AGENT qui surchargent jour par jour ;
@@ -53,7 +99,7 @@ agent est lié à ce lien-là par rapport aux démarches qu'il fait ». Il a cho
 - **Fait** : (1) fusion et déploiement ; (2) `registre-traitements.html` cite la mesure et Google Analytics (n° 187) ; la nuit du passage à l'heure d'hiver ne
   compte plus deux fois le même jour (n° 185, jours au calendrier). **Reste (Justin)** : (3) Google Analytics : relier Search Console (Administration → Associations) ; (4) une « visite » est une ESTIMATION (une arrivée depuis l'extérieur), pas des personnes.
 
-# ✅ 26 OCTOBRE 2026 (NUIT) — « ASSISTANTE DE TEAMOP », PLUS « VIRTUELLE » — branche `claude/agents-sans-virtuel`
+# ✅ 26 OCTOBRE 2026 (NUIT) — « ASSISTANTE DE TEAMOP », PLUS « VIRTUELLE » — EN LIGNE (n° 188, déployée avec la n° 191)
 
 Justin : « je veux pas qu'il dise virtuel dans les mails, tous les agents doivent dire assistant ou assistante de TeamOP ». La signature devient
 « Léa — Assistante de TeamOP » (adresse, lien, « ajoutez … à vos contacts » inchangés), et une ligne posée par le serveur sous CHAQUE signature d'agent,
