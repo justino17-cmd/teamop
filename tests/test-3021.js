@@ -114,7 +114,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     /* Lola le samedi matin (9 h – 12 h CET = 08:00 – 11:00 UTC) */
     const lola = fab(cfgDe({ parAgent: { lola: { jours: SEMAINE_SEULE(5, '09:00', '12:00') } } })).h;
     v('⛔ Lola le samedi matin : le samedi 31 octobre ouvert de 08:00 à 11:00 UTC (9 h – 12 h), fermé après', [lola.etatA(U(2026, 10, 31, 7, 59), 'lola').ouvert, lola.etatA(U(2026, 10, 31, 8), 'lola').ouvert, lola.etatA(U(2026, 10, 31, 10, 59), 'lola').ouvert, lola.etatA(U(2026, 10, 31, 11), 'lola').ouvert], [false, true, true, false]);
-    v('…Camille, elle, ne travaille pas le samedi ; et Lola garde les horaires de l’entreprise les autres jours (mardi 9 h – 18 h)', [lola.etatA(U(2026, 10, 31, 9), 'camille').ouvert, lola.etatA(U(2026, 11, 3, 8), 'lola').ouvert, lola.etatA(U(2026, 11, 3, 17), 'lola').ouvert], [false, true, false]);
+    v('…Inès, elle, ne travaille pas le samedi (hors de la permanence) ; et Lola garde les horaires de l’entreprise les autres jours (mardi 9 h – 18 h)', [lola.etatA(U(2026, 10, 31, 9), 'ines').ouvert, lola.etatA(U(2026, 11, 3, 8), 'lola').ouvert, lola.etatA(U(2026, 11, 3, 17), 'lola').ouvert], [false, true, false]);
     v('…et avant le samedi matin, la prochaine ouverture de Lola est le samedi (pas le lundi) : vendredi 18 h → samedi 9 h', lola.etatA(U(2026, 10, 30, 17), 'lola').prochaineOuverture, U(2026, 10, 31, 8));
     /* un agent qui travaille les fériés (et sa propre fenêtre) */
     const noah = fab(cfgDe({ parAgent: { noah: { feries: false } } })).h;
@@ -130,6 +130,9 @@ console.log('\n── 3021 · les heures de travail des agents ──');
   const SAMEDI = U(2026, 10, 24, 10);                       // samedi 24 octobre 2026, 12 h à Paris
   const LUNDI = U(2026, 10, 26, 8);                         // lundi 26 octobre 2026, 9 h à Paris (heure d'hiver)
   const avecHeures = o => monter(Object.assign({ modes: TOUS, t0: SAMEDI, horaires: D => HOR({ DATA_DIR: D }) }, o));
+  /* Les scénarios écrits AVANT la permanence du week-end (attente, expiration au temps de travail) se jouent permanence éteinte : ils gardent la fermeture
+     du week-end, pas la rotation (jouée à part, section 15). */
+  const SANS_PERMANENCE = D => { fs.writeFileSync(path.join(D, 'agents-horaires.json'), JSON.stringify(Object.assign(HOR.defaut(), { permanence: Object.assign(HOR.defaut().permanence, { actif: false }) }))); return HOR({ DATA_DIR: D }); };
   const poserMail = (Z, uid, de, o) => { const m = Object.assign({ uid, dossier: 'INBOX', boite: 'b-contact', mid: '<c' + uid + '@banc-3021>', de, deNom: '', pour: 'contact@teamop.fr', objet: 'Demande de remboursement n°' + uid,
     texte: 'Bonjour, je veux un remboursement.', ts: Z.horloge.t - HEURE, auto: false, protege: false, authentifie: true }, o); Z.messages[m.boite + '|' + m.dossier + '|' + uid] = m; return { boiteId: m.boite, dossier: m.dossier, uid }; };
 
@@ -245,7 +248,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
   }
   {
     /* les tâches entre agents : celles déposées avant la fermeture attendent, la plus ancienne d'abord, et ne vieillissent pas pendant la fermeture */
-    const Z = avecHeures({ t0: U(2026, 10, 23, 15, 59) });
+    const Z = avecHeures({ t0: U(2026, 10, 23, 15, 59), horaires: SANS_PERMANENCE });
     const t1 = Z.agents.deposer('camille', 'hugo', 'verifier_paiement', { espace: 'premiere' });
     Z.horloge.t += 30000;
     const t2 = Z.agents.deposer('camille', 'hugo', 'verifier_paiement', { espace: 'seconde' });
@@ -258,7 +261,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     const p1 = Z.agents.prendre('hugo'), p2 = Z.agents.prendre('hugo');
     v('⛔ lundi 9 h : Hugo prend LA PLUS ANCIENNE d’abord', [p1 && p1.params.espace, p2 && p2.params.espace], ['premiere', 'seconde']);
     Z.nettoyer();
-    const Y = avecHeures({ t0: U(2026, 12, 1, 8) });
+    const Y = avecHeures({ t0: U(2026, 12, 1, 8), horaires: SANS_PERMANENCE });
     Y.agents.deposer('camille', 'hugo', 'verifier_paiement', { espace: 'ancienne' });
     Y.horloge.t = U(2026, 12, 8, 10);
     v('une demande jamais prise finit par expirer — mais au temps de travail : mardi 8 décembre 11 h (47 h ouvrées depuis le mardi 1er à 9 h), elle vit encore', Y.agents.comptes().tachesEnAttente, 1);
@@ -306,7 +309,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     const G = tu => Z.appeler('GET /api/monitor/agents/horaires', { tourUser: tu === undefined ? Z.PATRON : tu });
     const P = (corps, tu) => Z.appeler('POST /api/monitor/agents/horaires', { tourUser: tu === undefined ? Z.PATRON : tu, body: corps });
     const lu = (await G()).corps;
-    v('GET : les champs du contrat', Object.keys(lu).sort(), ['agents', 'astreinte', 'entreprise', 'feriesAVenir', 'fuseau', 'illisible', 'maintenant', 'ok', 'ouvertJusqua', 'parAgent', 'ts']);
+    v('GET : les champs du contrat', Object.keys(lu).sort(), ['agents', 'astreinte', 'entreprise', 'feriesAVenir', 'fuseau', 'illisible', 'maintenant', 'ok', 'ouvertJusqua', 'parAgent', 'permanence', 'ts']);
     v('…l’entreprise : sept jours (lundi → dimanche) { ouvert, debut, fin }, et « feries »', [lu.entreprise.jours.length, Object.keys(lu.entreprise.jours[0]).sort(), lu.entreprise.feries, lu.fuseau], [7, ['debut', 'fin', 'ouvert'], true, 'Europe/Paris']);
     v('…maintenant : ouvert, raison, prochaineOuverture (UTC), prochaineFermeture, et la phrase', [lu.maintenant.ouvert, lu.maintenant.raison, lu.maintenant.prochaineOuverture, lu.maintenant.prochaineFermeture, lu.maintenant.libelleOuverture], [false, 'jour_ferme', U(2026, 10, 26, 8), null, 'lundi 26 octobre à 9 h']);
     v('…parAgent vide, astreinte [max, theo], aucune ouverture forcée', [lu.parAgent, lu.astreinte, lu.ouvertJusqua], [{}, ['max', 'theo'], null]);
@@ -489,6 +492,44 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     const v2 = (await Y.validations())[0];
     v('REFUSER passe toujours, à toute heure (refuser ne coûte rien)', [(await Y.appeler('POST /api/monitor/agents/validations/decider', { tourUser: Y.PATRON, body: { id: v2.id, decision: 'refuser' } })).status, (await Y.validations())[0].statut], [200, 'refuse']);
     Z.nettoyer(); Y.nettoyer();
+  }
+
+  console.log('\n15. La permanence du week-end : deux agents Clients en rotation, jamais le même binôme deux fois de suite, Camille ou Hugo toujours là');
+  {
+    const PD = HOR.PERMANENCE_DEFAUT;
+    v('(population) la permanence par défaut : active, les quatre agents Clients, Camille et Hugo piliers, 9 h – 18 h', [PD.actif, PD.agents, PD.piliers, PD.debut, PD.fin], [true, ['camille', 'hugo', 'margaux', 'lea'], ['camille', 'hugo'], '09:00', '18:00']);
+    const B = HOR.binomes(PD);
+    v('cinq binômes possibles, chacun avec un pilier (Margaux et Léa ne sont jamais seules)', [B.length, B.every(b => b.includes('camille') || b.includes('hugo'))], [5, true]);
+    const { h } = fab();
+    const garde = []; let samedi = U(2026, 10, 31, 11);
+    for (let k = 0; k < 60; k++) { garde.push(HOR.deGarde(PD, HOR.parisParties(samedi + k * 7 * 86400000)).join('+')); }
+    v('⛔ soixante week-ends de suite : jamais deux fois le même binôme', garde.every((g, i) => i === 0 || g !== garde[i - 1]), true);
+    v('…chaque week-end deux agents, dont toujours Camille ou Hugo — une résiliation est toujours repérée', garde.every(g => g.split('+').length === 2 && /camille|hugo/.test(g)), true);
+    v('…les cinq binômes passent tous, à tour de rôle', new Set(garde.slice(0, 5)).size, 5);
+    const sam = HOR.deGarde(PD, HOR.parisParties(U(2026, 10, 31, 11))), dim = HOR.deGarde(PD, HOR.parisParties(U(2026, 11, 1, 11)));
+    v('le samedi et le dimanche d’un même week-end : le même binôme (31 octobre – 1er novembre)', [sam, dim], [['camille', 'hugo'], ['camille', 'hugo']]);
+    v('un vendredi ou un lundi : personne de garde (la semaine suit les heures de l’entreprise)', [HOR.deGarde(PD, HOR.parisParties(U(2026, 10, 30, 11))), HOR.deGarde(PD, HOR.parisParties(U(2026, 11, 2, 11)))], [[], []]);
+    v('⛔ le week-end du passage à l’heure d’été (27-28 mars 2027) : le même binôme les deux jours — compté au calendrier', HOR.deGarde(PD, HOR.parisParties(U(2027, 3, 27, 11))), HOR.deGarde(PD, HOR.parisParties(U(2027, 3, 28, 11))));
+    /* samedi 31 octobre 2026 (hiver, UTC+1) : 9 h = 08:00 UTC, 18 h = 17:00 UTC */
+    v('⛔ samedi 31 octobre : Camille (de garde) ouvre à 9 h et ferme à 18 h, heure de Paris', [h.etatA(U(2026, 10, 31, 7, 59), 'camille').ouvert, h.etatA(U(2026, 10, 31, 8), 'camille').ouvert, h.etatA(U(2026, 10, 31, 16, 59), 'camille').ouvert, h.etatA(U(2026, 10, 31, 17), 'camille').ouvert], [false, true, true, false]);
+    v('…elle agit pour de bon (pas une astreinte : elle peut écrire à un client)', h.peutAgir('camille', U(2026, 10, 31, 10)), { ok: true, horsHeures: false });
+    v('…Margaux (pas de garde ce week-end) reste fermée, l’entreprise aussi', [h.etatA(U(2026, 10, 31, 10), 'margaux').ouvert, h.etatA(U(2026, 10, 31, 10), null).ouvert], [false, false]);
+    v('⛔ la Toussaint tombe un dimanche (1er novembre) : la permanence tient quand même', h.etatA(U(2026, 11, 1, 10), 'hugo').ouvert, true);
+    v('…vendredi 18 h, la prochaine ouverture de Camille est samedi 9 h (pas lundi)', h.etatA(U(2026, 10, 30, 17), 'camille').prochaineOuverture, U(2026, 10, 31, 8));
+    const eteinte = fab(cfgDe({ permanence: Object.assign(HOR.defaut().permanence, { actif: false }) })).h;
+    v('permanence éteinte : Camille ne travaille pas le samedi', eteinte.etatA(U(2026, 10, 31, 10), 'camille').ouvert, false);
+    const vu = h.vue(U(2026, 10, 28, 10));
+    v('la vue dit qui est de garde ce week-end et le suivant', [vu.permanence.ceWeekEnd, vu.permanence.suivant, vu.agents.camille.deGarde, !!vu.agents.margaux.deGarde], [{ samedi: '2026-10-31', agents: ['camille', 'hugo'] }, { samedi: '2026-11-07', agents: ['camille', 'margaux'] }, true, false]);
+    const ok = x => !!h.appliquer(x).cfg, err = x => h.appliquer(x).erreur || '';
+    v('écrire : la vue renvoyée telle quelle passe (ceWeekEnd et suivant sont ignorés)', ok({ permanence: vu.permanence }), true);
+    v('écrire : une autre rotation (Léa et Margaux, sans pilier) passe', ok({ permanence: { actif: true, agents: ['lea', 'margaux'], piliers: [], debut: '10:00', fin: '16:00' } }), true);
+    v('refus lisibles : un seul agent, un agent inconnu, un pilier hors de la rotation, une heure mal formée, début après la fin, un champ de trop', [
+      err({ permanence: { actif: true, agents: ['camille'], piliers: [] } }), err({ permanence: { actif: true, agents: ['camille', 'pirate'], piliers: [] } }),
+      err({ permanence: { actif: true, agents: ['camille', 'hugo'], piliers: ['lea'] } }), err({ permanence: { actif: true, agents: ['camille', 'hugo'], piliers: [], debut: '9:00' } }),
+      err({ permanence: { actif: true, agents: ['camille', 'hugo'], piliers: [], debut: '18:00', fin: '09:00' } }), err({ permanence: { actif: true, agents: ['camille', 'hugo'], piliers: [], qui: 1 } })
+    ].map(e => /^permanence : /.test(e)), [true, true, true, true, true, true]);
+    const fou = fab(cfgDe({ permanence: { actif: true, agents: ['camille', 'inconnu'], piliers: [] } })).h;
+    v('⛔ un registre dont la permanence est fausse : tout s’arrête (comme toute forme inattendue)', fou.peutAgir('camille', U(2026, 10, 31, 10)).raison, 'horaires_illisibles');
   }
 
   console.log('\n14. Le VRAI serveur : la Tour règle les heures, Max répond la nuit, Camille se tait, « ouvrir maintenant » la réveille');
