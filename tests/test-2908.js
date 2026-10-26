@@ -2,7 +2,7 @@
      Les bancs 2900 à 2907 montent les modules ; ils ne voient pas ce qu'`index.js` branche ni ce que `mail.js` lit dans un VRAI en-tête. Ici : le vrai `server/index.js`, une fausse boîte IMAP
      qui porte de vrais en-têtes (`Authentication-Results`, `In-Reply-To`), un facteur SMTP qui GARDE ce qui partirait, un faux Claude — rien ne sort de la machine.
        0. Léa, Camille et Chloé sont en mode AUTO, la charte « répondre à un client » est OUVERTE (par Justin : fermée par défaut) :
-            · un prospect dont NOTRE serveur de réception a vérifié l'expéditeur (`dkim=pass` aligné) reçoit la réponse SEUL — signée « Camille — Assistante virtuelle — Équipe TeamOP » ;
+            · un prospect dont NOTRE serveur de réception a vérifié l'expéditeur (`dkim=pass` aligné) reçoit la réponse SEUL — signée « Camille — Assistante de TeamOP » ;
             · sans en-tête, avec l'en-tête d'un AUTRE serveur (forgé), ou avec un `dkim=pass` d'un autre domaine : brouillon à valider, RIEN ne part ;
             · une question dont l'offre n'a pas la réponse ne part jamais seule, et Louis en propose une entrée à Justin ;
             · `controle@` n'est jamais lue : pas d'appel à Claude, pas de réponse, pas de message dans la messagerie ;
@@ -59,7 +59,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 220 s'); console.lo
   await dormir(1500);
   const alice = (await versA('alice@exemple-2908a.fr'))[0] || { text: '', inReplyTo: '', from: { text: '' } };
   v('⛔ alice (dkim=pass aligné, authserv-id DÉCLARÉ dans la configuration) : UN courriel, en réponse à SON message', [(await versA('alice@exemple-2908a.fr')).length, alice.inReplyTo], [1, '<u1@banc-2908>']);
-  vrai('…signé par CAMILLE, assistante virtuelle — jamais « Justin »', /Camille — Assistante virtuelle — Équipe TeamOP/.test(alice.text) && !/Justin/.test(alice.text), alice.text.slice(-200));
+  vrai('…signé par CAMILLE, assistante de TeamOP — jamais « Justin »', /Camille — Assistante de TeamOP/.test(alice.text) && !/Justin/.test(alice.text), alice.text.slice(-200));
   for (const [nom, adr] of [['bob (aucun en-tête)', 'bob@exemple-2908b.fr'], ['carl (en-tête d’un serveur étranger, forgé)', 'carl@exemple-2908c.fr'], ['dora (dkim=pass d’un AUTRE domaine)', 'dora@exemple-2908d.fr'], ['emil (une question sans réponse)', 'emil@exemple-2908e.fr'], ['frank (faux « Authentication-Results: teamop.fr » écrit par lui-même)', 'frank@exemple-2908f.fr'], ['gina (faux « mx.teamop.fr; spf=pass »)', 'gina@exemple-2908g.fr']])
     v('⛔ ' + nom + ' : rien ne part', (await versA(adr)).length, 0);
   const val = await vals();
@@ -76,17 +76,17 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 220 s'); console.lo
   const adr = 'chaine@exemple-2908x.fr';
   const ins = await S.inscrire(adr, 'Toka Clim', [{ app: 'OP GESTION', formule: 'Business', statut: 'en attente', date: 1, besoin: 'planning', users: '4', metier: 'chauffage' }]);
   v('(population) le compte à adresse prouvée : première synchro 200', ins.sync && ins.sync.s, 200);
-  vrai('⛔ Léa répond SEULE à l’inscription (mode auto, charte ouverte, adresse prouvée) : un courriel part', await S.attendre(async () => (await versA(adr)).filter(m => /Léa — Assistante virtuelle/.test(m.text)).length === 1, 30000));
-  const lea = (await versA(adr)).find(m => /Léa — Assistante virtuelle/.test(m.text));
-  vrai('…signé « Léa — Assistante virtuelle — Équipe TeamOP », jamais « Justin »', lea && /Léa — Assistante virtuelle — Équipe TeamOP/.test(lea.text) && !/Justin/.test(lea.text), lea && lea.text.slice(-200));
+  vrai('⛔ Léa répond SEULE à l’inscription (mode auto, charte ouverte, adresse prouvée) : un courriel part', await S.attendre(async () => (await versA(adr)).filter(m => /Léa — Assistante de TeamOP/.test(m.text)).length === 1, 30000));
+  const lea = (await versA(adr)).find(m => /Léa — Assistante de TeamOP/.test(m.text));
+  vrai('…signé « Léa — Assistante de TeamOP », jamais « Justin »', lea && /Léa — Assistante de TeamOP/.test(lea.text) && !/Justin/.test(lea.text), lea && lea.text.slice(-200));
   const midLea = lea ? lea.messageId : '<introuvable>';
   S.poserImap(BOITE, b => b.messages.push(M(9, { from: adr, entetes: [AR('exemple-2908x.fr'), 'In-Reply-To: ' + midLea, 'References: ' + midLea], subject: 'Re: ' + (lea && lea.subject || ''), text: 'Bonjour, nous sommes quatre techniciens, surtout de l’entretien de climatisation chez des particuliers. Que nous proposez-vous ?', ts: Date.now() })));
-  vrai('⛔ Camille reconnaît la réponse à Léa (In-Reply-To), Chloé envoie SA proposition, seule — signée Chloé', await S.attendre(async () => (await versA(adr)).filter(m => /Chloé — Assistante virtuelle/.test(m.text)).length === 1, 160000));
-  const chloe = (await versA(adr)).find(m => /Chloé — Assistante virtuelle/.test(m.text)) || { text: '', subject: '', inReplyTo: '' };
+  vrai('⛔ Camille reconnaît la réponse à Léa (In-Reply-To), Chloé envoie SA proposition, seule — signée Chloé', await S.attendre(async () => (await versA(adr)).filter(m => /Chloé — Assistante de TeamOP/.test(m.text)).length === 1, 160000));
+  const chloe = (await versA(adr)).find(m => /Chloé — Assistante de TeamOP/.test(m.text)) || { text: '', subject: '', inReplyTo: '' };
   vrai('…une proposition sur mesure : le prix, la période d’essai d’une semaine, aucune accolade restée dans le texte', /25 €/.test(chloe.text) && /essai d’une semaine/.test(chloe.text) && !/\{\{|\}\}/.test(chloe.text), chloe.text.slice(0, 300));
-  vrai('…et Camille n’a pas répondu en plus (un seul courriel de Camille vers ce prospect)', (await versA(adr)).filter(m => /Camille — Assistante virtuelle/.test(m.text)).length === 0);
+  vrai('…et Camille n’a pas répondu en plus (un seul courriel de Camille vers ce prospect)', (await versA(adr)).filter(m => /Camille — Assistante de TeamOP/.test(m.text)).length === 0);
   const cl = (await S.get('/api/monitor/agents/signatures')).j;
-  vrai('(population) la Tour lit la signature de chaque agent', cl && JSON.stringify(cl).includes('Assistante virtuelle'), JSON.stringify(cl).slice(0, 200));
+  vrai('(population) la Tour lit la signature de chaque agent', cl && JSON.stringify(cl).includes('Assistante de TeamOP'), JSON.stringify(cl).slice(0, 200));
 
   /* ⛔ APRÈS la chaîne : le second passage de la veille (2 minutes) a eu lieu, donc la boîte controle@ a eu tout le temps d'être lue si quelque chose l'y autorisait. Et la POPULATION :
      la veille a bien relevé les DEUX boîtes (elle a marqué le dernier message vu de controle@) — sans cela « jamais lue » passerait sur une boîte jamais visitée. */
@@ -103,9 +103,9 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 220 s'); console.lo
   v('⛔ un collaborateur ne la CHANGE pas (403)', (await S.post('/api/monitor/agents/signatures', { agent: 'lea', role: 'Conseillère' }, S.TA)).s, 403);
   v('⛔ un rôle qui porte « Justin » est refusé (400)', (await S.post('/api/monitor/agents/signatures', { agent: 'lea', role: 'Assistante de Justin' })).s, 400);
   v('⛔ un rôle avec une adresse est refusé (400)', (await S.post('/api/monitor/agents/signatures', { agent: 'lea', role: 'écrivez à x@y.fr' })).s, 400);
-  const ok1 = await S.post('/api/monitor/agents/signatures', { agent: 'lea', role: 'Assistante virtuelle IA' });
+  const ok1 = await S.post('/api/monitor/agents/signatures', { agent: 'lea', role: 'Assistante commerciale' });
   v('le patron change le rôle de Léa : 200', ok1.s, 200);
-  vrai('…et la Tour le relit', JSON.stringify((await S.get('/api/monitor/agents/signatures')).j).includes('Assistante virtuelle IA') && JSON.stringify(avant) !== JSON.stringify((await S.get('/api/monitor/agents/signatures')).j));
+  vrai('…et la Tour le relit', JSON.stringify((await S.get('/api/monitor/agents/signatures')).j).includes('Assistante commerciale') && JSON.stringify(avant) !== JSON.stringify((await S.get('/api/monitor/agents/signatures')).j));
 
   console.log('\n3. Rien de personnel dans le journal du serveur');
   const fuite = /[a-z0-9._-]{2,}@exemple-2908|alice|bob@|carl@|dora@|emil@|INCONNU-2908|quatre techniciens|licences de mes machines/.exec(S.journal());
