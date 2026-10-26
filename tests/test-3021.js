@@ -516,6 +516,10 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     v('…Margaux (pas de garde ce week-end) reste fermée, l’entreprise aussi', [h.etatA(U(2026, 10, 31, 10), 'margaux').ouvert, h.etatA(U(2026, 10, 31, 10), null).ouvert], [false, false]);
     v('⛔ la Toussaint tombe un dimanche (1er novembre) : la permanence tient quand même', h.etatA(U(2026, 11, 1, 10), 'hugo').ouvert, true);
     v('…vendredi 18 h, la prochaine ouverture de Camille est samedi 9 h (pas lundi)', h.etatA(U(2026, 10, 30, 17), 'camille').prochaineOuverture, U(2026, 10, 31, 8));
+    /* le 15 août 2026 tombe un samedi : une entreprise ouverte le samedi matin est fermée ce jour-là (férié), le binôme de garde travaille quand même */
+    const samOuvert = defaut().entreprise; samOuvert.jours[5] = jour('09:00', '12:00');
+    const hs = fab(cfgDe({ entreprise: samOuvert })).h, g15 = HOR.deGarde(PD, HOR.parisParties(U(2026, 8, 15, 8)));
+    v('⛔ le 15 août (un samedi férié) dans une entreprise ouverte le samedi : fermée pour tous, sauf le binôme de garde (9 h – 18 h)', [hs.etatA(U(2026, 8, 15, 8), null).ouvert, hs.etatA(U(2026, 8, 15, 14), g15[0]).ouvert, hs.etatA(U(2026, 8, 22, 9), null).ouvert], [false, true, true]);
     const eteinte = fab(cfgDe({ permanence: Object.assign(HOR.defaut().permanence, { actif: false }) })).h;
     v('permanence éteinte : Camille ne travaille pas le samedi', eteinte.etatA(U(2026, 10, 31, 10), 'camille').ouvert, false);
     const vu = h.vue(U(2026, 10, 28, 10));
