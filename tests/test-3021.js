@@ -509,7 +509,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
       fs.writeFileSync(path.join(D, 'espaces.json'), '{}'); fs.writeFileSync(path.join(D, 'clients.json'), '{}');
       const vap = webpush.generateVAPIDKeys();
       fs.writeFileSync(path.join(banc, 'serveur', 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_3021' },
-        agents: { cleApi: 'sk-ant-api03-banc-3021-xxxxxxxxxxxxxxxx', reunionsAuto: false } }));
+        agents: { cleApi: 'sk-ant-banc-3021-xxxxxxxxxxxxxxxx', reunionsAuto: false } }));
       let nreq = 0;
       async function serveur() {
         const PORT = await libre(); let journal = '';
