@@ -110,7 +110,7 @@ const PROFILS = { iphone: { viewport: { width: 390, height: 844 }, deviceScaleFa
       for (const [nomP, nuit] of [['iphone', false], ['bureau', true]]) {
         const S = await ouvrir(nomP, 'ben', { nuit });
         await S.aller('#reunions');
-        await S.attendre(() => document.querySelectorAll('#sem-jours .jour.avec').length >= 3 || document.querySelector('#mois-jours'));
+        vrai('population : la bande des sept jours porte les trois jours du séminaire (« avec ») — attendue, jamais devinée', await S.attendre(() => document.querySelectorAll('#sem-jours .jour.avec').length >= 3));
         const lire = async (k) => {
           /* le k-ième jour à partir du premier jour « avec » de la bande des sept jours (le fuseau de la page est Paris, pas celui du banc) */
           const dt = await S.page.evaluate((k) => { const b = Array.from(document.querySelectorAll('#sem-jours .jour')); const i0 = b.findIndex(x => x.classList.contains('avec')); const x = b[i0 + k]; if (x) { x.click(); return x.dataset.jour; } return null; }, k);
