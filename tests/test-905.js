@@ -261,6 +261,23 @@ const MATRICE = {
   'reunions.lien':      { ok: (F) => ['POST', '/api/reunions/' + F.R + '/lien', {}], codes: [200] },
   'reunions.presence':  { ok: (F) => ['GET', '/api/reunions/' + F.R + '/presence'], codes: [200] },
   'reunions.lien_renouveler': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/lien/renouveler', {}], codes: [200] },
+  /* L'INVITÉ SANS COMPTE (26 octobre 2026, `test-3050` à `test-3059`). Le lien de l'organisateur se lit et se régénère par H ; l'aperçu et l'entrée sont PUBLICS (P : la réunion de la fixture n'a pas de salle ouverte, donc
+     l'entrée répond 409 `pas_ouverte` — la garde a passé, le geste dit non). Les neuf routes de la SESSION d'invité (G, GS) ne sont jouées ici que contre des COMPTES : la matrice dit qu'aucune session de compte, de quelque
+     profil que ce soit, n'en ouvre une seule (401) — les cellules « avec une vraie session d'invité » sont dans `test-3051`. */
+  'reunions.invite_lien':      { ok: (F) => ['POST', '/api/reunions/' + F.R + '/invite/lien', {}], codes: [200] },
+  'reunions.invite_regenerer': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/invite/regenerer', {}], codes: [200] },
+  'invite.apercu':      { ok: (F) => ['POST', '/api/invite/apercu', { jeton: F.jetonInv }], codes: [200] },
+  'invite.entrer':      { ok: (F) => ['POST', '/api/invite/entrer', { jeton: F.jetonInv, nom: 'Paul' }], codes: [409] },
+  'invite.etat':        { ok: () => ['GET', '/api/invite/etat'], codes: [200] },
+  'invite.flux':        { ok: () => ['FLUX', '/api/invite/flux'], codes: [200] },
+  'invite.redemander':  { ok: () => ['POST', '/api/invite/redemander', {}], codes: [200] },
+  'invite.quitter':     { ok: () => ['POST', '/api/invite/quitter', {}], codes: [200] },
+  'invite.ice':         { ok: () => ['GET', '/api/invite/ice'], codes: [200] },
+  'invite.signal':      { ok: (F) => ['POST', '/api/invite/signal', { a: F.A, type: 'pouls' }], codes: [200] },
+  'invite.main':        { ok: () => ['POST', '/api/invite/main', { actif: true }], codes: [200] },
+  'invite.reaction':    { ok: () => ['POST', '/api/invite/reaction', { emoji: 'pouce' }], codes: [200] },
+  'invite.media':       { ok: () => ['POST', '/api/invite/media', { micro: false }], codes: [200] },
+  'invite.visio':       { ok: () => ['POST', '/api/invite/visio', {}], codes: [200] },
 };
 
 /* Ce que chaque garde doit répondre à chaque profil : { code, error } ou 'passe'. */
@@ -291,6 +308,10 @@ const ATTENDU = {
   SJ: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: 'passe', admin: 'passe' },
   /* l'AVIS DU SERVEUR DE VISIO (LV) : la garde ne lit AUCUNE session — seulement la socket (la boucle locale) et l'absence des en-têtes que pose nginx ; ici (le banc parle au service en direct) elle laisse
      passer tout le monde, et c'est la ROUTE qui répond (sans serveur de visio : 404). Le refus de ce qui passe par nginx est joué par test-954. */
+  /* l'INVITÉ SANS COMPTE (G, GS) : sa session n'est PAS celle d'un compte (un autre cookie, un autre jeton, une autre table). Contre les six profils de cette matrice — tous des COMPTES — la réponse est la même : 401, jamais
+     un 404 ni un 403 qui dirait qu'une route d'invité existe pour eux. Un compte administrateur de n'importe quoi n'ouvre aucune route d'invité. */
+  G:  { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [401, 'session_requise'], nonmembre: [401, 'session_requise'], membre: [401, 'session_requise'], admin: [401, 'session_requise'] },
+  GS: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [401, 'session_requise'], nonmembre: [401, 'session_requise'], membre: [401, 'session_requise'], admin: [401, 'session_requise'] },
   LV: { anonyme: 'passe', invalide: 'passe', nonconfirme: 'passe', nonmembre: 'passe', membre: 'passe', admin: 'passe' },
   /* l'ADMINISTRATION (AD) : la garde ne lit AUCUNE session — la boucle locale, l'absence d'en-tête de proxy et le secret de la configuration. Ici le service n'a pas de secret : INERTE, donc le 404 de la route inconnue pour
      TOUS les profils, un administrateur de conversation compris (une session n'ouvre pas la console). */
@@ -304,7 +325,7 @@ const ATTENDU = {
   const lire = T.lireBase;
   const instantane = () => {
     const d = lire(path.join(svc.data, 'msg.db'));
-    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'demande_contact', 'journal', 'piece', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'appel', 'appel_part'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
+    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'demande_contact', 'journal', 'piece', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'appel', 'appel_part', 'invite_sans_compte', 'invite_lien_mort'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
   };
   try {
     console.log('Le manifeste et la matrice disent la MÊME chose');
@@ -399,13 +420,14 @@ const ATTENDU = {
       abo++; S.abonnementPoser(E, { client: 'cus_banc905', abonnement: 'sub_b905_' + abo, statut: 'active', places: 50, fin_periode: Date.now() + 86400000 * 20, annule: false, impaye: false }, { adopter: true });
       /* la RÉUNION de cette route (celles des routes d'avant partent : un hôte en tient 300 au plus) : Ana l'héberge, Ben et Dan sont invités */
       let R = null, codeR = null;
-      if (r.id.startsWith('reunions.')) {
+      if (r.id.startsWith('reunions.') || r.id.startsWith('invite.')) {
         const entre = r.id === 'reunions.rejoindre' || r.id === 'reunions.rejoindre_code';          // celles qui ENTRENT jouent une réunion dont la fenêtre est ouverte (dans deux minutes)
         const debutR = Date.now() + (entre ? 2 * 60000 : 3 * 86400000);
         R = S.reunionCreer({ hote: A.id, titre: 'Réunion ' + r.id, lieu: '', debut: debutR, fin: debutR + 3600000, tz: 'Europe/Paris', rep: 'aucune', rappels: [15], invites: [B.id, D.id], prochain: debutR }).id;
         codeR = S.reunionLien({ id: R, par: A.id }).code;
       }
-      const F = { A: A.id, B: B.id, C: C.id, D: D.id, G, E, CP, CV, R, codeR, codeE: inv(A.id), code, seqDe: (a) => a === A.id ? mA.seq : mB.seq, cibleDe: (a) => K[a] ? K[a].id : A.id, png: PNG };
+      const jetonInv = R ? S.inviteLien({ id: R, par: A.id, apresMs: 180 * 60000 }).jeton : null;
+      const F = { A: A.id, B: B.id, C: C.id, D: D.id, G, E, CP, CV, R, codeR, jetonInv, codeE: inv(A.id), code, seqDe: (a) => a === A.id ? mA.seq : mB.seq, cibleDe: (a) => K[a] ? K[a].id : A.id, png: PNG };
       /* la fixture des APPELS : les lignes sont libérées (la route précédente a pu laisser un appel qui sonne), et une route AP a son appel — qui sonne pour `repondre`, qui court pour les autres */
       liees = null;
       for (const p of [A, B, C, D, N]) libre(p.id);
@@ -473,7 +495,7 @@ const ATTENDU = {
         const avant = instantane();
         let code_, err_;
         if (ok[0] === 'FLUX') {
-          const f = await T.flux(c);
+          const f = await T.flux(c, { chemin: ok[1] });   // ⛔ le chemin de la LIGNE : sans lui, `invite.flux` était jouée sur `/api/flux` et rendait 200 à un compte
           code_ = f.statut; err_ = f.corps && f.corps.error; f.fermer();
         } else if (ok[0] === 'BIN') {
           const rep = await F_PIECES.deposer(c, ok[1]);

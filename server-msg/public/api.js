@@ -177,6 +177,14 @@
     pas_de_visio: 'Cette salle ne passe pas par le serveur de visio.',
     visio_indisponible: 'Le serveur de visio ne répond pas. Réessaie dans un moment.',
     verrouillee: 'L\'hôte a verrouillé la salle : personne ne peut plus y entrer.',
+    /* l'INVITÉ SANS COMPTE (26 octobre 2026, `invite.js`) : le lien, la porte, la fin — chaque refus a sa phrase */
+    pas_ouverte: 'L\'organisateur n\'est pas encore arrivé.',
+    invites_attente_max: 'Trop de personnes sans compte attendent déjà à la porte de cette salle.',
+    invites_max: 'La salle accueille déjà le maximum d\'invités sans compte.',
+    reunion_terminee: 'Cette réunion est terminée.',
+    lien_remplace: 'Ce lien a été remplacé par un autre.',
+    nom_requis: 'Tape ton nom pour entrer.',
+    refuse: 'L\'organisateur n\'a pas pu te laisser entrer.',
     exclu: 'L\'hôte t\'a retiré de cette salle : tu ne peux pas y revenir.',
     groupe_trop_grand: 'Ce groupe compte trop de monde pour un appel (douze personnes au plus avec toi). Programme une réunion, ou choisis les personnes à appeler.',
     partage_interdit: 'L\'hôte n\'autorise pas le partage d\'écran.',
@@ -305,6 +313,10 @@
     const f = o.fetch || (typeof fetch !== 'undefined' ? fetch.bind(typeof window !== 'undefined' ? window : undefined) : null);
     const ES = o.EventSource || (typeof EventSource !== 'undefined' ? EventSource : null);
     if (!f) throw new Error('fetch indisponible');
+    /* ⛔ LE FLUX ET LA VÉRIFICATION DE SESSION SE CHOISISSENT (26 octobre 2026) : la page de l'invité sans compte (`invite.js`) a son propre flux (`/api/invite/flux`) et sa propre lecture de session (`/api/invite/etat`) — le
+       reste (reconnexion, silence, refus lu à part) est le même code. Par défaut, rien ne change pour l'application. */
+    const cheminFlux = typeof o.cheminFlux === 'string' && /^\/api\/[a-z\/]+$/.test(o.cheminFlux) ? o.cheminFlux : '/api/flux';
+    const verifierSessionFlux = typeof o.verifierSession === 'function' ? o.verifierSession : null;
     /* LE NUMÉRO DE LA PAGE, envoyé avec chaque écriture (`X-OPM-Version`) : la page le pose (`window.OPMSG_VERSION_CLIENT`, lu à CHAQUE appel — elle se charge après
        ce module) ; un banc le passe en `opts.versionClient`. 0 ou absent : l'en-tête ne part pas (le service ne refuse alors que quand la Tour exige une version). */
     const numeroPage = () => {
@@ -608,6 +620,9 @@
       salleEvt: (id, k, donnees) => appel('POST', '/api/salles/' + e(id) + '/evt', { k, donnees }),
       salleAnnot: (id, d) => appel('POST', '/api/salles/' + e(id) + '/annot', d),
       salleVisio: (id) => appel('POST', '/api/salles/' + e(id) + '/visio', {}),   // le jeton d'entrée au serveur de visio (`visio.js`) : présent, depuis l'appareil lié
+      /* le lien « Invité (sans compte) » d'une réunion (l'organisateur) : le jeton, que la page met dans le fragment de `invite.html` ; le régénérer tue l'ancien */
+      lienInvite: (id) => appel('POST', '/api/reunions/' + e(id) + '/invite/lien', {}),
+      regenererLienInvite: (id) => appel('POST', '/api/reunions/' + e(id) + '/invite/regenerer', {}),
       /* la salle d'une réunion programmée, et son lien d'invité (le code va dans le FRAGMENT de l'adresse : il ne passe jamais dans les journaux du proxy) */
       rejoindreReunion: (id, type) => appel('POST', '/api/reunions/' + e(id) + '/rejoindre', type ? { type } : {}),
       lienReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/lien'),
@@ -678,7 +693,7 @@
           if (ferme) return;
           if (minuterie) { clearTimeout(minuterie); minuterie = null; }
           if (es) { try { es.close(); } catch (x) {} }
-          es = new ES(base + '/api/flux' + (dernier !== null ? '?depuis=' + dernier : ''));
+          es = new ES(base + cheminFlux + (dernier !== null ? '?depuis=' + dernier : ''));
           armer();
           es.onopen = () => { armer(); essais = 0; dernierRefus = null; if (enPanne) { enPanne = false; if (typeof g.reseau === 'function') g.reseau('ok'); } if (typeof g.ouvert === 'function') g.ouvert(); };
           for (const nom of EVENEMENTS) {
@@ -707,7 +722,7 @@
         async function sonder() {
           const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
           try {
-            const r = await f(base + '/api/flux' + (dernier !== null ? '?depuis=' + dernier : ''), { method: 'GET', headers: { Accept: 'text/event-stream' }, credentials: 'same-origin', cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+            const r = await f(base + cheminFlux + (dernier !== null ? '?depuis=' + dernier : ''), { method: 'GET', headers: { Accept: 'text/event-stream' }, credentials: 'same-origin', cache: 'no-store', signal: ctl ? ctl.signal : undefined });
             if (r.status === 200) { if (ctl) ctl.abort(); return null; }
             let j = null; try { j = await r.json(); } catch (x) { j = null; }
             const retry = parseInt(r.headers && r.headers.get ? (r.headers.get('Retry-After') || '') : '', 10) || (j && j.retry) || 0;
@@ -717,7 +732,7 @@
         async function verifierPuisReconnecter() {
           if (ferme) return;
           if (veille) { clearTimeout(veille); veille = null; }   // la reprise ci-dessous rouvre : la garde du silence repart avec le flux neuf
-          try { await api.moi(); }
+          try { await (verifierSessionFlux ? verifierSessionFlux() : api.moi()); }
           catch (x) { if (x && x.code === 'session_requise') { dit('session_requise'); return; } }
           const refus = await sonder();
           if (ferme) return;

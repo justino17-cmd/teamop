@@ -164,6 +164,25 @@ function generer(o) {
   if (!/^#[0-9a-f]{6}$/i.test(String(man.theme_color)) || !/^#[0-9a-f]{6}$/i.test(String(man.background_color))) jette('le manifeste doit porter ses deux couleurs (theme_color, background_color) en hexadécimal');
   if ((html.match(/<link rel="manifest" href="manifest\.webmanifest">/g) || []).length !== 1) jette('la page doit déclarer UNE fois son manifeste');
 
+  /* 5e bis. LA PAGE DE L'INVITÉ SANS COMPTE (`invite.html`, `invite.js` — des SOURCES comme `api.js` : le générateur ne les réécrit pas, il refuse qu'elles mentent). Elle est ouverte par un INCONNU muni d'un lien : elle ne parle qu'à
+     `/api/invite/…`, ne construit rien avec du balisage (un nom tapé par un inconnu s'écrit en `textContent`), ne range rien sur l'appareil et ne charge que des scripts de cette origine. `tests/test-3053.js` mute chaque garde. */
+  const invHtml = texte(racine, pub, 'invite.html'), invJs = texte(racine, pub, 'invite.js');
+  const invCode = sansCommentairesJs(invJs), invMarque = invHtml.replace(/<!--[\s\S]*?-->/g, ' ');
+  const invScripts = Array.from(invMarque.matchAll(/<script[^>]*\bsrc="([^"]+)"/g)).map(m => m[1]);
+  if (invScripts.join(',') !== 'api.js,source-serveur.js,invite.js') jette('invite.html : l\'ordre des scripts doit être api.js, source-serveur.js, invite.js (obtenu : ' + invScripts.join(', ') + ')');
+  if (/<script(?![^>]*\bsrc=)[^>]*>/i.test(invMarque)) jette('invite.html : un <script> en ligne (script-src \'self\' le refuserait)');
+  if (/\son[a-z]+\s*=\s*["']/i.test(invMarque)) jette('invite.html : un gestionnaire d\'événement en attribut (onclick=…)');
+  if (/(src|href|action)\s*=\s*["']\s*(https?:)?\/\//i.test(invMarque)) jette('invite.html : une ressource d\'un autre domaine est référencée');
+  const invCsp = (/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/.exec(invHtml) || [])[1] || '';
+  if (!/script-src 'self'(;|$)/.test(invCsp) || !/default-src 'none'/.test(invCsp) || !/connect-src 'self' wss:/.test(invCsp) || /unsafe-eval|unsafe-inline.*script|\*/.test(invCsp.replace(/style-src 'unsafe-inline'/, ''))) jette('invite.html : la politique de la page n\'est pas celle du service (script \'self\', rien d\'ouvert d\'autre)');
+  if (/\b(innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\s*\(|new\s+Function)\b/.test(invCode)) jette('invite.js construit du balisage ou exécute du texte : un nom tapé par un inconnu doit rester du TEXTE (textContent)');
+  if (/\b(localStorage|sessionStorage|indexedDB|document\.cookie|navigator\.serviceWorker)\b/.test(invCode)) jette('invite.js range quelque chose sur l\'appareil : un invité sans compte ne laisse rien derrière lui');
+  const invRoutes = Array.from(invCode.matchAll(/['"`](\/api\/[a-z][a-z0-9_/-]*)/g)).map(m => m[1]);
+  if (new Set(invRoutes).size < 8) jette('population : invite.js ne cite que ' + new Set(invRoutes).size + ' routes /api/ — la lecture de son code a échoué');
+  const invHors = invRoutes.filter(r => !r.startsWith('/api/invite/'));
+  if (invHors.length) jette('invite.js appelle une route qui n\'est pas de l\'invité : ' + Array.from(new Set(invHors)).join(', '));
+  if (MARQUES_DEMO.some(x => invJs.includes(x))) jette('invite.js contient de la source de démonstration');
+
   /* 5f. L'EMPREINTE DE LA VERSION : douze hexadécimaux calculés sur TOUT ce qui est servi (la page, son script, le client, le module, le service worker), posés dans le script
      de la page. Le service la lit au démarrage et la rend à `/api/config` ; une page restée ouverte compare la sienne et propose « Mettre à jour » (5 octobre 2026 : « je sais
      pas si les mises à jour se font »). Déterministe : `--verifier` recalcule la même. L'aperçu garde une empreinte VIDE (il ne parle à aucun service). */
@@ -185,7 +204,7 @@ function generer(o) {
   const fichiers = { 'index.html': Buffer.from(html, 'utf8'), 'opmsg-ui.js': Buffer.from(uiServi, 'utf8'), 'opcourrier.js': Buffer.from(courrier, 'utf8') };
   for (const i of ICONES) fichiers[i] = lire(racine, 'icons', i);
   fichiers[SON] = lire(racine, 'sons', 'courrier.mp3');   // le son des nouveaux mails du module (même origine, aucune ressource externe)
-  return { fichiers, empreinte, numero, rapport: { methodes: appelees.length, routes: routes.size, octets: Object.values(fichiers).reduce((a, b) => a + b.length, 0) }, racine, dossier: path.join(racine, pub) };
+  return { fichiers, empreinte, numero, rapport: { methodes: appelees.length, routes: routes.size, routesInvite: new Set(invRoutes).size, octets: Object.values(fichiers).reduce((a, b) => a + b.length, 0) }, racine, dossier: path.join(racine, pub) };
 }
 
 function ecrire(g) {

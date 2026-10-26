@@ -141,8 +141,11 @@ vrai('   il sert le domaine de la bêta et envoie vers le port de la bêta, en l
 const fluxBloc = (ngx.match(/location = \/api\/flux \{[\s\S]*?\n    \}/) || [''])[0];
 vrai('⛔ le flux SSE n\'est PAS retenu en tampon', /proxy_buffering off;/.test(fluxBloc) && /proxy_cache off;/.test(fluxBloc));
 vrai('⛔ et nginx ne le coupe pas à 60 s (3700 s)', /proxy_read_timeout 3700s;/.test(fluxBloc));
-vrai('⛔ X-Forwarded-For est ÉCRASÉ par l\'adresse vue par nginx, jamais complété (req.ip, trust proxy 1) — dans CHACUN des quatre blocs qui parlent au service (dépôt, lecture, flux, le reste)',
-  (ngx.match(/proxy_set_header X-Forwarded-For \$remote_addr;/g) || []).length === 4 && (ngx.match(/^\s*proxy_pass /gm) || []).length === 4 && !/proxy_add_x_forwarded_for/.test(ngx));
+const fluxInvBloc = (ngx.match(/location = \/api\/invite\/flux \{[\s\S]*?\n    \}/) || [''])[0];
+vrai('⛔ le flux de l\'INVITÉ sans compte a le sien, ni tamponné ni coupé à 60 s (sans lui, « Faire entrer » n\'arriverait qu\'au bout d\'une minute)',
+  /proxy_buffering off;/.test(fluxInvBloc) && /proxy_cache off;/.test(fluxInvBloc) && /gzip off;/.test(fluxInvBloc) && /proxy_read_timeout 3700s;/.test(fluxInvBloc));
+vrai('⛔ X-Forwarded-For est ÉCRASÉ par l\'adresse vue par nginx, jamais complété (req.ip, trust proxy 1) — dans CHACUN des cinq blocs qui parlent au service (dépôt, lecture, flux, flux de l\'invité, le reste)',
+  (ngx.match(/proxy_set_header X-Forwarded-For \$remote_addr;/g) || []).length === 5 && (ngx.match(/^\s*proxy_pass /gm) || []).length === 5 && !/proxy_add_x_forwarded_for/.test(ngx));
 /* ⛔ un motif de banc vise du CODE : les commentaires de la configuration citent les mots mêmes qu'on interdit (« proxy_request_buffering off »), on les retire avant de chercher */
 const ngxCode = ngx.replace(/^[ \t]*#.*$/gm, '');
 const piecesBloc = (ngxCode.match(/location = \/api\/pieces \{[\s\S]*?\n    \}/) || [''])[0];

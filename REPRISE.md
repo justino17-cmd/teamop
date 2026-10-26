@@ -13,6 +13,13 @@ de ligne du tout.
 
 ---
 
+# ⏳ 26 OCTOBRE 2026 — OP MESSAGES BÊTA : L'INVITÉ SANS COMPTE (branche `claude/opmsg-invite-sans-compte`, pas encore fusionnée ni déployée)
+
+Justin : « quand on va présenter l'application au client, sans qu'ils aient besoin d'installer : ça passe par le Web, ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux, et quand ça se coupe, le lien est mort. »
+- **Fait** : « Invité (sans compte) » dans la feuille d'une réunion (copier, partager, régénérer) et dans le panneau « Inviter » de la salle ; `invite.html` + `invite.js` (page sans compte, sans rien installer, jeton dans le fragment) ; le client tape son nom (+ entreprise), passe l'écran de préparation, ATTEND À LA PORTE même si l'attente est éteinte ; l'organisateur le voit « Paul — Plomberie Durand · invité sans compte » et fait entrer / refuse ; session éphémère, jamais promu, pas de partage d'écran ; le lien meurt à la fin de la salle, au renouvellement, à l'échéance (14 jours au plus) et coupe les sessions. Contrat de routes, quotas et RGPD : `design/opmessages/SERVEUR.md` (§ 3.3, « L'invité sans compte »), `registre-traitements.html` § 6. Bancs 3050 à 3057, sonde `tests/sonde-opmessages-invite.js` (client à 390 px, jour et nuit).
+- **Décisions prises sans Justin, à lui dire** : (1) pas de partage d'écran pour l'invité (403 `partage_interdit`) — à relâcher par une case de l'organisateur si Justin le veut ; (2) 5 invités au plus à la porte, 4 au plus dans la salle (`invitesAttenteMax`, `invitesSalleMax`) ; (3) le nom survit au seul rapport de présence de l'organisateur (il part avec la séance ou la réunion) — durée de conservation du rapport : celle de l'historique des appels ; (4) si la salle ne contient plus que des invités sans compte, elle FINIT (personne ne peut être promu).
+- **À FAIRE AVANT DE DÉPLOYER** : le bloc nginx `location = /api/invite/flux` (SSE, sans tampon) est dans `install-msg.sh` — il faut REJOUER l'installation sur le VPS de la bêta, sinon « Faire entrer » n'arrive qu'après le délai du tampon. Pas encore mesuré sur le vrai VPS (tout est mesuré en local, 127.0.0.1).
+
 # 👉 26 OCTOBRE 2026 (NUIT) — CE QUI EST EN LIGNE, CE QUI ATTEND JUSTIN (à lire en premier)
 
 **En service sur le serveur** :

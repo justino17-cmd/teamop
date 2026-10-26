@@ -78,7 +78,9 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
   let minuteur = null, arrete = true;
   const cle = (id, uid) => id + '|' + uid;
   const vivre = (id, uid) => { vus.set(cle(id, uid), horloge()); };
-  const reveiller = (uids) => { try { hub.reveiller({ uids: Array.from(new Set(uids)).filter(Boolean) }); } catch (e) { /* un flux qui échoue ne défait rien */ } };
+  /* ⛔ un réveil est aussi le moment où les sessions des INVITÉS SANS COMPTE d'une salle qui vient de finir se ferment : ils ont d'abord reçu l'événement de la fin (le réveil l'écrit), puis leur flux se coupe. */
+  const reveiller = (uids) => { try { hub.reveiller({ uids: Array.from(new Set(uids)).filter(Boolean) }); } catch (e) { /* un flux qui échoue ne défait rien */ } couperInvites(); };
+  function couperInvites() { for (const h of stockage.inviteCoupures()) { try { hub.fermerSession(h); } catch (e) { /* une coupure ratée n'en défait pas d'autres */ } } }
   const pousser = (uid, charge, gid) => { try { if (push) push.pousser(uid, charge, { gid }); } catch (e) { /* un push raté ne défait rien */ } };
   /* ⛔ LA CAPACITÉ D'UNE SALLE dépend de son CHEMIN, décidé à l'ouverture : la maille (4 en vidéo, 6 en audio — ce que des téléphones tiennent quand chacun envoie à chacun) ou le serveur de visio (`appels.visio` :
      12 et 25 par défaut — chacun n'envoie qu'une copie). Un appel à deux ne passe jamais par la visio : direct, il est meilleur et ne coûte rien au serveur. */
@@ -110,8 +112,8 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
     if (acces.etat !== 'sonne' && acces.etat !== 'en_cours') throw erreur('appel_fini');
     if (acces.statut !== 'present') throw erreur('appel_pas_en_cours');
     if (!acces.session || acces.session !== sessionH) throw erreur('appareil_non_lie');
-    const p = personne(moi.id);
-    const nom = p ? ((p.prenom || '') + ' ' + (p.nom || '')).trim() : '';
+    const p = personne(moi.id), ig = p ? null : stockage.inviteIdentite(moi.id);        // un invité sans compte porte le nom qu'il a tapé (et seulement lui)
+    const nom = p ? ((p.prenom || '') + ' ' + (p.nom || '')).trim() : (ig ? ig.nom : '');
     return { url: visio.url(), jeton: visio.jetonEntree({ salle: nomVisio(acces.id), identite: moi.id, nom, audioSeul: acces.type !== 'video', maxParticipants: acces.capacite || undefined }) };
   }
 
@@ -527,7 +529,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
 
   /* ── les gestes de l'hôte et des co-hôtes : le service les IMPOSE (le stockage les juge dans une transaction), cette couche réveille les pages ── */
   function apres(r) { reveiller(Object.keys(r.gids || {})); return r; }
-  function admettre({ moi, id, uid, tous }) { return apres(stockage.salleAdmettre({ id, par: moi.id, uid, tous })); }
+  function admettre({ moi, id, uid, tous }) { return apres(stockage.salleAdmettre({ id, par: moi.id, uid, tous, invitesMax: cfg.invitesSalleMax })); }
   function refuser({ moi, id, uid }) { return apres(stockage.salleRefuser({ id, par: moi.id, uid })); }
   function exclure({ moi, id, uid }) {
     const r = apres(stockage.salleExclure({ id, par: moi.id, uid }));
@@ -542,6 +544,38 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
   function terminer({ moi, id }) {
     const r = apres(stockage.salleTerminer({ id, par: moi.id }));
     if (!r.deja) { manquesDe(id, r.vue ? r.vue.type : 'audio', r.notifs); oublierSalle(id); visioFermer(id); }
+    return r;
+  }
+
+  /* ══ L'INVITÉ SANS COMPTE (`routes-invites.js`) ══════════════════════════════════════════════════════════════════════════════════════════════════
+     Les mêmes mécaniques que pour un participant ordinaire (la salle, le relais des signaux, la présence, l'admission), avec ses bornes : il arrive TOUJOURS à la porte, ne reçoit de la salle que ce qu'un admis
+     voit, n'est jamais hôte. Ici : entrer, revenir, sortir, ce que la salle lui dit d'éphémère, et fermer ses flux quand ses sessions sont coupées. */
+  const apresMsInvite = () => cfg.reunionApresMin * 60000;
+  /* ce qu'un invité lit de l'éphémère d'une salle : RIEN tant qu'il est à la porte (ni qui est là, ni leurs mains, ni leurs états), et jamais les outils de l'organisateur */
+  function etatSalleInvite(appel, id) {
+    const a = stockage.appelAcces(appel, id);
+    if (!a || a.statut !== 'present') return { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: false, annot: annotVue(null) };
+    return Object.assign(etatSalle(appel, id), { outils: false });
+  }
+  function inviteEntrer({ jeton, nom, entreprise, sessionH, essai = false }) {
+    echoir();
+    const r = stockage.inviteEntrer({ jeton, nom, entreprise, sessionH, apresMs: apresMsInvite(), attenteMax: cfg.invitesAttenteMax, essai });
+    if (essai) return r;
+    vivre(r.appel, r.id);
+    reveiller(Object.keys(r.gids));
+    return Object.assign(r, { salle: etatSalleInvite(r.appel, r.id) });
+  }
+  function inviteRedemander({ id, sessionH }) {
+    echoir();
+    const r = stockage.inviteRedemander({ id, sessionH, attenteMax: cfg.invitesAttenteMax, invitesMax: cfg.invitesSalleMax });
+    if (!r.deja) { vivre(r.appel, id); reveiller(Object.keys(r.gids)); }
+    return Object.assign(r, { salle: etatSalleInvite(r.appel, id) });
+  }
+  /* Il part. `definitif` (le bouton « Quitter ») : sa session est COUPÉE — le lien, lui, reste valable tant que la salle vit : il peut revenir en le rouvrant, et attendre de nouveau. Pas définitif (la page se ferme, se recharge) : sa
+     ligne dit `parti` et sa session VIT — rouverte, la page reprend sa place sans refaire la queue (`stockage.inviteRedemander`). */
+  function inviteQuitter({ invite, sessionH, definitif = true }) {
+    const r = quitter({ moi: { id: invite.id }, id: invite.appel, sessionH });
+    if (definitif) { const h = stockage.inviteSessionCouper(invite.id); if (h) { try { hub.fermerSession(h); } catch (e) { /* rien */ } } }
     return r;
   }
 
@@ -593,6 +627,8 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
     const t = horloge(), bilan = { echus: 0, perdus: 0 };
     try {
       bilan.echus = echoir();
+      for (const h of stockage.inviteSessionsEchues(t)) { try { hub.fermerSession(h); } catch (e) { /* rien */ } }      // une session d'invité échue (six heures) se ferme aussi
+      couperInvites();
       const vivants = new Set(), presents = new Set();
       for (const a of stockage.appelsActifs()) {
         vivants.add(a.id);
@@ -667,7 +703,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
   }
 
   return { ice, creer, creerGroupe, repondre, rejoindre, rejoindreReunion, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat, brancherFinReunion, jetonVisio, admiseVisio,
-    main, reaction, etatMien, evt, annoter, demanderCouperMicro, etatSalle, outilsOuverts, admettre, refuser, exclure, verrouiller, salleAttente, partage, rec, cohote, terminer, capaciteDe,
+    main, reaction, etatMien, evt, annoter, demanderCouperMicro, etatSalle, outilsOuverts, inviteEntrer, inviteRedemander, inviteQuitter, etatSalleInvite, couperInvites, admettre, refuser, exclure, verrouiller, salleAttente, partage, rec, cohote, terminer, capaciteDe,
     /* pour les bancs : combien de salles ont un éphémère en mémoire (jamais publié) */
     memoireSalles: () => salles.size };
 }

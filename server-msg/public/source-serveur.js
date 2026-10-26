@@ -930,7 +930,7 @@
     function membreVue(c, p) {
       const pers = personneDe(p.id), pr = c.pairs.get(p.id), e = c.salle.etats[p.id] || {};
       return {
-        id: p.id, nom: pers.nom, prenom: pers.prenom, initiales: pers.initiales, avatar: pers.avatar, photo: pers.photo,
+        id: p.id, nom: pers.nom, prenom: pers.prenom, initiales: pers.initiales, avatar: pers.avatar, photo: pers.photo, invite: pers.invite === true, entreprise: pers.entreprise || '',
         statut: p.statut, grade: p.grade || 0, etat: p.statut === 'invite' ? 'sonne' : p.statut === 'attente' ? 'attente' : (pr && pr.etat === 'connecte' ? 'connecte' : 'connexion'),
         liaison: pr ? pr.etat : 'attente', relais: !!(pr && pr.relais), reseau: pr && pr.etat === 'connecte' && p.statut === 'present' ? pr.reseau || null : null,
         camera: !!e.camera && p.statut === 'present', micro: e.micro !== false, partage: !!e.partage, main: c.salle.mains.includes(p.id), parle: c.parlent.has(p.id), epingle: c.salle.epingle === p.id,
@@ -2192,12 +2192,18 @@
       if (!p || typeof p.id !== 'string') return;
       const avant = registre.get(p.id) || {};
       registre.set(p.id, { id: p.id, prenom: p.prenom !== undefined ? p.prenom : avant.prenom, nom: p.nom !== undefined ? p.nom : avant.nom, statut: p.statut !== undefined ? p.statut : avant.statut,
-        avatar: p.avatar !== undefined ? p.avatar : avant.avatar });
+        avatar: p.avatar !== undefined ? p.avatar : avant.avatar,
+        /* un INVITÉ SANS COMPTE (26 octobre 2026) : le service le signale (`invite_sans_compte`) et dit son entreprise — la salle écrit « Paul — Plomberie Durand » et « invité sans compte » à côté */
+        invite: p.invite_sans_compte === true ? true : avant.invite === true, entreprise: typeof p.entreprise === 'string' ? p.entreprise.slice(0, 80) : (avant.entreprise || '') });
     }
     /* `avatar` d'une vue = l'indice de couleur du repli (un nombre) ; `photo` = l'adresse blob: de la photo de profil quand elle est arrivée, sinon null */
     const vueSupprimee = (id) => ({ id, nom: NOM_SUPPRIME, prenom: NOM_SUPPRIME, initiales: '?', avatar: indexAvatar(id), photo: null, supprime: true });
     const noterSupprimes = (liste) => { if (Array.isArray(liste)) for (const id of liste) if (typeof id === 'string') supprimesIds.add(id); };
-    const vuePersonne = (p) => { if (supprimesIds.has(p.id)) return vueSupprimee(p.id); const n = nomComplet(p); return { id: p.id, nom: n, prenom: (p.prenom || n).split(' ')[0] || n, initiales: initialesDe(n), avatar: indexAvatar(p.id), photo: photoPiece(p.avatar) }; };
+    const vuePersonne = (p) => {
+      if (supprimesIds.has(p.id)) return vueSupprimee(p.id);
+      const n = nomComplet(p), ent = p.invite === true && p.entreprise ? p.entreprise : '';
+      return Object.assign({ id: p.id, nom: ent ? n + ' — ' + ent : n, prenom: (p.prenom || n).split(' ')[0] || n, initiales: initialesDe(n), avatar: indexAvatar(p.id), photo: photoPiece(p.avatar) }, p.invite === true ? { invite: true, entreprise: ent } : {});
+    };
     const personne = (id) => { if (supprimesIds.has(id)) return vueSupprimee(id); const p = registre.get(id); return p ? vuePersonne(p) : null; };
     const estMoi = (id) => !!moiApi && id === moiApi.id;
     const prenomDe = (id) => estMoi(id) ? 'Vous' : supprimesIds.has(id) ? NOM_SUPPRIME : (registre.has(id) ? vuePersonne(registre.get(id)).prenom : 'Quelqu\'un');
@@ -2464,7 +2470,7 @@
       if (x.k === 'compte_rendu') {
         const ent = (n) => Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0, txt = (s, max) => typeof s === 'string' ? s.slice(0, max) : '';
         return { compteRendu: { titre: txt(x.titre, 120) || 'Réunion', debut: ent(x.debut), fin: ent(x.fin), dureeS: ent(x.duree_s),
-          presents: (Array.isArray(x.presents) ? x.presents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', dureeS: ent(p && p.duree_s) })), presentsN: ent(x.presents_n),
+          presents: (Array.isArray(x.presents) ? x.presents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', dureeS: ent(p && p.duree_s) })), presentsN: ent(x.presents_n), sansCompteN: ent(x.sans_compte_n),
           absents: (Array.isArray(x.absents) ? x.absents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', reponse: STATUTS_INVITE.indexOf(p && p.reponse) >= 0 ? p.reponse : 'attente' })), absentsN: ent(x.absents_n),
           points: (Array.isArray(x.points) ? x.points : []).slice(0, 20).map(p => ({ texte: txt(p && p.texte, 200), fait: !!(p && p.fait === true) })), documents: ent(x.documents) } };
       }
@@ -4091,6 +4097,9 @@
       rejoindreParCode: (code, type) => entrerSalle(() => moteurSalle.rejoindreParCode(code, type)),
       apercuReunion: async (code) => { const r = await A.apercuReunion(String(code || '')); const x = r && r.reunion ? r.reunion : null; return x ? { titre: String(x.titre || ''), debut: x.debut, fin: x.fin, enCours: x.en_cours === true, attente: x.attente === true, compteRequis: r.compte_requis !== false } : null; },
       lienReunion: async (id) => { const r = await pourReunion(A.lienReunion(id)); return String(r.code || ''); },
+      /* le lien « Invité (sans compte) » (26 octobre 2026) : le JETON (192 bits, 32 caractères) que la page met dans le fragment de `invite.html` — jamais rangé sur l'appareil ; le régénérer tue l'ancien */
+      lienInviteReunion: async (id) => { const r = await pourReunion(A.lienInvite(id)); return String(r.jeton || ''); },
+      regenererLienInviteReunion: async (id) => { const r = await pourReunion(A.regenererLienInvite(id)); return { jeton: String(r.jeton || ''), coupes: Number.isInteger(r.coupes) ? r.coupes : 0 }; },
       renouvelerLienReunion: async (id) => { const r = await pourReunion(A.renouvelerLienReunion(id)); return String(r.code || ''); },
       salleAction: (id, nom, args) => moteurSalle.action(id, nom, args),
       salleAnnotations: (id) => moteurSalle.annotations(id),
@@ -4103,6 +4112,10 @@
     return source;
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, creerMoteurAppels, creerMoteurSalle, serveursSurs, candidatSur, erreurLocale, initialesDe, couperNom, qualiteLiaison, qualiteVisioDe };
-  else { racine.OPMSG_creerSourceServeur = creerSourceServeur; racine.OPMSG_SOURCE = creerSourceServeur(); }
+  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, creerMoteurAppels, creerMoteurSalle, visioReel, serveursSurs, candidatSur, erreurLocale, initialesDe, couperNom, qualiteLiaison, qualiteVisioDe };
+  else {
+    racine.OPMSG_creerSourceServeur = creerSourceServeur; racine.OPMSG_SOURCE = creerSourceServeur();
+    /* le MOTEUR DE SALLE seul, pour la page de l'invité sans compte (`invite.js`) : elle n'a ni conversations, ni contacts — elle ne sait que tenir UNE salle, avec les mêmes liaisons que l'application */
+    racine.OPMSG_MOTEUR_SALLE = { creerMoteurSalle, erreurLocale, visioReel };
+  }
 })(typeof window !== 'undefined' ? window : globalThis);
