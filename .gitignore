@@ -68,6 +68,10 @@ scratchpad/leaflet/
 # Sans barre finale : `server-msg/node_modules` peut être un LIEN (les scripts de préparation en posent un
 # le temps des bancs), et un motif « dossier » (barre finale) ne retient pas un lien.
 server-msg/node_modules
+# Même piège pour `server/` et `server-courrier/` : le 26 octobre 2026, un lien `server/node_modules` posé dans un arbre de travail est parti
+# sur `main` (n° 188) — sur le VPS, il serait entré en collision avec le vrai dossier des dépendances. Déploiement annulé à temps.
+server/node_modules
+server-courrier/node_modules
 
 # /brag-slim : vidéos et captures générées (peuvent contenir des écrans réels) — jamais commitées
 brag-output/
