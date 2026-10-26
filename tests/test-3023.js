@@ -74,6 +74,8 @@ const sansBalise = h => { const bal = [...h.matchAll(/<([a-z0-9]+)([^>]*)>/gi)],
   minuitOk(Date.UTC(2026, 9, 24, 21, 0), Date.UTC(2026, 9, 24, 22, 0), '…la veille, à 23 h : minuit tombe dans l’heure suivante');
   minuitOk(Date.UTC(2027, 2, 28, 10, 0), Date.UTC(2027, 2, 28, 22, 0), '…le jour où l’heure d’été commence (journée de 23 h) : 22 h UTC');
   minuitOk(Date.UTC(2027, 2, 27, 20, 0), Date.UTC(2027, 2, 27, 23, 0), '…la veille, en hiver : 23 h UTC');
+  minuitOk(Date.UTC(2026, 9, 25, 0, 30), Date.UTC(2026, 9, 25, 23, 0), '⛔ …LA NUIT du changement, avant qu’il ait lieu (02 h 30 d’été) : le changement tombe ENTRE maintenant et minuit, 23 h UTC et pas 22 h');
+  minuitOk(Date.UTC(2027, 2, 28, 0, 30), Date.UTC(2027, 2, 28, 22, 0), '⛔ …la nuit du changement de printemps (01 h 30 d’hiver) : 22 h UTC et pas 23 h');
 
   console.log('\n2. La ligne d’état de l’onglet Équipe');
   NOW = Date.UTC(2026, 9, 26, 10, 0);
