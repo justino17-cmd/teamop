@@ -418,7 +418,7 @@ console.log('\n── 3011 · les heures de travail des agents ──');
       vrai('⛔ Justin lance une réunion un samedi soir : elle se tient (les agents parlent)', res.code === 200 && Z.recus.length > 3 && Z.conv.lire('reunions', 50).filter(m => m.de !== 'systeme').length > 3, JSON.stringify(res.corps) + ' / ' + Z.recus.length); }
     Z.nettoyer();
     /* une réunion annulée faute d'agent allumé se REPREND quand ils le sont (le créneau n'est pas consommé) — même fermés */
-    Z = await monterReunion({ t0: U(2026, 10, 23, 16), modes: {} });
+    Z = await monterReunion({ t0: U(2026, 10, 23, 16), modes: {}, horaires: D => { fs.writeFileSync(path.join(D, 'agents-horaires.json'), JSON.stringify(cfgDe({ astreinte: [] }))); return HOR({ DATA_DIR: D }); } });   // sans astreinte : personne n'est « ouvert » à 18 h
     for (const id of REG) await Z.appeler('POST /api/monitor/agents/mode', { tourUser: Z.PATRON, body: { agent: id, mode: 'arret' } });
     let r0 = Z.reu.tic();
     v('vendredi 18 h, aucun agent allumé : « Réunion annulée », sans consommer le créneau, aucun appel', [!!r0.annulee, Z.recus.length], [true, 0]);
