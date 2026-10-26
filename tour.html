@@ -2164,6 +2164,8 @@ body.plans .reg-l.cli::before{display:none}
 .ag-etat[data-e=brouillon]{color:var(--amber)}
 .ag-etat[data-e=arret],.ag-etat[data-e=externe]{color:var(--muted)}
 .ag-etat[data-e=pause]{color:var(--redText)}
+.ag-etat[data-e=ok]{color:var(--acc-txt)}
+.ag-etat[data-e=retard]{color:var(--amber)}
 .ag-aide{color:var(--muted)}
 .ag-aide b{color:var(--text);font-weight:600}
 .ag-encours[data-d=inconnu] .ag-aide{color:var(--amber)}
@@ -2186,6 +2188,23 @@ body.plans .reg-l.cli::before{display:none}
 .ag-voir>summary::after{content:"";width:7px;height:7px;margin:0 4px 0 auto;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform 160ms ease-out}
 .ag-voir[open]>summary::after{transform:rotate(45deg)}
 .ag-voir ul{margin:0 0 6px;padding-left:20px;font-size:13px;line-height:1.6;color:var(--text2)}
+/* le relevé de Pauline (v2.112) */
+.pa-ligne{margin:0;font-size:13.5px;line-height:1.45;color:var(--text2)}
+.pa-ligne b{color:var(--text);font-weight:650}
+.pa-det{border-top:1px solid var(--line)}
+.pa-n{margin-left:8px;font-weight:600;color:var(--muted);font-size:12.5px}
+.pa-liste{display:flex;flex-direction:column;margin-bottom:6px}
+.pa-r{padding:9px 0;border-top:1px solid var(--line);min-width:0}
+.pa-r:first-child{border-top:0}
+.pa-t{font-size:14px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.pa-s{margin-top:2px;font-size:12.5px;line-height:1.4;color:var(--muted);overflow-wrap:anywhere}
+.pa-e{font-weight:650;color:var(--muted)}
+.pa-e[data-t=ok]{color:var(--acc-txt)}
+.pa-e[data-t=att]{color:var(--amber)}
+.pa-e[data-t=ko]{color:var(--redText)}
+.pa-txt>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--acc-txt);font-size:13px;font-weight:600}
+.pa-corps{margin:0 0 6px;padding:10px 12px;border-radius:var(--r-3);background:var(--inset);font:inherit;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text2)}
+.pa-tout{align-self:flex-start;margin:0 0 8px}
 .ag-voir p{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
 @container aglg (min-width:640px){
   .ag-rang{grid-template-columns:minmax(0,1fr) 264px auto;grid-template-areas:"id seg parler";gap:10px 16px}
@@ -4391,7 +4410,7 @@ function setTab(t,sansAnim){
   if(t==='equipe'&&(!EQ.loaded||EQ.err)) chargerEquipe();   /* v2.88 : un échec au chargement figeait l'écran pour toute la séance */
   if(t==='journal') chargerJournal();
   /* les agents se relisent à CHAQUE ouverture : un mode ou une demande a pu changer depuis un autre appareil */
-  if(t==='agents') chargerAgents();
+  if(t==='agents'){ chargerAgents(); chargerPauline(); }
   if(t==='messagerie') messOuvrir();   /* la messagerie se relit à CHAQUE ouverture : un agent a pu écrire depuis un autre appareil */
   window.scrollTo(0,0);
   tiroirRafraichir();
@@ -10906,8 +10925,110 @@ function chargerAgents(){
   });
   return Promise.all(ps);
 }
-function agParler(id){ messOuvrirFil(id); }   /* v2.104 : « Parler à X » ouvre la Messagerie sur son fil privé (l'onglet Conversations d'avant reste, sans bouton qui y mène) */
-function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); if(s==='examen') exEntrer(); if(s==='courrier'&&AG.cour.sigLec===0&&AG.cour.conLec===0) agCourCharger(); render(); }
+function agParler(id){ messOuvrirFil(id); }
+/* ══ PAULINE : LE RELEVÉ DU MAC (Tour v2.112) ══ Justin : « un onglet dans la Tour qui me dit les recherches, les mails envoyés, tout ça ».
+   Pauline n'est pas un agent du serveur : Harvey tourne sur le Mac de Justin et lui envoie un RELEVÉ (un instantané) que `GET /api/monitor/pauline` rend (patron seul ;
+   le contrat est en tête de server/pauline.js). Cet écran LIT, il n'écrit rien et ne pilote rien.
+   · ⛔ TROIS ÉTATS comme partout : 0 pas encore lu, 1 lu (`recuLe:null` = le Mac n'a RIEN envoyé, ce n'est pas une panne), −1 on n'a pas pu savoir, −2 pont pas configuré (503 ou 404).
+     Un relevé déjà lu reste affiché quand une relecture échoue (et le dit) ; un champ absent vaut « inconnu » : il n'est PAS affiché, jamais un zéro inventé.
+   · ⛔ TOUT VIENT DE TIERS (le texte d'une réponse de prospect est arbitraire) : chaque champ passe par `esc()`, borné ; AUCUN lien n'est construit depuis eux (une adresse e-mail
+     est du texte) ; la clé d'état d'un courriel qui se déplie est un NUMÉRO de rangée, jamais un champ du relevé dans un attribut.
+   · Relu à l'ouverture de la section puis chaque minute tant qu'elle est visible ; UN SEUL appel à la fois ; l'écran ne se redessine que si le relevé a changé (sinon, seul l'âge se met à jour). */
+var PA={lec:0,d:null,err:'',echec:false,enVol:null,luLe:0,sig:'',ouvert:{},tout:{},texte:{},tri:{}};
+var PA_LISTES=[['recherches','Recherches','quand'],['entreprises','Entreprises','majLe'],['courriels','Courriels','quand'],['reponses','Réponses','quand']];
+var PA_RETARD=7200;   /* au-delà de 2 h sans relevé, on le dit en ambre */
+var PA_E_ENT={trouvee:['trouvée','n'],courriel_pret:['courriel prêt','att'],envoye:['envoyé','n'],a_repondu:['a répondu','ok'],refus:['refus','ko']};
+var PA_E_COU={en_attente:['en attente de ton accord','att'],envoye:['envoyé','n'],refuse:['refusé','ko'],repondu:['répondu','ok']};
+var PA_E_REP={interesse:['intéressé','ok'],refus:['refus','ko'],question:['question','att'],autre:['autre','n']};
+function paObj(o){ return !!o&&typeof o==='object'&&!Array.isArray(o); }
+function paT(v,n){ return esc(typeof v==='string'?v.slice(0,n):''); }
+function paNb(v){ return typeof v==='number'&&isFinite(v)&&v>=0&&Math.floor(v)===v?v:null; }
+function paMs(iso){ var t=typeof iso==='string'?Date.parse(iso):NaN; return isNaN(t)?null:t; }
+function paUnite(s){ s=Math.max(0,Math.floor(s)); return s<3600?Math.max(1,Math.floor(s/60))+' min':s<86400?Math.floor(s/3600)+' h':Math.floor(s/86400)+' j'; }
+function paDepuis(s){ return s<60?'à l’instant':'il y a '+paUnite(s); }
+function paQuand(iso){ var t=paMs(iso); if(t===null) return ''; var d=(Date.now()-t)/1000;
+  return (d>=0&&d<172800)?paDepuis(d):new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+/* l'âge du relevé : celui que le serveur a mesuré à la lecture, plus le temps passé depuis ; à défaut, la date de réception */
+function paAge(){ var d=PA.d||{}, t=paMs(d.recuLe);
+  if(typeof d.age==='number'&&isFinite(d.age)&&d.age>=0) return d.age+(Date.now()-PA.luLe)/1000;
+  return t===null?0:Math.max(0,(Date.now()-t)/1000); }
+/* [couleur, phrase] : la ligne d'état de la rangée de Pauline */
+function paEtatLigne(){
+  if(PA.lec===0) return {e:'externe',lib:'Lecture du relevé…'};
+  if(PA.lec===-2) return {e:'externe',lib:'Pont pas encore configuré'};
+  if(PA.lec!==1) return {e:'retard',lib:'Le relevé n’a pas pu être lu'};
+  if(!PA.d||!PA.d.recuLe) return {e:'externe',lib:'Pas encore de relevé — le Mac n’a rien envoyé'};
+  var a=paAge(), fin=PA.echec?' — relecture impossible':'';
+  return a>PA_RETARD?{e:'retard',lib:'Le Mac ne répond plus depuis '+paUnite(a)+fin}:{e:'ok',lib:'Dernier relevé '+paDepuis(a)+fin};
+}
+function paChiffres(r){ var j=paObj(r)?r.jour:null; if(!paObj(j)) return ''; var p=[];
+  var add=function(v,sg,pl){ var n=paNb(v); if(n!==null) p.push('<b>'+n+'</b> '+(n>1?pl:sg)); };
+  add(j.envoyes,'envoyé','envoyés'); add(j.reponses,'réponse','réponses'); add(j.refus,'refus','refus');
+  var a=paNb(j.enAttente); if(a!==null) p.push('<b>'+a+'</b> en attente de ton accord');
+  return p.length?'Aujourd’hui : '+p.join(' · '):''; }
+function paChauffe(r){ var c=paObj(r)?r.chauffe:null; if(!paObj(c)) return '';
+  var pl=paNb(c.plafondDuJour), jr=(typeof c.jour==='number'&&isFinite(c.jour)&&Math.floor(c.jour)===c.jour)?c.jour:null, ph=c.phase;
+  if(ph!=='verrou'&&ph!=='chauffe'&&ph!=='rodee'&&ph!=='sans_rampe') ph=c.debut==='2099-12-31'?'verrou':(jr!==null&&pl!==null?'chauffe':'');
+  var par=pl!==null?'plafond '+pl+' par jour':'';
+  if(ph==='verrou') return 'Chauffe : verrouillée — aucun courriel à froid ne part.';
+  if(ph==='chauffe') return 'Chauffe : '+(jr!==null?(jr<0?'pas encore commencée':'jour '+jr):'en cours')+(par?', '+par:'')+'.';
+  if(ph==='rodee') return 'Chauffe : terminée'+(par?', '+par:'')+'.';
+  if(ph==='sans_rampe') return 'Chauffe : sans rampe'+(par?', '+par:'')+'.';
+  return ''; }
+/* les éléments d'une liste, les plus récents d'abord (tri stable ; une date illisible reste à sa place, après les autres) */
+function paListe(r,k,cle){ var l=paObj(r)&&Array.isArray(r[k])?r[k].filter(paObj):[];
+  var o=l.map(function(x,i){ var t=paMs(x[cle]); return {x:x,i:i,t:t===null?-Infinity:t}; });
+  o.sort(function(a,b){ return b.t!==a.t?(b.t>a.t?1:-1):a.i-b.i; });
+  return o.map(function(y){ return y.x; }); }
+function paMot(tab,v){ var e=(typeof v==='string'&&Object.prototype.hasOwnProperty.call(tab,v))?tab[v]:['—','n']; return '<span class="pa-e" data-t="'+e[1]+'">'+e[0]+'</span>'; }
+function paNom(idx,id){ var e=(typeof id==='string'||typeof id==='number')?idx[String(id)]:null; return e?paT(e.nom,120):'entreprise inconnue'; }
+function paLigne(k,x,i,idx){
+  var q=paQuand(x.quand||x.majLe), qh=q?' · '+esc(q):'';
+  if(k==='recherches'){ var n=paNb(x.trouvees);
+    return '<div class="pa-r"><div class="pa-t">'+paT(x.metier,80)+' · '+paT(x.ville,80)+'</div><div class="pa-s">'+(n!==null?n+' trouvée'+(n>1?'s':''):'nombre inconnu')+qh+'</div></div>'; }
+  if(k==='entreprises'){ var loc=[paT(x.ville,80),paT(x.metier,80)].filter(Boolean).join(' · '), qui=[paT(x.contact,120),paT(x.email,120)].filter(Boolean).join(' · ');
+    return '<div class="pa-r"><div class="pa-t">'+paT(x.nom,120)+'</div><div class="pa-s">'+(loc?loc+' · ':'')+paMot(PA_E_ENT,x.etat)+qh+'</div>'+(qui?'<div class="pa-s">'+qui+'</div>':'')+'</div>'; }
+  if(k==='courriels'){ var tx=typeof x.texte==='string'&&x.texte?x.texte.slice(0,5000):'', cle=(typeof x.id==='string'||typeof x.id==='number')?String(x.id):'';
+    return '<div class="pa-r"><div class="pa-t">'+(paT(x.objet,200)||'(sans objet)')+'</div><div class="pa-s">'+paNom(idx,x.entrepriseId)+' · '+paMot(PA_E_COU,x.etat)+qh+'</div>'+
+      (tx?'<details class="pa-txt"'+(cle&&PA.texte[cle]?' open':'')+' ontoggle="agPaTexte('+i+',this.open)"><summary>Le texte</summary><pre class="pa-corps">'+esc(tx)+'</pre></details>':'')+'</div>'; }
+  return '<div class="pa-r"><div class="pa-t">'+paNom(idx,x.entrepriseId)+' · '+paMot(PA_E_REP,x.nature)+'</div><div class="pa-s">'+paT(x.resume,400)+(q?' · '+esc(q):'')+'</div></div>';
+}
+function agPaulineHtml(){
+  var h='<p class="ag-ext-note">Elle ne se pilote pas d’ici : ses accords d’envoi se donnent dans son tableau de bord, sur ton Mac.</p>';
+  if(PA.lec===-2&&PA.err) h+='<p class="ag-ext-note">'+esc(PA.err)+'</p>';
+  var r=PA.lec===1&&PA.d&&PA.d.recuLe&&paObj(PA.d.releve)?PA.d.releve:null;
+  if(!r) return h;
+  var ch=paChiffres(r), cf=paChauffe(r);
+  if(ch) h+='<p class="pa-ligne">'+ch+'</p>'; else h+='<p class="pa-ligne">Chiffres du jour : non transmis.</p>';
+  if(cf) h+='<p class="pa-ligne">'+esc(cf)+'</p>';
+  var idx=Object.create(null); paListe(r,'entreprises','majLe').forEach(function(e){ if(typeof e.id==='string'||typeof e.id==='number') idx[String(e.id)]=e; });
+  PA_LISTES.forEach(function(L){ var k=L[0], l=paListe(r,k,L[2]), n=l.length, vus=PA.tout[k]?l:l.slice(0,20); PA.tri[k]=vus;
+    h+='<details class="ag-voir pa-det"'+(PA.ouvert[k]?' open':'')+' ontoggle="agPaOuvrir(\''+k+'\',this.open)"><summary>'+L[1]+'<span class="pa-n">'+(n?n:'aucune')+'</span></summary>'+
+      (n?'<div class="pa-liste">'+vus.map(function(x,i){ return paLigne(k,x,i,idx); }).join('')+'</div>'+(n>vus.length?'<button type="button" class="ag-btn pa-tout" onclick="agPaTout(\''+k+'\')">Voir tout ('+n+')</button>':'')
+        :'<p class="ag-ext-note">Rien dans le relevé.</p>')+'</details>'; });
+  return h;
+}
+function agPaOuvrir(k,o){ if(Object.prototype.hasOwnProperty.call(PA.ouvert,k)||PA_LISTES.some(function(L){ return L[0]===k; })) PA.ouvert[k]=!!o; }
+function agPaTout(k){ if(!PA_LISTES.some(function(L){ return L[0]===k; })) return; PA.tout[k]=true; if(TAB==='agents'&&AG.sec==='equipe') render(); }
+/* l'état d'un texte déplié se range sous l'identifiant du courriel, retrouvé par le NUMÉRO de rangée (jamais un champ du relevé dans un attribut) */
+function agPaTexte(i,o){ var x=(PA.tri.courriels||[])[i]; if(x&&(typeof x.id==='string'||typeof x.id==='number')) PA.texte[String(x.id)]=!!o; }
+function paMajAge(){ var e=document.getElementById('pa-etat'); if(!e) return; var x=paEtatLigne(); e.textContent=x.lib; e.setAttribute('data-e',x.e); }
+function paApres(change){ if(TAB==='agents'&&AG.sec==='equipe'){ if(change) render(); else paMajAge(); } }
+function chargerPauline(){
+  if(MYROLE!=='patron') return Promise.resolve();
+  if(PA.enVol) return PA.enVol;
+  PA.enVol=apiGet('/api/monitor/pauline').then(function(d){ PA.enVol=null; if(!d) return;
+    if(!paObj(d)||d.ok!==true){ if(PA.lec!==1){ PA.lec=-1; PA.err=''; } else PA.echec=true; return paApres(true); }
+    var sig=JSON.stringify([d.recuLe||null,d.releve||null]), chg=PA.lec!==1||PA.sig!==sig||PA.echec;
+    PA.d=d; PA.lec=1; PA.err=''; PA.echec=false; PA.sig=sig; PA.luLe=Date.now(); paApres(chg);
+  }).catch(function(e){ PA.enVol=null;
+    if(e&&(e.status===503||e.status===404)){ PA.lec=-2; PA.err=(e.status===503&&e.corps)?String(e.corps).slice(0,200):''; PA.d=null; PA.sig=''; }
+    else if(PA.lec===1) PA.echec=true; else PA.lec=-1;
+    paApres(true); });
+  return PA.enVol;
+}
+setInterval(function(){ if(document.visibilityState==='visible'&&TAB==='agents'&&AG.sec==='equipe') chargerPauline(); },60000);   /* v2.104 : « Parler à X » ouvre la Messagerie sur son fil privé (l'onglet Conversations d'avant reste, sans bouton qui y mène) */
+function agSec(s){ AG.sec=s; if(s==='dossiers'&&AG.dos.lec===0) agDosCharger(AG.dos.q); if(s==='examen') exEntrer(); if(s==='courrier'&&AG.cour.sigLec===0&&AG.cour.conLec===0) agCourCharger(); if(s==='equipe'&&typeof chargerPauline==='function') chargerPauline(); render(); }
 /* ── les CONVERSATIONS : un fil privé par agent, un fil « Équipe » ; trois états comme partout (0 pas lu, 1 lu, −1 on n'a pas pu savoir) */
 function agCvCharger(){
   apiGet('/api/monitor/conversations').then(function(d){ if(!d) return;
@@ -11494,7 +11615,7 @@ function vueAgents(){
     return '<button type="button" role="tab" class="'+(AG.sec===o[0]?'on':'')+'" aria-selected="'+(AG.sec===o[0])+'" onclick="agSec(\''+o[0]+'\')">'+o[1]+
       (o[0]==='valid'&&n?'<span class="ag-n">'+n+'</span>':'')+(o[0]==='conv'&&AG.cv.nonLus?'<span class="ag-n">'+AG.cv.nonLus+'</span>':'')+'</button>'; }).join('')+'</div>';
   if(AG.sec==='equipe'){
-    var c='';
+    var c='', pe=typeof paEtatLigne==='function'?paEtatLigne():{e:'externe',lib:'Relevé pas encore branché'};
     if(AG.cleOk!==true&&AG.agents.some(function(a){ return a.cerveau===true; })) h+='<div class="note" style="margin-top:12px">⚠️ La clé Anthropic n’est pas posée : les agents branchés ne répondent pas encore.</div>';
     AG.agents.forEach(function(a){
       if(a.couche!==c){ if(c) h+='</div>'; c=a.couche; h+='<div class="ag-couche">'+esc(c)+'</div><div class="ag-lg">'; }
@@ -11512,9 +11633,8 @@ function vueAgents(){
     if(c) h+='</div>';
     /* Pauline ne vit pas sur le serveur : elle tourne sur le Mac de Justin (avec Harvey). Aucun segmenté — elle ne se pilote pas d'ici — et AUCUN chiffre tant que le pont Mac → serveur n'existe pas. */
     h+='<div class="ag-couche">Prospection — sur ton Mac</div><div class="ag-lg"><article class="ag-rang ag-ext plus" data-etat="externe" data-ext="pauline"><div class="ag-rg-id">'+agAvatar('pauline','Pauline','ag-av')+'<div class="ag-rg-tx"><h3>Pauline</h3>'+
-      '<div class="ag-role">Prospection (Harvey, sur ton Mac)</div><div class="ag-encours" data-d="externe"><span class="ag-etat" data-e="externe">Relevé pas encore branché</span></div></div></div>'+
-      '<div class="ag-rg-plus"><p class="ag-ext-note">Elle ne se pilote pas d’ici : ses accords d’envoi se donnent dans son tableau de bord, sur ton Mac.</p>'+
-      '<details class="ag-voir"><summary>Ce que tu verras ici</summary><ul><li>Les recherches lancées</li><li>Les entreprises trouvées</li><li>Les courriels envoyés</li><li>Les réponses reçues</li><li>Les chiffres du jour</li></ul><p>Rien ne s’affiche tant que le Mac ne transmet pas de relevé au serveur.</p></details></div></article></div>';
+      '<div class="ag-role">Prospection (Harvey, sur ton Mac)</div><div class="ag-encours" data-d="externe"><span class="ag-etat" id="pa-etat" data-e="'+pe.e+'">'+esc(pe.lib)+'</span></div></div></div>'+
+      '<div class="ag-rg-plus">'+(typeof agPaulineHtml==='function'?agPaulineHtml():'<p class="ag-ext-note">Elle ne se pilote pas d’ici : ses accords d’envoi se donnent dans son tableau de bord, sur ton Mac.</p>')+'</div></article></div>';
     h+='<div class="encart bloc" style="margin-top:16px"><div class="tx" style="margin-top:0">Un agent neuf est à l’arrêt. Il passe par « brouillon » avant « auto », et ne répond dans « Parler » qu’à partir de « brouillon ». Les dépenses ne se lisent pas ici : voir la Console Anthropic (espace « Agents Team OP », limite 195 $).</div></div>';
   } else if(AG.sec==='valid'){
     if(AG.lec.validations!==1) h+=AG.lec.validations===0?acSquel():agIllisible('Les demandes n’ont pas pu être lues — on ne sait pas s’il y en a. Réessaie dans un instant.');
