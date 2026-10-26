@@ -24,7 +24,7 @@ Justin : « tous mes agents doivent avoir une photo de profil, j'aime bien mettr
 - ⛔ Pauline (Harvey, sur le Mac de Justin) n'est PAS dans la Tour : sa photo reste hors du dépôt. Et une photo d'une VRAIE personne
   (Justin en a proposé une, trouvée en ligne) ne devient jamais le visage d'un agent qui écrit à des prospects.
 
-# 🔶 25 OCTOBRE 2026 (SOIR) — L'AUDIENCE DU SITE DANS LA TOUR, ET LE BLOG SUR teamop.fr — branche `claude/audience`, ATTEND LA FUSION DE JUSTIN
+# ✅ 25 OCTOBRE 2026 (SOIR) — L'AUDIENCE DU SITE DANS LA TOUR, ET LE BLOG SUR teamop.fr — EN LIGNE (n° 184, heure d'hiver n° 185, registre n° 187, fusionnés le 25-26/10)
 
 Justin : « le nombre de personnes qui a cliqué sur les liens, comment ils sont venus, par quel site […] en temps réel, un peu comme BabyLoveGrowth » ; « voir si cet
 agent est lié à ce lien-là par rapport aux démarches qu'il fait ». Il a choisi « les deux » (Google Analytics ET un tableau à nous) et le marquage des liens des agents.
@@ -35,8 +35,17 @@ agent est lié à ce lien-là par rapport aux démarches qu'il fait ». Il a cho
   posé à côté de `cookies.js` par `site-marine.js` et `blog.js` ; onglet **Audience** de la Tour v2.110 (section « Site », patron seul, relu toutes les 30 s) ;
   `confidentialite.html` § 2 le dit ; la signature de Léa, Camille et Chloé porte `https://teamop.fr/?de=<agent>` (`lienSite`), compté « Courriel de Léa ».
   Banc : `test-3002` (43 contrôles, 9 mutations mordent), dans `scripts/bancs-serveur.liste`.
-- **Reste** : (1) la fusion par Justin, qui déploie le serveur ; (2) `registre-traitements.html` ne cite ni Google Analytics ni cette mesure — à ajouter ;
-  (3) Google Analytics : relier Search Console (Administration → Associations) ; (4) une « visite » est une ESTIMATION (une arrivée depuis l'extérieur), pas des personnes.
+- **Fait** : (1) fusion et déploiement ; (2) `registre-traitements.html` cite la mesure et Google Analytics (n° 187) ; la nuit du passage à l'heure d'hiver ne
+  compte plus deux fois le même jour (n° 185, jours au calendrier). **Reste (Justin)** : (3) Google Analytics : relier Search Console (Administration → Associations) ; (4) une « visite » est une ESTIMATION (une arrivée depuis l'extérieur), pas des personnes.
+
+# ✅ 26 OCTOBRE 2026 (NUIT) — « ASSISTANTE DE TEAMOP », PLUS « VIRTUELLE » — branche `claude/agents-sans-virtuel`
+
+Justin : « je veux pas qu'il dise virtuel dans les mails, tous les agents doivent dire assistant ou assistante de TeamOP ». La signature devient
+« Léa — Assistante de TeamOP » (adresse, lien, « ajoutez … à vos contacts » inchangés), et une ligne posée par le serveur sous CHAQUE signature d'agent,
+`MENTION_IA` = « Message préparé par un assistant automatique de TeamOP. » (règlement européen sur l'IA, art. 50 : on dit à la personne qu'elle échange
+avec une IA). ⛔ La mention a quitté le RÔLE : un rôle réglé dans la Tour (« Directrice commerciale ») ne la retire plus ; « virtuel » est refusé dans
+un rôle, et un rôle rangé avec lui retombe sur le défaut. Les consignes de Léa, Camille, Chloé disent « jamais virtuelle » et « oui » franc à qui demande
+s'il parle à une IA. Pauline (Harvey, Mac) : `role: "assistante de TeamOP"` et la même phrase dans son pied de page.
 
 # 🔶 25 OCTOBRE 2026 — LES AGENTS : L'EXAMEN DOIT TOURNER EN BOUCLE, PAR CLAUDE CODE, PLUS PAR JUSTIN — branche `claude/examen-25-10`
 
@@ -54,7 +63,7 @@ l'examen — un échec corrigé, un examen, une demi-journée.
 
 ---
 
-# 🔶 24 OCTOBRE 2026 (SOIR) — LE BLOG RAPATRIÉ À teamop.fr/blog/ — branche `claude/blog-maison`, ATTEND LA FUSION DE JUSTIN
+# ✅ 24 OCTOBRE 2026 (SOIR) — LE BLOG RAPATRIÉ À teamop.fr/blog/ — n° 176 fusionné le 25/10, redirection Caddy faite, plan du site soumis
 
 Justin, 24 octobre 2026 : BabyLoveGrowth (blog.teamop.fr) demandait 600 € — « toi tu peux faire ce que BabyLoveGrowth fait », « bah go le
 faire, je vais pas payer ». Son abonnement BLG est inactif (rien n'a été prélevé) ; les quatre articles du 21 au 24 octobre y sont encore en ligne.
@@ -64,9 +73,14 @@ faire, je vais pas payer ». Son abonnement BLG est inactif (rien n'a été pré
 - **Le site** : le pied mène à `/blog/` (plus à blog.teamop.fr), le plan du site liste le blog (`sitemap()` appelle `entreesSitemap()`),
   `llms.txt` le cite, l'assemblage publie `blog/`. Retirés des articles : les encarts de BLG, le téléphone (règle du site : contact@ seul),
   le crédit « Written with BabyLoveGrowth ». Banc : `tests/test-3000.js`.
-- **Reste ouvert** : (1) la fusion par Justin ; (2) **blog.teamop.fr** pointe toujours chez BLG (CNAME OVH) : une redirection OVH vers
-  `https://teamop.fr/blog/` évitera les liens morts quand BLG coupera — geste de Justin chez OVH ; (3) Search Console : soumettre le
-  nouveau plan du site après la fusion ; (4) la tâche planifiée « Article du blog » (deux par semaine) écrit chaque article dans une demande
+- **Fait (25/10)** : n° 176 fusionné ; BabyLoveGrowth résilié ; blog.teamop.fr → CNAME vers api.teamop.fr, bloc Caddy (`/etc/caddy/Caddyfile`,
+  sauvegarde `Caddyfile.avant-blog`) : `/blog/<slug>` → 301 vers `https://teamop.fr/blog/<slug>.html`, le reste → `/blog/` ; Search Console : propriété
+  vérifiée, `sitemap.xml` envoyé (27 pages). Article bon-d-intervention publié (n° 179).
+- **Reste ouvert** : (1) avec Justin, connecté à SON compte : demander l'indexation de `/blog/` et de `/blog/bon-d-intervention.html`, et relier
+  Search Console à Google Analytics (réglage de compte : seulement avec son accord) ; (2) décisions de Justin : les trois sujets repérés chez AutoSEO
+  (« logiciel de gestion pour entreprise de terrain : le guide », « … quels critères choisir », « … comprendre les prix » — NE PAS souscrire à
+  AutoSEO, leurs liens de réseau sont sanctionnés par Google) à ajouter à `SUJETS.md` après « gestion de stock camionnette » ; garder ou retirer
+  la source WebLex de bon-d-intervention (Cass. 1re civ., 14 nov. 2018, n° 17-21.697, non relue sur un site officiel) ; (4) la tâche planifiée « Article du blog » (deux par semaine) écrit chaque article dans une demande
   de fusion — Justin relit et fusionne, rien ne part sans lui ; (5) Facebook / Instagram : partage des articles après la liaison du 31 octobre.
 
 # ✅ 24 OCTOBRE 2026 (SOIR) — NODEMAILER 10.2.1 ET MAILPARSER 3.12.4 — branche `claude/nodemailer-10-2`

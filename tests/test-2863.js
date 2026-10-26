@@ -249,7 +249,7 @@ const poser = (Z, o) => { const m = msg(Object.assign({ ts: Z.horloge.t - 360000
   v('⛔ le facteur reçoit UN courriel, à l’EXPÉDITEUR du mail reçu', rep.length, 1);
   const r1 = rep[0] || { inReplyTo: '', references: [], text: '' };
   v('…avec In-Reply-To et References du mail d’origine', [r1.inReplyTo, [].concat(r1.references || [])], ['<u1@banc-2863>', ['<u1@banc-2863>']]);
-  vrai('…le texte du brouillon, puis la signature DE CAMILLE (pas celle du Courrier de Justin)', /Bien cordialement,\s+Camille — Assistante virtuelle — Équipe TeamOP\s+contact@banc-courrier\.fr · https:\/\/teamop\.fr\/\?de=camille/.test(String(r1.text)) && !/L'équipe TEAM OP/.test(String(r1.text)), String(r1.text).slice(-200));
+  vrai('…le texte du brouillon, puis la signature DE CAMILLE (pas celle du Courrier de Justin)', /Bien cordialement,\s+Camille — Assistante de TeamOP\s+contact@banc-courrier\.fr · https:\/\/teamop\.fr\/\?de=camille/.test(String(r1.text)) && !/L'équipe TEAM OP/.test(String(r1.text)), String(r1.text).slice(-200));
   vrai('…le message d’origine passe « répondu » dans la boîte, et une copie va dans « Envoyés »', await S.attendre(async () => (S.imap().boites[BOITE].messages.find(m => m.uid === 1 && m.dossier === 'INBOX').flags || []).includes('\\Answered'), 6000) && (S.imap().boites[BOITE].ajouts || []).length >= 1);
   vrai('…et la lecture de Camille n’avait rien marqué « lu » (seul « répondu » a été posé)', !(S.imap().boites[BOITE].messages.find(m => m.uid === 1).flags || []).includes('\\Seen'));
   const dec2 = await S.post('/api/monitor/agents/validations/decider', { id: valP.id, decision: 'accepter', empreinte: br.empreinte });

@@ -35,7 +35,7 @@ const COURRIEL = (m, extra) => Object.assign({ agent: 'hugo', a: 'alpha@exemple-
   let val = (await m.validations('en_attente'))[0];
   v('la validation est un « courrier_agent », son résumé est composé par le code (sans adresse, avec le dossier)', [val.type, /DOS-000001/.test(val.resume), /@/.test(val.resume), val.agent], ['courrier_agent', true, false, 'hugo']);
   let doc = await m.lireDoc(val.params.ref);
-  v('l\'aperçu : le destinataire, l\'objet, le texte, la signature de Hugo', [doc.a, doc.objet === MAIL.objet, doc.texte === MAIL.texte, doc.signature], ['alpha@exemple-2911.fr', true, true, 'Hugo — Assistant virtuel — Équipe TeamOP\ncontact@teamop.fr · teamop.fr']);
+  v('l\'aperçu : le destinataire, l\'objet, le texte, la signature de Hugo', [doc.a, doc.objet === MAIL.objet, doc.texte === MAIL.texte, doc.signature], ['alpha@exemple-2911.fr', true, true, 'Hugo — Assistant de TeamOP\ncontact@teamop.fr · teamop.fr\nMessage préparé par un assistant automatique de TeamOP.']);
   let acc = await m.decider(val.id, 'accepter', {});
   v('⛔ sans l\'empreinte du texte lu : 409, la validation reste en attente, rien ne part', [acc.status, (await m.validations('en_attente')).length, m.envoyes.length], [409, 1, 0]);
   acc = await m.decider(val.id, 'accepter', { empreinte: 'ancienne' });
@@ -43,7 +43,7 @@ const COURRIEL = (m, extra) => Object.assign({ agent: 'hugo', a: 'alpha@exemple-
   acc = await m.decider(val.id, 'accepter', { empreinte: doc.empreinte });
   v('avec l\'empreinte du texte lu : le courriel part, une fois', [acc.status, acc.corps.validation.execution, m.envoyes.length], [200, 'ok', 1]);
   const e1 = m.envoyes[0];
-  v('…à l\'adresse posée par le code, par la boîte contact, avec la signature de Hugo (pas celle du Courrier)', [e1.a, e1.boiteId, e1.signature, e1.objet === MAIL.objet], ['alpha@exemple-2911.fr', 'b-contact', 'Hugo — Assistant virtuel — Équipe TeamOP\ncontact@teamop.fr · teamop.fr', true]);
+  v('…à l\'adresse posée par le code, par la boîte contact, avec la signature de Hugo (pas celle du Courrier)', [e1.a, e1.boiteId, e1.signature, e1.objet === MAIL.objet], ['alpha@exemple-2911.fr', 'b-contact', 'Hugo — Assistant de TeamOP\ncontact@teamop.fr · teamop.fr\nMessage préparé par un assistant automatique de TeamOP.', true]);
   v('une seconde acceptation de la même validation : refusée, rien ne repart', [(await m.decider(val.id, 'accepter', { empreinte: doc.empreinte })).status, m.envoyes.length], [409, 1]);
   vrai('le journal garde l\'envoi, sans adresse', m.journal().some(e => e.action === 'courriel envoyé' && e.resultat === 'ok') && !m.journal().some(e => /alpha@exemple/.test(JSON.stringify(e))));
 
@@ -58,7 +58,7 @@ const COURRIEL = (m, extra) => Object.assign({ agent: 'hugo', a: 'alpha@exemple-
   v('mode « auto » mais la charte « répondre seul » est FERMÉE (le défaut) : une validation, rien ne part', [r.voie, m.envoyes.length], ['validation', 0]);
   await m.appeler('POST /api/monitor/agents/charte', { tourUser: m.PATRON, body: { gestes: { repondre_client: { auto: true } } } });
   r = await m.documents.courrier({ agent: 'emma', a: 'q@exemple-2911.fr', objet: creneaux.objet, texte: creneaux.texte, source: 'rendez_vous', dossier: 'DOS-000002', porte: 'repondre_client' });
-  v('la charte ouverte (lue à l\'instant) : le courriel part seul, signé Emma', [r.voie, m.envoyes.length, m.envoyes[0] && m.envoyes[0].signature.split('\n')[0]], ['direct', 1, 'Emma — Assistante virtuelle — Équipe TeamOP']);
+  v('la charte ouverte (lue à l\'instant) : le courriel part seul, signé Emma', [r.voie, m.envoyes.length, m.envoyes[0] && m.envoyes[0].signature.split('\n')[0]], ['direct', 1, 'Emma — Assistante de TeamOP']);
   m = B({ modes: { margaux: 'auto' } });
   const rel = OPS.relanceImpaye({ etape: 3, facture: { numero: 'AB-1', montantEur: 15 }, url: 'https://invoice.stripe.com/i/acct_x/live_1' });
   r = await m.documents.courrier({ agent: 'margaux', a: 'alpha@exemple-2911.fr', objet: rel.objet, texte: rel.texte, source: 'relance', dossier: 'DOS-000001', autorises: rel.autorises, porte: 'relancer_impaye' });
@@ -71,10 +71,10 @@ const COURRIEL = (m, extra) => Object.assign({ agent: 'hugo', a: 'alpha@exemple-
      le courriel de Hugo ; sans registre branché, la signature par défaut du module est la même mise en forme. */
   m = B({ modes: { hugo: 'auto' }, signatures: true });
   r = await m.documents.courrier(COURRIEL(m));
-  v('avec le registre branché : la signature de Hugo est celle du registre (rôle par défaut), l\'adresse de la boîte qui envoie', [r.voie, m.envoyes[0] && m.envoyes[0].signature], ['direct', 'Hugo — Assistant virtuel — Équipe TeamOP\ncontact@teamop.fr · teamop.fr']);
-  const reglage = await m.appeler('POST /api/monitor/agents/signatures', { tourUser: m.PATRON, body: { agent: 'hugo', role: 'Assistant virtuel de la facturation' } });
+  v('avec le registre branché : la signature de Hugo est celle du registre (rôle par défaut), l\'adresse de la boîte qui envoie', [r.voie, m.envoyes[0] && m.envoyes[0].signature], ['direct', 'Hugo — Assistant de TeamOP\ncontact@teamop.fr · teamop.fr\nMessage préparé par un assistant automatique de TeamOP.']);
+  const reglage = await m.appeler('POST /api/monitor/agents/signatures', { tourUser: m.PATRON, body: { agent: 'hugo', role: 'Assistant de la facturation' } });
   r = await m.documents.courrier(COURRIEL(m, { a: 'zeta@exemple-2911.fr' }));
-  v('⛔ Justin règle le rôle de Hugo dans la Tour : le courriel SUIVANT le porte (une seule signature pour toute l\'équipe)', [reglage.status, r.voie, m.envoyes[1] && m.envoyes[1].signature], [200, 'direct', 'Hugo — Assistant virtuel de la facturation — Équipe TeamOP\ncontact@teamop.fr · teamop.fr']);
+  v('⛔ Justin règle le rôle de Hugo dans la Tour : le courriel SUIVANT le porte (une seule signature pour toute l\'équipe)', [reglage.status, r.voie, m.envoyes[1] && m.envoyes[1].signature], [200, 'direct', 'Hugo — Assistant de la facturation — Équipe TeamOP\ncontact@teamop.fr · teamop.fr\nMessage préparé par un assistant automatique de TeamOP.']);
   r = await m.documents.courrier(COURRIEL(m, { agent: 'lola', a: 'eta@exemple-2911.fr' }));
   v('⛔ un agent hors des quatre de la gestion n\'écrit pas par ce chemin, même si le registre sait le signer', [r.ok, m.envoyes.length], [false, 2]);
 
@@ -189,7 +189,7 @@ const COURRIEL = (m, extra) => Object.assign({ agent: 'hugo', a: 'alpha@exemple-
   v('Hugo la prend et la traite', [t.prises, t.faites], [1, 1]);
   v('Stripe est appelé UNE fois, pour la bonne entreprise', m.appelsStripe.filter(x => x[0] === 'resilier'), [['resilier', 'alpha-proprete']]);
   const e2 = m.envoyes[0];
-  v('l\'accusé part à l\'adresse du COMPTE (posée par le code), signé Hugo, avec la date de fin', [m.envoyes.length, e2.a, e2.signature.split('\n')[0], /12 novembre 2026/.test(e2.texte)], [1, 'alpha@exemple-2911.fr', 'Hugo — Assistant virtuel — Équipe TeamOP', true]);
+  v('l\'accusé part à l\'adresse du COMPTE (posée par le code), signé Hugo, avec la date de fin', [m.envoyes.length, e2.a, e2.signature.split('\n')[0], /12 novembre 2026/.test(e2.texte)], [1, 'alpha@exemple-2911.fr', 'Hugo — Assistant de TeamOP', true]);
   vrai('…sans le mot remboursement ni arrêt immédiat', !/rembours|immédiat/i.test(e2.texte));
   const tout = JSON.stringify([m.fil('hugo'), m.fil('clients')]);
   vrai('Justin est prévenu dans le fil de Hugo (« important »), avec le dossier et la date', m.fil('hugo').some(x => x.de === 'hugo' && /DOS-000001/.test(x.texte) && /12 novembre 2026/.test(x.texte) && /aucun remboursement/.test(x.texte)));
@@ -211,7 +211,7 @@ const COURRIEL = (m, extra) => Object.assign({ agent: 'hugo', a: 'alpha@exemple-
   v('une seconde demande n\'ouvre pas une seconde validation', (await m.validations('en_attente')).length, 1);
   acc = await m.decider(val.id, 'accepter', {});
   v('Justin accepte : Hugo programme la fin chez Stripe', [acc.status, acc.corps.validation.execution, m.appelsStripe.filter(x => x[0] === 'resilier')], [200, 'ok', [['resilier', 'alpha-proprete']]]);
-  v('…et l\'accusé part (Justin vient de valider le geste), signé Hugo', [m.envoyes.length, m.envoyes[0] && m.envoyes[0].signature.split('\n')[0]], [1, 'Hugo — Assistant virtuel — Équipe TeamOP']);
+  v('…et l\'accusé part (Justin vient de valider le geste), signé Hugo', [m.envoyes.length, m.envoyes[0] && m.envoyes[0].signature.split('\n')[0]], [1, 'Hugo — Assistant de TeamOP']);
 
   console.log('\n10. Hugo : ce qu\'il ne devine pas');
   for (const [etat, mot] of [['rien', /aucun abonnement actif/], ['doute', /pas sûrement à lui/], ['illisible', /ne peux pas lire Stripe/], ['echec', /Stripe a refusé/], ['inconnu', /introuvable/]]) {

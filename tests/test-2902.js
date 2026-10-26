@@ -96,7 +96,7 @@ const A = (lignes, de, serveurs) => MAIL.authentification(lignes, de, serveurs |
     let r = await Z.brouillons.deposer(base(Z, 1));
     v('TOUT réuni (auto, charte ouverte, contrôle bon, expéditeur authentifié) : envoi DIRECT', [r.voie, Z.envoyes.length, Z.fichierJson('agents-brouillons.json')[r.ref].etat, (await Z.validations()).length], ['direct', 1, 'envoye', 0]);
     vrai('…journalisé, avec le fait que le contrôle était passé', Z.journal().some(e => e.action === 'réponse envoyée sans validation' && /contrôle qualité bon/.test(e.detail)));
-    vrai('…et le courriel envoyé est le texte rangé, signé par Léa', Z.envoyes[0].texte === 'Bonjour,\n\nTexte.\n\nBien cordialement,' && /^Léa — Assistante virtuelle/.test(Z.envoyes[0].signature));
+    vrai('…et le courriel envoyé est le texte rangé, signé par Léa', Z.envoyes[0].texte === 'Bonjour,\n\nTexte.\n\nBien cordialement,' && /^Léa — Assistante de TeamOP/.test(Z.envoyes[0].signature));
 
     const cas = [
       ['le contrôle dit « à revoir »', { controle: { etat: 'a_revoir', fautes: ['tutoiement'], juge: false } }, /contrôle a revoir/],
@@ -169,7 +169,7 @@ const A = (lignes, de, serveurs) => MAIL.authentification(lignes, de, serveurs |
     v('⛔ Camille : un courriel NON authentifié (rien ne le prouve) : un brouillon pour Justin, même en mode auto', [c.depose, c.voie, Z.envoyes.length], [true, 'validation', 1]);
     c = await Z.camille.surNouveauMessage(poser({ uid: 2, mid: '<ok@x>', authentifie: true, de: 'sur@exemple-2902.fr' }));
     v('Camille : le même courriel, authentifié par le serveur de réception : la réponse part SEULE', [c.voie, Z.envoyes.length, Z.envoyes[1].a, Z.envoyes[1].enReponseA.mid], ['direct', 2, 'sur@exemple-2902.fr', '<ok@x>']);
-    vrai('…le destinataire est l’expéditeur de l’en-tête, la signature celle de Camille', /^Camille — Assistante virtuelle — Équipe TeamOP/.test(Z.envoyes[1].signature));
+    vrai('…le destinataire est l’expéditeur de l’en-tête, la signature celle de Camille', /^Camille — Assistante de TeamOP/.test(Z.envoyes[1].signature));
     for (const [nom, o] of [['une réponse d’absence (Auto-Submitted)', { enteteAuto: true }], ['une notification', { auto: true }], ['un avis de sécurité', { protege: true }]]) {
       const avant = Z.recus.length;
       c = await Z.camille.surNouveauMessage(poser(Object.assign({ uid: 10 + Math.floor(Math.random() * 1000), mid: '<auto' + Math.random() + '@x>', authentifie: true, de: 'robot@exemple-2902.fr' }, o)));

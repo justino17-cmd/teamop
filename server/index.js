@@ -2166,6 +2166,7 @@ const MON_GESTES = {
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
+  'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
   'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
@@ -10613,7 +10614,7 @@ try {
       return { domaines: [...dom], adresses: [...adr] };
     };
     const fichierAgents = require('./agents-fichier')(DATA_DIR);
-    /* LA SIGNATURE DES AGENTS (« Léa — Assistante virtuelle — Équipe TeamOP »), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
+    /* LA SIGNATURE DES AGENTS (« Léa — Assistante de TeamOP », et la mention de l'IA dessous), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
     try { signaturesMod = require('./agents-signature')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, fichier: fichierAgents }); }
     catch (e) { signaturesMod = null; console.error('signatures des agents indisponibles :', e.message); }
     try {

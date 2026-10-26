@@ -347,3 +347,5 @@ tests/test-3002.js
 tests/test-3007.js
 # 25 octobre 2026 : `test-3020` (le pont de Pauline : `server/pauline.js` sur le vrai serveur — 503 sans empreinte, 401, 413 AVANT lecture du corps, 400 sans valeur citée, plafonds, élagage à 90 jours, 8 relevés par minute et par adresse, aucune donnée de prospect dans le journal, fichier chiffré avec la clé maître ; le script du Mac `outils/pauline-releve.py` et la couture : son relevé est accepté sans une ligne écartée). Lance python3 si présent.
 tests/test-3020.js
+# 25 octobre 2026 : `test-3016` (les groupes de la messagerie des agents se personnalisent — nom, icône, couleur, description : le vrai module, chaque refus, le 403, le registre illisible, les valeurs hostiles, et le vrai serveur pour la garde et le journal des gestes). Lit server/ seulement.
+tests/test-3016.js

@@ -92,7 +92,7 @@ function monde(claude, o) {
   await m.justin('hugo', 'Hugo, le client du dossier DOS-000001 veut arrêter : programme la fin à la fin de la période.');
   await attendre(() => m.envoyes.length >= 1);
   await m.attendreRepos();
-  v('Stripe est appelé UNE fois pour la bonne entreprise, l\'accusé part signé Hugo', [m.appelsStripe.filter(x => x[0] === 'resilier'), m.envoyes.length, m.envoyes[0] && m.envoyes[0].signature.split('\n')[0]], [[['resilier', 'alpha-proprete']], 1, 'Hugo — Assistant virtuel — Équipe TeamOP']);
+  v('Stripe est appelé UNE fois pour la bonne entreprise, l\'accusé part signé Hugo', [m.appelsStripe.filter(x => x[0] === 'resilier'), m.envoyes.length, m.envoyes[0] && m.envoyes[0].signature.split('\n')[0]], [[['resilier', 'alpha-proprete']], 1, 'Hugo — Assistant de TeamOP']);
   vrai('…Hugo le dit à Justin (fil privé : sa réponse ET son compte rendu), sans nom ni adresse', m.fil('hugo').filter(x => x.de === 'hugo').length >= 2 && !/Alpha|exemple-2911/.test(JSON.stringify(m.fil('hugo'))));
   vrai('…le journal garde l\'outil', m.journal().some(e => e.agent === 'hugo' && e.action === 'outil programmer_fin_abonnement' && e.resultat === 'ok'));
 
@@ -110,7 +110,7 @@ function monde(claude, o) {
   await m.justin('emma', 'Emma, le prospect du dossier DOS-000002 veut un appel, propose-lui des créneaux');
   await attendre(() => m.envoyes.length >= 1);
   await m.attendreRepos();
-  v('Emma envoie les créneaux au prospect (adresse de son dossier), signée Emma', [m.envoyes.length, m.envoyes[0] && m.envoyes[0].a, m.envoyes[0] && m.envoyes[0].signature.split('\n')[0]], [1, 'beta@exemple-2911.fr', 'Emma — Assistante virtuelle — Équipe TeamOP']);
+  v('Emma envoie les créneaux au prospect (adresse de son dossier), signée Emma', [m.envoyes.length, m.envoyes[0] && m.envoyes[0].a, m.envoyes[0] && m.envoyes[0].signature.split('\n')[0]], [1, 'beta@exemple-2911.fr', 'Emma — Assistante de TeamOP']);
 
   const NOTES = 'Hugo, Sarah : annonce de la version 770. Le planning s’affiche plus vite sur téléphone. La fiche d’intervention garde les photos hors ligne.';
   m = monde((q) => {
