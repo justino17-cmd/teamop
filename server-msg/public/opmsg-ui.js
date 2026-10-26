@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '439805c2ed1f';
+  const OPMSG_BUILD = 'c5e7d24643be';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 277;
+  const OPMSG_VERSION = 278;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -8248,7 +8248,7 @@
         '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Tu admets chaque personne</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité</span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>' +
-        /* ⛔ LE LIEN « INVITÉ (SANS COMPTE) » (26 octobre 2026, Justin : « ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux ») : un client sans compte et sans application ouvre le lien dans son navigateur, tape son nom,
+        /* ⛔ LE LIEN « INVITÉ (SANS COMPTE) » (26 octobre 2026, la demande : « ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux ») : un client sans compte et sans application ouvre le lien dans son navigateur, tape son nom,
            et ATTEND à la porte — c'est TOI qui le fais entrer. Le lien meurt avec la réunion ; le régénérer tue l'ancien. */
         '<div class="rubrique"><span>Invité (sans compte)</span></div><div class="carte">' +
         '<button type="button" class="reglage presse" data-reu="inv-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien invité<small>Sans compte, sans rien installer : tu fais entrer chaque personne</small></span></button>' +
