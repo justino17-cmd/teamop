@@ -109,7 +109,7 @@ const CONV = 'conv:c_' + 'a1b2c3d4'.repeat(4);
       vrai('(population) en appel : l\'écran d\'appel est sous la bannière et la bannière est affichée', en.opac === '1' && en.centreSous === 'appel');
       v('⛔ en appel : le centre de la bannière n\'est PLUS la bannière : le toucher passe à l\'écran d\'appel qui est dessous', [en.pe, en.centreNotif, en.centreSous], ['none', false, 'appel']);
       v('⛔ en appel : le bouton « Ouvrir » est là, reçoit le toucher à sa pointe, et sa zone de toucher fait 44 px (un point à 5 px au-dessus de lui est encore lui)', [en.bdisp, en.bpe, en.pointeBouton, en.bhaut, en.bh >= 32], ['flex', 'auto', true, true, true]);
-      vrai('⛔ en appel : la bannière est plus FINE (' + en.haut + ' px contre ' + hors.haut + ' hors appel) et tient en deux lignes de texte au plus : ≤ 64 px', en.haut < hors.haut && en.haut <= 64);
+      vrai('⛔ en appel : la bannière est plus FINE (' + en.haut + ' px contre ' + hors.haut + ' hors appel) et tient en deux lignes de texte au plus : ≤ 56 px', en.haut < hors.haut && en.haut <= 56);
       v('… sans « maintenant » ni l\'aide, avec une icône de 24 px', [en.maintenant, en.aide, en.img], ['none', 'none', 24]);
       vrai('elle tient dans l\'écran (largeur ≤ celle de l\'écran, 440 au plus)', en.larg <= pf.viewport.width && en.larg <= 440);
       vrai('⛔ le bouton est lisible : contraste ' + en.ratio + ':1 (≥ 4,5)', en.ratio >= 4.5);
