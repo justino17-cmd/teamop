@@ -1,0 +1,21 @@
+{
+  "slug": "ordre-de-travail",
+  "prepare": "2026-10-26",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Ordre de travail : définition, mentions, modèle et suivi\n\nOrdre de travail, ordre de mission ou ordre de service : les différences, les mentions utiles, un modèle à copier et comment le suivre sans ressaisie.\n\nÀ retenir : Ordre de travail : document interne qui déclenche et cadre une intervention technique (dépannage, maintenance, installation).\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/ordre-de-travail.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/ordre-de-travail-couverture-google.jpg"
+      }
+    ]
+  }
+}

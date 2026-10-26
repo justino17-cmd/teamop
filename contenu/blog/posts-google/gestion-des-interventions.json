@@ -1,0 +1,21 @@
+{
+  "slug": "gestion-des-interventions",
+  "prepare": "2026-10-26",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Gestion des interventions : organiser le terrain sans ressaisie\n\nComment organiser la gestion des interventions d'une TPE de terrain : demande, planning, fiche, facturation, outils et pièges à éviter, avec exemples par métier.\n\nÀ retenir : La gestion des interventions couvre quatre temps : réception de la demande, planification, réalisation sur site, clôture et facturation.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/gestion-des-interventions.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/gestion-interventions-couverture-google.jpg"
+      }
+    ]
+  }
+}
