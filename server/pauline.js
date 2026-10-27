@@ -25,7 +25,10 @@
  *                      email?, contact?, majLe: ISO } ],       // ≤ 500, les plus récemment touchées d'abord
  *     courriels: [ { id, entrepriseId, etat: 'en_attente'|'envoye'|'refuse'|'repondu', objet, texte, quand: ISO,
  *                    genre?: 'sequence'|'reponse', etape?: entier, statutBrut?: texte } ],   // ≤ 300 ; `quand` = l'envoi, sinon la rédaction
- *     reponses: [ { entrepriseId, quand: ISO, resume: texte, nature: 'interesse'|'refus'|'question'|'autre' } ] }   // ≤ 300
+ *     reponses: [ { entrepriseId, quand: ISO, resume: texte, nature: 'interesse'|'refus'|'question'|'autre' } ],   // ≤ 300
+ *     attentes?: { verificateur?: booléen,               // une clé de vérification des adresses est posée sur le Mac (OUI/NON, jamais la clé) — sans elle Harvey n'écrit jamais
+ *                  signaux?: { proposes, confirmes, rejetes: entier, liste: [ { code, libelle, description } ] },   // ≤ 40 : les critères PROPOSÉS, à confirmer par Justin
+ *                  adresses?: { verifiees, risquees, invalides, aConfirmer: entier } } }   // Tour v2.114 : ce qui attend Justin, dit en français dans la Tour
  *   Ce qui n'existe PAS dans la base de Harvey (et qu'on n'invente donc pas) : le métier et la ville d'une recherche ne sont écrits nulle part — ils se
  *   déduisent des entreprises rattachées à l'exécution (`runs` ↔ `observations`) ; le « résumé » d'une réponse est le début de son texte, pas un résumé ;
  *   aucune notion de « chauffe » en base (elle vient du fichier de réglages). Tout champ optionnel absent vaut « inconnu », jamais zéro.
@@ -72,6 +75,7 @@ const DEC_GARDE_JOURS = 30;
 const DEC_MAX = 2000;
 const VUS_MAX = 3000;
 const DEC_CORPS_MAX = '64kb';
+const MAX_SIGNAUX = 40;
 
 /* ── la validation, champ par champ : un type faux jette l'élément, un texte trop long est coupé, une clé inconnue n'entre jamais ── */
 const estObjet = o => !!o && typeof o === 'object' && !Array.isArray(o);
@@ -182,7 +186,34 @@ function validerReleve(corps, maintenant) {
     if (entrepriseId === null || !quand || resume === null || !NATURES.includes(r.nature)) { ecartes.reponses++; continue; }
     reponses.push({ entrepriseId, quand, resume, nature: r.nature });
   }
-  return { ok: true, releve: { version: 1, genereLe, chauffe, jour: J, recherches, entreprises, courriels, reponses }, ecartes };
+  /* CE QUI ATTEND JUSTIN (Tour v2.114) : optionnel — un relevé d'un script plus ancien n'en a pas, et ce qui manque reste « inconnu », jamais « rien à faire ».
+     Une partie mal formée est ÉCARTÉE seule (le reste du relevé est bon) ; une clé inconnue n'entre jamais. */
+  const releve = { version: 1, genereLe, chauffe, jour: J, recherches, entreprises, courriels, reponses };
+  const at = corps.attentes;
+  if (estObjet(at)) {
+    const attentes = {};
+    if (typeof at.verificateur === 'boolean') attentes.verificateur = at.verificateur;
+    const sg = at.signaux;
+    if (estObjet(sg)) {
+      const n = { proposes: entier(sg.proposes, 0, 1e5), confirmes: entier(sg.confirmes, 0, 1e5), rejetes: entier(sg.rejetes, 0, 1e5) };
+      if (n.proposes !== null && n.confirmes !== null && n.rejetes !== null && Array.isArray(sg.liste)) {
+        const liste = [];
+        for (const x of sg.liste.slice(0, MAX_SIGNAUX)) {
+          if (!estObjet(x)) continue;
+          const code = texte(x.code, 64), libelle = texte(x.libelle, 120), description = texte(x.description, 300);
+          if (code && libelle !== null && description !== null) liste.push({ code, libelle: libelle || code, description });
+        }
+        attentes.signaux = Object.assign(n, { liste });
+      }
+    }
+    const ad = at.adresses;
+    if (estObjet(ad)) {
+      const a = { verifiees: entier(ad.verifiees, 0, 1e6), risquees: entier(ad.risquees, 0, 1e6), invalides: entier(ad.invalides, 0, 1e6), aConfirmer: entier(ad.aConfirmer, 0, 1e6) };
+      if (Object.values(a).every(v => v !== null)) attentes.adresses = a;
+    }
+    releve.attentes = attentes;
+  }
+  return { ok: true, releve, ecartes };
 }
 
 /* L'élagage : courriels, recherches et réponses de plus de 90 jours s'en vont (les entreprises sont un ÉTAT, pas un historique). Rend un relevé neuf. */
