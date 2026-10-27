@@ -13,6 +13,21 @@ de ligne du tout.
 
 ---
 
+# 🔶 27 OCTOBRE 2026 — PAULINE : VALIDER SES MAILS DEPUIS LA MESSAGERIE DE LA TOUR (Tour v2.115, branche `claude/pauline-validation-tour`)
+
+Justin : « je peux pas être tout le temps sur le site de Harvey ; que Pauline m'envoie le mail dans la messagerie de la Tour, j'accepte, je refuse, je modifie. »
+- **Serveur** (`server/pauline.js`) : `POST /api/monitor/pauline/decision` (patron), `GET /api/pauline/decisions` et `POST …/resultats` (le jeton du relevé) ; une
+  notification au téléphone par mail neuf qui attend l'accord (des nombres seulement) ; `?resume=1` pour la pastille. Fichier `pauline-decisions.json`, chiffré.
+- **Mac** (`outils/pauline-releve.py`) : chaque MINUTE (plist à 60 s), lit les décisions, les applique dans la base de Harvey sous la garde `status = 'pending_review'`,
+  rend compte ; le relevé ne repart que si la boîte d'envoi a bougé (ou toutes les 14 min). Un courriel qui attend l'accord n'est jamais tronqué.
+- **Tour** : conversation « Pauline » dans la Messagerie (en tête, « À valider », quand des mails attendent) : Accepter et envoyer · Modifier · Refuser.
+- Bancs : `test-3079` (vrai serveur + vrai script), `test-3080` (vraies fonctions de la Tour + vrai serveur), 12 cas Python ; 10 mutations sur 10 mordent.
+- ⏳ **Geste de Justin sur le Mac** après la fusion : recopier `pauline-releve.py` et le plist, recharger le plist (la commande est dans la conversation du 27/10).
+- ⚠️ Les boutons du tableau de bord de Harvey ne marchent pas dans Safari (« Cross-origin requests are refused » : `Referrer-Policy: no-referrer` → `Origin: null` sur un POST) ;
+  la version amont de Harvey l'a corrigé (`auth.js`, `referrerPolicy: 'same-origin'`) — mettre Harvey à jour un jour, sans perdre le correctif français.
+
+---
+
 # 🔶 26 OCTOBRE 2026 (SOIR) — EXAMEN DE 17 H 36 : 6 RÉUSSIS, 1 ÉCHEC, 2 « INCONNU » — CORRIGÉS (branche `claude/examen-26-octobre`, pas fusionnée)
 
 - **Scénario 6 « vente » (✗)** : Toka Clim parti, Brillance Services et Dupont Plomberie restés « à revoir » pour `fait_invente`. `fait_invente` ne vient QUE du juge (`fautesDuCode` ne le produit
