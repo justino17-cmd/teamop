@@ -15,6 +15,9 @@ Python 3 standard, AUCUNE dépendance (ni PyYAML, ni requests) : il se lance ave
 journal, et le met dans l'en-tête d'une requête HTTPS (jamais dans l'adresse). Le serveur ne connaît que son empreinte SHA-256, qui n'est pas un secret.
 ⛔ Aucune donnée de prospect ne va dans les messages d'erreur ni dans le journal : des NOMBRES, des noms de fichiers, rien d'autre.
 
+Depuis le 27 octobre 2026, chaque passage (toutes les minutes) va d'abord chercher les DÉCISIONS de la Tour (accepter, refuser, modifier un courriel)
+et les applique dans la base de Harvey ; le relevé ne repart que si la boîte d'envoi a bougé, ou toutes les 14 minutes.
+
 Codes de sortie : 0 tout va bien · 1 erreur imprévue · 2 réglage manquant (jeton, adresse) · 3 base de Harvey introuvable ou illisible
                   4 serveur injoignable (réseau) · 5 le serveur a refusé le relevé (jeton, forme, trop lourd, trop de relevés, pont fermé).
 """
@@ -299,7 +302,7 @@ def fabriquer_releve(base, cles_yaml, maintenant=None, aujourdhui=None):
         else:
             e = "en_attente"
         courriels.append({"id": o["id"], "entrepriseId": cle_entreprise(o["prospect_id"]), "etat": e, "objet": reduire(o["subject"], 300),
-                          "texte": (o["body"] or "")[:6000], "quand": iso(quand), "genre": "reponse" if o["kind"] == "reply" else "sequence",
+                          "texte": (o["body"] or "")[:20000 if o["status"] == "pending_review" else 6000], "quand": iso(quand), "genre": "reponse" if o["kind"] == "reply" else "sequence",
                           "etape": int(o["step"] or 0), "statutBrut": reduire(o["status"], 40)})
     courriels.sort(key=lambda c: c["quand"], reverse=True)
     courriels = courriels[:MAX["courriels"]]
@@ -356,10 +359,19 @@ def alleger(releve):
         if taille() <= TAILLE_CIBLE:
             return releve
         for c in releve["courriels"]:
-            c["texte"] = c["texte"][:n]
+            if not attend_accord(c):   # ⛔ jamais un courriel qui attend l'accord : la Tour peut le MODIFIER, il faut son texte entier
+                c["texte"] = c["texte"][:n]
     while taille() > TAILLE_CIBLE and releve["courriels"]:
-        releve["courriels"] = releve["courriels"][: max(0, len(releve["courriels"]) - 20)]
+        garder = [c for c in releve["courriels"] if attend_accord(c)]
+        autres = [c for c in releve["courriels"] if not attend_accord(c)]
+        if not autres:
+            break
+        releve["courriels"] = sorted(garder + autres[: max(0, len(autres) - 20)], key=lambda c: c["quand"], reverse=True)
     return releve
+
+
+def attend_accord(c):
+    return c.get("etat") == "en_attente" and c.get("statutBrut", "pending_review") == "pending_review"
 
 
 # ── le jeton (.env) ──────────────────────────────────────────────────────────────────────────────────────────────
@@ -431,6 +443,137 @@ MOTIFS_REFUS = {
 }
 
 
+# ── les décisions de la Tour (27 octobre 2026) ──────────────────────────────────────────────────────────────────
+# Justin accepte, refuse ou modifie un courriel depuis la messagerie de la Tour (son téléphone). Le serveur range la décision ; CE script vient la
+# chercher, l'applique dans la base de Harvey — exactement comme les boutons de son tableau de bord (approve_outbox, reject_outbox_item,
+# edit_outbox_draft), et SOUS LA MÊME GARDE : `WHERE status = 'pending_review'`. Un courriel déjà parti, déjà refusé ou déjà accepté ne bouge pas, et le
+# compte rendu le dit (« deja_traite »). Une modification remplace objet et texte PUIS accepte ; une réponse garde son objet (le fil de la conversation).
+# ⛔ C'est la seule écriture de ce script dans la base de Harvey : une connexion à part, en écriture, ouverte seulement quand il y a quelque chose à faire.
+URL_DECISIONS = "/api/pauline/decisions"
+ETAT_LOCAL = "pauline-releve-etat.json"
+RELEVE_MAX_SECONDES = 14 * 60   # passé ce délai, le relevé part même si la boîte d'envoi n'a pas bougé (recherches, entreprises, chauffe)
+
+
+def url_soeur(url, chemin):
+    p = urllib.parse.urlparse(url)
+    return urllib.parse.urlunparse((p.scheme, p.netloc, chemin, "", "", ""))
+
+
+def appeler(url, jeton, corps=None):
+    donnees = None if corps is None else json.dumps(corps, ensure_ascii=False).encode("utf-8")
+    entetes = {"Authorization": "Bearer " + jeton, "User-Agent": "pauline-releve/" + str(VERSION)}
+    if donnees is not None:
+        entetes["Content-Type"] = "application/json; charset=utf-8"
+    requete = urllib.request.Request(url, data=donnees, method="GET" if corps is None else "POST", headers=entetes)
+    try:
+        with urllib.request.urlopen(requete, timeout=30) as r:
+            return r.status, json.loads(r.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as e:
+        return e.code, {}
+    except (urllib.error.URLError, OSError, TimeoutError, ValueError) as e:
+        raise Sortie(RESEAU, "serveur injoignable (" + type(e).__name__ + ") — les décisions seront relues au prochain passage")
+
+
+def maintenant_harvey():
+    return datetime.now(timezone.utc).replace(tzinfo=None).isoformat()   # le format de Harvey : UTC sans fuseau
+
+
+def appliquer_decisions(chemin_base, decisions):
+    """Applique chaque décision dans la base de Harvey ; rend [ {id, ok, motif?} ]. Jamais d'exception pour une décision : elle devient « erreur »."""
+    resultats = []
+    utiles = [d for d in decisions if isinstance(d, dict) and isinstance(d.get("id"), str) and d.get("action") in ("accepter", "refuser", "modifier")]
+    if not utiles:
+        return resultats
+    try:
+        base = sqlite3.connect(str(chemin_base), timeout=30)
+    except sqlite3.Error as e:
+        raise Sortie(BASE, "base de Harvey impossible à ouvrir en écriture (" + type(e).__name__ + ")")
+    try:
+        colonnes = {r[1] for r in base.execute("PRAGMA table_info(outbox)")}
+        for d in utiles:
+            ident, action = d["id"], d["action"]
+            try:
+                ligne = base.execute("SELECT status, kind, subject FROM outbox WHERE id = ?", (ident,)).fetchone()
+                if not ligne:
+                    resultats.append({"id": ident, "ok": False, "motif": "introuvable"})
+                    continue
+                if ligne[0] != "pending_review":
+                    resultats.append({"id": ident, "ok": False, "motif": "deja_traite"})
+                    continue
+                quand = maintenant_harvey()
+                with base:   # une transaction : la modification et l'accord passent ensemble, ou rien
+                    if action == "refuser":
+                        n = base.execute("UPDATE outbox SET status = 'rejected', updated_at = ? WHERE id = ? AND status = 'pending_review'", (quand, ident)).rowcount
+                    else:
+                        if action == "modifier":
+                            objet, texte = d.get("objet"), d.get("texte")
+                            if not isinstance(objet, str) or not objet.strip() or not isinstance(texte, str) or not texte.strip():
+                                resultats.append({"id": ident, "ok": False, "motif": "erreur"})
+                                continue
+                            if ligne[1] == "reply":
+                                objet = ligne[2] or objet
+                            base.execute("UPDATE outbox SET subject = ?, body = ?, updated_at = ? WHERE id = ? AND status = 'pending_review'", (objet.strip(), texte.strip(), quand, ident))
+                        champs = "status = 'approved', updated_at = ?"
+                        if "approved_by" in colonnes:
+                            champs += ", approved_by = 'you'"   # l'accord d'un humain : le pilote automatique ne le retient pas une seconde fois
+                        if "error" in colonnes:
+                            champs += ", error = ''"
+                        n = base.execute("UPDATE outbox SET " + champs + " WHERE id = ? AND status = 'pending_review'", (quand, ident)).rowcount
+                resultats.append({"id": ident, "ok": True} if n == 1 else {"id": ident, "ok": False, "motif": "deja_traite"})
+            except sqlite3.Error:
+                resultats.append({"id": ident, "ok": False, "motif": "erreur"})
+    finally:
+        base.close()
+    return resultats
+
+
+def signature_boite(chemin_base):
+    """Ce qui fait repartir un relevé tout de suite : la boîte d'envoi a bougé (un courriel écrit, accepté, parti)."""
+    try:
+        base = ouvrir_base(chemin_base)
+    except Sortie:
+        return ""
+    try:
+        r = base.execute("SELECT COUNT(*), COALESCE(MAX(updated_at), ''), COALESCE(MAX(created_at), ''), "
+                         "SUM(CASE WHEN status = 'pending_review' THEN 1 ELSE 0 END) FROM outbox").fetchone()
+        return "|".join(str(x) for x in r)
+    except sqlite3.Error:
+        return ""
+    finally:
+        base.close()
+
+
+def lire_etat_local(chemin):
+    try:
+        o = json.loads(Path(chemin).read_text(encoding="utf-8"))
+        return o if isinstance(o, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def ecrire_etat_local(chemin, etat):
+    try:
+        Path(chemin).write_text(json.dumps(etat), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def traiter_decisions(url, jeton, chemin_base):
+    """Rend le nombre de décisions appliquées (réussies ou non). Un serveur qui refuse ou se tait n'arrête pas le relevé."""
+    code, rep = appeler(url_soeur(url, URL_DECISIONS), jeton)
+    if code != 200 or not isinstance(rep.get("decisions"), list):
+        if code not in (200, 503):
+            print("Décisions : le serveur a répondu " + str(code), file=sys.stderr)
+        return 0
+    resultats = appliquer_decisions(chemin_base, rep["decisions"][:200])
+    if not resultats:
+        return 0
+    code, _ = appeler(url_soeur(url, URL_DECISIONS + "/resultats"), jeton, {"resultats": resultats})
+    faits = sum(1 for r in resultats if r["ok"])
+    print("Décisions de la Tour : %d appliquée(s), %d sans effet%s" % (faits, len(resultats) - faits, "" if code == 200 else " — compte rendu refusé (" + str(code) + ")"))
+    return len(resultats)
+
+
 def principal(argv=None):
     ap = argparse.ArgumentParser(description="Envoie à la Tour de TeamOP ce que fait Pauline (Harvey).")
     ap.add_argument("--essai", action="store_true", help="affiche le relevé, n'envoie rien, ne lit pas le jeton")
@@ -439,6 +582,7 @@ def principal(argv=None):
     ap.add_argument("--url", default=URL_DEFAUT, help="adresse du serveur (https obligatoire)")
     ap.add_argument("--fabriquer-jeton", action="store_true", help="fabrique le jeton dans .env et imprime son empreinte SHA-256")
     ap.add_argument("--remplacer", action="store_true", help="avec --fabriquer-jeton : remplace un jeton existant")
+    ap.add_argument("--sans-decisions", action="store_true", help="n'applique pas les décisions de la Tour et envoie le relevé à chaque passage (l'ancien comportement)")
     a = ap.parse_args(argv)
 
     dossier = Path(a.harvey).expanduser() if a.harvey else (Path.cwd() if (Path.cwd() / "data" / "harvey.db").exists() or (Path.cwd() / ".env").exists() else Path.home() / "harvey")
@@ -466,6 +610,16 @@ def principal(argv=None):
         if len(jeton) < 32:
             raise Sortie(REGLAGE, CLE_JETON + " absent (ou trop court) dans " + str(env) + " — voir PAULINE-RELEVE.md, étape « fabriquer le jeton »")
 
+    if not a.essai and not a.sans_decisions:
+        appliquees = traiter_decisions(a.url, jeton, chemin_base)
+        chemin_etat = chemin_base.parent / ETAT_LOCAL
+        etat = lire_etat_local(chemin_etat)
+        sig = signature_boite(chemin_base)
+        maintenant = datetime.now(timezone.utc).timestamp()
+        recent = isinstance(etat.get("dernier"), (int, float)) and 0 <= maintenant - etat["dernier"] < RELEVE_MAX_SECONDES
+        if not appliquees and recent and sig and sig == etat.get("sig"):
+            return OK   # rien n'a bougé dans la boîte d'envoi depuis le dernier relevé, et il a moins de 14 minutes
+
     base = ouvrir_base(chemin_base)
     try:
         releve = alleger(fabriquer_releve(base, lire_cles_yaml(reglages)))
@@ -483,6 +637,8 @@ def principal(argv=None):
     code, rep = envoyer(a.url, jeton, releve)
     if code == 200 and rep.get("ok"):
         print("Relevé envoyé : " + resume)
+        if not a.sans_decisions:
+            ecrire_etat_local(chemin_base.parent / ETAT_LOCAL, {"dernier": datetime.now(timezone.utc).timestamp(), "sig": signature_boite(chemin_base)})
         return OK
     motif = MOTIFS_REFUS.get(code) or "réponse inattendue du serveur (code " + str(code) + ")"
     detail = rep.get("motif") if code == 400 and isinstance(rep.get("motif"), str) else ""

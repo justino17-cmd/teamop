@@ -6224,7 +6224,18 @@ try {
    (`outils/pauline-releve.py`), la Tour le lit (`/api/monitor/pauline`, patron). Fermé sans `config.pauline.jetonSha256` (503). Les données de prospects n'entrent dans aucun journal
    (`server/pauline.js`, contrat du relevé en tête). Un échec de montage n'arrête rien d'autre. */
 try {
-  require('./pauline')(app, { config, DATA_DIR, monPatronStrict });
+  /* `pousseNotif` : la notification au téléphone du patron (abonnements de la Tour), pour « un mail de Pauline attend ton accord ». Appelée bien après
+     le démarrage : `subs` et `webpush` sont des déclarations de tête de fichier, initialisées depuis longtemps. */
+  const pousseNotifPauline = async (titre, corps, url) => {
+    const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || '/tour.html#messagerie' });
+    const cibles = Object.values(subs).filter(x => /^teamop-controle/.test(x.teamId || ''));
+    for (const t of cibles) {
+      try { await webpush.sendNotification(t.sub, payload); }
+      catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } }
+    }
+    return cibles.length;
+  };
+  require('./pauline')(app, { config, DATA_DIR, monPatronStrict, pousseNotif: pousseNotifPauline });
 } catch (e) {
   console.error('pont de Pauline non monté :', e.message);
 }

@@ -63,6 +63,15 @@ const NATURES = ['interesse', 'refus', 'question', 'autre'];
 const PHASES = ['verrou', 'chauffe', 'rodee', 'sans_rampe'];
 const ORIGINES = ['decouverte', 'cycle'];
 const GENRES = ['sequence', 'reponse'];
+/* les décisions de Justin depuis la Tour (27 octobre 2026) : voir « LES DÉCISIONS » plus bas */
+const FICHIER_DEC = 'pauline-decisions.json';
+const ACTIONS = ['accepter', 'refuser', 'modifier'];
+const ETATS_DECISION = ['a_faire', 'fait', 'echec'];
+const MOTIFS_RESULTAT = ['deja_traite', 'introuvable', 'erreur'];
+const DEC_GARDE_JOURS = 30;
+const DEC_MAX = 2000;
+const VUS_MAX = 3000;
+const DEC_CORPS_MAX = '64kb';
 
 /* ── la validation, champ par champ : un type faux jette l'élément, un texte trop long est coupé, une clé inconnue n'entre jamais ── */
 const estObjet = o => !!o && typeof o === 'object' && !Array.isArray(o);
@@ -230,6 +239,74 @@ function deDisque(chemin, cle) {
   return estObjet(o.releve) ? { etat: 'ok', recuLe: o.recuLe, releve: o.releve } : { etat: 'illisible', cause: 'forme' };
 }
 
+/* ── LES DÉCISIONS (27 octobre 2026) — accepter, refuser ou modifier un courriel de Pauline depuis la Tour, sur le téléphone ──
+ * Justin : « je peux pas être tout le temps sur le site de Harvey ; que Pauline m'envoie le mail dans la messagerie de la Tour, j'accepte, je refuse,
+ * je modifie, et quand j'accepte elle l'envoie. » Le serveur ne PILOTE toujours pas Harvey : il garde une liste de décisions que le Mac vient
+ * chercher (`GET /api/pauline/decisions`, même jeton que le relevé), applique dans la base de Harvey, puis rend compte (`POST …/resultats`).
+ *   ⛔ Une décision ne vise qu'un courriel QUI ATTEND l'accord (`en_attente` et, quand il est connu, `statutBrut` « pending_review ») dans le DERNIER relevé :
+ *      on ne décide pas sur un courriel que le serveur ne connaît pas, ni sur un courriel déjà parti.
+ *   ⛔ « modifier » remplace l'objet et le texte PUIS accepte : c'est ce que fait le geste de la Tour (« Enregistrer et envoyer »).
+ *   ⛔ Le Mac applique sous la garde du statut (`WHERE status = 'pending_review'`) : une décision arrivée trop tard ne fait rien, et le DIT (`deja_traite`).
+ *   ⛔ Le fichier porte des textes de courriels : chiffré au repos comme le relevé, élagué à 30 jours, et rien de son contenu ne va au journal.
+ * Rend { ok:true, id, decision } ou { ok:false, motif } — le motif ne cite jamais une valeur du corps. */
+function validerDecision(corps) {
+  if (!estObjet(corps)) return { ok: false, motif: 'la décision doit être un objet' };
+  const id = typeof corps.id === 'string' && RE_ID.test(corps.id) ? corps.id : null;
+  if (!id) return { ok: false, motif: 'identifiant de courriel illisible' };
+  if (!ACTIONS.includes(corps.action)) return { ok: false, motif: 'action inconnue (accepter, refuser ou modifier)' };
+  const decision = { action: corps.action };
+  if (corps.action === 'modifier') {
+    const objet = texte(corps.objet, 300), t = texte(corps.texte, 20000, true);
+    if (!objet) return { ok: false, motif: 'objet vide' };
+    if (!t) return { ok: false, motif: 'texte vide' };
+    decision.objet = objet; decision.texte = t;
+  }
+  return { ok: true, id, decision };
+}
+/* Le courriel attend-il l'accord de Justin, d'après le relevé ? (`approved` et `sending` sont aussi « en_attente » dans le relevé : ils attendent l'ENVOI, pas l'accord.) */
+function attendAccord(c) { return !!c && c.etat === 'en_attente' && (c.statutBrut === undefined || c.statutBrut === 'pending_review'); }
+/* Ce que le Mac doit appliquer : les décisions « à faire », les plus anciennes d'abord. */
+function decisionsAFaire(etat) {
+  return Object.keys(etat.decisions).filter(id => etat.decisions[id].etat === 'a_faire')
+    .sort((x, y) => String(etat.decisions[x].le).localeCompare(String(etat.decisions[y].le)))
+    .map(id => Object.assign({ id }, ...['action', 'objet', 'texte'].filter(k => etat.decisions[id][k] !== undefined).map(k => ({ [k]: etat.decisions[id][k] }))));
+}
+/* Un état de décisions propre : formes vérifiées, 30 jours, au plus DEC_MAX décisions (les plus récentes), au plus VUS_MAX identifiants déjà signalés. */
+function elaguerDecisions(etat, maintenant) {
+  const limite = maintenant - DEC_GARDE_JOURS * 86400000, decisions = {};
+  const src = estObjet(etat) && estObjet(etat.decisions) ? etat.decisions : {};
+  const ids = Object.keys(src).filter(id => RE_ID.test(id) && estObjet(src[id]) && ACTIONS.includes(src[id].action) && ETATS_DECISION.includes(src[id].etat) && Date.parse(src[id].le) >= limite)
+    .sort((x, y) => String(src[y].le).localeCompare(String(src[x].le))).slice(0, DEC_MAX);
+  for (const id of ids) decisions[id] = src[id];
+  const vus = (estObjet(etat) && Array.isArray(etat.vus) ? etat.vus : []).filter(v => typeof v === 'string' && RE_ID.test(v)).slice(-VUS_MAX);
+  return { decisions, vus };
+}
+/* Les courriels qui attendent l'accord et qu'on n'a encore jamais signalés (ni décidés) : ceux qui valent une notification. */
+function nouveauxEnAttente(releve, etat) {
+  const vus = new Set(etat.vus);
+  return releve.courriels.filter(c => attendAccord(c) && !vus.has(c.id) && !etat.decisions[c.id]).map(c => c.id);
+}
+const aadDec = le => 'pauline-decisions|v1|' + le;
+function decVersDisque(etat, le, cle) {
+  if (!cle) return { texte: JSON.stringify({ v: 1, chiffre: false, le, etat }), chiffre: false };
+  const socle = require('./socle');
+  return { texte: JSON.stringify({ v: 1, chiffre: true, le, scelle: socle.sceller(cle, Buffer.from(JSON.stringify(etat), 'utf8'), aadDec(le)).toString('base64') }), chiffre: true };
+}
+/* Rend { etat:'vide' } | { etat:'ok', d } | { etat:'illisible' } — un fichier cassé n'est JAMAIS lu comme « aucune décision » (on écraserait les décisions en attente). */
+function decDeDisque(chemin, cle) {
+  let brut;
+  try { brut = fs.readFileSync(chemin, 'utf8'); } catch (e) { return e && e.code === 'ENOENT' ? { etat: 'vide' } : { etat: 'illisible' }; }
+  let o;
+  try { o = JSON.parse(brut); } catch (e) { return { etat: 'illisible' }; }
+  if (!estObjet(o) || o.v !== 1 || !Number.isFinite(o.le)) return { etat: 'illisible' };
+  if (o.chiffre === true) {
+    if (typeof o.scelle !== 'string' || !cle) return { etat: 'illisible' };
+    try { return { etat: 'ok', d: JSON.parse(require('./socle').desceller(cle, Buffer.from(o.scelle, 'base64'), aadDec(o.le)).toString('utf8')) }; }
+    catch (e) { return { etat: 'illisible' }; }
+  }
+  return estObjet(o.etat) ? { etat: 'ok', d: o.etat } : { etat: 'illisible' };
+}
+
 module.exports = function pauline(app, ctx) {
   const { DATA_DIR, monPatronStrict, config } = ctx;
   const now = typeof ctx.maintenant === 'function' ? ctx.maintenant : () => Date.now();
@@ -264,6 +341,29 @@ module.exports = function pauline(app, ctx) {
 
   /* Le dernier relevé, relu du disque (un fichier de 2 Mo au plus, une lecture par visite de l'écran). */
   function lire() { return deDisque(P, sousCle()); }
+  const PD = path.join(DATA_DIR, FICHIER_DEC);
+  const notifier = typeof ctx.pousseNotif === 'function' ? ctx.pousseNotif : null;
+  /* null = fichier illisible : l'appelant refuse (503) plutôt que de repartir d'un état vide */
+  function lireDec() {
+    const r = decDeDisque(PD, sousCle());
+    if (r.etat === 'illisible') return null;
+    return elaguerDecisions(r.etat === 'ok' ? r.d : {}, now());
+  }
+  function rangerDec(etat) { ecrireAtomique(PD, decVersDisque(elaguerDecisions(etat, now()), now(), sousCle()).texte); }
+  /* Au relevé : un courriel qui attend l'accord et qu'on n'a jamais signalé → UNE notification au téléphone (des nombres, jamais un nom ni un objet). */
+  function signalerNouveaux(releve) {
+    const etat = lireDec(); if (!etat) return 0;
+    const neufs = nouveauxEnAttente(releve, etat);
+    if (!neufs.length) return 0;
+    etat.vus = etat.vus.concat(neufs);
+    try { rangerDec(etat); } catch (e) { console.error('pauline : décisions non écrites (' + (e && e.code || 'erreur') + ')'); return 0; }
+    if (notifier) {
+      const n = neufs.length;
+      Promise.resolve().then(() => notifier('Pauline', n + (n > 1 ? ' nouveaux mails attendent' : ' nouveau mail attend') + ' ton accord', '/tour.html#messagerie'))
+        .catch(() => console.error('pauline : notification non partie'));
+    }
+    return neufs.length;
+  }
 
   function ranger(releve, recuLe0) {
     const recuLe = Number.isFinite(recuLe0) ? recuLe0 : now();
@@ -308,6 +408,7 @@ module.exports = function pauline(app, ctx) {
       const releve = elaguer(v.releve, now());
       try { ranger(releve); }
       catch (e) { console.error('pauline : relevé non écrit (' + (e && e.code || 'erreur') + ')'); return res.status(500).json({ error: 'relevé non écrit' }); }
+      try { signalerNouveaux(releve); } catch (e) { console.error('pauline : signalement impossible'); }
       /* de la comptabilité, rien d'autre : ni nom, ni adresse, ni texte */
       res.json({ ok: true, recu: { entreprises: releve.entreprises.length, courriels: releve.courriels.length, recherches: releve.recherches.length, reponses: releve.reponses.length }, ecartes: v.ecartes });
     });
@@ -319,12 +420,75 @@ module.exports = function pauline(app, ctx) {
       }
       if (r.etat === 'vide') return res.json({ ok: true, recuLe: null });
       const t = now();
-      res.json({ ok: true, recuLe: new Date(r.recuLe).toISOString(), age: Math.max(0, Math.round((t - r.recuLe) / 1000)), releve: elaguer(r.releve, t) });
+      /* l'état de chaque décision (sans son texte : la Tour l'a déjà) ; illisible → null, et la Tour le DIT au lieu de proposer de redécider */
+      const dec = lireDec();
+      const decisions = dec ? Object.fromEntries(Object.keys(dec.decisions).map(id => { const x = dec.decisions[id]; return [id, Object.assign({ action: x.action, etat: x.etat, le: x.le }, x.motif ? { motif: x.motif } : {}, x.faitLe ? { faitLe: x.faitLe } : {})]; })) : null;
+      res.json({ ok: true, recuLe: new Date(r.recuLe).toISOString(), age: Math.max(0, Math.round((t - r.recuLe) / 1000)), releve: elaguer(r.releve, t), decisions });
+    });
+
+    /* La décision de Justin (Tour, patron seul). */
+    app.post('/api/monitor/pauline/decision', monPatronStrict, express.json({ limit: DEC_CORPS_MAX }), (req, res) => {
+      const v = validerDecision(req.body);
+      if (!v.ok) return res.status(400).json({ error: v.motif });
+      const r = lire();
+      if (r.etat !== 'ok') return res.status(409).json({ error: 'Le relevé de Pauline n’est pas lisible : on ne décide pas sur un mail qu’on ne voit pas.' });
+      const c = r.releve.courriels.find(x => x.id === v.id);
+      if (!c) return res.status(409).json({ error: 'Ce mail n’est plus dans le relevé de Pauline.' });
+      if (!attendAccord(c)) return res.status(409).json({ error: 'Ce mail n’attend plus ton accord (déjà accepté, envoyé ou refusé).' });
+      if (v.decision.action === 'modifier' && c.genre === 'reponse') v.decision.objet = c.objet;   /* une réponse garde son objet : sinon elle sortirait du fil de la conversation */
+      const etat = lireDec();
+      if (!etat) return res.status(503).json({ error: 'Les décisions de Pauline sont illisibles sur le serveur : rien n’a été enregistré.' });
+      const avant = etat.decisions[v.id];
+      if (avant && avant.etat === 'fait') return res.status(409).json({ error: 'Ce mail a déjà été traité sur le Mac.' });
+      etat.decisions[v.id] = Object.assign({ etat: 'a_faire', le: new Date(now()).toISOString() }, v.decision);
+      if (!etat.vus.includes(v.id)) etat.vus.push(v.id);
+      try { rangerDec(etat); } catch (e) { console.error('pauline : décision non écrite (' + (e && e.code || 'erreur') + ')'); return res.status(500).json({ error: 'Décision non enregistrée.' }); }
+      res.json({ ok: true, id: v.id, action: v.decision.action, etat: 'a_faire' });
+    });
+
+    /* Le Mac vient chercher ce qu'il doit appliquer (même porte que le relevé : empreinte, quota, jeton AVANT tout). */
+    const porteMac = (req, res, next) => {
+      const attendue = empreinte();
+      if (!attendue) return res.status(503).json({ error: 'pont non configuré' });
+      if (!quotaOk(req.ip)) { res.setHeader('Retry-After', '60'); return res.status(429).json({ error: 'trop de demandes' }); }
+      if (!jetonValide(req, attendue)) return res.status(401).json({ error: 'jeton refusé' });
+      next();
+    };
+    app.get('/api/pauline/decisions', porteMac, (req, res) => {
+      const etat = lireDec();
+      if (!etat) return res.status(503).json({ error: 'décisions illisibles' });
+      res.json({ ok: true, decisions: decisionsAFaire(etat) });
+    });
+    /* Le compte rendu du Mac : { resultats: [ { id, ok, motif? } ] }. Seule une décision « à faire » change d'état ; un motif hors liste devient « erreur ». */
+    app.post('/api/pauline/decisions/resultats', porteMac, express.json({ limit: DEC_CORPS_MAX }), (req, res) => {
+      const l = estObjet(req.body) && Array.isArray(req.body.resultats) ? req.body.resultats.slice(0, 500) : null;
+      if (!l) return res.status(400).json({ error: 'resultats doit être une liste' });
+      const etat = lireDec();
+      if (!etat) return res.status(503).json({ error: 'décisions illisibles' });
+      let n = 0;
+      const t = new Date(now()).toISOString();
+      for (const x of l) {
+        if (!estObjet(x) || typeof x.id !== 'string' || !RE_ID.test(x.id)) continue;
+        const d = etat.decisions[x.id];
+        if (!d || d.etat !== 'a_faire') continue;
+        if (x.ok === true) { d.etat = 'fait'; delete d.motif; }
+        else { d.etat = 'echec'; d.motif = MOTIFS_RESULTAT.includes(x.motif) ? x.motif : 'erreur'; }
+        d.faitLe = t; delete d.texte; delete d.objet;   /* appliqué : le texte n'a plus rien à faire ici */
+        n++;
+      }
+      if (n) { try { rangerDec(etat); } catch (e) { console.error('pauline : résultats non écrits (' + (e && e.code || 'erreur') + ')'); return res.status(500).json({ error: 'résultats non écrits' }); } }
+      res.json({ ok: true, pris: n });
     });
   }
-  return { validerReleve, elaguer, lire, ranger, purger };
+  return { validerReleve, elaguer, lire, ranger, purger, lireDec, rangerDec, signalerNouveaux };
 };
 module.exports.validerReleve = validerReleve;
+module.exports.validerDecision = validerDecision;
+module.exports.attendAccord = attendAccord;
+module.exports.decisionsAFaire = decisionsAFaire;
+module.exports.elaguerDecisions = elaguerDecisions;
+module.exports.nouveauxEnAttente = nouveauxEnAttente;
+module.exports.FICHIER_DEC = FICHIER_DEC;
 module.exports.elaguer = elaguer;
 module.exports.versDisque = versDisque;
 module.exports.sousCle = sousCle;
