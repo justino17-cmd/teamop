@@ -2168,6 +2168,8 @@ const MON_GESTES = {
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
   'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
+  /* Pauline (Harvey, Mac) : un accord qui fait partir un courriel vers un prospect laisse sa trace (relecture de gardien) — la cible est l'identifiant du courriel, jamais son texte */
+  'pauline/decision': 'a accepté, modifié ou refusé un courriel de Pauline',
   'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
