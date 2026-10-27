@@ -88,7 +88,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     const Z = monter({ modes: { lea: 'brouillon' }, claude: (req, n) => { const dernier = String(req.messages[req.messages.length - 1].content); return n === 1 ? AUTO : (/MOTS EXACTS/.test(dernier) ? FIDELE : AUTO); }, juge: jugeAuto });
     const r = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: 'brillance@client-secret.fr' });
     vrai('(population) le courriel est déposé', r.depose === true, JSON.stringify(r));
-    v('Léa a écrit DEUX fois (la rédaction, UNE réécriture) et le juge a lu DEUX fois', [Z.recus.length, Z.recusJuge.length], [2, 2]);
+    v('Léa a écrit DEUX fois (la rédaction, UNE réécriture) et le juge a lu TROIS fois (le refus, son second avis qui le confirme, puis le texte corrigé)', [Z.recus.length, Z.recusJuge.length], [2, 3]);
     const demande = String(Z.recus[1].messages[Z.recus[1].messages.length - 1].content);
     vrai('⛔ la réécriture a reçu LA phrase du courriel que le juge accuse', demande.includes('« ' + PHRASE_AUTO + ' »') && /MOTS EXACTS/.test(demande), demande.slice(0, 400));
     vrai('⛔ la phrase relayée n’est pas celle du juge mais un fragment du courriel de Léa : elle y figure', Z.recus[1].messages[1].content.includes(PHRASE_AUTO));

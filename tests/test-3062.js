@@ -30,7 +30,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 60 s'); console.log
     /* le pire modèle : il ne lit pas les clés, il répond c1, c2, c3 (ce que fait un modèle qui « corrige » une suite à trou) */
     const J = juge(() => '{"c1":true,"c2":false,"c3":true,"raison":"c2 : formules répétées ; c3 : un courriel est sec"}');
     const j = await EX.juger(J, trou, 'donnée');
-    vrai('(population) le juge est appelé UNE fois et répond', J.recus.length === 1);
+    vrai('(population) le juge est appelé et répond — DEUX fois, parce qu’un critère est faux (c2) et qu’il est relu (second avis, examen du 27 octobre 2026)', J.recus.length === 2);
     v('⛔ des critères c1, c2, c4 (à trou) : le juge lit « c1, c2, c3 », répond en c1, c2, c3 — et c’est LU, aux clés de l’appelant', [j.ok, j.valeurs], [true, { c1: true, c2: false, c4: true }]);
     v('⛔ …la raison est remise aux clés de l’appelant (« c3 » du juge = « c4 » de l’appelant), pour que `raisonDe` retrouve la sienne', j.raison, 'c2 : formules répétées ; c4 : un courriel est sec');
     vrai('⛔ le message du juge ne porte JAMAIS de trou : c1, c2, c3 — pas de c4', /^c1 : un$/m.test(J.recus[0]) && /^c2 : deux$/m.test(J.recus[0]) && /^c3 : quatre$/m.test(J.recus[0]) && !/^c4 :/m.test(J.recus[0]), J.recus[0]);

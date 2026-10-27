@@ -174,6 +174,7 @@ const JUGE_SYSTEM = [
   '- impoli : le ton est familier, froid ou déplacé pour un courriel professionnel entre entreprises.',
   '- metier_inadapte : le contenu n’a aucun rapport avec l’activité du destinataire quand elle est donnée.',
   'Ne signale que de vrais défauts. Un style sobre et professionnel est bon. Ne juge ni l’orthographe de détail ni la mise en page : le code s’en charge.',
+  'Les phrases que le cahier IMPOSE à l’assistante (« Nous vous remercions pour votre inscription sur teamop.fr. », « Dès réception de vos réponses, nous vous adresserons une proposition adaptée ; nous pourrons ensuite vous ouvrir une période d’essai d’une semaine. », « Nous restons à votre disposition par retour de mail ou par téléphone. ») sont voulues : elles ne sont jamais incohérentes.',
   'Quand le contexte dit que l’activité est DÉDUITE (ou non indiquée), le courriel a le droit de la déduire du nom de l’entreprise s’il le présente comme une déduction et invite à la corriger (« d’après votre nom, nous comprenons… ; précisez-nous votre activité si nous faisons erreur ») : c’est voulu, ce n’est ni incohérent ni inventé.',
   '',
   'FORMAT STRICT DE TA RÉPONSE, rien d’autre : une première ligne « VERDICT : OK » ou « VERDICT : ECHEC » ; si ECHEC, une ligne « FAUTE : <code> » par défaut constaté (codes de la liste ci-dessus uniquement).',
@@ -192,6 +193,17 @@ const NETTOIE_LIGNE = l => l.replace(/\*\*|__|`/g, '').replace(/^\s*(?:[-•>#*]
    écrire de neuf à l'auteur ni à Justin — ce qui est relayé est du texte que l'auteur a lui-même écrit, nettoyé de tout ce qui n'est pas une lettre, un chiffre ou une ponctuation
    simple. Une citation qui n'est pas dans le courriel est écartée (la faute reste : on ne relâche rien) ; une ligne CITE ailleurs qu'après `fait_invente` rend la réponse « indisponible ». */
 const CITE_MOTS = [3, 25], CITE_MAX = 220, CITES = ['fait_invente', 'incoherent'];
+/* ⛔ UNE PHRASE QUE LE CAHIER IMPOSE N'EST PAS UNE PREUVE D'INCOHÉRENCE (examen du 27 octobre 2026, 21 h 24, scénario 6 : Dupont Plomberie resté « à revoir » pour
+   `incoherent`, phrase citée « nous pourrons ensuite vous ouvrir une période d'essai d'une semaine » — la phrase que les cahiers de Léa et de Camille IMPOSENT mot pour mot,
+   et que les deux autres courriels portaient aussi, jugés bons). Une citation entièrement contenue dans une phrase imposée ne compte pas pour `incoherent` : l'auteur ne
+   peut pas la reformuler sans désobéir à son cahier. `fait_invente` n'est pas concerné (une phrase imposée ne dit rien hors de l'OFFRE ; la règle « la faute reste » tient). */
+const PHRASES_IMPOSEES = [
+  'Nous vous remercions pour votre inscription sur teamop.fr.',
+  'Dès réception de vos réponses, nous vous adresserons une proposition adaptée ; nous pourrons ensuite vous ouvrir une période d’essai d’une semaine.',
+  'Si cette proposition vous convient, nous pouvons vous ouvrir une période d’essai d’une semaine pour la tester avec votre équipe. Dites-nous si vous souhaitez la démarrer ou ajuster la proposition.',
+  'Nous restons à votre disposition par retour de mail ou par téléphone.',
+].map(t => ' ' + plat(t) + ' ');
+const dansImposee = q => { const p = ' ' + plat(q) + ' '; return PHRASES_IMPOSEES.some(i => i.includes(p)); };
 function citationDe(brute, corps) {
   const t = String(brute || '').replace(/^[\s«"“”'’`]+|[\s»"“”'’`]+$/g, '').replace(/[^\p{L}\p{N} .,;:’'()€%\/-]/gu, ' ').replace(/\s+/g, ' ').trim();
   const n = (t.match(/\S+/g) || []).length;
@@ -214,7 +226,7 @@ function lireVerdict(texte, corps) {
       continue;
     }
     const c = /^CITE\s*:\s*(.+)$/i.exec(l);
-    if (c && CITES.includes(derniere)) { const q = citationDe(c[1], corps); if (q && !citations.includes(q) && citations.length < 3) { citations.push(q); (par[derniere] = par[derniere] || []).push(q); } continue; }
+    if (c && CITES.includes(derniere)) { const q = citationDe(c[1], corps); if (q && !(derniere === 'incoherent' && dansImposee(q)) && !citations.includes(q) && citations.length < 3) { citations.push(q); (par[derniere] = par[derniere] || []).push(q); } continue; }
     return { etat: 'indisponible' };
   }
   /* ⛔ UN « INCOHÉRENT » SANS PHRASE NE BLOQUE PAS (examen du 27 octobre 2026, 19 h 07, scénario 6 : Brillance Services et Dupont Plomberie restés « à revoir » pour `incoherent`,
@@ -263,9 +275,23 @@ async function controler(o) {
   const corps = K.normaliserCorps(o.corps);
   if (fautes.length) return { etat: 'a_revoir', fautes, corps, juge: false };
   if (o.sansJuge === true) return { etat: 'non_verifie', fautes: [], corps, juge: false, raison: 'juge non demandé' };
-  const v = await juger({ cerveau: o.cerveau, agent: o.agent, objet: o.objet, corps, contexte: o.contexteJuge, recu: o.recu, connaissances: o.connaissances });
+  const jo = { cerveau: o.cerveau, agent: o.agent, objet: o.objet, corps, contexte: o.contexteJuge, recu: o.recu, connaissances: o.connaissances };
+  const v = await juger(jo);
   if (v.etat === 'ok') return { etat: 'bon', fautes: [], corps, juge: true };
-  if (v.etat === 'echec') return Object.assign({ etat: 'a_revoir', fautes: v.fautes, corps, juge: true }, v.citations ? { citations: v.citations, citesPar: v.citesPar } : {});
+  if (v.etat === 'echec') {
+    /* ⛔ UN SEUL JUGE NE BLOQUE PAS UN COURRIEL : IL FAUT UN SECOND AVIS (Justin, 27 octobre 2026 au soir, après trois jours de scénario 6 rouge : « il y a intérêt de ne
+       plus avoir d'erreur »). Les quatre échecs de suite venaient du juge, pas du courriel : `fait_invente` sur une ligne fidèle à l'offre, `incoherent` sans phrase, puis
+       sur la phrase que le cahier IMPOSE. Corriger chaque lubie l'une après l'autre ne finit jamais. Un refus est donc relu par un second juge, À NEUF (même demande,
+       rien de la première réponse) : seule une faute que LES DEUX relèvent bloque. Un vrai défaut se voit deux fois ; une lubie, presque jamais. Second juge muet ou
+       hors forme : le premier verdict tient (on ne relâche rien sur un doute). Coût : un appel de plus, et seulement sur un refus. */
+    const v2 = await juger(jo);
+    if (v2.etat === 'indisponible') return Object.assign({ etat: 'a_revoir', fautes: v.fautes, corps, juge: true }, v.citations ? { citations: v.citations, citesPar: v.citesPar } : {});
+    const confirmees = v2.etat === 'echec' ? v.fautes.filter(f => v2.fautes.includes(f)) : [];
+    if (!confirmees.length) return { etat: 'bon', fautes: [], corps, juge: true, secondAvis: true };
+    const par = {}, cites = [];
+    for (const f of confirmees) { const l = [].concat((v.citesPar && v.citesPar[f]) || [], (v2.citesPar && v2.citesPar[f]) || []).filter((c, i, t) => t.indexOf(c) === i).slice(0, 3); if (l.length) { par[f] = l; l.forEach(c => { if (!cites.includes(c)) cites.push(c); }); } }
+    return Object.assign({ etat: 'a_revoir', fautes: confirmees, corps, juge: true }, cites.length ? { citations: cites.slice(0, 3), citesPar: par } : {});
+  }
   return { etat: 'non_verifie', fautes: [], corps, juge: false, raison: v.raison || 'réponse du juge hors forme' };
 }
 
@@ -312,4 +338,4 @@ async function produire(o) {
   return Object.assign(dernier, { etat: 'a_revoir', reecrit: true });
 }
 
-module.exports = { FAUTES, JUGE_CODES, JUGE_SYSTEM, PROFILS, estQuestion, estGrave, phrasesDe, fautesDuCode, lireVerdict, juger, controler, messagesReecriture, produire };
+module.exports = { PHRASES_IMPOSEES, FAUTES, JUGE_CODES, JUGE_SYSTEM, PROFILS, estQuestion, estGrave, phrasesDe, fautesDuCode, lireVerdict, juger, controler, messagesReecriture, produire };
