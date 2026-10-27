@@ -12751,7 +12751,7 @@ function paCarteHtml(c,k,idx,dec){
   }
   h+='<div class="pa-m-o">'+(paT(c.objet,300)||'(sans objet)')+'</div><pre class="pa-m-c">'+esc(typeof c.texte==='string'?c.texte.slice(0,20000):'')+'</pre>';
   var brut=Object.prototype.hasOwnProperty.call(dec,id)?dec[id]:null;
-  var et=libre&&paObj(brut)&&brut.etat==='echec'?['ko','Le Mac n’a pas pu appliquer ta décision'+(brut.motif==='deja_traite'?' : ce mail a été traité dans Harvey entre-temps':'')+'. Tu peux redécider.']:paEtatCarte(c,d);
+  var et=libre&&paObj(brut)&&brut.etat==='echec'?['ko','Le Mac n’a pas pu appliquer ta décision'+(brut.motif==='deja_traite'?' : ce mail a été traité dans Harvey entre-temps':brut.motif==='modifie'?' : Harvey l’a réécrit depuis que tu l’as lu — relis-le':'')+'. Tu peux redécider.']:paEtatCarte(c,d);
   if(et) h+='<div class="pa-m-etat" data-t="'+et[0]+'" role="status">'+esc(et[1])+'</div>';
   if(d&&d.etat==='a_faire'&&att) h+='<div class="pa-m-act"><button type="button" class="ms-lien" data-act="paAvis" data-i="'+k+'"'+(occ?' disabled':'')+'>Changer d’avis</button></div>';
   if(libre) h+='<div class="pa-m-act"><button type="button" class="ms-envoyer" data-act="paAcc" data-i="'+k+'"'+(occ?' disabled':'')+'>Accepter et envoyer</button>'+
@@ -12795,6 +12795,7 @@ function paDecider(k,action){
   var id=MS_PA.ids[k], c=id?paCourriel(id):null; if(!c||MS_PA.occ) return Promise.resolve(null);
   if(!paDecs()){ toast('Les décisions sont illisibles sur le serveur : rien n’a été envoyé.'); return Promise.resolve(null); }
   var corps={id:id,action:action};
+  if(action==='accepter'&&typeof c.maj==='string'&&c.maj) corps.maj=c.maj;   /* la version du texte LU : le serveur et le Mac refusent d'accepter un brouillon réécrit depuis */
   if(action==='modifier'){ var b=MS_PA.brouillon[id]||{}; corps.objet=String(b.objet||'').trim(); corps.texte=String(b.texte||'').trim();
     if(c.genre==='reponse') corps.objet=typeof c.objet==='string'&&c.objet.trim()?c.objet:corps.objet;
     if(!corps.objet||!corps.texte){ toast('L’objet et le texte ne peuvent pas être vides.'); return Promise.resolve(null); } }

@@ -70,7 +70,7 @@ const GENRES = ['sequence', 'reponse'];
 const FICHIER_DEC = 'pauline-decisions.json';
 const ACTIONS = ['accepter', 'refuser', 'modifier'];
 const ETATS_DECISION = ['a_faire', 'fait', 'echec'];
-const MOTIFS_RESULTAT = ['deja_traite', 'introuvable', 'erreur'];
+const MOTIFS_RESULTAT = ['deja_traite', 'modifie', 'introuvable', 'erreur'];
 const DEC_GARDE_JOURS = 30;
 const DEC_MAX = 2000;
 const VUS_MAX = 3000;
@@ -91,7 +91,7 @@ function texte(v, max, long) {
 function entier(v, min, max) {
   return typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : null;
 }
-const RE_ID = /^[A-Za-z0-9_.:-]{1,64}$/;
+const RE_ID = /^(?!(?:__proto__|constructor|prototype)$)[A-Za-z0-9_.:-]{1,64}$/;   /* jamais un nom de propriété d'objet : un identifiant sert de CLÉ (décisions) */
 const RE_JOUR = /^\d{4}-\d{2}-\d{2}$/;
 const RE_HEURE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 const RE_COURRIEL = /^[^\s@<>"',;]{1,64}@[^\s@<>"',;]{1,190}$/;
@@ -176,6 +176,7 @@ function validerReleve(corps, maintenant) {
     if (GENRES.includes(c.genre)) o.genre = c.genre;
     const et = entier(c.etape, 0, 1000); if (et !== null) o.etape = et;
     const sb = texte(c.statutBrut, 40); if (sb) o.statutBrut = sb;
+    const mj = texte(c.maj, 40); if (mj) o.maj = mj;   /* la version du brouillon dans Harvey (updated_at) : « accepter » ne vaut que pour CE texte */
     courriels.push(o);
   }
   const reponses = [];
@@ -292,6 +293,7 @@ function validerDecision(corps) {
     if (!t) return { ok: false, motif: 'texte vide' };
     decision.objet = objet; decision.texte = t;
   }
+  const maj = texte(corps.maj, 40); if (maj) decision.maj = maj;   /* la version du texte que Justin a LU (relevé) */
   return { ok: true, id, decision };
 }
 /* Le courriel attend-il l'accord de Justin, d'après le relevé ? (`approved` et `sending` sont aussi « en_attente » dans le relevé : ils attendent l'ENVOI, pas l'accord.) */
@@ -300,7 +302,7 @@ function attendAccord(c) { return !!c && c.etat === 'en_attente' && (c.statutBru
 function decisionsAFaire(etat) {
   return Object.keys(etat.decisions).filter(id => etat.decisions[id].etat === 'a_faire')
     .sort((x, y) => String(etat.decisions[x].le).localeCompare(String(etat.decisions[y].le)))
-    .map(id => Object.assign({ id }, ...['action', 'objet', 'texte'].filter(k => etat.decisions[id][k] !== undefined).map(k => ({ [k]: etat.decisions[id][k] }))));
+    .map(id => Object.assign({ id }, ...['action', 'objet', 'texte', 'maj', 'le'].filter(k => etat.decisions[id][k] !== undefined).map(k => ({ [k]: etat.decisions[id][k] }))));
 }
 /* Un état de décisions propre : formes vérifiées, 30 jours, au plus DEC_MAX décisions (les plus récentes), au plus VUS_MAX identifiants déjà signalés. */
 function elaguerDecisions(etat, maintenant) {
@@ -473,7 +475,10 @@ module.exports = function pauline(app, ctx) {
       const c = r.releve.courriels.find(x => x.id === v.id);
       if (!c) return res.status(409).json({ error: 'Ce mail n’est plus dans le relevé de Pauline.' });
       if (!attendAccord(c)) return res.status(409).json({ error: 'Ce mail n’attend plus ton accord (déjà accepté, envoyé ou refusé).' });
-      if (v.decision.action === 'modifier' && c.genre === 'reponse') v.decision.objet = c.objet;   /* une réponse garde son objet : sinon elle sortirait du fil de la conversation */
+      if (v.decision.action === 'modifier' && c.genre === 'reponse') v.decision.objet = c.objet;
+      /* ⛔ (relecture de gardien) « accepter » vaut pour le texte LU : si Harvey l'a réécrit depuis, on ne l'accepte pas à l'aveugle */
+      if (v.decision.action === 'accepter' && c.maj && v.decision.maj && v.decision.maj !== c.maj) return res.status(409).json({ error: 'Ce mail a été réécrit depuis que tu l’as lu : relis-le avant de l’accepter.' });
+      if (v.decision.action !== 'accepter') delete v.decision.maj; else if (c.maj) v.decision.maj = c.maj;   /* une réponse garde son objet : sinon elle sortirait du fil de la conversation */
       const etat = lireDec();
       if (!etat) return res.status(503).json({ error: 'Les décisions de Pauline sont illisibles sur le serveur : rien n’a été enregistré.' });
       const avant = etat.decisions[v.id];
@@ -509,6 +514,9 @@ module.exports = function pauline(app, ctx) {
         if (!estObjet(x) || typeof x.id !== 'string' || !RE_ID.test(x.id)) continue;
         const d = etat.decisions[x.id];
         if (!d || d.etat !== 'a_faire') continue;
+        /* ⛔ (relecture de gardien) le compte rendu vaut pour la décision que le Mac a LUE : si Justin a changé d'avis entre-temps (refuser après accepter),
+           ce résultat-là ne clôt PAS la nouvelle décision — le Mac la verra au passage suivant, et dira « déjà traité » si l'ancienne est partie */
+        if (x.le !== d.le) continue;
         if (x.ok === true) { d.etat = 'fait'; delete d.motif; }
         else { d.etat = 'echec'; d.motif = MOTIFS_RESULTAT.includes(x.motif) ? x.motif : 'erreur'; }
         d.faitLe = t; delete d.texte; delete d.objet;   /* appliqué : le texte n'a plus rien à faire ici */

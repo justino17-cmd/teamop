@@ -66,7 +66,7 @@ function releve() {
       { id: 'c2', nom: 'Plomberie Niortaise', ville: 'Niort', metier: 'plomberie', etat: 'courriel_pret', majLe: iso(-60e3) }],
     courriels: [
       { id: 'o-recent', entrepriseId: 'c2', etat: 'en_attente', objet: 'Vos plannings', texte: 'Bonjour,\nun texte récent.', quand: iso(-1000), genre: 'sequence', etape: 1, statutBrut: 'pending_review' },
-      { id: 'o-ancien', entrepriseId: 'c1', etat: 'en_attente', objet: 'Objet ' + HOSTILE, texte: 'Texte ' + HOSTILE, quand: iso(-5000), genre: 'sequence', etape: 1, statutBrut: 'pending_review' },
+      { id: 'o-ancien', entrepriseId: 'c1', etat: 'en_attente', objet: 'Objet ' + HOSTILE, texte: 'Texte ' + HOSTILE, quand: iso(-5000), genre: 'sequence', etape: 1, statutBrut: 'pending_review', maj: '2026-10-27 09:12:00' },
       { id: 'o-rep', entrepriseId: 'c1', etat: 'en_attente', objet: 'Re: Votre devis', texte: 'Merci pour votre retour.', quand: iso(-3000), genre: 'reponse', statutBrut: 'pending_review' },
       { id: 'o-accepte', entrepriseId: 'c1', etat: 'en_attente', objet: 'x', texte: 'y', quand: iso(-800), statutBrut: 'approved' },
       { id: 'o-parti', entrepriseId: 'c2', etat: 'envoye', objet: 'x', texte: 'y', quand: iso(-700), statutBrut: 'sent' }] };
@@ -102,7 +102,7 @@ function releve() {
   await bac.paDecider(0, 'accepter'); await attendre();
   v('le toast le dit', toasts.slice(avant), ['Accepté : le Mac l’envoie dans la minute, aux heures d’envoi.']);
   let m = await mac('GET', '/api/pauline/decisions');
-  v('le Mac voit la décision', m.decisions, [{ id: 'o-ancien', action: 'accepter' }]);
+  v('le Mac voit la décision, avec la VERSION du texte que Justin a lu', m.decisions.map(d => [d.id, d.action, d.maj]), [['o-ancien', 'accepter', '2026-10-27 09:12:00']]);
   H = bac.msPaHtml();
   v('il reste deux mails à valider, la pastille baisse', [MS_PA.ids.slice(0, 2), bac.paAttenteN(), MS_PA.n], [['o-rep', 'o-recent'], 2, 2]);
   vrai('le mail accepté passe dans « Décidés récemment », avec son état et « Changer d’avis »', /Décidés récemment \(1\)/.test(H) && /Accepté — part du Mac dans la minute/.test(H) && /data-act="paAvis"/.test(H));
@@ -119,7 +119,7 @@ function releve() {
   bac.paSaisie(kRec, 'objet', 'Votre planning, en deux clics'); bac.paSaisie(kRec, 'texte', 'Bonjour,\nle texte de Justin.');
   await bac.paDecider(kRec, 'modifier'); await attendre();
   m = await mac('GET', '/api/pauline/decisions');
-  v('le Mac reçoit le texte de Justin', m.decisions.filter(d => d.id === 'o-recent'), [{ id: 'o-recent', action: 'modifier', objet: 'Votre planning, en deux clics', texte: 'Bonjour,\nle texte de Justin.' }]);
+  v('le Mac reçoit le texte de Justin', m.decisions.filter(d => d.id === 'o-recent').map(d => [d.action, d.objet, d.texte]), [['modifier', 'Votre planning, en deux clics', 'Bonjour,\nle texte de Justin.']]);
   v('l’éditeur se ferme, le brouillon s’efface', [MS_PA.edit, 'o-recent' in MS_PA.brouillon], ['', false]);
   H = bac.msPaHtml();
   const kRep2 = MS_PA.ids.indexOf('o-rep');
@@ -135,7 +135,8 @@ function releve() {
   v('⛔ « Refuser » demande confirmation : non → rien n’est envoyé', (await mac('GET', '/api/pauline/decisions')).decisions.length, 2);
   confirmer = true; await bac.paDecider(MS_PA.ids.indexOf('o-rep'), 'refuser'); await attendre();
   v('oui → le Mac voit le refus ; plus rien à valider', [(await mac('GET', '/api/pauline/decisions')).decisions.map(d => d.id + ':' + d.action), bac.paAttenteN()], [['o-ancien:accepter', 'o-recent:modifier', 'o-rep:refuser'], 0]);
-  v('le Mac rend compte : appliqué', (await mac('POST', '/api/pauline/decisions/resultats', { resultats: [{ id: 'o-ancien', ok: true }, { id: 'o-recent', ok: true }, { id: 'o-rep', ok: true }] })).pris, 3);
+  const lus = (await mac('GET', '/api/pauline/decisions')).decisions;
+  v('le Mac rend compte : appliqué (avec la date de chaque décision lue)', (await mac('POST', '/api/pauline/decisions/resultats', { resultats: lus.map(d => ({ id: d.id, ok: true, le: d.le })) })).pris, 3);
   PA.luLe = 0; await bac.chargerPauline(); await attendre(); H = bac.msPaHtml();
   vrai('la Tour voit « Appliqué sur le Mac » tant que le relevé n’a pas suivi', /Appliqué sur le Mac — mise à jour…/.test(H));
   const kA = MS_PA.ids.indexOf('o-ancien');

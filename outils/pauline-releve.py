@@ -335,7 +335,7 @@ def fabriquer_releve(base, cles_yaml, maintenant=None, aujourdhui=None, env=None
             e = "en_attente"
         courriels.append({"id": o["id"], "entrepriseId": cle_entreprise(o["prospect_id"]), "etat": e, "objet": reduire(o["subject"], 300),
                           "texte": (o["body"] or "")[:20000 if o["status"] == "pending_review" else 6000], "quand": iso(quand), "genre": "reponse" if o["kind"] == "reply" else "sequence",
-                          "etape": int(o["step"] or 0), "statutBrut": reduire(o["status"], 40)})
+                          "etape": int(o["step"] or 0), "statutBrut": reduire(o["status"], 40), "maj": reduire(o["updated_at"], 40)})
     courriels.sort(key=lambda c: c["quand"], reverse=True)
     courriels = courriels[:MAX["courriels"]]
 
@@ -526,12 +526,16 @@ def appliquer_decisions(chemin_base, decisions):
         for d in utiles:
             ident, action = d["id"], d["action"]
             try:
-                ligne = base.execute("SELECT status, kind, subject FROM outbox WHERE id = ?", (ident,)).fetchone()
+                ligne = base.execute("SELECT status, kind, subject, updated_at FROM outbox WHERE id = ?", (ident,)).fetchone()
                 if not ligne:
                     resultats.append({"id": ident, "ok": False, "motif": "introuvable"})
                     continue
                 if ligne[0] != "pending_review":
                     resultats.append({"id": ident, "ok": False, "motif": "deja_traite"})
+                    continue
+                # ⛔ « accepter » vaut pour le texte que Justin a LU : si Harvey l'a réécrit depuis (updated_at a bougé), on n'accepte pas à l'aveugle
+                if action == "accepter" and isinstance(d.get("maj"), str) and d["maj"] and reduire(ligne[3], 40) != d["maj"]:
+                    resultats.append({"id": ident, "ok": False, "motif": "modifie"})
                     continue
                 quand = maintenant_harvey()
                 with base:   # une transaction : la modification et l'accord passent ensemble, ou rien
@@ -551,10 +555,16 @@ def appliquer_decisions(chemin_base, decisions):
                             champs += ", approved_by = 'you'"   # l'accord d'un humain : le pilote automatique ne le retient pas une seconde fois
                         if "error" in colonnes:
                             champs += ", error = ''"
-                        n = base.execute("UPDATE outbox SET " + champs + " WHERE id = ? AND status = 'pending_review'", (quand, ident)).rowcount
+                        garde, params = "", (quand, ident)
+                        if action == "accepter":   # la même version, jusque dans l'écriture : rien ne se glisse entre la lecture et l'accord
+                            garde, params = " AND COALESCE(updated_at, '') = COALESCE(?, '')", (quand, ident, ligne[3])
+                        n = base.execute("UPDATE outbox SET " + champs + " WHERE id = ? AND status = 'pending_review'" + garde, params).rowcount
                 resultats.append({"id": ident, "ok": True} if n == 1 else {"id": ident, "ok": False, "motif": "deja_traite"})
             except sqlite3.Error:
                 resultats.append({"id": ident, "ok": False, "motif": "erreur"})
+        for r, d in zip(resultats, utiles):   # le serveur ne clôt que la décision LUE (sa date) : un changement d'avis entre-temps reste à faire
+            if isinstance(d.get("le"), str):
+                r["le"] = d["le"]
     finally:
         base.close()
     return resultats

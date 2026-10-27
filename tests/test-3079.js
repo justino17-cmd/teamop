@@ -29,7 +29,7 @@ function releve() {
     jour: { envoyes: 0, reponses: 0, refus: 0, enAttente: 2 }, recherches: [],
     entreprises: [{ id: 'c1', nom: NOM, ville: 'Niort', metier: 'climatisation', etat: 'courriel_pret', email: 'patron@zebulon-clim.fr', majLe: iso(-60e3) }],
     courriels: [
-      { id: 'o-tour', entrepriseId: 'c1', etat: 'en_attente', objet: OBJET, texte: TEXTE, quand: iso(-1000), genre: 'sequence', etape: 1, statutBrut: 'pending_review' },
+      { id: 'o-tour', entrepriseId: 'c1', etat: 'en_attente', objet: OBJET, texte: TEXTE, quand: iso(-1000), genre: 'sequence', etape: 1, statutBrut: 'pending_review', maj: '2026-10-27T10:00:00' },
       { id: 'o-reponse', entrepriseId: 'c1', etat: 'en_attente', objet: 'Re: Votre planning', texte: 'Merci', quand: iso(-900), genre: 'reponse', statutBrut: 'pending_review' },
       { id: 'o-accepte', entrepriseId: 'c1', etat: 'en_attente', objet: 'x', texte: 'y', quand: iso(-800), statutBrut: 'approved' },
       { id: 'o-parti', entrepriseId: 'c1', etat: 'envoye', objet: 'x', texte: 'y', quand: iso(-700), statutBrut: 'sent' }],
@@ -47,14 +47,18 @@ function releve() {
   v('⛔ refus : action inconnue, id illisible, modifier sans objet ou sans texte, corps qui n’est pas un objet',
     [P.validerDecision({ id: 'o1', action: 'envoyer' }).ok, P.validerDecision({ id: '../x', action: 'accepter' }).ok, P.validerDecision({ id: 'o1', action: 'modifier', objet: '', texte: 'x' }).ok,
       P.validerDecision({ id: 'o1', action: 'modifier', objet: 'x', texte: '  ' }).ok, P.validerDecision([]).ok], [false, false, false, false, false]);
+  v('⛔ (gardien) un identifiant qui est un nom de propriété d’objet est refusé', ['__proto__', 'constructor', 'prototype'].map(id => P.validerDecision({ id, action: 'accepter' }).ok), [false, false, false]);
+  v('la version du texte lu (maj) voyage avec la décision', P.validerDecision({ id: 'o1', action: 'accepter', maj: '2026-10-27T10:00:00' }).decision, { action: 'accepter', maj: '2026-10-27T10:00:00' });
+  v('⛔ (gardien) un identifiant qui est un nom de propriété d’objet est refusé', ['__proto__', 'constructor', 'prototype'].map(id => P.validerDecision({ id, action: 'accepter' }).ok), [false, false, false]);
+  v('la version du texte lu (maj) voyage avec la décision', P.validerDecision({ id: 'o1', action: 'accepter', maj: '2026-10-27T10:00:00' }).decision, { action: 'accepter', maj: '2026-10-27T10:00:00' });
   v('« attend l’accord » : en_attente ET pending_review (ou statut inconnu) — pas « approved », pas « sending »',
     [{ etat: 'en_attente', statutBrut: 'pending_review' }, { etat: 'en_attente' }, { etat: 'en_attente', statutBrut: 'approved' }, { etat: 'en_attente', statutBrut: 'sending' }, { etat: 'envoye' }].map(P.attendAccord),
     [true, true, false, false, false]);
   const el = P.elaguerDecisions({ decisions: { vieux: { action: 'accepter', etat: 'fait', le: iso(-40 * 86400e3) }, neuf: { action: 'refuser', etat: 'a_faire', le: iso(-1000) },
     faux: { action: 'détruire', etat: 'a_faire', le: iso(0) }, '__proto__': { action: 'accepter', etat: 'a_faire', le: iso(0) } }, vus: ['a', 3, '../b'] }, maint);
   v('élagage : 30 jours, formes vérifiées, identifiants vus propres', [Object.keys(el.decisions), el.vus], [['neuf'], ['a']]);
-  v('à faire : les plus anciennes d’abord, sans l’état ni la date', P.decisionsAFaire({ decisions: { b: { action: 'refuser', etat: 'a_faire', le: iso(-10) }, a: { action: 'modifier', objet: 'o', texte: 't', etat: 'a_faire', le: iso(-20) }, c: { action: 'accepter', etat: 'fait', le: iso(-30) } } }),
-    [{ id: 'a', action: 'modifier', objet: 'o', texte: 't' }, { id: 'b', action: 'refuser' }]);
+  v('à faire : les plus anciennes d’abord, sans l’état, AVEC leur date (le Mac la rend : un changement d’avis entre-temps n’est pas clos par erreur)', P.decisionsAFaire({ decisions: { b: { action: 'refuser', etat: 'a_faire', le: iso(-10) }, a: { action: 'modifier', objet: 'o', texte: 't', etat: 'a_faire', le: iso(-20) }, c: { action: 'accepter', etat: 'fait', le: iso(-30) } } }),
+    [{ id: 'a', action: 'modifier', objet: 'o', texte: 't', le: iso(-20) }, { id: 'b', action: 'refuser', le: iso(-10) }]);
 
   {
     const dos = fs.mkdtempSync(path.join(os.tmpdir(), 'pau3079-')); tmp.push(dos);
@@ -74,7 +78,7 @@ function releve() {
   vrai('la décision de la Tour est au patron seul', /app\.post\('\/api\/monitor\/pauline\/decision', monPatronStrict,/.test(SRC));
   vrai('⛔ aucun console.* du module ne cite une décision, un objet ou un texte', (SRC.match(/console\.(?:log|error|warn|info)\([^;]*\);/g) || []).every(l => !/decision\.|\.objet|\.texte|req\.body/i.test(l.replace(/'[^']*'/g, ''))));
   const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
-  vrai('⛔ le compte rendu du Mac est écarté du gros analyseur JSON (jeton AVANT la lecture du corps)', /CHEMIN_PAULINE = \/\^\\\/api\\\/pauline\\\/\(\?:releve\|decisions\\\/resultats\)/.test(IDX));
+  vrai('⛔ le compte rendu du Mac ET la décision de la Tour sont écartés du gros analyseur JSON (jeton ou session AVANT la lecture du corps)', /CHEMIN_PAULINE = \/\^\\\/api\\\/\(\?:pauline\\\/\(\?:releve\|decisions\\\/resultats\)\|monitor\\\/pauline\\\/decision\)/.test(IDX));
 
   const SAUT = !fs.existsSync(path.join(RACINE, 'server', 'node_modules', 'express'));
   if (SAUT) { console.log('  … SAUTÉ : server/node_modules absent (cd server && npm i)'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
@@ -98,7 +102,11 @@ function releve() {
     v('⛔ collaborateur et anonyme : 403', [(await decider(S, { id: 'o-tour', action: 'accepter' }, S.TA)).s, (await decider(S, { id: 'o-tour', action: 'accepter' }, '')).s], [403, 403]);
     v('⛔ action inconnue : 400', (await decider(S, { id: 'o-tour', action: 'envoyer' })).s, 400);
     v('⛔ courriel inconnu, déjà parti, déjà accepté : 409', [(await decider(S, { id: 'o-fantome', action: 'accepter' })).s, (await decider(S, { id: 'o-parti', action: 'refuser' })).s, (await decider(S, { id: 'o-accepte', action: 'accepter' })).s], [409, 409, 409]);
-    const a = await decider(S, { id: 'o-tour', action: 'accepter' });
+    v('⛔ (gardien) accepter un texte réécrit depuis la lecture : 409', [(await decider(S, { id: 'o-tour', action: 'accepter', maj: '2026-10-27T09:00:00' })).s, (await decider(S, { id: 'o-tour', action: 'accepter', maj: '2026-10-27T09:00:00' })).j.error], [409, 'Ce mail a été réécrit depuis que tu l’as lu : relis-le avant de l’accepter.']);
+    v('⛔ (gardien) un anonyme qui envoie 1 Mo à la décision : 403 (le corps n’est pas lu) ; le patron, au-delà de 64 Ko : 413',
+      [(await brut(S, 'POST', '/api/monitor/pauline/decision', { 'Content-Type': 'application/json' }, JSON.stringify({ id: 'o-tour', action: 'modifier', objet: 'x', texte: 'y'.repeat(1024 * 1024) }))).s,
+        (await brut(S, 'POST', '/api/monitor/pauline/decision', { 'Content-Type': 'application/json', Authorization: 'Bearer ' + S.TP }, JSON.stringify({ id: 'o-tour', action: 'modifier', objet: 'x', texte: 'y'.repeat(70 * 1024) }))).s], [403, 413]);
+    const a = await decider(S, { id: 'o-tour', action: 'accepter', maj: '2026-10-27T10:00:00' });
     v('accepter un courriel qui attend : 200, « à faire »', [a.s, a.j], [200, { ok: true, id: 'o-tour', action: 'accepter', etat: 'a_faire' }]);
     v('changer d’avis tant que le Mac n’est pas passé : refuser remplace accepter', (await decider(S, { id: 'o-tour', action: 'refuser' })).j.action, 'refuser');
     v('modifier une RÉPONSE : son objet reste celui du fil (sinon elle sortirait de la conversation)', (await decider(S, { id: 'o-reponse', action: 'modifier', objet: 'Autre objet', texte: TEXTE_JUSTIN })).s, 200);
@@ -110,9 +118,21 @@ function releve() {
     v('⛔ Mac : sans jeton ou mauvais jeton, 401', [(await mac(S, 'GET', '/api/pauline/decisions', undefined, '')).s, (await mac(S, 'GET', '/api/pauline/decisions', undefined, 'faux-' + JETON)).s], [401, 401]);
     v('⛔ Mac : un corps de 1 Mo avec un mauvais jeton = 401 (le jeton passe AVANT la lecture)', (await mac(S, 'POST', '/api/pauline/decisions/resultats', JSON.stringify({ resultats: [], bourrage: 'x'.repeat(1024 * 1024) }), 'faux-' + JETON)).s, 401);
     const m1 = await mac(S, 'GET', '/api/pauline/decisions');
-    v('Mac : il reçoit les décisions à faire, la réponse avec SON objet', [m1.s, m1.j.decisions], [200, [{ id: 'o-tour', action: 'refuser' }, { id: 'o-reponse', action: 'modifier', objet: 'Re: Votre planning', texte: TEXTE_JUSTIN }]]);
+    const sansLe = l => l.map(d => { const o = Object.assign({}, d); delete o.le; return o; });
+    v('Mac : il reçoit les décisions à faire, la réponse avec SON objet, chacune avec sa date', [m1.s, sansLe(m1.j.decisions), m1.j.decisions.every(d => typeof d.le === 'string')], [200, [{ id: 'o-tour', action: 'refuser' }, { id: 'o-reponse', action: 'modifier', objet: 'Re: Votre planning', texte: TEXTE_JUSTIN }], true]);
+    /* ⛔ (gardien) la course : le Mac a lu « refuser », Justin repasse à « accepter » avant le compte rendu */
+    await new Promise(r => setTimeout(r, 5));
+    v('Justin change d’avis pendant que le Mac applique', (await decider(S, { id: 'o-tour', action: 'accepter', maj: '2026-10-27T10:00:00' })).s, 200);
+    const course = await mac(S, 'POST', '/api/pauline/decisions/resultats', { resultats: [{ id: 'o-tour', ok: true, le: m1.j.decisions[0].le }] });
+    const gc = await S.get('/api/monitor/pauline');
+    v('⛔ le compte rendu de l’ANCIENNE décision ne clôt pas la nouvelle : elle reste à faire', [course.j.pris, gc.j.decisions['o-tour'].action, gc.j.decisions['o-tour'].etat], [0, 'accepter', 'a_faire']);
+    v('la nouvelle décision porte la version du texte lu', (await mac(S, 'GET', '/api/pauline/decisions')).j.decisions.filter(d => d.id === 'o-tour')[0].maj, '2026-10-27T10:00:00');
+    await new Promise(r => setTimeout(r, 5));
+    await decider(S, { id: 'o-tour', action: 'refuser' });
+    m1.j.decisions = (await mac(S, 'GET', '/api/pauline/decisions')).j.decisions;
     v('⛔ compte rendu malformé : 400', (await mac(S, 'POST', '/api/pauline/decisions/resultats', { resultats: 'tout' })).s, 400);
-    const cr = await mac(S, 'POST', '/api/pauline/decisions/resultats', { resultats: [{ id: 'o-tour', ok: true }, { id: 'o-reponse', ok: false, motif: '<script>' }, { id: 'o-fantome', ok: true }] });
+    const leDe = id => (m1.j.decisions.filter(d => d.id === id)[0] || {}).le;
+    const cr = await mac(S, 'POST', '/api/pauline/decisions/resultats', { resultats: [{ id: 'o-tour', ok: true, le: leDe('o-tour') }, { id: 'o-reponse', ok: false, motif: '<script>', le: leDe('o-reponse') }, { id: 'o-fantome', ok: true }] });
     v('compte rendu : deux décisions closes (l’inconnue ignorée)', [cr.s, cr.j.pris], [200, 2]);
     const g2 = await S.get('/api/monitor/pauline');
     v('la Tour voit « fait » et « échec » (motif hors liste → « erreur »)', [g2.j.decisions['o-tour'].etat, g2.j.decisions['o-reponse'].etat, g2.j.decisions['o-reponse'].motif], ['fait', 'echec', 'erreur']);

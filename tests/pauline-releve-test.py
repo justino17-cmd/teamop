@@ -476,6 +476,30 @@ class TestDecisions(unittest.TestCase):
         c = [x for x in json.loads(s.recus[0]["corps"])["courriels"] if x["id"] == "o-attente"][0]
         self.assertEqual(c["statutBrut"], "approved", "le relevé qui suit voit l'accord")
 
+    def test_accepter_un_texte_reecrit_depuis_la_lecture(self):
+        avant = self.ligne("o-attente")
+        code, out, err, s = self.jouer([{"id": "o-attente", "action": "accepter", "maj": "1999-01-01T00:00:00", "le": "2026-10-27T10:00:00.000Z"}])
+        self.assertEqual(self.ligne("o-attente"), avant, "⛔ Harvey a réécrit le brouillon depuis la lecture de Justin : on n'accepte pas à l'aveugle")
+        self.assertEqual(s.resultats[0]["corps"]["resultats"], [{"id": "o-attente", "ok": False, "motif": "modifie", "le": "2026-10-27T10:00:00.000Z"}])
+
+    def test_accepter_la_version_lue(self):
+        m = charger_module()
+        b = sqlite3.connect(str(self.base))
+        maj = m.reduire(b.execute("SELECT updated_at FROM outbox WHERE id='o-attente'").fetchone()[0], 40)
+        b.close()
+        code, out, err, s = self.jouer([{"id": "o-attente", "action": "accepter", "maj": maj, "le": "L1"}])
+        self.assertEqual(self.ligne("o-attente")[0], "approved")
+        self.assertEqual(s.resultats[0]["corps"]["resultats"], [{"id": "o-attente", "ok": True, "le": "L1"}], "la date de la décision lue revient au serveur")
+
+    def test_le_releve_porte_la_version_du_brouillon(self):
+        s = FauxServeur()
+        try:
+            lancer("--harvey", str(self.dossier), "--url", s.url)
+        finally:
+            s.fermer()
+        c = [x for x in json.loads(s.recus[0]["corps"])["courriels"] if x["id"] == "o-attente"][0]
+        self.assertTrue(isinstance(c.get("maj"), str) and c["maj"], c)
+
     def test_refuser(self):
         self.jouer([{"id": "o-attente", "action": "refuser"}])
         self.assertEqual(self.ligne("o-attente")[0], "rejected")
