@@ -129,7 +129,9 @@
 # (`CHROME_MSG=/nonexistent` : test-2600 se saute), toutes vertes — plancher 12222 (le total moins 14, jamais une addition). (La liste portait encore 11455 depuis le 17 octobre : les suites 3040-3043 n'avaient pas relevé le plancher.)
 # 26 octobre 2026, la relecture du gardien de l'invité sans compte (3058 l'insistance, 3059 la visio, la grâce et la conservation ; 3050 à 3053 étendus) : 196 suites, 12 301 vérifications mesurées par la commande de la porte,
 # dans les conditions de la CI, toutes vertes — plancher 12287 (le total moins 14, jamais une addition).
-#plancher 12287
+# 26 octobre 2026, l'onglet « Réunions » et le lien invité qu'on trouve (3070 : la liste, la lecture, la fiche, la création, la navigation — les vraies fonctions de la page ; 1003, 2571 et 2695 suivent la liste VUES_PRO) : 197 suites, 12 361 vérifications mesurées par la commande de la porte, dans les conditions de la CI
+# (`CHROME_MSG=/nonexistent`), toutes vertes — plancher 12347 (le total moins 14, jamais une addition).
+#plancher 12347
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -414,3 +416,5 @@ tests/test-3056.js
 tests/test-3057.js
 tests/test-3058.js
 tests/test-3059.js
+# ── L'onglet « Réunions » d'OP MESSAGES Pro et le lien invité qu'on trouve (26 octobre 2026, Justin : « pourquoi dans OP MESSAGES j'ai pas Réunions ? », « je trouve pas le lien inviter ») : la liste, la lecture, la fiche, la création, la navigation (3070).
+tests/test-3070.js

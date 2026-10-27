@@ -333,19 +333,25 @@ body > .sr-seul { top: 0; left: 0; }
 .tabs {
   position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px));
   bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)); margin: 0 auto; max-width: 480px;
-  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 2px; padding: 7px; border-radius: 34px;
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: var(--tg, 2px); padding: var(--tp, 7px); border-radius: 34px;
   background: var(--tab-bar); -webkit-backdrop-filter: blur(24px) saturate(200%); backdrop-filter: blur(24px) saturate(200%);
   border: 0; box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;
 }
 .tabs-bulle {
-  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 14px - (var(--n, 4) - 1) * 2px) / var(--n, 4)); border-radius: 26px;
+  position: absolute; top: var(--tp, 7px); bottom: var(--tp, 7px); left: var(--tp, 7px); width: calc((100% - 2 * var(--tp, 7px) - (var(--n, 4) - 1) * var(--tg, 2px)) / var(--n, 4)); border-radius: 26px;
   background: var(--tab-active-bg); box-shadow: var(--tab-active-shadow);
-  translate: calc(var(--i) * (100% + 2px)) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
+  translate: calc(var(--i) * (100% + var(--tg, 2px))) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
 }
 .tab {
   position: relative; z-index: 1; min-width: 0; min-height: 50px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   color: var(--tab-inactif-fg); font-size: 11px; font-weight: 500; letter-spacing: .01em; transition: color .25s, transform .12s ease-out;
 }
+/* ⛔ SEPT ONGLETS (côté Pro avec le Courrier : Accueil, Messages, Contacts, Appels, Réunions, Agenda, Courrier — 26 octobre 2026) : à 390 px chaque colonne tombe à 52 px, et « Messages » (≈ 50 à 55 px selon la police) s'y écrirait « Messag… » ;
+   le plancher d'écriture (11 px, test-856) interdit de rapetisser. La barre se resserre (marges 8 px, rembourrage 4 px, plus d'écart : la bulle suit les mêmes variables) et, comme les barres d'Android à plus de cinq entrées, SEUL L'ONGLET ACTIF
+   dit son nom — les autres gardent leur icône, et leur nom reste lu (il sort de l'écran, il n'est pas retiré). Posé par `construireNavigation` dès qu'il y a 7 onglets ou plus : sans le Courrier (production), six onglets gardent tous leur libellé. */
+.tabs.dense { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); --tp: 4px; --tg: 0px; }
+.tabs.dense .tab:not([aria-current="page"]) > span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.tabs.dense .tab[aria-current="page"] > span { max-width: none; overflow: visible; text-overflow: clip; }
 .tab .ic { font-size: 24px; }
 .tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab:active { transform: scale(.94); }
@@ -2320,6 +2326,21 @@ a.menu-action { text-decoration: none; }
 @keyframes msg-cible { 0%, 35% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
+/* ── L'ONGLET « RÉUNIONS » (26 octobre 2026) : « Nouvelle réunion » en tête, bien visible ; sur chaque ligne à venir, ses gestes SOUS le texte (« Rejoindre », « Lien invité ») — à côté, deux pastilles
+   ne laissent plus de place au titre sur un téléphone de 360 px (la colonne de texte cède tout, et aucun contrôle de débordement ne la voit). Chaque geste fait 44 px au moins. ── */
+.lr-haut { margin: 0 0 16px; }
+.lr-nouvelle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; padding: 0 20px; border-radius: 24px; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; }
+.lr-nouvelle .ic { font-size: 20px; }
+.lr-haut .lr-nouvelle { max-width: 420px; }
+.lr-vide { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.lr-vide .lr-nouvelle { width: auto; min-width: 220px; }
+.reunion-li.avec-gestes { flex-wrap: wrap; }
+.reunion-li.avec-gestes > .reunion-gestes { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 12px; }
+.reunion-gestes > .reunion-rejoindre { min-height: 44px; padding: 0 18px; }
+.reunion-lien { flex: none; align-self: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--field); color: var(--accent-txt); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.reunion-lien .ic { font-size: 18px; }
+.lien-neuf { margin-bottom: 18px; }
+.lien-neuf .info-note { margin-top: 0; }
 .salle-attente b { display: block; }
 
 /* ══ 20. LE BUREAU — l'interface d'un ORDINATEUR (Mac, Windows, navigateur), « 100 % façon Apple » ═════════════════════════════════════════════════════════
@@ -2371,7 +2392,7 @@ a.menu-action { text-decoration: none; }
   .btn-plus:hover { background: var(--field); }
   .btn-plus .pastille { width: 22px; height: 22px; background: transparent; color: var(--text); }
   /* sur une vue de liste (Appels, Agenda, Contacts), le contenu se lit dans une colonne de lecture ; la barre d'outils, elle, prend toute la largeur */
-  #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
+  #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-reunions-liste > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
   #vue-reunions > #mois { max-width: 1120px; }
 
   /* la recherche : le champ du Mac — 28 px, coins de 7 px, 13 px */
@@ -2701,6 +2722,7 @@ a.menu-action { text-decoration: none; }
       </div>
       <ul class="carte-liste" id="liste-appels" role="list" aria-label="Appels"></ul>
     </section>
+    <section class="vue" id="vue-reunions-liste" aria-labelledby="titre-reunions-liste" hidden></section>
     <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
     <section class="vue" id="vue-accueil" aria-labelledby="titre-accueil" hidden></section>
     <section class="vue" id="vue-courrier" aria-labelledby="titre-courrier" hidden></section>

@@ -152,7 +152,7 @@ const attendu = () => new Promise(r => setImmediate(r));
     const morceaux = {
       dansHeuresPro: decl('function dansHeuresPro('), coteHoraire: decl('function coteHoraire('), horaireAttendu: decl('function horaireAttendu('), horaireAppliquer: decl('function horaireAppliquer('),
       surPrefs: decl('function surPrefs('), basculeAttend: ligne('const basculeAttend = '), minuteurPrefs: ligne('let minuteurPrefs = '), minuteur: ligne('let minuteurHoraire = '),
-      changerMode: decl('async function changerMode('), ecrireCote: decl('async function ecrireCote('), annonceMode: ligne('const annonceMode = '), basculeReprendre: decl('function basculeReprendre('),
+      VUES_PRO: ligne('const VUES_PRO = '), changerMode: decl('async function changerMode('), ecrireCote: decl('async function ecrireCote('), annonceMode: ligne('const annonceMode = '), basculeReprendre: decl('function basculeReprendre('),
     };
     v('(population) les fonctions réelles sont trouvées dans la page', Object.keys(morceaux).filter(k => !morceaux[k]), []);
     if (!Object.keys(morceaux).filter(k => !morceaux[k]).length) {
@@ -170,7 +170,7 @@ const attendu = () => new Promise(r => setImmediate(r));
         };
         vm.createContext(ctx);
         vm.runInContext([morceaux.minuteur, morceaux.minuteurPrefs, morceaux.annonceMode, morceaux.dansHeuresPro, morceaux.coteHoraire, morceaux.horaireAttendu, morceaux.horaireAppliquer, morceaux.surPrefs, morceaux.basculeAttend,
-          morceaux.changerMode, morceaux.ecrireCote, morceaux.basculeReprendre, 'this.F = { horaireAppliquer, surPrefs, basculeReprendre };'].join('\n'), ctx, { timeout: 3000 });
+          morceaux.VUES_PRO, morceaux.changerMode, morceaux.ecrireCote, morceaux.basculeReprendre, 'this.F = { horaireAppliquer, surPrefs, basculeReprendre };'].join('\n'), ctx, { timeout: 3000 });
         return { F: ctx.F, S, notes, etat: ctx.etat };
       }
       const FIN17 = PARIS(2026, 10, 13, 17, 0) + 17000, DEBUT = PARIS(2026, 10, 13, 8, 0) + 1000;

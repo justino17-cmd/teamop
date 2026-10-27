@@ -49,7 +49,7 @@ async function partie1() {
     dansHeuresPro: decl('function dansHeuresPro('), coteHoraire: decl('function coteHoraire('), horaireAttendu: decl('function horaireAttendu('),
     horaireAppliquer: decl('function horaireAppliquer('), surPrefs: decl('function surPrefs('), changerMode: decl('async function changerMode('),
     ecrireCote: decl('async function ecrireCote('), relireCompte: decl('function relireCompte('), basculeAttend: ligne('const basculeAttend = '), minuteurPrefs: ligne('let minuteurPrefs = '),
-    peindreCoteReglage: decl('function peindreCoteReglage('), heuresTexte: decl('function heuresTexte('),
+    VUES_PRO: ligne('const VUES_PRO = '), peindreCoteReglage: decl('function peindreCoteReglage('), heuresTexte: decl('function heuresTexte('),
     NOM_COTE: ligne('const NOM_COTE = '), coteDe: ligne('const coteDe = '), segCote: decl('const segCote = ') || '', annonceMode: ligne('const annonceMode = '),
     JOURS_HP: ligne('const JOURS_HP = '), heureDite: ligne('const heureDite = '), minuteur: ligne('let minuteurHoraire = '),
   };
@@ -85,7 +85,7 @@ async function partie1() {
     vm.createContext(ctx);
     vm.runInContext([morceaux.NOM_COTE, morceaux.coteDe, morceaux.segCote, morceaux.annonceMode, morceaux.JOURS_HP, morceaux.heureDite, morceaux.heuresTexte, morceaux.minuteur,
       morceaux.dansHeuresPro, morceaux.coteHoraire, morceaux.horaireAttendu, morceaux.horaireAppliquer, morceaux.minuteurPrefs, morceaux.surPrefs, morceaux.basculeAttend, morceaux.relireCompte,
-      morceaux.changerMode, morceaux.ecrireCote, morceaux.peindreCoteReglage,
+      morceaux.VUES_PRO, morceaux.changerMode, morceaux.ecrireCote, morceaux.peindreCoteReglage,
       'this.F = { coteHoraire, horaireAppliquer, surPrefs, changerMode, ecrireCote, peindreCoteReglage, horaireAttendu, relireCompte };'].join('\n'), ctx, { timeout: 3000 });
     return { F: ctx.F, S, notes, etat: ctx.etat, ctx };
   }

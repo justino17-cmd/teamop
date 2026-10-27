@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'c5e7d24643be';
+  const OPMSG_BUILD = '7bdf9add30f7';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 278;
+  const OPMSG_VERSION = 281;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -65,6 +65,9 @@
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels, les appels audio et vidéo.' },
     /* avec l'agenda personnel (le service), l'onglet porte les deux : « Agenda » ; l'aperçu garde « Réunions » */
     reunions: { titre: CAP.agenda ? 'Agenda' : 'Réunions',  icone: CAP.agenda ? 'i-agenda' : 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
+    /* « côté pro » (26 octobre 2026, « pourquoi j'ai pas Réunions ? ») : l'onglet RÉUNIONS, à part de l'Agenda — la liste de ce qui vient (le geste « Nouvelle réunion », « Rejoindre », « Lien invité »), puis ce qui est passé.
+       Le côté Pro seulement, comme le tableau de bord et le Courrier ; il n'existe que là où l'Agenda existe (il s'insère juste avant lui, au démarrage — voir `demarrer`) */
+    'reunions-liste': { titre: 'Réunions', icone: 'i-video', texte: 'Tes réunions à venir et passées, le lien invité, la programmation.' },
     /* « côté pro » (18 octobre 2026) : OP COURRIER, la messagerie e-mail — le MÊME module que dans OP GESTION et dans la Tour. Une rubrique du côté Pro seulement, et sur la bêta seulement (`courrierOuvert`) */
     courrier: { titre: 'Courrier', icone: 'i-courrier', texte: 'Tes e-mails : tes boîtes mail, lues et écrites ici.' },
     /* « Profil » (6 octobre 2026 : « je veux que les réglages soient dans le profil ») : la page s'ouvre sur MOI — photo, nom, identifiant — et les réglages sont rangés dessous,
@@ -361,7 +364,8 @@
   const modesActifs = () => !!(etat.pro && CAP.modes && typeof source.choisirMode === 'function');
   const coteDe = c => c && c.cote === 'pro' ? 'pro' : 'perso';
   const dansMode = c => !modesActifs() || coteDe(c) === etat.mode;
-  const navPour = () => ORDRE.filter(k => k !== 'reglages' && ((k !== 'accueil' && k !== 'courrier') || !modesActifs() || etat.mode === 'pro'));       // le tableau de bord et le Courrier ne sont que du côté Pro
+  const VUES_PRO = ['accueil', 'courrier', 'reunions-liste'];       // le tableau de bord, le Courrier et l'onglet Réunions ne sont que du côté Pro
+  const navPour = () => ORDRE.filter(k => k !== 'reglages' && (!VUES_PRO.includes(k) || !modesActifs() || etat.mode === 'pro'));
   const segCote = cls => '<div class="seg cote-seg ' + cls + '" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span>' +
     ['perso', 'pro'].map(k => '<button type="button" class="seg-bouton" data-cote="' + k + '" aria-pressed="false">' + NOM_COTE[k] + '<b class="cote-n" hidden></b></button>').join('') + '</div>';
   /* ⛔ CÔTÉ PERSO, « RÉUNION » DEVIENT « RENDEZ-VOUS » (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous
@@ -423,10 +427,11 @@
     etat.mode = m; etat.vcCat = null; etat.selection = null; etat.listeArchives = false;      // « Contacts » rouvre sur la catégorie du côté (« Entreprise » en Pro) ; on ne range pas d'un côté à l'autre
     const c0 = etat.conv ? etat.conversations.find(x => x.id === etat.conv) : null;
     rendreListe();
-    if (etat.route && (etat.route.vue === 'accueil' || etat.route.vue === 'courrier') && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
+    if (etat.route && VUES_PRO.includes(etat.route.vue) && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
     else if (!depuisOuverture && c0 && coteDe(c0) !== m && etat.route && etat.route.vue === 'messages' && !etat.route.feuille) remplacer(Object.assign({}, etat.route, { conv: null }));   // la conversation ouverte est de l'autre côté : on la ferme (sauf quand c'est elle qu'on ouvre)
     if (etat.route && etat.route.vue === 'contacts') rendreVueContacts();
     if ($('vue-reunions') && $('vue-reunions').dataset.pret && reu.charge) rendreReunions();      // l'Agenda ne montre que le côté où l'on est
+    if (etat.route && etat.route.vue === 'reunions-liste') rendreListeReunions();               // l'onglet Réunions aussi (il n'est que du côté Pro : le passage à Perso l'a déjà quitté)
     if (etat.route && etat.route.vue === 'appels') rendreAppels();                                   // les Appels aussi
     if (!muet) annonceMode(m);                                   // muet : le geste qui y mène a déjà sa phrase (« Tu as rejoint… »)
     if (depuisCompte) return;
@@ -589,6 +594,7 @@
     const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '"' + (cls === 'tab' && VUES[cle].court ? ' aria-label="' + esc(VUES[cle].titre) + '"' : '') + '>' + icone(VUES[cle].icone) + '<span>' + esc(cls === 'tab' && VUES[cle].court ? VUES[cle].court : VUES[cle].titre) + '</span>' +
       (cle === 'contacts' ? '<b class="onglet-n" data-onglet-n="contacts" hidden></b>' : '') + '</a>';
     $('tabs').style.setProperty('--n', NAV.length);
+    $('tabs').classList.toggle('dense', NAV.length >= 7);
     $('nav-side').innerHTML = NAV.map(c => lien(c, 'side-lien')).join('');
     $('tabs').insertAdjacentHTML('beforeend', NAV.map(c => lien(c, 'tab')).join(''));
     document.querySelectorAll('.vue > .grand-titre').forEach(h => { if (!(h.previousElementSibling && h.previousElementSibling.classList.contains('moi-pastille')) && h.id !== 'titre-reglages') h.insertAdjacentHTML('beforebegin', pastilleMoi()); });
@@ -727,6 +733,7 @@
       document.title = VUES[r.vue].titre + suffixeTitre();
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
+      if (r.vue === 'reunions-liste') entrerListeReunions();
       if (prec && prec.vue === 'courrier') courrierDemonter();           // quitter le Courrier démonte le module (sa relève ne tourne pas dans le dos d'une autre vue)
       if (r.vue === 'accueil') entrerAccueil();
       if (r.vue === 'courrier') entrerCourrier();
@@ -5872,7 +5879,8 @@
     fiche: null,                         // { id, donnees, jeton, confirme: null | 'annuler' | 'supprimer', courriel: null | {ouvert, serie}, prevenir, occurrence }
     occurrences: {},                     // l'occurrence touchée dans la liste, par réunion : la fiche parle de CELLE-LÀ
     colleagues: null,                    // les membres de mes espaces que je peux inviter (chargés une fois, à l'ouverture d'un formulaire ou d'une fiche d'hôte)
-    form: null                           // { id|null, choisis: [], rappels: [], notifier, recherche, initial }
+    form: null,                          // { id|null, choisis: [], rappels: [], notifier, recherche, initial }
+    neuve: null                          // la réunion qu'on vient de programmer : sa fiche, à son ouverture, propose « Copier le lien invité »
   };
   const JOUR_MS = 86400000;
   const RAPPELS_REUNION = [[5, '5 minutes avant'], [15, '15 minutes avant'], [60, '1 heure avant'], [1440, '1 jour avant']];
@@ -6102,7 +6110,10 @@
   }
   /* « 42 min », « 1 h 05 » : la durée d'une séance */
   const dureeSeance = s => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
-  function ligneReunion(r, o, suite) {
+  /* ⛔ LE GESTE « LIEN INVITÉ » D'UNE LIGNE (26 octobre 2026, « je trouve pas le lien inviter ») : l'organisateur le trouve sur la ligne de chaque réunion qui vit — pas annulée, pas finie, pas passée —, dans l'onglet Réunions
+     seulement (`liste`). Mêmes conditions que la carte « Invité (sans compte) » de la fiche : la salle existe (`CAP.salles`) et la source sait faire le lien. */
+  const lienInvitePossible = (r, o) => !!(CAP.salles && typeof source.lienInviteReunion === 'function' && r.moi && r.moi.hote && !r.annulee && o && o.fin > Date.now() && !occTerminee(r, o));
+  function ligneReunion(r, o, suite, liste) {
     const { h, note, hz, ville } = libelleHoraire(r, o);
     const rang = suite ? 'jour ' + suite.n + ' sur ' + suite.total : '';
     /* ⛔ UNE OCCURRENCE QUI A EU LIEU LE DIT (8 octobre 2026 : « une fois que la réunion est terminée pour tous, ça le marque, avec les participants, la durée ») : « Terminée », combien de temps,
@@ -6115,15 +6126,17 @@
       : [maj1(rang), r.lieu, partir, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
     const qui = se && se.presents && se.presents.length ? se.presents.map(id => id === MOI.id ? 'Vous' : nomPersonne(id)).join(', ') : '';
     const rej = CAP.salles && r.rejoignable && !r.annulee && !se ? '<button type="button" class="reunion-rejoindre presse" data-rejoindre="' + esc(r.id) + '" aria-label="' + esc('Rejoindre ' + (r.titre || 'la réunion')) + '">Rejoindre</button>' : '';
+    const lien = liste && lienInvitePossible(r, o) ? '<button type="button" class="reunion-lien presse" data-lien-invite="' + esc(r.id) + '" aria-label="' + esc('Copier le lien invité de ' + (r.titre || 'la réunion')) + '">' + icone('i-lien') + 'Lien invité</button>' : '';
+    const gestes = liste ? (rej || lien ? '<span class="reunion-gestes">' + rej + lien + '</span>' : '') : rej;
     /* ⛔ ET UNE OCCURRENCE TERMINÉE NE S'OUVRE PLUS (8 octobre 2026, capture à l'appui : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus ») : la fiche proposait encore
        « Accepter / Peut-être / Refuser » et « Me rappeler » pour une réunion finie. La ligne n'est plus un bouton — un simple bloc de texte, lu tel quel. L'organisateur garde le rapport de
        présence par la conversation de la réunion (son titre mène à la fiche) ; les autres occurrences d'une série, elles, restent des boutons. */
     const ouvre = se ? '<div class="reunion-ligne terminee' + (r.annulee ? ' annulee' : '') + '">'
       : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (rang ? ', ' + rang : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
-    return '<li' + (rej ? ' class="reunion-li"' : '') + '>' + ouvre +
+    return '<li' + (gestes ? ' class="reunion-li' + (liste ? ' avec-gestes' : '') + '"' : '') + '>' + ouvre +
       heureEmpilee(o.debut, o.fin, suite && suite.n > 1 ? 'Suite' : '') +
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (qui ? '<span class="reunion-sous">' + esc(qui) + '</span>' : '') + (note && !se ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
-      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + rej + '</li>';
+      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + gestes + '</li>';
   }
   /* ⛔ UNE CASE DE JOUR, POUR LE MOIS ET POUR LA SEMAINE (10 octobre 2026 : « l'agenda du mois, tu vois, sur la semaine, j'aimerais bien un petit truc pareil […] ça fait plus pro ») :
      le NUMÉRO est un bouton (il choisit le jour), chaque rendez-vous est un bouton à lui — il s'ouvre au clic, a son menu au clic droit (ou à l'appui long), se tire à la souris vers un
@@ -6803,11 +6816,112 @@
     if (!CAP.reunions || !$('vue-reunions').dataset.pret) return;
     rendreReunions(); chargerReunions();
   }
+  /* ═══ L'ONGLET « RÉUNIONS » — la liste de ce qui vient, puis de ce qui est passé (26 octobre 2026) ═══════════════════════════════════════════════════════
+     Capture à l'appui : « pourquoi dans OP MESSAGES j'ai pas Réunions ? » puis « je veux un onglet Réunion et je trouve pas le lien inviter ». L'Agenda (semaine, mois, rendez-vous, événements) RESTE tel quel ;
+     cet onglet est la LISTE : les réunions à venir (la plus proche en tête, un intertitre par jour), un « Nouvelle réunion » bien visible, « Rejoindre » quand la salle est ouverte et, pour l'organisateur, « Lien invité »
+     sur chaque ligne ; en dessous, les passées (repliées). ⛔ PAS DE SECONDE MÉCANIQUE : les lignes sont celles de l'Agenda (`ligneReunion`), la fiche est la fiche (`reunion:<id>`), le formulaire est le formulaire
+     (`programmerReunion`), le lien est celui de la fiche (`lienInviteGeste`). Les données viennent de la même lecture (`source.reunions(du, au)`, 62 jours au plus par fenêtre : deux fenêtres, l'une devant, l'autre derrière).
+     Le côté Pro seulement, comme le tableau de bord : côté Perso, « Réunion » devient « Rendez-vous » et vit dans l'Agenda. Une réunion rangée côté Perso à la main ne paraît donc pas ici — la même règle que l'Agenda
+     (`duCote`), qui la montre quand on est de ce côté. */
+  const LR_AVENIR_JOURS = 60, LR_PASSE_JOURS = 30, LR_MAX = 60, LR_PASSEES_MAX = 30;
+  const lr = { charge: false, panne: null, reunions: [], jeton: 0, passeesOuvert: false };
+  /* les deux fenêtres lues : de minuit à +60 jours (ce qui vient) et de −30 jours à demain minuit (ce qui est passé) — chacune sous la limite de 62 jours du service */
+  function fenetresListeReunions(now) { const j0 = minuitDe(now); return { avenir: [j0, plusJours(j0, LR_AVENIR_JOURS)], passe: [plusJours(j0, -LR_PASSE_JOURS), plusJours(j0, 1)] }; }
+  /* une réunion lue dans les DEUX fenêtres (une série, la séance du jour) n'est qu'une : ses occurrences s'unissent par leur début */
+  function fusionReunions(listes) {
+    const par = new Map();
+    for (const l of listes) for (const r of (l || [])) {
+      const vue = par.get(r.id);
+      if (!vue) { par.set(r.id, Object.assign({}, r, { occurrences: r.occurrences.slice() })); continue; }
+      for (const o of r.occurrences) if (!vue.occurrences.some(x => x.debut === o.debut)) vue.occurrences.push(o);
+    }
+    return Array.from(par.values());
+  }
+  /* ce qui vient : une occurrence qui n'est pas finie (en cours comprise) et que la séance n'a pas close ; le reste est passé. Le côté (`duCote`) est celui de l'Agenda. */
+  function partagerListeReunions(reunions, now) {
+    const avenir = [], passees = [];
+    for (const r of reunions) if (duCote(coteReu(r))) for (const o of r.occurrences) (o.fin > now && !occTerminee(r, o) ? avenir : passees).push({ r, o });
+    avenir.sort((x, y) => x.o.debut - y.o.debut || x.r.id.localeCompare(y.r.id));
+    passees.sort((x, y) => y.o.debut - x.o.debut || x.r.id.localeCompare(y.r.id));
+    return { avenir, passees };
+  }
+  /* le HTML des deux listes — une fonction pure (la page l'écrit, les bancs la lisent) */
+  function htmlListeReunions(reunions, now) {
+    const { avenir, passees } = partagerListeReunions(reunions, now);
+    const groupes = (l, cle, etiquette) => { let h = '', jp = null; for (const x of l) { const j = cle(x); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(etiquette(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o, null, true); } return h; };
+    const vus = avenir.slice(0, LR_MAX), vusP = passees.slice(0, LR_PASSEES_MAX);
+    let h = groupes(vus, x => x.o.debut <= now ? -1 : minuitDe(x.o.debut), j => j === -1 ? 'En cours' : libelleJourBord(j));
+    if (avenir.length > LR_MAX) h += '<li class="bord-plus"><button type="button" class="presse" data-lr="agenda">' + esc('Voir les ' + (avenir.length - LR_MAX) + ' autres dans l\'Agenda') + '</button></li>';
+    if (!h) h = '<li class="vide lr-vide"><span>Aucune réunion prévue.</span><button type="button" class="lr-nouvelle presse" data-lr="nouvelle">' + icone('i-plus') + 'Nouvelle réunion</button></li>';
+    return { avenir: h, nAvenir: avenir.length, passees: groupes(vusP, x => minuitDe(x.o.debut), j => maj1(FMT_JOUR_LONG.format(j))), nPassees: passees.length };
+  }
+  function construireListeReunions() {
+    const sec = $('vue-reunions-liste');
+    sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions-liste">' + esc(VUES['reunions-liste'].titre) + '</h1>' +
+      '<div class="lr-haut"><button type="button" class="lr-nouvelle presse" id="lr-nouvelle" data-lr="nouvelle">' + icone('i-plus') + 'Nouvelle réunion</button></div>' +
+      '<p class="liste-erreur" id="lr-erreur" role="alert" hidden><span id="lr-erreur-texte"></span><button type="button" id="lr-erreur-bouton">Réessayer</button></p>' +
+      '<div class="rubrique"><span>À venir</span><span id="lr-avenir-n"></span></div>' +
+      '<ul class="carte-liste" id="lr-avenir" role="list" aria-label="Réunions à venir"></ul>' +
+      '<div class="carte" id="lr-passees-carte" hidden><button type="button" class="reglage presse" id="lr-passees-bouton" data-lr="passees" aria-expanded="false" aria-controls="lr-passees"><span class="reglage-texte">Réunions passées<small>Les ' + LR_PASSE_JOURS + ' derniers jours</small></span><span class="reglage-valeur" id="lr-passees-n"></span>' + CHEVRON + '</button></div>' +
+      '<ul class="carte-liste" id="lr-passees" role="list" aria-label="Réunions passées" hidden></ul>';
+    sec.dataset.pret = '1';
+    sec.addEventListener('click', e => {
+      const lien = e.target.closest('[data-lien-invite]');
+      if (lien) { if (lien.getAttribute('aria-disabled') === 'true') return; lien.setAttribute('aria-disabled', 'true'); const id = lien.dataset.lienInvite; lienInviteGeste('copier', id, titreReunion(id)).finally(() => lien.removeAttribute('aria-disabled')); return; }
+      const j = e.target.closest('[data-rejoindre]');
+      if (j) { rejoindreReunionUI(j.dataset.rejoindre, undefined, j, false); return; }
+      const g = e.target.closest('[data-lr]');
+      if (g) {
+        if (g.dataset.lr === 'nouvelle') { declencheur = g; programmerReunion(); }
+        else if (g.dataset.lr === 'agenda') pousser({ vue: 'reunions', conv: null, feuille: false, photo: null, appel: null });
+        else if (g.dataset.lr === 'passees') { lr.passeesOuvert = !lr.passeesOuvert; rendreListeReunions(); }
+        return;
+      }
+      const b = e.target.closest('[data-reunion]'); if (!b) return;
+      reu.occurrences[b.dataset.reunion] = +b.dataset.debut || null;
+      declencheur = b;
+      pousser(Object.assign({}, etat.route, { feuille: 'reunion:' + b.dataset.reunion }));
+    });
+    $('lr-erreur-bouton').addEventListener('click', () => chargerListeReunions());
+    peindreMode();
+  }
+  function rendreListeReunions() {
+    const sec = $('vue-reunions-liste'); if (!CAP.reunions || !sec || !sec.dataset.pret) return;
+    const H = htmlListeReunions(lr.reunions, Date.now());
+    $('lr-erreur').hidden = !lr.panne;
+    if (lr.panne) $('lr-erreur-texte').textContent = phrase(lr.panne, 'Les réunions n\'ont pas pu être chargées.');
+    $('lr-avenir').setAttribute('aria-busy', lr.charge ? 'false' : 'true');
+    $('lr-avenir').innerHTML = !lr.charge && !lr.panne ? '<li class="vide">Chargement…</li>' : lr.panne && !lr.reunions.length ? '' : H.avenir;
+    $('lr-avenir-n').textContent = lr.charge && H.nAvenir ? String(H.nAvenir) : '';
+    const passees = lr.charge && H.nPassees > 0;
+    $('lr-passees-carte').hidden = !passees;
+    $('lr-passees-bouton').setAttribute('aria-expanded', lr.passeesOuvert ? 'true' : 'false');
+    $('lr-passees-n').textContent = passees ? String(H.nPassees) : '';
+    $('lr-passees').hidden = !passees || !lr.passeesOuvert;
+    $('lr-passees').innerHTML = passees && lr.passeesOuvert ? H.passees : '';
+  }
+  async function chargerListeReunions() {
+    if (!CAP.reunions) return;
+    const n = ++lr.jeton, w = fenetresListeReunions(Date.now());
+    const [a, p] = await Promise.allSettled([source.reunions(w.avenir[0], w.avenir[1]), source.reunions(w.passe[0], w.passe[1])]);
+    if (n !== lr.jeton) return;                      // une lecture plus récente a pris la place pendant l'attente
+    lr.charge = true;
+    if (a.status === 'rejected' || p.status === 'rejected') lr.panne = (a.status === 'rejected' ? a.reason : p.reason) || new Error('panne');      // une moitié qui manque se DIT (jamais une liste vide qui ment)
+    else { lr.panne = null; lr.reunions = fusionReunions([a.value, p.value]); }
+    rendreListeReunions();
+  }
+  /* on arrive sur l'onglet : le côté Pro (comme le tableau de bord), la liste dessinée avec ce qu'on a puis relue */
+  function entrerListeReunions() {
+    if (modesActifs() && etat.mode !== 'pro') changerMode('pro');
+    if (!CAP.reunions || !$('vue-reunions-liste').dataset.pret) return;
+    rendreListeReunions(); chargerListeReunions();
+  }
   /* un changement venu du service (ici ou sur un autre appareil) : l'agenda se relit, la fiche ouverte aussi — une réunion supprimée ferme sa fiche */
   function surReunions(ev) {
     if (!CAP.reunions) return;
     { const A = etat.appelUI; if (enSalle(A) && sx(A).panneau === 'ordre' && A.snap && (!ev.id || ev.id === A.snap.reunion)) salleOrdreCharger(A); }
     if (etat.route && etat.route.vue === 'reunions') chargerReunions(); else reu.charge = false;
+    if (etat.route && etat.route.vue === 'reunions-liste') chargerListeReunions(); else lr.charge = false;      // l'onglet Réunions se relit s'il est sous les yeux, sinon à son entrée
     const G = etat.groupe;
     if (G.ouvert && G.mode === 'reunion' && (!ev.id || ev.id === G.reunionId)) {
       if (ev.supprime && ev.id === G.reunionId) reunionDisparue(reu.fiche); else rendreFiche();
@@ -8169,6 +8283,17 @@
     return '<div class="contact avec-actions">' + avatarDe(p.id) + '<span class="contact-texte"><span class="contact-nom">' + esc(nom) + (soi ? ' (vous)' : '') + '</span><span class="contact-role">' + esc(role) + '</span></span>' +
       (moiHote && !hote && !r.annulee ? '<span class="contact-actions"><button type="button" class="mini danger" data-reu="retirer" data-uid="' + esc(p.id) + '" aria-label="' + esc('Retirer ' + nom + ' de la réunion') + '">Retirer</button></span>' : '') + '</div>';
   }
+  /* ⛔ LE LIEN « INVITÉ (SANS COMPTE) » (26 octobre 2026, la demande : « ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux ») : un client sans compte et sans application ouvre le lien dans son navigateur, tape son nom,
+     et ATTEND à la porte — c'est TOI qui le fais entrer. Le lien meurt avec la réunion ; le régénérer tue l'ancien. Juste après la création d'une réunion (`F.neuve`), la même fiche ouvre sur la proposition « Copier le lien invité »,
+     avant la date : c'est le moment où l'on pense à son client. */
+  function htmlInviteSansCompte() {
+    const neuve = !!(reu.fiche && reu.fiche.neuve);
+    return (neuve ? '<div class="carte carte-pad lien-neuf"><p class="info-note">Réunion programmée. Ton client n\'a pas de compte ? Copie le lien invité et envoie-le-lui : il attend, tu le fais entrer.</p><div class="info-actions"><button type="button" class="mini plein" data-reu="inv-neuf">' + icone('i-lien') + ' Copier le lien invité</button></div></div>' : '') +
+      '<div class="rubrique"><span>Invité (sans compte)</span></div><div class="carte">' +
+      '<button type="button" class="reglage presse" data-reu="inv-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien invité<small>Sans compte, sans rien installer : tu fais entrer chaque personne</small></span></button>' +
+      (typeof navigator !== 'undefined' && typeof navigator.share === 'function' ? '<button type="button" class="reglage presse" data-reu="inv-partager">' + icone('i-partager') + '<span class="reglage-texte">Partager le lien invité</span></button>' : '') +
+      '<button type="button" class="reglage presse" data-reu="inv-regenerer"><span class="reglage-texte">Régénérer le lien invité<small>L\'ancien cesse de marcher ; ceux qui attendent sont renvoyés</small></span></button></div>';
+  }
   function htmlFiche(d) {
     const F = reu.fiche, hote = d.moi.hote, o = (F.occurrence && d.repetition !== 'aucune' ? { debut: F.occurrence, fin: F.occurrence + (d.fin - d.debut) } : (d.prochaine || { debut: d.debut, fin: d.fin }));
     const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d);
@@ -8181,6 +8306,13 @@
         (rep ? '<div class="reglage">' + icone('i-repeter') + '<span class="reglage-texte">' + esc(rep) + '</span></div>' : '') +
         (d.lieu ? '<div class="reglage">' + icone('i-lieu') + '<span class="reglage-texte">' + (estUrl(d.lieu) ? '<a class="lien-lieu" href="' + esc(d.lieu) + '" target="_blank" rel="noopener noreferrer">' + esc(d.lieu) + '</a>' : esc(d.lieu)) + '</span></div>' : '') +
       '</div>';
+    /* ⛔ UNE RÉUNION TERMINÉE NE SE RÉPOND PLUS, NE SE RAPPELLE PLUS, NE SE PRÉPARE PLUS (décision du 26 octobre 2026 : « retirer Répondre, le rappel et le trajet ; garder les participants et la durée ») :
+       la fiche d'une séance finie (`F.seance`, lue dans la liste — la même règle que la ligne) ne propose ni « Ta réponse », ni « Me rappeler », ni la zone du trajet, ni le lien invité. Ce qui reste est ce qui s'est
+       passé : la durée et les présents (la phrase plus bas) et la liste des participants. */
+    const finie = !!F.seance && !d.annulee;
+    /* ⛔ LE LIEN INVITÉ SE TROUVE EN HAUT DE LA FICHE (26 octobre 2026, « je trouve pas le lien inviter ») : il était sous « Salle », tout en bas des gestes de l'organisateur. Une seule définition (`htmlInviteSansCompte`),
+       posée juste après l'en-tête et la salle (« Rejoindre ») ; rien pour une réunion annulée ou finie, rien sans salle ni sans organisateur. */
+    const inviteHaut = hote && !d.annulee && !finie && CAP.salles && typeof source.lienInviteReunion === 'function';
     /* (salle) la salle de la réunion : entrer quand elle est ouverte, sinon dire qu'elle ne l'est pas encore */
     if (CAP.salles && !d.annulee && d.salle) {
       /* ⛔ LA FICHE DIT CE QUE DIT LA LISTE (17 octobre 2026, testeur) : la ligne d'une réunion dont la séance est finie n'a plus de « Rejoindre » et dit « Terminée » ; la fiche de la même réunion
@@ -8189,13 +8321,10 @@
       else if (d.salle.rejoignable) s += '<div class="carte carte-pad"><div class="info-actions"><button type="button" class="mini" data-reu="rejoindre" data-type="video">' + icone('i-video') + ' Rejoindre</button><button type="button" class="mini" data-reu="rejoindre" data-type="audio">' + icone('i-phone') + ' Rejoindre en audio</button></div>' + (d.salle.ouverte ? '<p class="info-note">La salle est ouverte.</p>' : '') + '</div>';
       else s += '<p class="pied-note">La salle s\'ouvre peu avant le début de la réunion.</p>';      // (15 octobre 2026, « plus simple ») une phrase sous la carte, plus une carte à elle seule
     }
+    if (inviteHaut) s += htmlInviteSansCompte();
     /* l'ordre du jour (8 octobre 2026) : chacun le coche ; l'organisateur le pose dans « Modifier la réunion » */
     if (d.ordreDuJour && d.ordreDuJour.length) s += '<div class="rubrique"><span>Ordre du jour</span><span>' + d.ordreDuJour.filter(p => p.fait).length + ' / ' + d.ordreDuJour.length + '</span></div><div class="carte" role="group" aria-label="Ordre du jour">' +
       d.ordreDuJour.map(p => '<button type="button" class="reglage presse odj-point' + (p.fait ? ' fait' : '') + '" role="checkbox" aria-checked="' + (p.fait ? 'true' : 'false') + '" data-reu="odj" data-point="' + esc(p.id) + '"' + (d.annulee ? ' disabled' : '') + '><span class="evt-rond' + (p.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span class="reglage-texte" dir="auto">' + esc(p.texte) + '</span></button>').join('') + '</div>';
-    /* ⛔ UNE RÉUNION TERMINÉE NE SE RÉPOND PLUS, NE SE RAPPELLE PLUS, NE SE PRÉPARE PLUS (décision du 26 octobre 2026 : « retirer Répondre, le rappel et le trajet ; garder les participants et la durée ») :
-       la fiche d'une séance finie (`F.seance`, lue dans la liste — la même règle que la ligne) ne propose ni « Ta réponse », ni « Me rappeler », ni la zone du trajet. Ce qui reste est ce qui s'est passé :
-       la durée et les présents (la phrase plus haut) et la liste des participants. */
-    const finie = !!F.seance && !d.annulee;
     /* ma réponse (un invité, une réunion qui vit encore) */
     if (!hote && !d.annulee && !finie) s += '<div class="rubrique"><span>Ta réponse</span></div><div class="g-choix" role="radiogroup" aria-label="Ta réponse">' +
       STATUTS_REPONSE.map(x => '<button type="button" class="g-pilule presse" role="radio" aria-checked="' + (d.moi.statut === x[0] ? 'true' : 'false') + '" data-reu="reponse" data-statut="' + x[0] + '">' + esc(x[1]) + '</button>').join('') + '</div>';
@@ -8247,13 +8376,7 @@
       if (CAP.salles && !d.annulee) s += '<div class="rubrique"><span>Salle</span></div><div class="carte">' +
         '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Tu admets chaque personne</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité</span></button>' +
-        '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>' +
-        /* ⛔ LE LIEN « INVITÉ (SANS COMPTE) » (26 octobre 2026, la demande : « ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux ») : un client sans compte et sans application ouvre le lien dans son navigateur, tape son nom,
-           et ATTEND à la porte — c'est TOI qui le fais entrer. Le lien meurt avec la réunion ; le régénérer tue l'ancien. */
-        '<div class="rubrique"><span>Invité (sans compte)</span></div><div class="carte">' +
-        '<button type="button" class="reglage presse" data-reu="inv-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien invité<small>Sans compte, sans rien installer : tu fais entrer chaque personne</small></span></button>' +
-        (typeof navigator !== 'undefined' && typeof navigator.share === 'function' ? '<button type="button" class="reglage presse" data-reu="inv-partager">' + icone('i-partager') + '<span class="reglage-texte">Partager le lien invité</span></button>' : '') +
-        '<button type="button" class="reglage presse" data-reu="inv-regenerer"><span class="reglage-texte">Régénérer le lien invité<small>L\'ancien cesse de marcher ; ceux qui attendent sont renvoyés</small></span></button></div>';
+        '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>';
       if (d.annulee) s += '<div class="rubrique"><span>Organisateur</span></div>';
       s += F.confirme ? htmlConfirmation(d) : '<div class="carte">' + (d.annulee ? '' : '<button type="button" class="reglage presse danger" data-reu="annuler-demander"><span class="reglage-texte">Annuler la réunion<small>Elle reste dans l\'agenda, marquée « Annulée »</small></span></button>') +
         '<button type="button" class="reglage presse danger" data-reu="supprimer-demander"><span class="reglage-texte">Supprimer la réunion<small>Elle disparaît pour tout le monde, avec sa conversation</small></span></button></div>';
@@ -8318,7 +8441,7 @@
     }
     { const se = await seanceFiche(d, id); if (!ouvertePour(id) || reu.fiche !== F || n !== F.jeton) return; if (se !== undefined) F.seance = se; }
     if (CAP.reunions && d.moi.hote && !reu.colleagues) chargerCollegues().then(() => { if (ouvertePour(id) && reu.fiche === F) { corps.dataset.sig = ''; rendreFiche(); } });
-    const sig = JSON.stringify([d, F.seance, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; }),
+    const sig = JSON.stringify([d, F.seance, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, F.neuve, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; }),
       modesActifs() ? ((x) => x ? [x.coteChoisi, x.coteAuto] : null)(etat.conversations.find(x => x.id === d.conv)) : null]);
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || actif.dataset.point || '') : null;
     /* ⛔ l'adresse tapée se garde que le champ ait le focus ou non : toucher « Cette date » déplace le focus sur le bouton AVANT que la fiche se redessine, et l'adresse partait avec l'ancien champ */
@@ -8336,7 +8459,7 @@
     if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
     else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || x.dataset.point || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
-  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, presence: null, seance: null, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
+  function ouvrirFicheEtat(id) { const neuve = reu.neuve === id; reu.neuve = null; reu.colleagues = null; reu.fiche = { id, neuve, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, presence: null, seance: null, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
   /* retour à la fiche après un formulaire : l'entrée de la fiche est RENDUE quand c'est elle qui est dessous, sinon on la REMPLACE */
   function versFiche(id) {
     const h = entree(), cible = 'reunion:' + id;
@@ -8399,9 +8522,9 @@
           const ok = await copier(location.href.split('#')[0] + '#reunion=' + code);
           mot(act === 'lien-copier' ? (ok ? 'Lien d\'invité copié' : 'Le lien n\'a pas pu être copié') : (ok ? 'Nouveau lien copié : l\'ancien ne marche plus' : 'Lien renouvelé : l\'ancien ne marche plus'));
         }
-        else if (act === 'inv-copier' || act === 'inv-partager' || act === 'inv-regenerer') {
+        else if (act === 'inv-copier' || act === 'inv-partager' || act === 'inv-regenerer' || act === 'inv-neuf') {
           b.setAttribute('aria-disabled', 'true');
-          try { await lienInviteGeste(act === 'inv-copier' ? 'copier' : act === 'inv-partager' ? 'partager' : 'regenerer', id, d.titre); }
+          try { await lienInviteGeste(act === 'inv-copier' || act === 'inv-neuf' ? 'copier' : act === 'inv-partager' ? 'partager' : 'regenerer', id, d.titre); }
           finally { b.removeAttribute('aria-disabled'); }
         }
         else if (act === 'modifier') ouvrirFeuille('reunion-edit:' + id);
@@ -8614,6 +8737,8 @@
         mot(r.parLien ? 'Réunion programmée — ' + (r.parLien > 1 ? r.parLien + ' personnes n\'ont pas Messages Pro : envoie-leur le lien de la réunion' : '1 personne n\'a pas Messages Pro : envoie-lui le lien de la réunion')
           : r.nonInvites ? 'Réunion programmée — ' + r.nonInvites + (r.nonInvites > 1 ? ' personnes n\'ont' : ' personne n\'a') + ' pas pu être invitée' + (r.nonInvites > 1 ? 's' : '') : 'Réunion programmée');
         const t = dateDeChaine(c.debut); if (t !== null) { reu.occurrences[r.id] = null; allerAuJour(t); }
+        reu.neuve = r.id;                                    // la fiche qui s'ouvre propose « Copier le lien invité » (une fois : voir `ouvrirFicheEtat`)
+        if (etat.route && etat.route.vue === 'reunions-liste') chargerListeReunions();       // l'onglet Réunions montre la réunion qu'on vient de programmer
         remplacer(Object.assign({}, etat.route, { feuille: 'reunion:' + r.id }));
       } else {
         const I = F.initial, ch = {};
@@ -10202,7 +10327,7 @@
     prefMedias[q] = sel.value || null;
     if (q !== 'sortie') avantApercu();
   });
-  const titreReunion = id => { const r = reu.liste.find(x => x.id === id) || (reu.fiche && reu.fiche.id === id ? reu.fiche.donnees : null); return (r && r.titre) || ''; };
+  const titreReunion = id => { const r = reu.liste.find(x => x.id === id) || lr.reunions.find(x => x.id === id) || (reu.fiche && reu.fiche.id === id ? reu.fiche.donnees : null); return (r && r.titre) || ''; };
 
   /* ── la sortie : tout ce que la salle tenait est lâché d'un coup (quitterAppel) ── */
   function salleNettoyer(A) {
@@ -10326,6 +10451,7 @@
           etat.horaireAnnonce = h.cote === 'pro' ? 'Heures de travail : OP MESSAGES PRO' : 'Fin des heures de travail : OP MESSAGES · Perso';
         }
         if (COUR.ouvert) ORDRE.splice(ORDRE.indexOf('reunions') + 1, 0, 'courrier');   // côté Pro, à la suite de l'Agenda
+        if (CAP.reunions) ORDRE.splice(ORDRE.indexOf('reunions'), 0, 'reunions-liste');   // côté Pro, juste AVANT l'Agenda : l'onglet Réunions (26 octobre 2026)
         NAV = navPour();
       }
     }
@@ -10333,6 +10459,7 @@
     construireContacts();
     if (!CAP.appels) rendreCoquille('appels');
     if (CAP.reunions) construireReunions(); else rendreCoquille('reunions');
+    if (CAP.reunions && ORDRE.includes('reunions-liste')) construireListeReunions();
     if (CAP.reglages) rendreReglages(); else rendreCoquille('reglages');
     $('g-photo').hidden = !CAP.photos;
     try { etat.conversations = await source.lister(); } catch (e) { etat.conversations = []; montrerErreurListe(e); }
