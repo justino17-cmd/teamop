@@ -358,6 +358,7 @@ tests/test-3061.js
 tests/test-3062.js
 # 26 octobre 2026 (examen de 23 h 25) : `test-3064` (scénario 8 : des objectifs DITS sans l'outil sont enregistrés par un second appel qui ne peut que les enregistrer ; scénario 9 : une formule citée n'est pas dite, et un juge qui oublie un critère le voit redemandé par son nom, les autres gardés). Lit server/ seulement.
 tests/test-3064.js
+tests/test-3075.js
 # 26 octobre 2026 (soir) : 9 986 mesurés (148 suites) avec `test-3061` à `test-3063` — plancher relevé à 9900.
 # 26 octobre 2026 (publication de la Tour v2.112) : `test-3022` et `test-3024` — la couture de la page Agents de la Tour (Pauline, horaires, messagerie) contre le VRAI serveur, entrées à la publication de `tour.html`, comme prévu par REPRISE.md.
 tests/test-3022.js

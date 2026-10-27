@@ -745,7 +745,7 @@ async function sc9(E, X) {
   const echantillon = internes.slice(0, 30).map(m => '[' + (NOM[m.de] || m.de) + ' à ' + (m.a || 'Justin ou l’équipe') + '] ' + coupe(m.texte, 420)).join('\n');
   const courriels = mails.slice(0, 5).map(m => '[courriel de ' + (NOM[m.de] || m.de) + ' à un client]\n' + coupe(m.texte, 2600)).join('\n\n');
   const crit = [{ cle: 'c1', libelle: 'ton humain : des collègues qui parlent, pas un robot', texte: 'Les messages sonnent comme ceux de vrais collègues : voix personnelle, réponse adaptée à la question, phrases naturelles ; pas de ton d’assistant automatique.' },
-    { cle: 'c2', libelle: 'sans formule toute faite', texte: 'Aucune formule creuse ou stéréotypée répétée d’un agent à l’autre (mêmes ouvertures, mêmes conclusions de politesse). ⛔ Les phrases que le MODÈLE DE COURRIEL de TeamOP impose mot pour mot à tous ses courriels (la voix de l’entreprise, validée par Justin) ne comptent pas : ' + FORMULES_MAISON.map(f => '« ' + f + ' »').join(', ') + ', et « Bien cordialement, ». Ne juge que ce que les agents écrivent d’eux-mêmes.' },
+    { cle: 'c2', libelle: 'sans formule toute faite', texte: 'Aucune formule creuse ou stéréotypée répétée d’un agent à l’autre (mêmes ouvertures, mêmes conclusions de politesse). ⛔ Les phrases que le MODÈLE DE COURRIEL de TeamOP impose mot pour mot à tous ses courriels (la voix de l’entreprise, validée par Justin) ne comptent pas : ' + FORMULES_MAISON.map(f => '« ' + f + ' »').join(', ') + ', et « Bien cordialement, ». Le modèle impose aussi le PLAN de chaque premier courriel (accroche, qui nous sommes, les fonctions choisies AVEC LES MOTS de la liste de l’offre, notre différence et nos tarifs, 4 à 7 questions de découverte numérotées, la suite) : deux courriels qui suivent ce plan et décrivent la même offre avec les mêmes mots ne sont PAS du texte recyclé. Dans un courriel, ne juge que ce qui doit être propre au client (l’activité dite dans l’accroche, le choix des fonctions, des questions adaptées à son métier). Ne juge que ce que les agents écrivent d’eux-mêmes.' },
     { cle: 'c3', libelle: 'les courriels aux clients vouvoient et sonnent professionnels', texte: 'Les courriels aux clients vouvoient, sont courtois et professionnels, sans familiarité. Ils sont donnés SANS leur signature (le serveur l’ajoute à l’envoi) et l’examen masque les adresses en « (adresse) » : ni l’un ni l’autre n’est un défaut.' }];
   const j = await juger(X.juge, crit, 'Messages des agents :\n' + echantillon + '\n\n' + courriels);
   for (const x of verifsJuge(E, j, crit)) v.push(x);
@@ -755,7 +755,9 @@ async function sc9(E, X) {
 /* Les phrases que le modèle de courriel (agent-lea.js, agent-camille.js, agent-chloe.js : « Accroche », « Fermeture ») impose mot pour mot : le juge du ton ne les
    compte pas comme formules toutes faites (examen du 25 octobre 2026, scénario 9). test-3001 vérifie qu'elles sont toujours dans le cahier d'un agent — une
    phrase retirée du cahier qui resterait ici serait une exemption pour du vide. */
-const FORMULES_MAISON = ['Nous vous remercions pour votre message.', 'Nous restons à votre disposition par retour de mail ou par téléphone.'];
+const FORMULES_MAISON = ['Nous vous remercions pour votre message.', 'Nous restons à votre disposition par retour de mail ou par téléphone.',
+  /* (examen du 27 octobre 2026 à 12 h 19) l'accroche et la suite du PLAN de Léa (agent-lea.js), imposées elles aussi mot pour mot */
+  'Nous vous remercions pour votre inscription sur teamop.fr.', 'Dès réception de vos réponses, nous vous adresserons une proposition adaptée ; nous pourrons ensuite vous ouvrir une période d’essai d’une semaine.'];
 
 /* sc6 : 18 appels (examen du 25 octobre 2026 au soir — « Dupont Plomberie : plafond_total ») : trois courriels, chacun au plus rédigé, jugé, relancé,
    réécrit, jugé, relancé. À 9, la relance du juge (posée le même jour) épuisait le plafond au troisième courriel. */

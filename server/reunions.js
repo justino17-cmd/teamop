@@ -63,6 +63,13 @@ function accuseSeul(texte) {
   if (!sans || /[?\d]/.test(sans)) return false;
   return (sans.match(/[\p{L}\p{N}'’-]+/gu) || []).length <= 8 && ACCUSE_TETE.test(sans.replace(/^[\s,.;:!-]+/, ''));
 }
+/* ⛔ LE MÊME DÉBUT QUE LE COLLÈGUE (examen du 27 octobre 2026 à 12 h 19, scénario 9) : au bilan du vendredi, cinq agents ont ouvert par « Chez moi aussi le journal est
+   à zéro… » — chacun lit le fil et reprend la tournure de celui d'avant. Les trois premiers mots, sans accent, sans ponctuation, sans les @ : c'est ce qui se répète. */
+const MOTS_DEBUT = 3;
+function debutDe(texte) {
+  const m = String(texte || '').replace(/@[\p{L}\p{N}_]+/gu, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+  return m.length >= MOTS_DEBUT ? m.slice(0, MOTS_DEBUT).join(' ') : '';
+}
 function sansRedites(texte) {
   const gardees = [];
   for (const p of String(texte || '').split(/(?<=[.!?])\s+/)) {
@@ -339,6 +346,14 @@ module.exports = function monterReunions(app, ctx) {
     return l.length ? l.map(m => '[' + nomDe(m.de) + '] ' + propre(m.texte, 1000)).join('\n') : '(personne n’a encore parlé)';
   }
 
+  /* Les débuts déjà pris dans CETTE réunion : début → auteur (le premier qui l'a dit) */
+  function debutsReunion(R) {
+    let l = []; try { l = conversations.lire(FIL, 50); } catch (e) { l = []; }
+    const pris = new Map();
+    for (const m of l) if (m.de !== 'systeme' && m.de !== 'justin' && m.ts >= R.ts) { const d = debutDe(m.texte); if (d && !pris.has(d)) pris.set(d, m.de); }
+    return pris;
+  }
+
   function blocReunion(R, faits) {
     const c = CRENEAUX[R.type];
     const part = R.participants.map(id => nomDe(id) + ' (' + (registre.get(id) || {}).role + ')').join(', ');
@@ -397,6 +412,20 @@ module.exports = function monterReunions(app, ctx) {
     }
     if (!t) return Object.assign(sortie, { cause: causeEcrire || (sortie.actions.length ? '' : 'vide') });
     if (o.ras && RAS.test(t)) return Object.assign(sortie, { ras: true });
+    /* Au tour de table (`o.varier`), un message qui commence comme celui d'un collègue de CETTE réunion est redemandé une fois, sans outil (rien ne s'enregistre deux
+       fois) : même fond, autre entrée. Si la seconde version commence encore pareil, ou ne vient pas, la première part — on ne perd pas une parole pour une tournure. */
+    if (o.varier) {
+      const pris = debutsReunion(R), d0 = debutDe(t);
+      if (d0 && pris.has(d0)) {
+        let r3 = null;
+        conversations.ecrit(FIL, id, true);
+        try { r3 = await cerveau.penser(id, system, [{ role: 'user', content: demande + '\n\nTon message :\n<<<\n' + t + '\n>>>\n\nIl commence exactement comme celui de ' + nomDe(pris.get(d0)) + ' (« ' + d0 + ' … »). Réécris-le, même fond, mêmes faits, sans outil, en entrant autrement : par ce qui t’est propre (un chiffre, un objectif, un constat à toi), jamais par la tournure d’un collègue.' }], { maxTokens: 800 }); }
+        catch (e) { r3 = null; }
+        finally { conversations.ecrit(FIL, id, false); }
+        const t3 = r3 && r3.ok ? couper(masquer(r3.texte), o.max || PAROLE_MAX) : '';
+        if (t3 && !RAS.test(t3) && !pris.has(debutDe(t3))) t = t3;
+      }
+    }
     if (o.redites) { t = sansRedites(t); if (!t) return Object.assign(sortie, { ras: true }); }
     const d = conversations.parler(id, FIL, t, { niveau: 'info', prof: 1, reunion: true, max: o.max });
     if (!d.ok) return Object.assign(sortie, { cause: d.raison });
@@ -413,7 +442,18 @@ module.exports = function monterReunions(app, ctx) {
     try {
       r = await cerveau.penser(id, equipe().systemDe(id) + blocReunion(R, run.faits), [{ role: 'user', content: 'Tu viens de dire, à la réunion du lundi :\n<<<\n' + dit + '\n>>>\n\nTu n’as pas enregistré tes objectifs. Enregistre maintenant, avec fixer_objectifs, les 2 ou 3 objectifs que tu viens de donner (mêmes objectifs, chacun avec sa mesure). N’en invente pas d’autres.' }], { outils: fixer, forcerOutil: 'fixer_objectifs', maxTokens: 800 });
     } catch (e) { return; }
+    let refuse = '';
     for (const a of (r && r.ok && Array.isArray(r.actions) ? r.actions : []).filter(a => a.nom === 'fixer_objectifs').slice(0, 1)) {
+      let x = null; try { x = executer(id, a, R, run); } catch (e) { x = null; }
+      if (x && !x.ok) refuse = x.raison || 'refus';
+    }
+    /* REFUSÉ PARCE QUE MAL FORMÉ (un objectif sans mesure, un texte vide) : une seconde fois, en disant pourquoi. Une panne, un registre illisible : on n'insiste pas. */
+    if (refuse !== 'objectifs' || objectifsDe(R.semaine, id).length) return;
+    let r2 = null;
+    try {
+      r2 = await cerveau.penser(id, equipe().systemDe(id) + blocReunion(R, run.faits), [{ role: 'user', content: 'Tu viens de dire, à la réunion du lundi :\n<<<\n' + dit + '\n>>>\n\nTes objectifs ont été refusés : chacun doit avoir un texte (ce que tu feras) ET une mesure (comment on verra que c’est atteint : un chiffre ou un constat vérifiable). Enregistre-les maintenant avec fixer_objectifs, les mêmes, chacun avec sa mesure.' }], { outils: fixer, forcerOutil: 'fixer_objectifs', maxTokens: 800 });
+    } catch (e) { return; }
+    for (const a of (r2 && r2.ok && Array.isArray(r2.actions) ? r2.actions : []).filter(a => a.nom === 'fixer_objectifs').slice(0, 1)) {
       try { executer(id, a, R, run); } catch (e) { /* le constat « sans objectif » le dira */ }
     }
   }
@@ -445,16 +485,18 @@ module.exports = function monterReunions(app, ctx) {
 
     /* 2. Le tour de table : un agent après l'autre ; Inès en dernier, avec la qualité. */
     const consignes = {
-      objectifs: 'C’est ton tour. Dis ce que tu retiens de tes leçons (si tu en as), donne 2 ou 3 objectifs MESURABLES pour cette semaine — tu les enregistres avec l’outil fixer_objectifs —, et une amélioration concrète que tu fais pour y arriver. Cite un collègue avec @ (par exemple @lea) seulement si tu as vraiment besoin de lui.',
-      bilan: 'C’est ton tour. Dis à l’équipe, en quelques phrases, où tu en es de tes objectifs un par un : atteint, partiel ou non, et pourquoi, faits à l’appui — et tu enregistres chaque jugement avec l’outil juger_objectif. Puis, si tu en tires quelque chose, 0 à 2 leçons avec ajouter_lecon. Cite un collègue avec @ (par exemple @lea) seulement si tu as vraiment besoin de lui.',
+      objectifs: 'C’est ton tour. Entre directement dans ce qui t’est propre, sans reprendre la tournure d’un collègue (pas de « Chez moi… » parce qu’un autre l’a dit). Dis ce que tu retiens de tes leçons (si tu en as), donne 2 ou 3 objectifs MESURABLES pour cette semaine — tu les enregistres avec l’outil fixer_objectifs —, et une amélioration concrète que tu fais pour y arriver. Cite un collègue avec @ (par exemple @lea) seulement si tu as vraiment besoin de lui.',
+      bilan: 'C’est ton tour. Entre directement dans ce qui t’est propre, sans reprendre la tournure d’un collègue (pas de « Chez moi aussi… » parce qu’un autre l’a dit). Dis à l’équipe, en quelques phrases, où tu en es de tes objectifs un par un : atteint, partiel ou non, et pourquoi, faits à l’appui — et tu enregistres chaque jugement avec l’outil juger_objectif. Puis, si tu en tires quelque chose, 0 à 2 leçons avec ajouter_lecon. Cite un collègue avec @ (par exemple @lea) seulement si tu as vraiment besoin de lui.',
     };
     const ordre = ORDRE.filter(id => R.participants.includes(id)).concat(R.participants.includes('ines') ? ['ines'] : []);
     for (const id of ordre) {
       if (finie()) { absent(id, 'temps'); continue; }
       const extra = id === 'ines' ? ' Tu donnes aussi la qualité de la semaine : ce que tu relèves sur le travail de l’équipe, d’après les erreurs et les refus du bloc Faits et le bloc qualite (tes relectures de courriels : combien sont partis, combien étaient conformes, quels critères reviennent).' : '';
-      const o = await parole(id, R, run, consignes[R.type] + extra, { ecrire: true });
+      const o = await parole(id, R, run, consignes[R.type] + extra, { ecrire: true, varier: true });
       if (o.cause && o.cause !== 'vide') { if (GLOBALES.includes(o.cause)) return abandon(o.cause); absent(id, o.cause); }
-      else if (o.parle) { run.parles.add(id); citer(id, o.mentions); if (R.type === 'objectifs' && !objectifsDe(R.semaine, id).length && !o.actions.some(a => a.nom === 'fixer_objectifs')) await enregistrerObjectifsDits(id, R, run, o.texte); }
+      /* ⛔ (examen du 27 octobre 2026 à 12 h 19, « Sans objectif enregistré : Max ») un fixer_objectifs REFUSÉ comptait comme fait : la reprise ne partait pas. Seul ce
+         qui est ENREGISTRÉ compte. */
+      else if (o.parle) { run.parles.add(id); citer(id, o.mentions); if (R.type === 'objectifs' && !objectifsDe(R.semaine, id).length) await enregistrerObjectifsDits(id, R, run, o.texte); }
     }
 
     /* 3. La discussion : ceux qu'on a cités répondent, dans l'ordre, jusqu'à ce que plus personne n'ait rien à ajouter — ou que l'heure soit finie. */
@@ -619,6 +661,7 @@ module.exports = function monterReunions(app, ctx) {
   return { tic, demarrer, memoire, attendre: () => (enCours ? enCours.promesse : Promise.resolve()), enCours: () => enCours && { id: enCours.id, type: enCours.type, fin: enCours.fin }, estIllisible: illisible };
 };
 module.exports.sansRedites = sansRedites;
+module.exports.debutDe = debutDe;
 module.exports.parisParties = parisParties;
 module.exports.tsParis = tsParis;
 module.exports.semaineIso = semaineIso;
