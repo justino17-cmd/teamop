@@ -98,6 +98,16 @@ function releve() {
   vrai('l’introduction de Pauline compte ses mails', /voici les 3 mails que j’ai préparés/.test(H));
 
   console.log('\n2. Accepter');
+  {
+    /* ⛔ (gardien) Harvey réécrit un brouillon pendant que Justin le lit : le Mac remonte la nouvelle version, l'écran de Justin montre encore l'ancienne */
+    const r1 = releve(); r1.courriels.forEach(c => { if (c.id === 'o-ancien') c.maj = '2026-10-27 09:30:00'; });
+    await mac('POST', '/api/pauline/releve', r1);
+    const n = toasts.length;
+    await bac.paDecider(0, 'accepter'); await attendre();
+    v('⛔ accepter la version LUE, réécrite depuis : refusé, et l’écran le dit', [toasts.slice(n), (await mac('GET', '/api/pauline/decisions')).decisions.length], [['Ce mail a été réécrit depuis que tu l’as lu : relis-le avant de l’accepter.'], 0]);
+    await mac('POST', '/api/pauline/releve', releve());
+    PA.luLe = 0; await bac.chargerPauline(); await attendre(); bac.msPaHtml();
+  }
   const avant = toasts.length;
   await bac.paDecider(0, 'accepter'); await attendre();
   v('le toast le dit', toasts.slice(avant), ['Accepté : le Mac l’envoie dans la minute, aux heures d’envoi.']);
