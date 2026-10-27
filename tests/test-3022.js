@@ -40,7 +40,7 @@ const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.sli
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const FNS = ['apiGet', 'apiPost', 'messListeCharger', 'agAvatar', 'msAgentsParId', 'msEtat', 'msEstGroupe', 'msGroupePerso', 'msNomFil', 'msIconeHtml', 'msSousTitre', 'msEnteteHtml',
   'msGroupeFeuille', 'msGroupeModifier', 'msGroupeCouleur', 'msGroupeErr', 'msGroupeEnvoyer', 'msGroupeEnregistrer', 'msGroupeDefaut',
-  'paObj', 'paT', 'paNb', 'paMs', 'paUnite', 'paDepuis', 'paQuand', 'paAge', 'paEtatLigne', 'paChiffres', 'paChauffe', 'paListe', 'paMot', 'paNom', 'paLigne', 'agPaulineHtml', 'agPaOuvrir', 'agPaTout', 'agPaTexte', 'paMajAge', 'paApres', 'chargerPauline'];
+  'paObj', 'paT', 'paNb', 'paMs', 'paUnite', 'paDepuis', 'paQuand', 'paAge', 'paEtatLigne', 'paChiffres', 'paChauffe', 'paAttentesHtml', 'paListe', 'paMot', 'paNom', 'paLigne', 'agPaulineHtml', 'agPaOuvrir', 'agPaTout', 'agPaTexte', 'paMajAge', 'paApres', 'chargerPauline'];
 const FN = FNS.map(fonction);
 const VARS = [ligne('var AG_PHOTOS='), ligne('var MS_GROUPES_LIB='), ligne('var MS_COULEURS='), ligne('var MS_ETAT_LIB='), ligne('var INJOIGNABLE='), ligne('var PA_LISTES='), ligne('var PA_RETARD='), ligne('var PA_E_ENT='), ligne('var PA_E_COU='), ligne('var PA_E_REP='),
   corps('var PA={') + ';', corps('var MS={') + ';'].join('\n');

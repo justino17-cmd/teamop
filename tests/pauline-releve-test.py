@@ -47,6 +47,9 @@ CREATE TABLE observations (id TEXT PRIMARY KEY, company_id TEXT DEFAULT '', pros
   value_text TEXT DEFAULT '', confidence REAL DEFAULT 1.0, evidence_url TEXT DEFAULT '', observed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, run_id TEXT DEFAULT '');
 CREATE TABLE runs (id TEXT PRIMARY KEY, stage TEXT DEFAULT '', status TEXT DEFAULT 'running', provider TEXT DEFAULT '', records INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0.0,
   params_json TEXT DEFAULT '{}', error TEXT DEFAULT '', started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ended_at TIMESTAMP);
+CREATE TABLE signal_codes (code TEXT PRIMARY KEY, label TEXT DEFAULT '', description TEXT DEFAULT '', category TEXT DEFAULT '', value_type TEXT DEFAULT 'text',
+  collector TEXT DEFAULT '', cost_note TEXT DEFAULT '', status TEXT DEFAULT 'proposed', confidence_floor REAL DEFAULT 0.0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 """
 
 
@@ -105,6 +108,11 @@ def construire(dossier):
     ins("runs", id="r3", stage="profile", status="completed", records=9, started_at=h(-1, " "))
     for i, c in enumerate(["c-trouvee", "c-pret", "c-pret", "c-repondu"]):
         ins("observations", id="ob%d" % i, company_id=c, signal_code="FOUND_IN_SERP", run_id="r1")
+    # ce qui attend Justin (Tour v2.114) : des critères proposés, des adresses vérifiées ou non
+    for code, statut in (("HAS_WEBSITE", "proposed"), ("LOCAL_SERVICE_AREA", "proposed"), ("NO_BOOKING_TOOL", "proposed"), ("FOUND_IN_SERP", "confirmed"), ("HIRING", "confirmed"), ("ADS_SPEND", "rejected")):
+        ins("signal_codes", code=code, label=code.replace("_", " ").title(), description="Description de " + code, status=statut)
+    for pid, st in (("p-pret", "verified"), ("p-envoye", "risky"), ("p-refus", "invalid"), ("p-repondu", ""), ("p-orphelin", "guess"), ("p-optout", "unknown")):
+        b.execute("UPDATE prospects SET email_status = ? WHERE id = ?", (st, pid))
     ins("actions", id="a1", action_type="prospect", agent="scout", details_json=json.dumps({"prospects_found": 4}), created_at=h(-3, " "))
     ins("actions", id="a2", action_type="prospect", agent="scout", details_json=json.dumps({"prospects_found": 0}), created_at=h(-4, " "))
     ins("actions", id="a3", action_type="opt_out", agent="handler", details_json=json.dumps({"prospect_id": "p-refus"}), created_at=ce_matin(40, " "))
@@ -327,6 +335,28 @@ class TestReleve(unittest.TestCase):
             self.assertEqual(code, 3, err)
             self.assertNotIn("Traceback", err)
 
+    def test_attentes(self):
+        att = self.r["attentes"]
+        self.assertIs(att["verificateur"], False)           # le .env du banc n'a qu'un SMTP : aucune clé de vérification
+        self.assertEqual({k: att["signaux"][k] for k in ("proposes", "confirmes", "rejetes")}, {"proposes": 3, "confirmes": 2, "rejetes": 1})
+        self.assertEqual([x["code"] for x in att["signaux"]["liste"]], ["HAS_WEBSITE", "LOCAL_SERVICE_AREA", "NO_BOOKING_TOOL"])   # les seuls PROPOSÉS
+        self.assertEqual(att["signaux"]["liste"][0]["libelle"], "Has Website")
+        self.assertEqual(att["adresses"], {"verifiees": 1, "risquees": 1, "invalides": 1, "aConfirmer": 3})   # vide, « guess » et inconnu : à confirmer
+
+    def test_attentes_cle_presente_jamais_envoyee(self):
+        cle = "SENTINELLEREOON" + "x9" * 10
+        with tempfile.TemporaryDirectory() as t:
+            d = construire(t)
+            (d / ".env").write_text("REOON_API_KEY=" + cle + "\nTEAMOP_RELEVE_JETON=" + JETON + "\n", encoding="utf-8")
+            code, out, err = lancer("--essai", "--harvey", str(d))
+            self.assertEqual(code, 0, err)
+            self.assertIs(json.loads(out)["attentes"]["verificateur"], True)
+            self.assertNotIn(cle, out + err)
+            self.assertNotIn("REOON", out + err)              # ni la clé, ni le nom du fournisseur
+            (d / ".env").write_text("REOON_API_KEY=\nZEROBOUNCE_API_KEY=   \n", encoding="utf-8")
+            code, out, err = lancer("--essai", "--harvey", str(d))
+            self.assertIs(json.loads(out)["attentes"]["verificateur"], False)   # une clé VIDE n'en est pas une
+
     def test_base_neuve_sans_tables(self):
         with tempfile.TemporaryDirectory() as t:
             (Path(t) / "data").mkdir()
@@ -335,6 +365,7 @@ class TestReleve(unittest.TestCase):
             self.assertEqual(code, 0, err)
             r = json.loads(out)
             self.assertEqual((r["entreprises"], r["courriels"], r["jour"]["envoyes"]), ([], [], 0))
+            self.assertEqual(r["attentes"], {"verificateur": False})   # base neuve : rien à confirmer, et on ne l'invente pas
 
     def test_fabriquer_jeton(self):
         with tempfile.TemporaryDirectory() as t:
