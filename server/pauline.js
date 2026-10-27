@@ -390,7 +390,7 @@ module.exports = function pauline(app, ctx) {
     try { rangerDec(etat); } catch (e) { console.error('pauline : décisions non écrites (' + (e && e.code || 'erreur') + ')'); return 0; }
     if (notifier) {
       const n = neufs.length;
-      Promise.resolve().then(() => notifier('Pauline', n + (n > 1 ? ' nouveaux mails attendent' : ' nouveau mail attend') + ' ton accord', '/tour.html#messagerie'))
+      Promise.resolve().then(() => notifier('Pauline', n + (n > 1 ? ' nouveaux mails attendent' : ' nouveau mail attend') + ' ton accord', '/tour.html#gestion/messagerie'))
         .catch(() => console.error('pauline : notification non partie'));
     }
     return neufs.length;
@@ -446,6 +446,13 @@ module.exports = function pauline(app, ctx) {
 
     app.get('/api/monitor/pauline', monPatronStrict, (req, res) => {
       const r = lire();
+      /* `?resume=1` : la pastille de la Messagerie, chaque minute — un NOMBRE, pas le relevé (jusqu'à 900 Ko sur un téléphone en 4G). */
+      if (req.query && req.query.resume === '1') {
+        if (r.etat !== 'ok') return res.json({ ok: true, attente: 0, connu: false });
+        const dec = lireDec();
+        if (!dec) return res.json({ ok: true, attente: 0, connu: false });
+        return res.json({ ok: true, connu: true, attente: r.releve.courriels.filter(c => attendAccord(c) && !(dec.decisions[c.id] && dec.decisions[c.id].etat !== 'echec')).length });
+      }
       if (r.etat === 'illisible') {
         return res.status(503).json({ error: r.cause === 'cle' ? 'Le relevé de Pauline est chiffré et la clé maître ne le déchiffre pas : on ne sait pas ce que fait Pauline.' : 'Le relevé de Pauline est illisible sur le serveur : on ne sait pas ce que fait Pauline.' });
       }

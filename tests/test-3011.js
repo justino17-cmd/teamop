@@ -81,7 +81,7 @@ const pau = (H.match(/<article class="ag-rang ag-ext[\s\S]*?<\/article>/) || [''
 vrai('Pauline : sa photo, « Prospection (Harvey, sur ton Mac) », et, avant toute lecture, « Lecture du relevé… » (pas un état inventé)', /icons\/agents\/pauline\.jpg/.test(pau) && /<h3>Pauline<\/h3>/.test(pau) && /Prospection \(Harvey, sur ton Mac\)/.test(pau) && /data-e="externe">Lecture du relevé…</.test(pau), pau.slice(0, 300));
 vrai('⛔ Pauline n’a NI segmenté NI bouton d’action NI appel serveur (elle ne se pilote pas d’ici)', !/ag-seg|<button|onclick=|agMode_|agParler/.test(pau));
 vrai('⛔ Pauline avant tout relevé : AUCUN chiffre, AUCUNE liste (rien d\u2019inventé)', !/\d/.test(pau.replace(/<[^>]+>/g, ' ')) && !/<details/.test(pau), pau.replace(/<[^>]+>/g, ' '));
-vrai('…ses accords d’envoi se donnent sur le Mac (dit en clair)', /accords d’envoi se donnent dans son tableau de bord, sur ton Mac/.test(pau));
+vrai('…ses mails à accepter arrivent dans la Messagerie, conversation « Pauline » (v2.115, dit en clair)', /Ses mails à accepter t’arrivent dans la Messagerie \(conversation « Pauline » \)/.test(pau.replace(/« Pauline »/,'« Pauline » ')));
 bac.AG.pause = { actif: true, par: 'Justin' }; H = bac.vueAgents();
 vrai('pause générale : la barre le dit, chaque rangée dit « En pause » (le mode choisi reste lisible dans le segmenté)', /Pause générale : tous les agents sont à l’arrêt \(posée par Justin\)/.test(H) && (H.match(/data-e="pause">En pause</g) || []).length === 16 && /data-m="auto" class="on"/.test(rangee('victor')));
 bac.AG.pause = null; bac.AG.lec.taches = -1; H = bac.vueAgents();
@@ -292,7 +292,8 @@ const mettre = (nom, ico, desc, coul) => { els['mg-nom'] = { value: nom, focus: 
   get(() => Promise.resolve({ ok: true, recuLe: iso(0) })); await bac.chargerPauline();
   bac.MYROLE = 'collaborateur'; get(() => Promise.resolve({})); await bac.chargerPauline(); bac.MYROLE = 'patron';
   vrai('⛔ hors patron : aucun appel', bac.apiGetAppels.length === 0);
-  vrai('(code) aucune écriture : la lecture du relevé est un GET, rien ne se poste', !/apiPost\([^)]*pauline/i.test(CODE));
+  /* v2.115 : la SEULE écriture vers Pauline est la décision de Justin (Messagerie → Pauline), un geste ; la lecture du relevé reste un GET */
+  vrai('(code) la lecture du relevé est un GET ; la seule écriture est la décision, dans paDecider', JSON.stringify((CODE.match(/apiPost\([^)]*pauline[^)]*\)/gi) || [])) === JSON.stringify(["apiPost('/api/monitor/pauline/decision',corps)"]) && !/apiPost/.test((CODE.match(/function chargerPauline\(\)[\s\S]*?\n\}/) || [''])[0]));
   vrai('(code) relu à l’ouverture de l’onglet, à l’entrée dans la section, puis chaque minute tant qu’elle est visible', /if\(t==='agents'\)\{ chargerAgents\(\); chargerPauline\(\); chargerHoraires\(\); \}/.test(CODE) && /if\(s==='equipe'&&typeof chargerPauline==='function'\) chargerPauline\(\);/.test(CODE) && /setInterval\(function\(\)\{ if\(document\.visibilityState==='visible'&&TAB==='agents'&&AG\.sec==='equipe'\) chargerPauline\(\); \},60000\);/.test(CODE));
   PA.lec = 0; PA.d = null;
   MS.fils[1].perso = { nom: 'Clients', icone: '💬', couleur: 'bleu', description: '' };

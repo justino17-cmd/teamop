@@ -64,7 +64,7 @@ function releve() {
     v('signalés au premier relevé : les DEUX courriels qui attendent l’accord (pas l’accepté, pas le parti)', M.signalerNouveaux(r), 2);
     v('second relevé identique : rien de neuf, aucune notification de plus', M.signalerNouveaux(r), 0);
     await new Promise(res => setTimeout(res, 20));
-    v('UNE notification, des nombres seulement, vers la messagerie de la Tour', notifs, [['Pauline', '2 nouveaux mails attendent ton accord', '/tour.html#messagerie']]);
+    v('UNE notification, des nombres seulement, vers la messagerie de la Tour', notifs, [['Pauline', '2 nouveaux mails attendent ton accord', '/tour.html#gestion/messagerie']]);
     vrai('⛔ aucun nom, objet ni texte de prospect dans la notification', !FUITES.some(f => JSON.stringify(notifs).includes(f)));
     fs.writeFileSync(path.join(dos, P.FICHIER_DEC), '{cassé');
     v('⛔ fichier des décisions illisible : lireDec rend null (jamais « aucune décision »), rien n’est signalé ni écrasé', [M.lireDec(), M.signalerNouveaux(r), fs.readFileSync(path.join(dos, P.FICHIER_DEC), 'utf8')], [null, 0, '{cassé']);
@@ -94,6 +94,7 @@ function releve() {
     v('le relevé passe', (await mac(S, 'POST', '/api/pauline/releve', releve())).s, 200);
     const g0 = await S.get('/api/monitor/pauline');
     v('la Tour lit des décisions vides (un objet, pas null)', [g0.s, g0.j.decisions], [200, {}]);
+    v('le résumé de la pastille : 2 mails attendent l’accord, et RIEN du relevé', (await S.get('/api/monitor/pauline?resume=1')).j, { ok: true, connu: true, attente: 2 });
     v('⛔ collaborateur et anonyme : 403', [(await decider(S, { id: 'o-tour', action: 'accepter' }, S.TA)).s, (await decider(S, { id: 'o-tour', action: 'accepter' }, '')).s], [403, 403]);
     v('⛔ action inconnue : 400', (await decider(S, { id: 'o-tour', action: 'envoyer' })).s, 400);
     v('⛔ courriel inconnu, déjà parti, déjà accepté : 409', [(await decider(S, { id: 'o-fantome', action: 'accepter' })).s, (await decider(S, { id: 'o-parti', action: 'refuser' })).s, (await decider(S, { id: 'o-accepte', action: 'accepter' })).s], [409, 409, 409]);
@@ -102,6 +103,8 @@ function releve() {
     v('changer d’avis tant que le Mac n’est pas passé : refuser remplace accepter', (await decider(S, { id: 'o-tour', action: 'refuser' })).j.action, 'refuser');
     v('modifier une RÉPONSE : son objet reste celui du fil (sinon elle sortirait de la conversation)', (await decider(S, { id: 'o-reponse', action: 'modifier', objet: 'Autre objet', texte: TEXTE_JUSTIN })).s, 200);
     const g1 = await S.get('/api/monitor/pauline');
+    v('le résumé ne compte plus les mails décidés', (await S.get('/api/monitor/pauline?resume=1')).j.attente, 0);
+    v('⛔ le résumé est au patron seul', (await S.get('/api/monitor/pauline?resume=1', S.TA)).s, 403);
     v('la Tour voit les deux décisions « à faire », sans leur texte', [g1.j.decisions['o-tour'].etat, g1.j.decisions['o-reponse'].action, 'texte' in g1.j.decisions['o-reponse']], ['a_faire', 'modifier', false]);
 
     v('⛔ Mac : sans jeton ou mauvais jeton, 401', [(await mac(S, 'GET', '/api/pauline/decisions', undefined, '')).s, (await mac(S, 'GET', '/api/pauline/decisions', undefined, 'faux-' + JETON)).s], [401, 401]);
