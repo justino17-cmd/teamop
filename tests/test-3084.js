@@ -31,10 +31,9 @@ for (const m of ['https://clim17.fr', 'clim17.fr/contact', 'javascript:alert(1)'
 console.log('\n2. La Tour : les VRAIES fonctions');
 const SRC = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const fn = nom => { const i = SRC.indexOf('function ' + nom + '('); if (i < 0) return ''; let k = SRC.indexOf('{', i), n = 0; for (let j = k; j < SRC.length; j++) { if (SRC[j] === '{') n++; else if (SRC[j] === '}' && --n === 0) return SRC.slice(i, j + 1); } return ''; };
-const reSite = (SRC.match(/var PA_RE_SITE=\/.*\/;/) || [''])[0];
 const code = ['esc', 'paObj', 'paNb', 'paT', 'paMs', 'paUnite', 'paDepuis', 'paQuand', 'paMot', 'paNom', 'paPluriel', 'paAvancementHtml', 'paSite', 'paLigne'].map(fn);
-vrai('(population) les fonctions et l’expression du site sont trouvées dans tour.html', code.every(c => c.length > 20) && reSite.length > 30, code.map(c => c.length).join(','));
-const ctx = { PA_E_ENT: { trouvee: ['Trouvée', 'n'] }, PA: {} }; vm.createContext(ctx); vm.runInContext(reSite + '\n' + code.join('\n'), ctx);
+vrai('(population) les fonctions sont trouvées dans tour.html', code.every(c => c.length > 20), code.map(c => c.length).join(','));
+const ctx = { PA_E_ENT: { trouvee: ['Trouvée', 'n'] }, PA: {} }; vm.createContext(ctx); vm.runInContext(code.join('\n'), ctx);
 const H = r => ctx.paAvancementHtml(r);
 const etapes = h => [...h.matchAll(/<div class="pa-av-e" data-e="(\w+)"><div class="pa-av-h">([^<]*)<em>([^<]*)<\/em><\/div><div class="pa-av-b" aria-hidden="true"><i style="width:(\d+)%"><\/i><\/div>(?:<div class="pa-av-d">([^<]*)<\/div>)?/g)].map(m => [m[2], m[3], m[1], +m[4], m[5] || '']);
 const plein = etapes(H(Object.assign(base(), { avancement: AV })));

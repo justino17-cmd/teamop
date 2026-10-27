@@ -11324,8 +11324,7 @@ function paAvancementHtml(r){
   return '<div class="pa-av"><p class="pa-att-t">Où elle en est</p>'+E.join('')+'</div>';
 }
 /* le site d'une entreprise : un nom de domaine vérifié (le serveur l'a déjà filtré ; la Tour revérifie), en lien https:// — rien d'autre n'entre dans l'adresse */
-var PA_RE_SITE=/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
-function paSite(x){ return typeof x.site==='string'&&PA_RE_SITE.test(x.site)?'<a class="pa-site" href="https://'+x.site+'/" target="_blank" rel="noopener noreferrer nofollow">'+x.site+'</a>':''; }
+function paSite(x){ return typeof x.site==='string'&&/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(x.site)?'<a class="pa-site" href="https://'+x.site+'/" target="_blank" rel="noopener noreferrer nofollow">'+x.site+'</a>':''; }
 function agPaulineHtml(){
   var h='<p class="ag-ext-note">Ses mails à accepter t’arrivent dans la Messagerie (conversation « Pauline ») : tu les acceptes, les modifies ou les refuses de là, même sur ton téléphone.</p>';
   if((PA.lec===-2||PA.lec===-3)&&PA.err) h+='<p class="ag-ext-note">'+esc(PA.err)+'</p>';
