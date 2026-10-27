@@ -2540,6 +2540,29 @@ body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backd
 .ms-pts i:nth-child(2){animation-delay:.18s}.ms-pts i:nth-child(3){animation-delay:.36s}
 @keyframes msPoint{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
 @media(prefers-reduced-motion:reduce){ .ms-pts i{animation:none;opacity:.7} }
+/* Pauline dans la Messagerie (v2.115) : ses mails à accepter, un par carte */
+.pa-fil{display:flex;flex-direction:column;gap:12px;width:100%;max-width:760px;margin:0 auto}
+.pa-intro{margin:0;color:var(--text2);font-size:13.5px;line-height:1.5}
+.pa-m{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.pa-m[data-e="fait"],.pa-m[data-e="refuse"]{opacity:.78}
+.pa-m-hd{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}.pa-m-hd b{font-size:15px}.pa-m-hd span{color:var(--muted);font-size:12.5px}
+.pa-m-a,.pa-m-e{color:var(--text2);font-size:12.5px;overflow-wrap:anywhere}
+.pa-m-o{font-weight:650;font-size:14px;overflow-wrap:anywhere}
+.pa-m-c{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:13.5px;line-height:1.55;color:var(--text);background:var(--inset);border-radius:var(--r-2,8px);padding:10px 12px;max-height:340px;overflow:auto}
+.pa-m-act{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.pa-m-act .ms-envoyer{min-height:44px}
+.pa-m-act .ms-reu-btn{min-height:44px;padding:0 16px}
+.pa-m-act .pa-ref{color:var(--red)}
+.pa-m-etat{font-size:12.5px;font-weight:650;color:var(--text2)}.pa-m-etat[data-t="ok"]{color:var(--green)}.pa-m-etat[data-t="ko"]{color:var(--red)}.pa-m-etat[data-t="att"]{color:var(--amber)}
+.pa-ed{display:flex;flex-direction:column;gap:6px}
+.pa-ed label{font-size:12px;color:var(--muted);font-weight:650}
+.pa-ed input,.pa-ed textarea{font:inherit;font-size:16px;color:var(--text);background:var(--inset);border:1px solid var(--inpBorder);border-radius:var(--r-2,8px);padding:9px 11px;width:100%;box-sizing:border-box}
+.pa-ed textarea{min-height:220px;resize:vertical;line-height:1.5}
+.pa-ed input:disabled{opacity:.7}
+.pa-ed input:focus-visible,.pa-ed textarea:focus-visible{outline:0;box-shadow:var(--anneau-int)}
+.pa-faits>summary{cursor:pointer;color:var(--text2);font-size:13px;font-weight:650;min-height:44px;display:flex;align-items:center}
+.pa-faits[open]>summary{margin-bottom:6px}
+.pa-faits .pa-m{margin-bottom:10px}
 .ms-vide{margin:auto;max-width:360px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.5;padding:24px 12px}
 .ms-retard{align-self:center;font-size:12px;color:var(--amber)}
 .ms-nouv{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);min-height:34px;padding:0 14px;border:0;border-radius:99px;background:var(--acc-fill);color:var(--on-acc);font:inherit;font-size:13px;font-weight:650;box-shadow:var(--ombre-2);cursor:pointer}
@@ -3334,7 +3357,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.114</div>
+    <div class="lg-pied">console interne · v2.115</div>
   </div>
 </div>
 
@@ -3376,7 +3399,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.114</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.115</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3388,7 +3411,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.114</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.115</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3695,7 +3718,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.114';
+var TOUR_VERSION='v2.115';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -11262,12 +11285,12 @@ function paAttentesHtml(r){
   var na=ad?paNb(ad.aConfirmer):null;
   if(na) ligne(at.verificateur===false?'bloque':'faire',na+' adresse'+(na>1?'s':'')+' à vérifier',at.verificateur===false?'Elles attendent la clé de vérification (ci-dessus).':'Harvey les vérifie au fil de la journée ; il n’écrit qu’aux adresses vérifiées.');
   var ne=paNb(j.enAttente);
-  if(ne) ligne('faire',ne+' courriel'+(ne>1?'s':'')+' à accepter','Lis-les dans Harvey → <b>Outbox</b>, puis accepte ou refuse chacun. Rien ne part sans ton accord.');
+  if(ne) ligne('faire',ne+' courriel'+(ne>1?'s':'')+' à accepter','Ils t’attendent dans la <b>Messagerie → Pauline</b> (aussi sur ton téléphone) : accepte, modifie ou refuse chacun. Rien ne part sans ton accord.');
   if(!L.length) ligne('ok','Rien ne t’attend','Pauline a tout ce qu’il lui faut. Les courriels à accepter apparaîtront ici.');
   return '<div class="pa-att"><p class="pa-att-t">Ce qui t’attend</p>'+L.join('')+'<a class="pa-ouvrir" href="http://127.0.0.1:5555/" target="_blank" rel="noopener">Ouvrir Harvey (sur ton Mac)</a></div>';
 }
 function agPaulineHtml(){
-  var h='<p class="ag-ext-note">Elle ne se pilote pas d’ici : ses accords d’envoi se donnent dans son tableau de bord, sur ton Mac.</p>';
+  var h='<p class="ag-ext-note">Ses mails à accepter t’arrivent dans la Messagerie (conversation « Pauline ») : tu les acceptes, les modifies ou les refuses de là, même sur ton téléphone.</p>';
   if((PA.lec===-2||PA.lec===-3)&&PA.err) h+='<p class="ag-ext-note">'+esc(PA.err)+'</p>';
   var r=PA.lec===1&&PA.d&&PA.d.recuLe&&paObj(PA.d.releve)?PA.d.releve:null;
   if(!r) return h;
@@ -11287,7 +11310,8 @@ function agPaTout(k){ if(!PA_LISTES.some(function(L){ return L[0]===k; })) retur
 /* l'état d'un texte déplié se range sous l'identifiant du courriel, retrouvé par le NUMÉRO de rangée (jamais un champ du relevé dans un attribut) */
 function agPaTexte(i,o){ var x=(PA.tri.courriels||[])[i]; if(x&&(typeof x.id==='string'||typeof x.id==='number')) PA.texte[String(x.id)]=!!o; }
 function paMajAge(){ var e=document.getElementById('pa-etat'); if(!e) return; var x=paEtatLigne(); e.textContent=x.lib; e.setAttribute('data-e',x.e); }
-function paApres(change){ if(TAB==='agents'&&AG.sec==='equipe'){ if(change) render(); else paMajAge(); } }
+function paApres(change){ if(TAB==='agents'&&AG.sec==='equipe'){ if(change) render(); else paMajAge(); }
+  if(typeof paMessagerieApres==='function') paMessagerieApres(); }
 function chargerPauline(){
   if(MYROLE!=='patron') return Promise.resolve();
   if(PA.enVol) return PA.enVol;
@@ -12249,7 +12273,7 @@ function msGroupePerso(fil){
   var coul=MS_COULEURS.some(function(c){ return c[0]===p.couleur; })?p.couleur:'';
   return {nom:nom||(msEstGroupe(fil)?MS_GROUPES_LIB[fil]:String(fil)), icone:ico||'#', couleur:coul, description:desc, perso:!!(nom||ico||coul||desc)};
 }
-function msNomFil(f){ return msEstGroupe(f)?msGroupePerso(f).nom:((msAgentsParId()[f]||{}).nom||f); }
+function msNomFil(f){ if(f==='pauline') return 'Pauline'; return msEstGroupe(f)?msGroupePerso(f).nom:((msAgentsParId()[f]||{}).nom||f); }
 /* L'icône d'un groupe dans son rond de couleur (la liste, l'en-tête). */
 function msIconeHtml(fil,cls){ var p=msGroupePerso(fil); return '<span class="'+cls+(p.couleur?' cb-'+p.couleur:'')+'" aria-hidden="true">'+esc(p.icone)+'</span>'; }
 /* ── les morceaux d'HTML : des fonctions de leurs données, rien d'autre ── */
@@ -12294,8 +12318,10 @@ function msLigneFil(f,agents,fil){
 }
 function msListeHtml(){
   var ag=msAgentsParId(), g=MS.fils.filter(function(f){ return f.groupe; }), p=MS.fils.filter(function(f){ return !f.groupe; });
-  return '<div class="ms-ct">Groupes</div>'+g.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('')+
-    '<div class="ms-ct">Messages privés</div>'+p.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('');
+  /* des mails attendent ton accord : Pauline passe EN TÊTE, au-dessus des groupes (`typeof` : les bancs qui extraient la messagerie sans Pauline la voient absente) */
+  var pa=typeof msLignePauline==='function'?msLignePauline():'', nPa=typeof MS_PA!=='undefined'&&MS_PA.n;
+  return (nPa?'<div class="ms-ct">À valider</div>'+pa:'')+'<div class="ms-ct">Groupes</div>'+g.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('')+
+    '<div class="ms-ct">Messages privés</div>'+(nPa?'':pa)+p.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('');
 }
 /* « Qui fait quoi » : la file de tâches du SERVEUR, rien d'autre. Les tâches de conversation portent leur phrase ; les demandes fermées entre agents, leur nom. */
 function msTacheTxt(k){
@@ -12316,6 +12342,7 @@ function msTachesHtml(){
       '<p>'+esc(msTacheTxt(k))+'</p><small>demandée par '+esc(nom(k.de))+(pp?' · déléguée, d’abord à '+esc(nom(pp)):'')+' · '+esc(msHeureCourte(k.ts))+'</small></div>'; }).join('');
 }
 function msSousTitre(){
+  if(MS.fil==='pauline') return 'Prospection · Harvey, sur ton Mac';
   var ag=msAgentsParId(), a=ag[MS.fil];
   if(a) return esc(a.role)+' · '+MS_ETAT_LIB[msEtat(a)].toLowerCase();
   if(MS_GROUPES_LIB[MS.fil]&&msGroupePerso(MS.fil).description) return esc(msGroupePerso(MS.fil).description);
@@ -12358,7 +12385,7 @@ function msRetirer(cle){
 /* ── les lectures ── */
 function messListeCharger(){
   return apiGet('/api/monitor/conversations?tous=1').then(function(d){ if(!d) return;
-    if(Array.isArray(d.fils)){ MS.fils=d.fils; MS.nonLus=Number(d.nonLus)||0; MS.lec=1; setBdg('bdg-msgr',MS.nonLus); } else if(MS.lec!==1) MS.lec=-1;
+    if(Array.isArray(d.fils)){ MS.fils=d.fils; MS.nonLus=Number(d.nonLus)||0; MS.lec=1; if(typeof msBadge==='function') msBadge(); else setBdg('bdg-msgr',MS.nonLus); } else if(MS.lec!==1) MS.lec=-1;
     messPeindreListe(); messPeindreEntete();
   }).catch(function(){ if(MS.lec!==1) MS.lec=-1; messPeindreListe(); });
 }
@@ -12374,9 +12401,10 @@ function messTachesCharger(){
     messPeindreTaches();
   }).catch(function(){ if(MS.tachesLec!==1) MS.tachesLec=-1; messPeindreTaches(); });
 }
-function messToutCharger(){ if(MS.fil==='plateforme') messPfCharger(); return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
+function messToutCharger(){ if(MS.fil==='plateforme') messPfCharger(); if(MS.fil!=='pauline'&&typeof paResumeCharger==='function') paResumeCharger(); return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
 /* La lecture d'un fil : entière à l'ouverture, INCRÉMENTALE ensuite (`?apres=`). Une réponse qui arrive après un changement de fil est jetée. */
 function messFilCharger(incr){
+  if(MS.fil==='pauline'&&typeof paFilCharger==='function') return paFilCharger(incr);
   var fil=MS.fil; if(incr&&MS.msgLec===-1) incr=false;   /* un fil qu'on n'a pas pu lire se retente tout seul, en entier */
   if(incr&&(MS.enVol===fil||MS.envoi>0||MS.msgLec!==1||MS.vueMob==='liste')) return Promise.resolve();
   MS.enVol=fil;
@@ -12658,6 +12686,144 @@ function messChoisir(fil){
   messFilCharger(false);
 }
 function messDossier(n){ AG.sec='dossiers'; setTab('agents'); agDosOuvrir(n); }
+/* ══ PAULINE DANS LA MESSAGERIE (Tour v2.115) ══ Justin, 27 octobre 2026 : « je peux pas être tout le temps sur le site de Harvey, si je suis sur mon téléphone ;
+   que Pauline m'envoie en message, en privé : voilà le mail pour ce client, est-ce que tu acceptes, tu refuses, tu modifies ; quand j'accepte, elle l'envoie. »
+   La conversation « Pauline » n'est PAS un fil du serveur de conversations : elle se dessine depuis le relevé du Mac (`PA`, `GET /api/monitor/pauline`) et ses boutons posent
+   une DÉCISION (`POST /api/monitor/pauline/decision`) que le Mac applique dans Harvey en une minute environ (server/pauline.js, outils/pauline-releve.py).
+   · ⛔ On ne décide que sur un mail qui ATTEND l'accord (`paAttendAccord`, la règle du serveur) ; le serveur revérifie, et son refus s'affiche tel quel.
+   · ⛔ « Modifier » ne se perd pas : pendant qu'on écrit, le fil ne se redessine pas (le brouillon vit dans MS_PA.brouillon), et l'écran DIT qu'une modification
+     part avec l'accord (« Enregistrer et envoyer »). Une RÉPONSE garde son objet (le fil de la conversation du prospect).
+   · ⛔ Tout vient de tiers : `esc()` partout ; les boutons portent un NUMÉRO de carte (data-i), jamais un champ du relevé dans un attribut.
+   · Le compteur (pastille du menu, rangée « À valider ») vient du RÉSUMÉ du serveur (`?resume=1`, un nombre) tant que le relevé n'est pas chargé. */
+var MS_PA={n:0,edit:'',brouillon:{},occ:'',ids:[],faits:false,luResume:0};
+function paAttendAccord(c){ return paObj(c)&&c.etat==='en_attente'&&(c.statutBrut===undefined||c.statutBrut==='pending_review'); }
+function paDecs(){ return PA.lec===1&&PA.d&&paObj(PA.d.decisions)?PA.d.decisions:null; }
+function paReleveLu(){ return PA.lec===1&&PA.d&&PA.d.recuLe&&paObj(PA.d.releve)?PA.d.releve:null; }
+/* « décidé » = une décision à faire ou appliquée ; un échec rend le mail à Justin */
+function paDecide(id,dec){ var d=dec&&Object.prototype.hasOwnProperty.call(dec,id)?dec[id]:null; return paObj(d)&&(d.etat==='a_faire'||d.etat==='fait')?d:null; }
+function paAttenteN(){ var r=paReleveLu(), dec=paDecs()||{}; if(!r) return MS_PA.n; return paListe(r,'courriels','quand').filter(function(c){ return paAttendAccord(c)&&!paDecide(String(c.id),dec); }).length; }
+/* après chaque lecture du relevé (chargerPauline → paApres) : la pastille et, si la conversation est ouverte, le fil */
+function paMessagerieApres(){
+  if(PA.lec===1){ MS_PA.n=paAttenteN(); msBadge(); }
+  if(TAB==='messagerie'&&MS.inst){ messPeindreListe(); if(MS.fil==='pauline'){ messPeindreFil(); messPeindreEntete(); } }
+}
+function msBadge(){ setBdg('bdg-msgr',(Number(MS.nonLus)||0)+(Number(MS_PA.n)||0)); }
+function paResumeCharger(){
+  if(MYROLE!=='patron'||Date.now()-MS_PA.luResume<20000) return;
+  MS_PA.luResume=Date.now();
+  apiGet('/api/monitor/pauline?resume=1').then(function(d){ if(!d||d.ok!==true||typeof d.attente!=='number') return;
+    if(MS_PA.n!==d.attente){ MS_PA.n=d.attente; msBadge(); if(TAB==='messagerie'&&MS.inst) messPeindreListe(); } }).catch(function(){});
+}
+function msLignePauline(){
+  var n=MS_PA.n, l3=n?n+(n>1?' mails attendent':' mail attend')+' ton accord':'Prospection — rien à valider';
+  return '<button type="button" class="ms-cv" data-fil="pauline" aria-current="'+(MS.fil==='pauline')+'">'+agAvatar('pauline','Pauline','ms-av')+
+    '<span class="ms-cc"><span class="ms-l1"><b>Pauline</b></span><span class="ms-l3">'+esc(l3)+'</span></span>'+
+    (n?'<span class="ms-nl" aria-label="'+n+' à valider">'+n+'</span>':'')+'</button>';
+}
+/* La lecture : le relevé entier à l'ouverture, puis au plus toutes les 20 s (le fil des agents se relit toutes les 4 s ; un relevé pèse jusqu'à 900 Ko). */
+function paFilCharger(incr){
+  if(incr&&(Date.now()-PA.luLe<20000||PA.enVol||MS_PA.edit)) return Promise.resolve();
+  MS.msgLec=PA.lec===1?1:0;
+  return chargerPauline().then(function(){ if(MS.fil!=='pauline') return; MS.msgLec=PA.lec===1?1:(PA.lec===0?0:-1); messPeindreFil(); messPeindreEntete(); });
+}
+function paEtatCarte(c,d){
+  var att=paAttendAccord(c);
+  if(d&&d.etat==='a_faire') return ['att',d.action==='refuser'?'Refusé — retiré sur le Mac dans la minute':d.action==='modifier'?'Modifié et accepté — part du Mac dans la minute':'Accepté — part du Mac dans la minute'];
+  if(att&&d&&d.etat==='fait') return ['att','Appliqué sur le Mac — mise à jour…'];
+  if(c.etat==='envoye') return ['ok','Envoyé'];
+  if(c.etat==='repondu') return ['ok','Envoyé · le prospect a répondu'];
+  if(c.etat==='refuse') return ['ko',d&&d.action==='refuser'?'Refusé':'Pas parti (refusé ou bloqué au départ)'];
+  if(c.etat==='en_attente'&&!att) return ['ok','Accepté — part aux heures d’envoi'];
+  return null;
+}
+function paCarteHtml(c,k,idx,dec){
+  var id=String(c.id), d=paDecide(id,dec), ent=idx[String(c.entrepriseId)]||{}, att=paAttendAccord(c), libre=att&&!d, ed=libre&&MS_PA.edit===id, occ=MS_PA.occ===id;
+  var loc=[paT(ent.ville,80),paT(ent.metier,80)].filter(Boolean).join(' · ');
+  var a=[paT(ent.contact,120),paT(ent.email,160)].filter(Boolean).join(' · ');
+  var genre=c.genre==='reponse'?'Réponse à un prospect':(paNb(c.etape)>1?'Relance n° '+(c.etape-1):'Premier mail');
+  var h='<article class="pa-m" data-e="'+(libre?'attente':c.etat==='refuse'?'refuse':'fait')+'"><div class="pa-m-hd"><b>'+(paT(ent.nom,120)||'Entreprise inconnue')+'</b>'+(loc?'<span>'+loc+'</span>':'')+'</div>'+
+    '<div class="pa-m-a">'+(a?'À : '+a+' · ':'')+genre+(paQuand(c.quand)?' · '+esc(paQuand(c.quand)):'')+'</div>';
+  if(ed){
+    var b=MS_PA.brouillon[id]||{objet:typeof c.objet==='string'?c.objet:'',texte:typeof c.texte==='string'?c.texte:''}; MS_PA.brouillon[id]=b;
+    return h+'<div class="pa-ed"><label for="pa-o-'+k+'">Objet</label><input id="pa-o-'+k+'" maxlength="300" value="'+esc(b.objet)+'"'+(c.genre==='reponse'?' disabled':'')+' oninput="paSaisie('+k+',\'objet\',this.value)">'+
+      (c.genre==='reponse'?'<span class="pa-m-e">Une réponse garde son objet : sinon elle sortirait de la conversation du prospect.</span>':'')+
+      '<label for="pa-t-'+k+'">Texte</label><textarea id="pa-t-'+k+'" maxlength="20000" oninput="paSaisie('+k+',\'texte\',this.value)">'+esc(b.texte)+'</textarea></div>'+
+      '<div class="pa-m-act"><button type="button" class="ms-envoyer" data-act="paModOk" data-i="'+k+'"'+(occ?' disabled':'')+'>Enregistrer et envoyer</button><button type="button" class="ms-reu-btn" data-act="paModAnn" data-i="'+k+'"'+(occ?' disabled':'')+'>Annuler</button></div></article>';
+  }
+  h+='<div class="pa-m-o">'+(paT(c.objet,300)||'(sans objet)')+'</div><pre class="pa-m-c">'+esc(typeof c.texte==='string'?c.texte.slice(0,20000):'')+'</pre>';
+  var brut=Object.prototype.hasOwnProperty.call(dec,id)?dec[id]:null;
+  var et=libre&&paObj(brut)&&brut.etat==='echec'?['ko','Le Mac n’a pas pu appliquer ta décision'+(brut.motif==='deja_traite'?' : ce mail a été traité dans Harvey entre-temps':brut.motif==='modifie'?' : Harvey l’a réécrit depuis que tu l’as lu — relis-le':'')+'. Tu peux redécider.']:paEtatCarte(c,d);
+  if(et) h+='<div class="pa-m-etat" data-t="'+et[0]+'" role="status">'+esc(et[1])+'</div>';
+  if(d&&d.etat==='a_faire'&&att) h+='<div class="pa-m-act"><button type="button" class="ms-lien" data-act="paAvis" data-i="'+k+'"'+(occ?' disabled':'')+'>Changer d’avis</button></div>';
+  if(libre) h+='<div class="pa-m-act"><button type="button" class="ms-envoyer" data-act="paAcc" data-i="'+k+'"'+(occ?' disabled':'')+'>Accepter et envoyer</button>'+
+    '<button type="button" class="ms-reu-btn" data-act="paMod" data-i="'+k+'"'+(occ?' disabled':'')+'>Modifier</button>'+
+    '<button type="button" class="ms-reu-btn pa-ref" data-act="paRef" data-i="'+k+'"'+(occ?' disabled':'')+'>Refuser</button></div>';
+  return h+'</article>';
+}
+/* Fonction pure (un banc l'exécute) : la conversation entière. Les mails qui attendent d'abord, du plus ancien au plus récent (on les traite dans l'ordre où Pauline
+   les a écrits) ; puis ceux qui viennent d'être décidés ou traités (48 h), repliés. */
+function msPaHtml(){
+  if(PA.lec===0) return '<div class="ms-vide">Lecture du relevé de Pauline…</div>';
+  if(PA.lec===-2) return '<div class="ms-vide">Le pont avec le Mac n’est pas encore configuré : Pauline ne peut rien t’envoyer ici.</div>';
+  if(PA.lec!==1) return '<div class="ms-vide">Le relevé de Pauline n’a pas pu être lu'+(PA.err?' : '+esc(PA.err):'')+'. On ne sait pas si des mails t’attendent.<br><button type="button" class="ms-lien" data-act="paRelire">Réessayer</button></div>';
+  var r=paReleveLu(); if(!r) return '<div class="ms-vide">Ton Mac n’a encore rien envoyé : quand Pauline écrira un mail, il arrivera ici.</div>';
+  var dec=paDecs(), idx={};
+  (Array.isArray(r.entreprises)?r.entreprises:[]).filter(paObj).forEach(function(e){ idx[String(e.id)]=e; });
+  var tous=paListe(r,'courriels','quand').filter(function(c){ return typeof c.id==='string'||typeof c.id==='number'; });
+  var attente=tous.filter(function(c){ return paAttendAccord(c)&&!paDecide(String(c.id),dec||{}); }).reverse();
+  var limite=Date.now()-48*3600e3;
+  /* décidés depuis la Tour ces dernières 48 h (la décision porte sa date ; le serveur les garde 30 jours) */
+  var recents=tous.filter(function(c){ if(attente.indexOf(c)>=0) return false; var d=dec&&Object.prototype.hasOwnProperty.call(dec,String(c.id))?dec[String(c.id)]:null; return paObj(d)&&(paMs(d.le)||0)>=limite; });
+  MS_PA.ids=attente.concat(recents).map(function(c){ return String(c.id); });
+  var h='<div class="pa-fil">';
+  if(!dec) h+='<p class="pa-intro" role="alert">Les décisions de Pauline sont illisibles sur le serveur : tes accords ne peuvent pas être enregistrés pour l’instant.</p>';
+  h+='<p class="pa-intro">'+(attente.length?'Bonjour Justin, '+(attente.length>1?'voici les '+attente.length+' mails que j’ai préparés':'voici le mail que j’ai préparé')+'. Accepte, modifie ou refuse : je m’occupe du reste.':'Rien à valider pour l’instant. Je t’écris ici dès qu’un mail est prêt.')+'</p>';
+  h+=attente.map(function(c,i){ return paCarteHtml(c,i,idx,dec||{}); }).join('');
+  if(recents.length) h+='<details class="pa-faits"'+(MS_PA.faits?' open':'')+' ontoggle="MS_PA.faits=this.open"><summary>Décidés récemment ('+recents.length+')</summary>'+recents.map(function(c,i){ return paCarteHtml(c,attente.length+i,idx,dec||{}); }).join('')+'</details>';
+  return h+'</div>';
+}
+function paPeindreFil(f,complet){
+  /* ⛔ pendant une modification, on ne redessine pas : le curseur et le texte en cours seraient perdus (le brouillon est gardé, mais pas la saisie en vol) */
+  if(MS_PA.edit&&!complet&&f.hasAttribute('data-pa')&&f.contains(document.activeElement)) return;
+  var h=msPaHtml();
+  if(!complet&&f.getAttribute('data-pa')==='1'&&f.getAttribute('data-h')===h) return;
+  f.setAttribute('data-pa','1'); f.setAttribute('data-h',h); f.innerHTML=h; MS.peint='';
+  var nb=$('ms-nouv'); if(nb) nb.hidden=true;
+}
+function paSaisie(k,champ,val){ var id=MS_PA.ids[k]; if(!id||MS_PA.edit!==id) return; var b=MS_PA.brouillon[id]||(MS_PA.brouillon[id]={objet:'',texte:''}); b[champ]=String(val); }
+function paCourriel(id){ var r=paReleveLu(); return r?paListe(r,'courriels','quand').filter(function(c){ return String(c.id)===id; })[0]||null:null; }
+function paDecider(k,action){
+  var id=MS_PA.ids[k], c=id?paCourriel(id):null; if(!c||MS_PA.occ) return Promise.resolve(null);
+  if(!paDecs()){ toast('Les décisions sont illisibles sur le serveur : rien n’a été envoyé.'); return Promise.resolve(null); }
+  var corps={id:id,action:action};
+  if(action==='accepter'&&typeof c.maj==='string'&&c.maj) corps.maj=c.maj;   /* la version du texte LU : le serveur et le Mac refusent d'accepter un brouillon réécrit depuis */
+  if(action==='modifier'){ var b=MS_PA.brouillon[id]||{}; corps.objet=String(b.objet||'').trim(); corps.texte=String(b.texte||'').trim();
+    if(c.genre==='reponse') corps.objet=typeof c.objet==='string'&&c.objet.trim()?c.objet:corps.objet;
+    if(!corps.objet||!corps.texte){ toast('L’objet et le texte ne peuvent pas être vides.'); return Promise.resolve(null); } }
+  if(action==='refuser'&&typeof confirm==='function'&&!confirm('Refuser ce mail ? Pauline ne l’enverra pas.')) return Promise.resolve(null);
+  MS_PA.occ=id; if(MS.fil==='pauline') messPeindreFil(true);
+  return apiPost('/api/monitor/pauline/decision',corps).then(function(x){
+    MS_PA.occ='';
+    if(x.ok){ if(PA.d){ if(!paObj(PA.d.decisions)) PA.d.decisions={}; PA.d.decisions[id]={action:action,etat:'a_faire',le:new Date().toISOString()}; }
+      if(MS_PA.edit===id){ MS_PA.edit=''; delete MS_PA.brouillon[id]; }
+      MS_PA.n=paAttenteN(); msBadge();
+      toast(action==='refuser'?'Refusé : Pauline ne l’enverra pas.':action==='modifier'?'Modifié et accepté : le Mac l’envoie dans la minute, aux heures d’envoi.':'Accepté : le Mac l’envoie dans la minute, aux heures d’envoi.'); }
+    else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    if(MS.fil==='pauline'){ messPeindreFil(true); messPeindreListe(); }
+    PA.luLe=0; chargerPauline(); return x;
+  },function(){ MS_PA.occ=''; toast(INJOIGNABLE); if(MS.fil==='pauline') messPeindreFil(true); return null; });
+}
+function paClic(el){
+  var a=el.getAttribute('data-act'), k=+el.getAttribute('data-i'), id=MS_PA.ids[k];
+  if(a==='paRelire'){ PA.luLe=0; PA.lec=PA.lec===1?1:0; messPeindreFil(true); chargerPauline(); return; }
+  if(!id) return;
+  if(a==='paAcc') paDecider(k,'accepter');
+  else if(a==='paRef') paDecider(k,'refuser');
+  else if(a==='paModOk') paDecider(k,'modifier');
+  else if(a==='paMod'){ MS_PA.edit=id; messPeindreFil(true); var t=$('pa-t-'+k); if(t) t.focus({preventScroll:true}); }
+  else if(a==='paModAnn'){ MS_PA.edit=''; delete MS_PA.brouillon[id]; messPeindreFil(true); }
+  else if(a==='paAvis'){ if(PA.d&&paObj(PA.d.decisions)) delete PA.d.decisions[id]; MS_PA.n=paAttenteN(); msBadge(); messPeindreFil(true); messPeindreListe(); }
+}
 /* ── le dessin, par morceaux ── */
 function messMonter(){
   var zone=$('mess-zone'); if(!zone) return;
@@ -12705,6 +12871,7 @@ function messClic(ev){
   else if(a==='reuLancer') messReunionLancer(el.getAttribute('data-type'));
   else if(a==='reuRetirer') messLeconRetirer(el.getAttribute('data-agent'),el.getAttribute('data-id'));
   else if(a.indexOf('pf')===0) messPfClic(el);
+  else if(/^pa[A-Z]/.test(a)&&typeof paClic==='function') paClic(el);
 }
 function messPeindreListe(){
   var c=$('ms-fils'); if(!c||!MS.inst) return;
@@ -12774,6 +12941,8 @@ function messNouvCacher(){ var n=$('ms-nouv'); if(n) n.hidden=true; }
 /* Le fil. `complet` : on réécrit tout (ouverture, fil rogné) ; sinon on AJOUTE ce qui est nouveau et on garde l'endroit où l'on lisait. */
 function messPeindreFil(complet){
   var f=$('ms-flux'); if(!f||!MS.inst) return;
+  if(MS.fil==='pauline'&&typeof paPeindreFil==='function') return paPeindreFil(f,complet);
+  if(f.hasAttribute&&f.hasAttribute('data-pa')){ f.removeAttribute('data-pa'); f.removeAttribute('data-h'); f.innerHTML=''; complet=true; }
   var ag=msAgentsParId(), pend=MS.envois.filter(function(e){ return e.fil===MS.fil&&e.etat!=='ok'; });
   if(MS.msgLec===0){ f.innerHTML=acSquel(); MS.peint=''; return; }
   if(MS.msgLec!==1){ f.innerHTML='<div class="ms-vide">Ce fil n’a pas pu être lu. Réessaie dans un instant.<br><button type="button" class="ms-lien" data-act="rechargerFil">Réessayer</button></div>'; MS.peint=''; return; }
@@ -12798,6 +12967,7 @@ function messPeindreFil(complet){
 function messPeindreSaisie(force){
   var c=$('ms-comp'); if(!c||!MS.inst) return;
   if(MS.msgLec===0) return;    /* pendant la lecture, la saisie reste telle quelle : elle ne clignote pas */
+  if(MS.fil==='pauline'){ if(c.getAttribute('data-sig')!=='pauline'){ c.setAttribute('data-sig','pauline'); c.innerHTML='<p class="ms-lecture">Pauline ne lit pas les messages : on lui répond par les boutons de chaque mail. Ton accord part sur le Mac en une minute environ ; elle envoie aux heures d’envoi (9 h – 17 h, en semaine).</p>'; } return; }
   var ag=msAgentsParId(), a=ag[MS.fil], grp=!!MS_GROUPES_LIB[MS.fil], lisible=MS.msgLec===1, patron=MYROLE==='patron';
   var sig=[MS.fil,lisible,patron,a?msEtat(a):'',MS.membres.map(function(m){ return m.id; }).join(',')].join('|');
   if(!force&&c.getAttribute('data-sig')===sig) return;
@@ -12885,7 +13055,8 @@ function messEnvoyerSaisie(){
 /* La pastille du menu : à la minute quand on est ailleurs, page visible — l'écran, lui, la tient à jour avec la liste (15 s). */
 function messNonLusCharger(){
   if(MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return;
-  apiGet('/api/monitor/conversations').then(function(d){ if(d&&typeof d.nonLus==='number'){ MS.nonLus=d.nonLus; setBdg('bdg-msgr',MS.nonLus); } }).catch(function(){});
+  apiGet('/api/monitor/conversations').then(function(d){ if(d&&typeof d.nonLus==='number'){ MS.nonLus=d.nonLus; if(typeof msBadge==='function') msBadge(); else setBdg('bdg-msgr',MS.nonLus); } }).catch(function(){});
+  if(typeof paResumeCharger==='function') paResumeCharger();
 }
 function messReleve(){
   if(MS.releve||MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return; MS.releve=true;

@@ -40,7 +40,7 @@ const titres = h => [...h.matchAll(/<div class="pa-att-l" data-g="(\w+)"><i aria
 const plein = Object.assign(base(), { attentes: bon });
 v('⛔ dans l’ORDRE où ça bloque : la clé (rouge), les critères, les adresses (rouges tant que la clé manque), les courriels', titres(H(plein)),
   ['bloque · Clé de vérification des adresses : manquante', 'faire · 16 critères à valider', 'bloque · 2 adresses à vérifier', 'faire · 1 courriel à accepter']);
-vrai('…et dit OÙ cliquer dans Harvey, en français (Settings, Signals, Outbox), avec le service gratuit à prendre', /Harvey → <b>Settings<\/b>/.test(H(plein)) && /Harvey → <b>Signals<\/b>/.test(H(plein)) && /Harvey → <b>Outbox<\/b>/.test(H(plein)) && /reoon\.com/.test(H(plein)));
+vrai('…et dit OÙ cliquer dans Harvey, en français (Settings, Signals — et les courriels dans la Messagerie → Pauline, v2.115), avec le service gratuit à prendre', /Harvey → <b>Settings<\/b>/.test(H(plein)) && /Harvey → <b>Signals<\/b>/.test(H(plein)) && /<b>Messagerie → Pauline<\/b>/.test(H(plein)) && /reoon\.com/.test(H(plein)));
 vrai('…et rappelle de ne jamais coller la clé ailleurs', /Ne la colle jamais ailleurs/.test(H(plein)));
 v('la clé posée : plus de rouge, les adresses « au fil de la journée »', titres(H(Object.assign(base(), { attentes: Object.assign({}, bon, { verificateur: true }) }))),
   ['faire · 16 critères à valider', 'faire · 2 adresses à vérifier', 'faire · 1 courriel à accepter']);
@@ -53,7 +53,7 @@ vrai('⛔ un libellé de Harvey est une DONNÉE : échappé (aucune balise ne pa
 vrai('le lien mène au tableau de bord LOCAL du Mac (jamais un jeton dans la Tour)', /href="http:\/\/127\.0\.0\.1:5555\/"/.test(H(plein)) && !/token/.test(H(plein)));
 const ag = fn('agPaulineHtml');
 vrai('la carte de Pauline l’affiche, avant les chiffres du jour', ag.indexOf('paAttentesHtml(r)') > 0 && ag.indexOf('paAttentesHtml(r)') < ag.indexOf("'<p class=\"pa-ligne\">'+ch"), ag.slice(0, 200));
-vrai('la version de la Tour est montée (v2.114) aux quatre endroits', (SRC.match(/v2\.114/g) || []).length >= 4);
+vrai('la version de la Tour est montée (v2.114 ou plus) aux quatre endroits', (SRC.match(/v2\.11[4-9]/g) || []).length >= 4);
 
 console.log(`\ntest-3078 : ${ok} ✓ ${ko} ✗`);
 process.exit(ko ? 1 : 0);

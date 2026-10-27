@@ -142,14 +142,34 @@ def charger_module():
 
 
 class FauxServeur:
-    """Un serveur HTTP local qui note ce qu'il reçoit et répond le code demandé."""
-    def __init__(self, code=200, corps=None):
+    """Un serveur HTTP local qui note ce qu'il reçoit et répond le code demandé. Depuis les décisions (27 octobre 2026) : `GET /api/pauline/decisions`
+    rend `decisions`, et `POST …/resultats` est noté à part (`resultats`) — `recus` ne garde que les RELEVÉS."""
+    def __init__(self, code=200, corps=None, decisions=None, code_decisions=200):
         self.code, self.corps, self.recus = code, corps if corps is not None else {"ok": True}, []
+        self.decisions, self.code_decisions, self.lectures, self.resultats = list(decisions or []), code_decisions, [], []
         outer = self
 
         class H(http.server.BaseHTTPRequestHandler):
+            def repondre(self, code, corps):
+                self.send_response(code)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(corps).encode())
+
+            def do_GET(self):
+                outer.lectures.append({"chemin": self.path, "auth": self.headers.get("Authorization")})
+                if self.path == "/api/pauline/decisions":
+                    self.repondre(outer.code_decisions, {"ok": True, "decisions": outer.decisions} if outer.code_decisions == 200 else {"error": "x"})
+                else:
+                    self.repondre(404, {})
+
             def do_POST(self):
                 n = int(self.headers.get("Content-Length") or 0)
+                if self.path == "/api/pauline/decisions/resultats":
+                    outer.resultats.append({"auth": self.headers.get("Authorization"), "corps": json.loads(self.rfile.read(n) or b"{}")})
+                    outer.decisions = []
+                    self.repondre(200, {"ok": True})
+                    return
                 outer.recus.append({"auth": self.headers.get("Authorization"), "type": self.headers.get("Content-Type"), "corps": self.rfile.read(n)})
                 self.send_response(outer.code)
                 self.send_header("Content-Type", "application/json")
@@ -290,6 +310,7 @@ class TestReleve(unittest.TestCase):
     def test_refus_du_serveur(self):
         for code_http, motif in ((401, "refuse le jeton"), (400, "forme du relevé"), (413, "trop lourd"), (429, "trop de relevés"), (503, "pas encore ouvert")):
             s = FauxServeur(code_http, {"error": "x", "motif": "genereLe illisible"} if code_http == 400 else {"error": "x"})
+            (self.dossier / "data" / "pauline-releve-etat.json").unlink(missing_ok=True)   # un relevé réussi plus tôt ne fait pas sauter celui-ci
             try:
                 code, out, err = lancer("--harvey", str(self.dossier), "--url", s.url)
                 self.assertEqual(code, 5, (code_http, err))
@@ -414,6 +435,154 @@ class TestReleve(unittest.TestCase):
             r = json.loads(out)
             self.assertEqual((len(r["entreprises"]), len(r["courriels"])), (500, 300))
 
+
+
+class TestDecisions(unittest.TestCase):
+    """Les décisions de la Tour (27 octobre 2026) : le script les APPLIQUE dans la base de Harvey, sous la garde du statut, et rend compte."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dossier = construire(self.tmp.name)
+        self.base = self.dossier / "data" / "harvey.db"
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def ligne(self, ident):
+        b = sqlite3.connect(str(self.base))
+        try:
+            return b.execute("SELECT status, subject, body, approved_by, kind FROM outbox WHERE id = ?", (ident,)).fetchone()
+        finally:
+            b.close()
+
+    def jouer(self, decisions, code_decisions=200):
+        s = FauxServeur(decisions=decisions, code_decisions=code_decisions)
+        try:
+            code, out, err = lancer("--harvey", str(self.dossier), "--url", s.url)
+        finally:
+            s.fermer()
+        self.assertNotIn(JETON, out + err)
+        self.assertNotIn(ENTREPRISE_SECRETE, out + err, "aucun prospect dans la sortie")
+        return code, out, err, s
+
+    def test_accepter(self):
+        code, out, err, s = self.jouer([{"id": "o-attente", "action": "accepter"}])
+        self.assertEqual(code, 0, err)
+        st, _, _, par, _ = self.ligne("o-attente")
+        self.assertEqual((st, par), ("approved", "you"))
+        self.assertEqual(s.resultats[0]["corps"], {"resultats": [{"id": "o-attente", "ok": True}]})
+        self.assertEqual(s.resultats[0]["auth"], "Bearer " + JETON)
+        self.assertEqual(s.lectures[0]["auth"], "Bearer " + JETON)
+        self.assertEqual(len(s.recus), 1, "une décision appliquée fait repartir le relevé tout de suite")
+        c = [x for x in json.loads(s.recus[0]["corps"])["courriels"] if x["id"] == "o-attente"][0]
+        self.assertEqual(c["statutBrut"], "approved", "le relevé qui suit voit l'accord")
+
+    def test_accepter_un_texte_reecrit_depuis_la_lecture(self):
+        avant = self.ligne("o-attente")
+        code, out, err, s = self.jouer([{"id": "o-attente", "action": "accepter", "maj": "1999-01-01T00:00:00", "le": "2026-10-27T10:00:00.000Z"}])
+        self.assertEqual(self.ligne("o-attente"), avant, "⛔ Harvey a réécrit le brouillon depuis la lecture de Justin : on n'accepte pas à l'aveugle")
+        self.assertEqual(s.resultats[0]["corps"]["resultats"], [{"id": "o-attente", "ok": False, "motif": "modifie", "le": "2026-10-27T10:00:00.000Z"}])
+
+    def test_accepter_la_version_lue(self):
+        m = charger_module()
+        b = sqlite3.connect(str(self.base))
+        maj = m.reduire(b.execute("SELECT updated_at FROM outbox WHERE id='o-attente'").fetchone()[0], 40)
+        b.close()
+        code, out, err, s = self.jouer([{"id": "o-attente", "action": "accepter", "maj": maj, "le": "L1"}])
+        self.assertEqual(self.ligne("o-attente")[0], "approved")
+        self.assertEqual(s.resultats[0]["corps"]["resultats"], [{"id": "o-attente", "ok": True, "le": "L1"}], "la date de la décision lue revient au serveur")
+
+    def test_le_releve_porte_la_version_du_brouillon(self):
+        s = FauxServeur()
+        try:
+            lancer("--harvey", str(self.dossier), "--url", s.url)
+        finally:
+            s.fermer()
+        c = [x for x in json.loads(s.recus[0]["corps"])["courriels"] if x["id"] == "o-attente"][0]
+        self.assertTrue(isinstance(c.get("maj"), str) and c["maj"], c)
+
+    def test_refuser(self):
+        self.jouer([{"id": "o-attente", "action": "refuser"}])
+        self.assertEqual(self.ligne("o-attente")[0], "rejected")
+
+    def test_modifier_puis_accepter(self):
+        self.jouer([{"id": "o-attente", "action": "modifier", "objet": "Objet revu", "texte": "Bonjour,\nle texte de Justin."}])
+        st, objet, corps, par, _ = self.ligne("o-attente")
+        self.assertEqual((st, objet, corps, par), ("approved", "Objet revu", "Bonjour,\nle texte de Justin.", "you"))
+
+    def test_une_reponse_garde_son_objet(self):
+        b = sqlite3.connect(str(self.base))
+        b.execute("INSERT INTO outbox (id, prospect_id, kind, subject, body, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)",
+                  ("o-rep", "p-repondu", "reply", "Re: Premier contact", "Merci", "pending_review", h(-1), h(-1)))
+        b.commit()
+        b.close()
+        self.jouer([{"id": "o-rep", "action": "modifier", "objet": "Autre objet", "texte": "Nouveau texte"}])
+        st, objet, corps, _, _ = self.ligne("o-rep")
+        self.assertEqual((st, objet, corps), ("approved", "Re: Premier contact", "Nouveau texte"))
+
+    def test_deja_traite_et_introuvable(self):
+        avant = self.ligne("o-envoye")
+        code, out, err, s = self.jouer([{"id": "o-envoye", "action": "refuser"}, {"id": "o-approuve", "action": "modifier", "objet": "x", "texte": "y"},
+                                       {"id": "o-fantome", "action": "accepter"}])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.ligne("o-envoye"), avant, "un courriel parti ne bouge pas")
+        self.assertEqual(self.ligne("o-approuve")[1:3], ("Approuvé", "x"), "un courriel déjà accepté n'est pas réécrit")
+        self.assertEqual(s.resultats[0]["corps"]["resultats"], [{"id": "o-envoye", "ok": False, "motif": "deja_traite"},
+                                                                {"id": "o-approuve", "ok": False, "motif": "deja_traite"},
+                                                                {"id": "o-fantome", "ok": False, "motif": "introuvable"}])
+
+    def test_modifier_vide_ne_fait_rien(self):
+        self.jouer([{"id": "o-attente", "action": "modifier", "objet": " ", "texte": "y"}])
+        self.assertEqual(self.ligne("o-attente")[0], "pending_review")
+
+    def test_le_releve_ne_repart_que_si_la_boite_bouge(self):
+        _, _, _, s1 = self.jouer([])
+        self.assertEqual(len(s1.recus), 1, "premier passage : le relevé part")
+        _, _, _, s2 = self.jouer([])
+        self.assertEqual(len(s2.recus), 0, "rien n'a bougé, moins de 14 minutes : pas de relevé")
+        self.assertEqual(len(s2.lectures), 1, "mais les décisions sont relues à chaque passage")
+        b = sqlite3.connect(str(self.base))
+        b.execute("INSERT INTO outbox (id, prospect_id, subject, body, status, created_at, updated_at) VALUES ('o-neuf','p-pret','s','b','pending_review',?,?)", (h(0), h(0)))
+        b.commit()
+        b.close()
+        _, _, _, s3 = self.jouer([])
+        self.assertEqual(len(s3.recus), 1, "un courriel neuf fait repartir le relevé")
+
+    def test_serveur_de_decisions_muet(self):
+        code, out, err, s = self.jouer([], code_decisions=503)
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(s.recus), 1, "le relevé part quand même")
+        self.assertEqual(s.resultats, [])
+
+    def test_jeton_refuse_aux_decisions(self):
+        _, _, _, s1 = self.jouer([])
+        self.assertEqual(len(s1.recus), 1)
+        code, out, err, s2 = self.jouer([], code_decisions=401)
+        self.assertEqual(code, 5, "⛔ un jeton refusé ne se tait pas, même quand le relevé n'avait pas à repartir")
+        self.assertIn("refuse le jeton", err)
+
+    def test_sans_decisions(self):
+        s = FauxServeur(decisions=[{"id": "o-attente", "action": "accepter"}])
+        try:
+            code, _, err = lancer("--harvey", str(self.dossier), "--url", s.url, "--sans-decisions")
+        finally:
+            s.fermer()
+        self.assertEqual(code, 0, err)
+        self.assertEqual((s.lectures, self.ligne("o-attente")[0]), ([], "pending_review"))
+
+    def test_essai_n_applique_rien(self):
+        code, _, err = lancer("--essai", "--harvey", str(self.dossier))
+        self.assertEqual((code, self.ligne("o-attente")[0]), (0, "pending_review"))
+
+    def test_alleger_ne_coupe_jamais_un_courriel_en_attente(self):
+        m = charger_module()
+        long_txt = "mot " * 5000
+        r = {"courriels": [{"id": "a", "etat": "en_attente", "statutBrut": "pending_review", "texte": long_txt, "quand": "2026-10-27T10:00:00Z"}] +
+             [{"id": "x%d" % i, "etat": "envoye", "texte": "y" * 6000, "quand": "2026-10-26T10:00:00Z"} for i in range(300)]}
+        m.alleger(r)
+        a = [c for c in r["courriels"] if c["id"] == "a"]
+        self.assertEqual(len(a), 1)
+        self.assertEqual(a[0]["texte"], long_txt)
+        self.assertLessEqual(len(json.dumps(r, ensure_ascii=False).encode("utf-8")), m.TAILLE_CIBLE)
 
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "--construire":

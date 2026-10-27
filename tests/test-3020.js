@@ -140,7 +140,7 @@ function releve() {
   vrai('⛔ aucun console.* du module ne cite le relevé, une entreprise ou un courriel', (SRC.match(/console\.(?:log|error|warn|info)\([^;]*\);/g) || []).every(l => !/releve|entreprise|courriel|corps|body|\.nom|\.email|\.texte|\.objet/i.test(l.replace(/'[^']*'/g, ''))));
   const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   vrai('⛔ index.js écarte la route du plafond global de 6 Mo (sinon un corps de 2,5 Mo serait lu avant la garde)', /CHEMIN_PAULINE\.test\(req\.path\)\) \? next\(\) : jsonCourant/.test(IDX));
-  vrai('index.js monte le pont', /require\('\.\/pauline'\)\(app, \{ config, DATA_DIR, monPatronStrict \}\)/.test(IDX));
+  vrai('index.js monte le pont', /require\('\.\/pauline'\)\(app, \{ config, DATA_DIR, monPatronStrict(?:, pousseNotif: pousseNotifPauline)? \}\)/.test(IDX));
   const ACORS = /Access-Control-Allow-Origin/.test(SRC);
   vrai('aucune origine CORS pour le pont (le Mac n’est pas un navigateur)', !ACORS);
 
@@ -306,7 +306,7 @@ function releve() {
 
     const pl = spawnSync('python3', ['-I', '-c', 'import plistlib,sys,json;d=plistlib.loads(sys.stdin.buffer.read());print(json.dumps(d))'], { input: fs.readFileSync(path.join(RACINE, 'outils', 'pauline-releve.plist'), 'utf8').replace(/__HARVEY__/g, '/Users/x/harvey'), encoding: 'utf8' });
     const pj = pl.status === 0 ? JSON.parse(pl.stdout) : {};
-    v('le plist launchd est un plist valide : toutes les 15 minutes, au chargement, le journal dans data/, le dossier de Harvey en argument', [pj.StartInterval, pj.RunAtLoad, pj.ProgramArguments, pj.StandardOutPath], [900, true, ['/Users/x/harvey/.venv/bin/python', '/Users/x/harvey/outils/pauline-releve.py', '--harvey', '/Users/x/harvey'], '/Users/x/harvey/data/pauline-releve.log']);
+    v('le plist launchd est un plist valide : toutes les minutes (décisions de la Tour ; le relevé lui-même repart sur changement ou toutes les 14 minutes), au chargement, le journal dans data/, le dossier de Harvey en argument', [pj.StartInterval, pj.RunAtLoad, pj.ProgramArguments, pj.StandardOutPath], [60, true, ['/Users/x/harvey/.venv/bin/python', '/Users/x/harvey/outils/pauline-releve.py', '--harvey', '/Users/x/harvey'], '/Users/x/harvey/data/pauline-releve.log']);
     vrai('…et il ne contient aucun jeton ni aucune empreinte', !/[0-9a-f]{64}/.test(fs.readFileSync(path.join(RACINE, 'outils', 'pauline-releve.plist'), 'utf8')));
     const sh = spawnSync('bash', ['-n', path.join(RACINE, 'server', 'set-pauline.sh')], { encoding: 'utf8' });
     vrai('server/set-pauline.sh passe bash -n', sh.status === 0, sh.stderr);

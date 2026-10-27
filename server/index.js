@@ -115,7 +115,7 @@ const jsonGros = express.json({ limit: '20mb' });
 /* `/api/audience/vue` (publique) lit son propre corps, en texte, 2 Ko au plus (`server/audience.js`) : le plafond de 6 Mo ne doit pas le lire avant elle. */
 const CHEMIN_AUDIENCE = /^\/api\/audience\/vue\/?$/i;
 /* `/api/pauline/releve` (le pont de Pauline) lit AUSSI son propre corps, 2 Mo au plus, et seulement APRÈS avoir vérifié le jeton (`server/pauline.js`) : lire 6 Mo pour un inconnu serait le moyen le moins cher de remplir la mémoire. */
-const CHEMIN_PAULINE = /^\/api\/pauline\/releve\/?$/i;
+const CHEMIN_PAULINE = /^\/api\/(?:pauline\/(?:releve|decisions\/resultats)|monitor\/pauline\/decision)\/?$/i;   /* jeton (Mac) ou session de patron vérifiés AVANT la lecture du corps, et SON plafond (27 octobre 2026 : + les décisions) */
 app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path) || CHEMIN_PAULINE.test(req.path)) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
@@ -2168,6 +2168,8 @@ const MON_GESTES = {
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
   'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
   'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
+  /* Pauline (Harvey, Mac) : un accord qui fait partir un courriel vers un prospect laisse sa trace (relecture de gardien) — la cible est l'identifiant du courriel, jamais son texte */
+  'pauline/decision': 'a accepté, modifié ou refusé un courriel de Pauline',
   'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
@@ -6224,7 +6226,18 @@ try {
    (`outils/pauline-releve.py`), la Tour le lit (`/api/monitor/pauline`, patron). Fermé sans `config.pauline.jetonSha256` (503). Les données de prospects n'entrent dans aucun journal
    (`server/pauline.js`, contrat du relevé en tête). Un échec de montage n'arrête rien d'autre. */
 try {
-  require('./pauline')(app, { config, DATA_DIR, monPatronStrict });
+  /* `pousseNotif` : la notification au téléphone du patron (abonnements de la Tour), pour « un mail de Pauline attend ton accord ». Appelée bien après
+     le démarrage : `subs` et `webpush` sont des déclarations de tête de fichier, initialisées depuis longtemps. */
+  const pousseNotifPauline = async (titre, corps, url) => {
+    const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || '/tour.html#messagerie' });
+    const cibles = Object.values(subs).filter(x => /^teamop-controle/.test(x.teamId || ''));
+    for (const t of cibles) {
+      try { await webpush.sendNotification(t.sub, payload); }
+      catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } }
+    }
+    return cibles.length;
+  };
+  require('./pauline')(app, { config, DATA_DIR, monPatronStrict, pousseNotif: pousseNotifPauline });
 } catch (e) {
   console.error('pont de Pauline non monté :', e.message);
 }
