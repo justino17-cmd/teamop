@@ -49,7 +49,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
   {
     const L = CTRL.lireVerdict, corps = corpsDe(AUTO);
     const juge = (cite, faute) => 'VERDICT : ECHEC\nFAUTE : ' + (faute || 'fait_invente') + '\nCITE : ' + cite;
-    v('un verdict avec une phrase copiée du courriel : l’échec, sa faute, SA phrase', L(juge('le rapport PDF envoyé automatiquement'), corps), { etat: 'echec', fautes: ['fait_invente'], citations: ['le rapport PDF envoyé automatiquement'] });
+    v('un verdict avec une phrase copiée du courriel : l’échec, sa faute, SA phrase', L(juge('le rapport PDF envoyé automatiquement'), corps), { etat: 'echec', fautes: ['fait_invente'], citations: ['le rapport PDF envoyé automatiquement'], citesPar: { fait_invente: ['le rapport PDF envoyé automatiquement'] } });
     v('   … avec les guillemets français, le gras et la puce d’un modèle bavard : lu de même', L('**VERDICT : ECHEC**\n- FAUTE : fait_invente\n- CITE : « le rapport PDF envoyé automatiquement »', corps).citations, ['le rapport PDF envoyé automatiquement']);
     v('   … à la casse, aux accents et à la ponctuation près', L(juge('LE RAPPORT PDF ENVOYÉ, AUTOMATIQUEMENT.'), corps).citations.length, 1);
     v('⛔ SANS le courriel jugé, rien n’est retenu (on ne croit pas une citation qu’on ne peut pas vérifier) — l’échec reste', L(juge('le rapport PDF envoyé automatiquement')), { etat: 'echec', fautes: ['fait_invente'] });
@@ -60,7 +60,8 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     v('⛔ une ligne CITE après une autre faute que `fait_invente` : réponse hors forme, « indisponible »', L(juge('le rapport PDF envoyé automatiquement', 'ton_robotique'), corps), { etat: 'indisponible' });
     v('   une ligne CITE avant toute faute : « indisponible »', L('VERDICT : ECHEC\nCITE : le rapport PDF envoyé automatiquement\nFAUTE : fait_invente', corps), { etat: 'indisponible' });
     v('   « VERDICT : OK » suivi d’une phrase libre : toujours « indisponible »', L('VERDICT : OK\nLe courriel me paraît correct.', corps), { etat: 'indisponible' });
-    v('   un verdict sans phrase (comme avant) : inchangé', [L('VERDICT : OK'), L('VERDICT : ECHEC\nFAUTE : incoherent'), L('VERDICT : ECHEC')], [{ etat: 'ok' }, { etat: 'echec', fautes: ['incoherent'] }, { etat: 'echec', fautes: ['jugement_defavorable'] }]);
+    /* (27 octobre 2026) un `incoherent` SANS phrase ne bloque plus — test-3082 ; les autres fautes sans phrase : inchangées */
+    v('   un verdict sans phrase (comme avant) : inchangé', [L('VERDICT : OK'), L('VERDICT : ECHEC\nFAUTE : ton_robotique'), L('VERDICT : ECHEC')], [{ etat: 'ok' }, { etat: 'echec', fautes: ['ton_robotique'] }, { etat: 'echec', fautes: ['jugement_defavorable'] }]);
     const inj = L(juge('le rapport <b>PDF</b> envoyé automatiquement'), 'Bonjour, le rapport <b>PDF</b> envoyé automatiquement au client.');
     vrai('⛔ ce qui n’est pas une lettre, un chiffre ou une ponctuation simple est retiré de la phrase relayée (aucun balisage, aucun lien)', inj.citations && inj.citations.length === 1 && !/[<>]/.test(inj.citations[0]), JSON.stringify(inj));
   }
