@@ -215,6 +215,65 @@ def lire_attentes(base, ts, env):
     return att
 
 
+RE_SITE = re.compile(r"^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+STATUTS_PARTIS = ("contacted", "replied", "meeting", "closed", "lost", "opted_out")   # SENT_STATUSES de Harvey (dashboard.py)
+STATUTS_REPONSE = ("replied", "meeting", "closed")                                     # REPLY_STATUSES de Harvey
+
+
+def site_de(valeur):
+    """Le nom de domaine d'une entreprise, sans adresse complète (« https://www.x.fr/contact » → « www.x.fr ») ; '' s'il n'a pas la forme d'un domaine."""
+    d = (valeur or "").strip().lower()
+    d = re.sub(r"^[a-z][a-z0-9+.-]*://", "", d).split("/")[0].split("?")[0].split("#")[0].split("@")[-1].split(":")[0].rstrip(".")
+    return d if RE_SITE.match(d) else ""
+
+
+def lire_avancement(base, ts):
+    """OÙ EN EST PAULINE (Tour v2.116) : les mêmes chiffres que la bande « Today » du tableau de bord de Harvey (dashboard.py, `get_live_status`), comptés de la
+    même façon — une entreprise sans site n'est jamais lue, donc « sites lus » se rapporte aux entreprises AVEC site. Une colonne absente (Harvey plus ancien) :
+    le chiffre qui en dépend n'est pas envoyé (« inconnu », jamais zéro)."""
+    if "companies" not in ts:
+        return {"entreprises": 0}   # base neuve : aucune entreprise, c'est un fait (pas un inconnu)
+    cc = colonnes(base, "companies")
+    un = lambda q, p=(): base.execute(q, p).fetchone()[0] or 0
+    av = {"entreprises": un("SELECT COUNT(*) FROM companies")}
+    if "domain" in cc:
+        site = "COALESCE(domain, '') <> ''"
+        av["avecSite"] = un("SELECT COUNT(*) FROM companies WHERE " + site)
+        av["sansSite"] = av["entreprises"] - av["avecSite"]
+        if "profile_checked_at" in cc:
+            av["sitesLus"] = un("SELECT COUNT(*) FROM companies WHERE " + site + " AND profile_checked_at IS NOT NULL")
+            if "prospects_checked_at" in cc:
+                av["mailsCherches"] = un("SELECT COUNT(*) FROM companies WHERE " + site + " AND profile_checked_at IS NOT NULL AND prospects_checked_at IS NOT NULL")
+    if "prospects" not in ts:
+        return av
+    pc = colonnes(base, "prospects")
+    pros = lignes(base, True, "SELECT id, email, " + ("email_status" if "email_status" in pc else "'' AS email_status") + ", status FROM prospects")
+    avec = [x for x in pros if (x["email"] or "").strip()]
+    st = lambda x: (x["email_status"] or "guess").lower()
+    av["adresses"] = len(avec)
+    if "email_status" in pc:
+        av["verifiees"] = sum(1 for x in avec if st(x) == "verified")
+        av["risquees"] = sum(1 for x in avec if st(x) == "risky")
+        av["invalides"] = sum(1 for x in avec if st(x) == "invalid")
+        av["aConfirmer"] = len(avec) - av["verifiees"] - av["risquees"] - av["invalides"]
+    if "campaigns" in ts and "prospect_ids_json" in colonnes(base, "campaigns"):
+        ecrits = set()
+        for r in base.execute("SELECT prospect_ids_json FROM campaigns"):
+            try:
+                ids = json.loads(r[0] or "[]")
+            except (TypeError, ValueError):
+                ids = []
+            if isinstance(ids, list):
+                ecrits.update(i for i in ids if isinstance(i, str))
+        partis = {x["id"] for x in pros if x["status"] in STATUTS_PARTIS}
+        joignables = {x["id"] for x in avec if st(x) in ("verified", "risky")} if "email_status" in pc else set()
+        av["ecrits"] = len(ecrits)
+        av["aEcrire"] = len(joignables | ecrits)
+        av["envoyes"] = len(partis & ecrits)
+    av["reponses"] = sum(1 for x in pros if x["status"] in STATUTS_REPONSE)
+    return av
+
+
 def fabriquer_releve(base, cles_yaml, maintenant=None, aujourdhui=None, env=None):
     """Le relevé (dict) d'après la base ouverte. `maintenant` : datetime UTC conscient (le banc le fixe)."""
     maintenant = maintenant or datetime.now(timezone.utc)
@@ -226,7 +285,9 @@ def fabriquer_releve(base, cles_yaml, maintenant=None, aujourdhui=None, env=None
     ts = tables(base)
     a = lambda nom: nom in ts
 
-    societes = {r["id"]: r for r in lignes(base, a("companies"), "SELECT id, name, industry, location, created_at, updated_at FROM companies")}
+    sc = colonnes(base, "companies") if a("companies") else set()
+    societes = {r["id"]: r for r in lignes(base, a("companies"), "SELECT id, name, industry, location, created_at, updated_at, "
+        + ("domain" if "domain" in sc else "'' AS domain") + " FROM companies")}
     prospects = {r["id"]: r for r in lignes(base, a("prospects"),
         "SELECT id, company_id, first_name, last_name, email, status, source, company, industry, updated_at, created_at FROM prospects")}
     boite = lignes(base, a("outbox"),
@@ -309,6 +370,8 @@ def fabriquer_releve(base, cles_yaml, maintenant=None, aujourdhui=None, env=None
         fiche = {"id": cle, "nom": reduire((s or {}).get("name") or (p or {}).get("company"), 200) or "(sans nom)",
                  "ville": reduire((s or {}).get("location"), 120), "metier": reduire((s or {}).get("industry") or (p or {}).get("industry"), 120),
                  "etat": e, "majLe": iso(d)}
+        if site_de((s or {}).get("domain")):
+            fiche["site"] = site_de(s["domain"])
         if p:
             if "@" in (p["email"] or ""):
                 fiche["email"] = p["email"].strip().lower()
@@ -381,7 +444,7 @@ def fabriquer_releve(base, cles_yaml, maintenant=None, aujourdhui=None, env=None
     return {"version": VERSION, "genereLe": iso(maintenant), "chauffe": calculer_chauffe(cles_yaml, aujourdhui),
             "jour": {"date": aujourdhui.isoformat(), "envoyes": envoyes, "envoyesFroid": envoyes_froid, "reponses": vues_aujourdhui, "refus": refus_jour, "enAttente": en_attente},
             "recherches": recherches, "entreprises": entreprises, "courriels": courriels, "reponses": reponses[:MAX["reponses"]],
-            "attentes": lire_attentes(base, ts, env)}
+            "attentes": lire_attentes(base, ts, env), "avancement": lire_avancement(base, ts)}
 
 
 def alleger(releve):

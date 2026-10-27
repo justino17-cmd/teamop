@@ -13,6 +13,20 @@ de ligne du tout.
 
 ---
 
+# 🔶 27 OCTOBRE 2026 (SOIR) — OÙ EN EST PAULINE, DANS LA TOUR (Tour v2.116, branche `claude/pauline-avancement`) · EXAMENS #217, #218, #219
+
+Justin, devant la bande « Today » de Harvey : « oui mais dans la Tour ».
+- **Mac** (`outils/pauline-releve.py`, `lire_avancement`, `site_de`) : le relevé porte `avancement` (les chiffres de `get_live_status` de Harvey, comptés pareil) et le
+  `site` de chaque entreprise (nom de domaine seul). Une colonne absente (Harvey plus ancien) : le chiffre n'est pas envoyé, jamais un zéro.
+- **Serveur** (`validerReleve`) : `avancement` optionnel, chiffre par chiffre ; `site` refusé s'il n'a pas la forme exacte d'un domaine.
+- **Tour** (Agents → Pauline) : bloc « Où elle en est » (sept étapes, barres) sous « Ce qui t'attend » ; le site en lien https:// dans la liste des entreprises.
+- Bancs : `test-3084`, `TestAvancement` (Python, lancé par `test-3020`) ; rendu au navigateur : `scratchpad/sonde-pauline-avancement.js`.
+- ⏳ **Geste de Justin sur le Mac** après la fusion : recopier `pauline-releve.py` (rien d'autre ; le plist ne change pas).
+- Examens du 27/10 : 14 h 49 sc9 → #217 (tic de groupe) ; 19 h 07 sc6 → #218 (`incoherent` doit citer) ; 21 h 24 sc6 → #219 (une phrase IMPOSÉE par le cahier
+  n'est pas une preuve d'incohérence — le juge citait la phrase de l'essai d'une semaine).
+
+---
+
 # 🔶 27 OCTOBRE 2026 — PAULINE : VALIDER SES MAILS DEPUIS LA MESSAGERIE DE LA TOUR (Tour v2.115, branche `claude/pauline-validation-tour`)
 
 Justin : « je peux pas être tout le temps sur le site de Harvey ; que Pauline m'envoie le mail dans la messagerie de la Tour, j'accepte, je refuse, je modifie. »
@@ -22,7 +36,7 @@ Justin : « je peux pas être tout le temps sur le site de Harvey ; que Pauline 
   rend compte ; le relevé ne repart que si la boîte d'envoi a bougé (ou toutes les 14 min). Un courriel qui attend l'accord n'est jamais tronqué.
 - **Tour** : conversation « Pauline » dans la Messagerie (en tête, « À valider », quand des mails attendent) : Accepter et envoyer · Modifier · Refuser.
 - Bancs : `test-3079` (vrai serveur + vrai script), `test-3080` (vraies fonctions de la Tour + vrai serveur), 12 cas Python ; 10 mutations sur 10 mordent.
-- ⏳ **Geste de Justin sur le Mac** après la fusion : recopier `pauline-releve.py` et le plist, recharger le plist (la commande est dans la conversation du 27/10).
+- ✅ Geste de Justin sur le Mac fait le 27/10 au soir (script et plist à 60 s ; `TEAMOP_RELEVE_JETON` remis dans `~/harvey/.env`, perdu au nettoyage de Reoon).
 - ⚠️ Les boutons du tableau de bord de Harvey ne marchent pas dans Safari (« Cross-origin requests are refused » : `Referrer-Policy: no-referrer` → `Origin: null` sur un POST) ;
   la version amont de Harvey l'a corrigé (`auth.js`, `referrerPolicy: 'same-origin'`) — mettre Harvey à jour un jour, sans perdre le correctif français.
 
