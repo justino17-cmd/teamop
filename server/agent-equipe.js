@@ -148,7 +148,7 @@ const RAS = /^\s*RAS\s*\.?\s*$/i;
    « Côté X, ça m'arrange… ». Inès l'a jugé, à raison : une formule toute faite, recyclée. Une réponse de GROUPE qui approuve un collègue au lieu d'apporter le
    sien, ou qui ouvre comme un collègue vient d'ouvrir (même tic d'ouverture), est redemandée UNE fois, sans outil (`ticDeGroupe`). */
 const APPROUVE = /\b(?:je\s+)?plussoie|\bje\s+(?:rejoins|confirme\s+(?:ce\s+que|l['’]int[ée]r[êe]t|les\s+propos|l['’]id[ée]e))|\bcomme\s+(?:le\s+dit|l['’]a\s+dit|dit)\s+@?[\p{L}]+|\bd['’]accord\s+avec\s+@?[\p{L}]+|\bje\s+suis\s+(?:tout\s+[àa]\s+fait\s+)?d['’]accord\b|\bje\s+valide\s+(?:l['’]id[ée]e|ce\s+que)/iu;
-const OUVERTURES = /^\s*(?:c[ôo]t[ée]|du\s+c[ôo]t[ée]|de\s+mon\s+c[ôo]t[ée]|niveau|pour\s+ma\s+part|chez\s+moi|moi\s+aussi|perso|tout\s+[àa]\s+fait|enti[èe]rement|pareil)(?=[\s,:;.!]|$)/i;   /* pas de \b : après « é », \b ne voit pas la fin du mot */
+const OUVERTURES = /^\s*(?:c[ôo]t[ée]|du\s+c[ôo]t[ée]|de\s+mon\s+c[ôo]t[ée]|niveau|pour\s+ma\s+part|chez\s+moi|moi\s+aussi|tout\s+[àa]\s+fait|enti[èe]rement|pareil)(?=[\s,:;.!]|$)/i;   /* pas de \b : après « é », \b ne voit pas la fin du mot */
 function ouvertureDe(t) { const m = OUVERTURES.exec(String(t || '').replace(/^\s*@[\p{L}\p{N}_]+[\s,:]*/u, '')); return m ? m[0].trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : ''; }
 /* Rend la raison du tic (texte pour la redemande) ou '' : `autres` = ce que les COLLÈGUES ont déjà répondu au même message, dans ce fil. */
 function ticDeGroupe(texte, autres) {
