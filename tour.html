@@ -12318,9 +12318,10 @@ function msLigneFil(f,agents,fil){
 }
 function msListeHtml(){
   var ag=msAgentsParId(), g=MS.fils.filter(function(f){ return f.groupe; }), p=MS.fils.filter(function(f){ return !f.groupe; });
-  var pa=msLignePauline();   /* des mails attendent ton accord : Pauline passe EN TÊTE, au-dessus des groupes */
-  return (MS_PA.n?'<div class="ms-ct">À valider</div>'+pa:'')+'<div class="ms-ct">Groupes</div>'+g.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('')+
-    '<div class="ms-ct">Messages privés</div>'+(MS_PA.n?'':pa)+p.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('');
+  /* des mails attendent ton accord : Pauline passe EN TÊTE, au-dessus des groupes (`typeof` : les bancs qui extraient la messagerie sans Pauline la voient absente) */
+  var pa=typeof msLignePauline==='function'?msLignePauline():'', nPa=typeof MS_PA!=='undefined'&&MS_PA.n;
+  return (nPa?'<div class="ms-ct">À valider</div>'+pa:'')+'<div class="ms-ct">Groupes</div>'+g.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('')+
+    '<div class="ms-ct">Messages privés</div>'+(nPa?'':pa)+p.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('');
 }
 /* « Qui fait quoi » : la file de tâches du SERVEUR, rien d'autre. Les tâches de conversation portent leur phrase ; les demandes fermées entre agents, leur nom. */
 function msTacheTxt(k){
@@ -12384,7 +12385,7 @@ function msRetirer(cle){
 /* ── les lectures ── */
 function messListeCharger(){
   return apiGet('/api/monitor/conversations?tous=1').then(function(d){ if(!d) return;
-    if(Array.isArray(d.fils)){ MS.fils=d.fils; MS.nonLus=Number(d.nonLus)||0; MS.lec=1; msBadge(); } else if(MS.lec!==1) MS.lec=-1;
+    if(Array.isArray(d.fils)){ MS.fils=d.fils; MS.nonLus=Number(d.nonLus)||0; MS.lec=1; if(typeof msBadge==='function') msBadge(); else setBdg('bdg-msgr',MS.nonLus); } else if(MS.lec!==1) MS.lec=-1;
     messPeindreListe(); messPeindreEntete();
   }).catch(function(){ if(MS.lec!==1) MS.lec=-1; messPeindreListe(); });
 }
@@ -12400,10 +12401,10 @@ function messTachesCharger(){
     messPeindreTaches();
   }).catch(function(){ if(MS.tachesLec!==1) MS.tachesLec=-1; messPeindreTaches(); });
 }
-function messToutCharger(){ if(MS.fil==='plateforme') messPfCharger(); if(MS.fil!=='pauline') paResumeCharger(); return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
+function messToutCharger(){ if(MS.fil==='plateforme') messPfCharger(); if(MS.fil!=='pauline'&&typeof paResumeCharger==='function') paResumeCharger(); return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
 /* La lecture d'un fil : entière à l'ouverture, INCRÉMENTALE ensuite (`?apres=`). Une réponse qui arrive après un changement de fil est jetée. */
 function messFilCharger(incr){
-  if(MS.fil==='pauline') return paFilCharger(incr);
+  if(MS.fil==='pauline'&&typeof paFilCharger==='function') return paFilCharger(incr);
   var fil=MS.fil; if(incr&&MS.msgLec===-1) incr=false;   /* un fil qu'on n'a pas pu lire se retente tout seul, en entier */
   if(incr&&(MS.enVol===fil||MS.envoi>0||MS.msgLec!==1||MS.vueMob==='liste')) return Promise.resolve();
   MS.enVol=fil;
@@ -12870,7 +12871,7 @@ function messClic(ev){
   else if(a==='reuLancer') messReunionLancer(el.getAttribute('data-type'));
   else if(a==='reuRetirer') messLeconRetirer(el.getAttribute('data-agent'),el.getAttribute('data-id'));
   else if(a.indexOf('pf')===0) messPfClic(el);
-  else if(a.indexOf('pa')===0) paClic(el);
+  else if(/^pa[A-Z]/.test(a)&&typeof paClic==='function') paClic(el);
 }
 function messPeindreListe(){
   var c=$('ms-fils'); if(!c||!MS.inst) return;
@@ -12940,8 +12941,8 @@ function messNouvCacher(){ var n=$('ms-nouv'); if(n) n.hidden=true; }
 /* Le fil. `complet` : on réécrit tout (ouverture, fil rogné) ; sinon on AJOUTE ce qui est nouveau et on garde l'endroit où l'on lisait. */
 function messPeindreFil(complet){
   var f=$('ms-flux'); if(!f||!MS.inst) return;
-  if(MS.fil==='pauline') return paPeindreFil(f,complet);
-  if(f.hasAttribute('data-pa')){ f.removeAttribute('data-pa'); f.removeAttribute('data-h'); f.innerHTML=''; complet=true; }
+  if(MS.fil==='pauline'&&typeof paPeindreFil==='function') return paPeindreFil(f,complet);
+  if(f.hasAttribute&&f.hasAttribute('data-pa')){ f.removeAttribute('data-pa'); f.removeAttribute('data-h'); f.innerHTML=''; complet=true; }
   var ag=msAgentsParId(), pend=MS.envois.filter(function(e){ return e.fil===MS.fil&&e.etat!=='ok'; });
   if(MS.msgLec===0){ f.innerHTML=acSquel(); MS.peint=''; return; }
   if(MS.msgLec!==1){ f.innerHTML='<div class="ms-vide">Ce fil n’a pas pu être lu. Réessaie dans un instant.<br><button type="button" class="ms-lien" data-act="rechargerFil">Réessayer</button></div>'; MS.peint=''; return; }
@@ -13054,8 +13055,8 @@ function messEnvoyerSaisie(){
 /* La pastille du menu : à la minute quand on est ailleurs, page visible — l'écran, lui, la tient à jour avec la liste (15 s). */
 function messNonLusCharger(){
   if(MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return;
-  apiGet('/api/monitor/conversations').then(function(d){ if(d&&typeof d.nonLus==='number'){ MS.nonLus=d.nonLus; msBadge(); } }).catch(function(){});
-  paResumeCharger();
+  apiGet('/api/monitor/conversations').then(function(d){ if(d&&typeof d.nonLus==='number'){ MS.nonLus=d.nonLus; if(typeof msBadge==='function') msBadge(); else setBdg('bdg-msgr',MS.nonLus); } }).catch(function(){});
+  if(typeof paResumeCharger==='function') paResumeCharger();
 }
 function messReleve(){
   if(MS.releve||MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return; MS.releve=true;
