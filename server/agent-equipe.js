@@ -178,6 +178,10 @@ module.exports = function agentEquipe(ctx) {
   const nomDe = id => id === 'justin' ? 'Justin' : (registre.get(id) || {}).nom || id;
   const nomFil = f => (typeof conversations.nom === 'function' ? conversations.nom(f) : '') || (registre.get(f) || {}).nom || f;
   const masquer = t => sansTel(String(t || '').replace(ADRESSE, '(adresse)'));
+  /* ⛔ « [lea] [camille] » AU LIEU DE « @lea @camille » (examen du 27 octobre 2026, 23 h 36, scénario 5) : Victor recopiait l'étiquette du fil (« [Léa a écrit…] »)
+     au lieu de citer ses collègues. Un nom de l'équipe entre crochets devient la citation qu'il voulait faire ; rien d'autre n'est touché. */
+  const parNom = new Map(); for (const x of agents.AGENTS) { parNom.set(x.id.toLowerCase(), x.id); parNom.set(String(x.nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), x.id); }
+  const crochets = t => String(t || '').replace(/\[([A-Za-zÀ-ÿ]{2,20})\]/g, (m, n) => { const k = parNom.get(n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()); return k ? '@' + k : m; });
   const nettoyer = t => masquer(t).replace(/\s+/g, ' ').trim().slice(0, MESSAGE_MAX);
   const court = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
   /* ce qu'on met dans le prompt vient de messages ou de tâches : pas d'accolade, qui ferait passer une phrase pour une ligne de faits */
@@ -464,9 +468,20 @@ module.exports = function agentEquipe(ctx) {
           else if (aTous) texteFinal = 'RAS';   /* à une question posée à tous, un tic qui résiste à la redemande se tait : les autres ont répondu */
         }
       }
+      /* ⛔ « RAS » À JUSTIN QUI TE CITE (examen du 27 octobre 2026, 23 h 36, scénario 5 : « @Camille préfère une seule relance au bout de 7 jours. @Victor, tranche. »
+         — Camille répondait « RAS », publié tel quel ; sa position n'était jamais défendue, et Victor tranchait sans elle). Justin qui cite un agent attend sa
+         réponse : UNE redemande, sans outil ; si l'agent persiste, son « RAS » s'écrit comme avant (une question de Justin ne reste jamais sans trace). */
+      if (texteFinal && RAS.test(texteFinal) && d.de === 'justin' && !aTous) {
+        const suite = messages.map(m => Object.assign({}, m)), fin = suite[suite.length - 1];
+        const relance = 'Justin t’a cité directement : il attend TA réponse, pas « RAS ». Si son message t’attribue un avis ou une position, défends-la ou nuance-la en une à trois phrases, avec tes raisons, en t’adressant à ceux qu’il a cités (@ suivi de leur identifiant). Sinon, dis en une phrase ce qui te concerne.';
+        if (fin && fin.role === 'user') fin.content += '\n\n' + relance; else suite.push({ role: 'user', content: relance });
+        let r4 = null;
+        try { r4 = await cerveau.penser(id, system, suite, { reflechir: true }); } catch (err) { r4 = null; }
+        if (r4 && r4.ok && r4.texte && !RAS.test(r4.texte)) texteFinal = r4.texte;
+      }
       if (texteFinal && RAS.test(texteFinal) && (d.de !== 'justin' || aTous)) sortie.ras = true;
       else if (texteFinal) {
-        const dit = conversations.parler(id, fil, raccourcir(masquer(texteFinal)), { niveau: 'info', prof });
+        const dit = conversations.parler(id, fil, raccourcir(masquer(crochets(texteFinal))), { niveau: 'info', prof });
         if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
       }
       for (const a of (Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
@@ -489,7 +504,7 @@ module.exports = function agentEquipe(ctx) {
         let r2 = null;
         try { r2 = await cerveau.penser(id, systemApres, suite, { reflechir: true }); } catch (err) { r2 = null; }
         if (r2 && r2.ok && r2.texte && !RAS.test(r2.texte)) {
-          const dit = conversations.parler(id, fil, raccourcir(masquer(r2.texte)), { niveau: 'info', prof });
+          const dit = conversations.parler(id, fil, raccourcir(masquer(crochets(r2.texte))), { niveau: 'info', prof });
           if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
         }
       }
