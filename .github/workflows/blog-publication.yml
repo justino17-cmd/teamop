@@ -36,7 +36,7 @@ jobs:
   publier:
     if: startsWith(github.head_ref, 'claude/blog-') && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,9 +90,19 @@ jobs:
           node scripts/site-marine.js --racine
           node scripts/site-marine.js
 
+      - name: Post Google de l'article (préparé AVANT la fusion, il part avec l'article)
+        if: steps.neufs.outputs.liste != ''
+        env:
+          NEUFS: ${{ steps.neufs.outputs.liste }}
+        run: |
+          # jamais bloquant : un post qui ne se prépare pas se dit, l'article part quand même
+          for s in $NEUFS; do
+            node scripts/google-post.js preparer "$s" || echo "::warning::post Google de $s non préparé"
+          done
+
       - name: Bancs du blog (sur ce qui part)
         run: |
-          for t in 3000 835 846 1008 3060; do
+          for t in 3000 835 846 1008 3060 3065; do
             node "tests/test-$t.js" > "$RUNNER_TEMP/banc-$t.txt" 2>&1 || { echo "::error::tests/test-$t.js échoue"; tail -40 "$RUNNER_TEMP/banc-$t.txt"; exit 1; }
             grep -aoE '[0-9]+ ✓ +[0-9]+ ✗' "$RUNNER_TEMP/banc-$t.txt" | tail -1 | sed "s/^/test-$t : /"
           done
@@ -130,3 +140,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run publication-site.yml --ref main
+
+      # La publication sur la fiche Google vient APRÈS celle du site : l'image du post doit être en ligne (le script
+      # attend jusqu'à 15 minutes que la page de l'article réponde 200, sinon il publie sans image). Sans les secrets
+      # GBP_* il dit ce qui manque et sort en 0 ; une erreur de l'API devient un avertissement, jamais un échec.
+      - name: Publier le post sur la fiche Google
+        if: steps.neufs.outputs.liste != ''
+        continue-on-error: true
+        env:
+          GBP_CLIENT_ID: ${{ secrets.GBP_CLIENT_ID }}
+          GBP_CLIENT_SECRET: ${{ secrets.GBP_CLIENT_SECRET }}
+          GBP_REFRESH_TOKEN: ${{ secrets.GBP_REFRESH_TOKEN }}
+          GBP_ACCOUNT_ID: ${{ secrets.GBP_ACCOUNT_ID }}
+          GBP_LOCATION_ID: ${{ secrets.GBP_LOCATION_ID }}
+          GBP_ATTENTE_S: "900"
+          NEUFS: ${{ steps.neufs.outputs.liste }}
+        run: |
+          for s in $NEUFS; do
+            node scripts/google-post.js publier "$s"
+          done

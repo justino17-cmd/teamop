@@ -1,0 +1,21 @@
+{
+  "slug": "suivi-des-interventions",
+  "prepare": "2026-10-26",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Suivi des interventions : méthode et outil pour le terrain\n\nStatuts, fiche terrain, historique client, stock et alertes : comment suivre vos interventions de bout en bout avec un outil mobile pensé pour les TPE de terrain.\n\nÀ retenir : Une intervention bien suivie passe par cinq statuts simples : À planifier, Planifiée, En cours, Terminée, Annulée.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/suivi-des-interventions.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/suivi-couverture-google.jpg"
+      }
+    ]
+  }
+}

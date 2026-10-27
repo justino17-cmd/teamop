@@ -1,0 +1,21 @@
+{
+  "slug": "bon-d-intervention",
+  "prepare": "2026-10-26",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Bon d’intervention : modèle, mentions et valeur de preuve\n\nBon d’intervention : les mentions à prévoir, un modèle à reprendre, sa valeur de preuve face à un client et ce que change une version sur téléphone.\n\nÀ retenir : Le bon d’intervention est le compte rendu daté et signé d’une visite chez un client. On l’appelle aussi bon de travail, fiche ou rapport d’intervention.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/bon-d-intervention.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/bon-d-intervention-couverture-google.jpg"
+      }
+    ]
+  }
+}

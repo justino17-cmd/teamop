@@ -1,0 +1,45 @@
+# Publie à la main, sur la fiche Google « TEAM OP », le post préparé d'un article déjà en ligne (ou de tous).
+#
+# Pour les articles d'AVANT l'automatisation : leurs posts sont dans contenu/blog/posts-google/. Actions → « Post Google
+# manuel » → Run workflow, et le slug (ou « tous »). Rien ne part deux fois : le script relit les posts de la fiche et
+# cherche l'adresse de l'article. Sans les secrets GBP_* (accès à l'API pas encore accordé), il dit ce qui manque.
+name: Post Google manuel
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Slug de l'article (ex. bon-d-intervention), ou « tous »"
+        required: true
+        default: tous
+
+permissions:
+  contents: read
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Publier sur la fiche Google
+        env:
+          GBP_CLIENT_ID: ${{ secrets.GBP_CLIENT_ID }}
+          GBP_CLIENT_SECRET: ${{ secrets.GBP_CLIENT_SECRET }}
+          GBP_REFRESH_TOKEN: ${{ secrets.GBP_REFRESH_TOKEN }}
+          GBP_ACCOUNT_ID: ${{ secrets.GBP_ACCOUNT_ID }}
+          GBP_LOCATION_ID: ${{ secrets.GBP_LOCATION_ID }}
+          GBP_ATTENTE_S: "60"
+          CHOIX: ${{ inputs.slug }}
+        run: |
+          if [ "$CHOIX" = "tous" ]; then
+            liste=$(ls contenu/blog/posts-google/*.json | xargs -n1 basename | sed 's/\.json$//' | sort)
+          else
+            liste="$CHOIX"
+          fi
+          for s in $liste; do
+            node scripts/google-post.js publier "$s"
+          done
