@@ -3322,7 +3322,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.112</div>
+    <div class="lg-pied">console interne · v2.113</div>
   </div>
 </div>
 
@@ -3364,7 +3364,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.112</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.113</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3376,7 +3376,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.112</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.113</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3683,7 +3683,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.112';
+var TOUR_VERSION='v2.113';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -4437,6 +4437,7 @@ function setTab(t,sansAnim){
   t=vueAlias(t);
   if(vues().indexOf(t)<0) t='accueil';   /* un onglet de l'autre console ne laisse jamais un écran blanc */
   if(t==='entreprises'&&TAB==='entreprises'&&ENT.sel) ENT.sel=null;   /* v2.88 : retoucher « Entreprises » ramène à la liste */
+  var vR=$('vue'); if(vR) vR.removeAttribute('data-rendu');   /* v2.113 : ouvrir un onglet n'est pas une relecture — la page part du haut (renderVue, onglet Agents) */
   TAB=t; ecrireHash(); try{ localStorage.setItem('tour_tab_'+APP,t); }catch(e){}
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on',b.getAttribute('data-t')===tabMenu(t)); });
   placerIndic(!sansAnim);
@@ -6307,6 +6308,7 @@ function sousOnglet(vue,s){ SOUS[vue]=s; if(vue==='entreprises') ENT.sel=null;
 function renderVue(v){
   if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
   document.body.classList.toggle('plein-courrier',TAB==='support'||TAB==='messagerie');   /* v2.99 : le Courrier prend toute la page (bureau) ; la messagerie aussi (v2.104) */
+  if(TAB!=='agents') v.removeAttribute('data-rendu');
   if(TAB!=='support') courrierDemonter();
   if(TAB!=='messagerie') messDemonter();   /* quitter la messagerie arrête ses minuteries et garde le brouillon */   /* quitter le Courrier démonte le module (sa zone disparaît avec la vue) */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
@@ -6326,7 +6328,15 @@ function renderVue(v){
   else if(TAB==='donnees') v.innerHTML=groupeOnglets('donnees')+vueDonnees();
   else if(TAB==='equipe') v.innerHTML=groupeOnglets('equipe')+vueEquipe();
   else if(TAB==='journal') v.innerHTML=groupeOnglets('journal')+vueJournal();
-  else if(TAB==='agents') v.innerHTML=vueAgents();
+  else if(TAB==='agents'){
+    /* ⛔ UNE RELECTURE NE FAIT PAS REMONTER LA PAGE (Tour v2.113) : les chargements de fond (agents, horaires, Pauline) redessinent l'écran sur place. Si
+       l'écran était déjà celui-ci (même sous-onglet), on rend la position — tout de suite, puis après la mise en page (Safari peut la perdre en remplaçant
+       le contenu). Changer de sous-onglet n'y entre pas : `data-rendu` change. */
+    var cle='agents/'+AG.sec, y=window.scrollY||0, meme=v.getAttribute('data-rendu')===cle;
+    v.innerHTML=vueAgents(); v.setAttribute('data-rendu',cle);
+    if(meme&&y>0){ var rendre=function(){ if(TAB==='agents'&&v.getAttribute('data-rendu')===cle&&Math.abs((window.scrollY||0)-y)>2) window.scrollTo(0,y); };
+      rendre(); if(window.requestAnimationFrame) requestAnimationFrame(rendre); }
+  }
   else if(TAB==='messagerie'){ if(!messGarde(v)){ v.innerHTML=vueMessagerie(); messMonter(); } }   /* montée UNE fois : un render() ne perd ni la saisie ni l'endroit où l'on lit */
   else if(TAB==='facturation') v.innerHTML=vueFacturation();
   else if(TAB==='incidents') v.innerHTML=vueIncidents();
@@ -11248,7 +11258,9 @@ function chargerPauline(){
   if(PA.enVol) return PA.enVol;
   PA.enVol=apiGet('/api/monitor/pauline').then(function(d){ PA.enVol=null; if(!d) return;
     if(!paObj(d)||d.ok!==true){ if(PA.lec!==1){ PA.lec=-1; PA.err=''; } else PA.echec=true; return paApres(true); }
-    var sig=JSON.stringify([d.recuLe||null,d.releve||null]), chg=PA.lec!==1||PA.sig!==sig||PA.echec;
+    /* ⛔ (Tour v2.113, Justin, 27 octobre 2026 : « quand je suis tout en bas, elle remonte d'un coup tout en haut ») le Mac envoie un relevé par minute : seule
+       l'HEURE de réception changeait, et toute la page Agents se redessinait. Une heure neuve sur le même contenu ne met à jour que la ligne d'état (`paMajAge`). */
+    var sig=JSON.stringify(d.releve||null), chg=PA.lec!==1||PA.sig!==sig||PA.echec||!PA.d||!PA.d.recuLe!==!d.recuLe;
     PA.d=d; PA.lec=1; PA.err=''; PA.echec=false; PA.sig=sig; PA.luLe=Date.now(); paApres(chg);
   }).catch(function(e){ PA.enVol=null;
     /* ⛔ 404 = ce serveur n'a pas la route (pont absent). 503 = le serveur a un relevé qu'il NE PEUT PAS LIRE (fichier cassé, clé maître absente) : « pas encore de relevé » (200, recuLe null)
