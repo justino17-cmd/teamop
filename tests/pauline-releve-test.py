@@ -458,14 +458,15 @@ class TestAvancement(unittest.TestCase):
         for i, (dom, pr, pc) in enumerate([("a.fr", lu, ch), ("b.fr", lu, ch), ("c.fr", lu, None), ("d.fr", None, None), ("", None, None), ("", lu, ch)]):
             b.execute("INSERT INTO companies VALUES (?,?,?,?,?)", ("c%d" % i, "E%d" % i, dom, pr, pc))
         for pid, em, st, es in [("p1", "a@a.fr", "contacted", "verified"), ("p2", "b@b.fr", "replied", "risky"), ("p3", "c@c.fr", "new", "guess"),
-                                ("p4", "d@d.fr", "new", ""), ("p5", "e@e.fr", "new", "invalid"), ("p6", "", "new", ""), ("p7", "f@f.fr", "new", "verified")]:
+                                ("p4", "d@d.fr", "new", ""), ("p5", "e@e.fr", "new", "invalid"), ("p6", "", "new", ""), ("p7", "f@f.fr", "new", "verified"),
+                                ("p8", "g@g.fr", "contacted", "verified")]:   # contacté HORS campagne : Harvey ne le compte pas dans « Sent » (sent & drafted)
             b.execute("INSERT INTO prospects VALUES (?,?,?,?)", (pid, em, st, es))
         b.execute("INSERT INTO campaigns VALUES ('k1', ?)", (json.dumps(["p1", "p2", "p3", 42]),))
         b.execute("INSERT INTO campaigns VALUES ('k2', 'pas du json')")
         av = self.m.lire_avancement(b, self.m.tables(b))
         self.assertEqual(av, {"entreprises": 6, "avecSite": 4, "sansSite": 2, "sitesLus": 3, "mailsCherches": 2,   # une entreprise sans site lue ne compte pas
-                              "adresses": 6, "verifiees": 2, "risquees": 1, "invalides": 1, "aConfirmer": 2,
-                              "ecrits": 3, "aEcrire": 4, "envoyes": 2, "reponses": 1})   # à écrire = joignables (p1 p2 p7) ∪ écrits (p1 p2 p3)
+                              "adresses": 7, "verifiees": 3, "risquees": 1, "invalides": 1, "aConfirmer": 2,
+                              "ecrits": 3, "aEcrire": 5, "envoyes": 2, "reponses": 1})   # à écrire = joignables (p1 p2 p7 p8) ∪ écrits (p1 p2 p3)
 
     def test_harvey_plus_ancien_rien_d_invente(self):
         b = self.base(recent=False)
