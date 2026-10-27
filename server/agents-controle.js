@@ -275,9 +275,23 @@ async function controler(o) {
   const corps = K.normaliserCorps(o.corps);
   if (fautes.length) return { etat: 'a_revoir', fautes, corps, juge: false };
   if (o.sansJuge === true) return { etat: 'non_verifie', fautes: [], corps, juge: false, raison: 'juge non demandé' };
-  const v = await juger({ cerveau: o.cerveau, agent: o.agent, objet: o.objet, corps, contexte: o.contexteJuge, recu: o.recu, connaissances: o.connaissances });
+  const jo = { cerveau: o.cerveau, agent: o.agent, objet: o.objet, corps, contexte: o.contexteJuge, recu: o.recu, connaissances: o.connaissances };
+  const v = await juger(jo);
   if (v.etat === 'ok') return { etat: 'bon', fautes: [], corps, juge: true };
-  if (v.etat === 'echec') return Object.assign({ etat: 'a_revoir', fautes: v.fautes, corps, juge: true }, v.citations ? { citations: v.citations, citesPar: v.citesPar } : {});
+  if (v.etat === 'echec') {
+    /* ⛔ UN SEUL JUGE NE BLOQUE PAS UN COURRIEL : IL FAUT UN SECOND AVIS (Justin, 27 octobre 2026 au soir, après trois jours de scénario 6 rouge : « il y a intérêt de ne
+       plus avoir d'erreur »). Les quatre échecs de suite venaient du juge, pas du courriel : `fait_invente` sur une ligne fidèle à l'offre, `incoherent` sans phrase, puis
+       sur la phrase que le cahier IMPOSE. Corriger chaque lubie l'une après l'autre ne finit jamais. Un refus est donc relu par un second juge, À NEUF (même demande,
+       rien de la première réponse) : seule une faute que LES DEUX relèvent bloque. Un vrai défaut se voit deux fois ; une lubie, presque jamais. Second juge muet ou
+       hors forme : le premier verdict tient (on ne relâche rien sur un doute). Coût : un appel de plus, et seulement sur un refus. */
+    const v2 = await juger(jo);
+    if (v2.etat === 'indisponible') return Object.assign({ etat: 'a_revoir', fautes: v.fautes, corps, juge: true }, v.citations ? { citations: v.citations, citesPar: v.citesPar } : {});
+    const confirmees = v2.etat === 'echec' ? v.fautes.filter(f => v2.fautes.includes(f)) : [];
+    if (!confirmees.length) return { etat: 'bon', fautes: [], corps, juge: true, secondAvis: true };
+    const par = {}, cites = [];
+    for (const f of confirmees) { const l = [].concat((v.citesPar && v.citesPar[f]) || [], (v2.citesPar && v2.citesPar[f]) || []).filter((c, i, t) => t.indexOf(c) === i).slice(0, 3); if (l.length) { par[f] = l; l.forEach(c => { if (!cites.includes(c)) cites.push(c); }); } }
+    return Object.assign({ etat: 'a_revoir', fautes: confirmees, corps, juge: true }, cites.length ? { citations: cites.slice(0, 3), citesPar: par } : {});
+  }
   return { etat: 'non_verifie', fautes: [], corps, juge: false, raison: v.raison || 'réponse du juge hors forme' };
 }
 

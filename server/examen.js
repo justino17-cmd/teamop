@@ -385,7 +385,19 @@ function verdictAbime(brut, cles) {
    ⛔ UNE RÉPONSE ILLISIBLE SE REDEMANDE UNE FOIS (à neuf, avec le rappel de la forme), et un verdict qui reste illisible DIT ce que le juge a répondu (le début, adresses retirées) :
    « illisible » seul ne permettait pas de savoir si le juge refusait, bavardait ou numérotait autrement. */
 const RAPPEL_JUGE = 'Rappel : UNE SEULE ligne JSON, un seul objet, avec EXACTEMENT les clés demandées (c1, c2… dans l’ordre, sans en sauter), chacune true ou false, puis "raison". Rien avant, rien après.';
+/* ⛔ UN CRITÈRE NE TOMBE QUE SI DEUX LECTURES LE FONT TOMBER (Justin, 27 octobre 2026 au soir : « prochain examen, il y a intérêt de ne plus avoir d'erreur »).
+   Le juge est un modèle : il lit parfois de travers (examens des 25, 26 et 27 octobre). Un critère jugé FAUX est relu par un second jugement, À NEUF : il ne reste
+   faux que si les deux le disent. Un second jugement illisible : le premier tient (on ne relâche rien sur un doute). Rien n'est payé quand tout est vrai. */
 async function juger(J, criteres, donnees) {
+  const j = await jugerUneFois(J, criteres, donnees);
+  if (!j.ok || !Object.values(j.valeurs).some(x => x === false)) return j;
+  const j2 = await jugerUneFois(J, criteres, donnees);
+  if (!j2.ok) return j;
+  const valeurs = {};
+  for (const k of Object.keys(j.valeurs)) valeurs[k] = j.valeurs[k] === false && j2.valeurs[k] !== true ? false : (j.valeurs[k] === false ? true : j.valeurs[k]);
+  return Object.assign({}, j, { valeurs, secondAvis: true });
+}
+async function jugerUneFois(J, criteres, donnees) {
   if (!J) return { ok: false, cause: 'pas de juge' };
   const numerotes = criteres.map((c, i) => ({ cle: 'c' + (i + 1), orig: c.cle, texte: c.texte }));
   const vers = Object.fromEntries(numerotes.map(c => [c.cle, c.orig]));

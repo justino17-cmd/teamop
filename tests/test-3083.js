@@ -38,5 +38,26 @@ for (const p of C.PHRASES_IMPOSEES) vrai('dans un cahier : « ' + p.trim().slice
 console.log('\n3. Le juge reçoit la règle');
 vrai('le juge sait que les phrases imposées ne sont jamais incohérentes', /phrases que le cahier IMPOSE[^\n]*ne sont jamais incohérentes/.test(C.JUGE_SYSTEM));
 
-console.log('\ntest-3083 : ' + ok + ' ✓ ' + ko + ' ✗');
-process.exit(ko ? 1 : 0);
+console.log('\n4. Le SECOND AVIS de l’examen : un critère ne tombe que si deux lectures le font tomber');
+const EX = require(path.join(__dirname, '..', 'server', 'examen.js'));
+const juge = rep => { const recus = []; return { recus, penser: async () => { const r = rep[recus.length]; recus.push(1); return r instanceof Error ? { ok: false, raison: 'erreur_api' } : { ok: true, texte: r }; } }; };
+const CR = [{ cle: 'c1', libelle: 'a', texte: 'a' }, { cle: 'c2', libelle: 'b', texte: 'b' }, { cle: 'c3', libelle: 'c', texte: 'c' }];
+(async () => {
+  let J = juge(['{"c1":true,"c2":true,"c3":true,"raison":"ok"}']);
+  let j = await EX.juger(J, CR, 'x');
+  v('tout vrai : UN seul jugement, rien de payé en plus', [J.recus.length, j.valeurs], [1, { c1: true, c2: true, c3: true }]);
+  J = juge(['{"c1":true,"c2":false,"c3":true,"raison":"c2 : non"}', '{"c1":true,"c2":true,"c3":true,"raison":"ok"}']);
+  j = await EX.juger(J, CR, 'x');
+  v('⛔ un critère faux à la première lecture, vrai à la seconde : il PASSE (une lubie ne fait pas tomber un scénario)', [J.recus.length, j.valeurs.c2, j.secondAvis], [2, true, true]);
+  J = juge(['{"c1":true,"c2":false,"c3":false,"raison":"c2 : non ; c3 : non"}', '{"c1":true,"c2":false,"c3":true,"raison":"c2 : non"}']);
+  j = await EX.juger(J, CR, 'x');
+  v('⛔ faux deux fois : il TOMBE ; faux une seule fois : il passe', [j.valeurs.c2, j.valeurs.c3], [false, true]);
+  J = juge(['{"c1":false,"c2":true,"c3":true,"raison":"c1 : non"}', '{"c1":true,"c2":false,"c3":true,"raison":"c2 : non"}']);
+  j = await EX.juger(J, CR, 'x');
+  v('un critère vrai à la première lecture reste vrai, même si la seconde le trouve faux', j.valeurs, { c1: true, c2: true, c3: true });
+  J = juge(['{"c1":true,"c2":false,"c3":true,"raison":"c2 : non"}', new Error('x')]);
+  j = await EX.juger(J, CR, 'x');
+  v('⛔ second jugement IMPOSSIBLE : le premier verdict tient (on ne relâche rien sur un doute)', j.valeurs.c2, false);
+  console.log('\ntest-3083 : ' + ok + ' ✓ ' + ko + ' ✗');
+  process.exit(ko ? 1 : 0);
+})();
