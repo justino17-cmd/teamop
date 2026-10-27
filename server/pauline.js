@@ -22,13 +22,15 @@
  *                     origine?: 'decouverte'|'cycle' } ],      // ≤ 100, les plus récentes d'abord
  *     entreprises: [ { id, nom, ville, metier,
  *                      etat: 'trouvee'|'courriel_pret'|'envoye'|'a_repondu'|'refus',
- *                      email?, contact?, majLe: ISO } ],       // ≤ 500, les plus récemment touchées d'abord
+ *                      email?, contact?, site?: domaine, majLe: ISO } ],   // ≤ 500, les plus récemment touchées d'abord ; `site` = le nom de domaine seul (Tour v2.116)
  *     courriels: [ { id, entrepriseId, etat: 'en_attente'|'envoye'|'refuse'|'repondu', objet, texte, quand: ISO,
  *                    genre?: 'sequence'|'reponse', etape?: entier, statutBrut?: texte } ],   // ≤ 300 ; `quand` = l'envoi, sinon la rédaction
  *     reponses: [ { entrepriseId, quand: ISO, resume: texte, nature: 'interesse'|'refus'|'question'|'autre' } ],   // ≤ 300
  *     attentes?: { verificateur?: booléen,               // une clé de vérification des adresses est posée sur le Mac (OUI/NON, jamais la clé) — sans elle Harvey n'écrit jamais
  *                  signaux?: { proposes, confirmes, rejetes: entier, liste: [ { code, libelle, description } ] },   // ≤ 40 : les critères PROPOSÉS, à confirmer par Justin
- *                  adresses?: { verifiees, risquees, invalides, aConfirmer: entier } } }   // Tour v2.114 : ce qui attend Justin, dit en français dans la Tour
+ *                  adresses?: { verifiees, risquees, invalides, aConfirmer: entier } },   // Tour v2.114 : ce qui attend Justin, dit en français dans la Tour
+ *     avancement?: { entreprises, avecSite?, sansSite?, sitesLus?, mailsCherches?, adresses?, verifiees?, risquees?, invalides?, aConfirmer?,
+ *                    ecrits?, aEcrire?, envoyes?, reponses?: entier } }   // Tour v2.116 : la bande « Today » de Harvey (get_live_status), comptée pareil ; absent = inconnu
  *   Ce qui n'existe PAS dans la base de Harvey (et qu'on n'invente donc pas) : le métier et la ville d'une recherche ne sont écrits nulle part — ils se
  *   déduisent des entreprises rattachées à l'exécution (`runs` ↔ `observations`) ; le « résumé » d'une réponse est le début de son texte, pas un résumé ;
  *   aucune notion de « chauffe » en base (elle vient du fichier de réglages). Tout champ optionnel absent vaut « inconnu », jamais zéro.
@@ -76,6 +78,9 @@ const DEC_MAX = 2000;
 const VUS_MAX = 3000;
 const DEC_CORPS_MAX = '64kb';
 const MAX_SIGNAUX = 40;
+/* le site d'une entreprise : un nom de domaine, rien d'autre (ni schéma, ni chemin) — la Tour en fait un lien https:// sans rien y ajouter */
+const RE_SITE = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+const AVANCEMENT = ['entreprises', 'avecSite', 'sansSite', 'sitesLus', 'mailsCherches', 'adresses', 'verifiees', 'risquees', 'invalides', 'aConfirmer', 'ecrits', 'aEcrire', 'envoyes', 'reponses'];
 
 /* ── la validation, champ par champ : un type faux jette l'élément, un texte trop long est coupé, une clé inconnue n'entre jamais ── */
 const estObjet = o => !!o && typeof o === 'object' && !Array.isArray(o);
@@ -162,6 +167,7 @@ function validerReleve(corps, maintenant) {
     const o = { id, nom, ville, metier, etat: e.etat, majLe };
     const em = texte(e.email, 254); if (em && RE_COURRIEL.test(em)) o.email = em.toLowerCase();
     const ct = texte(e.contact, 120); if (ct) o.contact = ct;
+    if (typeof e.site === 'string' && RE_SITE.test(e.site)) o.site = e.site;
     entreprises.push(o);
   }
   const courriels = [], idsCou = new Set();
@@ -213,6 +219,13 @@ function validerReleve(corps, maintenant) {
       if (Object.values(a).every(v => v !== null)) attentes.adresses = a;
     }
     releve.attentes = attentes;
+  }
+  /* OÙ EN EST PAULINE (Tour v2.116) : optionnel, chiffre par chiffre — un chiffre illisible est écarté seul ; sans le nombre d'entreprises, rien n'est gardé. */
+  const av = corps.avancement;
+  if (estObjet(av) && entier(av.entreprises, 0, 1e7) !== null) {
+    const a = {};
+    for (const k of AVANCEMENT) { const n = entier(av[k], 0, 1e7); if (n !== null) a[k] = n; }
+    releve.avancement = a;
   }
   return { ok: true, releve, ecartes };
 }

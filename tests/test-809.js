@@ -392,6 +392,9 @@ console.log('\n── 809 · le document d\'équipe rangé chez nous — la sort
 
     /* ── aucune donnée de client au journal ── */
     v('⛔ le journal du serveur ne nomme aucun espace', /ent-a1b2|ent-d5e6|ent-m3n4|ent-r5s6|ent-u1v2|ent-v3w4|ent-x5y6/.test(journal), false);
+    /* ⛔ UN REFUS DOIT DIRE QUELLE LIGNE (CI du 27 octobre 2026, PR #220 : rouge une fois sur deux sur le même commit, vert ici trois fois sur trois — et
+       « obtenu : true » ne disait pas qui écrivait). Les identifiants cherchés sont ceux du banc, fictifs : la ligne se montre sans risque. */
+    for (const l of journal.split('\n').filter(l => /ent-a1b2|ent-d5e6|ent-m3n4|ent-r5s6|ent-u1v2|ent-v3w4|ent-x5y6/.test(l)).slice(0, 5)) console.log('      ligne en cause : ' + l.slice(0, 240));
     v('   ni l\'auteur d\'un document', /Prénom Nom/.test(journal), false);
     v('   la copie, elle, s\'y dit (sans nom)', /document d'équipe copié depuis Firebase/.test(journal), true);
     v('le faux Google n\'a refusé aucun jeton (la signature est la vraie)', G.jetonsRefuses, 0);

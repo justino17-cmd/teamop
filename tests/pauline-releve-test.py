@@ -437,6 +437,69 @@ class TestReleve(unittest.TestCase):
 
 
 
+class TestAvancement(unittest.TestCase):
+    """OÙ EN EST PAULINE (Tour v2.116) : les chiffres de la bande « Today » de Harvey (dashboard.py, get_live_status), comptés pareil."""
+    @classmethod
+    def setUpClass(cls):
+        cls.m = charger_module()
+
+    def base(self, recent=True):
+        b = sqlite3.connect(":memory:")
+        b.row_factory = sqlite3.Row
+        cols = ", profile_checked_at TIMESTAMP DEFAULT NULL, prospects_checked_at TIMESTAMP DEFAULT NULL" if recent else ""
+        b.executescript("CREATE TABLE companies (id TEXT PRIMARY KEY, name TEXT DEFAULT '', domain TEXT DEFAULT ''" + cols + ");"
+                        "CREATE TABLE prospects (id TEXT PRIMARY KEY, email TEXT DEFAULT '', status TEXT DEFAULT 'new'" + (", email_status TEXT DEFAULT ''" if recent else "") + ");"
+                        + ("CREATE TABLE campaigns (id TEXT PRIMARY KEY, prospect_ids_json TEXT DEFAULT '[]');" if recent else ""))
+        return b
+
+    def test_les_chiffres_de_harvey(self):
+        b = self.base()
+        lu, ch = "2026-10-27 10:00:00", "2026-10-27 11:00:00"
+        for i, (dom, pr, pc) in enumerate([("a.fr", lu, ch), ("b.fr", lu, ch), ("c.fr", lu, None), ("d.fr", None, None), ("", None, None), ("", lu, ch)]):
+            b.execute("INSERT INTO companies VALUES (?,?,?,?,?)", ("c%d" % i, "E%d" % i, dom, pr, pc))
+        for pid, em, st, es in [("p1", "a@a.fr", "contacted", "verified"), ("p2", "b@b.fr", "replied", "risky"), ("p3", "c@c.fr", "new", "guess"),
+                                ("p4", "d@d.fr", "new", ""), ("p5", "e@e.fr", "new", "invalid"), ("p6", "", "new", ""), ("p7", "f@f.fr", "new", "verified"),
+                                ("p8", "g@g.fr", "contacted", "verified")]:   # contacté HORS campagne : Harvey ne le compte pas dans « Sent » (sent & drafted)
+            b.execute("INSERT INTO prospects VALUES (?,?,?,?)", (pid, em, st, es))
+        b.execute("INSERT INTO campaigns VALUES ('k1', ?)", (json.dumps(["p1", "p2", "p3", 42]),))
+        b.execute("INSERT INTO campaigns VALUES ('k2', 'pas du json')")
+        av = self.m.lire_avancement(b, self.m.tables(b))
+        self.assertEqual(av, {"entreprises": 6, "avecSite": 4, "sansSite": 2, "sitesLus": 3, "mailsCherches": 2,   # une entreprise sans site lue ne compte pas
+                              "adresses": 7, "verifiees": 3, "risquees": 1, "invalides": 1, "aConfirmer": 2,
+                              "ecrits": 3, "aEcrire": 5, "envoyes": 2, "reponses": 1})   # à écrire = joignables (p1 p2 p7 p8) ∪ écrits (p1 p2 p3)
+
+    def test_harvey_plus_ancien_rien_d_invente(self):
+        b = self.base(recent=False)
+        b.execute("INSERT INTO companies VALUES ('c1', 'E', 'a.fr')")
+        b.execute("INSERT INTO prospects VALUES ('p1', 'a@a.fr', 'replied')")
+        av = self.m.lire_avancement(b, self.m.tables(b))
+        self.assertEqual(av, {"entreprises": 1, "avecSite": 1, "sansSite": 0, "adresses": 1, "reponses": 1})   # sans colonne : pas de chiffre, jamais un zéro
+
+    def test_base_neuve(self):
+        b = sqlite3.connect(":memory:")
+        self.assertEqual(self.m.lire_avancement(b, self.m.tables(b)), {"entreprises": 0})
+
+    def test_site_de(self):
+        f = self.m.site_de
+        self.assertEqual([f("https://www.Clim-17.fr/contact?x=1"), f("clim17.fr:8080"), f("dupont.fr."), f("javascript:alert(1)"), f("a..b.fr"), f(""), f(None), f("x" * 300 + ".fr")],
+                         ["www.clim-17.fr", "clim17.fr", "dupont.fr", "", "", "", "", ""])
+
+    def test_le_releve_porte_le_site_et_l_avancement(self):
+        with tempfile.TemporaryDirectory() as t:
+            d = construire(t)
+            b = sqlite3.connect(str(d / "data" / "harvey.db"))
+            b.execute("UPDATE companies SET domain = 'https://www.propre-rochelaise.fr/' WHERE id = 'c-trouvee'")
+            b.execute("UPDATE companies SET domain = 'pas un site' WHERE id = 'c-pret'")
+            b.commit(); b.close()
+            code, out, err = lancer("--essai", "--harvey", str(d))
+            self.assertEqual(code, 0, err)
+            r = json.loads(out)
+            ent = {e["id"]: e for e in r["entreprises"]}
+            self.assertEqual(ent["c-trouvee"]["site"], "www.propre-rochelaise.fr")
+            self.assertNotIn("site", ent["c-pret"])
+            self.assertEqual((r["avancement"]["entreprises"], r["avancement"]["avecSite"]), (6, 2))   # « avec site » compte comme Harvey : un domaine non vide
+
+
 class TestDecisions(unittest.TestCase):
     """Les décisions de la Tour (27 octobre 2026) : le script les APPLIQUE dans la base de Harvey, sous la garde du statut, et rend compte."""
     def setUp(self):
