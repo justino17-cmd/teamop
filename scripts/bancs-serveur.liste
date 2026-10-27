@@ -364,3 +364,4 @@ tests/test-3078.js
 # 26 octobre 2026 (publication de la Tour v2.112) : `test-3022` et `test-3024` — la couture de la page Agents de la Tour (Pauline, horaires, messagerie) contre le VRAI serveur, entrées à la publication de `tour.html`, comme prévu par REPRISE.md.
 tests/test-3022.js
 tests/test-3024.js
+test-3079

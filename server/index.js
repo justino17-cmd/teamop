@@ -115,7 +115,7 @@ const jsonGros = express.json({ limit: '20mb' });
 /* `/api/audience/vue` (publique) lit son propre corps, en texte, 2 Ko au plus (`server/audience.js`) : le plafond de 6 Mo ne doit pas le lire avant elle. */
 const CHEMIN_AUDIENCE = /^\/api\/audience\/vue\/?$/i;
 /* `/api/pauline/releve` (le pont de Pauline) lit AUSSI son propre corps, 2 Mo au plus, et seulement APRÈS avoir vérifié le jeton (`server/pauline.js`) : lire 6 Mo pour un inconnu serait le moyen le moins cher de remplir la mémoire. */
-const CHEMIN_PAULINE = /^\/api\/pauline\/releve\/?$/i;
+const CHEMIN_PAULINE = /^\/api\/pauline\/(?:releve|decisions\/resultats)\/?$/i;   /* les deux routes du Mac : jeton vérifié AVANT la lecture du corps (27 octobre 2026 : + le compte rendu des décisions) */
 app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path) || CHEMIN_PAULINE.test(req.path)) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP

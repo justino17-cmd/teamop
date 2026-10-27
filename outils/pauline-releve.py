@@ -594,6 +594,8 @@ def ecrire_etat_local(chemin, etat):
 def traiter_decisions(url, jeton, chemin_base):
     """Rend le nombre de décisions appliquées (réussies ou non). Un serveur qui refuse ou se tait n'arrête pas le relevé."""
     code, rep = appeler(url_soeur(url, URL_DECISIONS), jeton)
+    if code == 401:   # ⛔ un jeton refusé se DIT, et tout de suite : sinon le relevé « rien n'a bougé » sauterait et le script sortirait en 0, muet
+        raise Sortie(REFUS, MOTIFS_REFUS[401])
     if code != 200 or not isinstance(rep.get("decisions"), list):
         if code not in (200, 503):
             print("Décisions : le serveur a répondu " + str(code), file=sys.stderr)
