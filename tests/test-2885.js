@@ -55,7 +55,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
       if (id === 'lea') { const o = (/^\\[(o[0-9a-f]{6})\\]/m.exec(j.system) || [])[1] || 'aucun';
         return bloc([texte('Mon bilan-2885 : objectif atteint.'), outil('juger_objectif', { objectif: o, statut: 'atteint', pourquoi: 'Toutes les inscriptions ont reçu une réponse.' }), outil('ajouter_lecon', { texte: 'LECON-2885 : répondre le jour même à chaque inscription.' })], 'tool_use'); }
       if (id === 'camille') return bloc([texte('Mon point-2885 : @hugo, as-tu des paiements en attente ?')]);
-      return bloc([texte('Mon point de ' + nom + ' (réunion).')]); }
+      return bloc([texte(nom + ' : mon point de la réunion.')]); }
     return bloc([texte('Réponse de ' + nom + '.')]); }
   if (u.startsWith('https://api.stripe.com/')) return new Response('{"data":[],"has_more":false}', { status: 200, headers: { 'content-type': 'application/json' } });
   return vrai.apply(this, arguments); };\n`);

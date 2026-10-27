@@ -91,7 +91,7 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
         if (opts && opts.forcerOutil) return rep('');
         actifs++; maxActifs = Math.max(maxActifs, actifs);
         const trace = { id, system, messages: JSON.parse(JSON.stringify(messages)), opts, quand: horloge.t, fil: null, ecritPendant: conv.quiEcrit('reunions').map(x => x.id) }; trace.phase = phase(trace); appels.push(trace);
-        try { await dormir(2); if (o.avance) horloge.t += o.avance; return o.script ? await o.script(trace, appels.length) : rep('Voici mon point numéro ' + (++cpt) + '.'); }
+        try { await dormir(2); if (o.avance) horloge.t += o.avance; return o.script ? await o.script(trace, appels.length) : rep('Voici, numéro ' + (++cpt) + ', mon point.'); }
         finally { actifs--; }
       } };
     eq = EQ({ agents, conversations: conv, cerveau, faits: {}, memoire: id => reu ? reu.memoire(id) : '' });
@@ -271,7 +271,7 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
     const tout = H.appels.map(a => a.system + JSON.stringify(a.messages)).join('\n');
     vrai('⛔ aucun détail du journal, aucune adresse, aucun nom d’espace ne part chez Claude', !/SECRET-DETAIL-2884|exemple\.fr|secret-2884|DOS-000001/.test(tout));
     v('le prompt de réunion : la semaine, les participants, les seuls outils (fixer_objectifs), pas ceux de la messagerie', [/semaine 2026-W43/.test(H.appels[1].system), /Participants : Victor \(Chef d’orchestre\)/.test(H.appels[1].system), H.appels[1].opts.outils.map(o => o.name), /tes seuls outils sont fixer_objectifs : les autres outils de la messagerie ne sont pas disponibles/.test(H.appels[1].system)], [true, true, ['fixer_objectifs'], true]);
-    vrai('…la réflexion est demandée, et le tour de table voit le fil depuis l’ouverture (le message de Victor y est)', H.appels.slice(1, 4).every(a => a.opts.reflechir === true) && /\[Victor\] Voici mon point/.test(H.appels[2].messages[0].content));
+    vrai('…la réflexion est demandée, et le tour de table voit le fil depuis l’ouverture (le message de Victor y est)', H.appels.slice(1, 4).every(a => a.opts.reflechir === true) && /\[Victor\] Voici, numéro /.test(H.appels[2].messages[0].content));
     vrai('…un tour donne la parole sans citer d’office : « Ne cite personne » à l’ouverture comme à la conclusion', /Ne cite personne avec @/.test(H.appels[0].messages[0].content) && /Ne cite personne avec @/.test(H.appels[16].messages[0].content));
     vrai('…Inès a en plus la consigne de la qualité', /donnes aussi la qualité/.test(H.appels[15].messages[0].content) && !/donnes aussi la qualité/.test(H.appels[14].messages[0].content));
     v('⛔ la notification de Justin : le titre dit la réunion, le corps des NOMBRES (zéro objectif ici : personne n’a appelé l’outil)', H.pousses, [['Réunion du lundi terminée', '0 objectifs fixés par 0 agent. Compte rendu dans la Messagerie, « Réunions ».', '/tour.html#agents']]);
