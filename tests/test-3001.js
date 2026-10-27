@@ -73,9 +73,10 @@ const sans = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/
     vrai('   une réponse en forme : un seul appel', v.etat === 'ok' && J.vus.length === 1);
   }
   {
-    const J = juge(['Je trouve ce courriel incohérent.\nVERDICT : OK', 'VERDICT : ECHEC\nFAUTE : incoherent']);
+    /* (27 octobre 2026) `incoherent` sans phrase citée ne bloque plus (test-3082) : la rigueur de la relance se garde sur une autre faute du juge */
+    const J = juge(['Je trouve ce courriel robotique.\nVERDICT : OK', 'VERDICT : ECHEC\nFAUTE : ton_robotique']);
     const v = await CTRL.juger({ cerveau: J.cerveau, agent: 'lea', objet: 'Objet', corps: 'Bonjour,', contexte: [] });
-    vrai('   la relance est lue avec la même rigueur (un ÉCHEC reste un échec, ses fautes comprises)', v.etat === 'echec' && v.fautes.join() === 'incoherent');
+    vrai('   la relance est lue avec la même rigueur (un ÉCHEC reste un échec, ses fautes comprises)', v.etat === 'echec' && v.fautes.join() === 'ton_robotique');
   }
   const LEA = sans(fs.readFileSync(path.join(RACINE, 'server', 'agent-lea.js'), 'utf8'));
   vrai('⛔ Léa dit au juge d’où vient l’activité (indiquée, déduite du site, ou à déduire du nom)', /\(indiquée par l’inscrit\)/.test(LEA) && /\(déduite d’une recherche sur l’entreprise\)/.test(LEA) && /le courriel peut la déduire du nom de l’entreprise/.test(LEA));

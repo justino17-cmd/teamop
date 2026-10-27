@@ -177,7 +177,7 @@ const JUGE_SYSTEM = [
   'Quand le contexte dit que l’activité est DÉDUITE (ou non indiquée), le courriel a le droit de la déduire du nom de l’entreprise s’il le présente comme une déduction et invite à la corriger (« d’après votre nom, nous comprenons… ; précisez-nous votre activité si nous faisons erreur ») : c’est voulu, ce n’est ni incohérent ni inventé.',
   '',
   'FORMAT STRICT DE TA RÉPONSE, rien d’autre : une première ligne « VERDICT : OK » ou « VERDICT : ECHEC » ; si ECHEC, une ligne « FAUTE : <code> » par défaut constaté (codes de la liste ci-dessus uniquement).',
-  'Pour la faute fait_invente, et pour elle seule, ajoute juste après sa ligne une ligne « CITE : <la phrase du courriel, copiée MOT POUR MOT, 3 à 25 mots> » : la phrase qui affirme ce que l’OFFRE ne dit pas. Sans phrase copiée du courriel, pas de fait_invente.',
+  'Pour les fautes fait_invente et incoherent, et pour elles seules, ajoute juste après la ligne de la faute une ligne « CITE : <la phrase du courriel, copiée MOT POUR MOT, 3 à 25 mots> » : pour fait_invente, la phrase qui affirme ce que l’OFFRE ne dit pas ; pour incoherent, la phrase qui se contredit ou n’a pas de sens. Sans phrase copiée du courriel, pas de fait_invente ni d’incoherent.',
 ].join('\n');
 
 /* Lire la réponse du juge. Rend { etat:'ok' } | { etat:'echec', fautes:[codes] } | { etat:'indisponible' }. Tout ce qui n'a pas la forme fermée est « indisponible ». */
@@ -191,7 +191,7 @@ const NETTOIE_LIGNE = l => l.replace(/\*\*|__|`/g, '').replace(/^\s*(?:[-•>#*]
    `FAUTE : fait_invente`, et ne vaut que si la phrase est un FRAGMENT du courriel jugé (ses mots, à la casse, aux accents et à la ponctuation près) : le juge ne peut rien faire
    écrire de neuf à l'auteur ni à Justin — ce qui est relayé est du texte que l'auteur a lui-même écrit, nettoyé de tout ce qui n'est pas une lettre, un chiffre ou une ponctuation
    simple. Une citation qui n'est pas dans le courriel est écartée (la faute reste : on ne relâche rien) ; une ligne CITE ailleurs qu'après `fait_invente` rend la réponse « indisponible ». */
-const CITE_MOTS = [3, 25], CITE_MAX = 220;
+const CITE_MOTS = [3, 25], CITE_MAX = 220, CITES = ['fait_invente', 'incoherent'];
 function citationDe(brute, corps) {
   const t = String(brute || '').replace(/^[\s«"“”'’`]+|[\s»"“”'’`]+$/g, '').replace(/[^\p{L}\p{N} .,;:’'()€%\/-]/gu, ' ').replace(/\s+/g, ' ').trim();
   const n = (t.match(/\S+/g) || []).length;
@@ -203,7 +203,7 @@ function lireVerdict(texte, corps) {
   const lignes = String(texte || '').replace(/\r/g, '').split('\n').map(NETTOIE_LIGNE).filter(Boolean);
   const m = lignes.length ? /^VERDICT\s*:\s*(OK|ECHEC)\s*\.?$/i.exec(lignes[0]) : null;
   if (!m) return { etat: 'indisponible' };
-  const fautes = [], citations = [];
+  const fautes = [], citations = [], par = {};
   let derniere = '';
   for (const l of lignes.slice(1)) {
     const x = /^FAUTE\s*:\s*([a-z_]+)\s*\.?$/i.exec(l);
@@ -214,12 +214,18 @@ function lireVerdict(texte, corps) {
       continue;
     }
     const c = /^CITE\s*:\s*(.+)$/i.exec(l);
-    if (c && derniere === 'fait_invente') { const q = citationDe(c[1], corps); if (q && !citations.includes(q) && citations.length < 3) citations.push(q); continue; }
+    if (c && CITES.includes(derniere)) { const q = citationDe(c[1], corps); if (q && !citations.includes(q) && citations.length < 3) { citations.push(q); (par[derniere] = par[derniere] || []).push(q); } continue; }
     return { etat: 'indisponible' };
   }
-  const avec = o => (citations.length ? Object.assign(o, { citations }) : o);
-  if (m[1].toUpperCase() === 'OK') return fautes.length ? avec({ etat: 'echec', fautes }) : { etat: 'ok' };
-  return avec({ etat: 'echec', fautes: fautes.length ? fautes : ['jugement_defavorable'] });
+  /* ⛔ UN « INCOHÉRENT » SANS PHRASE NE BLOQUE PAS (examen du 27 octobre 2026, 19 h 07, scénario 6 : Brillance Services et Dupont Plomberie restés « à revoir » pour `incoherent`,
+     deux courriels justes — et rien ne disait OÙ était l'incohérence, donc la réécriture ne pouvait rien corriger). Le juge doit citer la phrase qui se contredit, un fragment
+     vérifié du courriel ; sans elle, la faute tombe. `fait_invente`, lui, garde sa règle : la faute reste même sans citation valable (on ne relâche rien sur un fait). */
+  const sansPreuve = fautes.includes('incoherent') && !(par.incoherent && par.incoherent.length);
+  const restent = sansPreuve ? fautes.filter(f => f !== 'incoherent') : fautes;
+  const avec = o => (citations.length ? Object.assign(o, { citations, citesPar: par }) : o);
+  if (m[1].toUpperCase() === 'OK') return restent.length ? avec({ etat: 'echec', fautes: restent }) : { etat: 'ok' };
+  if (sansPreuve && !restent.length) return { etat: 'ok' };
+  return avec({ etat: 'echec', fautes: restent.length ? restent : ['jugement_defavorable'] });
 }
 
 /* Le juge : `o` = { cerveau, agent, objet, corps, contexte (lignes de FAITS fermés, déjà propres), recu? (le texte reçu, déjà sans adresses ni numéros) }. */
@@ -259,17 +265,21 @@ async function controler(o) {
   if (o.sansJuge === true) return { etat: 'non_verifie', fautes: [], corps, juge: false, raison: 'juge non demandé' };
   const v = await juger({ cerveau: o.cerveau, agent: o.agent, objet: o.objet, corps, contexte: o.contexteJuge, recu: o.recu, connaissances: o.connaissances });
   if (v.etat === 'ok') return { etat: 'bon', fautes: [], corps, juge: true };
-  if (v.etat === 'echec') return Object.assign({ etat: 'a_revoir', fautes: v.fautes, corps, juge: true }, v.citations ? { citations: v.citations } : {});
+  if (v.etat === 'echec') return Object.assign({ etat: 'a_revoir', fautes: v.fautes, corps, juge: true }, v.citations ? { citations: v.citations, citesPar: v.citesPar } : {});
   return { etat: 'non_verifie', fautes: [], corps, juge: false, raison: v.raison || 'réponse du juge hors forme' };
 }
 
 /* Le message de RÉÉCRITURE : la demande d'origine, ce que l'auteur avait écrit, et la liste des fautes — des phrases du code. */
-function messagesReecriture(demande, precedent, codes, citations) {
+function messagesReecriture(demande, precedent, codes, citations, citesPar) {
   /* ⛔ LA PHRASE EN CAUSE (examen du 26 octobre 2026) : « ne garder que les faits de l'offre », sans dire où, ne suffisait pas — l'auteur réécrivait autour de la phrase fautive et elle
      revenait. Le juge la cite (un fragment du courriel, vérifié) : on la rend à l'auteur, avec la seule issue permise — les mots de l'OFFRE, ou la retirer. */
   const cites = (Array.isArray(citations) ? citations : []).filter(c => typeof c === 'string' && c).slice(0, 3);
-  const enCause = cites.length && (Array.isArray(codes) ? codes : []).includes('fait_invente')
-    ? ['', 'Phrase(s) du courriel concernée(s) par « fait_invente » : ' + cites.map(c => '« ' + K.delimiter(c) + ' »').join(' ; ') + '. Reprends-les avec les MOTS EXACTS de la liste de l’OFFRE (sans adjectif ni adverbe de plus : pas d’« automatiquement », de « centralisé »…), ou retire-les.'] : [];
+  let enCause = cites.length && (Array.isArray(codes) ? codes : []).includes('fait_invente')
+    ? ['', 'Phrase(s) du courriel concernée(s) par « fait_invente » : ' + ((citesPar && citesPar.fait_invente) || cites).map(c => '« ' + K.delimiter(c) + ' »').join(' ; ') + '. Reprends-les avec les MOTS EXACTS de la liste de l’OFFRE (sans adjectif ni adverbe de plus : pas d’« automatiquement », de « centralisé »…), ou retire-les.'] : [];
+  /* l'incohérence a sa phrase aussi (27 octobre 2026) : l'auteur sait QUOI reprendre */
+  if (!Array.isArray(enCause)) enCause = [];
+  if (citesPar && Array.isArray(citesPar.incoherent) && citesPar.incoherent.length && (Array.isArray(codes) ? codes : []).includes('incoherent'))
+    enCause.push('', 'Phrase(s) du courriel concernée(s) par « incoherent » : ' + citesPar.incoherent.slice(0, 3).map(c => '« ' + K.delimiter(c) + ' »').join(' ; ') + '. Reformule-les pour qu’elles soient cohérentes avec le reste du courriel, ou retire-les.');
   return [{ role: 'user', content: demande }, { role: 'assistant', content: String(precedent || '').slice(0, 12000) || '(aucun texte)' },
     { role: 'user', content: ['Relecture du serveur : le courriel ci-dessus a ces défauts, à corriger.'].concat(phrasesDe(codes).map(p => '- ' + p), enCause,
       ['', 'Réécris le courriel COMPLET en corrigeant ces défauts, sans rien changer d’autre, dans le même format (« Objet : … », une ligne vide, puis le corps de « Bonjour, » à « Bien cordialement, »).']).join('\n') }];
@@ -282,9 +292,9 @@ function messagesReecriture(demande, precedent, codes, citations) {
    Rend { etat:'bon'|'a_revoir'|'non_verifie'|'ignore'|'refuse'|'echec', objet, corps, fautes, reecrit:bool, juge:bool, raison? }.
    'refuse' : un défaut grave subsiste après la réécriture → rien n'est rangé. 'echec' : l'auteur n'a pas pu écrire (budget, panne). */
 async function produire(o) {
-  let precedent = null, codes = null, citations = null, dernier = null, reecrit = false;
+  let precedent = null, codes = null, citations = null, citesPar = null, dernier = null, reecrit = false;
   for (let tour = 0; tour < 2; tour++) {
-    const r = await o.ecrire(tour === 0 ? null : messagesReecriture(o.demande, precedent, codes, citations));
+    const r = await o.ecrire(tour === 0 ? null : messagesReecriture(o.demande, precedent, codes, citations, citesPar));
     if (!r || !r.ok) return { etat: 'echec', raison: (r && r.raison) || 'erreur', reecrit };
     const lu = K.lireMail(r.texte);
     if (lu && lu.ignorer) return { etat: 'ignore', reecrit };
@@ -295,7 +305,7 @@ async function produire(o) {
     if (c.citations) dernier.citations = c.citations;
     if (tour === 1) reecrit = true;
     if (c.etat !== 'a_revoir') return Object.assign(dernier, { reecrit });
-    codes = c.fautes; citations = c.citations || null;
+    codes = c.fautes; citations = c.citations || null; citesPar = c.citesPar || null;
   }
   if (dernier.fautes.some(estGrave)) return { etat: 'refuse', objet: dernier.objet, corps: dernier.corps, fautes: dernier.fautes, reecrit: true, raison: dernier.fautes.find(estGrave) };
   if (!dernier.objet) return { etat: 'refuse', objet: '', corps: '', fautes: dernier.fautes, reecrit: true, raison: 'forme' };
