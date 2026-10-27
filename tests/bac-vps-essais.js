@@ -38,6 +38,7 @@ function creerBac() {
     const d = path.join(FIX, sha);
     ecrire(path.join(d, 'server/index.js'), '// serveur ' + sha);
     ecrire(path.join(d, 'server/package.json'), '{"name":"teamop-api"}');
+    ecrire(path.join(d, 'recap-abonnement.html'), '<!-- page de paiement ' + sha + ' -->');
     for (const f of ['deployer-test.sh', 'install-test.sh', 'nginx-teamop-test.conf', 'caddy-teamop-test.caddy'])
       if (fs.existsSync(path.join(RACINE_DEPOT, 'server', f))) ecrire(path.join(d, 'server', f), fs.readFileSync(path.join(RACINE_DEPOT, 'server', f), 'utf8'), 0o755);
     /* Un FAUX créateur de tarifs : le vrai (server/stripe-essai-prix.js) parle à api.stripe.com, ce que le bac ne doit jamais faire — il est éprouvé par test-2990 contre un faux Stripe.
@@ -45,6 +46,8 @@ function creerBac() {
     ecrire(path.join(d, 'server/stripe-essai-prix.js'), `
 const fs = require('fs'), path = require('path');
 const C = process.env.TEAMOP_CONFIG, cfg = JSON.parse(fs.readFileSync(C, 'utf8'));
+const voisins = fs.existsSync(path.join(__dirname, 'index.js')) && fs.existsSync(path.join(__dirname, '..', 'recap-abonnement.html'));
+if (!voisins) { fs.appendFileSync(process.env.BAC_ETAT + '/log', 'prixessai sans-voisins\\n'); console.error('server/index.js illisible à côté de ce script (banc)'); process.exit(1); }
 fs.appendFileSync(process.env.BAC_ETAT + '/log', 'prixessai cfg=' + path.basename(C) + ' cle=' + /^(sk|rk)_test_/.test(String(cfg.stripe && cfg.stripe.secretKey)) + '\\n');
 if (fs.existsSync(process.env.BAC_ETAT + '/prix_echec')) { console.error('Stripe a refusé (banc)'); process.exit(1); }
 const t = {}; for (let i = 0; i < 10; i++) t['price_PROD' + i] = 'price_TEST' + i;
