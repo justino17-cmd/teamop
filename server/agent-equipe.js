@@ -319,6 +319,10 @@ module.exports = function agentEquipe(ctx) {
     if (a.nom === 'ecrire') {
       const fil = str('fil');
       if (!filsDe(id).includes(fil)) return refus('fil');
+      /* ⛔ UNE RÉPONSE, UN MESSAGE (examen du 27 octobre 2026 à 12 h 19, scénario 5) : Victor tranchait dans sa réponse, puis l'outil ecrire redisait la décision
+         DANS LE MÊME FIL (« @lea @camille Tranché : on combine… ») — deux messages pour un seul réveil, que l'examen lit comme un Victor qui se répète. Sa
+         réponse est déjà dans ce fil : un ecrire vers CE fil, après elle, ne s'écrit pas. Vers un AUTRE fil, il reste permis (c'est son rôle). */
+      if (fil === c.fil && c.dejaDit) return refus('deja_dit_ici');
       const t = raccourcir(masquer(str('texte')));
       if (!t) return refus('texte');
       const r = conversations.parler(id, fil, t, { niveau: 'info', prof: c.prof });
@@ -435,7 +439,7 @@ module.exports = function agentEquipe(ctx) {
         if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
       }
       for (const a of (Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
-        let x; try { x = await executer(id, a, { fil, d, prof }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
+        let x; try { x = await executer(id, a, { fil, d, prof, dejaDit: sortie.repondu }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
         sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison, ici: !!(x.ok && ((a.nom === 'ecrire' && a.entree && a.entree.fil === fil) || (a.nom === 'demander_justin' && fil === id))) });
       }
       /* ⛔ DES OUTILS ET PAS UN MOT À JUSTIN (examen du 24 octobre 2026, scénario 4) : priée de demander à Hugo et de rapporter sa réponse, Camille n'a rien dit
