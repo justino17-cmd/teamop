@@ -24,6 +24,6 @@ vrai('⛔ l’onglet Agents relevé sur place rend sa position, tout de suite pu
 vrai('…seulement si l’écran était déjà le même (même sous-onglet)', /cle='agents\/'\+AG\.sec/.test(ag) && /if\(meme&&y>0\)/.test(ag));
 vrai('⛔ ouvrir un onglet efface la marque AVANT de dessiner (la page part du haut)', ST.indexOf("removeAttribute('data-rendu')") > 0 && ST.indexOf("removeAttribute('data-rendu')") < ST.indexOf('render()'));
 vrai('…et un autre onglet efface la marque (revenir aux Agents n’est pas une relecture)', /if\(TAB!=='agents'\) v\.removeAttribute\('data-rendu'\)/.test(RV));
-vrai('la version de la Tour est montée (v2.113) aux quatre endroits', (fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8').match(/v2\.113/g) || []).length >= 4);
+vrai('la version de la Tour est montée (v2.113 ou plus) aux quatre endroits', (fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8').match(/v2\.11[3-9]/g) || []).length >= 4);
 console.log(`\ntest-3077 : ${ok} ✓ ${ko} ✗`);
 process.exit(ko ? 1 : 0);

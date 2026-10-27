@@ -180,7 +180,39 @@ def thread(valeur):
     return [m for m in t if isinstance(m, dict)] if isinstance(t, list) else []
 
 
-def fabriquer_releve(base, cles_yaml, maintenant=None, aujourdhui=None):
+CLES_VERIFICATEUR = ("REOON_API_KEY", "ZEROBOUNCE_API_KEY", "HUNTER_API_KEY")   # ce que Harvey (dashboard.py, « Email verification key ») accepte
+MAX_SIGNAUX = 40
+
+
+def colonnes(base, table):
+    return {r[1] for r in base.execute("PRAGMA table_info(" + table + ")")}
+
+
+def lire_attentes(base, ts, env):
+    """CE QUI ATTEND JUSTIN (Tour v2.114) : ce que le tableau de bord de Harvey met dans « Needs you », lu ici pour que la Tour le dise en français.
+    · verificateur : une clé de vérification des adresses est-elle posée ? Sans elle, Harvey laisse les adresses en « guess » et n'écrit JAMAIS (dashboard.py).
+      On n'envoie que OUI/NON — jamais la clé, ni son nom de fournisseur. `env` à None (banc, essai sans .env) : la question n'est pas posée ;
+    · signaux : les critères que Harvey PROPOSE et que Justin doit confirmer (`signal_codes.status`) — rien n'est collecté sur un signal non confirmé ;
+    · adresses : les adresses trouvées, vérifiées ou pas (`prospects.email_status`, la même lecture que l'étape « Check emails are real »)."""
+    att = {}
+    if env is not None:
+        att["verificateur"] = any((env.get(k) or "").strip() for k in CLES_VERIFICATEUR)
+    if "signal_codes" in ts:
+        par = {}
+        for r in base.execute("SELECT status, COUNT(*) AS n FROM signal_codes GROUP BY status"):
+            par[(r["status"] or "proposed").lower()] = r["n"]
+        proposes = lignes(base, True, "SELECT code, label, description FROM signal_codes WHERE COALESCE(status, 'proposed') = 'proposed' ORDER BY code LIMIT ?", (MAX_SIGNAUX,))
+        att["signaux"] = {"proposes": par.get("proposed", 0), "confirmes": par.get("confirmed", 0), "rejetes": par.get("rejected", 0),
+                          "liste": [{"code": reduire(x["code"], 64), "libelle": reduire(x["label"] or x["code"], 120), "description": reduire(x["description"], 300)} for x in proposes]}
+    if "prospects" in ts and "email_status" in colonnes(base, "prospects"):
+        n = {"verified": 0, "risky": 0, "invalid": 0, "autre": 0}
+        for r in base.execute("SELECT LOWER(COALESCE(NULLIF(email_status, ''), 'guess')) AS s, COUNT(*) AS c FROM prospects WHERE COALESCE(email, '') <> '' GROUP BY s"):
+            n[r["s"] if r["s"] in n else "autre"] += r["c"]
+        att["adresses"] = {"verifiees": n["verified"], "risquees": n["risky"], "invalides": n["invalid"], "aConfirmer": n["autre"]}
+    return att
+
+
+def fabriquer_releve(base, cles_yaml, maintenant=None, aujourdhui=None, env=None):
     """Le relevé (dict) d'après la base ouverte. `maintenant` : datetime UTC conscient (le banc le fixe)."""
     maintenant = maintenant or datetime.now(timezone.utc)
     local = maintenant.astimezone()
@@ -345,7 +377,8 @@ def fabriquer_releve(base, cles_yaml, maintenant=None, aujourdhui=None):
 
     return {"version": VERSION, "genereLe": iso(maintenant), "chauffe": calculer_chauffe(cles_yaml, aujourdhui),
             "jour": {"date": aujourdhui.isoformat(), "envoyes": envoyes, "envoyesFroid": envoyes_froid, "reponses": vues_aujourdhui, "refus": refus_jour, "enAttente": en_attente},
-            "recherches": recherches, "entreprises": entreprises, "courriels": courriels, "reponses": reponses[:MAX["reponses"]]}
+            "recherches": recherches, "entreprises": entreprises, "courriels": courriels, "reponses": reponses[:MAX["reponses"]],
+            "attentes": lire_attentes(base, ts, env)}
 
 
 def alleger(releve):
@@ -468,7 +501,7 @@ def principal(argv=None):
 
     base = ouvrir_base(chemin_base)
     try:
-        releve = alleger(fabriquer_releve(base, lire_cles_yaml(reglages)))
+        releve = alleger(fabriquer_releve(base, lire_cles_yaml(reglages), env=lire_env(env)))
     except sqlite3.Error as e:
         raise Sortie(BASE, "lecture de la base de Harvey impossible (" + type(e).__name__ + ")")
     finally:

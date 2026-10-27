@@ -2269,6 +2269,18 @@ body.plans .reg-l.cli::before{display:none}
 .pa-txt>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--acc-txt);font-size:13px;font-weight:600}
 .pa-corps{margin:0 0 6px;padding:10px 12px;border-radius:var(--r-3);background:var(--inset);font:inherit;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text2)}
 .pa-tout{align-self:flex-start;margin:0 0 8px}
+.pa-att{margin:4px 0 10px;padding:12px 14px;border-radius:var(--r-3);background:var(--inset);display:flex;flex-direction:column;gap:10px}
+.pa-att-t{margin:0;font-size:13px;font-weight:700;letter-spacing:.01em;color:var(--text)}
+.pa-att-l{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.pa-att-l>i{flex:none;width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--muted)}
+.pa-att-l[data-g=bloque]>i{background:var(--redText)}
+.pa-att-l[data-g=faire]>i{background:var(--amber)}
+.pa-att-l[data-g=ok]>i{background:var(--acc-txt)}
+.pa-att-l>div>b{display:block;font-size:14px;font-weight:650;line-height:1.35;color:var(--text)}
+.pa-att-l span b{font-weight:650;color:var(--text)}
+.pa-att-l span{display:block;margin-top:2px;font-size:13px;line-height:1.45;color:var(--text2);overflow-wrap:anywhere}
+.pa-att .pa-det{border-top:0}
+.pa-ouvrir{align-self:flex-start;min-height:44px;display:inline-flex;align-items:center;font-size:13.5px;font-weight:650;color:var(--acc-txt);text-decoration:none}
 .ag-voir p{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
 @container aglg (min-width:640px){
   .ag-rang{grid-template-columns:minmax(0,1fr) 264px auto;grid-template-areas:"id seg parler";gap:10px 16px}
@@ -3322,7 +3334,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.113</div>
+    <div class="lg-pied">console interne · v2.114</div>
   </div>
 </div>
 
@@ -3364,7 +3376,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.113</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.114</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3376,7 +3388,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.113</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.114</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3683,7 +3695,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.113';
+var TOUR_VERSION='v2.114';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -11232,12 +11244,35 @@ function paLigne(k,x,i,idx){
       (tx?'<details class="pa-txt"'+(cle&&PA.texte[cle]?' open':'')+' ontoggle="agPaTexte('+i+',this.open)"><summary>Le texte</summary><pre class="pa-corps">'+esc(tx)+'</pre></details>':'')+'</div>'; }
   return '<div class="pa-r"><div class="pa-t">'+paNom(idx,x.entrepriseId)+' · '+paMot(PA_E_REP,x.nature)+'</div><div class="pa-s">'+paT(x.resume,400)+(q?' · '+esc(q):'')+'</div></div>';
 }
+/* ══ CE QUI T'ATTEND CHEZ PAULINE (Tour v2.114) ══ Justin, 27 octobre 2026 : le tableau de bord de Harvey est en anglais (« c'est un peu compliqué »). Le relevé du Mac porte
+   désormais `attentes` (outils/pauline-releve.py, `lire_attentes`) : la clé de vérification des adresses (OUI/NON), les critères proposés, les adresses à vérifier — et
+   `jour.enAttente`, les courriels à accepter. Cet écran les DIT en français, dans l'ordre où ils bloquent, avec où cliquer dans Harvey. Il ne pilote rien : les gestes
+   restent dans Harvey, sur le Mac.
+   · ⛔ « Inconnu » n'est pas « rien à faire » : un relevé sans `attentes` (script du Mac pas encore à jour) le DIT, au lieu d'afficher « rien ne t'attend ».
+   · Les libellés des critères viennent de Harvey (en anglais) : ce sont des DONNÉES, échappées ; la phrase qui les entoure est en français. */
+function paAttentesHtml(r){
+  var at=paObj(r)&&paObj(r.attentes)?r.attentes:null;
+  if(!at) return '<div class="pa-att"><p class="pa-att-t">Ce qui t’attend</p><div class="pa-att-l"><i aria-hidden="true"></i><div><b>Pas encore lu</b><span>Le relevé de ton Mac est d’une version plus ancienne : mets-le à jour pour voir ici ce que Pauline attend de toi.</span></div></div></div>';
+  var L=[], sg=paObj(at.signaux)?at.signaux:null, ad=paObj(at.adresses)?at.adresses:null, j=paObj(r.jour)?r.jour:{};
+  var ligne=function(g,t,d){ L.push('<div class="pa-att-l" data-g="'+g+'"><i aria-hidden="true"></i><div><b>'+t+'</b><span>'+d+'</span></div></div>'); };
+  if(at.verificateur===false) ligne('bloque','Clé de vérification des adresses : manquante','Sans elle, Pauline n’envoie <b>aucun</b> courriel : Harvey ne vérifie pas les adresses, donc il n’écrit pas. Crée un compte gratuit sur reoon.com (600 vérifications par mois), copie ta clé API, puis colle-la dans Harvey → <b>Settings</b> (« Réglages »), champ Reoon. Ne la colle jamais ailleurs.');
+  var np=sg?paNb(sg.proposes):null;
+  if(np) ligne('faire',np+' critère'+(np>1?'s':'')+' à valider','Harvey ne cherche rien sur un critère que tu n’as pas validé. Dans Harvey → <b>Signals</b>, garde ceux qui décrivent un bon client pour TeamOP et refuse les autres.'+
+    (Array.isArray(sg.liste)&&sg.liste.length?'</span><details class="ag-voir pa-det"><summary>Les critères proposés</summary><div class="pa-liste">'+sg.liste.filter(paObj).map(function(x){ return '<div class="pa-r"><div class="pa-t">'+paT(x.libelle,120)+'</div>'+(x.description?'<div class="pa-s">'+paT(x.description,300)+'</div>':'')+'</div>'; }).join('')+'</div></details><span>':''));
+  var na=ad?paNb(ad.aConfirmer):null;
+  if(na) ligne(at.verificateur===false?'bloque':'faire',na+' adresse'+(na>1?'s':'')+' à vérifier',at.verificateur===false?'Elles attendent la clé de vérification (ci-dessus).':'Harvey les vérifie au fil de la journée ; il n’écrit qu’aux adresses vérifiées.');
+  var ne=paNb(j.enAttente);
+  if(ne) ligne('faire',ne+' courriel'+(ne>1?'s':'')+' à accepter','Lis-les dans Harvey → <b>Outbox</b>, puis accepte ou refuse chacun. Rien ne part sans ton accord.');
+  if(!L.length) ligne('ok','Rien ne t’attend','Pauline a tout ce qu’il lui faut. Les courriels à accepter apparaîtront ici.');
+  return '<div class="pa-att"><p class="pa-att-t">Ce qui t’attend</p>'+L.join('')+'<a class="pa-ouvrir" href="http://127.0.0.1:5555/" target="_blank" rel="noopener">Ouvrir Harvey (sur ton Mac)</a></div>';
+}
 function agPaulineHtml(){
   var h='<p class="ag-ext-note">Elle ne se pilote pas d’ici : ses accords d’envoi se donnent dans son tableau de bord, sur ton Mac.</p>';
   if((PA.lec===-2||PA.lec===-3)&&PA.err) h+='<p class="ag-ext-note">'+esc(PA.err)+'</p>';
   var r=PA.lec===1&&PA.d&&PA.d.recuLe&&paObj(PA.d.releve)?PA.d.releve:null;
   if(!r) return h;
   var ch=paChiffres(r), cf=paChauffe(r);
+  h+=paAttentesHtml(r);
   if(ch) h+='<p class="pa-ligne">'+ch+'</p>'; else h+='<p class="pa-ligne">Chiffres du jour : non transmis.</p>';
   if(cf) h+='<p class="pa-ligne">'+esc(cf)+'</p>';
   var idx=Object.create(null); paListe(r,'entreprises','majLe').forEach(function(e){ if(typeof e.id==='string'||typeof e.id==='number') idx[String(e.id)]=e; });
