@@ -82,6 +82,9 @@ try{
   .mdp-oeil[aria-pressed="true"]{color:var(--m-link)}
   /* au doigt, l'œil prend les 44 px que le champ (48) lui laisse */
   @media (pointer:coarse){.mdp-oeil{width:44px;height:44px;right:2px}}
+  /* Un lien de texte est petit (12,5 à 14 px) : au doigt, sa zone grandit jusqu'à 44 px SANS bouger la mise en page (marge négative). Audit des appareils,
+     26 octobre 2026 : « Mot de passe oublié ? » répondait sur 16 px de haut. */
+  @media (pointer:coarse){.lien-doigt{display:inline-block;padding:15px 10px;margin:-15px -10px}}
   /* Le remplissage automatique de Safari peint les champs en jaune : on repeint par-dessous avec le fond du
      champ et l'encre du thème, dans les deux modes. */
   input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-text-fill-color:var(--m-text);caret-color:var(--m-text);-webkit-box-shadow:0 0 0 1000px var(--m-tile) inset;box-shadow:0 0 0 1000px var(--m-tile) inset;transition:background-color 9999s ease-out 0s}
@@ -459,7 +462,7 @@ try{
       <span class="fleche">›</span>
     </a>
   </div>
-  <div id="lien-espace-client" style="margin-top:18px;display:none"><a href="/apercu/espace.html" style="color:var(--m-link);font-size:14px;text-decoration:none">👤 Espace client TeamOP (abonnement, factures)</a></div>
+  <div id="lien-espace-client" style="margin-top:18px;display:none"><a href="/apercu/espace.html" class="lien-doigt" style="color:var(--m-link);font-size:14px;text-decoration:none">👤 Espace client TeamOP (abonnement, factures)</a></div>
   <div class="note">💡 Chaque entreprise a son adresse : <b>teamop.fr/e/son-nom</b>. Donne-la à tes équipes — identifiant et mot de passe suffisent, sur n'importe quel téléphone.<br><a href="/apercu/site/index.html?hub=1">← Revenir au site TeamOP</a> · <a href="/apercu/connexion.html?choix=1">Changer d'application</a></div>
 <div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
 </html>
