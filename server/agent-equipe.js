@@ -144,6 +144,19 @@ const MOTIFS_PASSER = {
 };
 
 const RAS = /^\s*RAS\s*\.?\s*$/i;
+/* LES TICS DE GROUPE (examen du 27 octobre 2026, 14 h 49, scénario 9) : à « @tous, une idée ? », quatre agents « plussoyaient Léa » et trois ouvraient par
+   « Côté X, ça m'arrange… ». Inès l'a jugé, à raison : une formule toute faite, recyclée. Une réponse de GROUPE qui approuve un collègue au lieu d'apporter le
+   sien, ou qui ouvre comme un collègue vient d'ouvrir (même tic d'ouverture), est redemandée UNE fois, sans outil (`ticDeGroupe`). */
+const APPROUVE = /\b(?:je\s+)?plussoie|\bje\s+(?:rejoins|confirme\s+(?:ce\s+que|l['’]int[ée]r[êe]t|les\s+propos|l['’]id[ée]e))|\bcomme\s+(?:le\s+dit|l['’]a\s+dit|dit)\s+@?[\p{L}]+|\bd['’]accord\s+avec\s+@?[\p{L}]+|\bje\s+suis\s+(?:tout\s+[àa]\s+fait\s+)?d['’]accord\b|\bje\s+valide\s+(?:l['’]id[ée]e|ce\s+que)/iu;
+const OUVERTURES = /^\s*(?:c[ôo]t[ée]|du\s+c[ôo]t[ée]|de\s+mon\s+c[ôo]t[ée]|niveau|pour\s+ma\s+part|chez\s+moi|moi\s+aussi|tout\s+[àa]\s+fait|enti[èe]rement|pareil)(?=[\s,:;.!]|$)/i;   /* pas de \b : après « é », \b ne voit pas la fin du mot */
+function ouvertureDe(t) { const m = OUVERTURES.exec(String(t || '').replace(/^\s*@[\p{L}\p{N}_]+[\s,:]*/u, '')); return m ? m[0].trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : ''; }
+/* Rend la raison du tic (texte pour la redemande) ou '' : `autres` = ce que les COLLÈGUES ont déjà répondu au même message, dans ce fil. */
+function ticDeGroupe(texte, autres) {
+  if (APPROUVE.test(texte)) return 'tu approuves un collègue au lieu d’apporter ce qui t’est propre';
+  const o = ouvertureDe(texte);
+  if (o && autres.some(a => ouvertureDe(a) === o)) return 'tu ouvres comme un collègue vient d’ouvrir (« ' + o + ' … »)';
+  return '';
+}
 
 module.exports = function agentEquipe(ctx) {
   const { agents, conversations, cerveau } = ctx;
@@ -190,6 +203,7 @@ module.exports = function agentEquipe(ctx) {
       '- Ne répète jamais une adresse électronique ni un numéro de téléphone.\n' +
       '- Réponse courte : 600 caractères au plus, concrète, comme un collègue qui parle — sans titre ni liste à puces, sans formule toute faite.\n' +
       '- Les messages sans crochet sont ceux de Justin ; ceux qui commencent par « [Nom a écrit dans le fil …] » sont ceux de tes collègues.\n' +
+      '- Dans un groupe, quand des collègues ont déjà répondu : tu apportes ce qui est PROPRE à ton rôle, avec tes mots. Tu n’approuves pas un collègue (« je plussoie », « je confirme ce que dit… », « d’accord avec… ») et tu ne reprends pas sa tournure d’ouverture (« Côté … »). Si tu n’as rien de propre à ajouter à une question posée à tous, tu réponds exactement « RAS ».\n' +
       '- Une question reçoit TA réponse, à toi qui es interrogé : tu ne la passes jamais à un collègue. Un message qui te cite n’est pas forcément une tâche : tu lis, tu comprends, et tu décides — répondre, prendre le travail, ou demander une précision.\n' +
       '- Un TRAVAIL que Justin te confie (« prépare », « fais », « rédige », « trouve », avec ou sans délai) se prend : outil prendre, même s’il te manque une information. Tu dis alors ce qui te manque et tu poses ta question DANS LE MÊME message — prendre le travail et demander une précision ne s’excluent pas. Tu ne réponds jamais à un travail de Justin par une question seule.\n' +
       '- Tu réponds toujours par un message, même court, avant ou avec tes outils. Une seule exception : un COLLÈGUE te cite seulement pour t’informer (une décision prise, un merci, « rien ne change pour toi ») et tu n’as rien à ajouter — tu réponds alors exactement « RAS » et rien d’autre ; tes outils, eux, s’appliquent. Pour parler à un collègue, cite-le dans ton message avec @ suivi de son identifiant (par exemple @lea) : c’est ainsi qu’il le lit. @tous cite tout le fil.\n' +
@@ -433,9 +447,26 @@ module.exports = function agentEquipe(ctx) {
       const sortie = { repondu: false, actions: [] };
       /* « RAS » à un COLLÈGUE qui ne faisait qu'informer (une décision, un merci) : rien n'est écrit — sinon chaque décision de Victor appelait un « Bien noté » de
          chacun (examen du 24 octobre). À Justin, un « RAS » s'écrit tel quel : une question de lui ne reste jamais sans trace. */
-      if (r.texte && RAS.test(r.texte) && d.de !== 'justin') sortie.ras = true;
-      else if (r.texte) {
-        const dit = conversations.parler(id, fil, raccourcir(masquer(r.texte)), { niveau: 'info', prof });
+      /* « RAS » à une question posée à TOUS (@tous, @équipe) : rien n'est écrit non plus — les collègues qui ont à dire répondent, la question a sa trace. */
+      const aTous = d.de === 'justin' && /(^|[\s,(])@(?:tous|[ée]quipe)\b/i.test(String(d.texte || ''));
+      let texteFinal = r.texte;
+      if (texteFinal && !RAS.test(texteFinal) && conversations.membres(fil).length > 1) {
+        const lus2 = conversations.lire(fil, 50), i0 = d.id ? lus2.findIndex(x => x.id === d.id) : -1;
+        const autres = i0 < 0 ? [] : lus2.slice(i0 + 1).filter(x => x.de !== id && x.de !== 'justin' && x.de !== 'systeme').map(x => String(x.texte || ''));
+        const tic = ticDeGroupe(texteFinal, autres);
+        if (tic) {
+          const suite = messages.map(m => Object.assign({}, m)), fin = suite[suite.length - 1];
+          const relance = 'Ta réponse ne passe pas : ' + tic + '. Réécris-la, sans outil, en apportant ce qui est propre à ton rôle, avec tes mots et une autre ouverture. Si tu n’as rien de propre à ajouter, réponds exactement « RAS ».\n\nTa réponse refusée : « ' + affichable(texteFinal, 600) + ' »';
+          if (fin && fin.role === 'user') fin.content += '\n\n' + relance; else suite.push({ role: 'user', content: relance });
+          let r3 = null;
+          try { r3 = await cerveau.penser(id, system, suite, { reflechir: true }); } catch (err) { r3 = null; }
+          if (r3 && r3.ok && r3.texte && (RAS.test(r3.texte) || !ticDeGroupe(r3.texte, autres))) texteFinal = r3.texte;
+          else if (aTous) texteFinal = 'RAS';   /* à une question posée à tous, un tic qui résiste à la redemande se tait : les autres ont répondu */
+        }
+      }
+      if (texteFinal && RAS.test(texteFinal) && (d.de !== 'justin' || aTous)) sortie.ras = true;
+      else if (texteFinal) {
+        const dit = conversations.parler(id, fil, raccourcir(masquer(texteFinal)), { niveau: 'info', prof });
         if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
       }
       for (const a of (Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
@@ -495,3 +526,5 @@ module.exports.PERSO = PERSO;
 module.exports.PROF_MAX = PROF_MAX;
 module.exports.REVEILS_AGENT_MAX = REVEILS_AGENT_MAX;
 module.exports.FORME_DOSSIER = FORME_DOSSIER;
+module.exports.ticDeGroupe = ticDeGroupe;
+module.exports.APPROUVE = APPROUVE;
