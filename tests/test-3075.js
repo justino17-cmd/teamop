@@ -111,6 +111,13 @@ const U = (a, m, j, h, mi) => Date.UTC(a, m - 1, j, h, mi || 0);
     vrai('une redemande qui recommence pareil : la première version part quand même (on ne perd pas une parole pour une tournure)', tours.length >= 10 && tours.every(m => m.texte === PAREIL), tours.length);
   }
   {
+    /* une seconde version DIFFÉRENTE qui recommence pareil : elle n'apporte rien, la première part (sans la garde, la variante passerait) */
+    const H = await monter({ depart: VENDREDI, script: bilan(t => rep('Chez moi aussi, ' + t.id + ' : journal à zéro.')) });
+    await H.tic();
+    const tours = H.messages().filter(m => m.de !== 'systeme' && m.de !== 'victor');
+    vrai('…une seconde version qui recommence pareil (même avec d’autres mots ensuite) n’est pas prise : la première part', tours.length >= 10 && tours.every(m => m.texte === PAREIL), JSON.stringify(tours.slice(0, 3).map(m => m.texte)));
+  }
+  {
     const H = await monter({ depart: VENDREDI, script: bilan(() => ({ ok: false, raison: 'erreur_api' })) });
     await H.tic();
     vrai('…une redemande en panne aussi', H.messages().filter(m => m.de !== 'systeme' && m.de !== 'victor' && m.texte === PAREIL).length >= 10);
