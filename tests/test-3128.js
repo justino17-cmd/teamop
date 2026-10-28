@@ -27,7 +27,9 @@ const ANTI = /nuisible|dératis|désinsect|rongeur|biocide|certibiocide|\bAMM\b|
 const { N } = lire('app.html');
 const METIERS = evalue(litteral(N, 'const METIERS={'));
 const DEFS = evalue(litteral(N, 'const DOCM_DEFS=[').replace(/DOCM_TVA/g, 'null').replace(/DOCM_OUI/g, 'null'));
-const DEFS_REEL = (() => { const W = monter({ metier: 'plomberie', db: {} }); return vm.runInContext('DOCM_DEFS', W); })();
+const DEFS_TOUS = (() => { const W = monter({ metier: 'plomberie', db: {} }); return vm.runInContext('DOCM_DEFS', W); })();
+/* v779 (suite) : le modèle commun sert désormais les 21 métiers (test-3129) ; CE banc garde le chauffage et la plomberie, donc les définitions qui les servent */
+const DEFS_REEL = DEFS_TOUS.filter(d => d.metiers.includes('plomberie') || d.metiers.includes('chauffage'));
 
 const BASE = () => ({
   clients: [{ id: 'c1', nom: 'M. et Mme Durand', adresse: '3 allée des Chênes', cp: '17000', ville: 'La Rochelle', email: 'durand@test.test' },
@@ -44,7 +46,7 @@ const ouvre = (W) => { W.__els['docm-champs'] = {}; W.__els['docm-tot'] = {}; };
 /* des valeurs plausibles pour chaque champ d'une définition (jamais un « ? ») */
 function remplit(W, def, plus) {
   const w = W.docmW;
-  def.champs.forEach(c => { if (c.t === 'lignes') return; if (w.v[c.k]) return;
+  W.docmChamps(def).forEach(c => { if (c.t === 'lignes' || c.t === 'tableau') return; if (w.v[c.k]) return;
     if (c.t === 'choix') w.v[c.k] = c.options[0][0]; else if (c.t === 'date') w.v[c.k] = '2026-10-28'; else if (c.t === 'nombre') w.v[c.k] = '6'; else if (c.t === 'heure') w.v[c.k] = '09:15';
     else if (c.t === 'appareil') w.v[c.k] = 'a1'; else w.v[c.k] = 'Valeur → test ✓ «é» 😀'; });
   if (def.lignes) w.lignes = [{ id: 'l1', d: 'Mitigeur → ✓ 😀', pu: '89', u: 'pièce', q: '1' }];
@@ -59,7 +61,7 @@ vrai('le bloc DOCUMENTS DU MÉTIER est trouvé dans app.html (' + BLOC_DOCM.leng
 egal('sept définitions : devis, note, étanchéité, suivi gaz, vignette, certification TVA, amiante', DEFS_REEL.map(d => d.id), ['devis-depannage', 'note-depannage', 'rapport-etancheite', 'suivi-gaz', 'suivi-vignette', 'tva-reduite', 'suivi-amiante']);
 vrai('chaque définition : un identifiant unique, des métiers connus, un titre, un droit, des champs lus dans la même table', DEFS_REEL.every(d => d.id && d.metiers.every(m => METIERS[m]) && d.titre && d.court && d.pdfTitre && ['ventes', 'crm', 'int'].includes(d.droit) && d.champs.length > 5 && d.pied)
   && new Set(DEFS_REEL.map(d => d.id)).size === DEFS_REEL.length);
-vrai('chaque champ : une clé simple, un type connu, un libellé ; une clé n\'est pas déclarée deux fois', DEFS_REEL.every(d => d.champs.every(c => /^[a-zA-Z]+$/.test(c.k) && ['texte', 'long', 'date', 'heure', 'nombre', 'choix', 'appareil', 'lignes'].includes(c.t) && c.l) && new Set(d.champs.map(c => c.k)).size === d.champs.length));
+vrai('chaque champ : une clé simple, un type connu, un libellé ; une clé n\'est pas déclarée deux fois', DEFS_REEL.every(d => d.champs.every(c => /^[a-zA-Z]+$/.test(c.k) && ['texte', 'long', 'date', 'heure', 'nombre', 'choix', 'appareil', 'lignes', 'tableau'].includes(c.t) && c.l) && new Set(d.champs.map(c => c.k)).size === d.champs.length));
 vrai('chaque choix porte ses options ; chaque condition (`si`) vise un champ qui existe', DEFS_REEL.every(d => d.champs.every(c => (c.t !== 'choix' || c.options.length >= 2) && (!c.si || d.champs.some(x => x.k === c.si.k)))));
 vrai('⛔ une mention : un texte, une source, un `verifie` booléen — et une phrase `pdf` SEULEMENT sur une mention lue à sa source', DEFS_REEL.every(d => (d.mentions || []).every(m => m.texte && m.source && typeof m.verifie === 'boolean' && (m.pdf === undefined || (m.verifie === true && typeof m.pdf === 'string' && m.pdf.length > 20)))));
 vrai('les défauts de TVA et de statut sont des options qui existent', DEFS_REEL.every(d => d.champs.every(c => c.def === undefined || c.t !== 'choix' || c.options.some(o => o[0] === c.def))));
@@ -67,8 +69,8 @@ vrai('une définition à lignes a un champ « lignes » ET un taux de TVA (les t
 
 console.log('\n── 3128 · 1. ⛔ une seule porte : metierGereDocs ──');
 { const ordre = evalue(litteral(N, 'const METIERS_ORDRE=['));
-  egal('vrai pour le chauffage et la plomberie seuls', ordre.map(m => [m, mk(m).metierGereDocs()]).filter(x => x[1]).map(x => x[0]).sort(), ['chauffage', 'plomberie']);
-  for (const m of ['3d', 'nettoyage', 'electricite', 'froid', 'piscine', 'autre', 'multiservices']) {
+  egal('vrai pour les 21 métiers qui ont des documents (tous sauf la 3D et le nettoyage, dont les documents sont ceux du bloc NETTOYAGE)', ordre.map(m => [m, mk(m).metierGereDocs()]).filter(x => !x[1]).map(x => x[0]).sort(), ['3d', 'nettoyage']);
+  for (const m of ['3d', 'nettoyage']) {
     const W = mk(m); W.docmForm('devis-depannage', { cid: 'c1' }); W.docmForm('suivi-gaz', { cid: 'c1' });
     vrai(m + ' : aucun formulaire ne s\'ouvre', W.__modals.length === 0, W.__modals.length);
     egal(m + ' : ni section client, ni carte d\'intervention, ni démonstration', [W.docmSectionClient(BASE().clients[0]), W.docmIntCard(BASE().interventions[0], true), (W.docmDemoPoser(['c1']), W.db.docsMetier.length)], ['', '', 0]); } }
@@ -84,7 +86,7 @@ for (const [metier, defs] of [['plomberie', ['devis-depannage', 'note-depannage'
     const def = DEFS_REEL.find(d => d.id === id), W = mk(metier);
     W.docmForm(id, { cid: 'c1', iid: def.portee === 'intervention' ? 'i1' : '' });
     const h = W.__modals[0] || '';
-    vrai(metier + ' / ' + id + ' : le formulaire s\'ouvre, chaque champ visible y est (' + def.champs.filter(c => !c.si).length + ')', W.__modals.length === 1 && def.champs.filter(c => !c.si).every(c => h.indexOf('id="docm-' + c.k + '"') >= 0 || c.t === 'lignes' && h.indexOf('id="docm-lignes"') >= 0), def.champs.filter(c => !c.si && h.indexOf('id="docm-' + c.k + '"') < 0).map(c => c.k));
+    vrai(metier + ' / ' + id + ' : le formulaire s\'ouvre, chaque champ visible y est (' + W.docmChamps(def).filter(c => !c.si).length + ')', W.__modals.length === 1 && W.docmChamps(def).filter(c => !c.si).every(c => h.indexOf('id="docm-' + c.k + '"') >= 0 || c.t === 'lignes' && h.indexOf('id="docm-lignes"') >= 0), def.champs.filter(c => !c.si && h.indexOf('id="docm-' + c.k + '"') < 0).map(c => c.k));
     vrai('   rien n\'est écrit à l\'ouverture, l\'aide du document et ses sources sont là, aucun mot d\'anti-nuisibles', W.__saves === 0 && W.db.docsMetier.length === 0 && h.indexOf(def.aide.slice(0, 40).replace(/&/g, '&amp;')) >= 0 && /Repères réglementaires et sources/.test(h) && !ANTI.test(h.replace(/Aqua/g, '')), h.match(ANTI));
     const R = mk(metier, { droits: { [def.droit + '.ajouter']: false } }); R.docmForm(id, { cid: 'c1' });
     vrai('   sans la case « ' + def.droit + ' · ajouter », le formulaire ne s\'ouvre pas et le dit', R.__modals.length === 0 && R.__toasts.some(t => /n.est pas autorisé/.test(t)));
