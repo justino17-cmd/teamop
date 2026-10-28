@@ -91,6 +91,18 @@ const compte = (t, motif) => (String(t).match(motif) || []).length;
     vrai('la consigne envoyée à Claude porte les règles', Z.recus.length > 0 && /RÈGLES DE LA PROSPECTION EN FRANCE/.test(JSON.stringify(Z.recus[0].system)), Z.recus.length);
   }
   {
+    /* la demande d'application RÉÉCRIT le brouillon qui attend (test-2862 § 5) : le texte réécrit porte la phrase lui aussi, une seule fois */
+    let n = 0;
+    const Z = monter({ modes: { lea: 'brouillon' }, claude: () => { n++; return n === 1 ? COURRIEL_TOKA : COURRIEL_TOKA.replace('Nous avons bien noté', 'Nous avons bien relevé'); } });
+    const ADR = 'gerant@toka-3141d.fr';
+    const r1 = await Z.lea.surInscription({ entreprise: 'Toka Clim', email: ADR });
+    const r2 = await Z.lea.surDemande({ email: ADR, entreprise: 'Toka Clim', metier: 'chauffage', users: '5', formule: 'pro', besoin: 'planning' });
+    v('la demande réécrit le brouillon (même référence)', [r2.reecrit, r2.ref], [true, r1.ref]);
+    const b = (await Z.appeler('GET /api/monitor/agents/brouillons', { tourUser: Z.COLLAB, query: { refs: r1.ref } })).corps[r1.ref];
+    vrai('⛔ le texte RÉÉCRIT est bien celui de la seconde réponse de Claude', /Nous avons bien relevé/.test(b.texte), b.texte.slice(0, 200));
+    v('⛔ …et il porte la phrase d’opposition UNE fois, avant « Bien cordialement, »', [compte(b.texte, /répondez simplement « stop »/g), b.texte.endsWith(L + '\n\nBien cordialement,')], [1, true]);
+  }
+  {
     /* un courriel qui annonce une relance est réécrit une fois ; la réécriture en reçoit la raison */
     let n = 0;
     const AVEC = COURRIEL_TOKA.replace('Nous restons à votre disposition par retour de mail ou par téléphone.', 'Sans réponse de votre part, nous vous relancerons.');
