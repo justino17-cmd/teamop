@@ -80,6 +80,12 @@ function mailReel(ligneSuivi, imap) {
     v('⛔ Justin remet un classé « à traiter » : il l’est (la raison est effacée), et Camille ne le reclasse plus (la ligne porte son nom)', [r1.code, c2.aTraiter, c2.classes, M.suiviClasser('<pub@x>', 'ignore')], [200, 3, 1, false]);
     R.appeler('POST /api/monitor/mail/suivi', { body: { mid: '<vrai@x>', statut: 'resolu' } });
     v('…ou « résolu » : plus classé', [M.compter().classes, M.compter().resolus], [0, 2]);
+    await dormir(700);   // l'écriture du suivi est différée de 500 ms
+    const disque = JSON.parse(fs.readFileSync(path.join(R.D, 'mail-suivi.json'), 'utf8'));
+    v('⛔ …et la RAISON est effacée du fichier (pas de drapeau périmé qui ressusciterait si la ligne repasse « en cours » par un autre geste)', [disque['<pub@x>'].classe, disque['<vrai@x>'].classe], [undefined, undefined]);
+    const R3 = mailReel({ '<perime@x>': ligne({ statut: 'enCours', assigne: 'Paul', par: 'Justin', classe: 'ignore' }) });
+    v('⛔ une ligne « en cours » prise par un HUMAIN ne compte jamais comme classée, même si elle porte encore une raison (donnée périmée)', [R3.M.compter().classes, R3.M.compter().enCours], [0, 1]);
+    R3.nettoyer();
 
     /* une vraie décision de Camille remplace un classement */
     const R2 = mailReel({ '<z@x>': ligne({}) }); R2.M.suiviClasser('<z@x>', 'ignore');
@@ -217,6 +223,16 @@ function mailReel(ligneSuivi, imap) {
     const b2 = await Z.camille.reprendreArriere(3650, { silencieux: true });
     const E2 = Z.camille.etatReprise();
     v('une passe suivante qui ne trouve rien se TAIT (aucun bilan de plus) mais se voit : le cumul du jour garde 2 examinés, la dernière passe dit 0', [b2.examines, Z.paroles.filter(p => /Reprise de l’arriéré/.test(p.texte)).length - bilansAvant, E2.examinesAujourdhui, E2.passesAujourdhui, E2.dernierePasse.examinees], [0, 0, 2, 2, 0]);
+    {
+      /* une passe qui n'a RIEN examiné mais a rangé des lignes (la Tour en avait ouvert) le DIT une fois : sinon les « à traiter » baissent sans que personne sache pourquoi */
+      const RW = mailReel({ '<w@x>': ligne({}) }); const hw = empreinte('<w@x>');
+      const W2 = monter({ modes: { camille: 'brouillon' }, claude: () => PUB, avant: D => fs.writeFileSync(path.join(D, 'agents-camille.json'), JSON.stringify({ mids: { [hw]: 1 }, rien: { [hw]: ['ignore', 1] }, jour: { j: '', brouillons: 0, examens: 0, domaines: {}, prevenu: {} } })) });
+      W2.mail.suiviMarquer = RW.M.suiviMarquer; W2.mail.suiviClasser = RW.M.suiviClasser; W2.mail.suiviLibre = RW.M.suiviLibre;
+      W2.mail.arriere = async () => { const l = []; l.ecartes = [{ mid: '<w@x>', ts: 1 }]; return l; };
+      const bw = await W2.camille.reprendreArriere(3650, { silencieux: true });
+      v('⛔ un ratissage silencieux qui n’a examiné personne mais RANGÉ une ligne le dit une fois (puis se tait)', [bw.examines, bw.classes, W2.paroles.filter(p => /Reprise de l’arriéré/.test(p.texte)).length, (await W2.camille.reprendreArriere(3650, { silencieux: true })).classes, W2.paroles.filter(p => /Reprise de l’arriéré/.test(p.texte)).length], [0, 1, 1, 0, 1]);
+      W2.nettoyer(); RW.nettoyer();
+    }
     Z.mail.arriere = async () => { throw new Error('IMAP en panne'); };
     const b3 = await Z.camille.reprendreArriere(3650, { silencieux: true });
     Z.horloge.t += 5 * 60000;
@@ -256,6 +272,7 @@ function mailReel(ligneSuivi, imap) {
     v('⛔ les MÊMES phrases venues d’un collègue, d’un client ou d’un texte de courriel : refusées (`pas_justin`), aucune reprise', [horsJustin.every(r => r.ok === false && r.raison === 'pas_justin'), horsJustin.length, appels - avant], [true, 12, 0]);
     vrai('…et le refus DIT à qui le lit que la reprise tourne déjà seule (Camille ne réclame plus de « top départ »)', /tourne déjà seule, toutes les 30 minutes/.test(horsJustin[0].ligne) && /tourne déjà seule, toutes les 30 minutes/.test(refus.length && O.executer('reprendre_courriels_anciens', {}, { de: 'justin', texte: 'merci' }).ligne));
     vrai('(population) la garde de mots est exportée et rejoue ses trois phrases', REELLES.every(C.demandeDeReprise) && !C.demandeDeReprise('sur les mails tu en es où ?'));
+    v('l’ÉTENDUE seule suffit (« depuis le début », « de plus de 3 jours »), pour le courrier — chaque motif a son cas', [C.demandeDeReprise('regarde le mail depuis le début'), C.demandeDeReprise('les messages de plus de 3 jours'), C.demandeDeReprise('les messages de moins de 3 jours')], [true, true, false]);
     v('les mots qui servaient avant servent encore (« reprends les anciens courriels », « le retard du courrier »)', [C.demandeDeReprise('Camille, regarde les anciens courriels'), C.demandeDeReprise('reprends le retard du courrier')], [true, true]);
     v('⛔ un TEXTE DE CLIENT qui contient ces mots, lu par Camille pour trier, n’ouvre rien : l’outil n’est offert que sur un message d’un fil, et refuse tout `de` autre que justin', [O.executer('reprendre_courriels_anciens', {}, { de: 'justin ', texte: REELLES[2] }).raison, O.executer('reprendre_courriels_anciens', {}, { texte: REELLES[2] }).raison, O.executer('reprendre_courriels_anciens', {}, null).raison], ['pas_justin', 'pas_justin', 'pas_justin']);
     Z.nettoyer();
