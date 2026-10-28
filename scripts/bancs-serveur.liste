@@ -72,7 +72,10 @@
 # 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
 # 28 octobre 2026 : `test-3090` (les agents sans limite artificielle : Margaux, Hugo, Louis, Léa, agents.js, Emma, le câblage d’index.js — 62 vérifications).
 # 28 octobre 2026, le pont des agents côté Tour (3096) : 163 suites, 10 501 vérifications mesurées par la commande de la porte, toutes vertes (avant l'ajout de 3090) — plancher 10487 (le total moins 14, jamais une addition).
-#plancher 10487
+# 28 octobre 2026, les photos du pont (3096 § 7 : les 21 images, les envois, les refus, les fichiers absents) : 165 suites, 10 642 vérifications mesurées par la commande de la porte (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 10628 (le total moins 14, jamais une addition).
+# 28 octobre 2026 (« 35 courriers à traiter ») : 166 suites, 10 702 vérifications mesurées par la commande de la porte, toutes vertes, `test-3101` compris (93, après les relectures du gardien et de l’adverse) — plancher 10688 (le total moins 14, jamais une addition).
+# 28 octobre 2026, l'outil des espaces orphelins (test-3100 : 105 vérifications) : 166 suites, 10 710 vérifications mesurées par la commande de la porte (13 min), toutes vertes — plancher 10696 (le total moins 14, comme avant).
+#plancher 10696
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -379,3 +382,7 @@ tests/test-3083.js
 tests/test-3090.js
 # ── Le pont des agents, côté Tour (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place ») : `server/pont-messages.js` contre un faux OP MESSAGES — la file, les pannes, l'historique, ce que Justin écrit et supprime — et le bandeau de la Tour (3096).
 tests/test-3096.js
+# 28 octobre 2026 : `test-3101` (« 35 courriers à traiter, personne dessus » : le vrai `mail.js` — classer, compter, afficher, la file de l’arriéré contre un IMAP simulé —, le vrai `agent-camille.js` branché dessus, les phrases RÉELLES de Justin devant l’outil de reprise, les prompts de Victor et de Camille nourris par le vrai `etatReprise`). Lit server/ seulement.
+tests/test-3101.js
+# 28 octobre 2026 : l'outil qui nettoie un espace ORPHELIN (hors annuaire, invisible dans la Tour) — `server/nettoyer-espace-orphelin.js` contre un faux TEAMOP_DATA complet (3098).
+tests/test-3100.js

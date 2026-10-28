@@ -1718,9 +1718,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         if (p.corps_ch && !p.supprime_le && clair === null) o.apercu.illisible = true;
       }
       if (l.type === 'direct') {
-        const a = Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, p.etat FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid <> ?`).get(l.id, uid);
+        const a = Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, p.etat, p.statut FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid <> ?`).get(l.id, uid);
         if (a) {
-          o.autre = { id: a.id, prenom: a.prenom, nom: a.nom, avatar: avatarPour(uid, a.id, a.avatar_piece) };
+          /* le STATUT de l'autre voyage avec la liste (28 octobre 2026, Justin : « le nom de l'agent et sa fonction, qui gère quoi ») : pour un robot du pont c'est son rôle
+             (« Sauvegardes et données »), pour une personne ce qu'elle a choisi de montrer sous son nom — la même chose que Contacts, sans une requête de plus par ligne */
+          o.autre = { id: a.id, prenom: a.prenom, nom: a.nom, avatar: avatarPour(uid, a.id, a.avatar_piece), statut: a.statut || '' };
           if (mesBloques.has(a.id)) o.bloque = true;      // sa directe reste dans ma liste, en lecture seule (jamais dit à l'autre : le champ n'existe que chez celui qui a bloqué)
           if (a.etat === 'supprime') o.autre.supprime = true;   // ⛔ un compte supprimé n'a plus de nom : la page écrit « Compte supprimé » (un historique reste, comme chez WhatsApp)
         }
@@ -2348,6 +2350,24 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       }
       Q('UPDATE personne SET avatar_piece = ? WHERE id = ?').run(piece, uid);
       return { pieces: cur.avatar_piece ? pieceEffacerLigne(cur.avatar_piece) : [] };
+    });
+  }
+  /* ⛔ LE PONT DES AGENTS POSE UNE PHOTO — EN SILENCE, EN UNE TRANSACTION (`pont-agents.js`, 28 octobre 2026). Soit sur une PERSONNE-ROBOT (`personne` : la pièce lui appartient, c'est
+     `avatarPersonnePoser`), soit sur un GROUPE (`conv`, `par` : le robot « Système » qui est membre de chaque groupe et à qui la pièce appartient — mêmes règles que
+     `avatarGroupeAttacher` : la pièce est neuve, de genre avatar, jamais posée, et reste lisible par les membres du groupe). L'ancienne photo part avec sa ligne (le fichier par l'appelant).
+     ⛔ AUCUN message système : là où `convMaj` écrit « a changé la photo du groupe » (Justin est le créateur, la ligne porterait son nom), le pont pose ses photos sans rien dire dans la
+     conversation — des seize agents et des quatre groupes d'un seul coup, ce serait vingt lignes parasites au premier démarrage et à chaque photo renouvelée. Les écrans, eux, sont
+     prévenus par un événement `conv_maj` (sans texte) pour un groupe ; pour un robot, par la route (`hub.personneChangee`). → { pieces: [identifiants à effacer], gid } */
+  function avatarPontPoser({ piece, personne, conv, par }) {
+    return tx(() => {
+      if ((personne === undefined) === (conv === undefined)) throw erreur('type');
+      if (personne !== undefined) return { pieces: avatarPersonnePoser(personne, piece).pieces, gid: 0 };
+      const c = convBrute(conv);
+      if (!c) throw erreur('introuvable');
+      if (c.type !== 'groupe') throw erreur('type');
+      const cur = c.avatar_piece || null;
+      avatarGroupeAttacher(conv, par, piece);
+      return { pieces: cur ? pieceEffacerLigne(cur) : [], gid: journalAjouter('conv_maj', conv, null, '') };
     });
   }
   /* Les pièces jamais attachées (ou photos jamais posées) dont l'échéance est passée : les lignes partent, les fichiers suivent. */
@@ -5390,7 +5410,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     messageEnvoyer, messageATransferer, messageDejaEnvoye, messagesChercher, requeteRech, mediasDe, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
     transcriptionDemander, transcriptionPoser, transcriptionsInterrompues, transcriptionVue,
     transcriptionEnAttente, transcriptionsEchues,
-    pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, piecesOrphelinesPurger, audiencePersonne,
+    pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, avatarPontPoser, piecesOrphelinesPurger, audiencePersonne,
     notifCreer, notifListe, notifLues, notifNonLues,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,
     rejeuAFaire, rejeuTermine, purgeLignes,   // le rejeu des purges par le SERVICE après une restauration (rejeu.js)

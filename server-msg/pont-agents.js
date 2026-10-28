@@ -5,7 +5,7 @@
  * Tour : OP MESSAGES devient le transport et l'écran. Ce fichier est le côté OP MESSAGES. Le côté Tour est `server/pont-messages.js` (il APPELLE ce service en boucle locale ;
  * ⛔ `server-msg/` n'importe toujours JAMAIS `server/`).
  *
- * ⛔ INERTE PAR DÉFAUT. Sans `pont: { actif: true, secretSha256, justin }` dans la configuration de l'instance, les quatre routes répondent le MÊME 404 qu'une route inconnue. Bêta
+ * ⛔ INERTE PAR DÉFAUT. Sans `pont: { actif: true, secretSha256, justin }` dans la configuration de l'instance, les cinq routes répondent le MÊME 404 qu'une route inconnue. Bêta
  * seulement pour l'instant (Justin : « d'abord sur la bêta ») : en production, un bloc `pont` REFUSE le démarrage.
  *
  * ⛔ LA GARDE `PT` — LES TROIS PREUVES DE L'ADMINISTRATION (`admin.js`), AVEC SON PROPRE SECRET. nginx relaie TOUT le public depuis 127.0.0.1 : « la connexion vient de la boucle locale »
@@ -30,6 +30,13 @@
  *       Sans `depuis`, rend seulement le curseur d'aujourd'hui. → { ok, curseur, plein, evenements:[{gid,type:'message',fil,seq,texte|null,genre,ts}|{gid,type:'suppression',fil,seq,pour}] }
  *       Les messages que le pont a lui-même recopiés de la Tour (`cid` « tour-… ») n'y sont JAMAIS : ils ne reviennent pas à leur source.
  *   POST /api/pont/supprimer  { fil, seq }   Retire un message POUR TOUS (la Tour l'a supprimé). → { ok }
+ *   POST /api/pont/avatar?cible=<id>   LA PHOTO d'un robot ou d'un groupe. Corps BRUT `application/octet-stream` (une image : le service juge la SIGNATURE aux octets, jamais le nom ni le type annoncé,
+ *       et retire les métadonnées — `pieces.deposer`, le seul chemin d'écriture d'un fichier image), `Content-Length` OBLIGATOIRE (411), au plus `pieces.avatarMax` (413), `X-OPM-Empreinte: <64 hexadécimaux>` = le
+ *       SHA-256 du corps REÇU, recalculé ici (400 s'il manque ou diffère : un corps tronqué ou changé en route ne se pose pas). `cible` : un robot de LA TABLE (un agent, « systeme ») ou le fil d'un GROUPE de
+ *       la table — JAMAIS une directe (sa photo est celle de l'autre personne : le robot) → 400 champ_invalide. Posée en UNE transaction avec l'empreinte source rangée dans la table du pont ; l'ancienne
+ *       photo est effacée (ligne ET fichier). Même empreinte que la dernière posée → 200 { ok, deja:true } sans rien écrire. → 200 { ok, deja } · 415 type_refuse (pas une image) · 429 (budget).
+ *       ⛔ AUCUN message système « a changé la photo du groupe » : le pont pose ses photos sans rien dire dans la conversation (voir `stockage.avatarPontPoser`).
+ *       `installer` rend en plus `avatars: { <cible>: <empreinte source> }` — ce que le service a DÉJÀ posé : la Tour n'envoie que les photos manquantes ou changées.
  *
  * ⛔ UN BANC (tests/test-3094.js) MONTE LE VRAI SERVICE ET LE VRAI SERVEUR D'OP GESTION et joue le tout par leurs vraies routes.
  */
@@ -49,6 +56,8 @@ const META_CLE = 'pont_agents';
 const NOM_ESPACE = 'Équipe TeamOP — agents';
 const SYSTEME = { id: 'systeme', nom: 'Système', role: 'Ce qui se passe dans l’équipe' };
 const MSG_MAX = 8000, LOT_MAX = 25, AGENTS_MAX = 40, GROUPES_MAX = 20;
+const PAR_MINUTE_AVATAR = 120;                // photos par minute (un démarrage de la Tour en envoie 21, une à la fois) : de la décompression d'image à chaque appel, donc un budget à part, plus bas
+const RE_EMPREINTE = /^[0-9a-fA-F]{64}$/;
 const PAR_MINUTE = 900;                        // lots du pont par minute : un emballement côté Tour s'arrête ici (l'import tient en ~30 lots)
 const sha256 = (x) => crypto.createHash('sha256').update(x).digest();
 const INVISIBLE = /^[\s\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u00ad]*$/u;
@@ -115,7 +124,7 @@ function installerPont(H, ctx) {
     const gerer = (e) => { const r = e && REFUS_STOCKAGE[e.code]; if (r) return refus(res, r[0], r[1]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(gerer); } catch (e) { gerer(e); }
   };
-  const bilan = { installs: 0, postes: 0, refuses: 0, importes: 0, suppressions: 0 };
+  const bilan = { installs: 0, postes: 0, refuses: 0, importes: 0, suppressions: 0, avatars: 0 };
 
   /* ── La table du pont : { v, justin, espace, robots:{agent→uid}, fils:{fil→conv}, membres:{fil→[agents]} } — dans la base (`meta`), donc avec ses sauvegardes ── */
   function lireTable() {
@@ -171,7 +180,7 @@ function installerPont(H, ctx) {
       for (const a of [SYSTEME].concat(agents)) {
         const avant = stockage.personneParIdentifiant('pont:' + a.id);
         const p = stockage.personneCreer({ identifiant: 'pont:' + a.id, prenom: a.nom, nom: '', origine: 'beta', verifie: true });
-        if (!avant) creees.personnes++;
+        if (!avant) { creees.personnes++; if (t.avatars) delete t.avatars[a.id]; }   // un robot NEUF n'a pas de photo, quoi que la table ait gardé d'un robot de même nom
         if (p.prenom !== a.nom || p.statut !== (a.role || '')) stockage.personneMaj(p.id, { prenom: a.nom, statut: a.role || '' });
         t.robots[a.id] = p.id;
       }
@@ -185,7 +194,7 @@ function installerPont(H, ctx) {
       /* les fils privés : une directe Justin ↔ agent, dont l'identifiant de fil est celui de l'agent */
       for (const a of agents) {
         if (t.fils[a.id] && stockage.convPourMembre(t.fils[a.id], justin.id)) continue;
-        t.fils[a.id] = stockage.convDirecteObtenir(justin.id, t.robots[a.id]).id; creees.conversations++;
+        t.fils[a.id] = stockage.convDirecteObtenir(justin.id, t.robots[a.id]).id; creees.conversations++;   // (la photo d'une directe est celle du robot : rien à oublier ici)
       }
       /* les groupes : Justin administrateur ; les membres déjà posés ne sont jamais remis (Justin a pu en retirer un), seuls les NOUVEAUX entrent */
       for (const g of groupes) {
@@ -197,6 +206,7 @@ function installerPont(H, ctx) {
           t.membres[g.fil] = Array.from(new Set(g.membres.concat(Array.from(deja))));
         } else {
           t.fils[g.fil] = stockage.convCreerGroupe({ createur: justin.id, nom: g.nom, membres: voulus }).id; creees.conversations++;
+          if (t.avatars) delete t.avatars[g.fil];   // un groupe recréé (base restaurée, groupe quitté) n'a plus la photo que la table croyait lui avoir posée
           t.membres[g.fil] = g.membres.slice();
         }
       }
@@ -206,7 +216,7 @@ function installerPont(H, ctx) {
     if (creees.personnes || creees.conversations || creees.membres) { try { hub.reveiller({ uids: [r.justin] }); } catch (e) {} }
     bilan.installs++;
     journaliser('pont_installe', { n: creees.personnes + creees.conversations + creees.membres });
-    return { statut: 200, corps: { ok: true, fils: Object.keys(r.fils), robots: Object.keys(r.robots), creees } };
+    return { statut: 200, corps: { ok: true, fils: Object.keys(r.fils), robots: Object.keys(r.robots), creees, avatars: Object.assign({}, r.avatars || {}) } };
   }
 
   /* ── poster ── */
@@ -280,6 +290,86 @@ function installerPont(H, ctx) {
     if (r.erreur) return refus(res, r.statut, r.erreur);
     res.json(r.corps);
   });
+
+  /* ── avatar : la photo d'un robot ou d'un groupe ── */
+  /* UN dépôt à la fois : la table (empreintes) se lit, le fichier se dépose, la table se réécrit — deux photos de la même cible en même temps se marcheraient dessus. */
+  let verrouAvatar = Promise.resolve();
+  const seul = (f) => { const p = verrouAvatar.then(f, f); verrouAvatar = p.catch(() => {}); return p; };
+  /* ⛔ LA CIBLE SE LIT DANS LA TABLE, jamais dans la demande : un robot (agent ou « systeme ») ou le fil d'un GROUPE — pas la directe d'un agent (même identifiant que l'agent : le robot gagne),
+     et `hasOwnProperty` pour qu'aucune clé héritée (`__proto__`, `constructor`) ne passe pour une entrée de la table. */
+  function cibleAvatar(t, cible) {
+    if (typeof cible !== 'string' || !RE_FIL.test(cible)) return null;
+    const a = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+    if (a(t.robots, cible)) return { robot: t.robots[cible] };
+    if (a(t.fils, cible)) return { conv: t.fils[cible], par: t.robots[SYSTEME.id] };
+    return null;
+  }
+  H['pont.avatar'] = garder((req, res) => seul(async () => {
+    const t = lireTable();
+    if (!t) return refus(res, 409, 'pont_non_installe');
+    const cible = req.query.cible, dest = cibleAvatar(t, cible);
+    if (!dest || !dest.robot && !dest.par) return refus(res, 400, 'champ_invalide');
+    const emp = req.headers['x-opm-empreinte'];
+    if (typeof emp !== 'string' || !RE_EMPREINTE.test(emp)) return refus(res, 400, 'champ_invalide');
+    if (!/^application\/octet-stream\s*(;|$)/i.test(String(req.headers['content-type'] || ''))) return refus(res, 415, 'type_refuse');
+    const q = quotas.essai('pont:avatar', PAR_MINUTE_AVATAR, 60000);
+    if (!q.ok) { res.set('Retry-After', String(q.retry)); return refus(res, 429, 'quota_atteint', { retry: q.retry }); }
+    /* la longueur est OBLIGATOIRE : sans elle on ne sait pas, avant de lire, si l'envoi tient dans le maximum (un envoi fractionné n'en a pas : 411) */
+    const cl = req.headers['content-length'], max = config.pieces.avatarMax;
+    if (req.headers['transfer-encoding'] !== undefined || typeof cl !== 'string' || !/^\d{1,13}$/.test(cl)) return refus(res, 411, 'longueur_requise');
+    const taille = parseInt(cl, 10);
+    if (taille === 0) return refus(res, 400, 'champ_invalide');
+    if (taille > max) return refus(res, 413, 'piece_trop_lourde', { max });
+    const voulue = emp.toLowerCase();
+    if (t.avatars && Object.prototype.hasOwnProperty.call(t.avatars, cible) && t.avatars[cible] === voulue) return res.json({ ok: true, deja: true });
+    if (ctx.disque.libreMo() - taille / 1048576 < config.disqueMinMo) return refus(res, 503, 'disque_plein');
+
+    const id = stockage.nouvelId('f'), somme = crypto.createHash('sha256');
+    /* le flux passe par le calcul de l'empreinte AU FIL DE L'EAU : ce qui est comparé est ce qui est ARRIVÉ, pas ce que la Tour croit avoir envoyé */
+    const flux = { async *[Symbol.asyncIterator]() { for await (const morceau of req) { somme.update(morceau); yield morceau; } } };
+    let r;
+    try { r = await ctx.pieces.deposer({ id, genre: 'avatar', flux, max, attendu: taille }); }
+    catch (e) {
+      await ctx.pieces.effacer(id).catch(() => {});
+      const c = e && e.code;
+      if (c === 'trop_gros') return refus(res, 413, 'piece_trop_lourde', { max });
+      if (c === 'type_refuse') return refus(res, 415, 'type_refuse');
+      if (c === 'occupe') { res.set('Retry-After', '2'); return refus(res, 429, 'quota_atteint', { retry: 2 }); }
+      if (c === 'vide' || c === 'incomplet') return refus(res, 400, 'champ_invalide');
+      if (req.aborted || req.destroyed || res.destroyed) return;
+      throw e;
+    }
+    if (somme.digest('hex') !== voulue) { await ctx.pieces.effacer(id).catch(() => {}); return refus(res, 400, 'champ_invalide'); }
+    let pose;
+    try {
+      pose = stockage.tx(() => {
+        /* ⛔ LA CIBLE SE RELIT DANS LA TRANSACTION : pendant le dépôt (`await`), une réinstallation a pu recréer le robot ou le groupe — la photo se serait attachée à l'ANCIEN
+           et la table aurait dit « posée » pour le nouveau. Même cible ou rien : sinon le fichier part avec la transaction, et la Tour reprendra au démarrage. */
+        const maintenant = cibleAvatar(lireTable() || {}, cible);
+        if (!maintenant || (maintenant.robot || maintenant.conv) !== (dest.robot || dest.conv)) { const e = new Error('cible_changee'); e.code = 'cible_changee'; throw e; }
+        const proprio = dest.robot || dest.par;
+        stockage.pieceCreer({ id, proprio, conv: null, genre: 'avatar', taille: r.taille, mime: r.mime, nom: null, ttlMs: config.pieces.orphelineMs });
+        const x = stockage.avatarPontPoser(dest.robot ? { piece: id, personne: dest.robot } : { piece: id, conv: dest.conv, par: dest.par });
+        /* l'empreinte SOURCE est rangée dans la MÊME transaction que la photo : l'une sans l'autre ferait renvoyer toute la série, ou croire posée une photo qui ne l'est pas */
+        const tab = lireTable();
+        const av = Object.assign({}, tab.avatars || {}); av[cible] = voulue; tab.avatars = av;
+        ecrireTable(tab);
+        return x;
+      });
+    } catch (e) {
+      await ctx.pieces.effacer(id).catch(() => {});
+      if (e && e.code === 'cible_changee') return refus(res, 409, 'cible_changee');
+      throw e;
+    }
+    if (typeof ctx.effacerPieces === 'function') ctx.effacerPieces(pose.pieces);          // l'ancienne photo : le fichier part avec sa ligne
+    bilan.avatars++;
+    try {
+      if (dest.robot) hub.personneChangee(dest.robot); else hub.reveiller({ conv: dest.conv });
+      hub.reveiller({ uids: [t.justin] });                                                // ses écrans relisent la liste (les photos y sont)
+    } catch (e) {}
+    journaliser('pont_avatar', { n: 1 });
+    res.json({ ok: true, deja: false });
+  }));
 
   /* ── nouveaux : ce que JUSTIN a fait dans les conversations du pont ── */
   H['pont.nouveaux'] = garder((req, res) => {

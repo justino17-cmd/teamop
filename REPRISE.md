@@ -12,6 +12,38 @@ Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici 
 de ligne du tout.
 
 ---
+# 🧑‍💼 28 OCTOBRE 2026 — LA FONCTION DE CHAQUE AGENT SOUS SON NOM DANS OP MESSAGES (branche `claude/opmsg-roles-liste`)
+Justin, devant ses seize agents : « le nom de l'agent et les fonctions, Théo il fait quoi, qui gère quoi ». Le pont rangeait déjà le rôle dans le statut du robot ; la LISTE ne le montrait
+pas. `convListe` rend `autre.statut` ; `resume()` en fait `sousTitre` (80 signes, vide pour un groupe, un compte supprimé, une invitation) ; `ligneConv()` l'écrit sous le nom
+(`.conv-role`, l'aperçu passe sur une ligne), l'en-tête ouvert aussi (`.conv-titre-role`). Vaut pour toute personne qui a écrit un statut. `test-3099` joue les trois morceaux.
+
+---
+
+# 📬 28 OCTOBRE 2026 (APRÈS-MIDI) — « 35 COURRIERS À TRAITER, PERSONNE DESSUS » : CE QUE CAMILLE A LU NE RESTE PLUS « À TRAITER »
+Branche `claude/camille-courrier-classe` (serveur seulement, **pas poussée, pas de demande de fusion** : un push de `server/` sur `main` déploie le VPS). La Tour n'est PAS touchée (v2.117 en service).
+- **Causes** : (1) un courriel ignoré / automatique / interne / d'expéditeur illisible n'écrivait RIEN au suivi → ligne « à traiter » pour toujours, relue à chaque passe en tête des 200 places de la file ;
+  (2) Camille ne voit pas le bilan de sa reprise (son fil privé) et son outil refusait les trois phrases de Justin ; (3) Victor n'avait que `{aTraiter, enCours}`.
+- **Fait** (`test-3101`, 93 vérifications, le vrai `mail.js` contre un IMAP simulé + le vrai `agent-camille.js` + les prompts) : classement « en cours · Camille » + raison d'une liste fermée (`classe`), JAMAIS « résolu », jamais
+  une ligne touchée par un humain, jamais de création de ligne ; `compter`/`/stats` séparent à traiter / en cours / classés, `ouverts` garde les classés DERRIÈRE les vrais courriers, marqués `classe` (`classesRecents` les rend aussi) ; la reprise n'inscrit plus
+  les décidés dans sa file (`arriere(jours, {ecarter})`) et range leur ligne sans relire la boîte ; trois « expéditeur déjà en attente » ne l'arrêtent plus ; première passe 3 min après le démarrage ;
+  `etatReprise()` (nombres) lu par Victor et Camille (faits `reprise` et `courrier.classes`) ; garde de l'outil élargie aux phrases réelles de Justin (jamais un collègue ni un client).
+- **Ce que Justin verra dans la Tour en service** : le courrier classé garde sa place dans la Réception, pastille « En cours · Camille » (dossier « En cours ») ; « Au rapport » le garde, derrière les vrais courriers ; les décomptes (« à traiter », tuile « en cours »)
+  ne comptent que ce que personne n'a vu / le travail réel. Une Tour qui voudra les montrer lira `classes` et `classesRecents` dans `/api/monitor/mail/stats`.
+- **À décider par Justin (non appliqué)** : la reprise ne prend que la MOITIÉ des plafonds du jour (50 examens, 15 brouillons) : une boîte de 1 000 courriels = ≥ 20 jours ouvrés, et 15 brouillons/jour est le vrai goulot.
+  Options : 2/3 hors du courrier du jour ; un tri sans Claude pour les envois en masse (en-têtes de liste). Aussi : la file ne lit que les 1 000 plus récents par boîte (`tronque` est dit dans le bilan).
+- **Limite** : les courriels décidés d'AVANT ce correctif (ni `rien` au registre : `mids` et `repris` ne disent pas POURQUOI — `repris` porte aussi les litiges passés à Justin, les brouillons, Chloé) ne sont pas reclassés : ils
+  sortent de la file mais gardent « à traiter » si la Tour a ouvert leur ligne. Les ranger d'après `repris` classerait « rien à répondre » un litige : refusé. Victor le sait (sa mission) et cite les nombres. À compter sur le VPS.
+- **Relectures du 28 octobre (gardien, adverse), rejouées et corrigées** : (1) « ignorer » passait AVANT le filet de litige (menace de litige rangée « ignorée » et classée : invisible dans la Tour en service) — il reste ignoré sans alerte (`test-2905` : un cabinet d'avocats qui démarche ne dérange pas Justin), mais un texte de recours, d'erreur de prélèvement, de résiliation
+  ou de remboursement n'est JAMAIS classé : la ligne reste « à traiter », visible (`sensible`, `reste`) ; (2) interne exige l'authentification de NOTRE serveur de réception ET un texte sans ces mots,
+  automatique (en-tête choisi par l'expéditeur) aussi, un expéditeur illisible n'est plus classé du tout (personne ne l'a lu — noté « vu » seulement) ; (3) le repli `repris` → « ignore » du ratissage est retiré ; (4) `ouverts` garde les classés
+  (la Tour en service ne lit pas `classesRecents`) ; (5) le bilan cite les références des classés sur un jugement ; (6) le point du matin de Victor ne dit plus « la plateforme est calme » quand des courriels ont été classés.
+  **Non retenu** : « le ratissage réécrit le fichier de suivi une ligne à la fois » (l'écriture est différée de 500 ms, une seule par rafale) ; le bilan « 0 examiné » à chaque passe qui range des lignes (borné par la Tour qui ouvre les lignes, une
+  fois chacune) ; la garde élargie de l'outil (bornée par les plafonds, tout part en validation).
+- **Ordre de déploiement** : le serveur peut partir SEUL (la Tour en service lit `ouverts`, `aTraiter`, `enCours`, qui gardent leur sens) ; une Tour qui lira `classes` / `classesRecents` viendra sur une phrase de Justin.
+- **Mutations** : `scratchpad/mutations-3098.py` (35 mutations ; une seule équivalente : la garde `!r.protege` est doublée par `__lu` absent) puis `scratchpad/mutations-camille-2.py` (23 mutations de la relecture, toutes mordent ; une, « erreurDePaiement retiré du filtre », survivait et a donné son cas au banc).
+
+# 🧹 28 OCTOBRE 2026 — ESPACES ORPHELINS (`elan-gestion`, `elan-gestion-beta`) : L'OUTIL EST PRÊT, LE NETTOYAGE ATTEND JUSTIN
+Mesuré sur le VPS (lecture seule) : ces deux espaces d'avant le renommage ne sont dans aucun annuaire ni dans `entreprises-fermees.json`, la Tour ne les liste pas, et la suppression totale les refuse (`ESPACES_INTOUCHABLES`) ; ils gardent un journal de connexions (identifiants de salariés), des abonnements push, de l'usage, des lignes de `bugs.jsonl`. `server/nettoyer-espace-orphelin.js` (constat par défaut, `--faire` service arrêté) + `tests/test-3100.js`. **Reste (Justin, sur le VPS)** : constat, `systemctl stop teamop-api`, `--faire` (avec `--nom "ELAN"` pour les incidents de `monitor.json`), `systemctl start teamop-api` — commandes exactes dans le message de livraison. Décision à lui : `--bloquer` pour les deux espaces techniques (sans lui l'outil ne ferme pas le repli : un appareil qui s'y connecte encore recréerait sa ligne de connexions). Hors périmètre, comptés mais non touchés : `replies.jsonl`, `sentmap.jsonl`.
 
 # 🗼 28 OCTOBRE 2026 — LA TOUR EST UNE (v2.119, branche `claude/tour-unifiee-fusion`, rien publié)
 Justin : « si le switch entre Gestion et OP MESSAGES est trop chiant, on met tout ensemble, mais bien rangé » ; « côté OP MESSAGES de la Tour, il
@@ -32,12 +64,16 @@ Plus. Un FILTRE « Tout · Gestion · Messages » (`tour_filtre`) en tête des s
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
 OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**
 - **Architecture** : la Tour reste le REGISTRE (`conversations.js` : les agents le relisent, rien n'y est déplacé) ; OP MESSAGES est le transport et l'écran.
-  `server-msg/pont-agents.js` (quatre routes `/api/pont/*`, garde `PT` : boucle locale + sans proxy + secret `X-OPM-Pont` comparé à son empreinte ; 16 robots +
+  `server-msg/pont-agents.js` (cinq routes `/api/pont/*`, garde `PT` : boucle locale + sans proxy + secret `X-OPM-Pont` comparé à son empreinte ; 16 robots +
   « Système », espace PRO « Équipe TeamOP — agents », 4 groupes, une directe par agent) ; `server/pont-messages.js` (file bornée à 2 000, réessai, import avec
   les dates d'origine, lecture toutes les 3 s de ce que Justin écrit — par `justinEcrit`, le même chemin que la route — et supprime) ; `configurer-pont.js` pose
   les DEUX configurations d'un geste, le secret fabriqué sur place et jamais affiché. Inerte sans configuration (404 / rien ne part) ; un bloc `pont` en production REFUSE le démarrage.
 - **Bancs** : `test-3094` (le vrai service), `3095` (le vrai serveur + le vrai service + un faux Anthropic, de bout en bout), `3096` (le module contre un faux service),
   — le bandeau de la Tour part avec la Tour unifiée, gardé par `test-3091`), `3097` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
+- **Photos (28 octobre, soir)** : `POST /api/pont/avatar?cible=<robot|groupe>` (`pont-agents.js`, garde `PT`, empreinte du corps reçu, une transaction, `stockage.avatarPontPoser`, aucun message
+  système) ; la Tour (`pont-messages.js`) envoie les 21 images de `icons/agents` et `icons/groupes` après chaque installation, celles que `installer` ne rend pas déjà dans `avatars`. **Rien à faire
+  sur le VPS** : le déploiement redémarre la Tour, qui réinstalle et envoie. Bancs : 3094 § 9, 3095 (photos de bout en bout, aucun renvoi après deux redémarrages), 3096 § 7 (dont la population des images).
+  Limite : une photo de groupe que Justin change lui-même n'est pas remise par la Tour (l'empreinte source n'a pas bougé). Mode d'emploi corrigé : l'identifiant `b…` de l'accès n'est PAS affiché dans la Tour.
 - **Reste à faire (Justin)** : déployer (une fusion sur `main` part des deux côtés, inerte), puis sur le VPS `configurer-pont.js` (Entrée à l'invite du secret), redémarrer,
   `--verifier`, ouvrir `msg-beta.teamop.fr` sur le téléphone. Rien de cela n'est fait.
 - **Limites assumées** : le texte seul passe (une photo/un vocal/un sondage de Justin n'arrive pas aux agents, et le pont le lui dit) ; une modification de message ne revient pas ;
