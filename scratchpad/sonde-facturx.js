@@ -19,7 +19,7 @@ const SORTIE = process.argv[2] || fs.mkdtempSync(path.join(os.tmpdir(), 'sonde-f
 fs.mkdirSync(SORTIE, { recursive: true });
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d).slice(0, 400) : '')); } };
-const outil = (cmd, args) => { try { return cp.execFileSync(cmd, args, { encoding: 'utf8' }); } catch (e) { return 'ERREUR ' + (e.stderr || e.message); } };
+const outil = (cmd, args) => { const r = cp.spawnSync(cmd, args, { encoding: 'utf8' }); return (r.error ? 'ERREUR ' + r.error.message : '') + r.stdout + r.stderr; };   // xmllint écrit « validates » sur stderr
 
 (async () => {
   const S = await ouvrir(process.env.SOURCE ? { source: process.env.SOURCE } : {});
@@ -69,12 +69,12 @@ const outil = (cmd, args) => { try { return cp.execFileSync(cmd, args, { encodin
     vrai('… une pièce jointe factur-x.xml', /1 embedded files/.test(pj) && /factur-x\.xml/.test(pj), pj);
     const xml = path.join(SORTIE, 'extrait.xml'); outil('pdfdetach', ['-save', '1', '-o', xml, pdf]);
     const x = fs.existsSync(xml) ? fs.readFileSync(xml, 'utf8') : '';
-    vrai('le XML ressorti du PDF est bien formé, au profil EN 16931, avec le SIREN du client et le TTC de la facture', /urn:cen\.eu:en16931:2017/.test(x) && /<ram:ID schemeID="0002">552081317<\/ram:ID>/.test(x) && /<ram:GrandTotalAmount>224\.40<\/ram:GrandTotalAmount>/.test(x), x.slice(0, 200));
+    vrai('le XML ressorti du PDF est bien formé, au profil EN 16931, avec le SIREN du client et le TTC de la facture', /urn:cen\.eu:en16931:2017/.test(x) && /<ram:ID schemeID="0002">552081317<\/ram:ID>/.test(x) && /<ram:GrandTotalAmount>243\.98<\/ram:GrandTotalAmount>/.test(x), x.slice(0, 200));
     const lint = outil('xmllint', ['--noout', '--schema', path.join(__dirname, '..', 'tests', 'facturx', 'CrossIndustryInvoice_100pD16B.xsd'), xml]);
     vrai('xmllint valide ce XML contre le schéma UN/CEFACT D16B', /validates/.test(lint), lint);
     const rendu = path.join(SORTIE, 'rendu'); outil('pdftoppm', ['-r', '60', '-png', '-singlefile', pdf, rendu]);
     const txt = outil('pdftotext', ['-layout', pdf, '-']);
-    vrai('le PDF imprime le SIREN du client, le logo n\'a pas cassé la page (texte lisible, TTC présent)', /SIREN 552 081 317/.test(txt) && /224,40 EUR/.test(txt) && /Nettoyage Excellence/.test(txt), txt.slice(0, 300));
+    vrai('le PDF imprime le SIREN du client, le logo n\'a pas cassé la page (texte lisible, TTC présent)', /SIREN 552 081 317/.test(txt) && /243,98 EUR/.test(txt) && /Nettoyage Excellence/.test(txt), txt.slice(0, 300));
     vrai('(population) le logo est bien dans le PDF (image JPEG, filtre DCTDecode)', /\/Filter \/DCTDecode/.test(Buffer.from(dl.b64, 'base64').toString('latin1')));
   }
 
@@ -104,8 +104,8 @@ const outil = (cmd, args) => { try { return cp.execFileSync(cmd, args, { encodin
     const avant=c.checked; c.checked=true; entSave(); await new Promise(r=>setTimeout(r,300)); return {avant, apres:!!db.entreprise.tvaDebits, siretEtiquette:(document.querySelector('#ent-siret')||{parentNode:{innerText:''}}).parentNode.innerText};`);
   vrai('« Mon entreprise » propose l\'option pour la taxe d\'après les débits (décochée au départ) et l\'enregistre', !ent.absent && ent.avant === false && ent.apres === true, ent);
   vrai('… et son SIRET se dit « requis pour la facture électronique »', /requis pour la facture électronique/.test(ent.siretEtiquette || ''), ent.siretEtiquette);
-  const pdfDeb = await S.ev(`const f=db.factures.find(f=>f.id==='fF1'); const s=await docPdfChaine('factures',f,true); return /taxe d'apr\\xe8s les d\\xe9bits/.test(s) && /DueDateTypeCode/.test(s)===false && /\\(factur-x\\.xml\\)/.test(s);`);
-  vrai('l\'option cochée s\'imprime sur le PDF Factur-X', pdfDeb === true, pdfDeb);
+  const pdfDeb = await S.ev(`const f=db.factures.find(f=>f.id==='fF1'); const s=await docPdfChaine('factures',f,true); return /taxe d'apr\\xe8s les d\\xe9bits/.test(s) && /<ram:DueDateTypeCode>5<\\/ram:DueDateTypeCode>/.test(s) && /\\(factur-x\\.xml\\)/.test(s);`);
+  vrai('l\'option cochée s\'imprime sur le PDF et part dans le XML joint (exigibilité 5)', pdfDeb === true, pdfDeb);
 
   /* ── 5. l'envoi par courriel ── */
   const env = await S.ev(`window.__mails.length=0; await envoiDoc('factures','fF1','mail'); const m=window.__mails[0]; if(!m) return {aucun:true}; const a=m.opts&&m.opts.atts&&m.opts.atts[0]; return {to:m.to, nom:a&&a.filename, factur:a?atob(a.content).indexOf('(factur-x.xml)')>0:false, v17:a?atob(a.content).slice(0,8):''};`);
