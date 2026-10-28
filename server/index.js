@@ -10648,7 +10648,17 @@ try {
     catch (e) { louisMod = null; console.error('Louis indisponible :', e.message); }
     try {
       if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents,
-        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod });
+        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod,
+        /* LE BALAYAGE (28 octobre 2026, Justin : « sans limite ») : les comptes dont l'adresse est PROUVÉE (même règle que la synchro : `comptes.verifie`) et qui n'ont PAS d'espace — un client qui paie
+           ne reçoit pas un courriel de vente. Léa en prend quelques-uns par passage parmi ceux qu'elle n'a jamais servis (inscrits avant elle, ou écartés trois fois). `null` = on ne sait pas : rien. */
+        comptes: () => {
+          let cm = null; try { cm = comptes; } catch (e) { cm = null; }
+          if (!cm || typeof cm.verifie !== 'function') return null;
+          const pris = new Set(Object.values(espacesReg || {}).map(x => String((x && x.email) || '').trim().toLowerCase()).filter(Boolean));
+          return Object.values(clientsData || {}).filter(c => c && typeof c.email === 'string' && cm.verifie(c.email) && !pris.has(c.email.trim().toLowerCase()))
+            .map(c => ({ email: c.email, entreprise: c.entreprise, depuis: Number(c.inscrit) || 0 }));
+        } });
+      if (agentLea) setInterval(() => { agentLea.balayer().catch(e => console.error('léa (balayage) :', e.message)); }, 30 * 60000).unref();
     } catch (e) { agentLea = null; console.error('Léa indisponible :', e.message); }
     /* CHLOÉ : la proposition sur mesure quand le prospect répond à Léa. Les faits qu'elle reçoit sur le prospect sont des VALEURS DE LISTE (métier, nombre, formule) + le nom d'entreprise
        s'il a la forme d'un nom : jamais l'adresse, le téléphone, le prénom ni le nom de la personne. */

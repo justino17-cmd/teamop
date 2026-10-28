@@ -127,9 +127,11 @@ const VALIDATIONS_MAX = 1000;
 const ATTENTE_MAX = 100;            // validations en attente, tous agents confondus : un agent qui boucle ne remplit pas la file
 const ATTENTE_PAR_AGENT = 20;
 const VALIDATION_VIE_MS = 7 * 86400000;
-const TACHE_VIE_MS = 48 * 3600000;
+const TACHE_VIE_MS = 7 * 86400000;     // 48 h jusqu'au 28 octobre 2026 (Justin : « sans limite ») : une demande entre agents vit autant qu'une consigne — et ne vieillit de toute façon que pendant les heures de travail de celui qui doit la prendre
 const DIFFERES_MAX = 500;                    // ce qui ATTEND l'ouverture (courriels, inscriptions) : au-delà, on le DIT plutôt que de l'oublier
-const DIFFERE_VIE_MS = 10 * 86400000;        // le plus long week-end férié fait 87 h ; dix jours, c'est un oubli de la Tour, pas un congé
+/* (28 octobre 2026, Justin : « sans limite ») Une entrée qui attend l'ouverture (un courriel, une inscription) n'est PLUS JETÉE à dix jours : un client qui a écrit le 15 doit être lu le 27 si l'agent rouvre le 27.
+   Passé `DIFFERE_ANCIENNE_MS` elle est GARDÉE et DITE (une ligne de journal, une seule fois par entrée) : un agent fermé depuis dix jours, c'est un oubli de la Tour, et la Tour doit le savoir — pas un congé qu'on classe. */
+const DIFFERE_ANCIENNE_MS = 10 * 86400000;
 const DIFFERES_PAR_TOUR = 5;                 // une reprise à l'ouverture ne part pas en rafale (Camille a ses propres plafonds du jour)
 const SANS_REPRISE = ['hors_heures', 'arret', 'pause', 'etat_illisible', 'horaires_illisibles', 'inconnu'];   // « l'agent ne peut pas » : l'entrée reste, elle sera reprise
 const RESUME_MAX = 200;
@@ -472,7 +474,7 @@ module.exports = function monterAgents(app, ctx) {
     return { ok: true };
   }
   const reprisesEnCours = { v: false };
-  /* Rend aux agents qui peuvent AGIR ce qui les attendait. Une entrée plus vieille que `DIFFERE_VIE_MS` est jetée et DITE ; un agent qui jette trois fois abandonne la sienne et le dit. */
+  /* Rend aux agents qui peuvent AGIR ce qui les attendait. Une entrée ne se jette plus pour son âge (plus vieille que `DIFFERE_ANCIENNE_MS`, elle est gardée et DITE une fois) ; un agent dont la reprise échoue trois fois abandonne l'entrée et le dit. */
   async function reprendreDifferes() {
     if (reprisesEnCours.v) return { saute: 'deja_en_cours' };
     if (illisibles.has(F_DIFFERES)) return { saute: 'registre_illisible' };
@@ -480,12 +482,13 @@ module.exports = function monterAgents(app, ctx) {
     const bilan = { reprises: 0, restantes: 0, abandonnees: 0 };
     try {
       const t = maintenant();
-      const perimes = differes.filter(e => t - e.ts > DIFFERE_VIE_MS);
-      if (perimes.length) {
-        differes = differes.filter(e => !perimes.includes(e));
+      /* Plus rien n'est jeté pour son âge : une entrée vieille de plus de dix jours est GARDÉE, et DITE une seule fois (la marque est rangée avec l'entrée). Elle part à la prochaine ouverture de son agent. */
+      const anciennes = differes.filter(e => t - e.ts > DIFFERE_ANCIENNE_MS && !e.ancienneDite);
+      if (anciennes.length) {
+        for (const e of anciennes) e.ancienneDite = t;
         ecrire(F_DIFFERES, differes);
-        for (const e of perimes) noter(e.agent, 'entrée en attente abandonnée', { cible: e.genre, resultat: 'refuse', detail: 'plus de ' + Math.round(DIFFERE_VIE_MS / 86400000) + ' jours sans pouvoir la reprendre' });
-        bilan.abandonnees += perimes.length;
+        for (const e of anciennes) noter(e.agent, 'entrée en attente depuis longtemps', { cible: e.genre, resultat: 'refuse', detail: 'plus de ' + Math.round(DIFFERE_ANCIENNE_MS / 86400000) + ' jours sans pouvoir la reprendre : gardée, elle part à la prochaine ouverture de l’agent' });
+        bilan.anciennes = anciennes.length;
       }
       const repris = {};
       for (const e of differes.slice()) {

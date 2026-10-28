@@ -126,7 +126,7 @@ console.log('\n── 2925 · les six agents de la plateforme contre le vrai ser
     await passer(S, 'max');
     const venues = async () => (await S.G('/api/monitor/agents/taches')).j.taches.filter(k => k.vers === 'jules' && k.type === 'consigne' && /^Incident venu des appareils/.test((k.params || {}).texte || ''));
     const taches = await venues();
-    vrai('Max a passé UNE consigne à Jules, composée par le code (occurrences, entreprises, catégorie)', taches.length === 1 && /^Incident venu des appareils \[i[0-9a-f]{12}\] : 12 occurrences, chez 1 entreprise, catégorie Planning$/.test(taches[0].params.texte), JSON.stringify(taches));
+    vrai('Max a passé UNE consigne à Jules, composée par le code (occurrences, entreprises, catégorie, gravité)', taches.length === 1 && /^Incident venu des appareils \[i[0-9a-f]{12}\] : 12 occurrences, chez 1 entreprise, catégorie Planning, gravité haute$/.test(taches[0].params.texte), JSON.stringify(taches));
     await passer(S, 'max');
     v('⛔ un second passage de Max ne la redonne pas', (await venues()).length, 1);
     await passer(S, 'jules');

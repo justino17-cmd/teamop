@@ -7,7 +7,7 @@
  * ouvre un incident dans la Tour, est annoncé dans « Plateforme », réveille Justin (notification) s'il est critique, et se dit « rétabli » une fois revenu.
  * Le moteur (`plateforme-sentinelle.js`) tient tout cela une fois pour Max, Théo et Nina ; ce fichier-ci y ajoute ce qui est propre à Max :
  *
- * ⛔ LES INCIDENTS VENUS DES APPAREILS (de gravité haute) sont SIGNALÉS à Jules — jamais lus. Le texte de `/api/monitor/report` est forgeable (la route est
+ * ⛔ LES INCIDENTS VENUS DES APPAREILS (de gravité haute, puis moyenne) sont SIGNALÉS à Jules — jamais lus. Le texte de `/api/monitor/report` est forgeable (la route est
  *    publique) : Max ne voit d'un incident que `incidents.faits()` — des nombres et des listes fermées — et la phrase qu'il écrit est composée ici. Le
  *    signalement est une consigne « Qui fait quoi » de Max à Jules (le serveur refuse tout texte libre vers Hugo et Margaux, pas vers Jules — et ce texte-ci
  *    est le nôtre). Une fois par incident : la mémoire de Max range ce qu'il a déjà signalé.
@@ -20,10 +20,15 @@ const O = require('./plateforme-outils');
 
 const CLIENTS_PAR_PASSAGE = 2;
 /* ⛔ Six incidents venus des appareils par jour au plus, signalés à Jules : la route qui les reçoit est publique, et chaque signalement consomme les plafonds de messages du fil « Plateforme »
-   qui servent aussi aux vraies alarmes. Les autres restent dans la Tour (Surveillance), où ils étaient déjà. */
+   qui servent aussi aux vraies alarmes. Les autres restent dans la Tour (Surveillance), où ils étaient déjà. Ce plafond-là n'est PAS une limite d'agent : c'est l'anti-abus d'une route forgeable (28 octobre
+   2026 : laissé à six quand la gravité moyenne a été ajoutée — la haute passe d'abord). */
 const CLIENTS_PAR_JOUR = 6;
-const FENETRE_MS = 24 * 3600000;       // un incident plus vieux que ça n'est pas « venu d'arriver »
-const OUBLI_MS = 7 * 86400000;
+/* (28 octobre 2026, Justin : « sans limite ») Plus de fenêtre de 24 h sur l'âge de l'incident : Max regarde depuis son DERNIER PASSAGE COMPLET (`m.clientsDepuis`), qui n'avance que lorsqu'il a tout vu —
+   un plafond du jour atteint, ou Max à l'arrêt, laisse le reste pour le passage d'après au lieu de le perdre au bout d'une journée. Au tout premier passage, 24 h (pas d'arriéré déversé d'un coup). */
+const PREMIER_PASSAGE_MS = 24 * 3600000;
+const MARGE_MS = 15 * 60000;
+/* ce qu'il a signalé s'oublie tard : tant que le curseur peut encore ramener un incident, Max ne doit pas le redire */
+const OUBLI_MS = 60 * 86400000;
 
 module.exports = function agentMax(ctx) {
   const { agents, conversations, etat, incidents } = ctx;
@@ -39,22 +44,27 @@ module.exports = function agentMax(ctx) {
     let dits = 0;
     const jour = O.jourParis(now);
     if (!m.clientsJour || m.clientsJour.j !== jour) m.clientsJour = { j: jour, n: 0 };
-    for (const id of incidents.clientsHauts(now - FENETRE_MS)) {
-      if (dits >= CLIENTS_PAR_PASSAGE || m.clientsJour.n >= CLIENTS_PAR_JOUR) break;
+    /* une marge de quinze minutes derrière le curseur : un incident daté de l'événement (le paiement refusé porte l'heure de Stripe) peut être inscrit un peu après sa date — `clientsVus` empêche de le redire */
+    const depuis = m.clientsDepuis > 0 ? m.clientsDepuis - MARGE_MS : now - PREMIER_PASSAGE_MS;
+    let toutVu = true;
+    for (const id of incidents.clientsHauts(depuis, { moyenne: true })) {
       if (m.clientsVus[id]) continue;
-      if (!agents.peutAgir('max').ok) break;
+      if (dits >= CLIENTS_PAR_PASSAGE || m.clientsJour.n >= CLIENTS_PAR_JOUR) { toutVu = false; break; }
+      if (!agents.peutAgir('max').ok) { toutVu = false; break; }
       const f = incidents.faits(id);
       if (!f) continue;
       const nbEnt = f.entreprises, qui = nbEnt === 0 ? 'sans entreprise identifiée' : 'chez ' + nbEnt + ' ' + O.pluriel(nbEnt, 'entreprise', 'entreprises');
-      const tache = 'Incident venu des appareils [' + id + '] : ' + f.occurrences + ' occurrences, ' + qui + ', catégorie ' + f.categorie;
+      const grav = f.gravite === 'moyenne' ? 'moyenne' : 'haute';
+      const tache = 'Incident venu des appareils [' + id + '] : ' + f.occurrences + ' occurrences, ' + qui + ', catégorie ' + f.categorie + ', gravité ' + grav;
       let c = { ok: false }; try { c = agents.consigner('max', 'jules', tache); } catch (e) { c = { ok: false }; }
       /* hors des heures de travail Jules ne peut pas prendre la consigne : Max PRÉVIENT (c'est l'astreinte), l'incident reste dans la Tour, et Jules le voit à l'ouverture */
-      const texte = 'Un incident de gravité haute vient d’arriver des appareils : ' + f.occurrences + ' ' + O.pluriel(f.occurrences, 'occurrence', 'occurrences') + ', ' + qui + ', catégorie ' + f.categorie + '.' +
+      const texte = 'Un incident de gravité ' + grav + ' vient d’arriver des appareils : ' + f.occurrences + ' ' + O.pluriel(f.occurrences, 'occurrence', 'occurrences') + ', ' + qui + ', catégorie ' + f.categorie + '.' +
         (c.ok ? ' Je le passe à Jules.' : c.raison === 'hors_heures' ? ' Jules est hors des heures de travail : l’incident l’attend dans la Tour (Incidents).' : '');
       const d = conversations.parler('max', 'plateforme', texte, { niveau: 'info' });
       if (d.ok || d.raison === 'doublon') { m.clientsVus[id] = now; m.clientsJour.n++; dits++; try { agents.noter('max', 'incident client signalé', { cible: id, resultat: 'ok', detail: f.categorie }); } catch (e) {} }
     }
-    if (dits) etat.sauver();
+    if (toutVu) m.clientsDepuis = now;
+    if (dits || toutVu) etat.sauver();
     return dits;
   }
 

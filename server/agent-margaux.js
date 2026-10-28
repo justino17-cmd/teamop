@@ -93,15 +93,20 @@ module.exports = function margaux(ctx) {
       let examines = 0, relances = 0, demeures = 0, reglees = 0;
       /* ⛔ `vus` se remplit AVANT la boucle : un passage coupé (au-delà de PAR_PASSAGE, ou quand `peutAgir` tombe) ne doit pas faire passer pour « réglés » les impayés qu'il n'a pas eu le temps d'examiner. */
       const vus = new Set(Array.isArray(lu.incertains) ? lu.incertains.filter(c => typeof c === 'string') : []);
-      for (const x of lu.liste.slice(0, 200)) if (x && typeof x.cle === 'string' && x.cle && typeof x.aboId === 'string' && x.aboId) vus.add(x.cle);
-      for (const x of lu.liste.slice(0, 200)) {
+      /* (28 octobre 2026, Justin : « sans limite ») AUCUNE coupe de la liste : l'ancien `slice(0, 200)` laissait les impayés au-delà du deux-centième ni relancés, ni même comptés « vus » — donc réglés
+         au bout de quatre passages. Le plafond qui reste est celui des ACTIONS (courriels partis ou déposés, mises en demeure préparées), pas celui des lignes lues. */
+      for (const x of lu.liste) if (x && typeof x.cle === 'string' && x.cle && typeof x.aboId === 'string' && x.aboId) vus.add(x.cle);
+      let actions = 0;
+      for (const x of lu.liste) {
         if (!x || typeof x.cle !== 'string' || !x.cle || typeof x.aboId !== 'string' || !x.aboId) continue;
         let st = reg.impayes[x.cle];
         /* un autre abonnement refusé (un nouvel impayé, après un règlement) repart de zéro : une relance d'hier ne vaut pas pour une autre facture */
         if (!st || st.aboId !== x.aboId || st.reglee) { st = reg.impayes[x.cle] = { aboId: x.aboId, premierVu: now, etapes: {}, demeure: null, reglee: 0 }; sauve(); }
         if (st.absences) { st.absences = 0; sauve(); }
         examines++;
-        if (examines > PAR_PASSAGE) break;
+        /* ⛔ Le plafond compte les ACTIONS, jamais les impayés regardés : le compter ici, AVANT le `continue` des impayés déjà faits, faisait qu'au-delà de vingt impayés suivis les suivants
+           n'étaient jamais relancés — vingt dossiers « déjà faits » mangeaient le passage à eux seuls. */
+        if (actions >= PAR_PASSAGE) break;
         const faites = jours.every(j => st.etapes[String(j)]);
         if (faites && st.demeure) continue;
         /* ⛔ pas d'adresse de facturation lisible : on ne devine pas où écrire. Justin le sait UNE fois (pas un message toutes les 30 minutes) ; le client est à relancer à la main. */
@@ -128,7 +133,7 @@ module.exports = function margaux(ctx) {
           st.etapes[String(j)] = { ts: now, voie: 'envoi' };
           if (!sauve()) { delete st.etapes[String(j)]; continue; }
           let c; try { c = await documents.courrier({ agent: ID, a: x.adresse, objet: m.objet, texte: m.texte, source: 'relance', dossier: x.dossier, autorises: m.autorises, porte: 'relancer_impaye' }); } catch (e) { c = { ok: false, raison: 'erreur' }; }
-          if (c && c.ok) { st.etapes[String(j)] = { ts: now, voie: c.voie, ref: c.ref }; relances++; }
+          if (c && c.ok) { st.etapes[String(j)] = { ts: now, voie: c.voie, ref: c.ref }; relances++; actions++; }
           else { delete st.etapes[String(j)]; agents.noter(ID, 'relance', { cible: x.dossier || 'impayé', resultat: 'erreur', detail: 'non partie : ' + String((c && c.raison) || 'erreur') }); }
           sauve();
           if (c && c.ok) agents.noter(ID, 'relance J+' + j, { cible: x.dossier || 'impayé', resultat: c.voie === 'direct' ? 'ok' : 'propose', detail: c.voie === 'direct' ? 'envoyée' : 'déposée en validation' });
@@ -137,7 +142,7 @@ module.exports = function margaux(ctx) {
         if (fa && demeureDue(st, age, now)) {
           if (!agents.peutAgir(ID).ok) break;
           const r = preparerDemeure(st, x, fa);
-          if (r.ok) demeures++;
+          if (r.ok) { demeures++; actions++; }
         }
       }
       /* ceux qui ne sont plus impayés : réglés (ou plus bloqués). Plus rien ne part pour eux. */
@@ -151,7 +156,7 @@ module.exports = function margaux(ctx) {
         else if (now - st.reglee > OUBLI_MS) { delete reg.impayes[cle]; sauve(); }
       }
       if (relances > 0) dire('J’ai relancé ' + relances + ' client' + (relances > 1 ? 's' : '') + ' pour un impayé (ou déposé la relance dans « Validations »).', 'info');
-      return { examines: Math.min(examines, PAR_PASSAGE), relances, demeures, reglees };
+      return { examines, relances, demeures, reglees };
     } finally { enCours = false; }
   }
 

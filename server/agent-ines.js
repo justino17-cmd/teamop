@@ -29,6 +29,7 @@ const ID = 'ines';
 const JOUR = 86400000;
 const HEURE_RELECTURE = 7 * 60 + 30;          // 7 h 30, heure de Paris : avant le point de Victor
 const JOURS_GARDES = 14;
+const PREMIER_PASSAGE_JOURS = 30;   // la fenêtre du TOUT PREMIER passage (ensuite : depuis le dernier passage, sans borne)
 const ERREURS_TAUX = 0.3, ERREURS_MIN_GESTES = 5;
 const VALIDATION_ANCIENNE_JOURS = 5;           // elles expirent à 7
 
@@ -166,7 +167,9 @@ module.exports = function agentInes(ctx) {
         if (m.relu === jour) return { saute: 'deja_relu' };
         if (pp.heure * 60 + pp.minute < HEURE_RELECTURE) return { saute: 'pas_l_heure' };
       }
-      const depuis = Math.max(m.depuis || 0, now - JOUR);
+      /* (28 octobre 2026, Justin : « sans limite ») Elle relit depuis son DERNIER PASSAGE, quel qu'il soit : l'ancienne borne de 24 h laissait sans relecture tout ce qui s'était envoyé pendant qu'elle
+         ne passait pas (serveur arrêté, Inès à l'arrêt ou en pause trois jours — ces courriels-là n'étaient jamais contrôlés). Au tout premier passage, trente jours : de quoi un premier bilan lisible. */
+      const depuis = m.depuis > 0 ? m.depuis : now - PREMIER_PASSAGE_JOURS * JOUR;
       const r = relire(depuis, now);
       /* le rapport du jour est rangé AVANT de parler : même si le fil refuse, les chiffres de la semaine existent */
       if (!m.jours || typeof m.jours !== 'object' || Array.isArray(m.jours)) m.jours = {};
