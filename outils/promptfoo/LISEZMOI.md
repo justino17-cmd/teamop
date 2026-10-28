@@ -123,7 +123,20 @@ réponse échoue à l'une de ses assertions. Ajouter une règle : une fonction d
 * **Les assertions sont des règles, pas un jugement**. Une réponse peut les passer toutes et sonner faux. Elles attrapent les régressions que ce dépôt a déjà payées ; pour le
   goût, il reste l'examen de l'équipe (scénarios joués avec le vrai modèle depuis la Tour) et les yeux de Justin.
 
-## 7. Décisions pour Justin
+## 7. Comment ce dossier a été éprouvé
+
+Un banc qu'on n'a jamais vu échouer ne prouve rien : `tests/test-3132.js` (137 contrôles) a été rejoué contre **20 défauts remis un par un** (garde-réseau, fournisseur,
+assertions, lanceur, cas, tarifs). Il en a attrapé 20. Trois ne cassaient d'abord rien et ont obtenu chacun le contrôle qui leur manquait : une configuration illisible qui citerait
+l'erreur d'analyse du JSON (le test ne provoquait pas la forme d'erreur qui recopie un extrait), une négation retirée (aucune phrase du banc n'en dépendait), un arbitrage sans
+`pour_justin` (une autre règle de la même fonction attrapait déjà les cas du banc). Le garde-réseau, lui, **laissait passer `net.connect()`** — `Socket.connect` reçoit la forme
+déjà normalisée `[options, rappel]`, lue comme un objet sans hôte donc « localhost » — jusqu'à ce que le banc vise un hôte hors liste.
+
+La preuve de bout en bout avec le vrai promptfoo 0.125.1 : `lancer.sh preuve` (32 passent avec les bonnes réponses, 32 tombent avec les mauvaises, 0 erreur) ; le mode réel a été
+joué contre un faux serveur d'Anthropic sur la boucle locale (11 requêtes pour 11 cas, la clé des agents en en-tête, nulle part ailleurs). **Il n'a pas été joué contre le vrai
+Anthropic : aucune clé n'existe hors du VPS.** Le premier `lancer.sh reel` sur le VPS est le premier vrai contact avec le modèle — attendre quelques cas qui tombent à tort
+(une règle trop stricte, un `attendues` trop étroit) et les corriger dans `cas/` ou `assertions.js`, pas dans les agents.
+
+## 8. Décisions pour Justin
 
 * **Quelle clé** : `agents.cleApi` (par défaut, celle du budget des agents) ou `anthropic.cleApi` (celle du Devis IA, plafond de 100 appels par jour) ? La consigne du jour disait
   la seconde ; le dépôt dit « jamais celle du Devis IA » pour les agents. Choisie : celle des agents. À changer d'une variable, pas d'une ligne de code.
