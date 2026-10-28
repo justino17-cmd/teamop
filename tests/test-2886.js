@@ -141,7 +141,7 @@ for (const nom of ['app.html', 'beta.html']) {
   const droit = (code.match(/\['validerDR','(Valider les mouvements[^']+)'/) || [])[1];
   vrai(nom + ' : le droit s’appelle « Valider les mouvements de box et les demandes »', droit === 'Valider les mouvements de box et les demandes', droit);
   const refus = code.match(/toast\('Validation réservée à qui a le droit « ([^»]+) »'\)/g) || [];
-  vrai(nom + ' : les deux refus (mouvement, demande) citent ce libellé exact (' + refus.length + ' lus)', refus.length === 2 && refus.every((x) => x.includes('« ' + droit + ' »')), refus);
+  vrai(nom + ' : les deux refus (mouvement, demande) citent ce libellé exact (' + refus.length + ' lus)', refus.length === 2 && refus.every((x) => x.includes('« ' + droit + ' »') || x.includes("capTxt('" + droit + "')")), refus);
 }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

@@ -132,7 +132,9 @@ console.log('── 793 · 4. chaque fabrique passe par la même règle ──')
   /* la fabrique reçoit son en-tête tout prêt : c'est l'appelant qui lit docEntete */
   const PAR_APPELANT = { papImplPdfStr: 'papImplDocument', rapportPdfStr: 'rapportDocument',   // v744 : le rapport joint au courriel
     cvcAttestationPdfStr: 'cvcAttestationDocument', cvcAttestationApercu: 'cvcAttestationDocument',
-    cvcRamonageApercu: 'cvcRamonageDocument' };   // 24 octobre 2026 : le certificat de ramonage — même chemin que l'attestation (son PDF est cvcAttestationPdfStr, genre « ramonage »)   // 23 octobre 2026 : l'attestation d'entretien (chauffage) — l'aperçu n'écrit que « Préparation… » dans sa fenêtre, le document vient de cvcAttestationDocument
+    cvcRamonageApercu: 'cvcRamonageDocument',
+    nettPdf: 'nettDocFabriquer', nettDocApercu: 'nettDocFabriquer' };   // 28 octobre 2026 : le pack nettoyage — nettDocFabriquer lit docEntete(société du client)
+      // 24 octobre 2026 : le certificat de ramonage — même chemin que l'attestation (son PDF est cvcAttestationPdfStr, genre « ramonage »)   // 23 octobre 2026 : l'attestation d'entretien (chauffage) — l'aperçu n'écrit que « Préparation… » dans sa fenêtre, le document vient de cvcAttestationDocument
   vrai('population : au moins 15 fabriques trouvées dans le fichier', fab.length >= 15, fab.map(x => x.n));
   const sans = fab.filter(x => !INTERNES[x.n] && !PAR_APPELANT[x.n] && !/docEntete\(|bcEntete\(/.test(x.b)).map(x => x.n);
   v('toute fabrique remise à un client passe par docEntete (ou bcEntete) — ou elle est nommée INTERNE', sans, []);

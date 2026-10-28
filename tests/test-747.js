@@ -52,6 +52,7 @@ const VU_ET_PAS_GARDE = {
   seedFournisseurs: 'semis du pack métier', mvtDemoPoser: 'démonstration', mvtDemoGrande: 'démonstration',
   mvtDemoDeuxMois: 'démonstration', betaRemplir: 'démonstration (bêta)', demoCharger: 'démonstration',
   demoCompta: 'démonstration', demoTele: 'démonstration',
+  nettDemoPoser: 'démonstration (cahiers et plan de prévention du pack nettoyage, posés par « Remplir » de la bêta)',
   /* ⚠️ Ces deux-là n'apparaissaient PAS tant que le nettoyage des commentaires était naïf :
      elles tombaient dans les 107 069 caractères avalés. Le banc voit plus large depuis. */
   genDemoData: 'démonstration', genTestNuisibles: 'démonstration (jeu d essai nuisibles)',
