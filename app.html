@@ -38027,12 +38027,14 @@ const RAZ_LIGNES=[
    n:()=>(db.interventions||[]).length+(db.interventionsArchive||[]).length+(db.registres||[]).length},
   {k:'clients', defaut:0, t:'Effacer les clients',               d:'⚠️ Leurs interventions, devis et factures perdent leur rattachement.',
    n:()=>(db.clients||[]).length},
-  {k:'vente',   defaut:0, t:'Effacer les devis, factures et contrats', d:'Ainsi que les télécollectes et les enveloppes.',
-   n:()=>(db.devis||[]).length+(db.factures||[]).length+(db.contrats||[]).length},
+  {k:'vente',   defaut:0, t:'Effacer les devis, factures et contrats', d:'Ainsi que les télécollectes et les enveloppes. Les factures déjà ÉMISES (envoyées, payées) sont CONSERVÉES : elles se gardent 10 ans et leur numérotation doit rester continue — seules les factures en attente partent.',
+   n:()=>(db.devis||[]).length+(db.factures||[]).filter(f=>!docEmis(f)).length+(db.contrats||[]).length},
   {k:'journal', defaut:0, t:'Effacer le journal',                d:'La trace de qui a fait quoi. À garder si vous voulez pouvoir remonter le fil.',
    n:()=>(db.journal||[]).length}
 ];
 let _razChoix={};
+/* les factures que la remise à zéro laisse : toutes celles qui ne sont plus des brouillons (une seule définition de « émise » : docEmis) */
+function facturesAGarder(){ return (db.factures||[]).filter(docEmis); }
 function remiseZero(){
   if(!currentUser||currentUser.role!=='admin'){ toast('Réservé aux administrateurs'); return; }
   RAZ_LIGNES.forEach(l=>{ if(_razChoix[l.k]===undefined) _razChoix[l.k]=!!l.defaut; });
@@ -38118,7 +38120,8 @@ function razAppliquer(){
   if(c.bons){ db.bons=[]; faits.push('bons de commande'); }
   syncRetraitVoulu(); if(c.inter){ db.interventions=[]; db.interventionsArchive=[]; db.registres=[]; (db.boxes||[]).forEach(b=>{ b.passages=[]; }); faits.push('interventions et rapports'); }
   if(c.clients){ db.clients=[]; db.appareils=[]; db.cahiers=[]; db.plansPrevention=[]; db.plansSite={}; faits.push('clients'); }
-  if(c.vente){ db.devis=[]; db.factures=[]; db.contrats=[]; db.telecollectes=[]; db.enveloppes=[]; faits.push('devis, factures et contrats'); }
+  if(c.vente){ const gardees=facturesAGarder(); db.devis=[]; db.factures=gardees; db.contrats=[]; db.telecollectes=[]; db.enveloppes=[];
+    faits.push('devis, factures en attente et contrats'+(gardees.length?' — '+gardees.length+' facture'+(gardees.length>1?'s':'')+' émise'+(gardees.length>1?'s':'')+' conservée'+(gardees.length>1?'s':'')+' (à garder 10 ans)':'')); }
   /* v750 : `estampiller` ne marque plus les lignes qui quittent le journal (le plafond en chasse
      une à chaque geste). Vider le journal EST une suppression voulue : on pose ses marques ici,
      sinon les autres appareils le rempliraient à nouveau à la première fusion. */
@@ -38139,8 +38142,8 @@ function resetProduction(){ if(!currentUser||currentUser.role!=='admin'){ toast(
   openModal(`<div class="modal-head"><h3>⚠️ Mise en production</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="card" style="border-color:rgba(220,60,60,.45);background:rgba(220,60,60,.06);margin-bottom:12px"><p style="font-size:13.5px;line-height:1.65;color:var(--t2)">
       <b style="color:var(--red)">Cette action est IRRÉVERSIBLE</b> et s'applique à <b>toute l'équipe</b> via la synchronisation.<br><br>
-      🗑️ <b>Sera effacé :</b> clients, interventions, boxes, stock, mouvements, arrivages, devis, factures, contrats, enveloppes, bons, demandes, tâches, absences, chantiers, pointages, véhicules, fournisseurs, messages, journal.<br><br>
-      ✅ <b>Sera conservé :</b> comptes utilisateurs, techniciens, permissions, catalogue produits (quantités remises à zéro), paramètres.<br><br>
+      🗑️ <b>Sera effacé :</b> clients, interventions, boxes, stock, mouvements, arrivages, devis, factures en attente, contrats, enveloppes, bons, demandes, tâches, absences, chantiers, pointages, véhicules, fournisseurs, messages, journal.<br><br>
+      ✅ <b>Sera conservé :</b> comptes utilisateurs, techniciens, permissions, catalogue produits (quantités remises à zéro), paramètres, et les <b>factures déjà émises</b> (envoyées ou payées : la loi impose de les garder, et leur numérotation doit rester continue).<br><br>
       💾 Une <b>sauvegarde .json</b> sera téléchargée automatiquement juste avant l'effacement.</p></div>
     <p style="font-size:13.5px;color:var(--t2);margin-bottom:10px">Pour confirmer, un <b>code de sécurité à 6 chiffres</b> va être envoyé à<br><b>${esc(mail)}</b></p>
     <button class="btn block" onclick="resetProdSend('${esc(mail)}')">M'envoyer le code par e-mail</button>
@@ -38173,11 +38176,13 @@ function resetProdWipe(){
      tout simplement pas lieu. L'utilisateur, lui, a vu défiler un export et tapé un code à
      six chiffres — il croit avoir effacé. razAppliquer() le fait déjà ; celle-ci l'oubliait. */
   syncRetraitVoulu();
+  const gardees=facturesAGarder();
   ['clients','interventions','boxes','enveloppes','mouvements','vehicules','demandes','bons','journal','devis','factures','contrats','pointages','messages','groupes','conducteurs','produitsDonnes','brouillons','telecollectes','taches','absences','chantiers','fournisseurs','registres','appareils','cahiers','plansPrevention'].forEach(k=>{ db[k]=[]; });
+  db.factures=gardees;   // comptable, B2 : les factures déjà ÉMISES ne disparaissent pas (10 ans, numérotation continue) — même règle que la remise à zéro
   delete db.foursSeededV; delete db.foursSeeded; delete db.foursEmailsV2;   // le pack fournisseurs du métier se re-remplit après la remise à zéro
   db.produits=(db.produits||[]).map(p=>({...p,qte:0}));   // catalogue conservé, quantités remises à zéro
   db.dashLayout=DASH_DEFAULT.slice();
-  logEvent('Mise en production','Toutes les données de test ont été effacées','admin');
+  logEvent('Mise en production','Toutes les données de test ont été effacées'+(gardees.length?' — '+gardees.length+' facture'+(gardees.length>1?'s':'')+' émise'+(gardees.length>1?'s':'')+' conservée'+(gardees.length>1?'s':''):''),'admin');
   save(); if(typeof syncPush==='function') syncPush(true);
   toast('Application remise à zéro — prête pour la production'); go('dashboard'); }
 /* v738 — EXPORT, IMPORT, COPIES DE SAUVEGARDE, E-MAILS DE L'ENTREPRISE, COMPTES, INTERRUPTEURS :
@@ -38273,6 +38278,9 @@ function delItem(coll,id){
   const _grp=COLL_GRP[coll]||'';
   if(_grp ? !canCat(_grp,'supprimer') : !can('supprimer')){ toast('Suppression non autorisée pour ton compte (Permissions)'); return; }
   if(coll==='pointages' && !ptPeutCorriger((db.pointages||[]).find(x=>x.id===id))){ toast('Supprimer des heures est réservé aux responsables'); return; }
+  /* ⛔ une facture a UN chemin de suppression (`delFacture`) : un brouillon part, une émise reste. Le générique la
+     supprimait sans rien demander de plus que « Supprimer la facture ? ». */
+  if(coll==='factures'){ delFacture(id); return; }
   if(coll==='interventions'){ const it=db.interventions.find(x=>x.id===id);
     if(it){ if(it.groupId&&serieAutresActifs(it).length){ delSerieModal(id); return; }
       delIntModal(id); return; } }
@@ -39114,6 +39122,23 @@ function factureDeIntervention(id){
 }
 function intTvaFacture(){ return (db.factTva!=null&&db.factTva!=='')?Number(db.factTva):20; }
 function intMontantHT(ttc,tva){ return Math.round((Number(ttc)||0)/(1+(Number(tva)||0)/100)*100)/100; }
+/* le taux de TVA PROPRE d'une facture (celui qu'elle porte), sinon `defaut` */
+function factureTauxPropre(f,defaut){ const t=f&&f.tva; return (t!=null&&t!==''&&isFinite(Number(t)))?Number(t):defaut; }
+/* ⛔ Le prix de l'intervention a changé alors que sa facture est ÉMISE : elle ne bouge pas, et l'utilisateur le SAIT
+   (un toast, une ligne de journal qui nomme le NUMÉRO et les deux montants). Une seule fois par facture et par prix, par
+   séance : la synchro repasse ici à chaque enregistrement de l'intervention, pas question de répéter l'avis. La facture
+   elle-même n'est PAS touchée — pas même un repère — d'où la mémoire ici, hors des données. */
+var _factureEmiseDite={};
+function factureEmiseSignale(f,i,mnt){
+  const l0=f.lignes&&f.lignes[0]; let avant=null;
+  if(f.montantInt!==undefined){ if(Number(f.montantInt)>0) avant=Number(f.montantInt); }
+  else if(f.auto||(f.lignes&&f.lignes.length===1&&l0)) avant=Math.round(docTot(f).ttc*100)/100;   // pas de prix d'origine noté : le total remis au client
+  if(avant===null||Math.abs(avant-mnt)<0.005) return false;
+  const cle=(f.id||f.num)+'|'+mnt; if(_factureEmiseDite[cle]) return false; _factureEmiseDite[cle]=1;
+  const msg='Le prix de l\'intervention a changé ('+eur(avant)+' → '+eur(mnt)+'), mais la facture N° '+(f.num||'(sans numéro)')+' est déjà émise : elle n\'a pas été modifiée. Pour la corriger, il faudra un avoir.';
+  try{ if(typeof logEvent==='function') logEvent('Facture émise non modifiée',msg,'finance'); }catch(e){}
+  try{ if(typeof toast==='function') toast('⚠️ '+msg,9000); }catch(e){}
+  return true; }
 /* UN SEUL chemin intervention → facture → registre. `opts.cloture` : l'appelant vient de poser « terminée »
    (les cinq portes : menu de statut, case « Effectué ? », « Terminer à la date prévue », « Rédiger » +
    Effectuée, Clôture guidée). Hors clôture (création, modification du formulaire), la facture suit le prix et
@@ -39133,33 +39158,42 @@ function syncFactureFromIntervention(i,opts){
     if(paid){ f.datePaiement=todayISO(); vientDePayer=true; }
     db.factures.unshift(f); logEvent('Facture auto créée',f.num+' ('+computed+')','finance');
   } else if(f.interventionId===i.id||f.interId===i.id){
-    /* le prix a changé depuis que la facture en a été tirée (ou facture « réglée sur place » d'avant, déjà juste) */
-    const l0=f.lignes&&f.lignes[0];
+    /* ⛔ UNE FACTURE ÉMISE N'EST JAMAIS RÉÉCRITE — lignes, prix, TVA, montantInt. Dès qu'elle n'est plus un brouillon
+       (envoyée, payée, en retard : `docEmis`, la seule définition), le client en a un PDF et le registre un montant :
+       réécrire l'un sans l'autre fabrique un document qui n'est plus celui qu'on a remis (rejoué : une facture payée à
+       10 % repartait à 20 %). Le prix de l'intervention a changé ? La facture reste telle quelle, et on le DIT. */
+    if(docEmis(f)) factureEmiseSignale(f,i,mnt);
+    /* le prix a changé depuis que la facture en a été tirée (ou facture « réglée sur place » d'avant, déjà juste).
+       Un BROUILLON suit le prix mais GARDE son propre taux de TVA s'il en a un : le HT se calcule avec lui, jamais avec le
+       taux par défaut (la synchro remettait 20 % sur un brouillon à 10 %). */
+    const l0=!docEmis(f)&&f.lignes&&f.lignes[0];
+    const tvaB=factureTauxPropre(f,tvaR), htB=intMontantHT(mnt,tvaB);
     if(l0){
       if(f.montantInt!==undefined){
         /* ⛔ `montantInt` vaut 0 sur une facture « Facturer cette intervention » faite SANS prix : ses lignes sont les
            produits utilisés, la première n'est PAS la prestation — un prix posé ensuite ne doit pas en écraser le prix
            unitaire (rejoué : pu 10 devenait 41,67 pour une quantité de 2). */
-        if(f.montantInt>0&&f.montantInt!==mnt){ l0.pu=ht; f.tva=tvaR; f.montantInt=mnt; }
-      } else if(f.auto){ l0.pu=ht; f.tva=tvaR; f.montantInt=mnt; }
+        if(f.montantInt>0&&f.montantInt!==mnt){ l0.pu=htB; f.tva=tvaB; f.montantInt=mnt; }
+      } else if(f.auto){ l0.pu=htB; f.tva=tvaB; f.montantInt=mnt; }
       else if(f.statut==='brouillon'&&f.lignes.length===1){
         /* un brouillon d'AVANT ce correctif, tiré de l'intervention (une seule ligne, pas de `montantInt`) : il suit le
            prix, sinon il partirait chez le client à l'ancien. Rien ne bouge tant que le prix n'a pas changé : un
            brouillon dont `pu` vaut le prix (l'ancienne façon, 120 € devenant 144 €) ou son HT est juste tel quel —
            on y pose seulement `montantInt`, pour qu'il suive la suite. Une facture ÉMISE n'est jamais réécrite. */
         const pu=Number(l0.pu)||0;
-        if(pu===mnt||pu===ht) f.montantInt=mnt;
-        else { l0.pu=ht; f.tva=tvaR; f.montantInt=mnt; }
+        if(pu===mnt||pu===htB) f.montantInt=mnt;
+        else { l0.pu=htB; f.tva=tvaB; f.montantInt=mnt; }
       }
     }
-    f.clientId=i.clientId; if(i.moyenPaiement) f.moyenPaiement=i.moyenPaiement;
+    /* le client d'une facture émise est écrit sur le PDF remis : il ne change pas avec la fiche de l'intervention */
+    if(!docEmis(f)||!f.clientId) f.clientId=i.clientId; if(i.moyenPaiement) f.moyenPaiement=i.moyenPaiement;
     const ord={brouillon:0,envoyee:1,payee:2};
     if((ord[computed]||0)>(ord[f.statut]||0)){ f.statut=computed; if(computed==='payee'){ vientDePayer=true; if(!f.datePaiement) f.datePaiement=todayISO(); } }
   }
   if(opts&&opts.cloture){
     if(paid) intRegistreEncaisse(i,f);
     /* le courriel part UNE fois, au moment où la facture devient « payée » — jamais renvoyé par une re-clôture */
-    if(paid&&vientDePayer&&db.factAuto!==false&&!f.mailEnvoye) factureMailPayee(f,i);
+    if(paid&&vientDePayer&&factAutoActif()&&!f.mailEnvoye) factureMailPayee(f,i);
   }
   return f;
 }
@@ -39217,12 +39251,20 @@ function factEnvoyer(id){ if(!permGarde('ventes','modifier','une facture')) retu
   Promise.resolve(envoiDoc('factures',id,'mail')).then(ok=>{ if(!ok) return;   // v740 : « Envoyée » quand elle est PARTIE
     f.statut='envoyee'; logEvent('Facture envoyée',f.num,'finance'); save(); if(current==='factures') views.factures(); }); }
 function delFacture(id){ if(!canCat('ventes','supprimer')){toast('Suppression non autorisée pour ton compte (Permissions)');return;}
+  /* ⛔ UNE FACTURE ÉMISE NE SE SUPPRIME PAS : sa suppression ferait un trou définitif dans la séquence de numéros, qui doit
+     rester CONTINUE (CGI art. 242 nonies A), et le client en a déjà un PDF. On l'annule par un avoir. Seul un BROUILLON
+     part — et c'est le seul chemin : `delItem('factures')` revient ici, la remise à zéro garde les émises (`facturesAGarder`). */
+  const f0=(db.factures||[]).find(x=>x.id===id);
+  if(!f0) return;
+  if(docEmis(f0)){ toast('La facture N° '+(f0.num||'(sans numéro)')+' est émise : elle ne se supprime pas (la numérotation des factures doit rester continue). Pour l\'annuler, il faudra un avoir — bientôt dans OP GESTION.',8000); return; }
   /* g06 (facturation#4) : la ligne de registre née du pointage de CETTE facture part avec elle (sinon elle reste orpheline) */
-  const f0=(db.factures||[]).find(x=>x.id===id), reg0=f0?factLignesRegistre(f0):[];
+  const reg0=factLignesRegistre(f0);
   if(reg0.length&&!isFinanceMgr()){ toast('Cette facture a une ligne au registre des encaissements : la supprimer demande le droit « Voir / gérer la comptabilité »'); return; }
   if(!confirm('Supprimer cette facture ?'+(reg0.length?'\n\nSa ligne du registre des encaissements ('+reg0.map(l=>eur(l.montant)).join(', ')+') sera retirée aussi.':'')))return;
   if(f0&&reg0.length) factRegistreRetirer(f0);
-  db.factures=(db.factures||[]).filter(x=>x.id!==id); logEvent('Facture supprimée',id,'finance'); save(); views.factures(); toast('Facture supprimée'); }
+  db.factures=(db.factures||[]).filter(x=>x.id!==id);
+  /* le journal écrit le NUMÉRO et le montant, jamais l'identifiant interne seul (« f1 » ne dit rien à qui relit) */
+  logEvent('Facture supprimée',(f0.num||'(sans numéro)')+' — '+eur(docTot(f0).ttc),'finance'); save(); views.factures(); toast('Facture supprimée'); }
 views.factures=function(){
   const canDel=canCat('ventes','supprimer');
   const ttc=f=>docTot(f).ttc;
@@ -39377,7 +39419,9 @@ function factureAFacturer(d,techId,declarantId){
      groupe lui-même (interIds) se complète plus bas. */
   const creees=[];
   const ints=toutes.filter(i=>{ const ex=factureDeIntervention(i.id);
-    if(!ex||(ex.aFacturer&&(ex.interIds||[]).includes(i.id))) return true;
+    /* ⛔ un groupe déjà ÉMIS (envoyé au client) ne se complète pas et ne se refait pas : ses interventions sont reprises
+       telles quelles, comme celles de toute facture émise */
+    if(!ex||(ex.aFacturer&&!docEmis(ex)&&(ex.interIds||[]).includes(i.id))) return true;
     i.factureId=ex.id; if(!creees.includes(ex)) creees.push(ex); return false; });
   if(!ints.length){ save(); return creees; }
   /* une pile par client ET par société : quand l'entreprise a plusieurs
@@ -39389,7 +39433,7 @@ function factureAFacturer(d,techId,declarantId){
     const lot=parClient[k];
     const [cid,soc]=JSON.parse(k);
     /* déjà une facture pour ce client, cette société, ce jour-là ? on la complète */
-    let f=db.factures.find(x=>x.aFacturer&&x.dateJour===d&&x.clientId===cid&&(x.rapportModele||'')===soc);
+    let f=db.factures.find(x=>x.aFacturer&&!docEmis(x)&&x.dateJour===d&&x.clientId===cid&&(x.rapportModele||'')===soc);   // jamais un groupe émis : on y ajouterait des lignes après coup
     const lignes=lot.map(i=>({designation:(i.titre||'Intervention')+' — le '+fmtShort(i.date||d),
       qte:1, pu:Math.round((Number(i.montant)||0)/(1+tvaR/100)*100)/100}));
     if(f){
@@ -39413,13 +39457,36 @@ function facturesAEditer(){
   const reprises=new Set(); (db.interventions||[]).forEach(i=>{ if(i.aFacturer&&i.factureId) reprises.add(i.factureId); });
   return (db.factures||[]).filter(f=>f.statut==='brouillon'&&(f.aFacturer||reprises.has(f.id))); }
 
-/* ══ LA FACTURE PAYÉE SUR PLACE PART AU CLIENT ══
+/* ══ LA FACTURE PAYÉE SUR PLACE PART AU CLIENT — SI L'ENTREPRISE L'A CHOISI ══
    Intervention payée → la facture (créée ou passée « payée » par syncFactureFromIntervention, UN seul chemin)
    part au client par e-mail via le serveur, comme les rapports. Elle ne part qu'UNE fois (`mailEnvoye`) :
    re-enregistrer ou re-clôturer met à jour le montant, sans renvoyer l'email.
-   L'argent, lui, est déjà compté au registre — la facture n'ajoute rien. */
+   L'argent, lui, est déjà compté au registre — la facture n'ajoute rien.
+   ⛔ Comptable, 28 octobre 2026 (B4) : l'envoi était ACTIF PAR DÉFAUT (`factAuto!==false`) alors que le taux de TVA de ces
+   factures (`intTvaFacture()`, 20 % sans réglage) n'a jamais été validé par l'entreprise : un document au mauvais taux
+   partait chez un client sans que personne l'ait relu. Il faut désormais `db.factAuto===true` — une entreprise qui l'avait
+   activé le garde, les autres reçoivent la facture dans Factures et l'envoient elles-mêmes. UNE définition : `factAutoActif`. */
+function factAutoActif(){ return !!db && db.factAuto===true; }
+/* le réglage se montre et se change dans Comptabilité (⚙ Facturation auto) : ni Paramètres ni Factures, qui sont ailleurs */
+function factReglagesModal(){
+  if(!isFinanceMgr()){ toast('Réservé au droit « Voir / gérer la comptabilité et les tarifs »'); return; }
+  const actif=factAutoActif(), tauxFixe=(db.factTva!=null&&db.factTva!==''), taux=intTvaFacture();
+  openModal(`<div class="modal-head"><h3>🧾 Facture réglée sur place</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="font-size:13.5px;color:var(--t2);line-height:1.6;margin-bottom:12px">Quand une intervention est terminée et payée sur place, OP GESTION crée la facture, déjà <b>Payée</b>. Ce réglage décide si cette facture part aussi <b>toute seule</b>, par e-mail, au client — avec son PDF, sans que personne la relise.</p>
+    <p style="font-size:13.5px;line-height:1.6;margin-bottom:12px"><b>Envoi automatique : <span id="fa-etat">${actif?'activé':'désactivé'}</span></b></p>
+    <p style="font-size:13.5px;color:var(--t2);line-height:1.6;margin-bottom:12px">Taux de TVA appliqué à ces factures : <b>${esc(String(taux))} %</b>${tauxFixe?'':' (taux par défaut — aucun réglage n\'a été fait)'}. Le prix de l\'intervention est un prix TTC : OP GESTION en tire le prix HT avec ce taux.</p>
+    <p style="font-size:13px;color:var(--t3);line-height:1.6;margin-bottom:14px">Avant d\'activer l\'envoi, vérifie que ce taux est le bon pour tes clients. Une facture créée se relit dans <b>Factures</b>, tant qu\'elle n\'est pas envoyée.</p>
+    <label style="display:flex;gap:10px;align-items:center;min-height:44px;font-size:14px;cursor:pointer"><input type="checkbox" id="fa-auto" ${actif?'checked':''} onchange="document.getElementById('fa-etat').textContent=this.checked?'activé':'désactivé'"> Envoyer automatiquement la facture au client</label>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn" onclick="factReglagesSave()">Enregistrer</button></div>`);
+}
+function factReglagesSave(){
+  if(!isFinanceMgr()){ toast('Réservé au droit « Voir / gérer la comptabilité et les tarifs »'); return; }
+  const el=$('fa-auto'); if(!el) return;
+  db.factAuto=!!el.checked;
+  logEvent('Réglage facturation','Envoi automatique de la facture réglée sur place : '+(db.factAuto?'activé':'désactivé'),'finance');
+  save(); closeModal(); toast(db.factAuto?'Envoi automatique activé':'Envoi automatique désactivé'); }
 function factureMailPayee(f,it){
-  if(db.factAuto===false||!f||!it) return;
+  if(!factAutoActif()||!f||!it) return;
   const tvaR=(f.tva!=null&&f.tva!=='')?Number(f.tva):intTvaFacture();
   const c=(db.clients||[]).find(x=>x.id===it.clientId);
   if(c&&(c.email||'').trim()){
@@ -39535,7 +39602,7 @@ function factPayee(id){ if(!permGarde('ventes','modifier','une facture')) return
 let comptaTab='controle', teleTablePeriod='tout', teleTableTech='tous';
 views.comptabilite=function(){
   if(!isFinanceMgr()){ setHeader('Comptabilité',''); $('content').innerHTML=emptyState('🔒','Réservé aux comptes qui ont le droit « Voir / gérer la comptabilité et les tarifs » (administrateur, DR et gestion compta par défaut) — réglable dans Permissions → Ventes → Droits spéciaux, ou dans la fiche utilisateur.','',''); return; }
-  setHeader('Comptabilité','Synthèse & encaissements','');
+  setHeader('Comptabilité','Synthèse & encaissements','<button class="btn ghost" onclick="factReglagesModal()" title="Envoi automatique de la facture réglée sur place, et taux de TVA appliqué">⚙ Facturation auto</button>');
   const tabs=[['controle','🔍 Contrôle du jour'],['synthese','Synthèse'],['registre','Registre des encaissements'],['telecollecte','Journées télécollecte']];
   const bar=`<div class="filters" style="margin:0 0 14px;flex-wrap:wrap">${tabs.map(([k,l])=>`<div class="chip ${comptaTab===k?'active':''}" onclick="comptaTab='${k}';views.comptabilite()">${l}</div>`).join('')}</div>`;
   regMigration();

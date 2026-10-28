@@ -21,7 +21,8 @@ function bloc(debut) {
 const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)); };
 const fonction = nom => bloc('function ' + nom + '(');
 
-const FONCTIONS = ['factureDeIntervention', 'intTvaFacture', 'intMontantHT', 'syncFactureFromIntervention', 'factureAutoIntervention', 'factureMailPayee',
+/* comptable (28 octobre 2026) : la synchro lit `docEmis` (facture émise = jamais réécrite), `factureTauxPropre`, `factureEmiseSignale` et le réglage `factAutoActif` */
+const FONCTIONS = ['factureDeIntervention', 'intTvaFacture', 'intMontantHT', 'docEmis', 'factureTauxPropre', 'factureEmiseSignale', 'factAutoActif', 'syncFactureFromIntervention', 'factureAutoIntervention', 'factureMailPayee',
   'intRegistreEncaisse', 'factureAFacturer', 'interAFacturer', 'regAdd', 'regDeLInter', 'regModeDe', 'docTot', 'intRecaleAuJourFait',
   'intRecaleDefaire', 'intHisto', 'intTechIds', 'intStatutPermis', 'saveRapport', 'assistFinish', 'assistCloture', 'asKeepSigs', 'intSetStatutDo',
   'intEffToggle', 'intTerminerPrevu', 'intGenererDoc', 'intInfOf', 'intEffectuer', 'formRapport', 'intRepasseNonTerminee', 'intInfestationConstat',
@@ -29,13 +30,13 @@ const FONCTIONS = ['factureDeIntervention', 'intTvaFacture', 'intMontantHT', 'sy
   /* assistCloture garde l'empreinte de son ouverture (« Fermer » sait s'il y a une saisie à perdre) depuis un autre lot : les vraies, pas un double */
   'asEmpreinte', 'asSigsVives', 'assistModifie'];
 const CODE = FONCTIONS.map(fonction).filter(Boolean).join('\n');
-const CONSTS = ['const ligTotLigne=', 'const ligHT=', 'const MOYENS_PAIEMENT =', 'const esc ='].map(ligne).join('\n');
+const CONSTS = ['const ligTotLigne=', 'const ligHT=', 'const MOYENS_PAIEMENT =', 'const esc =', 'var _factureEmiseDite='].map(ligne).join('\n');
 
 /* opts : { db, moi, droits:{ 'int.modifier':false, … }, voit:{ factures:false }, moiTech } */
 function monde(opts) {
   const o = opts || {};
   const ctx = { console, Date, Math, JSON, Set, Map, Object, Array, String, Number, Promise, RegExp, setTimeout: f => f(),
-    db: o.db || { interventions: [], factures: [], registres: [], clients: [{ id: 'cl1', nom: 'Boulangerie Dupont', email: 'dupont@example.org' }], devis: [], users: [], techniciens: [] },
+    db: o.db || { factAuto: true /* comptable, 28 oct. 2026 : l'envoi automatique est un CHOIX (`factAuto===true`) — ces bancs jouent l'entreprise qui l'a activé ; test-3150 joue celle qui ne l'a pas fait */, interventions: [], factures: [], registres: [], clients: [{ id: 'cl1', nom: 'Boulangerie Dupont', email: 'dupont@example.org' }], devis: [], users: [], techniciens: [] },
     currentUser: o.moi || { id: 'uA', role: 'admin', prenom: 'Justin', nom: 'Roux' },
     __toasts: [], __mails: [], __saves: 0, __modals: 0, __go: [], __rendus: [], __docsOuverts: [],
     __droits: o.droits || {}, __voit: o.voit || {}, __moiTech: o.moiTech || '', __cadence: 0 };

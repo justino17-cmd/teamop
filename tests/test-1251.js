@@ -28,9 +28,9 @@ function bloc(debut) {
 const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)); };
 
 console.log('\n── 1251 · 0. la population ──');
-const NOMS = ['function factSetStatut(', 'function delFacture(', 'function comptaVirementOk(', 'function regAdd(', 'function factLignesRegistre(', 'function factRegistreRetirer(', 'function factQuitterPayee('];
+const NOMS = ['function factSetStatut(', 'function delFacture(', 'function comptaVirementOk(', 'function regAdd(', 'function factLignesRegistre(', 'function factRegistreRetirer(', 'function factQuitterPayee(', 'function docEmis('];
 const CODE = {}; NOMS.forEach(n => { CODE[n] = bloc(n); });
-v('les fonctions sont trouvées', NOMS.map(n => CODE[n].length > 80), NOMS.map(() => true));
+v('les fonctions sont trouvées', NOMS.map(n => CODE[n].length > 40), NOMS.map(() => true));
 v('⛔ une seule définition de chacune', NOMS.map(n => SRC.split(n).length - 1), NOMS.map(() => 1));
 const DT = bloc('function docTot(d){'), LTL = ligne('const ligTotLigne='), LHT = ligne('const ligHT=');
 
@@ -116,20 +116,25 @@ console.log('\n── 1251 · 2. facturation#11 — la validation comptable tomb
   v('payée validée → « En retard » (autre statut non payé) : même chose', [W.db.factures[0].statut, !!W.db.factures[0].valideCompta], ['retard', false]); }
 
 console.log('\n── 1251 · 3. delFacture — pas de ligne orpheline ──');
-{ const W = monde(); pointer(W, 120); W.db.registres.push({ id: 'r8', montant: 50, mode: 'ESP', interId: 'i7', factureId: 'f1' });
+/* comptable (28 octobre 2026, B2) : une facture ÉMISE ne se supprime plus (test-3150). Ce que ce § garde — la ligne de
+   registre qui part avec la facture — ne vit donc plus que sur un BROUILLON : on y rejoue la même ligne de pointage. */
+const brouillonPointe = W => { pointer(W, 120); W.db.factures[0].statut = 'brouillon'; };
+{ const W = monde(); brouillonPointe(W); W.db.registres.push({ id: 'r8', montant: 50, mode: 'ESP', interId: 'i7', factureId: 'f1' });
   W.delFacture('f1');
   v('facture supprimée', W.db.factures.length, 0);
   v('⛔ sa ligne de pointage est retirée ; l\'encaissement sur place de l\'intervention est gardé', W.db.registres.map(l => l.id), ['r8']);
   vrai('… la confirmation prévient du registre', W.__confirms.length === 1 && /registre/i.test(W.__confirms[0]), W.__confirms);
   vrai('… le journal garde « Facture supprimée »', W.__logs.some(l => /Facture supprimée/.test(l)), W.__logs); }
-{ const W = monde(); W.delFacture('f1');
-  v('une facture sans ligne se supprime comme avant, avec la question d\'avant', [W.db.factures.length, /Supprimer cette facture/.test(W.__confirms[0])], [0, true]); }
-{ const W = monde(); pointer(W, 120); W.__finance = false;
+{ const W = monde(); W.db.factures[0].statut = 'brouillon'; W.delFacture('f1');
+  v('un brouillon sans ligne se supprime comme avant, avec la question d\'avant', [W.db.factures.length, /Supprimer cette facture/.test(W.__confirms[0])], [0, true]); }
+{ const W = monde(); pointer(W, 120); W.delFacture('f1');
+  v('⛔ la facture ÉMISE (payée) pointée ne se supprime pas, et sa ligne de registre reste', [W.db.factures.length, reg(W).length, W.__confirms.length], [1, 1, 0]); }
+{ const W = monde(); brouillonPointe(W); W.__finance = false;
   W.delFacture('f1');
   v('⛔ sans le droit Comptabilité : la facture pointée n\'est pas supprimée (sinon sa ligne resterait orpheline)', [W.db.factures.length, reg(W).length], [1, 1]); }
-{ const W = monde({ confirme: false }); pointer(W, 120); W.delFacture('f1');
+{ const W = monde({ confirme: false }); brouillonPointe(W); W.delFacture('f1');
   v('confirmation refusée : rien ne change', [W.db.factures.length, reg(W).length], [1, 1]); }
-{ const W = monde({ supprimer: false }); pointer(W, 120); W.delFacture('f1');
+{ const W = monde({ supprimer: false }); brouillonPointe(W); W.delFacture('f1');
   v('sans la case Supprimer : refusé comme avant', [W.db.factures.length, reg(W).length], [1, 1]); }
 
 console.log('\n══ test-1251 : ' + ok + ' ✓  ' + ko + ' ✗ ══');
