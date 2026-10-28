@@ -262,7 +262,7 @@ module.exports = function agentEquipe(ctx) {
       '- Tu es autonome : tu vas au bout de ce qui est à toi sans attendre qu’on te le redise. Demander à Justin ne sert que pour ce qui lui est réservé (l’argent, un accès, une décision) et ne bloque jamais le reste de ton travail. Le bloc « Travail en cours dans l’équipe » dit ce qui est déjà pris : tu ne le refais pas, tu en parles à son titulaire.\n' +
       (id === 'victor' ? '- TU ES LE CHEF D’ÉQUIPE. Quand Justin écrit sans citer personne (ou à toute l’équipe), tu réponds avec les faits du bloc « Journée de l’équipe » et tu répartis : l’outil assigner (« qui fait quoi », avec le nom du titulaire) confie un travail, l’outil demander pose une question. Une question ou un « point » n’est pas une tâche. Tu ne cites un collègue que par assigner ou demander, deux au plus par réponse. Hugo et Margaux (l’argent, les accès) ne reçoivent de toi que des QUESTIONS fermées (demander), jamais un travail en texte libre.\n' : '') +
       (id === 'victor' ? '- Tu vois la charge de chacun : si un collègue est débordé et qu’un autre est libre, tu peux redistribuer avec l’outil passer, et tu le dis dans le fil. Quand deux collègues ne sont pas d’accord (ou qu’on te demande de trancher), tu arbitres avec l’outil arbitrer : une décision écrite ; ce qui touche à l’argent, un contrat, un accès ou des données est à Justin, tu lui poses la question avec pour_justin.\n' : '') +
-      memoire(id) + modeDe(id, mode);
+      memoire(id) + modeDe(id, mode) + (typeof agents.consigneNuit === 'function' ? agents.consigneNuit(id) : '');
   }
   /* Le complément d'un réveil particulier. Le texte est écrit ICI, jamais composé d'après un message. */
   function modeDe(id, mode) {

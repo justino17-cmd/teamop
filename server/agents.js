@@ -37,9 +37,10 @@
  * Écrire (mode, pause, décision) : `monPatronStrict`. Les trois écritures sont aussi dans
  * `MON_GESTES` : `tests/test-1015.js` refuse une route POST de la Tour qui n'y est pas.
  *
- * ⛔ LES HEURES DE TRAVAIL (26 octobre 2026, `agents-horaires.js`) : l'équipe travaille comme une entreprise — par défaut du lundi au vendredi, 9 h – 18 h, heure de Paris, fermée les
- * jours fériés, réglable par Justin (entreprise, puis agent par agent). La garde est dans `peutAgir`, la porte commune, au même endroit que la pause : hors des heures, `hors_heures`.
- * L'ASTREINTE (Max, Théo) agit toujours mais le dit (`horsHeures`) et les portes qui écrivent à un client la refusent. Ce qui ARRIVE hors des heures (un courriel, une inscription) est mis
+ * ⛔ LES HEURES DE TRAVAIL (26 octobre 2026, `agents-horaires.js`) : l'équipe travaille comme une entreprise — par défaut TOUS LES JOURS, 8 h – 24 h, heure de Paris, jours fériés
+ * compris (Justin, 28 octobre 2026 ; avant : lundi – vendredi, 9 h – 18 h, fermée les fériés), réglable par Justin (entreprise, puis agent par agent). La garde est dans `peutAgir`, la porte commune, au même endroit que la pause : hors des heures, `hors_heures`.
+ * L'ASTREINTE — la MAINTENANCE DE NUIT, un agent par couche (Inès, Camille, Max, Théo, Louis, Noah) — agit toujours mais le dit (`horsHeures`), les portes qui écrivent à un client la refusent, et
+ * `consigneNuit` le dit au modèle (surveiller, vérifier, préparer, noter, prévenir Justin si c'est urgent). Ce qui ARRIVE hors des heures (un courriel, une inscription) est mis
  * de côté par l'agent (`differer`) et repris à l'ouverture, le plus ancien d'abord (`reprendreDifferes`) ; une tâche entre agents ne vieillit pas pendant que son destinataire est
  * fermé ; accepter une validation hors heures reste en attente (409) comme pendant la pause ; une réunion planifiée tient à son heure (`sousReunion`). Un registre d'horaires
  * illisible arrête TOUT LE MONDE. Les horaires sont INJECTÉS (`ctx.horaires`) : un module monté sans eux — l'examen de l'équipe, qui se lance le soir — n'a pas de garde horaire.
@@ -276,6 +277,18 @@ module.exports = function monterAgents(app, ctx) {
   function ouvertA(id, ts) {
     if (!hor) return true;
     try { return hor.etatA(ts, id).ouvert === true; } catch (e) { return false; }
+  }
+  /* LA MAINTENANCE DE NUIT, DITE AU MODÈLE (Justin, 28 octobre 2026) : un agent d'astreinte qui agit hors des heures reçoit CE paragraphe en fin de prompt — le code lui refuse déjà d'écrire à un client
+     (`horsHeures`), mais un modèle qui ne sait pas pourquoi il est réveillé à 3 h propose du travail de jour. Vide pour tout autre agent et pour toute heure ouvrée : le texte est écrit ICI, jamais composé
+     d'après un message. */
+  function consigneNuit(id) {
+    let p; try { p = peutAgir(id); } catch (e) { return ''; }
+    if (!p || p.ok !== true || p.horsHeures !== true || p.astreinte !== true) return '';
+    const o = ouverture(id);
+    return '\nMAINTENANCE DE NUIT : il est hors des heures de travail et tu es d’astreinte — ta couche a un agent éveillé, c’est toi. Cette nuit tu fais de la MAINTENANCE : surveiller, vérifier, préparer, noter. ' +
+      'Tu prépares ce qui sera utile à l’ouverture' + (o && o.libelle ? ' (' + o.libelle + ')' : '') + ' et tu le notes ; tu ne lances aucun travail de jour. ' +
+      'Tu ne préviens Justin que si c’est URGENT (un service en panne, une sauvegarde manquée, une menace de litige) : sinon l’information l’attend, rangée, à l’ouverture. ' +
+      'Tu n’écris à AUCUN client, tu ne fais AUCUN geste d’argent ni d’accès, tu ne confies rien à un collègue qui dort : le serveur te le refuse de toute façon.';
   }
   /* Quand cet agent reprend-il ? { ouvert, prochaineOuverture, libelle } — pour une phrase dite à Justin. `null` sans horaires branchés. */
   function ouverture(id) {
@@ -800,7 +813,7 @@ module.exports = function monterAgents(app, ctx) {
   /* Les validations EN ATTENTE, à la lecture (23 octobre 2026 : Inès les voit vieillir, Victor les compte) : { agent, type, ts } — jamais le résumé ni les paramètres, qui sont des phrases de
      l'équipe. `null` si la file est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
   const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
-  return { peutAgir, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, consigneOuverte, bilan, consignesEnRetard, suiviFait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
+  return { peutAgir, consigneNuit, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, consigneOuverte, bilan, consignesEnRetard, suiviFait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

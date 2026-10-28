@@ -278,6 +278,15 @@ module.exports = function camille(ctx) {
         }
         return { saute: p.raison };
       }
+      /* ⛔ LA NUIT, CAMILLE EST D'ASTREINTE (28 octobre 2026) : elle agit, mais `horsHeures` — aucune porte qui écrit à un client ne s'ouvre. Examiner un courriel maintenant le marquerait VU puis
+         verrait son brouillon refusé (`agents-brouillons`) : la réponse ne partirait jamais. Le courriel est donc mis de côté comme avant, et repris le matin (`reprendreDifferes`). */
+      if (p.horsHeures === true) {
+        if (ev && !ev.reprise && typeof agents.differer === 'function') {
+          const d = agents.differer(ID, 'courrier', 'u:' + String(ev.boiteId) + ':' + String(ev.dossier) + ':' + String(ev.uid), { boiteId: ev.boiteId, dossier: ev.dossier, uid: ev.uid });
+          return { saute: 'hors_heures', differe: d.ok === true };
+        }
+        return { saute: 'hors_heures' };
+      }
       if (fich.illisible(F)) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'registre illisible' }); return { saute: 'registre_illisible' }; }
       ev = ev || {};
       const cle = 'u:' + String(ev.boiteId) + ':' + String(ev.dossier) + ':' + String(ev.uid);
@@ -561,6 +570,7 @@ module.exports = function camille(ctx) {
     if (typeof mail.arriere !== 'function') return { ok: false, raison: 'indisponible' };
     const p = agents.peutAgir(ID);
     if (!p.ok) return { ok: false, raison: p.raison };
+    if (p.horsHeures === true) return { ok: false, raison: 'hors_heures' };       // la nuit (astreinte) elle n'écrit à personne : l'arriéré attend le matin
     enReprise = true;
     const b = { examines: 0, reponses: 0, transmis: 0, justin: 0, ignores: 0, classes: 0, deja: 0, attendent: 0, restent: 0 };
     try {
@@ -646,7 +656,7 @@ module.exports = function camille(ctx) {
       if (!demandeDeReprise(c.texte)) return { ok: false, raison: 'pas_demande', ligne: 'Je ne lance la reprise à la demande que si le message demande de traiter le courrier — elle tourne déjà seule, toutes les 30 minutes.' };
       if (enReprise) return { ok: false, raison: 'deja_en_cours', ligne: 'La reprise de l’arriéré est déjà en cours.' };
       const p = agents.peutAgir(ID);
-      if (!p.ok) return { ok: false, raison: p.raison, ligne: 'Je ne peux pas reprendre l’arriéré maintenant (' + String(p.raison).replace(/_/g, ' ') + ').' };
+      if (!p.ok || p.horsHeures === true) { const raison = p.ok ? 'hors_heures' : p.raison; return { ok: false, raison, ligne: 'Je ne peux pas reprendre l’arriéré maintenant (' + String(raison).replace(/_/g, ' ') + ').' }; }
       const j = Number.isInteger(e && e.jours) ? e.jours : 3650;
       Promise.resolve().then(() => reprendreArriere(j)).catch(() => {});
       return { ok: true, ligne: 'Reprise de l’arriéré lancée' + (j < 3650 ? ' (' + j + ' derniers jours)' : ' (toute la boîte)') + ' : le bilan arrive ici quand j’ai fini.' };

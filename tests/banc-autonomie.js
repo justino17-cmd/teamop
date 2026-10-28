@@ -29,7 +29,7 @@ function monter(o) {
   if (o.avant) o.avant(D);
   const pousses = [], pont = [], surBudget = [], expirations = [];
   let annonceur = null, eq = null, conv = null;
-  const horaires = o.horaires ? require(S('agents-horaires.js'))({ DATA_DIR: D }) : undefined;
+  const horaires = o.horaires ? require('./banc-horaires.js').horairesAncien(require(S('agents-horaires.js')), { DATA_DIR: D }) : undefined;   // l'ANCIEN réglage (9 h – 18 h) : ces bancs jouent un mécanisme qui ferme quelque chose, voir banc-horaires.js
   const agents = AG(app, { DATA_DIR: D, monAdmin() {}, monPatronStrict() {}, maintenant, horaires, pousseNotif: (t, c) => { pousses.push([t, c]); return Promise.resolve(); },
     surFait: f => (annonceur ? annonceur.annoncer(f) : null), surExpiration: x => { expirations.push(x); if (annonceur && o.expirationDite !== false) annonceur.expiree(x); } });
   conv = CV(app, { DATA_DIR: D, monAdmin() {}, monPatronStrict() {}, agents, maintenant, pousseNotif: (t, c) => { pousses.push([t, c]); return Promise.resolve(); },

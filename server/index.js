@@ -10541,7 +10541,7 @@ try {
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
      emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
   try {
-    /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026) : lundi – vendredi, 9 h – 18 h, heure de Paris, fermé les jours fériés, sauf réglage de Justin. Montées DANS l'appel qui monte les
+    /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026) : tous les jours, 8 h – 24 h, heure de Paris, jours fériés compris (Justin, 28 octobre 2026 ; un registre déjà écrit est migré UNE fois au chargement, `REGLE`), un agent d'astreinte par couche la nuit (maintenance), sauf réglage de Justin. Montées DANS l'appel qui monte les
        agents, sous le même `try` : si le module ne se charge pas, les agents ne se montent pas non plus — jamais des agents ouverts parce que leur garde horaire a manqué. Elles entrent dans
        `peutAgir` (agents.js), la porte de tout geste d'agent ; l'examen de l'équipe, lui, monte sa propre équipe d'essai SANS elles (il se lance le soir). */
     agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif, horaires: require('./agents-horaires')({ DATA_DIR }),

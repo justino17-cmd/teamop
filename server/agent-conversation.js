@@ -255,7 +255,7 @@ module.exports = function agentConversation(ctx) {
     if (!p.ok) return { saute: p.raison };          /* à l'arrêt : ni faits, ni Claude, ni mot */
     const messages = messagesDe(fil, id, texte);
     if (!messages.length) return { saute: 'vide' };
-    const system = SYSTEM[id] + memoire(id) + await blocFaits(id, fil);
+    const system = SYSTEM[id] + memoire(id) + (typeof agents.consigneNuit === 'function' ? agents.consigneNuit(id) : '') + await blocFaits(id, fil);
     const r = await cerveau.penser(id, system, messages, { maxTokens: JETONS });
     if (!r.ok) {
       if (Object.prototype.hasOwnProperty.call(CAUSES, r.raison)) dire(id, fil, 'Je ne peux pas te répondre pour l’instant (' + CAUSES[r.raison] + ').', 'important');
