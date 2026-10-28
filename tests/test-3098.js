@@ -84,12 +84,12 @@ function facteur() {
     users: [{ id: 'upatron3098', nom: 'Patron', hash: sha(MDP), role: 'patron', actif: true, ts: 1 },
       { id: 'ucollab3098', nom: 'Gaston', hash: sha(MDP_C), role: 'collaborateur', actif: true, ts: 1, apps: ['gestion'] }],
     issues: [
-      inc('i1', 'opgestion', [ent('Delta Propreté', 'jean@delta-3098.fr', 3), ent('Vivante Services', 'v@exemple-3098.fr', 2)], 5),   // Delta + Vivante : Vivante reste
+      inc('i1', 'opgestion', [ent('Delta Propreté', 'jean@delta-3098.fr', 3), ent('Nom Tapé Autrement', 'delta@exemple-3098.fr', 1), ent('Vivante Services', 'v@exemple-3098.fr', 2)], 5),   // Delta + son adresse sous un autre nom + Vivante : Vivante reste
       inc('i2', 'opgestion', [ent('DELTA PROPRETE', 'paul@delta-3098.fr', 4)], 4),                                                    // Delta seule (autre graphie) : l'incident part
       inc('i3', 'opmessages', [ent('Delta Propreté', 'm@delta-3098.fr', 7)], 7),                                                      // OP MESSAGES : n'est pas touché
       inc('i4', 'opgestion', [ent('Vivante Services', 'viv@exemple-3098.fr', 6)], 6),                                               // Vivante seule, à l'adresse de son annuaire : intacte
       inc('i5', 'opgestion', [ent('Ancienne Entreprise', 'viv@exemple-3098.fr', 9)], 9),                                         // partie depuis longtemps, mais a écrit sous l'adresse d'une entreprise qui VIT
-      inc('i6', 'opgestion', [ent('Ancienne Entreprise', 'old@ancienne-3098.fr', 2), ent('Vivante Services', '', 1)], 3),
+      inc('i6', 'opgestion', [ent('Ancienne Entreprise', 'old@ancienne-3098.fr', 2), ent('Ancienne Ent', 'old@ancienne-3098.fr', 1), ent('Vivante Services', '', 1)], 4),   // + la même adresse sous un autre nom
       inc('i7', 'opgestion', [ent('Fermée Hygiène', 'ferme@exemple-3098.fr', 5)], 5),
       inc('i8', 'opgestion', [ent('Orpheline Sans Plus', 'orph@exemple-3098.fr', 1)], 1),
       inc('i9', 'opgestion', [ent('Hors Annuaire Vivante', '', 1), ent('horsannuaire-3098', '', 1)], 2) ],
@@ -166,11 +166,11 @@ function facteur() {
 
   console.log('\n── 3098 · 2. effacer une entreprise partie (la route, comme la Tour l’appelle : { nom } exact) ──');
   r = await appel(ROUTE, { nom: 'Ancienne Entreprise' }, PATRON);
-  v('une entreprise absente de l\'annuaire : 200, un incident retiré (i5), une entrée retirée d\'un autre (i6), pas de ligne brute', [r.s, r.j.ok, r.j.issues, r.j.archive, r.j.entreprises, r.j.bugs, r.j.ecrit], [200, true, 1, 0, 2, 0, true]);
+  v('une entreprise absente de l\'annuaire : 200, un incident retiré (i5), deux entrées retirées d\'un autre (i6 : le nom, et l\'adresse sous un autre nom), pas de ligne brute', [r.s, r.j.ok, r.j.issues, r.j.archive, r.j.entreprises, r.j.bugs, r.j.ecrit], [200, true, 1, 0, 3, 0, true]);
   vrai('   ⛔ la réponse ne rend que des NOMBRES : ni nom ni adresse', !/ancienne|@/i.test(JSON.stringify(r.j)));
   let m = mon();
   v('i5 (l\'entreprise seule) est supprimé ; i6 reste, sans elle', [m.issues.some(i => i.id === 'i5'), entsDe(m.issues, 'i6')], [false, ['Vivante Services']]);
-  v('   le compteur de i6 retombe à ce qui vient de Vivante (3 − 2 = 1)', m.issues.find(i => i.id === 'i6').count, 1);
+  v('   le compteur de i6 retombe à ce qui vient de Vivante (4 − 3 = 1)', m.issues.find(i => i.id === 'i6').count, 1);
   vrai('   ⛔ l\'adresse de l\'entreprise partie n\'est plus NULLE PART dans monitor.json', !/ancienne-3098|Ancienne Entreprise/i.test(monTexte().replace(/entreprise supprimée/g, '')));
   v('   la liste que lit la Tour : plus que huit incidents', (await issuesVivantes()).length, 8);
   const trace = m.actions.filter(a => /^surveillance purgée/.test(a.geste));
@@ -221,13 +221,13 @@ function facteur() {
   r = await appel('/api/monitor/entreprise/supprimer', { t: DEL, confirme: true }, PATRON);
   v('supprimer partout Delta Propreté, confirmée : supprimée', [r.s, r.j.supprime, r.j.t], [200, true, DEL]);
   const S = (r.j.fait || {}).surveillance;
-  /* i1 (Delta+Vivante, seule Delta part) · i2 (Delta seule : l'incident part) · a1 (Delta+Vivante) · a2 (Delta seule : part) = 4 entrées, 1 incident vivant, 1 archivé */
-  v('fait.surveillance dit des NOMBRES : 1 incident vivant, 1 archivé, 4 entrées retirées', [S && S.issues, S && S.archive, S && S.entreprises], [1, 1, 4]);
+  /* i1 (Delta, son adresse sous un autre nom, Vivante : Vivante reste) · i2 (Delta seule : l'incident part) · a1 (Delta+Vivante) · a2 (Delta seule : part) = 5 entrées, 1 incident vivant, 1 archivé */
+  v('fait.surveillance dit des NOMBRES : 1 incident vivant, 1 archivé, 5 entrées retirées (dont une retrouvée par l\'adresse seule)', [S && S.issues, S && S.archive, S && S.entreprises], [1, 1, 5]);
   v('   lignes brutes : celles du nom d\'accès « delta » (1) — les 3 de l\'identifiant sont comptées par fait.erreurs', [S && S.bugs, r.j.fait.erreurs, S && S.ecrit], [1, 3, true]);
   await dormir(900);   // le geste « suppression » est noté à la fin de la réponse, puis sauvegardé 500 ms plus tard
   m = mon();
   v('i2 et a2 (Delta seule) sont partis ; i1 et a1 restent avec Vivante seule', [m.issues.some(i => i.id === 'i2'), m.archive.some(i => i.id === 'a2'), entsDe(m.issues, 'i1'), entsDe(m.archive, 'a1')], [false, false, ['Vivante Services'], ['Vivante Services']]);
-  v('   le compteur de i1 retombe à celui de Vivante (5 − 3 = 2), celui de a1 (9 − 8 = 1)', [m.issues.find(i => i.id === 'i1').count, m.archive.find(i => i.id === 'a1').count], [2, 1]);
+  v('   le compteur de i1 retombe à celui de Vivante (5 − 4 = 1 : le plus grand de cela et de la somme de Vivante, 2), celui de a1 (9 − 8 = 1)', [m.issues.find(i => i.id === 'i1').count, m.archive.find(i => i.id === 'a1').count], [2, 1]);
   vrai('   les adresses des salariés de Delta ont quitté les incidents d\'OP GESTION (vivants et archivés)', ![...m.issues, ...m.archive].filter(i => i.app !== 'opmessages').some(i => /delta/i.test(JSON.stringify(i.entreprises))));
   vrai('   ⛔ OP MESSAGES n\'est pas touché, comme la suppression le promet : i3 garde son entrée', entsDe(m.issues, 'i3').join() === 'Delta Propreté');
   vrai('   les incidents des autres entreprises sont intacts (i4, i8…)', JSON.stringify(m.issues.find(i => i.id === 'i4')) === JSON.stringify(avantDel.issues.find(i => i.id === 'i4')));
