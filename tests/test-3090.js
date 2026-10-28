@@ -251,6 +251,18 @@ function monde(o) {
     v('⛔ tous les créneaux sont passés : rien à relancer (la proposition expirera seule)', [(await e.emma.relancerMuets()).relances, e.envoyes.length], [0, 1]);
   }
 
+  console.log('\n7. Le câblage d’index.js (lu dans le CODE, commentaires retirés — jamais dans une phrase)');
+  {
+    /* On ne retire que les blocs qui COMMENCENT une ligne (CLAUDE.md : le motif naïf avale du vrai code) et les lignes de commentaire. */
+    const SRC = fs.readFileSync(S('index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const i0 = SRC.indexOf("agentLea = require('./agent-lea')({");
+    vrai('(population) la construction de Léa est trouvée', i0 > 0, i0);
+    const bloc = SRC.slice(i0, SRC.indexOf('Léa indisponible', i0));
+    vrai('⛔ Léa reçoit la liste des comptes : adresse PROUVÉE (`verifie`), et jamais une entreprise qui a déjà un espace (`espacesReg`)', /comptes: \(\) => \{/.test(bloc) && /cm\.verifie\(c\.email\)/.test(bloc) && /!pris\.has\(/.test(bloc) && /espacesReg/.test(bloc), bloc.slice(0, 200));
+    vrai('⛔ …et le balayage tourne seul toutes les 30 minutes', /setInterval\(\(\) => \{ agentLea\.balayer\(\)/.test(bloc) && /30 \* 60000/.test(bloc.slice(bloc.indexOf('balayer()'))), bloc.slice(-300));
+    vrai('…Camille, Chloé et Léa passent la QUESTION à Louis (le classement par pertinence)', ['agent-camille.js', 'agent-chloe.js', 'agent-lea.js'].every(f => /ctx\.louis\.bloc\(typeof q === 'string' \? q : ''\)/.test(fs.readFileSync(S(f), 'utf8'))));
+  }
+
   for (const m of nettoyer) { try { m.nettoyer(); } catch (e) {} }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
