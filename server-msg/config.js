@@ -552,7 +552,6 @@ function charger(env = process.env) {
   /* Le préfixe __Host- impose Secure : un cookie « __Host-… » sans Secure est refusé par le
      navigateur, donc personne ne pourrait se connecter. On le refuse ICI plutôt qu'en production. */
   if (/^__Host-/.test(cookie.nom) && !cookie.secure) { const e = new Error('config: un cookie __Host- exige secure:true'); e.code = 'CONFIG'; throw e; }
-  const admin = adminConfig(cfg, kek);
   return {
     instance, port, kek,
     dataDir: path.resolve(env.OPMSG_DATA),
@@ -572,8 +571,8 @@ function charger(env = process.env) {
     transcription: transcriptionConfig(cfg, instance),
     trajet: trajetConfig(cfg, instance, env),
     courriel: courrielConfig(cfg, instance),
-    admin,   // l'administration de la console interne : absente = INERTE ; invalide = démarrage refusé (voir `admin.js`)
-    pont: pontConfig(cfg, instance, admin && admin.empreinte),   // le pont des agents de la Tour (`pont-agents.js`) : absent = INERTE ; invalide, ou en production = démarrage refusé
+    admin: adminConfig(cfg, kek),   // l'administration de la console interne : absente = INERTE ; invalide = démarrage refusé (voir `admin.js`)
+    pont: pontConfig(cfg, instance, (adminConfig(cfg, kek) || {}).empreinte),   // le pont des agents de la Tour (`pont-agents.js`) : absent = INERTE ; invalide, ou en production = démarrage refusé
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,

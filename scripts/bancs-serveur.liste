@@ -70,7 +70,9 @@
 # La couture : `test-2987` (les vraies pages fabriquées parlent au vrai serveur de test) — 93 vérifications. Le paiement de test : `test-2990` (le script qui crée les dix tarifs de
 # test chez un FAUX Stripe, idempotent, qui refuse une clé live ou une config sans `espaceTest` ; le vrai serveur qui les accepte en essai et ne change RIEN sans `espaceTest`) —
 # 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
-#plancher 9900
+# 28 octobre 2026, le pont des agents côté Tour (3092) : 163 suites, 10 501 vérifications mesurées par la commande de la porte, toutes vertes — plancher 10487 (le total moins 14, jamais une addition).
+# (La liste portait encore 9900 : les suites ajoutées depuis n'avaient pas relevé le plancher.)
+#plancher 10487
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js

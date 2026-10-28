@@ -131,7 +131,9 @@
 # dans les conditions de la CI, toutes vertes — plancher 12287 (le total moins 14, jamais une addition).
 # 26 octobre 2026, l'onglet « Réunions » et le lien invité qu'on trouve (3070 : la liste, la lecture, la fiche, la création, la navigation — les vraies fonctions de la page ; 1003, 2571 et 2695 suivent la liste VUES_PRO) : 197 suites, 12 361 vérifications mesurées par la commande de la porte, dans les conditions de la CI
 # (`CHROME_MSG=/nonexistent`), toutes vertes — plancher 12347 (le total moins 14, jamais une addition).
-#plancher 12347
+# 28 octobre 2026, le pont des agents (3090 le service, 3091 le serveur de la Tour + le service + un faux Anthropic, 3093 l'outil de pose ; test-905, 3051, 900, 933 étendus) : 200 suites, 12 564 vérifications mesurées par la commande de la porte
+# (`CHROME_MSG=/nonexistent`), toutes vertes — plancher 12550 (le total moins 14, jamais une addition).
+#plancher 12550
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
