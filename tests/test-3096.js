@@ -630,6 +630,22 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     p3.arreter();
   }
 
+  /* ⑨ ⛔ la conversation GÉNÉRIQUE des agents (`agent-conversation.js`, servie quand la messagerie des agents n'est pas montée) porte, elle aussi, la règle « 🎤 = vocal transcrit par une machine »
+        et garde un vocal jusqu'à 2 400 signes : le VRAI module, un faux cerveau qui note ce qu'il reçoit (le chemin de `agent-equipe.js` est gardé par test-3095) */
+  {
+    const AC = require('../server/agent-conversation');
+    const vu = [];
+    const long = '🎤 ' + 'mot '.repeat(450).trim();          // ~1 800 signes
+    const registre = { AGENTS: [{ id: 'lea', nom: 'Léa', role: 'Commerciale' }], peutAgir: () => ({ ok: true }) };
+    const conv = { historique: () => [{ de: 'justin', texte: long }], parler: () => ({ ok: true }) };
+    const cerveau = { penser: async (id, system, messages) => { vu.push({ id, system, messages }); return { ok: true, texte: 'Bien reçu.' }; } };
+    const ag = AC({ agents: registre, conversations: conv, cerveau, faits: {} });
+    await ag.repondre('lea', long);
+    vrai('(population) l\'agent générique a été appelé une fois avec ses règles et le message', vu.length === 1 && /Tu es Léa/.test(vu[0].system) && vu[0].messages.length === 1);
+    vrai('⛔ ses règles disent que 🎤 est un VOCAL transcrit par une machine (des mots peuvent être faux)', /commence par 🎤/.test(vu[0].system) && /VOCAL/.test(vu[0].system));
+    v('⛔ un vocal garde sa longueur (jusqu\'à 2 400 signes) : il n\'est pas coupé comme une phrase tapée', vu[0].messages[0].content.length, long.length);
+  }
+
   /* (le bandeau de la Tour « Vos agents sont maintenant dans OP MESSAGES » est gardé par `test-3091`, avec la Tour unifiée : il ne part qu'avec elle) */
   faux.close();
 })().catch(e => { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }).finally(() => { if (process.exitCode) ko++; console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); });
