@@ -68,6 +68,11 @@
  *   pont          {actif, secretSha256, justin}   Le PONT DES AGENTS (`pont-agents.js`, 28 octobre 2026) : la messagerie des seize agents de la Tour passe sur OP MESSAGES. `secretSha256` : l'EMPREINTE SHA-256 (64
  *                                hexadécimaux) d'un secret que la Tour présente (`X-OPM-Pont`) ; `justin` : l'identifiant de l'accès bêta de Justin. Absent ou `actif` différent de `true` : les routes
  *                                `/api/pont/*` sont INERTES (404). Bêta seulement ; une empreinte égale à celle de l'administration, ou un bloc invalide, REFUSENT le démarrage.
+ *   encadrement   {parents}   L'ENCADREMENT de la page par un site de CONFIANCE (28 octobre 2026, Justin : « OP MESSAGES avec les mêmes fonctions » dans la Tour — la Tour AFFICHE la page, elle ne la recode pas).
+ *                                `parents` : la liste des origines autorisées à encadrer la page d'accueil (`frame-ancestors` de sa CSP, `app.js`). Absent : `frame-ancestors 'none'`, comme toujours — personne n'encadre.
+ *                                ⛔ La liste ne choisit PAS ses origines : le CODE en nomme une seule (`PARENTS_POSSIBLES`, https://teamop.fr) et le fichier ne peut qu'en allumer ou non. Un joker, `http`, un autre site,
+ *                                une barre finale, un port, une liste vide, une clé inconnue, ou ce bloc en PRODUCTION : le démarrage est REFUSÉ (jamais ignoré en silence : ignorer fait croire à un cadre ouvert).
+ *                                Bêta seulement. Posé par `configurer-cadre.js`.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
@@ -525,6 +530,23 @@ function trajetConfig(cfg, instance, env = {}) {
   return o;
 }
 
+/* ⛔ L'ENCADREMENT : qui a le droit d'afficher la page d'OP MESSAGES dans un cadre (`frame-ancestors`). Le CODE nomme les origines possibles ; la configuration n'en choisit pas d'autres, elle allume.
+   Refuser (et non ignorer) : une valeur ignorée laisse le cadre fermé SANS que personne le sache — la Tour afficherait « ne peut pas s'afficher » et on chercherait la panne ailleurs. Jamais de joker :
+   `https://*.teamop.fr` ouvrirait la page à tout sous-domaine, y compris un qui serait un jour repris par un tiers. Jamais `http` : une page servie en clair peut être réécrite en chemin, et
+   encadrerait alors la messagerie. Production : fermé, toujours — un cadre sur la vraie messagerie des clients est une décision à prendre à part. */
+const PARENTS_POSSIBLES = ['https://teamop.fr'];
+function encadrementConfig(cfg, instance) {
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  const brut = cfg && cfg.encadrement;
+  if (brut === undefined || brut === null) return null;
+  if (typeof brut !== 'object' || Array.isArray(brut)) throw err('encadrement doit être un objet { parents }');
+  for (const k of Object.keys(brut)) if (k !== 'parents') throw err('encadrement.' + k + ' est inconnu (parents)');
+  if (instance !== 'beta') throw err('encadrement : seulement sur la bêta (la production ne se laisse pas encadrer)');
+  if (!Array.isArray(brut.parents) || !brut.parents.length) throw err('encadrement.parents doit être une liste non vide (pour fermer le cadre, retirer le bloc `encadrement`)');
+  for (const o of brut.parents) if (typeof o !== 'string' || !PARENTS_POSSIBLES.includes(o)) throw err('encadrement.parents : une origine n\'est pas permise (seule ' + PARENTS_POSSIBLES.join(', ') + ', écrite exactement ainsi : https, sans joker, sans port, sans barre finale)');
+  return Array.from(new Set(brut.parents));
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -557,6 +579,7 @@ function charger(env = process.env) {
     dataDir: path.resolve(env.OPMSG_DATA),
     sha: String(env.OPMSG_SHA || '').replace(/[^0-9a-zA-Z._-]/g, '').slice(0, 64) || 'inconnu',
     origines: origines(cfg),
+    encadrement: encadrementConfig(cfg, instance),   // qui peut afficher la page dans un cadre : null = personne (`frame-ancestors 'none'`) ; sinon la liste d'origines — bêta seulement, refusé ailleurs
     cookie,
     beta: Object.assign({ urlGestion: 'http://127.0.0.1:8080', relectureMs: 60000, timeoutMs: 5000 }, cfg.beta || {}),
     quotas: cfg.quotas && typeof cfg.quotas === 'object' ? cfg.quotas : {},
@@ -591,4 +614,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, transcriptionConfig, trajetConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };
+module.exports = { charger, encadrementConfig, PARENTS_POSSIBLES, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, transcriptionConfig, trajetConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };

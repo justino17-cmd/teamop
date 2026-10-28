@@ -159,8 +159,11 @@ remplacer le fichier de `icons/agents/` et déployer (l'empreinte change, la pho
 - **Pauline** n'y est pas : ce n'est pas un agent de ce serveur (c'est Harvey, sur le Mac de Justin) et elle n'écrit pas dans ces conversations.
 - **OP MESSAGES n'est pas chiffré de bout en bout** : le service lit le texte (corps chiffrés au repos). Même VPS, même patron — mais c'est
   une décision à savoir : le texte des agents, y compris les numéros de dossier des rappels clients, y est rangé.
-- **Pas d'iframe dans la Tour.** La page d'OP MESSAGES interdit d'être encadrée (`frame-ancestors 'none'`) ; l'encadrer demanderait de relâcher cette
-  politique — un choix de sécurité à faire avec Justin, pas ici. Le bandeau de l'onglet Messagerie ouvre OP MESSAGES dans **un autre onglet**.
+- **Le cadre (28 octobre 2026, Justin : « OP MESSAGES avec les mêmes fonctions que OP MESSAGES Pro »).** La Tour peut afficher la page d'OP MESSAGES **bêta** dans un cadre. Pour cela la page d'accueil
+  (`/` et `/index.html` seulement) dit `frame-ancestors https://teamop.fr` au lieu de `'none'` — **uniquement** quand la configuration porte `encadrement: { parents: ["https://teamop.fr"] }` (posé par
+  `configurer-cadre.js`, bêta seulement ; la production REFUSE ce bloc au démarrage). L'API, `/health`, la page de l'invité et les erreurs gardent `frame-ancestors 'none'` ; les pièces gardent leur `sandbox`. Cookies : `SameSite=Strict` passe (même SITE). Appels,
+  vocaux et partage d'écran : la Tour délègue par `allow=` sur le cadre. **Ce qui ne marche pas dans un cadre :** demander la permission des notifications (refusé aux cadres d'une autre origine) — garder
+  l'application sur le téléphone pour les notifications ; voir `tests/test-3126.js` pour ce qui est gardé.
 - **Deux notifications possibles** sur le téléphone si la Tour et OP MESSAGES y sont toutes deux abonnées (même message important).
 - **Le bandeau « Vos agents sont maintenant dans OP MESSAGES » s'affiche toujours**, pont posé ou non.
 
