@@ -389,3 +389,7 @@ tests/test-3101.js
 tests/test-3100.js
 # ── L'assistant devis et le « Devis IA » parlent le métier de l'entreprise (28 octobre 2026, Justin : « il faut que le pack nettoyage soit installé » pour la réunion du lendemain) : `server/devis-metier.js` — l'annuaire décide du métier, la 3D d'avant reste octet pour octet, le vrai serveur contre un faux service Claude. Lit server/ et metiers.json seulement.
 tests/test-3112.js
+# ── L'historique de surveillance d'une entreprise SUPPRIMÉE part avec elle (28 octobre 2026, Justin : « on peut supprimer l'historique ») : la route patron
+# `/api/monitor/issues/purger-entreprise`, la suppression totale qui purge d'elle-même (`fait.surveillance`), `bugs.jsonl` réécrit atomiquement,
+# `/api/monitor/report` qui n'écrit plus pour un espace fermé. Le vrai serveur, sans lire une page. (Le bouton de la Tour et son banc partent avec la Tour unifiée, sur la phrase de Justin.) 28 octobre 2026 : 10 670 vérifications (166 suites) — plancher relevé de 97, le nombre de `test-3102` (65 puis 32 : les points du gardien).
+tests/test-3102.js
