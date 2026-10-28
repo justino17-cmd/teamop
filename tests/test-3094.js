@@ -452,6 +452,19 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
       v('⛔ l\'installation recrée le groupe (une conversation de plus) et OUBLIE sa photo : `avatars` n\'a plus « clients », mais garde les autres', [re.j.creees.conversations, 'clients' in re.j.avatars, re.j.avatars.equipe === sha(ROUGE), re.j.avatars.victor === sha(ROUGE)], [1, false, true, true]);
       v('…et la photo de la même cible peut être reposée (ce n\'est pas « deja »)', (await avatar('clients', VERT)).j, { ok: true, deja: false });
 
+      /* ── un robot NEUF n'hérite pas d'une empreinte que la table gardait d'un robot de même nom (base restaurée à moitié) ── */
+      {
+        const { DatabaseSync } = require('node:sqlite');
+        const w = new DatabaseSync(base);
+        try {
+          const lu = JSON.parse(w.prepare("SELECT v FROM meta WHERE k = 'pont_agents'").get().v);
+          lu.avatars.hugo = sha('une photo que ce robot-là n\'a jamais eue');
+          w.prepare("UPDATE meta SET v = ? WHERE k = 'pont_agents'").run(JSON.stringify(lu));
+        } finally { w.close(); }
+        const neuf = await nu.post('/api/pont/installer', { agents: AG4.concat([{ id: 'hugo', nom: 'Hugo', role: 'Veille' }]), groupes: GP }, pont);
+        v('⛔ un robot créé à l\'instant (« hugo ») NE reprend PAS l\'empreinte oubliée dans la table : `avatars` ne la rend pas, et sa première photo est posée', [neuf.j.creees.personnes, 'hugo' in neuf.j.avatars, (await avatar('hugo', BLEU)).j], [1, false, { ok: true, deja: false }]);
+      }
+
       /* ── le budget : un emballement côté Tour s'arrête (429), et les refus ne coûtent rien ── */
       const avantBudget = lignesPieces().length;
       const reponses = []; for (let i = 0; i < 130; i++) reponses.push(await avatar('victor', ROUGE));
