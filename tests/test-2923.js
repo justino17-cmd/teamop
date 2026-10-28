@@ -276,10 +276,19 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     const fk = K.victor.collecter();
     v('Victor relève le courrier en trois morceaux et la reprise de Camille (des nombres)', [fk.attendJustin.courrierATraiter, fk.courrier, fk.camille], [4, { prisParCamilleOuJustin: 1, classesParCamille: 3 }, { examinesAujourdhui: 7, classesAujourdhui: 3, derniereReprise: 12 }]);
     const tk = K.victor.texteDuCode(fk);
-    vrai('⛔ …et le texte du code dit les 4 à traiter ET les 3 que Camille a lus et classés (les nombres sont dans les faits : le modèle peut les citer)', /4 courriels à traiter/.test(tk) && /Camille a lu et classé 3 courriels sans réponse à faire \(ils restent dans le Courrier\)/.test(tk) && K.victor.nombresSains(tk, K.victor.fait(fk)), tk);
+    vrai('⛔ …et le texte du code dit les 4 à traiter ET les 3 que Camille a lus et classés (les nombres sont dans les faits : le modèle peut les citer)', /4 courriels à traiter/.test(tk) && /Camille a classé 3 courriels sans réponse à faire \(publicités, messages automatiques, courriers de chez nous : ils restent dans le Courrier, rien n’est supprimé\)/.test(tk) && K.victor.nombresSains(tk, K.victor.fait(fk)), tk);
     K.sources.courrier = { aTraiter: 4, enCours: 0 };
-    vrai('…sans le relevé des classés (ancien serveur), la phrase n’est pas dite et rien ne casse', !/Camille a lu et classé/.test(K.victor.texteDuCode(K.victor.collecter())));
+    vrai('…sans le relevé des classés (ancien serveur), la phrase n’est pas dite et rien ne casse', !/Camille a classé/.test(K.victor.texteDuCode(K.victor.collecter())));
     K.nettoyer();
+    {
+      /* (gardien) « rien ne t'attend et la plateforme est calme » ne se dit pas quand Camille a classé des courriels : un compteur qui dit « rien » cache justement les mauvais classements */
+      const Q = equipe({ claude: () => new Error('panne') });
+      heureParis(Q, 2026, 10, 23, 8, 0); Q.sources.courrier = { aTraiter: 0, enCours: 0, classes: 5 };
+      const rq = await Q.victor.tic();
+      const tq = dansFil(Q, 'equipe', 'victor').map(m => m.texte).join(' ');
+      vrai('⛔ matin « calme » mais 5 courriels classés par Camille : le point les cite, il ne dit PAS « la plateforme est calme »', rq.dit === true && /Camille a classé 5 courriels sans réponse à faire/.test(tq) && !/plateforme est calme/.test(tq), tq);
+      Q.nettoyer();
+    }
 
     const D = equipe({ claude: () => new Error('panne') });
     heureParis(D, 2026, 10, 23, 8, 0); D.sources.courrier = { aTraiter: 2, enCours: 0 };

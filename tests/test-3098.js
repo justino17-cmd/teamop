@@ -67,8 +67,9 @@ function mailReel(ligneSuivi, imap) {
 
     const st = R.appeler('GET /api/monitor/mail/stats').corps;
     v('/stats : les trois champs que la Tour EN SERVICE lit gardent leur sens (aTraiter, enCours, ouverts), les classés s’ajoutent à part', [st.aTraiter, st.enCours, st.classes, st.resolus], [2, 2, 2, 1]);
-    vrai('⛔ « Au rapport » (`ouverts`, vingt au plus) ne porte PAS les classés : ils ne chassent pas du tableau un vrai courrier en attente', !st.ouverts.some(x => /Soldes|Ma panne/.test(x.objet)), JSON.stringify(st.ouverts.map(x => x.objet)));
-    vrai('…les quatre lignes ouvertes sont les deux « à traiter », la prise par Paul, celle de Camille (travail réel)', st.ouverts.length === 4 && st.ouverts.filter(x => x.statut === 'aTraiter').length === 2, JSON.stringify(st.ouverts));
+    vrai('⛔ « Au rapport » (`ouverts`) garde les classés : la Tour EN SERVICE ne lit ni `classe` ni `classesRecents`, un courriel mal classé ne doit pas disparaître d’un tableau qu’elle ne peut pas élargir', st.ouverts.some(x => /Soldes/.test(x.objet)) && st.ouverts.some(x => /Ma panne/.test(x.objet)), JSON.stringify(st.ouverts.map(x => x.objet)));
+    vrai('…DERRIÈRE les quatre vrais (les deux « à traiter », la prise par Paul, celle de Camille), et marqués `classe` pour une Tour qui sait la lire', st.ouverts.length === 6 && st.ouverts.slice(0, 4).every(x => !('classe' in x)) && st.ouverts.slice(0, 4).filter(x => x.statut === 'aTraiter').length === 2
+      && st.ouverts.slice(4).map(x => x.classe).sort().join() === 'automatique,ignore', JSON.stringify(st.ouverts));
     v('⛔ …mais les classés restent RÉCUPÉRABLES (`classesRecents` : raison, expéditeur, objet) — une Tour qui les montre les trouve ici', st.classesRecents.map(x => x.classe + '|' + x.objet).sort(), ['automatique|Ma panne', 'ignore|Soldes']);
     /* ce que la Tour EN SERVICE lit : suiviDe() ne garde que statut, assigne, par (tour.html) — un champ de plus ne la gêne pas */
     const tourSuiviDe = s => s && typeof s === 'object' ? { statut: s.statut, assigne: s.assigne || '', par: s.par || '' } : null;
@@ -92,8 +93,26 @@ function mailReel(ligneSuivi, imap) {
     v('une vraie décision de Camille (brouillon déposé) sur une ligne classée : « en cours · Camille », la raison est effacée', [R2.M.suiviMarquer('<z@x>', { statut: 'enCours', assigne: 'Camille' }), R2.M.compter().classes, R2.M.compter().enCours], [true, 0, 1]);
     R2.nettoyer(); R.nettoyer();
 
+    /* une vingtaine de classés ANCIENS ne chassent pas du tableau (vingt places) un vrai courrier récent qui attend */
+    {
+      const L = {}; for (let k = 1; k <= 25; k++) L['<c' + k + '@x>'] = ligne({ recuTs: 1000 + k, objet: 'Pub ' + k });
+      L['<attend@x>'] = ligne({ recuTs: Date.now() - 1000, objet: 'Client qui attend' });
+      const RC = mailReel(L); for (let k = 1; k <= 25; k++) RC.M.suiviClasser('<c' + k + '@x>', 'ignore');
+      const o = RC.appeler('GET /api/monitor/mail/stats').corps.ouverts;
+      vrai('⛔ 25 classés anciens + 1 vrai courrier récent : le vrai est EN TÊTE de « Au rapport » (les classés passent derrière), 20 lignes au plus', o.length === 20 && o[0].objet === 'Client qui attend' && o.slice(1).every(x => x.classe === 'ignore'), JSON.stringify(o.slice(0, 3)));
+      RC.nettoyer();
+    }
+    /* un classement n'est qu'une ligne « en cours · Camille » INTACTE : répondue ou déjà assignée, elle n'est ni classée ni comptée classée */
+    {
+      const RG = mailReel({ '<rp@x>': ligne({ statut: 'enCours', assigne: 'Camille', par: 'Camille', classe: 'ignore', repTs: 5 }), '<as@x>': ligne({ assigne: 'Paul' }) });
+      v('⛔ une ligne répondue qui porte encore une raison (donnée périmée) ne compte PAS classée', [RG.M.compter().classes, RG.M.compter().enCours], [0, 1]);
+      v('⛔ une ligne « à traiter » déjà ASSIGNÉE (sans `par`) n’est jamais classée', [RG.M.suiviClasser('<as@x>', 'ignore'), RG.M.compter().classes], [false, 0]);
+      RG.nettoyer();
+    }
+
     const MAIL = sansCommentaires(src('mail.js'));
-    vrai('la liste des raisons est FERMÉE et écrite une fois (mail.js)', /const CLASSES = \['ignore', 'automatique', 'interne', 'expediteur'\];/.test(MAIL));
+    vrai('la liste des raisons est FERMÉE et écrite une fois (mail.js) : un expéditeur illisible n’y est PAS (personne ne l’a lu)', /const CLASSES = \['ignore', 'automatique', 'interne'\];/.test(MAIL));
+    vrai('une réponse partie, la main de Justin et une vraie décision de Camille EFFACENT la raison du fichier (trois `delete sv.classe`)', (MAIL.match(/delete sv\.classe;/g) || []).length === 3, (MAIL.match(/delete sv\.classe;/g) || []).length);
     vrai('la liste des messages montre la raison au Courrier (`classe`), aux deux endroits qui rendent un suivi', (MAIL.match(/estClasse\((?:sv|suivi\[midCle\])\) \? \{ classe: (?:sv|suivi\[midCle\])\.classe \} : \{\}/g) || []).length === 2);
   }
 
@@ -145,15 +164,62 @@ function mailReel(ligneSuivi, imap) {
     r = await Z.camille.surNouveauMessage(poser(Z, { uid: 5, mid: '<sec@banc-3098>', protege: true }));
     v('⛔ un courriel de SÉCURITÉ (code, avis de suppression) : ni lu, ni noté, ni classé — la Tour elle-même n’y touche pas', [r.saute, r.protege, r.classe === true, R.M.compter().classes, R.M.compter().aTraiter, Object.keys(Z.fichierJson('agents-camille.json').rien || {}).length], ['automatique', true, false, avantSec.classes, avantSec.aTraiter, 4]);
     r = await Z.camille.surNouveauMessage(poser(Z, { uid: 6, mid: '<mauvais@banc-3098>', de: 'pas une adresse' }));
-    v('un expéditeur illisible : classé « expediteur »', [r.saute, r.classe, R.M.compter().classes], ['expediteur', true, 4]);
+    v('⛔ un expéditeur illisible : NON classé (personne n’a rien lu) — la ligne reste « à traiter », mais n’est pas relue à chaque passe', [r.saute, r.classe === true, R.M.compter().classes, R.M.compter().aTraiter, !!Z.fichierJson('agents-camille.json').mids[empreinte('<mauvais@banc-3098>')]], ['expediteur', false, 3, 3, true]);
     const Y = monter({ modes: { camille: 'brouillon' }, claude: () => 'Je ne sais pas trop.' });
     Y.mail.suiviMarquer = R.M.suiviMarquer; Y.mail.suiviClasser = R.M.suiviClasser; Y.mail.suiviLibre = R.M.suiviLibre;
     r = await Y.camille.surNouveauMessage(poser(Y, { mid: '<forme@banc-3098>' }));
-    v('⛔ une PANNE (réponse sans catégorie) ne classe rien : le courriel reste « à traiter », il sera repris', [r.saute, r.classe === true, R.M.compter().classes], ['forme', false, 4]);
+    v('⛔ une PANNE (réponse sans catégorie) ne classe rien : le courriel reste « à traiter », il sera repris', [r.saute, r.classe === true, R.M.compter().classes], ['forme', false, 3]);
     const reg = Z.fichierJson('agents-camille.json');
-    v('le registre retient la raison de chaque courrier rangé (empreinte → raison, heure), jamais l’adresse ni l’objet', Object.values(reg.rien).map(x => x[0]).sort(), ['automatique', 'expediteur', 'ignore', 'ignore', 'interne']);
+    v('le registre retient la raison de chaque courrier rangé (empreinte → raison, heure), jamais l’adresse ni l’objet', Object.values(reg.rien).map(x => x[0]).sort(), ['automatique', 'ignore', 'ignore', 'interne']);
     vrai('…et rien de lisible (ni adresse, ni Message-ID) n’y est écrit', !/exemple-3098|banc-3098|Hortense/.test(JSON.stringify(reg.rien)));
     Z.nettoyer(); Y.nettoyer(); R.nettoyer();
+  }
+
+  console.log('\n3b. Camille : un classement « sans réponse » ne cache JAMAIS un courriel qui parle de recours, de prélèvement ou de résiliation (gardien)');
+  {
+    const lignes = {}; for (const k of ['lit', 'pay', 'res', 'pubok', 'nous', 'fauxnous', 'transf', 'autolit', 'autook', 'autopay']) lignes['<' + k + '@banc-3098>'] = ligne({});
+    const R = mailReel(lignes);
+    const Z = monter({ modes: { camille: 'brouillon' }, claude: () => PUB });
+    Z.mail.suiviMarquer = R.M.suiviMarquer; Z.mail.suiviClasser = R.M.suiviClasser; Z.mail.suiviLibre = R.M.suiviLibre;
+    const etat = () => ({ cl: R.M.compter().classes, at: R.M.compter().aTraiter });
+    let n = 0; const msg = (k, o) => poser(Z, Object.assign({ uid: 100 + (++n), mid: '<' + k + '@banc-3098>' }, o));
+    let r = await Z.camille.surNouveauMessage(msg('lit', { objet: 'Votre relance', texte: 'Sans réponse sous huit jours, j’appelle mon avocat et je saisis le tribunal.' }));
+    v('⛔ « ignorer » (texte piégé ou mauvaise catégorie) sur une MENACE DE LITIGE : le code la détourne vers Justin comme sous toute catégorie — jamais classée, la ligne est prise par Justin', [r.justin, r.parLeCode, r.categorie, r.ignore === true, r.classe === true, etat()], [true, true, 'litige', false, false, { cl: 0, at: 9 }]);
+    vrai('…et Justin en est PRÉVENU (une alerte), avec la catégorie rangée par Claude', Z.paroles.some(p => /menace d’une action/.test(p.texte) && /« ignorer »/.test(p.texte)), JSON.stringify(Z.paroles.map(p => p.texte.slice(0, 60))));
+    r = await Z.camille.surNouveauMessage(msg('pay', { objet: 'Facture', texte: 'Vous m’avez prélevé deux fois ce mois-ci.' }));
+    v('⛔ « ignorer » sur une erreur de PRÉLÈVEMENT (sans mot de recours) : ignoré comme avant, mais NON classé — la ligne reste « à traiter » et visible', [r.ignore, r.reste, r.classe === true, etat()], [true, true, false, { cl: 0, at: 9 }]);
+    r = await Z.camille.surNouveauMessage(msg('res', { objet: 'Arrêt', texte: 'Je souhaite résilier mon abonnement dès que possible.' }));
+    v('⛔ « ignorer » sur une demande de RÉSILIATION : non classé non plus', [r.ignore, r.reste, r.classe === true, etat()], [true, true, false, { cl: 0, at: 9 }]);
+    r = await Z.camille.surNouveauMessage(msg('pubok', { objet: 'Soldes', texte: 'Profitez de nos offres de la semaine.' }));
+    v('(contre-épreuve) une vraie publicité, sans ces mots : classée comme avant', [r.ignore, r.classe === true, etat()], [true, true, { cl: 1, at: 8 }]);
+
+    r = await Z.camille.surNouveauMessage(msg('nous', { de: 'collegue@teamop.fr', authentifie: true, texte: 'Rappel interne : réunion à 10 h.' }));
+    v('(contre-épreuve) un message de chez nous AUTHENTIFIÉ : classé « interne »', [r.saute, r.classe === true, etat()], ['interne', true, { cl: 2, at: 7 }]);
+    r = await Z.camille.surNouveauMessage(msg('fauxnous', { de: 'faux@teamop.fr', authentifie: false, texte: 'Merci de répondre à ce client.' }));
+    v('⛔ « de chez nous » SANS authentification (faux From teamop.fr) : non classé, la ligne reste « à traiter »', [r.saute, r.classe === true, etat()], ['interne', false, { cl: 2, at: 7 }]);
+    r = await Z.camille.surNouveauMessage(msg('transf', { de: 'collegue@teamop.fr', authentifie: true, objet: 'Fwd: plainte client', texte: 'Voici sa plainte : il parle de prélèvement en double et de son avocat.' }));
+    v('⛔ un collègue authentifié qui TRANSFÈRE une plainte à contact@ : non classé', [r.saute, r.classe === true, etat()], ['interne', false, { cl: 2, at: 7 }]);
+
+    r = await Z.camille.surNouveauMessage(msg('autolit', { auto: true, enteteAuto: true, texte: 'Je vous mets en demeure : mon avocat vous écrira.' }));
+    v('⛔ un en-tête de liste / « automatique » choisi par l’EXPÉDITEUR au-dessus d’un texte de recours : non classé (et noté « vu » : pas relu à chaque passe)', [r.saute, r.classe === true, etat(), !!Z.fichierJson('agents-camille.json').mids[empreinte('<autolit@banc-3098>')]], ['automatique', false, { cl: 2, at: 7 }, true]);
+    r = await Z.camille.surNouveauMessage(msg('autopay', { auto: true, texte: 'Votre prélèvement mensuel a été effectué.' }));
+    v('⛔ un message automatique qui parle de PRÉLÈVEMENT : non classé', [r.saute, r.classe === true, etat()], ['automatique', false, { cl: 2, at: 7 }]);
+    r = await Z.camille.surNouveauMessage(msg('autook', { auto: true, texte: 'Votre colis est en route.' }));
+    v('(contre-épreuve) un message automatique ordinaire : classé « automatique »', [r.saute, r.classe === true, etat()], ['automatique', true, { cl: 3, at: 6 }]);
+    vrai('(population) dix lignes de suivi, deux classées de plus que la publicité : le banc a bien joué des classements ET des refus', Object.keys(lignes).length === 10 && etat().cl === 3);
+    Z.nettoyer(); R.nettoyer();
+  }
+  {
+    /* les références de ce que Camille a classé sur un JUGEMENT (« ignorer », en-tête automatique) sont dans le bilan : un classement piégé se retrouve */
+    const R = mailReel({ '<j1@banc-3098>': ligne({}), '<j2@banc-3098>': ligne({}) });
+    const Z = monter({ modes: { camille: 'brouillon' }, claude: () => PUB });
+    Z.mail.suiviMarquer = R.M.suiviMarquer; Z.mail.suiviClasser = R.M.suiviClasser; Z.mail.suiviLibre = R.M.suiviLibre;
+    Z.mail.arriere = async () => [poser(Z, { uid: 1, mid: '<j1@banc-3098>', texte: 'Offre spéciale.' }), poser(Z, { uid: 2, mid: '<j2@banc-3098>', auto: true, texte: 'Notification.' })];
+    await Z.camille.reprendreArriere(3650);
+    const bilan = Z.paroles.filter(p => p.fil === 'camille' && /Reprise de l’arriéré/.test(p.texte)).map(p => p.texte).join(' ');
+    const r1 = empreinte('<j1@banc-3098>').slice(0, 4), r2 = empreinte('<j2@banc-3098>').slice(0, 4);
+    vrai('⛔ le bilan cite les références des classés sur un jugement (« ignore », « automatique »), pas de nom ni d’adresse', bilan.includes('À parcourir au besoin') && bilan.includes(r1 + ' ignore') && bilan.includes(r2 + ' automatique') && !/@|exemple-3098|banc-3098/.test(bilan), bilan);
+    Z.nettoyer(); R.nettoyer();
   }
 
   console.log('\n4. Camille : la reprise AVANCE (file, écartés, attentes, bilan)');
@@ -173,11 +239,11 @@ function mailReel(ligneSuivi, imap) {
     Z.mail.arriere = async (j, o) => { opts = o; const l = [neuf]; l.ecartes = vus.map(x => ({ mid: x.mid, ts: x.ts })); return l; };
     const lecturesAvant = Z.lectures.length;
     const b = await Z.camille.reprendreArriere(3650);
-    v('la reprise range le suivi des écartés : l’ancien « ignoré » (repris, sans marque) et le « rien à répondre » noté ; la ligne de Paul/Justin, jamais', [b.classes, R.M.compter().classes, R.M.suiviLibre('<repris-prise@x>')], [2, 2, false]);
+    v('la reprise range le suivi des écartés NOTÉS « rien » (jamais la ligne de Paul/Justin) ; ⛔ un `repris` SANS marque « rien » (un litige passé à Justin, un brouillon, Chloé) n’est PAS rangé « ignoré » : sa ligne, rouverte « à traiter », reste visible', [b.classes, R.M.compter().classes, R.M.suiviLibre('<repris-prise@x>'), R.M.suiviLibre('<ancien-ignore@x>')], [1, 1, false, true]);
     v('…sans relire la boîte pour eux (seul le courriel NEUF est lu)', Z.lectures.length - lecturesAvant, 1);
     vrai('…et le neuf est examiné (une réponse en brouillon)', b.examines === 1 && b.reponses === 1, JSON.stringify(b));
     const bilan = Z.paroles.filter(p => p.fil === 'camille' && /Reprise de l’arriéré/.test(p.texte));
-    vrai('le bilan dit les lignes rangées, en nombres, sans adresse ni nom', bilan.length === 1 && /2 lignes du suivi rangées « en cours · Camille » \(rien à répondre\)/.test(bilan[0].texte) && !/@|Hortense|exemple-3098/.test(bilan[0].texte), JSON.stringify(bilan));
+    vrai('le bilan dit les lignes rangées, en nombres, sans adresse ni nom', bilan.length === 1 && /1 ligne du suivi rangée « en cours · Camille » \(rien à répondre\)/.test(bilan[0].texte) && !/@|Hortense|exemple-3098/.test(bilan[0].texte), JSON.stringify(bilan));
     const ec = opts.ecarter;
     const x0 = { boiteId: 'b-contact', dossier: 'INBOX', uid: 1, ts: T0 - 3600000 };
     const vieux = empreinte('<vieux-vu@x>'), enReg = JSON.parse(fs.readFileSync(path.join(Z.D, 'agents-camille.json'), 'utf8'));
@@ -185,6 +251,18 @@ function mailReel(ligneSuivi, imap) {
     v('…un courriel « vu » plus de trois jours APRÈS sa date, sans marque de reprise, se REPREND (le vieil arriéré écarté par la limite d’âge d’avant)', [ec({ mid: '<inconnu-vu@x>', boiteId: 'b-contact', dossier: 'INBOX', uid: 7, ts: T0 - 10 * JOUR }), ec({ mid: '<ancien-ignore@x>', boiteId: 'b-contact', dossier: 'INBOX', uid: 7, ts: T0 - 10 * JOUR })], [false, true]);
     v('…sans Message-ID, la clé est la même que celle de `traiter` (boîte, dossier, uid)', [ec({ mid: '', boiteId: 'b-contact', dossier: 'INBOX', uid: 77, ts: 1 }), (() => { enReg.rien = enReg.rien || {}; return enReg.mids; })() && true], [false, true]);
     Z.nettoyer(); R.nettoyer();
+  }
+  {
+    /* 4a bis. ⛔ un automatique ou un expéditeur illisible SANS ligne de suivi (la Tour ne l'a jamais ouvert) n'est lu qu'UNE fois : sans la garde `reg.rien` d'`ecarter` (ou `noterVu` de l'expéditeur),
+       chaque passe en refait la lecture complète — et ils reprenaient les places de la file, l'ancien défaut. */
+    const Z = monter({ modes: { camille: 'brouillon' }, claude: () => QUESTION });
+    Z.mail.suiviMarquer = () => true; Z.mail.suiviClasser = () => false; Z.mail.suiviLibre = () => true;
+    const bruits = [poser(Z, { uid: 1, mid: '<b1@x>', auto: true, texte: 'Notification.' }), poser(Z, { uid: 2, mid: '<b2@x>', auto: true, texte: 'Notification.' }), poser(Z, { uid: 3, mid: '<b3@x>', de: 'pas une adresse' })];
+    let ecarter = null;
+    Z.mail.arriere = async (j, o) => { ecarter = o && o.ecarter; const l = bruits.filter(x => !(ecarter && ecarter(x))); l.ecartes = bruits.filter(x => ecarter && ecarter(x)).map(x => ({ mid: x.mid, ts: x.ts })); return l; };
+    const lect = []; for (let k = 0; k < 4; k++) { const a0 = Z.lectures.length; await Z.camille.reprendreArriere(3650, { silencieux: true }); lect.push(Z.lectures.length - a0); }
+    v('⛔ trois passes : les trois courriels sans ligne sont lus UNE fois (3 lectures à la première), puis plus jamais', lect, [3, 0, 0, 0]);
+    Z.nettoyer();
   }
   {
     /* 4b. trois courriels qui ATTENDENT (expéditeur déjà deux brouillons en attente) n'arrêtent pas la passe : le quatrième est traité */
@@ -305,6 +383,7 @@ function mailReel(ligneSuivi, imap) {
     /* la règle d'honnêteté de la messagerie reste entière */
     const EQ = sansCommentaires(src('agent-equipe.js'));
     vrai('⛔ la règle « honnêteté » de la messagerie est INTACTE (ne jamais promettre ce qu’aucun outil ne fait)', /Tu ne promets jamais d’avoir fait ce que tu n’as pas fait, ni de faire ce qu’aucun de tes outils ne fait/.test(EQ));
+    vrai('⛔ la plateforme passe `reprise` à Victor (sans elle, son point du matin ne sait rien de ce que Camille a classé)', /courrier: ctx\.courrier, reprise: ctx\.reprise, clients: ctx\.clients/.test(sansCommentaires(src('agents-plateforme.js'))));
     const IDX = sansCommentaires(src('index.js'));
     vrai('serveur : le relevé `reprise` lit le VRAI `etatReprise` de Camille, sans jamais jeter', /reprise: \(\) => \{ try \{ return agentCamille && typeof agentCamille\.etatReprise === 'function' \? agentCamille\.etatReprise\(\) : null; \} catch \(e\) \{ return null; \} \},/.test(IDX));
     vrai('serveur : le relevé `courrier` porte les classés, et Victor reçoit `reprise` pour son point du matin', /return \{ aTraiter: c\.aTraiter, enCours: c\.enCours, classes: c\.classes \}/.test(IDX) && /courrier: faitsAgents\.courrier, reprise: faitsAgents\.reprise, clients: faitsAgents\.clients/.test(IDX));

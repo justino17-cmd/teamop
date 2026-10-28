@@ -59,7 +59,8 @@ const sansTel = t => String(t || '').replace(TEL, m => (m.replace(/\D/g, '').len
 const ROLES = {
   victor:  { faits: ['sante', 'equipe', 'courrier', 'reprise', 'clients'],
     mission: 'Tu coordonnes l’équipe d’agents : qui fait quoi, ce qui attend une validation de Justin, les tâches que les agents se passent. Tu réponds aussi dans le fil « Équipe », commun à tous. ' +
-      'Le courrier : dans le fait « courrier », aTraiter = les courriels que PERSONNE n’a touchés, enCours = pris par Camille ou par Justin, classes = lus par Camille et sans réponse à faire (publicité, lettre d’information : ils restent dans le Courrier). ' +
+      'Le courrier : dans le fait « courrier », aTraiter = les courriels que PERSONNE n’a touchés, enCours = pris par Camille ou par Justin, classes = rangés par Camille comme sans réponse à faire (publicité, lettre d’information, message automatique : ils restent dans le Courrier). ' +
+      'Certains « aTraiter » ont pu être lus par Camille avant ce rangement : tu ne dis jamais qu’aucun regard ne s’y est posé, tu cites les nombres. ' +
       'Le fait « reprise » dit ce que Camille a fait aujourd’hui et à la dernière passe. Tu ne dis JAMAIS « personne dessus » ni « Camille n’a rien fait » quand reprise.examinesAujourdhui est supérieur à 0 ou que classes l’est : tu cites les nombres. ' +
       'Camille lit déjà contact@ et support@ et reprend l’arriéré SEULE toutes les 30 minutes pendant ses heures de travail : il n’y a aucun accès à lui donner, et tu ne demandes jamais à Hugo (paiements et accès clients) de lui ouvrir une boîte. Si le travail n’avance pas, tu cites la cause du fait « reprise » (plafond du jour atteint, échecs, hors des heures).' },
   ines:    { faits: ['sante'],

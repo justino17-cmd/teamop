@@ -71,6 +71,12 @@ const MENACE_LITIGE = new RegExp('(?:^|[^a-z0-9])(?:' + [
 ].join('|') + ')(?![a-z0-9])');
 const menaceDeLitige = t => MENACE_LITIGE.test(String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘`]/g, "'").replace(/\s+/g, ' '));
 
+/* (28 octobre 2026, gardien) Un courriel que Camille range « rien à répondre » SANS que Claude en ait jugé le contenu (message automatique, de chez nous) ou APRÈS un jugement qui peut être
+   piégé (« ignorer ») sort de « à traiter » et de la vue de Justin : le CODE ne le range donc jamais s'il parle de recours, d'erreur de prélèvement, de résiliation, de remboursement ou de
+   prélèvement. Comme les deux filtres ci-dessus il ne fait que garder la ligne VISIBLE (jamais l'inverse) : un faux positif laisse une publicité « à traiter », un faux négatif cache un litige. */
+const RESILIATION = /(?:^|[^a-z0-9])(?:resili\w*|rembours\w*|prelev\w*|(?:arret\w*|annul\w*|stopp\w*|supprim\w*) (?:de |du |d'|mon |ma |l'|le |la |notre |votre )?(?:abonnement|compte|contrat))(?![a-z0-9])/;
+const sensible = t => menaceDeLitige(t) || erreurDePaiement(t) || RESILIATION.test(String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘`]/g, "'").replace(/\s+/g, ' '));
+
 const PLAN_PROSPECT = [
   'POUR UN PROSPECT, PLAN DU COURRIEL (dans cet ordre, en courts paragraphes) :',
   '1. Accroche : « Nous vous remercions pour votre message. » puis ce que l’entreprise demande ou son activité telle qu’elle apparaît dans son message.',
@@ -196,7 +202,7 @@ module.exports = function camille(ctx) {
     if (hs.length > MAX_MIDS) for (const k of hs.sort((x, y) => reg.mids[x] - reg.mids[y]).slice(0, hs.length - MAX_MIDS)) delete reg.mids[k];
     sauve();
   }
-  const RAISONS = ['ignore', 'automatique', 'interne', 'expediteur'];   // la liste fermée du suivi (`mail.js`, CLASSES)
+  const RAISONS = ['ignore', 'automatique', 'interne'];   // la liste fermée du suivi (`mail.js`, CLASSES) : ce que Camille a pu JUGER sans réponse à faire — un expéditeur illisible n'est lu par personne, il reste « à traiter »
   function noterRien(h, raison) {
     if (!h || !RAISONS.includes(raison)) return;
     reg.rien[h] = [raison, maintenant()];
@@ -237,7 +243,9 @@ module.exports = function camille(ctx) {
     if (r.justin) o = { statut: 'enCours', assigne: 'Justin' };
     else if (r.depose === true || r.chloe) o = { statut: 'enCours', assigne: 'Camille' };
     if (!o) {
-      const raison = r.ignore ? 'ignore' : r.saute === 'automatique' && !r.protege ? 'automatique' : r.saute === 'interne' ? 'interne' : r.saute === 'expediteur' ? 'expediteur' : '';
+      /* `r.reste` : le CODE garde la ligne visible (texte de recours, de prélèvement ou de résiliation ; expéditeur de chez nous non authentifié) — jamais classée */
+      if (r.reste) return;
+      const raison = r.ignore ? 'ignore' : r.saute === 'automatique' && !r.protege ? 'automatique' : r.saute === 'interne' ? 'interne' : '';
       if (!raison) return;
       noterRien(ev.__h, raison);
       try { return typeof mail.suiviClasser === 'function' && mail.suiviClasser(lu.mid, raison) === true; } catch (e) { return false; }
@@ -290,7 +298,13 @@ module.exports = function camille(ctx) {
         if (m.protege) return { saute: 'automatique', protege: true };
         const h = empreinte(m.mid || cle);
         ev.__lu = { mid: String(m.mid || ''), de: String(m.de || ''), objet: String(m.objet || ''), ts: m.ts || 0 }; ev.__h = h;
-        if (m.auto || m.enteteAuto) return { saute: 'automatique' };
+        /* le texte sur lequel le CODE juge si un classement « sans réponse » est permis (jamais envoyé à Claude, jamais gardé) */
+        const brut = String(m.objet || '') + '\n' + String(m.texte || '').slice(0, TEXTE_MAX);
+        if (m.auto || m.enteteAuto) {
+          /* l'en-tête est choisi par l'EXPÉDITEUR : un texte de recours ou de prélèvement sous un en-tête de liste reste « à traiter » (et n'est pas relu à chaque passe) */
+          if (sensible(brut)) { noterVu(h); return { saute: 'automatique', reste: true }; }
+          return { saute: 'automatique' };
+        }
         /* l'ARRIÉRÉ : un courriel « vu » parce qu'il était déjà trop ancien à son arrivée (vu plus de trois jours après sa date) n'a jamais été traité — il se reprend. Tout autre « vu »
            (répondu, transmis, ignoré, interne) ne se refait jamais. */
         const vuAncien = ev.arriere === true && reg.mids[h] && !reg.repris[h] && m.ts && reg.mids[h] - m.ts > AGE_MAX_MS;
@@ -299,9 +313,14 @@ module.exports = function camille(ctx) {
            boîte) voit la réservation de la première. Libérée dans le `finally`. */
         midsEnCours.add(h); reserve = h;
         const a = String(m.de || '').trim().toLowerCase();
-        if (!bonneAdresse(a)) return { saute: 'expediteur' };
+        /* une adresse illisible : personne n'a rien compris du message, il reste « à traiter » (jamais classé) ; « vu » pour ne pas le relire à chaque passe */
+        if (!bonneAdresse(a)) { noterVu(h); return { saute: 'expediteur', reste: true }; }
         /* NOS adresses : jamais traitées (et marquées vues, pour ne pas les relire à chaque passage) */
-        if (domainesNotres().some(d => d && domaineDe(a) === String(d).toLowerCase()) || adressesNotres().some(x => x && a === String(x).toLowerCase())) { noterVu(h); return { saute: 'interne' }; }
+        if (domainesNotres().some(d => d && domaineDe(a) === String(d).toLowerCase()) || adressesNotres().some(x => x && a === String(x).toLowerCase())) {
+          noterVu(h);
+          /* « de chez nous » ne se prouve que par l'authentification de NOTRE serveur de réception : un faux From teamop.fr, ou un collègue qui transfère une plainte, reste « à traiter » */
+          return m.authentifie === true && !sensible(brut) ? { saute: 'interne' } : { saute: 'interne', reste: true };
+        }
         /* l'âge se juge à l'instant où le courriel est ARRIVÉ à Camille (`ev.differeTs`, quand il a attendu l'ouverture) : un week-end férié de 87 h ne rend pas « ancien » un courriel de vendredi soir */
         /* (28 octobre 2026, Justin : « trois jours avant, et après ils n'ont plus accès au reste, c'est débile ») — plus de limite d'âge : tout courriel qui attend se traite. */
         if (typeof brouillons.nombreEnAttente === 'function' && brouillons.nombreEnAttente(ID, a) >= ATTENTES_PAR_EXPEDITEUR) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'un expéditeur a déjà ' + ATTENTES_PAR_EXPEDITEUR + ' brouillons en attente' }); return { saute: 'expediteur_deja_en_attente' }; }
@@ -353,7 +372,12 @@ module.exports = function camille(ctx) {
         if (!lu) { noterVu(h); agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'erreur', detail: 'réponse de Claude sans ligne CATEGORIE' }); return { saute: 'forme' }; }
         const categorie = lu.categorie;
 
-        if (categorie === 'ignorer') { noterVu(h); agents.noter(ID, 'message ignoré', { cible: 'courrier', resultat: 'ok', detail: 'ni réponse ni brouillon' }); return { ignore: true }; }
+        /* ⛔ « ignorer » est un jugement de Claude, que le texte du courriel peut PIÉGER : il ne passe avant les filets du code que s'il n'y a aucune menace de litige (sinon la suite la détourne vers
+           Justin, comme sous n'importe quelle catégorie), et il ne se CLASSE (sort de « à traiter ») que si le texte ne parle ni d'erreur de prélèvement, ni de résiliation, ni de remboursement. */
+        if (categorie === 'ignorer' && !menaceDeLitige(objet + '\n' + texte)) {
+          noterVu(h); agents.noter(ID, 'message ignoré', { cible: 'courrier', resultat: 'ok', detail: 'ni réponse ni brouillon' });
+          return sensible(objet + '\n' + texte) ? { ignore: true, reste: true } : { ignore: true };
+        }
 
         const dossier = dossierDe(a);                 // le numéro de dossier si l'adresse est celle d'un compte, sinon ''
         const sur = m.authentifie === true;            // l'expéditeur est authentifié par NOTRE serveur de réception
@@ -540,6 +564,7 @@ module.exports = function camille(ctx) {
     const b = { examines: 0, reponses: 0, transmis: 0, justin: 0, ignores: 0, classes: 0, deja: 0, attendent: 0, restent: 0 };
     try {
       let liste = [];
+      const refs = [];   // les références (4 signes) des courriels CLASSÉS sur un jugement (« ignorer », en-tête automatique) : ce sont ceux qu'un texte piégé ferait disparaître, Justin peut les parcourir
       /* (28 octobre 2026) un courriel DÉJÀ DÉCIDÉ ne retourne pas dans la file : il ne prend pas l'une des 200 places, et sa lecture complète n'est pas refaite à chaque passe.
          `ecarter` reprend, à l'identique, ce que `traiter` jugerait « déjà vu » (y compris le « vu trop ancien » d'avant la fin de la limite d'âge, qui se reprend). */
       const ecarter = x => {
@@ -553,8 +578,9 @@ module.exports = function camille(ctx) {
          Les courriels d'avant ce rangement (`repris` sans ligne de suivi) sont de ceux-là : la reprise ne marquait `repris` que pour une décision, et les autres décisions ont une main. */
       if (typeof mail.suiviClasser === 'function' && Array.isArray(liste.ecartes)) {
         for (const e of liste.ecartes) {
-          const h = empreinte(e.mid), raison = reg.rien[h] ? reg.rien[h][0] : (reg.repris[h] ? 'ignore' : '');
-          try { if (raison && mail.suiviClasser(e.mid, raison) === true) b.classes++; } catch (err) {}
+                    /* ⛔ seulement ce que Camille a NOTÉ « rien » : `repris` porte aussi les litiges passés à Justin, les brouillons et Chloé — une ligne rouverte « à traiter » ne s'y range pas */
+          const h = empreinte(e.mid), raison = reg.rien[h] && RAISONS.includes(reg.rien[h][0]) ? reg.rien[h][0] : '';
+          try { if (raison && mail.suiviClasser(e.mid, raison) === true) { b.classes++; if (raison !== 'interne') refs.push(h.slice(0, 4) + ' ' + raison); } } catch (err) {}
         }
       }
       let arret = '', echecs = 0;
@@ -568,7 +594,7 @@ module.exports = function camille(ctx) {
         if (x.mid && typeof mail.suiviLibre === 'function' && !mail.suiviLibre(x.mid)) { b.deja++; continue; }
         const ev = { boiteId: x.boiteId, dossier: x.dossier, uid: x.uid, reprise: true, arriere: true };
         const r = await surNouveauMessage(ev) || {};
-        if (r.classe === true) b.classes++;   // rangé « rien à répondre » au suivi (publicité, automatique, de chez nous…) : compté même si le courriel est un « déjà décidé »
+        if (r.classe === true) { b.classes++; if (ev.__h && (r.ignore || r.saute === 'automatique')) refs.push(ev.__h.slice(0, 4) + ' ' + (r.ignore ? 'ignore' : 'automatique')); }   // rangé « rien à répondre » au suivi (publicité, automatique, de chez nous…) : compté même si le courriel est un « déjà décidé »
         if (r.saute && /^plafond_(?:jour|examens)$|^hors_heures$|^pause$|^arret$|^budget|^cle|^pas_de_cle$|^erreur_api$|^registre_illisible$/.test(String(r.saute))) { arret = r.saute; b.restent = liste.length - i; break; }
         if (r.saute === 'deja_vu' || r.saute === 'automatique' || r.saute === 'interne' || r.saute === 'expediteur' || r.saute === 'introuvable' || r.saute === 'deja_en_cours') { b.deja++; continue; }
         /* un courriel qui ATTEND (l'expéditeur a déjà deux brouillons en attente, le domaine a atteint son plafond du jour) n'est pas une panne : le suivant peut passer. Trois de ceux-là en tête
@@ -588,7 +614,7 @@ module.exports = function camille(ctx) {
       const t = 'Reprise de l’arriéré' + (parseInt(jours, 10) > 0 && parseInt(jours, 10) < 3650 ? ' (' + parseInt(jours, 10) + ' derniers jours)' : '') + ' : ' + b.examines + ' courriel' + (b.examines > 1 ? 's' : '') + ' examiné' + (b.examines > 1 ? 's' : '') +
         ' — ' + b.reponses + ' réponse' + (b.reponses > 1 ? 's' : '') + ' en brouillon à valider, ' + b.transmis + ' transmis à un collègue, ' + b.justin + ' pour toi' + (pourToi.length ? ' (réf. ' + pourToi.slice(0, 12).join(', ') + ')' : '') +
         ', ' + b.ignores + ' sans réponse à faire (publicité, lettre d’information : ils restent dans le Courrier, rien n’est supprimé)' + (b.echecs ? ', ' + b.echecs + ' que je n’ai pas pu lire ou traiter' : '') + '.' +
-        (b.classes ? ' ' + b.classes + ' ' + (b.classes > 1 ? 'lignes' : 'ligne') + ' du suivi rangée' + (b.classes > 1 ? 's' : '') + ' « en cours · Camille » (rien à répondre) : elles ne comptent plus « à traiter » et restent dans la Réception.' : '') +
+        (b.classes ? ' ' + b.classes + ' ' + (b.classes > 1 ? 'lignes' : 'ligne') + ' du suivi rangée' + (b.classes > 1 ? 's' : '') + ' « en cours · Camille » (rien à répondre) : elles ne comptent plus « à traiter » et restent dans la Réception.' + (refs.length ? ' À parcourir au besoin (jugés sans réponse, réf. et raison) : ' + refs.slice(0, 12).join(', ') + (refs.length > 12 ? ', …' : '') + '.' : '') : '') +
         (b.attendent ? ' ' + b.attendent + ' attendent (un expéditeur a déjà deux brouillons en attente, ou son domaine a atteint son plafond du jour).' : '') +
         (liste.tronque ? ' La boîte est très chargée : je n’ai regardé que les plus récents de la période.' : '') +
         (arret ? ' Je me suis arrêtée (' + String(arret).replace(/_/g, ' ') + ') : ' + b.restent + ' attendent encore, je les reprendrai quand tu relanceras.' : (liste.length ? '' : ' Rien n’attendait.'));
@@ -607,7 +633,7 @@ module.exports = function camille(ctx) {
   /* L'outil de Camille dans la messagerie : reprendre l'arriéré quand JUSTIN le demande (le module le vérifie, pas le prompt). La reprise tourne en tâche de fond : le bilan arrive dans
      son fil privé avec Justin. */
   const outilsEquipe = {
-    outils: [{ name: 'reprendre_courriels_anciens', description: 'Reprendre les courriels des derniers jours que personne n’a traités (ni répondus, ni pris) dans contact@ et support@, le plus ancien d’abord, avec tes règles habituelles. Toute réponse attend la validation de Justin. Seulement quand Justin te le demande.',
+    outils: [{ name: 'reprendre_courriels_anciens', description: 'Reprendre MAINTENANT les courriels que personne n’a traités (ni répondus, ni pris) dans contact@ et support@, toute la boîte par défaut, le plus ancien d’abord, avec tes règles habituelles. Toute réponse attend la validation de Justin. Seulement quand Justin te le demande ; la reprise tourne déjà seule toutes les 30 minutes.',
       input_schema: { type: 'object', properties: { jours: { type: 'integer', minimum: 1, maximum: 3650, description: 'Combien de jours en arrière (toute la boîte par défaut).' } }, additionalProperties: false } }],
     executer(nom, e, c) {
       if (nom !== 'reprendre_courriels_anciens') return { ok: false, raison: 'inconnu' };

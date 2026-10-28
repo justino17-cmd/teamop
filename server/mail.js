@@ -604,7 +604,7 @@ module.exports = function monterMessagerie(app, ctx) {
      plus « à traiter » : « personne dessus » était faux, quelqu'un l'avait regardé. Mais « résolu » est définitif et une catégorie mal posée ferait disparaître un vrai message (gardien) :
      la ligne devient « en cours » chez Camille avec une RAISON tirée d'une liste fermée (`classe`). La Tour en service ne lit que statut, assigne et par — elle montre « En cours · Camille »,
      le message reste dans la Réception ; seuls les décomptes (`compter`, `/stats`) distinguent un classement d'un vrai travail en cours. Un humain qui touche la ligne efface la raison. */
-  const CLASSES = ['ignore', 'automatique', 'interne', 'expediteur'];
+  const CLASSES = ['ignore', 'automatique', 'interne'];
   const estClasse = sv => !!sv && sv.statut === 'enCours' && sv.par === 'Camille' && CLASSES.includes(sv.classe) && !(sv.repTs > 0);
   async function arriere(jours, opts) {
     /* `opts.ecarter(x)` : l'appelant dit « celui-là, je l'ai déjà décidé » — il ne compte pas dans les 200 de la file (les décidés sans ligne de suivi en tête de file cachaient tous les
@@ -1070,8 +1070,10 @@ module.exports = function monterMessagerie(app, ctx) {
          les notifications automatiques à part (elles n'attendent personne). En LECTURE : rien ne s'écrit ici. */
       /* `recuTs` vient de l'en-tête Date: de l'EXPÉDITEUR : borné à la création depuis le 22 octobre 2026 ; une entrée plus ancienne au futur
          se borne ici à maintenant. Une date trop ANCIENNE ne se borne pas — connecter une boîte relève de vrais vieux messages (REPRISE.md). */
-      ouverts: clients.filter(x => (x.statut === 'aTraiter' || x.statut === 'enCours') && !estClasse(x)).sort((a, b) => Math.min(a.recuTs || 0, now) - Math.min(b.recuTs || 0, now)).slice(0, 20)
-        .map(x => ({ statut: x.statut, assigne: x.assigne || '', recuTs: Math.min(x.recuTs || 0, now), de: x.de || '', objet: x.objet || '' })),
+      /* ⛔ (gardien) les classés RESTENT dans `ouverts`, derrière les vrais : la Tour EN SERVICE (v2.117) ne lit ni `classe` ni `classesRecents`, et un courriel mal classé disparaîtrait de « Au rapport »
+         sans qu'elle puisse le montrer. Derrière les vrais, pour qu'une vingtaine de publicités anciennes ne chassent pas du tableau un courrier qui attend ; `classe` les marque pour une Tour qui sait la lire. */
+      ouverts: clients.filter(x => x.statut === 'aTraiter' || x.statut === 'enCours').sort((a, b) => (estClasse(a) ? 1 : 0) - (estClasse(b) ? 1 : 0) || Math.min(a.recuTs || 0, now) - Math.min(b.recuTs || 0, now)).slice(0, 20)
+        .map(x => Object.assign({ statut: x.statut, assigne: x.assigne || '', recuTs: Math.min(x.recuTs || 0, now), de: x.de || '', objet: x.objet || '' }, estClasse(x) ? { classe: x.classe } : {})),
       /* les courriels que Camille a lus et classés « rien à répondre » : à part des ouverts (ils n'attendent personne), mais RÉCUPÉRABLES — une Tour qui les montre les trouve ici */
       classesRecents: clients.filter(estClasse).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 20)
         .map(x => ({ classe: x.classe, recuTs: Math.min(x.recuTs || 0, now), de: x.de || '', objet: x.objet || '' }))

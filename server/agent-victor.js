@@ -116,7 +116,7 @@ module.exports = function agentVictor(ctx) {
   const rien = f => {
     const a = f.attendJustin, p = f.plateforme;
     return !(a.validations > 0 || a.rgpdOuvertes > 0 || a.contratsEnAttente > 0 || a.courrierATraiter > 0 || a.demandesClients > 0 || p.incidentsOuverts > 0 || p.alarmesOuvertes > 0
-      || (f.equipe.tachesEnCours && Object.keys(f.equipe.tachesEnCours).length) || (f.qualite && f.qualite.courrielsAReprendre > 0));
+      || (f.equipe.tachesEnCours && Object.keys(f.equipe.tachesEnCours).length) || (f.qualite && f.qualite.courrielsAReprendre > 0) || (f.courrier && f.courrier.classesParCamille > 0));
   };
   /* Le texte du CODE : toujours juste, toujours disponible. */
   function texteDuCode(f) {
@@ -135,7 +135,7 @@ module.exports = function agentVictor(ctx) {
     const lib = e.libres ? e.libres.map(nomDe) : [];
     let t = 'Bonjour Justin, voici le point de ce ' + f.jour + '.';
     t += attend.length ? ' Ce qui t’attend : ' + O.liste(attend) + '.' : ' Rien ne t’attend ce matin.';
-    if (f.courrier && f.courrier.classesParCamille > 0) t += ' Camille a lu et classé ' + nb(f.courrier.classesParCamille, 'courriel', 'courriels') + ' sans réponse à faire (ils restent dans le Courrier).';
+    if (f.courrier && f.courrier.classesParCamille > 0) t += ' Camille a classé ' + nb(f.courrier.classesParCamille, 'courriel', 'courriels') + ' sans réponse à faire (publicités, messages automatiques, courriers de chez nous : ils restent dans le Courrier, rien n’est supprimé).';
     if (plateforme.length) t += ' Côté plateforme : ' + O.liste(plateforme) + '.';
     if (charge.length) t += ' Dans l’équipe : ' + O.liste(charge) + ' en cours' + (lib.length ? ' ; ' + O.liste(lib.slice(0, 4)) + (lib.length === 1 ? ' est libre' : ' sont libres') : '') + '.';
     if (q && q.courrielsAReprendre > 0) t += ' Inès a relevé ' + nb(q.courrielsAReprendre, 'courriel à reprendre', 'courriels à reprendre') + '.';
