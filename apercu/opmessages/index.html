@@ -9844,7 +9844,7 @@ a.menu-action { text-decoration: none; }
     const vus = avenir.slice(0, LR_MAX), vusP = passees.slice(0, LR_PASSEES_MAX);
     let h = groupes(vus, x => x.o.debut <= now ? -1 : minuitDe(x.o.debut), j => j === -1 ? 'En cours' : libelleJourBord(j));
     if (avenir.length > LR_MAX) h += '<li class="bord-plus"><button type="button" class="presse" data-lr="agenda">' + esc('Voir les ' + (avenir.length - LR_MAX) + ' autres dans l\'Agenda') + '</button></li>';
-    /* (28 octobre 2026, capture de Justin : deux « Nouvelle réunion » l'un sous l'autre, décalés) Le geste vit UNE fois, en tête de l'onglet : l'état vide le dit, il ne le répète pas. */
+    /* (28 octobre 2026, capture du patron : deux « Nouvelle réunion » l'un sous l'autre, décalés) Le geste vit UNE fois, en tête de l'onglet : l'état vide le dit, il ne le répète pas. */
     if (!h) h = '<li class="vide lr-vide"><span>Aucune réunion prévue.</span><small>Touchez « Nouvelle réunion » pour en planifier une.</small></li>';
     return { avenir: h, nAvenir: avenir.length, passees: groupes(vusP, x => minuitDe(x.o.debut), j => maj1(FMT_JOUR_LONG.format(j))), nPassees: passees.length };
   }
