@@ -468,7 +468,7 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     p = await neuf('p7i', { iconesDir: faux2 });
     recus = await tourner(p);
     v('⛔ un fichier absent (victor, equipe), vide (nina) ou trop gros (plateforme) est sauté : les dix-sept autres partent', [recus.length, recus.map(cibleDe).filter(c => ['victor', 'equipe', 'nina', 'plateforme'].includes(c))], [17, []]);
-    v('…UNE seule ligne de journal pour les quatre, sans nom de fichier ni de chemin', [p.journaux.filter(m => /photos/.test(m)).length, p.journaux.filter(m => /photos/.test(m) && /(victor|equipe|nina|plateforme|\/|icons)/.test(m)).length], [1, 0]);
+    v('…UNE seule ligne de journal pour les quatre, sans nom de fichier ni de chemin', [p.journaux.length, p.journaux.filter(m => /photos/.test(m)).length, p.journaux.filter(m => /(victor|equipe|nina|plateforme|\/|icons)/.test(m)).length], [1, 1, 0]);
     v('…et ce n\'est pas une panne', [p.sante().echecMin, p._etat().photosAbsentes], [0, 4]);
     p.arreter();
     etat.avatars = {}; etat.installe = false;
