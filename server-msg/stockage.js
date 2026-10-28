@@ -2352,6 +2352,24 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return { pieces: cur.avatar_piece ? pieceEffacerLigne(cur.avatar_piece) : [] };
     });
   }
+  /* ⛔ LE PONT DES AGENTS POSE UNE PHOTO — EN SILENCE, EN UNE TRANSACTION (`pont-agents.js`, 28 octobre 2026). Soit sur une PERSONNE-ROBOT (`personne` : la pièce lui appartient, c'est
+     `avatarPersonnePoser`), soit sur un GROUPE (`conv`, `par` : le robot « Système » qui est membre de chaque groupe et à qui la pièce appartient — mêmes règles que
+     `avatarGroupeAttacher` : la pièce est neuve, de genre avatar, jamais posée, et reste lisible par les membres du groupe). L'ancienne photo part avec sa ligne (le fichier par l'appelant).
+     ⛔ AUCUN message système : là où `convMaj` écrit « a changé la photo du groupe » (Justin est le créateur, la ligne porterait son nom), le pont pose ses photos sans rien dire dans la
+     conversation — des seize agents et des quatre groupes d'un seul coup, ce serait vingt lignes parasites au premier démarrage et à chaque photo renouvelée. Les écrans, eux, sont
+     prévenus par un événement `conv_maj` (sans texte) pour un groupe ; pour un robot, par la route (`hub.personneChangee`). → { pieces: [identifiants à effacer], gid } */
+  function avatarPontPoser({ piece, personne, conv, par }) {
+    return tx(() => {
+      if ((personne === undefined) === (conv === undefined)) throw erreur('type');
+      if (personne !== undefined) return { pieces: avatarPersonnePoser(personne, piece).pieces, gid: 0 };
+      const c = convBrute(conv);
+      if (!c) throw erreur('introuvable');
+      if (c.type !== 'groupe') throw erreur('type');
+      const cur = c.avatar_piece || null;
+      avatarGroupeAttacher(conv, par, piece);
+      return { pieces: cur ? pieceEffacerLigne(cur) : [], gid: journalAjouter('conv_maj', conv, null, '') };
+    });
+  }
   /* Les pièces jamais attachées (ou photos jamais posées) dont l'échéance est passée : les lignes partent, les fichiers suivent. */
   function piecesOrphelinesPurger(maxLignes = 500) {
     return tx(() => {
@@ -5392,7 +5410,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     messageEnvoyer, messageATransferer, messageDejaEnvoye, messagesChercher, requeteRech, mediasDe, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
     transcriptionDemander, transcriptionPoser, transcriptionsInterrompues, transcriptionVue,
     transcriptionEnAttente, transcriptionsEchues,
-    pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, piecesOrphelinesPurger, audiencePersonne,
+    pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, avatarPontPoser, piecesOrphelinesPurger, audiencePersonne,
     notifCreer, notifListe, notifLues, notifNonLues,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,
     rejeuAFaire, rejeuTermine, purgeLignes,   // le rejeu des purges par le SERVICE après une restauration (rejeu.js)

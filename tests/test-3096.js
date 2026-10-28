@@ -12,7 +12,10 @@
         passager est réessayé cinq fois ;
      5. ce que Justin écrit entre par `justinEcrit` (mentions, réveil), UNE fois, sans retourner à sa source ; une suppression d'OP MESSAGES retire du registre — sauf un
         rappel client non lu ; le premier passage ne fait que poser le curseur ; un texte hors forme n'est jamais écrit ;
-     6. un registre d'état illisible n'est jamais réécrit : le pont ne démarre pas, et le DIT. */
+     6. un registre d'état illisible n'est jamais réécrit : le pont ne démarre pas, et le DIT ;
+     7. LES PHOTOS (28 octobre 2026) : après l'installation, les visages des agents, l'image du Système et celles des groupes — les VRAIS fichiers du dépôt — partent UNE à la fois vers
+        `/api/pont/avatar`, celles que le service n'a pas déjà (empreinte comparée) ; en-têtes justes (octet-stream, empreinte, secret en en-tête seulement) ; un refus, une panne, un fichier
+        absent ou trop gros ne retarde AUCUN message et ne compte pas comme une panne du pont ; retentée à l'installation suivante ; aucun chemin ne vient de la réponse du service. */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), http = require('http'), crypto = require('crypto');
 const RACINE = path.join(__dirname, '..');
@@ -25,10 +28,10 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 60 s'); process.exi
 const SECRET = crypto.randomBytes(32).toString('hex');
 
 /* ── le FAUX OP MESSAGES ── */
-const etat = { mode: 'normal', requetes: [], seq: {}, installe: true, rejets: {}, evenements: [], curseur: 100, plein: false, retry: 2 };
-const faux = http.createServer((q, r) => { let b = ''; q.on('data', d => { b += d; }); q.on('end', () => {
+const etat = { avatars: {}, avatarMode: 'normal', enVol: 0, enVolMax: 0, mode: 'normal', requetes: [], seq: {}, installe: true, rejets: {}, evenements: [], curseur: 100, plein: false, retry: 2 };
+const faux = http.createServer((q, r) => { let b = ''; const morceaux = []; q.on('data', d => { b += d; morceaux.push(d); }); q.on('end', () => {
   let j = null; try { j = b ? JSON.parse(b) : null; } catch (e) {}
-  etat.requetes.push({ m: q.method, url: q.url, corps: j, brut: b, secret: q.headers['x-opm-pont'], entetes: q.headers });
+  etat.requetes.push({ m: q.method, url: q.url, corps: j, brut: b, octets: Buffer.concat(morceaux), secret: q.headers['x-opm-pont'], entetes: q.headers });
   const rep = (code, o, h) => { r.writeHead(code, Object.assign({ 'Content-Type': 'application/json' }, h || {})); r.end(JSON.stringify(o)); };
   if (etat.mode === 'panne') return q.socket.destroy();
   if (etat.mode === 'lent') return;                                   // ne répond jamais : le délai du pont le coupe
@@ -36,7 +39,7 @@ const faux = http.createServer((q, r) => { let b = ''; q.on('data', d => { b += 
   if (etat.mode === '404') return rep(404, { error: 'introuvable' });
   if (etat.mode === '429') return rep(429, { error: 'quota_atteint' }, { 'Retry-After': String(etat.retry) });
   if (etat.mode === 'html') { r.writeHead(200, { 'Content-Type': 'text/html' }); return r.end('<html>pas du json</html>'); }
-  if (q.url === '/api/pont/installer') return etat.mode === 'refus400' ? rep(400, { error: 'champ_invalide' }) : (etat.installe = true, rep(200, { ok: true, fils: [], robots: [], creees: {} }));
+  if (q.url === '/api/pont/installer') return etat.mode === 'refus400' ? rep(400, { error: 'champ_invalide' }) : (etat.installe = true, rep(200, { ok: true, fils: [], robots: [], creees: {}, avatars: etat.avatars }));
   if (!etat.installe) return rep(409, { error: 'pont_non_installe' });
   if (q.url === '/api/pont/poster') {
     if (etat.mode === 'lot400') return rep(400, { error: 'champ_invalide' });
@@ -53,6 +56,16 @@ const faux = http.createServer((q, r) => { let b = ''; q.on('data', d => { b += 
   }
   if (q.url.startsWith('/api/pont/nouveaux')) { const e = etat.evenements; etat.evenements = []; return rep(200, { ok: true, curseur: etat.curseur, plein: etat.plein, evenements: e }); }
   if (q.url === '/api/pont/supprimer') return rep(200, { ok: true });
+  if (q.url.startsWith('/api/pont/avatar')) {
+    /* le service des PHOTOS : une à la fois (on compte celles qui se chevauchent), refus choisis par le banc, jamais de réponse (`lent`), coupure (`panne`) */
+    etat.enVol++; etat.enVolMax = Math.max(etat.enVolMax, etat.enVol);
+    const cible = new URL(q.url, 'http://x').searchParams.get('cible');
+    const fin = () => { etat.enVol--; };
+    if (etat.avatarMode === 'lent') { etat.enVol--; return; }
+    if (etat.avatarMode === 'panne') { etat.enVol--; return q.socket.destroy(); }
+    const code = etat.avatarMode === 'normal' ? 200 : (etat.avatarMode === 'sauf' ? (etat.avatarRefuse[cible] || 200) : parseInt(etat.avatarMode, 10));
+    return setTimeout(() => { fin(); rep(code, code === 200 ? { ok: true, deja: false } : { error: 'refus' }); }, 3);
+  }
   rep(404, { error: 'introuvable' });
 }); });
 
@@ -81,7 +94,7 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
   const post = (p, b) => { const r = res(); routes.post[p]({ body: b, query: {} }, r); return r; };
   const fichier = FICHIER(banc);
   const parle = (id, fil, texte, o) => { horloge += 600000; return conv.parler(id, fil, texte, o); };
-  const nouveau = (extra) => PONT(Object.assign({ DATA_DIR: banc, conversations: conv, agents: AG, groupes: CV.GROUPES, fichier, url: URL, secret: SECRET, horloge: () => horloge, attenteMaxMs: 400, delaiMs: 600 }, extra || {}));
+  const nouveau = (extra) => PONT(Object.assign({ iconesDir: path.join(banc, 'sans-icones'), DATA_DIR: banc, conversations: conv, agents: AG, groupes: CV.GROUPES, fichier, url: URL, secret: SECRET, horloge: () => horloge, attenteMaxMs: 400, delaiMs: 600 }, extra || {}));
 
   console.log('\n1. Fermé sans secret valable, ni adresse de boucle locale');
   {
@@ -355,6 +368,124 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     v('⛔ le pont ne démarre pas, ne parle pas à OP MESSAGES et le DIT', [etat.requetes.length - n0, /illisible/.test(sortie)], [0, true]);
     v('…le fichier abîmé est resté tel quel (le réparer est un geste de Justin)', fs.readFileSync(F, 'utf8'), '{ pas du json');
     vrai('…et /health crie : les minutes d\'échec courent dès le démarrage', (() => { horloge += 61 * 60000; return p2.sante().echecMin >= 61; })());
+  }
+
+  console.log('\n7. Les photos : les visages des agents, l\'image du Système, celles des groupes');
+  {
+    const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
+    const ICONES = path.join(RACINE, 'icons');
+    const IDS = AG.AGENTS.map(a => a.id).concat(['systeme']).concat(CV.GROUPES);
+    const fichierDe = (c) => c === 'systeme' || CV.GROUPES.includes(c) ? path.join(ICONES, 'groupes', c + '.png') : path.join(ICONES, 'agents', c + '.jpg');
+    const avatarsRecus = () => etat.requetes.filter(x => x.url.startsWith('/api/pont/avatar'));
+    const cibleDe = (x) => new (require('url').URL)(x.url, 'http://x').searchParams.get('cible');
+    const dossierPont = (nom) => { const d = path.join(banc, nom); fs.mkdirSync(d, { recursive: true }); return d; };
+    /* un pont NEUF (son propre registre d'état : la table des recopies du banc 6 est volontairement abîmée) */
+    const neuf = async (nom, extra) => { const journaux = []; const p = PONT(Object.assign({ DATA_DIR: banc, conversations: conv, agents: AG, groupes: CV.GROUPES, fichier: FICHIER(dossierPont(nom)), url: URL, secret: SECRET, horloge: () => horloge,
+      attenteMaxMs: 400, delaiMs: 600, iconesDir: ICONES, journal: (m) => journaux.push(m) }, extra || {})); p.journaux = journaux; pont = p; return p; };   // (`pont` : le crochet de `conversations.js` parle à l'instance COURANTE)
+    const tourner = async (p) => { etat.requetes.length = 0; await p._envoyer(); await p._attendreFini(); return avatarsRecus(); };
+
+    /* ⛔ LA POPULATION AVANT LES CONCLUSIONS : les images existent, ce sont de vraies images (la signature se lit dans le fichier, pas dans son nom) et de la bonne taille (256 × 256). */
+    const dimJpeg = (b) => { let i = 2; while (i + 9 < b.length) { if (b[i] !== 0xFF) return null; const m = b[i + 1]; if (m >= 0xC0 && m <= 0xC2) return [b.readUInt16BE(i + 7), b.readUInt16BE(i + 5)]; i += 2 + b.readUInt16BE(i + 2); } return null; };
+    const dimPng = (b) => b.length > 24 ? [b.readUInt32BE(16), b.readUInt32BE(20)] : null;
+    const agentsPont = AG.AGENTS.map(a => a.id);
+    const imagesAgents = agentsPont.map(id => { const f = path.join(ICONES, 'agents', id + '.jpg'); return fs.existsSync(f) ? fs.readFileSync(f) : null; });
+    const imagesGroupes = ['equipe', 'clients', 'plateforme', 'reunions', 'systeme'].map(id => { const f = path.join(ICONES, 'groupes', id + '.png'); return fs.existsSync(f) ? fs.readFileSync(f) : null; });
+    v('(population) les seize photos d\'agents du pont existent', [agentsPont.length, imagesAgents.filter(Boolean).length], [16, 16]);
+    v('(population) les cinq images de `icons/groupes` existent (equipe, clients, plateforme, reunions, systeme)', imagesGroupes.filter(Boolean).length, 5);
+    v('⛔ les seize agents : une vraie signature JPEG (FFD8FF, fin FFD9), 256 × 256, plus de 1 Ko et moins de 2 Mo', imagesAgents.filter(b => !(b && b.subarray(0, 3).toString('hex') === 'ffd8ff' && b.subarray(-2).toString('hex') === 'ffd9' && JSON.stringify(dimJpeg(b)) === '[256,256]' && b.length > 1024 && b.length < 2 * 1048576)).length, 0);
+    v('⛔ les cinq images de groupes : une vraie signature PNG, 256 × 256, plus de 1 Ko et moins de 2 Mo', imagesGroupes.filter(b => !(b && b.subarray(0, 8).toString('hex') === '89504e470d0a1a0a' && JSON.stringify(dimPng(b)) === '[256,256]' && b.length > 1024 && b.length < 2 * 1048576)).length, 0);
+    v('…toutes différentes (vingt et une images, vingt et un contenus : aucune n\'a été copiée sur une autre)', new Set(imagesAgents.concat(imagesGroupes).map(b => sha(b))).size, 21);
+    vrai('(population) seize agents, quatre groupes : vingt et une cibles, et chacune a son fichier dans le dépôt', IDS.length === 21 && AG.AGENTS.length === 16 && CV.GROUPES.length === 4 && IDS.every(c => fs.existsSync(fichierDe(c))));
+    etat.mode = 'normal'; etat.avatars = {}; etat.installe = false; etat.avatarMode = 'normal';
+    let p = await neuf('p7a');
+    let recus = await tourner(p);
+    v('⛔ rien n\'est encore posé : les VINGT ET UNE photos partent, une par cible', [recus.length, recus.map(cibleDe).sort()], [21, IDS.slice().sort()]);
+    v('…UNE à la fois (jamais deux envois qui se chevauchent)', etat.enVolMax, 1);
+    v('…chaque corps EST le fichier du dépôt, octet pour octet, et l\'empreinte annoncée est son SHA-256', recus.map(x => [x.octets.equals(fs.readFileSync(fichierDe(cibleDe(x)))), x.entetes['x-opm-empreinte'] === sha(x.octets)].join()).filter(x => x !== 'true,true').length, 0);
+    v('…en-têtes : octet-stream, Content-Length = la taille du fichier, le secret en EN-TÊTE seulement (ni adresse, ni corps), ni Origin ni cookie', recus.filter(x => x.entetes['content-type'] !== 'application/octet-stream' || Number(x.entetes['content-length']) !== x.octets.length || x.secret !== SECRET || x.url.includes(SECRET) || x.octets.includes(Buffer.from(SECRET)) || x.entetes.origin || x.entetes.cookie || x.m !== 'POST').length, 0);
+    v('(population) les photos sont de VRAIES images (JPEG pour les agents, PNG pour le Système et les groupes), et pèsent moins de 2 Mo', recus.map(x => { const t = x.octets.subarray(0, 4).toString('hex'); return (cibleDe(x) === 'systeme' || CV.GROUPES.includes(cibleDe(x)) ? t === '89504e47' : t.startsWith('ffd8ff')) && x.octets.length > 1000 && x.octets.length < 2 * 1048576; }).filter(x => !x).length, 0);
+    v('…l\'installation n\'a eu lieu qu\'UNE fois, les messages sont partis, rien n\'est compté comme panne', [etat.requetes.filter(x => x.url === '/api/pont/installer').length, p.sante().echecMin, p._etat().photos, p._etat().photosRefusees], [1, 0, 21, 0]);
+    p.arreter();
+
+    /* le service a DÉJÀ tout : rien ne part. Il manque une photo, une autre a changé : ces deux-là seulement. */
+    const toutes = {}; for (const c of IDS) toutes[c] = sha(fs.readFileSync(fichierDe(c)));
+    etat.avatars = Object.assign({}, toutes); etat.installe = false;
+    p = await neuf('p7b');
+    v('⛔ le service a tout, à l\'identique : AUCUNE photo ne part (le redémarrage de la Tour ne renvoie rien)', (await tourner(p)).length, 0);
+    p.arreter();
+    const incomplet = Object.assign({}, toutes); delete incomplet.victor; incomplet.equipe = sha('une autre image'); incomplet.lea = 'f'.repeat(64);
+    etat.avatars = incomplet; etat.installe = false;
+    p = await neuf('p7c');
+    v('⛔ une manquante, deux dont l\'empreinte a CHANGÉ : exactement ces trois-là', (await tourner(p)).map(cibleDe).sort(), ['equipe', 'lea', 'victor']);
+    p.arreter();
+
+    /* une réponse du service qui essaie d'orienter les chemins : rien n'en sort */
+    etat.avatars = { '../../etc/passwd': 'x', '__proto__': { victor: toutes.victor }, 'victor/../lea': 'y' }; etat.installe = false;
+    p = await neuf('p7d');
+    recus = await tourner(p);
+    v('⛔ des clés hostiles dans `avatars` (traversée, __proto__) : les cibles envoyées restent les vingt et une de la liste FIXE, « victor » n\'est pas pris pour posée', [recus.length, recus.map(cibleDe).sort(), recus.some(x => /\.\./.test(x.url))], [21, IDS.slice().sort(), false]);
+    p.arreter();
+    for (const [nom, valeur] of [['un tableau', ['victor']], ['un texte', 'victor'], ['un nombre', 7], ['rien', undefined]]) {
+      etat.avatars = valeur; etat.installe = false;
+      const q = await neuf('p7e'); const n = (await tourner(q)).length; q.arreter();
+      v('…`avatars` = ' + nom + ' : traité comme « rien de posé » (21 photos), sans erreur', n, 21);
+    }
+
+    /* un refus ne bloque RIEN */
+    etat.avatars = {}; etat.installe = false; etat.avatarMode = 'sauf'; etat.avatarRefuse = { victor: 415, max: 413, lea: 400 };
+    p = await neuf('p7f');
+    parle('victor', 'victor', 'Un message pendant les photos', { niveau: 'info' });
+    recus = await tourner(p);
+    v('⛔ une photo refusée (415, 413, 400 : ce n\'est QUE cette image) : la série CONTINUE, les vingt et une sont tentées', recus.length, 21);
+    v('…ce n\'est pas une panne du pont : aucune minute d\'échec, même une heure plus tard, la file est vide', await (async () => { horloge += 3600000; return [p.sante().echecMin, p.sante().file]; })(), [0, 0]);
+    vrai('…et le message écrit pendant ce temps est parti comme d\'habitude', messagesEnvoyes().some(m => /pendant les photos/.test(m.texte)));
+    v('…3 refusées comptées, 18 posées', [p._etat().photosRefusees, p._etat().photos], [3, 18]);
+    v('…un message posté APRÈS part encore (rien n\'est resté bloqué)', await (async () => { etat.requetes.length = 0; parle('lea', 'lea', 'Après les photos', { niveau: 'info' }); await p._envoyer(); await p._attendreFini(); return messagesEnvoyes().map(m => m.texte); })(), ['Après les photos']);
+    p.arreter();
+    /* retentée à l'installation suivante : le service dit n'avoir que les 18 autres */
+    const posees = Object.assign({}, toutes); delete posees.victor; delete posees.max; delete posees.lea;
+    etat.avatars = posees; etat.installe = false; etat.avatarMode = 'normal';
+    p = await neuf('p7g');
+    v('⛔ à l\'installation SUIVANTE, les trois refusées sont retentées — elles seules', (await tourner(p)).map(cibleDe).sort(), ['lea', 'max', 'victor']);
+    p.arreter();
+
+    /* le service ne répond pas, refuse le secret, est occupé : on n'insiste pas photo après photo, et ce n'est pas une panne du pont */
+    for (const mode of ['404', '429', '500', '409', 'panne', 'lent']) {
+      etat.avatars = {}; etat.installe = false; etat.avatarMode = mode;
+      const q = await neuf('p7h'); const n = (await tourner(q)).length;
+      v('⛔ service des photos en « ' + mode + ' » : UN seul essai (pas vingt et un), aucune panne du pont, la file passe', await (async () => { horloge += 3600000; etat.avatarMode = 'normal'; etat.requetes.length = 0; parle('max', 'max', 'Sous ' + mode, { niveau: 'info' }); await q._envoyer(); await q._attendreFini(); return [n, q.sante().echecMin, messagesEnvoyes().map(m => m.texte)]; })(), [1, 0, ['Sous ' + mode]]);
+      q.arreter();
+    }
+    etat.avatarMode = 'normal';
+
+    /* fichiers absents, vides, trop gros : sautés, une seule ligne de journal, le reste part */
+    const faux2 = dossierPont('icones-incompletes');
+    fs.mkdirSync(path.join(faux2, 'agents'), { recursive: true }); fs.mkdirSync(path.join(faux2, 'groupes'), { recursive: true });
+    for (const c of IDS) if (!['victor', 'equipe', 'nina', 'plateforme'].includes(c)) fs.copyFileSync(fichierDe(c), path.join(faux2, c === 'systeme' || CV.GROUPES.includes(c) ? 'groupes' : 'agents', c + (c === 'systeme' || CV.GROUPES.includes(c) ? '.png' : '.jpg')));
+    fs.writeFileSync(path.join(faux2, 'agents', 'nina.jpg'), '');                                            // vide
+    fs.writeFileSync(path.join(faux2, 'groupes', 'plateforme.png'), Buffer.alloc(2 * 1048576 + 1, 1));        // trop gros
+    etat.avatars = {}; etat.installe = false;
+    p = await neuf('p7i', { iconesDir: faux2 });
+    recus = await tourner(p);
+    v('⛔ un fichier absent (victor, equipe), vide (nina) ou trop gros (plateforme) est sauté : les dix-sept autres partent', [recus.length, recus.map(cibleDe).filter(c => ['victor', 'equipe', 'nina', 'plateforme'].includes(c))], [17, []]);
+    v('…UNE seule ligne de journal pour les quatre, sans nom de fichier ni de chemin', [p.journaux.length, p.journaux.filter(m => /photos/.test(m)).length, p.journaux.filter(m => /(victor|equipe|nina|plateforme|\/|icons)/.test(m)).length], [1, 1, 0]);
+    v('…et ce n\'est pas une panne', [p.sante().echecMin, p._etat().photosAbsentes], [0, 4]);
+    p.arreter();
+    etat.avatars = {}; etat.installe = false;
+    p = await neuf('p7j', { iconesDir: path.join(banc, 'dossier-qui-n-existe-pas') });
+    v('⛔ AUCUN fichier (le dossier n\'existe pas) : rien ne part, aucune exception, les messages et l\'installation fonctionnent', await (async () => { const n = (await tourner(p)).length; return [n, etat.requetes.filter(x => x.url === '/api/pont/installer').length, p.sante().echecMin]; })(), [0, 1, 0]);
+    p.arreter();
+
+    /* les photos ne retardent pas les messages : le service des photos ne répond JAMAIS (délai de 600 ms) */
+    etat.avatars = {}; etat.installe = false; etat.avatarMode = 'lent';
+    p = await neuf('p7k');
+    parle('victor', 'victor', 'Pendant que les photos attendent', { niveau: 'info' });
+    etat.requetes.length = 0;
+    const t0 = Date.now(); await p._envoyer();
+    v('⛔ `_envoyer` rend la main et les messages sont partis AVANT la fin des photos (tâche de fond : le service ne répond pas)', [Date.now() - t0 < 500, messagesEnvoyes().some(m => /Pendant que les photos attendent/.test(m.texte)), avatarsRecus().length], [true, true, 1]);
+    await p._attendreFini();
+    v('…la photo qui n\'a pas de réponse est comptée refusée, jamais en panne', [p._etat().photosRefusees, p.sante().echecMin], [1, 0]);
+    p.arreter(); etat.avatarMode = 'normal';
   }
 
   /* (le bandeau de la Tour « Vos agents sont maintenant dans OP MESSAGES » est gardé par `test-3091`, avec la Tour unifiée : il ne part qu'avec elle) */

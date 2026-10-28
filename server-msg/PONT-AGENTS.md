@@ -17,8 +17,8 @@ Deux fichiers de code, deux services, **un secret** :
 
 | | fichier | rôle |
 |---|---|---|
-| OP MESSAGES | `server-msg/pont-agents.js` | quatre routes `/api/pont/*` (installer, poster, nouveaux, supprimer), gardées comme l'administration : boucle locale, aucun en-tête de proxy, secret `X-OPM-Pont` comparé à son **empreinte**. Inertes (404) sans bloc `pont`. |
-| Tour | `server/pont-messages.js` | installe au démarrage, recopie chaque message du registre (file bornée, réessai), importe l'historique avec ses dates, lit ce que Justin écrit/supprime et le fait entrer par `justinEcrit` — **le même chemin que la route de la Tour** (mentions, réveil des agents). |
+| OP MESSAGES | `server-msg/pont-agents.js` | cinq routes `/api/pont/*` (installer, poster, nouveaux, supprimer, avatar), gardées comme l'administration : boucle locale, aucun en-tête de proxy, secret `X-OPM-Pont` comparé à son **empreinte**. Inertes (404) sans bloc `pont`. |
+| Tour | `server/pont-messages.js` | installe au démarrage, recopie chaque message du registre (file bornée, réessai), importe l'historique avec ses dates, lit ce que Justin écrit/supprime et le fait entrer par `justinEcrit` — **le même chemin que la route de la Tour** (mentions, réveil des agents), et **envoie les photos** (visages des agents, groupes, Système). |
 | les deux | `server-msg/configurer-pont.js` | pose le pont **dans les deux configurations d'un coup**, secret saisi masqué ou fabriqué sur place. |
 
 Une panne d'OP MESSAGES ne casse rien côté agents : le crochet de `conversations.js` est appelé après l'écriture du
@@ -31,8 +31,12 @@ registre, dans un `try`, sans rien rendre. Pas de configuration = pas de pont = 
 1. **Le code est déployé des deux côtés.** Une même fusion sur `main` déclenche `deploiement.yml` (la Tour) et
    `deploiement-messages.yml` (OP MESSAGES). Sans configuration, le pont est **inerte** : on peut déployer d'abord, sans risque.
    Vérifier : `curl -s https://api.teamop.fr/health | grep -c '"pont"'` doit rendre **0** (le champ n'existe pas tant que rien n'est posé).
-2. **L'accès bêta de Justin existe pour OP MESSAGES** : Tour → onglet **Accès** → l'accès de Justin avec **OP MESSAGES** coché
-   (`apps: ["messages"]`). **Noter son identifiant** : `b` + des hexadécimaux (visible sur la ligne de l'accès). Ce n'est pas un secret.
+2. **L'accès bêta de Justin existe pour OP MESSAGES** : il se crée dans la **console MESSAGES de la Tour** (Accès → bêta d'OP MESSAGES),
+   avec **OP MESSAGES** coché (`apps: ["messages"]`). ⚠️ **L'identifiant `b…` de l'accès n'est PAS affiché dans la Tour** : il se lit sur le VPS, par
+   ```bash
+   node -e "for(const c of require('/opt/teamop/data/beta-comptes.json')) if(c.login==='justin') console.log(c.id, (c.apps||['gestion']).join(','), c.actif?'ouvert':'coupé')"
+   ```
+   — la ligne dont la liste d'applications est **`messages`** (c'est elle qu'on veut, pas celle de la bêta d'OP GESTION). **Noter l'identifiant** : `b` + des hexadécimaux. Ce n'est pas un secret.
 3. Une seule instance : **la bêta**. En production, un bloc `pont` **refuse le démarrage** (décision : bêta d'abord).
 
 ## 1. Poser le pont (sur le VPS, en root)
@@ -116,6 +120,33 @@ est le registre). Ce qui a été recopié dans OP MESSAGES y reste — des conve
 
 ---
 
+## Les photos (28 octobre 2026)
+
+Justin : « je voudrais les photos des agents et aussi des photos sur les groupes ». Les visages sont `icons/agents/<id>.jpg` (JPEG 256 px, les seize agents du pont ;
+Pauline n'est pas dans le pont), les images des groupes et du Système `icons/groupes/{equipe,clients,plateforme,reunions,systeme}.png` (PNG 256 px, générées par `scripts/avatars-groupes.js`).
+
+**Rien à faire sur le VPS : les photos partent au redémarrage de la Tour.** La Tour tourne depuis le clone complet du dépôt (`/opt/teamop/repo`), donc `server/pont-messages.js`
+lit `icons/` à côté de `server/`. Au déploiement elle redémarre, **réinstalle** (c'est ce qu'elle fait à chaque démarrage), reçoit du service ce qui est déjà posé (`avatars`) et envoie
+les photos manquantes ou changées — les vingt et une la première fois, **aucune** les fois suivantes.
+
+**Le contrat — `POST /api/pont/avatar?cible=<id>`** (garde `PT`, comme les quatre autres : tout refus est le même 404, inerte sans configuration)
+
+| | |
+|---|---|
+| `cible` | un **robot** de la table du pont (un agent, `systeme`) ou le **fil d'un groupe** (`equipe`, `clients`…). Jamais une directe (sa photo est celle du robot), jamais une clé héritée : sinon `400 champ_invalide`. |
+| corps | l'image **brute**, `Content-Type: application/octet-stream`, `Content-Length` **obligatoire** (`411`), au plus `pieces.avatarMax` (2 Mo, `413`). Le service juge la **signature aux octets** et retire les métadonnées (`pieces.deposer`) : un non-image est `415 type_refuse`. |
+| `X-OPM-Empreinte` | le SHA-256 (64 hexadécimaux) du corps **reçu**, recalculé par le service ; absent ou différent : `400`, rien n'est posé. |
+| pose | en **une transaction** : la photo est posée sur le robot (`avatar_piece`) ou sur la conversation du groupe (une pièce du robot « Système », lisible par les membres) et l'empreinte source est rangée dans la table du pont. L'ancienne photo est effacée (ligne **et** fichier). La cible est **relue dans la transaction** : si une réinstallation a recréé le robot ou le groupe pendant le dépôt, la photo est refusée (`409 cible_changee`, le fichier part) plutôt que d'aller à l'ancien — la Tour reprend au démarrage suivant. |
+| silence | **aucun message système** « a changé la photo du groupe » : vingt lignes parasites au premier démarrage. Les écrans de Justin sont prévenus par un événement sans texte. |
+| réponse | `200 { ok, deja }` ; `deja: true` quand la même empreinte était déjà posée (rien n'est écrit) ; `429` au-delà de 120 photos par minute. |
+
+`POST /api/pont/installer` rend en plus `avatars: { <cible>: <empreinte> }` — ce que le service a déjà. Côté Tour, une photo **refusée, absente ou trop grosse** ne retarde aucun
+message et ne compte **pas** comme une panne du pont (`echecMin`) : elle part en tâche de fond, une à la fois, et se retente à l'installation suivante (le prochain démarrage).
+Les noms de fichiers viennent des listes fixes (agents, groupes du registre), jamais de la réponse du service.
+
+⚠️ **Ce que ça ne fait pas** : si Justin **change** la photo d'un groupe dans OP MESSAGES, la Tour ne la remet pas (l'empreinte source n'a pas bougé) ; pour remplacer un visage,
+remplacer le fichier de `icons/agents/` et déployer (l'empreinte change, la photo est renvoyée). Un groupe supprimé puis recréé par l'installation perd sa photo, qui est renvoyée.
+
 ## Ce que le pont ne fait PAS (à savoir, pas à découvrir)
 
 - **Le texte seulement.** Une photo, un vocal, un sondage de Justin n'arrive pas aux agents ; le pont le lui dit dans le fil
@@ -141,6 +172,6 @@ en file. À la maison : `journalctl -u teamop-msg@beta`, et `--verifier` ci-dess
 
 ## Les bancs
 
-`test-3094` (le vrai service : gardes, installer, poster, nouveaux, supprimer), `test-3095` (le vrai serveur de la Tour + le vrai service + un faux
+`test-3094` (le vrai service : gardes, installer, poster, nouveaux, supprimer, avatar), `test-3095` (le vrai serveur de la Tour + le vrai service + un faux
 Anthropic : historique, direct, réveil des agents, suppressions dans les deux sens, panne), `test-3096` (le module de la Tour contre un faux
 service : file, attente, rattrapage, bandeau), `test-3097` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
