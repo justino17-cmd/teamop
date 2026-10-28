@@ -253,6 +253,12 @@ const MATRICE = {
   'admin.espaces':      { ok: () => ['GET', '/api/admin/espaces'], codes: [404] },
   'admin.abonnements':  { ok: () => ['GET', '/api/admin/abonnements'], codes: [404] },
   'admin.incidents':    { ok: () => ['GET', '/api/admin/incidents'], codes: [404] },
+  /* le PONT DES AGENTS (28 octobre 2026) : le service des bancs n'a PAS de bloc `pont` — les quatre routes sont INERTES, et la garde PT refuse tout le monde (même 404 qu'une route inconnue), quelle que soit la
+     session. Les routes ouvertes par un vrai secret, et chaque refus de la garde, se jouent dans `test-3090`. */
+  'pont.installer':     { ok: () => ['POST', '/api/pont/installer', {}], codes: [404] },
+  'pont.poster':        { ok: () => ['POST', '/api/pont/poster', {}], codes: [404] },
+  'pont.nouveaux':      { ok: () => ['GET', '/api/pont/nouveaux'], codes: [404] },
+  'pont.supprimer':     { ok: () => ['POST', '/api/pont/supprimer', {}], codes: [404] },
   /* Le lien d'invité et la salle d'une réunion. `apercu` est PUBLIC (le code vient de la fixture : celui de la réunion d'Ana) ; entrer par le lien est S, par l'identifiant R (l'invité, l'hôte) ; le lien se lit et se
      renouvelle par H. Les deux routes qui ENTRENT jouent une réunion dont la fenêtre est ouverte (elle commence dans deux minutes) : une réunion dans trois jours refuse, et le refus est joué plus bas. */
   'reunions.apercu':    { ok: (F) => ['POST', '/api/reunions/apercu', { code: F.codeR }], codes: [200] },
@@ -316,6 +322,8 @@ const ATTENDU = {
   /* l'ADMINISTRATION (AD) : la garde ne lit AUCUNE session — la boucle locale, l'absence d'en-tête de proxy et le secret de la configuration. Ici le service n'a pas de secret : INERTE, donc le 404 de la route inconnue pour
      TOUS les profils, un administrateur de conversation compris (une session n'ouvre pas la console). */
   AD: { anonyme: [404, 'introuvable'], invalide: [404, 'introuvable'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: [404, 'introuvable'], admin: [404, 'introuvable'] },
+  /* le PONT DES AGENTS (PT) : comme AD, sans session — la boucle locale, aucun en-tête de proxy et le secret `X-OPM-Pont` de la configuration. Ici le service n'a pas de bloc `pont` : INERTE pour TOUS les profils. */
+  PT: { anonyme: [404, 'introuvable'], invalide: [404, 'introuvable'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: [404, 'introuvable'], admin: [404, 'introuvable'] },
 };
 
 (async () => {

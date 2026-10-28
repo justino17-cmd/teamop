@@ -1317,14 +1317,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return { piece: lignes[0].id, nom: nom || 'fichier', taille: lignes[0].taille };
   }
 
-  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS, transfere, expireMax }) {
+  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS, transfere, expireMax, tsImpose = null }) {
     const dej = Q('SELECT seq, ts, id FROM message WHERE conv = ? AND auteur = ? AND cid = ?').get(conv, auteur, cid);
     if (dej) return { deja: true, seq: dej.seq, ts: dej.ts, id: dej.id };
     const c = Q('SELECT dernier_seq, dernier_ts, ephemere_s FROM conversation WHERE id = ?').get(conv);
     if (!c) throw erreur('introuvable');
     /* ⛔ `seq` S'ATTRIBUE ICI, dans la transaction : lu au-dessus de BEGIN, deux envois simultanés
        recevraient le même numéro. */
-    const seq = c.dernier_seq + 1, ts = horloge(), id = nouvelId('m');
+    const seq = c.dernier_seq + 1, ts = Number.isSafeInteger(tsImpose) && tsImpose > 0 ? tsImpose : horloge(), id = nouvelId('m');
     /* ⛔ APRÈS le contrôle du `cid` : un renvoi (réponse perdue) ne rejoue pas l'attachement des pièces, déjà fait par le premier envoi */
     if (pieces && pieces.length) meta = piecesAttacher({ conv, auteur, seq, ts, type, pieces, vocal });
     if (transfere) meta = Object.assign({}, meta || {}, { tr: 1 });          // « Transféré » : la page le dit au-dessus de la bulle (9 octobre 2026)
@@ -1798,9 +1798,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* ══ MESSAGES ════════════════════════════════════════════════════════════════════════════ */
-  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null, sondage = null, garderS = 0, transfere = false, expireMax = null }) {
+  /* `tsImpose` : la date D'ORIGINE d'un message qu'on IMPORTE (le pont des agents, `pont-agents.js` — l'historique de la messagerie de la Tour garde ses dates). Jamais posé par une route : un
+     message ordinaire naît à l'heure du service. Sans lui (ou invalide), l'horloge. */
+  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null, sondage = null, garderS = 0, transfere = false, expireMax = null, tsImpose = null }) {
     if (sondage && !SONDAGES) throw erreur('type');
-    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS, transfere, expireMax }));
+    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS, transfere, expireMax, tsImpose }));
   }
   /* ── TRANSFÉRER (9 octobre 2026) : le message tel que `uid` le VOIT — membre depuis, ni masqué pour lui, ni supprimé, ni échu —, son texte et sa méta ouverts ; null sinon
      (la route répond 404, comme pour un message qui n'existe pas). La méta est relue telle qu'elle est rangée (pas `metaLue` : une fiche de contact garde son identifiant, elle se relira
@@ -4306,6 +4308,21 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   /* L'espace qu'ouvre ce code, s'il est valable (non expiré, non révoqué, non épuisé, créé par un administrateur d'aujourd'hui) — ou `null`. */
+  /* Ajoute `uid` à un espace SANS passer par un lien : le pont des agents (`pont-agents.js`) range ses personnes-robots dans l'espace de Justin, où elles deviennent ses collègues (`collegues`,
+     donc `peutEcrire` : pas de demande de contact à faire). Le reste est le geste d'`invitationAccepter` — membre simple, canaux publics rejoints, mêmes plafonds — sans lien consommé. */
+  function espaceMembreAjouter({ espace, uid, max = MAX_MEMBRES }) {
+    return tx(() => {
+      const e = espaceBrut(espace); if (!e) throw erreur('introuvable');
+      if (Q('SELECT 1 AS x FROM espace_membre WHERE espace = ? AND uid = ?').get(e.id, uid)) return { deja: true, convs: [] };
+      if (espaceMembresN(e.id) >= Math.min(MAX_MEMBRES, max)) throw erreur('espace_complet');
+      if (num(Q('SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?').get(uid).n) >= ESPACES_MEMBRE_MAX) throw erreur('trop_d_espaces');
+      const t = horloge();
+      Q(`INSERT INTO espace_membre(espace, uid, role, depuis) VALUES(?, ?, 'membre', ?)`).run(e.id, uid, t);
+      const convs = [];
+      for (const c of canauxPublics(e.id)) { if (membreJoindre(c, uid, 'membre', t)) { journalAjouter('conv_maj', c, null, ''); convs.push(c); } }
+      return { deja: false, convs };
+    });
+  }
   function invitationEspace(h) {
     const l = lienValide(h);
     return l && l.genre === 'espace' ? l.cible : null;
@@ -5358,14 +5375,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   return {
     adminLecture,   // l'administration : des lectures seulement (`admin.js`)
-    schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
+    schema, instantane, sonde, fermer, tx, stats, metaLire, metaPoser, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
     sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAvant, sessionsSupprimerAutres, betaARelire,
     contactLier, contactBloque, contactActif, contactsDe, contactFavori, contactsActifs, contactRetirer, contactEtat, contactBloquer, contactDebloquer, contactLigne, peutVoir,
     lienCreer, lienValide, lienApercu, lienAccepter, liensRevoquerGroupe, liensRevoquerContact,
     collegues, peutEcrire,
     espaceCreer, espaceBrut, espacePourMembre, espacesDe, espacesIds, espaceMembres, espaceMembresN, espaceMaj, espaceMembreRetirer, espaceRoleMembre, espaceTransferer, espaceSupprimer, espaceQuitterTout, espacesAbonnesSeul, exportEspaces,
-    invitationApercu, invitationAccepter, invitationsRevoquer, invitationsVivantes, invitationEspace, espaceUids,
+    espaceMembreAjouter, invitationApercu, invitationAccepter, invitationsRevoquer, invitationsVivantes, invitationEspace, espaceUids,
     canalDe, canauxVisibles, canalCreer, canalPourAdmin, canalMembresAjouter, canalMembreRetirer, canalQuitter,
     abonnementLire, abonnementSession, abonnementSessionOubliee, abonnementPoser, abonnementsARelire,
     convDirecteObtenir, convDirecteExistante, convCreerGroupe, convSupprimer, suppressionDire, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
