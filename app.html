@@ -23759,7 +23759,7 @@ function _fxBienForme(s){ let o=''; for(let i=0;i<s.length;i++){ const c=s.charC
   return o; }
 /* Échappement XML : celui de `esc` est un échappement HTML. Une désignation collée depuis un autre logiciel peut porter un
    caractère de contrôle interdit en XML 1.0 (\x00-\x08, \x0B, \x0C, \x0E-\x1F) : il rendrait TOUT le fichier invalide. */
-function fxXmlEsc(s){ return _fxBienForme(String(s==null?'':s)).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g,'')
+function fxXmlEsc(s){ return _fxBienForme(String(s==null?'':s)).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g,'')
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fxOctets(s){ return unescape(encodeURIComponent(_fxBienForme(String(s)))); }   // le texte, en UTF-8, un octet par caractère (le PDF est une chaîne binaire)
 const fxN=c=>(c<0?'-':'')+Math.floor(Math.abs(c)/100)+'.'+String(Math.abs(c)%100).padStart(2,'0');
