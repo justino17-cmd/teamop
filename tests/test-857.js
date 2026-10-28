@@ -598,6 +598,7 @@ async function controler(PAGE, SRC, DOC) {
       cV.cm = { l: {}, addEventListener(t, f) { (cV.cm.l[t] = cV.cm.l[t] || []).push(f); } };
       cV.$ = id => id === 'conv-annonce' ? cV.annonce : id === 'conv-messages' ? cV.cm : null; cV.getComputedStyle = () => ({ direction: 'ltr' });
       cV.setInterval = f => { cV.tic = f; return 1; }; cV.clearInterval = () => { cV.tic = null; }; cV.Date = { now: () => cV.horloge };
+      cV.arreterEcoute = () => {};      // « Écouter » (28 octobre 2026) : lancer un vocal coupe la synthèse — la vraie `arreterEcoute` est jouée par test-3130
       vm.createContext(cV);
       vm.runInContext(JS.slice(iV, fI) + '\nthis.V = { vitesse, libVitesse, changerVitesse, enchainer, lireVocal, arreterLecture, allerA, appliquerLecture, positionCourante, lect, positions };', cV, { timeout: 2000 });
       V = cV.V;
@@ -1034,7 +1035,7 @@ async function controler(PAGE, SRC, DOC) {
      ⛔ Un motif de banc vise du CODE : les commentaires sont déjà retirés (JS, CSS). La preuve de comportement est dans tests/sonde-opmessages.js (scénarios
      nommés ci-dessous) ; ces contrôles font tomber le banc AVANT d'attendre la sonde quand le code du correctif disparaît. */
   vrai('adresse : un nom n\'est une VUE que s\'il est à la page (hasOwnProperty) — « #constructor », « #__proto__ » ne masquent plus les quatre vues [sonde : adresses]', /Object\.prototype\.hasOwnProperty\.call\(VUES, p\[0\]\)/.test(JS) && !/VUES\[p\[0\]\]/.test(JS));
-  vrai('vocal : changer de conversation coupe la prise de son ET la lecture de l\'ancienne, et un vocal part vers la conversation où il a COMMENCÉ [sonde : vocal-conv]', /if \(etat\.conv && etat\.conv !== id\) \{ arreterLecture\(\); annulerEnregistrement\(\); \}/.test(JS) && /enr\.conv = etat\.conv/.test(JS) && /envoi\(\{ vocal: \{ blob: b, url, dur: msVu \/ 1000, bars \} \}, cible\)/.test(JS));
+  vrai('vocal : changer de conversation coupe la prise de son ET la lecture de l\'ancienne, et un vocal part vers la conversation où il a COMMENCÉ [sonde : vocal-conv]', /if \(etat\.conv && etat\.conv !== id\) \{ arreterLecture\(\); arreterEcoute\(\); annulerEnregistrement\(\); \}/.test(JS) && /enr\.conv = etat\.conv/.test(JS) && /envoi\(\{ vocal: \{ blob: b, url, dur: msVu \/ 1000, bars \} \}, cible\)/.test(JS));
   vrai('double toucher : un second toucher dans les 400 ms ne tombe pas sur ce que le premier a laissé — micro, « + » et caméra refusent (pas « Retour » : il n\'a jamais été sous un de ces gestes) ; la flèche, l\'envoi du vocal, l\'annulation et la croix de la photo l\'arment ; deux clics synchrones = un message [sonde : double-toucher]',
     /const armerRetap = \(\) => \{ retapJusqua = Date\.now\(\) \+ 400; \};/.test(JS) && /\$\('envoyer'\)\.addEventListener\('click', \(\) => \{ armerRetap\(\); if \(confirmeTropTot\(\)\) return; envoyerTexte\(\); \}\)/.test(JS) && /if \(retap\(\)\) \{ e\.preventDefault\(\); return; \}/.test(JS) && /\$\('enreg-envoyer'\)\.addEventListener\('click', \(\) => \{ armerRetap\(\)/.test(JS) && /\$\('visionneuse-fermer'\)\.addEventListener\('click', \(\) => \{ armerRetap\(\); fermerCouche\(\); \}\)/.test(JS) && /ta\.value = ''; delete etat\.brouillons\[id\]; ajusterSaisie\(\); majBoutons\(\); finSaisie\(id\);\s*if \(enVol\) \{ etat\.fileEnvoi\.push\(x\); return; \}\s*etat\.envoiEnCours = true;/.test(JS));
   const jetonsTexte = ['--accent-txt', '--side-actif-fg', '--placeholder', '--sub-meta-sel', '--tab-inactif-fg'];
@@ -1063,7 +1064,9 @@ async function controler(PAGE, SRC, DOC) {
       cx.source = { transcrire: (conv, mid) => { cx.appels.push(conv + '|' + mid); return cx.attente || Promise.resolve({ etat: 'attente' }); },
         transcriptionOuverte: () => { cx.ouvertes++; return Promise.resolve(cx.reponseOuverte); } };
       cx.$ = id => id === 'conv-annonce' ? cx.annonce : null;
-      cx.setTimeout = f => { f(); return 1; };
+      /* « Ça prend plus longtemps que d'habitude » (28 octobre 2026) : le délai de lenteur (≥ 10 s) est RETENU, jamais joué ici — ce bloc-ci garde l'ordinaire ; le délai lui-même est gardé par test-3130. */
+      cx.lenteurs = []; cx.clearTimeout = () => {};
+      cx.setTimeout = (f, ms) => { if (ms >= 10000) { cx.lenteurs.push(f); return 2; } f(); return 1; };
       cx.Date = { now: () => cx.horloge };
       vm.createContext(cx);
       vm.runInContext(ligneEsc + '\nconst trouverMessage = mid => etat.convDonnees && etat.convDonnees.messages.find(m => m.id === mid);\n' + JS.slice(iT, fT) +
