@@ -1,0 +1,21 @@
+{
+  "slug": "planning-des-techniciens",
+  "prepare": "2026-10-28",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Planning des techniciens : organiser la semaine de son équipe\n\nPlanning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.\n\nÀ retenir : Calculez la capacité réelle de l’équipe avant de remplir le planning : heures de travail, moins la route, moins une réserve pour les urgences.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/planning-des-techniciens.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/planning-des-techniciens-couverture-google.jpg"
+      }
+    ]
+  }
+}
