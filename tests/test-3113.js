@@ -65,7 +65,15 @@ console.log('\n── 3113 · la racine d\'un message de Justin ──');
     v('(population) vingt messages d\'agents dans le fil « Équipe »', n, 20);
     v('sans racine : le vingt-et-unième est refusé (plafond du fil)', H2.conv.parler('camille', 'equipe', 'Vingt-et-unième').raison, 'trop_de_messages_fil');
     vrai('⛔ avec la racine de Justin : il passe', H2.conv.parler('camille', 'equipe', 'Vingt-et-unième avec racine', { racine: id2 }).ok);
-    H.nettoyer(); H2.nettoyer();
+    /* …et dans l'autre sens : ce qu'un agent dit SOUS une racine ne lui est pas compté quand il parle de lui-même (le point du matin de Victor, l'alerte de Max) */
+    const H3 = neuf();
+    const rA = J(H3, 'Première question'), rB = J(H3, 'Seconde question');
+    for (let i = 1; i <= 6; i++) { H3.conv.parler('lea', 'equipe', 'Léa sous A ' + i, { racine: rA }); H3.conv.parler('lea', 'equipe', 'Léa sous B ' + i, { racine: rB }); }
+    v('(population) douze messages de Léa sous deux racines', H3.registre().filter(m => m.de === 'lea' && m.racine).length, 12);
+    v('⛔ ce que Léa dit sous une racine ne remplit pas SON plafond horaire : un message spontané passe', H3.conv.parler('lea', 'equipe', 'Un message spontané de Léa').ok, true);
+    for (const a of ['max', 'jules', 'theo']) for (let i = 1; i <= 6; i++) H3.conv.parler(a, 'equipe', a + ' sous A ' + i, { racine: rA });
+    v('…ni celui du FIL : dix-huit messages d\'autres agents sous racine, et un agent sans racine parle encore', H3.conv.parler('nina', 'equipe', 'Nina, spontanément').ok, true);
+    H.nettoyer(); H2.nettoyer(); H3.nettoyer();
   }
 
   console.log('\n3. Une racine forgée, périmée ou d\'agent ne donne rien');
