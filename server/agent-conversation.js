@@ -107,6 +107,9 @@ function systemDe(agent, r) {
 const CAUSES = {
   plafond_agent: 'mon budget du mois est atteint',
   plafond_total: 'le budget des agents est atteint',
+  /* le budget du JOUR (28 octobre 2026, `cerveau.js`) : un agent qui travaille seul a dépensé sa part de la journée ; ou le filet de toute l'équipe est atteint. Il reprend demain matin. */
+  plafond_jour: 'mon budget du jour est atteint : je reprends demain matin',
+  filet_jour: 'le budget du jour de toute l’équipe est atteint : tout reprend demain matin',
   pas_de_cle: 'ma clé n’est pas posée',
   erreur_api: 'Claude ne répond pas',
   trop_long: 'ma réponse dépassait la longueur permise : pose-moi une question plus précise',
