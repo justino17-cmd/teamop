@@ -9,7 +9,7 @@
  * ⛔ CE QUI PART CHEZ CLAUDE pour proposer : le texte d'une question de client (adresses et numéros retirés, entre délimiteurs, présenté comme une DONNÉE) ou, pour une correction,
  *    l'ancien et le nouveau texte d'un de NOS courriels. Louis rend une question reformulée en termes GÉNÉRAUX (« Peut-on exporter ses factures ? », jamais un nom ni une entreprise)
  *    et une réponse brouillon UNIQUEMENT si elle découle de l'offre ; sinon la réponse reste vide, à écrire par Justin.
- * ⛔ Plafonds : 10 propositions par jour, 40 propositions en attente, 300 entrées au registre ; Louis à l'ARRÊT ou en pause : rien, `peutAgir` est demandé avant tout.
+ * ⛔ Plafonds : 25 propositions par jour, 40 propositions en attente, 300 entrées au registre ; Louis à l'ARRÊT ou en pause : rien, `peutAgir` est demandé avant tout.
  * ⛔ Un registre illisible n'est pas écrasé : plus de proposition, plus de validation, et `bloc()` rend '' (on ne sait pas ce que Justin avait validé : on ne donne rien).
  */
 'use strict';
@@ -18,11 +18,14 @@ const K = require('./agents-connaissance');
 
 const ID = 'louis';
 const F = 'agents-connaissances.json';
-const PAR_JOUR = 10;
+const PAR_JOUR = 25;       // dix jusqu'au 28 octobre 2026 (Justin : « sans limite ») ; le budget MENSUEL de l'agent reste le vrai plafond
 const EN_ATTENTE_MAX = 40;
 const ENTREES_MAX = 300;
 const QUESTION_MAX = 200, REPONSE_MAX = 600;
-const BLOC_MAX = 4000;
+/* (28 octobre 2026, Justin : « sans limite ») Le bloc ne se coupe plus aux soixante dernières entrées ni à 4 000 caractères : avec la question sous les yeux (`bloc(texte)`), il garde les entrées qui lui
+   RESSEMBLENT d'abord, puis les plus récentes jusqu'à remplir le budget — et le budget est plus large (12 000 caractères, environ 3 000 jetons). Sans question, ce sont les plus récentes. */
+const BLOC_MAX = 12000;
+const MOTS_VIDES = new Set(['les', 'des', 'une', 'que', 'qui', 'pour', 'par', 'dans', 'est', 'sont', 'pas', 'avec', 'sur', 'vous', 'nous', 'mon', 'ton', 'son', 'mes', 'vos', 'aux', 'ces', 'cette', 'comment', 'peut', 'peux', 'faire', 'bonjour', 'merci', 'cordialement', 'votre', 'notre', 'plus', 'tout', 'tous', 'aussi', 'mais', 'donc', 'ainsi', 'etre', 'avoir', 'fait']);
 const JETONS = 900;
 const REF = /^cn[0-9a-f]{8}$/;
 
@@ -57,13 +60,23 @@ module.exports = function louis(app, ctx) {
   const jourCourant = () => { const j = new Date(maintenant()).toISOString().slice(0, 10); if (reg.jour.j !== j) reg.jour = { j, n: 0 }; return reg.jour; };
 
   /* Ce que lisent Léa, Camille et Chloé : les entrées VALIDÉES, et rien d'autre. '' si le registre est illisible. */
-  function bloc() {
+  const motsDe = t => new Set(plat(t).split(' ').filter(m => m.length >= 4 && !MOTS_VIDES.has(m)));
+  /* `texte` (facultatif) : la question à laquelle l'agent va répondre. Il ne sert QU'À CLASSER les entrées (jamais copié dans le bloc, jamais envoyé nulle part) ; une entrée sans le moindre mot commun
+     passe après celles qui en ont, plus récentes d'abord. Une entrée qui ne tient pas dans le budget est SAUTÉE (la suivante, plus courte, peut tenir) — on ne coupe pas la liste à la première trop longue. */
+  function bloc(texte) {
     if (illisible()) return '';
-    const l = reg.entrees.filter(e => e && e.etat === 'valide').slice(-60);
-    if (!l.length) return '';
+    const valides = reg.entrees.filter(e => e && e.etat === 'valide');
+    if (!valides.length) return '';
+    const q = typeof texte === 'string' && texte ? motsDe(texte) : null;
+    const rang = valides.map((e, i) => {
+      const m = q && q.size ? motsDe(e.question + ' ' + e.reponse) : null;
+      let commun = 0; if (m) for (const w of q) if (m.has(w)) commun++;
+      return { e, i, commun };
+    }).sort((a, b) => (b.commun - a.commun) || (b.i - a.i));
     let t = 'CONNAISSANCES VALIDÉES PAR JUSTIN (des faits sûrs, aussi vrais que l’offre ci-dessus ; tu peux t’en servir pour répondre) :\n';
-    for (const e of l) { const x = '- Question : ' + e.question + '\n  Réponse : ' + e.reponse + '\n'; if ((t + x).length > BLOC_MAX) break; t += x; }
-    return t.trim();
+    const entete = t.length;
+    for (const { e } of rang) { const x = '- Question : ' + e.question + '\n  Réponse : ' + e.reponse + '\n'; if ((t + x).length > BLOC_MAX) continue; t += x; }
+    return t.length > entete ? t.trim() : '';
   }
 
   const dejaConnue = q => { const p = plat(q); return !!p && reg.entrees.some(e => e && e.etat !== 'refuse' && e.etat !== 'retire' && plat(e.question) === p); };

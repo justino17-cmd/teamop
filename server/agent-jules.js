@@ -9,7 +9,7 @@
  * ⛔ CE QUI PART CHEZ CLAUDE : le nom de la règle (une clé de NOTRE table), sa zone, son niveau, des nombres, les autres règles actives (des clés) et les PISTES
  *    écrites par nous (`plateforme-regles.js`). Rien de plus : pas un incident de la Tour, pas un message d'erreur, pas une entreprise. `fait()` est la seconde
  *    barrière — une chaîne qui n'est pas d'une liste fermée devient `null`.
- * ⛔ LE MODÈLE NE JUGE QUE QUAND IL Y A QUELQUE CHOSE DE NEUF : un appel par incident pris (six par jour au plus). Sans clé, plafond atteint ou panne de l'API,
+ * ⛔ LE MODÈLE NE JUGE QUE QUAND IL Y A QUELQUE CHOSE DE NEUF : un appel par incident pris (quinze par jour au plus). Sans clé, plafond atteint ou panne de l'API,
  *    Jules écrit lui-même les pistes du runbook — un incident n'attend jamais le modèle. Fermer et reprendre sont du CODE, sans appel.
  * ⛔ IL NE FERME QUE LES INCIDENTS DE L'ÉQUIPE (Max, Théo, Nina). Un incident venu d'un appareil, il le lit en faits fermés, il explique comment avancer dans la Tour
  *    (« Expliquer », puis « Proposer une correction » : une demande de fusion en brouillon que Justin valide) — mais passer un incident client en « corrigé »
@@ -22,7 +22,7 @@ const O = require('./plateforme-outils');
 const AC = require('./agent-conversation');
 
 const ID = 'jules';
-const DIAGNOSTICS_PAR_JOUR = 6;
+const DIAGNOSTICS_PAR_JOUR = 15;      // six jusqu'au 28 octobre 2026 (Justin : « sans limite ») ; le budget MENSUEL de l'agent, lui, reste le vrai plafond
 const PRISES_PAR_PASSAGE = 2;
 const CLIENTS_PAR_PASSAGE = 2;
 /* ⛔ Un incident venu des appareils ne SONNE sur le téléphone de Justin que s'il est corroboré (`incidents-agents.js`), et trois fois par jour au plus : la route qui les reçoit est publique. */
@@ -167,7 +167,7 @@ module.exports = function agentJules(ctx) {
       const f = incidents.faits(iid); if (!f) continue;
       const nb = f.entreprises;
       const texte = 'Incident venu des appareils : ' + f.occurrences + ' ' + O.pluriel(f.occurrences, 'occurrence', 'occurrences') + ' ' + (nb ? 'chez ' + nb + ' ' + O.pluriel(nb, 'entreprise', 'entreprises') : 'sans entreprise identifiée') +
-        ', catégorie ' + f.categorie + ', dernier signalement il y a ' + f.dernierH + ' h. Je ne lis pas son texte (il vient des appareils). Pour la cause : « Expliquer » dans la Tour ; ensuite « Proposer une correction » ouvre une demande de fusion en brouillon que tu valides. Je ne le classe pas « corrigé » : ça écrit aux entreprises.';
+        ', catégorie ' + f.categorie + ', gravité ' + (f.gravite === 'moyenne' ? 'moyenne' : 'haute') + ', dernier signalement il y a ' + f.dernierH + ' h. Je ne lis pas son texte (il vient des appareils). Pour la cause : « Expliquer » dans la Tour ; ensuite « Proposer une correction » ouvre une demande de fusion en brouillon que tu valides. Je ne le classe pas « corrigé » : ça écrit aux entreprises.';
       const jour = O.jourParis(maintenant());
       if (!m.sonneries || m.sonneries.j !== jour) m.sonneries = { j: jour, n: 0 };
       const sonne = f.corrobore === true && m.sonneries.n < SONNERIES_CLIENTS_PAR_JOUR;

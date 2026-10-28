@@ -70,7 +70,8 @@
 # La couture : `test-2987` (les vraies pages fabriquées parlent au vrai serveur de test) — 93 vérifications. Le paiement de test : `test-2990` (le script qui crée les dix tarifs de
 # test chez un FAUX Stripe, idempotent, qui refuse une clé live ou une config sans `espaceTest` ; le vrai serveur qui les accepte en essai et ne change RIEN sans `espaceTest`) —
 # 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
-#plancher 9900
+#plancher 9955
+# 28 octobre 2026 : `test-3090` (les agents sans limite artificielle : Margaux, Hugo, Louis, Léa, agents.js, Emma, le câblage d’index.js — 55 vérifications) — plancher relevé de 9900 à 9955.
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -374,3 +375,4 @@ tests/test-3087.js
 tests/test-3088.js
 tests/test-3089.js
 tests/test-3083.js
+tests/test-3090.js

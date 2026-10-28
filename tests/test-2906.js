@@ -119,8 +119,8 @@ const liste = async Z => (await Z.appeler('GET /api/monitor/agents/connaissances
   {
     let n = 0;
     const Z = monter({ modes: { louis: 'brouillon' }, louisClaude: () => PROP('Question ' + (++n) + ' pour le plafond ?', 'Réponse ' + n + '.') });
-    const faits = []; for (let i = 0; i < 11; i++) faits.push((await Z.louis.surQuestionSansReponse({ texte: 't' + i })).propose || false);
-    v('⛔ dix propositions par jour, la onzième : « plafond_jour », Claude non appelé', [faits.filter(Boolean).length, (await Z.louis.surQuestionSansReponse({ texte: 'zz' })).saute, Z.recusLouis.length], [10, 'plafond_jour', 10]);
+    const faits = []; for (let i = 0; i < 26; i++) faits.push((await Z.louis.surQuestionSansReponse({ texte: 't' + i })).propose || false);
+    v('⛔ vingt-cinq propositions par jour (dix avant le 28 octobre 2026), la vingt-sixième : « plafond_jour », Claude non appelé', [faits.filter(Boolean).length, (await Z.louis.surQuestionSansReponse({ texte: 'zz' })).saute, Z.recusLouis.length], [25, 'plafond_jour', 25]);
     Z.horloge.t += JOUR;
     vrai('…le lendemain le plafond est levé', (await Z.louis.surQuestionSansReponse({ texte: 'zz' })).propose === true);
     Z.nettoyer();

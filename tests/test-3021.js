@@ -169,7 +169,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     vrai('…« Plateforme » le dit, Justin est prévenu à part (fil de Max, urgent) ET notifié', B.textes('plateforme').length === 1 && B.fil('max').some(m => m.texte.startsWith('Justin, c’est sérieux')) && B.pousses.length >= 1, JSON.stringify(B.pousses));
     v('…Jules, lui, est fermé : il ne prend rien', (await jules.passer()).saute, 'hors_heures');
     /* un incident de gravité haute venu des appareils : Max PRÉVIENT (« Plateforme »), Jules est fermé — la consigne attend, et la phrase le dit */
-    const client = { id: 'i1a2b3c4d5e60', signature: 'opgestion|x', app: 'opgestion', type: 'erreur', categorie: 'Planning', message: 'MESSAGE-SECRET-3021', stack: 'x', src: 'x', origine: 'x', count: 14, firstTs: B.horloge.t - 3600000, lastTs: B.horloge.t - 600000,
+    const client = { id: 'i1a2b3c4d5e60', signature: 'opgestion|x', app: 'opgestion', type: 'erreur', categorie: 'Planning', message: 'MESSAGE-SECRET-3021', stack: 'x', src: 'x', origine: 'x', count: 14, firstTs: B.horloge.t - 60000, lastTs: B.horloge.t - 30000,
       entreprises: [{ nom: 'Société Secrète 3021' }, { nom: 'Autre 3021' }, { nom: 'Troisième 3021' }], appareils: { a: 1 }, statut: 'nouveau', notes: 'x', mailEnvoye: false };
     B.issues.push(client);
     const r2 = await max.passer();
@@ -265,9 +265,11 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     const Y = avecHeures({ t0: U(2026, 12, 1, 8), horaires: SANS_PERMANENCE });
     Y.agents.deposer('camille', 'hugo', 'verifier_paiement', { espace: 'ancienne' });
     Y.horloge.t = U(2026, 12, 8, 10);
-    v('une demande jamais prise finit par expirer — mais au temps de travail : mardi 8 décembre 11 h (47 h ouvrées depuis le mardi 1er à 9 h), elle vit encore', Y.agents.comptes().tachesEnAttente, 1);
+    v('une demande jamais prise finit par expirer — mais au temps de travail, et au bout de SEPT jours ouvrés d’heures (48 h jusqu’au 28 octobre 2026) : mardi 8 décembre 11 h (une semaine de calendrier, une quarantaine d’heures ouvrées), elle vit encore', Y.agents.comptes().tachesEnAttente, 1);
     Y.horloge.t = U(2026, 12, 8, 12);
-    v('…à 13 h (49 h ouvrées), elle a expiré', Y.agents.comptes().tachesEnAttente, 0);
+    v('…à 13 h le même jour, aussi (elle aurait expiré avant le 28 octobre 2026)', Y.agents.comptes().tachesEnAttente, 1);
+    Y.horloge.t = U(2027, 1, 20, 12);
+    v('…et plus de six semaines après (bien plus de 168 h ouvrées), elle a expiré', Y.agents.comptes().tachesEnAttente, 0);
     Y.nettoyer();
   }
 

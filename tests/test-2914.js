@@ -74,9 +74,9 @@ function monde(o) { const m = monter(Object.assign({ modes: { sarah: 'auto' } },
   await m.sarah.rediger({ type: 'version', notes: longues });
   vrai('des notes très longues sont COUPÉES avant de partir chez Claude (1 500 caractères au plus)', m.recus[0].messages[0].content.length < 2300);
   m = monde({ claude: () => BON });
-  for (let i = 0; i < 4; i++) { r = await m.sarah.rediger({ type: 'version', notes: NOTES + ' ' + i }); if (!r.ok) vrai('l\'annonce ' + (i + 1) + ' passe', false); }
+  for (let i = 0; i < 10; i++) { r = await m.sarah.rediger({ type: 'version', notes: NOTES + ' ' + i }); if (!r.ok) vrai('l\'annonce ' + (i + 1) + ' passe', false); }
   r = await m.sarah.rediger({ type: 'version', notes: NOTES + ' 5' });
-  v('⛔ une cinquième annonce le même jour : refusée, Claude non appelé', [r.saute, m.recus.length], ['plafond_jour', 4]);
+  v('⛔ une onzième annonce le même jour (le plafond était de quatre avant le 28 octobre 2026) : refusée, Claude non appelé', [r.saute, m.recus.length], ['plafond_jour', 10]);
   m.horloge.t += 86400000 + 1000;
   r = await m.sarah.rediger({ type: 'version', notes: NOTES + ' 6' });
   v('le lendemain, ça repart', r.ok, true);

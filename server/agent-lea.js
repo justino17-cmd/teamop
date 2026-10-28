@@ -43,7 +43,14 @@ const CTRL = require('./agents-controle');
 const ID = 'lea';
 const F = 'agents-lea.json';
 const JOURS_MEMOIRE = 30;
-const PAR_JOUR = 20;
+const PAR_JOUR = 50;         // vingt jusqu'au 28 octobre 2026 (Justin : « sans limite ») ; le budget MENSUEL de l'agent reste le vrai plafond
+/* (28 octobre 2026) LE BALAYAGE : les comptes vérifiés que Léa n'a JAMAIS traités — inscrits avant elle, ou écartés trois fois par le plafond, la file pleine ou un texte refusé — sont repris au
+   fil de l'eau, quelques-uns par passage, sur la MOITIÉ des plafonds du jour (l'autre moitié reste aux inscriptions du jour, qui passent toujours avant). */
+const BALAYAGE_PAR_PASSAGE = 3;
+const BALAYAGE_ESSAIS = 3;                 // une adresse qu'un texte refusé ou une panne écarte trois fois n'est plus reprise (une validation de Justin règle le reste)
+const BALAYAGE_ATTENTE_MS = 20 * 3600000;  // entre deux essais pour la même adresse
+const BALAYAGE_RECENT_MS = 6 * 3600000;    // un compte plus jeune que ça est celui de la synchro en direct, pas du balayage
+const SERVIS_MAX = 20000;                  // les empreintes des adresses déjà servies (ni adresse ni nom) : la mémoire de 30 jours ne dit pas qui a été répondu il y a six mois
 const ADRESSES_MAX = 5000;
 /* Même forme que Hugo (`agent-hugo.js`, constante `NOM`) : un NOM d'entreprise, pas une phrase. Recopiée ici plutôt qu'exportée de Hugo, dont le
    fichier n'a pas à bouger pour si peu — `test-2862` compare les deux motifs, pour qu'ils ne divergent pas. */
@@ -114,20 +121,25 @@ function lireFiche(texte, donnee) {
 module.exports = function lea(ctx) {
   const { agents, cerveau, brouillons } = ctx;
   /* Louis tient la base de connaissances VALIDÉE par Justin (`agent-louis.js`) ; la messagerie d'équipe reçoit l'annonce de ce que Léa a envoyé. Les deux sont facultatifs. */
-  const connaissances = () => { try { const b = ctx.louis && typeof ctx.louis.bloc === 'function' ? String(ctx.louis.bloc() || '') : ''; return b ? '\n\n' + b : ''; } catch (e) { return ''; } };
+  /* `q` : le texte auquel on répond — il ne sert qu'à CLASSER les connaissances par pertinence (Louis, 28 octobre 2026), il n'est copié nulle part */
+  const connaissances = q => { try { const b = ctx.louis && typeof ctx.louis.bloc === 'function' ? String(ctx.louis.bloc(typeof q === 'string' ? q : '') || '') : ''; return b ? '\n\n' + b : ''; } catch (e) { return ''; } };
   const rechercheActive = ctx.recherche !== false;
   const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
   const libelleMetier = typeof ctx.libelleMetier === 'function' ? ctx.libelleMetier : (m => String(m || ''));
   const fich = ctx.fichier;
   if (!agents || !cerveau || typeof cerveau.penser !== 'function' || !brouillons || !fich) {
     const sans = async () => ({ saute: 'pas_de_cerveau' });
-    return { surInscription: sans, surDemande: sans, aRepriser: () => false };
+    return { surInscription: sans, surDemande: sans, aRepriser: () => false, balayer: sans };
   }
 
   const reg = fich.charger(F, { adresses: {}, reprise: {}, jour: { j: '', n: 0 } });
   if (!reg.adresses || typeof reg.adresses !== 'object' || Array.isArray(reg.adresses)) reg.adresses = {};
   if (!reg.reprise || typeof reg.reprise !== 'object' || Array.isArray(reg.reprise)) reg.reprise = {};
   if (!reg.jour || typeof reg.jour !== 'object') reg.jour = { j: '', n: 0, recherches: 0 };
+  /* `servis` : les adresses auxquelles Léa a déjà préparé une réponse, POUR TOUJOURS (la mémoire de 30 jours de `adresses` s'élague — sans cette trace, le balayage re-servirait une adresse d'il y a deux mois).
+     `balaye` : les essais du balayage par adresse. Les deux ne portent que des empreintes. */
+  if (!reg.servis || typeof reg.servis !== 'object' || Array.isArray(reg.servis)) reg.servis = {};
+  if (!reg.balaye || typeof reg.balaye !== 'object' || Array.isArray(reg.balaye)) reg.balaye = {};
   const sauve = () => fich.ecrire(F, reg);
 
   /* L'empreinte d'une adresse : la mémoire de 30 jours n'écrit jamais l'adresse elle-même (comme `promos-usages.json`). */
@@ -162,6 +174,11 @@ module.exports = function lea(ctx) {
     const n = ((reg.reprise[h] && reg.reprise[h].n) || 0) + 1;
     if (n >= REPRISES_MAX) delete reg.reprise[h]; else reg.reprise[h] = { ts: maintenant(), n };
     sauve();
+  }
+  function servir(h) {
+    reg.servis[h] = maintenant();
+    const hs = Object.keys(reg.servis);
+    if (hs.length > SERVIS_MAX) for (const x of hs.sort((a, b) => reg.servis[a] - reg.servis[b]).slice(0, hs.length - SERVIS_MAX)) delete reg.servis[x];
   }
   const aRepriser = email => {
     const a = String(email || '').trim().toLowerCase();
@@ -268,6 +285,7 @@ module.exports = function lea(ctx) {
         if (connu && brouillons.etatDe && brouillons.etatDe(connu.ref) === 'echec') { delete reg.adresses[h]; connu = undefined; sauve(); }
         let refReecrire = null;
         if (connu) {
+          if (!reg.servis[h]) { servir(h); sauve(); }   // une réponse d'avant la trace permanente : le balayage ne la refera pas
           /* déjà répondu dans les 30 jours : seule une DEMANDE, tant que le brouillon attend encore Justin, le met à jour */
           if (source === 'demande') refReecrire = brouillons.attenteDe(ID, a);
           if (!refReecrire) return { saute: 'deja_repondu' };
@@ -288,10 +306,10 @@ module.exports = function lea(ctx) {
         const metierLbl = typeof i.metier === 'string' && i.metier ? libelleMetier(i.metier) : '';
         const fiche = await seRenseigner(ent, metierLbl);
         const demande = demandeClaude(Object.assign({}, i, { source }), fiche);
-        const systeme = SYSTEM + connaissances();
+        const systeme = SYSTEM + connaissances([i.besoin, i.entreprise, metierLbl].join(' '));
         let premier = true;
         const res = await CTRL.produire({
-          agent: ID, cerveau, demande, connaissances: connaissances(),
+          agent: ID, cerveau, demande, connaissances: connaissances([i.besoin, i.entreprise, metierLbl].join(' ')),
           ctx: { profil: 'vente', entreprise: ent, activite: metierLbl || (fiche && fiche.activite) || '' },
           contexteJuge: ['Source : ' + (source === 'demande' ? 'demande d’application' : 'inscription') + ' sur teamop.fr', 'Entreprise : ' + (ent || 'nom non exploitable'),
             'Activité : ' + (metierLbl ? metierLbl + ' (indiquée par l’inscrit)' : (fiche && fiche.activite) ? fiche.activite + ' (déduite d’une recherche sur l’entreprise)' : 'non indiquée — le courriel peut la déduire du nom de l’entreprise, en le disant')],
@@ -317,9 +335,11 @@ module.exports = function lea(ctx) {
           return ok ? { reecrit: true, ref: refReecrire } : { saute: 'reecriture_refusee' };
         }
         const d = await brouillons.deposer({ agent: ID, a, objet: res.objet, texte: res.corps, enReponseA: null, role: 'contact', source,
-          entreprise: ent || '', controle, authentifie: true, reecrit: res.reecrit === true });
+          entreprise: ent || '', controle, authentifie: true, reecrit: res.reecrit === true,
+          forceValidation: i && i.balayage === true });   // (gardien) le balayage écrit à des inscrits d'avant : Justin relit chaque courriel avant qu'il parte
         if (!d.ok) { retenir(h, source); return { saute: d.raison }; }
         reg.adresses[h] = { ts: maintenant(), ref: d.ref, nb: 0 };
+        servir(h);
         delete reg.reprise[h];
         sauve();
         annoncer(d, controle, source, metierLbl);
@@ -343,13 +363,61 @@ module.exports = function lea(ctx) {
       users: Number.isFinite(users) ? users : 0, formule: String(i.formule || '').trim().toLowerCase(), besoin: String(i.besoin || '').slice(0, 200) });
   }
 
+  /* LE BALAYAGE (28 octobre 2026) : `ctx.comptes()` rend [{ email, entreprise, depuis }] — les comptes dont l'adresse est PROUVÉE et qui n'ont pas déjà un espace (le serveur filtre : un client qui paie
+     ne reçoit pas un courriel de vente). Léa prend ceux qu'elle n'a JAMAIS servis, au plus `BALAYAGE_PAR_PASSAGE` par passage, dans la même fonction que l'inscription en direct (`traiter` : mêmes
+     plafonds, même contrôle qualité, même validation de Justin ou même envoi seul si la charte est ouverte). La marque d'essai est posée AVANT l'appel ; un refus qui n'est pas la faute du compte
+     (heures fermées, plafond, file pleine, budget) ne coûte pas d'essai et arrête le passage. */
+  const PAS_UN_ESSAI = new Set(['hors_heures', 'arret', 'pause', 'horaires_illisibles', 'etat_illisible', 'registre_illisible', 'plafond_jour', 'plafond_adresse', 'file_pleine', 'plafond_agent', 'plafond_total', 'budget_illisible', 'erreur_api', 'pas_de_cle', 'deja_en_cours']);
+  let enBalayage = false;
+  async function balayer() {
+    if (enBalayage) return { saute: 'deja_en_cours' };
+    if (typeof ctx.comptes !== 'function') return { saute: 'pas_de_liste' };
+    enBalayage = true;
+    try {
+      const p = agents.peutAgir(ID);
+      if (!p.ok) return { saute: p.raison };
+      if (fich.illisible(F)) return { saute: 'registre_illisible' };
+      let liste = null; try { liste = ctx.comptes(); } catch (e) { liste = null; }
+      if (!Array.isArray(liste)) return { saute: 'liste_illisible' };
+      const bilan = { examines: 0, servis: 0, restants: 0 };
+      const now = maintenant();
+      for (const c of liste) {
+        const a = String(c && c.email || '').trim().toLowerCase();
+        if (!bonneAdresse(a)) continue;
+        if (Number.isFinite(c.depuis) && now - c.depuis < BALAYAGE_RECENT_MS) continue;
+        const h = empreinte(a), b = reg.balaye[h];
+        if (reg.servis[h] || reg.adresses[h]) continue;
+        if (b && (b.n >= BALAYAGE_ESSAIS || now - b.ts < BALAYAGE_ATTENTE_MS)) continue;
+        if (bilan.examines >= BALAYAGE_PAR_PASSAGE) { bilan.restants++; continue; }
+        if (deJour().n >= Math.floor(PAR_JOUR / 2)) { bilan.restants++; continue; }
+        if (!agents.peutAgir(ID).ok) break;
+        const avant = b ? { n: b.n, ts: b.ts } : null;
+        reg.balaye[h] = { n: (b ? b.n : 0) + 1, ts: now };
+        if (!sauve()) { if (avant) reg.balaye[h] = avant; else delete reg.balaye[h]; break; }
+        bilan.examines++;
+        let r; try { r = await traiter('inscription', { email: a, entreprise: c.entreprise, reprise: true, balayage: true }); } catch (e) { r = { saute: 'erreur' }; }
+        if (r && (r.depose || r.reecrit || r.saute === 'deja_repondu')) { servir(h); delete reg.balaye[h]; sauve(); bilan.servis++; continue; }
+        if (r && r.saute === 'adresse') { reg.balaye[h] = { n: BALAYAGE_ESSAIS, ts: now }; sauve(); continue; }
+        if (r && PAS_UN_ESSAI.has(r.saute)) {
+          if (avant) reg.balaye[h] = avant; else delete reg.balaye[h];
+          sauve();
+          break;      // ce n'est pas la faute du compte : on ne tape pas les suivants contre le même mur
+        }
+        agents.noter(ID, 'balayer les inscrits', { cible: 'inscription', resultat: 'refuse', detail: 'essai ' + reg.balaye[h].n + '/' + BALAYAGE_ESSAIS + ' : ' + String((r && r.saute) || 'non préparée').slice(0, 60) });
+      }
+      return bilan;
+    } finally { enBalayage = false; }
+  }
+
   /* la reprise de ce qui a attendu l'ouverture : le même passage, `reprise` empêche de le remettre de côté */
   if (typeof agents.surReprise === 'function') for (const genre of ['inscription', 'demande']) agents.surReprise(genre, charge => traiter(genre, Object.assign({}, charge, { reprise: true })));
-  return { surInscription, surDemande, aRepriser };
+  return { surInscription, surDemande, aRepriser, balayer };
 };
 module.exports.NOM = NOM;
 module.exports.SYSTEM = SYSTEM;
 module.exports.PAR_JOUR = PAR_JOUR;
+module.exports.BALAYAGE_PAR_PASSAGE = BALAYAGE_PAR_PASSAGE;
+module.exports.BALAYAGE_ESSAIS = BALAYAGE_ESSAIS;
 module.exports.ESSAIS_HEURE = ESSAIS_HEURE;
 module.exports.REECRITURES_MAX = REECRITURES_MAX;
 module.exports.REPRISES_MAX = REPRISES_MAX;

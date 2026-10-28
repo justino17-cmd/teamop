@@ -21,6 +21,11 @@ const FORME_DOSSIER = /^DOS-\d{6}$/;
 const HEURE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const MS_MIN = 60000, MS_JOUR = 86400000;
 const PROPOSITION_VIE_MS = 4 * MS_JOUR;       // un prospect qui ne répond pas en quatre jours libère ses créneaux
+/* (28 octobre 2026, Justin : « sans limite ») Un prospect MUET reçoit UNE relance à J+2, tant que ses créneaux tiennent encore (avant qu'ils soient libérés à J+4) : « tous les agents autonomes qui font
+   toutes leurs tâches à 100 % » — Emma n'attend plus un silence pour le laisser expirer. Même porte que la proposition (`repondre_client`) : seule avec la charte ouverte, sinon une validation. */
+const RELANCE_APRES_MS = 2 * MS_JOUR;
+const RELANCES_PAR_PASSAGE = 5;
+const CRENEAU_PROCHE_MS = 3600000;            // un créneau qui commence dans moins d'une heure ne se propose plus
 const TYPES_TACHES = ['rendez_vous_prospect', 'choix_creneau'];
 const RDV_MAX = 200, PROPOSITIONS_MAX = 200;
 const DISPO_DEFAUT = { actif: false, dureeMin: 30, preavisH: 24, nb: 3, horizonJours: 14, jours: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] } };
@@ -139,7 +144,7 @@ module.exports = function emma(app, ctx) {
     if (!c || !c.ok) { agents.noter(ID, 'proposer des créneaux', { cible: dossier, resultat: 'erreur', detail: 'courriel non préparé : ' + String((c && c.raison) || 'erreur') }); return { saute: 'courrier' }; }
     const dit = c.voie === 'direct' ? 'envoyé au prospect' : 'en attente de ta validation (« Validations »)';
     if (creneaux.length) {
-      reg.propositions[dossier] = { ts: maintenant(), creneaux, etat: 'proposee', ref: c.ref };
+      reg.propositions[dossier] = { ts: maintenant(), creneaux, etat: 'proposee', ref: c.ref, voie: c.voie };
       elaguer(); sauve();
       dire('Le prospect du dossier ' + dossier + ' veut être appelé : je lui ai proposé ' + creneaux.length + ' créneau' + (creneaux.length > 1 ? 'x' : '') + ' (' + dit + '). Dès qu’il choisit, je te crée le rendez-vous.', 'info');
       direClients(citation(o.de) + 'créneaux proposés au prospect du dossier ' + dossier + ' (' + dit + ').');
@@ -193,6 +198,52 @@ module.exports = function emma(app, ctx) {
     return { ok: true, fixe: true, ms };
   }
 
+  /* La relance d'un prospect muet : UNE seule fois par proposition (la marque est posée AVANT l'envoi, sur disque), avec les créneaux qui restent futurs — numérotés comme dans la première proposition,
+     puisque le prospect répondra par ce numéro. Aucun créneau futur : rien à relancer, la proposition expirera. Elle ne relance jamais un prospect qui a choisi, refusé ou qu'on rappelle. */
+  let relanceEnCours = false;
+  async function relancerMuets() {
+    if (relanceEnCours) return { saute: 'deja_en_cours' };
+    relanceEnCours = true;
+    try {
+      if (!agents.peutAgir(ID).ok) return { saute: agents.peutAgir(ID).raison };
+      if (illisible()) return { saute: 'registre_illisible' };
+      const now = maintenant();
+      let relances = 0;
+      for (const [dossier, p] of Object.entries(reg.propositions)) {
+        if (relances >= RELANCES_PAR_PASSAGE) break;
+        if (!p || p.etat !== 'proposee' || p.relance || !Array.isArray(p.creneaux)) continue;
+        /* ⛔ on ne relance que ce qui est VRAIMENT parti : une proposition qui attend encore la validation de Justin n'a pas été lue par le prospect — le relancer, c'est lui écrire « sans retour » d'un courriel qu'il n'a pas reçu */
+        if (!(p.voie === 'direct' || (p.ref && typeof documents.etatDe === 'function' && documents.etatDe(p.ref) === 'envoye'))) continue;
+        /* (gardien, 28 octobre 2026) l'âge se compte depuis l'ENVOI, pas depuis le dépôt : une proposition validée par Justin à J+1,9 n'est pas relancée quelques heures après.
+           Envoi direct : l'heure du dépôt EST celle de l'envoi ; sinon on note l'heure où l'envoi est constaté, et le compte part de là. */
+        if (p.voie !== 'direct' && !p.envoyeTs) { p.envoyeTs = now; sauve(); continue; }
+        /* un choix de créneau que Camille a transmis et qu'Emma n'a pas encore pris : le prospect a peut-être répondu — on ne relance personne avant de l'avoir lu */
+        let choixEnAttente = false; try { choixEnAttente = (agents.tachesDe(ID) || []).some(t => t && t.type === 'choix_creneau'); } catch (e) { choixEnAttente = true; }
+        if (choixEnAttente) break;
+        const age = now - (p.voie === 'direct' ? p.ts : p.envoyeTs);
+        if (age < RELANCE_APRES_MS || age >= PROPOSITION_VIE_MS) continue;
+        const restants = p.creneaux.map((ms, i) => ({ n: i + 1, ms })).filter(c => Number.isFinite(c.ms) && c.ms > now + CRENEAU_PROCHE_MS && !reg.rdv.some(r => r.etat === 'a_venir' && r.ms < c.ms + reg.dispo.dureeMin * MS_MIN && c.ms < r.ms + reg.dispo.dureeMin * MS_MIN));
+        if (!restants.length || !FORME_DOSSIER.test(dossier)) continue;
+        if (!agents.peutAgir(ID).ok) break;
+        let adresse = ''; try { adresse = String(await adresseDe(dossier) || ''); } catch (e) { adresse = ''; }
+        if (!adresse) continue;
+        const m = OPS.relanceCreneaux({ creneaux: restants });
+        if (!m) continue;
+        p.relance = { ts: now };
+        if (!sauve()) { delete p.relance; continue; }
+        let c; try { c = await documents.courrier({ agent: ID, a: adresse, objet: m.objet, texte: m.texte, source: 'rendez_vous', dossier, porte: 'repondre_client' }); } catch (e) { c = { ok: false, raison: 'erreur' }; }
+        if (c && c.ok) {
+          p.relance = { ts: now, voie: c.voie, ref: c.ref }; sauve(); relances++;
+          agents.noter(ID, 'relancer un prospect muet', { cible: dossier, resultat: c.voie === 'direct' ? 'ok' : 'propose', detail: c.voie === 'direct' ? 'relance J+2 envoyée' : 'relance J+2 en attente de validation' });
+        } else {
+          delete p.relance; sauve();
+          agents.noter(ID, 'relancer un prospect muet', { cible: dossier, resultat: 'erreur', detail: 'relance non préparée : ' + String((c && c.raison) || 'erreur') });
+        }
+      }
+      return { relances };
+    } finally { relanceEnCours = false; }
+  }
+
   /* Les tâches de Camille : une demande de créneaux, puis le choix du prospect. */
   let tachesEnCours = false;
   async function traiterTaches() {
@@ -212,7 +263,9 @@ module.exports = function emma(app, ctx) {
         agents.terminer(k.id, ID, bon ? 'ok' : 'echec', bon ? (r.fixe ? 'rendez-vous fixé' : r.rappel ? 'prospect à rappeler' : 'créneaux proposés') : String((r && r.saute) || 'non traité'));
         if (bon) faites++;
       }
-      return { prises: n, faites };
+      let relances = 0;
+      try { const rr = await relancerMuets(); relances = (rr && rr.relances) || 0; } catch (e) { agents.noter(ID, 'relancer un prospect muet', { cible: 'file', resultat: 'erreur', detail: String((e && e.message) || e).slice(0, 100) }); }
+      return { prises: n, faites, relances };
     } finally { tachesEnCours = false; }
   }
 
@@ -259,7 +312,7 @@ module.exports = function emma(app, ctx) {
     },
   };
 
-  return { surDemandeRendezVous, surChoixCreneau, traiterTaches, outilsEquipe: OUTILS_EQUIPE, dispo: () => JSON.parse(JSON.stringify(reg.dispo)), rendezVous: vueRdv };
+  return { surDemandeRendezVous, surChoixCreneau, traiterTaches, relancerMuets, outilsEquipe: OUTILS_EQUIPE, dispo: () => JSON.parse(JSON.stringify(reg.dispo)), rendezVous: vueRdv };
 };
 module.exports.validerDispo = validerDispo;
 module.exports.creneauxLibres = creneauxLibres;
