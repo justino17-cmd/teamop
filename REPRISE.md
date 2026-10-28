@@ -12,6 +12,27 @@ Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici 
 de ligne du tout.
 
 ---
+# 🎟️ 28 OCTOBRE 2026 (SOIR) — CODE PROMO RÉSERVÉ À DES MÉTIERS, FORMULE DÉDUITE DES CASES, SIMULATEUR (branche `claude/reduction-packs`, partie d'`origin/main` `a3d07bf2` ; **rien n'est poussé**)
+Justin : « un simulateur de l'application et un configurateur — choix A : la page en DÉDUIT la formule ; on fera un code de réduction en fonction des packs ; tu fais tout ». Quatre commits :
+`db2faa79` serveur (verdict de métier aux 4 chemins + portail + `plan` dans `metiers.json`/`/api/metiers` + `formuleDeduite` + `configurer-promos.js`), `9ce6e4f2` la Tour (métier AVANT le code, pastille « Réservé »)
+et `espace.html` (le refus du portail se dit), `8597b2f2` plancher de la liste du serveur (10 950), `11de958d` le site (configurateur, simulateur, lien « Composer mon abonnement », `demo.html` régénérée).
+- **Ordre de publication (chaque push sur `main` touchant `server/` déploie le VPS, bancs d'abord)** : (1) **serveur seul** (`scripts/preparer-deploiement-serveur.sh`, `TOUR_EN_SERVICE=garder` : `metiers.json` part avec ; effet nul tant qu'aucun code n'a
+  `metiers`) ; (2) **la Tour** (aucune nouvelle version : v2.117, un ordre d'appels et une pastille) ; (3) **le site** (`recap-abonnement.html`, `rubriques-choix.*`, `demo.html`, `tarifs.html`, `creer.html`, `apercu/`) ; (4) **le VPS en dernier** : déclarer les
+  codes réservés. ⛔ Jamais (4) avant (1) et (2) : une Tour d'avant refuserait tout code réservé pour un espace neuf (le code passait avant le métier). `app.html`/`sw.js` ne bougent pas : aucune phrase de publication nécessaire.
+- **Geste VPS, exactement** : `ssh root@api.teamop.fr`, puis `cd /opt/teamop/repo && git pull` (le déploiement l'a déjà fait), `node server/configurer-promos.js lister` ; pour un code NEUF `node server/configurer-promos.js ajouter <CODE> <pro|business|premium> <mois> [plafond] plomberie,chauffage` ;
+  pour un code EXISTANT `node server/configurer-promos.js reserver <CODE> plomberie,chauffage` (et `ouvrir <CODE>` retire la restriction) ; puis `systemctl restart teamop-api` et `journalctl -u teamop-api -n 30 | grep -i "config.promos"` (aucune ligne « ERREUR config.promos » ; sinon le code est FERMÉ).
+  Le CODE se choisit à ce moment-là, sur le VPS ; il ne s'écrit dans aucun fichier du dépôt. Contrôle : `POST https://api.teamop.fr/api/promo/valider {"code":"<CODE>","apercu":true}` rend `reserve:true`.
+- **Chiffres** : `test-3133` 153 ✓ (vrai serveur, 4 chemins, vrais comptes vérifiés, outil du VPS), `test-3134` 11 ✓, `test-3135` 60 ✓, `test-2890` § 5 (76 ✓), `test-2891` 90 ✓, `test-641` 114 ✓, `test-727` 232 ✓, `test-803` 149 ✓, `test-2940` 148 ✓, `test-835/836/837` verts ;
+  sonde navigateur `scratchpad/commande/sonde-commande.js` 114 ✓ (téléphone et bureau, jour et nuit). Liste du serveur seul rejouée sur le commit final (arbre à part) : 168 suites, 11 009 vérifications (plancher 10 950) ; deux suites y tombent sous une charge de 29 sans rapport avec ce lot : `test-809` (132 ✓ 0 ✗ rejouée seule) et `test-2983` (plafond des agents : tombe aussi sur `origin/main` pur, 4 fois sur 4). Suites hors liste qui lisent les pages touchées : 73 suites, 5 417 vérifications, vertes (`test-2705` se saute : `server-courrier/node_modules` absent de cette machine). Mutations : `scratchpad/mutations-reduction.py`, 25 sur 25 mordues.
+- **À décider par Justin** : (1) les métiers ASSOCIÉS n'existent pas dans l'annuaire (un `metier` par entreprise) : le lot vérifie le métier principal seul ; un champ + le geste de la Tour viendront plus tard, `promoMetiersDe` est le seul endroit à étendre ;
+  (2) un code réservé dont le métier n'est pas encore posé est REFUSÉ (« dans le doute on n'active pas ») ; en lecture seule il compte « en attente » (l'horloge de conservation ne démarre pas) ; (3) « Mon logo » est une case Business ;
+  (4) **les cases pré-cochées par le conseil du métier font monter la formule** : au conseil, 3 métiers sur 23 appellent Pro et 20 Business — un lien « Pro » devient Business avec la phrase « Vous aviez choisi Pro : … » (le client décoche pour redescendre) ; à confirmer que c'est voulu ;
+  (5) les options du Pro (Stock 9 €…) ne sont pas proposées tant que Justin n'a pas créé leurs tarifs Stripe.
+- **Limites** : la restriction est une barrière commerciale (le métier est posé par la Tour sur une demande du client), pas une preuve de métier ; l'aperçu public dit `metierAdmis` à qui lui présente un métier (23 essais possibles par IP, sous le quota strict) — jamais la liste ;
+  `test-724` (un chrono) tombe d'une vérification quand la machine est chargée (charge 16 mesurée), 3 fois sur 3 verte seule ; la page Tarifs de la racine et `creer.html` sont des sorties du générateur (régénérées, `test-835` vert).
+- **Hors de ce lot** : « un agent pro pour les devis, les factures et la compta » n'est PAS ici (`server/agent-devis.js` existe ; `claude/agent-comptable` est vide) — chantier à part.
+
+---
 # 🧑‍💼 28 OCTOBRE 2026 — LA FONCTION DE CHAQUE AGENT SOUS SON NOM DANS OP MESSAGES (branche `claude/opmsg-roles-liste`)
 Justin, devant ses seize agents : « le nom de l'agent et les fonctions, Théo il fait quoi, qui gère quoi ». Le pont rangeait déjà le rôle dans le statut du robot ; la LISTE ne le montrait
 pas. `convListe` rend `autre.statut` ; `resume()` en fait `sousTitre` (80 signes, vide pour un groupe, un compte supprimé, une invitation) ; `ligneConv()` l'écrit sous le nom

@@ -378,6 +378,28 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ⚠️ La suppression TOTALE efface la mémoire des codes avec le reste — voulu, geste de la Tour —
   SAUF celle d'une entreprise VIVANTE (supprimer l'ancien identifiant d'une entreprise repartie à
   neuf) : `promoEffacerEntreprise`. Et un registre non écrit se DIT (503), avant le courriel.
+- ⛔⛔ **UN CODE PEUT ÊTRE RÉSERVÉ À DES MÉTIERS — `promoMetierVerdict` DE L'ANNUAIRE, JAMAIS UNE VALEUR DU CORPS.** Justin, 28 octobre 2026
+  (« un code de réduction en fonction des packs ») : `config.promos` (VPS) accepte `metiers: ['plomberie', 'chauffage']`, les identifiants de
+  `metiers.json`. UNE définition (`promoMetiersDef`, `promoMetierVerdict`, `promoMetierRefus`, à côté de `promoPresente`) lue par les quatre
+  chemins qui activent ET le cinquième qui affiche (`/api/portail/promo`, qui n'écrit plus « activé » : `promoDef` dit `reserve`) : sur du NEUF
+  seulement, APRÈS la preuve de clé, AVANT « un seul code à la fois » et `u.n++` — un refus ne bouge ni le compteur ni le registre et n'envoie rien ;
+  un code déjà actif ne se coupe pas, un code servi garde son 410. Champ absent ou `[]` : libre ; champ ILLISIBLE (pas une liste, identifiant
+  inconnu, `metiers.json` absent) : le code est FERMÉ (503) et le démarrage l'écrit au journal — une faute de frappe n'ouvre jamais un code à tous.
+  Le métier jugé est celui que l'annuaire porte (`espaceParT` → `metierOk`) ; le choix du client à la commande n'est qu'une demande que la Tour pose
+  (donc une barrière commerciale relue par un humain, pas une preuve de métier) — d'où l'ordre de `tourAccepterDemande` : MÉTIER, code, formule,
+  rubriques. En lecture (`espacePaye` pour la Tour, l'horloge de conservation), un métier pas encore posé garde le code « en attente » ; hors lecture il
+  n'active rien. ⚠️ Les métiers « associés » n'existent pas dans l'annuaire : `promoMetiersDe` est le seul endroit à étendre le jour où un champ existera.
+  Se déclare sur le VPS par `node server/configurer-promos.js` (lister, ajouter, reserver, ouvrir ; identifiants validés, fichier jamais à moitié écrit,
+  aucun secret affiché), puis `systemctl restart teamop-api` — JAMAIS avant que le serveur ET la Tour réordonnée soient servis. Aucun code réel dans un
+  fichier servi, même en exemple (les bancs : `ESSAI-BANC-…`). `test-3133` (le vrai serveur, quatre chemins), `test-3134` (la Tour), `test-3135`.
+- ⛔ **LA FORMULE SE DÉDUIT DES CASES DE LA PAGE DE COMMANDE, ET NE DÉCIDE D'AUCUN DROIT.** `OpRub.formule` (rubriques-choix.js) = le plus haut de Pro, du
+  `plan` de chaque rubrique cochée (`metiers.json`, dérivé de `PLAN_BLOQUE.pro`, servi par `/api/metiers`) et de la formule de chaque fonction d'entreprise
+  (logo : Business ; couleur, assistance, sur mesure : Premium). La page n'envoie à Stripe que le `price` de la formule affichée (et métier, rubriques) : jamais
+  la formule déduite ni les fonctions ; le serveur déduit la formule du `price`, range `fiche.choix.formuleDeduite` à côté de `formulePayee` (un constat pour la
+  Tour) et l'application reçoit la formule PAYÉE (`formuleServie`). Une formule VOULUE ne descend jamais ; une formule sous la déduite est désactivée. Les options du
+  Pro (Stock 9 €) restent hors vente tant que leurs tarifs Stripe ne sont pas créés (« aucun tarif neuf » : Pro + Stock coûterait moins que Business).
+  Le simulateur (« Voir mon application ») est `demo.html?sim=1&metier=…&cats=…&formule=…` dans un cadre isolé : le cadre ne range RIEN (`window.__demoSimulateur`
+  coupe `save()`), et SANS `cats` la démonstration remet le réglage à zéro (`elanD_cats`). `scratchpad/commande/sonde-commande.js` au navigateur.
 - ⛔⛔ **LA FORMULE QUE L'APPLICATION REÇOIT EST CELLE QUI EST PAYÉE — `espacePaye` → `formuleServie`, JAMAIS LA FICHE SEULE.**
   Justin, 29 septembre 2026 : « il choisit le tarif qu'il veut » ; « une e-mail par abonnement par entreprise » ; « le code
   promo, mets-le au plus gros forfait, c'est pour mieux montrer l'application » ; à la fin du code, le client change de
