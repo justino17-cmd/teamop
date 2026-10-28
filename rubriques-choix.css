@@ -37,6 +37,7 @@
 .rub-raison { font-size: 13px; color: var(--rb-doux); line-height: 1.5; }
 .rub-raison b { color: var(--rb-lien); font-weight: 600; }
 .rub-tag { font-style: normal; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: var(--rb-doux); background: var(--rb-seg); line-height: 1.4; }
+.rub-tag.plan { color: var(--rb-lien); background: color-mix(in srgb, var(--rb-lien) 12%, transparent); }   /* la formule que la case appelle (page de commande : `e.afficherPlan`) */
 .rub-tag.inclus { color: var(--rb-ok); background: color-mix(in srgb, var(--rb-ok) 14%, transparent); }
 .rub-tag.propose { color: var(--rb-lien); background: color-mix(in srgb, var(--rb-lien) 12%, transparent); }
 .rub-toujours .rub-ligne { cursor: default; }

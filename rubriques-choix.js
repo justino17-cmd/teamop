@@ -81,6 +81,55 @@
     return n.choisies + ' rubrique' + (n.choisies > 1 ? 's' : '') + ' sur ' + n.total;
   };
 
+  /* ══ LA FORMULE QUE LES CASES APPELLENT (28 octobre 2026) ═══════════════════════════════════════════════════════════════════════
+     Justin : « le client coche ce qu'il veut — choix A : la page en DÉDUIT la formule » (Pro 15 € / Business 25 € / Business Premium 50 € par
+     utilisateur : les tarifs Stripe existants, AUCUN tarif neuf). UNE définition, ici, jouée par les bancs (`tests/test-3135.js`) :
+       formule = le plus haut de · Pro (le plancher) · le `plan` de chaque rubrique COCHÉE (référentiel : `pro` ou `business`, dérivé de
+       PLAN_BLOQUE.pro d'app.html) · la formule de chaque FONCTION de l'entreprise cochée (celles qui ne sont pas des rubriques).
+     ⛔ C'est un constat pour l'ÉCRAN, jamais un droit : la page envoie à Stripe le tarif de la formule affichée, rien d'autre ; le serveur déduit
+     la formule du `price` et c'est la formule PAYÉE que l'application reçoit. Les rubriques cochées ne donnent aucun droit.
+     ⚠️ Sans `plan` dans le référentiel (un serveur d'avant), `formule` rend `null` : la page ne déduit rien et garde son sélecteur manuel.
+     Les options du Pro (Stock à 9 €…) ne sont PAS proposées : leurs tarifs Stripe ne sont pas créés, et « aucun tarif neuf » — Pro + Stock
+     (24 €) coûterait moins que Business (25 €). À rouvrir le jour où Justin les crée. */
+  OpRub.RANGS = ['pro', 'business', 'premium'];
+  /* Les fonctions de l'entreprise qui ne sont pas des rubriques : des CASES (rien dans l'application ne les range en `cats`). `forfait()==='premium'`
+     ne sert aujourd'hui qu'à `entCouleur` ; le logo est une promesse de la formule Business. */
+  OpRub.FONCTIONS = [
+    { k: 'logo', titre: 'Mon logo dans l’application', explication: 'Votre logo en haut du menu et sur vos documents, pour toute l’équipe.', formule: 'business' },
+    { k: 'couleur', titre: 'Ma couleur d’entreprise', explication: 'L’application aux couleurs de votre entreprise, pour toute l’équipe.', formule: 'premium' },
+    { k: 'assistance', titre: 'Assistance prioritaire et mise en route', explication: 'Un accompagnement pour démarrer, et vos demandes traitées en premier.', formule: 'premium' },
+    { k: 'surmesure', titre: 'Création sur mesure', explication: 'Une fonction à créer pour vous : demande étudiée, devis écrit accepté avant tout travail.', formule: 'premium' }
+  ];
+  function rang(f) { return OpRub.RANGS.indexOf(f); }
+  /* `fonctions` : un tableau de clés cochées, ou un objet { clé: vrai } */
+  function fonctionsCochees(fonctions) {
+    if (Array.isArray(fonctions)) return fonctions.filter(function (k) { return typeof k === 'string'; });
+    if (fonctions && typeof fonctions === 'object') return Object.keys(fonctions).filter(function (k) { return fonctions[k]; });
+    return [];
+  }
+  OpRub.formule = function (e, fonctions) {
+    var ref = e && e.ref, rub = (ref && ref.rubriques) || {};
+    var sait = false; for (var k0 in rub) if (Object.prototype.hasOwnProperty.call(rub, k0) && rub[k0] && OpRub.RANGS.indexOf(rub[k0].plan) >= 0) { sait = true; break; }
+    if (!sait) return { formule: null, raisons: [], sait: false };
+    var best = 0, raisons = [];
+    function voir(titre, f, cle, genre) {
+      var r = rang(f); if (r < 0) return;
+      if (r > best) { best = r; raisons = []; }
+      if (r === best && r > 0) raisons.push({ k: cle, titre: titre, formule: f, genre: genre });
+    }
+    var l = OpRub.liste(e) || [];
+    for (var i = 0; i < l.length; i++) { var d = rub[l[i]]; if (d) voir(d.titre || l[i], d.plan, l[i], 'rubrique'); }
+    var fc = fonctionsCochees(fonctions);
+    for (var j = 0; j < OpRub.FONCTIONS.length; j++) { var fo = OpRub.FONCTIONS[j]; if (fc.indexOf(fo.k) >= 0) voir(fo.titre, fo.formule, fo.k, 'fonction'); }
+    return { formule: OpRub.RANGS[best], raisons: best > 0 ? raisons : [], sait: true };
+  };
+  /* « Stock », « Stock et Bons de commande », « Stock, Bons et Registre » : la raison dite en français */
+  OpRub.texteRaisons = function (raisons) {
+    var t = (raisons || []).map(function (r) { return r.titre; });
+    if (!t.length) return '';
+    return t.length === 1 ? t[0] : t.slice(0, -1).join(', ') + ' et ' + t[t.length - 1];
+  };
+
   /* Le texte de la grille. `id` préfixe les identifiants (deux grilles sur une page ne se heurtent pas). */
   OpRub.html = function (e, id) {
     var ref = e && e.ref;
@@ -115,6 +164,7 @@
           + '<input type="checkbox" id="' + champ + '" data-rub="' + esc(k) + '"' + (coche ? ' checked' : '') + '>'
           + '<span class="rub-corps"><span class="rub-nom"><i aria-hidden="true">' + esc(r.ic || '') + '</i>' + fr(r.titre)
           + (r.reserveAdmin ? '<em class="rub-tag">Réservé à l’administrateur</em>' : '')
+          + (e.afficherPlan && r.plan === 'business' ? '<em class="rub-tag plan">Formule Business</em>' : '')
           + (!conseillees.includes(k) && proposees[k] ? '<em class="rub-tag propose">Proposée</em>' : '') + '</span>'
           + '<span class="rub-expl">' + fr(r.explication) + '</span>'
           + (conseillees.includes(k) && raisons[k] ? '<span class="rub-raison"><b>Pour votre métier</b> ' + fr(raisons[k]) + '</span>' : '')

@@ -158,7 +158,7 @@ const mPlafond = /const qty = Math\.min\((\d+), Math\.max\(1, parseInt\(quantity
 vrai('le plafond de quantité se lit dans la route de paiement du serveur', iRoute > 0 && mPlafond);
 const PLAFOND_SERVEUR = mPlafond ? +mPlafond[1] : NaN;
 
-function executer(PAGE, recherche) {
+function executer(PAGE, recherche, catsChoisies) {
   const bloc = [...PAGE.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(b => b.includes('const FORMULES = {'));
   if (!bloc) return null;
   const derniers = {}, conteneurs = {}, envoye = [];
@@ -183,7 +183,7 @@ function executer(PAGE, recherche) {
   const api = new Function('window', 'document', 'history', 'localStorage', 'sessionStorage', 'fetch', 'alert', 'OpRub',
     bloc + '\n;return { etat: () => ({ nbUsersVoulu, formuleActive }), FORMULES, MAX_ABONNEMENTS, STRIPE_PRICES, compteLu };')(
     window, document, { replaceState() {} }, { getItem: k => (k === 'teamop_portail_jeton' ? 'e'.repeat(64) : null), removeItem() {} },
-    OUTILS.rangementDe(OUTILS.sessionAvecChoix('chauffage')), fetchFaux, () => {}, OUTILS.OPRUB);
+    OUTILS.rangementDe(OUTILS.sessionAvecChoix('chauffage', catsChoisies)), fetchFaux, () => {}, OUTILS.OPRUB);
   const paiement = () => texte(conteneurs.cartePaiement.innerHTML);
   const droits = () => texte(conteneurs.carteDroits.innerHTML);
   const html = () => conteneurs.cartePaiement.innerHTML;
@@ -252,7 +252,10 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     const gros = executer(PAGE, '?formule=pro&utilisateurs=400');
     v('une adresse qui demande 400 personnes est ramenée au plafond', gros.api.etat().nbUsersVoulu, PLAFOND_SERVEUR);
     // un lien d'avant (« ?formule=gratuit », mails, favoris) : la formule d'entrée, Pro — jamais une page vide ni Business
-    const g = executer(PAGE, '?formule=gratuit');
+    /* (28 octobre 2026) la formule se DÉDUIT des cases : un lien « Pro » dont les rubriques cochées appellent Business ouvre Business, et la page le dit (`test-3135`, la
+       sonde `scratchpad/commande`). Ce contrôle-ci garde le lien d'avant — « gratuit » ouvre Pro — avec des rubriques toutes Pro, sans quoi il ne mesurerait plus la
+       reprise du lien mais la déduction. */
+    const g = executer(PAGE, '?formule=gratuit', ['planning', 'devis', 'clients']);
     await g.api.compteLu;
     v('⛔ un ancien lien « ?formule=gratuit » ouvre Pro', g.api.etat().formuleActive, 'pro');
     vrai('… à 15 € par mois, avec son compteur d\'abonnements', g.paiement().includes('15 €') && !g.paiement().includes('TTC') && g.paiement().includes('Formule Pro · 1 utilisateur par abonnement'));

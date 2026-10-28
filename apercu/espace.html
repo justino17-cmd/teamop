@@ -890,6 +890,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     try{ r=await _pv.promoActiver(code); }catch(e){ r=null; }
     if(!r) return err('Impossible de vérifier le code pour le moment. Réessayez dans un instant.');
     if(r.code===404) return err('Code inconnu ou expiré.');
+    /* un code réservé à certains métiers : le portail n'active rien (le métier se juge à l'ouverture de l'espace, sur ce que TEAM OP a posé) — on le DIT, ce n'est pas une panne */
+    if(r.code===403&&r.j&&r.j.error==='code_reserve_metiers') return err('Ce code est réservé à certains métiers : il n\'est pas activé d\'ici. Indiquez-le dans votre demande d\'accès, nous le vérifions à l\'ouverture de votre espace.');
     if(r.code===410) return err('Ce code a atteint son nombre maximum d\'utilisations.');
     if(r.code===409&&r.j.error==='deja_utilise') return err('Ce code a déjà été utilisé sur ce compte.');
     if(r.code===409) return err('Une offre est déjà active sur votre compte.');

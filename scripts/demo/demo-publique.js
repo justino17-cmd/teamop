@@ -232,6 +232,7 @@ function demoPubliqueStyle() {
   document.head.appendChild(s);
 }
 function demoPubliqueBandeau() {
+  if (window.__demoSimulateur) return;   // le cadre de la page de commande : pas de « Recommencer » ni de « Changer de métier » (ils effaceraient l'appareil)
   const c = document.getElementById('content'); if (!c || !currentUser) return;
   if (c.firstElementChild && c.firstElementChild.id === 'demo-bandeau') return;
   const b = document.createElement('div'); b.id = 'demo-bandeau'; b.className = 'demo-bandeau'; b.setAttribute('role', 'note');
@@ -312,12 +313,43 @@ function demoPubliqueNonPris() {
   document.getElementById('login-box').innerHTML = '<div class="demo-choix"><h2>Navigateur non pris en charge</h2>'
     + '<p>La démonstration ne peut pas isoler ses données de celles de l’application sur ce navigateur, alors elle ne s’ouvre pas. Essayez avec une version récente de Safari, Chrome ou Firefox.</p></div>';
 }
+/* ── LE SIMULATEUR DE LA PAGE DE COMMANDE (28 octobre 2026) ────────────────────────────────────────────────────────────────────
+   Justin : « un simulateur de l'application (tableau de bord, planning… en détail, qui donne envie) ». La page de commande
+   (`recap-abonnement.html`) charge cette même démonstration dans un cadre : `demo.html?metier=<id>&cats=<clés>&formule=<f>`.
+   · `cats` : les rubriques que le client a cochées (liste fermée : `catsServeurAppliquer` ignore tout ce qu'elle ne connaît pas) ;
+     le menu montre alors EXACTEMENT ce que son espace aura. `formule` : pro, business ou premium (clés de `PLANS`) — une rubrique
+     de la formule au-dessus se voit fermée, comme chez un client. Rien d'autre ne se lit dans l'adresse.
+   · ⛔ SANS `cats`, le réglage est REMIS À ZÉRO (`cats: null` = tout ouvert) : il est rangé dans `elanD_cats`, sur l'appareil, et une
+     visite d'avant (un cadre du simulateur) laisserait sinon un menu à moitié vide à la démonstration suivante.
+   · ⛔ LE SIMULATEUR NE RANGE RIEN de la base : la présence de `cats`, de `formule` ou de `sim=1` coupe `save()` (`window.__demoSimulateur`),
+     ne demande rien (pas de « Passer à ce métier ? » dans un cadre) et ne retient pas le métier — les essais que le visiteur a pu faire
+     dans la démonstration elle-même ne sont ni écrasés ni remplacés. L'exemple est resemé à chaque ouverture. */
+function demoPubliqueSimulateur() { return /[?&](sim=1|cats=|formule=)/.test(location.search); }
+function demoPubliqueReglage() {
+  const q = location.search;
+  const f = (q.match(/[?&]formule=([a-z]+)/) || [])[1];
+  if (f && Object.prototype.hasOwnProperty.call(PLANS, f)) db.forfait = f;   // une clé de PLANS, jamais `constructor` ni `toString`
+  const brut = (q.match(/[?&]cats=([A-Za-z0-9_,]*)/) || [])[1] || '';
+  /* vide ou absent : le client n'a rien choisi, donc tout est ouvert (`null`) */
+  const liste = brut ? brut.split(',').filter(Boolean) : null;
+  try { catsServeurAppliquer({ cats: liste }); } catch (e) { /* idem */ }
+}
 function demoPubliqueBoot() {
   if (window.__demoPublique && window.__demoPublique.stockageIsole === false) { demoPubliqueNonPris(); return; }
+  const sim = demoPubliqueSimulateur();
+  if (sim) window.__demoSimulateur = true;
   demoPubliqueBouchons();
   demoPubliqueStyle();
   let id = '';
   const q = (location.search.match(/[?&]metier=([a-z0-9]+)/) || [])[1];   // le bouton du site : « Essayer la démo plombier »
+  if (sim) {
+    /* le cadre de la page de commande : le métier de l'adresse (sinon le premier de la liste), sans question ni rangement */
+    id = (q && demoPubliqueMetiers().indexOf(q) >= 0) ? q : demoPubliqueMetiers()[0];
+    demoPubliqueSemer(id);
+    demoPubliqueReglage();
+    demoPubliqueOuvrir();
+    return;
+  }
   if (q && demoPubliqueMetiers().indexOf(q) >= 0) {
     id = q;
     /* ⛔ suivre le lien d'un AUTRE métier remplace les essais du visiteur : on le demande, comme « Changer de métier » */
@@ -332,5 +364,6 @@ function demoPubliqueBoot() {
   const semee = db.demoPublique && db.demoPublique.metier === id && (db.techniciens || []).length > 0;
   demoPubliqueChoixEcrire(id);
   if (!semee) demoPubliqueSemer(id);
+  demoPubliqueReglage();   // sans `cats` dans l'adresse : remet le réglage d'une visite du simulateur à zéro
   demoPubliqueOuvrir();
 }

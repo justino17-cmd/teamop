@@ -18,6 +18,11 @@ async function ouvrir(o) {
   const pp = await portLibre(), pc = await portLibre();
   const statique = http.createServer((q, r) => {
     const u = decodeURIComponent(q.url.split('?')[0].split('#')[0]);
+    /* `proxyApi` (un port, 127.0.0.1 seulement) : les appels `/api/…` de la page de commande vont au VRAI serveur du dépôt, lancé isolément par la sonde — jamais api.teamop.fr */
+    if (o.proxyApi && u.indexOf('/api/') === 0) {
+      const p = http.request({ host: '127.0.0.1', port: o.proxyApi, path: q.url, method: q.method, headers: q.headers }, rs => { r.writeHead(rs.statusCode, rs.headers); rs.pipe(r); });
+      p.on('error', () => { r.writeHead(502); r.end(); }); return q.pipe(p);
+    }
     const x = path.join(RACINE, u === '/' ? page : u.replace(/^\/+/, ''));
     if (!x.startsWith(RACINE)) { r.writeHead(403); return r.end(); }
     fs.readFile(x, (e, d) => { if (e) { r.writeHead(404); return r.end(); }

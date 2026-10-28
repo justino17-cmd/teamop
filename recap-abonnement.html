@@ -287,6 +287,34 @@
   .bloc-metier .metier-reessayer { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--bordure); background: var(--m-tile); color: var(--texte); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
   .bloc-rubriques { margin-top: 12px; }
   .bloc-rubriques > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--m-link); list-style-position: inside; }
+  /* ===== LA FORMULE DÉDUITE DES CASES, LES FONCTIONS DE L'ENTREPRISE, LE SIMULATEUR (28 octobre 2026) ===== */
+  .deduction { margin: 12px 0 0; padding: 12px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.55; color: var(--texte); background: color-mix(in srgb, var(--m-link) 10%, transparent); border: 1px solid color-mix(in srgb, var(--m-link) 28%, transparent); }
+  .deduction b { font-weight: 700; }
+  .deduction small { display: block; margin-top: 4px; font-size: 12.5px; color: var(--texte-3); }
+  .bloc-fonctions { margin: 12px 0 0; padding: 0; border: 0; min-width: 0; }
+  .bloc-fonctions legend { padding: 0; font-size: 11.5px; font-weight: 600; letter-spacing: .06em; color: var(--m-sub); margin-bottom: 4px; }
+  .fonction-case { display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 10px 2px; cursor: pointer; border-top: 1px solid var(--bordure); }
+  .fonction-case input { flex: 0 0 auto; width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--m-accent); cursor: pointer; }
+  .fonction-case .ft { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; font-size: 14px; font-weight: 600; color: var(--texte); }
+  .fonction-case .ft small { font-weight: 400; font-size: 12.5px; color: var(--texte-2); line-height: 1.45; }
+  .fonction-case .fp { flex: 0 0 auto; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: var(--m-link); background: color-mix(in srgb, var(--m-link) 12%, transparent); white-space: nowrap; }
+  .fonction-case.bientot { opacity: .6; cursor: default; }
+  .fonction-case:has(input:focus-visible) { outline: 2px solid var(--m-link); outline-offset: 2px; }
+  .puce-formule[disabled] { opacity: .42; cursor: not-allowed; }
+  .carte-simulateur { margin-top: 22px; }
+  .carte-simulateur h2 { margin: 0 0 6px; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .carte-simulateur .sim-aide { margin: 0 0 14px; font-size: 13.5px; line-height: 1.55; color: var(--texte-2); }
+  .sim-barre { display: inline-flex; padding: 3px; border-radius: 14px; background: var(--m-seg); gap: 2px; margin-bottom: 14px; }
+  .sim-barre button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 11px; background: none; color: var(--texte-2); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .sim-barre button[aria-pressed="true"] { background: var(--m-seg-on); color: var(--texte); font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+  .sim-barre button:focus-visible, .sim-lancer:focus-visible { outline: 2px solid var(--m-link); outline-offset: 2px; }
+  .sim-scene { display: flex; justify-content: center; width: 100%; overflow: hidden; }
+  .sim-boite { position: relative; border-radius: 34px; border: 9px solid var(--bordure-vive); background: var(--m-tile); box-shadow: 0 1px 4px rgba(0,0,0,.18); overflow: hidden; flex: 0 0 auto; }   /* le cadre suit la palette de la page (jour ET nuit) : aucune couleur en dur */
+  .sim-boite.bureau { border-width: 7px; border-radius: 16px; }
+  .sim-boite iframe { display: block; border: 0; background: var(--m-tile); transform-origin: 0 0; }
+  .sim-lancer { display: flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 26px; border: 0; border-radius: 999px; background: var(--m-accent); color: var(--m-on-accent); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; margin: 0 auto; }
+  .sim-lancer[disabled] { opacity: .5; cursor: not-allowed; }
+  .sim-legende { margin: 12px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--texte-3); text-align: center; }
   /* ===== LES OPTIONS DU PRO : des cases de 44 px, prix à droite, aucun mot ne se coupe ===== */
   .bloc-options, .options-incluses {
     margin: 10px 0 14px;
@@ -476,6 +504,9 @@
     <aside class="carte carte-paiement" id="cartePaiement"></aside>
 
   </div>
+
+  <!-- ===== LE SIMULATEUR : la vraie application, avec les rubriques cochées (chargé au clic : demo.html pèse plus de 4 Mo) ===== -->
+  <section class="carte carte-simulateur" id="carteSimulateur" aria-labelledby="simTitre" hidden></section>
 <p style="text-align:center;color:var(--texte-3);font-size:12.5px;margin-top:34px">© 2026 TEAM OP · <a href="mentions-legales.html" class="lien-geste" style="color:var(--texte-3)">Mentions légales &amp; CGV</a></p>
 </main>
 
@@ -700,6 +731,16 @@ if (!FORMULES[formuleActive]) formuleActive = 'business';
 let modeAjout = params.get('ajout') === 'options';
 if (modeAjout) formuleActive = 'pro';
 let cycleAnnuel = params.get('cycle') === 'annuel';   // revient du portail avec le cycle choisi (lienPortail)
+/* ⛔ LA FORMULE SE DÉDUIT DES CASES (28 octobre 2026, Justin : « choix A : la page en DÉDUIT la formule »). Trois états, jamais deux :
+   · `composerMode` (?composer=1, le lien « Composer mon abonnement » de la page Tarifs) : la formule SUIT les cases, rien n'est choisi d'avance ;
+   · `formuleVoulue` : le rang de ce que la personne a demandé (le lien d'une formule de la grille de tarifs, ou un bouton) — jamais en dessous de
+     ce que ses cases appellent, et jamais en dessous de ce qu'elle a voulu : décocher Stock ne baisse pas une formule qu'elle a choisie ;
+   · `null` : elle suit les cases. Les tarifs sont ceux de la grille et de `STRIPE_PRICES` : AUCUN tarif neuf, et la page n'envoie à Stripe que le
+     tarif de la formule affichée — jamais la formule déduite, jamais les fonctions cochées (le serveur déduit la formule du `price`). */
+const composerMode = params.get('composer') === '1';
+const RANGS = ['pro', 'business', 'premium'];
+let formuleVoulue = (composerMode && !params.get('formule')) ? null : RANGS.indexOf(formuleActive);
+let fonctionsAbo = [];      // les fonctions de l'entreprise cochées (OpRub.FONCTIONS : logo, couleur…) — des cases, jamais envoyées à Stripe
 /* Préremplissage : recap-abonnement.html?formule=business&utilisateurs=7 */
 let nbUsersVoulu = Math.min(MAX_ABONNEMENTS, parseInt(params.get('utilisateurs'), 10) || 0);   // 0 = automatique (1 : un abonnement)
 /* Les options cochées. Venues de l'adresse (`options=stock,achats` — l'application y mène — ou `stock.achats`, la forme qui
@@ -714,7 +755,7 @@ const optionsDispo = () => Object.keys(OPTIONS_GESTION).filter(k => { const t = 
 const optionsActives = () => formuleActive === 'pro' ? optionsDispo().filter(k => optionsChoisies.indexOf(k) >= 0) : [];
 /* L'adresse de l'état courant (formule, nombre, cycle, options) : `replaceState` y garde la page rechargeable, le chemin
    vers le portail y garde le panier (séparateur `.`, voir plus haut). */
-const adresseEtat = (sep) => modeAjout ? '?formule=pro&ajout=options' + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '') : '?formule=' + formuleActive + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '');
+const adresseEtat = (sep) => modeAjout ? '?formule=pro&ajout=options' + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '') : (composerMode && formuleVoulue === null ? '?composer=1' : '?formule=' + formuleActive + (composerMode ? '&composer=1' : '')) + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '');
 
 /* ---------- LE COMPTE — PAS DE PAIEMENT SANS LUI ---------- */
 /* ⛔ PAS DE PAIEMENT SANS COMPTE — Justin, 27 septembre 2026 : « il faut bien préciser aux personnes qu'elles doivent
@@ -759,7 +800,7 @@ const metierRequis = () => !modeAjout && !!FORMULES[formuleActive] && FORMULES[f
    quand aucun métier n'est choisi (une entreprise qui existe déjà : le serveur ne le demande pas) */
 function choixPaiement() { return metierAbo ? { metier: metierAbo, cats: rubAbo && typeof OpRub !== 'undefined' ? OpRub.liste(rubAbo) : null } : {}; }
 function choixGarder() {
-  try { sessionStorage.setItem(CLE_CHOIX, JSON.stringify({ metier: metierAbo, cats: rubAbo && typeof OpRub !== 'undefined' ? OpRub.liste(rubAbo) : null })); } catch (e) {}
+  try { sessionStorage.setItem(CLE_CHOIX, JSON.stringify({ metier: metierAbo, cats: rubAbo && typeof OpRub !== 'undefined' ? OpRub.liste(rubAbo) : null, fonctions: fonctionsAbo })); } catch (e) {}
 }
 /* le métier de l'adresse (`?metier=`) ou, à défaut, celui que la personne avait choisi avant d'aller créer son compte */
 function choixRestaurer() {
@@ -767,7 +808,9 @@ function choixRestaurer() {
   const voulu = params.get('metier') || (gardé && gardé.metier) || '';
   if (!refMetiers || !voulu || refMetiers.ouverts.indexOf(voulu) < 0) return;
   metierAbo = voulu;
-  if (typeof OpRub !== 'undefined') rubAbo = OpRub.etat(refMetiers, voulu, gardé && gardé.metier === voulu && Array.isArray(gardé.cats) ? gardé.cats.filter(k => refMetiers.ordre.indexOf(k) >= 0) : null);
+  if (typeof OpRub !== 'undefined') { rubAbo = OpRub.etat(refMetiers, voulu, gardé && gardé.metier === voulu && Array.isArray(gardé.cats) ? gardé.cats.filter(k => refMetiers.ordre.indexOf(k) >= 0) : null); rubAbo.afficherPlan = true; }
+  /* les fonctions cochées avant l'aller-retour par le portail : seulement des clés CONNUES */
+  if (gardé && gardé.metier === voulu && Array.isArray(gardé.fonctions) && typeof OpRub !== 'undefined') fonctionsAbo = gardé.fonctions.filter(k => OpRub.FONCTIONS.some(f => f.k === k));
 }
 async function chargerMetiers() {
   refMetiersMsg = '';
@@ -777,15 +820,67 @@ async function chargerMetiers() {
     if (r.ok && j && j.ok && j.metiers && Array.isArray(j.ouverts)) { refMetiers = j; choixRestaurer(); }
     else refMetiersMsg = r.status === 503 ? 'Les métiers ne sont pas disponibles pour le moment : réessayez dans un instant.' : 'Les métiers n\'ont pas pu être lus : réessayez.';
   } catch (e) { refMetiersMsg = 'Le service ne répond pas : les métiers n\'ont pas pu être lus. Réessayez.'; }
-  rendrePaiement();
+  rendreTout();
+  history.replaceState(null, '', adresseEtat(','));   // la formule peut avoir suivi les cases restaurées
 }
 function metierChoisir(k) {
   metierAbo = refMetiers && refMetiers.ouverts.indexOf(k) >= 0 ? k : '';
   rubAbo = metierAbo && typeof OpRub !== 'undefined' ? OpRub.etat(refMetiers, metierAbo) : null;
+  if (rubAbo) rubAbo.afficherPlan = true;
+  fonctionsAbo = [];
   compteMsg = null; choixGarder();
+  rendreTout();
   history.replaceState(null, '', adresseEtat(','));
-  rendrePaiement();
   const sel = document.getElementById('metierAbo'); if (sel && sel.focus) sel.focus();   // le rendu réécrit tout : le clavier ne perd pas sa place
+}
+/* ---------- LA FORMULE DÉDUITE DES CASES (voir `formuleVoulue` plus haut) ---------- */
+const nomFormule = (f) => (FORMULES[f] ? FORMULES[f].nom : f);
+const eur = (n) => String(n).replace('.', ',') + '\u00a0€';
+/* ce que les cases appellent : `{ formule, raisons, sait }` (OpRub.formule, jouée par test-3135). `sait: false` : le serveur n'a pas servi les `plan`
+   (un serveur d'avant) — la page ne déduit rien et garde son sélecteur manuel. Seulement quand la grille est là (souscription neuve). */
+function formuleDeduite() {
+  if (typeof OpRub === 'undefined' || !metierRequis() || !refMetiers || !rubAbo || modeAjout) return { formule: null, raisons: [], sait: false };
+  return OpRub.formule(rubAbo, fonctionsAbo);
+}
+/* la formule affichée = le plus haut de ce que les cases appellent et de ce que la personne a voulu ; le plancher de rang par la formule voulue */
+function formuleAccorder() {
+  if (modeAjout || !FORMULES[formuleActive] || FORMULES[formuleActive].groupe !== 'gestion') return;
+  const d = formuleDeduite(); if (!d.formule) return;
+  const mini = RANGS.indexOf(d.formule), voulu = formuleVoulue === null ? mini : Math.max(mini, formuleVoulue);
+  formuleActive = RANGS[voulu];
+  if (formuleActive !== 'pro') optionsChoisies = [];
+}
+/* la phrase qui dit pourquoi : « Formule Business, 25 € par utilisateur et par mois, parce que vous avez coché Stock et Bons de commande » */
+function textDeduction() {
+  const d = formuleDeduite(); if (!d.formule) return '';
+  const f = FORMULES[formuleActive], m = FORMULES[d.formule];
+  const prix = (x) => eur(x.prixMensuel) + ' par utilisateur et par mois';
+  const raison = typeof OpRub !== 'undefined' ? OpRub.texteRaisons(d.raisons) : '';
+  const avant = formuleVoulue !== null && formuleVoulue < RANGS.indexOf(d.formule) ? 'Vous aviez choisi ' + nomFormule(RANGS[formuleVoulue]) + ' : ' : '';
+  if (RANGS.indexOf(formuleActive) > RANGS.indexOf(d.formule)) return 'Vous avez choisi <b>' + f.nom + '</b>, ' + prix(f) + '. Vos choix appellent au moins <b>' + m.nom + '</b>' + (raison ? ' (' + raison + ')' : '') + '.';
+  if (d.formule === 'pro') return '<b>Formule Pro</b>, ' + prix(f) + ' : rien de ce que vous avez coché n’appelle plus.';
+  return avant + '<b>Formule ' + f.nom + '</b>, ' + prix(f) + ', parce que vous avez coché <b>' + (raison || 'ces cases') + '</b>.<small>Décochez-' + (d.raisons.length > 1 ? 'les' : 'la') + ' pour redescendre d’une formule.</small>';
+}
+function blocDeduction() {
+  const t = textDeduction();
+  return t ? '<p class="deduction" id="deduction" role="status" aria-live="polite">' + t + '</p>' : '';
+}
+/* les fonctions de l'entreprise qui ne sont pas des rubriques : des cases, avec la formule qu'elles appellent */
+function blocFonctions() {
+  if (typeof OpRub === 'undefined' || !rubAbo || !formuleDeduite().sait) return '';
+  return '<fieldset class="bloc-fonctions"><legend>POUR VOTRE ENTREPRISE</legend>'
+    + OpRub.FONCTIONS.map(fo => '<label class="fonction-case"><input type="checkbox" data-fonction="' + fo.k + '"' + (fonctionsAbo.indexOf(fo.k) >= 0 ? ' checked' : '') + '>'
+      + '<span class="ft">' + fo.titre + '<small>' + fo.explication + '</small></span><span class="fp">Formule ' + nomFormule(fo.formule) + '</span></label>').join('')
+    + '<div class="fonction-case bientot" aria-disabled="true"><span class="ft" style="margin-left:34px">OP MESSAGES<small>La messagerie d’équipe rouvre bientôt : rien à cocher d’ici là, et rien n’est facturé.</small></span><span class="fp">Bientôt</span></div>'
+    + '</fieldset>';
+}
+/* un geste sur une case : la formule suit, la page se redessine, le clavier ne perd pas sa place */
+function choixModifie() {
+  const foc = document.activeElement && document.activeElement.getAttribute ? (document.activeElement.getAttribute('data-rub') ? '[data-rub="' + document.activeElement.getAttribute('data-rub') + '"]' : document.activeElement.getAttribute('data-fonction') ? '[data-fonction="' + document.activeElement.getAttribute('data-fonction') + '"]' : document.activeElement.getAttribute('data-rub-act') ? '[data-rub-act="' + document.activeElement.getAttribute('data-rub-act') + '"]' : '') : '';
+  choixGarder(); compteMsg = null;
+  rendreTout();
+  history.replaceState(null, '', adresseEtat(','));
+  if (foc) { const n = document.querySelector(foc); if (n && n.focus) { try { n.focus({ preventScroll: true }); } catch (x) { n.focus(); } } }
 }
 /* le bloc de la carte de paiement : le métier (liste déroulante) puis, une fois choisi, ses rubriques */
 function blocMetier() {
@@ -799,7 +894,9 @@ function blocMetier() {
   return '<div class="bloc-metier" id="blocMetier">' + entete
     + '<select id="metierAbo" aria-required="true"><option value=""' + (metierAbo ? '' : ' selected') + ' disabled>— Choisissez votre métier —</option>' + options + '</select>'
     + '<p class="metier-aide">Votre application est réglée sur votre métier : types d\'intervention, fiche de terrain, rubriques.</p>'
+    + (metierAbo ? blocDeduction() : '')   // la phrase qui dit la formule vient AVANT la grille : sur un téléphone, la grille est longue
     + (metierAbo && typeof OpRub !== 'undefined' ? '<details class="bloc-rubriques" id="rubVolet"' + (rubOuvert ? ' open' : '') + '><summary>Voir ou masquer les rubriques</summary><div id="rubriquesAbo"></div></details>' : '')
+    + (metierAbo ? blocFonctions() : '')
     + '</div>';
 }
 /* après chaque rendu de la carte : le fil du bloc (liste déroulante, bouton de relecture, grille des rubriques) */
@@ -811,7 +908,12 @@ function lierMetier(c) {
   const volet = document.getElementById('rubVolet');
   if (volet && volet.addEventListener) volet.addEventListener('toggle', () => { rubOuvert = !!volet.open; });
   const grille = document.getElementById('rubriquesAbo');
-  if (grille && rubAbo && typeof OpRub !== 'undefined') OpRub.monter(grille, rubAbo, 'abo', () => { choixGarder(); compteMsg = null; });
+  if (grille && rubAbo && typeof OpRub !== 'undefined') OpRub.monter(grille, rubAbo, 'abo', choixModifie);
+  c && c.querySelectorAll && c.querySelectorAll('[data-fonction]').forEach(i => i.addEventListener('change', () => {
+    const k = i.getAttribute('data-fonction'), a = fonctionsAbo.indexOf(k);
+    if (i.checked && a < 0) fonctionsAbo.push(k); else if (!i.checked && a >= 0) fonctionsAbo.splice(a, 1);
+    choixModifie();
+  }));
 }
 async function lireCompte() {
   const jeton = sessionPortail();
@@ -879,11 +981,17 @@ function rendreSelecteur() {
   const c = document.getElementById('selecteurFormules');
   if (modeAjout) { c.innerHTML = ''; return; }   // l'option s'ajoute au Pro de l'entreprise : aucune formule à choisir
   const groupe = FORMULES[formuleActive].groupe;
-  c.innerHTML = Object.entries(FORMULES).filter(([cle, f]) => f.groupe === groupe).map(([cle, f]) =>
-    `<button class="puce-formule ${cle === formuleActive ? 'active' : ''}" data-formule="${cle}">${f.nom}</button>`
-  ).join('');
+  /* les formules SOUS celle que les cases appellent sont désactivées (et le disent) ; celles au-dessus restent permises */
+  const dd = groupe === 'gestion' ? formuleDeduite() : { formule: null };
+  const mini = dd.formule ? RANGS.indexOf(dd.formule) : -1;
+  c.innerHTML = Object.entries(FORMULES).filter(([cle, f]) => f.groupe === groupe).map(([cle, f]) => {
+    const sous = groupe === 'gestion' && mini > 0 && RANGS.indexOf(cle) < mini;
+    return `<button class="puce-formule ${cle === formuleActive ? 'active' : ''}" data-formule="${cle}"${sous ? ' disabled title="' + f.nom + ' ne contient pas tout ce que vous avez coché : décochez pour la choisir"' : ''}>${f.nom}</button>`;
+  }).join('');
   c.querySelectorAll('.puce-formule').forEach(b => {
     b.addEventListener('click', () => {
+      if (b.disabled) return;
+      if (FORMULES[b.dataset.formule].groupe === 'gestion') formuleVoulue = RANGS.indexOf(b.dataset.formule);
       /* le NOMBRE reste : il ne dépend pas de la formule (un abonnement = un utilisateur, partout) — le remettre à 1
          perdait les « 4 utilisateurs » venus du courriel J-7 au moment où le client choisit une autre formule que
          celle du lien (Justin, 29 septembre 2026 : « ils choisissent le tarif qu'ils veulent ») ; et un refus affiché
@@ -1372,9 +1480,16 @@ async function promoValider() {
   if (!code) { dis('Entrez votre code promo.', false); return; }
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
   try {
-    const r = await fetch('https://api.teamop.fr/api/promo/valider', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code, apercu: true }) });
+    const r = await fetch('https://api.teamop.fr/api/promo/valider', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(metierAbo ? { code: code, apercu: true, metier: metierAbo } : { code: code, apercu: true }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { dis('⚠ ' + (j.error || 'Code invalide'), false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } return; }
+    /* ⛔ UN CODE RÉSERVÉ À DES MÉTIERS (28 octobre 2026) : l'aperçu le dit (`reserve`) et, si le métier est déjà choisi, s'il y figure (`metierAdmis`). C'est une INFORMATION :
+       la décision est celle de l'activation, sur le métier que TEAM OP pose à l'ouverture de l'espace — jamais sur ce que cette page envoie. */
+    let reserve = '';
+    if (j.reserve === true) {
+      if (j.metierAdmis === false) { dis('⚠ Ce code est réservé à certains métiers, et <b>le métier que vous avez choisi n’en fait pas partie</b>. Changez de métier plus haut si vous vous êtes trompé, ou écrivez à support@teamop.fr.', false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } return; }
+      reserve = '<br>Ce code est réservé à certains métiers : ' + (j.metierAdmis === true ? 'le vôtre en fait partie, et ' : '') + 'nous le vérifions à l’ouverture de votre espace.';
+    }
     /* ⛔ ON NE PROMET PAS UNE ACTIVATION QU'ON NE PEUT PAS TENIR. La page félicitait le
        visiteur — « activation dans l'application… » — puis le renvoyait vers `app.html#promo=`.
        Or `promoAppliquer` EXIGE la preuve de la clé d'équipe : un code ne s'active que SUR UN
@@ -1387,7 +1502,7 @@ async function promoValider() {
     var aUnEspace = false;
     try { aUnEspace = !!String(localStorage.getItem('elan_sync_team') || '').trim(); } catch (e) {}
     if (aUnEspace) {
-      dis('✓ Code valide : <b>' + j.mois + ' mois offert(s)</b> — activation dans l\'application…', true);
+      dis('✓ Code valide : <b>' + j.mois + ' mois offert(s)</b> — activation dans l\'application…' + reserve, true);
       setTimeout(() => { window.location.href = 'app.html#promo=' + encodeURIComponent(code); }, 900);
       return;
     }
@@ -1406,16 +1521,96 @@ async function promoValider() {
       + 'Notez-le : <b style="font-size:16px;letter-spacing:.04em">' + code + '</b><br>'
       + 'Un code s\'applique à <b>votre espace</b> : ouvrez-le d\'abord avec votre lien de connexion, '
       + 'puis entrez ce code dans <b>Paramètres → Abonnement</b>.<br>'
-      + 'Pas encore d\'espace ? <a href="espace.html" style="color:var(--m-link);text-decoration:underline">Demandez votre accès ici</a>.', true);
+      + 'Pas encore d\'espace ? <a href="espace.html" style="color:var(--m-link);text-decoration:underline">Demandez votre accès ici</a>.' + reserve, true);
     if (btn) { btn.disabled = false; btn.textContent = 'Activer'; }
   } catch (e) { dis('Le serveur ne répond pas — réessayez.', false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } }
 }
 
+
+/* ---------- LE SIMULATEUR : « Voir mon application » (28 octobre 2026) ---------- */
+/* Justin : « un simulateur de l'application (tableau de bord, planning… en détail, qui donne envie) ». C'est la démonstration publique (`demo.html`, la VRAIE
+   application sans réseau ni compte) chargée dans un cadre, avec le métier choisi, les rubriques cochées et la formule affichée : le menu montre exactement ce que
+   l'espace aura. ⛔ Rien n'est envoyé, rien n'est enregistré (le cadre ne range pas la base — `window.__demoSimulateur`, demo-build.js) ; le cadre est chargé AU CLIC
+   (4,6 Mo) et le cadre qui existe déjà n'est jamais recréé par un rendu de la page : il vit hors de `#cartePaiement`. */
+const SIM_APPAREILS = { tel: { l: 390, h: 780, nom: 'Téléphone' }, bureau: { l: 1100, h: 660, nom: 'Ordinateur' } };
+let simAppareil = 'tel', simVoulu = false, simAdresseChargee = '', simMinuterie = null;
+function simAdresse() {
+  const q = ['sim=1'];
+  if (metierAbo) q.push('metier=' + encodeURIComponent(metierAbo));
+  const cats = rubAbo && typeof OpRub !== 'undefined' ? OpRub.liste(rubAbo) : null;
+  if (cats && cats.length) q.push('cats=' + cats.map(encodeURIComponent).join(','));
+  q.push('formule=' + encodeURIComponent(formuleActive));
+  return '/demo.html?' + q.join('&');
+}
+const simPossible = () => !modeAjout && !!FORMULES[formuleActive] && FORMULES[formuleActive].groupe === 'gestion';   // une formule d'OP MESSAGES n'a pas d'application à montrer
+function simAjuster() {
+  const sc = document.getElementById('simScene'), bo = document.getElementById('simBoite'), fr = document.getElementById('simCadre'); if (!sc || !bo || !fr) return;
+  const a = SIM_APPAREILS[simAppareil], dispo = Math.max(240, sc.clientWidth - 4), cadre = simAppareil === 'tel' ? 18 : 14;
+  const echelle = Math.min(1, (dispo - cadre) / a.l);
+  fr.style.width = a.l + 'px'; fr.style.height = a.h + 'px'; fr.style.transform = 'scale(' + echelle + ')';
+  bo.style.width = Math.round(a.l * echelle + cadre) + 'px'; bo.style.height = Math.round(a.h * echelle + cadre) + 'px';
+}
+function simLancer() {
+  if (!metierAbo) return;
+  simVoulu = true; simMajCadre(true);
+}
+/* le cadre se crée au premier clic ; ensuite, un changement de case recharge l'adresse (dans la demi-seconde, une fois) */
+function simMajCadre(tout) {
+  const zone = document.getElementById('simZone'); if (!zone) return;
+  const adr = simAdresse();
+  let fr = document.getElementById('simCadre');
+  if (!fr) {
+    zone.innerHTML = '<div class="sim-scene" id="simScene"><div class="sim-boite ' + simAppareil + '" id="simBoite"><iframe id="simCadre" title="Démonstration de votre application" sandbox="allow-scripts allow-same-origin allow-modals" referrerpolicy="no-referrer"></iframe></div></div>';
+    fr = document.getElementById('simCadre'); simAdresseChargee = '';
+  }
+  simAjuster();
+  if (simAdresseChargee === adr) return;
+  clearTimeout(simMinuterie);
+  simMinuterie = setTimeout(() => { const c = document.getElementById('simCadre'); if (c) { c.src = adr; simAdresseChargee = adr; } }, tout ? 0 : 500);
+}
+function simAppareilChoisir(k) {
+  if (!SIM_APPAREILS[k]) return;
+  simAppareil = k;
+  const bo = document.getElementById('simBoite'); if (bo) bo.className = 'sim-boite ' + k;
+  document.querySelectorAll('[data-sim]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-sim') === k)));
+  simAjuster();
+}
+function rendreSimulateur() {
+  const sec = document.getElementById('carteSimulateur'); if (!sec) return;
+  if (!simPossible()) { sec.hidden = true; return; }
+  sec.hidden = false;
+  /* la structure se pose UNE fois ; ensuite on ne met à jour que le texte et l'adresse du cadre (le cadre vivant n'est jamais recréé) */
+  if (!document.getElementById('simZone')) {
+    sec.innerHTML = '<h2 id="simTitre">Voir mon application</h2>'
+      + '<p class="sim-aide">C’est la vraie application, avec un exemple fictif pour votre métier : le planning, le tableau de bord, les devis… Elle s’ouvre avec <b>les rubriques que vous avez cochées</b> et la formule affichée. Rien n’est envoyé ni enregistré.</p>'
+      + '<div class="sim-barre" role="group" aria-label="Appareil">' + Object.keys(SIM_APPAREILS).map(k => '<button type="button" data-sim="' + k + '" aria-pressed="' + (k === simAppareil) + '">' + SIM_APPAREILS[k].nom + '</button>').join('') + '</div>'
+      + '<div id="simZone"></div><p class="sim-legende" id="simLegende" role="status" aria-live="polite"></p>';
+    sec.querySelectorAll('[data-sim]').forEach(b => b.addEventListener('click', () => simAppareilChoisir(b.getAttribute('data-sim'))));
+    window.addEventListener('resize', simAjuster);
+  }
+  const zone = document.getElementById('simZone'), leg = document.getElementById('simLegende');
+  const nbR = rubAbo && typeof OpRub !== 'undefined' ? OpRub.compte(rubAbo) : null;
+  if (!metierAbo) {
+    if (!document.getElementById('simCadre')) zone.innerHTML = '<button type="button" class="sim-lancer" id="simLancer" disabled>Choisissez d’abord votre métier</button>';
+    leg.textContent = 'Choisissez votre métier plus haut : l’exemple et les rubriques en dépendent.';
+    return;
+  }
+  if (!document.getElementById('simCadre')) {
+    zone.innerHTML = '<button type="button" class="sim-lancer" id="simLancer">Ouvrir l’application</button>';
+    document.getElementById('simLancer').addEventListener('click', simLancer);
+    if (simVoulu) simMajCadre(true);   // la page s'est redessinée avant la fin du chargement : on reprend là où on en était
+  } else simMajCadre(false);
+  leg.textContent = 'Exemple fictif · ' + (refMetiers && refMetiers.metiers[metierAbo] ? refMetiers.metiers[metierAbo].nom : '') + ' · formule ' + nomFormule(formuleActive)
+    + (nbR && nbR.choisies ? ' · ' + nbR.choisies + ' rubrique' + (nbR.choisies > 1 ? 's' : '') + ' ouverte' + (nbR.choisies > 1 ? 's' : '') : ' · toutes les rubriques ouvertes');
+}
+
 /* ---------- RENDU GLOBAL ---------- */
 function rendreTout() {
+  formuleAccorder();
   rendreSelecteur();
   rendreDroits();
   rendrePaiement();
+  rendreSimulateur();
   document.title = modeAjout ? 'Ajouter une option — TEAM OP' : 'Récapitulatif ' + FORMULES[formuleActive].nom + ' — TEAM OP';
 }
 

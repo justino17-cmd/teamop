@@ -311,7 +311,9 @@ function fenetre(opts) {
     const appels = []; const els = {}; const el = id => (els[id] = els[id] || { style: {}, innerHTML: '' });
     const mk = stockageIsole => bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris'], { window: { __demoPublique: { stockageIsole } }, document: { getElementById: el }, location: { search: '', pathname: '/demo.html' },
       demoPubliqueBouchons: () => appels.push('bouchons'), demoPubliqueStyle: () => { }, demoPubliqueChoixLire: () => '', demoPubliqueMetiers: () => ['3d'], demoPubliqueChoix: () => appels.push('choix'),
-      demoPubliqueSemer: () => appels.push('semer'), demoPubliqueOuvrir: () => appels.push('ouvrir'), demoPubliqueChoixEcrire: () => { }, db: {} });
+      demoPubliqueSemer: () => appels.push('semer'), demoPubliqueOuvrir: () => appels.push('ouvrir'), demoPubliqueChoixEcrire: () => { }, db: {},
+      /* (28 octobre 2026) le simulateur de la page de commande : ici « pas de cadre » ; le réglage `cats` / `formule` est joué par test-3135 */
+      demoPubliqueSimulateur: () => false, demoPubliqueReglage: () => { } });
     mk(false).fn.demoPubliqueBoot();
     vrai('⛔ la VRAIE demoPubliqueBoot() sans vue du stockage : « Navigateur non pris en charge », aucun bouchon, aucun semis, aucune ouverture, aucun choix de métier', appels.length === 0 && /Navigateur non pris en charge/.test(els['login-box'].innerHTML), appels);
     mk(true).fn.demoPubliqueBoot();
@@ -325,7 +327,7 @@ function fenetre(opts) {
       const b = bac('demo.html', ['demoPubliqueBoot', 'demoPubliqueNonPris'], { window: { __demoPublique: { stockageIsole: true } }, document: { getElementById: () => ({ style: {}, innerHTML: '' }) }, location: { search, pathname: '/demo.html' },
         history: { replaceState: () => { j.replace = true; } }, confirm: () => { j.confirm++; return accepte; }, demoPubliqueBouchons: () => { }, demoPubliqueStyle: () => { }, demoPubliqueChoixLire: () => deja,
         demoPubliqueMetiers: () => ['3d', 'plomberie', 'chauffage'], demoPubliqueChoix: () => { j.choix = true; }, demoPubliqueSemer: id => j.semer.push(id), demoPubliqueOuvrir: () => { j.ouvrir++; },
-        demoPubliqueChoixEcrire: id => j.ecrit.push(id), db: base });
+        demoPubliqueChoixEcrire: id => j.ecrit.push(id), db: base, demoPubliqueSimulateur: () => false, demoPubliqueReglage: () => { } });
       b.fn.demoPubliqueBoot(); return j;
     };
     const posee = { demoPublique: { metier: '3d' }, techniciens: [{}] };

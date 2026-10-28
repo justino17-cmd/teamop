@@ -115,6 +115,12 @@ remplacer('mailto: (location.href)', "location.href='mailto:'+", "demoNav.href='
 remplacer('mailto: (window.location.href)', 'window.location.href=`mailto:${mail}?subject=', 'demoNav.href=`mailto:${mail}?subject=', 2);
 if (/location\.href\s*=\s*['"`](?:sms|mailto|tel):/.test(s)) echec('une affectation de location.href vers sms:/mailto:/tel: subsiste : elle ouvrirait la messagerie du visiteur');
 
+/* ── 6 bis. LE SIMULATEUR DE LA PAGE DE COMMANDE ne range pas la base (voir `demoPubliqueSimulateur`, scripts/demo/demo-publique.js) :
+   la démonstration s'ouvre aussi dans un cadre de `recap-abonnement.html`, avec les rubriques cochées et la formule déduite. Ses essais ne
+   doivent pas écraser ceux que le visiteur a faits dans la démonstration elle-même (même origine, mêmes clés `elanD_`). */
+remplacer('save() — le simulateur ne range rien', 'function save(){ try{ numPlafondRelever(); }catch(e){}',
+  "function save(){ if(window.__demoSimulateur) return;   // le cadre du simulateur (page de commande) ne range rien\n  try{ numPlafondRelever(); }catch(e){}");
+
 /* ── 7. LE BANDEAU, ET LE DÉMARRAGE : le choix du métier prend la place de boot() ──────────────────────────────────────────── */
 remplacer('bandeau', 'try{ multiProposer(view); }catch(_e){}', 'try{ multiProposer(view); }catch(_e){}\n  try{ if(DEMO_PUBLIQUE) demoPubliqueBandeau(); }catch(_e){}');
 {
