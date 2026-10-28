@@ -411,3 +411,13 @@ tests/test-3125.js
 # `/api/monitor/issues/purger-entreprise`, la suppression totale qui purge d'elle-même (`fait.surveillance`), `bugs.jsonl` réécrit atomiquement,
 # `/api/monitor/report` qui n'écrit plus pour un espace fermé. Le vrai serveur, sans lire une page. (Le bouton de la Tour et son banc partent avec la Tour unifiée, sur la phrase de Justin.) 28 octobre 2026 : 10 670 vérifications (166 suites) — plancher relevé de 97, le nombre de `test-3102` (65 puis 32 : les points du gardien).
 tests/test-3102.js
+# ── Margaux, comptable de la Tour — ÉTAPE 1 (28 octobre 2026, Justin : « je veux un agent pro pour les devis, les factures et la compta — pour moi, pour la Tour ») : le point de l'argent, les factures Stripe vérifiées,
+# le calendrier de la loi, les réglages de Justin, des rappels. `server/compta-stripe.js` (les lectures : paginées, jamais un zéro pour un « je ne sais pas »), `server/compta-calendrier.js` (la table fermée et ses niveaux de preuve),
+# `server/agent-compta.js` (les quatre outils : seul Justin, seulement son fil privé, des chiffres écrits par le code et jamais relus par Claude). 3160 les lectures (période de Paris, pagination, troncature jetée, panne),
+# 3161 les outils sur la vraie messagerie, 3162 le VRAI serveur (Stripe simulé : que des GET), 3163 la PARITÉ avec les vraies fonctions de `tour.html`, 3164 les phrases de rôle, le texte des modules, le montage, l'examen.
+# Établi commun : `tests/banc-compta.js`. (3163 et 3164 lisent `tour.html` et `examen.js` : ils passent contre les pages de `main` comme contre celles de la branche.)
+tests/test-3160.js
+tests/test-3161.js
+tests/test-3162.js
+tests/test-3163.js
+tests/test-3164.js
