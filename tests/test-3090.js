@@ -254,8 +254,13 @@ function monde(o) {
   console.log('\n8. La relecture du gardien (28 octobre 2026)');
   {
     /* Margaux : `null` sans panne = Stripe dit « plus impayé » (réglé pendant le passage) → on n'écrit pas */
-    const m = monde();
-    m.etat.liste = [imp(300)]; m.etat.facture = null;
+    /* l'impayé est vu depuis trois jours (la relance J+3 serait due) : seule la réponse de Stripe peut l'arrêter */
+    const m = monde({ avant: D => fs.writeFileSync(path.join(D, 'agents-margaux.json'), JSON.stringify({ impayes: { 't-m300': { aboId: 'sub_m300', premierVu: EMISE, etapes: {}, demeure: null, reglee: 0 } } })) });
+    m.etat.liste = [imp(300)];
+    const tem = await (async () => { const m0 = monde({ avant: D => fs.writeFileSync(path.join(D, 'agents-margaux.json'), JSON.stringify({ impayes: { 't-m300': { aboId: 'sub_m300', premierVu: EMISE, etapes: {}, demeure: null, reglee: 0 } } })) });
+      m0.etat.liste = [imp(300)]; m0.etat.facture = { numero: 'AB12-0300', montantEur: 15, emiseMs: EMISE, url: 'https://invoice.stripe.com/i/acct_1ABC/live_YWNj' }; await m0.margaux.passer(); return m0.envoyes.length; })();
+    v('(contre-épreuve) le même impayé, toujours impayé chez Stripe : la relance J+3 part', tem, 1);
+    m.etat.facture = null;
     const r = await m.margaux.passer();
     v('⛔ Margaux : la facture n’est plus impayée chez Stripe (réglée pendant le passage) — aucune relance', [r.relances, m.envoyes.length], [0, 0]);
   }
