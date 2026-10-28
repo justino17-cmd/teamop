@@ -23,7 +23,7 @@ const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b
 const BIOCIDE = /biocide|certibiocide|\bAMM\b|animaux domestiques/i;
 const HORS = ['plomberie', 'chauffage', 'incendie', 'piscine', 'autre'];
 const TOUS = ['3d'].concat(HORS);
-const NOMS_BASE = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'libZones', 'mentionRegl', 'ammVisible', 'prodLineAmm', 'rapportProduitsLibres'];
+const NOMS_BASE = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'exemple', 'intTypes', 'libZones', 'mentionRegl', 'ammVisible', 'prodLineAmm', 'rapportProduitsLibres'];
 
 (async () => {
 for (const fichier of ['app.html', 'beta.html']) {
@@ -140,7 +140,8 @@ for (const fichier of ['app.html', 'beta.html']) {
     egal('⛔ la 3D ne ferme rien ; hors 3D les six rubriques du masque sont fermées SANS données', [bl('3d')('enveloppes'), HORS.map(m => ['registre', 'carteBox', 'devisXylo', 'boxes', 'saisieConso', 'enveloppes'].map(k => bl(m)(k)))], [false, HORS.map(() => [true, true, true, true, true, true])]);
     egal('   des enveloppes déjà rangées : « Enveloppes » reste ouvert hors 3D (les autres rubriques restent fermées)', HORS.map(m => { const f = bl(m, { enveloppes: [{ id: 'e1' }] }); return [f('enveloppes'), f('boxes'), f('registre'), f('saisieConso')]; }), HORS.map(() => [false, true, true, true]));
     egal('   des mouvements de box : « Consommation produits » reste ouvert ; ceux du seul stockage ne l\'ouvrent pas', HORS.map(m => [bl(m, { mouvements: [{ id: 'm1', boxId: 'b1' }] })('saisieConso'), bl(m, { mouvements: [{ id: 'm1', boxId: 'stockage' }] })('saisieConso'), bl(m, { mouvements: [{ id: 'm1', boxId: '' }] })('saisieConso')]), HORS.map(() => [false, true, true]));
-    egal('   la bêta voit tout (comme avant)', HORS.map(m => bl(m, {}, true)('enveloppes')), HORS.map(() => false)); }
+    egal('   la bêta, métier 3D : voit tout (comme avant)', bl('3d', {}, true)('boxes'), false);
+    egal('   la bêta, métier autre : le masque du métier s\'applique (v778 — « Tester un métier » montre ce que verra le client)', HORS.map(m => bl(m, {}, true)('enveloppes')), HORS.map(() => true)); }
 
   /* ── 8. une fiche produit sans catégorie garde « Sans catégorie » ── */
   console.log('\n8. formProduit : la catégorie vide ne change pas en silence');

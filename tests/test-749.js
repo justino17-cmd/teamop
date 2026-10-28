@@ -313,7 +313,7 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
   vrai('⛔ LA BÊTA VOIT TOUTES LES CATÉGORIES (le forfait ne masque rien sur la bêta)',
     /if\(BETA_ESSAI\)\s*return false;/.test(pb));
   const mb=NU.slice(NU.indexOf('function metierBloque('), NU.indexOf('function metierBloque(')+220);
-  vrai('⛔ … ni le métier', /if\(BETA_ESSAI\)\s*return false;/.test(mb));
+  vrai('⛔ … ni le métier EN 3D (v778 : un métier autre, choisi par « Tester un métier », applique son masque)', /if\(BETA_ESSAI&&estMetier3D\(\)\)\s*return false;/.test(mb));
   /* v767 — le Gratuit n'existe plus (Justin, 30 septembre 2026) : « Pointage » est dans toutes les formules. Le contre-contrôle
      garde la même chose qu'avant — en PRODUCTION, le forfait décide toujours — sur la formule d'entrée, Pro. */
   vrai('⛔ et en PRODUCTION le forfait Pro bloque toujours ses catégories réservées (« stock »)',

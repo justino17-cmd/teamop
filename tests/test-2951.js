@@ -23,7 +23,7 @@ const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b
 /* Ce qu'aucun écran de saisie hors 3D ne doit dire. « sanitaire » seul n'y est pas (« Robinetterie & sanitaire » est un type de plomberie). */
 const ANTI = /nuisible|dératis|désinsect|rongeur|biocide|\bAMM\b|matière active|appât|xylophag|infestation|dossier sanitaire|registre sanitaire|\bTP ?1[48]\b|rodonticide|insecticide|virucide|répulsif|proofing|piégeage|glu\b/i;
 const METIERS_ESSAIS = ['plomberie', 'chauffage', 'incendie', 'piscine', 'autre'];
-const NOMS_BASE = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'libZones', 'mentionRegl', 'prodLineAmm', 'intTypes', 'categoriesProduit', 'categorieListe'];
+const NOMS_BASE = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'exemple', 'libZones', 'mentionRegl', 'prodLineAmm', 'intTypes', 'categoriesProduit', 'categorieListe'];
 
 (async () => {
 for (const fichier of ['app.html', 'beta.html']) {

@@ -53,7 +53,7 @@ function monde(role) {
     fourColor: () => 'red', fournName: (id) => 'SODIF', bonNum: (b) => b.numero, bonQteTotTxt: () => '2 u', fmtShort: (d) => d,
     bonEmailDest: (b, f) => (f && f.email) || '', badge: (m, k) => '<span class="st ' + m[k].c + '">' + m[k].l + '</span>',
     emptyState: () => '', renderBonsReponses: () => {}, bonsParBoxHtml: () => '', bonResteTxt: () => 'ADVION GEL x3',
-    setHeader: () => {}, currentUser: { role }, views: {}, Date,
+    setHeader: () => {}, currentUser: { role }, views: {}, Date, libBox: (a) => a,
   };
   vm.createContext(ctx);
   vm.runInContext(bloc('function renderBonsList('), ctx);

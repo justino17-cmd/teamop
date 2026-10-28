@@ -211,7 +211,7 @@ console.log('\n── 2898 · 10. ⛔ le bouton 🔁 et la proposition donnent l
   const coupe = (a, b) => { const i = APP.indexOf(a), j = APP.indexOf(b, i); if (i < 0 || j < 0) throw new Error('introuvable : ' + a); return APP.slice(i, j); };
   const GEN = coupe('function ctrFreqDays(', 'function formContrat(');
   const charge = (db, today, metier, ok) => { const W = monter({ db, today, metier }); W.__ok = ok !== false; W.__confirms = 0; W.__created = [];
-    vm.runInContext(`var ISO=function(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }; function notifyTechNewInt(o){ __created.push(o); } var views={contrats:function(){}};
+    vm.runInContext(`var ISO=function(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }; function notifyTechNewInt(o){ __created.push(o); } function estMetier3D(){ return false; } var views={contrats:function(){}};
       function confirm(m){ __confirms++; return __ok; } ` + GEN, W); return W; };
   /* contrat annuel du 01/03/2023, aucune visite : proposition au 01/03/2024 ; l'ancien calcul en jours donnait le 29/02/2024 */
   const db = cdc(BASE); db.contrats[1].dateDebut = '2023-03-01'; db.contrats[1].dateFin = '2030-03-01';

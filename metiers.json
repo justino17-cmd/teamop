@@ -1767,6 +1767,48 @@
      "u": "h"
     },
     {
+     "k": "nonRealisees",
+     "l": "Tâches non réalisées et motif (accès, locaux occupés…)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "machines",
+     "l": "Produits et machines employés",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "consommables",
+     "l": "Consommables réapprovisionnés",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "anomalies",
+     "l": "Anomalies, dégradations, objets trouvés",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "incidents",
+     "l": "Incidents ou accidents",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "remarquesClient",
+     "l": "Remarques du client",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "acces",
+     "l": "Clés, badge, alarme",
+     "u": "",
+     "txt": true
+    },
+    {
      "k": "controleQualite",
      "l": "Résultat du contrôle qualité (note, remarques)",
      "u": "",
@@ -1791,25 +1833,8 @@
    ],
    "aCreer": [
     {
-     "fonction": "Cahier des tâches par site (fréquence, zones, cases à cocher par passage) avec preuve de passage",
-     "valeur": "haute"
-    },
-    {
      "fonction": "Pointage par site avec calcul de rentabilité : heures prévues contre heures réalisées",
      "valeur": "haute"
-    },
-    {
-     "fonction": "Catégories de produits de nettoyage à la place des catégories anti-nuisibles",
-     "valeur": "haute",
-     "ref": "F7"
-    },
-    {
-     "fonction": "Fiche de contrôle qualité (inspection chez le client, notes, photos, actions)",
-     "valeur": "moyenne"
-    },
-    {
-     "fonction": "Plan de prévention préparé et signé",
-     "valeur": "moyenne"
     },
     {
      "fonction": "Fiche de données de sécurité jointe à chaque produit",

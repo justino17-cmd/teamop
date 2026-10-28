@@ -436,8 +436,8 @@ function suite() {
   const COLLECTIONS = evalue(litteral(N, 'const COLLECTIONS_DONNEES=['));
   const INT_TYPES = evalue(litteral(N, 'const INT_TYPES = ['));
   const CAT_LIST = evalue(litteral(N, 'const CAT_LIST=['));
-  /* 28 depuis le chauffage / climatisation (`appareils`, le parc d'appareils par client) : le semis de la démonstration n'en pose pas encore */
-  vrai('(population) 28 collections de données dans l\'application (appareils compris) et 8 catégories historiques', COLLECTIONS.length === 28 && COLLECTIONS.includes('appareils') && CAT_LIST.length === 8 && INT_TYPES.length >= 10);
+  /* 28 depuis le chauffage / climatisation (`appareils`, le parc d'appareils par client), 30 depuis le pack nettoyage (`cahiers`, `plansPrevention`) : le semis de la démonstration publique n'en pose pas encore */
+  vrai('(population) 30 collections de données dans l\'application (appareils, cahiers et plans de prévention compris) et 8 catégories historiques', COLLECTIONS.length === 30 && COLLECTIONS.includes('appareils') && CAT_LIST.length === 8 && INT_TYPES.length >= 10);
   let c = 0; const uid = () => 'u' + (++c);
   const NOMS = ['demoPubliqueSemer', 'metierServeurAppliquer', 'metierId', 'metierPack', 'metierPackDe', 'intTypes', 'categoriesProduit', 'produitCreer', 'idProduit', 'idCatalogue', 'slugNom', 'produitMemeNom', 'empreinteNom', 'produitCle', 'intNum', 'nextNum', 'numPlafond', 'shiftDay', 'demoTel', 'demoPubliqueJourOuvre'];
   const monde = () => {

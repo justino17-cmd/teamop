@@ -138,7 +138,7 @@ const DEVIS = sansJsCom(lire('server/agent-devis.js')), INDEX = sansJsCom(lire('
 vrai('(population) les trois sources du code sont lues', DEVIS.length > 3000 && INDEX.length > 500000 && APP.length > 1000000);
 vrai('le code ne passe que 60 clients à l’assistant de devis (le serveur ET l’application)', (DEVIS.match(/\.slice\(0, 60\)/g) || []).length >= 2 && /visibleClients\(db\.clients\|\|\[\]\)\.slice\(0,60\)/.test(APP));
 vrai('le code plafonne la traduction à 100 par entreprise et par jour', /TRAD_ENTREPRISE_MAX = 100\b/.test(INDEX) && /traduireMail\(req, res, [^,]+, TRAD_ENTREPRISE_MAX\)/.test(INDEX));
-vrai('le « Devis IA » rapide n’envoie que la demande (jamais un client)', /fetch\(PUSH_API\+'\/api\/devis\/generer',\{method:'POST',headers:\{'Content-Type':'application\/json'\},\s*body:JSON\.stringify\(\{team:syncTeam\(\),code:code\|\|undefined,demande,profond:!!profond\}\)/.test(APP));
+vrai('le « Devis IA » rapide n’envoie que la demande (jamais un client)', /fetch\(PUSH_API\+'\/api\/devis\/generer',\{method:'POST',headers:\{'Content-Type':'application\/json'\},\s*body:JSON\.stringify\(\{team:syncTeam\(\),metier:metierId\(\),code:code\|\|undefined,demande,profond:!!profond\}\)/.test(APP));   // v778 : + le CODE du métier (jamais un client)
 vrai('l’explication d’un incident envoie message, trace, écran et extrait de code (« Expliquer la cause »)', /'- message : ' \+ [^\n]*issue\.message/.test(INDEX) && /issue\.stack \? '- trace/.test(INDEX) && /écran ouvert : ' \+ \(issue\.categorie/.test(INDEX) && /Code du dépôt autour de/.test(INDEX));
 const ANTH = [['conditions_generales.txt', CG], ['dpa.txt', DPA], ['sous-traitance.html', SOUS], ['registre-traitements.html', REG], ['confidentialite.html', CONF]];
 for (const [f, T] of ANTH) {

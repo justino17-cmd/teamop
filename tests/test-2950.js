@@ -181,7 +181,9 @@ console.log('\n6. Les vraies fonctions, jouées pour chacun des 23 métiers');
   }
   for (const f of Object.keys(rate)) egal('⛔ ' + { pack: 'metierPackDe rend le pack du métier', id: 'metierId / estMetier3D', types: 'intTypes rend les types du pack (la 3D : INT_TYPES)', masque: 'metierBloque ferme les six rubriques de la 3D hors 3D, aucune dans la 3D', set: 'metierSet bascule sur ce métier (un save, une ligne de journal)', serveur: 'metierServeurAppliquer accepte le métier une fois, la seconde fois ne fait rien' }[f] + ' — pour les 23', rate[f], []);
   const beta = monter(true, { metier: 'plomberie' });
-  vrai('   la bêta voit tout : metierBloque rend faux pour un plombier (BETA_ESSAI)', MASQUE_HORS_3D.every(c => beta.metierBloque(c) === false));
+  /* v778 : la bêta voit toute la 3D (son outil de travail) ; un métier AUTRE choisi par « Tester un métier » applique son masque, comme chez un client */
+  vrai('   la bêta, métier 3D : metierBloque rend faux (la bêta voit tout en 3D)', MASQUE_HORS_3D.every(c => monter(true, { metier: '3d' }).metierBloque(c) === false));
+  vrai('   la bêta, métier plomberie : le masque du métier s\'applique (v778)', MASQUE_HORS_3D.every(c => beta.metierBloque(c) === true));
   const X = monter(false, {});
   egal('⛔ une valeur étrangère n\'entre jamais (hors liste, propriété héritée, pas une chaîne)', ['boulangerie', '__proto__', 'toString', 'constructor', 42, null, 'Piscine'].map(m => X.appliquer({ metier: m })), [false, false, false, false, false, false, false]);
   egal('   un métier inconnu ou absent retombe sur la 3D, comme avant (les entreprises d\'avant le choix du métier)', [X.metierId(), monter(false, { metier: 'boulangerie' }).metierId(), X.metierPackDe({}).nom], ['3d', '3d', REF.metiers['3d'].nom]);
