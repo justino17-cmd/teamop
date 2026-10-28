@@ -53,10 +53,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { AsyncLocalStorage } = require('async_hooks');
+const { parisParties, tsParis } = require('./agents-horaires');
 
-/* Le registre. `plafondUsd` n'est PAS appliqué ici : il décrit le plafond mensuel qu'on pose sur le
-   workspace de l'agent dans la Console Anthropic, chaque workspace ayant sa propre clé. Les 195 $
-   laissent 5 $ de réserve sur les 200 $ du crédit mensuel. */
+/* Le registre. `plafondUsd` n'est pas appliqué PAR CE FICHIER, mais il l'est : `cerveau.js` (lignes `plafond_agent`) refuse tout appel d'un agent qui a dépensé son plafond du MOIS, et en dérive son
+   plafond du JOUR (max(1,50 $, 20 %) pour ce qu'il fait seul — le budget du jour, 28 octobre 2026). Il décrit aussi le plafond qu'on pose sur le workspace de l'agent dans la Console Anthropic,
+   chaque workspace ayant sa propre clé (l'ancien commentaire de cette ligne disait « n'est PAS appliqué » : faux depuis le 19 octobre). Les 195 $ laissent 5 $ de réserve sur les 200 $ du crédit mensuel. */
 const AGENTS = [
   { id: 'victor',  nom: 'Victor',  role: 'Chef d’orchestre',             couche: 'Coordination', vague: 2, plafondUsd: 15 },
   { id: 'ines',    nom: 'Inès',    role: 'Contrôle qualité',             couche: 'Coordination', vague: 2, plafondUsd: 5 },
@@ -147,6 +148,15 @@ const CONSIGNE_MAX = 500;
 const CONSIGNE_VIE_MS = 7 * 86400000;     // une consigne vit plus longtemps qu'une demande fermée : c'est du vrai travail, pas un relais
 const CONSIGNES_PAR_AGENT = 10;           // en cours, par agent : un agent qui s'emballe ne s'attribue pas la file
 const SANS_CONSIGNE_LIBRE = ['hugo', 'margaux'];   // l'argent et les accès : du texte libre ne leur vient QUE de Justin
+/* LES OUTILS PROPRES QUE LE CHEF PEUT DÉCLENCHER POUR JUSTIN (28 octobre 2026, « les agents doivent être autonomes de A à Z ») : un outil propre ne valait que d'un message de Justin LUI-MÊME
+   (`c.de === 'justin'`) ; Justin écrit désormais à Victor, qui répartit — il faut donc que « Victor, demande à Sarah d'écrire l'annonce » fonctionne. UNE table, UNE définition, et ELLE SEULE décide
+   (`agent-equipe.js` calcule `c.deChef` à partir d'elle, jamais à partir de ce que le modèle écrit) :
+     · sarah : rédiger l'annonce — elle est DÉPOSÉE en validation, rien ne part sans Justin ;
+     · victor : planifier / annuler une réunion — un effet interne, réversible ;
+     · camille : reprendre l'arriéré du courrier — des BROUILLONS que Justin valide (le module de Camille doit lire `c.deChef` et `c.texteRacine`) ;
+   ⛔ ET PAS : emma (`proposer_creneaux` ENVOIE un courriel à un prospect — un envoi à un client), hugo et margaux (l'argent et les accès : du texte libre ne leur vient que de Justin, jamais d'un
+   collègue, racine ou pas). Un outil ajouté ici ne doit être ni un envoi à un client, ni l'argent, ni un accès. */
+const OUTILS_PROPRES_DELEGABLES = { sarah: ['rediger_annonce'], victor: ['planifier_reunion', 'annuler_reunion'], camille: ['reprendre_courriels_anciens'] };
 
 /* Valide `params` contre le schéma de `type`. Rend les paramètres NETTOYÉS (uniquement les champs du
    schéma, rien d'autre ne passe) ou null. Un champ en trop, un champ manquant, une valeur hors forme,
@@ -433,7 +443,7 @@ module.exports = function monterAgents(app, ctx) {
     const en = enCours(vers);
     if (en.length >= CONSIGNES_PAR_AGENT) return { ok: false, raison: 'trop_de_taches' };
     if (en.some(k => k.type === 'consigne' && k.params.texte === t)) return { ok: false, raison: 'doublon' };
-    const k = { id: nouvelId(), ts: maintenant(), de: demandeur, vers, type: 'consigne', params: { texte: t }, statut: 'prise' };
+    const k = { id: nouvelId(), ts: maintenant(), de: demandeur, vers, type: 'consigne', params: { texte: t }, statut: 'prise', majTs: maintenant() };
     taches.push(k);
     if (taches.length > TACHES_MAX) {
       const finies = taches.filter(x => x.statut !== 'attente' && x.statut !== 'prise');
@@ -460,16 +470,56 @@ module.exports = function monterAgents(app, ctx) {
     if (k.vers !== par && par !== 'victor') return refus('pas_le_tien');
     if (!IDS.has(vers) || vers === k.vers) return refus('destinataire');
     if (SANS_CONSIGNE_LIBRE.includes(vers)) return refus('jamais_hugo_margaux');
-    if (enCours(k.vers).length < 2) return refus('pas_charge');
-    if (enCours(vers).length > 0) return refus('occupe');
+    /* (28 octobre 2026) le CHEF répartit : le titulaire n'a plus besoin d'être chargé de deux tâches, et le destinataire peut en avoir jusqu'à deux (moins de trois). Les autres gardent la règle de
+       Justin du 23 octobre : « si une personne est occupée et qu'une autre ne fait rien et peut gérer ». Hugo et Margaux sont refusés plus haut, pour tout le monde. */
+    const chef = par === 'victor';
+    if (!chef && enCours(k.vers).length < 2) return refus('pas_charge');
+    if (enCours(vers).length >= (chef ? 3 : 1)) return refus('occupe');
     const p = peutAgir(vers);
     if (!p.ok) return refus(p.raison);
     if (!peutAgir(par).ok) return refus(peutAgir(par).raison);
     const ancien = k.vers;
-    k.vers = vers; k.passePar = (k.passePar || []).concat(ancien).slice(-5);
-    if (!ecrire(F_TACHES, taches)) { k.vers = ancien; k.passePar = k.passePar.slice(0, -1); if (!k.passePar.length) delete k.passePar; return { ok: false, raison: 'ecriture' }; }
+    const majAvant = k.majTs;
+    k.vers = vers; k.passePar = (k.passePar || []).concat(ancien).slice(-5); k.majTs = maintenant();
+    if (!ecrire(F_TACHES, taches)) { k.vers = ancien; k.passePar = k.passePar.slice(0, -1); if (!k.passePar.length) delete k.passePar; if (majAvant === undefined) delete k.majTs; else k.majTs = majAvant; return { ok: false, raison: 'ecriture' }; }
     noter(par, 'passer une consigne', { cible: ancien + ' → ' + vers, resultat: 'ok', detail: k.params.texte });
     return { ok: true, de: ancien, vers, texte: k.params.texte, demandePar: k.de };
+  }
+
+  /* LE MÊME TRAVAIL NE SE DONNE PAS DEUX FOIS (28 octobre 2026, Victor répartit) : y a-t-il déjà, EN COURS chez n'importe qui, une consigne qui dit la même chose ? Le texte est comparé sans accent, sans
+     casse, sans ponctuation. `{ id, vers }` ou `null`. */
+  const normTexte = t => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  function consigneOuverte(texte) {
+    const n = normTexte(proprement(texte));
+    if (!n || illisibles.has(F_TACHES)) return null;
+    perimer();
+    const k = taches.find(x => x.type === 'consigne' && x.statut === 'prise' && normTexte(x.params && x.params.texte) === n);
+    return k ? { id: k.id, vers: k.vers } : null;
+  }
+  /* Le début du jour de Paris (ms) — « aujourd'hui » du journal de chacun. */
+  const debutDuJour = () => { const p = parisParties(maintenant()); return tsParis(p.annee, p.mois, p.jour, 0, 0); };
+  /* CE QU'UN AGENT A FAIT AUJOURD'HUI, en NOMBRES (28 octobre 2026 : « faites-moi un point de votre journée » — Emma, Sarah, Lola et Noah n'avaient aucun fait et répondaient « RAS » ou inventaient) :
+     tâches terminées / échouées, tâches en cours, demandes déposées en validation, refus. Des entiers — jamais un texte. */
+  function bilan(id) {
+    if (!IDS.has(id)) return null;
+    const t0 = debutDuJour();
+    const termine = taches.filter(k => k.vers === id && Number(k.finTs) >= t0);
+    return { terminees: termine.filter(k => k.statut === 'faite').length, echouees: termine.filter(k => k.statut === 'echec').length, enCours: illisibles.has(F_TACHES) ? null : enCours(id).length,
+      propositions: validations.filter(v => v.agent === id && v.ts >= t0).length, acceptees: validations.filter(v => v.agent === id && v.decideTs >= t0 && v.statut === 'accepte').length,
+      refus: journal.filter(e => e.agent === id && e.ts >= t0 && e.resultat === 'refuse').length };
+  }
+  /* Les consignes « prises » sans mouvement depuis `ageMs` et pas encore relancées : pour le point de suivi de Victor. Il ne relance qu'UNE fois chacune (`suiviFait`). */
+  function consignesEnRetard(ageMs) {
+    if (illisibles.has(F_TACHES)) return [];
+    perimer();
+    const t = maintenant();
+    return taches.filter(k => k.type === 'consigne' && k.statut === 'prise' && t - (Number(k.majTs) || k.ts) >= ageMs && !(Number(k.suiviTs) > 0)).map(k => ({ id: k.id, vers: k.vers, de: k.de, texte: k.params.texte, depuis: t - (Number(k.majTs) || k.ts) }));
+  }
+  function suiviFait(ids) {
+    const t = maintenant(); let n = 0;
+    for (const k of taches) if (ids.includes(k.id) && k.statut === 'prise') { k.suiviTs = t; n++; }
+    if (n && !ecrire(F_TACHES, taches)) return false;
+    return true;
   }
 
   /* Ce que chacun a en cours : des NOMBRES pour tous, le détail pour l'agent lui-même. `null` si la file est illisible (on ne sait pas : on ne répartit rien). */
@@ -746,7 +796,7 @@ module.exports = function monterAgents(app, ctx) {
   /* Les validations EN ATTENTE, à la lecture (23 octobre 2026 : Inès les voit vieillir, Victor les compte) : { agent, type, ts } — jamais le résumé ni les paramètres, qui sont des phrases de
      l'équipe. `null` si la file est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
   const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
-  return { peutAgir, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
+  return { peutAgir, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, consigneOuverte, bilan, consignesEnRetard, suiviFait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;
@@ -757,3 +807,4 @@ module.exports.TYPES_TACHE = TYPES_TACHE;
 module.exports.paramsValides = paramsValides;
 module.exports.CONSIGNE_MAX = CONSIGNE_MAX;
 module.exports.SANS_CONSIGNE_LIBRE = SANS_CONSIGNE_LIBRE;
+module.exports.OUTILS_PROPRES_DELEGABLES = OUTILS_PROPRES_DELEGABLES;

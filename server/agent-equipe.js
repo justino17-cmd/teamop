@@ -25,7 +25,7 @@
 'use strict';
 const AC = require('./agent-conversation');
 const { fermer, raccourcir, sansTel, ADRESSE, CAUSES, FORME_DOSSIER } = AC;
-const { SANS_CONSIGNE_LIBRE } = require('./agents');
+const { SANS_CONSIGNE_LIBRE, OUTILS_PROPRES_DELEGABLES } = require('./agents');
 const { GROUPES, RACINE } = require('./conversations');
 
 const HISTORIQUE_N = 15;
@@ -124,9 +124,20 @@ function outilsDe(id, o) {
       input_schema: { type: 'object', properties: { vers: { type: 'string', enum: collegues }, tache: champTache, raison: { type: 'string' } }, required: ['vers', 'tache', 'raison'], additionalProperties: false } },
     { name: 'terminer', description: 'Marquer une de tes tâches en cours comme terminée, avec un résumé d’une phrase.',
       input_schema: { type: 'object', properties: { tache: champTache, resume: { type: 'string' } }, required: ['tache', 'resume'], additionalProperties: false } },
-    { name: 'demander_justin', description: 'Poser une question que Justin doit trancher : elle arrive dans ton fil privé avec lui, en « important » (il est notifié). Une question à la fois, courte.',
+    { name: 'demander_justin', description: 'Poser une question que Justin doit trancher : elle arrive dans ton fil privé avec lui, en « important » (il est notifié). Une question à la fois, courte. Elle ne bloque JAMAIS le reste de ton travail : en mode Auto, tu ne t’en sers que pour ce qui lui est réservé (l’argent, un accès, une décision).',
       input_schema: { type: 'object', properties: { question: { type: 'string' } }, required: ['question'], additionalProperties: false } },
+    /* (28 octobre 2026, Justin : « J'aimerais que les agents communiquent entre eux. Parce que là, il n'y a aucune communication ») DEMANDER : le moyen de joindre un collègue DEPUIS N'IMPORTE OÙ. Dans un fil
+       privé, `membresDe` n'a que l'agent : « @camille » écrit dans sa réponse n'y réveille personne. Le CODE écrit « @collègue … » dans « Équipe », où tout le monde est membre, avec la racine et la
+       profondeur de ce réveil. */
+    { name: 'demander', description: 'Demander quelque chose à un collègue, ou lui poser une question : le serveur écrit pour toi « @collègue ton texte » dans le groupe « Équipe » et le réveille. C’est le SEUL moyen de joindre un collègue depuis ton fil privé avec Justin (une citation écrite dans ta réponse n’y réveille personne). Au plus deux demandes par réponse, 500 caractères au plus. Ce n’est pas un moyen de lui confier un travail suivi : c’est le rôle de Victor (assigner).',
+      input_schema: { type: 'object', properties: { vers: { type: 'string', enum: Array.isArray(o.pairs) ? o.pairs : collegues }, texte: { type: 'string' } }, required: ['vers', 'texte'], additionalProperties: false } },
   ];
+  /* ASSIGNER : pour le chef seul (`o.chef`). « Qui fait quoi » : le travail devient la tâche en cours du collègue, « demandée par » Victor, et il est réveillé (le serveur écrit « @collègue … » dans « Équipe »).
+     Refusé si le même travail est déjà en cours chez quelqu'un ; jamais de texte libre à Hugo ni Margaux (`SANS_CONSIGNE_LIBRE`, dit par `agents.consigner` — le prompt n'y est pour rien). */
+  if (o.chef) {
+    communs.push({ name: 'assigner', description: 'Confier un travail à un collègue (tu es le chef d’équipe) : il devient SA tâche en cours, « demandée par » toi, et il est réveillé. Dis ce qu’il doit faire en une phrase (500 caractères au plus). Refusé si la même tâche est déjà en cours chez quelqu’un (« déjà pris par … »). Jamais Hugo ni Margaux : l’argent et les accès ne reçoivent un travail en texte libre que de Justin. Au plus deux par réponse, avec demander.',
+      input_schema: { type: 'object', properties: { vers: { type: 'string', enum: collegues }, texte: { type: 'string' } }, required: ['vers', 'texte'], additionalProperties: false } });
+  }
   /* L'ARBITRAGE (23 octobre 2026) : un SIXIÈME outil, pour Victor seul — `o.arbitre` n'est vrai que pour lui, et seulement quand le module qui range la décision est monté. La règle (deux agents, une décision
      écrite, ce qui touche à l'argent ou aux accès devient une question à Justin) vit dans `agent-victor.js` : ce fichier-ci ne fait que l'offrir et passer l'appel. */
   if (o.arbitre) {
@@ -232,6 +243,10 @@ module.exports = function agentEquipe(ctx) {
       '- Tu réponds toujours par un message, même court, avant ou avec tes outils. Une seule exception : un COLLÈGUE te cite seulement pour t’informer (une décision prise, un merci, « rien ne change pour toi ») et tu n’as rien à ajouter — tu réponds alors exactement « RAS » et rien d’autre ; tes outils, eux, s’appliquent. Pour parler à un collègue, cite-le dans ton message avec @ suivi de son identifiant (par exemple @lea) : c’est ainsi qu’il le lit. @tous cite tout le fil.\n' +
       '- Outil prendre : tu acceptes un travail, il devient ta tâche. Outil terminer : c’est fait. Outil passer : seulement si tu es vraiment chargé (une autre tâche en cours) et à un collègue libre, jamais Hugo ni Margaux, et tu en dis la raison ; un collègue libre peut aussi proposer de prendre une tâche d’un collègue chargé. Dès que tu aurais trois tâches en cours ou plus (le nouveau travail compris) et qu’un collègue est libre (voir « Charge de l’équipe »), tu ne gardes pas tout : dans la même réponse, tu passes à ce collègue celle de tes tâches déjà en cours qui lui va le mieux (outil passer, son identifiant est entre crochets dans « Tes tâches en cours »), avec la raison, et tu le dis. Outil demander_justin : une décision qui lui revient.\n' +
       '- Hugo et Margaux (l’argent, les accès) ne reçoivent de travail en texte libre que de Justin. Une QUESTION fermée n’est pas un travail : « le dossier DOS-… a-t-il payé ? », tu la leur poses toi-même en les citant (@hugo, @margaux), ils te répondent. Quand Justin te demande de poser une question à un collègue, tu la poses toi-même DANS CE FIL, dans ta réponse, en le citant (pas avec l’outil ecrire dans un autre fil) : il te répond ici, et Justin lit sa réponse.\n' +
+      '- Pour joindre un collègue ou lui demander quelque chose, l’outil demander : le serveur écrit « @collègue … » dans le groupe Équipe et le réveille. Depuis ton fil privé avec Justin c’est le SEUL moyen (une citation écrite dans ta réponse n’y réveille personne). Au plus deux demandes par réponse.\n' +
+      '- Une question, un « point », un avis ne sont pas une tâche : prendre ne sert que pour un travail qui dure au-delà de ta réponse. Quand tu as fini un travail, tu le dis avec terminer : le serveur l’annonce lui-même dans Équipe (« Je viens de… »).\n' +
+      '- Tu es autonome : tu vas au bout de ce qui est à toi sans attendre qu’on te le redise. Demander à Justin ne sert que pour ce qui lui est réservé (l’argent, un accès, une décision) et ne bloque jamais le reste de ton travail. Le bloc « Travail en cours dans l’équipe » dit ce qui est déjà pris : tu ne le refais pas, tu en parles à son titulaire.\n' +
+      (id === 'victor' ? '- TU ES LE CHEF D’ÉQUIPE. Quand Justin écrit sans citer personne (ou à toute l’équipe), tu réponds avec les faits du bloc « Journée de l’équipe » et tu répartis : l’outil assigner (« qui fait quoi », avec le nom du titulaire) confie un travail, l’outil demander pose une question. Une question ou un « point » n’est pas une tâche. Tu ne cites un collègue que par assigner ou demander, deux au plus par réponse. Hugo et Margaux (l’argent, les accès) ne reçoivent de toi que des QUESTIONS fermées (demander), jamais un travail en texte libre.\n' : '') +
       (id === 'victor' ? '- Tu vois la charge de chacun : si un collègue est débordé et qu’un autre est libre, tu peux redistribuer avec l’outil passer, et tu le dis dans le fil. Quand deux collègues ne sont pas d’accord (ou qu’on te demande de trancher), tu arbitres avec l’outil arbitrer : une décision écrite ; ce qui touche à l’argent, un contrat, un accès ou des données est à Justin, tu lui poses la question avec pour_justin.\n' : '') +
       memoire(id) + modeDe(id, mode);
   }
@@ -265,6 +280,35 @@ module.exports = function agentEquipe(ctx) {
     return txt;
   }
 
+  /* LE TRAVAIL DÉJÀ PRIS (28 octobre 2026) : « Tout le monde fait tout et rien en même temps ». Qui fait quoi, en douze lignes au plus (titulaire, titre court) : on ne redemande pas, on ne refait pas ce qui est pris. */
+  function blocTravail(id) {
+    if (id === 'victor') return '';   // il a déjà « Tâches en cours de l’équipe (pour redistribuer) », avec les identifiants
+    const lignes = [];
+    for (const x of ids) {
+      let l = []; try { l = agents.tachesDe(x); } catch (e) { l = []; }
+      for (const t of l) if (t.type === 'consigne' && lignes.length < 12) lignes.push('- ' + x + ' : « ' + affichable(t.texte, 60) + ' »');
+    }
+    return '\nTravail en cours dans l’équipe (titulaire : titre court) :' + (lignes.length ? '\n' + lignes.join('\n') : ' rien.');
+  }
+  /* SA JOURNÉE, en NOMBRES (28 octobre 2026) : « faites-moi un point de votre journée » — Emma, Sarah, Lola et Noah n'avaient aucun fait et répondaient « RAS » ou inventaient. Chaque rôle a désormais
+     son journal du jour, relevé par le serveur (`agents.bilan`) ; Victor a en plus celui de TOUTE l'équipe, compilé par le code, qui lui suffit pour faire le point même quand des agents sont à budget épuisé. */
+  const nb = x => (typeof x === 'number' && Number.isFinite(x) ? String(x) : 'inconnu');
+  function blocJournal(id) {
+    let b = null; try { b = typeof agents.bilan === 'function' ? agents.bilan(id) : null; } catch (e) { b = null; }
+    if (!b) return '\nTon journal du jour : illisible — tu dis que tu ne le connais pas.';
+    return '\nTon journal du jour (relevé du serveur ; c’est tout ce que tu peux dire de ta journée) : tâches terminées ' + nb(b.terminees) + ' ; échouées ' + nb(b.echouees) + ' ; en cours ' + nb(b.enCours) +
+      ' ; demandes déposées en validation ' + nb(b.propositions) + ' (acceptées par Justin ' + nb(b.acceptees) + ') ; gestes refusés ' + nb(b.refus) + '.';
+  }
+  function blocJourneeEquipe(id) {
+    if (id !== 'victor') return '';
+    const l = [];
+    for (const x of ids) {
+      let b = null, m = ''; try { b = agents.bilan(x); m = agents.modeDe(x); } catch (e) { b = null; }
+      l.push('- ' + x + ' (' + (m === 'auto' ? 'auto' : m === 'brouillon' ? 'brouillon' : 'arrêt') + ') : terminées ' + nb(b && b.terminees) + ', en cours ' + nb(b && b.enCours) + ', validations déposées ' + nb(b && b.propositions) + ', refus ' + nb(b && b.refus));
+    }
+    return '\nJournée de l’équipe (relevé du serveur, compilé par le code — tu n’as pas besoin de réveiller personne pour la lire) :\n' + l.join('\n');
+  }
+
   async function lire(f, ...args) {
     if (typeof faits[f] !== 'function') return null;
     try { const r = await faits[f](...args); return r == null ? null : fermer(r); } catch (e) { return null; }
@@ -285,7 +329,7 @@ module.exports = function agentEquipe(ctx) {
   }
   async function blocFaits(id, fil) {
     const voulus = ROLES[id].faits;
-    if (!voulus.length) return '\nBloc Faits : aucun fait n’est fourni à ton rôle — tu ne connais que ta mission ; pour tout chiffre ou toute donnée, tu dis que tu ne sais pas.';
+    if (!voulus.length) return '\nBloc Faits : aucun fait n’est fourni à ton rôle — tu ne connais que ta mission et ton journal du jour (ci-dessus) ; pour tout autre chiffre ou toute autre donnée, tu dis que tu ne sais pas.';
     const lignes = [];
     for (const f of voulus) {
       if (f === 'dossier' || f === 'facture') {
@@ -367,11 +411,52 @@ module.exports = function agentEquipe(ctx) {
       /* ⛔ UNE RÉPONSE, UN MESSAGE (examen du 27 octobre 2026 à 12 h 19, scénario 5) : Victor tranchait dans sa réponse, puis l'outil ecrire redisait la décision
          DANS LE MÊME FIL (« @lea @camille Tranché : on combine… ») — deux messages pour un seul réveil, que l'examen lit comme un Victor qui se répète. Sa
          réponse est déjà dans ce fil : un ecrire vers CE fil, après elle, ne s'écrit pas. Vers un AUTRE fil, il reste permis (c'est son rôle). */
-      if (fil === c.fil && c.dejaDit) return refus('deja_dit_ici');
+      /* (28 octobre 2026) …sauf si l'écrit CITE un collègue que la réponse ne citait pas : c'est alors une réponse à un collègue, pas la redite d'une décision */
+      const citeA = tt => new Set([...String(tt || '').matchAll(/@([\p{L}\p{N}_]+)/gu)].map(x => parNom.get(String(x[1]).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase())).filter(Boolean));
+      const nouveauxCites = [...citeA(str('texte'))].filter(x => x !== id && !citeA(c.reponse).has(x));
+      /* …ET qu'il ne REDIT pas la réponse : « Tranché : on combine, J+2 puis J+7 » après « Je tranche : une relance à J+2, puis une dernière à J+7 » est la redite que l'examen reprochait à Victor, citation ou non
+         (test-3075). Plus de la moitié des mots du nouveau texte (hors citations) déjà dans la réponse : c'est une redite. */
+      const mots = tt => new Set(String(tt || '').replace(/@[\p{L}\p{N}_]+/gu, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/[^a-z0-9+]+/).filter(w => w.length > 1));
+      const mNouveau = mots(str('texte')), mReponse = mots(c.reponse);
+      const redite = mNouveau.size > 0 && [...mNouveau].filter(w => mReponse.has(w)).length / mNouveau.size >= 0.5;
+      if (fil === c.fil && c.dejaDit && (!nouveauxCites.length || redite)) return refus('deja_dit_ici');
       const t = raccourcir(masquer(str('texte')));
       if (!t) return refus('texte');
       const r = conversations.parler(id, fil, t, { niveau: 'info', prof: c.prof });
       return r.ok ? bon(fil) : refus(r.raison);
+    }
+    if (a.nom === 'demander') {
+      const vers = str('vers');
+      if (!ids.includes(vers) || vers === id) return refus('destinataire');
+      if (c.demandes && c.demandes.n >= 2) return refus('trop_de_demandes');
+      const t = court(masquer(str('texte')).replace(/@/g, ' ').replace(/\s+/g, ' ').trim(), 500);
+      if (!t) return refus('texte');
+      const r = conversations.parler(id, 'equipe', '@' + vers + ' ' + t, { niveau: 'info', prof: c.prof, racine: c.racine });
+      if (!r.ok) return refus(r.raison);
+      if (c.demandes) c.demandes.n++;
+      if (c.fil !== 'equipe') dire(c.fil, nom + ' vient de demander à ' + nomDe(vers) + ' : « ' + court(t, 90) + ' »');
+      return bon('demande ' + vers);
+    }
+    if (a.nom === 'assigner') {
+      if (id !== 'victor') return refus('outil_inconnu');
+      const vers = str('vers'), t = court(masquer(str('texte')).replace(/@/g, ' ').replace(/\s+/g, ' ').trim(), 500);
+      if (!ids.includes(vers) || vers === id) return refus('destinataire');
+      if (SANS_CONSIGNE_LIBRE.includes(vers)) return refus('consigne_libre_refusee', nom + ' ne peut pas confier de travail en texte libre à ' + nomDe(vers) + ' : seul Justin le fait (l’argent et les accès). Une question fermée passe par demander.');
+      if (c.demandes && c.demandes.n >= 2) return refus('trop_de_demandes');
+      if (!t) return refus('texte');
+      const deja = agents.consigneOuverte(t);
+      if (deja) return refus('doublon', nom + ' voulait confier « ' + court(t, 90) + ' » à ' + nomDe(vers) + ' : déjà pris par ' + nomDe(deja.vers) + '.');
+      const r = agents.consigner(id, vers, t);
+      if (!r.ok) {
+        const motif = { trop_de_taches: nomDe(vers) + ' a déjà trop de tâches en cours', doublon: nomDe(vers) + ' l’a déjà en cours', arret: nomDe(vers) + ' est à l’arrêt', pause: 'les agents sont en pause', hors_heures: nomDe(vers) + ' est hors des heures de travail' }[r.raison] || r.raison;
+        return refus(r.raison, nom + ' ne peut pas confier « ' + court(t, 90) + ' » à ' + nomDe(vers) + ' : ' + motif + '.');
+      }
+      if (c.demandes) c.demandes.n++;
+      /* le collègue est RÉVEILLÉ par le message du code dans « Équipe » (sa tâche existe déjà : il la voit dans « Tes tâches en cours ») */
+      const w = conversations.parler(id, 'equipe', '@' + vers + ' ' + t, { niveau: 'info', prof: c.prof, racine: c.racine });
+      if (!w.ok) journal(id, 'outil assigner', 'refuse', 'réveil : ' + w.raison);
+      if (c.fil !== 'equipe') dire(c.fil, nom + ' a confié « ' + court(t, 90) + ' » à ' + nomDe(vers) + '.');
+      return bon('assigne ' + vers);
     }
     if (a.nom === 'prendre') {
       const t = court(masquer(str('texte')).replace(/\s+/g, ' ').trim(), 500);
@@ -403,7 +488,15 @@ module.exports = function agentEquipe(ctx) {
     }
     if (outilsPropres(id).some(t => t.name === a.nom) && typeof propres[id].executer === 'function') {
       /* un outil PROPRE : son module le valide et l'exécute (asynchrone) ; le résultat est journalisé ici, et sa phrase éventuelle dite dans le fil par le système */
-      return Promise.resolve().then(() => propres[id].executer(a.nom, e, { fil: c.fil, de: c.d.de, texte: String(c.d.texte || ''), prof: c.prof })).then(x => {
+      /* ⛔ `deChef` / `racine` / `texteRacine` : trois champs que le MODÈLE ne contrôle pas — ils viennent du registre. Un outil propre ne les reçoit que s'il est dans la table des outils délégables
+         (`OUTILS_PROPRES_DELEGABLES`, agents.js : jamais l'argent, un accès, ni un envoi à un client), que son agent n'est ni Hugo ni Margaux, que le message qui l'a réveillé vient de VICTOR, et que la racine
+         de la chaîne est un message de Justin vivant — `texteRacine` est alors le texte de CE message-là, pas celui de Victor. Sinon l'outil ne reçoit rien de tout cela, et son refus d'avant (« seul Justin »)
+         tient. Camille y lit `c.deChef` pour reprendre l'arriéré quand Victor le lui confie sur ordre de Justin. */
+      const delegable = Array.isArray(OUTILS_PROPRES_DELEGABLES[id]) && OUTILS_PROPRES_DELEGABLES[id].includes(a.nom) && !SANS_CONSIGNE_LIBRE.includes(id);
+      const racineDe = delegable && c.racine ? conversations.racine(c.racine) : null;
+      const cOutil = { fil: c.fil, de: c.d.de, texte: String(c.d.texte || ''), prof: c.prof };
+      if (racineDe && c.d.de === 'victor') { cOutil.racine = racineDe.id; cOutil.deChef = true; cOutil.texteRacine = String(racineDe.texte || ''); }
+      return Promise.resolve().then(() => propres[id].executer(a.nom, e, cOutil)).then(x => {
         x = x && typeof x === 'object' ? x : { ok: false, raison: 'erreur' };
         if (x.ligne) dire(c.fil, x.ligne);
         return x.ok ? bon(a.nom) : refus(String(x.raison || 'refus'));
@@ -510,12 +603,14 @@ module.exports = function agentEquipe(ctx) {
     const parle = (texte, niveau) => conversations.parler(id, fil, texte, { niveau: niveau || 'info', prof, racine: racineId, cout, sansReveil: mode === 'tous' || mode === 'synthese' });
     conversations.ecrit(fil, id, true);
     try {
-      const system = systemDe(id, mode) + blocCharge() + blocTaches(id) + await blocFaits(id, fil);
-      const outils = mode === 'tous' ? [] : outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id), taches: tachesOffertes(id), propres: outilsPropres(id), arbitre: id === 'victor' && typeof ctx.arbitrer === 'function' });
+      const composer = async () => systemDe(id, mode) + blocCharge() + blocTaches(id) + blocTravail(id) + blocJourneeEquipe(id) + blocJournal(id) + await blocFaits(id, fil);
+      const system = await composer();
+      const outils = mode === 'tous' ? [] : outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id), pairs: ids.filter(x => x !== id), chef: id === 'victor', taches: tachesOffertes(id), propres: outilsPropres(id), arbitre: id === 'victor' && typeof ctx.arbitrer === 'function' });
       const r = await penser(id, system, messages, mode === 'tous' ? { outils, reflechir: false, maxTokens: TOUS_JETONS } : { outils, reflechir: true });
       if (!r.ok) return echec(id, fil, r.raison, prof);
       if (dernierLu) { vus.set(fil + ':' + id, dernierLu); if (vus.size > 2000) vus.clear(); }
       const sortie = { repondu: false, actions: [] };
+      const demandes = { n: 0 };   // demander + assigner : deux au plus par réponse
       /* « RAS » à un COLLÈGUE qui ne faisait qu'informer (une décision, un merci) : rien n'est écrit — sinon chaque décision de Victor appelait un « Bien noté » de
          chacun (examen du 24 octobre). À Justin, un « RAS » s'écrit tel quel : une question de lui ne reste jamais sans trace. */
       /* « RAS » à une question posée à TOUS (@tous, @équipe) : rien n'est écrit non plus — les collègues qui ont à dire répondent, la question a sa trace. */
@@ -555,8 +650,8 @@ module.exports = function agentEquipe(ctx) {
         if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; if (dit.raison === 'racine_close') refusAvant(id, fil, conversations.peutParler(id, fil, { racine: racineId }), prof); else refusDit(id, fil, dit.raison); }
       }
       for (const a of (mode === 'tous' ? [] : Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
-        let x; try { x = await executer(id, a, { fil, d, prof, dejaDit: sortie.repondu, racine: racineId }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
-        sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison, ici: !!(x.ok && ((a.nom === 'ecrire' && a.entree && a.entree.fil === fil) || (a.nom === 'demander_justin' && fil === id))) });
+        let x; try { x = await executer(id, a, { fil, d, prof, dejaDit: sortie.repondu, reponse: String(texteFinal || ''), racine: racineId, demandes }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
+        sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison, ici: !!(x.ok && ((a.nom === 'ecrire' && a.entree && a.entree.fil === fil) || (a.nom === 'demander_justin' && fil === id) || ((a.nom === 'demander' || a.nom === 'assigner') && fil === 'equipe'))) });
       }
       /* ⛔ DES OUTILS ET PAS UN MOT À JUSTIN (examen du 24 octobre 2026, scénario 4) : priée de demander à Hugo et de rapporter sa réponse, Camille n'a rien dit
          dans le fil de Justin — un seul appel d'outil, la question écrite dans un AUTRE fil. Justin ne voyait rien, et Hugo, cité ailleurs, répondait à côté. Une
@@ -566,7 +661,7 @@ module.exports = function agentEquipe(ctx) {
          l'état d'APRÈS (charge, tâches) : sinon elle décrirait un travail passé comme s'il était encore à faire. */
       if (!r.texte && d.de === 'justin' && sortie.actions.length && !sortie.saute && !sortie.actions.some(a => a.ici)) {
         const faits = sortie.actions.map(a => a.nom + (a.ok ? ' : fait' : ' : refusé (' + (MOTIFS_PASSER[a.raison] || a.raison || 'refus') + ')')).join(' ; ');
-        let systemApres = system; try { systemApres = systemDe(id, mode) + blocCharge() + blocTaches(id) + await blocFaits(id, fil); } catch (err) { systemApres = system; }
+        let systemApres = system; try { systemApres = await composer(); } catch (err) { systemApres = system; }
         const suite = messages.map(m => Object.assign({}, m));
         const fin = suite[suite.length - 1];
         const relance = 'Tes outils sont faits (' + faits + ') : ne les rappelle pas. Écris maintenant, sans outil, ton message pour ce fil, à Justin qui te l’a demandé ici.';

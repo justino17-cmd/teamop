@@ -47,10 +47,10 @@ console.log('\n── 2880 · la messagerie des agents : mentions, réveil, anti
 
   console.log('\n2. Une seule table des membres');
   v('quatre groupes : equipe, clients, plateforme, reunions', CV.GROUPES, ['equipe', 'clients', 'plateforme', 'reunions']);
-  v('« clients » = Léa, Chloé, Camille, Hugo, Margaux, Emma', CV.MEMBRES.clients, ['lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma']);
-  v('« plateforme » = Max, Jules, Théo, Nina, Inès', CV.MEMBRES.plateforme, ['max', 'jules', 'theo', 'nina', 'ines']);
+  v('« clients » = Victor (qui y répartit, 28 octobre 2026), Léa, Chloé, Camille, Hugo, Margaux, Emma', CV.MEMBRES.clients, ['victor', 'lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma']);
+  v('« plateforme » = Victor (qui y répartit, 28 octobre 2026), Max, Jules, Théo, Nina, Inès', CV.MEMBRES.plateforme, ['victor', 'max', 'jules', 'theo', 'nina', 'ines']);
   v('« equipe » et « reunions » = tous', [CV.MEMBRES.equipe, CV.MEMBRES.reunions], ['*', '*']);
-  v('meneurs : equipe → victor, clients → lea, plateforme → max, reunions → victor', CV.MENEUR, { equipe: 'victor', clients: 'lea', plateforme: 'max', reunions: 'victor' });
+  v('meneurs : VICTOR dans les quatre groupes (Justin, 28 octobre 2026 : « Qui gère tout ? ») — Léa et Max répondent quand on les cite', CV.MENEUR, { equipe: 'victor', clients: 'victor', plateforme: 'victor', reunions: 'victor' });
   vrai('tout membre listé existe au registre des agents (ni fantôme ni oubli)', [...CV.MEMBRES.clients, ...CV.MEMBRES.plateforme, ...Object.values(CV.MENEUR)].every(id => REG.includes(id)));
 
   console.log('\n3. Qui est réveillé (pur)');
@@ -115,7 +115,7 @@ console.log('\n── 2880 · la messagerie des agents : mentions, réveil, anti
     v('⛔ c’est MARGAUX qui répond, dans son fil (un seul appel à Claude, le sien)', [H.appels.map(a => a.id), ms.filter(m => m.de === 'margaux').map(m => m.texte)], [['margaux'], ['Sur la compta, je suis à jour : rien en retard côté factures.']]);
     v('⛔ aucune tâche, aucune délégation, aucune demande de validation', [H.agents.charge().margaux, H.agents.charge().victor, H.agents.comptes().tachesEnAttente, H.agents.comptes().validationsEnAttente, fs.existsSync(path.join(H.D, 'agents-taches.json'))], [0, 0, 0, 0, false]);
     v('…et aucun message dans le fil de Victor', (await H.messages('victor')).length, 0);
-    v('la réponse est un « assistant » ; le prompt porte les cinq outils fermés, la réflexion, et rien d’autre que des outils', [H.appels[0].opts.reflechir, H.appels[0].opts.outils.map(o => o.name)], [true, ['ecrire', 'prendre', 'passer', 'terminer', 'demander_justin']]);
+    v('la réponse est un « assistant » ; le prompt porte les six outils fermés (le sixième, `demander`, est celui du 28 octobre 2026 : joindre un collègue depuis un fil privé), la réflexion, et rien d’autre que des outils', [H.appels[0].opts.reflechir, H.appels[0].opts.outils.map(o => o.name)], [true, ['ecrire', 'prendre', 'passer', 'terminer', 'demander_justin', 'demander']]);
     v('la réponse porte la profondeur 1 (Justin = 0) et le message de Justin la profondeur 0', [ms.find(m => m.de === 'margaux').prof, ms.find(m => m.de === 'justin').prof], [1, 0]);
   }
 
@@ -153,7 +153,8 @@ console.log('\n── 2880 · la messagerie des agents : mentions, réveil, anti
     v('⛔ chargée → collègue libre : accepté, la tâche reste demandée par Justin', [r.ok, r.de, r.vers, r.demandePar, H.taches().find(k => k.id === A).vers, H.taches().find(k => k.id === A).de], [true, 'camille', 'lea', 'justin', 'lea', 'justin']);
     v('…et maintenant Léa est occupée : un second passage vers elle est refusé', H.agents.passerConsigne('camille', B, 'lea').raison, 'pas_charge');
     v('Victor répartit le travail des autres : la tâche de Camille (chargée de nouveau) vers un libre', (() => { H.agents.consigner('justin', 'camille', 'Tâche C de Camille'); const c = H.agents.tachesDe('camille'); return H.agents.passerConsigne('victor', c[0].id, 'jules').ok; })(), true);
-    v('…mais pas depuis quelqu’un qui n’est pas chargé', (() => { const l = H.agents.tachesDe('jules')[0]; return H.agents.passerConsigne('victor', l.id, 'noah').raison; })(), 'pas_charge');
+    v('⛔ …Victor, lui, répartit même depuis quelqu’un qui n’est pas chargé (Justin, 28 octobre 2026 : « Qui gère tout ? ») — la règle des deux tâches ne vaut plus que pour les autres', (() => { const l = H.agents.tachesDe('jules')[0]; return H.agents.passerConsigne('victor', l.id, 'noah').ok; })(), true);
+    v('…et un autre agent, lui, reste soumis à la règle (Noah, qui n\u2019a que la tâche reçue de Victor, ne peut pas la repasser : pas chargé)', H.agents.passerConsigne('noah', H.agents.tachesDe('noah')[0].id, 'sarah').raison, 'pas_charge');
     await H.mode('emma', 'arret'); H.agents.consigner('justin', 'camille', 'Tâche D de Camille');
     v('un passage vers un agent à l’arrêt : refusé (il ne peut pas agir)', H.agents.passerConsigne('camille', H.agents.tachesDe('camille')[0].id, 'emma').raison, 'arret');
   }
@@ -209,14 +210,16 @@ console.log('\n── 2880 · la messagerie des agents : mentions, réveil, anti
     vrai('…Hugo a lu le message de Camille (un « user » nommé), pas seulement celui de Justin', /\[Camille a écrit dans le fil Clients\] @hugo, le client X a-t-il payé \?/.test(H.appels[1].messages[H.appels[1].messages.length - 1].content));
   }
   {
-    const H = await monter({ script: (t) => rep((t.id === 'camille' ? '@lea ' : '@camille ') + 'et toi, qu’en penses-tu (' + t.messages.length + ') ?') });
+    const H = await monter({ script: (t) => t.id === 'victor' ? rep('Je tranche : Camille garde le courrier.') : rep((t.id === 'camille' ? '@lea ' : '@camille ') + 'et toi, qu’en penses-tu (' + t.messages.length + ') ?') });
     await H.justin('clients', '@Camille discute avec Léa de la relance');
     await dormir(200);
     const ms = (await H.messages('clients')).filter(m => REG.includes(m.de));
     /* Justin, 28 octobre 2026 : un échange né d'un message de Justin a une RACINE — la borne n'est plus la profondeur 3 mais le budget de la racine, et deux agents qui se répondent À VIDE (ABAB, chacun cite l'autre,
        aucune tâche prise ni terminée) sont coupés au cinquième réveil (le ping-pong). La borne 3 d'avant reste celle de ce qui n'a PAS de racine (le cas suivant). */
-    v('⛔ Justin → Camille ↔ Léa (enraciné) : quatre messages (1, 2, 3, 4), puis le ping-pong coupe — plus trois comme avant la racine', [H.appels.map(a => a.id), ms.map(m => m.prof)], [['camille', 'lea', 'camille', 'lea'], [1, 2, 3, 4]]);
-    vrai('…le quatrième cite Camille, qui ne répond PAS : un message d\u2019agent dont le ping-pong a coupé la suite ne réveille plus personne', ms[3].mentions.includes('camille') && H.appels.length === 4);
+    const sansChef = a => a.id !== 'victor', msA = ms.filter(m => m.de !== 'victor');
+    v('⛔ Justin → Camille ↔ Léa (enraciné) : quatre messages (1, 2, 3, 4), puis le ping-pong coupe — plus trois comme avant la racine', [H.appels.filter(sansChef).map(a => a.id), msA.map(m => m.prof)], [['camille', 'lea', 'camille', 'lea'], [1, 2, 3, 4]]);
+    vrai('…le quatrième cite Camille, qui ne répond PAS : un message d\u2019agent dont le ping-pong a coupé la suite ne réveille plus personne', msA[3].mentions.includes('camille') && H.appels.filter(sansChef).length === 4);
+    vrai('…et VICTOR, membre de « clients » depuis le 28 octobre 2026, est réveillé UNE fois pour arbitrer (sa réponse ne cite personne : la chaîne s\u2019arrête)', H.appels.filter(a => a.id === 'victor').length === 1 && ms.filter(m => m.de === 'victor').length === 1);
     vrai('…et le fil DIT pourquoi, une fois (une ligne du système, pas une « limite de messages par heure »)', (await H.messages('clients')).filter(m => m.de === 'systeme' && /se répondent sans rien faire avancer/.test(m.texte)).length === 1);
     vrai('(population) ce fil ne porte AUCUNE ligne « limite de messages par heure »', !(await H.messages('clients')).some(m => /limite de messages/.test(m.texte)));
   }
@@ -380,7 +383,7 @@ console.log('\n── 2880 · la messagerie des agents : mentions, réveil, anti
   console.log('\n13. Les outils : des schémas fermés');
   {
     const O = EQ.outilsDe('camille', { fils: ['camille', 'equipe'], collegues: ['lea', 'max'] });
-    v('cinq outils, dans cet ordre', O.map(o => o.name), ['ecrire', 'prendre', 'passer', 'terminer', 'demander_justin']);
+    v('six outils, dans cet ordre (`demander`, ajouté le 28 octobre 2026, dernier ; `assigner` n\'existe que pour Victor — test-3117)', O.map(o => o.name), ['ecrire', 'prendre', 'passer', 'terminer', 'demander_justin', 'demander']);
     vrai('⛔ chaque schéma est fermé : additionalProperties:false et tous les champs requis', O.every(o => o.input_schema.type === 'object' && o.input_schema.additionalProperties === false && Object.keys(o.input_schema.properties).every(k => o.input_schema.required.includes(k))));
     v('`ecrire` ne propose que les fils de l’agent ; `passer` que les collègues passables', [O[0].input_schema.properties.fil.enum, O[2].input_schema.properties.vers.enum], [['camille', 'equipe'], ['lea', 'max']]);
     const H = await monter({ script: () => rep('x') });
@@ -398,7 +401,7 @@ console.log('\n── 2880 · la messagerie des agents : mentions, réveil, anti
     const lt = await H.liste({ tous: '1' });
     v('?tous=1 : « Équipe », les trois groupes, puis les seize fils privés', lt.fils.map(f => f.fil), ['equipe', 'clients', 'plateforme', 'reunions', ...REG]);
     const cl = lt.fils.find(f => f.fil === 'clients');
-    v('un groupe porte ses membres (id et nom), son meneur, sa nature', [cl.membres.map(m => m.id), cl.membres[0].nom, cl.meneur, cl.groupe], [CV.MEMBRES.clients, 'Léa', 'lea', true]);
+    v('un groupe porte ses membres (id et nom), son meneur, sa nature', [cl.membres.map(m => m.id), cl.membres[0].nom, cl.meneur, cl.groupe], [CV.MEMBRES.clients, 'Victor', 'victor', true]);   /* Victor est le meneur et le premier membre depuis le 28 octobre 2026 */
     v('un fil privé : un seul membre, pas de meneur, pas un groupe', (f => [f.membres.map(m => m.id), f.meneur, f.groupe])(lt.fils.find(f => f.fil === 'max')), [['max'], '', false]);
     H.conv.parler('lea', 'clients', 'Message 1 de Léa', { prof: 1 }); H.horloge(1000);
     H.conv.parler('camille', 'clients', 'Message 2 de Camille', { prof: 1 }); H.horloge(1000);
@@ -439,7 +442,7 @@ console.log('\n── 2880 · la messagerie des agents : mentions, réveil, anti
     const msg = [{ role: 'user', content: 'Salut' }];
     let r = await C.penser('max', 's', msg, { outils: OUTILS, reflechir: true });
     const q = reqs[0];
-    v('⛔ avec outils et réflexion : thinking adaptatif, 3000 jetons, les cinq outils, choix automatique', [q.thinking, q.max_tokens, q.tools.map(t => t.name), q.tool_choice], [{ type: 'adaptive' }, 3000, ['ecrire', 'prendre', 'passer', 'terminer', 'demander_justin'], { type: 'auto' }]);
+    v('⛔ avec outils et réflexion : thinking adaptatif, 3000 jetons, les six outils, choix automatique', [q.thinking, q.max_tokens, q.tools.map(t => t.name), q.tool_choice], [{ type: 'adaptive' }, 3000, ['ecrire', 'prendre', 'passer', 'terminer', 'demander_justin', 'demander'], { type: 'auto' }]);
     vrai('⛔ jamais temperature / top_p / top_k', !('temperature' in q) && !('top_p' in q) && !('top_k' in q));
     v('sans `reflechir`, ni outils : la requête d’avant (thinking désactivé, 600 jetons, aucune clé de plus)', await (async () => { await C.penser('max', 's', msg); const x = reqs[1]; return [x.thinking, x.max_tokens, Object.keys(x).sort()]; })(), [{ type: 'disabled' }, 600, ['max_tokens', 'messages', 'model', 'system', 'thinking']]);
     v('…et sa réponse garde sa forme d’avant (pas de clé `actions`)', Object.keys(await C.penser('max', 's', msg)).sort(), ['cout', 'ok', 'texte']);

@@ -71,12 +71,14 @@ const SYSTEME_MAX = 300;
 /* ── QUI EST DANS QUEL FIL — la seule définition. `'*'` : tous les agents du registre. Un fil privé n'a qu'un membre : son agent. ── */
 const MEMBRES = {
   equipe: '*',
-  clients: ['lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma'],
-  plateforme: ['max', 'jules', 'theo', 'nina', 'ines'],
+  clients: ['victor', 'lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma'],
+  plateforme: ['victor', 'max', 'jules', 'theo', 'nina', 'ines'],
   reunions: '*',
 };
-/* Qui répond quand Justin écrit dans un groupe sans citer personne. */
-const MENEUR = { equipe: 'victor', clients: 'lea', plateforme: 'max', reunions: 'victor' };
+/* Qui répond quand Justin écrit dans un groupe sans citer personne. (28 octobre 2026, Justin : « Qui gère tout ? » — VICTOR, chef d'équipe, dans les quatre groupes : il répond avec les faits et répartit
+   (`assigner`), Léa et Max répondent quand on les cite. Victor est donc membre de « clients » et « plateforme » : il y voit et y répartit. Pour revenir à Léa et Max, c'est cette table et la précédente ;
+   `test-2880` et `test-3117` la gardent.) */
+const MENEUR = { equipe: 'victor', clients: 'victor', plateforme: 'victor', reunions: 'victor' };
 const NOMS_GROUPES = { equipe: 'Équipe', clients: 'Clients', plateforme: 'Plateforme', reunions: 'Réunions' };
 const GROUPES = Object.keys(MEMBRES);
 
@@ -250,7 +252,7 @@ module.exports = function monterConversations(app, ctx) {
     if (!(now - r.ts >= 0 && now - r.ts < RACINE_VIE_MS)) return null;
     const parAgent = {}; let n = 0, somme = 0;
     for (const x of messages) if (x.racine === id && IDS.has(x.de) && x.fait !== true) { n++; parAgent[x.de] = (parAgent[x.de] || 0) + 1; somme += Number(x.cout) || 0; }
-    return { id, ts: r.ts, age: now - r.ts, vaste: r.vaste === true, messages: n, parAgent, usd: usdRacine.has(id) ? usdRacine.get(id) : somme };
+    return { id, ts: r.ts, age: now - r.ts, vaste: r.vaste === true, messages: n, parAgent, usd: usdRacine.has(id) ? usdRacine.get(id) : somme, texte: r.texte };
   }
   /* L'argent dépensé pour cette racine, par `cerveau.penser` (`cout`) : à ajouter APRÈS chaque appel. Une racine inconnue ne compte rien. */
   function racineDepense(id, usd) {

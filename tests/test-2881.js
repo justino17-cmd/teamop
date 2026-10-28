@@ -50,6 +50,7 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     if (/PASSER-2881/.test(dernier)) { const vers = (/vers=([a-z]+)/.exec(dernier) || [])[1] || 'lea'; return bloc([texte('Je passe ça à ' + vers + '.'), outil('passer', { vers, tache: premiereTache, raison: 'je suis sur autre chose' })], 'tool_use'); }
     if (/TRAVAIL-2881/.test(dernier)) return bloc([texte('Oui, je m’en occupe.'), outil('prendre', { texte: 'Travail demandé : ' + (/TRAVAIL-2881[^.?]*/.exec(dernier) || [''])[0].slice(0, 80) })], 'tool_use');
     if (/ECRIRE-2881/.test(dernier)) return bloc([texte('Je préviens le groupe.'), outil('ecrire', { fil: 'clients', texte: 'Message de ' + nom + ' pour le groupe.' })], 'tool_use');
+    if (/PINGPONG-2881/.test(dernier) && id === 'victor') return bloc([texte('Je tranche : Camille garde le courrier, Léa le suivi.')]);   /* (28 octobre 2026) Victor, membre de « clients », arbitre UNE fois le ping-pong : sa réponse ne cite personne */
     if (/PINGPONG-2881/.test(dernier)) return bloc([texte((id === 'camille' ? '@lea' : '@camille') + ' PINGPONG-2881 : et toi, qu’en penses-tu (' + (globalThis.cptPP = (globalThis.cptPP || 0) + 1) + ') ?')]);   /* numéroté : le MÊME texte deux fois en 24 h est un doublon, refusé par le fil */
     if (/CITE-2881/.test(dernier) && id === 'camille') return bloc([texte('@hugo, la société X a-t-elle payé ? TRAVAIL-2881 vérifier le paiement')]);
     return bloc([texte('Réponse de ' + nom + '.')]); }
@@ -99,7 +100,7 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     v('…Margaux répond dans son fil, signée', mm.filter(m => m.de === 'margaux').map(m => [m.nom, m.texte]), [['Margaux', 'Réponse de Margaux.']]);
     v('⛔ aucune tâche, aucune demande de validation, rien chez Victor', [(await tout()).length, (await S.G('/api/monitor/agents/validations')).j.validations.length, (await msgs('victor')).length], [0, 0, 0]);
     v('la route d’envoi rend le message et les mentions (aucune ici)', [r.j.message.mentions, r.j.mentions], [[], []]);
-    vrai('la requête : réflexion adaptative, 3000 jetons, outils fermés, jamais temperature / top_p / top_k', ap[0].thinking.type === 'adaptive' && ap[0].max_tokens === 3000 && ap[0].tools.length === 6 /* les cinq outils communs + l'outil propre de Margaux (23 octobre 2026 : `preparer_mise_en_demeure`, de Justin seul — `test-2912`) */ && ap[0].tool_choice.type === 'auto' && !('temperature' in ap[0]) && !('top_p' in ap[0]) && !('top_k' in ap[0]));
+    vrai('la requête : réflexion adaptative, 3000 jetons, outils fermés, jamais temperature / top_p / top_k', ap[0].thinking.type === 'adaptive' && ap[0].max_tokens === 3000 && ap[0].tools.length === 7 /* les six outils communs (dont `demander`, 28 octobre 2026) + l'outil propre de Margaux (23 octobre 2026 : `preparer_mise_en_demeure`, de Justin seul — `test-2912`) */ && ap[0].tool_choice.type === 'auto' && !('temperature' in ap[0]) && !('top_p' in ap[0]) && !('top_k' in ap[0]));
     vrai('…le bloc de réflexion du modèle n’est jamais recopié dans le fil', !(await msgs('margaux')).some(m => /réfléchis/.test(m.texte)));
   }
 
@@ -115,7 +116,7 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     v('⛔ chacune a SA tâche « consigne », demandée par Justin', c.map(k => [k.vers, k.de, k.statut]).sort(), [['camille', 'justin', 'prise'], ['lea', 'justin', 'prise']]);
     vrai('…le système le dit (« Camille a pris… »)', mm.filter(m => m.de === 'systeme' && /a pris « Travail demandé/.test(m.texte)).length === 2);
     const l = (await S.G('/api/monitor/conversations?tous=1')).j;
-    v('la liste ?tous=1 : « Équipe », les trois groupes puis les seize fils privés, avec leurs membres', [l.fils.length, l.fils.slice(0, 4).map(f => f.fil), l.fils.find(f => f.fil === 'clients').membres.length], [20, ['equipe', 'clients', 'plateforme', 'reunions'], 6]);
+    v('la liste ?tous=1 : « Équipe », les trois groupes puis les seize fils privés, avec leurs membres', [l.fils.length, l.fils.slice(0, 4).map(f => f.fil), l.fils.find(f => f.fil === 'clients').membres.length], [20, ['equipe', 'clients', 'plateforme', 'reunions'], 7]);   /* sept depuis le 28 octobre 2026 : Victor y répartit */
   }
 
   console.log('\n3. Passer un travail : chargé, vers un collègue LIBRE, jamais Hugo ni Margaux');
@@ -168,11 +169,11 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     await dit('clients', '@Camille discute avec Léa PINGPONG-2881', 1);
     await dormir(1200);
     const ap = recus().slice(n1), mm = (await msgs('clients')).filter(m => REG.includes(m.de) && /PINGPONG-2881/.test(m.texte));
-    v('un message de Justin sans mention dans « plateforme » : le meneur (Max) seul, un appel', [seul, parNom(recus()[n0])], [1, 'Max']);
+    v('un message de Justin sans mention dans « plateforme » : le meneur (VICTOR depuis le 28 octobre 2026, Léa et Max répondent quand on les cite) seul, un appel', [seul, parNom(recus()[n0])], [1, 'Victor']);
     /* Justin, 28 octobre 2026 : l'échange né de son message a une RACINE — quatre messages, puis le ping-pong (ABAB sans acte) coupe ; la borne 3 ne vaut plus que sans racine (test-2880) */
-    v('⛔ Camille → Léa → Camille → Léa puis STOP (le ping-pong) : quatre appels, quatre messages (profondeurs 1, 2, 3, 4)', [ap.map(parNom), mm.map(m => m.prof)], [['Camille', 'Léa', 'Camille', 'Léa'], [1, 2, 3, 4]]);
+    v('⛔ Camille → Léa → Camille → Léa puis STOP (le ping-pong) : quatre appels, quatre messages (profondeurs 1, 2, 3, 4) — puis VICTOR, une fois, pour arbitrer', [ap.map(parNom), mm.map(m => m.prof)], [['Camille', 'Léa', 'Camille', 'Léa', 'Victor'], [1, 2, 3, 4]]);
     await dormir(600);
-    v('…et rien de plus après une pause (le dernier message cite Camille, qui ne répond pas)', recus().length - n1, 4);
+    v('…et rien de plus après une pause (le dernier message cite Camille, qui ne répond pas ; Victor ne cite personne)', recus().length - n1, 5);
   }
 
   console.log('\n6. ecrire : seulement un fil dont l’agent est membre');

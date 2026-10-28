@@ -227,13 +227,13 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
   vrai('…et la règle de Margaux nomme l’argent, celle de Nina la sécurité', /RIEN faire sur l’argent/.test(sys('margaux')) && /RIEN faire sur la sécurité/.test(sys('nina')));
   /* 23 octobre 2026 (cahier §6 et §7, Justin : « des agents qui réfléchissent comme des humains ») : la messagerie fait RÉFLÉCHIR l'agent (thinking adaptatif,
      3000 jetons — la réflexion est prise sur max_tokens) et lui donne cinq outils fermés. Le contrôle reste entier sur ce qui compte : jamais de réglage refusé. */
-  vrai('chaque requête : réflexion adaptative, 3000 jetons, les cinq outils fermés en choix automatique, et JAMAIS temperature / top_p / top_k', corps.every(b => b.max_tokens === 3000 && b.thinking && b.thinking.type === 'adaptive' && !('temperature' in b) && !('top_p' in b) && !('top_k' in b)
-    && b.tool_choice && b.tool_choice.type === 'auto' && Array.isArray(b.tools) && b.tools.map(t => t.name).slice(0, 5).join() === 'ecrire,prendre,passer,terminer,demander_justin'
+  vrai('chaque requête : réflexion adaptative, 3000 jetons, les six outils communs fermés (dont `demander`) en choix automatique, et JAMAIS temperature / top_p / top_k', corps.every(b => b.max_tokens === 3000 && b.thinking && b.thinking.type === 'adaptive' && !('temperature' in b) && !('top_p' in b) && !('top_k' in b)
+    && b.tool_choice && b.tool_choice.type === 'auto' && Array.isArray(b.tools) && b.tools.map(t => t.name).slice(0, 6).join() === 'ecrire,prendre,passer,terminer,demander_justin,demander'   /* + 28 octobre 2026 : `demander` (joindre un collègue depuis un fil privé) */
     /* 23 octobre 2026 (fusion) : Victor, et lui seul, a un sixième outil (l'arbitrage — `agents-plateforme.js`) ; Hugo, Margaux, Emma et Sarah ont UN outil propre de plus
        (fin d'abonnement, mise en demeure, créneaux, annonce) — `test-2915` les joue ; ici, une liste fermée */
-    && (/^Tu es Victor,/.test(b.system) ? b.tools.map(t => t.name).slice(5).join() === 'arbitrer,planifier_reunion,annuler_reunion'   /* + 28 octobre 2026 : les réunions demandées par Justin (test-3087) */
+    && (/^Tu es Victor,/.test(b.system) ? b.tools.map(t => t.name).slice(6).join() === 'assigner,arbitrer,planifier_reunion,annuler_reunion'   /* + 28 octobre 2026 : `assigner`, le chef répartit */   /* + 28 octobre 2026 : les réunions demandées par Justin (test-3087) */
       /* à chacun SON outil (relecture du `gardien` : une liste commune laissait passer un outil de Margaux chez Hugo) ; les autres n'en ont aucun */
-      : b.tools.map(t => t.name).slice(5).join() === ({ Hugo: 'programmer_fin_abonnement', Margaux: 'preparer_mise_en_demeure', Emma: 'proposer_creneaux', Sarah: 'rediger_annonce', Camille: 'reprendre_courriels_anciens' /* 28 octobre 2026 : l'arriéré du courrier */ }[(/^Tu es ([^,]+),/.exec(b.system) || [])[1]] || ''))));
+      : b.tools.map(t => t.name).slice(6).join() === ({ Hugo: 'programmer_fin_abonnement', Margaux: 'preparer_mise_en_demeure', Emma: 'proposer_creneaux', Sarah: 'rediger_annonce', Camille: 'reprendre_courriels_anciens' /* 28 octobre 2026 : l'arriéré du courrier */ }[(/^Tu es ([^,]+),/.exec(b.system) || [])[1]] || ''))));
 
   console.log('\n3. Ce qui part chez Claude : rien d’une personne');
   const tout = corps.map(b => JSON.stringify(b)).join('\n');

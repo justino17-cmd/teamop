@@ -46,7 +46,7 @@ console.log('\n── 3114 · « @tous faites-moi un point de votre journée mer
     const lu = tv.messages.map(m => m.content).join('\n');
     vrai('⛔ la synthèse de Victor LIT les quinze réponses (chacune, avec le nom de son auteur)', sansVictor(H).every(id => lu.includes('Point de ' + id + ' :')), sansVictor(H).filter(id => !lu.includes('Point de ' + id + ' :')).join(','));
     vrai('⛔ …ET la demande d\'origine de Justin est toujours dans ce qu\'il lit (la fenêtre de quinze l\'aurait chassée : seize messages)', /faites-moi un point de votre journée/.test(lu), lu.slice(0, 200));
-    vrai('…avec les outils, la réflexion et le complément « tu es le chef d\'équipe… synthèse de cinq lignes »', tv.requete.tools.includes('assigner') === false && tv.requete.tools.includes('ecrire') && tv.requete.thinking.type === 'adaptive' && /synthèse de cinq lignes/.test(tv.system), JSON.stringify(tv.requete));
+    vrai('…avec les outils (dont assigner et demander), la réflexion et le complément « tu es le chef d\'équipe… synthèse de cinq lignes »', tv.requete.tools.includes('assigner') && tv.requete.tools.includes('demander') && tv.requete.tools.includes('ecrire') && tv.requete.thinking.type === 'adaptive' && /synthèse de cinq lignes/.test(tv.system), JSON.stringify(tv.requete));
     const racine = H.conv.racine(r.corps.message.id);
     vrai('le budget de la racine n\'est PAS atteint (16 messages sur 40 ; moins de 4 $)', racine && racine.messages === 16 && racine.usd < 4 && racine.vaste === true, JSON.stringify(racine));
     vrai('(population) chaque message d\'agent porte la racine de Justin', ag.every(m => H.registre().find(x => x.id === m.id).racine === r.corps.message.id));

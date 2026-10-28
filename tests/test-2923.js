@@ -465,7 +465,7 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     script = () => ({ texte: 'Je tranche.', actions: [{ id: 'tu1', nom: 'arbitrer', entree: { entre: ['camille', 'lea'], decision: 'Camille répond au courrier, Léa suit les prospects', raison: 'un canal chacune' } }], stop_reason: 'tool_use' });
     await justin('equipe', '@Victor, Camille et Léa ne sont pas d’accord sur qui suit les prospects : tranche.', ['victor']);
     const outilsVictor = (B.recus[0].tools || []).map(t => t.name);
-    v('Victor reçoit SIX outils, dont arbitrer', [outilsVictor.length, outilsVictor.includes('arbitrer')], [6, true]);
+    v('Victor reçoit HUIT outils, dont arbitrer (les six communs dont `demander`, `assigner` et l\'arbitrage — 28 octobre 2026)', [outilsVictor.length, outilsVictor.includes('arbitrer')], [8, true]);
     v('⛔ la décision est ÉCRITE par le code, dite dans « Équipe » avec les deux agents cités, au nom de Victor', B.fil('equipe').filter(m => m.de === 'victor' && /^Décision, @Camille @Léa : Camille répond au courrier, Léa suit les prospects — un canal chacune\.$/.test(m.texte)).map(m => m.mentions), [['camille', 'lea']]);
     v('…rangée dans la mémoire de Victor', B.etat.agent('victor').decisions.map(d => d.statut), ['decidee']);
     v('…et le fil ne porte pas de ligne de refus', B.fil('equipe').filter(m => m.de === 'systeme').map(m => m.texte), []);
@@ -475,7 +475,7 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     script = () => 'Réponse du banc.';
     await justin('equipe', '@Margaux, une question simple', ['margaux']);
     const margaux = B.recus.filter(q => /^Tu es Margaux,/.test(q.system)).map(q => q.tools.map(t => t.name))[0];
-    v('⛔ les autres agents n’ont que les CINQ outils de la messagerie : arbitrer est à Victor seul', [margaux.length, margaux.includes('arbitrer')], [5, false]);
+    v('⛔ les autres agents n’ont que les SIX outils communs de la messagerie (dont `demander`) : arbitrer est à Victor seul', [margaux.length, margaux.includes('arbitrer')], [6, false]);
     vrai('…et Victor est prévenu, dans sa consigne, de poser la question à Justin pour l’argent, les contrats, les accès et les données', /Quand deux collègues ne sont pas d’accord .* l’outil arbitrer .* pour_justin/.test(B.recus[0].system), B.recus[0].system.slice(-600));
     B.nettoyer();
     /* sans module d'arbitrage injecté, l'outil n'existe pas */

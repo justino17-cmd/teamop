@@ -51,8 +51,11 @@ function monter(o) {
   const get = async (chemin, params, query) => { const r = fakeRes(); await routes.get[chemin]({ params: params || {}, query: query || {}, tourUser: { nom: 'Justin', role: 'patron' } }, r); return r; };
   /* « calme » : plus aucun réveil en cours, deux relevés de suite */
   const calme = async () => { let calmes = 0; for (let i = 0; i < 400 && calmes < 3; i++) { if (eq.enCours() === 0) calmes++; else calmes = 0; await dormir(8); } };
+  /* La mémoire de Victor (`plateforme-etat.js`) et son module, à la demande : le suivi, le point, l'équilibrage */
+  let etatMod = null;
+  const victor = () => { if (!etatMod) etatMod = require(S('plateforme-etat.js'))({ fichier: require(S('agents-fichier.js'))(D), maintenant }); return require(S('agent-victor.js'))({ agents, conversations: conv, cerveau, etat: etatMod, maintenant, equipe: () => eq }); };
   const H = {
-    D, REG, agents, conv, eq, cerveau, appels, pousses, pont, surBudget, expirations, horloge, horaires, calme, dormir,
+    victor, D, REG, agents, conv, eq, cerveau, appels, pousses, pont, surBudget, expirations, horloge, horaires, calme, dormir,
     avance: ms => { horloge.t += ms; },
     post, get,
     justin: async (fil, texte) => { const r = await post('/api/monitor/conversations/envoyer', { fil, texte }); await calme(); return r; },
@@ -60,7 +63,7 @@ function monter(o) {
     taches: () => { try { return JSON.parse(fs.readFileSync(path.join(D, 'agents-taches.json'), 'utf8')); } catch (e) { return []; } },
     registre: () => JSON.parse(fs.readFileSync(path.join(D, 'agents-messages.json'), 'utf8')),
     budget: () => cerveau.etatBudget(),
-    nettoyer: () => { try { fs.rmSync(D, { recursive: true, force: true }); } catch (e) {} },
+    nettoyer: () => { try { conv.viderFaits(); } catch (e) {} try { fs.rmSync(D, { recursive: true, force: true }); } catch (e) {} },   // les annonces en attente (rafales) s'écrivent AVANT que le dossier ne disparaisse
   };
   return H;
 }
