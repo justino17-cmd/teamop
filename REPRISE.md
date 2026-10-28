@@ -12,6 +12,27 @@ Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici 
 de ligne du tout.
 
 ---
+# 🪟 28 OCTOBRE 2026 (SOIR) — LA MESSAGERIE DE LA TOUR AFFICHE LE VRAI OP MESSAGES (aperçu v2.120, branche `claude/tour-unifiee-fusion` — la vraie Tour attend ta phrase)
+Justin, capture de l'aperçu v2.119 : « là je veux OP MESSAGES avec les mêmes fonctions que OP MESSAGES Pro ». Décision : la rubrique Messagerie (groupe ÉQUIPE D'AGENTS) AFFICHE `https://msg-beta.teamop.fr/` dans un cadre
+plein écran (toute la zone de contenu, téléphone et bureau, jour et nuit), au lieu de recoder photos, vocaux, réunions, appels, groupes… La barre fine du dessus porte « Ouvrir dans un nouvel onglet » et « Ancienne messagerie de la Tour »
+(l'ancienne reste joignable le temps de l'essai, `OPM.ancienne`, le choix ne vaut que pour la séance). Le bandeau « Vos agents sont maintenant dans OP MESSAGES » est retiré. **Côté serveur** (branche `claude/opmsg-dans-la-tour`, commit `9ae409ab`, pas poussée) :
+`frame-ancestors https://teamop.fr` sur la seule page d'accueil, par configuration (`encadrement`), bêta seulement.
+- **⛔ Avant le geste du VPS, le cadre est REFUSÉ** : `OPM_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-cadre.js`, puis `systemctl restart teamop-msg@beta` (`PONT-AGENTS.md`). Tant que ce n'est pas fait, l'aperçu montre le cadre gris/blanc de ton navigateur :
+  les deux liens de la barre sont là. Vérifier ensuite `curl -sI https://msg-beta.teamop.fr/ | grep -i -E 'content-security-policy|x-frame-options'` (aucun `X-Frame-Options` : un seul, ajouté à la main dans nginx, interdirait le cadre malgré la CSP).
+- **Ce que la Tour ne peut PAS savoir** (mesuré, `scratchpad/cadre-tour/essai-refus*.js`) : un cadre refusé tire quand même `load`, et rien de lui n'est lisible (autre origine) ; une sonde `fetch` vers OP MESSAGES échoue même serveur sain
+  (`Cross-Origin-Resource-Policy: same-origin`). La Tour a donc : une carte de repli DERRIÈRE le cadre, le délai (20 s), l'état du réseau, et une **poignée de main** facultative
+  — `parent.postMessage({opmsg:'pret'},'https://teamop.fr')` depuis la page d'OP MESSAGES encadrée (dans un FICHIER : sa CSP refuse un script en ligne). Une fois la poignée vue sur un appareil, son absence est un refus « ne peut pas s'afficher ici ».
+  **Reste à faire côté OP MESSAGES (3 lignes dans son front, hors de ce chantier)** : envoyer cette poignée quand `window.parent!==window` — sans elle, un refus avant le premier succès reste indétectable (Safari : cadre vide ; la barre le dit au bureau, « Rien ne s'affiche ? »).
+- **Pro / Perso** : le côté est une préférence DU COMPTE d'OP MESSAGES (et le passage automatique des heures de travail) ; la Tour ne peut pas le forcer depuis le cadre (autre origine). L'ouvrir sur Pro demanderait que le front lise un fragment (`#pro`) — non fait.
+- **Notifications** : `Notification.requestPermission()` rend « denied » dans un cadre : l'application sur ton téléphone garde les notifications. Connexion : le cookie `__Host-opm` est `SameSite=Strict` mais `msg-beta.teamop.fr` et `teamop.fr` sont du MÊME site : il part dans le cadre
+  (mesuré dans Chromium ; Safari non testé). Il faut un accès bêta OP MESSAGES (Tour › Accès) : on se connecte DANS le cadre. « Parler à X » (page Agents) ouvre la Messagerie, pas le fil de l'agent (l'identifiant de sa conversation est celui d'OP MESSAGES).
+- **« Le lien marche pas »** (bandeau v2.119) : le lien lui-même fonctionne — vrai clic, téléphone et bureau, il ouvre `https://msg-beta.teamop.fr/` dans un nouvel onglet (mesuré sur l'aperçu v2.119 tel quel). Ce qui peut ne « pas marcher » est ce qu'il y a derrière :
+  OP MESSAGES demande SON propre accès (le mot de passe de la Tour n'ouvre pas OP MESSAGES), et le pont des agents n'est pas posé tant que `configurer-pont.js` n'a pas tourné (la liste est alors vide). Sur une Tour d'ESSAI (`test.teamop.fr`) l'adresse est coupée exprès (`.invalid`) : la Messagerie le dit.
+- **Bancs** : `tests/test-3127.js` (72 ✓, les vraies fonctions + faux DOM/minuteries ; 27 mutations sur 27 mordent, `scratchpad/cadre-tour/mutations-3127.py`) ; `test-3091` et `test-2882` mis à jour (le bandeau n'existe plus). Mesure au NAVIGATEUR contre le VRAI service d'OP MESSAGES
+  (`scratchpad/cadre-tour/lib.js` : trois sites HTTPS locaux, 127.0.0.1) : `bench-cadre.js` 77 ✓ · 0 ✗ (liste, conversation, envoi, double défilement, hors ligne, délai, ancienne messagerie, poignée) et `bench-refus.js` 36 ✓ · 0 ✗ (service sans encadrement), captures dans `scratchpad/cadre-tour/`.
+  Deux défauts trouvés PAR ces mesures et corrigés : le voile se levait sur le `load` de la page blanche du cadre (un service qui ne répond jamais passait « ok »), et une page OUVERTE hors ligne ne se remontait pas au retour du réseau.
+
+---
 # 🧑‍💼 28 OCTOBRE 2026 — LA FONCTION DE CHAQUE AGENT SOUS SON NOM DANS OP MESSAGES (branche `claude/opmsg-roles-liste`)
 Justin, devant ses seize agents : « le nom de l'agent et les fonctions, Théo il fait quoi, qui gère quoi ». Le pont rangeait déjà le rôle dans le statut du robot ; la LISTE ne le montrait
 pas. `convListe` rend `autre.statut` ; `resume()` en fait `sousTitre` (80 signes, vide pour un groupe, un compte supprimé, une invitation) ; `ligneConv()` l'écrit sous le nom

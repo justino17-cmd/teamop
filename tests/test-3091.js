@@ -321,23 +321,17 @@ console.log('\n7. Chaque vue est dessinée par une seule branche de renderVue, s
   vrai('…et `sousOnglets` ne dessine rien pour une seule entrée', /function sousOnglets\(vue,segs\)\{\s*if\(segs\.length<2\) return '';/.test(SCRIPTS));
 }
 
-  console.log('\nLe bandeau de la Messagerie (le pont des agents, 28 octobre 2026 — venu de test-3096 : il ne part qu\'avec la Tour unifiée) « Vos agents sont maintenant dans OP MESSAGES »');
+  console.log('\nLa Messagerie (le pont des agents, 28 octobre 2026 — venu de test-3096) : le bandeau « Vos agents sont maintenant dans OP MESSAGES » a laissé la place au CADRE (v2.120)');
+  /* v2.120 (28 octobre 2026 au soir, Justin : « là je veux OP MESSAGES avec les mêmes fonctions que OP MESSAGES Pro ») : la Messagerie AFFICHE le vrai OP MESSAGES dans un cadre. Le bandeau d'avant — un lien
+     vers un AUTRE onglet, posé parce que la politique d'OP MESSAGES interdisait d'être encadré — n'a plus de raison d'être : OP MESSAGES autorise désormais teamop.fr à l'encadrer (configuration de la bêta). Ce banc ne
+     garde donc plus que ce qui reste vrai (l'adresse, le lien vers un nouvel onglet) ; le cadre, ses états et son branchement sont gardés par `test-3127`, qui joue les mêmes fonctions. */
   {
     const TOUR = SRC;
-    const fn = nom => { const i = TOUR.indexOf('function ' + nom + '('); if (i < 0) return ''; let d = 0, j = TOUR.indexOf('{', i); for (; j < TOUR.length; j++) { if (TOUR[j] === '{') d++; else if (TOUR[j] === '}') { d--; if (!d) break; } } return TOUR.slice(i, j + 1); };
-    const src = ['messBandeauOpm', 'vueMessagerie'].map(fn);
-    vrai('(population) les deux fonctions sont trouvées', src.every(x => x.length > 60));
     const ADR = (/var BETA_MSG_ADRESSE='([^']+)';/.exec(TOUR) || [])[1];
     v('(population) l\'adresse d\'OP MESSAGES bêta est celle de la Tour', ADR, 'https://msg-beta.teamop.fr');
-    const ctx = { esc: x => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]), BETA_MSG_ADRESSE: ADR };
-    vm.createContext(ctx); vm.runInContext(src.join('\n'), ctx);
-    const h = ctx.vueMessagerie();
-    vrai('la vue porte le bandeau AU-DESSUS de la zone de messagerie d\'avant (qui reste la même, avec son identifiant)', h.indexOf('opm-bandeau') >= 0 && h.indexOf('opm-bandeau') < h.indexOf('id="mess-zone"') && /<div id="mess-zone" class="mess-zone"><\/div>$/.test(h));
-    vrai('le bandeau dit « Vos agents sont maintenant dans OP MESSAGES »', /Vos agents sont maintenant dans OP MESSAGES/.test(h));
-    const lien = /<a [^>]*>Ouvrir OP MESSAGES<\/a>/.exec(h);
-    vrai('⛔ le bouton « Ouvrir OP MESSAGES » est un lien vers https://msg-beta.teamop.fr/ dans un NOUVEL onglet, sans lien d\'opener', !!lien && /href="https:\/\/msg-beta\.teamop\.fr\/"/.test(lien[0]) && /target="_blank"/.test(lien[0]) && /rel="noopener noreferrer"/.test(lien[0]));
-    vrai('⛔ aucun cadre : la page d\'OP MESSAGES interdit d\'être encadrée (frame-ancestors \'none\'), la Tour ne tente pas', !/<iframe[^>]*msg(-beta)?\.teamop\.fr/i.test(TOUR) && !/<iframe/.test(h));
-    vrai('le changement reste petit : la classe du bandeau n\'apparaît que dans sa fonction et ses deux règles de style', (TOUR.match(/opm-bandeau/g) || []).length === 3);
+    vrai('le bandeau « Vos agents sont maintenant dans OP MESSAGES » n\'existe plus (ni sa fonction, ni sa classe, ni son texte)', !/messBandeauOpm|opm-bandeau|Vos agents sont maintenant dans OP MESSAGES/.test(CODE));
+    vrai('⛔ le lien vers OP MESSAGES reste un lien dans un NOUVEL onglet, sans lien d\'opener, vers l\'adresse de la Tour (« Ouvrir dans un nouvel onglet »)', /function opmLienOuvrir\(cls\)\{ return '<a class="'\+cls\+'" href="'\+esc\(opmAdresse\(\)\)\+'" target="_blank" rel="noopener noreferrer">Ouvrir dans un nouvel onglet<\/a>'; \}/.test(SCRIPTS) && /function opmAdresse\(\)\{ return BETA_MSG_ADRESSE\+'\/'; \}/.test(SCRIPTS));
+    vrai('⛔ le cadre n\'est PAS écrit dans le texte de la page (`createElement(\'iframe\')` dans `opmMonter`), et ne vise que l\'adresse de la Tour — jamais une adresse en dur', !/<iframe[^>]*(msg(-beta)?\.teamop\.fr|src=)/i.test(CODE) && /f\.src=opmAdresse\(\);/.test(SCRIPTS));
   }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
