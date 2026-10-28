@@ -13,6 +13,28 @@ de ligne du tout.
 
 ---
 
+# 🧽 28 OCTOBRE 2026 (SOIR) — LE PACK NETTOYAGE EST INSTALLÉ DANS LA BÊTA v778 — RIEN SUR `main`, RIEN PUBLIÉ
+Justin : « demain, j'ai une entreprise, on a réunion avec elle, il faut que le pack nettoyage soit installé. » Branche `claude/pack-nettoyage` (source de la bêta,
+app.html y est en v778 ; `beta.html` et `demo.html` générés ; **rien n'est poussé**, `main` et `app.html` public (v773) ne sont pas touchés).
+- **Fait** (commit « Bêta v778 : le pack nettoyage est installé » + banc) : le masque du métier s'applique aussi en bêta dès qu'un métier autre que la 3D est choisi
+  (`metierBloque`) ; « Remplir » / « Créer le planning de démonstration » suivent le métier (`demoSemisDe`) ; plus de « box » (`libBox`, `sansBox`, `capTxt`) ni de plan
+  d'appâtage dans les écrans du nettoyage ; exemples de saisie par métier (`exemple(clé)`) ; le métier part au serveur avec l'assistant devis et le Devis IA ;
+  **quatre documents** (bloc « NETTOYAGE — LES SITES D'UN CLIENT », porte unique `metierGereSites`) : D1 rapport enrichi (sept relevés neufs dans `metiers.json`, contrat,
+  horaires, tâches du cahier à cocher), D2 cahier des tâches (`db.cahiers`), D3 fiche de contrôle qualité (`i.controleQualite`, note calculée), D4 plan de prévention
+  (`db.plansPrevention`, seuil des 400 h) — PDF par `nettPdf`, aperçu, envoi ; **catalogue de départ** (24 produits, 6 fournisseurs) posé par un geste de l'administrateur
+  (« 📦 Catalogue de départ »), jamais tout seul. Bancs : `test-3111` (+ atelier `tests/nett-monter.js`), mutations `scratchpad`-session `mutations-pack-nettoyage.py`, sonde au
+  navigateur du parcours complet (téléphone + bureau).
+- **Le serveur de l'assistant devis** est fait à part (branche `claude/devis-metier`, `server/devis-metier.js`) : il lit `t` et `metier` envoyés par cette v778. Tant qu'il n'est pas
+  déployé, l'assistant garde la consigne 3D : décocher « Assistant devis » pour l'entreprise de nettoyage dans la Tour.
+- **Chemin pour que l'entreprise voie tout ça** : (1) sur la **bêta** (`teamop.fr/beta.html`, accès délivré par la Tour) : Paramètres → Outils de bêta → « 🧰 Tester un métier » =
+  Nettoyage / Propreté, **renseigner Mon entreprise** (nom, adresse, SIRET — sinon tous les en-têtes disent « OP GESTION »), puis « 🧪 Remplir (jeu de test) » : planning, clients,
+  3 cahiers, plan de prévention, fiche de contrôle et catalogue arrivent d'un clic. Ouvrir une fiche client (« Documents du site »), une intervention « Contrôle qualité » ; « Aperçu PDF ».
+  (2) **version publique** : elle n'a PAS ces pièces (v773) — il faudrait une phrase de Justin pour publier (puis `sw.js`, régénérer `demo.html`, CI, fichier servi).
+- **Reste ouvert / à dire à Justin** : « E) Paiement en plusieurs fois - COFIDIS » reste dans les moyens de paiement des interventions (liste d'ELAN) ; des « box » peuvent subsister dans des
+  états rares (listes vides, messages d'erreur) que ni la sonde ni les bancs n'ont ouverts ; le plan de prévention ne reproduit pas la liste de l'arrêté du 19 mars 1993 ni l'inspection
+  commune (non relus : l'entreprise répond) ; la convention collective (IDCC 2272/3043) de `metiers.json` reste à confirmer ; la Tour ne demande toujours pas le métier à l'ouverture
+  d'un accès public (poser le métier dans la fiche) ; premier lancement d'une entreprise sur la v773 : le menu est 3D pendant ~2,6 s avant `metierServeurAppliquer`.
+
 # 🌉 28 OCTOBRE 2026 (JOUR) — LES AGENTS DE LA TOUR DANS OP MESSAGES : LE CODE EST PRÊT, LA MISE EN SERVICE ATTEND JUSTIN
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
 OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**

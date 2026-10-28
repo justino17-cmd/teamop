@@ -42574,7 +42574,7 @@ function nettCahierForm(id,cid){ if(!metierGereSites()) return;
     <div class="field"><label>Client référent (contact sur le site)</label><input maxlength="120" value="${esc(W.referent)}" oninput="nettCahW.referent=this.value"></div>
     <div style="font-size:12.5px;color:var(--t3);margin:-4px 0 10px">Version n° ${esc(W.version)} · ${esc(nettDateTxt(W.date))}</div>
     <div class="form-sec" style="margin-top:0">Zones et tâches</div>
-    <div id="nett-cah-zones">${nettCahZonesHtml()}</div>
+    <div id="nett-cah-zones" class="field" style="margin:0">${nettCahZonesHtml()}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px"><button type="button" class="btn ghost sm" onclick="nettCahZoneAjout()">＋ Ajouter une zone</button><button type="button" class="btn ghost sm" onclick="nettCahModele()">Proposer des zones types</button></div>
     <div class="form-sec">Accès et sécurité</div>
     <div class="field"><label>Consignes d’accès (clés, badges, alarme)</label><textarea rows="2" maxlength="600" oninput="nettCahW.acces=this.value">${esc(W.acces)}</textarea></div>
@@ -42594,7 +42594,7 @@ function nettCahZonesHtml(){ const W=nettCahW; if(!W) return '';
     <div style="display:flex;gap:8px;align-items:center"><input value="${esc(z.nom)}" maxlength="80" placeholder="Nom de la zone (ex : Bureaux, Sanitaires)" oninput="nettCahW.zones[${zi}].nom=this.value" style="flex:1;min-width:0;font-weight:700" aria-label="Nom de la zone"><button type="button" class="btn ghost sm" onclick="nettCahZoneSuppr(${zi})" aria-label="Retirer la zone" title="Retirer la zone">🗑</button></div>
     ${(z.taches||[]).map((t,ti)=>`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--brd)">
       <input value="${esc(t.t)}" maxlength="160" placeholder="Tâche (ex : Aspiration des sols)" oninput="nettCahW.zones[${zi}].taches[${ti}].t=this.value" style="width:100%" aria-label="Tâche">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><select onchange="nettCahW.zones[${zi}].taches[${ti}].freq=this.value" aria-label="Fréquence">${NETT_FREQ.map(f=>`<option value="${f[0]}"${f[0]===t.freq?' selected':''}>${f[1]}</option>`).join('')}</select>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><select onchange="nettCahW.zones[${zi}].taches[${ti}].freq=this.value" aria-label="Fréquence" style="width:auto">${NETT_FREQ.map(f=>`<option value="${f[0]}"${f[0]===t.freq?' selected':''}>${f[1]}</option>`).join('')}</select>
         <input value="${esc(t.jours)}" maxlength="60" placeholder="Jours (lun, mer, ven)" oninput="nettCahW.zones[${zi}].taches[${ti}].jours=this.value" style="flex:1;min-width:110px" aria-label="Jours">
         <input value="${esc(t.horaire)}" maxlength="40" placeholder="Horaires (18h-20h)" oninput="nettCahW.zones[${zi}].taches[${ti}].horaire=this.value" style="flex:1;min-width:110px" aria-label="Horaires">
         <button type="button" class="btn ghost sm" onclick="nettCahTacheSuppr(${zi},${ti})" aria-label="Retirer la tâche" title="Retirer la tâche">✕</button></div></div>`).join('')}
@@ -42798,10 +42798,10 @@ function nettControleForm(iid){ if(!metierGereSites()) return;
     <div class="field-row"><div class="field"><label>Contrôleur</label><input maxlength="120" value="${esc(W.controleur)}" oninput="nettCqW.controleur=this.value"></div>
       <div class="field"><label>Client présent ?</label><select onchange="nettCqW.clientPresent=this.value"><option value="">—</option><option value="oui"${W.clientPresent==='oui'?' selected':''}>Oui</option><option value="non"${W.clientPresent==='non'?' selected':''}>Non</option></select></div></div>
     <div id="nett-cq-note" style="font-weight:800;font-size:15px;margin:2px 0 10px"></div>
-    <div id="nett-cq-zones">${nettCqZonesHtml()}</div>
+    <div id="nett-cq-zones" class="field" style="margin:0">${nettCqZonesHtml()}</div>
     <div class="field"><label>Anomalies constatées</label><textarea rows="3" maxlength="1500" oninput="nettCqW.anomalies=this.value">${esc(W.anomalies)}</textarea></div>
     <div class="form-sec">Actions correctives</div>
-    <div id="nett-cq-actions">${nettCqActionsHtml()}</div>
+    <div id="nett-cq-actions" class="field" style="margin:0">${nettCqActionsHtml()}</div>
     <button type="button" class="btn ghost sm" style="margin:4px 0 12px" onclick="nettCqActionAjout()">＋ Action corrective</button>
     <div class="field-row"><div class="field"><label>Contre-contrôle prévu le</label><input type="date" value="${esc(W.contreControle)}" oninput="nettCqW.contreControle=this.value"></div>
       <div class="field"><label>Visa du client (nom)</label><input maxlength="120" value="${esc(W.visaClient)}" oninput="nettCqW.visaClient=this.value"></div></div>
@@ -42820,7 +42820,7 @@ function nettCqZonesHtml(){ const W=nettCqW; if(!W) return '';
     <div style="display:flex;gap:6px;margin-top:8px"><input id="nett-cq-new-${zi}" maxlength="160" placeholder="Ajouter un point à contrôler" style="flex:1;min-width:0" aria-label="Nouveau point"><button type="button" class="btn ghost sm" onclick="nettCqItemAjout(${zi})">＋</button></div></div>`).join(''); }
 function nettCqActionsHtml(){ const W=nettCqW; if(!W) return '';
   return (W.actions||[]).map((a,k)=>`<div style="padding:8px 0;border-top:1px solid var(--brd)"><input maxlength="200" value="${esc(a.t)}" placeholder="Action à mener" oninput="nettCqW.actions[${k}].t=this.value" style="width:100%" aria-label="Action">
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input maxlength="80" value="${esc(a.resp)}" placeholder="Responsable" oninput="nettCqW.actions[${k}].resp=this.value" style="flex:1;min-width:120px" aria-label="Responsable"><input type="date" value="${esc(a.delai)}" oninput="nettCqW.actions[${k}].delai=this.value" aria-label="Délai"><button type="button" class="btn ghost sm" onclick="nettCqActionSuppr(${k})" aria-label="Retirer l’action" title="Retirer l’action">✕</button></div></div>`).join(''); }
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input maxlength="80" value="${esc(a.resp)}" placeholder="Responsable" oninput="nettCqW.actions[${k}].resp=this.value" style="flex:1;min-width:120px" aria-label="Responsable"><input type="date" value="${esc(a.delai)}" oninput="nettCqW.actions[${k}].delai=this.value" aria-label="Délai" style="width:auto"><button type="button" class="btn ghost sm" onclick="nettCqActionSuppr(${k})" aria-label="Retirer l’action" title="Retirer l’action">✕</button></div></div>`).join(''); }
 function nettCqNoteMaj(){ const el=document.getElementById('nett-cq-note'); if(!el||!nettCqW) return; const t=nettNoteTxt(nettCqW); const x=nettNote(nettCqW);
   el.textContent=t?'Note : '+t+(x.neuf?' · '+x.neuf+' non évalué'+(x.neuf>1?'s':''):''):'Note : aucun point évalué pour l’instant'; }
 function nettCqMaj(){ const a=document.getElementById('nett-cq-zones'), b=document.getElementById('nett-cq-actions'); if(a) a.innerHTML=nettCqZonesHtml(); if(b) b.innerHTML=nettCqActionsHtml(); nettCqNoteMaj(); }
