@@ -290,6 +290,16 @@ const corpsRecus = H => JSON.stringify(H.appels.map(a => ({ s: a.system, m: a.me
     r = await Z('je suis en micro', {});
     v('rien à noter : refusé', r.reg, null);
     r.H.nettoyer();
+    {
+      /* TOUT OU RIEN : le régime est dit, la plateforme ne l'est pas — l'outil refuse TOUT, et le régime n'entre pas non plus dans la mémoire (un `sauve()` de rappel le ferait passer sur disque) */
+      const R3 = equipe();
+      const r3 = await R3.compta.outilsEquipe.executer('regler_compta', { regime: 'micro', plateforme_reception: 'oui' }, { de: 'justin', fil: 'margaux', texte: 'je suis en micro-entreprise' });
+      await R3.compta.passer();   // écrit la question sur la plateforme, donc le registre (avec les marques)
+      const reg3 = R3.reglages();
+      v('⛔ un champ juste et un champ non dit : tout est refusé…', [r3.ok, r3.raison], [false, 'valeur_non_citee']);
+      vrai('…et le champ juste n’est PAS resté en mémoire : le registre écrit ensuite par les rappels ne porte pas le régime', reg3 && reg3.regime === undefined && reg3.plateforme === undefined && Object.keys(reg3.rappels).length >= 1, JSON.stringify(reg3));
+      R3.nettoyer();
+    }
     r = await Z('je suis en micro, j’ai désigné une plateforme', { regime: 'micro', plateforme_reception: 'oui' });
     v('deux réglages d’un coup : les deux sont notés, une seule ligne de confirmation', [r.reg && r.reg.regime, r.reg && r.reg.plateforme, r.l.filter(t => /J’ai noté/.test(t)).length], ['micro', 'oui', 1]);
     r.H.nettoyer();

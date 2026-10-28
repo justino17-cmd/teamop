@@ -12,7 +12,7 @@ const v = (t, a, b) => { const bon = JSON.stringify(a) === JSON.stringify(b); bo
 const vrai = (t, c, d) => { c ? ok++ : ko++; console.log((c ? '  ✓ ' : '  ✗ ') + t + (c || d === undefined ? '' : ' — ' + d)); };
 
 const COMMUNS = 'ecrire,prendre,passer,terminer,demander_justin,demander';   // + `demander` (28 octobre 2026, Justin : « J\'aimerais que les agents communiquent entre eux »)
-const ATTENDU = { Hugo: 'programmer_fin_abonnement', Margaux: 'preparer_mise_en_demeure', Emma: 'proposer_creneaux', Sarah: 'rediger_annonce', Victor: 'assigner,arbitrer,planifier_reunion,annuler_reunion' /* + 28 octobre 2026, test-3087 ; `assigner` : le chef répartit (test-3117) */, Max: '' };
+const ATTENDU = { Hugo: 'programmer_fin_abonnement', Margaux: 'preparer_mise_en_demeure,point_compta,verifier_factures,calendrier_compta,regler_compta' /* + 28 octobre 2026 : la compta de la Tour (test-3161) */, Emma: 'proposer_creneaux', Sarah: 'rediger_annonce', Victor: 'assigner,arbitrer,planifier_reunion,annuler_reunion' /* + 28 octobre 2026, test-3087 ; `assigner` : le chef répartit (test-3117) */, Max: '' };
 const FILS = { hugo: 'Hugo', margaux: 'Margaux', emma: 'Emma', sarah: 'Sarah', victor: 'Victor', max: 'Max' };
 
 (async () => {

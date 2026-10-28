@@ -184,35 +184,38 @@ module.exports = function agentCompta(ctx) {
     if (!cles.length || cles.some(k => !permis.includes(k))) return { ok: false, raison: 'forme' };
     if (illisible()) return { ok: false, raison: 'registre_illisible', ligne: 'Mes réglages de compta sont illisibles : je ne note rien tant que le fichier n’est pas réparé.' };
     const t = norm(c.texte).replace(/[’‘]/g, '\'');   // ce que JUSTIN a écrit, pas ce que le modèle croit (apostrophes droites)
-    const avant = JSON.stringify(reg);
+    /* TOUT OU RIEN : on travaille sur une COPIE. Un seul champ refusé (la plateforme que Justin n'a pas dite) ne laisse pas le régime, accepté juste avant, dans la mémoire : un `sauve()` de rappel le ferait passer sur disque. */
+    const avant = JSON.stringify(reg), cand = JSON.parse(avant);
     const notes = [];
     if ('regime' in entree) {
       const v = entree.regime;
       if (!CAL.REGIMES.includes(v)) return { ok: false, raison: 'valeur' };
       if (!DIT_REGIME[v].test(t)) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note ton régime que si tu me le dis : franchise, micro-entreprise ou réel ?' };
-      reg.regime = v; notes.push('régime : ' + CAL.REGIMES_LIBELLE[v]);
+      cand.regime = v; notes.push('régime : ' + CAL.REGIMES_LIBELLE[v]);
     }
     if ('plateforme_reception' in entree) {
       const v = entree.plateforme_reception;
       if (!CAL.PLATEFORMES.includes(v)) return { ok: false, raison: 'valeur' };
       if (!(v === 'inconnu' ? DIT_PLATEFORME.inconnu.test(t) : SUJET_PLATEFORME.test(t) && DIT_PLATEFORME[v].test(t) && (v === 'non' || !DIT_PLATEFORME.non.test(t)))) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note la plateforme que si tu me dis clairement si tu en as désigné une ou non.' };
-      reg.plateforme = v; notes.push('plateforme de réception : ' + (v === 'oui' ? 'désignée' : v === 'non' ? 'pas désignée' : 'inconnue'));
+      cand.plateforme = v; notes.push('plateforme de réception : ' + (v === 'oui' ? 'désignée' : v === 'non' ? 'pas désignée' : 'inconnue'));
     }
     if ('expert_comptable' in entree) {
       const e = entree.expert_comptable;
       if (!e || typeof e !== 'object' || Array.isArray(e) || Object.keys(e).some(k => !['nom', 'adresse', 'aucun'].includes(k))) return { ok: false, raison: 'forme' };
       if (e.aucun === true) {
         if (e.nom !== undefined || e.adresse !== undefined || !DIT_AUCUN_EXPERT.test(t)) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note « pas d’expert-comptable » que si tu me le dis.' };
-        reg.expert = { aucun: true, nom: '', adresse: '' }; notes.push('expert-comptable : aucun');
+        cand.expert = { aucun: true, nom: '', adresse: '' }; notes.push('expert-comptable : aucun');
       } else {
         const nom = typeof e.nom === 'string' ? e.nom.replace(/\s+/g, ' ').trim() : '', adr = typeof e.adresse === 'string' ? e.adresse.trim().toLowerCase() : '';
         if (nom.length < 3 || nom.length > 80 || adr.length > 160 || !COURRIEL.test(adr)) return { ok: false, raison: 'valeur' };
         /* le nom ET l'adresse doivent figurer, tels quels, dans le message de Justin */
         if (!t.includes(norm(nom)) || !String(c.texte || '').toLowerCase().includes(adr)) return { ok: false, raison: 'valeur_non_citee', ligne: 'Je ne note ton expert-comptable que si tu m’écris son nom et son adresse de courriel.' };
-        reg.expert = { aucun: false, nom, adresse: adr }; notes.push('expert-comptable : noté');
+        cand.expert = { aucun: false, nom, adresse: adr }; notes.push('expert-comptable : noté');
       }
     }
-    if (JSON.stringify(reg) === avant) return { ok: true };
+    if (JSON.stringify(cand) === avant) return { ok: true };
+    for (const k of Object.keys(reg)) delete reg[k];
+    Object.assign(reg, cand);
     if (!sauve()) {                                    // jamais un « noté » qui ne l'est pas : on rend l'ancien état
       const ancien = JSON.parse(avant); for (const k of Object.keys(reg)) delete reg[k]; Object.assign(reg, ancien);
       return { ok: false, raison: 'ecriture', ligne: 'Je n’ai pas pu écrire mes réglages : rien n’est noté.' };
