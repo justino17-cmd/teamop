@@ -62,7 +62,8 @@ module.exports = function chloe(ctx) {
   const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
   const fich = ctx.fichier;
   const libelleMetier = typeof ctx.libelleMetier === 'function' ? ctx.libelleMetier : (m => String(m || ''));
-  const connaissances = () => { try { const b = ctx.louis && typeof ctx.louis.bloc === 'function' ? String(ctx.louis.bloc() || '') : ''; return b ? '\n\n' + b : ''; } catch (e) { return ''; } };
+  /* `q` : le texte auquel on répond — il ne sert qu'à CLASSER les connaissances par pertinence (Louis, 28 octobre 2026), il n'est copié nulle part */
+  const connaissances = q => { try { const b = ctx.louis && typeof ctx.louis.bloc === 'function' ? String(ctx.louis.bloc(typeof q === 'string' ? q : '') || '') : ''; return b ? '\n\n' + b : ''; } catch (e) { return ''; } };
   const contexteClient = typeof ctx.contexteClient === 'function' ? ctx.contexteClient : (() => ({}));
   const chemin = ctx.metiersPath || path.join(__dirname, '..', 'metiers.json');
   if (!agents || !cerveau || typeof cerveau.penser !== 'function' || !brouillons || !fich) return { surReponse: async () => ({ saute: 'pas_de_cerveau' }) };
@@ -174,7 +175,7 @@ module.exports = function chloe(ctx) {
         c.entreprise = nomOk(c.entreprise || ev.entreprise);
         let rub = typeof c.metier === 'string' && c.metier && c.metier !== 'autre' ? rubriquesDe(ref, c.metier) : null;
         const demande = demandeClaude(c, rub, ev.texte, cles);
-        const systeme = SYSTEM + connaissances();
+        const systeme = SYSTEM + connaissances(String(ev.texte || ''));
         let formule = '', horsSujet = false, posees = { c: false, r: false }, premier = true;
         /* Le rédacteur répond « FORMULE : … [METIER : …] Objet : … ». On en tire la formule (liste fermée) et le métier (liste fermée), on pose les listes de rubriques ÉCRITES PAR LE CODE,
            et le reste — « Objet : … » + corps — est ce que le contrôle qualité lit. */
@@ -192,7 +193,7 @@ module.exports = function chloe(ctx) {
           return t.trim();
         };
         const res = await CTRL.produire({
-          agent: ID, cerveau, demande, connaissances: connaissances(),
+          agent: ID, cerveau, demande, connaissances: connaissances(String(ev.texte || '')),
           ctx: { profil: 'proposition', get formule() { return formule; }, get creer() { return !!(rub && rub.pistes.length); }, get rubriquesAttendues() { return true; }, get rubriquesPosees() { return posees.c && posees.r && !!rub; } },
           contexteJuge: ['Source : proposition sur mesure, après la réponse du prospect', 'Entreprise : ' + (c.entreprise || 'nom non exploitable'), 'Métier : ' + (rub ? rub.nom : 'inconnu'),
             'Formule choisie : ' + (formule && K.FORMULES[formule] ? K.FORMULES[formule].nom : 'aucune')],

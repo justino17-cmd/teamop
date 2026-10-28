@@ -254,7 +254,7 @@ const MATRICE = {
   'admin.abonnements':  { ok: () => ['GET', '/api/admin/abonnements'], codes: [404] },
   'admin.incidents':    { ok: () => ['GET', '/api/admin/incidents'], codes: [404] },
   /* le PONT DES AGENTS (28 octobre 2026) : le service des bancs n'a PAS de bloc `pont` — les quatre routes sont INERTES, et la garde PT refuse tout le monde (même 404 qu'une route inconnue), quelle que soit la
-     session. Les routes ouvertes par un vrai secret, et chaque refus de la garde, se jouent dans `test-3090`. */
+     session. Les routes ouvertes par un vrai secret, et chaque refus de la garde, se jouent dans `test-3094`. */
   'pont.installer':     { ok: () => ['POST', '/api/pont/installer', {}], codes: [404] },
   'pont.poster':        { ok: () => ['POST', '/api/pont/poster', {}], codes: [404] },
   'pont.nouveaux':      { ok: () => ['GET', '/api/pont/nouveaux'], codes: [404] },

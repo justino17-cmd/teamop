@@ -21,7 +21,7 @@ OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demand
   « Système », espace PRO « Équipe TeamOP — agents », 4 groupes, une directe par agent) ; `server/pont-messages.js` (file bornée à 2 000, réessai, import avec
   les dates d'origine, lecture toutes les 3 s de ce que Justin écrit — par `justinEcrit`, le même chemin que la route — et supprime) ; `configurer-pont.js` pose
   les DEUX configurations d'un geste, le secret fabriqué sur place et jamais affiché. Inerte sans configuration (404 / rien ne part) ; un bloc `pont` en production REFUSE le démarrage.
-- **Bancs** : `test-3090` (le vrai service), `3091` (le vrai serveur + le vrai service + un faux Anthropic, de bout en bout), `3092` (le module contre un faux service,
+- **Bancs** : `test-3094` (le vrai service), `3091` (le vrai serveur + le vrai service + un faux Anthropic, de bout en bout), `3092` (le module contre un faux service,
   + le bandeau), `3093` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
 - **Reste à faire (Justin)** : déployer (une fusion sur `main` part des deux côtés, inerte), puis sur le VPS `configurer-pont.js` (Entrée à l'invite du secret), redémarrer,
   `--verifier`, ouvrir `msg-beta.teamop.fr` sur le téléphone. Rien de cela n'est fait.

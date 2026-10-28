@@ -223,6 +223,25 @@ function propositionCreneaux(o) {
   ];
   return { objet: 'Votre demande d’appel — créneaux proposés', texte: corps.join('\n') };
 }
+/* Emma — le prospect n'a pas répondu en deux jours : UNE relance courte, avec les créneaux qui restent libres pour lui (28 octobre 2026). `creneaux` : [{ n, ms }] — `n` est le NUMÉRO du créneau dans la
+   première proposition (celui que le prospect citera en répondant : on ne renumérote pas). Rien d'inventé : les mêmes créneaux, jamais un nouveau. */
+function relanceCreneaux(o) {
+  o = o || {};
+  const cr = (Array.isArray(o.creneaux) ? o.creneaux : []).filter(x => x && Number.isInteger(x.n) && x.n >= 1 && x.n <= 5 && Number.isFinite(x.ms) && x.ms > 0).slice(0, 5);
+  if (!cr.length) return null;
+  const corps = [
+    'Bonjour,',
+    '',
+    'Nous vous avons proposé il y a quelques jours un appel avec notre équipe, et nous n’avons pas encore eu votre retour. Voici les créneaux qui restent disponibles :',
+    '',
+    ...cr.map(x => x.n + '. ' + creneauLibelle(x.ms)),
+    '',
+    'Répondez simplement à ce courriel en indiquant le numéro du créneau qui vous convient. Si aucun ne vous va, ou si vous n’avez plus besoin de cet appel, dites-le-nous : nous nous adapterons.',
+    '',
+    'Bien cordialement,',
+  ];
+  return { objet: 'Rappel — votre demande d’appel', texte: corps.join('\n') };
+}
 /* Emma — le rendez-vous est fixé. */
 function confirmationRendezVous(o) {
   const l = creneauLibelle(o && o.ms);
@@ -241,5 +260,5 @@ function rappelProspect() {
     'Bien cordialement,'].join('\n') };
 }
 
-module.exports = { signatureAgent, SIGNATURES, ADRESSE_CONTACT, controle, accuseResiliation, relanceImpaye, miseEnDemeure, propositionCreneaux, confirmationRendezVous, rappelProspect,
+module.exports = { signatureAgent, SIGNATURES, ADRESSE_CONTACT, controle, accuseResiliation, relanceImpaye, miseEnDemeure, propositionCreneaux, relanceCreneaux, confirmationRendezVous, rappelProspect,
   creneauLibelle, dateLongue, eurosFr, DELAI_MISE_EN_DEMEURE_JOURS, FUSEAU };

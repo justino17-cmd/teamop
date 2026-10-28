@@ -2172,7 +2172,7 @@ const MON_GESTES = {
   'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
   /* Pauline (Harvey, Mac) : un accord qui fait partir un courriel vers un prospect laisse sa trace (relecture de gardien) — la cible est l'identifiant du courriel, jamais son texte */
   'pauline/decision': 'a accepté, modifié ou refusé un courriel de Pauline',
-  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
+  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/camille/arriere': 'a demandé à Camille de reprendre l’arriéré du courrier', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
   'agents/emma/disponibilites': 'a réglé les disponibilités d’Emma', 'agents/emma/proposer': 'a demandé à Emma de proposer des créneaux à un prospect', 'agents/sarah/rediger': 'a demandé à Sarah de rédiger une annonce aux clients',
@@ -10655,7 +10655,23 @@ try {
     catch (e) { louisMod = null; console.error('Louis indisponible :', e.message); }
     try {
       if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents,
-        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod });
+        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod,
+        /* LE BALAYAGE (28 octobre 2026, Justin : « sans limite ») : les comptes dont l'adresse est PROUVÉE (même règle que la synchro : `comptes.verifie`) et qui n'ont PAS d'espace — un client qui paie
+           ne reçoit pas un courriel de vente. Léa en prend quelques-uns par passage parmi ceux qu'elle n'a jamais servis (inscrits avant elle, ou écartés trois fois). `null` = on ne sait pas : rien. */
+        comptes: () => {
+          let cm = null; try { cm = comptes; } catch (e) { cm = null; }
+          if (!cm || typeof cm.verifie !== 'function') return null;
+          const pris = new Set(Object.values(espacesReg || {}).map(x => String((x && x.email) || '').trim().toLowerCase()).filter(Boolean));
+          /* ⛔ (gardien, 28 octobre 2026) un client qui PAIE ne reçoit jamais un courriel de vente : ni une fiche née de « Payer » (`ficheDePaiement`), ni une fiche qui porte une
+             formule ou un statut d'abonnement, ni une adresse que la liste Stripe connaît. Stripe configuré mais liste pas encore lue : on ne sait pas, donc RIEN (null). */
+          const sk = !!(config.stripe && config.stripe.secretKey);
+          if (sk && !espStripeCache.data) return null;
+          const stripeBrut = espStripeCache.data ? JSON.stringify(espStripeCache.data).toLowerCase() : '';
+          const paie = c => !!(c.ficheDePaiement || c.plan || c.planStatus || (c.choix && c.choix.source === 'paiement') || (stripeBrut && stripeBrut.includes(c.email.trim().toLowerCase())));
+          return Object.values(clientsData || {}).filter(c => c && typeof c.email === 'string' && cm.verifie(c.email) && !pris.has(c.email.trim().toLowerCase()) && !paie(c))
+            .map(c => ({ email: c.email, entreprise: c.entreprise, depuis: Number(c.inscrit) || 0 }));
+        } });
+      if (agentLea) setInterval(() => { agentLea.balayer().catch(e => console.error('léa (balayage) :', e.message)); }, 30 * 60000).unref();
     } catch (e) { agentLea = null; console.error('Léa indisponible :', e.message); }
     /* CHLOÉ : la proposition sur mesure quand le prospect répond à Léa. Les faits qu'elle reçoit sur le prospect sont des VALEURS DE LISTE (métier, nombre, formule) + le nom d'entreprise
        s'il a la forme d'un nom : jamais l'adresse, le téléphone, le prénom ni le nom de la personne. */
@@ -10685,7 +10701,9 @@ try {
         outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; }, get margaux() { return agentMargaux && agentMargaux.outilsEquipe; },
           get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; },
           /* Victor planifie les réunions que Justin lui demande (`reunions.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
-          get victor() { return reunionsMod && reunionsMod.outilsVictor; } },
+          get victor() { return reunionsMod && reunionsMod.outilsVictor; },
+          /* Camille reprend l'arriéré du courrier que Justin lui demande (`agent-camille.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
+          get camille() { return agentCamille && agentCamille.outilsEquipe; } },
         arbitrer: (e, c) => plateformeMod ? plateformeMod.arbitrer(e, c) : { ok: false, raison: 'indisponible' },     // l'outil « arbitrer » de Victor (`agents-plateforme.js`)
         memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
@@ -10903,6 +10921,27 @@ try {
         if ((st.douteux || []).length) return { sur: false, doute: true };
         return { sur: true, formule: formulePayee(e, surs) };
       } });
+    /* L'ARRIÉRÉ DU COURRIER (28 octobre 2026, Justin : « il faut qu'elle puisse voir les anciens ») : Camille reprend les courriels des `jours` derniers jours que personne n'a pris ni
+       répondus. Lancé en tâche de fond (la reprise peut durer : un appel à Claude par courriel) ; le bilan arrive dans le fil Camille de la Messagerie. Toute réponse attend la validation. */
+    app.post('/api/monitor/agents/camille/arriere', monPatronStrict, (req, res) => {
+      if (!agentCamille || typeof agentCamille.reprendreArriere !== 'function') return res.status(503).json({ error: 'Camille n’est pas montée' });
+      const j = parseInt((req.body || {}).jours, 10);
+      const jours = Number.isInteger(j) && j >= 1 && j <= 3650 ? j : 3650;
+      const p = agentsMod && typeof agentsMod.peutAgir === 'function' ? agentsMod.peutAgir('camille') : { ok: false, raison: 'indisponible' };
+      if (!p.ok) return res.status(409).json({ error: 'Camille ne peut pas agir maintenant (' + String(p.raison || '').replace(/_/g, ' ') + ')' });
+      if (typeof agentCamille.repriseEnCours === 'function' && agentCamille.repriseEnCours()) return res.status(409).json({ error: 'La reprise de l’arriéré est déjà en cours' });
+      Promise.resolve().then(() => agentCamille.reprendreArriere(jours)).catch(e => console.error('camille (arriéré) :', e.message));
+      res.json({ ok: true, jours });
+    });
+    /* (28 octobre 2026, Justin : « plus autonomes, toutes leurs tâches à 100 % ») Camille RATISSE seule l'arriéré toutes les 30 minutes, sur ses heures de travail : rien n'attend
+       qu'on le lui demande. Silencieuse quand il n'y a rien ; la moitié des plafonds du jour au plus (le courrier du jour garde l'autre). */
+    setInterval(() => {
+      try {
+        if (!agentCamille || typeof agentCamille.reprendreArriere !== 'function' || (agentCamille.repriseEnCours && agentCamille.repriseEnCours())) return;
+        if (!(agentsMod && agentsMod.peutAgir('camille').ok)) return;
+        agentCamille.reprendreArriere(3650, { silencieux: true }).catch(e => console.error('camille (arriéré) :', e.message));
+      } catch (e) {}
+    }, 30 * 60000).unref();
     app.post('/api/monitor/agents/hugo/passer', monPatronStrict, async (req, res) => {
       try { res.json(Object.assign({ ok: true }, await agentHugo.passer())); }
       catch (e) { console.error('hugo :', e.message); res.status(500).json({ error: 'Passage non traité' }); }

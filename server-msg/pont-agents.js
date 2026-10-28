@@ -31,7 +31,7 @@
  *       Les messages que le pont a lui-même recopiés de la Tour (`cid` « tour-… ») n'y sont JAMAIS : ils ne reviennent pas à leur source.
  *   POST /api/pont/supprimer  { fil, seq }   Retire un message POUR TOUS (la Tour l'a supprimé). → { ok }
  *
- * ⛔ UN BANC (tests/test-3090.js) MONTE LE VRAI SERVICE ET LE VRAI SERVEUR D'OP GESTION et joue le tout par leurs vraies routes.
+ * ⛔ UN BANC (tests/test-3094.js) MONTE LE VRAI SERVICE ET LE VRAI SERVEUR D'OP GESTION et joue le tout par leurs vraies routes.
  */
 'use strict';
 const crypto = require('crypto');

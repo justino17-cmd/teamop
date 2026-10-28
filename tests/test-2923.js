@@ -124,6 +124,24 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     B.nettoyer();
   }
 
+  console.log('\n2 ter. Inès : plus de borne de 24 h (28 octobre 2026) — trois jours d’absence, trois jours relus');
+  {
+    const B = equipe();
+    heureParis(B, 2026, 10, 20, 11, 0);
+    B.sources.courriels = [mail({ ts: B.horloge.t - 3600000 })];
+    await B.ines.passer();
+    heureParis(B, 2026, 10, 23, 8, 0);       // Inès n'a pas passé pendant trois jours (serveur arrêté, ou Inès à l'arrêt)
+    B.sources.courriels = [mail({ ts: Date.UTC(2026, 9, 20, 15, 0, 0) }), mail({ ts: Date.UTC(2026, 9, 21, 15, 0, 0) }), mail({ ts: Date.UTC(2026, 9, 22, 15, 0, 0) }), mail({ ts: B.horloge.t - 3600000 })];
+    const r = await B.ines.passer();
+    v('⛔ les courriels partis PENDANT son absence sont relus (quatre : trois jours + le dernier) — la borne de 24 h n’en voyait qu’un', [r.relu, r.courriels.envoyes], [true, 4]);
+    B.nettoyer();
+    const P = equipe();
+    heureParis(P, 2026, 10, 23, 8, 0);
+    P.sources.courriels = [mail({ ts: Date.UTC(2026, 9, 5, 15, 0, 0) }), mail({ ts: Date.UTC(2026, 8, 1, 15, 0, 0) })];
+    v('le TOUT premier passage remonte trente jours (le courriel du 5 octobre, pas celui du 1er septembre)', (await P.ines.passer()).courriels.envoyes, 1);
+    P.nettoyer();
+  }
+
   console.log('\n3. Inès : les erreurs du journal, les validations qui vieillissent, « pas relu »');
   {
     const B = equipe();
@@ -202,16 +220,26 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     v('⛔ l’heure d’hiver (lundi 26 octobre) : rien à 06 h 59 UTC (7 h 59 à Paris), le point à 07 h 00 UTC (8 h)', [avant, a8.dit, dansFil(H, 'equipe', 'victor').length], ['pas_l_heure', true, 1]);
     H.nettoyer();
 
-    // rattrapage : serveur arrêté, de retour à 11 h 30 ; après midi, trop tard
+    // rattrapage : serveur arrêté, de retour à 11 h 30 — et, depuis le 28 octobre 2026 (Justin : « sans limite »), TOUTE LA JOURNÉE : plus de fenêtre qui se ferme à midi
     const R = equipe();
     heureParis(R, 2026, 10, 23, 11, 30);
     const rr = await R.victor.tic();
     heureParis(R, 2026, 10, 26, 12, 0);
     const tard = await R.victor.tic();
-    v('rattrapé à 11 h 30 (le serveur était arrêté) ; à midi pile, la fenêtre est fermée', [rr.dit, tard.saute], [true, 'pas_l_heure']);
+    v('rattrapé à 11 h 30 (le serveur était arrêté) ; le lundi suivant à midi pile, le point de CE jour-là est dit (un point par jour)', [rr.dit, tard.dit, dansFil(R, 'equipe', 'victor').length], [true, true, 2]);
     const T = equipe();
     heureParis(T, 2026, 10, 23, 12, 30);
-    v('retour à 12 h 30 : pas de point en retard (le matin est passé)', [(await T.victor.tic()).saute, dansFil(T, 'equipe', 'victor').length], ['pas_l_heure', 0]);
+    const t1 = await T.victor.tic();
+    heureParis(T, 2026, 10, 23, 17, 45);
+    const t2 = await T.victor.tic();
+    v('⛔ retour à 12 h 30 : le point en retard est dit (le serveur redémarré à 12 h 05 laissait Justin sans point jusqu’au lendemain) — et pas deux fois dans la journée', [t1.dit, t2.saute, dansFil(T, 'equipe', 'victor').length], [true, 'deja', 1]);
+    const U = equipe();
+    heureParis(U, 2026, 10, 23, 21, 10);
+    v('…même à 21 h 10', [(await U.victor.tic()).dit, dansFil(U, 'equipe', 'victor').length], [true, 1]);
+    const W = equipe();
+    heureParis(W, 2026, 10, 23, 7, 59);
+    v('(contre-épreuve) avant 8 h, toujours rien : la limite basse, elle, tient', [(await W.victor.tic()).saute, dansFil(W, 'equipe', 'victor').length], ['pas_l_heure', 0]);
+    U.nettoyer(); W.nettoyer();
     R.nettoyer(); T.nettoyer();
   }
 

@@ -201,7 +201,8 @@ module.exports = function agentEquipe(ctx) {
       r.mission + '\n' +
       'Ton caractère : ' + PERSO[id] + '\n' +
       'Règles :\n' +
-      '- Tu ne peux RIEN exécuter en dehors de tes outils : aucun geste sur un client, un paiement ou un accès. Tout autre geste passe par une demande que Justin valide dans la Tour. Tu ne promets jamais d’avoir fait ce que tu n’as pas fait.\n' +
+      '- Tu ne peux RIEN exécuter en dehors de tes outils : aucun geste sur un client, un paiement ou un accès. Tout autre geste passe par une demande que Justin valide dans la Tour. Tu ne promets jamais d’avoir fait ce que tu n’as pas fait, ni de faire ce qu’aucun de tes outils ne fait : si tu ne peux pas, tu le dis et tu dis ce qu’il faudrait.\n' +
+      '- Un sujet que tu as toi-même déclaré clos dans ce fil, tu ne le relances pas : seul un nouveau message de Justin le rouvre.\n' +
       (r.rien ? '- ' + r.rien + '\n' : '') +
       '- Tu ne cites que les faits du bloc Faits ci-dessous. Si tu ne sais pas, tu le dis : tu n’inventes ni chiffre, ni nom, ni date.\n' +
       '- Ne répète jamais une adresse électronique ni un numéro de téléphone.\n' +

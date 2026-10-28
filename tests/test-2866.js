@@ -97,9 +97,9 @@ const msg = (Z, o) => { const m = Object.assign({ uid: 1, dossier: 'INBOX', boit
     Z.nettoyer();
 
     const J = monter({ modes: { lea: 'brouillon' } });
-    for (let i = 0; i < 20; i++) { const r = await J.lea.surInscription({ entreprise: 'Jour ' + i, email: 'j' + i + '@jour-2866.fr' }); await refuser(J, (await J.validations()).find(x => x.params.fil === r.ref).id); }
+    for (let i = 0; i < LEA.PAR_JOUR; i++) { const r = await J.lea.surInscription({ entreprise: 'Jour ' + i, email: 'j' + i + '@jour-2866.fr' }); await refuser(J, (await J.validations()).find(x => x.params.fil === r.ref).id); }
     const rj = await J.lea.surInscription({ entreprise: 'Vingt-et-un', email: 'v21@jour-2866.fr' });
-    v('⛔ plafond du jour (20) : « plafond_jour », l’inscription est à reprendre', [rj.saute, J.lea.aRepriser('v21@jour-2866.fr'), J.recus.length], ['plafond_jour', true, 20]);
+    v('⛔ plafond du jour (' + LEA.PAR_JOUR + ', vingt jusqu’au 28 octobre 2026) : « plafond_jour », l’inscription est à reprendre', [rj.saute, J.lea.aRepriser('v21@jour-2866.fr'), J.recus.length], ['plafond_jour', true, LEA.PAR_JOUR]);
     J.horloge.t += JOUR;
     const rk = await J.lea.surInscription({ entreprise: 'Vingt-et-un', email: 'v21@jour-2866.fr' });
     v('…le lendemain la reprise dépose le brouillon', [rk.depose, J.lea.aRepriser('v21@jour-2866.fr')], [true, false]);

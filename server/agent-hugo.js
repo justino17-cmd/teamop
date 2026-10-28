@@ -27,14 +27,14 @@
  * ⛔ Il répond aussi à une demande de collègue sur un paiement (`verifier_paiement`) : « payé », « en impayé », « aucun paiement » ou « je ne sais pas » — jamais un montant, jamais un nom.
  */
 'use strict';
+const crypto = require('crypto');
 const SLUG = /^[a-z0-9][a-z0-9._-]{0,79}$/;
 const FORMULES = ['pro', 'business', 'premium'];
 const PAR_PASSAGE = 20;            // demandes déposées au plus par passage : un client en trop attend le suivant
-const CLIENTS_MAX = 500;
 /* Un NOM D'ENTREPRISE a la forme d'un nom : des lettres, des chiffres, des espaces et quelques signes, court. Une phrase (ou n'importe quoi
    d'autre) ne devient jamais un nom d'accès sous les yeux de Justin : le client est laissé à un humain. */
 const NOM = /^[\p{L}\p{N} '’.&-]{2,50}$/u;
-const MOTS_MAX = 6;           // clients examinés par passage
+const MOTS_MAX = 6;           // mots au plus dans un nom d'entreprise (au-delà, c'est une phrase)
 const FORME_DOSSIER = /^DOS-\d{6}$/;
 const TYPES_TACHES = ['resilier_fin_periode', 'verifier_paiement'];   // ce que Hugo sait faire lui-même
 const TACHES_PAR_PASSAGE = 10;
@@ -71,10 +71,22 @@ module.exports = function hugo(ctx) {
       try { lus = clients(); } catch (e) { lus = null; }
       if (!Array.isArray(lus)) { agents.noter(ID, 'lire les clients', { cible: 'clients', resultat: 'erreur', detail: 'liste des clients illisible' }); return { stripe: true, clients: false }; }
       let examines = 0, proposes = 0, doutes = 0;
-      for (const c of lus.slice(0, CLIENTS_MAX)) {
+      const horsForme = [];     // les clients qui ONT PAYÉ et dont le nom ne peut pas devenir un nom d'accès : Justin le sait UNE fois
+      /* (28 octobre 2026, Justin : « sans limite ») TOUS les clients sont lus : l'ancien `slice(0, 500)` laissait le cinq-centième client et les suivants sans espace, même payés. Le plafond qui
+         reste est celui des DÉPÔTS par passage (`PAR_PASSAGE`), pas celui des clients regardés. */
+      for (const c of lus) {
         if (!c || typeof c.email !== 'string' || !c.email) continue;
         const nom = String(c.entreprise || '').trim();
-        if (!NOM.test(nom) || nom.split(/\s+/).length > MOTS_MAX) { if (nom) { doutes++; agents.noter(ID, 'lire un nom', { cible: 'client', resultat: 'refuse', detail: 'nom d’entreprise hors forme : laissé à un humain' }); } continue; }
+        if (!NOM.test(nom) || nom.split(/\s+/).length > MOTS_MAX) {
+          if (nom) {
+            doutes++;
+            /* Un nom hors forme n'est plus un simple compteur : si CE client a payé (le serveur en est sûr) et n'a pas d'espace, personne d'autre ne le verra — Justin le saura, une fois. */
+            let sur = false;
+            try { if (!espaceExiste(c.email, '')) { const v0 = paiement(c, slugSur(nom), liste); sur = !!(v0 && v0.sur === true); } } catch (e) { sur = false; }
+            if (sur) horsForme.push(c.email);
+          }
+          continue;
+        }
         const sl = slug(nom);
         if (!SLUG.test(sl)) continue;
         if (espaceExiste(c.email, sl)) continue;
@@ -89,9 +101,28 @@ module.exports = function hugo(ctx) {
         if (r.ok) proposes++;
         else if (r.raison === 'file_pleine' || r.raison === 'ecriture') break;
       }
+      if (horsForme.length) await signalerNomsHorsForme(horsForme);
       if (proposes > 0) dire('J’ai déposé ' + proposes + ' demande' + (proposes > 1 ? 's' : '') + ' de création d’espace (paiement relevé sur Stripe) : elle' + (proposes > 1 ? 's attendent' : ' attend') + ' ta validation dans « Validations ».', 'important');
       return { examines, proposes, doutes };
     } finally { enCours = false; }
+  }
+
+  /* Le nom d'un client qui a payé n'a pas la forme d'un nom d'accès (une phrase, trop de mots) : Hugo ne devine rien. Il le DIT à Justin — une seule fois par client (l'empreinte de
+     l'adresse est rangée, jamais l'adresse ni le nom) : le rejouer à chaque passage de quinze minutes noierait le fil, et ne le dire qu'au journal le laissait sans espace pour toujours. */
+  const empreinteClient = email => crypto.createHash('sha256').update('hugo-nom:' + String(email).toLowerCase()).digest('hex').slice(0, 24);
+  const slugSur = nom => { let sl = ''; try { sl = String(slug(nom) || ''); } catch (e) { sl = ''; } return SLUG.test(sl) ? sl : 'x'; };
+  async function signalerNomsHorsForme(emails) {
+    const nouveaux = [];
+    for (const em of emails) { const h = empreinteClient(em); if (!reg.nomsSignales[h] && !nouveaux.some(n => n.h === h)) nouveaux.push({ h }); }
+    if (!nouveaux.length) return 0;
+    /* la marque est posée AVANT de parler (sur disque) : un redémarrage au milieu ne redit pas le même client */
+    for (const n of nouveaux) reg.nomsSignales[n.h] = maintenant();
+    const cles = Object.keys(reg.nomsSignales);
+    if (cles.length > 2000) for (const k of cles.sort((a, b) => reg.nomsSignales[a] - reg.nomsSignales[b]).slice(0, cles.length - 2000)) delete reg.nomsSignales[k];
+    if (!sauve()) { for (const n of nouveaux) delete reg.nomsSignales[n.h]; return 0; }
+    agents.noter(ID, 'lire un nom', { cible: 'client', resultat: 'refuse', detail: nouveaux.length + ' client(s) payé(s) au nom d’entreprise hors forme : Justin prévenu' });
+    dire(nouveaux.length + ' ' + (nouveaux.length > 1 ? 'clients ont payé mais leur nom' : 'client a payé mais son nom') + ' d’entreprise n’a pas la forme d’un nom d’accès (une phrase, trop de mots…) : je ne crée pas leur espace et je ne devine rien. À faire à la main depuis la Tour ; je ne le redirai pas.', 'important');
+    return nouveaux.length;
   }
 
   /* ── LA FIN D'ABONNEMENT ET LA VÉRIFICATION D'UN PAIEMENT ───────────────────────────────────────────────────────────────────── */
@@ -105,6 +136,7 @@ module.exports = function hugo(ctx) {
   const F = 'agents-hugo.json';
   const reg = fich ? fich.charger(F, { resiliations: {} }) : { resiliations: {} };
   if (!reg.resiliations || typeof reg.resiliations !== 'object' || Array.isArray(reg.resiliations)) reg.resiliations = {};
+  if (!reg.nomsSignales || typeof reg.nomsSignales !== 'object' || Array.isArray(reg.nomsSignales)) reg.nomsSignales = {};
   const sauve = () => (fich ? fich.ecrire(F, reg) : true);
   const registreIllisible = () => !!(fich && fich.illisible(F));
   const nomDe = id => { const a = agents.AGENTS.find(x => x.id === id); return a ? a.nom : String(id); };

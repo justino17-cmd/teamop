@@ -308,7 +308,7 @@ const P = jeton.patron, S = jeton.simple;
   v('⛔ à huit jours elle a expiré : plus dans la file d\'attente', (await s6.appel('/api/monitor/agents/validations', null, P, 'GET')).j.validations, []);
   r = await s6.appel('/api/monitor/agents/validations/decider', { id: pe.id, decision: 'accepter' }, P);
   v('⛔ … et on ne l\'accepte plus (409) : on n\'ouvre pas aujourd\'hui un accès demandé la semaine dernière', r.s, 409);
-  v('une tâche vieille de plus de 48 h n\'est plus prise', s6.api.prendre('hugo'), null);
+  v('une tâche vieille de plus de sept jours (48 h jusqu\'au 28 octobre 2026) n\'est plus prise', s6.api.prendre('hugo'), null);
   r = await s6.appel('/api/monitor/agents/taches', null, P, 'GET');
   v('… elle est marquée « expirée »', r.j.taches.find(t => t.id === te.id).statut, 'expiree');
   await s6.fermer();

@@ -3,7 +3,7 @@
  * Justin : « je veux une vraie équipe d'entreprise » ; « si une personne est occupée et qu'une autre ne fait rien et peut gérer, pour ne pas la surcharger de travail, c'est bien ». Victor fait trois
  * choses, et seule la première est un rendez-vous :
  *  1. LE POINT DU MATIN — une fois par jour, à 8 h (heure de Paris), dans « Équipe TeamOP » : ce qui attend Justin (demandes d'agents à valider, demande RGPD et son délai, contrats, courrier,
- *     incidents) et la charge de chacun. Même mécanique que les réunions : inscrit AVANT d'être dit (jamais deux fois, même après un redémarrage), rattrapé jusqu'à midi si le serveur était
+ *     incidents) et la charge de chacun. Même mécanique que les réunions : inscrit AVANT d'être dit (jamais deux fois, même après un redémarrage), rattrapé toute la journée si le serveur était
  *     arrêté. Un matin calme est dit en une ligne, SANS appeler Claude ; sinon un seul appel (faits fermés), dont chaque nombre est vérifié contre les faits — sinon le texte est celui du code.
  *  2. L'ÉQUILIBRAGE — il voit les tâches en cours de chacun (`agents.charge()`) ; quand un agent en a trois ou plus et qu'un collègue est LIBRE, il demande au modèle s'il faut en redistribuer une, et
  *     laquelle (un outil à choix fermés : une tâche de la liste, un collègue libre de la liste). Le CODE exécute par `passerConsigne` — la seule règle de ce dépôt sur qui peut passer quoi à qui (jamais
@@ -27,7 +27,9 @@ const O = require('./plateforme-outils');
 const { SANS_CONSIGNE_LIBRE } = require('./agents');
 
 const ID = 'victor';
-const POINT = { heure: 8, limite: 12 };
+/* (28 octobre 2026, Justin : « sans limite ») Le point du jour se RATTRAPE toute la journée (limite 24 = minuit, heure de Paris) : jusqu'à midi, un serveur redémarré à 12 h 05 laissait Justin sans point
+   jusqu'au lendemain — alors que les faits qu'il contient (ce qui t'attend, la plateforme) valent toujours. Le jour suivant, la clé change : jamais deux points le même jour. */
+const POINT = { heure: 8, limite: 24 };
 const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 const CHARGE_MIN = 3;                               // tâches en cours à partir desquelles il demande s'il faut redistribuer
 const EQUILIBRE_MS = 30 * 60000;
@@ -199,7 +201,7 @@ module.exports = function agentVictor(ctx) {
       return { saute: 'erreur' };
     }
   }
-  /* « est-ce l'heure ? » — chaque minute : dans la fenêtre 8 h – midi (Paris) et pas encore dit aujourd'hui. */
+  /* « est-ce l'heure ? » — chaque minute : à partir de 8 h (Paris) et pas encore dit aujourd'hui. */
   async function tic() {
     if (!agents.peutAgir(ID).ok) return { saute: agents.peutAgir(ID).raison };
     if (etat.illisible()) return { saute: 'memoire_illisible' };

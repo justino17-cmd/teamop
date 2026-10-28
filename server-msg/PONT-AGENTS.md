@@ -141,6 +141,6 @@ en file. À la maison : `journalctl -u teamop-msg@beta`, et `--verifier` ci-dess
 
 ## Les bancs
 
-`test-3090` (le vrai service : gardes, installer, poster, nouveaux, supprimer), `test-3091` (le vrai serveur de la Tour + le vrai service + un faux
-Anthropic : historique, direct, réveil des agents, suppressions dans les deux sens, panne), `test-3092` (le module de la Tour contre un faux
-service : file, attente, rattrapage, bandeau), `test-3093` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
+`test-3094` (le vrai service : gardes, installer, poster, nouveaux, supprimer), `test-3095` (le vrai serveur de la Tour + le vrai service + un faux
+Anthropic : historique, direct, réveil des agents, suppressions dans les deux sens, panne), `test-3096` (le module de la Tour contre un faux
+service : file, attente, rattrapage, bandeau), `test-3097` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
