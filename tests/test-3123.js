@@ -5,7 +5,8 @@
      · un travail pris puis TERMINÉ par l'outil `terminer` : « ✅ Je viens de terminer : … (demandé par Justin) » dans Équipe, marquée « fait », clé stable rangée sur le disque, et la ligne survit à un redémarrage ;
      · le budget du jour est tenu par le vrai cerveau (dépense côté « racine », rien côté « sans racine ») ;
      · `/health` publie `agentsRefus` (deux nombres) ; Victor est le meneur de « clients » ; la page de la Tour reçoit `fait:true` ;
-     · treize questions de Justin à une même agent dans l'heure : treize réponses. */
+     · treize questions de Justin à une même agent dans l'heure : treize réponses ;
+     · le filet du jour réglé par la configuration du VPS : une ligne dans Équipe, plus un appel. */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto'), net = require('net');
 const { spawn } = require('child_process');
@@ -133,6 +134,27 @@ console.log('\n── 3123 · les agents autonomes contre le vrai serveur ──
     const l = await G('/api/monitor/conversations?tous=1');
     const c = l.fils.find(f => f.fil === 'clients');
     v('le groupe « clients » : meneur Victor, sept membres dont lui', [c.meneur, c.membres.length, c.membres[0].id], ['victor', 7, 'victor']);
+  }
+
+  console.log('\n6. Le filet du jour, réglé sur le VPS (`config.agents.budgetJour`) : une ligne dans Équipe, plus aucun appel');
+  {
+    S.e.kill('SIGTERM'); await dormir(600);
+    const cfg = JSON.parse(fs.readFileSync(path.join(banc, 'config.json'), 'utf8'));
+    cfg.agents.budgetJour = { filet: 0.05 };   // 5 centimes : déjà dépassés par ce que ce banc a dépensé
+    fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify(cfg));
+    S = await demarrer();
+    vrai('le serveur redémarre avec le réglage', S.vivant, S.journal().slice(0, 400));
+    lj = await connecter();
+    const a0 = appels();
+    await P('/api/monitor/conversations/envoyer', { fil: 'noah', texte: 'Noah, tu es là ?' });
+    await att(async () => (await fil('equipe')).some(x => x.de === 'systeme' && /filet du jour/.test(x.texte)), 6000);
+    await dormir(300);
+    const eq = await fil('equipe'), priv = await fil('noah');
+    v('⛔ aucun appel à Claude n\'est parti (le filet est atteint pour tout le monde)', appels() - a0, 0);
+    v('⛔ UNE ligne dans Équipe, qui dit le filet et « demain matin »', eq.filter(x => x.de === 'systeme' && /filet du jour/.test(x.texte) && /demain matin/.test(x.texte)).length, 1);
+    vrai('…et Noah le dit dans son fil privé, avec la cause lisible (le budget du jour de toute l\'équipe)', priv.some(x => x.de === 'noah' && /budget du jour de toute l’équipe est atteint/.test(x.texte)), JSON.stringify(priv.map(x => [x.de, x.texte.slice(0, 60)])));
+    const b = JSON.parse(fs.readFileSync(path.join(D, 'agents-budget.json'), 'utf8'));
+    vrai('…et le jour du budget porte l\'alerte (une seule fois par jour, rangée avec le fichier)', b.jour && b.jour.alertes && b.jour.alertes.filet === true, JSON.stringify(b.jour && b.jour.alertes));
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

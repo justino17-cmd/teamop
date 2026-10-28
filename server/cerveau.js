@@ -125,7 +125,7 @@ module.exports = function cerveau(ctx) {
   const totalJour = () => (Number(jourCourant().nonRacine) || 0) + (Number(jourCourant().racine) || 0);
   /* le plafond d'un agent pour ses appels SANS racine, aujourd'hui */
   const plafondJourDe = id => Math.max(P.agentMin, P.agentPct * plafond(id));
-  const alerte = (cle, x) => { const a = jourCourant().alertes; if (a[cle]) return; a[cle] = true; dire(x); };
+  const alerte = (cle, x) => { const a = jourCourant().alertes; if (a[cle]) return; a[cle] = true; ecrire(); dire(x); };   // rangée tout de suite : un refus n'écrit pas de dépense, et un redémarrage ne redirait pas l'alerte
   const depense = id => Number(etat.parAgent[id]) || 0;
   const total = () => Object.values(etat.parAgent).reduce((s, x) => s + (Number(x) || 0), 0);
   const plafond = id => { const a = agents.AGENTS.find(x => x.id === id); return a ? a.plafondUsd : 0; };
