@@ -53,6 +53,8 @@ const VU_ET_PAS_GARDE = {
   mvtDemoDeuxMois: 'démonstration', betaRemplir: 'démonstration (bêta)', demoCharger: 'démonstration',
   demoCompta: 'démonstration', demoTele: 'démonstration',
   nettDemoPoser: 'démonstration (cahiers et plan de prévention du pack nettoyage, posés par « Remplir » de la bêta)',
+  cvcDemoPoser: 'démonstration (parc d\'appareils du chauffage, posé par « Remplir » de la bêta)',
+  docmDemoPoser: 'démonstration (documents du métier — devis, note, rapport d\'étanchéité, suivis —, posés par « Remplir » de la bêta, marqués démonstration)',
   /* ⚠️ Ces deux-là n'apparaissaient PAS tant que le nettoyage des commentaires était naïf :
      elles tombaient dans les 107 069 caractères avalés. Le banc voit plus large depuis. */
   genDemoData: 'démonstration', genTestNuisibles: 'démonstration (jeu d essai nuisibles)',

@@ -288,8 +288,8 @@ async function suite() {
   vrai('une fiche déjà là (même nom) n\'est pas dupliquée et garde son stock', e.db.produits.filter(p => p.nom === CAT[4][0]).length === 1 && e.db.produits.find(p => p.nom === CAT[4][0]).qte === 7 && e.db.produits.length === 24);
   const t3 = monde('3d'); const n3 = t3.b.fn.cataloguePoser(t3.db);
   vrai('⛔ 3D : son catalogue se pose comme avant (' + CATALOGUE_3D.length + ' produits, 5 fournisseurs), à l\'identique', n3.produits === CATALOGUE_3D.length && n3.fournisseurs === 5 && t3.db.produits[0].nom === 'ALTA 7000');
-  const pl = monde('plomberie'); const np = pl.b.fn.cataloguePoser(pl.db);
-  vrai('plomberie : toujours rien (un métier sans pack n\'a ni produit ni fournisseur)', np.produits === 0 && np.fournisseurs === 0);
+  const pl = monde('electricite'); const np = pl.b.fn.cataloguePoser(pl.db);
+  vrai('électricité : toujours rien (un métier sans pack n\'a ni produit ni fournisseur ; v779 : la plomberie et le chauffage ont le leur)', np.produits === 0 && np.fournisseurs === 0);
   vrai('PACK_METIER_AUTO reste faux (la décision du 23 septembre : rien ne se pose seul)', /const PACK_METIER_AUTO\s*=\s*false;/.test(N));
   vrai('migrate() et load() ne posent pas le catalogue de départ (aucun appel hors du geste et du bouton)', (N.match(/catalogueDepartPoser\(/g) || []).length <= 5, (N.match(/catalogueDepartPoser\(/g) || []).length);
   await suite2(N, METIERS, CATALOGUE_3D);
@@ -306,8 +306,8 @@ async function suite2(N, METIERS, CATALOGUE_3D) {
     const init = { METIERS, INT_TYPES: ['Dératisation'], BETA_ESSAI: !!beta, db, STOCKAGE_ID: 'stockage', console, uid: (() => { let n = 0; return () => 'u' + (++n); })(), todayISO: () => '2026-10-28', shiftDay: (d, n) => d,
       toast: () => {}, save: () => {}, go: () => {}, confirm: () => true, currentUser: { id: 'u1', role: 'admin' }, views: { parametres() {} }, planJours: [], NETT_METIERS: ['nettoyage'], fullName: () => 'Test' };
     const noms = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'sansBox', 'libBox', 'exemple', 'capTxt', 'demoSemisDe', 'demoPlanGenerique', 'demoCharger', 'demoRetirer', 'demoCompte',
-      'metierGereSites', 'nettDemoPoser', 'nettCahierModele', 'nettControleDepart', 'nettNoteTxt', 'nettNote', 'nettPlanVide', 'nettCahiersDe', 'nettClient', 'nettTxt'];
-    const consts = { DEMO_CLIENTS_3D: 'const DEMO_CLIENTS_3D=[', DEMO_PLAN_3D: 'const DEMO_PLAN_3D=[', DEMO_NETT: 'const DEMO_NETT={' };
+      'metierActifs', 'metierGereSites', 'nettDemoPoser', 'nettCahierModele', 'nettControleDepart', 'nettNoteTxt', 'nettNote', 'nettPlanVide', 'nettCahiersDe', 'nettClient', 'nettTxt'];
+    const consts = { DEMO_CLIENTS_3D: 'const DEMO_CLIENTS_3D=[', DEMO_PLAN_3D: 'const DEMO_PLAN_3D=[', DEMO_NETT: 'const DEMO_NETT={', DEMO_PLOMB: 'const DEMO_PLOMB={', DEMO_CHAUF: 'const DEMO_CHAUF={' };
     Object.keys(consts).forEach(k => { init[k] = evalue(litteral(N, consts[k])); });
     const b = bac('app.html', noms, init); return { db, b, init }; };
   const m3 = monde('3d'), mb3 = monde('3d', true);
@@ -342,8 +342,8 @@ async function suite2(N, METIERS, CATALOGUE_3D) {
       && I.filter(i => i.controleQualite).length === 1 && I.find(i => i.controleQualite).relevesMetier.controleQualite.indexOf('%') > 0, [mn.db.cahiers && mn.db.cahiers.length, mn.db.plansPrevention && mn.db.plansPrevention.length]);
     r.demoRetirer();
     vrai('« Retirer la démonstration » emporte aussi les cahiers et le plan', mn.db.cahiers.length === 0 && mn.db.plansPrevention.length === 0 && mn.db.interventions.length === 0 && mn.db.clients.length === 0); }
-  { const mp = monde('plomberie', true); mp.b.fn.demoCharger(); const I = mp.db.interventions;
-    vrai('un métier sans jeu écrit pour lui (plomberie) : un planning bâti sur SES types, aucun mot d\'anti-nuisibles, aucun cahier', I.length === 14 && I.every(i => !i.type || METIERS.plomberie.types.indexOf(i.type) >= 0) && !ANTI.test(JSON.stringify(I.map(i => [i.titre, i.type, i.checklist]))) && !mp.db.cahiers, I.slice(0, 3).map(i => i.titre)); }
+  { const mp = monde('electricite', true); mp.b.fn.demoCharger(); const I = mp.db.interventions;
+    vrai('un métier sans jeu écrit pour lui (électricité) : un planning bâti sur SES types, aucun mot d\'anti-nuisibles, aucun cahier', I.length === 14 && I.every(i => !i.type || METIERS.electricite.types.indexOf(i.type) >= 0) && !ANTI.test(JSON.stringify(I.map(i => [i.titre, i.type, i.checklist]))) && !mp.db.cahiers, I.slice(0, 3).map(i => i.titre)); }
 
   { const rap = (metier) => { const m = monde(metier, true); let html = ''; m.db.interventions = [{ id: 'i1', titre: 'Passage', clientId: 'c1' }]; m.db.clients = [{ id: 'c1', nom: 'Cabinet', email: 'a@b.test' }];
       const b = bac('app.html', ['envoiRapportClient', 'metierId', 'metierPackDe', 'metierPack', 'estMetier3D'], Object.assign(m.init, { openModal: h => { html = h; }, esc: s => String(s == null ? '' : s), clientName: () => 'Cabinet' }));

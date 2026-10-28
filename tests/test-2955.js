@@ -132,7 +132,7 @@ for (const fichier of ['app.html', 'beta.html']) {
   { const R = {}; TOUS.forEach(m => { R[m] = joue(m, ['devisIAModal'], [], w => w.b.fn.devisIAModal()); });
     vrai('(population) la fenêtre se rend pour les six métiers', TOUS.every(m => /dia-demande/.test(R[m].html || '')), TOUS.filter(m => !R[m].html).map(m => m + ' : ' + R[m].erreur));
     vrai('⛔ la 3D garde son exemple À L\'IDENTIQUE', /placeholder="Ex : dératisation d'un restaurant de 120 m² avec cave, 8 postes d'appâtage, 3 passages sur 2 mois, à Strasbourg"/.test(R['3d'].html));
-    egal('⛔ hors 3D : un exemple tiré du premier type d\'intervention du métier, sans dératisation ni appâtage', HORS.filter(m => { const ph = (/id="dia-demande"[^>]*placeholder="([^"]*)"/.exec(R[m].html) || [])[1] || ''; return !ph.includes(METIERS[m].types[0]) || /dératis|appât|restaurant|cave/i.test(ph); }), []); }
+    egal('⛔ hors 3D : un exemple tiré du premier type d\'intervention du métier, sans dératisation ni appâtage', HORS.filter(m => { const ph = (/id="dia-demande"[^>]*placeholder="([^"]*)"/.exec(R[m].html) || [])[1] || ''; return !(({ plomberie: 'remplacement d’un chauffe-eau électrique', chauffage: 'remplacement d’une chaudière gaz' })[m] ? ph.includes(({ plomberie: 'remplacement d’un chauffe-eau électrique', chauffage: 'remplacement d’une chaudière gaz' })[m]) : ph.includes(METIERS[m].types[0])) || /dératis|appât|restaurant|cave/i.test(ph); }), []); /* v779 : la plomberie et le chauffage ont leur exemple écrit pour eux */ }
 
   /* ── 7. un écran du masque dont l'entreprise a déjà des données reste ouvert ── */
   console.log('\n7. metierBloque : ce qui est saisi se lit');
