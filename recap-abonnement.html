@@ -1480,16 +1480,13 @@ async function promoValider() {
   if (!code) { dis('Entrez votre code promo.', false); return; }
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
   try {
-    const r = await fetch('https://api.teamop.fr/api/promo/valider', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(metierAbo ? { code: code, apercu: true, metier: metierAbo } : { code: code, apercu: true }) });
+    const r = await fetch('https://api.teamop.fr/api/promo/valider', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code, apercu: true }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { dis('⚠ ' + (j.error || 'Code invalide'), false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } return; }
-    /* ⛔ UN CODE RÉSERVÉ À DES MÉTIERS (28 octobre 2026) : l'aperçu le dit (`reserve`) et, si le métier est déjà choisi, s'il y figure (`metierAdmis`). C'est une INFORMATION :
-       la décision est celle de l'activation, sur le métier que TEAM OP pose à l'ouverture de l'espace — jamais sur ce que cette page envoie. */
+    /* ⛔ UN CODE RÉSERVÉ À DES MÉTIERS (28 octobre 2026) : l'aperçu dit SEULEMENT qu'il l'est (`reserve`) — il ne confirme ni n'infirme le métier choisi ici : ce serait un oracle
+       public (23 essais suffiraient à lire la liste). La page n'envoie donc pas son métier ; le verdict est celui de l'activation, sur le métier que TEAM OP pose à l'ouverture de l'espace. */
     let reserve = '';
-    if (j.reserve === true) {
-      if (j.metierAdmis === false) { dis('⚠ Ce code est réservé à certains métiers, et <b>le métier que vous avez choisi n’en fait pas partie</b>. Changez de métier plus haut si vous vous êtes trompé, ou écrivez à support@teamop.fr.', false); if (btn) { btn.disabled = false; btn.textContent = 'Activer'; } return; }
-      reserve = '<br>Ce code est réservé à certains métiers : ' + (j.metierAdmis === true ? 'le vôtre en fait partie, et ' : '') + 'nous le vérifions à l’ouverture de votre espace.';
-    }
+    if (j.reserve === true) reserve = '<br>Ce code est réservé à certains métiers : nous le vérifions à l’ouverture de votre espace.';
     /* ⛔ ON NE PROMET PAS UNE ACTIVATION QU'ON NE PEUT PAS TENIR. La page félicitait le
        visiteur — « activation dans l'application… » — puis le renvoyait vers `app.html#promo=`.
        Or `promoAppliquer` EXIGE la preuve de la clé d'équipe : un code ne s'active que SUR UN

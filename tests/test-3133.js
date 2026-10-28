@@ -15,7 +15,7 @@
    · un refus ne fait JAMAIS bouger le compteur, n'écrit rien dans le registre, n'envoie aucun courriel « code activé » ;
    · un code déjà ACTIF ne se coupe pas, un code déjà SERVI garde son 410 ; un code SANS restriction (ou `metiers: []`) marche comme avant ;
    · une restriction ILLISIBLE (identifiant inconnu, forme qui n'est pas une liste) FERME le code : rien ne s'active, le démarrage l'écrit au journal ;
-   · l'aperçu public ne dit rien d'une entreprise : `reserve`, et `metierAdmis` si la page a déjà son métier — jamais une décision ;
+   · l'aperçu public ne dit rien d'une entreprise : `reserve` SEULEMENT — ⛔ jamais `metierAdmis` pour un métier présenté (oracle : 23 essais lisent la liste des métiers admis) ;
    · `server/configurer-promos.js` : la façon de déclarer la restriction (identifiants validés contre `metiers.json`, fichier jamais à moitié écrit, aucun secret affiché).
    Les codes d'ici sont FICTIFS, sans chiffre (règle du dépôt : un code promo ne s'écrit dans aucun fichier servi). */
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), os = require('os');
@@ -333,11 +333,15 @@ const kh = slug => ({ 'x-teamop-kh': sha(CLES[slug]) });
     let r = await S.appel('POST', '/api/promo/valider', { code: LIBRE, apercu: true });
     v('un code libre : la réponse d\'AVANT, exactement (aucune clé de plus)', [r.code, Object.keys(r.json).sort()], [200, CLES_LIBRE]);
     r = await S.appel('POST', '/api/promo/valider', { code: RES, apercu: true });
-    v('un code réservé : `reserve: true`, et rien d\'autre de neuf sans métier donné', [r.code, r.json.reserve, 'metierAdmis' in r.json, r.json.formule, r.json.mois], [200, true, false, 'business', 2]);
-    r = await S.appel('POST', '/api/promo/valider', { code: RES, apercu: true, metier: 'chauffage' });
-    v('   … avec le métier de la page : `metierAdmis: true` s\'il figure dans la liste', r.json.metierAdmis, true);
-    r = await S.appel('POST', '/api/promo/valider', { code: RES, apercu: true, metier: 'nettoyage' });
-    v('   … `false` sinon', r.json.metierAdmis, false);
+    v('un code réservé : `reserve: true`, et rien d\'autre de neuf', [r.code, r.json.reserve, 'metierAdmis' in r.json, r.json.formule, r.json.mois], [200, true, false, 'business', 2]);
+    /* ⛔ L'ORACLE (gardien, 28 octobre 2026) : le métier présenté ne change RIEN à la réponse — ni pour un admis, ni pour un refusé, ni pour un inconnu, ni pour un faux type */
+    const ref = JSON.stringify(r.json);
+    const sondes = {};
+    for (const m of ['plomberie', 'chauffage', 'nettoyage', 'peinture', 'inconnu-xyz', '', 42, ['plomberie']]) {
+      const x = await S.appel('POST', '/api/promo/valider', { code: RES, apercu: true, metier: m, metiers: ['plomberie'], metierAdmis: true });
+      sondes[JSON.stringify(m)] = [x.code, JSON.stringify(x.json) === ref, 'metierAdmis' in x.json];
+    }
+    v('⛔ aucun métier présenté n\'infléchit la réponse de l\'aperçu (admis, refusé, inconnu, faux type : la MÊME réponse, sans `metierAdmis`)', Object.values(sondes).map(x => x.join('/')), Object.keys(sondes).map(() => '200/true/false'));
     vrai('   … sans jamais donner la liste des métiers', !/plomberie|chauffage|Plomberie/.test(r.txt));
     const rA = await S.appel('POST', '/api/promo/valider', { code: RES, apercu: true, teamId: ESP.applomb.t, metier: 'nettoyage' });
     const rB = await S.appel('POST', '/api/promo/valider', { code: RES, apercu: true, teamId: ESP.apnet.t, metier: 'nettoyage' });

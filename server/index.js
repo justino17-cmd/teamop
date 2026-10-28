@@ -11720,15 +11720,12 @@ app.post('/api/promo/valider', (req, res) => {
      affiche en « essai » — la même que `/api/espaces/etat` lui rendra à la synchro suivante. ⛔ Seulement pour une clé
      PROUVÉE : l'aperçu est public, il ne dit rien de la fiche d'une entreprise (la formule du code, comme avant). */
   const fCode = ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium';
-  /* L'aperçu d'un code RÉSERVÉ le dit (`reserve`) et, si la page a déjà le métier choisi à la commande, si ce choix y figure (`metierAdmis`) :
-     une INFORMATION pour l'écran, jamais une décision — la décision est celle de l'activation, sur l'annuaire. Ni la liste des métiers, ni
-     rien sur une entreprise. Un code libre répond exactement comme avant. */
+  /* L'aperçu d'un code RÉSERVÉ dit SEULEMENT qu'il l'est (`reserve`) — jamais si un métier donné y figure. ⛔ Un `metierAdmis` rendu pour le métier envoyé
+     est un ORACLE public : en au plus 23 appels (un par métier), sous le quota par IP, un anonyme qui connaît le code reconstitue la liste exacte des métiers
+     admis et n'a plus qu'à déclarer l'un d'eux à la commande (gardien, 28 octobre 2026). Le corps de l'aperçu ne décide donc de rien et n'apprend rien :
+     le verdict est celui de l'activation, sur l'annuaire. Ni la liste, ni rien sur une entreprise. Un code libre répond exactement comme avant. */
   const reserveApercu = {};
-  if (apercu && defMetiers.etat === 'reserve') {
-    reserveApercu.reserve = true;
-    const mDemande = monStr((req.body || {}).metier, 20);
-    if (mDemande) reserveApercu.metierAdmis = defMetiers.ids.includes(mDemande);
-  }
+  if (apercu && defMetiers.etat === 'reserve') reserveApercu.reserve = true;
   res.json({ ok: true, formule: (!apercu && team && formulePromo(espaceParT(team), c)) || fCode, mois, finLe, dejaUtilise: !!deja, debut: deja ? (deja.date || '') : '', ...reserveApercu });
 });
 

@@ -168,7 +168,7 @@ const PAGEN = nu(PAGE);
 }
 
 (async () => {
-/* le code promo de la page : l'aperçu d'un code RÉSERVÉ (`reserve`, `metierAdmis`) est dit à l'écran — une information, pas une décision */
+/* le code promo de la page : l'aperçu d'un code RÉSERVÉ (`reserve` SEUL) est dit à l'écran — une information, pas une décision, et jamais un oracle sur le métier */
 {
   const src = extraire(nu(PAGE), 'promoValider');
   vrai('(population) `promoValider` est trouvée dans la page', src.length > 600);
@@ -181,10 +181,10 @@ const PAGEN = nu(PAGE);
     await f();
     return { envoyes, msg: els['promo-msg'] ? els['promo-msg'].innerHTML : '', couleur: els['promo-msg'] ? els['promo-msg'].style.color : '', rangement };
   };
-  let r = await jouer({ corps: { ok: true, mois: 2, reserve: true, metierAdmis: false } }, 'nettoyage');
-  vrai('⛔ un code réservé dont le métier choisi n\'est pas admis : refusé à l\'écran (rouge), rien n\'est mémorisé — et la page a envoyé son métier à l\'aperçu', /n’en fait pas partie/.test(r.msg) && /support@teamop\.fr/.test(r.msg) && Object.keys(r.rangement).length === 0 && r.envoyes[0].metier === 'nettoyage' && r.envoyes[0].apercu === true, r);
-  r = await jouer({ corps: { ok: true, mois: 2, reserve: true, metierAdmis: true } }, 'plomberie');
-  vrai('un code réservé, métier admis : « le vôtre en fait partie » et « nous le vérifions à l\'ouverture de votre espace » (une information, pas une activation)', /le vôtre en fait partie/.test(r.msg) && /vérifions à l’ouverture de votre espace/.test(r.msg) && /Code valide/.test(r.msg), r.msg);
+  let r = await jouer({ corps: { ok: true, mois: 2, reserve: true } }, 'nettoyage');
+  vrai('⛔ un code réservé, métier choisi : la page le dit sans confirmer ni infirmer ce métier, et ELLE N\'ENVOIE PAS son métier à l\'aperçu (oracle)', /réservé à certains métiers/.test(r.msg) && /vérifions à l’ouverture de votre espace/.test(r.msg) && !/en fait partie|n’en fait pas partie/.test(r.msg) && /Code valide/.test(r.msg) && r.envoyes.length === 1 && !('metier' in r.envoyes[0]) && Object.keys(r.envoyes[0]).sort().join() === 'apercu,code', [r.msg, r.envoyes]);
+  r = await jouer({ corps: { ok: true, mois: 2, reserve: true, metierAdmis: false } }, 'nettoyage');
+  vrai('   … même si un serveur d\'AVANT répondait `metierAdmis` : la page n\'en tient plus compte (pas de refus à l\'écran, aucun verdict de métier)', !/en fait partie|n’en fait pas partie/.test(r.msg) && /Code valide/.test(r.msg) && r.couleur !== 'var(--m-err)', [r.msg, r.couleur]);
   r = await jouer({ corps: { ok: true, mois: 2, reserve: true } }, '');
   vrai('un code réservé, aucun métier encore choisi : il le dit, sans dire « admis »', /réservé à certains métiers/.test(r.msg) && !/en fait partie/.test(r.msg) && !('metier' in r.envoyes[0]), [r.msg, r.envoyes]);
   r = await jouer({ corps: { ok: true, mois: 2 } }, 'plomberie');

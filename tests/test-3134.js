@@ -18,6 +18,7 @@ const vrai = (t, a) => v(t, !!a, true);
 const sansCommentaires = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 const bloc = (src, debut, fin) => { const i = src.indexOf(debut); const j = i < 0 ? -1 : src.indexOf(fin, i + debut.length); return (i < 0 || j < 0) ? '' : src.slice(i, j); };
 
+(async () => {
 console.log('\n── 3134 · les pages d\'un code promo réservé à des métiers ──');
 {
   const acc = sansCommentaires(bloc(TOUR, 'async function tourAccepterDemande(', '\n}\n'));
@@ -40,5 +41,57 @@ console.log('\n── 3134 · les pages d\'un code promo réservé à des métie
   vrai('   … et ce message n\'est pas une panne (« réservé à certains métiers », « à l\'ouverture de votre espace »)', /réservé à certains métiers/.test(portail) && /ouverture de votre espace/.test(portail));
 }
 
+console.log('\n── 3134 · b. L\'écran d\'acceptation d\'un code réservé : l\'entreprise, le métier déclaré, et une CONFIRMATION (gardien, 28 octobre 2026) ──');
+{
+  /* les VRAIES fonctions de la Tour, exécutées : ce que la Tour montre et demande, pas le texte qui le nomme */
+  const fn = (nom) => { const i = TOUR.indexOf('\nasync function ' + nom + '(') >= 0 ? TOUR.indexOf('\nasync function ' + nom + '(') : TOUR.indexOf('\nfunction ' + nom + '('); const j = i < 0 ? -1 : TOUR.indexOf('\n}\n', i); return (i < 0 || j < 0) ? '' : TOUR.slice(i, j + 3); };
+  const src = ['demCodeReserve', 'demReserveBadge', 'demReserveTexte', 'demAccepter'].map(fn);
+  vrai('(population) les quatre fonctions sont trouvées', src.every(x => x.length > 100));
+  const MET_L = { plomberie: 'Plomberie', nettoyage: 'Nettoyage' };
+  const monter = (o) => {
+    const jour = { confirms: [], acceptes: [], apiGets: 0 };
+    const PRO = o.pro || { loaded: true, err: '', codes: [], actifsTotal: 0 };
+    const CLI = { list: [{ email: 'a@x.fr', demandes: [o.dem] }] };
+    const f = new Function('PRO', 'CLI', 'MET_L', 'DEM', 'toast', 'confirm', 'apiGet', '$', 'sigleAdr', 'demCatsCle', 'tourAccepterDemande', 'esc', src.join('\n') + '\nreturn { demCodeReserve, demReserveBadge, demReserveTexte, demAccepter };')(
+      PRO, CLI, MET_L, { cats: {} }, () => {}, (m) => { jour.confirms.push(m); return o.oui !== false; },
+      async () => { jour.apiGets++; return { codes: o.charges || [], actifsTotal: 0 }; }, () => ({ value: 'jean' }), () => 'sg', () => 'cle',
+      async (...a) => { jour.acceptes.push(a); }, (x) => String(x));
+    return { f, jour, PRO };
+  };
+  const RES = { code: 'CODE-FICTIF-A', metiers: ['Plomberie', 'Chauffage / Climatisation'], metiersIllisible: false };
+  const pro = (c) => ({ loaded: true, err: '', codes: [c], actifsTotal: 0 });
+
+  let m = monter({ dem: { code: 'code-fictif-a', metier: 'nettoyage' }, pro: pro(RES) });
+  const t = m.f.demReserveTexte({}, { code: 'code-fictif-a', metier: 'nettoyage' }, 'Dupont Plomberie SARL');
+  vrai('la confirmation nomme le code, les métiers admis, l\'ENTREPRISE et le métier DÉCLARÉ par le client', /CODE-FICTIF-A|code-fictif-a/.test(t) && /Plomberie, Chauffage/.test(t) && /Entreprise : Dupont Plomberie SARL/.test(t) && /Métier déclaré par le client : Nettoyage/.test(t), t);
+  vrai('   … et elle dit que le serveur ne peut pas deviner si l\'entreprise exerce ce métier', /ne peut pas deviner/.test(t));
+  vrai('la carte de la demande porte la pastille « réservé · métier demandé »', /réservé : Plomberie, Chauffage \/ Climatisation · métier demandé : Nettoyage/.test(m.f.demReserveBadge({ code: 'CODE-FICTIF-A', metier: 'nettoyage' })));
+  vrai('   … et rien pour un code libre, un code inconnu ou une liste pas lue', m.f.demReserveBadge({ code: 'LIBRE' }) === '' && m.f.demCodeReserve('INCONNU') === null && monter({ dem: {}, pro: { loaded: false, err: '', codes: [] } }).f.demCodeReserve('CODE-FICTIF-A') === null);
+  vrai('   … ni pour un code dont `metiers` est vide (libre)', monter({ dem: {}, pro: pro({ code: 'LIBRE', metiers: [], metiersIllisible: false }) }).f.demCodeReserve('LIBRE') === null);
+
+  await m.f.demAccepter('a@x.fr', 'Dupont Plomberie SARL', 0, null);
+  v('⛔ accepter une demande à code RÉSERVÉ : UNE confirmation, qui montre l\'entreprise ET le métier déclaré', [m.jour.confirms.length, /Dupont Plomberie SARL/.test(m.jour.confirms[0] || ''), /Nettoyage/.test(m.jour.confirms[0] || '')], [1, true, true]);
+  v('   … confirmée : l\'espace s\'ouvre', m.jour.acceptes.length, 1);
+  m = monter({ dem: { code: 'CODE-FICTIF-A', metier: 'nettoyage' }, pro: pro(RES), oui: false });
+  await m.f.demAccepter('a@x.fr', 'Dupont Plomberie SARL', 0, null);
+  v('   … REFUSÉE par le patron : rien n\'est ouvert', [m.jour.confirms.length, m.jour.acceptes.length], [1, 0]);
+  m = monter({ dem: { code: 'LIBRE', metier: 'nettoyage' }, pro: pro({ code: 'LIBRE', metiers: [], metiersIllisible: false }) });
+  await m.f.demAccepter('a@x.fr', 'X', 0, null);
+  v('un code LIBRE : aucune confirmation de plus, comme avant', [m.jour.confirms.length, m.jour.acceptes.length], [0, 1]);
+  m = monter({ dem: { besoin: 'x' }, pro: pro(RES) });
+  await m.f.demAccepter('a@x.fr', 'X', 0, null);
+  v('une demande SANS code : aucune confirmation, aucune lecture de la liste', [m.jour.confirms.length, m.jour.acceptes.length, m.jour.apiGets], [0, 1, 0]);
+  m = monter({ dem: { code: 'CODE-FICTIF-A', metier: 'nettoyage' }, pro: { loaded: false, err: '', codes: [] }, charges: [RES] });
+  await m.f.demAccepter('a@x.fr', 'Dupont', 0, null);
+  v('⛔ la liste des codes pas encore lue : elle est relue AVANT d\'accepter, le patron ne passe pas à côté de la confirmation', [m.jour.apiGets, m.jour.confirms.length, m.jour.acceptes.length], [1, 1, 1]);
+  m = monter({ dem: { code: 'CODE-FICTIF-A', metier: '' }, pro: pro(RES), oui: false });
+  await m.f.demAccepter('a@x.fr', 'Dupont', 0, null);
+  vrai('   … sans métier déclaré : la confirmation le dit (« non précisé »)', /non précisé/.test(m.jour.confirms[0] || '') && m.jour.acceptes.length === 0);
+  m = monter({ dem: { code: 'CODE-FICTIF-A', metier: 'plomberie' }, pro: pro({ code: 'CODE-FICTIF-A', metiers: [], metiersIllisible: true }), oui: false });
+  await m.f.demAccepter('a@x.fr', 'Dupont', 0, null);
+  vrai('une restriction illisible : le patron lit que le code est FERMÉ avant d\'ouvrir', /FERMÉ/.test(m.jour.confirms[0] || '') && m.jour.acceptes.length === 0);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(1); });

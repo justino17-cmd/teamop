@@ -4524,7 +4524,7 @@ function setTab(t,sansAnim){
   if(t==='entreprises'&&SOUS.entreprises==='connexions') chargerConnexions();
   if(t==='abonnements'&&SOUS.abonnements==='devisia'&&!DIA.loaded) chargerDevisIA();
   /* Demandes : les comptes du site, l'annuaire (« espace déjà ouvert ») et Stripe (« déjà payé ») */
-  if(t==='demandes'){ chargerClients(); if(!ENT.loaded) chargerEntreprises(); if(!ABO.loaded) chargerAbos(); }
+  if(t==='demandes'){ chargerClients(); if(!ENT.loaded) chargerEntreprises(); if(!ABO.loaded) chargerAbos(); if(!PRO.loaded||PRO.err) chargerPromos(); }
   /* chargerPromos() n'était appelée NULLE PART : le bloc des formules offertes restait
      sur « Chargement des codes… » pour toute la session, alors que c'est le seul endroit de
      la console où l'on voit qui profite d'une formule offerte, et jusqu'à quand. */
@@ -9108,7 +9108,7 @@ function demCarte(x){
   var kv=[['Personne',esc(pers||'—')],['Adresse','<span class="mono">'+esc(c.email)+'</span>'],
     ['Téléphone',c.tel?esc(c.tel):'—'],['Formule',esc(formule)+(d.users?' · '+esc(nMot(d.users,'utilisateur','utilisateurs')):'')],
     ['Métier',esc(MET_L[d.metier]||'non précisé')],['Lien souhaité',d.lien?'<span class="mono">teamop.fr/e/'+esc(espSlugJs(d.lien))+'</span>'+(espSlugJs(d.lien)!==d.lien?' <span class="g">(tapé « '+esc(d.lien)+' »)</span>':''):'—'],
-    ['Code promo',d.code?'<span class="mono">'+esc(d.code)+'</span>':'—'],['Espace',esp?'déjà ouvert : <span class="mono">'+esc(esp.slug||esp.t)+'</span>':'aucun pour l’instant']];
+    ['Code promo',d.code?'<span class="mono">'+esc(d.code)+'</span>'+demReserveBadge(d):'—'],['Espace',esp?'déjà ouvert : <span class="mono">'+esc(esp.slug||esp.t)+'</span>':'aucun pour l’instant']];
   var gestes=x.traitee
     ?'<button type="button" class="btn-fant" onclick="demClasser(\''+jsq(c.email)+'\','+i+',false)">Remettre à traiter</button>'+
       (esp?'<button type="button" class="btn-fant" onclick="demOuvrirFiche(\''+jsq(esp.t)+'\')">Ouvrir la fiche</button>':'')
@@ -9171,6 +9171,29 @@ function demCatsTout(cle){ DEM.cats[cle]=CAT_CLES.slice(); render(); }
 function demCatsRevenir(cle){ delete DEM.cats[cle]; render(); }
 /* Un identifiant d'élément ne porte jamais une adresse en clair : on en garde une empreinte courte. */
 function sigleAdr(m){ var h=0, s=String(m||''); for(var k=0;k<s.length;k++){ h=((h<<5)-h+s.charCodeAt(k))|0; } return (h>>>0).toString(36); }
+/* Un code RÉSERVÉ à des métiers, vu de la Tour (28 octobre 2026, `gardien`) : le serveur juge sur le métier que la Tour POSE — et la Tour pose celui que le CLIENT a déclaré
+   à la commande. Le verdict est exact, mais il juge une déclaration : seul l'œil du patron voit le décalage (le nom de l'entreprise contre le métier). L'écran d'acceptation
+   le MONTRE donc (métier demandé, entreprise, métiers admis) et demande une confirmation avant d'ouvrir l'espace — pas seulement le courriel. null = code libre, inconnu ou liste pas lue. */
+function demCodeReserve(code){
+  var c=String(code||'').trim().toUpperCase(); if(!c||!PRO.loaded||PRO.err) return null;
+  var p=(PRO.codes||[]).filter(function(x){ return String(x.code||'').trim().toUpperCase()===c; })[0];
+  if(!p) return null;
+  if(p.metiersIllisible) return {illisible:true,metiers:[]};
+  return (p.metiers&&p.metiers.length)?{illisible:false,metiers:p.metiers}:null;
+}
+function demReserveBadge(d){
+  var r=demCodeReserve(d&&d.code); if(!r) return '';
+  return r.illisible?' <span class="past p-rouge">fermé (restriction illisible)</span>'
+    :' <span class="past p-ambre" title="Le métier déclaré par le client sera posé, puis jugé par le serveur : vérifie qu’il correspond à l’entreprise">réservé : '+esc(r.metiers.join(', '))+' · métier demandé : '+esc(MET_L[d&&d.metier]||'non précisé')+'</span>';
+}
+function demReserveTexte(c,d,nomEnt){
+  var r=demCodeReserve(d&&d.code); if(!r) return '';
+  if(r.illisible) return 'Le code « '+d.code+' » est FERMÉ (restriction de métiers illisible) : il sera refusé à l’acceptation.';
+  return 'Le code « '+d.code+' » est RÉSERVÉ aux métiers : '+r.metiers.join(', ')+'.\n'
+    +'Entreprise : '+nomEnt+'\n'
+    +'Métier déclaré par le client : '+(MET_L[d&&d.metier]||'non précisé')+'\n'
+    +'C’est le métier que la Tour va poser ; le serveur le juge sur l’annuaire, mais il ne peut pas deviner si cette entreprise exerce vraiment ce métier.';
+}
 async function demAccepter(email,nom,i,btn){
   var champ=$('dem-id-'+i+'-'+sigleAdr(email)), ident=((champ&&champ.value)||'').trim();
   if(!ident){ toast('Donne un identifiant de départ — son prénom, en général'); if(champ) champ.focus(); return; }
@@ -9178,6 +9201,15 @@ async function demAccepter(email,nom,i,btn){
      ou du conseil du métier, ou ne pose rien et le dit) */
   var cats=DEM.cats[demCatsCle(email,i)];
   if(cats&&!cats.length){ toast('Coche au moins une rubrique — ou « Tout cocher »'); return; }
+  /* un code réservé : le patron lit l'entreprise et le métier déclaré, puis confirme (la liste des codes est relue ici si elle ne l'était pas : le patron ne doit pas pouvoir
+     passer sans l'avoir vue parce qu'un chargement n'avait pas fini) */
+  var cl0=(CLI.list||[]).filter(function(x){ return x.email===email; })[0]||{}, dem0=(cl0.demandes||[])[i];
+  dem0=(dem0&&typeof dem0==='object')?dem0:{};
+  if(String(dem0.code||'').trim()&&(!PRO.loaded||PRO.err)){
+    try{ var dp=await apiGet('/api/monitor/promos'); if(dp){ PRO.codes=dp.codes||[]; PRO.actifsTotal=dp.actifsTotal||0; PRO.loaded=true; PRO.err=''; } }catch(err){}
+  }
+  var avis=demReserveTexte(cl0,dem0,nom);
+  if(avis&&!confirm('Code réservé à des métiers\n\n'+avis+'\n\nOuvrir l’espace quand même ?')) return;
   if(btn){ btn.disabled=true; btn.textContent='Ouverture de l’espace…'; }
   try{ await tourAccepterDemande(email,nom,ident,i,cats); }
   finally{ if(btn&&btn.isConnected){ btn.disabled=false; btn.textContent='✅ Accepter et ouvrir l’espace'; } }
