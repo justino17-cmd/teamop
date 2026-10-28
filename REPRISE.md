@@ -42,7 +42,15 @@ t'ai demandé, et on fera point par point ». Dans l'ordre où on les reprend :
 7. **Skills du gist de MonbinomeIA** — Find Skills (bridé : propose, n'installe pas) et les 13 `ig-*` recopiés (demande de fusion
    n° 223). Prompt Master : déjà là. Perplexity : déconseillé (je cherche déjà sur le web ; clé payante). Claude in Chrome : extension à
    installer par Justin (il est sur Safari).
-8. **OP MESSAGES** — le soir. **Agents plus intelligents** (revue du week-end : 2-3 règles proposées par agent, validées par Justin le
+8. **Examen de 03:46 : second 9/9 d'affilée** — la règle est tenue. Vus sans échec, à corriger de jour : « Sans objectif enregistré : Léa » à la
+   réunion du lundi (elle les avait dits ; au bilan elle dit n'en avoir aucun) ; Camille se retire du désaccord (« pas mon rayon ») ;
+   « n'hésitez pas à nous préciser » et un objet maladroit chez Léa ; « je les éplucher ».
+9. **Réunions demandées à Victor** (Justin, 28 octobre ~4 h : « un système : je dis en message à Victor “demain fais une réunion avec tout
+   le monde pour le départ de l'entreprise” ») : Victor comprend jour, heure, participants (tous, un groupe, des noms) et sujet, PROPOSE,
+   Justin dit oui ; le serveur la lance à l'heure, chacun parle du sujet, Victor écrit le compte rendu. Garde-fous : une à la fois, 1 h max,
+   plafonds, jamais en pause, examen avant le vrai serveur. Pour le 28 au matin : bouton « Lancer : réunion du lundi » (Messagerie).
+   Et des réunions par DÉPARTEMENT (Clients, Plateforme, Produit…) n'existent pas encore — à construire avec ce système.
+10. **OP MESSAGES** — le soir. **Agents plus intelligents** (revue du week-end : 2-3 règles proposées par agent, validées par Justin le
    lundi) — après des examens propres. **Fiche Google** : retrouver la date de validation (≥ 60 jours) pour redemander l'accès à l'API.
 
 # 🔶 27 OCTOBRE 2026 (SOIR) — OÙ EN EST PAULINE, DANS LA TOUR (Tour v2.116, branche `claude/pauline-avancement`) · EXAMENS #217, #218, #219
