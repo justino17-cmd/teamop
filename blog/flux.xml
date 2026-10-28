@@ -6,7 +6,15 @@
 <atom:link href="https://teamop.fr/blog/flux.xml" rel="self" type="application/rss+xml"/>
 <description>Conseils pour les entreprises de terrain, par TEAM OP.</description>
 <language>fr-FR</language>
-<lastBuildDate>Sun, 25 Oct 2026 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 28 Oct 2026 06:00:00 GMT</lastBuildDate>
+<item>
+<title>Planning des techniciens : organiser la semaine de son équipe</title>
+<link>https://teamop.fr/blog/planning-des-techniciens.html</link>
+<guid isPermaLink="true">https://teamop.fr/blog/planning-des-techniciens.html</guid>
+<pubDate>Wed, 28 Oct 2026 06:00:00 GMT</pubDate>
+<description>Planning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.</description>
+<enclosure url="https://teamop.fr/blog/img/planning-des-techniciens-couverture.webp" type="image/webp" length="18394"/>
+</item>
 <item>
 <title>Bon d’intervention : modèle, mentions et valeur de preuve</title>
 <link>https://teamop.fr/blog/bon-d-intervention.html</link>

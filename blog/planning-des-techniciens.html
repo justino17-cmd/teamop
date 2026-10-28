@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<script>/* le jour et la nuit suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on efface le choix qu'avait rangé l'ancien bouton ☀︎/☾, que plus rien ne lit (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>
+<title>Planning des techniciens : organiser la semaine de son équipe | Blog TEAM OP</title>
+<meta name="description" content="Planning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.">
+<link rel="canonical" href="https://teamop.fr/blog/planning-des-techniciens.html">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="article">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="TEAM OP">
+<meta property="og:title" content="Planning des techniciens : organiser la semaine de son équipe">
+<meta property="og:description" content="Planning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.">
+<meta property="og:url" content="https://teamop.fr/blog/planning-des-techniciens.html">
+<meta property="og:image" content="https://teamop.fr/blog/img/planning-des-techniciens-couverture.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="675">
+<meta property="og:image:alt" content="Couverture bleu nuit avec le titre : Planning des techniciens, organiser la semaine de son équipe">
+<meta property="article:published_time" content="2026-10-28">
+<meta property="article:author" content="Justin Biret">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" type="application/rss+xml" title="Blog TEAM OP" href="/blog/flux.xml">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BlogPosting",
+      "@id": "https://teamop.fr/blog/planning-des-techniciens.html#article",
+      "headline": "Planning des techniciens : organiser la semaine de son équipe",
+      "description": "Planning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.",
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://teamop.fr/blog/img/planning-des-techniciens-couverture.webp",
+        "width": 1200,
+        "height": 675
+      },
+      "datePublished": "2026-10-28",
+      "dateModified": "2026-10-28",
+      "inLanguage": "fr-FR",
+      "mainEntityOfPage": "https://teamop.fr/blog/planning-des-techniciens.html",
+      "author": {
+        "@type": "Person",
+        "name": "Justin Biret",
+        "jobTitle": "Fondateur de TEAM OP",
+        "url": "https://teamop.fr/pourquoi.html"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "@id": "https://teamop.fr/#organisation",
+        "name": "TEAM OP",
+        "url": "https://teamop.fr/",
+        "logo": "https://teamop.fr/icons/teamop-192.png"
+      },
+      "wordCount": 2617
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Accueil",
+          "item": "https://teamop.fr/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Blog",
+          "item": "https://teamop.fr/blog/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Planning des techniciens : organiser la semaine de son équipe",
+          "item": "https://teamop.fr/blog/planning-des-techniciens.html"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Combien d’interventions planifier par jour et par technicien ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Partez des heures de travail, retirez le temps de route et une réserve pour les urgences, puis divisez par la durée moyenne d’une intervention. Avec 7 heures de travail, 1 h 30 de route, 20 % de réserve et 1 h 30 par intervention, cela donne environ trois interventions planifiées à l’avance par jour."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Quelle est la durée maximale de travail d’un technicien ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Pour un salarié à temps plein de plus de 18 ans : 10 heures de travail effectif par jour, sauf dérogation ou accord (jusqu’à 12 heures), 48 heures sur une même semaine et 44 heures en moyenne sur 12 semaines consécutives, avec 11 heures de repos entre deux journées."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Le trajet jusqu’au premier client est-il du temps de travail ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Le principe est non, avec une contrepartie si le trajet dépasse le temps normal. Mais la Cour de cassation a jugé en 2022 que ce trajet peut être du temps de travail effectif quand le technicien reste à la disposition de l’employeur pendant qu’il conduit, sans pouvoir vaquer à ses occupations personnelles. Tout dépend de la situation."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Combien de temps à l’avance prévenir d’un changement de planning ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Pour un salarié à temps partiel, au moins 7 jours ouvrés pour modifier la répartition de ses horaires, ou 3 jours ouvrés si un accord collectif le prévoit. Pour les astreintes, 15 jours à défaut d’accord. Votre convention collective peut prévoir d’autres délais."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Un tableur suffit-il pour un planning de techniciens ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Pour deux personnes, souvent oui. Au-delà, le tableau du bureau et ce que les techniciens ont en poche divergent vite, et la charge de chacun ne se lit plus d’un coup d’œil."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/teamop-192.png">
+<link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
+<link rel="manifest" href="/manifest-teamop.webmanifest">
+<link rel="stylesheet" href="/vitrine/v2/site.css">
+<link rel="stylesheet" href="/vitrine/v2/blog.css">
+<link rel="preload" as="image" href="/blog/img/planning-des-techniciens-couverture.webp" fetchpriority="high">
+</head>
+<body>
+<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
+      <a class="marque" href="/"><img src="/icons/teamop-192.png" width="22" height="22" alt="TEAM OP"><span aria-hidden="true">TEAM OP</span></a>
+      <div class="nav-liens"><a href="/applications.html" data-fly="applications" aria-haspopup="true" aria-expanded="false">Applications</a><a href="/metiers.html" data-fly="metiers" aria-haspopup="true" aria-expanded="false">Métiers</a><a href="/tarifs.html" data-fly="tarifs" aria-haspopup="true" aria-expanded="false">Tarifs</a><a href="/pourquoi.html" data-fly="pourquoi" aria-haspopup="true" aria-expanded="false">Pourquoi TEAM OP</a></div>
+      <div class="nav-droite"><a class="pilule" href="/espace.html">Espace client</a>
+        <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    </div><div class="fly" id="fly-applications"><div class="fly-in"><div><div class="fly-t">Explorer les applications</div><div class="fly-grand"><a href="/op-gestion.html"><b>OP GESTION</b><small>Gestion tout-en-un : interventions, stock, compta</small></a><a href="/opmessages.html"><b>OP MESSAGES</b><small>Messagerie d'équipe — bientôt disponible</small></a><a href="/creer.html"><b>Créer votre application</b><small>Décrivez votre besoin, on le construit</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div></div></div></div><div class="fly" id="fly-metiers"><div class="fly-in"><div><div class="fly-t">Explorer les métiers</div><div class="fly-grand"><a href="/logiciel-anti-nuisibles.html"><b>3D — Anti-nuisibles</b><small>Pack complet : registre sanitaire, biocides</small></a><a href="/logiciel-plombier.html"><b>Plomberie</b></a><a href="/logiciel-electricien.html"><b>Électricité</b></a><a href="/logiciel-chauffage-climatisation.html"><b>Chauffage / Climatisation</b></a><a href="/logiciel-nettoyage.html"><b>Nettoyage / Propreté</b></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/metiers.html">Tous les métiers</a></div></div></div></div><div class="fly" id="fly-tarifs"><div class="fly-in"><div><div class="fly-t">Explorer les tarifs</div><div class="fly-grand"><a href="/tarifs.html#op-gestion"><b>Tarifs OP GESTION</b><small>Pro 15 € · Business 25 € · Business Premium 50 €</small></a><a href="/tarifs.html#opmessages"><b>Tarifs OP MESSAGES</b><small>Perso · Pro · Premium — bientôt disponible</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div></div></div></div><div class="fly" id="fly-pourquoi"><div class="fly-in"><div><div class="fly-t">Pourquoi TEAM OP</div><div class="fly-grand"><a href="/pourquoi.html#partenaire"><b>Au service des entreprises</b><small>On écoute, on adapte, on construit avec vous</small></a><a href="/pourquoi.html#engagements"><b>Sécurité et engagements</b><small>Chiffrement AES-256, vos données à vous</small></a></div></div><div><div class="fly-t">En savoir plus</div><div class="fly-petit"><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></div></div></div></div></nav>
+    <div class="menu-mobile" id="menu-mobile"><section><div class="fly-t">TEAM OP</div><a href="/">Accueil</a></section><section><div class="fly-t">Applications</div><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></section><section><div class="fly-t">Métiers</div><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></section><section><div class="fly-t">Tarifs</div><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></section><section><div class="fly-t">Pourquoi TEAM OP</div><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/pourquoi.html#services">Nos services</a><a href="/pourquoi.html">Découvrir pourquoi TEAM OP</a></section></div>
+  </header><div class="voile" aria-hidden="true"></div>
+<main>
+<article class="billet">
+<nav class="fil" aria-label="Fil d'Ariane"><a href="/">Accueil</a><span aria-hidden="true">›</span><a href="/blog/">Blog</a></nav>
+<header class="billet-tete">
+<h1>Planning des techniciens : organiser la semaine de son équipe</h1>
+<p class="billet-meta">Par Justin Biret · <time datetime="2026-10-28">28 octobre 2026</time> · 12 min de lecture</p>
+</header>
+<figure class="billet-couverture"><img src="/blog/img/planning-des-techniciens-couverture.webp" alt="Couverture bleu nuit avec le titre : Planning des techniciens, organiser la semaine de son équipe" width="1200" height="675" fetchpriority="high" decoding="async"></figure>
+<div class="billet-corps">
+<p>Un bon planning des techniciens tient en trois règles : ne jamais remplir la semaine à 100 %, garder une réserve chaque jour pour les urgences, et regrouper les interventions par secteur pour limiter la route. Il doit aussi respecter le Code du travail : 10 heures de travail effectif par jour au plus, 48 heures sur une semaine, 11 heures de repos entre deux journées. Cet article vous donne une méthode de préparation de la semaine, un calcul de capacité pas à pas, une liste de contrôle légale et des exemples par métier, puis montre comment OP GESTION tient ce planning.</p>
+<aside class="billet-encart" aria-label="OP GESTION"><p class="surtitre">OP GESTION</p>
+<p class="encart-titre">Interventions, planning, devis et factures, dans une seule application.</p>
+<p>Pour les entreprises de terrain, sur téléphone, tablette et ordinateur. À partir de 15 € par mois et par utilisateur, sans engagement.</p>
+<p class="encart-actions"><a class="bouton" href="/op-gestion.html">Découvrir OP GESTION</a><a class="lien-suite" href="/demo.html">Essayer la démonstration ›</a></p></aside>
+
+<h2 id="en-bref">En bref</h2>
+<ul>
+<li><strong>Calculez la capacité réelle</strong> de l’équipe avant de remplir le planning : heures de travail, moins la route, moins une réserve pour les urgences.</li>
+<li><strong>Préparez la semaine le jeudi ou le vendredi</strong>, ajustez chaque matin, et gardez une liste « À planifier » pour ce qui n’a pas encore de date.</li>
+<li><strong>Regroupez par secteur</strong> : un technicien par zone, des tournées ordonnées pour raccourcir la route.</li>
+<li><strong>Respectez les durées maximales</strong> : 10 h par jour, 48 h sur une semaine, 44 h en moyenne sur 12 semaines, 11 h de repos quotidien.</li>
+<li><strong>Prévenez à temps</strong> : 7 jours ouvrés pour changer les horaires d’un salarié à temps partiel, 15 jours pour le programme des astreintes, à défaut d’accord.</li>
+</ul>
+<h2 id="table-des-matieres">Table des matières</h2>
+<ul>
+<li><a href="#ce-quun-planning-de-techniciens-doit-dire">Ce qu’un planning de techniciens doit dire</a></li>
+<li><a href="#calculer-la-capacite-de-son-equipe">Calculer la capacité de son équipe (exemple chiffré)</a></li>
+<li><a href="#preparer-la-semaine-la-methode">Préparer la semaine : la méthode</a></li>
+<li><a href="#gerer-les-urgences-sans-casser-la-semaine">Gérer les urgences sans casser la semaine</a></li>
+<li><a href="#tournees-et-secteurs">Tournées et secteurs : moins de route</a></li>
+<li><a href="#ce-que-dit-le-code-du-travail">Ce que dit le Code du travail</a></li>
+<li><a href="#le-point-de-vue-de-team-op">Le point de vue de TEAM OP</a></li>
+<li><a href="#exemples-par-metier">Exemples par métier</a></li>
+<li><a href="#le-planning-dans-op-gestion">Le planning dans OP GESTION</a></li>
+<li><a href="#faq">FAQ</a></li>
+<li><a href="#sources">Sources</a></li>
+</ul>
+<h2 id="ce-quun-planning-de-techniciens-doit-dire">Ce qu’un planning de techniciens doit dire</h2>
+<p>Pour chaque technicien et chaque jour, un planning dit où il va, à quelle heure, pour faire quoi et pour combien de temps. Si l’une de ces réponses manque, quelqu’un finit par téléphoner.</p>
+<p>Il se lit de deux façons. Le bureau veut la vue d’ensemble : qui est chargé, libre ou absent. Le technicien veut sa journée, dans l’ordre, avec les adresses. Un tableau mural sert la première lecture ; la photo qu’en prend le technicien ne se met pas à jour quand un rendez-vous bouge.</p>
+<p>Un planning n’est utile que s’il est vrai : une intervention déplacée par téléphone et jamais corrigée crée deux versions de la journée. Pour la suite du parcours, de la demande à la facture, voyez notre article sur la <a href="/blog/gestion-des-interventions.html">gestion des interventions</a>.</p>
+<h2 id="calculer-la-capacite-de-son-equipe">Calculer la capacité de son équipe (exemple chiffré)</h2>
+<p>L’erreur la plus fréquente consiste à planifier 7 heures d’interventions dans une journée de 7 heures. La route, les imprévus et les urgences débordent alors chaque jour sur le soir ou sur le lendemain. Le calcul ci-dessous se fait une fois, puis se corrige avec vos chiffres réels.</p>
+<p>Prenons une équipe de quatre techniciens à 35 heures par semaine, soit 7 heures par jour sur cinq jours. Les hypothèses sont des exemples : remplacez-les par ce que vous mesurez dans votre entreprise.</p>
+<div class="tableau"><table><thead><tr><th>Étape</th><th>Calcul</th><th>Résultat</th></tr></thead><tbody>
+<tr><td>1. Heures de travail par technicien et par jour</td><td>35 h ÷ 5 jours</td><td>7 h</td></tr>
+<tr><td>2. Route entre les clients (hypothèse : 1 h 30 par jour)</td><td>7 h − 1 h 30</td><td>5 h 30 chez les clients</td></tr>
+<tr><td>3. Réserve pour les urgences et les dépassements (hypothèse : 20 %)</td><td>5 h 30 × 0,8</td><td>4 h 24 planifiables</td></tr>
+<tr><td>4. Par technicien et par semaine</td><td>4 h 24 × 5</td><td>22 h</td></tr>
+<tr><td>5. Pour l’équipe</td><td>22 h × 4</td><td>88 h</td></tr>
+<tr><td>6. En nombre d’interventions (hypothèse : 1 h 30 en moyenne)</td><td>88 h ÷ 1 h 30</td><td>environ 58 par semaine</td></tr>
+</tbody></table></div>
+<p>Ce chiffre de 58 est votre plafond de planification à l’avance : au-delà, la demande part la semaine d’après ou dans « À planifier ». Les 22 heures de réserve de l’équipe, elles, accueillent les urgences de la semaine. Si elles restent vides deux semaines de suite, baissez la réserve ; si elles débordent, montez-la.</p>
+<p>Retirez les absences connues avant de calculer, et utilisez une durée moyenne par type d’intervention, relevée sur un mois de fiches : un entretien de chaudière et un dépannage de fuite ne durent pas le même temps.</p>
+<h2 id="preparer-la-semaine-la-methode">Préparer la semaine : la méthode</h2>
+<p>Voici une routine en trois temps, à recopier telle quelle.</p>
+<h3 id="le-jeudi-ou-le-vendredi">Le jeudi ou le vendredi : la semaine suivante</h3>
+<ul>
+<li>☐ Noter les absences de la semaine : congés, formations, rendez-vous.</li>
+<li>☐ Poser d’abord les rendez-vous fixes : contrats d’entretien, passages récurrents, créneaux promis aux clients.</li>
+<li>☐ Remplir ensuite avec la liste « À planifier », par ordre d’ancienneté de la demande.</li>
+<li>☐ Regrouper par secteur : un technicien, une zone, une journée.</li>
+<li>☐ Vérifier la charge de chacun contre la capacité calculée plus haut, réserve comprise.</li>
+<li>☐ Contrôler les limites légales : aucune journée au-delà de 10 heures, 11 heures de repos entre deux journées.</li>
+<li>☐ Prévenir les techniciens, et les clients si un créneau a changé.</li>
+</ul>
+<h3 id="chaque-matin">Chaque matin : la journée</h3>
+<ul>
+<li>☐ Relire la journée de chaque technicien : adresses, ordre, matériel à emporter.</li>
+<li>☐ Placer les urgences arrivées la veille dans la réserve, chez le technicien le plus proche.</li>
+<li>☐ Regarder la liste « À planifier » : si elle grossit, c’est un signal de charge.</li>
+</ul>
+<h3 id="le-soir">Le soir : la vérité du terrain</h3>
+<ul>
+<li>☐ Vérifier que chaque intervention du jour est terminée, reportée ou annulée.</li>
+<li>☐ Remettre au planning ce qui n’a pas pu se faire, sans attendre le lendemain.</li>
+</ul>
+<p>Une intervention restée « planifiée » sur une date passée disparaît des écrans. Notre article sur le <a href="/blog/suivi-des-interventions.html">suivi des interventions</a> détaille les statuts qui évitent ces oublis.</p>
+<figure><img alt="Responsable d’exploitation devant un écran d’ordinateur qui répartit les interventions de la semaine entre quatre techniciens, chacun d’une couleur" data-gemini="An operations manager in a small French field-service office arranging next week's technician schedule on a computer screen showing a colorful weekly calendar, a technician standing beside the desk" decoding="async" height="675" loading="lazy" src="/blog/img/planning-techniciens-semaine.webp" width="1200"/></figure>
+<h2 id="gerer-les-urgences-sans-casser-la-semaine">Gérer les urgences sans casser la semaine</h2>
+<p>L’urgence ne prévient pas. Trois façons de lui faire de la place, à combiner selon votre activité.</p>
+<p><strong>La réserve quotidienne.</strong> La marge du calcul de capacité : une partie de chaque journée sans rendez-vous fixe, souvent en fin de matinée. L’urgence s’y glisse sans rien décaler.</p>
+<p><strong>Le technicien de garde.</strong> Dans une équipe de cinq ou plus, un technicien par jour peut recevoir moins de rendez-vous fixes et prendre les appels urgents. On tourne chaque jour ou chaque semaine.</p>
+<p><strong>L’astreinte.</strong> Pour les nuits et les week-ends, l’astreinte est un cadre juridique précis, avec une contrepartie et un délai de prévenance (voir plus bas). Elle ne s’improvise pas la veille.</p>
+<p>Quand une urgence décale une intervention, posez tout de suite la nouvelle date et prévenez le client.</p>
+<h2 id="tournees-et-secteurs">Tournées et secteurs : moins de route</h2>
+<p>La route est la part de la journée qui ne se facture pas. Deux leviers la réduisent.</p>
+<p><strong>Les secteurs.</strong> Attribuez à chaque technicien une zone, par département ou par groupe de communes. Il connaît alors les sites et les accès ; les remplacements deviennent l’exception.</p>
+<p><strong>L’ordre de la tournée.</strong> Dans une journée, l’ordre des étapes change la distance parcourue. Partez du domicile du technicien ou du dépôt, puis allez de proche en proche, en respectant les créneaux promis aux clients. Mesurez le temps de route réel entre deux adresses plutôt que la distance à vol d’oiseau.</p>
+<p>Un mot sur la localisation des équipes. Selon la <a href="https://cnil.fr/fr/la-geolocalisation-des-vehicules-des-salaries" rel="noopener">CNIL</a>, la géolocalisation des véhicules peut servir à mieux répartir les interventions d’urgence, mais elle ne doit pas surveiller un salarié en permanence ni le suivre hors du temps de travail, et les salariés doivent en être informés.</p>
+<h2 id="ce-que-dit-le-code-du-travail">Ce que dit le Code du travail</h2>
+<p>Les règles à vérifier avant de publier la semaine, pour un salarié à temps plein de plus de 18 ans (votre convention collective peut en prévoir d’autres) :</p>
+<div class="tableau"><table><thead><tr><th>Règle</th><th>Limite</th><th>À vérifier sur le planning</th></tr></thead><tbody>
+<tr><td>Durée maximale par jour</td><td>10 h de travail effectif (jusqu’à 12 h si un accord le prévoit)</td><td>Aucune journée chargée au-delà, urgences comprises</td></tr>
+<tr><td>Durée maximale sur une semaine</td><td>48 h</td><td>Les semaines de forte activité</td></tr>
+<tr><td>Durée moyenne</td><td>44 h par semaine sur 12 semaines consécutives</td><td>Plusieurs semaines chargées à la suite</td></tr>
+<tr><td>Pause</td><td>20 min après 6 h de travail consécutives</td><td>Une coupure dans les longues journées</td></tr>
+<tr><td>Repos quotidien</td><td>11 h consécutives</td><td>Une urgence tard le soir, puis un premier rendez-vous tôt le lendemain</td></tr>
+<tr><td>Repos hebdomadaire</td><td>24 h, plus les 11 h de repos quotidien, soit 35 h consécutives</td><td>Les semaines avec un samedi travaillé</td></tr>
+</tbody></table></div>
+<p>Ces chiffres viennent des fiches de service-public.fr sur la <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F1911?lang=fr" rel="noopener">durée du travail d’un salarié à temps plein</a> et sur le <a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F2327?lang=fr" rel="noopener">repos hebdomadaire</a>.</p>
+<h3 id="le-temps-de-trajet">Le temps de trajet</h3>
+<p>L’article L3121-4 du Code du travail prévoit que le temps de déplacement pour se rendre sur le lieu d’exécution du contrat n’est pas du temps de travail effectif. S’il dépasse le temps normal de trajet entre le domicile et le lieu habituel de travail, il donne droit à une contrepartie, en repos ou en argent.</p>
+<p>Pour les techniciens qui partent de chez eux vers leur premier client, la Cour de cassation a jugé le 23 novembre 2022 (n° 20-21.924) que ce trajet pouvait être du temps de travail effectif, lorsque le salarié reste à la disposition de l’employeur et ne peut pas vaquer à ses occupations personnelles, par exemple parce qu’il répond au téléphone et organise sa journée en conduisant. <a href="https://www.service-public.gouv.fr/particuliers/actualites/A16379" rel="noopener">Service-public.fr</a> a présenté cette décision, en rappelant que tout dépend de la situation. Si vos techniciens sont dans ce cas, tenez-en compte dans la journée de 10 heures.</p>
+<h3 id="temps-partiel-et-astreintes">Temps partiel et astreintes</h3>
+<p>Pour un salarié à temps partiel, fréquent dans le nettoyage, la modification de la répartition des horaires doit être annoncée au moins 7 jours ouvrés à l’avance, ou 3 jours ouvrés si un accord collectif le prévoit, selon la <a href="https://code.travail.gouv.fr/fiche-service-public/un-employeur-peut-il-modifier-les-horaires-de-temps-de-travail-dun-salarie-a-temps-partiel" rel="noopener">fiche du Code du travail numérique</a>.</p>
+<p>Pour les <a href="https://code.travail.gouv.fr/fiche-service-public/astreinte-dans-le-secteur-prive" rel="noopener">astreintes</a>, le programme individuel est communiqué dans le délai prévu par l’accord, et à défaut 15 jours à l’avance (1 jour franc au minimum en cas de circonstances exceptionnelles). Le temps d’intervention pendant l’astreinte est du temps de travail effectif, et l’employeur remet chaque mois un récapitulatif des heures d’astreinte et de leur compensation.</p>
+<h2 id="le-point-de-vue-de-team-op">Le point de vue de TEAM OP</h2>
+<p>Les entreprises avec qui nous construisons OP GESTION ont presque toutes commencé par un tableur ou un tableau blanc. À deux, cela suffit. Au troisième technicien, les rendez-vous se déplacent par téléphone et personne ne sait plus combien d’heures chacun a devant lui.</p>
+<p>Notre conviction : le planning doit montrer la charge de chacun en plus des rendez-vous. Voir qu’un technicien est rempli aux trois quarts dès le lundi évite de lui donner l’urgence du mardi, et de le faire finir à 20 heures. La réserve pour les urgences est la décision la plus rentable d’un planning, parce qu’elle protège tous les rendez-vous déjà promis.</p>
+<p>Un conseil, quel que soit votre outil : notez pendant un mois la durée réelle de chaque type d’intervention.</p>
+<p class="signature">— Justin Biret, fondateur de TEAM OP</p>
+<h2 id="exemples-par-metier">Exemples par métier</h2>
+<h3 id="plombier">Plombier</h3>
+<p>Beaucoup de dépannages imprévisibles : une réserve plus large, par exemple un tiers de la journée, et un technicien de garde tournant. Les chantiers longs se posent en journées entières.</p>
+<h3 id="electricien">Électricien</h3>
+<p>Posez d’abord les chantiers de plusieurs jours, puis remplissez les trous avec les dépannages du même secteur, mise en sécurité et remise en service comprises dans la durée.</p>
+<h3 id="chauffage-et-climatisation">Chauffage et climatisation</h3>
+<p>Une activité saisonnière : remplissez les mois calmes avec les contrats d’entretien, et augmentez la réserve quand les pannes arrivent avec le froid ou la chaleur.</p>
+<h3 id="nettoyage">Nettoyage</h3>
+<p>Des passages récurrents, tôt le matin ou le soir, avec beaucoup de temps partiel. Le planning se répète ; le travail porte sur les remplacements et sur le délai de 7 jours ouvrés pour changer des horaires.</p>
+<h3 id="lutte-contre-les-nuisibles-3d">Lutte contre les nuisibles (3D)</h3>
+<p>Des contrats avec des passages à fréquence fixe (mensuelle, trimestrielle), plus des urgences chez les restaurants et les commerces de bouche. Les passages des contrats se posent par secteur sur toute l’année, et la réserve absorbe les signalements.</p>
+<h2 id="le-planning-dans-op-gestion">Le planning dans OP GESTION</h2>
+<p>Dans <a href="/op-gestion.html">OP GESTION</a>, le planning se lit en vue Jour, Semaine ou Mois, et une quatrième vue réunit plusieurs jours avec la carte des adresses. Chaque technicien a sa couleur, et une jauge montre sa charge de la journée par rapport à sa capacité : sept heures au départ, réglable sur sa fiche, orange aux trois quarts, rouge quand la journée est pleine. Réglez cette capacité sur le chiffre « planifiable » de votre calcul, et la jauge vous dira quand vous mordez sur la réserve.</p>
+<p>Sur ordinateur, une intervention se glisse vers un autre jour ou un autre technicien. Si le nouveau créneau chevauche une autre intervention du même technicien, l’application le signale ; si le technicien est absent ce jour-là, elle le dit avant d’enregistrer. Les interventions sans date attendent dans « À planifier », et une intervention créée sans technicien est confiée à celui qui couvre le département du client, une fois vos secteurs définis.</p>
+<p>Pour une journée, l’application propose l’ordre des étapes qui raccourcit la route, avec le temps de trajet par la route ; vous validez ou gardez votre ordre. Une intervention récurrente propose à sa clôture le passage suivant, en évitant les absences et les autres interventions du technicien. Chaque technicien voit sa journée sur son téléphone, et les changements arrivent chez les autres en quelques secondes dès qu’il y a du réseau. Le détail est sur la page <a href="/logiciel-planning-interventions.html">planning des interventions</a>, et les heures réellement faites se suivent avec le <a href="/logiciel-pointage.html">pointage</a>.</p>
+<p>Le planning, les tournées, les secteurs, les absences et le pointage sont compris dès la formule Pro, à 15 € par mois et par utilisateur (TVA non applicable, article 293 B du CGI). Un abonnement correspond à un utilisateur. Les formules sont détaillées sur la page <a href="/tarifs.html">tarifs</a>.</p>
+<figure><img alt="Technicienne assise dans sa camionnette qui consulte sur son téléphone la liste de ses interventions du jour avant de démarrer" data-gemini="A female field technician sitting in the driver's seat of her parked work van in a French town, checking her list of the day's appointments on her smartphone before starting her round" decoding="async" height="675" loading="lazy" src="/blog/img/planning-techniciens-journee.webp" width="1200"/></figure>
+<h2 id="faq">FAQ</h2>
+<h3 id="combien-dinterventions-planifier-par-jour-et-par-technicien">Combien d’interventions planifier par jour et par technicien ?</h3>
+<p>Partez des heures de travail, retirez le temps de route et une réserve pour les urgences, puis divisez par la durée moyenne d’une intervention. Avec 7 heures de travail, 1 h 30 de route, 20 % de réserve et 1 h 30 par intervention, cela donne environ trois interventions planifiées à l’avance par jour.</p>
+<h3 id="quelle-est-la-duree-maximale-de-travail-dun-technicien">Quelle est la durée maximale de travail d’un technicien ?</h3>
+<p>Pour un salarié à temps plein de plus de 18 ans : 10 heures de travail effectif par jour, sauf dérogation ou accord (jusqu’à 12 heures), 48 heures sur une même semaine et 44 heures en moyenne sur 12 semaines consécutives, avec 11 heures de repos entre deux journées.</p>
+<h3 id="le-trajet-jusquau-premier-client-est-il-du-temps-de-travail">Le trajet jusqu’au premier client est-il du temps de travail ?</h3>
+<p>Le principe est non, avec une contrepartie si le trajet dépasse le temps normal. Mais la Cour de cassation a jugé en 2022 que ce trajet peut être du temps de travail effectif quand le technicien reste à la disposition de l’employeur pendant qu’il conduit, sans pouvoir vaquer à ses occupations personnelles. Tout dépend de la situation.</p>
+<h3 id="combien-de-temps-a-lavance-prevenir-dun-changement-de-planning">Combien de temps à l’avance prévenir d’un changement de planning ?</h3>
+<p>Pour un salarié à temps partiel, au moins 7 jours ouvrés pour modifier la répartition de ses horaires, ou 3 jours ouvrés si un accord collectif le prévoit. Pour les astreintes, 15 jours à défaut d’accord. Votre convention collective peut prévoir d’autres délais.</p>
+<h3 id="un-tableur-suffit-il-pour-un-planning-de-techniciens">Un tableur suffit-il pour un planning de techniciens ?</h3>
+<p>Pour deux personnes, souvent oui. Au-delà, le tableau du bureau et ce que les techniciens ont en poche divergent vite, et la charge de chacun ne se lit plus d’un coup d’œil.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F1911?lang=fr" rel="noopener">Durée du travail d’un salarié du secteur privé à temps plein (service-public.fr)</a></li>
+<li><a href="https://www.service-public.gouv.fr/particuliers/vosdroits/F2327?lang=fr" rel="noopener">Repos hebdomadaire du salarié (service-public.fr)</a></li>
+<li><a href="https://www.service-public.gouv.fr/particuliers/actualites/A16379" rel="noopener">Temps de trajet des salariés itinérants, Cour de cassation, 23 novembre 2022 (service-public.fr)</a></li>
+<li><a href="https://code.travail.gouv.fr/fiche-service-public/un-employeur-peut-il-modifier-les-horaires-de-temps-de-travail-dun-salarie-a-temps-partiel" rel="noopener">Modifier les horaires d’un salarié à temps partiel (Code du travail numérique)</a></li>
+<li><a href="https://code.travail.gouv.fr/fiche-service-public/astreinte-dans-le-secteur-prive" rel="noopener">Astreinte dans le secteur privé (Code du travail numérique)</a></li>
+<li><a href="https://cnil.fr/fr/la-geolocalisation-des-vehicules-des-salaries" rel="noopener">La géolocalisation des véhicules des salariés (CNIL)</a></li>
+</ul>
+</div>
+<footer class="billet-auteur"><img src="/icons/teamop-192.png" width="48" height="48" alt="" loading="lazy"><div><b>Justin Biret</b><span>Fondateur de TEAM OP. Une question sur cet article : <a href="mailto:contact@teamop.fr">contact@teamop.fr</a></span></div></footer>
+</article>
+<section class="blog-suite" aria-labelledby="a-lire"><h2 id="a-lire">À lire aussi</h2><div class="blog-grille"><a class="blog-carte" href="/blog/bon-d-intervention.html"><img src="/blog/img/bon-d-intervention-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-25">25 octobre 2026</time><b>Bon d’intervention : modèle, mentions et valeur de preuve</b><span>Bon d’intervention : les mentions à prévoir, un modèle à reprendre, sa valeur de preuve face à un client et ce que change une version sur téléphone.</span></span></a><a class="blog-carte" href="/blog/signature-electronique-devis.html"><img src="/blog/img/signature-devis-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-24">24 octobre 2026</time><b>Signature électronique de devis : valeur, niveaux et marche à suivre</b><span>Signer un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.</span></span></a><a class="blog-carte" href="/blog/suivi-des-interventions.html"><img src="/blog/img/suivi-couverture.webp" alt="" width="1200" height="675" loading="lazy" decoding="async"><span class="blog-carte-texte"><time datetime="2026-10-23">23 octobre 2026</time><b>Suivi des interventions : méthode et outil pour le terrain</b><span>Statuts, fiche terrain, historique client, stock et alertes : comment suivre vos interventions de bout en bout avec un outil mobile pensé pour les TPE de terrain.</span></span></a></div></section>
+<section class="commencer" id="commencer"><div class="commencer-in"><div><h2>Prêt en trois étapes.</h2><ol>
+    <li><b>1</b><span>Créez votre compte TEAM OP.</span></li><li><b>2</b><span>Demandez l'accès à une application.</span></li><li><b>3</b><span>Votre équipe travaille, tout se synchronise.</span></li></ol></div>
+    <div class="boutons"><a href="/espace.html">Créer mon compte</a><a href="/connexion.html?choix=1">Se connecter ›</a></div></div></section>
+</main>
+<footer class="pied"><div class="pied-in"><div class="cols"><div><b>Applications</b><a href="/op-gestion.html">OP GESTION</a><a href="/opmessages.html">OP MESSAGES</a><a href="/creer.html">Créer votre application</a><a href="/logiciel-planning-interventions.html">Planning des interventions</a><a href="/logiciel-gestion-de-stock.html">Gestion de stock</a><a href="/logiciel-devis-factures.html">Devis et factures</a><a href="/logiciel-bons-de-commande.html">Bons de commande</a><a href="/logiciel-pointage.html">Pointage des heures</a><a href="/logiciel-registre-sanitaire.html">Registre sanitaire (3D)</a><a href="/applications.html">Toutes les applications</a></div><div><b>Métiers</b><a href="/logiciel-anti-nuisibles.html">3D — Anti-nuisibles</a><a href="/logiciel-plombier.html">Plomberie</a><a href="/logiciel-electricien.html">Électricité</a><a href="/logiciel-chauffage-climatisation.html">Chauffage / Climatisation</a><a href="/logiciel-nettoyage.html">Nettoyage / Propreté</a><a href="/metiers.html">Tous les métiers</a></div><div><b>Tarifs</b><a href="/tarifs.html#op-gestion">Tarifs OP GESTION</a><a href="/tarifs.html#opmessages">Tarifs OP MESSAGES</a><a href="/tarifs.html">Comparer toutes les formules</a><a href="/tarifs.html#faq">Questions fréquentes</a></div><div><b>TEAM OP</b><a href="/pourquoi.html#partenaire">Au service des entreprises</a><a href="/pourquoi.html#engagements">Sécurité et engagements</a><a href="/blog/">Blog</a><a href="/espace.html">Espace client</a><a href="/connexion.html?choix=1">Se connecter</a></div><div class="contact"><b>Contact</b><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><small>Une question, une demande</small></div></div>
+    <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Sans engagement ; TVA non applicable (article 293 B du CGI).</p>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="/confidentialite.html">Confidentialité</a><a href="/mentions-legales.html">Mentions légales et CGV</a><a href="#" data-cookies>Gestion des cookies</a><a href="mailto:contact@teamop.fr">contact@teamop.fr</a><span class="fin">France</span></div>
+  </div></footer>
+<script src="/vitrine/v2/site.js" defer></script>
+<script src="/cookies.js" defer></script>
+<script src="/audience.js" defer></script>
+</body>
+</html>
