@@ -132,6 +132,10 @@ const DIFFERES_MAX = 500;                    // ce qui ATTEND l'ouverture (courr
 /* (28 octobre 2026, Justin : « sans limite ») Une entrée qui attend l'ouverture (un courriel, une inscription) n'est PLUS JETÉE à dix jours : un client qui a écrit le 15 doit être lu le 27 si l'agent rouvre le 27.
    Passé `DIFFERE_ANCIENNE_MS` elle est GARDÉE et DITE (une ligne de journal, une seule fois par entrée) : un agent fermé depuis dix jours, c'est un oubli de la Tour, et la Tour doit le savoir — pas un congé qu'on classe. */
 const DIFFERE_ANCIENNE_MS = 10 * 86400000;
+/* (gardien, 28 octobre 2026) une borne DURE, large : au-delà de 90 jours, l'entrée est abandonnée et DITE (journal). Sans elle, la file (500 places partagées par tous les agents) se
+   remplissait d'entrées d'un agent resté fermé, refusait ensuite les courriels neufs (« file_pleine »), et gardait des adresses indéfiniment ; et une inscription de plusieurs mois
+   aurait été rejouée sans que personne ne revérifie si l'entreprise a, depuis, un espace ou un abonnement. */
+const DIFFERE_PERIME_MS = 90 * 86400000;
 const DIFFERES_PAR_TOUR = 5;                 // une reprise à l'ouverture ne part pas en rafale (Camille a ses propres plafonds du jour)
 const SANS_REPRISE = ['hors_heures', 'arret', 'pause', 'etat_illisible', 'horaires_illisibles', 'inconnu'];   // « l'agent ne peut pas » : l'entrée reste, elle sera reprise
 const RESUME_MAX = 200;
@@ -489,6 +493,13 @@ module.exports = function monterAgents(app, ctx) {
         ecrire(F_DIFFERES, differes);
         for (const e of anciennes) noter(e.agent, 'entrée en attente depuis longtemps', { cible: e.genre, resultat: 'refuse', detail: 'plus de ' + Math.round(DIFFERE_ANCIENNE_MS / 86400000) + ' jours sans pouvoir la reprendre : gardée, elle part à la prochaine ouverture de l’agent' });
         bilan.anciennes = anciennes.length;
+      }
+      const perimees = differes.filter(e => t - e.ts > DIFFERE_PERIME_MS);
+      if (perimees.length) {
+        differes = differes.filter(e => !(t - e.ts > DIFFERE_PERIME_MS));
+        ecrire(F_DIFFERES, differes);
+        for (const e of perimees) noter(e.agent, 'entrée en attente abandonnée', { cible: e.genre, resultat: 'refuse', detail: 'plus de ' + Math.round(DIFFERE_PERIME_MS / 86400000) + ' jours sans pouvoir la reprendre : abandonnée (à reprendre à la main si besoin)' });
+        bilan.abandonnees += perimees.length;
       }
       const repris = {};
       for (const e of differes.slice()) {

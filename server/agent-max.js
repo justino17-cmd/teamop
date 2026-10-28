@@ -62,6 +62,7 @@ module.exports = function agentMax(ctx) {
         (c.ok ? ' Je le passe à Jules.' : c.raison === 'hors_heures' ? ' Jules est hors des heures de travail : l’incident l’attend dans la Tour (Incidents).' : '');
       const d = conversations.parler('max', 'plateforme', texte, { niveau: 'info' });
       if (d.ok || d.raison === 'doublon') { m.clientsVus[id] = now; m.clientsJour.n++; dits++; try { agents.noter('max', 'incident client signalé', { cible: id, resultat: 'ok', detail: f.categorie }); } catch (e) {} }
+      else toutVu = false;   // (gardien) le fil a refusé (plafond…) : l'incident n'est pas dit — le repère n'avance pas, il sera retenté
     }
     if (toutVu) m.clientsDepuis = now;
     if (dits || toutVu) etat.sauver();

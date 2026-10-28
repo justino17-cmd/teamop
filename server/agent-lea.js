@@ -335,7 +335,8 @@ module.exports = function lea(ctx) {
           return ok ? { reecrit: true, ref: refReecrire } : { saute: 'reecriture_refusee' };
         }
         const d = await brouillons.deposer({ agent: ID, a, objet: res.objet, texte: res.corps, enReponseA: null, role: 'contact', source,
-          entreprise: ent || '', controle, authentifie: true, reecrit: res.reecrit === true });
+          entreprise: ent || '', controle, authentifie: true, reecrit: res.reecrit === true,
+          forceValidation: i && i.balayage === true });   // (gardien) le balayage écrit à des inscrits d'avant : Justin relit chaque courriel avant qu'il parte
         if (!d.ok) { retenir(h, source); return { saute: d.raison }; }
         reg.adresses[h] = { ts: maintenant(), ref: d.ref, nb: 0 };
         servir(h);
@@ -394,7 +395,7 @@ module.exports = function lea(ctx) {
         reg.balaye[h] = { n: (b ? b.n : 0) + 1, ts: now };
         if (!sauve()) { if (avant) reg.balaye[h] = avant; else delete reg.balaye[h]; break; }
         bilan.examines++;
-        let r; try { r = await traiter('inscription', { email: a, entreprise: c.entreprise, reprise: true }); } catch (e) { r = { saute: 'erreur' }; }
+        let r; try { r = await traiter('inscription', { email: a, entreprise: c.entreprise, reprise: true, balayage: true }); } catch (e) { r = { saute: 'erreur' }; }
         if (r && (r.depose || r.reecrit || r.saute === 'deja_repondu')) { servir(h); delete reg.balaye[h]; sauve(); bilan.servis++; continue; }
         if (r && r.saute === 'adresse') { reg.balaye[h] = { n: BALAYAGE_ESSAIS, ts: now }; sauve(); continue; }
         if (r && PAS_UN_ESSAI.has(r.saute)) {

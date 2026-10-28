@@ -251,6 +251,41 @@ function monde(o) {
     v('⛔ tous les créneaux sont passés : rien à relancer (la proposition expirera seule)', [(await e.emma.relancerMuets()).relances, e.envoyes.length], [0, 1]);
   }
 
+  console.log('\n8. La relecture du gardien (28 octobre 2026)');
+  {
+    /* Margaux : `null` sans panne = Stripe dit « plus impayé » (réglé pendant le passage) → on n'écrit pas */
+    const m = monde();
+    m.etat.liste = [imp(300)]; m.etat.facture = null;
+    const r = await m.margaux.passer();
+    v('⛔ Margaux : la facture n’est plus impayée chez Stripe (réglée pendant le passage) — aucune relance', [r.relances, m.envoyes.length], [0, 0]);
+  }
+  {
+    /* Léa : le balayage ne part JAMAIS seul — même en « auto », charte ouverte */
+    const Z = C.monter({ charte: C.CHARTE_OUVERTE, modes: { lea: 'auto' }, t0: Date.UTC(2026, 9, 28, 9, 0, 0) }); nettoyer.push(Z);
+    const L = require(S('agent-lea.js'))({ agents: Z.agents, cerveau: Z.cerveau, brouillons: Z.brouillons, fichier: Z.fichier, maintenant: () => Z.horloge.t, conversations: Z.conversations || { parler: () => ({ ok: true }) }, louis: Z.louis,
+      libelleMetier: x => x, metiers: ['autre'], comptes: () => [{ email: 'vieux@balayage-3090.fr', entreprise: 'Vieille Société', depuis: Z.horloge.t - 30 * J }] });
+    const b = await L.balayer();
+    const vals = await Z.validations();
+    v('⛔ Léa en « auto », charte ouverte : le courriel du BALAYAGE attend la validation de Justin (rien ne part seul vers un inscrit d’avant)', [b.servis, Z.envoyes.length, vals.filter(x => x.agent === 'lea').length], [1, 0, 1]);
+  }
+  {
+    /* agents.js : la borne dure de 90 jours */
+    const m = G.monter({ modes: { camille: 'auto' } }); nettoyer.push(m);
+    m.agents.surReprise('courrier', async () => ({ saute: 'hors_heures' }));
+    m.agents.differer('camille', 'courrier', 'cle-perimee-3090', { id: 'p1' });
+    m.horloge.t += 91 * J;
+    const b = await m.agents.reprendreDifferes();
+    v('⛔ au-delà de 90 jours, l’entrée est abandonnée (la file ne se remplit plus pour toujours) et c’est DIT au journal', [b.abandonnees, b.restantes || 0, m.journal().filter(e => e.action === 'entrée en attente abandonnée').length], [1, 0, 1]);
+  }
+  {
+    const CODE = f => fs.readFileSync(S(f), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    vrai('⛔ Max : un incident que le fil a REFUSÉ n’avance pas le repère (il sera retenté)', /else toutVu = false;/.test(CODE('agent-max.js')));
+    const E = CODE('agent-emma.js');
+    vrai('⛔ Emma : l’âge de la relance se compte depuis l’ENVOI (envoyeTs), et un choix de créneau en attente suspend les relances', /p\.voie !== 'direct' && !p\.envoyeTs/.test(E) && /const age = now - \(p\.voie === 'direct' \? p\.ts : p\.envoyeTs\)/.test(E) && /t\.type === 'choix_creneau'/.test(E));
+    const I = CODE('index.js'), i0 = I.indexOf("agentLea = require('./agent-lea')({"), bl = I.slice(i0, I.indexOf('Léa indisponible', i0));
+    vrai('⛔ Léa : le balayage écarte tout client qui PAIE (fiche de paiement, formule, statut, Stripe) — et ne fait rien tant que Stripe n’a pas été lu', /c\.ficheDePaiement \|\| c\.plan \|\| c\.planStatus/.test(bl) && /stripeBrut\.includes\(/.test(bl) && /if \(sk && !espStripeCache\.data\) return null;/.test(bl) && /&& !paie\(c\)\)/.test(bl), bl.slice(0, 200));
+  }
+
   console.log('\n7. Le câblage d’index.js (lu dans le CODE, commentaires retirés — jamais dans une phrase)');
   {
     /* On ne retire que les blocs qui COMMENCENT une ligne (CLAUDE.md : le motif naïf avale du vrai code) et les lignes de commentaire. */

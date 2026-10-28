@@ -214,7 +214,13 @@ module.exports = function emma(app, ctx) {
         if (!p || p.etat !== 'proposee' || p.relance || !Array.isArray(p.creneaux)) continue;
         /* ⛔ on ne relance que ce qui est VRAIMENT parti : une proposition qui attend encore la validation de Justin n'a pas été lue par le prospect — le relancer, c'est lui écrire « sans retour » d'un courriel qu'il n'a pas reçu */
         if (!(p.voie === 'direct' || (p.ref && typeof documents.etatDe === 'function' && documents.etatDe(p.ref) === 'envoye'))) continue;
-        const age = now - p.ts;
+        /* (gardien, 28 octobre 2026) l'âge se compte depuis l'ENVOI, pas depuis le dépôt : une proposition validée par Justin à J+1,9 n'est pas relancée quelques heures après.
+           Envoi direct : l'heure du dépôt EST celle de l'envoi ; sinon on note l'heure où l'envoi est constaté, et le compte part de là. */
+        if (p.voie !== 'direct' && !p.envoyeTs) { p.envoyeTs = now; sauve(); continue; }
+        /* un choix de créneau que Camille a transmis et qu'Emma n'a pas encore pris : le prospect a peut-être répondu — on ne relance personne avant de l'avoir lu */
+        let choixEnAttente = false; try { choixEnAttente = (agents.tachesDe(ID) || []).some(t => t && t.type === 'choix_creneau'); } catch (e) { choixEnAttente = true; }
+        if (choixEnAttente) break;
+        const age = now - (p.voie === 'direct' ? p.ts : p.envoyeTs);
         if (age < RELANCE_APRES_MS || age >= PROPOSITION_VIE_MS) continue;
         const restants = p.creneaux.map((ms, i) => ({ n: i + 1, ms })).filter(c => Number.isFinite(c.ms) && c.ms > now + CRENEAU_PROCHE_MS && !reg.rdv.some(r => r.etat === 'a_venir' && r.ms < c.ms + reg.dispo.dureeMin * MS_MIN && c.ms < r.ms + reg.dispo.dureeMin * MS_MIN));
         if (!restants.length || !FORME_DOSSIER.test(dossier)) continue;

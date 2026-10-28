@@ -118,7 +118,13 @@ module.exports = function margaux(ctx) {
         if (st.sansAdresse) { delete st.sansAdresse; sauve(); }
         const ref = st.premierVu;
         let fa = null;
-        if (facture) { try { fa = await facture(x.aboId); } catch (e) { fa = null; } }
+        if (facture) {
+          let panne = false;
+          try { fa = await facture(x.aboId); } catch (e) { fa = null; panne = true; }
+          /* (gardien, 28 octobre 2026) `null` sans panne = Stripe dit que l'abonnement n'est PLUS impayé (réglé pendant le passage, d'autant plus probable que la liste n'est plus coupée) :
+             on n'écrit pas ; au passage suivant, il sort de la liste et passe « réglé ». Une PANNE garde l'ancien comportement (la date de premier passage sert). */
+          if (!fa && !panne) continue;
+        }
         const depuis = (fa && Number.isFinite(fa.emiseMs) && fa.emiseMs > 0 ? fa.emiseMs : ref);
         const age = Math.floor((now - depuis) / MS_JOUR);
         /* la relance due : la plus avancée dont le jour est passé et que rien n'a marquée ; les précédentes, sautées (on n'écrit pas « J+3 » et « J+7 » le même jour) */

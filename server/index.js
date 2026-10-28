@@ -10655,7 +10655,13 @@ try {
           let cm = null; try { cm = comptes; } catch (e) { cm = null; }
           if (!cm || typeof cm.verifie !== 'function') return null;
           const pris = new Set(Object.values(espacesReg || {}).map(x => String((x && x.email) || '').trim().toLowerCase()).filter(Boolean));
-          return Object.values(clientsData || {}).filter(c => c && typeof c.email === 'string' && cm.verifie(c.email) && !pris.has(c.email.trim().toLowerCase()))
+          /* ⛔ (gardien, 28 octobre 2026) un client qui PAIE ne reçoit jamais un courriel de vente : ni une fiche née de « Payer » (`ficheDePaiement`), ni une fiche qui porte une
+             formule ou un statut d'abonnement, ni une adresse que la liste Stripe connaît. Stripe configuré mais liste pas encore lue : on ne sait pas, donc RIEN (null). */
+          const sk = !!(config.stripe && config.stripe.secretKey);
+          if (sk && !espStripeCache.data) return null;
+          const stripeBrut = espStripeCache.data ? JSON.stringify(espStripeCache.data).toLowerCase() : '';
+          const paie = c => !!(c.ficheDePaiement || c.plan || c.planStatus || (c.choix && c.choix.source === 'paiement') || (stripeBrut && stripeBrut.includes(c.email.trim().toLowerCase())));
+          return Object.values(clientsData || {}).filter(c => c && typeof c.email === 'string' && cm.verifie(c.email) && !pris.has(c.email.trim().toLowerCase()) && !paie(c))
             .map(c => ({ email: c.email, entreprise: c.entreprise, depuis: Number(c.inscrit) || 0 }));
         } });
       if (agentLea) setInterval(() => { agentLea.balayer().catch(e => console.error('léa (balayage) :', e.message)); }, 30 * 60000).unref();
