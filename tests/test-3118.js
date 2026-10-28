@@ -95,6 +95,16 @@ console.log('\n── 3118 · « Je viens de… » : l\'annonce de fin de travai
     H.nettoyer();
   }
 
+  {
+    /* le même geste DANS « Équipe » : l'annonce dit déjà « Victor a terminé » — aucune seconde ligne du système à côté */
+    const H = monter({ script: (t) => t.id === 'victor' ? rep('Bien noté, c\'est terminé.', [outil('terminer', { tache: idTache(t.system), resume: 'Plan rédigé' })]) : rep('Ok.') });
+    H.agents.consigner('justin', 'victor', 'Rédiger le plan de la semaine');
+    await H.justin('equipe', 'Victor, le plan est-il fini ?');
+    const eq = await H.messages('equipe');
+    v('⛔ dans « Équipe » : la réponse de Victor et UNE annonce — aucune ligne « Victor a terminé » du système à côté', [eq.filter(m => m.fait).map(m => m.texte), eq.filter(m => m.de === 'systeme').length], [['✅ Je viens de terminer : Plan rédigé (demandé par Justin)'], 0]);
+    H.nettoyer();
+  }
+
   console.log('\n6. Hors plafonds, sans réveiller, jamais une racine, jamais une mention');
   {
     const H = monter({ script: () => rep('Ok.') });
@@ -181,6 +191,7 @@ console.log('\n── 3118 · « Je viens de… » : l\'annonce de fin de travai
   console.log('\n11. Le composeur : pur, fermé');
   {
     const C = FAITS.composer, nom = x => ({ victor: 'Victor' }[x] || x);
+    v('⛔ le résumé LIBRE du modèle est masqué par le composeur lui-même (adresse, numéro, accolades, « @ ») — seconde barrière, même si l\'appelant l\'a laissé passer', C({ agent: 'lea', code: 'tache:consigne', tache: 'abcdef012345', libre: 'écrit à jean@x.fr, 06 12 34 56 78 {x} @lea' }, nom).texte, '✅ Je viens de terminer : écrit à (adresse), (numéro) x lea');
     v('un dossier mal formé n\'entre pas dans la phrase', C({ agent: 'lea', code: 'courrier_brouillon', dossier: 'DOS-12 jean@x.fr' }, nom).texte, '✅ Je viens de mettre un courriel en brouillon.');
     v('un nombre : borné (entier, ≤ 9999) ; sinon ignoré', [C({ agent: 'lea', code: 'courrier_brouillon', n: 12 }, nom).texte, C({ agent: 'lea', code: 'courrier_brouillon', n: '12 jean@x.fr' }, nom).texte], ['✅ Je viens de mettre un courriel en brouillon (12).', '✅ Je viens de mettre un courriel en brouillon.']);
     v('une raison hors de la liste n\'est pas recopiée', C({ agent: 'lea', code: 'courrier_brouillon', issue: 'echec', raison: 'connexion refusée par smtp.client.fr' }, nom).texte, '⚠️ Je n’ai pas pu mettre un courriel en brouillon.');
