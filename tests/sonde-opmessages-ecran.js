@@ -215,9 +215,9 @@ async function exigerPlusEcran(S, sel, qui) {
       return att(H.page, (a) => (document.getElementById('salle-partage').getAttribute('aria-pressed') === 'true') === a, actif);
     };
     const camera = async (allumee) => {
-      const lit = () => H.page.evaluate(() => document.getElementById('salle-cam').getAttribute('aria-pressed') !== 'true');
+      const lit = () => H.page.evaluate(() => document.getElementById('salle-cam').getAttribute('aria-pressed') === 'true');      // ⛔ aria-pressed="true" veut dire caméra ALLUMÉE (salleCommandes) : la version d'avant lisait l'inverse, et le cas « caméra coupée » ne coupait rien
       if ((await lit()) !== allumee) await H.page.click('#salle-cam');
-      await att(H.page, (a) => (document.getElementById('salle-cam').getAttribute('aria-pressed') !== 'true') === a, allumee);
+      await att(H.page, (a) => (document.getElementById('salle-cam').getAttribute('aria-pressed') === 'true') === a, allumee);
     };
 
     /* ═══ 1. LA SALLE : l'organisateur, un connecté (Ben), un invité sans compte (Paul) ═══ */
@@ -253,7 +253,7 @@ async function exigerPlusEcran(S, sel, qui) {
     /* ═══ 4. DEUXIÈME PARTAGE, caméra COUPÉE (le cas de la capture de Justin) ═══ */
     console.log('4. deuxième partage de suite, caméra de l\'organisateur COUPÉE');
     await camera(false);
-    vrai('l\'organisateur a coupé sa caméra', await H.page.evaluate(() => document.getElementById('salle-cam').getAttribute('aria-pressed') === 'true'));
+    vrai('l\'organisateur a coupé sa caméra (aria-pressed=false : éteinte)', await H.page.evaluate(() => document.getElementById('salle-cam').getAttribute('aria-pressed') === 'false'));
     vrai('le deuxième partage démarre', await partager(true));
     await exigerEcran(I, SEL_INVITE, 'invité (caméra coupée)', '4-invite-partage-camera-coupee');
     await exigerEcran(Bn, SEL_CONNECTE, 'Ben (caméra coupée)', '4-ben-partage-camera-coupee', { grand: true });

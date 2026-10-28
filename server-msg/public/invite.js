@@ -331,8 +331,8 @@
     const liste = [{ id: ST.moiId, nom: 'Vous', moi: true, camera: ST.cam && !!ST.local.video && s.type !== 'audio', micro: ST.micro, main: s.moi && s.moi.main, parle: false }]
       .concat((s.membres || []).filter(m => m.statut === 'present').map(m => ({ id: m.id, nom: m.nom || 'Participant', moi: false,
         /* ⛔ un écran partagé PASSE PAR LA PISTE DE LA CAMÉRA (même émetteur en maille ; en LiveKit `flux()` rend l'écran avant la caméra) : caméra coupée ou non, l'image arrive — la page connectée le sait depuis le
-           7 octobre 2026. Sans `|| m.partage`, la tuile restait sur l'avatar (`data-camera="off"` → vidéo à `opacity:0`) pendant que l'écran de l'organisateur ARRIVAIT, décodé, derrière (28 octobre 2026, capture de Justin) */
-        camera: (!!m.camera || !!m.partage) && s.type !== 'audio', ecran: !!m.partage, micro: m.micro !== false, main: !!m.main, parle: !!m.parle, initiales: m.initiales })));
+           7 octobre 2026. Sans `|| m.partage`, la tuile restait sur l'avatar (`data-camera="off"` → vidéo à `opacity:0`) pendant que l'écran de l'organisateur ARRIVAIT, décodé, derrière (28 octobre 2026, capture de Justin). Et dans une réunion rejointe « en audio », le bouton de partage existe, la page connectée montre l'écran : l'invité aussi — seule la CAMÉRA se tait en audio (`(camera && !audio) || partage`) */
+        camera: (!!m.camera && s.type !== 'audio') || !!m.partage, ecran: !!m.partage, micro: m.micro !== false, main: !!m.main, parle: !!m.parle, initiales: m.initiales })));
     for (const x of liste) {
       vus.add(x.id);
       let t = grille.querySelector('[data-uid="' + CSS.escape(x.id) + '"]');

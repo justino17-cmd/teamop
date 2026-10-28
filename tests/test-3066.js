@@ -7,7 +7,7 @@
      · celui qui partage a une tuile `data-camera="on"` ET `data-ecran="1"`, et sa vidéo reçoit le flux de la personne — caméra coupée ou non ;
      · la grille le sait (`data-ecran="1"`), ce qui lui donne la grande place ; plus personne ne partage → tout redevient normal ;
      · un participant qui ARRIVE pendant le partage (la grille est neuve, l'état vient du service) le voit aussi ; deux partages successifs (la même personne, puis une autre) marchent ;
-     · un appel AUDIO n'affiche jamais d'image ; l'écran se lit ENTIER (`contain`, fond noir) et passe devant les autres tuiles (`order:-1`, toute la largeur) ;
+     · un appel AUDIO n'affiche jamais de caméra, mais un écran partagé s'y affiche (la page connectée le montre) ; l'écran se lit ENTIER (`contain`, fond noir) et passe devant les autres tuiles (`order:-1`, toute la largeur) ;
    La preuve aux pixels, à trois navigateurs (organisateur, connecté, invité), est `tests/sonde-opmessages-ecran.js`. Mutations : `scratchpad/mutations-ecran.py`. */
 'use strict';
 const fs = require('fs'), vm = require('vm'), path = require('path');
@@ -99,11 +99,18 @@ console.log('Deux partages successifs : le même, puis un autre');
     ['justin/1/1/0', 'null/0/0/0', 'justin/1/1/0', 'null/0/0/0', 'ben/1/0/1', 'justin/1/1/0']);
 }
 
-console.log('Un appel AUDIO n\'affiche jamais d\'image');
+console.log('Un appel AUDIO n\'affiche jamais de caméra — mais un écran PARTAGÉ s\'affiche (28 octobre 2026, testeur adverse : la salle d\'une réunion rejointe « en audio » offre le bouton de partage, la page connectée montre l\'écran, l\'invité ne voyait que des avatars)');
 {
   const M = monter();
-  M.rendre({ type: 'audio', moi: {}, membres: [membre('justin', 'Justin', { camera: true, partage: true })] });
-  v('audio : tuile off même avec partage:true (le service ne laisse pas passer d\'image dans un appel audio)', etat(M.grille, 'justin').camera, 'off');
+  M.rendre({ type: 'audio', moi: {}, membres: [membre('justin', 'Justin', { camera: true }), membre('ben', 'Ben', { camera: true, partage: false })] });
+  v('audio, caméra seule : tuile off (aucune image de caméra dans un appel audio)', [etat(M.grille, 'justin').camera, etat(M.grille, 'ben').camera], ['off', 'off']);
+  v('audio, caméra seule : la scène n\'est pas en partage', M.grille.dataset.ecran, '0');
+  M.rendre({ type: 'audio', moi: {}, membres: [membre('justin', 'Justin', { camera: true, partage: true }), membre('ben', 'Ben', { camera: true })] });
+  v('audio + partage : la tuile de celui qui partage est allumée ET marquée écran', [etat(M.grille, 'justin').camera, etat(M.grille, 'justin').ecran], ['on', '1']);
+  v('audio + partage : l\'autre tuile (caméra) reste sur l\'avatar', etat(M.grille, 'ben').camera, 'off');
+  v('audio + partage : la scène est en partage', M.grille.dataset.ecran, '1');
+  M.rendre({ type: 'audio', moi: {}, membres: [membre('justin', 'Justin', { camera: false, partage: true })] });
+  v('audio + partage, caméra coupée : l\'écran arrive quand même', etat(M.grille, 'justin').camera, 'on');
 }
 
 console.log('La feuille de la page : ce que l\'écran gagne');
