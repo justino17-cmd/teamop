@@ -10,9 +10,13 @@
       aucun mot d'anti-nuisibles ; l'envoi joint le PDF, et la trace ne s'écrit que si le courriel est parti ;
    6. le CATALOGUE de départ : 24 produits, 6 fournisseurs, catégories EXACTES du métier, posé UNE fois par un geste de l'administrateur — jamais au chargement, jamais deux fois ;
    7. ⛔ LA 3D D'ELAN NE CHANGE EN RIEN : ses exemples, ses libellés de droits, son catalogue, son planning de démonstration, son masque (bêta comprise).
-   Au navigateur : scratchpad/nettoyage-sonde (sonde du parcours complet). Mutations : scratchpad/mutations-pack-nettoyage.py. */
+   8. ⛔ LA RELECTURE ADVERSE DU 28 OCTOBRE (§ 13, douze constats) : le vocabulaire « box » d'un métier sans box (toasts, confirmations, états vides, Mouvements, fiche du
+      STOCKAGE), la reprise d'une fenêtre (cahier, fiche de contrôle), la fiche client au téléphone, l'en-tête sans nom d'entreprise, le serveur du Devis IA, le moyen de
+      paiement, la publication de la bêta ; les désignations de devis longues vivent dans test-793 § 2 bis.
+   Au navigateur : scratchpad/nettoyage-sonde (sonde-parcours.js : le parcours complet ; sonde-stockage.js : 73 écrans et fenêtres APRÈS « Créer le stockage », rien ne dit « box » ;
+   sonde-reprise.js : cahier et contrôle repris après un rechargement ; sonde-fiche.js : « Documents du site » à 390 px). Mutations : scratchpad/mutations-pack-nettoyage.py. */
 'use strict';
-const fs = require('fs'), path = require('path');
+const fs = require('fs'), path = require('path'), vm = require('vm');
 const { monter, formulaire, BLOC, APP, cdc, lirePdf, texte } = require('./nett-monter.js');
 const { lire, litteral, evalue, bac } = require('./metiers-outils.js');
 let ok = 0, ko = 0;
@@ -160,7 +164,7 @@ console.log('\n── 3111 · 5. le plan de prévention — l\'enregistrement �
   const R = monter({ db: BASE, droits: { 'crm.ajouter': false } }); R.nettPlanForm('', 'c1');
   vrai('sans le droit, le plan ne s\'ouvre pas', R.__modals.length === 0);
   const sec = monter({ db: Object.assign(cdc(BASE), { plansPrevention: [{ id: 'p1', clientId: 'c1', date: '2026-10-20' }] }) }).nettSectionClient(BASE.clients[0]);
-  vrai('la section « Documents du site » montre le plan et le seuil', /Plan de prévention du 20\/10\/2026/.test(sec) && /seuil de 400 h/.test(sec)); }
+  vrai('la section « Documents du site » montre le plan et le seuil', /Plan de prévention du 20\/10(?!\/)/.test(sec) && /seuil de 400 h/.test(sec)); }
 
 console.log('\n── 3111 · 6. LES TROIS PDF — structure, texte, en-tête, aucun « ? » ──');
 (async () => {
@@ -236,13 +240,13 @@ console.log('\n── 3111 · 6. LES TROIS PDF — structure, texte, en-tête, a
   const FORM = [W.nettCahierForm, W.nettPlanForm].length; const F1 = monter({ db: base, entete }); F1.nettCahierForm('', 'c1'); F1.nettPlanForm('', 'c1'); F1.nettControleForm('i1');
   vrai('les trois formulaires ne parlent jamais d\'anti-nuisibles', F1.__modals.length === 3 && F1.__modals.every(h => !ANTI.test(h.replace(/Éclat/g, ''))), F1.__modals.map(h => (h.match(ANTI) || [])[0]));
   const S = F1.nettSectionClient(base.clients[0]);
-  vrai('la section « Documents du site » : cahier, plan, boutons, sans anti-nuisibles', /Documents du site/.test(S) && /Siège · version 1/.test(S) && /Plan de prévention du 28\/10\/2026/.test(S) && !ANTI.test(S), S.slice(0, 300));
+  vrai('la section « Documents du site » : cahier, plan, boutons, sans anti-nuisibles', /Documents du site/.test(S) && /Siège · version 1/.test(S) && /Plan de prévention du 28\/10(?!\/)/.test(S) && !ANTI.test(S), S.slice(0, 300));
 
   console.log('\n── 3111 · 9. le catalogue de départ et le reste du pack (vraies fonctions d\'app.html) ──');
-  suite();
+  await suite();
 })();
 
-function suite() {
+async function suite() {
   const { N } = lire('app.html');
   const METIERS = evalue(litteral(N, 'const METIERS={'));
   const CATALOGUE_3D = evalue(litteral(N, 'const CATALOGUE=['));
@@ -288,11 +292,11 @@ function suite() {
   vrai('plomberie : toujours rien (un métier sans pack n\'a ni produit ni fournisseur)', np.produits === 0 && np.fournisseurs === 0);
   vrai('PACK_METIER_AUTO reste faux (la décision du 23 septembre : rien ne se pose seul)', /const PACK_METIER_AUTO\s*=\s*false;/.test(N));
   vrai('migrate() et load() ne posent pas le catalogue de départ (aucun appel hors du geste et du bouton)', (N.match(/catalogueDepartPoser\(/g) || []).length <= 5, (N.match(/catalogueDepartPoser\(/g) || []).length);
-  suite2(N, METIERS, CATALOGUE_3D);
+  await suite2(N, METIERS, CATALOGUE_3D);
   fin();
 }
 const USER_CAPS_LIT = N => evalue(litteral(N, 'const USER_CAPS=['));
-function suite2(N, METIERS, CATALOGUE_3D) {
+async function suite2(N, METIERS, CATALOGUE_3D) {
   console.log('\n── 3111 · 10. ⛔ la 3D d\'ELAN ne change en RIEN ──');
   const EX3D = { tache: 'Ex : Rappeler le client / Commander des postes', entreprise: 'Ex : Pest Contrôle SARL', societe: 'Ex : 3D Sud-Ouest SARL', siteBon: 'Nom du site (ex : CAZABOX ST PORCHAIRE)', ville: 'ex : 17390 La Tremblade', produit: 'Ex : XILIX 1000',
     liste: 'Gel blattes Maxforce ; MABI ; 24,90\nMUSKIL bloc 10 kg ; SODIF\nGants nitrile taille 9', devis1: '« Dératisation chez Mme Martin, 12 rue des Lilas à Rochefort, 280 € TTC »', devis2: '« Punaises de lit, appartement 60 m², La Rochelle, à 650 »',
@@ -374,6 +378,135 @@ function suite2(N, METIERS, CATALOGUE_3D) {
   vrai('D1 : le référentiel du nettoyage porte les relevés du compte rendu (tâches non réalisées, machines, consommables, anomalies, incidents, remarques, accès)', ['surface', 'agents', 'tps', 'heuresPrevues', 'nonRealisees', 'machines', 'consommables', 'anomalies', 'incidents', 'remarquesClient', 'acces', 'controleQualite'].every(k => cles2.indexOf(k) >= 0), cles2);
   egal('… et l\'application embarque les MÊMES relevés (copie générée)', METIERS.nettoyage.releves.map(r => r.k), cles2);
   vrai('… aucun mot d\'anti-nuisibles dans ces relevés', !ANTI.test(REF.releves.map(r => r.l).join(' ')));
+  await suite3(N, METIERS);
+}
+/* ══ 3111 · 13. LA RELECTURE ADVERSE DU 28 OCTOBRE 2026 (testeur + relecteur) : douze constats, chacun vérifié avant d'être corrigé ══ */
+async function suite3(N, METIERS) {
+  console.log('\n── 3111 · 13. relecture adverse : le vocabulaire « box » (constats 1, 2, 3, 9) ──');
+  const BOXW = /\bbox(es)?\b/i;
+  /* les littéraux de chaîne des appels toast( / confirm( / emptyState( du fichier, lus dans le CODE (les commentaires de tête de ligne sont déjà retirés de N) */
+  const sauteChaine = (s, i) => { const q = s[i]; i++;
+    while (i < s.length) { const c = s[i];
+      if (c === '\\') { i += 2; continue; }
+      if (c === q) return i + 1;
+      if (q === '`' && c === '$' && s[i + 1] === '{') { let d = 1; i += 2; while (d && i < s.length) { const e = s[i]; if (e === '\'' || e === '"' || e === '`') { i = sauteChaine(s, i); continue; } if (e === '{') d++; else if (e === '}') d--; i++; } continue; }
+      i++; }
+    return i; };
+  const appels = (nom) => { const out = [], re = new RegExp('(?<![\\w.])' + nom + '\\(', 'g'); let m;
+    while ((m = re.exec(N))) { let i = m.index + m[0].length, d = 1; const dep = i;
+      while (i < N.length && d) { const c = N[i]; if (c === '\'' || c === '"' || c === '`') { i = sauteChaine(N, i); continue; } if (c === '(') d++; else if (c === ')') d--; i++; }
+      out.push(N.slice(dep, i - 1)); }
+    return out; };
+  const litteraux = (arg) => { const L = []; for (let i = 0; i < arg.length;) { const c = arg[i]; if (c === '\'' || c === '"' || c === '`') { const f = sauteChaine(arg, i); L.push(arg.slice(i + 1, f - 1)); i = f; } else i++; } return L; };
+  const corpus = []; for (const nom of ['toast', 'confirm', 'emptyState', 'toastAnnuler']) appels(nom).forEach(a => litteraux(a).forEach(l => { if (BOXW.test(l)) corpus.push(l); }));
+  const mondeBox = (metier) => bac('app.html', ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'metierBloque', 'sansBox', 'libBox', 'boxTxt', 'mvtBoxActif'],
+    { METIERS, BETA_ESSAI: false, db: { metier }, console, BOX_TXT: evalue(N.slice(N.indexOf('const BOX_TXT=[') + 'const BOX_TXT='.length, N.indexOf('\nfunction boxTxt(')).trim().replace(/;$/, '')), mvtFBox: 'stockage' });
+  const bn = mondeBox('nettoyage'), b3 = mondeBox('3d');
+  vrai('(population) ' + corpus.length + ' littéraux « box » dans les toasts, confirmations et états vides du fichier', corpus.length >= 60, corpus.length);
+  egal('⛔ nettoyage : AUCUN de ces textes ne dit encore « box » une fois lu par boxTxt', corpus.map(t => bn.fn.boxTxt(t)).filter(t => BOXW.test(t)), []);
+  egal('⛔ 3D : boxTxt rend chaque texte TEL QUEL (ELAN ne change en rien)', corpus.filter(t => b3.fn.boxTxt(t) !== t), []);
+  egal('boxTxt ne touche pas ce qui n\'est pas une chaîne', [bn.fn.boxTxt(undefined), bn.fn.boxTxt(12)], [undefined, 12]);
+  egal('les tournures les plus visibles, au nettoyage (supprimer un technicien, doublon de produit, fusion, retrait)', ['Il est retiré des box, des véhicules et du planning', 'dans les box comme au global', 'Le stock des box s\'additionne, rien d\'autre', 'Produit retiré de la box', 'Il n’y en a plus dans cette box', 'Ajouté à toutes les box'].map(t => bn.fn.boxTxt(t)),
+    ['Il est retiré du stockage, des véhicules et du planning', 'dans le stockage comme au global', 'Le stock s\'additionne, rien d\'autre', 'Produit retiré du stockage', 'Il n’y en a plus dans ce stockage', 'Ajouté au stockage']);
+  /* la table s'applique CENTRALEMENT : toast, toastAnnuler, emptyState ; et chaque confirm( qui parle de box passe par boxTxt ou libBox */
+  vrai('toast(), toastAnnuler() et emptyState() lisent leur texte à travers boxTxt (un message neuf est couvert sans y penser)', /function toast\(msg,ms,genre\)\{[^}]*msg=boxTxt\(msg\)/.test(N) && /function toastAnnuler\(msg,appel,ms\)\{\s*msg=boxTxt\(msg\)/.test(N) && /function emptyState\(ico,txt,btn,fn\)\{ txt=boxTxt\(txt\)/.test(N));
+  const confBox = appels('confirm').filter(a => BOXW.test(litteraux(a).join(' ')));
+  vrai('(population) ' + confBox.length + ' confirm( parlent de box dans le fichier, et chacun passe par boxTxt ou libBox', confBox.length >= 8 && confBox.every(a => /^boxTxt\(/.test(a.trim()) || /libBox\(/.test(a)), confBox.filter(a => !/^boxTxt\(/.test(a.trim()) && !/libBox\(/.test(a)).map(a => a.slice(0, 70)));
+  /* constat 1 : Stock > Mouvements */
+  egal('constat 1 : les trois libellés de Mouvements (« Toutes les box », « Filtrer par box », « Aucune box ne correspond ») ne sortent que par libBox',
+    [(N.match(/Toutes les box/g) || []).length, (N.match(/Filtrer par box/g) || []).length], [(N.match(/libBox\('Toutes les box','Tous les lieux'\)/g) || []).length, (N.match(/libBox\('Filtrer par box','Filtrer par lieu'\)/g) || []).length]);
+  vrai('… « Aucune box ne correspond. » (journal) aussi, et le filtre par box est RETIRÉ de la barre quand sansBox() est vrai', /libBox\('Aucune box ne correspond\.','Aucun lieu ne correspond\.'\)/.test(N) && /\$\{sansBox\(\)\?'':`<div class="mvt-dd"/.test(N));
+  egal('… et un filtre posé avant (le journal du stockage) ne reste PAS appliqué sans bouton pour le lever : mvtBoxActif rend vide sans box, la valeur en 3D', [bn.fn.mvtBoxActif(), b3.fn.mvtBoxActif()], ['', 'stockage']);
+  vrai('… la liste du journal et celle des bons lisent mvtBoxActif(), plus mvtFBox en direct', (N.match(/mvtBoxActif\(\)/g) || []).length >= 5 && !/base=base\.filter\(m=>m\.boxId===mvtFBox\)/.test(N) && !/if\(mvtFBox&&r\.boxId!==mvtFBox\) return;/.test(N));
+  /* constat 2 : l'état vide du catalogue */
+  vrai('constat 2 : « ils serviront ensuite dans les box, les interventions… » passe par libBox (nettoyage : « dans les interventions et les bons de commande »)', /ils serviront ensuite '\+libBox\('dans les box, les interventions et les bons de commande\.','dans les interventions et les bons de commande\.'\)/.test(N));
+  /* constat 9 : le stockage créé compte comme une box */
+  vrai('constat 9 (a) : « ＋ Produit » : section « Stockage », « Ajouter ce produit au stockage », note sans « chaque box »', /libBox\('Boxes','Stockage'\)/.test(N) && /libBox\('Ajouter ce produit à toutes les box \('\+visibleBoxes\(db\.boxes\)\.length\+'\)','Ajouter ce produit au stockage'\)/.test(N) && /libBox\('Le produit apparaîtra dans chaque box[^']*','Le produit apparaîtra dans le stockage/.test(N));
+  vrai('(b) Arrivage : « au stock » et « Arrivage » (plus « stock de la box » ni « Arrivage box »), jusque dans le journal et la cloche', /libBox\('À l\\'enregistrement, les quantités sont ajoutées directement au stock de la box(?:[^'\\]|\\.)*','À l\\'enregistrement, les quantités sont ajoutées directement au stock et l\\'équipe reçoit une notification « Arrivage ».'\)/.test(N) && /logEvent\(libBox\('Arrivage box','Arrivage'\)/.test(N) && /<b>\$\{libBox\('Arrivage box','Arrivage'\)\}<\/b>/.test(N));
+  vrai('(c) le ✎ du stockage : « Modifier le stockage », adresse sans carte, plus de « Code box », plus de « Numéro (ex : BOX-0001) »', /<h3>\$\{boxTxt\(id\?'Modifier la box':'Nouvelle box'\)\}<\/h3>/.test(N) && /libBox\('Choisis une adresse pour placer la box sur la carte\.','Indique l’adresse du stockage \(facultatif\)\.'\)/.test(N) && /\$\{boxTxt\(t\)\}<\/button>`\)\.join\(''\)\}<\/div>/.test(N) && /libBox\('Numéro \(ex : BOX-0001\)','Numéro \(facultatif\)'\)/.test(N));
+  vrai('(d) la fiche du stockage : on revient au Stock (pas « Boxes ») et « hors des box » ne se dit qu\'à la 3D', /retour=\(stk&&\(current==='stock'\|\|sansBox\(\)\)\)\?'stock':'boxes'/.test(N) && /Le stock de l’entreprise\$\{libBox\(', hors des box',''\)\}\./.test(N) && /title="\$\{boxTxt\('Ajouter ou retirer des produits de cette box'\)\}"/.test(N) && /<h3 class="bxp-titre">\$\{boxTxt\('Produits de la box'\)\}/.test(N));
+  vrai('(e) Mouvements : la puce de groupe « Déplier cette box » ne se dit qu\'à la 3D', /\$\{libBox\('cette box','ce groupe'\)\}/.test(N));
+  vrai('le menu de la box et le bouton « Ouvrir les box » de Produits donnés ne mènent pas à une rubrique masquée', /sansBox\(\)\?'':'📦 Ouvrir les box',sansBox\(\)\?'':"go\('boxes'\)"/.test(N));
+
+  console.log('\n── 3111 · 13. relecture adverse : la reprise d\'une fenêtre (constat 4) ──');
+  { const ctx = vm.createContext({ nettCahW: null, nettCqW: null, formLignes: null, intNuis: new Set(), intTrait: {}, intMeth: new Set(), prodFours: new Set(), demLignes: [], bonLignes: [], _bonEditId: '', bonSites: [], document: { querySelector() { return null; } }, nettCahMaj() { ctx.__maj.push('cah'); }, nettCqMaj() { ctx.__maj.push('cq'); }, __maj: [] });
+    vm.runInContext('var MULTI_MODELES=' + litteral(N, 'const MULTI_MODELES = ['), ctx);
+    const M = id => vm.runInContext('MULTI_MODELES.find(function(r){return r.id===' + JSON.stringify(id) + ';})', ctx);
+    const ids = ['nett-cah-zones', 'nett-cq-zones', 'nett-cq-actions'];
+    vrai('MULTI_MODELES porte le cahier, la fiche de contrôle et ses actions (une ligne chacun, comme les autres fenêtres)', ids.every(i => !!M(i)));
+    const cah = { id: 'ca9', clientId: 'c1', site: 'Siège', zones: [{ nom: 'Bureaux', taches: [] }] };
+    ctx.nettCahW = cah; const lu = M('nett-cah-zones').lire();
+    vrai('⛔ le modèle du cahier est l\'objet ENTIER (site, zones, accès…), pas un fragment', lu === cah && lu.zones.length === 1);
+    M('nett-cah-zones').ecrire({ id: 'ca9', site: 'Autre' }); vrai('… la reprise le REMET dans la variable (après un rechargement elle valait null) et le redessine', ctx.nettCahW && ctx.nettCahW.site === 'Autre' && (M('nett-cah-zones').rendre(), ctx.__maj.indexOf('cah') >= 0));
+    ctx.nettCqW = null; M('nett-cq-zones').ecrire({ iid: 'i1', zones: [] }); vrai('… idem pour la fiche de contrôle', ctx.nettCqW && ctx.nettCqW.iid === 'i1' && (M('nett-cq-zones').rendre(), ctx.__maj.indexOf('cq') >= 0));
+    vrai('… son second conteneur (les actions) ne porte aucun modèle : il n\'est là que pour ne pas être capturé deux fois', M('nett-cq-actions').lire() === undefined); }
+  { const F = monter({ db: { clients: [{ id: 'c1', nom: 'Cabinet', adresse: '1 rue X' }], interventions: [{ id: 'i1', clientId: 'c1', date: '2026-10-20', type: 'Contrôle qualité chez le client', statut: 'planifiee' }], contrats: [], cahiers: [], plansPrevention: [] } });
+    F.nettCahierForm('', 'c1'); F.nettControleForm('i1'); const [hc, hq] = F.__modals;
+    vrai('(population) les deux formulaires s\'ouvrent', !!hc && !!hq);
+    vrai('le cahier porte le conteneur du modèle (id) et CHAQUE champ du haut et du bas a un NOM (sans lui la reprise ne le retrouve pas : son identifiant automatique change à chaque dessin)',
+      /id="nett-cah-zones"/.test(hc) && ['site', 'referent', 'acces', 'securite', 'nePasMelanger', 'valideLe', 'valideParNom'].every(k => new RegExp('name="nettCah_' + k + '" (?:oninput|onchange)="nettCahW\\.' + k + '=this\\.value"').test(hc)));
+    vrai('… la fiche de contrôle aussi (deux conteneurs, cinq champs nommés)', /id="nett-cq-zones"/.test(hq) && /id="nett-cq-actions"/.test(hq) && ['controleur', 'clientPresent', 'anomalies', 'contreControle', 'visaClient'].every(k => new RegExp('name="nettCq_' + k + '" (?:oninput|onchange)="nettCqW\\.' + k + '=this\\.value"').test(hq)));
+    const nus = []; for (const h of [hc, hq]) for (const m of h.matchAll(/<(?:input|textarea|select)\b[^>]*?(?:oninput|onchange)="nett(?:Cah|Cq)W\.([A-Za-z]+)=this\.value"[^>]*>/g)) if (!/ name="/.test(m[0])) nus.push(m[1]);
+    egal('… et aucun champ de plus (hors des conteneurs du modèle) n\'est resté sans nom', nus, []);
+    const A = monter({ db: { clients: [], interventions: [], contrats: [], cahiers: [], plansPrevention: [] } }); A.nettCahW = null; A.nettCqW = null; A.nettCahierSauver(); A.nettControleSauver();
+    vrai('⛔ enregistrer sans état le DIT (deux messages) au lieu de ne rien faire en silence', A.__toasts.length === 2 && A.__toasts.every(t => /n’est plus à jour/.test(t)), A.__toasts);
+    const S0 = monter({ db: { clients: [], interventions: [], contrats: [], cahiers: [], plansPrevention: [] } }); S0.nettCahW = null; S0.nettCahierSauver(true);
+    vrai('… sauf pour l\'enregistrement silencieux de l\'envoi (c\'est l\'envoi qui parle)', S0.__toasts.length === 0); }
+
+  console.log('\n── 3111 · 13. relecture adverse : la fiche client au téléphone (5), l\'en-tête sans nom (6), le Devis IA (7, 10) ──');
+  { const base = { clients: [{ id: 'c1', nom: 'Cabinet', adresse: '1 rue X', email: 'a@b.test' }], interventions: [], contrats: [], plansPrevention: [{ id: 'p1', clientId: 'c1', date: '2026-10-20' }],
+      cahiers: [{ id: 'k1', clientId: 'c1', site: 'Siège', version: 1, date: '2026-10-20', zones: [], valideLe: '2026-10-20' }] };
+    const sec = monter({ db: base }).nettSectionClient(base.clients[0]);
+    const lignes = sec.match(/<div class="pl-row"[^>]*>/g) || [];
+    vrai('constat 5 : chaque ligne de « Documents du site » PASSE À LA LIGNE (les boutons descendent sous le texte) et le texte garde 220 px', lignes.length === 2 && lignes.every(l => /flex-wrap:wrap/.test(l)) && (sec.match(/class="pl-info" style="flex:1 1 220px"/g) || []).length === 2, lignes);
+    vrai('… la pastille « validé le … » porte la date COURTE (fmtShort), plus « mercredi 28 octobre 2026 »', /validé le 20\/10<\/span>/.test(sec) && !/validé le 20\/10\/2026/.test(sec) && /Plan de prévention du 20\/10(?!\/)/.test(sec), sec.match(/validé le [^<]*/)); }
+
+  console.log('\n── 3111 · 13. relecture adverse : le moyen de paiement (11), le serveur du Devis IA (7, 10), la publication (12) ──');
+  { const monde = (metier) => bac('app.html', ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'moyensPaiement', 'moyensPaiementOptions', 'intMoyenPaiementOptions'],
+      { METIERS, BETA_ESSAI: false, db: { metier }, console, esc: s => String(s == null ? '' : s), MOYENS_PAIEMENT: evalue(litteral(N, 'const MOYENS_PAIEMENT = [')), MOYENS_PAIEMENT_NEUTRES: evalue(litteral(N, 'const MOYENS_PAIEMENT_NEUTRES = [')) });
+    const bn = monde('nettoyage'), b3 = monde('3d'), opts = h => [...h.matchAll(/<option[^>]*>([^<]*)<\/option>/g)].map(m => m[1]);
+    const ELAN = ['A) Carte bancaire', 'B) Lien de paiement', 'C) Espèces', 'D) Chèque', 'E) Paiement en plusieurs fois - COFIDIS', 'F) Paiement en 2x - espèce + chèque', 'G) Paiement en 2x - CB + chèque', 'H) Virement'];
+    egal('constat 11 : la 3D garde SA liste, mot pour mot (fiche et formulaires)', [opts(b3.fn.intMoyenPaiementOptions('')), b3.fn.moyensPaiement()], [['Aucun'].concat(ELAN), ELAN]);
+    egal('… un autre métier reçoit la liste NEUTRE : ni COFIDIS, ni « 2x espèce + chèque »', opts(bn.fn.intMoyenPaiementOptions('')), ['Aucun', 'Carte bancaire', 'Espèces', 'Chèque', 'Virement', 'Lien de paiement']);
+    vrai('… une valeur déjà rangée hors liste (une base venue de la 3D) reste proposée ET sélectionnée, fiche comme formulaires : un enregistrement ne l\'efface pas', /<option selected>C\) Espèces<\/option>/.test(bn.fn.intMoyenPaiementOptions('C) Espèces')) && /<option selected>C\) Espèces<\/option>/.test(bn.fn.moyensPaiementOptions('C) Espèces')) && opts(bn.fn.moyensPaiementOptions('C) Espèces'))[0] === 'C) Espèces');
+    const regModeDe = bac('app.html', ['regModeDe'], {}).fn.regModeDe;
+    egal('… chaque moyen neutre est reconnu par le registre des règlements (CB, ESP, CHQ, VIR, LDP)', ['Carte bancaire', 'Espèces', 'Chèque', 'Virement', 'Lien de paiement'].map(regModeDe), ['CB', 'ESP', 'CHQ', 'VIR', 'LDP']);
+    vrai('… plus aucun formulaire ne lit MOYENS_PAIEMENT en direct (la liste du métier est la seule porte)', !/MOYENS_PAIEMENT\.map|MOYENS_PAIEMENT\.includes|concat\(MOYENS_PAIEMENT\)/.test(N) && (N.match(/moyensPaiementOptions\(i\.moyenPaiement\)/g) || []).length === 2); }
+  { const dev = (metier, etat) => { let appels = 0; const b = bac('app.html', ['devisMetierPret', 'estMetier3D', 'metierId', 'metierPackDe', 'metierPack'], { METIERS, BETA_ESSAI: false, db: { metier }, console, _devisMetierOk: null, PUSH_API: 'http://x', syncTeam: () => 't1',
+        fetch: () => { appels++; return etat === 'panne' ? Promise.reject(new Error('réseau')) : Promise.resolve({ json: () => Promise.resolve(etat) }); } }); return { b, nb: () => appels }; };
+    const a = dev('3d', {}); vrai('constat 7/10 : la 3D n\'attend rien (la consigne du serveur d\'avant, à l\'identique) et n\'appelle même pas le serveur', (await a.b.fn.devisMetierPret()) === true && a.nb() === 0);
+    const n0 = dev('nettoyage', { ok: true }); vrai('⛔ nettoyage, serveur d\'AVANT (pas de « metiers ») : le Devis IA et l\'assistant ne partent pas', (await n0.b.fn.devisMetierPret()) === false);
+    const n1 = dev('nettoyage', { ok: true, metiers: true }); vrai('… serveur qui lit le métier (`metiers:true`) : ils partent', (await n1.b.fn.devisMetierPret()) === true);
+    await n1.b.fn.devisMetierPret(); vrai('… la réponse se retient (un seul appel)', n1.nb() === 1);
+    const n2 = dev('nettoyage', 'panne'); vrai('… serveur injoignable : ils ne partent pas non plus (et ne retiennent pas la panne)', (await n2.b.fn.devisMetierPret()) === false && n2.b.scope._devisMetierOk === null);
+  }
+  vrai('le Devis IA et l\'assistant demandent `devisMetierPret()` AVANT leur appel au serveur (devisIAGo, adEnvoyer) et le Devis IA se coupe à l\'ouverture', /if\(!\(await devisMetierPret\(\)\)\)\{ show\(DEVIS_METIER_ATTENTE\); return; \}\s*if\(btn\)\{ btn\.disabled=true;/.test(N) && /if\(!\(await devisMetierPret\(\)\)\)\{ toast\(DEVIS_METIER_ATTENTE,6000\); return; \}\s*adFil\.push\(\{role:'user'/.test(N) && /_devisMetierOk=\(j\.metiers===true\)/.test(N));
+  { const base = { clients: [{ id: 'c1', nom: 'Cabinet', adresse: '1 rue X', email: 'a@b.test' }, { id: 'c2', nom: 'Autre', soc: 'Éclat Sud', adresse: '2 rue Y', email: 'c@d.test' }], interventions: [], contrats: [], plansPrevention: [],
+      cahiers: [{ id: 'k1', clientId: 'c1', site: 'Siège', version: 1, date: '2026-10-20', zones: [{ id: 'z', nom: 'Bureaux', taches: [{ id: 't', t: 'Aspiration', freq: 'quotidienne', jours: '', horaire: '' }] }] },
+        { id: 'k2', clientId: 'c2', site: 'Site', version: 1, date: '2026-10-20', zones: [{ id: 'z', nom: 'Bureaux', taches: [{ id: 't', t: 'Aspiration', freq: 'quotidienne', jours: '', horaire: '' }] }] }] };
+    const sans = { nom: '', couleur: '#1E7A4E', logo: '', adresse: '', cp: '', ville: '', siret: '', tel: '', email: '', societes: { 'Éclat Sud': { nom: 'Éclat Sud', raison: 'Éclat Sud SARL', siret: '999', adresse: '9 quai', couleur: '#2563EB' } } };
+    const W0 = monter({ db: base, entete: sans }), R = await W0.nettDocFabriquer('cahier', 'k1', '');
+    vrai('constat 6 : sans nom d\'entreprise (Paramètres) ni société, le document n\'est PAS fabriqué : « Renseigne le nom de ton entreprise »', !R.pdf && /Renseigne le nom de ton entreprise \(Paramètres\)/.test(R.err || ''), R.err);
+    const W1 = monter({ db: base, entete: sans }); await W1.nettDocApercu('cahier', 'k1', '');
+    vrai('… l\'aperçu : une fenêtre ouverte DANS le geste, refermée, le refus dit', W1.__windows.length === 1 && W1.__windows[0].ferme === true && W1.__toasts.some(t => /Renseigne le nom de ton entreprise/.test(t)));
+    const W2 = monter({ db: base, entete: sans }); await W2.nettDocEnvoyer('cahier', 'k1', '');
+    vrai('⛔ … l\'envoi : AUCUN courriel, aucune trace d\'envoi', W2.__mails.length === 0 && !W2.db.cahiers[0].envoyeLe && W2.__toasts.some(t => /Renseigne le nom de ton entreprise/.test(t)), W2.__toasts);
+    const W3 = monter({ db: base, entete: sans }), R3 = await W3.nettDocFabriquer('cahier', 'k2', '');
+    vrai('… une société choisie sur le client (donc son nom en tête) suffit : le document se fabrique', !!R3.pdf && !R3.err, R3.err);
+    const W4 = monter({ db: base, entete: Object.assign({}, sans, { nom: 'OP GESTION' }) }), R4 = await W4.nettDocFabriquer('cahier', 'k1', '');
+    vrai('⛔ … et jamais sous « OP GESTION » : le nom du logiciel est refusé comme le nom vide', !R4.pdf && /Renseigne le nom/.test(R4.err || ''));
+    const W5 = monter({ db: base, entete: Object.assign({}, sans, { nom: 'Éclat Propreté' }) }), R5 = await W5.nettDocFabriquer('cahier', 'k1', '');
+    vrai('… avec un nom d\'entreprise, rien ne change : le document se fabrique', !!R5.pdf && !R5.err); }
+  { const sh = path.join(__dirname, '..', 'scripts', 'verifier-publication-bete.sh'), cp = require('child_process'), os = require('os');
+    vrai('constat 12 : le script de contrôle de la publication de la bêta existe', fs.existsSync(sh));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pubbeta-')); const g = (...a) => cp.execFileSync('git', a, { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const lance = (...args) => { try { return { code: 0, out: cp.execFileSync('bash', [sh, ...args], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }) }; } catch (e) { return { code: e.status, out: String(e.stdout || '') }; } };
+    g('init', '-q'); g('config', 'user.email', 'a@b.test'); g('config', 'user.name', 'T'); for (const f of ['beta.html', 'app.html', 'demo.html', 'sw.js', 'REPRISE.md']) fs.writeFileSync(path.join(dir, f), 'v1'); g('add', '.'); g('commit', '-q', '-m', 'base');
+    fs.writeFileSync(path.join(dir, 'beta.html'), 'v2'); g('add', 'beta.html'); const ok1 = lance();
+    vrai('… beta.html seul : accepté', ok1.code === 0, ok1.out);
+    fs.writeFileSync(path.join(dir, 'demo.html'), 'v2'); fs.writeFileSync(path.join(dir, 'sw.js'), 'v2'); g('add', 'demo.html', 'sw.js'); const ko1 = lance();
+    vrai('⛔ … avec demo.html et sw.js dans l\'index : REFUSÉ, et les deux fichiers sont NOMMÉS', ko1.code === 1 && /demo\.html/.test(ko1.out) && /sw\.js/.test(ko1.out) && !/- beta\.html/.test(ko1.out), ko1.out);
+    fs.rmSync(dir, { recursive: true, force: true }); }
 }
 function fin() {
   console.log(`\n════ test-3111 : ${ok} ✓ ${ko} ✗ ════`);

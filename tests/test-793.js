@@ -56,7 +56,7 @@ const BASE = {
   bons: [{ id: 'bA', societe: 'Alpha Nuisibles', lignes: [] }, { id: 'b0', societe: '', lignes: [] }], fournisseurs: [] };
 const FN = ['function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function intSocMailOpts(',
   'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(',
-  'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
+  'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(', 'function _pdfEnLignes(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
 function monter(base) {
   const W = { console, Object, JSON, String, Math, Date, Array, Number, Uint8Array, __html: '',
     localStorage: { getItem: () => null }, atob: s => Buffer.from(s, 'base64').toString('latin1') };
@@ -106,6 +106,23 @@ console.log('── 793 · 2. les PDF de vente et d’achat, exécutés ──')
   vrai('… et sa table xref est juste', n > 3 && bons === n - 1, [bons, n - 1]);
   const bA = W.bonPdfStr(W.db.bons[0]);
   vrai('bon de commande Alpha : Alpha et SES coordonnées', bA.includes('Alpha Nuisibles') && bA.includes('2 quai Alpha') && !bA.includes('1 rue de la Mairie')); }
+
+console.log('── 793 · 2 bis. ⛔ une désignation longue et un nom de client long ne sont plus COUPÉS (relecture adverse du 28 octobre 2026) ──');
+{ const LONG = 'Nettoyage quotidien des locaux — contrat annuel, deux passages par jour, sanitaires désinfectés, vitrerie mensuelle et remise en état des sols FINDESIGNATION';
+  const NOM = 'Établissements Hospitaliers Universitaires de la Côte Atlantique et des Pays de la Loire FINDUNOM';
+  const B2 = JSON.parse(JSON.stringify(BASE)); B2.clients[0].nom = NOM;
+  B2.devis[0].lignes = [{ designation: 'Court', qte: 1, pu: 10 }, { designation: LONG, qte: 2, pu: 50 }, { designation: 'Suite', qte: 1, pu: 5 }];
+  const W = monter(B2), pdf = W.docPdfStr('devis', W.db.devis[0], null);
+  const tj = [...pdf.matchAll(/\(((?:[^()\\]|\\.)*)\) Tj/g)].map(m => m[1]);
+  const tout = tj.join(' ');
+  vrai('(population) le PDF porte du texte (' + tj.length + ' chaînes) et sa ligne « Court » comme « Suite »', tj.length > 20 && /\(Court\) Tj/.test(pdf) && /\(Suite\) Tj/.test(pdf));
+  vrai('⛔ la désignation longue va JUSQU\'À SON DERNIER MOT (FINDESIGNATION), répartie sur plusieurs lignes, sans « … »', tout.includes('FINDESIGNATION') && !/\\205|…/.test(tj.filter(t => /Nettoyage quotidien|contrat annuel|sanitaires|vitrerie|FINDESIGNATION/.test(t)).join('')) && tj.filter(t => /Nettoyage quotidien|contrat annuel|sanitaires|vitrerie|sols|FINDESIGNATION/.test(t)).length >= 2, tj.filter(t => /FINDESIGNATION|quotidien/.test(t)));
+  vrai('⛔ le nom du client va jusqu\'au bout (FINDUNOM) sur deux lignes au plus', tout.includes('FINDUNOM') && tj.filter(t => /Hospitaliers|Atlantique|FINDUNOM/.test(t)).length <= 2);
+  vrai('la ligne qui SUIT une désignation à plusieurs lignes est placée dessous (son texte est plus bas que le dernier mot)', (() => { const y = t => { const m = pdf.match(new RegExp('([\\d.]+) ([\\d.-]+) Td\\n\\([^)]*' + t + '[^)]*\\) Tj')); return m ? +m[2] : null; }; const a = y('FINDESIGNATION'), b = y('Suite'); return a != null && b != null && b < a; })());
+  const W3 = monter(BASE), court = W3.docPdfStr('devis', W3.db.devis[0], null);
+  vrai('une désignation courte tient sur UNE ligne, comme avant (3D inchangée)', court.includes('(Dératisation) Tj') || court.includes('(D\\351ratisation) Tj'));
+  const cl = W.docPdfStr('factures', W.db.factures[0], null);
+  vrai('… la facture aussi porte le nom entier', cl.includes('FINDUNOM')); }
 
 console.log('── 793 · 3. l’impression d’un devis ou d’une facture, exécutée ──');
 { const W = monter(BASE);
