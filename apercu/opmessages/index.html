@@ -2332,9 +2332,8 @@ a.menu-action { text-decoration: none; }
 .lr-haut { margin: 0 0 16px; }
 .lr-nouvelle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; padding: 0 20px; border-radius: 24px; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; }
 .lr-nouvelle .ic { font-size: 20px; }
-.lr-haut .lr-nouvelle { max-width: 420px; }
 .lr-vide { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.lr-vide .lr-nouvelle { width: auto; min-width: 220px; }
+.lr-vide small { color: var(--sub-meta); font-size: 15px; }
 .reunion-li.avec-gestes { flex-wrap: wrap; }
 .reunion-li.avec-gestes > .reunion-gestes { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 12px; }
 .reunion-gestes > .reunion-rejoindre { min-height: 44px; padding: 0 18px; }
@@ -9845,7 +9844,8 @@ a.menu-action { text-decoration: none; }
     const vus = avenir.slice(0, LR_MAX), vusP = passees.slice(0, LR_PASSEES_MAX);
     let h = groupes(vus, x => x.o.debut <= now ? -1 : minuitDe(x.o.debut), j => j === -1 ? 'En cours' : libelleJourBord(j));
     if (avenir.length > LR_MAX) h += '<li class="bord-plus"><button type="button" class="presse" data-lr="agenda">' + esc('Voir les ' + (avenir.length - LR_MAX) + ' autres dans l\'Agenda') + '</button></li>';
-    if (!h) h = '<li class="vide lr-vide"><span>Aucune réunion prévue.</span><button type="button" class="lr-nouvelle presse" data-lr="nouvelle">' + icone('i-plus') + 'Nouvelle réunion</button></li>';
+    /* (28 octobre 2026, capture de Justin : deux « Nouvelle réunion » l'un sous l'autre, décalés) Le geste vit UNE fois, en tête de l'onglet : l'état vide le dit, il ne le répète pas. */
+    if (!h) h = '<li class="vide lr-vide"><span>Aucune réunion prévue.</span><small>Touchez « Nouvelle réunion » pour en planifier une.</small></li>';
     return { avenir: h, nAvenir: avenir.length, passees: groupes(vusP, x => minuitDe(x.o.debut), j => maj1(FMT_JOUR_LONG.format(j))), nPassees: passees.length };
   }
   function construireListeReunions() {
