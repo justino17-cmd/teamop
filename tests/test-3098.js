@@ -87,8 +87,8 @@ function facteur() {
       inc('i1', 'opgestion', [ent('Delta Propreté', 'jean@delta-3098.fr', 3), ent('Vivante Services', 'v@exemple-3098.fr', 2)], 5),   // Delta + Vivante : Vivante reste
       inc('i2', 'opgestion', [ent('DELTA PROPRETE', 'paul@delta-3098.fr', 4)], 4),                                                    // Delta seule (autre graphie) : l'incident part
       inc('i3', 'opmessages', [ent('Delta Propreté', 'm@delta-3098.fr', 7)], 7),                                                      // OP MESSAGES : n'est pas touché
-      inc('i4', 'opgestion', [ent('Vivante Services', 'v@exemple-3098.fr', 6)], 6),                                                   // Vivante seule : intacte
-      inc('i5', 'opgestion', [ent('Ancienne Entreprise', 'old@ancienne-3098.fr', 9)], 9),                                             // partie depuis longtemps
+      inc('i4', 'opgestion', [ent('Vivante Services', 'viv@exemple-3098.fr', 6)], 6),                                               // Vivante seule, à l'adresse de son annuaire : intacte
+      inc('i5', 'opgestion', [ent('Ancienne Entreprise', 'viv@exemple-3098.fr', 9)], 9),                                         // partie depuis longtemps, mais a écrit sous l'adresse d'une entreprise qui VIT
       inc('i6', 'opgestion', [ent('Ancienne Entreprise', 'old@ancienne-3098.fr', 2), ent('Vivante Services', '', 1)], 3),
       inc('i7', 'opgestion', [ent('Fermée Hygiène', 'ferme@exemple-3098.fr', 5)], 5),
       inc('i8', 'opgestion', [ent('Orpheline Sans Plus', 'orph@exemple-3098.fr', 1)], 1),
@@ -177,6 +177,7 @@ function facteur() {
   v('   une trace, SANS donnée : « surveillance purgée : 1 incidents, 0 lignes brutes (entreprise supprimée) »', trace.map(a => a.geste), ['surveillance purgée : 1 incidents, 0 lignes brutes (entreprise supprimée)']);
   vrai('   ⛔ elle ne porte ni nom ni adresse ni identifiant (cible vide)', trace.length === 1 && trace.every(a => a.cible === '' && !/ancienne|@/i.test(JSON.stringify(a))));
   vrai('   les autres entreprises d\'i6 et tous les autres incidents sont intacts', ids(m.issues).join() === 'i1,i2,i3,i4,i6,i7,i8,i9' && entsDe(m.issues, 'i4').join() === 'Vivante Services');
+  vrai('   ⛔ l\'adresse de l\'annuaire d\'une entreprise qui VIT (portée aussi par l\'entreprise partie) ne fait rien partir de la sienne : i4 est intact', JSON.stringify(m.issues.find(i => i.id === 'i4')) === JSON.stringify(MONITOR.issues.find(i => i.id === 'i4')));
 
   console.log('\n── 3098 · 3. par identifiant : les lignes brutes de bugs.jsonl, réécrites atomiquement ──');
   const avantBugs = bugsEquipes().length;
