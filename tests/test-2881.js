@@ -4,7 +4,7 @@
        · UNE QUESTION posée à Margaux est répondue par Margaux — aucune tâche, aucune délégation, aucune validation, rien chez Victor ;
        · un travail demandé à deux agents : chacun répond ET prend sa tâche (le faux Claude rend l'outil `prendre`) ;
        · `passer` vers un collègue OCCUPÉ, vers Hugo, ou par un agent SANS autre tâche : refusé — la tâche ne bouge pas ; vers un libre : accepté ;
-       · un agent qui en cite un autre le réveille ; A↔B s'arrête à la profondeur 3 (trois appels, pas un de plus) ;
+       · un agent qui en cite un autre le réveille ; A↔B s'arrête (trois appels sans racine ; quatre sous la racine d'un message de Justin, où le ping-pong coupe) ;
        · une consigne libre d'un AGENT vers Hugo est refusée, celle de JUSTIN acceptée ;
        · « X écrit… » posé pendant la réflexion, retiré après — même quand Claude est en panne ;
        · lecture incrémentale, mentions rendues, routes gardées (patron seul), POST de la Tour déclarés dans `MON_GESTES` ;
@@ -158,7 +158,7 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     vrai('(population) les appels de cette partie ont bien eu lieu', ap.length === 2);
   }
 
-  console.log('\n5. L’anti-boucle : A↔B s’arrête à la profondeur 3');
+  console.log('\n5. L’anti-boucle : A↔B s’arrête (le ping-pong sous racine)');
   {
     const n0 = recus().length;
     await dit('plateforme', 'Ceci est une discussion test PINGPONG-2881', 1);
@@ -169,9 +169,10 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     await dormir(1200);
     const ap = recus().slice(n1), mm = (await msgs('clients')).filter(m => REG.includes(m.de) && /PINGPONG-2881/.test(m.texte));
     v('un message de Justin sans mention dans « plateforme » : le meneur (Max) seul, un appel', [seul, parNom(recus()[n0])], [1, 'Max']);
-    v('⛔ Camille → Léa → Camille puis STOP : trois appels, trois messages (profondeurs 1, 2, 3)', [ap.map(parNom), mm.map(m => m.prof)], [['Camille', 'Léa', 'Camille'], [1, 2, 3]]);
+    /* Justin, 28 octobre 2026 : l'échange né de son message a une RACINE — quatre messages, puis le ping-pong (ABAB sans acte) coupe ; la borne 3 ne vaut plus que sans racine (test-2880) */
+    v('⛔ Camille → Léa → Camille → Léa puis STOP (le ping-pong) : quatre appels, quatre messages (profondeurs 1, 2, 3, 4)', [ap.map(parNom), mm.map(m => m.prof)], [['Camille', 'Léa', 'Camille', 'Léa'], [1, 2, 3, 4]]);
     await dormir(600);
-    v('…et rien de plus après une pause (le dernier message cite Léa, qui ne répond pas)', recus().length - n1, 3);
+    v('…et rien de plus après une pause (le dernier message cite Camille, qui ne répond pas)', recus().length - n1, 4);
   }
 
   console.log('\n6. ecrire : seulement un fil dont l’agent est membre');

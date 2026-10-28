@@ -193,6 +193,11 @@ module.exports = function monterAgents(app, ctx) {
      qui s'y passe, à travers les `await`, le sait sans qu'on le recopie dans chaque appel (`sousReunion`). Un registre d'horaires illisible, lui, arrête quand même. */
   const dansReunion = new AsyncLocalStorage();
   const sousReunion = fn => dansReunion.run(true, fn);
+  /* LA FERMETURE PENDANT UN ÉCHANGE (28 octobre 2026, Justin écrit à 17 h 52 et l'équipe ferme à 18 h) : un réveil d'une racine née AVANT la fermeture finit dans les 45 minutes qui suivent
+     (`agent-equipe.js` décide, `conversations.racine` valide). Comme `sousReunion`, mais SEULEMENT pour finir une réponse, et SANS la bascule qui compte : `peutAgir` rend `horsHeures:true` —
+     exactement ce que rend l'astreinte —, donc toute porte qui écrit à un client (`agents-brouillons.js`, `agents-documents.js`) la REFUSE encore. L'arrêt, la pause et le budget restent bloquants. */
+  const dansRacine = new AsyncLocalStorage();
+  const sousRacine = fn => dansRacine.run(true, fn);
 
   /* ── le rangement : un fichier JSON par sujet, écrit en entier par un fichier temporaire puis un renommage
         (la règle d'`espaces.json`), et JAMAIS par-dessus un fichier qu'on n'a pas pu lire ── */
@@ -243,10 +248,16 @@ module.exports = function monterAgents(app, ctx) {
        qui agit mais le dit (`horsHeures`) : les portes qui écrivent à un client la refusent. */
     if (hor) {
       const h = hor.peutAgir(id, maintenant());
+      if (!h.ok && h.raison === 'hors_heures' && dansRacine.getStore() === true && dansReunion.getStore() !== true) return { ok: true, mode: m, horsHeures: true, racine: true };
       if (!h.ok && !(h.raison === 'hors_heures' && dansReunion.getStore() === true)) return { ok: false, raison: h.raison };
       if (h.ok && h.horsHeures) return { ok: true, mode: m, horsHeures: true, astreinte: true };
     }
     return { ok: true, mode: m };
+  }
+  /* Cet agent travaillait-il à cet instant-là ? (la racine d'un échange est née AVANT la fermeture ?) Sans horaires branchés : oui. */
+  function ouvertA(id, ts) {
+    if (!hor) return true;
+    try { return hor.etatA(ts, id).ouvert === true; } catch (e) { return false; }
   }
   /* Quand cet agent reprend-il ? { ouvert, prochaineOuverture, libelle } — pour une phrase dite à Justin. `null` sans horaires branchés. */
   function ouverture(id) {
@@ -271,6 +282,15 @@ module.exports = function monterAgents(app, ctx) {
     journal.push(e);
     if (journal.length > JOURNAL_MAX) journal = journal.slice(-JOURNAL_MAX);
     return ecrire(F_JOURNAL, journal);
+  }
+
+  /* UN ACTE depuis `ts`, pour l'un de ces agents : une tâche prise, passée, terminée, une demande déposée ou proposée, une décision de Victor. Ce qui n'est PAS un acte : écrire, demander, répondre.
+     Sert à l'anti ping-pong (`agent-equipe.js`) : deux agents qui se répondent depuis quatre messages sans qu'aucun acte ait eu lieu ne produisent plus rien d'autre que des appels payés. */
+  const ACTE = /^(outil (prendre|passer|terminer|arbitrer|assigner|rediger_annonce|planifier_reunion|annuler_reunion|proposer_creneaux)|proposer|deposer|prendre une consigne|passer une consigne|validation acceptée|annonce)$/;
+  function actesDepuis(ids, ts) {
+    const liste = Array.isArray(ids) ? ids : [ids];
+    if (journal.some(e => e.ts >= ts && liste.includes(e.agent) && ACTE.test(e.action) && (e.resultat === 'ok' || e.resultat === 'propose'))) return true;
+    return taches.some(k => Number(k.finTs) >= ts && liste.includes(k.vers));
   }
 
   function notifier(titre, corps) {
@@ -364,8 +384,9 @@ module.exports = function monterAgents(app, ctx) {
     if (!k) return false;
     const avant = { statut: k.statut, resume: k.resume };
     k.statut = resultat === 'ok' ? 'faite' : 'echec';
+    k.finTs = maintenant();
     if (typeof resume === 'string' && resume.trim()) k.resume = monStr(sansAdr(resume.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()), RESUME_MAX);
-    if (!ecrire(F_TACHES, taches)) { k.statut = avant.statut; if (avant.resume === undefined) delete k.resume; else k.resume = avant.resume; return false; }
+    if (!ecrire(F_TACHES, taches)) { k.statut = avant.statut; delete k.finTs; if (avant.resume === undefined) delete k.resume; else k.resume = avant.resume; return false; }
     return true;
   }
 
@@ -703,7 +724,7 @@ module.exports = function monterAgents(app, ctx) {
   /* Les validations EN ATTENTE, à la lecture (23 octobre 2026 : Inès les voit vieillir, Victor les compte) : { agent, type, ts } — jamais le résumé ni les paramètres, qui sont des phrases de
      l'équipe. `null` si la file est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
   const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
-  return { peutAgir, ouverture, sousReunion, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
+  return { peutAgir, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

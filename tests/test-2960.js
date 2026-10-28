@@ -6,8 +6,8 @@
    pas de réponse, pas d'explication. C'est la règle de cette page (« un refus se montre : il faut que l'écran sache le dire ») appliquée à une réponse.
    Ce que le banc exige, sur le vrai serveur :
      · un agent qui redit exactement la même chose dans son fil privé : UNE ligne du système, qui le dit (et pas une de plus à la troisième fois) ;
-     · le treizième message d'un agent dans l'heure : une ligne du système qui dit la limite ;
-     · un @tous qui dépasse les vingt messages d'agents du fil « Équipe » : UNE ligne du système, pas douze ;
+     · (28 octobre 2026, Justin : « La limite de messages par heure, c'est pas normal ») le treizième message d'un agent à Justin, un @tous qui dépasse les vingt messages du fil : ils PARTENT, et aucune
+       ligne « limite » n'est écrite — ces deux parties disaient l'inverse (la limite se dit), elles disent maintenant qu'un message de Justin n'en rencontre plus ;
      · rien de tout cela ne se dit quand la réponse PART (population : les réponses normales sont bien là). */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto'), net = require('net');
@@ -79,18 +79,16 @@ console.log('\n── 2960 · une réponse d\'agent refusée se dit ──');
   await dire('hugo', 'Et encore ? MEME-2960 c');
   v('troisième fois : la ligne n\'est pas répétée (une par heure)', (await systeme('hugo')).length, 1);
 
-  console.log('\n2. Douze messages par heure et par agent : le treizième se dit');
+  /* Justin, 28 octobre 2026 : « La limite de messages par heure, c'est pas normal ». Ces deux parties gardaient les lignes « limite de messages par heure » : elles gardent désormais qu'un message
+     de Justin n'en rencontre PLUS jamais (chaque message de Justin porte une racine et son budget — `conversations.js`, test-3113 à test-3122). Ce que le banc exige toujours : une réponse qui part est là. */
+  console.log('\n2. Treize questions de Justin à Léa dans l\'heure : les treize reçoivent leur réponse, aucune ligne de limite');
   v('Léa passe en brouillon', await brouillon('lea'), 200);
-  for (let i = 1; i <= 12; i++) await dire('lea', 'Question ' + i + ' ?');
+  for (let i = 1; i <= 13; i++) await dire('lea', 'Question ' + i + ' ?');
   m = await fil('lea');
-  v('(population) douze réponses de Léa, aucune ligne du système', [m.filter(x => x.de === 'lea').length, m.filter(x => x.de === 'systeme').length], [12, 0]);
-  await dire('lea', 'Question 13 ?');
-  m = await fil('lea');
-  v('la treizième réponse n\'est pas écrite', m.filter(x => x.de === 'lea').length, 12);
-  const s2 = await systeme('lea');
-  vrai('⛔ …et le fil dit la limite (« par heure »)', s2.length === 1 && /Léa/.test(s2[0]) && /par heure/.test(s2[0]), s2);
+  v('⛔ treize réponses de Léa, pas douze (le plafond « douze par heure » ne s\'applique plus à ce qui répond à Justin)', m.filter(x => x.de === 'lea').length, 13);
+  v('…et AUCUNE ligne du système (ni « limite », ni « par heure »)', m.filter(x => x.de === 'systeme').length, 0);
 
-  console.log('\n3. Un @tous qui dépasse les vingt messages d\'agents du fil Équipe : UNE ligne, pas douze');
+  console.log('\n3. Deux @tous de suite dans « Équipe » : chacun répond UNE fois, Victor synthétise, aucune ligne de limite');
   const IDS = (await G('/api/monitor/agents')).agents.map(a => a.id);
   for (const id of IDS) if (id !== 'hugo' && id !== 'lea') await brouillon(id);
   v('(population) seize agents en brouillon', (await G('/api/monitor/agents')).agents.filter(a => a.mode === 'brouillon').length, 16);
@@ -99,14 +97,14 @@ console.log('\n── 2960 · une réponse d\'agent refusée se dit ──');
   await att(async () => appels() >= a0 + 16, 12000); await dormir(800);
   m = await fil('equipe');
   const agents1 = m.filter(x => x.de !== 'justin' && x.de !== 'systeme').length;
-  v('(population) le premier @tous : quinze réponses d\'agents (Léa a atteint SA limite : sous le plafond de vingt du fil)', agents1, 15);
+  v('le premier @tous : quinze réponses d\'agents + la synthèse de Victor (seize)', agents1, 16);
   await P('/api/monitor/conversations/envoyer', { fil: 'equipe', texte: '@tous second point' });
   await att(async () => appels() >= a0 + 32, 12000); await dormir(800);
   m = await fil('equipe');
   const agents2 = m.filter(x => x.de !== 'justin' && x.de !== 'systeme').length;
-  v('le second @tous : le plafond du fil tient (vingt messages d\'agents, pas plus)', agents2, 20);
+  v('⛔ le second @tous : seize réponses de plus (trente-deux en tout) — le plafond de vingt du fil ne s\'applique plus à Justin', agents2, 32);
   const s3 = await systeme('equipe');
-  vrai('⛔ …et UNE ligne du système dit que les autres attendent l\'heure suivante', s3.filter(t => /par heure/.test(t) && /fil/.test(t)).length === 1, s3);
+  vrai('⛔ …et AUCUNE ligne du système ne parle de limite', !s3.some(t => /limite|par heure/.test(t)), s3);
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);

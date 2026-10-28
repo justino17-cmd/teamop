@@ -26,12 +26,17 @@
 const AC = require('./agent-conversation');
 const { fermer, raccourcir, sansTel, ADRESSE, CAUSES, FORME_DOSSIER } = AC;
 const { SANS_CONSIGNE_LIBRE } = require('./agents');
-const { GROUPES } = require('./conversations');
+const { GROUPES, RACINE } = require('./conversations');
 
 const HISTORIQUE_N = 15;
 const PROF_MAX = 3;
+/* SOUS UNE RACINE (un message de Justin, `conversations.racine`) la chaîne peut aller plus loin : le budget de la racine (messages, dollars) la borne, pas l'heure. Sans racine, `PROF_MAX` reste 3. */
+const PROF_MAX_RACINE = 6;
 const REVEILS_AGENT_MAX = 4;
-const ACTIONS_MAX = 4;
+/* (28 octobre 2026) 4 -> 6 : un agent autonome enchaîne prendre, demander, assigner, terminer sans qu'on lui coupe la fin de sa liste. Aucune n'est une sécurité : chaque outil se VALIDE en lui-même. */
+const ACTIONS_MAX = 6;
+/* « @tous » (28 octobre 2026) : chacun répond UNE fois, court, sans outil ; Victor fait la synthèse en dernier et lit TOUTES les réponses (l'historique de CE réveil-là passe de 15 à 30). */
+const TOUS_CARS = 300, TOUS_JETONS = 400, HISTORIQUE_SYNTHESE = 30;
 const MESSAGE_MAX = 1000;
 const DOSSIERS_MAX = 3;
 
@@ -91,7 +96,11 @@ function destinataires(m, o) {
     if (o.prive) return membres.includes(o.filId) ? [o.filId] : [];
     return o.meneur && membres.includes(o.meneur) ? [o.meneur] : [];
   }
-  if (!(Number(m.prof) < PROF_MAX)) return [];
+  /* la réponse d'un agent à un « @tous » ne réveille personne : chacun répond UNE fois, c'est Victor qui synthétise */
+  if (m.tous === true) return [];
+  /* `o.profMax` : la profondeur permise PAR LA RACINE (6) ; absent ou hors forme, c'est PROF_MAX (3) — le régime de ce qui n'est pas enraciné */
+  const profMax = Number.isInteger(o.profMax) && o.profMax >= 1 ? Math.min(o.profMax, PROF_MAX_RACINE) : PROF_MAX;
+  if (!(Number(m.prof) < profMax)) return [];
   return cites;
 }
 
@@ -184,13 +193,22 @@ module.exports = function agentEquipe(ctx) {
   const crochets = t => String(t || '').replace(/\[([A-Za-zÀ-ÿ]{2,20})\]/g, (m, n) => { const k = parNom.get(n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()); return k ? '@' + k : m; });
   const nettoyer = t => masquer(t).replace(/\s+/g, ' ').trim().slice(0, MESSAGE_MAX);
   const court = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+  /* couper à ≤ n caractères, à une fin de phrase si l'on en trouve une passé le tiers (sinon au dernier mot) : la réponse brève d'un @tous */
+  const coupe = (t, n) => {
+    t = String(t || '').replace(/\s+/g, ' ').trim();
+    if (t.length <= n) return t;
+    const tete = t.slice(0, n), fin = Math.max(tete.lastIndexOf('. '), tete.lastIndexOf('! '), tete.lastIndexOf('? '));
+    if (fin >= Math.floor(n / 3)) return tete.slice(0, fin + 1);
+    const mot = tete.lastIndexOf(' ');
+    return (mot >= Math.floor(n / 3) ? tete.slice(0, mot) : tete.slice(0, n - 1)) + '…';
+  };
   /* ce qu'on met dans le prompt vient de messages ou de tâches : pas d'accolade, qui ferait passer une phrase pour une ligne de faits */
   const affichable = (t, n) => court(masquer(t).replace(/[{}]/g, ' '), n);
   const filsDe = id => [id, ...GROUPES.filter(g => conversations.estMembre(id, g))];
   const colleguesPassables = id => ids.filter(x => x !== id && !SANS_CONSIGNE_LIBRE.includes(x));
 
   /* ── le prompt ── */
-  function systemDe(id) {
+  function systemDe(id, mode) {
     const a = registre.get(id), r = ROLES[id];
     /* Les collègues sont donnés par leur IDENTIFIANT (« lea », « camille »), qui est aussi ce qu'on écrit après le « @ » : le prompt ne porte ainsi
        aucun prénom d'agent, qui pourrait être celui d'un client (le banc de Hugo cherche « Léa » dans tout ce qui part chez Claude). */
@@ -215,7 +233,14 @@ module.exports = function agentEquipe(ctx) {
       '- Outil prendre : tu acceptes un travail, il devient ta tâche. Outil terminer : c’est fait. Outil passer : seulement si tu es vraiment chargé (une autre tâche en cours) et à un collègue libre, jamais Hugo ni Margaux, et tu en dis la raison ; un collègue libre peut aussi proposer de prendre une tâche d’un collègue chargé. Dès que tu aurais trois tâches en cours ou plus (le nouveau travail compris) et qu’un collègue est libre (voir « Charge de l’équipe »), tu ne gardes pas tout : dans la même réponse, tu passes à ce collègue celle de tes tâches déjà en cours qui lui va le mieux (outil passer, son identifiant est entre crochets dans « Tes tâches en cours »), avec la raison, et tu le dis. Outil demander_justin : une décision qui lui revient.\n' +
       '- Hugo et Margaux (l’argent, les accès) ne reçoivent de travail en texte libre que de Justin. Une QUESTION fermée n’est pas un travail : « le dossier DOS-… a-t-il payé ? », tu la leur poses toi-même en les citant (@hugo, @margaux), ils te répondent. Quand Justin te demande de poser une question à un collègue, tu la poses toi-même DANS CE FIL, dans ta réponse, en le citant (pas avec l’outil ecrire dans un autre fil) : il te répond ici, et Justin lit sa réponse.\n' +
       (id === 'victor' ? '- Tu vois la charge de chacun : si un collègue est débordé et qu’un autre est libre, tu peux redistribuer avec l’outil passer, et tu le dis dans le fil. Quand deux collègues ne sont pas d’accord (ou qu’on te demande de trancher), tu arbitres avec l’outil arbitrer : une décision écrite ; ce qui touche à l’argent, un contrat, un accès ou des données est à Justin, tu lui poses la question avec pour_justin.\n' : '') +
-      memoire(id);
+      memoire(id) + modeDe(id, mode);
+  }
+  /* Le complément d'un réveil particulier. Le texte est écrit ICI, jamais composé d'après un message. */
+  function modeDe(id, mode) {
+    if (mode === 'tous') return '\nCE RÉVEIL-CI : Justin a écrit à TOUTE l’équipe (un « point », une question posée à tous). Réponds UNE fois, en ' + TOUS_CARS + ' caractères au plus, avec ce qui est vrai pour toi (tes tâches, tes faits) ; ne cite personne, ne prends aucune tâche, n’utilise aucun outil. Si tu n’as rien de neuf, écris exactement « RAS ».';
+    if (mode === 'synthese') return '\nCE RÉVEIL-CI : tu es le chef d’équipe et Justin a écrit à toute l’équipe ; tes collègues viennent de répondre (tu les lis tous ci-dessus). Écris UNE synthèse de cinq lignes au plus : ce qui avance, ce qui bloque, ce qui revient à Justin. Tu ne re-cites pas tout le monde ; si un point demande une action, tu la confies à quelqu’un avec l’outil assigner (ou demander).';
+    if (mode === 'arbitre') return '\nCE RÉVEIL-CI : deux collègues se répondent depuis plusieurs messages sans que rien n’ait avancé (aucune tâche prise, passée ou terminée). Tranche : outil arbitrer si c’est un désaccord, outil assigner pour confier le travail à quelqu’un, ou une question à Justin (demander_justin) si cela dépasse l’équipe. Dis-le en une phrase.';
+    return '';
   }
 
   /* Des NOMS et des NOMBRES : qui a du travail en cours. Écrit avant le bloc Faits, qui reste la dernière chose du prompt. */
@@ -277,10 +302,11 @@ module.exports = function agentEquipe(ctx) {
 
   /* Le fil en messages pour Claude : `user` (Justin sans crochet ; un collègue, nommé) et `assistant` (l'agent), consécutifs fusionnés, jamais un
      `assistant` en tête, TOUJOURS un `user` à la fin. Les lignes du système n'y sont pas : elles ne sont à personne. */
-  function messagesDe(fil, id, d) {
-    const prefixe = de => '[' + nomDe(de) + ' a écrit dans le fil ' + nomFil(fil) + '] ';
+  function messagesDe(fil, id, d, n) {
+    const prefixe = de => (de === 'systeme' ? '[Le système a écrit dans le fil ' : '[' + nomDe(de) + ' a écrit dans le fil ') + nomFil(fil) + '] ';
     const brut = [];
-    for (const m of conversations.lire(fil, 50).filter(x => x.de !== 'systeme').slice(-HISTORIQUE_N)) {
+    /* les annonces de fin de travail (`fait`) ne sont pas de la conversation : elles ne chassent pas le vrai fil de la fenêtre que Claude lit */
+    for (const m of conversations.lire(fil, 50).filter(x => x.de !== 'systeme' && x.fait !== true).slice(-(n || HISTORIQUE_N))) {
       const t = nettoyer(m.texte); if (!t) continue;
       if (m.de === id) brut.push({ role: 'assistant', texte: t });
       else if (m.de === 'justin') brut.push({ role: 'user', texte: t });
@@ -396,18 +422,34 @@ module.exports = function agentEquipe(ctx) {
     return refus('outil_inconnu');
   }
 
-  /* Une réponse que `parler` REFUSE ne se perd pas en silence (23 octobre 2026, campagne de vérification de la Tour) : le même texte déjà dit dans ce fil depuis 24 h,
-     douze messages par heure et par agent, vingt messages d'agents par heure dans un fil. Justin posait sa question, « X écrit… » s'éteignait, et rien ne venait : ni réponse
-     ni raison. Une ligne du système, UNE fois par heure pour chaque cause (et par fil pour le plafond du fil : un @tous ne laisse pas douze lignes). Les autres refus
-     (texte vide, fil inconnu, agent arrêté entre-temps) restent muets : ce sont des états, pas des limites que Justin peut comprendre. */
+  /* Une réponse que `parler` REFUSE ne se perd pas en silence (23 octobre 2026, campagne de vérification de la Tour) : le même texte déjà dit dans ce fil depuis 24 h, par exemple. Justin
+     posait sa question, « X écrit… » s'éteignait, et rien ne venait : ni réponse ni raison. Une ligne du système, UNE fois par heure pour chaque cause.
+     ⛔ MAIS PLUS UNE LIGNE « LIMITE DE MESSAGES PAR HEURE » (28 octobre 2026, Justin : « La limite de messages par heure, c'est pas normal ») : « X a atteint sa limite de messages par heure », « ce fil a
+     atteint la limite… » n'existent plus dans le fil. Un message de Justin a désormais une RACINE et un budget (`conversations.js`) ; ce qui n'en a pas (un agent qui s'emballe SEUL) s'arrête toujours sur les
+     plafonds d'avant, mais en silence pour Justin : une ligne de journal et un compteur (`refus()`, lu par /health) — c'est une alarme d'exploitation, pas un message à lire. Ce qui reste visible, une ligne par
+     cause : le budget en dollars (`echec`), une racine close (`refusAvant`), un ping-pong (`surMessage`), un agent fermé, en pause ou à l'arrêt (`signalerArret`). */
   const REFUS_DIT = {
     doublon: nom => nom + ' vient de dire exactement la même chose dans ce fil : relis plus haut, ou reformule ta question.',
-    trop_de_messages: nom => nom + ' a atteint sa limite de messages par heure : sa prochaine réponse viendra dans l’heure.',
-    trop_de_messages_fil: () => 'Ce fil a atteint la limite de messages d’agents par heure : les réponses suivantes reprennent dans l’heure.',
   };
+  const REFUS_SILENCIEUX = { trop_de_messages: 'horaire', trop_de_messages_fil: 'horaire' };
+  const refusCompte = { horaire: [], chaine: [] };
+  function compter(genre) { const l = refusCompte[genre]; l.push(Date.now()); while (l.length > 500) l.shift(); }
+  /* Des NOMBRES de la dernière heure, pour /health : ni agent, ni fil, ni texte. */
+  function refus() { const lim = Date.now() - 3600000; return { horaire: refusCompte.horaire.filter(t => t > lim).length, chaine: refusCompte.chaine.filter(t => t > lim).length }; }
   function refusDit(id, fil, raison) {
+    if (Object.prototype.hasOwnProperty.call(REFUS_SILENCIEUX, raison)) { compter(REFUS_SILENCIEUX[raison]); journal(id, 'refus horaire', 'refuse', raison); return; }
     const f = REFUS_DIT[raison]; if (!f) return;
-    dire(fil, f(nomDe(id)), { cle: raison === 'trop_de_messages_fil' ? 'limite-fil:' + fil : 'refus:' + raison + ':' + id + ':' + fil, parHeure: true });
+    dire(fil, f(nomDe(id)), { cle: 'refus:' + raison + ':' + id + ':' + fil, parHeure: true });
+  }
+  /* Le contrôle fait AVANT l'appel payant (`conversations.peutParler`) : ce que Justin doit savoir, une fois. Une racine close : UNE ligne par racine ; l'agent qui a assez parlé dans la racine, ou un plafond
+     horaire (hors racine) : le journal et le compteur seulement. */
+  function refusAvant(id, fil, pp, prof) {
+    if (pp.raison === 'racine_close' && pp.racine) {
+      compter('chaine'); journal(id, 'racine close', 'refuse', pp.raison);
+      dire(fil, 'L’échange lancé par ton message est clos (' + pp.racine.messages + ' messages) : réécris pour le reprendre.', { cle: 'chaine:' + pp.racine.id, unique: true });
+    } else if (pp.raison === 'racine_agent') { compter('chaine'); journal(id, 'racine : assez parlé', 'refuse', pp.raison); }
+    else if (Object.prototype.hasOwnProperty.call(REFUS_SILENCIEUX, pp.raison)) refusDit(id, fil, pp.raison);
+    return { saute: pp.raison };
   }
 
   /* Pourquoi Claude n'a pas répondu, quand Justin peut le lever ou doit le savoir. Dans le fil privé de l'agent, c'est lui qui le dit ; dans un
@@ -432,21 +474,44 @@ module.exports = function agentEquipe(ctx) {
   }
 
   /* ── un réveil : lire, réfléchir, répondre dans CE fil, agir par les outils ── */
-  async function reveiller(id, d) {
+  /* `mode` : '' (un réveil ordinaire), 'tous' (la réponse brève à un @tous), 'synthese' (Victor, une fois les réponses reçues), 'arbitre' (Victor, deux collègues qui se répondent à vide).
+     La RACINE (`d.racine`) est REVALIDÉE ici contre le registre : ce que le message porte n'est jamais cru. Un réveil d'une racine née avant la fermeture de l'agent finit dans les 45 minutes qui
+     suivent (`agents.sousRacine` : l'agent « agit hors des heures » MAIS le dit, donc aucune porte qui écrit à un client ne s'ouvre). */
+  async function reveiller(id, d, mode) {
+    const rac = d && d.racine ? conversations.racine(d.racine) : null;
+    const tolere = !!(rac && rac.age < RACINE.HORS_HEURES_MS && typeof agents.sousRacine === 'function' && typeof agents.ouvertA === 'function' && agents.ouvertA(id, rac.ts));
+    return tolere ? agents.sousRacine(() => reveillerDans(id, d, mode || '', rac)) : reveillerDans(id, d, mode || '', rac);
+  }
+  async function reveillerDans(id, d, mode, rac) {
     const fil = d.fil;
     if (!IDS.has(id)) return { saute: 'pas_de_cerveau' };
     const p = agents.peutAgir(id);
     if (!p.ok) { signalerArret(id, fil, p.raison); return { saute: p.raison };  /* à l'arrêt : ni faits, ni Claude, ni mot */ }
-    if (dejaLu(id, d)) return { saute: 'deja_lu' };
-    const messages = messagesDe(fil, id, d);
+    if (!mode && dejaLu(id, d)) return { saute: 'deja_lu' };
+    const messages = messagesDe(fil, id, d, mode === 'synthese' ? HISTORIQUE_SYNTHESE : HISTORIQUE_N);
     if (!messages.length) return { saute: 'vide' };
     const lus = conversations.lire(fil, 50), dernierLu = lus.length ? lus[lus.length - 1].id : null;
     const prof = (Number(d.prof) || 0) + 1;
+    const racineId = rac ? rac.id : '';
+    /* ⛔ LE CONTRÔLE AVANT LE PAIEMENT : tout ce que `parler` refuserait à l'écriture est connu MAINTENANT, avant l'appel à Claude. Avant le 28 octobre 2026, la réponse était payée puis jetée
+       (« trop_de_messages ») — Justin voyait « limite atteinte » après avoir payé l'appel qui ne servirait à rien. */
+    const pp = conversations.peutParler(id, fil, { racine: racineId, prof });
+    if (!pp.ok) return refusAvant(id, fil, pp, prof);
+    /* ce que ce réveil a coûté : chaque appel à Claude entre dans le budget en dollars de la racine, et le message écrit le porte (un redémarrage retrouve la somme) */
+    let cout = 0;
+    const penser = async (agent, system, msgs, opts) => {
+      const x = await cerveau.penser(agent, system, msgs, Object.assign({}, opts, { racine: !!rac }));
+      if (x && typeof x.cout === 'number' && Number.isFinite(x.cout)) { cout += x.cout; if (rac) conversations.racineDepense(rac.id, x.cout); }
+      return x;
+    };
+    /* une relance (un second appel) ne part que si la racine tient encore : on ne paie pas pour un message qui sera refusé */
+    const encoreOk = () => conversations.peutParler(id, fil, { racine: racineId, prof }).ok;
+    const parle = (texte, niveau) => conversations.parler(id, fil, texte, { niveau: niveau || 'info', prof, racine: racineId, cout, sansReveil: mode === 'tous' || mode === 'synthese' });
     conversations.ecrit(fil, id, true);
     try {
-      const system = systemDe(id) + blocCharge() + blocTaches(id) + await blocFaits(id, fil);
-      const outils = outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id), taches: tachesOffertes(id), propres: outilsPropres(id), arbitre: id === 'victor' && typeof ctx.arbitrer === 'function' });
-      const r = await cerveau.penser(id, system, messages, { outils, reflechir: true });
+      const system = systemDe(id, mode) + blocCharge() + blocTaches(id) + await blocFaits(id, fil);
+      const outils = mode === 'tous' ? [] : outilsDe(id, { fils: filsDe(id), collegues: colleguesPassables(id), taches: tachesOffertes(id), propres: outilsPropres(id), arbitre: id === 'victor' && typeof ctx.arbitrer === 'function' });
+      const r = await penser(id, system, messages, mode === 'tous' ? { outils, reflechir: false, maxTokens: TOUS_JETONS } : { outils, reflechir: true });
       if (!r.ok) return echec(id, fil, r.raison, prof);
       if (dernierLu) { vus.set(fil + ':' + id, dernierLu); if (vus.size > 2000) vus.clear(); }
       const sortie = { repondu: false, actions: [] };
@@ -455,7 +520,8 @@ module.exports = function agentEquipe(ctx) {
       /* « RAS » à une question posée à TOUS (@tous, @équipe) : rien n'est écrit non plus — les collègues qui ont à dire répondent, la question a sa trace. */
       const aTous = d.de === 'justin' && /(^|[\s,(])@(?:tous|[ée]quipe)\b/i.test(String(d.texte || ''));
       let texteFinal = r.texte;
-      if (texteFinal && !RAS.test(texteFinal) && conversations.membres(fil).length > 1) {
+      if (mode === 'tous' && texteFinal && !RAS.test(texteFinal)) texteFinal = coupe(texteFinal, TOUS_CARS);
+      if (!mode && texteFinal && !RAS.test(texteFinal) && conversations.membres(fil).length > 1) {
         const lus2 = conversations.lire(fil, 50), i0 = d.id ? lus2.findIndex(x => x.id === d.id) : -1;
         const autres = i0 < 0 ? [] : lus2.slice(i0 + 1).filter(x => x.de !== id && x.de !== 'justin' && x.de !== 'systeme').map(x => String(x.texte || ''));
         const tic = ticDeGroupe(texteFinal, autres);
@@ -464,7 +530,7 @@ module.exports = function agentEquipe(ctx) {
           const relance = 'Ta réponse ne passe pas : ' + tic + '. Réécris-la, sans outil, en apportant ce qui est propre à ton rôle, avec tes mots et une autre ouverture. Si tu n’as rien de propre à ajouter, réponds exactement « RAS ».\n\nTa réponse refusée : « ' + affichable(texteFinal, 600) + ' »';
           if (fin && fin.role === 'user') fin.content += '\n\n' + relance; else suite.push({ role: 'user', content: relance });
           let r3 = null;
-          try { r3 = await cerveau.penser(id, system, suite, { reflechir: true }); } catch (err) { r3 = null; }
+          try { r3 = encoreOk() ? await penser(id, system, suite, { reflechir: true }) : null; } catch (err) { r3 = null; }
           if (r3 && r3.ok && r3.texte && (RAS.test(r3.texte) || !ticDeGroupe(r3.texte, autres))) texteFinal = r3.texte;
           else if (aTous) texteFinal = 'RAS';   /* à une question posée à tous, un tic qui résiste à la redemande se tait : les autres ont répondu */
         }
@@ -472,21 +538,21 @@ module.exports = function agentEquipe(ctx) {
       /* ⛔ « RAS » À JUSTIN QUI TE CITE (examen du 27 octobre 2026, 23 h 36, scénario 5 : « @Camille préfère une seule relance au bout de 7 jours. @Victor, tranche. »
          — Camille répondait « RAS », publié tel quel ; sa position n'était jamais défendue, et Victor tranchait sans elle). Justin qui cite un agent attend sa
          réponse : UNE redemande, sans outil ; si l'agent persiste, son « RAS » s'écrit comme avant (une question de Justin ne reste jamais sans trace). */
-      if (texteFinal && RAS.test(texteFinal) && d.de === 'justin' && !aTous) {
+      if (!mode && texteFinal && RAS.test(texteFinal) && d.de === 'justin' && !aTous) {
         const suite = messages.map(m => Object.assign({}, m)), fin = suite[suite.length - 1];
         const relance = 'Justin t’a cité directement : il attend TA réponse, pas « RAS ». Si son message t’attribue un avis ou une position, défends-la ou nuance-la en une à trois phrases, avec tes raisons, en t’adressant à ceux qu’il a cités (@ suivi de leur identifiant). Sinon, dis en une phrase ce qui te concerne.';
         if (fin && fin.role === 'user') fin.content += '\n\n' + relance; else suite.push({ role: 'user', content: relance });
         let r4 = null;
-        try { r4 = await cerveau.penser(id, system, suite, { reflechir: true }); } catch (err) { r4 = null; }
+        try { r4 = encoreOk() ? await penser(id, system, suite, { reflechir: true }) : null; } catch (err) { r4 = null; }
         if (r4 && r4.ok && r4.texte && !RAS.test(r4.texte)) texteFinal = r4.texte;
       }
-      if (texteFinal && RAS.test(texteFinal) && (d.de !== 'justin' || aTous)) sortie.ras = true;
+      if (texteFinal && RAS.test(texteFinal) && (d.de !== 'justin' || aTous || mode)) sortie.ras = true;
       else if (texteFinal) {
-        const dit = conversations.parler(id, fil, raccourcir(masquer(crochets(texteFinal))), { niveau: 'info', prof });
-        if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
+        const dit = parle(mode === 'tous' ? coupe(masquer(crochets(texteFinal)), TOUS_CARS) : raccourcir(masquer(crochets(texteFinal))));
+        if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; if (dit.raison === 'racine_close') refusAvant(id, fil, conversations.peutParler(id, fil, { racine: racineId }), prof); else refusDit(id, fil, dit.raison); }
       }
-      for (const a of (Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
-        let x; try { x = await executer(id, a, { fil, d, prof, dejaDit: sortie.repondu }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
+      for (const a of (mode === 'tous' ? [] : Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
+        let x; try { x = await executer(id, a, { fil, d, prof, dejaDit: sortie.repondu, racine: racineId }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
         sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison, ici: !!(x.ok && ((a.nom === 'ecrire' && a.entree && a.entree.fil === fil) || (a.nom === 'demander_justin' && fil === id))) });
       }
       /* ⛔ DES OUTILS ET PAS UN MOT À JUSTIN (examen du 24 octobre 2026, scénario 4) : priée de demander à Hugo et de rapporter sa réponse, Camille n'a rien dit
@@ -497,16 +563,16 @@ module.exports = function agentEquipe(ctx) {
          l'état d'APRÈS (charge, tâches) : sinon elle décrirait un travail passé comme s'il était encore à faire. */
       if (!r.texte && d.de === 'justin' && sortie.actions.length && !sortie.saute && !sortie.actions.some(a => a.ici)) {
         const faits = sortie.actions.map(a => a.nom + (a.ok ? ' : fait' : ' : refusé (' + (MOTIFS_PASSER[a.raison] || a.raison || 'refus') + ')')).join(' ; ');
-        let systemApres = system; try { systemApres = systemDe(id) + blocCharge() + blocTaches(id) + await blocFaits(id, fil); } catch (err) { systemApres = system; }
+        let systemApres = system; try { systemApres = systemDe(id, mode) + blocCharge() + blocTaches(id) + await blocFaits(id, fil); } catch (err) { systemApres = system; }
         const suite = messages.map(m => Object.assign({}, m));
         const fin = suite[suite.length - 1];
         const relance = 'Tes outils sont faits (' + faits + ') : ne les rappelle pas. Écris maintenant, sans outil, ton message pour ce fil, à Justin qui te l’a demandé ici.';
         if (fin && fin.role === 'user') fin.content += '\n\n' + relance; else suite.push({ role: 'user', content: relance });
         let r2 = null;
-        try { r2 = await cerveau.penser(id, systemApres, suite, { reflechir: true }); } catch (err) { r2 = null; }
+        try { r2 = encoreOk() ? await penser(id, systemApres, suite, { reflechir: true }) : null; } catch (err) { r2 = null; }
         if (r2 && r2.ok && r2.texte && !RAS.test(r2.texte)) {
-          const dit = conversations.parler(id, fil, raccourcir(masquer(crochets(r2.texte))), { niveau: 'info', prof });
-          if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
+          const dit = parle(raccourcir(masquer(crochets(r2.texte))));
+          if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; if (dit.raison === 'racine_close') refusAvant(id, fil, conversations.peutParler(id, fil, { racine: racineId }), prof); else refusDit(id, fil, dit.raison); }
         }
       }
       return sortie;
@@ -523,23 +589,67 @@ module.exports = function agentEquipe(ctx) {
     return suite;
   }
   const deja = new Set();   // un message ne réveille un agent qu'une fois
+  const aTousDe = texte => /(^|[\s,(])@(?:tous|[ée]quipe)\b/i.test(String(texte || ''));
+  /* LE PING-PONG (28 octobre 2026) : sous une racine la chaîne peut aller jusqu'à six, donc deux agents peuvent s'écrire A, B, A, B sans rien produire. Si les QUATRE derniers messages d'agents de la racine sont
+     ABAB, que chacun cite l'autre et qu'aucun ACTE n'a eu lieu depuis le début de l'alternance (une tâche prise, passée, terminée, une demande déposée, une décision — `agents.actesDepuis`), le réveil suivant n'a pas
+     lieu : ce n'est pas un plafond horaire, c'est un arrêt anticipé qui économise des appels. `{a, b}` ou `null`. */
+  function pingPong(m, rac) {
+    if (!rac || !m || m.de === 'justin' || m.de === 'systeme' || typeof agents.actesDepuis !== 'function') return null;
+    const q = conversations.lire(m.fil, 50).filter(x => x.racine === rac.id && IDS.has(x.de) && x.fait !== true).slice(-4);
+    if (q.length < 4 || q[3].id !== m.id) return null;
+    const a = q[0].de, b = q[1].de;
+    if (a === b || q[2].de !== a || q[3].de !== b) return null;
+    const cite = (x, y) => Array.isArray(x.mentions) && x.mentions.includes(y);
+    if (!(cite(q[0], b) && cite(q[1], a) && cite(q[2], b) && cite(q[3], a))) return null;
+    if (agents.actesDepuis([a, b], q[0].ts)) return null;
+    return { a, b };
+  }
   function surMessage(m) {
     if (!m || typeof m !== 'object' || typeof m.fil !== 'string' || !conversations.filValide(m.fil)) return Promise.resolve({ saute: 'message' });
     const membres = conversations.membres(m.fil).map(x => x.id);
     const prive = membres.length === 1 && membres[0] === m.fil;
-    let cibles = destinataires(m, { membres, meneur: conversations.meneur(m.fil), prive, filId: m.fil }).filter(id => IDS.has(id));
+    const rac = m.racine ? conversations.racine(m.racine) : null;
+    let cibles = destinataires(m, { membres, meneur: conversations.meneur(m.fil), prive, filId: m.fil, profMax: rac ? PROF_MAX_RACINE : PROF_MAX }).filter(id => IDS.has(id));
     if (m.de !== 'justin') cibles = cibles.slice(0, REVEILS_AGENT_MAX);
+    /* le ping-pong : le réveil qui prolongerait l'alternance n'a pas lieu ; une ligne par paire et par heure ; Victor, s'il n'est pas l'un des deux, arbitre UNE fois */
+    let arbitre = null;
+    const pp = pingPong(m, rac);
+    if (pp && cibles.includes(pp.a)) {
+      cibles = cibles.filter(x => x !== pp.a);
+      compter('chaine'); journal(m.de, 'ping-pong coupé', 'refuse', pp.a + '/' + pp.b);
+      const dite = dire(m.fil, nomDe(pp.a) + ' et ' + nomDe(pp.b) + ' se répondent sans rien faire avancer : leur échange s’arrête là.', { cle: 'pingpong:' + [pp.a, pp.b].sort().join(':'), parHeure: true });
+      if (dite && dite.ok && pp.a !== 'victor' && pp.b !== 'victor' && IDS.has('victor') && membres.includes('victor')) {
+        arbitre = { id: null, fil: m.fil, de: 'systeme', prof: Number(m.prof) || 0, racine: m.racine, texte: nomDe(pp.a) + ' et ' + nomDe(pp.b) + ' se répondent depuis quatre messages sans qu’aucune tâche n’ait été prise, passée ou terminée. Dernier message de ' + nomDe(m.de) + ' : « ' + affichable(m.texte, 200) + ' »' };
+      }
+    }
     cibles = cibles.filter(id => { const k = m.id + ':' + id; if (deja.has(k)) return false; deja.add(k); if (deja.size > 2000) deja.clear(); return true; });
-    return Promise.all(cibles.map(id => enfiler(m.fil, () => reveiller(id, m).catch(e => { console.error('agent ' + id + ' :', String(e && e.message || e).slice(0, 120)); return { saute: 'erreur' }; }))));
+    const lance = (id, mode, msg) => enfiler(m.fil, () => reveiller(id, msg || m, mode).catch(e => { console.error('agent ' + id + ' :', String(e && e.message || e).slice(0, 120)); return { saute: 'erreur' }; }));
+    /* « @tous » de Justin dans un groupe, sous une racine : UNE vague ordonnée — chacun répond une fois, brièvement, sans cascade — puis Victor, qui lit toutes les réponses et synthétise. */
+    if (m.de === 'justin' && rac && !prive && aTousDe(m.texte) && cibles.length > 1) {
+      const ordre = cibles.filter(x => x !== 'victor');
+      const chef = IDS.has('victor') && membres.includes('victor') ? 'victor' : '';
+      const travail = enfiler(m.fil, async () => {
+        const sorties = [];
+        for (const id of ordre) sorties.push(await reveiller(id, m, 'tous').catch(e => { console.error('agent ' + id + ' :', String(e && e.message || e).slice(0, 120)); return { saute: 'erreur' }; }));
+        if (chef) sorties.push(await reveiller(chef, m, 'synthese').catch(e => { console.error('agent ' + chef + ' :', String(e && e.message || e).slice(0, 120)); return { saute: 'erreur' }; }));
+        return sorties;
+      });
+      return travail;
+    }
+    const travaux = cibles.map(id => lance(id, ''));
+    if (arbitre) travaux.push(lance('victor', 'arbitre', arbitre));
+    return Promise.all(travaux);
   }
 
-  return { ids, surMessage, systemDe };
+  return { ids, surMessage, systemDe, refus, enCours: () => files.size };
 };
 module.exports.destinataires = destinataires;
 module.exports.outilsDe = outilsDe;
 module.exports.ROLES = ROLES;
 module.exports.PERSO = PERSO;
 module.exports.PROF_MAX = PROF_MAX;
+module.exports.PROF_MAX_RACINE = PROF_MAX_RACINE;
+module.exports.ACTIONS_MAX = ACTIONS_MAX;
 module.exports.REVEILS_AGENT_MAX = REVEILS_AGENT_MAX;
 module.exports.FORME_DOSSIER = FORME_DOSSIER;
 module.exports.ticDeGroupe = ticDeGroupe;

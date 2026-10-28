@@ -5,7 +5,7 @@
          n'est pas reconnu, pas de doublon, l'ordre d'apparition ;
        · la table MEMBRES (une seule), les meneurs, qui peut parler où ;
        · QUI EST RÉVEILLÉ (`destinataires`, pur) : le cité, l'agent d'un fil privé, le meneur ; jamais l'auteur, jamais le système ;
-       · l'ANTI-BOUCLE : la profondeur (Justin 0, réponse = parent + 1), un agent réveillé par un agent seulement si < 3, A↔B s'arrête à 3 appels,
+       · l'ANTI-BOUCLE : la profondeur (Justin 0, réponse = parent + 1), un agent réveillé par un agent seulement si < 3 SANS racine (6 avec la racine d'un message de Justin, où le ping-pong ABAB sans acte coupe au 5e réveil), A↔B s'arrête à 3 appels sans racine,
          au plus 20 messages d'agents par heure et par fil ;
        · UNE VRAIE CONVERSATION : une question à Margaux est répondue PAR Margaux — aucune tâche, aucune délégation ;
        · les OUTILS : prendre (sa tâche, « demandée par » Justin ou un collègue), passer (réellement chargé, vers un collègue LIBRE, jamais Hugo ni
@@ -213,8 +213,21 @@ console.log('\n── 2880 · la messagerie des agents : mentions, réveil, anti
     await H.justin('clients', '@Camille discute avec Léa de la relance');
     await dormir(200);
     const ms = (await H.messages('clients')).filter(m => REG.includes(m.de));
-    v('⛔ A↔B s’arrête à la profondeur 3 : trois appels, trois messages (1, 2, 3)', [H.appels.map(a => a.id), ms.map(m => m.prof)], [['camille', 'lea', 'camille'], [1, 2, 3]]);
-    vrai('…le dernier message (profondeur 3) cite Léa, qui ne répond PAS : un message de profondeur 3 ne réveille plus personne', ms[2].mentions.includes('lea') && H.appels.length === 3);
+    /* Justin, 28 octobre 2026 : un échange né d'un message de Justin a une RACINE — la borne n'est plus la profondeur 3 mais le budget de la racine, et deux agents qui se répondent À VIDE (ABAB, chacun cite l'autre,
+       aucune tâche prise ni terminée) sont coupés au cinquième réveil (le ping-pong). La borne 3 d'avant reste celle de ce qui n'a PAS de racine (le cas suivant). */
+    v('⛔ Justin → Camille ↔ Léa (enraciné) : quatre messages (1, 2, 3, 4), puis le ping-pong coupe — plus trois comme avant la racine', [H.appels.map(a => a.id), ms.map(m => m.prof)], [['camille', 'lea', 'camille', 'lea'], [1, 2, 3, 4]]);
+    vrai('…le quatrième cite Camille, qui ne répond PAS : un message d\u2019agent dont le ping-pong a coupé la suite ne réveille plus personne', ms[3].mentions.includes('camille') && H.appels.length === 4);
+    vrai('…et le fil DIT pourquoi, une fois (une ligne du système, pas une « limite de messages par heure »)', (await H.messages('clients')).filter(m => m.de === 'systeme' && /se répondent sans rien faire avancer/.test(m.texte)).length === 1);
+    vrai('(population) ce fil ne porte AUCUNE ligne « limite de messages par heure »', !(await H.messages('clients')).some(m => /limite de messages/.test(m.texte)));
+  }
+  {
+    /* SANS racine (un agent qui écrit de lui-même à un collègue) : la borne d'avant — profondeur 3, trois messages — tient. */
+    const H = await monter({ script: (t) => rep((t.id === 'lea' ? '@camille ' : '@lea ') + 'et toi, qu’en penses-tu (' + t.messages.length + ') ?') });
+    H.conv.parler('camille', 'clients', '@lea on s’y met ?', { niveau: 'info', prof: 1 });
+    await calme(); await dormir(200);
+    const ms = (await H.messages('clients')).filter(m => REG.includes(m.de));
+    v('⛔ SANS racine : A↔B s’arrête à la profondeur 3 — trois messages (1, 2, 3), deux appels', [ms.map(m => [m.de, m.prof]), H.appels.map(a => a.id)], [[['camille', 1], ['lea', 2], ['camille', 3]], ['lea', 'camille']]);
+    vrai('…le message de profondeur 3 cite Léa, qui ne répond PAS : sans racine, la borne reste < 3', ms[2].mentions.includes('lea') && H.appels.length === 2 && ms.every(m => !m.racine));
     v('jamais sur son propre message : l’auteur d’un message qui se cite lui-même n’est pas appelé', (() => { const dd = EQ.destinataires({ de: 'camille', prof: 1, mentions: ['camille'] }, { membres: CV.MEMBRES.clients }); return dd; })(), []);
   }
   {
