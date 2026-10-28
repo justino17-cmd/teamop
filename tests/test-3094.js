@@ -644,6 +644,29 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
         v('⛔ le BUDGET de secondes de l\'heure (50 s) se compte sur les vocaux du pont comme sur ceux de la page : "budget", avec son attente', [(await refus(vBudget.seq)).j.raison, (await refus(vBudget.seq)).j.attente > 0], ['budget', true]);
         v('…et la page voit le même budget épuisé (429 transcription_budget)', (await j2.post('/api/conversations/' + c2 + '/messages/transcrire', { seq: vBudget.seq })).j.error, 'transcription_budget');
 
+        /* ⛔ le texte d'un vocal qui n'est PAS à Justin n'a aucun chemin jusqu'aux agents (28 octobre 2026). Les conversations du pont ne contiennent que Justin et des robots ; mais si Justin y ajoute
+           quelqu'un, le vocal de cette personne, transcrit à sa demande, émet un événement `transcription` visible de Justin : sans contrôle d'auteur, la Tour l'écrirait « au nom de Justin ». */
+        const intrus2 = await T.connecter(s2, og, 'intrus', 'pw-intrus-3090');
+        const cEq = (await j2.get('/api/conversations')).j.conversations.find(c => c.type === 'groupe' && c.nom === 'Équipe').id;
+        const lienC = await j2.post('/api/contacts/lien', {}); await intrus2.post('/api/liens/accepter', { code: lienC.j.code });      // Justin et cette personne sont contacts : il peut l'ajouter
+        const ajout = await j2.post('/api/conversations/' + cEq + '/membres/ajouter', { uids: [intrus2.moi.id] });
+        vrai('(population) Justin a ajouté une personne qui n\'est pas lui au groupe « Équipe » du pont', !!(ajout.j.ajoutes && ajout.j.ajoutes.length === 1));
+        const vI = await sonVocal(intrus2, cEq, 'I', 3);
+        const rI = await intrus2.post('/api/conversations/' + cEq + '/messages/transcrire', { seq: vI.seq });
+        vrai('(population) la personne demande SA transcription par la page et un calcul part', rI.code === 200 && await att(() => W.enAttente.length > 0));
+        W.relacher(200, { ok: true, texte: 'INTRUS-JETON-QWZK ne doit jamais atteindre les agents', langue: 'fr' });
+        vrai('(population) le texte de la personne est prêt (la page le rend)', !!(await att(async () => ((await intrus2.post('/api/conversations/' + cEq + '/messages/transcrire', { seq: vI.seq })).j.transcription || {}).etat === 'prete')));
+        const nvI = (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.filter(x => x.fil === 'equipe' && x.seq === vI.seq);
+        v('⛔ le vocal d\'une AUTRE personne ne sort de `nouveaux` ni comme vocal ni comme transcription (aucun événement, aucun texte)', [nvI.length, JSON.stringify(nvI).includes('INTRUS-JETON-QWZK')], [0, false]);
+        /* …même si c'est la Tour (donc Justin) qui en demande le texte : le calcul part, l'événement existe, et le pont ne le rend PAS */
+        const vI2 = await sonVocal(intrus2, cEq, 'I2', 3);
+        const rP = await n2.post('/api/pont/transcrire', { fil: 'equipe', seq: vI2.seq }, pont);
+        vrai('(population) Justin (par la Tour) demande le texte d\'un vocal de cette personne : un calcul part', rP.j.ok === true && await att(() => W.enAttente.length > 0));
+        W.relacher(200, { ok: true, texte: 'INTRUS-DEUX-QWZK ne doit pas atteindre les agents non plus', langue: 'fr' });
+        vrai('(population) ce texte est prêt (la même demande le rend « prete »)', !!(await att(async () => (await n2.post('/api/pont/transcrire', { fil: 'equipe', seq: vI2.seq }, pont)).j.etat === 'prete')));
+        const nvI2 = (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.filter(x => x.fil === 'equipe' && (x.seq === vI2.seq || x.seq === vI.seq));
+        v('⛔ …l\'événement `transcription` de ce vocal-là n\'est PAS rendu au pont : aucun événement, aucun texte', [nvI2.length, JSON.stringify(nvI2).includes('INTRUS-')], [0, false]);
+
         /* l'ouvrier en panne */
         W.panne = true;
         await att(async () => (await (await fetch(s2.base + '/health')).json()).transcription.ok === false, 8000);

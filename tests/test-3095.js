@@ -305,6 +305,17 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       void vo2;
       const tard = await att(async () => (await tour.fil('victor')).find(m => m.de === 'justin' && /MARQ-tard1/.test(m.texte)));
       vrai('…et la promesse de la note tient : le texte qui arrive PLUS TARD (« je le transmettrai ») finit au registre, marqué 🎤, et l\'agent répond', !!tard && tard.texte.startsWith('🎤 ') && !!(await fluxJ.attendre(x => x.event === 'message' && x.data && x.data.conv === idVictor && x.data.texte && /Reçu MARQ-tard1/.test(x.data.texte), 20000)));
+      /* ⛔ la règle « 🎤 = machine » est écrite à DEUX endroits (Victor et les autres agents) : un vocal adressé à un AUTRE agent doit la porter aussi (28 octobre 2026) */
+      const idLea = parNom['Léa'].id, nL = recus.length;
+      const corpsL = Buffer.concat([P.webm(3000), Buffer.from('VOCAL3091-lea')]);
+      const dL = await P.deposer(justin, { conv: idLea, genre: 'vocal', corps: corpsL });
+      const mL = await justin.post('/api/conversations/' + idLea + '/messages', { cid: 'opm-vocal-lea-0001', type: 'vocal', piece: dL.j.id, dur: 4, bars: [6, 14, 18, 10, 16, 6, 12, 18, 9, 14] });
+      vrai('(population) le vocal part vers Léa et l\'ouvrier le reçoit', mL.code === 201 && !!(await att(() => OUV.travaux.length === 3)));
+      OUV.relacher(200, { ok: true, texte: 'Léa, MARQ-vocal4 où en est le brouillon de ce matin ?', langue: 'fr' });
+      const repL = await fluxJ.attendre(x => x.event === 'message' && x.data && x.data.conv === idLea && x.data.texte && /Reçu MARQ-vocal4/.test(x.data.texte), 20000);
+      const appelsL = recus.slice(nL).filter(x => x.marq === 'MARQ-vocal4');
+      vrai('(population) Léa a répondu au vocal, une fois, et le faux cerveau a reçu SES règles', !!repL && appelsL.length === 1 && /Tu es Léa/.test(appelsL[0].systeme));
+      vrai('⛔ …et ses règles aussi disent que 🎤 est un vocal transcrit par une machine (des mots peuvent être faux)', /commence par 🎤/.test(appelsL[0].systeme) && /VOCAL/.test(appelsL[0].systeme));
       /* le flux garde tout ce qu'il a reçu, et la section 5 attend « le premier message_supprime » : celui du vocal de Justin ne doit pas passer pour celui qu'elle provoque */
       for (let i = fluxJ.evenements.length - 1; i >= 0; i--) if (fluxJ.evenements[i].event === 'message_supprime') fluxJ.evenements.splice(i, 1);
     }
