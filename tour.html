@@ -5851,6 +5851,20 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
      navigateur a gardé — jamais le tirage qu'on vient de faire, que le serveur n'a pas haché. */
   var existant=(typeof e.annuaire==='number');
   var mdpAff=e.mdp||(existant?'':mdp);
+  /* 28 octobre 2026 — LE MÉTIER SE POSE AVANT LE CODE PROMO : un code peut être réservé à des métiers (`config.promos`, sur le serveur), et le serveur juge sur le métier que
+     l'annuaire porte — l'ancien ordre (code, formule, métier) refusait tout code réservé pour un espace neuf. Avec une Tour d'avant et un serveur neuf, le refus s'affiche
+     déjà (`promoErr`) et rien ne se perd.
+     v2.77 — le métier de la demande se pose avec la formule : c'est lui qui règle l'application (types d'intervention, fiche de terrain, modules). Refusé ou injoignable :
+     on le DIT, et le reste de l'acceptation continue — il se règle ensuite dans la fiche (« MÉTIER »). */
+  /* v2.109 — `siVide` : un espace qui a DÉJÀ un métier le garde (une seconde demande ne le change pas, comme ses rubriques) ; le serveur
+     rend alors le métier gardé, que le panneau et le message de bienvenue disent. Le changer reste un geste de la fiche. */
+  var metierDem=MET_L[dm.metier]?dm.metier:'', metierPose='', metierGarde=false;
+  if(metierDem){
+    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem,siVide:true});
+      if(rm&&rm.ok&&rm.d&&rm.d.ok){ metierGarde=!!rm.d.garde&&rm.d.metier!==metierDem; metierPose=metierGarde?(MET_L[rm.d.metier]?rm.d.metier:''):(MET_L[rm.d.metier]?rm.d.metier:metierDem); }
+      else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
+    catch(err){ toast('Métier non posé (serveur injoignable) — règle-le dans la fiche'); }
+  }
   /* Le code promo de la demande D'ABORD : s'il s'active, c'est SA formule qui vaut (la même règle que la création
      automatique d'avant), et le nombre d'utilisateurs demandé reste celui de la demande. */
   var codeDem=String(dm.code||'').trim().toUpperCase(), promo=null, promoErr='';
@@ -5864,18 +5878,6 @@ async function tourAccepterDemande(email,nom,identVoulu,idxVoulu,catsVoulues){
   var r;
   try{ r=await apiPost('/api/monitor/espaces/formule',{nom:e.nom,formule:formule,quantite:q}); }catch(err){ toast('Serveur injoignable'); return; }
   if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Formule non attribuée'); return; }
-  /* v2.77 — le métier de la demande se pose avec la formule : c'est lui qui règle l'application (types d'intervention,
-     fiche de terrain, modules). Refusé ou injoignable : on le DIT, et le reste de l'acceptation continue — il se règle
-     ensuite dans la fiche (« MÉTIER »). */
-  /* v2.109 — `siVide` : un espace qui a DÉJÀ un métier le garde (une seconde demande ne le change pas, comme ses rubriques) ; le serveur
-     rend alors le métier gardé, que le panneau et le message de bienvenue disent. Le changer reste un geste de la fiche. */
-  var metierDem=MET_L[dm.metier]?dm.metier:'', metierPose='', metierGarde=false;
-  if(metierDem){
-    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem,siVide:true});
-      if(rm&&rm.ok&&rm.d&&rm.d.ok){ metierGarde=!!rm.d.garde&&rm.d.metier!==metierDem; metierPose=metierGarde?(MET_L[rm.d.metier]?rm.d.metier:''):(MET_L[rm.d.metier]?rm.d.metier:metierDem); }
-      else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
-    catch(err){ toast('Métier non posé (serveur injoignable) — règle-le dans la fiche'); }
-  }
   /* 23 octobre 2026 — LES RUBRIQUES RETENUES se posent avec le métier : ce que la grille de la demande montre coché (le choix du client, ajusté), sinon
      le choix du client ou le conseil de son métier. Tout coché = rien de restreint (`null`, la route retire le champ). Refusé ou injoignable : on le DIT
      dans le panneau — jamais un toast qui passe — et la fiche permet de les régler ensuite. */
@@ -9488,6 +9490,9 @@ function blocPromos(){
     var p=[],reste=0;
     var push=function(h){ if(p.length<2) p.push(h); else reste++; };
     if(c.horsConfig) push('<span class="past p-orange" title="Ce code n’est plus dans la configuration du serveur, mais des espaces en profitent encore">Retiré de la config</span>');
+    /* un code RÉSERVÉ à des métiers (lecture seule : on le règle sur le serveur, `node server/configurer-promos.js`) — jamais caché derrière « +n » */
+    if(c.metiersIllisible) push('<span class="past p-rouge" title="La restriction de métiers de ce code est illisible dans la configuration du serveur : le code est FERMÉ, rien ne s’active">Restriction illisible · code fermé</span>');
+    else if(c.metiers&&c.metiers.length) push('<span class="past p-gris" title="Ce code ne s’active que pour une entreprise dont le métier est dans cette liste">Réservé : '+esc(c.metiers.join(', '))+'</span>');
     if(actifs.length) push('<span class="past p-vert">'+actifs.length+' actif'+(actifs.length>1?'s':'')+'</span>');
     if(c.formule) push('<span class="past p-gris">'+esc(c.formule)+'</span>');
     if(c.mois) push('<span class="past p-gris">'+c.mois+' mois</span>');
