@@ -224,7 +224,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     const GESTES = SRC.slice(i, j);
     const REU = fs.readFileSync(path.join(RACINE, 'server', 'reunions.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     const posts = [...REU.matchAll(/app\.post\('\/api\/monitor\/([^']+)', (\w+)/g)], gets = [...REU.matchAll(/app\.get\('\/api\/monitor\/([^']+)', (\w+)/g)];
-    vrai('(population) les réunions déclarent deux routes POST et une lecture', posts.length === 2 && gets.length === 1);
+    vrai('(population) les réunions déclarent trois routes POST (lancer, annuler — 28 octobre 2026 —, retirer une leçon) et une lecture', posts.length === 3 && gets.length === 1);
     vrai('⛔ chaque POST est dans MON_GESTES et exige le patron strict ; la lecture aussi', posts.every(m => new RegExp("'" + m[1].replace(/\//g, '\\/') + "':").test(GESTES) && m[2] === 'monPatronStrict') && gets.every(m => m[2] === 'monPatronStrict'));
     vrai('…et le déclenchement est dans index.js : une minuterie d’une minute, une première vérification, sans que `reunions.js` n’arme rien', /setTimeout\(ticReunions, 5000\)/.test(SRC.replace(/\/\*[\s\S]*?\*\//g, ' ')) && /setInterval\(ticReunions, 60000\)/.test(SRC.replace(/\/\*[\s\S]*?\*\//g, ' ')) && !/setInterval|setTimeout/.test(REU));
     vrai('aucun détail du journal, aucune adresse dans toute la sortie du serveur', !/SECRET-DETAIL-2885|client-secret/.test(S.journal()));

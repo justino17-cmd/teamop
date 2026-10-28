@@ -2170,7 +2170,7 @@ const MON_GESTES = {
   'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
   /* Pauline (Harvey, Mac) : un accord qui fait partir un courriel vers un prospect laisse sa trace (relecture de gardien) — la cible est l'identifiant du courriel, jamais son texte */
   'pauline/decision': 'a accepté, modifié ou refusé un courriel de Pauline',
-  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
+  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
   'agents/emma/disponibilites': 'a réglé les disponibilités d’Emma', 'agents/emma/proposer': 'a demandé à Emma de proposer des créneaux à un prospect', 'agents/sarah/rediger': 'a demandé à Sarah de rédiger une annonce aux clients',
@@ -10676,7 +10676,9 @@ try {
         /* les outils propres à Hugo, Margaux, Emma et Sarah (fin d'abonnement, mise en demeure, créneaux, annonce) : liaison TARDIVE — leurs modules sont montés plus bas, et un
            agent non monté n'a simplement pas d'outil. Chacun ne vaut que d'un message de Justin (le module le vérifie, pas le prompt). */
         outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; }, get margaux() { return agentMargaux && agentMargaux.outilsEquipe; },
-          get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; } },
+          get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; },
+          /* Victor planifie les réunions que Justin lui demande (`reunions.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
+          get victor() { return reunionsMod && reunionsMod.outilsVictor; } },
         arbitrer: (e, c) => plateformeMod ? plateformeMod.arbitrer(e, c) : { ok: false, raison: 'indisponible' },     // l'outil « arbitrer » de Victor (`agents-plateforme.js`)
         memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');

@@ -34,6 +34,7 @@ const REU = String.raw`
   var N=Date.now(), H=3600000, M=60000;
   var lecon=function(id,t,sem){ return {id:id,texte:t,ts:N-3*H,semaine:sem||'2026-W43'}; };
   var etat=window.__reu={ get:0, posts:[], echec:0, refus:0, enCours:null,
+    planifiees:[{id:'p1a2b3c4d',ts:N+20*H,duree:60,sujet:'le démarrage de l’entreprise, avec un sujet assez long pour voir le retour à la ligne',libelle:'jeudi 29 octobre, 9 h – 10 h',participants:'tout le monde',nb:16}],
     reunions:[{id:'r0',type:'objectifs',ts:N-26*H,fin:N-25*H,statut:'terminee',semaine:'2026-W44',manuelle:false,participants:['victor','lea'],compteRendu:'Compte rendu de Victor : chacun a ses objectifs.'}],
     objectifs:{
       lea:[{id:'o111111',texte:'Répondre à chaque inscription sous 24 h',mesure:'Zéro inscription sans réponse au vendredi',bilan:{statut:'atteint',pourquoi:'Toutes les inscriptions ont reçu une réponse.'}},
@@ -51,7 +52,7 @@ const REU = String.raw`
     var chemin=s.slice('https://api.teamop.fr'.length).split('?')[0], meth=((o&&o.method)||'GET').toUpperCase();
     if(chemin==='/api/monitor/agents/reunions'&&meth==='GET'){ etat.get++;
       if(etat.echec>0){ etat.echec--; return json(503,{error:'Les réunions des agents sont illisibles'}); }
-      return json(200,{ok:true,semaine:'2026-W44',semainePrecedente:'2026-W43',enCours:etat.enCours,prochaine:{type:'bilan',ts:N+4*H,libelle:'vendredi 30 octobre, 18 h'},reunions:etat.reunions,objectifs:etat.objectifs,objectifsPrecedents:{},lecons:etat.lecons}); }
+      return json(200,{ok:true,semaine:'2026-W44',semainePrecedente:'2026-W43',enCours:etat.enCours,prochaine:{type:'bilan',ts:N+4*H,libelle:'vendredi 30 octobre, 18 h'},reunions:etat.reunions,planifiees:etat.planifiees||[],objectifs:etat.objectifs,objectifsPrecedents:{},lecons:etat.lecons}); }
     if(chemin==='/api/monitor/agents/reunions/lancer'&&meth==='POST'){ var b=JSON.parse(o.body); etat.posts.push(['lancer',b.type]);
       if(etat.refus){ etat.refus=0; return json(409,{error:'Une réunion est déjà en cours'},200); }
       etat.enCours={id:'r1',type:b.type,debut:Date.now(),fin:Date.now()+H,jusqua:'10 h',titre:b.type==='bilan'?'Réunion du vendredi':'Réunion du lundi'};
@@ -131,6 +132,11 @@ async function main() {
       v('aucun défilement latéral (page ni zone)', E.sx <= E.iw && E.zx <= E.zw + 1, JSON.stringify([E.sx, E.iw, E.zx, E.zw]));
       v('les leçons fermées ne montrent aucun « Retirer » (population)', E.retirer.length === 0);
       await cap(o, '01-repos-' + nom);
+      /* les réunions DEMANDÉES À VICTOR (28 octobre 2026) : une ligne par réunion prévue, son libellé, son sujet, « Annuler » rouge, au doigt ≥ 44 px */
+      const PL = await ev(`${STABLE} const l=[...document.querySelectorAll('.ms-reu-pll li')]; const b=document.querySelector('.ms-reu-plx'); if(l[0]) l[0].scrollIntoView({block:'center'});
+        return {n:l.length,t:l[0]?l[0].textContent.replace(/[\u00a0\u202f]/g,' '):'',bh:b?Math.round(b.getBoundingClientRect().height):0,sx:document.documentElement.scrollWidth-innerWidth};`);
+      v(nom + ' · réunions prévues : une ligne (libellé, sujet, tout le monde) et « Annuler »', PL.n === 1 && /jeudi 29 octobre, 9 h – 10 h/.test(PL.t) && /tout le monde \(16 agents\)/.test(PL.t) && /Annuler/.test(PL.t) && (!tel || PL.bh >= 44) && PL.sx <= 0, JSON.stringify(PL));
+      await dormir(300); await cap(o, '01b-prevues-' + nom);
 
       /* ── 3. les leçons ── */
       await ev(`document.querySelector('#ms-reu [data-act="reuSection"][data-s="lec"]').click(); return 1;`); await dormir(200);
