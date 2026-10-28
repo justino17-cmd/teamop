@@ -14,7 +14,9 @@
      4. ⛔ PERSONNE D'AUTRE QUE JUSTIN ne déclenche un agent ; rien ne boucle (un message recopié ne revient pas) ; un autre compte bêta ne voit rien et n'écrit nulle part.
      5. Une suppression passe dans les DEUX sens — et un rappel client non lu ne se supprime pas d'OP MESSAGES.
      6. ⛔ UNE PANNE D'OP MESSAGES NE CASSE RIEN CÔTÉ AGENTS : l'agent répond, le registre s'écrit, `/health` compte la file ; au retour, tout arrive, dans l'ordre, une fois.
-     7. `/health` : `pont` n'existe que si le pont est monté, ses deux nombres sont LUS par la surveillance, et le secret n'est dans aucune sortie ;
+     7. LES PHOTOS (28 octobre 2026) : sans aucun geste, la Tour envoie ses vingt et une images (seize agents, quatre groupes, le Système) ; la liste de Justin porte un `avatar` pour chaque
+      directe et chaque groupe, il les télécharge par la vraie route, chacune est la sienne — et un redémarrage de la Tour n'en renvoie aucune.
+   8. `/health` : `pont` n'existe que si le pont est monté, ses deux nombres sont LUS par la surveillance, et le secret n'est dans aucune sortie ;
         un secret faux laisse la Tour exactement comme avant.
    Il saute de lui-même sans `server/node_modules` ni `server-msg/node_modules`. */
 'use strict';
@@ -23,6 +25,7 @@ const { spawn } = require('child_process');
 const T = require('./outils-msg');
 T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
+const P = require('./outils-pieces');
 if (!fs.existsSync(path.join(T.RACINE, 'server', 'node_modules'))) { console.log('  — server/node_modules absent : banc non exécuté (npm i dans server/)'); console.log('\n0 ✓  0 ✗'); process.exit(0); }
 const RACINE = T.RACINE;
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
@@ -134,6 +137,28 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
     const liste = await convs();
     const parNom = {}; for (const c of liste) parNom[c.type === 'direct' ? c.autre.prenom : c.nom] = c;
     v('…les directes portent le nom des agents, les groupes ceux de la Tour', [liste.filter(c => c.type === 'direct').length, liste.filter(c => c.type === 'groupe').map(c => c.nom).sort()], [16, ['Clients', 'Plateforme', 'Réunions', 'Équipe'].sort()]);
+    /* ── les photos : la Tour les envoie TOUTE SEULE après l'installation ── */
+    const avatarDe = (c) => c.type === 'direct' ? c.autre.avatar : c.avatar;
+    const photos = await T.attendre(async () => { const l = await convs(); return l.length >= 20 && l.every(c => typeof avatarDe(c) === 'string'); }, 40000, 150);
+    vrai('⛔ LES PHOTOS arrivent sans aucun geste : la liste de Justin porte un `avatar` pour chacune des seize directes et des quatre groupes', !!photos);
+    const lPhotos = await convs();
+    const icones = path.join(RACINE, 'icons');
+    const telechargees = {};
+    for (const c of lPhotos) { const r = await P.lirePiece(justin, avatarDe(c)); telechargees[c.type === 'direct' ? c.autre.prenom : c.nom] = r; }
+    const noms = Object.keys(telechargees);
+    v('(population) vingt images téléchargées par la VRAIE route GET : seize JPEG et quatre PNG, des images propres', [noms.length, Object.values(telechargees).filter(r => r.code === 200 && r.buf.subarray(0, 3).toString('hex') === 'ffd8ff').length, Object.values(telechargees).filter(r => r.code === 200 && r.buf.subarray(0, 4).toString('hex') === '89504e47').length], [20, 16, 4]);
+    v('⛔ chacune est la SIENNE : vingt images toutes différentes (une cible mélangée en ferait deux identiques)', new Set(Object.values(telechargees).map(r => sha(r.buf))).size, 20);
+    const AGENTS_TOUR = require(path.join(RACINE, 'server', 'agents.js')).AGENTS;
+    v('…le visage de chaque agent est son fichier du dépôt (octet pour octet, ou à ses métadonnées près : même taille à 5 % près)', AGENTS_TOUR.filter(a => { const f = fs.readFileSync(path.join(icones, 'agents', a.id + '.jpg')); const r = telechargees[a.nom]; return !(r && (r.buf.equals(f) || Math.abs(r.buf.length - f.length) <= f.length * 0.05)); }).map(a => a.id), []);
+    v('…les images des groupes sont les fichiers de `icons/groupes`', ['equipe', 'clients', 'plateforme', 'reunions'].filter(fil => { const f = fs.readFileSync(path.join(icones, 'groupes', fil + '.png')); const nom = { equipe: 'Équipe', clients: 'Clients', plateforme: 'Plateforme', reunions: 'Réunions' }[fil]; const r = telechargees[nom]; return !(r && (r.buf.equals(f) || Math.abs(r.buf.length - f.length) <= f.length * 0.05)); }), []);
+    const detailG = (await justin.get('/api/conversations/' + lPhotos.find(c => c.nom === 'Équipe').id)).j;
+    const sysM = (detailG.membres || []).find(m => m.prenom === 'Système');
+    v('…le robot « Système » a la sienne aussi (Justin la lit dans la fiche du groupe)', [!!sysM, sysM && typeof sysM.avatar === 'string' ? (await P.lirePiece(justin, sysM.avatar)).code : null], [true, 200]);
+    v('⛔ l\'autre accès bêta ne lit AUCUNE de ces photos (404)', (await P.lirePiece(intrus, avatarDe(lPhotos[0]))).code, 404);
+    v('⛔ aucune ligne « a changé la photo du groupe » dans les groupes', await (async () => { let n = 0; for (const c of lPhotos.filter(x => x.type === 'groupe')) n += (await justin.get('/api/conversations/' + c.id + '/messages')).j.messages.filter(m => m.type === 'systeme' && m.meta && /avatar/.test(JSON.stringify(m.meta))).length; return n; })(), 0);
+    const lignesAvatar = () => { const d = T.lireBase(path.join(svc.data, 'msg.db')); try { return d.prepare("SELECT id FROM piece WHERE genre = 'avatar' ORDER BY id").all().map(r => r.id); } finally { d.close(); } };
+    const idsPhotos = lignesAvatar();
+    v('(population) vingt et une pièces de genre avatar dans la base : seize agents, le Système, quatre groupes', idsPhotos.length, 21);
     const msgs = async (c) => (await justin.get('/api/conversations/' + c.id + '/messages')).j.messages.filter(m => m.type !== 'systeme');
     const attendu = (fil) => MESSAGES_SEED.filter(m => m.fil === fil);
     const nomFil = { victor: 'Victor', lea: 'Léa', camille: 'Camille', equipe: 'Équipe', reunions: 'Réunions', clients: 'Clients' };
@@ -168,6 +193,8 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       vrai('redémarrage de la Tour ' + titre + ' : une sonde derrière le rattrapage arrive', !!ok);
       v('⛔ …et RIEN n\'est dupliqué dans OP MESSAGES : chaque texte de l\'historique y est UNE fois', await occurrences(), MESSAGES_SEED.map(() => 1));
     }
+
+    v('⛔ deux redémarrages de la Tour plus tard, AUCUNE photo n\'a été renvoyée : les mêmes vingt et une pièces, les mêmes identifiants', lignesAvatar(), idsPhotos);
 
     /* ── 2 · un message de la Tour paraît dans OP MESSAGES, en direct ── */
     console.log('\n2. Un message de la Tour paraît dans OP MESSAGES, en direct — et l\'agent répond');

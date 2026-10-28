@@ -4,7 +4,7 @@
  * Les agents, leurs règles, leurs réunions et la suppression de messages restent CE QU'ILS SONT : `conversations.js` reste le registre (`agents-messages.json`), c'est ce que les
  * agents relisent. OP MESSAGES devient le TRANSPORT et l'écran. Ce module est le côté Tour ; le côté OP MESSAGES est `pont-agents.js`, dans le service d'OP MESSAGES (le contrat des quatre routes y est écrit).
  *
- * Il fait cinq choses, et AUCUNE ne peut faire échouer un agent :
+ * Il fait six choses, et AUCUNE ne peut faire échouer un agent :
  *   1. INSTALLER  au démarrage (et chaque fois que le service dit « pas installé ») : les seize personnes-robots, l'espace, les groupes, une conversation directe par agent.
  *   2. RECOPIER   chaque message écrit au registre (agent, système, Justin) dans la conversation d'OP MESSAGES — par une FILE bornée (2 000), réessayée avec une attente qui grandit.
  *   3. IMPORTER   l'historique : tout message du registre que la table des recopies ne connaît pas encore part avec SA DATE D'ORIGINE, sans notification (la table fait que cela ne se fait
@@ -12,6 +12,11 @@
  *   4. LIRE       toutes les 3 s ce que JUSTIN a écrit ou supprimé dans OP MESSAGES. Un message entre par `conversations.justinEcrit` — LE MÊME chemin que la route de la Tour : mentions,
  *                 réveil de l'agent du fil, du meneur du groupe, des cités. Une suppression retire le message du registre (`conversations.retirer`, avec sa garde des rappels non lus).
  *   5. SUPPRIMER  dans OP MESSAGES ce que la Tour supprime.
+ *   6. PHOTOGRAPHIER  les visages des agents (`icons/agents/<id>.jpg`), l'image du Système et celles des quatre groupes (`icons/groupes/<fil>.png`) : après chaque installation réussie, celles que le
+ *                 service n'a pas encore (ou dont l'empreinte a changé) partent, UNE à la fois, vers `POST /api/pont/avatar`. Le service rend `avatars: { cible: empreinte }` à l'installation ;
+ *                 on compare avec le SHA-256 du fichier. ⛔ Les noms de fichiers viennent des listes FIXES (les agents, les groupes du registre), JAMAIS de ce que le service répond. ⛔ Une photo
+ *                 refusée, absente ou trop grosse ne retarde AUCUN message et ne compte pas comme une panne du pont (`echecMin`) : elle part en tâche de fond, et se retente à l'installation
+ *                 suivante (le démarrage de la Tour). Rien à faire sur le VPS : le déploiement redémarre la Tour, qui réinstalle et envoie les photos toutes seules.
  *
  * ⛔ UN AGENT NE DÉPEND JAMAIS D'OP MESSAGES. Le crochet de `conversations.js` (`surAjout`, `surRetrait`) est appelé APRÈS l'écriture du registre, dans un `try`, et ne rend rien : un OP MESSAGES
  * à l'arrêt, lent, refusant le secret ou répondant n'importe quoi ne retarde, ne change et ne perd aucun message d'agent. La file est BORNÉE (au-delà, le plus ancien part — le rattrapage le
@@ -27,6 +32,7 @@
  */
 'use strict';
 
+const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const F = 'pont-messages.json';
 const FILE_MAX = 2000, LOT_MAX = 25, LOT_OCTETS = 48000, LIES_MAX = 4000;
 const ANCIEN_MS = 120000;              // un message plus vieux que ça au moment de partir est un RATTRAPAGE : sa date d'origine, aucune notification
@@ -34,6 +40,8 @@ const NOTE_PAS_MS = 600000;            // « les agents ne lisent que le texte �
 const ATTENTE_MAX_MS = 60000;           // la plus longue attente entre deux essais quand OP MESSAGES ne répond pas (les bancs l'abaissent)
 const BOUCLE = /^http:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d{2,5})?\/?$/;
 const SECRET = /^[0-9a-f]{64}$/;
+const RE_ID_PHOTO = /^[a-z][a-z0-9]{1,19}$/;     // un agent, un groupe, « systeme » : la seule forme qui entre dans un nom de fichier
+const PHOTO_MAX = 2 * 1024 * 1024;               // le plafond de `pieces.avatarMax` côté OP MESSAGES : plus gros, le service dirait 413
 const REJETS = ['fil_inconnu', 'auteur_inconnu', 'pas_membre', 'champ_invalide', 'justin_interdit'];
 
 module.exports = function creerPontMessages(o) {
@@ -47,6 +55,7 @@ module.exports = function creerPontMessages(o) {
   const journal = (typeof o.journal === 'function') ? o.journal : ((nom, n) => console.error('pont messages : ' + nom + (n !== undefined ? ' (' + n + ')' : '')));
   const url = String(o.url || '').replace(/\/+$/, '');
   const secret = String(o.secret || '').toLowerCase();
+  const dossierIcones = typeof o.iconesDir === 'string' && o.iconesDir ? o.iconesDir : path.join(__dirname, '..', 'icons');   // la Tour tourne depuis le clone COMPLET du dépôt
   /* ⛔ fermé sans secret valable ni adresse de boucle locale : on rend `null`, l'appelant ne monte rien */
   if (!SECRET.test(secret) || !BOUCLE.test(url + '/')) return null;
   if (!conversations || !agents || !Array.isArray(agents.AGENTS) || !fichier) return null;
@@ -73,8 +82,8 @@ module.exports = function creerPontMessages(o) {
 
   /* ── La file : des messages à recopier, des suppressions à dire, des notes du pont ── */
   const file = [], enFile = new Set();
-  const compte = { recopies: 0, rejets: 0, abandons: 0, lus: 0, suppressionsLues: 0, suppressionsRefusees: 0, notes: 0 };
-  let installe = false, enCours = false, lectureEnCours = false, arrete = false, echecDepuis = illisible ? horloge() : 0, attenteJusqua = 0, attenteMs = 0, derniereNote = {};
+  const compte = { recopies: 0, rejets: 0, abandons: 0, lus: 0, suppressionsLues: 0, suppressionsRefusees: 0, notes: 0, photos: 0, photosRefusees: 0, photosAbsentes: 0 };
+  let installe = false, photosEnCours = false, enCours = false, lectureEnCours = false, arrete = false, echecDepuis = illisible ? horloge() : 0, attenteJusqua = 0, attenteMs = 0, derniereNote = {};
   let minuteurEnvoi = null, minuteurLecture = null;
 
   function enfiler(it) {
@@ -121,7 +130,56 @@ module.exports = function creerPontMessages(o) {
     if (!r || r.statut !== 200 || r.j.ok !== true) { if (r && r.statut === 400) { compte.rejets++; journal('installation refusée (400)'); } return false; }
     installe = true;
     rattraper();
+    /* ⛔ en TÂCHE DE FOND, jamais attendue : les messages ne dépendent pas des photos (une photo lente ou refusée ne retarde rien) */
+    photographier(r.j.avatars).catch(() => {});
     return true;
+  }
+
+  /* ── 6. photographier ── */
+  /* Les cibles et leurs fichiers, tirés de LISTES FIXES : les agents du registre, « systeme », les groupes du registre. Rien de ce que le service répond n'entre dans un chemin. */
+  function photosVoulues() {
+    const v = [];
+    for (const a of agents.AGENTS) if (a && typeof a.id === 'string' && RE_ID_PHOTO.test(a.id)) v.push({ cible: a.id, fichier: path.join(dossierIcones, 'agents', a.id + '.jpg') });
+    v.push({ cible: 'systeme', fichier: path.join(dossierIcones, 'groupes', 'systeme.png') });
+    for (const fil of groupes) if (typeof fil === 'string' && RE_ID_PHOTO.test(fil)) v.push({ cible: fil, fichier: path.join(dossierIcones, 'groupes', fil + '.png') });
+    return v;
+  }
+  /* Un envoi de photo : jamais une exception, et JAMAIS un effet sur l'attente de la file (`panne()`, `echecDepuis`) — une photo n'est pas un message. → le code HTTP, 0 si le service n'a pas répondu. */
+  async function envoyerPhoto(cible, octets, empreinte) {
+    try {
+      const r = await fetchImpl(url + '/api/pont/avatar?cible=' + encodeURIComponent(cible), { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(delaiMs), body: octets,
+        headers: { 'X-OPM-Pont': secret, 'X-OPM-Empreinte': empreinte, 'Content-Type': 'application/octet-stream', Accept: 'application/json' } });
+      try { await r.arrayBuffer(); } catch (e) {}
+      return r.status;
+    } catch (e) { return 0; }
+  }
+  async function photographier(deja) {
+    if (photosEnCours || arrete) return;
+    photosEnCours = true;
+    const posees = deja && typeof deja === 'object' && !Array.isArray(deja) ? deja : {};
+    let absentes = 0;
+    try {
+      for (const { cible, fichier } of photosVoulues()) {
+        if (arrete) return;
+        let octets;
+        try {
+          const st = await fs.promises.stat(fichier);
+          if (!st.isFile() || st.size === 0 || st.size > PHOTO_MAX) { compte.photosAbsentes++; absentes++; continue; }
+          octets = await fs.promises.readFile(fichier);
+        } catch (e) { compte.photosAbsentes++; absentes++; continue; }       // un fichier absent se saute : le pont ne s'arrête pas pour une image
+        const empreinte = crypto.createHash('sha256').update(octets).digest('hex');
+        if (Object.prototype.hasOwnProperty.call(posees, cible) && posees[cible] === empreinte) continue;       // le service l'a déjà, à l'identique
+        const code = await envoyerPhoto(cible, octets, empreinte);
+        if (code === 200) { compte.photos++; continue; }
+        compte.photosRefusees++;
+        /* le service ne répond pas, refuse le secret, est occupé ou n'est plus installé : inutile d'insister photo après photo, la série reprendra à l'installation suivante.
+           Un refus qui ne concerne QUE cette image (400, 413, 415) : on passe à la suivante, celle-ci sera retentée au prochain démarrage. */
+        if (![400, 413, 415].includes(code)) return;
+      }
+    } finally {
+      if (absentes) journal('photos : ' + absentes + ' fichier(s) absent(s), vide(s) ou trop gros, non envoyé(s)');
+      photosEnCours = false;
+    }
   }
 
   /* ── 3. importer / rattraper : tout ce que la table ne connaît pas encore, du plus ancien au plus récent ── */
@@ -264,6 +322,6 @@ module.exports = function creerPontMessages(o) {
 
   return { demarrer, arreter, surAjout, surRetrait, sante,
     /* pour les bancs */
-    _envoyer: envoyer, _lire: lire, _installer: installer, _etat: () => Object.assign({ installe, curseur, file: file.length, lies: parId.size, enAttente: enAttente(), echecDepuis }, compte), _attendreFini: async () => { for (let i = 0; i < 400 && (enCours || lectureEnCours); i++) await new Promise(r => setTimeout(r, 5)); } };
+    _envoyer: envoyer, _lire: lire, _installer: installer, _etat: () => Object.assign({ installe, curseur, file: file.length, lies: parId.size, enAttente: enAttente(), echecDepuis }, compte), _photographier: photographier, _attendreFini: async () => { for (let i = 0; i < 400 && (enCours || lectureEnCours || photosEnCours); i++) await new Promise(r => setTimeout(r, 5)); } };
 };
 module.exports.F = F;

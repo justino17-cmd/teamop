@@ -119,7 +119,9 @@ function construireApp(ctx) {
   const lecteurJson = express.json({ limit: '64kb', strict: true });
   /* ⛔ ni le dépôt d'une pièce, ni l'AVIS du serveur de visio (`/api/visio/avis`) : leur corps se lit BRUT par leur route — l'avis se vérifie sur l'empreinte de ses octets exacts (`visio.js`). */
   const AVIS_VISIO = /^\/api\/visio\/avis\/?$/i;
-  app.use((req, res, next) => (req.method === 'POST' && (/^\/api\/pieces\/?$/i.test(req.path) || AVIS_VISIO.test(req.path))) ? next() : lecteurJson(req, res, next));
+  /* ⛔ …ni la PHOTO que le pont des agents dépose : son corps est une image BRUTE, lue au fil de l'eau par sa route (qui juge le type de la requête elle-même, 415). Un corps étiqueté JSON ne doit pas être avalé ici. */
+  const AVATAR_PONT = /^\/api\/pont\/avatar\/?$/i;
+  app.use((req, res, next) => (req.method === 'POST' && (/^\/api\/pieces\/?$/i.test(req.path) || AVIS_VISIO.test(req.path) || AVATAR_PONT.test(req.path))) ? next() : lecteurJson(req, res, next));
 
   /* ── Une écriture : l'origine de l'application ET l'en-tête maison ────────────────────── */
   const PONT = /^\/api\/pont\/[a-z]+\/?$/i;

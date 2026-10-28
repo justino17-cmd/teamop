@@ -253,12 +253,13 @@ const MATRICE = {
   'admin.espaces':      { ok: () => ['GET', '/api/admin/espaces'], codes: [404] },
   'admin.abonnements':  { ok: () => ['GET', '/api/admin/abonnements'], codes: [404] },
   'admin.incidents':    { ok: () => ['GET', '/api/admin/incidents'], codes: [404] },
-  /* le PONT DES AGENTS (28 octobre 2026) : le service des bancs n'a PAS de bloc `pont` — les quatre routes sont INERTES, et la garde PT refuse tout le monde (même 404 qu'une route inconnue), quelle que soit la
+  /* le PONT DES AGENTS (28 octobre 2026) : le service des bancs n'a PAS de bloc `pont` — les cinq routes sont INERTES, et la garde PT refuse tout le monde (même 404 qu'une route inconnue), quelle que soit la
      session. Les routes ouvertes par un vrai secret, et chaque refus de la garde, se jouent dans `test-3094`. */
   'pont.installer':     { ok: () => ['POST', '/api/pont/installer', {}], codes: [404] },
   'pont.poster':        { ok: () => ['POST', '/api/pont/poster', {}], codes: [404] },
   'pont.nouveaux':      { ok: () => ['GET', '/api/pont/nouveaux'], codes: [404] },
   'pont.supprimer':     { ok: () => ['POST', '/api/pont/supprimer', {}], codes: [404] },
+  'pont.avatar':        { ok: () => ['POST', '/api/pont/avatar?cible=victor', {}], codes: [404] },
   /* Le lien d'invité et la salle d'une réunion. `apercu` est PUBLIC (le code vient de la fixture : celui de la réunion d'Ana) ; entrer par le lien est S, par l'identifiant R (l'invité, l'hôte) ; le lien se lit et se
      renouvelle par H. Les deux routes qui ENTRENT jouent une réunion dont la fenêtre est ouverte (elle commence dans deux minutes) : une réunion dans trois jours refuse, et le refus est joué plus bas. */
   'reunions.apercu':    { ok: (F) => ['POST', '/api/reunions/apercu', { code: F.codeR }], codes: [200] },
