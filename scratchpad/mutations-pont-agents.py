@@ -24,7 +24,7 @@ M = [
     ('garde : le secret n\'est plus comparé', S + 'pont-agents.js', "if (!crypto.timingSafeEqual(sha256(Buffer.from(brut.toLowerCase(), 'utf8')), cfg.empreinte)) return refuser(res, 'faux');", "", ['3090']),
     ('garde : le secret absent passe', S + 'pont-agents.js', "if (brut === undefined) return refuser(res, 'absent');", "if (brut === undefined) { etat.acces++; return next(); }", ['3090']),
     ('garde : inerte sans configuration → ouverte', S + 'pont-agents.js', "if (!cfg || !Buffer.isBuffer(cfg.empreinte)) return refuser(res, 'inerte');", "if (!cfg || !Buffer.isBuffer(cfg.empreinte)) { etat.acces++; return next(); }", ['3090']),
-    ('garde : le secret n\'est comparé qu\'à moitié', S + 'pont-agents.js', "crypto.timingSafeEqual(sha256(Buffer.from(brut.toLowerCase(), 'utf8')), cfg.empreinte)", "crypto.timingSafeEqual(sha256(Buffer.from(brut.toLowerCase(), 'utf8')).subarray(0, 4), cfg.empreinte.subarray(0, 4))", ['3090']),
+    ('garde : l\'empreinte suffit (le secret n\'est plus haché avant d\'être comparé)', S + 'pont-agents.js', "crypto.timingSafeEqual(sha256(Buffer.from(brut.toLowerCase(), 'utf8')), cfg.empreinte)", "crypto.timingSafeEqual(Buffer.from(brut.toLowerCase(), 'hex'), cfg.empreinte)", ['3090']),
     # ── la configuration ──
     ('config : l\'empreinte de l\'administration est acceptée', S + 'pont-agents.js', "if (Buffer.isBuffer(adminEmpreinte) && crypto.timingSafeEqual(adminEmpreinte, empreinte)) throw err(", "if (false) throw err(", ['3090']),
     ('config : la production est acceptée', S + 'pont-agents.js', "if (instance !== 'beta') throw err(", "if (false) throw err(", ['3090']),
