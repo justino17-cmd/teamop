@@ -54,7 +54,7 @@ professionnel de l'entreprise ou dans son annuaire professionnel est une adresse
    (`registre-traitements.html`, § prospection) — pas dans chaque courriel.
 5. **Le droit de s'y opposer, dit clairement et à part** (RGPD art. 21 §4 : « explicitement porté à l'attention de la personne […] présenté
    clairement et séparément de toute autre information ») : une ligne à elle, pas noyée dans la signature. Moyen **gratuit et simple** :
-   répondre « stop » suffit si une personne (ou Camille) le traite ; un lien de désinscription est préférable.
+   répondre « stop » suffit **si quelqu'un traite vraiment la réponse** (aujourd'hui personne ne le fait automatiquement : voir §5) ; un lien de désinscription est préférable.
 6. **Un objet fidèle** et un message **court** (voir `cold-email`).
 7. Pas de pièce jointe, pas de pixel de suivi (voir `cold-email/references/delivrabilite.md`).
 
@@ -76,7 +76,8 @@ professionnel de l'entreprise ou dans son annuaire professionnel est une adresse
   le jour même).
 - On garde le **strict nécessaire pour ne pas la recontacter** (l'adresse, ou mieux son empreinte, et la date du refus) : c'est la
   liste de suppression. La CNIL admet ce minimum pour honorer l'opposition **[à relire]**. Pauline range déjà ces cas à l'état `refus`
-  (relevé de la Tour) ; Camille traite la réponse « stop ».
+  (relevé de la Tour). ⚠️ Une réponse « stop » arrive dans le Courrier ; Camille n'a PAS de catégorie « opposition » (28 octobre 2026) : selon son jugement elle la range « ignorer » ou en fait un brouillon, et rien ne la range
+  tout seul en liste de suppression (à vérifier dans « à traiter » de la Tour). Tant que ce n'est pas fait, un humain (Justin) range la personne en `refus` le jour même.
 - Une suppression se propage : une personne qui se désinscrit d'un courriel de prospection ne reçoit plus de lettre d'information
   commerciale non plus, sauf consentement distinct donné après coup.
 
