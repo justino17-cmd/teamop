@@ -79,7 +79,9 @@ function facteur() {
   fs.writeFileSync(path.join(D, 'comptes.json'), JSON.stringify({ [DEL]: { c: { d1: { s: 'aa', e: 'bb', n: 'D Un' } }, maj: Date.now() } }));
   /* un espace HORS annuaire qui se connecte encore : une entreprise vivante pour qui l'annuaire ne dit rien */
   fs.writeFileSync(path.join(D, 'connexions.json'), JSON.stringify({ [DEL]: [{ ts: Date.now(), ev: 'connexion', login: 'jean', nom: 'Jean', role: 'technicien', version: '772', app: 'gestion' }],
-    'horsannuaire-3098': [{ ts: Date.now(), ev: 'connexion', login: 'x', nom: 'X', role: 'technicien', version: '772', app: 'gestion' }] }));
+    'horsannuaire-3098': [{ ts: Date.now(), ev: 'connexion', login: 'x', nom: 'X', role: 'technicien', version: '772', app: 'gestion' }],
+    /* l'espace par défaut SE CONNECTE (tous les appareils sans entreprise) : le serveur le « connaît » — c'est pourquoi on doit l'écarter exprès */
+    'elan-gestion': [{ ts: Date.now(), ev: 'connexion', login: 'repli', nom: 'Repli', role: 'technicien', version: '772', app: 'gestion' }] }));
 
   const MDP = 'mot-de-passe-du-banc-3098', MDP_C = 'collaborateur-3098-long';
   const N = Date.now();
