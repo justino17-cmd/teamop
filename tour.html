@@ -3407,6 +3407,173 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
 .dem-gestes{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:16px}
 .dem-ident{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
 .dem-ident .inp{min-width:170px}
+/* ▼▼ REFONTE-APPLE : début ▼▼ */
+/* ══ REFONTE APPLE · v2.118 (28 octobre 2026) ══════════════════════════════════════════════════════════════════════════
+   Justin, après avoir validé l'onglet Agents (v2.117) : « revoit tous les onglets de la tour, le style, le design, les couleurs à la Apple,
+   je veux un truc beau, pro, propre et qui donne envie de travailler » ; puis : les onglets d'OP MESSAGES aussi. Même langage que la
+   couche « AGENTS · v2.117 » : un rayon (--r-5) pour toutes les cartes, une matière qui se détache (un filet et une ombre fine le jour, la
+   vitre la nuit), le segmenté de macOS pour tout choix d'écran, des capsules pour tout état, des cases arrondies, un seul geste de
+   pression (un ressort court, jamais lancé par autre chose qu'un toucher), et la même cible de 44 px au doigt.
+   ⛔ PRÉSENTATION SEULEMENT : aucune classe n'est renommée, aucun écran déplacé, aucun comportement touché — une restructuration vient
+   après. Cette feuille vit APRÈS toutes les autres et ne réécrit aucun composant : elle en change la peau.
+   Périmètre : `#vue` hors Agents (`[data-rendu]`) et hors les deux zones pleine page (Courrier, Messagerie : `body.plein-courrier`),
+   plus la charpente (menu, barre du haut, barre du bas, feuille, fenêtre). Les deux consoles (GESTION, MESSAGES) partagent les mêmes
+   classes : une seule règle les couvre. Les jetons sont ceux de la Tour (jour ET nuit) ; seuls trois nouveaux : --ap-ombre, --ap-bord, --ap-ressort. */
+
+/* ── 0 · JETONS ── */
+body{--ap-ombre:none;--ap-bord:rgba(255,255,255,.10);--ap-relief:inset 0 1px 0 rgba(255,255,255,.16)}
+body.jour{--ap-ombre:0 1px 2px rgba(16,24,40,.05),0 0 0 .5px rgba(60,60,67,.10);--ap-bord:rgba(60,60,67,.12);--ap-relief:none}
+
+/* ── 1 · LA MATIÈRE : un rayon, un relief ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) :is(.carte,.kpi,.tbl,.reg-bloc,.reg-cli,.reg-haut,.vide,.squel-l){border-radius:var(--r-5)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .item{border-radius:var(--r-4)}
+body.jour:not(.plein-courrier) #vue:not([data-rendu]) :is(.carte,.kpi,.tbl,.reg-bloc,.reg-cli,.reg-haut,.item,.vide){box-shadow:var(--ap-ombre)}
+body.jour:not(.plein-courrier) #vue:not([data-rendu]) .vide{box-shadow:none}
+body.jour:not(.plein-courrier) #vue:not([data-rendu]) .carte :is(.carte,.kpi,.tbl,.reg-bloc,.reg-cli,.reg-haut,.item,.vide){box-shadow:none}
+/* la liste groupée : ses rangées épousent le rayon de la carte (concentricité), elles ne le dépassent jamais */
+body:not(.plein-courrier) #vue:not([data-rendu]) :is(.reg-bloc,.reg-cli,.reg-haut,.tbl){overflow:hidden}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-bloc>.reg-l:hover{border-radius:0}
+body:not(.plein-courrier) #vue:not([data-rendu]) .encart{border-radius:var(--r-4)}
+/* une liste posée DANS une carte : son rayon est celui de la carte moins son rembourrage (concentricité) */
+body:not(.plein-courrier) #vue:not([data-rendu]) .carte :is(.reg-bloc,.reg-cli,.reg-haut,.tbl,.item,.vide,.squel-l){border-radius:var(--r-3)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .ttl-carte{font-size:16px;font-weight:650;letter-spacing:-.016em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .sec{font-size:11.5px;font-weight:650;letter-spacing:.06em}
+
+/* ── 2 · LE SEGMENTÉ — tout choix d'écran ou de filtre est le même objet que dans Agents ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .sous-onglets{margin:0 0 18px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .sous-onglets .tt-seg{width:fit-content;max-width:100%;overflow-x:auto;scrollbar-width:none}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg{padding:3px;gap:2px;border-radius:var(--r-4)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button{min-height:34px;padding:0 15px;border-radius:calc(var(--r-4) - 3px);font-size:13.5px;font-weight:500;letter-spacing:-.006em;white-space:nowrap;
+  transition:background-color var(--d-2) var(--e-sortie),color var(--d-2) var(--e-sortie),box-shadow var(--d-2) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button[aria-pressed="true"]{font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.05)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button:active:not([aria-pressed="true"]){transform:scale(.96);transition-duration:var(--d-0)}
+@media (pointer:fine){ body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button:not([aria-pressed="true"]):hover{background:var(--hover)} }
+@media (pointer:coarse){ body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button{min-height:44px} }
+@media (max-width:760px){ body:not(.plein-courrier) #vue:not([data-rendu]) .sous-onglets .tt-seg{width:100%} body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button{padding:0 10px} }
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-liste-tete h2{font-size:17px;font-weight:650;letter-spacing:-.02em}
+
+/* ── 3 · LES CHIFFRES — le libellé murmure, le chiffre parle, la tuile répond au toucher ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi{padding:16px 18px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi .l{font-size:13px;font-weight:500;letter-spacing:-.005em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi .n{font-weight:700;letter-spacing:-.032em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic{transition:background-color var(--d-1) var(--e-sortie),box-shadow var(--d-2) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
+@media (pointer:fine){ body.jour:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:hover{box-shadow:0 4px 14px rgba(16,24,40,.09),0 0 0 .5px rgba(60,60,67,.12);transform:translateY(-1px)} body:not(.jour):not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:hover{transform:translateY(-1px)} }
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:active{transform:scale(.98)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.sel{box-shadow:inset 0 0 0 2px var(--acc)}
+
+/* la bande de chiffres d'OP MESSAGES (« rang ») : UNE carte coupée par des filets, pas cinq vitres collées côte à côte */
+body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang{gap:0;border:0;overflow:hidden;border-radius:var(--r-5);background:var(--tt-carte);box-shadow:var(--ap-ombre)}
+body:not(.jour):not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang{box-shadow:var(--tt-ombre);border:1px solid var(--tt-carte-bord);-webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang .kpi{background:transparent;border:0;border-radius:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-right:1px solid var(--hairline)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang .kpi:last-child{border-right:0}
+@media (max-width:760px){ body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang .kpi{border-right:0;border-bottom:1px solid var(--hairline)} body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang .kpi:nth-child(even){border-left:1px solid var(--hairline)} }
+
+/* ── 4 · LES GROUPES ET LES LIGNES ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-tete .reg-nom{font-size:17px;font-weight:650;letter-spacing:-.02em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-tete .reg-n{font-size:12px;font-weight:650;padding:1px 8px;border-radius:var(--r-pill);background:var(--tt-seg);color:var(--text2);line-height:1.6}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-sous{font-size:12.5px}
+/* le titre collant du bureau : une vitre à peine voilée, plus un pavé sombre posé sur le fond de nuit */
+@media (min-width:900px){ body:not(.jour):not(.plein-courrier) #vue:not([data-rendu]) .reg-tete{background:rgba(15,26,48,.36)} }
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-chev{color:var(--muted);opacity:.8}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l .reg-fin>.reg-chev{opacity:.55}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-av,body:not(.plein-courrier) #vue:not([data-rendu]) .reg-av.sans,body:not(.plein-courrier) #vue:not([data-rendu]) .reg-av.gris{border-radius:10px;font-weight:700}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-bloc .ac-ico{border-radius:10px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l{transition:background-color var(--d-1) var(--e-sortie)}
+@media (pointer:fine){ body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l:hover{background:var(--hover)} }
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l:active{background:var(--inset)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-t1{letter-spacing:-.012em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .abn-j{font-variant-numeric:tabular-nums}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tbl .hd,body:not(.plein-courrier) #vue:not([data-rendu]) .tbl th{font-size:11.5px;font-weight:650}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kv>div{padding:10px 0}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kv .k{color:var(--muted)}
+
+/* ── 5 · LES CAPSULES ET LES BOUTONS ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .past{font-size:12px;font-weight:650;padding:3px 10px;line-height:1.4;letter-spacing:.002em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .chip{border-radius:var(--r-pill);padding:3px 10px;font-weight:600}
+body:not(.plein-courrier) #vue:not([data-rendu]) .btn-plein,body:not(.plein-courrier) #vue:not([data-rendu]) .btn-fant,body:not(.plein-courrier) #vue:not([data-rendu]) .pill-act{border-radius:var(--r-pill);font-weight:650;letter-spacing:-.006em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .btn-plein.large{border-radius:var(--r-pill)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .btn-fant.danger,body:not(.plein-courrier) #vue:not([data-rendu]) .btn-plein.danger{border-radius:var(--r-pill)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .page-act .btn-plein,body:not(.plein-courrier) #vue:not([data-rendu]) .page-act .btn-fant{padding:0 18px}
+@media (pointer:fine){ body:not(.plein-courrier) #vue:not([data-rendu]) .btn-fant:hover{background:var(--accBg)} }
+
+/* l'encre d'une capsule verte le jour : 4,29 sur son voile — on la fonce d'un cran pour passer 4,5 */
+body.jour:not(.plein-courrier) #vue:not([data-rendu]) .p-vert{color:#14602b}
+
+/* ── 6 · LES CHAMPS ET LES CASES ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .inp,body:not(.plein-courrier) #vue:not([data-rendu]) .sel-f,body:not(.plein-courrier) #vue:not([data-rendu]) .rech{border-radius:var(--r-3)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .inp:focus,body:not(.plein-courrier) #vue:not([data-rendu]) .inp:focus-visible,body:not(.plein-courrier) #vue:not([data-rendu]) .sel-f:focus-visible,body:not(.plein-courrier) #vue:not([data-rendu]) .rech:focus-within{border-color:var(--acc);box-shadow:var(--focus-champ)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .lbl{font-size:11.5px;font-weight:650;margin-bottom:6px}
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]{appearance:none;-webkit-appearance:none;width:22px;height:22px;min-width:22px;margin:0;border-radius:7px;border:1.5px solid var(--dim);background-color:transparent;
+  display:inline-block;vertical-align:middle;flex:none;cursor:pointer;accent-color:var(--acc-fill);
+  transition:background-color var(--d-1) var(--e-sortie),border-color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:checked{border-color:transparent;background-color:var(--acc-fill);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3.6 8.4l2.9 2.9 5.9-6.2' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-size:15px;background-position:center;background-repeat:no-repeat}
+/* la case est petite ; sa cible est la RANGÉE qui l'enveloppe (un label de 44 px) — pas un halo autour d'elle : deux halos de rangées voisines se chevaucheraient */
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:active{transform:scale(.9);transition-duration:var(--d-0)}
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:focus-visible{box-shadow:var(--anneau)}
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
+body:not(.plein-courrier) #vue:not([data-rendu]) .cat-ligne input[type="checkbox"],body:not(.plein-courrier) #vue:not([data-rendu]) .don-coche input{width:22px;height:22px;flex:0 0 22px}
+/* la rangée de la case : 46 px, case au milieu — le doigt qui vise la case tombe toujours DANS sa rangée (la bordure du haut compte dans la hauteur) */
+body:not(.plein-courrier) #vue:not([data-rendu]) .cat-ligne{min-height:46px;align-items:center;padding-top:8px;padding-bottom:8px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .cat-ligne input[type="checkbox"]{margin:0}
+
+/* ── 7 · LA CHARPENTE : le menu, la barre du haut ── */
+@media (min-width:900px){
+  .tab{border-radius:10px;min-height:36px;padding:4px 8px;letter-spacing:-.01em}
+  .tab .ic{width:26px;height:26px;border-radius:8px;background:var(--tint-gris);transition:background-color var(--d-2) var(--e-sortie)}
+  .tab .ic svg{width:15px;height:15px}
+  .tab.on .ic,nav.tabs.a-indic .tab.on .ic{background:var(--acc-fill)}
+  .tab.on .ic svg{color:var(--on-acc)}
+  .tab:active{transform:scale(.975)}
+  .grp span{font-size:11px;font-weight:650;letter-spacing:.07em}
+  .tt-haut{height:52px}
+  .tt-ou b{font-weight:650;letter-spacing:-.01em}
+  .tt-srv{padding:6px 12px;font-weight:550}
+}
+.app-sw{border-radius:11px;padding:3px}
+.app-sw button{border-radius:8px}
+
+/* ── 8 · LE TÉLÉPHONE : la barre du bas et la feuille ── */
+@media (max-width:899px){
+  .barre-bas{border-radius:36px}
+  .bb{border-radius:28px}
+  .feuille{border-radius:30px 30px 0 0}
+  .groupe .ic{border-radius:9px;background:var(--tint-gris)}
+  .groupe button.on .ic{background:var(--acc-fill)}
+  .groupe button.on .ic svg{color:var(--on-acc)}
+}
+#tour-panneau>div{border-radius:22px!important}
+
+/* ── 9 · LES VUES ── */
+/* Accueil : le bonjour en tête, la pastille de bilan en capsule, les blocs de la colonne de droite en liste groupée */
+body:not(.plein-courrier) #vue:not([data-rendu]) .ac-total{font-weight:650;padding:6px 14px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .ac-n{font-weight:700}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-haut .reg-l.haut{min-height:64px}
+/* Fiche d'une entreprise, Demandes, Accès, Équipe : la carte est un encart groupé, ses sections se lisent comme des Réglages */
+body:not(.plein-courrier) #vue:not([data-rendu]) .fiche-page>.carte,body:not(.plein-courrier) #vue:not([data-rendu]) .dem-carte{padding:20px 22px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-adresse{border-radius:var(--r-4)}
+/* Contrats, Facturation : lignes de journal dans une liste groupée */
+body:not(.plein-courrier) #vue:not([data-rendu]) .abn-jrn{border-radius:var(--r-5);overflow:hidden}
+body:not(.plein-courrier) #vue:not([data-rendu]) .abn-j{padding-top:11px;padding-bottom:11px}
+/* Rapport, Audience */
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours{border-radius:var(--r-5)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours i{border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--acc),color-mix(in srgb,var(--acc) 55%,transparent));opacity:1}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours i.vide{background:var(--line)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours:not(:has(i:nth-child(14))){gap:10px;justify-content:center}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours:not(:has(i:nth-child(14))) i{flex:0 1 56px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours:has(i:nth-child(14)){gap:2px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-l .b,body:not(.plein-courrier) #vue:not([data-rendu]) .aud-l .b i{border-radius:var(--r-pill)}
+
+/* ── 10 · LE MOUVEMENT ── (le ressort est court et sans rebond ; un toucher seul le lance) */
+@media (prefers-reduced-motion:reduce){
+  body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button,body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic,body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l,body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox],.tab,.tab .ic{transition:none}
+  body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button:active,body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:active,body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:hover,body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:active,.tab:active{transform:none}
+}
+@media (prefers-reduced-transparency:reduce){
+  body:not(.jour):not(.plein-courrier) #vue:not([data-rendu]) :is(.carte,.kpi,.tbl,.reg-bloc,.reg-cli,.reg-haut){-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+/* ▲▲ REFONTE-APPLE : fin ▲▲ */
 </style>
 </head>
 <body>
@@ -3435,7 +3602,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.117</div>
+    <div class="lg-pied">console interne · v2.118</div>
   </div>
 </div>
 
@@ -3477,7 +3644,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.117</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.118</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3489,7 +3656,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.117</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.118</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3796,7 +3963,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.117';
+var TOUR_VERSION='v2.118';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
