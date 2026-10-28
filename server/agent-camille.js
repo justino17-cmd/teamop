@@ -372,9 +372,10 @@ module.exports = function camille(ctx) {
         if (!lu) { noterVu(h); agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'erreur', detail: 'réponse de Claude sans ligne CATEGORIE' }); return { saute: 'forme' }; }
         const categorie = lu.categorie;
 
-        /* ⛔ « ignorer » est un jugement de Claude, que le texte du courriel peut PIÉGER : il ne passe avant les filets du code que s'il n'y a aucune menace de litige (sinon la suite la détourne vers
-           Justin, comme sous n'importe quelle catégorie), et il ne se CLASSE (sort de « à traiter ») que si le texte ne parle ni d'erreur de prélèvement, ni de résiliation, ni de remboursement. */
-        if (categorie === 'ignorer' && !menaceDeLitige(objet + '\n' + texte)) {
+        /* ⛔ « ignorer » est un jugement de Claude, que le texte du courriel peut PIÉGER. Il passe toujours avant le filet de litige (test-2905 : un cabinet d'avocats qui démarche ne dérange pas Justin),
+           mais il ne se CLASSE (ne sort de « à traiter ») que si le texte ne parle ni de recours, ni d'erreur de prélèvement, ni de résiliation, ni de remboursement : sinon la ligne reste « à traiter »,
+           visible dans la Tour, exactement comme avant le classement. */
+        if (categorie === 'ignorer') {
           noterVu(h); agents.noter(ID, 'message ignoré', { cible: 'courrier', resultat: 'ok', detail: 'ni réponse ni brouillon' });
           return sensible(objet + '\n' + texte) ? { ignore: true, reste: true } : { ignore: true };
         }

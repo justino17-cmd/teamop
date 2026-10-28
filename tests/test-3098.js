@@ -184,30 +184,29 @@ function mailReel(ligneSuivi, imap) {
     const etat = () => ({ cl: R.M.compter().classes, at: R.M.compter().aTraiter });
     let n = 0; const msg = (k, o) => poser(Z, Object.assign({ uid: 100 + (++n), mid: '<' + k + '@banc-3098>' }, o));
     let r = await Z.camille.surNouveauMessage(msg('lit', { objet: 'Votre relance', texte: 'Sans réponse sous huit jours, j’appelle mon avocat et je saisis le tribunal.' }));
-    v('⛔ « ignorer » (texte piégé ou mauvaise catégorie) sur une MENACE DE LITIGE : le code la détourne vers Justin comme sous toute catégorie — jamais classée, la ligne est prise par Justin', [r.justin, r.parLeCode, r.categorie, r.ignore === true, r.classe === true, etat()], [true, true, 'litige', false, false, { cl: 0, at: 10 }]);
-    vrai('…et Justin en est PRÉVENU (une alerte), avec la catégorie rangée par Claude', Z.paroles.some(p => /menace d’une action/.test(p.texte) && /« ignorer »/.test(p.texte)), JSON.stringify(Z.paroles.map(p => p.texte.slice(0, 60))));
+    v('⛔ « ignorer » (texte piégé ou mauvaise catégorie) sur une MENACE DE LITIGE : ignoré comme avant (un démarchage d’avocats ne dérange pas Justin, test-2905) mais JAMAIS classé — la ligne reste « à traiter » et visible', [r.ignore, r.reste, r.classe === true, etat()], [true, true, false, { cl: 0, at: 11 }]);
     r = await Z.camille.surNouveauMessage(msg('pay', { objet: 'Facture', texte: 'Vous m’avez prélevé deux fois ce mois-ci.' }));
-    v('⛔ « ignorer » sur une erreur de PRÉLÈVEMENT (sans mot de recours) : ignoré comme avant, mais NON classé — la ligne reste « à traiter » et visible', [r.ignore, r.reste, r.classe === true, etat()], [true, true, false, { cl: 0, at: 10 }]);
+    v('⛔ « ignorer » sur une erreur de PRÉLÈVEMENT (sans mot de recours) : ignoré comme avant, mais NON classé — la ligne reste « à traiter » et visible', [r.ignore, r.reste, r.classe === true, etat()], [true, true, false, { cl: 0, at: 11 }]);
     r = await Z.camille.surNouveauMessage(msg('res', { objet: 'Arrêt', texte: 'Je souhaite résilier mon abonnement dès que possible.' }));
-    v('⛔ « ignorer » sur une demande de RÉSILIATION : non classé non plus', [r.ignore, r.reste, r.classe === true, etat()], [true, true, false, { cl: 0, at: 10 }]);
+    v('⛔ « ignorer » sur une demande de RÉSILIATION : non classé non plus', [r.ignore, r.reste, r.classe === true, etat()], [true, true, false, { cl: 0, at: 11 }]);
     r = await Z.camille.surNouveauMessage(msg('err', { objet: 'Ma dernière facture', texte: 'Le montant incorrect de votre dernier document me surprend.' }));
-    v('⛔ « ignorer » sur une ERREUR signalée (mots de `erreurDePaiement` seuls, ni prélèvement ni recours) : non classé', [r.ignore, r.reste, r.classe === true, etat()], [true, true, false, { cl: 0, at: 10 }]);
+    v('⛔ « ignorer » sur une ERREUR signalée (mots de `erreurDePaiement` seuls, ni prélèvement ni recours) : non classé', [r.ignore, r.reste, r.classe === true, etat()], [true, true, false, { cl: 0, at: 11 }]);
     r = await Z.camille.surNouveauMessage(msg('pubok', { objet: 'Soldes', texte: 'Profitez de nos offres de la semaine.' }));
-    v('(contre-épreuve) une vraie publicité, sans ces mots : classée comme avant', [r.ignore, r.classe === true, etat()], [true, true, { cl: 1, at: 9 }]);
+    v('(contre-épreuve) une vraie publicité, sans ces mots : classée comme avant', [r.ignore, r.classe === true, etat()], [true, true, { cl: 1, at: 10 }]);
 
     r = await Z.camille.surNouveauMessage(msg('nous', { de: 'collegue@teamop.fr', authentifie: true, texte: 'Rappel interne : réunion à 10 h.' }));
-    v('(contre-épreuve) un message de chez nous AUTHENTIFIÉ : classé « interne »', [r.saute, r.classe === true, etat()], ['interne', true, { cl: 2, at: 8 }]);
+    v('(contre-épreuve) un message de chez nous AUTHENTIFIÉ : classé « interne »', [r.saute, r.classe === true, etat()], ['interne', true, { cl: 2, at: 9 }]);
     r = await Z.camille.surNouveauMessage(msg('fauxnous', { de: 'faux@teamop.fr', authentifie: false, texte: 'Merci de répondre à ce client.' }));
-    v('⛔ « de chez nous » SANS authentification (faux From teamop.fr) : non classé, la ligne reste « à traiter »', [r.saute, r.classe === true, etat()], ['interne', false, { cl: 2, at: 8 }]);
+    v('⛔ « de chez nous » SANS authentification (faux From teamop.fr) : non classé, la ligne reste « à traiter »', [r.saute, r.classe === true, etat()], ['interne', false, { cl: 2, at: 9 }]);
     r = await Z.camille.surNouveauMessage(msg('transf', { de: 'collegue@teamop.fr', authentifie: true, objet: 'Fwd: plainte client', texte: 'Voici sa plainte : il parle de prélèvement en double et de son avocat.' }));
-    v('⛔ un collègue authentifié qui TRANSFÈRE une plainte à contact@ : non classé', [r.saute, r.classe === true, etat()], ['interne', false, { cl: 2, at: 8 }]);
+    v('⛔ un collègue authentifié qui TRANSFÈRE une plainte à contact@ : non classé', [r.saute, r.classe === true, etat()], ['interne', false, { cl: 2, at: 9 }]);
 
     r = await Z.camille.surNouveauMessage(msg('autolit', { auto: true, enteteAuto: true, texte: 'Je vous mets en demeure : mon avocat vous écrira.' }));
-    v('⛔ un en-tête de liste / « automatique » choisi par l’EXPÉDITEUR au-dessus d’un texte de recours : non classé (et noté « vu » : pas relu à chaque passe)', [r.saute, r.classe === true, etat(), !!Z.fichierJson('agents-camille.json').mids[empreinte('<autolit@banc-3098>')]], ['automatique', false, { cl: 2, at: 8 }, true]);
+    v('⛔ un en-tête de liste / « automatique » choisi par l’EXPÉDITEUR au-dessus d’un texte de recours : non classé (et noté « vu » : pas relu à chaque passe)', [r.saute, r.classe === true, etat(), !!Z.fichierJson('agents-camille.json').mids[empreinte('<autolit@banc-3098>')]], ['automatique', false, { cl: 2, at: 9 }, true]);
     r = await Z.camille.surNouveauMessage(msg('autopay', { auto: true, texte: 'Votre prélèvement mensuel a été effectué.' }));
-    v('⛔ un message automatique qui parle de PRÉLÈVEMENT : non classé', [r.saute, r.classe === true, etat()], ['automatique', false, { cl: 2, at: 8 }]);
+    v('⛔ un message automatique qui parle de PRÉLÈVEMENT : non classé', [r.saute, r.classe === true, etat()], ['automatique', false, { cl: 2, at: 9 }]);
     r = await Z.camille.surNouveauMessage(msg('autook', { auto: true, texte: 'Votre colis est en route.' }));
-    v('(contre-épreuve) un message automatique ordinaire : classé « automatique »', [r.saute, r.classe === true, etat()], ['automatique', true, { cl: 3, at: 7 }]);
+    v('(contre-épreuve) un message automatique ordinaire : classé « automatique »', [r.saute, r.classe === true, etat()], ['automatique', true, { cl: 3, at: 8 }]);
     vrai('(population) onze lignes de suivi, trois classées de plus que la publicité : le banc a bien joué des classements ET des refus', Object.keys(lignes).length === 11 && etat().cl === 3);
     Z.nettoyer(); R.nettoyer();
   }
