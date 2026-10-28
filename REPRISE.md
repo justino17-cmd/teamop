@@ -13,6 +13,24 @@ de ligne du tout.
 
 ---
 
+# 🧹 28 OCTOBRE 2026 (SOIR) — L'HISTORIQUE DE SURVEILLANCE D'UNE ENTREPRISE SUPPRIMÉE PART AVEC ELLE (branche `claude/surveillance-purge-entreprise`, rien de poussé)
+Justin avait supprimé ELAN depuis la Tour ; Surveillance → « Entreprises touchées » montrait encore « ELAN · 45 problèmes · dernier il y a 1 j ». Deux causes : la suppression
+totale n'effaçait ni `monitor.json` (incidents, archive) ni `bugs.jsonl`, et `POST /api/monitor/report` ne regardait pas si l'espace était fermé (un téléphone resté sur
+l'ancienne application alimentait la ligne). Justin : « on peut supprimer l'historique » → décision prise, **pour une entreprise SUPPRIMÉE seulement** (une qui vit garde sa trace).
+- **Serveur (`server/index.js`)** : `monPurgerEntreprise({t, noms, emails, slugs})` retire les entrées `entreprises[]` (nom sans casse ni accents ni ponctuation, OU adresse) des
+  incidents vivants et archivés, l'incident entier quand plus personne ne le porte, anonymise le journal et les gestes de la Tour (jamais un geste effacé), réécrit `bugs.jsonl`
+  par fichier temporaire + renommage, écrit `monitor.json` tout de suite, note « surveillance purgée : N incidents, M lignes brutes (entreprise supprimée) » sans nom.
+  La suppression totale l'appelle (`fait.surveillance`). Route patron `POST /api/monitor/issues/purger-entreprise` `{nom}` ou `{t}` : 409 si l'entreprise vit (annuaire non fermé,
+  ou espace connecté hors annuaire), 403 pour l'espace par défaut. `POST /api/monitor/report` : un rapport dont `espace` est FERMÉ répond `{ok, ferme}` sans rien écrire
+  (sans `espace` — version d'avant la v683 — comportement d'avant).
+- **Tour (`tour.html`, NON publiée, v2.117 inchangée, `apercu/` non touché)** : bouton « Effacer de la surveillance » sur la fiche d'une entreprise de Surveillance, patron seul,
+  liste des entreprises lue, entreprise absente de l'annuaire, console OP GESTION ; `confirm` qui dit ce qui part et que c'est définitif ; toast avec les nombres.
+- **Bancs** : `test-3098` (serveur seul, dans `scripts/bancs-serveur.liste`), `test-3099` (les vraies fonctions de la Tour contre le vrai serveur ; lit `tour.html`, donc hors liste
+  jusqu'à la publication de la Tour qui porte le bouton).
+- **Ce qui reste, exprès** : les incidents d'OP MESSAGES (non touchés, comme la suppression) ; `appareils` d'un incident qui reste (« appareil → nombre », sans nom ni adresse,
+  inattribuable) ; l'aperçu de la suppression totale ne chiffre pas encore les incidents de surveillance (il liste « erreurs remontées » = `bugs.jsonl`) ; ELAN (déjà supprimée)
+  ne se purge qu'une fois ce serveur déployé ET la Tour publiée — ou en appelant la route à la main (patron). Rien n'est déployé.
+
 # 🌉 28 OCTOBRE 2026 (JOUR) — LES AGENTS DE LA TOUR DANS OP MESSAGES : LE CODE EST PRÊT, LA MISE EN SERVICE ATTEND JUSTIN
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
 OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**

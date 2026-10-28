@@ -379,3 +379,8 @@ tests/test-3083.js
 tests/test-3090.js
 # ── Le pont des agents, côté Tour (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place ») : `server/pont-messages.js` contre un faux OP MESSAGES — la file, les pannes, l'historique, ce que Justin écrit et supprime — et le bandeau de la Tour (3096).
 tests/test-3096.js
+# ── L'historique de surveillance d'une entreprise SUPPRIMÉE part avec elle (28 octobre 2026, Justin : « on peut supprimer l'historique ») : la route patron
+# `/api/monitor/issues/purger-entreprise`, la suppression totale qui purge d'elle-même (`fait.surveillance`), `bugs.jsonl` réécrit atomiquement,
+# `/api/monitor/report` qui n'écrit plus pour un espace fermé. Le vrai serveur, sans lire une page. (`test-3099`, qui joue le bouton de la Tour, lit `tour.html` :
+# il n'entre ici que le jour où la Tour qui le porte est publiée.)
+tests/test-3098.js
