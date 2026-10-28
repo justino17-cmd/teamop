@@ -51,7 +51,9 @@ console.log('\n── 3086 · 2. « Mon métier » : 23 cartes sur la bêta, une
 const expr = c => { const m = c.match(/<div class="met-cards">\$\{\((.*?)\)\.map\(k=>/); return m ? m[1] : ''; };
 const EB = expr(B.C), EA = expr(sansCom(lire('app.html')));
 vrai('l\'expression des cartes est trouvée (bêta et app.html)', !!EB && !!EA, [EB, EA]);
-vrai('bêta et app.html portent la même expression (une source)', EB === EA);
+/* app.html (la source de la bêta, ou la version publique plus ancienne servie sur main) : chez un client, sa seule carte */
+const client = vm.runInNewContext(EA, { BETA_ESSAI: false, equipeTeamOP: () => false, METIERS_ORDRE: B.ctx.METIERS_ORDRE, cur: 'plomberie' });
+vrai('app.html : un client ne voit que sa carte', JSON.stringify(client) === '["plomberie"]', client);
 const cartes = (beta, equipe) => vm.runInNewContext(EB, { BETA_ESSAI: beta, equipeTeamOP: () => equipe, METIERS_ORDRE: B.ctx.METIERS_ORDRE, cur: 'plomberie' });
 vrai('bêta (BETA_ESSAI vrai) : les 23 cartes', cartes(true, false).length === 23, cartes(true, false).length);
 vrai('client (BETA_ESSAI faux, pas TEAM OP) : sa seule carte', JSON.stringify(cartes(false, false)) === '["plomberie"]', cartes(false, false));
