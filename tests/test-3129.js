@@ -75,6 +75,13 @@ function chevauche(W, pdf) {
     const par = {}, re = /\/F([12]) ([\d.]+) Tf\n([\d.-]+) ([\d.-]+) Td\n\(((?:\\.|[^\\)])*)\) Tj/g; let m;
     while ((m = re.exec(flux))) { const u = m[5].replace(/\\(.)/g, '$1').replace(/[\x80-\x9F]/g, ch => ({ 128: '\u20AC', 146: '\u2019', 147: '\u201C', 148: '\u201D', 150: '\u2013', 151: '\u2014', 133: '\u2026', 149: '\u2022' }[ch.charCodeAt(0)] || ch)); const k = Math.round(+m[4] * 10); (par[k] = par[k] || []).push({ x: +m[3], sz: +m[2], gras: m[1] === '2', u }); }
     Object.keys(par).forEach(k => { const L = par[k].sort((a, b) => a.x - b.x); L.forEach(a => { if (a.x + W._pdfLarg(a.u, a.sz, a.gras) > 560) mal.push(['déborde de la page', a.u.slice(0, 40)]); }); for (let i = 1; i < L.length; i++) { const a = L[i - 1], b = L[i]; if (a.x + W._pdfLarg(a.u, a.sz, a.gras) > b.x + 0.8) mal.push([a.u.slice(0, 30), b.u.slice(0, 30)]); } }); });
+  /* et deux LIGNES ne se recouvrent jamais non plus : un en-tête de tableau sur trois lignes dont la hauteur n'est pas comptée passe sur la première ligne du tableau */
+  pdf.split('endstream').forEach(flux => {
+    const it = [], re = /\/F([12]) ([\d.]+) Tf\n([\d.-]+) ([\d.-]+) Td\n\(((?:\\.|[^\\)])*)\) Tj/g; let m;
+    while ((m = re.exec(flux))) it.push({ x: +m[3], y: +m[4], sz: +m[2], gras: m[1] === '2', u: m[5].replace(/\\(.)/g, '$1') });
+    it.sort((a, b) => b.y - a.y);
+    for (let i = 0; i < it.length; i++) for (let j = i + 1; j < it.length && it[i].y - it[j].y < 8; j++) { const a = it[i], b = it[j], dy = a.y - b.y;
+      if (dy > 0.5 && dy < 0.75 * Math.min(a.sz, b.sz) && a.u.trim() && b.u.trim() && a.x < b.x + W._pdfLarg(b.u, b.sz, b.gras) - 1 && b.x < a.x + W._pdfLarg(a.u, a.sz, a.gras) - 1) mal.push(['lignes qui se recouvrent', a.u.slice(0, 30), b.u.slice(0, 30)]); } });
   return mal; }
 const premiers = (s, n) => s.split(/\s+/).slice(0, n).join(' ');
 
