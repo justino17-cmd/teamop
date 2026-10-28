@@ -10823,7 +10823,9 @@ try {
               refus: { synchro1h: nb(lim.refusSynchro1h), autres1h: nb(lim.refusAutres1h), mail: nb(mr.n) }, processus: { rejets1h: nb(pr.rejets1h), erreurs1h: nb(pr.erreurs1h) } };
           },
           equipe: () => { const c = agentsMod.comptes(); return { modes: Object.fromEntries(agentsMod.AGENTS.map(a => [a.id, agentsMod.modeDe(a.id)])), validationsEnAttente: c.validationsEnAttente, tachesEnAttente: c.tachesEnAttente, tachesPrises: c.tachesPrises }; },
-          courrier: () => { if (!messagerieTour || typeof messagerieTour.compter !== 'function') return null; const c = messagerieTour.compter(); return { aTraiter: c.aTraiter, enCours: c.enCours }; },
+          courrier: () => { if (!messagerieTour || typeof messagerieTour.compter !== 'function') return null; const c = messagerieTour.compter(); return { aTraiter: c.aTraiter, enCours: c.enCours, classes: c.classes }; },
+          /* ce que la reprise de l'arriéré de Camille a fait (des NOMBRES : `agent-camille.js`, `etatReprise`) — Victor et Camille le lisent quand on leur parle, pour ne plus dire « personne dessus » */
+          reprise: () => { try { return agentCamille && typeof agentCamille.etatReprise === 'function' ? agentCamille.etatReprise() : null; } catch (e) { return null; } },
           clients: () => { const l = Object.values(clientsData || {});
             return { clients: l.length, demandesEnAttente: l.reduce((n, c) => n + (Array.isArray(c && c.demandes) ? c.demandes.filter((d, i) => String(d && d.statut).toLowerCase() === 'en attente' && !(c.demandesTraitees && c.demandesTraitees[i])).length : 0), 0), espaces: Object.keys(espacesReg || {}).length }; },
           /* le travail commercial de Léa, Chloé, Camille et Louis : des NOMBRES seulement (courriels partis seuls, en attente, « à revoir », connaissances à valider) */
@@ -11085,7 +11087,7 @@ try {
         /* ce que le serveur SAIT déjà de la sécurité : des NOMBRES (verrous posés en ce moment, preuves de clé refusées depuis le démarrage) — jamais une adresse */
         securite: () => ({ verrousTour: [...monLock.values()].filter(l => l && l.until > Date.now()).length, verrousPortail: (comptes && typeof comptes.bloques === 'function') ? comptes.bloques() : null, clesInvalides: cleEquipeVu.invalide }),
         courriels: (depuis) => (brouillonsMod && typeof brouillonsMod.envoyes === 'function' ? brouillonsMod.envoyes(depuis) : null),
-        courrier: faitsAgents.courrier, clients: faitsAgents.clients });
+        courrier: faitsAgents.courrier, reprise: faitsAgents.reprise, clients: faitsAgents.clients });
       Object.assign(faitsAgents, plateformeMod.faits);          // plateforme, incidents, sauvegardes, conservation, securite, contrats, qualite (lus par la messagerie, rôle par rôle)
       plateformeMod.demarrer();
       console.log('agents : plateforme montée (Max, Jules, Théo, Nina, Inès, Victor)');
@@ -11144,13 +11146,16 @@ try {
     });
     /* (28 octobre 2026, Justin : « plus autonomes, toutes leurs tâches à 100 % ») Camille RATISSE seule l'arriéré toutes les 30 minutes, sur ses heures de travail : rien n'attend
        qu'on le lui demande. Silencieuse quand il n'y a rien ; la moitié des plafonds du jour au plus (le courrier du jour garde l'autre). */
-    setInterval(() => {
+    const ratisserArriere = () => {
       try {
         if (!agentCamille || typeof agentCamille.reprendreArriere !== 'function' || (agentCamille.repriseEnCours && agentCamille.repriseEnCours())) return;
         if (!(agentsMod && agentsMod.peutAgir('camille').ok)) return;
         agentCamille.reprendreArriere(3650, { silencieux: true }).catch(e => console.error('camille (arriéré) :', e.message));
       } catch (e) {}
-    }, 30 * 60000).unref();
+    };
+    setInterval(ratisserArriere, 30 * 60000).unref();
+    /* une première passe 3 minutes après le démarrage : chaque redémarrage (un déploiement) remettait le compte à rebours à 30 minutes, et plusieurs déploiements dans la journée repoussaient la reprise d'autant */
+    setTimeout(ratisserArriere, 3 * 60000).unref();
     app.post('/api/monitor/agents/hugo/passer', monPatronStrict, async (req, res) => {
       try { res.json(Object.assign({ ok: true }, await agentHugo.passer())); }
       catch (e) { console.error('hugo :', e.message); res.status(500).json({ error: 'Passage non traité' }); }
