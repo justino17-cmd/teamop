@@ -235,6 +235,9 @@ function installerPont(H, ctx) {
     if (!stockage.convPourMembre(conv, auteur)) return non('pas_membre');
     let tsImpose = null;
     if (importe === true) {
+      /* un import porte TOUJOURS un `cid` « tour-… » : c'est ce que `nouveaux` écarte pour ne pas renvoyer à la Tour ce qui vient d'elle — la règle ne repose plus sur
+         une convention du client (relecture de `gardien`) */
+      if (!m.cid.startsWith('tour-')) return non('champ_invalide');
       if (!Number.isSafeInteger(m.ts) || m.ts <= 0 || m.ts > horloge() + 60000) return non('champ_invalide');
       tsImpose = m.ts;
     }
@@ -310,9 +313,17 @@ function installerPont(H, ctx) {
     if (!t) return refus(res, 409, 'pont_non_installe');
     if (typeof b.fil !== 'string' || !Object.prototype.hasOwnProperty.call(t.fils, b.fil) || !Number.isInteger(b.seq) || b.seq < 1) return refus(res, 400, 'champ_invalide');
     const conv = t.fils[b.fil];
-    if (!stockage.messageExiste(conv, b.seq)) return refus(res, 404, 'introuvable');
+    /* ⛔ UN MESSAGE QUI N'EST PLUS LÀ EST DÉJÀ RETIRÉ — 200, JAMAIS 404 (relecture de `gardien`, 28 octobre 2026). Le 404 est la réponse de la GARDE, au corps
+       identique exprès : la Tour ne peut pas les distinguer, le prenait pour « le service refuse », et la suppression restait en tête de file — plus RIEN ne partait
+       jusqu'au redémarrage. Absent (base restaurée, numéro disparu), Justin sorti de la conversation, ligne du système : il n'y a rien à retirer, la Tour passe. */
+    if (!stockage.messageExiste(conv, b.seq)) return res.json({ ok: true, deja: true, absent: true });
     /* Justin est administrateur de ses groupes ; dans une directe, `admin` lui donne le droit de retirer le message d'un agent, comme dans la Tour */
-    const r = stockage.messageSupprimer({ conv, seq: b.seq, uid: t.justin, pour: 'tous', admin: true });
+    let r;
+    try { r = stockage.messageSupprimer({ conv, seq: b.seq, uid: t.justin, pour: 'tous', admin: true }); }
+    catch (e) {
+      if (e && (e.code === 'introuvable' || e.code === 'type' || e.code === 'interdit')) return res.json({ ok: true, deja: true, absent: true });
+      throw e;
+    }
     if (r.gid) { try { hub.reveiller({ conv }); } catch (e) {} }
     bilan.suppressions++;
     res.json({ ok: true, deja: r.deja === true });
