@@ -403,6 +403,9 @@ const menage = async () => {
            qui balaie le site les fait monter — ils sont publiés pour la Tour, pas criés. C'est `refusSynchro1h`
            (document d'équipe, socle, photos) qui porte l'alarme (gardien, contre-vérification de la v751). */
         'limites.refusAutres1h',
+        /* La messagerie des agents (28 octobre 2026) : `agentsRefus.horaire` porte l'alarme (30 refus en une heure) ; `chaine` (racines closes, ping-pong coupés) est de l'état — une conversation de Justin
+           qui atteint son budget n'est pas une panne, la Tour le dit dans le fil. */
+        'agentsRefus.chaine',
       ];
       const chemins = (o, prefixe) => Object.entries(o || {}).flatMap(([k, val]) => {
         const c = prefixe ? prefixe + '.' + k : k;

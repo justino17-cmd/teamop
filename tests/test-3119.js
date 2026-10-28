@@ -5,7 +5,8 @@
      · LE FILET de 60 $ par jour, pour tous : `filet_jour` ;
      · le jour repart à zéro à MINUIT à Paris — alertes comprises ; le MOIS et les 195 $ ne bougent pas ;
      · à 80 % : une notification, sans ligne ; à 100 % : une ligne dans le fil privé de l'agent (une par jour) ; au filet : une ligne dans « Équipe » et une notification urgente ;
-     · `etatBudget` porte le jour. */
+     · `etatBudget` porte le jour.
+   Modules joués : server/cerveau.js, server/agent-budget-jour.js, server/agents.js. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const { monter, rep, S } = require('./banc-autonomie');

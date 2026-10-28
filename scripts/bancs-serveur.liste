@@ -379,3 +379,18 @@ tests/test-3083.js
 tests/test-3090.js
 # ── Le pont des agents, côté Tour (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place ») : `server/pont-messages.js` contre un faux OP MESSAGES — la file, les pannes, l'historique, ce que Justin écrit et supprime — et le bandeau de la Tour (3096).
 tests/test-3096.js
+# ── Les agents autonomes (28 octobre 2026, Justin : « La limite de messages par heure, c'est pas normal. Je t'ai dit que je veux des agents qui soient autonomes de A à Z » ; « je veux qu'à chaque fois qu'ils ont fini, ils mettent dans
+# le groupe "je viens d'effectuer ça" ») : la racine d'un message de Justin (3113), le @tous ordonné et la synthèse de Victor (3114), le budget en dollars coupé AVANT l'appel (3115), le ping-pong et la profondeur (3116), demander /
+# assigner / Victor chef (3117), les annonces « Je viens de… » (3118), le budget du jour (3119), la sécurité croisée — Hugo et Margaux inchangés (3120), les points de la journée et le suivi (3121), les réveils après la fermeture (3122),
+# et le VRAI serveur (3123). Établi commun : `tests/banc-autonomie.js`.
+tests/test-3113.js
+tests/test-3114.js
+tests/test-3115.js
+tests/test-3116.js
+tests/test-3117.js
+tests/test-3118.js
+tests/test-3119.js
+tests/test-3120.js
+tests/test-3121.js
+tests/test-3122.js
+tests/test-3123.js

@@ -9,7 +9,8 @@
      · elle ne compte dans AUCUN plafond (quinze annonces d'un agent n'entament pas ses douze messages), ne réveille PERSONNE (aucun appel), n'est jamais une racine ni une mention ;
      · elle ne se répète pas pour la même tâche — même après un redémarrage ; un code inconnu n'écrit rien ;
      · le pont (`surAjout`) en reçoit une copie ; une rafale de 35 donne UNE ligne « ×35 » ;
-     · un agent qui vient de fermer annonce encore ce qu'il avait fini ; une tâche qui expire se dit. */
+     · un agent qui vient de fermer annonce encore ce qu'il avait fini ; une tâche qui expire se dit.
+   Modules joués : server/agent-faits.js, server/agents.js, server/conversations.js, server/agent-equipe.js. */
 'use strict';
 const { monter, rep, outil, S } = require('./banc-autonomie');
 let ok = 0, ko = 0;

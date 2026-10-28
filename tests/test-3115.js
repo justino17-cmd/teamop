@@ -7,7 +7,8 @@
      · un nouveau message de Justin ouvre un NOUVEAU budget ;
      · un redémarrage entre deux retrouve les dollars par ce que les messages ont coûté ;
      · le coût de chaque appel est bien celui des `usage` (la somme se lit sur la racine) ;
-     · une relance (un second appel dans un même réveil) ne part pas si la racine est déjà close. */
+     · une relance (un second appel dans un même réveil) ne part pas si la racine est déjà close.
+   Modules joués : server/agent-equipe.js, server/conversations.js, server/cerveau.js. */
 'use strict';
 const { monter, rep, outil, S } = require('./banc-autonomie');
 let ok = 0, ko = 0;

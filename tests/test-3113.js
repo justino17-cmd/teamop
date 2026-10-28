@@ -6,7 +6,8 @@
      · le budget de la racine : 20 messages d'agents (40 si Justin cite six agents ou @tous), 6 par agent (8 pour Victor), 4 dollars ; au-delà, `racine_close` / `racine_agent` ;
      · `peutParler` rend les MÊMES refus que `parler` et n'écrit RIEN ;
      · soixante racines par heure : le jeton du pont volé n'en fabrique pas plus ;
-     · les dollars d'une racine se retrouvent au registre après un redémarrage. */
+     · les dollars d'une racine se retrouvent au registre après un redémarrage.
+   Modules joués : server/conversations.js. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const { monter, S } = require('./banc-autonomie');

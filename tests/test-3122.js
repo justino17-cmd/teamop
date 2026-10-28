@@ -4,7 +4,8 @@
    Les VRAIS `agents.js` + `agents-horaires.js` (l'horloge est injectée : mercredi 28 octobre 2026, heure d'hiver — Paris = UTC + 1), `conversations.js`, `agent-equipe.js`, `cerveau.js` ; un faux Anthropic.
      · l'agent qui répond après 18 h le fait SOUS `sousRacine` : il agit, MAIS `peutAgir` rend `horsHeures:true` — la même chose que l'astreinte — donc toute porte qui écrit à un client le refuse encore ;
      · à 18 h 37 (45 min après 17 h 52) et au-delà : plus de tolérance ;
-     · une racine née après la fermeture ne donne rien ; l'arrêt, la pause et le budget restent bloquants. */
+     · une racine née après la fermeture ne donne rien ; l'arrêt, la pause et le budget restent bloquants.
+   Modules joués : server/agent-equipe.js, server/agents.js, server/agents-horaires.js. */
 'use strict';
 const { monter, rep, S } = require('./banc-autonomie');
 let ok = 0, ko = 0;

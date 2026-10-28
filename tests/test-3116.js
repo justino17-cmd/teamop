@@ -7,7 +7,8 @@
      · ABAB AVEC un acte (une tâche prise) : pas de coupure — la chaîne va jusqu'à la profondeur 6 ;
      · la profondeur : 6 sous racine, 3 sans (le message d'un agent écrit de lui-même) ;
      · `REVEILS_AGENT_MAX` = 4, qu'aucun banc ne gardait : un message d'agent qui en cite six n'en réveille que quatre ;
-     · l'arrêt est un arrêt, pas un silence : ce qui a été dit reste, et les lignes de « limite » n'existent pas. */
+     · l'arrêt est un arrêt, pas un silence : ce qui a été dit reste, et les lignes de « limite » n'existent pas.
+   Modules joués : server/agent-equipe.js, server/agents.js, server/conversations.js. */
 'use strict';
 const { monter, rep, outil, S } = require('./banc-autonomie');
 let ok = 0, ko = 0;

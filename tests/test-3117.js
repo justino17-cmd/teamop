@@ -7,7 +7,8 @@
        Hugo et Margaux : `consigne_libre_refusee`, aucune tâche née ; deux demandes au plus par réponse ;
      · Victor est le MENEUR et un membre des quatre groupes ; son prompt dit qu'il est le chef, celui des autres non ; le bloc « Travail en cours dans l'équipe » dit qui fait déjà quoi ;
      · Victor répartit depuis un titulaire non chargé, vers un collègue qui a moins de trois tâches — les autres gardent la règle d'avant ; Hugo et Margaux restent exclus ;
-     · ACTIONS_MAX = 6 ; `ecrire` dans le fil du réveil est permis quand il cite un collègue de plus. */
+     · ACTIONS_MAX = 6 ; `ecrire` dans le fil du réveil est permis quand il cite un collègue de plus.
+   Modules joués : server/agent-equipe.js, server/agents.js, server/conversations.js. */
 'use strict';
 const { monter, rep, outil, S } = require('./banc-autonomie');
 let ok = 0, ko = 0;

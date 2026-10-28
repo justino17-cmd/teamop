@@ -7,7 +7,8 @@
      · la synthèse de Victor voit TOUTES les réponses, ET la demande d'origine reste dans la fenêtre qu'il lit ;
      · une réponse de tous : 300 caractères, sans outil, sans réflexion ; « RAS » ne s'écrit pas ;
      · un second @tous juste après ne trouve aucun plafond ; un message qui ne cite personne ne réveille que Victor ;
-     · le budget de la racine n'est jamais atteint par un @tous normal. */
+     · le budget de la racine n'est jamais atteint par un @tous normal.
+   Modules joués : server/agent-equipe.js, server/conversations.js, server/cerveau.js. */
 'use strict';
 const { monter, rep, S } = require('./banc-autonomie');
 let ok = 0, ko = 0;

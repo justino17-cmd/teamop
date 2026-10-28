@@ -6,7 +6,8 @@
        outils délégables) — ce que le modèle écrit dans l'entrée de l'outil ne les crée pas ;
      · Emma (qui ENVOIE un courriel à un prospect) n'est pas dans la table ; Sarah, Victor (réunions) et Camille (brouillons) y sont ;
      · une chaîne qui ne naît pas d'un message de Justin (un texte de client relayé par le module du courrier d'un agent) n'a pas de racine : plafonds d'avant, profondeur 3, aucun champ de chef ;
-     · `consigner` refuse toujours Hugo et Margaux hors Justin, `passerConsigne` aussi — pour Victor aussi. */
+     · `consigner` refuse toujours Hugo et Margaux hors Justin, `passerConsigne` aussi — pour Victor aussi.
+   Modules joués : server/agent-equipe.js, server/agents.js, server/conversations.js. */
 'use strict';
 const { monter, rep, outil, S } = require('./banc-autonomie');
 let ok = 0, ko = 0;

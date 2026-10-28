@@ -4,7 +4,8 @@
        inventaient ; ces nombres sont ceux de `agents.bilan`, et rien d'autre ;
      · Victor reçoit « Journée de l'équipe » (les seize, compilée par le code) : il fait le point SANS réveiller personne, même quand des agents sont à l'arrêt ;
      · le jour est celui de PARIS : ce qui a été terminé hier n'est pas « aujourd'hui » ;
-     · le suivi : une tâche prise sans mouvement depuis quatre heures est relancée UNE fois, dans UN message groupé qui cite trois titulaires au plus, jamais Hugo ni Margaux par « @ ». */
+     · le suivi : une tâche prise sans mouvement depuis quatre heures est relancée UNE fois, dans UN message groupé qui cite trois titulaires au plus, jamais Hugo ni Margaux par « @ ».
+   Modules joués : server/agent-equipe.js, server/agent-victor.js, server/agents.js. */
 'use strict';
 const { monter, rep, outil, S } = require('./banc-autonomie');
 let ok = 0, ko = 0;
