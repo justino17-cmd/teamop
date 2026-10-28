@@ -110,11 +110,12 @@ console.log('\n── 3117 · demander, assigner, Victor chef ──');
     const H = monter({ script: () => rep('Ok.') });
     H.agents.consigner('justin', 'camille', 'Reprendre les courriels de la semaine');
     H.agents.consigner('justin', 'chloe', 'Préparer le devis du restaurant');
-    for (let i = 1; i <= 12; i++) H.agents.consigner('justin', 'jules', 'Tâche numéro ' + i + ' de Jules');
+    for (let i = 1; i <= 12; i++) H.agents.consigner('justin', 'jules', 'Tâche numéro ' + i + ' de Jules');   // dix seulement : CONSIGNES_PAR_AGENT
+    for (let i = 1; i <= 2; i++) H.agents.consigner('justin', 'theo', 'Tâche numéro ' + i + ' de Théo');
     await H.justin('lea', 'Léa, où en est-on ?');
     const sl = H.appels[0].system;
     vrai('⛔ Léa voit le bloc : titulaire + titre court de chacun', /Travail en cours dans l’équipe[\s\S]*- camille : « Reprendre les courriels de la semaine »[\s\S]*- chloe : « Préparer le devis du restaurant »/.test(sl));
-    v('…douze lignes au plus (14 tâches en cours chez trois agents)', (/\nTravail en cours dans l’équipe \(titulaire[^\n]*\n((?:- [^\n]*\n?)+)/.exec(sl)[1].match(/^- /gm) || []).length, 12);
+    v('…douze lignes au plus (14 tâches en cours chez quatre agents)', (/\nTravail en cours dans l’équipe \(titulaire[^\n]*\n((?:- [^\n]*\n?)+)/.exec(sl)[1].match(/^- /gm) || []).length, 12);
     await H.justin('equipe', 'Victor, un point ?');
     const sv = H.appels.find(a => a.id === 'victor').system;
     vrai('Victor, lui, garde « Tâches en cours de l\'équipe (pour redistribuer) » avec les identifiants, pas le bloc court', /Tâches en cours de l’équipe \(pour redistribuer\)/.test(sv) && !/\nTravail en cours dans l’équipe \(titulaire/.test(sv));
