@@ -12,6 +12,12 @@ Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici 
 de ligne du tout.
 
 ---
+# 🧑‍💼 28 OCTOBRE 2026 — LA FONCTION DE CHAQUE AGENT SOUS SON NOM DANS OP MESSAGES (branche `claude/opmsg-roles-liste`)
+Justin, devant ses seize agents : « le nom de l'agent et les fonctions, Théo il fait quoi, qui gère quoi ». Le pont rangeait déjà le rôle dans le statut du robot ; la LISTE ne le montrait
+pas. `convListe` rend `autre.statut` ; `resume()` en fait `sousTitre` (80 signes, vide pour un groupe, un compte supprimé, une invitation) ; `ligneConv()` l'écrit sous le nom
+(`.conv-role`, l'aperçu passe sur une ligne), l'en-tête ouvert aussi (`.conv-titre-role`). Vaut pour toute personne qui a écrit un statut. `test-3099` joue les trois morceaux.
+
+---
 
 # 🌉 28 OCTOBRE 2026 (JOUR) — LES AGENTS DE LA TOUR DANS OP MESSAGES : LE CODE EST PRÊT, LA MISE EN SERVICE ATTEND JUSTIN
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur

@@ -1718,9 +1718,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         if (p.corps_ch && !p.supprime_le && clair === null) o.apercu.illisible = true;
       }
       if (l.type === 'direct') {
-        const a = Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, p.etat FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid <> ?`).get(l.id, uid);
+        const a = Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, p.etat, p.statut FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid <> ?`).get(l.id, uid);
         if (a) {
-          o.autre = { id: a.id, prenom: a.prenom, nom: a.nom, avatar: avatarPour(uid, a.id, a.avatar_piece) };
+          /* le STATUT de l'autre voyage avec la liste (28 octobre 2026, Justin : « le nom de l'agent et sa fonction, qui gère quoi ») : pour un robot du pont c'est son rôle
+             (« Sauvegardes et données »), pour une personne ce qu'elle a choisi de montrer sous son nom — la même chose que Contacts, sans une requête de plus par ligne */
+          o.autre = { id: a.id, prenom: a.prenom, nom: a.nom, avatar: avatarPour(uid, a.id, a.avatar_piece), statut: a.statut || '' };
           if (mesBloques.has(a.id)) o.bloque = true;      // sa directe reste dans ma liste, en lecture seule (jamais dit à l'autre : le champ n'existe que chez celui qui a bloqué)
           if (a.etat === 'supprime') o.autre.supprime = true;   // ⛔ un compte supprimé n'a plus de nom : la page écrit « Compte supprimé » (un historique reste, comme chez WhatsApp)
         }
