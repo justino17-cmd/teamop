@@ -38,6 +38,9 @@ app.html y est en v778 ; `beta.html` et `demo.html` générés ; **rien n'est po
   nom du client passent à la ligne (`_pdfEnLignes`). (11) moyens de paiement d'ELAN — **vrai** : liste neutre hors 3D, la valeur déjà rangée reste proposée. (12) publication : **vrai**,
   les commits de cette branche touchent `demo.html` et `sw.js` ; `scripts/verifier-publication-bete.sh` refuse tout autre fichier que `beta.html` et `REPRISE.md` — à lancer avant de
   bâtir le commit qui part sur `main`.
+  **Contre-épreuves de la relecture (28 octobre, nuit)** : 15 mutations (`mutations-relecture-nettoyage.py`, scratchpad) — les 15 mordent ; les 30 d'avant aussi (la M9, mal visée après la correction du constat 6, est réécrite). Douze bancs
+  dont le bac à sable extrait `emptyState`, `toast` ou `delItem` ont reçu `boxTxt`/`libBox`/`moyensPaiementOptions` (1130, 1132, 1134, 1163, 1200, 1260, 1440, 1524, 2840, 2841, 784, 794) ; suite complète : 735 suites, ~41 425 vérifications,
+  seules `test-1670` et `test-2705` sautent (`server-courrier/node_modules` manque ici) ; quelques chronos (788, 1007, 1012…) tombent sous une charge de 40 et repassent seuls.
 - **Le serveur de l'assistant devis** est fait à part (branche `claude/devis-metier`, `server/devis-metier.js`) : il lit `t` et `metier` envoyés par cette v778. Tant qu'il n'est pas
   déployé, l'assistant garde la consigne 3D : décocher « Assistant devis » pour l'entreprise de nettoyage dans la Tour.
 - **Chemin pour que l'entreprise voie tout ça** : (1) sur la **bêta** (`teamop.fr/beta.html`, accès délivré par la Tour) : Paramètres → Outils de bêta → « 🧰 Tester un métier » =
