@@ -82,7 +82,7 @@ for (let i = 0; i < args.length; i++) {
   else if (T === null) T = a;
   else refus(2, 'un seul identifiant à la fois.');
 }
-const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 const NOMS_NORM = new Set(NOMS.map(norm));
 if (NOMS_NORM.has('')) refus(2, '--nom ne peut pas être vide.');
 

@@ -122,6 +122,7 @@ for (const n of ['writeFileSync', 'appendFileSync']) { const o = fs[n]; const w 
 { const o = fs.renameSync; fs.renameSync = function (a, b) { note({ op: 'rename', de: String(a), vers: String(b) }); return o.call(this, a, b); }; }
 { const o = fs.copyFileSync; fs.copyFileSync = function (a, b, ...r) { note({ op: 'copy', p: String(b) }); return o.call(this, a, b, ...r); }; }
 { const o = fs.createWriteStream; fs.createWriteStream = function (p, ...r) { note({ op: 'stream', p: String(p) }); return o.call(this, p, ...r); }; }
+{ const o = fs.rmSync; fs.rmSync = function (p, ...r) { note({ op: 'rm', p: String(p) }); return o.call(this, p, ...r); }; }
 { const o = fs.truncateSync; fs.truncateSync = function (p, ...r) { note({ op: 'truncate', p: String(p) }); return o.call(this, p, ...r); }; }
 `);
 
@@ -213,11 +214,11 @@ console.log(JSON.stringify({ e: c(${JSON.stringify(t)}, 'entreprise'), a: c(${JS
   service('inactive');
   {
     const R = fabriquer('r', T);
-    ecrire(R.data, 'usage.json', '{ tronqué');
+    ecrire(R.data, 'usage.json', 'zorglub.qwxy@exemple-zz.fr');
     const av = empreinte(R.data, R.cfg);
     const r = lancer(R, [T, '--faire']);
     v('⛔ --faire avec un registre illisible (usage.json) : code 4', r.code, 4);
-    vrai('…il nomme le fichier, sans en citer le contenu', /usage\.json/.test(r.texte) && !/tronqu/.test(r.texte));
+    vrai('…il nomme le fichier, sans en citer le contenu', /usage\.json/.test(r.texte) && !/zorglub/.test(r.texte));
     v('…RIEN n\'est écrit, même pas le blocage (tout est lu avant la première écriture)', empreinte(R.data, R.cfg), av);
     const R2 = fabriquer('r2', T); fs.unlinkSync(path.join(R2.data, 'espaces.json'));
     v('⛔ --faire sans espaces.json (TEAMOP_DATA mal pointé ?) : code 4', lancer(R2, [T, '--faire']).code, 4);
@@ -265,9 +266,9 @@ console.log(JSON.stringify({ e: c(${JSON.stringify(t)}, 'entreprise'), a: c(${JS
   v('(e) archive : a1 supprimé, a2 garde « Autre Société »', mon.archive.map(i => [i.id, i.entreprises.map(e => e.nom)]), [['a2', ['Autre Société']]]);
   v('(e) l\'entreprise qui reste est exactement comme avant', mon.issues[0].entreprises[0], monAvant.issues[1].entreprises[1]);
   v('(e) users : intacts', mon.users, monAvant.users);
-  v('(e) journal : +1 ligne, par l\'outil, sans donnée', [mon.journal.length, mon.journal[1].qui, mon.journal[1].ok, mon.journal[1].motif], [2, 'outil nettoyer-espace-orphelin', true, 'espace orphelin nettoyé']);
-  vrai('(e) …cette ligne ne contient aucune adresse, aucun jeton semé', !/@/.test(JSON.stringify(mon.journal[1])) && SEMES.every(s => !JSON.stringify(mon.journal[1]).includes(s)));
-  v('(e) actions (le Journal de la Tour) : +1 geste, l\'ancien intact', [mon.actions.length, mon.actions[0], mon.actions[1].qui], [2, monAvant.actions[0], 'outil nettoyer-espace-orphelin']);
+  v('(e) journal : +1 ligne, par l\'outil, sans donnée', [mon.journal.length, (mon.journal[1] || {}).qui, (mon.journal[1] || {}).ok, (mon.journal[1] || {}).motif], [2, 'outil nettoyer-espace-orphelin', true, 'espace orphelin nettoyé']);
+  vrai('(e) …cette ligne ne contient aucune adresse, aucun jeton semé', mon.journal.length === 2 && !/@/.test(JSON.stringify(mon.journal[1])) && SEMES.every(s => !JSON.stringify(mon.journal[1]).includes(s)));
+  v('(e) actions (le Journal de la Tour) : +1 geste, l\'ancien intact', [mon.actions.length, mon.actions[0], (mon.actions[1] || {}).qui], [2, monAvant.actions[0], 'outil nettoyer-espace-orphelin']);
   vrai('droits conservés (640 / 600 / 644…) et aucun temporaire laissé', Object.entries(modes).every(([f, m]) => (fs.statSync(path.join(A.data, f)).mode & 0o777) === m)
     && [A.data, A.cfg].every(d => !fs.readdirSync(d).some(x => /\.tmp$/.test(x))) && (fs.statSync(path.join(A.cfg, 'monitor.json')).mode & 0o777) === 0o600);
 
@@ -277,7 +278,18 @@ console.log(JSON.stringify({ e: c(${JSON.stringify(t)}, 'entreprise'), a: c(${JS
   vrai('population : le crochet a vu des opérations (' + r.crochet.length + ') dont ' + renames.length + ' renommages', r.crochet.length > 0 && renames.length >= finals.length);
   v('⛔ chacun des ' + finals.length + ' fichiers modifiés est atteint par EXACTEMENT un renommage, depuis un temporaire de son propre dossier', finals.map(p => renames.filter(x => x.vers === p && path.dirname(x.de) === path.dirname(p) && /\.tmp$/.test(x.de)).length), finals.map(() => 1));
   v('⛔ aucun fichier final n\'est jamais ouvert ni écrit EN PLACE', r.crochet.filter(x => x.op !== 'rename' && finals.includes(x.p)).length, 0);
-  v('…toute écriture passe par un temporaire (nom en .tmp)', r.crochet.filter(x => x.op !== 'rename' && !/\.tmp$/.test(x.p)).map(x => x.p), []);
+  v('…toute écriture passe par un temporaire (nom en .tmp)', r.crochet.filter(x => x.op !== 'rename' && x.op !== 'rm' && !/\.tmp$/.test(x.p)).map(x => x.p), []);
+
+  /* l'ORDRE : le blocage d'abord (comme la route de suppression), puis les registres, puis les dossiers, puis bugs.jsonl, le journal en dernier */
+  {
+    const nomDe = (p) => path.basename(p);
+    const seq = r.crochet.filter(x => x.op === 'rename' || x.op === 'rm').map(x => x.op === 'rm' ? 'rm:' + path.basename(x.p) : 'mv:' + nomDe(x.vers));
+    const idx = (n) => seq.indexOf(n);
+    const registres = ['connexions.json', 'usage.json', 'ordres.json', 'acces.json', 'comptes.json', 'devis-acces.json', 'subscriptions.json', 'mailboxes.json'].map(f => idx('mv:' + f));
+    vrai('population : ' + seq.length + ' étapes d\'écriture vues dans l\'ordre, dont le blocage, 8 registres, des dossiers, bugs.jsonl, monitor.json', seq.length >= 14 && idx('mv:entreprises-fermees.json') >= 0 && registres.every(i => i >= 0) && idx('rm:' + T) >= 0 && idx('mv:bugs.jsonl') >= 0 && idx('mv:monitor.json') >= 0);
+    v('⛔ le BLOCAGE est la toute première écriture (avant tout registre, tout dossier)', idx('mv:entreprises-fermees.json'), 0);
+    vrai('…les registres avant les dossiers, les dossiers avant bugs.jsonl, le journal de monitor.json en tout dernier', Math.max(...registres) < Math.min(...seq.map((x, i) => x.startsWith('rm:') ? i : 1e9)) && Math.max(...seq.map((x, i) => x.startsWith('rm:') ? i : -1)) < idx('mv:bugs.jsonl') && idx('mv:monitor.json') === seq.length - 1);
+  }
 
   /* ═══ 6. LA SORTIE : DES NOMBRES, JAMAIS UNE ADRESSE NI UN NOM ═══ */
   const toutes = SORTIES.join('\n');
