@@ -65,11 +65,15 @@
  *   inscriptionCourriel  true pour OUVRIR les inscriptions par adresse e-mail (« comme Discord ») ; absent ou autre chose : fermées (503 `inscription_fermee`). Il faut aussi un relais (`courriel`).
  *   admin         {secret}   L'ADMINISTRATION de la console interne (`admin.js`) : 64 hexadécimaux, posés par `configurer-admin.js` (saisie masquée) ; la MÊME valeur se pose côté relais. Absent, les routes
  *                                `/api/admin/*` sont INERTES (404) ; invalide (pas 64 hexadécimaux, trop régulier, égal à la clé maître, une autre clé que `secret`), le démarrage est refusé.
+ *   pont          {actif, secretSha256, justin}   Le PONT DES AGENTS (`pont-agents.js`, 28 octobre 2026) : la messagerie des seize agents de la Tour passe sur OP MESSAGES. `secretSha256` : l'EMPREINTE SHA-256 (64
+ *                                hexadécimaux) d'un secret que la Tour présente (`X-OPM-Pont`) ; `justin` : l'identifiant de l'accès bêta de Justin. Absent ou `actif` différent de `true` : les routes
+ *                                `/api/pont/*` sont INERTES (404). Bêta seulement ; une empreinte égale à celle de l'administration, ou un bloc invalide, REFUSENT le démarrage.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const { adminConfig } = require('./admin');
+const { pontConfig } = require('./pont-agents');
 
 const INTERDITS = ['/opt/teamop', '/etc/teamop'];
 
@@ -568,6 +572,7 @@ function charger(env = process.env) {
     trajet: trajetConfig(cfg, instance, env),
     courriel: courrielConfig(cfg, instance),
     admin: adminConfig(cfg, kek),   // l'administration de la console interne : absente = INERTE ; invalide = démarrage refusé (voir `admin.js`)
+    pont: pontConfig(cfg, instance, (adminConfig(cfg, kek) || {}).empreinte),   // le pont des agents de la Tour (`pont-agents.js`) : absent = INERTE ; invalide, ou en production = démarrage refusé
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,
