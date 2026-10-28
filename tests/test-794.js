@@ -322,7 +322,7 @@ console.log('\n── 794 · 14. la relecture : le stockage ne se supprime pas, 
     vm.runInContext(`${K_ID.replace('const ', 'var ')}
       var boxView=null, current='boxes', etiq={sel:'a',action:'ajouter'}, COLL_GRP={boxes:'stock',produitsDonnes:'stock'}, views={boxes(){}};
       function visibleBoxes(l){ return __vus===null?(l||[]).slice():(l||[]).filter(b=>__vus.includes(b.id)); }
-      function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){} function go(v){ current=v; }
+      function boxTxt(s){ return s; } function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){} function go(v){ current=v; }
       function logEvent(){} function canCat(){ return true; } function can(){ return true; } function permGarde(){ return true; }
       function confirm(m){ __conf.push(m); return true; } function ptPeutCorriger(){ return true; }
       function boxDonneOublier(){} function ecranDetail(f){ __ouvert.push(boxView); } function rendreDirige(){} function renderBoxDetail(){}
@@ -343,7 +343,7 @@ console.log('\n── 794 · 14. la relecture : le stockage ne se supprime pas, 
   v('contre-épreuve : une box ordinaire se supprime toujours, après confirmation', [W.db.boxes.some(b => b.id === 'bxN'), W.__conf.length], [false, 1]);
   const RBD = bloc('function renderBoxDetail(){');
   vrai('la fiche du stockage n’offre pas la corbeille (le bouton est conditionné à « pas le stockage »)', /\$\{!stk&&canCat\('stock','supprimer'\)\?`<button onclick="delItem\('boxes'/.test(RBD), RBD.length);
-  vrai('… et la case du formulaire dit « Stockage actif »', /\$\{estStockage\(b\)\?'Stockage actif':'Box active'\}/.test(bloc('function formBox(id){')));
+  vrai('… et la case du formulaire dit « Stockage actif »', /\$\{estStockage\(b\)\?'Stockage actif':boxTxt\('Box active'\)\}/.test(bloc('function formBox(id){')));
   // b. ouvrir
   W = bac({ db: { boxes: [S(), { id: 'bxN' }] }, vus: ['bxN'] });
   W.openBox('stockage');
