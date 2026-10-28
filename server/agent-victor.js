@@ -85,7 +85,7 @@ module.exports = function agentVictor(ctx) {
     const att = (() => { try { return agents.attentes(); } catch (e) { return null; } })();
     const now = maintenant();
     const inc = lire(() => incidents && incidents.compteurs && incidents.compteurs());
-    const rg = lire(ctx.rgpd), ct = lire(ctx.contrats), co = lire(ctx.courrier), cl = lire(ctx.clients), mx = lire(ctx.alarmes), qa = lire(ctx.qualite);
+    const rg = lire(ctx.rgpd), ct = lire(ctx.contrats), co = lire(ctx.courrier), rp = lire(ctx.reprise), cl = lire(ctx.clients), mx = lire(ctx.alarmes), qa = lire(ctx.qualite);
     let ch = null; try { ch = agents.charge(); } catch (e) { ch = null; }
     const allumes = REG.filter(a => a.id !== ID && agents.modeDe(a.id) !== 'arret').map(a => a.id);
     return {
@@ -100,6 +100,9 @@ module.exports = function agentVictor(ctx) {
         courrierATraiter: co ? num(co.aTraiter) : null,
         demandesClients: cl ? num(cl.demandesEnAttente) : null,
       },
+      /* (28 octobre 2026) « 35 courriels à traiter, personne dessus » : faux dès que Camille en avait lu — le compte ne dit que ce que PERSONNE n'a touché. Ce que Camille a pris ou classé s'ajoute, en nombres. */
+      courrier: co ? { prisParCamilleOuJustin: num(co.enCours), classesParCamille: num(co.classes) } : null,
+      camille: rp ? { examinesAujourdhui: num(rp.examinesAujourdhui), classesAujourdhui: num(rp.classesAujourdhui), derniereReprise: rp.dernierePasse ? num(rp.dernierePasse.ilYAMin) : null } : null,
       plateforme: {
         incidentsOuverts: inc ? inc.ouverts : null, incidentsHauts: inc ? inc.haute : null, incidentsHautsSurs: inc ? inc.hauteSure : null, incidentsSansPersonne: inc ? inc.sansPersonne : null,
         alarmesOuvertes: mx ? num(mx.ouvertes) : null, alarmesCritiques: mx ? num(mx.critiques) : null,
@@ -113,7 +116,7 @@ module.exports = function agentVictor(ctx) {
   const rien = f => {
     const a = f.attendJustin, p = f.plateforme;
     return !(a.validations > 0 || a.rgpdOuvertes > 0 || a.contratsEnAttente > 0 || a.courrierATraiter > 0 || a.demandesClients > 0 || p.incidentsOuverts > 0 || p.alarmesOuvertes > 0
-      || (f.equipe.tachesEnCours && Object.keys(f.equipe.tachesEnCours).length) || (f.qualite && f.qualite.courrielsAReprendre > 0));
+      || (f.equipe.tachesEnCours && Object.keys(f.equipe.tachesEnCours).length) || (f.qualite && f.qualite.courrielsAReprendre > 0) || (f.courrier && f.courrier.classesParCamille > 0));
   };
   /* Le texte du CODE : toujours juste, toujours disponible. */
   function texteDuCode(f) {
@@ -132,6 +135,7 @@ module.exports = function agentVictor(ctx) {
     const lib = e.libres ? e.libres.map(nomDe) : [];
     let t = 'Bonjour Justin, voici le point de ce ' + f.jour + '.';
     t += attend.length ? ' Ce qui t’attend : ' + O.liste(attend) + '.' : ' Rien ne t’attend ce matin.';
+    if (f.courrier && f.courrier.classesParCamille > 0) t += ' Camille a classé ' + nb(f.courrier.classesParCamille, 'courriel', 'courriels') + ' sans réponse à faire (publicités, messages automatiques, courriers de chez nous : ils restent dans le Courrier, rien n’est supprimé).';
     if (plateforme.length) t += ' Côté plateforme : ' + O.liste(plateforme) + '.';
     if (charge.length) t += ' Dans l’équipe : ' + O.liste(charge) + ' en cours' + (lib.length ? ' ; ' + O.liste(lib.slice(0, 4)) + (lib.length === 1 ? ' est libre' : ' sont libres') : '') + '.';
     if (q && q.courrielsAReprendre > 0) t += ' Inès a relevé ' + nb(q.courrielsAReprendre, 'courriel à reprendre', 'courriels à reprendre') + '.';

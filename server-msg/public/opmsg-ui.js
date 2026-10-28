@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '7bdf9add30f7';
+  const OPMSG_BUILD = '820ad1ce7458';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 281;
+  const OPMSG_VERSION = 283;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -218,6 +218,7 @@
       : '<button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
         '<span class="conv-point">' + (c.nonLu ? '<i class="point' + (muette ? ' muet' : '') + '"></i><span class="sr-seul">Non lu</span>' : '') + '</span>') + avatar(c) +
       '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span>' + (muette ? '<span class="conv-sourdine" role="img" aria-label="En sourdine">' + icone('i-sourdine') + '</span>' : '') + '<span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
+      (c.sousTitre ? '<span class="conv-role">' + esc(c.sousTitre) + '</span>' : '') +
       '<span class="conv-apercu" dir="auto">' + (autreCote(c) ? '<span class="conv-etiquette cote-' + coteDe(c) + '">' + NOM_COTE[coteDe(c)] + '</span>' : '') + (c.archive && !etat.listeArchives ? '<span class="conv-etiquette">Archivée</span>' : '') + esc(c.apercu) + '</span></span></button></li>';
   }
   /* ⛔ LES INVITATIONS (7 octobre 2026) : les messages de personnes qui ne sont pas dans mes contacts ne se mêlent pas à mes conversations — une ligne « Invitations » en tête de
@@ -819,7 +820,7 @@
   function rendreEntete(c) {
     const th = c.theme || { fond: 'aucun', bulle: 'defaut' };
     $('conv-ecran').dataset.fond = th.fond; $('conv-ecran').dataset.bulle = th.bulle;      // le thème de CETTE conversation (à moi seul)
-    $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(nomConv(c)) + '</span>' + CHEVRON + '</span>';
+    $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(nomConv(c)) + '</span>' + CHEVRON + '</span>' + (c.sousTitre ? '<span class="conv-titre-role">' + esc(c.sousTitre) + '</span>' : '');
     $('conv-titre').setAttribute('aria-label', c.type === 'reunion' ? nomConv(c) + ' — voir la réunion' : nomConv(c) + ' — infos du ' + genreConv(c) + (CAP.groupeInfos ? '' : ' (bientôt)'));
     $('conv-cam').setAttribute('aria-label', 'Appel vidéo avec ' + c.nom);
     majBanniereSalle(c);                     // (version servie) une salle est ouverte pour cette conversation : la bannière propose d'y entrer
