@@ -87,6 +87,19 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
       refus.push(['⛔ …X-Forwarded-Proto', await nu.get('/api/pont/nouveaux', { entetes: Object.assign({ 'X-Forwarded-Proto': 'https' }, H) })]);
       refus.push(['⛔ une écriture, le bon secret, derrière un proxy', await nu.post('/api/pont/installer', { agents: AGENTS }, { entetes: Object.assign({ 'X-Forwarded-For': '203.0.113.9' }, H), sansOrigine: true, sansEntete: true })]);
       for (const [nom, r] of refus) v(nom + ' : le MÊME 404 qu\'une route inconnue', [r.code, r.txt === inconnue.txt], [404, true]);
+      /* ⛔ LA PREUVE DE LA BOUCLE LOCALE : une connexion qui arrive d'une AUTRE adresse (127.0.0.2 est à la machine, mais n'est pas 127.0.0.1) avec le BON secret est refusée.
+         Sur Linux, toute 127.x répond ; ailleurs l'adresse peut manquer — le banc le DIT au lieu de se taire. */
+      const http = require('http');
+      const depuis = (local, chemin, entetes) => new Promise((resolve) => {
+        const q = http.request({ host: '127.0.0.1', port: svc.port, path: chemin, method: 'GET', localAddress: local, headers: entetes, agent: false }, (r) => { let b = ''; r.on('data', d => { b += d; }); r.on('end', () => resolve({ code: r.statusCode, txt: b })); });
+        q.on('error', (e) => resolve({ erreur: e && e.code })); q.end();
+      });
+      const autre = await depuis('127.0.0.2', '/api/pont/nouveaux', H);
+      if (autre.erreur) console.log('  — 127.0.0.2 absent de cette machine (' + autre.erreur + ') : la preuve « boucle locale » n\'est pas jouée ici');
+      else {
+        v('⛔ le bon secret depuis une AUTRE adresse (127.0.0.2) : le MÊME 404 qu\'une route inconnue', [autre.code, autre.txt === inconnue.txt], [404, true]);
+        v('…et la contre-épreuve : le même appel depuis 127.0.0.1 est admis (409 « pas installé »)', (await depuis('127.0.0.1', '/api/pont/nouveaux', H)).code, 409);
+      }
       const ok = await nu.get('/api/pont/nouveaux', pont);
       v('le bon secret, en direct : 409 « pas installé » (la garde a laissé passer — rien n\'est encore installé)', [ok.code, ok.j.error], [409, 'pont_non_installe']);
       v('…le secret en MAJUSCULES passe aussi (c\'est de l\'hexadécimal)', (await nu.get('/api/pont/nouveaux', { entetes: { 'X-OPM-Pont': SECRET.toUpperCase() } })).code, 409);
