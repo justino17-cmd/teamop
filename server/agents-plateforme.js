@@ -42,7 +42,7 @@ module.exports = function agentsPlateforme(app, ctx) {
   /* Victor lit des relevés fermés ; les alarmes viennent de NOTRE mémoire d'épisodes (ouverts, dont critiques), jamais d'un texte d'incident. */
   const alarmes = () => { const o = etat.ouverts(); return { ouvertes: o.length, critiques: o.filter(e => e.niveau === 'critique').length }; };
   const victor = require('./agent-victor')(Object.assign({}, commun, { rgpd: () => nina.rgpd(), contrats: () => lire(ctx.contrats && ctx.contrats.etat && (() => ctx.contrats.etat())),
-    courrier: ctx.courrier, clients: ctx.clients, alarmes, qualite: () => ines.faits.qualite() }));
+    courrier: ctx.courrier, reprise: ctx.reprise, clients: ctx.clients, alarmes, qualite: () => ines.faits.qualite() }));
   const mods = { max, theo, nina, jules, ines, victor };
 
   /* ── la cadence ── */

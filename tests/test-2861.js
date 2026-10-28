@@ -49,7 +49,7 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
     const reg15 = REGISTRE.map(a => a.id).filter(id => id !== 'hugo');
     let Z = montee();
     v('⛔ la table des rôles couvre EXACTEMENT les quinze du registre hors Hugo (ni oubli, ni agent fantôme)', [Z.m.ids.slice().sort(), Object.keys(AC.ROLES).sort()], [reg15.slice().sort(), reg15.slice().sort()]);
-    vrai('chaque rôle ne demande que des relevés qui existent', Object.values(AC.ROLES).every(r => r.faits.every(f => ['sante', 'equipe', 'courrier', 'clients', 'dossier', 'commercial'].includes(f))));
+    vrai('chaque rôle ne demande que des relevés qui existent', Object.values(AC.ROLES).every(r => r.faits.every(f => ['sante', 'equipe', 'courrier', 'reprise', 'clients', 'dossier', 'commercial'].includes(f))));
     v('Hugo (son module) et un inconnu ne passent pas par ici : rien n’est lu, appelé ni dit', [await Z.m.repondre('hugo', 'x'), await Z.m.repondre('pirate', 'x'), Z.j.penser.length + Z.j.parler.length + Z.j.faits.length], [{ saute: 'pas_de_cerveau' }, { saute: 'pas_de_cerveau' }, 0]);
     v('un module mal monté (sans cerveau) ne répond pas et ne jette pas', await AC({ agents: { AGENTS: REGISTRE }, conversations: {}, cerveau: null }).repondre('max', 'x'), { saute: 'pas_de_cerveau' });
 
@@ -252,18 +252,19 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
   let lignes = 0, toutesFermees = true, illisibles = 0;
   for (const id of QUINZE) for (const l of (lignesFaits(id) || [])) { const j = l.indexOf('{'); if (j < 0) continue; lignes++; let o; try { o = JSON.parse(l.slice(j)); } catch (e) { illisibles++; continue; } if (!fermee(o)) { toutesFermees = false; console.log('      non fermé : ' + l.slice(0, 200)); } }
   /* 23 octobre 2026 (fusion de l'intégration) : 14 lignes d'avant + 1 « facture » de Margaux (`faitsFacture`) + 11 relevés des six agents de la plateforme (`plateforme-roles.js`)
-     + 4 pour le travail commercial de Léa, Camille, Chloé et Louis (le relevé `commercial`) */
-  v('(population) les 30 lignes de faits attendues ont été relevées et lues (sinon « fermé » ne prouve rien sur du vide)', [lignes, illisibles], [30, 0]);
+     + 4 pour le travail commercial de Léa, Camille, Chloé et Louis (le relevé `commercial`)
+     + 2 pour la reprise de l'arriéré de Camille (le relevé `reprise`, lu par Victor ET par Camille — 28 octobre 2026) */
+  v('(population) les 32 lignes de faits attendues ont été relevées et lues (sinon « fermé » ne prouve rien sur du vide)', [lignes, illisibles], [32, 0]);
   vrai('⛔ TOUTES les lignes de faits ne portent que nombres, booléens, valeurs de liste et numéros de dossier', toutesFermees);
-  const quels = id => (lignesFaits(id) || []).map(l => l.split(' ')[0]).filter(x => /^(sante|equipe|courrier|clients|dossier|commercial)$/.test(x)).join(',');
-  const ATTENDU = { victor: 'sante,equipe,courrier,clients', ines: 'sante', camille: 'courrier,dossier,commercial', margaux: 'dossier', lea: 'clients,dossier,commercial', max: 'sante', nina: 'sante', theo: 'sante', jules: 'sante', chloe: 'commercial', emma: '', louis: 'commercial', sarah: '', lola: '', noah: '' };
+  const quels = id => (lignesFaits(id) || []).map(l => l.split(' ')[0]).filter(x => /^(sante|equipe|courrier|reprise|clients|dossier|commercial)$/.test(x)).join(',');
+  const ATTENDU = { victor: 'sante,equipe,courrier,reprise,clients', ines: 'sante', camille: 'courrier,reprise,dossier,commercial', margaux: 'dossier', lea: 'clients,dossier,commercial', max: 'sante', nina: 'sante', theo: 'sante', jules: 'sante', chloe: 'commercial', emma: '', louis: 'commercial', sarah: '', lola: '', noah: '' };
   v('⛔ chaque rôle reçoit SES relevés, et eux seuls', QUINZE.map(id => id + ':' + quels(id)).join(' '), QUINZE.map(id => id + ':' + ATTENDU[id]).join(' '));
   vrai('les quatre sans relevé le disent (« aucun fait n’est fourni ») au lieu de laisser croire à des faits', ['emma', 'sarah', 'lola', 'noah'].every(id => /aucun fait n’est fourni à ton rôle/.test(sys(id))));
   const sante = faitDe('max', 'sante');
   vrai('la santé du serveur vient de /health LOCAL : ok, âge en heures, compteurs — des nombres', sante && sante.ok === true && Number.isFinite(sante.uptimeH) && Number.isFinite(sante.bugs1h) && Number.isFinite(sante.bugs24h) && sante.refus && Number.isFinite(sante.refus.synchro1h) && Number.isFinite(sante.refus.mail) && sante.sauvegarde && 'ageH' in sante.sauvegarde);
   const cour = faitDe('camille', 'courrier');
-  v('⛔ le courrier : 5 à traiter, 3 en cours — les notifications automatiques et la résolue ne comptent pas', cour, { aTraiter: 5, enCours: 3 });
-  v('Victor reçoit le même courrier', faitDe('victor', 'courrier'), { aTraiter: 5, enCours: 3 });
+  v('⛔ le courrier : 5 à traiter, 3 en cours — les notifications automatiques et la résolue ne comptent pas', cour, { aTraiter: 5, enCours: 3, classes: 0 });
+  v('Victor reçoit le même courrier', faitDe('victor', 'courrier'), { aTraiter: 5, enCours: 3, classes: 0 });
   v('les clients : un client, une demande en attente (la demande « injectée » n’en est pas une), aucun espace', faitDe('lea', 'clients'), { clients: 1, demandesEnAttente: 1, espaces: 0 });
   const eq = faitDe('victor', 'equipe');
   vrai('l’équipe : les seize modes (valeurs de la liste) et des comptes de file à zéro', eq && Object.keys(eq.modes).length === 16 && Object.values(eq.modes).every(m => ['arret', 'brouillon', 'auto'].includes(m)) && eq.validationsEnAttente === 0 && eq.tachesEnAttente === 0 && eq.tachesPrises === 0);

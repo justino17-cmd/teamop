@@ -38,7 +38,7 @@ const suivre = Z => { const s = []; Z.mail.suiviMarquer = (mid, o) => { s.push([
     v('ce qui revient à Justin → « en cours », pour Justin', [r.justin, S], [true, [['<c1@banc-3089>', 'enCours', 'Justin']]]); Z.nettoyer();
     Z = monter({ modes: { camille: 'brouillon' }, claude: () => 'CATEGORIE : ignorer' }); S = suivre(Z);
     r = await Z.camille.surNouveauMessage(poser(Z, { mid: '<pub@banc-3089>' }));
-    v('⛔ (gardien) « ignoré » n’écrit RIEN : « résolu » est définitif, une catégorie mal posée ne fait pas disparaître un vrai message', [r.ignore, S.length], [true, 0]); Z.nettoyer();
+    v('⛔ (gardien) « ignoré » ne passe JAMAIS par suiviMarquer (donc jamais « résolu » : définitif, une catégorie mal posée ne ferait pas disparaître un vrai message) — son classement doux est joué par test-3098', [r.ignore, S.length], [true, 0]); Z.nettoyer();
     Z = monter({ modes: { camille: 'arret' }, claude: () => QUESTION }); S = suivre(Z);
     r = await Z.camille.surNouveauMessage(poser(Z, {}));
     v('⛔ un saut (Camille à l’arrêt) n’écrit rien au suivi', [!!r.saute, S.length], [true, 0]); Z.nettoyer();
@@ -163,12 +163,12 @@ const suivre = Z => { const s = []; Z.mail.suiviMarquer = (mid, o) => { s.push([
     const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
     vrai('l’outil de Camille est branché dans la messagerie (getter tardif)', /get camille\(\) \{ return agentCamille && agentCamille\.outilsEquipe; \}/.test(IDX));
     vrai('la route de la Tour existe, réservée au patron, et refuse une seconde reprise (409)', /app\.post\('\/api\/monitor\/agents\/camille\/arriere', monPatronStrict,[\s\S]{0,900}repriseEnCours\(\)\) return res\.status\(409\)/.test(IDX));
-    vrai('Camille ratisse l’arriéré SEULE toutes les 30 minutes, silencieuse quand il n’y a rien', /agentCamille\.reprendreArriere\(3650, \{ silencieux: true \}\)[\s\S]{0,120}\}, 30 \* 60000\)/.test(IDX));
+    vrai('Camille ratisse l’arriéré SEULE toutes les 30 minutes, silencieuse quand il n’y a rien', /const ratisserArriere = \(\) => \{[\s\S]{0,500}agentCamille\.reprendreArriere\(3650, \{ silencieux: true \}\)[\s\S]{0,300}setInterval\(ratisserArriere, 30 \* 60000\)/.test(IDX));
     const CAMS = fs.readFileSync(path.join(RACINE, 'server', 'agent-camille.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
     vrai('⛔ plus aucune limite d’âge à l’arrivée (« ancien » n’est plus un motif)', !/saute: 'ancien'/.test(CAMS));
     const MAIL = fs.readFileSync(path.join(RACINE, 'server', 'mail.js'), 'utf8');
-    vrai('mail.js rend `arriere` et `suiviMarquer`', /return \{ boites: .*arriere, suiviMarquer, suiviLibre \};/.test(MAIL));
-    vrai('⛔ l’arriéré ne lit que les boîtes qu’un agent peut lire (controle@ jamais)', /async function arriere\(jours\) \{[\s\S]{0,400}if \(!boiteAgentOk\(b\)\) continue;/.test(MAIL));
+    vrai('mail.js rend `arriere` et `suiviMarquer`', /return \{ boites: .*arriere, suiviMarquer, suiviClasser, suiviLibre \};/.test(MAIL));
+    vrai('⛔ l’arriéré ne lit que les boîtes qu’un agent peut lire (controle@ jamais)', /async function arriere\(jours, opts\) \{[\s\S]{0,1200}if \(!boiteAgentOk\(b\)\) continue;/.test(MAIL));
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
