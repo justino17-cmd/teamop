@@ -252,10 +252,10 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
     /* ══ 2. LA TOUR — la grille de la demande arrive pré-cochée ══ */
     console.log('\n2. La Tour (les vraies fonctions de tour.html) : la demande arrive avec le choix du client, chaque case expliquée');
     const NOMS_T = ['hAuth', 'apiGet', 'apiPost', 'srvRepond', 'srvMuet', 'msgErreur', 'refMetiersCharger', 'catExpl', 'catsExplicationsPeindre', 'demCatsDepart', 'catsChoixDe', 'demCatsCle', 'demCatsHtml', 'demCatsInfo', 'demCatBasculer',
-      'demCatsTout', 'demCatsRevenir', 'sigleAdr', 'demAccepter', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'metDemande', 'demEspace', 'catsEffet', 'catsPromesse'];
+      'demCatsTout', 'demCatsRevenir', 'sigleAdr', 'demAccepter', 'tourAccepterDemande', 'demPaiement', 'demEstGestion', 'metDemande', 'demEspace', 'catsEffet', 'catsPromesse', 'demCodeReserve', 'demReserveBadge', 'demReserveTexte'];
     const FN_T = NOMS_T.map(n => fonction(TOURN, n));
     const L_MET = ligne(TOURN, /^var MET_L=\{[^\n]*\};$/m), L_CATCLES = ligne(TOURN, /^var CAT_CLES=\[\]; CAT_L\.forEach[^\n]*$/m), CAT_L_SRC = litteral(TOURN, 'var CAT_L=[');
-    vrai('(population) les 26 fonctions de la Tour, la liste des métiers, CAT_L et CAT_CLES sont trouvés dans son code', FN_T.every(Boolean) && !!L_MET && !!L_CATCLES && !!CAT_L_SRC, NOMS_T.filter((n, i) => !FN_T[i]).join(', '));
+    vrai('(population) les 29 fonctions de la Tour, la liste des métiers, CAT_L et CAT_CLES sont trouvés dans son code', FN_T.every(Boolean) && !!L_MET && !!L_CATCLES && !!CAT_L_SRC, NOMS_T.filter((n, i) => !FN_T[i]).join(', '));
     const tour = (clients, plus) => {
       plus = plus || {};
       const toasts = [], panneaux = [], posts = [], el = {}, rend = [];
@@ -272,7 +272,7 @@ console.log('\n── 2892 · le métier et les rubriques, du portail à l\'appl
         espSlugJs: s => String(s), esc: s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;'), jsq: s => String(s), ST: {}, ABN_F: {}, abnEcart: () => '',
         lgMessagePoser: () => {}, tourCopie: () => {}, tourMailAcces: () => {}, srvEtat: () => {}, INJOIGNABLE: 'injoignable', MYROLE: 'patron', TAB: 'demandes', API_X: 1 };
       vm.createContext(ctx);
-      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var DEM={vue:"atraiter",id:{},cats:{}}; var CATS_APPLIQUEES=false; var ENT={loaded:' + (plus.entNonLue ? 'false' : 'true') + ',liste:' + JSON.stringify(plus.ent || []) + '}; var REFM={d:null,err:"",enCours:false}; var CLI={list:' + JSON.stringify(clients) + ', sel:""}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="",LG_MAIL="",LG_ZONE="";\n'
+      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + '; var ABO={abos:[]}; var PRO={loaded:true,err:"",codes:[],actifsTotal:0}; var DEM={vue:"atraiter",id:{},cats:{}}; var CATS_APPLIQUEES=false; var ENT={loaded:' + (plus.entNonLue ? 'false' : 'true') + ',liste:' + JSON.stringify(plus.ent || []) + '}; var REFM={d:null,err:"",enCours:false}; var CLI={list:' + JSON.stringify(clients) + ', sel:""}; var PACK={nom:"",charge:true,err:"",d:null}; var LG_MSG_MODELE="",LG_MAIL="",LG_ZONE="";\n'
         + 'var CAT_L=' + CAT_L_SRC + ';\n' + L_CATCLES + '\n' + L_MET + '\n' + FN_T.join('\n') + '\nthis.__DEM=function(){ return DEM; }; this.__REFM=function(){ return REFM; };', ctx);
       return { ctx, el, toasts, panneaux, posts, rend };
     };
