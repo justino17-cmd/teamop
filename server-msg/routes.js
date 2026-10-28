@@ -21,6 +21,7 @@ const { ID_PIECE } = require('./pieces');
 const { SUPPRESSION_DELAI_MS } = require('./compte');
 const { REUNION_PERSONNES_MAX } = require('./formule');
 const heuresPro = require('./heures-pro');
+const { creerAccepteur, facteurJeune: facteurJeuneDe, REFUS_TRANSCRIPTION } = require('./transcription-accepter');
 
 /* ⛔ ID_INVITE : un invité SANS COMPTE (`g_…`, `stockage.js` migration 30) — jamais un compte : aucune route de compte ne l'accepte, seules la salle (admettre, refuser, exclure, relayer un signal) le nomment */
 const ID_INVITE = /^g_[0-9a-f]{32}$/;
@@ -73,7 +74,7 @@ function creerHandlers(ctx) {
   }
   /* Un compte public de moins de 24 h a des limites plus basses (SERVEUR.md § 3.6). Un accès bêta
      n'est pas un compte public : ses testeurs ne sont pas des inconnus. */
-  const facteurJeune = (moi) => (moi.origine !== 'beta' && horloge() - moi.cree < JOUR) ? 1 / 3 : 1;
+  const facteurJeune = (moi) => facteurJeuneDe(moi, horloge);
 
   function erreurStockage(res, e) {
     switch (e && e.code) {
@@ -891,30 +892,19 @@ function creerHandlers(ctx) {
      (sinon dix relectures d'un vocal déjà transcrit épuisaient la journée) ; · chaque refus dit le vrai : l'ouvrier en panne n'est pas « beaucoup de vocaux » (`transcription_indisponible`),
      la file pleine, si (`transcription_occupee`), ses propres vocaux encore en calcul se disent à part (`transcription_en_cours`), le budget de secondes de l'heure se dit avec son attente (`transcription_budget`) ; · le budget se
      compte sur la durée du vocal, une personne ne monopolise pas l'ouvrier par des vocaux de dix minutes. */
-  const REFUS_TRANSCRIPTION = { ouvrier_absent: [503, 'transcription_indisponible', 60], occupe: [503, 'transcription_occupee', 60], mes_vocaux: [429, 'transcription_en_cours', 30], budget: [429, 'transcription_budget'], quota: [429, 'quota_atteint'] };
   H['msg.transcrire'] = (req, res) => {
     const tr = ctx.transcription;
     if (!tr || !tr.configure) return refus(res, 503, 'transcription_absente');
     const s = seqCorps(req, res); if (s === null) return;
     const conv = req.conv.conv.id, uid = req.moi.id;
-    let attente = 0;
-    const accepter = (travail) => {
-      if (!tr.actif()) return 'ouvrier_absent';
-      if (!tr.placeLibre()) return 'occupe';
-      if (!tr.placeLibre(uid)) return 'mes_vocaux';
-      attente = tr.budgetAttente(uid, travail.dur);
-      if (attente > 0) return 'budget';
-      const q = Object.assign({ max: tr.parHeure(), fenetreMs: 3600000 }, config.quotas.transcrire || {});
-      const r = quotas.essai('transcrire:' + uid, Math.max(1, Math.floor(q.max * facteurJeune(req.moi))), q.fenetreMs);
-      if (!r.ok) { attente = r.retry; return 'quota'; }
-      return null;
-    };
+    /* ⛔ la règle qui décide si un travail part vit dans `transcription-accepter.js` : le pont des agents passe par la MÊME */
+    const acc = creerAccepteur({ tr, quotas, config, horloge }, uid, req.moi), accepter = acc.accepter;
     let r;
     try { r = stockage.transcriptionDemander({ conv, seq: s, uid, essaisMax: tr.essais(), dureeMaxS: tr.dureeMaxS(), accepter }); }
     catch (e) {
       const d = e && REFUS_TRANSCRIPTION[e.code];
       if (!d) throw e;
-      const retry = d[2] || attente || 60;
+      const retry = d[2] || acc.attente() || 60;
       res.set('Retry-After', String(retry));
       return refus(res, d[0], d[1], { retry });
     }

@@ -17,7 +17,7 @@ Deux fichiers de code, deux services, **un secret** :
 
 | | fichier | rôle |
 |---|---|---|
-| OP MESSAGES | `server-msg/pont-agents.js` | cinq routes `/api/pont/*` (installer, poster, nouveaux, supprimer, avatar), gardées comme l'administration : boucle locale, aucun en-tête de proxy, secret `X-OPM-Pont` comparé à son **empreinte**. Inertes (404) sans bloc `pont`. |
+| OP MESSAGES | `server-msg/pont-agents.js` | six routes `/api/pont/*` (installer, poster, nouveaux, supprimer, avatar, transcrire), gardées comme l'administration : boucle locale, aucun en-tête de proxy, secret `X-OPM-Pont` comparé à son **empreinte**. Inertes (404) sans bloc `pont`. |
 | Tour | `server/pont-messages.js` | installe au démarrage, recopie chaque message du registre (file bornée, réessai), importe l'historique avec ses dates, lit ce que Justin écrit/supprime et le fait entrer par `justinEcrit` — **le même chemin que la route de la Tour** (mentions, réveil des agents), et **envoie les photos** (visages des agents, groupes, Système). |
 | les deux | `server-msg/configurer-pont.js` | pose le pont **dans les deux configurations d'un coup**, secret saisi masqué ou fabriqué sur place. |
 
@@ -147,10 +147,48 @@ Les noms de fichiers viennent des listes fixes (agents, groupes du registre), ja
 ⚠️ **Ce que ça ne fait pas** : si Justin **change** la photo d'un groupe dans OP MESSAGES, la Tour ne la remet pas (l'empreinte source n'a pas bougé) ; pour remplacer un visage,
 remplacer le fichier de `icons/agents/` et déployer (l'empreinte change, la photo est renvoyée). Un groupe supprimé puis recréé par l'installation perd sa photo, qui est renvoyée.
 
+## Les vocaux de Justin (28 octobre 2026)
+
+Justin : « ça serait bien qu'ils puissent lire ça [mes vocaux] ». Il envoie un vocal dans OP MESSAGES et **ne touche à rien** : le pont demande lui-même la transcription (`POST /api/pont/transcrire`,
+au nom de Justin, **par le même chemin et les mêmes budgets que « Voir la transcription »** — 2 vocaux en calcul par personne, 900 s de vocal par heure, 30 calculs par heure), puis le texte entre au
+registre de la Tour comme un texte de Justin, **marqué « 🎤 »**. L'agent du fil (ou le cité, ou le meneur du groupe) répond comme à un texte ; ses règles disent que « 🎤 » est un vocal transcrit par
+une machine, où des mots peuvent être faux.
+
+| ce qui arrive | ce que Justin voit dans le fil |
+|---|---|
+| le texte est prêt | rien de plus : l'agent répond |
+| l'ouvrier est occupé, le budget de l'heure est épuisé | rien : le pont retente toutes les 20 s (ou à l'attente que le service annonce), pendant 15 minutes au plus |
+| rien entendu (silence) | « Je n'ai rien entendu dans ton vocal : il n'a pas été transmis. » |
+| un calcul échoue | une seconde demande toute seule ; au second échec : « Ton vocal n'a pas pu être transcrit… Touche « Voir la transcription » sous ton vocal pour réessayer, et je le transmettrai. » |
+| la transcription n'est pas installée sur le serveur | « La transcription des vocaux n'est pas installée sur le serveur : ton vocal n'a pas été transmis. » |
+| le vocal dépasse ce que l'ouvrier transcrit (5 minutes) | « Ton vocal est trop long pour être transcrit… » |
+| 15 minutes sans texte | « …délai dépassé : il n'a pas été transmis. » — et si le texte arrive plus tard, il est quand même transmis |
+
+* **Il ne dépend pas de l'ordre de déploiement** : une Tour d'avant lit le vocal comme « autre » (la note d'avant) ; un service d'avant n'envoie pas l'événement `transcription`.
+* **Supprimer le vocal** dans OP MESSAGES retire aussi son texte du registre (le lien est posé comme pour un texte). Le texte de plus de 2 400 signes (≈ deux minutes de parole) est coupé à un mot et marqué « […] ».
+* **Les vocaux en attente sont rangés avec le curseur** (`pont-messages.json`, champ `vocaux`) : un redémarrage de la Tour ne les oublie pas.
+* ⚠️ **Le texte du vocal va aux agents, donc à Anthropic, comme un texte écrit** (`sous-traitance.html`). La transcription, elle, se calcule sur notre serveur : aucune voix ne sort.
+* ⚠️ **Une ligne « Transcription en cours… » ne dure plus des heures** : une ligne que ni la file ni le calcul en cours ne portent (pose perdue) devient un échec dit au bout de 20 s (avant : 2 h 28).
+
+**Ce qu'il faut sur le VPS** : l'ouvrier de transcription d'OP MESSAGES (whisper.cpp). Sans lui, tout ce qui précède reste vrai mais le vocal est dit « non transmis ». Rien à poser du côté de la Tour.
+
+```bash
+# 1. l'ouvrier est-il là ? (rien de secret ne s'affiche)
+curl -s https://msg-beta.teamop.fr/health          # chercher "transcription":{"configuree":true,"ok":true,…
+# 2. s'il manque ("configuree":false) ou est tombé ("ok":false) : (re)lancer l'installation, qui est rejouable
+curl -fsSL https://raw.githubusercontent.com/justino17-cmd/teamop/main/server-msg/install-transcription.sh -o /root/install-transcription.sh
+bash /root/install-transcription.sh beta          # compile whisper.cpp (quelques minutes), modèle ~1,3 Go en mémoire ; défait tout si une étape échoue
+# 3. voir ce que le service dit de l'ouvrier (issues seulement : jamais un texte)
+systemctl status opmsg-transcrire@beta --no-pager | head -8
+journalctl -u teamop-msg@beta --since "-2h" --no-pager | grep -i transcription | tail -20
+```
+
+Le déploiement de ce code d'abord (OP MESSAGES, puis la Tour : l'ordre est sans importance). Mode d'emploi complet de l'ouvrier : `design/opmessages/INSTALLER-LE-SERVEUR.md`, section « La transcription des vocaux ».
+
 ## Ce que le pont ne fait PAS (à savoir, pas à découvrir)
 
-- **Le texte seulement.** Une photo, un vocal, un sondage de Justin n'arrive pas aux agents ; le pont le lui dit dans le fil
-  (une fois par dix minutes). Les agents, eux, n'envoient que du texte.
+- **Le texte et les vocaux.** Une photo ou un sondage de Justin n'arrive pas aux agents ; le pont le lui dit dans le fil
+  (une fois par dix minutes). Son vocal, lui, est transcrit et lu (voir « Les vocaux » plus bas). Les agents n'envoient que du texte.
 - **Une modification de message dans OP MESSAGES ne revient pas** à la Tour (le message d'origine y reste lu par les agents).
 - **« Supprimer pour moi »** d'un message d'agent, dans une conversation directe, vaut suppression (Justin est seul à lire ces fils) ;
   dans un groupe il est administrateur et supprime « pour tous ». Un **rappel client non lu** ne se supprime pas depuis
@@ -172,6 +210,6 @@ en file. À la maison : `journalctl -u teamop-msg@beta`, et `--verifier` ci-dess
 
 ## Les bancs
 
-`test-3094` (le vrai service : gardes, installer, poster, nouveaux, supprimer, avatar), `test-3095` (le vrai serveur de la Tour + le vrai service + un faux
+`test-3094` (le vrai service : gardes, installer, poster, nouveaux, supprimer, avatar, transcrire — avec un faux ouvrier), `test-3095` (le vrai serveur de la Tour + le vrai service + un faux
 Anthropic : historique, direct, réveil des agents, suppressions dans les deux sens, panne), `test-3096` (le module de la Tour contre un faux
-service : file, attente, rattrapage, bandeau), `test-3097` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
+service : file, attente, rattrapage, bandeau), `test-3097` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py` ; les vocaux : `scratchpad/mutations-vocaux.py`.

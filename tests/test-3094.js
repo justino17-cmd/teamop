@@ -14,6 +14,9 @@
    · avatar (les PHOTOS, 28 octobre 2026) : une image posée sur un robot ou sur un groupe, en UNE transaction, SANS message système ; refus de toute cible hors de la table (une directe,
      une clé héritée) ; 411 / 413 / 415 ; l'empreinte du corps REÇU vérifiée ; la même empreinte ne réécrit rien ; l'ancienne photo disparaît (ligne ET fichier) ; Justin lit la pièce
      par la vraie route, une personne étrangère au pont n'y a pas droit ; `installer` rend ce qui est déjà posé.
+   · transcrire (LES VOCAUX, 28 octobre 2026) : un vocal de Justin sort de `nouveaux` comme `genre:'vocal'` (sa durée, jamais sa pièce) ; `POST /api/pont/transcrire` en demande le texte par le MÊME
+     chemin et les MÊMES budgets que la page (un seul calcul par vocal, l'ouvrier reçoit les octets exacts) ; le texte revient en événement `transcription` (prête, vide, échec) ; chaque refus est un
+     200 `{ ok:false, raison }` (jamais un 404, que la Tour prend pour un secret refusé) — absente, indisponible, occupée, « mes vocaux », budget, trop long, introuvable ; le plafond du pont.
    Il saute de lui-même sans `server-msg/node_modules` (comme les autres bancs du service). */
 'use strict';
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -28,6 +31,27 @@ const SECRET = crypto.randomBytes(32).toString('hex'), SECRET_ADMIN = crypto.ran
 const H = { 'X-OPM-Pont': SECRET };
 const AGENTS = [{ id: 'victor', nom: 'Victor', role: 'Chef d’orchestre' }, { id: 'lea', nom: 'Léa', role: 'Onboarding et fidélisation' }, { id: 'max', nom: 'Max', role: 'Sentinelle' }];
 const GROUPES = [{ fil: 'equipe', nom: 'Équipe', membres: ['victor', 'lea', 'max'] }, { fil: 'clients', nom: 'Clients', membres: ['lea'] }];
+
+/* LE FAUX OUVRIER DE TRANSCRIPTION (comme `test-1000`) : il note chaque travail (octets, langue, secret) et répond quand le banc le lui dit */
+const SECRET_OUVRIER = 'OuvrierPont-BANC-' + 'Zk'.repeat(18);
+function fauxOuvrier() {
+  const o = { travaux: [], enAttente: [], sansSecret: 0, panne: false };
+  o.serveur = http.createServer((q, r) => {
+    const rep = (code, j) => { r.writeHead(code, { 'content-type': 'application/json' }); r.end(JSON.stringify(j)); };
+    if (o.panne) { q.socket.destroy(); return; }
+    if (q.headers.authorization !== 'Bearer ' + SECRET_OUVRIER) { o.sansSecret++; q.resume(); return rep(401, { error: 'non_autorise' }); }
+    if (q.method === 'GET' && q.url === '/sante') { q.resume(); return rep(200, { ok: true, sha: 'banc0000', occupe: false }); }
+    if (q.method === 'POST' && q.url === '/transcrire') {
+      const morceaux = []; q.on('data', d => morceaux.push(d));
+      q.on('end', () => { const t = { octets: Buffer.concat(morceaux), langue: q.headers['x-langue'], repondre: rep }; o.travaux.push(t); o.enAttente.push(t); });
+      return;
+    }
+    q.resume(); rep(404, { error: 'introuvable' });
+  });
+  o.ecouter = () => new Promise(ok => o.serveur.listen(0, '127.0.0.1', () => { o.port = o.serveur.address().port; ok(); }));
+  o.relacher = (code, j) => { const t = o.enAttente.shift(); if (t) t.repondre(code, j); return !!t; };
+  return o;
+}
 let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
 
 (async () => {
@@ -517,6 +541,123 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
       const adm = await T.client(svc.base).get('/api/admin/sante', { entetes: { 'X-OPM-Admin': SECRET_ADMIN } });
       v('l\'administration continue de servir avec SON secret (le pont ne l\'a pas déplacée)', adm.code, 200);
       v('⛔ et le secret du pont n\'ouvre pas l\'administration', (await T.client(svc.base).get('/api/admin/sante', { entetes: { 'X-OPM-Admin': SECRET } })).code, 404);
+    }
+
+    /* ── 11 · les vocaux de Justin ── */
+    console.log('\n11. Les vocaux : le pont demande le texte, par le même chemin et les mêmes budgets que la page');
+    {
+      const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
+      /* ① un service SANS ouvrier : « absente » — un 200, jamais un 404 (la Tour prendrait un 404 pour un secret refusé) */
+      const sonVocal = async (cl, cv, marque, dur) => {
+        const corps = Buffer.concat([P.webm(3000), Buffer.from('VOCAL-' + marque)]);
+        const d = await P.deposer(cl, { conv: cv, genre: 'vocal', corps });
+        const m = await cl.post('/api/conversations/' + cv + '/messages', { cid: cid(), type: 'vocal', piece: d.j.id, dur, bars: [6, 14, 18, 10, 16, 6, 12, 18, 9, 14] });
+        return { corps, seq: m.j.seq, code: m.code };
+      };
+      const vA = await sonVocal(justin, conv.Victor, 'A', 4);
+      v('(population) le vocal de Justin est parti (201)', vA.code, 201);
+      const sans = await nu.post('/api/pont/transcrire', { fil: 'victor', seq: vA.seq }, pont);
+      v('⛔ sans ouvrier installé : 200 { ok:false, raison:"absente" } (JAMAIS un 404 ni un 5xx : la Tour les prend pour un refus du secret ou une panne)', [sans.code, sans.j], [200, { ok: false, raison: 'absente' }]);
+      const nvA = (await nu.get('/api/pont/nouveaux?depuis=0', pont)).j.evenements.filter(x => x.type === 'message' && x.genre === 'vocal');
+      v('⛔ le vocal sort de `nouveaux` comme `genre:"vocal"` : sa durée et son numéro, AUCUN texte et AUCUNE pièce', nvA.map(x => [x.fil, x.seq, x.texte, x.dur, Object.keys(x).sort().join(',')]), [['victor', vA.seq, null, 4, 'dur,fil,genre,gid,seq,texte,ts,type']]);
+      const sondage = await justin.post('/api/conversations/' + conv.Victor + '/messages', { type: 'sondage', cid: cid(), question: 'On fait quoi ?', choix: ['a', 'b'] });
+      v('(contre-épreuve) un sondage de Justin reste "autre", sans texte : la Tour garde sa note « ne lisent que le texte »', (await nu.get('/api/pont/nouveaux?depuis=0', pont)).j.evenements.filter(x => x.seq === sondage.j.seq).map(x => [x.genre, x.texte]), [['autre', null]]);
+      v('⛔ un fil inconnu : 400 ; un numéro absent du corps : 400 ; sans secret : le même 404 que toute route inconnue',
+        [(await nu.post('/api/pont/transcrire', { fil: 'inconnu', seq: 1 }, pont)).code, (await nu.post('/api/pont/transcrire', { fil: 'victor' }, pont)).code, (await nu.post('/api/pont/transcrire', { fil: 'victor', seq: vA.seq })).code], [400, 400, 404]);
+
+      /* ② un service AVEC ouvrier */
+      const W = fauxOuvrier(); await W.ecouter();
+      const trCfg = { url: 'http://127.0.0.1:' + W.port, secret: SECRET_OUVRIER, sondeMs: 60, delaiSondeMs: 1000, delaiBaseMs: 5000, delaiParSMs: 100, file: 3, parPersonne: 2, budgetHeureS: 50, essais: 2, parHeure: 20, dureeMaxS: 60 };
+      const s2 = await T.lancerService({ urlGestion: og.url, config: { pont: { actif: true, secretSha256: sha(SECRET), justin: ACCES_JUSTIN }, transcription: trCfg } });
+      try {
+        const n2 = T.client(s2.base);
+        await n2.post('/api/pont/installer', { agents: AGENTS, groupes: GROUPES }, pont);
+        const j2 = await T.connecter(s2, og, 'justin', 'pw-justin-3090');
+        const c2 = (await j2.get('/api/conversations')).j.conversations.find(c => c.type === 'direct' && c.autre.prenom === 'Victor').id;
+        vrai('(population) l\'ouvrier est sondé et répond', await att(async () => { const h = (await (await fetch(s2.base + '/health')).json()).transcription; return h && h.ok === true; }));
+        const top = (await n2.get('/api/pont/nouveaux', pont)).j.curseur;
+        const v1 = await sonVocal(j2, c2, 'B', 4);
+        const ev1 = await att(async () => (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.some(x => x.genre === 'vocal'));
+        vrai('le vocal de Justin remonte', !!ev1);
+        const r1 = await n2.post('/api/pont/transcrire', { fil: 'victor', seq: v1.seq }, pont);
+        v('le pont demande le texte : { ok:true, etat:"attente" }', [r1.code, r1.j], [200, { ok: true, etat: 'attente' }]);
+        await att(() => W.travaux.length === 1);
+        vrai('⛔ l\'ouvrier reçoit les octets EXACTS du vocal (déchiffrés par le service), le secret de l\'ouvrier, la langue de l\'auteur', W.travaux[0].octets.equals(v1.corps) && W.travaux[0].langue === 'fr' && W.sansSecret === 0);
+        v('⛔ redemander pendant le calcul ne relance rien : UN seul travail, toujours « attente »', [(await n2.post('/api/pont/transcrire', { fil: 'victor', seq: v1.seq }, pont)).j.etat, W.travaux.length], ['attente', 1]);
+        W.relacher(200, { ok: true, texte: 'Bonjour JETON-QWZK, peux-tu faire le point sur la semaine ?', langue: 'fr' });
+        const ev2 = await att(async () => (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.find(x => x.type === 'transcription'));
+        const t2 = (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.find(x => x.type === 'transcription');
+        vrai('(population) l\'événement `transcription` est là', !!ev2 && !!t2);
+        v('⛔ le texte revient en événement : fil, numéro, état, texte, langue — et rien d\'autre', t2 && [t2.fil, t2.seq, t2.etat, t2.texte, t2.langue, Object.keys(t2).sort().join(',')], ['victor', v1.seq, 'prete', 'Bonjour JETON-QWZK, peux-tu faire le point sur la semaine ?', 'fr', 'etat,fil,gid,langue,seq,texte,type']);
+        v('redemander un vocal déjà transcrit : { ok:true, etat:"prete" }, aucun calcul de plus', [(await n2.post('/api/pont/transcrire', { fil: 'victor', seq: v1.seq }, pont)).j, W.travaux.length], [{ ok: true, etat: 'prete' }, 1]);
+
+        /* le texte long : au-delà de la portée d'un événement (2 048 octets), le pont relit le texte ENTIER */
+        const long = ('mot' + 'a'.repeat(5) + ' ').repeat(500).trim();      // ~3 500 signes
+        const vL = await sonVocal(j2, c2, 'L', 3);
+        await n2.post('/api/pont/transcrire', { fil: 'victor', seq: vL.seq }, pont); await att(() => W.travaux.length === 2);
+        W.relacher(200, { ok: true, texte: long, langue: 'fr' });
+        const tL = await att(async () => (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.find(x => x.type === 'transcription' && x.seq === vL.seq));
+        const tL2 = (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.find(x => x.type === 'transcription' && x.seq === vL.seq);
+        v('⛔ un texte de plus de 2 048 octets arrive ENTIER (le pont relit ce que l\'événement n\'a pas porté)', [!!tL, tL2 && tL2.etat, tL2 && tL2.texte === long], [true, 'prete', true]);
+
+        /* les états qui ne sont pas un texte : vide, échec (retentable, puis définitif) */
+        const vV = await sonVocal(j2, c2, 'V', 3);
+        await n2.post('/api/pont/transcrire', { fil: 'victor', seq: vV.seq }, pont); await att(() => W.travaux.length === 3);
+        W.relacher(200, { ok: true, texte: '', langue: 'fr' });
+        const tV = await att(async () => (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.find(x => x.type === 'transcription' && x.seq === vV.seq));
+        v('un vocal sans parole : { etat:"vide" }, aucun texte', tV && (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.filter(x => x.seq === vV.seq && x.type === 'transcription').map(x => [x.etat, x.texte]), [['vide', undefined]]);
+        const vE = await sonVocal(j2, c2, 'E', 3);
+        await n2.post('/api/pont/transcrire', { fil: 'victor', seq: vE.seq }, pont); await att(() => W.travaux.length === 4);
+        W.relacher(500, { error: 'echec', etape: 'sortie' });
+        await att(async () => (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.some(x => x.seq === vE.seq && x.etat === 'echec'));
+        const redemande = await n2.post('/api/pont/transcrire', { fil: 'victor', seq: vE.seq }, pont);
+        v('⛔ un échec se RETENTE (le pont redemande) : { ok:true, etat:"attente" }, un second calcul part', [redemande.j, await att(() => W.travaux.length === 5)], [{ ok: true, etat: 'attente' }, true]);
+        W.relacher(500, { error: 'echec', etape: 'sortie' });
+        await att(async () => (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements.filter(x => x.seq === vE.seq && x.etat === 'echec').length === 2);
+        const defin = await n2.post('/api/pont/transcrire', { fil: 'victor', seq: vE.seq }, pont);
+        v('…puis, les essais épuisés (2), l\'échec est DÉFINITIF et l\'ouvrier n\'est plus appelé', [defin.j, W.travaux.length], [{ ok: true, etat: 'echec', definitif: true }, 5]);
+
+        /* les refus : tous des 200 { ok:false, raison } */
+        const refus = async (seq) => (await n2.post('/api/pont/transcrire', { fil: 'victor', seq }, pont));
+        v('⛔ un numéro qui n\'existe pas : { ok:false, raison:"introuvable" } — un 200', [(await refus(99999)).code, (await refus(99999)).j], [200, { ok: false, raison: 'introuvable' }]);
+        const txt = await j2.post('/api/conversations/' + c2 + '/messages', { cid: cid(), texte: 'un simple texte' });
+        v('⛔ un message qui n\'est PAS un vocal : "introuvable" (le pont ne devine pas ce qu\'il ne peut pas transcrire)', (await refus(txt.j.seq)).j, { ok: false, raison: 'introuvable' });
+        const vLong = await sonVocal(j2, c2, 'T', 120);
+        v('⛔ un vocal plus long que ce que transcrit l\'ouvrier (60 s) : "trop_long"', (await refus(vLong.seq)).j, { ok: false, raison: 'trop_long' });
+        const robot = (await nu.post('/api/pont/poster', { messages: [{ fil: 'victor', de: 'victor', texte: 'Réponse de Victor', cid: cid() }] }, pont)).j.resultats[0].seq;
+        v('⛔ un message d\'un ROBOT n\'est pas transcrit non plus (c\'est un texte)', (await refus(robot)).j, { ok: false, raison: 'introuvable' });
+
+        /* le budget de l'heure et la place par personne : les MÊMES que ceux de la page */
+        const consomme = []; for (const m of ['p1', 'p2']) consomme.push(await sonVocal(j2, c2, m, 5));
+        const rp1 = await refus(consomme[0].seq), rp2 = await refus(consomme[1].seq);
+        const vTrois = await sonVocal(j2, c2, 'p3', 5);
+        const rp3 = await refus(vTrois.seq);
+        v('⛔ DEUX vocaux de Justin en calcul au plus : le troisième est refusé "mes_vocaux" (la règle de la page, pas une règle de plus)', [rp1.j.etat, rp2.j.etat, rp3.j.raison], ['attente', 'attente', 'mes_vocaux']);
+        const pageRefus = await j2.post('/api/conversations/' + c2 + '/messages/transcrire', { seq: vTrois.seq });
+        v('…et la PAGE, au nom de la même personne, est refusée de la même façon (429 transcription_en_cours) : un seul compteur', [pageRefus.code, pageRefus.j.error], [429, 'transcription_en_cours']);
+        const suivant = async (texte) => { await att(() => W.enAttente.length > 0); W.relacher(200, { ok: true, texte, langue: 'fr' }); };      // l'ouvrier ne prend qu'UN travail à la fois : on relâche celui qui est arrivé
+        await suivant('un');
+        await att(async () => (await refus(vTrois.seq)).j.etat === 'attente');                                                  // une place s'est libérée : le troisième part
+        await suivant('deux'); await suivant('trois');
+        await att(async () => { const e = (await n2.get('/api/pont/nouveaux?depuis=' + top, pont)).j.evenements; return [consomme[0].seq, consomme[1].seq, vTrois.seq].every(q => e.some(x => x.seq === q && x.etat === 'prete')); });
+        const vBudget = await sonVocal(j2, c2, 'bud', 55);
+        v('⛔ le BUDGET de secondes de l\'heure (50 s) se compte sur les vocaux du pont comme sur ceux de la page : "budget", avec son attente', [(await refus(vBudget.seq)).j.raison, (await refus(vBudget.seq)).j.attente > 0], ['budget', true]);
+        v('…et la page voit le même budget épuisé (429 transcription_budget)', (await j2.post('/api/conversations/' + c2 + '/messages/transcrire', { seq: vBudget.seq })).j.error, 'transcription_budget');
+
+        /* l'ouvrier en panne */
+        W.panne = true;
+        await att(async () => (await (await fetch(s2.base + '/health')).json()).transcription.ok === false, 8000);
+        const vPanne = await sonVocal(j2, c2, 'panne', 3);
+        v('⛔ l\'ouvrier ne répond plus : "indisponible" (un 200 — la Tour retentera, pas de panne du pont)', (await refus(vPanne.seq)).j, { ok: false, raison: 'indisponible' });
+        W.panne = false;
+
+        /* ③ le plafond du pont lui-même */
+        const reps = []; for (let i = 0; i < 75; i++) reps.push((await n2.post('/api/pont/transcrire', { fil: 'victor', seq: 99999 }, pont)).code);
+        v('⛔ au-delà de 60 demandes par minute : 429 quota_atteint (un emballement de la Tour s\'arrête ici)', [reps.includes(429), (await n2.post('/api/pont/transcrire', { fil: 'victor', seq: 99999 }, pont)).j.error], [true, 'quota_atteint']);
+        const sortie2 = s2.sortie.texte();
+        v('⛔ ni le secret du pont ni celui de l\'ouvrier dans les journaux du service', [sortie2.includes(SECRET), sortie2.includes(SECRET_OUVRIER)], [false, false]);
+        v('⛔ ni le texte d\'un vocal (JETON-QWZK) dans les journaux', sortie2.includes('JETON-QWZK'), false);
+      } finally { await s2.arreter(); try { W.serveur.close(); } catch (e) {} }
     }
     fluxJ.fermer();
   } finally {

@@ -344,19 +344,23 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
       if (transport) { const e = transport; transport = null; throw e; }
       return new Promise((ok) => tenus2.push(ok));
     };
-    const enAttente = new Set();
+    const enAttente = new Set(), portees2 = [];
     const stockage2 = { transcriptionPoser: (x) => { poses2.push(x); enAttente.delete(x.conv + '|' + x.seq); return { gid: 1 }; }, transcriptionsInterrompues: () => 0,
-      transcriptionEnAttente: (conv, seq) => enAttente.has(conv + '|' + seq), transcriptionsEchues: (avant) => { echues.push(avant); return 0; } };
+      transcriptionEnAttente: (conv, seq) => enAttente.has(conv + '|' + seq), transcriptionsEchues: (avant, portees) => { echues.push(avant); portees2.push(portees); return 0; } };
     const pieces2 = { lire: async function* (id) { if (id === 'f_illisible') throw Object.assign(new Error('introuvable'), { code: 'introuvable' }); yield Buffer.from('OCTETS-' + id); } };
     let maintenant2 = 5000000;
     const M2 = creerTranscription({ cfg: { url: 'http://127.0.0.1:7860', secret: SECRET, dureeMaxS: 300, file: 5, parPersonne: 2, budgetHeureS: 10, essais: 3, parHeure: 30, sondeMs: 3600000, delaiSondeMs: 1000, delaiBaseMs: 1000, delaiParSMs: 10 },
       stockage: stockage2, pieces: pieces2, hub: { reveiller: () => {} }, octetsMax: 1000, sha: 'abc1234', horloge: () => maintenant2, appeler: appeler2, journal: () => {} });
     await M2.sonder();
-    v('⛔ la sonde ramasse les lignes « en attente » trop vieilles : au-delà du temps qu\'une file PLEINE met à se vider (6 × 4 s — le délai d\'un travail est celui du PLUS LONG vocal)', echues, [5000000 - 6 * (1000 + 300 * 10)]);
+    v('⛔ la sonde ramasse d\'abord les lignes ORPHELINES (que ni la file ni le calcul ne portent) après 20 s, puis — en dernier recours — les lignes « en attente » plus vieilles que ce qu\'une file PLEINE met à se vider (6 × 4 s — le délai d\'un travail est celui du PLUS LONG vocal)', echues, [5000000 - 20000, 5000000 - 6 * (1000 + 300 * 10)]);
+    vrai('⛔ …et elle donne au filet des orphelines l\'ENSEMBLE des travaux portés (ici aucun : un Set vide) — sans lui, toute ligne vieille de 20 s serait ramassée, même celle d\'un calcul en cours', portees2[0] instanceof Set && portees2[0].size === 0 && portees2[1] === undefined);
     const mettre = (seq, piece, uid, dur) => { enAttente.add('c_x|' + seq); return M2.mettreEnFile({ conv: 'c_x', seq, piece, dur: dur || 2, uid }); };
 
     mettre(1, 'f_un', 'u_ana');
     await T.attendre(() => tenus2.length === 1, 2000, 5);
+    await M2.sonder();
+    const dernieres = portees2[portees2.length - 2];
+    v('⛔ UNE LIGNE QUE PORTE LE MODULE N\'EST PAS UNE ORPHELINE : le calcul EN COURS est dans l\'ensemble donné au filet (« Transcription en cours… » ne se change pas en échec pendant un vrai calcul)', dernieres instanceof Set ? [...dernieres].sort() : null, ['c_x#1']);
     tenus2.shift()(new Response(JSON.stringify({ error: 'echec', etape: 'sortie' }), { status: 500 }));
     await T.attendre(() => poses2.length === 1, 2000, 5);
     v('⛔ un vocal que whisper rate (500 « sortie ») : CE vocal en échec, l\'ouvrier reste actif (sinon n\'importe qui coupait la transcription de tous)', [poses2[0].etat, M2.actif()], ['echec', true]);

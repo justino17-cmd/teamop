@@ -5,7 +5,7 @@
  * Tour : OP MESSAGES devient le transport et l'écran. Ce fichier est le côté OP MESSAGES. Le côté Tour est `server/pont-messages.js` (il APPELLE ce service en boucle locale ;
  * ⛔ `server-msg/` n'importe toujours JAMAIS `server/`).
  *
- * ⛔ INERTE PAR DÉFAUT. Sans `pont: { actif: true, secretSha256, justin }` dans la configuration de l'instance, les cinq routes répondent le MÊME 404 qu'une route inconnue. Bêta
+ * ⛔ INERTE PAR DÉFAUT. Sans `pont: { actif: true, secretSha256, justin }` dans la configuration de l'instance, les six routes répondent le MÊME 404 qu'une route inconnue. Bêta
  * seulement pour l'instant (Justin : « d'abord sur la bêta ») : en production, un bloc `pont` REFUSE le démarrage.
  *
  * ⛔ LA GARDE `PT` — LES TROIS PREUVES DE L'ADMINISTRATION (`admin.js`), AVEC SON PROPRE SECRET. nginx relaie TOUT le public depuis 127.0.0.1 : « la connexion vient de la boucle locale »
@@ -29,6 +29,13 @@
  *   GET  /api/pont/nouveaux?depuis=<curseur>   Ce que JUSTIN a fait dans les conversations du pont depuis le curseur : ses messages (texte) et les suppressions (pour tous OU pour lui).
  *       Sans `depuis`, rend seulement le curseur d'aujourd'hui. → { ok, curseur, plein, evenements:[{gid,type:'message',fil,seq,texte|null,genre,ts}|{gid,type:'suppression',fil,seq,pour}] }
  *       Les messages que le pont a lui-même recopiés de la Tour (`cid` « tour-… ») n'y sont JAMAIS : ils ne reviennent pas à leur source.
+ *       ⛔ LES VOCAUX (28 octobre 2026) : un vocal de Justin sort ici comme `{type:'message', genre:'vocal', texte:null, dur}` (jamais la pièce) ; et un événement `{type:'transcription', fil, seq, etat:'prete'|'vide'|'echec',
+ *       texte?, langue?}` dit ce que l'ouvrier a rendu (le texte ENTIER, relu quand il dépasse la portée d'un événement), pour un vocal DE JUSTIN seulement. Une Tour d'avant ne connaît ni l'un ni l'autre : le vocal est
+ *       « autre » pour elle, l'événement `transcription` est ignoré — un déploiement dans n'importe quel ordre reste juste.
+ *   POST /api/pont/transcrire { fil, seq }   La Tour DEMANDE le texte d'un vocal de Justin (il ne touche pas « Voir la transcription ») — par le MÊME chemin que la page (`transcriptionDemander` : les droits de lecture,
+ *       UN seul calcul par vocal) et le MÊME accepteur (`transcription-accepter.js` : ouvrier, file, place par personne, budget de secondes de l'heure, plafond horaire) ; Justin n'a aucun passe-droit.
+ *       → 200 { ok:true, etat:'attente'|'prete'|'vide'|'echec', definitif? } · 200 { ok:false, raison, attente? } avec raison : absente (rien d'installé) · indisponible (l'ouvrier ne répond pas) · occupee ·
+ *       mes_vocaux · budget · trop_long · introuvable. ⛔ TOUJOURS un 200 : la Tour prend un 404 pour « le service refuse mon secret » et un 5xx pour une panne (elle attend, réinstalle). 429 au-delà de 60 demandes/min.
  *   POST /api/pont/supprimer  { fil, seq }   Retire un message POUR TOUS (la Tour l'a supprimé). → { ok }
  *   POST /api/pont/avatar?cible=<id>   LA PHOTO d'un robot ou d'un groupe. Corps BRUT `application/octet-stream` (une image : le service juge la SIGNATURE aux octets, jamais le nom ni le type annoncé,
  *       et retire les métadonnées — `pieces.deposer`, le seul chemin d'écriture d'un fichier image), `Content-Length` OBLIGATOIRE (411), au plus `pieces.avatarMax` (413), `X-OPM-Empreinte: <64 hexadécimaux>` = le
@@ -43,6 +50,7 @@
 'use strict';
 const crypto = require('crypto');
 const { ENTETES_PROXY } = require('./admin');
+const { creerAccepteur } = require('./transcription-accepter');
 
 const ENTETE = 'x-opm-pont';
 const RE_SECRET = /^[0-9a-fA-F]{64}$/;
@@ -58,6 +66,7 @@ const SYSTEME = { id: 'systeme', nom: 'Système', role: 'Ce qui se passe dans l�
 const MSG_MAX = 8000, LOT_MAX = 25, AGENTS_MAX = 40, GROUPES_MAX = 20;
 const PAR_MINUTE_AVATAR = 120;                // photos par minute (un démarrage de la Tour en envoie 21, une à la fois) : de la décompression d'image à chaque appel, donc un budget à part, plus bas
 const RE_EMPREINTE = /^[0-9a-fA-F]{64}$/;
+const PAR_MINUTE_TRANSCRIRE = 60;               // demandes de transcription du pont par minute : bien au-dessus d'un usage réel (le plafond de la page est de 30 TRAVAUX par heure), bien sous un emballement de la Tour
 const PAR_MINUTE = 900;                        // lots du pont par minute : un emballement côté Tour s'arrête ici (l'import tient en ~30 lots)
 const sha256 = (x) => crypto.createHash('sha256').update(x).digest();
 const INVISIBLE = /^[\s\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u00ad]*$/u;
@@ -124,7 +133,7 @@ function installerPont(H, ctx) {
     const gerer = (e) => { const r = e && REFUS_STOCKAGE[e.code]; if (r) return refus(res, r[0], r[1]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(gerer); } catch (e) { gerer(e); }
   };
-  const bilan = { installs: 0, postes: 0, refuses: 0, importes: 0, suppressions: 0, avatars: 0 };
+  const bilan = { installs: 0, postes: 0, refuses: 0, importes: 0, suppressions: 0, avatars: 0, transcriptions: 0 };
 
   /* ── La table du pont : { v, justin, espace, robots:{agent→uid}, fils:{fil→conv}, membres:{fil→[agents]} } — dans la base (`meta`), donc avec ses sauvegardes ── */
   function lireTable() {
@@ -389,12 +398,59 @@ function installerPont(H, ctx) {
         if (typeof d.cid === 'string' && d.cid.startsWith('tour-')) continue;   // ce que le pont a recopié de la Tour n'y retourne pas
         const x = stockage.messageATransferer(d.conv, d.seq, t.justin);
         if (!x) continue;                                                         // déjà supprimé, masqué ou échu : rien à faire entrer
-        evenements.push({ gid: e.gid, type: 'message', fil, seq: d.seq, genre: x.type === 'texte' && !x.meta ? 'texte' : 'autre', texte: x.type === 'texte' && !x.meta && typeof x.texte === 'string' ? x.texte : null, ts: d.ts });
+        /* un VOCAL se dit `genre:'vocal'` (28 octobre 2026) : la Tour en demande la transcription (`POST /api/pont/transcrire`) puis la lit dans un événement `transcription`. Une Tour d'AVANT ne connaît pas
+           ce genre et le traite comme « autre » (la note « ne lisent que le texte ») — un déploiement dans n'importe quel ordre reste juste. `dur` : des secondes, jamais l'identifiant de la pièce. */
+        const texte = x.type === 'texte' && !x.meta;
+        const ev = { gid: e.gid, type: 'message', fil, seq: d.seq, genre: texte ? 'texte' : (x.type === 'vocal' ? 'vocal' : 'autre'), texte: texte && typeof x.texte === 'string' ? x.texte : null, ts: d.ts };
+        if (ev.genre === 'vocal') ev.dur = x.meta && Number.isFinite(x.meta.dur) ? x.meta.dur : 0;
+        evenements.push(ev);
+      } else if (e.event === 'transcription') {
+        /* ⛔ seulement la transcription d'un vocal DE JUSTIN (les droits de lecture sont ceux de `materialiser` : il ne voit que ce qu'il voit). Le texte d'un vocal d'un autre — il n'y en a pas dans ces
+           conversations, mais la règle ne repose pas sur ce constat — n'a aucun chemin jusqu'aux agents. */
+        const x = stockage.messageATransferer(d.conv, d.seq, t.justin);
+        if (!x || x.type !== 'vocal' || x.auteur !== t.justin) continue;
+        const ev = { gid: e.gid, type: 'transcription', fil, seq: d.seq, etat: d.etat === 'prete' || d.etat === 'vide' || d.etat === 'echec' ? d.etat : 'echec' };
+        if (d.etat === 'prete') {
+          let texte = typeof d.texte === 'string' ? d.texte : null;
+          if (texte === null && d.relis === true) { const vue = stockage.transcriptionVue(d.conv, d.seq, x.auteur); texte = vue && vue.etat === 'prete' && typeof vue.texte === 'string' ? vue.texte : null; }     // au-delà de la portée d'un événement : on relit le texte entier
+          if (texte === null) ev.etat = 'echec'; else { ev.texte = texte; if (typeof d.langue === 'string') ev.langue = d.langue; }
+        }
+        evenements.push(ev);
       } else if (e.event === 'message_supprime' && (d.pour === 'tous' || d.pour === 'moi')) {
         evenements.push({ gid: e.gid, type: 'suppression', fil, seq: d.seq, pour: d.pour });
       }
     }
     res.json({ ok: true, curseur: lu.dernier, plein: lu.plein, evenements });
+  });
+
+  /* ── transcrire : la Tour demande le texte d'un vocal de Justin ── */
+  /* ⛔ Le pont demande LUI-MÊME la transcription (Justin ne touche pas « Voir la transcription ») — mais par le MÊME chemin que la page : `transcriptionDemander` (mêmes droits, un seul calcul par vocal,
+     le vocal doit être visible de Justin) et le MÊME accepteur (ouvrier, file, budget de secondes, plafond horaire). Le curseur de `nouveaux` consomme chaque événement UNE fois : un refus passager
+     (ouvrier occupé, budget) se retente donc ici, par la Tour, qui garde la file et les essais.
+     ⛔ Les refus sont des 200 `{ ok:false, raison }`, JAMAIS des 404 ni des 5xx : la Tour prend un 404 pour « le service refuse mon secret » et un 5xx pour une panne (elle attend, elle réinstalle) — un
+     vocal supprimé ou trop long n'est ni l'un ni l'autre (même leçon que `supprimer`). raison : absente (rien d'installé) · indisponible (l'ouvrier ne répond pas) · occupee · mes_vocaux · budget · trop_long · introuvable. */
+  const RAISON_TRANSCRIPTION = { ouvrier_absent: 'indisponible', occupe: 'occupee', mes_vocaux: 'mes_vocaux', budget: 'budget', quota: 'budget', trop_long: 'trop_long', introuvable: 'introuvable', type: 'introuvable' };
+  H['pont.transcrire'] = garder((req, res) => {
+    const b = corps(req), t = lireTable();
+    if (!t) return refus(res, 409, 'pont_non_installe');
+    if (typeof b.fil !== 'string' || !Object.prototype.hasOwnProperty.call(t.fils, b.fil) || !Number.isInteger(b.seq) || b.seq < 1) return refus(res, 400, 'champ_invalide');
+    const q = quotas.essai('pont:transcrire', PAR_MINUTE_TRANSCRIRE, 60000);
+    if (!q.ok) { res.set('Retry-After', String(q.retry)); return refus(res, 429, 'quota_atteint', { retry: q.retry }); }
+    const tr = ctx.transcription;
+    if (!tr || !tr.configure) return res.json({ ok: false, raison: 'absente' });
+    const conv = t.fils[b.fil], moi = stockage.personneParId(t.justin);
+    if (!moi) return res.json({ ok: false, raison: 'introuvable' });
+    const acc = creerAccepteur({ tr, quotas, config, horloge }, t.justin, moi);
+    let r;
+    try { r = stockage.transcriptionDemander({ conv, seq: b.seq, uid: t.justin, essaisMax: tr.essais(), dureeMaxS: tr.dureeMaxS(), accepter: acc.accepter }); }
+    catch (e) {
+      const raison = e && RAISON_TRANSCRIPTION[e.code];
+      if (!raison) throw e;
+      return res.json(Object.assign({ ok: false, raison }, acc.attente() > 0 ? { attente: acc.attente() } : {}));
+    }
+    if (r.nouveau && r.travail) tr.mettreEnFile(r.travail);
+    bilan.transcriptions++;
+    res.json(Object.assign({ ok: true, etat: r.etat }, r.definitif ? { definitif: true } : {}));
   });
 
   /* ── supprimer : la Tour a supprimé un message ── */

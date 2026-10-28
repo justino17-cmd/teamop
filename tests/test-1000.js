@@ -357,9 +357,12 @@ function fauxOuvrier() {
       try {
         const avant = [S.transcriptionEnAttente(conv, v9c.seq), S.transcriptionsEchues(Date.now() - 3600000), S.transcriptionEnAttente(conv, v9c.seq)];
         const gid0 = S.journalMax();
-        const n = S.transcriptionsEchues(Date.now() + 1000);
+        /* ⛔ (28 octobre 2026) le filet des ORPHELINES : une ligne que le module PORTE encore (dans sa file ou en calcul) ne se ramasse pas, quel que soit son âge — mais une que plus rien ne porte oui */
+        const portee = [S.transcriptionsEchues(Date.now() + 1000, new Set([conv + '#' + v9c.seq])), S.transcriptionEnAttente(conv, v9c.seq)];
+        v('⛔ une ligne « en attente » que le module PORTE encore n\'est pas ramassée (un vrai calcul en cours reste « en cours »)', portee, [0, true]);
+        const n = S.transcriptionsEchues(Date.now() + 1000, new Set());
         const vue = S.transcriptionVue(conv, v9c.seq, alice.id);          // l'auteur du vocal (le texte est scellé à son nom)
-        v('⛔ une ligne « en attente » plus jeune que le seuil reste ; plus vieille, elle devient un échec, journalisé (la page l\'apprend par le flux)',
+        v('⛔ une ligne « en attente » plus jeune que le seuil reste ; plus vieille ET que plus rien ne porte, elle devient un échec, journalisé (la page l\'apprend par le flux)',
           [avant, n, S.transcriptionEnAttente(conv, v9c.seq), vue && vue.etat, S.journalMax() > gid0], [[true, 0, true], 1, false, 'echec', true]);
         v('… et un vocal supprimé n\'a plus de ligne du tout', S.transcriptionEnAttente(conv, v9b.seq), false);
       } finally { S.fermer(); }

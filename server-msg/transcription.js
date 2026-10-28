@@ -24,6 +24,7 @@ const http = require('http');
 
 const RE_LANGUE = /^([a-z]{2,3})(?:[-_][A-Za-z]{2,4})?$/;
 const REPONSE_MAX = 1048576;            // une réponse de l'ouvrier au-delà d'un Mo est refusée en route (un « ouvrier » qui n'en est pas un ne remplit pas la mémoire du service)
+const ORPHELINE_MS = 20000;             // une ligne « en attente » que ni la file ni le calcul en cours ne portent, plus vieille que ça : un échec dit (la pose et la mise en file se suivent dans le même tour de boucle : 20 s de marge, c'est large)
 const OCCUPE_ESSAIS = 20;               // un ouvrier « occupé » (un calcul d'avant qu'il finit) : le travail repasse en tête, jusqu'à 20 fois (deux secondes d'écart)
 
 /* L'appel HTTP à l'ouvrier, sur sa socket (`unix:/run/…/ouvrier.sock`) ou un port de la boucle locale (les bancs) : la réponse est BORNÉE en octets, le délai coupe la connexion.
@@ -97,7 +98,15 @@ function creerTranscription({ cfg, stockage, pieces, hub, octetsMax = 10485760, 
       } catch (e) { etat.ok = false; etat.echecsSonde++; }
       /* ⛔ une ligne « en attente » que plus aucun travail ne porte (une pose ratée, une file perdue) passerait « en cours » pour toujours : au-delà du temps qu'une file
          PLEINE met à se vider, elle devient un échec DIT (retentable) */
-      try { if (typeof stockage.transcriptionsEchues === 'function') { const n = stockage.transcriptionsEchues(horloge() - (c.file + 1) * delaiTravailMs()); if (n) journal('attentes_echues'); } } catch (e) { journal('balayage_echec'); }
+      /* ① les lignes que PLUS RIEN ne porte (ni la file, ni le calcul en cours) : un échec dit au bout de ORPHELINE_MS, pas de l'attente d'une file pleine (28 octobre 2026 — « Transcription en cours… » pour
+            deux heures et demie après une pose perdue). ② le filet d'avant, en dernier recours. */
+      try {
+        if (typeof stockage.transcriptionsEchues === 'function') {
+          const portees = new Set(file.map(x => x.conv + '#' + x.seq)); if (enCours) portees.add(enCours.conv + '#' + enCours.seq);
+          const o = stockage.transcriptionsEchues(horloge() - ORPHELINE_MS, portees); if (o) journal('attentes_orphelines');
+          const n = stockage.transcriptionsEchues(horloge() - (c.file + 1) * delaiTravailMs()); if (n) journal('attentes_echues');
+        }
+      } catch (e) { journal('balayage_echec'); }
       finally { sondeEnCours = null; }
     })();
     return sondeEnCours;

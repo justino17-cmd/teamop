@@ -2209,10 +2209,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* Le filet : une ligne « en attente » plus vieille que `avant` (aucun travail ne la porte plus : une pose ratée, une file perdue) devient un échec DIT, journalisé — sinon
      « Transcription en cours… » pour toujours, sans « Réessayer » (relectures du gardien et du relecteur). Rend le nombre de lignes. */
-  function transcriptionsEchues(avant) {
+  /* `portees` (un Set de « conv#seq », optionnel) : les travaux que la file du module porte ENCORE en mémoire. Donné, le filet ne ramasse QUE les lignes que plus rien ne porte — une ligne
+     « en attente » absente de la file et du calcul en cours ne se terminera jamais (pose ratée, file perdue, travail refusé après coup) : c'est un échec à DIRE tout de suite, pas dans deux
+     heures et demie. Sans lui (l'ancien appel), toute ligne plus vieille que `avant`. */
+  function transcriptionsEchues(avant, portees) {
     if (!TRANSCRIPTIONS) return 0;
     return tx(() => {
-      const l = Q(`SELECT conv, seq FROM transcription WHERE etat = 'attente' AND maj < ?`).all(avant);
+      let l = Q(`SELECT conv, seq FROM transcription WHERE etat = 'attente' AND maj < ?`).all(avant);
+      if (portees instanceof Set) l = l.filter(r => !portees.has(r.conv + '#' + r.seq));
       if (!l.length) return 0;
       for (const r of l) {
         Q(`UPDATE transcription SET etat = 'echec', maj = ? WHERE conv = ? AND seq = ? AND etat = 'attente'`).run(horloge(), r.conv, r.seq);

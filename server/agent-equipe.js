@@ -182,7 +182,8 @@ module.exports = function agentEquipe(ctx) {
      au lieu de citer ses collègues. Un nom de l'équipe entre crochets devient la citation qu'il voulait faire ; rien d'autre n'est touché. */
   const parNom = new Map(); for (const x of agents.AGENTS) { parNom.set(x.id.toLowerCase(), x.id); parNom.set(String(x.nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), x.id); }
   const crochets = t => String(t || '').replace(/\[([A-Za-zÀ-ÿ]{2,20})\]/g, (m, n) => { const k = parNom.get(n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()); return k ? '@' + k : m; });
-  const nettoyer = t => masquer(t).replace(/\s+/g, ' ').trim().slice(0, MESSAGE_MAX);
+  /* un vocal transcrit (🎤, pont OP MESSAGES) pèse plus qu'une phrase tapée : il garde sa longueur, jusqu'à 2 400 signes */
+  const nettoyer = t => { const x = masquer(t).replace(/\s+/g, ' ').trim(); return x.slice(0, x.startsWith('🎤') ? 2400 : MESSAGE_MAX); };
   const court = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
   /* ce qu'on met dans le prompt vient de messages ou de tâches : pas d'accolade, qui ferait passer une phrase pour une ligne de faits */
   const affichable = (t, n) => court(masquer(t).replace(/[{}]/g, ' '), n);
@@ -206,6 +207,7 @@ module.exports = function agentEquipe(ctx) {
       (r.rien ? '- ' + r.rien + '\n' : '') +
       '- Tu ne cites que les faits du bloc Faits ci-dessous. Si tu ne sais pas, tu le dis : tu n’inventes ni chiffre, ni nom, ni date.\n' +
       '- Ne répète jamais une adresse électronique ni un numéro de téléphone.\n' +
+      '- Un message de Justin qui commence par 🎤 est un VOCAL, transcrit par une machine : des mots peuvent être faux, surtout les noms propres et les chiffres. Tu y réponds comme à un texte, et tu demandes à Justin de confirmer ce qui engage (un nom, un montant, une date).\n' +
       '- Réponse courte : 600 caractères au plus, concrète, comme un collègue qui parle — sans titre ni liste à puces, sans formule toute faite.\n' +
       '- Les messages sans crochet sont ceux de Justin ; ceux qui commencent par « [Nom a écrit dans le fil …] » sont ceux de tes collègues.\n' +
       '- Dans un groupe, quand des collègues ont déjà répondu : tu apportes ce qui est PROPRE à ton rôle, avec tes mots. Tu n’approuves pas un collègue (« je plussoie », « je confirme ce que dit… », « d’accord avec… ») et tu ne reprends pas sa tournure d’ouverture (« Côté … »). Si tu n’as rien de propre à ajouter à une question posée à tous, tu réponds exactement « RAS ».\n' +

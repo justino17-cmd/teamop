@@ -260,6 +260,7 @@ const MATRICE = {
   'pont.nouveaux':      { ok: () => ['GET', '/api/pont/nouveaux'], codes: [404] },
   'pont.supprimer':     { ok: () => ['POST', '/api/pont/supprimer', {}], codes: [404] },
   'pont.avatar':        { ok: () => ['POST', '/api/pont/avatar?cible=victor', {}], codes: [404] },
+  'pont.transcrire':    { ok: () => ['POST', '/api/pont/transcrire', {}], codes: [404] },
   /* Le lien d'invité et la salle d'une réunion. `apercu` est PUBLIC (le code vient de la fixture : celui de la réunion d'Ana) ; entrer par le lien est S, par l'identifiant R (l'invité, l'hôte) ; le lien se lit et se
      renouvelle par H. Les deux routes qui ENTRENT jouent une réunion dont la fenêtre est ouverte (elle commence dans deux minutes) : une réunion dans trois jours refuse, et le refus est joué plus bas. */
   'reunions.apercu':    { ok: (F) => ['POST', '/api/reunions/apercu', { code: F.codeR }], codes: [200] },
