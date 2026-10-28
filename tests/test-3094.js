@@ -109,6 +109,7 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
       v('le bon secret, en direct : 409 « pas installé » (la garde a laissé passer — rien n\'est encore installé)', [ok.code, ok.j.error], [409, 'pont_non_installe']);
       v('…le secret en MAJUSCULES passe aussi (c\'est de l\'hexadécimal)', (await nu.get('/api/pont/nouveaux', { entetes: { 'X-OPM-Pont': SECRET.toUpperCase() } })).code, 409);
       v('⛔ poster avant d\'installer : 409, rien n\'est écrit', (await nu.post('/api/pont/poster', { messages: [{ fil: 'victor', de: 'victor', texte: 'x', cid: cid() }] }, pont)).j.error, 'pont_non_installe');
+      v('⛔ une photo avant d\'installer : 409, rien n\'est écrit', [(await nu.post('/api/pont/avatar?cible=victor', {}, pont)).j.error, T.lireBase(path.join(svc.data, 'msg.db')).prepare("SELECT COUNT(*) AS n FROM piece").get().n], ['pont_non_installe', 0]);
       v('une écriture du pont n\'exige NI Origin NI en-tête maison (ce n\'est pas une page)', (await nu.post('/api/pont/installer', { agents: [] }, sansPage)).code, 400);
       v('…mais une écriture sans secret passe d\'abord par ce contrôle d\'origine et tombe sur le même 404', (await nu.post('/api/pont/installer', { agents: AGENTS }, { sansOrigine: true, sansEntete: true })).txt === inconnue.txt, true);
     }
