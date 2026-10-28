@@ -394,6 +394,11 @@ p.transcription { margin: 0; font-size: 15px; line-height: 20px; letter-spacing:
 .recue.transcription { border-radius: 6px 20px 20px 20px; }
 .envoyee.transcription { border-radius: 20px 6px 20px 20px; }
 .transcription.tr-note { font-style: italic; }
+/* « Écouter » (28 octobre 2026) : un lien sous un message REÇU, comme « Voir la transcription » — 32 px dans la mise en page, 44 px sous le doigt par une zone étendue ; il ne s'étire pas sur la largeur de la
+   colonne (un toucher à côté du message ne doit pas lancer la voix) */
+.ecouter-lien { position: relative; display: inline-flex; align-items: center; align-self: flex-start; width: max-content; min-height: 32px; margin: 0 4px; padding: 4px 8px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--accent-txt); }
+@media (pointer: coarse) { .ecouter-lien::before { content: ''; position: absolute; inset: -6px 0; } }
+.ecouter-lien[data-actif] { text-decoration: underline; text-underline-offset: 2px; }
 /* « Réessayer » DANS la bulle : la couleur de la bulle, souligné ; 44 px sous le doigt sans grandir la ligne (marges négatives) */
 .tr-reessayer { display: inline-flex; align-items: center; min-height: 32px; margin: -6px 0; padding: 0 4px; font: inherit; font-style: normal; font-weight: 600; color: inherit; text-decoration: underline; text-underline-offset: 2px; border-radius: 6px; }
 @media (pointer: coarse) { .tr-reessayer { min-height: 44px; margin: -12px 0; } }

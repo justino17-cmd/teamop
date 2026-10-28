@@ -430,3 +430,5 @@ tests/test-3095.js
 tests/test-3097.js
 # 28 octobre 2026 : `test-3099` (la fonction d'un contact sous son nom : stockage, resume(), ligneConv(), page servie — 27 vérifications).
 tests/test-3099.js
+# 28 octobre 2026 : `test-3130` (« Écouter » sous un message reçu — les VRAIES fonctions de la page, celle de l'aperçu et celle que le service sert, contre une synthèse vocale simulée —, et « en cours » qui ne dure plus pour toujours). Les vocaux de Justin lus par les agents : test-3094 §11, 3095 §3 bis, 3096 §8, 1000/1001 (le filet). La sonde du navigateur : `tests/sonde-opmessages-ecoute.js`.
+tests/test-3130.js
