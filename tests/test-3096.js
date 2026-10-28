@@ -2,7 +2,7 @@
 
    Le VRAI `conversations.js` (faux app, routes appelées à la main), les VRAIES `agents.js` et `pont-messages.js`, contre un FAUX OP MESSAGES qui note chaque requête reçue
    et se laisse faire tomber, refuser, ralentir ou répondre n'importe quoi. Aucune minuterie : le banc appelle les tours (`_envoyer`, `_lire`) et tient l'horloge — chaque
-   attente et chaque « minutes d'échec » est donc déterministe. (Le même pont contre le VRAI OP MESSAGES et le VRAI serveur : `test-3091`.)
+   attente et chaque « minutes d'échec » est donc déterministe. (Le même pont contre le VRAI OP MESSAGES et le VRAI serveur : `test-3095`.)
      1. Fermé sans secret valable ni adresse de BOUCLE LOCALE : le module n'existe pas (le secret ne part jamais vers un nom de domaine) ;
      2. ce qui part : l'en-tête, le `cid` « tour-<id> », l'ordre, les lots (≤ 25, ≤ 48 000 octets), la date d'origine et l'état lu de l'historique, la notification
         seulement pour un agent d'importance, jamais pour un rattrapage ; le secret n'est ni dans le corps ni dans l'adresse ;
@@ -60,7 +60,7 @@ const posts = () => etat.requetes.filter(x => x.url === '/api/pont/poster');
 const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
 
 (async () => {
-  console.log('\n── test-3092 · le pont côté Tour (pont-messages.js) contre un faux OP MESSAGES ──');
+  console.log('\n── test-3096 · le pont côté Tour (pont-messages.js) contre un faux OP MESSAGES ──');
   await new Promise(r => faux.listen(0, '127.0.0.1', r));
   const URL = 'http://127.0.0.1:' + faux.address().port;
   const AG = require(path.join(RACINE, 'server', 'agents.js'));

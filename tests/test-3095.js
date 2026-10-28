@@ -1,7 +1,7 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LA MESSAGERIE DES AGENTS DE LA TOUR S'AFFICHE DANS OP MESSAGES, DE BOUT EN BOUT (28 octobre 2026).
 
    Justin : « tu vas implanter OP MESSAGES à la place » ; « bascule directe » ; « l'historique est importé » ; « moi je récupère tout sur OP MESSAGES sur mon téléphone ».
-   Les deux moitiés ont chacune leur banc (`test-3090` : le pont côté OP MESSAGES ; `test-3092` : le pont côté Tour contre un faux service) — et la règle de ce dépôt est
+   Les deux moitiés ont chacune leur banc (`test-3094` : le pont côté OP MESSAGES ; `test-3096` : le pont côté Tour contre un faux service) — et la règle de ce dépôt est
    qu'elles ne se parlent pas toutes seules (`CLAUDE.md` : « les deux moitiés avaient chacune leurs bancs, chacune était JUSTE, et elles ne se parlaient pas »). Ici :
    · le VRAI `server/index.js` (la Tour, ses seize agents, `conversations.js`, `agent-equipe.js`, le vrai cerveau — contre un FAUX Anthropic, `ANTHROPIC_BASE_URL`) ;
    · le VRAI `server-msg/index.js` (OP MESSAGES), dont la porte bêta s'ouvre avec le VRAI accès que la Tour a créé pour Justin ;
@@ -89,7 +89,7 @@ const HISTO = [
 const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000, fil: m.fil, de: m.de, texte: m.texte, niveau: m.niveau || 'info', lu: m.lu, prof: m.de === 'justin' ? 0 : 1, mentions: [], ...(m.dossier ? { dossier: m.dossier, motif: m.motif } : {}) }));
 
 (async () => {
-  console.log('── test-3091 · la messagerie des agents dans OP MESSAGES, de bout en bout ──');
+  console.log('── test-3095 · la messagerie des agents dans OP MESSAGES, de bout en bout ──');
   await new Promise(r => faux.listen(0, '127.0.0.1', r));
   fs.writeFileSync(path.join(D, 'agents-messages.json'), JSON.stringify(MESSAGES_SEED));
   const AG = require(path.join(RACINE, 'server', 'agents.js'));
