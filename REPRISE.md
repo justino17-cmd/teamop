@@ -13,6 +13,29 @@ de ligne du tout.
 
 ---
 
+# 🤖 28 OCTOBRE 2026 (SOIR) — LES AGENTS AUTONOMES : PLUS DE LIMITE HORAIRE CONTRE JUSTIN, VICTOR CHEF, « JE VIENS DE… » DANS LE GROUPE
+Justin, 17 h 52 : « @tous faites-moi un point de votre journée » → « Victor a atteint sa limite de messages par heure ». Puis : « Je veux des agents autonomes de A à Z » ; « je veux qu'à chaque fois
+qu'ils ont fini, ils mettent dans le groupe "je viens d'effectuer ça", comme ça moi je vois tout en temps réel. » Branche `claude/agents-autonomie` (depuis `d045e0dd`), **rien de poussé, rien de déployé** :
+un push de `server/` sur `main` déploie le VPS — à lancer sur une phrase de Justin. `tour.html` n'est PAS touchée (la refonte de l'onglet Agents se publie sur sa phrase).
+- **La racine** (`conversations.racine`, `peutParler`) : un message de Justin ouvre une chaîne dont la borne est un BUDGET PAR MESSAGE — 20 messages d'agents (40 si @tous ou six cités), 6 par agent (8 Victor), 4 $, profondeur 6 —
+  contrôlé AVANT l'appel payant. Ce que les agents écrivent sous une racine ne compte dans aucun plafond horaire. SANS racine valide (agent seul, texte client relayé, Justin > 2 h) : les plafonds d'avant
+  (12 messages/h par agent, 20 par fil, profondeur 3) — et plus aucune ligne « limite de messages » dans un fil : journal + compteur `/health.agentsRefus` (la surveillance crie à 30/h).
+  Un réveil né avant la fermeture finit dans les 45 min (`sousRacine`), mais `horsHeures:true` : aucune porte qui écrit à un client ne s'ouvre.
+- **@tous** = une vague (300 caractères, sans outil, sans réveil), puis Victor synthétise sur les 30 derniers messages. **Ping-pong** ABAB sans acte coupé au 5ᵉ réveil, Victor arbitre une fois.
+- **Victor chef** : meneur des quatre groupes, membre de « clients » et « plateforme ». `assigner` (lui seul : tâche + titulaire réveillé, doublon refusé, jamais Hugo/Margaux) et `demander` (tous). Un outil propre de Sarah /
+  Victor / Camille peut partir sur ordre de Victor SI la racine est un message vivant de Justin (`OUTILS_PROPRES_DELEGABLES`) ; jamais pour Hugo, Margaux, Emma ni un envoi à un client. Journal du jour par agent
+  (« Ton journal du jour », « Journée de l'équipe »), relance une fois par tâche après 4 h sans mouvement (`suivre`).
+- **Annonces** (`agent-faits.js`, `conversations.annoncerFait`) : « ✅ Je viens de… » dans Équipe à chaque tâche terminée, demande préparée (« en attente de ta validation » en Brouillon), validation exécutée, tâche expirée.
+  Composées par le CODE (tables fermées, jamais d'adresse ni de donnée client), hors plafonds, ne réveillent personne, une clé stable (pas de redite), ×N si plusieurs d'affilée en 20 s, copie au pont OP MESSAGES.
+- **Budget du jour** (`cerveau.js`, `agent-budget-jour.js`) : sans racine, max(1,5 $, 20 % du plafond mensuel) par agent et 25 $ au total ; filet de 60 $ pour tout (Justin compris). Alertes 80 % / 100 % / filet lisibles
+  (notification, une ligne dans le fil privé de l'agent, une dans Équipe pour le filet). Réglable : `config.agents.budgetJour` sur le VPS.
+- **Bancs** : `tests/banc-autonomie.js` (monte les VRAIS modules, faux Anthropic), `test-3113` à `3123` (3123 = le vrai serveur). Anciens bancs mis à jour AVEC la raison écrite (2708, 2861, 2880, 2881, 2883, 2884,
+  2915, 2918, 2923, 2930, 2960, 2983, 3016, 3096, 726…), jamais supprimés. Mutations : `scratchpad/mutations-agents-autonomes.py`, toutes mordent.
+- **Reste à faire** : (1) Justin : fusionner / déployer (le serveur change de comportement dès le redémarrage — la bascule se voit sur un « @tous »). (2) **Camille** (branche camille, `agent-camille.js`/`mail.js` non touchés) :
+  ses envois passent par `proposer`/`terminer`, donc annoncés, mais son outil de reprise des anciens courriels n'est délégable qu'à travers `OUTILS_PROPRES_DELEGABLES` — à relire à la fusion ; l'annonce d'un envoi
+  de courriel dit « préparé » en Brouillon, jamais l'adresse. (3) **Tour** : aucune page changée ; les annonces apparaissent dans « Équipe » et dans OP MESSAGES par le pont ; le budget du jour est lisible dans
+  `etatBudget().jour` (un affichage dans l'onglet Agents reste à dessiner, sur sa phrase). (4) Limite assumée : un agent seul (sans Justin) reste borné par l'heure ; le budget du jour est en mémoire serveur + fichier d'état, remis à zéro à minuit de Paris.
+
 # 🌉 28 OCTOBRE 2026 (JOUR) — LES AGENTS DE LA TOUR DANS OP MESSAGES : LE CODE EST PRÊT, LA MISE EN SERVICE ATTEND JUSTIN
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
 OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**
