@@ -44483,7 +44483,7 @@ const DOCM_DEFS=[
 
      {texte:'Le délai d’un an court à compter de la date d’effet de la réception, même avec réserves.',source:'Conseil d’État, 13/12/2024, n° 489720 (extrait)',verifie:false,pour:['maconnerie']}],
    signatures:[{lbl:'Le maître d’ouvrage',sous:'Nom, date et signature'},{lbl:'L’entreprise',sous:'Nom, date et signature'}],
-   pied:'Document établi par {ENT} : c’est le procès-verbal de l’entreprise. Il ne rappelle aucune garantie comme une obligation du document.',
+   pied:'Document établi par {ENT} : c’est le procès-verbal de l’entreprise.',
    mail:(r,c)=>({sujet:'Procès-verbal de réception'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre chantier'),
      corps:'Bonjour,\n\nVous trouverez ci-joint le procès-verbal de réception des travaux, à nous retourner signé.\n\nNous restons à votre disposition.'}) },
 
@@ -44513,7 +44513,7 @@ const DOCM_DEFS=[
      {k:'date',l:'Date du relevé',t:'date',requis:true,pre:'dateInt',s:'Le relevé'},
      {k:'releveur',l:'Releveur',t:'texte',pre:'technicien',max:120},
      {k:'lieu',l:'Adresse',t:'texte',requis:true,pre:'adresse',max:200},
-     {k:'ouvertures',l:'Ouvertures relevées',t:'tableau',cols:[{l:'Repère et pièce',w:0.14},{l:'Type',w:0.13,opts:['Fenêtre 1 vantail','Fenêtre 2 vantaux','Porte-fenêtre','Porte','Volet']},{l:'Sens d’ouverture (vu de l’intérieur)',w:0.1},{l:'Largeur : haut / milieu / bas',w:0.16},{l:'Hauteur : gauche / milieu / droite',w:0.16},{l:'Pose',w:0.12,opts:['Neuve','Rénovation sur dormant','En tunnel','En applique']},{l:'Matériau, coloris, vitrage',w:0.19}],maxRows:40},
+     {k:'ouvertures',l:'Ouvertures relevées',t:'tableau',cols:[{l:'Repère et pièce',w:0.14},{l:'Type',w:0.13,opts:['Fenêtre 1 vantail','Fenêtre 2 vantaux','Porte-fenêtre','Porte','Volet']},{l:'Sens d’ouverture (vu de l’intérieur)',w:0.12,opts:['Droite','Gauche','Fixe']},{l:'Largeur : haut / milieu / bas',w:0.155},{l:'Hauteur : gauche / milieu / droite',w:0.155},{l:'Pose',w:0.12,opts:['Neuve','Rénovation sur dormant','En tunnel','En applique']},{l:'Matériau, coloris, vitrage',w:0.18}],maxRows:40},
      {k:'murs',l:'Épaisseur du mur et du doublage, allège, appui, feuillure',t:'long',s:'Les supports',max:500},
      {k:'options',l:'Options (volet, grille d’aération, oscillo-battant) et accessoires',t:'long',max:400},
      {k:'livraison',l:'Date de livraison souhaitée',t:'date'},
@@ -44655,7 +44655,7 @@ const DOCM_DEFS=[
 
      {texte:'Plafond de l’avantage fiscal du jardinage (5 000 € vu sur un site secondaire).',source:'Non confirmé : ne pas imprimer',verifie:false}],
    signatures:[{lbl:'L’organisme',sous:'Nom, qualité, date et signature'}],
-   pied:'Document établi par {ENT} : attestation de l’entreprise, à vérifier au regard de sa déclaration de services à la personne.',
+   pied:'Document établi par {ENT} : attestation de l’entreprise au titre des services à la personne.',
    mail:(r,c)=>({sujet:'Attestation fiscale annuelle'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
      corps:'Bonjour,\n\nVous trouverez ci-joint votre attestation fiscale annuelle.\n\nNous restons à votre disposition.'}) },
 
@@ -44825,7 +44825,7 @@ const DOCM_DEFS=[
      {k:'exploitant',l:'Exploitant',t:'texte',max:160},
      {k:'technicien',l:'Technicien : prénom, nom, téléphone',t:'texte',pre:'technicien',max:200},
      {k:'famille',l:'Famille vérifiée',t:'choix',requis:true,options:[['extincteurs','Extincteurs'],['desenfumage','Désenfumage'],['ria','RIA'],['alarme','Alarme incendie']]},
-     {k:'appareils',l:'Appareils vérifiés',t:'tableau',cols:[{l:'Repère et emplacement',w:0.17},{l:'Agent',w:0.08},{l:'Capacité',w:0.08},{l:'N° de série',w:0.12},{l:'Année',w:0.07},{l:'Dernière recharge',w:0.1},{l:'Manomètre',w:0.08,opts:['Bon','Hors zone']},{l:'Scellé',w:0.07,opts:['Intact','Rompu']},{l:'Résultat',w:0.1,opts:['Conforme','Non conforme','Remplacé']},{l:'Opération, n° d’étiquette, prochaine vérif.',w:0.13}],aide:'Une ligne par appareil, de l’extincteur au bloc de désenfumage.',maxRows:60},
+     {k:'appareils',l:'Appareils vérifiés',t:'tableau',cols:[{l:'Repère et emplacement',w:0.15},{l:'Agent',w:0.08},{l:'Capacité',w:0.095},{l:'N° de série',w:0.12},{l:'Année',w:0.065},{l:'Dernière recharge',w:0.095},{l:'Manomètre',w:0.105,opts:['Bon','Hors zone']},{l:'Scellé',w:0.07,opts:['Intact','Rompu']},{l:'Résultat',w:0.1,opts:['Conforme','Non conforme','Remplacé']},{l:'Opération, n° d’étiquette, prochaine vérif.',w:0.12}],aide:'Une ligne par appareil, de l’extincteur au bloc de désenfumage.',maxRows:60},
      {k:'anomalies',l:'Anomalies constatées et recommandations',t:'long',s:'Synthèse',max:800},
      {k:'nbVerifies',l:'Appareils vérifiés (nombre)',t:'texte',max:20}],
    mentions:[
@@ -44885,7 +44885,7 @@ const DOCM_DEFS=[
      {k:'formateur',l:'Formateur',t:'texte',pre:'technicien',max:160},
      {k:'stagiaires',l:'Stagiaires',t:'tableau',cols:[{l:'Nom',w:0.4},{l:'Prénom',w:0.4},{l:'Fonction',w:0.2}],maxRows:40}],
    mentions:[
-     {texte:'Le Code du travail impose de désigner et de former des personnes pour mettre en œuvre l’extinction, diriger l’évacuation et alerter les secours ; aucun modèle d’attestation ni mention imposée n’a été trouvé.',source:'OPPBTP, R. 4227-38 du Code du travail (professionnelle, lu)',verifie:true,pdf:'Formation dispensée dans le cadre de la désignation et de la formation des personnes chargées de l’extinction, de l’évacuation et de l’alerte (article R. 4227-38 du Code du travail).'}],
+     {texte:'Le Code du travail impose de désigner et de former des personnes pour mettre en œuvre l’extinction, diriger l’évacuation et alerter les secours ; aucun modèle d’attestation ni mention imposée n’a été trouvé : rien n’est imprimé de plus.',source:'OPPBTP, R. 4227-38 du Code du travail (professionnelle, lu)',verifie:true}],
    signatures:[{lbl:'Le formateur',sous:'Nom, date et signature'}],
    pied:'Document établi par {ENT} : attestation de l’entreprise, sans valeur de certification.',
    mail:(r,c)=>({sujet:'Attestation de formation'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
@@ -44947,7 +44947,7 @@ const DOCM_DEFS=[
      {k:'reference',l:'Référence du dépôt',t:'texte',max:100},
      {k:'statut',l:'Statut',t:'choix',requis:true,def:'preparer',options:[['preparer','À préparer'],['pret','Récapitulatif prêt'],['depose','Déposée']]}],
    mentions:[
-     {texte:'Pour chaque fluide : quantités acquises, chargées, récupérées, cédées, stocks au 1er janvier et au 31 décembre ; adressée avant le 31 janvier à l’organisme qui a délivré l’attestation de capacité (R. 543-100).',source:'preventionbtp.fr, R. 543-100 (lu)',verifie:true,pdf:'Déclaration annuelle adressée avant le 31 janvier à l’organisme qui a délivré l’attestation de capacité (article R. 543-100 du Code de l’environnement).'},
+     {texte:'Pour chaque fluide : quantités acquises, chargées, récupérées, cédées, stocks au 1er janvier et au 31 décembre ; adressée avant le 31 janvier à l’organisme qui a délivré l’attestation de capacité (R. 543-100).',source:'preventionbtp.fr, R. 543-100 (lu)',verifie:true,pdf:'Déclaration annuelle adressée avant le 31 janvier à l’organisme qui a délivré l’attestation de capacité.'},
 
      {texte:'Suspension de l’attestation tant que la déclaration manque (R. 543-101).',source:'Source secondaire : ne pas l’imprimer',verifie:false}],
    signatures:[],
@@ -45096,15 +45096,15 @@ const DOCM_DEFS=[
      {k:'prochain',l:'Date du prochain ramonage',t:'date'},
      {k:'conseils',l:'Conseils d’usage joints (appareils à combustible solide hors chaudières)',t:'choix',options:DOCM_OUI}],
    mentions:[
-     {texte:'Attestation remise au commanditaire dans les quinze jours ouvrés suivant l’achèvement de l’opération.',source:'R. 1331-23 ; AIDA/Ineris, décret n° 2023-641 (lu)',verifie:true,pdf:'Attestation remise au commanditaire dans les quinze jours ouvrés suivant l’achèvement de l’opération.'},
+     {texte:'Attestation remise au commanditaire dans les quinze jours ouvrés suivant l’achèvement de l’opération.',source:'R. 1331-23 ; AIDA/Ineris, décret n° 2023-641 (lu sur AIDA, pas sur Légifrance : à relire avant de l’imprimer comme une obligation)',verifie:true},
 
      {texte:'L’attestation précise le ou les conduits ramonés et atteste la vacuité du conduit sur toute sa longueur.',source:'R. 1331-23 ; AIDA/Ineris (lu)',verifie:true,pdf:'Conduit(s) ramoné(s) et vacuité du conduit constatée sur toute sa longueur.'},
 
-     {texte:'Le commanditaire conserve l’attestation au moins deux ans, à disposition des agents de contrôle.',source:'R. 1331-23 ; AIDA/Ineris (lu)',verifie:true,pdf:'Le commanditaire conserve cette attestation au moins deux ans.'},
+     {texte:'Le commanditaire conserve l’attestation au moins deux ans, à disposition des agents de contrôle.',source:'R. 1331-23 ; AIDA/Ineris (lu sur AIDA, pas sur Légifrance : à relire avant de l’imprimer comme une obligation)',verifie:true},
 
      {texte:'Ramonage par action mécanique directe sur la paroi intérieure, tuyaux de raccordement compris ; l’emploi du feu ou d’explosifs est interdit.',source:'R. 1331-18 ; AIDA/Ineris (lu)',verifie:true,pdf:'Ramonage par action mécanique directe sur la paroi intérieure du conduit, tuyaux de raccordement compris.'},
 
-     {texte:'Ramonage au moins tous les 12 mois ; appareils collectifs tous les 6 mois, sauf gaz seul ; le règlement sanitaire départemental peut exiger davantage.',source:'R. 1331-19 ; AIDA/Ineris (lu)',verifie:true,pdf:'Ramonage au moins tous les 12 mois ; le règlement sanitaire départemental peut exiger davantage.'},
+     {texte:'Ramonage au moins tous les 12 mois ; appareils collectifs tous les 6 mois, sauf gaz seul ; le règlement sanitaire départemental peut exiger davantage.',source:'R. 1331-19 ; AIDA/Ineris (lu sur AIDA, pas sur Légifrance : à relire avant de l’imprimer comme une obligation)',verifie:true},
 
      {texte:'Appareils à combustible solide hors chaudières : conseils joints, valeur indicative, aucun investissement obligatoire.',source:'R. 1331-25 ; arrêté du 20 juillet 2023, annexe 2 (AIDA/Ineris, lu)',verifie:true,pdf:'Conseils d’usage joints : valeur indicative, aucun investissement n’est obligatoire.',si:{k:'conseils',egal:'oui'}},
 
@@ -45183,7 +45183,7 @@ const DOCM_DEFS=[
 
      {texte:'Hors schéma départemental, le motif de la dérogation est précisé sur le bordereau remis au propriétaire.',source:'Arrêté préfectoral d’agrément (Gironde) : exigence locale, pas nationale ; ne s’imprime que si l’entreprise le demande',verifie:false}],
    signatures:[{lbl:'Le propriétaire'},{lbl:'La personne agréée'},{lbl:'La filière d’élimination'}],
-   pied:'Document établi par {ENT} d’après les rubriques de l’arrêté du 7 septembre 2009 : à relire sur le texte consolidé avant d’y voir une obligation.',
+   pied:'Document établi par {ENT} d’après les rubriques de l’arrêté du 7 septembre 2009.',
    mail:(r,c)=>({sujet:'Bordereau de suivi des matières de vidange'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
      corps:'Bonjour,\n\nVous trouverez ci-joint le bordereau de suivi de la vidange réalisée.\n\nNous restons à votre disposition.'}) },
 
@@ -45193,9 +45193,9 @@ const DOCM_DEFS=[
      {k:'annee',l:'Année',t:'nombre',requis:true,s:'Le registre'},
      {k:'vidanges',l:'Vidanges',t:'tableau',cols:[{l:'N° de bordereau',w:0.14},{l:'Date',w:0.12},{l:'Client',w:0.18},{l:'Installation',w:0.2},{l:'Commune',w:0.12},{l:'Volume (m³)',w:0.1},{l:'Lieu d’élimination',w:0.14}],aide:'Une ligne par bordereau.',maxRows:60}],
    mentions:[
-     {texte:'Registre classé par dates, comportant les bordereaux, tenu à la disposition du préfet et conservé dix années.',source:'Arrêté du 7 septembre 2009, art. 9, via AIDA/Ineris',verifie:true,pdf:'Registre classé par dates, tenu à la disposition du préfet et conservé dix ans.'}],
+     {texte:'Registre classé par dates, comportant les bordereaux, tenu à la disposition du préfet et conservé dix années.',source:'Arrêté du 7 septembre 2009, art. 9, via AIDA/Ineris (lu sur AIDA : à relire sur Légifrance avant de l’imprimer comme une obligation)',verifie:true}],
    signatures:[],
-   pied:'Registre établi par {ENT} : à relire sur le texte consolidé de l’arrêté du 7 septembre 2009.',
+   pied:'Registre établi par {ENT}.',
    mail:(r,c)=>({sujet:'Registre des vidanges'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
      corps:'Bonjour,\n\nVous trouverez ci-joint le registre des vidanges.\n\nNous restons à votre disposition.'}) },
 
@@ -45209,9 +45209,9 @@ const DOCM_DEFS=[
      {k:'hors',l:'Vidanges hors schéma départemental',t:'long',max:500},
      {k:'annexes',l:'Attestations des filières jointes (nombre)',t:'texte',max:40}],
    mentions:[
-     {texte:'Bilan de l’année précédente adressé au préfet avant le 1er avril, avec en annexe l’attestation signée du responsable de chaque filière d’élimination ; conservé dix ans.',source:'Arrêté du 7 septembre 2009, art. 9, via AIDA/Ineris',verifie:true,pdf:'Bilan de l’année précédente à adresser au préfet avant le 1er avril, avec en annexe l’attestation signée du responsable de chaque filière d’élimination.'}],
+     {texte:'Bilan de l’année précédente adressé au préfet avant le 1er avril, avec en annexe l’attestation signée du responsable de chaque filière d’élimination ; conservé dix ans.',source:'Arrêté du 7 septembre 2009, art. 9, via AIDA/Ineris (lu sur AIDA : à relire sur Légifrance avant de l’imprimer comme une obligation)',verifie:true}],
    signatures:[{lbl:'La personne agréée',sous:'Nom, date et signature'}],
-   pied:'Bilan établi par {ENT} : à relire sur le texte consolidé de l’arrêté du 7 septembre 2009.',
+   pied:'Bilan établi par {ENT}.',
    mail:(r,c)=>({sujet:'Bilan annuel'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
      corps:'Bonjour,\n\nVous trouverez ci-joint le bilan annuel par commune.\n\nNous restons à votre disposition.'}) },
 
@@ -45229,7 +45229,7 @@ const DOCM_DEFS=[
    mentions:[
      {texte:'Le guide d’utilisation de l’installation prévoit une partie pour inscrire la date, la nature des prestations et le nom de la personne agréée.',source:'Arrêté du 7 septembre 2009 (prescriptions ANC), art. 16, via AIDA/Ineris',verifie:true,pdf:'La date, la nature des prestations et le nom de la personne agréée se reportent dans le guide d’utilisation de l’installation.'},
 
-     {texte:'La périodicité de vidange est fixée par la hauteur de boues, qui ne doit pas dépasser 50 % du volume utile.',source:'Arrêté du 7 septembre 2009 (prescriptions ANC), art. 15, via AIDA/Ineris',verifie:true,pdf:'La périodicité de vidange est fixée par la hauteur de boues, qui ne doit pas dépasser 50 % du volume utile.'},
+     {texte:'La périodicité de vidange est fixée par la hauteur de boues, qui ne doit pas dépasser 50 % du volume utile.',source:'Arrêté du 7 septembre 2009 (prescriptions ANC), art. 15, via AIDA/Ineris (lu sur AIDA : à relire avant de l’imprimer comme une obligation)',verifie:true},
 
      {texte:'Document remis à titre commercial ; la preuve réglementaire est le volet du bordereau remis au propriétaire.',source:'Recherche B 6.4 (aucun texte national sur ce document)',verifie:false}],
    signatures:[{lbl:'L’entreprise'},{lbl:'Le propriétaire',sous:'Nom, date et signature'}],
@@ -45247,7 +45247,7 @@ const DOCM_DEFS=[
      {k:'renouvellement',l:'Date de dépôt du renouvellement',t:'date'},
      {k:'statut',l:'Statut',t:'choix',requis:true,def:'valide',options:[['valide','En cours de validité'],['renouvellement','Renouvellement déposé'],['echu','Échu']]}],
    mentions:[
-     {texte:'Agrément délivré pour dix ans ; demande de renouvellement déposée au moins six mois avant la fin de validité.',source:'Arrêté du 7 septembre 2009 (agrément), art. 2 et 5, via AIDA/Ineris',verifie:true,pdf:'Agrément délivré pour dix ans ; demande de renouvellement déposée au moins six mois avant la fin de validité.'}],
+     {texte:'Agrément délivré pour dix ans ; demande de renouvellement déposée au moins six mois avant la fin de validité.',source:'Arrêté du 7 septembre 2009 (agrément), art. 2 et 5, via AIDA/Ineris (lu sur AIDA : à relire avant de l’imprimer comme une obligation)',verifie:true}],
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : l’agrément est celui de la préfecture.' },
 
@@ -45508,7 +45508,7 @@ const DOCM_DEFS=[
 
      {texte:'Le modèle de l’annexe du décret n’a pas été lu : champs à relire sur ce modèle avant mise en service.',source:'ecologie.gouv.fr',verifie:false}],
    signatures:[{lbl:'L’entreprise'}],
-   pied:'Document établi par {ENT} : à comparer au modèle annexé au décret avant tout usage.',
+   pied:'Document établi par {ENT}.',
    mail:(r,c)=>({sujet:'Attestation de conformité'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
      corps:'Bonjour,\n\nVous trouverez ci-joint l’attestation relative à votre dispositif de sécurité.\n\nNous restons à votre disposition.'}) },
 
