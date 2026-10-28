@@ -8894,7 +8894,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '778-demo';
+const APP_VERSION = '779-demo';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -9658,23 +9658,31 @@ const METIERS={
       'modulesElan', 'parametres'
     ],
     types:[
-      'Dépannage fuite', 'Recherche de fuite', 'Débouchage / curage', 'Chauffe-eau / ballon',
-      'Robinetterie & sanitaire', 'Réseau & alimentation', 'Évacuation & eaux usées', 'Installation neuve',
-      'Contrat d’entretien', 'Visite technique / devis', 'Installation gaz', 'Remplacement de groupe de sécurité',
-      'Test d\'étanchéité'
+      'Dépannage fuite', 'Dépannage urgent (nuit, week-end, jour férié)', 'Recherche de fuite', 'Débouchage / curage',
+      'Chauffe-eau / ballon', 'Robinetterie & sanitaire', 'Pose sanitaire (WC, lavabo, douche)',
+      'Réseau & alimentation', 'Évacuation & eaux usées', 'Installation neuve', 'Contrat d’entretien',
+      'Visite technique / devis', 'Installation gaz', 'Remplacement de groupe de sécurité', 'Test d\'étanchéité'
     ],
     presta:[
       'Repérage et diagnostic', 'Coupure et remise en eau', 'Remplacement de pièce', 'Soudure / raccord',
-      'Débouchage mécanique', 'Hydrocurage', 'Purge du réseau', 'Détartrage', 'Remplacement de joint',
-      'Mise en service et essai', 'Contrôle d’étanchéité', 'Nettoyage du chantier',
-      'Taux horaire et frais de déplacement annoncés avant l\'intervention', 'Pièces remplacées proposées au client'
+      'Débouchage mécanique', 'Hydrocurage', 'Recherche de fuite', 'Purge du réseau', 'Détartrage',
+      'Remplacement de joint', 'Remplacement de robinetterie', 'Remplacement du mécanisme de chasse d’eau',
+      'Pose ou remplacement de siphon', 'Remplacement de groupe de sécurité', 'Mise en service et essai',
+      'Contrôle d’étanchéité', 'Relevé de l’index du compteur', 'Photos avant et après', 'Nettoyage du chantier',
+      'Pièces remplacées proposées au client (conservation : oui / non)'
     ],
     releves:[
       {k:'pression',l:'Pression relevée',u:'bar'}, {k:'debit',l:'Débit',u:'L/min'},
       {k:'tec',l:'Température eau chaude',u:'°C'}, {k:'compteur',l:'Index compteur',u:'m³'},
       {k:'compteurAvant',l:'Index compteur avant essai',u:'m³'},
       {k:'compteurApres',l:'Index compteur après essai',u:'m³'},
-      {k:'terreReseau',l:'Mise à la terre du réseau vérifiée (oui / non)',u:'',txt:true}
+      {k:'terreReseau',l:'Mise à la terre du réseau vérifiée (oui / non)',u:'',txt:true},
+      {k:'pressionDebut',l:'Pression d’essai au début',u:'bar'},
+      {k:'pressionFin',l:'Pression d’essai à la fin',u:'bar'}, {k:'dureeEssai',l:'Durée de l’essai',u:'min'},
+      {k:'fluideEssai',l:'Fluide d’essai',u:'',txt:true},
+      {k:'manometre',l:'Manomètre utilisé (marque, n°)',u:'',txt:true},
+      {k:'etalonnage',l:'Date d’étalonnage du manomètre',u:'',txt:true},
+      {k:'vanneArret',l:'Vanne d’arrêt (emplacement)',u:'',txt:true}
     ],
     produits:[
       'Raccords et fittings', 'Tubes (cuivre, PER, multicouche, PVC)', 'Robinetterie et mitigeurs',
@@ -9683,9 +9691,12 @@ const METIERS={
       'Outillage consommable', 'EPI'
     ],
     documents:[
-      'Devis de dépannage avec les mentions de l\'arrêté de 2017',
-      'Note détaillée avant paiement (prestation de plus de 25 € TTC)', 'Rapport d\'intervention avec photos',
-      'Rapport de test d\'étanchéité daté', 'Suivi du certificat de conformité gaz (établi par un organisme agréé)'
+      'Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017',
+      'Note détaillée avant paiement (à partir de 25 € TTC)', 'Rapport d’intervention avec photos',
+      'Rapport de test d’étanchéité daté',
+      'Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)',
+      'Certification du client pour la TVA réduite (mention du devis ou de la facture)',
+      'Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
@@ -9736,7 +9747,8 @@ const METIERS={
       'Entretien annuel chaudière', 'Entretien pompe à chaleur', 'Entretien climatisation', 'Dépannage chauffage',
       'Dépannage climatisation', 'Désembouage', 'Ramonage', 'Installation', 'Contrat d’entretien',
       'Visite technique / devis', 'Mise en service', 'Contrôle d\'étanchéité des fluides frigorigènes',
-      'Récupération de fluide / démantèlement', 'Entretien chaudière fioul ou bois'
+      'Récupération de fluide / démantèlement', 'Entretien chaudière fioul ou bois', 'Entretien VMC / ventilation',
+      'Entretien chauffe-eau thermodynamique'
     ],
     presta:[
       'Nettoyage du corps de chauffe', 'Contrôle du brûleur', 'Analyse de combustion', 'Contrôle d’étanchéité gaz',
@@ -9746,10 +9758,19 @@ const METIERS={
       'Contrôle de la régulation automatique', 'Contrôle de l\'embouage du circuit', 'Mesure du tirage',
       'Contrôle d\'étanchéité du circuit frigorifique (détecteur de fuite)', 'Récupération et pesée du fluide',
       'Pose de la vignette de contrôle d\'étanchéité',
-      'Conseils d\'usage, d\'amélioration et de remplacement remis au client'
+      'Conseils d\'usage, d\'amélioration et de remplacement remis au client',
+      'Mesure du CO ambiant dans le local de la chaudière', 'Évaluation du rendement de la chaudière',
+      'Vérification du dimensionnement de la chaudière par rapport aux besoins',
+      'Contrôle de l’amenée d’air et de la ventilation du local',
+      'Relevé des températures des unités intérieure et extérieure',
+      'Nettoyage de l’unité intérieure et de son filtre',
+      'Contrôle et nettoyage de l’échangeur de l’unité extérieure', 'Contrôle de l’évacuation des condensats',
+      'Mesure des tensions électriques (statique et dynamique)', 'Contrôle du fonctionnement de l’inversion de cycle',
+      'Vérification du fonctionnement des circulateurs'
     ],
     releves:[
-      {k:'co',l:'Teneur en CO',u:'ppm'}, {k:'co2',l:'CO₂',u:'%'}, {k:'rdt',l:'Rendement',u:'%'},
+      {k:'coAmbiant',l:'CO ambiant (local de la chaudière, portes et fenêtres fermées)',u:'ppm'},
+      {k:'co',l:'Teneur en CO des fumées',u:'ppm'}, {k:'co2',l:'CO₂ des fumées',u:'%'}, {k:'rdt',l:'Rendement',u:'%'},
       {k:'tfum',l:'Température des fumées',u:'°C'}, {k:'pcirc',l:'Pression du circuit',u:'bar'},
       {k:'fluide',l:'Charge de fluide',u:'kg'}, {k:'tirage',l:'Tirage',u:'Pa'},
       {k:'nox',l:'Émissions de NOx (valeur de l’analyseur)',u:''}, {k:'tdep',l:'Température de départ',u:'°C'},
@@ -9770,14 +9791,17 @@ const METIERS={
       'Fluides frigorigènes (par type)', 'Radiateurs et robinets thermostatiques',
       'Circulateurs et vases d\'expansion', 'Produits de désembouage et de traitement de l\'eau',
       'Conduits et fumisterie', 'Régulation et thermostats', 'Pompes à chaleur et climatisation (unités et pièces)',
-      'Outillage consommable', 'EPI'
+      'Tuyauterie, liaisons frigorifiques et isolation', 'Outillage consommable', 'EPI'
     ],
     documents:[
-      'Attestation d\'entretien de chaudière (une par chaudière, remise sous 15 jours)',
-      'Attestation d\'entretien de pompe à chaleur ou de climatisation',
-      'Fiche d\'intervention fluides frigorigènes (rubriques du Cerfa 15497*04, sans prétendre remplacer le Cerfa officiel)',
-      'Certificat de ramonage', 'Devis de dépannage',
-      'Suivi de la vignette de contrôle d\'étanchéité (bleue ou rouge)'
+      'Devis de dépannage, réparation ou entretien (mentions de l’arrêté du 24 janvier 2017)',
+      'Note de dépannage remise avant paiement (à partir de 25 € TTC)',
+      'Rapport d’intervention chauffage / climatisation',
+      'Attestation d’entretien de chaudière (une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire)',
+      'Attestation d’entretien de pompe à chaleur ou de climatisation (4 à 70 kW)',
+      'Fiche d’intervention fluides frigorigènes (rubriques du Cerfa 15497*04, sans remplacer le Cerfa officiel)',
+      'Attestation de ramonage', 'Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)',
+      'Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
@@ -10490,12 +10514,132 @@ const FOURNISSEURS_NETT=[
   {id:'four_nilfisk',nom:'Nilfisk',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : nilfisk.com · machines de nettoyage'}
 ];
 METIERS['nettoyage'].catalogue=CATALOGUE_NETT; METIERS['nettoyage'].fournisseurs=FOURNISSEURS_NETT;
+/* ⛔ v779 — LES CATALOGUES DE DÉPART DU CHAUFFAGE / CLIMATISATION ET DE LA PLOMBERIE (Justin, 28 octobre 2026 : « les 21 packs, mets-les et corrige-les, et pour demain
+   c'est clim et plomberie »). Même règle que le nettoyage, mot pour mot : les catégories sont celles du métier (jamais une catégorie hors liste), l'unité est dans le nom
+   entre parenthèses (la fiche produit n'offre que huit unités), aucun prix ni aucune référence, et ils ne se posent JAMAIS tout seuls (`PACK_METIER_AUTO` reste faux) —
+   « 📦 Catalogue de départ » (administrateur) ou « Remplir » de la bêta, rejouable sans doublon. Les fournisseurs ne portent qu'un NOM, un SITE public et ce qu'ils vendent :
+   ni téléphone, ni adresse, ni contact inventé. Deux sites de la recherche ne sont PAS posés, vérifiés le 28 octobre : Brossette redirige vers Cedeo (c'est la même
+   enseigne) et le domaine de Frans Bonhomme est parqué chez un revendeur de noms de domaine. Cedeo et Point.P refusent les accès automatiques (403) : leur fiche le dit.
+   Une entreprise qui fait clim ET plomberie a les deux catalogues : une fiche au même nom ne se pose qu'une fois. */
+const CATALOGUE_CHAUF=[
+  ['Électrode d’allumage ou d’ionisation (pièce)','Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)',[],''],
+  ['Thermocouple (pièce)','Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)',[],''],
+  ['Sonde de température de chaudière (CTN, pièce)','Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)',[],''],
+  ['Gicleur de brûleur fioul (pièce)','Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)',[],''],
+  ['Électrovanne gaz (pièce)','Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)',[],''],
+  ['Joint de brûleur (pièce)','Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)',[],''],
+  ['Cartouche de filtre à fioul (pièce)','Filtres et cartouches',[],''],
+  ['Filtre à air de climatiseur (unité intérieure, pièce)','Filtres et cartouches',[],''],
+  ['Filtre à tamis de circuit de chauffage (pièce)','Filtres et cartouches',[],''],
+  ['Fluide frigorigène R32 (bouteille)','Fluides frigorigènes (par type)',[],''],
+  ['Fluide frigorigène R410A (bouteille)','Fluides frigorigènes (par type)',[],''],
+  ['Tête de robinet thermostatique (pièce)','Radiateurs et robinets thermostatiques',[],''],
+  ['Corps de robinet de radiateur (droit ou équerre, pièce)','Radiateurs et robinets thermostatiques',[],''],
+  ['Clé de purge de radiateur (pièce)','Radiateurs et robinets thermostatiques',[],''],
+  ['Purgeur automatique de radiateur (pièce)','Radiateurs et robinets thermostatiques',[],''],
+  ['Circulateur de chauffage (pièce)','Circulateurs et vases d\'expansion',[],''],
+  ['Vase d’expansion de chauffage (pièce)','Circulateurs et vases d\'expansion',[],''],
+  ['Soupape de sécurité 3 bar (pièce)','Circulateurs et vases d\'expansion',[],''],
+  ['Manomètre de circuit de chauffage (pièce)','Circulateurs et vases d\'expansion',[],''],
+  ['Désembouant pour circuit de chauffage (bidon)','Produits de désembouage et de traitement de l\'eau',[],''],
+  ['Inhibiteur de corrosion pour circuit de chauffage (flacon)','Produits de désembouage et de traitement de l\'eau',[],''],
+  ['Filtre magnétique de circuit de chauffage (pièce)','Produits de désembouage et de traitement de l\'eau',[],''],
+  ['Conduit de fumée inox (mètre)','Conduits et fumisterie',[],''],
+  ['Collier de fixation de conduit (pièce)','Conduits et fumisterie',[],''],
+  ['Thermostat d’ambiance programmable (pièce)','Régulation et thermostats',[],''],
+  ['Sonde extérieure de régulation (pièce)','Régulation et thermostats',[],''],
+  ['Pompe de relevage de condensats (pièce)','Pompes à chaleur et climatisation (unités et pièces)',[],''],
+  ['Condensateur de démarrage (pièce)','Pompes à chaleur et climatisation (unités et pièces)',[],''],
+  ['Support d’unité extérieure (paire)','Pompes à chaleur et climatisation (unités et pièces)',[],''],
+  ['Nettoyant d’évaporateur de climatisation (flacon)','Pompes à chaleur et climatisation (unités et pièces)',[],''],
+  ['Tube cuivre frigorifique en couronne (mètre)','Tuyauterie, liaisons frigorifiques et isolation',[],''],
+  ['Manchon isolant en mousse élastomère (mètre)','Tuyauterie, liaisons frigorifiques et isolation',[],''],
+  ['Gaine d’évacuation des condensats (mètre)','Tuyauterie, liaisons frigorifiques et isolation',[],''],
+  ['Jeu d’écrous et de raccords évasés (jeu)','Tuyauterie, liaisons frigorifiques et isolation',[],''],
+  ['Détecteur de fuite en aérosol (aérosol)','Outillage consommable',[],''],
+  ['Ruban PTFE (rouleau)','Outillage consommable',[],''],
+  ['Baguette de brasure (lot)','Outillage consommable',[],''],
+  ['Gants de protection (paire)','EPI',[],''],
+  ['Lunettes de protection (pièce)','EPI',[],'']
+];
+const FOURNISSEURS_CHAUF=[
+  {id:'four_cedeo',nom:'Cedeo',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : cedeo.fr · distributeur de plomberie, chauffage et climatisation (le site refuse les accès automatiques : non relu)'},
+  {id:'four_richardson',nom:'Richardson',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : richardson.fr · distributeur de matériel de chauffage, de climatisation et de plomberie'},
+  {id:'four_chausson-materiaux',nom:'Chausson Matériaux',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : chausson.fr · négoce de matériaux : plomberie, chauffage, sanitaire'},
+  {id:'four_climalife',nom:'Climalife',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : climalife.com/fr · fluides frigorigènes et solutions thermiques'},
+  {id:'four_rexel',nom:'Rexel',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : rexel.fr · matériel électrique : chauffage électrique, climatisation, ventilation, régulation'},
+  {id:'four_wurth-france',nom:'Würth France',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : wurth.fr · outillage, visserie et consommables pour artisans'}
+];
+const CATALOGUE_PLOMB=[
+  ['Coude cuivre à souder 90° Ø14/16 (pièce)','Raccords et fittings',[],''],
+  ['Raccord laiton à visser (manchon, réduction, pièce)','Raccords et fittings',[],''],
+  ['Raccord à sertir multicouche Ø16 (pièce)','Raccords et fittings',[],''],
+  ['Collier de fixation de tube (pièce)','Raccords et fittings',[],''],
+  ['Tube cuivre écroui Ø14 (mètre)','Tubes (cuivre, PER, multicouche, PVC)',[],''],
+  ['Tube PER nu en couronne Ø16 (mètre)','Tubes (cuivre, PER, multicouche, PVC)',[],''],
+  ['Tube multicouche Ø16 (mètre)','Tubes (cuivre, PER, multicouche, PVC)',[],''],
+  ['Tube PVC évacuation Ø40 (mètre)','Tubes (cuivre, PER, multicouche, PVC)',[],''],
+  ['Tube PVC évacuation Ø100 (mètre)','Tubes (cuivre, PER, multicouche, PVC)',[],''],
+  ['Mitigeur de lavabo (pièce)','Robinetterie et mitigeurs',[],''],
+  ['Mitigeur d\'évier (pièce)','Robinetterie et mitigeurs',[],''],
+  ['Robinet d\'arrêt quart de tour (pièce)','Robinetterie et mitigeurs',[],''],
+  ['Cartouche de mitigeur (pièce)','Robinetterie et mitigeurs',[],''],
+  ['Flexible inox de raccordement 3/8 pouce (pièce)','Flexibles et alimentation',[],''],
+  ['Flexible de douche (pièce)','Flexibles et alimentation',[],''],
+  ['Joint caoutchouc / fibre, assortiment (lot)','Joints, filasse, pâtes',[],''],
+  ['Filasse et pâte à joint (tube)','Joints, filasse, pâtes',[],''],
+  ['Ruban PTFE (rouleau)','Joints, filasse, pâtes',[],''],
+  ['Mécanisme de chasse d\'eau WC (pièce)','Sanitaire (WC, vasques)',[],''],
+  ['Abattant WC (pièce)','Sanitaire (WC, vasques)',[],''],
+  ['Robinet flotteur de chasse d\'eau (pièce)','Sanitaire (WC, vasques)',[],''],
+  ['Groupe de sécurité 3/4 pouce (pièce)','Chauffe-eau et groupes de sécurité',[],''],
+  ['Chauffe-eau électrique 100 L (pièce)','Chauffe-eau et groupes de sécurité',[],''],
+  ['Siphon de lavabo / évier (pièce)','Évacuation et siphons',[],''],
+  ['Bonde de douche ou d\'évier (pièce)','Évacuation et siphons',[],''],
+  ['Furet de débouchage à main (pièce)','Débouchage et curage (produits, furets)',[],''],
+  ['Gel de débouchage canalisation (flacon 1 L)','Débouchage et curage (produits, furets)',[],''],
+  ['Colle PVC (pot 250 mL)','Outillage consommable',[],''],
+  ['Gants de manutention (paire)','EPI',[],''],
+  ['Lunettes de protection (pièce)','EPI',[],'']
+];
+const FOURNISSEURS_PLOMB=[
+  {id:'four_cedeo',nom:'Cedeo',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : cedeo.fr · distributeur de plomberie et de chauffage (le site refuse les accès automatiques : non relu)'},
+  {id:'four_point-p',nom:'Point.P',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : pointp.fr · matériaux et plomberie (le site refuse les accès automatiques : non relu)'},
+  {id:'four_richardson',nom:'Richardson',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : richardson.fr · distributeur de sanitaire et de plomberie'},
+  {id:'four_chausson-materiaux',nom:'Chausson Matériaux',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : chausson.fr · négoce de matériaux : réseaux, plomberie'},
+  {id:'four_foussier',nom:'Foussier',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : foussier.fr · quincaillerie et outillage consommable'}
+];
+
+METIERS['chauffage'].catalogue=CATALOGUE_CHAUF; METIERS['chauffage'].fournisseurs=FOURNISSEURS_CHAUF;
+METIERS['plomberie'].catalogue=CATALOGUE_PLOMB; METIERS['plomberie'].fournisseurs=FOURNISSEURS_PLOMB;
 /* Le pack d'UNE base donnée (pas forcément db : load() et l'import travaillent sur un objet à part).
    Sans métier réglé, c'est la 3D — le métier historique, celui de toutes les entreprises d'avant le
    choix du métier. */
-function metierPackDe(base){ const id=(base&&base.metier&&METIERS[base.metier])?base.metier:'3d'; return METIERS[id]||{}; }
+/* ⛔ v779 — « MON ENTREPRISE FAIT AUSSI… » (Justin, 28 octobre 2026 : une entreprise de climatisation ET de plomberie voit l'application demain). Un seul champ de plus,
+   `db.metierPlus` (réglage de l'entreprise, rangé comme `metier`) : le pack d'une base qui le porte est la RÉUNION des deux packs — types, prestations, relevés, catégories de
+   produits, documents, catalogue de départ, fournisseurs, rubriques conseillées — le premier métier d'abord, un nom déjà présent jamais en double. Rien d'autre ne change :
+   le métier (`metier`) reste celui de la facturation, des exemples et du planning de démonstration. ⛔ La 3D n'en reçoit jamais (ni comme premier métier, ni comme second) :
+   `metierPackDe` rend alors EXACTEMENT ce qu'il rendait. Le pack réuni est calculé une fois par couple et porte `_plusDe` (le métier de départ) : `metierPack()` ne le sert
+   que si ce métier est bien celui de l'entreprise. */
+function metierPackDe(base){ const id=(base&&base.metier&&METIERS[base.metier])?base.metier:'3d', plus=base&&base.metierPlus;
+  if(id!=='3d'&&plus&&plus!==id&&plus!=='3d'&&Object.prototype.hasOwnProperty.call(METIERS,plus)){
+    const cache=metierPackDe._c||(metierPackDe._c={}), cle=id+'|'+plus; if(cache[cle]) return cache[cle];
+    const A=METIERS[id], B=METIERS[plus], uni=(x,y,nom)=>{ const out=(x||[]).slice(), vus=new Set(out.map(nom)); (y||[]).forEach(e=>{ const k=nom(e); if(!vus.has(k)){ vus.add(k); out.push(e); } }); return out; };
+    const s=e=>String(e==null?'':e).trim().toLowerCase(), cat=e=>s(e&&e[0]), four=e=>s(e&&e.nom), rel=e=>s(e&&e.k);
+    const M=Object.assign({},A,{ _plusDe:id, _plus:plus, types:uni(A.types,B.types,s), presta:uni(A.presta,B.presta,s), releves:uni(A.releves,B.releves,rel), produits:uni(A.produits,B.produits,s),
+      documents:uni(A.documents,B.documents,s), rubriques:uni(A.rubriques,B.rubriques,s), masque:(A.masque||[]).filter(k=>(B.masque||[]).indexOf(k)>=0),
+      catalogue:(A.catalogue||B.catalogue)?uni(A.catalogue,B.catalogue,cat):A.catalogue, fournisseurs:(A.fournisseurs||B.fournisseurs)?uni(A.fournisseurs,B.fournisseurs,four):A.fournisseurs });
+    return (cache[cle]=M); }
+  return METIERS[id]||{}; }
 function metierId(){ try{ return (db&&db.metier&&METIERS[db.metier])?db.metier:'3d'; }catch(e){ return '3d'; } }
-function metierPack(){ return METIERS[metierId()]; }
+function metierPack(){ const id=metierId();
+  try{ if(db&&db.metierPlus){ const p=metierPackDe(db); if(p&&p._plusDe===id) return p; } }catch(e){}
+  return METIERS[id]; }
+/* Les métiers de l'entreprise : le sien, puis son activité complémentaire s'il y en a une. Une seule fonction pour « ce métier est-il l'un des miens ? » (parc d'appareils,
+   documents du métier, cahiers de nettoyage) — jamais `metierId()==='…'`. */
+function metierActifs(){ const id=metierId();
+  try{ const p=db&&db.metierPlus; if(id!=='3d'&&p&&p!==id&&p!=='3d'&&Object.prototype.hasOwnProperty.call(METIERS,p)) return [id,p]; }catch(e){}
+  return [id]; }
 /* ⛔ v773 — HORS ANTI-NUISIBLES, PLUS RIEN DE L'ANTI-NUISIBLES (Justin, 22 octobre 2026, cahier des métiers, point 5). UNE
    seule fonction décide : `estMetier3D()`. Elle est lue par tout écran qui SAISIT quelque chose de propre à la 3D —
    « Nuisibles ciblés », « Méthodes », l'étape « Constat » de la clôture guidée, le constat et le traitement du compte-rendu,
@@ -10557,7 +10701,22 @@ function exemple(cle){
       devis1:'« Nettoyage mensuel de bureaux, 120 m², 2 passages par semaine, à La Rochelle, 340 € HT »',
       devis2:'« Remise en état après travaux, appartement 60 m², à 650 € »',
       devisIA:'Ex : nettoyage de bureaux de 120 m² chez un client à Strasbourg, produits et main-d’œuvre compris, 2 passages par semaine',
-      materiel:'Ex : autolaveuse, mono-brosse, chariot, produits dosés…', produitsTitre:'Produits et consommables utilisés', produitsAjout:'— Ajouter un produit ou un consommable —' } };
+      materiel:'Ex : autolaveuse, mono-brosse, chariot, produits dosés…', produitsTitre:'Produits et consommables utilisés', produitsAjout:'— Ajouter un produit ou un consommable —' },
+    /* v779 : la plomberie et le chauffage / climatisation ont les leurs (28 octobre 2026) */
+    plomberie:{ entreprise:'Ex : Aqua Services SARL', societe:'Ex : Aqua Services SARL', siteBon:'Nom du site (ex : Résidence Les Lilas)', ville:'ex : 17000 La Rochelle',
+      produit:'Ex : Mitigeur de lavabo (pièce)',
+      liste:'Mitigeur de lavabo ; Cedeo ; 48,00\nFlexible inox de raccordement ; Cedeo\nGants de manutention',
+      devis1:'« Remplacement d’un mitigeur de cuisine chez Mme Martin, 12 rue des Lilas à Rochefort, 180 € TTC »',
+      devis2:'« Recherche de fuite sous dalle, maison de 90 m², La Rochelle, à 450 »',
+      devisIA:'Ex : remplacement d’un chauffe-eau électrique de 200 L chez un particulier à Strasbourg, fourniture et pose, groupe de sécurité compris',
+      materiel:'Ex : furet, pompe à main, manomètre, chalumeau, pince à sertir…', produitsTitre:'Pièces et fournitures utilisées', produitsAjout:'— Ajouter une pièce ou une fourniture —' },
+    chauffage:{ entreprise:'Ex : Thermo Confort SARL', societe:'Ex : Thermo Confort SARL', siteBon:'Nom du site (ex : Copropriété Les Mimosas)', ville:'ex : 17000 La Rochelle',
+      produit:'Ex : Thermocouple (pièce)',
+      liste:'Thermocouple ; Cedeo ; 8,90\nFiltre à air de climatiseur ; Cedeo\nGants de protection',
+      devis1:'« Entretien annuel de chaudière gaz chez Mme Martin, 12 rue des Lilas à Rochefort, 130 € TTC »',
+      devis2:'« Installation d’un split mural 2,5 kW, appartement de 60 m², La Rochelle, à 1 900 »',
+      devisIA:'Ex : remplacement d’une chaudière gaz à condensation chez un particulier à Strasbourg, fourniture, pose et mise en service comprises',
+      materiel:'Ex : analyseur de combustion, manifold, pompe à vide, balance de charge, détecteur de fuite…', produitsTitre:'Pièces et fluides utilisés', produitsAjout:'— Ajouter une pièce ou un fluide —' } };
   const m=metierId(), s=EX_METIER[m]&&EX_METIER[m][cle]; if(s) return s;
   if(estMetier3D()) return EX_3D[cle]||'';
   if(EX_AUTRE[cle]) return EX_AUTRE[cle];
@@ -10600,13 +10759,26 @@ function metierSet(id){
   const av=metierId(); if(av===id){ toast('C’est déjà ton métier'); return; }
   /* audit apple-design, point 19 : le texte le disait déjà, « tu peux revenir en arrière à tout moment » — le geste se
      fait, et « ↩︎ Annuler » rend le métier d'avant. */
-  db.metier=id;
+  db.metier=id; if(db.metierPlus===id||id==='3d') db.metierPlus='';   // le métier ne peut pas être aussi son complément ; la 3D n'en a pas
   /* v751 : `logJournal` n'a jamais existé — la ligne ne s'écrivait pas, en silence (ESLint, vérification de A à Z).
      v765 : et elle s'écrit AVANT le save() — logEvent ne range rien (voir metierServeurAppliquer). */
   try{ logEvent('Métier de l’entreprise',METIERS[id].nom,'admin'); }catch(e){}
   save();
   try{ renderNav(); }catch(e){}   // v778 : le menu (et sa barre d'onglets) se redessine tout de suite — la bêta choisit un métier pour le JUGER
   toastAnnuler(METIERS[id].ic+' Métier « '+METIERS[id].nom+' » activé',"metierSet('"+av+"')");
+  views.parametres();
+}
+function metierPlusSet(id){
+  if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
+  id=String(id||''); const av=db.metierPlus||'';
+  if(metierId()==='3d'){ toast('Ce réglage ne concerne pas la 3D : elle garde son pack tel quel'); return; }
+  if(id&&(!Object.prototype.hasOwnProperty.call(METIERS,id)||id==='3d'||id===metierId())) return;
+  if(av===id) return;
+  db.metierPlus=id;
+  try{ logEvent('Activité complémentaire',id?METIERS[id].nom:'aucune','admin'); }catch(e){}
+  save();
+  try{ renderNav(); }catch(e){}
+  toastAnnuler(id?METIERS[id].ic+' L’entreprise fait aussi : '+METIERS[id].nom:'Activité complémentaire retirée',"metierPlusSet('"+av+"')");
   views.parametres();
 }
 /* ⛔ v765 — LE MÉTIER VIENT DE TEAM OP (Justin, 29 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
@@ -10626,7 +10798,7 @@ function metierServeurAppliquer(j){
   const av=metierId();
   /* la ligne de journal AVANT l'enregistrement : logEvent ne range rien, et une ligne écrite après le save() n'existait
      qu'en mémoire — mesuré au navigateur (scratchpad/sonde-metier-serveur.js) : elle disparaissait au rechargement */
-  db.metier=m;
+  db.metier=m; if(db.metierPlus===m||m==='3d') db.metierPlus='';
   try{ logEvent('Métier de l’entreprise',METIERS[m].nom+' — réglé par TEAM OP','admin'); }catch(e){}
   save();
   try{ renderNav(); }catch(e){}
@@ -10733,7 +10905,9 @@ function metierPrestaCard(i,edit){
   const sel=i.prestaMetier||[];
   /* nettoyage : les tâches du cahier des tâches du site se proposent avec les prestations (rien ailleurs : `extra` est vide) */
   const extra=(typeof nettTachesPourCard==='function')?nettTachesPourCard(i).filter(x=>(p.presta||[]).indexOf(x)<0):[];
-  const liste=(p.presta||[]).concat(extra,(i.prestaLibres||[]).filter(x=>(p.presta||[]).indexOf(x)<0&&extra.indexOf(x)<0));
+  const liste0=(p.presta||[]).concat(extra,(i.prestaLibres||[]).filter(x=>(p.presta||[]).indexOf(x)<0&&extra.indexOf(x)<0));
+  /* une coche DÉJÀ posée que plus aucune liste ne propose (une prestation renommée dans le pack, un métier changé) reste visible et décochable en modification */
+  const liste=liste0.concat(sel.filter(x=>liste0.indexOf(x)<0));
   const rel=p.releves||[];
   const relFaits=metierRelevesLignes(i);
   return `<div class="card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px">
@@ -11140,7 +11314,7 @@ const badge = (map,k) => { const o=map[k]||Object.values(map)[0]; return `<span 
    hoistée : elle s'exécute pendant cette ligne-là, donc avant tout const écrit plus bas.
    Placée après, elle donnait « Cannot access COLLECTIONS_DONNEES before initialization » et
    l'application ne démarrait plus du tout. Même piège que annuaireDeposer (voir CLAUDE.md). */
-const COLLECTIONS_DONNEES=['techniciens','clients','interventions','boxes','enveloppes','produits','mouvements','vehicules','demandes','bons','journal','devis','factures','contrats','pointages','messages','groupes','conducteurs','produitsDonnes','brouillons','champsPerso','fournisseurs','taches','absences','chantiers','telecollectes','registres','appareils','cahiers','plansPrevention'];
+const COLLECTIONS_DONNEES=['techniciens','clients','interventions','boxes','enveloppes','produits','mouvements','vehicules','demandes','bons','journal','devis','factures','contrats','pointages','messages','groupes','conducteurs','produitsDonnes','brouillons','champsPerso','fournisseurs','taches','absences','chantiers','telecollectes','registres','appareils','cahiers','plansPrevention','docsMetier'];
 /* Identifiant FIXE du compte de départ « OP Admin » — au niveau global, car migrate() le pose
    et boot() s'en sert pour reconnaître le compte à garder quand plusieurs se sont empilés.
    Déclaré ici, à côté de COLLECTIONS_DONNEES, donc avant le premier load(). */
@@ -11334,7 +11508,7 @@ function plansSiteFusion(prio,autre,tombes){
    silencieusement, sur un champ dont personne ne se souvient. */
 const OP_CLASSES = {
   /* ── Les listes d'enregistrements, identifiées par `id` ────────────────────────────── */
-  absences: 'liste', activites: 'liste', appareils: 'liste', bons: 'liste', bonsRemise: 'liste', cahiers: 'liste', plansPrevention: 'liste',
+  absences: 'liste', activites: 'liste', appareils: 'liste', bons: 'liste', bonsRemise: 'liste', cahiers: 'liste', plansPrevention: 'liste', docsMetier: 'liste',
   boxDecisions: 'liste', boxMvtAttente: 'liste', brouillons: 'liste', champsPerso: 'liste',
   chantiers: 'liste', clients: 'liste', conducteurs: 'liste', contrats: 'liste',
   demandes: 'liste', devis: 'liste', enveloppes: 'liste', factures: 'liste',
@@ -11373,7 +11547,7 @@ const OP_CLASSES = {
   forfait: 'reglage', forfaitEssai: 'reglage', forfaitQty: 'reglage', forfaitSrv: 'reglage',
   formuleAttente: 'reglage', foursEmailsV2: 'reglage', foursEmailsV3: 'reglage',
   foursSeeded: 'reglage', foursSeededV: 'reglage', mailFrom: 'reglage', mailReply: 'reglage',
-  metier: 'reglage', orgaCanal: 'reglage', orgaMarge: 'reglage', orgaMsg: 'reglage',
+  metier: 'reglage', metierPlus: 'reglage', orgaCanal: 'reglage', orgaMarge: 'reglage', orgaMsg: 'reglage',
   permsRepris: 'reglage', prixSeededV: 'reglage', societes: 'reglage',
   validDRTous: 'reglage',
 };
@@ -12220,7 +12394,7 @@ function load(){ try{ suspensionCharger(); }catch(e){}
   return d;
 }
 function migrate(d){
-  const cols = ['users','techniciens','clients','interventions','boxes','enveloppes','produits','mouvements','vehicules','demandes','bons','journal','devis','factures','contrats','pointages','champsPerso','fournisseurs','messages','groupes','conducteurs','produitsDonnes','brouillons','telecollectes','taches','absences','chantiers','registres','appareils','cahiers','plansPrevention'];
+  const cols = ['users','techniciens','clients','interventions','boxes','enveloppes','produits','mouvements','vehicules','demandes','bons','journal','devis','factures','contrats','pointages','champsPerso','fournisseurs','messages','groupes','conducteurs','produitsDonnes','brouillons','telecollectes','taches','absences','chantiers','registres','appareils','cahiers','plansPrevention','docsMetier'];
   cols.forEach(c => { d[c] = d[c] || []; });
   // Refonte planning : indisponibilités, journal des déplacements, notes de journée
   ['indispos','planJournal','interventionsArchive'].forEach(c=>{ d[c] = d[c] || []; });
@@ -12388,7 +12562,7 @@ function numPlafondRelever(){ if(!db) return; db.numMax=(db.numMax&&typeof db.nu
   voir(db.devis,'num'); voir(db.factures,'num'); voir(db.demandes,'num'); voir(db.bonsRemise,'num');
   voir(db.bons,'numero');
   /* g02 : un contrat et une enveloppe supprimés rendaient leur numéro (le plafond ne les lisait pas) */
-  voir(db.contrats,'num'); voir(db.enveloppes,'numero'); }
+  voir(db.contrats,'num'); voir(db.enveloppes,'numero'); voir(db.docsMetier,'num'); }
 function numMaxUnion(a,b){ const o={};
   new Set([].concat(Object.keys(a||{}),Object.keys(b||{}))).forEach(k=>{ o[k]=Math.max(+((a||{})[k])||0,+((b||{})[k])||0); });
   return o; }
@@ -13752,7 +13926,7 @@ function syncPush(now){ if(!_syncOn||!_fbDoc||_syncApplying||!_syncGotInitial) r
    Pour chaque collection qui compte, on regarde combien de lignes du nuage manquent chez nous.
    Plus de 3 ET plus d'un cinquième : ce n'est pas une suppression, c'est un retard. On ne juge
    pas une collection de moins de 5 lignes — trop petite pour distinguer les deux. */
-const COLLS_GARDEES=['interventions','clients','boxes','produits','mouvements','bons','devis','factures','vehicules','pointages','contrats','demandes','telecollectes','techniciens','fournisseurs','chantiers','registres','appareils','cahiers','plansPrevention'];
+const COLLS_GARDEES=['interventions','clients','boxes','produits','mouvements','bons','devis','factures','vehicules','pointages','contrats','demandes','telecollectes','techniciens','fournisseurs','chantiers','registres','appareils','cahiers','plansPrevention','docsMetier'];
 let _retraitVoulu=0;
 function syncRetraitVoulu(){ _retraitVoulu=Date.now(); }
 /* ══ LES COPIES DE SAUVEGARDE — le filet (Justin, 9 septembre 2026) ══
@@ -16466,7 +16640,7 @@ function can(cap){ if(!currentUser) return false; return userCap(currentUser,cap
    intervention suit « creerIntervention », le reste est permis). */
 const PERM_GRPS=[['tdb','📊 Tableau de bord & historique'],['plan','🗓️ Planification'],['int','🧰 Interventions'],['crm','🏢 Clients (CRM)'],['ventes','💰 Ventes — Devis & Factures'],['stock','📦 Stock'],['equipe','⏱️ Temps & équipe'],['com','💬 Communication / Fournisseurs'],['achats','🛒 Achats internes'],['admin','🛠️ Administration']];
 const PERM_GRP_OF={'Tableau de bord':'tdb','Planification':'plan','Interventions':'int','CRM':'crm','Ventes':'ventes','Stock':'stock','Temps & équipe':'equipe','Communication / Fournisseurs':'com','Achats internes':'achats','Administration':'admin'};
-const COLL_GRP={interventions:'int',clients:'crm',devis:'ventes',factures:'ventes',contrats:'ventes',appareils:'crm',cahiers:'crm',plansPrevention:'crm',telecollectes:'ventes',produits:'stock',boxes:'stock',mouvements:'stock',produitsDonnes:'stock',enveloppes:'stock',brouillons:'achats',demandes:'achats',bons:'com',fournisseurs:'com',taches:'plan',absences:'plan',vehicules:'equipe',conducteurs:'equipe',pointages:'equipe',techniciens:'equipe'};
+const COLL_GRP={interventions:'int',clients:'crm',devis:'ventes',factures:'ventes',contrats:'ventes',appareils:'crm',cahiers:'crm',plansPrevention:'crm',docsMetier:'crm',telecollectes:'ventes',produits:'stock',boxes:'stock',mouvements:'stock',produitsDonnes:'stock',enveloppes:'stock',brouillons:'achats',demandes:'achats',bons:'com',fournisseurs:'com',taches:'plan',absences:'plan',vehicules:'equipe',conducteurs:'equipe',pointages:'equipe',techniciens:'equipe'};
 /* droits spéciaux existants, rattachés à leur catégorie (libellés dans USER_CAPS) */
 /* ⛔⛔ CE QUE MESURE test-747, ET POURQUOI CETTE TABLE EXISTE. Mesuré au navigateur le
    21 septembre 2026, sur la bêta, droit par droit : les quatre droits d'une catégorie se
@@ -16480,7 +16654,7 @@ const COLL_GRP={interventions:'int',clients:'crm',devis:'ventes',factures:'vente
    témoin venait lui-même de consommer. Un témoin qui mange la ressource que l'essai suivant
    réclame fabrique un faux verrou.
    Le libellé sert au message de refus : « Créer un fournisseur n'est pas autorisé… ». */
-const COLL_QUOI={fournisseurs:'un fournisseur',techniciens:'un technicien',brouillons:'un produit au brouillon',bons:'un bon de commande',demandes:'une demande',conducteurs:'un conducteur',clients:'un client',produits:'un produit',boxes:'une box',vehicules:'un véhicule',taches:'une tâche',absences:'une absence',devis:'un devis',factures:'une facture',contrats:'un contrat',appareils:'un appareil',cahiers:'un cahier des tâches',plansPrevention:'un plan de prévention'};
+const COLL_QUOI={fournisseurs:'un fournisseur',techniciens:'un technicien',brouillons:'un produit au brouillon',bons:'un bon de commande',demandes:'une demande',conducteurs:'un conducteur',clients:'un client',produits:'un produit',boxes:'une box',vehicules:'un véhicule',taches:'une tâche',absences:'une absence',devis:'un devis',factures:'une facture',contrats:'un contrat',appareils:'un appareil',cahiers:'un cahier des tâches',plansPrevention:'un plan de prévention',docsMetier:'un document du métier'};
 const PERM_SPECIAUX={plan:['planifDeplacer','planifObligerTravail'],int:['voirTout','annuler','modifierPlans'],ventes:['devisIA','voirCompta'],stock:['gererBoxes','stockage','effacerPrix','supprimerHistoCommandes','revoirDistincts'],com:['opMessages','bonsLectureSeule','respBons','gererGroupes','mailPro'],equipe:['creerUtilisateurs','voirPointages','voirEquipe','corrigerPointages','gererFiches'],achats:['validerDR','supprimerHistoDemandes']};
 /* ⛔ v738 — UNE ACTION DE CATÉGORIE QUI N'EST PAS RÉGLÉE SUIT SA CASE DE BASE, EN DIRECT.
    « 🗑 Supprimer » de chaque catégorie suit « Supprimer des éléments », « Interventions → ＋ Ajouter »
@@ -26840,6 +27014,7 @@ function renderIntDetail(id){
       ${intProdCard(i,intEdit)}
       ${typeof cvcIntCard==='function'?cvcIntCard(i,intEdit):''}
       ${typeof nettIntCard==='function'?nettIntCard(i,intEdit):''}
+      ${typeof docmIntCard==='function'?docmIntCard(i,intEdit):''}
       ${intNoteInterneCard(i,intEdit)}`+`
       <details open class="olsec"><summary><span class="olsec-ic">${fic('brief',19)}</span>Informations</summary><div style="padding:0">
         <div style="display:flex">
@@ -27865,6 +28040,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
     ${garSectionHtml(c.id)}
     ${typeof cvcSectionClient==='function'?cvcSectionClient(c):''}
     ${typeof nettSectionClient==='function'?nettSectionClient(c):''}
+    ${typeof docmSectionClient==='function'?docmSectionClient(c):''}
     ${(estMetier3D()&&cliIsPro(c))?`<div style="background:var(--card2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;margin:10px 0">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;font-size:13.5px">📕 Dossier sanitaire</b>
         <button class="btn sm" onclick="papDossierSanitaire('${c.id}')">Générer le dossier complet (PDF)</button></div>
@@ -37717,6 +37893,58 @@ const DEMO_NETT={
     [2,'14:30',60,'Remise en état urgente','Remise en état',2,2,'']
   ],
   checklist:['Aspiration des sols','Lavage des sols'], arepartir:['À répartir — contrôle qualité','Contrôle qualité chez le client'] };
+/* v779 : le chauffage / climatisation et la plomberie ont leur jeu (28 octobre 2026) — les types sont ceux de leur pack (un banc le vérifie). Les clients 0 à 3 reçoivent
+   les documents de démonstration (`docmDemoPoser`) et, pour le chauffage, un parc d'appareils (`cvcDemoPoser`). */
+const DEMO_PLOMB={
+  clients:[
+    ['M. et Mme Durand','3 allée des Chênes','Salles-sur-Mer',46.1012,-1.0571,'particulier'],
+    ['Syndic Résidence Les Lilas','5 quai Duperré','La Rochelle',46.1562,-1.1531,'pro'],
+    ['Boulangerie Au Bon Pain','12 rue du Port','La Rochelle',46.1580,-1.1510,'pro'],
+    ['Hôtel de la Plage','avenue de la Plage','Châtelaillon',46.0730,-1.0870,'pro'],
+    ['Mme Roux','8 rue Chaudrier','La Rochelle',46.1593,-1.1519,'particulier'],
+    ['Restaurant Le Vieux Port','quai Valin','La Rochelle',46.1550,-1.1540,'pro'],
+    ['Camping Les Pins','route des Minimes','La Rochelle',46.1470,-1.1660,'pro'] ],
+  planning:[
+    [0,'08:30',90,'Fuite sous l’évier','Dépannage fuite',0,0,'terminee'],
+    [0,'11:00',60,'Remplacement du groupe de sécurité — chaufferie','Remplacement de groupe de sécurité',0,1,'terminee'],
+    [0,'14:00',120,'Remplacement du chauffe-eau','Chauffe-eau / ballon',0,4,''],
+    [0,'09:30',90,'Test d’étanchéité du réseau d’eau',"Test d'étanchéité",1,2,'terminee'],
+    [0,'13:00',60,'Débouchage d’une évacuation','Débouchage / curage',1,5,''],
+    [0,'10:00',60,'Visite technique avant devis — salle de bains','Visite technique / devis',2,6,''],
+    [1,'08:30',60,'Recherche de fuite — plafond','Recherche de fuite',0,3,''],
+    [1,'10:30',60,'Dépannage urgent — canalisation percée','Dépannage urgent (nuit, week-end, jour férié)',1,4,''],
+    [1,'14:00',90,'Pose d’un lavabo et d’un WC','Pose sanitaire (WC, lavabo, douche)',0,0,''],
+    [1,'15:00',60,'Installation gaz — raccordement d’une plaque','Installation gaz',2,3,''],
+    [2,'09:00',120,'Installation neuve — salle d’eau','Installation neuve',1,6,''],
+    [2,'11:30',60,'Entretien annuel — contrat','Contrat d’entretien',0,1,''],
+    [2,'14:30',60,'Remplacement d’un tronçon d’alimentation','Réseau & alimentation',2,2,'']
+  ],
+  checklist:['Repérage et diagnostic','Coupure et remise en eau'], arepartir:['À répartir — dépannage fuite','Dépannage fuite'] };
+const DEMO_CHAUF={
+  clients:[
+    ['M. et Mme Durand','3 allée des Chênes','Salles-sur-Mer',46.1012,-1.0571,'particulier'],
+    ['Restaurant Le Vieux Port','quai Valin','La Rochelle',46.1550,-1.1540,'pro'],
+    ['Copropriété Les Mimosas','12 rue des Mimosas','La Rochelle',46.1580,-1.1510,'pro'],
+    ['Hôtel de la Plage','avenue de la Plage','Châtelaillon',46.0730,-1.0870,'pro'],
+    ['Mme Roux','8 rue Chaudrier','La Rochelle',46.1593,-1.1519,'particulier'],
+    ['Cabinet dentaire Martin','21 rue Gargoulleau','La Rochelle',46.1600,-1.1480,'pro'],
+    ['Camping Les Pins','route des Minimes','La Rochelle',46.1470,-1.1660,'pro'] ],
+  planning:[
+    [0,'08:30',90,'Entretien de la chaudière gaz','Entretien annuel chaudière',0,0,'terminee'],
+    [0,'11:00',60,'Entretien de la climatisation','Entretien climatisation',0,5,''],
+    [0,'14:00',120,'Dépannage chauffage — plus d’eau chaude','Dépannage chauffage',0,2,''],
+    [0,'09:30',90,'Entretien de la climatisation du restaurant','Entretien climatisation',1,1,'terminee'],
+    [0,'13:30',60,'Ramonage — poêle à granulés','Ramonage',1,3,''],
+    [0,'10:00',60,'Visite technique avant devis — pompe à chaleur','Visite technique / devis',2,4,''],
+    [1,'08:30',60,'Contrôle d’étanchéité — climatisation du restaurant',"Contrôle d'étanchéité des fluides frigorigènes",0,1,''],
+    [1,'10:30',60,'Désembouage du circuit de chauffage','Désembouage',1,2,''],
+    [1,'14:00',90,'Mise en service — chaudière à condensation','Mise en service',0,0,''],
+    [1,'15:00',60,'Entretien VMC','Entretien VMC / ventilation',2,5,''],
+    [2,'09:00',120,'Installation d’un split mural','Installation',1,4,''],
+    [2,'11:30',60,'Entretien d’une chaudière fioul','Entretien chaudière fioul ou bois',0,2,''],
+    [2,'14:30',60,'Dépannage climatisation — ne refroidit plus','Dépannage climatisation',2,6,'']
+  ],
+  checklist:['Contrôle des organes de sécurité','Mise en service et essai'], arepartir:['À répartir — dépannage chauffage','Dépannage chauffage'] };
 /* Un métier sans jeu écrit pour lui : les mêmes créneaux, les types de SON pack, la checklist tirée de SES prestations. */
 function demoPlanGenerique(){
   const T=intTypes(), pr=(metierPack().presta||[]).slice(0,2), tp=k=>T[k%T.length]||'Intervention';
@@ -37726,6 +37954,8 @@ function demoPlanGenerique(){
 function demoSemisDe(){
   if(estMetier3D()) return { clients:DEMO_CLIENTS_3D, planning:DEMO_PLAN_3D, checklist:['Contrôle des postes','Réappâtage'], arepartir:['À répartir — contrôle annuel','Contrôle'] };
   if(metierId()==='nettoyage') return DEMO_NETT;
+  if(metierId()==='plomberie') return DEMO_PLOMB;
+  if(metierId()==='chauffage') return DEMO_CHAUF;
   return demoPlanGenerique(); }
 function demoCharger(){
   const n=demoCompte();
@@ -37749,6 +37979,8 @@ function demoCharger(){
   // une intervention non assignée, à répartir
   db.interventions.push({ id:uid(), titre:DEMO.arepartir[0], type:DEMO.arepartir[1], date:J[1], heure:'16:30', duree:60,
     techId:'', techIds:[], statut:'planifiee', clientId:C[4], checklist:[], nuisibles:[], produitsUtilises:[], demo:1 });
+  if(typeof cvcDemoPoser==='function') cvcDemoPoser(C);   // chauffage : un parc d'appareils de démonstration (chaudière, climatiseur) cité par les interventions
+  if(typeof docmDemoPoser==='function') docmDemoPoser(C);   // plomberie, chauffage : devis de dépannage, note, rapport d'étanchéité, suivis
   if(typeof nettDemoPoser==='function') nettDemoPoser(C);   // nettoyage : cahiers, plan de prévention et fiche de contrôle sur les clients de démonstration
   save();
   try{ localStorage.removeItem('elanD_plan_techs'); }catch(e){}
@@ -37764,6 +37996,7 @@ function demoRetirer(){
   db.clients=(db.clients||[]).filter(x=>!x.demo);
   db.techniciens=(db.techniciens||[]).filter(x=>!x.demo);
   db.cahiers=(db.cahiers||[]).filter(x=>!x.demo); db.plansPrevention=(db.plansPrevention||[]).filter(x=>!x.demo);
+  db.docsMetier=(db.docsMetier||[]).filter(x=>!x.demo); db.appareils=(db.appareils||[]).filter(x=>!x.demo);
   save();
   try{ localStorage.removeItem('elanD_plan_techs'); }catch(e){}
   planTechM=null; planJours=[];
@@ -38118,7 +38351,10 @@ views.parametres=function(){
             <span class="ss">${esc(m.sous)}</span>
             <span class="nb">${nb} catégories${m.presta?' · '+m.presta.length+' prestations':' · registre sanitaire &amp; biocides'}</span>
           </div>`; }).join('')}</div>
-        ${(()=>{ const L=((METIERS[cur]||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]); if(!L.length) return '';
+        ${cur!=='3d'&&currentUser&&currentUser.role==='admin'?`<div class="field" style="margin:12px 0 4px"><label for="met-plus">Mon entreprise fait aussi…</label>
+          <select id="met-plus" onchange="metierPlusSet(this.value)"><option value="">— rien d’autre —</option>${METIERS_ORDRE.filter(k=>k!=='3d'&&k!==cur).map(k=>`<option value="${k}"${db.metierPlus===k?' selected':''}>${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}</select>
+          <div style="font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.5">Une entreprise de climatisation et de plomberie choisit ici le second métier : les types d’intervention, les prestations, les relevés, les catégories de produits, les documents et le catalogue de départ des deux sont réunis. Rien n’est retiré, et tu reviens en arrière quand tu veux.</div></div>`:''}
+        ${(()=>{ const L=((metierPack()||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]); if(!L.length) return '';
           return `<details class="met-rub"><summary>📋 Les ${L.length} rubriques conseillées pour ton métier</summary>${L.map(k=>`<div class="met-rub-l"><b>${esc(RUBRIQUES_INFO[k][0])}</b><span>${esc(RUBRIQUES_INFO[k][1])}</span></div>`).join('')}</details>`; })()}`; })()}
       <div class="form-sec">🏢 Mes sociétés <span style="font-weight:400;text-transform:none;letter-spacing:0">— noms sur les documents (rapports, devis, factures, SMS…)</span></div>
       <p style="color:var(--t3);font-size:12px;line-height:1.55;margin-bottom:8px">Ajoute tes sociétés : elles remplacent la liste générique dans le sélecteur « Société » des interventions et documents. <b>Une seule société</b> → le sélecteur disparaît et elle est appliquée partout automatiquement.</p>
@@ -38359,7 +38595,7 @@ function razAppliquer(){
   if(c.attente){ (db.boxes||[]).forEach(b=>{ b.arrivages=[]; }); db.demandes=[]; db.boxMvtAttente=[]; db.brouillons=[]; faits.push('arrivages et validations en attente'); }
   if(c.bons){ db.bons=[]; faits.push('bons de commande'); }
   syncRetraitVoulu(); if(c.inter){ db.interventions=[]; db.interventionsArchive=[]; db.registres=[]; (db.boxes||[]).forEach(b=>{ b.passages=[]; }); faits.push('interventions et rapports'); }
-  if(c.clients){ db.clients=[]; db.appareils=[]; db.cahiers=[]; db.plansPrevention=[]; db.plansSite={}; faits.push('clients'); }
+  if(c.clients){ db.clients=[]; db.appareils=[]; db.cahiers=[]; db.plansPrevention=[]; db.docsMetier=[]; db.plansSite={}; faits.push('clients'); }
   if(c.vente){ db.devis=[]; db.factures=[]; db.contrats=[]; db.telecollectes=[]; db.enveloppes=[]; faits.push('devis, factures et contrats'); }
   /* v750 : `estampiller` ne marque plus les lignes qui quittent le journal (le plafond en chasse
      une à chaque geste). Vider le journal EST une suppression voulue : on pose ses marques ici,
@@ -38415,7 +38651,7 @@ function resetProdWipe(){
      tout simplement pas lieu. L'utilisateur, lui, a vu défiler un export et tapé un code à
      six chiffres — il croit avoir effacé. razAppliquer() le fait déjà ; celle-ci l'oubliait. */
   syncRetraitVoulu();
-  ['clients','interventions','boxes','enveloppes','mouvements','vehicules','demandes','bons','journal','devis','factures','contrats','pointages','messages','groupes','conducteurs','produitsDonnes','brouillons','telecollectes','taches','absences','chantiers','fournisseurs','registres','appareils','cahiers','plansPrevention'].forEach(k=>{ db[k]=[]; });
+  ['clients','interventions','boxes','enveloppes','mouvements','vehicules','demandes','bons','journal','devis','factures','contrats','pointages','messages','groupes','conducteurs','produitsDonnes','brouillons','telecollectes','taches','absences','chantiers','fournisseurs','registres','appareils','cahiers','plansPrevention','docsMetier'].forEach(k=>{ db[k]=[]; });
   delete db.foursSeededV; delete db.foursSeeded; delete db.foursEmailsV2;   // le pack fournisseurs du métier se re-remplit après la remise à zéro
   db.produits=(db.produits||[]).map(p=>({...p,qte:0}));   // catalogue conservé, quantités remises à zéro
   db.dashLayout=DASH_DEFAULT.slice();
@@ -38495,9 +38731,9 @@ function saveSimple(e,coll,id,numFields){ e.preventDefault();
    garde son mécanisme (filter + save : la pierre tombale se pose à la sauvegarde, jamais contournée). */
 function liensPluriel(n,mot,plur){ return n+' '+(n>1?(plur||mot+'s'):mot); }
 function clientLiens(id){ const n=l=>(db[l]||[]).filter(x=>x&&x.clientId===id).length;
-  return {interventions:n('interventions'),devis:n('devis'),factures:n('factures'),contrats:n('contrats'),appareils:n('appareils'),cahiers:n('cahiers'),plans:n('plansPrevention'),box:n('boxes')}; }
+  return {interventions:n('interventions'),devis:n('devis'),factures:n('factures'),contrats:n('contrats'),appareils:n('appareils'),cahiers:n('cahiers'),plans:n('plansPrevention'),docs:n('docsMetier'),box:n('boxes')}; }
 function clientLiensTxt(l){ return [l.interventions&&liensPluriel(l.interventions,'intervention'),l.devis&&liensPluriel(l.devis,'devis','devis'),
-  l.factures&&liensPluriel(l.factures,'facture'),l.contrats&&liensPluriel(l.contrats,'contrat'),l.appareils&&liensPluriel(l.appareils,'appareil'),l.cahiers&&liensPluriel(l.cahiers,'cahier des tâches','cahiers des tâches'),l.plans&&liensPluriel(l.plans,'plan de prévention','plans de prévention'),l.box&&liensPluriel(l.box,'box','box')].filter(Boolean).join(', '); }
+  l.factures&&liensPluriel(l.factures,'facture'),l.contrats&&liensPluriel(l.contrats,'contrat'),l.appareils&&liensPluriel(l.appareils,'appareil'),l.cahiers&&liensPluriel(l.cahiers,'cahier des tâches','cahiers des tâches'),l.plans&&liensPluriel(l.plans,'plan de prévention','plans de prévention'),l.docs&&liensPluriel(l.docs,'document du métier','documents du métier'),l.box&&liensPluriel(l.box,'box','box')].filter(Boolean).join(', '); }
 function boxDemandesAttente(boxId){ return (db.boxMvtAttente||[]).filter(m=>m&&m.boxId===boxId&&m.statut==='enAttente'); }
 /* Les demandes en attente d'une box qu'on supprime sont REFUSÉES par la fonction de tout refus (le bon d'arrivage lié
    redevient « à réceptionner », l'auteur est prévenu) et GARDÉES comme trace ; ses brouillons, que personne n'enverra, partent.
@@ -38565,7 +38801,7 @@ function delItem(coll,id){
 /* le nom de ce qu'on supprime, pour la boîte et le toast : « le véhicule « AB-123-CD » », sinon « cet élément » */
 const DEL_NOMS={devis:'le devis',factures:'la facture',contrats:'le contrat',telecollectes:'la télécollecte',mouvements:'le mouvement',produitsDonnes:'le don',
   enveloppes:'l’enveloppe',brouillons:'le brouillon',demandes:'la demande',bons:'le bon de commande',fournisseurs:'le fournisseur',taches:'la tâche',
-  absences:'l’absence',appareils:'l’appareil',cahiers:'le cahier des tâches',plansPrevention:'le plan de prévention',vehicules:'le véhicule',conducteurs:'le conducteur',pointages:'le pointage',secteurs:'le secteur'};
+  absences:'l’absence',appareils:'l’appareil',cahiers:'le cahier des tâches',plansPrevention:'le plan de prévention',docsMetier:'le document',vehicules:'le véhicule',conducteurs:'le conducteur',pointages:'le pointage',secteurs:'le secteur'};
 /* un véhicule se nomme par sa plaque, lue par vPlaque — le seul chemin qui lit la plaque (test-1290) */
 function delLibelle(coll,x){ const pl=coll==='vehicules'&&x&&typeof vPlaque==='function'?vPlaque(x):'';
   const n=x&&((pl&&pl!=='—'?pl:'')||x.nom||x.titre||x.num||x.numero||x.libelle||x.label||x.designation||'');
@@ -39056,7 +39292,7 @@ function renderLignes(){ const el=$('lignes-box'); if(!el) return;
   ligTot();
 }
 function ligTot(){ const t=$('lig-tot'); if(!t) return; const tva=parseFloat(($('f-tva')||{}).value)||0; const ht=ligHT(formLignes);
-  t.innerHTML=`Total HT : <b>${eur(ht)}</b> &nbsp;·&nbsp; TVA ${tva}% &nbsp;·&nbsp; <b style="color:var(--acc-txt)">TTC : ${eur(ht*(1+tva/100))}</b>`; }
+  t.innerHTML=`Total HT : <b>${eur(ht)}</b> &nbsp;·&nbsp; TVA ${tva}% &nbsp;·&nbsp; <b style="color:var(--acc-txt)">TTC : ${eur(ht*(1+tva/100))}</b>`+(typeof docmNoteTauxReduit==='function'?docmNoteTauxReduit(tva,false):''); }
 
 /* ── Devis xylophage généré par l'IA (accessible à tous) ── */
 const XYLO_OUVRAGE=['Charpente','Plancher / parquet','Poutres / solives','Escalier','Bardage / menuiserie','Toiture','Autre'];
@@ -41469,13 +41705,15 @@ function saveContrat(e,id){ e.preventDefault(); if(!permGarde('ventes',id?'modif
    la panne silencieuse type de ce dépôt — la « dernière intervention » d'un appareil est donc déduite des interventions qui
    le citent, jamais copiée sur sa fiche. */
 const CVC_METIERS=['chauffage','froid','energies'];
-function metierGereParc(){ try{ return CVC_METIERS.indexOf(metierId())>=0; }catch(e){ return false; } }
+function metierGereParc(){ try{ return (typeof metierActifs==='function'?metierActifs():[metierId()]).some(m=>CVC_METIERS.indexOf(m)>=0); }catch(e){ return false; } }
 /* Le type d'un appareil : de quoi il est fait (combustion → attestation d'entretien ; fluide → fiches fluides) et la
-   périodicité d'entretien par défaut. 12 mois : l'entretien annuel obligatoire des chaudières de 4 à 400 kW (gaz, fioul,
-   bois) — https://www.ecologie.gouv.fr/entretien-et-inspection-des-systemes-chauffage-et-climatisation. 24 mois : pompes à
-   chaleur et climatisations de 4 à 70 kW, « au moins tous les 2 ans » (décret 2020-912, arrêté du 24 juillet 2020 — source
-   professionnelle : FFB). Le défaut se REMPLACE appareil par appareil (champ « Entretien tous les … mois ») : beaucoup de
-   contrats vont plus vite que le minimum légal. */
+   périodicité d'entretien par défaut — UNE RÈGLE DE L'ENTREPRISE, pas une obligation écrite dans un document. Chaudières de 4 à 400 kW (gaz, fioul,
+   bois) : 12 mois. Le décret 2009-649 (art. R. 224-41-7, relu le 28 octobre 2026) dit « chaque année civile », la première visite au plus tard l'année
+   civile suivant l'installation ou le remplacement : les 12 mois sont plus stricts, et ne s'écrivent jamais « obligation de 12 mois » dans un document client
+   (https://aida.ineris.fr/reglementation/decret-ndeg-2009-649-090609-relatif-a-lentretien-annuel-chaudieres-dont-puissance). Pompes à chaleur et climatisations
+   de 4 à 70 kW : 24 mois, d'après des sources professionnelles (FFB, décret 2020-912) dont les articles du Code de l'environnement n'ont pas été relus —
+   l'arrêté du 24 juillet 2020 fixe le champ (4-70 kW), le contenu de l'attestation et la copie conservée deux ans, pas la périodicité. Le défaut se REMPLACE
+   appareil par appareil (champ « Entretien tous les … mois »). */
 const CVC_TYPES=[
   {k:'chaudiere_gaz',   l:'Chaudière gaz',               comb:true,  mois:12},
   {k:'chaudiere_fioul', l:'Chaudière fioul',             comb:true,  mois:12},
@@ -41551,11 +41789,15 @@ function cvcPastille(j,mot){ if(j==null) return '';
 
 /* ── Les propositions : ce qu'il faut planifier. UNE liste, lue par le tableau de bord ET par les Tâches. Elle ne PROPOSE que :
       l'écriture attend un tap sur « Planifier » (formulaire d'intervention pré-rempli, que la personne valide). ── */
-function cvcTypeInterventionPour(appareils){ const types=(typeof intTypes==='function')?intTypes():[];
+/* Un type du pack, retrouvé par son nom SANS tenir compte de l'apostrophe (droite ou courbe) : « Contrôle d'étanchéité des fluides frigorigènes » s'écrit avec la droite dans le pack
+   publié, et la comparaison littérale avec la courbe ne le trouvait JAMAIS — la proposition d'étanchéité partait sans type (28 octobre 2026). Rend le type TEL QUE LE PACK L'ÉCRIT, ou ''. */
+function cvcTypeParNom(voulu){ const n=s=>String(s==null?'':s).replace(/[’‘`]/g,"'"); const types=(typeof intTypes==='function')?intTypes():[];
+  return types.find(x=>n(x)===n(voulu))||''; }
+function cvcTypeInterventionPour(appareils){
   const a=(appareils||[])[0]; if(!a) return '';
   const t=cvcType(a);
-  const voulu=t.comb?(t.k==='chaudiere_gaz'?'Entretien annuel chaudière':'Entretien chaudière fioul ou bois'):(/^pac/.test(t.k)?'Entretien pompe à chaleur':/^clim/.test(t.k)?'Entretien climatisation':'');
-  return types.indexOf(voulu)>=0?voulu:(t.comb&&types.indexOf('Entretien annuel chaudière')>=0?'Entretien annuel chaudière':''); }
+  const voulu=t.comb?(t.k==='chaudiere_gaz'?'Entretien annuel chaudière':'Entretien chaudière fioul ou bois'):(/^pac/.test(t.k)?'Entretien pompe à chaleur':/^clim/.test(t.k)?'Entretien climatisation':t.k==='vmc'?'Entretien VMC / ventilation':t.k==='cet'?'Entretien chauffe-eau thermodynamique':'');
+  return cvcTypeParNom(voulu)||(t.comb?cvcTypeParNom('Entretien annuel chaudière'):''); }
 function cvcPropositions(auj){ return cvcAvecIndex(()=>cvcPropositionsCalc(auj)); }
 function cvcPropositionsCalc(auj){ auj=auj||todayISO();
   const vus=new Set(visibleClients(db.clients||[]).map(c=>c.id)), out=[];
@@ -41568,7 +41810,7 @@ function cvcPropositionsCalc(auj){ auj=auj||todayISO();
     /* l'étanchéité est une AUTRE obligation que l'entretien : sa propre ligne, sa propre échéance (règle : cvcEtancheiteRegle) */
     const t=cvcPlanifiee(a,'etancheite')?null:cvcEtancheiteEcheance(a), jt=t?cvcJours(t.date,auj):null;
     if(t&&jt<=CVC_RAPPEL_J) out.push({cle:'etc:'+a.id+':'+t.date,kind:'etancheite',clientId:a.clientId,date:t.date,j:jt,appareilIds:[a.id],
-      titre:'Contrôle d’étanchéité — '+cvcLibelle(a),type:((typeof intTypes==='function'?intTypes():[]).indexOf('Contrôle d’étanchéité des fluides frigorigènes')>=0?'Contrôle d’étanchéité des fluides frigorigènes':'')}); });
+      titre:'Contrôle d’étanchéité — '+cvcLibelle(a),type:cvcTypeParNom('Contrôle d’étanchéité des fluides frigorigènes')}); });
   return out.sort((x,y)=>x.j-y.j); }
 function cvcPlanifier(cle){ if(!permGarde('int','ajouter','une intervention')) return;
   const p=cvcPropositions().find(x=>x.cle===cle); if(!p){ toast('Cette échéance est déjà traitée'); return; }
@@ -41810,8 +42052,9 @@ function cvcFormLire(data){ if(!data||data.cvcAppareils===undefined) return;
    technicien, signatures si elles existent. Elle part par le chemin des autres documents (courriel + PDF joint, trace APRÈS la réussite).
    ⛔ C'est le document DE L'ENTREPRISE, pas un formulaire officiel reproduit : l'écran et le pied du PDF le disent. Le contenu suit ce que
    la source officielle exige d'une attestation de chaudière — identification de l'appareil, points contrôlés, instruments de mesure,
-   résultats, déclaration sur le CO, classe énergétique pour une chaudière gaz ou fioul de moins de 70 kW, conseils ; remise au client dans
-   les 15 jours (arrêté du 15 septembre 2009 modifié, annexe V — https://aida.ineris.fr/node/28049).
+   résultats, déclaration sur le CO, classe énergétique pour une chaudière gaz ou fioul de moins de 70 kW, conseils (arrêté du 15 septembre 2009 modifié,
+   annexe 5 — https://aida.ineris.fr/node/28049) ; établie dans les 15 jours SUIVANT LA VISITE et remise au commanditaire, qui la conserve au moins deux ans (le DÉLAI est
+   dans le décret 2009-649, art. R. 224-41-8, relu le 28 octobre 2026 : https://aida.ineris.fr/reglementation/decret-ndeg-2009-649-090609-relatif-a-lentretien-annuel-chaudieres-dont-puissance).
    ⛔ SEUILS DU CO (même arrêté, article 3) : moins de 10 ppm, situation normale ; de 10 à moins de 50 ppm, anomalie — le client est informé
    qu'il faut investiguer le tirage et la ventilation ; 50 ppm et plus, danger grave et immédiat — chaudière laissée à l'arrêt jusqu'à remise en
    sécurité. Ils s'appliquent au CO AMBIANT : la teneur en CO des FUMÉES (relevé « co » des Prestations, souvent plusieurs centaines de ppm sur
@@ -41823,7 +42066,7 @@ const CVC_ATT_MESURES=[
   {k:'coAmbiant',l:'CO ambiant',u:'ppm'},{k:'co',l:'Teneur en CO des fumées',u:'ppm'},{k:'co2',l:'CO₂ des fumées',u:'%'},
   {k:'rdt',l:'Rendement',u:'%'},{k:'tfum',l:'Température des fumées',u:'°C'},{k:'tirage',l:'Tirage',u:'Pa'}];
 /* Un relevé de la fiche « Prestations » qui préremplit l'attestation — seulement ceux qui ont le même sens. */
-const CVC_ATT_DEPUIS_RELEVES=['co','co2','rdt','tfum','tirage'];
+const CVC_ATT_DEPUIS_RELEVES=['coAmbiant','co','co2','rdt','tfum','tirage'];   // coAmbiant (28 octobre 2026) : le relevé du CO AMBIANT préremplit le verdict — le CO des fumées n'en reçoit aucun
 function cvcCoVerdict(ppm){ const n=cvcNum(ppm); if(!isFinite(n)||n<0) return null;
   if(n>=50) return {niveau:'danger',texte:'Danger grave et immédiat : teneur en CO de 50 ppm ou plus. L’appareil doit rester à l’arrêt jusqu’à sa remise en sécurité.'};
   if(n>=10) return {niveau:'anomalie',texte:'Anomalie : teneur en CO comprise entre 10 et 50 ppm. Il convient d’investiguer le tirage et la ventilation.'};
@@ -41832,7 +42075,8 @@ function cvcAttestable(a){ return !!a&&!!cvcType(a).comb; }
 /* ══ L'ATTESTATION D'ENTRETIEN D'UNE POMPE À CHALEUR OU D'UNE CLIMATISATION (25 octobre 2026) ══
    Arrêté du 24 juillet 2020 relatif à l'entretien des systèmes thermodynamiques dont la puissance nominale est comprise entre 4 et 70 kW (modifié
    par l'arrêté du 21 novembre 2022), relu sur https://aida.ineris.fr/reglementation/arrete-240720-relatif-a-lentretien-systemes-thermodynamiques-dont-puissance-nominale :
-   entretien au moins tous les deux ans ; les chauffe-eau thermodynamiques d'un seul logement en sont exclus (d'où `cet` écarté). L'attestation
+   (la périodicité de deux ans vient du décret 2020-912, non relu ici : l'arrêté ne la dit pas) ; les chauffe-eau thermodynamiques : les sources se contredisent
+   sur leur exclusion, `cet` reste donc SANS attestation (REPRISE). L'attestation
    (annexe 3, point 2) porte au moins : le commanditaire et son adresse, l'adresse et le local de l'installation, le système (marque, modèle, énergie,
    puissance, mise en service, n° de série si possible), la date du dernier entretien si elle est connue, la personne qui l'a fait et ses coordonnées,
    la date de la visite, son nom et sa signature, les points contrôlés selon le référentiel de l'annexe 1 (CVC_THERMO_POINTS, recopié par groupe),
@@ -42010,8 +42254,8 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
   R(0,H-6,W,6,ACC); y=H-M-16;
   let nx=M; if(E.logo&&E.logo.b64){ const lh=34, lw=Math.round(E.logo.w*(lh/E.logo.h)); image('L1',M,y-9,lw,lh); nx=M+lw+12; }
   TW(nx,y,19,E.nom||'',1,ACC,RGT-215-nx);
-  const RAM=att.genre==='ramonage', THERMO=att.genre==='thermo';   // le certificat de ramonage (24 octobre 2026) emprunte cette mise en page : mêmes en-tête, client, appareil, signatures, pied
-  TR(RGT,y+3,14,RAM?'CERTIFICAT DE RAMONAGE':'ATTESTATION D’ENTRETIEN',1,DARK);
+  const RAM=att.genre==='ramonage', THERMO=att.genre==='thermo';   // l'attestation de ramonage (24 octobre 2026, ex-« certificat ») emprunte cette mise en page : mêmes en-tête, client, appareil, signatures, pied
+  TR(RGT,y+3,14,RAM?'ATTESTATION DE RAMONAGE':'ATTESTATION D’ENTRETIEN',1,DARK);
   TR(RGT,y-12,9,dateFr(i.date),0,GREY);
   if(i.num) TR(RGT,y-24,8.5,'Intervention '+i.num,1,GREY);
   const lgMax=RGT-235-nx; let ey=y-14;
@@ -42032,7 +42276,7 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
     ligneLV('Conduit(s) ramoné(s)',att.conduits||'—');
     if(att.methode) ligneLV('Méthode',att.methode);
     if(att.etat) ligneLV('État constaté',att.etat);
-    /* LA déclaration du certificat : la vacuité du conduit sur toute sa longueur — dite en clair, en couleur, comme le verdict du CO */
+    /* LA déclaration de l'attestation : la vacuité du conduit sur toute sa longueur — dite en clair, en couleur, comme le verdict du CO */
     { const vide=att.vacuite==='oui', col=vide?VERT:ROUGE;
       const tl=lignes(vide?'Vacuité : le conduit est vide sur toute sa longueur.':'Vacuité NON constatée : le conduit n’est pas vide sur toute sa longueur — l’appareil ne doit pas être utilisé avant la remise en état.',9,1,L-20);
       y-=3; place(tl.length*12.5+10); R(M,y-tl.length*12.5-1,3,tl.length*12.5+8,col); tl.forEach(t=>{ T(M+10,y,9,t,1,col); y-=12.5; }); y-=4; }
@@ -42081,8 +42325,8 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
   /* ⛔ la mention est la phrase qui dit que ce n'est PAS un formulaire officiel : elle se COUPE EN LIGNES (trois au plus), jamais d'une ligne unique
      « … ce… » qui perdrait cette moitié-là avec un nom d'entreprise long ; le nom, lui, se borne. */
   const mention=RAM
-    ?'Certificat établi par '+_pdfCoupe(net(E.nom||'l’entreprise'),7.2,0,240)+' à la suite du ramonage du '+dateFr(i.date)+' (code de la santé publique, décret n° 2023-641 du 20 juillet 2023) — ce n’est pas un formulaire officiel reproduit ; le règlement sanitaire départemental peut imposer davantage. À conserver par le client.'
-    :THERMO?'Document établi par '+_pdfCoupe(net(E.nom||'l’entreprise'),7.2,0,240)+' à la suite de la visite du '+dateFr(i.date)+', d’après l’arrêté du 24 juillet 2020 (systèmes thermodynamiques de 4 à 70 kW, entretien au moins tous les deux ans) — ce n’est pas un formulaire officiel reproduit. À conserver par le client.'
+    ?'Attestation établie par '+_pdfCoupe(net(E.nom||'l’entreprise'),7.2,0,240)+' à la suite du ramonage du '+dateFr(i.date)+' (code de la santé publique, décret n° 2023-641 du 20 juillet 2023) — ce n’est pas un formulaire officiel reproduit ; le règlement sanitaire départemental peut imposer davantage. À conserver par le client.'
+    :THERMO?'Document établi par '+_pdfCoupe(net(E.nom||'l’entreprise'),7.2,0,240)+' à la suite de la visite du '+dateFr(i.date)+', d’après l’arrêté du 24 juillet 2020 (systèmes thermodynamiques de 4 à 70 kW) — ce n’est pas un formulaire officiel reproduit. À conserver par le client.'
     :'Document établi par '+_pdfCoupe(net(E.nom||'l’entreprise'),7.2,0,240)+' à la suite de la visite du '+dateFr(i.date)+' — ce n’est pas un formulaire officiel reproduit. À conserver par le client (2 ans au moins).';
   const mentionL=lignes(mention,7.2,0,L-70).slice(0,3);
   const pied=(k,n)=>[LINE+' rg',M+' 56 '+L+' 0.8 re f',GREY+' rg'].concat(...mentionL.map((l,q)=>['BT','/F1 7.2 Tf',M+' '+(46-9*q)+' Td','('+_pdfTxt(l)+') Tj','ET']),
@@ -42165,13 +42409,15 @@ async function cvcAttestationEnvoyer(iid,aid){
     intHisto(i,'Attestation d’entretien envoyée par e-mail à '+c.email+' (PDF joint)'); save();
     try{ closeModal(); renderIntDetail(iid); }catch(e){}
   } finally { delete _cvcEnvoi[iid+aid]; } }
-/* ══ LE CERTIFICAT DE RAMONAGE (24 octobre 2026) ══
-   Depuis le décret n° 2023-641 du 20 juillet 2023 (en vigueur le 1er octobre 2023), le ramonage des conduits de fumée relève du code de la santé
-   publique, et l'arrêté du même jour en fixe les modalités : le professionnel remet dans les QUINZE JOURS un certificat qui atteste la VACUITÉ du
-   conduit sur toute sa longueur (FFB : https://www.ffbatiment.fr/actualites-batiment/actualite-bam/ramonage-quelles-sont-les-nouvelles-obligations ;
+/* ══ L'ATTESTATION DE RAMONAGE (24 octobre 2026 ; « certificat » jusqu'au 28 octobre 2026) ══
+   Justin, 28 octobre 2026 : le texte dit « attestation de ramonage », l'écran, le PDF et le fichier aussi. Décret n° 2023-641 du 20 juillet 2023, art. R. 1331-23 (RELU le
+   28 octobre : https://aida.ineris.fr/reglementation/decret-ndeg-2023-641-200723-relatif-a-lentretien-foyers-appareils-chauffage-cuisine) : l'attestation est remise au
+   commanditaire dans les QUINZE JOURS OUVRÉS suivant l'achèvement de l'opération, elle précise les conduits ramonés et atteste la VACUITÉ du conduit sur toute sa longueur ;
+   le commanditaire la conserve au moins deux ans. Ramonage au moins tous les douze mois (six pour un appareil collectif, dont une fois en période de chauffe), art. R. 1331-19.
+   Le ramonage des conduits de fumée relève du code de la santé publique depuis ce décret (en vigueur le 1er octobre 2023) (FFB : https://www.ffbatiment.fr/actualites-batiment/actualite-bam/ramonage-quelles-sont-les-nouvelles-obligations ;
    CAPEB : https://www.capeb.fr/www/capeb/media//jura/document/article%20ramonage%2024-10-2023.pdf). Le certificat porte ce que ces recensements
    demandent : l'entreprise et son SIRET (en-tête `docEntete`), le client et l'adresse, la date, l'appareil raccordé, le ou les conduits ramonés, la
-   méthode, le constat de vacuité, l'état et les anomalies. ⛔ Le texte même de l'arrêté n'a pas été relu ici : comme l'attestation d'entretien, c'est
+   méthode, le constat de vacuité, l'état et les anomalies. ⛔ L'arrêté d'application n'a pas été relu : comme l'attestation d'entretien, c'est
    le document DE L'ENTREPRISE, pas un formulaire officiel — l'écran et le pied du PDF le disent, et le règlement sanitaire départemental peut imposer
    davantage (deux ramonages par an dans certains départements). Il vit dans `i.ramonages[appareilId]`, à côté des attestations ; il partage leur PDF
    (`cvcAttestationPdfStr`, genre « ramonage »). Un appareil à combustion seulement (`cvcAttestable`), une intervention terminée seulement. */
@@ -42180,8 +42426,8 @@ function cvcRamonageDe(i,aid){ return (i&&i.ramonages&&i.ramonages[aid])||null; 
 function cvcRamonageCtx(iid,aid){ const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
   if(!i||!a){ toast('Intervention ou appareil introuvable'); return null; }
   if(a.clientId!==i.clientId||!(Array.isArray(i.appareilIds)&&i.appareilIds.indexOf(aid)>=0)){ toast('Cet appareil n’est pas cité sur cette intervention'); return null; }
-  if(!cvcAttestable(a)){ toast('Le certificat de ramonage concerne les appareils à combustion raccordés à un conduit'); return null; }
-  if(i.statut!=='terminee'){ toast('Le certificat se fait une fois l’intervention terminée'); return null; }
+  if(!cvcAttestable(a)){ toast('L’attestation de ramonage concerne les appareils à combustion raccordés à un conduit'); return null; }
+  if(i.statut!=='terminee'){ toast('L’attestation se fait une fois l’intervention terminée'); return null; }
   return {i,a}; }
 function cvcRamonageLire(f){ const g=n=>String((f.elements[n]||{}).value||'').trim(), o={genre:'ramonage'};
   o.conduits=g('conduits').slice(0,200); o.methode=CVC_RAM_METHODES.indexOf(g('methode'))>=0?g('methode'):''; o.vacuite=['oui','non'].indexOf(g('vacuite'))>=0?g('vacuite'):'';
@@ -42189,9 +42435,9 @@ function cvcRamonageLire(f){ const g=n=>String((f.elements[n]||{}).value||'').tr
 function cvcRamonageForm(iid,aid){ if(!permGarde('int','modifier','une intervention')) return;
   const x=cvcRamonageCtx(iid,aid); if(!x) return; const {i,a}=x, v=cvcRamonageDe(i,aid)||{};
   const opt=(val,l,cur)=>`<option value="${esc(val)}"${cur===val?' selected':''}>${esc(l)}</option>`;
-  openModal(`<div class="modal-head"><h3>🧹 Certificat de ramonage</h3><button class="modal-close" onclick="closeModal();renderIntDetail('${esc(iid)}')">✕</button></div>
+  openModal(`<div class="modal-head"><h3>🧹 Attestation de ramonage</h3><button class="modal-close" onclick="closeModal();renderIntDetail('${esc(iid)}')">✕</button></div>
     <div style="font-size:13px;color:var(--t2);overflow-wrap:anywhere;margin:-4px 0 8px"><b>${esc(cvcLibelle(a))}</b>${a.emplacement?' · '+esc(a.emplacement):''}<br>${esc(clientName(i.clientId))} · ramonage du ${esc(fmtLong(i.date))}</div>
-    <div style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px">Ce certificat est <b>celui de votre entreprise</b> : il atteste la vacuité du conduit, à remettre au client dans les 15 jours. Ce n’est pas un formulaire officiel reproduit ; le règlement sanitaire de votre département peut demander davantage.</div>
+    <div style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px">Cette attestation est <b>celle de votre entreprise</b> : elle atteste la vacuité du conduit. À remettre au client dans les 15 jours ouvrés suivant l’achèvement de l’opération ; le client la conserve au moins deux ans. Ce n’est pas un formulaire officiel reproduit ; le règlement sanitaire de votre département peut demander davantage.</div>
     <form id="cvc-ram" onsubmit="return false">
       <div class="field"><label>Conduit(s) ramoné(s)</label><input name="conduits" maxlength="200" required placeholder="Ex. conduit de la chaudière, tubage inox Ø 130, 8 m" value="${esc(v.conduits||'')}"></div>
       <div class="field"><label>Méthode</label><select name="methode">${opt('','— Choisir —',v.methode||'')}${CVC_RAM_METHODES.map(m=>opt(m,m,v.methode||'')).join('')}</select></div>
@@ -42202,17 +42448,17 @@ function cvcRamonageForm(iid,aid){ if(!permGarde('int','modifier','une intervent
       <div class="modal-foot" style="flex-wrap:wrap"><button type="button" class="btn ghost" onclick="cvcRamonageApercu('${esc(iid)}','${esc(aid)}')">Aperçu PDF</button>
         <button type="button" class="btn ghost" onclick="cvcRamonageSauver('${esc(iid)}','${esc(aid)}')">Enregistrer</button>
         <button type="button" class="btn" onclick="cvcRamonageEnvoyer('${esc(iid)}','${esc(aid)}')">Envoyer au client</button></div></form>`); }
-/* ⛔ pas de certificat sans conduit ni sans constat de vacuité : c'est ce qu'il atteste — un certificat muet sur la vacuité ne vaut rien en cas de sinistre */
+/* ⛔ pas d'attestation sans conduit ni sans constat de vacuité : c'est ce qu'elle atteste — une attestation muette sur la vacuité ne vaut rien en cas de sinistre */
 function cvcRamonageSauver(iid,aid,silencieux){ if(!permGarde('int','modifier','une intervention')) return false;
   const x=cvcRamonageCtx(iid,aid); if(!x) return false; const f=document.getElementById('cvc-ram'); if(!f) return false;
   const r=cvcRamonageLire(f);
   if(!r.conduits){ champManque('Indique le ou les conduits ramonés',champDe(f,'conduits')); return false; }
-  if(!r.vacuite){ champManque('Constate la vacuité du conduit (oui ou non) : c’est ce que le certificat atteste',champDe(f,'vacuite')); return false; }
+  if(!r.vacuite){ champManque('Constate la vacuité du conduit (oui ou non) : c’est ce que l’attestation atteste',champDe(f,'vacuite')); return false; }
   Object.assign(r,{etabliLe:todayISO(),etabliPar:(currentUser&&fullName(currentUser))||''});
   const ex=cvcRamonageDe(x.i,aid); if(ex&&ex.envoyeLe){ r.envoyeLe=ex.envoyeLe; r.envoyeA=ex.envoyeA; }
   x.i.ramonages=(x.i.ramonages&&typeof x.i.ramonages==='object')?x.i.ramonages:{};
-  x.i.ramonages[aid]=r; intHisto(x.i,'🧹 Certificat de ramonage établi — '+cvcLibelle(x.a));
-  save(); if(!silencieux) toast('Certificat enregistré'); return true; }
+  x.i.ramonages[aid]=r; intHisto(x.i,'🧹 Attestation de ramonage établie — '+cvcLibelle(x.a));
+  save(); if(!silencieux) toast('Attestation enregistrée'); return true; }
 /* Le document : la mise en page de l'attestation (genre « ramonage »), son nom de fichier à lui. Rend {pdf,b64,nom,manque} ou {err}. */
 async function cvcRamonageDocument(iid,aid,r){
   const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
@@ -42224,19 +42470,19 @@ async function cvcRamonageDocument(iid,aid,r){
     const imgs={}; if(i.signature){ const j=await papImplJpeg(i.signature,max,q); if(j) imgs.sigCli=Object.assign({},j,{nom:'S1'}); }
     if(i.signatureTech){ const j=await papImplJpeg(i.signatureTech,max,q); if(j) imgs.sigTech=Object.assign({},j,{nom:'S2'}); }
     let pdf; try{ pdf=cvcAttestationPdfStr(i,a,att,Object.assign({},E,{logo}),imgs); }
-    catch(e){ return {err:'Le certificat PDF n’a pas pu être construit ('+(e&&e.message||e)+') — rien n’est parti.'}; }
+    catch(e){ return {err:'L’attestation PDF n’a pas pu être construite ('+(e&&e.message||e)+') — rien n’est parti.'}; }
     const b64=btoa(pdf);
     if(b64.length<=PAP_IMPL_MAX_B64){
       const cl=(db.clients||[]).find(x=>x.id===i.clientId)||{};
-      const nom='Certificat-ramonage-'+String(cl.nom||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)+'-'+String(i.date||todayISO())+'.pdf';
+      const nom='Attestation-ramonage-'+String(cl.nom||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)+'-'+String(i.date||todayISO())+'.pdf';
       const manque=[]; if(H.logo&&!logo) manque.push('le logo'); if(i.signature&&!imgs.sigCli) manque.push('la signature du client'); if(i.signatureTech&&!imgs.sigTech) manque.push('la signature du technicien');
       return {pdf,b64,nom,E,manque}; } }
-  return {err:'Le certificat dépasse la taille qu’un courriel peut porter — rien n’est parti.'}; }
+  return {err:'L’attestation dépasse la taille qu’un courriel peut porter — rien n’est parti.'}; }
 async function cvcRamonageApercu(iid,aid){
   const x=cvcRamonageCtx(iid,aid); if(!x) return;
   const f=document.getElementById('cvc-ram'), r=f?cvcRamonageLire(f):cvcRamonageDe(x.i,aid)||{};
   const w=window.open('','_blank'); if(!w){ toast('Autorise les pop-ups pour voir le PDF'); return; }
-  try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation du certificat…</p>'); w.document.close(); }catch(e){}
+  try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation de l’attestation…</p>'); w.document.close(); }catch(e){}
   const d=await cvcRamonageDocument(iid,aid,r);
   if(d.err){ try{ w.close(); }catch(e){} toast(d.err); return; }
   if(d.manque&&d.manque.length) toast('⚠️ Non jointe au PDF : '+d.manque.join(', '),9000);
@@ -42251,19 +42497,19 @@ async function cvcRamonageEnvoyer(iid,aid){
   if(_cvcEnvoi['ram'+iid+aid]) return; _cvcEnvoi['ram'+iid+aid]=1;
   try{
     if(document.getElementById('cvc-ram')&&!cvcRamonageSauver(iid,aid,true)) return;
-    if(!cvcRamonageDe(x.i,aid)){ toast('Remplis et enregistre le certificat d’abord'); return; }
-    toast('🧹 Préparation du certificat PDF…',3000);
+    if(!cvcRamonageDe(x.i,aid)){ toast('Remplis et enregistre l’attestation d’abord'); return; }
+    toast('🧹 Préparation de l’attestation PDF…',3000);
     const d=await cvcRamonageDocument(iid,aid);
     if(d.err){ toast(d.err,9000); return; }
     if(d.manque&&d.manque.length&&!confirm('Le PDF ne porte pas '+d.manque.join(', ')+' (l’image n’a pas pu être lue). L’envoyer quand même au client ?')) return;
     const i=(db.interventions||[]).find(k=>k.id===iid)||x.i;
-    const sujet='Certificat de ramonage — '+fmtShort(i.date)+' ('+cvcLibelle(x.a)+')';
-    const corps='Bonjour,\n\nVous trouverez ci-joint le certificat de ramonage de votre conduit ('+cvcLibelle(x.a)+'), établi à la suite de notre passage du '+fmtShort(i.date)+'. Conservez-le : il peut vous être demandé par votre assureur.\n\nNous restons à votre disposition.';
-    const ok=await srvMail(c.email,sujet,corps,'✉️ Certificat envoyé à '+c.email+' — PDF joint','rapport',null,Object.assign({},intSocMailOpts(i)||{},{atts:[{filename:d.nom,content:d.b64}],sansMailto:true}));
+    const sujet='Attestation de ramonage — '+fmtShort(i.date)+' ('+cvcLibelle(x.a)+')';
+    const corps='Bonjour,\n\nVous trouverez ci-joint l’attestation de ramonage de votre conduit ('+cvcLibelle(x.a)+'), établi à la suite de notre passage du '+fmtShort(i.date)+'. Conservez-la : elle peut vous être demandée par votre assureur.\n\nNous restons à votre disposition.';
+    const ok=await srvMail(c.email,sujet,corps,'✉️ Attestation envoyée à '+c.email+' — PDF joint','rapport',null,Object.assign({},intSocMailOpts(i)||{},{atts:[{filename:d.nom,content:d.b64}],sansMailto:true}));
     if(!ok) return;
     i.ramonages=(i.ramonages&&typeof i.ramonages==='object')?i.ramonages:{};
     const r=i.ramonages[aid]||{}; r.envoyeLe=Date.now(); r.envoyeA=c.email; i.ramonages[aid]=r;
-    intHisto(i,'Certificat de ramonage envoyé par e-mail à '+c.email+' (PDF joint)'); save();
+    intHisto(i,'Attestation de ramonage envoyée par e-mail à '+c.email+' (PDF joint)'); save();
     try{ closeModal(); renderIntDetail(iid); }catch(e){}
   } finally { delete _cvcEnvoi['ram'+iid+aid]; } }
 /* Les gestes propres à chaque appareil visité, sous les puces de la carte de l'intervention. */
@@ -42276,8 +42522,8 @@ function cvcIntActions(i,vis){ if(!i||!vis||!vis.length) return '';
       if(att) b.push(`<span class="tag">${att.envoyeeLe?'envoyée le '+esc(new Date(att.envoyeeLe).toLocaleDateString('fr-FR')):'établie le '+esc(fmtShort(att.etabliLe))}</span>`); }
     if(cvcAttestable(a)){
       const ram=cvcRamonageDe(i,a.id);
-      b.push(fini?`<button type="button" class="btn ghost sm" onclick="cvcRamonageForm('${i.id}','${a.id}')">🧹 Certificat de ramonage</button>`
-        :`<button type="button" class="btn ghost sm" disabled title="Disponible une fois l’intervention terminée">🧹 Certificat de ramonage</button>`);
+      b.push(fini?`<button type="button" class="btn ghost sm" onclick="cvcRamonageForm('${i.id}','${a.id}')">🧹 Attestation de ramonage</button>`
+        :`<button type="button" class="btn ghost sm" disabled title="Disponible une fois l’intervention terminée">🧹 Attestation de ramonage</button>`);
       if(ram) b.push(`<span class="tag">${ram.envoyeLe?'envoyé le '+esc(new Date(ram.envoyeLe).toLocaleDateString('fr-FR')):'établi le '+esc(fmtShort(ram.etabliLe))}</span>`); }
     if(cvcType(a).fluide&&i.statut!=='annulee'&&canCat('int','modifier')) b.push(`<button type="button" class="btn ghost sm" onclick="cvcFicheForm('${i.id}','${a.id}')">💧 ＋ Fiche fluides</button>`);
     return b.length||cvcFichesDe(i,a.id).length?`<div class="cvc-act" style="margin-top:10px"><div style="font-size:12.5px;font-weight:700;overflow-wrap:anywhere">${esc(cvcLibelle(a))}</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:5px">${b.join('')}</div>${cvcIntFiches(i,a)}</div>`:''; }).join('');
@@ -42485,6 +42731,21 @@ function cvcContratMaj(f){ const z=document.getElementById('cvc-ct'); if(!z||!f|
 function cvcContratLire(f,d){ const z=f&&f.querySelector&&f.querySelector('#cvc-ct'); if(!z||!d) return;
   delete d.cvcApp;
   d.appareilIds=[...f.querySelectorAll('input[name=cvcApp]')].filter(x=>x.checked).map(x=>x.value).filter(x=>(db.appareils||[]).some(a=>a.id===x&&a.clientId===d.clientId)); }
+/* ── La démonstration (v779) : « Remplir » de la bêta pose, pour le chauffage, un parc de trois appareils chez les clients de démonstration (marqués `demo:1`, emportés par
+   « Retirer la démonstration ») et les cite sur les interventions d'entretien — de quoi montrer l'attestation, la fiche fluides et l'attestation de ramonage sans rien saisir.
+   Un geste de l'administrateur, jamais un chargement. Aucun PRP n'est posé : la recherche n'en a pas la source (le calcul du tonnage reste « on ne sait pas »). ── */
+function cvcDemoPoser(clientIds){ if(!metierGereParc()||metierId()!=='chauffage'||!Array.isArray(clientIds)) return;   // le jeu de démonstration est celui du premier métier
+  db.appareils=db.appareils||[];
+  const parc=[
+    {k:0,type:'chaudiere_gaz',marque:'Frisquet',modele:'Hydroconfort',serie:'HC-24-0412',puissance:24,miseEnService:'2019-09-14',emplacement:'Cuisine',periodeMois:12,re:/chaudi|entretien annuel|mise en service/i},
+    {k:1,type:'clim_split',marque:'Daikin',modele:'FTXM25',serie:'DK-25-8841',puissance:2.5,fluide:'R32',charge:0.7,miseEnService:'2022-06-20',emplacement:'Salle du restaurant',re:/climatisation|étanch/i},
+    {k:3,type:'chaudiere_bois',marque:'Atlantic',modele:'Granulés 20',serie:'AT-20-3317',puissance:20,miseEnService:'2021-10-02',emplacement:'Local technique',periodeMois:12,re:/ramonage/i}];
+  parc.forEach(p=>{ const cid=clientIds[p.k]; if(!cid||db.appareils.some(a=>a&&a.demo&&a.clientId===cid&&a.type===p.type)) return;
+    const T=cvcType({type:p.type}), d={clientId:cid,type:p.type,marque:p.marque,modele:p.modele,serie:p.serie,puissance:p.puissance,emplacement:p.emplacement,miseEnService:p.miseEnService,periodeMois:p.periodeMois||'',note:'',
+      fluide:T.fluide?(p.fluide||''):'',charge:T.fluide&&p.charge!=null?p.charge:'',prp:'',detection:false,scelle:false};
+    d.nom=cvcLibelle(d); const ap=Object.assign({id:uid(),creePar:(currentUser&&currentUser.id)||'',creeLe:todayISO(),demo:1},d); db.appareils.push(ap);
+    (db.interventions||[]).forEach(i=>{ if(i&&i.demo&&i.clientId===cid&&re_ok(p.re,i)&&!(i.appareilIds||[]).length) i.appareilIds=[ap.id]; }); });
+  function re_ok(re,i){ return re.test(String(i.type||'')+' '+String(i.titre||'')); } }
 /* ═══════════════ fin du bloc CVC ═══════════════ */
 /* ═══════════════ NETTOYAGE — LES SITES D'UN CLIENT (cahier des tâches · contrôle qualité · plan de prévention) ═══════════════ début du bloc NETTOYAGE
    Justin, 28 octobre 2026, la veille d'une réunion avec une entreprise de nettoyage : « il faut que le pack nettoyage soit installé ». Le pack
@@ -42505,7 +42766,7 @@ function cvcContratLire(f,d){ const z=f&&f.querySelector&&f.querySelector('#cvc-
    l'arrêté du 19 mars 1993, dont le texte n'a pas été relu ; l'inspection commune préalable). Le contrôle qualité n'invoque aucune norme. Chaque PDF le dit
    en pied : c'est le document DE L'ENTREPRISE, pas un formulaire officiel reproduit. */
 const NETT_METIERS=['nettoyage'];
-function metierGereSites(){ try{ return NETT_METIERS.indexOf(metierId())>=0; }catch(e){ return false; } }
+function metierGereSites(){ try{ return (typeof metierActifs==='function'?metierActifs():[metierId()]).some(m=>NETT_METIERS.indexOf(m)>=0); }catch(e){ return false; } }
 const NETT_FREQ=[['quotidienne','Quotidienne'],['hebdomadaire','Hebdomadaire'],['mensuelle','Mensuelle'],['annuelle','Annuelle']];
 function nettFreqL(k){ const f=NETT_FREQ.find(x=>x[0]===k); return f?f[1]:''; }
 function nettIsoOk(x){ return /^\d{4}-\d{2}-\d{2}$/.test(String(x||'')); }
@@ -43015,6 +43276,7 @@ function nettDocContexte(kind,id,cid){
     const ex=id?(db.plansPrevention||[]).find(x=>x&&x.id===id):null, cli=nettClient(ex?ex.clientId:cid); if(!cli) return {err:'Client introuvable.'};
     const p=f?nettPlanLire(f,ex||nettPlanVide(cli.id)):ex; if(!p) return {err:'Ce plan n’existe plus.'};
     return {cli,soc:socDuClient(cli.id),spec:E=>nettPlanSpec(p,cli,E,todayISO()),date:p.date,pre:'Plan-de-prevention',obj:p,coll:'plansPrevention'}; }
+  if(kind==='doc') return docmContexte(id);   // le modèle commun (bloc DOCUMENTS DU MÉTIER) : même fabrique, même aperçu, même envoi
   return {err:'Document inconnu.'}; }
 function nettNomFichier(pre,cli,date){ return pre+'-'+String((cli&&cli.nom)||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)+'-'+String(date||todayISO())+'.pdf'; }
 /* Rend {pdf,b64,nom,E,manque} ou {err} — jamais une exception. */
@@ -43108,6 +43370,519 @@ function nettDemoPoser(clientIds){ if(!metierGereSites()||!Array.isArray(clientI
     i.controleQualite={controleur:'',clientPresent:'oui',zones,anomalies:'Traces sur les vitres de l’accueil',actions:[{t:'Reprendre les vitres de l’accueil',resp:'Chef d’équipe',delai:todayISO()}],contreControle:'',visaClient:'',etabliLe:todayISO(),etabliPar:''};
     i.relevesMetier=Object.assign({},i.relevesMetier,{controleQualite:nettNoteTxt(i.controleQualite)}); }); }
 /* ═══════════════ fin du bloc NETTOYAGE ═══════════════ */
+/* ═══════════════ DOCUMENTS DU MÉTIER — LE MODÈLE COMMUN ═══════════════ début du bloc DOCUMENTS DU MÉTIER
+   Justin, 28 octobre 2026, la veille d'une réunion avec une entreprise de climatisation et de plomberie : « les 21 packs, mets-les et corrige-les, et pour demain c'est clim et
+   plomberie ». Le nettoyage avait ses quatre documents écrits à la main (bloc précédent) ; ce bloc est le MODÈLE COMMUN que les autres métiers réutilisent : un document est une
+   DONNÉE (`DOCM_DEFS` : titre, champs, lignes, mentions sourcées, signatures), jamais une fonction de plus. Un formulaire, un PDF, un aperçu, un envoi, une liste : écrits UNE fois,
+   ici, et lus sur la définition. Ajouter un document à un métier, c'est ajouter une entrée à `DOCM_DEFS` (et son nom à `metiers`) — rien d'autre.
+   ⛔ UNE SEULE PORTE : `metierGereDocs()` (le métier a au moins un document de ce modèle). La 3D et le nettoyage n'en ont aucun : ni section, ni carte, ni bouton.
+   ⛔ UN DOCUMENT N'AFFIRME JAMAIS UNE OBLIGATION NON SOURCÉE. Chaque mention porte `texte` (ce que la source dit, affiché À L'ÉCRAN avec sa source), `verifie` (le texte a-t-il été
+   LU à la source ? `false` = relayé par un site secondaire, ou jamais ouvert) et, seulement si on veut l'imprimer, `pdf` (la phrase qui part chez le client). UNE fonction décide de ce
+   qui s'imprime — `docmMentionsPdf` — et elle exige `verifie===true` ET une source ET une phrase : une mention « à vérifier » ne sort JAMAIS dans un PDF, elle reste à l'écran,
+   étiquetée « à confirmer ». Une mention peut dépendre d'un champ (`si`) : l'information sur la rétractation ne s'imprime que si le devis est signé chez le client.
+   ⛔ RIEN N'EST CALCULÉ À LA MAIN : les totaux (HT, TVA, TTC), les écarts de pression et d'index se CALCULENT à l'affichage et à l'impression, jamais saisis. Le seul double écrit,
+   voulu, est celui du rapport d'étanchéité : ses valeurs sont aussi écrites dans les relevés de l'intervention, PAR LA MÊME FONCTION (`docmSauver`) — jamais tenues à la main en
+   deux exemplaires.
+   ⛔ RIEN NE S'ÉCRIT AU SEUL CHARGEMENT ni à l'ouverture d'un écran : tout s'écrit sur un geste « Enregistrer ». Le numéro d'un document (DEP-2026-001…) est attribué à
+   l'enregistrement, par `nextNum` (le plafond `db.numMax` ne redescend jamais : un document supprimé ne rend pas son numéro).
+   ⛔ L'EN-TÊTE VIENT DE `docEntete(société)`, JAMAIS À LA MAIN (test-793), et le PDF passe par `nettPdf` (`_pdfTxt` écrit, `_pdfLarg` mesure) : aucun « ? » dans un document qu'un
+   client reçoit. C'est le document DE L'ENTREPRISE, pas un formulaire officiel reproduit : le pied le dit.
+   Collection : `db.docsMetier` (fusion enregistrement par enregistrement). Forme : {id, doc, clientId, interventionId, num, date, v:{champ:valeur}, lignes:[{id,d,pu,u,q}],
+   creePar, creeLe, envoyeLe, envoyeA, demo}. */
+const DOCM_TVA=[['20','20 %'],['10','10 %'],['5.5','5,5 %'],['0','0 % (sans TVA)']];
+const DOCM_OUI=[['oui','Oui'],['non','Non']];
+const DOCM_DEFS=[
+ { id:'devis-depannage', metiers:['chauffage','plomberie'], ic:'📝', court:'Devis de dépannage', pdfTitre:'DEVIS',
+   titre:'Devis de dépannage, réparation ou entretien', portee:'intervention', droit:'ventes', prefixe:'DEP', envoi:true, lignes:true,
+   aide:'À remettre au client AVANT la prestation, et à faire signer avant toute exécution. Les prix unitaires se saisissent hors taxes : les totaux se calculent.',
+   champs:[
+     {k:'date',l:'Date de rédaction',t:'date',requis:true,pre:'auj',s:'Le devis'},
+     {k:'lieu',l:'Lieu d’exécution des travaux',t:'texte',requis:true,pre:'adresse',max:200},
+     {k:'nature',l:'Nature exacte de la prestation ou de la réparation',t:'long',requis:true,pre:'motif',max:800},
+     {k:'lignes',t:'lignes',l:'Décompte détaillé de chaque prestation et produit',s:'Décompte détaillé'},
+     {k:'deplacement',l:'Frais de déplacement (hors taxes)',lp:'Frais de déplacement (HT)',t:'nombre',u:'€',reco:true},
+     {k:'tva',l:'Taux de TVA',t:'choix',options:DOCM_TVA,def:'20',requis:true},
+     {k:'tauxHoraire',l:'Taux horaire TTC',t:'nombre',u:'€',reco:true,s:'Main-d’œuvre'},
+     {k:'decompte',l:'Mode de décompte du temps (par heure, par quart d’heure…)',t:'texte',max:120,reco:true},
+     {k:'tempsEstime',l:'Temps estimé',t:'texte',max:80},
+     {k:'validite',l:'Durée de validité de l’offre',t:'texte',max:80,reco:true,s:'Conditions',ph:'Ex : 30 jours'},
+     {k:'devisPayant',l:'Devis gratuit ou payant',t:'choix',options:[['gratuit','Gratuit'],['payant','Payant']],reco:true,maj:true},
+     {k:'prixDevis',l:'Prix du devis (s’il est payant)',t:'nombre',u:'€',si:{k:'devisPayant',egal:'payant'}},
+     {k:'piecesConservees',l:'Le client peut conserver les pièces, éléments ou appareils remplacés',t:'choix',options:DOCM_OUI,reco:true},
+     {k:'lieuSignature',l:'Le devis est signé',t:'choix',options:[['client','Chez le client (hors établissement)'],['etablissement','Dans nos locaux ou à distance']],reco:true,maj:true},
+     {k:'signeLe',l:'Signé par le client le',t:'date',s:'Signature'},
+     {k:'signeParNom',l:'Nom du signataire',t:'texte',max:120}],
+   mentions:[
+     {texte:'Devis détaillé remis au client avant toute prestation de dépannage, de réparation ou d’entretien, quel que soit le montant (arrêté du 24 janvier 2017 modifié).',
+      source:'https://www.inc-conso.fr/node/9603 (lu, Institut national de la consommation)',verifie:true,
+      pdf:'Devis détaillé remis avant toute prestation, quel que soit le montant (arrêté du 24 janvier 2017 modifié).'},
+     {texte:'Droit de rétractation de 14 jours pour un devis signé au domicile du client ; aucun droit de rétractation pour un dépannage urgent expressément demandé par le client, hors pièces étrangères à l’urgence.',
+      source:'https://www.inc-conso.fr/node/9603 (lu)',verifie:true,si:{k:'lieuSignature',egal:'client'},
+      pdf:'Devis signé au domicile du client : droit de rétractation de 14 jours. Aucun droit de rétractation pour un dépannage urgent expressément demandé par le client, hors pièces étrangères à l’urgence.'},
+     {texte:'Le client peut conserver les pièces, éléments ou appareils remplacés : case à cocher du devis.',source:'https://www.inc-conso.fr/node/9603 et fiche mémo de la CAPEB (lus)',verifie:true},
+     {texte:'Ne pas utiliser pour un contrat d’entretien : l’arrêté ne s’applique pas aux contrats d’entretien, de garantie ou de service après-vente, ni aux prestations couvertes par un paiement forfaitaire à la signature ou au renouvellement du contrat.',
+      source:'https://www.inc-conso.fr/node/9603 (lu)',verifie:true},
+     {texte:'Le champ d’application de l’arrêté (chauffage, climatisation, ramonage ; plomberie, sanitaires, débouchage et curage) vient d’un recensement secondaire pour le chauffage : texte de l’annexe 1 non lu. À confirmer avant de dire « obligatoire » à un client.',
+      source:'Recensement secondaire (macorpo.com) ; Légifrance non ouvert',verifie:false},
+     {texte:'Majorations de nuit, de week-end et de jour férié : à faire figurer au devis comme tout autre prix. Texte de l’arrêté non lu.',source:'À confirmer',verifie:false}],
+   signatures:[{lbl:'Pour l’entreprise'},{lbl:'Le client — « lu et approuvé », date et signature',sous:'Date, mention « lu et approuvé » et signature, avant toute exécution'}],
+   pied:'Document établi par {ENT} : c’est le devis de l’entreprise, pas un formulaire officiel reproduit. Il doit être signé par le client avant toute exécution.',
+   mail:(r,c)=>({sujet:'Devis'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dépannage'),
+     corps:'Bonjour,\n\nVous trouverez ci-joint notre devis'+(r.num?' n° '+r.num:'')+'. Merci de le relire et de nous le retourner signé, précédé de la mention « lu et approuvé », avant toute intervention.\n\nNous restons à votre disposition.'}) },
+
+ { id:'note-depannage', metiers:['chauffage','plomberie'], ic:'🧾', court:'Note avant paiement', pdfTitre:'NOTE DE DÉPANNAGE',
+   titre:'Note de dépannage remise avant paiement (à partir de 25 € TTC)', portee:'intervention', droit:'ventes', prefixe:'NOT', envoi:true, lignes:true, reprise:true,
+   aide:'À remettre au client après l’exécution, avant tout paiement, en deux exemplaires, dès 25 € TTC. Reprends le décompte du devis accepté s’il est conforme aux travaux, et note les écarts.',
+   champs:[
+     {k:'date',l:'Date de rédaction',t:'date',requis:true,pre:'auj',s:'La note'},
+     {k:'execLe',l:'Date d’exécution',t:'date',requis:true,pre:'dateInt'},
+     {k:'lieu',l:'Lieu d’exécution',t:'texte',requis:true,pre:'adresse',max:200},
+     {k:'devisRef',l:'Devis d’origine (n°)',t:'texte',max:60},
+     {k:'lignes',t:'lignes',l:'Décompte détaillé de chaque prestation et produit',s:'Décompte détaillé'},
+     {k:'deplacement',l:'Frais de déplacement (hors taxes)',lp:'Frais de déplacement (HT)',t:'nombre',u:'€'},
+     {k:'tva',l:'Taux de TVA',t:'choix',options:DOCM_TVA,def:'20',requis:true},
+     {k:'ecarts',l:'Écarts avec le devis (heures réelles, pièces non prévues acceptées par le client)',t:'long',max:600,s:'Écarts et pièces'},
+     {k:'piecesConservees',l:'Pièces remplacées conservées par le client',t:'choix',options:DOCM_OUI,reco:true},
+     {k:'sansNom',l:'Le client s’oppose à ce que son nom figure sur la note',t:'choix',options:DOCM_OUI,def:'non'}],
+   mentions:[
+     {texte:'Note remise après l’exécution et avant tout paiement, en deux exemplaires, dès 25 € TTC.',source:'https://www.inc-conso.fr/node/9603 (lu)',verifie:true,
+      pdf:'Note remise en deux exemplaires, avant tout paiement (arrêté du 24 janvier 2017 modifié).'},
+     {texte:'Contenu de la note : date, prestataire, client (sauf opposition de sa part), date et lieu d’exécution, décompte détaillé (sauf devis détaillé accepté et conforme), totaux HT et TTC.',
+      source:'Recensement secondaire (macorpo.com) ; l’article sur la note n’a pas été lu dans l’arrêté',verifie:false},
+     {texte:'Sous 25 € TTC, la note ne serait remise que si le client la demande : non confirmé (question parlementaire ancienne). À confirmer avant de le dire à un client.',source:'Non confirmé',verifie:false}],
+   signatures:[{lbl:'Pour l’entreprise'},{lbl:'Le client — reçu avant paiement',sous:'Nom et date de remise'}],
+   pied:'Document établi par {ENT} : c’est la note de l’entreprise, pas un formulaire officiel reproduit.',
+   mail:(r,c)=>({sujet:'Note de dépannage'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre intervention'),
+     corps:'Bonjour,\n\nVous trouverez ci-joint la note détaillée de notre intervention'+(r.execLe?' du '+nettDateTxt(r.execLe):'')+'.\n\nNous restons à votre disposition.'}) },
+
+ { id:'rapport-etancheite', metiers:['plomberie'], ic:'💧', court:'Test d’étanchéité', pdfTitre:'RAPPORT D’ÉTANCHÉITÉ',
+   titre:'Rapport de test d’étanchéité daté', portee:'intervention', droit:'int', prefixe:'ETA', envoi:true, typeInt:/[ée]tanch/i,
+   aide:'Consigne les valeurs RELEVÉES lors de l’essai : aucun seuil ni aucune durée n’est imposé par l’application, et le rapport ne dit pas « conforme au DTU ». Les valeurs sont aussi écrites dans les relevés de l’intervention.',
+   releves:{pressionDebut:'pressionDebut',pressionFin:'pressionFin',duree:'dureeEssai',fluide:'fluideEssai',manometre:'manometre',etalonnage:'etalonnage',vanneArret:'vanneArret',compteurAvant:'compteurAvant',compteurApres:'compteurApres',terre:'terreReseau'},
+   champs:[
+     {k:'date',l:'Date de l’essai',t:'date',requis:true,pre:'dateInt',s:'L’essai'},
+     {k:'heureDebut',l:'Heure de début',t:'heure'},{k:'heureFin',l:'Heure de fin',t:'heure'},
+     {k:'operateur',l:'Opérateur',t:'texte',max:120,pre:'technicien'},
+     {k:'installation',l:'Installation testée',t:'choix',options:[['eau-froide','Eau froide'],['eau-chaude','Eau chaude'],['evacuation','Évacuation'],['gaz','Gaz'],['autre','Autre']],requis:true},
+     {k:'zone',l:'Zone ou tronçon testé',t:'texte',max:160},
+     {k:'fluide',l:'Fluide d’essai',t:'texte',max:80,s:'Mesures'},
+     {k:'pressionEssai',l:'Pression d’essai appliquée',t:'nombre',u:'bar'},
+     {k:'duree',l:'Durée de l’essai',t:'nombre',u:'min'},
+     {k:'pressionDebut',l:'Pression au début',t:'nombre',u:'bar'},{k:'pressionFin',l:'Pression à la fin',t:'nombre',u:'bar'},
+     {k:'compteurAvant',l:'Index du compteur avant l’essai',t:'nombre',u:'m³'},{k:'compteurApres',l:'Index du compteur après l’essai',t:'nombre',u:'m³'},
+     {k:'manometre',l:'Manomètre (marque, n°)',t:'texte',max:120,s:'Matériel'},
+     {k:'etalonnage',l:'Date d’étalonnage du manomètre',t:'texte',max:60,ph:'Ex : 12/03/2026'},
+     {k:'vanneArret',l:'Vanne d’arrêt (emplacement)',t:'texte',max:120},
+     {k:'resultat',l:'Résultat',t:'choix',options:[['etanche','Étanche'],['fuite','Fuite constatée']],requis:true,maj:true,s:'Résultat'},
+     {k:'fuiteLoc',l:'Localisation de la fuite',t:'texte',max:200,si:{k:'resultat',egal:'fuite'}},
+     {k:'terre',l:'Mise à la terre du réseau vérifiée',t:'choix',options:[['oui','Oui'],['non','Non'],['na','Sans objet']]},
+     {k:'photos',l:'Photos du manomètre (début et fin) jointes à l’intervention',t:'choix',options:DOCM_OUI},
+     {k:'actions',l:'Actions correctives',t:'long',max:600}],
+   calculs:['ecartPression','ecartIndex'],
+   mentions:[
+     {texte:'Aucun seuil ni aucune durée d’essai n’est imprimé comme une exigence : le document ne dit pas « conforme au DTU ». Les valeurs d’essai du NF DTU 61.1 (gaz) et des DTU 60.1 / 60.11 n’ont pas été lues (AFNOR / CSTB).',
+      source:'À confirmer : consulter les DTU avant de proposer des valeurs',verifie:false}],
+   signatures:[{lbl:'L’opérateur'},{lbl:'Le client'}],
+   pied:'Document établi par {ENT} : il consigne les valeurs relevées lors de l’essai et n’atteste la conformité à aucune norme.',
+   mail:(r,c)=>({sujet:'Rapport de test d’étanchéité — '+nettDateTxt(r.v&&r.v.date||r.date),
+     corps:'Bonjour,\n\nVous trouverez ci-joint le rapport du test d’étanchéité réalisé le '+nettDateTxt(r.v&&r.v.date||r.date)+'.\n\nNous restons à votre disposition.'}) },
+
+ { id:'suivi-gaz', metiers:['chauffage','plomberie'], ic:'🔥', court:'Suivi du certificat gaz', pdfTitre:'SUIVI CERTIFICAT GAZ',
+   titre:'Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)', portee:'appareil', droit:'crm', interne:true, statutChamp:'statut',
+   aide:'Le certificat est rempli par l’installateur, puis visé par un organisme habilité. Cette fiche en SUIT le statut : elle ne fabrique pas le certificat et ne remplace pas le Cerfa.',
+   champs:[
+     {k:'adresse',l:'Installation (adresse)',t:'texte',max:200,pre:'adresse',s:'L’installation'},
+     {k:'usage',l:'Usage (cuisson, chauffage, eau chaude…)',t:'texte',max:120},
+     {k:'appareil',l:'Appareil raccordé',t:'texte',max:160},
+     {k:'modele',l:'Modèle de certificat (1, 2 ou 3)',t:'choix',options:[['1','1'],['2','2'],['3','3']]},
+     {k:'motif',l:'Motif',t:'choix',options:[['neuve','Installation neuve'],['modifiee','Installation modifiée'],['remplacee','Appareil remplacé']]},
+     {k:'installateur',l:'Installateur',t:'texte',max:160},{k:'dateTravaux',l:'Date des travaux',t:'date'},
+     {k:'statut',l:'Statut',t:'choix',options:[['a-etablir','À établir'],['etabli','Établi'],['envoye','Envoyé à l’organisme'],['vise','Visé'],['transmis','Transmis au distributeur ou au client']],def:'a-etablir',requis:true,s:'Le visa'},
+     {k:'visaNum',l:'N° de visa',t:'texte',max:80},{k:'visaOrg',l:'Organisme',t:'texte',max:120},{k:'visaDate',l:'Date du visa',t:'date'},
+     {k:'fichier',l:'Certificat conservé (nom du fichier ou classement)',t:'texte',max:160},
+     {k:'relance',l:'Relance prévue le',t:'date'},
+     {k:'exception',l:'Cas d’exception éventuel',t:'texte',max:200}],
+   mentions:[
+     {texte:'Le certificat est rempli par l’installateur puis visé par un organisme habilité ; le distributeur l’exige avant d’alimenter l’installation.',
+      source:'https://www.ecologie.gouv.fr/politiques-publiques/appareils-materiels-gaz-installations-interieures-gaz (lu) ; FFB (lu, partiel)',verifie:true,
+      pdf:'Le certificat de conformité est rempli par l’installateur puis visé par un organisme habilité ; le distributeur l’exige avant d’alimenter l’installation.'},
+     {texte:'Cerfa n° 16026 (modèle 2) ; arrêté du 23 février 2018, applicable depuis le 1er janvier 2020.',source:'service-public.fr (extrait seulement)',verifie:false},
+     {texte:'Désignations CCG1 / CCG2 / CCG3 et liste des exceptions : sites secondaires seulement.',source:'À confirmer',verifie:false}],
+   signatures:[],
+   pied:'Fiche de suivi établie par {ENT} : elle suit l’état du certificat de conformité gaz, elle ne le remplace pas.' },
+
+ { id:'suivi-vignette', metiers:['chauffage'], ic:'🏷️', court:'Suivi de la vignette', pdfTitre:'SUIVI DE LA VIGNETTE',
+   titre:'Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)', portee:'appareil', droit:'crm', interne:true, statutChamp:'couleur',
+   aide:'Garde la trace de la vignette posée après un contrôle d’étanchéité et de la date du prochain contrôle. Les règles de périodicité ne sont PAS imprimées : elles restent à confirmer.',
+   champs:[
+     {k:'appareilId',l:'Appareil',t:'appareil',requis:true,s:'L’équipement'},
+     {k:'dernierControle',l:'Date du dernier contrôle d’étanchéité',t:'date',requis:true},
+     {k:'couleur',l:'Vignette posée',t:'choix',options:[['bleue','Bleue (prochain contrôle daté)'],['rouge','Rouge (réparation différée)']],requis:true},
+     {k:'prochain',l:'Date du prochain contrôle',t:'date'},
+     {k:'fuite',l:'Fuite constatée',t:'choix',options:DOCM_OUI},
+     {k:'fuiteLoc',l:'Localisation de la fuite',t:'texte',max:200},
+     {k:'reparation',l:'Réparation',t:'choix',options:[['faite','Faite'],['differee','Différée']]},
+     {k:'notes',l:'Remarques',t:'long',max:600}],
+   mentions:[
+     {texte:'Vignette bleue (date du prochain contrôle) si tout est bon, rouge si la réparation est différée ; une réparation impossible sous 4 jours ouvrés imposerait la mise à l’arrêt de l’équipement.',
+      source:'FFB (secondaire) ; texte réglementaire non relu',verifie:false}],
+   signatures:[],
+   pied:'Fiche de suivi établie par {ENT} pour son propre suivi : ce n’est pas un document officiel.' },
+
+ { id:'tva-reduite', metiers:['plomberie'], ic:'🏠', court:'Certification TVA réduite', pdfTitre:'CERTIFICATION TVA',
+   titre:'Certification du client pour la TVA réduite (mention du devis ou de la facture)', portee:'client', droit:'ventes', prefixe:'TVR', envoi:true,
+   aide:'Quand un taux réduit est appliqué, le client certifie que les conditions sont remplies. Le texte exact de la mention n’a pas été relu : colle ici celui de ton modèle, l’application n’invente aucune formule.',
+   champs:[
+     {k:'date',l:'Date',t:'date',requis:true,pre:'auj',s:'La certification'},
+     {k:'taux',l:'Taux appliqué',t:'choix',options:[['5.5','5,5 %'],['10','10 %']],requis:true},
+     {k:'nature',l:'Nature des travaux',t:'long',max:600,requis:true,pre:'motif'},
+     {k:'lieu',l:'Adresse du local',t:'texte',max:200,pre:'adresse'},
+     {k:'habitation',l:'Local à usage d’habitation achevé depuis plus de deux ans',t:'choix',options:DOCM_OUI,requis:true},
+     {k:'mention',l:'Texte de la mention de certification (à reprendre de ton modèle)',t:'long',max:800},
+     {k:'refDoc',l:'Devis ou facture concerné (n°)',t:'texte',max:60},
+     {k:'signeLe',l:'Certifié par le client le',t:'date',s:'Signature'},{k:'signeParNom',l:'Nom du client',t:'texte',max:120}],
+   mentions:[
+     {texte:'Depuis le 16 février 2025, plus d’attestation Cerfa : le client certifie, par une mention portée sur le devis ou la facture, que les conditions du taux réduit sont remplies ; sans mention complète, le taux normal s’applique.',
+      source:'Eurex (professionnelle, lue) ; KPMG (secondaire, lue)',verifie:true,
+      pdf:'Depuis le 16 février 2025, l’attestation Cerfa n’est plus demandée : le client certifie que les conditions du taux réduit sont remplies par une mention portée sur le devis ou la facture.'},
+     {texte:'Texte exact de la mention de certification : modèles du BOFiP (BOI-TVA-LIQ-30-20-90-40) non ouverts. Ne pas inventer la formule.',source:'À confirmer',verifie:false},
+     {texte:'Conservation de la mention jusqu’au 31 décembre de la 5e année : à reconfirmer sur le BOFiP.',source:'Eurex (lu), à reconfirmer',verifie:false}],
+   signatures:[{lbl:'Le client — date et signature',sous:'Nom, date et signature'}],
+   pied:'Document établi par {ENT} : il accompagne le devis ou la facture et n’est pas un formulaire officiel.',
+   mail:(r,c)=>({sujet:'Certification pour la TVA à taux réduit — '+(c.nom||''),
+     corps:'Bonjour,\n\nVous trouverez ci-joint la certification relative au taux réduit de TVA appliqué à nos travaux. Merci de la relire, de la signer et de nous la retourner.\n\nNous restons à votre disposition.'}) },
+
+ { id:'suivi-amiante', metiers:['plomberie'], ic:'🧱', court:'Suivi du repérage amiante', pdfTitre:'SUIVI DU REPÉRAGE AMIANTE',
+   titre:'Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)', portee:'client', droit:'crm', interne:true, statutChamp:'reperage',
+   aide:'Le repérage est commandé par le donneur d’ordre à un opérateur certifié : cette fiche suit le rapport reçu, elle ne le produit pas. Le plomb (avant 1949) reste à confirmer.',
+   champs:[
+     {k:'chantier',l:'Chantier (adresse)',t:'texte',max:200,pre:'adresse',s:'Le chantier'},
+     {k:'livraison',l:'Date de livraison du bâtiment (année)',t:'texte',max:30,ph:'Ex : 1985'},
+     {k:'reperage',l:'Repérage avant travaux',t:'choix',options:[['requis','Requis'],['non-requis','Non requis'],['dispense','Dispense']],requis:true,s:'Le repérage'},
+     {k:'rapportRef',l:'Rapport reçu (référence)',t:'texte',max:100},{k:'rapportDate',l:'Date du rapport',t:'date'},{k:'operateur',l:'Opérateur',t:'texte',max:120},
+     {k:'perimetre',l:'Périmètre',t:'long',max:400},
+     {k:'resultat',l:'Résultat',t:'choix',options:[['presence','Présence d’amiante'],['absence','Absence d’amiante'],['inconnu','Pas encore connu']]},
+     {k:'transmisLe',l:'Transmis à l’entreprise le',t:'date'}],
+   mentions:[
+     {texte:'Le repérage avant travaux vise les bâtiments livrés avant le 1er janvier 1997 ; il est commandé par le donneur d’ordre à un opérateur certifié.',
+      source:'FFB, repérage amiante (professionnelle, lue)',verifie:true,
+      pdf:'Le repérage amiante avant travaux vise les bâtiments livrés avant le 1er janvier 1997 ; il est commandé par le donneur d’ordre à un opérateur certifié.'},
+     {texte:'Plomb (bâtiments d’avant 1949) : qui commande le constat de risque d’exposition avant travaux. Extrait OPPBTP coupé ; articles non lus.',source:'À confirmer',verifie:false}],
+   signatures:[],
+   pied:'Fiche de suivi établie par {ENT} pour son propre suivi : le rapport de repérage est celui de l’opérateur certifié.' }
+];
+
+/* ── La porte, les définitions, les calculs ── */
+function docmMetiers(){ try{ return typeof metierActifs==='function'?metierActifs():[metierId()]; }catch(e){ return []; } }
+function docmDef(id){ return DOCM_DEFS.find(d=>d.id===id)||null; }
+function docmDefsDuMetier(){ const m=docmMetiers(); return DOCM_DEFS.filter(d=>d.metiers.some(x=>m.indexOf(x)>=0)); }
+function metierGereDocs(){ try{ return docmDefsDuMetier().length>0; }catch(e){ return false; } }
+function docmNum(v){ const n=parseFloat(String(v==null?'':v).replace(/\s/g,'').replace(',','.')); return isFinite(n)?n:NaN; }
+function docmArr(n){ return Math.round((+n+Number.EPSILON)*100)/100; }
+function docmEurPdf(n){ return docmArr(n).toFixed(2).replace('.',',')+' EUR'; }
+function docmEurEcran(n){ return (typeof eur==='function')?eur(n):docmArr(n).toFixed(2).replace('.',',')+' €'; }
+function docmNbTxt(n){ return isFinite(n)?String(docmArr(n)).replace('.',','):''; }
+/* Les totaux d'un document à lignes : tout est CALCULÉ (jamais saisi). Les prix unitaires sont hors taxes ; les frais de déplacement aussi. */
+function docmTotaux(r){ const v=(r&&r.v)||{}, L=((r&&r.lignes)||[]).filter(l=>l&&String(l.d||'').trim());
+  const lignes=L.map(l=>{ const pu=docmNum(l.pu), q=docmNum(l.q); const qq=isFinite(q)&&q>0?q:1;   // une quantité vide ou nulle vaut 1, comme à l'enregistrement (docmNet) : l'écran et le document disent le même total
+    return {d:l.d,u:l.u||'',pu:isFinite(pu)?pu:0,q:qq,total:docmArr((isFinite(pu)?pu:0)*qq)}; });
+  const dep=docmNum(v.deplacement), depl=isFinite(dep)&&dep>0?dep:0;
+  const ht=docmArr(lignes.reduce((s,l)=>s+l.total,0)+depl), taux=docmNum(v.tva), t=isFinite(taux)?taux:0, tva=docmArr(ht*t/100);
+  return {lignes,deplacement:depl,ht,taux:t,tva,ttc:docmArr(ht+tva)}; }
+function docmTauxTxt(t){ return String(t).replace('.',',')+' %'; }
+/* Les écarts (pression, index du compteur) : calculés à l'affichage, jamais rangés. */
+function docmEcarts(v){ const o=[]; v=v||{};
+  const pd=docmNum(v.pressionDebut), pf=docmNum(v.pressionFin); if(isFinite(pd)&&isFinite(pf)) o.push(['Variation de pression',docmNbTxt(pf-pd)+' bar']);
+  const ia=docmNum(v.compteurAvant), ip=docmNum(v.compteurApres); if(isFinite(ia)&&isFinite(ip)) o.push(['Écart d’index du compteur',docmNbTxt(ip-ia)+' m³']);
+  return o; }
+function docmOptionL(c,val){ const o=(c.options||[]).find(x=>x[0]===val); return o?o[1]:''; }
+/* Un champ dépend d'un autre (`si`) : il ne se montre, ne s'imprime et ne se range que si la condition tient. */
+function docmSiOk(si,v){ return !si||String((v||{})[si.k]==null?'':(v||{})[si.k])===si.egal; }
+/* ⛔ CE QUI S'IMPRIME : une mention exige verifie===true, une source et une phrase `pdf` — et sa condition. Rien d'autre ne sort chez le client. */
+function docmMentionsPdf(def,v){ return (def.mentions||[]).filter(m=>m&&m.verifie===true&&m.source&&typeof m.pdf==='string'&&m.pdf.trim()&&docmSiOk(m.si,v)); }
+/* Les champs recommandés encore vides (on le DIT, on ne bloque pas) */
+function docmManques(def,r){ const v=(r&&r.v)||{}; return (def.champs||[]).filter(c=>c.reco&&docmSiOk(c.si,v)&&String(v[c.k]==null?'':v[c.k]).trim()==='').map(c=>c.l.replace(/ \(.*\)$/,'')); }
+
+/* ── Les données de départ d'un document neuf (rien n'est écrit) ── */
+function docmClient(cid){ return nettClient(cid); }
+function docmIntervention(iid){ return iid?(db.interventions||[]).find(x=>x&&x.id===iid)||null:null; }
+function docmPre(c,cl,i){ const k=c.pre;
+  if(k==='auj') return todayISO();
+  if(k==='adresse') return nettAdresseClient(cl)||'';
+  if(k==='motif') return i?String(i.titre||i.type||'').slice(0,(c.max||200)):'';
+  if(k==='dateInt') return i&&nettIsoOk(i.date)?i.date:todayISO();
+  if(k==='technicien'){ try{ return i&&typeof techNames==='function'?String(techNames(i)).replace(/^Non assigné$/,''):''; }catch(e){ return ''; } }
+  return ''; }
+function docmVide(def,cid,iid){ const cl=docmClient(cid)||{}, i=docmIntervention(iid), v={};
+  def.champs.forEach(c=>{ if(c.t==='lignes') return; let x=c.pre?docmPre(c,cl,i):''; if(!x&&c.def!=null) x=c.def; if(x!=='') v[c.k]=x; });
+  /* les relevés déjà saisis sur l'intervention : le document PART d'eux (un champ laissé vide ensuite est un champ vidé exprès, voir docmReleveEcrire) */
+  if(def.releves&&i&&i.relevesMetier) Object.keys(def.releves).forEach(k=>{ const x=i.relevesMetier[def.releves[k]], c=def.champs.find(y=>y.k===k); if(x==null||x===''||!c) return;
+    if(c.t==='choix'){ const o=(c.options||[]).find(y=>y[1]===x||y[0]===String(x).toLowerCase()); if(o) v[k]=o[0]; } else v[k]=String(x); });
+  return {id:'',doc:def.id,clientId:cid,interventionId:i?i.id:'',num:'',date:v.date||todayISO(),v,lignes:def.lignes?[{id:uid(),d:'',pu:'',u:'',q:'1'}]:[]}; }
+/* Le document tel qu'on le range : borné champ par champ, sans ligne vide, uniquement les champs de SA définition. */
+function docmNet(def,W){ const v={}, src=W.v||{};
+  def.champs.forEach(c=>{ if(c.t==='lignes') return; let x=src[c.k]; if(x==null) return; x=String(x).trim(); if(x==='') return;
+    if(c.si&&!docmSiOk(c.si,src)) return;
+    if(c.t==='date'||c.t==='heure'){ if(c.t==='date'&&!nettIsoOk(x)) return; if(c.t==='heure'&&!/^\d{1,2}:\d{2}$/.test(x)) return; }
+    else if(c.t==='nombre'){ const n=docmNum(x); if(!isFinite(n)||n<0||n>1e7) return; x=String(docmArr(n)); }
+    else if(c.t==='choix'){ if(!(c.options||[]).some(o=>o[0]===x)) return; }
+    else if(c.t==='appareil'){ if(!(db.appareils||[]).some(a=>a&&a.id===x&&a.clientId===W.clientId)) return; }
+    else x=nettTxt(x,c.max||300);
+    v[c.k]=x; });
+  const lignes=def.lignes?(W.lignes||[]).filter(l=>l&&nettTxt(l.d,160)).map(l=>{ const pu=docmNum(l.pu), q=docmNum(l.q);
+    return {id:l.id||uid(),d:nettTxt(l.d,160),pu:isFinite(pu)&&pu>=0&&pu<=1e7?String(docmArr(pu)):'',u:nettTxt(l.u,20),q:isFinite(q)&&q>0&&q<=1e6?String(docmArr(q)):'1'}; }):[];
+  return {id:W.id||'',doc:def.id,clientId:W.clientId,interventionId:W.interventionId||'',num:W.num||'',date:nettIsoOk(v.date)?v.date:(nettIsoOk(W.date)?W.date:todayISO()),v,lignes}; }
+/* Le statut affiché dans les listes : celui que le document dit de lui-même, jamais un état rangé en double */
+function docmStatut(r){ const def=docmDef(r&&r.doc); if(!def) return {l:'',cls:''}; const v=r.v||{};
+  if(def.statutChamp){ const c=def.champs.find(x=>x.k===def.statutChamp), l=docmOptionL(c,v[def.statutChamp]);
+    const cls=/vise|transmis|bleue|absence|^faite$/.test(String(v[def.statutChamp]))?'st-green':/rouge|presence|a-etablir/.test(String(v[def.statutChamp]))?'st-org':'st-grey';
+    return {l:l||'À renseigner',cls:l?cls:'st-grey'}; }
+  if(v.signeLe) return {l:'Signé le '+nettDateTxt(v.signeLe),cls:'st-green'};
+  if(r.envoyeLe) return {l:'Envoyé',cls:'st-blue'};
+  return {l:'Brouillon',cls:'st-grey'}; }
+function docmTitreCourt(r){ const def=docmDef(r&&r.doc); return (def?def.court:'Document')+(r&&r.num?' '+r.num:''); }
+function docmDe(cid){ return (db.docsMetier||[]).filter(r=>r&&r.clientId===cid&&docmDef(r.doc)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.num||'').localeCompare(String(a.num||''))); }
+function docmDeInt(iid){ return (db.docsMetier||[]).filter(r=>r&&r.interventionId===iid&&docmDef(r.doc)); }
+
+/* ── Le formulaire : un seul, lu sur la définition ── */
+let docmW=null;
+function docmValeur(c){ const x=docmW&&docmW.v?docmW.v[c.k]:''; return x==null?'':x; }
+function docmChampHtml(c){ const val=docmValeur(c), id='docm-'+c.k;
+  const lab=`<label for="${id}">${esc(c.l)}${c.requis?' <span style="color:var(--red)" aria-hidden="true">*</span>':''}${c.u?' <span style="color:var(--t3);font-weight:400">('+esc(c.u)+')</span>':''}</label>`;
+  if(c.t==='long') return `<div class="field">${lab}<textarea id="${id}" rows="3" maxlength="${c.max||600}" oninput="docmSet('${c.k}',this.value)">${esc(val)}</textarea></div>`;
+  if(c.t==='choix') return `<div class="field">${lab}<select id="${id}" onchange="docmSet('${c.k}',this.value)"><option value=""${val===''?' selected':''}>— choisir —</option>${c.options.map(o=>`<option value="${esc(o[0])}"${String(val)===o[0]?' selected':''}>${esc(o[1])}</option>`).join('')}</select></div>`;
+  if(c.t==='appareil'){ const L=(db.appareils||[]).filter(a=>a&&a.clientId===(docmW&&docmW.clientId));
+    return `<div class="field">${lab}<select id="${id}" onchange="docmSet('${c.k}',this.value)"><option value="">${L.length?'— choisir —':'Aucun appareil dans le parc de ce client'}</option>${L.map(a=>`<option value="${esc(a.id)}"${val===a.id?' selected':''}>${esc(typeof cvcLibelle==='function'?cvcLibelle(a):(a.nom||a.id))}</option>`).join('')}</select></div>`; }
+  if(c.t==='date') return `<div class="field">${lab}<input id="${id}" type="date" value="${esc(val)}" oninput="docmSet('${c.k}',this.value)"></div>`;
+  if(c.t==='heure') return `<div class="field">${lab}<input id="${id}" type="time" value="${esc(val)}" oninput="docmSet('${c.k}',this.value)"></div>`;
+  if(c.t==='nombre') return `<div class="field">${lab}<input id="${id}" type="number" step="any" inputmode="decimal" min="0" value="${esc(val)}" oninput="docmSet('${c.k}',this.value)"></div>`;
+  return `<div class="field">${lab}<input id="${id}" maxlength="${c.max||200}" value="${esc(val)}"${c.ph?` placeholder="${esc(c.ph)}"`:''} oninput="docmSet('${c.k}',this.value)"></div>`; }
+function docmLignesHtml(){ const W=docmW; if(!W||!W.lignes) return '';
+  return W.lignes.map((l,k)=>`<div class="card" style="margin-bottom:8px;padding:10px">
+    <input maxlength="160" value="${esc(l.d)}" placeholder="Désignation (prestation ou produit)" aria-label="Désignation" oninput="docmLigne(${k},'d',this.value)" style="width:100%">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+      <input type="number" step="any" inputmode="decimal" min="0" value="${esc(l.pu)}" placeholder="Prix unitaire HT (€)" aria-label="Prix unitaire hors taxes" oninput="docmLigne(${k},'pu',this.value)" style="flex:1;min-width:120px">
+      <input maxlength="20" value="${esc(l.u)}" placeholder="Unité (h, m, pièce)" aria-label="Unité du prix" oninput="docmLigne(${k},'u',this.value)" style="flex:1;min-width:100px">
+      <input type="number" step="any" inputmode="decimal" min="0" value="${esc(l.q)}" placeholder="Quantité" aria-label="Quantité" oninput="docmLigne(${k},'q',this.value)" style="flex:1;min-width:90px">
+      <button type="button" class="btn ghost sm" onclick="docmLigneSuppr(${k})" aria-label="Retirer la ligne" title="Retirer la ligne">✕</button></div></div>`).join(''); }
+function docmChampsHtml(def){ const W=docmW; let s='', cur='';
+  def.champs.forEach(c=>{ if(c.si&&!docmSiOk(c.si,W.v)) return;
+    if(c.s&&c.s!==cur){ cur=c.s; s+=`<div class="form-sec">${esc(c.s)}</div>`; }
+    if(c.t==='lignes'){ s+=`<div class="field" style="margin:0"><label>${esc(c.l)} <span style="color:var(--red)" aria-hidden="true">*</span></label>
+      <div id="docm-lignes">${docmLignesHtml()}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px"><button type="button" class="btn ghost sm" onclick="docmLigneAjout()">＋ Ligne</button>${docmRepriseHtml()}</div></div>`; return; }
+    s+=docmChampHtml(c); });
+  return s; }
+function docmRepriseHtml(){ const W=docmW; if(!W) return '';
+  const docs=(db.docsMetier||[]).filter(r=>r&&r.clientId===W.clientId&&r.id!==W.id&&r.doc==='devis-depannage'&&(r.lignes||[]).length);
+  const devis=(db.devis||[]).filter(d=>d&&d.clientId===W.clientId&&(d.lignes||[]).length);
+  if(!docs.length&&!devis.length) return '';
+  return `<select id="docm-reprise" aria-label="Reprendre les lignes d’un devis" style="width:auto;max-width:100%"><option value="">Reprendre les lignes d’un devis…</option>${docs.map(r=>`<option value="doc:${esc(r.id)}">${esc(docmTitreCourt(r))} — ${esc(nettDateTxt(r.date))}</option>`).join('')}${devis.map(d=>`<option value="devis:${esc(d.id)}">Devis ${esc(d.num||'')} — ${esc(nettDateTxt(d.date))}</option>`).join('')}</select><button type="button" class="btn ghost sm" onclick="docmReprendre()">Reprendre</button>`; }
+function docmMentionsHtml(def){ if(!(def.mentions||[]).length) return '';
+  return `<details style="margin:6px 0 12px"><summary style="cursor:pointer;font-size:13px;color:var(--t2)">Repères réglementaires et sources</summary>
+    ${def.mentions.map(m=>`<div style="font-size:12.5px;line-height:1.5;padding:7px 0;border-top:1px solid var(--brd);overflow-wrap:anywhere">${m.verifie?'<span class="st st-green">source lue</span>':'<span class="st st-org">à confirmer — jamais imprimé</span>'} ${esc(m.texte)}<div style="color:var(--t3)">Source : ${esc(m.source)}</div></div>`).join('')}</details>`; }
+function docmTotHtml(def){ const W=docmW; if(!W) return ''; let h='';
+  if(def.lignes){ const T=docmTotaux(W); h+=`<div style="display:flex;justify-content:flex-end;gap:14px;flex-wrap:wrap;font-size:13.5px"><span>Total HT <b>${esc(docmEurEcran(T.ht))}</b></span><span>TVA ${esc(docmTauxTxt(T.taux))} <b>${esc(docmEurEcran(T.tva))}</b></span><span>Total TTC <b>${esc(docmEurEcran(T.ttc))}</b></span></div>`;
+    h+=docmNoteTauxReduit((W.v||{}).tva,true);
+    if(def.id==='note-depannage'&&T.ht>0) h+=`<div style="font-size:12.5px;color:var(--t3);text-align:right;margin-top:4px">${T.ttc>=25?'À partir de 25 € TTC : la note est à remettre au client avant le paiement.':'Sous 25 € TTC : à remettre si le client la demande (à confirmer).'}</div>`; }
+  if((def.calculs||[]).length){ const E=docmEcarts(W.v); if(E.length) h+=`<div style="font-size:13px;margin-top:6px">${E.map(e=>`${esc(e[0])} : <b>${esc(e[1])}</b>`).join(' · ')}</div>`; }
+  const M=docmManques(def,W); if(M.length) h+=`<div style="font-size:12.5px;color:var(--org);margin-top:6px">À compléter si possible : ${esc(M.join(', '))}</div>`;
+  return h; }
+function docmTotMaj(){ const el=document.getElementById('docm-tot'); if(el&&docmW) el.innerHTML=docmTotHtml(docmDef(docmW.doc)); }
+function docmMaj(){ const el=document.getElementById('docm-champs'); if(el&&docmW) el.innerHTML=docmChampsHtml(docmDef(docmW.doc)); docmTotMaj(); }
+function docmSet(k,val){ if(!docmW) return; const def=docmDef(docmW.doc), c=def&&def.champs.find(x=>x.k===k); if(!c) return;
+  docmW.v[k]=val; if(c.maj) docmMaj(); else docmTotMaj(); }
+function docmLigne(k,champ,val){ if(!docmW||!docmW.lignes||!docmW.lignes[k]||['d','pu','u','q'].indexOf(champ)<0) return; docmW.lignes[k][champ]=val; docmTotMaj(); }
+function docmLigneAjout(){ if(!docmW||!docmW.lignes) return; docmW.lignes.push({id:uid(),d:'',pu:'',u:'',q:'1'}); const el=document.getElementById('docm-lignes'); if(el) el.innerHTML=docmLignesHtml(); docmTotMaj(); }
+function docmLigneSuppr(k){ if(!docmW||!docmW.lignes) return; docmW.lignes.splice(k,1); const el=document.getElementById('docm-lignes'); if(el) el.innerHTML=docmLignesHtml(); docmTotMaj(); }
+/* Reprendre les lignes d'un devis (un devis de dépannage déjà fait, ou un devis OP GESTION du même client) : un geste explicite, jamais automatique. */
+function docmReprendre(){ const W=docmW, s=document.getElementById('docm-reprise'); if(!W||!s||!s.value) return;
+  const [kind,id]=s.value.split(':'); let L=null, tva='', extra={};
+  if(kind==='doc'){ const r=(db.docsMetier||[]).find(x=>x&&x.id===id&&x.clientId===W.clientId); if(r){ L=(r.lignes||[]).map(l=>({id:uid(),d:l.d,pu:l.pu,u:l.u,q:l.q})); tva=(r.v||{}).tva||''; extra={deplacement:(r.v||{}).deplacement,piecesConservees:(r.v||{}).piecesConservees,devisRef:r.num||''}; } }
+  else if(kind==='devis'){ const d=(db.devis||[]).find(x=>x&&x.id===id&&x.clientId===W.clientId); if(d){ L=(d.lignes||[]).map(l=>({id:uid(),d:String(l.designation||l.d||''),pu:String(l.pu==null?'':l.pu),u:'',q:String(l.qte==null?(l.q==null?1:l.q):l.qte)})); tva=String(d.tva==null?'':d.tva); extra={devisRef:d.num||''}; } }
+  if(!L||!L.length){ toast('Ce devis n’a pas de lignes à reprendre'); return; }
+  W.lignes=L; if(DOCM_TVA.some(t=>t[0]===tva)) W.v.tva=tva;
+  const def=docmDef(W.doc); Object.keys(extra).forEach(k=>{ if(extra[k]!==undefined&&extra[k]!==''&&def.champs.some(c=>c.k===k)) W.v[k]=String(extra[k]); });
+  docmMaj(); toast('Lignes reprises — relis-les avant d’enregistrer'); }
+function docmForm(defId,opt){ opt=opt||{}; if(!metierGereDocs()) return;
+  const def=docmDef(defId); if(!def) return;
+  const ex=opt.id?(db.docsMetier||[]).find(x=>x&&x.id===opt.id):null; if(opt.id&&!ex){ toast('Ce document n’existe plus'); return; }
+  if(!ex&&!docmDefsDuMetier().some(d=>d.id===def.id)) return;
+  if(!permGarde(def.droit,ex?'modifier':'ajouter','un document')) return;
+  const cid=ex?ex.clientId:opt.cid, cl=docmClient(cid); if(!cl||!nettClientVisible(cid)){ toast('Cette fiche ne te concerne pas'); return; }
+  let iid=ex?ex.interventionId:(opt.iid||''); const it=docmIntervention(iid); if(!it||it.clientId!==cid) iid='';
+  docmW=ex?nettCdc(ex):docmVide(def,cid,iid);
+  const adr=nettAdresseClient(cl), lie=docmIntervention(docmW.interventionId);
+  openModal(`<div class="modal-head"><h3>${def.ic} ${esc(def.court)}</h3><button class="modal-close" onclick="docmFermer()">✕</button></div>
+    <div style="font-size:13px;color:var(--t2);overflow-wrap:anywhere;margin:-4px 0 8px">Chez <b>${esc(cl.nom)}</b>${adr?' · '+esc(adr):''}${lie?' · intervention du '+esc(nettDateTxt(lie.date)):''}${docmW.num?' · n° '+esc(docmW.num):''}</div>
+    <div style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px">${esc(def.aide)}</div>
+    <div id="docm-champs">${docmChampsHtml(def)}</div>
+    <div id="docm-tot" style="margin:2px 0 10px">${docmTotHtml(def)}</div>
+    ${docmMentionsHtml(def)}
+    ${ex&&ex.envoyeLe?`<div style="font-size:12.5px;color:var(--t3);margin-bottom:8px">Déjà envoyé à ${esc(ex.envoyeA||'')} le ${esc(new Date(ex.envoyeLe).toLocaleDateString('fr-FR'))}.</div>`:''}
+    <div class="modal-foot" style="flex-wrap:wrap"><button type="button" class="btn ghost" onclick="docmApercu()">Aperçu PDF</button>
+      <button type="button" class="btn ghost" onclick="docmSauver()">Enregistrer</button>
+      ${def.envoi?`<button type="button" class="btn" onclick="docmEnvoyer()">Envoyer au client</button>`:''}
+      ${ex&&canCat('crm','supprimer')?`<button type="button" class="btn ghost" style="color:var(--red)" onclick="closeModal();delItem('docsMetier','${esc(ex.id)}')">Supprimer</button>`:''}</div>`); }
+function docmFermer(){ const w=docmW; closeModal(); try{ if(w&&w.interventionId&&docmIntervention(w.interventionId)&&typeof renderIntDetail==='function') renderIntDetail(w.interventionId); else if(w) ficheClient(w.clientId); }catch(e){} }
+/* ── L'enregistrement : le SEUL endroit qui écrit dans `db.docsMetier` (hors démonstration), et le seul qui écrit les relevés de l'intervention ── */
+function docmReleveEcrire(def,rec){ if(!def.releves||!rec.interventionId) return false;
+  const i=docmIntervention(rec.interventionId); if(!i||i.clientId!==rec.clientId) return false;
+  i.relevesMetier=i.relevesMetier||{};
+  Object.keys(def.releves).forEach(k=>{ const rk=def.releves[k], c=def.champs.find(x=>x.k===k), x=rec.v[k];
+    if(x===undefined||x==='') delete i.relevesMetier[rk]; else i.relevesMetier[rk]=c&&c.t==='choix'?docmOptionL(c,x):String(x); });
+  return true; }
+function docmSauver(silencieux){ const W=docmW; if(!W) return null;
+  const def=docmDef(W.doc); if(!def) return null;
+  if(!permGarde(def.droit,W.id?'modifier':'ajouter','un document')) return null;
+  if(!nettClientVisible(W.clientId)){ toast('Ce client ne te concerne pas'); return null; }
+  const net=docmNet(def,W);
+  for(const c of def.champs){ if(!c.requis||c.t==='lignes') continue; if(c.si&&!docmSiOk(c.si,net.v)) continue;
+    if(net.v[c.k]==null||net.v[c.k]===''){ toast('À compléter : '+c.l.replace(/ \(.*\)$/,'')); return null; } }
+  if(def.lignes&&!net.lignes.length){ toast('Ajoute au moins une ligne au décompte'); return null; }
+  db.docsMetier=db.docsMetier||[];
+  const ex=W.id?db.docsMetier.find(x=>x&&x.id===W.id):null; if(W.id&&!ex){ toast('Ce document n’existe plus'); return null; }
+  net.titre=def.court;
+  if(ex){ net.num=ex.num||''; Object.assign(ex,net,{modifieLe:todayISO()});
+    docmReleveEcrire(def,ex); logEvent('Document modifié',docmTitreCourt(ex),'crud'); docmW=nettCdc(ex);
+    if(!silencieux) toast('Document enregistré'); save(); return ex.id; }
+  net.num=def.prefixe?nextNum('docsMetier',def.prefixe,'num'):'';
+  net.id=uid(); net.creePar=(currentUser&&currentUser.id)||''; net.creeLe=todayISO();
+  db.docsMetier.push(net);
+  if(docmReleveEcrire(def,net)){ const i=docmIntervention(net.interventionId); intHisto(i,def.court+(net.num?' '+net.num:'')+' enregistré'); }
+  logEvent('Document créé',docmTitreCourt(net),'crud'); docmW=nettCdc(net);
+  save(); if(!silencieux) toast('Document enregistré'+(net.num?' — n° '+net.num:'')); return net.id; }
+
+/* ── Le taux réduit : une CERTIFICATION du client (plus d'attestation Cerfa depuis le 16 février 2025 — Eurex et KPMG, lus). Le conseil n'apparaît que si le métier a ce document
+   (la plomberie) et qu'un taux de 5,5 % ou de 10 % est choisi ; il ne dit JAMAIS ce que la mention doit contenir (le texte exact n'a pas été relu). ── */
+function docmTauxReduit(t){ const n=docmNum(t); return n===5.5||n===10; }
+function docmNoteTauxReduit(taux,avecBouton){ try{ if(!docmDefsDuMetier().some(d=>d.id==='tva-reduite')||!docmTauxReduit(taux)) return '';
+  return `<div id="docm-taux-reduit" style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:8px 11px;margin-top:8px;text-align:left">🏠 Taux réduit : le client certifie, par une mention portée sur le devis ou la facture, que les conditions sont remplies (plus d’attestation Cerfa depuis le 16 février 2025). Prépare sa certification${avecBouton?'':' depuis sa fiche, « ＋ Certification TVA réduite »'}.${avecBouton?' <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="docmCertifTva()">＋ Préparer la certification du client</button>':''}</div>`; }catch(e){ return ''; } }
+/* Depuis un devis ou une note : le document est enregistré D'ABORD (la certification cite son numéro), puis la certification s'ouvre avec le taux, la nature et le numéro. */
+function docmCertifTva(){ const W=docmW; if(!W||!metierGereDocs()) return;
+  const d2=docmDef('tva-reduite'); if(!d2||!docmDefsDuMetier().some(d=>d.id===d2.id)||!docmTauxReduit((W.v||{}).tva)) return;
+  if(!permGarde(d2.droit,'ajouter','un document')) return;
+  const taux=String(docmNum(W.v.tva)), nature=W.v.nature||'', cid=W.clientId, iid=W.interventionId||'';
+  const sid=docmSauver(true); if(!sid) return;
+  const r=(db.docsMetier||[]).find(x=>x&&x.id===sid);
+  docmForm('tva-reduite',{cid,iid}); if(!docmW||docmW.doc!=='tva-reduite') return;
+  docmW.v.taux=taux; docmW.v.refDoc=(r&&r.num)||''; if(nature) docmW.v.nature=String(nature).slice(0,600); docmMaj(); }
+/* ── Le PDF : un constructeur de blocs, lu sur la définition ── */
+function docmValTxt(c,v,cl){ const x=v[c.k]; if(x==null||x==='') return '';
+  if(c.t==='choix') return docmOptionL(c,x)||'';
+  if(c.t==='date') return nettDateTxt(x);
+  if(c.t==='nombre') return docmNbTxt(docmNum(x))+(c.u?' '+(c.u==='€'?'EUR':c.u):'');
+  if(c.t==='appareil'){ const a=(db.appareils||[]).find(y=>y&&y.id===x); return a?(typeof cvcLibelle==='function'?cvcLibelle(a):(a.nom||'')):''; }
+  return String(x); }
+function docmSpec(def,r,cli){ const v=r.v||{}, B=[], T=def.lignes?docmTotaux(r):null, nom=(v.sansNom==='oui')?'(nom non porté, à la demande du client)':(cli.nom||'—');
+  B.push({t:'titre',texte:def.titre,suite:30});
+  B.push({t:'lv',lbl:'Client',val:nom});
+  if(v.sansNom!=='oui'){ const adr=nettAdresseClient(cli); if(adr) B.push({t:'lv',lbl:'Adresse du client',val:adr}); }
+  const i=docmIntervention(r.interventionId); if(i&&nettIsoOk(i.date)) B.push({t:'lv',lbl:'Intervention',val:(i.num?i.num+' — ':'')+nettDateTxt(i.date)});
+  let ouvert='', pending=[];
+  const vider=()=>{ if(pending.length){ if(ouvert) B.push({t:'titre',texte:ouvert,suite:40}); pending.forEach(b=>B.push(b)); } pending=[]; };
+  const totaux=()=>{ vider(); B.push({t:'vide',h:2});
+    B.push({t:'lv',lbl:'Total HT',val:docmEurPdf(T.ht)}); B.push({t:'lv',lbl:'TVA '+docmTauxTxt(T.taux),val:docmEurPdf(T.tva)}); B.push({t:'lv',lbl:'Total TTC',val:docmEurPdf(T.ttc),col:'ok'}); B.push({t:'vide',h:4}); };
+  def.champs.forEach(c=>{ if(c.si&&!docmSiOk(c.si,v)) return;
+    if(c.s&&c.s!==ouvert){ vider(); ouvert=c.s; }
+    if(c.t==='lignes'){ if(!T.lignes.length) return;
+      pending.push({t:'table',cols:[{l:'Désignation',w:.44},{l:'Prix unitaire HT',w:.17},{l:'Unité',w:.12},{l:'Quantité',w:.11},{l:'Total HT',w:.16}],
+        rows:T.lignes.map(l=>[l.d,docmEurPdf(l.pu),l.u,docmNbTxt(l.q),docmEurPdf(l.total)])}); return; }
+    if(c.k==='sansNom') return;
+    if(def.lignes&&c.k==='tva'){ vider(); totaux(); return; }   // le taux se lit dans les totaux : pas une ligne de plus
+    const val=docmValTxt(c,v,cli); if(val!=='') pending.push({t:'lv',lbl:c.lp||c.l.replace(/ \(.*\)$/,''),val}); });
+  vider();
+  if((def.calculs||[]).length){ const E=docmEcarts(v); if(E.length){ B.push({t:'titre',texte:'Écarts calculés',suite:30}); E.forEach(e=>B.push({t:'lv',lbl:e[0],val:e[1]})); } }
+  const M=docmMentionsPdf(def,v);
+  if(M.length){ B.push({t:'titre',texte:'Informations',suite:30}); M.forEach(m=>B.push({t:'note',texte:m.pdf})); }
+  if((def.signatures||[]).length) B.push({t:'signatures',boites:def.signatures});
+  return {titre:def.pdfTitre,sous:(r.num?'N° '+r.num+' — ':'')+(nettDateTxt(r.date)||''),blocs:B,mention:def.pied}; }
+
+/* ── L'aperçu et l'envoi passent par la fabrique commune du bloc NETTOYAGE (nettDocFabriquer / nettDocApercu) : le contexte d'un document s'y branche par `kind==='doc'` ── */
+function docmSlug(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,''); }
+/* Le formulaire est-il ouvert SOUS LES YEUX ? Fermer une fenêtre ne retire pas son balisage (closeModal ne fait que retirer « open ») : sans ce contrôle, l'aperçu d'un document
+   de la liste prenait les saisies abandonnées d'une fenêtre fermée. */
+function docmOuvert(){ try{ if(!docmW||!document.getElementById('docm-champs')) return false;
+    const o=document.getElementById('overlay'); if(o&&o.classList&&!o.classList.contains('open')) return false; }catch(e){ return false; }
+  return true; }
+function docmContexte(id){
+  const ouvert=docmOuvert()&&(!id||docmW.id===id);
+  let r=null;
+  if(ouvert){ const d0=docmDef(docmW.doc); if(!d0) return {err:'Document inconnu.'}; r=docmNet(d0,docmW); r.num=docmW.num||''; }
+  else r=id?(db.docsMetier||[]).find(x=>x&&x.id===id):null;
+  if(!r) return {err:'Ce document n’existe plus.'};
+  const def=docmDef(r.doc); if(!def) return {err:'Document inconnu.'};
+  const cli=docmClient(r.clientId); if(!cli) return {err:'Client introuvable.'};
+  if(def.lignes&&!docmTotaux(r).lignes.length) return {err:'Ajoute au moins une ligne au décompte.'};
+  const i=docmIntervention(r.interventionId);
+  return {cli,soc:(i&&i.rapportModele)||socDuClient(cli.id),spec:E=>docmSpec(def,r,cli,E),date:r.date,pre:docmSlug(def.court),obj:r,coll:'docsMetier',def}; }
+function docmApercu(id){ const W=docmW; nettDocApercu('doc',id!==undefined?id:(W?W.id:''),W?W.clientId:''); }
+const _docmEnvoi={};
+async function docmEnvoyer(id){ if(!metierGereDocs()) return;
+  const ouvert=docmOuvert()&&(!id||docmW.id===id);
+  const rec0=ouvert?docmW:(id?(db.docsMetier||[]).find(x=>x&&x.id===id):null); const def=rec0&&docmDef(rec0.doc);
+  if(!def||!def.envoi) return;
+  if(!permGarde(def.droit,'modifier','un document')) return;
+  const cle=id||(rec0&&rec0.id)||'neuf'; if(_docmEnvoi[cle]) return; _docmEnvoi[cle]=1;
+  try{
+    if(ouvert){ const sid=docmSauver(true); if(!sid) return; id=sid; }
+    const x=docmContexte(id); if(x.err){ toast(x.err); return; }
+    const mail=x.cli&&x.cli.email; if(!mail){ toast('Ajoute l’e-mail du client dans sa fiche'); return; }
+    toast('📄 Préparation du document PDF…',3000);
+    const d=await nettDocFabriquer('doc',id,x.cli.id); if(d.err){ toast(d.err,9000); return; }
+    if(d.manque&&d.manque.length&&!confirm('Le PDF ne porte pas '+d.manque.join(', ')+' (l’image n’a pas pu être lue). L’envoyer quand même au client ?')) return;
+    const o=(db.docsMetier||[]).find(k=>k&&k.id===id)||x.obj;   // la synchro a pu remplacer la base pendant la préparation
+    const m=def.mail(o,d.cli);
+    const ok=await srvMail(mail,m.sujet,m.corps,'✉️ Document envoyé à '+mail+' — PDF joint','rapport',null,Object.assign({},docMailOpts(d.soc)||{},{atts:[{filename:d.nom,content:d.b64}],sansMailto:true}));
+    if(!ok) return;   // srvMail a dit pourquoi ; rien n'est parti, donc rien ne se trace
+    o.envoyeLe=Date.now(); o.envoyeA=mail; logEvent('Document envoyé',docmTitreCourt(o)+' → '+mail,'crud');
+    const it=docmIntervention(o.interventionId); if(it) intHisto(it,def.court+(o.num?' '+o.num:'')+' envoyé par e-mail à '+mail+' (PDF joint)');
+    save(); try{ closeModal(); if(it&&typeof renderIntDetail==='function') renderIntDetail(it.id); else ficheClient(x.cli.id); }catch(e){}
+  } finally { delete _docmEnvoi[cle]; } }
+
+/* ── Ce que voit l'écran : la section « Documents du métier » de la fiche client, et la carte de l'intervention ── */
+function docmLigneHtml(r){ const def=docmDef(r.doc), st=docmStatut(r), peutMod=canCat(def.droit,'modifier');
+  return `<div class="pl-row" style="cursor:default"><div class="pl-info"><div class="pl-title" style="overflow-wrap:anywhere">${def.ic} ${esc(docmTitreCourt(r))}</div>
+    <div class="pl-meta" style="overflow-wrap:anywhere;white-space:normal">${esc(nettDateTxt(r.date))} <span class="st ${st.cls}">${esc(st.l)}</span></div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn ghost sm" onclick="closeModal();docmForm('${esc(def.id)}',{id:'${esc(r.id)}'})">${peutMod?'Ouvrir':'Voir'}</button><button type="button" class="btn ghost sm" onclick="nettDocApercu('doc','${esc(r.id)}')">PDF</button></div></div>`; }
+function docmSectionClient(c){ if(!metierGereDocs()||!c) return '';
+  const defs=docmDefsDuMetier().filter(d=>canCat(d.droit,'ajouter')), docs=docmDe(c.id);
+  return `<div class="dt-lbl" id="docm-docs" style="margin:16px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">📄 Documents du métier</div>
+    ${defs.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${defs.map(d=>`<button type="button" class="btn ghost sm" onclick="closeModal();docmForm('${esc(d.id)}',{cid:'${esc(c.id)}'})">＋ ${esc(d.court)}</button>`).join('')}</div>`:''}
+    ${docs.length?docs.map(docmLigneHtml).join(''):'<div style="color:var(--t3);font-size:13px;padding:4px 0">Aucun document pour ce client : devis de dépannage, note avant paiement, suivis… chacun se prépare ici et part en PDF.</div>'}`; }
+function docmIntCard(i,edit){ if(!metierGereDocs()||!i) return '';
+  const defs=docmDefsDuMetier().filter(d=>d.portee==='intervention'&&canCat(d.droit,'ajouter')), docs=docmDeInt(i.id);
+  if(!defs.length&&!docs.length) return '';
+  return `<div class="card" id="docm-int-card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>📄 Documents de l’intervention</h3></div>
+    ${docs.length?docs.map(docmLigneHtml).join(''):'<div style="font-size:13px;color:var(--t3);margin-bottom:8px">Aucun document pour cette intervention : le devis se fait avant, la note après, avant le paiement.</div>'}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${defs.map(d=>{ const sug=d.typeInt&&d.typeInt.test(String(i.type||'')); return `<button type="button" class="btn ${sug?'':'ghost '}sm" onclick="docmForm('${esc(d.id)}',{cid:'${esc(i.clientId)}',iid:'${esc(i.id)}'})">＋ ${esc(d.court)}</button>`; }).join('')}</div></div>`; }
+/* ── La démonstration : « Remplir » de la bêta pose, pour un métier qui a ces documents, quelques exemplaires marqués `demo:1` (emportés par « Retirer la démonstration »). Un geste de l'administrateur, jamais un chargement. ── */
+function docmDemoPoser(clientIds){ if(!metierGereDocs()||!Array.isArray(clientIds)) return;
+  db.docsMetier=db.docsMetier||[];
+  const defs=docmDefsDuMetier().map(d=>d.id), ajoute=(def,cid,extra,v,lignes)=>{ if(!cid||defs.indexOf(def)<0||db.docsMetier.some(r=>r&&r.demo&&r.doc===def&&r.clientId===cid)) return;
+    const d=docmDef(def), cl=docmClient(cid)||{};
+    const rec=Object.assign({id:uid(),doc:def,clientId:cid,interventionId:'',num:d.prefixe?nextNum('docsMetier',d.prefixe,'num'):'',date:todayISO(),v:Object.assign({date:todayISO(),lieu:nettAdresseClient(cl),adresse:nettAdresseClient(cl),chantier:nettAdresseClient(cl)},v||{}),lignes:(lignes||[]).map(l=>({id:uid(),d:l[0],pu:String(l[1]),u:l[2],q:String(l[3])})),titre:d.court,demo:1},extra||{});
+    rec.v=docmNet(d,rec).v; db.docsMetier.push(rec); return rec; };
+  const ints=(db.interventions||[]).filter(i=>i&&i.demo);
+  const pour=(cid,re)=>ints.find(i=>i.clientId===cid&&re.test(String(i.type||'')));
+  const c0=clientIds[0], c1=clientIds[1], c2=clientIds[2], c3=clientIds[3];
+  const iid=(cid,re)=>(pour(cid,re||/./)||{}).id||'', m=metierId();   // la démonstration suit le premier métier
+  if(m==='plomberie'){
+    ajoute('devis-depannage',c0,{interventionId:iid(c0)},{nature:'Remplacement d’un mitigeur de cuisine qui fuit et d’un flexible d’alimentation',tva:'10',tauxHoraire:'65',decompte:'Par quart d’heure',tempsEstime:'1 h 30',validite:'30 jours',devisPayant:'gratuit',piecesConservees:'oui',lieuSignature:'client',deplacement:'35'},
+      [['Mitigeur de cuisine',89,'pièce',1],['Flexible inox de raccordement',12,'pièce',2],['Main-d’œuvre',54,'h',1.5]]);
+    ajoute('note-depannage',c1,{interventionId:iid(c1)},{execLe:todayISO(),tva:'10',piecesConservees:'non',sansNom:'non'},[['Remplacement du groupe de sécurité',64,'pièce',1],['Main-d’œuvre',54,'h',1]]);
+    ajoute('rapport-etancheite',c2,{interventionId:iid(c2,/[ée]tanch/i)},{installation:'eau-froide',zone:'Réseau d’alimentation, cuisine et laboratoire',fluide:'Eau',pressionEssai:'6',duree:'30',pressionDebut:'6',pressionFin:'6',manometre:'Manomètre 0-10 bar, n° 4521',etalonnage:'12/03/2026',vanneArret:'Sous l’évier de la cuisine',compteurAvant:'184.2',compteurApres:'184.2',resultat:'etanche',terre:'oui',photos:'oui'});
+    ajoute('suivi-gaz',c3,{},{usage:'Cuisson',appareil:'Plaque de cuisson gaz',modele:'2',motif:'neuve',installateur:'Notre entreprise',dateTravaux:todayISO(),statut:'envoye',relance:todayISO()});
+    ajoute('tva-reduite',c0,{},{taux:'10',nature:'Remplacement de la robinetterie d’une cuisine',habitation:'oui'});
+    ajoute('suivi-amiante',c3,{},{livraison:'1985',reperage:'requis',resultat:'inconnu'}); }
+  if(m==='chauffage'){
+    ajoute('devis-depannage',c0,{interventionId:iid(c0)},{nature:'Remplacement du circulateur de chauffage défectueux',tva:'10',tauxHoraire:'70',decompte:'Par quart d’heure',tempsEstime:'2 h',validite:'30 jours',devisPayant:'gratuit',piecesConservees:'oui',lieuSignature:'client',deplacement:'40'},
+      [['Circulateur de chauffage',185,'pièce',1],['Joints et raccords',14,'lot',1],['Main-d’œuvre',58,'h',2]]);
+    ajoute('note-depannage',c1,{interventionId:iid(c1)},{execLe:todayISO(),tva:'10',piecesConservees:'non',sansNom:'non'},[['Recharge en fluide R32',72,'pièce',1],['Main-d’œuvre',58,'h',1]]);
+    ajoute('suivi-gaz',c3,{},{usage:'Chauffage et eau chaude',appareil:'Chaudière gaz à condensation',modele:'2',motif:'remplacee',installateur:'Notre entreprise',dateTravaux:todayISO(),statut:'envoye',relance:todayISO()});
+    const ap=(db.appareils||[]).find(x=>x&&x.demo&&typeof cvcType==='function'&&cvcType(x).fluide);
+    if(ap) ajoute('suivi-vignette',ap.clientId,{},{appareilId:ap.id,dernierControle:todayISO(),couleur:'bleue',fuite:'non'}); } }
+/* ═══════════════ fin du bloc DOCUMENTS DU MÉTIER ═══════════════ */
 
 /* ═══════════════ POINTAGE (temps de travail) ═══════════════
    On tape « Début de journée » : l'heure est prise par l'appareil, à la seconde. On tape

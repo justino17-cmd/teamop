@@ -633,10 +633,12 @@
    },
    "types": [
     "Dépannage fuite",
+    "Dépannage urgent (nuit, week-end, jour férié)",
     "Recherche de fuite",
     "Débouchage / curage",
     "Chauffe-eau / ballon",
     "Robinetterie & sanitaire",
+    "Pose sanitaire (WC, lavabo, douche)",
     "Réseau & alimentation",
     "Évacuation & eaux usées",
     "Installation neuve",
@@ -653,14 +655,20 @@
     "Soudure / raccord",
     "Débouchage mécanique",
     "Hydrocurage",
+    "Recherche de fuite",
     "Purge du réseau",
     "Détartrage",
     "Remplacement de joint",
+    "Remplacement de robinetterie",
+    "Remplacement du mécanisme de chasse d’eau",
+    "Pose ou remplacement de siphon",
+    "Remplacement de groupe de sécurité",
     "Mise en service et essai",
     "Contrôle d’étanchéité",
+    "Relevé de l’index du compteur",
+    "Photos avant et après",
     "Nettoyage du chantier",
-    "Taux horaire et frais de déplacement annoncés avant l'intervention",
-    "Pièces remplacées proposées au client"
+    "Pièces remplacées proposées au client (conservation : oui / non)"
    ],
    "releves": [
     {
@@ -698,6 +706,45 @@
      "l": "Mise à la terre du réseau vérifiée (oui / non)",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "pressionDebut",
+     "l": "Pression d’essai au début",
+     "u": "bar"
+    },
+    {
+     "k": "pressionFin",
+     "l": "Pression d’essai à la fin",
+     "u": "bar"
+    },
+    {
+     "k": "dureeEssai",
+     "l": "Durée de l’essai",
+     "u": "min"
+    },
+    {
+     "k": "fluideEssai",
+     "l": "Fluide d’essai",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "manometre",
+     "l": "Manomètre utilisé (marque, n°)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "etalonnage",
+     "l": "Date d’étalonnage du manomètre",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "vanneArret",
+     "l": "Vanne d’arrêt (emplacement)",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -714,58 +761,52 @@
     "EPI"
    ],
    "documents": [
-    "Devis de dépannage avec les mentions de l'arrêté de 2017",
-    "Note détaillée avant paiement (prestation de plus de 25 € TTC)",
-    "Rapport d'intervention avec photos",
-    "Rapport de test d'étanchéité daté",
-    "Suivi du certificat de conformité gaz (établi par un organisme agréé)"
+    "Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017",
+    "Note détaillée avant paiement (à partir de 25 € TTC)",
+    "Rapport d’intervention avec photos",
+    "Rapport de test d’étanchéité daté",
+    "Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)",
+    "Certification du client pour la TVA réduite (mention du devis ou de la facture)",
+    "Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)"
    ],
    "aCreer": [
-    {
-     "fonction": "Devis de dépannage conforme à l'arrêté de 2017, avec case « pièces remplacées conservées » et affichage du taux horaire",
-     "valeur": "haute",
-     "ref": "F8"
-    },
     {
      "fonction": "Stock véhicule : un lieu de stockage par camionnette, réapprovisionnement depuis le dépôt, inventaire rapide",
      "valeur": "haute",
      "ref": "F1"
     },
     {
-     "fonction": "Catégories de produits de plomberie à la place des catégories anti-nuisibles",
-     "valeur": "haute",
-     "ref": "F7"
-    },
-    {
-     "fonction": "Rapport de test d'étanchéité daté, avec photo du manomètre",
-     "valeur": "moyenne"
-    },
-    {
      "fonction": "Suivi des chauffe-eau (date de pose, groupe de sécurité) avec rappel d'entretien",
      "valeur": "moyenne",
      "ref": "F2"
-    },
-    {
-     "fonction": "Rappel du certificat de conformité gaz pour les installations gaz",
-     "valeur": "basse"
     }
    ],
    "obligations": [
     {
-     "texte": "Dépannage à domicile : information préalable du client (taux horaire TTC, décompte du temps, forfaits, déplacement, devis gratuit ou payant), devis détaillé avant les travaux sans seuil de montant, note détaillée avant paiement au-delà de 25 € TTC. Arrêté du 24 janvier 2017, en vigueur depuis le 1er avril 2017.",
-     "source": "https://www.economie.gouv.fr/dgccrf/les-fiches-pratiques/plomberie-serrurerie-chauffage-choisir-le-bon-professionnel-pour-un-depannage-domicile",
+     "texte": "Dépannage à domicile : information préalable du client (taux horaire TTC, décompte du temps, forfaits, déplacement, devis gratuit ou payant), devis détaillé avant les travaux sans seuil de montant, signé par le client avant toute exécution, note détaillée avant paiement à partir de 25 € TTC (arrêtés des 24 janvier et 28 février 2017). Le champ d’application cite la plomberie, les sanitaires, le débouchage et le curage des canalisations.",
+     "source": "https://www.inc-conso.fr/node/9603",
      "fiabilite": "officielle"
     },
     {
      "texte": "Le client est informé qu'il peut garder les pièces remplacées (case à cocher dans le modèle de devis).",
-     "source": "https://www.cm-alsace.fr/file/2521/download",
-     "fiabilite": "professionnelle"
+     "source": "https://www.inc-conso.fr/node/9603",
+     "fiabilite": "officielle"
     },
     {
-     "texte": "Certificat de conformité gaz pour une installation intérieure gaz, demandé au démarrage du compteur et établi par un organisme agréé ; désignations CCG1, CCG2, CCG3 (arrêté du 23 février 2018) ; une anomalie grave entraîne la coupure du gaz.",
-     "source": "https://selectra.info/energie/guides/demenagement/certificat-conformite-gaz",
-     "fiabilite": "secondaire",
+     "texte": "Certificat de conformité gaz pour une installation intérieure gaz : rempli par l’installateur, puis visé par un organisme habilité (Copraudit, Dekra, Qualigaz evonia) ; le distributeur l’exige avant d’alimenter l’installation. L’application suit le statut du visa, elle ne fabrique pas le Cerfa. Les désignations CCG1, CCG2, CCG3 et la liste des exceptions restent à confirmer.",
+     "source": "https://www.ecologie.gouv.fr/politiques-publiques/appareils-materiels-gaz-installations-interieures-gaz",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "TVA réduite (5,5 % ou 10 %) : depuis le 16 février 2025, plus d’attestation Cerfa — le client certifie, par une mention portée sur le devis ou la facture, que les travaux concernent un local d’habitation achevé depuis plus de deux ans ; sans mention complète, le taux normal s’applique. Le texte exact de la mention n’a pas été lu : l’application n’en invente aucun.",
+     "source": "Eurex (professionnelle, lue) ; KPMG (secondaire, lue)",
+     "fiabilite": "professionnelle",
      "aConfirmer": true
+    },
+    {
+     "texte": "Repérage amiante avant travaux pour les bâtiments livrés avant le 1er janvier 1997, commandé par le donneur d’ordre à un opérateur certifié ; l’application suit le rapport reçu, elle ne le produit pas.",
+     "source": "FFB, amiante-reperage (professionnelle, lue)",
+     "fiabilite": "professionnelle"
     }
    ],
    "aVerifier": [
@@ -774,18 +815,33 @@
    ],
    "ajouts": {
     "types": [
+     "Dépannage urgent (nuit, week-end, jour férié)",
+     "Pose sanitaire (WC, lavabo, douche)",
      "Installation gaz",
      "Remplacement de groupe de sécurité",
      "Test d'étanchéité"
     ],
     "presta": [
-     "Taux horaire et frais de déplacement annoncés avant l'intervention",
-     "Pièces remplacées proposées au client"
+     "Recherche de fuite",
+     "Remplacement de robinetterie",
+     "Remplacement du mécanisme de chasse d’eau",
+     "Pose ou remplacement de siphon",
+     "Remplacement de groupe de sécurité",
+     "Relevé de l’index du compteur",
+     "Photos avant et après",
+     "Pièces remplacées proposées au client (conservation : oui / non)"
     ],
     "releves": [
      "Index compteur avant essai",
      "Index compteur après essai",
-     "Mise à la terre du réseau vérifiée (oui / non)"
+     "Mise à la terre du réseau vérifiée (oui / non)",
+     "Pression d’essai au début",
+     "Pression d’essai à la fin",
+     "Durée de l’essai",
+     "Fluide d’essai",
+     "Manomètre utilisé (marque, n°)",
+     "Date d’étalonnage du manomètre",
+     "Vanne d’arrêt (emplacement)"
     ]
    }
   },
@@ -1122,7 +1178,9 @@
     "Mise en service",
     "Contrôle d'étanchéité des fluides frigorigènes",
     "Récupération de fluide / démantèlement",
-    "Entretien chaudière fioul ou bois"
+    "Entretien chaudière fioul ou bois",
+    "Entretien VMC / ventilation",
+    "Entretien chauffe-eau thermodynamique"
    ],
    "presta": [
     "Nettoyage du corps de chauffe",
@@ -1143,17 +1201,33 @@
     "Contrôle d'étanchéité du circuit frigorifique (détecteur de fuite)",
     "Récupération et pesée du fluide",
     "Pose de la vignette de contrôle d'étanchéité",
-    "Conseils d'usage, d'amélioration et de remplacement remis au client"
+    "Conseils d'usage, d'amélioration et de remplacement remis au client",
+    "Mesure du CO ambiant dans le local de la chaudière",
+    "Évaluation du rendement de la chaudière",
+    "Vérification du dimensionnement de la chaudière par rapport aux besoins",
+    "Contrôle de l’amenée d’air et de la ventilation du local",
+    "Relevé des températures des unités intérieure et extérieure",
+    "Nettoyage de l’unité intérieure et de son filtre",
+    "Contrôle et nettoyage de l’échangeur de l’unité extérieure",
+    "Contrôle de l’évacuation des condensats",
+    "Mesure des tensions électriques (statique et dynamique)",
+    "Contrôle du fonctionnement de l’inversion de cycle",
+    "Vérification du fonctionnement des circulateurs"
    ],
    "releves": [
     {
+     "k": "coAmbiant",
+     "l": "CO ambiant (local de la chaudière, portes et fenêtres fermées)",
+     "u": "ppm"
+    },
+    {
      "k": "co",
-     "l": "Teneur en CO",
+     "l": "Teneur en CO des fumées",
      "u": "ppm"
     },
     {
      "k": "co2",
-     "l": "CO₂",
+     "l": "CO₂ des fumées",
      "u": "%"
     },
     {
@@ -1268,16 +1342,20 @@
     "Conduits et fumisterie",
     "Régulation et thermostats",
     "Pompes à chaleur et climatisation (unités et pièces)",
+    "Tuyauterie, liaisons frigorifiques et isolation",
     "Outillage consommable",
     "EPI"
    ],
    "documents": [
-    "Attestation d'entretien de chaudière (une par chaudière, remise sous 15 jours)",
-    "Attestation d'entretien de pompe à chaleur ou de climatisation",
-    "Fiche d'intervention fluides frigorigènes (rubriques du Cerfa 15497*04, sans prétendre remplacer le Cerfa officiel)",
-    "Certificat de ramonage",
-    "Devis de dépannage",
-    "Suivi de la vignette de contrôle d'étanchéité (bleue ou rouge)"
+    "Devis de dépannage, réparation ou entretien (mentions de l’arrêté du 24 janvier 2017)",
+    "Note de dépannage remise avant paiement (à partir de 25 € TTC)",
+    "Rapport d’intervention chauffage / climatisation",
+    "Attestation d’entretien de chaudière (une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire)",
+    "Attestation d’entretien de pompe à chaleur ou de climatisation (4 à 70 kW)",
+    "Fiche d’intervention fluides frigorigènes (rubriques du Cerfa 15497*04, sans remplacer le Cerfa officiel)",
+    "Attestation de ramonage",
+    "Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)",
+    "Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)"
    ],
    "aCreer": [
     {
@@ -1305,11 +1383,6 @@
      "valeur": "haute"
     },
     {
-     "fonction": "Catégories de produits de chauffage et de climatisation",
-     "valeur": "haute",
-     "ref": "F7"
-    },
-    {
      "fonction": "Calendrier du contrôle d'étanchéité : prochaine date calculée depuis le tonnage et la détection, suivi des vignettes bleue et rouge et du délai de 4 jours ouvrés",
      "valeur": "moyenne",
      "ref": "F11"
@@ -1325,28 +1398,24 @@
      "ref": "F6"
     },
     {
-     "fonction": "Devis de dépannage de l'arrêté de 2017 et suivi du certificat de conformité gaz",
-     "valeur": "moyenne",
-     "ref": "F8"
-    },
-    {
-     "fonction": "Certificat de ramonage et rappel annuel",
+     "fonction": "Rappel annuel du ramonage",
      "valeur": "basse"
     }
    ],
    "obligations": [
     {
-     "texte": "Entretien annuel obligatoire des chaudières de 4 à 400 kW (gaz, fioul, bois).",
-     "source": "https://www.ecologie.gouv.fr/entretien-et-inspection-des-systemes-chauffage-et-climatisation",
+     "texte": "Entretien des chaudières de 4 à 400 kW (gaz, fioul, bois) chaque année civile, la première visite au plus tard l’année civile suivant l’installation ou le remplacement (décret 2009-649, art. R. 224-41-7). Les 12 mois de l’application sont une règle de l’entreprise, plus stricte.",
+     "source": "https://aida.ineris.fr/reglementation/decret-ndeg-2009-649-090609-relatif-a-lentretien-annuel-chaudieres-dont-puissance",
      "fiabilite": "officielle"
     },
     {
-     "texte": "Pompes à chaleur et climatisations de 4 à 70 kW : entretien au moins tous les 2 ans, première intervention au plus tard 2 ans après la mise en service ; obligation applicable depuis le 1er juillet 2020 (décret 2020-912, arrêté du 24 juillet 2020).",
+     "texte": "Pompes à chaleur et climatisations de 4 à 70 kW : entretien régulier, attestation distincte par système, copie conservée deux ans (arrêté du 24 juillet 2020). La périodicité de deux ans (décret 2020-912) vient de sources professionnelles et reste à confirmer sur le Code de l’environnement : l’application ne l’imprime pas comme une obligation.",
      "source": "https://www.ffbatiment.fr/techniques-batiment/equipements-techniques/chauffage-ventilation-climatisation/dossier-bam/entretien-obligatoire",
-     "fiabilite": "professionnelle"
+     "fiabilite": "professionnelle",
+     "aConfirmer": true
     },
     {
-     "texte": "Attestation d'entretien de chaudière : une par chaudière, remise dans les 15 jours après la visite, avec identification de l'appareil, points contrôlés, instruments de mesure, résultats et déclaration sur le CO, classe énergétique pour une chaudière gaz ou fioul de moins de 70 kW (arrêté du 15 septembre 2009 modifié, annexe V). Conservation côté commanditaire : 2 ans minimum.",
+     "texte": "Attestation d’entretien de chaudière : une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire, qui la conserve au moins deux ans (décret 2009-649, art. R. 224-41-8) ; son contenu — identification de l’appareil, points contrôlés, instruments de mesure, résultats, déclaration sur le CO, classe énergétique pour une chaudière gaz ou fioul de moins de 70 kW — est fixé par l’arrêté du 15 septembre 2009 modifié (annexe 5).",
      "source": "https://aida.ineris.fr/node/28049",
      "fiabilite": "officielle"
     },
@@ -1386,13 +1455,13 @@
      "fiabilite": "professionnelle"
     },
     {
-     "texte": "Ramonage : au moins un par an, deux selon l'arrêté préfectoral ou le règlement sanitaire départemental ; le certificat sert de preuve à l'assureur.",
-     "source": "https://www.groupama.fr/assurance-habitation/conseils/ramonage-indispensable-et-obligatoire/",
-     "fiabilite": "secondaire"
+     "texte": "Ramonage au moins tous les douze mois, tous les six mois (dont une fois en période de chauffe) pour un appareil collectif ; le règlement sanitaire départemental peut exiger plus. L’attestation de ramonage est remise au commanditaire dans les quinze jours ouvrés suivant l’achèvement de l’opération, atteste la vacuité du conduit, et le commanditaire la conserve au moins deux ans (articles R. 1331-19 et R. 1331-23).",
+     "source": "https://aida.ineris.fr/reglementation/decret-ndeg-2023-641-200723-relatif-a-lentretien-foyers-appareils-chauffage-cuisine",
+     "fiabilite": "officielle"
     },
     {
-     "texte": "Dépannage à domicile : devis détaillé avant travaux et note détaillée au-delà de 25 € TTC (arrêté du 24 janvier 2017).",
-     "source": "https://www.economie.gouv.fr/dgccrf/les-fiches-pratiques/plomberie-serrurerie-chauffage-choisir-le-bon-professionnel-pour-un-depannage-domicile",
+     "texte": "Dépannage à domicile : devis détaillé avant toute prestation de dépannage, réparation ou entretien, quel que soit le montant, et note détaillée avant paiement à partir de 25 € TTC (arrêté du 24 janvier 2017 modifié). L’arrêté ne s’applique pas aux contrats d’entretien.",
+     "source": "https://www.inc-conso.fr/node/9603",
      "fiabilite": "officielle"
     }
    ],
@@ -1401,42 +1470,30 @@
     "Inspection au-delà de 70 kW (tous les 5 ans) et contrôle périodique de 400 kW à 20 MW (R.224-31 et suivants) : sources ADEME et ministère non lues directement.",
     "Seuil d'obligation sous 5 t équivalent CO₂, régime des équipements hermétiquement scellés, registre des équipements : non confirmés.",
     "PRP des fluides (R32, R410A…) : à relever dans le règlement avant d'écrire un calcul ; les ordres de grandeur de la recherche (un split de 1,2 kg de R32 vaut environ 0,8 t, un de 1,5 kg de R410A environ 3,1 t) ne sont pas sourcés.",
-    "Décret n° 2023-641 du 20 juillet 2023 sur le ramonage : source secondaire, à confirmer.",
-    "Certificat de conformité gaz (CCG) : voir la fiche Plomberie."
+    "Certificat de conformité gaz (CCG) : voir la fiche Plomberie.",
+    "Champ d’application de l’arrêté du 24 janvier 2017 (chauffage, climatisation, ramonage) : recensement secondaire, texte de l’annexe 1 non lu — le devis ne dit jamais « obligatoire » à un client.",
+    "Périodicité de deux ans des pompes à chaleur et climatisations (décret 2020-912) : articles du Code de l’environnement non confirmés ; chauffe-eau thermodynamiques exclus ou non, les sources se contredisent."
    ],
    "ajouts": {
     "types": [
-     "Mise en service",
-     "Contrôle d'étanchéité des fluides frigorigènes",
-     "Récupération de fluide / démantèlement",
-     "Entretien chaudière fioul ou bois"
+     "Entretien VMC / ventilation",
+     "Entretien chauffe-eau thermodynamique"
     ],
     "presta": [
-     "Contrôle du calorifugeage des canalisations",
-     "Contrôle de la régulation automatique",
-     "Contrôle de l'embouage du circuit",
-     "Mesure du tirage",
-     "Contrôle d'étanchéité du circuit frigorifique (détecteur de fuite)",
-     "Récupération et pesée du fluide",
-     "Pose de la vignette de contrôle d'étanchéité",
-     "Conseils d'usage, d'amélioration et de remplacement remis au client"
+     "Mesure du CO ambiant dans le local de la chaudière",
+     "Évaluation du rendement de la chaudière",
+     "Vérification du dimensionnement de la chaudière par rapport aux besoins",
+     "Contrôle de l’amenée d’air et de la ventilation du local",
+     "Relevé des températures des unités intérieure et extérieure",
+     "Nettoyage de l’unité intérieure et de son filtre",
+     "Contrôle et nettoyage de l’échangeur de l’unité extérieure",
+     "Contrôle de l’évacuation des condensats",
+     "Mesure des tensions électriques (statique et dynamique)",
+     "Contrôle du fonctionnement de l’inversion de cycle",
+     "Vérification du fonctionnement des circulateurs"
     ],
     "releves": [
-     "Tirage",
-     "Émissions de NOx (valeur de l’analyseur)",
-     "Température de départ",
-     "Température de retour",
-     "Pression de gaz",
-     "Classe énergétique (chaudière gaz ou fioul de moins de 70 kW)",
-     "Marque et référence de l’analyseur utilisé",
-     "Fluide frigorigène (ex. R32)",
-     "PRP du fluide (plaque signalétique)",
-     "Équivalent CO₂ de la charge (PRP × charge / 1000)",
-     "Quantité de fluide chargée",
-     "Quantité de fluide récupérée",
-     "Identifiant de la bouteille ou du contenant",
-     "N° de bordereau de suivi des déchets de fluide (Trackdéchets)",
-     "Fuite constatée (oui / non, localisation)"
+     "CO ambiant (local de la chaudière, portes et fenêtres fermées)"
     ]
    },
    "note": "Le cœur du métier est le contrat d'entretien annuel et le parc d'appareils de chaque client. Les relevés sont libres dans le code actuel : aucun seuil, y compris pour le CO, alors que l'arrêté en fixe un."

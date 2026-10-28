@@ -14,6 +14,10 @@ if (i0 < 0 || i1 < i0) throw new Error('bloc NETTOYAGE introuvable dans app.html
 const BLOC = SRC_BLOC.slice(SRC_BLOC.lastIndexOf('\n', i0) + 1, SRC_BLOC.indexOf('\n', i1) + 1);
 if (BLOC.length < 20000) throw new Error('bloc NETTOYAGE trop court : ' + BLOC.length);
 const cdc = x => JSON.parse(JSON.stringify(x));
+/* Le bloc DOCUMENTS DU MÉTIER (le modèle commun, v779) vit juste après : on le monte avec le premier, il s'appuie sur ses fabriques (nettPdf, nettDocFabriquer…). Absent, on l'ignore (v778). */
+const DEBUT_D = '═══ DOCUMENTS DU MÉTIER — LE MODÈLE COMMUN', FIN_D = '═══ fin du bloc DOCUMENTS DU MÉTIER ═══';
+const d0 = SRC_BLOC.indexOf(DEBUT_D), d1 = SRC_BLOC.indexOf(FIN_D);
+const BLOC_DOCM = (d0 > 0 && d1 > d0) ? SRC_BLOC.slice(SRC_BLOC.lastIndexOf('\n', d0) + 1, SRC_BLOC.indexOf('\n', d1) + 1) : '';
 
 function decoupe(h) { const d = APP.indexOf(h); if (d < 0) throw new Error('introuvable : ' + h);
   const suite = /\n(?=(?:function |const |let |var |class |async function |\/\* |views\.|document\.|window\.|try\{))/g;
@@ -64,6 +68,11 @@ function monter(opts) {
     function docCoordLignes(h){ return [[h.adresse,[h.cp,h.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),[h.tel?'Tél. '+h.tel:'',h.email||''].filter(Boolean).join('  ·  '),[h.siret?'SIRET '+h.siret:''].filter(Boolean).join('  ·  ')].filter(Boolean); }
     async function devisLogoJpeg(){ return __logoOk?null:null; }
     const PAP_IMPL_MAX_B64=5000000;
+    function nextNum(coll,prefix,champ){ var y=String(__today).slice(0,4), re=new RegExp('^'+prefix+'-(\\\\d{4})-(\\\\d+)$'); var max=(db[coll]||[]).reduce(function(m,x){ var mm=re.exec(x[champ]||''); return (mm&&mm[1]===y)?Math.max(m,+mm[2]):m; },0); return prefix+'-'+y+'-'+String(max+1).padStart(3,'0'); }
+    function techNames(i){ return (i&&i.techNom)||'Non assigné'; }
+    function eur(n){ return (Number(n)||0).toFixed(2).replace('.',',')+' €'; }
+    function delItem(coll,id){ __go.push('del:'+coll+':'+id); }
+    function canCatX(){ return true; }
     function docMailOpts(m){ return m?{brandName:m,societe:m}:undefined; }
     async function srvMail(to,sub,body,okMsg,cat,box,opts){ __mails.push({to:to,sub:sub,body:body,opts:opts}); return __mailOk; }
     var window={open:function(){ var w={ecrit:'',location:{href:''},document:{write:function(t){w.ecrit+=t;},close:function(){}},close:function(){ w.ferme=true; }}; __windows.push(w); return __noPopup?null:w; }};
@@ -72,8 +81,9 @@ function monter(opts) {
   vm.runInContext(PDF_FN, W);
   /* les `let` de premier niveau (la fenêtre de travail d'un formulaire) deviennent `var` : le banc doit pouvoir les lire et les poser, un `let` ne vit pas sur l'objet global */
   vm.runInContext(BLOC.replace(/^let /gm, 'var '), W);
+  if (BLOC_DOCM) vm.runInContext(BLOC_DOCM.replace(/^let /gm, 'var ').replace(/^const /gm, 'var '), W);
   return W;
 }
 /* le texte du PDF, ligne par ligne, tel que l'écrit _pdfTxt */
 function texte(pdf) { return lirePdf(pdf).textes.map(t => t.u); }
-module.exports = { monter, formulaire, BLOC, APP, cdc, lirePdf, texte };
+module.exports = { monter, formulaire, BLOC, BLOC_DOCM, APP, cdc, lirePdf, texte };
