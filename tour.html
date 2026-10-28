@@ -2772,6 +2772,51 @@ body.jour .ms-reu-ag{box-shadow:0 0 0 1px var(--line)}
   .ms-regle{display:none}
 }
 @media(pointer:coarse){ .ms-puces button{min-height:44px} .ms-lien{min-height:44px;display:inline-flex;align-items:center} .ms-btn-tq,.ms-retour,.ms-btn-mod{min-height:44px} .ms-dos{min-height:44px} .ms-mi{min-height:48px} }
+/* ══ UNE CONVERSATION EN PLEIN ÉCRAN, AU TÉLÉPHONE (v2.118) ══ Justin, 28 octobre 2026, capture iPhone : « c'est trop petit ; quand j'ouvre un message je voudrais un truc
+   comme un iPhone : le clavier je peux l'enlever, je vois les messages en entier ». Mesuré sur sa capture : 330 px de messages sur 874 — l'en-tête de la Tour, le bandeau
+   des réunions, DEUX rangées de @noms, la saisie et la barre d'onglets prenaient le reste. Au téléphone, une conversation ouverte couvre donc tout l'écran (comme
+   Messages) : un en-tête d'une ligne, le fil, une saisie en pilule ; les @noms se citent par le bouton « @ » ou en tapant @ ; la hauteur suit le clavier
+   (visualViewport, msPleinMaj) et toucher ou faire défiler les messages le range. Au-dessus de l'en-tête (20) et de la barre d'onglets (25), sous les feuilles (40+). */
+.ms-retour-c{font-size:26px;line-height:1;font-weight:400;margin-right:2px}
+.ms-tq-ic,.ms-env-ic{display:none}
+.ms-arobase{display:none}
+body.ms-plein{overflow:hidden}
+body.ms-plein .mess-zone{position:fixed;left:0;right:0;top:0;z-index:35;margin:0;border:0;border-radius:0;box-shadow:none;min-height:0;background:var(--surface)}
+@container mess (max-width:700px){
+  .ms-retour-t{display:none}
+  .ms-retour{margin-left:-6px;padding:0 6px;min-width:44px;justify-content:center}
+  .ms-hd{flex-wrap:nowrap;gap:6px;padding:4px 8px;min-height:54px}
+  .ms-hid{order:0;flex:1 1 auto;gap:8px}
+  .ms-av.h{width:32px;height:32px;font-size:13px}
+  .ms-ht h2{font-size:16px}
+  .ms-ht p{font-size:12px}
+  .ms-ha{gap:4px}
+  .ms-btn-mod{padding:0 10px;background:transparent;color:var(--acc-txt)}
+  .ms-btn-tq{position:relative;width:44px;padding:0;justify-content:center;background:transparent;color:var(--acc-txt)}
+  .ms-tq-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .ms-tq-ic{display:block;width:22px;height:22px}
+  .ms-btn-tq .ag-n{position:absolute;top:4px;right:2px;min-width:17px;height:17px;padding:0 4px;font-size:10.5px;line-height:17px}
+  .ms-reu-bd{padding:4px 12px;gap:4px;min-height:44px}
+  .ms-reu[data-plie="1"] .ms-reu-err{display:flex}   /* une lecture ratée n'a pas de « Détails » : « Réessayer » ne se replie pas (il était caché au téléphone) */
+  .ms-reu-t b{font-size:13.5px}
+  .ms-flux{padding:10px 10px 12px;gap:8px}
+  .ms-b{max-width:88%}
+  .ms-bh{flex-wrap:nowrap;min-width:0}   /* la corbeille reste sur la ligne du nom : plus de ligne vide dans la bulle */
+  .ms-bh b{flex:none}
+  .ms-role{display:none}   /* au téléphone : le nom et l'heure ; le métier se lit dans la liste des conversations */
+  .ms-bh small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ms-bc{font-size:16px;line-height:1.38;border-radius:18px;padding:8px 13px}
+  .ms-puces{display:none}
+  .ms-comp{padding:6px 8px calc(6px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
+  .ms-ligne{gap:6px;align-items:flex-end}
+  .ms-arobase{display:inline-grid;place-items:center;flex:none;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--acc-txt);font:inherit;font-size:20px;font-weight:600;cursor:pointer}
+  .ms-miroir,.ms-ta{font-size:16px;line-height:21px;padding:10px 14px;border-radius:22px}
+  .ms-ta{min-height:42px;max-height:132px;border-color:var(--line)}
+  .ms-envoyer{width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;display:inline-grid;place-items:center}
+  .ms-env-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .ms-env-ic{display:block;width:20px;height:20px}
+  .ms-arobase:focus-visible{outline:0;box-shadow:var(--anneau-int)}
+}
 </style>
 <style id="theme-tour">
 /* ══ THÈME DE LA TOUR ═══ maquette « TeamOp Tour HIG », validée par Justin (26 septembre 2026) ══════════
@@ -3452,7 +3497,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.117</div>
+    <div class="lg-pied">console interne · v2.118</div>
   </div>
 </div>
 
@@ -3494,7 +3539,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.117</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.118</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3506,7 +3551,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.117</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.118</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3813,7 +3858,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.117';
+var TOUR_VERSION='v2.118';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -4569,6 +4614,7 @@ function setTab(t,sansAnim){
   if(t==='entreprises'&&TAB==='entreprises'&&ENT.sel) ENT.sel=null;   /* v2.88 : retoucher « Entreprises » ramène à la liste */
   var vR=$('vue'); if(vR) vR.removeAttribute('data-rendu');   /* v2.113 : ouvrir un onglet n'est pas une relecture — la page part du haut (renderVue, onglet Agents) */
   TAB=t; ecrireHash(); try{ localStorage.setItem('tour_tab_'+APP,t); }catch(e){}
+  if(t!=='messagerie') document.body.classList.remove('ms-plein');   /* v2.118 : la conversation plein écran ne survit pas à l'onglet */
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on',b.getAttribute('data-t')===tabMenu(t)); });
   placerIndic(!sansAnim);
   amenerOngletEnVue(); majBarreBas(); majHaut();
@@ -12405,7 +12451,7 @@ function msBulleHtml(m,membres,agents){
   var moi=m.de==='justin', ag=agents&&agents[m.de], nom=moi?'Toi':(m.nom||(ag&&ag.nom)||m.de), role=(!moi&&ag&&ag.role)?ag.role:'';
   var niv=m.niveau==='urgent'?'Urgent':m.niveau==='important'?'Important':'';
   return '<div class="ms-b'+(moi?' moi':'')+(niv?' '+m.niveau:'')+'" data-id="'+esc(m.id)+'">'+(moi?'':agAvatar(m.de,nom,'ms-av'))+
-    '<div class="ms-bc"><div class="ms-bh"><b>'+esc(nom)+'</b>'+(niv?'<span class="ms-niv">'+niv+'</span>':'')+'<small>'+(role?esc(role)+' · ':'')+esc(fmtHeure(m.ts))+'</small>'+sup+'</div>'+
+    '<div class="ms-bc"><div class="ms-bh"><b>'+esc(nom)+'</b>'+(niv?'<span class="ms-niv">'+niv+'</span>':'')+'<small>'+(role?'<span class="ms-role">'+esc(role)+' · </span>':'')+esc(fmtHeure(m.ts))+'</small>'+sup+'</div>'+
     '<p>'+msColorer(m.texte,membres,Array.isArray(m.mentions)?m.mentions:[])+'</p>'+
     (m.dossier?'<button type="button" class="ms-dos" data-act="dossier" data-dos="'+esc(m.dossier)+'">Ouvrir le dossier '+esc(m.dossier)+'</button>':'')+'</div></div>';
 }
@@ -12474,7 +12520,9 @@ function msSousTitre(){
   var men=MS.meneur&&ag[MS.meneur]?' · sans @mention, '+ag[MS.meneur].nom+' répond':'';
   return esc(qui+men);
 }
-function msPlaceholder(){ return 'Écrire… — tape @ pour citer quelqu’un'; }
+function msPlaceholder(){   /* v2.118 : au téléphone, une ligne comme Messages — le bouton « @ » dit déjà comment citer */
+  try{ if(typeof window!=='undefined'&&window.matchMedia&&window.matchMedia('(max-width:700px)').matches) return 'Message'; }catch(e){}
+  return 'Écrire… — tape @ pour citer quelqu’un'; }
 /* ── l'envoi : le message paraît à l'instant, puis le serveur le confirme — ou la page DIT qu'il n'est pas parti ── */
 function msAjouterServeur(fil,liste){
   if(fil!==MS.fil) return [];
@@ -12570,7 +12618,7 @@ function msReuHtml(){
   var R=MS.reu, d=R.d;
   if(R.lec===0&&!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>Réunions</b><small>Lecture…</small></div></div>';
   if(!d) return '<div class="ms-reu-bd"><div class="ms-reu-t"><b>Les réunions n’ont pas pu être lues</b><small>'+esc(R.err||'On ne sait pas ce que l’équipe s’est fixé.')+'</small></div>'+
-    '<div class="ms-reu-a"><button type="button" class="ms-reu-btn" data-act="reuRecharger">Réessayer</button></div></div>';
+    '<div class="ms-reu-a ms-reu-err"><button type="button" class="ms-reu-btn" data-act="reuRecharger">Réessayer</button></div></div>';
   var cours=d.enCours, prec=false, obj=d.objectifs||{}, sem=d.semaine;
   if(!Object.keys(obj).some(function(k){ return (obj[k]||[]).length; })&&d.objectifsPrecedents&&Object.keys(d.objectifsPrecedents).length){ obj=d.objectifsPrecedents; prec=true; sem=d.semainePrecedente; }
   var nObj=Object.keys(obj).filter(function(k){ return (obj[k]||[]).length; }).length, nLec=0; Object.keys(d.lecons||{}).forEach(function(k){ nLec+=(d.lecons[k]||[]).length; });
@@ -12658,7 +12706,23 @@ function messLeconRetirer(agent,id){
 /* ── la page ── */
 function vueMessagerie(){ return '<div id="mess-zone" class="mess-zone"></div>'; }
 function messGarde(v){ var z=v.querySelector('#mess-zone'); if(z&&MS.inst&&MS.inst.zone===z&&z.isConnected){ messAjuster(); return true; } return false; }
+/* v2.118 : au téléphone, une conversation ouverte prend tout l'écran ; sa hauteur est celle de la partie VISIBLE (le clavier ouvert la réduit), et elle suit le
+   défilement que Safari impose à l'ouverture du clavier (offsetTop). Un fil collé en bas le reste. Fonction lue par messAjuster, à chaque changement. */
+function msPleinVoulu(){ return TAB==='messagerie'&&!!MS.inst&&MS.vueMob==='fil'&&!!window.matchMedia&&window.matchMedia('(max-width:700px)').matches; }
+function msPleinMaj(){
+  var on=msPleinVoulu(), z=$('mess-zone');
+  document.body.classList.toggle('ms-plein',on);
+  if(!z) return on;
+  if(!on){ if(z.style.top) z.style.top=''; return false; }
+  var f=$('ms-flux'), colle=!!f&&messColle(), vv=window.visualViewport;
+  var h=Math.round(vv?vv.height:window.innerHeight), t=Math.round(vv?vv.offsetTop:0);
+  if(z.style.height!==h+'px') z.style.height=h+'px';
+  if(z.style.top!==t+'px') z.style.top=t+'px';
+  if(colle) f.scrollTop=f.scrollHeight;
+  return true;
+}
 function messAjuster(){
+  if(msPleinMaj()) return;
   var z=$('mess-zone'); if(!z||TAB!=='messagerie') return;
   var top=0; for(var e=z;e;e=e.offsetParent) top+=e.offsetTop;
   var bas=0; for(var p=z;p;p=p.parentElement){ var c=getComputedStyle(p); bas+=(parseFloat(c.marginBottom)||0); if(p!==z) bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0); }
@@ -12669,6 +12733,7 @@ function messVeiller(){
   if(MS.veille) return; MS.veille=true;
   var plus=function(){ if(TAB==='messagerie') requestAnimationFrame(messAjuster); };
   try{ window.addEventListener('resize',plus); window.addEventListener('orientationchange',plus); }catch(e){}
+  try{ if(window.visualViewport){ window.visualViewport.addEventListener('resize',plus); window.visualViewport.addEventListener('scroll',plus); } }catch(e){}   /* v2.118 : le clavier */
   try{ document.addEventListener('visibilitychange',function(){
     if(TAB!=='messagerie'||!MS.inst) return;
     if(document.visibilityState==='visible'){ messToutCharger(); messFilCharger(true); messTimers(true); } else messTimers(false); }); }catch(e){}
@@ -12834,6 +12899,7 @@ function messChoisir(fil){
   messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindrePf(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau();
   if(fil==='reunions') messReunionsCharger();
   if(fil==='plateforme') messPfCharger();
+  messAjuster();   /* v2.118 : au téléphone, ouvrir une conversation la met en plein écran */
   messFilCharger(false);
 }
 function messDossier(n){ AG.sec='dossiers'; setTab('agents'); agDosOuvrir(n); }
@@ -12995,6 +13061,11 @@ function messMonter(){
   zone.removeEventListener('click',messClic); zone.addEventListener('click',messClic);
   zone.addEventListener('mousedown',function(e){ if(e.target.closest&&e.target.closest('.ms-mi')) e.preventDefault(); });   /* choisir dans la liste ne retire pas le focus à la saisie */
   var fl=$('ms-flux'); fl.addEventListener('scroll',function(){ if(messColle()) messNouvCacher(); });
+  /* v2.118 : comme Messages — faire défiler le fil ou toucher un message range le clavier (un bouton dans une bulle reste un bouton) */
+  var saisieActive=function(){ var ta=$('ms-ta'); return ta&&document.activeElement===ta?ta:null; };
+  fl.addEventListener('touchstart',function(e){ MS.doigtY=e.touches&&e.touches[0]?e.touches[0].clientY:0; },{passive:true});
+  fl.addEventListener('touchmove',function(e){ var ta=saisieActive(); if(ta&&e.touches&&e.touches[0]&&Math.abs(e.touches[0].clientY-(MS.doigtY||0))>8) ta.blur(); },{passive:true});
+  fl.addEventListener('click',function(e){ var ta=saisieActive(); if(ta&&!(e.target.closest&&e.target.closest('button,a,textarea,input'))) ta.blur(); });
   messPeindreListe(); messPeindreEntete(); messPeindreReunions(); messPeindrePf(); messPeindreFil(true); messPeindreSaisie(true); messPeindrePanneau(); messPeindreTaches();
   messAjuster(); messTimers(true);
   if(MS.msgLec===1) messLire(MS.msgs);   /* la lecture a pu finir AVANT que l'écran existe : « lu » se pose une fois le fil affiché */
@@ -13005,11 +13076,12 @@ function messClic(ev){
   if(el.hasAttribute('data-mi')){ messMentionChoisir(+el.getAttribute('data-mi')); return; }
   var a=el.getAttribute('data-act');
   if(a==='puce') messPuce(el.getAttribute('data-nom'));
+  else if(a==='arobase') messArobase();
   else if(a==='envoyer') messEnvoyerSaisie();
   else if(a==='reessayer') msReessayer(el.getAttribute('data-cle'));
   else if(a==='retirer') msRetirer(el.getAttribute('data-cle'));
   else if(a==='dossier') messDossier(el.getAttribute('data-dos'));
-  else if(a==='retour'){ MS.vueMob='liste'; var r=MS.inst&&MS.inst.zone.firstChild; if(r) r.setAttribute('data-mob','liste'); }
+  else if(a==='retour'){ MS.vueMob='liste'; var r=MS.inst&&MS.inst.zone.firstChild; if(r) r.setAttribute('data-mob','liste'); messAjuster(); }
   else if(a==='panneau'){ MS.panneau=!MS.panneau; messPeindrePanneau(); }
   else if(a==='groupeModifier') msGroupeModifier(MS.fil);
   else if(a==='nouv'){ messDescendre(); }
@@ -13041,11 +13113,11 @@ function messPeindreListe(){
 /* L'en-tête d'un fil : la PHOTO de l'agent devant son nom (l'icône du groupe, dans son rond, à la même place) ; « Modifier » dans l'en-tête d'un groupe, patron seul. Fonction pure : un banc l'exécute. */
 function msEnteteHtml(){
   var ouv=MS.taches.filter(function(k){ return k.statut==='prise'||k.statut==='attente'; }).length, grp=!!MS_GROUPES_LIB[MS.fil], nom=msNomFil(MS.fil);
-  return '<button type="button" class="ms-retour" data-act="retour" aria-label="Toutes les conversations">‹ Conversations</button>'+
+  return '<button type="button" class="ms-retour" data-act="retour" aria-label="Toutes les conversations"><span class="ms-retour-c" aria-hidden="true">‹</span><span class="ms-retour-t">Conversations</span></button>'+
     '<div class="ms-hid">'+(grp?msIconeHtml(MS.fil,'ms-av g h'):agAvatar(MS.fil,nom,'ms-av h'))+'<div class="ms-ht"><h2>'+esc(nom)+'</h2><p>'+msSousTitre()+'</p></div></div>'+
     '<div class="ms-ha">'+(grp&&MYROLE==='patron'?'<button type="button" class="ms-btn-mod" data-act="groupeModifier" aria-label="Modifier le groupe '+esc(nom)+'">Modifier</button>':'')+
     '<span class="ms-bientot" title="OP MESSAGES se rebranchera plus tard">Suivre dans OP MESSAGES · <b>Bientôt</b></span>'+
-    '<button type="button" class="ms-btn-tq" data-act="panneau" aria-expanded="'+MS.panneau+'" aria-controls="ms-droite">Qui fait quoi'+(MS.tachesLec===1&&ouv?'<span class="ag-n">'+ouv+'</span>':'')+'</button></div>';
+    '<button type="button" class="ms-btn-tq" data-act="panneau" aria-expanded="'+MS.panneau+'" aria-controls="ms-droite"><svg class="ms-tq-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span class="ms-tq-t">Qui fait quoi</span>'+(MS.tachesLec===1&&ouv?'<span class="ag-n">'+ouv+'</span>':'')+'</button></div>';
 }
 function messPeindreEntete(){
   var hd=$('ms-hd'); if(!hd||!MS.inst) return;
@@ -13133,10 +13205,10 @@ function messPeindreSaisie(force){
   if(noms.length<8) MS.membres.forEach(function(m){ if(noms.length<8&&noms.indexOf(m)<0) noms.push(m); });
   var puces=grp?'<div class="ms-puces">'+noms.map(function(m){ return '<button type="button" data-act="puce" data-nom="'+esc(m.nom)+'">@'+esc(m.nom)+'</button>'; }).join('')+'<button type="button" data-act="puce" data-nom="tous">@tous</button></div>':'';
   var etat=a&&msEtat(a)==='arret'?'<p class="ms-note">'+esc(a.nom)+' est à l’arrêt : rien n’est fait tant que tu ne l’allumes pas (page Agents). Ton message est gardé dans le fil.</p>':'';
-  c.innerHTML=etat+puces+'<div class="ms-ligne"><div class="ms-champ"><div class="ms-miroir" id="ms-miroir" aria-hidden="true"></div>'+
+  c.innerHTML=etat+puces+'<div class="ms-ligne">'+(grp?'<button type="button" class="ms-arobase" data-act="arobase" aria-label="Citer quelqu’un">@</button>':'')+'<div class="ms-champ"><div class="ms-miroir" id="ms-miroir" aria-hidden="true"></div>'+
     '<textarea id="ms-ta" class="ms-ta" rows="1" maxlength="1000" aria-label="Message" placeholder="'+esc(msPlaceholder())+'" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ms-mentions" spellcheck="false" autocomplete="off"></textarea>'+
     '<div class="ms-mentions" id="ms-mentions" role="listbox" aria-label="Personnes à citer" hidden></div></div>'+
-    '<button type="button" class="ms-envoyer" data-act="envoyer">Envoyer</button></div>';
+    '<button type="button" class="ms-envoyer" data-act="envoyer" aria-label="Envoyer"><svg class="ms-env-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="ms-env-t">Envoyer</span></button></div>';
   var t=$('ms-ta'); t.value=valeur;
   t.addEventListener('input',messSaisieChange); t.addEventListener('click',messMentionMaj); t.addEventListener('keyup',function(e){ if(['ArrowUp','ArrowDown','Enter','Tab','Escape'].indexOf(e.key)<0) messMentionMaj(); });
   t.addEventListener('keydown',messSaisieTouche); t.addEventListener('scroll',messMiroirDefiler); t.addEventListener('blur',function(){ setTimeout(messMentionFermer,120); });
@@ -13192,6 +13264,14 @@ function messMentionChoisir(i){
   if(!ok||ta.value!==r.texte) ta.value=r.texte;
   ta.setSelectionRange(r.caret,r.caret);
   MS.brouillons[MS.fil]=ta.value; MS.liste={ouverte:false,ctx:null,items:[],actif:0,q:null}; messMentionPeindre(); messMiroir(); messMentionMaj();
+}
+/* v2.118 : au téléphone, les @noms ne s'affichent plus en deux rangées — le bouton « @ » pose l'arobase au curseur et ouvre la liste de ceux qu'on peut citer. */
+function messArobase(){
+  var ta=$('ms-ta'); if(!ta) return;
+  var v=ta.value, d=ta.selectionStart==null?v.length:ta.selectionStart, f=ta.selectionEnd==null?d:ta.selectionEnd, sep=(d>0&&!/\s/.test(v.charAt(d-1)))?' ':'';
+  ta.value=v.slice(0,d)+sep+'@'+v.slice(f); var q=d+sep.length+1;
+  ta.focus(); ta.setSelectionRange(q,q);
+  MS.brouillons[MS.fil]=ta.value; messMiroir(); messMentionMaj();
 }
 function messPuce(nom){
   var ta=$('ms-ta'); if(!ta) return;
