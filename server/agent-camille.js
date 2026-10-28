@@ -314,7 +314,7 @@ module.exports = function camille(ctx) {
         midsEnCours.add(h); reserve = h;
         const a = String(m.de || '').trim().toLowerCase();
         /* une adresse illisible : personne n'a rien compris du message, il reste « à traiter » (jamais classé) ; « vu » pour ne pas le relire à chaque passe */
-        if (!bonneAdresse(a)) { noterVu(h); return { saute: 'expediteur', reste: true }; }
+        if (!bonneAdresse(a)) { noterVu(h); return { saute: 'expediteur' }; }
         /* NOS adresses : jamais traitées (et marquées vues, pour ne pas les relire à chaque passage) */
         if (domainesNotres().some(d => d && domaineDe(a) === String(d).toLowerCase()) || adressesNotres().some(x => x && a === String(x).toLowerCase())) {
           noterVu(h);
