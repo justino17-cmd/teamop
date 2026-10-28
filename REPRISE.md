@@ -25,6 +25,19 @@ app.html y est en v778 ; `beta.html` et `demo.html` générés ; **rien n'est po
   (« 📦 Catalogue de départ »), jamais tout seul. Bancs : `test-3111` (+ atelier `tests/nett-monter.js`), mutations `scratchpad`-session `mutations-pack-nettoyage.py`, sonde au
   navigateur du parcours complet (téléphone + bureau).
 - **Mesures** (28 octobre, soir) : suite complète 735 suites · 41 575 vérifications, seules échouent `test-1670` et `test-2705` (sautées : `server-courrier/node_modules` manque ici, avant ce chantier) et quatre bancs que le pack avait fait tomber (2886, 747, 787, 793), corrigés et rejoués seuls au vert ; `test-3111` 159 ✓ 0 ✗ ; 30 mutations de `mutations-pack-nettoyage.py` (dans le scratchpad de la session, à recopier si besoin) : 30 mordent ; sonde au navigateur (390 px et 1 440 px, sur une copie de la bêta) : 49 ✓ 0 ✗.
+- **Relecture adverse (testeur + relecteur, 28 octobre, nuit) — douze constats vérifiés un par un, onze vrais, corrigés dans la v778 ; le douzième est une règle de publication, gardée par un script** :
+  (1)(2)(3)(9) le vocabulaire « box » — **vrai, et plus large que relevé** : le stockage est une box, donc « Créer le stockage » (le geste que la carte du Stock propose) rouvrait le mot
+  partout. Deux outils : `boxTxt(s)` (table de phrases, lue CENTRALEMENT par `toast`, `toastAnnuler` et `emptyState`, et par chaque `confirm` qui parle de box — 73 littéraux relus,
+  zéro « box » au nettoyage, la 3D inchangée) et `libBox` pour ce que la grammaire ne suit pas ; Mouvements n'a plus de filtre par box hors 3D (`mvtBoxActif`) ; fiche du stockage,
+  ✎ du stockage, Arrivage, « ＋ Produit », Produits de la box, Commandes & livraisons, cloche, journal : `sonde-stockage.js` ouvre 73 écrans et fenêtres après « Créer le stockage »,
+  deux profils, **0 « box »**. (4) la reprise du cahier et de la fiche de contrôle — **vrai** : `MULTI_MODELES` porte `nett-cah-zones`, `nett-cq-zones` et `nett-cq-actions`, et leurs champs
+  ont un NOM (leur identifiant automatique change à chaque dessin : sans nom, la reprise ne les retrouvait pas) ; enregistrer sans état le dit. (5) fiche client au téléphone —
+  **vrai** (texte à 148 px, pastille sur les boutons) : la ligne passe à la ligne, dates courtes. (6) en-tête « OP GESTION » — **vrai** : aperçu et envoi refusés sans nom d'entreprise.
+  (7)(10) Devis IA / assistant — **vrai** : hors 3D ils ne partent que si `/api/devis/etat` annonce `metiers:true` (ajouté sur `claude/devis-metier`, commit `d5ace7f7`) : tant que ce
+  serveur n'est pas déployé, ils se coupent d'eux-mêmes et le disent ; la 3D n'attend rien. (8) désignations coupées à 48 signes — **vrai** (antérieur au pack) : la désignation et le
+  nom du client passent à la ligne (`_pdfEnLignes`). (11) moyens de paiement d'ELAN — **vrai** : liste neutre hors 3D, la valeur déjà rangée reste proposée. (12) publication : **vrai**,
+  les commits de cette branche touchent `demo.html` et `sw.js` ; `scripts/verifier-publication-bete.sh` refuse tout autre fichier que `beta.html` et `REPRISE.md` — à lancer avant de
+  bâtir le commit qui part sur `main`.
 - **Le serveur de l'assistant devis** est fait à part (branche `claude/devis-metier`, `server/devis-metier.js`) : il lit `t` et `metier` envoyés par cette v778. Tant qu'il n'est pas
   déployé, l'assistant garde la consigne 3D : décocher « Assistant devis » pour l'entreprise de nettoyage dans la Tour.
 - **Chemin pour que l'entreprise voie tout ça** : (1) sur la **bêta** (`teamop.fr/beta.html`, accès délivré par la Tour) : Paramètres → Outils de bêta → « 🧰 Tester un métier » =
