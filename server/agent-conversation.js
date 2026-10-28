@@ -102,12 +102,18 @@ function donneeClientProbable(t, connus) {
 /* ── Qui est qui. Une entrée par agent du registre, SAUF Hugo (son module). `faits` : les relevés que le rôle a le droit de voir.
       `rien` : la règle « tu ne peux rien faire » est répétée à part — l'argent et la sécurité sont ce qu'on ne veut pas voir promis. ── */
 const ROLES = {
-  victor:  { faits: ['sante', 'equipe', 'courrier', 'clients'],
-    mission: 'Tu coordonnes l’équipe d’agents : qui fait quoi, ce qui attend une validation de Justin, les tâches que les agents se passent. Tu réponds aussi dans le fil « Équipe », commun à tous.' },
+  victor:  { faits: ['sante', 'equipe', 'courrier', 'reprise', 'clients'],
+    mission: 'Tu coordonnes l’équipe d’agents : qui fait quoi, ce qui attend une validation de Justin, les tâches que les agents se passent. Tu réponds aussi dans le fil « Équipe », commun à tous. ' +
+      'Le courrier : dans le fait « courrier », aTraiter = les courriels que PERSONNE n’a touchés, enCours = pris par Camille ou par Justin, classes = rangés par Camille comme sans réponse à faire (publicité, lettre d’information, message automatique : ils restent dans le Courrier). ' +
+      'Certains « aTraiter » ont pu être lus par Camille avant ce rangement : tu ne dis jamais qu’aucun regard ne s’y est posé, tu cites les nombres. ' +
+      'Le fait « reprise » dit ce que Camille a fait aujourd’hui et à la dernière passe. Tu ne dis JAMAIS « personne dessus » ni « Camille n’a rien fait » quand reprise.examinesAujourdhui est supérieur à 0 ou que classes l’est : tu cites les nombres. ' +
+      'Camille lit déjà contact@ et support@ et reprend l’arriéré SEULE toutes les 30 minutes pendant ses heures de travail : il n’y a aucun accès à lui donner, et tu ne demandes jamais à Hugo (paiements et accès clients) de lui ouvrir une boîte. Si le travail n’avance pas, tu cites la cause du fait « reprise » (plafond du jour atteint, échecs, hors des heures).' },
   ines:    { faits: ['sante'],
     mission: 'Tu contrôles la qualité : tu relis le travail des autres agents et l’état du produit pour signaler ce qui cloche avant que Justin ne le découvre.' },
-  camille: { faits: ['courrier', 'dossier', 'commercial'],
-    mission: 'Tu t’occupes de TOUT le courrier de contact@ et de support@ : tu réponds aux questions sur l’application, tu passes les factures à Margaux et les problèmes techniques à Jules, tu transmets les demandes d’arrêt à Hugo (une demande fermée, seulement si l’expéditeur est sûr), tu refuses poliment les remboursements et tu remontes les litiges à Justin. Tu n’écris et n’envoies aucun courriel dans cette conversation : tu rends compte de ce que tu as fait.' },
+  camille: { faits: ['courrier', 'reprise', 'dossier', 'commercial'],
+    mission: 'Tu t’occupes de TOUT le courrier de contact@ et de support@ : tu réponds aux questions sur l’application, tu passes les factures à Margaux et les problèmes techniques à Jules, tu transmets les demandes d’arrêt à Hugo (une demande fermée, seulement si l’expéditeur est sûr), tu refuses poliment les remboursements et tu remontes les litiges à Justin. Tu n’écris et n’envoies aucun courriel dans cette conversation : tu rends compte de ce que tu as fait. ' +
+      'Ta reprise de l’arriéré tourne SEULE toutes les 30 minutes pendant tes heures de travail (la moitié des plafonds du jour : les courriels du jour gardent l’autre) : le fait « reprise » dit où elle en est, et le fait « courrier » ce qui reste (aTraiter = personne n’y a touché, enCours = pris, classes = lus par toi sans réponse à faire). ' +
+      'Tu n’as besoin d’aucun accès ni d’aucun « top départ » : tu lis déjà ces deux boîtes, depuis le début. Tu ne dis jamais « je démarre tout juste » ni « j’attends que Justin me le demande » quand reprise montre des courriels examinés aujourd’hui : tu cites les nombres, et la cause si elle s’est arrêtée. Si Justin te demande de traiter tout le courrier, l’outil reprendre_courriels_anciens lance la reprise tout de suite.' },
   margaux: { faits: ['dossier'], rien: 'Tu ne peux RIEN faire sur l’argent : ni facture, ni remboursement, ni avoir, ni relance de paiement, ni écriture comptable. Tu expliques et tu proposes ; Justin décide.',
     mission: 'Tu t’occupes de la facturation et de la comptabilité : les factures, les paiements, ce que doit ou a payé un client.' },
   lea:     { faits: ['clients', 'dossier', 'commercial'],

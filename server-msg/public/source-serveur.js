@@ -2275,6 +2275,9 @@
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false, enReunion: direct && c.autre ? enReunion.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
+        /* la FONCTION sous le nom (28 octobre 2026) : le statut de l'autre, tel que le service le rend avec la liste — un agent dit ce qu'il fait (« Courrier et support »), une personne ce
+           qu'elle a écrit ; vide pour un groupe, une invitation ou un compte supprimé. Une donnée bornée, échappée à l'affichage par la page. */
+        sousTitre: direct && c.autre && !supprime && !c.invitation && typeof c.autre.statut === 'string' ? c.autre.statut.replace(/\s+/g, ' ').trim().slice(0, 80) : '',
         /* ⛔ J'AI bloqué cette personne : sa conversation reste dans ma liste, LISIBLE, sans champ pour écrire (le service ne dit jamais l'inverse à celui qu'on a bloqué) */
         bloque: direct && c.bloque === true,
         /* l'échéance de la sourdine de CETTE personne (0 : pas en sourdine) — la même lecture que `infos()` : la liste dessine un croissant de lune barré, et grise le point « non lu » */

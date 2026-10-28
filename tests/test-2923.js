@@ -36,11 +36,11 @@ const mail = (o) => Object.assign({ agent: 'lea', source: 'inscription', objet: 
 function equipe(o) {
   o = o || {};
   const B = monter(Object.assign({ claude: () => { throw new Error('Claude ne doit pas être appelé ici'); } }, o));
-  const sources = { courriels: [], attentes: [], rgpd: [], contrats: { enAttente: 0 }, courrier: { aTraiter: 0, enCours: 0 }, clients: { demandesEnAttente: 0 }, alarmes: { ouvertes: 0, critiques: 0 }, qualite: null, lecturesCourriels: 0 };
+  const sources = { courriels: [], attentes: [], rgpd: [], contrats: { enAttente: 0 }, courrier: { aTraiter: 0, enCours: 0 }, reprise: null, clients: { demandesEnAttente: 0 }, alarmes: { ouvertes: 0, critiques: 0 }, qualite: null, lecturesCourriels: 0 };
   const deps = { agents: B.agents, conversations: B.conversations, etat: B.etat, incidents: B.incidents, maintenant: B.maintenant };
   const ines = INES(Object.assign({ courriels: depuis => { sources.lecturesCourriels++; return sources.courriels === null ? null : sources.courriels.filter(c => (c.ts || 0) >= depuis); }, attentes: () => sources.attentes }, deps));
   const eq = require(S('agent-equipe.js'))({ agents: B.agents, conversations: B.conversations, cerveau: B.cerveau, faits: {}, arbitrer: (e, c) => (B.victor ? B.victor.arbitrer(e, c) : { ok: false }) });
-  const victor = require(S('agent-victor.js'))(Object.assign({ cerveau: B.cerveau, equipe: () => eq, rgpd: () => sources.rgpd, contrats: () => sources.contrats, courrier: () => sources.courrier, clients: () => sources.clients,
+  const victor = require(S('agent-victor.js'))(Object.assign({ cerveau: B.cerveau, equipe: () => eq, rgpd: () => sources.rgpd, contrats: () => sources.contrats, courrier: () => sources.courrier, reprise: () => sources.reprise, clients: () => sources.clients,
     alarmes: () => sources.alarmes, qualite: () => sources.qualite }, deps));
   B.victor = victor;
   return Object.assign(B, { ines, victor, sources, eq });
@@ -270,6 +270,25 @@ console.log('\n── 2923 · Inès et Victor : la qualité, le point du matin, 
     v('⛔ le modèle invente un nombre (47, 9) : le texte du CODE est dit, et le refus est noté', [rc.modele, dansFil(C, 'equipe', 'victor')[0].texte, C.journal().filter(e => e.action === 'point du matin' && e.resultat === 'refuse').length],
       [false, 'Bonjour Justin, voici le point de ce vendredi. Ce qui t’attend : 1 demande d’agent à valider (la plus ancienne : 2 jours) et 4 courriels à traiter.', 1]);
     C.nettoyer();
+
+    /* 28 octobre 2026 — « 35 courriers à traiter, personne dessus » : le point ne dit plus « personne » ; il sépare ce que personne n'a touché, ce que Camille a pris, ce qu'elle a lu et classé */
+    const K = equipe({}); K.sources.courrier = { aTraiter: 4, enCours: 1, classes: 3 }; K.sources.reprise = { examinesAujourdhui: 7, classesAujourdhui: 3, dernierePasse: { ilYAMin: 12 } };
+    const fk = K.victor.collecter();
+    v('Victor relève le courrier en trois morceaux et la reprise de Camille (des nombres)', [fk.attendJustin.courrierATraiter, fk.courrier, fk.camille], [4, { prisParCamilleOuJustin: 1, classesParCamille: 3 }, { examinesAujourdhui: 7, classesAujourdhui: 3, derniereReprise: 12 }]);
+    const tk = K.victor.texteDuCode(fk);
+    vrai('⛔ …et le texte du code dit les 4 à traiter ET les 3 que Camille a lus et classés (les nombres sont dans les faits : le modèle peut les citer)', /4 courriels à traiter/.test(tk) && /Camille a classé 3 courriels sans réponse à faire \(publicités, messages automatiques, courriers de chez nous : ils restent dans le Courrier, rien n’est supprimé\)/.test(tk) && K.victor.nombresSains(tk, K.victor.fait(fk)), tk);
+    K.sources.courrier = { aTraiter: 4, enCours: 0 };
+    vrai('…sans le relevé des classés (ancien serveur), la phrase n’est pas dite et rien ne casse', !/Camille a classé/.test(K.victor.texteDuCode(K.victor.collecter())));
+    K.nettoyer();
+    {
+      /* (gardien) « rien ne t'attend et la plateforme est calme » ne se dit pas quand Camille a classé des courriels : un compteur qui dit « rien » cache justement les mauvais classements */
+      const Q = equipe({ claude: () => new Error('panne') });
+      heureParis(Q, 2026, 10, 23, 8, 0); Q.sources.courrier = { aTraiter: 0, enCours: 0, classes: 5 };
+      const rq = await Q.victor.tic();
+      const tq = dansFil(Q, 'equipe', 'victor').map(m => m.texte).join(' ');
+      vrai('⛔ matin « calme » mais 5 courriels classés par Camille : le point les cite, il ne dit PAS « la plateforme est calme »', rq.dit === true && /Camille a classé 5 courriels sans réponse à faire/.test(tq) && !/plateforme est calme/.test(tq), tq);
+      Q.nettoyer();
+    }
 
     const D = equipe({ claude: () => new Error('panne') });
     heureParis(D, 2026, 10, 23, 8, 0); D.sources.courrier = { aTraiter: 2, enCours: 0 };

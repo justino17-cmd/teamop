@@ -72,6 +72,8 @@
 # 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
 # 28 octobre 2026 : `test-3090` (les agents sans limite artificielle : Margaux, Hugo, Louis, Léa, agents.js, Emma, le câblage d’index.js — 62 vérifications).
 # 28 octobre 2026, le pont des agents côté Tour (3096) : 163 suites, 10 501 vérifications mesurées par la commande de la porte, toutes vertes (avant l'ajout de 3090) — plancher 10487 (le total moins 14, jamais une addition).
+# 28 octobre 2026, les photos du pont (3096 § 7 : les 21 images, les envois, les refus, les fichiers absents) : 165 suites, 10 642 vérifications mesurées par la commande de la porte (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 10628 (le total moins 14, jamais une addition).
+# 28 octobre 2026 (« 35 courriers à traiter ») : 166 suites, 10 702 vérifications mesurées par la commande de la porte, toutes vertes, `test-3101` compris (93, après les relectures du gardien et de l’adverse) — plancher 10688 (le total moins 14, jamais une addition).
 # 28 octobre 2026, les agents autonomes (racine, annonces « Je viens de… », Victor chef, budget du jour : `test-3113` à `test-3123`, dont 3123 contre le vrai serveur) : 176 suites, 10 937 vérifications mesurées par la commande de la porte, sortie 0 — plancher 10923 (le total moins 14, jamais une addition).
 # 28 octobre 2026 au soir, la relecture adverse (`test-3124`, plus § 6 de 3121) : 177 suites, 11 002 vérifications mesurées par la commande de la porte, sortie 0 — plancher 10988 (le total moins 14).
 #plancher 10988
@@ -381,6 +383,8 @@ tests/test-3083.js
 tests/test-3090.js
 # ── Le pont des agents, côté Tour (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place ») : `server/pont-messages.js` contre un faux OP MESSAGES — la file, les pannes, l'historique, ce que Justin écrit et supprime — et le bandeau de la Tour (3096).
 tests/test-3096.js
+# 28 octobre 2026 : `test-3101` (« 35 courriers à traiter, personne dessus » : le vrai `mail.js` — classer, compter, afficher, la file de l’arriéré contre un IMAP simulé —, le vrai `agent-camille.js` branché dessus, les phrases RÉELLES de Justin devant l’outil de reprise, les prompts de Victor et de Camille nourris par le vrai `etatReprise`). Lit server/ seulement.
+tests/test-3101.js
 # ── Les agents autonomes (28 octobre 2026, Justin : « La limite de messages par heure, c'est pas normal. Je t'ai dit que je veux des agents qui soient autonomes de A à Z » ; « je veux qu'à chaque fois qu'ils ont fini, ils mettent dans
 # le groupe "je viens d'effectuer ça" ») : la racine d'un message de Justin (3113), le @tous ordonné et la synthèse de Victor (3114), le budget en dollars coupé AVANT l'appel (3115), le ping-pong et la profondeur (3116), demander /
 # assigner / Victor chef (3117), les annonces « Je viens de… » (3118), le budget du jour (3119), la sécurité croisée — Hugo et Margaux inchangés (3120), les points de la journée et le suivi (3121), les réveils après la fermeture (3122),

@@ -125,7 +125,7 @@ console.log('\n── 2924 · les six agents de la plateforme, assemblés ──
     for (const id of Object.keys(ROLES_PLUS.AJOUTS)) {
       const attendus = ROLES_PLUS.AJOUTS[id].faits;
       vrai(id + ' lit ses relevés (' + attendus.join(', ') + ') ET garde ceux d’avant', attendus.every(f => EQ.ROLES[id].faits.includes(f)) && AC.ROLES[id].faits.every(f => EQ.ROLES[id].faits.includes(f)), JSON.stringify(EQ.ROLES[id].faits));
-      vrai(id + ' : chaque relevé existe côté serveur (sinon l’agent croit lire quelque chose et lit « lecture impossible »)', EQ.ROLES[id].faits.filter(f => !['sante', 'equipe', 'courrier', 'clients', 'dossier'].includes(f)).every(f => typeof B.P.faits[f] === 'function'));
+      vrai(id + ' : chaque relevé existe côté serveur (sinon l’agent croit lire quelque chose et lit « lecture impossible »)', EQ.ROLES[id].faits.filter(f => !['sante', 'equipe', 'courrier', 'reprise', 'clients', 'dossier'].includes(f)).every(f => typeof B.P.faits[f] === 'function'));
     }
     vrai('les entrées de `agent-conversation.js` ne sont PAS modifiées (copie, pas mutation)', JSON.stringify(AC.ROLES.max.faits) === JSON.stringify(['sante']) && !/Toutes les cinq minutes/.test(AC.ROLES.max.mission));
     vrai('chaque mission est élargie UNE fois', Object.keys(ROLES_PLUS.AJOUTS).every(id => EQ.ROLES[id].mission.split(ROLES_PLUS.AJOUTS[id].mission).length === 2));

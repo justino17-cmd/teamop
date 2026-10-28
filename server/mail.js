@@ -437,7 +437,7 @@ module.exports = function monterMessagerie(app, ctx) {
       mid: String(env.messageId || '').slice(0, 300),
       protege: protege(env.messageId),
       auto: estNotification(de.adr, env.subject),
-      suivi: (function () { const sv = suivi[String(env.messageId || '')]; return sv ? { statut: sv.statut, assigne: sv.assigne || '' } : null; })() };
+      suivi: (function () { const sv = suivi[String(env.messageId || '')]; return sv ? Object.assign({ statut: sv.statut, assigne: sv.assigne || '' }, estClasse(sv) ? { classe: sv.classe } : {}) : null; })() };
   }
   /* `filtre` ('gestion' | 'messages' | '') : la console qu'on regarde. Elle voit ses messages ET ceux à trier, jamais
      ceux de l'autre. Le rôle d'un message ne se connaît qu'une fois l'enveloppe lue : filtrer APRÈS avoir découpé
@@ -559,7 +559,7 @@ module.exports = function monterMessagerie(app, ctx) {
           return { authentifie: au.ok === true, authPar: au.ok ? au.par : '', authRaison: au.ok ? '' : au.raison, enteteAuto: enteteAutomatique(p.headers), enReponseDe: refs };
         })();
         return Object.assign({ uid, dossier: chemin, boite: b.id, boiteEmail: b.email,
-          suivi: suivi[midCle] ? { statut: suivi[midCle].statut, assigne: suivi[midCle].assigne || '' } : null,
+          suivi: suivi[midCle] ? Object.assign({ statut: suivi[midCle].statut, assigne: suivi[midCle].assigne || '' }, estClasse(suivi[midCle]) ? { classe: suivi[midCle].classe } : {}) : null,
           auto: estNotification(de.adr, env.subject),
           interlocuteur, console: consoleDeAdresse(interlocuteur),
           de: de.adr, deNom: de.nom, pour, copie,
@@ -600,10 +600,19 @@ module.exports = function monterMessagerie(app, ctx) {
   const ARRIERE_MAX = 200, ARRIERE_LUS = 1000;
   /* une ligne du suivi est LIBRE tant que personne ne l'a prise ni n'y a répondu, et qu'elle n'est pas résolue — relu juste avant chaque reprise */
   const suiviLibre = mid => { const sv = suivi[String(mid || '')]; return !sv || !(sv.statut === 'resolu' || sv.repTs > 0 || sv.assigne); };
-  async function arriere(jours) {
+  /* (28 octobre 2026) UN courriel que Camille a LU et qui n'appelle aucune réponse (publicité, lettre d'information, message automatique, message de chez nous, expéditeur illisible) ne compte
+     plus « à traiter » : « personne dessus » était faux, quelqu'un l'avait regardé. Mais « résolu » est définitif et une catégorie mal posée ferait disparaître un vrai message (gardien) :
+     la ligne devient « en cours » chez Camille avec une RAISON tirée d'une liste fermée (`classe`). La Tour en service ne lit que statut, assigne et par — elle montre « En cours · Camille »,
+     le message reste dans la Réception ; seuls les décomptes (`compter`, `/stats`) distinguent un classement d'un vrai travail en cours. Un humain qui touche la ligne efface la raison. */
+  const CLASSES = ['ignore', 'automatique', 'interne'];
+  const estClasse = sv => !!sv && sv.statut === 'enCours' && sv.par === 'Camille' && CLASSES.includes(sv.classe) && !(sv.repTs > 0);
+  async function arriere(jours, opts) {
+    /* `opts.ecarter(x)` : l'appelant dit « celui-là, je l'ai déjà décidé » — il ne compte pas dans les 200 de la file (les décidés sans ligne de suivi en tête de file cachaient tous les
+       plus récents) et sa lecture complète n'est pas refaite ; la liste rendue les porte à part (`ecartes`), pour que l'appelant range ce qui doit l'être. */
+    const ecarter = opts && typeof opts.ecarter === 'function' ? opts.ecarter : null;
     /* (28 octobre 2026, Justin : « sans limite ») toute la boîte par défaut ; `jours` borne seulement si on le demande */
     const j = Math.min(Math.max(parseInt(jours, 10) || 3650, 1), 3650), depuis = new Date(Date.now() - j * 86400000);
-    const out = []; let tronque = false;
+    const out = [], ecartes = []; let tronque = false;
     for (const b of boites) {
       if (!boiteAgentOk(b)) continue;
       try {
@@ -623,7 +632,10 @@ module.exports = function monterMessagerie(app, ctx) {
                 if (protege(env.messageId) || estNotification(de.adr, env.subject)) continue;
                 if (m.flags && m.flags.has && m.flags.has('\\Answered')) continue;
                 if (mid && !suiviLibre(mid)) continue;
-                l.push({ boiteId: b.id, dossier: inbox, uid: m.uid, mid, ts: Math.min((env.date && new Date(env.date).getTime()) || Date.now(), Date.now()) });
+                const x = { boiteId: b.id, dossier: inbox, uid: m.uid, mid, ts: Math.min((env.date && new Date(env.date).getTime()) || Date.now(), Date.now()) };
+                let decide = false; try { decide = !!(ecarter && ecarter(x)); } catch (e) { decide = false; }
+                if (decide) { if (mid) ecartes.push({ mid, ts: x.ts }); continue; }
+                l.push(x);
               }
             }
             return l;
@@ -636,6 +648,7 @@ module.exports = function monterMessagerie(app, ctx) {
     const vus = new Set();
     const l = out.sort((x, y) => x.ts - y.ts).filter(x => { if (!x.mid) return true; if (vus.has(x.mid)) return false; vus.add(x.mid); return true; });
     const r = l.slice(0, ARRIERE_MAX); r.tronque = tronque || l.length > ARRIERE_MAX;
+    r.ecartes = ecartes;
     return r;
   }
   /* Ce que Camille a décidé d'un courriel s'écrit au SUIVI du Courrier : sans ça, son travail ne faisait jamais baisser « à traiter » (Victor voyait 35 et croyait que personne n'y était).
@@ -651,7 +664,19 @@ module.exports = function monterMessagerie(app, ctx) {
     if (sv.repTs > 0 || (sv.par && sv.par !== 'Camille') || (sv.assigne && !SUIVI_PAR.includes(sv.assigne))) return false;
     sv.statut = o.statut;
     if (o.assigne !== undefined && SUIVI_PAR.includes(o.assigne)) sv.assigne = o.assigne;
+    delete sv.classe;   // une vraie décision remplace un classement « rien à répondre »
     sv.par = 'Camille'; sv.ts = Date.now();
+    suiviSauve();
+    return true;
+  }
+  /* Classer « rien à répondre » : SEULEMENT une ligne qui existe déjà (un courriel que la Tour a ouvert), encore intacte — à traiter, personne dessus, jamais répondue, jamais touchée par
+     quelqu'un. Pas de création : une lettre d'information n'a pas à entrer dans le suivi, elle n'y comptait pas. Rend vrai quand la ligne vient d'être classée. */
+  function suiviClasser(mid, raison) {
+    mid = String(mid || '').slice(0, 300);
+    const sv = suivi[mid];
+    if (!sv || !CLASSES.includes(raison)) return false;
+    if (sv.statut !== 'aTraiter' || sv.repTs > 0 || sv.assigne || sv.par) return false;
+    sv.statut = 'enCours'; sv.assigne = 'Camille'; sv.par = 'Camille'; sv.classe = raison; sv.ts = Date.now();
     suiviSauve();
     return true;
   }
@@ -834,6 +859,7 @@ module.exports = function monterMessagerie(app, ctx) {
       if (sv) {
         if (!sv.repTs) sv.repTs = Date.now();
         if (sv.statut === 'aTraiter') sv.statut = 'enCours';
+        delete sv.classe;   // une réponse partie n'est plus un « rien à répondre »
         if (o.par) sv.assigne = sv.assigne || o.par;   // un agent ne s'assigne pas la demande : « personne » reste vrai tant qu'un humain ne la prend pas
         suiviSauve();
       }
@@ -999,6 +1025,7 @@ module.exports = function monterMessagerie(app, ctx) {
     const sv = suivi[mid] || (suivi[mid] = { statut: 'aTraiter', assigne: '', par: '', ts: Date.now(), recuTs: Date.now(), repTs: 0, de: '', objet: '' });
     if (['aTraiter', 'enCours', 'resolu'].includes(st)) sv.statut = st;
     if ((req.body || {}).assigne !== undefined) sv.assigne = monStr((req.body || {}).assigne, 60);
+    delete sv.classe;   // la main d'un humain défait le classement de Camille
     sv.par = req.tourUser.nom; sv.ts = Date.now();
     suiviSauve();
     res.json({ ok: true, suivi: { statut: sv.statut, assigne: sv.assigne, par: sv.par } });
@@ -1010,8 +1037,9 @@ module.exports = function monterMessagerie(app, ctx) {
   const suiviClients = () => Object.values(suivi).filter(x => !x.auto);
   function compter() {
     const clients = suiviClients();
-    return { aTraiter: clients.filter(x => x.statut === 'aTraiter').length, enCours: clients.filter(x => x.statut === 'enCours').length,
-      resolus: clients.filter(x => x.statut === 'resolu').length, total: clients.length };
+    /* `enCours` ne compte que le travail RÉEL (pris par Camille ou par quelqu'un) ; `classes` : lus par Camille, rien à répondre. À traiter + en cours + classés + résolus = total. */
+    return { aTraiter: clients.filter(x => x.statut === 'aTraiter').length, enCours: clients.filter(x => x.statut === 'enCours' && !estClasse(x)).length,
+      classes: clients.filter(estClasse).length, resolus: clients.filter(x => x.statut === 'resolu').length, total: clients.length };
   }
   app.get('/api/monitor/mail/stats', monAdmin, (req, res) => {
     const now = Date.now(), SEM = 7 * 86400000;
@@ -1036,14 +1064,19 @@ module.exports = function monterMessagerie(app, ctx) {
     res.json({
       total: clients.length, notifications: tous.length - clients.length,
       semaine: dans(clients, SEM).length, mois: dans(clients, 30 * 86400000).length,
-      aTraiter: cpt.aTraiter, enCours: cpt.enCours, resolus: cpt.resolus,
+      aTraiter: cpt.aTraiter, enCours: cpt.enCours, classes: cpt.classes, resolus: cpt.resolus,
       reponseMoyenneMin: moyenne, repondus: delais.length, sujets, semaines,
       /* « Au rapport » (lot 1 de la refonte de la Tour, 21 octobre 2026) : ce qui attend un client, du plus ancien au plus récent — vingt au plus,
          les notifications automatiques à part (elles n'attendent personne). En LECTURE : rien ne s'écrit ici. */
       /* `recuTs` vient de l'en-tête Date: de l'EXPÉDITEUR : borné à la création depuis le 22 octobre 2026 ; une entrée plus ancienne au futur
          se borne ici à maintenant. Une date trop ANCIENNE ne se borne pas — connecter une boîte relève de vrais vieux messages (REPRISE.md). */
-      ouverts: clients.filter(x => x.statut === 'aTraiter' || x.statut === 'enCours').sort((a, b) => Math.min(a.recuTs || 0, now) - Math.min(b.recuTs || 0, now)).slice(0, 20)
-        .map(x => ({ statut: x.statut, assigne: x.assigne || '', recuTs: Math.min(x.recuTs || 0, now), de: x.de || '', objet: x.objet || '' }))
+      /* ⛔ (gardien) les classés RESTENT dans `ouverts`, derrière les vrais : la Tour EN SERVICE (v2.117) ne lit ni `classe` ni `classesRecents`, et un courriel mal classé disparaîtrait de « Au rapport »
+         sans qu'elle puisse le montrer. Derrière les vrais, pour qu'une vingtaine de publicités anciennes ne chassent pas du tableau un courrier qui attend ; `classe` les marque pour une Tour qui sait la lire. */
+      ouverts: clients.filter(x => x.statut === 'aTraiter' || x.statut === 'enCours').sort((a, b) => (estClasse(a) ? 1 : 0) - (estClasse(b) ? 1 : 0) || Math.min(a.recuTs || 0, now) - Math.min(b.recuTs || 0, now)).slice(0, 20)
+        .map(x => Object.assign({ statut: x.statut, assigne: x.assigne || '', recuTs: Math.min(x.recuTs || 0, now), de: x.de || '', objet: x.objet || '' }, estClasse(x) ? { classe: x.classe } : {})),
+      /* les courriels que Camille a lus et classés « rien à répondre » : à part des ouverts (ils n'attendent personne), mais RÉCUPÉRABLES — une Tour qui les montre les trouve ici */
+      classesRecents: clients.filter(estClasse).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 20)
+        .map(x => ({ classe: x.classe, recuTs: Math.min(x.recuTs || 0, now), de: x.de || '', objet: x.objet || '' }))
     });
   });
 
@@ -1092,7 +1125,7 @@ module.exports = function monterMessagerie(app, ctx) {
   setInterval(() => { veille().catch(() => {}); }, 120000);
   setTimeout(() => { veille().catch(() => {}); }, 20000);
 
-  return { boites: () => boites.map(publique), compter, lireMessage, envoyerAgent, signature, boiteParRole, arriere, suiviMarquer, suiviLibre };
+  return { boites: () => boites.map(publique), compter, lireMessage, envoyerAgent, signature, boiteParRole, arriere, suiviMarquer, suiviClasser, suiviLibre };
 };
 module.exports.authentification = authentification;
 module.exports.enteteAutomatique = enteteAutomatique;

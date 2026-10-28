@@ -71,6 +71,12 @@ const MENACE_LITIGE = new RegExp('(?:^|[^a-z0-9])(?:' + [
 ].join('|') + ')(?![a-z0-9])');
 const menaceDeLitige = t => MENACE_LITIGE.test(String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘`]/g, "'").replace(/\s+/g, ' '));
 
+/* (28 octobre 2026, gardien) Un courriel que Camille range « rien à répondre » SANS que Claude en ait jugé le contenu (message automatique, de chez nous) ou APRÈS un jugement qui peut être
+   piégé (« ignorer ») sort de « à traiter » et de la vue de Justin : le CODE ne le range donc jamais s'il parle de recours, d'erreur de prélèvement, de résiliation, de remboursement ou de
+   prélèvement. Comme les deux filtres ci-dessus il ne fait que garder la ligne VISIBLE (jamais l'inverse) : un faux positif laisse une publicité « à traiter », un faux négatif cache un litige. */
+const RESILIATION = /(?:^|[^a-z0-9])(?:resili\w*|rembours\w*|prelev\w*|(?:arret\w*|annul\w*|stopp\w*|supprim\w*) (?:de |du |d'|mon |ma |l'|le |la |notre |votre )?(?:abonnement|compte|contrat))(?![a-z0-9])/;
+const sensible = t => menaceDeLitige(t) || erreurDePaiement(t) || RESILIATION.test(String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘`]/g, "'").replace(/\s+/g, ' '));
+
 const PLAN_PROSPECT = [
   'POUR UN PROSPECT, PLAN DU COURRIEL (dans cet ordre, en courts paragraphes) :',
   '1. Accroche : « Nous vous remercions pour votre message. » puis ce que l’entreprise demande ou son activité telle qu’elle apparaît dans son message.',
@@ -137,6 +143,20 @@ function lireCategorie(texte) {
   return { categorie: c, reste: (m[2] || '').trim() };
 }
 
+/* (28 octobre 2026) Le message de JUSTIN (jamais d'un collègue, jamais d'un client : l'outil le vérifie avant) demande-t-il de traiter le courrier ? Le 28 octobre, trois phrases de Justin
+   (« il faudrait que tu traites tout des boîtes mail », « tu vois bien tous les messages même ceux qui sont de plus de 3 jours ? », « tu gères tous les messages depuis le début de la boîte
+   mail ») ne passaient pas : la garde cherchait « reprend/ancien/arriéré » et Camille réclamait un « top départ » qu'elle n'obtenait jamais. Il faut DEUX choses : le courrier est le sujet, et
+   un mot de reprise ou une ÉTENDUE (« tous les messages », « depuis le début », « de plus de N jours »). Un verbe seul (« traite ce mail ») n'est pas assez : il ne désigne pas toute la boîte,
+   et une question d'état (« sur les mails tu en es où ? ») n'est pas une demande. */
+const SUJET_COURRIER = /courri|mail|message|bo[iî]tes?/i;
+const GESTE_COURRIER = new RegExp([
+  'reprend', 'reprise', 'ancien', 'arri[ée]r', 'retard', 'en attente', '[àa] traiter',
+  '\\bratiss',
+  '\\btou(?:s|tes?|t)\\b (?:(?:les|des|de|du|la|le|ses|nos|mes|ces|vos) )?(?:courri\\w*|mails?|messages?|bo[iî]tes?)',
+  'depuis le d[ée]but', 'de plus de \\d+ jours?'
+].join('|'), 'i');
+const demandeDeReprise = t => { const tx = String(t || ''); return SUJET_COURRIER.test(tx) && GESTE_COURRIER.test(tx); };
+
 module.exports = function camille(ctx) {
   const { agents, cerveau, brouillons, mail } = ctx;
   const maintenant = typeof ctx.maintenant === 'function' ? ctx.maintenant : Date.now;
@@ -157,6 +177,12 @@ module.exports = function camille(ctx) {
   if (!reg.mids || typeof reg.mids !== 'object' || Array.isArray(reg.mids)) reg.mids = {};
   if (!reg.jour || typeof reg.jour !== 'object') reg.jour = { j: '', brouillons: 0, examens: 0, domaines: {}, prevenu: {} };
   if (!reg.repris || typeof reg.repris !== 'object' || Array.isArray(reg.repris)) reg.repris = {};   // les empreintes traitées PAR LA REPRISE de l'arriéré (jamais reprises une seconde fois)
+  /* (28 octobre 2026) les courriels que Camille a LUS et jugés « rien à répondre » : empreinte -> [raison, heure]. La reprise de l'arriéré ne les relit pas (une lecture complète de la boîte
+     chacun, à chaque passe, et ils tenaient la tête de la file) ; elle range seulement leur ligne de suivi, si la Tour en a ouvert une. */
+  if (!reg.rien || typeof reg.rien !== 'object' || Array.isArray(reg.rien)) reg.rien = {};
+  /* la dernière reprise (des NOMBRES) : ce que Victor et Camille lisent, en conversation, de ce qu'elle a fait ; et le cumul du jour */
+  if (!reg.derniere || typeof reg.derniere !== 'object' || Array.isArray(reg.derniere)) reg.derniere = null;
+  if (!reg.repriseJour || typeof reg.repriseJour !== 'object' || Array.isArray(reg.repriseJour)) reg.repriseJour = { j: '' };
   const sauve = () => fich.ecrire(F, reg);
   const empreinte = x => crypto.createHash('sha256').update('camille:' + String(x)).digest('hex').slice(0, 32);
   const aujourdhui = () => new Date(maintenant()).toISOString().slice(0, 10);
@@ -174,6 +200,14 @@ module.exports = function camille(ctx) {
     reg.mids[h] = maintenant();
     const hs = Object.keys(reg.mids);
     if (hs.length > MAX_MIDS) for (const k of hs.sort((x, y) => reg.mids[x] - reg.mids[y]).slice(0, hs.length - MAX_MIDS)) delete reg.mids[k];
+    sauve();
+  }
+  const RAISONS = ['ignore', 'automatique', 'interne'];   // la liste fermée du suivi (`mail.js`, CLASSES) : ce que Camille a pu JUGER sans réponse à faire — un expéditeur illisible n'est lu par personne, il reste « à traiter »
+  function noterRien(h, raison) {
+    if (!h || !RAISONS.includes(raison)) return;
+    reg.rien[h] = [raison, maintenant()];
+    const hs = Object.keys(reg.rien);
+    if (hs.length > MAX_MIDS) for (const k of hs.sort((x, y) => reg.rien[x][1] - reg.rien[y][1]).slice(0, hs.length - MAX_MIDS)) delete reg.rien[k];
     sauve();
   }
   const domaineDe = a => String(a || '').toLowerCase().split('@').pop().replace(/[>\s]+$/g, '');
@@ -203,16 +237,24 @@ module.exports = function camille(ctx) {
     const lu = ev && ev.__lu;
     if (!lu || !lu.mid || !r || typeof mail.suiviMarquer !== 'function') return;
     let o = null;
-    /* (gardien) « ignoré » n'écrit RIEN : « résolu » est définitif, et une catégorie mal posée (ou un texte piégé) ferait disparaître un vrai message — il reste visible à Justin.
-       Une main passée (Hugo, un collègue) ne compte que si l'accusé est bien déposé : sinon rien n'est parti, la ligne reste « à traiter ». */
+    /* (gardien) « ignoré » n'écrit JAMAIS « résolu » : c'est définitif, et une catégorie mal posée (ou un texte piégé) ferait disparaître un vrai message. Depuis le 28 octobre 2026 il est
+       pourtant CLASSÉ — « en cours » chez Camille avec une raison de la liste (`suiviClasser`) — pour qu'un courriel qu'elle a lu ne reste pas « à traiter, personne dessus » : il reste
+       visible à Justin, un geste de sa part le remet à traiter. Une main passée (Hugo, un collègue) ne compte que si l'accusé est bien déposé : sinon rien n'est parti, la ligne reste « à traiter ». */
     if (r.justin) o = { statut: 'enCours', assigne: 'Justin' };
     else if (r.depose === true || r.chloe) o = { statut: 'enCours', assigne: 'Camille' };
-    if (!o) return;
+    if (!o) {
+      /* `r.reste` : le CODE garde la ligne visible (texte de recours, de prélèvement ou de résiliation ; expéditeur de chez nous non authentifié) — jamais classée */
+      if (r.reste) return;
+      const raison = r.ignore ? 'ignore' : r.saute === 'automatique' && !r.protege ? 'automatique' : r.saute === 'interne' ? 'interne' : '';
+      if (!raison) return;
+      noterRien(ev.__h, raison);
+      try { return typeof mail.suiviClasser === 'function' && mail.suiviClasser(lu.mid, raison) === true; } catch (e) { return false; }
+    }
     try { mail.suiviMarquer(lu.mid, Object.assign(o, { de: lu.de, objet: lu.objet, recuTs: lu.ts })); } catch (e) {}
   }
   async function surNouveauMessage(ev) {
     const r = await traiter(ev);
-    suiviDe(ev, r);
+    if (suiviDe(ev, r) === true && r && typeof r === 'object') r.classe = true;
     /* traité par la reprise (donc noté « vu ») : il ne se reprendra plus — sans cette marque, sa date ferait encore croire à un « trop ancien » jamais traité */
     if (ev && ev.arriere && ev.__h && reg.mids[ev.__h] && r && (r.ignore || r.justin || r.depose === true || r.chloe)) {   // (gardien) une DÉCISION seulement : une panne ne grave rien
       reg.repris[ev.__h] = reg.mids[ev.__h];
@@ -252,9 +294,17 @@ module.exports = function camille(ctx) {
         try { m = await mail.lireMessage(ev.boiteId, ev.dossier, ev.uid); }
         catch (e) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'erreur', detail: 'lecture impossible' }); return { saute: 'lecture' }; }
         if (!m) return { saute: 'introuvable' };
-        if (m.protege || m.auto || m.enteteAuto) return { saute: 'automatique' };
+        /* un courriel de SÉCURITÉ (code, avis) : ni lu, ni noté, ni classé — la Tour elle-même n'y touche pas (`protege`) */
+        if (m.protege) return { saute: 'automatique', protege: true };
         const h = empreinte(m.mid || cle);
         ev.__lu = { mid: String(m.mid || ''), de: String(m.de || ''), objet: String(m.objet || ''), ts: m.ts || 0 }; ev.__h = h;
+        /* le texte sur lequel le CODE juge si un classement « sans réponse » est permis (jamais envoyé à Claude, jamais gardé) */
+        const brut = String(m.objet || '') + '\n' + String(m.texte || '').slice(0, TEXTE_MAX);
+        if (m.auto || m.enteteAuto) {
+          /* l'en-tête est choisi par l'EXPÉDITEUR : un texte de recours ou de prélèvement sous un en-tête de liste reste « à traiter » (et n'est pas relu à chaque passe) */
+          if (sensible(brut)) { noterVu(h); return { saute: 'automatique', reste: true }; }
+          return { saute: 'automatique' };
+        }
         /* l'ARRIÉRÉ : un courriel « vu » parce qu'il était déjà trop ancien à son arrivée (vu plus de trois jours après sa date) n'a jamais été traité — il se reprend. Tout autre « vu »
            (répondu, transmis, ignoré, interne) ne se refait jamais. */
         const vuAncien = ev.arriere === true && reg.mids[h] && !reg.repris[h] && m.ts && reg.mids[h] - m.ts > AGE_MAX_MS;
@@ -263,9 +313,14 @@ module.exports = function camille(ctx) {
            boîte) voit la réservation de la première. Libérée dans le `finally`. */
         midsEnCours.add(h); reserve = h;
         const a = String(m.de || '').trim().toLowerCase();
-        if (!bonneAdresse(a)) return { saute: 'expediteur' };
+        /* une adresse illisible : personne n'a rien compris du message, il reste « à traiter » (jamais classé) ; « vu » pour ne pas le relire à chaque passe */
+        if (!bonneAdresse(a)) { noterVu(h); return { saute: 'expediteur' }; }
         /* NOS adresses : jamais traitées (et marquées vues, pour ne pas les relire à chaque passage) */
-        if (domainesNotres().some(d => d && domaineDe(a) === String(d).toLowerCase()) || adressesNotres().some(x => x && a === String(x).toLowerCase())) { noterVu(h); return { saute: 'interne' }; }
+        if (domainesNotres().some(d => d && domaineDe(a) === String(d).toLowerCase()) || adressesNotres().some(x => x && a === String(x).toLowerCase())) {
+          noterVu(h);
+          /* « de chez nous » ne se prouve que par l'authentification de NOTRE serveur de réception : un faux From teamop.fr, ou un collègue qui transfère une plainte, reste « à traiter » */
+          return m.authentifie === true && !sensible(brut) ? { saute: 'interne' } : { saute: 'interne', reste: true };
+        }
         /* l'âge se juge à l'instant où le courriel est ARRIVÉ à Camille (`ev.differeTs`, quand il a attendu l'ouverture) : un week-end férié de 87 h ne rend pas « ancien » un courriel de vendredi soir */
         /* (28 octobre 2026, Justin : « trois jours avant, et après ils n'ont plus accès au reste, c'est débile ») — plus de limite d'âge : tout courriel qui attend se traite. */
         if (typeof brouillons.nombreEnAttente === 'function' && brouillons.nombreEnAttente(ID, a) >= ATTENTES_PAR_EXPEDITEUR) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'un expéditeur a déjà ' + ATTENTES_PAR_EXPEDITEUR + ' brouillons en attente' }); return { saute: 'expediteur_deja_en_attente' }; }
@@ -317,7 +372,13 @@ module.exports = function camille(ctx) {
         if (!lu) { noterVu(h); agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'erreur', detail: 'réponse de Claude sans ligne CATEGORIE' }); return { saute: 'forme' }; }
         const categorie = lu.categorie;
 
-        if (categorie === 'ignorer') { noterVu(h); agents.noter(ID, 'message ignoré', { cible: 'courrier', resultat: 'ok', detail: 'ni réponse ni brouillon' }); return { ignore: true }; }
+        /* ⛔ « ignorer » est un jugement de Claude, que le texte du courriel peut PIÉGER. Il passe toujours avant le filet de litige (test-2905 : un cabinet d'avocats qui démarche ne dérange pas Justin),
+           mais il ne se CLASSE (ne sort de « à traiter ») que si le texte ne parle ni de recours, ni d'erreur de prélèvement, ni de résiliation, ni de remboursement : sinon la ligne reste « à traiter »,
+           visible dans la Tour, exactement comme avant le classement. */
+        if (categorie === 'ignorer') {
+          noterVu(h); agents.noter(ID, 'message ignoré', { cible: 'courrier', resultat: 'ok', detail: 'ni réponse ni brouillon' });
+          return sensible(objet + '\n' + texte) ? { ignore: true, reste: true } : { ignore: true };
+        }
 
         const dossier = dossierDe(a);                 // le numéro de dossier si l'adresse est celle d'un compte, sinon ''
         const sur = m.authentifie === true;            // l'expéditeur est authentifié par NOTRE serveur de réception
@@ -462,6 +523,38 @@ module.exports = function camille(ctx) {
      avec trois différences : l'âge ne les écarte pas, toute réponse attend la validation de Justin, une demande d'arrêt va à Justin. Une seule reprise à la fois ; elle s'arrête dès que
      Camille ne peut plus agir (pause, hors des heures, à l'arrêt) ou qu'un plafond du jour est atteint, et le DIT. Le bilan est une phrase du code (des nombres). */
   let enReprise = false;
+  const num = x => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
+  function memoriserReprise(b, plus) {
+    const j = aujourdhui();
+    if (reg.repriseJour.j !== j) reg.repriseJour = { j, passes: 0, examines: 0, reponses: 0, transmis: 0, justin: 0, ignores: 0, classes: 0 };
+    const c = reg.repriseJour; c.passes = num(c.passes) + 1;
+    for (const k of ['examines', 'reponses', 'transmis', 'justin', 'ignores', 'classes']) c[k] = num(c[k]) + num(b[k]);
+    reg.derniere = { ts: maintenant(), total: plus.total, examines: b.examines, reponses: b.reponses, transmis: b.transmis, justin: b.justin, ignores: b.ignores, classes: b.classes, deja: b.deja,
+      attendent: b.attendent, echecs: b.echecs || 0, restent: b.restent, aReprendre: plus.aReprendre, arret: String(plus.arret || ''), tronque: plus.tronque === true };
+    sauve();
+  }
+  /* Ce que la reprise a fait, en NOMBRES et booléens seulement (jamais un nom, une adresse, un objet) : le fait `reprise` de Victor et de Camille (`agent-conversation.js`). `null` = rien
+     de lisible. Camille ne sait pas ce que sa reprise automatique a décidé sans cela, et attendait un « top départ » pour un travail qui avançait seul. */
+  function etatReprise() {
+    const d = reg.derniere, j = aujourdhui(), c = reg.repriseJour && reg.repriseJour.j === j ? reg.repriseJour : null;
+    const jour = deJour();
+    return {
+      enCours: enReprise === true,
+      toutesLesMin: 30,
+      derniereLectureEchoueeIlYAMin: num(reg.lectureEchecTs) > 0 ? Math.max(0, Math.round((maintenant() - num(reg.lectureEchecTs)) / 60000)) : null,
+      examensRepriseMax: Math.floor(EXAMENS_PAR_JOUR / 2),
+      examensAujourdhui: num(jour.examens),
+      passesAujourdhui: c ? num(c.passes) : 0,
+      examinesAujourdhui: c ? num(c.examines) : 0,
+      reponsesAujourdhui: c ? num(c.reponses) : 0,
+      transmisAujourdhui: c ? num(c.transmis) : 0,
+      pourJustinAujourdhui: c ? num(c.justin) : 0,
+      classesAujourdhui: c ? num(c.classes) : 0,
+      dernierePasse: d ? { ilYAMin: Math.max(0, Math.round((maintenant() - num(d.ts)) / 60000)), examinees: num(d.examines), classes: num(d.classes), dejaDecidees: num(d.deja), attendent: num(d.attendent),
+        echecs: num(d.echecs), restent: num(d.restent), aReprendre: num(d.aReprendre), arretPlafondDuJour: /^part_du_jour$|^plafond_/.test(String(d.arret)), arretEchecs: d.arret === 'echecs_repetes',
+        arretHorsHeures: d.arret === 'hors_heures', boiteTronquee: d.tronque === true } : null
+    };
+  }
   async function reprendreArriere(jours, o) {
     o = o || {};
     if (enReprise) return { ok: false, raison: 'deja_en_cours' };
@@ -469,10 +562,28 @@ module.exports = function camille(ctx) {
     const p = agents.peutAgir(ID);
     if (!p.ok) return { ok: false, raison: p.raison };
     enReprise = true;
-    const b = { examines: 0, reponses: 0, transmis: 0, justin: 0, ignores: 0, deja: 0, restent: 0 };
+    const b = { examines: 0, reponses: 0, transmis: 0, justin: 0, ignores: 0, classes: 0, deja: 0, attendent: 0, restent: 0 };
     try {
       let liste = [];
-      try { liste = await mail.arriere(jours); } catch (e) { return { ok: false, raison: 'lecture' }; }
+      const refs = [];   // les références (4 signes) des courriels CLASSÉS sur un jugement (« ignorer », en-tête automatique) : ce sont ceux qu'un texte piégé ferait disparaître, Justin peut les parcourir
+      /* (28 octobre 2026) un courriel DÉJÀ DÉCIDÉ ne retourne pas dans la file : il ne prend pas l'une des 200 places, et sa lecture complète n'est pas refaite à chaque passe.
+         `ecarter` reprend, à l'identique, ce que `traiter` jugerait « déjà vu » (y compris le « vu trop ancien » d'avant la fin de la limite d'âge, qui se reprend). */
+      const ecarter = x => {
+        const h = empreinte(x.mid || ('u:' + String(x.boiteId) + ':' + String(x.dossier) + ':' + String(x.uid)));
+        if (reg.rien[h]) return true;
+        const vuAncien = reg.mids[h] && !reg.repris[h] && x.ts && reg.mids[h] - x.ts > AGE_MAX_MS;
+        return !!(reg.mids[h] && !vuAncien);
+      };
+      try { liste = await mail.arriere(jours, { ecarter }); } catch (e) { reg.lectureEchecTs = maintenant(); sauve(); return { ok: false, raison: 'lecture' }; }
+      /* Ce que la Tour a OUVERT et que Camille avait déjà lu sans rien à répondre (publicité, lettre d'information…) reste « à traiter, personne dessus » : on le range, sans le relire.
+         Les courriels d'avant ce rangement (`repris` sans ligne de suivi) sont de ceux-là : la reprise ne marquait `repris` que pour une décision, et les autres décisions ont une main. */
+      if (typeof mail.suiviClasser === 'function' && Array.isArray(liste.ecartes)) {
+        for (const e of liste.ecartes) {
+                    /* ⛔ seulement ce que Camille a NOTÉ « rien » : `repris` porte aussi les litiges passés à Justin, les brouillons et Chloé — une ligne rouverte « à traiter » ne s'y range pas */
+          const h = empreinte(e.mid), raison = reg.rien[h] && RAISONS.includes(reg.rien[h][0]) ? reg.rien[h][0] : '';
+          try { if (raison && mail.suiviClasser(e.mid, raison) === true) { b.classes++; if (raison !== 'interne') refs.push(h.slice(0, 4) + ' ' + raison); } } catch (err) {}
+        }
+      }
       let arret = '', echecs = 0;
       const pourToi = [];
       for (let i = 0; i < liste.length; i++) {
@@ -484,9 +595,13 @@ module.exports = function camille(ctx) {
         if (x.mid && typeof mail.suiviLibre === 'function' && !mail.suiviLibre(x.mid)) { b.deja++; continue; }
         const ev = { boiteId: x.boiteId, dossier: x.dossier, uid: x.uid, reprise: true, arriere: true };
         const r = await surNouveauMessage(ev) || {};
+        if (r.classe === true) { b.classes++; if (ev.__h && (r.ignore || r.saute === 'automatique')) refs.push(ev.__h.slice(0, 4) + ' ' + (r.ignore ? 'ignore' : 'automatique')); }   // rangé « rien à répondre » au suivi (publicité, automatique, de chez nous…) : compté même si le courriel est un « déjà décidé »
         if (r.saute && /^plafond_(?:jour|examens)$|^hors_heures$|^pause$|^arret$|^budget|^cle|^pas_de_cle$|^erreur_api$|^registre_illisible$/.test(String(r.saute))) { arret = r.saute; b.restent = liste.length - i; break; }
         if (r.saute === 'deja_vu' || r.saute === 'automatique' || r.saute === 'interne' || r.saute === 'expediteur' || r.saute === 'introuvable' || r.saute === 'deja_en_cours') { b.deja++; continue; }
-        if (r.saute) {   // un échec sur CE courriel (lecture, forme, texte refusé, plafond du domaine) : il reste « à traiter » ; trois de suite, on s'arrête
+        /* un courriel qui ATTEND (l'expéditeur a déjà deux brouillons en attente, le domaine a atteint son plafond du jour) n'est pas une panne : le suivant peut passer. Trois de ceux-là en tête
+           de file arrêtaient chaque passe, et tout ce qui était derrière n'était jamais vu. Il reste « à traiter » et se reprend à la passe d'après. */
+        if (r.saute === 'expediteur_deja_en_attente' || r.saute === 'plafond_domaine') { b.attendent++; continue; }
+        if (r.saute) {   // un échec sur CE courriel (lecture, forme, texte refusé) : il reste « à traiter » ; trois de suite, on s'arrête
           b.echecs = (b.echecs || 0) + 1;
           if (++echecs >= 3) { arret = 'echecs_repetes'; b.restent = liste.length - i - 1; break; }
           continue;
@@ -499,12 +614,17 @@ module.exports = function camille(ctx) {
       }
       const t = 'Reprise de l’arriéré' + (parseInt(jours, 10) > 0 && parseInt(jours, 10) < 3650 ? ' (' + parseInt(jours, 10) + ' derniers jours)' : '') + ' : ' + b.examines + ' courriel' + (b.examines > 1 ? 's' : '') + ' examiné' + (b.examines > 1 ? 's' : '') +
         ' — ' + b.reponses + ' réponse' + (b.reponses > 1 ? 's' : '') + ' en brouillon à valider, ' + b.transmis + ' transmis à un collègue, ' + b.justin + ' pour toi' + (pourToi.length ? ' (réf. ' + pourToi.slice(0, 12).join(', ') + ')' : '') +
-        ', ' + b.ignores + ' sans réponse à faire (publicité, lettre d’information : ils restent dans le Courrier, à classer d’un geste)' + (b.echecs ? ', ' + b.echecs + ' que je n’ai pas pu lire ou traiter' : '') + '.' +
+        ', ' + b.ignores + ' sans réponse à faire (publicité, lettre d’information : ils restent dans le Courrier, rien n’est supprimé)' + (b.echecs ? ', ' + b.echecs + ' que je n’ai pas pu lire ou traiter' : '') + '.' +
+        (b.classes ? ' ' + b.classes + ' ' + (b.classes > 1 ? 'lignes' : 'ligne') + ' du suivi rangée' + (b.classes > 1 ? 's' : '') + ' « en cours · Camille » (rien à répondre) : elles ne comptent plus « à traiter » et restent dans la Réception.' + (refs.length ? ' À parcourir au besoin (jugés sans réponse, réf. et raison) : ' + refs.slice(0, 12).join(', ') + (refs.length > 12 ? ', …' : '') + '.' : '') : '') +
+        (b.attendent ? ' ' + b.attendent + ' attendent (un expéditeur a déjà deux brouillons en attente, ou son domaine a atteint son plafond du jour).' : '') +
         (liste.tronque ? ' La boîte est très chargée : je n’ai regardé que les plus récents de la période.' : '') +
         (arret ? ' Je me suis arrêtée (' + String(arret).replace(/_/g, ' ') + ') : ' + b.restent + ' attendent encore, je les reprendrai quand tu relanceras.' : (liste.length ? '' : ' Rien n’attendait.'));
       /* le ratissage AUTOMATIQUE (`o.silencieux`) ne dit rien quand il n'a rien fait ; un bilan qui a quelque chose à dire DOIT arriver : si le plafond horaire de Camille le refuse, il
          passe en ligne du système dans son fil */
-      if (o.silencieux && !b.examines && !b.echecs && !arret) return Object.assign({ ok: true, total: liste.length, arret }, b);
+      /* la dernière reprise, en NOMBRES : c'est ce que Victor et Camille lisent quand on leur parle (`etatReprise`) — même quand le ratissage s'est tu */
+      const aReprendre = b.restent + (b.echecs || 0) + b.attendent;
+      memoriserReprise(b, { arret, total: liste.length, aReprendre, tronque: liste.tronque === true });
+      if (o.silencieux && !b.examines && !b.echecs && !b.classes && !arret) return Object.assign({ ok: true, total: liste.length, arret }, b);
       const dit = aJustin(t, 'info');
       if (!(dit && dit.ok) && ctx.conversations && typeof ctx.conversations.systeme === 'function') { try { ctx.conversations.systeme(ID, 'Camille — ' + t); } catch (e) {} }
       agents.noter(ID, 'reprendre l’arriéré', { cible: 'courrier', resultat: 'ok', detail: b.examines + ' examinés, ' + b.restent + ' restent' });
@@ -514,13 +634,16 @@ module.exports = function camille(ctx) {
   /* L'outil de Camille dans la messagerie : reprendre l'arriéré quand JUSTIN le demande (le module le vérifie, pas le prompt). La reprise tourne en tâche de fond : le bilan arrive dans
      son fil privé avec Justin. */
   const outilsEquipe = {
-    outils: [{ name: 'reprendre_courriels_anciens', description: 'Reprendre les courriels des derniers jours que personne n’a traités (ni répondus, ni pris) dans contact@ et support@, le plus ancien d’abord, avec tes règles habituelles. Toute réponse attend la validation de Justin. Seulement quand Justin te le demande.',
+    outils: [{ name: 'reprendre_courriels_anciens', description: 'Reprendre MAINTENANT les courriels que personne n’a traités (ni répondus, ni pris) dans contact@ et support@, toute la boîte par défaut, le plus ancien d’abord, avec tes règles habituelles. Toute réponse attend la validation de Justin. Seulement quand Justin ou Victor te le demande ; la reprise tourne déjà seule toutes les 30 minutes.',
       input_schema: { type: 'object', properties: { jours: { type: 'integer', minimum: 1, maximum: 3650, description: 'Combien de jours en arrière (toute la boîte par défaut).' } }, additionalProperties: false } }],
     executer(nom, e, c) {
       if (nom !== 'reprendre_courriels_anciens') return { ok: false, raison: 'inconnu' };
-      if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Je ne reprends l’arriéré que sur une demande de Justin.' };
-      const tx = String(c.texte || '');
-      if (!(/courri|mail|message/i.test(tx) && /reprend|reprise|ancien|arri[ée]r|retard|en attente|à traiter|a traiter/i.test(tx))) return { ok: false, raison: 'pas_demande', ligne: 'Je ne reprends l’arriéré que si le message de Justin parle du courrier.' };
+      /* (28 octobre 2026, soir) Justin OU Victor. Le fil Équipe tournait en rond : Victor, chef d'orchestre, demandait la reprise et Camille répondait « pas_justin ».
+         Justin : « je veux des agents autonomes de A à Z ». Victor ne lit que les fils (Justin, les agents) et des faits fermés, jamais un texte de client : sa demande
+         ne porte rien d'extérieur. La reprise ne répond à personne sans validation (brouillons) et tourne déjà seule toutes les 30 minutes : la lancer plus tôt ne
+         donne rien de plus. La garde de la PHRASE reste (demandeDeReprise) : une question d'état ne lance rien. Les autres collègues passent par Victor. */
+      if (!c || (c.de !== 'justin' && c.de !== 'victor')) return { ok: false, raison: 'pas_justin', ligne: 'Je ne lance la reprise à la demande que sur un message de Justin ou de Victor — elle tourne déjà seule, toutes les 30 minutes.' };
+      if (!demandeDeReprise(c.texte)) return { ok: false, raison: 'pas_demande', ligne: 'Je ne lance la reprise à la demande que si le message demande de traiter le courrier — elle tourne déjà seule, toutes les 30 minutes.' };
       if (enReprise) return { ok: false, raison: 'deja_en_cours', ligne: 'La reprise de l’arriéré est déjà en cours.' };
       const p = agents.peutAgir(ID);
       if (!p.ok) return { ok: false, raison: p.raison, ligne: 'Je ne peux pas reprendre l’arriéré maintenant (' + String(p.raison).replace(/_/g, ' ') + ').' };
@@ -529,7 +652,7 @@ module.exports = function camille(ctx) {
       return { ok: true, ligne: 'Reprise de l’arriéré lancée' + (j < 3650 ? ' (' + j + ' derniers jours)' : ' (toute la boîte)') + ' : le bilan arrive ici quand j’ai fini.' };
     }
   };
-  return { surNouveauMessage, reprendreArriere, outilsEquipe, repriseEnCours: () => enReprise };
+  return { surNouveauMessage, reprendreArriere, outilsEquipe, etatReprise, repriseEnCours: () => enReprise };
 };
 module.exports.SYSTEM = SYSTEM;
 module.exports.GABARITS = GABARITS;
@@ -541,6 +664,7 @@ module.exports.erreurDePaiement = erreurDePaiement;
 module.exports.menaceDeLitige = menaceDeLitige;
 module.exports.EXAMENS_PAR_DOMAINE = EXAMENS_PAR_DOMAINE;
 module.exports.lireCategorie = lireCategorie;
+module.exports.demandeDeReprise = demandeDeReprise;
 module.exports.objetReponse = objetReponse;
 module.exports.BROUILLONS_PAR_JOUR = BROUILLONS_PAR_JOUR;
 module.exports.EXAMENS_PAR_JOUR = EXAMENS_PAR_JOUR;
