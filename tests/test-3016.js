@@ -157,7 +157,7 @@ const fil = (m, f) => m.liste().corps.fils.find(x => x.fil === f);
     egal('… et pour changer un groupe déjà personnalisé', [r3.code, fil(m, 'clients').perso.nom], [403, 'Clients VIP']);
     const SRC = sans(fs.readFileSync(path.join(RACINE, 'server', 'conversations.js'), 'utf8'));
     vrai('la route est montée avec `monPatronStrict`, comme ses voisines (lecture du code, commentaires retirés)', /app\.post\('\/api\/monitor\/conversations\/groupe',\s*monPatronStrict\s*,/.test(SRC));
-    egal('(population) toutes les routes POST de la messagerie portent `monPatronStrict`', [...SRC.matchAll(/app\.post\('\/api\/monitor\/conversations\/([a-z]+)',\s*([A-Za-z]+)/g)].map(x => x[1] + ':' + x[2]), ['envoyer:monPatronStrict', 'lire:monPatronStrict', 'groupe:monPatronStrict']);
+    egal('(population) toutes les routes POST de la messagerie portent `monPatronStrict`', [...SRC.matchAll(/app\.post\('\/api\/monitor\/conversations\/([a-z]+)',\s*([A-Za-z]+)/g)].map(x => x[1] + ':' + x[2]), ['envoyer:monPatronStrict', 'supprimer:monPatronStrict', 'lire:monPatronStrict', 'groupe:monPatronStrict']);   // + supprimer (28 octobre 2026, test-3088)
     const IDX = sans(fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8'));
     vrai('⛔ `index.js` donne au module le VRAI `monPatronStrict` (et pas `monAdmin` seul)', /require\('\.\/conversations'\)\(app, \{[^}]*monPatronStrict/.test(IDX));
   }

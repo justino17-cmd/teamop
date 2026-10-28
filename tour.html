@@ -2526,6 +2526,14 @@ body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backd
 .ms-bh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .ms-bh b{font-size:13.5px;font-weight:650}
 .ms-bh small{color:var(--muted);font-size:11.5px}
+.ms-sup{margin-left:auto;align-self:center;flex:none;display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer;opacity:0;transition:opacity 140ms ease-out,background-color 140ms ease-out}
+.ms-sup svg{width:15px;height:15px}
+.ms-b:hover .ms-sup,.ms-sys:hover .ms-sup,.ms-sup:focus-visible{opacity:1}
+.ms-sup:hover{background:var(--rougeBg);color:var(--redText)}
+.ms-b.moi .ms-sup{color:inherit}
+.ms-sys .ms-sup{width:24px;height:24px;margin-left:6px;vertical-align:middle;display:inline-grid}
+@media (pointer:coarse){ .ms-sup{opacity:.55;width:44px;height:44px;margin:-8px -8px -8px auto} .ms-sys .ms-sup{width:44px;height:44px;margin:-10px -10px -10px 0} }
+@media (prefers-reduced-motion:reduce){ .ms-sup{transition:none} }
 .ms-b.moi .ms-bh small{color:inherit;opacity:.82}
 .ms-niv{font-size:11px;font-weight:700;border-radius:99px;padding:0 7px;background:var(--ambreBg);color:var(--amber)}
 .ms-b.urgent .ms-niv{background:var(--rougeBg);color:var(--redText)}
@@ -2636,6 +2644,15 @@ body.jour .ms-tq{box-shadow:0 0 0 1px var(--line)}
 .ms-reu-btn:disabled{opacity:.5;cursor:default}
 .ms-reu-btn:focus-visible,.ms-reu-h:focus-visible{outline:0;box-shadow:var(--anneau-int)}
 .ms-reu-s{border-top:1px solid var(--line)}
+.ms-reu-pll{list-style:none;margin:0;padding:0 18px 10px;display:flex;flex-direction:column;gap:8px}
+.ms-reu-pll li{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.ms-reu-pll li div{min-width:0;display:flex;flex-direction:column;font-size:13px;line-height:1.4}
+.ms-reu-pll li span{color:var(--muted);overflow-wrap:anywhere}
+.ms-reu-plh{display:flex;align-items:baseline;gap:10px;min-height:40px;padding:10px 18px 4px;color:var(--text);font-size:13px;font-weight:650}
+.ms-reu-plh small{font-weight:400;color:var(--muted)}
+.ms-reu-plx{flex:none;min-height:36px;padding:0 12px;border:0;border-radius:var(--r-3);background:var(--rougeBg);color:var(--redText);font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.ms-reu-plx[disabled]{opacity:.5;cursor:not-allowed}
+@media (pointer:coarse){ .ms-reu-plx{min-height:44px} }
 .ms-reu-h{display:flex;align-items:baseline;gap:10px;width:100%;min-height:40px;padding:0 18px;border:0;background:transparent;color:var(--text);font:inherit;font-size:13px;font-weight:650;text-align:left;cursor:pointer}
 .ms-reu-h::before{content:'›';display:inline-block;flex:none;width:10px;color:var(--muted);font-weight:700;transition:transform .15s}
 .ms-reu-h[aria-expanded="true"]::before{transform:rotate(90deg)}
@@ -3367,7 +3384,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.116</div>
+    <div class="lg-pied">console interne · v2.117</div>
   </div>
 </div>
 
@@ -3409,7 +3426,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.116</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.117</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3421,7 +3438,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.116</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.117</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3728,7 +3745,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.116';
+var TOUR_VERSION='v2.117';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -12314,11 +12331,13 @@ function msNomFil(f){ if(f==='pauline') return 'Pauline'; return msEstGroupe(f)?
 function msIconeHtml(fil,cls){ var p=msGroupePerso(fil); return '<span class="'+cls+(p.couleur?' cb-'+p.couleur:'')+'" aria-hidden="true">'+esc(p.icone)+'</span>'; }
 /* ── les morceaux d'HTML : des fonctions de leurs données, rien d'autre ── */
 function msBulleHtml(m,membres,agents){
-  if(m.systeme||m.de==='systeme') return '<div class="ms-sys" data-id="'+esc(m.id)+'">'+esc(m.texte)+'<small> · '+esc(fmtHeure(m.ts))+'</small></div>';
+  /* « Supprimer » (28 octobre 2026) : sur chaque message, discret — visible au survol à la souris, toujours là au doigt. */
+  var sup='<button type="button" class="ms-sup" data-act="msgSupprimer" data-id="'+esc(m.id)+'" aria-label="Supprimer ce message" title="Supprimer ce message"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>';
+  if(m.systeme||m.de==='systeme') return '<div class="ms-sys" data-id="'+esc(m.id)+'">'+esc(m.texte)+'<small> · '+esc(fmtHeure(m.ts))+'</small>'+sup+'</div>';
   var moi=m.de==='justin', ag=agents&&agents[m.de], nom=moi?'Toi':(m.nom||(ag&&ag.nom)||m.de), role=(!moi&&ag&&ag.role)?ag.role:'';
   var niv=m.niveau==='urgent'?'Urgent':m.niveau==='important'?'Important':'';
   return '<div class="ms-b'+(moi?' moi':'')+(niv?' '+m.niveau:'')+'" data-id="'+esc(m.id)+'">'+(moi?'':agAvatar(m.de,nom,'ms-av'))+
-    '<div class="ms-bc"><div class="ms-bh"><b>'+esc(nom)+'</b>'+(niv?'<span class="ms-niv">'+niv+'</span>':'')+'<small>'+(role?esc(role)+' · ':'')+esc(fmtHeure(m.ts))+'</small></div>'+
+    '<div class="ms-bc"><div class="ms-bh"><b>'+esc(nom)+'</b>'+(niv?'<span class="ms-niv">'+niv+'</span>':'')+'<small>'+(role?esc(role)+' · ':'')+esc(fmtHeure(m.ts))+'</small>'+sup+'</div>'+
     '<p>'+msColorer(m.texte,membres,Array.isArray(m.mentions)?m.mentions:[])+'</p>'+
     (m.dossier?'<button type="button" class="ms-dos" data-act="dossier" data-dos="'+esc(m.dossier)+'">Ouvrir le dossier '+esc(m.dossier)+'</button>':'')+'</div></div>';
 }
@@ -12470,7 +12489,7 @@ function messLire(neufs){
 function messFilTot(){ setTimeout(function(){ if(MS.inst&&TAB==='messagerie') messFilCharger(true); },1200); }
 /* ── LES RÉUNIONS (cahier §7) : au-dessus du fil « Réunions » — la réunion en cours, la prochaine, les objectifs de la semaine, les leçons, et le bouton de Justin ──
    Trois états comme partout dans cet écran : lu, en cours de lecture, PAS PU LIRE (on ne dit pas « aucun objectif » d'une lecture qui a échoué). Ouvrir n'écrit rien. */
-var MS_REU_LIB={objectifs:'Objectifs du lundi',bilan:'Bilan du vendredi'};
+var MS_REU_LIB={objectifs:'Objectifs du lundi',bilan:'Bilan du vendredi',sujet:'Réunion demandée'};
 var MS_BILAN_LIB={atteint:'Atteint',partiel:'Partiel',non:'Non atteint'};
 function msReuNom(id){ var a=msAgentsParId()[id]; return a?a.nom:id; }
 function msReuAgentsHtml(parAgent,vide,fn){
@@ -12488,7 +12507,7 @@ function msReuHtml(){
   if(!Object.keys(obj).some(function(k){ return (obj[k]||[]).length; })&&d.objectifsPrecedents&&Object.keys(d.objectifsPrecedents).length){ obj=d.objectifsPrecedents; prec=true; sem=d.semainePrecedente; }
   var nObj=Object.keys(obj).filter(function(k){ return (obj[k]||[]).length; }).length, nLec=0; Object.keys(d.lecons||{}).forEach(function(k){ nLec+=(d.lecons[k]||[]).length; });
   var der=(d.reunions||[])[0];
-  var etat=cours?'<span class="ms-reu-pt cours" aria-hidden="true"></span><div class="ms-reu-t"><b>'+esc(cours.titre||MS_REU_LIB[cours.type])+' en cours — jusqu’à '+esc(cours.jusqua)+'</b><small>Les agents parlent à tour de rôle ; tu peux intervenir à tout moment.</small></div>'
+  var etat=cours?'<span class="ms-reu-pt cours" aria-hidden="true"></span><div class="ms-reu-t"><b>'+esc(cours.titre||MS_REU_LIB[cours.type])+(cours.sujet?' — « '+esc(cours.sujet)+' »':'')+' en cours — jusqu’à '+esc(cours.jusqua)+'</b><small>Les agents parlent à tour de rôle ; tu peux intervenir à tout moment.</small></div>'
     :'<span class="ms-reu-pt" aria-hidden="true"></span><div class="ms-reu-t"><b>Aucune réunion en cours</b><small>'+(d.prochaine?'Prochaine : '+esc(d.prochaine.libelle)+' (heure de Paris)':'')+
       (der?' · dernière : '+esc(MS_REU_LIB[der.type]||der.type)+', '+esc(fmtDate(der.ts))+(der.statut==='terminee'?'':' ('+esc({annulee:'annulée',interrompue:'interrompue',en_cours:'en cours'}[der.statut]||der.statut)+')'):'')+'</small></div>';
   var btn=function(t){ return '<button type="button" class="ms-reu-btn" data-act="reuLancer" data-type="'+t+'"'+(cours||R.lance?' disabled':'')+'>Lancer : '+esc(MS_REU_LIB[t].toLowerCase())+'</button>'; };
@@ -12500,6 +12519,10 @@ function msReuHtml(){
   h+='</section><section class="ms-reu-s"><button type="button" class="ms-reu-h" data-act="reuSection" data-s="lec" aria-expanded="'+!!o.lec+'">Leçons retenues <small>'+nLec+' au total · elles entrent dans les consignes de l’agent</small></button>';
   if(o.lec) h+='<div class="ms-reu-c">'+msReuAgentsHtml(d.lecons,'Aucune leçon pour l’instant. Le vendredi, chaque agent peut en retenir une ou deux ; tu pourras les retirer ici.',function(id,x){
     return '<li><span>'+esc(x.texte)+'</span><button type="button" class="ms-lien" data-act="reuRetirer" data-agent="'+esc(id)+'" data-id="'+esc(x.id)+'" aria-label="Retirer cette leçon de '+esc(msReuNom(id))+'">Retirer</button></li>'; })+'</div>';
+  /* Les réunions DEMANDÉES À VICTOR (28 octobre 2026) : elles se lancent seules à leur heure ; Justin les voit ici et les annule d'un geste. */
+  var pl=Array.isArray(d.planifiees)?d.planifiees:[];
+  if(pl.length) h+='</section><section class="ms-reu-s ms-reu-pl"><div class="ms-reu-plh" role="heading" aria-level="3">Réunions prévues <small>'+pl.length+' · elles se lancent seules à leur heure</small></div><ul class="ms-reu-pll">'+pl.map(function(x){
+    return '<li><div><b>'+esc(x.libelle)+'</b><span>« '+esc(x.sujet)+' » · '+esc(x.participants)+' ('+esc(String(x.nb))+' agent'+(x.nb>1?'s':'')+')</span></div><button type="button" class="ms-reu-plx" data-act="reuAnnuler" data-id="'+esc(x.id)+'"'+(R.annule?' disabled':'')+'>Annuler</button></li>'; }).join('')+'</ul>';
   return h+'</section>';
 }
 function messPeindreReunions(){
@@ -12530,6 +12553,30 @@ function messReunionLancer(type){
     else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
     messPeindreReunions(); return x;
   },function(){ R.lance=false; toast(INJOIGNABLE); messPeindreReunions(); return null; });
+}
+function messReunionAnnuler(id){
+  var R=MS.reu, x=R.d&&Array.isArray(R.d.planifiees)?R.d.planifiees.filter(function(y){ return y.id===id; })[0]:null;
+  if(!x||R.annule||!confirm('Annuler la réunion du '+x.libelle+' ?\n\n« '+x.sujet+' »')) return Promise.resolve(null);
+  R.annule=true; messPeindreReunions();
+  return apiPost('/api/monitor/agents/reunions/annuler',{id:id}).then(function(r){
+    R.annule=false;
+    if(r.ok){ toast('Réunion annulée.'); R.d.planifiees=R.d.planifiees.filter(function(y){ return y.id!==id; }); messReunionsCharger(); messFilTot(); }
+    else toast((r.d&&r.d.error)||('Le serveur a refusé ('+r.status+').'));
+    messPeindreReunions(); return r;
+  },function(){ R.annule=false; toast(INJOIGNABLE); messPeindreReunions(); return null; });
+}
+function messMessageSupprimer(id){
+  var m=(MS.msgs||[]).filter(function(x){ return x.id===id; })[0];
+  if(!m||MS.supEnVol) return Promise.resolve(null);
+  var apercu=String(m.texte||'').replace(/\s+/g,' ').slice(0,120);
+  if(!confirm('Supprimer ce message ?\n\n« '+apercu+(String(m.texte||'').length>120?'…':'')+' »\n\nIl disparaît du fil, et les agents ne le relisent plus.')) return Promise.resolve(null);
+  MS.supEnVol=true;
+  return apiPost('/api/monitor/conversations/supprimer',{id:id}).then(function(x){
+    MS.supEnVol=false;
+    if(x.ok||x.status===404){ MS.msgs=MS.msgs.filter(function(y){ return y.id!==id; }); if(MS.dernier===id) MS.dernier=MS.msgs.length?MS.msgs[MS.msgs.length-1].id:''; messPeindreFil(false); toast(x.ok?'Message supprimé.':'Ce message était déjà supprimé.'); }
+    else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    return x;
+  },function(){ MS.supEnVol=false; toast(INJOIGNABLE); return null; });
 }
 function messLeconRetirer(agent,id){
   var d=MS.reu.d, l=d&&d.lecons&&d.lecons[agent]?d.lecons[agent].filter(function(x){ return x.id===id; })[0]:null;
@@ -12905,6 +12952,8 @@ function messClic(ev){
   else if(a==='reuPlier'){ MS.reu.plie=!MS.reu.plie; messPeindreReunions(); }
   else if(a==='reuSection'){ var k=el.getAttribute('data-s'); MS.reu.ouvert[k]=!MS.reu.ouvert[k]; messPeindreReunions(); }
   else if(a==='reuLancer') messReunionLancer(el.getAttribute('data-type'));
+  else if(a==='msgSupprimer') messMessageSupprimer(el.getAttribute('data-id'));
+  else if(a==='reuAnnuler') messReunionAnnuler(el.getAttribute('data-id'));
   else if(a==='reuRetirer') messLeconRetirer(el.getAttribute('data-agent'),el.getAttribute('data-id'));
   else if(a.indexOf('pf')===0) messPfClic(el);
   else if(/^pa[A-Z]/.test(a)&&typeof paClic==='function') paClic(el);
