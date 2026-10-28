@@ -57,7 +57,7 @@ M = [
     ('supprimer : Justin n\'est plus administrateur du geste', S + 'pont-agents.js', "pour: 'tous', admin: true });", "pour: 'tous', admin: false });", ['3090']),
     ('supprimer : n\'importe quel fil', S + 'pont-agents.js', "if (typeof b.fil !== 'string' || !Object.prototype.hasOwnProperty.call(t.fils, b.fil) || !Number.isInteger(b.seq) || b.seq < 1) return refus(res, 400, 'champ_invalide');", "if (typeof b.fil !== 'string' || !Number.isInteger(b.seq) || b.seq < 1) return refus(res, 400, 'champ_invalide');", ['3090']),
     # ── app.js ──
-    ('app : le pont repasse par le plafond d\'écriture par compte', S + 'app.js', " && r.garde !== 'LV' && r.garde !== 'PT') chaine.push(limiteEcriture);", " && r.garde !== 'LV') chaine.push(limiteEcriture);", ['3090']),
+    ('app : le pont repasse par le plafond d\'écriture par compte', S + 'app.js', " && r.garde !== 'PT' && r.id !== 'salles.annot') chaine.push(limiteEcriture);", " && r.id !== 'salles.annot') chaine.push(limiteEcriture);", ['3090']),
     ('app : la garde PT n\'est plus montée', S + 'app.js', "  garde.PT = gardePont(ctx);", "  garde.PT = [(req, res, next) => next()];", ['3090']),
     # ── côté Tour : pont-messages.js ──
     ('tour : le secret part vers n\'importe quelle adresse', V + 'pont-messages.js', "const BOUCLE = /^http:\\/\\/(127\\.0\\.0\\.1|localhost|\\[::1\\])(:\\d{2,5})?\\/?$/;", "const BOUCLE = /^https?:\\/\\//;", ['3092']),
@@ -69,7 +69,6 @@ M = [
     ('tour : la file n\'est plus bornée', V + 'pont-messages.js', "while (file.length > FILE_MAX) {", "while (file.length > 1e9) {", ['3092']),
     ('tour : plus d\'attente après un échec', V + 'pont-messages.js', "attenteJusqua = horloge() + attenteMs;", "attenteJusqua = 0;", ['3092']),
     ('tour : le 429 n\'est plus respecté', V + 'pont-messages.js', "if (r.status === 429) { const s = parseInt(r.headers.get('retry-after') || '', 10); return panne(Number.isInteger(s) && s > 0 ? s * 1000 : 0); }", "if (r.status === 429) return panne(0);", ['3092']),
-    ('tour : une panne jette la file', V + 'pont-messages.js', "} catch (e) { panne(); journal('envoi : ' + ((e && e.name) || 'erreur')); }", "} catch (e) { file.length = 0; panne(); }", ['3092']),
     ('tour : l\'échec ne se compte plus', V + 'pont-messages.js', "if (!echecDepuis) echecDepuis = horloge();", "", ['3092']),
     ('tour : un lot refusé (400) boucle', V + 'pont-messages.js', "if (r.statut === 400) { for (const it of lot) { quitter(it); compte.rejets++; } journal('lot refusé (400)'); continue; }", "if (r.statut === 400) return;", ['3092']),
     ('tour : un refus définitif retient la file', V + 'pont-messages.js', "else if (x && REJETS.includes(x.raison)) { quitter(it); compte.rejets++; journal('message refusé : ' + x.raison); }", "else if (x && REJETS.includes(x.raison)) { sauver(); return; }", ['3092']),
@@ -80,7 +79,7 @@ M = [
     ('tour : la note « texte seul » n\'est plus dite', V + 'pont-messages.js', "if (e.genre !== 'texte' || typeof e.texte !== 'string') { noteTexteSeul(e.fil); return true; }", "if (e.genre !== 'texte' || typeof e.texte !== 'string') { return true; }", ['3091', '3092']),
     ('tour : un message qui n\'est pas du texte entre au registre', V + 'pont-messages.js', "if (e.genre !== 'texte' || typeof e.texte !== 'string') { noteTexteSeul(e.fil); return true; }", "if (typeof e.texte !== 'string') { noteTexteSeul(e.fil); return true; }", ['3092']),
     ('tour : un message déjà entré rentre une seconde fois', V + 'pont-messages.js', "if (!conversations.filValide(e.fil) || parSeq.has(e.fil + '#' + e.seq)) return true;", "if (!conversations.filValide(e.fil)) return true;", ['3092']),
-    ('tour : un registre d\'état illisible est réécrit', V + 'pont-messages.js', "if (illisible) return false;\n    const lies = [];", "const lies = [];", ['3092']),
+    ('tour : un registre d\'état illisible est cru lisible (le pont parle quand même)', V + 'pont-messages.js', "const illisible = fichier.illisible(F);", "const illisible = false;", ['3092']),
     ('tour : un registre illisible laisse démarrer', V + 'pont-messages.js', "if (illisible) { journal('⛔ ' + F + ' illisible : le pont ne démarre pas (le réparer, puis redémarrer)'); return; }", "", ['3092']),
     ('tour : la suppression de la Tour n\'est plus dite', V + 'pont-messages.js', "enfiler({ k: 's', id: x.id, fil: x.fil });", "", ['3091', '3092']),
     ('tour : la suppression vise le mauvais numéro', V + 'pont-messages.js', "{ fil: v.fil, seq: v.seq });", "{ fil: v.fil, seq: v.seq + 1 });", ['3091', '3092']),
