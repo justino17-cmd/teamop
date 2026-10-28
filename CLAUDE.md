@@ -14,6 +14,11 @@ tard ; `op-fs.js` et son banc sont conservés pour ce jour-là. **Ne pas rebranc
 sur le socle d'OP GESTION** — et se rappeler qu'« éteindre Firebase » (étapes E et F) ne peut
 pas être total tant qu'OP MESSAGES y vit.
 
+🌉 **LES AGENTS DE LA TOUR PARLENT À JUSTIN DANS OP MESSAGES (28 octobre 2026)** — par un PONT, jamais par le socle : `server/pont-messages.js` appelle, en HTTP
+sur la boucle locale, les routes `/api/pont/*` de `server-msg/pont-agents.js` (secret à part, empreinte côté OP MESSAGES, inerte sans configuration). `server/conversations.js`
+reste le registre que les agents relisent ; le pont ne leur retire rien et ne dépend jamais d'OP MESSAGES. `server-msg/` n'importe toujours pas `server/`. Mode d'emploi et
+limites : `server-msg/PONT-AGENTS.md` ; bancs `test-3090` à `3093`.
+
 📍 **Avant toute chose, lire `REPRISE.md`** — les chantiers ouverts, les dettes connues et ce
 qui attend une décision de Justin. Une conversation meurt, le dépôt reste : ce fichier est la
 seule mémoire qui passe de l'une à l'autre. Le tenir à jour quand un chantier change d'état.

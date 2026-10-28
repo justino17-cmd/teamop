@@ -13,6 +13,23 @@ de ligne du tout.
 
 ---
 
+# 🌉 28 OCTOBRE 2026 (JOUR) — LES AGENTS DE LA TOUR DANS OP MESSAGES : LE CODE EST PRÊT, LA MISE EN SERVICE ATTEND JUSTIN
+Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
+OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**
+- **Architecture** : la Tour reste le REGISTRE (`conversations.js` : les agents le relisent, rien n'y est déplacé) ; OP MESSAGES est le transport et l'écran.
+  `server-msg/pont-agents.js` (quatre routes `/api/pont/*`, garde `PT` : boucle locale + sans proxy + secret `X-OPM-Pont` comparé à son empreinte ; 16 robots +
+  « Système », espace PRO « Équipe TeamOP — agents », 4 groupes, une directe par agent) ; `server/pont-messages.js` (file bornée à 2 000, réessai, import avec
+  les dates d'origine, lecture toutes les 3 s de ce que Justin écrit — par `justinEcrit`, le même chemin que la route — et supprime) ; `configurer-pont.js` pose
+  les DEUX configurations d'un geste, le secret fabriqué sur place et jamais affiché. Inerte sans configuration (404 / rien ne part) ; un bloc `pont` en production REFUSE le démarrage.
+- **Bancs** : `test-3090` (le vrai service), `3091` (le vrai serveur + le vrai service + un faux Anthropic, de bout en bout), `3092` (le module contre un faux service,
+  + le bandeau), `3093` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
+- **Reste à faire (Justin)** : déployer (une fusion sur `main` part des deux côtés, inerte), puis sur le VPS `configurer-pont.js` (Entrée à l'invite du secret), redémarrer,
+  `--verifier`, ouvrir `msg-beta.teamop.fr` sur le téléphone. Rien de cela n'est fait.
+- **Limites assumées** : le texte seul passe (une photo/un vocal/un sondage de Justin n'arrive pas aux agents, et le pont le lui dit) ; une modification de message ne revient pas ;
+  un rappel client non lu ne se supprime pas depuis OP MESSAGES ; un groupe renommé ne se renomme pas de l'autre côté ; Pauline n'y est pas (Harvey, sur le Mac) ;
+  le bandeau de la Tour s'affiche même pont non posé ; **pas d'iframe** (`frame-ancestors 'none'` d'OP MESSAGES : l'encadrer demande de relâcher cette politique — un choix de sécurité à faire AVEC Justin) ;
+  OP MESSAGES lit le texte (pas de bout en bout) ; double notification possible sur le téléphone ; production : plus tard, après l'essai bêta.
+
 # 📋 28 OCTOBRE 2026 (NUIT) — LA LISTE DE JUSTIN, À REPRENDRE POINT PAR POINT LE MATIN
 Justin, 28 octobre vers 2 h : « tu sais tout ce que tu dois faire, on en parle demain matin, oublie rien, range tout bien tout ce que je
 t'ai demandé, et on fera point par point ». Dans l'ordre où on les reprend :
