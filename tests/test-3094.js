@@ -466,6 +466,40 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
         v('⛔ un robot créé à l\'instant (« hugo ») NE reprend PAS l\'empreinte oubliée dans la table : `avatars` ne la rend pas, et sa première photo est posée', [neuf.j.creees.personnes, 'hugo' in neuf.j.avatars, (await avatar('hugo', BLEU)).j], [1, false, { ok: true, deja: false }]);
       }
 
+      /* ── ⛔ UNE RÉINSTALLATION PENDANT LE DÉPÔT : la photo ne s'attache pas à l'ANCIEN groupe (relecture de `gardien`, 28 octobre 2026) ──
+         L'envoi est tenu à mi-corps (la longueur annoncée, la moitié des octets), le temps que Justin quitte le groupe et que l'installation le RECRÉE ; puis l'autre moitié part. */
+      {
+        const avantLignes = lignesPieces().length;
+        const courant = async () => (await justin.get('/api/conversations')).j.conversations.filter(c => c.type === 'groupe' && c.nom === 'Clients');
+        const ancien = (await courant())[0];
+        let recree = null;
+        const reponse = await new Promise((resolve) => {
+          const q = http.request({ host: '127.0.0.1', port: svc.port, method: 'POST', path: '/api/pont/avatar?cible=clients', agent: false,
+            headers: { 'X-OPM-Pont': SECRET, 'Content-Type': 'application/octet-stream', 'Content-Length': String(BLEU.length), 'X-OPM-Empreinte': sha(BLEU) } }, (r) => {
+            const parts = []; r.on('data', d => parts.push(d)); r.on('end', () => { let j = null; try { j = JSON.parse(Buffer.concat(parts).toString('utf8')); } catch (e) {} resolve({ code: r.statusCode, j }); });
+          });
+          q.setTimeout(8000, () => { q.destroy(); resolve({ code: 0, j: null }); });
+          q.on('error', () => resolve({ code: 0, j: null }));
+          const moitie = Math.floor(BLEU.length / 2);
+          q.write(BLEU.subarray(0, moitie));
+          setTimeout(async () => {
+            await justin.post('/api/conversations/' + ancien.id + '/quitter', {});
+            const re2 = await nu.post('/api/pont/installer', { agents: AG4.concat([{ id: 'hugo', nom: 'Hugo', role: 'Veille' }]), groupes: GP }, pont);
+            recree = re2.j && re2.j.creees && re2.j.creees.conversations;
+            q.end(BLEU.subarray(moitie));
+          }, 400);
+        });
+        const maintenant = (await courant())[0];
+        await T.attendre(() => fichiersPieces().length === lignesPieces().length, 4000, 25);
+        const dbr = T.lireBase(base); let tab;
+        try { tab = JSON.parse(dbr.prepare("SELECT v FROM meta WHERE k = 'pont_agents'").get().v); } finally { dbr.close(); }
+        v('(population) le groupe a bien été recréé pendant le dépôt : une autre conversation', [!!ancien, !!maintenant, maintenant && maintenant.id !== ancien.id, recree], [true, true, true, 1]);
+        v('⛔ la photo déposée pendant la réinstallation est REFUSÉE (409 cible_changee) : aucune pièce de plus, le fichier est parti, et la table ne dit pas « posée » pour le groupe neuf', [reponse.code, reponse.j && reponse.j.error, lignesPieces().length, fichiersPieces().length === lignesPieces().length, 'clients' in (tab.avatars || {}), maintenant && !maintenant.avatar], [409, 'cible_changee', avantLignes, true, false, true]);
+        const apres = await avatar('clients', BLEU);
+        const maint2 = (await courant())[0];
+        v('…et la reprise de la Tour (même image, même cible) pose la photo sur le groupe NEUF', [apres.code, apres.j.deja, !!(maint2 && maint2.avatar)], [200, false, true]);
+      }
+
       /* ── le budget : un emballement côté Tour s'arrête (429), et les refus ne coûtent rien ── */
       const avantBudget = lignesPieces().length;
       const reponses = []; for (let i = 0; i < 130; i++) reponses.push(await avatar('victor', ROUGE));

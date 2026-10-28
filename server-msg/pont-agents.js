@@ -343,6 +343,10 @@ function installerPont(H, ctx) {
     let pose;
     try {
       pose = stockage.tx(() => {
+        /* ⛔ LA CIBLE SE RELIT DANS LA TRANSACTION : pendant le dépôt (`await`), une réinstallation a pu recréer le robot ou le groupe — la photo se serait attachée à l'ANCIEN
+           et la table aurait dit « posée » pour le nouveau. Même cible ou rien : sinon le fichier part avec la transaction, et la Tour reprendra au démarrage. */
+        const maintenant = cibleAvatar(lireTable() || {}, cible);
+        if (!maintenant || (maintenant.robot || maintenant.conv) !== (dest.robot || dest.conv)) { const e = new Error('cible_changee'); e.code = 'cible_changee'; throw e; }
         const proprio = dest.robot || dest.par;
         stockage.pieceCreer({ id, proprio, conv: null, genre: 'avatar', taille: r.taille, mime: r.mime, nom: null, ttlMs: config.pieces.orphelineMs });
         const x = stockage.avatarPontPoser(dest.robot ? { piece: id, personne: dest.robot } : { piece: id, conv: dest.conv, par: dest.par });
@@ -352,7 +356,11 @@ function installerPont(H, ctx) {
         ecrireTable(tab);
         return x;
       });
-    } catch (e) { await ctx.pieces.effacer(id).catch(() => {}); throw e; }
+    } catch (e) {
+      await ctx.pieces.effacer(id).catch(() => {});
+      if (e && e.code === 'cible_changee') return refus(res, 409, 'cible_changee');
+      throw e;
+    }
     if (typeof ctx.effacerPieces === 'function') ctx.effacerPieces(pose.pieces);          // l'ancienne photo : le fichier part avec sa ligne
     bilan.avatars++;
     try {
