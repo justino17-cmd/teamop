@@ -569,6 +569,8 @@ process.on('unhandledRejection', (r) => {
    route publique ; un agent appelle `santeCorps(false)`, mêmes champs, aucune fenêtre touchée. */
 app.get('/health', (req, res) => res.json(santeCorps(true)));
 function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
+  /* LE PONT VERS OP MESSAGES (28 octobre 2026) : DEUX NOMBRES, présents SEULEMENT quand le pont est monté — les minutes d'échec d'affilée (la surveillance crie à 30) et la taille de la file (elle crie à 1 000 sur 2 000). Jamais un texte, un fil, un identifiant. */
+  ...(pontMessages ? { pont: pontMessages.sante() } : {}),
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
      la suite se déciderait à l'aveugle : /api/mail/cles est protégée par une clé de
@@ -4695,6 +4697,7 @@ function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
+let pontMessages = null;     // le pont vers OP MESSAGES (`pont-messages.js`) : `null` = pas monté (rien dans la configuration, ou une configuration refusée) — les agents n'en dépendent jamais
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
 let agentLea = null;         // Léa (`agent-lea.js`) : la réponse commerciale à une inscription ou une demande — `null` = pas montée, elle ne prépare rien
@@ -10578,6 +10581,10 @@ try {
       /* Hugo a son module ; les quinze autres (et le fil « Équipe », que Victor tient) passent par la conversation générique. */
       /* La messagerie des agents (`agent-equipe.js`) répond à tout message : le cité, l'agent du fil privé, le meneur du groupe. Si elle n'est pas
          montée, la conversation d'avant reste servie (Hugo par son module, les quinze autres par la conversation générique) — mais seulement pour Justin. */
+      /* LE PONT VERS OP MESSAGES (28 octobre 2026) : chaque message écrit au registre, et chaque suppression, est offert au pont — liaison TARDIVE (il est monté plus bas), et rien ne revient à
+         `conversations.js` : une panne d'OP MESSAGES ne change rien à ce que les agents lisent et écrivent. */
+      surAjout: (m) => { if (pontMessages) pontMessages.surAjout(m); },
+      surRetrait: (x) => { if (pontMessages) pontMessages.surRetrait(x); },
       surMessage: (m) => agentEquipe ? agentEquipe.surMessage(m)
         : (m.de !== 'justin' ? null : (m.fil === 'hugo' ? (agentHugo ? agentHugo.repondre(m.texte) : null) : (agentsConversation ? agentsConversation.repondre(m.fil, m.texte) : null))) });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
@@ -10648,7 +10655,23 @@ try {
     catch (e) { louisMod = null; console.error('Louis indisponible :', e.message); }
     try {
       if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents,
-        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod });
+        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod,
+        /* LE BALAYAGE (28 octobre 2026, Justin : « sans limite ») : les comptes dont l'adresse est PROUVÉE (même règle que la synchro : `comptes.verifie`) et qui n'ont PAS d'espace — un client qui paie
+           ne reçoit pas un courriel de vente. Léa en prend quelques-uns par passage parmi ceux qu'elle n'a jamais servis (inscrits avant elle, ou écartés trois fois). `null` = on ne sait pas : rien. */
+        comptes: () => {
+          let cm = null; try { cm = comptes; } catch (e) { cm = null; }
+          if (!cm || typeof cm.verifie !== 'function') return null;
+          const pris = new Set(Object.values(espacesReg || {}).map(x => String((x && x.email) || '').trim().toLowerCase()).filter(Boolean));
+          /* ⛔ (gardien, 28 octobre 2026) un client qui PAIE ne reçoit jamais un courriel de vente : ni une fiche née de « Payer » (`ficheDePaiement`), ni une fiche qui porte une
+             formule ou un statut d'abonnement, ni une adresse que la liste Stripe connaît. Stripe configuré mais liste pas encore lue : on ne sait pas, donc RIEN (null). */
+          const sk = !!(config.stripe && config.stripe.secretKey);
+          if (sk && !espStripeCache.data) return null;
+          const stripeBrut = espStripeCache.data ? JSON.stringify(espStripeCache.data).toLowerCase() : '';
+          const paie = c => !!(c.ficheDePaiement || c.plan || c.planStatus || (c.choix && c.choix.source === 'paiement') || (stripeBrut && stripeBrut.includes(c.email.trim().toLowerCase())));
+          return Object.values(clientsData || {}).filter(c => c && typeof c.email === 'string' && cm.verifie(c.email) && !pris.has(c.email.trim().toLowerCase()) && !paie(c))
+            .map(c => ({ email: c.email, entreprise: c.entreprise, depuis: Number(c.inscrit) || 0 }));
+        } });
+      if (agentLea) setInterval(() => { agentLea.balayer().catch(e => console.error('léa (balayage) :', e.message)); }, 30 * 60000).unref();
     } catch (e) { agentLea = null; console.error('Léa indisponible :', e.message); }
     /* CHLOÉ : la proposition sur mesure quand le prospect répond à Léa. Les faits qu'elle reçoit sur le prospect sont des VALEURS DE LISTE (métier, nombre, formule) + le nom d'entreprise
        s'il a la forme d'un nom : jamais l'adresse, le téléphone, le prénom ni le nom de la personne. */
@@ -10685,6 +10708,20 @@ try {
         memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
     } catch (e) { agentEquipe = null; console.error('messagerie des agents indisponible :', e.message); }
+    /* LE PONT VERS OP MESSAGES (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place »). Fermé sans `opmsgPont` dans la configuration du VPS ({ secret: <64 hexadécimaux>, url?: http://127.0.0.1:<port> },
+       jamais dans le dépôt) : rien ne part, rien n'est lu. ⛔ Sous son propre `try` : le pont ne retient pas les agents — si son montage échoue, la messagerie de la Tour reste exactement celle d'avant. */
+    try {
+      const pc = config.opmsgPont && typeof config.opmsgPont === 'object' && !Array.isArray(config.opmsgPont) ? config.opmsgPont : null;
+      if (pc) {
+        pontMessages = require('./pont-messages')({ DATA_DIR, conversations: conversationsMod, agents: agentsMod, groupes: require('./conversations').GROUPES, fichier: fichierAgents,
+          url: typeof pc.url === 'string' && pc.url ? pc.url : msgInstanceUrl('beta'), secret: pc.secret,
+          /* les bancs règlent le rythme par la configuration (jamais en production : 3 s pour lire, une demi-seconde pour envoyer) */
+          pasLireMs: Number.isInteger(pc.pasLireMs) && pc.pasLireMs >= 20 ? pc.pasLireMs : undefined, pasEnvoiMs: Number.isInteger(pc.pasEnvoiMs) && pc.pasEnvoiMs >= 20 ? pc.pasEnvoiMs : undefined,
+          attenteMaxMs: Number.isInteger(pc.attenteMaxMs) ? pc.attenteMaxMs : undefined });
+        if (pontMessages) { pontMessages.demarrer(); console.log('pont : la messagerie des agents est recopiée dans OP MESSAGES'); }
+        else console.error('⛔ pont vers OP MESSAGES : configuration refusée (opmsgPont.secret : 64 hexadécimaux ; opmsgPont.url : la boucle locale) — la messagerie de la Tour reste seule');
+      }
+    } catch (e) { pontMessages = null; console.error('pont vers OP MESSAGES indisponible :', e.message); }
     /* LES RÉUNIONS : lundi 9 h les objectifs, vendredi 18 h le bilan (heure de Paris), leçons et objectifs rangés puis injectés dans les consignes des agents.
        Sous son propre `try` : sans elles, les agents parlent comme avant. La vérification est minutée ICI (une fois par minute, plus une première cinq secondes après le
        démarrage : un serveur qui revient dans le créneau de rattrapage rattrape) — `reunions.js` n'arme aucune minuterie lui-même. */

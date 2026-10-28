@@ -55,7 +55,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (150 s)');
       for (const r of hors) {
         const rep = await c.appel(r.m === 'FLUX' ? 'GET' : r.m, params(r.p), r.m === 'GET' ? undefined : {});
         jouees++;
-        if (['P', 'B', 'LV', 'AD'].includes(r.garde)) {
+        if (['P', 'B', 'LV', 'AD', 'PT'].includes(r.garde)) {
           publiques++;
           if ((rep.txt || '').includes('Paul-Canari') || (rep.txt || '').includes(canari) || (rep.txt || '').includes(paul.id)) fuites.push(quand + ' ' + r.id);
           continue;

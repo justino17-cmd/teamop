@@ -6,7 +6,7 @@
        0. la connaissance de l'offre : les faits vrais, les interdits écrits, UN seul exemplaire ; le motif d'un nom d'entreprise est celui de Hugo ;
        1. une inscription produit UN brouillon et UNE validation au résumé composé par le code ; ce qui part chez Claude (rien de la personne) ;
        2. une seule réponse par adresse sur 30 jours, sans jamais écrire l'adresse dans le registre ;
-       3. le plafond du jour (20), qui parle AVANT la file pleine, et qui se lève le lendemain ;
+       3. le plafond du jour (50 depuis le 28 octobre 2026, vingt avant), qui parle AVANT la file pleine, et qui se lève le lendemain ;
        4. un nom d'entreprise hors forme devient « votre entreprise » ; la donnée du client ne ferme pas ses délimiteurs ;
        5. la demande d'application RÉÉCRIT le brouillon qui attend — jamais celui que Justin a corrigé, jamais une validation refusée ;
        6. Léa à l'arrêt, en pause, sans clé, en panne : rien ; un texte de Claude qui sort des bornes n'est jamais rangé ;
@@ -55,7 +55,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     const motifHugo = /const NOM = (\/.*\/u);/.exec(src('agent-hugo.js'));
     vrai('(population) le motif de Hugo est trouvé', !!motifHugo);
     v('le motif d’un nom d’entreprise est EXACTEMENT celui de Hugo', LEA.NOM.toString(), motifHugo && motifHugo[1]);
-    v('PAR_JOUR = 20', LEA.PAR_JOUR, 20);
+    v('PAR_JOUR = 50 (vingt jusqu’au 28 octobre 2026)', LEA.PAR_JOUR, 50);
   }
 
   console.log('\n1. Une inscription : UN brouillon, UNE validation, rien de la personne chez Claude');
@@ -109,16 +109,18 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
     Z.nettoyer();
   }
 
-  console.log('\n3. Le plafond du jour : 20 brouillons, et il parle AVANT la file pleine');
+  console.log('\n3. Le plafond du jour : ' + LEA.PAR_JOUR + ' réponses, et il parle AVANT la file pleine');
   {
-    const Z = monter({ modes: { lea: 'brouillon' } });
+    /* Depuis le 28 octobre 2026 le plafond est de 50 par jour, et la file de Justin ne tient que 20 validations par agent : 50 brouillons ne se déposent plus d'affilée. Le compteur du jour est donc
+       POSÉ à PAR_JOUR − 20 avant le démarrage (le fichier du registre, comme un redémarrage au milieu de la journée) : les vingt dépôts suivants l'amènent exactement au plafond. */
+    const Z = monter({ modes: { lea: 'brouillon' }, avant: D => fs.writeFileSync(path.join(D, 'agents-lea.json'), JSON.stringify({ adresses: {}, reprise: {}, jour: { j: '2026-10-23', n: LEA.PAR_JOUR - 20, recherches: 0 } })) });
     let deposes = 0;
     for (let i = 0; i < 20; i++) if ((await Z.lea.surInscription({ entreprise: 'Société ' + i + 'x', email: 'p' + i + '@plafond-2862.fr' })).depose) deposes++;
-    v('(population) vingt brouillons déposés', deposes, 20);
+    v('(population) vingt brouillons déposés, le compteur du jour est au plafond', [deposes, Z.fichierJson('agents-lea.json').jour.n], [20, LEA.PAR_JOUR]);
     const r21 = await Z.lea.surInscription({ entreprise: 'Société Vingt-et-une', email: 'p21@plafond-2862.fr' });
-    v('⛔ le vingt-et-unième est refusé par le PLAFOND DU JOUR', r21, { saute: 'plafond_jour' });
+    v('⛔ la suivante est refusée par le PLAFOND DU JOUR (avant la file pleine)', r21, { saute: 'plafond_jour' });
     v('…sans appeler Claude (20 appels, pas 21)', Z.recus.length, 20);
-    vrai('…et le journal le dit', Z.journal().some(e => e.agent === 'lea' && e.resultat === 'refuse' && /plafond du jour \(20\)/.test(e.detail || '')));
+    vrai('…et le journal le dit', Z.journal().some(e => e.agent === 'lea' && e.resultat === 'refuse' && new RegExp('plafond du jour \\(' + LEA.PAR_JOUR + '\\)').test(e.detail || '')));
     Z.horloge.t += JOUR;
     const r22 = await Z.lea.surInscription({ entreprise: 'Société Lendemain', email: 'p22@plafond-2862.fr' });
     vrai('le lendemain le plafond est levé : ce qui refuse alors, c’est la file de validations pleine (20 en attente), et elle le dit', r22.saute === 'file_pleine', JSON.stringify(r22));

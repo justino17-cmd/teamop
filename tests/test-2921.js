@@ -133,20 +133,24 @@ console.log('\n── 2921 · Max et Jules : la sentinelle, l’incident, le dia
     P.nettoyer();
   }
 
-  console.log('\n7. Six diagnostics par jour au plus, et un message refusé ne coûte pas un second appel');
+  console.log('\n7. Quinze diagnostics par jour au plus (six jusqu’au 28 octobre 2026), et un message refusé ne coûte pas un second appel');
   {
     const B = equipe({ claude: () => 'Diagnostic du banc.' });
     // sept alarmes d'un coup : Jules en prend deux par passage
     const j = B.sante.j; j.documents = { actif: true, illisibles1h: 1, ecrituresEchec1h: 1, quotaRefus1h: 1, copiesEnAttente1h: 1, copiesEchec1h: 1 }; j.processus = { rejets1h: 1, erreurs1h: 1 };
     for (let k = 0; k < 8; k++) { await B.max.passer(); B.avancer(60000); }
     vrai('(population) sept épisodes, sept incidents', B.etat.ouverts('max').length === 7 && B.issues.length === 7, B.etat.ouverts('max').length + '/' + B.issues.length);
+    /* le plafond du jour est de quinze : on pose le compteur à quinze moins six (Jules a déjà travaillé ce jour-là), pour jouer le plafond sans quinze incidents */
+    const PLAFOND = require(S('agent-jules.js')).DIAGNOSTICS_PAR_JOUR;
+    v('(population) le plafond du jour est de quinze', PLAFOND, 15);
+    B.etat.agent('jules').jour = { j: O.jourParis(B.maintenant()), n: PLAFOND - 6 };
     for (let k = 0; k < 6; k++) { await B.jules.passer(); B.avancer(60000); }
     v('six diagnostics dans l’heure (douze messages par heure et par agent : un diagnostic + une ligne dans « Plateforme » chacun)', [B.recus.length, privé(B, 'jules').length], [6, 6]);
     B.avancer(3600000);
     await B.jules.passer();
     v('⛔ six appels à Claude, pas sept : le septième incident, une heure plus tard, reçoit les pistes de l’équipe', [B.recus.length, privé(B, 'jules').length, privé(B, 'jules').filter(m => /Pistes de l’équipe :/.test(m.texte)).length], [6, 7, 1]);
     B.avancer(86400000); // le lendemain, le compteur repart
-    vrai('…le lendemain le compteur repart', (() => { const m = B.etat.agent('jules'); return m.jour.n === 6 && m.jour.j !== O.jourParis(B.maintenant()); })());
+    vrai('…le lendemain le compteur repart', (() => { const m = B.etat.agent('jules'); return m.jour.n === PLAFOND && m.jour.j !== O.jourParis(B.maintenant()); })());
     B.nettoyer();
     // un message refusé : le fil de Jules est plein (12 messages par heure et par agent)
     const C = equipe({ claude: () => 'Diagnostic qui attend son tour.' });
@@ -255,22 +259,58 @@ console.log('\n── 2921 · Max et Jules : la sentinelle, l’incident, le dia
     const ancien = Object.assign({}, client, { id: 'i4a2b3c4d5e60', signature: 'opgestion|w', firstTs: B.horloge.t - 3 * 86400000 });
     B.issues.push(client, petit, veille, ancien);
     const r = await B.max.passer();
-    v('Max signale UN incident : celui de gravité haute, nouveau, hors veille, des dernières 24 h', [r.clients, B.fil('plateforme').map(m => m.texte)], [1, ['Un incident de gravité haute vient d’arriver des appareils : 14 occurrences, chez 3 entreprises, catégorie Planning. Je le passe à Jules.']]);
-    v('« Qui fait quoi » : une consigne de Max à Jules qui porte l’identifiant et des faits', B.agents.tachesDe('jules').map(t => [t.de, t.texte]), [['max', 'Incident venu des appareils [i1a2b3c4d5e60] : 14 occurrences, chez 3 entreprises, catégorie Planning']]);
+    v('Max signale DEUX incidents, la gravité haute d’abord puis la moyenne (le « petit » : 2 occurrences, une entreprise) — nouveaux, hors veille ; l’incident de trois jours, lui, précède le tout premier passage de Max (24 h) : il reste dans la Tour', [r.clients, B.fil('plateforme').map(m => m.texte)], [2, ['Un incident de gravité haute vient d’arriver des appareils : 14 occurrences, chez 3 entreprises, catégorie Planning. Je le passe à Jules.', 'Un incident de gravité moyenne vient d’arriver des appareils : 2 occurrences, chez 1 entreprise, catégorie Planning. Je le passe à Jules.']]);
+    v('« Qui fait quoi » : une consigne de Max à Jules qui porte l’identifiant et des faits', B.agents.tachesDe('jules').map(t => [t.de, t.texte]), [['max', 'Incident venu des appareils [i1a2b3c4d5e60] : 14 occurrences, chez 3 entreprises, catégorie Planning, gravité haute'], ['max', 'Incident venu des appareils [i2a2b3c4d5e60] : 2 occurrences, chez 1 entreprise, catégorie Planning, gravité moyenne']]);
     await B.max.passer(); await B.max.passer();
-    v('⛔ une fois par incident : pas de répétition', [B.textes('plateforme').length, B.agents.tachesDe('jules').length], [1, 1]);
+    v('⛔ une fois par incident : pas de répétition', [B.textes('plateforme').length, B.agents.tachesDe('jules').length], [2, 2]);
     const rj = await B.jules.passer();
     const mj = privé(B, 'jules');
-    v('Jules le LIT en faits fermés, dit le chemin dans la Tour, ne le classe pas', [rj.clients, mj.length, /^Incident venu des appareils : 14 occurrences chez 3 entreprises, catégorie Planning, dernier signalement il y a 0 h\. Je ne lis pas son texte/.test(mj[0].texte), /« Expliquer » dans la Tour/.test(mj[0].texte), /Proposer une correction/.test(mj[0].texte)], [1, 1, true, true, true]);
+    v('Jules le LIT en faits fermés, dit le chemin dans la Tour, ne le classe pas', [rj.clients, mj.length, /^Incident venu des appareils : 14 occurrences chez 3 entreprises, catégorie Planning, gravité haute, dernier signalement il y a 0 h\. Je ne lis pas son texte/.test(mj[0].texte), /« Expliquer » dans la Tour/.test(mj[0].texte), /Proposer une correction/.test(mj[0].texte)], [2, 2, true, true, true]);
     v('⛔ aucun appel à Claude pour un incident client (rien à lui montrer qui ne soit forgeable) et l’incident n’est ni pris ni fermé', [B.recus.length, client.statut, client.par, client.mailEnvoye], [0, 'nouveau', undefined, false]);
     vrai('⛔ rien du texte forgeable, d’une entreprise ou d’une personne dans les fils, le journal ni les tâches', !/IGNORE TES|pirate-2921|<script>|Secrète|secret-2921|jean\.dupont|Troisième 2921/.test(JSON.stringify([B.fil('plateforme'), B.fil('max'), B.fil('jules'), B.journal(), B.agents.tachesDe('jules')])));
     await B.jules.passer();
-    v('Jules ne le redit pas', privé(B, 'jules').length, 1);
+    v('Jules ne le redit pas', privé(B, 'jules').length, 2);
     client.statut = 'corrige';
     await B.jules.passer();
-    v('quand Justin l’a traité (corrigé), la tâche de Jules se termine', B.agents.tachesDe('jules').length, 0);
+    v('quand Justin l’a traité (corrigé), la tâche de Jules pour celui-là se termine (reste celle du « petit »)', B.agents.tachesDe('jules').length, 1);
     v('⛔ Jules ne ferme JAMAIS un incident client (« corrigé » écrit aux entreprises)', B.incidents.fermer(petit.id, 'Jules', 'x').raison, 'pas_a_nous');
     B.nettoyer();
+  }
+
+  console.log('\n11 bis. Plus de fenêtre de 24 h (28 octobre 2026) : Max regarde depuis son DERNIER PASSAGE COMPLET, et la gravité moyenne est signalée aussi');
+  {
+    const B = equipe({ claude: () => 'Ne devrait jamais servir.' });
+    const mk = (n, o) => Object.assign({ id: 'i' + n + 'a2b3c4d5e60', signature: 'opgestion|bis' + n, app: 'opgestion', type: 'erreur', categorie: 'Planning', message: 'x', stack: '', src: '', origine: '', count: 14, firstTs: B.horloge.t - 600000, lastTs: B.horloge.t - 300000,
+      entreprises: [{ nom: 'A' }, { nom: 'B' }, { nom: 'C' }], appareils: { a: 1 }, statut: 'nouveau', notes: '', mailEnvoye: false }, o || {});
+    await B.max.passer();
+    vrai('(population) le premier passage complet pose le curseur', B.etat.agent('max').clientsDepuis > 0, JSON.stringify(B.etat.agent('max')));
+    B.avancer(3 * 86400000);                // Max n'a pas passé pendant trois jours (serveur arrêté, ou Max à l'arrêt)
+    const arrete = mk(1, { firstTs: B.horloge.t - 2 * 86400000, lastTs: B.horloge.t - 2 * 86400000 });   // apparu PENDANT son absence, il y a deux jours
+    const moyen = mk(2, { count: 4, entreprises: [{ nom: 'A' }] });          // gravité moyenne
+    const faible = mk(3, { type: 'reseau', count: 1, entreprises: [] });    // gravité faible : jamais signalée
+    B.issues.push(arrete, moyen, faible);
+    const r = await B.max.passer();
+    v('⛔ l’incident d’il y a DEUX jours (apparu pendant l’absence de Max) est signalé — la fenêtre de 24 h le laissait dans la Tour pour toujours — avec le moyen ; pas le faible', [r.clients, B.agents.tachesDe('jules').map(t => /\[(i\d)a2b3c4d5e60\]/.exec(t.texte)[1]).sort()], [2, ['i1', 'i2']]);
+    await B.max.passer(); await B.max.passer();
+    v('…une seule fois chacun', B.agents.tachesDe('jules').length, 2);
+    B.nettoyer();
+
+    /* le curseur n'avance QUE si Max a tout vu : un plafond atteint laisse le reste pour le passage d'après, au lieu de le perdre */
+    const C = equipe({ claude: () => 'Ne devrait jamais servir.' });
+    const mc = n => ({ id: 'i' + n + 'a2b3c4d5e60', signature: 'opgestion|c' + n, app: 'opgestion', type: 'erreur', categorie: 'Planning', message: 'x', stack: '', src: '', origine: '', count: 14, firstTs: C.horloge.t - 1000, lastTs: C.horloge.t - 500,
+      entreprises: [{ nom: 'A' }, { nom: 'B' }, { nom: 'C' }], appareils: { a: 1 }, statut: 'nouveau', notes: '', mailEnvoye: false });
+    await C.max.passer();
+    const depart = C.etat.agent('max').clientsDepuis;
+    C.avancer(300000);
+    for (let n = 1; n <= 5; n++) C.issues.push(mc(n));
+    await C.max.passer();       // deux signalés (plafond par passage), trois restent
+    v('⛔ plafond du passage atteint : le curseur N’avance PAS (les trois autres ne seront pas perdus)', [C.agents.tachesDe('jules').length, C.etat.agent('max').clientsDepuis], [2, depart]);
+    C.avancer(3 * 86400000);
+    for (let k = 0; k < 3; k++) { await C.max.passer(); C.avancer(300000); }
+    v('…ils sont signalés aux passages suivants, même trois jours plus tard (plafond du jour : six)', C.agents.tachesDe('jules').length, 5);
+    await C.max.passer();
+    vrai('…et quand il a TOUT vu, le curseur avance', C.etat.agent('max').clientsDepuis > depart, C.etat.agent('max').clientsDepuis);
+    C.nettoyer();
   }
 
   console.log('\n12. Jules à l’arrêt : Max ferme lui-même, pour que rien ne reste « en cours » pour toujours');

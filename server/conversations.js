@@ -188,11 +188,17 @@ module.exports = function monterConversations(app, ctx) {
     for (const x of liste) { if (sortir.size >= exces) break; sortir.add(x); }
     return liste.filter(x => !sortir.has(x));
   }
-  function ajouter(m) {
+  /* `sansEcho` : le message VIENT d'OP MESSAGES (le pont, `pont-messages.js`) — le recopier là-bas le ferait revenir à sa source. */
+  function ajouter(m, sansEcho) {
     const avant = messages;
     messages = elaguer(avant.concat([m]));
     /* un échec d'écriture rend le registre EXACTEMENT comme il était — évincés compris (l'ancienne version ne retirait que le dernier). */
     if (!ecrire()) { messages = avant; return false; }
+    /* LE PONT VERS OP MESSAGES (28 octobre 2026) : tout message écrit au registre — agent, système, Justin — est offert à `surAjout`, qui le recopie dans OP MESSAGES. Sans attendre et sans
+       JAMAIS faire échouer l'écriture : une panne d'OP MESSAGES ne change rien à ce que les agents lisent et écrivent ici. Une COPIE : le pont ne touche pas au registre. */
+    if (!sansEcho && typeof ctx.surAjout === 'function') {
+      try { ctx.surAjout({ id: m.id, ts: m.ts, fil: m.fil, de: m.de, texte: m.texte, niveau: m.niveau, lu: m.lu === true, prof: m.prof || 0, dossier: m.dossier || '' }); } catch (e) { console.error('pont messages :', e && e.message); }
+    }
     return true;
   }
   /* Prévenir l'équipe qu'un message est arrivé — sans attendre et sans JAMAIS faire échouer l'écriture. `surMessage(m)` reçoit une copie du message ;
@@ -306,34 +312,48 @@ module.exports = function monterConversations(app, ctx) {
     if (apres) { const i = tous.findIndex(m => m.id === apres); if (i >= 0) { liste = tous.slice(i + 1).slice(-LISTE_MAX); complet = false; } }
     res.json({ ok: true, fil: f, nom: nomDuFil(f), groupe: GROUPES.includes(f), membres: membresDe(f), meneur: meneurDe(f), ecrit: quiEcrit(f), complet, messages: liste.map(vue) });
   });
-  app.post('/api/monitor/conversations/envoyer', monPatronStrict, (req, res) => {
-    if (illisible) return res.status(503).json({ error: 'Les conversations sont illisibles' });
-    const b = req.body || {};
-    if (!filValide(b.fil)) return res.status(400).json({ error: 'Fil inconnu' });
-    const t = propre(b.texte, TEXTE_PATRON_MAX);
-    if (!t) return res.status(400).json({ error: 'Message vide' });
-    const m = { id: crypto.randomBytes(6).toString('hex'), ts: maintenant(), fil: b.fil, de: 'justin', texte: t, niveau: 'info', lu: true, prof: 0, mentions: mentionsDe(t, b.fil) };
-    if (!ajouter(m)) return res.status(503).json({ error: 'Message non enregistré' });
+  /* JUSTIN ÉCRIT dans un fil — UN SEUL CHEMIN, pour la route de la Tour ET pour le pont (OP MESSAGES : ce qu'il y écrit entre ici, par la même porte). → `{ok:true, message, mentions}` ou
+     `{ok:false, statut, error}`. `o.sansEcho` : le message vient d'OP MESSAGES, il n'y est pas recopié. */
+  function justinEcrit(fil, texte, o) {
+    if (illisible) return { ok: false, statut: 503, error: 'Les conversations sont illisibles' };
+    if (!filValide(fil)) return { ok: false, statut: 400, error: 'Fil inconnu' };
+    const t = propre(texte, TEXTE_PATRON_MAX);
+    if (!t) return { ok: false, statut: 400, error: 'Message vide' };
+    const m = { id: crypto.randomBytes(6).toString('hex'), ts: maintenant(), fil, de: 'justin', texte: t, niveau: 'info', lu: true, prof: 0, mentions: mentionsDe(t, fil) };
+    if (!ajouter(m, !!(o && o.sansEcho))) return { ok: false, statut: 503, error: 'Message non enregistré' };
     /* L'équipe peut répondre (le cité, l'agent du fil privé, ou le meneur du groupe) : sans attendre, et sans jamais faire échouer l'envoi. */
     declencher(m);
-    res.json({ ok: true, message: vue(m), mentions: m.mentions.slice() });
+    return { ok: true, message: vue(m), mentions: m.mentions.slice() };
+  }
+  app.post('/api/monitor/conversations/envoyer', monPatronStrict, (req, res) => {
+    const r = justinEcrit((req.body || {}).fil, (req.body || {}).texte);
+    if (!r.ok) return res.status(r.statut).json({ error: r.error });
+    res.json({ ok: true, message: r.message, mentions: r.mentions });
   });
   /* SUPPRIMER UN MESSAGE (28 octobre 2026, Justin : « il faudrait aussi que je puisse supprimer les messages »). Le patron seul, n'importe quel message
      (le sien, celui d'un agent, une ligne du système) : il sort du registre, donc de ce que les agents relisent du fil. Tout ou rien — un registre qui ne
      s'écrit pas garde le message (503). Le journal (MON_GESTES) dit le GESTE, jamais le texte. Un identifiant inconnu : 404, rien ne bouge. */
-  app.post('/api/monitor/conversations/supprimer', monPatronStrict, (req, res) => {
-    if (illisible) return res.status(503).json({ error: 'Les conversations sont illisibles' });
-    const id = String((req.body || {}).id || '');
-    if (!/^[a-f0-9]{6,32}$/.test(id)) return res.status(400).json({ error: 'Identifiant de message manquant' });
+  /* RETIRER UN MESSAGE — UN SEUL CHEMIN, pour la route de la Tour ET pour le pont (Justin l'a supprimé dans OP MESSAGES). → `{ok:true, fil}` ou `{ok:false, statut, error}`.
+     `o.sansEcho` : la suppression vient d'OP MESSAGES, elle n'y est pas redite. */
+  function retirer(idBrut, o) {
+    if (illisible) return { ok: false, statut: 503, error: 'Les conversations sont illisibles' };
+    const id = String(idBrut || '');
+    if (!/^[a-f0-9]{6,32}$/.test(id)) return { ok: false, statut: 400, error: 'Identifiant de message manquant' };
     const i = messages.findIndex(m => m && m.id === id);
-    if (i < 0) return res.status(404).json({ error: 'Message introuvable (déjà supprimé ?)' });
+    if (i < 0) return { ok: false, statut: 404, error: 'Message introuvable (déjà supprimé ?)' };
     /* (gardien, 28 octobre 2026) un rappel client non lu n'existe QU'ICI (voir `protege`) : un toucher de travers l'effaçait, et le client n'était jamais
        rappelé. On le lit d'abord (ouvrir le fil le marque lu), on le supprime ensuite. */
-    if (protege(messages[i])) return res.status(409).json({ error: 'Rappel client non lu : ouvre-le d’abord, puis supprime-le' });
+    if (protege(messages[i])) return { ok: false, statut: 409, error: 'Rappel client non lu : ouvre-le d’abord, puis supprime-le' };
     const avant = messages;
     messages = avant.filter((m, k) => k !== i);
-    if (!ecrire()) { messages = avant; return res.status(503).json({ error: 'Suppression non enregistrée : le message reste' }); }
-    res.json({ ok: true, fil: avant[i].fil });
+    if (!ecrire()) { messages = avant; return { ok: false, statut: 503, error: 'Suppression non enregistrée : le message reste' }; }
+    if (!(o && o.sansEcho) && typeof ctx.surRetrait === 'function') { try { ctx.surRetrait({ id, fil: avant[i].fil }); } catch (e) { console.error('pont messages :', e && e.message); } }
+    return { ok: true, fil: avant[i].fil };
+  }
+  app.post('/api/monitor/conversations/supprimer', monPatronStrict, (req, res) => {
+    const r = retirer((req.body || {}).id);
+    if (!r.ok) return res.status(r.statut).json({ error: r.error });
+    res.json({ ok: true, fil: r.fil });
   });
   app.post('/api/monitor/conversations/lire', monPatronStrict, (req, res) => {
     if (illisible) return res.status(503).json({ error: 'Les conversations sont illisibles' });
@@ -388,7 +408,9 @@ module.exports = function monterConversations(app, ctx) {
     return messages.filter(m => m.fil === fil).slice(-k).map(m => ({ id: m.id, de: m.de, texte: m.texte, ts: m.ts, prof: m.prof || 0, mentions: Array.isArray(m.mentions) ? m.mentions.slice() : [] }));
   }
 
-  return { parler, systeme, rappelClient, historique, lire, ecrit, quiEcrit, membres: membresDe, meneur: meneurDe, estMembre, filValide, nom: nomDuFil, MOTIFS, estIllisible: () => illisible };
+  /* Une COPIE du registre, du plus ancien au plus récent : ce que le pont recopie dans OP MESSAGES (l'historique, et ce qu'une panne a laissé en arrière). Rien à écrire par-dessus. */
+  const tous = () => messages.map(m => ({ id: m.id, ts: m.ts, fil: m.fil, de: m.de, texte: m.texte, niveau: m.niveau, lu: m.lu === true, dossier: m.dossier || '' }));
+  return { parler, systeme, rappelClient, historique, lire, ecrit, quiEcrit, membres: membresDe, meneur: meneurDe, estMembre, filValide, nom: nomDuFil, MOTIFS, estIllisible: () => illisible, justinEcrit, retirer, tous };
 };
 module.exports.MOTIFS = MOTIFS;
 module.exports.MEMBRES = MEMBRES;
