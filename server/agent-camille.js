@@ -634,12 +634,16 @@ module.exports = function camille(ctx) {
   /* L'outil de Camille dans la messagerie : reprendre l'arriéré quand JUSTIN le demande (le module le vérifie, pas le prompt). La reprise tourne en tâche de fond : le bilan arrive dans
      son fil privé avec Justin. */
   const outilsEquipe = {
-    outils: [{ name: 'reprendre_courriels_anciens', description: 'Reprendre MAINTENANT les courriels que personne n’a traités (ni répondus, ni pris) dans contact@ et support@, toute la boîte par défaut, le plus ancien d’abord, avec tes règles habituelles. Toute réponse attend la validation de Justin. Seulement quand Justin te le demande ; la reprise tourne déjà seule toutes les 30 minutes.',
+    outils: [{ name: 'reprendre_courriels_anciens', description: 'Reprendre MAINTENANT les courriels que personne n’a traités (ni répondus, ni pris) dans contact@ et support@, toute la boîte par défaut, le plus ancien d’abord, avec tes règles habituelles. Toute réponse attend la validation de Justin. Seulement quand Justin ou Victor te le demande ; la reprise tourne déjà seule toutes les 30 minutes.',
       input_schema: { type: 'object', properties: { jours: { type: 'integer', minimum: 1, maximum: 3650, description: 'Combien de jours en arrière (toute la boîte par défaut).' } }, additionalProperties: false } }],
     executer(nom, e, c) {
       if (nom !== 'reprendre_courriels_anciens') return { ok: false, raison: 'inconnu' };
-      if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Je ne lance la reprise à la demande que sur un message de Justin — elle tourne déjà seule, toutes les 30 minutes.' };
-      if (!demandeDeReprise(c.texte)) return { ok: false, raison: 'pas_demande', ligne: 'Je ne lance la reprise à la demande que si le message de Justin demande de traiter le courrier — elle tourne déjà seule, toutes les 30 minutes.' };
+      /* (28 octobre 2026, soir) Justin OU Victor. Le fil Équipe tournait en rond : Victor, chef d'orchestre, demandait la reprise et Camille répondait « pas_justin ».
+         Justin : « je veux des agents autonomes de A à Z ». Victor ne lit que les fils (Justin, les agents) et des faits fermés, jamais un texte de client : sa demande
+         ne porte rien d'extérieur. La reprise ne répond à personne sans validation (brouillons) et tourne déjà seule toutes les 30 minutes : la lancer plus tôt ne
+         donne rien de plus. La garde de la PHRASE reste (demandeDeReprise) : une question d'état ne lance rien. Les autres collègues passent par Victor. */
+      if (!c || (c.de !== 'justin' && c.de !== 'victor')) return { ok: false, raison: 'pas_justin', ligne: 'Je ne lance la reprise à la demande que sur un message de Justin ou de Victor — elle tourne déjà seule, toutes les 30 minutes.' };
+      if (!demandeDeReprise(c.texte)) return { ok: false, raison: 'pas_demande', ligne: 'Je ne lance la reprise à la demande que si le message demande de traiter le courrier — elle tourne déjà seule, toutes les 30 minutes.' };
       if (enReprise) return { ok: false, raison: 'deja_en_cours', ligne: 'La reprise de l’arriéré est déjà en cours.' };
       const p = agents.peutAgir(ID);
       if (!p.ok) return { ok: false, raison: p.raison, ligne: 'Je ne peux pas reprendre l’arriéré maintenant (' + String(p.raison).replace(/_/g, ' ') + ').' };

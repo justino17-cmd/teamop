@@ -147,7 +147,12 @@ const suivre = Z => { const s = []; Z.mail.suiviMarquer = (mid, o) => { s.push([
     let appels = 0; Z.mail.arriere = async () => { appels++; return []; };
     const O = Z.camille.outilsEquipe;
     vrai('l’outil « reprendre_courriels_anciens » existe', O && O.outils.some(t => t.name === 'reprendre_courriels_anciens'));
-    v('⛔ demandé par un COLLÈGUE : refusé', O.executer('reprendre_courriels_anciens', {}, { de: 'victor', texte: 'reprends les anciens courriels' }).raison, 'pas_justin');
+    v('⛔ demandé par un COLLÈGUE (pas Victor) : refusé', [O.executer('reprendre_courriels_anciens', {}, { de: 'hugo', texte: 'reprends les anciens courriels' }).raison, O.executer('reprendre_courriels_anciens', {}, { de: 'systeme', texte: 'reprends les anciens courriels' }).raison], ['pas_justin', 'pas_justin']);
+    v('⛔ Victor, mais une question d\u2019état : refusé', O.executer('reprendre_courriels_anciens', {}, { de: 'victor', texte: 'sur les mails tu en es où ?' }).raison, 'pas_demande');
+    const rv = O.executer('reprendre_courriels_anciens', {}, { de: 'victor', texte: '@camille reprends les 35 courriels en attente' });
+    await dormir(50);
+    vrai('VICTOR le demande (chef d\u2019orchestre, 28 octobre) : la reprise est lancée', rv.ok && appels === 1, JSON.stringify([rv, appels]));
+    appels = 0; await dormir(20);
     v('⛔ Justin, mais son message ne parle pas de reprendre le courrier : refusé', [O.executer('reprendre_courriels_anciens', {}, { de: 'justin', texte: 'merci, top' }).raison, O.executer('reprendre_courriels_anciens', {}, { de: 'justin', texte: 'tu as vu mon mail ?' }).raison], ['pas_demande', 'pas_demande']);
     const r = O.executer('reprendre_courriels_anciens', { jours: 20 }, { de: 'justin', texte: 'Camille, regarde les anciens courriels' });
     await dormir(50);
