@@ -2446,9 +2446,6 @@ body.plans .reg-l.cli::before{display:none}
   background:var(--tt-carte);border:1px solid var(--tt-carte-bord);box-shadow:var(--tt-ombre);-webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre)}
 body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backdrop-filter:none}
 @media(min-width:900px){ body.plein-courrier .mess-zone{border-radius:0;border-width:0} }
-/* LES AGENTS SONT DANS OP MESSAGES (28 octobre 2026) : un bandeau au-dessus de la zone, qui mène à OP MESSAGES dans un AUTRE onglet — jamais dans un cadre (la politique d'OP MESSAGES interdit d'être encadré). */
-.opm-bandeau{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:10px 14px;border-radius:var(--r-3);background:var(--tint);color:var(--text);font-size:13.5px;font-weight:600}
-@media(min-width:900px){ body.plein-courrier .opm-bandeau{margin:0;border-radius:0} }
 .ms{display:grid;grid-template-columns:260px minmax(0,1fr) 292px;height:100%;position:relative}
 .ms-gauche{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line);background:var(--tt-lateral)}
 .ms-gt{padding:16px 16px 8px}
@@ -12591,10 +12588,7 @@ function messLeconRetirer(agent,id){
   },function(){ toast(INJOIGNABLE); return null; });
 }
 /* ── la page ── */
-/* LES AGENTS SONT DANS OP MESSAGES (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place ») : le registre reste ici (les agents le relisent), OP MESSAGES est l'écran du téléphone. Le bandeau ne montre que
-   le lien ; la messagerie d'ici, dessous, reste la même. */
-function messBandeauOpm(){ return '<div class="opm-bandeau" role="note"><span>Vos agents sont maintenant dans OP MESSAGES</span><a class="btn-fant" href="'+esc(BETA_MSG_ADRESSE)+'/" target="_blank" rel="noopener noreferrer">Ouvrir OP MESSAGES</a></div>'; }
-function vueMessagerie(){ return messBandeauOpm()+'<div id="mess-zone" class="mess-zone"></div>'; }
+function vueMessagerie(){ return '<div id="mess-zone" class="mess-zone"></div>'; }
 function messGarde(v){ var z=v.querySelector('#mess-zone'); if(z&&MS.inst&&MS.inst.zone===z&&z.isConnected){ messAjuster(); return true; } return false; }
 function messAjuster(){
   var z=$('mess-zone'); if(!z||TAB!=='messagerie') return;
