@@ -49,7 +49,7 @@ const META_CLE = 'pont_agents';
 const NOM_ESPACE = 'Équipe TeamOP — agents';
 const SYSTEME = { id: 'systeme', nom: 'Système', role: 'Ce qui se passe dans l’équipe' };
 const MSG_MAX = 8000, LOT_MAX = 25, AGENTS_MAX = 40, GROUPES_MAX = 20;
-const PAR_MINUTE = 900;                        // messages du pont par minute : un emballement côté Tour s'arrête ici (l'import tient en ~30 lots)
+const PAR_MINUTE = 900;                        // lots du pont par minute : un emballement côté Tour s'arrête ici (l'import tient en ~30 lots)
 const sha256 = (x) => crypto.createHash('sha256').update(x).digest();
 const INVISIBLE = /^[\s\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u00ad]*$/u;
 const CTRL = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;

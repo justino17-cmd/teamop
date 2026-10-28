@@ -421,3 +421,5 @@ tests/test-3070.js
 # ── Le pont des agents (28 octobre 2026) : `server-msg/pont-agents.js` contre le VRAI service (3090) et la messagerie des agents de la Tour de bout en bout — le VRAI serveur, le VRAI service, un FAUX Anthropic (3091, lance les deux : il saute sans `server/node_modules`).
 tests/test-3090.js
 tests/test-3091.js
+# (le dernier banc du pont : l'outil qui le pose sans jamais afficher le secret, `configurer-pont.js`)
+tests/test-3093.js

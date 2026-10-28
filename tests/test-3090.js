@@ -166,6 +166,7 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
     /* ── 5 · poster ── */
     console.log('\n5. Poster : au nom d\'un robot, là où il est membre, une seule fois');
     const fluxJ = await T.flux(justin);
+    let horsId = null;
     const seqDe = async (c) => { const m = (await justin.get('/api/conversations/' + c + '/messages')).j.messages; return m; };
     {
       const m1 = cid();
@@ -201,7 +202,7 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
       /* ⛔ hors des conversations du pont : une conversation de Justin avec un robot, créée PAR LUI, n'est pas dans la table */
       const hors = (await justin.post('/api/conversations/groupe', { nom: 'Hors pont', membres: [(await justin.get('/api/conversations/' + conv.Victor)).j.membres.find(m => m.prenom === 'Victor').id] })).j;
       vrai('(population) un groupe « Hors pont » existe : Justin et Victor en sont membres', hors && hors.conversation && hors.conversation.id);
-      const horsId = hors.conversation.id;
+      horsId = hors.conversation.id;
       const tentes = await nu.post('/api/pont/poster', { messages: [
         { fil: horsId, de: 'victor', texte: 'dans une conversation hors pont, par son identifiant', cid: cid() },
         { fil: 'Hors pont', de: 'victor', texte: 'par son nom', cid: cid() },
@@ -247,6 +248,13 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
       const tete = await nu.get('/api/pont/nouveaux', pont);
       v('sans `depuis`, le pont ne rend que le curseur d\'aujourd\'hui (rien à rejouer au premier démarrage)', [tete.code, tete.j.evenements, Number.isInteger(tete.j.curseur)], [200, [], true]);
       let cur = tete.j.curseur;
+      /* lu depuis le TOUT DÉBUT : ce que le service écrit lui-même (« Justin a créé le groupe ») ne passe pas pour un message de Justin, et ses vrais messages y sont */
+      const depuisZero = await nu.get('/api/pont/nouveaux?depuis=0', pont);
+      vrai('(population) lu depuis le début, ses vrais messages sont là (« Bonjour Victor »)', depuisZero.j.evenements.some(x => x.texte === 'Bonjour Victor'));
+      v('⛔ …et rien de ce que le SERVICE écrit à son nom (« Justin a créé le groupe », deux groupes) ne passe pour un message de lui', depuisZero.j.evenements.filter(x => x.type === 'message' && x.genre !== 'texte').length, 0);
+      /* …et une conversation de Justin HORS du pont ne remonte pas : il y écrit, le pont n'y lit rien */
+      const ailleurs = await justin.post('/api/conversations/' + horsId + '/messages', { cid: 'hors-pont-0001', texte: 'Un mot dans une conversation hors pont' });
+      v('⛔ Justin écrit dans « Hors pont » (une conversation qui n\'est pas au pont) : ce message ne remonte JAMAIS', [ailleurs.code, (await nu.get('/api/pont/nouveaux?depuis=0', pont)).j.evenements.some(x => /hors pont/.test(x.texte || ''))], [201, false]);
       const e1 = await justin.post('/api/conversations/' + conv.Victor + '/messages', { cid: 'justin-ecrit-0002', texte: 'Victor, peux-tu faire le point ?' });
       const e2 = await justin.post('/api/conversations/' + conv['Équipe'] + '/messages', { cid: 'justin-ecrit-0003', texte: '@Léa et @Max, un point sur la semaine' });
       /* un message de Justin dont le cid commence par « tour- » est celui que le pont a recopié : il ne revient pas */

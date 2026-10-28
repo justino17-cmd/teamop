@@ -195,6 +195,8 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       v('…dans le registre de la Tour : le message de Justin (de:justin) puis la réponse de Victor', sien.map(m => m.de), ['justin', 'victor']);
       v('⛔ le message est entré UNE fois (pas de copie en retour), l\'agent réveillé UNE fois', [sien.filter(m => m.de === 'justin').length, recus.slice(n0).filter(x => x.marq === 'MARQ-opm1').length], [1, 1]);
       vrai('…et le faux cerveau a bien reçu le texte de Justin dans la conversation de Victor', recus.slice(n0).some(x => /fais le point/.test(x.brut)));
+      await dort(700);   // le temps de plusieurs tours du pont (60 ms) : une copie en retour aurait eu le temps de paraître
+      v('⛔ RIEN ne retourne à sa source : dans OP MESSAGES, le message de Justin est là UNE fois (pas de copie « importée » en plus)', (await msgs(parNom['Victor'])).filter(m => /MARQ-opm1/.test(m.texte || '') && m.auteur === justin.moi.id).length, 1);
       /* une @mention dans un groupe réveille le cité */
       const n1 = recus.length;
       await justin.post('/api/conversations/' + parNom['Équipe'].id + '/messages', { cid: 'opm-banc-0002', texte: '@Léa MARQ-opm2 un mot sur les inscriptions ?' });
@@ -294,7 +296,7 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       const SURV = fs.readFileSync(path.join(RACINE, '.github', 'scripts', 'surveillance.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
       const chemins = Object.keys(h.pont).map(k => 'pont.' + k);
       v('(population) /health porte exactement deux champs du pont', chemins.sort(), ['pont.echecMin', 'pont.file']);
-      v('⛔ UN CHAMP DE /health QUE PERSONNE NE LIT EST DU CODE MORT : chacun est LU par la surveillance horaire (forme de lecture `j.pont.<champ>`)', chemins.filter(c => !new RegExp('j\\.' + c.replace(/\./g, '\\.') + '\\b').test(SURV)), []);
+      v('⛔ UN CHAMP DE /health QUE PERSONNE NE LIT EST DU CODE MORT : chacun est LU par la surveillance horaire, dans une CONDITION (`j.pont && j.pont.<champ> >= N`) — le mot dans une phrase du message ne compte pas', chemins.filter(c => !new RegExp('if \\(j\\.pont && j\\.' + c.replace(/\./g, '\\.') + ' >= \\d+\\)').test(SURV)), []);
       v('⛔ le secret du pont n\'est dans aucune sortie de la Tour, ni dans /health, ni dans le fichier de la table', [tour.sortie().includes(SECRET), JSON.stringify(h).includes(SECRET), fs.readFileSync(path.join(D, 'pont-messages.json'), 'utf8').includes(SECRET)], [false, false, false]);
       v('…ni dans les journaux d\'OP MESSAGES', [svc.sortie.texte().includes(SECRET), svc.sortie.texte().includes(sha(SECRET))], [false, false]);
       const etat = JSON.parse(fs.readFileSync(path.join(D, 'pont-messages.json'), 'utf8'));

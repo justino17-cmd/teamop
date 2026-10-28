@@ -40,11 +40,16 @@ const faux = http.createServer((q, r) => { let b = ''; q.on('data', d => { b += 
   if (!etat.installe) return rep(409, { error: 'pont_non_installe' });
   if (q.url === '/api/pont/poster') {
     if (etat.mode === 'lot400') return rep(400, { error: 'champ_invalide' });
-    const res = (j.messages || []).map(m => {
-      if (etat.rejets[m.cid]) { const x = etat.rejets[m.cid]; if (x.fois !== undefined) { x.fois--; if (x.fois < 0) { delete etat.rejets[m.cid]; } } if (etat.rejets[m.cid]) return { ok: false, raison: etat.rejets[m.cid].raison }; }
-      etat.seq[m.fil] = (etat.seq[m.fil] || 0) + 1; return { ok: true, deja: false, seq: etat.seq[m.fil], ts: Date.now() };
-    });
-    return rep(200, { ok: true, resultats: res });
+    const repondre = () => {
+      const res = (j.messages || []).map(m => {
+        if (etat.rejets[m.cid]) { const x = etat.rejets[m.cid]; if (x.fois !== undefined) { x.fois--; if (x.fois < 0) { delete etat.rejets[m.cid]; } } if (etat.rejets[m.cid]) return { ok: false, raison: etat.rejets[m.cid].raison }; }
+        etat.seq[m.fil] = (etat.seq[m.fil] || 0) + 1; return { ok: true, deja: false, seq: etat.seq[m.fil], ts: Date.now() };
+      });
+      return rep(200, { ok: true, resultats: res });
+    };
+    /* `retenir` : le lot VOYAGE — la réponse n'arrive que quand le banc la relâche (`attente()`) ; la file peut changer pendant ce temps */
+    if (etat.retenir) { etat.attente = () => { etat.retenir = false; etat.attente = null; repondre(); }; return; }
+    return repondre();
   }
   if (q.url.startsWith('/api/pont/nouveaux')) { const e = etat.evenements; etat.evenements = []; return rep(200, { ok: true, curseur: etat.curseur, plein: etat.plein, evenements: e }); }
   if (q.url === '/api/pont/supprimer') return rep(200, { ok: true });
@@ -181,10 +186,15 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     let n = essais(), succ = [];
     for (let i = 0; i < 40; i++) { horloge += 100; await pont._envoyer(); const m = essais(); succ.push(m - n); n = m; }
     vrai('⛔ l\'attente ne se réduit pas à un essai à chaque tour (un service qui tombe n\'est pas martelé) : moins de 20 essais sur 40 tours de 100 ms', succ.reduce((a, b) => a + b, 0) < 20);
-    etat.mode = '429'; horloge += 120000; await pont._envoyer();
-    horloge += 100;
-    const apres429 = essais(); await pont._envoyer();
-    v('⛔ un 429 est respecté : tant que « Retry-After » (2 s) n\'est pas écoulé, aucun nouvel essai', essais(), apres429);
+    /* le 429 se juge sur un pont à l'attente NORMALE (60 s au plus) : plafonnée à 400 ms, l'attente de repli aurait suffi à masquer un « Retry-After » ignoré */
+    pont.arreter(); pont = nouveau({ attenteMaxMs: undefined }); etat.mode = 'normal'; await pont._envoyer();
+    pont.surAjout({ id: 'f' + '9'.repeat(11), ts: Date.now(), fil: 'victor', de: 'victor', texte: 'Pendant le 429', niveau: 'info', lu: false });
+    etat.mode = '429'; etat.retry = 30; await pont._envoyer();
+    const apres429 = essais();
+    horloge += 5000; await pont._envoyer(); horloge += 20000; await pont._envoyer();
+    v('⛔ un 429 est respecté : tant que « Retry-After » (30 s) n\'est pas écoulé, aucun nouvel essai (vingt-cinq secondes plus tard, toujours aucun)', essais(), apres429);
+    horloge += 6000; await pont._envoyer();
+    v('…et une fois le délai écoulé, le pont réessaie', essais(), apres429 + 1);
     etat.mode = 'normal'; horloge += 120000;
     await pont._envoyer();
     v('le retour efface l\'échec : 0 minute, file vide', [pont.sante().echecMin, pont.sante().file], [0, 0]);
@@ -199,6 +209,20 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     etat.mode = 'normal'; horloge += 120000;
     await pont._envoyer();
     v('…au retour, la file se vide', pont.sante().file, 0);
+    /* ⛔ UN LOT EN VOL PENDANT QUE LA FILE ROGNE SA TÊTE : on retire de la file ce qui est parti PAR SON IDENTITÉ, pas « les 25 premiers » — sinon 25 messages qui n'ont jamais voyagé disparaissent */
+    {
+      const sauve = etat.requetes.splice(0); etat.retenir = true; etat.mode = 'normal';
+      for (let i = 0; i < 2000; i++) pont.surAjout({ id: 'g' + i.toString(16).padStart(11, '0'), ts: Date.now(), fil: 'victor', de: 'victor', texte: 'Vol ' + i, niveau: 'info', lu: false });
+      horloge += 120000;
+      const enVol = pont._envoyer();
+      await new Promise(r => { const t = setInterval(() => { if (etat.attente) { clearInterval(t); r(); } }, 5); });
+      for (let i = 2000; i < 2030; i++) pont.surAjout({ id: 'g' + i.toString(16).padStart(11, '0'), ts: Date.now(), fil: 'victor', de: 'victor', texte: 'Vol ' + i, niveau: 'info', lu: false });
+      etat.attente(); await enVol;
+      const partis = new Set(messagesEnvoyes().map(m => m.texte));
+      v('⛔ pendant qu\'un lot voyage, la file a rogné sa tête : le lot est parti, et RIEN de ce qui restait derrière n\'a été retiré à sa place (de « Vol 30 » à « Vol 2029 », tout part)',
+        [partis.has('Vol 0'), partis.has('Vol 24'), partis.has('Vol 25'), partis.has('Vol 29'), Array.from({ length: 2000 }, (_, i) => partis.has('Vol ' + (i + 30))).every(Boolean), pont.sante().file], [true, true, false, false, true, 0]);
+      etat.requetes.unshift(...sauve);
+    }
     v('⛔ …et le PLUS ANCIEN part le premier perdu : les 100 premiers ne sont jamais arrivés, les 2 000 derniers si', [messagesEnvoyes().some(m => m.texte === 'Texte 0'), messagesEnvoyes().some(m => m.texte === 'Texte 99'), messagesEnvoyes().some(m => m.texte === 'Texte 100'), messagesEnvoyes().some(m => m.texte === 'Texte 2099')], [false, false, true, true]);
     /* des refus */
     etat.requetes.length = 0;
@@ -227,12 +251,13 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
   {
     etat.requetes.length = 0; horloge += 120000;
     const e0 = conv.tous().length, reveils0 = reveils.length, enfile0 = pont.sante().file;
-    etat.evenements = []; etat.curseur = 100;
+    etat.evenements = [{ gid: 90, type: 'message', fil: 'victor', seq: 8999, genre: 'texte', texte: 'Écrit AVANT l\'installation : ne se rejoue pas', ts: 1 }]; etat.curseur = 100;
     pont.arreter(); pont = nouveau(); horloge += 1;
     await pont._envoyer();   // installe (sa table est vide : il rattrape l'historique)
     etat.requetes.length = 0;
     await pont._lire();
-    v('⛔ le premier passage ne fait que poser le curseur (rien n\'est rejoué)', [pont._etat().curseur, conv.tous().length], [100, e0]);
+    v('⛔ le premier passage ne fait que poser le curseur : un événement qui existait déjà n\'est PAS rejoué', [pont._etat().curseur, conv.tous().length, conv.tous().some(m => /ne se rejoue pas/.test(m.texte))], [100, e0, false]);
+    etat.evenements = [];
     etat.curseur = 105;
     etat.evenements = [
       { gid: 101, type: 'message', fil: 'victor', seq: 9001, genre: 'texte', texte: 'Victor, @Léa et @Max : ok ?', ts: 1 },
@@ -257,8 +282,9 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     v('un message de plus de 1 000 signes est borné comme par la route de la Tour', conv.tous().filter(m => m.de === 'justin').pop().texte.length, 1000);
     /* une photo, un sondage : les agents ne lisent que le texte, et le pont le dit — une fois */
     etat.requetes.length = 0; const e1 = conv.tous().length, r1 = reveils.length;
-    etat.curseur = 108; etat.evenements = [{ gid: 107, type: 'message', fil: 'victor', seq: 9007, genre: 'autre', texte: null, ts: 6 }, { gid: 108, type: 'message', fil: 'victor', seq: 9008, genre: 'autre', texte: null, ts: 7 }];
+    etat.curseur = 108; etat.evenements = [{ gid: 107, type: 'message', fil: 'victor', seq: 9007, genre: 'autre', texte: 'MARQ-LEGENDE une photo avec sa légende', ts: 6 }, { gid: 108, type: 'message', fil: 'victor', seq: 9008, genre: 'autre', texte: null, ts: 7 }];
     await pont._lire(); await pont._envoyer();
+    vrai('⛔ …même quand le message porte une légende : le genre décide, pas la présence d\'un texte', !conv.tous().some(m => /MARQ-LEGENDE/.test(m.texte)));
     const notes = messagesEnvoyes().filter(m => /ne lisent que le texte/.test(m.texte));
     v('⛔ un message qui n\'est pas du texte n\'entre PAS au registre, ne réveille personne, et la note part dans le fil (une seule pour deux messages)', [conv.tous().length, reveils.length - r1, notes.length, notes[0] && notes[0].de, notes[0] && notes[0].fil], [e1, 0, 1, 'systeme', 'victor']);
     vrai('…et la note n\'entre pas au registre non plus (les agents ne la lisent pas)', !conv.tous().some(m => /ne lisent que le texte/.test(m.texte)));
