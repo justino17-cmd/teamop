@@ -53,6 +53,7 @@ const MANIFESTE = [
   { id: 'pont.poster',       m: 'POST', p: '/api/pont/poster',                       garde: 'PT' },
   { id: 'pont.nouveaux',     m: 'GET',  p: '/api/pont/nouveaux',                     garde: 'PT' },
   { id: 'pont.supprimer',    m: 'POST', p: '/api/pont/supprimer',                    garde: 'PT' },
+  { id: 'pont.avatar',       m: 'POST', p: '/api/pont/avatar',                       garde: 'PT' },
   { id: 'beta.entrer',       m: 'POST', p: '/api/beta/entrer',                       garde: 'B' },
   { id: 'compte.deconnexion', m: 'POST', p: '/api/compte/deconnexion',               garde: 'S' },
   { id: 'moi',               m: 'GET',  p: '/api/moi',                               garde: 'S' },

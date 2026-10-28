@@ -72,6 +72,7 @@
 # 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
 # 28 octobre 2026 : `test-3090` (les agents sans limite artificielle : Margaux, Hugo, Louis, Léa, agents.js, Emma, le câblage d’index.js — 62 vérifications).
 # 28 octobre 2026, le pont des agents côté Tour (3096) : 163 suites, 10 501 vérifications mesurées par la commande de la porte, toutes vertes (avant l'ajout de 3090) — plancher 10487 (le total moins 14, jamais une addition).
+# 28 octobre 2026, les photos du pont (3096 § 7 : les 21 images, les envois, les refus, les fichiers absents) : 165 suites, 10 642 vérifications mesurées par la commande de la porte (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 10628 (le total moins 14, jamais une addition).
 #plancher 10584
 tests/test-640.js
 tests/test-641.js
@@ -381,6 +382,5 @@ tests/test-3090.js
 tests/test-3096.js
 # ── L'historique de surveillance d'une entreprise SUPPRIMÉE part avec elle (28 octobre 2026, Justin : « on peut supprimer l'historique ») : la route patron
 # `/api/monitor/issues/purger-entreprise`, la suppression totale qui purge d'elle-même (`fait.surveillance`), `bugs.jsonl` réécrit atomiquement,
-# `/api/monitor/report` qui n'écrit plus pour un espace fermé. Le vrai serveur, sans lire une page. (`test-3099`, qui joue le bouton de la Tour, lit `tour.html` :
-# il n'entre ici que le jour où la Tour qui le porte est publiée.) 28 octobre 2026 : 10 670 vérifications (166 suites) — plancher relevé de 97, le nombre de `test-3098` (65 puis 32 : les points du gardien).
-tests/test-3098.js
+# `/api/monitor/report` qui n'écrit plus pour un espace fermé. Le vrai serveur, sans lire une page. (Le bouton de la Tour et son banc partent avec la Tour unifiée, sur la phrase de Justin.) 28 octobre 2026 : 10 670 vérifications (166 suites) — plancher relevé de 97, le nombre de `test-3102` (65 puis 32 : les points du gardien).
+tests/test-3102.js

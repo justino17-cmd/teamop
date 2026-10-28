@@ -6976,24 +6976,6 @@ function selIncident(id){ INC.sel=id; marquerTitre(window.event); renderNav('ava
 function incRetour(){ INC.sel=null; renderNav('retour'); window.scrollTo(0,0); }
 function selEnt(nom){ INC.grp=nom; INC.sel=null; marquerTitre(window.event); renderNav('avant'); window.scrollTo(0,0); }
 function entRetour(){ INC.grp=null; INC.sel=null; renderNav('retour'); window.scrollTo(0,0); }
-/* Effacer de la surveillance une entreprise qui n'existe plus (Justin, 28 octobre 2026 : « on peut supprimer l'historique »). Le bouton n'est
-   offert qu'au patron, une fois la liste des entreprises LUE (jamais sur un « on ne sait pas ») et seulement si l'entreprise n'y est plus ;
-   le serveur redécide de toute façon (409 pour une entreprise qui vit). */
-function survPurgeable(nom){
-  return MYROLE==='patron' && APP!=='messages' && ENT.loaded && !ENT.err && !!nom && nom!==ENT_INCONNUE && !entParNom(nom);
-}
-function survPurger(nom){
-  if(!survPurgeable(nom)){ toast('Cette entreprise existe encore : rien à effacer'); return; }
-  var tous=incDeLaConsole().filter(function(i){ return incEnts(i).indexOf(nom)>=0; }).length;
-  if(!confirm('Effacer « '+nom+' » de la surveillance ?\n\n'+tous+(tous>1?' problèmes signalés par cette entreprise et ses salariés':' problème signalé par cette entreprise et ses salariés')+' seront effacés, avec le nom de l’entreprise et les adresses e-mail de ceux qui l’ont signalé sous ce nom. Les lignes brutes du journal technique d’erreurs ne partent que si ces signalements portent l’identifiant de son espace (les plus anciens ne le portent pas) : le message qui suivra dit combien sont parties. Les gestes du journal de la Tour restent, sans son nom.\n\nC’est DÉFINITIF : rien n’est récupérable.')) return;
-  apiPost('/api/monitor/issues/purger-entreprise',{nom:nom}).then(function(r){
-    if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
-    var d=r.d||{};
-    toast('Surveillance effacée : '+nMot((d.issues||0)+(d.archive||0),'incident','incidents')+', '+nMot(d.bugs||0,'ligne brute','lignes brutes'));
-    INC.grp=null; INC.sel=null; INC.f.ent='';
-    chargerIncidents(); renderNav('retour'); window.scrollTo(0,0);
-  }).catch(function(){ toast('Serveur injoignable'); });
-}
 var ENT_INCONNUE='Entreprise non identifiée';
 function incEnts(i){ var n=(i.entreprises||[]).map(function(e){ return e.nom||e.entreprise; }).filter(Boolean);
   return n.length?n:[ENT_INCONNUE]; }
@@ -7511,8 +7493,7 @@ function vueEntreprise(nom){
         '<div class="ttl-page">'+esc(nom)+'</div>'+
         (mail?'<span class="chip">'+esc(mail)+'</span>':'')+'</div>'+
       '<div class="desc">Les problèmes de cette entreprise, regroupés par application. Cliquez sur un problème pour ouvrir son dossier complet.</div></div>'+
-      '<div class="page-act"><button type="button" class="btn-fant" onclick="allerFicheEntreprise(\''+jsq(nom)+'\')">📇 Voir sa fiche complète</button>'+
-      (survPurgeable(nom)?'<button type="button" class="btn-fant danger" onclick="survPurger(\''+jsq(nom)+'\')">Effacer de la surveillance</button>':'')+'</div></div>'+
+      '<div class="page-act"><button type="button" class="btn-fant" onclick="allerFicheEntreprise(\''+jsq(nom)+'\')">📇 Voir sa fiche complète</button></div></div>'+
     filtreSt+
     (tous.length?'<div class="reg" style="margin-top:22px">'+sections+'</div>'
       :'<div class="svl-vide"><b>Rien à signaler pour cette entreprise.</b>Aucun problème ne correspond au filtre posé.<div><button type="button" class="btn-fant" onclick="incReset()">Retirer tous les filtres</button></div></div>');

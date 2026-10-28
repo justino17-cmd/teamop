@@ -1,10 +1,10 @@
-/* test-3098 — EFFACER LA SURVEILLANCE D'UNE ENTREPRISE SUPPRIMÉE (28 octobre 2026).
+/* test-3102 — EFFACER LA SURVEILLANCE D'UNE ENTREPRISE SUPPRIMÉE (28 octobre 2026).
  *
  * Justin : « on peut supprimer l'historique ». Il avait supprimé ELAN depuis la Tour, et Surveillance → « Entreprises touchées »
  * montrait encore « ELAN · 45 problèmes · dernier il y a 1 j » : `monitor.json` (incidents, archive) et `bugs.jsonl` ne faisaient pas
  * partie de la suppression totale, et un téléphone resté sur l'ancienne application continuait d'alimenter la ligne.
  * Ce banc monte le VRAI serveur, isolé sur 127.0.0.1 (un faux Google, un faux serveur d'e-mails) et ne lit AUCUNE page : il passe contre celles de `main`,
- * comme le serveur seul. (Le bouton de la Tour est gardé à part par `test-3099`, qui lit `tour.html`.) Il garde :
+ * comme le serveur seul. (Le bouton de la Tour part avec la Tour unifiée : son banc l'accompagne.) Il garde :
  *   1. la route patron `POST /api/monitor/issues/purger-entreprise` : retire l'entreprise nommée des incidents VIVANTS et ARCHIVÉS, son
  *      adresse e-mail avec, laisse intactes les autres entreprises d'un même incident (compteur ajusté), supprime l'incident qui n'a plus
  *      personne, anonymise le journal de la Tour sans effacer un geste, et ne note ni nom ni adresse ;

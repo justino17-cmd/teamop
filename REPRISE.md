@@ -23,11 +23,11 @@ l'ancienne application alimentait la ligne). Justin : « on peut supprimer l'his
   La suppression totale l'appelle (`fait.surveillance`). Route patron `POST /api/monitor/issues/purger-entreprise` `{nom}` ou `{t}` : 409 si l'entreprise vit (annuaire non fermé,
   ou espace connecté hors annuaire), 403 pour l'espace par défaut. `POST /api/monitor/report` : un rapport dont `espace` est FERMÉ répond `{ok, ferme}` sans rien écrire
   (sans `espace` — version d'avant la v683 — comportement d'avant).
-- **Tour (`tour.html`, NON publiée, v2.117 inchangée, `apercu/` non touché)** : bouton « Effacer de la surveillance » sur la fiche d'une entreprise de Surveillance, patron seul,
+- **Tour — MIS DE CÔTÉ, pas sur `main`** (`tour.html` se publie sur la phrase de Justin ; le correctif est rangé dans `scratchpad/purge-bouton-tour.patch` pour la Tour unifiée). En attendant, ELAN s'efface de la surveillance par l'outil `server/nettoyer-espace-orphelin.js … --nom "ELAN"`. Le bouton prévu : « Effacer de la surveillance » sur la fiche d'une entreprise de Surveillance, patron seul,
   liste des entreprises lue, entreprise absente de l'annuaire, console OP GESTION ; `confirm` qui dit ce qui part et que c'est définitif ; toast avec les nombres.
-- **Bancs** : `test-3098` (serveur seul, dans `scripts/bancs-serveur.liste`), `test-3099` (les vraies fonctions de la Tour contre le vrai serveur ; lit `tour.html`, donc hors liste
+- **Bancs** : `test-3102` (serveur seul, dans `scripts/bancs-serveur.liste`) ; le bouton de la Tour et son banc sont mis de côté (`scratchpad/purge-bouton-tour.patch`) pour la Tour unifiée (lit `tour.html`, donc hors liste
   jusqu'à la publication de la Tour qui porte le bouton).
-- **Relecture du `gardien` (28 octobre au soir), corrigée et gardée par `test-3098` § 5 bis** : ① une adresse relevée dans un incident (corps de requête PUBLIC) servait de clé de purge pour tous les noms : un rapport
+- **Relecture du `gardien` (28 octobre au soir), corrigée et gardée par `test-3102` § 5 bis** : ① une adresse relevée dans un incident (corps de requête PUBLIC) servait de clé de purge pour tous les noms : un rapport
   forgé aurait fait partir l'incident d'une entreprise vivante au clic de Justin — les adresses viennent désormais de l'annuaire seul, et ne jouent que sous un nom qui n'est pas celui d'une entreprise vivante ;
   ② l'espace par défaut se refuse aussi par son NOM (403) ; ③ chaque entrée porte maintenant l'`espace` d'où elle vient (écrit à la réception s'il est connu du serveur, jamais l'espace par défaut, jamais servi à la Tour) :
   une entreprise vivante sous un autre nom que celui de l'annuaire est reconnue (409), et ses lignes brutes se retrouvent par cet espace ; ④ annuaire illisible : 503 ; ⑤ le texte de la Tour ne promet plus les lignes
@@ -44,12 +44,16 @@ l'ancienne application alimentait la ligne). Justin : « on peut supprimer l'his
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
 OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**
 - **Architecture** : la Tour reste le REGISTRE (`conversations.js` : les agents le relisent, rien n'y est déplacé) ; OP MESSAGES est le transport et l'écran.
-  `server-msg/pont-agents.js` (quatre routes `/api/pont/*`, garde `PT` : boucle locale + sans proxy + secret `X-OPM-Pont` comparé à son empreinte ; 16 robots +
+  `server-msg/pont-agents.js` (cinq routes `/api/pont/*`, garde `PT` : boucle locale + sans proxy + secret `X-OPM-Pont` comparé à son empreinte ; 16 robots +
   « Système », espace PRO « Équipe TeamOP — agents », 4 groupes, une directe par agent) ; `server/pont-messages.js` (file bornée à 2 000, réessai, import avec
   les dates d'origine, lecture toutes les 3 s de ce que Justin écrit — par `justinEcrit`, le même chemin que la route — et supprime) ; `configurer-pont.js` pose
   les DEUX configurations d'un geste, le secret fabriqué sur place et jamais affiché. Inerte sans configuration (404 / rien ne part) ; un bloc `pont` en production REFUSE le démarrage.
 - **Bancs** : `test-3094` (le vrai service), `3095` (le vrai serveur + le vrai service + un faux Anthropic, de bout en bout), `3096` (le module contre un faux service),
   — le bandeau de la Tour part avec la Tour unifiée, gardé par `test-3091`), `3097` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
+- **Photos (28 octobre, soir)** : `POST /api/pont/avatar?cible=<robot|groupe>` (`pont-agents.js`, garde `PT`, empreinte du corps reçu, une transaction, `stockage.avatarPontPoser`, aucun message
+  système) ; la Tour (`pont-messages.js`) envoie les 21 images de `icons/agents` et `icons/groupes` après chaque installation, celles que `installer` ne rend pas déjà dans `avatars`. **Rien à faire
+  sur le VPS** : le déploiement redémarre la Tour, qui réinstalle et envoie. Bancs : 3094 § 9, 3095 (photos de bout en bout, aucun renvoi après deux redémarrages), 3096 § 7 (dont la population des images).
+  Limite : une photo de groupe que Justin change lui-même n'est pas remise par la Tour (l'empreinte source n'a pas bougé). Mode d'emploi corrigé : l'identifiant `b…` de l'accès n'est PAS affiché dans la Tour.
 - **Reste à faire (Justin)** : déployer (une fusion sur `main` part des deux côtés, inerte), puis sur le VPS `configurer-pont.js` (Entrée à l'invite du secret), redémarrer,
   `--verifier`, ouvrir `msg-beta.teamop.fr` sur le téléphone. Rien de cela n'est fait.
 - **Limites assumées** : le texte seul passe (une photo/un vocal/un sondage de Justin n'arrive pas aux agents, et le pont le lui dit) ; une modification de message ne revient pas ;
