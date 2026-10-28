@@ -232,7 +232,10 @@ const poser = (Z, o) => { const m = msg(Object.assign({ ts: Z.horloge.t - 360000
   v('l’aperçu (route de la Tour) : destinataire = expéditeur, source « courrier », état « attente »', br && [br.a, br.source, br.etat], ['prospect@secret-2863.fr', 'courrier', 'attente']);
   v('⛔ la lecture du Courrier n’a RIEN marqué : tous les messages sont restés non lus', S.imap().boites[BOITE].messages.filter(m => (m.flags || []).includes('\\Seen')).length, 0);
   const suiviF = path.join(S.D, 'mail-suivi.json');
-  v('⛔ …et aucun suivi n’a été ouvert (Justin n’a pas ouvert la demande)', fs.existsSync(suiviF) ? Object.keys(JSON.parse(fs.readFileSync(suiviF, 'utf8'))).filter(k => /banc-2863/.test(k)).length : 0, 0);
+  /* 28 octobre 2026 (test-3089) : ce que Camille DÉCIDE s'écrit au suivi — sinon « à traiter » ne baissait jamais. Une ligne « en cours » par Camille, jamais « à traiter » ni « résolu »,
+     sans réponse notée (rien n'est parti) ; le message, lui, reste NON LU (contrôle ci-dessus). */
+  const lignes = fs.existsSync(suiviF) ? Object.entries(JSON.parse(fs.readFileSync(suiviF, 'utf8'))).filter(([k]) => /banc-2863/.test(k)).map(([, x]) => x) : [];
+  vrai('le suivi dit ce que Camille a fait : « en cours », par Camille, sans réponse notée', lignes.length > 0 && lignes.every(x => x.statut === 'enCours' && x.par === 'Camille' && !x.repTs), JSON.stringify(lignes.map(x => [x.statut, x.par, x.assigne])));
   v('rien n’est parti par SMTP vers le prospect (avant la validation)', S.fact.recus.length, 0);
   v('l’aperçu est lisible par un collaborateur, refusé à un anonyme', [(await S.get('/api/monitor/agents/brouillons?refs=' + valP.params.fil, S.TA)).s, (await S.get('/api/monitor/agents/brouillons?refs=' + valP.params.fil, '')).s], [200, 401]);
   vrai('le journal du serveur ne porte aucune adresse ni aucun texte de mail', !/secret-2863|hortense|Valmont|06 12 34/.test(S.journal()), S.journal().slice(-300));
