@@ -2303,6 +2303,74 @@ body.plans .reg-l.cli::before{display:none}
 @media (max-width:700px){ .ag-onglets{padding-right:28px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)} }
 @media (prefers-reduced-motion:reduce){ .ag-voir>summary::after{transition:none} .ag-seg button,.ag-parler{transition:none} .ag-seg button:active:not([disabled]),.ag-parler:active{transform:none} }
 .ag-liste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-top:14px}
+/* ── AGENTS · v2.117 (28 octobre 2026) — Justin : « refais-moi l'onglet Agents plus pro et plus Apple, avec tout bien ». La structure ne
+   change pas (bancs 2709, 2815, 3011…) : la matière, si. Un en-tête qui se lit comme un état (pastille qui respire quand l'équipe agit),
+   les onglets en segmenté de macOS, l'état de chaque agent en capsule teintée, la MÊME couleur dans le segmenté (Brouillon = ambre,
+   Auto = bleu : l'œil apparie les deux), l'anneau du visage qui dit le mode, et les heures en interrupteurs d'iOS. Jetons de la Tour, jour ET nuit. */
+.ag-barre:not([style]){padding:16px 18px;border-radius:var(--r-5);gap:10px 16px;box-shadow:var(--ombre-1)}
+.ag-barre:not([style]) .ag-pt{width:12px;height:12px;box-shadow:0 0 0 4px var(--accBg)}
+.ag-barre.rien:not([style]) .ag-pt{box-shadow:0 0 0 4px var(--inset)}
+.ag-barre.stop:not([style]) .ag-pt{box-shadow:0 0 0 4px var(--rougeBg)}
+.ag-barre:not([style]) .ag-barre-tx b{font-size:15.5px;font-weight:650;letter-spacing:-.01em}
+.ag-barre:not([style]) .ag-hor{font-size:13px;font-weight:600}
+.ag-barre:not([style])>.ag-btn{border-radius:var(--r-pill);padding:0 18px}
+.ag-barre:not([style])>.ag-btn.danger{background:var(--rougeBg);color:var(--redText)}
+@media (prefers-reduced-motion:no-preference){
+  .ag-barre:not(.rien):not(.stop):not([style]) .ag-pt{animation:agRespire 2.4s ease-in-out infinite}
+  @keyframes agRespire{0%,100%{box-shadow:0 0 0 4px var(--accBg)}50%{box-shadow:0 0 0 7px transparent}}
+}
+/* les onglets : un segmenté (fond creux, l'onglet choisi est une pastille posée dessus) qui défile au doigt */
+.ag-onglets{gap:2px;border-bottom:0;margin-top:18px;padding:4px;background:var(--inset);border-radius:var(--r-4)}
+.ag-onglets button{min-height:36px;padding:0 13px;border-radius:calc(var(--r-4) - 3px);border-bottom:0;font-size:13.5px;transition:background-color 160ms ease-out,color 160ms ease-out}
+.ag-onglets button.on{background:var(--surface);color:var(--text);box-shadow:var(--ombre-1)}
+@media (pointer:fine){ .ag-onglets button:not(.on):hover{color:var(--text)} }
+@media (pointer:coarse){ .ag-onglets button{min-height:44px} }
+/* les groupes : un titre de section à la iOS, la liste en carte arrondie */
+.ag-couche{margin:26px 6px 8px;font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ag-lg{border-radius:var(--r-5);box-shadow:var(--ombre-1)}
+.ag-rang{padding:14px 16px;transition:background-color 160ms ease-out}
+@media (pointer:fine){ .ag-rang:hover{background:color-mix(in srgb,var(--inset) 55%,transparent)} }
+.ag-rang h3{font-size:16px}
+.ag-meta{color:var(--muted);opacity:.85}
+/* l'état : une capsule teintée, le mot ET la pastille (jamais la seule couleur) */
+.ag-etat{padding:2px 9px 2px 8px;border-radius:var(--r-pill);font-size:12.5px;line-height:1.5}
+.ag-etat::before{width:7px;height:7px}
+.ag-etat[data-e=auto],.ag-etat[data-e=ok]{background:var(--accBg)}
+.ag-etat[data-e=brouillon],.ag-etat[data-e=retard]{background:var(--ambreBg)}
+.ag-etat[data-e=arret],.ag-etat[data-e=externe]{background:var(--inset)}
+.ag-etat[data-e=pause]{background:var(--rougeBg)}
+.ag-encours{margin-top:6px}
+/* le visage porte un anneau : bleu en auto, ambre en brouillon, rien à l'arrêt */
+.ag-rang .ag-av{width:46px;height:46px;box-shadow:0 0 0 2px var(--surface),0 0 0 4px transparent;transition:box-shadow 200ms ease-out}
+.ag-rang[data-etat=auto] .ag-av{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--acc-txt)}
+.ag-rang[data-etat=brouillon] .ag-av{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--amber)}
+.ag-rang[data-etat=arret] .ag-av img{filter:saturate(.35);opacity:.8}
+/* le segmenté : la pastille choisie prend la couleur de l'état qu'elle désigne */
+.ag-seg{border-radius:var(--r-4)}
+.ag-seg button{border-radius:calc(var(--r-4) - 3px);font-size:13.5px;transition:transform 100ms ease-out,background-color 160ms ease-out,color 160ms ease-out}
+.ag-seg button.on{box-shadow:var(--ombre-1)}
+.ag-seg button[data-m=brouillon].on{background:var(--ambreBg);color:var(--amber)}
+@media (pointer:fine){ .ag-seg button:not(.on):not([disabled]):hover{color:var(--text)} }
+.ag-parler{border-radius:var(--r-pill);font-weight:650}
+@media (pointer:fine){ .ag-parler:hover{background:var(--accBg)} }
+.ag-rg-plus .ag-btn{border-radius:var(--r-pill);font-size:13.5px}
+@media (pointer:fine){ .ag-rg-plus .ag-btn{min-height:38px} }
+@container aglg (min-width:640px){ .ag-rg-plus{padding-left:58px} }
+/* les heures : des interrupteurs, des heures en chiffres tabulaires */
+.ho-sw input{appearance:none;-webkit-appearance:none;width:44px;height:26px;margin:0;border-radius:var(--r-pill);background:var(--inset);box-shadow:inset 0 0 0 1px var(--border);position:relative;transition:background-color 180ms ease-out}
+.ho-sw input::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform 200ms cubic-bezier(.3,.7,.4,1)}
+.ho-sw input:checked{background:var(--acc-fill);box-shadow:none}
+.ho-sw input:checked::after{transform:translateX(18px)}
+.ho-sw input:focus-visible{outline:2px solid var(--acc-txt);outline-offset:2px}
+.ho-h input{text-align:center;font-variant-numeric:tabular-nums}
+.ho-etat{border-radius:var(--r-5);padding:14px 16px}
+.ho-seg{flex:0 1 460px;border-radius:var(--r-4)}
+.ho-seg button{border-radius:calc(var(--r-4) - 3px)}
+.ho-seg button.on{box-shadow:var(--ombre-1)}
+.ho-ouvrir>.ag-btn{border-radius:var(--r-pill)}
+.ho .ag-h{font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.ho .ag-h small{text-transform:none;letter-spacing:0}
+@media (prefers-reduced-motion:reduce){ .ag-onglets button,.ag-rang,.ag-rang .ag-av,.ag-seg button,.ho-sw input,.ho-sw input::after{transition:none} }
 .ag-ligne{display:flex;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
 .ag-ligne:first-child{border-top:0}
 .ag-ligne .tx{flex:1;min-width:0}
@@ -3367,7 +3435,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.116</div>
+    <div class="lg-pied">console interne · v2.117</div>
   </div>
 </div>
 
@@ -3409,7 +3477,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.116</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.117</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3421,7 +3489,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.116</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.117</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3728,7 +3796,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.116';
+var TOUR_VERSION='v2.117';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
