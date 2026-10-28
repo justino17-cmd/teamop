@@ -464,6 +464,7 @@ const kh = slug => ({ 'x-teamop-kh': sha(CLES[slug]) });
     v('LECTURE (la liste de la Tour) : la plomberie a un code « en attente », payé', [L.rtplomb.paye, /en attente/.test(L.rtplomb.motif || '')], [true, true]);
     v('⛔ LECTURE : le nettoyage seul n\'a PAS de code en attente — il n\'est pas « payé » par un code qu\'il ne pourra jamais activer', [L.rtnet.paye, /en attente/.test(L.rtnet.motif || '')], [false, false]);
     v('⛔ LECTURE : métier non posé → le code reste en attente (le doute vient de NOTRE côté : l\'horloge de conservation ne doit pas démarrer)', [L.rtsans.paye, /en attente/.test(L.rtsans.motif || '')], [true, true]);
+    vrai('   … et le motif dit la VRAIE raison (« réservé à certains métiers », la Tour pose le métier), pas « au prochain lancement de l\'application »', /réservé à certains métiers/.test(L.rtsans.motif || '') && !/prochain lancement/.test(L.rtsans.motif || '') && /prochain lancement/.test(L.rtplomb.motif || ''), [L.rtsans.motif, L.rtplomb.motif]);
     v('   … et rien n\'a été activé par ces lectures', n(RES), n0);
 
     let r = await S.appel('POST', '/api/espaces/etat', { t: ESP.rtplomb.t });

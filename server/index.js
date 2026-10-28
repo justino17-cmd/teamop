@@ -3275,7 +3275,7 @@ async function espacePaye(e, opts) {
       const vMetier = p ? promoMetierVerdict(p, e.t) : null;
       const metierPasse = !!vMetier && (promoMetierPasse(vMetier) || (lecture && vMetier.etat === 'inconnu'));
       if (p && metierPasse && !promosIllisible && !promoServiA(c, e.t, e.slug) && !promoAutreActif(c, e.t, e.slug) && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
-        if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — il s\'active au prochain lancement de l\'application', promoCode: c, enAttente: true, formuleServie: formulePromo(e, c) || (RANG_FORMULE.includes(e.formule) ? e.formule : 'premium') };
+        if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — ' + (vMetier && vMetier.etat === 'inconnu' ? 'réservé à certains métiers : il s\'active dès que la Tour a posé le métier de l\'entreprise' : 'il s\'active au prochain lancement de l\'application'), promoCode: c, enAttente: true, formuleServie: formulePromo(e, c) || (RANG_FORMULE.includes(e.formule) ? e.formule : 'premium') };
         const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(p.mois) || 1));
         u0.n++; u0.equipes[e.t] = promoEntree(dF.toISOString().slice(0, 10), e.t, e.slug);
         promoUsages[c] = u0; savePromoUsages();
