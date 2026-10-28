@@ -13,6 +13,23 @@ de ligne du tout.
 
 ---
 
+# 🔧 28 OCTOBRE 2026 (NUIT) — CLIMATISATION / CHAUFFAGE ET PLOMBERIE SONT FAITS DANS LA BÊTA v779 — RIEN SUR `main`, RIEN PUBLIÉ
+Justin : « les 21 packs, mets-les et corrige-les, et pour demain c'est clim et plomberie » (une entreprise de clim ET de plomberie voit OP GESTION demain). Branche `claude/packs-metiers`
+(partie de `claude/pack-nettoyage`) ; app.html en v779, `beta.html`/`demo.html` générés ; **rien n'est poussé**, `app.html` public (v773) n'est pas touché.
+- **Fait** : packs `chauffage` et `plomberie` corrigés d'après la recherche sourcée (CO ambiant ≠ CO des fumées, « attestation » de ramonage et « 15 jours ouvrés », périodicité de 12 mois
+  jamais écrite « obligation », 2 ans des PAC non affirmés, types VMC / chauffe-eau thermodynamique, essai d'étanchéité sans seuil codé…), catalogues de départ + fournisseurs (nom, site public,
+  aucune coordonnée) posés par le MÊME bouton opt-in que le nettoyage, jamais tout seuls ; « Mon entreprise fait aussi… » (`db.metierPlus`, Paramètres › Mon métier) = la RÉUNION des deux packs,
+  la 3D n'en reçoit jamais ; **un modèle commun de documents** piloté par `DOCM_DEFS` (champs, mentions dont SEULES celles lues à la source — `verifie:true` + `pdf` — s'impriment) :
+  devis de dépannage (arrêté du 24 janvier 2017), note avant paiement, rapport d'étanchéité, suivis gaz / vignette / amiante, certification TVA réduite ; vrais PDF numérotés, carte
+  « Documents de l'intervention », section de la fiche client ; jeu de démonstration par métier (types du pack, documents, parc d'appareils sans PRP inventé). Le module CVC existant est conservé et corrigé.
+- **Bancs** : `test-3128` (291 contrôles, vraies fonctions, PDF relus) ; six bancs voisins suivis (2895, 2951, 2953, 2955, 3111, 747). Suite complète : 736 suites, 41 598 vérifications ; en échec au
+  premier passage 7 suites réelles (corrigées, rejouées vertes) + `test-1000`, `test-2983`, `test-974` qui tombent sous charge et passent seuls, + `test-1670`/`2705` (sautées : `server-courrier/node_modules` manque ici).
+  Mutations `scratchpad/mutations-packs-prio.py` : **45 sur 45 mordent** (deux ne mordaient pas : visibilité du client dans `docmSauver`, quantité vide — contrôles ajoutés).
+  Sonde navigateur (`scratchpad/packs-sonde/sonde-parcours.js`, 127.0.0.1, 390×844 et 1280×800, PDF relus par pdftotext) : plomberie 48 ✓, chauffage 44 ✓, chauffage + plomberie 52 ✓, zéro erreur JS.
+- **Reste à décider (Justin)** : texte de la mention de certification TVA réduite (non lu : champ libre, jamais une formule) ; périodicité de 2 ans des PAC et seuils d'étanchéité des fluides
+  (non confirmés, non imprimés) ; amiante propre à la plomberie ou commun au bâtiment ; Brossette et Frans Bonhomme non posés (redirection / domaine parqué) ; code CVC non fait : types VMC /
+  chauffe-eau dans `cvcTypeInterventionPour`. Les 19 autres métiers : même modèle (`DOCM_DEFS`), phase suivante.
+
 # 🧽 28 OCTOBRE 2026 (SOIR) — LE PACK NETTOYAGE EST INSTALLÉ DANS LA BÊTA v778 — RIEN SUR `main`, RIEN PUBLIÉ
 Justin : « demain, j'ai une entreprise, on a réunion avec elle, il faut que le pack nettoyage soit installé. » Branche `claude/pack-nettoyage` (source de la bêta,
 app.html y est en v778 ; `beta.html` et `demo.html` générés ; **rien n'est poussé**, `main` et `app.html` public (v773) ne sont pas touchés).
