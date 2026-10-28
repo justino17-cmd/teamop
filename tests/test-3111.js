@@ -362,7 +362,7 @@ function suite2(N, METIERS, CATALOGUE_3D) {
   reg('COLL_QUOI : le refus sait les nommer', /const COLL_QUOI=\{[^}]*cahiers:'un cahier des tâches',plansPrevention:'un plan de prévention'/);
   reg('DEL_NOMS : la suppression les nomme', /const DEL_NOMS=\{[^}]*cahiers:'le cahier des tâches',plansPrevention:'le plan de prévention'/);
   reg('la remise à zéro les vide', /'registres','appareils','cahiers','plansPrevention'\]\.forEach\(k=>\{ db\[k\]=\[\]; \}\)/);
-  reg('« Effacer les clients » emporte leurs cahiers et leurs plans', /if\(c\.clients\)\{ db\.clients=\[\]; db\.appareils=\[\]; db\.cahiers=\[\]; db\.plansPrevention=\[\];/);
+  reg('« Effacer les clients » emporte leurs cahiers et leurs plans', /if\(c\.clients\)\{ const gardesCl=clientsAGarder\(!!c\.vente\); db\.clients=gardesCl; db\.appareils=\[\]; db\.cahiers=\[\]; db\.plansPrevention=\[\];/);
   reg('supprimer un client DIT combien de cahiers et de plans restent', /cahiers:n\('cahiers'\),plans:n\('plansPrevention'\)/);
   reg('la fiche client appelle nettSectionClient ; l\'intervention nettIntCard ; le rapport nettRapportLignes ; la carte des prestations nettTachesPourCard', /nettSectionClient\(c\)/.test(N) && /nettIntCard\(i,intEdit\)/.test(N) && /nettRapportLignes\(i\)\.forEach/.test(N) && /nettTachesPourCard\(i\)\.filter/.test(N) ? /./ : /^$/);
   reg('l\'assistant devis envoie l\'entreprise et le métier (jamais un client de plus)', /body:JSON\.stringify\(\{\s*t:syncTeam\(\), metier:metierId\(\),\s*messages:/);
