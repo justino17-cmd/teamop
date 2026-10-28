@@ -2526,6 +2526,14 @@ body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backd
 .ms-bh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .ms-bh b{font-size:13.5px;font-weight:650}
 .ms-bh small{color:var(--muted);font-size:11.5px}
+.ms-sup{margin-left:auto;align-self:center;flex:none;display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--muted);cursor:pointer;opacity:0;transition:opacity 140ms ease-out,background-color 140ms ease-out}
+.ms-sup svg{width:15px;height:15px}
+.ms-b:hover .ms-sup,.ms-sys:hover .ms-sup,.ms-sup:focus-visible{opacity:1}
+.ms-sup:hover{background:var(--rougeBg);color:var(--redText)}
+.ms-b.moi .ms-sup{color:inherit}
+.ms-sys .ms-sup{width:24px;height:24px;margin-left:6px;vertical-align:middle;display:inline-grid}
+@media (pointer:coarse){ .ms-sup{opacity:.55;width:44px;height:44px;margin:-8px -8px -8px auto} .ms-sys .ms-sup{width:44px;height:44px;margin:-10px -10px -10px 0} }
+@media (prefers-reduced-motion:reduce){ .ms-sup{transition:none} }
 .ms-b.moi .ms-bh small{color:inherit;opacity:.82}
 .ms-niv{font-size:11px;font-weight:700;border-radius:99px;padding:0 7px;background:var(--ambreBg);color:var(--amber)}
 .ms-b.urgent .ms-niv{background:var(--rougeBg);color:var(--redText)}
@@ -12323,11 +12331,13 @@ function msNomFil(f){ if(f==='pauline') return 'Pauline'; return msEstGroupe(f)?
 function msIconeHtml(fil,cls){ var p=msGroupePerso(fil); return '<span class="'+cls+(p.couleur?' cb-'+p.couleur:'')+'" aria-hidden="true">'+esc(p.icone)+'</span>'; }
 /* ── les morceaux d'HTML : des fonctions de leurs données, rien d'autre ── */
 function msBulleHtml(m,membres,agents){
-  if(m.systeme||m.de==='systeme') return '<div class="ms-sys" data-id="'+esc(m.id)+'">'+esc(m.texte)+'<small> · '+esc(fmtHeure(m.ts))+'</small></div>';
+  /* « Supprimer » (28 octobre 2026) : sur chaque message, discret — visible au survol à la souris, toujours là au doigt. */
+  var sup='<button type="button" class="ms-sup" data-act="msgSupprimer" data-id="'+esc(m.id)+'" aria-label="Supprimer ce message" title="Supprimer ce message"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>';
+  if(m.systeme||m.de==='systeme') return '<div class="ms-sys" data-id="'+esc(m.id)+'">'+esc(m.texte)+'<small> · '+esc(fmtHeure(m.ts))+'</small>'+sup+'</div>';
   var moi=m.de==='justin', ag=agents&&agents[m.de], nom=moi?'Toi':(m.nom||(ag&&ag.nom)||m.de), role=(!moi&&ag&&ag.role)?ag.role:'';
   var niv=m.niveau==='urgent'?'Urgent':m.niveau==='important'?'Important':'';
   return '<div class="ms-b'+(moi?' moi':'')+(niv?' '+m.niveau:'')+'" data-id="'+esc(m.id)+'">'+(moi?'':agAvatar(m.de,nom,'ms-av'))+
-    '<div class="ms-bc"><div class="ms-bh"><b>'+esc(nom)+'</b>'+(niv?'<span class="ms-niv">'+niv+'</span>':'')+'<small>'+(role?esc(role)+' · ':'')+esc(fmtHeure(m.ts))+'</small></div>'+
+    '<div class="ms-bc"><div class="ms-bh"><b>'+esc(nom)+'</b>'+(niv?'<span class="ms-niv">'+niv+'</span>':'')+'<small>'+(role?esc(role)+' · ':'')+esc(fmtHeure(m.ts))+'</small>'+sup+'</div>'+
     '<p>'+msColorer(m.texte,membres,Array.isArray(m.mentions)?m.mentions:[])+'</p>'+
     (m.dossier?'<button type="button" class="ms-dos" data-act="dossier" data-dos="'+esc(m.dossier)+'">Ouvrir le dossier '+esc(m.dossier)+'</button>':'')+'</div></div>';
 }
@@ -12554,6 +12564,19 @@ function messReunionAnnuler(id){
     else toast((r.d&&r.d.error)||('Le serveur a refusé ('+r.status+').'));
     messPeindreReunions(); return r;
   },function(){ R.annule=false; toast(INJOIGNABLE); messPeindreReunions(); return null; });
+}
+function messMessageSupprimer(id){
+  var m=(MS.msgs||[]).filter(function(x){ return x.id===id; })[0];
+  if(!m||MS.supEnVol) return Promise.resolve(null);
+  var apercu=String(m.texte||'').replace(/\s+/g,' ').slice(0,120);
+  if(!confirm('Supprimer ce message ?\n\n« '+apercu+(String(m.texte||'').length>120?'…':'')+' »\n\nIl disparaît du fil, et les agents ne le relisent plus.')) return Promise.resolve(null);
+  MS.supEnVol=true;
+  return apiPost('/api/monitor/conversations/supprimer',{id:id}).then(function(x){
+    MS.supEnVol=false;
+    if(x.ok||x.status===404){ MS.msgs=MS.msgs.filter(function(y){ return y.id!==id; }); if(MS.dernier===id) MS.dernier=MS.msgs.length?MS.msgs[MS.msgs.length-1].id:''; messPeindreFil(false); toast(x.ok?'Message supprimé.':'Ce message était déjà supprimé.'); }
+    else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    return x;
+  },function(){ MS.supEnVol=false; toast(INJOIGNABLE); return null; });
 }
 function messLeconRetirer(agent,id){
   var d=MS.reu.d, l=d&&d.lecons&&d.lecons[agent]?d.lecons[agent].filter(function(x){ return x.id===id; })[0]:null;
@@ -12929,6 +12952,7 @@ function messClic(ev){
   else if(a==='reuPlier'){ MS.reu.plie=!MS.reu.plie; messPeindreReunions(); }
   else if(a==='reuSection'){ var k=el.getAttribute('data-s'); MS.reu.ouvert[k]=!MS.reu.ouvert[k]; messPeindreReunions(); }
   else if(a==='reuLancer') messReunionLancer(el.getAttribute('data-type'));
+  else if(a==='msgSupprimer') messMessageSupprimer(el.getAttribute('data-id'));
   else if(a==='reuAnnuler') messReunionAnnuler(el.getAttribute('data-id'));
   else if(a==='reuRetirer') messLeconRetirer(el.getAttribute('data-agent'),el.getAttribute('data-id'));
   else if(a.indexOf('pf')===0) messPfClic(el);

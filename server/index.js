@@ -2166,7 +2166,7 @@ const MON_GESTES = {
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
   'agents/horaires': 'a réglé les heures de travail des agents', 'agents/horaires/ouvrir': 'a ouvert l’équipe d’agents hors de ses heures', 'agents/horaires/fermer': 'a mis fin à l’ouverture forcée de l’équipe d’agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
-  'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
+  'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null, 'conversations/supprimer': 'a supprimé un message de la messagerie des agents',
   'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
   /* Pauline (Harvey, Mac) : un accord qui fait partir un courriel vers un prospect laisse sa trace (relecture de gardien) — la cible est l'identifiant du courriel, jamais son texte */
   'pauline/decision': 'a accepté, modifié ou refusé un courriel de Pauline',
