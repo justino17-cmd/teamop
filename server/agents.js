@@ -44,6 +44,10 @@
  * fermé ; accepter une validation hors heures reste en attente (409) comme pendant la pause ; une réunion planifiée tient à son heure (`sousReunion`). Un registre d'horaires
  * illisible arrête TOUT LE MONDE. Les horaires sont INJECTÉS (`ctx.horaires`) : un module monté sans eux — l'examen de l'équipe, qui se lance le soir — n'a pas de garde horaire.
  *
+ * ⛔ L'ANNONCE DE FIN DE TRAVAIL (28 octobre 2026) : `terminer`, `proposer`, `decider` (une validation exécutée), `fait` et l'expiration d'une tâche appellent `ctx.surFait` / `ctx.surExpiration` — `agent-faits.js` compose « Je viens de… », `conversations.annoncerFait`
+ * l'écrit dans « Équipe ». Aucune exception ne remonte : une annonce qui échoue ne défait pas le travail. `bilan` (le journal du jour de chacun, en nombres), `consigneOuverte` (le même travail ne se donne pas deux fois),
+ * `consignesEnRetard` / `suiviFait` (le suivi de Victor), `actesDepuis` (l'anti ping-pong), `sousRacine` / `ouvertA` (finir une réponse après la fermeture, sans ouvrir les portes qui écrivent à un client).
+ *
  * Rien de ce fichier ne lit un courriel, ne parle à Stripe ni n'appelle Anthropic. Les agents
  * viendront, chacun dans son module, et trouveront ici `peutAgir`, `noter`, `proposer`,
  * `deposer`, `prendre`, `terminer` et `executeur`.

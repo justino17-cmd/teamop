@@ -17,6 +17,15 @@
  *    une réponse = celle du message + 1) ; un agent réveillé par un AUTRE agent ne l'est que si cette profondeur est < `PROF_MAX` ; jamais sur son
  *    propre message ni sur un message du système ; au plus `REVEILS_AGENT_MAX` agents réveillés par un message d'agent ; et le module des
  *    conversations plafonne les messages d'agents par heure et par fil, en plus du plafond par agent.
+ * ⛔ (28 octobre 2026, Justin : « La limite de messages par heure, c'est pas normal ») LA RACINE REMPLACE LE PLAFOND HORAIRE POUR TOUT CE QUI NAÎT D'UN MESSAGE DE JUSTIN : `conversations.racine` valide le message (Justin, vivant, deux
+ *    heures), la chaîne va jusqu'à la profondeur 6, `conversations.peutParler` contrôle AVANT `cerveau.penser` (un refus ne coûte plus un appel), les dollars de chaque appel entrent dans le budget de la racine (4 $), et un réveil d'une
+ *    racine née avant la fermeture finit dans les 45 minutes qui suivent (`agents.sousRacine` : l'agent agit mais le dit — `horsHeures` —, aucune porte qui écrit à un client ne s'ouvre). Deux agents qui se répondent À VIDE (ABAB,
+ *    chacun cite l'autre, aucun acte depuis le début) sont coupés au cinquième réveil (`pingPong`), Victor arbitre une fois. SANS racine, les bornes d'avant : profondeur 3, 12 messages par heure et par agent, 20 par fil — et
+ *    plus aucune ligne « limite de messages » dans un fil (journal + compteur `refus()`).
+ * ⛔ « @TOUS » = UNE VAGUE : chacun répond UNE fois, 300 caractères, sans outil ni réflexion, sans réveiller personne (`m.tous`) ; Victor, en dernier, lit toutes les réponses (fenêtre de 30) et synthétise.
+ * ⛔ DEUX OUTILS POUR SE PARLER : `demander` (tout agent — depuis un fil privé, où une citation ne réveille personne, le CODE écrit « @collègue … » dans « Équipe » avec la racine) et `assigner` (Victor — « qui fait quoi » : la tâche existe,
+ *    « demandée par Victor », le titulaire est réveillé ; la même tâche déjà en cours est refusée ; jamais Hugo ni Margaux). Un outil propre déclenché par Victor sur ordre de Justin reçoit `c.deChef`, `c.racine`, `c.texteRacine` — calculés
+ *    ICI d'après le registre et la table `OUTILS_PROPRES_DELEGABLES` (agents.js), jamais d'après le modèle, jamais pour Hugo, Margaux ni un envoi à un client.
  * ⛔ UN AGENT À L'ARRÊT NE PARLE PAS, et ne lit rien : `peutAgir` est demandé avant les faits, avant Claude, avant le mot. Le fil reçoit alors une
  *    ligne du système, une fois par heure.
  * ⛔ CE QUE CLAUDE REÇOIT : le fil (15 messages, adresses et numéros masqués), ses tâches en cours, la charge de l'équipe (des NOMS et des NOMBRES)

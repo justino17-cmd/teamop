@@ -25,6 +25,13 @@
  *  · « X écrit… » est un état EN MÉMOIRE (`ecrit`) : il ne se range pas, il ne survit pas à un redémarrage, et il expire seul.
  *  · Un message `systeme` dit ce qui s'est passé (« Camille a pris… », « X est à l'arrêt ») : il n'est jamais une consigne et personne n'y répond.
  *
+ * LES AGENTS AUTONOMES (28 octobre 2026) — Justin : « La limite de messages par heure, c'est pas normal. Je t'ai dit que je veux des agents qui soient autonomes de A à Z. » ; « je veux qu'à chaque fois qu'ils ont fini, ils
+ * mettent dans le groupe "je viens d'effectuer ça", comme ça moi je vois tout en temps réel. » Trois changements, tous dans ce fichier :
+ *  · LA RACINE (voir `RACINE_VIE_MS`) : un message de Justin est la racine de la chaîne qu'il lance ; sa borne est un budget par message (20 messages d'agents, 40 si @tous, 6 par agent, 8 pour Victor, 4 $), vérifié AVANT
+ *    l'appel payant par `peutParler` — plus l'heure. Sans racine valide (un agent qui s'emballe seul, un texte de client relayé), les plafonds d'avant tiennent, et se taisent pour Justin (journal + compteur).
+ *  · LES ANNONCES (`annoncerFait`) : « Je viens de… » dans « Équipe », écrit par le code (`agent-faits.js`), hors plafonds, sans réveiller personne, une clé stable par fait, copie au pont.
+ *  · VICTOR EST LE MENEUR DES QUATRE GROUPES et membre de « clients » et « plateforme » : il répond quand Justin ne cite personne et répartit (`assigner`, `demander`, `agent-equipe.js`).
+ *
  * LES GROUPES PERSONNALISÉS (25 octobre 2026) — Justin choisit pour chaque groupe un nom, une icône, une couleur, une description
  * (`POST /api/monitor/conversations/groupe`, registre `conversations-groupes.json`). ⛔ SEUL L'AFFICHAGE CHANGE : l'identifiant (equipe, clients,
  * plateforme, reunions) reste celui que les agents, les @mentions (« @tous ») et les réunions lisent, et `nom()` — que les agents mettent dans

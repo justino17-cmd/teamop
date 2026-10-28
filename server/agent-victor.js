@@ -12,6 +12,9 @@
  *     rangée dans sa mémoire et dite dans le fil, avec les deux agents cités. Ce qui dépasse la charte — l'argent, un contrat, un accès, une suppression, une mise en demeure — n'est pas à lui : il pose la
  *     QUESTION À JUSTIN (son fil privé, « important »), et le code le force : une décision qui touche à ces mots n'est jamais présentée comme tranchée.
  *
+ *  4. LE SUIVI (28 octobre 2026, Justin : « Tout le monde fait tout et rien en même temps ») — une tâche prise et sans mouvement depuis quatre heures est relancée UNE fois, dans UN message groupé qui cite trois titulaires au plus
+ *     (jamais Hugo ni Margaux par « @ »). Victor est aussi le CHEF dans la messagerie (`agent-equipe.js` : meneur des quatre groupes, `assigner`, `demander`) ; ce module-ci reste ce qu'il fait SEUL, sur la minuterie.
+ *
  * ⛔ VICTOR NE PREND AUCUNE DÉCISION D'ARGENT NI D'ACCÈS, ne change aucun mode, ne lève aucune pause, ne valide aucune demande : tout cela est à Justin (charte). Il redistribue du travail déjà pris et il arbitre
  *    entre collègues.
  * ⛔ CE QUI PART CHEZ CLAUDE : des NOMBRES, des prénoms d'agents (les clés de leur registre), des jours de la semaine ; pour l'équilibrage, le texte des tâches en cours (venu de Justin ou des agents, adresses et
