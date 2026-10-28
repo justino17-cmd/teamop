@@ -27,8 +27,8 @@ réels n'y va JAMAIS), `static-analysis` (CodeQL / Semgrep : outils à installer
   commande `uv venv` puis `uv pip install` du dépôt cloné a été REFUSÉE par le classifieur de permissions de la session (« Code from
   External »), et n'a pas été contournée. **Il n'y a donc ni score, ni verdict SAFE / CAUTION / DO_NOT_INSTALL pour ces trois skills.**
   Aucune ligne de ce fichier ne dit « scanné SkillSpector ».
-- Ce qui a été fait à la place : une **relecture à la main** et un **balayage statique maison** (`outils-scan/scan_manuel.py` du
-  scratchpad de la session : 8 familles de motifs grossières — réseau, exécution, installation, identifiants, obfuscation, injection de
+- Ce qui a été fait à la place : une **relecture à la main** et un **balayage statique maison** (`scripts/balayage-skills-grossier.py` :
+  8 familles de motifs grossières — réseau, exécution, installation, identifiants, obfuscation, injection de
   prompt, écriture de configuration, caractères invisibles ; stdlib, lecture seule), constat par constat relu en contexte, le
   28 octobre 2026. **C'est beaucoup plus grossier que SkillSpector** (71 motifs en 17 catégories, analyse de dépendances, score) ; il dit
   seulement ce qu'on voit à l'œil. À refaire avec le vrai scanner dès que Justin l'autorise.
