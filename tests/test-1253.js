@@ -25,10 +25,10 @@ function bloc(debut) {
 const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)); };
 
 console.log('\n── 1253 · 0. la population ──');
-const FN = ['function printDoc(', 'function genDocTexte(', 'function devisToFacture(', 'function devisFactureDe(', 'function docListView(', 'function docNumsDoubles(', 'function docTot('];
+const FN = ['function printDoc(', 'function genDocTexte(', 'function devisToFacture(', 'function devisFactureDe(', 'function docListView(', 'function docNumsDoubles(', 'function docTot(', 'function docEcheance(', 'function docAdresseClient(', 'function docMentions(', 'function docSiren('];   /* v779 (Factur-X) : l'échéance, l'adresse et les mentions de la réforme que printDoc lit */
 const CODE = FN.map(bloc);
 const LTL = ligne('const ligTotLigne='), LHT = ligne('const ligHT='), EUR = bloc('const eur = n =>') + ';';
-v('les fonctions sont trouvées', CODE.map(c => c.length > 60).concat(!!LTL, !!LHT, EUR.length > 100), Array(10).fill(true));
+v('les fonctions sont trouvées', CODE.map(c => c.length > 60).concat(!!LTL, !!LHT, EUR.length > 100), Array(14).fill(true));
 v('⛔ une seule définition de chaque', FN.map(n => SRC.split(n).length - 1), FN.map(() => 1));
 /* la population qui compte : 1,5 × 33,33 est exactement le cas où le brut et l'arrondi par ligne divergent */
 const L1 = { designation: 'Prestation', qte: 1.5, pu: 33.33 };
@@ -47,6 +47,8 @@ function monde(opts) {
     function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
     let _NF; ${EUR}
     ${LTL}\n${LHT}
+    ${ligne('const isoDe =')}
+    ${ligne('const DOC_NATURES=')}
     const DOC={ devis:{coll:'devis',titre:'Devis',un:'devis',prefix:'DV',st:{brouillon:{l:'Brouillon'},accepte:{l:'Accepté'}}}, factures:{coll:'factures',titre:'Facture',un:'facture',prefix:'FAC',st:{brouillon:{l:'En attente'},payee:{l:'Payée'}}} };
     function docEntete(){ return { nom:'Ent SARL', couleur:'#0a7', logo:'', adresse:'', cp:'', ville:'', tel:'', siret:'', tvaIntra:'', iban:'', bic:'', raison:'' }; }
     function rapportSociete(){ return 'Ent SARL'; } function encreSur(){ return '#fff'; } function todayISO(){ return '2026-10-16'; }

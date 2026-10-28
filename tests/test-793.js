@@ -56,7 +56,8 @@ const BASE = {
   bons: [{ id: 'bA', societe: 'Alpha Nuisibles', lignes: [] }, { id: 'b0', societe: '', lignes: [] }], fournisseurs: [] };
 const FN = ['function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function intSocMailOpts(',
   'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(',
-  'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
+  'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc(',
+  'const DOC_NATURES=', 'function docEcheance(', 'function docAdresseClient(', 'function docMentions(', 'function docSiren('];   // v779 (Factur-X) : ce que docPdfStr et printDoc lisent en plus
 function monter(base) {
   const W = { console, Object, JSON, String, Math, Date, Array, Number, Uint8Array, __html: '',
     localStorage: { getItem: () => null }, atob: s => Buffer.from(s, 'base64').toString('latin1') };
@@ -152,10 +153,11 @@ console.log('── 793 · 5. les courriels portent la même société que le do
   vrai('le bon envoyé au fournisseur : la société DU BON quand il en porte une — sinon le « Nom d’expéditeur » des Réglages e-mail, comme avant', /const ent=socNom\(b\.societe\)\?bcEntete\(b\):mailBrandName\(\);/.test(corps('envoiBonEmail')));
   vrai('un envoi refusé ne met pas l’adresse du client dans le rapport d’erreur (/api/bug) — le domaine seulement',
     /stack:'domaine du destinataire : '\+\(String\(to\|\|''\)\.split\('@'\)\[1\]\|\|'—'\)/.test(corps('srvMail')) && !/'destinataire '\+to/.test(corps('srvMail')));
-  { const fx = corps('exportFacturX'), ach = fx.slice(fx.indexOf('<ram:BuyerTradeParty>'), fx.indexOf('</ram:BuyerTradeParty>'));
-    vrai('Factur-X : l’adresse de l’acheteur suit l’ordre CII (code postal, puis rue, puis ville) — comme celle du vendeur',
-      ach.length > 50 && ach.indexOf('<ram:PostcodeCode>') > 0 && ach.indexOf('<ram:PostcodeCode>') < ach.indexOf('<ram:LineOne>') && ach.indexOf('<ram:LineOne>') < ach.indexOf('<ram:CityName>'), ach.slice(0, 200)); }
-  vrai('Factur-X : le vendeur est la société de la facture, avec son identifiant légal', /docEntete\(f\.rapportModele\)/.test(corps('exportFacturX')) && /SpecifiedLegalOrganization/.test(corps('exportFacturX')) && !/f\.societe/.test(corps('exportFacturX'))); }
+  { const fx = corps('facturxXml'), ad = fx.slice(fx.indexOf('const adresse=(cp,rue,ville)=>'), fx.indexOf('const cat=')),
+      ach = fx.slice(fx.indexOf('<ram:BuyerTradeParty>'), fx.indexOf('</ram:BuyerTradeParty>'));
+    vrai('Factur-X : l’adresse (du vendeur comme de l’acheteur) suit l’ordre CII — code postal, puis rue, puis ville — et l’acheteur la lit par ce même gabarit',
+      ad.length > 50 && ad.indexOf('<ram:PostcodeCode>') > 0 && ad.indexOf('<ram:PostcodeCode>') < ad.indexOf('<ram:LineOne>') && ad.indexOf('<ram:LineOne>') < ad.indexOf('<ram:CityName>') && /\$\{adresse\(adr\.cp,adr\.rue,adr\.ville\)\}/.test(ach), ad.slice(0, 200)); }
+  vrai('Factur-X : le vendeur est la société de la facture, avec son identifiant légal', /docEntete\(f\.rapportModele\)/.test(corps('facturxXml')) && /SpecifiedLegalOrganization/.test(corps('facturxXml')) && !/f\.societe/.test(corps('facturxXml'))); }
 
 console.log('── 793 · 6. les données de société ──');
 { vrai('les coordonnées d’une société se saisissent (Paramètres → Mes sociétés)', /onclick="socCoordModal\(\$\{ix\}\)"/.test(SRC) && /function socCoordSave\(e,ix\)\{ e\.preventDefault\(\); if\(!adminSeul\(\)\) return;/.test(SRC));

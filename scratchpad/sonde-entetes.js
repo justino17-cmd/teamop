@@ -83,7 +83,8 @@ const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { k
     await prendre('bon-alpha',()=>printBon('bcA'));
     await prendre('fiche-box',()=>printBox('bxX'));
     await prendre('produit-donne-beta',()=>printProduitDonne('pdB'));
-    await prendre('facturx-beta',()=>exportFacturX('faB'));
+    /* v779 : exportFacturX fabrique un PDF (async, binaire) ; le XML du vendeur se lit par la fonction pure qui le construit */
+    await prendre('facturx-beta',async()=>{ window.__blobs.push({type:'application/xml',txt:facturxXml(db.factures.find(f=>f.id==='faB'))}); });
     /* les courriels, avec leur pièce jointe */
     await prendre('mail-devis-alpha',()=>envoiDoc('devis','dvA','email'));
     await prendre('mail-facture-beta',()=>envoiDoc('factures','faB','email'));
@@ -116,7 +117,7 @@ const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { k
   doitPorter('bon-alpha', A, A.siret, [E.siret]);
   doitPorter('produit-donne-beta', B, E.siret, [A.nom]);
   const fx = (docs['facturx-beta'].blobs || []).join('');
-  vrai('Factur-X de la facture Bêta : le vendeur est Bêta… (raison sociale de l’entreprise, puisque Bêta n’a pas de SIRET)', /<ram:SellerTradeParty><ram:Name>Nettoyage Excellence<\/ram:Name>/.test(fx) && fx.includes('11111111100011'), fx.slice(fx.indexOf('SellerTradeParty') - 5, fx.indexOf('SellerTradeParty') + 300));
+  vrai('Factur-X de la facture Bêta : le vendeur est Bêta… (raison sociale de l’entreprise, puisque Bêta n’a pas de SIRET)', /<ram:SellerTradeParty>(?:<ram:GlobalID[^>]*>[^<]*<\/ram:GlobalID>)?<ram:Name>Nettoyage Excellence<\/ram:Name>/.test(fx) && fx.includes('11111111100011'), fx.slice(fx.indexOf('SellerTradeParty') - 5, fx.indexOf('SellerTradeParty') + 300));
   const m = k => (docs[k] && docs[k].mails || [])[0] || {};
   const pj = k => { const a = m(k).opts && m(k).opts.atts && m(k).opts.atts[0]; return a ? Buffer.from(a.content, 'base64').toString('latin1') : ''; };
   vrai('courriel du devis Alpha : expéditeur Alpha, PDF joint à SON en-tête', (m('mail-devis-alpha').opts || {}).brandName === A.nom && pj('mail-devis-alpha').includes('Alpha Nuisibles') && pj('mail-devis-alpha').includes(A.siret) && /ci-joint/.test(m('mail-devis-alpha').body || ''), m('mail-devis-alpha').opts && m('mail-devis-alpha').opts.brandName);

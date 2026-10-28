@@ -42,6 +42,7 @@ function jouer(kind, id) {
     var current='devis', views={factures(){}}; const go=()=>{};
     ${bloc('function factQuitterPayee(f,nouveau){')}   /* saveDoc demande avant de quitter « payée » (vague 1) : la vraie ; ici aucun document n'est payé, elle laisse passer */   /* saveDoc redessine la rubrique où l'on est (vague 1) : ici, aucune */
     ${DOC}
+    ${ligne('const DOC_NATURES=')}
     ${SAVE}
     return saveDoc;`)(db, toasts, journal);
   const e = { preventDefault() {}, target: { valeurs: { num: 'N-1', clientId: 'c1', date: '2026-10-01', tva: '20', statut: 'brouillon', notes: '', rapportModele: '' } } };

@@ -13,6 +13,54 @@ de ligne du tout.
 
 ---
 
+# 🧾 28 OCTOBRE 2026 (NUIT) — FACTUR-X : LA FACTURE D'OP GESTION SORT EN PDF/A-3 AVEC SON XML CII — BÊTA, branche `claude/facturx`, RIEN sur `main`, RIEN publié, `APP_VERSION` NON TOUCHÉE
+
+Justin : « tu fais tout », dont la facture électronique. Arbre `/home/user/teamop-facturx`, partie de `claude/pack-nettoyage` (bêta v778). Conception : `scratchpad/facturx-conception.md` (hors dépôt, session 8050f26e).
+
+**Ce qui existe** (tout dans `app.html`, un bloc contigu au-dessus de la fabrique des devis ; `node beta-build.js` passe, `beta.html` n'est PAS commité — une autre branche monte la version) :
+- `docTot` compte en **centimes entiers** : la TVA s'arrondit UNE fois (demi vers le haut), `ttc = ht + tva`, et rend `htC/tvaC/ttcC`. Avant : TVA non arrondie, affichée par `toFixed` — mesuré, 24 montants sur 4 000 où l'écran contredisait ses propres parties (1,00 € à 5,5 % : TVA 0,06 mais TTC 1,05). Le PDF, l'impression et le XML lisent tous `docTot`.
+- `facturxXml(f)` : le XML CII, profil **EN 16931** (`urn:cen.eu:en16931:2017`), TVA par ligne, exigibilité (BT-8), échéance, moyen de paiement + IBAN, « déjà payé », vendeur par `docEntete(f.rapportModele)` (la société DE LA FACTURE), SIREN du client (BT-47), livraison. Une TVA à 0 % sort en catégorie **E** + `VATEX-FR-FRANCHISE` + motif 293 B (l'ancien export la mettait en **S**, interdit).
+- `docPdfStr(kind,d,logo,fx)` : **un seul crochet**. Sans `fx`, un devis et une facture sortent OCTET POUR OCTET comme avant (empreintes SHA-256 calculées sur le code d'avant, test-3134 § 4). Avec `fx={xml}` : `%PDF-1.7`, deux sous-ensembles TrueType de Liberation Sans **incorporés** (renommés « TeamOPSans » : « Liberation » est un nom réservé par l'OFL ; largeurs identiques à `_PDF_L`, 0 écart sur 95 signes × 2), profil sRGB fabriqué à la main (primaires et courbe publiques, rien recopié), XMP avec la **déclaration** du schéma `fx:`, `factur-x.xml` en pièce jointe (`/AFRelationship /Alternative`), `/ID`. Le bloc des polices est GÉNÉRÉ (`scripts/facturx-polices.py`, marqueurs `⟦FACTURX_POLICES⟧` : on relance le script, on n'édite pas) — 36 Ko de base64, compressés.
+- Saisie : fiche client (**SIREN**, n° de TVA ; un SIRET collé donne son SIREN ; clé de Luhn refusée AVANT l'écriture) ; facture (nature de l'opération, échéance, adresse de livraison) ; « Mon entreprise » (option TVA d'après les débits ; SIRET « requis pour la facture électronique »). Les mentions de la réforme (F31808) s'impriment sur le PDF et l'aperçu quand elles sont renseignées — la nature SEULEMENT si on l'a choisie.
+- Gestes : le bouton de la liste devient « Factur-X » (`exportFacturX`, async : télécharge `<n°>-facturx.pdf`) ; s'il manque quelque chose (SIREN client, TVA vendeur, nature…), il LISTE ce qui manque (`facturxPrerequis`) ; `envoiDoc` joint le Factur-X à une facture complète pour un client professionnel, sinon le PDF ordinaire comme avant (une information manquante ne bloque pas l'envoi). **Aucun écran ne dit « conforme »** (test-3134 le garde).
+
+**Mesuré** : `tests/test-3134.js` — 194 vérifications (15 000 documents tirés pour les centimes ; 11 montants au PDF et au XML, 9 factures × 4 contrôles du XML ; le PDF lu octet par octet). Les suites voisines adaptées (elles extraient des fonctions d'`app.html` et ont besoin des neuves) : 793, 1220, 1252, 1253, 1416 ; `demo.html` régénéré (test-2940). `scratchpad/sonde-facturx.js` joue le chemin dans la vraie bêta (Chromium, 127.0.0.1) ; `scratchpad/sonde-entetes.js` suit le changement de nom de l'export.
+
+## ⛔ CE QUI N'EST PAS PROUVÉ — ET POURQUOI
+**Mustang n'a pas été exécuté.** Le jar `Mustang-CLI-2.26.0.jar` (sha256 `42d7868c…9736`, 59 Mo) est dans `scratchpad/mustang/` ; le système de permissions a refusé `java -jar` (« Code from External »), deux fois, et rien n'a été contourné. Conséquence, dite telle quelle : **« PDF/A-3 conforme » n'est affirmé nulle part** — ni la validation veraPDF, ni le Schematron exécuté. Ce qui a été fait À LA PLACE, en lisant le jar comme des DONNÉES (`unzip`, jamais `java`) :
+- le schéma UN/CEFACT CII D16B officiel (4 `.xsd`, dans `tests/facturx/`) : `xmllint --schema` valide nos 9 XML ;
+- les listes de codes officielles (`FACTUR-X_EN16931_codedb.xml`) : tous nos codes y sont ; **les règles du Schematron Factur-X 1.09.2** : 326 sur 433 se rejouent en XPath 1.0 avec lxml (`scratchpad/facturx-schematron-xpath1.py` (FX_SCH=… en variable), toutes les règles de cardinalité FX-SCH comprises) — **0 échec sur 1 278 contextes** (et elle mord : deux XML cassés à la main font tomber 4 règles) ; les 107 autres (XPath 2) sont réécrites à la main dans le banc sous leur identifiant (BR-CO-10 à 17, BR-S, BR-E, BR-DEC, BR-CO-26, BR-61…) ;
+- poppler (pdfinfo, pdffonts, pdfdetach, pdftoppm) relit le PDF : 1.7, deux polices incorporées, pièce jointe identique octet pour octet.
+**À jouer dès que Justin autorise** (une règle `Bash(java -jar */Mustang-CLI-2.26.0.jar:*)` suffit) : `java -jar Mustang-CLI-2.26.0.jar --action validate --source facture.pdf --no-notices` (PDF/A-3 par veraPDF + XSD + Schematron), puis `--action extract` : le XML ressorti doit être le nôtre.
+
+## Les cinq valeurs « à confirmer » de la conception — ce que les listes officielles du jar disent
+| valeur | verdict | source |
+|---|---|---|
+| code d'exonération de la franchise | **`VATEX-FR-FRANCHISE`** existe (liste VATEX d'EN 16931 de Factur-X) | `codedb`, liste 26 (88 codes) |
+| exigibilité de la TVA (BT-8, `DueDateTypeCode`) | seules **5** (date de la facture), **29** (livraison), **72** (paiement) sont admises ; choix retenu : débits → 5, services → 72, biens → 29, mixte → rien | `codedb`, liste 28 |
+| cadre de facturation (BT-23) | **libre** dans le profil EN 16931 (aucune liste) ; `S1` / `B1` / `M1` posés d'après les spécifications françaises, **non validés par un outil** — un paiement déjà fait serait `S2`/`B2`/`M2` à confirmer | `.sch`, pas de `codeValue` pour BT-23 |
+| `AFRelationship` | **`Alternative`** (Mustang l'écrit pour le XML d'une facture ; `Data` sert aux profils sans lignes) | classes `ZUGFeRDExporterFromA3` |
+| bloc XMP de déclaration | schéma « Factur-X PDFA Extension Schema », préfixe `fx`, espace `urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#`, quatre propriétés texte (`DocumentFileName`, `DocumentType`, `Version`, `ConformanceLevel`) — relevé dans `XMPSchemaPDFAExtensions`, **rédaction non validée par veraPDF** | idem |
+
+## Défauts trouvés dans l'existant, corrigés au passage
+1. **L'échéance d'une facture s'imprimait UN JOUR TROP TÔT pour les factures datées entre le 26 septembre et le 25 octobre (fuseau Europe/Paris)** : `date + 30*86400000` ms traverse le changement d'heure d'octobre (fuseau Europe/Paris : 1er octobre + 30 jours = 30 octobre au lieu du 31). Présent en PRODUCTION (v772) sur le PDF, l'aperçu et le rappel. `docEcheance` compte 30 jours **calendaires**. Rien n'est réécrit dans les bases : les PDF d'avant ont la date fausse, on ne les range pas derrière nous.
+2. Le PDF lisait `cli.cp`, un champ qui n'existe pas : le code postal du client n'a jamais été imprimé sur un devis ni une facture, et la ville revenait seule sur une ligne en double (« 12 rue X, 17100 Saintes » puis « Saintes »).
+3. `exportFacturX` : `GuidelineID` faux, TVA 0 % en catégorie S, ni échéance, ni moyen de paiement, ni TVA par ligne, quantité 0 devenue 1, pas un PDF/A. Remplacé.
+4. `docTot` : voir plus haut.
+
+## Reste à décider (Justin — réponse courte suffit)
+1. **Factur-X dans tous les forfaits ?** Fait ainsi (aucune garde de formule) : la loi le rendra obligatoire à toutes les PME en 2027, le fermer derrière un forfait serait un choix commercial lourd.
+2. **`docTot` arrondi en centimes** (affichage : 1 centime peut bouger, partout, dans de rares cas — mesuré 0,6 % des montants tirés au hasard) : appliqué, parce que sans lui le PDF et le XML ne disent pas la même chose. Se défait en une ligne.
+3. **Autoriser l'exécution de Mustang** (ci-dessus).
+4. **Le site annonce déjà « export Factur-X »** (`test-846.js` l.326 et le tableau des formules) : NON touché (page publique, vers `main`). Tant que la v779 n'est pas publiée, le texte devance l'application ; une fois publiée, il reste trop beau si on ne dit pas « sur une plateforme agréée, à venir ».
+
+## Hors de portée — dit honnêtement
+Le **dépôt sur une plateforme agréée** (sans lui, un PDF Factur-X par courriel n'est PAS une émission au sens de la loi : échéance PME **1er septembre 2027**) ; la **réception** des factures fournisseurs (obligatoire dès le 1er septembre 2026 pour toutes les entreprises — OP GESTION n'en a pas) ; les **avoirs** (aucun dans l'application : une facture électronique émise ne se corrige que par un avoir, TypeCode 381 — le bouton refuse un prix négatif en le disant) ; remises, acomptes, situations, plusieurs taux de TVA dans un document, autoliquidation ; EXTENDED-CTC-FR ; l'archivage à valeur probante ; la validation JURIDIQUE de la liste des mentions (je ne suis pas juriste : les quatre mentions viennent de service-public.fr F31808, page lue ; la date du 1er septembre 2026 / 2027 de la réception et de l'émission vient de résumés de pages impots.gouv.fr et economie.gouv.fr, non relues en entier). L'option « taxe d'après les débits » n'existe qu'au niveau de l'entreprise (une société à SIRET propre ne peut pas la poser seule).
+
+## À la fusion (sans conflit cherché, mais à savoir)
+`demo.html` se régénère (`node demo-build.js`) ; une branche qui touche `formDoc`/`saveDoc`/`printDoc` (la comptabilité, n° 69) rencontrera mes lignes : j'ai ajouté trois champs à `doc` dans `saveDoc` et un bloc à `formDoc` ; `docPdfStr` a un 4ᵉ argument et `docPdfChaine` un 3ᵉ. Une suite qui extrait `docPdfStr`/`printDoc`/`saveDoc` doit fournir `DOC_NATURES`, `docEcheance`, `docAdresseClient`, `docMentions`, `docSiren` (793, 1252, 1253, 1416 le font).
+**Si la mise en page d'un devis ou d'une facture change un jour**, les trois empreintes de test-3134 § 4 tombent : c'est voulu (elles disent « avant le 28 octobre 2026 »), on les recalcule en le disant.
+
 # 🧽 28 OCTOBRE 2026 (SOIR) — LE PACK NETTOYAGE EST INSTALLÉ DANS LA BÊTA v778 — RIEN SUR `main`, RIEN PUBLIÉ
 Justin : « demain, j'ai une entreprise, on a réunion avec elle, il faut que le pack nettoyage soit installé. » Branche `claude/pack-nettoyage` (source de la bêta,
 app.html y est en v778 ; `beta.html` et `demo.html` générés ; **rien n'est poussé**, `main` et `app.html` public (v773) ne sont pas touchés).

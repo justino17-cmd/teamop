@@ -49,6 +49,7 @@ function monde(opts) {
   vm.runInContext(`
     function esc(s){ return String(s==null?'':s); } function eur(n){ return Number(n||0).toFixed(2).replace('.',',')+' €'; }
     const DOC={ factures:{coll:'factures',titre:'Facture',un:'facture',prefix:'FAC'}, devis:{coll:'devis',titre:'Devis',un:'devis',prefix:'DV'} };
+    ${ligne('const DOC_NATURES=')}
     const REG_MODES={VIR:['VIR','Virement']};
     var views={ factures(){ __nav.push('views.factures'); } };
     function docListView(k,x){ __nav.push('docListView('+k+','+!!x+')'); } function go(v){ __nav.push('go('+v+')'); }
