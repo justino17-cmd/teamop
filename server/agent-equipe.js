@@ -44,6 +44,9 @@ const PROF_MAX_RACINE = 6;
 const REVEILS_AGENT_MAX = 4;
 /* (28 octobre 2026) 4 -> 6 : un agent autonome enchaîne prendre, demander, assigner, terminer sans qu'on lui coupe la fin de sa liste. Aucune n'est une sécurité : chaque outil se VALIDE en lui-même. */
 const ACTIONS_MAX = 6;
+/* La question fermée posée à Hugo ou Margaux par un collègue (`demander`) : 200 caractères au plus et un numéro de dossier — la forme de `FORME_DOSSIER`, cherchée DANS le texte */
+const QUESTION_FERMEE_MAX = 200;
+const DOSSIER_CITE = new RegExp('(?:^|[^A-Za-z0-9])' + FORME_DOSSIER.source.replace(/^\^|\$$/g, '') + '(?![0-9])');
 /* « @tous » (28 octobre 2026) : chacun répond UNE fois, court, sans outil ; Victor fait la synthèse en dernier et lit TOUTES les réponses (l'historique de CE réveil-là passe de 15 à 30). */
 const TOUS_CARS = 300, TOUS_JETONS = 400, HISTORIQUE_SYNTHESE = 30;
 const MESSAGE_MAX = 1000;
@@ -138,7 +141,7 @@ function outilsDe(id, o) {
     /* (28 octobre 2026, Justin : « J'aimerais que les agents communiquent entre eux. Parce que là, il n'y a aucune communication ») DEMANDER : le moyen de joindre un collègue DEPUIS N'IMPORTE OÙ. Dans un fil
        privé, `membresDe` n'a que l'agent : « @camille » écrit dans sa réponse n'y réveille personne. Le CODE écrit « @collègue … » dans « Équipe », où tout le monde est membre, avec la racine et la
        profondeur de ce réveil. */
-    { name: 'demander', description: 'Demander quelque chose à un collègue, ou lui poser une question : le serveur écrit pour toi « @collègue ton texte » dans le groupe « Équipe » et le réveille. C’est le SEUL moyen de joindre un collègue depuis ton fil privé avec Justin (une citation écrite dans ta réponse n’y réveille personne). Au plus deux demandes par réponse, 500 caractères au plus. Ce n’est pas un moyen de lui confier un travail suivi : c’est le rôle de Victor (assigner).',
+    { name: 'demander', description: 'Demander quelque chose à un collègue, ou lui poser une question : le serveur écrit pour toi « @collègue ton texte » dans le groupe « Équipe » et le réveille. C’est le SEUL moyen de joindre un collègue depuis ton fil privé avec Justin (une citation écrite dans ta réponse n’y réveille personne). Au plus deux demandes par réponse, 500 caractères au plus. Ce n’est pas un moyen de lui confier un travail suivi : c’est le rôle de Victor (assigner). À Hugo ou Margaux (l’argent, les accès), seulement une QUESTION courte (200 caractères) qui cite un numéro de dossier DOS-nnnnnn : le serveur refuse le reste.',
       input_schema: { type: 'object', properties: { vers: { type: 'string', enum: Array.isArray(o.pairs) ? o.pairs : collegues }, texte: { type: 'string' } }, required: ['vers', 'texte'], additionalProperties: false } },
   ];
   /* ASSIGNER : pour le chef seul (`o.chef`). « Qui fait quoi » : le travail devient la tâche en cours du collègue, « demandée par » Victor, et il est réveillé (le serveur écrit « @collègue … » dans « Équipe »).
@@ -210,6 +213,8 @@ module.exports = function agentEquipe(ctx) {
   /* ⛔ « [lea] [camille] » AU LIEU DE « @lea @camille » (examen du 27 octobre 2026, 23 h 36, scénario 5) : Victor recopiait l'étiquette du fil (« [Léa a écrit…] »)
      au lieu de citer ses collègues. Un nom de l'équipe entre crochets devient la citation qu'il voulait faire ; rien d'autre n'est touché. */
   const parNom = new Map(); for (const x of agents.AGENTS) { parNom.set(x.id.toLowerCase(), x.id); parNom.set(String(x.nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), x.id); }
+  /* les mots qui peuvent s'écrire en majuscule sans désigner un client : les prénoms des agents (`AC.donneeClientProbable`) */
+  const connusNoms = new Set(parNom.keys());
   const crochets = t => String(t || '').replace(/\[([A-Za-zÀ-ÿ]{2,20})\]/g, (m, n) => { const k = parNom.get(n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()); return k ? '@' + k : m; });
   const nettoyer = t => masquer(t).replace(/\s+/g, ' ').trim().slice(0, MESSAGE_MAX);
   const court = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
@@ -293,7 +298,9 @@ module.exports = function agentEquipe(ctx) {
   function blocTravail(id) {
     if (id === 'victor') return '';   // il a déjà « Tâches en cours de l’équipe (pour redistribuer) », avec les identifiants
     /* un TOUR par titulaire (sa première tâche), puis un second tour… jusqu'à douze : un agent qui a dix tâches ne cache pas ce que les autres ont pris */
-    const parTitulaire = ids.map(x => { let l = []; try { l = agents.tachesDe(x).filter(t => t.type === 'consigne'); } catch (e) { l = []; } return [x, l]; }).filter(([, l]) => l.length);
+    /* ⛔ Hugo et Margaux (l'argent, les accès) ne lisent dans ce bloc que ce que JUSTIN a confié : le titre d'une tâche donnée par un collègue est du texte libre de collègue, et il n'entre pas dans leur prompt */
+    const seulJustin = SANS_CONSIGNE_LIBRE.includes(id);
+    const parTitulaire = ids.map(x => { let l = []; try { l = agents.tachesDe(x).filter(t => t.type === 'consigne' && (!seulJustin || t.de === 'justin')); } catch (e) { l = []; } return [x, l]; }).filter(([, l]) => l.length);
     const lignes = [];
     for (let tour = 0; lignes.length < 12 && parTitulaire.some(([, l]) => l.length > tour); tour++) {
       for (const [x, l] of parTitulaire) if (l.length > tour && lignes.length < 12) lignes.push('- ' + x + ' : « ' + affichable(l[tour].texte, 60) + ' »');
@@ -412,7 +419,8 @@ module.exports = function agentEquipe(ctx) {
   function executer(id, a, c) {
     const e = a && a.entree && typeof a.entree === 'object' ? a.entree : {};
     const str = k => typeof e[k] === 'string' ? e[k] : '';
-    const refus = (raison, ligne) => { journal(id, 'outil ' + a.nom, 'refuse', raison); if (ligne) dire(c.fil, ligne); return { ok: false, raison }; };
+    /* un refus d'OUTIL pour un plafond ne se perd pas en silence : le compteur de /health (`agentsRefus`) le voit, comme celui d'une réponse (`refusDit`) — sinon la surveillance ignore la moitié des refus */
+    const refus = (raison, ligne) => { journal(id, 'outil ' + a.nom, 'refuse', raison); if (Object.prototype.hasOwnProperty.call(REFUS_SILENCIEUX, raison)) compter(REFUS_SILENCIEUX[raison]); else if (raison === 'racine_close' || raison === 'racine_agent') compter('chaine'); if (ligne) dire(c.fil, ligne); return { ok: false, raison }; };
     const bon = (detail) => { journal(id, 'outil ' + a.nom, 'ok', detail); return { ok: true }; };
     const nom = nomDe(id);
     if (a.nom === 'ecrire') {
@@ -432,7 +440,9 @@ module.exports = function agentEquipe(ctx) {
       if (fil === c.fil && c.dejaDit && (!nouveauxCites.length || redite)) return refus('deja_dit_ici');
       const t = raccourcir(masquer(str('texte')));
       if (!t) return refus('texte');
-      const r = conversations.parler(id, fil, t, { niveau: 'info', prof: c.prof });
+      /* ⛔ LA RACINE VOYAGE AUSSI PAR CET OUTIL (28 octobre 2026, examen) : sans elle, ce message retombait dans les 12 par heure et les 20 par fil d'AVANT, refusés EN SILENCE — Victor répondant à 16 messages de
+         Justin et rangeant chaque compte rendu dans son fil privé en perdait 4 sans une ligne. C'est la limite horaire dont Justin se plaignait, revenue par une porte oubliée. */
+      const r = conversations.parler(id, fil, t, { niveau: 'info', prof: c.prof, racine: c.racine });
       return r.ok ? bon(fil) : refus(r.raison);
     }
     if (a.nom === 'demander') {
@@ -441,6 +451,9 @@ module.exports = function agentEquipe(ctx) {
       if (c.demandes && c.demandes.n >= 2) return refus('trop_de_demandes');
       const t = court(masquer(str('texte')).replace(/@/g, ' ').replace(/\s+/g, ' ').trim(), 500);
       if (!t) return refus('texte');
+      /* ⛔ HUGO ET MARGARUX NE REÇOIVENT PAS DE TEXTE LIBRE D'UN COLLÈGUE (28 octobre 2026, relecture) : la règle « question fermée seulement » n'était que dans le prompt. Le CODE l'exige : une
+         question courte (200 caractères) qui cite un numéro de dossier (`DOS-nnnnnn`, forme fermée). Le reste est refusé — le travail en texte libre pour l'argent et les accès vient de Justin. */
+      if (SANS_CONSIGNE_LIBRE.includes(vers) && (t.length > QUESTION_FERMEE_MAX || !DOSSIER_CITE.test(t))) return refus('consigne_libre_refusee', nom + ' ne peut pas poser cette question à ' + nomDe(vers) + ' : l’argent et les accès ne reçoivent d’un collègue qu’une question courte sur un dossier (DOS-…) ; le reste vient de Justin.');
       const r = conversations.parler(id, 'equipe', '@' + vers + ' ' + t, { niveau: 'info', prof: c.prof, racine: c.racine });
       if (!r.ok) return refus(r.raison);
       if (c.demandes) c.demandes.n++;
@@ -469,7 +482,8 @@ module.exports = function agentEquipe(ctx) {
       return bon('assigne ' + vers);
     }
     if (a.nom === 'prendre') {
-      const t = court(masquer(str('texte')).replace(/\s+/g, ' ').trim(), 500);
+      /* ⛔ pas de « @ » dans une consigne (comme `demander` et `assigner`) : le suivi de Victor la recopie dans un message qui réveille ceux qu'il cite — « @hugo » écrit dans un titre réveillait Hugo */
+      const t = court(masquer(str('texte')).replace(/@/g, ' ').replace(/\s+/g, ' ').trim(), 500);
       if (!t) return refus('texte');
       const r = agents.consigner(c.d.de, id, t);
       if (r.ok) { dire(c.fil, nom + ' a pris « ' + court(t, 90) + ' »'); return bon('consigne'); }
@@ -493,7 +507,8 @@ module.exports = function agentEquipe(ctx) {
       let avant = null; try { avant = agents.tachesDe(id).find(t => t.id === tache) || null; } catch (x) {}
       if (!avant || !agents.terminer(tache, id, 'ok', resume, { libre: true })) return refus('tache');
       /* dans « Équipe », l'annonce « ✅ Je viens de terminer… » (écrite par `agents.terminer`, hors plafonds) dit déjà la même chose : pas deux lignes pour un geste */
-      if (c.fil !== 'equipe') dire(c.fil, nom + ' a terminé ' + (avant.texte ? '« ' + court(avant.texte, 90) + ' »' : 'une tâche') + (resume ? ' : ' + resume : '') + '.');
+      /* …et la ligne d'un AUTRE fil (le fil privé avec Justin) obéit à la même règle que l'annonce : un titre ou un résumé qui ressemble à une donnée de client (nom, adresse, montant, référence) n'y est pas répété */
+      if (c.fil !== 'equipe') dire(c.fil, nom + ' a terminé ' + (avant.texte && !AC.donneeClientProbable(avant.texte, connusNoms) ? '« ' + court(avant.texte, 90) + ' »' : 'une tâche') + (resume && !AC.donneeClientProbable(resume, connusNoms) ? ' : ' + resume : '') + '.');
       return bon('terminee');
     }
     if (outilsPropres(id).some(t => t.name === a.nom) && typeof propres[id].executer === 'function') {
@@ -520,7 +535,7 @@ module.exports = function agentEquipe(ctx) {
     if (a.nom === 'demander_justin') {
       const q = raccourcir(masquer(str('question')));
       if (!q) return refus('texte');
-      const r = conversations.parler(id, id, q, { niveau: 'important', prof: c.prof });
+      const r = conversations.parler(id, id, q, { niveau: 'important', prof: c.prof, racine: c.racine });   // la racine aussi : voir `ecrire`
       return r.ok ? bon('question') : refus(r.raison);
     }
     return refus('outil_inconnu');

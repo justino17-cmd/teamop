@@ -410,7 +410,7 @@ module.exports = function monterAgents(app, ctx) {
     if (!ecrire(F_TACHES, taches)) { k.statut = 'attente'; return null; }
     return { id: k.id, de: k.de, type: k.type, params: Object.assign({}, k.params) };
   }
-  /* `opts.libre` : le RÉSUMÉ est celui du modèle (l'outil `terminer` de la messagerie) — il passe dans l'annonce (140 caractères, adresses et numéros masqués). Un module qui termine une tâche ne le
+  /* `opts.libre` : le RÉSUMÉ est celui du modèle (l'outil `terminer` de la messagerie) — il passe dans l'annonce SI il ne ressemble à aucune donnée de client (nom propre, adresse, montant, référence : `agent-faits.js`), sinon l'annonce reste celle de la table fermée ; il est toujours gardé ici, pour la Tour. Un module qui termine une tâche ne le
      donne pas : l'annonce est alors celle de la table fermée (`agent-faits.js`). */
   function terminer(tacheId, id, resultat, resume, opts) {
     const k = taches.find(x => x.id === tacheId && x.vers === id && x.statut === 'prise');

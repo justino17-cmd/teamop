@@ -6,8 +6,10 @@
  * ⛔ LA PHRASE EST COMPOSÉE ICI, PAR LE CODE, JAMAIS PAR CLAUDE — donc sans appel, sans coût, sans invention. Tout ce qui vient d'un module ou d'un client passe par une FORME FERMÉE :
  *    un code d'une table, un numéro de dossier (`DOS-nnnnnn`), un entier, un jour. Aucun nom, aucune adresse, aucun texte de client ne traverse. Un code inconnu n'écrit RIEN (le journal
  *    garde la trace) : c'est l'ajout d'une ligne à cette table, et pas la bonne volonté d'un module, qui permet une nouvelle annonce.
- *    Seule exception, nommée : le RÉSUMÉ que le modèle écrit lui-même en appelant l'outil `terminer` (≤ 140 caractères, passé par `sansAdresses` ET `sansTel`, sans « @ ») — c'est
- *    sa phrase, préfixée par le code. Un module qui termine une tâche n'a PAS ce droit : il passe par la table.
+ *    Deux exceptions, NOMMÉES : le RÉSUMÉ que le modèle écrit lui-même en appelant l'outil `terminer` (≤ 140 caractères) et le TITRE d'une consigne. Ce sont des textes LIBRES, et « sans donnée
+ *    client » n'était vrai que des adresses et des téléphones : un nom, une adresse postale, un montant, un numéro de facture traversaient (« Rappelé Mme Sophie Martin, 3 avenue Foch… » a été
+ *    publié tel quel, copié au pont). Ils ne s'affichent donc QUE s'ils passent `AC.donneeClientProbable` (aucun nom propre, adresse, montant, référence ni lien) ; sinon rien n'en sort, et la
+ *    phrase fermée de la table reste (« Je viens de terminer une tâche »). Le résumé complet reste au registre des tâches, que seule la Tour lit. Un module qui termine une tâche n'a PAS ce droit.
  * ⛔ UNE ANNONCE NE RÉVEILLE PERSONNE ET NE COMPTE DANS AUCUN PLAFOND (`annoncerFait`, conversations.js) : le demandeur est NOMMÉ (« demandé par Victor »), jamais cité par un « @ ».
  * ⛔ UNE ANNONCE NE SE RÉPÈTE PAS : sa clé (`fait:<tâche>` ou `fait:<agent>:<code>:<dossier>:<jour>`) est stable — la même tâche annoncée deux fois n'écrit qu'une ligne, même après un
  *    redémarrage (la clé est rangée avec le message).
@@ -83,11 +85,14 @@ const de = v => (/^[aeiouyàâäéèêëîïôöùûüh]/i.test(v) ? 'd’' : 'd
 const court = (t, n) => { t = String(t == null ? '' : t).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 /* Un texte libre (le résumé du modèle, le titre d'une consigne) : adresses et numéros masqués, ni accolade ni « @ ». */
 const propre = (t, n) => court(AC.sansTel(String(t == null ? '' : t).replace(AC.ADRESSE, '(adresse)')).replace(/[{}@\u0000-\u001f\u007f]/g, ' '), n);
+/* ⛔ Un texte libre ne s'affiche que s'il ne ressemble à aucune donnée de client (nom propre, adresse postale, montant, référence, lien — `AC.donneeClientProbable`) : sinon on n'en affiche RIEN et la phrase fermée de la table reste.
+   `connus` : les prénoms des agents (ensemble de mots sans accent ni majuscule), qui peuvent s'écrire en majuscule. Rend le texte nettoyé et coupé, ou ''. */
+const sur = (t, n, connus) => (t == null || AC.donneeClientProbable(AC.sansTel(String(t).replace(AC.ADRESSE, '(adresse)')), connus) ? '' : propre(t, n));   // jugé APRÈS le masquage des adresses et des numéros, sur le texte entier (pas sur la coupe)
 const jourDe = ts => new Date(Number.isFinite(ts) ? ts : Date.now()).toISOString().slice(0, 10);
 
 /* `f` : { agent, code, issue:'fait'|'prepare'|'echec', dossier?, n?, tache?, ref?, jour?, libre?, titre?, raison?, demandeur?, ts? } — `nomDe(id)` : le prénom d'un agent du registre.
    Rend `{ texte, cle, groupe }` ou `null` (code inconnu : rien à écrire). */
-function composer(f, nomDe) {
+function composer(f, nomDe, connus) {
   if (!f || typeof f !== 'object' || typeof f.agent !== 'string' || !f.agent) return null;
   nomDe = typeof nomDe === 'function' ? nomDe : (x => x);
   const issue = f.issue === 'prepare' || f.issue === 'echec' ? f.issue : 'fait';
@@ -124,10 +129,10 @@ function composer(f, nomDe) {
   } else if (issue === 'echec') {
     const rs = Object.prototype.hasOwnProperty.call(RAISONS, f.raison) ? ' (' + RAISONS[f.raison] + ')' : '';
     texte = '⚠️ Je n’ai pas pu ' + (echec || 'finir un travail') + doss + rs + dem + '.';
-  } else if (typeof f.libre === 'string' && propre(f.libre, LIBRE_MAX)) {
-    texte = '✅ Je viens de terminer : ' + propre(f.libre, LIBRE_MAX) + dem;
-  } else if (code === 'tache:consigne' && propre(f.titre, TITRE_MAX)) {
-    texte = '✅ Je viens de terminer « ' + propre(f.titre, TITRE_MAX) + ' »' + dem + '.';
+  } else if (typeof f.libre === 'string' && sur(f.libre, LIBRE_MAX, connus)) {
+    texte = '✅ Je viens de terminer : ' + sur(f.libre, LIBRE_MAX, connus) + dem;
+  } else if (code === 'tache:consigne' && sur(f.titre, TITRE_MAX, connus)) {
+    texte = '✅ Je viens de terminer « ' + sur(f.titre, TITRE_MAX, connus) + ' »' + dem + '.';
   } else {
     texte = '✅ Je viens ' + de(fait || 'finir un travail') + doss + nbre + dem + '.';
   }
@@ -140,10 +145,10 @@ function composer(f, nomDe) {
 
 /* UNE TÂCHE QUI EXPIRE SE DIT (28 octobre 2026) : sept jours sans être finie, elle sortait de la file sans un mot — « disparaître en silence ». `x` : { id, vers, type, texte? } venu d'`agents.perimer`. Le texte
    d'une consigne est celui que Justin ou un collègue a écrit (déjà au fil) ; celui d'une demande fermée est le libellé de la table. */
-function ligneExpiration(x, nomDe) {
+function ligneExpiration(x, nomDe, connus) {
   if (!x || typeof x !== 'object' || typeof x.vers !== 'string') return null;
   nomDe = typeof nomDe === 'function' ? nomDe : (y => y);
-  if (x.type === 'consigne') return 'La tâche « ' + (propre(x.texte, TITRE_MAX) || 'sans titre') + ' » de ' + propre(nomDe(x.vers), 30) + ' a expiré sans être terminée (sept jours) : elle n’est plus à faire — redonne-la si elle compte encore.';
+  if (x.type === 'consigne') { const ti = sur(x.texte, TITRE_MAX, connus); return 'La tâche ' + (ti ? '« ' + ti + ' » ' : '') + 'de ' + propre(nomDe(x.vers), 30) + ' a expiré sans être terminée (sept jours) : elle n’est plus à faire — redonne-la si elle compte encore.'; }
   const t = Object.prototype.hasOwnProperty.call(TACHES, x.type) ? TACHES[x.type] : null;
   return t ? 'La demande « ' + t.echec + ' » faite à ' + propre(nomDe(x.vers), 30) + ' a expiré sans être traitée : elle n’est plus à faire.' : null;
 }
@@ -154,17 +159,18 @@ module.exports = function annonceur(ctx) {
   if (!agents || !Array.isArray(agents.AGENTS) || !conversations || typeof conversations.annoncerFait !== 'function') return { annoncer: () => ({ ok: false, raison: 'pas_de_dependances' }), expiree: () => ({ ok: false, raison: 'pas_de_dependances' }), composer };
   const noms = new Map(agents.AGENTS.map(a => [a.id, a.nom]));
   const nomDe = id => noms.get(id) || id;
+  const connus = new Set(agents.AGENTS.map(a => String(a.nom || a.id).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()));
   function annoncer(f) {
-    let c = null; try { c = noms.has(f && f.agent) ? composer(f, nomDe) : null; } catch (e) { c = null; }
+    let c = null; try { c = noms.has(f && f.agent) ? composer(f, nomDe, connus) : null; } catch (e) { c = null; }
     if (!c) { try { agents.noter(noms.has(f && f.agent) ? f.agent : 'systeme', 'annonce', { cible: String(f && f.code || '').slice(0, 40), resultat: 'refuse', detail: 'code inconnu' }); } catch (e) {} return { ok: false, raison: 'code' }; }
     try { return conversations.annoncerFait(f.agent, c.texte, { cle: c.cle, groupe: c.groupe }); } catch (e) { return { ok: false, raison: 'erreur' }; }
   }
   function expiree(x) {
-    const l = ligneExpiration(x, nomDe);
+    const l = ligneExpiration(x, nomDe, connus);
     if (!l || typeof conversations.systeme !== 'function') return { ok: false, raison: 'code' };
     try { return conversations.systeme('equipe', l, { cle: 'expire:' + String(x.id || '').slice(0, 40), unique: true }); } catch (e) { return { ok: false, raison: 'erreur' }; }
   }
-  return { annoncer, expiree, composer };
+  return { annoncer, expiree, composer, connus };
 };
 module.exports.composer = composer;
 module.exports.ligneExpiration = ligneExpiration;

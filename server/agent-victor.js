@@ -362,7 +362,9 @@ module.exports = function agentVictor(ctx) {
     for (const k of retard) { if (vus.has(k.vers) || !IDS.has(k.vers) || k.vers === ID) continue; vus.add(k.vers); choisies.push(k); if (choisies.length >= SUIVI_TACHES_MAX) break; }
     if (!choisies.length) return { saute: 'rien_a_suivre' };
     const heures = k => Math.max(4, Math.floor(k.depuis / 3600000));
-    const morceau = k => (SANS_CONSIGNE_LIBRE.includes(k.vers) || !agents.peutAgir(k.vers).ok ? nomDe(k.vers) : '@' + k.vers) + ' « ' + propre(k.texte, 70) + ' » (' + heures(k) + ' h sans mouvement)';
+    /* ⛔ pas de « @ » dans le titre recopié : `propre` ne masque que les adresses `x@y` (et doit le faire AVANT, sinon l'adresse ne se reconnaît plus), jamais un « @mot » — « @hugo », « @margaux » ou « @tous »
+       écrit dans une consigne réveillait l'agent cité, sous le nom de Victor, sans racine. Le nom reste lisible, ce n'est plus une citation. */
+    const morceau = k => (SANS_CONSIGNE_LIBRE.includes(k.vers) || !agents.peutAgir(k.vers).ok ? nomDe(k.vers) : '@' + k.vers) + ' « ' + propre(k.texte, 70).replace(/@/g, ' ').replace(/\s+/g, ' ').trim() + ' » (' + heures(k) + ' h sans mouvement)';
     const texte = AC.raccourcir('À suivre : ' + choisies.map(morceau).join(' ; ') + '. Où en êtes-vous ? Si c’est fini, dites-le avec terminer ; si c’est bloqué, dites sur quoi.');
     const d = parler('equipe', texte, 'info', 1);
     if (!dit(d)) { note('suivi', { cible: 'équipe', resultat: 'refuse', detail: d.raison }); return { saute: d.raison }; }

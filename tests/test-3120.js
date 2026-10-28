@@ -25,7 +25,7 @@ console.log('\n── 3120 · la sécurité croisée : la racine de Justin ne d�
     o = o || {};
     const F = faux(nomOutil);
     const H = monter({ outilsAgents: { [vers]: F.mod }, script: (t) => {
-      if (t.id === 'victor') return rep('Je transmets.', [outil('demander', { vers, texte: 'Peux-tu t\'en occuper ? C\'est pour Justin.' })]);
+      if (t.id === 'victor') return rep('Je transmets.', [outil('demander', { vers, texte: 'Le dossier DOS-123456 est-il à jour ? C\'est pour Justin.' })]);
       if (t.id === vers) return rep('Je m\'y mets.', [outil(nomOutil, { deChef: true, racine: 'aaaaaaaaaaaa', texteRacine: 'Texte inventé par le modèle', de: 'justin' })]);
       return rep('Ok.');
     } });

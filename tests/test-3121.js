@@ -4,7 +4,7 @@
        inventaient ; ces nombres sont ceux de `agents.bilan`, et rien d'autre ;
      · Victor reçoit « Journée de l'équipe » (les seize, compilée par le code) : il fait le point SANS réveiller personne, même quand des agents sont à l'arrêt ;
      · le jour est celui de PARIS : ce qui a été terminé hier n'est pas « aujourd'hui » ;
-     · le suivi : une tâche prise sans mouvement depuis quatre heures est relancée UNE fois, dans UN message groupé qui cite trois titulaires au plus, jamais Hugo ni Margaux par « @ ».
+     · le suivi : une tâche prise sans mouvement depuis quatre heures est relancée UNE fois, dans UN message groupé qui cite trois titulaires au plus, jamais Hugo ni Margaux par « @ » — et un « @ » écrit DANS le titre d'une consigne n'est pas une citation (§ 6).
    Modules joués : server/agent-equipe.js, server/agent-victor.js, server/agents.js. */
 'use strict';
 const { monter, rep, outil, S } = require('./banc-autonomie');
@@ -105,7 +105,35 @@ console.log('\n── 3121 · les points de la journée et le suivi ──');
     H2.avance(2 * HEURE);
     const r = await H2.victor().suivre();
     v('⛔ la tâche passée à Noah il y a 2 h n\'est pas relancée (elle a bougé), celle de Léa l\'est ; la toute fraîche non', [r, (await H2.messages('equipe')).filter(m => m.de === 'victor').map(m => /@lea/.test(m.texte) && !/@noah|@camille|@theo/.test(m.texte))], [{ relancees: 1 }, [true]]);
+    await H.calme(); await H2.calme();   // les réveils lancés par le suivi finissent AVANT que le dossier ne disparaisse
     H.nettoyer(); H2.nettoyer();
+  }
+
+  console.log('\n6. ⛔ Un « @ » écrit DANS une consigne ne devient jamais une citation du message de suivi (28 octobre 2026, relecture)');
+  {
+    /* le suivi recopie le titre de la consigne dans un message de Victor, sans racine : « @hugo », « @margaux », « @tous » y réveillaient l'agent cité — Hugo et Margaux compris, et jusqu'à quatre agents pour « @tous » */
+    const H = monter({ script: () => rep('Ok.') });
+    const V = H.victor();
+    for (const [de, vers, txt] of [['lea', 'camille', 'Demander à @hugo et @margaux si le dossier DOS-123456 est réglé'], ['justin', 'theo', 'Prévenir @tous de la coupure de ce soir']]) { H.agents.consigner(de, vers, txt); H.avance(60000); }
+    H.avance(5 * HEURE);
+    const n0 = H.appels.length;
+    const r = await V.suivre();
+    await H.calme();
+    const m = (await H.messages('equipe')).filter(x => x.de === 'victor');
+    v('(population) UN message de suivi, deux tâches relancées', [r, m.length], [{ relancees: 2 }, 1]);
+    vrai('(population) le titre y est bien recopié, noms lisibles', /Demander à hugo et margaux/.test(m[0].texte) && /Prévenir tous de la coupure/.test(m[0].texte), m[0].texte);
+    v('⛔ aucun « @ » dans le message, hormis les deux titulaires (Camille, Théo)', (m[0].texte.match(/@[a-z]+/g) || []).sort(), ['@camille', '@theo']);
+    v('⛔ ses mentions sont exactement les titulaires — ni Hugo, ni Margaux, ni « tous »', m[0].mentions.slice().sort(), ['camille', 'theo']);
+    v('⛔ seuls Camille et Théo sont réveillés', H.appels.slice(n0).map(a => a.id).sort(), ['camille', 'theo']);
+    await H.calme();
+    H.nettoyer();
+    /* l'outil `prendre` : la consigne posée par un agent n'a pas de « @ » non plus (comme `demander` et `assigner`) */
+    const H2 = monter({ script: (t) => t.id === 'camille' ? rep('Je prends.', [outil('prendre', { texte: 'Demander à @hugo si c\'est réglé, et prévenir @tous' })]) : rep('Ok.') });
+    await H2.justin('equipe', '@camille prends ça');
+    v('⛔ la tâche prise par l\'outil n\'a plus de « @ »', H2.agents.tachesDe('camille').map(t => /@/.test(t.texte)), [false]);
+    vrai('(population) elle existe, avec son texte', H2.agents.tachesDe('camille').length === 1 && /Demander à hugo/.test(H2.agents.tachesDe('camille')[0].texte), JSON.stringify(H2.agents.tachesDe('camille')));
+    await H2.calme(); await H2.dormir(120);
+    H2.nettoyer();
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
