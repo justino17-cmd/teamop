@@ -316,6 +316,8 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 150 s'); process.ex
     const g1 = recus.length; const nonActive = await post('/api/devis/generer', { team: 'entreprise-inconnue', demande: 'Nettoyage des bureaux, trois passages' });
     v('(garde conservée) une entreprise non activée sans le code partagé : 401, Claude n\'est pas appelé', [nonActive.s, recus.length - g1], [401, 0]);
   }
+  { const e = await (await fetch(B + '/api/devis/etat?team=ent-net-3112')).json();
+    vrai('⛔ /api/devis/etat ANNONCE que le serveur lit le métier (`metiers:true`) : c\'est ce que l\'application attend, hors 3D, avant d\'envoyer un devis', e.metiers === true && e.ok === true, e); }
   vrai('le serveur n\'a rien écrit d\'inquiétant en route (pas de ReferenceError / zone morte)', !/ReferenceError|Cannot access|is not defined/.test(sortie), sortie.slice(-600));
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);

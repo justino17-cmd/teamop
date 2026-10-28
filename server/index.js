@@ -11055,6 +11055,8 @@ function devisCompte() { devisUtilises(); devisQuota.n++; try { fs.writeFileSync
 app.get('/api/devis/etat', (req, res) => {
   const team = String(req.query.team || '').trim().slice(0, 80);
   const rep = { ok: true, actif: devisActif(), quotaJour: devisQuotaJour(), utilises: devisUtilises(), restants: Math.max(0, devisQuotaJour() - devisUtilises()) };
+  /* Ce serveur lit le métier de l'entreprise (devisMetierDe) : l'application, hors 3D, n'envoie le Devis IA et l'assistant qu'à un serveur qui l'annonce — un serveur d'avant garde la consigne 3D. */
+  rep.metiers = true;
   if (team) rep.equipe = devisActif() && devisTeamOk(team);
   /* L'application n'affiche le second bouton que si l'entreprise y a droit. */
   if (team) { rep.offre = devisOffre(team); rep.approfondi = devisActif() && devisTeamOk(team) && rep.offre === 'deux'; }
