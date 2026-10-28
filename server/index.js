@@ -1881,10 +1881,24 @@ let monSaveTimer = null;
    réussi (voir `monPurgerEntreprise`) — la version différée ne rend rien, c'est son contrat. */
 function monEcrire() {
   /* Fichier temporaire PUIS renommage (comme `espacesEcrire`) : monitor.json porte aussi les comptes de la Tour, et une coupure en
-     pleine écriture le tronquait, sans seconde copie. Le temporaire est enlevé si l'écriture échoue. */
+     pleine écriture le tronquait, sans seconde copie. Le temporaire est enlevé si l'écriture échoue.
+     ⛔ SAUF LÀ OÙ LE DOSSIER N'EST PAS À NOUS : sur test.teamop.fr, l'unité (`server/install-test.sh`) est en ProtectSystem=strict et
+     ReadWritePaths ne nomme QUE le fichier monitor.json — le dossier refuse le temporaire (EROFS), et un fichier monté seul refuse
+     d'être remplacé par un renommage (EBUSY). Sans repli, plus rien ne s'écrivait : la Tour de test perdait ses comptes à chaque
+     redémarrage, le défaut exact que `tests/test-2989.js` garde. On écrit alors le fichier lui-même, comme avant ; toute AUTRE erreur
+     (un dossier à la place du temporaire, un disque plein) laisse l'ancien fichier entier et se dit. `tests/test-3102.js` joue les deux. */
   const tmp = MONITOR_PATH + '.tmp';
-  try { monPurge(); fs.writeFileSync(tmp, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions }), { mode: 0o600 }); fs.renameSync(tmp, MONITOR_PATH); return true; }
-  catch (e) { console.error('monitor save:', e.message); try { fs.rmSync(tmp, { force: true }); } catch (err) {} return false; }
+  try {
+    monPurge();
+    const json = JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions });
+    try { fs.writeFileSync(tmp, json, { mode: 0o600 }); fs.renameSync(tmp, MONITOR_PATH); }
+    catch (e) {
+      try { fs.rmSync(tmp, { force: true }); } catch (err) {}
+      if (!['EROFS', 'EACCES', 'EPERM', 'EBUSY'].includes(e && e.code)) throw e;
+      fs.writeFileSync(MONITOR_PATH, json, { mode: 0o600 });
+    }
+    return true;
+  } catch (e) { console.error('monitor save:', e.message); return false; }
 }
 function monSave() {
   clearTimeout(monSaveTimer);

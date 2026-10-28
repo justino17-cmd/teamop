@@ -157,7 +157,7 @@ function facteur() {
     fs.writeFileSync(path.join(rep, 'monitor.json'), JSON.stringify(o.monitor));
     if (o.bugs) fs.writeFileSync(path.join(Da, 'bugs.jsonl'), o.bugs.join('\n') + '\n');
     const port = await libre(); let jr = '';
-    const e2 = spawn(process.execPath, [SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(rep, 'config.json'), TEAMOP_DATA: Da, PORT: String(port),
+    const e2 = spawn(process.execPath, (o.require ? ['-r', o.require] : []).concat([SERVEUR]), { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(rep, 'config.json'), TEAMOP_DATA: Da, PORT: String(port),
       TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_FB_OAUTH_URL: GURL + '/token', TEAMOP_FIRESTORE_URL: GURL, TEAMOP_IDTK_URL: GURL + '/idtk', TEAMOP_FB_CERTS_URL: GURL + '/certs',
       TEAMOP_MSG_BETA_URL: 'http://127.0.0.1:1', TEAMOP_MSG_PROD_URL: 'http://127.0.0.1:1' }), stdio: ['ignore', 'pipe', 'pipe'] });
     e2.stdout.on('data', d => { jr += d; }); e2.stderr.on('data', d => { jr += d; }); autresEnfants.push(e2);
@@ -360,6 +360,26 @@ function facteur() {
   v('   bugs.jsonl : les lignes de l\'espace disparu sont parties ; ⛔ l\'espace par défaut et une autre entreprise sont intacts', equipes4(), ['elan-gestion', VIV]);
   r = await S4.ap(ROUTE, { nom: 'Partie Ancienne Version' }, S4.jeton);
   v('une entrée d\'une version d\'avant (aucun espace) : le nom seul décide, aucune ligne brute ne peut être retrouvée — et la réponse le DIT par un zéro', [r.s, r.j.issues, r.j.bugs], [200, 1, 0]);
+
+  /* ⛔ test.teamop.fr : ProtectSystem=strict, et ReadWritePaths ne nomme QUE le fichier monitor.json (`server/install-test.sh`). Le dossier
+     refuse le temporaire (EROFS) : sans repli, plus rien ne s'écrivait et la Tour de test perdait ses comptes à chaque redémarrage
+     (le défaut que `test-2989` garde, rendu à la première version de cette purge). Un module chargé AVANT le serveur refuse le
+     temporaire comme systemd le ferait, et le DIT dans le journal : le scénario se prouve, il ne se suppose pas. */
+  const RO = path.join(banc, 'lecture-seule.js');
+  fs.writeFileSync(RO, "const fs = require('fs'); const w = fs.writeFileSync;\n" +
+    "fs.writeFileSync = function (f, ...r) { if (String(f).endsWith('monitor.json.tmp')) { process.stderr.write('[banc] temporaire refusé (EROFS)\\n'); " +
+    "const e = new Error(\"EROFS: read-only file system, open '\" + f + \"'\"); e.code = 'EROFS'; throw e; } return w.call(this, f, ...r); };\n");
+  const S5 = await lancerAutre('lecture-seule', { require: RO, espaces: { 'viv': { t: VIV, nom: 'Vivante', code: code64(VIV), ts: Date.now() } },
+    monitor: { users: MONITOR.users, archive: [], journal: [], actions: [], issues: [inc('z1', 'opgestion', [ent('Partie Lecture Seule', 'ro@exemple-3098.fr', 1)], 1),
+      inc('z2', 'opgestion', [ent('Vivante Services', '', 1)], 1)] } });
+  vrai('le serveur « dossier en lecture seule » démarre', S5.vif);
+  r = await S5.ap(ROUTE, { nom: 'Partie Lecture Seule' }, S5.jeton);
+  vrai('   le scénario a bien eu lieu : le temporaire a été REFUSÉ (journal du serveur)', /temporaire refusé \(EROFS\)/.test(S5.journal()));
+  v('⛔ dossier en lecture seule : la purge s\'écrit quand même, dans le fichier lui-même (200, ecrit:true)', [r.s, r.j.ecrit], [200, true]);
+  const txt5 = fs.readFileSync(path.join(S5.rep, 'monitor.json'), 'utf8'), m5 = JSON.parse(txt5);
+  vrai('   monitor.json ne porte plus l\'entreprise partie, et garde l\'autre', !/Partie Lecture Seule|ro@exemple-3098/.test(txt5) && m5.issues.some(i => i.id === 'z2'));
+  vrai('   ⛔ les comptes de la Tour sont toujours là (c\'est eux qu\'on perdait)', Array.isArray(m5.users) && m5.users.length === MONITOR.users.length && m5.users.length > 0);
+  vrai('   aucun temporaire laissé, aucune plainte « monitor save »', !fs.existsSync(path.join(S5.rep, 'monitor.json.tmp')) && !/monitor save/.test(S5.journal()));
 
   /* … et la suppression totale ne reprend pas au nom ce qu'un espace vivant porte. Entreprise « Gestion » (un mot générique), homonyme d'une autre. */
   await envoyer(ECH, 'Gestion', 'g1', '');                // l'entreprise qu'on supprime
