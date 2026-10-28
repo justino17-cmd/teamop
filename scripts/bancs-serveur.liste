@@ -390,3 +390,6 @@ tests/test-3100.js
 # `/api/monitor/issues/purger-entreprise`, la suppression totale qui purge d'elle-même (`fait.surveillance`), `bugs.jsonl` réécrit atomiquement,
 # `/api/monitor/report` qui n'écrit plus pour un espace fermé. Le vrai serveur, sans lire une page. (Le bouton de la Tour et son banc partent avec la Tour unifiée, sur la phrase de Justin.) 28 octobre 2026 : 10 670 vérifications (166 suites) — plancher relevé de 97, le nombre de `test-3102` (65 puis 32 : les points du gardien).
 tests/test-3102.js
+# ── Léa et la prospection française (28 octobre 2026, skills marketingskills adaptés) : la phrase d'opposition est posée par le CODE dans chaque premier courriel, aucune relance n'est annoncée (test-3141) ; l'évaluation promptfoo des prompts des agents, sans réseau (test-3132).
+tests/test-3141.js
+tests/test-3132.js
