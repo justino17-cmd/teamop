@@ -349,6 +349,8 @@ const corpsRecus = H => JSON.stringify(H.appels.map(a => ({ s: a.system, m: a.me
     const n = d.length;
     await H.compta.passer(); await H.compta.passer();
     v('⛔ …UNE fois', (await H.messages('margaux')).filter(m => m.de === 'margaux').length, n);
+    /* le garde-fou du fil (« la même chose, deux fois ») aurait pu masquer un défaut de la MARQUE : on lit la marque elle-même (relevé de mutation M21 : une clé aléatoire passait inaperçue) */
+    v('⛔ …et la marque est UNE seule, au registre', Object.keys((H.reglages() || { rappels: {} }).rappels).filter(k => /^question/.test(k)), ['question:plateforme']);
     H.nettoyer();
     const H2 = equipe();
     await H2.compta.outilsEquipe.executer('regler_compta', { plateforme_reception: 'oui' }, { de: 'justin', fil: 'margaux', texte: 'j’ai désigné une plateforme' });
