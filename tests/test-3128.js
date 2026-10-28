@@ -137,6 +137,16 @@ console.log('\n── 3128 · 4. le devis de dépannage — totaux calculés, nu
   vrai('enregistrer de nouveau ne crée ni doublon ni nouveau numéro', W.db.docsMetier.length === 1 && W.db.docsMetier[0].num === 'DEP-2026-001' && W.db.docsMetier[0].v.tva === '10');
   W.docmForm('devis-depannage', { cid: 'c1' }); W.docmW.v.nature = 'Autre'; W.docmW.lignes = [{ id: 'z', d: 'Joint', pu: '2', u: '', q: '1' }]; W.docmSauver();
   egal('le second devis reçoit DEP-2026-002 ; la note, son propre compteur', [W.db.docsMetier[1].num, (W.docmForm('note-depannage', { cid: 'c1' }), W.docmW.num = '', W.docmW.v.execLe = '2026-10-28', W.docmW.lignes = [{ id: 'q', d: 'x', pu: '1', u: '', q: '1' }], W.docmSauver(), W.db.docsMetier[2].num)], ['DEP-2026-002', 'NOT-2026-001']);
+  /* ⛔ docmSauver revérifie la VISIBILITÉ du client à l'enregistrement (un formulaire resté ouvert, un second chemin) : la liste n'est pas une garde. Mutation P9 : le banc ne la voyait pas. */
+  { const G = mk('plomberie', { clientsVisibles: ['c1'] }); G.docmForm('devis-depannage', { cid: 'c1' }); remplit(G, DEFS_REEL[0], {}); const w = G.docmW;
+    G.db.clients.push({ id: 'cX', nom: 'Client d\'un autre', adresse: '1 rue Z', ville: 'Paris' }); w.clientId = 'cX'; const avant = G.db.docsMetier.length;
+    vrai('⛔ un client qu\'on ne voit pas ne reçoit AUCUN document, même par un formulaire resté ouvert : refus dit, rien d\'écrit, aucun numéro consommé', G.docmSauver() === null && G.db.docsMetier.length === avant && G.__toasts.some(t => /ne te concerne pas/.test(t)));
+    w.clientId = 'c1'; vrai('… le même formulaire, rendu à un client visible, s\'enregistre', !!G.docmSauver() && G.db.docsMetier.length === avant + 1); }
+  /* ⛔ une quantité vide ou nulle vaut 1 À L'ÉCRAN comme à l'enregistrement : le total vu et le total imprimé sont les mêmes (mutation P43). */
+  { const W3 = mk('plomberie'); W3.docmForm('devis-depannage', { cid: 'c1' }); const w = W3.docmW; w.v.tva = '10'; w.v.nature = 'Joint'; w.v.date = '2026-10-28'; w.v.lieu = '1 rue A';
+    w.lignes = [{ id: 'q1', d: 'Joint', pu: '12', u: '', q: '' }, { id: 'q2', d: 'Collier', pu: '3', u: '', q: '0' }];
+    const E = W3.docmTotaux(w); const id3 = W3.docmSauver(); const r3 = W3.db.docsMetier.find(x => x.id === id3);
+    egal('⛔ quantité vide ou nulle : 1 à l\'écran (12 + 3 = 15,00 HT) ET à l\'enregistrement (q = « 1 »), et le total relu sur le document rangé est le même', [E.ht, r3 && r3.lignes.map(l => l.q), r3 && W3.docmTotaux(r3).ht], [15, ['1', '1'], 15]); }
   const D = mk('plomberie', { droits: { 'ventes.modifier': false } }); D.docmForm('devis-depannage', { cid: 'c1' });
   vrai('sans la case « ventes · modifier/ajouter », docmSauver lit elle-même la case (sa première instruction)', (() => { const E = mk('plomberie', { droits: { 'ventes.ajouter': false } }); E.docmW = cdc(W.docmW); E.docmW.id = ''; return E.docmSauver() === null && E.db.docsMetier.length === 0; })());
   { const sans = BLOC_DOCM.slice(0, BLOC_DOCM.indexOf('function docmDemoPoser(')); vrai('une seule ligne de code pousse dans db.docsMetier hors de la démonstration (docmSauver)', (sans.match(/db\.docsMetier\.push\(/g) || []).length === 1, (sans.match(/db\.docsMetier\.push\(/g) || []).length); }
