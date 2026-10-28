@@ -318,6 +318,23 @@ module.exports = function monterConversations(app, ctx) {
     declencher(m);
     res.json({ ok: true, message: vue(m), mentions: m.mentions.slice() });
   });
+  /* SUPPRIMER UN MESSAGE (28 octobre 2026, Justin : « il faudrait aussi que je puisse supprimer les messages »). Le patron seul, n'importe quel message
+     (le sien, celui d'un agent, une ligne du système) : il sort du registre, donc de ce que les agents relisent du fil. Tout ou rien — un registre qui ne
+     s'écrit pas garde le message (503). Le journal (MON_GESTES) dit le GESTE, jamais le texte. Un identifiant inconnu : 404, rien ne bouge. */
+  app.post('/api/monitor/conversations/supprimer', monPatronStrict, (req, res) => {
+    if (illisible) return res.status(503).json({ error: 'Les conversations sont illisibles' });
+    const id = String((req.body || {}).id || '');
+    if (!/^[a-f0-9]{6,32}$/.test(id)) return res.status(400).json({ error: 'Identifiant de message manquant' });
+    const i = messages.findIndex(m => m && m.id === id);
+    if (i < 0) return res.status(404).json({ error: 'Message introuvable (déjà supprimé ?)' });
+    /* (gardien, 28 octobre 2026) un rappel client non lu n'existe QU'ICI (voir `protege`) : un toucher de travers l'effaçait, et le client n'était jamais
+       rappelé. On le lit d'abord (ouvrir le fil le marque lu), on le supprime ensuite. */
+    if (protege(messages[i])) return res.status(409).json({ error: 'Rappel client non lu : ouvre-le d’abord, puis supprime-le' });
+    const avant = messages;
+    messages = avant.filter((m, k) => k !== i);
+    if (!ecrire()) { messages = avant; return res.status(503).json({ error: 'Suppression non enregistrée : le message reste' }); }
+    res.json({ ok: true, fil: avant[i].fil });
+  });
   app.post('/api/monitor/conversations/lire', monPatronStrict, (req, res) => {
     if (illisible) return res.status(503).json({ error: 'Les conversations sont illisibles' });
     const f = String((req.body || {}).fil || '');

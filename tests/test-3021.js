@@ -228,7 +228,8 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     const Y = monter({ modes: TOUS, t0: U(2026, 12, 28, 8) });
     poserMail(Y, 8, 'ancien@exemple-3021.fr', { ts: U(2026, 12, 24, 17, 30) });
     const r = await Y.camille.surNouveauMessage({ boiteId: 'b-contact', dossier: 'INBOX', uid: 8 });
-    v('(contre-épreuve) le même courriel, arrivé SANS avoir attendu l’ouverture, est bien « ancien » (plus de trois jours)', [r.saute, Y.recus.length], ['ancien', 0]);
+    /* 28 octobre 2026 (Justin : « trois jours avant, et après ils n'ont plus accès au reste, c'est débile ») : il n'y a plus d'« ancien » — le même courriel, arrivé SANS avoir attendu, se traite aussi */
+    v('le même courriel, arrivé SANS avoir attendu l’ouverture, se traite aussi (plus de limite d’âge depuis le 28 octobre 2026)', [r.saute, Y.recus.length], [undefined, 1]);
     Y.nettoyer();
   }
   {

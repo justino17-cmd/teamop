@@ -231,9 +231,9 @@ console.log('\n── 2861 · les quinze autres agents répondent dans « Parler
     && b.tool_choice && b.tool_choice.type === 'auto' && Array.isArray(b.tools) && b.tools.map(t => t.name).slice(0, 5).join() === 'ecrire,prendre,passer,terminer,demander_justin'
     /* 23 octobre 2026 (fusion) : Victor, et lui seul, a un sixième outil (l'arbitrage — `agents-plateforme.js`) ; Hugo, Margaux, Emma et Sarah ont UN outil propre de plus
        (fin d'abonnement, mise en demeure, créneaux, annonce) — `test-2915` les joue ; ici, une liste fermée */
-    && (/^Tu es Victor,/.test(b.system) ? b.tools.map(t => t.name).slice(5).join() === 'arbitrer'
+    && (/^Tu es Victor,/.test(b.system) ? b.tools.map(t => t.name).slice(5).join() === 'arbitrer,planifier_reunion,annuler_reunion'   /* + 28 octobre 2026 : les réunions demandées par Justin (test-3087) */
       /* à chacun SON outil (relecture du `gardien` : une liste commune laissait passer un outil de Margaux chez Hugo) ; les autres n'en ont aucun */
-      : b.tools.map(t => t.name).slice(5).join() === ({ Hugo: 'programmer_fin_abonnement', Margaux: 'preparer_mise_en_demeure', Emma: 'proposer_creneaux', Sarah: 'rediger_annonce' }[(/^Tu es ([^,]+),/.exec(b.system) || [])[1]] || ''))));
+      : b.tools.map(t => t.name).slice(5).join() === ({ Hugo: 'programmer_fin_abonnement', Margaux: 'preparer_mise_en_demeure', Emma: 'proposer_creneaux', Sarah: 'rediger_annonce', Camille: 'reprendre_courriels_anciens' /* 28 octobre 2026 : l'arriéré du courrier */ }[(/^Tu es ([^,]+),/.exec(b.system) || [])[1]] || ''))));
 
   console.log('\n3. Ce qui part chez Claude : rien d’une personne');
   const tout = corps.map(b => JSON.stringify(b)).join('\n');

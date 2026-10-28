@@ -44,7 +44,7 @@ publication.
 - [x] suivi des interventions — 2026-10-23 — `suivi-des-interventions`
 - [x] signature électronique devis — 2026-10-24 — `signature-electronique-devis`
 - [x] bon d'intervention — 2026-10-25 — `bon-d-intervention`
-- [ ] planning des techniciens — organiser une semaine d'équipe, urgences, tournées — /logiciel-planning-interventions.html
+- [x] planning des techniciens — 2026-10-28 — `planning-des-techniciens`
 - [ ] gestion de stock camionnette — suivre ce que chaque technicien emporte, inventaire, réassort — /logiciel-gestion-de-stock.html
 - [ ] facture d'intervention — mentions obligatoires, délais, facturation électronique 2026-2027 — /logiciel-devis-factures.html
 - [ ] registre sanitaire 3D — obligations, contenu, contrôles, biocides — /logiciel-registre-sanitaire.html
