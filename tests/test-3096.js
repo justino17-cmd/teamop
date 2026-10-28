@@ -146,6 +146,12 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     for (let i = 0; i < 12; i++) pont.surAjout({ id: 'e' + i.toString(16).padStart(11, '0'), ts: Date.now(), fil: 'victor', de: 'victor', texte: 'y'.repeat(7000), niveau: 'info', lu: false });
     await pont._envoyer();
     v('⛔ douze messages de 7 000 signes : jamais plus de 48 000 octets de texte dans un lot (6 + 6)', [posts().map(l => l.corps.messages.length).join('+'), Math.max(...posts().map(l => l.brut.length)) < 60000], ['6+6', true]);
+    /* ⛔ des OCTETS, pas des signes (relecture de `gardien`) : OP MESSAGES lit 64 Ko au plus, et un émoji pèse quatre octets pour deux signes JavaScript — compté en
+       signes, un lot de douze messages d'émojis pesait 84 Ko, refusé (413) et rejoué sans fin */
+    etat.requetes.length = 0;
+    for (let i = 0; i < 12; i++) pont.surAjout({ id: 'a' + i.toString(16).padStart(11, '0'), ts: Date.now(), fil: 'victor', de: 'victor', texte: '🐀'.repeat(1750), niveau: 'info', lu: false });
+    await pont._envoyer();
+    v('⛔ douze messages d\'émojis (7 000 octets chacun) : les douze partent, et aucun corps ne dépasse 64 Ko en OCTETS', [messagesEnvoyes().length, Math.max(...posts().map(l => Buffer.byteLength(l.brut, 'utf8'))) < 65536], [12, true]);
   }
 
   console.log('\n3. Une panne d\'OP MESSAGES ne casse RIEN côté agents');

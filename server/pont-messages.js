@@ -174,7 +174,7 @@ module.exports = function creerPontMessages(o) {
         const lot = []; let octets = 0;
         for (const it of file) {
           if (it.k === 's' || it.importe !== tete.importe || lot.length >= LOT_MAX) break;
-          const part = it.texte.length + 160;
+          const part = Buffer.byteLength(it.texte, 'utf8') + 160;          // des OCTETS : OP MESSAGES lit 64 Ko au plus, et un émoji en pèse quatre
           if (lot.length && octets + part > LOT_OCTETS) break;
           lot.push(it); octets += part;
         }

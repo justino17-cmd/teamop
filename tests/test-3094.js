@@ -231,6 +231,8 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
         { fil: 'lea', de: 'lea', texte: 'sans date', cid: 'tour-aaaaaaaaaaa4' },
         { fil: 'lea', de: 'lea', texte: 'date dans le futur', cid: 'tour-aaaaaaaaaaa5', ts: Date.now() + 3600000 },
       ] }, pont);
+      const sansTour = await nu.post('/api/pont/poster', { import: true, messages: [{ fil: 'lea', de: 'justin', texte: 'import sans marque', cid: 'autre-aaaaaaaaaaa1', ts: avantHier }] }, pont);
+      v('⛔ un import dont le `cid` ne commence pas par « tour- » est refusé (sinon il reviendrait à la Tour par `nouveaux` : un écho)', sansTour.j.resultats.map(x => x.ok ? 'ok' : x.raison), ['champ_invalide']);
       v('l\'import : trois messages passent, le sans-date et le futur sont refusés', imp.j.resultats.map(x => x.ok ? 'ok' : x.raison), ['ok', 'ok', 'ok', 'champ_invalide', 'champ_invalide']);
       const l = (await seqDe(conv['Léa'])).filter(x => ['Léa, relance le devis', 'C\'est fait, il est parti.', 'Autre chose : un client rappelle.'].includes(x.texte));
       v('⛔ chaque message GARDE SA DATE D\'ORIGINE', l.map(x => x.ts), [avantHier, hier, hier + 60000]);
@@ -293,10 +295,13 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
       const lu = (await seqDe(conv.Max)).find(x => x.seq === seq);
       v('…et son texte n\'est plus lisible (pierre tombale)', [lu.supprime, lu.texte], [true, null]);
       v('le supprimer deux fois : déjà fait, pas d\'erreur', (await nu.post('/api/pont/supprimer', { fil: 'max', seq }, pont)).j.deja, true);
-      v('un numéro inconnu : 404', (await nu.post('/api/pont/supprimer', { fil: 'max', seq: 9999 }, pont)).code, 404);
+      /* ⛔ relecture de `gardien` : un 404 ici (le même corps que la garde) laissait la suppression en tête de file de la Tour — plus rien ne partait */
+      const inc = await nu.post('/api/pont/supprimer', { fil: 'max', seq: 9999 }, pont);
+      v('⛔ un numéro inconnu : 200 « déjà retiré », JAMAIS 404 (sinon la file de la Tour reste bloquée)', [inc.code, inc.j.ok, inc.j.deja, inc.j.absent], [200, true, true, true]);
       v('⛔ un fil hors du pont, un numéro mal formé : 400', [(await nu.post('/api/pont/supprimer', { fil: 'Hors pont', seq: 1 }, pont)).code, (await nu.post('/api/pont/supprimer', { fil: 'max', seq: '1' }, pont)).code, (await nu.post('/api/pont/supprimer', { fil: 'max', seq: 0 }, pont)).code, (await nu.post('/api/pont/supprimer', { fil: '__proto__', seq: 1 }, pont)).code], [400, 400, 400, 400]);
       const sys = (await seqDe(conv['Équipe'])).find(x => x.meta && x.meta.k === 'groupe_cree');
-      v('⛔ une ligne du SERVICE (« Justin a créé le groupe ») ne se supprime pas par le pont', (await nu.post('/api/pont/supprimer', { fil: 'equipe', seq: sys.seq }, pont)).code >= 400, true);
+      const ss = await nu.post('/api/pont/supprimer', { fil: 'equipe', seq: sys.seq }, pont);
+      v('⛔ une ligne du SERVICE (« Justin a créé le groupe ») ne se supprime pas par le pont — et la file passe quand même (200 « rien à retirer »)', [ss.code, ss.j.deja, !(await seqDe(conv['Équipe'])).find(x => x.seq === sys.seq).supprime], [200, true, true]);
     }
 
     /* ── 9 · rien ne fuit ── */
