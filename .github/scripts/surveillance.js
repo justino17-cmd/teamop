@@ -81,6 +81,16 @@ function get(url) {
     if (j.stripeEchecMin >= 90) {
       problems.push('⛔⛔ STRIPE ILLISIBLE DEPUIS ' + j.stripeEchecMin + ' MIN — le serveur ne sait plus qui paie : personne n’est suspendu, mais une entreprise qui vient de payer reste suspendue et les rappels J-7 attendent. Vérifier la clé Stripe du serveur et l’accès à api.stripe.com. Sur le VPS : journalctl -u teamop-api | grep -i stripe');
     }
+    /* ⛔⛔ LE PONT VERS OP MESSAGES (28 octobre 2026). Justin lit les messages de ses agents dans OP MESSAGES : quand le pont ne passe plus, il n'est PAS prévenu qu'un agent lui a écrit — les agents,
+       eux, continuent de travailler (le pont ne les retient jamais), donc rien ne casse là où on regarde. `pont` n'est publié que quand il est monté (un serveur d'avant, ou sans `opmsgPont`, ne crie
+       pas). `echecMin` : les minutes d'échec d'affilée vers OP MESSAGES (0 = le dernier appel a réussi) — à 30, c'est une panne, pas un redémarrage. `file` : les messages en attente (2 000 au plus, le
+       plus ancien part au-delà) — à 1 000, le service d'en face est mort depuis longtemps ou refuse le secret. */
+    if (j.pont && j.pont.echecMin >= 30) {
+      problems.push('⛔⛔ LE PONT VERS OP MESSAGES NE PASSE PLUS DEPUIS ' + j.pont.echecMin + ' MIN — Justin ne reçoit plus les messages de ses agents dans OP MESSAGES (ils sont dans la Tour, et partiront dès que le service répondra). Vérifier teamop-msg@beta et le secret du pont des deux côtés (server-msg/PONT-AGENTS.md).');
+    }
+    if (j.pont && j.pont.file >= 1000) {
+      problems.push('⛔⛔ LA FILE DU PONT VERS OP MESSAGES COMPTE ' + j.pont.file + ' MESSAGES — au-delà de 2 000, les plus anciens sont abandonnés (le rattrapage les reprend au redémarrage). Vérifier teamop-msg@beta (server-msg/PONT-AGENTS.md).');
+    }
     if (j.conservation && j.conservation.erreur) {
       problems.push('⛔⛔ L’HORLOGE DE CONSERVATION NE TOURNE PLUS (' + j.conservation.erreur + ') — plus aucune date « ne paie plus depuis » n’est enregistrée, et ces dates NE SE RATTRAPENT PAS : chaque heure de panne est une information perdue pour toujours. Sur le VPS : journalctl -u teamop-api | grep conservation');
     } else if (j.conservation && j.conservation.actif) {

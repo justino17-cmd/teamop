@@ -254,7 +254,7 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
     vrai('⛔ elle porte son plancher de vérifications (sans lui, une suite qui saute sa partie exécutée rend un total plus petit et VERT)', pl >= 200);
     v('⛔ chaque suite nommée existe', L.filter(f => !fs.existsSync(path.join(RACINE, f))), []);
     v('   pas de doublon', L.length, new Set(L).size);
-    v('   chaque ligne est un banc de tests/ (rien d\'autre ne se lance par ce compteur)', L.filter(f => !/^tests\/test-(9\d\d|10\d\d|2[4-5]\d\d|26\d\d|30[4-7]\d)\.js$/.test(f)), []);
+    v('   chaque ligne est un banc de tests/ (rien d\'autre ne se lance par ce compteur)', L.filter(f => !/^tests\/test-(9\d\d|10\d\d|2[4-5]\d\d|26\d\d|30([4-7]|9)\d)\.js$/.test(f)), []);
     for (const s of ['930', '931', '932', '933', '934']) vrai('   le banc ' + s + ' (l\'installation et le déploiement) est dans la liste', L.includes('tests/test-' + s + '.js'));
     /* ⛔ Un banc de correctif qui n'est pas dans la liste ne garde RIEN à la porte : le défaut qu'il garde peut revenir, la CI reste verte (relecture du lot m08, 17 octobre 2026). */
     vrai('⛔ le banc 1540 (l\'envoi en file, « écrit… », « signe(s) en trop ») est dans la liste', L.includes('tests/test-2540.js'));
@@ -271,8 +271,8 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
        donc les installer (sinon le plancher de la liste, qui compte ses vérifications, ferait échouer chaque déploiement).
        `test-911` (l'appareil et le service se parlent) rejoue la même couture avec le module de données de la page : sans ces dépendances il
        ne joue que sa moitié « faux OP GESTION » et le dit — le plancher le rattrape de la même façon. */
-    const DEPEND_DU_SERVEUR = ['tests/test-904.js', 'tests/test-911.js', 'tests/test-920.js', 'tests/test-965.js'];
-    v('   seules les coutures réelles (test-904, test-911, test-920, test-965) dépendent du dossier de dépendances d\'OP GESTION (server/node_modules) — et elles sont nommées ici',
+    const DEPEND_DU_SERVEUR = ['tests/test-3091.js', 'tests/test-904.js', 'tests/test-911.js', 'tests/test-920.js', 'tests/test-965.js'];   // (dans l'ordre du tri)
+    v('   seules les coutures réelles (test-904, test-911, test-920, test-965, et test-3091, le pont des agents : le VRAI serveur de la Tour contre un faux Anthropic) dépendent du dossier de dépendances d\'OP GESTION (server/node_modules) — et elles sont nommées ici',
       sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).filter(f => /server\/node_modules/.test(fs.readFileSync(path.join(RACINE, f), 'utf8'))).sort(), DEPEND_DU_SERVEUR);
     vrai('⛔ le workflow INSTALLE les dépendances d\'OP GESTION avant les bancs (sans elles test-904 saute vert et le plancher fait échouer le job)',
       /npm ci [^\n]*--prefix server\s*$/m.test(src) && src.indexOf('--prefix server\n') < src.indexOf('bancs-ci.sh'));

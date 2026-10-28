@@ -418,3 +418,6 @@ tests/test-3058.js
 tests/test-3059.js
 # ── L'onglet « Réunions » d'OP MESSAGES Pro et le lien invité qu'on trouve (26 octobre 2026, Justin : « pourquoi dans OP MESSAGES j'ai pas Réunions ? », « je trouve pas le lien inviter ») : la liste, la lecture, la fiche, la création, la navigation (3070).
 tests/test-3070.js
+# ── Le pont des agents (28 octobre 2026) : `server-msg/pont-agents.js` contre le VRAI service (3090) et la messagerie des agents de la Tour de bout en bout — le VRAI serveur, le VRAI service, un FAUX Anthropic (3091, lance les deux : il saute sans `server/node_modules`).
+tests/test-3090.js
+tests/test-3091.js

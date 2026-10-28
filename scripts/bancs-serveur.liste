@@ -373,3 +373,5 @@ tests/test-3085.js
 tests/test-3087.js
 tests/test-3088.js
 tests/test-3083.js
+# ── Le pont des agents, côté Tour (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place ») : `server/pont-messages.js` contre un faux OP MESSAGES — la file, les pannes, l'historique, ce que Justin écrit et supprime — et le bandeau de la Tour (3092).
+tests/test-3092.js
