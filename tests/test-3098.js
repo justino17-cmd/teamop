@@ -319,6 +319,7 @@ function facteur() {
   await dormir(700);   // monSave est différée de 500 ms
   const entDe = (id) => { const i = (mon().issues || []).find(x => x.signature === 'opgestion|sig-' + id); return (i && i.entreprises[0]) || {}; };
   v('   l\'espace est écrit à la réception — celui du serveur, JAMAIS l\'intouchable ni un inconnu', [entDe('x5').espaces, entDe('f2').espaces, entDe('x4').espaces], [[VIV], undefined, undefined]);
+  vrai('   ⛔ et la Tour ne reçoit pas ces identifiants d\'espace (ils servent la purge, pas l\'écran)', JSON.stringify(await issuesVivantes()).includes('Vivante Services SARL') && !JSON.stringify(await issuesVivantes()).includes('"espaces"'));
   await envoyer('elan-gestion', 'Entreprise Du Repli', 'x4b', '');
   await dormir(700);
   v('   ⛔ l\'espace par défaut, partagé par toutes les entreprises sans clé propre, n\'est pas écrit', entDe('x4b').espaces, undefined);
@@ -339,10 +340,18 @@ function facteur() {
   const HC2 = 't-disparu-3098', ligneH = (team, msg) => JSON.stringify({ ts: N - 100, team, app: 'opgestion', version: '772', msg, src: '', line: 0, stack: '', ua: '' });
   const MON4 = { users: MONITOR.users, archive: [], journal: [], actions: [], issues: [
     inc('y1', 'opgestion', [Object.assign(ent('Partie Sans Annuaire', 'p@exemple-3098.fr', 2), { espaces: [HC2, 'elan-gestion'] })], 2),
-    inc('y2', 'opgestion', [ent('Partie Ancienne Version', '', 1)], 1) ] };
+    inc('y2', 'opgestion', [ent('Partie Ancienne Version', '', 1)], 1),
+    inc('y3', 'opgestion', [ent('Partie Troisième', '', 1)], 1) ] };
   const S4 = await lancerAutre('disparu', { espaces: { 'viv': { t: VIV, nom: 'Vivante', code: code64(VIV), ts: Date.now() } }, monitor: MON4,
     bugs: [ligneH(HC2, 'h1'), ligneH(HC2, 'h2'), ligneH('elan-gestion', 'repli'), ligneH(VIV, 'v1')] });
   vrai('le troisième serveur démarre', S4.vif);
+  /* l'écriture de monitor.json passe par un fichier temporaire : si le temporaire ne peut pas s'écrire (ici, un DOSSIER à sa place), l'ancien fichier reste ENTIER et l'échec se dit (500) */
+  const mon4 = path.join(S4.rep, 'monitor.json'), avant4 = fs.readFileSync(mon4, 'utf8');
+  fs.mkdirSync(mon4 + '.tmp');
+  r = await S4.ap(ROUTE, { nom: 'Partie Troisième' }, S4.jeton);
+  v('⛔ le disque refuse le fichier temporaire : l\'échec se DIT (500, ecrit:false)', [r.s, r.j.ecrit], [500, false]);
+  vrai('   et monitor.json est resté entier, octet pour octet (jamais réécrit en place)', fs.readFileSync(mon4, 'utf8') === avant4);
+  fs.rmdirSync(mon4 + '.tmp');
   const equipes4 = () => fs.readFileSync(path.join(S4.Da, 'bugs.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l).team);
   r = await S4.ap(ROUTE, { nom: 'Partie Sans Annuaire' }, S4.jeton);
   v('une entreprise partie dont l\'entrée porte l\'espace disparu : 200, un incident, DEUX lignes brutes retrouvées', [r.s, r.j.issues, r.j.bugs], [200, 1, 2]);
