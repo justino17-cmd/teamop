@@ -40,14 +40,14 @@ const copie = o => JSON.parse(JSON.stringify(o));
 /* Les vraies fonctions de la combinaison, dans un espace où l'on maîtrise l'état (db, utilisateur courant) et où l'on note ce qui s'écrit. */
 function monde(db0, user) {
   const sortie = { saves: 0, toasts: [], journal: [], navs: 0, annuler: [], parametres: 0 };
-  const init = { METIERS, METIERS_ORDRE, INT_TYPES, CAT_LIST, norm, CVC_METIERS, NETT_METIERS, METIERS_ASSOC_MAX: 4, _packsCombines: new Map(),
+  const init = { METIERS, METIERS_ORDRE, INT_TYPES, CAT_LIST, norm, CVC_METIERS, NETT_METIERS, METIERS_ASSOC_MAX: 4, _packsCombines: new Map(), _relevesDefs: null,
     db: db0, currentUser: user === undefined ? { id: 'u1', role: 'admin' } : user, current: 'parametres', BETA_ESSAI: false,
     DEMO_CLIENTS_3D: [['Boulangerie', 'a', 'La Rochelle', 1, 1, 'pro']], DEMO_PLAN_3D: [[0, '08:00', 60, 'Dératisation — passage 2/3', 'Dératisation', 0, 0, ''], [0, '09:00', 60, 'Nid de frelons', 'Désinsectisation guêpes / frelons', 1, 0, ''], [1, '10:00', 60, 'Contrôle', 'Contrat anti nuisibles (HACCP)', 2, 0, '']],
     DEMO_NETT: { clients: [['Bureaux A', 'a', 'La Rochelle', 1, 1, 'pro']], planning: [[0, '08:00', 60, 'Nettoyage de bureaux', 'Nettoyage régulier', 0, 0, ''], [0, '09:00', 60, 'Décapage des sols', 'Décapage & protection des sols', 1, 0, ''], [1, '10:00', 60, 'Contrôle qualité', 'Contrôle qualité chez le client', 2, 0, '']], checklist: ['Aspiration des sols', 'Lavage des sols'], arepartir: ['À répartir — contrôle qualité', 'Contrôle qualité chez le client'] },
     save: () => { sortie.saves++; }, toast: m => { sortie.toasts.push(String(m)); }, toastAnnuler: (m, f) => { sortie.annuler.push([String(m), f]); },
     logEvent: (a, b) => { sortie.journal.push([a, b]); }, renderNav: () => { sortie.navs++; },
     views: { parametres: () => { sortie.parametres++; } }, esc: s => String(s == null ? '' : s) };
-  const noms = ['metiersActifsDe', 'metiersActifs', 'metiersAssocies', 'metiersAssociesEnvoi', '_packListe', '_releveMeme', 'metierPackCombine', '_cleNom', 'metierPackDe', 'metierId', 'metierPack',
+  const noms = ['metiersActifsDe', 'metiersActifs', 'metiersAssocies', 'metiersAssociesEnvoi', '_packListe', '_releveMeme', 'metierPackCombine', '_cleNom', 'metierPackDe', 'metierId', 'metierPack', 'metierRelevesDefs', 'metierRelevesLignes',
     'metierAssocSet', 'metierSet', 'metierServeurAppliquer', 'estMetier3D', 'est3DPrincipal', 'intAffiche3D', 'metierGereParc', 'metierGereSites', 'metierBloque',
     'intTypes', 'libZones', 'exemple', 'sansBox', 'demoSemisPour', 'demoPlanGenerique', 'demoSemisCombine', 'demoSemisDe', 'metiersAssociesBloc'];
   const b = bac('app.html', noms, init);
@@ -412,6 +412,64 @@ console.log('\n══ 14. LA FICHE D\'UNE INTERVENTION : les blocs 3D lisent `in
   vrai('le bloc « Nuisibles & méthodes » est gardé par intAffiche3D(i)', /\$\{!intAffiche3D\(i\)\?'':`<div class="card"><div class="card-head" style="margin-bottom:8px"><h3>Nuisibles & méthodes<\/h3>/.test(F));
   vrai('« Type de traitement », véhicule et matériel sont gardés par intAffiche3D(i)', /\(intAffiche3D\(i\)\?oui\('qTypeTraitement'/.test(F) && /\(intAffiche3D\(i\)\?oui\('qCtrlVehicule'/.test(F));
   vrai('   et la 3D seule garde `estMetier3D()` pour ses seuls textes (plans, stock) : rien de ces trois ne lit la capacité', !/!estMetier3D\(\)\?'':`<div class="card"><div class="card-head" style="margin-bottom:8px"><h3>Nuisibles/.test(F));
+}
+
+console.log('\n══ 15. ⛔ RETIRER UN MÉTIER NE FAIT PAS SORTIR DU RAPPORT CE QUI A ÉTÉ SAISI (relevés CVC, puis la clim retirée) ══\n');
+{
+  /* Mesuré : sur « Entretien pompe à chaleur », CO 12 ppm (clim) et pression 3 bar (plomberie) saisis ; on retire la clim ; « Teneur en CO » et
+     « 12 ppm » disparaissaient de la fiche, du rapport et du compte-rendu envoyés au client — la donnée, elle, restait en base. */
+  const releve = (id, k) => (METIERS[id].releves || []).find(r => r.k === k);
+  const co = releve('chauffage', 'co');
+  vrai('(population) le relevé « co » existe côté chauffage/clim, et PAS côté plomberie (c\'est ce qui le fait sortir du pack)', !!co && !releve('plomberie', 'co'), co);
+  const pression = releve('plomberie', 'pression');
+  vrai('(population) la plomberie porte « pression »', !!pression, pression);
+  const saisi = () => ({ id: 'i1', date: '2026-10-28', type: 'Entretien pompe à chaleur', clientId: 'c1', statut: 'terminee', prestaMetier: ['Entretien de pompe à chaleur'], relevesMetier: { co: '12', pression: '3', inconnueDeTous: '77' } });
+  const etat = assoc => monde({ metier: 'plomberie', metiersAssocies: assoc ? { chauffage: { on: 1, _m: 1 } } : { chauffage: { on: 0, _m: 2 } } });
+  const lignes = (m, i) => m.metierRelevesLignes(i);
+  const avec = etat(true), sans = etat(false);
+  vrai('(population) la clim associée : le pack actif porte « co » ; retirée : il ne le porte plus', avec.metierPack().releves.some(r => r.k === 'co') && !sans.metierPack().releves.some(r => r.k === 'co'));
+  const la = lignes(avec, saisi()), ls = lignes(sans, saisi());
+  vrai('(population) clim associée : les deux valeurs saisies sortent', la.some(x => x[1] === '12 ' + co.u) && la.some(x => /^3 /.test(x[1])), la);
+  vrai('⛔ clim RETIRÉE : « ' + co.l + ' » et sa valeur sortent encore (fiche, rapport, compte-rendu lisent cette fonction)', ls.some(x => x[0] === co.l && x[1] === '12 ' + co.u), ls);
+  vrai('   …et la pression de la plomberie aussi (rien n\'a bougé de son côté)', ls.some(x => x[0] === pression.l && /^3 /.test(x[1])), ls);
+  vrai('   …et une clé que NUL métier ne connaît ne s\'affiche pas (pas de clé brute dans un document client)', !ls.some(x => /77/.test(x[1])) && !la.some(x => /77/.test(x[1])), ls);
+  vrai('   le pack actif passe d\'abord (même ordre qu\'avant) : la ligne de la plomberie précède celle qui n\'est plus au pack', ls.findIndex(x => x[0] === pression.l) < ls.findIndex(x => x[0] === co.l), ls);
+  vrai('   la valeur n\'a pas été touchée par l\'affichage (`relevesMetier.co` vaut toujours « 12 »)', (() => { const i = saisi(); lignes(sans, i); return i.relevesMetier.co === '12'; })());
+  /* un métier seul : exactement la ligne d'avant, et aucune recherche ailleurs pour la 3D d'ELAN */
+  const plombSeule = monde({ metier: 'plomberie' });
+  egal('   plomberie seule : les relevés de SON pack, comme avant (la donnée « co » d\'un autre métier s\'y relit aussi — retirer n\'efface pas)', lignes(plombSeule, saisi()).map(x => x[0]), [pression.l, co.l]);
+  const troisD = monde({});
+  egal('⛔ la 3D seule (ELAN) : rien de plus que l\'ancienne fonction — aucune ligne, même si la donnée porte des relevés d\'un autre métier', lignes(troisD, saisi()), []);
+  egal('   sans relevé saisi : aucune ligne, partout', [lignes(avec, { id: 'x' }), lignes(sans, { relevesMetier: {} }), lignes(plombSeule, { relevesMetier: null })], [[], [], []]);
+  /* deux relevés de même clé qui ne mesurent pas la même chose : on ne devine pas lequel */
+  const vol = ['plomberie', 'maconnerie', 'assainissement', 'eau', 'piscine', 'energies'].filter(id => releve(id, 'volume'));
+  const diffs = new Set(vol.map(id => releve(id, 'volume').l));
+  if (vol.length && diffs.size > 1) {
+    const nom = monde({ metier: 'alarme' });
+    const ligne = lignes(nom, { relevesMetier: { volume: '40' } });
+    vrai('une clé commune à des métiers qui ne la nomment pas pareil (« volume ») nomme ses métiers au lieu d\'en deviner un', ligne.length === 1 && /\(.+ ou .+\)/.test(ligne[0][0]), ligne);
+  } else vrai('(population) « volume » est défini par au moins deux métiers qui ne le nomment pas pareil', false, [vol, [...diffs]]);
+  /* le second champ d'une clé commune, rangé sous `k~métier` quand il est combiné : il se relit même une fois le métier retiré */
+  let paire = null;
+  for (const a of IDS) { if (paire) break; for (const b of IDS) { if (a === b) continue; const c = monde({ metier: a, metiersAssocies: { [b]: { on: 1, _m: 1 } } }).metierPack(); const k2 = (c.releves || []).map(r => r.k).filter(k => k.indexOf('~') > 0); if (k2.length) { paire = [a, b, k2[0]]; break; } } }
+  if (paire) {
+    const [pa, pb, k2] = paire, id2 = k2.split('~')[1];
+    const dede = {}; dede[k2] = '9';
+    const seul = lignes(monde({ metier: pa }), { relevesMetier: dede });
+    vrai('une clé `' + k2 + '` (second champ de ' + pa + ' + ' + pb + ') se relit après le retrait de « ' + id2 + ' », libellé « … (' + METIERS[id2].nom + ') »', seul.length === 1 && seul[0][0].indexOf('(' + METIERS[id2].nom + ')') > 0, seul);
+  } else vrai('(population) au moins une paire de métiers produit un champ `k~métier`', false);
+  /* le rapport et le compte-rendu lisent CETTE fonction, dans le code livré */
+  vrai('le rapport (rapportConstatLignes) et le compte-rendu (genRapportTexte) appellent metierRelevesLignes(i)', /function rapportConstatLignes\(i\)[\s\S]*?metierRelevesLignes\(i\)\.forEach\(r=>rows\.push\(r\)\)/.test(N) && /function genRapportTexte\(i\)[\s\S]*?metierRelevesLignes\(i\)\.forEach\(r=>L\.push\(r\[0\]\+' : '\+r\[1\]\)\)/.test(N));
+  /* …et on les JOUE : la vraie rapportConstatLignes, la vraie genRapportTexte */
+  const noms = ['rapportConstatLignes', 'genRapportTexte', 'metierRelevesDefs', 'metierRelevesLignes', 'metierPack', 'metierPackDe'];
+  const jouer = assoc => { const d = { metier: 'plomberie', metiersAssocies: { chauffage: { on: assoc ? 1 : 0, _m: 1 } }, clients: [{ id: 'c1', nom: 'Client' }], interventions: [] };
+    const b = bac('app.html', noms, { METIERS, METIERS_ORDRE, INT_TYPES, CAT_LIST, norm, _packsCombines: new Map(), _relevesDefs: null, METIERS_ASSOC_MAX: 4, db: d, traitementSummary: () => [], ficheSummary: () => [], NUIS_TRAIT: {}, nettRapportLignes: () => [], esc: x => String(x == null ? '' : x), PRESTATION_ITEMS: [] });
+    return { rows: b.fn.rapportConstatLignes(saisi()), texte: (() => { try { return String(b.fn.genRapportTexte(saisi())); } catch (e) { return 'ERREUR ' + e.message; } })(), vus: b.vus }; };
+  const R1 = jouer(true), R0 = jouer(false);
+  const aplati = r => JSON.stringify(r.rows);
+  vrai('(population) le rapport de la clim associée porte bien le CO, et le texte du compte-rendu aussi', /12/.test(aplati(R1)) && R1.texte.indexOf(co.l + ' : 12') >= 0, [aplati(R1).slice(0, 300), R1.texte.slice(0, 300)]);
+  vrai('⛔ le rapport (document envoyé au client) garde « ' + co.l + ' » et « 12 » une fois la clim retirée', aplati(R0).indexOf(co.l) >= 0 && /"12 /.test(aplati(R0)), aplati(R0).slice(0, 400));
+  vrai('⛔ …et le compte-rendu aussi', R0.texte.indexOf(co.l + ' : 12') >= 0, R0.texte.slice(0, 400));
 }
 
 console.log('\n── 3131 : ' + ok + ' ✓  ' + ko + ' ✗');

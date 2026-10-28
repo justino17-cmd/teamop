@@ -10601,9 +10601,36 @@ function metReleveSet(id,k,v){
   if(t) i.relevesMetier[k]=t; else delete i.relevesMetier[k];
   save();
 }
+/* ⛔ Un relevé SAISI se relit sur la DONNÉE, pas sur le pack du moment (mesuré sur la fiche d'un « Entretien pompe à chaleur » : on retire la
+   clim, et « Teneur en CO : 12 ppm » sortait du rapport et du compte-rendu envoyés au client alors que `relevesMetier.co` était bien en base —
+   la valeur de la plomberie, elle, restait). Retirer un métier est un geste courant depuis les métiers combinés : un document se relit tel qu'il a
+   été fait. D'abord les relevés du pack ACTIF (dans son ordre : c'est la ligne d'avant, octet pour octet), puis ce que la donnée porte encore et
+   que le pack ne connaît plus, retrouvé dans les relevés de TOUS les métiers — par la clé `k`, ou `k~métier` pour le second champ d'une clé commune
+   (son libellé se nomme alors « libellé (métier) »). Une clé que nul métier ne connaît ne s'affiche pas (comme avant). Une clé commune à des
+   métiers qui ne mesurent pas la même chose (`volume` : pompé ou coulé) nomme ses métiers : on ne devine pas lequel. La 3D seule (le pack
+   `METIERS['3d']` LUI-MÊME : ELAN) garde la lecture d'avant, sans rien chercher ailleurs. */
+let _relevesDefs=null;
+function metierRelevesDefs(){
+  if(_relevesDefs) return _relevesDefs;
+  const d=Object.create(null);
+  METIERS_ORDRE.forEach(id=>{ const m=METIERS[id]; if(!m) return;
+    (m.releves||[]).forEach(r=>{
+      (d[r.k]=d[r.k]||[]).push({r,nom:m.nom});
+      const k2=r.k+'~'+id; (d[k2]=d[k2]||[]).push({r:Object.assign({},r,{l:r.l+' ('+m.nom+')'}),nom:m.nom}); }); });
+  _relevesDefs=d; return d;
+}
 function metierRelevesLignes(i){
-  const p=metierPack(); const out=[];
-  (p.releves||[]).forEach(r=>{ const v=(i.relevesMetier||{})[r.k]; if(v) out.push([r.l,v+(r.u?' '+r.u:'')]); });
+  const p=metierPack(); const out=[]; const saisi=(i&&i.relevesMetier&&typeof i.relevesMetier==='object')?i.relevesMetier:{};
+  const dit=Object.create(null);
+  (p.releves||[]).forEach(r=>{ dit[r.k]=1; const v=saisi[r.k]; if(v) out.push([r.l,v+(r.u?' '+r.u:'')]); });
+  if(p===METIERS['3d']) return out;
+  const defs=metierRelevesDefs();
+  Object.keys(defs).forEach(k=>{
+    if(dit[k]||!Object.prototype.hasOwnProperty.call(saisi,k)) return;
+    const v=saisi[k]; if(!v) return;
+    const c=defs[k]; let r=c[0].r;
+    if(c.length>1&&c.some(x=>!_releveMeme(x.r,r))) r=Object.assign({},r,{l:r.l+' ('+c.map(x=>x.nom).join(' ou ')+')'});
+    dit[k]=1; out.push([r.l,v+(r.u?' '+r.u:'')]); });
   return out;
 }
 function metierPrestaCard(i,edit){
@@ -10621,7 +10648,7 @@ function metierPrestaCard(i,edit){
         <button type="button" class="met-chip add" onclick="metPrestaAjout('${i.id}')">＋ Autre…</button></div>`
       :(sel.length?`<div class="met-grid">${sel.map(l=>`<span class="met-chip on lecture">✓ ${esc(l)}</span>`).join('')}</div>`
         :'<div style="color:var(--t3);font-size:13px;padding:2px 0 6px">Aucune prestation cochée.</div>')}
-    ${rel.length?`<div class="form-sec" style="margin-top:14px">📏 Relevés &amp; mesures</div>
+    ${(rel.length||(!edit&&relFaits.length))?`<div class="form-sec" style="margin-top:14px">📏 Relevés &amp; mesures</div>
       ${edit?`<div class="met-rel">${rel.map(r=>`<div class="field" style="margin:0">
           <label>${esc(r.l)}${r.u?' <span style="color:var(--t3);font-weight:400">('+esc(r.u)+')</span>':''}</label>
           <input ${r.txt?'':'type="number" step="any" inputmode="decimal"'} value="${esc(((i.relevesMetier||{})[r.k])||'')}"
