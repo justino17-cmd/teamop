@@ -8894,7 +8894,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '776-demo';
+const APP_VERSION = '777-demo';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -37466,7 +37466,9 @@ function betaRemplir(gros){
        l'écran qu'on voulait juger ne montrait rien de vrai. */
     db.clients=db.clients||[]; db.interventions=db.interventions||[];
     const STATUTS=['aplanifier','planifiee','encours','terminee','annulee'];
-    const TYPES=(typeof INT_TYPES!=='undefined'&&INT_TYPES.length)?INT_TYPES:['Dératisation'];
+    /* v777 : les types du MÉTIER choisi (« 🧰 Tester un métier ») — un pack se juge sur un écran plein de SES interventions,
+       pas de dératisations. */
+    const TYPES=(typeof intTypes==='function'&&intTypes().length)?intTypes():['Dératisation'];
     const base=db.clients.length;
     const neufs=[];
     for(let i=0;i<200;i++){
@@ -37741,7 +37743,15 @@ views.parametres=function(){
         <button class="btn sm" onclick="betaRemplir(false)">🧪 Remplir (jeu de test)</button>
         <button class="btn sm ghost" onclick="betaRemplir(true)">📚 Remplir en grand nombre</button>
         <button class="btn sm ghost" onclick="betaVider()">🧹 Tout vider</button>
-      </div></div>`:''}
+      </div>
+      <!-- v777 — Justin, 28 octobre 2026 : « dans OPG bêta je veux pouvoir choisir le style d'entreprise, dératisation, clim,
+           chauffage, enfin tout… je choisis le pack directement pour tester ». Un geste, les 23 packs : metierSet (journal,
+           « ↩︎ Annuler »). La bêta seule — une entreprise ne voit que SON métier (plus bas, « Mon métier »). -->
+      <div class="field" style="margin:14px 0 0">
+        <label for="beta-metier">🧰 Tester un métier</label>
+        <select id="beta-metier" onchange="metierSet(this.value)">${METIERS_ORDRE.map(k=>`<option value="${k}"${k===metierId()?' selected':''}>${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}</select>
+      </div>
+      <p style="color:var(--t3);font-size:11.5px;margin-top:6px">Change le pack de toute la bêta : catégories d'intervention, fiche de terrain, catégories de produits, rubriques conseillées. « Remplir en grand nombre » suit le métier choisi ; le planning de démonstration (3 techniciens, 14 interventions) reste celui de l'anti-nuisibles.</p></div>`:''}
     ${equipeTeamOP()&&currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>🎬 Planning de démonstration</h3></div>
       <p style="color:var(--t2);font-size:13.5px;margin-bottom:12px">Crée en un clic 3 techniciens, 7 clients déjà localisés et 14 interventions réparties sur 3 jours — de quoi essayer le planning, la carte et les couleurs sans rien inventer.
       ${_demo.ints?`<br><b style="color:var(--org)">Démonstration en place : ${_demo.ints} intervention(s), ${_demo.clients} client(s), ${_demo.techs} technicien(s).</b>`:''}</p>
@@ -37918,7 +37928,7 @@ views.parametres=function(){
         return `<p style="color:var(--t3);font-size:12px;line-height:1.55;margin-bottom:9px"><b style="color:var(--t2)">Ton métier a été choisi lors de ta demande d'application</b> — il est déjà réglé ici. Il change les <b>catégories d'intervention</b>, la <b>fiche remplie sur le terrain</b> (prestations réalisées et relevés) et les <b>modules affichés</b>. Tes clients, ton planning et tes interventions ne sont jamais touchés.<br>Besoin d'autre chose pour ton métier ? Écris à <a href="mailto:support@teamop.fr?subject=Mon%20m%C3%A9tier%20sur%20TEAM%20OP" style="color:var(--acc-txt);font-weight:700">support@teamop.fr</a> — on ajoute au pack de ton métier, sans toucher aux autres.</p>
         <!-- une entreprise a choisi son métier à sa demande d'application : elle n'a pas à voir
              les cinq autres, qui ne la concernent pas et invitent à un changement risqué. -->
-        <div class="met-cards">${(equipeTeamOP()?METIERS_ORDRE:METIERS_ORDRE.filter(k=>k===cur)).map(k=>{ const m=METIERS[k]; const on=(k===cur);
+        <div class="met-cards">${(equipeTeamOP()||BETA_ESSAI?METIERS_ORDRE:METIERS_ORDRE.filter(k=>k===cur)).map(k=>{ const m=METIERS[k]; const on=(k===cur);
           const nb=m.types?m.types.length:INT_TYPES.length;
           return `<div class="met-card${on?' on':''}" onclick="metierSet('${k}')">
             ${on?'<span class="bd">Actif</span>':''}
