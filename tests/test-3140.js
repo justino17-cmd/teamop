@@ -11,7 +11,9 @@
      7. ⛔ `scripts/scanner-skills.sh` — LE VRAI SCRIPT, lancé : sans SkillSpector il sort en 3 « AUCUN VERDICT » ; il passe TOUJOURS `--no-llm` (vu par un faux
         `skillspector` qui note ses arguments) et refuse `--llm` ; il propage les codes 0/1/2 ; il refuse d'écrire un rapport DANS le dépôt ; il n'installe rien
         (aucun `pip`, `uv`, `npm`, `docker`, `curl` exécuté — le PATH du banc n'en contient aucun faux).
-   Mutations jouées avant de commiter : retirer `--no-llm` du script, laisser passer `--llm`, sortir en 0 quand l'outil manque, retirer un `LICENSE-` : le banc tombe. */
+   Mutations jouées APRÈS le commit (9, `scratchpad/mut3140.py`) : plus de `--no-llm`, outil absent qui sort en 0, rapport accepté dans le dépôt, `model: opus`, `name` ≠ dossier,
+   SMS sans consentement, faux humain permis, note de provenance qui ment — le banc tombe sur chacune. ⚠️ Une seule survit, et c'est voulu : retirer `--llm` de la liste des refus ne change rien, l'option
+   tombe alors dans « option inconnue » (code 4 aussi) — deux gardes pour un même refus, la mutation est neutralisée par l'autre. */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), cp = require('child_process');
 const RACINE = path.join(__dirname, '..');
@@ -95,7 +97,7 @@ for (const n of MARKETING) {
   vrai(n + ' : ne reprend pas CAN-SPAM comme règle (il n\'y figure que pour dire qu\'il est remplacé)', !/Opt-out requests must be honored|postal address in the signature/.test(t));
 }
 const CE = lire(path.join(SKILLS, 'cold-email', 'SKILL.md'));
-vrai('⛔ cold-email : pas de faux « Re: », pas de faux humain, objet fidèle', /Re:/.test(CE) && /faux humain/i.test(CE) && /l'objet décrit/.test(CE));
+vrai('⛔ cold-email : pas de faux « Re: », pas de faux humain, objet fidèle', /\*\*Pas de faux humain\.\*\*/.test(CE) && /Re:/.test(CE) && /l'objet décrit ce que le message contient/.test(CE));
 vrai('cold-email : ni lien, ni adresse, ni téléphone dans le corps ; « Bonjour, » / « Bien cordialement, »', /ni lien, ni adresse/.test(CE) && /Bien cordialement/.test(CE));
 vrai('cold-email : aucun SMS sans consentement, LinkedIn jamais automatisé', /jamais de SMS sans consentement/.test(CE) && /aucun agent n'automatise LinkedIn/.test(CE));
 

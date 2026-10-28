@@ -12,6 +12,27 @@ Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici 
 de ligne du tout.
 
 ---
+# 🧩 28 OCTOBRE 2026 (SOIR) — LES SKILLS DE TRAIL OF BITS ET DE MARKETINGSKILLS, ET LE SCANNER (branche `claude/skills-github`, partie de `origin/main`, **pas poussée**)
+Justin : « tu installes tous les skills […] vu que tu vas corriger et améliorer les agents, ça permet, avec les skills, de le faire. » Rien ne touche `server/`, `app.html` ni `tour.html` : aucun déploiement.
+- **Fait** : (1) **Trail of Bits** (CC-BY-SA-4.0, commit `2be6433`) : `differential-review`, `insecure-defaults` (réécrit en skill : l'original est un `Workflow` dont la vérification est en Opus), `supply-chain-risk-auditor` (lit `gh auth token` :
+  borné par écrit dans son bloc). (2) **marketingskills** (MIT, commit `0cd9b3a`, v2.13.9) : six skills TRADUITS et ADAPTÉS au droit français — `prospecting`, `cold-email`, `sales-enablement`, `customer-research`, `directory-submissions`,
+  `lead-magnets` ; douze de la même source existaient déjà (liste dans `PROVENANCE-marketingskills.md`, dont certains en retard sur la source). (3) skill `scanner-skills` + `scripts/scanner-skills.sh` (n'installe rien, `--no-llm` toujours,
+  sort en 3 « aucun verdict » si l'outil manque) + `scripts/balayage-skills-grossier.py` (substitut de relecture). (4) `CLAUDE.md` : section « Les skills tiers » (à placer sous le paragraphe ECC de la branche de travail au rapatriement ; un conflit
+  d'ancre est possible, le texte est autonome). (5) `tests/test-3140.js` : 85 vérifications, 9 mutations jouées après le commit (8 tombent ; la neuvième est neutralisée par une seconde garde, dit en tête du banc).
+- ⛔ **SkillSpector n'a JAMAIS tourné.** Le classifieur de permissions de la session a refusé `uv venv` puis `uv pip install` du dépôt cloné (« Code from External ») ; refus non contourné. **Aucun score, aucun verdict SAFE / CAUTION / DO_NOT_INSTALL
+  n'existe** pour ces neuf skills ni pour les 74 déjà présents. Les notes de provenance disent « relu à la main et balayé par un script maison le 28/10/2026 » — jamais « scanné ». Le balayage maison n'a trouvé que des faux positifs (phrases d'attaque citées en
+  exemple, « curly »), sauf le comportement RÉEL de `supply-chain-risk-auditor` (huit services publics, jeton `gh`), documenté.
+  **À décider par Justin** : autoriser l'installation du scanner dans un environnement isolé du dossier temporaire (commande exacte : `bash scripts/scanner-skills.sh <dossier>` sans l'outil l'affiche), puis `bash scripts/scanner-skills.sh .claude/skills --recursive`
+  et mettre à jour les deux notes de provenance par une ligne « Scanné par SkillSpector le JJ/MM/AAAA » avec le verdict (le banc l'attend).
+- ⚠️ **`droit-francais.md` est écrit de mémoire, sans avoir relu un seul texte.** Il marque ses doutes **[à vérifier]** : consentement préalable du démarchage téléphonique au consommateur (annoncé pour le 11 août 2026), créneaux de l'arrêté du 29 décembre 2022, durée de 3 ans
+  de la CNIL, traitement des entrepreneurs individuels (artisans) comme professionnels. **Avant toute campagne d'ampleur** : Nina, puis l'agent `juriste` (branche `agent/juriste`, pas dans cette branche), puis Justin. Rien n'envoie : ces skills rédigent et
+  qualifient, l'envoi passe toujours par l'accord de Justin (Pauline, Léa).
+- **Hors de ma branche, à ne pas refaire** : l'agent « comptable » (devis, factures, compta) est déjà écrit sur `claude/agent-comptable` (commit `96a4e868`) — `lead-magnets` le cite ; promptfoo (tests des prompts des agents) est en cours dans un dossier non suivi
+  `outils/promptfoo/` de cet arbre, par une autre exécution : je n'y ai pas touché ; Factur-X est un autre chantier (`claude/facturx`).
+- **Reste ouvert** : `PROVENANCE` et les blocs disent « tout en Sonnet » mais l'agent `adversarial-modeler` (differential-review) est un simple fichier de référence, non enregistré ; la liste d'annuaires (`directory-submissions/references/annuaires-france.md`) est de mémoire, aucun lieu rouvert en ligne ; le skill `supply-chain-risk-auditor`
+  n'a pas été exécuté (contrôle de syntaxe seulement) ; le numéro 3140 du banc peut entrer en collision avec un autre : renuméroter au rapatriement s'il le faut.
+
+---
 # 🧑‍💼 28 OCTOBRE 2026 — LA FONCTION DE CHAQUE AGENT SOUS SON NOM DANS OP MESSAGES (branche `claude/opmsg-roles-liste`)
 Justin, devant ses seize agents : « le nom de l'agent et les fonctions, Théo il fait quoi, qui gère quoi ». Le pont rangeait déjà le rôle dans le statut du robot ; la LISTE ne le montrait
 pas. `convListe` rend `autre.statut` ; `resume()` en fait `sousTitre` (80 signes, vide pour un groupe, un compte supprimé, une invitation) ; `ligneConv()` l'écrit sous le nom
