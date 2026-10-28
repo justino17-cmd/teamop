@@ -72,7 +72,32 @@ Branche `claude/camille-courrier-classe` (serveur seulement, **pas poussée, pas
 
 # 🧹 28 OCTOBRE 2026 — ESPACES ORPHELINS (`elan-gestion`, `elan-gestion-beta`) : L'OUTIL EST PRÊT, LE NETTOYAGE ATTEND JUSTIN
 Mesuré sur le VPS (lecture seule) : ces deux espaces d'avant le renommage ne sont dans aucun annuaire ni dans `entreprises-fermees.json`, la Tour ne les liste pas, et la suppression totale les refuse (`ESPACES_INTOUCHABLES`) ; ils gardent un journal de connexions (identifiants de salariés), des abonnements push, de l'usage, des lignes de `bugs.jsonl`. `server/nettoyer-espace-orphelin.js` (constat par défaut, `--faire` service arrêté) + `tests/test-3100.js`. **Reste (Justin, sur le VPS)** : constat, `systemctl stop teamop-api`, `--faire` (avec `--nom "ELAN"` pour les incidents de `monitor.json`), `systemctl start teamop-api` — commandes exactes dans le message de livraison. Décision à lui : `--bloquer` pour les deux espaces techniques (sans lui l'outil ne ferme pas le repli : un appareil qui s'y connecte encore recréerait sa ligne de connexions). Hors périmètre, comptés mais non touchés : `replies.jsonl`, `sentmap.jsonl`.
-
+# 🧹 28 OCTOBRE 2026 (SOIR) — L'HISTORIQUE DE SURVEILLANCE D'UNE ENTREPRISE SUPPRIMÉE PART AVEC ELLE (branche `claude/surveillance-purge-entreprise`, rien de poussé)
+Justin avait supprimé ELAN depuis la Tour ; Surveillance → « Entreprises touchées » montrait encore « ELAN · 45 problèmes · dernier il y a 1 j ». Deux causes : la suppression
+totale n'effaçait ni `monitor.json` (incidents, archive) ni `bugs.jsonl`, et `POST /api/monitor/report` ne regardait pas si l'espace était fermé (un téléphone resté sur
+l'ancienne application alimentait la ligne). Justin : « on peut supprimer l'historique » → décision prise, **pour une entreprise SUPPRIMÉE seulement** (une qui vit garde sa trace).
+- **Serveur (`server/index.js`)** : `monPurgerEntreprise({t, noms, emails, slugs})` retire les entrées `entreprises[]` (nom sans casse ni accents ni ponctuation, OU adresse) des
+  incidents vivants et archivés, l'incident entier quand plus personne ne le porte, anonymise le journal et les gestes de la Tour (jamais un geste effacé), réécrit `bugs.jsonl`
+  par fichier temporaire + renommage, écrit `monitor.json` tout de suite, note « surveillance purgée : N incidents, M lignes brutes (entreprise supprimée) » sans nom.
+  La suppression totale l'appelle (`fait.surveillance`). Route patron `POST /api/monitor/issues/purger-entreprise` `{nom}` ou `{t}` : 409 si l'entreprise vit (annuaire non fermé,
+  ou espace connecté hors annuaire), 403 pour l'espace par défaut. `POST /api/monitor/report` : un rapport dont `espace` est FERMÉ répond `{ok, ferme}` sans rien écrire
+  (sans `espace` — version d'avant la v683 — comportement d'avant).
+- **Tour — MIS DE CÔTÉ, pas sur `main`** (`tour.html` se publie sur la phrase de Justin ; le correctif est rangé dans `scratchpad/purge-bouton-tour.patch` pour la Tour unifiée). En attendant, ELAN s'efface de la surveillance par l'outil `server/nettoyer-espace-orphelin.js … --nom "ELAN"`. Le bouton prévu : « Effacer de la surveillance » sur la fiche d'une entreprise de Surveillance, patron seul,
+  liste des entreprises lue, entreprise absente de l'annuaire, console OP GESTION ; `confirm` qui dit ce qui part et que c'est définitif ; toast avec les nombres.
+- **Bancs** : `test-3102` (serveur seul, dans `scripts/bancs-serveur.liste`) ; le bouton de la Tour et son banc sont mis de côté (`scratchpad/purge-bouton-tour.patch`) pour la Tour unifiée (lit `tour.html`, donc hors liste
+  jusqu'à la publication de la Tour qui porte le bouton).
+- **Relecture du `gardien` (28 octobre au soir), corrigée et gardée par `test-3102` § 5 bis** : ① une adresse relevée dans un incident (corps de requête PUBLIC) servait de clé de purge pour tous les noms : un rapport
+  forgé aurait fait partir l'incident d'une entreprise vivante au clic de Justin — les adresses viennent désormais de l'annuaire seul, et ne jouent que sous un nom qui n'est pas celui d'une entreprise vivante ;
+  ② l'espace par défaut se refuse aussi par son NOM (403) ; ③ chaque entrée porte maintenant l'`espace` d'où elle vient (écrit à la réception s'il est connu du serveur, jamais l'espace par défaut, jamais servi à la Tour) :
+  une entreprise vivante sous un autre nom que celui de l'annuaire est reconnue (409), et ses lignes brutes se retrouvent par cet espace ; ④ annuaire illisible : 503 ; ⑤ le texte de la Tour ne promet plus les lignes
+  brutes sans condition ; ⑥ un nom d'un seul mot ne fait plus anonymiser les gestes d'une autre entreprise qui le contient ; ⑦ `monitor.json` s'écrit par fichier temporaire + renommage.
+  **Limites assumées** : les entrées d'AVANT ce serveur n'ont pas d'`espace` — elles se purgent au nom seul (comme avant), sans ligne brute retrouvée (zéro, dit au toast) ; une entrée écrite sous une AUTRE graphie du nom est une
+  ligne à elle dans « Entreprises touchées » (à purger séparément — son adresse ne la désigne plus) ; un espace forgé connu du serveur peut seulement BLOQUER une purge (409), jamais la provoquer ; un rapport SANS `espace`
+  recrée la ligne d'une entreprise supprimée (versions d'avant la v683) tant que la v683 n'est pas exigée ; la ligne « elan-gestion » (l'espace de repli) ne s'efface plus par ce bouton — **décision de Justin à prendre** si
+  elle doit disparaître de la liste (c'est le repli partagé, pas une entreprise supprimée).
+- **Ce qui reste, exprès** : les incidents d'OP MESSAGES (non touchés, comme la suppression) ; `appareils` d'un incident qui reste (« appareil → nombre », sans nom ni adresse,
+  inattribuable) ; l'aperçu de la suppression totale ne chiffre pas encore les incidents de surveillance (il liste « erreurs remontées » = `bugs.jsonl`) ; ELAN (déjà supprimée)
+  ne se purge qu'une fois ce serveur déployé ET la Tour publiée — ou en appelant la route à la main (patron). Rien n'est déployé.
 # 🌉 28 OCTOBRE 2026 (JOUR) — LES AGENTS DE LA TOUR DANS OP MESSAGES : LE CODE EST PRÊT, LA MISE EN SERVICE ATTEND JUSTIN
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
 OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**
