@@ -231,6 +231,7 @@ const VUES = [
   { cle: 'fiche-entreprise', tab: 'entreprises', geste: 'entSel("boulmartin-7k2q"); await new Promise(r=>setTimeout(r,900));' },
   { cle: 'comptes-site', tab: 'entreprises', geste: 'sousOnglet("entreprises","comptes");' }, { cle: 'connexions', tab: 'entreprises', geste: 'sousOnglet("entreprises","connexions");' },
   { cle: 'comptes' }, { cle: 'espaces' },
+  { cle: 'messagerie', geste: 'await new Promise(r=>setTimeout(r,900));' }, { cle: 'agents', geste: 'await new Promise(r=>setTimeout(r,600));' },
   { cle: 'abonnements-tout', tab: 'abonnements' }, { cle: 'abonnements-gestion', tab: 'abonnements', filtre: 'gestion' }, { cle: 'abonnements-messages', tab: 'abonnements', filtre: 'messages' },
   { cle: 'facturation', tab: 'abonnements', geste: 'sousOnglet("abonnements","facturation");' }, { cle: 'devisia', tab: 'abonnements', geste: 'sousOnglet("abonnements","devisia");' },
   { cle: 'surveillance-tout', tab: 'surveillance' }, { cle: 'surveillance-gestion', tab: 'surveillance', filtre: 'gestion' }, { cle: 'surveillance-messages', tab: 'surveillance', filtre: 'messages' },
