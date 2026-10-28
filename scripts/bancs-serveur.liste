@@ -407,3 +407,7 @@ tests/test-3122.js
 tests/test-3123.js
 tests/test-3124.js
 tests/test-3125.js
+# ── L'historique de surveillance d'une entreprise SUPPRIMÉE part avec elle (28 octobre 2026, Justin : « on peut supprimer l'historique ») : la route patron
+# `/api/monitor/issues/purger-entreprise`, la suppression totale qui purge d'elle-même (`fait.surveillance`), `bugs.jsonl` réécrit atomiquement,
+# `/api/monitor/report` qui n'écrit plus pour un espace fermé. Le vrai serveur, sans lire une page. (Le bouton de la Tour et son banc partent avec la Tour unifiée, sur la phrase de Justin.) 28 octobre 2026 : 10 670 vérifications (166 suites) — plancher relevé de 97, le nombre de `test-3102` (65 puis 32 : les points du gardien).
+tests/test-3102.js
