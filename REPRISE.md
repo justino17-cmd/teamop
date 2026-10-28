@@ -20,12 +20,16 @@ Mesuré sur le VPS (lecture seule) : ces deux espaces d'avant le renommage ne so
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
 OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**
 - **Architecture** : la Tour reste le REGISTRE (`conversations.js` : les agents le relisent, rien n'y est déplacé) ; OP MESSAGES est le transport et l'écran.
-  `server-msg/pont-agents.js` (quatre routes `/api/pont/*`, garde `PT` : boucle locale + sans proxy + secret `X-OPM-Pont` comparé à son empreinte ; 16 robots +
+  `server-msg/pont-agents.js` (cinq routes `/api/pont/*`, garde `PT` : boucle locale + sans proxy + secret `X-OPM-Pont` comparé à son empreinte ; 16 robots +
   « Système », espace PRO « Équipe TeamOP — agents », 4 groupes, une directe par agent) ; `server/pont-messages.js` (file bornée à 2 000, réessai, import avec
   les dates d'origine, lecture toutes les 3 s de ce que Justin écrit — par `justinEcrit`, le même chemin que la route — et supprime) ; `configurer-pont.js` pose
   les DEUX configurations d'un geste, le secret fabriqué sur place et jamais affiché. Inerte sans configuration (404 / rien ne part) ; un bloc `pont` en production REFUSE le démarrage.
 - **Bancs** : `test-3094` (le vrai service), `3095` (le vrai serveur + le vrai service + un faux Anthropic, de bout en bout), `3096` (le module contre un faux service),
   — le bandeau de la Tour part avec la Tour unifiée, gardé par `test-3091`), `3097` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
+- **Photos (28 octobre, soir)** : `POST /api/pont/avatar?cible=<robot|groupe>` (`pont-agents.js`, garde `PT`, empreinte du corps reçu, une transaction, `stockage.avatarPontPoser`, aucun message
+  système) ; la Tour (`pont-messages.js`) envoie les 21 images de `icons/agents` et `icons/groupes` après chaque installation, celles que `installer` ne rend pas déjà dans `avatars`. **Rien à faire
+  sur le VPS** : le déploiement redémarre la Tour, qui réinstalle et envoie. Bancs : 3094 § 9, 3095 (photos de bout en bout, aucun renvoi après deux redémarrages), 3096 § 7 (dont la population des images).
+  Limite : une photo de groupe que Justin change lui-même n'est pas remise par la Tour (l'empreinte source n'a pas bougé). Mode d'emploi corrigé : l'identifiant `b…` de l'accès n'est PAS affiché dans la Tour.
 - **Reste à faire (Justin)** : déployer (une fusion sur `main` part des deux côtés, inerte), puis sur le VPS `configurer-pont.js` (Entrée à l'invite du secret), redémarrer,
   `--verifier`, ouvrir `msg-beta.teamop.fr` sur le téléphone. Rien de cela n'est fait.
 - **Limites assumées** : le texte seul passe (une photo/un vocal/un sondage de Justin n'arrive pas aux agents, et le pont le lui dit) ; une modification de message ne revient pas ;
