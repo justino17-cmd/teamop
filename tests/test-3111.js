@@ -341,8 +341,19 @@ function suite2(N, METIERS, CATALOGUE_3D) {
   { const mp = monde('plomberie', true); mp.b.fn.demoCharger(); const I = mp.db.interventions;
     vrai('un métier sans jeu écrit pour lui (plomberie) : un planning bâti sur SES types, aucun mot d\'anti-nuisibles, aucun cahier', I.length === 14 && I.every(i => !i.type || METIERS.plomberie.types.indexOf(i.type) >= 0) && !ANTI.test(JSON.stringify(I.map(i => [i.titre, i.type, i.checklist]))) && !mp.db.cahiers, I.slice(0, 3).map(i => i.titre)); }
 
+  { const rap = (metier) => { const m = monde(metier, true); let html = ''; m.db.interventions = [{ id: 'i1', titre: 'Passage', clientId: 'c1' }]; m.db.clients = [{ id: 'c1', nom: 'Cabinet', email: 'a@b.test' }];
+      const b = bac('app.html', ['envoiRapportClient', 'metierId', 'metierPackDe', 'metierPack', 'estMetier3D'], Object.assign(m.init, { openModal: h => { html = h; }, esc: s => String(s == null ? '' : s), clientName: () => 'Cabinet' }));
+      b.fn.envoiRapportClient('i1'); return html; };
+    const hn = rap('nettoyage'), h3 = rap('3d');
+    vrai('« Envoyer le rapport au client » : nettoyage « photos, plans et signatures », 3D « plan d\'appâtage » comme avant', /photos, plans et signatures compris/.test(hn) && !/appâtage/.test(hn) && /photos, plan d’appâtage et signatures compris/.test(h3), [hn.slice(-160), h3.slice(-160)]); }
   console.log('\n── 3111 · 12. le code : registres, crochets, assistant devis, référentiel ──');
   const reg = (nom, re) => vrai('registre : ' + nom, re.test(N), nom);
+  reg('l\'onglet Plans : « zones à traiter, accès, points sensibles » hors 3D, « postes d\'appâtage » à la 3D', /\$\{estMetier3D\(\)\?`<p style="color:var\(--t3\);font-size:12\.5px">Plans du site : postes d'appâtage[^`]*`\s*:`<p style="color:var\(--t3\);font-size:12\.5px">Plans du site : zones à traiter, accès, points sensibles/);
+  reg('le sous-titre du technicien ne parle plus de box sans box', /\(sansBox\(\)\?'Mon activité — mon planning, mes bons':'Mon activité — mes box, mes bons, mon planning'\)/);
+  reg('la visite guidée : « des documents » à la place de « des box » hors 3D', /s\.v==='clients'&&!estMetier3D\(\)\)\?Object\.assign\(\{\},s,\{h:s\.h\.replace\('des interventions et des box','des interventions et des documents'\)\}\)/);
+  reg('les questions héritées d\'ELAN (type de traitement, véhicule, matériel) ne se posent qu\'à la 3D', /\+\(estMetier3D\(\)\?oui\('qTypeTraitement','Type de traitement'\):''\)/);
+  reg('l\'intervention née d\'un contrat porte un type du métier hors 3D', /if\(!estMetier3D\(\)\)\{ const T=intTypes\(\), der=db\.interventions\.filter\(x=>x&&x\.contratId===id/);
+  reg('« Modules OP » ne dit « 3D » qu\'à la 3D', /\$\{estMetier3D\(\)\?'3D, circuits internes…':'circuits internes…'\}/);
   reg('COLLECTIONS_DONNEES porte cahiers et plansPrevention', /const COLLECTIONS_DONNEES=\[[^\]]*'cahiers','plansPrevention'\]/);
   reg('COLLS_GARDEES porte les deux (garde-fou du rétrécissement)', /const COLLS_GARDEES=\[[^\]]*'cahiers','plansPrevention'\]/);
   reg('OP_CLASSES : deux listes (socle)', /cahiers: 'liste', plansPrevention: 'liste'/);
