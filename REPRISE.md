@@ -24,6 +24,7 @@ app.html y est en v778 ; `beta.html` et `demo.html` générés ; **rien n'est po
   (`db.plansPrevention`, seuil des 400 h) — PDF par `nettPdf`, aperçu, envoi ; **catalogue de départ** (24 produits, 6 fournisseurs) posé par un geste de l'administrateur
   (« 📦 Catalogue de départ »), jamais tout seul. Bancs : `test-3111` (+ atelier `tests/nett-monter.js`), mutations `scratchpad`-session `mutations-pack-nettoyage.py`, sonde au
   navigateur du parcours complet (téléphone + bureau).
+- **Mesures** (28 octobre, soir) : suite complète 735 suites · 41 575 vérifications, seules échouent `test-1670` et `test-2705` (sautées : `server-courrier/node_modules` manque ici, avant ce chantier) et quatre bancs que le pack avait fait tomber (2886, 747, 787, 793), corrigés et rejoués seuls au vert ; `test-3111` 159 ✓ 0 ✗ ; 30 mutations de `mutations-pack-nettoyage.py` (dans le scratchpad de la session, à recopier si besoin) : 30 mordent ; sonde au navigateur (390 px et 1 440 px, sur une copie de la bêta) : 49 ✓ 0 ✗.
 - **Le serveur de l'assistant devis** est fait à part (branche `claude/devis-metier`, `server/devis-metier.js`) : il lit `t` et `metier` envoyés par cette v778. Tant qu'il n'est pas
   déployé, l'assistant garde la consigne 3D : décocher « Assistant devis » pour l'entreprise de nettoyage dans la Tour.
 - **Chemin pour que l'entreprise voie tout ça** : (1) sur la **bêta** (`teamop.fr/beta.html`, accès délivré par la Tour) : Paramètres → Outils de bêta → « 🧰 Tester un métier » =
