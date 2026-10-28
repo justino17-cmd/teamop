@@ -34,13 +34,13 @@ function monter(opts) {
   const o = opts || {};
   const W = { console, Date, Math, JSON, Set, Map, Object, Array, String, Number, Promise, isNaN, parseInt, parseFloat, RegExp, Error,
     atob: s => Buffer.from(s, 'base64').toString('latin1'), btoa: s => Buffer.from(s, 'latin1').toString('base64'),
-    __toasts: [], __saves: 0, __modals: [], __logs: [], __interForm: [], __fiches: [], __go: [], __droits: o.droits || {}, __metier: o.metier || 'chauffage',
+    __toasts: [], __saves: 0, __modals: [], __logs: [], __interForm: [], __fiches: [], __go: [], __droits: o.droits || {}, __associes: o.associes || [], __metier: o.metier || 'chauffage',
     __today: o.today || '2026-10-23', __visibles: o.clientsVisibles || null, __n: 0, setTimeout: () => 0, __mails: [], __windows: [], __mailOk: true, __jpeg: o.jpeg || '', __pack: o.pack || { presta: [] }, __noPopup: false };
   W.db = cdc(o.db || { clients: [], interventions: [], appareils: [], contrats: [] });
   vm.createContext(W);
   vm.runInContext(`
     var currentUser={id:'u1',role:'admin',prenom:'Test',nom:'Admin'};
-    function metierId(){ return __metier; } function todayISO(){ return __today; }
+    function metierId(){ return __metier; } function metiersActifs(){ return [__metier].concat(__associes); } function todayISO(){ return __today; }   /* v779 : les métiers associés (option associes) */
     function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function uid(){ return 'id'+(++__n); }
     function _fmt(iso,long){ if(!iso) return '—'; var p=String(iso).split('-'); return long?p[2]+'/'+p[1]+'/'+p[0]:p[2]+'/'+p[1]; }

@@ -104,9 +104,9 @@ for (const fichier of ['app.html', 'beta.html']) {
   { const lectures = [...N.matchAll(/\bCAT_LIST\b/g)].map(m => m.index);
     const ou = lectures.map(i => { const debutLigne = N.lastIndexOf('\n', i) + 1; return N.slice(debutLigne, N.indexOf('\n', i)).trim().slice(0, 100); });
     vrai('(population) les mentions de CAT_LIST dans le code sont comptées', lectures.length >= 3, lectures.length);
-    /* les seules lectures admises : la déclaration, la fonction qui rend la liste, et le rangement de la 3D (migrate, derrière sa garde) */
-    const admises = ou.filter(l => /^const CAT_LIST=/.test(l) || /^function categoriesProduit\(/.test(l) || /if\(CAT_LIST\.includes\(p\.categorie\) \|\| !brutes\.has\(p\.categorie\)\) return;/.test(l));
-    egal('⛔ CAT_LIST n\'est lu que par sa déclaration, `categoriesProduit` et le rangement de migrate (3D seulement) — tout le reste passe par la fonction', ou.filter(l => admises.indexOf(l) < 0), []); }
+    /* les seules lectures admises : la déclaration, la fonction qui rend la liste, `_packListe` (v779 : la combinaison de métiers résout le `null` de la 3D, qui lit CAT_LIST), et le rangement de la 3D (migrate, derrière sa garde) */
+    const admises = ou.filter(l => /^const CAT_LIST=/.test(l) || /^function categoriesProduit\(/.test(l) || /^function _packListe\(/.test(l) || /if\(CAT_LIST\.includes\(p\.categorie\) \|\| !brutes\.has\(p\.categorie\)\) return;/.test(l));
+    egal('⛔ CAT_LIST n\'est lu que par sa déclaration, `categoriesProduit`, `_packListe` et le rangement de migrate (3D seulement) — tout le reste passe par la fonction', ou.filter(l => admises.indexOf(l) < 0), []); }
 }
 
 console.log('\n── 2902 : ' + ok + ' ✓  ' + ko + ' ✗');

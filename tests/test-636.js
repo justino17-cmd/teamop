@@ -3,7 +3,7 @@ function dec(h){ const d=APP.indexOf(h); if(d<0) throw new Error(h); for(let i=d
 function cst(n){ const i=APP.indexOf('const '+n+'='); const fin=APP.indexOf('];',i); return APP.slice(i,fin+2); }
 function obj(n){ const i=APP.indexOf('const '+n+'={'); let p=0,d=APP.indexOf('{',i); for(let j=d;j<APP.length;j++){ if(APP[j]==='{')p++; else if(APP[j]==='}'){p--; if(!p) return APP.slice(i,j+2);} } }
 const code=[cst('CATALOGUE'),cst('FOURNISSEURS_3D'),cst('CAT_LIST'),obj('METIERS'),dec("METIERS['3d'].catalogue=CATALOGUE;"),dec("METIERS['3d'].fournisseurs=FOURNISSEURS_3D;"),
-  dec('function metierPackDe(base){'),"const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');",
+  dec('function metiersActifsDe(base){'),dec('function _packListe('),dec('function _releveMeme('),dec('function metierPackCombine('),dec('function _cleNom('),dec('function metierPackDe(base){'),'const METIERS_ASSOC_MAX=4, _packsCombines=new Map(); const METIERS_ORDRE=Object.keys(METIERS), INT_TYPES=[];   /* v779 : la combinaison de métiers (un seul métier rend le pack d\'avant) */',"const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');",
   dec('function slugNom(nom){'),dec('function idCatalogue(nom,prefixe){'),dec('function produitCle(p){'),dec('function cataloguePoser(cible,opts){'),dec('function cataloguePackNeufs(d){')].join('\n');
 const bac=new Function('etat',`let db=etat.db||{}; const uid=()=>'u'+(etat.n=(etat.n||0)+1);
   ${code}

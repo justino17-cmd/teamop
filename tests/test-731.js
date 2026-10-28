@@ -87,10 +87,10 @@ v('   tous les genres employés sont des genres connus', genresInconnus, []);
 const listeDe = (nom) => { const m = new RegExp('const ' + nom + '=\\[([^\\]]*)\\]').exec(CODE); return m ? [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]) : []; };
 const DONNEES = listeDe('COLLECTIONS_DONNEES'), DICT = listeDe('COLLS_DICT');
 vrai('COLLECTIONS_DONNEES est trouvée (30 depuis le cahier des tâches et le plan de prévention du pack nettoyage, 28 octobre 2026 ; 28 depuis les appareils du parc CVC)', DONNEES.length === 30);
-vrai('COLLS_DICT est trouvée', DICT.length === 4);   // v740 : + societesStyle (les coordonnées d'une société)
+vrai('COLLS_DICT est trouvée', DICT.length === 5);   // v740 : + societesStyle (les coordonnées d'une société) ; v779 : + metiersAssocies (les métiers associés)
 v('⛔ les 28 de COLLECTIONS_DONNEES sont toutes des LISTES',
   DONNEES.filter(k => CLASSES[k] !== 'liste' && CLASSES[k] !== 'box'), []);
-v('⛔ les 4 de COLLS_DICT sont toutes des DICTIONNAIRES', DICT.filter(k => CLASSES[k] !== 'dict'), []);
+v('⛔ les 5 de COLLS_DICT sont toutes des DICTIONNAIRES', DICT.filter(k => CLASSES[k] !== 'dict'), []);
 
 /* ══ 3. ⛔ LA FORME MESURÉE, PAS DÉDUITE — le vrai seed() et le vrai migrate() ═════════════
    Un classement juste sur le papier et faux à l'exécution serait pire que pas de classement. */

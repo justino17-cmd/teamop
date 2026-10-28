@@ -10254,9 +10254,111 @@ METIERS['nettoyage'].catalogue=CATALOGUE_NETT; METIERS['nettoyage'].fournisseurs
 /* Le pack d'UNE base donnée (pas forcément db : load() et l'import travaillent sur un objet à part).
    Sans métier réglé, c'est la 3D — le métier historique, celui de toutes les entreprises d'avant le
    choix du métier. */
-function metierPackDe(base){ const id=(base&&base.metier&&METIERS[base.metier])?base.metier:'3d'; return METIERS[id]||{}; }
+/* ⛔ v779 — LES MÉTIERS COMBINÉS (Justin, 28 octobre 2026, 21 h 50 : « plomberie et chauffage/clim, on pourrait les associer ; que je
+   puisse choisir les deux en même temps et que ça les combine — on sait que cette entreprise fait ça, plus ça […] sans que ça fasse
+   une surfacturation ; généralement, ceux qui font de la plomberie ne font pas que de la plomberie »). Les métiers séparés restent.
+   · `db.metier` NE CHANGE PAS : c'est le PRINCIPAL, celui que la Tour pose (`metierServeurAppliquer`, /api/espaces/etat).
+   · `db.metiersAssocies` est un DICTIONNAIRE DATÉ `{ id: { on:1, _m:… } }` (le modèle de `societesStyle`, dans `COLLS_DICT` : deux
+     appareils qui associent chacun un métier gardent les deux ; ajout contre retrait, le plus récent gagne). Un retrait écrit
+     `on:0` avec un `_m` neuf — il ne supprime pas la clé, sinon il ressusciterait à la synchro. Un tableau de chaînes à la racine
+     de `db` ne marcherait pas : `collsFusion` le réunirait par contenu, et un retrait reviendrait. ⛔ RIEN ne s'écrit au chargement :
+     la clé n'existe pas tant que l'administrateur n'a rien coché (ELAN, un seul métier, ne change pas d'un octet).
+   · LA LISTE EFFECTIVE SE CALCULE À LA LECTURE (`metiersActifsDe`), jamais stockée : principal, puis les associés `on`, connus, ≠ du
+     principal (si la Tour change le principal pour un métier déjà associé, il sort de la liste SANS écriture — l'entrée dort, et
+     reparaît si la Tour revient), dans l'ordre de `METIERS_ORDRE` (le même sur tous les appareils : la fusion est déterministe),
+     au plus 4 (`METIERS_ASSOC_MAX`) — au-delà l'écran n'est plus lisible.
+   · UNE SEULE fonction combine (`metierPackCombine`) et rend un pack de la MÊME forme que `METIERS[k]` : les 31 lecteurs de
+     `metierPack()`/`metierPackDe()` ne changent pas. Sans associé, elle rend `METIERS[principal]` LUI-MÊME (le même objet) : c'est
+     ce qui garantit qu'ELAN ne change en rien.
+   · ⛔ LE PRIX N'EN DÉPEND PAS : la formule se paie par utilisateur (`forfait()`, `planBloque`, `planPlaces`), le métier ne la lit
+     nulle part. Combiner des métiers ne peut que DÉMASQUER ce que le métier masquait : le forfait et les catégories de la Tour
+     (`catBloque`) restent la porte payante. `tests/test-3131.js` le garde (aucun code de facturation ne lit `metiersAssocies`). */
+const METIERS_ASSOC_MAX=4;
+function metiersActifsDe(base){
+  const pr=(base&&base.metier&&METIERS[base.metier])?base.metier:'3d';
+  const d=(base&&base.metiersAssocies&&typeof base.metiersAssocies==='object'&&!Array.isArray(base.metiersAssocies))?base.metiersAssocies:null;
+  if(!d) return [pr];
+  const as=METIERS_ORDRE.filter(k=>k!==pr&&Object.prototype.hasOwnProperty.call(d,k)&&d[k]&&d[k].on&&METIERS[k]).slice(0,METIERS_ASSOC_MAX);
+  return [pr].concat(as);
+}
+function metiersActifs(){ try{ return metiersActifsDe(db); }catch(e){ return ['3d']; } }
+function metiersAssocies(){ return metiersActifs().slice(1); }
+/* ce qui part au serveur avec une demande de devis : les associés actifs, ou RIEN (`undefined` : le corps de la requête d'une entreprise à un seul métier est celui d'avant, octet pour octet) */
+function metiersAssociesEnvoi(){ const a=metiersAssocies(); return a.length?a:undefined; }
+/* Les trois champs « liste » d'un pack, avec leur repli quand le pack porte `null` (la 3D : elle lit INT_TYPES et CAT_LIST). */
+function _packListe(id,champ){ const v=(METIERS[id]||{})[champ]; return Array.isArray(v)?v:champ==='types'?INT_TYPES:champ==='produits'?CAT_LIST:[]; }
+/* Un relevé = { k, l, u, txt? }. Même clé ET même libellé, même unité, même nature : UN seul champ. Même clé qui ne dit pas la même
+   mesure (`volume` : pompé ou coulé ; `etat`, `charge`, `lineaire`…) : deux champs — le second range sous `k~métier` et se nomme
+   « libellé (métier) », pour ne rien perdre et ne rien confondre. */
+function _releveMeme(a,b){ return a.l===b.l&&(a.u||'')===(b.u||'')&&!!a.txt===!!b.txt; }
+const _packsCombines=new Map();
+function metierPackCombine(principal,associes){
+  const P=METIERS[principal]||METIERS['3d'];
+  const ids=[principal].concat((associes||[]).filter(k=>k!==principal&&METIERS[k]));
+  if(ids.length<2) return P;
+  const cle=ids.join('+'); const c=_packsCombines.get(cle); if(c) return c;
+  const packs=ids.map(k=>METIERS[k]);
+  const origine={types:Object.create(null),presta:Object.create(null),releves:Object.create(null),documents:Object.create(null)};
+  const union=(champ,liste)=>{ const out=[]; ids.forEach(k=>{ (liste?liste(k):(METIERS[k][champ]||[])).forEach(x=>{ if(out.indexOf(x)<0) out.push(x); if(origine[champ]&&!Object.prototype.hasOwnProperty.call(origine[champ],x)) origine[champ][x]=k; }); }); return out; };
+  const releves=[]; const cles={};
+  ids.forEach(k=>{ (METIERS[k].releves||[]).forEach(r=>{
+    const ex=cles[r.k];
+    if(!ex){ cles[r.k]=r; releves.push(r); origine.releves[r.k]=k; return; }
+    if(_releveMeme(ex,r)) return;
+    const k2=r.k+'~'+k, r2=Object.assign({},r,{k:k2,l:r.l+' ('+METIERS[k].nom+')'});
+    if(!cles[k2]){ cles[k2]=r2; releves.push(r2); origine.releves[k2]=k; } }); });
+  /* les rubriques conseillées : l'union ; les rubriques MASQUÉES : l'intersection — une rubrique n'est fermée que si TOUS les métiers
+     de l'entreprise la ferment (un plombier qui fait aussi de la dératisation a besoin du registre) */
+  const rub=union('rubriques'), masque=(P.masque||[]).filter(m=>packs.every(q=>(q.masque||[]).indexOf(m)>=0));
+  const cat=[].concat(...ids.map(k=>METIERS[k].catalogue||[])), seen=new Set();
+  const catalogue=cat.filter(x=>{ const n=_cleNom(x&&x[0]); if(!n||seen.has(n)) return false; seen.add(n); return true; });
+  const sf=new Set(), fournisseurs=[].concat(...ids.map(k=>METIERS[k].fournisseurs||[])).filter(f=>{ const n=String((f&&f.nom)||'').trim().toUpperCase(); if(!n||sf.has(n)) return false; sf.add(n); return true; });
+  const pack={ nom:ids.map(k=>METIERS[k].nom).join(' + '), ic:P.ic, sous:P.sous, complet:P.complet,
+    rubriques:rub, masque,
+    types:union('types',k=>_packListe(k,'types')), presta:union('presta'), produits:union('produits',k=>_packListe(k,'produits')),
+    releves, documents:union('documents'), origine, metiers:ids.slice() };
+  if(catalogue.length) pack.catalogue=catalogue;
+  if(fournisseurs.length) pack.fournisseurs=fournisseurs;
+  _packsCombines.set(cle,pack); return pack;
+}
+/* le nom d'une ligne de catalogue, sous la forme de `produitCle` (accents, casse, espaces) — déclarée ici car `produitCle` vit plus bas */
+function _cleNom(n){ return norm(n||'').replace(/\s+/g,' ').trim(); }
+function metierPackDe(base){ const a=metiersActifsDe(base); return metierPackCombine(a[0],a.slice(1))||{}; }
 function metierId(){ try{ return (db&&db.metier&&METIERS[db.metier])?db.metier:'3d'; }catch(e){ return '3d'; } }
-function metierPack(){ return METIERS[metierId()]; }
+function metierPack(){ return metierPackDe(db); }
+/* Paramètres › Mon métier : les métiers associés. Des cases à cocher, visibles de l'administrateur (production comprise) ; le métier
+   principal est grisé ; le cinquième est refusé et le dit. Une phrase FIXE dit que le prix n'en dépend pas. */
+function betaPlombClim(){ if(metierId()!=='plomberie') metierSet('plomberie'); metierAssocSet('chauffage',true); }
+function metiersAssociesBloc(){
+  const act=metiersActifs(), pr=act[0], assoc=act.slice(1), plein=assoc.length>=METIERS_ASSOC_MAX, admin=!!(currentUser&&currentUser.role==='admin');
+  if(!admin){ return assoc.length?`<p style="color:var(--t3);font-size:12px;margin:10px 0 0">➕ Métiers associés : ${assoc.map(k=>esc(METIERS[k].nom)).join(', ')}</p>`:''; }
+  return `<div class="form-sec" style="margin-top:14px">➕ Métiers associés <span style="font-weight:400;text-transform:none;letter-spacing:0">— ton entreprise fait aussi autre chose</span></div>
+    <p style="color:var(--t3);font-size:12px;line-height:1.55;margin-bottom:9px">Tu peux associer jusqu'à ${METIERS_ASSOC_MAX} autres métiers : l'application affiche les types d'intervention, prestations, relevés, produits et fournisseurs de chacun. <b style="color:var(--t2)">Ça ne change pas ton abonnement</b> : le prix dépend de ta formule et du nombre d'utilisateurs, pas du métier.</p>
+    <div class="met-assoc" id="met-assoc" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px">${METIERS_ORDRE.map(k=>{ const m=METIERS[k], est=(k===pr), on=assoc.indexOf(k)>=0;
+      return `<label class="met-assoc-l" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--brd);border-radius:10px;font-size:13px;${est?'opacity:.55;':''}${(!on&&!est&&plein)?'opacity:.6;':''}cursor:${est?'default':'pointer'}">
+        <input type="checkbox" data-metier="${k}" ${on?'checked':''} ${est||(!on&&plein)?'disabled':''} onchange="if(!metierAssocSet('${k}',this.checked)) this.checked=!this.checked">
+        <span aria-hidden="true">${m.ic}</span><span>${esc(m.nom)}${est?' <small>(ton métier principal)</small>':''}</span></label>`; }).join('')}</div>`; }
+/* L'administrateur associe (ou retire) un métier. Il REMPLACE l'objet au lieu de le muter, ne date que la clé touchée, journalise,
+   enregistre, redessine le menu et propose d'annuler. Réservé à l'administrateur — y compris en production : un plombier qui fait
+   aussi de la clim se règle seul, sans appeler TEAM OP. */
+function metierAssocSet(id,on){
+  if(!METIERS[id]) return false;
+  if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut associer un métier'); return false; }
+  on=!!on;
+  const av=metiersActifs();
+  if(id===metierId()){ toast('C’est déjà ton métier principal'); return false; }
+  if(on===(av.indexOf(id)>=0)) return false;
+  if(on&&av.length-1>=METIERS_ASSOC_MAX){ toast('Au plus '+METIERS_ASSOC_MAX+' métiers associés — retire-en un d’abord'); return false; }
+  const m=Date.now(), anc=(db.metiersAssocies&&typeof db.metiersAssocies==='object')?db.metiersAssocies:{};
+  const nouv=Object.assign({},anc); nouv[id]={on:on?1:0,_m:Math.max(m,(Number((anc[id]||{})._m)||0)+1)};
+  db.metiersAssocies=nouv;
+  try{ logEvent('Métier associé',(on?'+ ':'− ')+METIERS[id].nom,'admin'); }catch(e){}
+  save();
+  try{ renderNav(); }catch(e){}
+  toastAnnuler(METIERS[id].ic+' '+(on?'Métier « '+METIERS[id].nom+' » associé':'Métier « '+METIERS[id].nom+' » retiré'),"metierAssocSet('"+id+"',"+(on?'false':'true')+")");
+  try{ if(current==='parametres') views.parametres(); }catch(e){}
+  return true;
+}
 /* ⛔ v773 — HORS ANTI-NUISIBLES, PLUS RIEN DE L'ANTI-NUISIBLES (Justin, 22 octobre 2026, cahier des métiers, point 5). UNE
    seule fonction décide : `estMetier3D()`. Elle est lue par tout écran qui SAISIT quelque chose de propre à la 3D —
    « Nuisibles ciblés », « Méthodes », l'étape « Constat » de la clôture guidée, le constat et le traitement du compte-rendu,
@@ -10266,7 +10368,22 @@ function metierPack(){ return METIERS[metierId()]; }
      enregistrement relit ce que la fiche portait déjà ;
    · un document déjà ÉMIS se relit tel quel : les lignes d'un rapport ou d'une fiche se lisent sur la DONNÉE (présente ou
      non), jamais sur le métier d'aujourd'hui. */
-function estMetier3D(){ return metierId()==='3d'; }
+function estMetier3D(){ return metiersActifs().indexOf('3d')>=0; }
+/* ⛔ v779 — la 3D PRINCIPALE, par opposition à la 3D associée. `estMetier3D()` dit « cette entreprise a l'obligation de tracer des
+   traitements » (une capacité : Nuisibles, AMM, registre biocide, dossier sanitaire — elle reste vraie quand la 3D est associée à un
+   autre métier, sinon un plombier qui dératise perdrait sa traçabilité légale). `est3DPrincipal()` dit « c'est son IDENTITÉ » :
+   exemples de saisie, intitulés, jeux de démonstration, noms de clients de test, texte du tour guidé. */
+function est3DPrincipal(){ return metierId()==='3d'; }
+/* Sur la fiche d'une intervention, les blocs 3D (Nuisibles, méthodes, constat) ne s'affichent pas à un plombier qui dératise de
+   temps en temps pour un dépannage de fuite : seulement si le type est un type 3D, si elle porte déjà des données 3D, ou si elle
+   n'a pas de type. 3D seule ou 3D principale : toujours, à l'identique. */
+function intAffiche3D(i){
+  if(!estMetier3D()) return false;
+  if(est3DPrincipal()) return true;
+  if(!i||!i.type) return true;
+  if(INT_TYPES.indexOf(i.type)>=0) return true;
+  return !!((i.nuisibles&&i.nuisibles.length)||(i.methodes&&i.methodes.length)||i.constat||i.infestation);
+}
 /* ⛔ v778 — « IL FAUT QUE LE PACK NETTOYAGE SOIT INSTALLÉ » (Justin, 28 octobre 2026, la veille d'une réunion avec une entreprise de
    nettoyage). Deux fonctions de plus décident ce qu'un métier SANS box et SANS anti-nuisibles lit à l'écran, et elles lisent la
    règle du métier — jamais le nom d'une entreprise :
@@ -10320,7 +10437,7 @@ function exemple(cle){
       devisIA:'Ex : nettoyage de bureaux de 120 m² chez un client à Strasbourg, produits et main-d’œuvre compris, 2 passages par semaine',
       materiel:'Ex : autolaveuse, mono-brosse, chariot, produits dosés…', produitsTitre:'Produits et consommables utilisés', produitsAjout:'— Ajouter un produit ou un consommable —' } };
   const m=metierId(), s=EX_METIER[m]&&EX_METIER[m][cle]; if(s) return s;
-  if(estMetier3D()) return EX_3D[cle]||'';
+  if(est3DPrincipal()) return EX_3D[cle]||'';
   if(EX_AUTRE[cle]) return EX_AUTRE[cle];
   const t=intTypes();
   return cle==='devis1'?'« '+(t[0]||'Intervention')+' chez Mme Martin, 12 rue des Lilas à Rochefort, 280 € TTC »'
@@ -10328,7 +10445,7 @@ function exemple(cle){
     :cle==='devisIA'?'Ex : '+(t[0]||'intervention')+' chez un client à Strasbourg, pièces et main-d’œuvre comprises, 2 passages sur 2 semaines':''; }
 /* « Zones traitées » est un mot de la 3D ; ailleurs on parle de zones CONCERNÉES (la clôture guidée le disait déjà). Un seul libellé
    pour la fiche, le rapport imprimé, le PDF, le courriel et la frise : le même document ne dit plus deux choses. */
-function libZones(){ return estMetier3D()?'Zones traitées':'Zones concernées'; }
+function libZones(){ return est3DPrincipal()?'Zones traitées':'Zones concernées'; }
 /* ⛔ v773 — LES CATÉGORIES DE PRODUITS SUIVENT LE MÉTIER (Justin, 22 octobre 2026 : « je vérifie bien les catégories d'OP
    GESTION par métier, car là je trouve ça léger »). Jusqu'ici `CAT_LIST` — les huit catégories de l'anti-nuisibles — servait à
    tout le monde : un plombier rangeait ses raccords sous « TP14 — Rodenticide ». UNE fonction rend la liste du métier courant :
@@ -10980,7 +11097,7 @@ function collsFusion(d){ return Object.keys(d||{}).filter(k=>Array.isArray(d[k])
    égalité sur la MÊME clé, le côté prioritaire, comme pour un enregistrement. */
 /* v740 : `societesStyle` aussi — une société y porte désormais ses coordonnées légales (SIRET,
    TVA, IBAN) : deux appareils qui règlent deux sociétés ne doivent pas s'écraser en bloc. */
-const COLLS_DICT=['plansSite','planNotes','permissions','societesStyle'];
+const COLLS_DICT=['plansSite','planNotes','permissions','societesStyle','metiersAssocies'];
 /* v740 (relecture) : une entrée DATÉE (`_m` — une société, qui porte SIRET et IBAN) ne se tranche
    plus par le côté prioritaire : la plus récente gagne. Sans ça, un IBAN corrigé sur le téléphone
    disparaissait à la réception d'une couleur changée au bureau, et la signature ne le voyait pas.
@@ -11122,7 +11239,7 @@ const OP_CLASSES = {
   /* ── Les dictionnaires : une ligne par clé, jamais en bloc ─────────────────────────── */
   permissions: 'dict', planNotes: 'dict', plansSite: 'dict', numMax: 'dict',
   mailAssign: 'dict', ctrlValide: 'dict', planOrga: 'dict', planOrgaRef: 'dict',
-  roleMasques: 'dict', roleNoms: 'dict', societesStyle: 'dict',
+  roleMasques: 'dict', roleNoms: 'dict', societesStyle: 'dict', metiersAssocies: 'dict',
 
   /* ── Les pierres tombales ──────────────────────────────────────────────────────────── */
   _tombes: 'tombes', usersSupprimes: 'tombes',
@@ -26525,7 +26642,7 @@ function renderIntDetail(id){
   const _cliTab=db.clients.find(x=>x.id===i.clientId);
   const tabs=[['general','Général',fic('file',20)]];
   // Plan d'appâtage : propre au métier 3D, et réservé aux clients professionnels
-  if(estMetier3D()&&(!_cliTab||cliIsPro(_cliTab))) tabs.push(['planApp','Plan d’appâtage',fic('pin',20)]);
+  if(intAffiche3D(i)&&(!_cliTab||cliIsPro(_cliTab))) tabs.push(['planApp','Plan d’appâtage',fic('pin',20)]);   // v779 : sur une 3D ASSOCIÉE, seulement pour une intervention 3D (une fuite n'a pas de plan d'appâtage)
   tabs.push(['plans','Plans',fic('map',20)],['docs','Fichiers Signatures',fic('folder',20)],['actions','Actions',fic('gear',20)]);
   if(!tabs.some(t=>t[0]===intTab)) intTab='general';
   let body='', sideCards='';
@@ -26595,7 +26712,7 @@ function renderIntDetail(id){
     const blk=(lbl,html)=>`<div style="padding:8px 0"><b style="font-size:13.5px;display:block;margin-bottom:6px">${lbl}</b><div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);min-height:19px;white-space:pre-wrap">${html}</div></div>`;
     const actsHtml=(i.checklist&&i.checklist.length)?i.checklist.map(x=>`<div>${x.done?'✓':'○'} ${esc(x.t)}</div>`).join(''):'Aucune action';
     body=`
-      ${estMetier3D()?intDiagCard(i,intEdit)+t3dCard(i,intEdit):metierPrestaCard(i,intEdit)}
+      ${(intAffiche3D(i)?intDiagCard(i,intEdit)+t3dCard(i,intEdit):'')+metierPrestaCard(i,intEdit)}
       ${intProdCard(i,intEdit)}
       ${typeof cvcIntCard==='function'?cvcIntCard(i,intEdit):''}
       ${typeof nettIntCard==='function'?nettIntCard(i,intEdit):''}
@@ -26637,7 +26754,7 @@ function renderIntDetail(id){
         `}
         </div>
       </div></details>
-      ${!estMetier3D()?'':`<div class="card"><div class="card-head" style="margin-bottom:8px"><h3>Nuisibles & méthodes</h3></div>
+      ${!intAffiche3D(i)?'':`<div class="card"><div class="card-head" style="margin-bottom:8px"><h3>Nuisibles & méthodes</h3></div>
         <div style="margin-bottom:8px"><div class="dt-lbl" style="margin-bottom:4px">Nuisibles ciblés</div><div style="display:flex;flex-wrap:wrap;gap:4px">${(i.nuisibles&&i.nuisibles.length)?i.nuisibles.map(n=>`<span class="tag">${esc(n)}</span>`).join(''):'<span style="color:var(--t3)">—</span>'}</div></div>
         <div><div class="dt-lbl" style="margin-bottom:4px">Méthodes / actions</div><div style="display:flex;flex-wrap:wrap;gap:4px">${(i.methodes&&i.methodes.length)?i.methodes.map(n=>`<span class="tag">${esc(n)}</span>`).join(''):'<span style="color:var(--t3)">—</span>'}</div></div>
         ${(()=>{ const tn=i.traitementNuis||{}; const keys=Object.keys(tn).filter(n=>NUIS_TRAIT[n]&&ficheSummary(NUIS_TRAIT[n],tn[n]).length); if(!keys.length)return ''; return `<div style="margin-top:12px"><div class="dt-lbl" style="margin-bottom:6px">Fiches de traitement</div>${keys.map(n=>{ const rows=ficheSummary(NUIS_TRAIT[n],tn[n]); return `<div style="background:var(--bg2);border:1px solid var(--brd);border-radius:10px;padding:10px 12px;margin-bottom:8px"><div style="font-weight:700;color:var(--t1);margin-bottom:4px">${esc(n)}</div>${rows.map(r=>`<div style="font-size:13px;color:var(--t2)"><b style="color:var(--t1)">${esc(r[0])} :</b> ${esc(r[1])}</div>`).join('')}</div>`; }).join('')}</div>`; })()}
@@ -26651,7 +26768,7 @@ function renderIntDetail(id){
           ? `<div style="margin-bottom:14px"><div class="comm-lbl" style="margin-bottom:6px">Moyen de paiement :</div><select onchange="(db.interventions.find(x=>x.id==='${id}')||{}).moyenPaiement=this.value==='Aucun'?'':this.value;save()" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:11px 12px;color:var(--t1);font-family:inherit;font-size:14px">${intMoyenPaiementOptions(i.moyenPaiement)}</select></div>`
           : `<div style="margin-bottom:16px"><div class="comm-lbl" style="margin-bottom:6px">Moyen de paiement :</div><div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);min-height:19px">${esc(i.moyenPaiement||'')}</div></div>`;
           return ta('commCommercial','Commentaire vendeur')+ta('commTechnicien','Commentaire technicien')+ta('commChefRegional','Commentaire responsable')+mp
-          +(estMetier3D()?oui('qTypeTraitement','Type de traitement'):'')+oui('qVisiteTechnique','Visite technique')+(estMetier3D()?oui('qCtrlVehicule',"Contrôle de l'état du véhicule")+oui('qCtrlMateriel',"Contrôle de l'état du Matériel"):''); })()}
+          +(intAffiche3D(i)?oui('qTypeTraitement','Type de traitement'):'')+oui('qVisiteTechnique','Visite technique')+(intAffiche3D(i)?oui('qCtrlVehicule',"Contrôle de l'état du véhicule")+oui('qCtrlMateriel',"Contrôle de l'état du Matériel"):''); })()}
       </div></details>
       ${(()=>{ const co=i.constat||{}; const sum=traitementSummary(i); const has=i.compteRendu||co.infestation||co.conformite||(co.indices&&co.indices.length)||co.recommandations||sum.length;
         return `<div class="card"><div class="card-head" style="margin-bottom:8px"><h3>Rapport</h3><span style="display:flex;gap:6px">${peutClore&&i.statut!=='terminee'?`<button class="btn sm" onclick="assistCloture('${id}')">✓ Clôture guidée</button>`:''}${peutClore?`<button class="btn ghost sm" onclick="formRapport('${id}')">Rédiger</button>`:''}</span></div>${has?`
@@ -30019,7 +30136,7 @@ views.mouvements=function(){
      arrivées dans un espace de production (par une sauvegarde .json reprise de la bêta, par
      exemple) y seraient restées VISIBLES ET INEFFAÇABLES, sans un mot pour le dire. Un piège
      qu'on ne peut pas défaire ne doit pas exister. */
-  const demoBeta=(APP_VERSION.indexOf('beta')>=0&&currentUser&&currentUser.role==='admin'&&estMetier3D());
+  const demoBeta=(APP_VERSION.indexOf('beta')>=0&&currentUser&&currentUser.role==='admin'&&est3DPrincipal());
   const bandeauDemo=(demoBeta||(demoOn&&currentUser&&currentUser.role==='admin'))?`<div class="card" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-style:dashed"><span style="font-size:17px">🧪</span><div style="flex:1;min-width:220px"><b>Simulation d'essai</b><div style="font-size:12px;color:var(--t3)">Remplit le journal avec des exemples de tout : bon de commande, ajouts, consommations, validations, remises, mois passés. Tout est marqué (démo) et se retire d'un clic.</div></div>${demoOn?`<button type="button" class="btn ghost sm" onclick="mvtDemoRetirer()">Retirer la simulation</button>`:(demoBeta?`<button type="button" class="btn ghost sm" onclick="mvtDemoPoser()">Petite simulation</button> <button type="button" class="btn sm" onclick="mvtDemoGrande()">Tout le catalogue · 6 mois</button>`:'')}</div>`:'';
   /* ⛔ g19 · stock#6 : « pour l'instant » ne se dit que si le journal VISIBLE (`tout`) est vide. Il se disait aussi
      pour une recherche sans résultat — alors que le journal portait des mouvements, et que Boxes et Produits
@@ -32784,7 +32901,7 @@ views.validations=function(){
   /* demoOnV se lit AVANT demoV : une const utilisée avant sa déclaration lève une
      ReferenceError à l'exécution, que le contrôle de syntaxe ne voit pas. */
   const demoOnV=(db.boxMvtAttente||[]).some(m=>m._demo)||db.mouvements.some(m=>m._demo);
-  const demoVBeta=(APP_VERSION.indexOf('beta')>=0&&currentUser&&currentUser.role==='admin'&&estMetier3D());
+  const demoVBeta=(APP_VERSION.indexOf('beta')>=0&&currentUser&&currentUser.role==='admin'&&est3DPrincipal());
   const demoV=demoVBeta||(demoOnV&&currentUser&&currentUser.role==='admin');
   // le DR / l'admin voit tout ; les autres ne voient que LEURS demandes et LEURS mouvements (avec la décision du DR)
   const att=visibleDemandes(db.demandes).filter(d=>d.statut==='enAttente');
@@ -37366,7 +37483,7 @@ function betaRemplir(gros){
     const base=db.clients.length;
     const neufs=[];
     for(let i=0;i<200;i++){
-      const o={ id:uid(), nom:(estMetier3D()?(i%3===0?'SARL ':(i%3===1?'Boulangerie ':'')):(i%3===0?'Bureaux ':(i%3===1?'Résidence ':'Cabinet ')))+'Client de test '+(base+i+1),
+      const o={ id:uid(), nom:(est3DPrincipal()?(i%3===0?'SARL ':(i%3===1?'Boulangerie ':'')):(i%3===0?'Bureaux ':(i%3===1?'Résidence ':'Cabinet ')))+'Client de test '+(base+i+1),
         adresse:((i%90)+1)+' rue de la Bêta', cp:String(17000+(i%40)), codePostal:String(17000+(i%40)),
         ville:'Ville '+((i%12)+1), tel:'06'+String(10000000+i).slice(0,8),
         /* domaine .invalid, réservé par la norme et non enregistrable : la bêta parle au même
@@ -37476,12 +37593,25 @@ const DEMO_NETT={
   ],
   checklist:['Aspiration des sols','Lavage des sols'], arepartir:['À répartir — contrôle qualité','Contrôle qualité chez le client'] };
 /* Un métier sans jeu écrit pour lui : les mêmes créneaux, les types de SON pack, la checklist tirée de SES prestations. */
-function demoPlanGenerique(){
-  const T=intTypes(), pr=(metierPack().presta||[]).slice(0,2), tp=k=>T[k%T.length]||'Intervention';
+function demoPlanGenerique(m){
+  const T=m?_packListe(m,'types'):intTypes(), pr=((m?METIERS[m]:metierPack()).presta||[]).slice(0,2), tp=k=>T[k%T.length]||'Intervention';
   return { clients:DEMO_NETT.clients,
     planning:DEMO_NETT.planning.map((r,k)=>{ const ty=tp(k); return [r[0],r[1],r[2],ty+(k%4===0?' — passage 2/3':''),ty,r[5],r[6],r[7]]; }),
     checklist:pr.length?pr:['Vérification sur place'], arepartir:['À répartir — '+tp(1),tp(1)] }; }
+function demoSemisPour(m){
+  if(m==='3d') return { clients:DEMO_CLIENTS_3D, planning:DEMO_PLAN_3D, checklist:['Contrôle des postes','Réappâtage'], arepartir:['À répartir — contrôle annuel','Contrôle'] };
+  if(m==='nettoyage') return DEMO_NETT;
+  return demoPlanGenerique(m); }
+/* ⛔ v779 — métiers combinés : les CRÉNEAUX restent ceux d'avant (14 interventions sur 3 jours, mêmes clients, mêmes techniciens) ;
+   le métier d'un créneau alterne entre le principal et les associés (k mod n), chacun avec le titre et le type de SON jeu. */
+function demoSemisCombine(a){
+  const J=a.map(demoSemisPour), B=J[0];
+  const uniq=l=>l.filter((x,k)=>l.indexOf(x)===k);
+  return { clients:B.clients,
+    planning:B.planning.map((r,k)=>{ const j=J[k%a.length], jr=j.planning[k%j.planning.length]; return [r[0],r[1],r[2],jr[3],jr[4],r[5],r[6],r[7]]; }),
+    checklist:uniq([].concat(...J.map(j=>j.checklist.slice(0,2)))), arepartir:J[1].arepartir }; }
 function demoSemisDe(){
+  const a=metiersActifs(); if(a.length>1) return demoSemisCombine(a);
   if(estMetier3D()) return { clients:DEMO_CLIENTS_3D, planning:DEMO_PLAN_3D, checklist:['Contrôle des postes','Réappâtage'], arepartir:['À répartir — contrôle annuel','Contrôle'] };
   if(metierId()==='nettoyage') return DEMO_NETT;
   return demoPlanGenerique(); }
@@ -37690,6 +37820,14 @@ views.parametres=function(){
         <label for="beta-metier">🧰 Tester un métier</label>
         <select id="beta-metier" onchange="metierSet(this.value)">${METIERS_ORDRE.map(k=>`<option value="${k}"${k===metierId()?' selected':''}>${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}</select>
       </div>
+      <div class="field" style="margin:10px 0 0">
+        <label for="beta-assoc">＋ Associer un métier</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <select id="beta-assoc" onchange="if(this.value) metierAssocSet(this.value,true)"><option value="">Choisir…</option>${METIERS_ORDRE.filter(k=>metiersActifs().indexOf(k)<0).map(k=>`<option value="${k}">${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}</select>
+          ${metiersAssocies().map(k=>`<span class="met-chip on lecture">${METIERS[k].ic} ${esc(METIERS[k].nom)} <b role="button" tabindex="0" aria-label="Retirer ${esc(METIERS[k].nom)}" style="cursor:pointer;padding:0 3px" onclick="metierAssocSet('${k}',false)">✕</b></span>`).join('')}
+          <button class="btn sm ghost" type="button" onclick="betaPlombClim()">🔧 Plomberie + ❄️ Chauffage / Clim</button>
+        </div>
+      </div>
       <p style="color:var(--t3);font-size:11.5px;margin-top:6px">Change le pack de toute la bêta : catégories d'intervention, fiche de terrain, catégories de produits, rubriques conseillées. « Remplir » et « Remplir en grand nombre » suivent le métier choisi ; le planning de démonstration aussi (3 techniciens, 14 interventions).</p></div>`:''}
     ${equipeTeamOP()&&currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>🎬 Planning de démonstration</h3></div>
       <p style="color:var(--t2);font-size:13.5px;margin-bottom:12px">Crée en un clic 3 techniciens, 7 clients déjà localisés et 14 interventions réparties sur 3 jours — de quoi essayer le planning, la carte et les couleurs sans rien inventer.
@@ -37876,7 +38014,8 @@ views.parametres=function(){
             <span class="ss">${esc(m.sous)}</span>
             <span class="nb">${nb} catégories${m.presta?' · '+m.presta.length+' prestations':' · registre sanitaire &amp; biocides'}</span>
           </div>`; }).join('')}</div>
-        ${(()=>{ const L=((METIERS[cur]||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]); if(!L.length) return '';
+        ${metiersAssociesBloc()}
+        ${(()=>{ const L=((metierPack()||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]); if(!L.length) return '';
           return `<details class="met-rub"><summary>📋 Les ${L.length} rubriques conseillées pour ton métier</summary>${L.map(k=>`<div class="met-rub-l"><b>${esc(RUBRIQUES_INFO[k][0])}</b><span>${esc(RUBRIQUES_INFO[k][1])}</span></div>`).join('')}</details>`; })()}`; })()}
       <div class="form-sec">🏢 Mes sociétés <span style="font-weight:400;text-transform:none;letter-spacing:0">— noms sur les documents (rapports, devis, factures, SMS…)</span></div>
       <p style="color:var(--t3);font-size:12px;line-height:1.55;margin-bottom:8px">Ajoute tes sociétés : elles remplacent la liste générique dans le sélecteur « Société » des interventions et documents. <b>Une seule société</b> → le sélecteur disparaît et elle est appliquée partout automatiquement.</p>
@@ -38688,7 +38827,7 @@ async function devisIAGo(profond){
        adresse ne quittent pas l'appareil. Le générateur ne reçoit que la prestation —
        il n'a besoin de rien d'autre pour chiffrer, et ce qui ne part pas ne fuit pas. */
     const r=await fetch(PUSH_API+'/api/devis/generer',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({team:syncTeam(),metier:metierId(),code:code||undefined,demande,profond:!!profond})});
+      body:JSON.stringify({team:syncTeam(),metier:metierId(),code:code||undefined,demande,profond:!!profond,metiersAssocies:metiersAssociesEnvoi()})});
     const j=await r.json().catch(()=>({}));
     if(!r.ok){ show(j.error||('Erreur '+r.status)); rearme(); return; }
     const d=j.devis||{}; const id=uid();
@@ -41226,7 +41365,7 @@ function saveContrat(e,id){ e.preventDefault(); if(!permGarde('ventes',id?'modif
    la panne silencieuse type de ce dépôt — la « dernière intervention » d'un appareil est donc déduite des interventions qui
    le citent, jamais copiée sur sa fiche. */
 const CVC_METIERS=['chauffage','froid','energies'];
-function metierGereParc(){ try{ return CVC_METIERS.indexOf(metierId())>=0; }catch(e){ return false; } }
+function metierGereParc(){ try{ return metiersActifs().some(m=>CVC_METIERS.indexOf(m)>=0); }catch(e){ return false; } }
 /* Le type d'un appareil : de quoi il est fait (combustion → attestation d'entretien ; fluide → fiches fluides) et la
    périodicité d'entretien par défaut. 12 mois : l'entretien annuel obligatoire des chaudières de 4 à 400 kW (gaz, fioul,
    bois) — https://www.ecologie.gouv.fr/entretien-et-inspection-des-systemes-chauffage-et-climatisation. 24 mois : pompes à
@@ -42262,7 +42401,7 @@ function cvcContratLire(f,d){ const z=f&&f.querySelector&&f.querySelector('#cvc-
    l'arrêté du 19 mars 1993, dont le texte n'a pas été relu ; l'inspection commune préalable). Le contrôle qualité n'invoque aucune norme. Chaque PDF le dit
    en pied : c'est le document DE L'ENTREPRISE, pas un formulaire officiel reproduit. */
 const NETT_METIERS=['nettoyage'];
-function metierGereSites(){ try{ return NETT_METIERS.indexOf(metierId())>=0; }catch(e){ return false; } }
+function metierGereSites(){ try{ return metiersActifs().some(m=>NETT_METIERS.indexOf(m)>=0); }catch(e){ return false; } }
 const NETT_FREQ=[['quotidienne','Quotidienne'],['hebdomadaire','Hebdomadaire'],['mensuelle','Mensuelle'],['annuelle','Annuelle']];
 function nettFreqL(k){ const f=NETT_FREQ.find(x=>x[0]===k); return f?f[1]:''; }
 function nettIsoOk(x){ return /^\d{4}-\d{2}-\d{2}$/.test(String(x||'')); }
@@ -43799,7 +43938,7 @@ async function adEnvoyer(){
       /* v778 : l'entreprise (`t`) et son métier — le serveur choisit la consigne de l'assistant d'après SON annuaire (jamais d'après
          ce champ pour une entreprise qui y figure) ; sans l'un ni l'autre il garde la 3D d'avant. */
       body:JSON.stringify({
-        t:syncTeam(), metier:metierId(),
+        t:syncTeam(), metier:metierId(), metiersAssocies:metiersAssociesEnvoi(),   // v779 : les métiers associés (le serveur les borne à la liste fermée)
         messages: adFil.map(m=>({role:m.role,content:m.content})),
         contexte:{
           societes:(db.societes||[]),
@@ -46385,7 +46524,7 @@ let tourIdx=0, tourSteps=[];
 const MENU_HORS_NAV={parametres:'Paramètres'};
 function menuLabel(v){ const it=avecSousCats(NAV.flatMap(s=>s.items)).find(x=>x.k===v); return it?t(it.l):(MENU_HORS_NAV[v]?t(MENU_HORS_NAV[v]):v); }
 function startTour(){ if(!currentUser) return; if(typeof closeModal==='function') closeModal();
-  tourSteps=TOUR.filter(s=>userSeesModule(currentUser,s.v)).map(s=>(s.v==='clients'&&!estMetier3D())?Object.assign({},s,{h:s.h.replace('des interventions et des box','des interventions et des documents')}):s);
+  tourSteps=TOUR.filter(s=>userSeesModule(currentUser,s.v)).map(s=>(s.v==='clients'&&!est3DPrincipal())?Object.assign({},s,{h:s.h.replace('des interventions et des box','des interventions et des documents')}):s);
   if(!tourSteps.length) return; tourIdx=0; tourShow(); }
 function tourShow(){ const s=tourSteps[tourIdx]; if(!s){ tourEnd(); return; }
   try{ go(s.v); }catch(e){}

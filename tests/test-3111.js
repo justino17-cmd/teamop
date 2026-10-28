@@ -350,8 +350,8 @@ function suite2(N, METIERS, CATALOGUE_3D) {
   const reg = (nom, re) => vrai('registre : ' + nom, re.test(N), nom);
   reg('l\'onglet Plans : « zones à traiter, accès, points sensibles » hors 3D, « postes d\'appâtage » à la 3D', /\$\{estMetier3D\(\)\?`<p style="color:var\(--t3\);font-size:12\.5px">Plans du site : postes d'appâtage[^`]*`\s*:`<p style="color:var\(--t3\);font-size:12\.5px">Plans du site : zones à traiter, accès, points sensibles/);
   reg('le sous-titre du technicien ne parle plus de box sans box', /\(sansBox\(\)\?'Mon activité — mon planning, mes bons':'Mon activité — mes box, mes bons, mon planning'\)/);
-  reg('la visite guidée : « des documents » à la place de « des box » hors 3D', /s\.v==='clients'&&!estMetier3D\(\)\)\?Object\.assign\(\{\},s,\{h:s\.h\.replace\('des interventions et des box','des interventions et des documents'\)\}\)/);
-  reg('les questions héritées d\'ELAN (type de traitement, véhicule, matériel) ne se posent qu\'à la 3D', /\+\(estMetier3D\(\)\?oui\('qTypeTraitement','Type de traitement'\):''\)/);
+  reg('la visite guidée : « des documents » à la place de « des box » hors 3D', /s\.v==='clients'&&!est3DPrincipal\(\)\)\?Object\.assign\(\{\},s,\{h:s\.h\.replace\('des interventions et des box','des interventions et des documents'\)\}\)/);
+  reg('les questions héritées d\'ELAN (type de traitement, véhicule, matériel) ne se posent qu\'à la 3D', /\+\(intAffiche3D\(i\)\?oui\('qTypeTraitement','Type de traitement'\):''\)/);   // v779 : `intAffiche3D(i)` = estMetier3D() pour une 3D seule ou principale ; une 3D associée ne l'ouvre que sur une intervention 3D
   reg('l\'intervention née d\'un contrat porte un type du métier hors 3D', /if\(!estMetier3D\(\)\)\{ const T=intTypes\(\), der=db\.interventions\.filter\(x=>x&&x\.contratId===id/);
   reg('« Modules OP » ne dit « 3D » qu\'à la 3D', /\$\{estMetier3D\(\)\?'3D, circuits internes…':'circuits internes…'\}/);
   reg('COLLECTIONS_DONNEES porte cahiers et plansPrevention', /const COLLECTIONS_DONNEES=\[[^\]]*'cahiers','plansPrevention'\]/);
@@ -365,7 +365,7 @@ function suite2(N, METIERS, CATALOGUE_3D) {
   reg('« Effacer les clients » emporte leurs cahiers et leurs plans', /if\(c\.clients\)\{ db\.clients=\[\]; db\.appareils=\[\]; db\.cahiers=\[\]; db\.plansPrevention=\[\];/);
   reg('supprimer un client DIT combien de cahiers et de plans restent', /cahiers:n\('cahiers'\),plans:n\('plansPrevention'\)/);
   reg('la fiche client appelle nettSectionClient ; l\'intervention nettIntCard ; le rapport nettRapportLignes ; la carte des prestations nettTachesPourCard', /nettSectionClient\(c\)/.test(N) && /nettIntCard\(i,intEdit\)/.test(N) && /nettRapportLignes\(i\)\.forEach/.test(N) && /nettTachesPourCard\(i\)\.filter/.test(N) ? /./ : /^$/);
-  reg('l\'assistant devis envoie l\'entreprise et le métier (jamais un client de plus)', /body:JSON\.stringify\(\{\s*t:syncTeam\(\), metier:metierId\(\),\s*messages:/);
+  reg('l\'assistant devis envoie l\'entreprise et le métier (jamais un client de plus)', /body:JSON\.stringify\(\{\s*t:syncTeam\(\), metier:metierId\(\),(?: metiersAssocies:metiersAssociesEnvoi\(\),)?[^\n]*\n\s*messages:/);   // v779 : + les métiers associés (identifiants, ou rien)
   reg('les deux générateurs de devis envoient le métier', /body:JSON\.stringify\(\{team:syncTeam\(\),metier:metierId\(\),code:code\|\|undefined/);
   reg('metierBloque : la bêta ne voit tout qu\'en 3D', /function metierBloque\(k\)\{ if\(BETA_ESSAI&&estMetier3D\(\)\) return false;/);
   reg('cataloguesFournisseurs ne s\'ouvre pour un pack posé que pour la 3D', /if\(catalogueEnPlace\(\)&&estMetier3D\(\)\) return true;/);

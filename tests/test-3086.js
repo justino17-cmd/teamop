@@ -25,8 +25,10 @@ function contexte(SRC, beta) {
   const C = sansCom(SRC);
   const morceaux = [bloc(C, 'const METIERS={'), C.match(/const METIERS_ORDRE=\[[^\]]*\];/)[0],
     bloc(C, 'function metierId('), bloc(C, 'function metierPack('), bloc(C, 'function estMetier3D('), bloc(C, 'function intTypes('),
-    bloc(C, 'function betaOutils('), bloc(C, 'function betaRemplir(')];
-  const ctx = { BETA_ESSAI: beta, INT_TYPES: ['Dératisation', 'Désinsectisation'], CATALOGUE: [], FOURNISSEURS_3D: [], console,
+    bloc(C, 'function betaOutils('), bloc(C, 'function betaRemplir('),
+    /* v779 : la liste effective des métiers et le pack combiné (un seul métier rend le pack d'avant) */
+    'const METIERS_ASSOC_MAX=4; const _packsCombines=new Map();', bloc(C, 'function metiersActifsDe('), bloc(C, 'function metiersActifs('), bloc(C, 'function _packListe('), bloc(C, 'function _releveMeme('), bloc(C, 'function metierPackCombine('), bloc(C, 'function _cleNom('), bloc(C, 'function metierPackDe('), bloc(C, 'function est3DPrincipal(')];
+  const ctx = { BETA_ESSAI: beta, INT_TYPES: ['Dératisation', 'Désinsectisation'], CAT_LIST: [], norm: x => String(x || '').toLowerCase(), CATALOGUE: [], FOURNISSEURS_3D: [], console,
     db: { metier: '3d', clients: [], interventions: [], techniciens: [{ id: 't1' }] }, uid: (() => { let n = 0; return () => 'id' + (++n); })(),
     confirm: () => true, cataloguePoser() {}, demoCharger() {}, save() {}, toast() {}, views: {}, current: '', currentUser: null };
   vm.createContext(ctx);
@@ -36,7 +38,7 @@ function contexte(SRC, beta) {
 
 console.log('\n── 3086 · 1. le sélecteur de la bêta ──');
 const B = contexte(BETA, true);
-vrai('les morceaux sont trouvés (8)', B.morceaux.every(m => m.length > 20), B.morceaux.map(m => m.length));
+vrai('les morceaux sont trouvés (17)', B.morceaux.every(m => m.length > 20), B.morceaux.map(m => m.length));
 vrai('23 métiers dans METIERS_ORDRE', B.ctx.METIERS_ORDRE.length === 23, B.ctx.METIERS_ORDRE.length);
 const PARAM = bloc(B.C, 'views.parametres=function(');
 vrai('views.parametres est trouvée', PARAM.length > 5000, PARAM.length);

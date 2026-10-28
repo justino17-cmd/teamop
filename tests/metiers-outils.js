@@ -67,8 +67,18 @@ const lire = fichier => { const SRC = fs.readFileSync(path.join(RACINE, fichier)
    NOMMÉ dans `bac.vus` : une dépendance oubliée se voit, elle ne se tait pas. Une propriété lue sur ce qu'une muette rend lève
    une erreur franche (un tableau de constantes manquant fait tomber, il ne passe pas pour vide).
    ⚠️ Les déclarations de fonctions d'un bloc `with` sont des fonctions de BLOC : elles se voient entre elles avant le mandataire. */
+/* v779 — les métiers combinés : `metierPack()`, `metierPackDe()`, `estMetier3D()`… lisent désormais la LISTE EFFECTIVE des métiers
+   (`metiersActifsDe`) et le pack COMBINÉ (`metierPackCombine`). Tout banc qui extrait l'une des premières reçoit donc les secondes —
+   sinon elles deviennent des « muettes » qui rendent [], et `estMetier3D()` se met à répondre faux à la 3D. Le cache des packs combinés
+   et le plafond d'associés sont des constantes du fichier : fournis ici, sauf si le banc les donne lui-même. */
+const FONCTIONS_COMBINAISON = ['metiersActifsDe', 'metiersActifs', 'metiersAssocies', 'metiersAssociesEnvoi', '_packListe', '_releveMeme', 'metierPackCombine', '_cleNom', 'est3DPrincipal', 'intAffiche3D'];
+const LIT_LES_METIERS = /^(metierPack|metierPackDe|metierId|estMetier3D|metierGereParc|metierGereSites|libZones|exemple|metierBloque|intTypes|sansBox)$/;
 function bac(fichier, noms, init, blocs) {
   const { N } = lire(fichier);
+  if (noms.some(n => LIT_LES_METIERS.test(n)) && fonction(N, 'metierPackCombine')) {
+    noms = noms.concat(FONCTIONS_COMBINAISON.filter(n => noms.indexOf(n) < 0));
+    init = Object.assign({ _packsCombines: new Map(), METIERS_ASSOC_MAX: 4 }, init || {});
+  }
   const scope = Object.assign({ console }, init || {});
   const vus = new Set();
   /* une muette rend une liste VIDE quand on l'appelle (un résultat qu'on n'a pas fourni se lit comme « rien ») ; lue comme une LISTE (une table de constantes qu'on n'a pas fournie), elle est

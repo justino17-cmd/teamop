@@ -151,13 +151,15 @@ vrai('(population) l\'écart déclaré de titre est bien celui d\'app.html : ' +
 console.log('\n6. Les vraies fonctions, jouées pour chacun des 23 métiers');
 {
   const A = a1, N = A.N;
-  const NOMS = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'metierSet', 'metierServeurAppliquer'];
+  const NOMS = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'metierSet', 'metierServeurAppliquer',
+    /* v779 : la liste effective des métiers et le pack combiné (un seul métier rend toujours l'objet d'avant) */
+    'metiersActifsDe', 'metiersActifs', 'metiersAssocies', '_packListe', '_releveMeme', 'metierPackCombine', '_cleNom'];
   const FN = NOMS.map(n => fonction(N, n));
-  vrai('(population) les huit fonctions sont trouvées dans le fichier réel', FN.every(Boolean), NOMS.filter((n, i) => !FN[i]).join(', '));
+  vrai('(population) les quinze fonctions sont trouvées dans le fichier réel', FN.every(Boolean), NOMS.filter((n, i) => !FN[i]).join(', '));
   const monter = (beta, base) => {
     const vu = { saves: 0, journal: [], toasts: [] };
     const code = 'const BETA_ESSAI=' + (beta ? 'true' : 'false') + '; let db=' + JSON.stringify(base || {}) + '; let currentUser={role:"admin"}; let current="dashboard";\n'
-      + 'const METIERS=' + litteral(N, 'const METIERS={') + ';\nconst INT_TYPES=' + litteral(N, 'const INT_TYPES = [') + ';\n' + FN.join('\n')
+      + 'const METIERS=' + litteral(N, 'const METIERS={') + ';\nconst INT_TYPES=' + litteral(N, 'const INT_TYPES = [') + ';\nconst CAT_LIST=' + litteral(N, 'const CAT_LIST=[') + ';\nconst METIERS_ORDRE=' + litteral(N, 'const METIERS_ORDRE=[') + ';\nconst METIERS_ASSOC_MAX=4, _packsCombines=new Map(), norm=s=>(s||"").toLowerCase();\n' + FN.join('\n')
       + '\nreturn { metierPackDe, metierId, metierPack, estMetier3D, intTypes, metierBloque, metierSet, appliquer: metierServeurAppliquer, db: () => db };';
     const f = new Function('save', 'logEvent', 'toast', 'toastAnnuler', 'views', 'renderNav', 'go', code);
     const a = f(() => { vu.saves++; }, (t, d) => { vu.journal.push(t + ' · ' + d); }, m => { vu.toasts.push(m); }, m => { vu.toasts.push(m); }, { parametres: () => {} }, () => {}, () => {});

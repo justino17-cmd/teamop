@@ -320,7 +320,8 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
        prises quand la VRAIE `forfaitServeurSync` les appelle (ce banc tourne aussi sur `main`, qui n'en sert pas encore). Une
        fonction appelée sous un `try` mais absente du bac à sable lève une ReferenceError avalée : la lecture ne se ferait jamais. */
     const AVEC_CATS = /\bcatsServeurAppliquer\(/.test(SYNC5);
-    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
+    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metierId', 'metierPack', 'metierPackDe', 'metiersActifsDe', 'metiersActifs', '_packListe', '_releveMeme', 'metierPackCombine', '_cleNom', 'intTypes',   /* v779 : la liste effective des métiers (un seul métier rend le pack d'avant) */
+       'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
       .concat(AVEC_OPTIONS ? ['optionsCle', 'optionsLire', 'optionsPoser'] : [])
       .concat(AVEC_CATS ? ['catsServeurAppliquer', 'catsCle', 'catsConnues', 'catsListe', 'catBloque'] : []);
     const CATS_SRC = AVEC_CATS ? [(/^const CATS_TOUJOURS=[^\n]*;/m.exec(APPN) || [''])[0], 'let _cats; let _catsConnues;', 'const NAV=' + litteral(APPN, 'const NAV = [') + ';', 'const VUE_PARENT={};'].join('\n') : '';
@@ -339,7 +340,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
       const doc = { getElementById: () => null, createElement: () => ({ style: {}, remove() {} }), body: { appendChild() {} } };
       const code = 'let STORE_KEY="elanB_banc848"; let currentUser={id:"u-admin",role:"admin"}; let current="interventions";\n'
         + 'let db=' + JSON.stringify(Object.assign({ forfait: E.formule || 'gratuit', forfaitQty: 1, forfaitSrv: 'teamop' }, base || {})) + '; let _opMsgOuvert=false;\n'
-        + 'const METIERS=' + litteral(APPN, 'const METIERS={') + ';\n' + INT_TYPES_SRC + '\nconst BETA_ESSAI=false;\n'
+        + 'const METIERS=' + litteral(APPN, 'const METIERS={') + ';\n' + INT_TYPES_SRC + '\nconst METIERS_ASSOC_MAX=4, _packsCombines=new Map(), METIERS_ORDRE=Object.keys(METIERS), CAT_LIST=[];\nconst BETA_ESSAI=false;\n'
         + PLANS_SRC.replace(/^/, 'const PLANS=') + ';\nvar _placesSrv=null,_placesSrvF="";\n' + (AVEC_OPTIONS ? 'const OPTIONS_GESTION=' + OPTIONS_SRC + ';\n' : '') + 'var _optsSrv;var _etatLuLe=0;\n' + CATS_SRC + '\n' + SUSP + '\n' + FN5.join('\n')
         + '\nreturn { sync: forfaitServeurSync, appliquer: metierServeurAppliquer, metierId, intTypes, db: () => db, suspendu: accesSuspendu };';
       const f = new Function('fetch', 'localStorage', 'PUSH_API', 'toast', 'renderNav', 'go', 'save', 'logEvent', 'todayISO', 'espaceQuitter', 'suiteRefresh', 'views', 'document', 'esc', code);

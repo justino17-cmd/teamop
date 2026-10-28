@@ -28,6 +28,8 @@ const PIECES = {
   CATFOUR: cst('CATFOUR'), CATALOGUE: cst('CATALOGUE'), FOURNISSEURS_3D: cst('FOURNISSEURS_3D'), METIERS: obj('METIERS'),
   pack1: dec("METIERS['3d'].catalogue=CATALOGUE;"), pack2: dec("METIERS['3d'].fournisseurs=FOURNISSEURS_3D;"),
   metierId: dec('function metierId(){'), estMetier3D: dec('function estMetier3D(){'),   // v778 : la règle lit le métier
+  /* v779 : la liste effective des métiers et le pack combiné (un seul métier rend le pack d'avant) */
+  metiersActifsDe: dec('function metiersActifsDe(base){'), metiersActifs: dec('function metiersActifs(){'), packListe: dec('function _packListe('), releveMeme: dec('function _releveMeme('), combine: dec('function metierPackCombine('), cleNom: dec('function _cleNom('),
   metierPackDe: dec('function metierPackDe(base){'), produitCle: dec('function produitCle(p){'),
   catalogueEnPlace: dec('function catalogueEnPlace(){'), cles: dec('let CATFOUR_CLES=null;'), regle: dec('function cataloguesFournisseurs(){'),
   ferme: dec('const CATFOUR_FERME='), openFourCat: dec('function openFourCat(){'), fcMatches: dec('function fcMatches(){'),
@@ -53,6 +55,7 @@ function entreprise(base, droits) {
     const _dr=etat.droits||{}, canCat=(g,d)=>_dr[g+'_'+d]!==false;
     const permGarde=(g,d,q)=>{ if(canCat(g,d)) return true; t.refus.push(g+'/'+d); t.toasts.push('Refus : '+d+' '+q); return false; };
     ${code}
+    const METIERS_ASSOC_MAX=4, _packsCombines=new Map(), METIERS_ORDRE=Object.keys(METIERS), INT_TYPES=[];
     return { cataloguesFournisseurs, catalogueEnPlace, openFourCat, fcAdd, fcAddAll, prdCatalogueTrouve, bxpOngletChoisir, CATFOUR, CATALOGUE, norm,
       fixer:(q,f)=>{ fcQ=q; fcFour=f||''; } };`);
   const g = f({ db: base, droits }, t); g.t = t; return g;
