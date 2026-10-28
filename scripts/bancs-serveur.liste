@@ -72,6 +72,7 @@
 # 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
 # 28 octobre 2026 : `test-3090` (les agents sans limite artificielle : Margaux, Hugo, Louis, Léa, agents.js, Emma, le câblage d’index.js — 62 vérifications).
 # 28 octobre 2026, le pont des agents côté Tour (3096) : 163 suites, 10 501 vérifications mesurées par la commande de la porte, toutes vertes (avant l'ajout de 3090) — plancher 10487 (le total moins 14, jamais une addition).
+# 28 octobre 2026, les photos du pont (3096 § 7 : les 21 images, les envois, les refus, les fichiers absents) : 165 suites, 10 642 vérifications mesurées par la commande de la porte (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 10628 (le total moins 14, jamais une addition).
 # 28 octobre 2026 (« 35 courriers à traiter ») : 166 suites, 10 702 vérifications mesurées par la commande de la porte, toutes vertes, `test-3101` compris (93, après les relectures du gardien et de l’adverse) — plancher 10688 (le total moins 14, jamais une addition).
 #plancher 10688
 tests/test-640.js
