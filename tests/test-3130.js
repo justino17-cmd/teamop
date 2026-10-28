@@ -190,7 +190,7 @@ console.log('\n── 3130 · 5. A9 — catégories du catalogue ──');
   egal('A9 plaque engluée → Piégeage ; vernis protecteur → Matériel ; répulsif → Piégeage ; spray sans biocide → Matériel', T.map(cat), ['Piégeage', 'Matériel', 'Piégeage', 'Matériel']);
   vrai('A9 toutes les catégories restent dans CAT_LIST (règle : jamais une catégorie hors de CAT_LIST)', CATALOGUE.every(c => CAT_LIST.includes(c[1])));
   const biocideRange = CATALOGUE.filter(c => /^TP(14|18)/.test(c[1]) && /engl|vernis|r[ée]pulsif|sans biocide|plaque|pi[èe]ge/i.test(c[0]));
-  egal('A9 plus aucun objet de capture / vernis / répulsif / « sans biocide » rangé en TP14 ou TP18 (hors les deux que la proposition n\'a pas relevés)', biocideRange.map(c => c[0]).sort(), ['PIÈGE BLATTES GEOTRAP'].sort());
+  egal('A9 plus aucun objet de capture / vernis / répulsif / « sans biocide » rangé en TP14 ou TP18 (le piège Geotrap compris : relevé à la relecture)', biocideRange.map(c => c[0]).sort(), []);
   egal('A9 les noms (donc les identifiants de fiches, invariant de test-634) n\'ont pas bougé : 160 noms, tous uniques', [CATALOGUE.length, new Set(CATALOGUE.map(c => c[0])).size], [160, 160]); }
 
 /* ── 6. B10 : les nuisibles ── */
@@ -213,6 +213,18 @@ console.log('\n── 3130 · 6. B10 — huit nuisibles de plus ──');
   /* les générateurs de test : un type de la 3D pour chaque nuisible neuf */
   const typeFor = (/const typeFor=n=>\(\{([^}]*)\}\[n\]\|\|'([^']*)'\)/.exec(N) || []);
   vrai('B10 les générateurs « une intervention par nuisible » donnent à « Termites » le type « Traitement xylophage » (deux endroits)', (N.match(/'Termites':'Traitement xylophage','Pigeons'/g) || []).length === 2 && !!typeFor[1]); }
+
+/* ── 6 bis. Relecture adverse : la fiche d'un poste en zone alimentaire ne parle d'« appât rodonticide » qu'à un appât ── */
+console.log('\n── 3130 · 6 bis. Fiche du poste — l\'avertissement « appât rodonticide » ne s\'affiche que pour un appât ──');
+{ const fiche = type => { let html = '';
+    const pl = { id: 'pl', nom: 'Plan', mode: 'rooms', rooms: [{ id: 'r', nom: 'Cuisine', x: 0, y: 0, w: 1, h: 1, zoneAlim: true }], postes: [{ id: 'po', num: 1, type, x: .5, y: .5, zone: 'Cuisine' }] };
+    const init = { db: { interventions: [{ id: 'i', clientId: 'c1' }], produits: [] }, esc, openModal: h => { html = h; }, can: () => true, papFindPoste: () => ({ po: pl.postes[0], pl }), paReleveOf: () => null,
+      papFrac: () => ({ x: .5, y: .5 }), papRoomAt: () => pl.rooms[0], papZoneOf: () => 'Cuisine', papZoneAlimName: z => z === 'Cuisine', PA_TYPES, PAP_ZONES: ['Cuisine'], paHistoPoste: () => [],
+      PA_ETATS: { ras: ['RAS', '#0a0', 'x'] }, aplatDe: c => [c, '#fff'], produit: () => null, fmtShort: d => d };
+    bac(F, ['papPosteSheet'], init).fn.papPosteSheet('i', 'po'); return html; };
+  const AVERT = /Zone de production alimentaire — appât rodonticide : à vérifier dans l’AMM du produit/;
+  vrai('A2 la fiche d\'un poste d\'APPÂT en zone alimentaire porte l\'avertissement « à vérifier dans l\'AMM du produit » (et plus aucun « interdit »)', AVERT.test(fiche('appat')) && AVERT.test(fiche(undefined)) && !/interdit/i.test(fiche('appat')));
+  vrai('A2 … mais pas celle d\'un PIÈGE ni d\'un détecteur d\'insectes (il n\'y a pas d\'AMM de rodonticide à lire)', !AVERT.test(fiche('piege')) && !AVERT.test(fiche('insecte'))); }
 
 /* ── 7. Relecture adverse : le DOSSIER SANITAIRE portait la même erreur que le registre (section « Produits biocides utilisés ») ── */
 console.log('\n── 3130 · 7. Dossier sanitaire — la section « Produits biocides » écarte aussi ce qui n\'en est pas ──');
