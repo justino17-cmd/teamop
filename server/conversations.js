@@ -277,7 +277,10 @@ module.exports = function monterConversations(app, ctx) {
     const rac = o.racine ? racine(o.racine) : null;
     if (rac && !reunion) {
       /* LE BUDGET DE LA RACINE remplace les plafonds horaires : messages d'agents, messages de CET agent, dollars */
-      if (rac.messages >= (rac.vaste ? RACINE_MESSAGES_VASTE : RACINE_MESSAGES) || rac.usd >= RACINE_USD) return { ok: false, raison: 'racine_close', racine: rac };
+      /* ⛔ les dollars d'AVANT ce réveil : `o.cout` est ce que la réponse qu'on écrit a elle-même coûté, déjà ajouté à la racine (`racineDepense`). Le dernier appel qui fait franchir les 4 $ n'est pas jeté
+         après avoir été payé — c'est le suivant qui n'a pas lieu (`peutParler`, avant l'appel, lui, voit la somme entière). */
+      const avantCeReveil = rac.usd - (typeof o.cout === 'number' && Number.isFinite(o.cout) && o.cout > 0 ? o.cout : 0);
+      if (rac.messages >= (rac.vaste ? RACINE_MESSAGES_VASTE : RACINE_MESSAGES) || avantCeReveil >= RACINE_USD) return { ok: false, raison: 'racine_close', racine: rac };
       if ((rac.parAgent[de] || 0) >= (de === 'victor' ? RACINE_PAR_VICTOR : RACINE_PAR_AGENT)) return { ok: false, raison: 'racine_agent', racine: rac };
     } else {
       /* sans racine valide (ou en réunion, qui a son plafond) : les plafonds d'avant. N'y comptent NI une annonce de fin de travail (`fait`) NI un message écrit sous une racine : un @tous de Justin

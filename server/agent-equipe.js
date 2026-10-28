@@ -521,16 +521,18 @@ module.exports = function agentEquipe(ctx) {
       const aTous = d.de === 'justin' && /(^|[\s,(])@(?:tous|[ée]quipe)\b/i.test(String(d.texte || ''));
       let texteFinal = r.texte;
       if (mode === 'tous' && texteFinal && !RAS.test(texteFinal)) texteFinal = coupe(texteFinal, TOUS_CARS);
-      if (!mode && texteFinal && !RAS.test(texteFinal) && conversations.membres(fil).length > 1) {
+      /* LES TICS DE GROUPE valent aussi pour la vague d'un @tous (examen du 27 octobre : « @tous, une idée ? » — quatre « je plussoie Léa ») : la redemande garde les réglages brefs de la vague */
+      const optsRedemande = mode === 'tous' ? { reflechir: false, maxTokens: TOUS_JETONS } : { reflechir: true };
+      if ((!mode || mode === 'tous') && texteFinal && !RAS.test(texteFinal) && conversations.membres(fil).length > 1) {
         const lus2 = conversations.lire(fil, 50), i0 = d.id ? lus2.findIndex(x => x.id === d.id) : -1;
-        const autres = i0 < 0 ? [] : lus2.slice(i0 + 1).filter(x => x.de !== id && x.de !== 'justin' && x.de !== 'systeme').map(x => String(x.texte || ''));
+        const autres = i0 < 0 ? [] : lus2.slice(i0 + 1).filter(x => x.de !== id && x.de !== 'justin' && x.de !== 'systeme' && x.fait !== true).map(x => String(x.texte || ''));
         const tic = ticDeGroupe(texteFinal, autres);
         if (tic) {
           const suite = messages.map(m => Object.assign({}, m)), fin = suite[suite.length - 1];
           const relance = 'Ta réponse ne passe pas : ' + tic + '. Réécris-la, sans outil, en apportant ce qui est propre à ton rôle, avec tes mots et une autre ouverture. Si tu n’as rien de propre à ajouter, réponds exactement « RAS ».\n\nTa réponse refusée : « ' + affichable(texteFinal, 600) + ' »';
           if (fin && fin.role === 'user') fin.content += '\n\n' + relance; else suite.push({ role: 'user', content: relance });
           let r3 = null;
-          try { r3 = encoreOk() ? await penser(id, system, suite, { reflechir: true }) : null; } catch (err) { r3 = null; }
+          try { r3 = encoreOk() ? await penser(id, system, suite, optsRedemande) : null; } catch (err) { r3 = null; }
           if (r3 && r3.ok && r3.texte && (RAS.test(r3.texte) || !ticDeGroupe(r3.texte, autres))) texteFinal = r3.texte;
           else if (aTous) texteFinal = 'RAS';   /* à une question posée à tous, un tic qui résiste à la redemande se tait : les autres ont répondu */
         }
