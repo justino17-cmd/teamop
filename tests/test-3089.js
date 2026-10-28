@@ -41,6 +41,9 @@ const suivre = Z => { const s = []; Z.mail.suiviMarquer = (mid, o) => { s.push([
     Z = monter({ modes: { camille: 'arret' }, claude: () => QUESTION }); S = suivre(Z);
     r = await Z.camille.surNouveauMessage(poser(Z, {}));
     v('⛔ un saut (Camille à l’arrêt) n’écrit RIEN au suivi', [!!r.saute, S.length], [true, 0]); Z.nettoyer();
+    Z = monter({ modes: { camille: 'brouillon' }, claude: () => 'Je ne sais pas trop.' }); S = suivre(Z);
+    r = await Z.camille.surNouveauMessage(poser(Z, {}));
+    v('⛔ un saut APRÈS la lecture (réponse de Claude sans catégorie) n’écrit rien non plus : le courriel reste « à traiter »', [r.saute, S.length], ['forme', 0]); Z.nettoyer();
   }
 
   console.log('\n2. L’arriéré : elle voit les anciens');
