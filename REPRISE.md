@@ -13,6 +13,38 @@ de ligne du tout.
 
 ---
 
+# 📋 28 OCTOBRE 2026 (NUIT) — LA LISTE DE JUSTIN, À REPRENDRE POINT PAR POINT LE MATIN
+Justin, 28 octobre vers 2 h : « tu sais tout ce que tu dois faire, on en parle demain matin, oublie rien, range tout bien tout ce que je
+t'ai demandé, et on fera point par point ». Dans l'ordre où on les reprend :
+1. **Examen de l'équipe** — 01:01 : **9/9** (le premier). Règle convenue : deux 9/9 de suite ; le second se lance quand Justin veut
+   (une heure entre deux, six par jour comptés en UTC). Justin a mis l'équipe au travail : **6 en Auto** (Max, Théo, Nina, Victor, Inès,
+   Louis — aucun n'écrit à un client), **10 en Brouillon** ; reprise à 9 h. Deux remarques vues à 9/9, NON corrigées exprès (corriger =
+   redéployer = la série repart) : « n'hésitez pas à nous préciser » dans deux premiers courriels de Léa ; « je les éplucher » (Camille).
+2. **Tour — onglet Agents « plus pro, plus Apple »** (v2.117, branche `claude/tour-agents-apple`) : aperçu EN LIGNE
+   (`apercu/tour.html`, demande de fusion n° 222), Justin : « j'adore ». Sonde `scratchpad/sonde-tour-agents-apple.js` (39 ✓, 5 profils).
+   La vraie `tour.html` attend sa phrase. Puis Justin a demandé plus : **« revois tous les onglets de la Tour… le design, les couleurs,
+   à la Apple — beau, pro, propre, qui donne envie de travailler »** → captures « avant » de toutes les vues faites
+   (`sonde-tour-theme.js`, bureau, jour/nuit) ; la sonde Agents simule désormais les dix sous-onglets (examen et contrats encore à compléter).
+   Rien de codé au-delà de l'onglet Agents : on en parle d'abord.
+3. **OP GESTION bêta v777 — « Tester un métier »** (branche source `claude/beta-choix-metier`) : les 23 packs en un geste dans
+   Paramètres → Outils de bêta ; « Remplir en grand nombre » suit le métier. `test-3086` (21 ✓, 6 mutations sur 6), sonde 17 ✓, suite
+   complète 719 suites verte. App publique non touchée.
+4. **Les packs métier** — ce qui reste : les DOCUMENTS propres à chaque métier (20 sur 22 n'en ont aucun de fabriqué), un CATALOGUE de
+   départ (seule la 3D en a un), la VALIDATION par un pro. Recherche lancée (deux chercheurs, `scratchpad/packs-recherche-A.md` et `-B.md`).
+   ⛔ Justin : **« avant de coder les packs, on en parle ensemble »**. À trancher aussi : registre hors 3D, mot « box » hors 3D, consigne
+   de l'agent devis (dératisation pour tous).
+5. **Le site (priorité de la journée, après OP GESTION)** : à la page de commande, un **simulateur** de l'application (tableau de bord,
+   planning… tout en détail, qui donne envie) et un **configurateur** : on coche ce qu'on veut, le prix baisse. Décision en attente :
+   **A** (recommandé) le simulateur déduit la formule (Pro 15 € / Business 25 € / Business Premium 50 € par utilisateur) ; **B** un prix
+   par catégorie (tarifs Stripe neufs). Partir de `demo.html` ; la branche `claude/metiers-abonnement` a du travail voisin.
+6. **Agents GitHub** — rapport `scratchpad/agents-github.md` : en tête SkillSpector (toujours `--no-llm`), trailofbits/skills (3-4
+   morceaux), marketingskills (adapter au droit français), promptfoo (examens des 16 agents) ; Factur-X = chantier produit. Rien installé.
+7. **Skills du gist de MonbinomeIA** — Find Skills (bridé : propose, n'installe pas) et les 13 `ig-*` recopiés (demande de fusion
+   n° 223). Prompt Master : déjà là. Perplexity : déconseillé (je cherche déjà sur le web ; clé payante). Claude in Chrome : extension à
+   installer par Justin (il est sur Safari).
+8. **OP MESSAGES** — le soir. **Agents plus intelligents** (revue du week-end : 2-3 règles proposées par agent, validées par Justin le
+   lundi) — après des examens propres. **Fiche Google** : retrouver la date de validation (≥ 60 jours) pour redemander l'accès à l'API.
+
 # 🔶 27 OCTOBRE 2026 (SOIR) — OÙ EN EST PAULINE, DANS LA TOUR (Tour v2.116, branche `claude/pauline-avancement`) · EXAMENS #217, #218, #219
 
 Justin, devant la bande « Today » de Harvey : « oui mais dans la Tour ».
