@@ -117,7 +117,12 @@ vrai('le doute, la règle de suspension, le lendemain, l\'essai échu et la form
 const SANS_F = [extraire('ficheSansFormule'), (/^const ficheSansFormuleLbl = .*$/m.exec(SRC) || [''])[0]];
 vrai('la fiche sans formule (`ficheSansFormule`) et le libellé de son motif sont trouvés dans le fichier réel',
   SANS_F.every(Boolean) && /!e\.formule \|\| e\.formule === 'gratuit'/.test(SANS_F[0]) && /aucune formule/.test(SANS_F[1]));
-AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...BLOQUE, ...SERVIE, MANUEL, ILLISIBLE, ...RELECTURES, ...SANS_F);
+/* … et le VERDICT DE MÉTIER d'un code réservé (28 octobre 2026) : le rattrapage le lit avant d'activer ou de dire « en attente ». Les codes de ce banc sont
+   LIBRES (aucun champ `metiers`), donc le verdict rend `libre` sans toucher ni au référentiel ni à l'annuaire ; le cas réservé est joué sur le vrai serveur
+   par `test-3133`. Sans ces trois fonctions, le rattrapage jetait dans son `try` (« promoMetierVerdict is not defined ») et cinq contrôles tombaient en silence. */
+const METIER_CODE = [extraire('promoMetiersDef'), extraire('promoMetiersDe'), extraire('promoMetierVerdict'), (/^const promoMetierPasse = .*$/m.exec(SRC) || [''])[0]];
+vrai('le verdict de métier d\'un code réservé (`promoMetierVerdict`) est trouvé dans le fichier réel', METIER_CODE.every(Boolean) && /etat: 'libre'/.test(METIER_CODE[2]));
+AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...BLOQUE, ...SERVIE, MANUEL, ILLISIBLE, ...RELECTURES, ...SANS_F, ...METIER_CODE);
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(

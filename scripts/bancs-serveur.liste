@@ -386,3 +386,5 @@ tests/test-3096.js
 tests/test-3101.js
 # 28 octobre 2026 : l'outil qui nettoie un espace ORPHELIN (hors annuaire, invisible dans la Tour) — `server/nettoyer-espace-orphelin.js` contre un faux TEAMOP_DATA complet (3098).
 tests/test-3100.js
+# 28 octobre 2026 : `test-3133` (un code promo RÉSERVÉ À DES MÉTIERS — `metiers: [...]` dans `config.promos` : le vrai serveur, par les QUATRE chemins qui activent un code — l'application, la Tour, le relais du portail avec de vrais comptes vérifiés, le rattrapage d'`espacePaye` — et le portail qui l'affiche ; plomberie et chauffage admis, nettoyage seul et métier non posé refusés ; le corps ne décide jamais du métier ; compteur et registre intacts sur un refus ; une restriction illisible FERME le code ; l'aperçu public ne dit rien d'une entreprise ; `server/configurer-promos.js`, l'outil du VPS qui écrit la restriction). Il ne lit ni `tour.html` ni `espace.html` : les pages sont gardées par `test-3134`, hors de cette liste (elles ne partent pas avec le serveur seul).
+tests/test-3133.js

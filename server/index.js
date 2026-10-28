@@ -958,7 +958,7 @@ app.post('/api/stripe/checkout', async (req, res) => {
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: stripeEntetes(sk, { 'Content-Type': 'application/x-www-form-urlencoded' }), body: p.toString() });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.url) return res.status(502).json({ error: (d.error && d.error.message) || 'stripe erreur' });
-    if (choixPaiement) choixAbonnementNoter(payeurMin, choixPaiement);   // APRÈS la page de paiement rendue : un Stripe en panne ne laisse pas de fiche
+    if (choixPaiement) choixAbonnementNoter(payeurMin, Object.assign({}, choixPaiement, { formulePayee: RANG_FORMULE[rangDuPrix] }));   // APRÈS la page de paiement rendue : un Stripe en panne ne laisse pas de fiche
     res.json({ url: d.url });
   } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
 });
@@ -2887,7 +2887,11 @@ function choixAbonnementNoter(email, c) {
         inscrit: Date.now(), apps: [], demandes: [], plan: '', planStatus: '', promo: '', majTs: Date.now(), noteInterne: '', metier: '', metierPar: '', demandesTraitees: {},
         ficheDePaiement: true };   // ⛔ née d'un clic sur « Payer », pas d'une entreprise : elle ne compte pas comme un espace (`aUnEspace`) — la première synchro de l'espace client écrit une fiche neuve, sans ce drapeau
     }
+    /* `formuleDeduite` : la formule que les rubriques cochées appelleraient (référentiel, jamais le corps) ; `formulePayee` : celle du tarif acheté. L'écart (Pro payé,
+       Stock coché) se VOIT à la Tour — il ne décide de rien : les droits sont ceux de `formuleServie`. Les rubriques d'un `cats` null (rien coché) ne déduisent rien. */
     fiche.choix = { metier: c.metier, cats: c.cats, ts: Date.now(), source: 'paiement' };
+    if (Array.isArray(c.cats) && c.cats.length) { const fd = metiersMod.formuleMini(c.cats); if (fd) fiche.choix.formuleDeduite = fd; }
+    if (RANG_FORMULE.includes(c.formulePayee)) fiche.choix.formulePayee = c.formulePayee;
     cliSave();
   } catch (e) { console.error('choix à l\'abonnement non rangé :', String((e && e.message) || e).slice(0, 120)); }
 }
@@ -3265,7 +3269,12 @@ async function espacePaye(e, opts) {
          NOUVEL identifiant, et un code qu'elle avait déjà servi redevenait neuf ici — le
          rattrapage l'activait une seconde fois, avec une période neuve (voir `promoPresente`).
          Et « un seul code à la fois », comme les quatre autres chemins : celui-ci ne le faisait pas. */
-      if (p && !promosIllisible && !promoServiA(c, e.t, e.slug) && !promoAutreActif(c, e.t, e.slug) && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
+      /* ⛔ UN CODE RÉSERVÉ À DES MÉTIERS (voir `promoMetiersDef`) : refusé ou restriction illisible, il ne compte pas — ni activé, ni « en attente »
+         donc ni payé. Métier pas encore posé (`inconnu`) : en LECTURE le code reste en attente (le doute vient de notre côté, l'horloge de
+         conservation ne doit pas démarrer), mais rien ne s'active tant que la Tour n'a pas posé le métier. */
+      const vMetier = p ? promoMetierVerdict(p, e.t) : null;
+      const metierPasse = !!vMetier && (promoMetierPasse(vMetier) || (lecture && vMetier.etat === 'inconnu'));
+      if (p && metierPasse && !promosIllisible && !promoServiA(c, e.t, e.slug) && !promoAutreActif(c, e.t, e.slug) && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
         if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — il s\'active au prochain lancement de l\'application', promoCode: c, enAttente: true, formuleServie: formulePromo(e, c) || (RANG_FORMULE.includes(e.formule) ? e.formule : 'premium') };
         const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(p.mois) || 1));
         u0.n++; u0.equipes[e.t] = promoEntree(dF.toISOString().slice(0, 10), e.t, e.slug);
@@ -5740,6 +5749,10 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
   if (pres.etat === 'servi')
     return res.status(410).json({ error: promoRefusServi(c, pres.finLe) + ' Pour lui offrir une nouvelle période : Abonnement → « Essai offert », avec une date de fin.', dejaUtilise: true, finLe: pres.finLe });
   if (pres.etat === 'neuf') {
+    /* ⛔ LE MÉTIER D'ABORD (voir `promoMetiersDef`) : l'acceptation d'une demande pose le métier AVANT d'appliquer le code (`tourAccepterDemande`),
+       et ce verdict lit l'annuaire — jamais le corps. Un refus ne compte rien et n'écrit rien. */
+    const vm = promoMetierVerdict(p, t);
+    if (!promoMetierPasse(vm)) { const rf = promoMetierRefus(c, vm, false); return res.status(rf.status).json(rf.body); }
     for (const [c2] of Object.entries(promoUsages || {})) {   // un seul code à la fois (par l'adresse aussi : voir `promoServiA`)
       const eq2 = c2 !== c ? promoServiA(c2, t, slug) : null;
       if (eq2 && eq2.finLe && eq2.finLe >= promoAujourdhui())
@@ -6413,7 +6426,8 @@ try {
         const p = c ? (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c) : null;
         if (!p) return null;
         const u = promoUsages[c] || { n: 0 };
-        return { code: c, mois: Math.max(1, Number(p.mois) || 1), epuise: !!(p.maxUtilisations && u.n >= p.maxUtilisations) };
+        /* `reserve` : le code est réservé à des métiers (ou sa restriction est illisible) — le portail n'écrit alors RIEN, le métier se juge à l'activation */
+        return { code: c, mois: Math.max(1, Number(p.mois) || 1), epuise: !!(p.maxUtilisations && u.n >= p.maxUtilisations), reserve: promoMetiersDef(p).etat !== 'libre' };
       },
       journal: (...a) => console.log('portail:', ...a),
       /* La reprise des dossiers déjà chez Google. Le serveur a déjà la clé d'administration et
@@ -9935,7 +9949,10 @@ app.post('/api/clients/sync', async (req, res) => {
           if (eq2 && eq2.finLe && eq2.finLe >= auj) { autre = c2; break; }
         }
       }
-      const nouveau = !!(pres && pres.etat === 'neuf' && !autre && !(pDef.maxUtilisations && u.n >= pDef.maxUtilisations));
+      /* ⛔ UN CODE RÉSERVÉ À DES MÉTIERS ne s'active ici que si l'annuaire dit que l'entreprise en est (`libre` ou `admis`) : sinon RIEN n'est
+         écrit ni journalisé — le portail renvoie le code à chaque synchro, et c'est la Tour qui pose le métier puis applique le code. */
+      const metierPasse = !(pres && pres.etat === 'neuf') || promoMetierPasse(promoMetierVerdict(pDef, tEsp));
+      const nouveau = !!(pres && pres.etat === 'neuf' && !autre && metierPasse && !(pDef.maxUtilisations && u.n >= pDef.maxUtilisations));
       if (nouveau || (pres && pres.reporte)) {
         let finLe = pres.finLe;
         if (nouveau) {
@@ -10009,6 +10026,12 @@ app.post('/api/clients/sync', async (req, res) => {
         codeLigne = p
           ? '🎁 Code promo « ' + cAff + ' » : connu — ' + (FORMULE_LBL[p.formule] || 'Business Premium') + ', ' + Math.max(1, Number(p.mois) || 1) + ' mois. Il s\'applique quand tu acceptes la demande (sauf s\'il a déjà servi à cette entreprise).\n'
           : '⚠️ Code « ' + cAff + ' » INCONNU — il ne s\'appliquera pas.\n';
+        /* un code réservé à des métiers : le métier DEMANDÉ ne décide de rien (la Tour le pose à l'acceptation), mais le patron le lit ici */
+        const dm = p ? promoMetiersDef(p) : null;
+        if (dm && dm.etat === 'reserve') {
+          const dDem = [...nv].reverse().find(d => d.metier) || {};
+          codeLigne += '   ↳ Réservé aux métiers : ' + promoMetiersTexte(dm.ids) + '. ' + (dDem.metier ? 'Le métier demandé (' + (METIERS_LBL[dDem.metier] || dDem.metier) + ') ' + (dm.ids.includes(dDem.metier) ? 'en fait partie.' : 'n\'en fait PAS partie : le code sera refusé à l\'acceptation, sauf si tu changes le métier.') : 'Aucun métier demandé : le code sera refusé tant que le métier n\'est pas posé.') + '\n';
+        } else if (dm && dm.etat === 'config') codeLigne += '   ↳ ⚠️ Sa restriction de métiers est illisible : le code est fermé (node server/configurer-promos.js lister).\n';
       }
       const texte = 'Nouvelle demande d\'application sur teamop.fr — À TRAITER\n\n' +
         'Entreprise : ' + nomEnt + '\n' +
@@ -11468,6 +11491,61 @@ function promoPresente(c, t, slug) {
 function promoRefusServi(c, finLe) {
   return 'Le code « ' + c + ' » a déjà été utilisé par cette entreprise' + (finLe ? ' — sa période offerte s’est terminée le ' + promoDateFr(finLe) : '')
     + '. Un code promo ne sert qu’une fois par entreprise.'; }
+/* ⛔⛔ UN CODE PEUT ÊTRE RÉSERVÉ À DES MÉTIERS (Justin, 28 octobre 2026 : « un code de réduction en fonction des packs » ; par
+   exemple un code réservé aux entreprises de plomberie et de climatisation). La restriction vit dans `config.promos`, sur le VPS
+   (jamais dans le dépôt) : `{ code, formule, mois, maxUtilisations, metiers: ['plomberie', 'chauffage'] }`, les identifiants de
+   `metiers.json`. UNE définition, ici, lue par les cinq endroits qui lisent un code :
+     · champ ABSENT ou `[]` → code libre, comme avant ;
+     · champ INVALIDE (pas un tableau, ou un identifiant que `metiers.json` ne connaît pas, ou ce fichier illisible) → le code est
+       FERMÉ (`config`) : rien ne s'active, et le démarrage l'écrit au journal. Une faute de frappe ne doit JAMAIS ouvrir un code à tous ;
+     · sinon la restriction se juge sur le métier de l'ENTREPRISE tel que l'annuaire le porte (`promoMetiersDe`, la même source que
+       `/api/monitor/espaces/metier`) — JAMAIS sur une valeur du corps de la requête : le client choisit son métier à la commande, mais
+       ce choix n'est qu'une demande, c'est la Tour qui le pose à l'acceptation. La restriction est donc une barrière commerciale que
+       Justin relit, pas une preuve de métier.
+   ⚠️ Les métiers « associés » n'existent pas dans l'annuaire (une entreprise a UN `metier`, posé sur tous ses noms) : aucun champ ne les porte
+   et rien ne sait les écrire. Le jour où il y en aura, `promoMetiersDe` est le SEUL endroit à étendre. */
+function promoMetiersDef(p) {
+  const m = p ? p.metiers : undefined;
+  if (m === undefined) return { etat: 'libre', ids: [] };
+  if (!Array.isArray(m)) return { etat: 'config', ids: [], raison: '« metiers » n’est pas une liste' };
+  if (!m.length) return { etat: 'libre', ids: [] };
+  const inconnus = m.filter(k => typeof k !== 'string' || !metiersMod.connu(k));
+  if (inconnus.length) { const noms = inconnus.map(x => String(x).replace(/[^A-Za-z0-9_-]/g, '·').slice(0, 30)); return { etat: 'config', ids: [], inconnus: noms, raison: 'identifiant(s) inconnu(s) de metiers.json : ' + noms.join(', ') }; }
+  return { etat: 'reserve', ids: [...new Set(m)] };
+}
+/* Les métiers de l'entreprise : celui de l'entrée la plus récente de son identifiant (`espaceParT`), tel que `metierOk` le lit — la
+   même chose que l'application reçoit. `[]` : pas encore posé (la Tour le pose à l'acceptation). */
+function promoMetiersDe(t) {
+  try { const e = t ? espaceParT(t) : null; const m = e ? metierOk(e.metier) : ''; return m ? [m] : []; } catch (err) { return []; }
+}
+/* Le verdict : 'libre' (aucune restriction) · 'admis' · 'refuse' · 'inconnu' (restreint, et le métier de l'entreprise n'est pas
+   posé : dans le doute on n'active pas) · 'config' (restriction illisible : fermé). */
+function promoMetierVerdict(p, t) {
+  const d = promoMetiersDef(p);
+  if (d.etat === 'libre') return { etat: 'libre', metiers: [] };
+  if (d.etat === 'config') return { etat: 'config', metiers: [], raison: d.raison };
+  const siens = promoMetiersDe(t);
+  if (!siens.length) return { etat: 'inconnu', metiers: d.ids };
+  return { etat: siens.some(k => d.ids.includes(k)) ? 'admis' : 'refuse', metiers: d.ids };
+}
+const promoMetierPasse = v => v.etat === 'libre' || v.etat === 'admis';
+const promoMetiersTexte = ids => { const l = ids.map(k => metiersMod.nom(k) || k); return l.length > 1 ? l.slice(0, -1).join(', ') + ' et ' + l[l.length - 1] : l.join(''); };
+/* Ce que dit le refus : { status, body }. `config` ne dit RIEN du réglage (503, comme un registre illisible) ; les deux autres nomment les métiers
+   admis à qui a PROUVÉ son entreprise (l'application, le portail, la Tour). */
+function promoMetierRefus(c, v, publique) {
+  if (v.etat === 'config') return { status: 503, body: { error: 'Ce code n’est pas utilisable pour le moment.' } };
+  const liste = promoMetiersTexte(v.metiers);
+  const debut = 'Le code « ' + c + ' » est réservé aux entreprises des métiers suivants : ' + liste + '. ';
+  const fin = v.etat === 'inconnu'
+    ? (publique ? 'Le métier de votre entreprise n’est pas encore réglé : il se règle à l’ouverture de l’espace, puis le code pourra être activé.' : 'Le métier de cette entreprise n’est pas encore posé : règle-le dans sa fiche (MÉTIER), puis réapplique le code.')
+    : (publique ? 'Le métier de votre entreprise n’est pas dans cette liste. Si c’est une erreur, écrivez à support@teamop.fr.' : 'Le métier de cette entreprise n’est pas dans cette liste : change-le dans sa fiche (MÉTIER) si c’est une erreur.');
+  return { status: 403, body: { error: debut + fin, metierNonAdmis: true } };
+}
+/* Au démarrage : un code dont la restriction est illisible se DIT (il est fermé, il ne s'ouvre pas tout seul). */
+for (const pp of (config.promos || [])) {
+  const dd = promoMetiersDef(pp);
+  if (dd.etat === 'config') console.error('ERREUR config.promos : le code « ' + String((pp && pp.code) || '?').replace(/[^A-Za-z0-9_-]/g, '·').slice(0, 40) + ' » a une restriction « metiers » illisible (' + dd.raison + ') — il est FERMÉ, rien ne s’active tant que ce n’est pas corrigé (node server/configurer-promos.js lister).');
+}
 /* ⛔ UN REFUS DIT VRAI (Justin, 24 septembre 2026, capture à l'appui) : sur la bêta À JOUR, ce
    refus disait « mets l'application à jour ». Mettre à jour n'est le bon geste que quand
    l'appareil n'a RIEN présenté (`absent` : une version d'avant la preuve) ; ailleurs ça ne
@@ -11510,9 +11588,15 @@ app.get('/api/monitor/promos', monAdmin, (req, res) => {
         reporte: !!(e && e.reporte)
       };
     }).sort((a, b) => String(b.finLe || '').localeCompare(String(a.finLe || '')));
+    /* la restriction de métiers (lecture seule : la Tour ne crée ni ne règle un code — `node server/configurer-promos.js` sur le VPS) */
+    const dm = promoMetiersDef(p);
     return {
       code: c,
       formule: p.formule || '',
+      metiers: dm.etat === 'reserve' ? dm.ids.map(k => metiersMod.nom(k) || k) : [],
+      metiersIds: dm.etat === 'reserve' ? dm.ids : [],
+      metiersIllisible: dm.etat === 'config',
+      metiersInconnus: dm.inconnus || [],
       mois: Number(p.mois) || 1,
       maxUtilisations: Number(p.maxUtilisations) || 0,
       utilisations: Number(u.n) || 0,
@@ -11565,6 +11649,11 @@ app.post('/api/promo/valider', (req, res) => {
   if (!p) return res.status(404).json({ error: 'Code promo inconnu' });
   const u = promoUsages[c] || { n: 0, equipes: {} };
   const team = String(teamId || '').slice(0, 80);
+  /* ⛔ UN CODE RÉSERVÉ À DES MÉTIERS (voir `promoMetiersDef`) : une restriction ILLISIBLE ferme le code pour qui ne le tient pas déjà —
+     l'aperçu et l'appel sans identité n'ont rien à protéger d'autre que la promesse, ils disent « pas utilisable ». Un code déjà ACTIF
+     chez une entreprise (preuve de clé) ne se coupe pas : le verdict plus bas ne juge que le NEUF. */
+  const defMetiers = promoMetiersDef(p);
+  if (defMetiers.etat === 'config' && (apercu || !team)) return res.status(503).json({ error: 'Ce code n’est pas utilisable pour le moment.' });
   if (!apercu && team) {
     /* `valide` garantit que l'espace est à l'annuaire avec un code lisible — c'est ce dont
        cleEstPublique a besoin pour ne pas rendre « laisse passer » par défaut (voir sa mise
@@ -11593,6 +11682,12 @@ app.post('/api/promo/valider', (req, res) => {
   if (pres && pres.etat === 'servi')
     return res.status(410).json({ error: promoRefusServi(c, pres.finLe), dejaUtilise: true, finLe: pres.finLe });
   const deja = (pres && pres.etat === 'actif') ? pres : null;
+  /* ⛔ LE MÉTIER SE JUGE SUR L'ANNUAIRE, APRÈS LA PREUVE DE CLÉ, et seulement sur du NEUF (un code en cours ne se coupe pas, un code servi
+     garde son refus 410) — AVANT « un seul code à la fois » et AVANT `u.n++` : un refus ne fait JAMAIS bouger le compteur. */
+  if (pres && pres.etat === 'neuf') {
+    const vm = promoMetierVerdict(p, team);
+    if (!promoMetierPasse(vm)) { const rf = promoMetierRefus(c, vm, true); return res.status(rf.status).json(rf.body); }
+  }
   // un seul code à la fois par espace : si un AUTRE code est encore actif, refus clair
   if (pres && !deja) {
     for (const [c2] of Object.entries(promoUsages || {})) {
@@ -11625,7 +11720,16 @@ app.post('/api/promo/valider', (req, res) => {
      affiche en « essai » — la même que `/api/espaces/etat` lui rendra à la synchro suivante. ⛔ Seulement pour une clé
      PROUVÉE : l'aperçu est public, il ne dit rien de la fiche d'une entreprise (la formule du code, comme avant). */
   const fCode = ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium';
-  res.json({ ok: true, formule: (!apercu && team && formulePromo(espaceParT(team), c)) || fCode, mois, finLe, dejaUtilise: !!deja, debut: deja ? (deja.date || '') : '' });
+  /* L'aperçu d'un code RÉSERVÉ le dit (`reserve`) et, si la page a déjà le métier choisi à la commande, si ce choix y figure (`metierAdmis`) :
+     une INFORMATION pour l'écran, jamais une décision — la décision est celle de l'activation, sur l'annuaire. Ni la liste des métiers, ni
+     rien sur une entreprise. Un code libre répond exactement comme avant. */
+  const reserveApercu = {};
+  if (apercu && defMetiers.etat === 'reserve') {
+    reserveApercu.reserve = true;
+    const mDemande = monStr((req.body || {}).metier, 20);
+    if (mDemande) reserveApercu.metierAdmis = defMetiers.ids.includes(mDemande);
+  }
+  res.json({ ok: true, formule: (!apercu && team && formulePromo(espaceParT(team), c)) || fCode, mois, finLe, dejaUtilise: !!deja, debut: deja ? (deja.date || '') : '', ...reserveApercu });
 });
 
 // ── ⏳ Rappel d'échéance : 7 jours avant la fin d'une période offerte, l'entreprise

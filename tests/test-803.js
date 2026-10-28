@@ -89,6 +89,8 @@ console.log('\n══ 0. Les quatre chemins qui activent un code passent par la 
   const entrees = (CODE_SRV.match(/= promoEntree\(/g) || []).length;
   v('   … les quatre chemins passent par `promoEntree` (application, Tour, relais du portail, rattrapage)', entrees, 4);
 
+  /* ⛔ UN CODE RÉSERVÉ À DES MÉTIERS (28 octobre 2026) : les quatre chemins lisent le MÊME verdict, `promoMetierVerdict` — joué sur le vrai serveur par `test-3133` */
+  v('⛔ la restriction de métiers : les quatre chemins lisent `promoMetierVerdict` (application, Tour, relais, rattrapage)', [valider, tour, relais, rattrapage].map(b => /promoMetierVerdict\(/.test(b)), [true, true, true, true]);
   vrai('« repartir à neuf » marque les utilisations AVANT d\'effacer l\'annuaire', /if \(t\) promoMarquerAvantRenaitre\(t, slug, e\.email\);\s*delete espacesReg\[slug\];/.test(renaitre));
   vrai('la suppression totale passe par `promoEffacerEntreprise` (qui garde la mémoire d\'une entreprise VIVANTE)', /if \(inv\.promos\.length\) promoEffacerEntreprise\(t, inv\.slugs, inv\.emails\);/.test(CODE_SRV));
   /* ⛔ ÉCRIT, OU ON LE DIT (relecture de `gardien`) : l'échec d'écriture défait l'activation et

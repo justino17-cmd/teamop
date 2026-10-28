@@ -296,6 +296,10 @@ function monterPortail(app, deps) {
     if (!code) return res.status(400).json({ error: 'code_vide' });
     let def = null; try { def = typeof d.promoDef === 'function' ? d.promoDef(code) : null; } catch (e) { def = null; }
     if (!def) return res.status(404).json({ error: 'code_inconnu' });
+    /* ⛔ UN CODE RÉSERVÉ À DES MÉTIERS ne s'écrit PAS dans le dossier (28 octobre 2026, `promoMetiersDef` d'index.js) : ce que cette route pose ouvre « 2 apps » au portail
+       (`promoInfo`, `clientApps`) et dit « activé » dans le fil — un affichage, mais un affichage faux pour une entreprise dont le métier n'est pas admis, ou pas encore posé.
+       Le métier se juge à l'ACTIVATION, sur l'annuaire (la Tour le pose à l'acceptation de la demande, puis applique le code). Rien n'est écrit, rien n'est compté. */
+    if (def.reserve) return res.status(403).json({ error: 'code_reserve_metiers' });
     const x = Object.assign({}, dossierDe(mail) || { cree: Date.now(), etat: 'nouvelle' });
     const deja = Array.isArray(x.promoUsed) ? x.promoUsed : [];
     if (deja.indexOf(code) >= 0) return res.status(409).json({ error: 'deja_utilise' });

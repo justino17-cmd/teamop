@@ -81,6 +81,7 @@
    "titre": "Statistiques",
    "ic": "📈",
    "groupe": "Tableau de bord",
+   "plan": "pro",
    "explication": "Votre activité en chiffres : chiffre d'affaires encaissé, factures en attente, taux de devis acceptés. Réservé aux comptes de direction.",
    "reserveAdmin": true
   },
@@ -88,12 +89,14 @@
    "titre": "Historique",
    "ic": "🕘",
    "groupe": "Tableau de bord",
+   "plan": "pro",
    "explication": "Le journal de tout ce qui se passe dans l'application : qui a fait quoi, et quand. Lecture seule, pratique pour retrouver une modification."
   },
   "archives": {
    "titre": "Archives mensuelles",
    "ic": "🗄️",
    "groupe": "Tableau de bord",
+   "plan": "pro",
    "explication": "Un récapitulatif de chaque mois à garder ou à imprimer en PDF. Réservé à l'administrateur.",
    "reserveAdmin": true,
    "moduleMisDeCote": true
@@ -102,48 +105,56 @@
    "titre": "Planning",
    "ic": "🗓️",
    "groupe": "Planification",
+   "plan": "pro",
    "explication": "Qui intervient où et quand, technicien par technicien, au jour ou à la semaine."
   },
   "planningGeneral": {
    "titre": "Planning général",
    "ic": "🏢",
    "groupe": "Planification",
+   "plan": "pro",
    "explication": "Toute l'entreprise sur une seule page : tous les techniciens, plusieurs jours à la suite, pour repérer les trous et les doublons."
   },
   "taches": {
    "titre": "Tâches",
    "ic": "✅",
    "groupe": "Planification",
+   "plan": "pro",
    "explication": "Une liste de choses à faire avec une échéance, pour vous ou pour un collègue : relancer un client, commander une pièce, rappeler un devis."
   },
   "absences": {
    "titre": "Absences & congés",
    "ic": "🏖️",
    "groupe": "Planification",
+   "plan": "pro",
    "explication": "Les congés, arrêts et absences de l'équipe, pour ne pas planifier quelqu'un qui n'est pas là."
   },
   "interventions": {
    "titre": "Interventions",
    "ic": "🧰",
    "groupe": "Interventions",
+   "plan": "pro",
    "explication": "Chaque passage chez un client est une fiche : date, technicien, adresse, photos, signature du client, compte rendu. C'est le cœur de l'application."
   },
   "rapports": {
    "titre": "Rapports",
    "ic": "📄",
    "groupe": "Interventions",
+   "plan": "pro",
    "explication": "Les rapports d'intervention prêts à envoyer au client en PDF, avec photos et signature, au nom de la bonne société."
   },
   "carteInt": {
    "titre": "Carte interventions",
    "ic": "🗺️",
    "groupe": "Interventions",
+   "plan": "pro",
    "explication": "Les interventions du jour posées sur une carte, pour ordonner la tournée et perdre moins de temps sur la route."
   },
   "registre": {
    "titre": "Registre sanitaire",
    "ic": "📋",
    "groupe": "Interventions",
+   "plan": "business",
    "explication": "Le registre des interventions que l'on doit pouvoir présenter à un contrôle.",
    "moduleMisDeCote": true,
    "aujourdhui": "3d seulement (masque du code actuel)",
@@ -155,6 +166,7 @@
    "titre": "Carte des box",
    "ic": "📍",
    "groupe": "Interventions",
+   "plan": "pro",
    "explication": "La carte des box (postes et dispositifs de surveillance) posés chez vos clients, pour retrouver chacun d'un coup d'œil. Réservée à la 3D.",
    "moduleMisDeCote": true,
    "aujourdhui": "3d seulement (masque du code actuel)",
@@ -166,36 +178,42 @@
    "titre": "Clients",
    "ic": "🏢",
    "groupe": "CRM",
+   "plan": "pro",
    "explication": "Votre fichier clients : coordonnées, sites, historique des interventions, devis et factures de chacun."
   },
   "devis": {
    "titre": "Devis",
    "ic": "💰",
    "groupe": "Ventes",
+   "plan": "pro",
    "explication": "Préparez des devis, envoyez-les en PDF à vos clients et suivez ceux qui sont acceptés."
   },
   "assistantDevis": {
    "titre": "Assistant devis",
    "ic": "🤖",
    "groupe": "Ventes",
+   "plan": "pro",
    "explication": "Décrivez le chantier à voix haute ou au clavier : l'assistant propose un devis que vous relisez avant de l'envoyer. Accès par un code d'équipe. L'assistant s'appuie sur une intelligence artificielle (Anthropic) à laquelle sont transmis le nom, l'adresse et la ville du client : voir la page Sous-traitance."
   },
   "factures": {
    "titre": "Factures",
    "ic": "🧾",
    "groupe": "Ventes",
+   "plan": "pro",
    "explication": "Facturez, suivez ce qui est payé, ce qui est en attente et ce qui est en retard."
   },
   "contrats": {
    "titre": "Contrats",
    "ic": "📑",
    "groupe": "Ventes",
+   "plan": "pro",
    "explication": "Gardez vos contrats d'entretien : client, durée, tarif, passages prévus. Un contrat fixe vos visites dans l'année."
   },
   "comptabilite": {
    "titre": "Comptabilité",
    "ic": "📊",
    "groupe": "Ventes",
+   "plan": "business",
    "explication": "Une synthèse de ce qui est encaissé, le registre des encaissements et un contrôle du jour. Réservé aux comptes autorisés.",
    "reserveAdmin": true
   },
@@ -203,6 +221,7 @@
    "titre": "Devis xylophage",
    "ic": "🪵",
    "groupe": "Ventes",
+   "plan": "pro",
    "explication": "Un devis spécialisé pour le traitement du bois (insectes xylophages). Réservé à la 3D.",
    "moduleMisDeCote": true,
    "aujourdhui": "3d seulement (masque du code actuel)",
@@ -214,30 +233,35 @@
    "titre": "Télécollecte",
    "ic": "💳",
    "groupe": "Ventes",
+   "plan": "business",
    "explication": "Chaque soir, recopiez le ticket de votre terminal de paiement : les encaissements de la journée (carte, espèces, chèques…) sont déjà pré-remplis, l'écart s'affiche en direct, et la comptabilité reçoit le relevé."
   },
   "produits": {
    "titre": "Produits",
    "ic": "📦",
    "groupe": "Stock",
+   "plan": "business",
    "explication": "Votre catalogue de produits et de fournitures : références, prix, unités. Chaque entreprise y met ses propres références."
   },
   "stock": {
    "titre": "Stock",
    "ic": "🗃️",
    "groupe": "Stock",
+   "plan": "business",
    "explication": "Ce qu'il vous reste de chaque produit, pour ne pas partir en intervention sans la pièce ou le produit qu'il faut."
   },
   "mouvements": {
    "titre": "Mouvements stock",
    "ic": "🔁",
    "groupe": "Stock",
+   "plan": "business",
    "explication": "Le journal automatique des entrées et des sorties de stock : qui a pris quoi, où, quand, validé par qui."
   },
   "boxes": {
    "titre": "Boxes",
    "ic": "🧱",
    "groupe": "Stock",
+   "plan": "business",
    "explication": "Les box (postes, dispositifs de surveillance) posées chez vos clients, avec leur contenu. Le Stockage de l'entreprise s'appuie sur le même mécanisme. Réservé à la 3D pour l'instant.",
    "aujourdhui": "3d seulement (masque du code actuel)",
    "seulement": [
@@ -248,6 +272,7 @@
    "titre": "Consommation produits",
    "ic": "📋",
    "groupe": "Stock",
+   "plan": "business",
    "explication": "Saisie et analyse de la consommation de produits box par box : qui consomme quoi, combien, depuis quand. Réservée à la 3D.",
    "moduleMisDeCote": true,
    "aujourdhui": "3d seulement (masque du code actuel)",
@@ -259,6 +284,7 @@
    "titre": "Enveloppes",
    "ic": "📮",
    "groupe": "Stock",
+   "plan": "business",
    "explication": "Les encaissements clients rangés par enveloppe : espèces et chèques remis au bureau, avec ce qui reste à rapprocher. Réservé à la 3D pour l'instant.",
    "reserveAdmin": true,
    "moduleMisDeCote": true,
@@ -271,18 +297,21 @@
    "titre": "Temps de travail",
    "ic": "⏱️",
    "groupe": "Temps & équipe",
+   "plan": "pro",
    "explication": "Les heures de chaque personne : pointage depuis le terrain, total par jour et par semaine, base de la paie."
   },
   "vehicules": {
    "titre": "Véhicules",
    "ic": "🚐",
    "groupe": "Temps & équipe",
+   "plan": "pro",
    "explication": "Votre parc de véhicules : une fiche par véhicule avec la plaque, le kilométrage, l'assurance et son échéance, l'assistance."
   },
   "conducteurs": {
    "titre": "Conducteurs",
    "ic": "🧑‍✈️",
    "groupe": "Temps & équipe",
+   "plan": "pro",
    "explication": "La liste des personnes autorisées à conduire vos véhicules, avec leur téléphone.",
    "moduleMisDeCote": true
   },
@@ -290,12 +319,14 @@
    "titre": "Messagerie",
    "ic": "💬",
    "groupe": "Communication / Fournisseurs",
+   "plan": "pro",
    "explication": "La messagerie de l'équipe, entre le bureau et les techniciens, par conversation ou par groupe, sans passer par vos téléphones personnels."
   },
   "boiteMail": {
    "titre": "Boîte mail",
    "ic": "📧",
    "groupe": "Communication / Fournisseurs",
+   "plan": "business",
    "explication": "Votre boîte mail professionnelle dans l'application : lisez les réponses de vos clients et répondez sans changer d'outil. Réservé aux comptes autorisés.",
    "reserveAdmin": true
   },
@@ -303,6 +334,7 @@
    "titre": "Fournisseurs",
    "ic": "🏭",
    "groupe": "Communication / Fournisseurs",
+   "plan": "business",
    "explication": "Votre carnet de fournisseurs : contacts, conditions, catalogues. Il alimente vos bons de commande.",
    "reserveAdmin": true
   },
@@ -310,6 +342,7 @@
    "titre": "Bons de commande",
    "ic": "✉️",
    "groupe": "Communication / Fournisseurs",
+   "plan": "business",
    "explication": "Préparez vos bons de commande, envoyez-les aux fournisseurs et suivez ce qui est livré.",
    "reserveAdmin": true
   },
@@ -317,6 +350,7 @@
    "titre": "Brouillon",
    "ic": "📝",
    "groupe": "Achats internes",
+   "plan": "business",
    "explication": "Un panier où le technicien note les produits dont il a besoin, avant d'en faire la demande.",
    "moduleMisDeCote": true
   },
@@ -324,6 +358,7 @@
    "titre": "Mes demandes",
    "ic": "✈️",
    "groupe": "Achats internes",
+   "plan": "business",
    "explication": "Les demandes de matériel faites par l'équipe : ce qui est en cours et tout l'historique.",
    "moduleMisDeCote": true
   },
@@ -331,6 +366,7 @@
    "titre": "Validation des mouvements",
    "ic": "✅",
    "groupe": "Achats internes",
+   "plan": "business",
    "explication": "Le responsable valide ou refuse les demandes de commande et les sorties de stock, pour que rien ne bouge sans son accord.",
    "reserveAdmin": true,
    "moduleMisDeCote": true
@@ -339,6 +375,7 @@
    "titre": "Commandes en cours",
    "ic": "📥",
    "groupe": "Achats internes",
+   "plan": "business",
    "explication": "Les bons envoyés, en livraison ou reçus à moitié : ce que vos fournisseurs vous doivent encore.",
    "moduleMisDeCote": true
   },
@@ -346,6 +383,7 @@
    "titre": "Secteurs",
    "ic": "📌",
    "groupe": "Administration",
+   "plan": "pro",
    "explication": "Découpez votre zone par département et attribuez des techniciens à chaque secteur.",
    "reserveAdmin": true
   },

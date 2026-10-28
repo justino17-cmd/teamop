@@ -325,6 +325,9 @@ console.log('\nLe code promo anonyme ne s\'offre plus un abonnement');
   v('⛔ et plus jamais au-dessus de la condition', /\{ u\.n\+\+; if \(team\)/.test(bloc), false);
   v('l\'aperçu reste public — il n\'écrit rien et précède tout espace',
     /if \(!apercu && team\) \{/.test(bloc), true);
+  v('⛔ un code RÉSERVÉ À DES MÉTIERS : l\'application lit le verdict de l\'annuaire APRÈS la preuve de clé et AVANT de compter (`test-3133` le joue)',
+    bloc.indexOf('cleEquipeVerdict(team') > 0 && bloc.indexOf('promoMetierVerdict(p, team)') > bloc.indexOf('cleEquipeVerdict(team') && bloc.indexOf('promoMetierVerdict(p, team)') < bloc.indexOf('if (!apercu && team) { u.n++;'), true);
+  v('   … et la Tour, le relais du portail et le rattrapage lisent le même verdict (quatre lecteurs, plus sa définition)', (SRV.match(/promoMetierVerdict\(/g) || []).length, 5);
   v('la route passe sous le quota strict par IP',
     /ROUTES_SENSIBLES = \/\^\\\/api\\\/\(stripe\|devis\|sendcode\|mdp\|beta\|promo\|/.test(SRV), true);
 }

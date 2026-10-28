@@ -209,9 +209,16 @@ globalThis.fetch = async function (url, opts) {
     const fp = await fiche('paie');
     v('⛔ … et le choix est rangé sur la fiche du client (métier, rubriques dans l\'ordre du menu, source « paiement »), nom repris du compte du site',
       fp && [fp.choix.metier, fp.choix.cats, fp.choix.source, fp.entreprise, fp.demandes.length], ['chauffage', CATS_OK.filter(c => ['stock', 'devis', 'planning'].includes(c)), 'paiement', 'Société paie', 0]);
+    /* ⛔ LA FORMULE DÉDUITE DES RUBRIQUES COCHÉES (28 octobre 2026) se range à côté du tarif ACHETÉ : l'écart (Pro payé, Stock coché) se voit à la Tour. Elle vient du
+       référentiel (`metiersMod.formuleMini`), jamais du corps, et ne donne aucun droit. */
+    v('⛔ Pro payé, Stock coché : la fiche range `formuleDeduite: business` ET `formulePayee: pro` — l\'écart se VOIT, il ne décide de rien', [fp.choix.formuleDeduite, fp.choix.formulePayee], ['business', 'pro']);
+    r = await payer('paie', { metier: 'chauffage', cats: ['devis', 'planning'], formuleDeduite: 'premium', formulePayee: 'premium', formule: 'premium' });
+    const fpD = await fiche('paie');
+    v('   un paiement sans rubrique Business : `formuleDeduite: pro` ; un `formuleDeduite`, `formulePayee` ou `formule` dans le CORPS n\'est pas lu', [r.s, fpD.choix.formuleDeduite, fpD.choix.formulePayee], [200, 'pro', 'pro']);
     r = await payer('paie', { metier: 'peinture' });
     const fp2 = await fiche('paie');
     v('   sans rubriques : `cats: null` ; un second paiement remplace le choix (le dernier fait foi)', [r.s, fp2.choix.metier, fp2.choix.cats], [200, 'peinture', null]);
+    vrai('   … et rien n\'est déduit d\'un choix vide (`cats: null` : la Tour part du conseil du métier)', !('formuleDeduite' in fp2.choix));
     const sync2 = await sync('paie', []);
     const fp3 = await fiche('paie');
     v('⛔ le choix survit à la synchro suivante de l\'espace client (la fiche relayée ne le connaît pas)', [sync2.s, fp3.choix && fp3.choix.metier], [200, 'peinture']);

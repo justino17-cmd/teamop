@@ -185,5 +185,36 @@ vrai('   `metierOk` et `METIERS_LBL` en dérivent', /const metierOk = m => \(MET
 vrai('   la route publique `GET /api/metiers` sert le référentiel et dit 503 quand il manque', /app\.get\('\/api\/metiers', \(req, res\) => \{\s*const p = metiersMod\.publique\(\);\s*if \(!p\) return res\.status\(503\)/.test(SRVN));
 vrai('   le module est déclaré APRÈS `CATS_TOUJOURS` (une `const` lue avant sa déclaration est en zone morte)', SRVN.indexOf('const metiersMod =') > SRVN.indexOf('const CATS_TOUJOURS ='));
 
+/* ══ 5. LA FORMULE QU'APPELLE CHAQUE RUBRIQUE (28 octobre 2026) — ce que la page de commande lit pour DÉDUIRE la formule des cases cochées ══ */
+console.log('\n5. Le plan de formule de chaque rubrique cochable (`plan`) : dérivé de PLAN_BLOQUE.pro d\'app.html, servi par l\'API');
+{
+  const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
+  const pb = /const PLAN_BLOQUE=\{[\s\S]*?pro:\[([^\]]*)\]/.exec(APP);
+  const bloqueesPro = pb ? (pb[1].match(/'(\w+)'/g) || []).map(x => x.slice(1, -1)) : [];
+  vrai('(population) PLAN_BLOQUE.pro est lu dans app.html (19 rubriques)', bloqueesPro.length === 19, bloqueesPro.length);
+  const catsOk = (() => { const i = SRVN.indexOf('const CATS_OK = ['); return i < 0 ? [] : evalue(SRVN.slice(SRVN.indexOf('[', i), SRVN.indexOf('];', i) + 1)); })();
+  vrai('(population) la liste des rubriques cochables est lue dans le serveur (38)', catsOk.length === 38);
+  const plans = Object.fromEntries(catsOk.map(k => [k, ((J.rubriques || {})[k] || {}).plan]));
+  v('⛔ chaque rubrique COCHABLE porte un `plan` (`pro` ou `business`) — une rubrique ajoutée sans plan fait tomber ce banc', catsOk.filter(k => plans[k] !== 'pro' && plans[k] !== 'business'), []);
+  v('⛔ `business` ⇔ la rubrique est bloquée en Pro (PLAN_BLOQUE.pro d\'app.html) : les deux listes disent la même chose',
+    [catsOk.filter(k => plans[k] === 'business').sort(), catsOk.filter(k => bloqueesPro.includes(k)).sort()].map(l => l.join()).reduce((a, b) => (a === b ? 'identiques' : a + ' ≠ ' + b)), 'identiques');
+  v('   … soit seize rubriques, et les trois bloquées qui ne se cochent pas (conso, produitsDonnes, histoDemandes) suivent leur parent',
+    [catsOk.filter(k => plans[k] === 'business').length, bloqueesPro.filter(k => !catsOk.includes(k)).sort()], [16, ['conso', 'histoDemandes', 'produitsDonnes']]);
+  v('   … aucune rubrique « toujours ouverte » ne porte de plan', ['dashboard', 'utilisateurs', 'modulesElan', 'parametres'].filter(k => (J.rubriques[k] || {}).plan), []);
+  const M = creer(CHEMIN, CATS_OK, CATS_TOUJOURS), pub = M.publique();
+  v('⛔ `GET /api/metiers` sert le `plan` de chaque rubrique, tel quel', catsOk.filter(k => (pub.rubriques[k] || {}).plan !== plans[k]), []);
+  v('   … et rien d\'autre du travail à faire du fichier (le plan est la seule clé de plus)', Object.keys(pub.rubriques.stock).sort(), ['explication', 'groupe', 'ic', 'plan', 'titre']);
+  /* une valeur qui n'est ni `pro` ni `business` n'est pas servie */
+  const faux = JSON.parse(BRUT); faux.rubriques.stock.plan = 'premium'; faux.rubriques.devis.plan = 'gratuit';
+  const bacP = fs.mkdtempSync(path.join(os.tmpdir(), 'b2890p-')); const fP = path.join(bacP, 'plan.json'); fs.writeFileSync(fP, JSON.stringify(faux));
+  try { const pp = creer(fP, CATS_OK, CATS_TOUJOURS).publique(); v('   une valeur étrangère (`premium`, `gratuit`) n\'est pas servie', [pp.rubriques.stock.plan, pp.rubriques.devis.plan], [undefined, undefined]); } finally { try { fs.rmSync(bacP, { recursive: true, force: true }); } catch (e) {} }
+  /* la formule minimale que calcule le serveur (`formuleMini`) : celle de la page de commande, ici côté serveur */
+  v('⛔ `formuleMini` : rien de coché → Pro (le plancher) ; Planning et Devis → Pro ; un seul « Stock » → Business',
+    [M.formuleMini([]), M.formuleMini(null), M.formuleMini(['planning', 'devis', 'clients']), M.formuleMini(['planning', 'stock'])], ['pro', 'pro', 'pro', 'business']);
+  v('   … une clé inconnue ou étrangère ne déduit rien (le corps ne décide pas)', [M.formuleMini(['n-importe-quoi', 'dashboard', 7, null]), M.formuleMini(['__proto__'])], ['pro', 'pro']);
+  v('   … chacune des seize rubriques Business appelle Business, chacune des autres Pro', catsOk.filter(k => M.formuleMini([k]) !== plans[k]), []);
+  v('   un référentiel absent : rien n\'est déduit (`null`), la page garde son sélecteur manuel', creer(path.join(os.tmpdir(), 'n-existe-pas-2890.json'), CATS_OK, CATS_TOUJOURS).formuleMini(['stock']), null);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

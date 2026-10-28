@@ -59,6 +59,9 @@ module.exports = function (chemin, catsOk, catsToujours) {
     for (const k of cles) {
       const r = ref.rubriques[k];
       rubriques[k] = { titre: r.titre, ic: r.ic, groupe: r.groupe, explication: r.explication };
+      /* ⛔ la formule dont la rubrique a besoin (`pro` ou `business`) : ce que la page de commande lit pour DÉDUIRE la formule des cases cochées (`OpRub.formule`).
+         Elle est dérivée de `PLAN_BLOQUE.pro` d'app.html (`tests/test-2870.js` compare les deux) ; une valeur hors de ces deux n'est pas servie. */
+      if (r.plan === 'pro' || r.plan === 'business') rubriques[k].plan = r.plan;
       if (r.reserveAdmin) rubriques[k].reserveAdmin = true;
       if (Array.isArray(r.seulement)) rubriques[k].seulement = r.seulement.slice();
     }
@@ -78,6 +81,15 @@ module.exports = function (chemin, catsOk, catsToujours) {
     publiqueCache = { ok: true, version: ref.version || 1, ouverts: ordre.filter(connu), ordre: cles, groupes, rubriques, toujours, metiers };
     return publiqueCache;
   };
-  return { ref, ouverts, ordre, estOuvert, connu, nom, libelles, conseil, publique, lu: !!ref };
+  /* ⛔ LA FORMULE MINIMALE QU'APPELLENT DES RUBRIQUES COCHÉES (28 octobre 2026) : `business` dès qu'une rubrique cochée est de plan `business`, sinon `pro`
+     (le plancher). UNE définition côté serveur, lue du référentiel — jamais d'une valeur du corps ; `null` quand le référentiel manque. La page de commande a
+     la sienne, pure (`OpRub.formule`, rubriques-choix.js), qu'un banc compare à celle-ci rubrique par rubrique. Elle ne donne AUCUN droit : c'est un
+     constat que la Tour lit (`fiche.choix.formuleDeduite`), l'application reçoit la formule PAYÉE (`formuleServie`). */
+  const formuleMini = cats => {
+    if (!ref) return null;
+    const l = Array.isArray(cats) ? cats : [];
+    return l.some(k => typeof k === 'string' && cochable(k) && ref.rubriques[k] && ref.rubriques[k].plan === 'business') ? 'business' : 'pro';
+  };
+  return { ref, ouverts, ordre, estOuvert, connu, nom, libelles, conseil, publique, formuleMini, lu: !!ref };
 };
 module.exports.HISTORIQUES = HISTORIQUES;
