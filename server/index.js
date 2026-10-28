@@ -10892,9 +10892,19 @@ try {
       const jours = Number.isInteger(j) && j >= 1 && j <= 90 ? j : 30;
       const p = agentsMod && typeof agentsMod.peutAgir === 'function' ? agentsMod.peutAgir('camille') : { ok: false, raison: 'indisponible' };
       if (!p.ok) return res.status(409).json({ error: 'Camille ne peut pas agir maintenant (' + String(p.raison || '').replace(/_/g, ' ') + ')' });
+      if (typeof agentCamille.repriseEnCours === 'function' && agentCamille.repriseEnCours()) return res.status(409).json({ error: 'La reprise de l’arriéré est déjà en cours' });
       Promise.resolve().then(() => agentCamille.reprendreArriere(jours)).catch(e => console.error('camille (arriéré) :', e.message));
       res.json({ ok: true, jours });
     });
+    /* (28 octobre 2026, Justin : « plus autonomes, toutes leurs tâches à 100 % ») Camille RATISSE seule l'arriéré toutes les 30 minutes, sur ses heures de travail : rien n'attend
+       qu'on le lui demande. Silencieuse quand il n'y a rien ; la moitié des plafonds du jour au plus (le courrier du jour garde l'autre). */
+    setInterval(() => {
+      try {
+        if (!agentCamille || typeof agentCamille.reprendreArriere !== 'function' || (agentCamille.repriseEnCours && agentCamille.repriseEnCours())) return;
+        if (!(agentsMod && agentsMod.peutAgir('camille').ok)) return;
+        agentCamille.reprendreArriere(30, { silencieux: true }).catch(e => console.error('camille (arriéré) :', e.message));
+      } catch (e) {}
+    }, 30 * 60000).unref();
     app.post('/api/monitor/agents/hugo/passer', monPatronStrict, async (req, res) => {
       try { res.json(Object.assign({ ok: true }, await agentHugo.passer())); }
       catch (e) { console.error('hugo :', e.message); res.status(500).json({ error: 'Passage non traité' }); }

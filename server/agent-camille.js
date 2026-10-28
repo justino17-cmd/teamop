@@ -27,7 +27,7 @@
  *    destinataires, ni les pièces jointes.
  * ⛔ Les réponses sur les sujets qui engagent (remboursement, arrêt d'abonnement, facture, panne) sont des GABARITS écrits ici et gardés par `test-2905` : Claude ne rédige pas une phrase
  *    qui pourrait promettre un geste commercial. Le contrôle qualité couvre ce qu'il rédige (question, prospect) ; un gabarit est « bon » d'office (il est écrit par le code).
- * ⛔ Un mail de NOS adresses n'est jamais traité ; un mail DÉJÀ VU (Message-ID) ne se retraite pas ; un mail de plus de trois jours non plus ; la boîte controle@ n'est jamais lue
+ * ⛔ Un mail de NOS adresses n'est jamais traité ; un mail DÉJÀ VU (Message-ID) ne se retraite pas ; depuis le 28 octobre 2026, l'âge n'écarte plus rien (Justin) et l'arriéré se ratisse seul (`reprendreArriere`) ; la boîte controle@ n'est jamais lue
  *    (`mail.js`). Plafonds du jour : 30 réponses, 100 examens, 10 examens par DOMAINE d'expéditeur (un domaine à soi et cent adresses consommeraient tout le budget du jour ; les webmails publics
  *    en sont dispensés : le plafond par adresse y suffit) ; deux brouillons en attente au plus par expéditeur ; l'envoi seul est encore borné à trois courriels par adresse en 24 h. Un plafond atteint
  *    PRÉVIENT Justin (une fois par jour et par plafond) : un courrier légitime qui attend doit se savoir.
@@ -192,7 +192,7 @@ module.exports = function camille(ctx) {
     /* o : { m, ev, a, objet, texte, controle, forceValidation, reecrit } */
     return brouillons.deposer({ agent: ID, a: o.a, objet: o.objet, texte: o.texte, source: 'courrier', entreprise: '', boiteId: o.ev.boiteId, objetRecu: o.m.objet,
       enReponseA: { mid: o.m.mid || '', boiteId: o.ev.boiteId, dossier: o.ev.dossier, uid: o.ev.uid }, controle: o.controle, authentifie: o.m.authentifie === true,
-      forceValidation: o.forceValidation === true || o.ev.arriere === true, reecrit: o.reecrit === true });   // l'arriéré : Justin a pu répondre d'ailleurs — tout passe par sa validation
+      forceValidation: o.forceValidation === true, reecrit: o.reecrit === true });
   }
   const BON_GABARIT = { etat: 'bon', fautes: [], juge: false };
 
@@ -202,9 +202,10 @@ module.exports = function camille(ctx) {
     const lu = ev && ev.__lu;
     if (!lu || !lu.mid || !r || typeof mail.suiviMarquer !== 'function') return;
     let o = null;
-    if (r.ignore) o = { statut: 'resolu' };
-    else if (r.justin) o = { statut: 'enCours', assigne: 'Justin' };
-    else if (r.depose || r.chloe || r.hugo || r.passe) o = { statut: 'enCours', assigne: 'Camille' };
+    /* (gardien) « ignoré » n'écrit RIEN : « résolu » est définitif, et une catégorie mal posée (ou un texte piégé) ferait disparaître un vrai message — il reste visible à Justin.
+       Une main passée (Hugo, un collègue) ne compte que si l'accusé est bien déposé : sinon rien n'est parti, la ligne reste « à traiter ». */
+    if (r.justin) o = { statut: 'enCours', assigne: 'Justin' };
+    else if (r.depose === true || r.chloe) o = { statut: 'enCours', assigne: 'Camille' };
     if (!o) return;
     try { mail.suiviMarquer(lu.mid, Object.assign(o, { de: lu.de, objet: lu.objet, recuTs: lu.ts })); } catch (e) {}
   }
@@ -212,7 +213,7 @@ module.exports = function camille(ctx) {
     const r = await traiter(ev);
     suiviDe(ev, r);
     /* traité par la reprise (donc noté « vu ») : il ne se reprendra plus — sans cette marque, sa date ferait encore croire à un « trop ancien » jamais traité */
-    if (ev && ev.arriere && ev.__h && reg.mids[ev.__h]) {
+    if (ev && ev.arriere && ev.__h && reg.mids[ev.__h] && r && (r.ignore || r.justin || r.depose === true || r.chloe)) {   // (gardien) une DÉCISION seulement : une panne ne grave rien
       reg.repris[ev.__h] = reg.mids[ev.__h];
       for (const k of Object.keys(reg.repris)) if (!reg.mids[k]) delete reg.repris[k];   // borné comme `mids`
       sauve();
@@ -220,6 +221,9 @@ module.exports = function camille(ctx) {
     return r;
   }
   async function traiter(ev) {
+    /* (gardien, 28 octobre 2026) sous l'arriéré, une alerte à Justin ne part pas message par message : la messagerie n'en laisse passer que 12 par heure et par agent, le reste
+       était avalé en silence — une menace de litige aurait été « prise par Justin » au suivi sans jamais lui être dite. Elle va au BILAN (réf. et nature), dit en un seul message. */
+    const aJ = (texte, niveau) => { if (ev && ev.arriere) { ev.__alertes = (ev.__alertes || []).concat(String(texte)); return { ok: true }; } return aJustin(texte, niveau); };
     try {
       const p = agents.peutAgir(ID);
       if (!p.ok) {
@@ -262,7 +266,7 @@ module.exports = function camille(ctx) {
         /* NOS adresses : jamais traitées (et marquées vues, pour ne pas les relire à chaque passage) */
         if (domainesNotres().some(d => d && domaineDe(a) === String(d).toLowerCase()) || adressesNotres().some(x => x && a === String(x).toLowerCase())) { noterVu(h); return { saute: 'interne' }; }
         /* l'âge se juge à l'instant où le courriel est ARRIVÉ à Camille (`ev.differeTs`, quand il a attendu l'ouverture) : un week-end férié de 87 h ne rend pas « ancien » un courriel de vendredi soir */
-        if (!ev.arriere && m.ts && (ev.differeTs || maintenant()) - m.ts > AGE_MAX_MS) { noterVu(h); return { saute: 'ancien' }; }
+        /* (28 octobre 2026, Justin : « trois jours avant, et après ils n'ont plus accès au reste, c'est débile ») — plus de limite d'âge : tout courriel qui attend se traite. */
         if (typeof brouillons.nombreEnAttente === 'function' && brouillons.nombreEnAttente(ID, a) >= ATTENTES_PAR_EXPEDITEUR) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'un expéditeur a déjà ' + ATTENTES_PAR_EXPEDITEUR + ' brouillons en attente' }); return { saute: 'expediteur_deja_en_attente' }; }
 
         /* ── LE PROSPECT QUI RÉPOND À LÉA → Chloé ── */
@@ -274,12 +278,12 @@ module.exports = function camille(ctx) {
             if (rc.depose) { noterVu(h); jour.brouillons++; sauve(); agents.noter(ID, 'passer à Chloé', { cible: 'courrier', resultat: 'ok', detail: 'un prospect a répondu à Léa : la proposition est à Chloé' }); return { chloe: true, depose: true, ref: rc.ref, voie: rc.voie }; }
             if (rc.saute === 'arret' || rc.saute === 'pause' || rc.saute === 'etat_illisible') {
               noterVu(h);
-              aJustin('Un prospect a répondu à Léa (réf. ' + ref4(h) + '), mais Chloé ne peut pas agir (' + (rc.saute === 'arret' ? 'à l’arrêt' : rc.saute === 'pause' ? 'en pause' : 'état illisible') + ') : la proposition n’est pas préparée. Regarde le Courrier.');
+              aJ('Un prospect a répondu à Léa (réf. ' + ref4(h) + '), mais Chloé ne peut pas agir (' + (rc.saute === 'arret' ? 'à l’arrêt' : rc.saute === 'pause' ? 'en pause' : 'état illisible') + ') : la proposition n’est pas préparée. Regarde le Courrier.');
               return { saute: 'chloe_' + rc.saute };
             }
             if (rc.saute && rc.saute !== 'deja_propose' && rc.saute !== 'hors_sujet') {
               noterVu(h);
-              aJustin('Un prospect a répondu à Léa (réf. ' + ref4(h) + '), mais la proposition de Chloé n’a pas pu être préparée (' + String(rc.saute).replace(/_/g, ' ') + ') : regarde le Courrier.');
+              aJ('Un prospect a répondu à Léa (réf. ' + ref4(h) + '), mais la proposition de Chloé n’a pas pu être préparée (' + String(rc.saute).replace(/_/g, ' ') + ') : regarde le Courrier.');
               return { saute: 'chloe_' + rc.saute };
             }
             /* « déjà proposé » ou « pas une réponse » : c'est un courrier ordinaire, la suite le traite */
@@ -323,7 +327,7 @@ module.exports = function camille(ctx) {
         /* Les sujets qui n'appellent AUCUN courriel : une question à Justin, rien ne part. */
         if (categorie === 'litige' || categorie === 'autre') {
           noterVu(h);
-          aJustin((categorie === 'litige' ? 'Un client menace d’une action (litige) dans un courriel' : 'Un courriel sensible ou hors de mes sujets') + ' (réf. ' + rf + ')' + dos + '. Je n’ai rien répondu : c’est à toi de voir, dans le Courrier.', 'urgent');
+          aJ((categorie === 'litige' ? 'Un client menace d’une action (litige) dans un courriel' : 'Un courriel sensible ou hors de mes sujets') + ' (réf. ' + rf + ')' + dos + '. Je n’ai rien répondu : c’est à toi de voir, dans le Courrier.', 'urgent');
           agents.noter(ID, 'passer la main à Justin', { cible: 'courrier', resultat: 'ok', detail: categorie });
           return { justin: true, categorie };
         }
@@ -332,7 +336,7 @@ module.exports = function camille(ctx) {
            tribunal, de rétrofacturation… ne reçoit AUCUNE réponse automatique ni ne programme rien chez Hugo : c'est Justin qui décide (cahier §2). Placé AVANT toutes les branches qui répondent. */
         if (menaceDeLitige(objet + '\n' + texte)) {
           noterVu(h);
-          aJustin('Un client menace d’une action (litige) dans un courriel (réf. ' + rf + ')' + dos + ' : Claude l’a rangé en « ' + categorie.replace(/_/g, ' ') + ' », mais le texte contient des mots de recours (avocat, plainte, tribunal, rétrofacturation…). Je n’ai rien répondu ni programmé : c’est à toi de voir, dans le Courrier.', 'urgent');
+          aJ('Un client menace d’une action (litige) dans un courriel (réf. ' + rf + ')' + dos + ' : Claude l’a rangé en « ' + categorie.replace(/_/g, ' ') + ' », mais le texte contient des mots de recours (avocat, plainte, tribunal, rétrofacturation…). Je n’ai rien répondu ni programmé : c’est à toi de voir, dans le Courrier.', 'urgent');
           agents.noter(ID, 'passer la main à Justin', { cible: 'courrier', resultat: 'ok', detail: 'litige (mots du code) : ' + categorie });
           return { justin: true, categorie: 'litige', parLeCode: true, classee: categorie };
         }
@@ -340,20 +344,15 @@ module.exports = function camille(ctx) {
         /* La résiliation : accusé ET demande fermée à Hugo, seulement si l'expéditeur est authentifié ET l'adresse d'un compte. Sinon, une question à Justin. */
         if (categorie === 'resiliation') {
           noterVu(h);
-          if (ev.arriere) {   // un vieux courriel d'arrêt a pu être réglé autrement : Justin décide, rien ne part chez Hugo
-            aJustin('Dans l’arriéré : un courriel demande l’arrêt de l’abonnement (réf. ' + rf + ')' + dos + '. Comme il est ancien, je ne transmets rien à Hugo : regarde dans le Courrier s’il a déjà été réglé.', 'important');
-            agents.noter(ID, 'passer la main à Justin', { cible: 'courrier', resultat: 'ok', detail: 'résiliation dans l’arriéré' });
-            return { justin: true, categorie };
-          }
           if (!sur || !dossier) {
-            aJustin('Un courriel demande l’arrêt de l’abonnement (réf. ' + rf + ')' + dos + ', mais ' + (!sur ? 'l’expéditeur n’est pas authentifié par notre serveur de réception' : 'l’adresse n’est celle d’aucun compte') + ' : je n’ai rien programmé ni répondu. À toi de voir, dans le Courrier.', 'important');
+            aJ('Un courriel demande l’arrêt de l’abonnement (réf. ' + rf + ')' + dos + ', mais ' + (!sur ? 'l’expéditeur n’est pas authentifié par notre serveur de réception' : 'l’adresse n’est celle d’aucun compte') + ' : je n’ai rien programmé ni répondu. À toi de voir, dans le Courrier.', 'important');
             agents.noter(ID, 'passer la main à Justin', { cible: 'courrier', resultat: 'ok', detail: 'résiliation sans expéditeur sûr' });
             return { justin: true, categorie };
           }
           const hp = agents.peutAgir('hugo');
           const tache = hp.ok ? agents.deposer(ID, 'hugo', 'resilier_fin_periode', { dossier }) : { ok: false, raison: hp.raison };
           if (!tache.ok) {
-            aJustin('Un client authentifié demande l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ', mais Hugo ne peut pas recevoir la demande (' + String(tache.raison || 'erreur').replace(/_/g, ' ') + '). Je n’ai rien promis au client : le brouillon de l’accusé attend ta validation, et la fin d’abonnement est à programmer par toi.', 'urgent');
+            aJ('Un client authentifié demande l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ', mais Hugo ne peut pas recevoir la demande (' + String(tache.raison || 'erreur').replace(/_/g, ' ') + '). Je n’ai rien promis au client : le brouillon de l’accusé attend ta validation, et la fin d’abonnement est à programmer par toi.', 'urgent');
             const d0 = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: GABARITS.resiliation, controle: BON_GABARIT, forceValidation: true });
             if (d0.ok) { jour.brouillons++; sauve(); }
             return { justin: true, categorie, depose: d0.ok, ref: d0.ref };
@@ -363,7 +362,7 @@ module.exports = function camille(ctx) {
           const suite = hp.mode === 'auto'
             ? 'Hugo est en mode « auto » : il la prend dans la minute et programme la fin À LA FIN DE LA PÉRIODE réglée (jamais d’arrêt immédiat ni de remboursement), puis écrit au client avec la date ; s’il ne peut pas, il te le dit dans son fil.'
             : 'Hugo n’est pas en mode « auto » : il la prend dans la minute et dépose la fin d’abonnement dans tes validations — c’est quand tu valides qu’il programme la fin de période et écrit au client avec la date. Tant que tu n’as pas validé, l’abonnement continue.';
-          aJustin('Un client a demandé l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ' : j’ai accusé réception SANS rien promettre (« transmise, nous revenons vers vous ») et déposé la demande fermée pour Hugo. ' + suite, 'urgent');
+          aJ('Un client a demandé l’arrêt de son abonnement (réf. ' + rf + ')' + dos + ' : j’ai accusé réception SANS rien promettre (« transmise, nous revenons vers vous ») et déposé la demande fermée pour Hugo. ' + suite, 'urgent');
           agents.noter(ID, 'résiliation transmise à Hugo', { cible: 'courrier', resultat: 'ok', detail: 'demande fermée, expéditeur authentifié' });
           const d = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: GABARITS.resiliation, controle: BON_GABARIT });
           if (d.ok) { jour.brouillons++; sauve(); }
@@ -389,7 +388,7 @@ module.exports = function camille(ctx) {
         if (categorie === 'erreur_paiement' || (categorie === 'remboursement' && erreurDePaiement(objet + '\n' + texte))) {
           noterVu(h);
           dire('clients', '@Margaux un client signale une erreur possible sur un prélèvement ou une facture' + dos + ' (réf. ' + rf + '). Je n’ai rien répondu sur le fond : peux-tu regarder dans Stripe ce qui a été prélevé ? Justin décide de la réponse.', 'info');
-          aJustin('Un client signale un prélèvement qui semble erroné (double, inattendu ou contesté ; réf. ' + rf + ')' + dos + ' — peut-être une erreur de notre côté. Je n’ai PAS envoyé de refus de remboursement : j’ai demandé à Margaux de regarder, et un accusé de réception sans engagement attend ta validation.', 'urgent');
+          aJ('Un client signale un prélèvement qui semble erroné (double, inattendu ou contesté ; réf. ' + rf + ')' + dos + ' — peut-être une erreur de notre côté. Je n’ai PAS envoyé de refus de remboursement : j’ai demandé à Margaux de regarder, et un accusé de réception sans engagement attend ta validation.', 'urgent');
           agents.noter(ID, 'passer la main à Margaux', { cible: 'courrier', resultat: 'ok', detail: 'erreur de prélèvement signalée' });
           const d = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: GABARITS.facture, controle: BON_GABARIT, forceValidation: true });
           if (d.ok) { jour.brouillons++; sauve(); }
@@ -399,7 +398,7 @@ module.exports = function camille(ctx) {
         /* Le remboursement d'un abonnement qu'on a CHOISI d'arrêter : le refus poli et clair de Justin, écrit par le code. Aucun geste commercial. */
         if (categorie === 'remboursement') {
           noterVu(h);
-          aJustin('Un client demande un remboursement (réf. ' + rf + ')' + dos + ' : j’ai répondu par le refus habituel (sans engagement, résiliable à tout moment, aucune période commencée n’est remboursée). S’il menace d’un litige, je te le dirai à part.', 'info');
+          aJ('Un client demande un remboursement (réf. ' + rf + ')' + dos + ' : j’ai répondu par le refus habituel (sans engagement, résiliable à tout moment, aucune période commencée n’est remboursée). S’il menace d’un litige, je te le dirai à part.', 'info');
           const d = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: GABARITS.remboursement, controle: BON_GABARIT });
           if (d.ok) { jour.brouillons++; sauve(); }
           return { categorie, depose: d.ok, ref: d.ref, voie: d.voie };
@@ -408,7 +407,7 @@ module.exports = function camille(ctx) {
         /* Une question dont l'offre n'a pas la réponse : « nous revenons vers vous », en validation (jamais seul : ça promet qu'un humain reviendra), et Louis cherche une connaissance. */
         if (categorie === 'inconnu') {
           noterVu(h);
-          aJustin('Je n’ai pas su répondre à une question (réf. ' + rf + ')' + dos + ' : l’offre ne la couvre pas. J’ai préparé un accusé de réception pour ta validation, et Louis te propose une connaissance à ajouter.', 'important');
+          aJ('Je n’ai pas su répondre à une question (réf. ' + rf + ')' + dos + ' : l’offre ne la couvre pas. J’ai préparé un accusé de réception pour ta validation, et Louis te propose une connaissance à ajouter.', 'important');
           if (ctx.louis && typeof ctx.louis.surQuestionSansReponse === 'function') Promise.resolve(ctx.louis.surQuestionSansReponse({ texte: m.texte })).catch(() => {});
           const d = await deposerReponse({ m, ev, a, objet: reponseObjet, texte: GABARITS.inconnu, controle: BON_GABARIT, forceValidation: true });
           if (d.ok) { jour.brouillons++; sauve(); }
@@ -443,7 +442,7 @@ module.exports = function camille(ctx) {
         if (!d.ok) return { saute: d.raison };
         jour.brouillons++; sauve();
         if (d.voie === 'direct') dire('clients', 'J’ai répondu seule à un courriel ' + (categorie === 'prospect' ? 'd’un prospect' : 'avec une question sur l’application') + ' : le contrôle qualité est passé, la réponse est partie (réf. ' + rf + ').', 'info');
-        else if (controle.etat === 'a_revoir') aJustin('Ma réponse à un courriel (réf. ' + rf + ')' + dos + ' n’a pas passé le contrôle qualité après une réécriture : elle attend ton regard dans les validations.', 'important');
+        else if (controle.etat === 'a_revoir') aJ('Ma réponse à un courriel (réf. ' + rf + ')' + dos + ' n’a pas passé le contrôle qualité après une réécriture : elle attend ton regard dans les validations.', 'important');
         return { depose: true, ref: d.ref, voie: d.voie, categorie, controle: controle.etat };
       } finally { enCours.delete('u:' + String(ev.boiteId) + ':' + String(ev.dossier) + ':' + String(ev.uid)); if (reserve) midsEnCours.delete(reserve); }
     } catch (e) {
@@ -462,7 +461,8 @@ module.exports = function camille(ctx) {
      avec trois différences : l'âge ne les écarte pas, toute réponse attend la validation de Justin, une demande d'arrêt va à Justin. Une seule reprise à la fois ; elle s'arrête dès que
      Camille ne peut plus agir (pause, hors des heures, à l'arrêt) ou qu'un plafond du jour est atteint, et le DIT. Le bilan est une phrase du code (des nombres). */
   let enReprise = false;
-  async function reprendreArriere(jours) {
+  async function reprendreArriere(jours, o) {
+    o = o || {};
     if (enReprise) return { ok: false, raison: 'deja_en_cours' };
     if (typeof mail.arriere !== 'function') return { ok: false, raison: 'indisponible' };
     const p = agents.peutAgir(ID);
@@ -472,22 +472,40 @@ module.exports = function camille(ctx) {
     try {
       let liste = [];
       try { liste = await mail.arriere(jours); } catch (e) { return { ok: false, raison: 'lecture' }; }
-      let arret = '';
+      let arret = '', echecs = 0;
+      const pourToi = [];
       for (let i = 0; i < liste.length; i++) {
         const x = liste[i];
-        const r = await surNouveauMessage({ boiteId: x.boiteId, dossier: x.dossier, uid: x.uid, reprise: true, arriere: true }) || {};
-        if (r.saute && /^plafond|^hors_heures$|^pause$|^arret$|^budget|^cle/.test(String(r.saute))) { arret = r.saute; b.restent = liste.length - i; break; }
-        if (r.saute === 'deja_vu' || r.saute === 'automatique' || r.saute === 'interne' || r.saute === 'expediteur' || r.saute === 'introuvable') { b.deja++; continue; }
-        b.examines++;
+        /* (gardien) la reprise prend au plus la MOITIÉ des plafonds du jour : le courrier qui arrive aujourd'hui garde l'autre */
+        const jour = deJour();
+        if (jour.examens >= Math.floor(EXAMENS_PAR_JOUR / 2) || jour.brouillons >= Math.floor(BROUILLONS_PAR_JOUR / 2)) { arret = 'part_du_jour'; b.restent = liste.length - i; break; }
+        /* (gardien) relu à l'instant : une ligne que Justin a prise entre-temps n'est pas reprise */
+        if (x.mid && typeof mail.suiviLibre === 'function' && !mail.suiviLibre(x.mid)) { b.deja++; continue; }
+        const ev = { boiteId: x.boiteId, dossier: x.dossier, uid: x.uid, reprise: true, arriere: true };
+        const r = await surNouveauMessage(ev) || {};
+        if (r.saute && /^plafond_(?:jour|examens)$|^hors_heures$|^pause$|^arret$|^budget|^cle|^pas_de_cle$|^erreur_api$|^registre_illisible$/.test(String(r.saute))) { arret = r.saute; b.restent = liste.length - i; break; }
+        if (r.saute === 'deja_vu' || r.saute === 'automatique' || r.saute === 'interne' || r.saute === 'expediteur' || r.saute === 'introuvable' || r.saute === 'deja_en_cours') { b.deja++; continue; }
+        if (r.saute) {   // un échec sur CE courriel (lecture, forme, texte refusé, plafond du domaine) : il reste « à traiter » ; trois de suite, on s'arrête
+          b.echecs = (b.echecs || 0) + 1;
+          if (++echecs >= 3) { arret = 'echecs_repetes'; b.restent = liste.length - i - 1; break; }
+          continue;
+        }
+        echecs = 0; b.examines++;
         if (r.ignore) b.ignores++;
-        else if (r.justin) b.justin++;
-        else if (r.passe || r.hugo || r.chloe) b.transmis++;
-        else if (r.depose) b.reponses++;
+        else if (r.justin) { b.justin++; if (ev.__h) pourToi.push(ev.__h.slice(0, 4) + (r.categorie ? ' ' + String(r.categorie).replace(/_/g, ' ') : '')); }
+        else if ((r.passe || r.hugo) && r.depose === true) b.transmis++;
+        else if (r.depose === true || r.chloe) b.reponses++;
       }
       const t = 'Reprise de l’arriéré (' + (Math.min(Math.max(parseInt(jours, 10) || 30, 1), 90)) + ' derniers jours) : ' + b.examines + ' courriel' + (b.examines > 1 ? 's' : '') + ' examiné' + (b.examines > 1 ? 's' : '') +
-        ' — ' + b.reponses + ' réponse' + (b.reponses > 1 ? 's' : '') + ' en brouillon à valider, ' + b.transmis + ' transmis à un collègue, ' + b.justin + ' pour toi, ' + b.ignores + ' ignoré' + (b.ignores > 1 ? 's' : '') + '.' +
+        ' — ' + b.reponses + ' réponse' + (b.reponses > 1 ? 's' : '') + ' en brouillon à valider, ' + b.transmis + ' transmis à un collègue, ' + b.justin + ' pour toi' + (pourToi.length ? ' (réf. ' + pourToi.slice(0, 12).join(', ') + ')' : '') +
+        ', ' + b.ignores + ' sans réponse à faire (publicité, lettre d’information : ils restent dans le Courrier, à classer d’un geste)' + (b.echecs ? ', ' + b.echecs + ' que je n’ai pas pu lire ou traiter' : '') + '.' +
+        (liste.tronque ? ' La boîte est très chargée : je n’ai regardé que les plus récents de la période.' : '') +
         (arret ? ' Je me suis arrêtée (' + String(arret).replace(/_/g, ' ') + ') : ' + b.restent + ' attendent encore, je les reprendrai quand tu relanceras.' : (liste.length ? '' : ' Rien n’attendait.'));
-      aJustin(t, 'info');
+      /* le ratissage AUTOMATIQUE (`o.silencieux`) ne dit rien quand il n'a rien fait ; un bilan qui a quelque chose à dire DOIT arriver : si le plafond horaire de Camille le refuse, il
+         passe en ligne du système dans son fil */
+      if (o.silencieux && !b.examines && !b.echecs && !arret) return Object.assign({ ok: true, total: liste.length, arret }, b);
+      const dit = aJustin(t, 'info');
+      if (!(dit && dit.ok) && ctx.conversations && typeof ctx.conversations.systeme === 'function') { try { ctx.conversations.systeme(ID, 'Camille — ' + t); } catch (e) {} }
       agents.noter(ID, 'reprendre l’arriéré', { cible: 'courrier', resultat: 'ok', detail: b.examines + ' examinés, ' + b.restent + ' restent' });
       return Object.assign({ ok: true, total: liste.length, arret }, b);
     } finally { enReprise = false; }
@@ -500,7 +518,8 @@ module.exports = function camille(ctx) {
     executer(nom, e, c) {
       if (nom !== 'reprendre_courriels_anciens') return { ok: false, raison: 'inconnu' };
       if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Je ne reprends l’arriéré que sur une demande de Justin.' };
-      if (!/courri|mail|message|ancien|arri[ée]r|retard|attente/i.test(String(c.texte || ''))) return { ok: false, raison: 'pas_demande', ligne: 'Je ne reprends l’arriéré que si le message de Justin parle du courrier.' };
+      const tx = String(c.texte || '');
+      if (!(/courri|mail|message/i.test(tx) && /reprend|reprise|ancien|arri[ée]r|retard|en attente|à traiter|a traiter/i.test(tx))) return { ok: false, raison: 'pas_demande', ligne: 'Je ne reprends l’arriéré que si le message de Justin parle du courrier.' };
       if (enReprise) return { ok: false, raison: 'deja_en_cours', ligne: 'La reprise de l’arriéré est déjà en cours.' };
       const p = agents.peutAgir(ID);
       if (!p.ok) return { ok: false, raison: p.raison, ligne: 'Je ne peux pas reprendre l’arriéré maintenant (' + String(p.raison).replace(/_/g, ' ') + ').' };
@@ -509,7 +528,7 @@ module.exports = function camille(ctx) {
       return { ok: true, ligne: 'Reprise de l’arriéré lancée (' + Math.min(Math.max(j, 1), 90) + ' derniers jours) : le bilan arrive ici quand j’ai fini.' };
     }
   };
-  return { surNouveauMessage, reprendreArriere, outilsEquipe };
+  return { surNouveauMessage, reprendreArriere, outilsEquipe, repriseEnCours: () => enReprise };
 };
 module.exports.SYSTEM = SYSTEM;
 module.exports.GABARITS = GABARITS;

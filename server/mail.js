@@ -597,10 +597,12 @@ module.exports = function monterMessagerie(app, ctx) {
      peut lire (`boiteAgentOk`), les messages reçus depuis `jours` jours, LUS OU NON, sauf : un e-mail de sécurité, une notification automatique, un message déjà répondu (drapeau
      \Answered, ou suivi « résolu », ou une réponse notée), une ligne de suivi déjà prise par quelqu'un (`assigne`). Trois identifiants par message, jamais son texte ; le plus ancien
      d'abord ; au plus `ARRIERE_MAX`. Rien n'est marqué lu ici. */
-  const ARRIERE_MAX = 200;
+  const ARRIERE_MAX = 200, ARRIERE_LUS = 1000;
+  /* une ligne du suivi est LIBRE tant que personne ne l'a prise ni n'y a répondu, et qu'elle n'est pas résolue — relu juste avant chaque reprise */
+  const suiviLibre = mid => { const sv = suivi[String(mid || '')]; return !sv || !(sv.statut === 'resolu' || sv.repTs > 0 || sv.assigne); };
   async function arriere(jours) {
     const j = Math.min(Math.max(parseInt(jours, 10) || 30, 1), 90), depuis = new Date(Date.now() - j * 86400000);
-    const out = [];
+    const out = []; let tronque = false;
     for (const b of boites) {
       if (!boiteAgentOk(b)) continue;
       try {
@@ -608,16 +610,20 @@ module.exports = function monterMessagerie(app, ctx) {
         const lus = await avecImap(b, async client => {
           const lock = await client.getMailboxLock(inbox);
           try {
-            const uids = (await client.search({ since: depuis }, { uid: true })) || [];
+            let uids = ((await client.search({ since: depuis }, { uid: true })) || []).slice().sort((x, y) => x - y);
             if (!uids.length) return [];
+            /* (gardien) on FILTRE puis on borne — prendre les 200 derniers UID avant le filtre perdait les plus anciens non traités. Au plus ARRIERE_LUS en-têtes lus par boîte, par
+               paquets de 200, le plus ancien d'abord ; au-delà, on le DIT (tronque). */
+            if (uids.length > ARRIERE_LUS) { uids = uids.slice(-ARRIERE_LUS); tronque = true; }
             const l = [];
-            for await (const m of client.fetch({ uid: uids.slice(-ARRIERE_MAX).join(',') }, { uid: true, envelope: true, flags: true }, { uid: true })) {
-              const env = m.envelope || {}, de = adr1(env.from), mid = String(env.messageId || '');
-              if (protege(env.messageId) || estNotification(de.adr, env.subject)) continue;
-              if (m.flags && m.flags.has && m.flags.has('\\Answered')) continue;
-              const sv = mid ? suivi[mid] : null;
-              if (sv && (sv.statut === 'resolu' || sv.repTs > 0 || sv.assigne)) continue;
-              l.push({ boiteId: b.id, dossier: inbox, uid: m.uid, mid, ts: Math.min((env.date && new Date(env.date).getTime()) || Date.now(), Date.now()) });
+            for (let k = 0; k < uids.length && l.length < ARRIERE_MAX; k += 200) {
+              for await (const m of client.fetch({ uid: uids.slice(k, k + 200).join(',') }, { uid: true, envelope: true, flags: true }, { uid: true })) {
+                const env = m.envelope || {}, de = adr1(env.from), mid = String(env.messageId || '');
+                if (protege(env.messageId) || estNotification(de.adr, env.subject)) continue;
+                if (m.flags && m.flags.has && m.flags.has('\\Answered')) continue;
+                if (mid && !suiviLibre(mid)) continue;
+                l.push({ boiteId: b.id, dossier: inbox, uid: m.uid, mid, ts: Math.min((env.date && new Date(env.date).getTime()) || Date.now(), Date.now()) });
+              }
             }
             return l;
           } finally { lock.release(); }
@@ -627,7 +633,9 @@ module.exports = function monterMessagerie(app, ctx) {
     }
     /* la même lettre dans deux boîtes (contact@ ET support@) : une seule ligne */
     const vus = new Set();
-    return out.sort((x, y) => x.ts - y.ts).filter(x => { if (!x.mid) return true; if (vus.has(x.mid)) return false; vus.add(x.mid); return true; }).slice(0, ARRIERE_MAX);
+    const l = out.sort((x, y) => x.ts - y.ts).filter(x => { if (!x.mid) return true; if (vus.has(x.mid)) return false; vus.add(x.mid); return true; });
+    const r = l.slice(0, ARRIERE_MAX); r.tronque = tronque || l.length > ARRIERE_MAX;
+    return r;
   }
   /* Ce que Camille a décidé d'un courriel s'écrit au SUIVI du Courrier : sans ça, son travail ne faisait jamais baisser « à traiter » (Victor voyait 35 et croyait que personne n'y était).
      Un statut de la liste, un nom de la liste ; une ligne neuve porte l'expéditeur et l'objet (ce que le Courrier affiche déjà). Une ligne « résolue » ne redescend jamais. */
@@ -638,6 +646,8 @@ module.exports = function monterMessagerie(app, ctx) {
     const sv = suivi[mid] || (suivi[mid] = { statut: 'aTraiter', assigne: '', par: '', ts: Date.now(), recuTs: Math.min(Number(o.recuTs) || Date.now(), Date.now()), repTs: 0,
       de: monStr(o.de, 160), objet: monStr(o.objet, 160) });
     if (sv.statut === 'resolu') return true;
+    /* (gardien) une ligne qu'un HUMAIN a touchée (prise, assignée à quelqu'un d'autre, répondue) n'est jamais réécrite par Camille — « un agent ne s'assigne pas la demande » */
+    if (sv.repTs > 0 || (sv.par && sv.par !== 'Camille') || (sv.assigne && !SUIVI_PAR.includes(sv.assigne))) return false;
     sv.statut = o.statut;
     if (o.assigne !== undefined && SUIVI_PAR.includes(o.assigne)) sv.assigne = o.assigne;
     sv.par = 'Camille'; sv.ts = Date.now();
@@ -1081,7 +1091,7 @@ module.exports = function monterMessagerie(app, ctx) {
   setInterval(() => { veille().catch(() => {}); }, 120000);
   setTimeout(() => { veille().catch(() => {}); }, 20000);
 
-  return { boites: () => boites.map(publique), compter, lireMessage, envoyerAgent, signature, boiteParRole, arriere, suiviMarquer };
+  return { boites: () => boites.map(publique), compter, lireMessage, envoyerAgent, signature, boiteParRole, arriere, suiviMarquer, suiviLibre };
 };
 module.exports.authentification = authentification;
 module.exports.enteteAutomatique = enteteAutomatique;
