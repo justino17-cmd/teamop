@@ -39,7 +39,7 @@ const TRAITEMENT = evalue(litteral(N, 'const TRAITEMENT={'));
 /* `techName` est une flèche (const), pas une déclaration : on prend la VRAIE expression du fichier */
 const TECHNAME = (/const techName = (id => \{[^\n]*\});/.exec(N) || [])[1];
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const NOUVEAUX = ['Termites', 'Moustiques', 'Taupes', 'Poissons d’argent', 'Cloportes', 'Perce-oreilles', 'Charançons', 'Teignes des denrées'];
+const NOUVEAUX = ['Xylophages', 'Termites', 'Moustiques', 'Taupes', 'Poissons d’argent', 'Cloportes', 'Perce-oreilles', 'Charançons', 'Teignes des denrées'];
 
 console.log('\n── 3130 · 0. population ──');
 vrai('(population) le code des fonctions touchées est trouvé', ['printRegistre', 'registreBiocides', 'ligneBiocide', 't3dRegBanner', 'papPlacePoste', 'papMovePoste', 'papSheetZone', 'papAlimTxt', 'buildXyloDevisLocal', 'genererInterventionContrat'].every(n => fonction(N, n).length > 40));
@@ -196,23 +196,23 @@ console.log('\n── 3130 · 5. A9 — catégories du catalogue ──');
 /* ── 6. B10 : les nuisibles ── */
 console.log('\n── 3130 · 6. B10 — huit nuisibles de plus ──');
 { const plat = NUIS_CATS.flatMap(c => c[1]);
-  vrai('(population) le sélecteur compte ' + plat.length + ' nuisibles dans ' + NUIS_CATS.length + ' catégories', plat.length === 23 && NUIS_CATS.length === 5);
-  egal('B10 chacun des huit est dans le sélecteur (une fois), dans la liste des nuisibles, dans les diagnostics 3D et a son groupe de constat',
+  vrai('(population) le sélecteur compte ' + plat.length + ' nuisibles dans ' + NUIS_CATS.length + ' catégories', plat.length === 24 && NUIS_CATS.length === 5);
+  egal('B10 chacun des neuf (huit de la proposition + « Xylophages », ajouté à la relecture) est dans le sélecteur (une fois), dans la liste des nuisibles, dans les diagnostics 3D et a son groupe de constat',
     NOUVEAUX.map(n => [plat.filter(x => x === n).length, NUISIBLES.includes(n), NUIS_3D.includes(n), !!NUIS_GROUP[n]]), NOUVEAUX.map(() => [1, true, true, true]));
   vrai('B10 aucun doublon dans les listes, et tout nuisible du sélecteur est dans la liste générale', new Set(plat).size === plat.length && new Set(NUISIBLES).size === NUISIBLES.length && plat.every(n => NUISIBLES.includes(n)));
-  vrai('B10 « Termites » ouvre la fiche « Traitement xylophage », qui existe et propose « Termites »', NUIS_TRAIT.Termites === 'Traitement xylophage' && JSON.stringify(TRAITEMENT['Traitement xylophage']).includes('"Termites"'));
+  vrai('B10 « Termites » et « Xylophages » ouvrent la fiche « Traitement xylophage », qui existe et propose « Termites »', NUIS_TRAIT.Termites === 'Traitement xylophage' && NUIS_TRAIT.Xylophages === 'Traitement xylophage' && JSON.stringify(TRAITEMENT['Traitement xylophage']).includes('"Termites"'));
   vrai('B10 chaque fiche de traitement visée existe (rien ne pointe dans le vide)', Object.values(NUIS_TRAIT).every(k => TRAITEMENT[k]), Object.entries(NUIS_TRAIT).filter(e => !TRAITEMENT[e[1]]));
   egal('B10 groupes de constat : moustiques et teignes → volants ; poissons d\'argent, cloportes, perce-oreilles, charançons → rampants', ['Moustiques', 'Teignes des denrées', 'Poissons d’argent', 'Cloportes', 'Perce-oreilles', 'Charançons'].map(n => NUIS_GROUP[n]), ['volant', 'volant', 'rampant', 'rampant', 'rampant', 'rampant']);
   /* le geste : choisir le type « Traitement xylophage » dans le formulaire pré-remplit le nuisible */
   const init = { CAT_AUTO, intNuis: new Set(), intMeth: new Set(), renderIntNuis: () => {}, renderIntMeth: () => {}, garCheckBanner: () => {}, document: { querySelector: () => null } };
   const b = bac(F, ['intOnCat'], init);
   b.fn.intOnCat({ value: 'Traitement xylophage' });
-  egal('B10 le geste : choisir « Traitement xylophage » coche « Termites », plus « Autre »', [...b.scope.intNuis], ['Termites']);
+  egal('B10 le geste : choisir « Traitement xylophage » coche « Xylophages » (capricornes, vrillettes, mérule, termites : l\'espèce se précise dans la fiche, on ne l\'affirme pas d\'office), plus « Autre »', [...b.scope.intNuis], ['Xylophages']);
   b.fn.intOnCat({ value: 'Dératisation' });
   egal('… et la dératisation reste Rats + Souris (rien d\'autre ne bouge)', [...b.scope.intNuis], ['Rats', 'Souris']);
   /* les générateurs de test : un type de la 3D pour chaque nuisible neuf */
   const typeFor = (/const typeFor=n=>\(\{([^}]*)\}\[n\]\|\|'([^']*)'\)/.exec(N) || []);
-  vrai('B10 les générateurs « une intervention par nuisible » donnent à « Termites » le type « Traitement xylophage » (deux endroits)', (N.match(/'Termites':'Traitement xylophage','Pigeons'/g) || []).length === 2 && !!typeFor[1]); }
+  vrai('B10 les générateurs « une intervention par nuisible » donnent à « Termites » le type « Traitement xylophage » (deux endroits)', (N.match(/'Xylophages':'Traitement xylophage','Termites':'Traitement xylophage','Pigeons'/g) || []).length === 2 && !!typeFor[1]); }
 
 /* ── 6 bis. Relecture adverse : la fiche d'un poste en zone alimentaire ne parle d'« appât rodonticide » qu'à un appât ── */
 console.log('\n── 3130 · 6 bis. Fiche du poste — l\'avertissement « appât rodonticide » ne s\'affiche que pour un appât ──');

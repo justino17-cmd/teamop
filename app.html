@@ -10514,14 +10514,14 @@ function metierPrestaCard(i,edit){
   </div>`;
 }
 
-const NUISIBLES = ['Rats','Souris','Fouine / Loir','Cafards / Blattes','Fourmis','Punaises de lit','Puces','Araignées','Guêpes / Frelons','Frelons asiatiques','Mouches','Mites','Pigeons','Chenilles processionnaires','Termites','Moustiques','Taupes','Poissons d’argent','Cloportes','Perce-oreilles','Charançons','Teignes des denrées','Autre'];
+const NUISIBLES = ['Rats','Souris','Fouine / Loir','Cafards / Blattes','Fourmis','Punaises de lit','Puces','Araignées','Guêpes / Frelons','Frelons asiatiques','Mouches','Mites','Pigeons','Chenilles processionnaires','Xylophages','Termites','Moustiques','Taupes','Poissons d’argent','Cloportes','Perce-oreilles','Charançons','Teignes des denrées','Autre'];
 /* Nuisibles rangés par catégorie (affichage dans la fiche intervention) */
 const NUIS_CATS = [
   ['Rongeurs', ['Rats','Souris','Fouine / Loir']],
   ['Rampants', ['Cafards / Blattes','Fourmis','Punaises de lit','Puces','Araignées','Poissons d’argent','Cloportes','Perce-oreilles','Charançons']],
   ['Volants', ['Guêpes / Frelons','Frelons asiatiques','Mouches','Mites','Moustiques','Teignes des denrées']],
   ['Oiseaux', ['Pigeons']],
-  ['Autres', ['Termites','Taupes','Chenilles processionnaires','Autre']]
+  ['Autres', ['Xylophages','Termites','Taupes','Chenilles processionnaires','Autre']]
 ];
 /* Chaque nuisible ouvre la fiche de traitement correspondante (clé dans TRAITEMENT) */
 const NUIS_TRAIT = {
@@ -10530,7 +10530,7 @@ const NUIS_TRAIT = {
   'Punaises de lit':'Désinsectisation punaise de lit','Puces':'Désinsectisation puces',
   'Guêpes / Frelons':'Désinsectisation guêpes / frelons','Frelons asiatiques':'Désinsectisation guêpes / frelons',
   'Mites':'Désinsectisation mites','Pigeons':'Dépigeonnage','Chenilles processionnaires':'Chenilles processionnaires',
-  'Termites':'Traitement xylophage'
+  'Xylophages':'Traitement xylophage','Termites':'Traitement xylophage'
 };
 const METHODES = ['Appâtage','Piégeage mécanique','Plaques engluées','Pulvérisation','Gel insecticide','Fumigation / nébulisation','Poudrage','Bouchage d\'accès','Grillage / proofing','Contrôle / surveillance'];
 const MOYENS_PAIEMENT = ['A) Carte bancaire','B) Lien de paiement','C) Espèces','D) Chèque','E) Paiement en plusieurs fois - COFIDIS','F) Paiement en 2x - espèce + chèque','G) Paiement en 2x - CB + chèque','H) Virement'];
@@ -10559,7 +10559,7 @@ const CAT_AUTO = {
   'Désinsectisation anthrène de tapis':{nuis:['Autre'],meth:['Pulvérisation']},
   'Désinsectisation poux de poules':{nuis:['Autre'],meth:['Poudrage','Pulvérisation']},
   'Désinsectisation psoques':{nuis:['Autre'],meth:['Pulvérisation']},
-  'Traitement xylophage':{nuis:['Termites'],meth:['Pulvérisation']},
+  'Traitement xylophage':{nuis:['Xylophages'],meth:['Pulvérisation']},
   'Contrat anti nuisibles (HACCP)':{nuis:['Rats','Souris'],meth:['Contrôle / surveillance']},
   'Visite technique':{nuis:[],meth:['Contrôle / surveillance']}
 };
@@ -27793,7 +27793,7 @@ const INFEST_NIV=['Aucune présence','Faible','Moyen','Fort','Critique'];
 const INDICES_PRES=['Déjections','Traces de passage','Dégâts / rongements','Individus vivants','Individus morts','Nids / galeries','Aucun indice'];
 const CONFORMITE=['Conforme','Conforme avec réserves','Non conforme'];
 /* Regroupement des nuisibles → adapte automatiquement prestation + indices */
-const NUIS_GROUP={'Rats':'rongeur','Souris':'rongeur','Cafards / Blattes':'rampant','Fourmis':'rampant','Punaises de lit':'rampant','Puces':'rampant','Araignées':'rampant','Mites':'rampant','Poissons d’argent':'rampant','Cloportes':'rampant','Perce-oreilles':'rampant','Charançons':'rampant','Guêpes / Frelons':'volant','Mouches':'volant','Moustiques':'volant','Teignes des denrées':'volant','Termites':'autre','Taupes':'autre','Pigeons':'oiseau','Autre':'autre'};
+const NUIS_GROUP={'Rats':'rongeur','Souris':'rongeur','Cafards / Blattes':'rampant','Fourmis':'rampant','Punaises de lit':'rampant','Puces':'rampant','Araignées':'rampant','Mites':'rampant','Poissons d’argent':'rampant','Cloportes':'rampant','Perce-oreilles':'rampant','Charançons':'rampant','Guêpes / Frelons':'volant','Mouches':'volant','Moustiques':'volant','Teignes des denrées':'volant','Xylophages':'autre','Termites':'autre','Taupes':'autre','Pigeons':'oiseau','Autre':'autre'};
 const PRESTA_GROUP={
   rongeur:['postesControles','postesInstalles','postesConsommes','stationsSouris','plaquesPosees','plaquesRelevees','piegesMeca'],
   rampant:['plaquesPosees','plaquesRelevees','pulverisations','lampesUV'],
@@ -37985,7 +37985,7 @@ function genDemoData(){
   ];
   samples.forEach((s,k)=>{ const dd=d(s.off); if(db.interventions.some(x=>x.titre===s.titre&&x.date===dd&&x.heure===s.heure)) return; db.interventions.push({id:uid(),titre:s.titre,type:s.type,nuisible:s.nuisible||'—',nuisibles:s.nuisible?[s.nuisible]:[],clientId:cids[k%cids.length],techId:tech,date:dd,heure:s.heure,duree:60,prio:s.prio||'normale',statut:s.statut,adresse:clis[k%clis.length][1],desc:'',compteRendu:s.cr||'',constat:s.constat||null}); });
   // Une intervention par nuisible — toutes PLANIFIÉES (aucune effectuée)
-  const typeFor=n=>({'Rats':'Dératisation','Souris':'Dératisation','Cafards / Blattes':'Désinsectisation blattes','Punaises de lit':'Désinsectisation punaise de lit','Guêpes / Frelons':'Désinsectisation guêpes / frelons','Fourmis':'Désinsectisation fourmis','Puces':'Désinsectisation puces','Mites':'Désinsectisation mites','Termites':'Traitement xylophage','Pigeons':'Espèce protégée'}[n]||'Contrat anti nuisibles (HACCP)');
+  const typeFor=n=>({'Rats':'Dératisation','Souris':'Dératisation','Cafards / Blattes':'Désinsectisation blattes','Punaises de lit':'Désinsectisation punaise de lit','Guêpes / Frelons':'Désinsectisation guêpes / frelons','Fourmis':'Désinsectisation fourmis','Puces':'Désinsectisation puces','Mites':'Désinsectisation mites','Xylophages':'Traitement xylophage','Termites':'Traitement xylophage','Pigeons':'Espèce protégée'}[n]||'Contrat anti nuisibles (HACCP)');
   const j20=(()=>{const x=new Date(today);x.setDate(20);return x.toLocaleDateString('sv-SE');})();
   NUISIBLES.forEach((n,k)=>{ if(db.interventions.some(x=>x.titre===n&&(x.nuisibles||[]).indexOf(n)>=0)) return;
     db.interventions.push({id:uid(),titre:n,type:typeFor(n),nuisible:n,nuisibles:[n],clientId:cids[k%cids.length],techId:'',date:j20,heure:addMin('08:00',k*30),duree:30,prio:'normale',statut:'planifiee',adresse:clis[k%clis.length][1],desc:'',compteRendu:'',constat:null}); });
@@ -37997,7 +37997,7 @@ function genTestNuisibles(){
   db.interventions=[];
   if(!db.clients.length) db.clients.push({id:uid(),nom:'Client test',adresse:'Paris',tel:'0612345678',email:'client@test.fr',lat:48.857,lng:2.35});
   const cids=db.clients.map(c=>c.id); const tech=db.techniciens[0]?db.techniciens[0].id:'';
-  const typeFor=n=>({'Rats':'Dératisation','Souris':'Dératisation','Cafards / Blattes':'Désinsectisation blattes','Punaises de lit':'Désinsectisation punaise de lit','Guêpes / Frelons':'Désinsectisation guêpes / frelons','Fourmis':'Désinsectisation fourmis','Puces':'Désinsectisation puces','Mites':'Désinsectisation mites','Termites':'Traitement xylophage','Pigeons':'Espèce protégée'}[n]||'Contrat anti nuisibles (HACCP)');
+  const typeFor=n=>({'Rats':'Dératisation','Souris':'Dératisation','Cafards / Blattes':'Désinsectisation blattes','Punaises de lit':'Désinsectisation punaise de lit','Guêpes / Frelons':'Désinsectisation guêpes / frelons','Fourmis':'Désinsectisation fourmis','Puces':'Désinsectisation puces','Mites':'Désinsectisation mites','Xylophages':'Traitement xylophage','Termites':'Traitement xylophage','Pigeons':'Espèce protégée'}[n]||'Contrat anti nuisibles (HACCP)');
   const jour=todayISO();
   NUISIBLES.forEach((n,k)=>{ db.interventions.push({id:uid(),titre:n,type:typeFor(n),nuisible:n,nuisibles:[n],clientId:cids[k%cids.length],techId:tech,date:jour,heure:addMin('08:00',k*30),duree:30,prio:'normale',statut:'planifiee',adresse:(db.clients[k%db.clients.length].adresse)||'',desc:'',compteRendu:'',constat:null}); });
   logEvent('Test nuisibles',NUISIBLES.length+' interventions (aujourd\'hui)','admin'); save();
