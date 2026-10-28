@@ -62,7 +62,7 @@ vrai('sans site : aucune trace de lien', !/<a /.test(L({})));
 
 console.log('\n4. Câblage');
 vrai('la fiche de Pauline montre l’avancement juste après « Ce qui t’attend »', /h\+=paAttentesHtml\(r\)\+paAvancementHtml\(r\);/.test(fn('agPaulineHtml')));
-vrai('la Tour est en v2.116', /var TOUR_VERSION='v2\.116';/.test(SRC));
+vrai('la Tour est en v2.116 ou après', (m => !!m && +m[1] >= 116)(/var TOUR_VERSION='v2\.(\d+)';/.exec(SRC)));
 
 console.log('\ntest-3084 : ' + ok + ' ✓ ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

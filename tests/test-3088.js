@@ -46,6 +46,10 @@ process.on('exit', () => { try { fs.rmSync(banc, { recursive: true, force: true 
   const r3 = post('/api/monitor/conversations/supprimer', { id: e2.corps.message.id });
   fs.rmdirSync(tmp);
   v('⛔ un registre qui ne s’écrit pas GARDE le message (503)', [r3.code, conv.lire('victor', 50).some(m => m.id === e2.corps.message.id)], [503, true]);
+  const rc = conv.rappelClient('lea', 'DOS-000123', Object.keys(conv.MOTIFS)[0]);
+  v('⛔ un rappel client NON LU ne se supprime pas (409) — il n’existe qu’ici', [rc.ok, post('/api/monitor/conversations/supprimer', { id: rc.id }).code, conv.lire('lea', 50).some(m => m.id === rc.id)], [true, 409, true]);
+  post('/api/monitor/conversations/lire', { fil: 'lea' });
+  v('…une fois le fil ouvert (lu), il se supprime', [post('/api/monitor/conversations/supprimer', { id: rc.id }).code, conv.lire('lea', 50).some(m => m.id === rc.id)], [200, false]);
   const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
   vrai('le geste est journalisé (MON_GESTES), sans le texte', /'conversations\/supprimer': 'a supprimé un message de la messagerie des agents'/.test(IDX));
 
