@@ -84,7 +84,8 @@ function endpointPushValide(ep) {
   if (u.protocol !== 'https:' || u.username || u.password) return null;
   if (u.port && u.port !== '443') return null;
   const h = u.hostname.replace(/\.$/, '').toLowerCase();
-  if (!h || h.startsWith('[') || require('net').isIP(h)) return null;
+  /* IPv4 sous toutes ses écritures (l'analyseur d'adresses les ramène à a.b.c.d ; un dernier segment tout en chiffres est une IP ou une erreur), IPv6 entre crochets */
+  if (!h || h.startsWith('[') || /^[0-9.]+$/.test(h) || /(^|\.)[0-9]+$/.test(h)) return null;
   if (h.indexOf('.') < 0) return null;
   if (/(^|\.)(localhost|local|localdomain|internal|intranet|lan|home|corp|private|arpa|onion)$/.test(h)) return null;
   return u.href;
@@ -2421,6 +2422,7 @@ const MON_GESTES = {
   'users': 'a créé un compte de la Tour', 'users/toggle': 'a désactivé ou réactivé un compte de la Tour',
   'users/delete': 'a supprimé un compte de la Tour', 'users/apps': 'a changé les consoles d’un compte de la Tour',
   'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',
+  'push/abonner': 'a branché un appareil sur les notifications de la Tour', 'push/desabonner': 'a débranché un appareil des notifications de la Tour',
   'beta/toggle': 'a coupé ou rouvert un accès bêta', 'beta/delete': 'a supprimé un accès bêta',
   'espaces': 'a ouvert ou repris le lien de connexion d’une entreprise', 'espaces/lien-existant': null,
   'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/cats': 'a choisi les catégories d’OP GESTION d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
