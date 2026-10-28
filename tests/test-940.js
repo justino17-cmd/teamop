@@ -45,14 +45,14 @@ function bloc(motif) {
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'geste', 'chargerEssais', 'btChamp', 'btAjouter', 'btToggle', 'btSuppr', 'btChantier',
-  'btMdp', 'tirageSur', 'btAppsDe', 'btAvec', 'btDeLaConsole', 'accLigneBeta', 'accBlocBeta', 'accFicheBeta', 'accFormBeta', 'vueEssaisMsg', 'chargerVersionsMsg', 'vueAccueilMsg', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour'];
-const VARS = ['_gestes', 'BT', 'MV', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE'];
+  'btMdp', 'tirageSur', 'btAppsDe', 'btAvec', 'btDeLaConsole', 'accLigneBeta', 'accBlocBeta', 'accFicheBeta', 'accFormBeta', 'vueEssais', 'accBlocPub', 'btApp', 'btChoisirApp', 'btAppsPastilles', 'filtreEff', 'sourcesAff', 'aGestion', 'aMessages', 'appDe', 'entOuvertesMsg', 'incOuvertsDe', 'incOuvertsTous', 'chargerVersionsMsg', 'accueilMessages', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour'];
+const VARS = ['_gestes', 'BT', 'MV', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE', 'PBL', 'PB'];
 const SRC = NOMS.map(bloc), SRCV = VARS.map(bloc);
 
 function tour(API, jeton, app, { confirmer = true } = {}) {
   const toasts = [], panneaux = [], ctx = { fetch, URL, Object, String, JSON, Promise, Math, Date, Array, Error, crypto: globalThis.crypto, Uint8Array, document: { getElementById: () => null }, console };
   vm.createContext(ctx);
-  vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(jeton) + ', APP=' + JSON.stringify(app) + ", TAB='essais', MYROLE='patron', MYNOM='Patron banc';\n" +
+  vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(jeton) + ', FILTRE=' + JSON.stringify(app) + ", MYAPPS=['gestion','messages'], TAB='essais', MYROLE='patron', MYNOM='Patron banc';\n" +
     "var JR={actions:[]}, IC={cadenas:''}; function doLogout(){} function srvEtat(){} function render(){} function squelListe(){ return '<i class=\"squel\"></i>'; }\n" +
     "function svg(){ return ''; } function enTete(t,p){ return '<div class=\"page-tete\">'+t+' — '+p+'</div>'; } function accAllerForm(){} function tourCopie(){}\n" +
     SRCV.join('\n') + '\n' + SRC.join('\n'), ctx);
@@ -159,7 +159,7 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     const formM = TM.run('accFormBeta()'), formG = TG.run('accFormBeta()');
     vrai('   aucun des deux formulaires ne porte de case à cocher', !/type="checkbox"/.test(formM) && !/type="checkbox"/.test(formG));
     vrai('   et chacun dit SA bêta, et rien que la sienne : msg-beta.teamop.fr / teamop.fr/beta.html', /msg-beta\.teamop\.fr/.test(formM) && /n’ouvre QUE la bêta d’OP MESSAGES/.test(formM) && !/beta\.html/.test(formM) && /teamop\.fr\/beta\.html/.test(formG) && !/msg-beta/.test(formG));
-    vrai('   l\'en-tête de la console MESSAGES dit où vivent les accès d\'OP GESTION', /les accès à la bêta d’OP GESTION se créent dans sa console/.test(TM.run('vueEssaisMsg()')));
+    vrai('   l\'en-tête de la console MESSAGES dit où vivent les accès d\'OP GESTION', /les accès à la bêta d’OP GESTION se voient avec le filtre/.test(TM.run('vueEssais()')));
 
     console.log('\n4. La fiche : SA bêta, l\'adresse, « Copier le lien », et ce que « Couper » y fait');
     TM.panneaux.length = 0; TM.run('accFicheBeta(' + JSON.stringify(mona.id) + ')');
@@ -265,7 +265,7 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     const et0 = await (await fetch(B + '/api/monitor/messages/etat', { headers: { Authorization: 'Bearer ' + PATRON } })).json();
     v('⛔ le serveur ne rend plus la note, même écrite dans son fichier par le serveur d\'avant', ['note' in et0, et0.enTravaux], [false, true]);
     TM.run('var ENT={liste:[]}, MSG={loaded:false}, OPM={loaded:true,err:"",d:' + JSON.stringify({ enTravaux: true, depuis: '2026-09-10', note: NOTE_FIREBASE }) + "}; function incOuverts(){ return []; } var INC={loaded:true,err:\'\',list:[]}, OPMA={sante:{inst:\'beta\',loaded:true,err:\'\',d:{decompte:null}}}; function opmaInstance(){ return \'beta\'; } function opmaLire(){} function vuePermise(){ return true; } function acGroupe(){ return ''; } function ligneAc(){ return ''; } function vueInfo(){ return {section:'Pilotage',lib:'Accueil'}; }");
-    const accueil = TM.run('vueAccueilMsg()');
+    const accueil = TM.run('accueilMessages().html');
     vrai('population : l\'accueil se dessine, « Bêta » (v2.85 : la bêta tourne, la publique n\'est pas ouverte)', /<span class="past p-ambre">Bêta<\/span>/.test(accueil));
     vrai('⛔ et même si un serveur lui rend la note Firebase, la Tour ne l\'affiche pas : elle dit le serveur d\'OP MESSAGES', !/elan-gestion|projet OP MESSAGES|Firebase\s*\)|configuration web/.test(accueil) && /son propre serveur, séparé d’OP GESTION et de Firebase/.test(accueil));
     vrai('   et elle envoie vers l\'onglet Accès pour essayer la bêta', /msg-beta\.teamop\.fr<\/span> \(accès dans l’onglet <b>Accès<\/b>\)/.test(accueil));

@@ -22,7 +22,7 @@ vrai('le bloc s\'extrait de la page, entier', src.length > 2000 && /function blo
 const k = TOUR.indexOf('\nfunction nMot('), NMOT = k > 0 ? TOUR.slice(k + 1, TOUR.indexOf('\n', k + 1)) : '';
 vrai('   l\'assistant des accords s\'extrait aussi', /^function nMot\(n,un,plusieurs\)\{/.test(NMOT));
 /* v2.89 : la Surveillance a deux onglets (Incidents | Service) ; les gestes du jour J vivent dans « Service », sous les versions */
-vrai('⛔ il est affiché sous les versions, dans l\'onglet Service de la surveillance d\'OP GESTION', /function vueServiceGestion\(\)\{[^}]*blocVersions\(\)\+blocSortieFirebase\(\);\s*\}/.test(TOUR) && /SOUS\.survgest==='service'\?vueServiceGestion\(\)/.test(TOUR));
+vrai('⛔ il est affiché sous les versions, dans l\'onglet Service de la surveillance d\'OP GESTION', /var cg=G\?'<section class="svc-col" aria-label="OP GESTION">'\+\(M\?srcTitre\('gestion'\):''\)\+blocVersions\(\)\+blocSortieFirebase\(\)/.test(TOUR) && /SOUS\.surveillance==='service'\?vueService\(\)/.test(TOUR));
 
 function monter(env) {
   const appels = [];

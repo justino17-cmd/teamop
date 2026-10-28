@@ -13,6 +13,22 @@ de ligne du tout.
 
 ---
 
+# 🗼 28 OCTOBRE 2026 — LA TOUR EST UNE (v2.119, branche `claude/tour-unifiee-fusion`, rien publié)
+Justin : « si le switch entre Gestion et OP MESSAGES est trop chiant, on met tout ensemble, mais bien rangé » ; « côté OP MESSAGES de la Tour, il
+manque beaucoup de trucs, refais tout ça ». `tour.html` n'a plus DEUX consoles : plus de `APP`, `setApp`, sélecteur « GESTION ▾ », `tour_app`,
+`tour_tab_<app>`, `tour_barre_<app>` (relus UNE fois par `migrerReglagesAvant`, puis effacés). Navigation : Accueil · À traiter (Courrier · Demandes ·
+Incidents) · Clients (Entreprises · Comptes OP MESSAGES · Espaces OP MESSAGES) · Surveillance (Incidents · Service, les deux applications côte à côte) ·
+Plus. Un FILTRE « Tout · Gestion · Messages » (`tour_filtre`) en tête des seules vues qui mélangent les deux sources. Garde : `tests/test-3091.js`
+(85 contrôles, 20 mutations sur 20). Adapté (et dit dans le commit) : 18 bancs qui gravaient les deux consoles.
+- **Corrigé** : « Contrats » montrait les contrats d'OP GESTION dans la console OP MESSAGES — il est à Gestion seule, et la page le dit.
+- **Ajouté** : badge « OP MESSAGES » sur les entreprises ouvertes + segment de filtre ; le geste `tourApps` est dans la fiche (plus de second onglet
+  « Depuis OP GESTION ») ; une carte « Sauvegarde d'OP MESSAGES » dans Sauvegardes (lue dans `sante.reglages` / `sante.sante.sauvegarde`, déjà renvoyés).
+- **Reste** : les CSS `.app-sw` (mortes) ; les sondes du scratchpad autres que `sonde-tour-theme.js` appellent encore `setApp` (`sonde-tour-barre`,
+  `-tiroir`, `-telephone`, `-separation`, `-formule-servie`, `-demande-ouverte`, `sonde-regles`, `sonde-titres-collants`, `sonde-abonnement-metier`) ;
+  `app.html`/`server/`/`server-msg/` non touchés ; publication de la Tour : attend la phrase de Justin.
+
+---
+
 # 📋 28 OCTOBRE 2026 (NUIT) — LA LISTE DE JUSTIN, À REPRENDRE POINT PAR POINT LE MATIN
 Justin, 28 octobre vers 2 h : « tu sais tout ce que tu dois faire, on en parle demain matin, oublie rien, range tout bien tout ce que je
 t'ai demandé, et on fera point par point ». Dans l'ordre où on les reprend :

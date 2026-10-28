@@ -8,7 +8,8 @@
      · `chargerAbos` : Stripe en panne (listes vides + `erreur`) n'est jamais « 0 € » ni « pas encore payé » ;
      · `chargerIncidents` : un raté réseau après une lecture réussie GARDE la liste, et ne redessine pas sous une note ;
      · `chargerConnexions`, `chargerDevisIA` : la réponse redessine l'écran qui les montre (des ONGLETS depuis la v2.87) ;
-     · `setApp` : le filtre d'entreprise de la Surveillance et le formulaire bêta ne passent pas d'une console à l'autre. */
+     · `setFiltre` : le filtre d'entreprise de la Surveillance ne passe pas d'une source à l'autre ; `btChoisirApp` : le formulaire bêta non plus
+       (v2.119 : plus de console, mais le même risque — un mot de passe tiré pour la bêta d'une application ne sert pas à celle de l'autre). */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const SRC = fs.readFileSync(process.env.TOUR_FICHIER ? path.resolve(process.env.TOUR_FICHIER) : path.join(__dirname, '..', 'tour.html'), 'utf8');
@@ -25,7 +26,7 @@ function bloc(nom) {
   const f = suite.exec(CODE);
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
-const NOMS = ['_gestes', 'geste', 'msgErreur', 'paieOk', 'paieEchec', 'aboFiable', 'chargerAbos', 'incNoteEnCours', 'chargerIncidents', 'chargerConnexions', 'chargerComptesSite', 'chargerDevisIA', 'setApp'];
+const NOMS = ['_gestes', 'geste', 'msgErreur', 'paieOk', 'paieEchec', 'aboFiable', 'chargerAbos', 'incNoteEnCours', 'chargerIncidents', 'chargerConnexions', 'chargerComptesSite', 'chargerDevisIA', 'setFiltre', 'filtreEff', 'btApp', 'btChoisirApp'];
 const SRCS = NOMS.map(bloc);
 console.log('\n── test-1017 : la revue de toutes les catégories de la Tour ──');
 vrai('(population) les fonctions corrigées sont trouvées dans tour.html', SRCS.every(Boolean), NOMS.filter((n, i) => !SRCS[i]).join(', '));
@@ -34,7 +35,7 @@ function bac(extra) {
   const journal = { toasts: [], rendus: 0 };
   const ctx = Object.assign({ console, Promise, setTimeout, clearTimeout, JSON, String, Object, Array, Number, Math, Date,
     toast: t => journal.toasts.push(String(t)), render: () => { journal.rendus++; }, INJOIGNABLE: 'Serveur injoignable — nouvelle tentative dans un instant.',
-    APPS_TOUR: { gestion: { nom: 'OP GESTION' }, messages: { nom: 'OP MESSAGES' } }, MYAPPS: ['gestion', 'messages'], APP: 'gestion', TAB: 'accueil',
+    APPS_TOUR: { gestion: { nom: 'OP GESTION' }, messages: { nom: 'OP MESSAGES' } }, MYAPPS: ['gestion', 'messages'], FILTRE: 'tout', TAB: 'accueil',
     INC: { list: [], cnt: {}, loaded: false, err: '', f: { app: '', ent: '' } }, ABO: { abos: [], paiements: [], loaded: false, err: '' },
     CNX: { loaded: false }, CS: { loaded: false }, DIA: { loaded: false }, ENT: { sel: null }, BT: { login: 'l', nom: 'n', chantier: 'c', pass: 'secret' },
     setBdg() {}, majCompteursApp() {}, majBarreBas() {}, incOuverts: () => [], chargerEspaces() {}, document: { getElementById: () => null, body: { dataset: {} }, querySelectorAll: () => [] },
@@ -135,10 +136,14 @@ function bac(extra) {
   }
   /* 7. changer de console */
   {
-    const { ctx } = bac({ renderTabs() {}, renderNav() {}, render() {}, setTab() {}, majHaut() {}, placerIndic() {}, tiroirRafraichir() {}, majCompteursApp() {}, barreRepeindre() {}, renderBarreBas() {}, lireBarre() {}, chargerEtatMessages() {}, chargerEntreprises() {} });
-    ctx.INC.f.ent = 't-x';
-    try { ctx.setApp('messages', true); } catch (e) {}
-    v('⛔ changer de console oublie le filtre d’entreprise et le mot de passe tiré pour un accès bêta', [ctx.INC.f.ent, ctx.BT.pass, ctx.BT.login], ['', '', '']);
+    const { ctx } = bac({ renderTabs() {}, renderNav() {}, render() {}, setTab() {}, majHaut() {}, placerIndic() {}, tiroirRafraichir() {}, majCompteursApp() {}, barreRepeindre() {}, renderBarreBas() {}, lireBarre() {}, chargerEtatMessages() {}, chargerEntreprises() {}, chargerPourFiltre() {}, incOuvertsTous: () => [] });
+    ctx.INC.f.ent = 't-x'; ctx.INC.sel = 'i9';
+    try { ctx.setFiltre('messages', true); } catch (e) {}
+    v('⛔ changer de source affichée oublie le filtre d’entreprise et l’incident ouvert', [ctx.INC.f.ent, ctx.INC.sel], ['', null]);
+    try { ctx.btChoisirApp('gestion'); } catch (e) {}
+    v('⛔ choisir l’autre application pour un accès bêta oublie le mot de passe tiré pour la première', [ctx.BT.pass, ctx.BT.login], ['', '']);
+    ctx.BT.pass = 'garde'; try { ctx.btChoisirApp('gestion'); } catch (e) {}
+    v('…mais re-choisir la même ne vide rien', ctx.BT.pass, 'garde');
   }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);

@@ -68,8 +68,11 @@ v('l’espace n’est plus répété sous le nom quand la carte Accès le dit',
   H.slice(0, H.indexOf('[acces]')).includes('espace boulmartin-7k2q'), false);
 v('…mais il l’est encore si la carte Accès n’existe pas (rien ne se perd)', fiche(O, true, false).includes('espace boulmartin-7k2q'), true);
 const appelants = []; CODE.replace(/tourApps\(/g, (m, i) => { const d = CODE.lastIndexOf('\nfunction ', i); appelants.push((/function (\w+)/.exec(CODE.slice(d + 1, d + 60)) || [0, '?'])[1]); return m; });
-v('OP MESSAGES ne s’ouvre plus depuis GESTION : « tourApps » n’est appelé que depuis la console OP MESSAGES', appelants.filter(n => n !== 'tourApps').sort(), ['vueEntreprisesMsg']);
-vrai('…et la fiche mène à la console OP MESSAGES (lien, sur le bon onglet)', /SOUS\.entreprisesmsg=\\'gestion\\';setApp\(\\'messages\\',false,\\'entreprises\\'\)/.test(SRC));
+/* v2.119 (Tour unifiée) : il n'y a plus de console OP MESSAGES — le geste d'ouvrir ou fermer OP MESSAGES est dans la FICHE de l'entreprise (patron seul) et dans les deux
+   portes des accès publics ; l'onglet « Depuis OP GESTION » (vueEntreprisesMsg), seconde liste des mêmes entreprises, est supprimé. */
+v('OP MESSAGES s’ouvre et se ferme depuis la fiche d’entreprise et les accès publics — et plus depuis une seconde liste (vueEntreprisesMsg n’existe plus)', appelants.filter(n => n !== 'tourApps').sort(), ['accFichePub', 'gestionClientParts', 'pubLigne']);
+vrai('…et plus aucun lien de la fiche ne mène à « sa console » (elle n’existe plus)', !/setApp\(|SOUS\.entreprisesmsg/.test(SRC) && !/function vueEntreprisesMsg\(/.test(SRC));
+vrai('…le geste de la fiche est réservé au patron (le bouton n’est dessiné que pour lui)', /MYROLE==='patron'&&es\.slug\?' <button type="button" class="btn-fant'\+\(es\.opMessages/.test(CODE));
 const sans = fiche(Object.assign({}, O, { email: '' }), false);
 v('une entreprise sans compte du site : pas de carte Abonnement ni Contact, mais le lien d’accès, l’espace et l’activité restent',
   [...sans.matchAll(/class="sec">([^<]*)</g)].map(m => m[1].trim()), ['FORMULE ET PAIEMENT', '[acces]', '[utilisateurs]', '[espace]', 'APPLICATIONS ET CHIFFREMENT', '[dossier]', '[comptes]', '[supprimer]']);
@@ -77,27 +80,28 @@ v('une entreprise sans compte du site : pas de carte Abonnement ni Contact, mais
 /* ── 2. la Surveillance : Incidents | Service, dans les deux consoles ── */
 const rv = bloc('renderVue');
 vrai('(population) renderVue est trouvée', rv.length > 500);
-vrai('GESTION : la Surveillance a ses deux onglets, « Service » montre vueServiceGestion',
-  /TAB==='surveillance'\)\s*v\.innerHTML=sousOnglets\('survgest',\[\['apps','Incidents'\],\['service','Service'\]\]\)\+\(SOUS\.survgest==='service'\?vueServiceGestion\(\):survAvert\(\)\+vueSurveillance\(\)\)/.test(rv));
-vrai('MESSAGES : « Service » montre l’état du service, la bascule, puis les versions',
-  /SOUS\.survmsg==='service'\?vueServiceMsg\(\)\+blocBasculeMsg\(\)\+blocVersionsMsg\(\)/.test(rv));
+vrai('UNE Surveillance : deux onglets, « Service » montre vueService (les deux applications), « Incidents » la liste filtrée',
+  /TAB==='surveillance'\)\s*v\.innerHTML=sousOnglets\('surveillance',\[\['apps','Incidents'\],\['service','Service'\]\]\)\+\(SOUS\.surveillance==='service'\?vueService\(\):survAvert\(\)\+vueSurveillance\(\)\)/.test(rv));
+vrai('OP MESSAGES : « Service » montre l’état du service, la bascule, puis les versions — dans SA colonne de vueService',
+  /corpsServiceMsg\(\)\+blocBasculeMsg\(\)\+blocVersionsMsg\(\)/.test(bloc('vueService')));
 const vs = bloc('vueSurveillance');
 vrai('⛔ la liste des incidents ne porte plus les versions ni la sortie de Firebase', vs.length > 500 && !/blocVersions|blocSortieFirebase/.test(vs));
-vrai('⛔ « Service » d’OP GESTION : les versions puis la sortie de Firebase, et rien d’OP MESSAGES',
-  /function vueServiceGestion\(\)\{[\s\S]*?blocVersions\(\)\+blocSortieFirebase\(\);\s*\}/.test(bloc('vueServiceGestion')) && !/Msg\(/.test(bloc('vueServiceGestion').replace('enTete', '')));
+{ const vsv = bloc('vueService'), colG = (/var cg=([\s\S]*?);\s*var cm=/.exec(vsv) || [0, ''])[1];
+  vrai('⛔ « Service » d’OP GESTION : les versions puis la sortie de Firebase, et rien d’OP MESSAGES dans SA colonne',
+    /blocVersions\(\)\+blocSortieFirebase\(\)/.test(colG) && !/Msg\(/.test(colG.replace(/srcTitre\('gestion'\)/, '')) && /aGestion\(\)/.test(vsv)); }
 vrai('la bascule d’OP MESSAGES n’est plus sur l’accueil (un lien y mène), et elle est réservée au patron',
-  !/onclick="opmBascule\(\)"/.test(bloc('vueAccueilMsg')) && /onclick="opmBascule\(\)"/.test(bloc('blocBasculeMsg')) && /MYROLE!=='patron'\) return ''/.test(bloc('blocBasculeMsg')));
+  bloc('accueilMessages').length > 500 && !/onclick="opmBascule\(\)"/.test(bloc('accueilMessages')) && /onclick="opmBascule\(\)"/.test(bloc('blocBasculeMsg')) && /MYROLE!=='patron'\) return ''/.test(bloc('blocBasculeMsg')));
 vrai('les onglets de la Surveillance se masquent dans le dossier d’un problème (comme ceux d’Entreprises dans une fiche)',
-  /vue==='survgest'\|\|vue==='survmsg'\)&&\(INC\.sel\|\|INC\.grp\)\) return ''/.test(bloc('sousOnglets')));
+  /vue==='surveillance'&&\(INC\.sel\|\|INC\.grp\)\) return ''/.test(bloc('sousOnglets')));
 {
-  const ctx = { SOUS: { survgest: 'service', survmsg: 'service' }, setTab: t => { ctx.ouvert = t; }, INC: { sel: null, f: {} } };
+  const ctx = { SOUS: { surveillance: 'service' }, setTab: t => { ctx.ouvert = t; }, INC: { sel: null, f: {} } };
   vm.createContext(ctx); vm.runInContext(bloc('allerIncidents') + '\n' + bloc('allerIncident'), ctx);
   ctx.allerIncidents();
-  v('⛔ « vers les incidents » ouvre l’onglet Incidents, jamais le dernier onglet vu', [ctx.SOUS.survgest, ctx.SOUS.survmsg, ctx.ouvert], ['apps', 'apps', 'surveillance']);
-  ctx.SOUS.survgest = 'service'; ctx.allerIncident('i1');
-  v('…et un incident précis aussi', [ctx.SOUS.survgest, ctx.INC.sel, ctx.INC.f.statut], ['apps', 'i1', '']);
+  v('⛔ « vers les incidents » ouvre l’onglet Incidents, jamais le dernier onglet vu', [ctx.SOUS.surveillance, ctx.ouvert], ['apps', 'surveillance']);
+  ctx.SOUS.surveillance = 'service'; ctx.allerIncident('i1');
+  v('…et un incident précis aussi', [ctx.SOUS.surveillance, ctx.INC.sel, ctx.INC.f.statut], ['apps', 'i1', '']);
 }
-const libres = []; CODE.replace(/setTab\(\\?'surveillance\\?'\)/g, (m, i) => { const ctx = CODE.slice(Math.max(0, i - 70), i); if (!/survmsg=\\?'service\\?';$/.test(ctx) && !/function allerIncidents\(\)\{[^}]*$/.test(ctx)) libres.push(ctx.slice(-40)); return m; });
+const libres = []; CODE.replace(/setTab\(\\?'surveillance\\?'\)/g, (m, i) => { const ctx = CODE.slice(Math.max(0, i - 70), i); if (!/SOUS\.surveillance=\\?'service\\?';$/.test(ctx) && !/function allerIncidents\(\)\{[^}]*$/.test(ctx)) libres.push(ctx.slice(-40)); return m; });
 v('aucun lien « setTab(surveillance) » direct n’échappe à allerIncidents (hors le lien vers l’onglet Service)', libres, []);
 console.log('\n════ test-1019 : ' + ok + ' ✓  ' + ko + ' ✗ ════');
 process.exit(ko ? 1 : 0);

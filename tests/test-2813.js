@@ -23,10 +23,10 @@ const T = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const corps = (src, entete) => { const i = src.indexOf(entete); if (i < 0) return ''; let j = src.indexOf('{', i), p = 0; for (let k = j; k < src.length; k++) { const c = src[k]; if (c === '{') p++; else if (c === '}') { p--; if (!p) return src.slice(i, k + 1); } } return ''; };
 const ligne = (debut) => { const i = T.indexOf(debut); return i < 0 ? '' : T.slice(i, T.indexOf('\n', i)); };
 const FN = ['function chargerIncidents(', 'function vueIncidents(', 'function incDernierGeste(', 'function incOuverts(', 'function incDeLaConsole(', 'function incTitre(', 'function entNom(', 'function gravite(',
-  'function appDe(', 'function appVisible(', 'function ligneAc(', 'function abnGroupe(', 'function acErr(', 'function videTour(', 'function esc(', 'function jsq(', 'function fmtJour(', 'function fmtAgo(', 'function apiGet('].map(e => corps(T, e));
+  'function appDe(', 'function appVisible(', 'function filtreEff(', 'function sourcesAff(', 'function ligneAc(', 'function abnGroupe(', 'function acErr(', 'function videTour(', 'function esc(', 'function jsq(', 'function fmtJour(', 'function fmtAgo(', 'function apiGet('].map(e => corps(T, e));
 const VARS = ['var INC_GRAV_R=', 'var APP_L='].map(ligne);
 const APPS = corps(T, 'var APPS_TOUR=');
-v('(population) les 19 fonctions, deux tables et APPS_TOUR sont trouvées dans le fichier livré', [FN.filter(f => f.length < 30).length, VARS.map(x => x.length > 15), APPS.length > 100], [0, [true, true], true]);
+v('(population) les 21 fonctions, deux tables et APPS_TOUR sont trouvées dans le fichier livré', [FN.filter(f => f.length < 30).length, VARS.map(x => x.length > 15), APPS.length > 100], [0, [true, true], true]);
 
 (async () => {
   const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'b2813-'));
@@ -65,7 +65,7 @@ v('(population) les 19 fonctions, deux tables et APPS_TOUR sont trouvées dans l
   v('la VRAIE route de statut prend « moyen-pris » en charge, au nom du patron', pris.status, 200);
 
   let jeton = TP, rendus = 0;
-  const bac = { API: 'http://127.0.0.1:' + PORT, fetch, Promise, JSON, Date, String, Array, Math, Error, Number, APP: 'gestion', TAB: 'incidents',
+  const bac = { API: 'http://127.0.0.1:' + PORT, fetch, Promise, JSON, Date, String, Array, Math, Error, Number, MYAPPS: ['gestion', 'messages'], FILTRE: 'gestion', TAB: 'incidents',
     hAuth: () => ({ Authorization: 'Bearer ' + jeton }), srvRepond: r => r, srvMuet: e => { throw e; }, doLogout: () => {}, render: () => { rendus++; },
     msgErreur: () => 'Serveur injoignable.', setBdg: () => {}, majCompteursApp: () => {}, majBarreBas: () => {}, incNoteEnCours: () => false,
     svg: n => '<svg data-ic="' + n + '"></svg>', enTete: (t, ph, ac) => '<h1>' + t + '</h1>', acSquel: () => '<squelette>',
@@ -93,10 +93,12 @@ v('(population) les 19 fonctions, deux tables et APPS_TOUR sont trouvées dans l
   vrai('⛔ un nom d\'entreprise reçu d\'une application est ÉCHAPPÉ', Hm.indexOf('<img src=x') < 0 && Hm.indexOf('&lt;img src=x') > 0);
   vrai('tuiles : 5 ouverts, 1 grave, 4 personne dessus (le grave compris), 1 corrigé', /5 Ouverts 1 Gravité haute 4 Personne dessus 1 Corrigés en 30 jours/.test(X), X.slice(0, 200));
 
-  bac.APP = 'messages';
+  bac.FILTRE = 'messages';
   const Hmsg = bac.vueIncidents();
-  v('dans la console OP MESSAGES, seul son incident paraît', lignes(Hmsg).map(idDe), ['messages']);
-  bac.APP = 'gestion';
+  v('avec le filtre « Messages », seul son incident paraît', lignes(Hmsg).map(idDe), ['messages']);
+  bac.FILTRE = 'tout';
+  v('avec « Tout », les incidents des DEUX applications paraissent (v2.119)', lignes(bac.vueIncidents()).length > lignes(Hmsg).length && lignes(bac.vueIncidents()).map(idDe).indexOf('messages') >= 0, true);
+  bac.FILTRE = 'gestion';
 
   bac.API = 'http://127.0.0.1:1'; bac.chargerIncidents(); await dormir(300);
   const Hav = texte(bac.vueIncidents());
@@ -113,7 +115,7 @@ v('(population) les 19 fonctions, deux tables et APPS_TOUR sont trouvées dans l
 
   const SANS = T.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
   vrai('plus « en construction » ; sa branche de rendu ; chargée à l\'ouverture ; redessinée quand la relève arrive',
-    !/\n  incidents:\['Incidents'/.test(T) && /else if\(TAB==='incidents'\) v\.innerHTML=vueIncidents\(\);/.test(SANS) &&
+    !/\n  incidents:\['Incidents'/.test(T) && /else if\(TAB==='incidents'\) v\.innerHTML=groupeOnglets\('incidents'\)\+vueIncidents\(\);/.test(SANS) &&
     /if\(t==='incidents'&&\(!INC\.loaded\|\|INC\.err\)\) chargerIncidents\(\);/.test(SANS) && (corps(T, 'function chargerIncidents(').match(/TAB==='incidents'/g) || []).length === 2);
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   fin(); process.exit(ko ? 1 : 0);

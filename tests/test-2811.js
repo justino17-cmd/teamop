@@ -23,12 +23,13 @@ let webpush; try { webpush = require(path.join(RACINE, 'server', 'node_modules',
 
 const T = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const corps = (src, entete) => { const i = src.indexOf(entete); if (i < 0) return ''; let j = src.indexOf('{', i), p = 0; for (let k = j; k < src.length; k++) { const c = src[k]; if (c === '{') p++; else if (c === '}') { p--; if (!p) return src.slice(i, k + 1); } } return ''; };
-/* le bloc de l'accueil : de « if(APP==='gestion'&&RAP.l.length) » jusqu'au commentaire du groupe suivant */
-const iB = T.indexOf("if(APP==='gestion'&&RAP.l.length) G.push("), jB = T.indexOf('\n  /* v2.87 : une demande du site', iB);
+/* le bloc de l'accueil : de « if(RAP.l.length) » jusqu'au commentaire du groupe suivant. v2.119 : il vit dans `accueilGestion` (le groupe OP GESTION de l'accueil unique),
+   que `vueAccueil` n'appelle que si la source Gestion est affichée — la condition `APP==='gestion'` est donc celle de cet appel. */
+const iB = T.indexOf("if(RAP.l.length) G.push("), jB = T.indexOf('\n  /* v2.87 : une demande du site', iB);
 const BLOC = iB > 0 && jB > iB ? T.slice(iB, jB) : '';
 const iR = T.indexOf('var RAP={'), RAPV = iR > 0 ? T.slice(iR, T.indexOf('\n', iR)) : '';
-const FN = ['function chargerRapport(', 'function attenteCourte(', 'function ligneAc(', 'function apiGet(', 'function esc(', 'function jsq('].map(e => corps(T, e));
-v('(population) le bloc de l\'accueil, l\'état et les six fonctions sont trouvés dans le fichier livré', [BLOC.length > 300, RAPV.length > 10, FN.map(f => f.length > 40)], [true, true, [true, true, true, true, true, true]]);
+const FN = ['function chargerRapport(', 'function attenteCourte(', 'function ligneAc(', 'function apiGet(', 'function esc(', 'function jsq(', 'function filtreEff(', 'function sourcesAff(', 'function aGestion('].map(e => corps(T, e));
+v('(population) le bloc de l\'accueil, l\'état et les neuf fonctions sont trouvés dans le fichier livré', [BLOC.length > 300, RAPV.length > 10, FN.map(f => f.length > 40)], [true, true, [true, true, true, true, true, true, true, true, true]]);
 const SANS = T.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
 vrai('l\'accueil le charge en entrant (console OP GESTION) et le relit à la minute, onglet visible, accueil ouvert',
   /if\(MYAPPS\.indexOf\('gestion'\)>=0\)\{ chargerRapport\(\); setInterval\(function\(\)\{ if\(document\.visibilityState==='visible'&&TAB==='accueil'\) chargerRapport\(\); \},60000\); \}/.test(SANS));
@@ -83,11 +84,11 @@ vrai('⛔ l\'attente de moins d\'un jour ne porte JAMAIS .p-gris (4,44:1, le cou
 
   console.log('\n── 2. La page : la vraie chargerRapport, puis le vrai bloc de l\'accueil ──');
   let jeton = TP, rendus = 0, deconnexions = 0;
-  const bac = { API: 'http://127.0.0.1:' + PORT, fetch, Promise, JSON, Date, String, Array, Math, Error, MYAPPS: ['gestion'], TAB: 'accueil', APP: 'gestion',
+  const bac = { API: 'http://127.0.0.1:' + PORT, fetch, Promise, JSON, Date, String, Array, Math, Error, MYAPPS: ['gestion', 'messages'], TAB: 'accueil', FILTRE: 'gestion',
     hAuth: () => ({ Authorization: 'Bearer ' + jeton }), srvRepond: r => r, srvMuet: e => { throw e; }, doLogout: () => { deconnexions++; }, render: () => { rendus++; },
     msgErreur: () => 'Serveur injoignable.', svg: n => '<svg data-ic="' + n + '"></svg>', G: [] };
   vm.createContext(bac);
-  vm.runInContext(RAPV + '\n' + FN.join('\n') + '\nthis.RAP=RAP;this.chargerRapport=chargerRapport;this.attenteCourte=attenteCourte;', bac);
+  vm.runInContext(RAPV + '\n' + FN.join('\n') + '\nthis.RAP=RAP;this.chargerRapport=chargerRapport;this.attenteCourte=attenteCourte;this.aGestion=aGestion;', bac);
   const groupe = () => { bac.G = []; vm.runInContext('(function(){ var G=this.G; ' + BLOC + ' }).call(this)', bac); return bac.G.find(g => g.titre === 'Au rapport') || null; };
   v('avant toute lecture : aucun groupe (on ne sait rien, on ne dit rien)', groupe(), null);
   await bac.chargerRapport();
@@ -104,9 +105,10 @@ vrai('⛔ l\'attente de moins d\'un jour ne porte JAMAIS .p-gris (4,44:1, le cou
   vrai('« à traiter » sans personne le DIT (« personne »), en ambre', aTraiter && /à traiter · personne · /.test(aTraiter) && /ac-ico ambre/.test(aTraiter), aTraiter);
   vrai('⛔ passé un jour, l\'attente est en ROUGE (la plus ancienne attend 26 h)', /past p-rouge">26 h</.test(L0), L0);
   v('l\'attente se dit court : « 12 min », « 5 h », « 3 j »', [bac.attenteCourte(Date.now() - 12 * 60000), bac.attenteCourte(Date.now() - 5 * H), bac.attenteCourte(Date.now() - 72 * H)], ['12 min', '5 h', '3 j']);
-  bac.APP = 'messages';
-  v('la console OP MESSAGES ne le montre pas (le Courrier est celui d\'OP GESTION)', groupe(), null);
-  bac.APP = 'gestion';
+  bac.FILTRE = 'messages';
+  v('⛔ filtre « Messages » : la Tour ne relit pas le rapport pour l\'accueil (le Courrier est celui d\'OP GESTION — chargerRapport se tait sur l\'accueil)', bac.aGestion(), false);
+  vrai('⛔ …et l\'accueil ne dessine le groupe OP GESTION (donc « Au rapport ») que si la source Gestion est affichée', (s => /g=G\?accueilGestion\(\):null/.test(s) && /var G=aGestion\(\), M=aMessages\(\)/.test(s))(T.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ')));
+  bac.FILTRE = 'gestion';
   const nom = '<img src=x onerror=alert(1)>';
   bac.RAP.l = [{ statut: 'aTraiter', assigne: '', recuTs: Date.now() - 60000, de: nom, objet: nom }];
   const gx = groupe();
@@ -137,8 +139,8 @@ vrai('⛔ l\'attente de moins d\'un jour ne porte JAMAIS .p-gris (4,44:1, le cou
 
   /* l'accueil (relecture du 22 octobre 2026) : la panne se dit dans « Ce qui n'a pas pu être lu », le vide n'est dit qu'une fois lu, le bandeau compte « compte » */
   const SANS = T.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
-  vrai('⛔ une relève ratée se DIT dans « Ce qui n\'a pas pu être lu », avec « Réessayer » (chargerRapport)', /if\(APP==='gestion'&&RAP\.err\) pannes\.push\(ligneAc\(\{[^]*?action:"chargerRapport\(\)"\}\)\);/.test(SANS));
-  vrai('⛔ « Rien en attente » n\'est dit qu\'une fois « Au rapport » lu (squelette avant)', /else if\(!INC\.loaded\|\|!CLI\.loaded\|\|!ABO\.loaded\|\|\(APP==='gestion'&&MYAPPS\.indexOf\('gestion'\)>=0&&!RAP\.loaded\)\) prio=acSquel\(\);/.test(SANS));
+  vrai('⛔ une relève ratée se DIT dans « Ce qui n\'a pas pu être lu », avec « Réessayer » (chargerRapport)', /if\(RAP\.err\) pannes\.push\(ligneAc\(\{[^]*?action:"chargerRapport\(\)"\}\)\);/.test(SANS));
+  vrai('⛔ « Rien en attente » n\'est dit qu\'une fois « Au rapport » lu (squelette avant)', /else if\(!INC\.loaded\|\|!CLI\.loaded\|\|!ABO\.loaded\|\|!RAP\.loaded\) prio=acSquel\(\);/.test(SANS));
   vrai('le bandeau additionne `compte` quand un groupe le donne, sinon `tot`', /t\+\(g\.compte!=null\?g\.compte:\(g\.tot\|\|0\)\)/.test(SANS));
   vrai('⛔ côté serveur, une date d\'en-tête dans le futur se borne À LA CRÉATION à l\'heure du serveur', /recuTs: Math\.min\(\(env\.date && new Date\(env\.date\)\.getTime\(\)\) \|\| Date\.now\(\), Date\.now\(\)\)/.test(fs.readFileSync(path.join(RACINE, 'server', 'mail.js'), 'utf8')));
 

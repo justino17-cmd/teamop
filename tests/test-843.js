@@ -40,7 +40,7 @@ const ligne = (debut) => { const i = CODE.indexOf(debut); if (i < 0) return ''; 
 const bloc = (debut, fin) => { const i = CODE.indexOf(debut); if (i < 0) return ''; const j = CODE.indexOf(fin, i); return j < 0 ? '' : CODE.slice(i, j + fin.length); };
 
 console.log('1. Les pièces sont là, une fois chacune');
-['tiroirHtml', 'tiroirBasculer', 'tiroirPastille', 'ouvrirTiroir', 'fermerTiroir', 'tiroirAller', 'tiroirApp', 'tiroirRafraichir'].forEach(n =>
+['tiroirHtml', 'tiroirBasculer', 'tiroirPastille', 'ouvrirTiroir', 'fermerTiroir', 'tiroirAller', 'tiroirRafraichir'].forEach(n =>
   v('une seule définition de ' + n, (CODE.match(new RegExp('\\nfunction ' + n + '\\(', 'g')) || []).length, 1));
 const HTML_PASTILLE = (SRC.match(/<button[^>]*id="menu-rond"[^>]*>/) || [''])[0];
 vrai('la pastille est un <button> qui dit ce qu\'il ouvre (aria-controls, aria-expanded, un nom)',
@@ -53,7 +53,7 @@ vrai('   son voile le referme', /<div class="scrim" id="scrim-tiroir" hidden onc
 console.log('\n2. Le tiroir, joué avec les vraies fonctions');
 const MENU = bloc('var MENU=[', '];');
 vrai('le menu est trouvé (population)', MENU.length > 300, MENU.length);
-const JEU = [MENU, ligne('var GROUPE_LIB='), ligne('var PARENT_DE='), ligne('function tabMenu('), fonction('groupeDe'), ligne('var PATRON_SEUL='), fonction('vuePermise'), fonction('menuVisible'),
+const JEU = [MENU, ligne('var GROUPE_LIB='), ligne('var PARENT_DE='), fonction('appsDeVue'), fonction('membresVisibles'), fonction('teteDe'), ligne('function tabMenu('), fonction('groupeDe'), ligne('var PATRON_SEUL='), fonction('vuePermise'), fonction('menuVisible'),
   /* esc tient sur UNE ligne, et son expression régulière porte des guillemets : le compteur d'accolades la prendrait
      pour une chaîne ouverte et déborderait sur la fonction d'après */
   ligne('function esc('),
@@ -63,9 +63,8 @@ function jouer(o) {
   const els = {};
   const el = (id, txt, vu) => { els[id] = { textContent: txt, hidden: vu === false, style: { display: vu === false ? 'none' : '' } }; };
   el('h-sous', o.sous || '');
-  el('app-n-gestion', '2', !!o.nGestion); el('app-n-messages', String(o.nMessages || 0), !!o.nMessages);
-  el('bdg-surv', String(o.surv || 0), !!o.surv); el('bdg-supp', String(o.supp || 0), !!o.supp);
-  const ctx = { MYROLE: o.role || 'patron', APP: o.app || 'gestion', TAB: o.tab || 'accueil', MYAPPS: o.apps || ['gestion'], TOUR_VERSION: 'v9.99',
+  el('bdg-surv', String(o.surv || 0), !!o.surv); el('bdg-att', String(o.supp || 0), !!o.supp);   /* v2.119 : « À traiter » additionne le Courrier et les Demandes (`bdg-att`) */
+  const ctx = { MYROLE: o.role || 'patron', TAB: o.tab || 'accueil', MYAPPS: o.apps || ['gestion'], TOUR_VERSION: 'v9.99',
     $: id => els[id] || null };
   vm.createContext(ctx);
   /* un tiroir absent ou cassé est un ÉCHEC compté, pas une exception : le banc rend toujours son total */
@@ -83,31 +82,28 @@ v('   la vue ouverte (Accueil), et elle seule, est marquée et annoncée (aria-c
 v('   une section par groupe du menu, en capitales dessinées (pas tapées)', (J.h.match(/<div class="ti-sec">/g) || []).length, 7);   // v2.110 (25 octobre 2026) : + Site   // lot 1 (21 octobre 2026) : + Juridique, Équipe d’agents
 v('⛔ aucun id dans le tiroir (bdg-surv, app-n-… sont déjà au menu du bureau : setBdg viserait le mauvais)', (J.h.match(/\sid="/g) || []).length, 0);
 vrai('   le pied : « Personnaliser la barre » (ferme le tiroir, ouvre la feuille) et « Quitter », puis la version',
-  /onclick="fermerTiroir\(true\);ouvrirFeuille\('barre'\)"/.test(J.h) && /class="ti ti-quitter" onclick="doLogout\(\)"/.test(J.h) && /<div class="ti-version">Tour OP GESTION · v9\.99<\/div>/.test(J.h));
+  /onclick="fermerTiroir\(true\);ouvrirFeuille\('barre'\)"/.test(J.h) && /class="ti ti-quitter" onclick="doLogout\(\)"/.test(J.h) && /<div class="ti-version">La Tour · v9\.99<\/div>/.test(J.h));
 vrai('   chaque vue s\'ouvre par tiroirAller (qui referme avant d\'ouvrir)', J.lignes.length && J.h.match(/onclick="tiroirAller\('/g).length === J.lignes.length);
-v('   une seule console : pas d\'interrupteur', /class="app-sw"/.test(J.h), false);
+v('   un compte à une seule application : pas d\'interrupteur', /class="app-sw"/.test(J.h), false);
 
 J = jouer({ surv: 3, supp: 0 });
-v('les compteurs suivent le menu du bureau : Surveillance 3 (rouge), Courrier caché → rien', J.lignes.filter(x => x.bdg).map(x => x.t + '=' + x.bdg), ['surveillance=bdg-r:3']);
+v('les compteurs suivent le menu du bureau : Surveillance 3 (rouge), « À traiter » caché → rien', J.lignes.filter(x => x.bdg).map(x => x.t + '=' + x.bdg), ['surveillance=bdg-r:3']);
 J = jouer({ surv: 0, supp: 5 });
-v('   Courrier 5 (bleu), Surveillance à zéro → rien', J.lignes.filter(x => x.bdg).map(x => x.t + '=' + x.bdg), ['support=bdg-b:5']);
+v('   « À traiter » 5 (bleu — le Courrier et les Demandes réunis), Surveillance à zéro → rien', J.lignes.filter(x => x.bdg).map(x => x.t + '=' + x.bdg), ['support=bdg-b:5']);
 
 J = jouer({ role: 'collaborateur' });
 v('⛔ un collaborateur : ni Accès, ni Équipe, ni Journal, ni Sauvegardes (patron seul, comme le serveur)',
   J.lignes.map(x => x.t).filter(t => ['essais', 'equipe', 'journal', 'donnees'].includes(t)), []);
 v('   … et tout le reste, dans l\'ordre', J.lignes.map(x => x.t), J.vues);
 
-J = jouer({ app: 'messages', apps: ['gestion', 'messages'], tab: 'journal', nMessages: 0, nGestion: true });
-v('console MESSAGES : ses vues seulement', J.lignes.map(x => x.t), J.vues);
-vrai('   population : elles sont moins nombreuses que celles de GESTION', J.vues.length > 0 && J.vues.length < jouer({}).vues.length);
+J = jouer({ apps: ['messages'], tab: 'journal' });
+v('un compte SANS Gestion : ses vues seulement', J.lignes.map(x => x.t), J.vues);
+vrai('   population : elles sont moins nombreuses que celles d\'un compte Gestion', J.vues.length > 0 && J.vues.length < jouer({}).vues.length);
 v('   la vue ouverte (Journal) marquée', J.lignes.filter(x => x.on).map(x => x.t), ['journal']);
-v('⛔ et pas de Courrier dans la console MESSAGES (il est celui d’OP GESTION, v2.85)', J.lignes.map(x => x.t).includes('support'), false);
-const SW = (J.h.match(/<div class="app-sw"[\s\S]*?<\/div>/) || [''])[0];
-v('deux consoles : l\'interrupteur, la console ouverte pressée', [...SW.matchAll(/data-app="(\w+)" aria-pressed="(\w+)"/g)].map(m => m[1] + '=' + m[2]), ['gestion=false', 'messages=true']);
-vrai('   le compteur de l\'autre console est recopié (2), celui qui est caché le reste', /data-app="gestion"[\s\S]*?<span class="app-n">2<\/span>/.test(SW) && /data-app="messages"[\s\S]*?<span class="app-n" hidden>/.test(SW), SW);
-vrai('   chaque bouton change de console par tiroirApp', (SW.match(/onclick="tiroirApp\('/g) || []).length === 2);
-vrai('   la pastille de couleur vient de la table APP_TEINTE (le vérificateur de thème ne lit pas un nom bâti)',
-  /<i style="--c:var\(--app-messages\)"><\/i>MESSAGES/.test(SW) && !/var\(--app-'\+a/.test(fonction('tiroirHtml')), SW);
+v('⛔ et pas de Courrier (il est celui d\'OP GESTION, v2.85) : la tête d\'« À traiter » devient Incidents, celle de « Clients » Comptes OP MESSAGES', [J.lignes.map(x => x.t).includes('support'), J.lignes.map(x => x.t).includes('incidents'), J.lignes.map(x => x.t).includes('comptes')], [false, true, true]);
+J = jouer({ apps: ['gestion', 'messages'], tab: 'incidents' });
+v('un compte à DEUX applications : plus d\'interrupteur de console dans le tiroir (v2.119 — le filtre est dans les vues, pas dans le menu)', [/app-sw|tiroirApp|data-app=/.test(J.h), J.lignes.filter(x => x.on).map(x => x.t)], [false, ['support']]);
+vrai('   …et la vue ouverte DANS un groupe allume la tête du groupe (Incidents → « À traiter »)', J.lignes.filter(x => x.cur).length === 1 && /data-t="support"/.test(J.h));
 
 J = jouer({ sous: 'Jo <img src=x onerror=alert(1)>' });
 vrai('⛔ le nom de qui conduit est ÉCHAPPÉ', J.h.includes('Jo &lt;img src=x onerror=alert(1)&gt;') && !J.h.includes('<img src=x'), (J.h.match(/<div class="ti-nom">[\s\S]*?<\/div>/) || [''])[0]);
@@ -115,8 +111,8 @@ J = jouer({ sous: '' });
 v('   sans nom, pas de ligne vide sous « La Tour »', /<div class="ti-nom"><b>La Tour<\/b><\/div>/.test(J.h), true);
 
 console.log('\n3. Les gardes du geste, relues dans le code');
-const OUV = fonction('ouvrirTiroir'), FER = fonction('fermerTiroir'), ALLER = fonction('tiroirAller'), APPF = fonction('tiroirApp'), PAST = fonction('tiroirPastille'), RAF = fonction('tiroirRafraichir');
-vrai('population : les six fonctions du geste sont trouvées', [OUV, FER, ALLER, APPF, PAST, RAF].every(f => f.length > 20));
+const OUV = fonction('ouvrirTiroir'), FER = fonction('fermerTiroir'), ALLER = fonction('tiroirAller'), PAST = fonction('tiroirPastille'), RAF = fonction('tiroirRafraichir');
+vrai('population : les cinq fonctions du geste sont trouvées', [OUV, FER, ALLER, PAST, RAF].every(f => f.length > 20));
 vrai('⛔ jamais deux panneaux : ouvrir le tiroir referme la feuille « Plus » AVANT de s\'afficher',
   /if\(feuilleVisible\(\)\) fermerFeuille\(\);/.test(OUV) && OUV.indexOf('fermerFeuille()') < OUV.indexOf('t.hidden=false'));
 vrai('   le tiroir est réécrit à chaque ouverture (les compteurs du moment)', /t\.innerHTML=tiroirHtml\(\)/.test(OUV));
@@ -129,7 +125,7 @@ vrai('   le focus entre dans le tiroir, et revient à la pastille SEULEMENT s\'i
 vrai('   la page ne défile pas derrière (classe posée, puis retirée)', /classList\.add\('tiroir-ouvert'\)/.test(OUV) && /classList\.remove\('tiroir-ouvert'\)/.test(FER));
 vrai('   refermer efface le déplacement posé par le doigt (il repart d\'où le doigt l\'a laissé)', /t\.style\.transform='';/.test(FER));
 vrai('⛔ une vue choisie : le tiroir se referme PUIS la vue s\'ouvre sans transition de vue', /fermerTiroir\(\);\s*setTab\(v,true\)/.test(ALLER));
-vrai('   changer de console depuis le tiroir passe par setApp', /setApp\(a,true\)/.test(APPF));
+vrai('   changer de console depuis le tiroir n\'existe plus (tiroirApp et setApp sont supprimés)', !/function tiroirApp\(|setApp\(/.test(CODE));
 console.log('\n3 bis. Un seul point de rafraîchissement (relecture : Ctrl+Maj+G, le retour, un compteur)');
 v('⛔ setTab, setBdg et majCompteursApp redessinent le tiroir ouvert', ['setTab', 'setBdg', 'majCompteursApp'].map(n => /tiroirRafraichir\(\);\s*\}$/.test(fonction(n))), [true, true, true]);
 vrai('   rien si le tiroir est fermé', /if\(!_tiroirOuvert\) return;/.test(RAF));

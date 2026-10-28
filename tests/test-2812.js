@@ -97,8 +97,8 @@ async function await0() {
 
   const SANS = T.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
   const VB = corps(T, 'var VUES_BIENTOT=');
-  vrai('la page n\'est plus « en construction » (hors de VUES_BIENTOT), elle a sa branche de rendu', !/\bfacturation:/.test(T.slice(T.indexOf('var VUES_BIENTOT='), T.indexOf('};', T.indexOf('var VUES_BIENTOT=')))) && /else if\(TAB==='facturation'\) v\.innerHTML=vueFacturation\(\);/.test(SANS));
-  vrai('elle se charge à l\'ouverture (et se relit après une panne)', /if\(t==='facturation'&&\(!ABO\.loaded\|\|ABO\.err\)\) chargerAbos\(\);/.test(SANS));
+  vrai('la page n\'est plus « en construction » (hors de VUES_BIENTOT), elle a sa branche de rendu', !/\bfacturation:/.test(T.slice(T.indexOf('var VUES_BIENTOT='), T.indexOf('};', T.indexOf('var VUES_BIENTOT=')))) && /SOUS\.abonnements==='facturation'\?vueFacturation\(\)/.test(SANS));
+  vrai('elle se charge à l\'ouverture (et se relit après une panne)', /if\(s==='facturation'&&\(!ABO\.loaded\|\|ABO\.err\)\) chargerAbos\(\);/.test(SANS) && /if\(t==='abonnements'\)\{ if\(!ABO\.loaded\|\|ABO\.err\) chargerAbos\(\);/.test(SANS));
   void VB;
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);

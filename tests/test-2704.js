@@ -56,7 +56,7 @@ console.log('\n── 2704 · 1. La page : l\'ancien Courrier n\'existe plus, OP
   vrai('⛔ le module ne se charge QU\'À L\'OUVERTURE du Courrier : ni balise <script src="opcourrier.js"> dans la page, ni appel au démarrage',
     !/<script[^>]*opcourrier\.js/.test(BRUT) && /document\.createElement\('script'\)/.test(corps(BRUT, 'function courrierCharger(')) && (CODE.match(/courrierCharger\(/g) || []).length === 2);
   const rv = corps(BRUT, 'function renderVue(');
-  vrai('⛔ la vue Courrier passe par courrierGarde : une relève (render) ne reconstruit pas le module vivant', /TAB==='support'\)\{ if\(!courrierGarde\(v\)\)\{ v\.innerHTML=vueCourrier\(\); courrierMonter\(\); \} \}/.test(rv));
+  vrai('⛔ la vue Courrier passe par courrierGarde : une relève (render) ne reconstruit pas le module vivant', /TAB==='support'\)\{ if\(!courrierGarde\(v\)\)\{ v\.innerHTML=groupeOnglets\('support'\)\+vueCourrier\(\); courrierMonter\(\); \} \}/.test(rv));
   vrai('⛔ quitter le Courrier le DÉMONTE (sa minuterie ne redessinerait pas une autre vue)', /if\(TAB!=='support'\) courrierDemonter\(\)/.test(rv) && rv.indexOf('vuePermise(TAB)') < rv.indexOf('courrierDemonter'));
   vrai('⛔ la déconnexion démonte le module ET vide sa clé (brouillons, tri appris) — la Tour ne les laisse pas à la personne suivante', /function doLogout\(\)\{ try\{ courrierDemonter\(\); localStorage\.removeItem\('tour_courrier'\)/.test(BRUT));
   vrai('⛔ le jour / la nuit se suivent EN DIRECT : modeApplique relit le thème du module', /function modeApplique\([^)]*\)\{[^}]*COUR\.inst\.rafraichir\(\{donnees:false\}\)/.test(BRUT));
