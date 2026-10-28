@@ -214,5 +214,24 @@ console.log('\n── 3130 · 6. B10 — huit nuisibles de plus ──');
   const typeFor = (/const typeFor=n=>\(\{([^}]*)\}\[n\]\|\|'([^']*)'\)/.exec(N) || []);
   vrai('B10 les générateurs « une intervention par nuisible » donnent à « Termites » le type « Traitement xylophage » (deux endroits)', (N.match(/'Termites':'Traitement xylophage','Pigeons'/g) || []).length === 2 && !!typeFor[1]); }
 
-console.log('\n════ test-3130 : ' + ok + ' ✓  ' + ko + ' ✗ ════');
-process.exit(ko ? 1 : 0);
+/* ── 7. Relecture adverse : le DOSSIER SANITAIRE portait la même erreur que le registre (section « Produits biocides utilisés ») ── */
+console.log('\n── 3130 · 7. Dossier sanitaire — la section « Produits biocides » écarte aussi ce qui n\'en est pas ──');
+{ const db = JSON.parse(JSON.stringify(BASE)); db.produits.push({ id: 'p11', nom: 'Cage poste seul', amm: '', categorie: 'Piégeage' }); db.plansSite = { c1: [{ id: 'pl1', nom: 'Plan RDC', postes: [{ id: 'po1', num: 1, produitId: 'p11' }, { id: 'po2', num: 2, produitId: 'p1' }] }] };
+  const sortie = { html: '' };
+  const w = { document: { write: h => { sortie.html += h; }, close() {} }, focus() {}, print() {}, close() {} };
+  const init = { db, window: { open: () => w }, esc, toast: () => {}, todayISO: () => '2026-10-28', CATS_NON_BIOCIDES: CATS_NON_BIO,
+    plansOf: () => db.plansSite.c1, photoPid: () => '', planImgSrc: () => '', planImgsResoudre: async () => {}, docEntete: () => ({ nom: 'Dératisation Test', couleur: '#124E78', logo: '' }),
+    socDuClient: () => '', docCoordLignes: () => [], encreSur: () => '#fff', fmtShort: d => d, techNames: x => (x.techIds || []).join(','), papPlanNum: () => 1, papPlanPrintHtml: () => '',
+    papZoneOf: () => '', uniteCompat: () => true, stockConv: q => q, mentionRegl: () => false, MENTION_REGL: '', currentUser: { prenom: 'T' }, fullName: () => 'T',
+    produit: id => db.produits.find(q => q.id === id), techName: new Function('db', 'return ' + TECHNAME)(db) };
+  const b = bac(F, ['papDossierSanitaire', 'ligneBiocide'], init);
+  (async () => {
+    await b.fn.papDossierSanitaire('c1');
+    const h = sortie.html, sec = h.slice(h.indexOf('3. Produits biocides utilisés'), h.indexOf('4. Certificats'));
+    vrai('(population) le dossier s\'imprime, et sa section « Produits biocides » contient des lignes', sec.length > 60 && /Bromadiolone bloc/.test(sec), sec.slice(0, 200));
+    vrai('dossier : ni plaque engluée, ni EPI, ni poudreuse, ni grillage dans les « Produits biocides » (passages ET postes du plan)', !/Plaque engluée|Demi-masque|Poudreuse|Grillage|Cage poste seul/.test(sec), sec);
+    vrai('dossier : le rodonticide du plan, le gel, le désinfectant, le piège qui PORTE une AMM et la saisie libre restent', ['Bromadiolone bloc', 'Gel blattes', 'Désinfectant surfaces', 'Piège avec AMM déclarée', 'Appât maison'].every(n => sec.includes(n)), sec);
+  })().then(fin, e => { console.error(e); ko++; fin(); });
+}
+
+function fin() { console.log('\n════ test-3130 : ' + ok + ' ✓  ' + ko + ' ✗ ════'); process.exit(ko ? 1 : 0); }

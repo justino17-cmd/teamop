@@ -25656,11 +25656,13 @@ async function papDossierSanitaire(cid){
     const qL=(l.qte!=null?(+l.qte||0):1);
     if(l.nomLibre){ const uL=l.unite||''; const k2='libre:'+l.nomLibre+'|'+uL; prodMap[k2]=prodMap[k2]||{p:{nom:l.nomLibre+' (hors stock)'},q:0,u:uL}; prodMap[k2].q+=qL; return; }
     const p=db.produits.find(q=>q.id===l.produitId); if(!p) return;
+    /* Section « Produits biocides » : un piège, une plaque engluée, un EPI n'y ont pas leur place (même règle que le registre sanitaire). */
+    if(!ligneBiocide(p)) return;
     prodVus.add(p.id);
     const uP=p.unite||l.unite||'', uL=l.unite||uP, ok=uniteCompat(uL,uP);
     const u=ok?uP:uL, k=p.id+'|'+u;
     prodMap[k]=prodMap[k]||{p,q:0,u}; prodMap[k].q+=(ok?stockConv(qL,uL,uP):qL); }));
-  plans.forEach(pl=>(pl.postes||[]).forEach(po=>{ const p=db.produits.find(q=>q.id===po.produitId); if(p&&!prodVus.has(p.id)){ prodVus.add(p.id); prodMap[p.id+'|'+(p.unite||'')]={p,q:0,u:p.unite||''}; } }));
+  plans.forEach(pl=>(pl.postes||[]).forEach(po=>{ const p=db.produits.find(q=>q.id===po.produitId); if(p&&ligneBiocide(p)&&!prodVus.has(p.id)){ prodVus.add(p.id); prodMap[p.id+'|'+(p.unite||'')]={p,q:0,u:p.unite||''}; } }));
   const prodRows=Object.values(prodMap).map(x=>{ const q=Math.round(x.q*10000)/10000;
     return `<tr><td>${esc(x.p.nom)}</td><td>${esc(x.p.amm||'—')}</td><td>${esc(x.p.matiereActive||'—')}</td><td style="text-align:right">${q?String(q).replace('.',',')+' '+esc(x.u||''):'—'}</td></tr>`; }).join('');
   // 5. Certibiocide des techniciens intervenus
