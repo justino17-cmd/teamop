@@ -329,19 +329,25 @@ body > .sr-seul { top: 0; left: 0; }
 .tabs {
   position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px));
   bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)); margin: 0 auto; max-width: 480px;
-  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 2px; padding: 7px; border-radius: 34px;
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: var(--tg, 2px); padding: var(--tp, 7px); border-radius: 34px;
   background: var(--tab-bar); -webkit-backdrop-filter: blur(24px) saturate(200%); backdrop-filter: blur(24px) saturate(200%);
   border: 0; box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;
 }
 .tabs-bulle {
-  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 14px - (var(--n, 4) - 1) * 2px) / var(--n, 4)); border-radius: 26px;
+  position: absolute; top: var(--tp, 7px); bottom: var(--tp, 7px); left: var(--tp, 7px); width: calc((100% - 2 * var(--tp, 7px) - (var(--n, 4) - 1) * var(--tg, 2px)) / var(--n, 4)); border-radius: 26px;
   background: var(--tab-active-bg); box-shadow: var(--tab-active-shadow);
-  translate: calc(var(--i) * (100% + 2px)) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
+  translate: calc(var(--i) * (100% + var(--tg, 2px))) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
 }
 .tab {
   position: relative; z-index: 1; min-width: 0; min-height: 50px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   color: var(--tab-inactif-fg); font-size: 11px; font-weight: 500; letter-spacing: .01em; transition: color .25s, transform .12s ease-out;
 }
+/* ⛔ SEPT ONGLETS (côté Pro avec le Courrier : Accueil, Messages, Contacts, Appels, Réunions, Agenda, Courrier — 26 octobre 2026) : à 390 px chaque colonne tombe à 52 px, et « Messages » (≈ 50 à 55 px selon la police) s'y écrirait « Messag… » ;
+   le plancher d'écriture (11 px, test-856) interdit de rapetisser. La barre se resserre (marges 8 px, rembourrage 4 px, plus d'écart : la bulle suit les mêmes variables) et, comme les barres d'Android à plus de cinq entrées, SEUL L'ONGLET ACTIF
+   dit son nom — les autres gardent leur icône, et leur nom reste lu (il sort de l'écran, il n'est pas retiré). Posé par `construireNavigation` dès qu'il y a 7 onglets ou plus : sans le Courrier (production), six onglets gardent tous leur libellé. */
+.tabs.dense { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); --tp: 4px; --tg: 0px; }
+.tabs.dense .tab:not([aria-current="page"]) > span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.tabs.dense .tab[aria-current="page"] > span { max-width: none; overflow: visible; text-overflow: clip; }
 .tab .ic { font-size: 24px; }
 .tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab:active { transform: scale(.94); }
@@ -662,6 +668,19 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .notif-texte { font-size: 15px; line-height: 20px; letter-spacing: -.01em; text-wrap: pretty; overflow-wrap: anywhere; }
 .notif-aide { font-size: 13px; line-height: 17px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .notif-aide:empty { display: none; }
+/* ⛔ PENDANT UN APPEL OU UNE RÉUNION, LA BANNIÈRE D'UNE AUTRE CONVERSATION RESTE, PLUS FINE, ET NE REÇOIT QUE LE TOUCHER DE SON BOUTON (décision du 26 octobre 2026 ; testeur « salle#4 ») : posée sur le titre et sur « Quitter »
+   de la salle, elle ouvrait la conversation — et réduisait la salle — au moindre toucher du coin de l'écran où elle passait. Elle se lit toujours (c'est ce qui prévient d'un message) ; le geste qui quitte la salle est
+   maintenant un bouton à elle, « Ouvrir ». Hors appel, rien ne change : toute la bannière se touche, comme avant. */
+.notif-ouvrir { display: none; }
+html[data-appel] .notif { padding: 6px 8px 6px 12px; gap: 8px; border-radius: 18px; }
+html[data-appel] .notif img { width: 24px; height: 24px; border-radius: 7px; }
+html[data-appel] .notif-tete { display: none; }                                 /* « OP MESSAGES · maintenant » : la salle est déjà dans OP MESSAGES — l'expéditeur et son message suffisent */
+html[data-appel] .notif-texte { font-size: 14px; line-height: 18px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-aide { font-size: 13px; line-height: 17px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-aide:empty { display: none; }
+html[data-appel] .notif.on.touchable { pointer-events: none; cursor: default; }
+html[data-appel] .notif-ouvrir:not([hidden]) { display: inline-flex; align-items: center; position: relative; flex: none; min-height: 32px; padding: 0 14px; border-radius: 999px; background: var(--fill); color: var(--on-fill); font-size: 14px; font-weight: 600; pointer-events: auto; cursor: pointer; }
+html[data-appel] .notif-ouvrir::after { content: ""; position: absolute; inset: -6px -4px; }      /* la zone du doigt : 44 px de haut, la banderole reste fine */
 
 /* ══ 7 ter. LA MISE À JOUR — « Nouvelle version d'OP MESSAGES » puis l'écran de la barre ══════════════════════════════════════════════
    Demandé le 5 octobre 2026 : « que ça soit comme OP GESTION, une barre et la mise à jour qui se fait, ou même que ça affiche “mettre à jour” ».
@@ -824,6 +843,9 @@ button.photo:active { transform: scale(.97); }
 .statut { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
 .saisie-ind { align-self: flex-start; display: flex; align-items: center; gap: 4px; padding: 10px 14px; margin-top: 8px; border-radius: 20px 20px 20px 6px; background: var(--bubble-in); }
 .saisie-ind i { width: 7px; height: 7px; border-radius: 50%; background: var(--sub); animation: saisie 1.2s infinite; }
+.saisie-ind.avec-nom { max-width: 100%; box-sizing: border-box; }
+.saisie-ind i { flex: none; }
+.saisie-qui { min-width: 0; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 17px; color: var(--sub-meta); }      /* `--sub-meta`, pas `--sub` : sur la bulle reçue, `--sub` ne fait que 3,19:1 (mesuré à la sonde) */      /* « Léa écrit… » : en groupe seulement */
 .saisie-ind i:nth-child(2) { animation-delay: .2s; }
 .saisie-ind i:nth-child(3) { animation-delay: .4s; }
 @keyframes saisie { 0%, 60%, 100% { opacity: .35; transform: none; } 30% { opacity: 1; transform: translateY(-2px); } }
@@ -1365,6 +1387,8 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .reglage[aria-haspopup="menu"] .reglage-texte { color: var(--text); }
 .reglage[aria-haspopup="menu"] .reglage-valeur { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-txt); }
 .reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+.epingle-bouton[aria-expanded="true"] { anchor-name: --deroule; }      /* l'épingle dont le menu « Désépingler » est ouvert */
+.epingle-bouton { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }      /* l'appui long ouvre NOTRE menu : pas la loupe ni la sélection du navigateur */
 #btn-agenda-plus[aria-expanded="true"], .mini.membre-gerer[aria-expanded="true"] { anchor-name: --deroule; }      /* le « + » de l'Agenda (15 octobre 2026 : son menu sort de lui, comme le « + » du Calendrier d'Apple) et le « … » d'un membre — sans ancre, le menu tombait au pied de la feuille */
 .chev-ud { width: 9px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .deroule { min-width: 232px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 6px; border: var(--line); border-radius: 20px; overflow: auto; overscroll-behavior: contain;
@@ -1373,6 +1397,8 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .deroule:popover-open { animation: deroule-sort .2s cubic-bezier(.2,.8,.2,1) both; }
 @supports (anchor-name: --deroule) {
   .deroule { position-anchor: --deroule; inset: auto; top: anchor(bottom); right: anchor(right); margin: 6px 0 0; position-try-fallbacks: flip-block; transform-origin: 85% 0; }
+  /* le menu d'une épingle sort À GAUCHE de l'épingle (elles sont rangées à gauche de l'écran : aligné à droite, un menu de 232 px sortirait de l'écran) */
+  .deroule.depuis-epingle { right: auto; left: anchor(left); transform-origin: 15% 0; }
 }
 @keyframes deroule-sort { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
 
@@ -1894,6 +1920,28 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-btn.plein { background: #fff; color: #000; }
 .salle-btn.danger { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-btn[aria-disabled="true"], .salle-btn:disabled { opacity: .5; }
+/* ⛔ L'ÉCRAN DE SORTIE D'UNE SALLE (décision du 26 octobre 2026) : un refus d'entrer ne ramène plus « tout de suite à l'écran d'avant » avec une phrase de 2,4 s qu'on n'a pas lue — l'écran RESTE, avec la raison et « Retour » ;
+   la fin d'une réunion montre la durée et qui était là, avec « Revenir à la conversation ». Même géométrie que la salle (elle occupe la zone de contenu, la barre latérale reste), même fond sombre. */
+.sortie-ecran {
+  position: fixed; z-index: 37; top: var(--hl-h); left: 0; right: 0; bottom: 0; display: none; align-items: center; justify-content: center; overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) calc(env(safe-area-inset-right, 0px) + 20px) calc(env(safe-area-inset-bottom, 0px) + 24px) calc(env(safe-area-inset-left, 0px) + 20px);
+  background: var(--salle-fond); color: #fff; outline: none; text-align: center;
+}
+html[data-sortie] .sortie-ecran { display: flex; }
+html[data-sortie] .appel-ecran, html[data-sortie] .salle-ecran { display: none; }
+@media (min-width: 900px) { .sortie-ecran { left: 236px; } }
+.sortie-carte { width: min(420px, 100%); margin: auto; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.sortie-icone { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--salle-vitre); }
+.sortie-icone .ic { width: 28px; height: 28px; stroke-width: 2; }
+.sortie-titre { margin: 0; font-size: 24px; line-height: 30px; font-weight: 700; overflow-wrap: anywhere; }
+.sortie-raison { margin: 0; font-size: 16px; line-height: 22px; color: var(--salle-sub); overflow-wrap: anywhere; }
+.sortie-raison:empty { display: none; }
+.sortie-faits { width: 100%; margin: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.sortie-faits:empty { display: none; }
+.sortie-faits > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 14px; background: var(--salle-vitre); }
+.sortie-faits dt { font-size: 13px; line-height: 17px; color: var(--salle-sub); }
+.sortie-faits dd { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; overflow-wrap: anywhere; }
+.sortie-ecran .salle-btn { width: 100%; min-height: 48px; margin-top: 6px; font-size: 17px; }
 .salle-scene {
   position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 8px; align-content: center; width: 100%; max-width: 1100px; margin-inline: auto;
   padding: 8px max(14px, env(safe-area-inset-right, 0px)) 8px max(14px, env(safe-area-inset-left, 0px)); grid-template-columns: repeat(auto-fit, minmax(min(160px, 46%), 1fr));
@@ -2274,6 +2322,21 @@ a.menu-action { text-decoration: none; }
 @keyframes msg-cible { 0%, 35% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
+/* ── L'ONGLET « RÉUNIONS » (26 octobre 2026) : « Nouvelle réunion » en tête, bien visible ; sur chaque ligne à venir, ses gestes SOUS le texte (« Rejoindre », « Lien invité ») — à côté, deux pastilles
+   ne laissent plus de place au titre sur un téléphone de 360 px (la colonne de texte cède tout, et aucun contrôle de débordement ne la voit). Chaque geste fait 44 px au moins. ── */
+.lr-haut { margin: 0 0 16px; }
+.lr-nouvelle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; padding: 0 20px; border-radius: 24px; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; }
+.lr-nouvelle .ic { font-size: 20px; }
+.lr-haut .lr-nouvelle { max-width: 420px; }
+.lr-vide { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.lr-vide .lr-nouvelle { width: auto; min-width: 220px; }
+.reunion-li.avec-gestes { flex-wrap: wrap; }
+.reunion-li.avec-gestes > .reunion-gestes { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 12px; }
+.reunion-gestes > .reunion-rejoindre { min-height: 44px; padding: 0 18px; }
+.reunion-lien { flex: none; align-self: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--field); color: var(--accent-txt); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.reunion-lien .ic { font-size: 18px; }
+.lien-neuf { margin-bottom: 18px; }
+.lien-neuf .info-note { margin-top: 0; }
 .salle-attente b { display: block; }
 
 /* ══ 20. LE BUREAU — l'interface d'un ORDINATEUR (Mac, Windows, navigateur), « 100 % façon Apple » ═════════════════════════════════════════════════════════
@@ -2325,7 +2388,7 @@ a.menu-action { text-decoration: none; }
   .btn-plus:hover { background: var(--field); }
   .btn-plus .pastille { width: 22px; height: 22px; background: transparent; color: var(--text); }
   /* sur une vue de liste (Appels, Agenda, Contacts), le contenu se lit dans une colonne de lecture ; la barre d'outils, elle, prend toute la largeur */
-  #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
+  #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-reunions-liste > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
   #vue-reunions > #mois { max-width: 1120px; }
 
   /* la recherche : le champ du Mac — 28 px, coins de 7 px, 13 px */
@@ -2655,6 +2718,7 @@ a.menu-action { text-decoration: none; }
       </div>
       <ul class="carte-liste" id="liste-appels" role="list" aria-label="Appels"></ul>
     </section>
+    <section class="vue" id="vue-reunions-liste" aria-labelledby="titre-reunions-liste" hidden></section>
     <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
     <section class="vue" id="vue-accueil" aria-labelledby="titre-accueil" hidden></section>
     <section class="vue" id="vue-courrier" aria-labelledby="titre-courrier" hidden></section>
@@ -2711,6 +2775,10 @@ a.menu-action { text-decoration: none; }
         <button type="button" class="compo-bouton envoyer presse" id="enreg-envoyer" aria-label="Envoyer le message vocal"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
       </div>
       <p class="compo-ferme" id="compo-ferme" hidden>Seuls les admins peuvent écrire dans ce groupe.</p>
+      <div class="compo-invit compo-bloque" id="compo-bloque" role="group" aria-labelledby="compo-bloque-texte" hidden>
+        <p id="compo-bloque-texte"></p>
+        <div class="compo-invit-gestes"><button type="button" class="accepter presse" data-debloquer>Débloquer</button></div>
+      </div>
       <div class="compo-invit" id="compo-invit" role="group" aria-labelledby="compo-invit-texte" hidden>
         <p id="compo-invit-texte"></p>
         <div class="compo-invit-gestes"><button type="button" class="accepter presse" data-invit="accepter">Accepter</button><button type="button" class="presse" data-invit="refuser">Refuser</button><button type="button" class="bloquer presse" data-invit="bloquer">Bloquer</button></div>
@@ -2789,6 +2857,15 @@ a.menu-action { text-decoration: none; }
       <div class="salle-panneau-tete"><h3 id="salle-panneau-titre"></h3><button type="button" class="presse" id="salle-panneau-fermer" aria-label="Fermer ce panneau"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <div id="salle-panneau-corps"></div>
       <input type="file" id="salle-doc" hidden>
+    </div>
+  </section>
+  <section class="sortie-ecran" id="sortie-ecran" role="region" aria-labelledby="sortie-titre" tabindex="-1">
+    <div class="sortie-carte">
+      <span class="sortie-icone" aria-hidden="true"><svg class="ic"><use href="#i-raccrocher"/></svg></span>
+      <h2 class="sortie-titre" id="sortie-titre"></h2>
+      <p class="sortie-raison" id="sortie-raison"></p>
+      <dl class="sortie-faits" id="sortie-faits"></dl>
+      <button type="button" class="salle-btn plein presse" id="sortie-bouton">Retour</button>
     </div>
   </section>
 </div>
@@ -2886,6 +2963,7 @@ a.menu-action { text-decoration: none; }
 <div class="notif" id="notif" data-glass="1" role="status" aria-live="polite" aria-atomic="true">
   <img src="../../icons/opmsg-192.png" alt="" width="38" height="38">
   <span class="notif-corps"><span class="notif-tete"><b>OP MESSAGES</b><span>maintenant</span></span><span class="notif-texte" id="notif-texte"></span><span class="notif-aide" id="notif-aide"></span></span>
+  <button type="button" class="notif-ouvrir presse" id="notif-ouvrir" hidden>Ouvrir</button>
 </div>
 <div class="mot" id="mot" role="status" aria-live="polite"></div>
 <div class="maj-bandeau" id="maj-bandeau" data-glass="1" role="status" aria-live="polite" hidden>
@@ -2974,6 +3052,9 @@ a.menu-action { text-decoration: none; }
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels, les appels audio et vidéo.' },
     /* avec l'agenda personnel (le service), l'onglet porte les deux : « Agenda » ; l'aperçu garde « Réunions » */
     reunions: { titre: CAP.agenda ? 'Agenda' : 'Réunions',  icone: CAP.agenda ? 'i-agenda' : 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
+    /* « côté pro » (26 octobre 2026, « pourquoi j'ai pas Réunions ? ») : l'onglet RÉUNIONS, à part de l'Agenda — la liste de ce qui vient (le geste « Nouvelle réunion », « Rejoindre », « Lien invité »), puis ce qui est passé.
+       Le côté Pro seulement, comme le tableau de bord et le Courrier ; il n'existe que là où l'Agenda existe (il s'insère juste avant lui, au démarrage — voir `demarrer`) */
+    'reunions-liste': { titre: 'Réunions', icone: 'i-video', texte: 'Tes réunions à venir et passées, le lien invité, la programmation.' },
     /* « côté pro » (18 octobre 2026) : OP COURRIER, la messagerie e-mail — le MÊME module que dans OP GESTION et dans la Tour. Une rubrique du côté Pro seulement, et sur la bêta seulement (`courrierOuvert`) */
     courrier: { titre: 'Courrier', icone: 'i-courrier', texte: 'Tes e-mails : tes boîtes mail, lues et écrites ici.' },
     /* « Profil » (6 octobre 2026 : « je veux que les réglages soient dans le profil ») : la page s'ouvre sur MOI — photo, nom, identifiant — et les réglages sont rangés dessous,
@@ -3196,7 +3277,11 @@ a.menu-action { text-decoration: none; }
     if (!archivees.length) etat.listeArchives = false;
     /* ⛔ une RECHERCHE cherche partout : des deux côtés, et dans les Archivées */
     const base = etat.listeInvit ? invits : etat.listeArchives ? archivees : etat.conversations.filter(c => c.invitation !== 'recue' && (q || (dansMode(c) && !c.archive)));     // ⛔ une RECHERCHE cherche des deux côtés : on ne perd pas une conversation parce qu'on est du mauvais
-    const vues = base.filter(c => !q || norme(c.nom).includes(q) || norme(c.apercu).includes(q));
+    /* ⛔ UNE CONVERSATION ÉPINGLÉE N'EST QUE EN HAUT (décision du 26 octobre 2026 : « elle ne s'affiche plus en double, en haut ET dans la liste ») — tant que la rangée du haut est visible. Une recherche, le
+       mode « Modifier » (qui coche des lignes), « Archivées » et « Invitations » cachent cette rangée : la conversation reste alors dans la liste, UNE seule fois chaque fois. */
+    const epingleHaut = !etat.listeInvit && !etat.listeArchives && !etat.selection && !q;
+    const enHaut = c => epingleHaut && c.epingle && !c.archive && c.invitation !== 'recue' && dansMode(c);
+    const vues = base.filter(c => !enHaut(c) && (!q || norme(c.nom).includes(q) || norme(c.apercu).includes(q)));
     /* une conversation PARTIE (quittée, passée de l'autre côté) ne reste pas cochée — une conversation que la recherche cache, si : effacer la recherche la rend cochée */
     if (etat.selection) for (const id of Array.from(etat.selection)) if (!etat.conversations.some(c => c.id === id && dansMode(c))) etat.selection.delete(id);
     const tete = etat.listeArchives ? '<li class="liste-invit-tete"><button type="button" class="presse" data-archives-retour>' + icone('i-gauche') + '<span>Messages</span></button><h2>Archivées</h2></li>' +
@@ -3208,16 +3293,54 @@ a.menu-action { text-decoration: none; }
        recherche (qui refait toute la liste) rejouerait l'entrée de chaque groupe créé depuis le début */
     const neuves = new Set(etat.neuves); etat.neuves.clear();
     const pied = !etat.listeInvit && !etat.listeArchives && !q && !etat.selection && archivees.length ? ligneArchives(archivees) : '';
-    $('liste-conv').innerHTML = tete + (vues.length || tete || pied ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') + pied :
+    /* toutes les conversations du côté sont épinglées : la rangée du haut les porte, la liste n'a rien à dire (« Aucune conversation » serait faux) */
+    const toutesEnHaut = !vues.length && !tete && !pied && etat.conversations.some(enHaut);
+    $('liste-conv').innerHTML = tete + (toutesEnHaut ? '' : vues.length || tete || pied ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') + pied :
       (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>'
         : !q && modesActifs() ? '<li class="vide">' + (etat.mode === 'pro' ? 'Aucune conversation Pro pour l\'instant : les canaux de ton entreprise, tes réunions et tes échanges avec tes collègues viennent ici.' : 'Aucune conversation Perso pour l\'instant.') + '</li>'
         : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
-    const pins = etat.listeInvit || etat.listeArchives || etat.selection ? [] : etat.conversations.filter(c => c.epingle && !c.archive && c.invitation !== 'recue' && dansMode(c));
+    const pins = epingleHaut ? etat.conversations.filter(enHaut) : [];
     $('epingles').innerHTML = pins.map(boutonEpingle).join('');
     $('epingles').hidden = !pins.length;
     peindreSelection(); majBadge(); peindreMode();
   }
+  /* ⛔ « DÉSÉPINGLER » SE TROUVE SUR L'ÉPINGLE (décision du 26 octobre 2026) : une conversation épinglée n'est plus dans la liste, donc plus de ligne où la cocher — l'appui long sur l'épingle (le doigt), le clic droit
+     ou la touche Menu (la souris, le clavier) propose « Désépingler ». Le relâcher d'un appui long produit un clic sur l'épingle : on l'avale (un appui long n'OUVRE pas la conversation), et
+     seulement le premier, dans la demi-seconde qui suit. « Modifier » reste un autre chemin (il coche aussi les épinglées, qu'il remet alors dans la liste). */
+  const EPINGLE_LONG_MS = 480;
+  let epingleAppui = null;
+  function menuEpingle(bouton, auDoigt) {
+    const id = bouton.dataset.ouvrir; if (!id || etat.selection || etat.rangement || typeof source.rangerConvs !== 'function') return;
+    const c = etat.conversations.find(x => x.id === id); if (!c || !c.epingle) return;
+    etat.epingleLong = auDoigt ? { relache: 0 } : null;      // le doigt est encore posé : son relâcher (puis le clic qui le suit) ne doit rien ouvrir
+    ouvrirDeroule(bouton, 'Conversation épinglée', c.court || c.nom, [{ valeur: 'desepingler', libelle: 'Désépingler' }], async v => {
+      if (v !== 'desepingler') return;
+      try {
+        const r = await source.rangerConvs([id], 'desepingler');
+        mot(r.faits < r.total ? 'L\'épingle n\'a pas pu être retirée.' : RANGE_DIT.desepingler[0]);
+      } catch (er) { avis(phrase(er, 'L\'épingle n\'a pas pu être retirée.')); }
+      rendreListe();
+    });
+    $('deroule').classList.add('depuis-epingle');
+  }
+  $('epingles').addEventListener('pointerdown', e => {
+    const b = e.target.closest('.epingle-bouton'); if (!b || e.pointerType === 'mouse' || e.button > 0) return;
+    clearTimeout(epingleAppui && epingleAppui.h);
+    epingleAppui = { x: e.clientX, y: e.clientY, h: setTimeout(() => { epingleAppui = null; menuEpingle(b, true); }, EPINGLE_LONG_MS) };
+  });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('epingles').addEventListener(ev, () => { if (epingleAppui) { clearTimeout(epingleAppui.h); epingleAppui = null; } });
+  $('epingles').addEventListener('pointermove', e => { if (epingleAppui && Math.hypot(e.clientX - epingleAppui.x, e.clientY - epingleAppui.y) > 10) { clearTimeout(epingleAppui.h); epingleAppui = null; } });
+  $('epingles').addEventListener('contextmenu', e => {
+    const b = e.target.closest('.epingle-bouton'); if (!b) return;
+    e.preventDefault(); if (epingleAppui) { clearTimeout(epingleAppui.h); epingleAppui = null; }
+    if (!etat.deroule) menuEpingle(b);
+  });
+  /* le relâcher d'un appui long est noté (le PREMIER seulement), et le premier clic qui le suit, dans la demi-seconde, est avalé — OÙ QU'IL TOMBE sur l'épingle : un appui long n'en produit pas toujours,
+     et passé une demi-seconde c'est un nouveau geste (même règle que le menu d'un message). Jamais mesuré depuis l'ouverture du menu : un doigt peut rester posé aussi longtemps qu'il veut. */
+  document.addEventListener('pointerup', e => { if (etat.epingleLong && !etat.epingleLong.relache && e.pointerType !== 'mouse') etat.epingleLong.relache = Date.now(); }, true);
+  const epingleClicAvale = e => { const L = etat.epingleLong; if (!L || !L.relache) return false; etat.epingleLong = null; return !!(e.target.closest && e.target.closest('.epingle-bouton')) && Date.now() - L.relache < 500; };
+
   /* ══ PERSO / PRO (la feuille de style dit le pourquoi) ══
      Le côté d'une conversation vient du service (`cote` : le côté rangé à la main, sinon l'automatique — un canal, une réunion, un collègue, un groupe de collègues : Pro). Le côté où
      l'on travaille est une préférence du COMPTE (`source.modeTravail`, rien n'est rangé sur l'appareil). Ouvrir une conversation de l'autre côté (une recherche, une bannière, un
@@ -3228,7 +3351,8 @@ a.menu-action { text-decoration: none; }
   const modesActifs = () => !!(etat.pro && CAP.modes && typeof source.choisirMode === 'function');
   const coteDe = c => c && c.cote === 'pro' ? 'pro' : 'perso';
   const dansMode = c => !modesActifs() || coteDe(c) === etat.mode;
-  const navPour = () => ORDRE.filter(k => k !== 'reglages' && ((k !== 'accueil' && k !== 'courrier') || !modesActifs() || etat.mode === 'pro'));       // le tableau de bord et le Courrier ne sont que du côté Pro
+  const VUES_PRO = ['accueil', 'courrier', 'reunions-liste'];       // le tableau de bord, le Courrier et l'onglet Réunions ne sont que du côté Pro
+  const navPour = () => ORDRE.filter(k => k !== 'reglages' && (!VUES_PRO.includes(k) || !modesActifs() || etat.mode === 'pro'));
   const segCote = cls => '<div class="seg cote-seg ' + cls + '" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span>' +
     ['perso', 'pro'].map(k => '<button type="button" class="seg-bouton" data-cote="' + k + '" aria-pressed="false">' + NOM_COTE[k] + '<b class="cote-n" hidden></b></button>').join('') + '</div>';
   /* ⛔ CÔTÉ PERSO, « RÉUNION » DEVIENT « RENDEZ-VOUS » (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous
@@ -3281,6 +3405,7 @@ a.menu-action { text-decoration: none; }
       if (etat.route) marquerNav(etat.route.vue);
     }
     if (etat.route && VUES[etat.route.vue]) document.title = VUES[etat.route.vue].titre + suffixeTitre();
+    if (typeof peindreConfirmer === 'function') peindreConfirmer();       // « Confirmer l'envoi » : visible en Pro seulement
   }
   /* depuisCompte : le côté vient du compte (choisi sur un autre appareil) — on le suit sans le réécrire (une écriture par appareil, et chacune repousserait l'événement) */
   async function changerMode(m, depuisOuverture, muet, depuisCompte) {
@@ -3289,10 +3414,11 @@ a.menu-action { text-decoration: none; }
     etat.mode = m; etat.vcCat = null; etat.selection = null; etat.listeArchives = false;      // « Contacts » rouvre sur la catégorie du côté (« Entreprise » en Pro) ; on ne range pas d'un côté à l'autre
     const c0 = etat.conv ? etat.conversations.find(x => x.id === etat.conv) : null;
     rendreListe();
-    if (etat.route && (etat.route.vue === 'accueil' || etat.route.vue === 'courrier') && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
+    if (etat.route && VUES_PRO.includes(etat.route.vue) && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
     else if (!depuisOuverture && c0 && coteDe(c0) !== m && etat.route && etat.route.vue === 'messages' && !etat.route.feuille) remplacer(Object.assign({}, etat.route, { conv: null }));   // la conversation ouverte est de l'autre côté : on la ferme (sauf quand c'est elle qu'on ouvre)
     if (etat.route && etat.route.vue === 'contacts') rendreVueContacts();
     if ($('vue-reunions') && $('vue-reunions').dataset.pret && reu.charge) rendreReunions();      // l'Agenda ne montre que le côté où l'on est
+    if (etat.route && etat.route.vue === 'reunions-liste') rendreListeReunions();               // l'onglet Réunions aussi (il n'est que du côté Pro : le passage à Perso l'a déjà quitté)
     if (etat.route && etat.route.vue === 'appels') rendreAppels();                                   // les Appels aussi
     if (!muet) annonceMode(m);                                   // muet : le geste qui y mène a déjà sa phrase (« Tu as rejoint… »)
     if (depuisCompte) return;
@@ -3455,6 +3581,7 @@ a.menu-action { text-decoration: none; }
     const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '"' + (cls === 'tab' && VUES[cle].court ? ' aria-label="' + esc(VUES[cle].titre) + '"' : '') + '>' + icone(VUES[cle].icone) + '<span>' + esc(cls === 'tab' && VUES[cle].court ? VUES[cle].court : VUES[cle].titre) + '</span>' +
       (cle === 'contacts' ? '<b class="onglet-n" data-onglet-n="contacts" hidden></b>' : '') + '</a>';
     $('tabs').style.setProperty('--n', NAV.length);
+    $('tabs').classList.toggle('dense', NAV.length >= 7);
     $('nav-side').innerHTML = NAV.map(c => lien(c, 'side-lien')).join('');
     $('tabs').insertAdjacentHTML('beforeend', NAV.map(c => lien(c, 'tab')).join(''));
     document.querySelectorAll('.vue > .grand-titre').forEach(h => { if (!(h.previousElementSibling && h.previousElementSibling.classList.contains('moi-pastille')) && h.id !== 'titre-reglages') h.insertAdjacentHTML('beforebegin', pastilleMoi()); });
@@ -3593,6 +3720,7 @@ a.menu-action { text-decoration: none; }
       document.title = VUES[r.vue].titre + suffixeTitre();
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
+      if (r.vue === 'reunions-liste') entrerListeReunions();
       if (prec && prec.vue === 'courrier') courrierDemonter();           // quitter le Courrier démonte le module (sa relève ne tourne pas dans le dos d'une autre vue)
       if (r.vue === 'accueil') entrerAccueil();
       if (r.vue === 'courrier') entrerCourrier();
@@ -3616,7 +3744,7 @@ a.menu-action { text-decoration: none; }
     const veutAppel = r.appel || null;
     if (veutAppel && veutAppel === etat.appelId && etat.appelReduit) restaurerAppel();
     else if (veutAppel !== etat.appelId && !(veutAppel === null && etat.appelReduit)) {
-      if (veutAppel) { if (etat.appelReduit) quitterAppel(); afficherAppel(veutAppel); }
+      if (veutAppel) { if (etat.appelReduit || (etat.appelUI && etat.appelUI.sortie)) quitterAppel(); afficherAppel(veutAppel); }
       else if (appelReductible()) reduireAppel(); else quitterAppel();
     }
     etat.raccrocher = false;
@@ -3659,6 +3787,7 @@ a.menu-action { text-decoration: none; }
     if (e.target.closest('[data-invitations]')) { etat.listeInvit = true; etat.selection = null; rendreListe(); const r = document.querySelector('[data-invit-retour]'); if (r) r.focus({ preventScroll: true }); return; }
     if (e.target.closest('[data-invit-retour]')) { etat.listeInvit = false; rendreListe(); const r = document.querySelector('[data-invitations]'); if (r) r.focus({ preventScroll: true }); return; }
     const o = e.target.closest('[data-ouvrir]');
+    if (o && epingleClicAvale(e)) return;
     if (o) ouvrirDepuisListe(o.dataset.ouvrir, o);
   });
 
@@ -3683,6 +3812,18 @@ a.menu-action { text-decoration: none; }
     majBanniereSalle(c);                     // (version servie) une salle est ouverte pour cette conversation : la bannière propose d'y entrer
   }
   const nomAuteur = id => { const c = contactDe(id); return c ? prenom(c) : '?'; };
+  /* ⛔ EN GROUPE, « ÉCRIT… » DIT QUI (décision du 26 octobre 2026) : « Léa écrit… », « Léa et Hugo écrivent… », « Léa, Hugo et 1 autre écrivent… » — les prénoms, dans l'ordre où ils ont commencé. Une conversation à deux
+     n'a pas besoin de nom (c'est l'autre) : elle garde ses trois points seuls et `''` ici. Le service éteint chaque frappe après 6 s sans nouvelle (`delaiSaisieMs`) : la phrase suit l'ensemble de ceux qui écrivent. */
+  function phraseSaisie(c) {
+    if (!c || !c.saisie || !multi(c)) return '';
+    const ids = Array.isArray(c.saisie.contacts) && c.saisie.contacts.length ? c.saisie.contacts : [c.saisie.contact];
+    const noms = ids.filter((x, i, t) => x && t.indexOf(x) === i).map(id => { const n = nomAuteur(id); return n === '?' ? 'Quelqu\'un' : n; });
+    if (!noms.length) return '';
+    if (noms.length === 1) return noms[0] + ' écrit…';
+    if (noms.length === 2) return noms[0] + ' et ' + noms[1] + ' écrivent…';
+    const reste = noms.length - 2;
+    return noms[0] + ', ' + noms[1] + ' et ' + reste + ' autre' + (reste > 1 ? 's' : '') + ' écrivent…';
+  }
 
   /* ═══ LES MENTIONS (8 octobre 2026 : « @prénom dans un groupe, et la personne est prévenue ») ═══
      Dans un groupe, un canal ou une réunion, « @ » propose les membres (sans moi) ; choisir écrit « @Prénom ». Un prénom se reconnaît SANS accents ni casse, après une non-lettre.
@@ -3885,7 +4026,8 @@ a.menu-action { text-decoration: none; }
     let h = '<span class="carte-msg compte-rendu ' + sens + '" role="group" aria-label="' + esc('Compte rendu : ' + x.titre) + '">' +
       '<span class="cr-tete">' + icone('i-agenda') + '<span><b>Compte rendu</b><span class="cr-titre" dir="auto">' + esc(x.titre) + '</span></span></span>' +
       (quand ? '<span class="cr-quand">' + esc(quand) + '</span>' : '') +
-      '<span class="cr-rub">Présents (' + x.presentsN + ')</span>' + liste(x.presents, x.presentsN, p => dureeCr(p.dureeS));
+      '<span class="cr-rub">Présents (' + x.presentsN + ')</span>' + liste(x.presents, x.presentsN, p => dureeCr(p.dureeS)) +
+      (x.sansCompteN ? '<span class="cr-docs">' + esc(x.sansCompteN > 1 ? x.sansCompteN + ' invités sans compte' : 'Un invité sans compte') + '</span>' : '');
     if (x.absentsN) h += '<span class="cr-rub">Absents (' + x.absentsN + ')</span>' + liste(x.absents, x.absentsN, p => REPONSE_CR[p.reponse] || 'sans réponse');
     if (x.points.length) h += '<span class="cr-rub">Ordre du jour · ' + x.points.filter(p => p.fait).length + ' / ' + x.points.length + '</span><ul class="cr-liste cr-points">' +
       x.points.map(p => '<li' + (p.fait ? ' class="fait"' : '') + '><span class="evt-rond' + (p.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span dir="auto">' + esc(p.texte) + '</span><span class="sr-seul">' + (p.fait ? ', traité' : ', pas traité') + '</span></li>').join('') + '</ul>';
@@ -3962,7 +4104,11 @@ a.menu-action { text-decoration: none; }
       P.push(htmlMessage(c, m, !serie, dernierEnvoye && m.id === dernierEnvoye.id));
       prec = m;
     });
-    if (c.saisie) P.push({ h: '<div class="saisie-ind" role="img" aria-label="' + esc(nomAuteur(c.saisie.contact)) + ' est en train d\'écrire"><i></i><i></i><i></i></div>', st: null });
+    if (c.saisie) {
+      const qui = phraseSaisie(c);
+      P.push({ h: qui ? '<div class="saisie-ind avec-nom" role="img" aria-label="' + esc(qui) + '"><i></i><i></i><i></i><span class="saisie-qui" aria-hidden="true">' + esc(qui) + '</span></div>'
+        : '<div class="saisie-ind" role="img" aria-label="' + esc(nomAuteur(c.saisie.contact)) + ' est en train d\'écrire"><i></i><i></i><i></i></div>', st: null });
+    }
     return P;
   }
   function majStatut(el, st) {
@@ -4014,7 +4160,12 @@ a.menu-action { text-decoration: none; }
     const ferme = !!compoFerme(c);
     /* une invitation REÇUE (ou refusée) : on lit, on répond par un geste — pas de champ ; ENVOYÉE : on écrit, une ligne dit ce qui se passe de l'autre côté */
     const iv = c && c.invitation, recue = iv === 'recue' || iv === 'refusee';
-    $('compo').hidden = ferme || recue || !!enr.etat && enr.etat !== 'repos'; $('compo-ferme').hidden = !ferme;
+    /* ⛔ UN CONTACT QUE J'AI BLOQUÉ (décision du 26 octobre 2026) : sa conversation reste chez moi, LISIBLE, sans champ pour écrire — une phrase le dit, avec le geste pour débloquer. L'autre, lui, ne voit rien
+       changer : c'est le service qui ne lui remet plus rien (`ecritureSilencieuse`). Plus d'appel non plus (le service le refuserait). */
+    const bloque = !!(c && c.bloque && !c.supprime) && !recue;
+    $('compo').hidden = ferme || recue || bloque || !!enr.etat && enr.etat !== 'repos'; $('compo-ferme').hidden = !ferme;
+    $('compo-bloque').hidden = ferme || !bloque; $('conv-cam').hidden = bloque;
+    if (bloque) { fermerConfirmation(); $('compo-bloque-texte').textContent = 'Tu as bloqué ' + ((c.court || c.nom || '').split(' ')[0] || 'cette personne') + '. Tu peux relire cette conversation, plus y écrire.'; }
     if (ferme) $('compo-ferme').textContent = compoFerme(c);
     $('compo-invit').hidden = ferme || !recue;
     if (recue && !ferme) {
@@ -4054,6 +4205,15 @@ a.menu-action { text-decoration: none; }
     finally { document.querySelectorAll('#compo-invit [data-invit]').forEach(x => { x.removeAttribute('aria-disabled'); if (x.dataset.invit === 'bloquer') x.textContent = 'Bloquer'; }); }
   });
   const trouverMessage = mid => etat.convDonnees && etat.convDonnees.messages.find(m => m.id === mid);
+  /* débloquer depuis la conversation : le même geste que dans « Contacts bloqués » ; l'écran se redessine quand la source a relu la liste (la conversation redevient inscriptible) */
+  $('compo-bloque').addEventListener('click', async e => {
+    const b = e.target.closest('[data-debloquer]'), c = etat.convDonnees;
+    if (!b || b.getAttribute('aria-disabled') === 'true' || !c || !c.autre) return;
+    b.setAttribute('aria-disabled', 'true');
+    try { await source.debloquer(c.autre); mot('Contact débloqué'); if (etat.conv === c.id) rafraichirConv(); }
+    catch (er) { avis(phrase(er, 'Le contact n\'a pas pu être débloqué.')); }
+    finally { b.removeAttribute('aria-disabled'); }
+  });
   /* ── LA TRANSCRIPTION D'UN VOCAL (11 octobre 2026 : « une transcription écrite, comme sur Instagram ») ──
      « Voir la transcription » sous un vocal : la demande part au service, qui la calcule UNE fois (sur notre serveur — aucune voix ne sort) et la partage avec tous ceux qui
      peuvent écouter ce vocal. Le texte arrive par le flux ; d'ici là, « Transcription en cours… ». Ce qu'on a ouvert ne vaut que pour cette visite : rien n'est rangé sur l'appareil.
@@ -4325,6 +4485,9 @@ a.menu-action { text-decoration: none; }
      du champ : une photo, un vocal, une carte passent déjà par leur propre geste d'envoi. Ce qu'on retape annule la demande (on ne confirme jamais un texte qu'on n'a pas relu). */
   const CONFIRMER = [['jamais', 'Jamais'], ['groupes', 'Groupes et canaux'], ['partout', 'Partout (côté Pro)']];      // « Partout » ne vaut que du côté Pro : une conversation Perso part sans demander (`confirmationRequise`)
   const confirmerActif = () => !!(etat.pro && CAP.confirmerEnvoi && typeof source.confirmerEnvoi === 'function');
+  /* ⛔ LA LIGNE « CONFIRMER L'ENVOI » SE CACHE EN PERSO (décision du 26 octobre 2026) : ce réglage ne vaut que du côté Pro (une conversation Perso part sans demander, `confirmationRequise`) — la montrer en Perso
+     promettait un réglage qui ne ferait rien. Elle reste dans le Profil, masquée, et reparaît dès qu'on passe en Pro. */
+  const confirmerMasque = () => modesActifs() && etat.mode !== 'pro';
   /* ⛔ la conversation ouverte : ses données, ou — pendant qu'elles se chargent (`ouvrirConv` remet `convDonnees` à null, une seconde en 4G) — son résumé de la liste. Sans ça, un envoi
      fait dans cette fenêtre passait pour une conversation à deux et partait sans demander (relecture du 7 octobre 2026). */
   const convCourante = () => (etat.convDonnees && etat.convDonnees.id === etat.conv ? etat.convDonnees : null) || etat.conversations.find(x => x.id === etat.conv) || null;
@@ -5296,6 +5459,8 @@ a.menu-action { text-decoration: none; }
     /* une demande de contact se TOUCHE : la bannière mène à l'onglet Contacts, où l'on accepte ou refuse */
     const vers = cible === 'contacts' && ORDRE.includes('contacts') ? 'contacts' : cible === 'invitations' ? 'invitations' : /^conv:c_[0-9a-f]{32}$/.test(cible || '') ? cible : '';
     $('notif').dataset.vers = vers; $('notif').classList.toggle('touchable', !!vers);
+    /* le bouton « Ouvrir » (visible seulement pendant un appel, voir la feuille de style) dit où il mène — la bannière, elle, ne reçoit plus de toucher alors */
+    $('notif-ouvrir').hidden = !vers; $('notif-ouvrir').setAttribute('aria-label', vers === 'contacts' ? 'Ouvrir les contacts' : vers === 'invitations' ? 'Ouvrir les invitations' : vers ? 'Ouvrir la conversation' : 'Ouvrir');
     $('notif').classList.add('on');
     minNotif = setTimeout(() => $('notif').classList.remove('on'), 3600);   // ~3,5 s : le paquet dit 3,6 dans la maquette
   }
@@ -5474,6 +5639,8 @@ a.menu-action { text-decoration: none; }
       return '<li><button type="button" class="puce presse" data-retirer="' + esc(id) + '" aria-label="Retirer ' + esc(prenom(c)) + (G.mode === 'appel' ? ' de l\'appel' : ' du groupe') + '">' + avatar(c) +
         '<span class="puce-x" aria-hidden="true">' + icone('i-croix') + '</span><span class="puce-nom">' + esc(prenom(c)) + '</span></button></li>'; }).join('');
     $('g-compteur').textContent = G.choisis.length + ' / ' + choix.length;
+    /* le filigrane du champ DIT le nom qu'aura le groupe si on n'en tape pas (« Léa, Hugo et 2 autres ») */
+    $('g-nom').placeholder = G.mode === 'chat' && G.choisis.length ? nomGroupeParDefaut(G.choisis.map(id => prenom(contactDe(id) || { nom: '' }))) : 'Nom du groupe';
     const transf = G.mode === 'transferer';
     $('g-creer').setAttribute('aria-disabled', (transf ? G.tVers.length && !G.tEnvoi : G.choisis.length) ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
@@ -5632,9 +5799,9 @@ a.menu-action { text-decoration: none; }
     if (etat.creation) return;
     etat.creation = true;
     const prenoms = G.choisis.map(id => prenom(contactDe(id)));
-    const nom = G.nom.trim() || 'Nouveau groupe';
+    const nom = G.nom.trim() || nomGroupeParDefaut(prenoms);      // sans nom saisi : les prénoms des membres (« Léa, Hugo et 2 autres »)
     let c = null, refus = null;
-    try { c = await source.creerGroupe({ nom: G.nom, membres: G.choisis, photo: G.photo, photoBlob: G.photoBlob, annonces: G.annonces, ephemeres: G.ephemeres }); }
+    try { c = await source.creerGroupe({ nom, membres: G.choisis, photo: G.photo, photoBlob: G.photoBlob, annonces: G.annonces, ephemeres: G.ephemeres }); }
     catch (e) { c = null; refus = e; }
     etat.creation = false;
     if (!c) { mot(phrase(refus, 'Le groupe n\'a pas pu être créé.')); return; }
@@ -5770,13 +5937,18 @@ a.menu-action { text-decoration: none; }
     if (ligne && !ligne.hidden) ligne.focus({ preventScroll: true });
   });
   /* ⛔ (m13) la limite du nom d'un groupe se compte en SIGNES (points de code), comme le service (`Array.from(nom).length <= 80`) : `maxlength` compte des unités UTF-16, un émoji en pèse deux —
-     45 émojis tapés, 20 gardés en silence. On coupe ici, au signe près, sans jamais couper un signe en deux. Pendant une composition (clavier chinois, japonais, accents morts) on attend sa fin. */
-  const NOM_GROUPE_MAX = 40;
-  /* ⛔ (p04) UN SEUL COMPTEUR pour le nom d'un groupe, deux limites qui ne bougent pas : la création coupe à 40 (`NOM_GROUPE_MAX`, lot m13), le renommage garde la limite du service, 80 (`NOM_RENOMMAGE_MAX`,
-     `Array.from(nom).length <= 80` dans routes.js) — celle que l'utilisateur connaît (m04 : « maxlength 80 comme le service »). Le défaut n'était pas la limite mais l'UNITÉ : `maxlength="80"` compte des unités
-     UTF-16, 40 émojis pour 80. On ne raccourcit donc rien (un nom de 41 à 80 signes, déjà enregistré, se corrige sans être raboté) ; que la création et le renommage diffèrent (40 contre 80) est une décision
-     de produit, à trancher (REPRISE.md). */
-  const NOM_RENOMMAGE_MAX = 80;
+     45 émojis tapés, 20 gardés en silence. On coupe ici, au signe près, sans jamais couper un signe en deux. Pendant une composition (clavier chinois, japonais, accents morts) on attend sa fin.
+     ⛔ UNE SEULE LIMITE (décision du 26 octobre 2026 : « deux limites, 40 et 80, pour une même chose » → la plus grande) : 80, celle du service, à la création comme au renommage. La création coupait à
+     40 depuis le lot m13 pendant que le renommage et le service acceptaient 80 : un nom de 60 signes se renommait mais ne se créait pas. Rien ne raccourcit un nom déjà enregistré. */
+  const NOM_GROUPE_MAX = 80;
+  /* ⛔ UN GROUPE SANS NOM S'APPELLE PAR SES MEMBRES (décision du 26 octobre 2026, « comme iMessage ») : « Léa », « Léa et Hugo », « Léa, Hugo et Sam », puis « Léa, Hugo et 2 autres » — les deux premiers
+     prénoms, le compte des autres. Fonction PURE (le banc la joue) ; le champ la montre en filigrane avant la création, et le nom reste modifiable depuis les Infos. Le service exige un nom : c'est
+     celui-ci qu'on lui envoie quand le champ est vide (il tient dans la limite du nom, comptée en signes). */
+  const nomGroupeParDefaut = prenoms => {
+    const l = (prenoms || []).map(x => String(x == null ? '' : x).trim()).filter(Boolean);
+    const t = !l.length ? 'Nouveau groupe' : l.length === 1 ? l[0] : l.length === 2 ? l[0] + ' et ' + l[1] : l.length === 3 ? l[0] + ', ' + l[1] + ' et ' + l[2] : l[0] + ', ' + l[1] + ' et ' + (l.length - 2) + ' autres';
+    return Array.from(t).slice(0, NOM_GROUPE_MAX).join('');
+  };
   function limiterNomSignes(champ, max) {
     const signes = Array.from(champ.value);
     if (signes.length > max) champ.value = signes.slice(0, max).join('');
@@ -5870,8 +6042,10 @@ a.menu-action { text-decoration: none; }
   /* ⛔ l'ISSUE d'un appel sortant qui n'a pas abouti passe devant le sens (lot m19, appels@2) : « Appel sortant » d'un appel que l'autre a refusé faisait croire qu'il avait eu lieu */
   const ISSUE_APPEL = { annule: ' annulé', refuse: ' refusé', manque: ' sans réponse', occupe: ' occupé' };
   function libelleAppel(a) {
+    /* ⛔ LES MANQUÉS D'AFFILÉE D'UNE MÊME PERSONNE SONT UNE LIGNE QUI DIT COMBIEN (décision du 26 octobre 2026 : « comme l'iPhone ») : « 3 appels manqués », plus « Appel manqué (3) ». Le regroupement est
+       fait par la source (`repetitions`) ; ici seulement la phrase. Le type n'est pas dit : les trois peuvent être un audio et une vidéo, et la ligne n'en garde qu'un. */
+    if (!a.groupe && a.sens === 'manque' && a.repetitions > 1) return a.repetitions + ' appels manqués';
     let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (ISSUE_APPEL[a.issue] || SENS_APPEL[a.sens] || '');
-    if (a.sens === 'manque' && a.repetitions > 1) t += ' (' + a.repetitions + ')';
     if (a.groupe) t += ' · ' + (a.membres.length + 1) + ' participants';
     if (a.duree > 0) t += ' · ' + dureeCourte(a.duree);
     return t;
@@ -5932,6 +6106,7 @@ a.menu-action { text-decoration: none; }
     let refus = null;
     if (!id) { try { const c = await source.conversationPour(membres); id = c && c.id; } catch (e) { id = null; refus = e; } }
     if (!id) { mot(phrase(refus, 'La conversation n\'a pas pu être ouverte.')); return; }
+    origineAppelEffacer();                      // aller à la conversation est un CHOIX : le raccrochage qui suit ne rouvre pas la feuille d'où l'appel est parti
     const cible = { vue: 'messages', conv: id, feuille: false, photo: null, appel: null }, h = entree();
     if (h && h.n > 0 && h.p && memeRoute(h.p, cible)) rendreEntree(); else remplacer(cible);
   }
@@ -5960,15 +6135,19 @@ a.menu-action { text-decoration: none; }
     }       // un refus du service se DIT (« Cette personne est déjà dans un appel… »), jamais une phrase générique
     etat.declencheurAppel = declencheurEl && declencheurEl.id ? '#' + declencheurEl.id : declencheurEl && declencheurEl.dataset && declencheurEl.dataset.rappeler ? '[data-rappeler="' + declencheurEl.dataset.rappeler.replace(/"/g, '') + '"]' : null;
     const r = Object.assign({}, etat.route, { feuille: false, photo: null, appel: c.id });
+    origineAppelPoser(c.id);
     if (depuisFeuille && etat.route.feuille) remplacer(r); else pousser(r);
     return true;
   }
   /* (version servie) un appel arrive : l'écran d'appel prend la place de ce qui est ouvert, comme un appel qu'on lance — jamais deux appels sur un écran */
   function surAppelEntrant(id) {
-    if (!CAP.appelsMedias || etat.appelId || etat.appelDemarre) return;
+    /* l'écran de sortie d'une salle ne retient pas un appel qui arrive : il prend sa place (`appliquer` referme l'ancien par `quitterAppel`, la sortie unique) */
+    const surSortie = !!(etat.appelUI && etat.appelUI.sortie);
+    if (!CAP.appelsMedias || (etat.appelId && !surSortie) || etat.appelDemarre) return;
     etat.declencheurAppel = null;
     const r = Object.assign({}, etat.route, { feuille: false, photo: null, appel: id });
-    if (etat.route.feuille) remplacer(r); else pousser(r);
+    origineAppelPoser(id);
+    if (surSortie || etat.route.feuille) remplacer(r); else pousser(r);
   }
   const ouvrirAppels = () => { if (!etat.appelId) remplacer({ vue: 'appels', conv: null, feuille: false, photo: null, appel: null }); };
 
@@ -6270,7 +6449,7 @@ a.menu-action { text-decoration: none; }
   }
   /* l'écran DIT l'état : la mise en page, le nom, les vignettes (refaites seulement quand ce qui les décide change), les commandes */
   function rendreAppel() {
-    const A = etat.appelUI; if (!A || !A.snap) return;
+    const A = etat.appelUI; if (!A || !A.snap || A.sortie) return;          // (l'écran de sortie tient la place : la salle n'est plus redessinée dessous)
     const s = A.snap, E = $('appel-ecran');
     if (enSalle(A)) { rendreSalle(A); return; }                       // (salle) une salle où l'on est entré a son propre écran ; la sonnerie, elle, reste ici
     delete document.documentElement.dataset.salle;
@@ -6319,6 +6498,8 @@ a.menu-action { text-decoration: none; }
     synchroInert();
     let snap = null; try { snap = await source.appel(id); } catch (e) { snap = null; }
     if (jeton !== etat.jetonAppel) return;                       // raccroché pendant l'attente
+    /* ⛔ ENTRER DANS UNE SALLE QUI EST DÉJÀ FINIE (un lien ancien, une bannière périmée) NE RAMÈNE PAS TOUT DE SUITE EN ARRIÈRE : l'écran reste et dit pourquoi, avec « Retour » (26 octobre 2026) */
+    { const so = snap && snap.etat === 'termine' && snap.salle && !etat.appelReduit ? sortieDe(null, snap, true) : null; if (so) { A.snap = snap; sortieMontrer(A, so); return; } }
     if (!snap || snap.etat === 'termine') { remplacer(parentDe(etat.route)); mot((snap && snap.avis) || 'Cet appel est terminé.'); return; }
     A.snap = snap; rendreAppel();
     garderEcran(true);
@@ -6330,9 +6511,13 @@ a.menu-action { text-decoration: none; }
   /* un changement dit par la source (quelqu'un répond, l'appel est fini ailleurs) */
   async function rafraichirAppel() {
     const A = etat.appelUI; if (!A || !A.snap) return;
+    if (A.sortie) return;                                                    // l'écran de sortie est posé : rien de plus à dire, la couche se ferme par son bouton
     let snap = null; try { snap = await source.appel(A.id); } catch (e) { snap = null; }
     if (perime(A) || !snap) return;
-    const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant; A.snap = snap;
+    const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant, prec = A.snap; A.snap = snap;
+    /* ⛔ UNE SALLE QUI SE TERMINE SOUS NOS YEUX (refus de l'hôte, retrait, fin de la réunion, réunion annulée) LAISSE UN ÉCRAN, pas une phrase de 2,4 s sur la page d'avant. Réduite (on est ailleurs),
+       la salle se referme comme avant : un écran plein ne tombe pas sur ce qu'on lit. */
+    if (snap.etat === 'termine' && !etat.appelReduit && !etat.raccrocher) { const so = sortieDe(prec, snap, false); if (so) { sortieMontrer(A, so); return; } }
     if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); A.finiParAutre = avant === 'en-cours' && !snap.avis; raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer (raccrocherCouche le sait)
     if (etaitEntrant && !snap.entrant) arreterSonnerie();
     if (avant === 'sonne' && snap.etat === 'en-cours') annonceAppel('Appel connecté');
@@ -6346,11 +6531,53 @@ a.menu-action { text-decoration: none; }
   }
   /* ⛔ LA SORTIE UNIQUE : tout chemin qui retire la couche « appel » de la route passe ici, et rien d'autre ne raccroche. Les pistes sont arrêtées d'ABORD, de façon synchrone ;
      la source l'apprend ensuite (terminerAppel crée la ligne d'historique), et l'écran en garde une phrase pour le lecteur d'écran. */
-  function quitterAppel() {
-    const A = etat.appelUI, id = etat.appelId, cle = etat.declencheurAppel;
-    const parAutre = !!(A && A.finiParAutre), enSalleAvant = !!(A && enSalle(A)), premier = A && A.snap && A.snap.membres && A.snap.membres[0] ? A.snap.membres[0].prenom : '';        // lus AVANT que l'appel soit défait
-    etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null; etat.appelReduit = false;
-    delete document.documentElement.dataset.appelReduit;
+  /* ═══ L'ÉCRAN DE SORTIE D'UNE SALLE (décision du 26 octobre 2026 : « fait les 18 » — salle@4, salle@10) ═══
+     Deux cas, un seul écran, dans la couche de l'appel (la route ne change pas : le retour système, Échap et les onglets le ferment comme n'importe quelle couche) :
+       · « refus » — on n'est pas entré (l'hôte n'a pas accepté, retiré, salle déjà finie, réunion annulée) : le titre, la RAISON que dit le service, « Retour » ;
+       · « fin » — la réunion vient de finir : sa durée, qui était là, « Revenir à la conversation ».
+     Une salle qui finit parce que la connexion est perdue ou que l'appel est pris ailleurs garde son avis d'avant (ce n'est ni un refus ni la fin voulue). Les appels à deux, eux aussi. → null si rien à montrer */
+  const ISSUES_SANS_ECRAN = ['perdu', 'compte', 'pris_ailleurs', 'parti_ailleurs'];
+  function sortieDe(prec, snap, auChargement) {
+    if (!snap || !snap.salle || snap.etat !== 'termine' || ISSUES_SANS_ECRAN.includes(snap.issue)) return null;
+    const reunion = snap.genre === 'reunion', issue = snap.issue || '';
+    const avis = snap.avis || '';
+    if (auChargement) return { mode: 'refus', titre: reunion ? 'Cette réunion est terminée' : 'Cet appel est terminé', raison: avis || 'Tu ne peux plus y entrer.' };
+    if (issue === 'exclu') return { mode: 'refus', titre: 'Tu as été retiré', raison: avis || 'L\'hôte t\'a retiré.' };
+    if (issue === 'annulee' || issue === 'supprimee') return { mode: 'refus', titre: issue === 'annulee' ? 'Réunion annulée' : 'Réunion supprimée', raison: avis };
+    if (issue === 'refuse_hote' || (prec && prec.attente)) return { mode: 'refus', titre: reunion ? 'Tu n\'es pas entré dans la réunion' : 'Tu n\'es pas entré', raison: avis || (reunion ? 'La réunion s\'est terminée avant que tu entres.' : 'L\'appel s\'est terminé avant que tu entres.') };
+    if (reunion) return { mode: 'fin', titre: 'Réunion terminée', raison: avis, duree: snap.duree > 0 ? snap.duree : 0, conv: snap.conv || null };
+    return null;
+  }
+  /* ceux qui étaient là : « Toi, Ana, Ben et 2 autres » — la salle les montrait tous à chacun, l'écran de fin ne dit rien de plus */
+  function sortiePresents(A) {
+    const noms = A.sx && A.sx.etaientLa ? Array.from(A.sx.etaientLa.values()) : [];
+    if (!noms.length) return 'Toi seul';
+    return 'Toi, ' + (noms.length <= 4 ? noms.slice(0, -1).join(', ') + (noms.length > 1 ? ' et ' : '') + noms[noms.length - 1] : noms.slice(0, 3).join(', ') + ' et ' + (noms.length - 3) + ' autres');
+  }
+  function sortieMontrer(A, so) {
+    if (!A || !so || A.sortie) return;
+    A.sortie = so;
+    appelLacherMedias(A);                         // la caméra et le micro s'éteignent tout de suite ; la couche, elle, reste jusqu'au bouton
+    $('sortie-titre').textContent = so.titre;
+    $('sortie-raison').textContent = so.raison || '';
+    const faits = $('sortie-faits'); faits.textContent = '';
+    if (so.mode === 'fin') {
+      const ligne = (dt, dd) => { const d = document.createElement('div'), a = document.createElement('dt'), b = document.createElement('dd'); a.textContent = dt; b.textContent = dd; d.append(a, b); faits.append(d); };
+      if (so.duree > 0) ligne('Durée', dureeSeance(so.duree));
+      ligne('Présents', sortiePresents(A));
+    }
+    const b = $('sortie-bouton'); so.versConv = so.mode === 'fin' && !!so.conv; b.textContent = so.versConv ? 'Revenir à la conversation' : 'Retour';
+    document.documentElement.dataset.sortie = '1';
+    synchroInert();
+    annonceAppel(so.titre + (so.raison ? '. ' + so.raison : ''));
+    $('sortie-ecran').focus({ preventScroll: true });
+  }
+  $('sortie-bouton').addEventListener('click', () => {
+    const A = etat.appelUI; if (!A || !A.sortie) return;
+    if (A.sortie.versConv) ouvrirConversationAvec([], A.sortie.conv); else raccrocherCouche();
+  });
+  /* le relâchement des médias et des minuteries d'un appel : commun à la sortie (`quitterAppel`) et à l'écran de sortie (la caméra ne reste pas allumée derrière « Réunion terminée ») */
+  function appelLacherMedias(A) {
     if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }
     if (A) { if (A.rec) recArreter(A, false); salleNettoyer(A); }
     arreterSonnerie();
@@ -6358,10 +6585,49 @@ a.menu-action { text-decoration: none; }
     if (document.pictureInPictureElement) { try { const p = document.exitPictureInPicture(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* déjà refermée */ } }
     { const au = $('appel-audio-distant'); if (au.srcObject) au.srcObject = null; }
     avisAppelEffacer();
-    delete document.documentElement.dataset.appel; delete document.documentElement.dataset.salle;
+  }
+  /* ⛔ APRÈS UN APPEL, ON REVIENT D'OÙ L'ON EST PARTI (décision du 26 octobre 2026 ; testeur « appels@6 ») : un appel lancé depuis une FEUILLE (la fiche d'une réunion, les détails d'un appel, un contact) la
+     REMPLACE dans l'historique, et raccrocher ramenait à la liste, feuille perdue. L'écran de départ se note à l'appel (`origineAppelPoser`) et se rouvre au raccrochage — seulement si l'écran d'appel
+     était sous les yeux, et jamais par-dessus un autre choix (« Message », un onglet). ⛔ Cet état est à l'APPAREIL (mémoire de la page, doublée par le module de données dans le stockage de l'onglet) : il ne part JAMAIS
+     dans les données partagées, et un rangement refusé ne casse rien. Les feuilles qu'on ne rouvre pas : les sélecteurs (« Nouvel appel », « Nouveau groupe ») — on a choisi, on a appelé, c'est fini —
+     et « avant d'entrer » (la feuille qu'on rouvre est celle d'en dessous). */
+  const FEUILLES_RETOUR = ['reunion', 'info', 'contact', 'convinfo', 'personne', 'evenement'];
+  function origineAppelPoser(id) {
+    let r = etat.route; if (!r || !id) return;
+    if (cleFeuille(r.feuille) === 'avant') { const h = entree(); r = h && h.p ? h.p : Object.assign({}, r, { feuille: false }); }
+    const o = { id, route: { vue: r.vue, conv: r.conv || null, sec: r.sec || null, feuille: r.feuille || false } };
+    etat.origineAppel = o;
+    if (typeof source.origineAppelNoter === 'function') { try { source.origineAppelNoter(o); } catch (e) { /* refusé : la mémoire de la page suffit */ } }       // ⛔ le rangement est celui du MODULE DE DONNÉES (le stockage de l'onglet) : la page n'écrit sur aucun stockage
+  }
+  function origineAppelLire(id) {
+    let o = etat.origineAppel;
+    if (!o && typeof source.origineAppelLire === 'function') { try { o = source.origineAppelLire(id); } catch (e) { o = null; } }
+    return o && o.id === id && o.route ? o : null;
+  }
+  function origineAppelEffacer() { etat.origineAppel = null; if (typeof source.origineAppelEffacer === 'function') { try { source.origineAppelEffacer(); } catch (e) { /* rien à retirer */ } } }
+  function origineAppelRetour(id, visible) {
+    const o = id ? origineAppelLire(id) : null;
+    if (o) origineAppelEffacer();                  // (l'origine d'un appel NEUF, posée avant que celui-ci remplace l'ancien, n'est pas celle qu'on solde ici)
+    if (!o || !visible || !o.route.feuille || !FEUILLES_RETOUR.includes(cleFeuille(o.route.feuille).split(':')[0])) return;
+    /* le départ de la route est différé : `quitterAppel` tourne DANS `appliquer`, une route de plus à l'intérieur ne se pose qu'après */
+    setTimeout(() => {
+      const r = etat.route, b = o.route;
+      if (!r || etat.appelId || r.feuille || r.appel || r.photo || r.vue !== b.vue || (r.conv || null) !== (b.conv || null) || (r.sec || null) !== (b.sec || null)) return;      // l'écran d'arrivée n'est plus le même : on ne tire personne
+      pousser(Object.assign({}, r, { feuille: b.feuille }));
+    }, 0);
+  }
+  function quitterAppel() {
+    const A = etat.appelUI, id = etat.appelId, cle = etat.declencheurAppel;
+    const parAutre = !!(A && A.finiParAutre), enSalleAvant = !!(A && enSalle(A)), premier = A && A.snap && A.snap.membres && A.snap.membres[0] ? A.snap.membres[0].prenom : '';        // lus AVANT que l'appel soit défait
+    const visible = !etat.appelReduit;                 // l'écran d'appel était SOUS LES YEUX (réduit, on est ailleurs : on n'y ramène personne)
+    etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null; etat.appelReduit = false;
+    delete document.documentElement.dataset.appelReduit;
+    appelLacherMedias(A);
+    delete document.documentElement.dataset.appel; delete document.documentElement.dataset.salle; delete document.documentElement.dataset.sortie;
     $('appel-ecran').removeAttribute('data-entrant');         // ⛔ l'écran qui se ferme n'est plus « entrant » : le suivant (un appel qu'on lance) ne reprend ni « Répondre » ni « Refuser » d'une sonnerie perdue — l'appel pris sur l'autre appareil (relecture, T4)
     synchroInert();
     requestAnimationFrame(() => { const b = cle && document.querySelector(cle); if (b && !etat.appelId && b.getClientRects().length) b.focus({ preventScroll: true }); });
+    origineAppelRetour(id, visible);
     if (id) source.terminerAppel(id).then(rec => {
       annonceAppel(rec.duree > 0 || !CAP.appelsMedias ? 'Appel terminé · ' + dureeAppel(rec.duree) : 'Appel terminé');
       const dit = enSalleAvant ? null : phraseFinAppel(parAutre, premier, rec.duree);          // une salle a son propre message de sortie
@@ -6962,6 +7228,7 @@ a.menu-action { text-decoration: none; }
   }
   function peindreConfirmer() {
     const b = $('reg-confirmer'); if (!b || !confirmerActif()) return;
+    b.hidden = confirmerMasque();
     const x = source.confirmerEnvoi();
     b.dataset.valeur = x;
     $('reg-v-confirmer').innerHTML = esc((CONFIRMER.find(y => y[0] === x) || CONFIRMER[0])[1]) + CHEVRON_UD;
@@ -6978,7 +7245,7 @@ a.menu-action { text-decoration: none; }
           regLigne('confidentialite', 'bleu', 'i-cadenas', 'Confidentialité') +
           (CAP.notifications ? regLigne('notifications', 'rouge', 'i-cloche', 'Notifications', '<span class="reglage-valeur" id="reg-v-notif"></span>') : '') +
           /* (15 octobre 2026, « plus simple ») « Confirmer l'envoi » (côté Pro) rejoint la première carte, sous Notifications — il avait sa carte à lui, en bas, après « À propos », pour UNE ligne */
-          (confirmerActif() ? '<button type="button" class="reglage presse" id="reg-confirmer" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reg-tuile t-indigo" aria-hidden="true">' + icone('i-chat') + '</span><span class="reglage-texte">Confirmer l\'envoi</span><span class="reglage-valeur" id="reg-v-confirmer"></span></button>' : '') +
+          (confirmerActif() ? '<button type="button" class="reglage presse" id="reg-confirmer" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"' + (confirmerMasque() ? ' hidden' : '') + '><span class="reg-tuile t-indigo" aria-hidden="true">' + icone('i-chat') + '</span><span class="reglage-texte">Confirmer l\'envoi</span><span class="reglage-valeur" id="reg-v-confirmer"></span></button>' : '') +
           regLigne('contacts', 'vert', 'i-groupe', 'Contacts', '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>') +
           (lieuxPossibles() ? regLigne('lieux', 'sarcelle', 'i-lieu', 'Mes lieux', '<span class="reglage-valeur" id="reg-v-lieux"></span>') : '') +
         '</div><div class="carte reg-menu">' +
@@ -7666,7 +7933,7 @@ a.menu-action { text-decoration: none; }
     etat.deroule = null;
     const D = $('deroule');
     if (typeof D.hidePopover === 'function') try { D.hidePopover(); } catch (e) { /* déjà fermé */ }
-    D.hidden = true; $('deroule-liste').innerHTML = '';
+    D.hidden = true; $('deroule-liste').innerHTML = ''; D.classList.remove('depuis-epingle');
     if (o.declencheur.isConnected) { o.declencheur.setAttribute('aria-expanded', 'false'); if (rendreFocusLigne) rendreFocus(o.declencheur); }
   }
   $('deroule-liste').addEventListener('click', e => {
@@ -7783,7 +8050,8 @@ a.menu-action { text-decoration: none; }
       if (modifiable) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="can-supprimer"><span class="reglage-texte">Supprimer le canal<small>Ses messages sont effacés pour tous.</small></span></button></div>';
     } else if (CAP.reglages) {
       const autre = i.membres.find(m => !m.moi);
-      if (autre) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="bloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Bloquer ce contact</span></button></div>';
+      if (autre && i.bloque) h += '<div class="carte"><button type="button" class="reglage presse" data-act="debloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Débloquer ce contact<small>Tu peux relire cette conversation, plus y écrire.</small></span></button></div>';
+      else if (autre) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="bloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Bloquer ce contact</span></button></div>';
     }
     const dr = etat.deroule && corps.contains(etat.deroule.declencheur) ? etat.deroule.declencheur : null;
     corps.innerHTML = h;
@@ -7918,11 +8186,11 @@ a.menu-action { text-decoration: none; }
       if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && !/lien|copier|quitter/.test(act)) rendreConvInfo();
     } catch (er) { erreurInfo(act === 'ecrire' ? phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.', 'Cette action n\'a pas pu se faire.') : phrase(er, 'Cette action n\'a pas pu se faire.')); }
   });
-  /* ⛔ (p04) le champ « Renommer » d'un groupe coupe au SIGNE, à la limite du service (`NOM_RENOMMAGE_MAX`, 80) — la feuille se redessine, l'écouteur est donc posé sur son corps. Pendant une composition
+  /* ⛔ (p04) le champ « Renommer » d'un groupe coupe au SIGNE, à la limite du service (`NOM_GROUPE_MAX`, 80) — la feuille se redessine, l'écouteur est donc posé sur son corps. Pendant une composition
      (clavier chinois, japonais, accents morts) on attend sa fin. Le service refuse au-delà de 80 : un nom enregistré n'est jamais plus long, et rien n'est coupé en dessous. */
   const limiterRenommage = e => {
     if (!e.target || e.target.id !== 'gr-renom' || (e.type === 'input' && e.isComposing)) return;
-    limiterNomSignes(e.target, NOM_RENOMMAGE_MAX);
+    limiterNomSignes(e.target, NOM_GROUPE_MAX);
   };
   $('info-corps').addEventListener('input', limiterRenommage);
   $('info-corps').addEventListener('compositionend', limiterRenommage);
@@ -8531,16 +8799,18 @@ a.menu-action { text-decoration: none; }
   const convQuittees = new Map();
   /* ce que le toast dit à qui est retiré d'une conversation qu'il regardait : le NOM du groupe ou du canal (« on croit à un bug » quand la page revient à la liste sans l'expliquer), et — si un
      message était en cours — qu'il n'est pas parti. Rien n'est rangé sur l'appareil pour le garder (voulu) : on le DIT, c'est tout. */
-  const motRetire = (c, brouillon) => {
+  const motRetire = (c, brouillon, supprime) => {
     /* le nom passe par une variable : il part dans mot() (textContent), jamais dans du balisage — et test-857 refuse toute concaténation NUE d'un nom, ce qui oblige à le dire */
     const nom = c && c.nom ? String(c.nom) : '';
-    const base = nom && c.type === 'groupe' ? `Tu as été retiré de ${nom}.` : nom && c.type === 'canal' ? `Tu as été retiré du canal ${nom}.` : 'Tu n\'es plus dans cette conversation.';
+    /* ⛔ « SUPPRIMÉ », PAS « RETIRÉ » (décision du 26 octobre 2026) : un canal que son administrateur supprime n'a plus personne à qui l'on ait été « retiré » — il n'existe plus. Le service le dit (`retire` avec
+       `supprime`) ; sans cette indication (un événement venu d'une simple relecture de la liste), on ne sait pas, et la phrase d'avant reste. */
+    const base = supprime && nom && c.type === 'canal' ? `Le canal ${nom} a été supprimé.` : nom && c.type === 'groupe' ? `Tu as été retiré de ${nom}.` : nom && c.type === 'canal' ? `Tu as été retiré du canal ${nom}.` : 'Tu n\'es plus dans cette conversation.';
     return base + (brouillon ? ' Ton message en cours n\'a pas été envoyé.' : '');
   };
-  function surRetire(id) {
+  function surRetire(id, supprime) {
     const voulu = Date.now() - (convQuittees.get(id) || 0) < 30000; convQuittees.delete(id);
     const brouillon = etat.conv === id && !!$('saisie').value.trim();
-    const avis = motRetire(etat.conversations.find(x => x.id === id), brouillon);      // lu AVANT la relecture de la liste (dernière ligne) : le nom vient de la liste que la page avait
+    const avis = motRetire(etat.conversations.find(x => x.id === id), brouillon, supprime === true);      // lu AVANT la relecture de la liste (dernière ligne) : le nom vient de la liste que la page avait
     if (etat.groupe.ouvert && etat.groupe.convId === id) remplacer(Object.assign({}, etat.route, { feuille: false }));
     if (etat.conv === id) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); if (!voulu) mot(avis); }
     rafraichirListe();
@@ -8596,7 +8866,8 @@ a.menu-action { text-decoration: none; }
     fiche: null,                         // { id, donnees, jeton, confirme: null | 'annuler' | 'supprimer', courriel: null | {ouvert, serie}, prevenir, occurrence }
     occurrences: {},                     // l'occurrence touchée dans la liste, par réunion : la fiche parle de CELLE-LÀ
     colleagues: null,                    // les membres de mes espaces que je peux inviter (chargés une fois, à l'ouverture d'un formulaire ou d'une fiche d'hôte)
-    form: null                           // { id|null, choisis: [], rappels: [], notifier, recherche, initial }
+    form: null,                          // { id|null, choisis: [], rappels: [], notifier, recherche, initial }
+    neuve: null                          // la réunion qu'on vient de programmer : sa fiche, à son ouverture, propose « Copier le lien invité »
   };
   const JOUR_MS = 86400000;
   const RAPPELS_REUNION = [[5, '5 minutes avant'], [15, '15 minutes avant'], [60, '1 heure avant'], [1440, '1 jour avant']];
@@ -8786,9 +9057,21 @@ a.menu-action { text-decoration: none; }
     if (reu.decalerEnAttente && etat.groupe.ouvert && etat.groupe.mode === 'decaler') rendreDecaler(reu.decalerEnAttente);
   }
   /* les occurrences de la semaine, rangées par jour (le jour où elles COMMENCENT, à l'heure de l'appareil) */
+  /* ⛔ UNE RÉUNION SUR PLUSIEURS JOURS SE MONTRE CHAQUE JOUR, AVEC SON RANG (décision du 26 octobre 2026 : « chaque jour, avec "jour 2 sur 3" ») : avant, elle n'était rangée que le jour où elle COMMENCE, et les deux
+     jours suivants de l'agenda la cachaient — alors que l'organisateur y est attendu. « Plusieurs jours » = 24 heures ou plus : une soirée qui passe minuit (22:00 → 02:00) reste UN jour, comme dans
+     `jourFinDit`. Le rang se compte en jours de l'appareil (la minuit locale), jamais en tranches de 24 h. → { n, total } ou null */
+  function suiteReunion(o, jour) {
+    if (!o || o.fin - o.debut < 86400000) return null;
+    const d0 = debutDeJour(o.debut), total = Math.round((debutDeJour(o.fin - 1) - d0) / 86400000) + 1, n = Math.round((debutDeJour(jour) - d0) / 86400000) + 1;
+    return total > 1 && n >= 1 && n <= total ? { n, total } : null;
+  }
+  const texteSuite = x => x && x.suite ? 'jour ' + x.suite.n + ' sur ' + x.suite.total : '';
   function occurrencesDuJour(jour) {
     const fin = plusJours(jour, 1), sortie = [];
-    for (const r of reu.liste) if (duCote(coteReu(r))) for (const o of r.occurrences) if (o.debut >= jour && o.debut < fin) sortie.push({ r, o });
+    for (const r of reu.liste) if (duCote(coteReu(r))) for (const o of r.occurrences) {
+      if (o.debut >= jour && o.debut < fin) sortie.push({ r, o, suite: suiteReunion(o, jour) });
+      else if (o.debut < jour && o.fin > jour) { const suite = suiteReunion(o, jour); if (suite) sortie.push({ r, o, suite }); }       // un jour DE PLUS d'une réunion commencée avant : la même occurrence, le même début (la fiche s'ouvre sur la bonne date)
+    }
     /* les événements de l'agenda personnel : ceux qui TOUCHENT le jour (une journée entière, ou qui déborde de la veille), rangés avec les réunions — les journées entières d'abord */
     for (const e of (CAP.agenda ? reu.evenements : [])) if (e.debut < fin && e.fin > jour && duCote(coteEvt(e))) sortie.push({ e, o: { debut: e.journee || e.debut < jour ? jour - 1 : e.debut, fin: e.fin } });
     return sortie.sort((a, b) => a.o.debut - b.o.debut || (a.r ? a.r.id : a.e.id).localeCompare(b.r ? b.r.id : b.e.id));
@@ -8814,27 +9097,33 @@ a.menu-action { text-decoration: none; }
   }
   /* « 42 min », « 1 h 05 » : la durée d'une séance */
   const dureeSeance = s => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
-  function ligneReunion(r, o) {
+  /* ⛔ LE GESTE « LIEN INVITÉ » D'UNE LIGNE (26 octobre 2026, « je trouve pas le lien inviter ») : l'organisateur le trouve sur la ligne de chaque réunion qui vit — pas annulée, pas finie, pas passée —, dans l'onglet Réunions
+     seulement (`liste`). Mêmes conditions que la carte « Invité (sans compte) » de la fiche : la salle existe (`CAP.salles`) et la source sait faire le lien. */
+  const lienInvitePossible = (r, o) => !!(CAP.salles && typeof source.lienInviteReunion === 'function' && r.moi && r.moi.hote && !r.annulee && o && o.fin > Date.now() && !occTerminee(r, o));
+  function ligneReunion(r, o, suite, liste) {
     const { h, note, hz, ville } = libelleHoraire(r, o);
+    const rang = suite ? 'jour ' + suite.n + ' sur ' + suite.total : '';
     /* ⛔ UNE OCCURRENCE QUI A EU LIEU LE DIT (8 octobre 2026 : « une fois que la réunion est terminée pour tous, ça le marque, avec les participants, la durée ») : « Terminée », combien de temps,
        combien sont venus — et, pour l'organisateur, qui (le service ne donne les noms qu'à lui). Plus de « Rejoindre » tant qu'aucune salle n'est rouverte. */
     const se = occTerminee(r, o) ? o.seance : null;
     const etatTxt = se && !r.annulee ? 'Terminée' : libelleEtat(r);
     /* MON trajet (14 octobre 2026) : l'heure de PARTIR pour cette date, tant qu'elle est à venir — jamais pour une réunion annulée, refusée ou finie */
     const tr = r.moi.trajet, partir = tr && !se && !r.annulee && r.moi.statut !== 'decline' && o.debut > Date.now() ? 'Partir à ' + FMT_HEURE.format(o.debut - (tr.minutes + tr.avance) * 60000) : '';
-    const sous = se ? [r.lieu, 'Durée ' + dureeSeance(se.dureeS), se.n + (se.n > 1 ? ' présents' : ' présent')].filter(Boolean)
-      : [r.lieu, partir, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
+    const sous = se ? [maj1(rang), r.lieu, 'Durée ' + dureeSeance(se.dureeS), se.n + (se.n > 1 ? ' présents' : ' présent')].filter(Boolean)
+      : [maj1(rang), r.lieu, partir, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
     const qui = se && se.presents && se.presents.length ? se.presents.map(id => id === MOI.id ? 'Vous' : nomPersonne(id)).join(', ') : '';
     const rej = CAP.salles && r.rejoignable && !r.annulee && !se ? '<button type="button" class="reunion-rejoindre presse" data-rejoindre="' + esc(r.id) + '" aria-label="' + esc('Rejoindre ' + (r.titre || 'la réunion')) + '">Rejoindre</button>' : '';
+    const lien = liste && lienInvitePossible(r, o) ? '<button type="button" class="reunion-lien presse" data-lien-invite="' + esc(r.id) + '" aria-label="' + esc('Copier le lien invité de ' + (r.titre || 'la réunion')) + '">' + icone('i-lien') + 'Lien invité</button>' : '';
+    const gestes = liste ? (rej || lien ? '<span class="reunion-gestes">' + rej + lien + '</span>' : '') : rej;
     /* ⛔ ET UNE OCCURRENCE TERMINÉE NE S'OUVRE PLUS (8 octobre 2026, capture à l'appui : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus ») : la fiche proposait encore
        « Accepter / Peut-être / Refuser » et « Me rappeler » pour une réunion finie. La ligne n'est plus un bouton — un simple bloc de texte, lu tel quel. L'organisateur garde le rapport de
        présence par la conversation de la réunion (son titre mène à la fiche) ; les autres occurrences d'une série, elles, restent des boutons. */
     const ouvre = se ? '<div class="reunion-ligne terminee' + (r.annulee ? ' annulee' : '') + '">'
-      : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
-    return '<li' + (rej ? ' class="reunion-li"' : '') + '>' + ouvre +
-      heureEmpilee(o.debut, o.fin) +
+      : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (rang ? ', ' + rang : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
+    return '<li' + (gestes ? ' class="reunion-li' + (liste ? ' avec-gestes' : '') + '"' : '') + '>' + ouvre +
+      heureEmpilee(o.debut, o.fin, suite && suite.n > 1 ? 'Suite' : '') +
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (qui ? '<span class="reunion-sous">' + esc(qui) + '</span>' : '') + (note && !se ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
-      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + rej + '</li>';
+      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + gestes + '</li>';
   }
   /* ⛔ UNE CASE DE JOUR, POUR LE MOIS ET POUR LA SEMAINE (10 octobre 2026 : « l'agenda du mois, tu vois, sur la semaine, j'aimerais bien un petit truc pareil […] ça fait plus pro ») :
      le NUMÉRO est un bouton (il choisit le jour), chaque rendez-vous est un bouton à lui — il s'ouvre au clic, a son menu au clic droit (ou à l'appui long), se tire à la souris vers un
@@ -8859,16 +9148,17 @@ a.menu-action { text-decoration: none; }
   function puceAgenda(x, t) {
     const journee = journeeElt(x, t), titre = titreElt(x), termine = termineeElt(x);
     const cls = 'mjour-elt' + (journee ? ' journee' : '') + (x.r && x.r.annulee ? ' annulee' : '') + (termine ? ' terminee' : '') + (x.e && x.e.fait ? ' fait' : '');
-    const corps = (journee ? '' : '<time>' + esc(FMT_HEURE.format(x.o.debut)) + '</time>') + esc(titre);
+    const suite = x.suite && x.suite.n > 1;                                   // un jour de plus d'une réunion commencée avant : pas l'heure de son début, le rang
+    const corps = (journee ? '' : '<time>' + esc(suite ? 'J' + x.suite.n + '/' + x.suite.total : FMT_HEURE.format(x.o.debut)) + '</time>') + esc(titre);
     if (termine) return '<span class="' + cls + '" aria-hidden="true">' + corps + '</span>';         // une séance finie ne s'ouvre plus (comme dans la liste du jour) : la case la dit
     const etatTxt = x.r ? libelleEtat(x.r) : x.e.fait ? 'Fait' : '';
-    const lab = titre + ', ' + (journee ? 'toute la journée' : plageLongue(x.o.debut, x.o.fin)) + (etatTxt ? ', ' + etatTxt : '');
+    const lab = titre + ', ' + (journee ? 'toute la journée' : plageLongue(x.o.debut, x.o.fin)) + (x.suite ? ', ' + texteSuite(x) : '') + (etatTxt ? ', ' + etatTxt : '');
     return '<button type="button" class="' + cls + (peutDecaler(x) ? ' bouge' : '') + ' presse" data-ag="' + (x.e ? 'e' : 'r') + '" data-id="' + esc(x.e ? x.e.id : x.r.id) + '" data-debut="' + (+(x.e ? x.e.debut : x.o.debut) || 0) + '" aria-label="' + esc(lab) + '">' + corps + '</button>';
   }
   function caseJour(t, auj, max, semaine) {
     const l = reu.charge ? occurrencesDuJour(t) : [], hors = !semaine && premierDuMois(t) !== reu.mois;
     const vus = l.slice(0, max), reste = l.length - vus.length;
-    const dit = vus.map(x => (journeeElt(x, t) ? '' : FMT_HEURE.format(x.o.debut) + ' ') + titreElt(x)).join(', ') + (reste > 0 ? ' et ' + reste + ' autre' + (reste > 1 ? 's' : '') : '');
+    const dit = vus.map(x => (journeeElt(x, t) || (x.suite && x.suite.n > 1) ? '' : FMT_HEURE.format(x.o.debut) + ' ') + titreElt(x) + (x.suite ? ' (' + texteSuite(x) + ')' : '')).join(', ') + (reste > 0 ? ' et ' + reste + ' autre' + (reste > 1 ? 's' : '') : '');
     return '<div class="mjour' + (hors ? ' hors' : '') + (l.length ? ' avec' : '') + (t === reu.jour ? ' choisi' : '') + '" data-case="' + t + '">' +
       '<button type="button" class="mjour-num presse" data-jour="' + t + '" aria-pressed="' + (t === reu.jour ? 'true' : 'false') + '"' + (t === auj ? ' aria-current="date"' : '') +
         ' aria-label="' + esc(maj1(FMT_JOUR_LONG.format(t)) + ', ' + (l.length ? nombreElts(l) + ' : ' + dit : 'rien de prévu')) + '">' +
@@ -9309,7 +9599,7 @@ a.menu-action { text-decoration: none; }
     if (reu.panne) $('reu-erreur-texte').textContent = phrase(reu.panne, 'L\'agenda n\'a pas pu être chargé.');
     $('liste-reunions').setAttribute('aria-busy', reu.charge ? 'false' : 'true');
     $('liste-reunions').innerHTML = !reu.charge && !reu.panne ? '<li class="vide">Chargement…</li>'
-      : lignes.length ? lignes.map(x => x.e ? ligneEvenement(x.e, reu.jour) : ligneReunion(x.r, x.o)).join('')
+      : lignes.length ? lignes.map(x => x.e ? ligneEvenement(x.e, reu.jour) : ligneReunion(x.r, x.o, x.suite)).join('')
       : reu.panne ? '' : '<li class="vide">' + (CAP.agenda ? 'Rien de prévu ce jour-là' : 'Aucune réunion ce jour-là') + '</li>';
   }
   /* ═══ LE TABLEAU DE BORD — « côté pro » (7 octobre 2026 : « un tableau de bord avec les réunions prévues, les rappels, les appels manqués mais importants ») ═══
@@ -9513,11 +9803,112 @@ a.menu-action { text-decoration: none; }
     if (!CAP.reunions || !$('vue-reunions').dataset.pret) return;
     rendreReunions(); chargerReunions();
   }
+  /* ═══ L'ONGLET « RÉUNIONS » — la liste de ce qui vient, puis de ce qui est passé (26 octobre 2026) ═══════════════════════════════════════════════════════
+     Capture à l'appui : « pourquoi dans OP MESSAGES j'ai pas Réunions ? » puis « je veux un onglet Réunion et je trouve pas le lien inviter ». L'Agenda (semaine, mois, rendez-vous, événements) RESTE tel quel ;
+     cet onglet est la LISTE : les réunions à venir (la plus proche en tête, un intertitre par jour), un « Nouvelle réunion » bien visible, « Rejoindre » quand la salle est ouverte et, pour l'organisateur, « Lien invité »
+     sur chaque ligne ; en dessous, les passées (repliées). ⛔ PAS DE SECONDE MÉCANIQUE : les lignes sont celles de l'Agenda (`ligneReunion`), la fiche est la fiche (`reunion:<id>`), le formulaire est le formulaire
+     (`programmerReunion`), le lien est celui de la fiche (`lienInviteGeste`). Les données viennent de la même lecture (`source.reunions(du, au)`, 62 jours au plus par fenêtre : deux fenêtres, l'une devant, l'autre derrière).
+     Le côté Pro seulement, comme le tableau de bord : côté Perso, « Réunion » devient « Rendez-vous » et vit dans l'Agenda. Une réunion rangée côté Perso à la main ne paraît donc pas ici — la même règle que l'Agenda
+     (`duCote`), qui la montre quand on est de ce côté. */
+  const LR_AVENIR_JOURS = 60, LR_PASSE_JOURS = 30, LR_MAX = 60, LR_PASSEES_MAX = 30;
+  const lr = { charge: false, panne: null, reunions: [], jeton: 0, passeesOuvert: false };
+  /* les deux fenêtres lues : de minuit à +60 jours (ce qui vient) et de −30 jours à demain minuit (ce qui est passé) — chacune sous la limite de 62 jours du service */
+  function fenetresListeReunions(now) { const j0 = minuitDe(now); return { avenir: [j0, plusJours(j0, LR_AVENIR_JOURS)], passe: [plusJours(j0, -LR_PASSE_JOURS), plusJours(j0, 1)] }; }
+  /* une réunion lue dans les DEUX fenêtres (une série, la séance du jour) n'est qu'une : ses occurrences s'unissent par leur début */
+  function fusionReunions(listes) {
+    const par = new Map();
+    for (const l of listes) for (const r of (l || [])) {
+      const vue = par.get(r.id);
+      if (!vue) { par.set(r.id, Object.assign({}, r, { occurrences: r.occurrences.slice() })); continue; }
+      for (const o of r.occurrences) if (!vue.occurrences.some(x => x.debut === o.debut)) vue.occurrences.push(o);
+    }
+    return Array.from(par.values());
+  }
+  /* ce qui vient : une occurrence qui n'est pas finie (en cours comprise) et que la séance n'a pas close ; le reste est passé. Le côté (`duCote`) est celui de l'Agenda. */
+  function partagerListeReunions(reunions, now) {
+    const avenir = [], passees = [];
+    for (const r of reunions) if (duCote(coteReu(r))) for (const o of r.occurrences) (o.fin > now && !occTerminee(r, o) ? avenir : passees).push({ r, o });
+    avenir.sort((x, y) => x.o.debut - y.o.debut || x.r.id.localeCompare(y.r.id));
+    passees.sort((x, y) => y.o.debut - x.o.debut || x.r.id.localeCompare(y.r.id));
+    return { avenir, passees };
+  }
+  /* le HTML des deux listes — une fonction pure (la page l'écrit, les bancs la lisent) */
+  function htmlListeReunions(reunions, now) {
+    const { avenir, passees } = partagerListeReunions(reunions, now);
+    const groupes = (l, cle, etiquette) => { let h = '', jp = null; for (const x of l) { const j = cle(x); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(etiquette(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o, null, true); } return h; };
+    const vus = avenir.slice(0, LR_MAX), vusP = passees.slice(0, LR_PASSEES_MAX);
+    let h = groupes(vus, x => x.o.debut <= now ? -1 : minuitDe(x.o.debut), j => j === -1 ? 'En cours' : libelleJourBord(j));
+    if (avenir.length > LR_MAX) h += '<li class="bord-plus"><button type="button" class="presse" data-lr="agenda">' + esc('Voir les ' + (avenir.length - LR_MAX) + ' autres dans l\'Agenda') + '</button></li>';
+    if (!h) h = '<li class="vide lr-vide"><span>Aucune réunion prévue.</span><button type="button" class="lr-nouvelle presse" data-lr="nouvelle">' + icone('i-plus') + 'Nouvelle réunion</button></li>';
+    return { avenir: h, nAvenir: avenir.length, passees: groupes(vusP, x => minuitDe(x.o.debut), j => maj1(FMT_JOUR_LONG.format(j))), nPassees: passees.length };
+  }
+  function construireListeReunions() {
+    const sec = $('vue-reunions-liste');
+    sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions-liste">' + esc(VUES['reunions-liste'].titre) + '</h1>' +
+      '<div class="lr-haut"><button type="button" class="lr-nouvelle presse" id="lr-nouvelle" data-lr="nouvelle">' + icone('i-plus') + 'Nouvelle réunion</button></div>' +
+      '<p class="liste-erreur" id="lr-erreur" role="alert" hidden><span id="lr-erreur-texte"></span><button type="button" id="lr-erreur-bouton">Réessayer</button></p>' +
+      '<div class="rubrique"><span>À venir</span><span id="lr-avenir-n"></span></div>' +
+      '<ul class="carte-liste" id="lr-avenir" role="list" aria-label="Réunions à venir"></ul>' +
+      '<div class="carte" id="lr-passees-carte" hidden><button type="button" class="reglage presse" id="lr-passees-bouton" data-lr="passees" aria-expanded="false" aria-controls="lr-passees"><span class="reglage-texte">Réunions passées<small>Les ' + LR_PASSE_JOURS + ' derniers jours</small></span><span class="reglage-valeur" id="lr-passees-n"></span>' + CHEVRON + '</button></div>' +
+      '<ul class="carte-liste" id="lr-passees" role="list" aria-label="Réunions passées" hidden></ul>';
+    sec.dataset.pret = '1';
+    sec.addEventListener('click', e => {
+      const lien = e.target.closest('[data-lien-invite]');
+      if (lien) { if (lien.getAttribute('aria-disabled') === 'true') return; lien.setAttribute('aria-disabled', 'true'); const id = lien.dataset.lienInvite; lienInviteGeste('copier', id, titreReunion(id)).finally(() => lien.removeAttribute('aria-disabled')); return; }
+      const j = e.target.closest('[data-rejoindre]');
+      if (j) { rejoindreReunionUI(j.dataset.rejoindre, undefined, j, false); return; }
+      const g = e.target.closest('[data-lr]');
+      if (g) {
+        if (g.dataset.lr === 'nouvelle') { declencheur = g; programmerReunion(); }
+        else if (g.dataset.lr === 'agenda') pousser({ vue: 'reunions', conv: null, feuille: false, photo: null, appel: null });
+        else if (g.dataset.lr === 'passees') { lr.passeesOuvert = !lr.passeesOuvert; rendreListeReunions(); }
+        return;
+      }
+      const b = e.target.closest('[data-reunion]'); if (!b) return;
+      reu.occurrences[b.dataset.reunion] = +b.dataset.debut || null;
+      declencheur = b;
+      pousser(Object.assign({}, etat.route, { feuille: 'reunion:' + b.dataset.reunion }));
+    });
+    $('lr-erreur-bouton').addEventListener('click', () => chargerListeReunions());
+    peindreMode();
+  }
+  function rendreListeReunions() {
+    const sec = $('vue-reunions-liste'); if (!CAP.reunions || !sec || !sec.dataset.pret) return;
+    const H = htmlListeReunions(lr.reunions, Date.now());
+    $('lr-erreur').hidden = !lr.panne;
+    if (lr.panne) $('lr-erreur-texte').textContent = phrase(lr.panne, 'Les réunions n\'ont pas pu être chargées.');
+    $('lr-avenir').setAttribute('aria-busy', lr.charge ? 'false' : 'true');
+    $('lr-avenir').innerHTML = !lr.charge && !lr.panne ? '<li class="vide">Chargement…</li>' : lr.panne && !lr.reunions.length ? '' : H.avenir;
+    $('lr-avenir-n').textContent = lr.charge && H.nAvenir ? String(H.nAvenir) : '';
+    const passees = lr.charge && H.nPassees > 0;
+    $('lr-passees-carte').hidden = !passees;
+    $('lr-passees-bouton').setAttribute('aria-expanded', lr.passeesOuvert ? 'true' : 'false');
+    $('lr-passees-n').textContent = passees ? String(H.nPassees) : '';
+    $('lr-passees').hidden = !passees || !lr.passeesOuvert;
+    $('lr-passees').innerHTML = passees && lr.passeesOuvert ? H.passees : '';
+  }
+  async function chargerListeReunions() {
+    if (!CAP.reunions) return;
+    const n = ++lr.jeton, w = fenetresListeReunions(Date.now());
+    const [a, p] = await Promise.allSettled([source.reunions(w.avenir[0], w.avenir[1]), source.reunions(w.passe[0], w.passe[1])]);
+    if (n !== lr.jeton) return;                      // une lecture plus récente a pris la place pendant l'attente
+    lr.charge = true;
+    if (a.status === 'rejected' || p.status === 'rejected') lr.panne = (a.status === 'rejected' ? a.reason : p.reason) || new Error('panne');      // une moitié qui manque se DIT (jamais une liste vide qui ment)
+    else { lr.panne = null; lr.reunions = fusionReunions([a.value, p.value]); }
+    rendreListeReunions();
+  }
+  /* on arrive sur l'onglet : le côté Pro (comme le tableau de bord), la liste dessinée avec ce qu'on a puis relue */
+  function entrerListeReunions() {
+    if (modesActifs() && etat.mode !== 'pro') changerMode('pro');
+    if (!CAP.reunions || !$('vue-reunions-liste').dataset.pret) return;
+    rendreListeReunions(); chargerListeReunions();
+  }
   /* un changement venu du service (ici ou sur un autre appareil) : l'agenda se relit, la fiche ouverte aussi — une réunion supprimée ferme sa fiche */
   function surReunions(ev) {
     if (!CAP.reunions) return;
     { const A = etat.appelUI; if (enSalle(A) && sx(A).panneau === 'ordre' && A.snap && (!ev.id || ev.id === A.snap.reunion)) salleOrdreCharger(A); }
     if (etat.route && etat.route.vue === 'reunions') chargerReunions(); else reu.charge = false;
+    if (etat.route && etat.route.vue === 'reunions-liste') chargerListeReunions(); else lr.charge = false;      // l'onglet Réunions se relit s'il est sous les yeux, sinon à son entrée
     const G = etat.groupe;
     if (G.ouvert && G.mode === 'reunion' && (!ev.id || ev.id === G.reunionId)) {
       if (ev.supprime && ev.id === G.reunionId) reunionDisparue(reu.fiche); else rendreFiche();
@@ -10879,6 +11270,17 @@ a.menu-action { text-decoration: none; }
     return '<div class="contact avec-actions">' + avatarDe(p.id) + '<span class="contact-texte"><span class="contact-nom">' + esc(nom) + (soi ? ' (vous)' : '') + '</span><span class="contact-role">' + esc(role) + '</span></span>' +
       (moiHote && !hote && !r.annulee ? '<span class="contact-actions"><button type="button" class="mini danger" data-reu="retirer" data-uid="' + esc(p.id) + '" aria-label="' + esc('Retirer ' + nom + ' de la réunion') + '">Retirer</button></span>' : '') + '</div>';
   }
+  /* ⛔ LE LIEN « INVITÉ (SANS COMPTE) » (26 octobre 2026, la demande : « ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux ») : un client sans compte et sans application ouvre le lien dans son navigateur, tape son nom,
+     et ATTEND à la porte — c'est TOI qui le fais entrer. Le lien meurt avec la réunion ; le régénérer tue l'ancien. Juste après la création d'une réunion (`F.neuve`), la même fiche ouvre sur la proposition « Copier le lien invité »,
+     avant la date : c'est le moment où l'on pense à son client. */
+  function htmlInviteSansCompte() {
+    const neuve = !!(reu.fiche && reu.fiche.neuve);
+    return (neuve ? '<div class="carte carte-pad lien-neuf"><p class="info-note">Réunion programmée. Ton client n\'a pas de compte ? Copie le lien invité et envoie-le-lui : il attend, tu le fais entrer.</p><div class="info-actions"><button type="button" class="mini plein" data-reu="inv-neuf">' + icone('i-lien') + ' Copier le lien invité</button></div></div>' : '') +
+      '<div class="rubrique"><span>Invité (sans compte)</span></div><div class="carte">' +
+      '<button type="button" class="reglage presse" data-reu="inv-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien invité<small>Sans compte, sans rien installer : tu fais entrer chaque personne</small></span></button>' +
+      (typeof navigator !== 'undefined' && typeof navigator.share === 'function' ? '<button type="button" class="reglage presse" data-reu="inv-partager">' + icone('i-partager') + '<span class="reglage-texte">Partager le lien invité</span></button>' : '') +
+      '<button type="button" class="reglage presse" data-reu="inv-regenerer"><span class="reglage-texte">Régénérer le lien invité<small>L\'ancien cesse de marcher ; ceux qui attendent sont renvoyés</small></span></button></div>';
+  }
   function htmlFiche(d) {
     const F = reu.fiche, hote = d.moi.hote, o = (F.occurrence && d.repetition !== 'aucune' ? { debut: F.occurrence, fin: F.occurrence + (d.fin - d.debut) } : (d.prochaine || { debut: d.debut, fin: d.fin }));
     const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d);
@@ -10891,6 +11293,13 @@ a.menu-action { text-decoration: none; }
         (rep ? '<div class="reglage">' + icone('i-repeter') + '<span class="reglage-texte">' + esc(rep) + '</span></div>' : '') +
         (d.lieu ? '<div class="reglage">' + icone('i-lieu') + '<span class="reglage-texte">' + (estUrl(d.lieu) ? '<a class="lien-lieu" href="' + esc(d.lieu) + '" target="_blank" rel="noopener noreferrer">' + esc(d.lieu) + '</a>' : esc(d.lieu)) + '</span></div>' : '') +
       '</div>';
+    /* ⛔ UNE RÉUNION TERMINÉE NE SE RÉPOND PLUS, NE SE RAPPELLE PLUS, NE SE PRÉPARE PLUS (décision du 26 octobre 2026 : « retirer Répondre, le rappel et le trajet ; garder les participants et la durée ») :
+       la fiche d'une séance finie (`F.seance`, lue dans la liste — la même règle que la ligne) ne propose ni « Ta réponse », ni « Me rappeler », ni la zone du trajet, ni le lien invité. Ce qui reste est ce qui s'est
+       passé : la durée et les présents (la phrase plus bas) et la liste des participants. */
+    const finie = !!F.seance && !d.annulee;
+    /* ⛔ LE LIEN INVITÉ SE TROUVE EN HAUT DE LA FICHE (26 octobre 2026, « je trouve pas le lien inviter ») : il était sous « Salle », tout en bas des gestes de l'organisateur. Une seule définition (`htmlInviteSansCompte`),
+       posée juste après l'en-tête et la salle (« Rejoindre ») ; rien pour une réunion annulée ou finie, rien sans salle ni sans organisateur. */
+    const inviteHaut = hote && !d.annulee && !finie && CAP.salles && typeof source.lienInviteReunion === 'function';
     /* (salle) la salle de la réunion : entrer quand elle est ouverte, sinon dire qu'elle ne l'est pas encore */
     if (CAP.salles && !d.annulee && d.salle) {
       /* ⛔ LA FICHE DIT CE QUE DIT LA LISTE (17 octobre 2026, testeur) : la ligne d'une réunion dont la séance est finie n'a plus de « Rejoindre » et dit « Terminée » ; la fiche de la même réunion
@@ -10899,17 +11308,18 @@ a.menu-action { text-decoration: none; }
       else if (d.salle.rejoignable) s += '<div class="carte carte-pad"><div class="info-actions"><button type="button" class="mini" data-reu="rejoindre" data-type="video">' + icone('i-video') + ' Rejoindre</button><button type="button" class="mini" data-reu="rejoindre" data-type="audio">' + icone('i-phone') + ' Rejoindre en audio</button></div>' + (d.salle.ouverte ? '<p class="info-note">La salle est ouverte.</p>' : '') + '</div>';
       else s += '<p class="pied-note">La salle s\'ouvre peu avant le début de la réunion.</p>';      // (15 octobre 2026, « plus simple ») une phrase sous la carte, plus une carte à elle seule
     }
+    if (inviteHaut) s += htmlInviteSansCompte();
     /* l'ordre du jour (8 octobre 2026) : chacun le coche ; l'organisateur le pose dans « Modifier la réunion » */
     if (d.ordreDuJour && d.ordreDuJour.length) s += '<div class="rubrique"><span>Ordre du jour</span><span>' + d.ordreDuJour.filter(p => p.fait).length + ' / ' + d.ordreDuJour.length + '</span></div><div class="carte" role="group" aria-label="Ordre du jour">' +
       d.ordreDuJour.map(p => '<button type="button" class="reglage presse odj-point' + (p.fait ? ' fait' : '') + '" role="checkbox" aria-checked="' + (p.fait ? 'true' : 'false') + '" data-reu="odj" data-point="' + esc(p.id) + '"' + (d.annulee ? ' disabled' : '') + '><span class="evt-rond' + (p.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span class="reglage-texte" dir="auto">' + esc(p.texte) + '</span></button>').join('') + '</div>';
     /* ma réponse (un invité, une réunion qui vit encore) */
-    if (!hote && !d.annulee) s += '<div class="rubrique"><span>Ta réponse</span></div><div class="g-choix" role="radiogroup" aria-label="Ta réponse">' +
+    if (!hote && !d.annulee && !finie) s += '<div class="rubrique"><span>Ta réponse</span></div><div class="g-choix" role="radiogroup" aria-label="Ta réponse">' +
       STATUTS_REPONSE.map(x => '<button type="button" class="g-pilule presse" role="radio" aria-checked="' + (d.moi.statut === x[0] ? 'true' : 'false') + '" data-reu="reponse" data-statut="' + x[0] + '">' + esc(x[1]) + '</button>').join('') + '</div>';
     /* mes rappels */
-    if (!d.annulee) s += '<div class="rubrique"><span>Me rappeler</span></div><div class="carte rappels-puces" id="reu-rappels" role="group" aria-label="Mes rappels">' + rappelsHtml + '</div>' +
+    if (!d.annulee && !finie) s += '<div class="rubrique"><span>Me rappeler</span></div><div class="carte rappels-puces" id="reu-rappels" role="group" aria-label="Mes rappels">' + rappelsHtml + '</div>' +
       (d.moi.rappelsPerso ? '<div class="carte"><button type="button" class="reglage presse" data-reu="rappels-defaut"><span class="reglage-texte">Rétablir les rappels de la réunion<small>Ceux que l\'organisateur a choisis</small></span></button></div>' : '');
     /* MON trajet (14 octobre 2026) : sa zone, peinte à part (`peindreTrajetReu`) — un calcul en cours ne redessine pas toute la fiche */
-    s += '<div id="reu-trajet-zone"></div>';
+    if (!finie) s += '<div id="reu-trajet-zone"></div>';
     /* les participants */
     s += '<div class="rubrique"><span>Participants</span><span>' + d.invites.length + (d.plafond ? ' / ' + d.plafond : '') + '</span></div><div class="carte">' + d.invites.map(p => htmlParticipant(d, p, hote)).join('') + '</div>';
     /* inviter d'autres personnes (l'hôte) */
@@ -11018,7 +11428,7 @@ a.menu-action { text-decoration: none; }
     }
     { const se = await seanceFiche(d, id); if (!ouvertePour(id) || reu.fiche !== F || n !== F.jeton) return; if (se !== undefined) F.seance = se; }
     if (CAP.reunions && d.moi.hote && !reu.colleagues) chargerCollegues().then(() => { if (ouvertePour(id) && reu.fiche === F) { corps.dataset.sig = ''; rendreFiche(); } });
-    const sig = JSON.stringify([d, F.seance, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; }),
+    const sig = JSON.stringify([d, F.seance, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, F.neuve, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; }),
       modesActifs() ? ((x) => x ? [x.coteChoisi, x.coteAuto] : null)(etat.conversations.find(x => x.id === d.conv)) : null]);
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || actif.dataset.point || '') : null;
     /* ⛔ l'adresse tapée se garde que le champ ait le focus ou non : toucher « Cette date » déplace le focus sur le bouton AVANT que la fiche se redessine, et l'adresse partait avec l'ancien champ */
@@ -11036,7 +11446,7 @@ a.menu-action { text-decoration: none; }
     if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
     else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || x.dataset.point || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
-  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, presence: null, seance: null, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
+  function ouvrirFicheEtat(id) { const neuve = reu.neuve === id; reu.neuve = null; reu.colleagues = null; reu.fiche = { id, neuve, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, presence: null, seance: null, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
   /* retour à la fiche après un formulaire : l'entrée de la fiche est RENDUE quand c'est elle qui est dessous, sinon on la REMPLACE */
   function versFiche(id) {
     const h = entree(), cible = 'reunion:' + id;
@@ -11098,6 +11508,11 @@ a.menu-action { text-decoration: none; }
           b.removeAttribute('aria-disabled');
           const ok = await copier(location.href.split('#')[0] + '#reunion=' + code);
           mot(act === 'lien-copier' ? (ok ? 'Lien d\'invité copié' : 'Le lien n\'a pas pu être copié') : (ok ? 'Nouveau lien copié : l\'ancien ne marche plus' : 'Lien renouvelé : l\'ancien ne marche plus'));
+        }
+        else if (act === 'inv-copier' || act === 'inv-partager' || act === 'inv-regenerer' || act === 'inv-neuf') {
+          b.setAttribute('aria-disabled', 'true');
+          try { await lienInviteGeste(act === 'inv-copier' || act === 'inv-neuf' ? 'copier' : act === 'inv-partager' ? 'partager' : 'regenerer', id, d.titre); }
+          finally { b.removeAttribute('aria-disabled'); }
         }
         else if (act === 'modifier') ouvrirFeuille('reunion-edit:' + id);
         else if (act === 'presence') { b.setAttribute('aria-disabled', 'true'); F.presence = await source.presenceReunion(id); await relire(); }
@@ -11309,6 +11724,8 @@ a.menu-action { text-decoration: none; }
         mot(r.parLien ? 'Réunion programmée — ' + (r.parLien > 1 ? r.parLien + ' personnes n\'ont pas Messages Pro : envoie-leur le lien de la réunion' : '1 personne n\'a pas Messages Pro : envoie-lui le lien de la réunion')
           : r.nonInvites ? 'Réunion programmée — ' + r.nonInvites + (r.nonInvites > 1 ? ' personnes n\'ont' : ' personne n\'a') + ' pas pu être invitée' + (r.nonInvites > 1 ? 's' : '') : 'Réunion programmée');
         const t = dateDeChaine(c.debut); if (t !== null) { reu.occurrences[r.id] = null; allerAuJour(t); }
+        reu.neuve = r.id;                                    // la fiche qui s'ouvre propose « Copier le lien invité » (une fois : voir `ouvrirFicheEtat`)
+        if (etat.route && etat.route.vue === 'reunions-liste') chargerListeReunions();       // l'onglet Réunions montre la réunion qu'on vient de programmer
         remplacer(Object.assign({}, etat.route, { feuille: 'reunion:' + r.id }));
       } else {
         const I = F.initial, ch = {};
@@ -11470,7 +11887,7 @@ a.menu-action { text-decoration: none; }
   }
   /* « qui parle » change sans qu'aucun cliché ne soit refait : on ne touche qu'aux contours */
   async function majParle() {
-    const A = etat.appelUI; if (!enSalle(A)) return;
+    const A = etat.appelUI; if (!enSalle(A) || A.sortie) return;
     let s = null; try { s = await source.appel(A.id); } catch (e) { s = null; }
     if (perime(A) || !s || !s.salle) return;
     A.snap = s;
@@ -11502,6 +11919,7 @@ a.menu-action { text-decoration: none; }
     if (!s.attente && !A.mediasDemandes) acquerirMedias(A, s.type === 'video');           // en salle d'attente, ni micro ni caméra : on ne s'ouvre à personne avant d'être admis
     if (s.conv && !s.attente && !X.discutee) { X.discutee = true; salleDiscussionCharger(A, true); }           // le fil tel qu'il est à mon ENTRÉE : ce qui arrive ensuite est « nouveau » (la pastille du bouton Discussion)
     $('salle-titre').textContent = s.nom;
+    if (!s.attente) { if (!X.etaientLa) X.etaientLa = new Map(); for (const m of s.membres) if (m.statut === 'present') X.etaientLa.set(m.id, nomM(m)); }      // qui était là : l'écran de fin le dit (tout ce que la salle montrait déjà à chacun) — ⛔ PAS `X.venus`, qui est déjà un Set d'identifiants pour la fin d'un enregistrement (un `.add` sur ma Map jetait, vu à la sonde)
     $('salle-nb').textContent = s.attente ? '' : s.nb + (s.nb > 1 ? ' participants' : ' participant');
     const rec = $('salle-rec'); rec.hidden = !s.rec; rec.setAttribute('role', 'img'); rec.setAttribute('aria-label', s.rec ? 'Enregistrement en cours' + (s.rec.nom === 'vous' ? ' par vous' : ' par ' + s.rec.nom) : '');
     const recPar = s.rec ? s.rec.par : null;
@@ -11598,7 +12016,7 @@ a.menu-action { text-decoration: none; }
     if (X.bandeauMuet && !X.bandeauMic) h += '<div class="salle-bandeau" role="status"><span class="texte">Tu parles ? Ton micro est coupé.</span><button type="button" class="salle-btn plein presse" data-sa="muet-activer">Activer le micro</button><button type="button" class="salle-btn presse" data-sa="muet-ok">OK</button></div>';
     if (X.bandeauMic) h += '<div class="salle-bandeau" role="status"><span class="texte">' + esc(X.bandeauMic.tous ? 'L\'hôte a demandé à tous de couper le micro.' : X.bandeauMic.de + ' a coupé ton micro.') + '</span>' +
       '<button type="button" class="salle-btn plein presse" data-sa="micro-rouvrir">Réactiver le micro</button><button type="button" class="salle-btn presse" data-sa="micro-ok">OK</button></div>';
-    if (attendent.length) h += '<div class="salle-bandeau" role="status"><span class="texte">' + esc(attendent.length === 1 ? nomM(attendent[0]) + ' attend d\'être admis.' : attendent.length + ' personnes attendent d\'être admises.') + '</span>' +
+    if (attendent.length) h += '<div class="salle-bandeau" role="status"><span class="texte">' + esc(attendent.length === 1 ? nomM(attendent[0]) + (attendent[0].invite ? ' (invité sans compte)' : '') + ' attend d\'être admis.' : attendent.length + ' personnes attendent d\'être admises.') + '</span>' +
       '<button type="button" class="salle-btn plein presse" data-sa="' + (attendent.length === 1 ? 'admettre' : 'tout-admettre') + '"' + (attendent.length === 1 ? ' data-uid="' + esc(attendent[0].id) + '"' : '') + '>Admettre' + (attendent.length > 1 ? ' tout le monde' : '') + '</button><button type="button" class="salle-btn presse" data-sa="voir-participants">Voir</button></div>';
     if (so && X.masque !== so.id) {
       const total = so.total | 0;
@@ -11718,14 +12136,14 @@ a.menu-action { text-decoration: none; }
     if (rendreFocus !== false && d && d.isConnected) d.focus({ preventScroll: true });
   }
   const rangAvatar = m => '<span class="avatar av' + (((m.avatar | 0) % 6 + 6) % 6) + '"' + (blob(m.photo) ? ' style="background-image:url(' + esc(m.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(m.photo) ? '' : esc(m.initiales || '')) + '</span>';
-  function etiquettesM(m) { return [m.grade >= 2 ? 'Hôte' : m.grade === 1 ? 'Co-hôte' : '', m.micro ? '' : 'micro coupé', m.main ? 'main levée' : '', m.partage ? 'partage son écran' : '', reseauDit(m.reseau), m.relais ? 'par relais' : ''].filter(Boolean).join(' · '); }
+  function etiquettesM(m) { return [m.grade >= 2 ? 'Hôte' : m.grade === 1 ? 'Co-hôte' : '', m.invite ? 'invité sans compte' : '', m.micro ? '' : 'micro coupé', m.main ? 'main levée' : '', m.partage ? 'partage son écran' : '', reseauDit(m.reseau), m.relais ? 'par relais' : ''].filter(Boolean).join(' · '); }
   function htmlParticipants(A) {
     const s = A.snap, X = sx(A), hote = s.moi.hote, moiGrade = s.moi.grade | 0;
     const attendent = hote ? s.membres.filter(m => m.statut === 'attente') : [], presents = s.membres.filter(m => m.statut === 'present'), sonnent = s.membres.filter(m => m.statut === 'invite');
     let h = '';
     if (attendent.length) {
       h += '<div class="salle-rub"><span>En attente d\'admission</span><span>' + attendent.length + '</span></div><div class="salle-liste">' +
-        attendent.map(m => '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + '</span><button type="button" class="salle-btn plein presse" data-sa="admettre" data-uid="' + esc(m.id) + '">Admettre</button><button type="button" class="salle-btn presse" data-sa="refuser" data-uid="' + esc(m.id) + '">Refuser</button></div>').join('') +
+        attendent.map(m => '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + (m.invite ? '<small>invité sans compte</small>' : '') + '</span><button type="button" class="salle-btn plein presse" data-sa="admettre" data-uid="' + esc(m.id) + '">Admettre</button><button type="button" class="salle-btn presse" data-sa="refuser" data-uid="' + esc(m.id) + '">Refuser</button></div>').join('') +
         (attendent.length > 1 ? '<div class="salle-rang libre"><button type="button" class="salle-btn plein presse" data-sa="tout-admettre">Tout admettre</button></div>' : '') + '</div>';
     }
     h += '<div class="salle-rub"><span>Dans la salle</span><span>' + s.nb + (s.capacite ? ' / ' + s.capacite : '') + '</span></div><div class="salle-liste">';
@@ -11750,7 +12168,8 @@ a.menu-action { text-decoration: none; }
     h += '</div>';
     if (sonnent.length) h += '<div class="salle-rub"><span>Sonnerie en cours</span><span>' + sonnent.length + '</span></div><div class="salle-liste">' + sonnent.map(m => '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + '<small>Sonnerie…</small></span></div>').join('') + '</div>';
     if (hote && s.outils && !s.moi.interim && presents.length) h += '<p class="salle-note"><button type="button" class="salle-btn presse" data-sa="couper-tous">Demander à tous de couper le micro</button></p>';
-    if (hote && s.genre === 'reunion' && s.reunion && ID_REUNION.test(s.reunion)) h += '<div class="salle-rub"><span>Inviter</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte"><small>Un lien d\'invité ouvre la salle à qui a un compte OP MESSAGES.</small></span><button type="button" class="salle-btn presse" data-sa="lien-copier">' + icone('i-lien') + 'Copier le lien</button></div></div>';
+    if (hote && s.genre === 'reunion' && s.reunion && ID_REUNION.test(s.reunion)) h += '<div class="salle-rub"><span>Inviter</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte"><small>Un lien d\'invité ouvre la salle à qui a un compte OP MESSAGES.</small></span><button type="button" class="salle-btn presse" data-sa="lien-copier">' + icone('i-lien') + 'Copier le lien</button></div>' +
+      '<div class="salle-rang libre"><span class="texte"><small>Le lien invité ouvre la porte à un client sans compte : il attend, tu le fais entrer.</small></span><button type="button" class="salle-btn presse" data-sa="inv-copier">' + icone('i-lien') + 'Copier le lien invité</button></div></div>';
     return h;
   }
   function htmlPlus(A) {
@@ -11826,7 +12245,12 @@ a.menu-action { text-decoration: none; }
       '<p class="salle-note">Les raccourcis ne jouent pas quand tu écris dans un champ.</p>';
   }
   function htmlQuitter(A) {
-    return '<p class="salle-note">Tu es l\'hôte de cette salle. Si tu pars, le rôle passe à une autre personne ; tu peux aussi mettre fin à la salle pour tout le monde.</p>' +
+    /* ⛔ LA PHRASE DIT CE QUE LE SERVICE FAIT (décision du 26 octobre 2026 : « le participant suivant devient le nouvel organisateur, avec TOUS les gestes de l'hôte »). Dans la salle d'une réunion, le suivant — un
+       invité nommé : un co-hôte d'abord, puis le plus ancien — reçoit l'organisation entière (`salleSuccesseur`, côté service) ; la phrase ne parle plus d'« une autre personne », ni d'un rôle qui « passe » sans
+       dire ce qu'il contient. Dans un appel de groupe, le rôle passe aussi, avec tous les gestes. */
+    return '<p class="salle-note">' + (A.snap.genre === 'reunion'
+      ? 'Tu organises cette réunion. Si tu pars, l\'invité suivant dans la salle en devient l\'organisateur, avec tous les gestes d\'un hôte : exclure, verrouiller, régler la salle, mettre fin pour tout le monde. Tu peux aussi la terminer pour tous.'
+      : 'Tu es l\'hôte de cet appel. Si tu pars, le participant suivant en devient l\'hôte, avec tous tes gestes. Tu peux aussi y mettre fin pour tout le monde.') + '</p>' +
       '<div class="salle-form"><button type="button" class="salle-btn plein presse" data-sa="quitter-simple">Quitter la salle</button><button type="button" class="salle-btn danger presse" data-sa="terminer-confirmer">Terminer pour tous</button><button type="button" class="salle-btn presse" data-sa="panneau-fermer">Rester</button></div>';
   }
   function htmlDiscussion(A) {
@@ -11939,7 +12363,12 @@ a.menu-action { text-decoration: none; }
       case 'micro-ok': X.bandeauMic = null; salleBandeaux(A); return;
       case 'micro-rouvrir': X.bandeauMic = null; if (A.audio) { A.micro = true; A.audio.enabled = true; pousserPistes(A); } rendreAppel(); annonceAppel('Micro activé'); return;
       case 'admettre': await salleGeste(A, 'admettre', { uid }, 'Cette personne n\'a pas pu être admise.'); return;
-      case 'tout-admettre': await salleGeste(A, 'admettre', { tous: true }, 'Ces personnes n\'ont pas pu être admises.'); return;
+      case 'tout-admettre': {
+        const r = await salleGeste(A, 'admettre', { tous: true }, 'Ces personnes n\'ont pas pu être admises.');
+        /* ⛔ « tout admettre » saute les invités sans compte au-delà du maximum de la salle : on le DIT, sinon l'organisateur croit tout le monde entré */
+        if (r && r.invites_restent > 0) mot(r.invites_restent + (r.invites_restent > 1 ? ' invités sans compte restent à la porte' : ' invité sans compte reste à la porte') + ' : la salle en reçoit ' + (r.invites_max || '') + ' au plus.');
+        return;
+      }
       case 'refuser': await salleGeste(A, 'refuser', { uid }); return;
       case 'ligne': X.actions = X.actions === uid ? null : uid; X.retirer = null; sallePanneauRendre(A, true); return;
       case 'couper': if (el.getAttribute('aria-disabled') === 'true') { mot('Son micro est déjà coupé.'); return; } if (await salleGeste(A, 'couperMicro', { uid }, 'La demande n\'est pas partie.')) mot('Demande envoyée'); return;
@@ -12002,6 +12431,7 @@ a.menu-action { text-decoration: none; }
         mot(code && await copier(location.href.split('#')[0] + '#reunion=' + code) ? 'Lien d\'invité copié' : 'Le lien n\'a pas pu être copié.');
         return;
       }
+      case 'inv-copier': await lienInviteGeste('copier', s.reunion, s.nom); return;
       case 'terminer-demander': salleOuvrirPanneau(A, 'quitter', $('salle-plus')); return;
       case 'terminer-confirmer': salleFermerPanneau(A, false); await salleGeste(A, 'terminerPourTous', {}, 'La salle n\'a pas pu être terminée.'); return;
       case 'quitter-simple': salleFermerPanneau(A, false); raccrocherCouche(); return;
@@ -12088,7 +12518,7 @@ a.menu-action { text-decoration: none; }
   });
   /* ⛔ Échap : un écouteur à part, en CAPTURE, qui passe avant celui de la page (la chaîne « photo, feuille, appel, enregistrement, conversation » reste telle qu'elle est). Il ferme ce qui est ouvert PAR-DESSUS la salle (un panneau, l'annotation) ; il ne quitte JAMAIS une salle toute seule — une touche tapée par erreur n'arrête pas une réunion de vingt personnes */
   function salleEchap() {
-    const A = etat.appelUI; if (!enSalle(A)) return false;
+    const A = etat.appelUI; if (!enSalle(A) || A.sortie) return false;       // (l'écran de sortie se ferme par la touche de la page : Échap ferme la couche)
     const X = sx(A);
     if (X.annoter) {                                                         // en annotant : le champ de texte, puis la palette, puis le mode lui-même
       const N = annotEtat(A);
@@ -12884,7 +13314,7 @@ a.menu-action { text-decoration: none; }
     prefMedias[q] = sel.value || null;
     if (q !== 'sortie') avantApercu();
   });
-  const titreReunion = id => { const r = reu.liste.find(x => x.id === id) || (reu.fiche && reu.fiche.id === id ? reu.fiche.donnees : null); return (r && r.titre) || ''; };
+  const titreReunion = id => { const r = reu.liste.find(x => x.id === id) || lr.reunions.find(x => x.id === id) || (reu.fiche && reu.fiche.id === id ? reu.fiche.donnees : null); return (r && r.titre) || ''; };
 
   /* ── la sortie : tout ce que la salle tenait est lâché d'un coup (quitterAppel) ── */
   function salleNettoyer(A) {
@@ -12927,6 +13357,25 @@ a.menu-action { text-decoration: none; }
   /* ── le lien d'invité : « #reunion=<code> » — la feuille montre la réunion (l'aperçu public du service) et laisse choisir ── */
   const reunionDansAdresse = () => { const m = /(?:^|[#&])reunion=([A-Za-z0-9_-]{20,64})/.exec(location.hash || ''); return m ? m[1] : null; };
   const invite = { code: null, apercu: null, jeton: 0 };
+  /* ── le lien « Invité (sans compte) » (26 octobre 2026) : le JETON vit dans le FRAGMENT de `invite.html` — le navigateur ne l'envoie à personne, aucun journal ne le voit. La page ne le range nulle part. ── */
+  const urlInvite = (jeton) => location.href.split('#')[0].replace(/[^/]*$/, '') + 'invite.html#i=' + jeton;
+  async function lienInviteGeste(quoi, reunion, titre) {
+    if (!reunion || typeof source.lienInviteReunion !== 'function') { mot('Le lien invité n\'est pas disponible ici.'); return; }
+    let jeton = '', coupes = 0;
+    try {
+      if (quoi === 'regenerer') { const r = await source.regenererLienInviteReunion(reunion); jeton = r.jeton; coupes = r.coupes; }
+      else jeton = await source.lienInviteReunion(reunion);
+    } catch (e) { mot(phrase(e, 'Le lien invité n\'a pas pu être créé.')); return; }
+    if (!jeton) { mot('Le lien invité n\'a pas pu être créé.'); return; }
+    const lien = urlInvite(jeton);
+    if (quoi === 'partager' && typeof navigator.share === 'function') {
+      try { await navigator.share({ title: titre || 'Réunion', text: 'Rejoindre la réunion « ' + (titre || '') + ' » (sans compte, sans rien installer) :', url: lien }); mot('Lien invité partagé'); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; /* le partage a échoué : on copie à la place */ }
+    }
+    const ok = await copier(lien);
+    mot(quoi === 'regenerer' ? (ok ? 'Nouveau lien invité copié : l\'ancien ne marche plus' : 'Lien invité renouvelé : l\'ancien ne marche plus') + (coupes ? ' · ' + coupes + (coupes > 1 ? ' personnes renvoyées' : ' personne renvoyée') : '')
+      : (ok ? 'Lien invité copié' : 'Le lien invité n\'a pas pu être copié'));
+  }
   async function rendreInviteReunion() {
     const corps = $('info-corps'), code = etat.codeReunion || invite.code; etat.codeReunion = null; invite.code = code; invite.apercu = null;
     const n = ++invite.jeton;
@@ -12989,6 +13438,7 @@ a.menu-action { text-decoration: none; }
           etat.horaireAnnonce = h.cote === 'pro' ? 'Heures de travail : OP MESSAGES PRO' : 'Fin des heures de travail : OP MESSAGES · Perso';
         }
         if (COUR.ouvert) ORDRE.splice(ORDRE.indexOf('reunions') + 1, 0, 'courrier');   // côté Pro, à la suite de l'Agenda
+        if (CAP.reunions) ORDRE.splice(ORDRE.indexOf('reunions'), 0, 'reunions-liste');   // côté Pro, juste AVANT l'Agenda : l'onglet Réunions (26 octobre 2026)
         NAV = navPour();
       }
     }
@@ -12996,6 +13446,7 @@ a.menu-action { text-decoration: none; }
     construireContacts();
     if (!CAP.appels) rendreCoquille('appels');
     if (CAP.reunions) construireReunions(); else rendreCoquille('reunions');
+    if (CAP.reunions && ORDRE.includes('reunions-liste')) construireListeReunions();
     if (CAP.reglages) rendreReglages(); else rendreCoquille('reglages');
     $('g-photo').hidden = !CAP.photos;
     try { etat.conversations = await source.lister(); } catch (e) { etat.conversations = []; montrerErreurListe(e); }
@@ -13031,7 +13482,7 @@ a.menu-action { text-decoration: none; }
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') { verifierVersion(); relireCompte(); } }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);
       if (ev.type === 'notification') { if (ev.nature === 'mention') surMention(ev); else notifier(ev.titre || 'OP MESSAGES', ev.texte || '', ev.nature === 'contact_demande' ? 'contacts' : ''); }
-      if (ev.type === 'retire') surRetire(ev.id);
+      if (ev.type === 'retire') surRetire(ev.id, ev.supprime === true);
       if (ev.type === 'avis') avis(ev.texte);
       if (ev.type === 'ouvrir') { if (ev.evenement) { if (CAP.agenda && ID_EVT.test(ev.evenement)) remplacer({ vue: 'reunions', conv: null, feuille: 'evenement:' + ev.evenement, photo: null, appel: null }); } else if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else if (ev.contacts && ORDRE.includes('contacts')) remplacer({ vue: 'contacts', conv: null, feuille: false, photo: null, appel: null }); else if (ev.conv) ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
     });

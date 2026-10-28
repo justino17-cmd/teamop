@@ -46,7 +46,7 @@ console.log('\n── 2925 · les six agents de la plateforme contre le vrai ser
   return vrai.apply(this, arguments); };\n`);
   const kh = k => crypto.createHash('sha256').update(k).digest('hex'); const MDP = 'mot-de-passe-du-banc-2925';
   async function serveur(nom, cle, socle) {
-    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true });
+    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ce banc (`test-3021`)
     fs.writeFileSync(path.join(D, 'clients.json'), '{}'); fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
     const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2925' } };
     conf.agents = Object.assign(cle ? { cleApi: cle } : {}, { reunionsAuto: false });   // pas de réunion due pendant le banc (vendredi 18 h-23 h, lundi matin, heure de Paris)
@@ -126,7 +126,7 @@ console.log('\n── 2925 · les six agents de la plateforme contre le vrai ser
     await passer(S, 'max');
     const venues = async () => (await S.G('/api/monitor/agents/taches')).j.taches.filter(k => k.vers === 'jules' && k.type === 'consigne' && /^Incident venu des appareils/.test((k.params || {}).texte || ''));
     const taches = await venues();
-    vrai('Max a passé UNE consigne à Jules, composée par le code (occurrences, entreprises, catégorie)', taches.length === 1 && /^Incident venu des appareils \[i[0-9a-f]{12}\] : 12 occurrences, chez 1 entreprise, catégorie Planning$/.test(taches[0].params.texte), JSON.stringify(taches));
+    vrai('Max a passé UNE consigne à Jules, composée par le code (occurrences, entreprises, catégorie, gravité)', taches.length === 1 && /^Incident venu des appareils \[i[0-9a-f]{12}\] : 12 occurrences, chez 1 entreprise, catégorie Planning, gravité haute$/.test(taches[0].params.texte), JSON.stringify(taches));
     await passer(S, 'max');
     v('⛔ un second passage de Max ne la redonne pas', (await venues()).length, 1);
     await passer(S, 'jules');

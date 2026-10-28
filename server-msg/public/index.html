@@ -333,19 +333,25 @@ body > .sr-seul { top: 0; left: 0; }
 .tabs {
   position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px));
   bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)); margin: 0 auto; max-width: 480px;
-  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 2px; padding: 7px; border-radius: 34px;
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: var(--tg, 2px); padding: var(--tp, 7px); border-radius: 34px;
   background: var(--tab-bar); -webkit-backdrop-filter: blur(24px) saturate(200%); backdrop-filter: blur(24px) saturate(200%);
   border: 0; box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;
 }
 .tabs-bulle {
-  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 14px - (var(--n, 4) - 1) * 2px) / var(--n, 4)); border-radius: 26px;
+  position: absolute; top: var(--tp, 7px); bottom: var(--tp, 7px); left: var(--tp, 7px); width: calc((100% - 2 * var(--tp, 7px) - (var(--n, 4) - 1) * var(--tg, 2px)) / var(--n, 4)); border-radius: 26px;
   background: var(--tab-active-bg); box-shadow: var(--tab-active-shadow);
-  translate: calc(var(--i) * (100% + 2px)) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
+  translate: calc(var(--i) * (100% + var(--tg, 2px))) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
 }
 .tab {
   position: relative; z-index: 1; min-width: 0; min-height: 50px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   color: var(--tab-inactif-fg); font-size: 11px; font-weight: 500; letter-spacing: .01em; transition: color .25s, transform .12s ease-out;
 }
+/* ⛔ SEPT ONGLETS (côté Pro avec le Courrier : Accueil, Messages, Contacts, Appels, Réunions, Agenda, Courrier — 26 octobre 2026) : à 390 px chaque colonne tombe à 52 px, et « Messages » (≈ 50 à 55 px selon la police) s'y écrirait « Messag… » ;
+   le plancher d'écriture (11 px, test-856) interdit de rapetisser. La barre se resserre (marges 8 px, rembourrage 4 px, plus d'écart : la bulle suit les mêmes variables) et, comme les barres d'Android à plus de cinq entrées, SEUL L'ONGLET ACTIF
+   dit son nom — les autres gardent leur icône, et leur nom reste lu (il sort de l'écran, il n'est pas retiré). Posé par `construireNavigation` dès qu'il y a 7 onglets ou plus : sans le Courrier (production), six onglets gardent tous leur libellé. */
+.tabs.dense { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); --tp: 4px; --tg: 0px; }
+.tabs.dense .tab:not([aria-current="page"]) > span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.tabs.dense .tab[aria-current="page"] > span { max-width: none; overflow: visible; text-overflow: clip; }
 .tab .ic { font-size: 24px; }
 .tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab:active { transform: scale(.94); }
@@ -666,6 +672,19 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .notif-texte { font-size: 15px; line-height: 20px; letter-spacing: -.01em; text-wrap: pretty; overflow-wrap: anywhere; }
 .notif-aide { font-size: 13px; line-height: 17px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .notif-aide:empty { display: none; }
+/* ⛔ PENDANT UN APPEL OU UNE RÉUNION, LA BANNIÈRE D'UNE AUTRE CONVERSATION RESTE, PLUS FINE, ET NE REÇOIT QUE LE TOUCHER DE SON BOUTON (décision du 26 octobre 2026 ; testeur « salle#4 ») : posée sur le titre et sur « Quitter »
+   de la salle, elle ouvrait la conversation — et réduisait la salle — au moindre toucher du coin de l'écran où elle passait. Elle se lit toujours (c'est ce qui prévient d'un message) ; le geste qui quitte la salle est
+   maintenant un bouton à elle, « Ouvrir ». Hors appel, rien ne change : toute la bannière se touche, comme avant. */
+.notif-ouvrir { display: none; }
+html[data-appel] .notif { padding: 6px 8px 6px 12px; gap: 8px; border-radius: 18px; }
+html[data-appel] .notif img { width: 24px; height: 24px; border-radius: 7px; }
+html[data-appel] .notif-tete { display: none; }                                 /* « OP MESSAGES · maintenant » : la salle est déjà dans OP MESSAGES — l'expéditeur et son message suffisent */
+html[data-appel] .notif-texte { font-size: 14px; line-height: 18px; font-weight: 600; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-aide { font-size: 13px; line-height: 17px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-appel] .notif-aide:empty { display: none; }
+html[data-appel] .notif.on.touchable { pointer-events: none; cursor: default; }
+html[data-appel] .notif-ouvrir:not([hidden]) { display: inline-flex; align-items: center; position: relative; flex: none; min-height: 32px; padding: 0 14px; border-radius: 999px; background: var(--fill); color: var(--on-fill); font-size: 14px; font-weight: 600; pointer-events: auto; cursor: pointer; }
+html[data-appel] .notif-ouvrir::after { content: ""; position: absolute; inset: -6px -4px; }      /* la zone du doigt : 44 px de haut, la banderole reste fine */
 
 /* ══ 7 ter. LA MISE À JOUR — « Nouvelle version d'OP MESSAGES » puis l'écran de la barre ══════════════════════════════════════════════
    Demandé le 5 octobre 2026 : « que ça soit comme OP GESTION, une barre et la mise à jour qui se fait, ou même que ça affiche “mettre à jour” ».
@@ -828,6 +847,9 @@ button.photo:active { transform: scale(.97); }
 .statut { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
 .saisie-ind { align-self: flex-start; display: flex; align-items: center; gap: 4px; padding: 10px 14px; margin-top: 8px; border-radius: 20px 20px 20px 6px; background: var(--bubble-in); }
 .saisie-ind i { width: 7px; height: 7px; border-radius: 50%; background: var(--sub); animation: saisie 1.2s infinite; }
+.saisie-ind.avec-nom { max-width: 100%; box-sizing: border-box; }
+.saisie-ind i { flex: none; }
+.saisie-qui { min-width: 0; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 17px; color: var(--sub-meta); }      /* `--sub-meta`, pas `--sub` : sur la bulle reçue, `--sub` ne fait que 3,19:1 (mesuré à la sonde) */      /* « Léa écrit… » : en groupe seulement */
 .saisie-ind i:nth-child(2) { animation-delay: .2s; }
 .saisie-ind i:nth-child(3) { animation-delay: .4s; }
 @keyframes saisie { 0%, 60%, 100% { opacity: .35; transform: none; } 30% { opacity: 1; transform: translateY(-2px); } }
@@ -1369,6 +1391,8 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .reglage[aria-haspopup="menu"] .reglage-texte { color: var(--text); }
 .reglage[aria-haspopup="menu"] .reglage-valeur { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-txt); }
 .reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+.epingle-bouton[aria-expanded="true"] { anchor-name: --deroule; }      /* l'épingle dont le menu « Désépingler » est ouvert */
+.epingle-bouton { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }      /* l'appui long ouvre NOTRE menu : pas la loupe ni la sélection du navigateur */
 #btn-agenda-plus[aria-expanded="true"], .mini.membre-gerer[aria-expanded="true"] { anchor-name: --deroule; }      /* le « + » de l'Agenda (15 octobre 2026 : son menu sort de lui, comme le « + » du Calendrier d'Apple) et le « … » d'un membre — sans ancre, le menu tombait au pied de la feuille */
 .chev-ud { width: 9px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .deroule { min-width: 232px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 6px; border: var(--line); border-radius: 20px; overflow: auto; overscroll-behavior: contain;
@@ -1377,6 +1401,8 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .deroule:popover-open { animation: deroule-sort .2s cubic-bezier(.2,.8,.2,1) both; }
 @supports (anchor-name: --deroule) {
   .deroule { position-anchor: --deroule; inset: auto; top: anchor(bottom); right: anchor(right); margin: 6px 0 0; position-try-fallbacks: flip-block; transform-origin: 85% 0; }
+  /* le menu d'une épingle sort À GAUCHE de l'épingle (elles sont rangées à gauche de l'écran : aligné à droite, un menu de 232 px sortirait de l'écran) */
+  .deroule.depuis-epingle { right: auto; left: anchor(left); transform-origin: 15% 0; }
 }
 @keyframes deroule-sort { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
 
@@ -1898,6 +1924,28 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-btn.plein { background: #fff; color: #000; }
 .salle-btn.danger { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-btn[aria-disabled="true"], .salle-btn:disabled { opacity: .5; }
+/* ⛔ L'ÉCRAN DE SORTIE D'UNE SALLE (décision du 26 octobre 2026) : un refus d'entrer ne ramène plus « tout de suite à l'écran d'avant » avec une phrase de 2,4 s qu'on n'a pas lue — l'écran RESTE, avec la raison et « Retour » ;
+   la fin d'une réunion montre la durée et qui était là, avec « Revenir à la conversation ». Même géométrie que la salle (elle occupe la zone de contenu, la barre latérale reste), même fond sombre. */
+.sortie-ecran {
+  position: fixed; z-index: 37; top: var(--hl-h); left: 0; right: 0; bottom: 0; display: none; align-items: center; justify-content: center; overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) calc(env(safe-area-inset-right, 0px) + 20px) calc(env(safe-area-inset-bottom, 0px) + 24px) calc(env(safe-area-inset-left, 0px) + 20px);
+  background: var(--salle-fond); color: #fff; outline: none; text-align: center;
+}
+html[data-sortie] .sortie-ecran { display: flex; }
+html[data-sortie] .appel-ecran, html[data-sortie] .salle-ecran { display: none; }
+@media (min-width: 900px) { .sortie-ecran { left: 236px; } }
+.sortie-carte { width: min(420px, 100%); margin: auto; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.sortie-icone { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--salle-vitre); }
+.sortie-icone .ic { width: 28px; height: 28px; stroke-width: 2; }
+.sortie-titre { margin: 0; font-size: 24px; line-height: 30px; font-weight: 700; overflow-wrap: anywhere; }
+.sortie-raison { margin: 0; font-size: 16px; line-height: 22px; color: var(--salle-sub); overflow-wrap: anywhere; }
+.sortie-raison:empty { display: none; }
+.sortie-faits { width: 100%; margin: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.sortie-faits:empty { display: none; }
+.sortie-faits > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 14px; background: var(--salle-vitre); }
+.sortie-faits dt { font-size: 13px; line-height: 17px; color: var(--salle-sub); }
+.sortie-faits dd { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; overflow-wrap: anywhere; }
+.sortie-ecran .salle-btn { width: 100%; min-height: 48px; margin-top: 6px; font-size: 17px; }
 .salle-scene {
   position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 8px; align-content: center; width: 100%; max-width: 1100px; margin-inline: auto;
   padding: 8px max(14px, env(safe-area-inset-right, 0px)) 8px max(14px, env(safe-area-inset-left, 0px)); grid-template-columns: repeat(auto-fit, minmax(min(160px, 46%), 1fr));
@@ -2278,6 +2326,21 @@ a.menu-action { text-decoration: none; }
 @keyframes msg-cible { 0%, 35% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
+/* ── L'ONGLET « RÉUNIONS » (26 octobre 2026) : « Nouvelle réunion » en tête, bien visible ; sur chaque ligne à venir, ses gestes SOUS le texte (« Rejoindre », « Lien invité ») — à côté, deux pastilles
+   ne laissent plus de place au titre sur un téléphone de 360 px (la colonne de texte cède tout, et aucun contrôle de débordement ne la voit). Chaque geste fait 44 px au moins. ── */
+.lr-haut { margin: 0 0 16px; }
+.lr-nouvelle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; padding: 0 20px; border-radius: 24px; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; }
+.lr-nouvelle .ic { font-size: 20px; }
+.lr-haut .lr-nouvelle { max-width: 420px; }
+.lr-vide { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.lr-vide .lr-nouvelle { width: auto; min-width: 220px; }
+.reunion-li.avec-gestes { flex-wrap: wrap; }
+.reunion-li.avec-gestes > .reunion-gestes { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 12px; }
+.reunion-gestes > .reunion-rejoindre { min-height: 44px; padding: 0 18px; }
+.reunion-lien { flex: none; align-self: center; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--field); color: var(--accent-txt); font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.reunion-lien .ic { font-size: 18px; }
+.lien-neuf { margin-bottom: 18px; }
+.lien-neuf .info-note { margin-top: 0; }
 .salle-attente b { display: block; }
 
 /* ══ 20. LE BUREAU — l'interface d'un ORDINATEUR (Mac, Windows, navigateur), « 100 % façon Apple » ═════════════════════════════════════════════════════════
@@ -2329,7 +2392,7 @@ a.menu-action { text-decoration: none; }
   .btn-plus:hover { background: var(--field); }
   .btn-plus .pastille { width: 22px; height: 22px; background: transparent; color: var(--text); }
   /* sur une vue de liste (Appels, Agenda, Contacts), le contenu se lit dans une colonne de lecture ; la barre d'outils, elle, prend toute la largeur */
-  #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
+  #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-reunions-liste > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
   #vue-reunions > #mois { max-width: 1120px; }
 
   /* la recherche : le champ du Mac — 28 px, coins de 7 px, 13 px */
@@ -2659,6 +2722,7 @@ a.menu-action { text-decoration: none; }
       </div>
       <ul class="carte-liste" id="liste-appels" role="list" aria-label="Appels"></ul>
     </section>
+    <section class="vue" id="vue-reunions-liste" aria-labelledby="titre-reunions-liste" hidden></section>
     <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
     <section class="vue" id="vue-accueil" aria-labelledby="titre-accueil" hidden></section>
     <section class="vue" id="vue-courrier" aria-labelledby="titre-courrier" hidden></section>
@@ -2715,6 +2779,10 @@ a.menu-action { text-decoration: none; }
         <button type="button" class="compo-bouton envoyer presse" id="enreg-envoyer" aria-label="Envoyer le message vocal"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
       </div>
       <p class="compo-ferme" id="compo-ferme" hidden>Seuls les admins peuvent écrire dans ce groupe.</p>
+      <div class="compo-invit compo-bloque" id="compo-bloque" role="group" aria-labelledby="compo-bloque-texte" hidden>
+        <p id="compo-bloque-texte"></p>
+        <div class="compo-invit-gestes"><button type="button" class="accepter presse" data-debloquer>Débloquer</button></div>
+      </div>
       <div class="compo-invit" id="compo-invit" role="group" aria-labelledby="compo-invit-texte" hidden>
         <p id="compo-invit-texte"></p>
         <div class="compo-invit-gestes"><button type="button" class="accepter presse" data-invit="accepter">Accepter</button><button type="button" class="presse" data-invit="refuser">Refuser</button><button type="button" class="bloquer presse" data-invit="bloquer">Bloquer</button></div>
@@ -2793,6 +2861,15 @@ a.menu-action { text-decoration: none; }
       <div class="salle-panneau-tete"><h3 id="salle-panneau-titre"></h3><button type="button" class="presse" id="salle-panneau-fermer" aria-label="Fermer ce panneau"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <div id="salle-panneau-corps"></div>
       <input type="file" id="salle-doc" hidden>
+    </div>
+  </section>
+  <section class="sortie-ecran" id="sortie-ecran" role="region" aria-labelledby="sortie-titre" tabindex="-1">
+    <div class="sortie-carte">
+      <span class="sortie-icone" aria-hidden="true"><svg class="ic"><use href="#i-raccrocher"/></svg></span>
+      <h2 class="sortie-titre" id="sortie-titre"></h2>
+      <p class="sortie-raison" id="sortie-raison"></p>
+      <dl class="sortie-faits" id="sortie-faits"></dl>
+      <button type="button" class="salle-btn plein presse" id="sortie-bouton">Retour</button>
     </div>
   </section>
 </div>
@@ -2890,6 +2967,7 @@ a.menu-action { text-decoration: none; }
 <div class="notif" id="notif" data-glass="1" role="status" aria-live="polite" aria-atomic="true">
   <img src="opmsg-192.png" alt="" width="38" height="38">
   <span class="notif-corps"><span class="notif-tete"><b>OP MESSAGES</b><span>maintenant</span></span><span class="notif-texte" id="notif-texte"></span><span class="notif-aide" id="notif-aide"></span></span>
+  <button type="button" class="notif-ouvrir presse" id="notif-ouvrir" hidden>Ouvrir</button>
 </div>
 <div class="mot" id="mot" role="status" aria-live="polite"></div>
 <div class="maj-bandeau" id="maj-bandeau" data-glass="1" role="status" aria-live="polite" hidden>

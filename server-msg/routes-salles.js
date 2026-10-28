@@ -31,7 +31,7 @@
  * n'exclut ni l'hôte ni un autre co-hôte). Il ne peut pas couper un micro à distance ni fermer une liaison déjà ouverte : les pages des autres la ferment en lisant la nouvelle liste ; un navigateur modifié le saurait.
  */
 'use strict';
-const { ID_PERS } = require('./routes');
+const { ID_PERS, ID_INVITE } = require('./routes');
 const { EVT_OCTETS_MAX, tailleEvt, REACTIONS } = require('./appels');
 
 function installerSalles(H, ctx) {
@@ -41,9 +41,9 @@ function installerSalles(H, ctx) {
   const corps = (req) => (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
   /* Les codes de refus du stockage et du chef d'orchestre, traduits : tous des chaînes courtes que la page sait dire (`public/api.js`, `MESSAGES`). Un code inconnu est une vraie panne : il part à `next`. */
   const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], annot_pleine: [409, 'annot_pleine'], rien_a_annoter: [409, 'rien_a_annoter'], annot_occupe: [409, 'annot_occupe'], appel_fini: [409, 'appel_fini'], appel_pas_en_cours: [409, 'appel_pas_en_cours'], appel_complet: [409, 'appel_complet'], champ_invalide: [400, 'champ_invalide'],
-    pas_de_visio: [409, 'pas_de_visio'], visio_indisponible: [503, 'visio_indisponible'], appareil_non_lie: [403, 'appareil_non_lie'] };
+    pas_de_visio: [409, 'pas_de_visio'], visio_indisponible: [503, 'visio_indisponible'], appareil_non_lie: [403, 'appareil_non_lie'], invites_max: [409, 'invites_max'] };
   const garder = (f) => (req, res, next) => {
-    const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], e.code === 'appel_complet' && Number.isInteger(e.max) ? Object.assign({ max: e.max }, c[2] || {}) : c[2]); return next(e); };
+    const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], (e.code === 'appel_complet' || e.code === 'invites_max') && Number.isInteger(e.max) ? Object.assign({ max: e.max }, c[2] || {}) : c[2]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
     catch (e) { traduire(e); }
   };
@@ -54,7 +54,8 @@ function installerSalles(H, ctx) {
     refus(res, 429, 'quota_atteint', { retry: r.retry });
     return false;
   }
-  const uidDe = (b) => (typeof b.uid === 'string' && ID_PERS.test(b.uid)) ? b.uid : null;
+  /* un participant d'une salle : un compte, ou un invité sans compte (`g_…`) — admettre, refuser et exclure le nomment, comme n'importe quel autre */
+  const uidDe = (b) => (typeof b.uid === 'string' && (ID_PERS.test(b.uid) || ID_INVITE.test(b.uid))) ? b.uid : null;
   const booleen = (b) => typeof b.actif === 'boolean' ? b.actif : null;
   /* un geste d'hôte : soixante par minute et par personne et par salle (ouvrir et fermer cent portes n'est pas de l'hôtellerie) ; un geste de participant : `salleEvtMax` par minute */
   const gesteHote = (req, res) => plafond(res, 'salle_admin:' + req.appel.id + ':' + req.moi.id, 60, 60000);
@@ -76,7 +77,8 @@ function installerSalles(H, ctx) {
     if (!tous && !uid) return refus(res, 400, 'champ_invalide');
     if (!gesteHote(req, res)) return;
     const r = appels.admettre({ moi: req.moi, id: req.appel.id, uid, tous });
-    res.json({ ok: true, admis: r.admis.length, restent: r.restent.length, appel: vue(req) });
+    /* `invites_restent` : des invités sans compte que « tout admettre » a LAISSÉS à la porte parce que la salle en tient déjà `invites_max` — l'organisateur doit le savoir, sinon il croit les avoir fait entrer */
+    res.json({ ok: true, admis: r.admis.length, restent: r.restent.length, invites_restent: r.invitesRestent || 0, invites_max: r.invitesMax || null, appel: vue(req) });
   });
   H['salles.refuser'] = garder((req, res) => {
     const uid = uidDe(corps(req)); if (!uid) return refus(res, 400, 'champ_invalide');

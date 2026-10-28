@@ -64,7 +64,9 @@ function resumeDe(e) {
 function controleRange(c) {
   if (!c || typeof c !== 'object' || !ETATS_CONTROLE.includes(c.etat)) return { etat: 'non_verifie', fautes: [], juge: false };
   return { etat: c.etat, fautes: (Array.isArray(c.fautes) ? c.fautes : []).filter(x => typeof x === 'string' && CTRL.FAUTES[x]).slice(0, 12), juge: c.juge === true,
-    raison: typeof c.raison === 'string' ? c.raison.slice(0, 80) : undefined };
+    raison: typeof c.raison === 'string' ? c.raison.slice(0, 80) : undefined,
+    /* la ou les phrases du courriel que le juge a citées pour un fait inventé (des fragments du courriel lui-même, vérifiés par `agents-controle.js`) : Justin lit LAQUELLE est en cause */
+    citations: Array.isArray(c.citations) ? c.citations.filter(x => typeof x === 'string' && x).map(x => x.slice(0, 220)).slice(0, 3) : undefined };
 }
 
 module.exports = function brouillons(app, ctx) {
@@ -104,6 +106,7 @@ module.exports = function brouillons(app, ctx) {
     if (!agents.AGENTS.some(a => a.id === agent)) return { ok: false, raison: 'agent' };
     const p = agents.peutAgir(agent);
     if (!p.ok) return { ok: false, raison: p.raison };
+    if (p.horsHeures) return { ok: false, raison: 'hors_heures' };       // l'astreinte (Max, Théo) veille hors des heures mais n'écrit JAMAIS à un client
     if (illisible()) { agents.noter(agent, 'déposer un brouillon', { cible: o.source, resultat: 'refuse', detail: 'registre des brouillons illisible' }); return { ok: false, raison: 'registre_illisible' }; }
     const a = String(o.a || '').trim().toLowerCase();
     if (!bonneAdresse(a)) { agents.noter(agent, 'déposer un brouillon', { cible: o.source, resultat: 'refuse', detail: 'destinataire invalide' }); return { ok: false, raison: 'destinataire' }; }
@@ -274,7 +277,7 @@ module.exports = function brouillons(app, ctx) {
     /* la signature montrée est CELLE QUI PARTIRA : celle de l'agent, pour la boîte qui envoie (pas celle du Courrier de Justin) */
     return { agent: e.agent, a: e.a, objet: e.objet, texte: e.texte, source: e.source, entreprise: e.entreprise || '', etat: e.etat,
       empreinte: empreinteDe(e), echecs: e.echecs || 0, signature: signatures.composer(e.agent, laBoite && laBoite.email),
-      controle: { etat: c.etat, fautes: CTRL.phrasesDe(c.fautes), juge: c.juge, reecrit: e.reecrit === true }, authentifie: e.authentifie === true };
+      controle: { etat: c.etat, fautes: CTRL.phrasesDe(c.fautes), juge: c.juge, reecrit: e.reecrit === true, raison: c.raison, citations: c.citations }, authentifie: e.authentifie === true };
   };
 
   /* ── les routes de la Tour ── */

@@ -13,6 +13,248 @@ de ligne du tout.
 
 ---
 
+# 🌉 28 OCTOBRE 2026 (JOUR) — LES AGENTS DE LA TOUR DANS OP MESSAGES : LE CODE EST PRÊT, LA MISE EN SERVICE ATTEND JUSTIN
+Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
+OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**
+- **Architecture** : la Tour reste le REGISTRE (`conversations.js` : les agents le relisent, rien n'y est déplacé) ; OP MESSAGES est le transport et l'écran.
+  `server-msg/pont-agents.js` (quatre routes `/api/pont/*`, garde `PT` : boucle locale + sans proxy + secret `X-OPM-Pont` comparé à son empreinte ; 16 robots +
+  « Système », espace PRO « Équipe TeamOP — agents », 4 groupes, une directe par agent) ; `server/pont-messages.js` (file bornée à 2 000, réessai, import avec
+  les dates d'origine, lecture toutes les 3 s de ce que Justin écrit — par `justinEcrit`, le même chemin que la route — et supprime) ; `configurer-pont.js` pose
+  les DEUX configurations d'un geste, le secret fabriqué sur place et jamais affiché. Inerte sans configuration (404 / rien ne part) ; un bloc `pont` en production REFUSE le démarrage.
+- **Bancs** : `test-3094` (le vrai service), `3095` (le vrai serveur + le vrai service + un faux Anthropic, de bout en bout), `3096` (le module contre un faux service),
+  — le bandeau de la Tour part avec la Tour unifiée, gardé par `test-3091`), `3097` (l'outil de pose). Mutations : `scratchpad/mutations-pont-agents.py`.
+- **Reste à faire (Justin)** : déployer (une fusion sur `main` part des deux côtés, inerte), puis sur le VPS `configurer-pont.js` (Entrée à l'invite du secret), redémarrer,
+  `--verifier`, ouvrir `msg-beta.teamop.fr` sur le téléphone. Rien de cela n'est fait.
+- **Limites assumées** : le texte seul passe (une photo/un vocal/un sondage de Justin n'arrive pas aux agents, et le pont le lui dit) ; une modification de message ne revient pas ;
+  un rappel client non lu ne se supprime pas depuis OP MESSAGES ; un groupe renommé ne se renomme pas de l'autre côté ; Pauline n'y est pas (Harvey, sur le Mac) ;
+  le bandeau de la Tour s'affiche même pont non posé ; **pas d'iframe** (`frame-ancestors 'none'` d'OP MESSAGES : l'encadrer demande de relâcher cette politique — un choix de sécurité à faire AVEC Justin) ;
+  OP MESSAGES lit le texte (pas de bout en bout) ; double notification possible sur le téléphone ; production : plus tard, après l'essai bêta.
+
+# 📋 28 OCTOBRE 2026 (NUIT) — LA LISTE DE JUSTIN, À REPRENDRE POINT PAR POINT LE MATIN
+Justin, 28 octobre vers 2 h : « tu sais tout ce que tu dois faire, on en parle demain matin, oublie rien, range tout bien tout ce que je
+t'ai demandé, et on fera point par point ». Dans l'ordre où on les reprend :
+1. **Examen de l'équipe** — 01:01 : **9/9** (le premier). Règle convenue : deux 9/9 de suite ; le second se lance quand Justin veut
+   (une heure entre deux, six par jour comptés en UTC). Justin a mis l'équipe au travail : **6 en Auto** (Max, Théo, Nina, Victor, Inès,
+   Louis — aucun n'écrit à un client), **10 en Brouillon** ; reprise à 9 h. Deux remarques vues à 9/9, NON corrigées exprès (corriger =
+   redéployer = la série repart) : « n'hésitez pas à nous préciser » dans deux premiers courriels de Léa ; « je les éplucher » (Camille).
+2. **Tour — onglet Agents « plus pro, plus Apple »** (v2.117, branche `claude/tour-agents-apple`) : aperçu EN LIGNE
+   (`apercu/tour.html`, demande de fusion n° 222), Justin : « j'adore ». Sonde `scratchpad/sonde-tour-agents-apple.js` (39 ✓, 5 profils).
+   La vraie `tour.html` attend sa phrase. Puis Justin a demandé plus : **« revois tous les onglets de la Tour… le design, les couleurs,
+   à la Apple — beau, pro, propre, qui donne envie de travailler »** → captures « avant » de toutes les vues faites
+   (`sonde-tour-theme.js`, bureau, jour/nuit) ; la sonde Agents simule désormais les dix sous-onglets (examen et contrats encore à compléter).
+   Rien de codé au-delà de l'onglet Agents : on en parle d'abord.
+3. **OP GESTION bêta v777 — « Tester un métier »** (branche source `claude/beta-choix-metier`) : les 23 packs en un geste dans
+   Paramètres → Outils de bêta ; « Remplir en grand nombre » suit le métier. `test-3086` (21 ✓, 6 mutations sur 6), sonde 17 ✓, suite
+   complète 719 suites verte. App publique non touchée.
+4. **Les packs métier** — ce qui reste : les DOCUMENTS propres à chaque métier (20 sur 22 n'en ont aucun de fabriqué), un CATALOGUE de
+   départ (seule la 3D en a un), la VALIDATION par un pro. Recherche lancée (deux chercheurs, `scratchpad/packs-recherche-A.md` et `-B.md`).
+   ⛔ Justin : **« avant de coder les packs, on en parle ensemble »**. À trancher aussi : registre hors 3D, mot « box » hors 3D, consigne
+   de l'agent devis (dératisation pour tous).
+5. **Le site (priorité de la journée, après OP GESTION)** : à la page de commande, un **simulateur** de l'application (tableau de bord,
+   planning… tout en détail, qui donne envie) et un **configurateur** : on coche ce qu'on veut, le prix baisse. Décision en attente :
+   **A** (recommandé) le simulateur déduit la formule (Pro 15 € / Business 25 € / Business Premium 50 € par utilisateur) ; **B** un prix
+   par catégorie (tarifs Stripe neufs). Partir de `demo.html` ; la branche `claude/metiers-abonnement` a du travail voisin.
+6. **Agents GitHub** — rapport `scratchpad/agents-github.md` : en tête SkillSpector (toujours `--no-llm`), trailofbits/skills (3-4
+   morceaux), marketingskills (adapter au droit français), promptfoo (examens des 16 agents) ; Factur-X = chantier produit. Rien installé.
+7. **Skills du gist de MonbinomeIA** — Find Skills (bridé : propose, n'installe pas) et les 13 `ig-*` recopiés (demande de fusion
+   n° 223). Prompt Master : déjà là. Perplexity : déconseillé (je cherche déjà sur le web ; clé payante). Claude in Chrome : extension à
+   installer par Justin (il est sur Safari).
+8. **OP MESSAGES** — le soir. **Agents plus intelligents** (revue du week-end : 2-3 règles proposées par agent, validées par Justin le
+   lundi) — après des examens propres. **Fiche Google** : retrouver la date de validation (≥ 60 jours) pour redemander l'accès à l'API.
+
+# 🔶 27 OCTOBRE 2026 (SOIR) — OÙ EN EST PAULINE, DANS LA TOUR (Tour v2.116, branche `claude/pauline-avancement`) · EXAMENS #217, #218, #219
+
+Justin, devant la bande « Today » de Harvey : « oui mais dans la Tour ».
+- **Mac** (`outils/pauline-releve.py`, `lire_avancement`, `site_de`) : le relevé porte `avancement` (les chiffres de `get_live_status` de Harvey, comptés pareil) et le
+  `site` de chaque entreprise (nom de domaine seul). Une colonne absente (Harvey plus ancien) : le chiffre n'est pas envoyé, jamais un zéro.
+- **Serveur** (`validerReleve`) : `avancement` optionnel, chiffre par chiffre ; `site` refusé s'il n'a pas la forme exacte d'un domaine.
+- **Tour** (Agents → Pauline) : bloc « Où elle en est » (sept étapes, barres) sous « Ce qui t'attend » ; le site en lien https:// dans la liste des entreprises.
+- Bancs : `test-3084`, `TestAvancement` (Python, lancé par `test-3020`) ; rendu au navigateur : `scratchpad/sonde-pauline-avancement.js`.
+- ⏳ **Geste de Justin sur le Mac** après la fusion : recopier `pauline-releve.py` (rien d'autre ; le plist ne change pas).
+- Examens du 27/10 : 14 h 49 sc9 → #217 (tic de groupe) ; 19 h 07 sc6 → #218 (`incoherent` doit citer) ; 21 h 24 sc6 → #219 (une phrase IMPOSÉE par le cahier
+  n'est pas une preuve d'incohérence — le juge citait la phrase de l'essai d'une semaine).
+
+---
+
+# 🔶 27 OCTOBRE 2026 — PAULINE : VALIDER SES MAILS DEPUIS LA MESSAGERIE DE LA TOUR (Tour v2.115, branche `claude/pauline-validation-tour`)
+
+Justin : « je peux pas être tout le temps sur le site de Harvey ; que Pauline m'envoie le mail dans la messagerie de la Tour, j'accepte, je refuse, je modifie. »
+- **Serveur** (`server/pauline.js`) : `POST /api/monitor/pauline/decision` (patron), `GET /api/pauline/decisions` et `POST …/resultats` (le jeton du relevé) ; une
+  notification au téléphone par mail neuf qui attend l'accord (des nombres seulement) ; `?resume=1` pour la pastille. Fichier `pauline-decisions.json`, chiffré.
+- **Mac** (`outils/pauline-releve.py`) : chaque MINUTE (plist à 60 s), lit les décisions, les applique dans la base de Harvey sous la garde `status = 'pending_review'`,
+  rend compte ; le relevé ne repart que si la boîte d'envoi a bougé (ou toutes les 14 min). Un courriel qui attend l'accord n'est jamais tronqué.
+- **Tour** : conversation « Pauline » dans la Messagerie (en tête, « À valider », quand des mails attendent) : Accepter et envoyer · Modifier · Refuser.
+- Bancs : `test-3079` (vrai serveur + vrai script), `test-3080` (vraies fonctions de la Tour + vrai serveur), 12 cas Python ; 10 mutations sur 10 mordent.
+- ✅ Geste de Justin sur le Mac fait le 27/10 au soir (script et plist à 60 s ; `TEAMOP_RELEVE_JETON` remis dans `~/harvey/.env`, perdu au nettoyage de Reoon).
+- ⚠️ Les boutons du tableau de bord de Harvey ne marchent pas dans Safari (« Cross-origin requests are refused » : `Referrer-Policy: no-referrer` → `Origin: null` sur un POST) ;
+  la version amont de Harvey l'a corrigé (`auth.js`, `referrerPolicy: 'same-origin'`) — mettre Harvey à jour un jour, sans perdre le correctif français.
+
+---
+
+# 🔶 26 OCTOBRE 2026 (SOIR) — EXAMEN DE 17 H 36 : 6 RÉUSSIS, 1 ÉCHEC, 2 « INCONNU » — CORRIGÉS (branche `claude/examen-26-octobre`, pas fusionnée)
+
+- **Scénario 6 « vente » (✗)** : Toka Clim parti, Brillance Services et Dupont Plomberie restés « à revoir » pour `fait_invente`. `fait_invente` ne vient QUE du juge (`fautesDuCode` ne le produit
+  pas). Relevé des mots de chaque phrase candidate contre la liste de l'offre (`test-3063` § 0) : Brillance « rapport PDF envoyé automatiquement » = une QUALITÉ ajoutée (l'offre dit « envoyé
+  au client ») — vraie faute ; Dupont : tout vient de l'offre (seuls « clôture » pour « terminée », « paiements » pour « payées » sont des synonymes) — faux positif du juge. ⚠️ **Laquelle des
+  phrases a vraiment déclenché chaque faute n'est PAS prouvé** (la réponse brute du juge n'était pas gardée). Pourquoi la réécriture unique n'a pas suffi : elle recevait « ne garder que les
+  faits de l'offre » SANS la phrase en cause. Corrigé : le juge **cite** la phrase (`CITE : …`, seulement après `fait_invente`, et seulement si c'est un FRAGMENT du courriel jugé — jamais un
+  texte neuf), la réécriture la reçoit avec la seule issue (les mots exacts de l'offre, ou la retirer), le brouillon la garde (`controle.citations`) et l'examen la montre (« phrase en cause »).
+  L'offre et le plan de Léa disent de reprendre les MOTS de la ligne (pas d'« automatiquement » ajouté) ; le juge sait ce qu'est une reformulation fidèle (pluriel, synonyme). **Rien n'est relâché** :
+  une citation qui n'est pas dans le courriel est écartée, la faute reste. ⚠️ La Tour (v2.112) ne montre pas `controle.citations` (page non touchée) : l'examen et l'API le donnent.
+- **Scénario 8 « réunions » (inconnu)** : « Compte rendu non écrit. » SANS cause = Victor a rendu des outils seuls (le vendredi il juge ses propres objectifs en concluant) et la seule redemande, sans
+  outil, n'a rien rendu non plus. Ce n'est NI un plafond (une réunion tient en ~30 messages sous les 45 de l'heure du fil ; 85 appels sur 200 à l'examen), NI le délai (l'horloge de l'examen ne
+  bouge pas). Corrigé (`reunions.js`, `parole`) : une parole ATTENDUE (compte rendu, tour de table) est redemandée jusqu'à DEUX fois, sans outil, **sans réflexion adaptative** (prise sur la
+  longueur permise), avec la consigne du compte rendu seule (plus de « juge aussi tes objectifs (outil juger_objectif) » à qui n'a plus d'outil), 1 500 caractères permis ; une première demande
+  « vide » ou « trop longue » est aussi redemandée ; la CAUSE de l'échec est dite (« Compte rendu non écrit : sa réponse dépassait la longueur permise. »), et une cause globale (budget) n'est pas
+  répétée. Les six « @max ok… » : un accusé de réception (≤ 8 mots hors @, sans question ni chiffre) n'est plus publié en discussion — il citait, donc rappelait l'autre (`accuseSeul`). ⚠️ La cause
+  réelle de la redemande vide n'est PAS prouvée (aucune réponse brute gardée) ; la correction rend le compte rendu robuste à ses trois formes connues.
+- **Scénario 9 « ton » (inconnu)** : « 0 appel, conversation vide » est NORMAL (ce scénario ne fait parler personne, Inès juge les huit autres). Cause la plus probable : le 25 octobre au soir
+  (`2e8e2ea1`) le critère c3 a quitté le juge, le scénario a demandé « c1, c2, c4 » — un modèle corrige en c1, c2, c3 et un verdict sans `c4` est illisible ; c'est le premier examen depuis. Corrigé à la
+  racine (`juger`, `examen.js`) : les critères sont TOUJOURS numérotés c1…cN sans trou et les clés de l'appelant reviennent dans la réponse ; une réponse illisible ou vide est redemandée UNE fois ;
+  un verdict qui reste illisible DIT le début de la réponse du juge ; un objet qui ne nomme aucun critère (« {formules} » dans une phrase d'avant) n'est plus pris pour un verdict incomplet.
+- Bancs : `test-3063` (40), `test-3061` (25), `test-3062` (26), tous dans `scripts/bancs-serveur.liste` (plancher relevé à 9900 : 148 suites, 9 986 mesurées) ; `test-3001` suit la forme de la vue.
+  Mutations : `scratchpad/mutations-examen-26.py`. ⏳ **Reste** : fusion, déploiement, puis relancer l'examen (un par heure) : le résultat dira, pour un brouillon resté « à revoir », la phrase en cause.
+
+# ⏳ 26 OCTOBRE 2026 — OP MESSAGES BÊTA : L'INVITÉ SANS COMPTE (branche `claude/opmsg-invite-sans-compte`, pas encore fusionnée ni déployée)
+
+Justin : « quand on va présenter l'application au client, sans qu'ils aient besoin d'installer : ça passe par le Web, ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux, et quand ça se coupe, le lien est mort. »
+- **Fait** : « Invité (sans compte) » dans la feuille d'une réunion (copier, partager, régénérer) et dans le panneau « Inviter » de la salle ; `invite.html` + `invite.js` (page sans compte, sans rien installer, jeton dans le fragment) ; le client tape son nom (+ entreprise), passe l'écran de préparation, ATTEND À LA PORTE même si l'attente est éteinte ; l'organisateur le voit « Paul — Plomberie Durand · invité sans compte » et fait entrer / refuse ; session éphémère, jamais promu, pas de partage d'écran ; le lien meurt à la fin de la salle, au renouvellement, à l'échéance (14 jours au plus) et coupe les sessions. Contrat de routes, quotas et RGPD : `design/opmessages/SERVEUR.md` (§ 3.3, « L'invité sans compte »), `registre-traitements.html` § 6. Bancs 3050 à 3057, sonde `tests/sonde-opmessages-invite.js` (client à 390 px, jour et nuit).
+- **Relecture du gardien (26 octobre, même branche)** : l'essai à blanc a son seau large (600/h par réseau, 1 500 par lien) et les créations gardent le serré ; un refus ou une exclusion ferme le RÉSEAU de cette salle (empreinte, jamais l'adresse), deux invités en attente par réseau, 40 lignes par salle ; en visio le jeton ne signe jamais `screen_share` ; mention RGPD sur la page d'identité et effacement du nom 30 jours après la fin de la salle ; grâce de 2 minutes quand l'hôte perd le réseau et qu'il ne reste que des invités. Bancs 3058 et 3059.
+- **Décisions prises sans Justin, à lui dire** : (1) pas de partage d'écran pour l'invité (visio : jeton sans `screen_share` ; maille : politique d'interface) — à relâcher par une case de l'organisateur si Justin le veut ; (2) 5 invités au plus à la porte (2 par réseau), 8 au plus dans la salle ; (3) le nom survit au seul rapport de présence de l'organisateur, 30 jours après la fin de la salle ; (4) si la salle ne contient plus que des invités sans compte, elle FINIT (personne ne peut être promu).
+- **À FAIRE AVANT DE DÉPLOYER** : le bloc nginx `location = /api/invite/flux` (SSE, sans tampon) est dans `install-msg.sh` — il faut REJOUER l'installation sur le VPS de la bêta, sinon « Faire entrer » n'arrive qu'après le délai du tampon. Pas encore mesuré sur le vrai VPS (tout est mesuré en local, 127.0.0.1).
+
+# 👉 26 OCTOBRE 2026 (NUIT) — CE QUI EST EN LIGNE, CE QUI ATTEND JUSTIN (à lire en premier)
+
+**En service sur le serveur** :
+- n° 188 : « Assistante / Assistant de TeamOP » dans les signatures, la mention de l'IA posée par le serveur.
+- n° 189 : les groupes de la messagerie personnalisables (route patron).
+- n° 190 : le pont de Pauline (`/api/pauline/releve`, fermé en 503 tant que l'empreinte n'est pas posée).
+- n° 193 : les heures de travail (lundi–vendredi 9 h–18 h Paris, fériés fermés, Max et Théo d'astreinte).
+- Vérifié en ligne après déploiement : `/health` ok ; le pont répond 503 ; les routes de la Tour répondent 403 sans session.
+
+**En aperçu seulement** (n° 192, https://teamop.fr/apercu/tour.html), la Tour v2.112 :
+- page Agents refaite ;
+- Pauline et son relevé ;
+- la messagerie : photo en tête, « Modifier » un groupe ;
+- le sous-onglet « Heures de travail ».
+
+Sa branche est `claude/tour-agents-refonte`. Ses bancs :
+- `test-3011` et `test-3023` : les vraies fonctions de la page ;
+- `test-3022` et `test-3024` : la couture contre le vrai serveur ;
+- 84 suites, 5 452 vérifications.
+
+✅ Publiée le 26 octobre 2026 au soir (Justin : « fais tout ça sauf Facebook ») — ce jour-là :
+- `icons/agents/pauline.jpg` part avec elle (et `test-3008` en déclare l'externe) ;
+- 3022 et 3024 entrent dans `scripts/bancs-serveur.liste`.
+
+**Incident évité** : le commit `ff2fd96a` (n° 188) avait embarqué un LIEN `server/node_modules`, posé dans un arbre de travail. Le déploiement 138 a été annulé avant le VPS, le lien retiré par la n° 191, et `.gitignore` le retient désormais sans barre finale (une règle « dossier » ne retient pas un lien). Après un `ln -s` dans un arbre de travail : jamais `git add` d'un répertoire, et `git show --stat` avant de pousser.
+
+**Gestes de Justin** (le zip `pauline-demain.zip` lui a été envoyé, avec `DEMAIN.md`) :
+- Pauline sur le Mac :
+  - copier les fichiers du pont ;
+  - ajouter le lien `?de=pauline` au pied de page ;
+  - `--essai`, puis `--fabriquer-jeton`, puis `set-pauline.sh` sur le VPS ;
+  - premier envoi, puis launchd ;
+  - `harvey discover` ;
+  - date de chauffe.
+- Regarder l'aperçu de la Tour et dire « publie » ou ce qui ne va pas. À trancher :
+  - la pastille orange, qui paraît brune de jour ;
+  - Camille ou Hugo d'astreinte pour une résiliation reçue le week-end ;
+  - rejouer à l'ouverture un message envoyé à un agent fermé.
+- Toujours ouverts :
+  - Google (associer Search Console et Analytics, les 3 sujets AutoSEO, WebLex) ;
+  - la clé SSH du VPS ;
+  - « Mouvements à valider » ;
+  - OP GESTION v775 ;
+  - repasser l'examen, puis les agents en Auto ;
+  - Facebook et Instagram (rappel programmé le 31/10).
+
+# ✅ 26 OCTOBRE 2026 — LES HEURES DE TRAVAIL DES AGENTS — EN LIGNE (n° 193) ; l'écran est dans l'aperçu de la Tour v2.112 (n° 192)
+
+Justin : « je voudrais pouvoir choisir les heures de travail des agents ; je veux que ce soit comme une vraie entreprise ». Fait côté SERVEUR (la Tour n'est pas touchée, une refonte de la page Agents y est en cours ailleurs).
+- `server/agents-horaires.js` : par défaut lundi → vendredi, 9 h – 18 h, **heure de Paris**, fermé les jours fériés français (calculés, Pâques comprise) ; horaires PAR AGENT qui surchargent jour par jour ;
+  astreinte (Max, Théo) ; « ouvrir maintenant » (une semaine au plus). Registre `agents-horaires.json` ; **illisible ou de forme inattendue = tous les agents arrêtés**, et la Tour le dit (503, `illisible: true`).
+- La garde est dans **`peutAgir`** (`agents.js`), la porte commune, à côté de la pause. L'astreinte agit mais le dit (`horsHeures`) ; `agents-brouillons.js` et `agents-documents.js` la refusent (jamais un client).
+- Ce qui arrive hors des heures ATTEND : Camille (courriel) et Léa (inscription, demande) `differer` → `agents-differes.json` (trois identifiants par courriel ; pour Léa l'adresse et le nom d'entreprise de l'inscrit)
+  → `reprendreDifferes` (une fois par minute, `index.js`) à l'ouverture, le plus ancien d'abord, 5 par passage. Une tâche entre agents ne vieillit pas pendant que son destinataire est fermé (`tempsOuvert`).
+- Accepter une validation hors heures : 409, elle reste en attente (comme pendant la pause) ; refuser passe toujours. Une réunion planifiée tient à son heure (`sousReunion`, AsyncLocalStorage) : vendredi 18 h, lundi férié.
+- L'examen de l'équipe monte sa propre équipe d'essai SANS horaires (jamais bloqué) — `test-3021` § 12.
+- ⚠️ **Les bancs qui démarrent le VRAI serveur et attendent qu'un agent AGISSE posent `tests/banc-horaires.js` (`toujoursOuvert(D)`) dans leur dossier de données** — sans quoi ils tombent la nuit et le week-end.
+- **Reste à décider / à faire** : l'écran (contrat : `GET/POST /api/monitor/agents/horaires`, `POST …/ouvrir`, `…/fermer`) ; un message de Justin à un agent fermé n'est pas rejoué à l'ouverture (l'agent dit seulement qu'il est
+  hors heures) ; une demande de résiliation reçue le vendredi soir attend le lundi (Camille ET Hugo fermés) — à confirmer avec Justin si un prélèvement tombe dans le week-end ; Louis n'apprend pas des corrections faites la nuit ;
+  l'Alsace-Moselle (Vendredi saint, 26 décembre) n'est pas dans les fériés.
+
+# ✅ 25 OCTOBRE 2026, SOIR — LES AGENTS ONT UN VISAGE (Tour v2.111) — branche `claude/photos-agents`
+
+Justin : « tous mes agents doivent avoir une photo de profil, j'aime bien mettre un visage sur un nom ». Les photos sont de Justin
+(Gemini, personnes FICTIVES, 22 à 29 ans) ; la description de chacun est dans le brouillon (`photos-agents-gemini.md`).
+- `icons/agents/<id>.jpg`, 256 px, 7 à 12 Ko ; `agAvatar(id, nom, classe)` dans `tour.html` pose la photo PAR-DESSUS l'initiale (une
+  image qui ne vient pas s'efface et laisse l'initiale). Neuf endroits : fiches, bulles, conversations, tâches, réunions ×3, RGPD, « @ ».
+- ⛔ Un agent ajouté au registre (`server/agents.js`) sans photo fait tomber `test-3008` : on lui fait son visage, ou on l'écarte du banc
+  par écrit.
+- ⛔ Pauline (Harvey, sur le Mac de Justin) n'est PAS dans la Tour : sa photo reste hors du dépôt. Et une photo d'une VRAIE personne
+  (Justin en a proposé une, trouvée en ligne) ne devient jamais le visage d'un agent qui écrit à des prospects.
+
+# 🔧 26 OCTOBRE 2026 (SOIR) — LE BLOG SE PUBLIE SEUL, IMAGES PAR GEMINI (branche `claude/publication-auto-blog`)
+
+Justin : « je veux que les publications soient automatiques et que les images soient gérées avec Gemini » ; « je veux que tu
+fasses tout comme babylovegrowth.ai ».
+- **Fait** : `.github/workflows/blog-publication.yml` termine la demande de fusion d'un article (`claude/blog-*`) : photo de
+  couverture et images du texte par Gemini (`scripts/blog-gemini.js`, consignes fixes : personnes fictives, tenue bleu marine,
+  ni texte ni logo ; clé dans l'en-tête, jamais dans une adresse), posées en WebP (`scripts/blog-images.py`), pages refaites,
+  bancs du blog (3000, 835, 846, 1008, 3060), fusion, puis `publication-site.yml` lancé à la main (une fusion par GITHUB_TOKEN
+  ne déclenche rien sur `main`). ⛔ Une demande qui touche autre chose que `blog/`, `contenu/blog/`, `sitemap.xml` n'est pas
+  fusionnée. ⛔ Gemini absent ou en panne : l'article part avec la couverture sans photo, et une figure en attente est RETIRÉE
+  (jamais une image d'attente en ligne). Banc : `tests/test-3060.js` (40 ✓, faux Gemini sur 127.0.0.1) ; Pillow : sonde
+  `scratchpad/sonde-blog-images.sh` (figure et couverture 1200 × 675, nom de couverture de la fiche respecté).
+- **Geste de Justin (une fois)** : GitHub → Réglages → Secrets and variables → Actions → « New repository secret » :
+  `GEMINI_API_KEY` = la clé Gemini (celle du Devis IA convient si son projet a la génération d'images ; ne la coller nulle part
+  ailleurs). Facultatif : une VARIABLE `GEMINI_MODELE_IMAGE` pour imposer un modèle (sinon le plus récent « flash » d'image).
+- **Tâche planifiée « Article du blog »** (`trig_01XV79hD4SnMHWZds8SSudzQ`) : du lundi au vendredi, images `data-gemini`,
+  file des sujets réalimentée quand il en reste moins de cinq. ⛔ Pas repris de BabyLoveGrowth : l'échange de liens (réseau de
+  « backlinks » — contraire aux règles anti-spam de Google), les commentaires Reddit/Quora qui glissent la marque (publicité
+  déguisée), l'effacement des marques « image générée par IA » (C2PA).
+
+# ✅ 25 OCTOBRE 2026 (SOIR) — L'AUDIENCE DU SITE DANS LA TOUR, ET LE BLOG SUR teamop.fr — EN LIGNE (n° 184, heure d'hiver n° 185, registre n° 187, fusionnés le 25-26/10)
+
+Justin : « le nombre de personnes qui a cliqué sur les liens, comment ils sont venus, par quel site […] en temps réel, un peu comme BabyLoveGrowth » ; « voir si cet
+agent est lié à ce lien-là par rapport aux démarches qu'il fait ». Il a choisi « les deux » (Google Analytics ET un tableau à nous) et le marquage des liens des agents.
+- **Fait ce jour, hors dépôt** : `blog.teamop.fr` → `https://teamop.fr/blog/` (bloc Caddy ajouté au Caddyfile du VPS, copie `/etc/caddy/Caddyfile.avant-blog` ;
+  CNAME OVH `blog` → `api.teamop.fr.`) : les quatre anciennes adresses `/blog/<slug>` répondent 301 vers `/blog/<slug>.html` (vérifié). BabyLoveGrowth est résilié.
+  Search Console : propriété `https://teamop.fr/` vérifiée, `sitemap.xml` envoyé (27 pages découvertes) ; 37 clics sur un mois, 5 pages indexées, 17 non.
+- **Sur la branche** : `server/audience.js` (des totaux par jour, ni cookie, ni identifiant, ni IP écrite, 25 mois — conditions CNIL en tête du fichier) ; `/audience.js`
+  posé à côté de `cookies.js` par `site-marine.js` et `blog.js` ; onglet **Audience** de la Tour v2.110 (section « Site », patron seul, relu toutes les 30 s) ;
+  `confidentialite.html` § 2 le dit ; la signature de Léa, Camille et Chloé porte `https://teamop.fr/?de=<agent>` (`lienSite`), compté « Courriel de Léa ».
+  Banc : `test-3002` (43 contrôles, 9 mutations mordent), dans `scripts/bancs-serveur.liste`.
+- **Fait** : (1) fusion et déploiement ; (2) `registre-traitements.html` cite la mesure et Google Analytics (n° 187) ; la nuit du passage à l'heure d'hiver ne
+  compte plus deux fois le même jour (n° 185, jours au calendrier). **Reste (Justin)** : (3) Google Analytics : relier Search Console (Administration → Associations) ; (4) une « visite » est une ESTIMATION (une arrivée depuis l'extérieur), pas des personnes.
+
+# ✅ 26 OCTOBRE 2026 (NUIT) — « ASSISTANTE DE TEAMOP », PLUS « VIRTUELLE » — EN LIGNE (n° 188, déployée avec la n° 191)
+
+Justin : « je veux pas qu'il dise virtuel dans les mails, tous les agents doivent dire assistant ou assistante de TeamOP ». La signature devient
+« Léa — Assistante de TeamOP » (adresse, lien, « ajoutez … à vos contacts » inchangés), et une ligne posée par le serveur sous CHAQUE signature d'agent,
+`MENTION_IA` = « Message préparé par un assistant automatique de TeamOP. » (règlement européen sur l'IA, art. 50 : on dit à la personne qu'elle échange
+avec une IA). ⛔ La mention a quitté le RÔLE : un rôle réglé dans la Tour (« Directrice commerciale ») ne la retire plus ; « virtuel » est refusé dans
+un rôle, et un rôle rangé avec lui retombe sur le défaut. Les consignes de Léa, Camille, Chloé disent « jamais virtuelle » et « oui » franc à qui demande
+s'il parle à une IA. Pauline (Harvey, Mac) : `role: "assistante de TeamOP"` et la même phrase dans son pied de page.
+
+# 🔶 25 OCTOBRE 2026 — LES AGENTS : L'EXAMEN DOIT TOURNER EN BOUCLE, PAR CLAUDE CODE, PLUS PAR JUSTIN — branche `claude/examen-25-10`
+
+Justin, 25 octobre 2026 : « les agents doivent répondre comme des humains… qu'ils travaillent sur eux-mêmes, qu'ils parlent entre eux pour s'aider, sans que je
+sois tout le temps derrière… tout ce qui n'est pas fait, on passe pas à autre chose ». Constat : deux jours d'allers-retours, parce que SEUL Justin lançait
+l'examen — un échec corrigé, un examen, une demi-journée.
+- **Examen de 13 h 28 (5 ✓, 4 ✗), corrigé** sur cette branche (`test-3001`, 27 contrôles, 8 mutations mordent ; `test-2900` à la nouvelle règle de relance) :
+  sc1 (défaut de l'EXAMEN : « pas de dossier en impayé » lu comme un impayé), sc2 (un travail de Justin se PREND, la question va dans le même message), sc6 (le
+  juge sait qu'une activité déduite du nom est voulue ; une réponse du juge sans verdict a UNE relance, À NEUF — relecture du gardien : jamais la première
+  réponse remise en tour « assistant » ; la vue d'un brouillon dit la raison d'un « non vérifié »), sc9 (les deux phrases du modèle de courriel ne comptent plus
+  comme formules toutes faites — `FORMULES_MAISON`, vérifiées dans le cahier).
+- ⛔ **LA SUITE : LA BOUCLE.** Dès que `CLE_EXAMEN` est posée dans les réglages de l'environnement (Justin la crée dans la Tour, onglet Examen ; jamais dans une
+  conversation), Claude Code lance lui-même l'examen (commandes plus bas, § 23 octobre), lit le résultat, corrige, fait déployer, relance une heure plus tard —
+  jusqu'à TROIS examens verts de suite (un vert seul ne prouve pas grand-chose : le modèle varie d'un passage à l'autre). Sans cette clé, la boucle repasse par Justin.
+
+---
+
+# ✅ 24 OCTOBRE 2026 (SOIR) — LE BLOG RAPATRIÉ À teamop.fr/blog/ — n° 176 fusionné le 25/10, redirection Caddy faite, plan du site soumis
 # 🔶 24 OCTOBRE 2026 (SOIR) — SUITE CVC, BÊTA v774 — branche `claude/cvc-suite`, `app.html` ATTEND LA PHRASE DE JUSTIN
 
 Ce qui manquait au chauffage / climatisation après la v773 (liste du point du 24) :
@@ -29,7 +271,6 @@ et les bancs qui lisent `app.html` restent sur la branche jusqu'à sa phrase.
 ---
 
 # 🔶 24 OCTOBRE 2026 (SOIR) — LE BLOG RAPATRIÉ À teamop.fr/blog/ — branche `claude/blog-maison`, ATTEND LA FUSION DE JUSTIN
-
 Justin, 24 octobre 2026 : BabyLoveGrowth (blog.teamop.fr) demandait 600 € — « toi tu peux faire ce que BabyLoveGrowth fait », « bah go le
 faire, je vais pas payer ». Son abonnement BLG est inactif (rien n'a été prélevé) ; les quatre articles du 21 au 24 octobre y sont encore en ligne.
 - **Le blog** : sources dans `contenu/blog/` (NON publié — `articles.json` + un fragment HTML `<slug>.htm` par article + `SUJETS.md`, la file des sujets
@@ -38,9 +279,14 @@ faire, je vais pas payer ». Son abonnement BLG est inactif (rien n'a été pré
 - **Le site** : le pied mène à `/blog/` (plus à blog.teamop.fr), le plan du site liste le blog (`sitemap()` appelle `entreesSitemap()`),
   `llms.txt` le cite, l'assemblage publie `blog/`. Retirés des articles : les encarts de BLG, le téléphone (règle du site : contact@ seul),
   le crédit « Written with BabyLoveGrowth ». Banc : `tests/test-3000.js`.
-- **Reste ouvert** : (1) la fusion par Justin ; (2) **blog.teamop.fr** pointe toujours chez BLG (CNAME OVH) : une redirection OVH vers
-  `https://teamop.fr/blog/` évitera les liens morts quand BLG coupera — geste de Justin chez OVH ; (3) Search Console : soumettre le
-  nouveau plan du site après la fusion ; (4) la tâche planifiée « Article du blog » (deux par semaine) écrit chaque article dans une demande
+- **Fait (25/10)** : n° 176 fusionné ; BabyLoveGrowth résilié ; blog.teamop.fr → CNAME vers api.teamop.fr, bloc Caddy (`/etc/caddy/Caddyfile`,
+  sauvegarde `Caddyfile.avant-blog`) : `/blog/<slug>` → 301 vers `https://teamop.fr/blog/<slug>.html`, le reste → `/blog/` ; Search Console : propriété
+  vérifiée, `sitemap.xml` envoyé (27 pages). Article bon-d-intervention publié (n° 179).
+- **Reste ouvert** : (1) avec Justin, connecté à SON compte : demander l'indexation de `/blog/` et de `/blog/bon-d-intervention.html`, et relier
+  Search Console à Google Analytics (réglage de compte : seulement avec son accord) ; (2) décisions de Justin : les trois sujets repérés chez AutoSEO
+  (« logiciel de gestion pour entreprise de terrain : le guide », « … quels critères choisir », « … comprendre les prix » — NE PAS souscrire à
+  AutoSEO, leurs liens de réseau sont sanctionnés par Google) à ajouter à `SUJETS.md` après « gestion de stock camionnette » ; garder ou retirer
+  la source WebLex de bon-d-intervention (Cass. 1re civ., 14 nov. 2018, n° 17-21.697, non relue sur un site officiel) ; (4) la tâche planifiée « Article du blog » (deux par semaine) écrit chaque article dans une demande
   de fusion — Justin relit et fusionne, rien ne part sans lui ; (5) Facebook / Instagram : partage des articles après la liaison du 31 octobre.
 
 # ✅ 24 OCTOBRE 2026 (SOIR) — NODEMAILER 10.2.1 ET MAILPARSER 3.12.4 — branche `claude/nodemailer-10-2`
@@ -852,21 +1098,27 @@ l'administrateur les attribue ; le formulaire Box n'a pas la reprise de brouillo
 dit le jour d'une arrivée d'hier même pour une soirée.
 
 **⏳ OP MESSAGES — ce qui attend une décision de Justin** (rien n'est fait, chaque point change ce que l'utilisateur connaît) :
-- **contacts#1** — ce que devient la conversation d'un contact BLOQUÉ (règle du service, `server-msg/`).
-- **la fiche d'une réunion TERMINÉE** garde « Répondre », le rappel et le trajet : les retirer ? (salle#2 n'a retiré que « Rejoindre » et l'audio.)
-- **salle#4** — la bannière « réunion en cours » d'une AUTRE conversation reste, et intercepte le toucher (elle protège d'un départ involontaire).
-- **salle@4** — un refus d'entrer ramène tout de suite à l'écran d'avant : rendre la phrase durable ? **salle@10** — ajouter du contenu à l'écran de fin.
-- **agenda@2 / pro@3** — déplacer ou retirer un geste connu de l'agenda ; **agenda@5** — des rangées de réunion plus denses (plancher tactile de 64 px).
-- **appels@6** — « revenir » après un appel (il faudrait ranger un état sur l'appareil) ; **appels@2** — regrouper autrement les manqués d'affilée.
-- **groupes@5** — un nom de groupe par défaut ; **groupes@3** — dire « supprimé » plutôt que « retiré » quand un canal est supprimé ; **groupes@2** — une
-  phrase à la place de « Activité du groupe » sur les lignes système.
-- **conversations@1** — une conversation épinglée reste AUSSI dans la liste (« Désépingler » en dépend) : la retirer de la liste ?
-- **pro@5** — une information de plus à l'écran des heures ; **pro@6** — masquer une ligne en Perso.
-- **temps-reel@3** — le prénom dans « … écrit » en groupe, et le délai de 6 s avant de l'effacer.
-- **n#5** — deux limites (40 et 80) pour une même chose : laquelle ?
-- **une réunion de plusieurs jours** se montre sur CHACUN de ses jours (q01 dit désormais le jour de fin) : voulu ?
-- **l'organisateur qui « Quitte »** : sa phrase annonce un intérim qui n'a, lui, aucun des gestes de l'hôte.
-- **quandRdv / ligneEvenement** ne disent que les heures, jamais le fuseau.
+- ✅ **contacts#1** — TRANCHÉ ET FAIT le 26 octobre 2026 (branche `claude/opmsg-groupes-conversations`, `test-3040`) : le contact BLOQUÉ voit sa conversation chez soi en LECTURE SEULE (phrase + « Débloquer » ; Infos : « Débloquer ce contact ») ;
+  lui n'est averti de rien : il écrit (201), son message est RANGÉ et MASQUÉ pour qui l'a bloqué (`msg_masque`, `ecritureSilencieuse`) — jamais remis, jamais notifié, la conversation ne remonte pas. Un groupe n'est pas touché ; débloquer ne ramène PAS les messages de la période.
+  ⚠️ Doutes : un message de la période peut paraître « Lu » chez Ben si Ana, débloquée, lit plus tard (le `lu_seq` passe par-dessus) ; les réactions et les sondages d'un bloqué restent refusés (404).
+- ✅ **RÉUNIONS ET APPELS — TRANCHÉ PAR JUSTIN LE 26 OCTOBRE 2026 (« fait les 18 »), FAIT SUR LA BRANCHE `claude/opmsg-reunions-appels` (bêta d'OP MESSAGES, pas encore fusionnée)** :
+  la fiche d'une réunion TERMINÉE n'a plus « Ta réponse », « Me rappeler » ni la zone du trajet (la durée, les présents et les participants restent — `test-3030`) ; la bannière d'une AUTRE conversation
+  pendant un appel ou une réunion reste, plus fine (l'expéditeur et son message, une ligne chacun), son corps laisse passer le toucher et son bouton « Ouvrir » seul le reçoit (`test-3031`, mesuré au navigateur) ;
+  un refus d'entrer (l'hôte n'a pas accepté, retiré, réunion annulée, salle déjà finie) RESTE à l'écran avec sa raison et « Retour » ; la fin d'une réunion montre la durée, qui était là et « Revenir à la
+  conversation » — la caméra et le micro s'éteignent dès l'écran de fin (`test-3032`) ; après un appel on revient à l'écran d'où l'on est parti, feuille comprise (fiche d'une réunion, détails d'un appel, contact),
+  l'état est à l'appareil (le module de données le range dans le stockage de l'onglet, la page n'écrit sur aucun stockage — `test-856`), jamais dans les données partagées (`test-3033`) ; « 3 appels manqués » à la place de « Appel manqué (3) » (`test-3034`) ; une réunion de plusieurs jours (24 h ou
+  plus) se montre chaque jour avec « Jour 2 sur 3 » (`test-3035`) ; quand l'organisateur QUITTE, l'invité nommé suivant (un co-hôte d'abord) devient l'organisateur avec TOUS les gestes, côté SERVICE
+  (`server-msg/stockage.js`, `salleSuccesseur` — `test-3036`, `test-2400` mis à jour), la phrase du panneau « Quitter » le dit. **Gardés tels quels (« on garde »)** : agenda@2 / pro@3 (Reporter), agenda@5 (rangées).
+  Preuves : `scratchpad/sonde-opmessages-reunions-appels.js` (183 contrôles au navigateur sur la VRAIE page servie, 390 px et 1280 px, jour et nuit — elle a trouvé une collision de nom, `X.venus`, que les bancs ne voyaient
+  pas), `scratchpad/mutations-opmessages-reunions-appels.py` (65 mutations, toutes tombent). ⚠️ Limites connues : une salle de RÉUNION dont seuls des invités entrés par le LIEN restent garde l'intérim d'avant (la porte, pas
+  les armes) ; un successeur nommé GARDE son rôle quand l'organisateur revient (deux hôtes) ; l'origine d'un appel lancé depuis un sélecteur (« Nouvel appel ») n'est pas rouverte (on a choisi, on a appelé) ; les nouveaux
+  bancs ne sont PAS dans `scripts/bancs-messages.liste` (`test-900` borne les numéros à 900-2699) : ils tournent dans la suite complète.
+- ✅ **groupes@5, groupes@3, groupes@2, conversations@1, pro@5/pro@6, temps-reel@3, n#5** — TRANCHÉS ET FAITS le 26 octobre 2026 (même branche ; `test-3041`, `test-3042`, `test-3043`, sonde `sonde-opmessages-groupes-conversations.js`) :
+  nom par défaut « Léa, Hugo et 2 autres » (envoyé au service, filigrane du champ) ; canal supprimé = « supprimé » (événement `retire` + `supprime`) ; ligne système = phrase dans la LISTE (groupes et canaux — pas les réunions) ;
+  épinglée : EN HAUT seulement (liste, recherche, « Modifier », « Archivées » : une seule fois à l'écran), « Désépingler » à l'appui long / clic droit sur l'épingle ; pro@5 : rien de plus (non) ; pro@6 : « Confirmer l'envoi » masquée en Perso ;
+  « Léa écrit… » / « Léa et Hugo écrivent… » en groupe (6 s gardées) ; UNE limite de nom de groupe : 80 (création et renommage).
+- **quandRdv / ligneEvenement** ne disent que les heures, jamais le fuseau — NON FAIT le 26 octobre 2026 : ce sont des fonctions de l'AGENDA (autre chantier, même fichier) et elles ne reçoivent aucun fuseau d'interlocuteur (`quandRdv(d, f, journee, jours)`) ;
+  il faudrait d'abord que l'événement porte le fuseau de l'autre, puis décider quoi montrer pour un rendez-vous sans interlocuteur.
 - **les 83 améliorations** que les testeurs ont proposées en utilisant l'application, rangées par partie, chacune avec la raison qui en fait une
   décision : `scratchpad/campagne-octobre-2026/a-decider-op-messages.md` (dans le dépôt).
 

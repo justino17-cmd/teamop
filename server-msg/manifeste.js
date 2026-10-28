@@ -26,6 +26,8 @@
  *   LV le SERVEUR DE VISIO (LiveKit) sur la même machine : la boucle locale, sans passer par nginx (aucun `X-Forwarded-For`) — sinon 404 ; la route vérifie ensuite la signature sur le corps (`visio.js`).
  *   AD l'ADMINISTRATION (la console interne, par le relais d'api.teamop.fr) : la boucle locale ET aucun en-tête de proxy ET le secret `X-OPM-Admin` de la configuration ; sinon, ou sans secret
  *      configuré, le MÊME 404 qu'une route qui n'existe pas. Des lectures seulement (`admin.js` porte le contrat).
+ *   PT le PONT DES AGENTS (la messagerie de la Tour, côté serveur d'api.teamop.fr) : les trois preuves d'`AD` avec SON secret (`X-OPM-Pont`, comparé à `pont.secretSha256`) ; sinon, ou sans `pont` dans la configuration, le
+ *      MÊME 404. Ces écritures ne sont pas celles d'une page : ni `Origin` ni `X-OPM`, ni plafond d'écriture par compte (`pont-agents.js` porte le contrat et son propre plafond).
  *   AP participant d'un APPEL (S d'abord : répondre, raccrocher et signaler ne demandent pas d'adresse confirmée — lancer l'appel, lui, exige V) — l'appel se lit dans le chemin (`:id`) ; un non-participant reçoit le
  *      même 404 qu'un appel qui n'existe pas. « L'appareil lié » (la session qui a lancé l'appel ou qui y a répondu) se juge dans la route, pas dans la garde : un autre appareil du même compte voit 403.
  *
@@ -46,6 +48,11 @@ const MANIFESTE = [
   { id: 'admin.espaces',     m: 'GET',  p: '/api/admin/espaces',                     garde: 'AD' },
   { id: 'admin.abonnements', m: 'GET',  p: '/api/admin/abonnements',                 garde: 'AD' },
   { id: 'admin.incidents',   m: 'GET',  p: '/api/admin/incidents',                   garde: 'AD' },
+  /* LE PONT DES AGENTS (28 octobre 2026) : la messagerie de la Tour sur OP MESSAGES. Gardé par `PT` (boucle locale + sans proxy + secret `X-OPM-Pont`) ; inerte sans `pont` dans la configuration — le contrat est dans l'en-tête de `pont-agents.js` */
+  { id: 'pont.installer',    m: 'POST', p: '/api/pont/installer',                    garde: 'PT' },
+  { id: 'pont.poster',       m: 'POST', p: '/api/pont/poster',                       garde: 'PT' },
+  { id: 'pont.nouveaux',     m: 'GET',  p: '/api/pont/nouveaux',                     garde: 'PT' },
+  { id: 'pont.supprimer',    m: 'POST', p: '/api/pont/supprimer',                    garde: 'PT' },
   { id: 'beta.entrer',       m: 'POST', p: '/api/beta/entrer',                       garde: 'B' },
   { id: 'compte.deconnexion', m: 'POST', p: '/api/compte/deconnexion',               garde: 'S' },
   { id: 'moi',               m: 'GET',  p: '/api/moi',                               garde: 'S' },
@@ -233,6 +240,22 @@ const MANIFESTE = [
      réunion où l'on est invité s'ouvre par R (l'hôte en est un) ; le lien se lit et se renouvelle par H (l'ancien meurt). */
   { id: 'reunions.apercu',   m: 'POST', p: '/api/reunions/apercu',                   garde: 'P' },
   { id: 'reunions.rejoindre_code', m: 'POST', p: '/api/reunions/rejoindre',          garde: 'S' },
+  /* L'INVITÉ SANS COMPTE (26 octobre 2026, `routes-invites.js`) : le lien de l'organisateur (H), l'aperçu et l'entrée à la porte (P : publics et plafonnés par réseau), puis le peu que sa session ouvre (G : sa
+     session ; GS : et une place dans la salle). Aucune autre route n'accepte sa session. */
+  { id: 'reunions.invite_lien',       m: 'POST', p: '/api/reunions/:id/invite/lien',        garde: 'H' },
+  { id: 'reunions.invite_regenerer',  m: 'POST', p: '/api/reunions/:id/invite/regenerer',   garde: 'H' },
+  { id: 'invite.apercu',     m: 'POST', p: '/api/invite/apercu',                     garde: 'P' },
+  { id: 'invite.entrer',     m: 'POST', p: '/api/invite/entrer',                     garde: 'P' },
+  { id: 'invite.etat',       m: 'GET',  p: '/api/invite/etat',                       garde: 'G' },
+  { id: 'invite.flux',       m: 'GET',  p: '/api/invite/flux',                       garde: 'G' },
+  { id: 'invite.redemander', m: 'POST', p: '/api/invite/redemander',                 garde: 'G' },
+  { id: 'invite.quitter',    m: 'POST', p: '/api/invite/quitter',                    garde: 'G' },
+  { id: 'invite.ice',        m: 'GET',  p: '/api/invite/ice',                        garde: 'GS' },
+  { id: 'invite.signal',     m: 'POST', p: '/api/invite/signal',                     garde: 'GS' },
+  { id: 'invite.main',       m: 'POST', p: '/api/invite/main',                       garde: 'GS' },
+  { id: 'invite.reaction',   m: 'POST', p: '/api/invite/reaction',                   garde: 'GS' },
+  { id: 'invite.media',      m: 'POST', p: '/api/invite/media',                      garde: 'GS' },
+  { id: 'invite.visio',      m: 'POST', p: '/api/invite/visio',                      garde: 'GS' },
   { id: 'reunions.rejoindre', m: 'POST', p: '/api/reunions/:id/rejoindre',           garde: 'R' },
   { id: 'reunions.presence', m: 'GET',  p: '/api/reunions/:id/presence',             garde: 'H' },   // le rapport de présence (l'organisateur seul)
   { id: 'reunions.lien',     m: 'POST', p: '/api/reunions/:id/lien',                 garde: 'H' },

@@ -55,7 +55,7 @@ const dormir = ms => new Promise(r => setTimeout(r, ms));
   AG.cour.sigLec = -1; AG.cour.conLec = -1;
   h = bac.agCourVue();
   vrai('⛔ lectures impossibles : la page le DIT (pas de « aucune connaissance »)', /n’ont pas pu être lues/.test(txt(h)) && !/Aucune connaissance validée/.test(txt(h)) && !/Aucune proposition/.test(txt(h)), txt(h).slice(0, 300));
-  AG.cour.sigLec = 1; AG.cour.sig = { equipe: 'Équipe TeamOP', agents: [{ agent: 'lea', nom: 'Léa', role: 'Assistante virtuelle', apercu: 'Léa — Assistante virtuelle — Équipe TeamOP' }, { agent: 'louis', nom: 'Louis', role: 'x', apercu: '' }] };
+  AG.cour.sigLec = 1; AG.cour.sig = { equipe: 'Équipe TeamOP', agents: [{ agent: 'lea', nom: 'Léa', role: 'Assistante virtuelle', apercu: 'Léa — Assistante de TeamOP' }, { agent: 'louis', nom: 'Louis', role: 'x', apercu: '' }] };
   AG.cour.conLec = 1; AG.cour.con = [{ id: 'cn00000001', question: 'Peut-on exporter en PDF ?', reponse: '', etat: 'propose' }, { id: 'cn00000003', question: 'Les devis partent-ils en PDF ?', reponse: 'Oui.', etat: 'valide', decidePar: 'Justin' }];
   h = bac.agCourVue();
   vrai('(population) une signature (Louis n’en a pas), une proposition sans réponse (dite), une validée, le formulaire d’ajout', (h.match(/id="ag-sig-lea"/g) || []).length === 1 && !/id="ag-sig-louis"/.test(h) && /écris-la/.test(txt(h)) && /Les devis partent-ils/.test(txt(h)) && /id="ag-cn-nq"/.test(h), txt(h).slice(0, 200));

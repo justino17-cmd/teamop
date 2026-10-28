@@ -58,7 +58,7 @@ async function await0() {
   await charger({ ok: true, configured: true, abos: [], mrr: 0, actifs: 0, impayes: 1 }, { ok: true, configured: true, paiements, echecs: 1 });
   v('la vraie chargerAbos range les factures, et redessine la page ouverte', [page.ABO.loaded, page.ABO.paiements.length, rendus > 0], [true, paiements.length, true]);
   const H = page.vueFacturation(), X = texte(H);
-  const XG = texte(H.slice(H.indexOf('<div class="reg"')));   // les groupes, sous les tuiles (qui portent aussi « Refusées »)
+  const XG = texte(H.slice(H.indexOf('<div class="reg abn-f"')));   // les groupes, sous les tuiles (qui portent aussi « Refusées »)
   const ordre = ['Refusées', 'En attente de règlement', 'Encaissé en'].map(t => XG.indexOf(t));
   v('refusées d\'abord, puis en attente, puis l\'encaissé', ordre.every((x, i) => x >= 0 && (!i || x > ordre[i - 1])), true);
   const eur = n => n.toLocaleString('fr-FR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).replace(/ | /g, ' ') + ' €';

@@ -11,6 +11,9 @@
  * ⛔ Une demande métier qui n'est pas dans la liste ne devient JAMAIS « une fonction qu'on a » : elle se présente comme « une
  *    catégorie qu'on peut créer pour vous ». Aucun autre prix, aucune date, aucune remise, aucun engagement juridique.
  * Ajouter un fait ici est un geste conscient : il doit être vrai AUJOURD'HUI dans l'application publiée ou sur teamop.fr.
+ * ⛔ UNE SEULE exception, BORNÉE : le bloc « BIENTÔT » (Justin, 27 octobre 2026 : « on peut dire aux clients qu'on peut les aider aussi à refaire leur site ou alors en
+ *    créer s'ils n'en ont pas ; c'est une fonctionnalité qui va arriver bientôt »). Ce qui n'est pas ouvert se dit AU FUTUR, sans prix, sans date, sans contenu promis —
+ *    et `refusDe` continue de refuser un délai (« d'ici un mois ») ou une promesse (« offert ») écrits autour. Un service ouvert sort de ce bloc pour la liste.
  */
 'use strict';
 
@@ -39,8 +42,12 @@ const OFFRE = [
   '- Des tarifs maîtrisés : à partir de 15 € par mois et par utilisateur (TVA non applicable).',
   '- Sans engagement de durée : l’abonnement se résilie à tout moment, depuis le Support de l’espace client ou en écrivant à contact@teamop.fr, et l’accès se poursuit jusqu’à la fin de la période réglée. (Seule cette formule exacte, « sans engagement de durée », est permise.)',
   '',
+  'BIENTÔT — UN SERVICE QUI N’EST PAS ENCORE OUVERT, À DIRE COMME TEL :',
+  '- TeamOP pourra bientôt aider les entreprises à refaire leur site internet, ou à en créer un si elles n’en ont pas. Tu le dis en UNE phrase, au futur, comme un service « bientôt disponible » : sans prix, sans date, sans délai, sans rien annoncer de ce qu’il contiendra. Tu ne l’évoques que lorsqu’il sert ce client-là (il n’a pas de site, le sien semble ancien, ou il en parle) ; s’il est intéressé, tu dis que nous reviendrons vers lui à son ouverture.',
+  '',
   'LIMITES, À RESPECTER À LA LETTRE :',
   '- Tu ne présentes comme existante AUCUNE fonction absente de la liste ci-dessus. Un besoin propre au métier du client qui n’y figure pas (par exemple le suivi des fluides frigorigènes d’un climaticien) se présente comme « une catégorie que nous pouvons créer pour vous », jamais comme une fonction déjà disponible.',
+  '- Quand tu décris une fonction, tu reprends les MOTS de la ligne ci-dessus : un synonyme est permis, une qualité de plus non. Tu n’écris pas « automatiquement » ni « automatique » pour un envoi ou un rappel dont la liste ne dit pas qu’il l’est (« rapport PDF envoyé au client » ne devient pas « rapport envoyé automatiquement »), ni « centralisé », « instantané » ou « complet » là où la liste ne les dit pas.',
   '- Tu ne donnes aucun autre prix que « à partir de 15 € par mois et par utilisateur (TVA non applicable) », aucune date, aucune remise, aucune promesse de délai, aucun engagement juridique autre que « sans engagement de durée », aucun remboursement.',
   '- La période d’essai d’une semaine se propose APRÈS le retour du client, jamais dans le premier message : tu la présentes comme une possibilité « ensuite », sans la promettre.',
   '- Tu n’écris jamais les mots « gratuit », « offert », « remise », « réduction », « illimité », « garanti », « remboursé », ni « sans engagement » seul : ce sont des promesses commerciales que personne n’a faites (« sans engagement de durée » est un fait, voir ci-dessus). Tu n’écris aucun nom de site ou d’adresse web autre que « teamop.fr ».',

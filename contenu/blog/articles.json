@@ -1,5 +1,36 @@
 [
  {
+  "slug": "planning-des-techniciens",
+  "titre": "Planning des techniciens : organiser la semaine de son équipe",
+  "description": "Planning des techniciens : calculer la capacité de l’équipe, garder une réserve pour les urgences, organiser les tournées et respecter le Code du travail.",
+  "date": "2026-10-28",
+  "image": "planning-des-techniciens-couverture.webp",
+  "imageAlt": "Couverture bleu nuit avec le titre : Planning des techniciens, organiser la semaine de son équipe",
+  "faq": [
+   {
+    "q": "Combien d’interventions planifier par jour et par technicien ?",
+    "r": "Partez des heures de travail, retirez le temps de route et une réserve pour les urgences, puis divisez par la durée moyenne d’une intervention. Avec 7 heures de travail, 1 h 30 de route, 20 % de réserve et 1 h 30 par intervention, cela donne environ trois interventions planifiées à l’avance par jour."
+   },
+   {
+    "q": "Quelle est la durée maximale de travail d’un technicien ?",
+    "r": "Pour un salarié à temps plein de plus de 18 ans : 10 heures de travail effectif par jour, sauf dérogation ou accord (jusqu’à 12 heures), 48 heures sur une même semaine et 44 heures en moyenne sur 12 semaines consécutives, avec 11 heures de repos entre deux journées."
+   },
+   {
+    "q": "Le trajet jusqu’au premier client est-il du temps de travail ?",
+    "r": "Le principe est non, avec une contrepartie si le trajet dépasse le temps normal. Mais la Cour de cassation a jugé en 2022 que ce trajet peut être du temps de travail effectif quand le technicien reste à la disposition de l’employeur pendant qu’il conduit, sans pouvoir vaquer à ses occupations personnelles. Tout dépend de la situation."
+   },
+   {
+    "q": "Combien de temps à l’avance prévenir d’un changement de planning ?",
+    "r": "Pour un salarié à temps partiel, au moins 7 jours ouvrés pour modifier la répartition de ses horaires, ou 3 jours ouvrés si un accord collectif le prévoit. Pour les astreintes, 15 jours à défaut d’accord. Votre convention collective peut prévoir d’autres délais."
+   },
+   {
+    "q": "Un tableur suffit-il pour un planning de techniciens ?",
+    "r": "Pour deux personnes, souvent oui. Au-delà, le tableau du bureau et ce que les techniciens ont en poche divergent vite, et la charge de chacun ne se lit plus d’un coup d’œil."
+   }
+  ],
+  "photo": "A field technician reviewing the week's schedule of interventions on a tablet with a colleague in a small French company workshop"
+ },
+ {
   "slug": "bon-d-intervention",
   "titre": "Bon d’intervention : modèle, mentions et valeur de preuve",
   "description": "Bon d’intervention : les mentions à prévoir, un modèle à reprendre, sa valeur de preuve face à un client et ce que change une version sur téléphone.",

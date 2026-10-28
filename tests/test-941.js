@@ -15,7 +15,7 @@ const { v, vrai, fin } = T.compteur();
 const GEN = require('../scripts/opmsg-public.js');
 const RACINE = path.join(__dirname, '..');
 
-const FICHIERS = ['apercu/opmessages/index.html', 'opcourrier.js', 'server-msg/public/api.js', 'server-msg/public/source-serveur.js', 'server-msg/public/sw.js', 'server-msg/public/manifest.webmanifest',
+const FICHIERS = ['apercu/opmessages/index.html', 'opcourrier.js', 'server-msg/public/api.js', 'server-msg/public/source-serveur.js', 'server-msg/public/sw.js', 'server-msg/public/manifest.webmanifest', 'server-msg/public/invite.html', 'server-msg/public/invite.js',
   'icons/opmsg-192.png', 'icons/opmsg-512.png', 'icons/opmsg-apple-touch.png', 'icons/opmsg-favicon-32.png', 'sons/courrier.mp3'];
 function copie() {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-941-'));

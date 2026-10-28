@@ -304,6 +304,10 @@ function installerReunions(H, ctx) {
       const conv = R.reunion.conv;
       if (!stockage.convPourMembre(conv, par.id)) return null;
       const p = stockage.presenceSalle(salle, horloge()); if (!p || p.en_cours) return null;
+      /* ⛔ LE NOM D'UN INVITÉ SANS COMPTE NE VA PAS DANS LA CONVERSATION : ce message reste chez tous les membres de la réunion, et le client n'a pas de compte pour le demander ni l'effacer. Il est COMPTÉ (« et 2 invités
+         sans compte »), jamais nommé — son nom et son entreprise ne vivent que dans le rapport de présence de l'organisateur, avec la séance. */
+      const sansCompte = p.venus.filter(x => x.invite_sans_compte).length;
+      p.venus = p.venus.filter(x => !x.invite_sans_compte);
       /* la séance est finie et écrite : tous les participants relisent l'agenda et la fiche (`stockage.reunionSeanceSignaler`) — avant le message, qui ne parle qu'à la conversation */
       if (stockage.reunionSeanceSignaler(reunion)) hub.reveiller({ conv });
       const fin = p.fin || horloge(), duree_s = Math.max(0, Math.round((fin - p.debut) / 1000));
@@ -316,12 +320,12 @@ function installerReunions(H, ctx) {
       const docs = stockage.piecesPartagees(conv, p.debut, fin);
       const titre = R.reunion.titre || 'Réunion', tz = R.reunion.tz;
       const lignes = ['📝 Compte rendu — ' + titre, cal.dire(p.debut, tz) + ' · ' + dureeTexte(duree_s)];
-      lignes.push('Présents (' + p.venus.length + ') : ' + (venus.map(x => x.nom + ' (' + dureeTexte(x.duree_s) + ')').join(', ') || 'personne') + (p.venus.length > venus.length ? ' et ' + (p.venus.length - venus.length) + ' autres' : ''));
+      lignes.push('Présents (' + (p.venus.length + sansCompte) + ') : ' + (venus.map(x => x.nom + ' (' + dureeTexte(x.duree_s) + ')').join(', ') || (sansCompte ? '' : 'personne')) + (p.venus.length > venus.length ? ' et ' + (p.venus.length - venus.length) + ' autres' : '') + (sansCompte ? (venus.length ? ' et ' : '') + sansCompte + (sansCompte > 1 ? ' invités sans compte' : ' invité sans compte') : ''));
       if (absentsTous.length) lignes.push('Absents (' + absentsTous.length + ') : ' + absents.map(x => x.nom + ' (' + (REPONSES[x.reponse] || 'sans réponse') + ')').join(', ') + (absentsTous.length > absents.length ? ' et ' + (absentsTous.length - absents.length) + ' autres' : ''));
       if (points.length) { lignes.push('Ordre du jour :'); for (const x of points) lignes.push((x.fait ? '✓ ' : '○ ') + x.texte); }
       if (docs) lignes.push('Documents partagés : ' + docs);
       const texte = lignes.join('\n').slice(0, 7900);
-      const meta = { k: 'compte_rendu', titre, debut: p.debut, fin, duree_s, presents: venus, presents_n: p.venus.length, absents, absents_n: absentsTous.length, points, documents: docs };
+      const meta = { k: 'compte_rendu', titre, debut: p.debut, fin, duree_s, presents: venus, presents_n: p.venus.length, sans_compte_n: sansCompte, absents, absents_n: absentsTous.length, points, documents: docs };
       const m = stockage.messageEnvoyer({ conv, auteur: par.id, cid: 'cr_' + salle.slice(2), type: 'texte', texte, meta });
       if (m.deja) return { seq: m.seq };
       hub.reveiller({ conv });
@@ -415,6 +419,7 @@ function installerReunions(H, ctx) {
     const r = stockage.reunionAnnuler({ id, par: hote.id });
     if (r.change) {
       hub.reveiller({ conv: avant.conv, uids: r.salle });                       // et les pages de ceux qui étaient dans la salle, qui apprennent sa fin
+      ctx.appels.couperInvites();                                               // …les invités sans compte aussi : leur lien est mort, leurs sessions se ferment
       prevenirAnnulation(hote, avant, stockage.reunionParticipants(id));
     }
     res.json(vue(hote.id, id));
@@ -428,6 +433,7 @@ function installerReunions(H, ctx) {
     const r = stockage.reunionSupprimer({ id, par: hote.id });
     effacer(r.pieces);
     hub.reveiller({ uids: r.participants });
+    ctx.appels.couperInvites();                                                 // une salle encore ouverte finit avec la réunion : les invités sans compte sont coupés
     /* une réunion À VENIR que l'hôte efface sans l'avoir annulée : ses invités l'apprennent (sinon elle disparaît de leur agenda sans un mot) */
     if (aVenir && notifierVoulu(b)) prevenirAnnulation(hote, avant, r.participants);
     res.json({ ok: true });

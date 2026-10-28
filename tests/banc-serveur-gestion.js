@@ -23,7 +23,7 @@ const sha = x => crypto.createHash('sha256').update(x).digest('hex');
 async function demarrer(o) {
   o = o || {};
   const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'bgest-'));
-  const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
+  const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ces bancs (`test-3021`)
   const MDP = 'mot-de-passe-du-banc-patron', MDP2 = 'mot-de-passe-du-banc-agent';
   const fact = facteur();
   const portSmtp = await new Promise(res => fact.s.listen(0, '127.0.0.1', () => res(fact.s.address().port)));
@@ -81,6 +81,7 @@ globalThis.fetch = async function (url, opts) {
   const vap = webpush.generateVAPIDKeys();
   const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', agents: { cleApi: 'sk-ant-banc-gestion-xxxxxxxxxxxxxxxx', reunionsAuto: false }, stripe: { secretKey: 'sk_de_banc_gestion' },
     smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' }, contactEmail: 'contact@banc-gestion.fr' };
+  Object.assign(conf, o.config || {});   // o.config : des réglages de plus dans config.json (ex. `pauline`, test-3020)
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify(conf));
   const PORT = await new Promise(res => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
   const B = 'http://127.0.0.1:' + PORT;
@@ -91,7 +92,7 @@ globalThis.fetch = async function (url, opts) {
       env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT),
         TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_FB_OAUTH_URL: 'http://127.0.0.1:9/token', TEAMOP_FIRESTORE_URL: 'http://127.0.0.1:9',
         TEAMOP_IDTK_URL: 'http://127.0.0.1:9/idtk', TEAMOP_FB_CERTS_URL: 'http://127.0.0.1:9/certs', TEAMOP_PLACES_BASCULE: '2026-01-01T00:00:00Z',
-        FAUX_IMAP: IMAP, FAUX_IMAP_RACINE: path.join(RACINE, 'server') }),
+        FAUX_IMAP: IMAP, FAUX_IMAP_RACINE: path.join(RACINE, 'server') }, o.env || {}),
       stdio: ['ignore', 'pipe', 'pipe'] });
     enfant.stdout.on('data', d => { journal += d; }); enfant.stderr.on('data', d => { journal += d; });
     for (let i = 0; i < 150; i++) { try { if ((await fetch(B + '/health')).ok) return true; } catch (e) {} await dormir(100); }

@@ -83,6 +83,10 @@ const DOSSIERS = {
 const TU = /(?:^|[^\p{L}\p{N}])(?:tu|toi|ton|tes|ta)(?![\p{L}\p{N}])|(?:^|[^\p{L}\p{N}])t['’](?=\p{L})/iu;
 const FORMULES_ROBOT = [/en tant qu['’](?:ia|assistant|intelligence)/i, /je suis (?:l[àa] pour|un assistant|une ia)/i, /n['’]h[ée]site(?:z)? pas [àa]/i, /je reste [àa] (?:votre|ta) disposition/i,
   /puis-je (?:vous|t['’])\s?aider/i, /excellente question/i, /\bbien (?:re[çc]u|not[ée]) ?!/i, /\babsolument ?!/i, /\bbien s[ûu]r ?!/i, /comme demand[ée]/i, /\bje vous en prie\b/i];
+/* ⛔ UNE FORMULE CITÉE N'EST PAS UNE FORMULE DITE (examen du 26 octobre 2026 à 23 h 25 : Léa conseillait d'éviter « un vague "n'hésitez pas à nous contacter" » — et le
+   scénario 9 l'accusait de l'écrire). Ce qui est entre guillemets (« », " ", “ ”) est retiré avant de chercher une formule. */
+const horsCitations = t => String(t || '').replace(/«[^»]{0,300}»|"[^"\n]{0,300}"|“[^”]{0,300}”/g, ' ');
+const formuleRobot = t => FORMULES_ROBOT.some(re => re.test(horsCitations(t)));
 const PROMESSE_REMBOURSEMENT = /(?:nous|je) (?:vous )?(?:rembours(?:ons|erons|erai)|procéd(?:ons|erons) au remboursement|ferons un geste)|vous serez rembours|remboursement (?:sera|vous sera|est accord|est effectu)|geste commercial/i;
 const ACTIVITES = {
   climatisation: /climatisation|clim\b|climatiseur|froid|pompe [àa] chaleur|frigorifi/i,
@@ -311,8 +315,13 @@ function lireVerdict(texte, cles) {
   const s = String(texte || '');
   const objets = objetsDe(s);
   let j;
+  /* ⛔ UN OBJET QUI NE NOMME AUCUN CRITÈRE N'EST PAS UN VERDICT (examen du 26 octobre 2026, scénario 9) : un juge qui écrit « les {formules} se répètent » avant sa ligne JSON
+     faisait lire `{formules}` comme un premier objet, incomplet, et tout devenait « illisible ». Il est écarté — il ne dit rien d'aucun critère, donc il ne peut en rendre
+     aucun « vrai » à tort. Tout objet qui nomme AU MOINS un critère reste tenu de les porter tous (un objet incomplet rend toujours tout illisible). */
+  const verdictsEn = objets && objets.filter(o => cles.some(c => o.includes('"' + c + '"')));
+  if (objets && objets.length && !verdictsEn.length) return null;
   if (objets && objets.length) {
-    const lus = objets.map(o => { let x; try { x = JSON.parse(o); } catch (e) { x = verdictAbime(o, cles); } return x; });
+    const lus = verdictsEn.map(o => { let x; try { x = JSON.parse(o); } catch (e) { x = verdictAbime(o, cles); } return x; });
     if (lus.some(x => !x || typeof x !== 'object' || Array.isArray(x) || !cles.every(c => typeof x[c] === 'boolean'))) return null;
     j = lus.length === 1 ? lus[0] : Object.assign(Object.fromEntries(cles.map(c => [c, lus.every(x => x[c] === true)])),
       { raison: [...new Set(lus.map(x => typeof x.raison === 'string' ? x.raison.trim() : '').filter(Boolean))].join(' ; ') });
@@ -326,6 +335,23 @@ function lireVerdict(texte, cles) {
   for (const c of cles) { if (typeof j[c] !== 'boolean') return null; valeurs[c] = j[c]; }
   const raison = typeof j.raison === 'string' ? coupe(sansAdr(j.raison.replace(/\s+/g, ' ').trim()), 300) : '';
   return { valeurs, raison };
+}
+/* ⛔ UN VERDICT INCOMPLET DIT CE QU'IL DIT (examen du 26 octobre 2026 à 23 h 25, scénario 9 : le juge a rendu deux fois `{"c1":true,"c2":true,"raison":…}` sans `c3`, et les
+   TROIS critères sont sortis « inconnus »). Après les deux essais, et seulement alors : UN objet de verdict (jamais plusieurs — un objet par courriel manquant ne doit
+   rendre aucun critère vrai), lu clé par clé ; un critère présent en booléen garde sa valeur, un critère absent reste inconnu. Rien n'est deviné. */
+function lireVerdictPartiel(texte, cles) {
+  const s = String(texte || ''), objets = objetsDe(s);
+  if (!objets) return null;
+  const vs = objets.filter(o => cles.some(c => o.includes('"' + c + '"')));
+  if (vs.length !== 1) return null;
+  const valeurs = {};
+  for (const c of cles) {
+    const vals = [...vs[0].matchAll(new RegExp('"' + c + '"\\s*:\\s*(true|false)(?![\\w"])', 'g'))].map(x => x[1]);
+    if (vals.length && new Set(vals).size === 1) valeurs[c] = vals[0] === 'true';
+  }
+  if (!Object.keys(valeurs).length) return null;
+  const r = /"raison"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(vs[0]);
+  return { valeurs, raison: r ? coupe(sansAdr(r[1].replace(/\\"/g, '"').replace(/\s+/g, ' ').trim()), 300) : '', manque: cles.filter(c => !(c in valeurs)) };
 }
 /* La raison d'UN critère, quand le juge les a données clé par clé (« c2 : … ; c4 : … ») : sinon toute la raison. Avant le 24 octobre, la même phrase sur les
    formules répétées d'une réunion s'affichait sous « les courriels aux clients… sonnent professionnels », qui n'avait rien à voir. */
@@ -352,25 +378,68 @@ function verdictAbime(brut, cles) {
   if (r) j.raison = r[1].replace(/\\"/g, '"');
   return j;
 }
-/* `criteres` : [{ cle:'c1', texte }] — rend { ok, valeurs, raison } ou { ok:false, cause }. */
+/* `criteres` : [{ cle:'c1', texte }] — rend { ok, valeurs, raison } ou { ok:false, cause }.
+   ⛔ LE JUGE VOIT TOUJOURS c1…cN, SANS TROU (examen du 26 octobre 2026, scénario 9 : « le juge n'a pas rendu de verdict lisible » sur trois critères). La veille au soir, un critère
+   (c3, le tutoiement de Justin) avait été retiré du ton : le juge devait rendre c1, c2 et c4. Un modèle qui lit « c1, c2, c4 » CORRIGE la suite en c1, c2, c3 — et un verdict sans
+   `c4` est illisible, par construction. Aucun appelant n'a plus à y penser : les critères sont renumérotés ici, et les clés de l'appelant sont rendues dans la réponse.
+   ⛔ UNE RÉPONSE ILLISIBLE SE REDEMANDE UNE FOIS (à neuf, avec le rappel de la forme), et un verdict qui reste illisible DIT ce que le juge a répondu (le début, adresses retirées) :
+   « illisible » seul ne permettait pas de savoir si le juge refusait, bavardait ou numérotait autrement. */
+const RAPPEL_JUGE = 'Rappel : UNE SEULE ligne JSON, un seul objet, avec EXACTEMENT les clés demandées (c1, c2… dans l’ordre, sans en sauter), chacune true ou false, puis "raison". Rien avant, rien après.';
+/* ⛔ UN CRITÈRE NE TOMBE QUE SI DEUX LECTURES LE FONT TOMBER (Justin, 27 octobre 2026 au soir : « prochain examen, il y a intérêt de ne plus avoir d'erreur »).
+   Le juge est un modèle : il lit parfois de travers (examens des 25, 26 et 27 octobre). Un critère jugé FAUX est relu par un second jugement, À NEUF : il ne reste
+   faux que si les deux le disent. Un second jugement illisible : le premier tient (on ne relâche rien sur un doute). Rien n'est payé quand tout est vrai. */
 async function juger(J, criteres, donnees) {
+  const j = await jugerUneFois(J, criteres, donnees);
+  if (!j.ok || !Object.values(j.valeurs).some(x => x === false)) return j;
+  const j2 = await jugerUneFois(J, criteres, donnees);
+  if (!j2.ok) return j;
+  const valeurs = {};
+  for (const k of Object.keys(j.valeurs)) valeurs[k] = j.valeurs[k] === false && j2.valeurs[k] !== true ? false : (j.valeurs[k] === false ? true : j.valeurs[k]);
+  return Object.assign({}, j, { valeurs, secondAvis: true });
+}
+async function jugerUneFois(J, criteres, donnees) {
   if (!J) return { ok: false, cause: 'pas de juge' };
+  const numerotes = criteres.map((c, i) => ({ cle: 'c' + (i + 1), orig: c.cle, texte: c.texte }));
+  const vers = Object.fromEntries(numerotes.map(c => [c.cle, c.orig]));
   /* 24 000 caractères : trois premiers courriels de Léa et la liste de l'offre en font plus de 9 000 — le troisième arrivait coupé au juge */
-  const msg = 'Critères :\n' + criteres.map(c => c.cle + ' : ' + c.texte).join('\n') + '\n\nÀ juger :\n<<<\n' + delim(donnees).slice(0, 24000) + '\n>>>';
-  const r = await J.penser('ines', SYSTEM_JUGE, [{ role: 'user', content: msg }], { maxTokens: 1000 });
-  if (!r.ok) return { ok: false, cause: r.raison };
-  const v = lireVerdict(r.texte, criteres.map(c => c.cle));
-  return v ? { ok: true, valeurs: v.valeurs, raison: v.raison } : { ok: false, cause: 'illisible' };
+  const msg = 'Critères :\n' + numerotes.map(c => c.cle + ' : ' + c.texte).join('\n') + '\n\nÀ juger :\n<<<\n' + delim(donnees).slice(0, 24000) + '\n>>>';
+  const cles = numerotes.map(c => c.cle);
+  let cause = '', dernier = '';
+  /* la forme exacte, avec les clés de CE jugement : « c1, c2… » ne suffisait pas à un juge qui en rendait deux sur trois */
+  const forme = '{' + cles.map(c => '"' + c + '":true').join(',') + ',"raison":"…"}';
+  for (let essai = 0; essai < 2; essai++) {
+    const p = essai && dernier ? lireVerdictPartiel(dernier, cles) : null;
+    const rappel = RAPPEL_JUGE + ' Forme attendue : ' + forme + (p && p.manque.length ? ' Ta réponse précédente ne portait pas ' + p.manque.join(', ') + ' : rends-les aussi.' : '');
+    const r = await J.penser('ines', SYSTEM_JUGE, [{ role: 'user', content: essai ? msg + '\n\n' + rappel : msg }], { maxTokens: 1000 });
+    if (!r.ok) { cause = r.raison; if (LIMITES_CLAUDE.has(r.raison)) continue; return { ok: false, cause }; }
+    const v = lireVerdict(r.texte, cles);
+    if (v) {
+      /* la raison parle des clés du juge (c1…cN) : on la remet aux clés de l'appelant, pour que `raisonDe` retrouve la sienne */
+      const raison = v.raison.replace(/\bc(\d+)\b/g, (m, n) => vers['c' + n] || m);
+      return { ok: true, valeurs: Object.fromEntries(numerotes.map(c => [c.orig, v.valeurs[c.cle]])), raison };
+    }
+    dernier = String(r.texte || '');
+    cause = 'illisible : « ' + coupe(sansAdr(dernier.replace(/\s+/g, ' ').trim()), 140) + ' »';
+  }
+  const p = dernier ? lireVerdictPartiel(dernier, cles) : null;
+  if (p) {
+    const raison = p.raison.replace(/\bc(\d+)\b/g, (m, n) => vers['c' + n] || m);
+    return { ok: true, partiel: true, valeurs: Object.fromEntries(numerotes.filter(c => c.cle in p.valeurs).map(c => [c.orig, p.valeurs[c.cle]])), raison };
+  }
+  return { ok: false, cause };
 }
 function verifsJuge(E, j, criteres) {
-  return criteres.map(c => j.ok ? verif(E, c.libelle, j.valeurs[c.cle] === true, 'jugement d’Inès : ' + (raisonDe(j.raison, c.cle, criteres.map(x => x.cle)) || 'non conforme'))
+  return criteres.map(c => j.ok && typeof j.valeurs[c.cle] === 'boolean' ? verif(E, c.libelle, j.valeurs[c.cle] === true, 'jugement d’Inès : ' + (raisonDe(j.raison, c.cle, criteres.map(x => x.cle)) || 'non conforme'))
+    : j.ok ? { libelle: c.libelle, etat: 'inconnu', detail: 'le juge n’a pas rendu ce critère (deux fois) — à relancer' }
     : { libelle: c.libelle, etat: 'inconnu', detail: 'le juge n’a pas rendu de verdict lisible (' + j.cause + ') — à relancer' });
 }
 
 /* ═════════════ LES SCÉNARIOS ═════════════ */
 const RENVOI = /passe (?:la|cette) demande|je (?:le )?transmets|je te renvoie vers|je laisse (?:victor|@)|c['’]est (?:plut[ôo]t )?(?:[àa] )?(?:victor|@)/i;
 const DIT_IMPAYE = /impay|pas (?:encore )?(?:pay|r[ée]gl)|n['’]a pas (?:pay|r[ée]gl)|non (?:pay|r[ée]gl)|rien (?:de )?(?:pay|r[ée]gl)/i;
-const PAS_D_IMPAYE = /(?:pas d['’]|aucun |sans )impay\w*/gi;
+/* une NÉGATION d'impayé n'est pas un impayé : « pas d'impayé », « aucun impayé », et aussi « pas de dossier en impayé », « aucun dossier impayé »
+   (examen du 25 octobre 2026, scénario 1 : Margaux disait « payé » et « pas de dossier en impayé sur ma liste » — lu comme un impayé) */
+const PAS_D_IMPAYE = /(?:pas d['’]|pas de (?:dossier|client|facture)s? (?:en )?|aucune? (?:(?:dossier|client|facture)s? )?(?:en )?|sans |rien en )impay\w*/gi;
 const ditImpaye = t => DIT_IMPAYE.test(String(t || '').replace(PAS_D_IMPAYE, ' '));
 const DIT_PAYE = /pay[ée]|r[ée]gl[ée]|[àa] jour/i;
 const parAgent = (ms, id) => ms.filter(m => m.de === id);
@@ -479,7 +548,9 @@ function pourquoiBrouillon(E, r) {
   if (!etat) return '';
   const fautes = ctl && Array.isArray(ctl.fautes) && ctl.fautes.length ? ', fautes : ' + ctl.fautes.join(', ') : '';
   const raison = ctl && ctl.raison ? ', ' + String(ctl.raison).slice(0, 60) : '';
-  return ' ; contrôle « ' + String(etat).replace('_', ' ') + ' »' + fautes + raison;
+  /* la phrase que le juge a citée (un fragment du courriel) : on sait LAQUELLE posait problème (examen du 26 octobre 2026, scénario 6) */
+  const cite = ctl && Array.isArray(ctl.citations) && ctl.citations.length ? ', phrase en cause : ' + ctl.citations.slice(0, 2).map(c => '« ' + String(c).slice(0, 110) + ' »').join(' ; ') : '';
+  return ' ; contrôle « ' + String(etat).replace('_', ' ') + ' »' + fautes + raison + cite;
 }
 
 /* Le texte COMPLET d'un courriel d'agent : ce qui est parti (fausse poste), sinon le brouillon rangé. */
@@ -667,7 +738,7 @@ async function sc9(E, X) {
   const v = [];
   const internes = X.partage.messages.filter(m => m.texte);
   const mails = X.partage.mails;
-  const robot = internes.filter(m => FORMULES_ROBOT.some(re => re.test(m.texte)));
+  const robot = internes.filter(m => formuleRobot(m.texte));
   const markdown = internes.filter(m => MARKDOWN_INTERNE.test(m.texte));
   const tutoyes = mails.filter(m => TU.test(m.texte)), vouvoient = mails.filter(m => /\b(?:vous|votre|vos)\b/i.test(m.texte));
   const debuts = {}; for (const m of internes) { const d = norm(m.texte).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 4).join(' '); if (d.split(' ').length >= 4) debuts[d] = (debuts[d] || 0) + 1; }
@@ -677,24 +748,38 @@ async function sc9(E, X) {
   v.push(verif(E, 'aucune formule toute faite répétée : pas quatre messages qui commencent par les mêmes mots', repetee.length === 0, repetee.join(' ; ')));
   v.push(verif(E, 'ni titre, ni liste à puces, ni gras dans une conversation', markdown.length === 0, markdown.slice(0, 2).map(m => '« ' + coupe(m.texte, 90) + ' »').join(' ; ')));
   v.push(verif(E, 'les courriels aux clients vouvoient (jamais « tu »)', mails.length > 0 && tutoyes.length === 0 && vouvoient.length >= Math.ceil(mails.length * 0.6), tutoyes.length + ' courriel(s) tutoient ; ' + vouvoient.length + ' sur ' + mails.length + ' vouvoient'));
+  /* ⛔ (examen du 25 octobre 2026 au soir) le juge disait « aucune occurrence vérifiable de tutoiement » sur « Si tu as besoin… », « Je te la sors » : le
+     tutoiement de Justin se COMPTE dans les fils privés (le fil d'un agent est celui de Justin avec lui) — au moins un message le tutoie, aucun ne le vouvoie */
+  const TE = /(?:^|[^\p{L}\p{N}])te(?![\p{L}\p{N}])/iu, VOUS = /(?:^|[^\p{L}\p{N}])vous(?![\p{L}\p{N}])/iu;
+  const aJustin = internes.filter(m => m.a === m.de), tutoie = aJustin.filter(m => TU.test(m.texte) || TE.test(m.texte)), vouvoie = aJustin.filter(m => VOUS.test(m.texte) && !TU.test(m.texte) && !TE.test(m.texte));
+  v.push(verif(E, 'les agents tutoient Justin', aJustin.length > 0 && tutoie.length > 0 && !vouvoie.length,
+    !aJustin.length ? 'aucun message dans un fil privé avec Justin' : vouvoie.length ? vouvoie.slice(0, 2).map(m => '« ' + coupe(m.texte, 90) + ' »').join(' ; ') : 'aucun message ne le tutoie'));
   const echantillon = internes.slice(0, 30).map(m => '[' + (NOM[m.de] || m.de) + ' à ' + (m.a || 'Justin ou l’équipe') + '] ' + coupe(m.texte, 420)).join('\n');
   const courriels = mails.slice(0, 5).map(m => '[courriel de ' + (NOM[m.de] || m.de) + ' à un client]\n' + coupe(m.texte, 2600)).join('\n\n');
   const crit = [{ cle: 'c1', libelle: 'ton humain : des collègues qui parlent, pas un robot', texte: 'Les messages sonnent comme ceux de vrais collègues : voix personnelle, réponse adaptée à la question, phrases naturelles ; pas de ton d’assistant automatique.' },
-    { cle: 'c2', libelle: 'sans formule toute faite', texte: 'Aucune formule creuse ou stéréotypée répétée d’un agent à l’autre (mêmes ouvertures, mêmes conclusions de politesse).' },
-    { cle: 'c3', libelle: 'les agents tutoient Justin', texte: 'Dans les messages adressés à Justin ou à l’équipe, les agents tutoient Justin (jamais « vous » pour lui parler).' },
-    { cle: 'c4', libelle: 'les courriels aux clients vouvoient et sonnent professionnels', texte: 'Les courriels aux clients vouvoient, sont courtois et professionnels, sans familiarité. Ils sont donnés SANS leur signature (le serveur l’ajoute à l’envoi) et l’examen masque les adresses en « (adresse) » : ni l’un ni l’autre n’est un défaut.' }];
+    { cle: 'c2', libelle: 'sans formule toute faite', texte: 'Aucune formule creuse ou stéréotypée répétée d’un agent à l’autre (mêmes ouvertures, mêmes conclusions de politesse). ⛔ Les phrases que le MODÈLE DE COURRIEL de TeamOP impose mot pour mot à tous ses courriels (la voix de l’entreprise, validée par Justin) ne comptent pas : ' + FORMULES_MAISON.map(f => '« ' + f + ' »').join(', ') + ', et « Bien cordialement, ». Le modèle impose aussi le PLAN de chaque premier courriel (accroche, qui nous sommes, les fonctions choisies AVEC LES MOTS de la liste de l’offre, notre différence et nos tarifs, 4 à 7 questions de découverte numérotées, la suite) : deux courriels qui suivent ce plan et décrivent la même offre avec les mêmes mots ne sont PAS du texte recyclé. Dans un courriel, ne juge que ce qui doit être propre au client (l’activité dite dans l’accroche, le choix des fonctions, des questions adaptées à son métier). Ne juge que ce que les agents écrivent d’eux-mêmes.' },
+    { cle: 'c3', libelle: 'les courriels aux clients vouvoient et sonnent professionnels', texte: 'Les courriels aux clients vouvoient, sont courtois et professionnels, sans familiarité. Ils sont donnés SANS leur signature (le serveur l’ajoute à l’envoi) et l’examen masque les adresses en « (adresse) » : ni l’un ni l’autre n’est un défaut.' }];
   const j = await juger(X.juge, crit, 'Messages des agents :\n' + echantillon + '\n\n' + courriels);
   for (const x of verifsJuge(E, j, crit)) v.push(x);
   return v;
 }
 
+/* Les phrases que le modèle de courriel (agent-lea.js, agent-camille.js, agent-chloe.js : « Accroche », « Fermeture ») impose mot pour mot : le juge du ton ne les
+   compte pas comme formules toutes faites (examen du 25 octobre 2026, scénario 9). test-3001 vérifie qu'elles sont toujours dans le cahier d'un agent — une
+   phrase retirée du cahier qui resterait ici serait une exemption pour du vide. */
+const FORMULES_MAISON = ['Nous vous remercions pour votre message.', 'Nous restons à votre disposition par retour de mail ou par téléphone.',
+  /* (examen du 27 octobre 2026 à 12 h 19) l'accroche et la suite du PLAN de Léa (agent-lea.js), imposées elles aussi mot pour mot */
+  'Nous vous remercions pour votre inscription sur teamop.fr.', 'Dès réception de vos réponses, nous vous adresserons une proposition adaptée ; nous pourrons ensuite vous ouvrir une période d’essai d’une semaine.'];
+
+/* sc6 : 18 appels (examen du 25 octobre 2026 au soir — « Dupont Plomberie : plafond_total ») : trois courriels, chacun au plus rédigé, jugé, relancé,
+   réécrit, jugé, relancé. À 9, la relance du juge (posée le même jour) épuisait le plafond au troisième courriel. */
 const SCENARIOS = [
   { n: 1, cle: 'question', titre: 'Une question à Margaux reçoit la réponse de Margaux', jouer: sc1, appelsMax: 8, dureeMax: 240000 },
   { n: 2, cle: 'travail', titre: 'Un travail à Camille : elle le prend ; chargée, elle en passe un à un collègue libre en disant pourquoi', jouer: sc2, appelsMax: 16, dureeMax: 300000 },
   { n: 3, cle: 'tous', titre: '« @tous » dans le groupe Clients : ceux qui ont à dire répondent, sans boucle', jouer: sc3, appelsMax: 30, dureeMax: 360000 },
   { n: 4, cle: 'entre-agents', titre: 'Camille demande à Hugo si un client a payé : Hugo répond', jouer: sc4, appelsMax: 14, dureeMax: 300000 },
   { n: 5, cle: 'desaccord', titre: 'Un désaccord entre deux agents : Victor arbitre', jouer: sc5, appelsMax: 16, dureeMax: 300000 },
-  { n: 6, cle: 'vente', titre: 'Trois inscriptions (climatisation, nettoyage, plomberie) : le premier courriel de Léa vend l’application', jouer: sc6, appelsMax: 9, dureeMax: 300000 },
+  { n: 6, cle: 'vente', titre: 'Trois inscriptions (climatisation, nettoyage, plomberie) : le premier courriel de Léa vend l’application', jouer: sc6, appelsMax: 18, dureeMax: 300000 },
   { n: 7, cle: 'courrier', titre: 'Le courrier : une question, un remboursement, « je veux arrêter », un spam, un courriel piégé', jouer: sc7, appelsMax: 14, dureeMax: 360000 },
   { n: 8, cle: 'reunions', titre: 'Les réunions du lundi et du vendredi, jouées en accéléré', jouer: sc8, appelsMax: 70, dureeMax: 1500000, reunions: true, allumes: REUNION_AGENTS },
   { n: 9, cle: 'ton', titre: 'Le ton : humain, sans formule toute faite, tutoiement de Justin, vouvoiement des clients', jouer: sc9, appelsMax: 4, dureeMax: 240000, dernier: true },
@@ -966,6 +1051,9 @@ module.exports.juger = juger;
 module.exports.verif = verif;
 module.exports.verifTraite = verifTraite;
 module.exports.etatDuScenario = etatDuScenario;
+module.exports.FORMULES_MAISON = FORMULES_MAISON;
+module.exports.ditImpaye = ditImpaye;
+module.exports.DIT_PAYE = DIT_PAYE;
 module.exports.SCENARIOS = SCENARIOS;
 module.exports.MAX_APPELS = MAX_APPELS;
 module.exports.USD_MAX = USD_MAX;
@@ -978,3 +1066,6 @@ module.exports.MAILS = MAILS;
 module.exports.PROSPECTS = PROSPECTS;
 module.exports.TU = TU;
 module.exports.premierCreneau = premierCreneau;
+module.exports.lireVerdictPartiel = lireVerdictPartiel;
+module.exports.formuleRobot = formuleRobot;
+module.exports.juger = juger;

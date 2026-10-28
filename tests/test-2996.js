@@ -147,7 +147,7 @@ console.log('\n── 2996 · les quatre échecs de l’examen du 24 octobre 202
     v('⛔ une phrase UTILE qui commence comme une redite garde son engagement, sa demande et son @ (relecture du gardien)', utiles.map(x => R(x[0])), utiles.map(x => x[1]));
     const SRC = sans(fs.readFileSync(path.join(RACINE, 'server', 'reunions.js'), 'utf8'));
     vrai('⛔ la DISCUSSION les retire (`redites: true`), et une parole vidée est un « RAS » qui ne s’écrit pas', /On t’a cité dans la discussion\.[^']*', \{ ras: true, redites: true \}\)/.test(SRC) && /if \(o\.redites\) \{ t = sansRedites\(t\); if \(!t\) return Object\.assign\(sortie, \{ ras: true \}\); \}/.test(SRC));
-    vrai('   …pas le tour de table, où dire ses objectifs EST la parole attendue', /consignes\[R\.type\] \+ extra, \{ ecrire: true \}\)/.test(SRC));
+    vrai('   …pas le tour de table, où dire ses objectifs EST la parole attendue', /consignes\[R\.type\] \+ extra, \{ ecrire: true, varier: true \}\)/.test(SRC));
   }
 
   console.log('\n4. ⛔ Scénario 6 — le juge : un verdict par objet, ET entre eux ; chaque critère sa raison ; un brouillon dit pourquoi');

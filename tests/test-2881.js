@@ -57,7 +57,7 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
   return vrai.apply(this, arguments); };\n`);
   const kh = k => crypto.createHash('sha256').update(k).digest('hex'); const MDP = 'mot-de-passe-du-banc-2881';
   async function serveur(nom, cle, socle) {
-    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true });
+    const D = path.join(banc, nom, 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ce banc (`test-3021`)
     fs.writeFileSync(path.join(D, 'clients.json'), '{}'); fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
     const vap = webpush.generateVAPIDKeys(); const conf = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh(MDP), stripe: { secretKey: 'sk_de_banc_2881' } };
     conf.agents = Object.assign(cle ? { cleApi: cle } : {}, { reunionsAuto: false });   // pas de réunion due pendant le banc (vendredi 18 h-23 h, lundi matin, heure de Paris)
@@ -236,7 +236,7 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     const CONV = fs.readFileSync(path.join(RACINE, 'server', 'conversations.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     const EQUIPE = fs.readFileSync(path.join(RACINE, 'server', 'agent-equipe.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     const posts = [...CONV.matchAll(/app\.post\('\/api\/monitor\/([^']+)', (\w+)/g)];
-    vrai('(population) la messagerie déclare des routes POST', posts.length === 2);
+    vrai('(population) la messagerie déclare ses routes POST : envoyer, lire, la personnalisation des groupes (25 octobre 2026, test-3016) et la suppression d’un message (28 octobre 2026, test-3088)', posts.length === 4 && posts.map(m => m[1]).sort().join() === 'conversations/envoyer,conversations/groupe,conversations/lire,conversations/supprimer');
     vrai('⛔ chaque route POST de la messagerie est dans MON_GESTES et exige le patron strict', posts.every(m => new RegExp("'" + m[1].replace(/\//g, '\\/') + "':").test(GESTES) && m[2] === 'monPatronStrict'));
     vrai('…et les lectures exigent aussi le patron (le fil privé d’un agent porte des rappels de clients)', [...CONV.matchAll(/app\.get\('\/api\/monitor\/conversations[^']*', (\w+)/g)].every(m => m[1] === 'monPatronStrict'));
     vrai('…la messagerie n’ajoute AUCUNE route à `agent-equipe.js` (rien à déclarer, rien à oublier)', !/app\.(get|post)\(/.test(EQUIPE));

@@ -79,13 +79,16 @@ const poser = (Z, o) => { const m = msg(Object.assign({ ts: Z.horloge.t - 360000
       ['un e-mail de sécurité (protégé)', { protege: true, uid: 5, mid: '<i5@x>' }, 'automatique'],
       ['une notification automatique', { auto: true, de: 'noreply@exemple-2863.fr', uid: 6, mid: '<i6@x>' }, 'automatique'],
       ['une de NOS adresses sur une messagerie publique (adresse exacte)', { de: 'Moi-Meme@Webmail-2863.example', uid: 9, mid: '<i9@x>' }, 'interne'],
-      ['un mail de plus de trois jours (une vieille boîte connectée)', { ts: Z.horloge.t - 4 * JOUR, uid: 7, mid: '<i7@x>' }, 'ancien'],
       ['un expéditeur sans adresse valide', { de: 'pas-une-adresse', uid: 8, mid: '<i8@x>' }, 'expediteur'],
     ];
     for (const [nom, o, attendu] of cas) {
       const e = poser(Z, o);
       v('⛔ ' + nom + ' : « ' + attendu + ' », jamais Claude', [(await Z.camille.surNouveauMessage(e)).saute, Z.recus.length, (await Z.validations()).length], [attendu, 0, 0]);
     }
+    /* 28 octobre 2026 (Justin : « trois jours avant, et après ils n'ont plus accès au reste, c'est débile ») : un vieux mail se TRAITE désormais (test-3089) */
+    const eV = poser(Z, { ts: Z.horloge.t - 4 * JOUR, uid: 7, mid: '<i7@x>', de: 'vieux.client@exemple-2863.fr' });
+    vrai('un mail de plus de trois jours (une vieille boîte connectée) : traité, plus jamais « ancien »', (await Z.camille.surNouveauMessage(eV)).depose === true);
+    Z.recus.length = 0;
     const eW = poser(Z, { de: 'un.client@webmail-2863.example', uid: 10, mid: '<i10@x>' });
     vrai('⛔ …mais une AUTRE adresse de la même messagerie publique est un client : traitée (le domaine n’est pas « chez nous »)', (await Z.camille.surNouveauMessage(eW)).depose === true);
     Z.recus.length = 0;
@@ -216,23 +219,26 @@ const poser = (Z, o) => { const m = msg(Object.assign({ ts: Z.horloge.t - 360000
   vrai('le serveur démarre (fausse boîte IMAP, facteur SMTP, faux Claude)', S.vivant);
   if (!S.vivant) { console.log(S.journal().slice(0, 800)); await S.fin(); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }
   vrai('Camille est montée (le crochet de la veille a un destinataire)', /agents : conversation montée/.test(S.journal()) && !/Camille indisponible|brouillons des agents indisponibles/.test(S.journal()));
-  const arrive = await S.attendre(async () => (await S.get('/api/monitor/agents/validations')).j.validations.length > 1 && S.claudeRecus().length >= 3, 70000);
+  const arrive = await S.attendre(async () => (await S.get('/api/monitor/agents/validations')).j.validations.length > 2 && S.claudeRecus().length >= 4, 70000);
   vrai('la veille (20 s après le démarrage) annonce les messages : la validation de Camille arrive', arrive);
   await dormir(1500);
   const val = (await S.get('/api/monitor/agents/validations?statut=tout')).j.validations || [];
-  v('⛔ DEUX validations, toutes deux de Camille, envoyer_mail : le vrai prospect et le client de la messagerie publique', [val.length, val.every(x => x.agent === 'camille' && x.type === 'envoyer_mail')], [2, true]);
+  v('⛔ TROIS validations, toutes de Camille, envoyer_mail : le vrai prospect, le client de la messagerie publique et le vieux mail (plus de limite d’âge depuis le 28 octobre 2026)', [val.length, val.every(x => x.agent === 'camille' && x.type === 'envoyer_mail')], [3, true]);
   const valP = val.find(x => /climatisation/.test(x.resume)) || val[0];
   v('…le résumé du prospect est composé par le code', valP && valP.resume, 'Réponse au mail “Votre logiciel pour mon entreprise de climatisation” — à relire avant envoi');
   vrai('…et l’autre est la réponse au client de gmail (pas celle de NOTRE adresse gmail, qui est écartée comme interne)', val.some(x => /question d’un client sur gmail/.test(x.resume)) && !val.some(x => /notre adresse gmail/.test(x.resume)));
   const rec = S.claudeRecus();
-  v('⛔ Claude a reçu TROIS mails : le prospect, la publicité et le client gmail (ni le mail de chez nous, ni NOTRE adresse gmail, ni la notification, ni l’avis de sécurité, ni le vieux)', rec.length, 3);
+  v('⛔ Claude a reçu QUATRE mails : le prospect, la publicité, le client gmail et le vieux (ni le mail de chez nous, ni NOTRE adresse gmail, ni la notification, ni l’avis de sécurité)', rec.length, 4);
   const tout = JSON.stringify(rec);
   for (const [nom, jeton] of [['l’adresse du prospect', 'secret-2863'], ['son nom', 'Valmont'], ['son téléphone', '12 34 56 78'], ['son adresse dans le texte', 'hortense@']]) vrai('⛔ ' + nom + ' : jamais chez Claude', !tout.includes(jeton));
   const br = (await S.get('/api/monitor/agents/brouillons?refs=' + encodeURIComponent(valP.params.fil))).j[valP.params.fil];
   v('l’aperçu (route de la Tour) : destinataire = expéditeur, source « courrier », état « attente »', br && [br.a, br.source, br.etat], ['prospect@secret-2863.fr', 'courrier', 'attente']);
   v('⛔ la lecture du Courrier n’a RIEN marqué : tous les messages sont restés non lus', S.imap().boites[BOITE].messages.filter(m => (m.flags || []).includes('\\Seen')).length, 0);
   const suiviF = path.join(S.D, 'mail-suivi.json');
-  v('⛔ …et aucun suivi n’a été ouvert (Justin n’a pas ouvert la demande)', fs.existsSync(suiviF) ? Object.keys(JSON.parse(fs.readFileSync(suiviF, 'utf8'))).filter(k => /banc-2863/.test(k)).length : 0, 0);
+  /* 28 octobre 2026 (test-3089) : ce que Camille DÉCIDE s'écrit au suivi — sinon « à traiter » ne baissait jamais. Une ligne « en cours » par Camille, jamais « à traiter » ni « résolu »,
+     sans réponse notée (rien n'est parti) ; le message, lui, reste NON LU (contrôle ci-dessus). */
+  const lignes = fs.existsSync(suiviF) ? Object.entries(JSON.parse(fs.readFileSync(suiviF, 'utf8'))).filter(([k]) => /banc-2863/.test(k)).map(([, x]) => x) : [];
+  vrai('le suivi dit ce que Camille a fait : « en cours », par Camille, sans réponse notée', lignes.length > 0 && lignes.every(x => x.statut === 'enCours' && x.par === 'Camille' && !x.repTs), JSON.stringify(lignes.map(x => [x.statut, x.par, x.assigne])));
   v('rien n’est parti par SMTP vers le prospect (avant la validation)', S.fact.recus.length, 0);
   v('l’aperçu est lisible par un collaborateur, refusé à un anonyme', [(await S.get('/api/monitor/agents/brouillons?refs=' + valP.params.fil, S.TA)).s, (await S.get('/api/monitor/agents/brouillons?refs=' + valP.params.fil, '')).s], [200, 401]);
   vrai('le journal du serveur ne porte aucune adresse ni aucun texte de mail', !/secret-2863|hortense|Valmont|06 12 34/.test(S.journal()), S.journal().slice(-300));
@@ -249,7 +255,7 @@ const poser = (Z, o) => { const m = msg(Object.assign({ ts: Z.horloge.t - 360000
   v('⛔ le facteur reçoit UN courriel, à l’EXPÉDITEUR du mail reçu', rep.length, 1);
   const r1 = rep[0] || { inReplyTo: '', references: [], text: '' };
   v('…avec In-Reply-To et References du mail d’origine', [r1.inReplyTo, [].concat(r1.references || [])], ['<u1@banc-2863>', ['<u1@banc-2863>']]);
-  vrai('…le texte du brouillon, puis la signature DE CAMILLE (pas celle du Courrier de Justin)', /Bien cordialement,\s+Camille — Assistante virtuelle — Équipe TeamOP\s+contact@banc-courrier\.fr · teamop\.fr/.test(String(r1.text)) && !/L'équipe TEAM OP/.test(String(r1.text)), String(r1.text).slice(-200));
+  vrai('…le texte du brouillon, puis la signature DE CAMILLE (pas celle du Courrier de Justin)', /Bien cordialement,\s+Camille — Assistante de TeamOP\s+contact@banc-courrier\.fr · https:\/\/teamop\.fr\/\?de=camille/.test(String(r1.text)) && !/L'équipe TEAM OP/.test(String(r1.text)), String(r1.text).slice(-200));
   vrai('…le message d’origine passe « répondu » dans la boîte, et une copie va dans « Envoyés »', await S.attendre(async () => (S.imap().boites[BOITE].messages.find(m => m.uid === 1 && m.dossier === 'INBOX').flags || []).includes('\\Answered'), 6000) && (S.imap().boites[BOITE].ajouts || []).length >= 1);
   vrai('…et la lecture de Camille n’avait rien marqué « lu » (seul « répondu » a été posé)', !(S.imap().boites[BOITE].messages.find(m => m.uid === 1).flags || []).includes('\\Seen'));
   const dec2 = await S.post('/api/monitor/agents/validations/decider', { id: valP.id, decision: 'accepter', empreinte: br.empreinte });
@@ -265,7 +271,7 @@ const poser = (Z, o) => { const m = msg(Object.assign({ ts: Z.horloge.t - 360000
   await dormir(26000);   // la veille repasse à 20 s : tous les mails sont de nouveau « neufs » pour elle
   vrai('(population) la veille a bien REPASSÉ sur la boîte : son pointeur est réécrit (les messages ont été de nouveau annoncés)', fs.existsSync(VU) && Object.keys(JSON.parse(fs.readFileSync(VU, 'utf8'))).length > 0);
   v('⛔ le prospect, la publicité et le client gmail (Message-ID déjà vus) ne sont PAS soumis une seconde fois à Claude', S.claudeRecus().length, avant);
-  v('…et la file ne contient toujours que ses deux validations', ((await S.get('/api/monitor/agents/validations?statut=tout')).j.validations || []).length, 2);
+  v('…et la file ne contient toujours que ses trois validations', ((await S.get('/api/monitor/agents/validations?statut=tout')).j.validations || []).length, 3);
   await S.fin();
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

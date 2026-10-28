@@ -1,0 +1,161 @@
+# Publication AUTOMATIQUE d'un article du blog, images dessinées par Gemini.
+#
+# Justin, 26 octobre 2026 : « je veux que les publications soient automatiques et que les images soient gérées avec
+# Gemini ». La tâche planifiée « Article du blog » (mardi et vendredi) pousse une branche `claude/blog-<slug>` et ouvre
+# une demande de fusion ; CE workflow la termine : photo de couverture et images du texte par Gemini, pages refaites,
+# bancs du blog, puis fusion et publication du site — sans attendre personne.
+#
+# ⛔ Trois gardes, et elles ne se relâchent pas :
+#   · seulement une branche `claude/blog-*` DE CE DÉPÔT (une branche se crée avec un droit d'écriture ; un fork n'a
+#     ni la clé ni la fusion) ;
+#   · seulement une demande qui ne touche QUE `blog/`, `contenu/blog/` et `sitemap.xml` : un article ne déploie ni le
+#     serveur ni l'application. Autre chose dedans → rien n'est fusionné, Justin regarde ;
+#   · les bancs du blog passent APRÈS les images, sur ce qui part vraiment — sinon rien n'est fusionné.
+# La clé Gemini est le secret `GEMINI_API_KEY` du dépôt (Réglages → Secrets and variables → Actions). Sans elle,
+# l'article part quand même, avec la couverture bleu nuit sans photo (scripts/blog-gemini.js).
+#
+# ⚠️ Une fusion faite avec GITHUB_TOKEN ne déclenche AUCUN workflow sur `main` (règle de GitHub, contre les boucles) :
+# la publication du site est donc demandée explicitement (`gh workflow run publication-site.yml`).
+name: Publication d'un article du blog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: blog-${{ github.head_ref }}
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    if: startsWith(github.head_ref, 'claude/blog-') && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Pillow (couvertures et WebP)
+        run: python3 -m pip install --quiet pillow
+
+      - name: La demande ne touche que le blog
+        run: |
+          git fetch --quiet origin main
+          hors=$(git diff --name-only origin/main...HEAD | grep -vE '^(blog/|contenu/blog/|sitemap\.xml$)' || true)
+          if [ -n "$hors" ]; then
+            echo "::error::Cette demande touche autre chose que le blog : pas de publication automatique."
+            echo "$hors"
+            exit 1
+          fi
+
+      - name: Les articles neufs
+        id: neufs
+        run: |
+          neufs=$(node -e "
+            const fs = require('fs'), cp = require('child_process');
+            const ici = JSON.parse(fs.readFileSync('contenu/blog/articles.json', 'utf8')).map(a => a.slug);
+            let avant = [];
+            try { avant = JSON.parse(cp.execSync('git show origin/main:contenu/blog/articles.json')).map(a => a.slug); } catch (e) {}
+            process.stdout.write(ici.filter(s => !avant.includes(s)).join(' '));")
+          echo "articles neufs : ${neufs:-aucun}"
+          echo "liste=$neufs" >> "$GITHUB_OUTPUT"
+
+      - name: Images par Gemini
+        if: steps.neufs.outputs.liste != ''
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODELE_IMAGE: ${{ vars.GEMINI_MODELE_IMAGE }}
+          NEUFS: ${{ steps.neufs.outputs.liste }}
+        run: |
+          for s in $NEUFS; do
+            node scripts/blog-gemini.js "$s" "$RUNNER_TEMP/gemini-$s"
+            python3 scripts/blog-images.py "$RUNNER_TEMP/gemini-$s/manifeste.json" "$s"
+          done
+
+      - name: Pages du blog et plan du site
+        run: |
+          node scripts/blog.js
+          node scripts/site-marine.js --racine
+          node scripts/site-marine.js
+
+      - name: Post Google de l'article (préparé AVANT la fusion, il part avec l'article)
+        if: steps.neufs.outputs.liste != ''
+        env:
+          NEUFS: ${{ steps.neufs.outputs.liste }}
+        run: |
+          # jamais bloquant : un post qui ne se prépare pas se dit, l'article part quand même
+          for s in $NEUFS; do
+            node scripts/google-post.js preparer "$s" || echo "::warning::post Google de $s non préparé"
+          done
+
+      - name: Bancs du blog (sur ce qui part)
+        run: |
+          for t in 3000 835 846 1008 3060 3065; do
+            node "tests/test-$t.js" > "$RUNNER_TEMP/banc-$t.txt" 2>&1 || { echo "::error::tests/test-$t.js échoue"; tail -40 "$RUNNER_TEMP/banc-$t.txt"; exit 1; }
+            grep -aoE '[0-9]+ ✓ +[0-9]+ ✗' "$RUNNER_TEMP/banc-$t.txt" | tail -1 | sed "s/^/test-$t : /"
+          done
+          bash scripts/verif-secrets.sh
+
+      - name: Commiter les images
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blog contenu/blog sitemap.xml
+          if git diff --cached --quiet; then echo "rien à ajouter"; exit 0; fi
+          git commit -q -m "blog : images de l'article par Gemini, pages refaites"
+          git push -q origin "HEAD:${{ github.head_ref }}"
+
+      - name: Fusionner
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          tete=$(git rev-parse HEAD)
+          if ! gh pr merge "$PR" --merge --delete-branch --match-head-commit "$tete"; then
+            # des vérifications exigées par `main` ne sont pas encore vertes : fusion dès qu'elles le seront, et on
+            # attend qu'elle ait eu lieu — publier avant publierait l'ancien site
+            gh pr merge "$PR" --merge --delete-branch --auto
+            for i in $(seq 1 50); do
+              etat=$(gh pr view "$PR" --json state -q .state)
+              [ "$etat" = "MERGED" ] && break
+              [ "$etat" = "CLOSED" ] && { echo "::error::demande fermée sans fusion"; exit 1; }
+              sleep 30
+            done
+            [ "$(gh pr view "$PR" --json state -q .state)" = "MERGED" ] || { echo "::error::pas fusionnée après 25 minutes : à regarder"; exit 1; }
+          fi
+
+      - name: Publier le site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run publication-site.yml --ref main
+
+      # La publication sur la fiche Google vient APRÈS celle du site : l'image du post doit être en ligne (le script
+      # attend jusqu'à 15 minutes que la page de l'article réponde 200, sinon il publie sans image). Sans les secrets
+      # GBP_* il dit ce qui manque et sort en 0 ; une erreur de l'API devient un avertissement, jamais un échec.
+      - name: Publier le post sur la fiche Google
+        if: steps.neufs.outputs.liste != ''
+        continue-on-error: true
+        env:
+          GBP_CLIENT_ID: ${{ secrets.GBP_CLIENT_ID }}
+          GBP_CLIENT_SECRET: ${{ secrets.GBP_CLIENT_SECRET }}
+          GBP_REFRESH_TOKEN: ${{ secrets.GBP_REFRESH_TOKEN }}
+          GBP_ACCOUNT_ID: ${{ secrets.GBP_ACCOUNT_ID }}
+          GBP_LOCATION_ID: ${{ secrets.GBP_LOCATION_ID }}
+          GBP_ATTENTE_S: "900"
+          NEUFS: ${{ steps.neufs.outputs.liste }}
+        run: |
+          for s in $NEUFS; do
+            node scripts/google-post.js publier "$s"
+          done

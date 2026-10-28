@@ -125,7 +125,15 @@
 # 17 octobre 2026, la troisième passe et le re-test final (2660-2663 : le statut d'un contact, le jour de fin d'une réunion de plusieurs jours partout — fiche,
 # lien d'invité, compte rendu, Décaler, autre fuseau, « chez eux » —, le rapport de présence) : 179 suites, 11 469 vérifications mesurées par la commande de la
 # porte, dans les conditions de la CI, toutes vertes (commit 8df53f6e) — plancher 11455 (le total moins 14, jamais une addition).
-#plancher 11455
+# 26 octobre 2026, l'invité sans compte (3050-3057, huit suites ; test-905, 931, 933, 900 étendus) : 194 suites, 12 236 vérifications mesurées par la commande de la porte, dans les conditions de la CI
+# (`CHROME_MSG=/nonexistent` : test-2600 se saute), toutes vertes — plancher 12222 (le total moins 14, jamais une addition). (La liste portait encore 11455 depuis le 17 octobre : les suites 3040-3043 n'avaient pas relevé le plancher.)
+# 26 octobre 2026, la relecture du gardien de l'invité sans compte (3058 l'insistance, 3059 la visio, la grâce et la conservation ; 3050 à 3053 étendus) : 196 suites, 12 301 vérifications mesurées par la commande de la porte,
+# dans les conditions de la CI, toutes vertes — plancher 12287 (le total moins 14, jamais une addition).
+# 26 octobre 2026, l'onglet « Réunions » et le lien invité qu'on trouve (3070 : la liste, la lecture, la fiche, la création, la navigation — les vraies fonctions de la page ; 1003, 2571 et 2695 suivent la liste VUES_PRO) : 197 suites, 12 361 vérifications mesurées par la commande de la porte, dans les conditions de la CI
+# (`CHROME_MSG=/nonexistent`), toutes vertes — plancher 12347 (le total moins 14, jamais une addition).
+# 28 octobre 2026, le pont des agents (3094 le service, 3095 le serveur de la Tour + le service + un faux Anthropic, 3097 l’outil de pose ; test-905, 3051, 900, 933 étendus) : 200 suites, 12 564 vérifications mesurées par la commande de la porte
+# (`CHROME_MSG=/nonexistent`), toutes vertes — plancher 12550 (le total moins 14, jamais une addition).
+#plancher 12550
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -394,3 +402,26 @@ tests/test-2690.js
 tests/test-2691.js
 # ── OP Courrier dans le côté Pro d'OP MESSAGES (18 octobre 2026) : la rubrique, sur la bêta seulement, VIDE ; la source du service ; le service sert le module lui-même (2695).
 tests/test-2695.js
+# ── Les décisions du 26 octobre 2026, parties contacts / groupes / conversations / pro / temps réel : le blocage qui ne se dit pas (3040), la phrase système et le canal supprimé (3041), la page (3042), l'appareil et le service (3043).
+tests/test-3040.js
+tests/test-3041.js
+tests/test-3042.js
+tests/test-3043.js
+# ── L'invité SANS COMPTE (26 octobre 2026, Justin : « ils cliquent sur le lien, ils peuvent rejoindre la réunion. Moi je valide que c'est bien eux, et quand ça se coupe, le lien est mort ») : le lien et la porte (3050), la salle (3051), l'anti-abus (3052), la page et le générateur (3053), les données — RGPD (3054), la vie du lien et des sessions (3055), la migration 30 (3056), l'organisateur et le service (3057) ; puis, après la relecture du gardien : l'insistance — un refus tient, les lignes bornées, le nom (3058) — et la visio, la grâce, la durée de conservation (3059).
+tests/test-3050.js
+tests/test-3051.js
+tests/test-3052.js
+tests/test-3053.js
+tests/test-3054.js
+tests/test-3055.js
+tests/test-3056.js
+tests/test-3057.js
+tests/test-3058.js
+tests/test-3059.js
+# ── L'onglet « Réunions » d'OP MESSAGES Pro et le lien invité qu'on trouve (26 octobre 2026, Justin : « pourquoi dans OP MESSAGES j'ai pas Réunions ? », « je trouve pas le lien inviter ») : la liste, la lecture, la fiche, la création, la navigation (3070).
+tests/test-3070.js
+# ── Le pont des agents (28 octobre 2026) : `server-msg/pont-agents.js` contre le VRAI service (3094) et la messagerie des agents de la Tour de bout en bout — le VRAI serveur, le VRAI service, un FAUX Anthropic (3095, lance les deux : il saute sans `server/node_modules`).
+tests/test-3094.js
+tests/test-3095.js
+# (le dernier banc du pont : l'outil qui le pose sans jamais afficher le secret, `configurer-pont.js`)
+tests/test-3097.js

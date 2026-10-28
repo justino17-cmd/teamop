@@ -59,6 +59,12 @@ jobs:
     needs: bancs
     runs-on: ubuntu-latest
     timeout-minutes: 6
+    # ⛔ LA CLÉ DE LA PRODUCTION VIT DANS UN ENVIRONNEMENT, PAS DANS LE DÉPÔT (25 octobre 2026) — comme `msg-prod` pour OP MESSAGES :
+    # un secret du DÉPÔT se lit depuis n'importe quelle branche qui modifie un workflow, et `VPS_SSH_KEY` ouvre un shell root sur la
+    # production. L'environnement `serveur-prod` n'accepte que la branche `main` (réglé dans GitHub, Settings → Environments) et porte
+    # son propre `VPS_SSH_KEY`. Tant que Justin ne l'y a pas posé, le secret du dépôt du même nom sert encore : ce changement ne casse
+    # aucun déploiement. Une fois posé et un déploiement réussi, le secret du dépôt se SUPPRIME (sinon la porte reste ouverte).
+    environment: serveur-prod
     steps:
       - uses: actions/checkout@v4
 

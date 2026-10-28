@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Le relevé de Pauline et les décisions de la Tour, toutes les minutes (le relevé lui-même ne repart que si la boîte d'envoi a bougé, ou toutes les 14 minutes) (voir outils/PAULINE-RELEVE.md, étape 7).
+     « __HARVEY__ » est remplacé par le dossier de Harvey au moment de l'installation (commande de la page) : rien à éditer à la main.
+     Le journal ne contient que des phrases courtes et des NOMBRES — jamais le jeton ni un nom de prospect. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>fr.teamop.pauline-releve</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__HARVEY__/.venv/bin/python</string>
+    <string>__HARVEY__/outils/pauline-releve.py</string>
+    <string>--harvey</string>
+    <string>__HARVEY__</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>__HARVEY__</string>
+  <key>StartInterval</key>
+  <integer>60</integer>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>LowPriorityIO</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>__HARVEY__/data/pauline-releve.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HARVEY__/data/pauline-releve.log</string>
+</dict>
+</plist>

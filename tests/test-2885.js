@@ -55,7 +55,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
       if (id === 'lea') { const o = (/^\\[(o[0-9a-f]{6})\\]/m.exec(j.system) || [])[1] || 'aucun';
         return bloc([texte('Mon bilan-2885 : objectif atteint.'), outil('juger_objectif', { objectif: o, statut: 'atteint', pourquoi: 'Toutes les inscriptions ont reçu une réponse.' }), outil('ajouter_lecon', { texte: 'LECON-2885 : répondre le jour même à chaque inscription.' })], 'tool_use'); }
       if (id === 'camille') return bloc([texte('Mon point-2885 : @hugo, as-tu des paiements en attente ?')]);
-      return bloc([texte('Mon point de ' + nom + ' (réunion).')]); }
+      return bloc([texte(nom + ' : mon point de la réunion.')]); }
     return bloc([texte('Réponse de ' + nom + '.')]); }
   if (u.startsWith('https://api.stripe.com/')) return new Response('{"data":[],"has_more":false}', { status: 200, headers: { 'content-type': 'application/json' } });
   return vrai.apply(this, arguments); };\n`);
@@ -63,7 +63,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
   /* Un serveur sur un DOSSIER DE DONNÉES donné (pour redémarrer sur le même disque), à l'instant `cible` (UTC) de l'horloge. */
   async function serveur(nom, cible, o) {
     o = o || {};
-    const racine = path.join(banc, nom); const D = path.join(racine, 'data'); fs.mkdirSync(D, { recursive: true });
+    const racine = path.join(banc, nom); const D = path.join(racine, 'data'); fs.mkdirSync(D, { recursive: true }); require('./banc-horaires.js').toujoursOuvert(D);   // les heures de travail ne regardent pas ce banc (`test-3021`)
     const neuf = !fs.existsSync(path.join(racine, 'config.json'));
     if (neuf) {
       fs.writeFileSync(path.join(D, 'clients.json'), '{}'); fs.writeFileSync(path.join(D, 'espaces.json'), '{}');
@@ -113,7 +113,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     const vu = await att(async () => { const r = await reunions(A); return r.enCours && r.enCours.type; }, 14000);
     const g = vu ? (await reunions(A)) : null;
     vrai('(population) la minuterie a lancé la réunion sans aucun geste, et la lecture la voit « en cours »', vu === 'objectifs');
-    v('⛔ « en cours » dit laquelle et jusqu’à quelle heure (10 h, heure de Paris)', g && [g.enCours.titre, g.enCours.jusqua, g.enCours.fin > Date.now()], ['Réunion du lundi', '10 h', true]);
+    v('⛔ « en cours » dit laquelle et jusqu’à quelle heure (10 h, heure de Paris)', g && [g.enCours.titre, g.enCours.jusqua, g.enCours.fin > U(2026, 10, 26, 8, 5)], ['Réunion du lundi', '10 h', true]);
     const fini = await att(async () => { const r = await reunions(A); return r.reunions[0] && r.reunions[0].statut === 'terminee'; }, 30000);
     vrai('(population) la réunion va au bout', fini);
     const ms = (await A.G('/api/monitor/conversations/reunions')).j.messages;
@@ -123,7 +123,11 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     vrai('…Hugo, cité par Camille, a répondu « RAS » : cela n’a pas été publié, et il a parlé une fois (son tour)', ag.filter(m => m.de === 'hugo').length === 1 && !ag.some(m => /^RAS/.test(m.texte)));
     const ap = recus().slice(n0);
     const reu = ap.filter(enReunion);
-    v('⛔ le nombre d’appels : 1 ouverture + 14 tours + Inès + 1 discussion (Hugo) + 1 conclusion', [reu.length, ap.length], [18, 18]);
+    /* les objectifs DITS sans l'outil (examen du 26 octobre 2026 à 23 h 25) : un second appel par agent qui a parlé sans fixer_objectifs — ici les quatorze autres que Léa.
+       Le faux Claude n'y répond que du texte (rien n'est enregistré : la suite du banc reste la même) ; test-3064 éprouve l'enregistrement. */
+    const forces = ap.filter(b => /Tu viens de dire, à la réunion du lundi/.test(String((b.messages[0] || {}).content || '')));
+    v('⛔ le nombre d’appels : 1 ouverture + 14 tours + Inès + 1 discussion (Hugo) + 1 conclusion, et 14 seconds appels « enregistre tes objectifs »', [reu.length, forces.length, ap.length], [18, 14, 32]);
+    vrai('⛔ …chaque second appel IMPOSE fixer_objectifs (seul outil), sans réflexion — la forme que l’API accepte', forces.every(b => b.tool_choice && b.tool_choice.type === 'tool' && b.tool_choice.name === 'fixer_objectifs' && b.tools.length === 1 && b.thinking && b.thinking.type === 'disabled'), JSON.stringify(forces[0] && { tc: forces[0].tool_choice, th: forces[0].thinking }));
     vrai('…tous demandent la réflexion adaptative, 3000 jetons, JAMAIS temperature / top_p / top_k', reu.every(b => b.thinking && b.thinking.type === 'adaptive' && b.max_tokens === 3000 && !('temperature' in b) && !('top_p' in b) && !('top_k' in b)));
     vrai('…et les seuls outils de la réunion du lundi sont fixer_objectifs (les outils de la messagerie ne sont pas là)', reu.every(b => b.tools.length === 1 && b.tools[0].name === 'fixer_objectifs'));
     const faits = JSON.parse((/ta seule source de chiffres\) : (\{.*\})/.exec(reu[0].system) || [])[1] || 'null');
@@ -220,7 +224,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     const GESTES = SRC.slice(i, j);
     const REU = fs.readFileSync(path.join(RACINE, 'server', 'reunions.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     const posts = [...REU.matchAll(/app\.post\('\/api\/monitor\/([^']+)', (\w+)/g)], gets = [...REU.matchAll(/app\.get\('\/api\/monitor\/([^']+)', (\w+)/g)];
-    vrai('(population) les réunions déclarent deux routes POST et une lecture', posts.length === 2 && gets.length === 1);
+    vrai('(population) les réunions déclarent trois routes POST (lancer, annuler — 28 octobre 2026 —, retirer une leçon) et une lecture', posts.length === 3 && gets.length === 1);
     vrai('⛔ chaque POST est dans MON_GESTES et exige le patron strict ; la lecture aussi', posts.every(m => new RegExp("'" + m[1].replace(/\//g, '\\/') + "':").test(GESTES) && m[2] === 'monPatronStrict') && gets.every(m => m[2] === 'monPatronStrict'));
     vrai('…et le déclenchement est dans index.js : une minuterie d’une minute, une première vérification, sans que `reunions.js` n’arme rien', /setTimeout\(ticReunions, 5000\)/.test(SRC.replace(/\/\*[\s\S]*?\*\//g, ' ')) && /setInterval\(ticReunions, 60000\)/.test(SRC.replace(/\/\*[\s\S]*?\*\//g, ' ')) && !/setInterval|setTimeout/.test(REU));
     vrai('aucun détail du journal, aucune adresse dans toute la sortie du serveur', !/SECRET-DETAIL-2885|client-secret/.test(S.journal()));

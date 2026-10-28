@@ -275,10 +275,12 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
   await poserPdf(r.j.id, T_A, F.PDF('MARQUEUR-CLAIR-SUR-LE-DISQUE'), 'brouillon.pdf');
 
   console.log('\n── 9. Le journal ne porte aucune donnée personnelle ──');
+  /* ⛔ « 0612 » SEUL TOMBE AU HASARD DANS LE JOURNAL (CI du 27 octobre 2026, PR #219 : « ✗ aucun(e) un mobile dans le journal » sur un serveur juste). Le journal porte des
+     identifiants de 24 caractères hexadécimaux et le numéro du processus (`"n":"27112"` — un processus 10612 suffit). Un mobile se cherche donc HORS d'un mot ou d'un nombre. */
   const J = S.sortie().split('\n').filter((l) => !/ExperimentalWarning|trace-warnings/.test(l)).join('\n');
   vrai('population : le journal n\'est pas vide (≥ 15 lignes)', J.split('\n').filter(Boolean).length >= 15);
   vrai('chaque ligne est du JSON', J.split('\n').filter(Boolean).every((l) => { try { JSON.parse(l); return true; } catch (e) { return false; } }));
-  for (const [nom, motif] of [['une adresse e-mail', /@/], ['un nom de signataire', /Dupont|Martin|Marie|Léa|Roux|Justin|Zo[ée]/], ['un mobile', /\+33|0612|0611/], ['une adresse réseau', /127\.0\.0\.1|::1|\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/], ['un jeton de la Tour', /\b[a-f0-9]{48}\b/], ['la clé Yousign', /CLE-YOUSIGN|SECRET-WEBHOOK/], ['un titre de document', /Contrat de nettoyage/]]) vrai('aucun(e) ' + nom + ' dans le journal', !motif.test(J.replace(/"t":"[^"]+"/g, '')));
+  for (const [nom, motif] of [['une adresse e-mail', /@/], ['un nom de signataire', /Dupont|Martin|Marie|Léa|Roux|Justin|Zo[ée]/], ['un mobile', /\+33|(?<![0-9A-Za-z])06 ?1[12]/], ['une adresse réseau', /127\.0\.0\.1|::1|\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/], ['un jeton de la Tour', /\b[a-f0-9]{48}\b/], ['la clé Yousign', /CLE-YOUSIGN|SECRET-WEBHOOK/], ['un titre de document', /Contrat de nettoyage/]]) vrai('aucun(e) ' + nom + ' dans le journal', !motif.test(J.replace(/"t":"[^"]+"/g, '')));
   vrai('le journal sait quand même dire l\'essentiel (activation, événement, annulation)', /"evt":"activee"/.test(J) && /"evt":"evenement"/.test(J) && /"evt":"annulee"/.test(J));
 
   console.log('\n── 10. Au repos : rien de lisible sur le disque ──');

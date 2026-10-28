@@ -70,7 +70,9 @@
 # La couture : `test-2987` (les vraies pages fabriquées parlent au vrai serveur de test) — 93 vérifications. Le paiement de test : `test-2990` (le script qui crée les dix tarifs de
 # test chez un FAUX Stripe, idempotent, qui refuse une clé live ou une config sans `espaceTest` ; le vrai serveur qui les accepte en essai et ne change RIEN sans `espaceTest`) —
 # 56 vérifications. Plancher relevé à 5490. (`test-2991`, les pages, relit tout le dépôt : hors liste, comme 2985 et 2986.)
-#plancher 5490
+# 28 octobre 2026 : `test-3090` (les agents sans limite artificielle : Margaux, Hugo, Louis, Léa, agents.js, Emma, le câblage d’index.js — 62 vérifications).
+# 28 octobre 2026, le pont des agents côté Tour (3096) : 163 suites, 10 501 vérifications mesurées par la commande de la porte, toutes vertes (avant l'ajout de 3090) — plancher 10487 (le total moins 14, jamais une addition).
+#plancher 10487
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -341,3 +343,39 @@ tests/test-2992.js
 # 24 octobre 2026 : `test-2993` (les six échecs de l'examen de 15 h 05 : un agent ne répond pas deux fois au même message, « RAS » à un collègue ne s'écrit pas, une question = une ligne numérotée finie par « ? », « complètes » ne tutoie pas, « 15 euros » vaut « 15 € », un verdict du juge aux guillemets droits se lit). Lit server/ seulement.
 tests/test-2993.js
 tests/test-2996.js
+tests/test-3001.js
+# 25 octobre 2026 : `test-3002` (l'audience du site sans cookie : `server/audience.js` et ses deux routes sur le vrai serveur, `/audience.js` sur chaque page qui porte `cookies.js`, le lien « ?de=<agent> » de la signature).
+tests/test-3002.js
+tests/test-3007.js
+# 25 octobre 2026 : `test-3020` (le pont de Pauline : `server/pauline.js` sur le vrai serveur — 503 sans empreinte, 401, 413 AVANT lecture du corps, 400 sans valeur citée, plafonds, élagage à 90 jours, 8 relevés par minute et par adresse, aucune donnée de prospect dans le journal, fichier chiffré avec la clé maître ; le script du Mac `outils/pauline-releve.py` et la couture : son relevé est accepté sans une ligne écartée). Lance python3 si présent.
+tests/test-3020.js
+# 25 octobre 2026 : `test-3016` (les groupes de la messagerie des agents se personnalisent — nom, icône, couleur, description : le vrai module, chaque refus, le 403, le registre illisible, les valeurs hostiles, et le vrai serveur pour la garde et le journal des gestes). Lit server/ seulement.
+tests/test-3016.js
+# 26 octobre 2026 : `test-3021` (les heures de travail des agents : le vrai module aux deux saisons, la nuit du 25 octobre, fériés, astreinte, attente et reprise, ouvrir maintenant, registre illisible, réunions, examen, puis le vrai serveur). Lit server/ seulement.
+tests/test-3021.js
+# 26 octobre 2026 : 9 455 mesurés (143 suites) avec `test-3021` (166 vérifications) — plancher relevé à 9400 (il était resté à 5490 depuis le 23 octobre).
+# 26 octobre 2026 (examen de 17 h 36) : `test-3063` (scénario 6 « vente » : le juge cite la phrase en cause, la réécriture la reçoit, Léa reprend les mots de l'offre — les vrais modules dans l'établi des courriers), `test-3061` (scénario 8 « réunions » : le compte rendu de Victor est redemandé sans outil ni réflexion, la cause est dite, un accusé de réception n'est pas une prise de parole — le vrai reunions.js), `test-3062` (scénario 9 « ton » : le juge de l'examen voit c1…cN sans trou, une réponse illisible est redemandée et dite). Lisent server/ seulement.
+tests/test-3063.js
+tests/test-3061.js
+tests/test-3062.js
+# 26 octobre 2026 (examen de 23 h 25) : `test-3064` (scénario 8 : des objectifs DITS sans l'outil sont enregistrés par un second appel qui ne peut que les enregistrer ; scénario 9 : une formule citée n'est pas dite, et un juge qui oublie un critère le voit redemandé par son nom, les autres gardés). Lit server/ seulement.
+tests/test-3064.js
+tests/test-3075.js
+tests/test-3078.js
+# 26 octobre 2026 (soir) : 9 986 mesurés (148 suites) avec `test-3061` à `test-3063` — plancher relevé à 9900.
+# 26 octobre 2026 (publication de la Tour v2.112) : `test-3022` et `test-3024` — la couture de la page Agents de la Tour (Pauline, horaires, messagerie) contre le VRAI serveur, entrées à la publication de `tour.html`, comme prévu par REPRISE.md.
+tests/test-3022.js
+tests/test-3024.js
+tests/test-3079.js
+tests/test-3080.js
+tests/test-3084.js
+tests/test-3081.js
+tests/test-3082.js
+tests/test-3085.js
+tests/test-3087.js
+tests/test-3088.js
+tests/test-3089.js
+tests/test-3083.js
+tests/test-3090.js
+# ── Le pont des agents, côté Tour (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place ») : `server/pont-messages.js` contre un faux OP MESSAGES — la file, les pannes, l'historique, ce que Justin écrit et supprime — et le bandeau de la Tour (3096).
+tests/test-3096.js

@@ -137,10 +137,14 @@ module.exports = function incidentsAgents(ctx) {
       plusVieuxSansPersonneH: Math.round(plus / HEURE), corriges30j: l.filter(i => i.statut === 'corrige' && (i.lastTs || 0) >= t - 30 * 86400000).length, parApp };
   }
 
-  /* Les incidents venus des appareils qu'un agent peut vouloir regarder : « haute », nouveaux, ni en veille ni internes ni passagers, apparus depuis `depuis`.
-     Rend des IDENTIFIANTS (les faits se lisent un à un par `faits`) — jamais un objet de la liste. */
-  function clientsHauts(depuis) {
-    return liste().filter(i => i && !estNotre(i) && i.statut === 'nouveau' && !i.triage && gravite(i) === 'haute' && (i.firstTs || 0) >= (depuis || 0)).map(i => i.id).slice(0, 20);
+  /* Les incidents venus des appareils qu'un agent peut vouloir regarder : nouveaux, ni en veille ni internes ni passagers, apparus depuis `depuis`. « haute » d'abord ; `moyenne` aussi quand
+     l'appelant le demande (`o.moyenne`, 28 octobre 2026 : Justin, « sans limite » — une gravité moyenne n'était jamais signalée à personne, tant qu'elle ne montait pas d'elle-même). Pas de coupe : le
+     plafond est celui de l'appelant (par passage et par jour). Rend des IDENTIFIANTS (les faits se lisent un à un par `faits`) — jamais un objet de la liste. */
+  function clientsHauts(depuis, o) {
+    const moyenne = !!(o && o.moyenne);
+    const l = liste().filter(i => i && !estNotre(i) && i.statut === 'nouveau' && !i.triage && (i.firstTs || 0) >= (depuis || 0));
+    const hauts = l.filter(i => gravite(i) === 'haute'), moyens = moyenne ? l.filter(i => gravite(i) === 'moyenne') : [];
+    return hauts.concat(moyens).map(i => i.id);
   }
 
   return { ouvrir, prendre, fermer, etat, faits, compteurs, clientsHauts, gravite };

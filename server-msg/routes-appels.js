@@ -21,7 +21,7 @@
  * confondus) : faire sonner trente fois quelqu'un est du harcèlement, à un compte comme à plusieurs. Réglables mais bornés (`config.appels`, qui refuse un nombre absurde au démarrage).
  */
 'use strict';
-const { ID_PERS, ID_CONV } = require('./routes');
+const { ID_PERS, ID_INVITE, ID_CONV } = require('./routes');
 const { TYPES_SIGNAL, SIGNAL_OCTETS_MAX } = require('./appels');
 
 const JOUR = 86400000;
@@ -189,7 +189,7 @@ function installerAppels(H, ctx) {
        SALLE, c'est un participant PRÉSENT (la transaction du service le juge : un parti, un exclu, un invité à la porte ne reçoit rien) — et le pouls n'a pas de destinataire. */
     const salle = acces.genre !== 'deux';
     if (!salle || b.type !== 'pouls') {
-      if (typeof b.a !== 'string' || !ID_PERS.test(b.a) || (salle ? b.a === moi.id : b.a !== acces.autre)) return refus(res, 400, 'champ_invalide');
+      if (typeof b.a !== 'string' || !(ID_PERS.test(b.a) || (salle && ID_INVITE.test(b.a))) || (salle ? b.a === moi.id : b.a !== acces.autre)) return refus(res, 400, 'champ_invalide');   // dans une salle, le destinataire peut être un invité sans compte (`g_…`)
     }
     let d;
     if (b.type !== 'pouls') {

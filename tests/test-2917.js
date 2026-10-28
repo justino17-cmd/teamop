@@ -72,7 +72,7 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   let cs = await S.courriels();
   v('l\'accusé de réception part à l\'adresse du COMPTE d\'Alpha (celle de l\'annuaire), par la boîte contact', [cs.length, cs[0].to.includes('alpha@exemple-2917.fr'), /Votre demande d’arrêt/.test(cs[0].subject)], [1, true, true]);
   const finTxt = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(FIN_SEC * 1000));
-  vrai('…avec la date de fin de période de Stripe, la signature de Hugo, sans remboursement ni arrêt immédiat', cs[0].text.includes(finTxt) && /Hugo — Assistant virtuel — Équipe TeamOP/.test(cs[0].text) && !/rembours|immédiat/i.test(cs[0].text) && !/SIGNATURE|L'équipe TEAM OP\nsupport/.test(cs[0].text));
+  vrai('…avec la date de fin de période de Stripe, la signature de Hugo, sans remboursement ni arrêt immédiat', cs[0].text.includes(finTxt) && /Hugo — Assistant de TeamOP/.test(cs[0].text) && !/rembours|immédiat/i.test(cs[0].text) && !/SIGNATURE|L'équipe TEAM OP\nsupport/.test(cs[0].text));
   const fh = (await S.get('/api/monitor/conversations/hugo')).j.messages.filter(m => m.de === 'hugo');
   vrai('Justin est prévenu dans le fil de Hugo : le dossier, la date, « aucun remboursement » — sans nom ni adresse', fh.some(m => /DOS-000001/.test(m.texte) && /aucun remboursement/.test(m.texte)) && !/Alpha|exemple-2917/.test(JSON.stringify(fh)));
   const fc = (await S.get('/api/monitor/conversations/clients')).j.messages.filter(m => m.de === 'hugo').map(m => m.texte);
@@ -91,7 +91,7 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   cs = await S.courriels();
   const rel = cs[1];
   v('la relance part à l\'adresse de FACTURATION de Stripe (pas celle du compte)', [cs.length, rel.to.includes('facturation-beta@exemple-2917.fr'), rel.to.includes('beta@exemple-2917.fr') && !rel.to.includes('facturation-beta')], [2, true, false]);
-  vrai('…avec la page de la facture en attente RELUE chez Stripe, son numéro, son montant ; signée Margaux ; ton courtois', rel.text.includes('https://invoice.stripe.com/i/acct_banc/live_beta') && /BETA-0001/.test(rel.text) && /15 €/.test(rel.text) && /Margaux — Assistante virtuelle — Équipe TeamOP/.test(rel.text) && !/recouvrement/.test(rel.text));
+  vrai('…avec la page de la facture en attente RELUE chez Stripe, son numéro, son montant ; signée Margaux ; ton courtois', rel.text.includes('https://invoice.stripe.com/i/acct_banc/live_beta') && /BETA-0001/.test(rel.text) && /15 €/.test(rel.text) && /Margaux — Assistante de TeamOP/.test(rel.text) && !/recouvrement/.test(rel.text));
   vrai('…et aucune écriture chez Stripe pour ça', S.stripe().appels.filter(a => a.m !== 'GET').length === 1);
   await S.post('/api/monitor/agents/margaux/passer');
   v('⛔ un second passage le même jour : AUCUNE autre relance', (await S.courriels()).length, 2);
@@ -190,7 +190,7 @@ const nomDe = "const nom = q => ((/^Tu es (\\S+), l’agent/u.exec(q.system || '
   await S.attendre(async () => (await S.courriels()).some(c => c.to.includes('gamma@exemple-2917.fr')));
   cs = await S.courriels();
   const cr = cs.find(c => c.to.includes('gamma@exemple-2917.fr')) || cs[cs.length - 1];
-  vrai('le courriel part à l\'adresse du DOSSIER (celle de Gamma, qui n\'a pas d\'espace), signé Emma, trois créneaux à l\'heure de Paris', cr.to.includes('gamma@exemple-2917.fr') && /Emma — Assistante virtuelle — Équipe TeamOP/.test(cr.text) && /1\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && /3\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && !/Justin|Gamma/.test(cr.text));
+  vrai('le courriel part à l\'adresse du DOSSIER (celle de Gamma, qui n\'a pas d\'espace), signé Emma, trois créneaux à l\'heure de Paris', cr.to.includes('gamma@exemple-2917.fr') && /Emma — Assistante de TeamOP/.test(cr.text) && /1\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && /3\. \w+ \d+ \w+ à \d+ h \d\d/.test(cr.text) && !/Justin|Gamma/.test(cr.text));
   vrai('…et le rendez-vous à venir se lit dans la Tour une fois choisi (liste vide pour l\'instant)', (await S.get('/api/monitor/agents/emma/disponibilites')).j.rendezVous.length === 0);
   vrai('les fils ne portent ni nom ni adresse (Emma, Hugo, Margaux, Sarah, Clients)', !/Alpha|Beta|Gamma|exemple-2917/.test(JSON.stringify(await Promise.all(['emma', 'hugo', 'margaux', 'sarah', 'clients'].map(async f => (await S.get('/api/monitor/conversations/' + f)).j.messages)))));
   await fermer(S);

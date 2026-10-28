@@ -34,15 +34,18 @@ const { installerEspaces, ID_ESPACE } = require('./routes-espaces');
 const { installerReunions } = require('./routes-reunions');
 const { installerAppels } = require('./routes-appels');
 const { installerSalles } = require('./routes-salles');
+const { installerInvites } = require('./routes-invites');
 const { ID_APPEL } = require('./appels');
 const { ID_REUNION } = require('./reunions-outils');
 const { installerFacturation } = require('./facturation');
 const { installerAdmin, gardeAdmin } = require('./admin');
+const { installerPont, gardePont } = require('./pont-agents');
 const { ID_PIECE } = require('./pieces');
 
 const NOM_ENTETE = 'x-opm';
 const SHA = (x) => crypto.createHash('sha256').update(x).digest('hex');
 const JETON = /^opm_[A-Za-z0-9_-]{43}$/;
+const JETON_INVITE = /^opi_[A-Za-z0-9_-]{43}$/;
 
 function construireApp(ctx) {
   const { config, stockage, quotas, journaliser } = ctx;
@@ -119,6 +122,7 @@ function construireApp(ctx) {
   app.use((req, res, next) => (req.method === 'POST' && (/^\/api\/pieces\/?$/i.test(req.path) || AVIS_VISIO.test(req.path))) ? next() : lecteurJson(req, res, next));
 
   /* ── Une écriture : l'origine de l'application ET l'en-tête maison ────────────────────── */
+  const PONT = /^\/api\/pont\/[a-z]+\/?$/i;
   function origineOk(req) {
     const o = req.headers.origin;
     if (!o || o === 'null') return false;
@@ -131,6 +135,8 @@ function construireApp(ctx) {
     if (req.method === 'GET' || req.method === 'HEAD') return next();
     /* ⛔ L'AVIS DU SERVEUR DE VISIO n'est pas une écriture d'une page (pas d'Origin, pas d'en-tête maison) : sa garde est AILLEURS et plus stricte — la boucle locale sans proxy (LV), puis la signature sur le corps. */
     if (req.method === 'POST' && AVIS_VISIO.test(req.path)) return next();
+    /* ⛔ LE PONT DES AGENTS n'est pas une page non plus : sa garde (`PT`, boucle locale + sans proxy + secret) est plus stricte qu'une origine, et passe APRÈS ce contrôle — sans secret, c'est le même 404 qu'une route inconnue. */
+    if (req.method === 'POST' && PONT.test(req.path)) return next();
     if (!origineOk(req)) return refus(res, 403, 'origine_refusee');
     if (req.headers[NOM_ENTETE] !== '1') return refus(res, 403, 'entete_requis');
     next();
@@ -145,7 +151,7 @@ function construireApp(ctx) {
      ⚠️ Ce n'est PAS une frontière de sécurité (`X-OPM-Version: 99999` passe) : c'est l'ergonomie des pages honnêtes. Un correctif de sécurité se pose au service. */
   /* ⛔ ET DES GESTES DE PROTECTION DE PLUS (relecture du gardien, 6 octobre 2026) : bloquer quelqu'un, retirer son consentement aux notifications, déconnecter un
      appareil, raccrocher. Une page trop ancienne doit pouvoir se protéger et sortir d'un appel ; aucun de ces gestes n'écrit de contenu. Une seule liste, à côté de celle du disque. */
-  const SANS_VERSION = /^\/api\/(compte\/(deconnexion|supprimer|export)|flux\/ack|contacts\/bloquer|push\/desabonner|moi\/appareils\/deconnecter|appels\/[^/]+\/quitter)\/?$/i;
+  const SANS_VERSION = /^\/api\/(compte\/(deconnexion|supprimer|export)|flux\/ack|contacts\/bloquer|push\/desabonner|moi\/appareils\/deconnecter|appels\/[^/]+\/quitter|invite\/[a-z]+|pont\/[a-z]+)\/?$/i;   // (la page de l'invité sans compte est servie fraîche, elle n'a pas de version à exiger)
   app.use((req, res, next) => {
     if (req.method === 'GET' || req.method === 'HEAD' || !ctx.versionClient) return next();
     const exige = ctx.versionClient.exige();
@@ -165,11 +171,11 @@ function construireApp(ctx) {
   });
 
   /* ── Les gardes ───────────────────────────────────────────────────────────────────────── */
-  function lireCookie(req) {
+  function lireCookie(req, nom = config.cookie.nom) {
     const h = req.headers.cookie; if (!h) return null;
     for (const part of h.split(';')) {
       const i = part.indexOf('='); if (i < 0) continue;
-      if (part.slice(0, i).trim() === config.cookie.nom) return part.slice(i + 1).trim();
+      if (part.slice(0, i).trim() === nom) return part.slice(i + 1).trim();
     }
     return null;
   }
@@ -183,6 +189,7 @@ function construireApp(ctx) {
   /* ⛔ AD : l'ADMINISTRATION, pour la console interne. Aucune session, aucun cookie : la boucle locale ET aucun en-tête de proxy ET le secret de la configuration (`admin.js` porte les trois et le contrat) ; sinon, ou sans secret
      configuré, le même 404 qu'une route qui n'existe pas. */
   garde.AD = gardeAdmin(ctx);
+  garde.PT = gardePont(ctx);   // ⛔ PT : le pont des agents — les trois preuves d'AD, avec SON secret (`pont-agents.js`)
   garde.S = [(req, res, next) => {
     const j = lireCookie(req);
     if (!j || !JETON.test(j)) return refus(res, 401, 'session_requise');
@@ -258,6 +265,26 @@ function construireApp(ctx) {
   garde.SH = garde.SP.concat([(req, res, next) => (req.appel.statut === 'present' && req.appel.grade >= 1) ? next() : refus(res, 403, 'interdit')]);
   garde.SO = garde.SP.concat([(req, res, next) => (req.appel.statut === 'present' && req.appel.grade >= 2) ? next() : refus(res, 403, 'interdit')]);
   garde.SJ = garde.S.concat([(req, res, next) => ID_APPEL.test(String(req.params.id)) ? next() : refus(res, 404, 'introuvable')]);
+  /* ⛔ G ET GS : l'INVITÉ SANS COMPTE (`routes-invites.js`). Son cookie n'est PAS celui d'un compte (`<cookie>-i`, jeton `opi_…`, rangé sous forme d'empreinte dans `invite_sans_compte`) : `garde.S` ne le lit pas, et la garde G
+       n'est montée que sur les quelques routes de son contrat — pas une de plus. `req.moi` n'est qu'un cadre (l'identifiant `g_…` que la salle connaît, son nom) pour les plafonds et les gestes de salle ; ce n'est
+       PAS une personne : aucune table de comptes ne le connaît.
+       G   une session d'invité valable (inconnue, coupée — la salle a fini —, échue : 401 `session_requise`) ;
+       GS  G, et il a une place dans la salle (un exclu : le même 404 qu'une salle qui n'existe pas). `req.appel` est le laissez-passer de la salle, comme pour AP/SP. */
+  garde.G = [(req, res, next) => {
+    const j = lireCookie(req, config.cookie.nom + '-i');
+    if (!j || !JETON_INVITE.test(j)) return refus(res, 401, 'session_requise');
+    const h = SHA(j);
+    const g = stockage.inviteParSession(h);
+    if (!g) return refus(res, 401, 'session_requise');
+    req.invite = g; req.sessionH = h;
+    req.moi = { id: g.id, prenom: g.nom, nom: '', invite: true };
+    next();
+  }];
+  garde.GS = garde.G.concat([(req, res, next) => {
+    const a = stockage.appelAcces(req.invite.appel, req.invite.id);
+    if (!a || a.genre === 'deux') return refus(res, 404, 'introuvable');
+    req.appel = a; next();
+  }]);
   garde.R = garde.S.concat([reunionDuParticipant]);
   garde.H = garde.V.concat([reunionDuParticipant, (req, res, next) => req.reunion.hote ? next() : refus(res, 403, 'interdit')]);
   /* ⛔ PRO : une fonction payante. `formuleDe` est la SEULE fonction qui décide (`formule.js`) — ce garde la lit, il ne recopie aucune règle. Une route de l'espace (`req.espace`) se juge sur la
@@ -294,6 +321,8 @@ function construireApp(ctx) {
   installerReunions(H, ctx);    // les réunions programmées : agenda, programmer, inviter, répondre, rappels, trajet
   installerAppels(H, ctx);      // les appels : le relais (identifiants éphémères), lancer (à deux ou à plusieurs), répondre, rejoindre, raccrocher, signaler, l'historique
   installerSalles(H, ctx);      // les salles : les gestes de l'hôte et des co-hôtes, ceux des participants
+  installerInvites(H, ctx);     // l'invité SANS COMPTE : le lien de l'organisateur, l'aperçu, l'entrée à la porte, et le peu que sa session ouvre (APRÈS les salles : il en délègue des gestes)
+  installerPont(H, ctx);        // le pont des agents de la Tour : installer, poster, lire ce que Justin écrit, supprimer (PT ; inerte sans `pont`)
   installerAdmin(H, ctx);       // l'administration : des lectures pour la console interne, gardées par AD
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */
   const limiteEcriture = (req, res, next) => {
@@ -313,7 +342,7 @@ function construireApp(ctx) {
     if (r.pro === true) chaine.push(...garde.PRO);     // ⛔ la route le DÉCLARE (manifeste) ; après sa garde d'appartenance, jamais avant (un non-membre reçoit 404, pas 402)
     if (r.organiser === true) chaine.push(...garde.ORGANISER);     // idem : Pro (organiser une réunion)
     /* ⛔ les annotations d'une salle ont LEUR plafond, par compte, en gestes et en points (`routes-salles.js`) : un trait part en morceaux pendant qu'on dessine, et les 300 écritures par minute le coupaient */
-    if (r.m === 'POST' && r.garde !== 'P' && r.garde !== 'B' && r.garde !== 'LV' && r.id !== 'salles.annot') chaine.push(limiteEcriture);
+    if (r.m === 'POST' && r.garde !== 'P' && r.garde !== 'B' && r.garde !== 'LV' && r.garde !== 'PT' && r.id !== 'salles.annot') chaine.push(limiteEcriture);
     app[r.m.toLowerCase()](r.p, ...chaine, h);
   }
 

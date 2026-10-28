@@ -76,6 +76,7 @@ module.exports = function documents(app, ctx) {
     if (!agents.AGENTS.some(a => a.id === agent)) return { ok: false, raison: 'agent' };
     const p = agents.peutAgir(agent);
     if (!p.ok) return { ok: false, raison: p.raison };
+    if (p.horsHeures) return { ok: false, raison: 'hors_heures' };       // l'astreinte veille hors des heures mais n'écrit JAMAIS à un client
     if (illisible()) { agents.noter(agent, 'déposer un document', { cible: o.type, resultat: 'refuse', detail: 'registre des documents illisible' }); return { ok: false, raison: 'registre_illisible' }; }
     const objet = String(o.objet || '').replace(/[\r\n]+/g, ' ').trim();
     const texte = String(o.texte || '').trim();
@@ -181,6 +182,7 @@ module.exports = function documents(app, ctx) {
     o = o || {};
     const p = agents.peutAgir(o.agent);
     if (!p.ok) return { ok: false, raison: p.raison };
+    if (p.horsHeures) return { ok: false, raison: 'hors_heures' };       // l'astreinte veille hors des heures mais n'écrit JAMAIS à un client
     const fautes = OPS.controle(o.objet, o.texte, Object.assign({}, o.autorises || {}, { lettre: false }));
     const aRevoir = fautes.join(', ');
     if (aRevoir) agents.noter(o.agent, 'contrôle qualité', { cible: o.source || 'courrier', resultat: 'refuse', detail: 'à revoir : ' + aRevoir });

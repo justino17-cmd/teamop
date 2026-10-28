@@ -43,14 +43,14 @@ function corps(entete) {
 const fonction = nom => corps('\nfunction ' + nom + '(').trim();
 const ligne = deb => { const i = CODE.indexOf(deb); return i < 0 ? '' : CODE.slice(i, CODE.indexOf('\n', i)); };
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
-const NOMS = ['msNorm', 'msMentions', 'msIds', 'msColorer', 'msContexte', 'msPropositions', 'msInserer', 'msTouche', 'msHeureCourte', 'msJourLib', 'msAgentsParId', 'msEtat', 'msNomFil',
+const NOMS = ['msNorm', 'msMentions', 'msIds', 'msColorer', 'msContexte', 'msPropositions', 'msInserer', 'msTouche', 'msHeureCourte', 'msJourLib', 'msAgentsParId', 'msEtat', 'msEstGroupe', 'msGroupePerso', 'msIconeHtml', 'msNomFil',
   'msBulleHtml', 'msEnvoiHtml', 'msEcritTexte', 'msEcritHtml', 'msFluxHtml', 'msLigneFil', 'msListeHtml', 'msTacheTxt', 'msTachesHtml', 'msSousTitre', 'msPlaceholder',
   'msAjouterServeur', 'msEnvoyer', 'msEnvoiFaire', 'msReessayer', 'msRetirer', 'messListeCharger', 'messAgentsCharger', 'messTachesCharger', 'messToutCharger', 'messFilCharger', 'messLire', 'messFilTot',
   'messTimers', 'messDemonter', 'messOuvrir', 'messOuvrirFil', 'messChoisir', 'messDossier', 'messNonLusCharger', 'messReleve',
-  'fmtHeure', 'agParams', 'apiGet', 'apiPost', 'acSquel'];
+  'fmtHeure', 'agParams', 'apiGet', 'apiPost', 'acSquel', 'agAvatar'];
 const FN = NOMS.map(fonction);
 const VAR_MS = corps('var MS={') + ';';
-const VARS = [ligne('var MS_GROUPES_LIB='), ligne('var MS_ETAT_LIB='), corps('var AG_TYPES=') + ';'].join('\n');
+const VARS = [ligne('var MS_GROUPES_LIB='), ligne('var MS_COULEURS='), ligne('var MS_ETAT_LIB='), ligne('var AG_PHOTOS='), corps('var AG_TYPES=') + ';'].join('\n');
 vrai('(population) les ' + NOMS.length + ' fonctions, MS et les tables sont trouvés dans le fichier livré', ESC && FN.every(f => f.length > 30) && VAR_MS.length > 100 && VARS.length > 100,
   NOMS.filter((n, i) => FN[i].length <= 30).join(', '));
 
@@ -194,7 +194,7 @@ console.log('\n5. Les morceaux d\'écran : échappés, et honnêtes sur ce qu\'i
   ctx.MS.illisible = false;
   const m1 = { id: 'm1', ts: Date.now(), de: 'camille', nom: 'Camille', texte: 'Bonjour @Hugo <img src=x onerror=alert(1)>', niveau: 'info', mentions: ['hugo'] };
   const h1 = ctx.msBulleHtml(m1, M, ag);
-  vrai('une bulle d\'agent : initiale, nom, rôle, mention colorée, texte échappé', /<span class="ms-av"[^>]*>C<\/span>/.test(h1) && /<b>Camille<\/b>/.test(h1) && /Courrier et support/.test(h1) && /<mark class="ms-m">@Hugo<\/mark>/.test(h1) && !/<img/.test(h1) && /&lt;img src=x/.test(h1), h1);
+  vrai('une bulle d\'agent : initiale sous sa photo, nom, rôle, mention colorée, texte échappé (la seule image est la photo)', /<span class="ms-av"[^>]*>C<img src="icons\/agents\/camille\.jpg"[^>]*><\/span>/.test(h1) && /<b>Camille<\/b>/.test(h1) && /Courrier et support/.test(h1) && /<mark class="ms-m">@Hugo<\/mark>/.test(h1) && (h1.match(/<img/g) || []).length === 1 && /&lt;img src=x/.test(h1), h1);
   const h2 = ctx.msBulleHtml({ id: 'm2', ts: Date.now(), de: 'justin', nom: 'Toi', texte: 'ok', niveau: 'info', mentions: [] }, M, ag);
   vrai('ma bulle : classe « moi », pas d\'avatar', /class="ms-b moi"/.test(h2) && !/ms-av/.test(h2), h2);
   const h3 = ctx.msBulleHtml({ id: 'm3', ts: Date.now(), de: 'systeme', nom: 'Système', texte: 'Camille a pris « <i>x</i> »', systeme: true, mentions: [] }, M, ag);
@@ -504,8 +504,9 @@ console.log('\n6. L\'envoi : le message paraît à l\'instant ; un refus se dit 
     vrai('(population) la page déclare des dizaines de fonctions `ms*` / `mess*`, toutes trouvées avec leur corps', nomsMs.length > 50 && nomsMs.every(n => fonction(n).length > 20), nomsMs.filter(n => fonction(n).length <= 20).join(', '));
     const ROUTE_MS = /apiPost\('(\/api\/monitor\/(?:conversations|agents\/reunions|agents\/lecons)[^']*)'/g;
     const dansMs = nomsMs.map(n => [n, [...fonction(n).matchAll(ROUTE_MS)].map(m => m[1])]).filter(x => x[1].length);
-    v('⛔ les seules écritures de la messagerie : l\'envoi, « lu », le lancement d\'une réunion et le retrait d\'une leçon — exactement quatre routes DISTINCTES', [...new Set(dansMs.map(x => x[1]).reduce((t, l) => t.concat(l), []))].sort(),
-      ['/api/monitor/agents/lecons/retirer', '/api/monitor/agents/reunions/lancer', '/api/monitor/conversations/envoyer', '/api/monitor/conversations/lire']);
+    v('⛔ les seules écritures de la messagerie : l\'envoi, « lu », le visage d\'un groupe (v2.112), le lancement d\'une réunion, le retrait d\'une leçon, et — 28 octobre 2026 — l\'annulation d\'une réunion prévue (test-3087) et la suppression d\'un message (test-3088) : exactement sept routes DISTINCTES', [...new Set(dansMs.map(x => x[1]).reduce((t, l) => t.concat(l), []))].sort(),
+      ['/api/monitor/agents/lecons/retirer', '/api/monitor/agents/reunions/annuler', '/api/monitor/agents/reunions/lancer', '/api/monitor/conversations/envoyer', '/api/monitor/conversations/groupe', '/api/monitor/conversations/lire', '/api/monitor/conversations/supprimer']);
+    vrai('⛔ le visage d\'un groupe ne s\'écrit que par le patron : la fonction qui poste refuse AVANT d\'appeler (MYROLE)', /if\(MYROLE!=='patron'\|\|MS\.groupeBusy\|\|!msEstGroupe\(fil\)\) return Promise\.resolve\(null\);\s*MS\.groupeBusy=true;/.test(fonction('msGroupeEnvoyer')));
     v('…et aucune de ces routes n\'est écrite HORS de ces fonctions (une cinquième écriture ailleurs dans la page ferait tomber ce contrôle)', [...CODE.matchAll(ROUTE_MS)].length, dansMs.reduce((n, x) => n + x[1].length, 0));
     /* ⛔ les deux phrases de sécurité DISENT ce que le code fait (relecture C1-C3) : les consignes portent du texte libre entre agents ; seules les demandes d'argent et d'accès sont en liste fermée */
     const phrases = [...SRC.matchAll(/ms-regle">([^<]*)</g)].map(m => m[1]).concat([...SRC.matchAll(/Les demandes d’argent et d’accès ne passent[^<]*/g)].map(m => m[0]));

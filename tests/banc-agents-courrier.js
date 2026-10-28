@@ -45,9 +45,9 @@ const COURRIEL = [
 /* Le courriel que Claude rendrait POUR CETTE DEMANDE (23 octobre 2026 : le contrôle qualité exige le nom de l'entreprise dans l'accroche) : il lit le nom et le métier dans le
    message de Léa et les écrit. Il passe le contrôle du code, quel que soit le nom. */
 function courrielPour(requete) {
-  if (String(requete && requete.system).startsWith('Tu es Chloé, l’assistante virtuelle « Devis et propositions »')) return 'FORMULE : business\nObjet : Notre proposition pour Toka Clim\n\n' + PROPOSITION;
+  if (String(requete && requete.system).startsWith('Tu es Chloé, l’assistante « Devis et propositions »')) return 'FORMULE : business\nObjet : Notre proposition pour Toka Clim\n\n' + PROPOSITION;
   /* Camille ne rend plus un courriel nu : une ligne « CATEGORIE : … » d'abord (ici « prospect », la démarche commerciale) */
-  if (String(requete && requete.system).startsWith('Tu es Camille, l’assistante virtuelle « Courrier et support »')) return 'CATEGORIE : prospect\n' + COURRIEL;
+  if (String(requete && requete.system).startsWith('Tu es Camille, l’assistante « Courrier et support »')) return 'CATEGORIE : prospect\n' + COURRIEL;
   const m = requete && requete.messages ? requete.messages[requete.messages.length - 1] : null;
   const t = m && typeof m.content === 'string' ? m.content : '';
   const nom = /Nom de l’entreprise : <<<([^>]*)>>>/.exec(t), met = /Métier : ([^\n]+)/.exec(t);
@@ -62,9 +62,9 @@ const PROPOSITION = ['Bonjour,', '', 'Nous vous remercions pour vos réponses. N
   'Nous pouvons aussi créer pour vous une catégorie de suivi des fluides frigorigènes, réservée à votre entreprise : elle restera confidentielle, et le budget reste maîtrisé.', '',
   'Si cette proposition vous convient, nous pouvons vous ouvrir une période d’essai d’une semaine pour la tester avec votre équipe. Dites-nous si vous souhaitez la démarrer ou ajuster la proposition.', '',
   'Nous restons à votre disposition par retour de mail ou par téléphone.', '', 'Bien cordialement,'].join('\n');
-const CHLOE_DEBUT = 'Tu es Chloé, l’assistante virtuelle « Devis et propositions »';
-const LOUIS_DEBUT = 'Tu es Louis, l’assistant virtuel';
-const JUGE_DEBUT = 'Tu es le relecteur qualité', RECHERCHE_DEBUT = 'Tu es Léa, l’assistante virtuelle de TeamOP. Avant d’écrire';
+const CHLOE_DEBUT = 'Tu es Chloé, l’assistante « Devis et propositions »';
+const LOUIS_DEBUT = 'Tu es Louis, l’assistant « Documentation et aide »';
+const JUGE_DEBUT = 'Tu es le relecteur qualité', RECHERCHE_DEBUT = 'Tu es Léa, l’assistante de TeamOP. Avant d’écrire';
 
 /* Ce que Justin enregistre dans la Tour en ouvrant « Répondre seul aux questions courantes par courrier » — la forme EXACTE d'`agents-charte.json`. */
 const CHARTE_OUVERTE = { repondre_client: { auto: true } };
@@ -98,7 +98,8 @@ function monter(o) {
   if (o.charte) fs.writeFileSync(path.join(D, 'agents-charte.json'), JSON.stringify(o.charte));
   if (o.avant) o.avant(D);
 
-  const agents = require(S('agents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, maintenant, pousseNotif: async () => 0, cerveaux: [], cleCerveauPosee: true });
+  const agents = require(S('agents.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, maintenant, pousseNotif: async () => 0, cerveaux: [], cleCerveauPosee: true,
+    horaires: typeof o.horaires === 'function' ? o.horaires(D) : undefined });   // les heures de travail (`test-3021`) : une FABRIQUE (le dossier n'existe qu'ici) ; sans elle, pas de garde horaire comme avant
   const direction = require(S('direction.js'))(app, { DATA_DIR: D, monAdmin, monPatronStrict, agents, maintenant });
 
   /* Claude simulé : chaque requête est gardée ; `o.claude(requete, n)` choisit la réponse (texte brut, ou un objet d'erreur à jeter). */
@@ -167,5 +168,6 @@ const COURRIEL_TOKA = COURRIEL.replace('Nous avons bien noté votre activité.',
 const pourToka = x => COURRIEL_TOKA.replace(NOTE_TOKA, NOTE_TOKA + ' ' + x);
 /* La signature qu'un agent porte à l'envoi (`agents-signature.js`), pour la boîte contact@. */
 /* La signature d'un agent du Courrier (Léa, Camille, Chloé) : depuis le 23 octobre 2026, elle demande d'enregistrer l'adresse qui envoie (`agents-signature.js`). */
-const signatureDe = (nom, role, adr) => nom + ' — ' + (role || 'Assistante virtuelle') + ' — Équipe TeamOP\n' + (adr || 'contact@teamop.fr') + ' · teamop.fr\nPour recevoir nos messages sans faute, ajoutez ' + (adr || 'contact@teamop.fr') + ' à vos contacts.';
+/* Depuis le 25 octobre 2026 : « Léa — Assistante de TeamOP » (plus « virtuelle », Justin), et la mention de l'IA sous la signature (règlement européen, art. 50). */
+const signatureDe = (nom, role, adr) => nom + ' — ' + (role || 'Assistante de TeamOP') + (/team\s?op/i.test(role || 'TeamOP') ? '' : ' — Équipe TeamOP') + '\n' + (adr || 'contact@teamop.fr') + ' · https://teamop.fr/?de=' + nom.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() + '\nPour recevoir nos messages sans faute, ajoutez ' + (adr || 'contact@teamop.fr') + ' à vos contacts.\nMessage préparé par un assistant automatique de TeamOP.';
 module.exports = { CHARTE_OUVERTE, LOUIS_DEBUT, PROPOSITION, CHLOE_DEBUT, JUGE_DEBUT, RECHERCHE_DEBUT, monter, COURRIEL, COURRIEL_TOKA, pourToka, NOTE_TOKA, SIGNATURE, courrielPour, signatureDe };

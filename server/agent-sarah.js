@@ -19,7 +19,7 @@ const K = require('./agents-connaissance');
 
 const ID = 'sarah';
 const F = 'agents-sarah.json';
-const PAR_JOUR = 4;
+const PAR_JOUR = 10;     // quatre jusqu'au 28 octobre 2026 (Justin : « sans limite ») ; une annonce à tous les clients reste TOUJOURS une validation de Justin, et le budget MENSUEL de l'agent reste le plafond
 const NOTES_MAX = 1500;
 const JETONS = 1500;
 const TYPES = ['version', 'maintenance'];

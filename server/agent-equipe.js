@@ -144,6 +144,19 @@ const MOTIFS_PASSER = {
 };
 
 const RAS = /^\s*RAS\s*\.?\s*$/i;
+/* LES TICS DE GROUPE (examen du 27 octobre 2026, 14 h 49, scénario 9) : à « @tous, une idée ? », quatre agents « plussoyaient Léa » et trois ouvraient par
+   « Côté X, ça m'arrange… ». Inès l'a jugé, à raison : une formule toute faite, recyclée. Une réponse de GROUPE qui approuve un collègue au lieu d'apporter le
+   sien, ou qui ouvre comme un collègue vient d'ouvrir (même tic d'ouverture), est redemandée UNE fois, sans outil (`ticDeGroupe`). */
+const APPROUVE = /\b(?:je\s+)?plussoie|\bje\s+(?:rejoins|confirme\s+(?:ce\s+que|l['’]int[ée]r[êe]t|les\s+propos|l['’]id[ée]e))|\bcomme\s+(?:le\s+dit|l['’]a\s+dit|dit)\s+@?[\p{L}]+|\bd['’]accord\s+avec\s+@?[\p{L}]+|\bje\s+suis\s+(?:tout\s+[àa]\s+fait\s+)?d['’]accord\b|\bje\s+valide\s+(?:l['’]id[ée]e|ce\s+que)/iu;
+const OUVERTURES = /^\s*(?:c[ôo]t[ée]|du\s+c[ôo]t[ée]|de\s+mon\s+c[ôo]t[ée]|niveau|pour\s+ma\s+part|chez\s+moi|moi\s+aussi|tout\s+[àa]\s+fait|enti[èe]rement|pareil)(?=[\s,:;.!]|$)/i;   /* pas de \b : après « é », \b ne voit pas la fin du mot */
+function ouvertureDe(t) { const m = OUVERTURES.exec(String(t || '').replace(/^\s*@[\p{L}\p{N}_]+[\s,:]*/u, '')); return m ? m[0].trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : ''; }
+/* Rend la raison du tic (texte pour la redemande) ou '' : `autres` = ce que les COLLÈGUES ont déjà répondu au même message, dans ce fil. */
+function ticDeGroupe(texte, autres) {
+  if (APPROUVE.test(texte)) return 'tu approuves un collègue au lieu d’apporter ce qui t’est propre';
+  const o = ouvertureDe(texte);
+  if (o && autres.some(a => ouvertureDe(a) === o)) return 'tu ouvres comme un collègue vient d’ouvrir (« ' + o + ' … »)';
+  return '';
+}
 
 module.exports = function agentEquipe(ctx) {
   const { agents, conversations, cerveau } = ctx;
@@ -165,6 +178,10 @@ module.exports = function agentEquipe(ctx) {
   const nomDe = id => id === 'justin' ? 'Justin' : (registre.get(id) || {}).nom || id;
   const nomFil = f => (typeof conversations.nom === 'function' ? conversations.nom(f) : '') || (registre.get(f) || {}).nom || f;
   const masquer = t => sansTel(String(t || '').replace(ADRESSE, '(adresse)'));
+  /* ⛔ « [lea] [camille] » AU LIEU DE « @lea @camille » (examen du 27 octobre 2026, 23 h 36, scénario 5) : Victor recopiait l'étiquette du fil (« [Léa a écrit…] »)
+     au lieu de citer ses collègues. Un nom de l'équipe entre crochets devient la citation qu'il voulait faire ; rien d'autre n'est touché. */
+  const parNom = new Map(); for (const x of agents.AGENTS) { parNom.set(x.id.toLowerCase(), x.id); parNom.set(String(x.nom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(), x.id); }
+  const crochets = t => String(t || '').replace(/\[([A-Za-zÀ-ÿ]{2,20})\]/g, (m, n) => { const k = parNom.get(n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()); return k ? '@' + k : m; });
   const nettoyer = t => masquer(t).replace(/\s+/g, ' ').trim().slice(0, MESSAGE_MAX);
   const court = (t, n) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
   /* ce qu'on met dans le prompt vient de messages ou de tâches : pas d'accolade, qui ferait passer une phrase pour une ligne de faits */
@@ -184,13 +201,16 @@ module.exports = function agentEquipe(ctx) {
       r.mission + '\n' +
       'Ton caractère : ' + PERSO[id] + '\n' +
       'Règles :\n' +
-      '- Tu ne peux RIEN exécuter en dehors de tes outils : aucun geste sur un client, un paiement ou un accès. Tout autre geste passe par une demande que Justin valide dans la Tour. Tu ne promets jamais d’avoir fait ce que tu n’as pas fait.\n' +
+      '- Tu ne peux RIEN exécuter en dehors de tes outils : aucun geste sur un client, un paiement ou un accès. Tout autre geste passe par une demande que Justin valide dans la Tour. Tu ne promets jamais d’avoir fait ce que tu n’as pas fait, ni de faire ce qu’aucun de tes outils ne fait : si tu ne peux pas, tu le dis et tu dis ce qu’il faudrait.\n' +
+      '- Un sujet que tu as toi-même déclaré clos dans ce fil, tu ne le relances pas : seul un nouveau message de Justin le rouvre.\n' +
       (r.rien ? '- ' + r.rien + '\n' : '') +
       '- Tu ne cites que les faits du bloc Faits ci-dessous. Si tu ne sais pas, tu le dis : tu n’inventes ni chiffre, ni nom, ni date.\n' +
       '- Ne répète jamais une adresse électronique ni un numéro de téléphone.\n' +
       '- Réponse courte : 600 caractères au plus, concrète, comme un collègue qui parle — sans titre ni liste à puces, sans formule toute faite.\n' +
       '- Les messages sans crochet sont ceux de Justin ; ceux qui commencent par « [Nom a écrit dans le fil …] » sont ceux de tes collègues.\n' +
+      '- Dans un groupe, quand des collègues ont déjà répondu : tu apportes ce qui est PROPRE à ton rôle, avec tes mots. Tu n’approuves pas un collègue (« je plussoie », « je confirme ce que dit… », « d’accord avec… ») et tu ne reprends pas sa tournure d’ouverture (« Côté … »). Si tu n’as rien de propre à ajouter à une question posée à tous, tu réponds exactement « RAS ».\n' +
       '- Une question reçoit TA réponse, à toi qui es interrogé : tu ne la passes jamais à un collègue. Un message qui te cite n’est pas forcément une tâche : tu lis, tu comprends, et tu décides — répondre, prendre le travail, ou demander une précision.\n' +
+      '- Un TRAVAIL que Justin te confie (« prépare », « fais », « rédige », « trouve », avec ou sans délai) se prend : outil prendre, même s’il te manque une information. Tu dis alors ce qui te manque et tu poses ta question DANS LE MÊME message — prendre le travail et demander une précision ne s’excluent pas. Tu ne réponds jamais à un travail de Justin par une question seule.\n' +
       '- Tu réponds toujours par un message, même court, avant ou avec tes outils. Une seule exception : un COLLÈGUE te cite seulement pour t’informer (une décision prise, un merci, « rien ne change pour toi ») et tu n’as rien à ajouter — tu réponds alors exactement « RAS » et rien d’autre ; tes outils, eux, s’appliquent. Pour parler à un collègue, cite-le dans ton message avec @ suivi de son identifiant (par exemple @lea) : c’est ainsi qu’il le lit. @tous cite tout le fil.\n' +
       '- Outil prendre : tu acceptes un travail, il devient ta tâche. Outil terminer : c’est fait. Outil passer : seulement si tu es vraiment chargé (une autre tâche en cours) et à un collègue libre, jamais Hugo ni Margaux, et tu en dis la raison ; un collègue libre peut aussi proposer de prendre une tâche d’un collègue chargé. Dès que tu aurais trois tâches en cours ou plus (le nouveau travail compris) et qu’un collègue est libre (voir « Charge de l’équipe »), tu ne gardes pas tout : dans la même réponse, tu passes à ce collègue celle de tes tâches déjà en cours qui lui va le mieux (outil passer, son identifiant est entre crochets dans « Tes tâches en cours »), avec la raison, et tu le dis. Outil demander_justin : une décision qui lui revient.\n' +
       '- Hugo et Margaux (l’argent, les accès) ne reçoivent de travail en texte libre que de Justin. Une QUESTION fermée n’est pas un travail : « le dossier DOS-… a-t-il payé ? », tu la leur poses toi-même en les citant (@hugo, @margaux), ils te répondent. Quand Justin te demande de poser une question à un collègue, tu la poses toi-même DANS CE FIL, dans ta réponse, en le citant (pas avec l’outil ecrire dans un autre fil) : il te répond ici, et Justin lit sa réponse.\n' +
@@ -300,6 +320,12 @@ module.exports = function agentEquipe(ctx) {
   function signalerArret(id, fil, raison) {
     if (raison === 'arret') dire(fil, nomDe(id) + ' est à l’arrêt : allume-le dans la page Agents.', { cle: 'arret:' + id, parHeure: true });
     else if (raison === 'pause') dire(fil, 'Les agents sont en pause : reprends-les dans la page Agents.', { cle: 'pause', parHeure: true });
+    /* HORS DES HEURES DE TRAVAIL (26 octobre 2026) : le message de Justin n'est pas perdu dans le vide — on lui dit pourquoi personne ne répond, et quand ils reprennent. */
+    else if (raison === 'hors_heures') {
+      let o = null; try { o = typeof agents.ouverture === 'function' ? agents.ouverture(id) : null; } catch (e) { o = null; }
+      dire(fil, nomDe(id) + ' est hors des heures de travail' + (o && o.libelle ? ' : il reprend ' + o.libelle : '') + '. « Ouvrir maintenant » (page Agents, Horaires) le fait travailler tout de suite.', { cle: 'hors_heures:' + id, parHeure: true });
+    }
+    else if (raison === 'horaires_illisibles') dire(fil, 'Les horaires des agents sont illisibles : tous les agents restent à l’arrêt tant que le registre n’est pas réparé.', { cle: 'horaires_illisibles', parHeure: true });
   }
 
   /* ── les outils, exécutés et VALIDÉS ici ── */
@@ -312,6 +338,10 @@ module.exports = function agentEquipe(ctx) {
     if (a.nom === 'ecrire') {
       const fil = str('fil');
       if (!filsDe(id).includes(fil)) return refus('fil');
+      /* ⛔ UNE RÉPONSE, UN MESSAGE (examen du 27 octobre 2026 à 12 h 19, scénario 5) : Victor tranchait dans sa réponse, puis l'outil ecrire redisait la décision
+         DANS LE MÊME FIL (« @lea @camille Tranché : on combine… ») — deux messages pour un seul réveil, que l'examen lit comme un Victor qui se répète. Sa
+         réponse est déjà dans ce fil : un ecrire vers CE fil, après elle, ne s'écrit pas. Vers un AUTRE fil, il reste permis (c'est son rôle). */
+      if (fil === c.fil && c.dejaDit) return refus('deja_dit_ici');
       const t = raccourcir(masquer(str('texte')));
       if (!t) return refus('texte');
       const r = conversations.parler(id, fil, t, { niveau: 'info', prof: c.prof });
@@ -422,13 +452,41 @@ module.exports = function agentEquipe(ctx) {
       const sortie = { repondu: false, actions: [] };
       /* « RAS » à un COLLÈGUE qui ne faisait qu'informer (une décision, un merci) : rien n'est écrit — sinon chaque décision de Victor appelait un « Bien noté » de
          chacun (examen du 24 octobre). À Justin, un « RAS » s'écrit tel quel : une question de lui ne reste jamais sans trace. */
-      if (r.texte && RAS.test(r.texte) && d.de !== 'justin') sortie.ras = true;
-      else if (r.texte) {
-        const dit = conversations.parler(id, fil, raccourcir(masquer(r.texte)), { niveau: 'info', prof });
+      /* « RAS » à une question posée à TOUS (@tous, @équipe) : rien n'est écrit non plus — les collègues qui ont à dire répondent, la question a sa trace. */
+      const aTous = d.de === 'justin' && /(^|[\s,(])@(?:tous|[ée]quipe)\b/i.test(String(d.texte || ''));
+      let texteFinal = r.texte;
+      if (texteFinal && !RAS.test(texteFinal) && conversations.membres(fil).length > 1) {
+        const lus2 = conversations.lire(fil, 50), i0 = d.id ? lus2.findIndex(x => x.id === d.id) : -1;
+        const autres = i0 < 0 ? [] : lus2.slice(i0 + 1).filter(x => x.de !== id && x.de !== 'justin' && x.de !== 'systeme').map(x => String(x.texte || ''));
+        const tic = ticDeGroupe(texteFinal, autres);
+        if (tic) {
+          const suite = messages.map(m => Object.assign({}, m)), fin = suite[suite.length - 1];
+          const relance = 'Ta réponse ne passe pas : ' + tic + '. Réécris-la, sans outil, en apportant ce qui est propre à ton rôle, avec tes mots et une autre ouverture. Si tu n’as rien de propre à ajouter, réponds exactement « RAS ».\n\nTa réponse refusée : « ' + affichable(texteFinal, 600) + ' »';
+          if (fin && fin.role === 'user') fin.content += '\n\n' + relance; else suite.push({ role: 'user', content: relance });
+          let r3 = null;
+          try { r3 = await cerveau.penser(id, system, suite, { reflechir: true }); } catch (err) { r3 = null; }
+          if (r3 && r3.ok && r3.texte && (RAS.test(r3.texte) || !ticDeGroupe(r3.texte, autres))) texteFinal = r3.texte;
+          else if (aTous) texteFinal = 'RAS';   /* à une question posée à tous, un tic qui résiste à la redemande se tait : les autres ont répondu */
+        }
+      }
+      /* ⛔ « RAS » À JUSTIN QUI TE CITE (examen du 27 octobre 2026, 23 h 36, scénario 5 : « @Camille préfère une seule relance au bout de 7 jours. @Victor, tranche. »
+         — Camille répondait « RAS », publié tel quel ; sa position n'était jamais défendue, et Victor tranchait sans elle). Justin qui cite un agent attend sa
+         réponse : UNE redemande, sans outil ; si l'agent persiste, son « RAS » s'écrit comme avant (une question de Justin ne reste jamais sans trace). */
+      if (texteFinal && RAS.test(texteFinal) && d.de === 'justin' && !aTous) {
+        const suite = messages.map(m => Object.assign({}, m)), fin = suite[suite.length - 1];
+        const relance = 'Justin t’a cité directement : il attend TA réponse, pas « RAS ». Si son message t’attribue un avis ou une position, défends-la ou nuance-la en une à trois phrases, avec tes raisons, en t’adressant à ceux qu’il a cités (@ suivi de leur identifiant). Sinon, dis en une phrase ce qui te concerne.';
+        if (fin && fin.role === 'user') fin.content += '\n\n' + relance; else suite.push({ role: 'user', content: relance });
+        let r4 = null;
+        try { r4 = await cerveau.penser(id, system, suite, { reflechir: true }); } catch (err) { r4 = null; }
+        if (r4 && r4.ok && r4.texte && !RAS.test(r4.texte)) texteFinal = r4.texte;
+      }
+      if (texteFinal && RAS.test(texteFinal) && (d.de !== 'justin' || aTous)) sortie.ras = true;
+      else if (texteFinal) {
+        const dit = conversations.parler(id, fil, raccourcir(masquer(crochets(texteFinal))), { niveau: 'info', prof });
         if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
       }
       for (const a of (Array.isArray(r.actions) ? r.actions : []).slice(0, ACTIONS_MAX)) {
-        let x; try { x = await executer(id, a, { fil, d, prof }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
+        let x; try { x = await executer(id, a, { fil, d, prof, dejaDit: sortie.repondu }); } catch (err) { journal(id, 'outil ' + a.nom, 'erreur', 'exception'); x = { ok: false, raison: 'erreur' }; }
         sortie.actions.push({ nom: a.nom, ok: x.ok, raison: x.raison, ici: !!(x.ok && ((a.nom === 'ecrire' && a.entree && a.entree.fil === fil) || (a.nom === 'demander_justin' && fil === id))) });
       }
       /* ⛔ DES OUTILS ET PAS UN MOT À JUSTIN (examen du 24 octobre 2026, scénario 4) : priée de demander à Hugo et de rapporter sa réponse, Camille n'a rien dit
@@ -447,7 +505,7 @@ module.exports = function agentEquipe(ctx) {
         let r2 = null;
         try { r2 = await cerveau.penser(id, systemApres, suite, { reflechir: true }); } catch (err) { r2 = null; }
         if (r2 && r2.ok && r2.texte && !RAS.test(r2.texte)) {
-          const dit = conversations.parler(id, fil, raccourcir(masquer(r2.texte)), { niveau: 'info', prof });
+          const dit = conversations.parler(id, fil, raccourcir(masquer(crochets(r2.texte))), { niveau: 'info', prof });
           if (dit.ok) sortie.repondu = true; else { sortie.saute = dit.raison; refusDit(id, fil, dit.raison); }
         }
       }
@@ -484,3 +542,5 @@ module.exports.PERSO = PERSO;
 module.exports.PROF_MAX = PROF_MAX;
 module.exports.REVEILS_AGENT_MAX = REVEILS_AGENT_MAX;
 module.exports.FORME_DOSSIER = FORME_DOSSIER;
+module.exports.ticDeGroupe = ticDeGroupe;
+module.exports.APPROUVE = APPROUVE;

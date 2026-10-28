@@ -65,7 +65,7 @@ function bac(o) {
     Math, JSON, Number, Array, Object, String, Date, Intl, RegExp, Map, Set, console, Promise, setTimeout, clearTimeout,
     etat: { conv: 'c_ab', forcerBas: false, appelId: null, appelDemarre: false, groupe: { convId: 'c_ab', ouvert: false }, route: { vue: 'messages', conv: 'c_ab', feuille: false, photo: null, appel: null }, declencheurAppel: null },
     avis: t => dit.avis.push(t), mot: t => dit.mot.push(t), montrerRefusFeuille: t => dit.feuille.push(t), erreurInfo: t => dit.info.push(t),
-    pousser: r => dit.pousse.push(r), remplacer: r => dit.pousse.push(r), ouvrirConvId: c => dit.conv.push(c),
+    origineAppelPoser: () => {}, pousser: r => dit.pousse.push(r), remplacer: r => dit.pousse.push(r), ouvrirConvId: c => dit.conv.push(c),
     trouverMessage: id => (id === 'm1' ? { seq: 7 } : null), fichesDemandees: new Map(), rafraichirConv: () => {},
     source: Object.assign({ envoyer: async () => ({}), demarrerAppel: async () => ({ id: 'a1' }), ouvrirDirecte: async () => 'c_x', ecrireCarte: async () => ({ resultat: 'envoyee', conv: 'c_x' }) }, o.source || {}),
   };

@@ -112,7 +112,11 @@ app.set('trust proxy', 1);
 const CHEMINS_GROS_JSON = /^\/api\/monitor\/mail\/(envoyer|brouillon)\/?$/i;
 const jsonCourant = express.json({ limit: '6mb' }); // large : les e-mails peuvent porter un PDF en pièce jointe (base64)
 const jsonGros = express.json({ limit: '20mb' });
-app.use((req, res, next) => CHEMINS_GROS_JSON.test(req.path) ? next() : jsonCourant(req, res, next));
+/* `/api/audience/vue` (publique) lit son propre corps, en texte, 2 Ko au plus (`server/audience.js`) : le plafond de 6 Mo ne doit pas le lire avant elle. */
+const CHEMIN_AUDIENCE = /^\/api\/audience\/vue\/?$/i;
+/* `/api/pauline/releve` (le pont de Pauline) lit AUSSI son propre corps, 2 Mo au plus, et seulement APRÈS avoir vérifié le jeton (`server/pauline.js`) : lire 6 Mo pour un inconnu serait le moyen le moins cher de remplir la mémoire. */
+const CHEMIN_PAULINE = /^\/api\/(?:pauline\/(?:releve|decisions\/resultats)|monitor\/pauline\/decision)\/?$/i;   /* jeton (Mac) ou session de patron vérifiés AVANT la lecture du corps, et SON plafond (27 octobre 2026 : + les décisions) */
+app.use((req, res, next) => (CHEMINS_GROS_JSON.test(req.path) || CHEMIN_AUDIENCE.test(req.path) || CHEMIN_PAULINE.test(req.path)) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
 const ORIGINS = (config.origins || ['https://teamop.fr', 'https://www.teamop.fr']).concat(ESSAI ? [ESSAI_ORIGINE] : []);   // l'origine de test n'existe que dans le serveur de test
@@ -565,6 +569,8 @@ process.on('unhandledRejection', (r) => {
    route publique ; un agent appelle `santeCorps(false)`, mêmes champs, aucune fenêtre touchée. */
 app.get('/health', (req, res) => res.json(santeCorps(true)));
 function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
+  /* LE PONT VERS OP MESSAGES (28 octobre 2026) : DEUX NOMBRES, présents SEULEMENT quand le pont est monté — les minutes d'échec d'affilée (la surveillance crie à 30) et la taille de la file (elle crie à 1 000 sur 2 000). Jamais un texte, un fil, un identifiant. */
+  ...(pontMessages ? { pont: pontMessages.sante() } : {}),
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
      la suite se déciderait à l'aveugle : /api/mail/cles est protégée par une clé de
@@ -2160,9 +2166,13 @@ const MON_GESTES = {
   'op/couper': 'a coupé le stockage d’une entreprise',
   /* l'équipe d'agents (agents.js) : le patron seul allume, éteint, arrête et décide */
   'agents/mode': 'a changé le mode d’un agent', 'agents/pause': 'a posé ou levé la pause des agents',
+  'agents/horaires': 'a réglé les heures de travail des agents', 'agents/horaires/ouvrir': 'a ouvert l’équipe d’agents hors de ses heures', 'agents/horaires/fermer': 'a mis fin à l’ouverture forcée de l’équipe d’agents',
   'agents/validations/decider': 'a décidé d’une demande d’un agent', 'agents/hugo/passer': 'a fait passer Hugo (relecture de Stripe)',
-  'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null,
-  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
+  'conversations/envoyer': 'a écrit dans une conversation avec les agents', 'conversations/lire': null, 'conversations/supprimer': 'a supprimé un message de la messagerie des agents',
+  'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
+  /* Pauline (Harvey, Mac) : un accord qui fait partir un courriel vers un prospect laisse sa trace (relecture de gardien) — la cible est l'identifiant du courriel, jamais son texte */
+  'pauline/decision': 'a accepté, modifié ou refusé un courriel de Pauline',
+  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/camille/arriere': 'a demandé à Camille de reprendre l’arriéré du courrier', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
   'agents/emma/disponibilites': 'a réglé les disponibilités d’Emma', 'agents/emma/proposer': 'a demandé à Emma de proposer des créneaux à un prospect', 'agents/sarah/rediger': 'a demandé à Sarah de rédiger une annonce aux clients',
@@ -4687,6 +4697,7 @@ function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
+let pontMessages = null;     // le pont vers OP MESSAGES (`pont-messages.js`) : `null` = pas monté (rien dans la configuration, ou une configuration refusée) — les agents n'en dépendent jamais
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
 let agentLea = null;         // Léa (`agent-lea.js`) : la réponse commerciale à une inscription ou une demande — `null` = pas montée, elle ne prépare rien
@@ -6204,6 +6215,34 @@ try {
   pieces = require('./pieces').monterPieces(app, { config, DATA_DIR, sauvRefus, quotaOk, monStr });
 } catch (e) {
   console.error('pièces jointes non montées :', e.message);
+}
+/* ══ L'AUDIENCE DU SITE (25 octobre 2026) ══ des compteurs par jour, sans cookie ni identifiant ni adresse IP écrite (`server/audience.js`,
+   conditions de la CNIL écrites en tête). `/api/audience/vue` est public (c'est le site qui l'appelle, `/audience.js`) et n'accepte que
+   les origines de `ORIGINS` ; la Tour lit `/api/monitor/audience` (patron). Un échec de montage n'arrête rien d'autre. */
+let audienceMod = null;
+try {
+  audienceMod = require('./audience')(app, { DATA_DIR, monPatronStrict, origines: ORIGINS });
+} catch (e) {
+  console.error('audience non montée :', e.message);
+}
+/* ══ LE PONT DE PAULINE (25 octobre 2026) ══ l'agente de prospection (Harvey) tourne sur le Mac de Justin ; elle envoie ici un RELEVÉ complet toutes les quinze minutes
+   (`outils/pauline-releve.py`), la Tour le lit (`/api/monitor/pauline`, patron). Fermé sans `config.pauline.jetonSha256` (503). Les données de prospects n'entrent dans aucun journal
+   (`server/pauline.js`, contrat du relevé en tête). Un échec de montage n'arrête rien d'autre. */
+try {
+  /* `pousseNotif` : la notification au téléphone du patron (abonnements de la Tour), pour « un mail de Pauline attend ton accord ». Appelée bien après
+     le démarrage : `subs` et `webpush` sont des déclarations de tête de fichier, initialisées depuis longtemps. */
+  const pousseNotifPauline = async (titre, corps, url) => {
+    const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || '/tour.html#messagerie' });
+    const cibles = Object.values(subs).filter(x => /^teamop-controle/.test(x.teamId || ''));
+    for (const t of cibles) {
+      try { await webpush.sendNotification(t.sub, payload); }
+      catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } }
+    }
+    return cibles.length;
+  };
+  require('./pauline')(app, { config, DATA_DIR, monPatronStrict, pousseNotif: pousseNotifPauline });
+} catch (e) {
+  console.error('pont de Pauline non monté :', e.message);
 }
 /* ══ LA SAUVEGARDE HORS SITE ═══════════════════════════════════════════════════════════════
    Montée ICI parce qu'elle a besoin de `monPatronStrict` pour ses deux routes — une
@@ -10497,8 +10536,14 @@ try {
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
      emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
   try {
-    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif,
+    /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026) : lundi – vendredi, 9 h – 18 h, heure de Paris, fermé les jours fériés, sauf réglage de Justin. Montées DANS l'appel qui monte les
+       agents, sous le même `try` : si le module ne se charge pas, les agents ne se montent pas non plus — jamais des agents ouverts parce que leur garde horaire a manqué. Elles entrent dans
+       `peutAgir` (agents.js), la porte de tout geste d'agent ; l'examen de l'équipe, lui, monte sa propre équipe d'essai SANS elles (il se lance le soir). */
+    agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif, horaires: require('./agents-horaires')({ DATA_DIR }),
       cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
+    /* Ce qui est arrivé hors des heures (courriels, inscriptions) est repris à l'ouverture, le plus ancien d'abord : une vérification par minute. */
+    setTimeout(() => { agentsMod.reprendreDifferes().catch(e => console.error('reprise des agents :', e && e.message)); }, 15000).unref();
+    setInterval(() => { agentsMod.reprendreDifferes().catch(e => console.error('reprise des agents :', e && e.message)); }, 60000).unref();
     console.log('agents : socle chargé');
     /* LA DIRECTION : la charte d'autonomie (ce que chaque geste a le droit de faire seul) et le rapport du jour. Elle ne fait agir personne. */
     directionMod = require('./direction')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod });
@@ -10536,6 +10581,10 @@ try {
       /* Hugo a son module ; les quinze autres (et le fil « Équipe », que Victor tient) passent par la conversation générique. */
       /* La messagerie des agents (`agent-equipe.js`) répond à tout message : le cité, l'agent du fil privé, le meneur du groupe. Si elle n'est pas
          montée, la conversation d'avant reste servie (Hugo par son module, les quinze autres par la conversation générique) — mais seulement pour Justin. */
+      /* LE PONT VERS OP MESSAGES (28 octobre 2026) : chaque message écrit au registre, et chaque suppression, est offert au pont — liaison TARDIVE (il est monté plus bas), et rien ne revient à
+         `conversations.js` : une panne d'OP MESSAGES ne change rien à ce que les agents lisent et écrivent. */
+      surAjout: (m) => { if (pontMessages) pontMessages.surAjout(m); },
+      surRetrait: (x) => { if (pontMessages) pontMessages.surRetrait(x); },
       surMessage: (m) => agentEquipe ? agentEquipe.surMessage(m)
         : (m.de !== 'justin' ? null : (m.fil === 'hugo' ? (agentHugo ? agentHugo.repondre(m.texte) : null) : (agentsConversation ? agentsConversation.repondre(m.fil, m.texte) : null))) });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
@@ -10592,7 +10641,7 @@ try {
       return { domaines: [...dom], adresses: [...adr] };
     };
     const fichierAgents = require('./agents-fichier')(DATA_DIR);
-    /* LA SIGNATURE DES AGENTS (« Léa — Assistante virtuelle — Équipe TeamOP »), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
+    /* LA SIGNATURE DES AGENTS (« Léa — Assistante de TeamOP », et la mention de l'IA dessous), posée par le serveur — jamais celle du Courrier de Justin. Sans elle, les brouillons prennent la signature par défaut. */
     try { signaturesMod = require('./agents-signature')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, fichier: fichierAgents }); }
     catch (e) { signaturesMod = null; console.error('signatures des agents indisponibles :', e.message); }
     try {
@@ -10606,7 +10655,23 @@ try {
     catch (e) { louisMod = null; console.error('Louis indisponible :', e.message); }
     try {
       if (brouillonsMod) agentLea = require('./agent-lea')({ agents: agentsMod, cerveau: cerveauMod, brouillons: brouillonsMod, fichier: fichierAgents,
-        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod });
+        libelleMetier: m => METIERS_LBL[m] || '', metiers: METIERS_OK, conversations: conversationsMod, louis: louisMod,
+        /* LE BALAYAGE (28 octobre 2026, Justin : « sans limite ») : les comptes dont l'adresse est PROUVÉE (même règle que la synchro : `comptes.verifie`) et qui n'ont PAS d'espace — un client qui paie
+           ne reçoit pas un courriel de vente. Léa en prend quelques-uns par passage parmi ceux qu'elle n'a jamais servis (inscrits avant elle, ou écartés trois fois). `null` = on ne sait pas : rien. */
+        comptes: () => {
+          let cm = null; try { cm = comptes; } catch (e) { cm = null; }
+          if (!cm || typeof cm.verifie !== 'function') return null;
+          const pris = new Set(Object.values(espacesReg || {}).map(x => String((x && x.email) || '').trim().toLowerCase()).filter(Boolean));
+          /* ⛔ (gardien, 28 octobre 2026) un client qui PAIE ne reçoit jamais un courriel de vente : ni une fiche née de « Payer » (`ficheDePaiement`), ni une fiche qui porte une
+             formule ou un statut d'abonnement, ni une adresse que la liste Stripe connaît. Stripe configuré mais liste pas encore lue : on ne sait pas, donc RIEN (null). */
+          const sk = !!(config.stripe && config.stripe.secretKey);
+          if (sk && !espStripeCache.data) return null;
+          const stripeBrut = espStripeCache.data ? JSON.stringify(espStripeCache.data).toLowerCase() : '';
+          const paie = c => !!(c.ficheDePaiement || c.plan || c.planStatus || (c.choix && c.choix.source === 'paiement') || (stripeBrut && stripeBrut.includes(c.email.trim().toLowerCase())));
+          return Object.values(clientsData || {}).filter(c => c && typeof c.email === 'string' && cm.verifie(c.email) && !pris.has(c.email.trim().toLowerCase()) && !paie(c))
+            .map(c => ({ email: c.email, entreprise: c.entreprise, depuis: Number(c.inscrit) || 0 }));
+        } });
+      if (agentLea) setInterval(() => { agentLea.balayer().catch(e => console.error('léa (balayage) :', e.message)); }, 30 * 60000).unref();
     } catch (e) { agentLea = null; console.error('Léa indisponible :', e.message); }
     /* CHLOÉ : la proposition sur mesure quand le prospect répond à Léa. Les faits qu'elle reçoit sur le prospect sont des VALEURS DE LISTE (métier, nombre, formule) + le nom d'entreprise
        s'il a la forme d'un nom : jamais l'adresse, le téléphone, le prénom ni le nom de la personne. */
@@ -10634,11 +10699,29 @@ try {
         /* les outils propres à Hugo, Margaux, Emma et Sarah (fin d'abonnement, mise en demeure, créneaux, annonce) : liaison TARDIVE — leurs modules sont montés plus bas, et un
            agent non monté n'a simplement pas d'outil. Chacun ne vaut que d'un message de Justin (le module le vérifie, pas le prompt). */
         outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; }, get margaux() { return agentMargaux && agentMargaux.outilsEquipe; },
-          get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; } },
+          get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; },
+          /* Victor planifie les réunions que Justin lui demande (`reunions.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
+          get victor() { return reunionsMod && reunionsMod.outilsVictor; },
+          /* Camille reprend l'arriéré du courrier que Justin lui demande (`agent-camille.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
+          get camille() { return agentCamille && agentCamille.outilsEquipe; } },
         arbitrer: (e, c) => plateformeMod ? plateformeMod.arbitrer(e, c) : { ok: false, raison: 'indisponible' },     // l'outil « arbitrer » de Victor (`agents-plateforme.js`)
         memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
     } catch (e) { agentEquipe = null; console.error('messagerie des agents indisponible :', e.message); }
+    /* LE PONT VERS OP MESSAGES (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place »). Fermé sans `opmsgPont` dans la configuration du VPS ({ secret: <64 hexadécimaux>, url?: http://127.0.0.1:<port> },
+       jamais dans le dépôt) : rien ne part, rien n'est lu. ⛔ Sous son propre `try` : le pont ne retient pas les agents — si son montage échoue, la messagerie de la Tour reste exactement celle d'avant. */
+    try {
+      const pc = config.opmsgPont && typeof config.opmsgPont === 'object' && !Array.isArray(config.opmsgPont) ? config.opmsgPont : null;
+      if (pc) {
+        pontMessages = require('./pont-messages')({ DATA_DIR, conversations: conversationsMod, agents: agentsMod, groupes: require('./conversations').GROUPES, fichier: fichierAgents,
+          url: typeof pc.url === 'string' && pc.url ? pc.url : msgInstanceUrl('beta'), secret: pc.secret,
+          /* les bancs règlent le rythme par la configuration (jamais en production : 3 s pour lire, une demi-seconde pour envoyer) */
+          pasLireMs: Number.isInteger(pc.pasLireMs) && pc.pasLireMs >= 20 ? pc.pasLireMs : undefined, pasEnvoiMs: Number.isInteger(pc.pasEnvoiMs) && pc.pasEnvoiMs >= 20 ? pc.pasEnvoiMs : undefined,
+          attenteMaxMs: Number.isInteger(pc.attenteMaxMs) ? pc.attenteMaxMs : undefined });
+        if (pontMessages) { pontMessages.demarrer(); console.log('pont : la messagerie des agents est recopiée dans OP MESSAGES'); }
+        else console.error('⛔ pont vers OP MESSAGES : configuration refusée (opmsgPont.secret : 64 hexadécimaux ; opmsgPont.url : la boucle locale) — la messagerie de la Tour reste seule');
+      }
+    } catch (e) { pontMessages = null; console.error('pont vers OP MESSAGES indisponible :', e.message); }
     /* LES RÉUNIONS : lundi 9 h les objectifs, vendredi 18 h le bilan (heure de Paris), leçons et objectifs rangés puis injectés dans les consignes des agents.
        Sous son propre `try` : sans elles, les agents parlent comme avant. La vérification est minutée ICI (une fois par minute, plus une première cinq secondes après le
        démarrage : un serveur qui revient dans le créneau de rattrapage rattrape) — `reunions.js` n'arme aucune minuterie lui-même. */
@@ -10838,6 +10921,27 @@ try {
         if ((st.douteux || []).length) return { sur: false, doute: true };
         return { sur: true, formule: formulePayee(e, surs) };
       } });
+    /* L'ARRIÉRÉ DU COURRIER (28 octobre 2026, Justin : « il faut qu'elle puisse voir les anciens ») : Camille reprend les courriels des `jours` derniers jours que personne n'a pris ni
+       répondus. Lancé en tâche de fond (la reprise peut durer : un appel à Claude par courriel) ; le bilan arrive dans le fil Camille de la Messagerie. Toute réponse attend la validation. */
+    app.post('/api/monitor/agents/camille/arriere', monPatronStrict, (req, res) => {
+      if (!agentCamille || typeof agentCamille.reprendreArriere !== 'function') return res.status(503).json({ error: 'Camille n’est pas montée' });
+      const j = parseInt((req.body || {}).jours, 10);
+      const jours = Number.isInteger(j) && j >= 1 && j <= 3650 ? j : 3650;
+      const p = agentsMod && typeof agentsMod.peutAgir === 'function' ? agentsMod.peutAgir('camille') : { ok: false, raison: 'indisponible' };
+      if (!p.ok) return res.status(409).json({ error: 'Camille ne peut pas agir maintenant (' + String(p.raison || '').replace(/_/g, ' ') + ')' });
+      if (typeof agentCamille.repriseEnCours === 'function' && agentCamille.repriseEnCours()) return res.status(409).json({ error: 'La reprise de l’arriéré est déjà en cours' });
+      Promise.resolve().then(() => agentCamille.reprendreArriere(jours)).catch(e => console.error('camille (arriéré) :', e.message));
+      res.json({ ok: true, jours });
+    });
+    /* (28 octobre 2026, Justin : « plus autonomes, toutes leurs tâches à 100 % ») Camille RATISSE seule l'arriéré toutes les 30 minutes, sur ses heures de travail : rien n'attend
+       qu'on le lui demande. Silencieuse quand il n'y a rien ; la moitié des plafonds du jour au plus (le courrier du jour garde l'autre). */
+    setInterval(() => {
+      try {
+        if (!agentCamille || typeof agentCamille.reprendreArriere !== 'function' || (agentCamille.repriseEnCours && agentCamille.repriseEnCours())) return;
+        if (!(agentsMod && agentsMod.peutAgir('camille').ok)) return;
+        agentCamille.reprendreArriere(3650, { silencieux: true }).catch(e => console.error('camille (arriéré) :', e.message));
+      } catch (e) {}
+    }, 30 * 60000).unref();
     app.post('/api/monitor/agents/hugo/passer', monPatronStrict, async (req, res) => {
       try { res.json(Object.assign({ ok: true }, await agentHugo.passer())); }
       catch (e) { console.error('hugo :', e.message); res.status(500).json({ error: 'Passage non traité' }); }
@@ -11982,6 +12086,7 @@ function arretPropre(signal) {
      de 5 s sortait, « socle fermé » n'était jamais écrit et le WAL restait sur le disque — à
      chaque déploiement. Relâcher d'abord fait aboutir `close()` en quelques millisecondes. */
   try { if (opSocle && opSocle.relacher) console.log('flux relâchés :', opSocle.relacher()); } catch (e) {}
+  try { if (audienceMod) audienceMod.ecrire(); } catch (e) {}   // la dernière minute de comptage de l'audience (sinon perdue à chaque déploiement)
   const fermerSocle = () => {
     try { if (opSocle && opSocle.fermer) console.log('socle fermé :', JSON.stringify(opSocle.fermer())); }
     catch (e) { console.error('socle non fermé :', e.code || 'erreur'); }

@@ -414,7 +414,7 @@ async function attendre(S, fn, arg, delai) { try { await S.page.waitForFunction(
 async function attendreConv(S, nom) { return attendre(S, n => document.documentElement.dataset.conv === '1' && document.getElementById('conv-messages').getAttribute('aria-busy') === 'false' && (!n || document.getElementById('conv-titre').textContent.includes(n)), nom); }
 async function attendreListe(S) { return attendre(S, () => !document.documentElement.dataset.conv); }
 const parLargeur = S => S.pf.w >= 1100 ? 'maitre-detail' : S.pf.w >= 900 ? 'remplace' : 'recouvre';
-async function ouvrirConv(S, id, nom) { await geste(S, '#liste-conv [data-ouvrir="' + id + '"]'); const ok = await attendreConv(S, nom); await dormir(500); return ok; }
+async function ouvrirConv(S, id, nom) { await geste(S, '#liste-conv [data-ouvrir="' + id + '"], #epingles [data-ouvrir="' + id + '"]'); const ok = await attendreConv(S, nom); await dormir(500); return ok; }
 /* fermer la conversation avec le geste de l'appareil : le retour de la barre (jusqu'à 1 099 px), Échap au-delà */
 async function fermerConv(S) {
   if (S.pf.w < 1100) await geste(S, '#conv-retour'); else { await S.page.keyboard.press('Escape'); S.gestes++; }
@@ -443,7 +443,7 @@ async function etapeListe(S) {
   }));
   v(nom + ' : l\'appareil est en ' + (S.dark ? 'nuit' : 'jour') + ', la page l\'a suivi, sans bouton', u.dark === S.dark && !u.bouton);
   v(nom + ' : color-scheme déclaré (meta « ' + u.meta + ' » + feuille « ' + u.cs + ' »)', u.meta === 'light dark' && /light dark|normal/.test(u.cs) && u.cs !== 'normal');
-  v(nom + ' : 6 conversations, chacune est un BOUTON (clavier, doigt, lecteur d\'écran) ; 4 épinglés qui en sont aussi', u.nbConv === 6 && u.pins === 4 && u.h1 === 'Messages', u);
+  v(nom + ' : 6 conversations, chacune est un BOUTON (clavier, doigt, lecteur d\'écran) — 4 épinglées en haut (UNE seule fois : décision du 26 octobre 2026) et 2 dans la liste', u.nbConv === 2 && u.pins === 4 && u.h1 === 'Messages', u);
   const nav = S.pf.w < 900 ? (u.tabs && !u.side) : (!u.tabs && u.side);
   v(nom + ' : navigation = ' + (S.pf.w < 900 ? 'barre d\'onglets seule' : 'barre latérale seule') + ' (jamais les deux)', nav, u);
   v(nom + ' : aucune conversation ouverte au départ' + (S.pf.w >= 1100 ? ' — le détail dit « Choisis une conversation »' : ''), u.conv === 'none' && (S.pf.w >= 1100 ? u.vide !== 'none' : u.vide === 'none'), u);
@@ -456,11 +456,19 @@ async function etapeListe(S) {
   await contrasteTout(S, nom + ' · liste', { minimum: 12 });
 }
 
+/* ⛔ LA CONVERSATION EN TÊTE, telle que la SOURCE la dit (26 octobre 2026) : « Chantier Les Tilleuls » est ÉPINGLÉE, donc elle n'est plus une ligne de la liste mais l'épingle de la rangée du haut (UNE seule fois à l'écran : ligne
+   OU épingle). Son aperçu et son heure se lisent à la source ; la ligne, quand elle existe (une non-épinglée), donne l'heure écrite. */
+const teteSource = (S) => S.page.evaluate(async () => {
+  const c = (await window.OPMSG_SOURCE.lister())[0], ligne = document.querySelector('#liste-conv [data-ouvrir="' + c.id + '"]');
+  return { nom: c.nom, apercu: c.apercu, heure: ligne ? ligne.querySelector('.conv-heure').textContent : (Date.now() - c.t < 60000 ? 'maintenant' : '?'),
+    unSeulEndroit: document.querySelectorAll('[data-ouvrir="' + c.id + '"]').length === 1 };
+});
+
 /* ══ ÉTAPE 2 — LA CONVERSATION ════════════════════════════════════════════════════════════════════════════════════════════════ */
 async function etapeConversation(S) {
   const nom = S.nom, mode = parLargeur(S);
   titre(nom + ' — ouvrir la conversation de groupe (' + mode + ')');
-  const av = await S.page.evaluate(() => ({ points: [...document.querySelectorAll('#liste-conv [data-ouvrir]')].filter(b => b.querySelector('.point')).map(b => b.dataset.ouvrir) }));
+  const av = await S.page.evaluate(() => ({ points: [...document.querySelectorAll('#liste-conv [data-ouvrir], #epingles [data-ouvrir]')].filter(b => b.querySelector('.point')).map(b => b.dataset.ouvrir) }));
   v(nom + ' : (population) avant d\'ouvrir, la liste porte ' + av.points.length + ' conversations non lues : ' + av.points.join(', '), av.points.sort().join() === 'v1,v2');
   const h0 = await hist(S);
   const ouverte = await ouvrirConv(S, 'v1', 'Équipe dépôt');
@@ -468,7 +476,7 @@ async function etapeConversation(S) {
   const h1 = await hist(S);
   v(nom + ' : ouvrir POSE une entrée d\'historique (n 0 → ' + h1.n + ', ' + h0.len + ' → ' + h1.len + ' entrées) et l\'adresse la nomme (' + h1.hash + ')', h0.n === 0 && h1.n === 1 && h1.len === h0.len + 1 && h1.hash === '#messages/v1' && h1.conv === '1', { h0, h1 });
   const g = await S.page.evaluate(() => { const r = id => { const b = document.getElementById(id).getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height), r: Math.round(b.right), b: Math.round(b.bottom) }; };
-    const row = document.querySelector('#liste-conv [data-ouvrir="v1"]'), c = r('conv-ecran'), l = r('contenu');
+    const row = document.querySelector('#liste-conv [data-ouvrir="v1"], #epingles [data-ouvrir="v1"]'), c = r('conv-ecran'), l = r('contenu');
     return { conv: c, liste: l, tabs: getComputedStyle(document.getElementById('tabs')).display, retour: getComputedStyle(document.getElementById('conv-retour')).display, retourR: r('conv-retour'),
       inertListe: document.getElementById('contenu').inert, inertApp: document.getElementById('app').inert, sel: row.getAttribute('aria-current'), vide: getComputedStyle(document.getElementById('conv-vide')).display,
       couvre: (() => { const b = row.getBoundingClientRect(); const e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return e && !!e.closest('.conv-ecran'); })(), W: innerWidth, H: innerHeight }; });
@@ -486,7 +494,7 @@ async function etapeConversation(S) {
     return { titre: document.querySelector('.conv-titre-nom > span').textContent.trim(), badge: { t: document.getElementById('conv-badge').textContent, vis: !document.getElementById('conv-badge').hidden, label: document.getElementById('conv-retour').getAttribute('aria-label') },
       nbMsg: q('#conv-messages .msg').length, noms: q('.msg-nom').map(e => e.textContent), datage: q('.datage').map(e => e.textContent), recues: q('.bulle.recue').map(e => e.textContent), envoyees: q('.bulle.envoyee').map(e => e.textContent),
       photos: q('.msg .photo').length, vocaux: q('.vocal').map(e => e.querySelector('.vocal-duree').textContent), nbBarres: q('.vocal .onde i').length, statut: q('.statut').map(e => e.textContent),
-      saisie: (q('.saisie-ind')[0] || { getAttribute: () => null }).getAttribute('aria-label'), pointV1: !!document.querySelector('#liste-conv [data-ouvrir="v1"] .point'), bas: fil.scrollHeight - fil.scrollTop - fil.clientHeight, sh: fil.scrollHeight, ch: fil.clientHeight,
+      saisie: (q('.saisie-ind')[0] || { getAttribute: () => null }).getAttribute('aria-label'), pointV1: !!document.querySelector('#liste-conv [data-ouvrir="v1"] .point, #epingles [data-ouvrir="v1"] .point'), bas: fil.scrollHeight - fil.scrollTop - fil.clientHeight, sh: fil.scrollHeight, ch: fil.clientHeight,
       compoVis: !document.getElementById('compo').hidden, ferme: !document.getElementById('compo-ferme').hidden, focus: document.activeElement && (document.activeElement.id || document.activeElement.tagName) }; });
   v(nom + ' : l\'en-tête dit le groupe et son chevron (« ' + c.titre + ' »)', c.titre === 'Équipe dépôt');
   const attendu = av.points.filter(id => id !== 'v1').length;
@@ -494,7 +502,7 @@ async function etapeConversation(S) {
   v(nom + ' : ouvrir la conversation la marque LUE — le point de « Équipe dépôt » a disparu de la liste', !c.pointV1);
   v(nom + ' : 6 messages, le datage « Aujourd\'hui 14:02 » (horloge posée à 14 h 10), le nom d\'auteur seulement au PREMIER message d\'une série (Inès, Mathis — le vocal de Mathis n\'en porte pas)', c.nbMsg === 6 && c.datage.join() === 'Aujourd\'hui 14:02' && c.noms.join() === 'Inès,Mathis', c);
   v(nom + ' : bulles reçues (2) et envoyées (2), 2 photos, un vocal de 0:08 à 10 barres', c.recues.length === 2 && c.envoyees.length === 2 && c.photos === 2 && c.vocaux.join() === '0:08' && c.nbBarres === 10, c);
-  v(nom + ' : « Lu 14:06 » sous le DERNIER message envoyé (une seule fois), et l\'indicateur de saisie dit qui écrit', c.statut.join() === 'Lu 14:06' && /Mathis est en train d'écrire/.test(c.saisie), c);
+  v(nom + ' : « Lu 14:06 » sous le DERNIER message envoyé (une seule fois), et l\'indicateur de saisie dit qui écrit', c.statut.join() === 'Lu 14:06' && /^Mathis écrit…$/.test(c.saisie), c);      // en groupe, l'indicateur DIT le prénom (« Mathis écrit… », décision du 26 octobre 2026) ; à deux : « … est en train d'écrire »
   v(nom + ' : la conversation est défilée en bas à l\'ouverture (reste ' + c.bas.toFixed(1) + ' px sur ' + c.sh + ' de contenu, fenêtre de ' + c.ch + ' px)', c.bas < 2, c);
   v(nom + ' : le champ de saisie est là, le micro aussi, la flèche d\'envoi n\'est pas montrée tant qu\'il n\'y a rien à envoyer', c.compoVis && !c.ferme && await S.page.evaluate(() => document.getElementById('envoyer').hidden && !document.getElementById('compo-micro').hidden));
   await mesurerLargeur(S, nom + ' · conversation'); await mesurerTextes(S, nom + ' · conversation'); await mesurerCibles(S, nom + ' · conversation'); await mesurerChamps(S, nom + ' · conversation');
@@ -525,7 +533,7 @@ async function etapeToutLire(S) {
     const ok = await ouvrirConv(S, id, NOMS[id]); portes++;
     const r = await S.page.evaluate(async i => { const c = await window.OPMSG_SOURCE.ouvrir(i); const q = s => [...document.querySelectorAll(s)];
       return { attendu: c.messages.length, obtenu: q('#conv-messages .msg').length + q('#conv-messages .systeme').length, type: c.type, noms: q('.msg-nom').length, compoVis: !document.getElementById('compo').hidden, ferme: !document.getElementById('compo-ferme').hidden, annonces: c.annoncesSeulement && c.admins.indexOf('moi') < 0,
-        point: !!document.querySelector('#liste-conv [data-ouvrir="' + i + '"] .point'), titre: document.querySelector('.conv-titre-nom > span').textContent.trim(), bas: (f => f.scrollHeight - f.scrollTop - f.clientHeight)(document.getElementById('conv-fil')) }; }, id);
+        point: !!document.querySelector('#liste-conv [data-ouvrir="' + i + '"] .point, #epingles [data-ouvrir="' + i + '"] .point'), titre: document.querySelector('.conv-titre-nom > span').textContent.trim(), bas: (f => f.scrollHeight - f.scrollTop - f.clientHeight)(document.getElementById('conv-fil')) }; }, id);
     const bon = ok && r.attendu === r.obtenu && r.titre === NOMS[id] && !r.point && (r.type === 'direct' ? r.noms === 0 : true) && (r.annonces ? (!r.compoVis && r.ferme) : (r.compoVis && !r.ferme)) && r.bas < 2;
     if (bon) lus++;
     v(nom + ' : « ' + NOMS[id] + ' » (' + r.type + ') — ' + r.obtenu + ' messages comme la source, lue, défilée en bas' + (r.type === 'direct' ? ', aucun nom d\'auteur (une personne en face)' : '') + (r.annonces ? ', champ remplacé par « Seuls les admins peuvent écrire » (groupe d\'annonces, je ne suis pas admin)' : ''), bon, r);
@@ -554,13 +562,13 @@ async function etapeSaisie(S) {
   if (bureau) { await S.page.keyboard.press('Enter'); S.gestes++; } else await geste(S, '#envoyer');
   await attendre(S, n => document.querySelectorAll('#conv-messages .msg').length > n, n0);
   await dormir(200);
-  let s = await S.page.evaluate(() => { const m = [...document.querySelectorAll('#conv-messages .msg')].pop(); const fil = document.getElementById('conv-fil'); const li = document.querySelector('#liste-conv li:first-child');
+  let s = await S.page.evaluate(() => { const m = [...document.querySelectorAll('#conv-messages .msg')].pop(); const fil = document.getElementById('conv-fil');
     return { n: document.querySelectorAll('#conv-messages .msg').length, texte: m.querySelector('.bulle').textContent, sens: m.className, statut: (m.querySelector('.statut') || {}).textContent, champ: document.getElementById('saisie').value, hChamp: document.getElementById('saisie').offsetHeight,
-      envoyerCache: document.getElementById('envoyer').hidden, bas: fil.scrollHeight - fil.scrollTop - fil.clientHeight,
-      tete: { nom: li.querySelector('.conv-nom').textContent, apercu: li.querySelector('.conv-apercu').textContent, heure: li.querySelector('.conv-heure').textContent } }; });
+      envoyerCache: document.getElementById('envoyer').hidden, bas: fil.scrollHeight - fil.scrollTop - fil.clientHeight }; });
+  s.tete = await teteSource(S);
   v(nom + ' : ' + (bureau ? 'Entrée' : 'la flèche') + ' envoie — la bulle paraît en bas (envoyée, « Envoyé »), le champ se vide et retrouve sa hauteur d\'une ligne, la flèche repart', s.n === n0 + 1 && s.texte === 'Bonjour à tous' && /de-moi/.test(s.sens) && s.statut === 'Envoyé' && s.champ === '' && s.hChamp === e0.h1 && s.envoyerCache, { s, h1: e0.h1 });
   v(nom + ' : la conversation défile en bas à l\'envoi (reste ' + s.bas.toFixed(1) + ' px)', s.bas < 2, s);
-  v(nom + ' : la liste REMONTE la conversation en tête avec le bon aperçu et l\'heure — « ' + s.tete.nom + ' · ' + s.tete.apercu + ' · ' + s.tete.heure + ' »', s.tete.nom === 'Chantier Les Tilleuls' && s.tete.apercu === 'Vous : Bonjour à tous' && s.tete.heure === 'maintenant', s);
+  v(nom + ' : la liste REMONTE la conversation en tête avec le bon aperçu et l\'heure — « ' + s.tete.nom + ' · ' + s.tete.apercu + ' · ' + s.tete.heure + ' »', s.tete.nom === 'Chantier Les Tilleuls' && s.tete.apercu === 'Vous : Bonjour à tous' && s.tete.heure === 'maintenant' && s.tete.unSeulEndroit, s);
   await dormir(1800);
   const lu = await txt(S, '#conv-messages .msg:last-of-type .statut');
   v(nom + ' : 1,5 s plus tard « Envoyé » devient « ' + lu + ' » (la source simule la lecture, dans l\'aperçu seulement)', /^Lu \d\d:\d\d$/.test(lu || ''), lu);
@@ -592,7 +600,8 @@ async function etapeSaisie(S) {
   for (const p of PIEGES) {
     await envoyerTexte(S, p);
     const r = await S.page.evaluate(() => { const m = [...document.querySelectorAll('#conv-messages .msg')].pop(), b = m.querySelector('.bulle'); const li = document.querySelector('#liste-conv li:first-child .conv-apercu');
-      return { t: b.textContent, enfants: b.children.length, injectes: document.querySelectorAll('#conv-messages img, #conv-messages script, #conv-messages svg, #liste-conv img, #liste-conv script, #liste-conv b').length, apercu: li.textContent, pwned: window.__pwned || null, aperEnfants: li.children.length }; });
+      return { t: b.textContent, enfants: b.children.length, injectes: document.querySelectorAll('#conv-messages img, #conv-messages script, #conv-messages svg, #liste-conv img, #liste-conv script, #liste-conv b, #epingles img, #epingles script, #epingles svg, #epingles b').length, apercu: null, pwned: window.__pwned || null, aperEnfants: li ? li.children.length : 0 }; });
+    r.apercu = (await teteSource(S)).apercu;      // l'aperçu se lit à la source : la conversation ouverte est épinglée (rangée du haut, sans aperçu à l'écran) ; la liste, elle, ne porte aucun élément injecté (compté ci-dessus)
     if (r.t === p && r.enfants === 0 && r.injectes === 0 && r.apercu === 'Vous : ' + p && !r.pwned && r.aperEnfants === 0) intacts++;
     else v(nom + ' : HTML piégé « ' + p + ' »', false, r);
   }
@@ -761,7 +770,8 @@ async function etapeVocal(S) {
   await geste(S, '#enreg-envoyer');
   await attendre(S, n => document.querySelectorAll('#conv-messages .msg').length > n, n0, 6000); await dormir(400);
   const r2 = await S.page.evaluate(() => { const m = [...document.querySelectorAll('#conv-messages .msg')].pop(), b = m.querySelector('.vocal'); return { vocal: !!b, moi: b && b.classList.contains('envoyee'), duree: b && b.querySelector('.vocal-duree').textContent, barres: b ? b.querySelectorAll('.onde i').length : 0, enreg: !document.getElementById('enreg').hidden, compo: !document.getElementById('compo').hidden,
-    pistes: window.__micro.pistes.map(t => t.readyState), apercu: document.querySelector('#liste-conv li:first-child .conv-apercu').textContent, nom: document.querySelector('#liste-conv li:first-child .conv-nom').textContent }; });
+    pistes: window.__micro.pistes.map(t => t.readyState) }; });
+  Object.assign(r2, { apercu: (await teteSource(S)).apercu, nom: (await teteSource(S)).nom });      // la conversation en tête se lit à la source (elle peut être épinglée : rangée du haut, sans aperçu)
   v(nom + ' : la flèche envoie le vocal (« ' + r2.duree + ' », ' + r2.barres + ' barres), le micro est RELÂCHÉ (piste ' + r2.pistes.join() + '), le champ revient ; la liste dit « ' + r2.apercu + ' » et remonte la conversation',
     n0 + 1 === await nMsg() && r2.vocal && r2.moi && /^0:\d\d$/.test(r2.duree) && r2.duree !== '0:00' && r2.barres === 10 && !r2.enreg && r2.compo && r2.pistes.join() === 'ended' && /^Vous : Message vocal · 0:\d\d$/.test(r2.apercu) && r2.nom === 'Mathis Lambert', r2);
   /* le réécouter : un vrai Audio — et la bulle ne bouge pas sous le doigt (la place de la pastille est gardée sur mes vocaux) */
@@ -856,11 +866,11 @@ async function etapeRetour(S) {
   if (mode === 'maitre-detail') {
     await ouvrirConv(S, 'v1', 'Équipe dépôt');
     const a = await hist(S);
-    await geste(S, '#liste-conv [data-ouvrir="v2"]'); await attendreConv(S, 'Camille Roux'); await dormir(400);
-    const b = await S.page.evaluate(() => ({ titre: document.querySelector('.conv-titre-nom > span').textContent.trim(), sel: [...document.querySelectorAll('#liste-conv [aria-current=true]')].map(e => e.dataset.ouvrir), n: history.state.n, len: history.length, ancienne: document.querySelector('#liste-conv [data-ouvrir="v1"]').hasAttribute('aria-current') }));
+    await geste(S, '#liste-conv [data-ouvrir="v2"], #epingles [data-ouvrir="v2"]'); await attendreConv(S, 'Camille Roux'); await dormir(400);
+    const b = await S.page.evaluate(() => ({ titre: document.querySelector('.conv-titre-nom > span').textContent.trim(), sel: [...document.querySelectorAll('#liste-conv [aria-current=true], #epingles [aria-current=true]')].map(e => e.dataset.ouvrir), n: history.state.n, len: history.length, ancienne: document.querySelector('#liste-conv [data-ouvrir="v1"], #epingles [data-ouvrir="v1"]').hasAttribute('aria-current') }));
     v(nom + ' : au bureau, cliquer une autre ligne CHANGE de conversation sans empiler d\'historique (n ' + a.n + ' → ' + b.n + ', ' + a.len + ' → ' + b.len + ' entrées), la surbrillance suit (' + b.sel.join() + ')', b.titre === 'Camille Roux' && b.n === a.n && b.len === a.len && b.sel.join() === 'v2' && !b.ancienne, { a, b });
     await S.page.keyboard.press('Escape'); await attendreListe(S); await dormir(400);
-    const d = await S.page.evaluate(() => ({ vide: getComputedStyle(document.getElementById('conv-vide')).display, conv: getComputedStyle(document.getElementById('conv-ecran')).display, txt: document.getElementById('conv-vide').textContent.trim(), sel: document.querySelectorAll('#liste-conv [aria-current=true]').length, n: history.state.n }));
+    const d = await S.page.evaluate(() => ({ vide: getComputedStyle(document.getElementById('conv-vide')).display, conv: getComputedStyle(document.getElementById('conv-ecran')).display, txt: document.getElementById('conv-vide').textContent.trim(), sel: document.querySelectorAll('#liste-conv [aria-current=true], #epingles [aria-current=true]').length, n: history.state.n }));
     v(nom + ' : Échap ferme la conversation et le détail redit « ' + d.txt + ' » (aucune ligne en surbrillance)', d.vide !== 'none' && d.conv === 'none' && d.sel === 0 && d.n === 0, d);
   }
 }
@@ -1121,7 +1131,7 @@ async function etapeDefilement(b, base) {
     await S.page.evaluate(() => window.scrollTo(0, 99999)); await dormir(300);
     const y0 = await S.page.evaluate(() => ({ y: Math.round(scrollY), max: document.documentElement.scrollHeight - innerHeight }));
     v(S.nom + ' : (population) la liste défile (' + y0.max + ' px à parcourir) et on est descendu à ' + y0.y + ' px', y0.max > 40 && y0.y > 40, y0);
-    await geste(S, '#liste-conv [data-ouvrir="v6"]'); await attendreConv(S, 'Hugo Perrin'); await dormir(600);
+    await geste(S, '#liste-conv [data-ouvrir="v6"], #epingles [data-ouvrir="v6"]'); await attendreConv(S, 'Hugo Perrin'); await dormir(600);
     const y1 = await S.page.evaluate(() => Math.round(scrollY));
     v(S.nom + ' : la conversation ouverte laisse la liste où elle est (' + y1 + ' px)', Math.abs(y1 - y0.y) <= 1, { y0, y1 });
     /* ce que fait iOS quand le clavier s'ouvre sur le champ : la FENÊTRE est ramenée en haut pendant que la conversation est ouverte. Sans ce geste, la
@@ -1199,7 +1209,7 @@ async function corrVocalChangeConv(b, base) {
   await geste(S, '#compo-micro'); await attendre(S, () => !document.getElementById('enreg').hidden, null, 4000); await dormir(500);
   const vivant0 = await pistesVivantes(S);
   v(S.nom + ' : (population) la prise de son tourne chez « Équipe dépôt » (barre d\'enregistrement visible, ' + vivant0 + ' piste vivante)', vivant0 === 1 && await S.page.evaluate(() => !document.getElementById('enreg').hidden));
-  await geste(S, '#liste-conv [data-ouvrir="v3"]'); await attendreConv(S, 'Chantier Les Tilleuls'); await dormir(900);
+  await geste(S, '#liste-conv [data-ouvrir="v3"], #epingles [data-ouvrir="v3"]'); await attendreConv(S, 'Chantier Les Tilleuls'); await dormir(900);
   const r = await S.page.evaluate(() => ({ enreg: !document.getElementById('enreg').hidden, compo: !document.getElementById('compo').hidden, micro: !document.getElementById('compo-micro').hidden, titre: document.querySelector('.conv-titre-nom > span').textContent.trim(), pistes: window.__micro.pistes.map(t => t.readyState) }));
   v(S.nom + ' : changer de conversation ANNULE la prise (barre disparue, champ rendu, micro relâché : ' + r.pistes.join() + ')', !r.enreg && r.compo && r.micro && r.pistes.every(x => x === 'ended') && r.titre === 'Chantier Les Tilleuls', r);
   const apres = { v1: await compteMsg(S, 'v1'), v3: await compteMsg(S, 'v3') };
@@ -1207,7 +1217,7 @@ async function corrVocalChangeConv(b, base) {
   /* et la lecture d'un vocal s'arrête aussi quand on change de conversation */
   await ouvrirConv(S, 'v4', 'Mathis Lambert'); await geste(S, '.vocal [data-lire]'); await dormir(400);
   const lit = await S.page.evaluate(() => !!document.querySelector('[data-lecture]'));
-  await geste(S, '#liste-conv [data-ouvrir="v2"]'); await attendreConv(S, 'Camille Roux'); await dormir(500);
+  await geste(S, '#liste-conv [data-ouvrir="v2"], #epingles [data-ouvrir="v2"]'); await attendreConv(S, 'Camille Roux'); await dormir(500);
   const l2 = await S.page.evaluate(() => ({ lecture: !!document.querySelector('[data-lecture]'), audios: window.__audios.filter(a => !a.paused).length }));
   v(S.nom + ' : (population) un vocal se « lisait » (' + lit + ') ; changer de conversation l\'arrête (plus de bouton en pause, ' + l2.audios + ' audio qui joue)', lit && !l2.lecture && l2.audios === 0, l2);
   v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
@@ -1356,7 +1366,7 @@ async function corrMessageRecu(b, base, pf) {
   const haut0 = await S.page.evaluate(() => { const f = document.getElementById('conv-fil'); return { top: f.scrollTop, defile: f.scrollHeight - f.clientHeight }; });
   const n0 = await nb(S, '#conv-messages .msg');
   await S.page.evaluate(() => window.OPMSG_SOURCE.simulerRecu('v1', { texte: 'Message neuf du dépôt' }, 'c3')); await dormir(900);
-  const r = await S.page.evaluate(async () => ({ annonce: document.getElementById('conv-annonce').textContent, n: document.querySelectorAll('#conv-messages .msg').length, top: document.getElementById('conv-fil').scrollTop, nonLu: (await window.OPMSG_SOURCE.lister()).find(c => c.id === 'v1').nonLu, point: !!document.querySelector('#liste-conv [data-ouvrir="v1"] .point') }));
+  const r = await S.page.evaluate(async () => ({ annonce: document.getElementById('conv-annonce').textContent, n: document.querySelectorAll('#conv-messages .msg').length, top: document.getElementById('conv-fil').scrollTop, nonLu: (await window.OPMSG_SOURCE.lister()).find(c => c.id === 'v1').nonLu, point: !!document.querySelector('#liste-conv [data-ouvrir="v1"] .point, #epingles [data-ouvrir="v1"] .point') }));
   v(S.nom + ' : (population) le fil défile (' + Math.round(haut0.defile) + ' px à parcourir), on est remonté en haut (' + Math.round(haut0.top) + ' px)', haut0.defile > 100 && haut0.top < 2, haut0);
   v(S.nom + ' : le message arrive dans le fil (' + n0 + ' → ' + r.n + ') et est ANNONCÉ au lecteur d\'écran : « ' + r.annonce + ' »', r.n === n0 + 1 && /Inès : Message neuf du dépôt/.test(r.annonce), r);
   v(S.nom + ' : la conversation affichée est LUE — plus de non-lu dans la source (' + r.nonLu + '), plus de point dans la liste (' + r.point + ')', !r.nonLu && !r.point, r);
@@ -1364,7 +1374,7 @@ async function corrMessageRecu(b, base, pf) {
   /* une conversation PAS ouverte : le point apparaît, rien n'est annoncé */
   await S.page.evaluate(() => { document.getElementById('conv-annonce').textContent = ''; });
   await S.page.evaluate(() => window.OPMSG_SOURCE.simulerRecu('v3', { texte: 'Pour un autre fil' }, 'c6')); await dormir(500);
-  const a = await S.page.evaluate(async () => ({ annonce: document.getElementById('conv-annonce').textContent, v3: (await window.OPMSG_SOURCE.lister()).find(c => c.id === 'v3').nonLu, point: !!document.querySelector('#liste-conv [data-ouvrir="v3"] .point'), badge: document.getElementById('conv-badge').hidden ? null : document.getElementById('conv-badge').textContent }));
+  const a = await S.page.evaluate(async () => ({ annonce: document.getElementById('conv-annonce').textContent, v3: (await window.OPMSG_SOURCE.lister()).find(c => c.id === 'v3').nonLu, point: !!document.querySelector('#liste-conv [data-ouvrir="v3"] .point, #epingles [data-ouvrir="v3"] .point'), badge: document.getElementById('conv-badge').hidden ? null : document.getElementById('conv-badge').textContent }));
   v(S.nom + ' : un message pour une AUTRE conversation reste non lu (point dans la liste ' + a.point + '), n\'est pas annoncé (« ' + a.annonce + ' »), et le badge du retour le compte (' + a.badge + ')', a.v3 && a.point && a.annonce === '' && +a.badge >= 2, a);
   /* un message envoyé par moi n'est pas « annoncé » comme reçu */
   await S.page.evaluate(() => window.OPMSG_SOURCE.envoyer('v1', { texte: 'de moi' })); await dormir(500);
@@ -1613,7 +1623,7 @@ async function etapeAppelsListe(S) {
   v(nom + ' : chaque ligne dit son type par une icône (vidéo : caméra ; entrant / manqué : flèche entrante ; sortant : flèche sortante), son heure, et porte DEUX boutons (rappeler, détails)',
     L.lignes.every((l, i) => l.rappeler && l.info && /^\d\d:\d\d$|^maintenant$|^Hier$|^[A-ZÉ][a-zéû]+\.?$|^\d{1,2} [a-zéû.]+$/.test(l.heure) && l.icone === (L.src[i].type === 'video' ? '#i-video' : L.src[i].sens === 'sortant' ? '#i-sortant' : '#i-entrant')), L.lignes);
   v(nom + ' : le libellé nomme le type, le sens, le nombre de manqués d\'affilée et la durée (« ' + L.lignes.map(l => l.kind).join(' | ') + ' »)',
-    L.lignes.some(l => l.kind === 'Appel vidéo entrant · 9 min') && L.lignes.some(l => l.kind === 'Appel manqué') && L.lignes.some(l => l.kind === 'Appel manqué (2)') && L.lignes.some(l => /^Appel de groupe vidéo entrant · 3 participants · 42 min$/.test(l.kind)) && L.lignes.some(l => l.kind === 'Appel sortant · 3 min'), L.lignes);
+    L.lignes.some(l => l.kind === 'Appel vidéo entrant · 9 min') && L.lignes.some(l => l.kind === 'Appel manqué') && L.lignes.some(l => l.kind === '2 appels manqués') && L.lignes.some(l => /^Appel de groupe vidéo entrant · 3 participants · 42 min$/.test(l.kind)) && L.lignes.some(l => l.kind === 'Appel sortant · 3 min'), L.lignes);
   v(nom + ' : titre « ' + L.h1 + ' », l\'onglet Appels est le courant, la coquille « bientôt » n\'existe plus, « Tous » est choisi (curseur au premier cran)', L.h1 === 'Appels' && L.courant === 'appels' && L.pasCoquille && L.seg.map(b => b.f + ':' + b.p).join() === 'tous:true,manques:false' && Math.abs(L.knobX - L.seg[0].x) <= 3 && /^Appels/.test(L.titre), L);
   await mesurerLargeur(S, nom + ' · Appels'); await mesurerTextes(S, nom + ' · Appels'); await mesurerCibles(S, nom + ' · Appels');
   await contraste(S, '#liste-appels .appel-nom-ligne.manque', { nom: 'nom d\'un appel MANQUÉ (17 px, --rouge-txt sur la carte)' });

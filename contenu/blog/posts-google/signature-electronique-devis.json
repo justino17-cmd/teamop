@@ -1,0 +1,21 @@
+{
+  "slug": "signature-electronique-devis",
+  "prepare": "2026-10-26",
+  "publie": null,
+  "ressource": null,
+  "post": {
+    "languageCode": "fr",
+    "topicType": "STANDARD",
+    "summary": "Signature électronique de devis : valeur, niveaux et marche à suivre\n\nSigner un devis en ligne : valeur juridique en France, niveaux de signature, preuves à conserver, et comment OP GESTION traite l'accord client sur un devis.\n\nÀ retenir : Une signature électronique ne peut pas être rejetée au seul motif qu’elle est électronique ; seule la signature qualifiée est explicitement équivalente à la signature manuscrite dans toute l’Union européenne.\n\nLe détail est dans l’article complet : bouton « En savoir plus ».",
+    "callToAction": {
+      "actionType": "LEARN_MORE",
+      "url": "https://teamop.fr/blog/signature-electronique-devis.html?de=google"
+    },
+    "media": [
+      {
+        "mediaFormat": "PHOTO",
+        "sourceUrl": "https://teamop.fr/blog/img/signature-devis-couverture-google.jpg"
+      }
+    ]
+  }
+}
