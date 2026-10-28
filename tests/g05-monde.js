@@ -22,7 +22,7 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 const fonction = nom => bloc('function ' + nom + '(');
 
 /* comptable (28 octobre 2026) : la synchro lit `docEmis` (facture émise = jamais réécrite), `factureTauxPropre`, `factureEmiseSignale` et le réglage `factAutoActif` */
-const FONCTIONS = ['factureDeIntervention', 'intTvaFacture', 'intMontantHT', 'docEmis', 'factureTauxPropre', 'factureEmiseSignale', 'factAutoActif', 'syncFactureFromIntervention', 'factureAutoIntervention', 'factureMailPayee',
+const FONCTIONS = ['factureDeIntervention', 'intTvaFacture', 'intMontantHT', 'docEmis', 'factureTauxPropre', 'factureEmiseEcart', 'factureEmiseSignale', 'factAutoActif', 'syncFactureFromIntervention', 'factureAutoIntervention', 'factureMailPayee',
   'intRegistreEncaisse', 'factureAFacturer', 'interAFacturer', 'regAdd', 'regDeLInter', 'regModeDe', 'docTot', 'intRecaleAuJourFait',
   'intRecaleDefaire', 'intHisto', 'intTechIds', 'intStatutPermis', 'saveRapport', 'assistFinish', 'assistCloture', 'asKeepSigs', 'intSetStatutDo',
   'intEffToggle', 'intTerminerPrevu', 'intGenererDoc', 'intInfOf', 'intEffectuer', 'formRapport', 'intRepasseNonTerminee', 'intInfestationConstat',

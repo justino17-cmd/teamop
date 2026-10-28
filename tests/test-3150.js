@@ -22,7 +22,7 @@ const { vrai, v, fin } = cadre('test-3150');
 /* ── de quoi monter les fonctions de suppression, en plus de la chaîne intervention → facture ── */
 const AJOUTS = ['delFacture', 'delItem', 'factLignesRegistre', 'factRegistreRetirer', 'facturesAGarder', 'razAppliquer', 'resetProdWipe',
   'factReglagesModal', 'factReglagesSave', 'delIntDo', 'delSerieDo', 'intArchive', 'serieSuivants', 'serieAutresActifs',
-  'clientLiens', 'clientLiensTxt', 'liensPluriel', 'demoComptaRetire', 'demoTeleRetire'];
+  'clientLiens', 'clientLiensTxt', 'liensPluriel', 'demoComptaRetire', 'demoTeleRetire', 'clientsAGarder'];
 const CODE = {}; AJOUTS.forEach(n => { CODE[n] = fonction(n); });
 const RAZ_LIGNES = (() => { const i = SRC.indexOf('const RAZ_LIGNES=['); const j = SRC.indexOf('];', i); return i < 0 ? '' : SRC.slice(i, j + 2); })();
 const COLL_GRP = ligne('const COLL_GRP=');
@@ -185,7 +185,7 @@ const journalDe = W => W.exec('__logs');
     W.delFacture('fe');
     vrai(`population : la facture ${nom} était bien là, avec sa ligne de registre`, true);
     v(`⛔ [${nom}] la facture est TOUJOURS là, avec sa ligne de registre`, [W.db.factures.length, W.db.registres.length], [1, 1]);
-    vrai(`[${nom}] message : le numéro, « émise », « ne se supprime pas », la numérotation continue, l’avoir`, W.__toasts.length === 1 && /FAC-2026-009/.test(W.__toasts[0]) && /est émise/.test(W.__toasts[0]) && /ne se supprime pas/.test(W.__toasts[0]) && /numérotation/.test(W.__toasts[0]) && /avoir/.test(W.__toasts[0]), W.__toasts);
+    vrai(`[${nom}] message : le numéro, « émise », « ne se supprime pas », l’avoir qui n’existe pas encore — et AUCUNE promesse (« bientôt », « numérotation continue »)`, W.__toasts.length === 1 && /FAC-2026-009/.test(W.__toasts[0]) && /est émise/.test(W.__toasts[0]) && /ne se supprime pas/.test(W.__toasts[0]) && /ne sait pas encore faire d.avoir/.test(W.__toasts[0]) && !/bientôt|numérotation|continue/.test(W.__toasts[0]), W.__toasts);
     vrai(`[${nom}] aucune confirmation demandée, aucune suppression au journal`, W.__confirms.length === 0 && journalDe(W).length === 0, [W.__confirms, journalDe(W)]);
   }
   { const W = monde2({ confirme: false }); W.db.factures.push(FACT({ id: 'fb', statut: 'brouillon' }));
@@ -238,8 +238,8 @@ const journalDe = W => W.exec('__logs');
   { const W = monde2(); W.db.clients = [{ id: 'cl1' }]; W.db.devis = [{ id: 'd1' }];
     W.db.factures.push(FACT({ id: 'fa', num: 'FAC-2026-001', statut: 'payee' }), FACT({ id: 'fd', num: 'FAC-2026-004', statut: 'brouillon' }));
     W.resetProdWipe();
-    v('⛔ mise en production : la facture émise reste, le brouillon part, le reste est effacé', [W.db.factures.map(f => f.id), W.db.clients.length, W.db.devis.length], [['fa'], 0, 0]);
-    vrai('… le journal le dit', journalDe(W).some(l => l[0] === 'Mise en production' && /1 facture émise conservée/.test(l[1])), journalDe(W)); }
+    v('⛔ mise en production : la facture émise reste, le brouillon part, le reste est effacé — sauf le client de la facture conservée', [W.db.factures.map(f => f.id), W.db.clients.length, W.db.devis.length], [['fa'], 1, 0]);
+    vrai('… le journal le dit (la facture ET son client)', journalDe(W).some(l => l[0] === 'Mise en production' && /1 facture émise conservée \(et 1 client rattaché\)/.test(l[1])), journalDe(W)); }
   vrai('… et la fenêtre de confirmation dit que les factures émises sont conservées', /factures déjà émises<\/b>/.test(fonction('resetProduction')), '');
   /* f. ce qui est laissé, et pourquoi */
   { const W = monde2(); W.db.interventions.push(interv({ id: 'id', demo: 'compta' }), interv({ id: 'ir' }));
@@ -308,6 +308,151 @@ const journalDe = W => W.exec('__logs');
     vrai('population : la vue Comptabilité est trouvée', compta.length > 200, compta.length);
     vrai('le réglage vit dans l’en-tête de Comptabilité (⚙ Facturation auto)', /setHeader\('Comptabilité'[^\n]*factReglagesModal\(\)/.test(compta), '');
     vrai('… et PAS dans views.parametres ni views.factures (autre branche : on n’y touche pas)', !/factReglagesModal|factAuto/.test(bloc('views.parametres=function(')) && !/factReglagesModal|factAuto/.test(bloc('views.factures=function(')), ''); }
+
+  /* ═════════════════════════════ 4. RELECTURE ADVERSE (28 octobre 2026, deux relecteurs) ═════════════════════════════
+     Chaque cas ci-dessous a d'abord été REJOUÉ sur le code d'avant la correction : il tombait. */
+  console.log('\n── 3150 · 4. la relecture adverse ──');
+  const monde3 = o => { const W = monde2(o); W.exec(`
+    var __timers=[]; setTimeout=function(f){ __timers.push(f); };
+    var __ecran={textContent:''}; __els.toast=__ecran;
+    function toast(m){ __toasts.push(String(m)); __ecran.textContent=String(m).replace(/^\\s*(⚠️|⚠)\\uFE0F?\\s*/u,''); }`); return W; };
+  const apres = W => W.exec('(function(){ var t=__timers.splice(0); t.forEach(function(f){ f(); }); return t.length; })()');
+  const ecran = W => W.exec('__ecran.textContent');
+  const formulaire = (i, extra) => ({ preventDefault() {}, target: { __data: Object.assign({ titre: i.titre, clientId: i.clientId, date: i.date, heure: i.heure || '09:00', duree: '60',
+    statut: i.statut, montant: String(i.montant == null ? '' : i.montant), moyenPaiement: i.moyenPaiement || '', adresse: '' }, extra || {}) } });
+  const arrondi = n => Math.round(n * 100) / 100;
+
+  /* 4.1 — l'avis ne s'efface pas sous le toast de l'enregistrement */
+  { const W = monde3(); const it = interv({ id: 'i1', montant: 100, statut: 'planifiee', moyenPaiement: 'C) Espèces' }); W.db.interventions.push(it);
+    W.saveIntervention(formulaire(it, { statut: 'terminee' }), 'i1'); await attendre(); apres(W);
+    const f = W.db.factures[0];
+    vrai('population : la facture est payée à 100 €, aucun avis jusque-là', W.db.factures.length === 1 && f.statut === 'payee' && f.montantInt === 100 && !/déjà émise/.test(ecran(W)), [f.statut, ecran(W)]);
+    W.saveIntervention(formulaire(W.db.interventions[0], { statut: 'terminee', montant: '120' }), 'i1');
+    vrai('juste après l’enregistrement (même geste) l’écran dit encore « Mise à jour »', ecran(W) === 'Mise à jour', ecran(W));
+    const nb = apres(W);
+    vrai('⛔ … et à la fin du geste l’avis est REPOSÉ : numéro, les deux prix, « déjà émise »', nb >= 1 && /FAC-2026-001/.test(ecran(W)) && /100\.00 €/.test(ecran(W)) && /120\.00 €/.test(ecran(W)) && /déjà émise/.test(ecran(W)), [nb, ecran(W)]);
+    v('… et la facture n’a pas bougé', [f.montantInt, f.lignes[0].pu, f.statut], [100, 83.33, 'payee']); }
+  { /* la re-clôture par le menu de statut : « Terminée · … » écrase aussi l'avis */
+    const W = monde3(); const it = interv({ id: 'i1', montant: 100, statut: 'planifiee', moyenPaiement: '' }); W.db.interventions.push(it);
+    W.syncFactureFromIntervention(it); W.exec('db.interventions[0].statut="terminee"; db.interventions[0].aFacturer=true;'); W.syncFactureFromIntervention(W.db.interventions[0], { cloture: true });
+    vrai('population : la facture est « envoyée » à 100 €', W.db.factures[0].statut === 'envoyee', W.db.factures[0].statut);
+    W.exec('db.interventions[0].statut="encours"; db.interventions[0].montant=130;'); W.__toasts.length = 0; apres(W);
+    W.intSetStatutDo('i1', 'terminee'); apres(W);
+    vrai('⛔ re-clôture par le menu de statut : l’écran finit sur l’avis, pas sur « Terminée »', /déjà émise/.test(ecran(W)) && /100\.00 €/.test(ecran(W)) && /130\.00 €/.test(ecran(W)), ecran(W)); }
+  { /* l'écran a déjà l'avis (pas d'autre toast) : on ne le repose pas une seconde fois */
+    const W = monde3(); const it = interv({ id: 'i1', montant: 125, moyenPaiement: '', statut: 'terminee', aFacturer: true }); W.db.interventions.push(it);
+    W.db.factures.push(FACT({ statut: 'envoyee', tva: 10, montantInt: 100, lignes: [{ designation: 'D', qte: 1, pu: 90.91 }] }));
+    W.syncFactureFromIntervention(it); apres(W);
+    v('sans autre toast : un seul avis, pas de doublon', W.__toasts.length, 1); }
+
+  /* 4.2 — le moyen de paiement d'une facture payée est écrit sur son PDF : il ne change pas */
+  { const W = monde3(); const it = interv({ id: 'i1', montant: 100, statut: 'terminee', moyenPaiement: 'C) Espèces' }); W.db.interventions.push(it);
+    W.syncFactureFromIntervention(it, { cloture: true });
+    const f = W.db.factures[0]; const avant = [f.moyenPaiement, f.notes];
+    vrai('population : payée en « Espèces »', f.statut === 'payee' && /Espèces/.test(f.moyenPaiement), avant);
+    W.db.interventions[0].moyenPaiement = 'D) Chèque'; W.syncFactureFromIntervention(W.db.interventions[0], { cloture: true });
+    v('⛔ l’intervention passe à « Chèque » : la facture payée garde « Espèces » (et sa note)', [f.moyenPaiement, f.notes], avant); }
+  { /* une envoyée qui devient payée reçoit le moyen À CE MOMENT-LÀ (c'est une transition légitime) */
+    const W = monde3(); const it = interv({ id: 'i1', montant: 100, statut: 'terminee', moyenPaiement: '', aFacturer: true }); W.db.interventions.push(it);
+    W.syncFactureFromIntervention(it, { cloture: true }); const f = W.db.factures[0];
+    W.db.interventions[0].aFacturer = false; W.db.interventions[0].moyenPaiement = 'C) Espèces'; W.syncFactureFromIntervention(W.db.interventions[0], { cloture: true });
+    v('envoyée → payée, prix inchangé : elle prend le moyen d’Espèces au passage', [f.statut, /Espèces/.test(f.moyenPaiement || '')], ['payee', true]); }
+
+  /* 4.3 — plus de fausse alerte sur une facture d'avant (sans montantInt) : l'arrondi du HT */
+  { let fausses = 0, joues = 0;
+    for (const tva of [20, 10]) for (let c = 500; c <= 60000; c += 37) {
+      const mnt = c / 100, W = monde3(); W.db.factTva = tva;
+      const it = interv({ id: 'i1', montant: mnt, moyenPaiement: '', statut: 'terminee', aFacturer: true }); W.db.interventions.push(it);
+      const f = FACT({ statut: 'envoyee', tva, lignes: [{ designation: 'D', qte: 1, pu: W.intMontantHT(mnt, tva) }] }); delete f.montantInt; W.db.factures.push(f);
+      W.syncFactureFromIntervention(it); joues++; if (W.__toasts.length) fausses++; }
+    vrai('population : plus de 1 500 prix joués (20 % et 10 %), tous sur une facture émise d’avant `montantInt`', joues > 1500, joues);
+    v('⛔ aucune fausse alerte « le prix a changé » quand le prix n’a PAS changé', fausses, 0); }
+  { const W = monde3(); W.db.factTva = 20; const it = interv({ id: 'i1', montant: 0.15, moyenPaiement: '', statut: 'terminee', aFacturer: true }); W.db.interventions.push(it);
+    const f = FACT({ statut: 'envoyee', tva: 20, lignes: [{ designation: 'D', qte: 1, pu: 0.13 }] }); delete f.montantInt; W.db.factures.push(f);
+    W.syncFactureFromIntervention(it); v('le cas rejoué (0,15 € à 20 %, HT arrondi à 0,13 €) : pas d’alerte', W.__toasts.length, 0);
+    W.db.interventions[0].montant = 0.30; W.syncFactureFromIntervention(W.db.interventions[0]);
+    vrai('… mais un vrai changement (0,15 → 0,30 €) est toujours dit', W.__toasts.length === 1 && /déjà émise/.test(W.__toasts[0]), W.__toasts); }
+
+  /* 4.4 — un écart de prix : la facture n'est pas déclarée payée, le registre ne la contredit pas */
+  { const W = monde3(); const it = interv({ id: 'i1', montant: 120, moyenPaiement: '', statut: 'terminee', aFacturer: true }); W.db.interventions.push(it);
+    W.syncFactureFromIntervention(it, { cloture: true }); const f = W.db.factures[0];
+    vrai('population : envoyée à 120 €', f.statut === 'envoyee' && f.montantInt === 120, [f.statut, f.montantInt]);
+    const i0 = W.db.interventions[0]; i0.statut = 'encours'; i0.montant = 144; i0.aFacturer = false; i0.moyenPaiement = 'C) Espèces'; i0.statut = 'terminee';
+    W.syncFactureFromIntervention(i0, { cloture: true }); await attendre();
+    v('⛔ prix changé à 144 € + moyen de paiement : la facture reste « envoyée » à 120 €, sans date de paiement ni courriel', [f.statut, f.datePaiement || null, f.mailEnvoye || null, W.__mails.length, f.montantInt], ['envoyee', null, null, 0, 120]);
+    const l = W.db.registres.filter(x => x.interId === 'i1');
+    vrai('… l’argent réellement pris (144 €) est au registre, SANS être relié à une facture de 120 €', l.length === 1 && l[0].montant === 144 && !l[0].factureId, l);
+    vrai('… et l’avis a été donné', /déjà émise/.test(ecran(W)) || W.__toasts.some(t => /déjà émise/.test(t)), W.__toasts); }
+  { /* payée 100 €, rouverte, prix 150, re-terminée : le registre dit ce que la facture dit */
+    const W = monde3(); const it = interv({ id: 'i1', montant: 100, statut: 'terminee', moyenPaiement: 'C) Espèces' }); W.db.interventions.push(it);
+    W.syncFactureFromIntervention(it, { cloture: true }); await attendre(); const f = W.db.factures[0];
+    const ligne = () => W.db.registres.filter(x => x.interId === 'i1');
+    vrai('population : payée 100 €, UNE ligne de 100 € reliée à la facture', f.statut === 'payee' && ligne().length === 1 && ligne()[0].montant === 100 && ligne()[0].factureId === f.id, ligne());
+    const i0 = W.db.interventions[0]; i0.statut = 'encours'; i0.montant = 150; i0.statut = 'terminee';
+    W.syncFactureFromIntervention(i0, { cloture: true });
+    v('⛔ re-clôture à 150 € : la ligne du registre reste à 100 € comme la facture (une seule ligne, toujours reliée)', [ligne().length, ligne()[0].montant, ligne()[0].factureId === f.id, f.statut, f.montantInt], [1, 100, true, 'payee', 100]); }
+  { /* le chemin sans écart n'a pas bougé : envoyée à 100 €, payée sur place à 100 € → payée, reliée, un courriel */
+    const W = monde3(); const it = interv({ id: 'i1', montant: 100, moyenPaiement: '', statut: 'terminee', aFacturer: true }); W.db.interventions.push(it);
+    W.syncFactureFromIntervention(it, { cloture: true });
+    const i0 = W.db.interventions[0]; i0.aFacturer = false; i0.moyenPaiement = 'C) Espèces'; W.syncFactureFromIntervention(i0, { cloture: true }); await attendre();
+    const f = W.db.factures[0], l = W.db.registres.filter(x => x.interId === 'i1');
+    v('sans écart : envoyée → payée, ligne reliée, un courriel', [f.statut, l.length, l[0] && l[0].factureId === f.id, W.__mails.length], ['payee', 1, true, 1]); }
+
+  /* 4.5 — la synchro : une facture émise ne se perd pas et ne redevient pas brouillon */
+  const decoupe = h => { const d = BRUT.indexOf(h); if (d < 0) throw new Error('introuvable : ' + h);
+    const suite = /\n(?=(?:function |const |let |var |class |async function |\/\* |views\.|document\.|window\.|try\{))/g; suite.lastIndex = d + h.length;
+    const m = suite.exec(BRUT); let bout = BRUT.slice(d, m ? m.index : Math.min(BRUT.length, d + 80000));
+    for (;;) { const k = Math.max(bout.lastIndexOf('}'), bout.lastIndexOf(';')); if (k < 0) break; const t = bout.slice(0, k + 1); try { new Function(t); return t; } catch (e) { bout = bout.slice(0, k); } }
+    throw new Error('fin introuvable : ' + h); };
+  const FUS = new Function(['const COLLS_HORS_FUSION=', 'function collsFusion(d){', 'const COLLS_DICT=', 'function dictFusion(prio,autre){', 'function recEmpreinte(r){', 'const stockEmpreinte=', 'const MS_MAX=',
+    'function msElaguer(ms,st,now){', 'function boxFusionFine(gagnante,perdante){', 'function tombesElaguer(t,now){', 'function tombesUnion(a,b){', 'function numMaxUnion(a,b){', 'function docEmis(d){',
+    'function fusionnerBases(local,remote,prioriteLocale){'].map(decoupe).join('\n') + '\nreturn fusionnerBases;')();
+  const copie = o => JSON.parse(JSON.stringify(o));
+  const ids = b => (b.factures || []).map(f => f.id + ':' + f.statut);
+  for (const prio of [true, false]) {
+    { /* S6 — A supprime son brouillon, B l'a envoyé : la tombe (plus récente) ne l'efface pas */
+      const A = { factures: [], _tombes: { factures: { f1: 300 } } }, B = { factures: [{ id: 'f1', num: 'FAC-1', statut: 'envoyee', mailEnvoye: true, _m: 200 }], _tombes: {} };
+      v(`⛔ [prio ${prio}] brouillon supprimé sur A (tombe 300), envoyé sur B (_m 200) : la facture ENVOYÉE reste`, ids(FUS(copie(A), copie(B), prio)), ['f1:envoyee']);
+      const B2 = copie(B); B2.factures[0].statut = 'brouillon'; delete B2.factures[0].mailEnvoye;
+      v(`[prio ${prio}] contre-épreuve : un BROUILLON supprimé reste supprimé (la tombe sert toujours)`, ids(FUS(copie(A), B2, prio)), []);
+      const B3 = copie(B); B3.factures[0]._m = 400;
+      v(`[prio ${prio}] une émise plus récente que la tombe : elle reste, comme avant`, ids(FUS(copie(A), B3, prio)), ['f1:envoyee']); }
+    { /* S3 — A envoie (_m 200), B retouche le brouillon plus tard (_m 300) : l'envoi gagne */
+      const A = { factures: [{ id: 'f1', num: 'FAC-1', statut: 'envoyee', mailEnvoye: true, _m: 200 }], _tombes: {} };
+      const B = { factures: [{ id: 'f1', num: 'FAC-1', statut: 'brouillon', _m: 300, lignes: [{ pu: 125 }] }], _tombes: {} };
+      const r = FUS(copie(A), copie(B), prio).factures[0];
+      v(`⛔ [prio ${prio}] envoyée (_m 200) contre brouillon retouché plus tard (_m 300) : elle reste envoyée, avec son envoi`, [r.statut, r.mailEnvoye === true], ['envoyee', true]);
+      const r2 = FUS(copie(B), copie(A), prio).factures[0];
+      v(`[prio ${prio}] … dans l’autre sens aussi`, r2.statut, 'envoyee');
+      const C = { factures: [{ id: 'f1', statut: 'brouillon', _m: 100 }], _tombes: {} }, D = { factures: [{ id: 'f1', statut: 'brouillon', _m: 300, lignes: [{ pu: 9 }] }], _tombes: {} };
+      v(`[prio ${prio}] contre-épreuve : deux brouillons, le plus récent gagne`, FUS(copie(C), copie(D), prio).factures[0]._m, 300);
+      const E = { factures: [{ id: 'f1', statut: 'envoyee', _m: 100 }], _tombes: {} }, F = { factures: [{ id: 'f1', statut: 'payee', _m: 300 }], _tombes: {} };
+      v(`[prio ${prio}] contre-épreuve : deux émises, le plus récent gagne (envoyée → payée)`, FUS(copie(E), copie(F), prio).factures[0].statut, 'payee'); }
+  }
+  vrai('⛔ population : ces cas passent par la VRAIE fusionnerBases, avec docEmis dans sa portée', FUS.toString().length > 0 && /typeof docEmis==='function'/.test(fonction('fusionnerBases')), '');
+
+  /* 4.6 — la remise à zéro et la mise en production gardent aussi l'ACHETEUR des factures conservées */
+  { const W = monde2(); W.exec('_razChoix={clients:true, vente:true};');
+    W.db.clients = [{ id: 'cl1', nom: 'Boulangerie Dupont' }, { id: 'cl2', nom: 'Sans facture' }, { id: 'cl3', nom: 'Brouillon seul' }];
+    W.db.factures.push(FACT({ id: 'fa', statut: 'payee', clientId: 'cl1' }), FACT({ id: 'fb', num: 'FAC-2026-002', statut: 'brouillon', clientId: 'cl3' }));
+    const ligneCl = W.exec('RAZ_LIGNES').find(l => l.k === 'clients');
+    v('l’écran compte ce qui partira vraiment (3 clients − 1 conservé)', ligneCl.n(), 2);
+    W.razAppliquer();
+    v('⛔ « clients » + « factures » : le client de la facture ÉMISE reste, les autres partent', W.db.clients.map(c => c.id), ['cl1']);
+    vrai('… le journal le dit', journalDe(W).some(l => l[0] === 'Remise à zéro' && /clients — 1 conservé/.test(l[1])), journalDe(W)); }
+  { const W = monde2(); W.exec('_razChoix={clients:true, vente:false};');
+    W.db.clients = [{ id: 'cl1' }, { id: 'cl2' }]; W.db.factures.push(FACT({ id: 'fb', statut: 'brouillon', clientId: 'cl2' }));
+    W.razAppliquer(); v('« clients » seul : les factures restant TOUTES, leurs clients aussi', W.db.clients.map(c => c.id), ['cl2']); }
+  { const W = monde2(); W.exec('_razChoix={clients:true, vente:true};'); W.db.clients = [{ id: 'cl1' }, { id: 'cl2' }];
+    W.razAppliquer(); v('contre-épreuve : aucune facture conservée → aucun client conservé', W.db.clients.length, 0); }
+  vrai('… et les deux écrans le disent (la ligne de la remise à zéro, la fenêtre de la mise en production)', /Les clients dont une facture est CONSERVÉE restent/.test(BRUT.slice(BRUT.indexOf("const RAZ_LIGNES=["), BRUT.indexOf("let _razChoix"))) && /sauf ceux d.{1,2}une facture émise conservée/.test(fonction('resetProduction')), '');
+
+  /* 4.7 — l'écran du réglage ne promet pas un bouton qui n'existe pas ; aucun écran n'affirme « numérotation continue » ni « bientôt » */
+  { const W = monde2(); delete W.db.factAuto; W.factReglagesModal(); const h = W.exec('__html');
+    vrai('⛔ l’écran dit que sans l’envoi automatique le client ne reçoit rien tout seul, et qu’un bouton d’envoi d’une facture payée n’existe pas encore', /le client ne reçoit rien tout seul/.test(h) && /Aperçu/.test(h) && /n.existe pas encore/.test(h), '');
+    vrai('… et il ne dit plus « tant qu’elle n’est pas envoyée »', !/tant qu.elle n.est pas envoyée/.test(h), ''); }
+  vrai('⛔ aucun texte d’écran ne promet « bientôt » pour l’avoir ni n’affirme « numérotation … continue »',
+    !/bientôt dans OP GESTION/.test(SRC) && !/numérotation[^.]{0,40}(doit rester )?continue/i.test(fonction('delFacture') + fonction('resetProduction') + fonction('factureEmiseSignale')) && !/leur numérotation doit rester continue/.test(BRUT.slice(BRUT.indexOf('const RAZ_LIGNES=['), BRUT.indexOf('let _razChoix'))), '');
 
   fin();
 })().catch(e => { console.error(e); process.exit(2); });
