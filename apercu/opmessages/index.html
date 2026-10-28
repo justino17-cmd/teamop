@@ -307,6 +307,10 @@ body > .sr-seul { top: 0; left: 0; }
 .conv-heure { margin-left: auto; font-size: 15px; color: var(--sub-meta); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .chev { width: 7px; height: 12px; flex: none; fill: none; stroke: var(--faint); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; align-self: center; }
 .conv-apercu { font-size: 15px; line-height: 20px; color: var(--sub-meta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+/* la FONCTION sous le nom d'un contact (28 octobre 2026, le patron : « le nom de l'agent et les fonctions, qui gère quoi ») : une ligne, coupée à la fin ; l'aperçu passe alors sur UNE ligne
+   pour que la hauteur de la ligne ne change pas (22 + 17 + 20 ≈ 22 + 40) */
+.conv-role { display: block; font-size: 13px; line-height: 17px; color: var(--sub-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-corps:has(.conv-role) .conv-apercu { -webkit-line-clamp: 1; }
 .conv-neuve { animation: entree .5s cubic-bezier(.32,.72,0,1) both; }
 .vide { padding: 22px 16px; text-align: center; font-size: 15px; color: var(--sub-meta); }
 @keyframes entree { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
@@ -786,6 +790,7 @@ html:not([data-vue="messages"]) .conv-ecran { display: none; }
 .conv-titre-nom { max-width: 100%; display: flex; align-items: center; gap: 3px; font-size: 12px; line-height: 16px; }
 .conv-titre-nom > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .conv-titre-nom .chev { width: 7px; height: 11px; stroke: var(--sub); }
+.conv-titre-role { display: block; max-width: 100%; font-size: 11px; line-height: 14px; color: var(--sub-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .conv-fil {
   flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--faint) transparent;
@@ -3205,6 +3210,7 @@ a.menu-action { text-decoration: none; }
       : '<button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
         '<span class="conv-point">' + (c.nonLu ? '<i class="point' + (muette ? ' muet' : '') + '"></i><span class="sr-seul">Non lu</span>' : '') + '</span>') + avatar(c) +
       '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span>' + (muette ? '<span class="conv-sourdine" role="img" aria-label="En sourdine">' + icone('i-sourdine') + '</span>' : '') + '<span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
+      (c.sousTitre ? '<span class="conv-role">' + esc(c.sousTitre) + '</span>' : '') +
       '<span class="conv-apercu" dir="auto">' + (autreCote(c) ? '<span class="conv-etiquette cote-' + coteDe(c) + '">' + NOM_COTE[coteDe(c)] + '</span>' : '') + (c.archive && !etat.listeArchives ? '<span class="conv-etiquette">Archivée</span>' : '') + esc(c.apercu) + '</span></span></button></li>';
   }
   /* ⛔ LES INVITATIONS (7 octobre 2026) : les messages de personnes qui ne sont pas dans mes contacts ne se mêlent pas à mes conversations — une ligne « Invitations » en tête de
@@ -3806,7 +3812,7 @@ a.menu-action { text-decoration: none; }
   function rendreEntete(c) {
     const th = c.theme || { fond: 'aucun', bulle: 'defaut' };
     $('conv-ecran').dataset.fond = th.fond; $('conv-ecran').dataset.bulle = th.bulle;      // le thème de CETTE conversation (à moi seul)
-    $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(nomConv(c)) + '</span>' + CHEVRON + '</span>';
+    $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(nomConv(c)) + '</span>' + CHEVRON + '</span>' + (c.sousTitre ? '<span class="conv-titre-role">' + esc(c.sousTitre) + '</span>' : '');
     $('conv-titre').setAttribute('aria-label', c.type === 'reunion' ? nomConv(c) + ' — voir la réunion' : nomConv(c) + ' — infos du ' + genreConv(c) + (CAP.groupeInfos ? '' : ' (bientôt)'));
     $('conv-cam').setAttribute('aria-label', 'Appel vidéo avec ' + c.nom);
     majBanniereSalle(c);                     // (version servie) une salle est ouverte pour cette conversation : la bannière propose d'y entrer
