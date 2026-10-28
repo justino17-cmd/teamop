@@ -75,7 +75,8 @@
 # 28 octobre 2026, les photos du pont (3096 § 7 : les 21 images, les envois, les refus, les fichiers absents) : 165 suites, 10 642 vérifications mesurées par la commande de la porte (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 10628 (le total moins 14, jamais une addition).
 # 28 octobre 2026 (« 35 courriers à traiter ») : 166 suites, 10 702 vérifications mesurées par la commande de la porte, toutes vertes, `test-3101` compris (93, après les relectures du gardien et de l’adverse) — plancher 10688 (le total moins 14, jamais une addition).
 # 28 octobre 2026, l'outil des espaces orphelins (test-3100 : 105 vérifications) : 166 suites, 10 710 vérifications mesurées par la commande de la porte (13 min), toutes vertes — plancher 10696 (le total moins 14, comme avant).
-#plancher 10696
+# 28 octobre 2026, l'assistant devis par métier (test-3112 : 90 vérifications), sur main a3d07bf : 168 suites, 10 936 vérifications mesurées par la commande de la porte (test-738, une mesure de temps, est tombée à 1 ✗ sous une charge de 10 sur la machine et rend 48 ✓ 0 ✗ seule, deux fois), toutes vertes — plancher 10922 (le total moins 14, jamais une addition ni le 10680 du commit d'origine).
+#plancher 10922
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
