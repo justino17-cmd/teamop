@@ -17,7 +17,7 @@ de ligne du tout.
 Branche `claude/camille-courrier-classe` (serveur seulement, **pas poussée, pas de demande de fusion** : un push de `server/` sur `main` déploie le VPS). La Tour n'est PAS touchée (v2.117 en service).
 - **Causes** : (1) un courriel ignoré / automatique / interne / d'expéditeur illisible n'écrivait RIEN au suivi → ligne « à traiter » pour toujours, relue à chaque passe en tête des 200 places de la file ;
   (2) Camille ne voit pas le bilan de sa reprise (son fil privé) et son outil refusait les trois phrases de Justin ; (3) Victor n'avait que `{aTraiter, enCours}`.
-- **Fait** (`test-3098`, 93 vérifications, le vrai `mail.js` contre un IMAP simulé + le vrai `agent-camille.js` + les prompts) : classement « en cours · Camille » + raison d'une liste fermée (`classe`), JAMAIS « résolu », jamais
+- **Fait** (`test-3101`, 93 vérifications, le vrai `mail.js` contre un IMAP simulé + le vrai `agent-camille.js` + les prompts) : classement « en cours · Camille » + raison d'une liste fermée (`classe`), JAMAIS « résolu », jamais
   une ligne touchée par un humain, jamais de création de ligne ; `compter`/`/stats` séparent à traiter / en cours / classés, `ouverts` garde les classés DERRIÈRE les vrais courriers, marqués `classe` (`classesRecents` les rend aussi) ; la reprise n'inscrit plus
   les décidés dans sa file (`arriere(jours, {ecarter})`) et range leur ligne sans relire la boîte ; trois « expéditeur déjà en attente » ne l'arrêtent plus ; première passe 3 min après le démarrage ;
   `etatReprise()` (nombres) lu par Victor et Camille (faits `reprise` et `courrier.classes`) ; garde de l'outil élargie aux phrases réelles de Justin (jamais un collègue ni un client).

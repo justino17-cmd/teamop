@@ -38,7 +38,7 @@ const suivre = Z => { const s = []; Z.mail.suiviMarquer = (mid, o) => { s.push([
     v('ce qui revient à Justin → « en cours », pour Justin', [r.justin, S], [true, [['<c1@banc-3089>', 'enCours', 'Justin']]]); Z.nettoyer();
     Z = monter({ modes: { camille: 'brouillon' }, claude: () => 'CATEGORIE : ignorer' }); S = suivre(Z);
     r = await Z.camille.surNouveauMessage(poser(Z, { mid: '<pub@banc-3089>' }));
-    v('⛔ (gardien) « ignoré » ne passe JAMAIS par suiviMarquer (donc jamais « résolu » : définitif, une catégorie mal posée ne ferait pas disparaître un vrai message) — son classement doux est joué par test-3098', [r.ignore, S.length], [true, 0]); Z.nettoyer();
+    v('⛔ (gardien) « ignoré » ne passe JAMAIS par suiviMarquer (donc jamais « résolu » : définitif, une catégorie mal posée ne ferait pas disparaître un vrai message) — son classement doux est joué par test-3101', [r.ignore, S.length], [true, 0]); Z.nettoyer();
     Z = monter({ modes: { camille: 'arret' }, claude: () => QUESTION }); S = suivre(Z);
     r = await Z.camille.surNouveauMessage(poser(Z, {}));
     v('⛔ un saut (Camille à l’arrêt) n’écrit rien au suivi', [!!r.saute, S.length], [true, 0]); Z.nettoyer();

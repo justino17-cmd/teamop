@@ -346,7 +346,8 @@ function mailReel(ligneSuivi, imap) {
       O.executer('reprendre_courriels_anciens', {}, { de: 'justin', texte: 'traite le mail de Hortense' }),
       O.executer('reprendre_courriels_anciens', {}, { de: 'justin', texte: 'merci, top' })].map(r => r.raison);
     v('⛔ une question d’ÉTAT (« tu en es où ? »), un verbe seul sur UN mail, un merci : pas de reprise', [refus, appels - avant], [['pas_demande', 'pas_demande', 'pas_demande'], 0]);
-    const horsJustin = ['victor', 'client', 'lea', 'hortense@exemple-3098.fr'].flatMap(de => REELLES.map(p => O.executer('reprendre_courriels_anciens', {}, { de, texte: p })));
+    /* (28 octobre, soir) Victor, chef d'orchestre, lance la reprise lui aussi (test-3089) : il sort de cette liste, un autre collègue y entre. */
+    const horsJustin = ['hugo', 'client', 'lea', 'hortense@exemple-3098.fr'].flatMap(de => REELLES.map(p => O.executer('reprendre_courriels_anciens', {}, { de, texte: p })));
     await dormir(40);
     v('⛔ les MÊMES phrases venues d’un collègue, d’un client ou d’un texte de courriel : refusées (`pas_justin`), aucune reprise', [horsJustin.every(r => r.ok === false && r.raison === 'pas_justin'), horsJustin.length, appels - avant], [true, 12, 0]);
     vrai('…et le refus DIT à qui le lit que la reprise tourne déjà seule (Camille ne réclame plus de « top départ »)', /tourne déjà seule, toutes les 30 minutes/.test(horsJustin[0].ligne) && /tourne déjà seule, toutes les 30 minutes/.test(refus.length && O.executer('reprendre_courriels_anciens', {}, { de: 'justin', texte: 'merci' }).ligne));
