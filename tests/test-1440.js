@@ -21,7 +21,7 @@ function bloc(debut) {
 const ES = bloc('function emptyState(ico,txt,btn,fn)'), EMO_T = bloc('var EMO={'), TR_T = bloc('var TRAITS={');
 vrai('emptyState, EMO et TRAITS sont trouvées', !!(ES && EMO_T && TR_T));
 const sb = {}; vm.createContext(sb);
-vm.runInContext(ES + '\n' + EMO_T + ';\n' + TR_T + ';', sb);
+vm.runInContext('var boxTxt = function (s) { return s; };\n' + ES + '\n' + EMO_T + ';\n' + TR_T + ';', sb);
 const EMO = sb.EMO, TRAITS = sb.TRAITS, emptyState = sb.emptyState;
 
 console.log('\n── 1440 · 1. la population des appels ──');
