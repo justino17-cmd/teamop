@@ -2579,8 +2579,6 @@ body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backd
 .ms-ht h2{margin:0;font-size:17px;font-weight:650;letter-spacing:var(--suivi-titre);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ms-ht p{margin:1px 0 0;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ms-ha{display:flex;align-items:center;gap:10px;flex:none}
-.ms-bientot{font-size:12.5px;color:var(--muted);white-space:nowrap}
-.ms-bientot b{font-weight:650;color:var(--text2);background:var(--inset);border-radius:99px;padding:2px 8px;margin-left:2px}
 .ms-btn-tq,.ms-retour,.ms-btn-mod{min-height:36px;padding:0 12px;border-radius:var(--r-3);border:0;background:var(--inset);color:var(--text);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .ms-btn-tq{display:none}
 .ms-retour{display:none;padding:0 10px;background:transparent;color:var(--acc-txt)}
@@ -2759,7 +2757,6 @@ body.jour .ms-reu-ag{box-shadow:0 0 0 1px var(--line)}
   .ms-droite{display:none;position:absolute;top:0;right:0;bottom:0;width:min(320px,88%);z-index:5;border-left:1px solid var(--line);box-shadow:var(--ombre-3);background:var(--surface)}
   .ms[data-tq="1"] .ms-droite{display:block}
 }
-@container mess (max-width:800px){ .ms-bientot{display:none} }
 @container mess (max-width:700px){
   .ms{grid-template-columns:minmax(0,1fr)}
   .ms[data-mob="fil"] .ms-gauche{display:none}
@@ -13373,7 +13370,6 @@ function msEnteteHtml(){
   return '<button type="button" class="ms-retour" data-act="retour" aria-label="Toutes les conversations">‹ Conversations</button>'+
     '<div class="ms-hid">'+(grp?msIconeHtml(MS.fil,'ms-av g h'):agAvatar(MS.fil,nom,'ms-av h'))+'<div class="ms-ht"><h2>'+esc(nom)+'</h2><p>'+msSousTitre()+'</p></div></div>'+
     '<div class="ms-ha">'+(grp&&MYROLE==='patron'?'<button type="button" class="ms-btn-mod" data-act="groupeModifier" aria-label="Modifier le groupe '+esc(nom)+'">Modifier</button>':'')+
-    '<span class="ms-bientot" title="OP MESSAGES se rebranchera plus tard">Suivre dans OP MESSAGES · <b>Bientôt</b></span>'+
     '<button type="button" class="ms-btn-tq" data-act="panneau" aria-expanded="'+MS.panneau+'" aria-controls="ms-droite">Qui fait quoi'+(MS.tachesLec===1&&ouv?'<span class="ag-n">'+ouv+'</span>':'')+'</button></div>';
 }
 function messPeindreEntete(){

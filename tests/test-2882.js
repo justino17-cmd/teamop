@@ -495,7 +495,8 @@ console.log('\n6. L\'envoi : le message paraît à l\'instant ; un refus se dit 
     vrai('une mention d\'une bulle à moi : lisible sur le fond d\'accent (pastille claire, encre bleue)', /\.ms-b\.moi \.ms-m\{[^}]*background:rgba\(255,255,255,\.92\)[^}]*\}/.test(css));
     vrai('trois colonnes par la largeur de la ZONE (requête de conteneur), « Qui fait quoi » en volet au-dessous de 1000 px, une seule colonne sous 700 px', /container:mess \/ inline-size/.test(css) && /@container mess \(max-width:1000px\)/.test(css) && /@container mess \(max-width:700px\)/.test(css));
     vrai('les points d\'écriture respectent « animations réduites »', /@media\(prefers-reduced-motion:reduce\)\{ \.ms-pts i\{animation:none/.test(css));
-    vrai('le bouton « Suivre dans OP MESSAGES » n\'est PAS un bouton : un texte « Bientôt » (OP MESSAGES ne se rebranche pas)', /<span class="ms-bientot"[^>]*>Suivre dans OP MESSAGES · <b>Bientôt<\/b><\/span>/.test(SANS) && !/Suivre dans OP MESSAGES[^<]*<\/button>/.test(SANS));
+    /* 28 octobre 2026 : les agents SONT dans OP MESSAGES (le pont) — plus de « Bientôt » dans l'en-tête du fil, le lien vit dans le bandeau de la vue (`messBandeauOpm`, ouvert dans un AUTRE onglet). */
+    vrai('l\'en-tête du fil ne promet plus « Bientôt » : le lien vers OP MESSAGES est le bandeau, dans un autre onglet', !/ms-bientot|<b>Bientôt<\/b>/.test(SANS) && /function vueMessagerie\(\)\{ return messBandeauOpm\(\)\+/.test(SANS) && /class="opm-bandeau"[^\n]{0,400}?target="_blank" rel="noopener noreferrer"/.test(SANS));
     /* ⛔ la messagerie n'écrit RIEN que par les deux routes de la messagerie */
     /* La population est celle du FICHIER (toute fonction `ms*` / `mess*`), jamais une liste de noms écrite ici : deux écritures de plus sont nées avec les réunions
        (`messReunionLancer`, `messLeconRetirer`) et une liste à la main ne les voyait pas. */
