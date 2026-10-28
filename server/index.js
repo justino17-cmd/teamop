@@ -2170,7 +2170,7 @@ const MON_GESTES = {
   'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
   /* Pauline (Harvey, Mac) : un accord qui fait partir un courriel vers un prospect laisse sa trace (relecture de gardien) — la cible est l'identifiant du courriel, jamais son texte */
   'pauline/decision': 'a accepté, modifié ou refusé un courriel de Pauline',
-  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
+  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/camille/arriere': 'a demandé à Camille de reprendre l’arriéré du courrier', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
   'agents/emma/disponibilites': 'a réglé les disponibilités d’Emma', 'agents/emma/proposer': 'a demandé à Emma de proposer des créneaux à un prospect', 'agents/sarah/rediger': 'a demandé à Sarah de rédiger une annonce aux clients',
@@ -10678,7 +10678,9 @@ try {
         outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; }, get margaux() { return agentMargaux && agentMargaux.outilsEquipe; },
           get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; },
           /* Victor planifie les réunions que Justin lui demande (`reunions.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
-          get victor() { return reunionsMod && reunionsMod.outilsVictor; } },
+          get victor() { return reunionsMod && reunionsMod.outilsVictor; },
+          /* Camille reprend l'arriéré du courrier que Justin lui demande (`agent-camille.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
+          get camille() { return agentCamille && agentCamille.outilsEquipe; } },
         arbitrer: (e, c) => plateformeMod ? plateformeMod.arbitrer(e, c) : { ok: false, raison: 'indisponible' },     // l'outil « arbitrer » de Victor (`agents-plateforme.js`)
         memoire: (id) => reunionsMod ? reunionsMod.memoire(id) : '' });
       console.log('agents : messagerie montée pour ' + agentEquipe.ids.length + ' agents');
@@ -10882,6 +10884,17 @@ try {
         if ((st.douteux || []).length) return { sur: false, doute: true };
         return { sur: true, formule: formulePayee(e, surs) };
       } });
+    /* L'ARRIÉRÉ DU COURRIER (28 octobre 2026, Justin : « il faut qu'elle puisse voir les anciens ») : Camille reprend les courriels des `jours` derniers jours que personne n'a pris ni
+       répondus. Lancé en tâche de fond (la reprise peut durer : un appel à Claude par courriel) ; le bilan arrive dans le fil Camille de la Messagerie. Toute réponse attend la validation. */
+    app.post('/api/monitor/agents/camille/arriere', monPatronStrict, (req, res) => {
+      if (!agentCamille || typeof agentCamille.reprendreArriere !== 'function') return res.status(503).json({ error: 'Camille n’est pas montée' });
+      const j = parseInt((req.body || {}).jours, 10);
+      const jours = Number.isInteger(j) && j >= 1 && j <= 90 ? j : 30;
+      const p = agentsMod && typeof agentsMod.peutAgir === 'function' ? agentsMod.peutAgir('camille') : { ok: false, raison: 'indisponible' };
+      if (!p.ok) return res.status(409).json({ error: 'Camille ne peut pas agir maintenant (' + String(p.raison || '').replace(/_/g, ' ') + ')' });
+      Promise.resolve().then(() => agentCamille.reprendreArriere(jours)).catch(e => console.error('camille (arriéré) :', e.message));
+      res.json({ ok: true, jours });
+    });
     app.post('/api/monitor/agents/hugo/passer', monPatronStrict, async (req, res) => {
       try { res.json(Object.assign({ ok: true }, await agentHugo.passer())); }
       catch (e) { console.error('hugo :', e.message); res.status(500).json({ error: 'Passage non traité' }); }

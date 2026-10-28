@@ -155,6 +155,7 @@ module.exports = function camille(ctx) {
   const reg = fich.charger(F, { mids: {}, jour: { j: '', brouillons: 0, examens: 0, domaines: {}, prevenu: {} } });
   if (!reg.mids || typeof reg.mids !== 'object' || Array.isArray(reg.mids)) reg.mids = {};
   if (!reg.jour || typeof reg.jour !== 'object') reg.jour = { j: '', brouillons: 0, examens: 0, domaines: {}, prevenu: {} };
+  if (!reg.repris || typeof reg.repris !== 'object' || Array.isArray(reg.repris)) reg.repris = {};   // les empreintes traitées PAR LA REPRISE de l'arriéré (jamais reprises une seconde fois)
   const sauve = () => fich.ecrire(F, reg);
   const empreinte = x => crypto.createHash('sha256').update('camille:' + String(x)).digest('hex').slice(0, 32);
   const aujourdhui = () => new Date(maintenant()).toISOString().slice(0, 10);
@@ -191,11 +192,34 @@ module.exports = function camille(ctx) {
     /* o : { m, ev, a, objet, texte, controle, forceValidation, reecrit } */
     return brouillons.deposer({ agent: ID, a: o.a, objet: o.objet, texte: o.texte, source: 'courrier', entreprise: '', boiteId: o.ev.boiteId, objetRecu: o.m.objet,
       enReponseA: { mid: o.m.mid || '', boiteId: o.ev.boiteId, dossier: o.ev.dossier, uid: o.ev.uid }, controle: o.controle, authentifie: o.m.authentifie === true,
-      forceValidation: o.forceValidation === true, reecrit: o.reecrit === true });
+      forceValidation: o.forceValidation === true || o.ev.arriere === true, reecrit: o.reecrit === true });   // l'arriéré : Justin a pu répondre d'ailleurs — tout passe par sa validation
   }
   const BON_GABARIT = { etat: 'bon', fautes: [], juge: false };
 
+  /* (28 octobre 2026) Ce que Camille décide s'écrit au SUIVI du Courrier : sans ça, « à traiter » ne baissait jamais et Victor croyait que personne n'y était. Le suivi ne reçoit
+     que des mots de la liste (statut, Camille ou Justin) et l'expéditeur/objet qu'il affiche déjà ; un saut (plafond, pause, lecture) n'écrit rien. */
+  function suiviDe(ev, r) {
+    const lu = ev && ev.__lu;
+    if (!lu || !lu.mid || !r || typeof mail.suiviMarquer !== 'function') return;
+    let o = null;
+    if (r.ignore) o = { statut: 'resolu' };
+    else if (r.justin) o = { statut: 'enCours', assigne: 'Justin' };
+    else if (r.depose || r.chloe || r.hugo || r.passe) o = { statut: 'enCours', assigne: 'Camille' };
+    if (!o) return;
+    try { mail.suiviMarquer(lu.mid, Object.assign(o, { de: lu.de, objet: lu.objet, recuTs: lu.ts })); } catch (e) {}
+  }
   async function surNouveauMessage(ev) {
+    const r = await traiter(ev);
+    suiviDe(ev, r);
+    /* traité par la reprise (donc noté « vu ») : il ne se reprendra plus — sans cette marque, sa date ferait encore croire à un « trop ancien » jamais traité */
+    if (ev && ev.arriere && ev.__h && reg.mids[ev.__h]) {
+      reg.repris[ev.__h] = reg.mids[ev.__h];
+      for (const k of Object.keys(reg.repris)) if (!reg.mids[k]) delete reg.repris[k];   // borné comme `mids`
+      sauve();
+    }
+    return r;
+  }
+  async function traiter(ev) {
     try {
       const p = agents.peutAgir(ID);
       if (!p.ok) {
@@ -225,7 +249,11 @@ module.exports = function camille(ctx) {
         if (!m) return { saute: 'introuvable' };
         if (m.protege || m.auto || m.enteteAuto) return { saute: 'automatique' };
         const h = empreinte(m.mid || cle);
-        if (reg.mids[h] || midsEnCours.has(h)) return { saute: 'deja_vu' };
+        ev.__lu = { mid: String(m.mid || ''), de: String(m.de || ''), objet: String(m.objet || ''), ts: m.ts || 0 }; ev.__h = h;
+        /* l'ARRIÉRÉ : un courriel « vu » parce qu'il était déjà trop ancien à son arrivée (vu plus de trois jours après sa date) n'a jamais été traité — il se reprend. Tout autre « vu »
+           (répondu, transmis, ignoré, interne) ne se refait jamais. */
+        const vuAncien = ev.arriere === true && reg.mids[h] && !reg.repris[h] && m.ts && reg.mids[h] - m.ts > AGE_MAX_MS;
+        if ((reg.mids[h] && !vuAncien) || midsEnCours.has(h)) return { saute: 'deja_vu' };
         /* ⛔ réservé ICI, avant tout `await` : le contrôle ci-dessus et cette ligne se suivent sans rien entre eux, donc la seconde annonce du même mail (l'autre
            boîte) voit la réservation de la première. Libérée dans le `finally`. */
         midsEnCours.add(h); reserve = h;
@@ -234,7 +262,7 @@ module.exports = function camille(ctx) {
         /* NOS adresses : jamais traitées (et marquées vues, pour ne pas les relire à chaque passage) */
         if (domainesNotres().some(d => d && domaineDe(a) === String(d).toLowerCase()) || adressesNotres().some(x => x && a === String(x).toLowerCase())) { noterVu(h); return { saute: 'interne' }; }
         /* l'âge se juge à l'instant où le courriel est ARRIVÉ à Camille (`ev.differeTs`, quand il a attendu l'ouverture) : un week-end férié de 87 h ne rend pas « ancien » un courriel de vendredi soir */
-        if (m.ts && (ev.differeTs || maintenant()) - m.ts > AGE_MAX_MS) { noterVu(h); return { saute: 'ancien' }; }
+        if (!ev.arriere && m.ts && (ev.differeTs || maintenant()) - m.ts > AGE_MAX_MS) { noterVu(h); return { saute: 'ancien' }; }
         if (typeof brouillons.nombreEnAttente === 'function' && brouillons.nombreEnAttente(ID, a) >= ATTENTES_PAR_EXPEDITEUR) { agents.noter(ID, 'examiner un message', { cible: 'courrier', resultat: 'refuse', detail: 'un expéditeur a déjà ' + ATTENTES_PAR_EXPEDITEUR + ' brouillons en attente' }); return { saute: 'expediteur_deja_en_attente' }; }
 
         /* ── LE PROSPECT QUI RÉPOND À LÉA → Chloé ── */
@@ -312,6 +340,11 @@ module.exports = function camille(ctx) {
         /* La résiliation : accusé ET demande fermée à Hugo, seulement si l'expéditeur est authentifié ET l'adresse d'un compte. Sinon, une question à Justin. */
         if (categorie === 'resiliation') {
           noterVu(h);
+          if (ev.arriere) {   // un vieux courriel d'arrêt a pu être réglé autrement : Justin décide, rien ne part chez Hugo
+            aJustin('Dans l’arriéré : un courriel demande l’arrêt de l’abonnement (réf. ' + rf + ')' + dos + '. Comme il est ancien, je ne transmets rien à Hugo : regarde dans le Courrier s’il a déjà été réglé.', 'important');
+            agents.noter(ID, 'passer la main à Justin', { cible: 'courrier', resultat: 'ok', detail: 'résiliation dans l’arriéré' });
+            return { justin: true, categorie };
+          }
           if (!sur || !dossier) {
             aJustin('Un courriel demande l’arrêt de l’abonnement (réf. ' + rf + ')' + dos + ', mais ' + (!sur ? 'l’expéditeur n’est pas authentifié par notre serveur de réception' : 'l’adresse n’est celle d’aucun compte') + ' : je n’ai rien programmé ni répondu. À toi de voir, dans le Courrier.', 'important');
             agents.noter(ID, 'passer la main à Justin', { cible: 'courrier', resultat: 'ok', detail: 'résiliation sans expéditeur sûr' });
@@ -424,7 +457,59 @@ module.exports = function camille(ctx) {
     if (r && r.saute === 'lecture') throw new Error('lecture impossible');      // la boîte n'a pas répondu : l'entrée reste, trois essais (à l'arrivée, ce cas-là n'avait pas de seconde chance)
     return r;
   });
-  return { surNouveauMessage };
+  /* ── L'ARRIÉRÉ (28 octobre 2026, Justin : « il faut qu'elle puisse voir les anciens ») ──
+     Les courriels des `jours` derniers jours que personne n'a pris ni répondu (`mail.arriere`), le plus ancien d'abord, par le MÊME passage qu'à l'arrivée — plafonds du jour compris —
+     avec trois différences : l'âge ne les écarte pas, toute réponse attend la validation de Justin, une demande d'arrêt va à Justin. Une seule reprise à la fois ; elle s'arrête dès que
+     Camille ne peut plus agir (pause, hors des heures, à l'arrêt) ou qu'un plafond du jour est atteint, et le DIT. Le bilan est une phrase du code (des nombres). */
+  let enReprise = false;
+  async function reprendreArriere(jours) {
+    if (enReprise) return { ok: false, raison: 'deja_en_cours' };
+    if (typeof mail.arriere !== 'function') return { ok: false, raison: 'indisponible' };
+    const p = agents.peutAgir(ID);
+    if (!p.ok) return { ok: false, raison: p.raison };
+    enReprise = true;
+    const b = { examines: 0, reponses: 0, transmis: 0, justin: 0, ignores: 0, deja: 0, restent: 0 };
+    try {
+      let liste = [];
+      try { liste = await mail.arriere(jours); } catch (e) { return { ok: false, raison: 'lecture' }; }
+      let arret = '';
+      for (let i = 0; i < liste.length; i++) {
+        const x = liste[i];
+        const r = await surNouveauMessage({ boiteId: x.boiteId, dossier: x.dossier, uid: x.uid, reprise: true, arriere: true }) || {};
+        if (r.saute && /^plafond|^hors_heures$|^pause$|^arret$|^budget|^cle/.test(String(r.saute))) { arret = r.saute; b.restent = liste.length - i; break; }
+        if (r.saute === 'deja_vu' || r.saute === 'automatique' || r.saute === 'interne' || r.saute === 'expediteur' || r.saute === 'introuvable') { b.deja++; continue; }
+        b.examines++;
+        if (r.ignore) b.ignores++;
+        else if (r.justin) b.justin++;
+        else if (r.passe || r.hugo || r.chloe) b.transmis++;
+        else if (r.depose) b.reponses++;
+      }
+      const t = 'Reprise de l’arriéré (' + (Math.min(Math.max(parseInt(jours, 10) || 30, 1), 90)) + ' derniers jours) : ' + b.examines + ' courriel' + (b.examines > 1 ? 's' : '') + ' examiné' + (b.examines > 1 ? 's' : '') +
+        ' — ' + b.reponses + ' réponse' + (b.reponses > 1 ? 's' : '') + ' en brouillon à valider, ' + b.transmis + ' transmis à un collègue, ' + b.justin + ' pour toi, ' + b.ignores + ' ignoré' + (b.ignores > 1 ? 's' : '') + '.' +
+        (arret ? ' Je me suis arrêtée (' + String(arret).replace(/_/g, ' ') + ') : ' + b.restent + ' attendent encore, je les reprendrai quand tu relanceras.' : (liste.length ? '' : ' Rien n’attendait.'));
+      aJustin(t, 'info');
+      agents.noter(ID, 'reprendre l’arriéré', { cible: 'courrier', resultat: 'ok', detail: b.examines + ' examinés, ' + b.restent + ' restent' });
+      return Object.assign({ ok: true, total: liste.length, arret }, b);
+    } finally { enReprise = false; }
+  }
+  /* L'outil de Camille dans la messagerie : reprendre l'arriéré quand JUSTIN le demande (le module le vérifie, pas le prompt). La reprise tourne en tâche de fond : le bilan arrive dans
+     son fil privé avec Justin. */
+  const outilsEquipe = {
+    outils: [{ name: 'reprendre_courriels_anciens', description: 'Reprendre les courriels des derniers jours que personne n’a traités (ni répondus, ni pris) dans contact@ et support@, le plus ancien d’abord, avec tes règles habituelles. Toute réponse attend la validation de Justin. Seulement quand Justin te le demande.',
+      input_schema: { type: 'object', properties: { jours: { type: 'integer', minimum: 1, maximum: 90, description: 'Combien de jours en arrière (30 par défaut).' } }, additionalProperties: false } }],
+    executer(nom, e, c) {
+      if (nom !== 'reprendre_courriels_anciens') return { ok: false, raison: 'inconnu' };
+      if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Je ne reprends l’arriéré que sur une demande de Justin.' };
+      if (!/courri|mail|message|ancien|arri[ée]r|retard|attente/i.test(String(c.texte || ''))) return { ok: false, raison: 'pas_demande', ligne: 'Je ne reprends l’arriéré que si le message de Justin parle du courrier.' };
+      if (enReprise) return { ok: false, raison: 'deja_en_cours', ligne: 'La reprise de l’arriéré est déjà en cours.' };
+      const p = agents.peutAgir(ID);
+      if (!p.ok) return { ok: false, raison: p.raison, ligne: 'Je ne peux pas reprendre l’arriéré maintenant (' + String(p.raison).replace(/_/g, ' ') + ').' };
+      const j = Number.isInteger(e && e.jours) ? e.jours : 30;
+      Promise.resolve().then(() => reprendreArriere(j)).catch(() => {});
+      return { ok: true, ligne: 'Reprise de l’arriéré lancée (' + Math.min(Math.max(j, 1), 90) + ' derniers jours) : le bilan arrive ici quand j’ai fini.' };
+    }
+  };
+  return { surNouveauMessage, reprendreArriere, outilsEquipe };
 };
 module.exports.SYSTEM = SYSTEM;
 module.exports.GABARITS = GABARITS;
