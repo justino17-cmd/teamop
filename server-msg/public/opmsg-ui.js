@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '820ad1ce7458';
+  const OPMSG_BUILD = '9b5f8b94c70c';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 283;
+  const OPMSG_VERSION = 285;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6853,7 +6853,8 @@
     const vus = avenir.slice(0, LR_MAX), vusP = passees.slice(0, LR_PASSEES_MAX);
     let h = groupes(vus, x => x.o.debut <= now ? -1 : minuitDe(x.o.debut), j => j === -1 ? 'En cours' : libelleJourBord(j));
     if (avenir.length > LR_MAX) h += '<li class="bord-plus"><button type="button" class="presse" data-lr="agenda">' + esc('Voir les ' + (avenir.length - LR_MAX) + ' autres dans l\'Agenda') + '</button></li>';
-    if (!h) h = '<li class="vide lr-vide"><span>Aucune réunion prévue.</span><button type="button" class="lr-nouvelle presse" data-lr="nouvelle">' + icone('i-plus') + 'Nouvelle réunion</button></li>';
+    /* (28 octobre 2026, capture du patron : deux « Nouvelle réunion » l'un sous l'autre, décalés) Le geste vit UNE fois, en tête de l'onglet : l'état vide le dit, il ne le répète pas. */
+    if (!h) h = '<li class="vide lr-vide"><span>Aucune réunion prévue.</span><small>Touchez « Nouvelle réunion » pour en planifier une.</small></li>';
     return { avenir: h, nAvenir: avenir.length, passees: groupes(vusP, x => minuitDe(x.o.debut), j => maj1(FMT_JOUR_LONG.format(j))), nPassees: passees.length };
   }
   function construireListeReunions() {

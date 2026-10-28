@@ -1623,6 +1623,12 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
 - Ne pas modifier l'anti-abus (`server/index.js`) sans relire pourquoi il lit
   `req.ip` et non l'en-tête brut — un en-tête fourni par le client se falsifie
 - Ne pas écrire de données personnelles de clients dans les journaux
+- ⛔ **UNE ENTREPRISE SUPPRIMÉE PERD AUSSI SA SURVEILLANCE** — Justin, 28 octobre 2026 (« on peut supprimer l'historique »). Le serveur
+  garde la trace d'une entreprise qui VIT (« ON N'EFFACE RIEN » : `bugs.jsonl`, `monitor.json`, remise à zéro par filigrane), **sauf pour une
+  entreprise SUPPRIMÉE : sa surveillance part avec elle** — `monPurgerEntreprise` (noms et adresses des incidents vivants et archivés, lignes
+  brutes de `bugs.jsonl` réécrites par fichier temporaire, journal de la Tour anonymisé, jamais un geste effacé, une trace sans nom). La suppression
+  totale l'appelle (`fait.surveillance`) ; ⛔ **une adresse relevée dans un incident n'est JAMAIS une clé de purge** (c'est un corps de requête public : un rapport forgé aurait fait partir l'incident d'une entreprise qui vit) — les adresses viennent de l'annuaire seul, et seulement sous un nom qui n'est pas celui d'une entreprise vivante ; l'entrée d'un incident garde l'`espace` d'où elle vient (connu du serveur, jamais l'espace par défaut), c'est lui qui reconnaît une entreprise vivante sous un autre nom (409) et retrouve ses lignes brutes ; annuaire illisible = 503 ; l'espace par défaut se refuse par son nom aussi ; la Tour la propose aux entreprises déjà parties (« Effacer de la surveillance », patron seul,
+  `/api/monitor/issues/purger-entreprise`, 409 pour une entreprise qui vit). Elle ne touche PAS aux incidents d'OP MESSAGES. `tests/test-3102.js` (le bouton de la Tour attend la publication de la Tour unifiée).
 - ⛔ **L'EN-TÊTE D'UN DOCUMENT SE LIT DANS `docEntete(société)`, JAMAIS À LA MAIN.** v740, 23 septembre
   2026, à la demande de Justin (« chaque en-tête doit reconnaître l'entreprise qui est sur
   l'intervention, pour que le client reçoive bien le bon PDF ») : quinze fabriques de documents
