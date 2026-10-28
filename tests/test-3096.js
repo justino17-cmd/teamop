@@ -357,24 +357,6 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     vrai('…et /health crie : les minutes d\'échec courent dès le démarrage', (() => { horloge += 61 * 60000; return p2.sante().echecMin >= 61; })());
   }
 
-  console.log('\n7. La Tour : le bandeau « Vos agents sont maintenant dans OP MESSAGES »');
-  {
-    const vm = require('vm');
-    const TOUR = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
-    const fn = nom => { const i = TOUR.indexOf('function ' + nom + '('); if (i < 0) return ''; let d = 0, j = TOUR.indexOf('{', i); for (; j < TOUR.length; j++) { if (TOUR[j] === '{') d++; else if (TOUR[j] === '}') { d--; if (!d) break; } } return TOUR.slice(i, j + 1); };
-    const src = ['messBandeauOpm', 'vueMessagerie'].map(fn);
-    vrai('(population) les deux fonctions sont trouvées', src.every(x => x.length > 60));
-    const ADR = (/var BETA_MSG_ADRESSE='([^']+)';/.exec(TOUR) || [])[1];
-    v('(population) l\'adresse d\'OP MESSAGES bêta est celle de la Tour', ADR, 'https://msg-beta.teamop.fr');
-    const ctx = { esc: x => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]), BETA_MSG_ADRESSE: ADR };
-    vm.createContext(ctx); vm.runInContext(src.join('\n'), ctx);
-    const h = ctx.vueMessagerie();
-    vrai('la vue porte le bandeau AU-DESSUS de la zone de messagerie d\'avant (qui reste la même, avec son identifiant)', h.indexOf('opm-bandeau') >= 0 && h.indexOf('opm-bandeau') < h.indexOf('id="mess-zone"') && /<div id="mess-zone" class="mess-zone"><\/div>$/.test(h));
-    vrai('le bandeau dit « Vos agents sont maintenant dans OP MESSAGES »', /Vos agents sont maintenant dans OP MESSAGES/.test(h));
-    const lien = /<a [^>]*>Ouvrir OP MESSAGES<\/a>/.exec(h);
-    vrai('⛔ le bouton « Ouvrir OP MESSAGES » est un lien vers https://msg-beta.teamop.fr/ dans un NOUVEL onglet, sans lien d\'opener', !!lien && /href="https:\/\/msg-beta\.teamop\.fr\/"/.test(lien[0]) && /target="_blank"/.test(lien[0]) && /rel="noopener noreferrer"/.test(lien[0]));
-    vrai('⛔ aucun cadre : la page d\'OP MESSAGES interdit d\'être encadrée (frame-ancestors \'none\'), la Tour ne tente pas', !/<iframe[^>]*msg(-beta)?\.teamop\.fr/i.test(TOUR) && !/<iframe/.test(h));
-    vrai('le changement reste petit : la classe du bandeau n\'apparaît que dans sa fonction et ses deux règles de style', (TOUR.match(/opm-bandeau/g) || []).length === 3);
-  }
+  /* (le bandeau de la Tour « Vos agents sont maintenant dans OP MESSAGES » est gardé par `test-3091`, avec la Tour unifiée : il ne part qu'avec elle) */
   faux.close();
 })().catch(e => { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }).finally(() => { if (process.exitCode) ko++; console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); });
