@@ -21,7 +21,7 @@ function decoupe(h, src) { src = src || APP; const d = src.indexOf(h); if (d < 0
 function blocFacturx() { const a = APP.indexOf('// ⟦FACTURX_POLICES:DEBUT⟧'), z = APP.indexOf('async function facturxPdfChaine(');
   if (a < 0 || z < a) throw new Error('bloc Factur-X introuvable'); return APP.slice(a, z); }
 
-const FN = ['function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docCoordLignes(', 'function socStyle(', 'function entSocUnique(',
+const FN = ['function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docFranchiseTva(', 'function docCoordLignes(', 'function socStyle(', 'function entSocUnique(',
   'function entSocietes(', 'function entNom(', 'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(',
   'function docPdfStr(', 'function devisPdfStr(', 'function docTot(', 'const ligTotLigne=', 'const ligHT=', 'function factIsLate(', 'function cliAdresseDerive('];
 

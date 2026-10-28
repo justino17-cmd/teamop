@@ -9595,6 +9595,10 @@ function docEntete(m,o){ o=o||{}; const s=socNom(m), E=(db&&db.entreprise)||{}, 
     adresse:L.adresse||'', cp:L.cp||'', ville:L.ville||'', siret:L.siret||'', tvaIntra:L.tvaIntra||'', tvaDebits:!!L.tvaDebits,
     iban:L.iban||'', bic:L.bic||'', tel:st.tel||(propre?'':E.tel)||'', email:st.email||(propre?'':E.email)||'',
     coordsPropres:propre }; }
+/* ⛔ « TVA non applicable, article 293 B du CGI » est la mention de la FRANCHISE EN BASE : elle ne se dit que d'un vendeur SANS n° de TVA.
+   Un assujetti qui facture à 0 % (export, autoliquidation, exonération) n'est pas en franchise — la mention serait fausse, sur le
+   PDF comme dans le XML. Une seule définition, lue par le devis, la facture, l'impression et Factur-X. */
+function docFranchiseTva(H,tx){ return (Number(tx)||0)===0&&!String(H&&H.tvaIntra||'').trim(); }
 /* Les lignes de coordonnées sous le nom, dans l'ordre de tous les documents */
 function docCoordLignes(h){ return [[h.adresse,[h.cp,h.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),
   [h.tel?'Tél. '+h.tel:'',h.email||''].filter(Boolean).join('  ·  '),
@@ -23951,8 +23955,10 @@ function mailClientRdv(intId,kind){ const i=db.interventions.find(x=>x.id===intI
    « conforme » : le fichier n'est annoncé que pour ce qu'il est.
    ⛔ CE QUI A ÉTÉ CONTRÔLÉ, ET PAR QUOI (tests/test-3134.js) : la structure du XML contre le schéma officiel CII D16B (xmllint) et
    les règles du Schematron Factur-X 1.09.2 qui s'écrivent sans XPath 2 (totaux, TVA, codes) ; la structure du PDF (table des
-   références exacte, polices incorporées, métadonnées, pièce jointe). Le validateur Mustang/veraPDF n'a PAS pu être exécuté
-   (REPRISE.md) : « PDF/A-3 conforme » n'est donc pas affirmé.
+   références exacte, polices incorporées, métadonnées, pièce jointe). Le validateur Mustang 2.26.0 (veraPDF PDF/A-3b, XSD,
+   Schematron EN 16931 et règles françaises du flux 2) a été exécuté le 28 octobre 2026 sur les fichiers que ce bloc fabrique : PDF/A
+   accepté, aucune erreur ni alerte du Schematron (REPRISE.md) — un OUTIL a regardé ces fichiers, ce n'est pas une attestation :
+   « conforme » ne s'écrit sur aucun écran, et le dépôt chez une plateforme agréée n'existe pas.
    ⛔ UNE SEULE ARITHMÉTIQUE : `docTot` compte en centimes entiers (la TVA est arrondie UNE fois, ttc = ht + tva). L'écran, le
    PDF, l'impression et le XML lisent les mêmes montants, au centime. Les polices sont celles d'Helvetica (mêmes largeurs, 0 écart
    mesuré avec `_PDF_L`) : la mise en page d'un devis ou d'une facture ordinaire ne bouge pas d'un point. */
@@ -24008,8 +24014,24 @@ function fxDec(x,max){ let s=Number(x).toFixed(max); if(s.indexOf('.')>=0) s=s.r
 /* un prix unitaire : deux décimales au moins, quatre au plus (BT-146) */
 const fxPrix=x=>Number(x||0).toFixed(4).replace(/0{1,2}$/,'');
 const fxDate8=iso=>String(/^\d{4}-\d{2}-\d{2}$/.test(iso||'')?iso:todayISO()).replace(/-/g,'');
-const FX_MOYENS={CB:'48',ESP:'10',CHQ:'20',VIR:'30',LDP:'1',X34:'1'};
-const FX_PIED_RETARD='En cas de retard de paiement : pénalités au taux d\'intérêt légal majoré et indemnité forfaitaire de recouvrement de 40 EUR (art. L441-10 du Code de commerce).';
+/* BT-81 (UNTDID 4461) d'un moyen de paiement tel que l'application l'ÉCRIT : `MOYENS_PAIEMENT` donne « A) Carte bancaire »,
+   « C) Espèces »… et la facture reçoit ce libellé tel quel de l'intervention. Les clés « CB », « VIR »… d'une première version ne
+   correspondaient à rien de réel : une facture réglée perdait son moyen de paiement dans le XML. On lit la LETTRE (A→48 carte,
+   B→68 lien de paiement, C→10 espèces, D→20 chèque, H→30 virement), à défaut le mot ; tout autre libellé (plusieurs fois,
+   financement, mixte) est « instrument non défini » (1) ; un libellé vide ne dit rien (''). */
+const FX_MOYENS_LETTRE={A:'48',B:'68',C:'10',D:'20',H:'30'};
+const FX_MOYENS_MOT=[['virement','30'],['cheque','20'],['espece','10'],['lien de paiement','68'],['carte','48']];
+function fxMoyenCode(lib){ const s=String(lib==null?'':lib).trim(); if(!s) return '';
+  const m=/^([A-Za-z])\s*\)/.exec(s); if(m) return FX_MOYENS_LETTRE[m[1].toUpperCase()]||'1';
+  const t=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  if(/\+|\b\dx\b|plusieurs|cofidis/.test(t)) return '1';
+  for(const [k,c] of FX_MOYENS_MOT) if(t.indexOf(k)>=0) return c;
+  return '1'; }
+/* Les trois mentions de l'article L441-10 se portent par TROIS notes distinctes (BR-FR-05) : PMD les pénalités de retard, PMT
+   l'indemnité forfaitaire de recouvrement, AAB l'escompte. La première version mettait les deux premières dans une seule note
+   « PMT » : Mustang (règles françaises du flux 2) signalait la note PMD absente. */
+const FX_PIED_PENALITES='En cas de retard de paiement : pénalités calculées au taux d\'intérêt légal majoré (art. L441-10 du Code de commerce).';
+const FX_PIED_RECOUVREMENT='Indemnité forfaitaire pour frais de recouvrement en cas de retard de paiement : 40 EUR (art. D441-5 du Code de commerce).';
 const FX_PIED_ESCOMPTE='Pas d\'escompte pour paiement anticipé.';
 /* Ce qui manque pour émettre cette facture en Factur-X : une liste de phrases, vide quand tout y est. Elle ne bloque jamais
    l'enregistrement d'une fiche — seulement l'émission du fichier. */
@@ -24022,6 +24044,7 @@ function facturxPrerequis(f){ const m=[]; if(!f) return ['Facture introuvable'];
   if(tx<0||tx>100||Math.abs(tx*100-Math.round(tx*100))>1e-9) m.push('un taux de TVA entre 0 et 100, à deux décimales au plus');
   const sir=String(H.siret||'').replace(/\s/g,'');
   if(!(/^\d{14}$/.test(sir)&&fxLuhn(sir.slice(0,9)))) m.push('le SIRET de l\'entreprise qui facture (14 chiffres, clé valide) — Paramètres → Mon entreprise');
+  if(tx===0&&String(H.tvaIntra||'').trim()) m.push('le motif d\'exonération de TVA : l\'entreprise qui facture a un n° de TVA, donc une facture à 0 % n\'est pas une franchise en base (article 293 B) — export, autoliquidation ou exonération, que l\'application ne sait pas encore préciser : la facture ne peut pas partir en Factur-X');
   if(tx>0&&!fxTvaValide(H.tvaIntra)) m.push('le n° de TVA intracommunautaire de l\'entreprise qui facture (obligatoire dès que la facture porte de la TVA)');
   else if(String(H.tvaIntra||'').trim()&&!fxTvaValide(H.tvaIntra)) m.push('un n° de TVA intracommunautaire valide pour l\'entreprise qui facture');
   if(!String(H.adresse||'').trim()||!/^\d{5}$/.test(String(H.cp||'').trim())||!String(H.ville||'').trim()) m.push('l\'adresse complète de l\'entreprise qui facture (rue, code postal, ville)');
@@ -24036,12 +24059,14 @@ function facturxPrerequis(f){ const m=[]; if(!f) return ['Facture introuvable'];
   return m; }
 /* Le XML CII de la facture (profil EN 16931). Les montants viennent de `docTot` : les mêmes centimes que le PDF. */
 function facturxXml(f){ const c=(db.clients||[]).find(x=>x.id===f.clientId)||{}, H=docEntete(f.rapportModele), T=docTot(f), E=fxXmlEsc;
-  const tx=Number(f.tva)||0, franchise=tx===0, paye=f.statut==='payee', nat=docNature(f);
+  const tx=Number(f.tva)||0, franchise=docFranchiseTva(H,tx), zero=tx===0&&!franchise, paye=f.statut==='payee', nat=docNature(f);
   const siret=String(H.siret||'').replace(/\D/g,''), siren=siret.slice(0,9), tva=String(H.tvaIntra||'').replace(/\s/g,'').toUpperCase();
   const adr=docAdresseClient(c), ech=docEcheance(f), liv=String(f.adresseLivraison||'').trim();
   const iban=String(H.iban||'').replace(/\s/g,'').toUpperCase(), bic=String(H.bic||'').replace(/\s/g,'').toUpperCase();
   const adresse=(cp,rue,ville)=>`<ram:PostalTradeAddress>${cp?`<ram:PostcodeCode>${E(cp)}</ram:PostcodeCode>`:''}${rue?`<ram:LineOne>${E(rue)}</ram:LineOne>`:''}${ville?`<ram:CityName>${E(ville)}</ram:CityName>`:''}<ram:CountryID>FR</ram:CountryID></ram:PostalTradeAddress>`;
-  const cat=franchise?'E':'S';
+  /* BT-34 / BT-49, l'adresse électronique : exigée par les règles françaises du flux 2 (BR-FR-12, BR-FR-13). Le courriel, schéma « EM » ; sans courriel valide, rien n'est inventé. */
+  const adrElec=e=>/^[^\s@<>&"']+@[^\s@<>&"']+\.[^\s@<>&"']+$/.test(String(e||'').trim())?`<ram:URIUniversalCommunication><ram:URIID schemeID="EM">${E(String(e).trim())}</ram:URIID></ram:URIUniversalCommunication>`:'';
+  const cat=franchise?'E':(zero?'Z':'S');
   const lignes=(f.lignes||[]).map((l,k)=>`
     <ram:IncludedSupplyChainTradeLineItem>
       <ram:AssociatedDocumentLineDocument><ram:LineID>${k+1}</ram:LineID></ram:AssociatedDocumentLineDocument>
@@ -24053,13 +24078,13 @@ function facturxXml(f){ const c=(db.clients||[]).find(x=>x.id===f.clientId)||{},
         <ram:SpecifiedTradeSettlementLineMonetarySummation><ram:LineTotalAmount>${fxN(Math.round(ligTotLigne(l)*100))}</ram:LineTotalAmount></ram:SpecifiedTradeSettlementLineMonetarySummation>
       </ram:SpecifiedLineTradeSettlement>
     </ram:IncludedSupplyChainTradeLineItem>`).join('');
-  const notes=[[FX_PIED_RETARD,'PMT'],[FX_PIED_ESCOMPTE,'AAB']].concat(H.tvaDebits?[['Option pour le paiement de la taxe d\'après les débits.','TXD']]:[])
+  const notes=[[FX_PIED_PENALITES,'PMD'],[FX_PIED_RECOUVREMENT,'PMT'],[FX_PIED_ESCOMPTE,'AAB']].concat(H.tvaDebits?[['Option pour le paiement de la taxe d\'après les débits.','TXD']]:[])
     .map(([t,s])=>`<ram:IncludedNote><ram:Content>${E(t)}</ram:Content><ram:SubjectCode>${s}</ram:SubjectCode></ram:IncludedNote>`).join('');
   /* BT-8 : le moment où la TVA devient exigible. Option pour les débits : la date de la facture (5) ; sinon une prestation de
      services est exigible à l'encaissement (72), une livraison de biens à la livraison (29) ; un document mixte n'a pas de
      réponse unique, et une facture sans TVA n'en a pas besoin. */
-  const exig=franchise?'':(H.tvaDebits?'5':(nat==='services'?'72':(nat==='biens'?'29':'')));
-  const code=paye?(FX_MOYENS[f.moyenPaiement]||''):(iban?'30':'');
+  const exig=tx===0?'':(H.tvaDebits?'5':(nat==='services'?'72':(nat==='biens'?'29':'')));
+  const code=paye?fxMoyenCode(f.moyenPaiement):(iban?'30':'');
   const mode=(code==='30'&&!iban)?'1':code;
   const moyen=mode?`<ram:SpecifiedTradeSettlementPaymentMeans><ram:TypeCode>${mode}</ram:TypeCode>${mode==='30'?`<ram:PayeePartyCreditorFinancialAccount><ram:IBANID>${E(iban)}</ram:IBANID></ram:PayeePartyCreditorFinancialAccount>${/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(bic)?`<ram:PayeeSpecifiedCreditorFinancialInstitution><ram:BICID>${E(bic)}</ram:BICID></ram:PayeeSpecifiedCreditorFinancialInstitution>`:''}`:''}</ram:SpecifiedTradeSettlementPaymentMeans>`:'';
   const contact=(H.tel||H.email)?`<ram:DefinedTradeContact>${H.tel?`<ram:TelephoneUniversalCommunication><ram:CompleteNumber>${E(H.tel)}</ram:CompleteNumber></ram:TelephoneUniversalCommunication>`:''}${H.email?`<ram:EmailURIUniversalCommunication><ram:URIID>${E(H.email)}</ram:URIID></ram:EmailURIUniversalCommunication>`:''}</ram:DefinedTradeContact>`:'';
@@ -24072,8 +24097,8 @@ function facturxXml(f){ const c=(db.clients||[]).find(x=>x.id===f.clientId)||{},
   <rsm:ExchangedDocument><ram:ID>${E(f.num||'')}</ram:ID><ram:TypeCode>380</ram:TypeCode><ram:IssueDateTime><udt:DateTimeString format="102">${fxDate8(f.date)}</udt:DateTimeString></ram:IssueDateTime>${notes}</rsm:ExchangedDocument>
   <rsm:SupplyChainTradeTransaction>${lignes}
     <ram:ApplicableHeaderTradeAgreement>
-      <ram:SellerTradeParty>${siret.length===14?`<ram:GlobalID schemeID="0009">${siret}</ram:GlobalID>`:''}<ram:Name>${E(H.raison||H.nom)}</ram:Name>${siren.length===9?`<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">${siren}</ram:ID>${H.raison&&H.raison!==H.nom?`<ram:TradingBusinessName>${E(H.nom)}</ram:TradingBusinessName>`:''}</ram:SpecifiedLegalOrganization>`:''}${contact}${adresse(String(H.cp||'').trim(),String(H.adresse||'').trim(),String(H.ville||'').trim())}${tva?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${E(tva)}</ram:ID></ram:SpecifiedTaxRegistration>`:(franchise&&siren.length===9?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="FC">${siren}</ram:ID></ram:SpecifiedTaxRegistration>`:'')}</ram:SellerTradeParty>
-      <ram:BuyerTradeParty><ram:Name>${E(c.nom||'Client')}</ram:Name>${docSiren(c.siren).length===9?`<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">${docSiren(c.siren)}</ram:ID></ram:SpecifiedLegalOrganization>`:''}${adresse(adr.cp,adr.rue,adr.ville)}${String(c.tvaIntra||'').trim()?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${E(String(c.tvaIntra).replace(/\s/g,'').toUpperCase())}</ram:ID></ram:SpecifiedTaxRegistration>`:''}</ram:BuyerTradeParty>
+      <ram:SellerTradeParty>${siret.length===14?`<ram:GlobalID schemeID="0009">${siret}</ram:GlobalID>`:''}<ram:Name>${E(H.raison||H.nom)}</ram:Name>${siren.length===9?`<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">${siren}</ram:ID>${H.raison&&H.raison!==H.nom?`<ram:TradingBusinessName>${E(H.nom)}</ram:TradingBusinessName>`:''}</ram:SpecifiedLegalOrganization>`:''}${contact}${adresse(String(H.cp||'').trim(),String(H.adresse||'').trim(),String(H.ville||'').trim())}${adrElec(H.email)}${tva?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${E(tva)}</ram:ID></ram:SpecifiedTaxRegistration>`:(franchise&&siren.length===9?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="FC">${siren}</ram:ID></ram:SpecifiedTaxRegistration>`:'')}</ram:SellerTradeParty>
+      <ram:BuyerTradeParty><ram:Name>${E(c.nom||'Client')}</ram:Name>${docSiren(c.siren).length===9?`<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">${docSiren(c.siren)}</ram:ID></ram:SpecifiedLegalOrganization>`:''}${adresse(adr.cp,adr.rue,adr.ville)}${adrElec(c.email)}${String(c.tvaIntra||'').trim()?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${E(String(c.tvaIntra).replace(/\s/g,'').toUpperCase())}</ram:ID></ram:SpecifiedTaxRegistration>`:''}</ram:BuyerTradeParty>
     </ram:ApplicableHeaderTradeAgreement>
     <ram:ApplicableHeaderTradeDelivery><ram:ShipToTradeParty><ram:Name>${E(c.nom||'Client')}</ram:Name>${liv?(()=>{ const m=liv.replace(/[\s,]*france\s*$/i,'').match(/^(.*?)[\s,]*\b(\d{5})\s+([^,\d][^,]*?)\s*$/);
       return m?adresse(m[2],m[1].trim(),m[3].trim()):adresse('',liv,''); })():''}</ram:ShipToTradeParty></ram:ApplicableHeaderTradeDelivery>
@@ -35163,7 +35188,7 @@ function docPdfStr(kind,d,logo,fx){ const estFact=kind==='factures';
   if(estFact){
     (paye?['Facture réglée'+(d.datePaiement?' le '+dateFr(d.datePaiement):'')+'. Nous vous remercions de votre confiance.']
       :['Règlement au plus tard le '+dateFr(echISO)+'.'+(EI.iban?' Par virement : IBAN '+EI.iban+(EI.bic?' · BIC '+EI.bic:''):'')])
-    .concat(tx===0?['TVA non applicable, article 293 B du CGI.']:[])
+    .concat(docFranchiseTva(EI,tx)?['TVA non applicable, article 293 B du CGI.']:[])
     .concat(MEN.fin)
     .concat(['En cas de retard de paiement : pénalités au taux d\'intérêt légal majoré et indemnité forfaitaire',
              'de recouvrement de 40 EUR (art. L441-10 du Code de commerce). Pas d\'escompte pour paiement anticipé.'])
@@ -35171,7 +35196,7 @@ function docPdfStr(kind,d,logo,fx){ const estFact=kind==='factures';
     y-=10;
   } else {
   [ 'Devis valable 30 jours à compter de sa date d\'émission.',
-    tx===0?'TVA non applicable, article 293 B du CGI.':'Prix en euros, TVA au taux indiqué ci-dessus.',
+    docFranchiseTva(EI,tx)?'TVA non applicable, article 293 B du CGI.':'Prix en euros, TVA au taux indiqué ci-dessus.',
     'Bon pour accord : date, signature et mention « Bon pour accord ».'
   ].forEach(t2=>{ T(M,y,8,cut(t2,110),0,GREY); y-=11; });
   y-=10;
@@ -39037,7 +39062,9 @@ const DOC={ devis:{coll:'devis',titre:'Devis',un:'devis',prefix:'DEV',st:DEVIS_S
    qui IMPRIME la ligne sur le PDF, c'est lui qui doit arrondir le total — sinon le client
    lit trois fois 49,99 sous un total de 150,00, et on a déplacé l'écart au lieu de le
    fermer. On arrondit avec la fonction qui affiche, jamais avec une autre. */
-const ligTotLigne=l=>Number((((+l.qte||0)*(+l.pu||0))||0).toFixed(2));
+/* demi vers le haut sur la valeur DÉCIMALE : 2,5 × 77,77 = 194,425 s'écrit 194,42499999… en binaire et toFixed rendait 194,42 ; un
+   validateur (Mustang) recalcule 194,43. Le plancher 1e-7 (de centime) rattrape l'erreur binaire sans toucher aux autres montants. */
+const ligTotLigne=l=>{ const x=((+l.qte||0)*(+l.pu||0))||0; return Number(((x<0?-1:1)*Math.round(Math.abs(x)*100+1e-7)/100).toFixed(2)); };
 const ligHT=ls=>Number(((ls||[]).reduce((s,l)=>s+ligTotLigne(l),0)).toFixed(2));
 /* ⛔ `d` PEUT être introuvable, et ça arrive vraiment : la synchro efface un devis sur un
    appareil pendant qu'un autre l'affiche encore, ou un lien pointe sur un document supprimé.
@@ -41501,7 +41528,7 @@ function printDoc(kind,id){
       ${d.notes?`<div class="note"><div class="lbl">Notes</div>${esc(d.notes)}</div>`:''}
       ${(d.photos&&d.photos.length)?`<div style="margin-top:5mm"><div class="lbl">Photos</div>${d.photos.map(p=>`<img src="${p}" style="width:38mm;height:38mm;object-fit:cover;border-radius:2.5mm;margin:1.5mm 1.5mm 0 0;border:1px solid #E7EAF1">`).join('')}</div>`:''}
       <div class="legal">
-        ${estFact?(tvaP===0?`TVA non applicable, article 293 B du CGI.<br>`:'')+MEN.fin.map(t=>esc(t)+'<br>').join('')
+        ${estFact?(docFranchiseTva(E,tvaP)?`TVA non applicable, article 293 B du CGI.<br>`:'')+MEN.fin.map(t=>esc(t)+'<br>').join('')
           +`En cas de retard de paiement : pénalités calculées au taux d'intérêt légal majoré et indemnité forfaitaire de recouvrement de 40 € (art. L441-10 du Code de commerce). Pas d'escompte pour paiement anticipé.`:''}
       </div>
       <div class="ftr">${esc(soc)}${E.siret?' · SIRET '+esc(E.siret):''}${E.tvaIntra?' · TVA '+esc(E.tvaIntra):''}${[E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).length?'<br>'+esc([E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).join(' — '))+(E.tel?' · Tél. '+esc(E.tel):''):''}<br>Document édité le ${new Date().toLocaleDateString('fr-FR')}</div>

@@ -187,9 +187,9 @@ const BASE = Object.assign({}, O.BASE_SANS_CLIENT, {
   clients: [CLI, { id: 'c2', nom: 'Mme Martin', typeClient: 'particulier', email: 'martin@exemple.fr', adresse: '3 impasse X, 17000 La Rochelle' }],
   devis: [{ id: 'd1', num: 'DEV-2026-001', clientId: 'c1', date: '2026-10-20', tva: 20, statut: 'brouillon', lignes: L1 }],
   factures: [F('f1'), F('f2', { tva: 10 }), F('f3', { tva: 5.5, lignes: [{ designation: 'Produit', qte: 3, pu: 0.1 }, { designation: 'Autre', qte: 7, pu: 1.15 }] }),
-    F('f4', { tva: 0, nature: 'services' }), F('f5', { statut: 'payee', datePaiement: '2026-10-25', moyenPaiement: 'CB' }), F('f6', { adresseLivraison: '8 quai Marchand, 17300 Rochefort', nature: 'biens' }),
+    F('f4', { tva: 0, nature: 'services' }), F('f5', { statut: 'payee', datePaiement: '2026-10-25', moyenPaiement: 'A) Carte bancaire' }), F('f6', { adresseLivraison: '8 quai Marchand, 17300 Rochefort', nature: 'biens' }),
     F('f7', { nature: 'mixte', echeance: '2026-11-05' }), F('f8', { lignes: [{ designation: 'Tapis & <moquette> "A"\u0003\u000B suite', qte: 1, pu: 10 }] }),
-    F('f9', { statut: 'payee', datePaiement: '2026-10-26', moyenPaiement: 'VIR' }), F('f10', { clientId: 'c2' }),
+    F('f9', { statut: 'payee', datePaiement: '2026-10-26', moyenPaiement: 'H) Virement' }), F('f10', { clientId: 'c2' }),
     /* deux montants où l'ancienne arithmétique contredisait ses propres parties : 1,00 € à 5,5 % (TVA 0,06 mais TTC 1,05) et 0,15 € à 10 % (TVA 0,01 au lieu de 0,02) */
     F('f11', { tva: 5.5, lignes: [{ designation: 'Pièce', qte: 1, pu: 1 }] }), F('f12', { tva: 10, lignes: [{ designation: 'Joint', qte: 1, pu: 0.15 }] })] });
 const W = O.monter(BASE);
@@ -263,7 +263,13 @@ titre('4. non-régression : un devis et une facture ordinaires sortent octet pou
   /* calculées le 28 octobre 2026 avec le app.html D'AVANT (commit 6b30d323), sur ces mêmes données */
   v('devis : empreinte inchangée', h(X.docPdfStr('devis', X.db.devis[0], null)), 'd4ac9c30b95980081a910d43f7742d0f0d77001f89b1758380b281929cd0f6d1');
   v('facture à 20 % (10 juin, hors changement d’heure) : empreinte inchangée', h(X.docPdfStr('factures', X.db.factures[0], null)), '405685f6eb6028ba367c25d1920d4bd58f90713c62d1e05690998c3516d8e5ab');
-  v('facture réglée à 0 % (293 B) : empreinte inchangée', h(X.docPdfStr('factures', X.db.factures[1], null)), '50f32fd58c3c88bafcf06c777a7b996c2ca6a7f130618cf860ca3de20f790e2f');
+  /* ⛔ CHANGÉE VOLONTAIREMENT le 28 octobre 2026 (constat 3 du vérificateur) : ce vendeur a un n° de TVA, donc une facture à 0 % n'est pas
+     une franchise en base — « article 293 B » n'y est plus imprimé. L'ancienne empreinte était 50f32fd5… (avec la mention). */
+  const f0 = h(X.docPdfStr('factures', X.db.factures[1], null));
+  v('facture à 0 % d\'un vendeur ASSUJETTI : plus de mention 293 B (empreinte recalculée, voir le commentaire)', [f0, X.docPdfStr('factures', X.db.factures[1], null).includes('293 B')], ['4434ff13aa34c307370562ea7738307b1267646bc88ede0e94ffcf152f0a4f89', false]);
+  { const XF = O.monter(Object.assign({}, base, { entreprise: Object.assign({}, base.entreprise, { tvaIntra: '' }) }));
+    vrai('… et le MÊME document d\'un vendeur SANS n° de TVA (franchise en base) porte bien la mention 293 B', XF.docPdfStr('factures', XF.db.factures[1], null).includes('293 B'));
+    vrai('… le devis à 0 % aussi : 293 B pour la franchise seulement, « TVA au taux indiqué » pour un assujetti', XF.docPdfStr('devis', Object.assign({}, XF.db.devis[0], { tva: 0 }), null).includes('293 B') && !X.docPdfStr('devis', Object.assign({}, X.db.devis[0], { tva: 0 }), null).includes('293 B') && X.docPdfStr('devis', Object.assign({}, X.db.devis[0], { tva: 0 }), null).includes('TVA au taux indiqu')); }
   const avec = X.docPdfStr('factures', X.db.factures[0], null, { xml: '<x/>', date: new Date('2026-10-28T10:00:00Z') });
   const pages = s => lirePdf(s), A = pages(X.docPdfStr('factures', X.db.factures[0], null)), B = pages(avec);
   const contenus = P => Object.values(P.objets).filter(o => o && o.flux && !/\/Type/.test(o.dict)).map(o => o.flux.toString('latin1'));
@@ -299,12 +305,13 @@ titre('5. facturxPrerequis : une liste de ce qui manque, vide quand tout y est')
 /* ═════════════ 6. LE XML : BIEN FORMÉ, AU SCHÉMA, AUX RÈGLES, AUX LISTES ═════════════ */
 titre('6. facturxXml : dix factures, chacune contrôlée de quatre façons');
 const XMLS = {};
+const WF = O.monter(Object.assign({}, BASE, { entreprise: Object.assign({}, BASE.entreprise, { tvaIntra: '' }) }));   // le vendeur en franchise en base : pas de n° de TVA
 { const ids = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9'];
   let xsdJouees = 0, xmllint = true;
   try { cp.execFileSync('xmllint', ['--version'], { stdio: 'ignore' }); } catch (e) { xmllint = false; }
   const XSD = path.join(__dirname, 'facturx', 'CrossIndustryInvoice_100pD16B.xsd');
   for (const id of ids) {
-    const f = facture(id), xml = W.facturxXml(f); XMLS[id] = xml;
+    const MW = id === 'f4' ? WF : W, f = MW.db.factures.find(x => x.id === id), xml = MW.facturxXml(f); XMLS[id] = xml;
     let arbre = null, erreurBienForme = '';
     try { arbre = analyserXml(xml); } catch (e) { erreurBienForme = e.message; }
     vrai(id + ' (' + f.num + ', TVA ' + f.tva + ' %, ' + f.statut + ') : bien formé', !!arbre, erreurBienForme);
@@ -346,7 +353,7 @@ const XMLS = {};
   v('f9 (réglée par virement) : virement (30) avec l\'IBAN du vendeur', [texteDe(reg('f9'), 'ram:SpecifiedTradeSettlementPaymentMeans/ram:TypeCode'), texteDe(reg('f9'), 'ram:SpecifiedTradeSettlementPaymentMeans/ram:PayeePartyCreditorFinancialAccount/ram:IBANID')], ['30', 'FR7630006000011234567890189']);
   const sansIban = O.monter(Object.assign({}, BASE, { entreprise: Object.assign({}, BASE.entreprise, { iban: '', bic: '' }) })), xi = analyserXml(sansIban.facturxXml(sansIban.db.factures[0]));
   v('sans IBAN : aucun moyen de paiement inventé (BR-61 : un virement exige son IBAN)', trouver(xi, 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementPaymentMeans').length, 0);
-  const xiv = analyserXml(sansIban.facturxXml(Object.assign({}, sansIban.db.factures[0], { statut: 'payee', moyenPaiement: 'VIR' })));
+  const xiv = analyserXml(sansIban.facturxXml(Object.assign({}, sansIban.db.factures[0], { statut: 'payee', moyenPaiement: 'H) Virement' })));
   v('… et une facture réglée « par virement » sans IBAN : moyen non défini (1), jamais un virement sans compte', texteDe(xiv, 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementPaymentMeans/ram:TypeCode'), '1');
   v('f6 : l\'adresse de livraison structurée (17300 Rochefort) dans ShipToTradeParty', [texteDe(A('f6'), 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeDelivery/ram:ShipToTradeParty/ram:PostalTradeAddress/ram:PostcodeCode'), texteDe(A('f6'), 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeDelivery/ram:ShipToTradeParty/ram:PostalTradeAddress/ram:LineOne')], ['17300', '8 quai Marchand']);
   v('f8 : une désignation à guillemets, « & », « < » et caractères de contrôle donne un fichier VALIDE, sans les caractères de contrôle', [texteDe(A('f8'), 'rsm:SupplyChainTradeTransaction/ram:IncludedSupplyChainTradeLineItem/ram:SpecifiedTradeProduct/ram:Name')], ['Tapis & <moquette> "A" suite']);
@@ -447,6 +454,63 @@ titre('8. cohérence : le texte imprimé et le XML donnent les mêmes montants, 
   if (typeof P.__printDoc === 'function') { P.__printDoc('factures', 'f6'); const T = W.docTot(facture('f6'));
     vrai('l\'aperçu imprimable porte le SIREN du client, la nature, l\'adresse de livraison et le TTC du XML', /SIREN 552 081 317/.test(html) && /Nature de l'opération : Livraison de biens\./.test(html) && /Adresse de livraison : 8 quai Marchand/.test(html) && html.includes(P.eur(T.ttc)), html.slice(0, 200));
     P.__printDoc('factures', 'f7'); vrai('… et l\'échéance posée (05/11/2026) plutôt que date + 30 jours', /05\/11\/2026/.test(html)); } }
+
+/* ═════════════ 8 bis. LES TROIS CONSTATS DU VÉRIFICATEUR (28 octobre 2026) ═════════════ */
+titre('8 bis. moyens de paiement réels, franchise en base réservée aux vendeurs sans n° de TVA, arrondi exact, notes L441-10, adresses électroniques');
+{ const MP = require('vm').runInContext('(' + O.decoupe('const MOYENS_PAIEMENT =').replace(/^const MOYENS_PAIEMENT =\s*/, '').replace(/;\s*$/, '') + ')', W);
+  v('(population) MOYENS_PAIEMENT est lu dans app.html : huit libellés', MP.length, 8);
+  const code = l => W.fxMoyenCode(l);
+  v('⛔ constat 2 : les HUIT libellés réels de l\'application donnent leur code (A carte 48, B lien 68, C espèces 10, D chèque 20, E/F/G 1, H virement 30)', MP.map(code), ['48', '68', '10', '20', '1', '1', '1', '30']);
+  v('… un libellé sans lettre se lit au mot (accents et casse ignorés)', ['Carte bancaire', 'ESPÈCES', 'chèque', 'Virement SEPA', 'Lien de paiement'].map(code), ['48', '10', '20', '30', '68']);
+  v('… vide : aucun moyen inventé ; un libellé inconnu : « instrument non défini » (1)', [code(''), code(undefined), code('   '), code('Bitcoin'), code('Z) Troc')], ['', '', '', '1', '1']);
+  /* par le XML, avec l'IBAN du vendeur : chaque libellé réel sur une facture réglée */
+  const XM = lib => { const f = Object.assign({}, facture('f5'), { moyenPaiement: lib }); return analyserXml(W.facturxXml(f)); };
+  const moy = x => trouver(x, 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:SpecifiedTradeSettlementPaymentMeans').map(n => texteDe(n, 'ram:TypeCode'));
+  v('… facture RÉGLÉE : le XML porte le code de chacun des huit libellés (un SpecifiedTradeSettlementPaymentMeans à chaque fois)', MP.map(l => moy(XM(l)).join()), ['48', '68', '10', '20', '1', '1', '1', '30']);
+  v('… tous ces codes sont dans la liste officielle (verifierCodes) et le XML reste valide au schéma', MP.map(l => { const x = XM(l), e = []; verifierSchema(x, SCHEMA.racine, 'CrossIndustryInvoice', e); return verifierCodes(x).concat(e, reglesMetier(x)).length; }), MP.map(() => 0));
+  v('… réglée sans moyen noté : pas de moyen (rien d\'inventé)', moy(XM('')), []);
+
+  /* ── constat 3 : la franchise en base ne se dit que d'un vendeur sans n° de TVA ── */
+  const manqueF = (X, id) => X.facturxPrerequis(X.db.factures.find(f => f.id === id));
+  vrai('⛔ constat 3 : vendeur avec n° de TVA, facture à 0 % : REFUSÉE, avec « le motif d\'exonération »', manqueF(W, 'f4').some(x => /motif d'exonération/.test(x)));
+  vrai('… le même vendeur à 20 % : rien de tel', !manqueF(W, 'f1').some(x => /motif d'exonération/.test(x)));
+  vrai('… un vendeur SANS n° de TVA (franchise) à 0 % : acceptée', manqueF(WF, 'f4').length === 0, manqueF(WF, 'f4'));
+  const x4 = analyserXml(W.facturxXml(facture('f4'))), t4 = trouver(x4, 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:ApplicableTradeTax')[0];
+  vrai('… et même si le fichier était fabriqué quand même : ni catégorie E, ni « 293 B », ni VATEX-FR-FRANCHISE (jamais une fausse franchise)',
+    texteDe(t4, 'ram:CategoryCode') === 'Z' && !trouver(t4, 'ram:ExemptionReason').length && !trouver(t4, 'ram:ExemptionReasonCode').length && !/293 B/.test(W.facturxXml(facture('f4'))), W.facturxXml(facture('f4')).slice(0, 80));
+  v('… le vendeur avec n° de TVA garde le sien (VA) et ne reçoit pas le « FC » de la franchise', trouver(trouver(x4, 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:SellerTradeParty')[0], 'ram:SpecifiedTaxRegistration/ram:ID').map(n => n.attrs.schemeID), ['VA']);
+  v('… la franchise (WF) : E, « 293 B », VATEX-FR-FRANCHISE et l\'identifiant « FC » du SIREN', [XMLS['f4'] && texteDe(trouver(analyserXml(XMLS['f4']), 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeSettlement/ram:ApplicableTradeTax')[0], 'ram:CategoryCode'), /293 B/.test(XMLS['f4']), /VATEX-FR-FRANCHISE/.test(XMLS['f4']), /schemeID="FC">732829320</.test(XMLS['f4'])], ['E', true, true, true]);
+  { const h = (X, id) => X.docPdfStr('factures', X.db.factures.find(f => f.id === id), null);
+    v('… PDF : 293 B pour la franchise (WF), pas pour l\'assujetti (W) — même facture à 0 %', [h(WF, 'f4').includes('293 B'), h(W, 'f4').includes('293 B')], [true, false]);
+    const P2 = O.monter(BASE); let html2 = ''; P2.window = { open() { return { document: { write(x) { html2 = x; }, close() {} }, focus() {}, print() {} }; } };
+    require('vm').runInContext(O.decoupe('function printDoc(') + '\nglobalThis.__printDoc = printDoc;', P2);
+    const P3 = O.monter(Object.assign({}, BASE, { entreprise: Object.assign({}, BASE.entreprise, { tvaIntra: '' }) })); let html3 = ''; P3.window = { open() { return { document: { write(x) { html3 = x; }, close() {} }, focus() {}, print() {} }; } };
+    require('vm').runInContext(O.decoupe('function printDoc(') + '\nglobalThis.__printDoc = printDoc;', P3);
+    P2.__printDoc('factures', 'f4'); P3.__printDoc('factures', 'f4');
+    v('… aperçu imprimable (printDoc) : 293 B pour la franchise seulement', [/293 B/.test(html3), /293 B/.test(html2)], [true, false]);
+    vrai('(population) l\'aperçu imprimable est bien celui de la facture f4, avec son TTC', html2.includes(P2.eur(P2.docTot(P2.db.factures.find(f => f.id === 'f4')).ttc)) && html3.length > 500); }
+
+  const LIG = require('vm').runInContext('ligTotLigne', W);
+  /* ── l'arrondi de ligne : 2,5 × 77,77 = 194,425 → 194,43 (Mustang recalcule 194,43 ; toFixed rendait 194,42) ── */
+  v('⛔ ligTotLigne : 2,5 × 77,77 = 194,43 (demi vers le haut sur la valeur décimale)', [LIG({ qte: 2.5, pu: 77.77 }), LIG({ qte: 1, pu: 0.15 }), LIG({ qte: 3, pu: 33.5 })], [194.43, 0.15, 100.5]);
+  { let graine = 11; const rnd = () => (graine = (graine * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; let faux = 0, n = 0, demis = 0;
+    for (let i = 0; i < 40000; i++) { const q = Math.round(rnd() * 100000) / 1000, p = Math.round(rnd() * 100000) / 100;   // quantité à 3 décimales, prix à 2
+      const exact = BigInt(Math.round(q * 1000)) * BigInt(Math.round(p * 100));   // en millièmes de centime... (q×1000)(p×100) = produit × 10^5
+      const cent = (exact + 500n) / 1000n;   // produit × 100, demi vers le haut : exact/10^5 → centimes = exact/10^3
+      if (exact % 1000n === 500n) demis++;
+      n++; if (BigInt(Math.round(LIG({ qte: q, pu: p }) * 100)) !== cent) faux++; }
+    v('40 000 lignes tirées au hasard (quantité à 3 décimales) : la ligne égale le calcul en entiers exacts, demi vers le haut', [n, faux], [40000, 0]);
+    vrai('(population) il y avait de vrais demis dans le tirage — l\'égalité est éprouvée là où le défaut vivait : ' + demis, demis > 50); }
+
+  /* ── BR-FR-05 : trois notes distinctes ── */
+  const notes = x => trouver(x, 'rsm:ExchangedDocument/ram:IncludedNote').map(n => texteDe(n, 'ram:SubjectCode'));
+  v('constat Mustang BR-FR-05 : PMD (pénalités), PMT (indemnité de 40 €) et AAB (escompte) sont trois notes', notes(analyserXml(XMLS.f1)), ['PMD', 'PMT', 'AAB']);
+  vrai('… la note PMD parle des pénalités et pas de l\'indemnité ; la PMT de l\'indemnité de 40 EUR', (n => /pénalités/.test(texteDe(n[0], 'ram:Content')) && !/40 EUR/.test(texteDe(n[0], 'ram:Content')) && /40 EUR/.test(texteDe(n[1], 'ram:Content')))(trouver(analyserXml(XMLS.f1), 'rsm:ExchangedDocument/ram:IncludedNote')));
+  /* ── BR-FR-12 / BR-FR-13 : adresses électroniques ── */
+  const uri = (x, partie) => trouver(trouver(x, 'rsm:SupplyChainTradeTransaction/ram:ApplicableHeaderTradeAgreement/ram:' + partie)[0], 'ram:URIUniversalCommunication/ram:URIID').map(n => [n.texte, n.attrs.schemeID]);
+  v('constat Mustang BR-FR-12/13 : vendeur et acheteur portent leur courriel (BT-34, BT-49), schéma EM', [uri(analyserXml(XMLS.f1), 'SellerTradeParty'), uri(analyserXml(XMLS.f1), 'BuyerTradeParty')], [[['compta@excellence.example', 'EM']], [['elise@exemple.fr', 'EM']]]);
+  { const sans = O.monter(Object.assign({}, BASE, { clients: BASE.clients.map(c => c.id === 'c1' ? Object.assign({}, c, { email: 'pas un courriel' }) : c) }));
+    v('… un courriel illisible n\'est pas écrit (rien d\'inventé)', uri(analyserXml(sans.facturxXml(sans.db.factures[0])), 'BuyerTradeParty'), []); } }
 
 /* ═════════════ 9. LES GESTES : BOUTON, ENVOI, SAISIE ═════════════ */
 titre('9. les gestes : le bouton, l\'envoi, la saisie — et jamais « conforme »');
