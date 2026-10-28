@@ -69,6 +69,7 @@ console.log('\n── 3134 · b. L\'écran d\'acceptation d\'un code réservé :
   vrai('   … et rien pour un code libre, un code inconnu ou une liste pas lue', m.f.demReserveBadge({ code: 'LIBRE' }) === '' && m.f.demCodeReserve('INCONNU') === null && monter({ dem: {}, pro: { loaded: false, err: '', codes: [] } }).f.demCodeReserve('CODE-FICTIF-A') === null);
   vrai('   … ni pour un code dont `metiers` est vide (libre)', monter({ dem: {}, pro: pro({ code: 'LIBRE', metiers: [], metiersIllisible: false }) }).f.demCodeReserve('LIBRE') === null);
 
+  vrai('   … et la carte de la demande l\'affiche vraiment (la ligne « Code promo » appelle `demReserveBadge`)', /\['Code promo',d\.code\?[^\]]*demReserveBadge\(d\)/.test(sansCommentaires(TOUR)));
   await m.f.demAccepter('a@x.fr', 'Dupont Plomberie SARL', 0, null);
   v('⛔ accepter une demande à code RÉSERVÉ : UNE confirmation, qui montre l\'entreprise ET le métier déclaré', [m.jour.confirms.length, /Dupont Plomberie SARL/.test(m.jour.confirms[0] || ''), /Nettoyage/.test(m.jour.confirms[0] || '')], [1, true, true]);
   v('   … confirmée : l\'espace s\'ouvre', m.jour.acceptes.length, 1);
