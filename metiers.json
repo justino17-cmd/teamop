@@ -929,7 +929,9 @@
     "Contrôle & vérification",
     "Installation neuve",
     "Visite technique / devis",
-    "Dossier Consuel (attestation de conformité)"
+    "Dossier Consuel (attestation de conformité)",
+    "Raccordement et mise en service",
+    "Production photovoltaïque (raccordement et dossier Consuel)"
    ],
    "presta": [
     "Consignation / mise hors tension",
@@ -945,7 +947,16 @@
     "Nettoyage du chantier",
     "Mesure de la résistance de terre",
     "Mesure d'isolement",
-    "Test des différentiels"
+    "Test des différentiels",
+    "Recherche et localisation du défaut",
+    "Pose d’un interrupteur différentiel",
+    "Pose d’un parafoudre",
+    "Remplacement du tableau électrique",
+    "Remplacement de luminaire",
+    "Pose d’une borne de recharge",
+    "Mise à la terre et liaison équipotentielle",
+    "Contrôle visuel de l’installation",
+    "Pièces remplacées proposées au client (conservation : oui / non)"
    ],
    "releves": [
     {
@@ -970,7 +981,7 @@
     },
     {
      "k": "diff",
-     "l": "Déclenchement différentiel",
+     "l": "Temps de déclenchement du différentiel",
      "u": "ms"
     },
     {
@@ -989,6 +1000,40 @@
      "k": "puissanceBorne",
      "l": "Puissance de la borne installée",
      "u": "kVA"
+    },
+    {
+     "k": "calibreDiff",
+     "l": "Calibre du différentiel",
+     "u": "mA"
+    },
+    {
+     "k": "tensionEssai",
+     "l": "Tension d’essai de l’isolement",
+     "u": "V"
+    },
+    {
+     "k": "instrument",
+     "l": "Appareil de mesure (marque, référence, n° de série)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "etalonnage",
+     "l": "Date d’étalonnage de l’appareil",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "couleurConsuel",
+     "l": "Couleur de l’attestation Consuel",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "pdl",
+     "l": "N° de point de livraison (PDL / PRM)",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -1005,10 +1050,12 @@
     "EPI"
    ],
    "documents": [
-    "Devis de dépannage",
-    "Rapport d'intervention avec les mesures relevées",
-    "Rapport de vérification / attestation d'installation (mesures et verdict)",
-    "Suivi du dossier Consuel"
+    "Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017",
+    "Note de dépannage remise avant paiement (dès 25 € TTC)",
+    "Rapport d’intervention avec les mesures relevées",
+    "Rapport de vérification de l’entreprise (mesures et verdict) — pas une attestation Consuel",
+    "Suivi du dossier Consuel (l’attestation est produite et visée par le Consuel)",
+    "Suivi du rapport de vérification initiale d’un lieu de travail (document d’un vérificateur qualifié)"
    ],
    "aCreer": [
     {
@@ -1576,7 +1623,8 @@
     "Coffre-fort",
     "Dépannage urgent",
     "Visite technique / devis",
-    "Dépannage après effraction (mise en sécurité)"
+    "Dépannage après effraction (mise en sécurité)",
+    "Remplacement de ferme-porte"
    ],
    "presta": [
     "Ouverture fine sans dégât",
@@ -1589,8 +1637,8 @@
     "Nettoyage du chantier",
     "Photos de la porte avant et après l'intervention",
     "Bon de remise de clés signé",
-    "Taux horaire et frais de déplacement annoncés avant l'intervention",
-    "Pièces remplacées proposées au client"
+    "Mise en sécurité provisoire (condamnation)",
+    "Pièces remplacées proposées au client (conservation : oui / non)"
    ],
    "releves": [
     {
@@ -1606,7 +1654,7 @@
     },
     {
      "k": "a2p",
-     "l": "Certification (A2P…)",
+     "l": "Niveau A2P annoncé par la fiche produit",
      "u": "",
      "txt": true
     },
@@ -1627,6 +1675,47 @@
      "l": "Clés remises : détail (numéros, copies)",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "heureAppel",
+     "l": "Heure d’appel",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "heureArrivee",
+     "l": "Heure d’arrivée",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "heureDepart",
+     "l": "Heure de départ",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "methode",
+     "l": "Méthode d’ouverture employée",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "degats",
+     "l": "Dégâts causés par l’ouverture",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "recepisse",
+     "l": "Référence du récépissé de plainte fourni par le client",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "nbPhotos",
+     "l": "Nombre de photos avant intervention",
+     "u": ""
     }
    ],
    "produits": [
@@ -1641,9 +1730,10 @@
     "Outillage consommable"
    ],
    "documents": [
-    "Devis de dépannage avec les mentions de l'arrêté de 2017",
-    "Bon de remise de clés signé (nombre de clés, modèle, niveau A2P)",
-    "Rapport pour l'assurance (état de la porte avant et après, photos, nature de l'ouverture)",
+    "Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017",
+    "Note détaillée avant paiement (à partir de 25 € TTC)",
+    "Bon de remise de clés signé (nombre de clés, modèle, niveau A2P annoncé)",
+    "Constat d’intervention pour l’assurance (état avant et après, photos, nature de l’ouverture)",
     "Registre des clés confiées"
    ],
    "aCreer": [
@@ -1964,6 +2054,8 @@
     "assistantDevis",
     "factures",
     "comptabilite",
+    "produits",
+    "stock",
     "pointage",
     "vehicules",
     "messagerie",
@@ -1987,6 +2079,8 @@
     "assistantDevis": "Un devis de chantier dicté sur le terrain, pendant le métré.",
     "factures": "Factures d'acompte et de solde au fil de l'avancement.",
     "comptabilite": "Suivre les acomptes et les soldes encaissés chantier par chantier.",
+    "produits": "Votre catalogue de matériaux : il alimente les devis et le matériel posé sur chantier.",
+    "stock": "Ce que vous gardez en dépôt ; le gros est livré sur chantier.",
     "pointage": "Les heures de chantier par personne, pour suivre le coût réel d'un lot.",
     "vehicules": "Camions, bennes et matériel roulant : assurance, kilométrage, entretien.",
     "messagerie": "Le chef de chantier envoie photos et questions au bureau en direct.",
@@ -2000,8 +2094,6 @@
     "statistiques": "Pour suivre le chiffre d'affaires et les devis acceptés.",
     "archives": "Un récapitulatif mensuel à garder.",
     "carteInt": "Les chantiers sont fixes : utile seulement si vous enchaînez beaucoup de petits chantiers.",
-    "produits": "Un catalogue de prix sert au devis, même si vous ne gérez pas de stock.",
-    "stock": "Seulement si vous gardez des matériaux en dépôt : le gros est livré sur chantier.",
     "conducteurs": "Si plusieurs personnes conduisent les camions.",
     "boiteMail": "Pour échanger avec les maîtres d'ouvrage depuis l'application.",
     "brouillon": "Le chef de chantier prépare sa liste de matériaux.",
@@ -2021,7 +2113,11 @@
     "Dallage / terrasse",
     "Visite technique / devis",
     "Réception de chantier (procès-verbal)",
-    "Levée de réserves"
+    "Levée de réserves",
+    "Démolition / curage",
+    "Chape & ragréage",
+    "Étanchéité & drainage",
+    "Clôture & muret"
    ],
    "presta": [
     "Implantation et traçage",
@@ -2035,8 +2131,14 @@
     "Jointoiement",
     "Évacuation des gravats",
     "Nettoyage du chantier",
-    "Vérification du repérage amiante avant travaux",
-    "Procès-verbal de réception signé"
+    "Procès-verbal de réception signé",
+    "Déclaration de travaux à proximité de réseaux (DT-DICT)",
+    "Démolition / dépose",
+    "Décoffrage et cure du béton",
+    "Chaînage et raidisseurs",
+    "Étaiement",
+    "Chape",
+    "Vérification du repérage amiante avant travaux (bâtiment livré avant le 1er janvier 1997)"
    ],
    "releves": [
     {
@@ -2066,7 +2168,48 @@
     },
     {
      "k": "reperageAmiante",
-     "l": "Repérage amiante avant travaux (référence du rapport)",
+     "l": "Repérage amiante avant travaux (référence et date du rapport, bâtiment d’avant 1997)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "effectif",
+     "l": "Effectif sur chantier",
+     "u": "personnes"
+    },
+    {
+     "k": "meteo",
+     "l": "Météo",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "materiauxLivres",
+     "l": "Matériaux livrés",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "aleas",
+     "l": "Aléas (amiante, réseaux, sol)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "decisions",
+     "l": "Décisions prises avec le client",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "securite",
+     "l": "Points de sécurité",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "plombCrep",
+     "l": "Repérage plomb (CREP) : référence",
      "u": "",
      "txt": true
     }
@@ -2086,9 +2229,9 @@
    ],
    "documents": [
     "Compte rendu de chantier avec photos",
-    "Situation de travaux (facture d'acompte par lot)",
-    "Procès-verbal de réception avec réserves",
-    "Dossier de chantier (permis, repérage amiante, plan, assurance)"
+    "Situation de travaux (facture d’avancement par lot)",
+    "Procès-verbal de réception (avec ou sans réserves)",
+    "Dossier de chantier (autorisation, amiante, plomb, réseaux, assurance, plans) — pièces de tiers"
    ],
    "aCreer": [
     {
@@ -2172,6 +2315,7 @@
     "factures",
     "comptabilite",
     "produits",
+    "stock",
     "pointage",
     "messagerie",
     "fournisseurs",
@@ -2195,6 +2339,7 @@
     "factures": "L'acompte à la commande, le solde à la pose.",
     "comptabilite": "Suivre les acomptes à la commande et les soldes à la pose.",
     "produits": "Un catalogue de références et de tarifs (fenêtres, portes, quincaillerie) pour chiffrer le devis.",
+    "stock": "Les petites fournitures (quincaillerie, joints, vis) ; le gros est commandé sur mesure.",
     "pointage": "Les heures de pose et d'atelier, par personne.",
     "messagerie": "Le poseur envoie une photo d'un support difficile avant de commander.",
     "fournisseurs": "Fabricants de menuiseries, de panneaux et de quincaillerie.",
@@ -2208,7 +2353,6 @@
     "archives": "Un récapitulatif mensuel à garder.",
     "carteInt": "Pour enchaîner les poses planifiées dans la journée.",
     "telecollecte": "Si vous encaissez l'acompte à la commande sur place.",
-    "stock": "Pour les petites fournitures (quincaillerie, joints, vis) : le gros est commandé sur mesure.",
     "mouvements": "Si vous voulez savoir qui a pris quelle fourniture.",
     "vehicules": "Le fourgon de pose : assurance, kilométrage.",
     "boiteMail": "Pour échanger avec les fabricants et les clients depuis l'application."
@@ -2225,7 +2369,9 @@
     "Prise de cotes",
     "Visite technique / devis",
     "Remplacement de vitrage",
-    "Dépannage bris de glace"
+    "Dépannage bris de glace",
+    "Réception de chantier (procès-verbal)",
+    "Levée de réserves"
    ],
    "presta": [
     "Prise de cotes",
@@ -2239,7 +2385,10 @@
     "Évacuation des déchets",
     "Nettoyage du chantier",
     "Croquis et plan joints à la prise de cotes",
-    "Réception de la commande du fabricant vérifiée"
+    "Réception de la commande du fabricant vérifiée",
+    "Déclaration des performances du fabricant demandée et rangée",
+    "Vérification du repérage amiante avant travaux (bâtiment livré avant le 1er janvier 1997)",
+    "Procès-verbal de réception signé"
    ],
    "releves": [
     {
@@ -2293,8 +2442,10 @@
    "documents": [
     "Fiche de prise de cotes avec plan, photos et croquis",
     "Bon de commande au fabricant",
-    "Procès-verbal de réception avec réserves",
-    "Attestation de TVA réduite à faire signer (à vérifier)"
+    "Procès-verbal de réception (avec ou sans réserves)",
+    "Devis de dépannage ou de réparation (bris de glace, ouvrant bloqué)",
+    "Certification du client pour la TVA réduite (mention du devis ou de la facture)",
+    "Suivi de la déclaration des performances (marquage CE) du fabricant"
    ],
    "aCreer": [
     {
@@ -2359,6 +2510,7 @@
     "factures",
     "comptabilite",
     "produits",
+    "stock",
     "pointage",
     "messagerie",
     "fournisseurs",
@@ -2382,6 +2534,7 @@
     "factures": "Acompte au démarrage, solde à la réception.",
     "comptabilite": "Suivre les acomptes au démarrage et les soldes à la réception.",
     "produits": "Un catalogue de peintures avec leur rendement (m² par litre) pour calculer la quantité à commander.",
+    "stock": "Les restes de pots, le matériel de protection et les consommables.",
     "pointage": "Les heures par chantier, pour vérifier que le devis au m² est tenu.",
     "messagerie": "Le chef d'équipe envoie une photo de teinte ou d'un support abîmé au bureau.",
     "fournisseurs": "Négoces de peinture : teintes à la demande, livrées ou prises au magasin.",
@@ -2394,7 +2547,6 @@
     "statistiques": "Pour suivre le chiffre d'affaires et les devis acceptés.",
     "archives": "Un récapitulatif mensuel à garder.",
     "carteInt": "Pour enchaîner plusieurs petits chantiers dans la semaine.",
-    "stock": "Pour les restes de pots et le matériel de protection.",
     "mouvements": "Si vous voulez savoir qui a pris quels pots.",
     "vehicules": "Le fourgon de chantier : assurance, kilométrage.",
     "boiteMail": "Pour échanger avec les clients et les négoces depuis l'application."
@@ -2410,7 +2562,11 @@
     "Décoration",
     "Retouches / reprises",
     "Visite technique / devis",
-    "Visite avant travaux (amiante / plomb)"
+    "Visite avant travaux (amiante / plomb)",
+    "Lasure / vernis bois",
+    "Réparation après dégât (devis de réparation)",
+    "Réception de chantier (procès-verbal)",
+    "Levée de réserves"
    ],
    "presta": [
     "Protection des sols et du mobilier",
@@ -2423,8 +2579,14 @@
     "Reprise des angles et raccords",
     "Dépose des protections",
     "Nettoyage du chantier",
-    "Vérification du repérage amiante ou du CREP avant ponçage",
-    "Fiche de teinte remise au client"
+    "Fiche de teinte remise au client",
+    "Relevé des supports et métré",
+    "Décapage de l’ancien revêtement",
+    "Enduit de lissage",
+    "Pose de revêtement de sol",
+    "Raccords et retouches",
+    "Vérification du repérage amiante (bâtiment livré avant le 1er janvier 1997) ou du constat plomb (logement d’avant 1949) avant ponçage ou décapage",
+    "Contrôle final avec le client"
    ],
    "releves": [
     {
@@ -2457,6 +2619,41 @@
      "k": "quantite",
      "l": "Quantité de peinture utilisée",
      "u": "L"
+    },
+    {
+     "k": "anneeBati",
+     "l": "Année de construction du bâtiment",
+     "u": ""
+    },
+    {
+     "k": "reperage",
+     "l": "Repérage amiante / plomb (référence et date du rapport)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "support",
+     "l": "Support (plâtre, béton, bois, ancienne peinture)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "marqueGamme",
+     "l": "Marque, gamme et finition",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "lotCuve",
+     "l": "Numéro de lot ou de cuve",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "retouches",
+     "l": "Retouches et réserves",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -2467,14 +2664,16 @@
     "Revêtements muraux (papier peint, toile)",
     "Revêtements de sol",
     "Lasures et vernis",
+    "Nettoyants, décapants et diluants",
     "Protection (bâches, adhésifs)",
     "Outillage (rouleaux, pinceaux)",
     "EPI"
    ],
    "documents": [
     "Métré et devis au m²",
-    "Fiche de teinte par client (référence, nuancier)",
-    "Procès-verbal de réception"
+    "Fiche de teinte du client (référence, nuancier)",
+    "Procès-verbal de réception (avec ou sans réserves)",
+    "Suivi du repérage amiante / plomb avant travaux (pièce du donneur d’ordre)"
    ],
    "aCreer": [
     {
@@ -2610,8 +2809,9 @@
     "Ramassage des feuilles",
     "Contrat d’entretien",
     "Visite technique / devis",
-    "Abattage",
-    "Taille de haute tige"
+    "Taille de haute tige",
+    "Engazonnement / semis",
+    "Dessouchage"
    ],
    "presta": [
     "Tonte et finitions",
@@ -2625,7 +2825,8 @@
     "Réglage de l’arrosage",
     "Nettoyage du site",
     "Utilisation de nacelle ou de grimpe",
-    "Évacuation en déchetterie ou sur plateforme"
+    "Évacuation en déchetterie ou sur plateforme",
+    "Broyage des branches"
    ],
    "releves": [
     {
@@ -2681,7 +2882,8 @@
     "Compte rendu de passage",
     "Fiche jardin (surface, haies, arbres, arrosage)",
     "Suivi des déchets verts (volume, destination)",
-    "Attestation fiscale annuelle pour les particuliers (à vérifier)"
+    "Attestation fiscale annuelle (services à la personne)",
+    "Suivi du récépissé de DT-DICT (travaux près de lignes ou réseaux)"
    ],
    "aCreer": [
     {
@@ -2828,7 +3030,10 @@
     "Isolation des combles",
     "Visite technique / devis",
     "Dépannage après tempête",
-    "Réfection de toiture complète"
+    "Réfection de toiture complète",
+    "Entretien annuel de toiture",
+    "Bâchage / mise hors d’eau d’urgence",
+    "Ventilation de toiture"
    ],
    "presta": [
     "Mise en sécurité (échafaudage, harnais)",
@@ -2843,7 +3048,11 @@
     "Nettoyage du chantier",
     "Photos avant et après de la toiture",
     "Contrôle des plaques fragiles",
-    "Vérification de la présence d'amiante (fibrociment, ardoises artificielles)"
+    "Contrôle du rapport de repérage amiante avant travaux (bâtiment livré avant 1997)",
+    "Bâchage provisoire",
+    "Pose d’écran de sous-toiture",
+    "Contrôle des solins, noues et rives",
+    "Pose de fenêtre de toit"
    ],
    "releves": [
     {
@@ -2874,9 +3083,14 @@
     },
     {
      "k": "amiante",
-     "l": "Toiture amiantée (oui / non)",
+     "l": "Amiante : présence connue ou suspectée (oui / non)",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "dechets",
+     "l": "Déchets évacués (estimation)",
+     "u": "kg"
     }
    ],
    "produits": [
@@ -2892,9 +3106,12 @@
     "EPI antichute"
    ],
    "documents": [
-    "Rapport d'intervention avec photos avant et après",
-    "Fiche de mise en sécurité (échafaudage, harnais)",
-    "Procès-verbal de réception"
+    "Rapport d’intervention avec photos avant et après",
+    "Fiche de mise en sécurité (échafaudage, protection contre les chutes)",
+    "Procès-verbal de réception (avec ou sans réserves)",
+    "Devis de réparation ou de dépannage de toiture",
+    "Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)",
+    "Suivi de l’attestation d’assurance décennale (document de l’assureur)"
    ],
    "aCreer": [
     {
@@ -3035,7 +3252,9 @@
     "Montage / installation",
     "Remplacement de pièce",
     "Contrat de maintenance",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Serrurerie simple",
+    "Peinture et petites réparations"
    ],
    "presta": [
     "Diagnostic",
@@ -3048,8 +3267,7 @@
     "Explications au client",
     "Nettoyage du chantier",
     "Liste des pièces fournies",
-    "Taux horaire et frais de déplacement annoncés avant l'intervention",
-    "Pièces remplacées proposées au client"
+    "Pièces remplacées proposées au client (conservation : oui / non)"
    ],
    "releves": [
     {
@@ -3062,6 +3280,11 @@
      "l": "Pièces / matériel fournis",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "km",
+     "l": "Déplacement",
+     "u": "km"
     }
    ],
    "produits": [
@@ -3075,10 +3298,12 @@
     "EPI"
    ],
    "documents": [
-    "Bon d'intervention signé",
-    "Devis de dépannage",
+    "Bon d’intervention signé (ne remplace pas le devis de dépannage)",
+    "Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017",
+    "Note détaillée avant paiement (à partir de 25 € TTC)",
     "Liste des pièces fournies",
-    "Contrat de maintenance avec rappel"
+    "Contrat de maintenance avec rappel de reconduction",
+    "Certification du client pour la TVA réduite (mention du devis ou de la facture)"
    ],
    "aCreer": [
     {
@@ -3140,8 +3365,13 @@
     "devis",
     "assistantDevis",
     "factures",
+    "produits",
+    "stock",
+    "mouvements",
     "pointage",
     "messagerie",
+    "fournisseurs",
+    "bons",
     "utilisateurs",
     "modulesElan",
     "parametres"
@@ -3159,8 +3389,13 @@
     "devis": "Des devis professionnels envoyés en PDF.",
     "assistantDevis": "Dicter un devis plutôt que le taper.",
     "factures": "Facturer et suivre les paiements.",
+    "produits": "Vos fournitures et le matériel que vous utilisez en intervention ; un catalogue de départ se pose à la demande.",
+    "stock": "Le matériel et les pièces que vous gardez en réserve.",
+    "mouvements": "Qui a pris quoi dans le stock.",
     "pointage": "Les heures de chacun, base de la paie.",
     "messagerie": "Échanger avec l'équipe sans passer par vos téléphones personnels.",
+    "fournisseurs": "Votre carnet de fournisseurs.",
+    "bons": "Vos bons de commande aux fournisseurs.",
     "utilisateurs": "Créez les comptes de votre équipe et réglez ce que chacun voit et peut faire.",
     "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
     "parametres": "Vos sociétés, votre logo et vos en-têtes : le rapport d'intervention part au nom de la bonne entreprise."
@@ -3172,14 +3407,9 @@
     "contrats": "Si vous avez des contrats d'entretien avec des passages réguliers.",
     "comptabilite": "Pour suivre vos encaissements.",
     "telecollecte": "Si vous encaissez sur place.",
-    "produits": "Si vous vendez ou utilisez des fournitures que vous voulez chiffrer.",
-    "stock": "Si vous gardez du matériel ou des pièces en réserve.",
-    "mouvements": "Si vous voulez tracer qui prend quoi dans le stock.",
     "vehicules": "Si vous avez des véhicules à suivre.",
     "conducteurs": "Si plusieurs personnes conduisent vos véhicules.",
     "boiteMail": "Pour répondre à vos clients depuis l'application.",
-    "fournisseurs": "Si vous commandez régulièrement chez les mêmes fournisseurs.",
-    "bons": "Si vous envoyez des bons de commande.",
     "brouillon": "Si vos techniciens préparent des demandes de matériel.",
     "demandes": "Si vos techniciens demandent du matériel à un responsable.",
     "validations": "Si un responsable valide les sorties de matériel.",
@@ -3203,7 +3433,8 @@
     "Réglage",
     "Essai et contrôle",
     "Explications au client",
-    "Nettoyage du chantier"
+    "Nettoyage du chantier",
+    "Pièces remplacées proposées au client (conservation : oui / non)"
    ],
    "releves": [
     {
@@ -3225,9 +3456,10 @@
     "EPI"
    ],
    "documents": [
-    "Rapport d'intervention",
-    "Devis",
-    "Facture"
+    "Rapport d’intervention",
+    "Devis (les mentions dépendent de l’activité)",
+    "Facture",
+    "Note détaillée avant paiement (dépannage chez un particulier, à partir de 25 € TTC)"
    ],
    "aCreer": [
     {
@@ -3325,7 +3557,8 @@
     "Dépannage urgent",
     "Formation du personnel (extincteurs, évacuation)",
     "Contrat de vérification annuelle",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Révision des extincteurs (tous les dix ans)"
    ],
    "presta": [
     "Contrôle visuel",
@@ -3334,8 +3567,14 @@
     "Remplacement du scellé",
     "Recharge",
     "Remplacement d'appareil",
-    "Pose de l'étiquette de vérification",
-    "Mise à jour du plan de situation des appareils"
+    "Mise à jour du plan de situation des appareils",
+    "Pose de l’étiquette de suivi",
+    "Révision d’un extincteur",
+    "Vérification des commandes de désenfumage (manuelles et automatiques)",
+    "Essai des volets, exutoires et ouvrants",
+    "Déroulage complet du RIA et contrôle de la pression",
+    "Test de chaque point de détection d’alarme",
+    "Contrôle des batteries du système d’alarme"
    ],
    "releves": [
     {
@@ -3394,6 +3633,42 @@
      "k": "nbAppareils",
      "l": "Nombre d'appareils vérifiés",
      "u": ""
+    },
+    {
+     "k": "repere",
+     "l": "Repère et emplacement",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "operation",
+     "l": "Opération faite",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "etiquette",
+     "l": "N° de l’étiquette posée",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "prochaine",
+     "l": "Prochaine vérification",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "typeEtablissement",
+     "l": "Type et catégorie de l’établissement",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "exploitant",
+     "l": "Exploitant",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -3406,9 +3681,9 @@
    ],
    "documents": [
     "Rapport de vérification périodique (une ligne par appareil)",
-    "Étiquette ou vignette de vérification",
+    "Étiquette de suivi interne de vérification",
     "Devis de remplacement",
-    "Attestation de formation"
+    "Attestation de formation (extincteurs, évacuation)"
    ],
    "aCreer": [
     {
@@ -3554,7 +3829,6 @@
    },
    "types": [
     "Mise en service",
-    "Contrôle d'étanchéité",
     "Maintenance préventive",
     "Dépannage urgent",
     "Charge ou récupération de fluide",
@@ -3562,7 +3836,10 @@
     "Nettoyage de condenseur",
     "Installation",
     "Contrat d'entretien",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Contrôle d’étanchéité (périodique ou non)",
+    "Réparation de fuite et recontrôle",
+    "Démantèlement / récupération en fin de vie"
    ],
    "presta": [
     "Contrôle des températures de consigne",
@@ -3573,7 +3850,9 @@
     "Remplacement du filtre déshydrateur",
     "Nettoyage du condenseur",
     "Contrôle des organes électriques",
-    "Pose de la vignette de contrôle d'étanchéité"
+    "Pose de la vignette de contrôle d'étanchéité",
+    "Vérification annuelle du système permanent de détection de fuite",
+    "Réparation de fuite et recontrôle"
    ],
    "releves": [
     {
@@ -3594,7 +3873,7 @@
     },
     {
      "k": "tco2",
-     "l": "Équivalent CO₂ de la charge (PRP × charge / 1000)",
+     "l": "Équivalent CO₂ de la charge (PRP × charge / 1000 ; HFC et PFC : charge cumulée des circuits)",
      "u": "t"
     },
     {
@@ -3650,6 +3929,79 @@
      "l": "N° de bordereau de suivi des déchets de fluide (Trackdéchets)",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "detecteur",
+     "l": "Détecteur manuel de fuite : identification et date du dernier contrôle",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "detectionPermanente",
+     "l": "Système permanent de détection de fuite (oui / non)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "natureIntervention",
+     "l": "Nature de l’intervention",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "fuite",
+     "l": "Fuite constatée (oui / non, circuit et point)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "fuiteReparation",
+     "l": "Réparation faite ou à faire",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "chargeVierge",
+     "l": "Fluide chargé : vierge",
+     "u": "kg"
+    },
+    {
+     "k": "chargeRecycle",
+     "l": "Fluide chargé : recyclé",
+     "u": "kg"
+    },
+    {
+     "k": "chargeRegenere",
+     "l": "Fluide chargé : régénéré",
+     "u": "kg"
+    },
+    {
+     "k": "recupTraitement",
+     "l": "Fluide récupéré : destiné au traitement",
+     "u": "kg"
+    },
+    {
+     "k": "recupReutilisation",
+     "l": "Fluide récupéré : conservé pour réutilisation",
+     "u": "kg"
+    },
+    {
+     "k": "attestationCapacite",
+     "l": "N° d’attestation de capacité",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "codeUN",
+     "l": "Code UN et dénomination ADR du déchet de fluide",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "destination",
+     "l": "Installation de destination du déchet de fluide",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -3658,13 +4010,14 @@
     "Détendeurs",
     "Filtres déshydrateurs",
     "Pièces électriques",
-    "Isolants"
+    "Isolants",
+    "Consommables et outillage"
    ],
    "documents": [
-    "Fiche d'intervention fluide (rubriques du Cerfa 15497*04, sans prétendre le remplacer)",
-    "Étiquette de contrôle d'étanchéité",
-    "Registre d'équipement",
-    "Déclaration annuelle des quantités de fluide"
+    "Fiche d’intervention fluide frigorigène",
+    "Étiquette de contrôle d’étanchéité (enregistrement de la pose et rappel)",
+    "Registre d’équipement",
+    "Suivi de la déclaration annuelle des quantités de fluide"
    ],
    "aCreer": [
     {
@@ -3822,9 +4175,10 @@
     "Mise en sécurité",
     "Modernisation",
     "Remise en service",
-    "Visite de contrôle",
     "Contrat d'entretien",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Accompagnement du contrôle technique",
+    "Levée d’anomalies du contrôle technique"
    ],
    "presta": [
     "Test de l'interphone",
@@ -3834,7 +4188,13 @@
     "Graissage",
     "Remplacement d'une pièce d'usure",
     "Remise en service après arrêt",
-    "Report dans le carnet d'entretien"
+    "Report dans le carnet d'entretien",
+    "Vérification des serrures de portes palières",
+    "Examen semestriel des câbles",
+    "Vérification annuelle des parachutes",
+    "Nettoyage de la cuvette et du toit de cabine",
+    "Contrôle du local des machines",
+    "Déblocage de personnes"
    ],
    "releves": [
     {
@@ -3876,6 +4236,36 @@
      "l": "Test de l'arrêt d'urgence (bon / défaillant)",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "contrat",
+     "l": "N° du contrat d’entretien",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "serrures",
+     "l": "Serrures de portes palières",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "parachute",
+     "l": "Parachute",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "heureArrivee",
+     "l": "Heure d’arrivée",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "heureDepart",
+     "l": "Heure de départ",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -3888,8 +4278,8 @@
    ],
    "documents": [
     "Compte rendu de visite",
-    "Carnet d'entretien (par appareil)",
-    "Suivi du rapport de contrôle technique"
+    "Carnet d’entretien (par appareil)",
+    "Suivi du rapport de contrôle technique (établi par un contrôleur technique habilité)"
    ],
    "aCreer": [
     {
@@ -3955,7 +4345,7 @@
   "portails": {
    "nom": "Portes et portails automatiques",
    "ic": "🚧",
-   "sous": "Installation · maintenance semestrielle · dépannage",
+   "sous": "Installation · maintenance périodique · dépannage",
    "nouveau": true,
    "rubriques": [
     "dashboard",
@@ -4022,12 +4412,14 @@
    "types": [
     "Installation",
     "Mise en service",
-    "Maintenance semestrielle",
     "Dépannage",
     "Remplacement de moteur ou de cellule",
     "Réglage d'effort",
     "Contrat d'entretien",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Maintenance périodique",
+    "Vérification après défaillance",
+    "Mise en conformité"
    ],
    "presta": [
     "Contrôle des cellules photoélectriques",
@@ -4038,12 +4430,16 @@
     "Réglage de la force de fermeture",
     "Graissage",
     "Vérification après défaillance",
-    "Mise à jour du carnet d'entretien"
+    "Contrôle des éléments de guidage (rails, galets)",
+    "Contrôle des articulations (charnières, pivots)",
+    "Contrôle des fixations",
+    "Contrôle des systèmes d’équilibrage",
+    "Report dans le livret d’entretien"
    ],
    "releves": [
     {
      "k": "force",
-     "l": "Force de fermeture",
+     "l": "Force de fermeture (relevé, sans seuil)",
      "u": "N"
     },
     {
@@ -4072,7 +4468,19 @@
     },
     {
      "k": "ressorts",
-     "l": "État des ressorts",
+     "l": "Équilibrage et ressorts (bon / défaillant)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "guidage",
+     "l": "Éléments de guidage (bon / défaillant)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "fixations",
+     "l": "Fixations (bon / défaillant)",
      "u": "",
      "txt": true
     }
@@ -4083,10 +4491,12 @@
     "Télécommandes",
     "Bords sensibles",
     "Ressorts",
-    "Automates"
+    "Automates",
+    "Guidage et quincaillerie",
+    "Consommables"
    ],
    "documents": [
-    "Carnet d'entretien (par porte)",
+    "Livret d’entretien (par porte)",
     "Rapport de maintenance"
    ],
    "aCreer": [
@@ -4138,7 +4548,7 @@
   "ramonage": {
    "nom": "Ramonage",
    "ic": "🧹",
-   "sous": "Cheminées · poêles · conduits · certificat de ramonage",
+   "sous": "Cheminées · poêles · conduits · attestation de ramonage",
    "nouveau": true,
    "rubriques": [
     "dashboard",
@@ -4206,23 +4616,31 @@
    "types": [
     "Ramonage de cheminée",
     "Ramonage de poêle",
-    "Ramonage de chaudière",
     "Débistrage (ramonage mécanique d'un conduit encrassé)",
     "Tubage",
     "Pose de chapeau",
     "Inspection par caméra",
     "Dépannage tirage",
     "Abonnement annuel",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Ramonage du conduit de chaudière",
+    "Ramonage de conduit collectif",
+    "Entretien de poêle ou d’insert (attestation d’entretien)",
+    "Inspection après feu de cheminée ou travaux"
    ],
    "presta": [
     "Ramonage mécanique du conduit",
     "Nettoyage du foyer ou de l'appareil",
-    "Contrôle de la vacuité du conduit",
     "Inspection par caméra",
     "Mesure du tirage",
     "Pose d'une trappe de visite",
-    "Remise du certificat de ramonage"
+    "Ramonage des tuyaux de raccordement",
+    "Décendrage approfondi",
+    "Vérification de la souche et des accessoires (mitre, aspirateur)",
+    "Contrôle du débouché et des amenées d’air",
+    "Contrôle de la vacuité du conduit sur toute sa longueur",
+    "Remise des conseils d’usage (combustible solide)",
+    "Remise de l’attestation de ramonage"
    ],
    "releves": [
     {
@@ -4269,6 +4687,30 @@
      "l": "Anomalies à signaler",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "methode",
+     "l": "Méthode (mécanique par le haut / par le bas)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "vacuite",
+     "l": "Vacuité sur toute la longueur (oui / non)",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "dernierRamonage",
+     "l": "Dernier ramonage connu",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "tuyaux",
+     "l": "Tuyaux de raccordement ramonés (oui / non)",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -4276,10 +4718,13 @@
     "Tubage inox",
     "Chapeaux",
     "Trappes de visite",
-    "Produits de nettoyage"
+    "Produits de nettoyage",
+    "Accessoires et consommables"
    ],
    "documents": [
-    "Certificat de ramonage (PDF daté, nom de l'entreprise, adresse, nature du conduit), envoyé par e-mail à la clôture"
+    "Attestation de ramonage",
+    "Attestation d’entretien d’un poêle ou d’un insert à combustible solide",
+    "Suivi de l’attestation après feu de cheminée ou travaux (établie par un installateur)"
    ],
    "aCreer": [
     {
@@ -4364,10 +4809,15 @@
     "assistantDevis",
     "factures",
     "contrats",
+    "produits",
+    "stock",
+    "mouvements",
     "pointage",
     "vehicules",
     "conducteurs",
     "messagerie",
+    "fournisseurs",
+    "bons",
     "secteurs",
     "utilisateurs",
     "modulesElan",
@@ -4389,10 +4839,15 @@
     "assistantDevis": "Un devis de curage dicté sur place.",
     "factures": "Facturer au volume pompé ou au forfait.",
     "contrats": "Un contrat de vidange périodique ramène le client à la bonne échéance.",
+    "produits": "Le catalogue de départ (consommables, équipements de protection, outillage) et les produits que vous employez.",
+    "stock": "Vos consommables et vos pièces de camion, avec ce qui reste en réserve.",
+    "mouvements": "Qui a pris quoi dans le stock, pour ne pas manquer d’une pièce sur la route.",
     "pointage": "Les heures de camion et de chauffeur, par tournée.",
     "vehicules": "Le camion est l'outil : assurance, kilométrage, échéances.",
     "conducteurs": "Les chauffeurs autorisés à conduire chaque camion.",
     "messagerie": "Le chauffeur prévient le bureau d'un accès impossible ou d'un camion plein.",
+    "fournisseurs": "Votre carnet de fournisseurs de pièces et de consommables.",
+    "bons": "Vos bons de commande de pièces et de consommables.",
     "secteurs": "Répartir les communes entre les camions : le bilan annuel se fait par commune.",
     "utilisateurs": "Créez les comptes de vos chauffeurs et vos techniciens et réglez ce que chacun voit et peut faire.",
     "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
@@ -4403,14 +4858,9 @@
     "registre": "Le registre des vidanges, à conserver dix ans : à ouvrir dès que le registre sera rendu utilisable hors anti-nuisibles.",
     "comptabilite": "Pour suivre les règlements.",
     "telecollecte": "Si vous encaissez les débouchages sur place.",
-    "produits": "Peu de stock : seulement pour des consommables.",
-    "stock": "Seulement pour des consommables et des pièces de camion.",
-    "boiteMail": "Pour envoyer les bordereaux depuis l'application.",
-    "fournisseurs": "Pour vos commandes de pièces et de consommables.",
-    "bons": "Pour vos commandes de pièces et de consommables."
+    "boiteMail": "Pour envoyer les bordereaux depuis l'application."
    },
    "types": [
-    "Vidange de fosse septique",
     "Vidange de bac à graisses",
     "Curage de canalisation",
     "Inspection caméra",
@@ -4418,7 +4868,10 @@
     "Pompage",
     "Entretien de poste de relevage",
     "Contrat de vidange périodique",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Vidange de fosse septique / fosse toutes eaux",
+    "Vidange de micro-station / filtre compact",
+    "Dépannage urgent"
    ],
    "presta": [
     "Pompage de l'ouvrage",
@@ -4426,8 +4879,10 @@
     "Inspection par caméra",
     "Contrôle de l'état de l'ouvrage",
     "Contrôle de la pompe du poste de relevage",
-    "Remise du bordereau de suivi",
-    "Nettoyage du site"
+    "Nettoyage du site",
+    "Mesure de la hauteur de boues",
+    "Remise du volet du bordereau au propriétaire (signé)",
+    "Inscription de la vidange sur le guide d’utilisation de l’installation"
    ],
    "releves": [
     {
@@ -4463,6 +4918,35 @@
      "l": "Commune",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "vehicule",
+     "l": "Immatriculation du véhicule",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "vidangeur",
+     "l": "Personne qui réalise la vidange",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "sousProduits",
+     "l": "Désignation des sous-produits vidangés",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "boues",
+     "l": "Hauteur de boues (% du volume utile)",
+     "u": "%"
+    },
+    {
+     "k": "derogation",
+     "l": "Motif de dérogation au schéma départemental",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -4472,10 +4956,12 @@
     "EPI"
    ],
    "documents": [
-    "Bordereau de suivi des matières de vidange (trois exemplaires)",
-    "Registre des vidanges (dix ans)",
+    "Bordereau de suivi des matières de vidange",
+    "Registre des vidanges",
     "Bilan annuel par commune",
-    "Attestation de vidange"
+    "Attestation de vidange (document commercial)",
+    "Suivi de l’agrément préfectoral du vidangeur",
+    "Suivi de l’attestation du site d’élimination"
    ],
    "aCreer": [
     {
@@ -4624,7 +5110,10 @@
     "Installation de borne",
     "Maintenance de borne",
     "Contrôle de mise à la terre",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Constitution du dossier Consuel",
+    "Remplacement d’onduleur",
+    "Dépannage de borne"
    ],
    "presta": [
     "Contrôle des chaînes de panneaux",
@@ -4635,7 +5124,12 @@
     "Relevé de production",
     "Test de la borne",
     "Contrôle des protections",
-    "Remise de la fiche de mise en service"
+    "Remise de la fiche de mise en service",
+    "Contrôle des connecteurs et câbles courant continu",
+    "Contrôle des parafoudres",
+    "Lecture du suivi de production et des alarmes",
+    "Essai du différentiel de la borne",
+    "Constitution du dossier Consuel"
    ],
    "releves": [
     {
@@ -4690,8 +5184,8 @@
    ],
    "documents": [
     "Rapport de maintenance",
-    "Fiche de mise en service",
-    "Attestation de conformité (Consuel : à vérifier)"
+    "Fiche de mise en service de l’installateur",
+    "Suivi du dossier Consuel (l’attestation est produite et visée par le Consuel)"
    ],
    "aCreer": [
     {
@@ -4754,7 +5248,7 @@
   "alarme": {
    "nom": "Alarme, vidéosurveillance, contrôle d’accès",
    "ic": "📹",
-   "sous": "Intrusion · caméras · badges · maintenance annuelle",
+   "sous": "Intrusion · caméras · badges · maintenance",
    "nouveau": true,
    "rubriques": [
     "dashboard",
@@ -4826,7 +5320,9 @@
     "Test de liaison avec le centre de télésurveillance",
     "Modification de configuration",
     "Contrat de maintenance",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Formation du client",
+    "Dépose de matériel"
    ],
    "presta": [
     "Test des zones",
@@ -4835,9 +5331,13 @@
     "Test de la sirène",
     "Test de liaison avec le centre de télésurveillance",
     "Contrôle du champ de vision des caméras",
-    "Contrôle de l'enregistreur",
     "Mise à jour de la configuration",
-    "Remise du procès-verbal de réception"
+    "Remise du procès-verbal de réception",
+    "Contrôle des piles des détecteurs",
+    "Contrôle de l’autoprotection (ouverture, arrachement)",
+    "Contrôle de l’enregistreur et de la durée de conservation des images",
+    "Contrôle des lecteurs, badges et ventouses",
+    "Formation du client (armement, désarmement, codes)"
    ],
    "releves": [
     {
@@ -4868,6 +5368,17 @@
      "l": "Date de pose du matériel remplacé",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "conservation",
+     "l": "Durée de conservation des images disponible",
+     "u": "jours"
+    },
+    {
+     "k": "transmetteur",
+     "l": "Moyen de transmission testé (GSM, IP)",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -4883,7 +5394,8 @@
    "documents": [
     "Rapport de maintenance",
     "Procès-verbal de réception",
-    "Devis et facture"
+    "Devis et facture",
+    "Suivi de la certification de l’entreprise (APSAD R81 / R82) et des habilitations électriques"
    ],
    "aCreer": [
     {
@@ -4938,7 +5450,7 @@
   "eau": {
    "nom": "Traitement de l’eau",
    "ic": "💧",
-   "sous": "Adoucisseurs · filtres · osmoseurs · analyses",
+   "sous": "Adoucisseurs · filtres · osmoseurs · carnet sanitaire",
    "nouveau": true,
    "rubriques": [
     "dashboard",
@@ -5010,10 +5522,13 @@
     "Régénération",
     "Remplacement de cartouche",
     "Désinfection de circuit",
-    "Prélèvement d'eau",
     "Dépannage",
     "Contrat d'entretien",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Prélèvement d’eau pour analyse (laboratoire)",
+    "Relevé de températures (carnet sanitaire)",
+    "Maintenance du réseau ECS (détartrage, vidange, bras morts)",
+    "Désinfection après traitement choc"
    ],
    "presta": [
     "Mesure de la dureté",
@@ -5023,7 +5538,13 @@
     "Contrôle de la pression et du débit",
     "Désinfection du circuit",
     "Prélèvement pour analyse",
-    "Contrôle de la lampe UV"
+    "Contrôle de la lampe UV",
+    "Relevé des températures ECS",
+    "Soutirage des bras morts",
+    "Détartrage et vidange des ballons",
+    "Vérification du disconnecteur et des protections contre les retours d’eau",
+    "Contrôle de la pompe doseuse",
+    "Tenue du carnet sanitaire"
    ],
    "releves": [
     {
@@ -5058,8 +5579,23 @@
     },
     {
      "k": "legionelles",
-     "l": "Résultat d’analyse légionelles",
+     "l": "Résultat d’analyse légionelles (saisi à partir du rapport du laboratoire joint)",
      "u": "UFC/L"
+    },
+    {
+     "k": "tProduction",
+     "l": "Température sortie de production",
+     "u": "°C"
+    },
+    {
+     "k": "tRetour",
+     "l": "Température retour de boucle",
+     "u": "°C"
+    },
+    {
+     "k": "tPuisage",
+     "l": "Température point de puisage",
+     "u": "°C"
     }
    ],
    "produits": [
@@ -5068,12 +5604,13 @@
     "Cartouches de filtration",
     "Lampes UV",
     "Membranes d'osmose",
-    "Pompes doseuses"
+    "Pompes doseuses",
+    "Désinfectants et réactifs"
    ],
    "documents": [
-    "Carnet sanitaire",
-    "Rapport d'analyse",
-    "Fiche d'entretien"
+    "Carnet sanitaire (entrées de l’entreprise)",
+    "Suivi du rapport d’analyse du laboratoire",
+    "Fiche d’entretien"
    ],
    "aCreer": [
     {
@@ -5205,7 +5742,9 @@
     "Installation de dispositif de sécurité",
     "Construction",
     "Contrat d'entretien saisonnier",
-    "Visite technique / devis"
+    "Visite technique / devis",
+    "Recherche de fuite",
+    "Pose de couverture ou d’abri"
    ],
    "presta": [
     "Analyse de l'eau",
@@ -5216,7 +5755,13 @@
     "Mise en hivernage",
     "Remise en route",
     "Contrôle du dispositif de sécurité",
-    "Remise de la note technique de sécurité"
+    "Remise de la note technique de sécurité",
+    "Traitement choc",
+    "Nettoyage du filtre",
+    "Contrôle de l’électrolyseur",
+    "Contrôle de l’éclairage",
+    "Vidange des canalisations",
+    "Pose de la couverture d’hivernage"
    ],
    "releves": [
     {
@@ -5259,6 +5804,39 @@
      "l": "État de la pompe",
      "u": "",
      "txt": true
+    },
+    {
+     "k": "chloreCombine",
+     "l": "Chlore combiné (total moins libre)",
+     "u": "mg/L"
+    },
+    {
+     "k": "sel",
+     "l": "Sel (bassins à électrolyse)",
+     "u": "g/L"
+    },
+    {
+     "k": "volumeBassin",
+     "l": "Volume du bassin",
+     "u": "m³"
+    },
+    {
+     "k": "reactif",
+     "l": "Réactif ou appareil utilisé",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "produitsAjoutes",
+     "l": "Produits ajoutés et quantités",
+     "u": "",
+     "txt": true
+    },
+    {
+     "k": "recommandations",
+     "l": "Recommandations",
+     "u": "",
+     "txt": true
     }
    ],
    "produits": [
@@ -5269,12 +5847,16 @@
     "Liners",
     "Robots",
     "Couvertures",
-    "Éclairage"
+    "Éclairage",
+    "Sécurité (alarmes, barrières)"
    ],
    "documents": [
-    "Rapport d'analyse d'eau",
-    "Fiche d'ouverture / d'hivernage",
-    "Note technique de sécurité remise à la réception"
+    "Rapport de mesures de l’eau",
+    "Fiche d’ouverture ou d’hivernage",
+    "Note technique de sécurité",
+    "Courrier de rappel au maître d’ouvrage (dispositif non choisi)",
+    "Attestation de conformité d’un dispositif installé avant le 8 juin 2004",
+    "Suivi du contrôle sanitaire de l’eau (piscine à usage collectif)"
    ],
    "aCreer": [
     {
