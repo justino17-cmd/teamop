@@ -31,7 +31,7 @@ function monter(o) {
   let annonceur = null, eq = null, conv = null;
   const horaires = o.horaires ? require(S('agents-horaires.js'))({ DATA_DIR: D }) : undefined;
   const agents = AG(app, { DATA_DIR: D, monAdmin() {}, monPatronStrict() {}, maintenant, horaires, pousseNotif: (t, c) => { pousses.push([t, c]); return Promise.resolve(); },
-    surFait: f => (annonceur ? annonceur.annoncer(f) : null), surExpiration: x => { expirations.push(x); if (conv && o.expirationDite !== false) { try { conv.systeme('equipe', 'La tâche « ' + x.texte + ' » de ' + x.vers + ' a expiré sans être finie.', { cle: 'expire:' + x.id, parHeure: true }); } catch (e) {} } } });
+    surFait: f => (annonceur ? annonceur.annoncer(f) : null), surExpiration: x => { expirations.push(x); if (annonceur && o.expirationDite !== false) annonceur.expiree(x); } });
   conv = CV(app, { DATA_DIR: D, monAdmin() {}, monPatronStrict() {}, agents, maintenant, pousseNotif: (t, c) => { pousses.push([t, c]); return Promise.resolve(); },
     surMessage: m => (o.sansReveil ? null : eq.surMessage(m)), surAjout: m => { pont.push(m); }, fenetreFaitsMs: o.fenetreFaitsMs === undefined ? 25 : o.fenetreFaitsMs });
   annonceur = FAITS ? FAITS({ agents, conversations: conv }) : null;

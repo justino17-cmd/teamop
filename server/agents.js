@@ -196,6 +196,10 @@ module.exports = function monterAgents(app, ctx) {
   /* LA FERMETURE PENDANT UN ÉCHANGE (28 octobre 2026, Justin écrit à 17 h 52 et l'équipe ferme à 18 h) : un réveil d'une racine née AVANT la fermeture finit dans les 45 minutes qui suivent
      (`agent-equipe.js` décide, `conversations.racine` valide). Comme `sousReunion`, mais SEULEMENT pour finir une réponse, et SANS la bascule qui compte : `peutAgir` rend `horsHeures:true` —
      exactement ce que rend l'astreinte —, donc toute porte qui écrit à un client (`agents-brouillons.js`, `agents-documents.js`) la REFUSE encore. L'arrêt, la pause et le budget restent bloquants. */
+  /* L'ANNONCE DE FIN DE TRAVAIL (28 octobre 2026) : `ctx.surFait(f)` — branché par `index.js` sur `agent-faits.js` — compose « Je viens de… » et l'écrit dans « Équipe » (hors plafonds, sans réveiller
+     personne). Un module monté sans lui (un banc) n'annonce rien. Jamais une exception ne remonte : une annonce qui échoue ne défait pas le travail. */
+  const surFait = f => { if (typeof ctx.surFait !== 'function') return; try { ctx.surFait(f); } catch (e) { console.error('annonce :', e && e.message); } };
+  const surExpiration = x => { if (typeof ctx.surExpiration !== 'function') return; try { ctx.surExpiration(x); } catch (e) { console.error('expiration :', e && e.message); } };
   const dansRacine = new AsyncLocalStorage();
   const sousRacine = fn => dansRacine.run(true, fn);
 
@@ -293,6 +297,15 @@ module.exports = function monterAgents(app, ctx) {
     return taches.some(k => Number(k.finTs) >= ts && liste.includes(k.vers));
   }
 
+  /* UN FAIT qui n'est pas une tâche (une sauvegarde vérifiée, un courriel classé) : `code` d'une table FERMÉE (`agent-faits.js` : un code inconnu n'écrit rien), `o` : { dossier, n, ref, issue, raison }.
+     Rend vrai si l'annonce a été demandée — pas si elle a été écrite (le journal des conversations le sait). */
+  function fait(id, code, o) {
+    if (!IDS.has(id) || typeof code !== 'string') return false;
+    o = o && typeof o === 'object' ? o : {};
+    surFait({ agent: id, code, issue: o.issue === 'echec' || o.issue === 'prepare' ? o.issue : 'fait', dossier: o.dossier, n: o.n, ref: o.ref, raison: o.raison, ts: maintenant() });
+    return true;
+  }
+
   function notifier(titre, corps) {
     if (!pousse) return;
     try { Promise.resolve(pousse(titre, corps, '/tour.html#agents')).catch(() => {}); } catch (e) {}
@@ -315,6 +328,8 @@ module.exports = function monterAgents(app, ctx) {
         if (hor.tempsOuvert(k.vers, k.ts, t) <= vie) continue;
       }
       k.statut = 'expiree'; touche = true;
+      /* elle ne disparaît plus en silence : une ligne dans « Équipe » (une fois par tâche) */
+      surExpiration({ id: k.id, vers: k.vers, type: k.type, texte: k.type === 'consigne' && k.params ? k.params.texte : '' });
     }
     if (touche) { ecrire(F_VALID, validations); ecrire(F_TACHES, taches); }
   }
@@ -338,6 +353,8 @@ module.exports = function monterAgents(app, ctx) {
     if (!ecrire(F_VALID, validations)) { validations.pop(); return { ok: false, raison: 'ecriture' }; }
     noter(id, 'proposer', { cible: type, resultat: 'propose', detail: v.resume });
     notifier('Validation demandée', AGENTS.find(a => a.id === id).nom + ' : ' + v.resume);
+    /* « Je viens de préparer… (en attente de ta validation) » : la phrase est celle du code, du TYPE fermé de la demande — jamais son résumé (qui peut porter un nom d'accès) */
+    surFait({ agent: id, code: 'valide:' + type, issue: 'prepare', ref: v.id, ts: maintenant() });
     return { ok: true, id: v.id };
   }
 
@@ -379,7 +396,9 @@ module.exports = function monterAgents(app, ctx) {
     if (!ecrire(F_TACHES, taches)) { k.statut = 'attente'; return null; }
     return { id: k.id, de: k.de, type: k.type, params: Object.assign({}, k.params) };
   }
-  function terminer(tacheId, id, resultat, resume) {
+  /* `opts.libre` : le RÉSUMÉ est celui du modèle (l'outil `terminer` de la messagerie) — il passe dans l'annonce (140 caractères, adresses et numéros masqués). Un module qui termine une tâche ne le
+     donne pas : l'annonce est alors celle de la table fermée (`agent-faits.js`). */
+  function terminer(tacheId, id, resultat, resume, opts) {
     const k = taches.find(x => x.id === tacheId && x.vers === id && x.statut === 'prise');
     if (!k) return false;
     const avant = { statut: k.statut, resume: k.resume };
@@ -387,6 +406,7 @@ module.exports = function monterAgents(app, ctx) {
     k.finTs = maintenant();
     if (typeof resume === 'string' && resume.trim()) k.resume = monStr(sansAdr(resume.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()), RESUME_MAX);
     if (!ecrire(F_TACHES, taches)) { k.statut = avant.statut; delete k.finTs; if (avant.resume === undefined) delete k.resume; else k.resume = avant.resume; return false; }
+    surFait({ agent: id, code: 'tache:' + k.type, issue: resultat === 'ok' ? 'fait' : 'echec', tache: k.id, demandeur: k.de, dossier: k.params && typeof k.params.dossier === 'string' ? k.params.dossier : '', titre: k.type === 'consigne' && k.params ? k.params.texte : '', libre: opts && opts.libre === true && resultat === 'ok' ? k.resume || '' : '', ts: maintenant() });
     return true;
   }
 
@@ -600,6 +620,8 @@ module.exports = function monterAgents(app, ctx) {
         try { await fn(Object.assign({}, v.params), { id: v.id, agent: v.agent }); v.execution = 'ok'; }
         catch (e) { v.execution = 'echec'; noter(v.agent, 'exécution', { cible: v.type, resultat: 'erreur', detail: e && e.message }); }
         ecrire(F_VALID, validations);
+        /* ce que Justin a validé et que l'agent vient d'exécuter (ou n'a pas pu) : « Je viens d'envoyer le courriel que tu avais validé » */
+        surFait({ agent: v.agent, code: 'valide-fait:' + v.type, issue: v.execution === 'ok' ? 'fait' : 'echec', raison: v.execution === 'ok' ? '' : 'refus', ref: v.id, ts: maintenant() });
       } else if (fn) { v.execution = 'pause'; ecrire(F_VALID, validations); }
     }
     return { code: 200, validation: v };
@@ -724,7 +746,7 @@ module.exports = function monterAgents(app, ctx) {
   /* Les validations EN ATTENTE, à la lecture (23 octobre 2026 : Inès les voit vieillir, Victor les compte) : { agent, type, ts } — jamais le résumé ni les paramètres, qui sont des phrases de
      l'équipe. `null` si la file est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
   const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
-  return { peutAgir, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
+  return { peutAgir, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;

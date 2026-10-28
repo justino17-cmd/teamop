@@ -396,8 +396,9 @@ module.exports = function agentEquipe(ctx) {
     if (a.nom === 'terminer') {
       const tache = resoudreTache(id, str('tache'), false), resume = court(masquer(str('resume')).replace(/\s+/g, ' ').trim(), 200);
       let avant = null; try { avant = agents.tachesDe(id).find(t => t.id === tache) || null; } catch (x) {}
-      if (!avant || !agents.terminer(tache, id, 'ok', resume)) return refus('tache');
-      dire(c.fil, nom + ' a terminé ' + (avant.texte ? '« ' + court(avant.texte, 90) + ' »' : 'une tâche') + (resume ? ' : ' + resume : '') + '.');
+      if (!avant || !agents.terminer(tache, id, 'ok', resume, { libre: true })) return refus('tache');
+      /* dans « Équipe », l'annonce « ✅ Je viens de terminer… » (écrite par `agents.terminer`, hors plafonds) dit déjà la même chose : pas deux lignes pour un geste */
+      if (c.fil !== 'equipe') dire(c.fil, nom + ' a terminé ' + (avant.texte ? '« ' + court(avant.texte, 90) + ' »' : 'une tâche') + (resume ? ' : ' + resume : '') + '.');
       return bon('terminee');
     }
     if (outilsPropres(id).some(t => t.name === a.nom) && typeof propres[id].executer === 'function') {
