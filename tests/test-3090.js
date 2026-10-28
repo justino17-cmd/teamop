@@ -90,7 +90,7 @@ function monde(o) {
     vrai('…et le registre ne garde que son empreinte', !/Ignore|voisin|payeur|exemple-3090/.test(fs.readFileSync(path.join(m.D, 'agents-hugo.json'), 'utf8')) && Object.keys(m.fichierJson('agents-hugo.json').nomsSignales).length === 1);
     m.horloge.t += 15 * 60000;
     await hugo.passer(); await hugo.passer();
-    v('⛔ aux passages suivants (toutes les quinze minutes) : PAS un message de plus', dits().length, 1);
+    v('⛔ aux passages suivants (toutes les quinze minutes) : PAS un message de plus — et pas une ligne de journal de plus non plus (la messagerie refuserait un texte identique : seul le journal et le registre voient un rejeu)', [dits().length, m.journal().filter(e => e.action === 'lire un nom').length], [1, 1]);
     v('(contre-épreuve) le client au nom correct a, lui, sa demande de création', (await m.validations()).filter(x => x.type === 'creer_espace').length, 1);
   }
 
@@ -100,7 +100,7 @@ function monde(o) {
     entrees[2] = Object.assign({}, entrees[2], { question: 'Peut-on exporter ses factures vers un logiciel de comptabilité ?', reponse: 'Oui : l’export des factures se fait en CSV depuis la rubrique Comptabilité.' });
     const L = C.monter({ avant: D => fs.writeFileSync(path.join(D, 'agents-connaissances.json'), JSON.stringify({ entrees, jour: { j: '', n: 0 } })) }); nettoyer.push(L);
     const sans = L.louis.bloc();
-    vrai('(population) 150 connaissances validées, le bloc sans question en garde les plus récentes et reste dans son budget', sans.length > 3000 && sans.length <= 12000 && /Question numéro 149 /.test(sans), sans.length);
+    vrai('(population) 150 connaissances validées, le bloc sans question en garde les plus récentes et reste dans son budget', sans.length > 11000 && sans.length <= 12000 && /Question numéro 149 /.test(sans), sans.length);
     vrai('⛔ sans question, la plus ANCIENNE (la 2ᵉ, celle de l’export) ne tient plus dans le budget : elle est absente', !/exporter ses factures/.test(sans));
     const avec = L.louis.bloc('Bonjour, est-ce que je peux exporter mes factures vers ma comptabilité ?');
     vrai('⛔ AVEC la question, l’entrée pertinente — vieille de 148 entrées — est dans le bloc, et en PREMIER', /exporter ses factures/.test(avec) && avec.indexOf('exporter ses factures') < avec.indexOf('Question numéro'), avec.slice(0, 300));
@@ -148,6 +148,8 @@ function monde(o) {
     const avant2 = Z.recus.length;
     const b3 = await L2.balayer();
     v('⛔ quarante jours plus tard : personne n’est servi deux fois — la fraîche, devenue ancienne, l’est ; les autres jamais', [b3.servis, Z.recus.length - avant2], [1, 1]);
+    const b4 = await L2.balayer();
+    v('⛔ …et au passage d’APRÈS (la mémoire de 30 jours vient d’être élaguée par le précédent) : toujours personne de re-servi — c’est la trace permanente qui tient, pas la mémoire', [b4.servis, b4.examines, Z.recus.length - avant2], [0, 0, 1]);
     const brut = fs.readFileSync(path.join(Z.D, 'agents-lea.json'), 'utf8');
     vrai('⛔ le registre ne porte que des empreintes (ni adresse ni nom)', !/balayage-3090|Société/.test(brut) && Object.keys(JSON.parse(brut).servis).length >= 6, brut.slice(0, 200));
 
