@@ -445,7 +445,8 @@ const RECT_TEXTES = `
       if(w<4||h<4) continue;
       /* recouvert (barre flottante, en-tête collé) ? on ne lit pas un texte qu'on ne voit pas */
       const t=document.elementFromPoint(x+w/2,y+h/2); if(t&&!(t===e||e.contains(t)||t.contains(e))) continue;
-      out.push({fam,txt:(e.textContent||'').trim().slice(0,30),x,y,w,h});
+      const cs2=getComputedStyle(e); let op=1; for(let a=e;a&&a.nodeType===1;a=a.parentElement) op*=parseFloat(getComputedStyle(a).opacity||1);
+      out.push({fam,txt:(e.textContent||'').trim().slice(0,30),x,y,w,h,cls:String(e.className).slice(0,50),coul:cs2.color,taille:cs2.fontSize,op:Math.round(op*100)/100});
     }
   }
   return out;`;
@@ -670,7 +671,7 @@ async function main() {
           for (const t of textes) {
             const m = contrasteDans(im, t, dsf);
             bilan.contrastes.n++; bilan.contrastes.parFam[t.fam] = (bilan.contrastes.parFam[t.fam] || 0) + 1;
-            if (m.c < 4.5) bilan.contrastes.faibles.push(V.cle + ' ' + appareil + ' ' + mode + ' [' + t.fam + '] « ' + t.txt + ' » ' + m.c.toFixed(2) + ':1 sur rgb(' + m.fond.join(',') + ')');
+            if (m.c < 4.5) bilan.contrastes.faibles.push(V.cle + ' ' + appareil + ' ' + mode + ' [' + t.fam + '] « ' + t.txt + ' » ' + m.c.toFixed(2) + ':1 sur rgb(' + m.fond.join(',') + ') — .' + t.cls + ' ' + t.coul + ' ' + t.taille + (t.op < 1 ? ' opacité ' + t.op : ''));
           }
         }
         await o.ev('window.scrollTo(0,0); return 1;');

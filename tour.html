@@ -3616,6 +3616,12 @@ body.plein-courrier #vue>.sous-onglets .tt-seg button[aria-pressed="true"]{font-
 @media (pointer:coarse){ body.plein-courrier #vue>.sous-onglets .tt-seg button{min-height:44px} }
 @media (max-width:899px){ body.plein-courrier #vue>.sous-onglets{margin:0 0 12px} body.plein-courrier #vue>.sous-onglets .tt-seg{width:100%} body.plein-courrier #vue>.sous-onglets .tt-seg button{flex:1;padding:0 10px} }
 @media (min-width:900px){ body.plein-courrier #vue>.sous-onglets{padding:12px clamp(24px,3vw,56px) 10px} }
+/* DE NUIT, AU PIXEL (Tour unifiée, 28 octobre 2026) : 5 textes sous 4,5:1, tous de nuit au téléphone — le libellé d'un chiffre (--muted, 70 %) sur une tuile
+   teintée (3,29:1), et trois pastilles en 12 px (vert, ambre) sur une ligne teintée : la couleur calculée passait, les lettres fines lues au pixel non. Le libellé
+   prend l'encre secondaire pleine ; les pastilles, une encre plus claire de la MÊME teinte (le sens ne change pas). */
+body:not(.jour) .kpi .l{color:rgba(240,244,252,.92)}
+body:not(.jour) .past.p-vert{color:#7CEB9A}
+body:not(.jour) .past.p-ambre,body:not(.jour) .past.p-orange{color:#FFD08A}
 </style>
 </head>
 <body>
