@@ -102,7 +102,7 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
     /* ── 0 · un secret faux ne change RIEN pour la Tour ── */
     console.log('\n0. Un secret faux : la Tour reste exactement ce qu\'elle était');
     {
-      tour = await lancerTour({ pont: { secret: 'pas-un-secret' } });
+      tour = await lancerTour({ pont: { secret: 'invalide' } });
       const h = await tour.sante();
       v('⛔ le pont refuse sa configuration, le DIT, et n\'ajoute rien à /health', [/pont vers OP MESSAGES : configuration refusée/.test(tour.sortie()), 'pont' in h], [true, false]);
       const ecrit = await tour.api('POST', '/api/monitor/conversations/envoyer', { fil: 'victor', texte: 'MARQ-faux1 tu m\'entends ?' });
