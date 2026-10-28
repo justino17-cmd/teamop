@@ -634,7 +634,7 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   (`parMotif`, `refus`, `latence`…) s'arrêtent au conteneur : y descendre ferait apparaître un
   faux orphelin le jour où un refus se produit. Et la liste blanche elle-même est contrôlée —
   une entrée qui parle d'un champ disparu est une décision prise pour du vide.
-- ⛔ **Un espace ORPHELIN (hors annuaire, invisible dans la Tour) se nettoie par `server/nettoyer-espace-orphelin.js`, jamais à la main.** Constat par défaut, `--faire` après `systemctl stop teamop-api` (le service tient ces fichiers en mémoire et les réécrirait) ; il refuse un espace de l'annuaire (on passe par la Tour), n'affiche aucune donnée, écrit par temporaire + renommage. Les deux espaces « techniques » (`elan-gestion`, `elan-gestion-beta`) ne sont pas bloqués sans `--bloquer` : fermer le repli vide les appareils qui s'y connectent encore. `tests/test-3098.js`.
+- ⛔ **Un espace ORPHELIN (hors annuaire, invisible dans la Tour) se nettoie par `server/nettoyer-espace-orphelin.js`, jamais à la main.** Constat par défaut, `--faire` après `systemctl stop teamop-api` (le service tient ces fichiers en mémoire et les réécrirait) ; il refuse un espace de l'annuaire (on passe par la Tour), n'affiche aucune donnée, écrit par temporaire + renommage. Les deux espaces « techniques » (`elan-gestion`, `elan-gestion-beta`) ne sont pas bloqués sans `--bloquer` : fermer le repli vide les appareils qui s'y connectent encore. `tests/test-3100.js`.
 - ⛔ **Fermer une entreprise doit COUPER ses sessions Firebase, et le DIRE.** Refuser les
   nouveaux jetons ne suffit pas : un jeton s'échange contre une session **renouvelable
   indéfiniment**, rangée sur l'appareil — après un seul échange réussi, l'appareil ne repasse

@@ -381,4 +381,4 @@ tests/test-3090.js
 # ── Le pont des agents, côté Tour (28 octobre 2026, Justin : « tu vas implanter OP MESSAGES à la place ») : `server/pont-messages.js` contre un faux OP MESSAGES — la file, les pannes, l'historique, ce que Justin écrit et supprime — et le bandeau de la Tour (3096).
 tests/test-3096.js
 # 28 octobre 2026 : l'outil qui nettoie un espace ORPHELIN (hors annuaire, invisible dans la Tour) — `server/nettoyer-espace-orphelin.js` contre un faux TEAMOP_DATA complet (3098).
-tests/test-3098.js
+tests/test-3100.js
