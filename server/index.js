@@ -10889,7 +10889,7 @@ try {
     app.post('/api/monitor/agents/camille/arriere', monPatronStrict, (req, res) => {
       if (!agentCamille || typeof agentCamille.reprendreArriere !== 'function') return res.status(503).json({ error: 'Camille n’est pas montée' });
       const j = parseInt((req.body || {}).jours, 10);
-      const jours = Number.isInteger(j) && j >= 1 && j <= 90 ? j : 30;
+      const jours = Number.isInteger(j) && j >= 1 && j <= 3650 ? j : 3650;
       const p = agentsMod && typeof agentsMod.peutAgir === 'function' ? agentsMod.peutAgir('camille') : { ok: false, raison: 'indisponible' };
       if (!p.ok) return res.status(409).json({ error: 'Camille ne peut pas agir maintenant (' + String(p.raison || '').replace(/_/g, ' ') + ')' });
       if (typeof agentCamille.repriseEnCours === 'function' && agentCamille.repriseEnCours()) return res.status(409).json({ error: 'La reprise de l’arriéré est déjà en cours' });
@@ -10902,7 +10902,7 @@ try {
       try {
         if (!agentCamille || typeof agentCamille.reprendreArriere !== 'function' || (agentCamille.repriseEnCours && agentCamille.repriseEnCours())) return;
         if (!(agentsMod && agentsMod.peutAgir('camille').ok)) return;
-        agentCamille.reprendreArriere(30, { silencieux: true }).catch(e => console.error('camille (arriéré) :', e.message));
+        agentCamille.reprendreArriere(3650, { silencieux: true }).catch(e => console.error('camille (arriéré) :', e.message));
       } catch (e) {}
     }, 30 * 60000).unref();
     app.post('/api/monitor/agents/hugo/passer', monPatronStrict, async (req, res) => {

@@ -601,7 +601,8 @@ module.exports = function monterMessagerie(app, ctx) {
   /* une ligne du suivi est LIBRE tant que personne ne l'a prise ni n'y a répondu, et qu'elle n'est pas résolue — relu juste avant chaque reprise */
   const suiviLibre = mid => { const sv = suivi[String(mid || '')]; return !sv || !(sv.statut === 'resolu' || sv.repTs > 0 || sv.assigne); };
   async function arriere(jours) {
-    const j = Math.min(Math.max(parseInt(jours, 10) || 30, 1), 90), depuis = new Date(Date.now() - j * 86400000);
+    /* (28 octobre 2026, Justin : « sans limite ») toute la boîte par défaut ; `jours` borne seulement si on le demande */
+    const j = Math.min(Math.max(parseInt(jours, 10) || 3650, 1), 3650), depuis = new Date(Date.now() - j * 86400000);
     const out = []; let tronque = false;
     for (const b of boites) {
       if (!boiteAgentOk(b)) continue;

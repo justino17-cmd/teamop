@@ -163,7 +163,7 @@ const suivre = Z => { const s = []; Z.mail.suiviMarquer = (mid, o) => { s.push([
     const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
     vrai('l’outil de Camille est branché dans la messagerie (getter tardif)', /get camille\(\) \{ return agentCamille && agentCamille\.outilsEquipe; \}/.test(IDX));
     vrai('la route de la Tour existe, réservée au patron, et refuse une seconde reprise (409)', /app\.post\('\/api\/monitor\/agents\/camille\/arriere', monPatronStrict,[\s\S]{0,900}repriseEnCours\(\)\) return res\.status\(409\)/.test(IDX));
-    vrai('Camille ratisse l’arriéré SEULE toutes les 30 minutes, silencieuse quand il n’y a rien', /agentCamille\.reprendreArriere\(30, \{ silencieux: true \}\)[\s\S]{0,120}\}, 30 \* 60000\)/.test(IDX));
+    vrai('Camille ratisse l’arriéré SEULE toutes les 30 minutes, silencieuse quand il n’y a rien', /agentCamille\.reprendreArriere\(3650, \{ silencieux: true \}\)[\s\S]{0,120}\}, 30 \* 60000\)/.test(IDX));
     const CAMS = fs.readFileSync(path.join(RACINE, 'server', 'agent-camille.js'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
     vrai('⛔ plus aucune limite d’âge à l’arrivée (« ancien » n’est plus un motif)', !/saute: 'ancien'/.test(CAMS));
     const MAIL = fs.readFileSync(path.join(RACINE, 'server', 'mail.js'), 'utf8');

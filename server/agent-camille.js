@@ -496,7 +496,7 @@ module.exports = function camille(ctx) {
         else if ((r.passe || r.hugo) && r.depose === true) b.transmis++;
         else if (r.depose === true || r.chloe) b.reponses++;
       }
-      const t = 'Reprise de l’arriéré (' + (Math.min(Math.max(parseInt(jours, 10) || 30, 1), 90)) + ' derniers jours) : ' + b.examines + ' courriel' + (b.examines > 1 ? 's' : '') + ' examiné' + (b.examines > 1 ? 's' : '') +
+      const t = 'Reprise de l’arriéré' + (parseInt(jours, 10) > 0 && parseInt(jours, 10) < 3650 ? ' (' + parseInt(jours, 10) + ' derniers jours)' : '') + ' : ' + b.examines + ' courriel' + (b.examines > 1 ? 's' : '') + ' examiné' + (b.examines > 1 ? 's' : '') +
         ' — ' + b.reponses + ' réponse' + (b.reponses > 1 ? 's' : '') + ' en brouillon à valider, ' + b.transmis + ' transmis à un collègue, ' + b.justin + ' pour toi' + (pourToi.length ? ' (réf. ' + pourToi.slice(0, 12).join(', ') + ')' : '') +
         ', ' + b.ignores + ' sans réponse à faire (publicité, lettre d’information : ils restent dans le Courrier, à classer d’un geste)' + (b.echecs ? ', ' + b.echecs + ' que je n’ai pas pu lire ou traiter' : '') + '.' +
         (liste.tronque ? ' La boîte est très chargée : je n’ai regardé que les plus récents de la période.' : '') +
@@ -514,7 +514,7 @@ module.exports = function camille(ctx) {
      son fil privé avec Justin. */
   const outilsEquipe = {
     outils: [{ name: 'reprendre_courriels_anciens', description: 'Reprendre les courriels des derniers jours que personne n’a traités (ni répondus, ni pris) dans contact@ et support@, le plus ancien d’abord, avec tes règles habituelles. Toute réponse attend la validation de Justin. Seulement quand Justin te le demande.',
-      input_schema: { type: 'object', properties: { jours: { type: 'integer', minimum: 1, maximum: 90, description: 'Combien de jours en arrière (30 par défaut).' } }, additionalProperties: false } }],
+      input_schema: { type: 'object', properties: { jours: { type: 'integer', minimum: 1, maximum: 3650, description: 'Combien de jours en arrière (toute la boîte par défaut).' } }, additionalProperties: false } }],
     executer(nom, e, c) {
       if (nom !== 'reprendre_courriels_anciens') return { ok: false, raison: 'inconnu' };
       if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Je ne reprends l’arriéré que sur une demande de Justin.' };
@@ -523,9 +523,9 @@ module.exports = function camille(ctx) {
       if (enReprise) return { ok: false, raison: 'deja_en_cours', ligne: 'La reprise de l’arriéré est déjà en cours.' };
       const p = agents.peutAgir(ID);
       if (!p.ok) return { ok: false, raison: p.raison, ligne: 'Je ne peux pas reprendre l’arriéré maintenant (' + String(p.raison).replace(/_/g, ' ') + ').' };
-      const j = Number.isInteger(e && e.jours) ? e.jours : 30;
+      const j = Number.isInteger(e && e.jours) ? e.jours : 3650;
       Promise.resolve().then(() => reprendreArriere(j)).catch(() => {});
-      return { ok: true, ligne: 'Reprise de l’arriéré lancée (' + Math.min(Math.max(j, 1), 90) + ' derniers jours) : le bilan arrive ici quand j’ai fini.' };
+      return { ok: true, ligne: 'Reprise de l’arriéré lancée' + (j < 3650 ? ' (' + j + ' derniers jours)' : ' (toute la boîte)') + ' : le bilan arrive ici quand j’ai fini.' };
     }
   };
   return { surNouveauMessage, reprendreArriere, outilsEquipe, repriseEnCours: () => enReprise };
