@@ -180,7 +180,7 @@ console.log('\n── 2885 · les réunions contre le vrai serveur ──');
     const pl = m.find(b => parNom(b) === 'Léa'), pn = m.find(b => parNom(b) === 'Noah');
     vrai('⛔ la réponse de Léa porte sa mémoire (objectifs de la semaine + leçon) APRÈS les règles', pl && /Ta mémoire d’équipe/.test(pl.system) && /Tes objectifs de la semaine \(2026-W44\)/.test(pl.system) && /\[bilan : atteint\]/.test(pl.system) && /LECON-2885/.test(pl.system) && pl.system.indexOf('Ta mémoire') > pl.system.indexOf('Règles :'));
     vrai('…celle de Noah, qui n’en a pas, ne porte rien de tel', pn && !/Ta mémoire d’équipe/.test(pn.system));
-    vrai('…la mémoire ne donne aucun outil de plus (les cinq outils fermés de la messagerie, rien d’autre)', pl.tools.map(t => t.name).join() === 'ecrire,prendre,passer,terminer,demander_justin');
+    vrai('…la mémoire ne donne aucun outil de plus (les SIX outils fermés de la messagerie, rien d’autre — `demander` s’est ajouté le 28 octobre 2026 : Justin veut des agents qui se parlent ; `assigner` reste à Victor seul)', pl.tools.map(t => t.name).join() === 'ecrire,prendre,passer,terminer,demander_justin,demander');
     /* retirer la leçon */
     const rt = await F.P('/api/monitor/agents/lecons/retirer', { agent: 'lea', id: leconId });
     v('⛔ « Retirer » une leçon : 200, elle disparaît de la lecture', [rt.s, Object.keys((await reunions(F)).lecons)], [200, []]);
