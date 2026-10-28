@@ -47,11 +47,11 @@ console.log('Les unités : ce que le client lit, ce que le registre porte');
     /const q=Math\.round\(stockConv\(l\.qte!=null\?\(\+l\.qte\|\|0\):1,uL,uP\)\*10000\)\/10000;/.test(APP),true);
 }
 
-{ const code=['function prodLineUnit(l){','function registreBiocides(cid){'].map(d=>decoupe(d)).join('\n');
+{ const code=['function prodLineUnit(l){','function ligneBiocide(p){','function registreBiocides(cid){'].map(d=>decoupe(d)).join('\n');
   const bac=new Function('etat',`let db=etat.db;
     const produit=id=>(db.produits||[]).find(p=>p.id===id)||{};
     const registreInts=cid=>(db.interventions||[]).filter(i=>i.clientId===cid);
-    const intTechIds=()=>[]; const techName=()=>'';
+    const intTechIds=()=>[]; const techName=()=>''; const CATS_NON_BIOCIDES=['Piégeage','Matériel','EPI','Proofing'];
     ${code}; return {registreBiocides};`);
   const db={produits:[{id:'p1',nom:'TERMIFOS 500',unite:'L',amm:'FR-123',matiereActive:'Fipronil'}],
     interventions:[{id:'i1',clientId:'c1',date:'2026-09-10',produitsUtilises:[{produitId:'p1',qte:250,unite:'mL'}]}]};
