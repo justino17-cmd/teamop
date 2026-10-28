@@ -329,12 +329,15 @@
   function rendreSalle(s) {
     const grille = $('grille'), vus = new Set();
     const liste = [{ id: ST.moiId, nom: 'Vous', moi: true, camera: ST.cam && !!ST.local.video && s.type !== 'audio', micro: ST.micro, main: s.moi && s.moi.main, parle: false }]
-      .concat((s.membres || []).filter(m => m.statut === 'present').map(m => ({ id: m.id, nom: m.nom || 'Participant', moi: false, camera: !!m.camera && s.type !== 'audio', micro: m.micro !== false, main: !!m.main, parle: !!m.parle, initiales: m.initiales })));
+      .concat((s.membres || []).filter(m => m.statut === 'present').map(m => ({ id: m.id, nom: m.nom || 'Participant', moi: false,
+        /* ⛔ un écran partagé PASSE PAR LA PISTE DE LA CAMÉRA (même émetteur en maille ; en LiveKit `flux()` rend l'écran avant la caméra) : caméra coupée ou non, l'image arrive — la page connectée le sait depuis le
+           7 octobre 2026. Sans `|| m.partage`, la tuile restait sur l'avatar (`data-camera="off"` → vidéo à `opacity:0`) pendant que l'écran de l'organisateur ARRIVAIT, décodé, derrière (28 octobre 2026, capture de Justin) */
+        camera: (!!m.camera || !!m.partage) && s.type !== 'audio', ecran: !!m.partage, micro: m.micro !== false, main: !!m.main, parle: !!m.parle, initiales: m.initiales })));
     for (const x of liste) {
       vus.add(x.id);
       let t = grille.querySelector('[data-uid="' + CSS.escape(x.id) + '"]');
       if (!t) { t = tuile(x.id, x.nom, x.moi); grille.appendChild(t); }
-      t.dataset.camera = x.camera ? 'on' : 'off'; t.dataset.parle = x.parle ? 'true' : 'false';
+      t.dataset.camera = x.camera ? 'on' : 'off'; t.dataset.ecran = x.ecran ? '1' : '0'; t.dataset.parle = x.parle ? 'true' : 'false';
       t.querySelector('.init').textContent = x.moi ? initiale(ST.nom) : (x.initiales || initiale(x.nom));
       t.querySelector('.nom b').textContent = x.nom;
       let p = t.querySelector('.puce');
@@ -347,6 +350,8 @@
       if (v.srcObject && v.paused) { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); }
     }
     for (const t of Array.from(grille.children)) if (!vus.has(t.dataset.uid)) t.remove();
+    /* la scène : tant que quelqu'un partage son écran, il a la grande place et les autres passent en vignettes dessous (la page connectée fait pareil en « vue intervenant ») */
+    grille.dataset.ecran = grille.querySelector('.tuile[data-ecran="1"]') ? '1' : '0';
     majBarre();
     majDuree();
   }
