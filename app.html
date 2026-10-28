@@ -10648,7 +10648,7 @@ function metierPrestaCard(i,edit){
         <button type="button" class="met-chip add" onclick="metPrestaAjout('${i.id}')">＋ Autre…</button></div>`
       :(sel.length?`<div class="met-grid">${sel.map(l=>`<span class="met-chip on lecture">✓ ${esc(l)}</span>`).join('')}</div>`
         :'<div style="color:var(--t3);font-size:13px;padding:2px 0 6px">Aucune prestation cochée.</div>')}
-    ${(rel.length||(!edit&&relFaits.length))?`<div class="form-sec" style="margin-top:14px">📏 Relevés &amp; mesures</div>
+    ${rel.length?`<div class="form-sec" style="margin-top:14px">📏 Relevés &amp; mesures</div>
       ${edit?`<div class="met-rel">${rel.map(r=>`<div class="field" style="margin:0">
           <label>${esc(r.l)}${r.u?' <span style="color:var(--t3);font-weight:400">('+esc(r.u)+')</span>':''}</label>
           <input ${r.txt?'':'type="number" step="any" inputmode="decimal"'} value="${esc(((i.relevesMetier||{})[r.k])||'')}"

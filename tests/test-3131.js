@@ -465,6 +465,13 @@ console.log('\n══ 15. ⛔ RETIRER UN MÉTIER NE FAIT PAS SORTIR DU RAPPORT C
   const jouer = assoc => { const d = { metier: 'plomberie', metiersAssocies: { chauffage: { on: assoc ? 1 : 0, _m: 1 } }, clients: [{ id: 'c1', nom: 'Client' }], interventions: [] };
     const b = bac('app.html', noms, { METIERS, METIERS_ORDRE, INT_TYPES, CAT_LIST, norm, _packsCombines: new Map(), _relevesDefs: null, METIERS_ASSOC_MAX: 4, db: d, traitementSummary: () => [], ficheSummary: () => [], NUIS_TRAIT: {}, nettRapportLignes: () => [], esc: x => String(x == null ? '' : x), PRESTATION_ITEMS: [] });
     return { rows: b.fn.rapportConstatLignes(saisi()), texte: (() => { try { return String(b.fn.genRapportTexte(saisi())); } catch (e) { return 'ERREUR ' + e.message; } })(), vus: b.vus }; };
+  /* la fiche en lecture (metierPrestaCard) : la même fonction, jouée */
+  const fiche = assoc => { const d = { metier: 'plomberie', metiersAssocies: { chauffage: { on: assoc ? 1 : 0, _m: 1 } } };
+    const b = bac('app.html', ['metierPrestaCard', 'metierRelevesDefs', 'metierRelevesLignes', 'metierPack', 'metierPackDe'], { METIERS, METIERS_ORDRE, INT_TYPES, CAT_LIST, norm, _packsCombines: new Map(), _relevesDefs: null, METIERS_ASSOC_MAX: 4, db: d, esc: x => String(x == null ? '' : x) });
+    return String(b.fn.metierPrestaCard(saisi(), false)); };
+  const F1 = fiche(true), F0 = fiche(false);
+  vrai('(population) la fiche en lecture, clim associée : « ' + co.l + ' » et « 12 » y sont (et la carte est bien rendue)', /Relevés/.test(F1) && F1.indexOf('<span>' + co.l + '</span><b>12 ') >= 0, F1.slice(-400));
+  vrai('⛔ la fiche en lecture, clim RETIRÉE : « ' + co.l + ' » et « 12 » y sont encore, et la pression aussi', F0.indexOf('<span>' + co.l + '</span><b>12 ') >= 0 && F0.indexOf('<span>' + pression.l + '</span><b>3 ') >= 0, F0.slice(-400));
   const R1 = jouer(true), R0 = jouer(false);
   const aplati = r => JSON.stringify(r.rows);
   vrai('(population) le rapport de la clim associée porte bien le CO, et le texte du compte-rendu aussi', /12/.test(aplati(R1)) && R1.texte.indexOf(co.l + ' : 12') >= 0, [aplati(R1).slice(0, 300), R1.texte.slice(0, 300)]);
