@@ -13,6 +13,21 @@ de ligne du tout.
 
 ---
 
+# 📬 28 OCTOBRE 2026 (APRÈS-MIDI) — « 35 COURRIERS À TRAITER, PERSONNE DESSUS » : CE QUE CAMILLE A LU NE RESTE PLUS « À TRAITER »
+Branche `claude/camille-courrier-classe` (serveur seulement, **pas poussée, pas de demande de fusion** : un push de `server/` sur `main` déploie le VPS). La Tour n'est PAS touchée (v2.117 en service).
+- **Causes** : (1) un courriel ignoré / automatique / interne / d'expéditeur illisible n'écrivait RIEN au suivi → ligne « à traiter » pour toujours, relue à chaque passe en tête des 200 places de la file ;
+  (2) Camille ne voit pas le bilan de sa reprise (son fil privé) et son outil refusait les trois phrases de Justin ; (3) Victor n'avait que `{aTraiter, enCours}`.
+- **Fait** (`test-3098`, 74 vérifications, le vrai `mail.js` contre un IMAP simulé + le vrai `agent-camille.js` + les prompts) : classement « en cours · Camille » + raison d'une liste fermée (`classe`), JAMAIS « résolu », jamais
+  une ligne touchée par un humain, jamais de création de ligne ; `compter`/`/stats` séparent à traiter / en cours / classés, `ouverts` ne porte plus les classés (`classesRecents` les rend) ; la reprise n'inscrit plus
+  les décidés dans sa file (`arriere(jours, {ecarter})`) et range leur ligne sans relire la boîte ; trois « expéditeur déjà en attente » ne l'arrêtent plus ; première passe 3 min après le démarrage ;
+  `etatReprise()` (nombres) lu par Victor et Camille (faits `reprise` et `courrier.classes`) ; garde de l'outil élargie aux phrases réelles de Justin (jamais un collègue ni un client).
+- **Ce que Justin verra dans la Tour en service** : le courrier classé garde sa place dans la Réception, pastille « En cours · Camille » (dossier « En cours ») ; « Au rapport » ne le compte plus ; la tuile « en cours »
+  ne compte que le travail réel. Une Tour qui voudra les montrer lira `classes` et `classesRecents` dans `/api/monitor/mail/stats`.
+- **À décider par Justin (non appliqué)** : la reprise ne prend que la MOITIÉ des plafonds du jour (50 examens, 15 brouillons) : une boîte de 1 000 courriels = ≥ 20 jours ouvrés, et 15 brouillons/jour est le vrai goulot.
+  Options : 2/3 hors du courrier du jour ; un tri sans Claude pour les envois en masse (en-têtes de liste). Aussi : la file ne lit que les 1 000 plus récents par boîte (`tronque` est dit dans le bilan).
+- **Limite** : les ignorés d'AVANT, vus à l'arrivée seulement (ni `repris` ni `rien`), ne sont pas reclassés (on ne sait pas pourquoi ils ont été vus) : ils sortent de la file mais gardent « à traiter » — à compter sur le VPS.
+- **Mutations** : `scratchpad/mutations-3098.py` (35 mutations ; 2 survivaient au premier tour, le test a été complété ; une seule équivalente : la garde `!r.protege` est doublée par `__lu` absent).
+
 # 🌉 28 OCTOBRE 2026 (JOUR) — LES AGENTS DE LA TOUR DANS OP MESSAGES : LE CODE EST PRÊT, LA MISE EN SERVICE ATTEND JUSTIN
 Justin : « tu vas implanter OP MESSAGES à la place » — bêta d'abord (`msg-beta.teamop.fr`), bascule directe, historique importé, « je récupère tout sur
 OP MESSAGES sur mon téléphone ». Branche `claude/opmsg-agents` (pas de demande de fusion ouverte). **Mode d'emploi : `server-msg/PONT-AGENTS.md`.**
