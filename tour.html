@@ -6985,7 +6985,7 @@ function survPurgeable(nom){
 function survPurger(nom){
   if(!survPurgeable(nom)){ toast('Cette entreprise existe encore : rien à effacer'); return; }
   var tous=incDeLaConsole().filter(function(i){ return incEnts(i).indexOf(nom)>=0; }).length;
-  if(!confirm('Effacer « '+nom+' » de la surveillance ?\n\n'+tous+(tous>1?' problèmes signalés par cette entreprise et ses salariés':' problème signalé par cette entreprise et ses salariés')+' seront effacés — leurs adresses e-mail aussi — ainsi que les lignes brutes du journal d’erreurs qui s’y rattachent. Les gestes du journal de la Tour restent, sans son nom.\n\nC’est DÉFINITIF : rien n’est récupérable.')) return;
+  if(!confirm('Effacer « '+nom+' » de la surveillance ?\n\n'+tous+(tous>1?' problèmes signalés par cette entreprise et ses salariés':' problème signalé par cette entreprise et ses salariés')+' seront effacés, avec le nom de l’entreprise et les adresses e-mail de ceux qui l’ont signalé sous ce nom. Les lignes brutes du journal technique d’erreurs ne partent que si ces signalements portent l’identifiant de son espace (les plus anciens ne le portent pas) : le message qui suivra dit combien sont parties. Les gestes du journal de la Tour restent, sans son nom.\n\nC’est DÉFINITIF : rien n’est récupérable.')) return;
   apiPost('/api/monitor/issues/purger-entreprise',{nom:nom}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
     var d=r.d||{};

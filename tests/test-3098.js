@@ -11,6 +11,9 @@
  *   2. ⛔ une entreprise qui VIT est refusée (409), l'espace par défaut aussi (403), un non-patron aussi (403) ;
  *   3. la suppression totale purge d'elle-même (`fait.surveillance`), y compris les lignes brutes de `bugs.jsonl` — écrites atomiquement ;
  *   4. `POST /api/monitor/report` d'un espace fermé n'écrit RIEN (même forme que /api/bug), un espace vivant ou sans espace écrit comme avant ;
+ *   5. (§ 5 bis, le gardien, 28 octobre 2026) une adresse d'incident n'est JAMAIS une clé de purge (corps de requête public) ; l'espace par défaut se refuse par son NOM ;
+ *      une entreprise qui vit sous un autre nom que celui de l'annuaire se reconnaît à l'ESPACE écrit dans l'entrée ; un annuaire illisible refuse (503) ;
+ *      les lignes brutes se retrouvent par cet espace ; un nom d'un seul mot ne fait pas anonymiser les gestes d'une autre entreprise ;
  */
 const fs = require('fs'), path = require('path'), os = require('os'), crypto = require('crypto'), http = require('http');
 const { spawn } = require('child_process');
@@ -21,8 +24,8 @@ const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; co
 const vrai = (t, a) => v(t, !!a, true);
 const dormir = (ms) => new Promise(r => setTimeout(r, ms));
 const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-3098-'));
-let enfant = null, faux = null, facteurSrv = null;
-const fin = () => { try { if (enfant) enfant.kill('SIGKILL'); } catch (e) {} try { if (faux) faux.close(); } catch (e) {} try { if (facteurSrv) facteurSrv.close(); } catch (e) {}
+let enfant = null, faux = null, facteurSrv = null; const autresEnfants = [];
+const fin = () => { try { if (enfant) enfant.kill('SIGKILL'); } catch (e) {} try { autresEnfants.forEach(x => x.kill('SIGKILL')); } catch (e) {} try { if (faux) faux.close(); } catch (e) {} try { if (facteurSrv) facteurSrv.close(); } catch (e) {}
   try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
 process.on('exit', fin);
 setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 180 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 180000).unref();
@@ -63,13 +66,16 @@ function facteur() {
 
   const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
   const code64 = (t) => Buffer.from(JSON.stringify({ t, k: 'cle-propre-' + t })).toString('base64');
-  const VIV = 't-viv-3098', DEL = 't-delta-3098', FER = 't-ferme-3098', ANC = 't-ancienne-3098', ORPH = 't-orphelin-3098';
+  const VIV = 't-viv-3098', DEL = 't-delta-3098', FER = 't-ferme-3098', ANC = 't-ancienne-3098', ORPH = 't-orphelin-3098', FER2 = 't-ferme2-3098', ECH = 't-echo-3098';
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify({
     'vivante-services': { t: VIV, nom: 'Vivante Services', email: 'viv@exemple-3098.fr', code: code64(VIV), ts: Date.now() },
     'delta': { t: DEL, nom: 'Delta Propreté', email: 'delta@exemple-3098.fr', code: code64(DEL), ts: Date.now() },
     'delta-proprete': { t: DEL, nom: 'DELTA PROPRETE', code: code64(DEL), ts: Date.now() - 1000 },
-    'ferme-hygiene': { t: FER, nom: 'Fermée Hygiène', email: 'ferme@exemple-3098.fr', code: code64(FER), ts: Date.now() } }));
-  fs.writeFileSync(path.join(D, 'entreprises-fermees.json'), JSON.stringify({ emails: [], espaces: [FER], suspendus: [], suspendusLe: {} }));
+    'ferme-hygiene': { t: FER, nom: 'Fermée Hygiène', email: 'ferme@exemple-3098.fr', code: code64(FER), ts: Date.now() },
+    'ferme-deux': { t: FER2, nom: 'Fermée Deux', email: 'ferme2@exemple-3098.fr', code: code64(FER2), ts: Date.now() },
+    /* une entreprise dont le nom tient en UN mot générique : sa suppression ne doit pas anonymiser les gestes d'une autre qui contient ce mot */
+    'gestion': { t: ECH, nom: 'Gestion', email: 'echo@exemple-3098.fr', code: code64(ECH), ts: Date.now() } }));
+  fs.writeFileSync(path.join(D, 'entreprises-fermees.json'), JSON.stringify({ emails: [], espaces: [FER, FER2], suspendus: [], suspendusLe: {} }));
   fs.writeFileSync(path.join(D, 'comptes.json'), JSON.stringify({ [DEL]: { c: { d1: { s: 'aa', e: 'bb', n: 'D Un' } }, maj: Date.now() } }));
   /* un espace HORS annuaire qui se connecte encore : une entreprise vivante pour qui l'annuaire ne dit rien */
   fs.writeFileSync(path.join(D, 'connexions.json'), JSON.stringify({ [DEL]: [{ ts: Date.now(), ev: 'connexion', login: 'jean', nom: 'Jean', role: 'technicien', version: '772', app: 'gestion' }],
@@ -100,11 +106,13 @@ function facteur() {
     actions: [
       { ts: N - 7000, qui: 'Patron', geste: 'a renommé une entreprise', cible: 'Delta Propreté', app: 'gestion' },
       { ts: N - 6000, qui: 'Patron', geste: 'a changé la formule d’une entreprise', cible: DEL, detail: 'pro', app: 'gestion' },
-      { ts: N - 5000, qui: 'Patron', geste: 'a réglé l’abonnement d’une entreprise à la main', cible: 'Vivante Services', app: 'gestion' } ] };
+      { ts: N - 5000, qui: 'Patron', geste: 'a réglé l’abonnement d’une entreprise à la main', cible: 'Vivante Services', app: 'gestion' },
+      { ts: N - 4000, qui: 'Patron', geste: 'a ouvert l’accès d’une entreprise', cible: 'Gestion Courante SARL', app: 'gestion' },
+      { ts: N - 3000, qui: 'Patron', geste: 'a ouvert l’accès d’une entreprise', cible: 'Gestion', app: 'gestion' } ] };
   fs.writeFileSync(path.join(banc, 'monitor.json'), JSON.stringify(MONITOR));
   const ligne = (team, msg) => JSON.stringify({ ts: N - 100, team, app: 'opgestion', version: '772', msg, src: '', line: 0, stack: '', ua: '' });
   const BUGS = [ligne(DEL, 'd1'), ligne(DEL, 'd2'), ligne(DEL, 'd3'), ligne('delta', 'slug'), ligne(VIV, 'v1'), ligne(VIV, 'v2'), ligne('elan-gestion', 'defaut'),
-    ligne(ANC, 'a1'), ligne(ANC, 'a2'), ligne(ORPH, 'o1')];
+    ligne(ANC, 'a1'), ligne(ANC, 'a2'), ligne(ORPH, 'o1'), ligne(ECH, 'e1')];
   fs.writeFileSync(path.join(D, 'bugs.jsonl'), BUGS.join('\n') + '\n');
 
   const vap = webpush.generateVAPIDKeys();
@@ -137,10 +145,32 @@ function facteur() {
   const entsDe = (l, id) => ((l.find(i => i.id === id) || {}).entreprises || []).map(e => e.nom);
   const ROUTE = '/api/monitor/issues/purger-entreprise';
 
+  /* un SECOND serveur, isolé lui aussi, pour les états que le premier ne peut pas prendre : un annuaire illisible, une entreprise dont
+     l'espace n'existe plus. Même configuration, ses propres données ; il s'arrête avec le banc. */
+  const lancerAutre = async (nom, o) => {
+    const rep = path.join(banc, nom), Da = path.join(rep, 'data'); fs.mkdirSync(Da, { recursive: true });
+    fs.copyFileSync(path.join(banc, 'config.json'), path.join(rep, 'config.json'));
+    fs.writeFileSync(path.join(Da, 'espaces.json'), typeof o.espaces === 'string' ? o.espaces : JSON.stringify(o.espaces || {}));
+    fs.writeFileSync(path.join(Da, 'entreprises-fermees.json'), JSON.stringify(o.fermees || { emails: [], espaces: [], suspendus: [], suspendusLe: {} }));
+    fs.writeFileSync(path.join(rep, 'monitor.json'), JSON.stringify(o.monitor));
+    if (o.bugs) fs.writeFileSync(path.join(Da, 'bugs.jsonl'), o.bugs.join('\n') + '\n');
+    const port = await libre(); let jr = '';
+    const e2 = spawn(process.execPath, [SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(rep, 'config.json'), TEAMOP_DATA: Da, PORT: String(port),
+      TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_FB_OAUTH_URL: GURL + '/token', TEAMOP_FIRESTORE_URL: GURL, TEAMOP_IDTK_URL: GURL + '/idtk', TEAMOP_FB_CERTS_URL: GURL + '/certs',
+      TEAMOP_MSG_BETA_URL: 'http://127.0.0.1:1', TEAMOP_MSG_PROD_URL: 'http://127.0.0.1:1' }), stdio: ['ignore', 'pipe', 'pipe'] });
+    e2.stdout.on('data', d => { jr += d; }); e2.stderr.on('data', d => { jr += d; }); autresEnfants.push(e2);
+    const URLa = 'http://127.0.0.1:' + port; let vif = false;
+    for (let i = 0; i < 150 && !vif; i++) { try { vif = (await fetch(URLa + '/health')).ok; } catch (e) {} if (!vif) await dormir(100); }
+    const ap = async (route, corps, jeton) => { const r = await fetch(URLa + route, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}), body: JSON.stringify(corps) });
+      let j = null; try { j = JSON.parse(await r.text()); } catch (e) {} return { s: r.status, j: j || {} }; };
+    const jeton = vif ? (await ap('/api/monitor/login', { nom: 'Patron', pass: MDP })).j.token : '';
+    return { vif, ap, jeton, rep, Da, journal: () => jr };
+  };
+
   /* la population AVANT : un zéro d'après ne vaut que si on a vu les unités avant */
   const avant = await issuesVivantes();
   v('population : neuf incidents vivants lus par la Tour (l\'archive n\'y est pas)', avant.length, 9);
-  v('population : deux incidents archivés, dix lignes de journal brut au total', [mon().archive.length, bugsEquipes().length], [2, 10]);
+  v('population : deux incidents archivés, onze lignes de journal brut au total', [mon().archive.length, bugsEquipes().length], [2, 11]);
   v('population : Delta figure dans 3 incidents vivants (dont un d\'OP MESSAGES) et 2 archivés', [avant.filter(i => /delta/i.test(JSON.stringify(i.entreprises))).length, mon().archive.filter(i => /delta/i.test(JSON.stringify(i.entreprises))).length], [3, 2]);
 
   console.log('\n── 3098 · 1. les refus — une entreprise qui vit ne se purge pas ──');
@@ -166,17 +196,20 @@ function facteur() {
 
   console.log('\n── 3098 · 2. effacer une entreprise partie (la route, comme la Tour l’appelle : { nom } exact) ──');
   r = await appel(ROUTE, { nom: 'Ancienne Entreprise' }, PATRON);
-  v('une entreprise absente de l\'annuaire : 200, un incident retiré (i5), deux entrées retirées d\'un autre (i6 : le nom, et l\'adresse sous un autre nom), pas de ligne brute', [r.s, r.j.ok, r.j.issues, r.j.archive, r.j.entreprises, r.j.bugs, r.j.ecrit], [200, true, 1, 0, 3, 0, true]);
+  v('une entreprise absente de l\'annuaire : 200, un incident retiré (i5), son entrée d\'un autre (i6), pas de ligne brute', [r.s, r.j.ok, r.j.issues, r.j.archive, r.j.entreprises, r.j.bugs, r.j.ecrit], [200, true, 1, 0, 2, 0, true]);
   vrai('   ⛔ la réponse ne rend que des NOMBRES : ni nom ni adresse', !/ancienne|@/i.test(JSON.stringify(r.j)));
   let m = mon();
-  v('i5 (l\'entreprise seule) est supprimé ; i6 reste, sans elle', [m.issues.some(i => i.id === 'i5'), entsDe(m.issues, 'i6')], [false, ['Vivante Services']]);
-  v('   le compteur de i6 retombe à ce qui vient de Vivante (4 − 3 = 1)', m.issues.find(i => i.id === 'i6').count, 1);
-  vrai('   ⛔ l\'adresse de l\'entreprise partie n\'est plus NULLE PART dans monitor.json', !/ancienne-3098|Ancienne Entreprise/i.test(monTexte().replace(/entreprise supprimée/g, '')));
+  v('i5 (l\'entreprise seule) est supprimé ; i6 reste, sans elle — mais avec l\'entrée écrite sous une AUTRE graphie (« Ancienne Ent »), qui est une ligne à elle dans « Entreprises touchées »', [m.issues.some(i => i.id === 'i5'), entsDe(m.issues, 'i6')], [false, ['Ancienne Ent', 'Vivante Services']]);
+  v('   le compteur de i6 retombe à ce qui reste (4 − 2 = 2)', m.issues.find(i => i.id === 'i6').count, 2);
+  vrai('   ⛔ son NOM n\'est plus nulle part dans monitor.json ; son adresse reste sous l\'autre graphie, qu\'AUCUN incident ne peut désigner (une adresse d\'incident n\'est pas une clé de purge)', !/Ancienne Entreprise/i.test(monTexte().replace(/entreprise supprimée/g, '')) && /old@ancienne-3098/.test(monTexte()));
   v('   la liste que lit la Tour : plus que huit incidents', (await issuesVivantes()).length, 8);
   const trace = m.actions.filter(a => /^surveillance purgée/.test(a.geste));
   v('   une trace, SANS donnée : « surveillance purgée : 1 incidents, 0 lignes brutes (entreprise supprimée) »', trace.map(a => a.geste), ['surveillance purgée : 1 incidents, 0 lignes brutes (entreprise supprimée)']);
   vrai('   ⛔ elle ne porte ni nom ni adresse ni identifiant (cible vide)', trace.length === 1 && trace.every(a => a.cible === '' && !/ancienne|@/i.test(JSON.stringify(a))));
   vrai('   les autres entreprises d\'i6 et tous les autres incidents sont intacts', ids(m.issues).join() === 'i1,i2,i3,i4,i6,i7,i8,i9' && entsDe(m.issues, 'i4').join() === 'Vivante Services');
+  r = await appel(ROUTE, { nom: 'Ancienne Ent' }, PATRON);
+  v('   l\'autre graphie se purge de la même façon, par SON nom : une entrée', [r.s, r.j.issues, r.j.entreprises], [200, 0, 1]);
+  vrai('   ⛔ l\'adresse de l\'entreprise partie n\'est plus NULLE PART dans monitor.json', !/ancienne-3098|Ancienne Ent/i.test(monTexte().replace(/entreprise supprimée/g, '')) && entsDe(mon().issues, 'i6').join() === 'Vivante Services');
   vrai('   ⛔ l\'adresse de l\'annuaire d\'une entreprise qui VIT (portée aussi par l\'entreprise partie) ne fait rien partir de la sienne : i4 est intact', JSON.stringify(m.issues.find(i => i.id === 'i4')) === JSON.stringify(MONITOR.issues.find(i => i.id === 'i4')));
 
   console.log('\n── 3098 · 3. par identifiant : les lignes brutes de bugs.jsonl, réécrites atomiquement ──');
@@ -249,6 +282,86 @@ function facteur() {
   r = await appel(ROUTE, { nom: 'Delta Propreté' }, PATRON);
   v('rejouer la route sur Delta (déjà purgée) : 200, plus rien à retirer côté OP GESTION', [r.s, r.j.issues, r.j.archive, r.j.bugs], [200, 0, 0, 0]);
   vrai('   (i3, d\'OP MESSAGES, y reste encore : la route ne la regarde pas non plus)', entsDe(mon().issues, 'i3').join() === 'Delta Propreté');
+
+  console.log('\n── 3098 · 5 bis. les points du gardien (28 octobre 2026) — rejoués par les routes publiques, pas par des fichiers posés ──');
+  const rap = (espace, nom, id, email) => JSON.stringify({ reports: [Object.assign({ type: 'erreur', message: 'Erreur du banc ' + id, signature: 'sig-' + id, app: 'opgestion', version: '772', entreprise: nom, email: email || '', appareil: 'iPhone', count: 1 }, espace ? { espace } : {})] });
+  const envoyer = async (espace, nom, id, email) => (await appel('/api/monitor/report', rap(espace, nom, id, email), '', true)).s;
+  const trouve = async (id) => (await issuesVivantes()).find(i => i.signature === 'opgestion|sig-' + id);
+
+  /* BLOQUANT — une adresse relevée dans un incident est un corps de requête PUBLIC : elle ne doit jamais devenir une clé de purge. */
+  await envoyer(VIV, 'Vivante Services', 'x1', 'salarie@viv-3098.fr');                 // un vrai rapport : un salarié de l'entreprise qui VIT
+  await envoyer('', 'Forgeuse Disparue', 'x2', 'salarie@viv-3098.fr');                  // un rapport FORGÉ : un nom absent de l'annuaire, l'adresse de ce salarié
+  vrai('population : le rapport vrai (Vivante) et le rapport forgé existent tous deux', (await trouve('x1')) && (await trouve('x2')));
+  r = await appel(ROUTE, { nom: 'Forgeuse Disparue' }, PATRON);
+  v('⛔ purger le nom forgé : 200, SON entrée seule part (un incident, une entrée)', [r.s, r.j.issues, r.j.entreprises], [200, 1, 1]);
+  vrai('   ⛔ l\'incident de l\'entreprise qui VIT, qui porte la même adresse, est INTACT (l\'adresse d\'un incident n\'est pas une clé de purge)',
+    !(await trouve('x2')) && (await trouve('x1')) && entsDe([await trouve('x1')], (await trouve('x1')).id).join() === 'Vivante Services');
+  /* … et l'adresse de l'ANNUAIRE de l'entreprise purgée, posée sous le nom d'une entreprise qui vit, ne la fait pas partir non plus */
+  await envoyer('', 'Vivante Services', 'x3', 'ferme2@exemple-3098.fr');
+  r = await appel(ROUTE, { nom: 'Fermée Deux' }, PATRON);
+  v('une entreprise fermée dont l\'annuaire porte une adresse : 200, aucune entrée à elle', [r.s, r.j.issues, r.j.entreprises], [200, 0, 0]);
+  vrai('   ⛔ cette adresse, présente sous le NOM d\'une entreprise vivante, ne fait rien partir de la sienne', !!(await trouve('x3')));
+
+  /* À CORRIGER 1 — l'espace par défaut se protège par son NOM comme par son identifiant. */
+  await envoyer('', 'elan-gestion', 'x4', '');
+  const photoX4 = JSON.stringify(await trouve('x4'));
+  for (const nom of ['elan-gestion', 'Elan Gestion', 'opgestion-beta', 'elan-gestion-beta']) {
+    r = await appel(ROUTE, { nom }, PATRON);
+    v('⛔ l\'espace par défaut, par son NOM « ' + nom + ' » : 403', r.s, 403);
+  }
+  vrai('   et rien n\'est parti', JSON.stringify(await trouve('x4')) === photoX4);
+
+  /* À CORRIGER 2 — le serveur situe l'entrée par l'espace d'où elle vient, pas seulement par le nom que le téléphone a saisi. */
+  await envoyer(VIV, 'Vivante Services SARL', 'x5', '');        // le nom tapé dans l'application diffère de celui de l'annuaire
+  r = await appel(ROUTE, { nom: 'Vivante Services SARL' }, PATRON);
+  v('⛔ une entreprise qui VIT sous un autre nom que celui de l\'annuaire : refusée (409), reconnue par son espace', r.s, 409);
+  vrai('   et son incident est intact', !!(await trouve('x5')));
+  await dormir(700);   // monSave est différée de 500 ms
+  const entDe = (id) => { const i = (mon().issues || []).find(x => x.signature === 'opgestion|sig-' + id); return (i && i.entreprises[0]) || {}; };
+  v('   l\'espace est écrit à la réception — celui du serveur, JAMAIS l\'intouchable ni un inconnu', [entDe('x5').espaces, entDe('f2').espaces, entDe('x4').espaces], [[VIV], undefined, undefined]);
+  await envoyer('elan-gestion', 'Entreprise Du Repli', 'x4b', '');
+  await dormir(700);
+  v('   ⛔ l\'espace par défaut, partagé par toutes les entreprises sans clé propre, n\'est pas écrit', entDe('x4b').espaces, undefined);
+
+  /* À CORRIGER 3 — un annuaire illisible rend tout inconnu : rien ne se purge. Second serveur, espaces.json tronqué. */
+  const MON2 = { users: MONITOR.users, issues: [inc('z1', 'opgestion', [ent('Vivante Services', 'v@exemple-3098.fr', 1)], 1)], archive: [], journal: [], actions: [] };
+  const S3 = await lancerAutre('illisible', { espaces: '{ "vivante-services": { "t": "t-viv', monitor: MON2 });
+  vrai('le second serveur démarre sur un annuaire tronqué', S3.vif && /ILLISIBLE/.test(S3.journal()));
+  const txt2 = () => fs.readFileSync(path.join(S3.rep, 'monitor.json'), 'utf8');
+  const avant2 = txt2();
+  for (const corps of [{ nom: 'Vivante Services' }, { t: VIV }]) {
+    r = await S3.ap(ROUTE, corps, S3.jeton);
+    v('⛔ annuaire illisible : la purge est refusée (503) — ' + JSON.stringify(Object.keys(corps)), r.s, 503);
+  }
+  vrai('   et monitor.json n\'a pas bougé', txt2() === avant2);
+
+  /* À CORRIGER 4 — les lignes brutes se retrouvent par l'espace écrit dans l'entrée, et se vérifient : second serveur, espace qui n'existe plus. */
+  const HC2 = 't-disparu-3098', ligneH = (team, msg) => JSON.stringify({ ts: N - 100, team, app: 'opgestion', version: '772', msg, src: '', line: 0, stack: '', ua: '' });
+  const MON4 = { users: MONITOR.users, archive: [], journal: [], actions: [], issues: [
+    inc('y1', 'opgestion', [Object.assign(ent('Partie Sans Annuaire', 'p@exemple-3098.fr', 2), { espaces: [HC2, 'elan-gestion'] })], 2),
+    inc('y2', 'opgestion', [ent('Partie Ancienne Version', '', 1)], 1) ] };
+  const S4 = await lancerAutre('disparu', { espaces: { 'viv': { t: VIV, nom: 'Vivante', code: code64(VIV), ts: Date.now() } }, monitor: MON4,
+    bugs: [ligneH(HC2, 'h1'), ligneH(HC2, 'h2'), ligneH('elan-gestion', 'repli'), ligneH(VIV, 'v1')] });
+  vrai('le troisième serveur démarre', S4.vif);
+  const equipes4 = () => fs.readFileSync(path.join(S4.Da, 'bugs.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l).team);
+  r = await S4.ap(ROUTE, { nom: 'Partie Sans Annuaire' }, S4.jeton);
+  v('une entreprise partie dont l\'entrée porte l\'espace disparu : 200, un incident, DEUX lignes brutes retrouvées', [r.s, r.j.issues, r.j.bugs], [200, 1, 2]);
+  v('   bugs.jsonl : les lignes de l\'espace disparu sont parties ; ⛔ l\'espace par défaut et une autre entreprise sont intacts', equipes4(), ['elan-gestion', VIV]);
+  r = await S4.ap(ROUTE, { nom: 'Partie Ancienne Version' }, S4.jeton);
+  v('une entrée d\'une version d\'avant (aucun espace) : le nom seul décide, aucune ligne brute ne peut être retrouvée — et la réponse le DIT par un zéro', [r.s, r.j.issues, r.j.bugs], [200, 1, 0]);
+
+  /* … et la suppression totale ne reprend pas au nom ce qu'un espace vivant porte. Entreprise « Gestion » (un mot générique), homonyme d'une autre. */
+  await envoyer(ECH, 'Gestion', 'g1', '');                // l'entreprise qu'on supprime
+  await envoyer(VIV, 'Gestion', 'g2', '');                // une AUTRE entreprise (VIV, qui vit) dont le nom saisi est aussi « Gestion »
+  await envoyer('', 'Gestion', 'g3', '');                 // une entrée d'avant : nom seul
+  vrai('population : les trois entrées « Gestion » existent', (await trouve('g1')) && (await trouve('g2')) && (await trouve('g3')));
+  r = await appel('/api/monitor/entreprise/supprimer', { t: ECH, confirme: true }, PATRON);
+  v('supprimer partout « Gestion » : supprimée', [r.s, r.j.supprime], [200, true]);
+  vrai('   ses deux entrées (son espace, et celle d\'avant sans espace) sont parties', !(await trouve('g1')) && !(await trouve('g3')));
+  vrai('   ⛔ l\'entrée du même nom qui vient d\'un espace QUI VIT reste', !!(await trouve('g2')));
+  await dormir(900);
+  const cibles = mon().actions.filter(a => /ouvert l’accès/.test(a.geste)).map(a => a.cible);
+  v('   ⛔ le journal de la Tour : « Gestion » (le nom exact) est anonymisé ; « Gestion Courante SARL », qui contient seulement ce mot, ne l\'est pas', cibles, ['Gestion Courante SARL', 'entreprise supprimée']);
 
   console.log('\n── 3098 · 6. le serveur ne s\'est pas plaint ──');
   vrai('aucune erreur de purge dans le journal du serveur', !/purge de bugs\.jsonl|surveillance non purgée|monitor save/.test(journalSrv));

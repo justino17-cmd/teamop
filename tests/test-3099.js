@@ -122,6 +122,7 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
   for (let i = 0; i < 100 && !TP.envois.length; i++) await dormir(40);
   v('la demande est partie, avec le nom exact de la ligne (et rien d\'autre)', JSON.stringify(TP.envois[0]), JSON.stringify(['/api/monitor/issues/purger-entreprise', { nom: 'Ancienne Entreprise' }]));
   vrai('   la confirmation dit le nombre de problèmes (2), les adresses, et que c\'est définitif', TP.confirms.length === 1 && /2 problèmes/.test(TP.confirms[0]) && /adresses e-mail/.test(TP.confirms[0]) && /DÉFINITIF/.test(TP.confirms[0]));
+  vrai('   ⛔ elle ne PROMET pas les lignes brutes (le bouton n\'envoie que le nom, le serveur ne les retrouve que par l\'identifiant d\'espace des signalements) et dit où lire le compte', /ne partent que si/.test(TP.confirms[0]) && /le message qui suivra dit combien/.test(TP.confirms[0]) && !/qui s’y rattachent/.test(TP.confirms[0]));
   for (let i = 0; i < 100 && !TP.toasts.some(t => /Surveillance effacée/.test(t)); i++) await dormir(40);
   vrai('   le toast donne les nombres', TP.toasts.some(t => /Surveillance effacée : 1 incident, 0 ligne brute/.test(t)));
   vrai('   la fiche est refermée et la liste relue : plus que deux incidents', (await TP.attendre('INC.list.length===2 && INC.grp===null')) && (await issuesVivantes()).length === 2);

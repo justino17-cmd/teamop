@@ -27,6 +27,15 @@ l'ancienne application alimentait la ligne). Justin : « on peut supprimer l'his
   liste des entreprises lue, entreprise absente de l'annuaire, console OP GESTION ; `confirm` qui dit ce qui part et que c'est définitif ; toast avec les nombres.
 - **Bancs** : `test-3098` (serveur seul, dans `scripts/bancs-serveur.liste`), `test-3099` (les vraies fonctions de la Tour contre le vrai serveur ; lit `tour.html`, donc hors liste
   jusqu'à la publication de la Tour qui porte le bouton).
+- **Relecture du `gardien` (28 octobre au soir), corrigée et gardée par `test-3098` § 5 bis** : ① une adresse relevée dans un incident (corps de requête PUBLIC) servait de clé de purge pour tous les noms : un rapport
+  forgé aurait fait partir l'incident d'une entreprise vivante au clic de Justin — les adresses viennent désormais de l'annuaire seul, et ne jouent que sous un nom qui n'est pas celui d'une entreprise vivante ;
+  ② l'espace par défaut se refuse aussi par son NOM (403) ; ③ chaque entrée porte maintenant l'`espace` d'où elle vient (écrit à la réception s'il est connu du serveur, jamais l'espace par défaut, jamais servi à la Tour) :
+  une entreprise vivante sous un autre nom que celui de l'annuaire est reconnue (409), et ses lignes brutes se retrouvent par cet espace ; ④ annuaire illisible : 503 ; ⑤ le texte de la Tour ne promet plus les lignes
+  brutes sans condition ; ⑥ un nom d'un seul mot ne fait plus anonymiser les gestes d'une autre entreprise qui le contient ; ⑦ `monitor.json` s'écrit par fichier temporaire + renommage.
+  **Limites assumées** : les entrées d'AVANT ce serveur n'ont pas d'`espace` — elles se purgent au nom seul (comme avant), sans ligne brute retrouvée (zéro, dit au toast) ; une entrée écrite sous une AUTRE graphie du nom est une
+  ligne à elle dans « Entreprises touchées » (à purger séparément — son adresse ne la désigne plus) ; un espace forgé connu du serveur peut seulement BLOQUER une purge (409), jamais la provoquer ; un rapport SANS `espace`
+  recrée la ligne d'une entreprise supprimée (versions d'avant la v683) tant que la v683 n'est pas exigée ; la ligne « elan-gestion » (l'espace de repli) ne s'efface plus par ce bouton — **décision de Justin à prendre** si
+  elle doit disparaître de la liste (c'est le repli partagé, pas une entreprise supprimée).
 - **Ce qui reste, exprès** : les incidents d'OP MESSAGES (non touchés, comme la suppression) ; `appareils` d'un incident qui reste (« appareil → nombre », sans nom ni adresse,
   inattribuable) ; l'aperçu de la suppression totale ne chiffre pas encore les incidents de surveillance (il liste « erreurs remontées » = `bugs.jsonl`) ; ELAN (déjà supprimée)
   ne se purge qu'une fois ce serveur déployé ET la Tour publiée — ou en appelant la route à la main (patron). Rien n'est déployé.

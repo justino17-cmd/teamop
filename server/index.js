@@ -1880,8 +1880,11 @@ let monSaveTimer = null;
 /* L'écriture elle-même, séparée de la minuterie : une purge d'entreprise supprimée doit l'écrire TOUT DE SUITE et savoir si elle a
    réussi (voir `monPurgerEntreprise`) — la version différée ne rend rien, c'est son contrat. */
 function monEcrire() {
-  try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions }), { mode: 0o600 }); return true; }
-  catch (e) { console.error('monitor save:', e.message); return false; }
+  /* Fichier temporaire PUIS renommage (comme `espacesEcrire`) : monitor.json porte aussi les comptes de la Tour, et une coupure en
+     pleine écriture le tronquait, sans seconde copie. Le temporaire est enlevé si l'écriture échoue. */
+  const tmp = MONITOR_PATH + '.tmp';
+  try { monPurge(); fs.writeFileSync(tmp, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions }), { mode: 0o600 }); fs.renameSync(tmp, MONITOR_PATH); return true; }
+  catch (e) { console.error('monitor save:', e.message); try { fs.rmSync(tmp, { force: true }); } catch (err) {} return false; }
 }
 function monSave() {
   clearTimeout(monSaveTimer);
@@ -1931,29 +1934,54 @@ function monBugsRetirer(equipes) {
   } catch (e) { console.error('purge de bugs.jsonl :', e.message); try { fs.rmSync(tmp, { force: true }); } catch (err) {} return null; }
   return n;
 }
+/* Un espace est-il VIVANT ? Connu du serveur (annuaire ou journal de connexions), non fermé, et ni l'entreprise qu'on purge (`sauf`)
+   ni l'espace par défaut (partagé : il ne désigne aucune entreprise). C'est ce qui relie une entrée d'incident à une entreprise qui VIT,
+   même quand le nom saisi dans l'application diffère de celui de l'annuaire. */
+function monEspaceVivant(x, sauf) {
+  x = String(x || '');
+  if (!x || ESPACES_INTOUCHABLES.includes(x) || (sauf && sauf.has(x)) || espaceFerme(x)) return false;
+  return Array.isArray(cnxData[x]) || !!espaceParT(x);
+}
 function monPurgerEntreprise(o) {
   o = o || {};
   const intouchable = x => ESPACES_INTOUCHABLES.includes(String(x || ''));
   const t = intouchable(o.t) ? '' : String(o.t || '');
-  const slugs = (o.slugs || []).map(String).filter(x => x && !intouchable(x));
+  /* ⛔ Un annuaire qu'on n'a pas pu lire ne dit pas qui VIT : aucun nom, aucune adresse ne se purge sur son silence (`vivNoms` serait vide). */
+  const lisible = !espacesIllisible;
+  const slugs = lisible ? (o.slugs || []).map(String).filter(x => x && !intouchable(x)) : [];
   /* Ce qu'une entreprise VIVANTE porte encore (autre identifiant que `t`) : jamais purgé. */
   const vivNoms = new Set(), vivMails = new Set();
+  for (const k of ESPACES_INTOUCHABLES) vivNoms.add(monNomCle(k));   // le nom de l'espace par défaut non plus : il est partagé par toutes les entreprises sans clé propre
   for (const [slug, e] of Object.entries(espacesReg)) {
     if (!e || slugs.includes(slug) || (t && espaceT(e) === t)) continue;   // les entrées qu'on purge ne sont pas « vivantes »
     vivNoms.add(monNomCle(slug)); const n = monNomCle(espNomPropre(e)); if (n) vivNoms.add(n);
     if (e.email) vivMails.add(String(e.email).toLowerCase());
   }
-  const noms = new Set([...(o.noms || []), ...slugs].map(monNomCle).filter(x => x && x !== 'inconnue' && !vivNoms.has(x)));
-  const emails = new Set((o.emails || []).map(x => String(x || '').toLowerCase().trim()).filter(x => x && !vivMails.has(x)));
+  const noms = new Set(lisible ? [...(o.noms || []), ...slugs].map(monNomCle).filter(x => x && x !== 'inconnue' && !vivNoms.has(x)) : []);
+  /* ⛔ LES ADRESSES VIENNENT DE L'ANNUAIRE, JAMAIS DES INCIDENTS (l'appelant le garantit) : un incident naît d'un corps de requête public, et
+     une adresse qu'on y relèverait deviendrait une clé de purge pour TOUS les noms. */
+  const emails = new Set(lisible ? (o.emails || []).map(x => String(x || '').toLowerCase().trim()).filter(x => x && !vivMails.has(x)) : []);
+  /* les espaces de l'entreprise qu'on purge (pour les lignes brutes) et ceux des entrées qu'on retire — voir plus bas */
+  const siens = new Set([t, ...slugs].filter(Boolean));
+  const tMorts = new Set();
   const r = { issues: 0, archive: 0, entreprises: 0, bugs: 0, ecrit: true };
   if (!noms.size && !emails.size && !t && !slugs.length) return r;
-  const vise = e => !!e && (noms.has(monNomCle(e.nom || e.entreprise)) || (!!e.email && emails.has(String(e.email).toLowerCase())));
+  /* Une entrée désigne l'entreprise par son NOM, ou par son ADRESSE — celle-ci seulement si le nom n'est pas celui d'une entreprise qui vit
+     (une adresse écrite dans un incident ne prouve rien). Et jamais une entrée venue d'un espace VIVANT autre que le sien : deux entreprises
+     peuvent se donner le même nom dans l'application. */
+  const vise = e => {
+    if (!e) return false;
+    if (Array.isArray(e.espaces) && e.espaces.some(x => monEspaceVivant(x, siens))) return false;
+    const n = monNomCle(e.nom || e.entreprise);
+    return noms.has(n) || (!!e.email && !vivNoms.has(n) && emails.has(String(e.email).toLowerCase()));
+  };
   const trier = (liste, cle) => liste.filter(i => {
     if (!i || monAppDeTag(i.app) === 'messages') return true;
     const ents = Array.isArray(i.entreprises) ? i.entreprises : [];
     const sortants = ents.filter(vise);
     if (!sortants.length) return true;
     r.entreprises += sortants.length;
+    for (const e of sortants) for (const x of (Array.isArray(e.espaces) ? e.espaces : [])) if (x && !intouchable(x)) tMorts.add(String(x));   // espaces désormais sans entreprise : leurs lignes brutes partent
     const restants = ents.filter(e => !vise(e));
     /* plus aucune entreprise : l'incident n'a plus de raison d'être — sauf si la liste avait atteint son plafond de 60
        (`/api/monitor/report`) : d'autres entreprises, non listées, ont aussi compté, il reste alors avec ce qui est à elles. */
@@ -1968,14 +1996,16 @@ function monPurgerEntreprise(o) {
      adresse masquée) est remplacé EN ENTIER. `qui` n'est JAMAIS touché : c'est le compte de la Tour qui a agi, et un patron qui porte
      le prénom d'un client resterait lisible. */
   const marques = new Set([...noms, ...(t ? [monNomCle(t)] : []), ...[...emails].map(m => monNomCle(masqueMail(m)))]);
+  /* Un nom fait d'UN SEUL mot (« Gestion », « Nettoyage », « Test ») ne se reconnaît que tel quel : retrouvé comme mot d'un nom plus long, il
+     anonymiserait les gestes d'une AUTRE entreprise qui le contient. Un nom de plusieurs mots, lui, se reconnaît dans un texte. */
   const cite = (v) => { const c = monNomCle(v); if (!c) return false; if (marques.has(c)) return true;
-    for (const m of marques) if (m.length >= 4 && new RegExp('(^|[^a-z0-9])' + m + '([^a-z0-9]|$)').test(c)) return true; return false; };
+    for (const m of marques) if (m.length >= 4 && m.includes(' ') && new RegExp('(^|[^a-z0-9])' + m + '([^a-z0-9]|$)').test(c)) return true; return false; };
   for (const liste of [monJournal, monActions]) for (const x of liste) {
     if (!x || typeof x !== 'object') continue;
     for (const k of ['cible', 'motif', 'detail']) if (typeof x[k] === 'string' && cite(x[k])) x[k] = MON_ANONYME;
   }
   /* bugs.jsonl : par identifiant ET par noms d'accès — jamais l'espace par défaut, partagé par toutes les entreprises sans clé propre */
-  const equipes = new Set([t, ...slugs].filter(Boolean));
+  const equipes = new Set([...siens, ...(lisible ? tMorts : [])]);
   r.bugs = equipes.size ? monBugsRetirer(equipes) : 0;
   const brutes = (r.bugs || 0) + (+o.brutesDeja || 0);
   if (r.issues || r.archive || r.entreprises || brutes || o.brutesDeja) {
@@ -2072,6 +2102,12 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       let ent = issue.entreprises.find(e => e.nom === entNom);
       if (!ent) { ent = { nom: entNom, email: entEmail, count: 0, lastTs: now }; if (issue.entreprises.length < 60) issue.entreprises.push(ent); }
       ent.count += count; ent.lastTs = now; if (entEmail && !ent.email) ent.email = entEmail;
+      /* ⛔ D'OÙ VIENT L'ENTRÉE : le nom que le téléphone envoie est celui qu'on a saisi dans l'application, pas celui de l'annuaire — le seul lien
+         sûr avec une entreprise est l'espace. On ne l'écrit que s'il est CONNU du serveur (annuaire ou journal de connexions : un inconnu ne
+         désigne personne) et jamais pour l'espace par défaut (partagé). Dix au plus, le plus ancien cède. La purge d'une entreprise
+         supprimée (`monPurgerEntreprise`) s'en sert pour ne pas toucher à une entreprise qui vit, et pour retrouver ses lignes brutes. */
+      if (quiEspace && !ESPACES_INTOUCHABLES.includes(quiEspace) && (Array.isArray(cnxData[quiEspace]) || espaceParT(quiEspace)))
+        ent.espaces = (Array.isArray(ent.espaces) ? ent.espaces : []).filter(x => x !== quiEspace).concat(quiEspace).slice(-10);
       /* Les personnes touchées, par entreprise. TROIS RÈGLES, et les trois viennent d'un
          défaut rejoué plutôt que supposé :
          1. ⛔ CORROBORÉ. On ne retient l'identifiant que si le journal des connexions de CET
@@ -9102,7 +9138,9 @@ app.get('/api/monitor/issues', monAdmin, (req, res) => {
   const compteurs = { nouveau: 0, encours: 0, corrige: 0, ignore: 0 };
   const entSet = new Set();
   for (const i of vis) { compteurs[i.statut] = (compteurs[i.statut] || 0) + 1; for (const e of i.entreprises || []) if (e.nom && e.nom !== 'inconnue') entSet.add(e.nom); }
-  res.json({ issues: vis.slice().sort((a, b) => (b.lastTs || 0) - (a.lastTs || 0)), compteurs, entreprises: entSet.size });
+  /* `espaces` (les identifiants d'équipe d'où viennent les entrées) sert la purge, pas l'écran : on ne le sert pas à la Tour. */
+  const sansEspaces = i => (i.entreprises || []).some(e => e && e.espaces) ? Object.assign({}, i, { entreprises: i.entreprises.map(e => { if (!e || !e.espaces) return e; const c = Object.assign({}, e); delete c.espaces; return c; }) }) : i;
+  res.json({ issues: vis.map(sansEspaces).sort((a, b) => (b.lastTs || 0) - (a.lastTs || 0)), compteurs, entreprises: entSet.size });
 });
 
 /* ══ TOUT REMETTRE À ZÉRO SUR SURVEILLANCE — 14 septembre 2026, demandé par Justin ═════════
@@ -9149,8 +9187,8 @@ app.post('/api/monitor/issues/tout-ignorer', monPatronStrict, (req, res) => {
    « Entreprises touchées » est restée (« ELAN · 45 problèmes · dernier il y a 1 j »). Corps : `{ nom }` — le nom EXACT que la liste affiche
    (80 signes) — ou `{ t }`.
    ⛔ UNE ENTREPRISE QUI VIT NE SE PURGE PAS : refus 409 tant qu'une entrée de l'annuaire porte ce nom (ou cet identifiant) sans être fermée,
-   ou qu'un espace connecté hors annuaire s'appelle ainsi. Ce qui part est écrit dans `monPurgerEntreprise` — noms et adresses sont
-   rassemblés à partir des incidents eux-mêmes, et la réponse ne rend que des NOMBRES. Le geste est noté par la fonction (sans nom ni adresse),
+   ou qu'un espace connecté hors annuaire s'appelle ainsi. Ce qui part est écrit dans `monPurgerEntreprise` — les noms viennent de la demande et de l'annuaire, les
+   adresses de l'annuaire SEUL, et la réponse ne rend que des NOMBRES. Le geste est noté par la fonction (sans nom ni adresse),
    donc `MON_GESTES` le laisse à `null` : une seconde ligne dirait la même chose. */
 app.post('/api/monitor/issues/purger-entreprise', monPatronStrict, (req, res) => {
   const b = req.body || {};
@@ -9159,6 +9197,11 @@ app.post('/api/monitor/issues/purger-entreprise', monPatronStrict, (req, res) =>
   if (t && ESPACES_INTOUCHABLES.includes(t)) return res.status(403).json({ error: REFUS_INTOUCHABLE });
   const cle = monNomCle(nom);
   if (!t && (!cle || cle === 'inconnue')) return res.status(400).json({ error: 'nom invalide' });
+  /* ⛔ L'ESPACE PAR DÉFAUT SE PROTÈGE PAR SON NOM COMME PAR SON IDENTIFIANT : c'est là que se signalent tous les appareils sans entreprise, et
+     « elan-gestion » est un nom qui paraît dans « Entreprises touchées ». */
+  if (cle && ESPACES_INTOUCHABLES.some(k => monNomCle(k) === cle)) return res.status(403).json({ error: REFUS_INTOUCHABLE });
+  /* ⛔ UN ANNUAIRE ILLISIBLE N'EST PAS UN ANNUAIRE VIDE : il ne dit pas qui vit, donc rien ne se purge (même règle que partout). */
+  if (espacesIllisible) return res.status(503).json({ error: 'L\'annuaire des entreprises n\'a pas pu être lu : on ne sait pas qui existe encore, rien n\'est effacé. Répare espaces.json, redémarre, puis réessaie.' });
   const VIVANTE = { error: 'Cette entreprise existe encore dans l\'annuaire (ou s\'est connectée récemment) : sa surveillance ne s\'efface pas. Supprime d\'abord l\'entreprise.' };
   /* l'annuaire : ce que l'entreprise porte encore (ses entrées), et si une est ouverte */
   const entrees = Object.entries(espacesReg).filter(([slug, e]) => e && ((t && espaceT(e) === t)
@@ -9169,9 +9212,16 @@ app.post('/api/monitor/issues/purger-entreprise', monPatronStrict, (req, res) =>
   if (cle && Object.keys(cnxData).some(k => monNomCle(k) === cle && !espaceFerme(k) && !ESPACES_INTOUCHABLES.includes(k))) return res.status(409).json(VIVANTE);
   const noms = new Set(nom ? [nom] : []), emails = new Set();
   const dansIssues = [...monIssues, ...monArchive].filter(i => i && monAppDeTag(i.app) !== 'messages');
+  /* ⛔ L'espace d'où vient une entrée dit mieux qu'un nom : un téléphone envoie le nom saisi dans l'application, qui peut différer de celui de
+     l'annuaire (« Vivante Services SARL »). Si l'un des espaces portés par une entrée de ce nom VIT, c'est une entreprise qui vit. */
+  const sien = new Set([t, ...entrees.map(([, e]) => espaceT(e))].filter(Boolean));
   if (cle) for (const i of dansIssues) for (const e of (i.entreprises || [])) {
-    if (e && monNomCle(e.nom || e.entreprise) === cle) { noms.add(e.nom || e.entreprise); if (e.email) emails.add(String(e.email).toLowerCase()); }
+    if (!e || monNomCle(e.nom || e.entreprise) !== cle) continue;
+    noms.add(e.nom || e.entreprise);
+    if ((Array.isArray(e.espaces) ? e.espaces : []).some(x => monEspaceVivant(x, sien))) return res.status(409).json(VIVANTE);
   }
+  /* ⛔ LES ADRESSES SORTENT DE L'ANNUAIRE SEUL, JAMAIS DES INCIDENTS : un rapport est un corps de requête public, et une adresse qu'on y lirait
+     deviendrait une clé de purge pour tous les noms (rejoué : l'incident d'une entreprise vivante partait avec celui d'un nom forgé). */
   for (const [, e] of entrees) { const n = espNomPropre(e); if (n) noms.add(n); if (e.email) emails.add(String(e.email).toLowerCase()); }
   const r = monPurgerEntreprise({ t, noms: [...noms], emails: [...emails], slugs: entrees.map(([slug]) => slug), par: req.tourUser.nom });
   console.log('Tour :', req.tourUser.nom, 'efface la surveillance d\'une entreprise supprimée :', r.issues + r.archive, 'incident(s),', r.bugs, 'ligne(s) brute(s)');
