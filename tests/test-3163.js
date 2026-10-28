@@ -116,8 +116,7 @@ const CLAUDE = `(r, n) => {
   {
     const gros = []; let vrai_ = 0;
     for (let i = 0; i < 60; i++) { gros.push(B.facture({ id: 'in_g' + String(i).padStart(2, '0'), cents: 1000 + i, cree: ce(1 + (i % 14), 8 + (i % 8)), payee: ce(1 + (i % 14), 9 + (i % 8)) })); vrai_ += 1000 + i; }
-    S.poserStripe(e => { e.liste = gros; });
-    /* le cache des paiements de la Tour dure 5 minutes : on redémarre l'affichage sur un serveur frais */
+    /* le cache des paiements de la Tour dure 5 minutes : un serveur FRAIS, avec la liste de soixante factures */
     await S.fin();
     const S2 = await demarrer({ liste: gros, abos: ABOS(), claude: CLAUDE, modes: { margaux: 'auto' } });
     const T2 = tourFonctions(S2.B, S2.TP);

@@ -146,7 +146,7 @@ const promos = D => {
 
   console.log('\n6. ⛔ Stripe en panne dès le départ : « illisible », pas un seul « 0 € »');
   {
-    const S2 = await demarrer({ liste: LISTE(), abos: ABOS(), claude: CLAUDE, modes: { margaux: 'auto' }, avant: D => { registreMargaux(D); promos(D); } });
+    const S2 = await demarrer({ liste: LISTE(), abos: ABOS(), claude: CLAUDE, modes: { margaux: 'auto' }, avant: D => { registreMargaux(D); fs.writeFileSync(path.join(D, 'promos-usages.json'), '{ pas du json'); } });   // ET le registre des codes promo est illisible
     S2.poserStripe(e => { e.panneFactures = true; e.panneListe = true; });
     await S2.post('/api/monitor/conversations/envoyer', { fil: 'margaux', texte: 'Margaux, fais-moi le point du mois' });
     await S2.attendre(async () => ((await S2.get('/api/monitor/conversations/margaux')).j.messages || []).filter(m => m.de === 'systeme').length >= 3, 20000);
@@ -154,7 +154,8 @@ const promos = D => {
     vrai('(population) des lignes ont été écrites', sys.length >= 3, tout);
     vrai('« Stripe illisible, je ne donne aucun chiffre »', sys.some(l => /^Stripe illisible, je ne donne aucun chiffre/.test(l)), tout);
     vrai('⛔ pas un « 0 € », pas un « 0 facture », pas de revenu, pas d’abonnés', !/\b0 €|0 facture|\b0 payants|revenu mensuel récurrent|Encaissé en|Abonnés :/.test(tout), tout);
-    vrai('…ce qui n’est pas Stripe reste dit (les périodes offertes, les relances)', /3 entreprises/.test(tout) && /2 impayés suivis/.test(tout), tout);
+    vrai('⛔ …un registre des codes promo ILLISIBLE n’est pas « aucune entreprise en période offerte » : il se dit', /périodes offertes : registre illisible, je ne donne aucun chiffre/.test(tout) && !/aucune entreprise en période offerte|0 entreprise/.test(tout), tout);
+    vrai('…et les relances, qui ne sont pas Stripe, restent dites', /2 impayés suivis/.test(tout), tout);
     v('⛔ même en panne, TOUS les appels sont des GET', [...new Set(S2.stripe().appels.map(a => a.m))], ['GET']);
     await S2.fin();
   }
