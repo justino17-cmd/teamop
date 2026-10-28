@@ -79,7 +79,7 @@ pour les 21 autres. Le métier se lit dans `server/devis-metier.js`, UNE décisi
 (la bêta), borné aux métiers ouverts ; sans métier réglé, la 3D d'avant — les entreprises existantes ne perdent
 rien, et l'application, elle, reste aussi en 3D tant que la Tour n'a pas posé le métier. L'assistant ne connaît
 l'entreprise que si l'application envoie `t` (champ à ajouter à `adEnvoyer`, publication d'`app.html` sur phrase
-de Justin) ; jusque-là il sert la 3D, d'où « décocher Assistant devis » pour une entreprise hors 3D. Aucun prix de
+de Justin) ; jusque-là il sert la 3D, d'où « décocher Assistant devis » pour une entreprise hors 3D. ⚠️ Même effet pour un espace ouvert depuis la Tour (`pbCreer` ne règle aucun métier) : le métier se pose dans la fiche (bloc MÉTIER) AVANT de lui donner le Devis IA. Aucun prix de
 référence hors 3D (rien de sourcé : un prix inventé est pire qu'une question). `tests/test-3112.js`.
 
 ### Commandes
