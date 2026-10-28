@@ -1,7 +1,7 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LE PONT DES AGENTS, CÔTÉ OP MESSAGES (28 octobre 2026, `server-msg/pont-agents.js`).
 
    Justin : « tu vas implanter OP MESSAGES à la place » — la messagerie des seize agents de la Tour s'affiche dans OP MESSAGES. Ce banc lance le VRAI
-   service d'OP MESSAGES (processus isolé, bêta, 127.0.0.1) avec un OP GESTION de poche pour la porte, et joue les quatre routes du pont comme la Tour les joue :
+   service d'OP MESSAGES (processus isolé, bêta, 127.0.0.1) avec un OP GESTION de poche pour la porte, et joue les cinq routes du pont comme la Tour les joue :
    · ⛔ INERTE sans configuration, et FERMÉ sans les trois preuves (boucle locale, aucun en-tête de proxy, secret comparé à son empreinte) — même 404 qu'une route
      inconnue, octet pour octet ; le secret de l'administration n'ouvre pas le pont ; un bloc invalide, ou en production, REFUSE le démarrage ;
    · installer : les personnes-robots, l'espace, les groupes, une directe par agent — IDEMPOTENT (rien de nouveau au second appel), les nouveaux membres seuls entrent,
@@ -10,11 +10,16 @@
      `cid` idempotent ; Justin voit le message en direct sur son flux ;
    · nouveaux : ce que JUSTIN écrit et supprime — rien d'un robot, rien d'un autre compte, rien de ce que le pont a recopié de la Tour (`cid` « tour-… »), rien de la
      ligne « Justin a créé le groupe » ;
-   · supprimer : le message part pour tous, Justin le voit partir.
+   · supprimer : le message part pour tous, Justin le voit partir ;
+   · avatar (les PHOTOS, 28 octobre 2026) : une image posée sur un robot ou sur un groupe, en UNE transaction, SANS message système ; refus de toute cible hors de la table (une directe,
+     une clé héritée) ; 411 / 413 / 415 ; l'empreinte du corps REÇU vérifiée ; la même empreinte ne réécrit rien ; l'ancienne photo disparaît (ligne ET fichier) ; Justin lit la pièce
+     par la vraie route, une personne étrangère au pont n'y a pas droit ; `installer` rend ce qui est déjà posé.
    Il saute de lui-même sans `server-msg/node_modules` (comme les autres bancs du service). */
 'use strict';
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const T = require('./outils-msg');
+const P = require('./outils-pieces');
+const http = require('http');
 T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
@@ -33,14 +38,14 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
   let svc = null;
   try {
     /* ── 0 · inerte sans configuration ── */
-    console.log('0. Sans `pont` dans la configuration : les quatre routes sont INERTES');
+    console.log('0. Sans `pont` dans la configuration : les cinq routes sont INERTES');
     {
       const s0 = await T.lancerService({ urlGestion: og.url });
       try {
         const c = T.client(s0.base);
         const inconnue = await c.get('/api/pont/inexistante');
-        const rs = [await c.post('/api/pont/installer', {}, { entetes: H }), await c.post('/api/pont/poster', {}, { entetes: H }), await c.get('/api/pont/nouveaux', { entetes: H }), await c.post('/api/pont/supprimer', {}, { entetes: H })];
-        v('(population) quatre routes appelées avec un secret quelconque', rs.length, 4);
+        const rs = [await c.post('/api/pont/installer', {}, { entetes: H }), await c.post('/api/pont/poster', {}, { entetes: H }), await c.get('/api/pont/nouveaux', { entetes: H }), await c.post('/api/pont/supprimer', {}, { entetes: H }), await c.post('/api/pont/avatar?cible=victor', {}, { entetes: H })];
+        v('(population) cinq routes appelées avec un secret quelconque', rs.length, 5);
         v('⛔ chacune répond le MÊME 404 qu\'une route inconnue, octet pour octet', rs.map(r => [r.code, r.txt === inconnue.txt]), rs.map(() => [404, true]));
         v('(population) le 404 d\'une route inconnue est bien un 404 JSON', [inconnue.code, inconnue.j], [404, { error: 'introuvable' }]);
       } finally { await s0.arreter(); }
@@ -104,6 +109,7 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
       v('le bon secret, en direct : 409 « pas installé » (la garde a laissé passer — rien n\'est encore installé)', [ok.code, ok.j.error], [409, 'pont_non_installe']);
       v('…le secret en MAJUSCULES passe aussi (c\'est de l\'hexadécimal)', (await nu.get('/api/pont/nouveaux', { entetes: { 'X-OPM-Pont': SECRET.toUpperCase() } })).code, 409);
       v('⛔ poster avant d\'installer : 409, rien n\'est écrit', (await nu.post('/api/pont/poster', { messages: [{ fil: 'victor', de: 'victor', texte: 'x', cid: cid() }] }, pont)).j.error, 'pont_non_installe');
+      v('⛔ une photo avant d\'installer : 409, rien n\'est écrit', [(await nu.post('/api/pont/avatar?cible=victor', {}, pont)).j.error, T.lireBase(path.join(svc.data, 'msg.db')).prepare("SELECT COUNT(*) AS n FROM piece").get().n], ['pont_non_installe', 0]);
       v('une écriture du pont n\'exige NI Origin NI en-tête maison (ce n\'est pas une page)', (await nu.post('/api/pont/installer', { agents: [] }, sansPage)).code, 400);
       v('…mais une écriture sans secret passe d\'abord par ce contrôle d\'origine et tombe sur le même 404', (await nu.post('/api/pont/installer', { agents: AGENTS }, { sansOrigine: true, sansEntete: true })).txt === inconnue.txt, true);
     }
@@ -304,8 +310,205 @@ let n = 0; const cid = () => 'banc3090-' + (++n).toString().padStart(4, '0');
       v('⛔ une ligne du SERVICE (« Justin a créé le groupe ») ne se supprime pas par le pont — et la file passe quand même (200 « rien à retirer »)', [ss.code, ss.j.deja, !(await seqDe(conv['Équipe'])).find(x => x.seq === sys.seq).supprime], [200, true, true]);
     }
 
-    /* ── 9 · rien ne fuit ── */
-    console.log('\n9. Le secret n\'est dans aucune sortie, ni /health');
+    /* ── 9 · les photos ── */
+    console.log('\n9. Les photos : un robot, un groupe — posées en silence, lisibles de Justin seul');
+    {
+      const octets = (x) => Buffer.isBuffer(x) ? x : Buffer.from(String(x));
+      /* POST /api/pont/avatar, au `http` brut : le secret SEUL (ni Origin ni en-tête maison), la longueur et l'empreinte que le banc choisit */
+      const avatar = (cible, corps, o = {}) => new Promise((resolve, reject) => {
+        const h = Object.assign({ 'X-OPM-Pont': SECRET, 'Content-Type': 'application/octet-stream' }, o.entetes || {});
+        if (o.empreinte !== null) h['X-OPM-Empreinte'] = o.empreinte || sha(octets(corps));
+        if (!o.chunked && h['Content-Length'] === undefined) h['Content-Length'] = String(octets(corps).length);
+        const q = http.request({ host: '127.0.0.1', port: svc.port, method: 'POST', path: '/api/pont/avatar' + (cible === null ? '' : '?cible=' + (o.brut ? cible : encodeURIComponent(cible))), headers: h, agent: false }, (r) => {
+          const parts = []; r.on('data', d => parts.push(d)); r.on('end', () => { const txt = Buffer.concat(parts).toString('utf8'); let j = null; try { j = JSON.parse(txt); } catch (e) {} resolve({ code: r.statusCode, j, txt, h: r.headers }); });
+        });
+        q.setTimeout(8000, () => { q.destroy(); resolve({ code: 0, j: null, txt: 'délai' }); });
+        q.on('error', (e) => resolve({ code: 0, j: null, txt: String(e && e.code) }));
+        q.end(octets(corps));
+      });
+      const fichiersPieces = () => { const sortie = []; const marche = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const c = path.join(d, e.name); if (e.isDirectory()) marche(c); else if (/^f_[0-9a-f]{32}$/.test(e.name)) sortie.push(e.name); } }; marche(svc.data); return sortie; };
+      const lignesPieces = () => { const d = T.lireBase(base); try { return d.prepare("SELECT id FROM piece WHERE genre = 'avatar'").all().map(r => r.id); } finally { d.close(); } };
+      const msgsDe = async (c) => (await justin.get('/api/conversations/' + c + '/messages')).j.messages.length;
+      const lire = async (c, id) => P.lirePiece(c, id);
+      const BLEU = P.png({ w: 16, h: 16, couleur: [10, 120, 200] }), ROUGE = P.png({ w: 16, h: 16, couleur: [200, 10, 10] }), VERT = P.png({ w: 16, h: 16, couleur: [10, 160, 40] });
+      const CANARI = 'ZXCANARIQGPS48.8566N';
+      const AVEC_EXIF = P.jpeg({ exif: CANARI });
+
+      const l0 = (await justin.get('/api/conversations')).j.conversations;
+      v('(population) au moins quatre directes et deux groupes, aucune n\'a de photo, aucune pièce de genre avatar n\'existe', [l0.filter(c => c.type === 'direct').length >= 4, l0.filter(c => c.type === 'groupe').length >= 2, l0.filter(c => c.type === 'direct' ? c.autre.avatar : c.avatar).length, lignesPieces().length, fichiersPieces().length], [true, true, 0, 0, 0]);
+      v('`installer` rend `avatars` : vide tant qu\'aucune photo n\'est posée', (await nu.post('/api/pont/installer', { agents: AGENTS.concat([{ id: 'nina', nom: 'Nina', role: 'Sécurité' }]), groupes: GROUPES }, pont)).j.avatars, {});
+
+      /* ── les refus : tous AVANT d'écrire quoi que ce soit ── */
+      const inconnue = await nu.get('/api/pont/inexistante');
+      const rien = async (nom, r, code, erreur) => v(nom, [r.code, r.j && r.j.error, lignesPieces().length, fichiersPieces().length], [code, erreur, 0, 0]);
+      await rien('⛔ une cible inconnue : 400, rien d\'écrit', await avatar('zzz', BLEU), 400, 'champ_invalide');
+      await rien('⛔ sans cible : 400', await avatar(null, BLEU), 400, 'champ_invalide');
+      await rien('⛔ « justin » (la personne, pas un robot) : 400', await avatar('justin', BLEU), 400, 'champ_invalide');
+      await rien('⛔ l\'IDENTIFIANT d\'une conversation directe (sa photo est celle de l\'autre personne) : 400', await avatar(conv.Victor, BLEU), 400, 'champ_invalide');
+      await rien('⛔ l\'identifiant d\'un groupe (on vise le FIL, pas l\'identifiant) : 400', await avatar(conv['Équipe'], BLEU), 400, 'champ_invalide');
+      await rien('⛔ « __proto__ » (clé héritée) : 400', await avatar('__proto__', BLEU), 400, 'champ_invalide');
+      await rien('⛔ « constructor » (forme valide, clé héritée de la table) : 400', await avatar('constructor', BLEU), 400, 'champ_invalide');
+      await rien('⛔ « valueof », « tostring » (même piège, autres clés de Object.prototype) : 400', [await avatar('valueof', BLEU), await avatar('tostring', BLEU)].find(r => r.code !== 400) || { code: 400, j: { error: 'champ_invalide' } }, 400, 'champ_invalide');
+      await rien('⛔ deux cibles à la fois (un tableau) : 400', await avatar('victor&cible=max', BLEU, { brut: true }), 400, 'champ_invalide');
+      await rien('⛔ l\'empreinte ABSENTE : 400', await avatar('victor', BLEU, { empreinte: null }), 400, 'champ_invalide');
+      await rien('⛔ une empreinte mal formée : 400', await avatar('victor', BLEU, { empreinte: 'abc' }), 400, 'champ_invalide');
+      await rien('⛔ l\'empreinte d\'un AUTRE corps : 400, ni ligne ni fichier laissés', await avatar('victor', BLEU, { empreinte: sha(ROUGE) }), 400, 'champ_invalide');
+      await rien('⛔ un texte qui n\'est pas une image : 415 type_refuse', await avatar('victor', 'bonjour, ceci n\'est pas une image'), 415, 'type_refuse');
+      await rien('⛔ une page HTML : 415', await avatar('victor', '<html><script>alert(1)</script></html>'), 415, 'type_refuse');
+      await rien('⛔ un SVG : 415 (jamais servi en ligne)', await avatar('victor', '<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>'), 415, 'type_refuse');
+      await rien('⛔ le type de la REQUÊTE n\'est pas octet-stream : 415', await avatar('victor', BLEU, { entetes: { 'Content-Type': 'image/png' } }), 415, 'type_refuse');
+      const json = JSON.stringify({ a: 'x'.repeat(70000) });
+      await rien('⛔ …ni un corps étiqueté JSON, même au-delà de 64 Ko (le lecteur JSON ne l\'avale pas : 415, pas 413)', await avatar('victor', json, { entetes: { 'Content-Type': 'application/json' } }), 415, 'type_refuse');
+      const chunk = await avatar('victor', BLEU, { chunked: true, entetes: { 'Transfer-Encoding': 'chunked' } });
+      await rien('⛔ un envoi fractionné, sans longueur : 411', chunk, 411, 'longueur_requise');
+      await rien('⛔ une longueur ANNONCÉE au-delà du maximum (2 Mo) : 413, avant d\'avoir lu le corps', await avatar('victor', BLEU, { entetes: { 'Content-Length': String(3 * 1048576) } }), 413, 'piece_trop_lourde');
+      const court = await avatar('victor', BLEU, { entetes: { 'Content-Length': String(BLEU.length + 50) } });
+      v('…(la requête qui ment sur sa longueur : pas de photo posée, ni ligne ni fichier)', [court.code === 200, lignesPieces().length, fichiersPieces().length], [false, 0, 0]);
+      const sansSecret = await T.client(svc.base).post('/api/pont/avatar?cible=victor', BLEU.toString('latin1'), { sansOrigine: true, sansEntete: true });
+      v('⛔ sans le secret : le MÊME 404 qu\'une route inconnue', [sansSecret.code, sansSecret.txt === inconnue.txt], [404, true]);
+      v('⛔ derrière un proxy (X-Forwarded-For), le bon secret : le MÊME 404', await (async () => { const r = await avatar('victor', BLEU, { entetes: { 'X-Forwarded-For': '203.0.113.9' } }); return [r.code, r.txt === inconnue.txt]; })(), [404, true]);
+      v('…et rien n\'a été écrit par tous ces refus', [lignesPieces().length, fichiersPieces().length], [0, 0]);
+
+      /* ── poser sur un ROBOT ── */
+      const msgs0 = { Victor: await msgsDe(conv.Victor), Equipe: await msgsDe(conv['Équipe']), Clients: await msgsDe(conv.Clients) };
+      const f1 = fluxJ.evenements.length;
+      const ok1 = await avatar('victor', BLEU);
+      v('une photo posée sur le robot de Victor : 200, « deja » faux', [ok1.code, ok1.j], [200, { ok: true, deja: false }]);
+      const aprVictor = (await justin.get('/api/conversations')).j.conversations.find(c => c.id === conv.Victor);
+      vrai('⛔ Justin voit une photo sur la directe de Victor (c\'est celle du robot)', aprVictor && typeof aprVictor.autre.avatar === 'string' && aprVictor.autre.avatar.length > 8);
+      const picV1 = aprVictor.autre.avatar;
+      const dl = await lire(justin, picV1);
+      v('⛔ Justin télécharge la pièce par la VRAIE route GET : 200, une image PNG (signature lue), du type image/png', [dl.code, dl.buf.subarray(0, 8).toString('hex'), /^image\/png/.test(dl.h.get('content-type') || '')], [200, '89504e470d0a1a0a', true]);
+      vrai('…les octets lus SONT ceux qui ont été envoyés (une image propre : rien à retirer)', dl.buf.equals(BLEU));
+      const intrusLit = await lire(intrus, picV1);
+      v('⛔ une personne étrangère au pont (l\'autre accès bêta) ne lit RIEN : 404', intrusLit.code, 404);
+      v('⛔ …et sans session du tout : refusé (401 ou 404), jamais l\'image', await (async () => { const r = await P.lirePiece(T.client(svc.base), picV1); return [[401, 404].includes(r.code), r.buf.subarray(0, 4).toString('hex') === '89504e47']; })(), [true, false]);
+      const evP = await fluxJ.attendre(e => e.event === 'personne', 8000);
+      vrai('Justin est PRÉVENU en direct (un événement « personne » sur son flux) : ses écrans relisent', !!evP && fluxJ.evenements.length > f1);
+      v('⛔ AUCUN message n\'a été ajouté dans le fil de Victor', await msgsDe(conv.Victor), msgs0.Victor);
+      v('une seule pièce de genre avatar existe, un seul fichier', [lignesPieces().length, fichiersPieces().length], [1, 1]);
+      v('la même photo posée deux fois (même empreinte) : 200 « deja », RIEN n\'est écrit (même pièce, même fichier)', await (async () => { const r = await avatar('victor', BLEU); return [r.code, r.j, lignesPieces().length, fichiersPieces().length, ((await justin.get('/api/conversations')).j.conversations.find(c => c.id === conv.Victor).autre.avatar) === picV1]; })(), [200, { ok: true, deja: true }, 1, 1, true]);
+      v('…« deja » se décide sur l\'EMPREINTE annoncée (la Tour n\'envoie pas le corps de nouveau) : même un corps différent, avec la même empreinte, ne réécrit rien', await (async () => { const r = await avatar('victor', ROUGE, { empreinte: sha(BLEU) }); return [r.code, r.j && r.j.deja, lignesPieces().length]; })(), [200, true, 1]);
+
+      /* ── remplacer ── */
+      const r2 = await avatar('victor', ROUGE);
+      const picV2 = (await justin.get('/api/conversations')).j.conversations.find(c => c.id === conv.Victor).autre.avatar;
+      v('une photo différente : 200 et la pièce CHANGE', [r2.code, r2.j.deja, picV2 !== picV1], [200, false, true]);
+      v('⛔ l\'ancienne pièce a disparu : 404 à la lecture, ligne ET fichier effacés (une seule de chaque reste)', await (async () => { await T.attendre(() => fichiersPieces().length === 1, 4000, 25); return [(await lire(justin, picV1)).code, lignesPieces().length, fichiersPieces().length, (await lire(justin, picV2)).buf.equals(ROUGE)]; })(), [404, 1, 1, true]);
+
+      /* ── les métadonnées sont retirées (le seul chemin d'écriture d'un fichier image) ── */
+      const rj = await avatar('max', AVEC_EXIF);
+      const picM = (await justin.get('/api/conversations')).j.conversations.find(c => c.id === conv.Max).autre.avatar;
+      const lj = await lire(justin, picM);
+      v('⛔ un JPEG avec un EXIF GPS : le canari est dans ce qui part, et ABSENT de ce qui est rangé', [rj.code, AVEC_EXIF.includes(Buffer.from(CANARI)), lj.code, lj.buf.includes(Buffer.from(CANARI)), lj.buf.subarray(0, 2).toString('hex')], [200, true, 200, false, 'ffd8']);
+
+      /* ── poser sur le Système et sur un GROUPE ── */
+      const rs = await avatar('systeme', VERT);
+      v('le robot « Système » reçoit sa photo', [rs.code, rs.j.deja], [200, false]);
+      const evG0 = fluxJ.evenements.length;
+      const rg = await avatar('equipe', BLEU);
+      v('une photo posée sur le GROUPE « equipe » : 200', [rg.code, rg.j.deja], [200, false]);
+      const lg = (await justin.get('/api/conversations')).j.conversations.filter(c => c.type === 'groupe');
+      const eq = lg.find(c => c.id === conv['Équipe']), cl = lg.find(c => c.id === conv.Clients);
+      vrai('⛔ la liste de Justin porte la photo du groupe « Équipe » — et pas celle de « Clients »', eq && typeof eq.avatar === 'string' && cl && !cl.avatar);
+      const dg = await lire(justin, eq.avatar);
+      v('⛔ Justin (membre) télécharge la photo du groupe par la vraie route GET : une image PNG, les octets envoyés', [dg.code, dg.buf.equals(BLEU)], [200, true]);
+      v('⛔ une personne étrangère au groupe : 404', (await lire(intrus, eq.avatar)).code, 404);
+      const evCm = await fluxJ.attendre(e => e.event === 'conversation' && e.data && e.data.conv === conv['Équipe'], 8000);
+      vrai('Justin est prévenu (la conversation a changé) : ses écrans la relisent', !!evCm && fluxJ.evenements.length > evG0);
+      const tout = (await seqDe(conv['Équipe']));
+      v('⛔ AUCUN message système « a changé la photo du groupe » : ni dans « Équipe » ni dans « Clients »', [tout.filter(x => x.type === 'systeme' && x.meta && /avatar/.test(JSON.stringify(x.meta))).length, tout.length === msgs0.Equipe, await msgsDe(conv.Clients) === msgs0.Clients], [0, true, true]);
+      const dbq = T.lireBase(base);
+      let table, proprioGroupe, proprioV;
+      try {
+        table = JSON.parse(dbq.prepare("SELECT v FROM meta WHERE k = 'pont_agents'").get().v);
+        proprioGroupe = (dbq.prepare('SELECT proprio FROM piece WHERE id = ?').get(eq.avatar) || {}).proprio;
+        proprioV = (dbq.prepare('SELECT proprio FROM piece WHERE id = ?').get(picV2) || {}).proprio;
+      } finally { dbq.close(); }
+      v('⛔ la pièce du GROUPE appartient au robot « Système » ; celle du robot de Victor, à Victor', [proprioGroupe === table.robots.systeme, proprioV === table.robots.victor, !!table.robots.systeme && table.robots.systeme !== table.robots.victor], [true, true, true]);
+      /* remplacer la photo du groupe : l'ancienne part */
+      const rg2 = await avatar('equipe', ROUGE);
+      const eq2 = (await justin.get('/api/conversations')).j.conversations.find(c => c.id === conv['Équipe']);
+      await T.attendre(() => fichiersPieces().length === lignesPieces().length, 4000, 25);
+      v('⛔ remplacer la photo du groupe : la nouvelle pièce, l\'ancienne n\'est plus lisible (404), lignes et fichiers concordent', [rg2.code, eq2.avatar !== eq.avatar, (await lire(justin, eq.avatar)).code, (await lire(justin, eq2.avatar)).buf.equals(ROUGE), fichiersPieces().length === lignesPieces().length], [200, true, 404, true, true]);
+
+      /* ── l'installation rend ce qui est posé ── */
+      const attendu = { victor: sha(ROUGE), max: sha(AVEC_EXIF), systeme: sha(VERT), equipe: sha(ROUGE) };
+      const inst = await nu.post('/api/pont/installer', { agents: AGENTS.concat([{ id: 'nina', nom: 'Nina', role: 'Sécurité' }]), groupes: GROUPES }, pont);
+      v('⛔ `installer` rend `avatars` : l\'empreinte SOURCE de chaque cible déjà posée, et rien d\'autre', inst.j.avatars, attendu);
+      v('…un second appel rend la même chose (idempotent), et ne crée rien', (await nu.post('/api/pont/installer', { agents: AGENTS.concat([{ id: 'nina', nom: 'Nina', role: 'Sécurité' }]), groupes: GROUPES }, pont)).j.creees, { personnes: 0, conversations: 0, membres: 0 });
+      /* un second service sur la MÊME base ne change rien : la table vit dans la base (sauvegardée avec elle) */
+      v('…la table du pont porte les empreintes dans la base (`meta`), pas en mémoire', await (async () => { const d = T.lireBase(base); try { return Object.keys(JSON.parse(d.prepare("SELECT v FROM meta WHERE k = 'pont_agents'").get().v).avatars).sort(); } catch (e) { return String(e && e.message); } finally { d.close(); } })(), Object.keys(attendu).sort());
+
+      /* ── les photos ne se posent que sur une table installée avec ces cibles ── */
+      v('⛔ une photo pour un agent PAS ENCORE installé (« hugo ») : 400', (await avatar('hugo', BLEU)).code, 400);
+      v('…et l\'agent ajouté à l\'installation peut en recevoir une', (await avatar('nina', VERT)).code, 200);
+
+      /* ── un groupe RECRÉÉ n'a plus la photo que la table croyait lui avoir posée ── */
+      const GP = [{ fil: 'equipe', nom: 'Équipe', membres: ['victor', 'lea', 'max'] }, { fil: 'clients', nom: 'Clients', membres: ['lea'] }];
+      const AG4 = AGENTS.concat([{ id: 'nina', nom: 'Nina', role: 'Sécurité' }]);
+      v('une photo sur « clients » : posée et rendue par `installer`', [(await avatar('clients', VERT)).code, (await nu.post('/api/pont/installer', { agents: AG4, groupes: GP }, pont)).j.avatars.clients], [200, sha(VERT)]);
+      v('Justin QUITTE le groupe « Clients »', (await justin.post('/api/conversations/' + conv.Clients + '/quitter', {})).code, 200);
+      const re = await nu.post('/api/pont/installer', { agents: AG4, groupes: GP }, pont);
+      v('⛔ l\'installation recrée le groupe (une conversation de plus) et OUBLIE sa photo : `avatars` n\'a plus « clients », mais garde les autres', [re.j.creees.conversations, 'clients' in re.j.avatars, re.j.avatars.equipe === sha(ROUGE), re.j.avatars.victor === sha(ROUGE)], [1, false, true, true]);
+      v('…et la photo de la même cible peut être reposée (ce n\'est pas « deja »)', (await avatar('clients', VERT)).j, { ok: true, deja: false });
+
+      /* ── un robot NEUF n'hérite pas d'une empreinte que la table gardait d'un robot de même nom (base restaurée à moitié) ── */
+      {
+        const { DatabaseSync } = require('node:sqlite');
+        const w = new DatabaseSync(base);
+        try {
+          const lu = JSON.parse(w.prepare("SELECT v FROM meta WHERE k = 'pont_agents'").get().v);
+          lu.avatars.hugo = sha('une photo que ce robot-là n\'a jamais eue');
+          w.prepare("UPDATE meta SET v = ? WHERE k = 'pont_agents'").run(JSON.stringify(lu));
+        } finally { w.close(); }
+        const neuf = await nu.post('/api/pont/installer', { agents: AG4.concat([{ id: 'hugo', nom: 'Hugo', role: 'Veille' }]), groupes: GP }, pont);
+        v('⛔ un robot créé à l\'instant (« hugo ») NE reprend PAS l\'empreinte oubliée dans la table : `avatars` ne la rend pas, et sa première photo est posée', [neuf.j.creees.personnes, 'hugo' in neuf.j.avatars, (await avatar('hugo', BLEU)).j], [1, false, { ok: true, deja: false }]);
+      }
+
+      /* ── ⛔ UNE RÉINSTALLATION PENDANT LE DÉPÔT : la photo ne s'attache pas à l'ANCIEN groupe (relecture de `gardien`, 28 octobre 2026) ──
+         L'envoi est tenu à mi-corps (la longueur annoncée, la moitié des octets), le temps que Justin quitte le groupe et que l'installation le RECRÉE ; puis l'autre moitié part. */
+      {
+        const avantLignes = lignesPieces().length;
+        const courant = async () => (await justin.get('/api/conversations')).j.conversations.filter(c => c.type === 'groupe' && c.nom === 'Clients');
+        const ancien = (await courant())[0];
+        let recree = null;
+        const reponse = await new Promise((resolve) => {
+          const q = http.request({ host: '127.0.0.1', port: svc.port, method: 'POST', path: '/api/pont/avatar?cible=clients', agent: false,
+            headers: { 'X-OPM-Pont': SECRET, 'Content-Type': 'application/octet-stream', 'Content-Length': String(BLEU.length), 'X-OPM-Empreinte': sha(BLEU) } }, (r) => {
+            const parts = []; r.on('data', d => parts.push(d)); r.on('end', () => { let j = null; try { j = JSON.parse(Buffer.concat(parts).toString('utf8')); } catch (e) {} resolve({ code: r.statusCode, j }); });
+          });
+          q.setTimeout(8000, () => { q.destroy(); resolve({ code: 0, j: null }); });
+          q.on('error', () => resolve({ code: 0, j: null }));
+          const moitie = Math.floor(BLEU.length / 2);
+          q.write(BLEU.subarray(0, moitie));
+          setTimeout(async () => {
+            await justin.post('/api/conversations/' + ancien.id + '/quitter', {});
+            const re2 = await nu.post('/api/pont/installer', { agents: AG4.concat([{ id: 'hugo', nom: 'Hugo', role: 'Veille' }]), groupes: GP }, pont);
+            recree = re2.j && re2.j.creees && re2.j.creees.conversations;
+            q.end(BLEU.subarray(moitie));
+          }, 400);
+        });
+        const maintenant = (await courant())[0];
+        await T.attendre(() => fichiersPieces().length === lignesPieces().length, 4000, 25);
+        const dbr = T.lireBase(base); let tab;
+        try { tab = JSON.parse(dbr.prepare("SELECT v FROM meta WHERE k = 'pont_agents'").get().v); } finally { dbr.close(); }
+        v('(population) le groupe a bien été recréé pendant le dépôt : une autre conversation', [!!ancien, !!maintenant, maintenant && maintenant.id !== ancien.id, recree], [true, true, true, 1]);
+        v('⛔ la photo déposée pendant la réinstallation est REFUSÉE (409 cible_changee) : aucune pièce de plus, le fichier est parti, et la table ne dit pas « posée » pour le groupe neuf', [reponse.code, reponse.j && reponse.j.error, lignesPieces().length, fichiersPieces().length === lignesPieces().length, 'clients' in (tab.avatars || {}), maintenant && !maintenant.avatar], [409, 'cible_changee', avantLignes, true, false, true]);
+        const apres = await avatar('clients', BLEU);
+        const maint2 = (await courant())[0];
+        v('…et la reprise de la Tour (même image, même cible) pose la photo sur le groupe NEUF', [apres.code, apres.j.deja, !!(maint2 && maint2.avatar)], [200, false, true]);
+      }
+
+      /* ── le budget : un emballement côté Tour s'arrête (429), et les refus ne coûtent rien ── */
+      const avantBudget = lignesPieces().length;
+      const reponses = []; for (let i = 0; i < 130; i++) reponses.push(await avatar('victor', ROUGE));
+      const limitees = reponses.filter(r => r.code === 429);
+      v('⛔ au-delà de 120 photos par minute : 429 quota_atteint (avec Retry-After), les précédentes « deja »', [limitees.length > 0, limitees.length > 0 && limitees[0].j.error + (/^\d+$/.test(limitees[0].h['retry-after'] || '') ? '' : ' sans Retry-After'), reponses.slice(0, 5).every(r => r.code === 200 && r.j.deja === true), lignesPieces().length], [true, 'quota_atteint', true, avantBudget]);
+    }
+
+    /* ── 10 · rien ne fuit ── */
+    console.log('\n10. Le secret n\'est dans aucune sortie, ni /health');
     {
       const sortie = svc.sortie.texte();
       v('⛔ ni le secret ni son empreinte dans les journaux du service', [sortie.includes(SECRET), sortie.includes(sha(SECRET))], [false, false]);
