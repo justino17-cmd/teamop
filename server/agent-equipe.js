@@ -283,10 +283,11 @@ module.exports = function agentEquipe(ctx) {
   /* LE TRAVAIL DÉJÀ PRIS (28 octobre 2026) : « Tout le monde fait tout et rien en même temps ». Qui fait quoi, en douze lignes au plus (titulaire, titre court) : on ne redemande pas, on ne refait pas ce qui est pris. */
   function blocTravail(id) {
     if (id === 'victor') return '';   // il a déjà « Tâches en cours de l’équipe (pour redistribuer) », avec les identifiants
+    /* un TOUR par titulaire (sa première tâche), puis un second tour… jusqu'à douze : un agent qui a dix tâches ne cache pas ce que les autres ont pris */
+    const parTitulaire = ids.map(x => { let l = []; try { l = agents.tachesDe(x).filter(t => t.type === 'consigne'); } catch (e) { l = []; } return [x, l]; }).filter(([, l]) => l.length);
     const lignes = [];
-    for (const x of ids) {
-      let l = []; try { l = agents.tachesDe(x); } catch (e) { l = []; }
-      for (const t of l) if (t.type === 'consigne' && lignes.length < 12) lignes.push('- ' + x + ' : « ' + affichable(t.texte, 60) + ' »');
+    for (let tour = 0; lignes.length < 12 && parTitulaire.some(([, l]) => l.length > tour); tour++) {
+      for (const [x, l] of parTitulaire) if (l.length > tour && lignes.length < 12) lignes.push('- ' + x + ' : « ' + affichable(l[tour].texte, 60) + ' »');
     }
     return '\nTravail en cours dans l’équipe (titulaire : titre court) :' + (lignes.length ? '\n' + lignes.join('\n') : ' rien.');
   }
