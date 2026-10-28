@@ -11,11 +11,13 @@
         blanche (about:blank) ne lève pas le voile — mesuré au navigateur : un service qui ne répond jamais passait « ok » sur un cadre vide ;
      3. LES ÉTATS — chargement, hors ligne, délai (20 s), Tour d'essai (`.invalid`), refus ; chacun a SON message, son bouton « Ouvrir dans un nouvel onglet » et son accès à l'ancienne messagerie ;
      4. LA POIGNÉE DE MAIN — `parent.postMessage({opmsg:'pret'})` ne compte que venue du cadre (origine ET fenêtre) ; une fois vue, son absence après `load` est un refus ; avant, la Tour ne devine rien ;
-     5. LES BRANCHEMENTS — `renderVue` monte le cadre (ou l'ancienne), quitter la rubrique le retire, `setTab` ne relit que l'ancienne, `messGarde` ne remonte pas le cadre à chaque `render()`.
+     5. LES BRANCHEMENTS — le cadre vit dans `#opm-hote`, frère de `#vue` (jamais dedans) : `renderVue` l'AFFICHE ou le MASQUE (`opmHote`), il n'est ni retiré ni recréé en quittant la rubrique ni en passant par
+        l'ancienne messagerie (relecture, constat 1 : un aller-retour Agents rechargeait OP MESSAGES et tuait un appel) ; seuls « Réessayer » et la fin de séance (`doLogout`) le remplacent ; `setTab` ne relit que
+        l'ancienne, `messGarde` ne regarde qu'elle ; `allow=` délègue aussi le verrou d'écran et le partage (constat 2) ; l'aide « Rien ne s'affiche ? » paraît aussi au téléphone (constat 4) ; `OPM` n'est déclaré qu'une fois.
 
    ⚠️ CE QUE LE BANC NE VOIT PAS, ET OÙ C'EST MESURÉ : que le navigateur affiche vraiment OP MESSAGES dans le cadre (CSP `frame-ancestors`, cookie `__Host-opm`, Permissions-Policy), qu'on s'y connecte, qu'on
    y ouvre une conversation et qu'on y envoie un message, qu'il n'y a pas de double défilement, que le repli couvre toute la scène. Cela se MESURE dans un vrai Chromium, contre le VRAI service
-   d'OP MESSAGES (branche `claude/opmsg-dans-la-tour`, `server-msg/` — `encadrement`) : `scratchpad/cadre-tour/bench-cadre.js` (74 ✓ · 0 ✗) et `bench-refus.js` (36 ✓ · 0 ✗), téléphone 390×844 et bureau
+   d'OP MESSAGES (branche `claude/opmsg-dans-la-tour`, `server-msg/` — `encadrement`) : `scratchpad/cadre-tour/bench-cadre.js` (91 ✓ · 0 ✗, dont le marqueur, le brouillon et la conversation qui survivent à trois allers-retours par Agents) et `bench-refus.js` (36 ✓ · 0 ✗), téléphone 390×844 et bureau
    1280×800, jour et nuit, et leurs captures. Une sonde `fetch` vers OP MESSAGES n'est PAS posée : `Cross-Origin-Resource-Policy: same-origin` la ferait échouer même serveur en bonne santé.
    Pour éprouver ce fichier : TOUR_FICHIER=<copie mutée> node tests/test-3127.js. */
 'use strict';
@@ -46,7 +48,7 @@ const ligne = (debut) => { const i = SCRIPTS.indexOf(debut); if (i < 0) return '
 const bloc = (debut, fin) => { const i = SCRIPTS.indexOf(debut); if (i < 0) return ''; const j = SCRIPTS.indexOf(fin, i); return j < 0 ? '' : SCRIPTS.slice(i, j + fin.length); };
 
 console.log('0. Population : les pièces jouées');
-const FNS = ['opmAdresse', 'opmPoigneeVue', 'opmDisponible', 'opmLienOuvrir', 'opmVoile', 'opmEtat', 'opmRepli', 'vueMessagerie', 'opmMonter', 'opmApresChargement', 'opmAide', 'opmEcouter', 'opmDemonter', 'opmAncienne', 'messGarde'];
+const FNS = ['opmAdresse', 'opmPoigneeVue', 'opmDisponible', 'opmLienOuvrir', 'opmVoile', 'opmEtat', 'opmRepli', 'vueMessagerie', 'opmCadreHtml', 'opmHote', 'opmMonter', 'opmApresChargement', 'opmAide', 'opmEcouter', 'opmDemonter', 'opmAncienne', 'messGarde'];
 const CORPS = FNS.map(fonction);
 const TABLES = [ligne('var OPM_ALLOW='), bloc('var OPM_PANNES={', ']};')];   /* l'adresse est celle du bac à sable (`BETA_MSG_ADRESSE`) : on joue la Tour de production ET celle d'essai */
 vrai('(population) l\'adresse d\'OP MESSAGES bêta de la Tour est https://msg-beta.teamop.fr (sa ligne est trouvée)', /var BETA_MSG_ADRESSE='https:\/\/msg-beta\.teamop\.fr';/.test(ligne('var BETA_MSG_ADRESSE=')));
@@ -59,6 +61,9 @@ function monter(opts = {}) {
   let idMin = 0, ajustements = 0;
   const unEl = (id) => { const e = { id, attrs: {}, dataset: {}, innerHTML: '', setAttribute(k, x) { this.attrs[k] = String(x); }, getAttribute(k) { return this.attrs[k]; } }; return e; };
   dom['opm-cadre'] = unEl('opm-cadre'); dom['opm-voile'] = unEl('opm-voile');
+  /* l'hôte du cadre et #vue : `hidden`, et un `firstChild` qui n'existe qu'une fois l'hôte rempli (la vraie page : innerHTML) */
+  dom['opm-hote'] = unEl('opm-hote'); dom['opm-hote'].hidden = true; Object.defineProperty(dom['opm-hote'], 'firstChild', { get() { return this.innerHTML ? {} : null; } });
+  dom['vue'] = unEl('vue'); dom['vue'].hidden = false;
   dom['opm-scene'] = Object.assign(unEl('opm-scene'), { insertBefore(f, ref) { journal.push('insertion'); f.parentNode = dom['opm-scene']; dom['opm-frame'] = f; }, removeChild() { delete dom['opm-frame']; journal.push('retrait'); } });
   const cree = (tag) => {
     const f = { tag, attrs: {}, ecouteurs: {}, parentNode: null, mode: 'vrai', setAttribute(k, x) { this.attrs[k] = String(x); }, addEventListener(t, fn) { journal.push('écouteur:' + t); this.ecouteurs[t] = fn; } };
@@ -121,8 +126,9 @@ console.log('\n2. Le cadre');
   const f = R.cadre();
   vrai('un cadre est créé, titré « OP MESSAGES »', !!f && f.tag === 'iframe' && f.id === undefined ? true : !!f && f.tag === 'iframe');
   const ALLOW = (/var OPM_ALLOW='([^']+)'/.exec(SCRIPTS) || [])[1] || '';
-  v('⛔ `allow=` délègue EXACTEMENT les huit fonctions d\'OP MESSAGES (appels, vocaux, réunions, partage d\'écran, position, presse-papiers, lecture auto, plein écran) — rien d\'autre, jamais de joker',
-    ALLOW.split(';').map(x => x.trim()).sort(), ['autoplay', 'camera', 'clipboard-read', 'clipboard-write', 'display-capture', 'fullscreen', 'geolocation', 'microphone']);
+  v('⛔ `allow=` délègue EXACTEMENT les dix fonctions d\'OP MESSAGES (appels, vocaux, réunions, partage d\'écran, position, presse-papiers, lecture auto, plein écran, VERROU D\'ÉCRAN d\'un appel, PARTAGE d\'une photo ou d\'un lien) — rien d\'autre, jamais de joker',
+    ALLOW.split(';').map(x => x.trim()).sort(), ['autoplay', 'camera', 'clipboard-read', 'clipboard-write', 'display-capture', 'fullscreen', 'geolocation', 'microphone', 'screen-wake-lock', 'web-share']);
+  vrai('⛔ `screen-wake-lock` est délégué : sans lui, mesuré au navigateur, `navigator.wakeLock.request` échoue dans le cadre (« disallowed by permissions policy ») et l\'écran d\'un téléphone s\'éteint en plein appel vidéo ; `web-share` : le partage de Safari dans un cadre d\'une autre origine', /(^|;\s*)screen-wake-lock(;|$)/.test(ALLOW) && /(^|;\s*)web-share(;|$)/.test(ALLOW), ALLOW);
   vrai('… et le cadre porte cet `allow=` tel quel', f.attrs.allow === ALLOW && ALLOW.indexOf('*') < 0 && f.attrs.allow.indexOf('self') < 0);
   v('l\'adresse du cadre est celle d\'OP MESSAGES bêta, avec sa barre finale', f.adresse, 'https://msg-beta.teamop.fr/');
   vrai('une politique de référent est posée (jamais l\'adresse complète de la Tour à un autre site)', f.attrs.referrerpolicy === 'strict-origin-when-cross-origin');
@@ -169,7 +175,10 @@ console.log('\n3. Les états');
   R.ctx.OPM.etat = 'charge'; R.ctx.OPM.cause = ''; R.ctx.navigator.onLine = false; (R.ecouteurs.offline || []).forEach(fn => fn());
   v('le réseau se coupe PENDANT le chargement : « panne:horsligne »', R.etat(), 'panne:horsligne');
   R.ctx.TAB = 'agents'; R.ctx.navigator.onLine = true; (R.ecouteurs.online || []).forEach(fn => fn());
-  v('⛔ un retour du réseau sur une AUTRE rubrique ne remonte rien (le cadre n\'est pas dans la page)', R.etat(), 'panne:horsligne');
+  v('⛔ un retour du réseau sur une AUTRE rubrique remonte le cadre quand même : il vit masqué (`#opm-hote`), il est prêt au retour', [R.etat(), !!R.cadre()], ['charge', true]);
+  R = monter(); R.ctx.opmMonter(); R.ctx.OPM.etat = 'panne'; R.ctx.OPM.cause = 'horsligne'; delete R.dom['opm-cadre'];
+  const avantSans = R.journal.filter(x => x === 'création:iframe').length; (R.ecouteurs.online || []).forEach(fn => fn());
+  v('… et sans cadre dans la page (séance fermée, `opmDemonter`), un retour du réseau ne crée rien', R.journal.filter(x => x === 'création:iframe').length, avantSans);
 }
 
 console.log('\n4. La poignée de main');
@@ -204,21 +213,59 @@ console.log('\n5. Les branchements');
 {
   const RV = bloc('function renderVue(v){', "else if(TAB==='incidents')");
   vrai('(population) le corps de `renderVue` est trouvé', RV.length > 500 && RV.indexOf("TAB==='messagerie'") > 0);
-  vrai('`renderVue` monte le cadre, ou l\'ancienne messagerie quand elle est choisie — une seule fois (`messGarde`)', /else if\(TAB==='messagerie'\)\{ if\(!messGarde\(v\)\)\{ v\.innerHTML=vueMessagerie\(\); if\(OPM\.ancienne\) messMonter\(\); else opmMonter\(\); \} \}/.test(RV));
-  vrai('⛔ quitter la rubrique retire le cadre ET arrête l\'ancienne messagerie (`opmDemonter`, `messDemonter`)', /if\(TAB!=='messagerie'\)\{ messDemonter\(\); opmDemonter\(\); \}/.test(RV));
+  vrai('⛔ `renderVue` n\'écrit JAMAIS le cadre dans `#vue` : la rubrique y met l\'ancienne messagerie (montée une fois, `messGarde`) ou rien (`v.innerHTML=\'\'`) — le cadre est dans l\'hôte', /else if\(TAB==='messagerie'\)\{ if\(OPM\.ancienne\)\{ if\(!messGarde\(v\)\)\{ v\.innerHTML=vueMessagerie\(\); messMonter\(\); \} \} else v\.innerHTML=''; \}/.test(RV));
+  vrai('⛔ `renderVue` appelle `opmHote` avec « on est sur la Messagerie ET l\'ancienne n\'est pas choisie » — à CHAQUE rendu, après la classe `plein-courrier` (la hauteur se mesure dessus)', /opmHote\(TAB==='messagerie'&&!OPM\.ancienne\);/.test(RV) && RV.indexOf("classList.toggle('plein-courrier'") < RV.indexOf('opmHote('));
+  vrai('⛔ QUITTER la rubrique arrête l\'ancienne messagerie mais NE DÉTRUIT PLUS le cadre (v2.120, relecture : un aller-retour Agents rechargeait OP MESSAGES, perdait brouillon et conversation, tuait un appel)', /if\(TAB!=='messagerie'\) messDemonter\(\);/.test(RV) && !/opmDemonter\(\)/.test(RV));
   vrai('`setTab` ne relit QUE l\'ancienne messagerie à l\'ouverture (le cadre se relit tout seul : un appel inutile partirait au serveur)', /if\(t==='messagerie'&&OPM\.ancienne\) messOuvrir\(\);/.test(SCRIPTS));
-  const R = monter(), v1 = { querySelector: (s) => s === '#opm-cadre' ? { isConnected: true } : null };
-  vrai('`messGarde` : un cadre déjà monté n\'est PAS remonté par un `render()` (la saisie et la conversation ouverte restent)', R.ctx.messGarde(v1) === true && R.ajustements === 1);
-  vrai('`messGarde` : sans cadre dans la page, elle rend faux (on monte)', R.ctx.messGarde({ querySelector: () => null }) === false);
-  R.ctx.OPM.ancienne = true;
-  vrai('`messGarde` : le choix « ancienne messagerie » avec un cadre dans la page rend faux (on remplace)', R.ctx.messGarde(v1) === false);
+  vrai('`messGarde` ne regarde plus que l\'ancienne messagerie (le cadre n\'est pas dans `#vue`)', !/opm-cadre/.test(fonction('messGarde')) && /#mess-zone/.test(fonction('messGarde')));
+  {
+    const R = monter(), z = { isConnected: true };
+    R.ctx.MS.inst = { zone: z };
+    vrai('`messGarde` : l\'ancienne zone déjà montée n\'est PAS remontée par un `render()` (la saisie reste)', R.ctx.messGarde({ querySelector: (q) => q === '#mess-zone' ? z : null }) === true);
+    vrai('`messGarde` : sans zone dans la page, elle rend faux (on monte)', R.ctx.messGarde({ querySelector: () => null }) === false);
+  }
   const AJ = fonction('messAjuster');
-  vrai('`messAjuster` pose la hauteur du CADRE comme celle de l\'ancienne zone (une seule fonction, deux conteneurs)', /\$\('mess-zone'\)\|\|\$\('opm-cadre'\)/.test(AJ));
+  vrai('`messAjuster` pose la hauteur de la zone qui est AFFICHÉE : l\'ancienne zone si elle est choisie, le cadre sinon (jamais le cadre masqué, dont la mesure serait fausse)', /var z=OPM\.ancienne\?\$\('mess-zone'\):\$\('opm-cadre'\);/.test(AJ));
   const AN = fonction('opmAncienne');
-  vrai('`opmAncienne` : le choix vaut pour la séance (`sessionStorage`, jamais `localStorage`), démonte le cadre et l\'ancienne avant de rendre', /sessionStorage\.setItem\('tour_msg_ancienne'/.test(AN) && !/localStorage/.test(AN) && AN.indexOf('opmDemonter()') < AN.indexOf('render()') && AN.indexOf('messDemonter()') < AN.indexOf('render()'));
+  vrai('`opmAncienne` : le choix vaut pour la séance (`sessionStorage`, jamais `localStorage`), arrête l\'ancienne avant de rendre', /sessionStorage\.setItem\('tour_msg_ancienne'/.test(AN) && !/localStorage/.test(AN) && AN.indexOf('messDemonter()') < AN.indexOf('render()'));
+  vrai('⛔ `opmAncienne` NE démonte PAS le cadre (un appel en cours survit à un détour par l\'ancienne messagerie) : `render()` le masque par `opmHote`', AN.indexOf('opmDemonter') < 0 && /opmHote\(TAB==='messagerie'&&!OPM\.ancienne\)/.test(RV));
   vrai('la séance repart sur le CADRE : le choix « ancienne » se relit de `sessionStorage` (un nouvel onglet revient à OP MESSAGES)', /OPM\.ancienne=sessionStorage\.getItem\('tour_msg_ancienne'\)==='1'/.test(SCRIPTS));
-  const MV = (/var OPM=\{[^}]*\}/.exec(SCRIPTS) || [''])[0];
+
+  console.log('\n5 bis. L\'hôte : le cadre est masqué, jamais détruit (relecture, constat 1)');
+  {
+    const HTML = (SRC.match(/<body[\s\S]*?<script>/) || [''])[0];
+    const iv = HTML.indexOf('<main id="vue"></main>'), ih = HTML.indexOf('<main id="opm-hote" hidden></main>');
+    vrai('(population) la page porte `#vue` ET `#opm-hote`, frères : l\'hôte est APRÈS `#vue`, vide et masqué au départ', iv > 0 && ih > iv, [iv, ih]);
+    vrai('⛔ l\'hôte n\'est PAS dans `#vue` (que `renderVue` réécrit à chaque rubrique) : `<main id="vue"></main>` se referme avant lui', HTML.slice(iv, ih).startsWith('<main id="vue"></main>'));
+    vrai('une seule définition de `main[hidden]{display:none!important}` : un `main` masqué ne tient aucune place (grille du bureau, réserve du téléphone)', (FEUILLE.match(/main\[hidden\]\{display:none!important\}/g) || []).length === 1);
+    const R = monter(), h = R.dom['opm-hote'], vv = R.dom['vue'];
+    R.ctx.opmHote(false);
+    v('hors Messagerie, au départ : l\'hôte reste masqué et vide, `#vue` est affiché, aucun cadre n\'est créé', [h.hidden, vv.hidden, h.innerHTML === '', !!R.cadre()], [true, false, true, false]);
+    R.ctx.opmHote(true);
+    v('première arrivée sur la Messagerie : l\'hôte se remplit (le cadre d\'OP MESSAGES), `#vue` est masqué, UN cadre est créé', [h.hidden, vv.hidden, /id="opm-cadre"/.test(h.innerHTML), R.journal.filter(x => x === 'création:iframe').length], [false, true, true, 1]);
+    const f1 = R.cadre(), n1 = R.ctx.OPM.n, aj1 = R.ajustements;
+    R.charger('vrai');
+    R.ctx.opmHote(false);
+    v('⛔ quitter la Messagerie (Agents…) : l\'hôte est MASQUÉ, `#vue` revient — et le cadre est TOUJOURS là, jamais retiré ni recréé', [h.hidden, vv.hidden, R.cadre() === f1, R.journal.filter(x => x === 'retrait').length, R.journal.filter(x => x === 'création:iframe').length, R.ctx.OPM.n === n1], [true, false, true, 0, 1, true]);
+    R.ctx.opmHote(false); R.ctx.opmHote(false);
+    vrai('… même au bout de plusieurs rendus d\'autres rubriques (les chargements de fond redessinent l\'écran sans cesse)', R.cadre() === f1 && R.journal.filter(x => x === 'retrait').length === 0);
+    R.ctx.opmHote(true);
+    v('⛔ de RETOUR sur la Messagerie : le même cadre est réaffiché, SANS remontage (pas de nouveau cadre, état « ok » gardé), et la hauteur est remesurée', [h.hidden, vv.hidden, R.cadre() === f1, R.journal.filter(x => x === 'création:iframe').length, R.etat(), R.ajustements > aj1], [false, true, true, 1, 'ok', true]);
+    R.ctx.OPM.ancienne = true; R.ctx.opmHote(false);
+    vrai('l\'ancienne messagerie choisie : l\'hôte est masqué (le cadre reste en vie derrière)', h.hidden === true && vv.hidden === false && R.cadre() === f1);
+    R.ctx.OPM.ancienne = false; R.ctx.opmHote(true);
+    vrai('… et « ← Revenir à OP MESSAGES » retrouve le MÊME cadre', R.cadre() === f1 && R.journal.filter(x => x === 'création:iframe').length === 1);
+    R.ctx.opmMonter();
+    vrai('seul « Réessayer » (`opmMonter`) remplace le cadre : un cadre neuf, l\'ancien retiré', R.cadre() !== f1 && R.journal.filter(x => x === 'retrait').length === 1);
+    R.ctx.opmDemonter();
+    v('la fermeture de la séance (`opmDemonter`) vide l\'hôte, le masque et invalide le montage en cours', [h.innerHTML, h.hidden, R.ctx.OPM.etat, R.ctx.OPM.charge], ['', true, '', false]);
+    const LO = (SCRIPTS.match(/function doLogout\(\)\{[^\n]*/) || [''])[0];
+    vrai('⛔ `doLogout` ferme le cadre (`opmDemonter`) AVANT de recharger : une session d\'OP MESSAGES ne reste pas ouverte, masquée, derrière une Tour fermée', LO.indexOf('opmDemonter()') > 0 && LO.indexOf('opmDemonter()') < LO.indexOf('location.reload'), LO.slice(0, 80));
+  }
+  console.log('\n5 ter. Un seul état OPM');
+  const MV = (/Object\.assign\(OPM,\{[^}]*\}\)/.exec(SCRIPTS) || [''])[0];
   vrai('l\'état du cadre ne vit pas dans `MS` (l\'ancienne messagerie se démonte sans toucher au cadre, et inversement)', MV.length > 30 && !/MS\./.test(fonction('opmMonter')));
+  vrai('⛔ `OPM` n\'est déclaré QU\'UNE fois (`var OPM={loaded…}`, l\'état de la messagerie des agents) : le cadre COMPLÈTE cet objet (`Object.assign`) au lieu de le remplacer — une seconde `var OPM={…}` effaçait `loaded`, `err` et `d` en silence', (SCRIPTS.match(/(^|\n)var OPM=\{/g) || []).length === 1, (SCRIPTS.match(/(^|\n)var OPM=\{/g) || []).length);
 }
 
 console.log('\n6. La feuille de style (une feuille nue : commentaires retirés)');
@@ -234,6 +281,7 @@ console.log('\n6. La feuille de style (une feuille nue : commentaires retirés)'
   vrai('au bureau, la zone prend toute la page (pas de rayon, pas de bordure) comme le Courrier', /body\.plein-courrier \.opm\{border-radius:0;border-width:0\}/.test(FEUILLE));
   vrai('un geste de la barre se touche au doigt : 40 px sous `(pointer:coarse)`', /@media \(pointer:coarse\)\{ \.opm-lien\{min-height:40px\} \}/.test(FEUILLE));
   vrai('sur téléphone (≤ 520 px) le bout « de la Tour » et l\'aide s\'effacent : les deux gestes tiennent sur UNE rangée', /@media \(max-width:520px\)\{[^}]*\}[^}]*\.opm-aide,\.opm-suite\{display:none\}/.test(FEUILLE));
+  vrai('⛔ …mais l\'aide « Rien ne s\'affiche ? » PARAÎT sur téléphone dès que la barre la demande (`data-aide="1"`), sur sa propre ligne (pleine largeur) — masquée sous 520 px, un téléphone devant un cadre vide ne lisait rien (relecture, constat 4)', /@media \(max-width:520px\)\{[^@]*\.opm\[data-aide="1"\] \.opm-aide\{display:block;flex:0 0 100%;[^}]*opacity:1\}/.test(FEUILLE));
   vrai('l\'animation du chargement ralentit sous « animations réduites »', /prefers-reduced-motion:reduce\)\{ \.opm-rond\{animation-duration:2\.4s\}/.test(FEUILLE));
   vrai('le bandeau d\'avant n\'a plus de règle de style', FEUILLE.indexOf('opm-bandeau') < 0);
 }
