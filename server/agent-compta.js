@@ -134,7 +134,7 @@ module.exports = function agentCompta(ctx) {
       const n = v.n, y = n.total, sur = x => x + ' sur ' + y;
       if (y === 0) lignes.push('Factures de ' + v.annee + ' lues chez Stripe : aucune émise pour l’instant, rien à vérifier.');
       else {
-        lignes.push(...CAL.ranger(['Factures de ' + v.annee + ' lues chez Stripe (brouillons exclus) : ' + y + '.', 'Numéro : ' + sur(n.numero), 'lien PDF : ' + sur(n.pdf), 'pied de page : ' + sur(n.pied), 'champs personnalisés : ' + sur(n.champs),
+        lignes.push(...CAL.ranger(['Factures de ' + v.annee + ' lues chez Stripe (brouillons exclus) : ' + y, 'Numéro : ' + sur(n.numero), 'lien PDF : ' + sur(n.pdf), 'pied de page : ' + sur(n.pied), 'champs personnalisés : ' + sur(n.champs),
           'mention de franchise (293 B ou CIBS) : ' + sur(n.mention)]));
         lignes.push(...CAL.ranger(['Adresse du client : ' + sur(n.adresse), 'identifiant de TVA du client : ' + sur(n.tvaClient), 'période sur les lignes : ' + n.periode + ' sur ' + n.periodeLue + ' lues']));
         const tva = n.taxeLue === 0 ? 'TVA facturée : Stripe ne la montre pas, je ne donne aucun chiffre'
