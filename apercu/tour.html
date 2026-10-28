@@ -2269,6 +2269,28 @@ body.plans .reg-l.cli::before{display:none}
 .pa-txt>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--acc-txt);font-size:13px;font-weight:600}
 .pa-corps{margin:0 0 6px;padding:10px 12px;border-radius:var(--r-3);background:var(--inset);font:inherit;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text2)}
 .pa-tout{align-self:flex-start;margin:0 0 8px}
+.pa-att{margin:4px 0 10px;padding:12px 14px;border-radius:var(--r-3);background:var(--inset);display:flex;flex-direction:column;gap:10px}
+.pa-att-t{margin:0;font-size:13px;font-weight:700;letter-spacing:.01em;color:var(--text)}
+.pa-att-l{display:flex;gap:10px;align-items:flex-start;min-width:0}
+.pa-att-l>i{flex:none;width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--muted)}
+.pa-att-l[data-g=bloque]>i{background:var(--redText)}
+.pa-att-l[data-g=faire]>i{background:var(--amber)}
+.pa-att-l[data-g=ok]>i{background:var(--acc-txt)}
+.pa-att-l>div>b{display:block;font-size:14px;font-weight:650;line-height:1.35;color:var(--text)}
+.pa-att-l span b{font-weight:650;color:var(--text)}
+.pa-att-l span{display:block;margin-top:2px;font-size:13px;line-height:1.45;color:var(--text2);overflow-wrap:anywhere}
+.pa-att .pa-det{border-top:0}
+.pa-ouvrir{align-self:flex-start;min-height:44px;display:inline-flex;align-items:center;font-size:13.5px;font-weight:650;color:var(--acc-txt);text-decoration:none}
+.pa-av{margin:0 0 10px;padding:12px 14px;border-radius:var(--r-3);background:var(--inset);display:flex;flex-direction:column;gap:10px}
+.pa-av-e{display:flex;flex-direction:column;gap:4px;min-width:0}
+.pa-av-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;font-weight:650;line-height:1.35;color:var(--text)}
+.pa-av-h>em{flex:none;font-style:normal;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text2)}
+.pa-av-b{height:6px;border-radius:3px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:hidden}
+.pa-av-b>i{display:block;height:100%;border-radius:3px;background:var(--muted)}
+.pa-av-e[data-e=fait] .pa-av-b>i{background:var(--acc-txt)}
+.pa-av-e[data-e=partiel] .pa-av-b>i{background:var(--amber)}
+.pa-av-d{font-size:13px;line-height:1.45;color:var(--text2);overflow-wrap:anywhere}
+.pa-site{color:var(--acc-txt);text-decoration:none;overflow-wrap:anywhere}
 .ag-voir p{margin:0 0 6px;font-size:12.5px;color:var(--muted)}
 @container aglg (min-width:640px){
   .ag-rang{grid-template-columns:minmax(0,1fr) 264px auto;grid-template-areas:"id seg parler";gap:10px 16px}
@@ -2281,6 +2303,74 @@ body.plans .reg-l.cli::before{display:none}
 @media (max-width:700px){ .ag-onglets{padding-right:28px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)} }
 @media (prefers-reduced-motion:reduce){ .ag-voir>summary::after{transition:none} .ag-seg button,.ag-parler{transition:none} .ag-seg button:active:not([disabled]),.ag-parler:active{transform:none} }
 .ag-liste{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;margin-top:14px}
+/* ── AGENTS · v2.117 (28 octobre 2026) — Justin : « refais-moi l'onglet Agents plus pro et plus Apple, avec tout bien ». La structure ne
+   change pas (bancs 2709, 2815, 3011…) : la matière, si. Un en-tête qui se lit comme un état (pastille qui respire quand l'équipe agit),
+   les onglets en segmenté de macOS, l'état de chaque agent en capsule teintée, la MÊME couleur dans le segmenté (Brouillon = ambre,
+   Auto = bleu : l'œil apparie les deux), l'anneau du visage qui dit le mode, et les heures en interrupteurs d'iOS. Jetons de la Tour, jour ET nuit. */
+.ag-barre:not([style]){padding:16px 18px;border-radius:var(--r-5);gap:10px 16px;box-shadow:var(--ombre-1)}
+.ag-barre:not([style]) .ag-pt{width:12px;height:12px;box-shadow:0 0 0 4px var(--accBg)}
+.ag-barre.rien:not([style]) .ag-pt{box-shadow:0 0 0 4px var(--inset)}
+.ag-barre.stop:not([style]) .ag-pt{box-shadow:0 0 0 4px var(--rougeBg)}
+.ag-barre:not([style]) .ag-barre-tx b{font-size:15.5px;font-weight:650;letter-spacing:-.01em}
+.ag-barre:not([style]) .ag-hor{font-size:13px;font-weight:600}
+.ag-barre:not([style])>.ag-btn{border-radius:var(--r-pill);padding:0 18px}
+.ag-barre:not([style])>.ag-btn.danger{background:var(--rougeBg);color:var(--redText)}
+@media (prefers-reduced-motion:no-preference){
+  .ag-barre:not(.rien):not(.stop):not([style]) .ag-pt{animation:agRespire 2.4s ease-in-out infinite}
+  @keyframes agRespire{0%,100%{box-shadow:0 0 0 4px var(--accBg)}50%{box-shadow:0 0 0 7px transparent}}
+}
+/* les onglets : un segmenté (fond creux, l'onglet choisi est une pastille posée dessus) qui défile au doigt */
+.ag-onglets{gap:2px;border-bottom:0;margin-top:18px;padding:4px;background:var(--inset);border-radius:var(--r-4)}
+.ag-onglets button{min-height:36px;padding:0 13px;border-radius:calc(var(--r-4) - 3px);border-bottom:0;font-size:13.5px;transition:background-color 160ms ease-out,color 160ms ease-out}
+.ag-onglets button.on{background:var(--surface);color:var(--text);box-shadow:var(--ombre-1)}
+@media (pointer:fine){ .ag-onglets button:not(.on):hover{color:var(--text)} }
+@media (pointer:coarse){ .ag-onglets button{min-height:44px} }
+/* les groupes : un titre de section à la iOS, la liste en carte arrondie */
+.ag-couche{margin:26px 6px 8px;font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ag-lg{border-radius:var(--r-5);box-shadow:var(--ombre-1)}
+.ag-rang{padding:14px 16px;transition:background-color 160ms ease-out}
+@media (pointer:fine){ .ag-rang:hover{background:color-mix(in srgb,var(--inset) 55%,transparent)} }
+.ag-rang h3{font-size:16px}
+.ag-meta{color:var(--muted);opacity:.85}
+/* l'état : une capsule teintée, le mot ET la pastille (jamais la seule couleur) */
+.ag-etat{padding:2px 9px 2px 8px;border-radius:var(--r-pill);font-size:12.5px;line-height:1.5}
+.ag-etat::before{width:7px;height:7px}
+.ag-etat[data-e=auto],.ag-etat[data-e=ok]{background:var(--accBg)}
+.ag-etat[data-e=brouillon],.ag-etat[data-e=retard]{background:var(--ambreBg)}
+.ag-etat[data-e=arret],.ag-etat[data-e=externe]{background:var(--inset)}
+.ag-etat[data-e=pause]{background:var(--rougeBg)}
+.ag-encours{margin-top:6px}
+/* le visage porte un anneau : bleu en auto, ambre en brouillon, rien à l'arrêt */
+.ag-rang .ag-av{width:46px;height:46px;box-shadow:0 0 0 2px var(--surface),0 0 0 4px transparent;transition:box-shadow 200ms ease-out}
+.ag-rang[data-etat=auto] .ag-av{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--acc-txt)}
+.ag-rang[data-etat=brouillon] .ag-av{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--amber)}
+.ag-rang[data-etat=arret] .ag-av img{filter:saturate(.35);opacity:.8}
+/* le segmenté : la pastille choisie prend la couleur de l'état qu'elle désigne */
+.ag-seg{border-radius:var(--r-4)}
+.ag-seg button{border-radius:calc(var(--r-4) - 3px);font-size:13.5px;transition:transform 100ms ease-out,background-color 160ms ease-out,color 160ms ease-out}
+.ag-seg button.on{box-shadow:var(--ombre-1)}
+.ag-seg button[data-m=brouillon].on{background:var(--ambreBg);color:var(--amber)}
+@media (pointer:fine){ .ag-seg button:not(.on):not([disabled]):hover{color:var(--text)} }
+.ag-parler{border-radius:var(--r-pill);font-weight:650}
+@media (pointer:fine){ .ag-parler:hover{background:var(--accBg)} }
+.ag-rg-plus .ag-btn{border-radius:var(--r-pill);font-size:13.5px}
+@media (pointer:fine){ .ag-rg-plus .ag-btn{min-height:38px} }
+@container aglg (min-width:640px){ .ag-rg-plus{padding-left:58px} }
+/* les heures : des interrupteurs, des heures en chiffres tabulaires */
+.ho-sw input{appearance:none;-webkit-appearance:none;width:44px;height:26px;margin:0;border-radius:var(--r-pill);background:var(--inset);box-shadow:inset 0 0 0 1px var(--border);position:relative;transition:background-color 180ms ease-out}
+.ho-sw input::after{content:"";position:absolute;top:2px;left:2px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform 200ms cubic-bezier(.3,.7,.4,1)}
+.ho-sw input:checked{background:var(--acc-fill);box-shadow:none}
+.ho-sw input:checked::after{transform:translateX(18px)}
+.ho-sw input:focus-visible{outline:2px solid var(--acc-txt);outline-offset:2px}
+.ho-h input{text-align:center;font-variant-numeric:tabular-nums}
+.ho-etat{border-radius:var(--r-5);padding:14px 16px}
+.ho-seg{flex:0 1 460px;border-radius:var(--r-4)}
+.ho-seg button{border-radius:calc(var(--r-4) - 3px)}
+.ho-seg button.on{box-shadow:var(--ombre-1)}
+.ho-ouvrir>.ag-btn{border-radius:var(--r-pill)}
+.ho .ag-h{font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.ho .ag-h small{text-transform:none;letter-spacing:0}
+@media (prefers-reduced-motion:reduce){ .ag-onglets button,.ag-rang,.ag-rang .ag-av,.ag-seg button,.ho-sw input,.ho-sw input::after{transition:none} }
 .ag-ligne{display:flex;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
 .ag-ligne:first-child{border-top:0}
 .ag-ligne .tx{flex:1;min-width:0}
@@ -2528,6 +2618,29 @@ body.jour .mess-zone{border-color:var(--line);-webkit-backdrop-filter:none;backd
 .ms-pts i:nth-child(2){animation-delay:.18s}.ms-pts i:nth-child(3){animation-delay:.36s}
 @keyframes msPoint{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
 @media(prefers-reduced-motion:reduce){ .ms-pts i{animation:none;opacity:.7} }
+/* Pauline dans la Messagerie (v2.115) : ses mails à accepter, un par carte */
+.pa-fil{display:flex;flex-direction:column;gap:12px;width:100%;max-width:760px;margin:0 auto}
+.pa-intro{margin:0;color:var(--text2);font-size:13.5px;line-height:1.5}
+.pa-m{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.pa-m[data-e="fait"],.pa-m[data-e="refuse"]{opacity:.78}
+.pa-m-hd{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}.pa-m-hd b{font-size:15px}.pa-m-hd span{color:var(--muted);font-size:12.5px}
+.pa-m-a,.pa-m-e{color:var(--text2);font-size:12.5px;overflow-wrap:anywhere}
+.pa-m-o{font-weight:650;font-size:14px;overflow-wrap:anywhere}
+.pa-m-c{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:13.5px;line-height:1.55;color:var(--text);background:var(--inset);border-radius:var(--r-2,8px);padding:10px 12px;max-height:340px;overflow:auto}
+.pa-m-act{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.pa-m-act .ms-envoyer{min-height:44px}
+.pa-m-act .ms-reu-btn{min-height:44px;padding:0 16px}
+.pa-m-act .pa-ref{color:var(--red)}
+.pa-m-etat{font-size:12.5px;font-weight:650;color:var(--text2)}.pa-m-etat[data-t="ok"]{color:var(--green)}.pa-m-etat[data-t="ko"]{color:var(--red)}.pa-m-etat[data-t="att"]{color:var(--amber)}
+.pa-ed{display:flex;flex-direction:column;gap:6px}
+.pa-ed label{font-size:12px;color:var(--muted);font-weight:650}
+.pa-ed input,.pa-ed textarea{font:inherit;font-size:16px;color:var(--text);background:var(--inset);border:1px solid var(--inpBorder);border-radius:var(--r-2,8px);padding:9px 11px;width:100%;box-sizing:border-box}
+.pa-ed textarea{min-height:220px;resize:vertical;line-height:1.5}
+.pa-ed input:disabled{opacity:.7}
+.pa-ed input:focus-visible,.pa-ed textarea:focus-visible{outline:0;box-shadow:var(--anneau-int)}
+.pa-faits>summary{cursor:pointer;color:var(--text2);font-size:13px;font-weight:650;min-height:44px;display:flex;align-items:center}
+.pa-faits[open]>summary{margin-bottom:6px}
+.pa-faits .pa-m{margin-bottom:10px}
 .ms-vide{margin:auto;max-width:360px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.5;padding:24px 12px}
 .ms-retard{align-self:center;font-size:12px;color:var(--amber)}
 .ms-nouv{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);min-height:34px;padding:0 14px;border:0;border-radius:99px;background:var(--acc-fill);color:var(--on-acc);font:inherit;font-size:13px;font-weight:650;box-shadow:var(--ombre-2);cursor:pointer}
@@ -3294,6 +3407,171 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
 .dem-gestes{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:16px}
 .dem-ident{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
 .dem-ident .inp{min-width:170px}
+/* ▼▼ REFONTE-APPLE : début ▼▼ */
+/* ══ REFONTE APPLE · v2.118 (28 octobre 2026) ══════════════════════════════════════════════════════════════════════════
+   Justin, après avoir validé l'onglet Agents (v2.117) : « revoit tous les onglets de la tour, le style, le design, les couleurs à la Apple,
+   je veux un truc beau, pro, propre et qui donne envie de travailler » ; puis : les onglets d'OP MESSAGES aussi. Même langage que la
+   couche « AGENTS · v2.117 » : un rayon (--r-5) pour toutes les cartes, une matière qui se détache (un filet et une ombre fine le jour, la
+   vitre la nuit), le segmenté de macOS pour tout choix d'écran, des capsules pour tout état, des cases arrondies, un seul geste de
+   pression (un ressort court, jamais lancé par autre chose qu'un toucher), et la même cible de 44 px au doigt.
+   ⛔ PRÉSENTATION SEULEMENT : aucune classe n'est renommée, aucun écran déplacé, aucun comportement touché — une restructuration vient
+   après. Cette feuille vit APRÈS toutes les autres et ne réécrit aucun composant : elle en change la peau.
+   Périmètre : `#vue` hors Agents (`[data-rendu]`) et hors les deux zones pleine page (Courrier, Messagerie : `body.plein-courrier`),
+   plus la charpente (menu, barre du haut, barre du bas, feuille, fenêtre). Les deux consoles (GESTION, MESSAGES) partagent les mêmes
+   classes : une seule règle les couvre. Les jetons sont ceux de la Tour (jour ET nuit) ; seuls trois nouveaux : --ap-ombre, --ap-bord, --ap-ressort. */
+
+/* ── 0 · JETONS ── */
+body{--ap-ombre:none;--ap-bord:rgba(255,255,255,.10);--ap-relief:inset 0 1px 0 rgba(255,255,255,.16)}
+body.jour{--ap-ombre:0 1px 2px rgba(16,24,40,.05),0 0 0 .5px rgba(60,60,67,.10);--ap-bord:rgba(60,60,67,.12);--ap-relief:none}
+
+/* ── 1 · LA MATIÈRE : un rayon, un relief ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) :is(.carte,.kpi,.tbl,.reg-bloc,.reg-cli,.reg-haut,.vide,.squel-l){border-radius:var(--r-5)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .item{border-radius:var(--r-4)}
+body.jour:not(.plein-courrier) #vue:not([data-rendu]) :is(.carte,.kpi,.tbl,.reg-bloc,.reg-cli,.reg-haut,.item,.vide){box-shadow:var(--ap-ombre)}
+body.jour:not(.plein-courrier) #vue:not([data-rendu]) .vide{box-shadow:none}
+body.jour:not(.plein-courrier) #vue:not([data-rendu]) .carte :is(.carte,.kpi,.tbl,.reg-bloc,.reg-cli,.reg-haut,.item,.vide){box-shadow:none}
+/* la liste groupée : ses rangées épousent le rayon de la carte (concentricité), elles ne le dépassent jamais */
+body:not(.plein-courrier) #vue:not([data-rendu]) :is(.reg-bloc,.reg-cli,.reg-haut,.tbl){overflow:hidden}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-bloc>.reg-l:hover{border-radius:0}
+body:not(.plein-courrier) #vue:not([data-rendu]) .encart{border-radius:var(--r-4)}
+/* une liste posée DANS une carte : son rayon est celui de la carte moins son rembourrage (concentricité) */
+body:not(.plein-courrier) #vue:not([data-rendu]) .carte :is(.reg-bloc,.reg-cli,.reg-haut,.tbl,.item,.vide,.squel-l){border-radius:var(--r-3)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .ttl-carte{font-size:16px;font-weight:650;letter-spacing:-.016em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .sec{font-size:11.5px;font-weight:650;letter-spacing:.06em}
+
+/* ── 2 · LE SEGMENTÉ — tout choix d'écran ou de filtre est le même objet que dans Agents ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .sous-onglets{margin:0 0 18px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .sous-onglets .tt-seg{width:fit-content;max-width:100%;overflow-x:auto;scrollbar-width:none}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg{padding:3px;gap:2px;border-radius:var(--r-4)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button{min-height:34px;padding:0 15px;border-radius:calc(var(--r-4) - 3px);font-size:13.5px;font-weight:500;letter-spacing:-.006em;white-space:nowrap;
+  transition:background-color var(--d-2) var(--e-sortie),color var(--d-2) var(--e-sortie),box-shadow var(--d-2) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button[aria-pressed="true"]{font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.05)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button:active:not([aria-pressed="true"]){transform:scale(.96);transition-duration:var(--d-0)}
+@media (pointer:fine){ body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button:not([aria-pressed="true"]):hover{background:var(--hover)} }
+@media (pointer:coarse){ body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button{min-height:44px} }
+@media (max-width:760px){ body:not(.plein-courrier) #vue:not([data-rendu]) .sous-onglets .tt-seg{width:100%} body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button{padding:0 10px} }
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-liste-tete h2{font-size:17px;font-weight:650;letter-spacing:-.02em}
+
+/* ── 3 · LES CHIFFRES — le libellé murmure, le chiffre parle, la tuile répond au toucher ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi{padding:16px 18px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi .l{font-size:13px;font-weight:500;letter-spacing:-.005em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi .n{font-weight:700;letter-spacing:-.032em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic{transition:background-color var(--d-1) var(--e-sortie),box-shadow var(--d-2) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
+@media (pointer:fine){ body.jour:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:hover{box-shadow:0 4px 14px rgba(16,24,40,.09),0 0 0 .5px rgba(60,60,67,.12);transform:translateY(-1px)} body:not(.jour):not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:hover{transform:translateY(-1px)} }
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:active{transform:scale(.98)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.sel{box-shadow:inset 0 0 0 2px var(--acc)}
+
+/* la bande de chiffres d'OP MESSAGES (« rang ») : UNE carte coupée par des filets, pas cinq vitres collées côte à côte */
+body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang{gap:0;border:0;overflow:hidden;border-radius:var(--r-5);background:var(--tt-carte);box-shadow:var(--ap-ombre)}
+body:not(.jour):not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang{box-shadow:var(--tt-ombre);border:1px solid var(--tt-carte-bord);-webkit-backdrop-filter:var(--tt-verre);backdrop-filter:var(--tt-verre)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang .kpi{background:transparent;border:0;border-radius:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-right:1px solid var(--hairline)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang .kpi:last-child{border-right:0}
+@media (max-width:760px){ body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang .kpi{border-right:0;border-bottom:1px solid var(--hairline)} body:not(.plein-courrier) #vue:not([data-rendu]) .grille-kpi.rang .kpi:nth-child(even){border-left:1px solid var(--hairline)} }
+
+/* ── 4 · LES GROUPES ET LES LIGNES ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-tete .reg-nom{font-size:17px;font-weight:650;letter-spacing:-.02em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-tete .reg-n{font-size:12px;font-weight:650;padding:1px 8px;border-radius:var(--r-pill);background:var(--tt-seg);color:var(--text2);line-height:1.6}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-sous{font-size:12.5px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-chev{color:var(--muted);opacity:.8}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l .reg-fin>.reg-chev{opacity:.55}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-av,body:not(.plein-courrier) #vue:not([data-rendu]) .reg-av.sans,body:not(.plein-courrier) #vue:not([data-rendu]) .reg-av.gris{border-radius:10px;font-weight:700}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-bloc .ac-ico{border-radius:10px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l{transition:background-color var(--d-1) var(--e-sortie)}
+@media (pointer:fine){ body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l:hover{background:var(--hover)} }
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l:active{background:var(--inset)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-t1{letter-spacing:-.012em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .abn-j{font-variant-numeric:tabular-nums}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tbl .hd,body:not(.plein-courrier) #vue:not([data-rendu]) .tbl th{font-size:11.5px;font-weight:650}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kv>div{padding:10px 0}
+body:not(.plein-courrier) #vue:not([data-rendu]) .kv .k{color:var(--muted)}
+
+/* ── 5 · LES CAPSULES ET LES BOUTONS ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .past{font-size:12px;font-weight:650;padding:3px 10px;line-height:1.4;letter-spacing:.002em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .chip{border-radius:var(--r-pill);padding:3px 10px;font-weight:600}
+body:not(.plein-courrier) #vue:not([data-rendu]) .btn-plein,body:not(.plein-courrier) #vue:not([data-rendu]) .btn-fant,body:not(.plein-courrier) #vue:not([data-rendu]) .pill-act{border-radius:var(--r-pill);font-weight:650;letter-spacing:-.006em}
+body:not(.plein-courrier) #vue:not([data-rendu]) .btn-plein.large{border-radius:var(--r-pill)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .btn-fant.danger,body:not(.plein-courrier) #vue:not([data-rendu]) .btn-plein.danger{border-radius:var(--r-pill)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .page-act .btn-plein,body:not(.plein-courrier) #vue:not([data-rendu]) .page-act .btn-fant{padding:0 18px}
+@media (pointer:fine){ body:not(.plein-courrier) #vue:not([data-rendu]) .btn-fant:hover{background:var(--accBg)} }
+
+/* l'encre d'une capsule verte le jour : 4,29 sur son voile — on la fonce d'un cran pour passer 4,5 */
+body.jour:not(.plein-courrier) #vue:not([data-rendu]) .p-vert{color:#14602b}
+
+/* ── 6 · LES CHAMPS ET LES CASES ── */
+body:not(.plein-courrier) #vue:not([data-rendu]) .inp,body:not(.plein-courrier) #vue:not([data-rendu]) .sel-f,body:not(.plein-courrier) #vue:not([data-rendu]) .rech{border-radius:var(--r-3)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .inp:focus,body:not(.plein-courrier) #vue:not([data-rendu]) .inp:focus-visible,body:not(.plein-courrier) #vue:not([data-rendu]) .sel-f:focus-visible,body:not(.plein-courrier) #vue:not([data-rendu]) .rech:focus-within{border-color:var(--acc);box-shadow:var(--focus-champ)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .lbl{font-size:11.5px;font-weight:650;margin-bottom:6px}
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]{appearance:none;-webkit-appearance:none;width:22px;height:22px;min-width:22px;margin:0;border-radius:7px;border:1.5px solid var(--dim);background-color:transparent;
+  display:inline-block;vertical-align:middle;flex:none;cursor:pointer;accent-color:var(--acc-fill);
+  transition:background-color var(--d-1) var(--e-sortie),border-color var(--d-1) var(--e-sortie),transform var(--d-3) var(--ressort-vif)}
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:checked{border-color:transparent;background-color:var(--acc-fill);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3.6 8.4l2.9 2.9 5.9-6.2' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-size:15px;background-position:center;background-repeat:no-repeat}
+/* la case est petite ; sa cible est la RANGÉE qui l'enveloppe (un label de 44 px) — pas un halo autour d'elle : deux halos de rangées voisines se chevaucheraient */
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:active{transform:scale(.9);transition-duration:var(--d-0)}
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:focus-visible{box-shadow:var(--anneau)}
+body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:disabled{opacity:.45;cursor:not-allowed}
+body:not(.plein-courrier) #vue:not([data-rendu]) .cat-ligne input[type="checkbox"],body:not(.plein-courrier) #vue:not([data-rendu]) .don-coche input{width:22px;height:22px;flex:0 0 22px}
+/* la rangée de la case : 46 px, case au milieu — le doigt qui vise la case tombe toujours DANS sa rangée (la bordure du haut compte dans la hauteur) */
+body:not(.plein-courrier) #vue:not([data-rendu]) .cat-ligne{min-height:46px;align-items:center;padding-top:8px;padding-bottom:8px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .cat-ligne input[type="checkbox"]{margin:0}
+
+/* ── 7 · LA CHARPENTE : le menu, la barre du haut ── */
+@media (min-width:900px){
+  .tab{border-radius:10px;min-height:36px;padding:4px 8px;letter-spacing:-.01em}
+  .tab .ic{width:26px;height:26px;border-radius:8px;background:var(--tint-gris);transition:background-color var(--d-2) var(--e-sortie)}
+  .tab .ic svg{width:15px;height:15px}
+  .tab.on .ic,nav.tabs.a-indic .tab.on .ic{background:var(--acc-fill)}
+  .tab.on .ic svg{color:var(--on-acc)}
+  .tab:active{transform:scale(.975)}
+  .grp span{font-size:11px;font-weight:650;letter-spacing:.07em}
+  .tt-haut{height:52px}
+  .tt-ou b{font-weight:650;letter-spacing:-.01em}
+  .tt-srv{padding:6px 12px;font-weight:550}
+}
+.app-sw{border-radius:11px;padding:3px}
+.app-sw button{border-radius:8px}
+
+/* ── 8 · LE TÉLÉPHONE : la barre du bas et la feuille ── */
+@media (max-width:899px){
+  .barre-bas{border-radius:36px}
+  .bb{border-radius:28px}
+  .feuille{border-radius:30px 30px 0 0}
+  .groupe .ic{border-radius:9px;background:var(--tint-gris)}
+  .groupe button.on .ic{background:var(--acc-fill)}
+  .groupe button.on .ic svg{color:var(--on-acc)}
+}
+#tour-panneau>div{border-radius:22px!important}
+
+/* ── 9 · LES VUES ── */
+/* Accueil : le bonjour en tête, la pastille de bilan en capsule, les blocs de la colonne de droite en liste groupée */
+body:not(.plein-courrier) #vue:not([data-rendu]) .ac-total{font-weight:650;padding:6px 14px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .ac-n{font-weight:700}
+body:not(.plein-courrier) #vue:not([data-rendu]) .reg-haut .reg-l.haut{min-height:64px}
+/* Fiche d'une entreprise, Demandes, Accès, Équipe : la carte est un encart groupé, ses sections se lisent comme des Réglages */
+body:not(.plein-courrier) #vue:not([data-rendu]) .fiche-page>.carte,body:not(.plein-courrier) #vue:not([data-rendu]) .dem-carte{padding:20px 22px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .tt-adresse{border-radius:var(--r-4)}
+/* Contrats, Facturation : lignes de journal dans une liste groupée */
+body:not(.plein-courrier) #vue:not([data-rendu]) .abn-jrn{border-radius:var(--r-5);overflow:hidden}
+body:not(.plein-courrier) #vue:not([data-rendu]) .abn-j{padding-top:11px;padding-bottom:11px}
+/* Rapport, Audience */
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours{border-radius:var(--r-5)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours i{border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--acc),color-mix(in srgb,var(--acc) 55%,transparent));opacity:1}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours i.vide{background:var(--line)}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours:not(:has(i:nth-child(14))){gap:10px;justify-content:center}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours:not(:has(i:nth-child(14))) i{flex:0 1 56px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-jours:has(i:nth-child(14)){gap:2px}
+body:not(.plein-courrier) #vue:not([data-rendu]) .aud-l .b,body:not(.plein-courrier) #vue:not([data-rendu]) .aud-l .b i{border-radius:var(--r-pill)}
+
+/* ── 10 · LE MOUVEMENT ── (le ressort est court et sans rebond ; un toucher seul le lance) */
+@media (prefers-reduced-motion:reduce){
+  body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button,body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic,body:not(.plein-courrier) #vue:not([data-rendu]) .reg-l,body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox],.tab,.tab .ic{transition:none}
+  body:not(.plein-courrier) #vue:not([data-rendu]) .tt-seg button:active,body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:active,body:not(.plein-courrier) #vue:not([data-rendu]) .kpi.clic:hover,body:not(.plein-courrier) #vue:not([data-rendu]) input[type=checkbox]:active,.tab:active{transform:none}
+}
+@media (prefers-reduced-transparency:reduce){
+  body:not(.jour):not(.plein-courrier) #vue:not([data-rendu]) :is(.carte,.kpi,.tbl,.reg-bloc,.reg-cli,.reg-haut){-webkit-backdrop-filter:none;backdrop-filter:none}
+}
+/* ▲▲ REFONTE-APPLE : fin ▲▲ */
 </style>
 </head>
 <body>
@@ -3322,7 +3600,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.112</div>
+    <div class="lg-pied">console interne · v2.118</div>
   </div>
 </div>
 
@@ -3364,7 +3642,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.112</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.118</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3376,7 +3654,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.112</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.118</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3683,7 +3961,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.112';
+var TOUR_VERSION='v2.118';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -4437,6 +4715,7 @@ function setTab(t,sansAnim){
   t=vueAlias(t);
   if(vues().indexOf(t)<0) t='accueil';   /* un onglet de l'autre console ne laisse jamais un écran blanc */
   if(t==='entreprises'&&TAB==='entreprises'&&ENT.sel) ENT.sel=null;   /* v2.88 : retoucher « Entreprises » ramène à la liste */
+  var vR=$('vue'); if(vR) vR.removeAttribute('data-rendu');   /* v2.113 : ouvrir un onglet n'est pas une relecture — la page part du haut (renderVue, onglet Agents) */
   TAB=t; ecrireHash(); try{ localStorage.setItem('tour_tab_'+APP,t); }catch(e){}
   [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on',b.getAttribute('data-t')===tabMenu(t)); });
   placerIndic(!sansAnim);
@@ -6307,6 +6586,7 @@ function sousOnglet(vue,s){ SOUS[vue]=s; if(vue==='entreprises') ENT.sel=null;
 function renderVue(v){
   if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
   document.body.classList.toggle('plein-courrier',TAB==='support'||TAB==='messagerie');   /* v2.99 : le Courrier prend toute la page (bureau) ; la messagerie aussi (v2.104) */
+  if(TAB!=='agents') v.removeAttribute('data-rendu');
   if(TAB!=='support') courrierDemonter();
   if(TAB!=='messagerie') messDemonter();   /* quitter la messagerie arrête ses minuteries et garde le brouillon */   /* quitter le Courrier démonte le module (sa zone disparaît avec la vue) */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
@@ -6326,7 +6606,15 @@ function renderVue(v){
   else if(TAB==='donnees') v.innerHTML=groupeOnglets('donnees')+vueDonnees();
   else if(TAB==='equipe') v.innerHTML=groupeOnglets('equipe')+vueEquipe();
   else if(TAB==='journal') v.innerHTML=groupeOnglets('journal')+vueJournal();
-  else if(TAB==='agents') v.innerHTML=vueAgents();
+  else if(TAB==='agents'){
+    /* ⛔ UNE RELECTURE NE FAIT PAS REMONTER LA PAGE (Tour v2.113) : les chargements de fond (agents, horaires, Pauline) redessinent l'écran sur place. Si
+       l'écran était déjà celui-ci (même sous-onglet), on rend la position — tout de suite, puis après la mise en page (Safari peut la perdre en remplaçant
+       le contenu). Changer de sous-onglet n'y entre pas : `data-rendu` change. */
+    var cle='agents/'+AG.sec, y=window.scrollY||0, meme=v.getAttribute('data-rendu')===cle;
+    v.innerHTML=vueAgents(); v.setAttribute('data-rendu',cle);
+    if(meme&&y>0){ var rendre=function(){ if(TAB==='agents'&&v.getAttribute('data-rendu')===cle&&Math.abs((window.scrollY||0)-y)>2) window.scrollTo(0,y); };
+      rendre(); if(window.requestAnimationFrame) requestAnimationFrame(rendre); }
+  }
   else if(TAB==='messagerie'){ if(!messGarde(v)){ v.innerHTML=vueMessagerie(); messMonter(); } }   /* montée UNE fois : un render() ne perd ni la saisie ni l'endroit où l'on lit */
   else if(TAB==='facturation') v.innerHTML=vueFacturation();
   else if(TAB==='incidents') v.innerHTML=vueIncidents();
@@ -11215,19 +11503,68 @@ function paLigne(k,x,i,idx){
   var q=paQuand(x.quand||x.majLe), qh=q?' · '+esc(q):'';
   if(k==='recherches'){ var n=paNb(x.trouvees);
     return '<div class="pa-r"><div class="pa-t">'+paT(x.metier,80)+' · '+paT(x.ville,80)+'</div><div class="pa-s">'+(n!==null?n+' trouvée'+(n>1?'s':''):'nombre inconnu')+qh+'</div></div>'; }
-  if(k==='entreprises'){ var loc=[paT(x.ville,80),paT(x.metier,80)].filter(Boolean).join(' · '), qui=[paT(x.contact,120),paT(x.email,120)].filter(Boolean).join(' · ');
+  if(k==='entreprises'){ var loc=[paT(x.ville,80),paT(x.metier,80)].filter(Boolean).join(' · '), qui=[paT(x.contact,120),paT(x.email,120),paSite(x)].filter(Boolean).join(' · ');
     return '<div class="pa-r"><div class="pa-t">'+paT(x.nom,120)+'</div><div class="pa-s">'+(loc?loc+' · ':'')+paMot(PA_E_ENT,x.etat)+qh+'</div>'+(qui?'<div class="pa-s">'+qui+'</div>':'')+'</div>'; }
   if(k==='courriels'){ var tx=typeof x.texte==='string'&&x.texte?x.texte.slice(0,5000):'', cle=(typeof x.id==='string'||typeof x.id==='number')?String(x.id):'';
     return '<div class="pa-r"><div class="pa-t">'+(paT(x.objet,200)||'(sans objet)')+'</div><div class="pa-s">'+paNom(idx,x.entrepriseId)+' · '+paMot(PA_E_COU,x.etat)+qh+'</div>'+
       (tx?'<details class="pa-txt"'+(cle&&PA.texte[cle]?' open':'')+' ontoggle="agPaTexte('+i+',this.open)"><summary>Le texte</summary><pre class="pa-corps">'+esc(tx)+'</pre></details>':'')+'</div>'; }
   return '<div class="pa-r"><div class="pa-t">'+paNom(idx,x.entrepriseId)+' · '+paMot(PA_E_REP,x.nature)+'</div><div class="pa-s">'+paT(x.resume,400)+(q?' · '+esc(q):'')+'</div></div>';
 }
+/* ══ CE QUI T'ATTEND CHEZ PAULINE (Tour v2.114) ══ Justin, 27 octobre 2026 : le tableau de bord de Harvey est en anglais (« c'est un peu compliqué »). Le relevé du Mac porte
+   désormais `attentes` (outils/pauline-releve.py, `lire_attentes`) : la clé de vérification des adresses (OUI/NON), les critères proposés, les adresses à vérifier — et
+   `jour.enAttente`, les courriels à accepter. Cet écran les DIT en français, dans l'ordre où ils bloquent, avec où cliquer dans Harvey. Il ne pilote rien : les gestes
+   restent dans Harvey, sur le Mac.
+   · ⛔ « Inconnu » n'est pas « rien à faire » : un relevé sans `attentes` (script du Mac pas encore à jour) le DIT, au lieu d'afficher « rien ne t'attend ».
+   · Les libellés des critères viennent de Harvey (en anglais) : ce sont des DONNÉES, échappées ; la phrase qui les entoure est en français. */
+function paAttentesHtml(r){
+  var at=paObj(r)&&paObj(r.attentes)?r.attentes:null;
+  if(!at) return '<div class="pa-att"><p class="pa-att-t">Ce qui t’attend</p><div class="pa-att-l"><i aria-hidden="true"></i><div><b>Pas encore lu</b><span>Le relevé de ton Mac est d’une version plus ancienne : mets-le à jour pour voir ici ce que Pauline attend de toi.</span></div></div></div>';
+  var L=[], sg=paObj(at.signaux)?at.signaux:null, ad=paObj(at.adresses)?at.adresses:null, j=paObj(r.jour)?r.jour:{};
+  var ligne=function(g,t,d){ L.push('<div class="pa-att-l" data-g="'+g+'"><i aria-hidden="true"></i><div><b>'+t+'</b><span>'+d+'</span></div></div>'); };
+  if(at.verificateur===false) ligne('bloque','Clé de vérification des adresses : manquante','Sans elle, Pauline n’envoie <b>aucun</b> courriel : Harvey ne vérifie pas les adresses, donc il n’écrit pas. Crée un compte gratuit sur reoon.com (600 vérifications par mois), copie ta clé API, puis colle-la dans Harvey → <b>Settings</b> (« Réglages »), champ Reoon. Ne la colle jamais ailleurs.');
+  var np=sg?paNb(sg.proposes):null;
+  if(np) ligne('faire',np+' critère'+(np>1?'s':'')+' à valider','Harvey ne cherche rien sur un critère que tu n’as pas validé. Dans Harvey → <b>Signals</b>, garde ceux qui décrivent un bon client pour TeamOP et refuse les autres.'+
+    (Array.isArray(sg.liste)&&sg.liste.length?'</span><details class="ag-voir pa-det"><summary>Les critères proposés</summary><div class="pa-liste">'+sg.liste.filter(paObj).map(function(x){ return '<div class="pa-r"><div class="pa-t">'+paT(x.libelle,120)+'</div>'+(x.description?'<div class="pa-s">'+paT(x.description,300)+'</div>':'')+'</div>'; }).join('')+'</div></details><span>':''));
+  var na=ad?paNb(ad.aConfirmer):null;
+  if(na) ligne(at.verificateur===false?'bloque':'faire',na+' adresse'+(na>1?'s':'')+' à vérifier',at.verificateur===false?'Elles attendent la clé de vérification (ci-dessus).':'Harvey les vérifie au fil de la journée ; il n’écrit qu’aux adresses vérifiées.');
+  var ne=paNb(j.enAttente);
+  if(ne) ligne('faire',ne+' courriel'+(ne>1?'s':'')+' à accepter','Ils t’attendent dans la <b>Messagerie → Pauline</b> (aussi sur ton téléphone) : accepte, modifie ou refuse chacun. Rien ne part sans ton accord.');
+  if(!L.length) ligne('ok','Rien ne t’attend','Pauline a tout ce qu’il lui faut. Les courriels à accepter apparaîtront ici.');
+  return '<div class="pa-att"><p class="pa-att-t">Ce qui t’attend</p>'+L.join('')+'<a class="pa-ouvrir" href="http://127.0.0.1:5555/" target="_blank" rel="noopener">Ouvrir Harvey (sur ton Mac)</a></div>';
+}
+/* ══ OÙ EN EST PAULINE (Tour v2.116) ══ Justin, 27 octobre 2026, devant la bande « Today » du tableau de bord de Harvey : « oui mais dans la Tour ». Le relevé du Mac
+   porte `avancement` (outils/pauline-releve.py, `lire_avancement`), compté comme Harvey le compte (dashboard.py, `get_live_status`) : une entreprise sans site
+   n'est jamais lue, donc « sites lus » se rapporte aux entreprises AVEC site. Chaque étape : un chiffre, une barre, une phrase en français.
+   · ⛔ Un chiffre absent est « inconnu » : l'étape qui en dépend ne s'affiche pas — jamais un zéro inventé. Un relevé sans `avancement` le DIT. */
+function paPluriel(n,sg,pl){ return n+' '+(n>1?pl:sg); }
+function paAvancementHtml(r){
+  var av=paObj(r)&&paObj(r.avancement)?r.avancement:null;
+  if(!av||paNb(av.entreprises)===null) return '<div class="pa-av"><p class="pa-att-t">Où elle en est</p><p class="pa-av-d">Pas encore lu : le relevé de ton Mac est d’une version plus ancienne. Mets-le à jour pour voir ici son avancement.</p></div>';
+  var n=function(k){ return paNb(av[k]); }, E=[];
+  var etape=function(titre,fait,total,detail,info){ if(fait===null) return;
+    var e=info?(fait?'fait':'attente'):(total&&fait>=total?'fait':(fait?'partiel':'attente'));
+    var pc=info?(fait?100:0):(total?Math.min(100,Math.round(fait*100/total)):0);
+    E.push('<div class="pa-av-e" data-e="'+e+'"><div class="pa-av-h">'+titre+'<em>'+(info||total===null?fait:fait+' / '+total)+'</em></div><div class="pa-av-b" aria-hidden="true"><i style="width:'+pc+'%"></i></div>'+(detail?'<div class="pa-av-d">'+detail+'</div>':'')+'</div>'); };
+  var ent=n('entreprises'), avs=n('avecSite'), ss=n('sansSite'), lus=n('sitesLus'), ch=n('mailsCherches'), ad=n('adresses'),
+      ve=n('verifiees'), ri=n('risquees'), iv=n('invalides'), ac=n('aConfirmer'), ec=n('ecrits'), ae=n('aEcrire'), en=n('envoyes'), re=n('reponses');
+  etape('Entreprises trouvées',ent,null,'',true);
+  etape('Sites lus',lus,avs,(lus!==null&&avs!==null?lus+' sur '+avs+' lus':'')+(ss?' · '+paPluriel(ss,'entreprise sans site (ignorée)','entreprises sans site (ignorées)'):''));
+  etape('Mails cherchés',ch,lus,(ch!==null&&lus!==null?ch+' sur '+lus+' cherchés':'')+(ad!==null?' · '+paPluriel(ad,'adresse trouvée','adresses trouvées'):''));
+  if(ad!==null&&ac!==null) etape('Adresses vérifiées',ad-ac,ad,[ve!==null?paPluriel(ve,'vérifiée','vérifiées'):'',ri!==null?paPluriel(ri,'risquée','risquées'):'',paPluriel(ac,'pas encore confirmée','pas encore confirmées'),iv?paPluriel(iv,'mauvaise','mauvaises'):''].filter(Boolean).join(' · '));
+  etape('Courriels écrits',ec,ae,ec?paPluriel(ec,'courriel écrit','courriels écrits')+' · ceux à accepter t’attendent dans la Messagerie → Pauline':(ec===0?'Aucun encore : Pauline n’écrit qu’aux adresses vérifiées':''));
+  etape('Envoyés',en,ec,en!==null&&ec!==null?en+' sur '+ec+' partis':'');
+  etape('Réponses',re,null,re?paPluriel(re,'réponse','réponses'):'Pas encore de réponse',true);
+  return '<div class="pa-av"><p class="pa-att-t">Où elle en est</p>'+E.join('')+'</div>';
+}
+/* le site d'une entreprise : un nom de domaine vérifié (le serveur l'a déjà filtré ; la Tour revérifie), en lien https:// — rien d'autre n'entre dans l'adresse */
+function paSite(x){ return typeof x.site==='string'&&/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(x.site)?'<a class="pa-site" href="https://'+x.site+'/" target="_blank" rel="noopener noreferrer nofollow">'+x.site+'</a>':''; }
 function agPaulineHtml(){
-  var h='<p class="ag-ext-note">Elle ne se pilote pas d’ici : ses accords d’envoi se donnent dans son tableau de bord, sur ton Mac.</p>';
+  var h='<p class="ag-ext-note">Ses mails à accepter t’arrivent dans la Messagerie (conversation « Pauline ») : tu les acceptes, les modifies ou les refuses de là, même sur ton téléphone.</p>';
   if((PA.lec===-2||PA.lec===-3)&&PA.err) h+='<p class="ag-ext-note">'+esc(PA.err)+'</p>';
   var r=PA.lec===1&&PA.d&&PA.d.recuLe&&paObj(PA.d.releve)?PA.d.releve:null;
   if(!r) return h;
   var ch=paChiffres(r), cf=paChauffe(r);
+  h+=paAttentesHtml(r)+paAvancementHtml(r);
   if(ch) h+='<p class="pa-ligne">'+ch+'</p>'; else h+='<p class="pa-ligne">Chiffres du jour : non transmis.</p>';
   if(cf) h+='<p class="pa-ligne">'+esc(cf)+'</p>';
   var idx=Object.create(null); paListe(r,'entreprises','majLe').forEach(function(e){ if(typeof e.id==='string'||typeof e.id==='number') idx[String(e.id)]=e; });
@@ -11242,13 +11579,16 @@ function agPaTout(k){ if(!PA_LISTES.some(function(L){ return L[0]===k; })) retur
 /* l'état d'un texte déplié se range sous l'identifiant du courriel, retrouvé par le NUMÉRO de rangée (jamais un champ du relevé dans un attribut) */
 function agPaTexte(i,o){ var x=(PA.tri.courriels||[])[i]; if(x&&(typeof x.id==='string'||typeof x.id==='number')) PA.texte[String(x.id)]=!!o; }
 function paMajAge(){ var e=document.getElementById('pa-etat'); if(!e) return; var x=paEtatLigne(); e.textContent=x.lib; e.setAttribute('data-e',x.e); }
-function paApres(change){ if(TAB==='agents'&&AG.sec==='equipe'){ if(change) render(); else paMajAge(); } }
+function paApres(change){ if(TAB==='agents'&&AG.sec==='equipe'){ if(change) render(); else paMajAge(); }
+  if(typeof paMessagerieApres==='function') paMessagerieApres(); }
 function chargerPauline(){
   if(MYROLE!=='patron') return Promise.resolve();
   if(PA.enVol) return PA.enVol;
   PA.enVol=apiGet('/api/monitor/pauline').then(function(d){ PA.enVol=null; if(!d) return;
     if(!paObj(d)||d.ok!==true){ if(PA.lec!==1){ PA.lec=-1; PA.err=''; } else PA.echec=true; return paApres(true); }
-    var sig=JSON.stringify([d.recuLe||null,d.releve||null]), chg=PA.lec!==1||PA.sig!==sig||PA.echec;
+    /* ⛔ (Tour v2.113, Justin, 27 octobre 2026 : « quand je suis tout en bas, elle remonte d'un coup tout en haut ») le Mac envoie un relevé par minute : seule
+       l'HEURE de réception changeait, et toute la page Agents se redessinait. Une heure neuve sur le même contenu ne met à jour que la ligne d'état (`paMajAge`). */
+    var sig=JSON.stringify(d.releve||null), chg=PA.lec!==1||PA.sig!==sig||PA.echec||!PA.d||!PA.d.recuLe!==!d.recuLe;
     PA.d=d; PA.lec=1; PA.err=''; PA.echec=false; PA.sig=sig; PA.luLe=Date.now(); paApres(chg);
   }).catch(function(e){ PA.enVol=null;
     /* ⛔ 404 = ce serveur n'a pas la route (pont absent). 503 = le serveur a un relevé qu'il NE PEUT PAS LIRE (fichier cassé, clé maître absente) : « pas encore de relevé » (200, recuLe null)
@@ -12202,7 +12542,7 @@ function msGroupePerso(fil){
   var coul=MS_COULEURS.some(function(c){ return c[0]===p.couleur; })?p.couleur:'';
   return {nom:nom||(msEstGroupe(fil)?MS_GROUPES_LIB[fil]:String(fil)), icone:ico||'#', couleur:coul, description:desc, perso:!!(nom||ico||coul||desc)};
 }
-function msNomFil(f){ return msEstGroupe(f)?msGroupePerso(f).nom:((msAgentsParId()[f]||{}).nom||f); }
+function msNomFil(f){ if(f==='pauline') return 'Pauline'; return msEstGroupe(f)?msGroupePerso(f).nom:((msAgentsParId()[f]||{}).nom||f); }
 /* L'icône d'un groupe dans son rond de couleur (la liste, l'en-tête). */
 function msIconeHtml(fil,cls){ var p=msGroupePerso(fil); return '<span class="'+cls+(p.couleur?' cb-'+p.couleur:'')+'" aria-hidden="true">'+esc(p.icone)+'</span>'; }
 /* ── les morceaux d'HTML : des fonctions de leurs données, rien d'autre ── */
@@ -12247,8 +12587,10 @@ function msLigneFil(f,agents,fil){
 }
 function msListeHtml(){
   var ag=msAgentsParId(), g=MS.fils.filter(function(f){ return f.groupe; }), p=MS.fils.filter(function(f){ return !f.groupe; });
-  return '<div class="ms-ct">Groupes</div>'+g.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('')+
-    '<div class="ms-ct">Messages privés</div>'+p.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('');
+  /* des mails attendent ton accord : Pauline passe EN TÊTE, au-dessus des groupes (`typeof` : les bancs qui extraient la messagerie sans Pauline la voient absente) */
+  var pa=typeof msLignePauline==='function'?msLignePauline():'', nPa=typeof MS_PA!=='undefined'&&MS_PA.n;
+  return (nPa?'<div class="ms-ct">À valider</div>'+pa:'')+'<div class="ms-ct">Groupes</div>'+g.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('')+
+    '<div class="ms-ct">Messages privés</div>'+(nPa?'':pa)+p.map(function(f){ return msLigneFil(f,ag,MS.fil); }).join('');
 }
 /* « Qui fait quoi » : la file de tâches du SERVEUR, rien d'autre. Les tâches de conversation portent leur phrase ; les demandes fermées entre agents, leur nom. */
 function msTacheTxt(k){
@@ -12269,6 +12611,7 @@ function msTachesHtml(){
       '<p>'+esc(msTacheTxt(k))+'</p><small>demandée par '+esc(nom(k.de))+(pp?' · déléguée, d’abord à '+esc(nom(pp)):'')+' · '+esc(msHeureCourte(k.ts))+'</small></div>'; }).join('');
 }
 function msSousTitre(){
+  if(MS.fil==='pauline') return 'Prospection · Harvey, sur ton Mac';
   var ag=msAgentsParId(), a=ag[MS.fil];
   if(a) return esc(a.role)+' · '+MS_ETAT_LIB[msEtat(a)].toLowerCase();
   if(MS_GROUPES_LIB[MS.fil]&&msGroupePerso(MS.fil).description) return esc(msGroupePerso(MS.fil).description);
@@ -12311,7 +12654,7 @@ function msRetirer(cle){
 /* ── les lectures ── */
 function messListeCharger(){
   return apiGet('/api/monitor/conversations?tous=1').then(function(d){ if(!d) return;
-    if(Array.isArray(d.fils)){ MS.fils=d.fils; MS.nonLus=Number(d.nonLus)||0; MS.lec=1; setBdg('bdg-msgr',MS.nonLus); } else if(MS.lec!==1) MS.lec=-1;
+    if(Array.isArray(d.fils)){ MS.fils=d.fils; MS.nonLus=Number(d.nonLus)||0; MS.lec=1; if(typeof msBadge==='function') msBadge(); else setBdg('bdg-msgr',MS.nonLus); } else if(MS.lec!==1) MS.lec=-1;
     messPeindreListe(); messPeindreEntete();
   }).catch(function(){ if(MS.lec!==1) MS.lec=-1; messPeindreListe(); });
 }
@@ -12327,9 +12670,10 @@ function messTachesCharger(){
     messPeindreTaches();
   }).catch(function(){ if(MS.tachesLec!==1) MS.tachesLec=-1; messPeindreTaches(); });
 }
-function messToutCharger(){ if(MS.fil==='plateforme') messPfCharger(); return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
+function messToutCharger(){ if(MS.fil==='plateforme') messPfCharger(); if(MS.fil!=='pauline'&&typeof paResumeCharger==='function') paResumeCharger(); return Promise.all([messListeCharger(),messAgentsCharger(),messTachesCharger()]); }
 /* La lecture d'un fil : entière à l'ouverture, INCRÉMENTALE ensuite (`?apres=`). Une réponse qui arrive après un changement de fil est jetée. */
 function messFilCharger(incr){
+  if(MS.fil==='pauline'&&typeof paFilCharger==='function') return paFilCharger(incr);
   var fil=MS.fil; if(incr&&MS.msgLec===-1) incr=false;   /* un fil qu'on n'a pas pu lire se retente tout seul, en entier */
   if(incr&&(MS.enVol===fil||MS.envoi>0||MS.msgLec!==1||MS.vueMob==='liste')) return Promise.resolve();
   MS.enVol=fil;
@@ -12611,6 +12955,144 @@ function messChoisir(fil){
   messFilCharger(false);
 }
 function messDossier(n){ AG.sec='dossiers'; setTab('agents'); agDosOuvrir(n); }
+/* ══ PAULINE DANS LA MESSAGERIE (Tour v2.115) ══ Justin, 27 octobre 2026 : « je peux pas être tout le temps sur le site de Harvey, si je suis sur mon téléphone ;
+   que Pauline m'envoie en message, en privé : voilà le mail pour ce client, est-ce que tu acceptes, tu refuses, tu modifies ; quand j'accepte, elle l'envoie. »
+   La conversation « Pauline » n'est PAS un fil du serveur de conversations : elle se dessine depuis le relevé du Mac (`PA`, `GET /api/monitor/pauline`) et ses boutons posent
+   une DÉCISION (`POST /api/monitor/pauline/decision`) que le Mac applique dans Harvey en une minute environ (server/pauline.js, outils/pauline-releve.py).
+   · ⛔ On ne décide que sur un mail qui ATTEND l'accord (`paAttendAccord`, la règle du serveur) ; le serveur revérifie, et son refus s'affiche tel quel.
+   · ⛔ « Modifier » ne se perd pas : pendant qu'on écrit, le fil ne se redessine pas (le brouillon vit dans MS_PA.brouillon), et l'écran DIT qu'une modification
+     part avec l'accord (« Enregistrer et envoyer »). Une RÉPONSE garde son objet (le fil de la conversation du prospect).
+   · ⛔ Tout vient de tiers : `esc()` partout ; les boutons portent un NUMÉRO de carte (data-i), jamais un champ du relevé dans un attribut.
+   · Le compteur (pastille du menu, rangée « À valider ») vient du RÉSUMÉ du serveur (`?resume=1`, un nombre) tant que le relevé n'est pas chargé. */
+var MS_PA={n:0,edit:'',brouillon:{},occ:'',ids:[],faits:false,luResume:0};
+function paAttendAccord(c){ return paObj(c)&&c.etat==='en_attente'&&(c.statutBrut===undefined||c.statutBrut==='pending_review'); }
+function paDecs(){ return PA.lec===1&&PA.d&&paObj(PA.d.decisions)?PA.d.decisions:null; }
+function paReleveLu(){ return PA.lec===1&&PA.d&&PA.d.recuLe&&paObj(PA.d.releve)?PA.d.releve:null; }
+/* « décidé » = une décision à faire ou appliquée ; un échec rend le mail à Justin */
+function paDecide(id,dec){ var d=dec&&Object.prototype.hasOwnProperty.call(dec,id)?dec[id]:null; return paObj(d)&&(d.etat==='a_faire'||d.etat==='fait')?d:null; }
+function paAttenteN(){ var r=paReleveLu(), dec=paDecs()||{}; if(!r) return MS_PA.n; return paListe(r,'courriels','quand').filter(function(c){ return paAttendAccord(c)&&!paDecide(String(c.id),dec); }).length; }
+/* après chaque lecture du relevé (chargerPauline → paApres) : la pastille et, si la conversation est ouverte, le fil */
+function paMessagerieApres(){
+  if(PA.lec===1){ MS_PA.n=paAttenteN(); msBadge(); }
+  if(TAB==='messagerie'&&MS.inst){ messPeindreListe(); if(MS.fil==='pauline'){ messPeindreFil(); messPeindreEntete(); } }
+}
+function msBadge(){ setBdg('bdg-msgr',(Number(MS.nonLus)||0)+(Number(MS_PA.n)||0)); }
+function paResumeCharger(){
+  if(MYROLE!=='patron'||Date.now()-MS_PA.luResume<20000) return;
+  MS_PA.luResume=Date.now();
+  apiGet('/api/monitor/pauline?resume=1').then(function(d){ if(!d||d.ok!==true||typeof d.attente!=='number') return;
+    if(MS_PA.n!==d.attente){ MS_PA.n=d.attente; msBadge(); if(TAB==='messagerie'&&MS.inst) messPeindreListe(); } }).catch(function(){});
+}
+function msLignePauline(){
+  var n=MS_PA.n, l3=n?n+(n>1?' mails attendent':' mail attend')+' ton accord':'Prospection — rien à valider';
+  return '<button type="button" class="ms-cv" data-fil="pauline" aria-current="'+(MS.fil==='pauline')+'">'+agAvatar('pauline','Pauline','ms-av')+
+    '<span class="ms-cc"><span class="ms-l1"><b>Pauline</b></span><span class="ms-l3">'+esc(l3)+'</span></span>'+
+    (n?'<span class="ms-nl" aria-label="'+n+' à valider">'+n+'</span>':'')+'</button>';
+}
+/* La lecture : le relevé entier à l'ouverture, puis au plus toutes les 20 s (le fil des agents se relit toutes les 4 s ; un relevé pèse jusqu'à 900 Ko). */
+function paFilCharger(incr){
+  if(incr&&(Date.now()-PA.luLe<20000||PA.enVol||MS_PA.edit)) return Promise.resolve();
+  MS.msgLec=PA.lec===1?1:0;
+  return chargerPauline().then(function(){ if(MS.fil!=='pauline') return; MS.msgLec=PA.lec===1?1:(PA.lec===0?0:-1); messPeindreFil(); messPeindreEntete(); });
+}
+function paEtatCarte(c,d){
+  var att=paAttendAccord(c);
+  if(d&&d.etat==='a_faire') return ['att',d.action==='refuser'?'Refusé — retiré sur le Mac dans la minute':d.action==='modifier'?'Modifié et accepté — part du Mac dans la minute':'Accepté — part du Mac dans la minute'];
+  if(att&&d&&d.etat==='fait') return ['att','Appliqué sur le Mac — mise à jour…'];
+  if(c.etat==='envoye') return ['ok','Envoyé'];
+  if(c.etat==='repondu') return ['ok','Envoyé · le prospect a répondu'];
+  if(c.etat==='refuse') return ['ko',d&&d.action==='refuser'?'Refusé':'Pas parti (refusé ou bloqué au départ)'];
+  if(c.etat==='en_attente'&&!att) return ['ok','Accepté — part aux heures d’envoi'];
+  return null;
+}
+function paCarteHtml(c,k,idx,dec){
+  var id=String(c.id), d=paDecide(id,dec), ent=idx[String(c.entrepriseId)]||{}, att=paAttendAccord(c), libre=att&&!d, ed=libre&&MS_PA.edit===id, occ=MS_PA.occ===id;
+  var loc=[paT(ent.ville,80),paT(ent.metier,80)].filter(Boolean).join(' · ');
+  var a=[paT(ent.contact,120),paT(ent.email,160)].filter(Boolean).join(' · ');
+  var genre=c.genre==='reponse'?'Réponse à un prospect':(paNb(c.etape)>1?'Relance n° '+(c.etape-1):'Premier mail');
+  var h='<article class="pa-m" data-e="'+(libre?'attente':c.etat==='refuse'?'refuse':'fait')+'"><div class="pa-m-hd"><b>'+(paT(ent.nom,120)||'Entreprise inconnue')+'</b>'+(loc?'<span>'+loc+'</span>':'')+'</div>'+
+    '<div class="pa-m-a">'+(a?'À : '+a+' · ':'')+genre+(paQuand(c.quand)?' · '+esc(paQuand(c.quand)):'')+'</div>';
+  if(ed){
+    var b=MS_PA.brouillon[id]||{objet:typeof c.objet==='string'?c.objet:'',texte:typeof c.texte==='string'?c.texte:''}; MS_PA.brouillon[id]=b;
+    return h+'<div class="pa-ed"><label for="pa-o-'+k+'">Objet</label><input id="pa-o-'+k+'" maxlength="300" value="'+esc(b.objet)+'"'+(c.genre==='reponse'?' disabled':'')+' oninput="paSaisie('+k+',\'objet\',this.value)">'+
+      (c.genre==='reponse'?'<span class="pa-m-e">Une réponse garde son objet : sinon elle sortirait de la conversation du prospect.</span>':'')+
+      '<label for="pa-t-'+k+'">Texte</label><textarea id="pa-t-'+k+'" maxlength="20000" oninput="paSaisie('+k+',\'texte\',this.value)">'+esc(b.texte)+'</textarea></div>'+
+      '<div class="pa-m-act"><button type="button" class="ms-envoyer" data-act="paModOk" data-i="'+k+'"'+(occ?' disabled':'')+'>Enregistrer et envoyer</button><button type="button" class="ms-reu-btn" data-act="paModAnn" data-i="'+k+'"'+(occ?' disabled':'')+'>Annuler</button></div></article>';
+  }
+  h+='<div class="pa-m-o">'+(paT(c.objet,300)||'(sans objet)')+'</div><pre class="pa-m-c">'+esc(typeof c.texte==='string'?c.texte.slice(0,20000):'')+'</pre>';
+  var brut=Object.prototype.hasOwnProperty.call(dec,id)?dec[id]:null;
+  var et=libre&&paObj(brut)&&brut.etat==='echec'?['ko','Le Mac n’a pas pu appliquer ta décision'+(brut.motif==='deja_traite'?' : ce mail a été traité dans Harvey entre-temps':brut.motif==='modifie'?' : Harvey l’a réécrit depuis que tu l’as lu — relis-le':'')+'. Tu peux redécider.']:paEtatCarte(c,d);
+  if(et) h+='<div class="pa-m-etat" data-t="'+et[0]+'" role="status">'+esc(et[1])+'</div>';
+  if(d&&d.etat==='a_faire'&&att) h+='<div class="pa-m-act"><button type="button" class="ms-lien" data-act="paAvis" data-i="'+k+'"'+(occ?' disabled':'')+'>Changer d’avis</button></div>';
+  if(libre) h+='<div class="pa-m-act"><button type="button" class="ms-envoyer" data-act="paAcc" data-i="'+k+'"'+(occ?' disabled':'')+'>Accepter et envoyer</button>'+
+    '<button type="button" class="ms-reu-btn" data-act="paMod" data-i="'+k+'"'+(occ?' disabled':'')+'>Modifier</button>'+
+    '<button type="button" class="ms-reu-btn pa-ref" data-act="paRef" data-i="'+k+'"'+(occ?' disabled':'')+'>Refuser</button></div>';
+  return h+'</article>';
+}
+/* Fonction pure (un banc l'exécute) : la conversation entière. Les mails qui attendent d'abord, du plus ancien au plus récent (on les traite dans l'ordre où Pauline
+   les a écrits) ; puis ceux qui viennent d'être décidés ou traités (48 h), repliés. */
+function msPaHtml(){
+  if(PA.lec===0) return '<div class="ms-vide">Lecture du relevé de Pauline…</div>';
+  if(PA.lec===-2) return '<div class="ms-vide">Le pont avec le Mac n’est pas encore configuré : Pauline ne peut rien t’envoyer ici.</div>';
+  if(PA.lec!==1) return '<div class="ms-vide">Le relevé de Pauline n’a pas pu être lu'+(PA.err?' : '+esc(PA.err):'')+'. On ne sait pas si des mails t’attendent.<br><button type="button" class="ms-lien" data-act="paRelire">Réessayer</button></div>';
+  var r=paReleveLu(); if(!r) return '<div class="ms-vide">Ton Mac n’a encore rien envoyé : quand Pauline écrira un mail, il arrivera ici.</div>';
+  var dec=paDecs(), idx={};
+  (Array.isArray(r.entreprises)?r.entreprises:[]).filter(paObj).forEach(function(e){ idx[String(e.id)]=e; });
+  var tous=paListe(r,'courriels','quand').filter(function(c){ return typeof c.id==='string'||typeof c.id==='number'; });
+  var attente=tous.filter(function(c){ return paAttendAccord(c)&&!paDecide(String(c.id),dec||{}); }).reverse();
+  var limite=Date.now()-48*3600e3;
+  /* décidés depuis la Tour ces dernières 48 h (la décision porte sa date ; le serveur les garde 30 jours) */
+  var recents=tous.filter(function(c){ if(attente.indexOf(c)>=0) return false; var d=dec&&Object.prototype.hasOwnProperty.call(dec,String(c.id))?dec[String(c.id)]:null; return paObj(d)&&(paMs(d.le)||0)>=limite; });
+  MS_PA.ids=attente.concat(recents).map(function(c){ return String(c.id); });
+  var h='<div class="pa-fil">';
+  if(!dec) h+='<p class="pa-intro" role="alert">Les décisions de Pauline sont illisibles sur le serveur : tes accords ne peuvent pas être enregistrés pour l’instant.</p>';
+  h+='<p class="pa-intro">'+(attente.length?'Bonjour Justin, '+(attente.length>1?'voici les '+attente.length+' mails que j’ai préparés':'voici le mail que j’ai préparé')+'. Accepte, modifie ou refuse : je m’occupe du reste.':'Rien à valider pour l’instant. Je t’écris ici dès qu’un mail est prêt.')+'</p>';
+  h+=attente.map(function(c,i){ return paCarteHtml(c,i,idx,dec||{}); }).join('');
+  if(recents.length) h+='<details class="pa-faits"'+(MS_PA.faits?' open':'')+' ontoggle="MS_PA.faits=this.open"><summary>Décidés récemment ('+recents.length+')</summary>'+recents.map(function(c,i){ return paCarteHtml(c,attente.length+i,idx,dec||{}); }).join('')+'</details>';
+  return h+'</div>';
+}
+function paPeindreFil(f,complet){
+  /* ⛔ pendant une modification, on ne redessine pas : le curseur et le texte en cours seraient perdus (le brouillon est gardé, mais pas la saisie en vol) */
+  if(MS_PA.edit&&!complet&&f.hasAttribute('data-pa')&&f.contains(document.activeElement)) return;
+  var h=msPaHtml();
+  if(!complet&&f.getAttribute('data-pa')==='1'&&f.getAttribute('data-h')===h) return;
+  f.setAttribute('data-pa','1'); f.setAttribute('data-h',h); f.innerHTML=h; MS.peint='';
+  var nb=$('ms-nouv'); if(nb) nb.hidden=true;
+}
+function paSaisie(k,champ,val){ var id=MS_PA.ids[k]; if(!id||MS_PA.edit!==id) return; var b=MS_PA.brouillon[id]||(MS_PA.brouillon[id]={objet:'',texte:''}); b[champ]=String(val); }
+function paCourriel(id){ var r=paReleveLu(); return r?paListe(r,'courriels','quand').filter(function(c){ return String(c.id)===id; })[0]||null:null; }
+function paDecider(k,action){
+  var id=MS_PA.ids[k], c=id?paCourriel(id):null; if(!c||MS_PA.occ) return Promise.resolve(null);
+  if(!paDecs()){ toast('Les décisions sont illisibles sur le serveur : rien n’a été envoyé.'); return Promise.resolve(null); }
+  var corps={id:id,action:action};
+  if(action==='accepter'&&typeof c.maj==='string'&&c.maj) corps.maj=c.maj;   /* la version du texte LU : le serveur et le Mac refusent d'accepter un brouillon réécrit depuis */
+  if(action==='modifier'){ var b=MS_PA.brouillon[id]||{}; corps.objet=String(b.objet||'').trim(); corps.texte=String(b.texte||'').trim();
+    if(c.genre==='reponse') corps.objet=typeof c.objet==='string'&&c.objet.trim()?c.objet:corps.objet;
+    if(!corps.objet||!corps.texte){ toast('L’objet et le texte ne peuvent pas être vides.'); return Promise.resolve(null); } }
+  if(action==='refuser'&&typeof confirm==='function'&&!confirm('Refuser ce mail ? Pauline ne l’enverra pas.')) return Promise.resolve(null);
+  MS_PA.occ=id; if(MS.fil==='pauline') messPeindreFil(true);
+  return apiPost('/api/monitor/pauline/decision',corps).then(function(x){
+    MS_PA.occ='';
+    if(x.ok){ if(PA.d){ if(!paObj(PA.d.decisions)) PA.d.decisions={}; PA.d.decisions[id]={action:action,etat:'a_faire',le:new Date().toISOString()}; }
+      if(MS_PA.edit===id){ MS_PA.edit=''; delete MS_PA.brouillon[id]; }
+      MS_PA.n=paAttenteN(); msBadge();
+      toast(action==='refuser'?'Refusé : Pauline ne l’enverra pas.':action==='modifier'?'Modifié et accepté : le Mac l’envoie dans la minute, aux heures d’envoi.':'Accepté : le Mac l’envoie dans la minute, aux heures d’envoi.'); }
+    else toast((x.d&&x.d.error)||('Le serveur a refusé ('+x.status+').'));
+    if(MS.fil==='pauline'){ messPeindreFil(true); messPeindreListe(); }
+    PA.luLe=0; chargerPauline(); return x;
+  },function(){ MS_PA.occ=''; toast(INJOIGNABLE); if(MS.fil==='pauline') messPeindreFil(true); return null; });
+}
+function paClic(el){
+  var a=el.getAttribute('data-act'), k=+el.getAttribute('data-i'), id=MS_PA.ids[k];
+  if(a==='paRelire'){ PA.luLe=0; PA.lec=PA.lec===1?1:0; messPeindreFil(true); chargerPauline(); return; }
+  if(!id) return;
+  if(a==='paAcc') paDecider(k,'accepter');
+  else if(a==='paRef') paDecider(k,'refuser');
+  else if(a==='paModOk') paDecider(k,'modifier');
+  else if(a==='paMod'){ MS_PA.edit=id; messPeindreFil(true); var t=$('pa-t-'+k); if(t) t.focus({preventScroll:true}); }
+  else if(a==='paModAnn'){ MS_PA.edit=''; delete MS_PA.brouillon[id]; messPeindreFil(true); }
+  else if(a==='paAvis'){ if(PA.d&&paObj(PA.d.decisions)) delete PA.d.decisions[id]; MS_PA.n=paAttenteN(); msBadge(); messPeindreFil(true); messPeindreListe(); }
+}
 /* ── le dessin, par morceaux ── */
 function messMonter(){
   var zone=$('mess-zone'); if(!zone) return;
@@ -12658,6 +13140,7 @@ function messClic(ev){
   else if(a==='reuLancer') messReunionLancer(el.getAttribute('data-type'));
   else if(a==='reuRetirer') messLeconRetirer(el.getAttribute('data-agent'),el.getAttribute('data-id'));
   else if(a.indexOf('pf')===0) messPfClic(el);
+  else if(/^pa[A-Z]/.test(a)&&typeof paClic==='function') paClic(el);
 }
 function messPeindreListe(){
   var c=$('ms-fils'); if(!c||!MS.inst) return;
@@ -12727,6 +13210,8 @@ function messNouvCacher(){ var n=$('ms-nouv'); if(n) n.hidden=true; }
 /* Le fil. `complet` : on réécrit tout (ouverture, fil rogné) ; sinon on AJOUTE ce qui est nouveau et on garde l'endroit où l'on lisait. */
 function messPeindreFil(complet){
   var f=$('ms-flux'); if(!f||!MS.inst) return;
+  if(MS.fil==='pauline'&&typeof paPeindreFil==='function') return paPeindreFil(f,complet);
+  if(f.hasAttribute&&f.hasAttribute('data-pa')){ f.removeAttribute('data-pa'); f.removeAttribute('data-h'); f.innerHTML=''; complet=true; }
   var ag=msAgentsParId(), pend=MS.envois.filter(function(e){ return e.fil===MS.fil&&e.etat!=='ok'; });
   if(MS.msgLec===0){ f.innerHTML=acSquel(); MS.peint=''; return; }
   if(MS.msgLec!==1){ f.innerHTML='<div class="ms-vide">Ce fil n’a pas pu être lu. Réessaie dans un instant.<br><button type="button" class="ms-lien" data-act="rechargerFil">Réessayer</button></div>'; MS.peint=''; return; }
@@ -12751,6 +13236,7 @@ function messPeindreFil(complet){
 function messPeindreSaisie(force){
   var c=$('ms-comp'); if(!c||!MS.inst) return;
   if(MS.msgLec===0) return;    /* pendant la lecture, la saisie reste telle quelle : elle ne clignote pas */
+  if(MS.fil==='pauline'){ if(c.getAttribute('data-sig')!=='pauline'){ c.setAttribute('data-sig','pauline'); c.innerHTML='<p class="ms-lecture">Pauline ne lit pas les messages : on lui répond par les boutons de chaque mail. Ton accord part sur le Mac en une minute environ ; elle envoie aux heures d’envoi (9 h – 17 h, en semaine).</p>'; } return; }
   var ag=msAgentsParId(), a=ag[MS.fil], grp=!!MS_GROUPES_LIB[MS.fil], lisible=MS.msgLec===1, patron=MYROLE==='patron';
   var sig=[MS.fil,lisible,patron,a?msEtat(a):'',MS.membres.map(function(m){ return m.id; }).join(',')].join('|');
   if(!force&&c.getAttribute('data-sig')===sig) return;
@@ -12838,7 +13324,8 @@ function messEnvoyerSaisie(){
 /* La pastille du menu : à la minute quand on est ailleurs, page visible — l'écran, lui, la tient à jour avec la liste (15 s). */
 function messNonLusCharger(){
   if(MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return;
-  apiGet('/api/monitor/conversations').then(function(d){ if(d&&typeof d.nonLus==='number'){ MS.nonLus=d.nonLus; setBdg('bdg-msgr',MS.nonLus); } }).catch(function(){});
+  apiGet('/api/monitor/conversations').then(function(d){ if(d&&typeof d.nonLus==='number'){ MS.nonLus=d.nonLus; if(typeof msBadge==='function') msBadge(); else setBdg('bdg-msgr',MS.nonLus); } }).catch(function(){});
+  if(typeof paResumeCharger==='function') paResumeCharger();
 }
 function messReleve(){
   if(MS.releve||MYROLE!=='patron'||MYAPPS.indexOf('gestion')<0) return; MS.releve=true;
