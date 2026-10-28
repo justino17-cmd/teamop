@@ -66,6 +66,19 @@ console.log('\n── 3116 · le ping-pong, la profondeur sous racine, REVEILS_A
     H.nettoyer();
   }
 
+  console.log('\n3 bis. Sans racine, le plafond horaire d\'avant tient — mais EN SILENCE pour Justin (journal et compteur, aucune ligne « limite »)');
+  {
+    const H = monter({ script: () => rep('Je regarde.') });
+    for (let i = 1; i <= 12; i++) H.conv.parler('lea', 'equipe', 'Message spontané de Léa numéro ' + i);
+    v('(population) Léa a écrit douze messages d\'elle-même dans l\'heure', H.registre().filter(m => m.de === 'lea' && !m.racine).length, 12);
+    H.conv.parler('camille', 'equipe', '@lea tu peux regarder ce dossier ?', { niveau: 'info', prof: 1 });
+    await H.calme();
+    const ms = await H.messages('equipe');
+    v('⛔ Léa n\'est PAS appelée (le refus est connu AVANT de payer) et aucune ligne du système ne parle de limite', [H.appels.length, ms.filter(m => m.de === 'systeme').length, ms.some(m => /limite|par heure/i.test(m.texte))], [0, 0, false]);
+    v('…le refus est au journal et dans le compteur de /health', [H.eq.refus().horaire, H.agents.lireJournal().some(e => e.agent === 'lea' && e.action === 'refus horaire' && e.resultat === 'refuse')], [1, true]);
+    H.nettoyer();
+  }
+
   console.log('\n4. REVEILS_AGENT_MAX = 4 : un message d\'agent qui en cite six n\'en réveille que quatre');
   {
     const H = monter({ script: (t) => rep('Reçu de ' + t.id + '.') });
