@@ -16143,25 +16143,25 @@ function catVars(k){ const t=catTeinte(k); return '--cat-j:'+t[0]+';--cat-n:'+t[
 const NAV = [
   {g:'Tableau de bord', items:[
     {k:'dashboard',ic:'📊',l:'Tableau de bord'},
-    {k:'statistiques',cache:1,ic:'📈',l:'Statistiques',admin:true},
+    {k:'statistiques',ic:'📈',l:'Statistiques',admin:true,cache:1},
     {k:'historique',ic:'🕘',l:'Historique'},
     /* ⛔ « Audit » RETIRÉ le 23 septembre 2026 (Justin : « si tu vois des catégories qui sont
        pas utiles, je t'autorise de les supprimer »). C'était le MÊME écran qu'Historique :
        même fonction (`journalView`), même source (`visibleJournal(db.journal)`), seul le
        titre changeait — deux entrées de menu pour une seule chose. Un ancien lien ou un
        onglet mémorisé mène à Historique (`VUES_RETIREES`). */
-    {k:'archives',cache:1,ic:'🗄️',l:'Archives mensuelles',admin:true,aside:true},
+    {k:'archives',ic:'🗄️',l:'Archives mensuelles',admin:true,aside:true,cache:1},
   ]},
   {g:'Planification', items:[
     {k:'planning',ic:'🗓️',l:'Planning'},
-    {k:'planningGeneral',cache:1,ic:'🏢',l:'Planning général'},
+    {k:'planningGeneral',ic:'🏢',l:'Planning général',cache:1},
     {k:'taches',ic:'✅',l:'Tâches'},
     {k:'absences',ic:'🏖️',l:'Absences & congés'},
   ]},
   {g:'Interventions', items:[
     {k:'interventions',ic:'🧰',l:'Interventions',b:'int'},
-    {k:'rapports',cache:1,ic:'📄',l:'Rapports'},
-    {k:'carteInt',cache:1,ic:'🗺️',l:'Carte interventions'},
+    {k:'rapports',ic:'📄',l:'Rapports',cache:1},
+    {k:'carteInt',ic:'🗺️',l:'Carte interventions',cache:1},
     {k:'registre',ic:'📋',l:'Registre sanitaire',aside:true},
     {k:'carteBox',ic:'📍',l:'Carte des box',aside:true},
   ]},
@@ -16170,7 +16170,7 @@ const NAV = [
   ]},
   {g:'Ventes', items:[
     {k:'devis',ic:'💰',l:'Devis',b:'dev'},
-    {k:'assistantDevis',cache:1,ic:'🤖',l:'Assistant devis'},
+    {k:'assistantDevis',ic:'🤖',l:'Assistant devis',cache:1},
     {k:'factures',ic:'🧾',l:'Factures',b:'fac'},
     {k:'contrats',ic:'📑',l:'Contrats',b:'ctr'},
     {k:'comptabilite',ic:'📊',l:'Comptabilité',admin:true},
@@ -16180,7 +16180,7 @@ const NAV = [
   {g:'Stock', items:[
     {k:'produits',ic:'📦',l:'Produits',b:'prd'},
     {k:'stock',ic:'🗃️',l:'Stock'},
-    {k:'mouvements',cache:1,ic:'🔁',l:'Mouvements stock'},
+    {k:'mouvements',ic:'🔁',l:'Mouvements stock',cache:1},
     {k:'boxes',ic:'🧱',l:'Boxes',b:'box'},
     {k:'saisieConso',ic:'📋',l:'Consommation produits',aside:true},
     /* « Produits donnés » n'est pas au menu : c'est une SOUS-CATÉGORIE de Boxes (la rangée
@@ -16191,19 +16191,19 @@ const NAV = [
   {g:'Temps & équipe', items:[
     {k:'pointage',ic:'⏱️',l:'Temps de travail'},
     {k:'vehicules',ic:'🚐',l:'Véhicules',b:'veh'},
-    {k:'conducteurs',cache:1,ic:'🧑‍✈️',l:'Conducteurs',aside:true},
+    {k:'conducteurs',ic:'🧑‍✈️',l:'Conducteurs',aside:true,cache:1},
   ]},
   {g:'Fournisseurs & courrier', items:[
-    {k:'messagerie',cache:1,ic:'💬',l:'Messagerie'},
+    {k:'messagerie',ic:'💬',l:'Messagerie',cache:1},
     {k:'boiteMail',ic:'📧',l:'Boîte mail',admin:true},
     {k:'fournisseurs',ic:'🏭',l:'Fournisseurs',b:'four',admin:true},
     {k:'bons',ic:'✉️',l:'Bons de commande',admin:true},
   ]},
   {g:'Achats internes', items:[
-    {k:'brouillon',cache:1,ic:'📝',l:'Brouillon',aside:true},
+    {k:'brouillon',ic:'📝',l:'Brouillon',aside:true,cache:1},
     {k:'demandes',ic:'✈️',l:'Mes demandes',aside:true},
-    {k:'validations',cache:1,ic:'✅',l:'Validation des mouvements',admin:true,aside:true},
-    {k:'commandes',cache:1,ic:'📥',l:'Commandes en cours',aside:true},
+    {k:'validations',ic:'✅',l:'Validation des mouvements',admin:true,aside:true,cache:1},
+    {k:'commandes',ic:'📥',l:'Commandes en cours',aside:true,cache:1},
   ]},
   {g:'Administration', items:[
     {k:'secteurs',ic:'📌',l:'Secteurs',admin:true},
@@ -18702,7 +18702,7 @@ const VUES_RETIREES={audit:'historique', permissions:'utilisateurs', chantiers:'
    dans box »). Sans cette table, ouvrir Produits donnés éteignait TOUT : aucune ligne du menu
    allumée, aucun onglet sous la bulle — on ne voyait plus où l'on était. Le menu, la barre du
    bas et le glissement de page la lisent tous les trois. */
-const VUE_PARENT=Object.fromEntries(SOUS_CATS.map(s=>[s.k,s.parent]).concat(Object.entries(FUSIONS).flatMap(([p,L])=>L.filter(([k])=>k!==p).map(([k])=>[k,p]))).concat([['assistantDevis','devis']]));
+const VUE_PARENT=Object.fromEntries(SOUS_CATS.map(s=>[s.k,s.parent]).concat(Object.entries(typeof FUSIONS!=='undefined'?FUSIONS:{}).flatMap(([p,L])=>L.filter(([k])=>k!==p).map(([k])=>[k,p]))).concat([['assistantDevis','devis']]));
 /* ⛔ v767 — L'ÉCRAN « ACCÈS SUSPENDU ». Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu
    tant que c'est pas réglé » ; 20 septembre : « rien n'est perdu », et « c'est pas aux utilisateurs de savoir si l'entreprise
    paye ou pas. Que le compte admin ». L'administrateur y lit pourquoi et règle ; les autres lisent seulement que l'accès est
@@ -24601,7 +24601,16 @@ function intHeadExtras(i){ const cli=db.clients.find(c=>c.id===i.clientId)||{};
   const gar=garActiveOfClient(i.clientId,'');
   /* v781 : le geste du terrain, en grand — il passe par le menu de statut (intSetStatut → intSetStatutDo), la porte qui existe déjà : pas une sixième */
   const gros=(i.statut!=='terminee'&&i.statut!=='annulee'&&intStatutPermis(i,'terminee'))?`<button type="button" id="int-terminee-gros" class="btn" onclick="event.stopPropagation();intSetStatut('${i.id}','terminee')" style="width:100%;justify-content:center;gap:10px;min-height:56px;margin:0 0 12px;border-radius:16px;font-size:17px;font-weight:800;background:color-mix(in srgb,var(--green) 72%,#000) !important;border-color:transparent !important;color:#fff !important">✅ Intervention terminée</button>`:'';
+  /* v781 — Justin, 29 octobre 2026 : « il faut qu'on ait la fiche du client, le nom, l'adresse, le téléphone ; on peut l'ouvrir avec le GPS ».
+     En TÊTE de la fiche, avant tout : qui, où (un tap ouvre le GPS), et le numéro (un tap appelle). */
+  const cliNom=cli.nom||[cli.prenom,cli.nomFamille].filter(Boolean).join(' ')||'';
+  const fiche=(cliNom||adr||tel)?`<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
+      ${cliNom?`<b style="font-size:17px;line-height:1.3">👤 ${esc(cliNom)}</b>`:''}
+      ${adr?`<a href="${itin}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--acc-txt);font-size:14.5px;text-decoration:none">📍 ${esc(adr)}</a>`:''}
+      ${tel?`<a href="tel:${esc(tel)}" onclick="event.stopPropagation()" style="color:var(--acc-txt);font-size:14.5px;text-decoration:none">📞 ${esc(cli.tel)}</a>`:''}
+    </div>`:'';
   return `<div class="card" style="padding:12px 14px;margin-bottom:12px">
+    ${fiche}
     ${gros}
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${el(0,'Planifiée')}<span style="flex:0 1 26px;min-width:12px;height:2px;background:${step>=1?'var(--acc)':'var(--brd)'}"></span>${el(1,'En cours',esc(chrono))}<span style="flex:0 1 26px;min-width:12px;height:2px;background:${step>=2?'var(--acc)':'var(--brd)'}"></span>${el(2,'Terminée')}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">
