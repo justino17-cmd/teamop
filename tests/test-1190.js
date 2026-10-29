@@ -58,7 +58,7 @@ function monter(base) {
     function prodLineName(l){ return l.nomLibre||produit(l.produitId).nom||'—'; } function prodLineAmm(l){ return produit(l.produitId).amm||''; }
     function rapportConstatLignes(i){ return []; } function t3dPdfHtml(){ return ''; } function paPdfHtml(){ return ''; }
     function docEntete(soc){ return {nom:soc||'ENTREPRISE PRINCIPALE',couleur:'#1E7A4E',logo:''}; } function docCoordLignes(){ return []; } function encreSur(){ return '#fff'; }
-    function photosResoudre(){} function planImgsResoudre(){} function toast(){}
+    function docNomGarde(){ return true; } function photosResoudre(){} function planImgsResoudre(){} function toast(){}
     const $=()=>null;`, W);
   return W;
 }

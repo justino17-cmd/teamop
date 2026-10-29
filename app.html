@@ -9373,8 +9373,15 @@ function docMentionsManquantes(m){ const H=docEntete(m), x=[];
    une facture s'arrête et ouvre « Ton entreprise » ; un devis prévient une fois par séance et passe. Rend vrai si on
    peut continuer. `suite` est rejouée une fois les mentions complétées. */
 let _docMentionsAvertis={};
+/* v780 — Justin, 29 octobre 2026 : « que ce soit obligatoire d'avoir le nom de la société, pour n'importe quel papier ».
+   Tout document client ou fournisseur (rapport, attestation, dossier, registre, bon de commande, box…) s'arrête tant
+   que l'entreprise n'a pas de nom, et « Ton entreprise » le demande ; le geste repart une fois le nom posé. */
+function docNomGarde(suite){ if(entNomDoc()) return true;
+  entCompleterModal('',suite,'Avant ce document, indique le nom de ton entreprise : c’est lui que ton client voit en haut de chaque papier, jamais OP GESTION.','nom');
+  return false; }
 function listeEt(x){ return x.length<2?x.join(''):x.slice(0,-1).join(', ')+' et '+x[x.length-1]; }
 function docMentionsGarde(kind,m,suite){ const x=docMentionsManquantes(m); if(!x.length) return true;
+  if(x.includes('le nom')) return docNomGarde(suite);   // sans nom, AUCUN document ne part — devis compris
   const facture=kind==='factures'||kind==='facture';
   if(!facture){ const k=String(m||''); if(_docMentionsAvertis[k]) return true; _docMentionsAvertis[k]=1;
     toast('⚠️ Ton devis part sans '+listeEt(x)+' : complète ton entreprise dans les Paramètres'); return true; }
@@ -9382,7 +9389,7 @@ function docMentionsGarde(kind,m,suite){ const x=docMentionsManquantes(m); if(!x
   return false; }
 /* « Ton entreprise » : le même enregistrement que la carte des Paramètres (`db.entreprise`, logo compris), en une
    fenêtre. Une société qui a SON SIRET se complète dans « Mes sociétés » (ses coordonnées sont les siennes). */
-function entCompleterModal(m,suite,intro){ const s=socNom(m), st=s?socStyle(s):{};
+function entCompleterModal(m,suite,intro,exige){ const s=socNom(m), st=s?socStyle(s):{}, R=exige==='nom'?'':' required', A=exige==='nom'?'':' *';
   if(s&&String(st.siret||'').trim()){ toast('Complète l’adresse de la société « '+s+' » dans Paramètres › Mes sociétés'); try{ go('parametres'); }catch(e){} return; }
   const E=(db&&db.entreprise)||{}, v=k=>esc(E[k]||'');
   window._entSuite=typeof suite==='function'?suite:null;
@@ -9392,10 +9399,10 @@ function entCompleterModal(m,suite,intro){ const s=socNom(m), st=s?socStyle(s):{
     <div class="field" style="display:flex;align-items:center;gap:12px">${E.logo?`<img src="${esc(E.logo)}" alt="Logo" style="max-height:48px;max-width:120px;border-radius:8px">`:''}
       <button type="button" class="btn sm" onclick="this.nextElementSibling.click()">${E.logo?'Changer le logo':'＋ Ajouter ton logo'}</button><input type="file" accept="image/*" hidden onchange="entLogoPick(event);setTimeout(()=>entCompleterModal(${esc(JSON.stringify(String(m||'')))},window._entSuite,${esc(JSON.stringify(String(intro||'')))}),400)"></div>
     <div class="field"><label>Nom de l'entreprise *</label><input name="nom" required value="${v('nom')||esc(entNomDoc())}" autocomplete="organization"></div>
-    <div class="field"><label>Adresse *</label><input name="adresse" required value="${v('adresse')}" autocomplete="street-address"></div>
-    <div class="form-row"><div class="field"><label>Code postal *</label><input name="cp" required inputmode="numeric" value="${v('cp')}"></div>
-      <div class="field"><label>Ville *</label><input name="ville" required value="${v('ville')}"></div></div>
-    <div class="form-row"><div class="field"><label>SIRET *</label><input name="siret" required inputmode="numeric" value="${v('siret')}"></div>
+    <div class="field"><label>Adresse${A}</label><input name="adresse"${R} value="${v('adresse')}" autocomplete="street-address"></div>
+    <div class="form-row"><div class="field"><label>Code postal${A}</label><input name="cp"${R} inputmode="numeric" value="${v('cp')}"></div>
+      <div class="field"><label>Ville${A}</label><input name="ville"${R} value="${v('ville')}"></div></div>
+    <div class="form-row"><div class="field"><label>SIRET${A}</label><input name="siret"${R} inputmode="numeric" value="${v('siret')}"></div>
       <div class="field"><label>Téléphone</label><input name="tel" inputmode="tel" value="${v('tel')}"></div></div>
     <div class="form-row"><div class="field"><label>N° TVA intracommunautaire</label><input name="tvaIntra" value="${v('tvaIntra')}"></div>
       <div class="field"><label>IBAN (virements)</label><input name="iban" value="${v('iban')}"></div></div>
@@ -9403,7 +9410,8 @@ function entCompleterModal(m,suite,intro){ const s=socNom(m), st=s?socStyle(s):{
     <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" onclick="sessionStorage.setItem('elan_ent_plus_tard','1');closeModal()">Plus tard</button><button class="btn primary">Enregistrer</button></div>
   </form>`); }
 function entCompleterSave(e){ e.preventDefault(); const f=Object.fromEntries(new FormData(e.target)), g=k=>String(f[k]||'').trim();
-  if(!/^\d{14}$/.test(g('siret').replace(/\s/g,''))){ toast('Le SIRET compte 14 chiffres'); return; }
+  if(!g('nom')){ toast('Le nom de l’entreprise est obligatoire'); return; }
+  if(g('siret')&&!/^\d{14}$/.test(g('siret').replace(/\s/g,''))){ toast('Le SIRET compte 14 chiffres'); return; }
   db.entreprise={...(db.entreprise||{}),nom:g('nom'),adresse:g('adresse'),cp:g('cp'),ville:g('ville'),siret:g('siret'),tel:g('tel'),tvaIntra:g('tvaIntra'),iban:g('iban')};
   try{ localStorage.setItem('elan_entreprise_nom',db.entreprise.nom); }catch(_e){}
   logEvent('Entreprise complétée','','crud'); save(); applyBrand(); closeModal(); toast('🏢 Entreprise enregistrée — elle est sur tous tes documents');
@@ -24000,7 +24008,8 @@ function mailClientRdv(intId,kind){ const i=db.interventions.find(x=>x.id===intI
   srvMail(c.email,subj,body,'✉️ '+(kind==='rappel'?'Rappel':'Confirmation')+' envoyé à '+c.email,'rdv',null,intSocMailOpts(i)); }
 
 /* ── Factur-X : export XML (profil BASIC, norme EN 16931 / CII) ── */
-function exportFacturX(fid){ const f=db.factures.find(x=>x.id===fid); if(!f) return;
+function exportFacturX(fid){ const __a=arguments; if(!docNomGarde(()=>exportFacturX.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const f=db.factures.find(x=>x.id===fid); if(!f) return;
   const c=db.clients.find(x=>x.id===f.clientId)||{};
   const t=docTot(f); const date=(f.date||todayISO()).replace(/-/g,'');
   const lig=(f.lignes||[]).map((l,k)=>`
@@ -24043,7 +24052,8 @@ function exportFacturX(fid){ const f=db.factures.find(x=>x.id===fid); if(!f) ret
   toast('XML Factur-X téléchargé (norme EN 16931)'); }
 
 /* ── Dossier client imprimable (portail client papier/PDF) ── */
-function printDossierClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
+function printDossierClient(id){ const __a=arguments; if(!docNomGarde(()=>printDossierClient.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const c=db.clients.find(x=>x.id===id); if(!c) return;
   /* v740 : ce dossier réunit des passages et des documents de TOUTES les sociétés du client :
      il porte l'en-tête de l'entreprise elle-même (docEntete('')), jamais une seule de ses sociétés */
   const H=docEntete(''), AC=H.couleur;
@@ -25813,7 +25823,8 @@ function papImplJpeg(src,max,q){
     im.onerror=()=>res(null); im.src=src; }); }
 /* Le document complet, prêt à partir : la même fabrique sert l'aperçu et l'envoi, donc ce que
    la personne regarde est ce que reçoit le client. Rend {pdf, b64, nom} ou {err}. */
-async function papImplDocument(cid,i,st){
+async function papImplDocument(cid,i,st){ const __a=arguments; if(!docNomGarde(()=>papImplDocument.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+
   const c=(db.clients||[]).find(x=>x.id===cid)||{};
   /* La société de CETTE intervention (Justin : « chaque en-tête doit reconnaître l'entreprise qui
      est sur l'intervention ») ; générique, celle qui sert le client ; sinon l'entreprise. */
@@ -25931,7 +25942,8 @@ function papImplCarteHtml(i){
       <button class="btn sm pap-impl-btn" ${c.email?'':'disabled style="opacity:.55"'} onclick="papImplantationEnvoyer('${cid}','${i.id}')">${esc(tx.b)}</button>
     </div>${passe}</div>`; }
 /* ── Classeur / dossier sanitaire complet (client professionnel) ── */
-async function papDossierSanitaire(cid){
+async function papDossierSanitaire(cid){ const __a=arguments; if(!docNomGarde(()=>papDossierSanitaire.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+
   const c=db.clients.find(x=>x.id===cid); if(!c) return;
   /* v744 : la fenêtre s'ouvre DANS le geste (sinon le navigateur la bloque), puis on attend les
      photos de plans qui vivent sur le serveur — sans rien écrire. Celles qui manquent encore
@@ -27820,7 +27832,8 @@ views.registre=function(){
       ? (bio.length? bioRows : `<div class="card">${emptyState('🧪','Aucun produit enregistré pour ce client.','','')}</div><p class="detail-desc" style="margin-top:8px">Les produits se déclarent dans chaque intervention → onglet <b>Produits</b>. Le n° AMM se renseigne sur la fiche du produit (menu Produits → ✎).</p>`)
       : (ints.length? rows : `<div class="card">${emptyState('📋','Aucun passage terminé pour ce client.','','')}</div>`)}`;
 };
-function printRegistre(cid){ const c=db.clients.find(x=>x.id===cid)||{}; const ints=registreInts(cid); const bio=registreBiocides(cid);
+function printRegistre(cid){ const __a=arguments; if(!docNomGarde(()=>printRegistre.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const c=db.clients.find(x=>x.id===cid)||{}; const ints=registreInts(cid); const bio=registreBiocides(cid);
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-ups');return;}
   /* v740 — ce document part chez le client : son en-tête porte la société des passages QU'IL
      CONTIENT (socDuClient), avec sa couleur, son logo et ses coordonnées. Il n'en portait
@@ -28754,7 +28767,8 @@ async function rapportDocument(id){
 /* ⛔ LE PDF ATTEND LES PHOTOS, là où l'écran ne les attend pas — et la différence est
    volontaire. Un écran incomplet se recomplète une seconde plus tard ; un PDF envoyé à un
    client avec des cadres vides est définitif, et c'est un rapport sanitaire. */
-async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return;
+async function printRapport(id){ const __a=arguments; if(!docNomGarde(()=>printRapport.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const i=db.interventions.find(x=>x.id===id); if(!i)return;
   /* ⛔ LA FENÊTRE S'OUVRE DANS LE GESTE, AVANT D'ATTENDRE LE RÉSEAU (relecture v744) : ouverte après
      deux allers-retours au serveur, le navigateur la bloquait. L'attente s'y affiche, et la question
      « continuer quand même ? » s'y pose — c'est elle qui a la main, pas l'onglet derrière. */
@@ -28870,7 +28884,8 @@ function envoiRapportClient(id){ const i=db.interventions.find(x=>x.id===id); if
     </div>`); }
 /* l'ordre du FICHIER, pas celui des appels : déclaré avant la fonction qui s'en sert */
 const _rapEnvoi={};
-async function rapportVia(id,canal){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
+async function rapportVia(id,canal){ const __a=arguments; if(!docNomGarde(()=>rapportVia.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{}; const soc=rapportSociete(i.rapportModele);
   if(canal==='sms'){ const raw=$('rap-tel')?$('rap-tel').value.trim():(c.tel||''); const tel=raw.replace(/[^\d+]/g,''); if(!tel){ toast('Entrez un numéro de téléphone'); return; }
     if($('rap-save')&&$('rap-save').checked&&c.id&&canCat('crm','modifier')){ c.tel=raw; toast('Numéro enregistré sur la fiche client'); }   // v738 : la fiche client, c'est « Clients → Modifier »
     const msg='Bonjour, votre rapport d\'intervention du '+fmtShort(i.date)+' ('+soc+') est disponible. Nous restons à votre disposition.';
@@ -30775,7 +30790,8 @@ function renderBoxPassages(){ const el=$('box-passages'); if(!el)return; const b
 }
 function loadJsPDF(){ return new Promise((res,rej)=>{ if(window.jspdf&&window.jspdf.jsPDF) return res(); const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'; s.onload=()=>res(); s.onerror=()=>rej(new Error('jspdf')); document.head.appendChild(s); }); }
 /* Partager le stock d'une box EN PDF (partage de fichier natif, sinon téléchargement, sinon impression) */
-async function shareBoxStock(id){ const b=db.boxes.find(x=>x.id===id); if(!b)return; b.stock=b.stock||{};
+async function shareBoxStock(id){ const __a=arguments; if(!docNomGarde(()=>shareBoxStock.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const b=db.boxes.find(x=>x.id===id); if(!b)return; b.stock=b.stock||{};
   const prods=Object.keys(b.stock).map(pid=>({p:produit(pid),s:b.stock[pid]})).filter(x=>x.p&&x.p.id).sort((a,b2)=>(a.p.nom||'').localeCompare(b2.p.nom||''));
   toast('Génération du PDF…');
   try{
@@ -30802,7 +30818,8 @@ async function shareBoxStock(id){ const b=db.boxes.find(x=>x.id===id); if(!b)ret
   }catch(e){ toast('Hors-ligne : j\'ouvre la fiche imprimable (Enregistrer en PDF)'); printBox(id); }
 }
 /* Fiche PDF d'un poste (box) : infos + historique des passages */
-function printBox(id){ const b=db.boxes.find(x=>x.id===id); if(!b)return; const cli=b.clientId?(db.clients.find(x=>x.id===b.clientId)||{}):null;
+function printBox(id){ const __a=arguments; if(!docNomGarde(()=>printBox.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const b=db.boxes.find(x=>x.id===id); if(!b)return; const cli=b.clientId?(db.clients.find(x=>x.id===b.clientId)||{}):null;
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups'); return; }
   /* v740 : l'en-tête de la société qui sert ce client (socDuClient), sinon celui de l'entreprise */
   const H=docEntete(b.clientId?socDuClient(b.clientId):''), AC=H.couleur;
@@ -34781,7 +34798,8 @@ function regrouperFournisseur(fid){
   logEvent('Commandes regroupées',`${nb} brouillon(s) → ${num} (${fournName(fid)||''})`,'commande');
   save(); closeModal(); toast(`${nb} bons regroupés en ${num}`); views.bons();
 }
-function printBon(id){ const b=db.bons.find(x=>x.id===id); if(!b)return; const f=db.fournisseurs.find(x=>x.id===b.fournisseurId)||{};
+function printBon(id){ const __a=arguments; if(!docNomGarde(()=>printBon.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const b=db.bons.find(x=>x.id===id); if(!b)return; const f=db.fournisseurs.find(x=>x.id===b.fournisseurId)||{};
   const rows=(b.lignes||[]).map(l=>`<tr><td>${esc(l.reference)||''}</td><td>${esc(l.designation)}${l.commentaire?`<div style="font-size:10px;color:#888">» ${esc(l.commentaire)}</div>`:''}</td><td style="text-align:right;white-space:nowrap">${esc(bonQteTxt(l))}</td></tr>`).join('');
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups'); return; }
   const CO=bcCouleur(b);
@@ -35266,7 +35284,8 @@ ${esc(fullName(currentUser))} — ${esc(mailBrandName())}</div>
     <button class="btn block ghost" style="margin-top:12px" onclick="bonPdfOpen('${b.id}')">📄 Aperçu du PDF${feat&&feat.atts?' (tel qu\'il sera joint)':''}</button>
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal();ficheBon('${b.id}')">Annuler</button><button class="btn" onclick="bonEnvoiChoix('${b.id}')">✉️ Envoyer maintenant</button></div>`);
 }
-async function envoiBonEmail(id,quiet,mbId){ const b=db.bons.find(x=>x.id===id); if(!b)return false; const f=db.fournisseurs.find(x=>x.id===b.fournisseurId)||{};
+async function envoiBonEmail(id,quiet,mbId){ const __a=arguments; if(!docNomGarde(()=>envoiBonEmail.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const b=db.bons.find(x=>x.id===id); if(!b)return false; const f=db.fournisseurs.find(x=>x.id===b.fournisseurId)||{};
   if(!(b.lignes||[]).length){ toast('⚠️ Ce bon est vide — ajoute des produits avant de l\'envoyer'); return false; }
   const dest=bonEmailDest(b,f);
   /* En envoi groupé (quiet) on ne peut pas ouvrir une fenêtre par bon : on saute celui-ci en
@@ -42298,7 +42317,8 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
   out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
   return out; }
 /* Le document prêt à partir : en-tête de la société de CE passage, logo et signatures en JPEG. Rend {pdf,b64,nom} ou {err} — jamais une exception. */
-async function cvcAttestationDocument(iid,aid,att){
+async function cvcAttestationDocument(iid,aid,att){ const __a=arguments; if(!docNomGarde(()=>cvcAttestationDocument.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+
   const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
   if(!i||!a) return {err:'Intervention ou appareil introuvable.'};
   const H=docEntete(i.rapportModele), E={nom:H.nom,couleur:H.couleur,lignes:docCoordLignes(H)};
@@ -42402,7 +42422,8 @@ function cvcRamonageSauver(iid,aid,silencieux){ if(!permGarde('int','modifier','
   x.i.ramonages[aid]=r; intHisto(x.i,'🧹 Attestation de ramonage établie — '+cvcLibelle(x.a));
   save(); if(!silencieux) toast('Attestation enregistrée'); return true; }
 /* Le document : la mise en page de l'attestation (genre « ramonage »), son nom de fichier à lui. Rend {pdf,b64,nom,manque} ou {err}. */
-async function cvcRamonageDocument(iid,aid,r){
+async function cvcRamonageDocument(iid,aid,r){ const __a=arguments; if(!docNomGarde(()=>cvcRamonageDocument.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+
   const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
   if(!i||!a) return {err:'Intervention ou appareil introuvable.'};
   const att=Object.assign({},r||cvcRamonageDe(i,aid)||{},{genre:'ramonage'});
@@ -43222,7 +43243,8 @@ function nettDocContexte(kind,id,cid){
   return {err:'Document inconnu.'}; }
 function nettNomFichier(pre,cli,date){ return pre+'-'+String((cli&&cli.nom)||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)+'-'+String(date||todayISO())+'.pdf'; }
 /* Rend {pdf,b64,nom,E,manque} ou {err} — jamais une exception. */
-async function nettDocFabriquer(kind,id,cid){
+async function nettDocFabriquer(kind,id,cid){ const __a=arguments; if(!docNomGarde(()=>nettDocFabriquer.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+
   let x; try{ x=nettDocContexte(kind,id,cid); }catch(e){ return {err:'Le document n’a pas pu être préparé ('+(e&&e.message||e)+') — rien n’est parti.'}; }
   if(x.err) return {err:x.err};
   const H=docEntete(x.soc);
@@ -45132,7 +45154,8 @@ function saveProduitDonne(e,id){ e.preventDefault();
      et dans Mouvements stock. */
   save(); closeModal(); try{ views[current](); }catch(_e){}
 }
-function printProduitDonne(id){ const p=db.produitsDonnes.find(x=>x.id===id); if(!p)return;
+function printProduitDonne(id){ const __a=arguments; if(!docNomGarde(()=>printProduitDonne.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+ const p=db.produitsDonnes.find(x=>x.id===id); if(!p)return;
   const w=window.open('','_blank'); if(!w){toast('Autorisez les pop-ups');return;}
   const H=docEntete(p.rapportModele);   // v740 : la société qui remet (choisie sur le bon), jamais « OP GESTION »
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Bon de remise</title><style>body{font-family:Arial;padding:40px;color:#1A1F28}.hd{border-bottom:3px solid ${H.couleur};padding-bottom:12px;margin-bottom:20px}.logo{font-size:22px;font-weight:800;color:${H.couleur}}.box{background:#F7F9FC;border:1px solid #E3E8F0;border-radius:8px;padding:14px;margin:10px 0}</style></head>

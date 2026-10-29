@@ -45,7 +45,7 @@ function monter(opts) {
     function uid(){ return 'id'+(++__n); }
     function _fmt(iso,long){ if(!iso) return '—'; var p=String(iso).split('-'); return long?p[2]+'/'+p[1]+'/'+p[0]:p[2]+'/'+p[1]; }
     function fmtShort(iso){ return _fmt(iso,false); } function fmtLong(iso){ return _fmt(iso,true); }
-    function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function logEvent(a,d){ __logs.push([a,d]); }
+    function docNomGarde(){ return true; } function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function logEvent(a,d){ __logs.push([a,d]); }
     function closeModal(){} function openModal(h){ __modals.push(h); } function go(v){ __go.push(v); }
     function ficheClient(id){ __fiches.push(id); } function champManque(m){ __toasts.push('CHAMP: '+m); } function champDe(f,n){ return f&&f.elements?f.elements[n]||null:null; }
     function clientName(id){ var c=(db.clients||[]).find(function(x){return x.id===id;}); return c?c.nom:''; }

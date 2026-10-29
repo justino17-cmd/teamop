@@ -55,7 +55,7 @@ const BASE = {
              { id: 'fA', num: 'FA-2', clientId: 'cX', date: '2026-09-10', tva: 0, rapportModele: 'Alpha Nuisibles', statut: 'payee', datePaiement: '2026-09-12', lignes: [{ designation: 'Y', qte: 1, pu: 80 }] }],
   bons: [{ id: 'bA', societe: 'Alpha Nuisibles', lignes: [] }, { id: 'b0', societe: '', lignes: [] }], fournisseurs: [] };
 const FN = ['function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function intSocMailOpts(',
-  'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(', 'function entNomDoc(', 'function docMentionsManquantes(', 'function listeEt(', 'let _docMentionsAvertis=', 'function docMentionsGarde(',
+  'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(', 'function entNomDoc(', 'function docMentionsManquantes(', 'function listeEt(', 'function docNomGarde(', 'let _docMentionsAvertis=', 'function docMentionsGarde(',
   'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(', 'function _pdfEnLignes(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
 function monter(base) {
   const W = { console, Object, JSON, String, Math, Date, Array, Number, Uint8Array, __html: '',
@@ -292,6 +292,12 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
     vrai('l’envoi (envoiDoc) passe par la même porte, AVANT de rien envoyer', /function envoiDoc\([^)]*\)\{[^\n]*\n\s*if\(!docMentionsGarde\(kind,d\.rapportModele,/.test(SRC));
     vrai('la facture réglée sur place (factureMailPayee) ne part pas non plus sans les mentions, et le dit', /const manque=docMentionsManquantes\(it\.rapportModele\);\s*if\(manque\.length\)\{ toast\([^;]*non envoyée[^;]*\); return; \}/.test(SRC));
     vrai('l’administrateur reçoit « Ton entreprise » après sa connexion (entAccueilCheck), une fois par séance', /setTimeout\(\(\)=>\{ try\{ entAccueilCheck\(\); \}catch\(e\)\{\} \},\d+\)/.test(SRC) && /sessionStorage\.getItem\('elan_ent_plus_tard'\)/.test(corps('entAccueilCheck')));
+    const W5 = monter({ ...BASE, entreprise: {} }); W5.db.devis.push({ id: 'dN', num: 'DV-8', clientId: 'cX', date: '2026-09-10', tva: 20, rapportModele: '', lignes: [{ designation: 'X', qte: 1, pu: 10 }] });
+    W5.__html = ''; W5.printDoc('devis', 'dN');
+    vrai('⛔ SANS NOM d’entreprise, même un DEVIS ne sort pas : « Ton entreprise » demande le nom (seul le nom est exigé)', W5.__html === '' && !!W5.__modal && /indique le nom de ton entreprise/.test(W5.__modal.intro), W5.__modal);
+    const PORTES = ['printRapport', 'rapportVia', 'cvcAttestationDocument', 'cvcRamonageDocument', 'printDossierClient', 'papImplDocument', 'papDossierSanitaire', 'printRegistre', 'printBox', 'shareBoxStock', 'printBon', 'envoiBonEmail', 'printProduitDonne', 'nettDocFabriquer', 'exportFacturX'];
+    const sans = PORTES.filter(f => !new RegExp('function ' + f + '\\([^)]*\\)\\{ const __a=arguments; if\\(!docNomGarde\\(\\(\\)=>' + f + '\\.apply\\(null,__a\\)\\)\\) return;').test(SRC));
+    v('⛔ les 15 portes des autres documents (rapport, attestations, dossier, registre, box, bon fournisseur, Factur-X…) demandent le nom en PREMIÈRE instruction', sans, []);
     vrai('« Ton entreprise » exige un SIRET de 14 chiffres', /\^\\d\{14\}\$/.test(corps('entCompleterSave')));
     vrai('⛔ plus aucun document ne lit entNom() (le nom de l’APPLICATION) : docEntete, rapportSociete et le bon de remise lisent entNomDoc()',
       !/entNom\(\)/.test(corps('docEntete')) && !/entNom\(\)/.test(corps('rapportSociete')) && !/doc\.text\(String\(entNom\(\)\)/.test(SRC)); }
