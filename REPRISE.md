@@ -12,6 +12,24 @@ Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici 
 de ligne du tout.
 
 ---
+
+# 🧰 29 OCTOBRE 2026 — BÊTA v779 EN LIGNE (`beta.html` seule ; `app.html`, `sw.js`, `demo.html` restent la production v773)
+Publiée depuis `claude/beta-v779-source` ; rien n'atteint un client. Elle contient :
+- le nettoyage de la v778 et sa relecture adverse ;
+- **climatisation / chauffage et plomberie** avec leurs documents et leur catalogue ;
+- « **Mon entreprise fait aussi…** » (un pack réuni : `metierPack()`, `db.metierPlus`) ;
+- les corrections factuelles du pack 3D ;
+- la **démonstration par métier**, avec montants.
+Collections neuves de la bêta (avance DÉCLARÉE, pas oubliée) : `cahiers`, `plansPrevention`, `docsMetier`, `metierPlus`.
+**Bancs de main rendus justes sans perdre un contrôle de la production** : `test-731` (`AVANCE_BETA` complétée), `test-2950` (la bêta est
+comparée à `metiers.json` + `tests/metiers-beta-avance.json`, déclaré dans `tests/beta-en-avance.js` → `metiersBeta`), `test-2951`, `test-2953`,
+`test-2955` (les contrôles de la v778/v779 ne jouent que sur `beta.html`, les anciens restent pour `app.html`), `test-2876`, `test-2886`,
+`test-3086` (version de la source, qui passe sur main). ⛔ Le jour où `app.html` porte ces packs : vider `metiersBeta` ET supprimer
+`tests/metiers-beta-avance.json` ensemble, vider `AVANCE_BETA` de `test-731`.
+**Attend** : l'assistant devis par métier côté serveur (demande de fusion n° 241) ; les corrections des factures et de Factur-X, dans la bêta suivante.
+
+---
+
 # 🧑‍💼 28 OCTOBRE 2026 — LA FONCTION DE CHAQUE AGENT SOUS SON NOM DANS OP MESSAGES (branche `claude/opmsg-roles-liste`)
 Justin, devant ses seize agents : « le nom de l'agent et les fonctions, Théo il fait quoi, qui gère quoi ». Le pont rangeait déjà le rôle dans le statut du robot ; la LISTE ne le montrait
 pas. `convListe` rend `autre.statut` ; `resume()` en fait `sousTitre` (80 signes, vide pour un groupe, un compte supprimé, une invitation) ; `ligneConv()` l'écrit sous le nom

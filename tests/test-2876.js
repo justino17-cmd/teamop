@@ -64,7 +64,7 @@ function monde(P, o) {
   vm.runInContext(`
     const BETA_ESSAI=false; const STORE_KEY='elan_gestion_v2';
     var currentUser=null; var db = { users: [], boxes: [], vehicules: [], profilsDroits: [] };
-    function planBloque(k){ return __plan.includes(k); } function metierBloque(){ return false; }
+    function planBloque(k){ return __plan.includes(k); } function metierBloque(){ return false; } function capTxt(s){ return s; } function sansBox(){ return false; }
     function logEvent(){} function save(){} function toast(){} function t(x){ return x; }
     function estStockage(){ return false; } function showAside(){ return false; }
     function userBoxVoit(){} function userVehiculeVoit(){} function fullName(u){ return ((u.prenom||'')+' '+(u.nom||'')).trim()||u.login||''; }
