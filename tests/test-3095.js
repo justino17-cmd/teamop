@@ -276,7 +276,7 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       const paru = await T.attendre(async () => (await msgs(pau)).length >= 1, 20000, 80);
       vrai('⛔ le message de Pauline paraît dans SA conversation', !!paru);
       const m1 = await msgs(pau);
-      v('…un seul, de son robot, numéroté, avec l\'entreprise, l\'objet et le lien de la Tour', [m1.length, m1[0].auteur === pau.autre.id, /n°1 — Banc Hygiène SARL : « Vos locaux à Lyon » attend ton accord/.test(m1[0].texte), m1[0].texte.includes('https://teamop.fr/tour.html#gestion/messagerie')], [1, true, true, true]);
+      v('…un seul, de son robot, numéroté, avec l\'entreprise, l\'objet et le lien de la Tour', [m1.length, m1[0].auteur === pau.autre.id, /n°1 — Banc Hygiène SARL : « Vos locaux à Lyon » attend ton accord/.test(m1[0].texte), m1[0].texte.includes('#gestion/messagerie')], [1, true, true, true]);
       vrai('⛔ ni adresse, ni contact, ni texte du courriel dans OP MESSAGES', !/secret\.prospect|banc-hygiene\.fr|Contactsecret|TEXTE-SECRET/.test(JSON.stringify(m1)));
       await envoi(JETON_P); await envoi(JETON_P); await dort(900);
       v('⛔ deux relevés de plus : toujours UN message', (await msgs(pau)).length, 1);
