@@ -41488,12 +41488,26 @@ function teleDevalider(id){ if(!isFinanceMgr()) return; const r=(db.telecollecte
   logEvent('Journée télécollecte rouverte',teleWho(r),'finance'); save(); views.telecollecte(); toast('Journée rouverte'); }
 
 
-function docCliBlock(c){ c=c||{}; const ville=((c.codePostal||'')+' '+(c.ville||'')).trim();
-  return `<div class="field"><label>Adresse du client</label><input id="doc-cli-adr" value="${esc(c.adresse||'')}" placeholder="Rue, code postal, ville"></div>
+/* v780 — le patron, 29 octobre 2026 : « quand je crée un devis, si le client n'est pas enregistré, je voudrais pouvoir le créer en même
+   temps : nom, prénom ». « ＋ Nouveau client… » dans la liste ouvre ces champs ; la fiche client naît À L'ENREGISTREMENT du document, jamais avant. */
+function docCliBlock(c,nouveau){ c=c||{}; const ville=((c.codePostal||'')+' '+(c.ville||'')).trim();
+  return (nouveau?`<div class="field-row"><div class="field"><label>Nom du client (ou de la société) *</label><input id="doc-cli-nom" required autocomplete="off" placeholder="Ex. : Dupont, ou Hôtel des Dunes"></div>
+      <div class="field"><label>Prénom</label><input id="doc-cli-prenom" autocomplete="off" placeholder="Ex. : Marie"></div></div>`:'')+`<div class="field"><label>Adresse du client</label><input id="doc-cli-adr" value="${esc(c.adresse||'')}" placeholder="Rue, code postal, ville"></div>
     <div class="field-row"><div class="field"><label>Code postal / Ville</label><input id="doc-cli-ville" value="${esc(ville)}" placeholder="${esc(exemple('ville'))}"></div>
       <div class="field"><label>Téléphone</label><input id="doc-cli-tel" value="${esc(c.tel||'')}" placeholder="Téléphone"></div></div>
     <div class="field"><label>Email du client</label><input id="doc-cli-email" type="email" value="${esc(c.email||'')}" placeholder="Email"></div>`; }
-function docCliInfo(id){ const el=document.getElementById('doc-cli-info'); if(!el)return; el.innerHTML=docCliBlock(db.clients.find(x=>x.id===id)||{}); }
+function docCliInfo(id){ const el=document.getElementById('doc-cli-info'); if(!el)return; const nv=id==='__nouveau'; el.innerHTML=docCliBlock(nv?{}:(db.clients.find(x=>x.id===id)||{}),nv); if(nv) setTimeout(()=>{ const n=document.getElementById('doc-cli-nom'); if(n) n.focus(); },30); }
+/* la fiche client d'un « Nouveau client » tapé dans un devis ou une facture : rend son identifiant, ou '' si refusé (rien n'est écrit) */
+function docCliCreer(){ if(!permGarde('crm','ajouter','un client')) return '';
+  const val=i=>{ const el=document.getElementById(i); return el?el.value.trim():''; };
+  const nomSeul=val('doc-cli-nom'), prenom=val('doc-cli-prenom'); if(!nomSeul){ toast('Écris le nom du client'); const n=document.getElementById('doc-cli-nom'); if(n) n.focus(); return ''; }
+  const d={nom:(prenom?prenom+' ':'')+nomSeul, prenom, adresse:val('doc-cli-adr'), tel:val('doc-cli-tel'), email:val('doc-cli-email')};
+  const v=val('doc-cli-ville'); if(v){ const mv=v.match(/(\d{5})\s*(.*)/); if(mv){ d.codePostal=mv[1]; d.ville=mv[2].trim(); } else d.ville=v; }
+  const dbl=cliDoublon(d); if(dbl && !confirm(`Un client « ${dbl.c.nom} » existe déjà (${dbl.raison}). Le créer quand même ?`)) return '';
+  d.x=10+Math.random()*80; d.y=10+Math.random()*80; d.creePar=currentUser&&currentUser.id;
+  const cid=uid(); db.clients.push({id:cid,...d}); logEvent('Création',`clients : ${d.nom}`,'crud');
+  try{ setTimeout(()=>cliLocaliserFond(cid),800); }catch(e){}
+  return cid; }
 /* ⛔ v751 — UN CHAMP NUMÉRIQUE SANS `step` N'ACCEPTE QUE DES ENTIERS, ET DANS UN FORMULAIRE LE NAVIGATEUR
    BLOQUE L'ENVOI AVANT NOTRE CODE. « TVA (%) » n'avait pas de pas : 5,5 % et 2,1 % (les taux réduits légaux)
    rendaient `stepMismatch`, « Créer » ne faisait rien et saveDoc() n'était jamais appelé — mesuré par la
@@ -41509,7 +41523,7 @@ function formDoc(kind,id,preset){
     <form onsubmit="saveDoc(event,'${kind}','${id||''}')">
       <div class="field-row"><div class="field"><label>N° *</label><input name="num" required value="${esc(d.num)||docNum(kind)}"></div>
         <div class="field"><label>Date</label><input type="date" name="date" value="${d.date||todayISO()}"></div></div>
-      <div class="field"><label>Client *</label><select name="clientId" required onchange="docCliInfo(this.value)"><option value="">—</option>${clientsProposes(d.clientId).map(c=>`<option value="${c.id}" ${c.id===d.clientId?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></div>
+      <div class="field"><label>Client *</label><select name="clientId" required onchange="docCliInfo(this.value)"><option value="">—</option>${canCat('crm','ajouter')?`<option value="__nouveau">＋ Nouveau client…</option>`:''}${clientsProposes(d.clientId).map(c=>`<option value="${c.id}" ${c.id===d.clientId?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></div>
       <div id="doc-cli-info">${docCliBlock(db.clients.find(x=>x.id===d.clientId)||{})}</div>
       <div class="field"><label>Société (nom sur le document)</label><select name="rapportModele">${entSocietes().map(t=>`<option ${(d.rapportModele||entSocUnique()||'Modèle générique')===t?'selected':''}>${esc(t)}</option>`).join('')}</select>${(db.societes||[]).length?`<div style="font-size:11px;color:var(--t3);margin-top:4px">Le document prend le nom, la couleur et le logo de la société choisie (Paramètres → Mes sociétés) — comme les bons de commande.</div>`:''}</div>
       <div class="field"><label>Lignes</label><div id="lignes-box"></div></div>
@@ -41523,7 +41537,8 @@ function formDoc(kind,id,preset){
 function saveDoc(e,kind,id){ e.preventDefault(); if(!permGarde('ventes',id?'modifier':'ajouter',kind==='devis'?'un devis':'une facture')) return; const cfg=DOC[kind], f=Object.fromEntries(new FormData(e.target));
   /* v738 : la liste ne propose que les clients qu'on voit — l'enregistrement le vérifie aussi */
   const _av=id?(db[cfg.coll].find(x=>x.id===id)||{}):{};
-  if(!clientPropose(f.clientId,_av.clientId)){ toast('Ce client ne te concerne pas — choisis-en un dans la liste'); return; }
+  if(f.clientId==='__nouveau'){ const nomOk=(document.getElementById('doc-cli-nom')||{}).value; if(!String(nomOk||'').trim()){ toast('Écris le nom du client'); return; } }
+  if(f.clientId!=='__nouveau'&&!clientPropose(f.clientId,_av.clientId)){ toast('Ce client ne te concerne pas — choisis-en un dans la liste'); return; }
   /* g06 — TROIS REFUS, tous AVANT la première écriture (le client, le registre, le document) : un refus à moitié
      laisserait une fiche client réécrite pour un document qui n'existe pas.
      · facturation#15 : une facture sans aucune ligne remplie se créait à 0,00 € et CONSOMMAIT un numéro (continu,
@@ -41541,6 +41556,7 @@ function saveDoc(e,kind,id){ e.preventDefault(); if(!permGarde('ventes',id?'modi
   if(kind==='factures'&&id&&!factQuitterPayee(_av,f.statut)) return;
   // Mise à jour des coordonnées du client (adresse complète) saisies dans le document
   /* v738 : réécrire la fiche du client, c'est « Clients → Modifier » — le devis s'enregistre sans elle */
+  if(f.clientId==='__nouveau'){ const nc=docCliCreer(); if(!nc) return; f.clientId=nc; }   // v780 : la fiche client naît ici, APRÈS tous les refus (rien d'écrit pour un document refusé)
   const cli=canCat('crm','modifier')?db.clients.find(x=>x.id===f.clientId):null; if(cli){ const a=document.getElementById('doc-cli-adr'),v=document.getElementById('doc-cli-ville'),tl=document.getElementById('doc-cli-tel'),em=document.getElementById('doc-cli-email');
     if(a)cli.adresse=a.value.trim(); if(tl)cli.tel=tl.value.trim(); if(em)cli.email=em.value.trim();
     if(v&&v.value.trim()){ const mv=v.value.trim().match(/(\d{5})\s*(.*)/); if(mv){cli.codePostal=mv[1];cli.ville=mv[2].trim();} else cli.ville=v.value.trim(); } }
