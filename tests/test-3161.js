@@ -245,7 +245,7 @@ const corpsRecus = H => JSON.stringify(H.appels.map(a => ({ s: a.system, m: a.me
     vrai('…sans fichier temporaire resté derrière', !fs.readdirSync(r.H.D).some(f => /compta-reglages.*\.tmp$/.test(f)));
     r.H.nettoyer();
     r = await Z('Bonjour Margaux, tu vas bien ?', { regime: 'micro' });
-    v('⛔ un message qui ne parle pas de régime : la valeur de Claude est refusée, rien d’écrit', [r.reg, r.H.agents.lireJournal().filter(e => /outil regler_compta/.test(e.action)).map(e => e.resultat + ':' + e.detail)], [null, ['refuse:valeur_non_citee']]);
+    v('⛔ un message qui ne parle pas de régime (ici une question) : la valeur de Claude est refusée, rien d’écrit', [r.reg, r.H.agents.lireJournal().filter(e => /outil regler_compta/.test(e.action)).map(e => e.resultat + ':' + e.detail)], [null, ['refuse:question']]);
     r.H.nettoyer();
     r = await Z('je suis en micro-entreprise', { regime: 'reel' });
     v('⛔ « micro » dit, « réel » demandé : refusé', r.reg, null);
@@ -261,6 +261,14 @@ const corpsRecus = H => JSON.stringify(H.appels.map(a => ({ s: a.system, m: a.me
     r.H.nettoyer();
     r = await Z('je n’ai pas encore désigné de plateforme', { plateforme_reception: 'non' });
     v('…mais note « non »', r.reg && r.reg.plateforme, 'non');
+    r.H.nettoyer();
+    /* Justin, 29 octobre 2026 (capture) : une QUESTION faisait écrire « Je ne note la plateforme que si… » dans son fil */
+    for (const q of ['C’est quoi la plate-forme agréées', 'c\'est quoi une plateforme agréée ?', 'Comment je choisis une plateforme agréée', 'Est-ce que j’ai désigné une plateforme ?']) {
+      r = await Z(q, { plateforme_reception: 'oui' });
+      vrai('⛔ question « ' + q + ' » : rien de noté, et AUCUNE ligne système dans le fil (la réponse est à Margaux)', r.reg === null && !r.l.some(t => /Je ne note la plateforme/.test(t)), { reg: r.reg, l: r.l });
+      r.H.nettoyer(); }
+    r = await Z('j’ai désigné une plateforme agréée, c’est réglé', { plateforme_reception: 'oui' });
+    v('…contre-épreuve : une AFFIRMATION est toujours notée', r.reg && r.reg.plateforme, 'oui');
     r.H.nettoyer();
     r = await Z('oui', { plateforme_reception: 'oui' });
     v('⛔ un « oui » seul, sans le sujet : refusé', r.reg, null);
