@@ -10715,6 +10715,7 @@ function metierSet(id){
   if(String(id).indexOf('combo:')===0) return metierComboSet(String(id).slice(6));   // v780 : un pack combiné se choisit du même geste
   if(!METIERS[id]) return;
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
+  if(metierVerrouRefus()) return;
   const av=metierId(); if(av===id){ toast('C’est déjà ton métier'); return; }
   /* ⛔ v779 — CHANGER DE MÉTIER APRÈS UNE DÉMONSTRATION NE LAISSE RIEN DE L'ANCIEN (réunion clim + plomberie : 3D remplie puis
      « plomberie » gardait 14 interventions de dératisation, 7 clients, 160 produits et 5 fournisseurs de la 3D, des mots d'anti-nuisibles
@@ -10739,6 +10740,7 @@ function metierSet(id){
 }
 function metierPlusSet(id){
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
+  if(metierVerrouRefus()) return;
   id=String(id||''); const av=db.metierPlus||'', av2=db.metierPlus2||'';
   if(metierId()==='3d'){ toast('Ce réglage ne concerne pas la 3D : elle garde son pack tel quel'); return; }
   if(id&&(!Object.prototype.hasOwnProperty.call(METIERS,id)||id==='3d'||id===metierId())) return;
@@ -10756,6 +10758,7 @@ function metierPlusSet(id){
 /* v780 — LE SECOND MÉTIER ASSOCIÉ (`db.metierPlus2`, rangé comme `metierPlus`) : un plombier-chauffagiste qui fait aussi de la climatisation. Jamais sans le premier. */
 function metierPlus2Set(id){
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
+  if(metierVerrouRefus()) return;
   id=String(id||''); const av=db.metierPlus2||'';
   if(metierId()==='3d'){ toast('Ce réglage ne concerne pas la 3D : elle garde son pack tel quel'); return; }
   if(id&&(!db.metierPlus||!Object.prototype.hasOwnProperty.call(METIERS,id)||id==='3d'||id===metierId()||id===db.metierPlus)) return;
@@ -10770,6 +10773,7 @@ function metierPlus2Set(id){
 /* annuler un retrait qui a touché les deux associés */
 function metiersAssociesPoser(a,b){
   if(!currentUser||currentUser.role!=='admin') return;
+  if(metierVerrouRefus()) return;
   db.metierPlus=String(a||''); db.metierPlus2=String(b||''); save(); try{ renderNav(); }catch(e){} views.parametres(); }
 /* ⛔ v780 — LES PACKS COMBINÉS (Justin, 29 octobre 2026 : « fais des packs, combinés, et des packs séparés de chaque chose »). Un pack combiné N'EST PAS un métier de plus : c'est un métier principal
    et ses métiers associés, posés d'un seul geste (`db.metier`, `db.metierPlus`, `db.metierPlus2` — le mécanisme de « Mon entreprise fait aussi… »). Le premier de la liste est le métier principal : il
@@ -10793,6 +10797,7 @@ function metierResiduDemander(){
 function metierComboSet(k){
   const c=metierComboDe(k); if(!c||c.liste.some(m=>!Object.prototype.hasOwnProperty.call(METIERS,m)||m==='3d')) return;
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
+  if(metierVerrouRefus()) return;
   const av=metierId(), av1=db.metierPlus||'', av2=db.metierPlus2||'', id=c.liste[0];
   if(metierComboCourant()===k){ toast('C’est déjà ton pack'); return; }
   if(av!==id&&!metierResiduDemander()) return;   // même métier principal : la démonstration reste celle du pack, le pack ne fait que s'étendre
@@ -10817,8 +10822,34 @@ function metierPackRestaurer(m,a,b){
    · déjà le bon : rien ne s'écrit — pas de `save()` à chaque ouverture ;
    · sinon il s'écrit dans la base, comme la formule, pour que toute l'équipe ait le même pack, et le menu se redessine
      (le métier masque des rubriques). `tests/test-848.js` le joue contre le vrai serveur. */
+/* ⛔ v781 — LE MÉTIER CHOISI SUR LE SITE SE VERROUILLE DANS L'APPLICATION (Justin, 29 octobre 2026 : « j'ai pas envie que les
+   clients sélectionnent leur métier. Je veux qu'ils sélectionnent du site et ça bloque directement sur OP Gestion »). Le site
+   range le choix, le serveur le rend dans `/api/espaces/etat` (`metier`), et `metierServeurAppliquer` le pose à chaque
+   ouverture. Dès qu'un métier est ainsi REÇU, l'appareil le retient (clé d'appareil, comme les catégories : rien dans `db`,
+   rien ne s'écrit au chargement) et les cinq portes qui changent le métier refusent : `metierSet`, `metierComboSet`,
+   `metierPlusSet`, `metierPlus2Set`, `metiersAssociesPoser`. Un changement passe par TEAM OP (la Tour, fiche MÉTIER).
+   Ni l'équipe TEAM OP ni la bêta ne sont verrouillées : elles choisissent un métier pour le JUGER. */
+function metierCle(){ return STORE_KEY.split('_')[0]+'_metier_serveur'; }
+let _metierRecu;
+function metierRecu(){
+  if(_metierRecu===undefined){ _metierRecu=''; try{ _metierRecu=localStorage.getItem(metierCle())||''; }catch(e){} }
+  return _metierRecu;
+}
+function metierVerrouille(){
+  try{
+    if(typeof BETA_ESSAI!=='undefined'&&BETA_ESSAI) return false;
+    if(typeof equipeTeamOP==='function'&&equipeTeamOP()) return false;
+    return !!metierRecu();
+  }catch(e){ return false; }
+}
+function metierVerrouRefus(){
+  if(!metierVerrouille()) return false;
+  try{ toast('🔒 Ton métier a été choisi sur le site à ta demande d’application. Pour le changer, écris à support@teamop.fr'); }catch(e){}
+  return true;
+}
 function metierServeurAppliquer(j){
   const m=j&&j.metier;
+  if(m&&typeof m==='string'&&Object.prototype.hasOwnProperty.call(METIERS,m)&&metierRecu()!==m){ _metierRecu=m; try{ localStorage.setItem(metierCle(),m); }catch(e){} }
   if(!m||typeof m!=='string'||!Object.prototype.hasOwnProperty.call(METIERS,m)||db.metier===m) return false;
   const av=metierId();
   /* la ligne de journal AVANT l'enregistrement : logEvent ne range rien, et une ligne écrite après le save() n'existait
@@ -15159,6 +15190,8 @@ function espaceQuitter(){
        `catsCle()`, même préfixe) ; et la mémoire de la séance part aussi, sinon elle les servirait jusqu'au rechargement */
     try{ localStorage.removeItem(P+'cats'); }catch(_){}
     try{ _cats=undefined; }catch(_){}
+    try{ localStorage.removeItem(P+'metier_serveur'); }catch(_){}   // v781 : le verrou du métier est celui de l'entreprise quittée
+    try{ _metierRecu=undefined; }catch(_){}
     localStorage.removeItem('op_devis_code');   // même code d'équipe, sous son autre nom
     /* ⛔ LES CLÉS DU SOCLE SE BALAIENT PAR PRÉFIXE, PAS PAR LISTE. `elan_op_haut_<espace>` et
        `elan_op_non_<espace>` portent l'espace dans leur NOM : une liste fixe, comme celle du
@@ -38598,7 +38631,8 @@ views.parametres=function(){
             <span class="ss">Pack combiné</span>
             <span class="nb">${(pk.types||[]).length} catégories · ${(pk.presta||[]).length} prestations</span>
           </div>`; }).join(''):''}</div>
-        ${cur!=='3d'&&currentUser&&currentUser.role==='admin'?`<div class="field" style="margin:12px 0 4px"><label for="met-plus">Mon entreprise fait aussi…</label>
+        ${metierVerrouille()?`<p style="color:var(--t3);font-size:12px;line-height:1.55;margin:10px 0 4px">🔒 <b style="color:var(--t2)">Réglé par TEAM OP</b>${db.metierPlus?' — ton entreprise fait aussi : '+[db.metierPlus,db.metierPlus2].filter(k=>k&&METIERS[k]).map(k=>esc(METIERS[k].nom)).join(' et '):''}. Pour changer de métier ou en ajouter un, écris à <a href="mailto:support@teamop.fr?subject=Changer%20mon%20m%C3%A9tier" style="color:var(--acc-txt);font-weight:700">support@teamop.fr</a>.</p>`:''}
+        ${cur!=='3d'&&currentUser&&currentUser.role==='admin'&&!metierVerrouille()?`<div class="field" style="margin:12px 0 4px"><label for="met-plus">Mon entreprise fait aussi…</label>
           <select id="met-plus" onchange="metierPlusSet(this.value)"><option value="">— rien d’autre —</option>${METIERS_ORDRE.filter(k=>k!=='3d'&&k!==cur).map(k=>`<option value="${k}"${db.metierPlus===k?' selected':''}>${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}</select>
           ${db.metierPlus?`<select id="met-plus2" aria-label="Et aussi…" onchange="metierPlus2Set(this.value)" style="margin-top:6px"><option value="">— et rien d’autre —</option>${METIERS_ORDRE.filter(k=>k!=='3d'&&k!==cur&&k!==db.metierPlus).map(k=>`<option value="${k}"${db.metierPlus2===k?' selected':''}>${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}</select>`:''}
           <div style="font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.5">Une entreprise de climatisation et de plomberie choisit ici le second métier : les types d’intervention, les prestations, les relevés, les catégories de produits, les documents et le catalogue de départ des deux sont réunis. Rien n’est retiré, et tu reviens en arrière quand tu veux.</div></div>`:''}
