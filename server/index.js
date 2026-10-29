@@ -2477,7 +2477,7 @@ const MON_GESTES = {
   'messages/publier': 'a publié OP MESSAGES', 'clients/retirer': 'a demandé ou confirmé le retrait d’un client du site',
   'entreprise/apercu-suppression': null, 'entreprise/supprimer': 'a demandé ou confirmé la suppression d’une entreprise',
   'issues/purger-entreprise': null,   // la fonction note elle-même « surveillance purgée : N incidents, M lignes brutes » — sans nom, avec les nombres
-  'issues/tout-ignorer': 'a remis Surveillance à zéro', 'status': 'a changé le statut d’un incident',
+  'issues/tout-ignorer': 'a remis Surveillance à zéro', 'issues/effacer-historique': 'a effacé l’historique de Surveillance', 'status': 'a changé le statut d’un incident',
   'expliquer': 'a demandé l’explication d’un incident', 'proposer': 'a demandé une correction pour un incident',
   'support/connect': 'a relié la boîte support', 'support/reply': 'a répondu à un courriel', 'support/envoyer': 'a envoyé un courriel',
   'support/retirer': 'a retiré un courriel de la page', 'support/marquer': null,
@@ -9360,6 +9360,27 @@ app.post('/api/monitor/issues/tout-ignorer', monPatronStrict, (req, res) => {
   monSave();
   console.log('Tour :', req.tourUser.nom, 'remet Surveillance à zéro :', cibles.length, 'problème(s) ignoré(s)');
   res.json({ ok: true, classes: cibles.length });
+});
+/* ══ EFFACER L'HISTORIQUE DE SURVEILLANCE — Justin, 29 octobre 2026 : « je veux supprimer l'historique », pour « repartir bien » ═════
+   « Tout remettre à zéro » (au-dessus) CLASSE ce qui est ouvert et ne supprime rien ; ici on SUPPRIME ce qui est DÉJÀ classé (corrigé,
+   ignoré, écarté) dans la console ouverte, liste vive et archive comprises. Trois règles :
+   · ⛔ RIEN D'OUVERT NE PART : un problème « nouveau » ou « en cours » reste, sinon on effacerait une panne qu'on n'a pas encore vue ;
+   · ⛔ LE PATRON SEUL, ET IL LE DIT : `{ confirmer: 'EFFACER' }` dans le corps — un clic égaré ne vide pas l'historique ;
+   · ⛔ UNE CONSOLE À LA FOIS (`app` : gestion ou messages, obligatoire) : on n'efface pas l'historique d'OP MESSAGES depuis celle d'OP GESTION.
+   Ce qui part ne revient pas ; un problème qui se reproduit renaît en « nouveau ». Le geste est noté au journal (des nombres, aucun nom). */
+app.post('/api/monitor/issues/effacer-historique', monPatronStrict, (req, res) => {
+  const b = req.body || {}, seule = b.app;
+  if (b.confirmer !== 'EFFACER') return res.status(400).json({ error: 'confirmation requise : { confirmer: "EFFACER" }' });
+  if (typeof seule !== 'string' || !TOUR_APPS.includes(seule)) return res.status(400).json({ error: 'app : gestion ou messages' });
+  if (!req.tourUser.apps.includes(seule)) return res.status(403).json({ error: 'Cette console n’est pas ouverte à ton compte.', app: seule });
+  const classe = i => i && i.statut !== 'nouveau' && i.statut !== 'encours' && monAppDeTag(i.app) === seule;
+  const avantI = monIssues.length, avantA = monArchive.length;
+  monIssues = monIssues.filter(i => !classe(i));
+  monArchive = monArchive.filter(i => !classe(i));
+  const effaces = (avantI - monIssues.length) + (avantA - monArchive.length);
+  monSave();   // différée, sans valeur de retour (voir « Tout remettre à zéro »)
+  console.log('Tour :', req.tourUser.nom, 'efface l’historique de Surveillance (' + seule + ') :', effaces, 'problème(s) classé(s)');
+  res.json({ ok: true, effaces, ouvertsGardes: monIssues.filter(i => i && monAppDeTag(i.app) === seule && (i.statut === 'nouveau' || i.statut === 'encours')).length });
 });
 /* ── EFFACER DE LA SURVEILLANCE UNE ENTREPRISE QUI N'EXISTE PLUS (Justin, 28 octobre 2026 : « on peut supprimer l'historique »).
    La suppression totale le fait d'elle-même (`fait.surveillance`) ; cette route sert aux entreprises supprimées AVANT, dont la ligne

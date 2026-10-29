@@ -5034,6 +5034,23 @@ function entZeroCompteurs(poser){
 /* Remettre Surveillance à zéro : tout ce qui est « nouveau » ou « en cours » passe en
    « ignoré ». Rien n'est effacé, rien n'est envoyé aux clients — « corrigé » aurait déclenché
    un courriel par problème et par entreprise touchée. */
+/* v2.120 — Justin, 29 octobre 2026 : « je veux supprimer l'historique », « oui, que pour moi ». SUPPRIME ce qui est déjà classé (corrigé,
+   ignoré, écarté) dans la source affichée ; rien d'ouvert ne part. Le patron seul (le serveur le revérifie), une confirmation écrite, et
+   « Tout » efface l'historique de chaque application du compte, une à une (le serveur n'en efface qu'une par demande). */
+function incEffacerHistorique(){
+  if(MYROLE!=='patron'){ toast('Réservé au patron'); return; }
+  var f=filtreEff(), apps=f==='tout'?MYAPPS.slice():[f];
+  var n=(INC.list||[]).filter(function(i){ return i.statut!=='nouveau'&&i.statut!=='encours'&&apps.indexOf(appDe(i.app))>=0; }).length;
+  if(!n){ toast('Aucun historique à effacer'); return; }
+  var mot=prompt('Effacer DÉFINITIVEMENT l’historique de Surveillance ?\n\n'+n+(n>1?' problèmes déjà classés (corrigés, ignorés, écartés) seront supprimés':' problème déjà classé sera supprimé')+'. Les problèmes ouverts restent. Ce qui est effacé ne revient pas.\n\nÉcris EFFACER pour confirmer :');
+  if(mot===null) return;
+  if(String(mot).trim().toUpperCase()!=='EFFACER'){ toast('Rien n’est effacé (il fallait écrire EFFACER)'); return; }
+  var total=0;
+  apps.reduce(function(p,app){ return p.then(function(){ return apiPost('/api/monitor/issues/effacer-historique',{app:app,confirmer:'EFFACER'}).then(function(r){
+      if(!(r&&r.ok)) throw new Error((r&&r.d&&r.d.error)||'Impossible — réessaie.'); total+=(r.d.effaces||0); }); }); }, Promise.resolve())
+    .then(function(){ toast(nMot(total,'problème effacé','problèmes effacés')); chargerIncidents(); })
+    .catch(function(e){ alert(e&&e.message||'Serveur injoignable'); chargerIncidents(); });
+}
 function incToutIgnorer(){
   var n=incOuverts().length;
   if(!n){ toast('Rien à classer'); return; }
@@ -7766,6 +7783,9 @@ function vueSurveillance(){
      d'« Ouverts 1 » avait l'air d'une erreur. On le dit. */
   var zeroBtn=(_aClasser&&MYROLE==='patron')? '<div style="margin:-8px 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
     '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">'+(MYAPPS.length>1?(filtreEff()==='tout'?'Ceux d’OP GESTION et d’OP MESSAGES passent':'Ceux d’'+esc(APPS_TOUR[filtreEff()].nom)+' seulement passent'):'Ils passent')+' en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
+  /* v2.120 — l'historique (déjà classé) s'efface ici, patron seul ; « Tout remettre à zéro » ne fait que classer */
+  var _classes=(INC.list||[]).filter(function(x){ return x.statut!=='nouveau'&&x.statut!=='encours'&&(filtreEff()==='tout'?MYAPPS.indexOf(appDe(x.app))>=0:appDe(x.app)===filtreEff()); }).length;
+  if(_classes&&MYROLE==='patron') zeroBtn+='<div style="margin:-8px 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><button type="button" class="btn-fant" style="color:var(--redText);border-color:rgba(255,107,107,.35)" onclick="incEffacerHistorique()">🗑 Effacer l’historique — '+_classes+' problème'+(_classes>1?'s':'')+' déjà classé'+(_classes>1?'s':'')+'</button><span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">Supprime définitivement les problèmes corrigés, ignorés et écartés. Les problèmes ouverts restent.</span></div>';
   /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses segments (incSegStatut) : Ouverts · Corrigés ·
      Écartés · Tout, posés par le même filtre de statut (incF). ⛔ v2.68 : le menu déroulant à neuf choix
      qui doublait ces segments a été RETIRÉ (ici et dans la fiche d'une entreprise) — les quatre états mis
