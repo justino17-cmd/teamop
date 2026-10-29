@@ -35,11 +35,18 @@ let n = 0;
 const dossier = () => { const d = path.join(banc, 'd' + (n++)); fs.mkdirSync(d, { recursive: true }); return d; };
 
 const HOR = require(S('agents-horaires.js'));
+const BH = require('./banc-horaires.js');
+/* ⛔ 28 octobre 2026 (Justin : « de 8 h à minuit », tous les jours) : le DÉFAUT du code ne ferme plus rien — `test-3125` le garde. Ce fichier-ci garde le MÉCANISME des heures (le calendrier de Paris,
+   un férié, un samedi fermé, l'astreinte, la permanence) : il le joue sur le registre qu'un Justin d'avant aurait laissé dans la Tour (lundi – vendredi 9 h – 18 h, fériés fermés, Max et Théo, permanence
+   active), `BH.ancien()`, avec la règle courante pour qu'aucune migration n'y touche. Les rares contrôles qui lisent le défaut lui-même ont été réécrits. */
+const HORA = o => BH.horairesAncien(HOR, o);
+/* le contenu du registre sur disque (ou null) : « rien n'est écrit » se prouve par un fichier IDENTIQUE — le registre de départ existe maintenant (l'ancien réglage) */
+const contenuHor = D => { try { return fs.readFileSync(path.join(D, 'agents-horaires.json'), 'utf8'); } catch (e) { return null; } };
 const AG = require(S('agents.js'));
 const REG = AG.AGENTS.map(a => a.id);
-const defaut = () => HOR.defaut();
+const defaut = () => BH.ancien();
 /* un registre d'horaires posé sur le disque AVANT le montage, comme Justin le laisse depuis la Tour */
-const fab = cfg => { const D = dossier(); if (cfg !== undefined) fs.writeFileSync(path.join(D, 'agents-horaires.json'), typeof cfg === 'string' ? cfg : JSON.stringify(cfg)); return { D, h: HOR({ DATA_DIR: D }) }; };
+const fab = cfg => { const D = dossier(); if (cfg !== undefined) fs.writeFileSync(path.join(D, 'agents-horaires.json'), typeof cfg === 'string' ? cfg : JSON.stringify(cfg)); return { D, h: HORA({ DATA_DIR: D }) }; };
 const cfgDe = mod => Object.assign(defaut(), mod || {});
 const jour = (debut, fin) => ({ ouvert: true, debut, fin });
 const SEMAINE_SEULE = (i, d, f) => { const l = [null, null, null, null, null, null, null]; l[i] = jour(d, f); return l; };
@@ -129,10 +136,10 @@ console.log('\n── 3021 · les heures de travail des agents ──');
   const TOUS = {}; for (const id of REG) TOUS[id] = 'brouillon';
   const SAMEDI = U(2026, 10, 24, 10);                       // samedi 24 octobre 2026, 12 h à Paris
   const LUNDI = U(2026, 10, 26, 8);                         // lundi 26 octobre 2026, 9 h à Paris (heure d'hiver)
-  const avecHeures = o => monter(Object.assign({ modes: TOUS, t0: SAMEDI, horaires: D => HOR({ DATA_DIR: D }) }, o));
+  const avecHeures = o => monter(Object.assign({ modes: TOUS, t0: SAMEDI, horaires: D => HORA({ DATA_DIR: D }) }, o));
   /* Les scénarios écrits AVANT la permanence du week-end (attente, expiration au temps de travail) se jouent permanence éteinte : ils gardent la fermeture
      du week-end, pas la rotation (jouée à part, section 15). */
-  const SANS_PERMANENCE = D => { fs.writeFileSync(path.join(D, 'agents-horaires.json'), JSON.stringify(Object.assign(HOR.defaut(), { permanence: Object.assign(HOR.defaut().permanence, { actif: false }) }))); return HOR({ DATA_DIR: D }); };
+  const SANS_PERMANENCE = D => { fs.writeFileSync(path.join(D, 'agents-horaires.json'), JSON.stringify(Object.assign(BH.ancien(), { permanence: Object.assign(BH.ancien().permanence, { actif: false }) }))); return HORA({ DATA_DIR: D }); };
   const poserMail = (Z, uid, de, o) => { const m = Object.assign({ uid, dossier: 'INBOX', boite: 'b-contact', mid: '<c' + uid + '@banc-3021>', de, deNom: '', pour: 'contact@teamop.fr', objet: 'Demande de remboursement n°' + uid,
     texte: 'Bonjour, je veux un remboursement.', ts: Z.horloge.t - HEURE, auto: false, protege: false, authentifie: true }, o); Z.messages[m.boite + '|' + m.dossier + '|' + uid] = m; return { boiteId: m.boite, dossier: m.dossier, uid }; };
 
@@ -157,7 +164,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
   console.log('\n6. ⛔ L’astreinte : Max PRÉVIENT Justin la nuit — et n’écrit JAMAIS à un client');
   {
     const { monter: monterP, SANTE_BONNE } = require('./banc-plateforme.js');
-    const B = monterP({ t0: SAMEDI, horaires: D => HOR({ DATA_DIR: D }) });
+    const B = monterP({ t0: SAMEDI, horaires: D => HORA({ DATA_DIR: D }) });
     const sante = SANTE_BONNE();
     const eq = require(S('agent-equipe.js'))({ agents: B.agents, conversations: B.conversations, cerveau: B.cerveau, faits: {} });
     const max = require(S('agent-max.js'))({ agents: B.agents, conversations: B.conversations, etat: B.etat, incidents: B.incidents, maintenant: B.maintenant, sante: async () => JSON.parse(JSON.stringify(sante)) });
@@ -176,7 +183,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     v('un incident venu des appareils : Max le DIT dans « Plateforme », et dit que Jules est hors des heures (l’incident l’attend dans la Tour) — sans nom d’entreprise', [r2.clients, B.textes('plateforme').filter(t => /^Un incident de gravité haute/.test(t))], [1, ['Un incident de gravité haute vient d’arriver des appareils : 14 occurrences, chez 3 entreprises, catégorie Planning. Jules est hors des heures de travail : l’incident l’attend dans la Tour (Incidents).']]);
     v('…et aucune consigne n’est donnée à un Jules fermé', B.agents.tachesDe('jules'), []);
     B.nettoyer();
-    const G = require('./banc-agents-gestion.js').monter({ modes: { max: 'auto', camille: 'auto' }, t0: SAMEDI, horaires: D => HOR({ DATA_DIR: D }) });
+    const G = require('./banc-agents-gestion.js').monter({ modes: { max: 'auto', camille: 'auto' }, t0: SAMEDI, horaires: D => HORA({ DATA_DIR: D }) });
     const doc = a => G.documents.ranger({ type: 'courrier_agent', agent: a, a: 'client@exemple-3021.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'relance' });
     v('⛔ les DOCUMENTS (relances, accusés, annonces) refusent l’astreinte comme les brouillons : Max, samedi → hors_heures, rien de rangé', [(await doc('max')).raison, fs.existsSync(path.join(G.D, 'agents-documents.json'))], ['hors_heures', false]);
     v('…le courrier direct de Max aussi', (await G.documents.courrier({ agent: 'max', a: 'client@exemple-3021.fr', objet: 'Bonjour', texte: 'Un texte.', source: 'relance', porte: 'aucune' })).raison, 'hors_heures');
@@ -311,6 +318,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     const Z = avecHeures();
     const G = tu => Z.appeler('GET /api/monitor/agents/horaires', { tourUser: tu === undefined ? Z.PATRON : tu });
     const P = (corps, tu) => Z.appeler('POST /api/monitor/agents/horaires', { tourUser: tu === undefined ? Z.PATRON : tu, body: corps });
+    const DEPART9 = contenuHor(Z.D);
     const lu = (await G()).corps;
     v('GET : les champs du contrat', Object.keys(lu).sort(), ['agents', 'astreinte', 'entreprise', 'feriesAVenir', 'fuseau', 'illisible', 'maintenant', 'ok', 'ouvertJusqua', 'parAgent', 'permanence', 'ts']);
     v('…l’entreprise : sept jours (lundi → dimanche) { ouvert, debut, fin }, et « feries »', [lu.entreprise.jours.length, Object.keys(lu.entreprise.jours[0]).sort(), lu.entreprise.feries, lu.fuseau], [7, ['debut', 'fin', 'ouvert'], true, 'Europe/Paris']);
@@ -319,7 +327,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     v('…un état par agent : seize agents, Max « agit » mais n’est pas « ouvert » (astreinte), Camille ni l’un ni l’autre', [Object.keys(lu.agents).length, lu.agents.max.ouvert, lu.agents.max.agit, lu.agents.max.astreinte, lu.agents.camille.ouvert, lu.agents.camille.agit], [16, false, true, true, false, false]);
     v('…les prochains jours fériés (cinq, avec leur date)', [lu.feriesAVenir.length, lu.feriesAVenir[0]], [5, { date: '2026-11-01', nom: 'Toussaint' }]);
     v('GET est ouvert à tout compte de la Tour, fermé sans compte', [(await G(Z.COLLAB)).status, (await G(null)).status], [200, 401]);
-    v('POST est réservé au patron (403 pour un collaborateur, 403 sans compte) — et ne modifie rien', [(await P({ astreinte: ['nina'] }, Z.COLLAB)).status, (await P({ astreinte: ['nina'] }, null)).status, fs.existsSync(path.join(Z.D, 'agents-horaires.json'))], [403, 403, false]);
+    v('POST est réservé au patron (403 pour un collaborateur, 403 sans compte) — et ne modifie rien', [(await P({ astreinte: ['nina'] }, Z.COLLAB)).status, (await P({ astreinte: ['nina'] }, null)).status, contenuHor(Z.D) === DEPART9], [403, 403, true]);
 
     const sept = (f, i) => { const l = defaut().entreprise.jours.map(j => Object.assign({}, j)); if (f) f(l); return l; };
     const REFUS = [
@@ -346,7 +354,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     const sansEcriture = [];
     for (const [nom, corps, motif] of REFUS) {
       const x = await P(corps);
-      if (!(x.status === 400 && new RegExp(motif, 'i').test(x.corps.error || '') && !fs.existsSync(path.join(Z.D, 'agents-horaires.json')))) sansEcriture.push(nom + ' → ' + x.status + ' ' + (x.corps && x.corps.error));
+      if (!(x.status === 400 && new RegExp(motif, 'i').test(x.corps.error || '') && contenuHor(Z.D) === DEPART9)) sansEcriture.push(nom + ' → ' + x.status + ' ' + (x.corps && x.corps.error));
     }
     v('(population) ' + REFUS.length + ' corps refusés en 400 avec une phrase lisible, et RIEN n’est écrit sur disque', sansEcriture, []);
 
@@ -383,7 +391,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     const cas = [['un JSON cassé', '{"entreprise": {"jours": ['], ['un JSON qui n’est pas un objet', '[1,2,3]'], ['une forme inattendue (trois jours)', JSON.stringify({ entreprise: { jours: [jour('09:00', '18:00'), jour('09:00', '18:00'), jour('09:00', '18:00')], feries: true } })],
       ['une heure absurde', JSON.stringify(Object.assign(defaut(), { entreprise: { jours: defaut().entreprise.jours.map(j => Object.assign({}, j, { fin: '99:99' })), feries: true } }))], ['une astreinte avec un agent inconnu', JSON.stringify(Object.assign(defaut(), { astreinte: ['pirate'] }))]];
     for (const [nom, brut] of cas) {
-      const Z = monter({ modes: TOUS, t0: LUNDI, avant: D => fs.writeFileSync(path.join(D, 'agents-horaires.json'), brut), horaires: D => HOR({ DATA_DIR: D }) });
+      const Z = monter({ modes: TOUS, t0: LUNDI, avant: D => fs.writeFileSync(path.join(D, 'agents-horaires.json'), brut), horaires: D => HORA({ DATA_DIR: D }) });
       v('⛔ ' + nom + ' — lundi 9 h, en pleine heure ouvrée : Camille ET Max (l’astreinte) sont arrêtés, pour la raison « horaires_illisibles »', [Z.agents.peutAgir('camille'), Z.agents.peutAgir('max')], [{ ok: false, raison: 'horaires_illisibles' }, { ok: false, raison: 'horaires_illisibles' }]);
       const g = await Z.appeler('GET /api/monitor/agents/horaires', { tourUser: Z.PATRON });
       const p = await Z.appeler('POST /api/monitor/agents/horaires', { tourUser: Z.PATRON, body: { astreinte: ['nina'] } });
@@ -392,7 +400,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
       v('…la liste des agents le dit aussi, et un dépôt de Camille est refusé', [(await Z.appeler('GET /api/monitor/agents', { tourUser: Z.PATRON })).corps.horaires, (await Z.brouillons.deposer({ agent: 'camille', a: 'c@exemple-3021.fr', objet: 'x', texte: 'y', source: 'courrier' })).raison], [{ actives: true, illisible: true }, 'horaires_illisibles']);
       Z.nettoyer();
     }
-    const Z = monter({ modes: TOUS, t0: LUNDI, horaires: D => HOR({ DATA_DIR: D }) });
+    const Z = monter({ modes: TOUS, t0: LUNDI, horaires: D => HORA({ DATA_DIR: D }) });
     v('(contre-épreuve) SANS fichier : ce n’est pas illisible, c’est le réglage par défaut — lundi 9 h, Camille agit', [Z.agents.peutAgir('camille').ok, (await Z.appeler('GET /api/monitor/agents', { tourUser: Z.PATRON })).corps.horaires.illisible], [true, false]);
     Z.nettoyer();
   }
@@ -499,8 +507,8 @@ console.log('\n── 3021 · les heures de travail des agents ──');
 
   console.log('\n15. La permanence du week-end : deux agents Clients en rotation, jamais le même binôme deux fois de suite, Camille ou Hugo toujours là');
   {
-    const PD = HOR.PERMANENCE_DEFAUT;
-    v('(population) la permanence par défaut : active, les quatre agents Clients, Camille et Hugo piliers, 9 h – 18 h', [PD.actif, PD.agents, PD.piliers, PD.debut, PD.fin], [true, ['camille', 'hugo', 'margaux', 'lea'], ['camille', 'hugo'], '09:00', '18:00']);
+    const PD = Object.assign({}, HOR.PERMANENCE_DEFAUT, { actif: true });   // allumée : la rotation se joue allumée (le défaut du code l'éteint depuis le 28 octobre, `test-3125`)
+    v('(population) la permanence allumée : active, les quatre agents Clients, Camille et Hugo piliers, 9 h – 18 h', [PD.actif, PD.agents, PD.piliers, PD.debut, PD.fin], [true, ['camille', 'hugo', 'margaux', 'lea'], ['camille', 'hugo'], '09:00', '18:00']);
     const B = HOR.binomes(PD);
     v('cinq binômes possibles, chacun avec un pilier (Margaux et Léa ne sont jamais seules)', [B.length, B.every(b => b.includes('camille') || b.includes('hugo'))], [5, true]);
     const { h } = fab();
@@ -523,7 +531,7 @@ console.log('\n── 3021 · les heures de travail des agents ──');
     const samOuvert = defaut().entreprise; samOuvert.jours[5] = jour('09:00', '12:00');
     const hs = fab(cfgDe({ entreprise: samOuvert })).h, g15 = HOR.deGarde(PD, HOR.parisParties(U(2026, 8, 15, 8)));
     v('⛔ le 15 août (un samedi férié) dans une entreprise ouverte le samedi : fermée pour tous, sauf le binôme de garde (9 h – 18 h)', [hs.etatA(U(2026, 8, 15, 8), null).ouvert, hs.etatA(U(2026, 8, 15, 14), g15[0]).ouvert, hs.etatA(U(2026, 8, 22, 9), null).ouvert], [false, true, true]);
-    const eteinte = fab(cfgDe({ permanence: Object.assign(HOR.defaut().permanence, { actif: false }) })).h;
+    const eteinte = fab(cfgDe({ permanence: Object.assign(BH.ancien().permanence, { actif: false }) })).h;
     v('permanence éteinte : Camille ne travaille pas le samedi', eteinte.etatA(U(2026, 10, 31, 10), 'camille').ouvert, false);
     const vu = h.vue(U(2026, 10, 28, 10));
     v('la vue dit qui est de garde ce week-end et le suivant', [vu.permanence.ceWeekEnd, vu.permanence.suivant, vu.agents.camille.deGarde, !!vu.agents.margaux.deGarde], [{ samedi: '2026-10-31', agents: ['camille', 'hugo'] }, { samedi: '2026-11-07', agents: ['camille', 'margaux'] }, true, false]);
@@ -574,11 +582,11 @@ console.log('\n── 3021 · les heures de travail des agents ──');
       const fil = async (S1, f) => (await S1.G('/api/monitor/conversations/' + f)).j.messages;
       let S1 = await serveur();
       const g0 = await S1.G('/api/monitor/agents/horaires');
-      v('le serveur répond au GET des horaires : le réglage par défaut (lundi → vendredi 9 h – 18 h, Max et Théo d’astreinte)', [g0.s, g0.j.entreprise.jours.map(j => j.ouvert), g0.j.entreprise.jours[0].debut, g0.j.entreprise.jours[0].fin, g0.j.astreinte, g0.j.ouvertJusqua], [200, [true, true, true, true, true, false, false], '09:00', '18:00', ['max', 'theo'], null]);
+      v('le serveur répond au GET des horaires : le réglage par défaut depuis le 28 octobre 2026 (tous les jours 8 h – 24 h, un agent d’astreinte par couche — `test-3125` le détaille)', [g0.s, g0.j.entreprise.jours.map(j => j.ouvert), g0.j.entreprise.jours[0].debut, g0.j.entreprise.jours[0].fin, g0.j.astreinte, g0.j.ouvertJusqua], [200, [true, true, true, true, true, true, true], '08:00', '24:00', ['ines', 'camille', 'max', 'theo', 'louis', 'noah'], null]);
       /* on règle l'entreprise pour qu'elle soit FERMÉE maintenant, quelle que soit l'heure où ce banc tourne : seul demain est ouvré */
       const jsPar = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', weekday: 'short' }).format(new Date()).replace(/Mon/, 1).replace(/Tue/, 2).replace(/Wed/, 3).replace(/Thu/, 4).replace(/Fri/, 5).replace(/Sat/, 6).replace(/Sun/, 7), 10);
       const demain = jsPar % 7;                     // rang (0 = lundi) du lendemain
-      const ferme = { entreprise: { jours: [0, 1, 2, 3, 4, 5, 6].map(i => i === demain ? jour('09:00', '10:00') : { ouvert: false, debut: '09:00', fin: '18:00' }) } };
+      const ferme = { entreprise: { jours: [0, 1, 2, 3, 4, 5, 6].map(i => i === demain ? jour('09:00', '10:00') : { ouvert: false, debut: '09:00', fin: '18:00' }) }, astreinte: ['max', 'theo'] };   // Justin ferme l'entreprise ET ne laisse que Max et Théo d'astreinte : ce que ce scénario joue (Camille, elle, se tait hors de ses heures)
       const p1 = await S1.P('/api/monitor/agents/horaires', ferme);
       v('POST des horaires (seul demain 9 h – 10 h est ouvré) : 200, et l’équipe est fermée MAINTENANT', [p1.s, p1.j.maintenant.ouvert], [200, false]);
       const bad = await S1.P('/api/monitor/agents/horaires', { entreprise: { jours: [1, 2] } });

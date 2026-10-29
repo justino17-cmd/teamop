@@ -119,7 +119,7 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     v('/health : deux nombres, rien d\'autre, à zéro au départ — et ce que le pont ne connaissait pas n\'est pas encore en file (il n\'y avait pas de crochet vers lui)', pont.sante(), { echecMin: 0, file: 0 });
     await pont._envoyer();
     const ins = etat.requetes.filter(x => x.url === '/api/pont/installer');
-    v('il installe d\'abord (UNE fois) : seize agents, quatre groupes, les membres des groupes', [ins.length, ins[0].corps.agents.length, ins[0].corps.groupes.map(g => g.fil), ins[0].corps.groupes.find(g => g.fil === 'clients').membres.length], [1, 16, ['equipe', 'clients', 'plateforme', 'reunions'], 6]);
+    v('il installe d\'abord (UNE fois) : seize agents, quatre groupes, les membres des groupes', [ins.length, ins[0].corps.agents.length, ins[0].corps.groupes.map(g => g.fil), ins[0].corps.groupes.find(g => g.fil === 'clients').membres.length], [1, 16, ['equipe', 'clients', 'plateforme', 'reunions'], 7]);   // sept depuis le 28 octobre 2026 : Victor, chef d'équipe, est membre de « clients »
     v('…puis RATTRAPE : les trois messages de l\'historique, dans l\'ordre de leurs dates', messagesEnvoyes().map(m => m.texte), ['Ancien message de Victor', 'Camille a pris la tâche X', 'Ancien message de Justin']);
     const lot = posts()[0].corps;
     v('⛔ un rattrapage garde la DATE D\'ORIGINE et l\'état lu, et ne notifie personne (`import:true`, jamais `push`)', [lot.import, lot.messages.every(m => Number.isSafeInteger(m.ts)), lot.messages.map(m => m.lu), lot.messages.some(m => m.push)], [true, true, [false, true, true], false]);

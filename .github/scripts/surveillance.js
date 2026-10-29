@@ -91,6 +91,12 @@ function get(url) {
     if (j.pont && j.pont.file >= 1000) {
       problems.push('⛔⛔ LA FILE DU PONT VERS OP MESSAGES COMPTE ' + j.pont.file + ' MESSAGES — au-delà de 2 000, les plus anciens sont abandonnés (le rattrapage les reprend au redémarrage). Vérifier teamop-msg@beta (server-msg/PONT-AGENTS.md).');
     }
+    /* ⛔ LES AGENTS BUTENT SUR LEUR PLAFOND HORAIRE TOUT SEULS (28 octobre 2026). Depuis que chaque message de Justin porte une racine et son budget (conversations.js), `trop_de_messages` ne concerne plus que ce qu'un
+       agent fait SANS Justin — et il ne s'écrit plus dans aucun fil : le compteur est la seule trace. Quelques refus par heure sont normaux ; 30 et plus, c'est deux agents (ou un module) qui s'emballent : le
+       budget du jour finira par les couper, mais autant le savoir avant. `agentsRefus` n'est publié que messagerie montée (un serveur d'avant ne crie pas). */
+    if (j.agentsRefus && j.agentsRefus.horaire >= 30) {
+      problems.push('⛔ ' + j.agentsRefus.horaire + ' REFUS DE PLAFOND HORAIRE EN UNE HEURE chez les agents (hors messages de Justin) — un agent ou un module s’emballe tout seul. Journal des agents : « refus horaire » (page Agents) ; le budget du jour finira par les couper, mais cherche d’où ça vient.');
+    }
     if (j.conservation && j.conservation.erreur) {
       problems.push('⛔⛔ L’HORLOGE DE CONSERVATION NE TOURNE PLUS (' + j.conservation.erreur + ') — plus aucune date « ne paie plus depuis » n’est enregistrée, et ces dates NE SE RATTRAPENT PAS : chaque heure de panne est une information perdue pour toujours. Sur le VPS : journalctl -u teamop-api | grep conservation');
     } else if (j.conservation && j.conservation.actif) {

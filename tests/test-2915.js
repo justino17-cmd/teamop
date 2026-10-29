@@ -78,7 +78,7 @@ function monde(claude, o) {
   m.conversations.parler('camille', 'clients', '@camille @lea @victor faites ça');
   await attendre(() => m.recus.length >= 3);
   await m.attendreRepos();
-  vrai('⛔ les outils propres ne sont offerts QU\'À LEUR AGENT : Camille, Léa, Victor n\'ont que les cinq communs', m.recus.every(q => outilsDe(q).join() === 'ecrire,prendre,passer,terminer,demander_justin'));
+  vrai('⛔ les outils propres ne sont offerts QU\'À LEUR AGENT : Camille, Léa n\'ont que les six communs (dont `demander`, 28 octobre 2026) et Victor, en plus, assigner (le chef répartit)', m.recus.every(q => outilsDe(q).join() === 'ecrire,prendre,passer,terminer,demander_justin,demander' || (/^Tu es Victor,/.test(q.system) && outilsDe(q).slice(0, 6).join() === 'ecrire,prendre,passer,terminer,demander_justin,demander' && outilsDe(q).slice(6).join() === 'assigner')));
   vrai('…et un outil qu\'un agent n\'a pas reçu, que le faux Claude « appelle » quand même, est ÉCARTÉ par le cerveau (rien d\'exécuté)', m.appelsStripe.length === 0 && (await m.validations('en_attente')).length === 0);
   m = monde((q) => (nomDeRequete(q) === 'Margaux' ? { texte: 'Je prépare.', actions: [{ id: 't1', nom: 'preparer_mise_en_demeure', entree: { dossier: 'DOS-000001' } }] } : 'ok'), { monde: { impayes: async () => ({ ok: true, liste: [{ cle: 't-alpha', slug: 'alpha-proprete', dossier: 'DOS-000001', aboId: 'sub_1', adresse: 'fact@exemple-2915.fr', entreprise: 'Alpha' }] }),
     facture: async () => ({ numero: 'AB-1', montantEur: 15, emiseMs: VENDREDI - 20 * 86400000, url: 'https://invoice.stripe.com/i/x' }) } });

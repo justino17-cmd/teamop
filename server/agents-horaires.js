@@ -4,11 +4,13 @@
  * Ce fichier DIT si l'équipe est ouverte à un instant donné, jour ouvré par jour ouvré, à l'heure de PARIS. Il ne fait agir personne : c'est
  * `agents.js` (`peutAgir`, la porte commune de tout geste d'agent) qui l'interroge, au même endroit que la pause générale.
  *
- *   · des horaires d'ENTREPRISE réglables — par défaut du lundi au vendredi, 9 h – 18 h — et fermés les JOURS FÉRIÉS français (calculés ici,
- *     Pâques compris, sans dépendance) ;
+ *   · des horaires d'ENTREPRISE réglables — par défaut TOUS LES JOURS, du lundi au dimanche, 8 h – 24 h, jours fériés COMPRIS (depuis le 28 octobre 2026 ; avant :
+ *     lundi – vendredi, 9 h – 18 h, fermés les fériés). Les jours fériés français restent calculés ici (Pâques compris, sans dépendance) : « feries: true » veut
+ *     dire FERMÉ ces jours-là, « feries: false » OUVERT — c'est ce que Justin peut encore régler dans la Tour ;
  *   · des horaires PAR AGENT, facultatifs, qui surchargent ceux de l'entreprise jour par jour (Lola le samedi matin) ;
- *   · une ASTREINTE : Max et Théo veillent 24 h sur 24, mais hors des heures ils ne font que PRÉVENIR Justin (`peutAgir` leur rend
- *     `horsHeures: true` et les portes qui écrivent à un client le refusent) ;
+ *   · une ASTREINTE — LA MAINTENANCE DE NUIT : un agent par couche (Inès, Camille, Max et Théo, Louis, Noah) agit toujours, mais hors des heures il ne fait que de la
+ *     MAINTENANCE — surveiller, vérifier, préparer, noter, et PRÉVENIR Justin si c'est urgent (`peutAgir` leur rend `horsHeures: true`, les portes qui écrivent à un
+ *     client le refusent, et `agents.consigneNuit` le dit au modèle) ;
  *   · « ouvrir maintenant » : Justin force l'ouverture jusqu'à une heure donnée (une semaine au plus, pour qu'une faute de frappe ne laisse pas
  *     l'équipe ouverte pour toujours).
  *
@@ -19,7 +21,13 @@
  * ⛔ UN REGISTRE ILLISIBLE ARRÊTE LES AGENTS, IL NE LES OUVRE PAS (la règle d'`agents.js`, « on ne sait pas » n'est pas « ouvert »). `agents-horaires.json`
  *    est écrit en entier par un fichier temporaire puis un renommage, jamais par-dessus un fichier qu'on n'a pas pu lire, et une forme qui n'est pas
  *    celle qu'on a écrite (un jour qui manque, une heure absurde) vaut illisible autant qu'un JSON cassé. La Tour le DIT (503, `illisible: true`).
- * ⛔ UN REGISTRE ABSENT, C'EST LE RÉGLAGE PAR DÉFAUT — pas « ouvert tout le temps » : les agents sont ouverts du lundi au vendredi de 9 h à 18 h.
+ * ⛔ UN REGISTRE ABSENT, C'EST LE RÉGLAGE PAR DÉFAUT — pas « ouvert tout le temps » : les agents sont ouverts tous les jours de 8 h à minuit.
+ * ⛔ LA MIGRATION UNIQUE DU 28 OCTOBRE 2026 (`REGLE`) : changer un défaut du code ne touche pas un registre DÉJÀ ÉCRIT sur le VPS (Justin avait pu régler 9 h – 18 h dans la
+ *    Tour). Le registre porte donc un champ `regle`. Au premier chargement d'un registre qui n'a pas la règle courante, ses horaires d'ENTREPRISE deviennent 8 h – 24 h tous les
+ *    jours fériés compris, l'astreinte devient la liste ci-dessus, la permanence du week-end est désactivée (sans objet : tout le monde travaille le week-end) ; les horaires
+ *    PAR AGENT (un choix individuel de Justin) et « ouvert jusqu'à » sont gardés. Écrit par temporaire + renommage, une ligne au journal, UNE fois : `regle` est ensuite relue
+ *    et réécrite à l'identique, donc ce que Justin règle ensuite dans la Tour ne revient jamais en arrière. Un registre illisible n'est jamais migré (ni réécrit) : il reste
+ *    illisible et arrête tout, comme avant.
  *
  * Les routes (déclarées EN ENTIER : la table `ROUTES_COMMUNES` d'`index.js` lit `req.route.path`) : lire `monAdmin`, écrire `monPatronStrict`, les trois
  * écritures dans `MON_GESTES`.
@@ -35,14 +43,21 @@ const HM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const OUVERTURE_FORCEE_MAX_MS = 7 * 86400000;
 const OUVERTURE_FORCEE_MIN_MS = 60000;
 const HORIZON_JOURS = 400;                 // jusqu'où on cherche la prochaine ouverture (une année et plus : un réglage qui ferme tout ne boucle pas)
-const ASTREINTE_DEFAUT = ['max', 'theo'];
+/* LA MAINTENANCE DE NUIT (Justin, 28 octobre 2026 : « je veux des agents qui travaillent la nuit aussi en maintenance. Un agent dans chaque catégorie qui travaille en maintenance »).
+   Un agent par COUCHE du registre (`agents.js`) : Coordination → Inès (contrôle qualité) ; Clients → Camille (elle ne répond à personne la nuit : les courriels attendent le matin) ;
+   Plateforme → Max (sentinelle) ET Théo (les sauvegardes tournent la nuit : on garde les deux) ; Produit → Louis (documentation — Jules, « maintenance dev », est de la couche
+   Plateforme, déjà servie, et ne touche à aucun code la nuit) ; Croissance → Noah (réputation, veille). */
+const ASTREINTE_DEFAUT = ['ines', 'camille', 'max', 'theo', 'louis', 'noah'];
+const REGLE = 1;                           // la règle des horaires par défaut : 1 = 28 octobre 2026 (tous les jours 8 h – 24 h, fériés compris, maintenance de nuit, pas de permanence)
 /* LA PERMANENCE DU WEEK-END (Justin, 26 octobre 2026 : « deux agents qui tournent tous les week-ends, que ce soit jamais les mêmes », puis « Clients en
    rotation ») : chaque samedi et dimanche, DEUX agents de la liste travaillent comme en semaine (pas une astreinte : ils écrivent aux clients). Chaque binôme
    compte au moins un « pilier » — Camille lit le courrier, Hugo arrête un abonnement : sans l'un d'eux, une résiliation reçue le samedi attendrait lundi. Le
-   binôme change chaque week-end (jamais le même deux fois de suite), au calendrier de Paris (jamais « +7 × 24 h »). */
-const PERMANENCE_DEFAUT = { actif: true, agents: ['camille', 'hugo', 'margaux', 'lea'], piliers: ['camille', 'hugo'], debut: '09:00', fin: '18:00' };
+   binôme change chaque week-end (jamais le même deux fois de suite), au calendrier de Paris (jamais « +7 × 24 h »).
+   ⛔ DÉSACTIVÉE PAR DÉFAUT DEPUIS LE 28 OCTOBRE 2026 : tout le monde travaille le week-end (8 h – 24 h), la permanence n'a plus d'objet. Sa forme, sa rotation et sa validation
+   sont intactes : Justin peut la rallumer dans la Tour, par exemple après avoir fermé le week-end. */
+const PERMANENCE_DEFAUT = { actif: false, agents: ['camille', 'hugo', 'margaux', 'lea'], piliers: ['camille', 'hugo'], debut: '09:00', fin: '18:00' };
 const SAMEDI_REPERE = Date.UTC(2026, 9, 31) / 86400000;      // samedi 31 octobre 2026 : le week-end n° 0 de la rotation
-const CHAMPS_LECTURE = ['ok', 'maintenant', 'ouvertJusqua', 'agents', 'illisible', 'feriesAVenir', 'fuseau', 'ts', 'astreinteNote'];   // ce que la lecture rend en plus : renvoyé tel quel par un écran, ignoré à l'écriture
+const CHAMPS_LECTURE = ['regle', 'ok', 'maintenant', 'ouvertJusqua', 'agents', 'illisible', 'feriesAVenir', 'fuseau', 'ts', 'astreinteNote'];   // ce que la lecture rend en plus : renvoyé tel quel par un écran, ignoré à l'écriture
 
 /* ── l'heure de Paris : pur, rejouable au banc ───────────────────────────────────────────────────────────────────────────────────── */
 const FMT = new Intl.DateTimeFormat('en-US', { timeZone: FUSEAU, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', weekday: 'short' });
@@ -103,10 +118,10 @@ const ferieDe = p => joursFeries(p.annee)[dateDe(p)] || '';
 
 /* ── les réglages : la forme, ses bornes, ses valeurs par défaut ───────────────────────────────────────────────────────────────── */
 const minutesDe = hm => { const m = /^(\d\d):(\d\d)$/.exec(hm); return m ? (+m[1]) * 60 + (+m[2]) : -1; };
-const jourOuvre = () => ({ ouvert: true, debut: '09:00', fin: '18:00' });
-const jourFerme = () => ({ ouvert: false, debut: '09:00', fin: '18:00' });
-const defautEntreprise = () => ({ jours: [jourOuvre(), jourOuvre(), jourOuvre(), jourOuvre(), jourOuvre(), jourFerme(), jourFerme()], feries: true });
-const defaut = () => ({ entreprise: defautEntreprise(), parAgent: {}, astreinte: ASTREINTE_DEFAUT.slice(), permanence: JSON.parse(JSON.stringify(PERMANENCE_DEFAUT)), ouvertJusqua: null, maj: { ts: 0, par: '' } });
+const jourOuvre = () => ({ ouvert: true, debut: '08:00', fin: '24:00' });
+/* Sept jours ouverts, 8 h – 24 h, `feries: false` (= les fériés ne ferment pas : « feries: true » les fermerait). */
+const defautEntreprise = () => ({ jours: [0, 1, 2, 3, 4, 5, 6].map(jourOuvre), feries: false });
+const defaut = () => ({ regle: REGLE, entreprise: defautEntreprise(), parAgent: {}, astreinte: ASTREINTE_DEFAUT.slice(), permanence: JSON.parse(JSON.stringify(PERMANENCE_DEFAUT)), ouvertJusqua: null, maj: { ts: 0, par: '' } });
 /* Les binômes possibles, dans l'ordre de passage : chaque paire de la liste qui compte un pilier (tous si aucun pilier), rangée pour que deux week-ends qui se
    suivent partagent le moins de monde possible. Une fonction pure de la liste : deux serveurs, ou deux lectures, rendent la même rotation. */
 function binomes(perm) {
@@ -194,6 +209,7 @@ module.exports = function horaires(o) {
 
   let cfg = defaut();
   let corrompu = false;                    // une forme qui n'est pas la nôtre : même sort qu'un JSON cassé
+  let migration = null;                    // { ts, ecrit } si ce chargement a migré le registre : la ligne du journal de la Tour part au montage des routes
   function charger() {
     const brut = fich.charger(F, null);
     if (brut === null) {                   // absent : le réglage par défaut. Illisible : `fich` a noté le nom (`illisible()` le dit) — et le journal du serveur aussi.
@@ -203,6 +219,20 @@ module.exports = function horaires(o) {
     const r = normaliser(brut);
     if (r.erreur) { corrompu = true; console.error('⛔ ' + F + ' : forme inattendue (' + r.erreur + ') — les agents restent À L’ARRÊT jusqu’à sa réparation'); return; }
     cfg = r.cfg;
+    migrer();
+  }
+  /* LA MIGRATION UNIQUE (voir l'en-tête) : un registre écrit avant la règle courante prend les horaires de Justin du 28 octobre 2026. Appelée par `charger()` SEULEMENT, donc jamais sur un
+     registre absent (c'est déjà le défaut) ni illisible (rien n'est lu, rien n'est réécrit). Si l'écriture échoue, la règle courante reste valable en mémoire et le fichier garde l'ancienne :
+     le prochain démarrage recommence — le fichier n'est jamais laissé à moitié. */
+  function migrer() {
+    if (cfg.regle >= REGLE) return;
+    const d = defaut(), maj = { ts: Number(o.maintenant ? o.maintenant() : Date.now()) || Date.now(), par: 'migration du 28 octobre 2026' };
+    const avant = cfg;
+    cfg = Object.assign({}, avant, { regle: REGLE, entreprise: d.entreprise, astreinte: d.astreinte, permanence: Object.assign({}, avant.permanence, { actif: false }), maj });
+    const ecrit = fich.ecrire(F, cfg);
+    migration = { ts: maj.ts, ecrit: ecrit === true };
+    console.log(F + ' : migration unique du 28 octobre 2026 — horaires de l’entreprise 8 h – 24 h tous les jours (fériés compris), astreinte ' + cfg.astreinte.join('/') + ', permanence du week-end désactivée'
+      + ', horaires propres gardés pour ' + (Object.keys(cfg.parAgent).join(', ') || 'personne') + (ecrit ? '' : ' — ÉCRITURE ÉCHOUÉE : refaite au prochain démarrage'));
   }
   /* Le fichier relu : strictement la forme qu'on écrit. Rend { cfg } ou { erreur }. */
   function normaliser(b) {
@@ -224,6 +254,8 @@ module.exports = function horaires(o) {
         parAgent[id] = x;
       }
     }
+    let regle = 0;                         // un registre d'avant la règle n'en porte pas : il sera migré
+    if (b.regle !== undefined) { if (!Number.isInteger(b.regle) || b.regle < 0) return { erreur: 'regle' }; regle = b.regle; }
     let astreinte = ASTREINTE_DEFAUT.slice();
     if (b.astreinte !== undefined) {
       if (!Array.isArray(b.astreinte) || b.astreinte.some(x => typeof x !== 'string' || !ids.has(x))) return { erreur: 'astreinte' };
@@ -234,7 +266,7 @@ module.exports = function horaires(o) {
     let ouvertJusqua = null;
     if (b.ouvertJusqua !== undefined && b.ouvertJusqua !== null) { if (!Number.isFinite(b.ouvertJusqua) || b.ouvertJusqua < 0) return { erreur: 'ouvertJusqua' }; ouvertJusqua = b.ouvertJusqua; }
     const maj = b.maj && typeof b.maj === 'object' ? { ts: Number(b.maj.ts) || 0, par: String(b.maj.par || '').slice(0, 60) } : { ts: 0, par: '' };
-    return { cfg: { entreprise: { jours: jours.jours, feries: e.feries }, parAgent, astreinte, permanence, ouvertJusqua, maj } };
+    return { cfg: { regle, entreprise: { jours: jours.jours, feries: e.feries }, parAgent, astreinte, permanence, ouvertJusqua, maj } };
   }
   charger();
 
@@ -418,6 +450,7 @@ module.exports = function horaires(o) {
     const maintenant = typeof c.maintenant === 'function' ? c.maintenant : Date.now;
     const noter = typeof c.noter === 'function' ? c.noter : () => {};
     const qui = req => String((req.tourUser && req.tourUser.nom) || '');
+    if (migration) { noter('systeme', 'horaires', { detail: 'migration unique : 8 h – 24 h tous les jours, fériés compris, maintenance de nuit' + (migration.ecrit ? '' : ' (écriture échouée, refaite au démarrage)'), qui: 'migration' }); migration = null; }
     const illisibleRep = res => res.status(503).json({ ok: false, illisible: true, error: 'Les horaires des agents sont illisibles : les agents restent À L’ARRÊT jusqu’à la réparation de ' + F + ' (rien n’est modifié)' });
 
     app.get('/api/monitor/agents/horaires', monAdmin, (req, res) => {
@@ -464,6 +497,7 @@ module.exports.libelle = libelle;
 module.exports.defaut = defaut;
 module.exports.FICHIER = F;
 module.exports.OUVERTURE_FORCEE_MAX_MS = OUVERTURE_FORCEE_MAX_MS;
+module.exports.REGLE = REGLE;
 module.exports.ASTREINTE_DEFAUT = ASTREINTE_DEFAUT;
 module.exports.PERMANENCE_DEFAUT = PERMANENCE_DEFAUT;
 module.exports.binomes = binomes;

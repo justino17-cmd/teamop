@@ -239,16 +239,16 @@ console.log('\n── 2883 · la messagerie de la Tour contre le vrai serveur �
     await T.messFilCharger(true);
     v('relire après le dernier message, sans rien de neuf : rien ne s\'ajoute', [T.MS.msgs.length, T.MS.dernier], [avant, dernierId]);
     await T.msEnvoyer('clients', 'Un message de plus pour le groupe.');
-    await att(async () => { await T.messFilCharger(true); return T.MS.msgs.some(m => m.de === 'lea' && /Réponse de Léa/.test(m.texte)); });
+    await att(async () => { await T.messFilCharger(true); return T.MS.msgs.some(m => m.de === 'victor'); });
     await T.messFilCharger(true);
     const ids = T.MS.msgs.map(m => m.id);
-    v('après un envoi puis des lectures : mon message et la réponse de Léa (meneuse du groupe, personne n\'est cité) — deux de plus, identifiants tous différents', [T.MS.msgs.length, new Set(ids).size === ids.length], [avant + 2, true]);
+    v('après un envoi puis des lectures : mon message, la réponse de Victor (meneur des groupes depuis le 28 octobre 2026, personne n\'est cité) et sa ligne « Victor a pris… » (le faux Claude joue le mot-clé resté dans le fil) — trois de plus, identifiants tous différents', [T.MS.msgs.length, new Set(ids).size === ids.length], [avant + 3, true]);
     T.MS.dernier = 'identifiant-disparu';
     const peint = [];
     T.messPeindreFil = c => peint.push(c);
     await T.messFilCharger(true);
     const ids2 = T.MS.msgs.map(m => m.id);
-    v('⛔ identifiant introuvable : le serveur rend le fil ENTIER, la page le remplace (aucun doublon) et le repeint en entier', [T.MS.msgs.length, new Set(ids2).size === ids2.length, peint.pop()], [avant + 2, true, true]);
+    v('⛔ identifiant introuvable : le serveur rend le fil ENTIER, la page le remplace (aucun doublon) et le repeint en entier', [T.MS.msgs.length, new Set(ids2).size === ids2.length, peint.pop()], [avant + 3, true, true]);
   }
 
   console.log('\n8. ⛔ Les refus se DISENT : fil inconnu, jeton refusé, serveur coupé, collaborateur');
