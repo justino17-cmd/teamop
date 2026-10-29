@@ -111,7 +111,9 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
     const ctx = { Date, Math, JSON, Number, Array, Object, String, Set, console, etat, modesActifs: () => false, CHEVRON: '<svg class="chev"></svg>', libelleListe: () => '12:00', CAP: { service: true, identifiants: true },
       $: id => els[id] || (els[id] = { innerHTML: '', hidden: false }), peindreSelection: () => {}, majBadge: () => {}, peindreMode: () => {}, dansMode: () => true, enSourdine: () => false };
     vm.createContext(ctx);
-    vm.runInContext([M.esc, M.norme, M.icone, M.blob, M.avIndex, M.nomConv, M.avatar, M.autreCote, M.coteDe, M.NOM_COTE, M.ligneConv, M.boutonEpingle, M.ligneInvitations, M.ligneArchives, M.rendreListe,
+    vm.runInContext([M.esc, M.norme, M.icone, M.blob, M.avIndex, M.nomConv, M.avatar, M.autreCote, M.coteDe, M.NOM_COTE, M.ligneConv, M.boutonEpingle, M.ligneInvitations, M.ligneArchives,
+      /* l'ancrage et le rendu en place (29 octobre 2026) mesurent le vrai DOM : ici, des éléments simulés — on garde ce que la liste ÉCRIT */
+      'function sansSauter(c, k, f) { f(); } function peindreEnPlace(el, h) { el.innerHTML = h; } const cleLigne = () => \'\';', M.rendreListe,
       'this.F = { rendreListe };'].join('\n'), ctx, { timeout: 3000 });
     const rendre = (o) => { Object.assign(etat, { selection: null, listeArchives: false, listeInvit: false, recherche: '' }, o || {}); ctx.F.rendreListe(); return { liste: els['liste-conv'].innerHTML, haut: els.epingles.innerHTML, hautCache: els.epingles.hidden }; };
     const nb = (r, id) => occurrences(r.liste, 'data-ouvrir="' + id + '"') + occurrences(r.haut, 'data-ouvrir="' + id + '"');

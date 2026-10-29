@@ -212,6 +212,12 @@ function controler(PAGE, DOC, SRC) {
     [/const el = m0\.agenda \? retrouverAgenda\(m0\.declencheur, m0\.cle\) : m0\.declencheur, r = el && el\.isConnected \? el\.getBoundingClientRect\(\) : null, m = M\.getBoundingClientRect\(\);/, 'le menu d\'un rendez-vous de l\'agenda : ouvert au point du clic droit (ou sous le rendez-vous au clavier), et « Y aller » d\'une fiche sous son bouton, gardés dans l\'écran — lu à l\'ouverture, jamais suivi'],
     [/T\.fantome\.style\.width = Math\.round\(T\.el\.getBoundingClientRect\(\)\.width\) \+ 'px';/, 'le fantôme d\'un rendez-vous qu\'on tire : la largeur de la puce au début du glisser, pour la durée du glisser seulement'],
   ];
+  /* l'ancrage de ce qu'on lit (29 octobre 2026, « le fil saute », « la liste saute ») : une POSITION lue avant et après un redessin, pour remettre le
+     défilement — jamais une largeur recopiée */
+  MESURES_PERMISES.push(
+    [/const haut = sc === document\.scrollingElement \|\| sc === document\.documentElement \? 0 : sc\.getBoundingClientRect\(\)\.top;/, 'sansSauter : le haut de la zone qui défile'],
+    [/for \(const c of conteneur\.children\) \{ const r = c\.getBoundingClientRect\(\); if \(r\.height && r\.bottom > haut \+ 1\)/, 'sansSauter : le premier élément visible et sa position'],
+    [/const d = a\.getBoundingClientRect\(\)\.top - y0; if \(Math\.abs\(d\) > 0\.5\) sc\.scrollTop \+= d;/, 'sansSauter : ce dont il a bougé, rendu au défilement']);
   const lignesMesure = JS.split('\n').filter(l => /offsetWidth|getBoundingClientRect/.test(l));
   const mesuresNonDites = lignesMesure.filter(l => !MESURES_PERMISES.some(([re]) => re.test(l))).map(l => l.trim().slice(0, 110));
   vrai('la bulle de l\'onglet actif se place par UN numéro (--i) et le CSS : aucune largeur recopiée en JavaScript' + (mesuresNonDites.length ? ' — mesures non déclarées : ' + mesuresNonDites.join(' | ') : ''),

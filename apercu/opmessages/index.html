@@ -3284,6 +3284,47 @@ a.menu-action { text-decoration: none; }
   /* ⛔ une conversation épinglée qui attend une lecture le DIT sur son avatar (un point, comme sur la liste) : sortie de la liste, l'épingle ne montrait plus rien (relecture du 17 octobre 2026) */
   const boutonEpingle = c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
     avatar(c) + (c.nonLu ? '<i class="point epingle-point' + (enSourdine(c) ? ' muet' : '') + '"></i><span class="sr-seul">Non lu</span>' : '') + '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></button></li>';
+  /* ⛔ ANCRER CE QU'ON LIT (29 octobre 2026, « la liste saute », « le fil saute ») : Safari ne connaît pas l'ancrage de défilement du navigateur
+     (`overflow-anchor`) — un élément AU-DESSUS de l'écran qui change de hauteur pendant un rafraîchissement déplaçait tout ce qu'on lisait. On retient
+     le premier élément visible et sa position, on redessine, et on remet le défilement pour qu'il n'ait pas bougé à l'écran. */
+  function defileurDe(el) {
+    for (let n = el; n && n !== document.body && n !== document.documentElement; n = n.parentElement) {
+      const o = getComputedStyle(n).overflowY; if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight) return n;
+    }
+    return document.scrollingElement || document.documentElement;
+  }
+  function sansSauter(conteneur, cleDe, faire) {
+    const sc = conteneur && defileurDe(conteneur);
+    if (!sc || !conteneur.children.length || sc.scrollTop <= 0) { faire(); return; }      // en haut, rien à garder : on reste en haut
+    const haut = sc === document.scrollingElement || sc === document.documentElement ? 0 : sc.getBoundingClientRect().top;
+    let ancre = null, y0 = 0, cle = '';
+    for (const c of conteneur.children) { const r = c.getBoundingClientRect(); if (r.height && r.bottom > haut + 1) { ancre = c; y0 = r.top; cle = cleDe(c) || ''; break; } }
+    faire();
+    if (!ancre) return;
+    let a = ancre.isConnected && conteneur.contains(ancre) ? ancre : null;
+    if (!a && cle) for (const c of conteneur.children) if (cleDe(c) === cle) { a = c; break; }
+    if (!a) return;
+    const d = a.getBoundingClientRect().top - y0; if (Math.abs(d) > 0.5) sc.scrollTop += d;
+  }
+  /* redessiner une liste SANS la remplacer : seules les lignes qui ont changé sont refaites (les autres gardent leur nœud — rien ne bouge sous le doigt) */
+  function peindreEnPlace(el, html, cleDe) {
+    if (el.__html === html) return;
+    el.__html = html;
+    const tpl = document.createElement('template'); tpl.innerHTML = html;
+    /* une ligne qui n'a pas changé GARDE son nœud, même si elle a changé de place (une conversation remonte en tête : on la DÉPLACE, on ne refait pas les autres) */
+    const parCle = new Map();
+    if (cleDe) for (const n of el.childNodes) { const k = n.nodeType === 1 ? cleDe(n) : ''; if (k && !parCle.has(k)) parCle.set(k, n); }
+    const voulus = Array.from(tpl.content.childNodes).map((neuf, i) => {
+      const k = cleDe && neuf.nodeType === 1 ? cleDe(neuf) : '';
+      const vieux = k ? parCle.get(k) : el.childNodes[i];
+      if (vieux && vieux.isEqualNode(neuf)) { if (k) parCle.delete(k); return vieux; }
+      return neuf;
+    });
+    const garde = new Set(voulus);
+    for (const n of Array.from(el.childNodes)) if (!garde.has(n)) el.removeChild(n);
+    voulus.forEach((n, i) => { if (el.childNodes[i] !== n) el.insertBefore(n, el.childNodes[i] || null); });
+  }
+  const cleLigne = li => { const b = li.querySelector && li.querySelector('[data-ouvrir],[data-choisir]'); return b ? (b.dataset.ouvrir || b.dataset.choisir || '') : ''; };
   /* ⛔ « Aucune conversation Perso » ne dit pas qu'il n'y a RIEN : les agents, les canaux et les collègues sont rangés côté Pro (relecture du 28 octobre 2026 — la Tour encadre OP MESSAGES, et la première arrivée
      tombait sur un Perso vide, au téléphone où la bascule est dans le Profil). La phrase nomme le côté, dit ce qu'il y a de l'autre, et mène à lui d'un geste. Rien ne change de côté tout seul. */
   function versPro() {
@@ -3316,10 +3357,11 @@ a.menu-action { text-decoration: none; }
     const pied = !etat.listeInvit && !etat.listeArchives && !q && !etat.selection && archivees.length ? ligneArchives(archivees) : '';
     /* toutes les conversations du côté sont épinglées : la rangée du haut les porte, la liste n'a rien à dire (« Aucune conversation » serait faux) */
     const toutesEnHaut = !vues.length && !tete && !pied && etat.conversations.some(enHaut);
-    $('liste-conv').innerHTML = tete + (toutesEnHaut ? '' : vues.length || tete || pied ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') + pied :
+    const htmlListe = tete + (toutesEnHaut ? '' : vues.length || tete || pied ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') + pied :
       (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>'
         : !q && modesActifs() ? '<li class="vide">' + (etat.mode === 'pro' ? 'Aucune conversation Pro pour l\'instant : les canaux de ton entreprise, tes réunions et tes échanges avec tes collègues viennent ici.' : 'Aucune conversation Perso pour l\'instant.' + versPro()) + '</li>'
         : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
+    sansSauter($('liste-conv'), cleLigne, () => peindreEnPlace($('liste-conv'), htmlListe, cleLigne));
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
     const pins = epingleHaut ? etat.conversations.filter(enHaut) : [];
     $('epingles').innerHTML = pins.map(boutonEpingle).join('');
@@ -4172,7 +4214,8 @@ a.menu-action { text-decoration: none; }
     etat.convDonnees = c;
     rendreEntete(c);
     if (etat.groupe.ouvert && etat.groupe.mode === 'sondage-votes' && typeof rendreSondageVotes === 'function') rendreSondageVotes();   // « Voir les votes » suit les votes qui arrivent
-    peindreMessages(partiesMessages(c));
+    const cleMsg = n => { const m = n.dataset && n.dataset.mid ? n : n.querySelector && n.querySelector('[data-mid]'); return m ? m.dataset.mid : ''; };
+    if (colle) peindreMessages(partiesMessages(c)); else sansSauter($('conv-messages'), cleMsg, () => peindreMessages(partiesMessages(c)));
     sondageEcheance(c);
     annoncerTranscriptions(c);
     $('conv-messages').setAttribute('aria-busy', 'false');
@@ -6042,9 +6085,18 @@ a.menu-action { text-decoration: none; }
      de saisie reste caché derrière (mesuré impossible dans ce navigateur de test : écrit d'après la spécification, dit dans le rapport) */
   if (window.visualViewport) {
     const vv = window.visualViewport, root = document.documentElement.style;
-    const suivre = () => {
-      if (vv.scale <= 1.01 && vv.height < window.innerHeight - 80) { root.setProperty('--vvh', vv.height + 'px'); root.setProperty('--vvt', vv.offsetTop + 'px'); if (etat.conv) defilerBas(); }
+    /* ⛔ LE FIL NE SAUTE PLUS EN BAS À CHAQUE DÉFILEMENT (le patron, 29 octobre 2026 : « les conversations remontent », le fil saute). La fenêtre
+       visuelle émet `scroll` sans arrêt quand on fait défiler avec le clavier ouvert : on ramenait en bas À CHAQUE FOIS. On ne descend plus qu'à
+       l'OUVERTURE du clavier (la fenêtre rétrécit), et seulement si on était déjà en bas ou qu'on écrit. */
+    let hPrec = vv.height;
+    const suivre = ev => {
+      const f = $('conv-fil'), etaitBas = !f || f.scrollHeight - f.scrollTop - f.clientHeight < 80, ecrit = !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#compo'));
+      if (vv.scale <= 1.01 && vv.height < window.innerHeight - 80) {
+        root.setProperty('--vvh', vv.height + 'px'); root.setProperty('--vvt', vv.offsetTop + 'px');
+        if (etat.conv && ev && ev.type === 'resize' && vv.height < hPrec - 40 && (etaitBas || ecrit)) defilerBas();
+      }
       else { root.removeProperty('--vvh'); root.removeProperty('--vvt'); }
+      hPrec = vv.height;
     };
     vv.addEventListener('resize', suivre); vv.addEventListener('scroll', suivre);
   }
