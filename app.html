@@ -9456,7 +9456,7 @@ const METIERS={
       'Rapport d’intervention avec photos', 'Rapport de test d’étanchéité daté',
       'Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)',
       'Certification du client pour la TVA réduite (mention du devis ou de la facture)',
-      'Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)'
+      'Suivi du repérage amiante avant travaux (si le bâtiment est concerné)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
@@ -9682,13 +9682,13 @@ const METIERS={
       'Nettoyage du chantier', 'Procès-verbal de réception signé',
       'Déclaration de travaux à proximité de réseaux (DT-DICT)', 'Démolition / dépose', 'Décoffrage et cure du béton',
       'Chaînage et raidisseurs', 'Étaiement', 'Chape',
-      'Vérification du repérage amiante avant travaux (bâtiment livré avant le 1er janvier 1997)'
+      'Vérification du repérage amiante avant travaux (si le bâtiment est concerné)'
     ],
     releves:[
       {k:'surface',l:'Surface réalisée',u:'m²'}, {k:'volume',l:'Béton coulé',u:'m³'},
       {k:'lineaire',l:'Linéaire de mur',u:'ml'}, {k:'tps',l:'Temps passé sur site',u:'h'},
       {k:'avancement',l:'Avancement du lot',u:'%'},
-      {k:'reperageAmiante',l:'Repérage amiante avant travaux (référence et date du rapport, bâtiment d’avant 1997)',u:'',txt:true},
+      {k:'reperageAmiante',l:'Repérage amiante avant travaux (référence et date du rapport, si le bâtiment est concerné)',u:'',txt:true},
       {k:'effectif',l:'Effectif sur chantier',u:'personnes'}, {k:'meteo',l:'Météo',u:'',txt:true},
       {k:'materiauxLivres',l:'Matériaux livrés',u:'',txt:true},
       {k:'aleas',l:'Aléas (amiante, réseaux, sol)',u:'',txt:true},
@@ -9725,7 +9725,7 @@ const METIERS={
       'Évacuation des déchets', 'Nettoyage du chantier', 'Croquis et plan joints à la prise de cotes',
       'Réception de la commande du fabricant vérifiée',
       'Déclaration des performances du fabricant demandée et rangée',
-      'Vérification du repérage amiante avant travaux (bâtiment livré avant le 1er janvier 1997)',
+      'Vérification du repérage amiante avant travaux (si le bâtiment est concerné)',
       'Procès-verbal de réception signé'
     ],
     releves:[
@@ -9765,7 +9765,7 @@ const METIERS={
       'Dépose des protections', 'Nettoyage du chantier', 'Fiche de teinte remise au client',
       'Relevé des supports et métré', 'Décapage de l’ancien revêtement', 'Enduit de lissage',
       'Pose de revêtement de sol', 'Raccords et retouches',
-      'Vérification du repérage amiante (bâtiment livré avant le 1er janvier 1997) ou du constat plomb (logement d’avant 1949) avant ponçage ou décapage',
+      'Vérification du repérage amiante ou du constat plomb avant ponçage ou décapage, si le bâtiment est concerné',
       'Contrôle final avec le client'
     ],
     releves:[
@@ -9842,7 +9842,7 @@ const METIERS={
       'Réfection des faîtages', 'Nettoyage des gouttières', 'Pose / soudure du zinc', 'Démoussage',
       'Application d’hydrofuge', 'Évacuation des déchets', 'Nettoyage du chantier',
       'Photos avant et après de la toiture', 'Contrôle des plaques fragiles',
-      'Contrôle du rapport de repérage amiante avant travaux (bâtiment livré avant 1997)', 'Bâchage provisoire',
+      'Contrôle du rapport de repérage amiante avant travaux (si le bâtiment est concerné)', 'Bâchage provisoire',
       'Pose d’écran de sous-toiture', 'Contrôle des solins, noues et rives', 'Pose de fenêtre de toit'
     ],
     releves:[
@@ -9861,7 +9861,7 @@ const METIERS={
       'Rapport d’intervention avec photos avant et après',
       'Fiche de mise en sécurité (échafaudage, protection contre les chutes)',
       'Procès-verbal de réception (avec ou sans réserves)', 'Devis de réparation ou de dépannage de toiture',
-      'Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)',
+      'Suivi du repérage amiante avant travaux (si le bâtiment est concerné)',
       'Suivi de l’attestation d’assurance décennale (document de l’assureur)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
@@ -44318,8 +44318,8 @@ const DOCM_DEFS=[
      corps:'Bonjour,\n\nVous trouverez ci-joint la certification relative au taux réduit de TVA appliqué à nos travaux. Merci de la relire, de la signer et de nous la retourner.\n\nNous restons à votre disposition.'}) },
 
  { id:'suivi-amiante', metiers:['plomberie','couverture','peinture'], ic:'🧱', court:'Suivi du repérage amiante', pdfTitre:'SUIVI DU REPÉRAGE AMIANTE',
-   titre:'Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)', portee:'client', droit:'crm', interne:true, statutChamp:'reperage',
-   aide:'Le repérage est commandé par le donneur d’ordre à un opérateur certifié : cette fiche suit le rapport reçu, elle ne le produit pas. Le plomb (avant 1949) reste à confirmer.',
+   titre:'Suivi du repérage amiante avant travaux (si le bâtiment est concerné)', portee:'client', droit:'crm', interne:true, statutChamp:'reperage',
+   aide:'Le repérage est commandé par le donneur d’ordre à un opérateur certifié : cette fiche suit le rapport reçu, elle ne le produit pas. Le plomb reste à confirmer.',
    champs:[
      {k:'chantier',l:'Chantier (adresse)',t:'texte',max:200,pre:'adresse',s:'Le chantier'},
      {k:'piece',l:'Type de pièce',t:'choix',options:[['amiante','Repérage amiante avant travaux'],['plomb','Constat de risque d’exposition au plomb']],pour:['peinture']},
@@ -44330,9 +44330,8 @@ const DOCM_DEFS=[
      {k:'resultat',l:'Résultat',t:'choix',options:[['presence','Présence d’amiante'],['absence','Absence d’amiante'],['inconnu','Pas encore connu']]},
      {k:'transmisLe',l:'Transmis à l’entreprise le',t:'date'}],
    mentions:[
-     {texte:'Le repérage avant travaux vise les bâtiments livrés avant le 1er janvier 1997 ; il est commandé par le donneur d’ordre à un opérateur certifié.',
-      source:'FFB, repérage amiante avant travaux',verifie:true,
-      pdf:'Le repérage amiante avant travaux vise les bâtiments livrés avant le 1er janvier 1997 ; il est commandé par le donneur d’ordre à un opérateur certifié.'},
+     {texte:'Le repérage amiante avant travaux est commandé par le donneur d’ordre à un opérateur certifié. Le critère d’application (date de livraison du bâtiment ou date du permis de construire) n’a pas été relu : Code du travail R. 4412-97 et arrêté du 16 juillet 2019 à ouvrir avant de l’imprimer.',
+      source:'FFB (professionnelle) ; texte réglementaire à relire',verifie:false},
      {texte:'Plomb (bâtiments d’avant 1949) : qui commande le constat de risque d’exposition avant travaux. Extrait OPPBTP coupé ; articles non lus.',source:'À confirmer',verifie:false}],
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : le rapport de repérage est celui de l’opérateur certifié.' },
@@ -44561,7 +44560,7 @@ const DOCM_DEFS=[
      {k:'chantier',l:'Chantier (adresse)',t:'texte',pre:'adresse',s:'Le chantier',max:200},
      {k:'pieces',l:'Pièces du dossier',t:'tableau',cols:[{l:'Pièce',w:0.3,opts:['Autorisation d’urbanisme','Repérage amiante avant travaux','Constat plomb','Plan de prévention','Déclaration de travaux près des réseaux (DT-DICT)','Assurance décennale','Responsabilité civile professionnelle','Plans et études']},{l:'Présente / absente',w:0.14,opts:['Présente','Absente','Non nécessaire']},{l:'Référence',w:0.22},{l:'Date',w:0.14},{l:'Échéance (assurance)',w:0.2}],maxRows:40}],
    mentions:[
-     {texte:'Repérage amiante avant travaux : bâtiments livrés avant le 1er janvier 1997, commandé par le donneur d’ordre à un opérateur certifié, rapport remis aux entreprises.',source:'FFB, repérage amiante avant travaux',verifie:true,pdf:'Le repérage amiante avant travaux vise les bâtiments livrés avant le 1er janvier 1997 ; il est commandé par le donneur d’ordre à un opérateur certifié.'},
+     {texte:'Repérage amiante avant travaux : commandé par le donneur d’ordre à un opérateur certifié, rapport remis aux entreprises. Le critère d’application (date de livraison du bâtiment ou date du permis de construire) n’a pas été relu : Code du travail R. 4412-97 et arrêté du 16 juillet 2019 à ouvrir avant de l’imprimer.',source:'FFB (professionnelle) ; texte réglementaire à relire',verifie:false},
 
      {texte:'Plan de prévention écrit dès 400 heures prévisibles sur 12 mois au plus (tous intervenants compris), ou pour un travail de la liste de l’arrêté du 19 mars 1993.',source:'OPPBTP, articles R. 4512-7 et R. 4512-8 du Code du travail',verifie:true,pdf:'Un plan de prévention écrit est établi dès 400 heures prévisibles sur 12 mois au plus (tous intervenants compris), ou pour un travail de la liste de l’arrêté du 19 mars 1993.'},
 

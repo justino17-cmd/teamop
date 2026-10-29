@@ -303,7 +303,7 @@ console.log('\n── 3128 · 7. les suivis (gaz, vignette, amiante) et la certi
   vrai('⛔ le formulaire « Nouveau devis » d\'OP GESTION porte le même conseil sous ses totaux (ligTot) quand un taux réduit est saisi', /\+\(typeof docmNoteTauxReduit==='function'\?docmNoteTauxReduit\(tva,false\):''\); \}/.test(N)); }
 { const W = mk('plomberie'); W.docmForm('suivi-amiante', { cid: 'c1' }); Object.assign(W.docmW.v, { reperage: 'requis', resultat: 'inconnu', livraison: '1985' }); const id = W.docmSauver();
   const t = tout((await fabrique(W, id)).pdf);
-  vrai('amiante : le suivi imprime la phrase lue (bâtiments livrés avant le 1er janvier 1997, opérateur certifié) et rien sur le plomb', /avant le 1er janvier 1997/.test(t) && /opérateur certifié/.test(t) && !/plomb/i.test(t.replace(/Valeur/g, '')), t.slice(0, 200)); }
+  vrai('⛔ amiante : le suivi n\'imprime AUCUN critère de date (livraison avant le 1er janvier 1997 : non relu, constat 10 du 28 octobre), ni opérateur certifié (la mention est « à relire »), ni rien sur le plomb', !/1997|1949/.test(t) && !/vise les bâtiments/.test(t) && !/plomb/i.test(t.replace(/Valeur/g, '')), t.slice(0, 200)); }
 
 console.log('\n── 3128 · 8. la section client et le crochet de la fiche ──');
 { const W = mk('plomberie'); W.docmForm('devis-depannage', { cid: 'c1', iid: 'i1' }); remplit(W, DEFS_REEL[0]); W.docmSauver();

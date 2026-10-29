@@ -767,7 +767,7 @@
     "Rapport de test d’étanchéité daté",
     "Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)",
     "Certification du client pour la TVA réduite (mention du devis ou de la facture)",
-    "Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)"
+    "Suivi du repérage amiante avant travaux (si le bâtiment est concerné)"
    ],
    "aCreer": [
     {
@@ -804,7 +804,7 @@
      "aConfirmer": true
     },
     {
-     "texte": "Repérage amiante avant travaux pour les bâtiments livrés avant le 1er janvier 1997, commandé par le donneur d’ordre à un opérateur certifié ; l’application suit le rapport reçu, elle ne le produit pas.",
+     "texte": "Repérage amiante avant travaux, si le bâtiment est concerné : il est commandé par le donneur d’ordre à un opérateur certifié ; l’application suit le rapport reçu, elle ne le produit pas.",
      "source": "FFB, amiante-reperage (professionnelle, lue)",
      "fiabilite": "professionnelle"
     }
@@ -2138,7 +2138,7 @@
     "Chaînage et raidisseurs",
     "Étaiement",
     "Chape",
-    "Vérification du repérage amiante avant travaux (bâtiment livré avant le 1er janvier 1997)"
+    "Vérification du repérage amiante avant travaux (si le bâtiment est concerné)"
    ],
    "releves": [
     {
@@ -2168,7 +2168,7 @@
     },
     {
      "k": "reperageAmiante",
-     "l": "Repérage amiante avant travaux (référence et date du rapport, bâtiment d’avant 1997)",
+     "l": "Repérage amiante avant travaux (référence et date du rapport, si le bâtiment est concerné)",
      "u": "",
      "txt": true
     },
@@ -2387,7 +2387,7 @@
     "Croquis et plan joints à la prise de cotes",
     "Réception de la commande du fabricant vérifiée",
     "Déclaration des performances du fabricant demandée et rangée",
-    "Vérification du repérage amiante avant travaux (bâtiment livré avant le 1er janvier 1997)",
+    "Vérification du repérage amiante avant travaux (si le bâtiment est concerné)",
     "Procès-verbal de réception signé"
    ],
    "releves": [
@@ -2585,7 +2585,7 @@
     "Enduit de lissage",
     "Pose de revêtement de sol",
     "Raccords et retouches",
-    "Vérification du repérage amiante (bâtiment livré avant le 1er janvier 1997) ou du constat plomb (logement d’avant 1949) avant ponçage ou décapage",
+    "Vérification du repérage amiante ou du constat plomb avant ponçage ou décapage, si le bâtiment est concerné",
     "Contrôle final avec le client"
    ],
    "releves": [
@@ -2681,7 +2681,7 @@
      "valeur": "haute"
     },
     {
-     "fonction": "Avertissement amiante / plomb avant l'intervention (bâtiment d'avant 1997 ou logement d'avant 1949)",
+     "fonction": "Avertissement amiante / plomb avant l'intervention (si le bâtiment est concerné)",
      "valeur": "haute"
     },
     {
@@ -3048,7 +3048,7 @@
     "Nettoyage du chantier",
     "Photos avant et après de la toiture",
     "Contrôle des plaques fragiles",
-    "Contrôle du rapport de repérage amiante avant travaux (bâtiment livré avant 1997)",
+    "Contrôle du rapport de repérage amiante avant travaux (si le bâtiment est concerné)",
     "Bâchage provisoire",
     "Pose d’écran de sous-toiture",
     "Contrôle des solins, noues et rives",
@@ -3110,7 +3110,7 @@
     "Fiche de mise en sécurité (échafaudage, protection contre les chutes)",
     "Procès-verbal de réception (avec ou sans réserves)",
     "Devis de réparation ou de dépannage de toiture",
-    "Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)",
+    "Suivi du repérage amiante avant travaux (si le bâtiment est concerné)",
     "Suivi de l’attestation d’assurance décennale (document de l’assureur)"
    ],
    "aCreer": [
