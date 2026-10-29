@@ -10765,10 +10765,43 @@ function metierBloque(k){ if(BETA_ESSAI&&estMetier3D()) return false; const p=me
   try{ if(k==='enveloppes'&&(db.enveloppes||[]).length) return false;
     if(k==='saisieConso'&&(db.mouvements||[]).some(m=>m&&m.boxId&&m.boxId!==STOCKAGE_ID)) return false; }catch(e){}
   return true; }
+/* Ce que l'ancien métier a laissé dans la base : la démonstration (marquée `demo`, hors journée d'essai de la comptabilité) et les
+   fiches du CATALOGUE de son pack (identifiant déduit du nom, jamais `perso`) et ses fournisseurs. Une saisie à la main n'y entre pas. */
+function metierResidu(){
+  if(typeof BETA_ESSAI==='undefined'||!BETA_ESSAI||typeof db==='undefined') return null;
+  const dm=x=>!!(x&&x.demo&&x.demo!=='compta');
+  let pack={}; try{ pack=metierPackDe(db)||{}; }catch(e){}
+  const ids=new Set((pack.catalogue||[]).map(c=>{ const n=String((c&&c[0])||'').trim(); return n&&slugNom(n)?idCatalogue(n):''; }).filter(Boolean));
+  const noms=new Set((pack.fournisseurs||[]).map(f=>String((f&&f.nom)||'').trim().toUpperCase()).filter(Boolean));
+  const r={ ints:(db.interventions||[]).filter(dm).length, clients:(db.clients||[]).filter(dm).length, techs:(db.techniciens||[]).filter(dm).length,
+    produits:(db.produits||[]).filter(p=>p&&ids.has(p.id)&&!p.perso).length,
+    fours:(db.fournisseurs||[]).filter(f=>f&&noms.has(String(f.nom||'').trim().toUpperCase())).length,
+    autres:['cahiers','plansPrevention','docsMetier','appareils'].reduce((n,c)=>n+(db[c]||[]).filter(dm).length,0), ids:ids, noms:noms };
+  r.total=r.ints+r.clients+r.techs+r.produits+r.fours+r.autres;
+  return r;
+}
+function metierResiduRetirer(r){
+  const dm=x=>!!(x&&x.demo&&x.demo!=='compta');
+  try{ syncRetraitVoulu(); }catch(e){}
+  ['interventions','clients','techniciens','cahiers','plansPrevention','docsMetier','appareils'].forEach(c=>{ if(Array.isArray(db[c])) db[c]=db[c].filter(x=>!dm(x)); });
+  db.produits=(db.produits||[]).filter(p=>!(p&&r.ids.has(p.id)&&!p.perso));
+  db.fournisseurs=(db.fournisseurs||[]).filter(f=>!(f&&r.noms.has(String(f.nom||'').trim().toUpperCase())));
+  try{ localStorage.removeItem('elanD_plan_techs'); }catch(e){}
+  try{ planTechM=null; planJours=[]; }catch(e){}
+}
 function metierSet(id){
   if(!METIERS[id]) return;
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
   const av=metierId(); if(av===id){ toast('C’est déjà ton métier'); return; }
+  /* ⛔ v779 — CHANGER DE MÉTIER APRÈS UNE DÉMONSTRATION NE LAISSE RIEN DE L'ANCIEN (réunion clim + plomberie : 3D remplie puis
+     « plomberie » gardait 14 interventions de dératisation, 7 clients, 160 produits et 5 fournisseurs de la 3D, des mots d'anti-nuisibles
+     dans 10 rubriques). Bêta seulement (`BETA_ESSAI` : ni donnée de client, ni choix d'entreprise) : on DIT ce qui part, on demande,
+     puis on retire la démonstration et le catalogue de l'ancien pack. Refus : on ne change rien, et la liste revient sur l'ancien métier. */
+  const rs=metierResidu();
+  if(rs&&rs.total){
+    if(!confirm('Changer de métier ?\n\nLa démonstration et le catalogue de l’ancien métier seront retirés pour ne rien en garder à l’écran :\n· '+rs.ints+' intervention(s) de démonstration\n· '+rs.clients+' client(s)\n· '+rs.techs+' technicien(s)\n· '+rs.produits+' produit(s) et '+rs.fours+' fournisseur(s) du catalogue\n\nTes saisies à toi ne sont pas touchées.')){ try{ views.parametres(); }catch(e){} return; }
+    metierResiduRetirer(rs);
+  }
   /* audit apple-design, point 19 : le texte le disait déjà, « tu peux revenir en arrière à tout moment » — le geste se
      fait, et « ↩︎ Annuler » rend le métier d'avant. */
   db.metier=id; if(db.metierPlus===id||id==='3d') db.metierPlus='';   // le métier ne peut pas être aussi son complément ; la 3D n'en a pas
@@ -38013,6 +38046,7 @@ function demoSemisDe(){
   if(metierId()==='plomberie') return DEMO_PLOMB;
   if(metierId()==='chauffage') return DEMO_CHAUF;
   return demoPlanGenerique(); }
+const DEMO_MONTANTS=[150,90,240,120,180,95,320,140,210,420,110,260,130,170];
 function demoCharger(){
   const n=demoCompte();
   if(n.ints&&!confirm('Un planning de démonstration existe déjà ('+n.ints+' interventions).\nEn créer un nouveau par-dessus ?')) return;
@@ -38026,9 +38060,12 @@ function demoCharger(){
   const C=DEMO.clients.map(c=>{ const o={id:uid(),nom:c[0],adresse:c[1],ville:c[2],cp:'17000',lat:c[3],lng:c[4],typeClient:c[5],tel:'0612345678',demo:1}; db.clients.push(o); return o.id; });
   const J=[todayISO(),shiftDay(todayISO(),1),shiftDay(todayISO(),2)];
   const P=DEMO.planning;
-  P.forEach(p=>{
+  P.forEach((p,k)=>{
     db.interventions.push({ id:uid(), titre:p[3], type:p[4], date:J[p[0]], heure:p[1], duree:p[2],
       techId:T[p[5]], techIds:[T[p[5]]], statut:p[7]||'planifiee', clientId:C[p[6]],
+      /* v779 : un montant à chaque passage (hors 3D, dont les données restent À L'IDENTIQUE) — sans lui « Générer la facture » d'une
+         intervention de démonstration sortait à 0,00 € et les cartes de facturation restaient vides devant le client. */
+      ...(estMetier3D()?{}:{ montant:p[8]||DEMO_MONTANTS[k%DEMO_MONTANTS.length] }),
       checklist:DEMO.checklist.map((t,k)=>({t,done:k===0&&p[7]==='terminee'})),
       nuisibles:[], produitsUtilises:[], demo:1 });
   });
@@ -38041,7 +38078,9 @@ function demoCharger(){
   save();
   try{ localStorage.removeItem('elanD_plan_techs'); }catch(e){}
   planTechM=null; planJours=[J[0],J[1]]; planMode='multi'; planSel=J[0]; planWeekRef=J[0]; planCarteOn=true;
-  toast('🎬 Planning de démonstration créé — 14 interventions sur 3 jours');
+  /* v779 : sans nom d'entreprise, TOUS les PDF sont refusés (c'est voulu : un document sans l'identité de l'émetteur est faux) — on le dit
+     au moment où la démonstration s'ouvre, pas au premier PDF devant le client. */
+  toast('🎬 Planning de démonstration créé — 14 interventions sur 3 jours'+(entrepriseNom()?'':' · Renseigne le nom de ton entreprise (Paramètres) pour les PDF'),entrepriseNom()?undefined:6500);
   go('planning');
 }
 function demoRetirer(){
@@ -38804,7 +38843,9 @@ function delItem(coll,id){
      vraiment lieu (relecture adverse, partie X) — remis à zéro en tête de fonction, une boîte refusée, un droit manquant ou
      une suppression qui passe par sa propre fenêtre rendaient muet l'« Annuler » du toast encore à l'écran */
   let arme=null;
-  const _grp=COLL_GRP[coll]||'';
+  /* v779 : un document du métier se supprime avec la case de SON droit (un devis ou une note : « ventes », un rapport d'étanchéité : « int »),
+     pas celle de sa collection — la même qui le modifie (`docmSauver`). Le droit manquant d'une définition retombe sur « crm ». */
+  const _grp=(coll==='docsMetier'&&typeof docmDef==='function')?((docmDef(((db.docsMetier||[]).find(r=>r&&r.id===id)||{}).doc)||{}).droit||COLL_GRP[coll]||''):(COLL_GRP[coll]||'');
   if(_grp ? !canCat(_grp,'supprimer') : !can('supprimer')){ toast('Suppression non autorisée pour ton compte (Permissions)'); return; }
   if(coll==='pointages' && !ptPeutCorriger((db.pointages||[]).find(x=>x.id===id))){ toast('Supprimer des heures est réservé aux responsables'); return; }
   if(coll==='interventions'){ const it=db.interventions.find(x=>x.id===id);
@@ -39183,8 +39224,13 @@ let _devisMetierOk=null;
 function devisMetierPret(){
   if(estMetier3D()) return Promise.resolve(true);
   if(_devisMetierOk!==null) return Promise.resolve(_devisMetierOk);
-  return fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(syncTeam())).then(r=>r.json()).then(j=>{ _devisMetierOk=!!(j&&j.metiers===true); return _devisMetierOk; }).catch(()=>false);
+  /* v779 : DEUX raisons de dire non, deux phrases. Un serveur qui répond sans `metiers:true` est un serveur d'avant (le verdict se garde) ;
+     un réseau qui tombe ne dit RIEN du serveur — on ne l'accuse pas d'être ancien et on ne retient pas ce non-verdict (le prochain geste réessaie). */
+  return fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(syncTeam())).then(r=>{ if(r.ok===false) throw new Error('etat '+r.status); return r.json(); }).then(j=>{ _devisMetierOk=!!(j&&j.metiers===true); _devisMetierReseau=false; return _devisMetierOk; }).catch(()=>{ _devisMetierReseau=true; return false; });
 }
+let _devisMetierReseau=false;
+const DEVIS_METIER_RESEAU='Le serveur ne répond pas : impossible de vérifier le devis par IA de ton métier pour l’instant. Réessaie dans un instant — rien n’est parti.';
+function devisMetierMsg(){ return _devisMetierReseau?DEVIS_METIER_RESEAU:DEVIS_METIER_ATTENTE; }
 const DEVIS_METIER_ATTENTE='Le devis par IA de ton métier s’active avec la prochaine mise à jour du serveur. D’ici là il resterait réglé pour un autre métier : il est coupé, rien n’est parti.';
 function devisIAModal(){
   if(!can('devisIA')){ toast('Devis IA non autorisé pour ton compte — vois avec l\'administrateur'); return; }
@@ -39217,7 +39263,7 @@ function devisIAModal(){
     if(j.approfondi){ const b2=$('dia-go2'); if(b2) b2.style.display=''; }
     if(j.equipe===false&&!devisIACode()){ el.innerHTML='⚠ <b>Devis IA n\'est pas encore activé pour ton entreprise.</b> Demande l\'activation à TeamOP (contact@teamop.fr) — c\'est immédiat et sans manipulation.'; el.style.color='var(--org)'; const b=$('dia-go'); if(b) b.disabled=true; const b2=$('dia-go2'); if(b2) b2.disabled=true; }
     else if(j.restants!=null) el.textContent='✓ Actif · '+j.restants+' génération(s) restante(s) aujourd\'hui';
-  }).catch(()=>{});
+  }).catch(()=>{ const el=$('dia-etat'); if(el&&!el.textContent){ el.textContent='⚠ Le serveur ne répond pas : l’état du devis par IA n’a pas pu être lu.'; el.style.color='var(--org)'; } });
 }
 async function devisIAGo(profond){
   const demande=($('dia-demande')||{}).value||'', code=devisIACode(), clientId=($('dia-client')||{}).value||'';
@@ -39228,7 +39274,7 @@ async function devisIAGo(profond){
   if(clientId&&!clientPropose(clientId)){ show('Ce client ne te concerne pas.'); return; }
   if(demande.trim().length<5){ show('Décris la prestation d\'abord.'); return; }
   if(DEMO_PUBLIQUE){ show(demoPubliqueDevisIAMessage()); return; }
-  if(!(await devisMetierPret())){ show(DEVIS_METIER_ATTENTE); return; }
+  if(!(await devisMetierPret())){ show(devisMetierMsg()); return; }
   if(btn){ btn.disabled=true; btn.textContent='⏳ Génération en cours… (jusqu\'à une minute)'; }
   try{
     /* Le client choisi sert à RANGER le devis, pas à le calculer : son nom et son
@@ -43953,7 +43999,7 @@ function docmDemoPoser(clientIds){ if(!metierGereDocs()||!Array.isArray(clientId
   if(m==='chauffage'){
     ajoute('devis-depannage',c0,{interventionId:iid(c0)},{nature:'Remplacement du circulateur de chauffage défectueux',tva:'10',tauxHoraire:'70',decompte:'Par quart d’heure',tempsEstime:'2 h',validite:'30 jours',devisPayant:'gratuit',piecesConservees:'oui',lieuSignature:'client',deplacement:'40'},
       [['Circulateur de chauffage',185,'pièce',1],['Joints et raccords',14,'lot',1],['Main-d’œuvre',58,'h',2]]);
-    ajoute('note-depannage',c1,{interventionId:iid(c1)},{execLe:todayISO(),tva:'10',piecesConservees:'non',sansNom:'non'},[['Recharge en fluide R32',72,'pièce',1],['Main-d’œuvre',58,'h',1]]);
+    ajoute('note-depannage',c1,{interventionId:iid(c1)},{execLe:todayISO(),tva:'20',piecesConservees:'non',sansNom:'non'},[['Recharge en fluide R32',72,'pièce',1],['Main-d’œuvre',58,'h',1]]);
     ajoute('suivi-gaz',c3,{},{usage:'Chauffage et eau chaude',appareil:'Chaudière gaz à condensation',modele:'2',motif:'remplacee',installateur:'Notre entreprise',dateTravaux:todayISO(),statut:'envoye',relance:todayISO()});
     const ap=(db.appareils||[]).find(x=>x&&x.demo&&typeof cvcType==='function'&&cvcType(x).fluide);
     if(ap) ajoute('suivi-vignette',ap.clientId,{},{appareilId:ap.id,dernierControle:todayISO(),couleur:'bleue',fuite:'non'}); } }
@@ -44884,7 +44930,7 @@ async function adEnvoyer(){
   if(!can('devisIA')||!canCat('ventes','ajouter')){ toast('L\'assistant devis n\'est pas autorisé pour ton compte (Permissions)'); return; }
   const inp=$('ad-input'); const v=inp?inp.value.trim():'';
   if(!v) return;
-  if(!(await devisMetierPret())){ toast(DEVIS_METIER_ATTENTE,6000); return; }
+  if(!(await devisMetierPret())){ toast(devisMetierMsg(),6000); return; }
   adFil.push({role:'user',content:v});
   adBusy=true; views.assistantDevis();
   try{

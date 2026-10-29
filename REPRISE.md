@@ -13,6 +13,17 @@ de ligne du tout.
 
 ---
 
+# 🔎 29 OCTOBRE 2026 — BÊTA v779 : QUATRE VÉRIFICATIONS AU NAVIGATEUR, UNE SUITE COMPLÈTE, UNE RELECTURE — CE QUI EST CORRIGÉ, CE QUI ATTEND
+
+La v779 (branche `claude/beta-v779-source`) réunit : nettoyage (v778), packs clim/plomberie et modèle des documents, corrections du pack 3D. **`app.html`, `sw.js` et `demo.html` ne partent PAS** (`scripts/verifier-publication-bete.sh`) : seule `beta.html` se publie. Le multi-métiers (`claude/multi-metiers`), la démonstration par métier et la compta lot 1a **ne sont pas dans cette branche** (fusion à faire après la réunion).
+
+- **Corrigé** (`tests/test-3170.js`) : ① ⛔ changer de métier dans « 🧰 Tester un métier » après une démonstration laissait l'ancien métier à l'écran (14 interventions de dératisation, 160 produits, 5 fournisseurs de la 3D sous « plomberie ») — `metierSet` (bêta seulement) dit ce qui part, demande, puis retire démonstration et catalogue de l'ancien pack (les saisies à soi restent ; refus = rien ne change) ; ② chaque intervention de démonstration hors 3D porte un montant (la facture sortait à 0,00 €) ; ③ la démonstration dit qu'il faut un nom d'entreprise pour les PDF ; ④ la note de dépannage de la démonstration chauffage chez un restaurant est à 20 % ; ⑤ un document du métier se supprime avec la case de SON droit (ventes / int / crm) ; ⑥ le Devis IA distingue « le serveur ne répond pas » (réseau) de « mise à jour du serveur » (serveur d'avant). Les douze bancs tombés (`boxTxt`, `libBox`, `moyensPaiementOptions` absents de leurs bacs à sable) suivent `12cf20b7`, repris ici.
+- **⛔ Reste, et attend Justin** : le Devis IA et l'assistant devis sont COUPÉS hors 3D tant que le serveur de production n'annonce pas `metiers:true` — le serveur est sur `origin/claude/devis-metier` (pas sur `main`, pas déployé : un push de `server/` déploie le VPS, donc sa phrase). Avant la réunion : déployer ce serveur, ou ne pas montrer ces deux boutons.
+- **Reste, sans urgence** : la démonstration ne mêle pas deux métiers (le premier métier décide ; choisir Chauffage puis « fait aussi » Plomberie pour avoir le parc d'appareils) — le chantier multi-métiers la reprendra, `metierPlus` n'est pas touché ; mentions légales à relire à la source (seuil de 1997 du repérage amiante : « livrés avant le 1er janvier 1997 » ou permis de construire avant le 1er juillet 1997 ? ; l'arrêté cité pour la note dès 25 € TTC) ; trois fiches fournisseurs portent « non relu » / « refuse les accès automatiques » dans leur note ; `genDemoData` et `genTestNuisibles` sont du code mort ; `app.html` fait 4,78 Mo (+5,2 % sur `main`) — le « ~2,2 Mo » de `CLAUDE.md` ne veut plus rien dire.
+- **À savoir avant la réunion** : sur la bêta en ligne, « Tout vider » n'est plus nécessaire entre deux métiers, mais une démonstration 3D déjà posée sera retirée à la première bascule (une question s'affiche). Sans nom d'entreprise (Paramètres → Mon entreprise), tous les PDF sont refusés. Ne pas ouvrir Paramètres → « Tester un métier » devant le client (les 23 packs, dont la 3D, y sont listés).
+
+---
+
 # 🧽 28 OCTOBRE 2026 (SOIR) — LE PACK NETTOYAGE EST INSTALLÉ DANS LA BÊTA v778 — RIEN SUR `main`, RIEN PUBLIÉ
 Justin : « demain, j'ai une entreprise, on a réunion avec elle, il faut que le pack nettoyage soit installé. » Branche `claude/pack-nettoyage` (source de la bêta,
 app.html y est en v778 ; `beta.html` et `demo.html` générés ; **rien n'est poussé**, `main` et `app.html` public (v773) ne sont pas touchés).

@@ -32,7 +32,7 @@ const ligneVar = (n) => (new RegExp('\\nvar ' + n + '=[^;]*;').exec(CODE) || [''
 const DEL_NOMS = (/\nconst DEL_NOMS=\{[\s\S]*?\};/.exec(CODE) || [''])[0];
 
 console.log('\n── 2841 · 0. la population ──');
-const NOMS = ['absRouvrir', 'absRouvrirAnnuler', 'orgaRouvrir', 'orgaRouvrirTout', 'orgaRouvrirAnnuler', 'exclusionsRendreTout', 'exclusionsRendreAnnuler', 'metierSet', 'boxLotAnnuler', 'boxLotRemettre', 'delItem', 'delItemAnnuler', 'delLibelle', 'consoRemiseZero', 'bonValider', 'envoiBonApercu'];
+const NOMS = ['absRouvrir', 'absRouvrirAnnuler', 'orgaRouvrir', 'orgaRouvrirTout', 'orgaRouvrirAnnuler', 'exclusionsRendreTout', 'exclusionsRendreAnnuler', 'metierSet', 'metierResidu', 'metierResiduRetirer', 'boxLotAnnuler', 'boxLotRemettre', 'delItem', 'delItemAnnuler', 'delLibelle', 'consoRemiseZero', 'bonValider', 'envoiBonApercu'];
 const SRC = {}; NOMS.forEach(n => { SRC[n] = F(n); });
 vrai('les fonctions et leurs inverses sont trouvées', NOMS.every(n => SRC[n].length > 30), NOMS.filter(n => !SRC[n]));
 

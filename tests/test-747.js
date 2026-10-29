@@ -204,7 +204,7 @@ vrai('   … et boxGererGarde finit bien par permGarde(\'stock\', …)', /functi
 console.log('\n══ 5. ⛔ LA SUPPRESSION RESTE GÉNÉRIQUE ══\n');
 /* `delItem` déduit la catégorie de la collection : c'est ce qui fait que « supprimer » vaut
    pour TOUTE collection rattachée, sans une ligne par écran. Ne pas le particulariser. */
-vrai('⛔ delItem déduit la catégorie de la collection', /const _grp=COLL_GRP\[coll\]/.test(corps('delItem')));
+vrai('⛔ delItem déduit la catégorie de la collection', /const _grp=[^;]*COLL_GRP\[coll\]/.test(corps('delItem')));
 vrai('   et refuse quand le droit manque', /canCat\(_grp,'supprimer'\)/.test(corps('delItem')));
 
 console.log('\n══ 6. ⛔ LA LISTE BLANCHE NE PARLE PAS DE FANTÔMES ══\n');
