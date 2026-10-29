@@ -287,7 +287,7 @@ module.exports = function hugo(ctx) {
     const numeros = [...new Set(t.toUpperCase().match(/DOS-\d{6}/g) || [])].slice(0, 3);
     let lignes = [];
     if (faits) for (const n of numeros) { let f = null; try { f = await faits(n); } catch (e) { f = null; } lignes.push(f ? JSON.stringify(f) : '{"numero":"' + n + '","lecture":"impossible"}'); }
-    const system = SYSTEM + (lignes.length ? '\nFaits relevés par le serveur sur les dossiers cités (JSON, un par ligne) :\n' + lignes.join('\n') : '\nAucun dossier cité : tu n’as aucun fait client sous les yeux.');
+    const system = SYSTEM + '\n' + require('./agents-fiches').bloc('hugo') + (lignes.length ? '\nFaits relevés par le serveur sur les dossiers cités (JSON, un par ligne) :\n' + lignes.join('\n') : '\nAucun dossier cité : tu n’as aucun fait client sous les yeux.');
     const r = await cerveau.penser(ID, system, [{ role: 'user', content: t }]);
     if (!r.ok) { if (r.raison === 'plafond_agent' || r.raison === 'plafond_total' || r.raison === 'pas_de_cle' || r.raison === 'erreur_api') dire('Je ne peux pas te répondre pour l’instant (' + ({ plafond_agent: 'mon budget du mois est atteint', plafond_total: 'le budget des agents est atteint', pas_de_cle: 'ma clé n’est pas posée', erreur_api: 'Claude ne répond pas' })[r.raison] + ').', 'important'); return { saute: r.raison }; }
     const d = conv.parler(ID, ID, r.texte, { niveau: 'info' });

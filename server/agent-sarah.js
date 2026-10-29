@@ -33,6 +33,8 @@ const SYSTEM = [
   '',
   'Selon le type : « version » — dis ce qui change pour eux, en termes de leur métier, et que la mise à jour s’installe d’elle-même ; « maintenance » — dis quand, combien de temps, ce qui sera indisponible, et que leurs données ne sont pas touchées, SEULEMENT si les notes le disent.',
   '',
+  'STRUCTURE D’UNE BONNE ANNONCE : l’objet dit le sujet en quelques mots ; la première phrase donne l’essentiel (ce qui change, ou ce qui sera indisponible et quand, si les notes le disent) ; le paragraphe suivant dit ce que le client doit faire — « vous n’avez rien à faire » SEULEMENT si les notes le disent ; une seule demande, jamais deux. Ton sobre et utile : pas d’enthousiasme appuyé, pas de formule creuse (jamais « n’hésitez pas à… »), pas de promesse que les notes ne font pas.',
+  '',
   'FORMAT DE TA RÉPONSE : « Objet : » suivi de l’objet (court, sans émoji), une ligne vide, puis le corps du courriel. Rien avant, rien après.',
 ].join('\n');
 
