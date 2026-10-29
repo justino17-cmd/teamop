@@ -254,7 +254,7 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
     vrai('⛔ elle porte son plancher de vérifications (sans lui, une suite qui saute sa partie exécutée rend un total plus petit et VERT)', pl >= 200);
     v('⛔ chaque suite nommée existe', L.filter(f => !fs.existsSync(path.join(RACINE, f))), []);
     v('   pas de doublon', L.length, new Set(L).size);
-    v('   chaque ligne est un banc de tests/ (rien d\'autre ne se lance par ce compteur)', L.filter(f => !/^tests\/test-(9\d\d|10\d\d|2[4-5]\d\d|26\d\d|30([4-7]|9)\d)\.js$/.test(f)), []);
+    v('   chaque ligne est un banc de tests/ (rien d\'autre ne se lance par ce compteur)', L.filter(f => !/^tests\/test-(9\d\d|10\d\d|2[4-5]\d\d|26\d\d|30([4-7]|9)\d|313\d)\.js$/.test(f)), []);
     for (const s of ['930', '931', '932', '933', '934']) vrai('   le banc ' + s + ' (l\'installation et le déploiement) est dans la liste', L.includes('tests/test-' + s + '.js'));
     /* ⛔ Un banc de correctif qui n'est pas dans la liste ne garde RIEN à la porte : le défaut qu'il garde peut revenir, la CI reste verte (relecture du lot m08, 17 octobre 2026). */
     vrai('⛔ le banc 1540 (l\'envoi en file, « écrit… », « signe(s) en trop ») est dans la liste', L.includes('tests/test-2540.js'));

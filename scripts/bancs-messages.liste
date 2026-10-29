@@ -136,7 +136,9 @@
 # 28 octobre 2026, les photos du pont (3094 § 9 : la route `/api/pont/avatar` sur le vrai service ; 3095 : les 21 photos de bout en bout ; test-905 étendu) : 200 suites, 12 643 vérifications mesurées par la commande de la porte
 # (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 12629 (le total moins 14, jamais une addition).
 # 28 octobre 2026, soir : la fonction de chaque contact sous son nom (test-3099) par-dessus les photos : 201 suites, 12 673 vérifications mesurées par la commande de la porte — plancher 12659.
-#plancher 12688
+# 29 octobre 2026, les vocaux de Justin lus par les agents (3094 § 11, 3095 § 3 bis, 1000/1001 le filet des transcriptions orphelines, 905) et « Écouter » (test-3130 : les vraies fonctions de la page contre une synthèse simulée) : 202 suites, 12 923 vérifications mesurées par la commande de la porte
+# (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 12909 (le total moins 14, jamais une addition).
+#plancher 12909
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -430,5 +432,7 @@ tests/test-3095.js
 tests/test-3097.js
 # 28 octobre 2026 : `test-3099` (la fonction d'un contact sous son nom : stockage, resume(), ligneConv(), page servie — 27 vérifications).
 tests/test-3099.js
+# 28 octobre 2026 : `test-3130` (« Écouter » sous un message reçu — les VRAIES fonctions de la page, celle de l'aperçu et celle que le service sert, contre une synthèse vocale simulée —, et « en cours » qui ne dure plus pour toujours). Les vocaux de Justin lus par les agents : test-3094 §11, 3095 §3 bis, 3096 §8, 1000/1001 (le filet). La sonde du navigateur : `tests/sonde-opmessages-ecoute.js`.
+tests/test-3130.js
 # 28 octobre 2026 : `test-3066` (l'écran partagé s'affiche chez l'invité sans compte : les vraies fonctions `tuile` et `rendreSalle` de `invite.js` dans un faux document, la feuille de `invite.html` ; la preuve aux pixels à trois navigateurs est `tests/sonde-opmessages-ecran.js`, hors porte).
 tests/test-3066.js

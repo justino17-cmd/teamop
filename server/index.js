@@ -11114,7 +11114,8 @@ try {
           url: typeof pc.url === 'string' && pc.url ? pc.url : msgInstanceUrl('beta'), secret: pc.secret,
           /* les bancs règlent le rythme par la configuration (jamais en production : 3 s pour lire, une demi-seconde pour envoyer) */
           pasLireMs: Number.isInteger(pc.pasLireMs) && pc.pasLireMs >= 20 ? pc.pasLireMs : undefined, pasEnvoiMs: Number.isInteger(pc.pasEnvoiMs) && pc.pasEnvoiMs >= 20 ? pc.pasEnvoiMs : undefined,
-          attenteMaxMs: Number.isInteger(pc.attenteMaxMs) ? pc.attenteMaxMs : undefined });
+          attenteMaxMs: Number.isInteger(pc.attenteMaxMs) ? pc.attenteMaxMs : undefined,
+          vocalPasMs: Number.isInteger(pc.vocalPasMs) ? pc.vocalPasMs : undefined, vocalDelaiMs: Number.isInteger(pc.vocalDelaiMs) ? pc.vocalDelaiMs : undefined });
         if (pontMessages) { pontMessages.demarrer(); console.log('pont : la messagerie des agents est recopiée dans OP MESSAGES'); }
         else console.error('⛔ pont vers OP MESSAGES : configuration refusée (opmsgPont.secret : 64 hexadécimaux ; opmsgPont.url : la boucle locale) — la messagerie de la Tour reste seule');
       }

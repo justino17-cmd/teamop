@@ -16,6 +16,9 @@
      6. ⛔ UNE PANNE D'OP MESSAGES NE CASSE RIEN CÔTÉ AGENTS : l'agent répond, le registre s'écrit, `/health` compte la file ; au retour, tout arrive, dans l'ordre, une fois.
      7. LES PHOTOS (28 octobre 2026) : sans aucun geste, la Tour envoie ses vingt et une images (seize agents, quatre groupes, le Système) ; la liste de Justin porte un `avatar` pour chaque
       directe et chaque groupe, il les télécharge par la vraie route, chacune est la sienne — et un redémarrage de la Tour n'en renvoie aucune.
+   9. LES VOCAUX DE JUSTIN (28 octobre 2026) : il envoie un vocal dans OP MESSAGES et ne touche rien — le pont en demande le texte à l'ouvrier (un faux, sur la boucle locale, qui reçoit les octets
+      exacts), le texte entre au registre de la Tour marqué 🎤, l'agent du fil répond comme à un texte (le faux cerveau reçoit le texte ET la règle « 🎤 = machine »), sa réponse paraît dans OP MESSAGES ;
+      supprimer le vocal retire le texte du registre ; un vocal qui n'a pas son texte à temps est DIT à Justin (Système) ; la photo et le sondage gardent leur note.
    8. `/health` : `pont` n'existe que si le pont est monté, ses deux nombres sont LUS par la surveillance, et le secret n'est dans aucune sortie ;
         un secret faux laisse la Tour exactement comme avant.
    Il saute de lui-même sans `server/node_modules` ni `server-msg/node_modules`. */
@@ -45,6 +48,24 @@ const faux = http.createServer((q, r) => { let b = ''; q.on('data', d => { b += 
   r.writeHead(200, { 'Content-Type': 'application/json' });
   r.end(JSON.stringify({ id: 'msg_x', type: 'message', role: 'assistant', model: j.model, stop_reason: 'end_turn', content: [{ type: 'text', text: marq ? 'Reçu ' + marq + ', je m\'en occupe.' : 'Reçu.' }], usage: { input_tokens: 1, output_tokens: 1 } }));
 }); });
+
+
+/* ── Le faux OUVRIER de transcription (comme `test-1000`) : il note chaque travail et répond quand le banc le lui dit ── */
+const SECRET_OUV = 'OuvrierPont3091-' + 'Qx'.repeat(18);
+const OUV = { travaux: [], enAttente: [], panne: false };
+OUV.serveur = http.createServer((q, r) => {
+  const rep = (code, j) => { r.writeHead(code, { 'content-type': 'application/json' }); r.end(JSON.stringify(j)); };
+  if (q.headers.authorization !== 'Bearer ' + SECRET_OUV) { q.resume(); return rep(401, { error: 'non_autorise' }); }
+  if (q.method === 'GET' && q.url === '/sante') { q.resume(); return rep(200, { ok: true, sha: 'banc0000', occupe: false }); }
+  if (q.method === 'POST' && q.url === '/transcrire') {
+    const morceaux = []; q.on('data', d => morceaux.push(d));
+    q.on('end', () => { const t = { octets: Buffer.concat(morceaux), repondre: rep }; OUV.travaux.push(t); OUV.enAttente.push(t); });
+    return;
+  }
+  q.resume(); rep(404, { error: 'introuvable' });
+});
+OUV.relacher = (code, j) => { const t = OUV.enAttente.shift(); if (t) t.repondre(code, j); return !!t; };
+const TR_CFG = () => ({ url: 'http://127.0.0.1:' + OUV.serveur.address().port, secret: SECRET_OUV, sondeMs: 60, delaiSondeMs: 1000, delaiBaseMs: 5000, delaiParSMs: 100, file: 4, parPersonne: 3, budgetHeureS: 300, essais: 2, parHeure: 30, dureeMaxS: 60 });
 
 /* ── La Tour : le VRAI serveur ── */
 const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'b3091-'));
@@ -94,13 +115,14 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
 (async () => {
   console.log('── test-3095 · la messagerie des agents dans OP MESSAGES, de bout en bout ──');
   await new Promise(r => faux.listen(0, '127.0.0.1', r));
+  await new Promise(r => OUV.serveur.listen(0, '127.0.0.1', r));
   fs.writeFileSync(path.join(D, 'agents-messages.json'), JSON.stringify(MESSAGES_SEED));
   const AG = require(path.join(RACINE, 'server', 'agents.js'));
   const modes = {}; for (const a of AG.AGENTS) modes[a.id] = 'brouillon';
   fs.writeFileSync(path.join(D, 'agents-etat.json'), JSON.stringify({ pause: { actif: false }, modes }));
   require('./banc-horaires.js').toujoursOuvert(D);
   let svc = null, justin = null, intrus = null, fluxJ = null, racineOpm = null;
-  const fermer = async () => { try { if (fluxJ) fluxJ.fermer(); } catch (e) {} if (svc) await svc.arreter(); if (tour) await tour.tuer(); faux.close(); try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} if (racineOpm) { try { fs.rmSync(racineOpm, { recursive: true, force: true }); } catch (e) {} } };
+  const fermer = async () => { try { if (fluxJ) fluxJ.fermer(); } catch (e) {} if (svc) await svc.arreter(); if (tour) await tour.tuer(); faux.close(); try { OUV.serveur.close(); } catch (e) {} try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} if (racineOpm) { try { fs.rmSync(racineOpm, { recursive: true, force: true }); } catch (e) {} } };
   try {
     /* ── 0 · un secret faux ne change RIEN pour la Tour ── */
     console.log('\n0. Un secret faux : la Tour reste exactement ce qu\'elle était');
@@ -120,14 +142,14 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
     /* ── 1 · la Tour d'abord (OP MESSAGES absent), puis l'accès de Justin, puis OP MESSAGES ── */
     console.log('\n1. L\'historique est importé : une fois, avec ses dates et son état lu');
     const portOpm = await T.portLibre(), urlOpm = 'http://127.0.0.1:' + portOpm;
-    const PONT = { url: urlOpm, secret: SECRET, pasLireMs: 60, pasEnvoiMs: 40, attenteMaxMs: 400 };
+    const PONT = { url: urlOpm, secret: SECRET, pasLireMs: 60, pasEnvoiMs: 40, attenteMaxMs: 400, vocalPasMs: 600, vocalDelaiMs: 6000 };
     tour = await lancerTour({ pont: PONT });
     const santeAvant = await tour.sante();
     v('le pont est monté : /health porte `pont` (deux nombres), et OP MESSAGES n\'est pas encore là', [typeof santeAvant.pont.echecMin, typeof santeAvant.pont.file, Object.keys(santeAvant.pont).sort()], ['number', 'number', ['echecMin', 'file']]);
     const a1 = await tour.api('POST', '/api/monitor/beta', { login: 'justin', pass: MDP_J, nom: 'Justin', chantier: 'banc 3091', apps: ['messages'] });
     const a2 = await tour.api('POST', '/api/monitor/beta', { login: 'intrus', pass: MDP_I, nom: 'Intrus', chantier: 'banc 3091', apps: ['messages'] });
     vrai('(population) les accès de Justin et d\'un autre compte sont ouverts par la VRAIE route de la Tour', a1.code === 200 && a2.code === 200 && /^b[0-9a-f]{10}$/.test(a1.j.compte.id));
-    svc = await T.lancerService({ port: portOpm, urlGestion: tour.base, config: { beta: { relectureMs: 3500, timeoutMs: 3000 }, pont: { actif: true, secretSha256: sha(SECRET), justin: a1.j.compte.id } } });
+    svc = await T.lancerService({ port: portOpm, urlGestion: tour.base, config: { beta: { relectureMs: 3500, timeoutMs: 3000 }, pont: { actif: true, secretSha256: sha(SECRET), justin: a1.j.compte.id }, transcription: TR_CFG() } });
     racineOpm = svc.racine;
     justin = await T.connecter(svc, {}, 'justin', MDP_J, ip());
     intrus = await T.connecter(svc, {}, 'intrus', MDP_I, ip());
@@ -238,6 +260,86 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       v('⛔ un sondage n\'arrive PAS aux agents (rien au registre, aucun appel à Claude) et le pont DIT à Justin pourquoi', [sond.code, !!note, (await tour.fil('victor')).length, recus.length - n2], [201, true, reg2, 0]);
     }
 
+    /* ── 3 bis · un VOCAL de Justin : il ne touche rien, les agents le lisent ── */
+    console.log('\n3 bis. Un vocal de Justin dans OP MESSAGES : transcrit sans un geste, lu par l\'agent, qui répond');
+    {
+      const att = (cond, ms = 15000) => T.attendre(cond, ms, 40);
+      const idVictor = parNom['Victor'].id;
+      const envoyerVocal = async (marque, dur) => {
+        const corps = Buffer.concat([P.webm(3000), Buffer.from('VOCAL3091-' + marque)]);
+        const d = await P.deposer(justin, { conv: idVictor, genre: 'vocal', corps });
+        const m = await justin.post('/api/conversations/' + idVictor + '/messages', { cid: 'opm-vocal-' + marque + '-0001', type: 'vocal', piece: d.j.id, dur, bars: [6, 14, 18, 10, 16, 6, 12, 18, 9, 14] });
+        return { corps, seq: m.j.seq, code: m.code };
+      };
+      vrai('(population) l\'ouvrier est sondé par OP MESSAGES', !!(await att(async () => { const h = await (await fetch(svc.base + '/health')).json(); return h.transcription && h.transcription.ok === true; })));
+      const notesAvant = (await msgs(parNom['Victor'])).filter(m => /ne lisent que le texte/.test(m.texte || '')).length;
+      const n0 = recus.length, reg0 = (await tour.fil('victor')).length;
+      const vo = await envoyerVocal('un', 5);
+      v('Justin envoie un vocal (201) — et ne touche à rien d\'autre', vo.code, 201);
+      vrai('⛔ SANS AUCUN GESTE de plus, l\'ouvrier reçoit les octets EXACTS du vocal (le pont les a demandés)', !!(await att(() => OUV.travaux.length === 1)) && OUV.travaux[0].octets.equals(vo.corps));
+      await dort(400);
+      v('⛔ tant que le texte n\'est pas là : rien au registre de la Tour, aucun agent réveillé, et AUCUNE note « ne lisent que le texte » de plus', [(await tour.fil('victor')).length, recus.length - n0, (await msgs(parNom['Victor'])).filter(m => /ne lisent que le texte/.test(m.texte || '')).length], [reg0, 0, notesAvant]);
+      OUV.relacher(200, { ok: true, texte: 'Victor, MARQ-vocal1 fais le point sur les devis de la semaine', langue: 'fr' });
+      const dansRegistre = await att(async () => (await tour.fil('victor')).find(m => m.de === 'justin' && /MARQ-vocal1/.test(m.texte)));
+      const regV = (await tour.fil('victor')).filter(m => /MARQ-vocal1/.test(m.texte));
+      vrai('⛔ le texte du vocal entre au registre de la Tour, de Justin, MARQUÉ 🎤', !!dansRegistre && regV[0].de === 'justin' && regV[0].texte === '🎤 Victor, MARQ-vocal1 fais le point sur les devis de la semaine');
+      const rep = await fluxJ.attendre(x => x.event === 'message' && x.data && x.data.conv === idVictor && x.data.texte && /Reçu MARQ-vocal1/.test(x.data.texte), 20000);
+      vrai('⛔ l\'agent y répond COMME À UN TEXTE, et sa réponse paraît dans OP MESSAGES (flux de Justin)', !!rep);
+      const appels = recus.slice(n0).filter(x => x.marq === 'MARQ-vocal1');
+      v('⛔ l\'agent n\'a été réveillé qu\'UNE fois pour ce vocal, et le faux cerveau a reçu le texte transcrit', [appels.length, /fais le point sur les devis/.test(appels[0] && appels[0].brut)], [1, true]);
+      vrai('⛔ …avec, dans ses règles, la phrase qui dit que 🎤 est un vocal transcrit par une machine (des mots peuvent être faux)', /commence par 🎤/.test(appels[0].systeme) && /VOCAL/.test(appels[0].systeme));
+      await dort(500);
+      v('⛔ rien ne retourne à sa source : dans OP MESSAGES, le vocal est là UNE fois, et le texte transcrit n\'est PAS reposté dans la conversation', [(await msgs(parNom['Victor'])).filter(m => m.auteur === justin.moi.id && /MARQ-vocal1/.test(m.texte || '')).length, (await msgs(parNom['Victor'])).filter(m => m.type === 'vocal').length >= 1], [0, true]);
+      /* supprimer le vocal dans OP MESSAGES retire le texte du registre */
+      const suppr = await justin.post('/api/conversations/' + idVictor + '/messages/supprimer', { seq: vo.seq, pour: 'tous' });
+      const parti = await att(async () => !(await tour.fil('victor')).some(m => m.de === 'justin' && /MARQ-vocal1/.test(m.texte)));
+      v('⛔ Justin supprime son VOCAL dans OP MESSAGES : le texte part aussi du registre de la Tour', [suppr.code, !!parti], [200, true]);
+
+      /* un vocal dont le texte n'arrive pas : Justin le SAIT (jamais un silence) */
+      const vo2 = await envoyerVocal('deux', 5);
+      await att(() => OUV.travaux.length === 2);
+      const note = await att(async () => (await msgs(parNom['Victor'])).some(m => /délai dépassé/.test(m.texte || '')), 20000);
+      vrai('⛔ l\'ouvrier ne répond pas : au bout du délai (6 s dans ce banc, 15 minutes en vrai), le Système DIT à Justin que son vocal n\'a pas été transmis — dans OP MESSAGES', !!note);
+      v('…rien n\'est entré au registre, aucun agent réveillé pour ce vocal', [(await tour.fil('victor')).some(m => /VOCAL3091|délai/.test(m.texte)), recus.slice(n0).filter(x => x.marq && x.marq !== 'MARQ-vocal1' && /vocal/i.test(x.marq)).length], [false, 0]);
+      OUV.relacher(200, { ok: true, texte: 'Trop tard pour être lu : MARQ-tard1', langue: 'fr' });
+      void vo2;
+      const tard = await att(async () => (await tour.fil('victor')).find(m => m.de === 'justin' && /MARQ-tard1/.test(m.texte)));
+      vrai('…et la promesse de la note tient : le texte qui arrive PLUS TARD (« je le transmettrai ») finit au registre, marqué 🎤, et l\'agent répond', !!tard && tard.texte.startsWith('🎤 ') && !!(await fluxJ.attendre(x => x.event === 'message' && x.data && x.data.conv === idVictor && x.data.texte && /Reçu MARQ-tard1/.test(x.data.texte), 20000)));
+      /* ⛔ la règle « 🎤 = machine » est écrite à DEUX endroits (Victor et les autres agents) : un vocal adressé à un AUTRE agent doit la porter aussi (28 octobre 2026) */
+      const idLea = parNom['Léa'].id, nL = recus.length;
+      const corpsL = Buffer.concat([P.webm(3000), Buffer.from('VOCAL3091-lea')]);
+      const dL = await P.deposer(justin, { conv: idLea, genre: 'vocal', corps: corpsL });
+      const mL = await justin.post('/api/conversations/' + idLea + '/messages', { cid: 'opm-vocal-lea-0001', type: 'vocal', piece: dL.j.id, dur: 4, bars: [6, 14, 18, 10, 16, 6, 12, 18, 9, 14] });
+      vrai('(population) le vocal part vers Léa et l\'ouvrier le reçoit', mL.code === 201 && !!(await att(() => OUV.travaux.length === 3)));
+      OUV.relacher(200, { ok: true, texte: 'Léa, MARQ-vocal4 où en est le brouillon de ce matin ?', langue: 'fr' });
+      const repL = await fluxJ.attendre(x => x.event === 'message' && x.data && x.data.conv === idLea && x.data.texte && /Reçu MARQ-vocal4/.test(x.data.texte), 20000);
+      const appelsL = recus.slice(nL).filter(x => x.marq === 'MARQ-vocal4');
+      vrai('(population) Léa a répondu au vocal, une fois, et le faux cerveau a reçu SES règles', !!repL && appelsL.length === 1 && /Tu es Léa/.test(appelsL[0].systeme));
+      vrai('⛔ …et ses règles aussi disent que 🎤 est un vocal transcrit par une machine (des mots peuvent être faux)', /commence par 🎤/.test(appelsL[0].systeme) && /VOCAL/.test(appelsL[0].systeme));
+      /* le flux garde tout ce qu'il a reçu, et la section 5 attend « le premier message_supprime » : celui du vocal de Justin ne doit pas passer pour celui qu'elle provoque */
+      for (let i = fluxJ.evenements.length - 1; i >= 0; i--) if (fluxJ.evenements[i].event === 'message_supprime') fluxJ.evenements.splice(i, 1);
+
+      /* ⛔ L'ORDRE DES VOCAUX DE JUSTIN SE GARDE (28 octobre 2026) : le 4e vocal d'une rafale (3 places par personne ici) est refusé « mes_vocaux » et attend sa reprise ; le 5e, qu'on dicte pile quand une
+         place se libère, ne doit pas passer devant lui. Le texte de chaque vocal PORTE SON NOM (l'ouvrier répond d'après les octets reçus, pas d'après son rang de libération) : le registre des agents
+         doit les lire dans l'ordre où Justin les a dits — sinon l'agent répond à l'envers. (La reprise dure 600 ms dans ce banc, 20 s en vrai.) */
+      const nomDe = (t) => { const m = /VOCAL3091-(ordre[0-9])/.exec(t.octets.toString('latin1')); return m ? m[1] : null; };
+      const relacherSonNom = async () => { await att(() => OUV.enAttente.length > 0); const t = OUV.enAttente.shift(); const nom = nomDe(t); t.repondre(200, { ok: true, texte: 'Victor, MARQ-' + nom + ' note ceci', langue: 'fr' }); return nom; };
+      const ordre0 = OUV.travaux.length;
+      for (const k of [1, 2, 3, 4]) { const r = await envoyerVocal('ordre' + k, 5); vrai('(population) le vocal ' + k + ' de la rafale est parti (201)', r.code === 201); }
+      vrai('(population) l\'ouvrier prend le premier calcul (il n\'en prend qu\'un à la fois : les deux suivants attendent dans la file du service, le 4e est refusé « mes_vocaux » par le pont)', !!(await att(() => OUV.travaux.length === ordre0 + 1)));
+      await dort(250);
+      const premier = await relacherSonNom();                               // une place se libère
+      await dort(100);
+      const r5 = await envoyerVocal('ordre5', 5);                           // …et Justin dicte le 5e juste à ce moment
+      vrai('(population) le 5e vocal est parti pendant que le 4e attend sa reprise', r5.code === 201 && premier === 'ordre1');
+      const sortis = [premier]; for (let i = 0; i < 4; i++) sortis.push(await relacherSonNom());
+      const rang = (nom) => (/ordre([0-9])/.exec(nom) || [])[1] | 0;
+      v('⛔ les calculs arrivent à l\'ouvrier dans l\'ordre où Justin a dicté (le 4e AVANT le 5e)', sortis, ['ordre1', 'ordre2', 'ordre3', 'ordre4', 'ordre5']);
+      await att(async () => (await tour.fil('victor')).filter(m => m.de === 'justin' && /MARQ-ordre[0-9]/.test(m.texte)).length === 5, 20000);
+      v('⛔ …et le registre des agents reçoit leurs textes dans le même ordre (l\'agent répond à Justin dans l\'ordre où il a parlé)',
+        (await tour.fil('victor')).filter(m => m.de === 'justin' && /MARQ-ordre[0-9]/.test(m.texte)).map(m => rang(m.texte.replace(/^.*MARQ-/, ''))), [1, 2, 3, 4, 5]);
+    }
+
     /* ── 4 · personne d'autre que Justin ── */
     console.log('\n4. Personne d\'autre que Justin ne déclenche un agent');
     {
@@ -306,7 +408,7 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       const h = await tour.sante();
       vrai('/health compte la file (au moins les trois messages en attente) et l\'échec court', h.pont.file >= 3 && h.pont.echecMin >= 0);
       vrai('⛔ le service d\'Express de la Tour est resté sain (pas de crash, le même processus)', tour.enfant.exitCode === null && tour.enfant.signalCode === null);
-      svc = await T.lancerService({ port: portOpm, dossier: svc.racine, cle: svc.cle, urlGestion: tour.base, config: { beta: { relectureMs: 3500, timeoutMs: 3000 }, pont: { actif: true, secretSha256: sha(SECRET), justin: a1.j.compte.id } } });
+      svc = await T.lancerService({ port: portOpm, dossier: svc.racine, cle: svc.cle, urlGestion: tour.base, config: { beta: { relectureMs: 3500, timeoutMs: 3000 }, pont: { actif: true, secretSha256: sha(SECRET), justin: a1.j.compte.id }, transcription: TR_CFG() } });
       justin = await T.connecter(svc, {}, 'justin', MDP_J, ip());
       const retour = await T.attendre(async () => { const ms = await msgs(parNom['Léa']); return ms.some(m => /Reçu MARQ-panne2/.test(m.texte || '')); }, 30000, 80);
       vrai('OP MESSAGES revient : les messages de la panne arrivent', !!retour);

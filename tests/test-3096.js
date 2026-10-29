@@ -15,7 +15,11 @@
      6. un registre d'état illisible n'est jamais réécrit : le pont ne démarre pas, et le DIT ;
      7. LES PHOTOS (28 octobre 2026) : après l'installation, les visages des agents, l'image du Système et celles des groupes — les VRAIS fichiers du dépôt — partent UNE à la fois vers
         `/api/pont/avatar`, celles que le service n'a pas déjà (empreinte comparée) ; en-têtes justes (octet-stream, empreinte, secret en en-tête seulement) ; un refus, une panne, un fichier
-        absent ou trop gros ne retarde AUCUN message et ne compte pas comme une panne du pont ; retentée à l'installation suivante ; aucun chemin ne vient de la réponse du service. */
+        absent ou trop gros ne retarde AUCUN message et ne compte pas comme une panne du pont ; retentée à l'installation suivante ; aucun chemin ne vient de la réponse du service.
+     8. LES VOCAUX DE JUSTIN (28 octobre 2026) : un vocal n'est plus « ne lisent que le texte » — le pont en demande le texte (`/api/pont/transcrire`, une fois), l'attend (rangé sur disque : un
+        redémarrage ne l'oublie pas), l'écrit au registre COMME UN TEXTE de Justin marqué 🎤 (mentions, réveil des agents, une seule fois, supprimé avec son vocal), et DIT chaque issue qui n'est pas
+        un texte : rien entendu, échec (une seconde demande toute seule, puis la phrase), non installée, trop long, délai dépassé ; un refus passager se retente sans bruit ; un texte rendu à la
+        main (Justin touche « Voir la transcription ») finit aussi chez les agents. Une photo ou un sondage garde sa note. */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), http = require('http'), crypto = require('crypto');
 const RACINE = path.join(__dirname, '..');
@@ -28,7 +32,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 60 s'); process.exi
 const SECRET = crypto.randomBytes(32).toString('hex');
 
 /* ── le FAUX OP MESSAGES ── */
-const etat = { avatars: {}, avatarMode: 'normal', enVol: 0, enVolMax: 0, mode: 'normal', requetes: [], seq: {}, installe: true, rejets: {}, evenements: [], curseur: 100, plein: false, retry: 2 };
+const etat = { avatars: {}, avatarMode: 'normal', enVol: 0, enVolMax: 0, mode: 'normal', requetes: [], seq: {}, installe: true, rejets: {}, evenements: [], curseur: 100, plein: false, retry: 2, transcrire: () => ({ corps: { ok: true, etat: 'attente' } }) };
 const faux = http.createServer((q, r) => { let b = ''; const morceaux = []; q.on('data', d => { b += d; morceaux.push(d); }); q.on('end', () => {
   let j = null; try { j = b ? JSON.parse(b) : null; } catch (e) {}
   etat.requetes.push({ m: q.method, url: q.url, corps: j, brut: b, octets: Buffer.concat(morceaux), secret: q.headers['x-opm-pont'], entetes: q.headers });
@@ -56,6 +60,7 @@ const faux = http.createServer((q, r) => { let b = ''; const morceaux = []; q.on
   }
   if (q.url.startsWith('/api/pont/nouveaux')) { const e = etat.evenements; etat.evenements = []; return rep(200, { ok: true, curseur: etat.curseur, plein: etat.plein, evenements: e }); }
   if (q.url === '/api/pont/supprimer') return rep(200, { ok: true });
+  if (q.url === '/api/pont/transcrire') { const x = etat.transcrire(j); if (x.destroy) return q.socket.destroy(); return rep(x.code || 200, x.corps); }
   if (q.url.startsWith('/api/pont/avatar')) {
     /* le service des PHOTOS : une à la fois (on compte celles qui se chevauchent), refus choisis par le banc, jamais de réponse (`lent`), coupure (`panne`) */
     etat.enVol++; etat.enVolMax = Math.max(etat.enVolMax, etat.enVol);
@@ -486,6 +491,188 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     await p._attendreFini();
     v('…la photo qui n\'a pas de réponse est comptée refusée, jamais en panne', [p._etat().photosRefusees, p.sante().echecMin], [1, 0]);
     p.arreter(); etat.avatarMode = 'normal';
+  }
+
+  console.log('\n8. Les vocaux de Justin : le texte est demandé, attendu, écrit au registre — et chaque issue est dite');
+  {
+    const neuf = async (nom, extra) => { const d = path.join(banc, nom); fs.mkdirSync(d, { recursive: true }); const journaux = []; const p = PONT(Object.assign({ DATA_DIR: banc, conversations: conv, agents: AG, groupes: CV.GROUPES, fichier: FICHIER(d), url: URL, secret: SECRET, horloge: () => horloge,
+      attenteMaxMs: 400, delaiMs: 600, iconesDir: path.join(banc, 'sans-icones'), journal: (m) => journaux.push(m) }, extra || {})); p.journaux = journaux; pont = p; return p; };
+    etat.avatars = {}; etat.installe = false; etat.mode = 'normal'; etat.requetes.length = 0;
+    const p = await neuf('p8');
+    await p._envoyer(); await p._lire(); await p._attendreFini();      // installe, rattrape, pose le curseur
+    etat.curseur = 500; let gid = 500;
+    const appels = () => etat.requetes.filter(x => x.url === '/api/pont/transcrire').map(x => x.corps);
+    const notes = () => messagesEnvoyes().filter(m => m.de === 'systeme').map(m => m.texte);
+    const lire = async (evs) => { etat.evenements = evs.map(e => Object.assign({ gid: ++gid }, e)); etat.curseur = gid; await p._lire(); await p._envoyer(); };
+    const vocal = (seq, fil) => ({ type: 'message', fil: fil || 'victor', seq, genre: 'vocal', texte: null, dur: 12, ts: 1 });
+    const texteDe = (seq, texte, fil) => ({ type: 'transcription', fil: fil || 'victor', seq, etat: 'prete', texte, langue: 'fr' });
+    const registreJ = () => conv.tous().filter(m => m.de === 'justin');
+    const n0 = registreJ().length, r0 = reveils.length;
+
+    /* ① le vocal arrive : on demande son texte, UNE fois, sans rien écrire ni rien dire */
+    etat.requetes.length = 0;
+    await lire([vocal(7001)]);
+    v('⛔ un vocal de Justin n\'est plus « ne lisent que le texte » : AUCUNE note, rien au registre, et le texte est DEMANDÉ (une fois, avec le fil et le numéro)', [notes().filter(t => /ne lisent que le texte/.test(t)).length, registreJ().length - n0, appels()], [0, 0, [{ fil: 'victor', seq: 7001 }]]);
+    v('…il attend son texte (en attente, demandé)', [p._etat().vocauxEnAttente, p._etat().vocauxDemandes], [1, 1]);
+    const etatDisque = JSON.parse(fs.readFileSync(path.join(banc, 'p8', 'pont-messages.json'), 'utf8'));
+    v('⛔ …et il est RANGÉ sur disque avec le curseur : un redémarrage de la Tour ne l\'oublie pas (le curseur d\'OP MESSAGES l\'a déjà dépassé)', [etatDisque.vocaux.length, etatDisque.vocaux[0] && [etatDisque.vocaux[0].fil, etatDisque.vocaux[0].seq]], [1, ['victor', 7001]]);
+    await lire([vocal(7001)]);
+    v('⛔ le même vocal relu (curseur rejoué) ne redemande rien : un seul appel', [appels().length, p._etat().vocauxEnAttente], [1, 1]);
+
+    /* un redémarrage : l'état revient */
+    p.arreter();
+    const p2 = await neuf('p8'); await p2._envoyer();
+    v('un pont NEUF sur le même dossier retrouve le vocal qui attend (sa demande est faite : il n\'en refait pas)', [p2._etat().vocauxEnAttente, p2._etat().vocauxDemandes], [1, 1]);
+    p2.arreter();
+    const p3 = await neuf('p8'); await p3._envoyer(); await p3._lire();
+    // (le module de lecture ci-dessous parle à `p3`)
+    const lire3 = async (evs) => { etat.evenements = evs.map(e => Object.assign({ gid: ++gid }, e)); etat.curseur = gid; await p3._lire(); await p3._envoyer(); };
+
+    /* ② le texte arrive : il entre au registre comme un texte de Justin, marqué 🎤, réveille l'agent du fil, une seule fois */
+    await lire3([texteDe(7001, 'Victor, peux-tu faire le point sur la semaine ? JETON-VOC')]);
+    await new Promise(r => setTimeout(r, 20));
+    const j1 = registreJ().slice(n0);
+    v('⛔ le texte d\'un vocal entre au registre : de:justin, marqué 🎤, dans le bon fil, lu', j1.map(m => [m.de, m.fil, m.texte, m.lu]), [['justin', 'victor', '🎤 Victor, peux-tu faire le point sur la semaine ? JETON-VOC', true]]);
+    vrai('⛔ …et l\'agent du fil est RÉVEILLÉ par le même chemin qu\'un texte tapé (de:justin, profondeur 0, le texte marqué)', reveils.slice(r0).length === 1 && reveils[r0].de === 'justin' && reveils[r0].prof === 0 && /^🎤 Victor/.test(reveils[r0].texte));
+    v('…il ne retourne pas à sa source (rien n\'est reposté dans OP MESSAGES), le vocal n\'attend plus', [messagesEnvoyes().some(m => /JETON-VOC/.test(m.texte)), p3._etat().vocauxEnAttente], [false, 0]);
+    await lire3([texteDe(7001, 'Victor, peux-tu faire le point sur la semaine ? JETON-VOC')]);
+    v('⛔ le même événement rejoué n\'écrit pas un second message (une seule fois par vocal)', registreJ().length - n0, 1);
+
+    /* le vocal supprimé emporte son texte (le lien est posé) */
+    const idTexte = j1[0].id;
+    await lire3([{ type: 'suppression', fil: 'victor', seq: 7001, pour: 'tous' }]);
+    v('⛔ supprimer le VOCAL dans OP MESSAGES retire aussi le texte du registre (les agents ne le relisent plus)', conv.lire('victor', 80).some(m => m.id === idTexte), false);
+
+    /* ③ un long texte est coupé, et le dit */
+    await lire3([vocal(7002)]);
+    const long = ('mot'.repeat(3) + ' ').repeat(500).trim();
+    await lire3([texteDe(7002, long)]);
+    const jl = registreJ().pop().texte;
+    v('un texte de plus de 2 400 signes est coupé à un mot, marqué « […] », sans dépasser le plafond du registre', [jl.length <= 2400, jl.startsWith('🎤 '), jl.endsWith(' […]'), jl.length > 2000], [true, true, true, true]);
+
+    /* ④ un refus passager se retente, sans bruit, sans attendre le curseur */
+    etat.transcrire = () => ({ corps: { ok: false, raison: 'occupee' } });
+    etat.requetes.length = 0; const nn = notes().length;
+    await lire3([vocal(7003)]);
+    v('⛔ ouvrier occupé : AUCUNE note, le vocal reste en attente, une demande faite', [notes().length - nn, p3._etat().vocauxEnAttente, p3._etat().vocauxDemandes, appels().length], [0, 1, 0, 1]);
+    await p3._lire();
+    v('…et pas de nouvelle demande avant 20 secondes (pas de martèlement)', appels().length, 1);
+    horloge += 21000; await p3._lire();
+    v('…20 secondes plus tard, il redemande', appels().length, 2);
+    etat.transcrire = () => ({ corps: { ok: false, raison: 'budget', attente: 120 } });
+    horloge += 21000; await p3._lire();
+    const avantBudget = appels().length;
+    horloge += 60000; await p3._lire();
+    v('⛔ refusé pour le budget de l\'heure « attends 120 s » : il attend ce que le service dit, pas 20 s', [avantBudget, appels().length], [3, 3]);
+    horloge += 61000; etat.transcrire = () => ({ corps: { ok: true, etat: 'attente' } }); await p3._lire();
+    v('…puis redemande, et le service l\'accepte', [appels().length, p3._etat().vocauxDemandes], [4, 1]);
+    await lire3([texteDe(7003, 'Le budget est revenu')]);
+    v('…le texte finit au registre', registreJ().pop().texte, '🎤 Le budget est revenu');
+
+    /* ⑤ chaque issue qui n'est pas un texte se DIT */
+    const dernierNote = () => notes().pop();
+    etat.transcrire = () => ({ corps: { ok: false, raison: 'absente' } }); const a0 = notes().length;
+    await lire3([vocal(7004)]);
+    v('⛔ transcription pas installée : une ligne du Système le dit, UNE fois, et le vocal n\'attend plus', [notes().length - a0, dernierNote(), p3._etat().vocauxEnAttente], [1, 'La transcription des vocaux n’est pas installée sur le serveur : ton vocal n’a pas été transmis.', 0]);
+    etat.transcrire = () => ({ corps: { ok: false, raison: 'trop_long' } }); const t0 = notes().length;
+    await lire3([vocal(7005)]);
+    v('⛔ vocal trop long pour l\'ouvrier : le Système le dit', [notes().length - t0, dernierNote()], [1, 'Ton vocal est trop long pour être transcrit : il n’a pas été transmis.']);
+    etat.transcrire = () => ({ corps: { ok: false, raison: 'introuvable' } }); const i0 = notes().length;
+    await lire3([vocal(7006)]);
+    v('un vocal déjà supprimé ("introuvable") : rien à dire, il n\'attend plus', [notes().length - i0, p3._etat().vocauxEnAttente], [0, 0]);
+    etat.transcrire = () => ({ corps: { ok: true, etat: 'attente' } });
+    await lire3([vocal(7007)]); const v0 = notes().length;
+    await lire3([{ type: 'transcription', fil: 'victor', seq: 7007, etat: 'vide' }]);
+    v('⛔ un vocal sans parole : « Je n\'ai rien entendu », rien au registre', [notes().length - v0, dernierNote(), registreJ().pop().texte], [1, 'Je n’ai rien entendu dans ton vocal : il n’a pas été transmis.', '🎤 Le budget est revenu']);
+    await lire3([vocal(7008)]); const e0 = notes().length; const ap0 = appels().length; horloge += 1000;
+    await lire3([{ type: 'transcription', fil: 'victor', seq: 7008, etat: 'echec' }]);
+    v('un premier échec de calcul : PAS de note — le pont redemande tout seul (après 20 s)', [notes().length - e0, p3._etat().vocauxEnAttente, p3._etat().vocauxDemandes], [0, 1, 0]);
+    horloge += 21000; await p3._lire();
+    v('…il a redemandé (une demande de plus)', appels().length - ap0, 1);
+    await lire3([{ type: 'transcription', fil: 'victor', seq: 7008, etat: 'echec' }]);
+    v('⛔ un second échec : la phrase qui dit quoi faire (« Voir la transcription » sous le vocal) — le vocal n\'attend plus', [notes().length - e0, dernierNote(), p3._etat().vocauxEnAttente], [1, 'Ton vocal n’a pas pu être transcrit : il n’a pas été transmis. Touche « Voir la transcription » sous ton vocal pour réessayer, et je le transmettrai.', 0]);
+    await lire3([texteDe(7008, 'Réessayé à la main par Justin')]);
+    v('⛔ Justin réessaie à la main (« Voir la transcription ») : le texte rendu, que personne n\'attendait plus, FINIT chez les agents', registreJ().pop().texte, '🎤 Réessayé à la main par Justin');
+    await lire3([texteDe(7099, 'Un texte pour un vocal que le pont n\'a jamais vu passer')]);
+    v('…y compris celui d\'un vocal que le pont ne connaissait pas', registreJ().pop().texte, '🎤 Un texte pour un vocal que le pont n’a jamais vu passer'.replace('’', '\''));
+
+    /* ⑥ le délai de 15 minutes */
+    etat.transcrire = () => ({ corps: { ok: false, raison: 'indisponible' } }); const d0 = notes().length;
+    await lire3([vocal(7009)]);
+    v('l\'ouvrier ne répond pas ("indisponible") : on attend, sans bruit', [notes().length - d0, p3._etat().vocauxEnAttente], [0, 1]);
+    horloge += 14 * 60000; await p3._lire();
+    v('…toujours sans bruit à 14 minutes', notes().length - d0, 0);
+    horloge += 2 * 60000; await p3._lire(); await p3._envoyer();
+    v('⛔ au bout de 15 minutes sans texte : « délai dépassé », et le vocal n\'attend plus (jamais « en cours » pour toujours)', [notes().length - d0, /délai dépassé/.test(dernierNote()), p3._etat().vocauxEnAttente], [1, true, 0]);
+
+    /* ⑦ un vocal supprimé pendant l'attente n'est plus demandé ; une panne d'OP MESSAGES ne le perd pas */
+    etat.transcrire = () => ({ corps: { ok: false, raison: 'occupee' } });
+    await lire3([vocal(7010)]);
+    await lire3([{ type: 'suppression', fil: 'victor', seq: 7010, pour: 'tous' }]);
+    v('un vocal supprimé pendant l\'attente ne l\'attend plus', p3._etat().vocauxEnAttente, 0);
+    etat.transcrire = () => ({ destroy: true });
+    await lire3([vocal(7011)]);
+    v('⛔ OP MESSAGES coupe la connexion PENDANT la demande : le vocal RESTE (rien n\'est perdu) et ce n\'est pas une note', [p3._etat().vocauxEnAttente, p3._etat().vocauxDemandes, notes().length - d0], [1, 0, 1]);
+    etat.transcrire = () => ({ corps: { ok: true, etat: 'attente' } });
+    horloge += 130000; await p3._lire();
+    v('…le service revient : la demande est refaite et acceptée', [p3._etat().vocauxEnAttente, p3._etat().vocauxDemandes], [1, 1]);
+    etat.transcrire = () => ({ code: 500, corps: { error: 'boom' } });
+    horloge += 130000; await lire3([vocal(7012)]);
+    v('⛔ le service qui répond 500 à la demande : le vocal RESTE aussi, demande à refaire', [p3._etat().vocauxEnAttente, p3._etat().vocauxDemandes], [2, 1]);
+    etat.transcrire = () => ({ corps: { ok: true, etat: 'attente' } });
+    horloge += 130000; await p3._lire();
+    v('…et elle est refaite quand il revient', p3._etat().vocauxDemandes, 2);
+
+    /* ⑧ une photo ou un sondage garde sa note ; et une Tour qui lit un service D'AVANT (le vocal est « autre ») dit la même chose qu'avant */
+    const ph0 = notes().length;
+    await lire3([{ type: 'message', fil: 'victor', seq: 7020, genre: 'autre', texte: null, ts: 1 }]);
+    v('⛔ une photo, un sondage : toujours la ligne « Les agents ne lisent que le texte » (et aucune demande de transcription)', [notes().length - ph0, /ne lisent que le texte/.test(dernierNote()), appels().filter(a => a.seq === 7020).length], [1, true, 0]);
+    p3.arreter();
+
+    /* ⑩ ⛔ L'ORDRE D'UNE CONVERSATION SE GARDE (relecture, 28 octobre 2026). Avec deux places par personne, le 3e vocal d'une rafale est refusé "mes_vocaux" et attend VOCAL_PAS_MS ; le 4e, jamais encore
+       demandé, l'était aussitôt dans la MÊME passe — et prenait la place si elle venait de se libérer : le registre des agents recevait le texte du vocal 4 avant celui du vocal 3, et ils répondaient
+       dans l'ordre inverse de ce que Justin avait dit. Un vocal refusé (passagèrement) retient donc les suivants DU MÊME FIL ; un autre fil n'attend personne. Le service est ici un faux qui DIT ce que le
+       banc veut — la place « se libère » pile entre les deux demandes, ce que le vrai ouvrier ne fait qu'au hasard du moment. */
+    const p10 = await neuf('p10'); await p10._envoyer(); await p10._lire(); await p10._attendreFini();
+    const lire10 = async (evs) => { etat.evenements = evs.map(e => Object.assign({ gid: ++gid }, e)); etat.curseur = gid; await p10._lire(); await p10._envoyer(); };
+    const sequence = () => appels().map(a => a.fil + '#' + a.seq);
+    let place = 2;                                                   // les places de Justin : les deux premiers vocaux les prennent, le troisième est refusé, puis une place se libère
+    etat.transcrire = (j) => {
+      if (j.seq === 8003 && place === 0) { place = 1; return { corps: { ok: false, raison: 'mes_vocaux' } }; }            // refus de CE vocal-là, et la place se libère aussitôt après
+      if (place > 0) { place--; return { corps: { ok: true, etat: 'attente' } }; }
+      return { corps: { ok: false, raison: 'mes_vocaux' } };
+    };
+    etat.requetes.length = 0;
+    await lire10([vocal(8001), vocal(8002), vocal(8003), vocal(8004), vocal(8101, 'lea')]);
+    v('⛔ quatre vocaux en rafale dans UN fil : le 3e est refusé, le 4e n\'est PAS demandé dans la même passe (il ne passe pas devant) — un vocal d\'un AUTRE fil, lui, l\'est',
+      [sequence(), p10._etat().vocauxEnAttente, p10._etat().vocauxDemandes], [['victor#8001', 'victor#8002', 'victor#8003', 'lea#8101'], 5, 3]);
+    await p10._lire();
+    v('…et tant que le délai de reprise du 3e n\'est pas écoulé, le 4e attend toujours (aucune demande de plus)', sequence().length, 4);
+    horloge += 130000; etat.requetes.length = 0; place = 5;
+    await p10._lire();
+    v('⛔ le délai écoulé : le 3e est redemandé D\'ABORD, puis le 4e — l\'ordre de Justin', sequence(), ['victor#8003', 'victor#8004']);
+    v('…et plus rien n\'attend de demande', [p10._etat().vocauxDemandes, p10._etat().vocauxEnAttente], [5, 5]);
+    /* le texte de chaque vocal porte SON nom : le registre les reçoit dans l'ordre où ils ont été dits */
+    const rJ0 = registreJ().length;
+    await lire10([texteDe(8001, 'un-8001'), texteDe(8002, 'deux-8002'), texteDe(8003, 'trois-8003'), texteDe(8004, 'quatre-8004')]);
+    v('(contre-épreuve) les quatre textes entrent au registre dans l\'ordre des vocaux', registreJ().slice(rJ0).map(m => m.texte.replace('🎤 ', '')), ['un-8001', 'deux-8002', 'trois-8003', 'quatre-8004']);
+    p10.arreter();
+  }
+
+  /* ⑨ ⛔ la conversation GÉNÉRIQUE des agents (`agent-conversation.js`, servie quand la messagerie des agents n'est pas montée) porte, elle aussi, la règle « 🎤 = vocal transcrit par une machine »
+        et garde un vocal jusqu'à 2 400 signes : le VRAI module, un faux cerveau qui note ce qu'il reçoit (le chemin de `agent-equipe.js` est gardé par test-3095) */
+  {
+    const AC = require('../server/agent-conversation');
+    const vu = [];
+    const long = '🎤 ' + 'mot '.repeat(450).trim();          // ~1 800 signes
+    const registre = { AGENTS: [{ id: 'lea', nom: 'Léa', role: 'Commerciale' }], peutAgir: () => ({ ok: true }) };
+    const conv = { historique: () => [{ de: 'justin', texte: long }], parler: () => ({ ok: true }) };
+    const cerveau = { penser: async (id, system, messages) => { vu.push({ id, system, messages }); return { ok: true, texte: 'Bien reçu.' }; } };
+    const ag = AC({ agents: registre, conversations: conv, cerveau, faits: {} });
+    await ag.repondre('lea', long);
+    vrai('(population) l\'agent générique a été appelé une fois avec ses règles et le message', vu.length === 1 && /Tu es Léa/.test(vu[0].system) && vu[0].messages.length === 1);
+    vrai('⛔ ses règles disent que 🎤 est un VOCAL transcrit par une machine (des mots peuvent être faux)', /commence par 🎤/.test(vu[0].system) && /VOCAL/.test(vu[0].system));
+    v('⛔ un vocal garde sa longueur (jusqu\'à 2 400 signes) : il n\'est pas coupé comme une phrase tapée', vu[0].messages[0].content.length, long.length);
   }
 
   /* (le bandeau de la Tour « Vos agents sont maintenant dans OP MESSAGES » est gardé par `test-3091`, avec la Tour unifiée : il ne part qu'avec elle) */

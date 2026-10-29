@@ -15,6 +15,8 @@ function monter(modalite) {
       let modalite = '${modalite}';
       const MOI = { id: 'u1' }; const trOuvertes = new Set(); const message = { id: 'm1', auteur: 'u2', texte: 'Bonjour', t: Date.now(), reactions: [] };
       const trouverMessage = id => id === 'm1' ? message : null; const compoFerme = () => false; const estCarte = () => false; const transferable = () => false; const transcriptionPossible = () => false;
+      /* « Écouter » (28 octobre 2026) : ce banc ne parle pas de lecture à voix haute — la ligne du menu n'y est pas (ni synthèse, ni message écoutable). */
+      const ecoutable = () => false; const synthesePossible = () => false; const ecoute = { mid: null };
       const rappelPossible = () => true; const suiviPossible = () => false; const pieceDe = () => null; const icone = () => ''; const esc = s => String(s);
       etat.convDonnees = { type: 'direct', admins: [] };
       const traces = []; this.traces = traces;

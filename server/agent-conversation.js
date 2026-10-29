@@ -150,6 +150,7 @@ function systemDe(agent, r) {
     (r.rien ? '- ' + r.rien + '\n' : '') +
     '- Tu ne cites que les faits du bloc Faits ci-dessous. Si tu ne sais pas, tu le dis : tu n’inventes ni chiffre, ni nom, ni date.\n' +
     '- Ne répète jamais une adresse électronique ni un numéro de téléphone.\n' +
+    '- Un message de Justin qui commence par 🎤 est un VOCAL, transcrit par une machine : des mots peuvent être faux, surtout les noms propres et les chiffres. Tu y réponds comme à un texte, et tu demandes à Justin de confirmer ce qui engage (un nom, un montant, une date).\n' +
     '- Réponse courte : 600 caractères au plus, concrète, sans titre ni liste à puces.';
 }
 
@@ -193,7 +194,8 @@ module.exports = function agentConversation(ctx) {
   /* La mémoire d'équipe de l'agent (leçons et objectifs des réunions, `reunions.js`) : injectée, lue À CHAQUE réponse (elle change chaque semaine). */
   const memoire = id => { try { return typeof ctx.memoire === 'function' ? String(ctx.memoire(id) || '') : ''; } catch (e) { return ''; } };
   const masquer = t => sansTel(sansAdr(String(t || '')));
-  const nettoyer = t => masquer(t).replace(/\s+/g, ' ').trim().slice(0, MESSAGE_MAX);
+  /* un vocal transcrit (🎤, pont OP MESSAGES) pèse plus qu'une phrase tapée : il garde sa longueur, jusqu'à 2 400 signes */
+  const nettoyer = t => { const x = masquer(t).replace(/\s+/g, ' ').trim(); return x.slice(0, x.startsWith('🎤') ? 2400 : MESSAGE_MAX); };
 
   /* L'historique du fil en messages pour Claude : `user` (Justin, ou un autre agent dans « Équipe », nommé) et `assistant` (l'agent),
      consécutifs fusionnés, jamais un `assistant` en tête, TOUJOURS un `user` à la fin. Le message que Justin vient d'écrire est déjà dans

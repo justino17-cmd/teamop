@@ -26,7 +26,11 @@
  * ⛔ LE SECRET (`config.opmsgPont.secret`, sur le VPS, jamais dans le dépôt) ne part que vers la BOUCLE LOCALE : une adresse qui n'est pas 127.0.0.1 / localhost refuse le montage.
  * ⛔ Ce qui est recopié reste ce que le registre contenait déjà : le texte d'un message d'agent est déjà passé par `sansAdresses` ; le rappel client ne porte qu'un numéro de dossier. OP MESSAGES
  * chiffre les corps au repos mais n'est PAS un chiffrement de bout en bout : le service lit le texte — c'est le même VPS, le même patron, sa décision.
- * ⚠️ Limites assumées (REPRISE.md) : seul le TEXTE passe (une photo ou un vocal de Justin n'arrive pas aux agents, et le pont le lui dit) ; une modification de message dans OP MESSAGES ne revient
+ * ⛔ LES VOCAUX DE JUSTIN (28 octobre 2026 : « ça serait bien qu'ils puissent lire ça ») : un vocal est TRANSCRIT par l'ouvrier d'OP MESSAGES (whisper.cpp, sur notre serveur), puis son texte entre au registre
+ * comme un texte de Justin marqué « 🎤 » (`justinEcrit`, donc mentions et réveil des agents, une seule fois). Le pont DEMANDE la transcription (`POST /api/pont/transcrire`), range le vocal en attente (sur
+ * disque, avec le curseur), le redemande tant que l'ouvrier est occupé ou le budget épuisé, et DIT chaque issue qui n'est pas un texte (rien entendu, échec après un second essai, non installée, trop long, délai
+ * de 15 minutes dépassé). Un texte rendu à la main (Justin touche « Voir la transcription » après un échec) finit aussi chez les agents. Le texte de Justin va alors aux agents, donc à Anthropic, comme un texte écrit.
+ * ⚠️ Limites assumées (REPRISE.md) : seuls le TEXTE et les VOCAUX passent (une photo ou un sondage de Justin n'arrive pas aux agents, et le pont le lui dit) ; une modification de message dans OP MESSAGES ne revient
  * pas ; « supprimer pour moi » d'un message de Justin dans OP MESSAGES vaut suppression (il est seul à lire ces fils) ; un rappel client non lu ne se supprime pas depuis OP MESSAGES (409 côté Tour) ;
  * un groupe renommé dans la Tour ne se renomme pas là-bas.
  */
@@ -35,6 +39,12 @@
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const F = 'pont-messages.json';
 const FILE_MAX = 2000, LOT_MAX = 25, LOT_OCTETS = 48000, LIES_MAX = 4000;
+const VOCAL_DELAI_DEFAUT_MS = 15 * 60000;     // un vocal de Justin qui n'a pas reçu son texte au bout de ce temps : il est dit « délai dépassé » et on arrête d'attendre
+const VOCAL_PAS_DEFAUT_MS = 20000;            // l'attente entre deux demandes de transcription refusées pour un motif passager (ouvrier occupé, budget de l'heure)
+const VOCAL_ESSAIS_MAX = 2;            // un échec de calcul se retente UNE fois tout seul ; au second, Justin est prévenu (et peut réessayer à la main : « Voir la transcription »)
+const VOCAUX_MAX = 200;                // les vocaux en attente d'un texte (persistés)
+const VOCAL_TEXTE_MAX = 2400;          // ce qu'un vocal transcrit peut peser dans le registre (deux minutes de parole environ) ; au-delà : coupé, et DIT
+const VOCAL_MARQUE = '🎤 ';            // la marque du texte d'un vocal : les agents savent que des mots peuvent être faux (machine), Justin voit d'où ça vient
 const ANCIEN_MS = 120000;              // un message plus vieux que ça au moment de partir est un RATTRAPAGE : sa date d'origine, aucune notification
 const NOTE_PAS_MS = 600000;            // « les agents ne lisent que le texte » : une fois par fil et par dix minutes
 const ATTENTE_MAX_MS = 60000;           // la plus longue attente entre deux essais quand OP MESSAGES ne répond pas (les bancs l'abaissent)
@@ -52,6 +62,9 @@ module.exports = function creerPontMessages(o) {
   const pasLireMs = Number.isInteger(o.pasLireMs) ? o.pasLireMs : 3000;
   const delaiMs = Number.isInteger(o.delaiMs) ? o.delaiMs : 5000;
   const attenteMax = Number.isInteger(o.attenteMaxMs) && o.attenteMaxMs >= 50 && o.attenteMaxMs <= ATTENTE_MAX_MS ? o.attenteMaxMs : ATTENTE_MAX_MS;
+  /* les bancs règlent l'attente d'un vocal (jamais en production : 15 minutes de patience, 20 secondes entre deux demandes refusées) */
+  const VOCAL_DELAI_MS = Number.isInteger(o.vocalDelaiMs) && o.vocalDelaiMs >= 200 ? o.vocalDelaiMs : VOCAL_DELAI_DEFAUT_MS;
+  const VOCAL_PAS_MS = Number.isInteger(o.vocalPasMs) && o.vocalPasMs >= 20 ? o.vocalPasMs : VOCAL_PAS_DEFAUT_MS;
   const journal = (typeof o.journal === 'function') ? o.journal : ((nom, n) => console.error('pont messages : ' + nom + (n !== undefined ? ' (' + n + ')' : '')));
   const url = String(o.url || '').replace(/\/+$/, '');
   const secret = String(o.secret || '').toLowerCase();
@@ -61,18 +74,24 @@ module.exports = function creerPontMessages(o) {
   if (!conversations || !agents || !Array.isArray(agents.AGENTS) || !fichier) return null;
 
   /* ── L'état rangé : le curseur d'OP MESSAGES et la table des recopies (id du registre ↔ numéro dans la conversation) ── */
-  const etatFichier = fichier.charger(F, { v: 1, curseur: null, lies: [] });
+  const etatFichier = fichier.charger(F, { v: 1, curseur: null, lies: [], vocaux: [] });
   const illisible = fichier.illisible(F);
   let curseur = Number.isInteger(etatFichier.curseur) ? etatFichier.curseur : null;
   const parId = new Map(), parSeq = new Map();           // id → {fil, seq} ; "fil#seq" → id
   for (const x of Array.isArray(etatFichier.lies) ? etatFichier.lies : []) {
     if (Array.isArray(x) && typeof x[0] === 'string' && typeof x[1] === 'string' && Number.isInteger(x[2])) { parId.set(x[0], { fil: x[1], seq: x[2] }); parSeq.set(x[1] + '#' + x[2], x[0]); }
   }
+  /* Les vocaux de Justin qui attendent leur texte : { fil, seq, depuis, essais, prochain, demande } — rangés avec le curseur, pour qu'un redémarrage de la Tour ne perde pas un vocal (le curseur
+     d'OP MESSAGES, lui, est déjà passé dessus : sans cette liste, il ne reviendrait jamais). */
+  const vocaux = [];
+  for (const x of Array.isArray(etatFichier.vocaux) ? etatFichier.vocaux : []) {
+    if (x && typeof x.fil === 'string' && Number.isInteger(x.seq) && Number.isFinite(x.depuis)) vocaux.push({ fil: x.fil, seq: x.seq, depuis: x.depuis, essais: Number.isInteger(x.essais) ? x.essais : 0, prochain: Number.isFinite(x.prochain) ? x.prochain : 0, demande: x.demande === true });
+  }
   function sauver() {
     if (illisible) return false;
     const lies = [];
     for (const [id, v] of parId) lies.push([id, v.fil, v.seq]);
-    return fichier.ecrire(F, { v: 1, curseur, lies: lies.slice(-LIES_MAX) });
+    return fichier.ecrire(F, { v: 1, curseur, lies: lies.slice(-LIES_MAX), vocaux: vocaux.slice(-VOCAUX_MAX) });
   }
   function lier(id, fil, seq) {
     parId.set(id, { fil, seq }); parSeq.set(fil + '#' + seq, id);
@@ -82,7 +101,7 @@ module.exports = function creerPontMessages(o) {
 
   /* ── La file : des messages à recopier, des suppressions à dire, des notes du pont ── */
   const file = [], enFile = new Set();
-  const compte = { recopies: 0, rejets: 0, abandons: 0, lus: 0, suppressionsLues: 0, suppressionsRefusees: 0, notes: 0, photos: 0, photosRefusees: 0, photosAbsentes: 0 };
+  const compte = { recopies: 0, rejets: 0, abandons: 0, lus: 0, suppressionsLues: 0, suppressionsRefusees: 0, notes: 0, vocaux: 0, transcrits: 0, vocauxSansTexte: 0, photos: 0, photosRefusees: 0, photosAbsentes: 0 };
   let installe = false, photosEnCours = false, enCours = false, lectureEnCours = false, arrete = false, echecDepuis = illisible ? horloge() : 0, attenteJusqua = 0, attenteMs = 0, derniereNote = {};
   let minuteurEnvoi = null, minuteurLecture = null;
 
@@ -266,9 +285,82 @@ module.exports = function creerPontMessages(o) {
     derniereNote[fil] = t;
     enfiler({ k: 'n', fil, de: 'systeme', texte: 'Les agents ne lisent que le texte : ce que tu viens d’envoyer n’a pas été transmis.', ts: t, importe: false, cid: 'note-' + t.toString(36) + Math.random().toString(36).slice(2, 8) });
   }
+  /* Une ligne du Système dans le fil, SANS limite de fréquence (contrairement à `noteTexteSeul`) : chaque vocal a son propre sort à dire. Le `cid` est propre à la note. */
+  function noteSysteme(fil, texte) {
+    const t = horloge();
+    enfiler({ k: 'n', fil, de: 'systeme', texte, ts: t, importe: false, cid: 'note-' + t.toString(36) + Math.random().toString(36).slice(2, 8) });
+    petitCoupDePouce();
+  }
+  const vocalDe = (fil, seq) => vocaux.find(v => v.fil === fil && v.seq === seq);
+  const vocalRetirer = (v) => { const i = vocaux.indexOf(v); if (i >= 0) vocaux.splice(i, 1); };
+  /* Le texte d'un vocal entre au registre COMME UN TEXTE de Justin (`justinEcrit` : mentions, réveil de l'agent du fil, du meneur du groupe), marqué 🎤. `lier` : le vocal supprimé ensuite emporte son texte
+     par le chemin des suppressions. ⛔ Une seule fois : `parSeq` dit que ce vocal a déjà donné un message. */
+  function vocalTexteEntre(fil, seq, texte) {
+    let t = String(texte).replace(/\s+/g, ' ').trim();
+    if (!t) return true;
+    const max = VOCAL_TEXTE_MAX - VOCAL_MARQUE.length;
+    if (t.length > max) { const c = t.slice(0, max - 2), i = c.lastIndexOf(' '); t = (i > max * 0.6 ? c.slice(0, i) : c) + ' […]'; }
+    const r = conversations.justinEcrit(fil, VOCAL_MARQUE + t, { sansEcho: true, max: VOCAL_TEXTE_MAX });
+    if (!r.ok) return r.statut !== 503;                          // registre qui ne s'écrit pas : on réessaie ; vide ou fil inconnu : on passe
+    lier(r.message.id, fil, seq); compte.transcrits++;
+    return true;
+  }
+  function traiterTranscription(e) {
+    if (!conversations.filValide(e.fil) || parSeq.has(e.fil + '#' + e.seq)) return true;
+    const v = vocalDe(e.fil, e.seq);
+    if (e.etat === 'prete' && typeof e.texte === 'string') {
+      /* aussi un texte que NOUS n'avons pas demandé : Justin a touché « Voir la transcription » après un échec (ou avant nous) — le vocal est le sien, il doit finir chez les agents */
+      if (!vocalTexteEntre(e.fil, e.seq, e.texte)) return false;
+      if (v) vocalRetirer(v);
+      return true;
+    }
+    if (!v) return true;                                          // un échec ou un vide d'un vocal qu'on n'attendait pas : la page le dit déjà, rien à ajouter
+    if (e.etat === 'vide') { vocalRetirer(v); compte.vocauxSansTexte++; noteSysteme(e.fil, 'Je n’ai rien entendu dans ton vocal : il n’a pas été transmis.'); return true; }
+    /* échec du calcul : une seconde demande toute seule, puis Justin est prévenu */
+    v.demande = false; v.essais++;
+    if (v.essais < VOCAL_ESSAIS_MAX) { v.prochain = horloge() + VOCAL_PAS_MS; return true; }
+    vocalRetirer(v); compte.vocauxSansTexte++;
+    noteSysteme(e.fil, 'Ton vocal n’a pas pu être transcrit : il n’a pas été transmis. Touche « Voir la transcription » sous ton vocal pour réessayer, et je le transmettrai.');
+    return true;
+  }
+  /* Demander les textes des vocaux en attente, un par un, à la boucle de lecture : le service répond `{ ok, etat }` ou `{ ok:false, raison }` (toujours un 200 : un refus passager n'est pas une panne). */
+  async function demanderVocaux() {
+    /* ⛔ L'ORDRE D'UNE CONVERSATION SE GARDE (28 octobre 2026) : un vocal refusé passagèrement (occupée, « mes vocaux », budget, indisponible) ou qui attend sa reprise RETIENT les vocaux suivants DU MÊME
+       FIL dans cette passe. Sans ça, avec deux places par personne, le 3e vocal d'une rafale attendait VOCAL_PAS_MS pendant que le 4e — jamais demandé — passait devant dès qu'une place se libérait :
+       le registre des agents recevait le texte du 4e avant celui du 3e, et ils répondaient à Justin dans l'ordre inverse de ce qu'il avait dit. Un autre fil n'attend personne. */
+    const retenus = new Set();
+    for (const v of vocaux.slice()) {
+      if (arrete) return;
+      if (horloge() - v.depuis > VOCAL_DELAI_MS) {
+        vocalRetirer(v); compte.vocauxSansTexte++;
+        noteSysteme(v.fil, 'Ton vocal n’a pas été transcrit à temps (délai dépassé) : il n’a pas été transmis. Touche « Voir la transcription » sous ton vocal pour réessayer, et je le transmettrai.'); sauver();
+        continue;
+      }
+      if (v.demande) continue;                                    // sa demande est acceptée : il n'a pas à retenir les suivants (l'ouvrier les prend dans l'ordre d'arrivée)
+      if (retenus.has(v.fil)) continue;
+      if (v.prochain > horloge()) { retenus.add(v.fil); continue; }
+      const r = await appeler('POST', '/api/pont/transcrire', { fil: v.fil, seq: v.seq });
+      if (!r) return;                                             // OP MESSAGES ne répond pas : la boucle suivante
+      if (r.statut === 409) return;                               // pas installé : la boucle réinstalle
+      if (r.statut === 400) { vocalRetirer(v); compte.rejets++; sauver(); continue; }
+      if (!vocalDe(v.fil, v.seq)) continue;                       // l'événement du résultat est passé pendant l'attente
+      if (r.j.ok === true) { v.demande = true; sauver(); continue; }
+      const raison = r.j.raison;
+      if (raison === 'absente') { vocalRetirer(v); compte.vocauxSansTexte++; noteSysteme(v.fil, 'La transcription des vocaux n’est pas installée sur le serveur : ton vocal n’a pas été transmis.'); }
+      else if (raison === 'trop_long') { vocalRetirer(v); compte.vocauxSansTexte++; noteSysteme(v.fil, 'Ton vocal est trop long pour être transcrit : il n’a pas été transmis.'); }
+      else if (raison === 'introuvable') vocalRetirer(v);       // supprimé entre-temps : rien à transmettre
+      else { v.prochain = horloge() + Math.max(VOCAL_PAS_MS, Math.min(300000, (Number(r.j.attente) || 0) * 1000)); retenus.add(v.fil); }   // indisponible, occupee, mes_vocaux, budget : on retentera, dans le délai de 15 minutes
+      sauver();
+    }
+  }
   function traiter(e) {
+    if (e.type === 'transcription') return traiterTranscription(e);
     if (e.type === 'message') {
       if (!conversations.filValide(e.fil) || parSeq.has(e.fil + '#' + e.seq)) return true;
+      if (e.genre === 'vocal') {
+        if (!vocalDe(e.fil, e.seq)) { vocaux.push({ fil: e.fil, seq: e.seq, depuis: horloge(), essais: 0, prochain: 0, demande: false }); compte.vocaux++; while (vocaux.length > VOCAUX_MAX) vocaux.shift(); }
+        return true;
+      }
       if (e.genre !== 'texte' || typeof e.texte !== 'string') { noteTexteSeul(e.fil); return true; }
       const r = conversations.justinEcrit(e.fil, e.texte, { sansEcho: true });
       if (!r.ok) return r.statut !== 503;                          // vide ou fil inconnu : on passe ; registre qui ne s'écrit pas : on réessaie (le curseur n'avance pas)
@@ -276,6 +368,7 @@ module.exports = function creerPontMessages(o) {
       return true;
     }
     if (e.type === 'suppression') {
+      const vp = vocalDe(e.fil, e.seq); if (vp) vocalRetirer(vp);            // un vocal supprimé n'attend plus son texte
       const id = parSeq.get(e.fil + '#' + e.seq);
       if (!id) return true;
       const r = conversations.retirer(id, { sansEcho: true });
@@ -302,8 +395,9 @@ module.exports = function creerPontMessages(o) {
         }
         if (!tout) return;
         curseur = Math.max(curseur, r.j.curseur); sauver();
-        if (r.j.plein !== true) return;
+        if (r.j.plein !== true) break;
       }
+      if (vocaux.length) await demanderVocaux();
     } catch (e) { panne(); journal('lecture : ' + ((e && e.name) || 'erreur')); }
     finally { lectureEnCours = false; }
   }
@@ -322,6 +416,6 @@ module.exports = function creerPontMessages(o) {
 
   return { demarrer, arreter, surAjout, surRetrait, sante,
     /* pour les bancs */
-    _envoyer: envoyer, _lire: lire, _installer: installer, _etat: () => Object.assign({ installe, curseur, file: file.length, lies: parId.size, enAttente: enAttente(), echecDepuis }, compte), _photographier: photographier, _attendreFini: async () => { for (let i = 0; i < 400 && (enCours || lectureEnCours || photosEnCours); i++) await new Promise(r => setTimeout(r, 5)); } };
+    _envoyer: envoyer, _lire: lire, _installer: installer, _etat: () => Object.assign({ installe, curseur, file: file.length, lies: parId.size, enAttente: enAttente(), echecDepuis, vocauxEnAttente: vocaux.length, vocauxDemandes: vocaux.filter(x => x.demande).length }, compte), _photographier: photographier, _attendreFini: async () => { for (let i = 0; i < 400 && (enCours || lectureEnCours || photosEnCours); i++) await new Promise(r => setTimeout(r, 5)); } };
 };
 module.exports.F = F;

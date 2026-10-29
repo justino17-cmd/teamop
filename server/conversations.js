@@ -50,7 +50,7 @@ const F = 'agents-messages.json';
 const NIVEAUX = ['info', 'important', 'urgent'];
 const MOTIFS = { demande_humain: 'demande à parler à une vraie personne', litige: 'litige à traiter', sensible: 'sujet sensible', blocage: 'client bloqué', urgence: 'urgence' };
 /* (28 octobre 2026) 1000 et plus 500 : les chaînes de 40 messages et les annonces de fin de travail chassaient l'historique ET la mémoire du doublon (le fichier fait ~300 Ko et se réécrit entier). */
-const TEXTE_MAX = 600, TEXTE_PATRON_MAX = 1000, MESSAGES_MAX = 1000, PAR_HEURE = 12, DOUBLON_MS = 24 * 3600 * 1000, LISTE_MAX = 100;
+const TEXTE_MAX = 600, TEXTE_PATRON_MAX = 1000, VOCAL_TEXTE_MAX = 2400, MESSAGES_MAX = 1000, PAR_HEURE = 12, DOUBLON_MS = 24 * 3600 * 1000, LISTE_MAX = 100;
 const PAR_HEURE_FIL = 20;          // messages d'AGENTS par heure et par fil, en plus des douze par agent : deux agents qui s'emballent s'arrêtent ici
 /* LES RÉUNIONS (`reunions.js`, 23 octobre 2026) ont leur plafond propre, et SEULEMENT dans le fil « reunions » : une ouverture, un tour de table de seize,
    une discussion bornée et une conclusion tiennent en moins de quarante messages. Elles réveillent personne par l'@mention (le déroulé donne la parole lui-même,
@@ -454,7 +454,8 @@ module.exports = function monterConversations(app, ctx) {
   function justinEcrit(fil, texte, o) {
     if (illisible) return { ok: false, statut: 503, error: 'Les conversations sont illisibles' };
     if (!filValide(fil)) return { ok: false, statut: 400, error: 'Fil inconnu' };
-    const t = propre(texte, TEXTE_PATRON_MAX);
+    /* `o.max` : le texte d'un VOCAL transcrit (pont, 🎤) est plus long qu'une phrase tapée — jamais au-delà de VOCAL_TEXTE_MAX */
+    const t = propre(texte, o && Number.isInteger(o.max) ? Math.min(Math.max(o.max, TEXTE_PATRON_MAX), VOCAL_TEXTE_MAX) : TEXTE_PATRON_MAX);
     if (!t) return { ok: false, statut: 400, error: 'Message vide' };
     const m = { id: crypto.randomBytes(6).toString('hex'), ts: maintenant(), fil, de: 'justin', texte: t, niveau: 'info', lu: true, prof: 0, mentions: mentionsDe(t, fil) };
     /* ⛔ LA RACINE NAÎT ICI ET NULLE PART AILLEURS : l'identifiant du message lui-même — jamais une valeur du corps de la requête (`o` ne porte que `sansEcho`). Soixante naissances par heure : au-delà

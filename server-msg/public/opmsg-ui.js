@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e750f47dee4a';
+  const OPMSG_BUILD = '5ccd38f3ec90';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 287;
+  const OPMSG_VERSION = 288;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -965,6 +965,7 @@
     /* version servie : le corps du message et son bouton d'actions vont dans UNE rangée (le bouton se pose à côté de la bulle) ; l'aperçu garde son balisage d'origine, octet pour octet */
     if (CAP.actionsMessage && !m.attente) h = h.slice(0, debutCorps) + '<span class="msg-rang' + (etat.menu && etat.menu.mid === m.id ? ' menu-ancre' : '') + '">' + h.slice(debutCorps) + '<button type="button" class="msg-plus presse" data-actions="' + esc(m.id) + '" aria-haspopup="dialog" aria-label="Actions du message">' + icone('i-points') + '</button></span>';
     if (m.vocal && transcriptionPossible(m)) h += htmlTranscription(m, sens);      // « Voir la transcription », et le texte quand on l'a ouvert (11 octobre 2026)
+    if (!moi && ecoutable(m) && synthesePossible() && texteParle(m.texte).length >= ECOUTE_LIEN_MIN) h += htmlEcouter(m);      // « Écouter » (28 octobre 2026) : sous un message reçu d'au moins une phrase
     if (m.attente && m.echec && typeof source.reessayer === 'function') h += echecHtml(m);
     if (m.reactions && m.reactions.length) h += reactionsHtml(m);
     if (m.modifie && !m.supprime) h += '<span class="mention-modifie">Modifié</span>';
@@ -1135,7 +1136,7 @@
      texte. Chaque morceau garde le balisage qui l'a produit (`__h`) ; seul ce qui a CHANGÉ est remplacé, le reste est le même nœud. */
   function peindreMessages(parts) {
     const col = $('conv-messages'), tpl = document.createElement('template');
-    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.onde ? 'onde' : actif.dataset.vitesse ? 'vitesse' : actif.dataset.photo ? 'photo' : actif.dataset.sond ? 'sond' : actif.dataset.sondClore ? 'sondClore' : actif.dataset.ficheAjouter ? 'ficheAjouter' : actif.dataset.transcrire ? 'transcrire' : actif.dataset.transcrireReessayer ? 'transcrireReessayer' : actif.dataset.transcrirePlus ? 'transcrirePlus' : null) : null, val = cle ? actif.dataset[cle] : null;
+    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.onde ? 'onde' : actif.dataset.vitesse ? 'vitesse' : actif.dataset.photo ? 'photo' : actif.dataset.sond ? 'sond' : actif.dataset.sondClore ? 'sondClore' : actif.dataset.ficheAjouter ? 'ficheAjouter' : actif.dataset.transcrire ? 'transcrire' : actif.dataset.transcrireReessayer ? 'transcrireReessayer' : actif.dataset.transcrirePlus ? 'transcrirePlus' : actif.dataset.ecouter ? 'ecouter' : null) : null, val = cle ? actif.dataset[cle] : null;
     for (let i = 0; i < parts.length; i++) {
       const vieux = col.children[i];
       if (vieux && vieux.__h === parts[i].h) { majStatut(vieux, parts[i].st); continue; }
@@ -1191,6 +1192,7 @@
     $('compo').classList.toggle('texte-seul', iv === 'envoyee');
     if (iv === 'envoyee') $('compo-note').textContent = 'Invitation : ' + ((c.court || c.nom || '').split(' ')[0] || 'cette personne') + ' trouvera ton message dans ses invitations, et choisira d\'y répondre. D\'ici là : du texte seul, cinq messages au plus.';
     appliquerLecture();
+    verifierEcoute(c); peindreEcoute();
     if (colle) defilerBas();
   }
   function defilerBas() { const f = $('conv-fil'); f.scrollTop = f.scrollHeight; }
@@ -1254,6 +1256,22 @@
     return t || { etat: 'attente' };
   }
   const trLongVocal = m => Number(m.vocal && m.vocal.dur) > 60;
+  /* ⛔ « EN COURS » NE DURE PAS POUR TOUJOURS (28 octobre 2026). Le service ramasse lui-même une ligne que plus rien ne porte (un échec dit, avec « Réessayer ») — mais une ouvrière lente, une
+     file longue, un flux qui n'a pas livré le résultat laissent l'écran sur « en cours » : passé son délai (30 s + 1,5 s par seconde de vocal ; l'ouvrier met ~12 s + 0,6 s par seconde), la phrase
+     CHANGE et dit qu'on n'est plus dans l'ordinaire. `trDepuis` : l'heure où CET écran a commencé d'attendre ce texte ; `trLent` : ceux qui ont passé leur délai. */
+  const trDepuis = new Map(), trLent = new Set(), trMinut = new Map();
+  const trDelaiLent = m => 30000 + 1500 * Math.max(0, Number(m && m.vocal && m.vocal.dur) || 0);
+  function trSurveiller(m, attente) {
+    const mid = m.id;
+    if (!attente) { clearTimeout(trMinut.get(mid)); trMinut.delete(mid); trDepuis.delete(mid); trLent.delete(mid); return; }
+    if (trDepuis.has(mid)) return;
+    const t0 = Date.now(); trDepuis.set(mid, t0);
+    trMinut.set(mid, setTimeout(() => {
+      trMinut.delete(mid);
+      if (trDepuis.get(mid) !== t0) return;                                  // l'attente a fini, ou recommencé (« Réessayer »)
+      trLent.add(mid); annoncerTr('La transcription prend plus de temps que d\'habitude'); rendreIci();
+    }, trDelaiLent(m)));
+  }
   /* un long texte se coupe à un mot, jamais au milieu */
   function trCoupe(t, n) { const c = t.slice(0, n), i = c.lastIndexOf(' '); return (i > n * .6 ? c.slice(0, i) : c).replace(/[\s.,;:!?…]+$/, ''); }
   function htmlTranscription(m, sens) {
@@ -1267,6 +1285,7 @@
     if (pret) corps = t.texte.length > TR_COURT && !trEntieres.has(m.id) ? esc(trCoupe(t.texte, TR_COURT)) + '… <button type="button" class="tr-plus" data-transcrire-plus="' + esc(m.id) + '">Voir plus</button>' : esc(t.texte);
     else if (t.etat === 'prete' && t.illisible) corps = 'Ce texte ne peut plus être lu.';
     else if (t.etat === 'prete') corps = 'Le texte n\'a pas pu se charger.' + reessayer;          // `relis` raté trois fois : la demande le rend (rien ne se recalcule)
+    else if (t.etat === 'attente' && trLent.has(m.id)) corps = 'Ça prend plus longtemps que d\'habitude. La transcription est peut-être indisponible en ce moment.' + reessayer;
     else if (t.etat === 'attente') corps = '<span class="tr-roue" aria-hidden="true"></span>Transcription en cours…' + (trLongVocal(m) ? ' Un long vocal peut prendre une minute ou deux.' : '');
     else if (t.etat === 'vide') corps = 'Aucune parole reconnue.';
     else if (t.etat === 'refus') corps = esc(t.phrase) + (t.reessayer ? reessayer : '');
@@ -1280,7 +1299,7 @@
   function basculerTranscription(mid) {
     const m = trouverMessage(mid); if (!m || !transcriptionPossible(m)) return;
     /* ⛔ fermer pendant la demande ne l'oublie pas : rouvrir ne la relance pas (deux demandes pour un vocal, deux fois le plafond de la personne) */
-    if (trOuvertes.has(mid)) { trOuvertes.delete(mid); const l = trLocal.get(mid); if (!(l && l.envoi)) trLocal.delete(mid); trEtats.delete(mid); trEntieres.delete(mid); rendreIci(); return; }
+    if (trOuvertes.has(mid)) { trOuvertes.delete(mid); const l = trLocal.get(mid); if (!(l && l.envoi)) trLocal.delete(mid); trEtats.delete(mid); trEntieres.delete(mid); trSurveiller(m, false); rendreIci(); return; }
     trOuvertes.set(mid, etat.conv);
     if (!m.transcription && !trLocal.has(mid)) { demanderTranscription(mid); return; }
     const e = trEtat(m).etat; trEtats.set(mid, e); rendreIci();
@@ -1293,6 +1312,7 @@
   async function demanderTranscription(mid) {
     const id = etat.conv, m = trouverMessage(mid); if (!id || !m || !transcriptionPossible(m)) return;
     const loc = trLocal.get(mid); if (loc && loc.envoi) return;
+    trLent.delete(mid); clearTimeout(trMinut.get(mid)); trMinut.delete(mid); trDepuis.delete(mid);        // un nouvel essai : le délai repart
     trOuvertes.set(mid, id); trLocal.set(mid, { envoi: true }); trEtats.set(mid, 'attente'); rendreIci();
     annoncerTr('Transcription en cours' + (trLongVocal(m) ? ' — un long vocal peut prendre une minute ou deux' : ''));
     try { await source.transcrire(id, mid); trLocal.delete(mid); }
@@ -1305,8 +1325,9 @@
     for (const [mid, conv] of trOuvertes) {
       if (conv !== c.id) continue;
       const m = c.messages.find(x => x.id === mid);
-      if (!m || !transcriptionPossible(m)) { trOuvertes.delete(mid); trLocal.delete(mid); trEtats.delete(mid); trEntieres.delete(mid); continue; }
+      if (!m || !transcriptionPossible(m)) { trOuvertes.delete(mid); trLocal.delete(mid); trEtats.delete(mid); trEntieres.delete(mid); if (m) trSurveiller(m, false); else { clearTimeout(trMinut.get(mid)); trMinut.delete(mid); trDepuis.delete(mid); trLent.delete(mid); } continue; }
       const t = trEtat(m), avant = trEtats.get(mid);
+      trSurveiller(m, t.etat === 'attente');
       trEtats.set(mid, t.etat);
       if (avant !== 'attente' || t.etat === 'attente') continue;
       annoncerTr(t.etat === 'prete' ? (typeof t.texte === 'string' ? 'Transcription prête' : t.illisible ? 'Ce texte ne peut plus être lu' : 'Le texte de la transcription n\'a pas pu se charger')
@@ -1314,12 +1335,117 @@
     }
   }
 
+  /* ── ÉCOUTER UN MESSAGE (28 octobre 2026 : « ça serait bien qu'ils puissent lire ça, et même me répondre vocalement ») ──
+     Un lien « Écouter » sous un message REÇU (et la même ligne dans son menu) : la SYNTHÈSE VOCALE DU NAVIGATEUR (`speechSynthesis`), en français. Rien n'est enregistré ni envoyé : c'est la voix de
+     l'appareil qui lit le texte. De vrais vocaux fabriqués par le serveur (Piper) restent à décider plus tard — ce n'est pas ça.
+     ⛔ UNE VOIX LOCALE SEULEMENT (`localService`). Chrome propose des voix « Google » qui envoient le texte à un serveur : cette page ne l'accepte pas — la même règle que la transcription (« aucune
+     voix ne sort »). Sans voix française locale, le lien ne paraît pas — y compris tant que la liste des voix n'est pas chargée (Chrome au démarrage : l'événement `voiceschanged` redessine
+     le fil quand elle arrive) : un Chrome de bureau sans aucune voix n'affiche jamais un bouton muet.
+     ⛔ UN SEUL SON À LA FOIS : lancer un vocal coupe la voix, lancer la voix coupe le vocal, un autre message coupe le premier, toucher le même message l'arrête. Elle s'arrête aussi quand on change de
+     conversation, quand la page se cache, quand le message est supprimé ou modifié.
+     ⛔ SAFARI/iPHONE : la voix ne part que DANS le geste — `speak` est appelé de façon SYNCHRONE depuis le clic (aucun `await` avant). Pas de pause/reprise (peu fiable sur iOS) : seulement « Arrêter ».
+     ⛔ Le texte se découpe en phrases de 200 signes au plus : Chrome coupe une longue lecture au bout d'une quinzaine de secondes. Les objets `SpeechSynthesisUtterance` sont gardés (Chrome les perd).
+     Le libellé « Écouter » / « Arrêter » n'est PAS dans le balisage mémorisé de la bulle (comme la vitesse d'un vocal) : il se pose en place, sans refaire le message. */
+  const ECOUTE_LIEN_MIN = 40, ECOUTE_MORCEAU = 200, ECOUTE_MAX = 6000;
+  const ecoute = { mid: null, conv: null, texte: '', jeton: 0, refs: [] };
+  const syntheseDe = () => { try { const s = window.speechSynthesis; return s && typeof s.speak === 'function' && typeof s.cancel === 'function' && typeof window.SpeechSynthesisUtterance === 'function' ? s : null; } catch (e) { return null; } };
+  const langFr = l => /^fr(?:[-_]|$)/i.test(String(l || ''));
+  /* → { ok, voix } : ok = une voix française LOCALE existe (le texte ne sort pas de l'appareil) ; voix = celle qu'on prend */
+  function voixFrancaise() {
+    const s = syntheseDe(); if (!s) return { ok: false, voix: null };
+    let liste = []; try { liste = Array.from(s.getVoices() || []); } catch (e) { liste = []; }
+    const locales = liste.filter(x => x && x.localService === true && langFr(x.lang));
+    if (!locales.length) return { ok: false, voix: null };
+    const fr = x => String(x.lang).replace('_', '-').toLowerCase() === 'fr-fr';
+    return { ok: true, voix: locales.find(x => fr(x) && x.default) || locales.find(fr) || locales.find(x => x.default) || locales[0] };
+  }
+  /* lu à chaque message dessiné : on ne demande la liste des voix au navigateur qu'une fois toutes les 1,5 s au plus, et dès qu'il dit qu'elle a changé */
+  let voixCache = null;
+  const synthesePossible = () => { const t = Date.now(); if (!voixCache || t - voixCache.t > 1500) voixCache = { t, ok: voixFrancaise().ok }; return voixCache.ok; };
+  /* un message qu'on peut lire à voix haute : un TEXTE REÇU (pas le mien ; ni vocal, photo, fichier, carte, compte rendu), pas supprimé, pas en cours d'envoi */
+  const ecoutable = m => !!(m && !(MOI && m.auteur === MOI.id) && !m.supprime && !m.attente && !m.systeme && !m.vocal && !m.photos && !m.fichier && !estCarte(m) && !m.compteRendu && typeof m.texte === 'string' && m.texte.trim());
+  /* ce que la voix lit : sans liens, sans signes de mise en forme, sans arobase de mention ni émojis — un lien lu à voix haute est une suite de lettres */
+  function texteParle(t) {
+    let s = String(t == null ? '' : t);
+    s = s.replace(/(?:https?:\/\/|www\.)\S+/gi, ' ').replace(/@(?=\p{L})/gu, '').replace(/[`*_~]+/g, '').replace(/^[ \t]*(?:[#>]+|[-•·]+)[ \t]+/gm, '')
+      .replace(/[\p{Extended_Pictographic}‍️⃣]/gu, ' ').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f​-‏‪-‮⁦-⁩]/g, '');
+    return s.replace(/[ \t]*\n+[ \t]*/g, '. ').replace(/([.!?…:;,])\s*\.\s/g, '$1 ').replace(/\s+/g, ' ').trim().slice(0, ECOUTE_MAX);
+  }
+  /* des morceaux d'au plus ECOUTE_MORCEAU signes, coupés aux phrases (sinon à une virgule, sinon à une espace). ⛔ Pas de « lookbehind » dans une expression : un Safari d'avant 16.4 ne COMPILE pas la page. */
+  function morceauxParle(t) {
+    const phrases = String(t).match(/[^.!?…]+(?:[.!?…]+|$)\s*/g) || [], sorties = [];
+    let cur = '';
+    for (const ph of phrases) {
+      let p = ph.trim(); if (!p) continue;
+      while (p.length > ECOUTE_MORCEAU) {
+        let i = p.lastIndexOf(', ', ECOUTE_MORCEAU); if (i < ECOUTE_MORCEAU * 0.4) i = p.lastIndexOf(' ', ECOUTE_MORCEAU); if (i <= 0) i = ECOUTE_MORCEAU - 1;
+        if (cur) { sorties.push(cur); cur = ''; }
+        sorties.push(p.slice(0, i + 1).trim()); p = p.slice(i + 1).trim();
+      }
+      if (!p) continue;
+      if (cur && cur.length + 1 + p.length > ECOUTE_MORCEAU) { sorties.push(cur); cur = p; } else cur = cur ? cur + ' ' + p : p;
+    }
+    if (cur) sorties.push(cur);
+    return sorties;
+  }
+  function htmlEcouter(m) {
+    const actif = ecoute.mid === m.id;
+    return '<button type="button" class="ecouter-lien presse" data-ecouter="' + esc(m.id) + '"' + (actif ? ' data-actif="1"' : '') + ' aria-label="' + (actif ? 'Arrêter la lecture à voix haute' : 'Écouter ce message à voix haute') + '">' + (actif ? 'Arrêter' : 'Écouter') + '</button>';
+  }
+  /* le libellé suit l'écoute EN PLACE (il n'est pas dans le balisage mémorisé) */
+  function peindreEcoute() {
+    document.querySelectorAll('#conv-messages [data-ecouter]').forEach(b => {
+      const actif = b.dataset.ecouter === ecoute.mid, t = actif ? 'Arrêter' : 'Écouter';
+      if (b.textContent !== t) b.textContent = t;
+      b.setAttribute('aria-label', actif ? 'Arrêter la lecture à voix haute' : 'Écouter ce message à voix haute');
+      if (actif) b.setAttribute('data-actif', '1'); else b.removeAttribute('data-actif');
+    });
+  }
+  /* → l'identifiant du message qui était lu, ou null. Appelée à chaque endroit où un autre son (ou plus aucun) prend la main : sans effet, et sans `cancel()`, quand rien ne parlait. */
+  function arreterEcoute() {
+    const avait = ecoute.mid;
+    ecoute.jeton++; ecoute.mid = null; ecoute.conv = null; ecoute.texte = ''; ecoute.refs = [];
+    if (avait) { const s = syntheseDe(); if (s) { try { s.cancel(); } catch (e) { /* rien */ } } peindreEcoute(); }
+    return avait;
+  }
+  /* le message lu a été supprimé, modifié, ou n'est plus lisible : la voix se tait (un texte corrigé n'est pas celui qu'on lisait) */
+  function verifierEcoute(c) {
+    if (!ecoute.mid || !c || c.id !== ecoute.conv) return;
+    const m = c.messages.find(x => x.id === ecoute.mid);
+    if (!m || !ecoutable(m) || m.texte !== ecoute.texte) arreterEcoute();
+  }
+  function ecouterMessage(mid) {
+    if (ecoute.mid === mid) { arreterEcoute(); return; }                     // retoucher le message qu'on écoute : il s'arrête
+    const m = trouverMessage(mid); if (!m || !ecoutable(m)) return;
+    const s = syntheseDe(), v = voixFrancaise();
+    if (!s || !v.ok) { avis('La lecture à voix haute n\'est pas disponible sur cet appareil.'); return; }
+    const morceaux = morceauxParle(texteParle(m.texte));
+    if (!morceaux.length) { avis('Il n\'y a rien à lire à voix haute dans ce message.'); return; }
+    arreterLecture();                                                         // un vocal qui joue s'arrête
+    arreterEcoute();                                                          // une autre voix aussi
+    const jeton = ++ecoute.jeton, refs = ecoute.refs = [];
+    ecoute.mid = mid; ecoute.conv = etat.conv; ecoute.texte = m.texte;
+    morceaux.forEach((t, i) => {
+      const u = new SpeechSynthesisUtterance(t);
+      u.voice = v.voix; u.lang = String(v.voix.lang).replace('_', '-');         // la voix ET sa langue (Android écrit « fr_FR », ce que les moteurs n'aiment pas)
+      u.onend = () => { if (ecoute.jeton === jeton && i === morceaux.length - 1) arreterEcoute(); };
+      u.onerror = ev => { if (ecoute.jeton !== jeton) return; arreterEcoute(); if (ev && ev.error === 'not-allowed') avis('Le navigateur a refusé la lecture à voix haute.'); };
+      refs.push(u); s.speak(u);
+    });
+    peindreEcoute();
+  }
+  /* la liste des voix arrive après le chargement (Chrome) : le lien paraît, ou disparaît, quand on la connaît */
+  { const s0 = syntheseDe(); let dernier = s0 ? synthesePossible() : null;
+    if (s0 && typeof s0.addEventListener === 'function') s0.addEventListener('voiceschanged', () => { voixCache = null; const ok = synthesePossible(); if (ok !== dernier) { dernier = ok; rendreIci(); } }); }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') arreterEcoute(); });
+  window.addEventListener('pagehide', () => { arreterEcoute(); });
+
   async function ouvrirConv(id) {
     const jeton = ++etat.jeton;
     if (modesActifs()) { const c0 = etat.conversations.find(x => x.id === id); if (c0 && coteDe(c0) !== etat.mode) changerMode(coteDe(c0), true); }
     /* ⛔ passer d'une conversation à l'autre (maître-détail) ne passe PAS par fermerConv : la prise de son et la lecture de l'ancienne se coupent ici,
        sinon le vocal enregistré chez Camille partait chez Hugo (mesuré au bureau, 1er octobre 2026) */
-    if (etat.conv && etat.conv !== id) { arreterLecture(); annulerEnregistrement(); }
+    if (etat.conv && etat.conv !== id) { arreterLecture(); arreterEcoute(); annulerEnregistrement(); }
     if (etat.conv !== id) fermerConfirmation();                  // la demande « Envoyer à … ? » était pour l'AUTRE conversation
     if (!etat.conv) etat.scrollListe = window.scrollY;
     etat.conv = id; etat.convDonnees = null; etat.contexte = null; majContexte(); fermerMenu(); fermerMentions(); trRelire();
@@ -1348,6 +1474,7 @@
     etat.jeton++;
     const id = etat.conv;
     if (id) etat.brouillons[id] = $('saisie').value;
+    arreterEcoute();
     arreterLecture();                                           // ⛔ AVANT de vider la conversation : la durée du vocal s'y lit, la position d'une pause se garde (relecture)
     etat.conv = null; etat.convDonnees = null; etat.contexte = null; majContexte(); fermerMenu();
     delete document.documentElement.dataset.conv;
@@ -2020,6 +2147,8 @@
   $('conv-messages').addEventListener('click', e => {
     const p = e.target.closest('[data-photo]');
     if (p) { etat.declencheurPhoto = p; pousser(Object.assign({}, etat.route, { photo: p.dataset.photo })); return; }
+    const ec = e.target.closest('[data-ecouter]');
+    if (ec) { ecouterMessage(ec.dataset.ecouter); return; }                                                // ⛔ SYNCHRONE : Safari n'accepte la voix que dans le geste
     const tl = e.target.closest('[data-transcrire]');
     if (tl) { basculerTranscription(tl.dataset.transcrire); return; }
     const tr = e.target.closest('[data-transcrire-reessayer]');
@@ -2254,6 +2383,7 @@
   /* `depuis` : un endroit choisi (secondes) ; sinon la position gardée, ou le début. `chaine` : l'écoute suit la précédente (aucun geste) — un refus du navigateur s'y tait. */
   function lireVocal(mid, depuis, chaine) {
     const dejaCe = lect.mid === mid;
+    arreterEcoute();                                                          // ⛔ jamais deux voix à la fois : lancer un vocal coupe la voix de synthèse
     arreterLecture();
     if (dejaCe && depuis === undefined) return;                               // toucher le vocal qui joue : pause (la position est gardée)
     const m = trouverMessage(mid); if (!m || !m.vocal) return;
@@ -5617,6 +5747,7 @@
     if (!m.supprime && !ferme) h += '<button type="button" class="menu-action" data-menu="repondre">Répondre</button>';
     if (CAP.transferts && transferable(m)) h += '<button type="button" class="menu-action" data-menu="transferer" aria-haspopup="dialog">Transférer</button>';
     if (!m.supprime && m.texte && !estCarte(m)) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
+    if (!moi && ecoutable(m) && synthesePossible()) h += '<button type="button" class="menu-action" data-menu="ecouter">' + (ecoute.mid === m.id ? 'Arrêter la lecture' : 'Écouter') + '</button>';
     if (transcriptionPossible(m)) {                 // un vocal : voir sa transcription, ou la copier une fois là
       const t = m.transcription;
       if (trOuvertes.has(m.id) && t && t.etat === 'prete' && typeof t.texte === 'string') h += '<button type="button" class="menu-action" data-menu="copier-transcription">Copier la transcription</button>';
@@ -5728,6 +5859,7 @@
     fermerMenu();
     if (act === 'rappel-choix') { rappelPoser(m, a.dataset.quand); return; }
     if (act === 'repondre') { etat.contexte = { type: 'reponse', mid, nom: nomAuteur(m.auteur), texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').focus({ preventScroll: true }); }
+    else if (act === 'ecouter') ecouterMessage(mid);                           // ⛔ avant tout `await` : le geste est encore là
     else if (act === 'copier') mot(await copier(m.texte || '') ? 'Texte copié' : 'Copie impossible');
     /* ⛔ (relecture du relecteur, mesuré) : le menu rend le focus à son déclencheur, que le repeint détruit — il tombait sur <body> ; il va au lien de la transcription */
     else if (act === 'transcrire') { basculerTranscription(mid); const l = document.querySelector('#conv-messages [data-transcrire="' + String(mid).replace(/["\\]/g, '') + '"]'); if (l) l.focus({ preventScroll: true }); }
