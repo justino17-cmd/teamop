@@ -39,6 +39,16 @@ const BETA_EN_AVANCE = {
   /* 29 octobre 2026 (menu allégé, bêta) : Justin, « les messageries dans OP GESTION, tu les supprimes ; la télécollecte, il faudra
      qu'ils nous la demandent » — les rubriques cochées d'office changent pour TOUS les métiers : tous sont en avance. */
   metiersBeta: ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre', 'incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'piscine', 'energies', 'alarme', 'eau'],
+  /* 29 octobre 2026 (v780, bêta seule) : « climatisation » est séparée du chauffage (Justin : « sépare clim et chauffage »). Un métier que SEULE LA
+     BÊTA connaît : il est dans METIERS/METIERS_ORDRE de beta.html, et ABSENT d'app.html (production, 23 métiers), de `metiers.json` (`ouverts`,
+     `ordreMetiers`, `metiers`), du serveur, de la Tour, du portail. Différent de `metiers` (ci-dessus, vide) : celui-là parle d'un métier qu'APP.HTML
+     connaît déjà et que le public n'ouvre pas encore. Ici app.html ne le connaît pas : les bancs qui lisent app.html (2890, 2956, 835, 848…)
+     ne le voient pas, et ne doivent pas le voir. Son pack vit dans `tests/metiers-beta-avance.json`. Le jour de la publication : app.html le
+     reçoit, `metiers.json` l'ouvre, et cette liste se vide avec le fichier. */
+  metiersBetaSeule: ['climatisation'],
+  /* ce que la bêta ajoute de neuf et que la production ne connaît pas : le « pack combiné » (METIERS_COMBOS) et ce qu'il écrit (`db.metierPlus2`),
+     une collection synchronisée de plus (à côté de `metierPlus`, déjà déclarée par le banc 731). */
+  collectionsBeta: ['metierPlus2'],
 };
 /* Le référentiel tel que la BÊTA le porte : celui de la production, moins l'avance déclarée ci-dessus. */
 function referentielBeta(REF) {
@@ -46,10 +56,15 @@ function referentielBeta(REF) {
   if (!BETA_EN_AVANCE.metiersBeta.length) return R;
   const A = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, 'metiers-beta-avance.json'), 'utf8'));
   BETA_EN_AVANCE.metiersBeta.forEach(k => { R.metiers[k] = A.metiers[k]; });
+  /* les métiers que seule la bêta connaît : leur pack et leur place dans l'ordre (celui de la bêta). Chacun doit être dans le fichier. */
+  BETA_EN_AVANCE.metiersBetaSeule.forEach(k => { R.metiers[k] = A.metiers[k]; });
+  if (BETA_EN_AVANCE.metiersBetaSeule.length) R.ordreMetiers = A.ordreMetiers.slice();
   return R;
 }
 
 const PAS_ENCORE_OUVERTS = BETA_EN_AVANCE.metiers;
+const BETA_SEULE = BETA_EN_AVANCE.metiersBetaSeule;
+const COLLECTIONS_BETA = BETA_EN_AVANCE.collectionsBeta;
 const LIBELLES = BETA_EN_AVANCE.libelles;
 
 /* L'ordre des métiers que connaît l'application PUBLIQUE : celui d'app.html, sans les métiers déclarés. */
@@ -78,6 +93,18 @@ function mensongesMetiers(ordreApp, ouverts) {
   return L;
 }
 
+/* ordreApp : METIERS_ORDRE d'app.html ; ordreBeta : celui de beta.html ; ouverts : `ouverts` de metiers.json ; ordreRef : `ordreMetiers` de metiers.json.
+   Un métier « que seule la bêta connaît » doit être dans la bêta, et nulle part ailleurs. */
+function mensongesBetaSeule(ordreApp, ordreBeta, ouverts, ordreRef) {
+  const L = [];
+  BETA_SEULE.forEach(k => {
+    if (ordreBeta.indexOf(k) < 0) L.push('« ' + k + ' » est déclaré « seulement bêta » mais beta.html ne le connaît pas');
+    if (ordreApp.indexOf(k) >= 0) L.push('« ' + k + ' » est déclaré « seulement bêta » mais app.html le connaît');
+    if (ouverts.indexOf(k) >= 0 || ordreRef.indexOf(k) >= 0) L.push('« ' + k + ' » est déclaré « seulement bêta » mais metiers.json le porte');
+  });
+  return L;
+}
+
 /* libNav : { cle: {l: libellé du menu d'app.html} } ; titresPublics : { cle: titre } tel que le dit la pièce publique (metiers.json). */
 function mensongesLibelles(libNav, titresPublics) {
   const L = [];
@@ -101,4 +128,4 @@ function mensongesCategories(appLitCats, drapeauTour) {
   return L;
 }
 
-module.exports = { referentielBeta, BETA_EN_AVANCE, PAS_ENCORE_OUVERTS, LIBELLES, ordrePublic, libellePublic, categoriesLuesParPublique, mensongesMetiers, mensongesLibelles, mensongesCategories };
+module.exports = { referentielBeta, BETA_EN_AVANCE, PAS_ENCORE_OUVERTS, BETA_SEULE, COLLECTIONS_BETA, mensongesBetaSeule, LIBELLES, ordrePublic, libellePublic, categoriesLuesParPublique, mensongesMetiers, mensongesLibelles, mensongesCategories };

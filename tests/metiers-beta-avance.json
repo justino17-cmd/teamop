@@ -1,5 +1,31 @@
 {
- "_doc": "Avance de la bêta sur metiers.json (production) : plomberie, chauffage, nettoyage (packs enrichis, v779) et, depuis le 29 octobre 2026 (menu allégé), les rubriques de TOUS les métiers (ni Messagerie ni Télécollecte cochées d'office). Le jour où metiers.json les porte, ce fichier et la déclaration se vident ENSEMBLE.",
+ "_doc": "Avance de la bêta sur metiers.json (production) : les packs que la bêta porte autrement que la production — les 23 métiers (menu allégé, 29 octobre 2026 : ni Messagerie ni Télécollecte cochées d'office ; plomberie, chauffage, nettoyage enrichis), « chauffage » rendu à la seule chaufferie et « climatisation » (Climatisation / Pompes à chaleur), métier que SEULE la bêta connaît (déclaré dans metiersBetaSeule de beta-en-avance.js), avec l'ordre des métiers de la bêta (ordreMetiers). Copie de metiers.json de la branche de la bêta. Le jour où metiers.json les porte, ce fichier et la déclaration se vident ENSEMBLE.",
+ "ordreMetiers": [
+  "3d",
+  "plomberie",
+  "electricite",
+  "chauffage",
+  "climatisation",
+  "serrurerie",
+  "nettoyage",
+  "maconnerie",
+  "menuiserie",
+  "peinture",
+  "paysagiste",
+  "couverture",
+  "multiservices",
+  "autre",
+  "incendie",
+  "froid",
+  "ascenseurs",
+  "portails",
+  "ramonage",
+  "assainissement",
+  "energies",
+  "alarme",
+  "eau",
+  "piscine"
+ ],
  "metiers": {
   "3d": {
    "nom": "3D — Hygiène anti-nuisibles",
@@ -69,7 +95,6 @@
     "enveloppes": "Les interventions ponctuelles payées sur place (punaises de lit, frelons) : espèces et chèques remis au bureau par enveloppe.",
     "pointage": "Le temps passé par site permet de vérifier la rentabilité d'un contrat de passages réguliers.",
     "vehicules": "Tournées longues avec des produits à bord : assurance, kilométrage, entretien.",
-    "messagerie": "Le technicien prévient le bureau d'une infestation importante ou d'un accès impossible.",
     "fournisseurs": "Fournisseurs de biocides, d'appâts, de pièges et d'EPI : on commande toute l'année.",
     "bons": "Commandes de produits et de pièges, suivies jusqu'à la livraison.",
     "brouillon": "Le technicien prépare sa liste d'appâts et de pièges avant de la soumettre.",
@@ -230,13 +255,11 @@
     "assistantDevis": "Dicter un devis sur place, entre deux raccords.",
     "factures": "Facturer en sortant, avec la note détaillée exigée au-delà de 25 € TTC.",
     "comptabilite": "Les encaissements du jour (espèces, chèques, carte) se rapprochent des factures de dépannage.",
-    "telecollecte": "En dépannage le client paie sur place : on note l'encaissement dans la journée.",
     "produits": "Raccords, flexibles, joints, robinetterie : un catalogue avec vos références et vos prix pour chiffrer vite.",
     "stock": "Le stock de la camionnette : savoir ce qu'on a avant de repartir chez le grossiste.",
     "mouvements": "Qui a pris quelle pièce dans le stock : fini l'inventaire à l'aveugle.",
     "pointage": "Les heures de dépannage et d'astreinte de chacun, et le temps réellement passé par intervention.",
     "vehicules": "La camionnette est l'outil principal : assurance, kilométrage, échéances.",
-    "messagerie": "Le bureau envoie l'adresse d'une urgence, le technicien renvoie la photo de la panne.",
     "fournisseurs": "Négoces de plomberie et de sanitaire : coordonnées, conditions, remises.",
     "bons": "Commander un chauffe-eau ou de la robinetterie, et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos plombiers et réglez ce que chacun voit et peut faire.",
@@ -252,7 +275,8 @@
     "brouillon": "À partir de trois techniciens : chacun note ce qu'il lui faut avant de demander.",
     "demandes": "Le technicien demande un chauffe-eau ou un lot de raccords, le responsable suit la demande.",
     "validations": "Le responsable valide les sorties de matériel coûteux.",
-    "commandes": "Suivre les commandes de négoce en route."
+    "commandes": "Suivre les commandes de négoce en route.",
+    "telecollecte": "En dépannage le client paie sur place : on note l'encaissement dans la journée."
    },
    "types": [
     "Dépannage fuite",
@@ -514,13 +538,11 @@
     "assistantDevis": "Un devis de mise aux normes ou d'éclairage dicté sur place.",
     "factures": "La note détaillée à la fin du dépannage, la facture de chantier ensuite.",
     "comptabilite": "Les encaissements du jour se rapprochent des factures de dépannage.",
-    "telecollecte": "Un dépannage se paie souvent sur place.",
     "produits": "Disjoncteurs, câbles, appareillage : références et prix sous la main pour chiffrer.",
     "stock": "Le stock du véhicule : câbles, disjoncteurs, appareillage à portée de main.",
     "mouvements": "Savoir qui a pris quels disjoncteurs ou quelle bobine de câble.",
     "pointage": "Heures de chantier et de dépannage, par personne.",
     "vehicules": "Le transport du matériel : assurance, kilométrage, entretien.",
-    "messagerie": "Le technicien envoie la photo du tableau au bureau pour demander un avis avant de commander.",
     "fournisseurs": "Grossistes en matériel électrique : contacts, conditions, remises.",
     "bons": "Commander le matériel d'un chantier avec une date de livraison.",
     "utilisateurs": "Créez les comptes de vos électriciens et réglez ce que chacun voit et peut faire.",
@@ -536,7 +558,8 @@
     "brouillon": "Pour les équipes : chacun prépare sa liste de matériel avant de demander.",
     "demandes": "Un chef d'équipe demande du matériel pour un chantier, le responsable suit.",
     "validations": "Le responsable valide les sorties de matériel coûteux.",
-    "commandes": "Suivre les commandes de grossiste en route."
+    "commandes": "Suivre les commandes de grossiste en route.",
+    "telecollecte": "Un dépannage se paie souvent sur place."
    },
    "types": [
     "Dépannage / panne",
@@ -714,9 +737,9 @@
    }
   },
   "chauffage": {
-   "nom": "Chauffage / Climatisation",
+   "nom": "Chauffage",
    "ic": "🔥",
-   "sous": "CVC · entretien · contrats annuels",
+   "sous": "Chaudières · entretien · contrats annuels",
    "existant": true,
    "rubriques": [
     "dashboard",
@@ -754,19 +777,18 @@
     "interventions": "Une fiche par appareil : relevés de combustion, prestations cochées, photos, signature du client.",
     "rapports": "Le compte rendu d'entretien et l'attestation remis au client : l'arrêté fixe un délai de quinze jours après la visite.",
     "carteInt": "Regrouper les clients par quartier pendant la saison d'entretien.",
-    "clients": "Un client, c'est surtout un parc d'appareils (chaudière, pompe à chaleur, climatisation) à entretenir chaque année.",
-    "devis": "Devis de remplacement de chaudière ou de pose de pompe à chaleur, souvent proposé à l'issue de la visite d'entretien.",
+    "clients": "Un client, c'est surtout un parc d'appareils (chaudière, poêle, chauffe-eau) à entretenir chaque année.",
+    "devis": "Devis de remplacement de chaudière, souvent proposé à l'issue de la visite d'entretien.",
     "assistantDevis": "Un devis d'installation dicté chez le client, pendant la visite.",
     "factures": "Facturer l'entretien annuel, les dépannages et les installations.",
     "contrats": "Le contrat d'entretien annuel est le cœur du chiffre d'affaires de ce métier.",
-    "produits": "Filtres, électrodes, thermocouples, fluides frigorigènes : un catalogue pour chiffrer vite et réassortir.",
-    "stock": "Pièces d'usure et bouteilles de fluide embarquées dans la camionnette.",
-    "mouvements": "Les bouteilles de fluide et les pièces sorties du stock se tracent : quantité chargée, quantité récupérée.",
+    "produits": "Électrodes, thermocouples, filtres, circulateurs : un catalogue pour chiffrer vite et réassortir.",
+    "stock": "Pièces d'usure embarquées dans la camionnette.",
+    "mouvements": "Les pièces sorties du stock se tracent : quelle pièce, pour quel client.",
     "pointage": "Les heures par intervention et par technicien, pour mesurer ce que coûte une tournée d'entretiens.",
-    "vehicules": "La camionnette équipée, qui porte aussi les bouteilles de fluide.",
-    "messagerie": "Le technicien demande au bureau une pièce ou un avis pendant qu'il est devant la chaudière.",
-    "fournisseurs": "Négoces de chauffage, fabricants, fournisseurs de fluides frigorigènes.",
-    "bons": "Commander une chaudière, une unité de climatisation ou un lot de pièces, et suivre la livraison.",
+    "vehicules": "La camionnette équipée des pièces d'usure.",
+    "fournisseurs": "Négoces de chauffage, fabricants de chaudières et de pièces.",
+    "bons": "Commander une chaudière ou un lot de pièces, et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos chauffagistes et réglez ce que chacun voit et peut faire.",
     "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
     "parametres": "Vos sociétés, votre logo et vos en-têtes : l'attestation d'entretien part au nom de la bonne entreprise."
@@ -779,28 +801,22 @@
     "conducteurs": "Si plusieurs personnes se partagent les véhicules.",
     "boiteMail": "Pour écrire aux clients dont l'entretien arrive à échéance.",
     "brouillon": "À partir de trois techniciens : chacun prépare sa liste de pièces avant de demander.",
-    "demandes": "Le technicien demande une pièce ou une bouteille de fluide, le responsable suit.",
-    "validations": "Le responsable valide les sorties de fluide frigorigène et de pièces coûteuses.",
+    "demandes": "Le technicien demande une pièce, le responsable suit.",
+    "validations": "Le responsable valide les sorties de pièces coûteuses.",
     "commandes": "Suivre les commandes de négoce en route.",
     "secteurs": "Pour répartir les zones d'entretien entre techniciens."
    },
    "types": [
     "Entretien annuel chaudière",
-    "Entretien pompe à chaleur",
-    "Entretien climatisation",
     "Dépannage chauffage",
-    "Dépannage climatisation",
     "Désembouage",
     "Ramonage",
     "Installation",
     "Contrat d’entretien",
     "Visite technique / devis",
     "Mise en service",
-    "Contrôle d'étanchéité des fluides frigorigènes",
-    "Récupération de fluide / démantèlement",
     "Entretien chaudière fioul ou bois",
-    "Entretien VMC / ventilation",
-    "Entretien chauffe-eau thermodynamique"
+    "Entretien VMC / ventilation"
    ],
    "presta": [
     "Nettoyage du corps de chauffe",
@@ -810,7 +826,6 @@
     "Vérification du vase d’expansion",
     "Purge des radiateurs",
     "Nettoyage des filtres",
-    "Contrôle de la charge de fluide",
     "Contrôle des organes de sécurité",
     "Mise en service et essai",
     "Attestation d’entretien remise au client",
@@ -818,20 +833,11 @@
     "Contrôle de la régulation automatique",
     "Contrôle de l'embouage du circuit",
     "Mesure du tirage",
-    "Contrôle d'étanchéité du circuit frigorifique (détecteur de fuite)",
-    "Récupération et pesée du fluide",
-    "Pose de la vignette de contrôle d'étanchéité",
     "Conseils d'usage, d'amélioration et de remplacement remis au client",
     "Mesure du CO ambiant dans le local de la chaudière",
     "Évaluation du rendement de la chaudière",
     "Vérification du dimensionnement de la chaudière par rapport aux besoins",
     "Contrôle de l’amenée d’air et de la ventilation du local",
-    "Relevé des températures des unités intérieure et extérieure",
-    "Nettoyage de l’unité intérieure et de son filtre",
-    "Contrôle et nettoyage de l’échangeur de l’unité extérieure",
-    "Contrôle de l’évacuation des condensats",
-    "Mesure des tensions électriques (statique et dynamique)",
-    "Contrôle du fonctionnement de l’inversion de cycle",
     "Vérification du fonctionnement des circulateurs"
    ],
    "releves": [
@@ -864,11 +870,6 @@
      "k": "pcirc",
      "l": "Pression du circuit",
      "u": "bar"
-    },
-    {
-     "k": "fluide",
-     "l": "Charge de fluide",
-     "u": "kg"
     },
     {
      "k": "tirage",
@@ -906,6 +907,239 @@
      "l": "Marque et référence de l’analyseur utilisé",
      "u": "",
      "txt": true
+    }
+   ],
+   "produits": [
+    "Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)",
+    "Filtres et cartouches",
+    "Radiateurs et robinets thermostatiques",
+    "Circulateurs et vases d'expansion",
+    "Produits de désembouage et de traitement de l'eau",
+    "Conduits et fumisterie",
+    "Régulation et thermostats",
+    "Outillage consommable",
+    "EPI"
+   ],
+   "documents": [
+    "Devis de dépannage, réparation ou entretien (mentions de l’arrêté du 24 janvier 2017)",
+    "Note de dépannage remise avant paiement (à partir de 25 € TTC)",
+    "Rapport d’intervention chauffage",
+    "Attestation d’entretien de chaudière (une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire)",
+    "Attestation de ramonage",
+    "Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)",
+    "Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)"
+   ],
+   "aCreer": [
+    {
+     "fonction": "Parc d'appareils par client : type, marque, modèle, n° de série, puissance, combustible, type de conduit, mise en service, fluide, charge, PRP, tonnage équivalent CO₂ calculé, détection permanente de fuite, dernière intervention, prochaine échéance",
+     "valeur": "haute",
+     "ref": "F2"
+    },
+    {
+     "fonction": "Attestation d'entretien en PDF, pré-remplie du parc et des relevés : une par appareil, CO avec seuils, instruments, classe énergétique, conseils, signature",
+     "valeur": "haute",
+     "ref": "F12"
+    },
+    {
+     "fonction": "Rappel annuel et bi-annuel des contrats d'entretien : échéance, relance du client à 30 puis 7 jours, proposition de créneau, création de l'intervention",
+     "valeur": "haute",
+     "ref": "F3"
+    },
+    {
+     "fonction": "Alertes de sécurité : CO à 10 ppm (anomalie) et 50 ppm (danger), avertissement au technicien et texte prêt pour le client",
+     "valeur": "haute"
+    },
+    {
+     "fonction": "Qualifications des techniciens : attestation de capacité (fluides), qualification gaz, échéances",
+     "valeur": "moyenne",
+     "ref": "F6"
+    },
+    {
+     "fonction": "Rappel annuel du ramonage",
+     "valeur": "basse"
+    }
+   ],
+   "obligations": [
+    {
+     "texte": "Entretien des chaudières de 4 à 400 kW (gaz, fioul, bois) chaque année civile, la première visite au plus tard l’année civile suivant l’installation ou le remplacement (décret 2009-649, art. R. 224-41-7). Les 12 mois de l’application sont une règle de l’entreprise, plus stricte.",
+     "source": "https://aida.ineris.fr/reglementation/decret-ndeg-2009-649-090609-relatif-a-lentretien-annuel-chaudieres-dont-puissance",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Attestation d’entretien de chaudière : une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire, qui la conserve au moins deux ans (décret 2009-649, art. R. 224-41-8) ; son contenu — identification de l’appareil, points contrôlés, instruments de mesure, résultats, déclaration sur le CO, classe énergétique pour une chaudière gaz ou fioul de moins de 70 kW — est fixé par l’arrêté du 15 septembre 2009 modifié (annexe 5).",
+     "source": "https://aida.ineris.fr/node/28049",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Seuils de CO de l'entretien : moins de 10 ppm situation normale ; de 10 à 50 ppm anomalie, le client est informé qu'il faut investiguer le tirage et la ventilation ; 50 ppm ou plus danger grave et immédiat, chaudière laissée à l'arrêt jusqu'à remise en sécurité (article 3 de l'arrêté du 15 septembre 2009 modifié).",
+     "source": "https://aida.ineris.fr/node/28049",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Depuis 2020, l'entretien vérifie aussi le calorifugeage des canalisations, la régulation automatique et l'embouage du circuit à eau.",
+     "source": "https://www.ffbatiment.fr/actualites-batiment/actualite/attestations-entretien-chaudiere-pac",
+     "fiabilite": "professionnelle"
+    },
+    {
+     "texte": "Ramonage au moins tous les douze mois, tous les six mois (dont une fois en période de chauffe) pour un appareil collectif ; le règlement sanitaire départemental peut exiger plus. L’attestation de ramonage est remise au commanditaire dans les quinze jours ouvrés suivant l’achèvement de l’opération, atteste la vacuité du conduit, et le commanditaire la conserve au moins deux ans (articles R. 1331-19 et R. 1331-23).",
+     "source": "https://aida.ineris.fr/reglementation/decret-ndeg-2023-641-200723-relatif-a-lentretien-foyers-appareils-chauffage-cuisine",
+     "fiabilite": "officielle"
+    },
+    {
+     "texte": "Après un contrôle : fiche d'intervention dans tous les cas ; vignette bleue (date du prochain contrôle) si tout est bon ; vignette rouge si la réparation est différée ; réparation impossible sous 4 jours ouvrés : mise à l'arrêt et vidange du circuit.",
+     "source": "https://www.ffbatiment.fr/techniques-batiment/equipements-techniques/chauffage-ventilation-climatisation/dossier-bam/de-nouvelles-regles-de-controle-d-etancheite-pour-les-equipements-contenant-des-hfc",
+     "fiabilite": "professionnelle"
+    },
+    {
+     "texte": "Dépannage à domicile : devis détaillé avant toute prestation de dépannage, réparation ou entretien, quel que soit le montant, et note détaillée avant paiement à partir de 25 € TTC (arrêté du 24 janvier 2017 modifié). L’arrêté ne s’applique pas aux contrats d’entretien.",
+     "source": "https://www.inc-conso.fr/node/9603",
+     "fiabilite": "officielle"
+    }
+   ],
+   "aVerifier": [
+    "Inspection au-delà de 70 kW (tous les 5 ans) et contrôle périodique de 400 kW à 20 MW (R.224-31 et suivants) : sources ADEME et ministère non lues directement.",
+    "Certificat de conformité gaz (CCG) : voir la fiche Plomberie.",
+    "Champ d’application de l’arrêté du 24 janvier 2017 (chauffage, climatisation, ramonage) : recensement secondaire, texte de l’annexe 1 non lu — le devis ne dit jamais « obligatoire » à un client."
+   ],
+   "ajouts": {
+    "types": [
+     "Entretien VMC / ventilation"
+    ],
+    "presta": [
+     "Mesure du CO ambiant dans le local de la chaudière",
+     "Évaluation du rendement de la chaudière",
+     "Vérification du dimensionnement de la chaudière par rapport aux besoins",
+     "Contrôle de l’amenée d’air et de la ventilation du local",
+     "Vérification du fonctionnement des circulateurs"
+    ],
+    "releves": [
+     "CO ambiant (local de la chaudière, portes et fenêtres fermées)"
+    ]
+   },
+   "note": "Le cœur du métier est le contrat d'entretien annuel et le parc d'appareils de chaque client. Les relevés sont libres dans le code actuel : aucun seuil, y compris pour le CO, alors que l'arrêté en fixe un. Les pompes à chaleur, la climatisation et les fluides frigorigènes ont leur propre métier (« Climatisation / Pompes à chaleur »), séparé du chauffage le 29 octobre 2026 ; une entreprise qui fait les deux ajoute l'autre métier."
+  },
+  "climatisation": {
+   "nom": "Climatisation / Pompes à chaleur",
+   "ic": "❄️",
+   "sous": "Clim · PAC · fluides frigorigènes · contrats d'entretien",
+   "existant": true,
+   "rubriques": [
+    "dashboard",
+    "historique",
+    "planning",
+    "planningGeneral",
+    "taches",
+    "absences",
+    "interventions",
+    "rapports",
+    "carteInt",
+    "clients",
+    "devis",
+    "assistantDevis",
+    "factures",
+    "contrats",
+    "produits",
+    "stock",
+    "mouvements",
+    "pointage",
+    "vehicules",
+    "fournisseurs",
+    "bons",
+    "utilisateurs",
+    "modulesElan",
+    "parametres"
+   ],
+   "pourquoi": {
+    "dashboard": "Votre programme d'entretiens et de dépannages de climatisation du jour d'un coup d'œil, dès l'ouverture.",
+    "historique": "Une attestation d'entretien engage votre responsabilité : on retrouve qui l'a établie et quand.",
+    "planning": "La saison d'entretien concentre des dizaines de visites : le planning les répartit entre techniciens.",
+    "planningGeneral": "Avant l'été, voir toute la charge d'entretiens et de dépannages de climatisation d'un seul regard.",
+    "taches": "Relancer les clients dont l'entretien est dû, rappeler pour une pièce commandée.",
+    "absences": "Pendant la saison chaude, une absence se voit tout de suite sur le planning.",
+    "interventions": "Une fiche par appareil : relevés de température et de fluide, prestations cochées, photos, signature du client.",
+    "rapports": "Le compte rendu d'entretien et l'attestation remis au client, avec la fiche d'intervention sur les fluides frigorigènes.",
+    "carteInt": "Regrouper les clients par quartier pendant la saison d'entretien.",
+    "clients": "Un client, c'est surtout un parc d'appareils (pompe à chaleur, climatisation) à entretenir régulièrement.",
+    "devis": "Devis de pose de pompe à chaleur ou de climatisation, souvent proposé à l'issue de la visite d'entretien.",
+    "assistantDevis": "Un devis d'installation dicté chez le client, pendant la visite.",
+    "factures": "Facturer l'entretien annuel, les dépannages et les installations.",
+    "contrats": "Le contrat d'entretien annuel est le cœur du chiffre d'affaires de ce métier.",
+    "produits": "Filtres, fluides frigorigènes, pièces d'unités : un catalogue pour chiffrer vite et réassortir.",
+    "stock": "Pièces d'usure et bouteilles de fluide embarquées dans la camionnette.",
+    "mouvements": "Les bouteilles de fluide et les pièces sorties du stock se tracent : quantité chargée, quantité récupérée.",
+    "pointage": "Les heures par intervention et par technicien, pour mesurer ce que coûte une tournée d'entretiens.",
+    "vehicules": "La camionnette équipée, qui porte aussi les bouteilles de fluide.",
+    "fournisseurs": "Négoces de climatisation, fabricants, fournisseurs de fluides frigorigènes.",
+    "bons": "Commander une unité de climatisation, une pompe à chaleur ou un lot de pièces, et suivre la livraison.",
+    "utilisateurs": "Créez les comptes de vos frigoristes et climaticiens et réglez ce que chacun voit et peut faire.",
+    "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
+    "parametres": "Vos sociétés, votre logo et vos en-têtes : l'attestation d'entretien part au nom de la bonne entreprise."
+   },
+   "proposees": {
+    "statistiques": "Pour suivre le chiffre d'affaires des contrats et des installations.",
+    "archives": "Un récapitulatif mensuel à garder.",
+    "comptabilite": "Pour suivre les encaissements des contrats et des dépannages.",
+    "telecollecte": "Si vous encaissez les dépannages sur place.",
+    "conducteurs": "Si plusieurs personnes se partagent les véhicules.",
+    "boiteMail": "Pour écrire aux clients dont l'entretien arrive à échéance.",
+    "brouillon": "À partir de trois techniciens : chacun prépare sa liste de pièces avant de demander.",
+    "demandes": "Le technicien demande une pièce ou une bouteille de fluide, le responsable suit.",
+    "validations": "Le responsable valide les sorties de fluide frigorigène et de pièces coûteuses.",
+    "commandes": "Suivre les commandes de négoce en route.",
+    "secteurs": "Pour répartir les zones d'entretien entre techniciens."
+   },
+   "types": [
+    "Entretien pompe à chaleur",
+    "Entretien climatisation",
+    "Dépannage climatisation",
+    "Installation",
+    "Contrat d’entretien",
+    "Visite technique / devis",
+    "Mise en service",
+    "Contrôle d'étanchéité des fluides frigorigènes",
+    "Récupération de fluide / démantèlement",
+    "Entretien VMC / ventilation",
+    "Entretien chauffe-eau thermodynamique"
+   ],
+   "presta": [
+    "Nettoyage des filtres",
+    "Contrôle de la charge de fluide",
+    "Contrôle des organes de sécurité",
+    "Mise en service et essai",
+    "Attestation d’entretien remise au client",
+    "Contrôle de la régulation automatique",
+    "Contrôle d'étanchéité du circuit frigorifique (détecteur de fuite)",
+    "Récupération et pesée du fluide",
+    "Pose de la vignette de contrôle d'étanchéité",
+    "Conseils d'usage, d'amélioration et de remplacement remis au client",
+    "Relevé des températures des unités intérieure et extérieure",
+    "Nettoyage de l’unité intérieure et de son filtre",
+    "Contrôle et nettoyage de l’échangeur de l’unité extérieure",
+    "Contrôle de l’évacuation des condensats",
+    "Mesure des tensions électriques (statique et dynamique)",
+    "Contrôle du fonctionnement de l’inversion de cycle",
+    "Contrôle du calorifugeage des canalisations"
+   ],
+   "releves": [
+    {
+     "k": "pcirc",
+     "l": "Pression du circuit",
+     "u": "bar"
+    },
+    {
+     "k": "fluide",
+     "l": "Charge de fluide",
+     "u": "kg"
+    },
+    {
+     "k": "tdep",
+     "l": "Température de départ",
+     "u": "°C"
+    },
+    {
+     "k": "tret",
+     "l": "Température de retour",
+     "u": "°C"
     },
     {
      "k": "fluideType",
@@ -953,14 +1187,8 @@
     }
    ],
    "produits": [
-    "Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)",
     "Filtres et cartouches",
     "Fluides frigorigènes (par type)",
-    "Radiateurs et robinets thermostatiques",
-    "Circulateurs et vases d'expansion",
-    "Produits de désembouage et de traitement de l'eau",
-    "Conduits et fumisterie",
-    "Régulation et thermostats",
     "Pompes à chaleur et climatisation (unités et pièces)",
     "Tuyauterie, liaisons frigorifiques et isolation",
     "Outillage consommable",
@@ -969,13 +1197,10 @@
    "documents": [
     "Devis de dépannage, réparation ou entretien (mentions de l’arrêté du 24 janvier 2017)",
     "Note de dépannage remise avant paiement (à partir de 25 € TTC)",
-    "Rapport d’intervention chauffage / climatisation",
-    "Attestation d’entretien de chaudière (une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire)",
+    "Rapport d’intervention climatisation",
     "Attestation d’entretien de pompe à chaleur ou de climatisation (4 à 70 kW)",
     "Fiche d’intervention fluides frigorigènes (rubriques du Cerfa 15497*04, sans remplacer le Cerfa officiel)",
-    "Attestation de ramonage",
-    "Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)",
-    "Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)"
+    "Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)"
    ],
    "aCreer": [
     {
@@ -999,10 +1224,6 @@
      "ref": "F3"
     },
     {
-     "fonction": "Alertes de sécurité : CO à 10 ppm (anomalie) et 50 ppm (danger), avertissement au technicien et texte prêt pour le client",
-     "valeur": "haute"
-    },
-    {
      "fonction": "Calendrier du contrôle d'étanchéité : prochaine date calculée depuis le tonnage et la détection, suivi des vignettes bleue et rouge et du délai de 4 jours ouvrés",
      "valeur": "moyenne",
      "ref": "F11"
@@ -1016,38 +1237,14 @@
      "fonction": "Qualifications des techniciens : attestation de capacité (fluides), qualification gaz, échéances",
      "valeur": "moyenne",
      "ref": "F6"
-    },
-    {
-     "fonction": "Rappel annuel du ramonage",
-     "valeur": "basse"
     }
    ],
    "obligations": [
-    {
-     "texte": "Entretien des chaudières de 4 à 400 kW (gaz, fioul, bois) chaque année civile, la première visite au plus tard l’année civile suivant l’installation ou le remplacement (décret 2009-649, art. R. 224-41-7). Les 12 mois de l’application sont une règle de l’entreprise, plus stricte.",
-     "source": "https://aida.ineris.fr/reglementation/decret-ndeg-2009-649-090609-relatif-a-lentretien-annuel-chaudieres-dont-puissance",
-     "fiabilite": "officielle"
-    },
     {
      "texte": "Pompes à chaleur et climatisations de 4 à 70 kW : entretien régulier, attestation distincte par système, copie conservée deux ans (arrêté du 24 juillet 2020). La périodicité de deux ans (décret 2020-912) vient de sources professionnelles et reste à confirmer sur le Code de l’environnement : l’application ne l’imprime pas comme une obligation.",
      "source": "https://www.ffbatiment.fr/techniques-batiment/equipements-techniques/chauffage-ventilation-climatisation/dossier-bam/entretien-obligatoire",
      "fiabilite": "professionnelle",
      "aConfirmer": true
-    },
-    {
-     "texte": "Attestation d’entretien de chaudière : une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire, qui la conserve au moins deux ans (décret 2009-649, art. R. 224-41-8) ; son contenu — identification de l’appareil, points contrôlés, instruments de mesure, résultats, déclaration sur le CO, classe énergétique pour une chaudière gaz ou fioul de moins de 70 kW — est fixé par l’arrêté du 15 septembre 2009 modifié (annexe 5).",
-     "source": "https://aida.ineris.fr/node/28049",
-     "fiabilite": "officielle"
-    },
-    {
-     "texte": "Seuils de CO de l'entretien : moins de 10 ppm situation normale ; de 10 à 50 ppm anomalie, le client est informé qu'il faut investiguer le tirage et la ventilation ; 50 ppm ou plus danger grave et immédiat, chaudière laissée à l'arrêt jusqu'à remise en sécurité (article 3 de l'arrêté du 15 septembre 2009 modifié).",
-     "source": "https://aida.ineris.fr/node/28049",
-     "fiabilite": "officielle"
-    },
-    {
-     "texte": "Depuis 2020, l'entretien vérifie aussi le calorifugeage des canalisations, la régulation automatique et l'embouage du circuit à eau.",
-     "source": "https://www.ffbatiment.fr/actualites-batiment/actualite/attestations-entretien-chaudiere-pac",
-     "fiabilite": "professionnelle"
     },
     {
      "texte": "Fiche d'intervention fluides frigorigènes (Cerfa 15497*04) : une par opération et par équipement, pour toute manipulation de fluide CFC, HCFC, HFC ou PFC ; conservation 5 ans par l'opérateur et par le détenteur ; elle peut être électronique (R.543-83).",
@@ -1075,11 +1272,6 @@
      "fiabilite": "professionnelle"
     },
     {
-     "texte": "Ramonage au moins tous les douze mois, tous les six mois (dont une fois en période de chauffe) pour un appareil collectif ; le règlement sanitaire départemental peut exiger plus. L’attestation de ramonage est remise au commanditaire dans les quinze jours ouvrés suivant l’achèvement de l’opération, atteste la vacuité du conduit, et le commanditaire la conserve au moins deux ans (articles R. 1331-19 et R. 1331-23).",
-     "source": "https://aida.ineris.fr/reglementation/decret-ndeg-2023-641-200723-relatif-a-lentretien-foyers-appareils-chauffage-cuisine",
-     "fiabilite": "officielle"
-    },
-    {
      "texte": "Dépannage à domicile : devis détaillé avant toute prestation de dépannage, réparation ou entretien, quel que soit le montant, et note détaillée avant paiement à partir de 25 € TTC (arrêté du 24 janvier 2017 modifié). L’arrêté ne s’applique pas aux contrats d’entretien.",
      "source": "https://www.inc-conso.fr/node/9603",
      "fiabilite": "officielle"
@@ -1088,9 +1280,8 @@
    "aVerifier": [
     "Le détail exact des champs de l'attestation PAC / climatisation (annexe de l'arrêté du 24 juillet 2020) n'a pas pu être lu : le document doit reprendre la structure de celle de la chaudière et se limiter à ce qui est confirmé, sans se dire modèle officiel.",
     "Inspection au-delà de 70 kW (tous les 5 ans) et contrôle périodique de 400 kW à 20 MW (R.224-31 et suivants) : sources ADEME et ministère non lues directement.",
-    "Seuil d'obligation sous 5 t équivalent CO₂, régime des équipements hermétiquement scellés, registre des équipements : non confirmés.",
     "PRP des fluides (R32, R410A…) : à relever dans le règlement avant d'écrire un calcul ; les ordres de grandeur de la recherche (un split de 1,2 kg de R32 vaut environ 0,8 t, un de 1,5 kg de R410A environ 3,1 t) ne sont pas sourcés.",
-    "Certificat de conformité gaz (CCG) : voir la fiche Plomberie.",
+    "Seuil d'obligation sous 5 t équivalent CO₂, régime des équipements hermétiquement scellés, registre des équipements : non confirmés.",
     "Champ d’application de l’arrêté du 24 janvier 2017 (chauffage, climatisation, ramonage) : recensement secondaire, texte de l’annexe 1 non lu — le devis ne dit jamais « obligatoire » à un client.",
     "Périodicité de deux ans des pompes à chaleur et climatisations (décret 2020-912) : articles du Code de l’environnement non confirmés ; chauffe-eau thermodynamiques exclus ou non, les sources se contredisent."
    ],
@@ -1100,23 +1291,15 @@
      "Entretien chauffe-eau thermodynamique"
     ],
     "presta": [
-     "Mesure du CO ambiant dans le local de la chaudière",
-     "Évaluation du rendement de la chaudière",
-     "Vérification du dimensionnement de la chaudière par rapport aux besoins",
-     "Contrôle de l’amenée d’air et de la ventilation du local",
      "Relevé des températures des unités intérieure et extérieure",
      "Nettoyage de l’unité intérieure et de son filtre",
      "Contrôle et nettoyage de l’échangeur de l’unité extérieure",
      "Contrôle de l’évacuation des condensats",
      "Mesure des tensions électriques (statique et dynamique)",
-     "Contrôle du fonctionnement de l’inversion de cycle",
-     "Vérification du fonctionnement des circulateurs"
-    ],
-    "releves": [
-     "CO ambiant (local de la chaudière, portes et fenêtres fermées)"
+     "Contrôle du fonctionnement de l’inversion de cycle"
     ]
    },
-   "note": "Le cœur du métier est le contrat d'entretien annuel et le parc d'appareils de chaque client. Les relevés sont libres dans le code actuel : aucun seuil, y compris pour le CO, alors que l'arrêté en fixe un."
+   "note": "Le cœur du métier est le contrat d'entretien et le parc d'appareils de chaque client, avec la traçabilité des fluides frigorigènes (fiche d'intervention, contrôle d'étanchéité, bouteilles). Séparé du chauffage le 29 octobre 2026 : les chaudières, le ramonage et le suivi du certificat gaz restent au métier « Chauffage »."
   },
   "serrurerie": {
    "nom": "Serrurerie",
@@ -1164,13 +1347,11 @@
     "assistantDevis": "Un devis de blindage ou de contrôle d'accès dicté sur place.",
     "factures": "Facturer à la fin de l'intervention, avec la note détaillée exigée au-delà de 25 € TTC.",
     "comptabilite": "Les encaissements du jour se rapprochent des factures d'urgence.",
-    "telecollecte": "Le paiement se fait à la fin de l'intervention.",
     "produits": "Cylindres, serrures, blocs-portes par modèle : un catalogue de références pour chiffrer sur place.",
     "stock": "Cylindres et serrures embarqués : savoir ce qu'on peut poser tout de suite.",
     "mouvements": "Tracer qui a pris quel cylindre ou quelle serrure, par modèle.",
     "pointage": "Les heures d'astreinte et de dépannage de chacun.",
     "vehicules": "Les urgences arrivent à toute heure : le véhicule est l'atelier.",
-    "messagerie": "Le bureau envoie l'adresse de l'urgence, le technicien confirme son arrivée.",
     "fournisseurs": "Fournisseurs de cylindres, de serrures et de blindage.",
     "bons": "Commander une porte blindée sur mesure ou des pièces, et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos serruriers et réglez ce que chacun voit et peut faire.",
@@ -1182,7 +1363,8 @@
     "archives": "Un récapitulatif mensuel à garder.",
     "contrats": "Maintenance de contrôle d'accès, entretien de rideaux métalliques : utile si vous avez des clients sous contrat.",
     "conducteurs": "Si plusieurs personnes se partagent les véhicules.",
-    "boiteMail": "Pour répondre aux assureurs et aux gestionnaires depuis l'application."
+    "boiteMail": "Pour répondre aux assureurs et aux gestionnaires depuis l'application.",
+    "telecollecte": "Le paiement se fait à la fin de l'intervention."
    },
    "types": [
     "Ouverture de porte",
@@ -1375,7 +1557,6 @@
     "produits": "Détergents, produits sols, consommables : votre catalogue de fournitures.",
     "stock": "Produits d'entretien et consommables à tenir en dépôt et chez le client.",
     "pointage": "Les heures par site : base de la paie et de la rentabilité de chaque contrat.",
-    "messagerie": "Le chef d'équipe prévient le bureau d'un accès refusé ou d'une absence.",
     "fournisseurs": "Distributeurs de produits d'hygiène et de matériel de nettoyage.",
     "secteurs": "Affecter les équipes par zone.",
     "utilisateurs": "Créez les comptes de vos chefs d'équipe et vos agents et réglez ce que chacun voit et peut faire.",
@@ -1605,7 +1786,6 @@
     "comptabilite": "Suivre les acomptes et les soldes encaissés chantier par chantier.",
     "pointage": "Les heures de chantier par personne, pour suivre le coût réel d'un lot.",
     "vehicules": "Camions, bennes et matériel roulant : assurance, kilométrage, entretien.",
-    "messagerie": "Le chef de chantier envoie photos et questions au bureau en direct.",
     "fournisseurs": "Négoces de matériaux : ciment, parpaings, ferraille, livrés sur chantier.",
     "bons": "Commander les matériaux avec une date de livraison, et savoir ce qui est arrivé.",
     "utilisateurs": "Créez les comptes de vos chefs de chantier et vos maçons et réglez ce que chacun voit et peut faire.",
@@ -1811,7 +1991,6 @@
     "comptabilite": "Suivre les acomptes à la commande et les soldes à la pose.",
     "produits": "Un catalogue de références et de tarifs (fenêtres, portes, quincaillerie) pour chiffrer le devis.",
     "pointage": "Les heures de pose et d'atelier, par personne.",
-    "messagerie": "Le poseur envoie une photo d'un support difficile avant de commander.",
     "fournisseurs": "Fabricants de menuiseries, de panneaux et de quincaillerie.",
     "bons": "Commandes sur mesure chez le fabricant, avec un délai de plusieurs semaines à suivre.",
     "utilisateurs": "Créez les comptes de vos poseurs et vos menuisiers et réglez ce que chacun voit et peut faire.",
@@ -1997,7 +2176,6 @@
     "comptabilite": "Suivre les acomptes au démarrage et les soldes à la réception.",
     "produits": "Un catalogue de peintures avec leur rendement (m² par litre) pour calculer la quantité à commander.",
     "pointage": "Les heures par chantier, pour vérifier que le devis au m² est tenu.",
-    "messagerie": "Le chef d'équipe envoie une photo de teinte ou d'un support abîmé au bureau.",
     "fournisseurs": "Négoces de peinture : teintes à la demande, livrées ou prises au magasin.",
     "bons": "Commander les peintures d'un chantier à date, et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos peintres et réglez ce que chacun voit et peut faire.",
@@ -2193,7 +2371,6 @@
     "produits": "Végétaux, engrais, terreau, paillage : un catalogue avec vos prix.",
     "pointage": "Les heures par jardin pour vérifier qu'un forfait d'entretien est rentable.",
     "vehicules": "Camionnettes, remorques, bennes : assurance, kilométrage, entretien.",
-    "messagerie": "Le chef d'équipe prévient le bureau d'un portail fermé ou d'un chantier qui déborde.",
     "fournisseurs": "Pépinières, négoces d'engrais et de terreau, loueurs de matériel.",
     "bons": "Commander les végétaux d'une création à date de livraison.",
     "secteurs": "Découper les tournées par secteur.",
@@ -2406,7 +2583,6 @@
     "comptabilite": "Suivre les acomptes et les soldes encaissés chantier par chantier.",
     "pointage": "Les heures par chantier de toiture, par personne.",
     "vehicules": "Camion avec échelle ou nacelle : assurance, kilométrage, échéances.",
-    "messagerie": "Le couvreur envoie les photos de la toiture au bureau pour chiffrer sans remonter.",
     "fournisseurs": "Négoces de couverture : tuiles, ardoises, zinc sur mesure.",
     "bons": "Commander tuiles, ardoises et zinc avec une date de livraison.",
     "utilisateurs": "Créez les comptes de vos couvreurs et réglez ce que chacun voit et peut faire.",
@@ -2618,7 +2794,6 @@
     "contrats": "Les contrats de maintenance donnent un revenu régulier aux petites structures.",
     "pointage": "Le temps réellement passé par intervention, pour fixer des prix justes.",
     "vehicules": "Le véhicule est l'atelier : assurance, kilométrage, entretien.",
-    "messagerie": "Le technicien demande au bureau une pièce ou un avis pendant l'intervention.",
     "utilisateurs": "Créez les comptes de vos techniciens polyvalents et réglez ce que chacun voit et peut faire.",
     "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
     "parametres": "Vos sociétés, votre logo et vos en-têtes : le bon d'intervention part au nom de la bonne entreprise."
@@ -2770,7 +2945,6 @@
     "assistantDevis": "Dicter un devis plutôt que le taper.",
     "factures": "Facturer et suivre les paiements.",
     "pointage": "Les heures de chacun, base de la paie.",
-    "messagerie": "Échanger avec l'équipe sans passer par vos téléphones personnels.",
     "utilisateurs": "Créez les comptes de votre équipe et réglez ce que chacun voit et peut faire.",
     "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
     "parametres": "Vos sociétés, votre logo et vos en-têtes : le rapport d'intervention part au nom de la bonne entreprise."
@@ -2908,7 +3082,6 @@
     "mouvements": "Tracer quel appareil de remplacement a été posé chez quel client.",
     "pointage": "Les heures par site vérifié, pour chiffrer un contrat annuel au juste prix.",
     "vehicules": "Le camion transporte des appareils de remplacement : assurance, kilométrage, entretien.",
-    "messagerie": "Le vérificateur signale au bureau un appareil à remplacer d'urgence.",
     "fournisseurs": "Constructeurs et revendeurs de pièces et d'appareils.",
     "bons": "Commander appareils et pièces, et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos vérificateurs et réglez ce que chacun voit et peut faire.",
@@ -3139,7 +3312,6 @@
     "mouvements": "Tracer les quantités de fluide sorties, chargées et récupérées, bouteille par bouteille.",
     "pointage": "Heures d'intervention et d'astreinte de chaque frigoriste.",
     "vehicules": "Le véhicule porte les bouteilles de fluide : assurance, kilométrage, échéances.",
-    "messagerie": "Le technicien demande au bureau un compresseur ou une référence de fluide.",
     "fournisseurs": "Grossistes en froid, fabricants, fournisseurs de fluides frigorigènes.",
     "bons": "Commander compresseurs, fluides et pièces électriques, et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos frigoristes et réglez ce que chacun voit et peut faire.",
@@ -3403,7 +3575,6 @@
     "mouvements": "Tracer quelle pièce a été posée sur quel appareil.",
     "pointage": "Heures de visite et d'astreinte, par technicien.",
     "vehicules": "Le véhicule de tournée et d'astreinte : assurance, kilométrage, entretien.",
-    "messagerie": "L'astreinte reçoit une personne bloquée : le bureau envoie l'adresse en un message.",
     "fournisseurs": "Fabricants et revendeurs de pièces d'ascenseur.",
     "bons": "Commander des pièces et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos techniciens d'ascenseurs et réglez ce que chacun voit et peut faire.",
@@ -3608,7 +3779,6 @@
     "stock": "Les pièces courantes (cellules, télécommandes, ressorts) à avoir dans le véhicule.",
     "pointage": "Les heures de maintenance et de dépannage, par technicien.",
     "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
-    "messagerie": "Le technicien demande au bureau une référence de moteur ou de cellule.",
     "fournisseurs": "Fabricants et distributeurs de motorisations et d'automatismes.",
     "bons": "Commander moteurs et automates, et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos techniciens et réglez ce que chacun voit et peut faire.",
@@ -3787,12 +3957,10 @@
     "factures": "Facturer à la visite ou à l'abonnement annuel.",
     "contrats": "Un abonnement annuel ramène le client chaque saison.",
     "comptabilite": "Les encaissements de la journée se rapprochent des certificats remis.",
-    "telecollecte": "Le paiement se fait souvent à la visite.",
     "produits": "Hérissons, brosses, tubage inox, chapeaux, trappes de visite : votre catalogue de fournitures.",
     "stock": "Le matériel et les pièces à avoir dans le véhicule : brosses, tubage, chapeaux.",
     "pointage": "Le temps réellement passé par conduit, pour fixer un juste tarif.",
     "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
-    "messagerie": "Le ramoneur signale au bureau une anomalie sur un conduit.",
     "secteurs": "Découper la saison par secteur et par ramoneur.",
     "utilisateurs": "Créez les comptes de vos ramoneurs et réglez ce que chacun voit et peut faire.",
     "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
@@ -3805,7 +3973,8 @@
     "conducteurs": "Si plusieurs personnes conduisent les véhicules.",
     "boiteMail": "Pour envoyer les certificats et relancer les clients depuis l'application.",
     "fournisseurs": "Pour vos commandes de tubage et de chapeaux.",
-    "bons": "Pour vos commandes de tubage et de chapeaux."
+    "bons": "Pour vos commandes de tubage et de chapeaux.",
+    "telecollecte": "Le paiement se fait souvent à la visite."
    },
    "types": [
     "Ramonage de cheminée",
@@ -3995,7 +4164,6 @@
     "pointage": "Les heures de camion et de chauffeur, par tournée.",
     "vehicules": "Le camion est l'outil : assurance, kilométrage, échéances.",
     "conducteurs": "Les chauffeurs autorisés à conduire chaque camion.",
-    "messagerie": "Le chauffeur prévient le bureau d'un accès impossible ou d'un camion plein.",
     "secteurs": "Répartir les communes entre les camions : le bilan annuel se fait par commune.",
     "utilisateurs": "Créez les comptes de vos chauffeurs et vos techniciens et réglez ce que chacun voit et peut faire.",
     "modulesElan": "Les modules mis de côté, que vous ouvrez le jour où votre activité en a besoin.",
@@ -4197,7 +4365,6 @@
     "mouvements": "Tracer qui a pris quelles pièces pour quel chantier.",
     "pointage": "Les heures par installation, pour tenir le prix d'une pose.",
     "vehicules": "Le véhicule de chantier : assurance, kilométrage, entretien.",
-    "messagerie": "L'installateur envoie des photos de toiture ou de tableau au bureau d'études.",
     "fournisseurs": "Grossistes et fabricants de panneaux, d'onduleurs et de bornes.",
     "bons": "Commander panneaux et onduleurs avec une date de livraison.",
     "utilisateurs": "Créez les comptes de vos installateurs et réglez ce que chacun voit et peut faire.",
@@ -4402,7 +4569,6 @@
     "stock": "Batteries et petit matériel de remplacement dans le véhicule.",
     "pointage": "Les heures d'installation et de maintenance, par technicien.",
     "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
-    "messagerie": "Le technicien demande au bureau une référence de centrale ou de caméra.",
     "fournisseurs": "Fabricants et distributeurs de matériel de sécurité.",
     "bons": "Commander du matériel avec une date de livraison.",
     "utilisateurs": "Créez les comptes de vos installateurs et vos techniciens de maintenance et réglez ce que chacun voit et peut faire.",
@@ -4587,7 +4753,6 @@
     "mouvements": "Tracer quel consommable a été posé chez quel client.",
     "pointage": "Les heures de visite et d'analyse, par technicien.",
     "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
-    "messagerie": "Le technicien envoie la photo d'un résultat d'analyse au bureau.",
     "fournisseurs": "Fabricants et distributeurs d'équipements et de consommables.",
     "bons": "Commander des consommables et des appareils, et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos techniciens et réglez ce que chacun voit et peut faire.",
@@ -4778,7 +4943,6 @@
     "mouvements": "Tracer quels produits ont été utilisés dans quel bassin.",
     "pointage": "Les heures par chantier et par tournée d'entretien.",
     "vehicules": "Le véhicule de tournée : assurance, kilométrage, entretien.",
-    "messagerie": "Le technicien envoie la photo d'un local technique au bureau avant de commander.",
     "fournisseurs": "Fabricants et négoces de matériel de piscine.",
     "bons": "Commander pompes, liners et couvertures sur mesure, et suivre la livraison.",
     "utilisateurs": "Créez les comptes de vos techniciens de piscine et réglez ce que chacun voit et peut faire.",

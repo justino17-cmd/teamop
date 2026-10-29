@@ -11,6 +11,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const lire = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const BETA = lire('beta.html');
+const { BETA_SEULE } = require('./beta-en-avance.js');   // 23 métiers de la production + ceux que seule la bêta connaît (tests/beta-en-avance.js)
 const sansCom = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d) : '')); } };
@@ -37,7 +38,8 @@ function contexte(SRC, beta) {
 console.log('\n── 3086 · 1. le sélecteur de la bêta ──');
 const B = contexte(BETA, true);
 vrai('les morceaux sont trouvés (8)', B.morceaux.every(m => m.length > 20), B.morceaux.map(m => m.length));
-vrai('23 métiers dans METIERS_ORDRE', B.ctx.METIERS_ORDRE.length === 23, B.ctx.METIERS_ORDRE.length);
+const NB = 23 + BETA_SEULE.length;
+vrai('(population) ' + NB + ' métiers dans METIERS_ORDRE de la bêta : les 23 de la production + ' + BETA_SEULE.join(', '), B.ctx.METIERS_ORDRE.length === NB && BETA_SEULE.every(k => B.ctx.METIERS_ORDRE.indexOf(k) >= 0), B.ctx.METIERS_ORDRE.length);
 const PARAM = bloc(B.C, 'views.parametres=function(');
 vrai('views.parametres est trouvée', PARAM.length > 5000, PARAM.length);
 const iOutils = PARAM.indexOf('🧪 Outils de bêta'), iSel = PARAM.indexOf('id="beta-metier"'), iFin = PARAM.indexOf("</div>`:''}", iSel);
@@ -45,9 +47,10 @@ vrai('le sélecteur vit DANS la carte « Outils de bêta » (gardée par BETA_ES
   && /\$\{BETA_ESSAI&&currentUser&&currentUser\.role==='admin'\?`<div class="card"><div class="card-head"><h3>🧪 Outils de bêta/.test(PARAM), [iOutils, iSel, iFin]);
 const SEL = PARAM.slice(iSel, iFin);
 vrai('un geste sur le sélecteur appelle metierSet', /onchange="metierSet\(this\.value\)"/.test(SEL));
-vrai('il propose TOUS les métiers (METIERS_ORDRE.map) et part sur le courant', /\$\{METIERS_ORDRE\.map\(k=>`<option value="\$\{k\}"\$\{k===metierId\(\)\?' selected':''\}>/.test(SEL));
+vrai('il propose TOUS les métiers (METIERS_ORDRE.map) et part sur le courant (sauf sous un pack combiné, que le groupe suivant désigne — avance de la bêta)', /\$\{METIERS_ORDRE\.map\(k=>`<option value="\$\{k\}"\$\{k===metierId\(\)&&!metierComboCourant\(\)\?' selected':''\}>/.test(SEL));
+vrai('… puis les packs COMBINÉS (bêta seule), un par ligne, valeur « combo:… » que metierSet aiguille', /<optgroup label="Packs combinés[^"]*">\$\{METIERS_COMBOS\.map\(c=>`<option value="combo:\$\{c\.k\}"\$\{metierComboCourant\(\)===c\.k\?' selected':''\}>/.test(SEL));
 
-console.log('\n── 3086 · 2. « Mon métier » : 23 cartes sur la bêta, une seule chez un client ──');
+console.log('\n── 3086 · 2. « Mon métier » : une carte par métier de la bêta, une seule chez un client ──');
 const expr = c => { const m = c.match(/<div class="met-cards">\$\{\((.*?)\)\.map\(k=>/); return m ? m[1] : ''; };
 const EB = expr(B.C), EA = expr(sansCom(lire('app.html')));
 vrai('l\'expression des cartes est trouvée (bêta et app.html)', !!EB && !!EA, [EB, EA]);
@@ -55,9 +58,9 @@ vrai('l\'expression des cartes est trouvée (bêta et app.html)', !!EB && !!EA, 
 const client = vm.runInNewContext(EA, { BETA_ESSAI: false, equipeTeamOP: () => false, METIERS_ORDRE: B.ctx.METIERS_ORDRE, cur: 'plomberie' });
 vrai('app.html : un client ne voit que sa carte', JSON.stringify(client) === '["plomberie"]', client);
 const cartes = (beta, equipe) => vm.runInNewContext(EB, { BETA_ESSAI: beta, equipeTeamOP: () => equipe, METIERS_ORDRE: B.ctx.METIERS_ORDRE, cur: 'plomberie' });
-vrai('bêta (BETA_ESSAI vrai) : les 23 cartes', cartes(true, false).length === 23, cartes(true, false).length);
+vrai('bêta (BETA_ESSAI vrai) : les ' + NB + ' cartes', cartes(true, false).length === NB, cartes(true, false).length);
 vrai('client (BETA_ESSAI faux, pas TEAM OP) : sa seule carte', JSON.stringify(cartes(false, false)) === '["plomberie"]', cartes(false, false));
-vrai('équipe TEAM OP : les 23 cartes, comme avant', cartes(false, true).length === 23);
+vrai('équipe TEAM OP : les ' + NB + ' cartes, comme avant', cartes(false, true).length === NB);
 vrai('app.html arme BETA_ESSAI à false', /const BETA_ESSAI=false;/.test(lire('app.html')));
 vrai('beta.html l\'arme à true', /const BETA_ESSAI=true;/.test(BETA));
 

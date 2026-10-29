@@ -169,7 +169,7 @@ vrai('   et il couvre les genres qui ont un identifiant',
     /* ⛔ La bêta peut être EN AVANCE d'une collection tant qu'app.html n'est pas publié (v772 : `appareils`, le parc du chauffage et de la
        climatisation). Une avance se DÉCLARE ici, collection par collection, avec son genre ; tout le reste doit être identique. Le jour où
        app.html la porte aussi, la déclaration ne sert plus à rien et l'égalité redevient stricte d'elle-même. */
-    const AVANCE_BETA = { appareils: 'liste', cahiers: 'liste', plansPrevention: 'liste', docsMetier: 'liste', metierPlus: 'reglage' };   // v779 : cahier des tâches, plan de prévention, documents du métier, « Mon entreprise fait aussi… »
+    const AVANCE_BETA = { appareils: 'liste', cahiers: 'liste', plansPrevention: 'liste', docsMetier: 'liste', metierPlus: 'reglage', metierPlus2: 'reglage' };   // v779 : cahier des tâches, plan de prévention, documents du métier, « Mon entreprise fait aussi… » ; v780 : metierPlus2 (le second métier d'appoint des packs combinés)
     const attendu = Object.assign({}, CLASSES);
     Object.keys(AVANCE_BETA).forEach(k => { if (!(k in CLASSES) && (k in CB)) attendu[k] = AVANCE_BETA[k]; });
     const trie = o => Object.keys(o).sort().map(k => [k, o[k]]);
