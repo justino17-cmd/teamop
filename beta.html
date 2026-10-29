@@ -8235,6 +8235,19 @@ html[data-refonte] .field input[aria-invalid="true"]:focus,html[data-refonte] .f
 html[data-refonte] .field button[aria-invalid="true"],html[data-refonte] .field button[aria-invalid="true"]:focus{
   border-color:var(--red)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 24%,transparent)!important}
 .champ-manque-note{color:var(--red);font-size:12.5px;font-weight:600;line-height:1.35;margin:6px 0 0;padding:0 2px;box-sizing:border-box;flex:0 0 100%}
+/* ⛔ v780 — Justin, 29 octobre 2026, vidéo sous Windows (Edge) : la fiche d'une intervention laissait voir le planning et les
+   tuiles DESSOUS, on ne savait plus sur quoi on cliquait. La fenêtre plein écran était une vitre à 78 % : sans le flou (navigateur
+   qui ne l'applique pas, accélération matérielle coupée), c'est un calque transparent. Une fenêtre PLEIN ÉCRAN ne montre rien
+   derrière elle : elle est opaque, quel que soit le thème. Les petites fenêtres (carte) gardent leur verre. */
+html[data-theme] #modal.modal.full{ background-color:var(--bg,#F6F7F9)!important; background-image:none!important; -webkit-backdrop-filter:none!important; backdrop-filter:none!important; }
+html[data-theme="light"] #modal.modal.full{ background-color:#F6F7F9!important; }
+html[data-theme="dark"] #modal.modal.full{ background-color:#0F1A30!important; background-image:none!important; }
+/* ⛔ Même vidéo : en NUIT, la liste « Catégorie » s'ouvrait blanche, texte blanc — illisible. Une liste déroulante native suit le
+   `color-scheme` de son élément : on le donne, et des couleurs d'option explicites pour les navigateurs qui l'ignorent. */
+html[data-theme="dark"] select{ color-scheme:dark; }
+html[data-theme="dark"] select option, html[data-theme="dark"] select optgroup{ background-color:#14213A; color:#EEF2F8; }
+html[data-theme="light"] select{ color-scheme:light; }
+html[data-theme="light"] select option{ background-color:#FFFFFF; color:#14213A; }
 </style>
 </head>
 <body>
