@@ -66,8 +66,8 @@ for (const fichier of ['app.html', 'beta.html']) {
     b.scope.views = {}; // les blocs s'écrivent `views.x=` : on lui donne son objet AVANT d'exécuter
     const b2 = bac(fichier, ['rubExplication', 'rubExplHtml'], { NAV, RUBRIQUES_INFO: INFO, esc, setHeader: () => {}, $: id => els[id] || {}, userSeesModule: () => true, currentUser: {}, go: () => {}, views: {} }, ['views.modulesElan=function(){']);
     b2.scope.views.modulesElan();
-    const asides = NAV.flatMap(g => g.items).filter(i => i.aside);
-    vrai('(population) la liste des modules mis de côté se rend (' + asides.length + ' rubriques)', asides.length >= 8 && (html.match(/class="pl-row"/g) || []).length === asides.length, [asides.length, (html.match(/class="pl-row"/g) || []).length]);
+    const asides = NAV.flatMap(g => g.items).filter(i => i.aside && !i.cache);   // v780 : les rubriques regroupées (cache:1) ne sont plus des modules mis de côté
+    vrai('(population) la liste des modules mis de côté se rend (' + asides.length + ' rubriques)', asides.length >= 5 &&   /* 6 depuis le menu allégé (v780) */ (html.match(/class="pl-row"/g) || []).length === asides.length, [asides.length, (html.match(/class="pl-row"/g) || []).length]);
     egal('⛔ chacun montre son explication sous son titre', asides.filter(i => sansBalises(html).indexOf(INFO[i.k][1]) < 0).map(i => i.k), []); }
 
   console.log('\n4. Paramètres → Mon métier : les rubriques conseillées, chacune expliquée');

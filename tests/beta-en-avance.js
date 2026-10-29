@@ -36,7 +36,9 @@ const BETA_EN_AVANCE = {
      chauffage (documents, catalogue, obligations), nettoyage (relevés). Leur contenu exact est dans `tests/metiers-beta-avance.json` ; le banc
      2950 compare beta.html à `metiers.json` AVEC ces trois packs substitués, et exige que le reste soit identique à app.html. Le jour où
      `metiers.json` porte ces packs : vider cette liste ET supprimer le fichier, ensemble. */
-  metiersBeta: ['plomberie', 'chauffage', 'nettoyage'],
+  /* 29 octobre 2026 (menu allégé, bêta) : Justin, « les messageries dans OP GESTION, tu les supprimes ; la télécollecte, il faudra
+     qu'ils nous la demandent » — les rubriques cochées d'office changent pour TOUS les métiers : tous sont en avance. */
+  metiersBeta: ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre', 'incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'piscine', 'energies', 'alarme', 'eau'],
 };
 /* Le référentiel tel que la BÊTA le porte : celui de la production, moins l'avance déclarée ci-dessus. */
 function referentielBeta(REF) {
