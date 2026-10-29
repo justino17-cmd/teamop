@@ -99,11 +99,11 @@
   --base: #f2f2f7;
   --verre-reflet: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(255,255,255,.35), inset 0 0 0 .5px rgba(255,255,255,.55);
 }
-/* ⛔ Justin, 29 octobre 2026 (capture, Windows) : de nuit, la liste « Répétition » s'ouvrait blanche, texte blanc pâle — illisible.
+/* ⛔ Le patron, 29 octobre 2026 (capture, Windows) : de nuit, la liste « Répétition » s'ouvrait blanche, texte blanc pâle — illisible.
    La liste d'un <select> est peinte par le système ; sous Windows elle ignore le `color-scheme` de la page dès que la feuille colore
-   le champ. On donne aux options leurs propres couleurs, dans les deux thèmes. */
+   le champ. On donne aux options leurs propres couleurs, dans les deux thèmes (le `color-scheme` reste « light dark » sur :root : test-856). */
 select option, select optgroup { background-color: #ffffff; color: #0b1633; }
-@media (prefers-color-scheme: dark) { select { color-scheme: dark; } select option, select optgroup { background-color: #14213a; color: #eef2f8; } }
+@media (prefers-color-scheme: dark) { select option, select optgroup { background-color: #14213a; color: #eef2f8; } }
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #ffffff;
@@ -194,6 +194,9 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .sr-seul { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* ceux qui sont posés À LA FIN du document (l'annonce d'appel, les deux champs de photo) n'ont pas de `top` : leur place « naturelle » est après tout le reste, et leur bas dépassait de 1 px — la page défilait pour rien sur chaque écran, avec un ascenseur permanent sous Windows (17 octobre 2026) */
 body > .sr-seul { top: 0; left: 0; }
+/* le son de l'autre bloqué par le navigateur : un bouton qu'on ne peut pas manquer (sonJouer) */
+.son-bloque { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 16px; right: 16px; margin: 0 auto; width: max-content; max-width: calc(100% - 32px); z-index: 2147483000; min-height: 48px; padding: 0 22px; border: 0; border-radius: 999px; background: #E5484D; color: #fff; font: 700 16px/1 -apple-system, system-ui, sans-serif; box-shadow: 0 8px 30px rgba(0,0,0,.35); cursor: pointer; }
+.son-bloque[hidden] { display: none; }
 [hidden] { display: none !important; }
 
 /* La réponse au toucher est IMMÉDIATE : l'état « pressé » se pose au doigt posé, pas au relâché (apple-design, §1). La transition
@@ -6325,11 +6328,34 @@ a.menu-action { text-decoration: none; }
   const majStatutAppel = () => { const A = etat.appelUI; if (!A) return; if (etat.appelReduit) majBarreAppel(); if (enSalle(A)) { majStatutSalle(A); return; } const t = statutAppel(A), e = $('appel-statut'); if (e.textContent !== t) e.textContent = t; };
   /* (version servie) la voix et l'image de l'AUTRE : le flux que le moteur tient est branché sur l'élément audio (la voix) et sur la vignette de l'autre (l'image, muette — son son passe déjà par l'élément audio).
      Rebranché à chaque rendu, mais seulement quand il a changé : une vignette refaite repart sans flux. */
+  /* ⛔ LE SON DE L'AUTRE NE RESTE JAMAIS MUET EN SILENCE. le patron, 29 octobre 2026, en réunion : « j'entends pas mon client ». Le
+     navigateur (Safari d'abord) refuse de lancer un son qui n'est pas né d'un toucher : l'appel ou la salle se branchent APRÈS des
+     attentes (jeton, connexion), donc `play()` était rejeté — et le rejet était avalé (`catch(() => {})`), le flux restait le même
+     objet, rien ne relançait jamais. Désormais : un refus se DIT (« Touchez pour entendre »), et le premier toucher, n'importe où,
+     relance chaque son en pause. */
+  const sonBloque = new Set();
+  function majSonBloque() {
+    for (const el of [...sonBloque]) if (!el.isConnected || !el.srcObject || !el.paused) sonBloque.delete(el);
+    let b = document.getElementById('son-bloque');
+    if (!sonBloque.size) { if (b) b.hidden = true; return; }
+    if (!b) { document.body.insertAdjacentHTML('beforeend', '<button id="son-bloque" class="son-bloque" type="button">🔊 Touchez pour entendre</button>'); b = document.getElementById('son-bloque'); b.addEventListener('click', sonRelancer); }
+    b.hidden = false;
+  }
+  function sonJouer(el) {
+    if (!el || !el.srcObject || !el.paused) return;
+    const p = el.play();
+    if (p && p.then) p.then(() => { sonBloque.delete(el); majSonBloque(); }, er => { if (er && er.name === 'NotAllowedError') { sonBloque.add(el); majSonBloque(); } });
+  }
+  function sonRelancer() { document.querySelectorAll('#appel-audio-distant, #salle-scene audio').forEach(sonJouer); majSonBloque(); }
+  document.addEventListener('pointerdown', sonRelancer, true);
+  document.addEventListener('keydown', sonRelancer, true);
+  window.opmSonJouer = sonJouer;
   function lierFluxDistant(A) {
     if (!CAP.appelsMedias || !A || typeof source.appelFlux !== 'function') return;
     if (enSalle(A)) { lierFluxSalle(A); return; }
     const f = source.appelFlux(A.id) || null, au = $('appel-audio-distant'), v = document.querySelector('#appel-scene .tuile:not(.vous) video');
-    if (au.srcObject !== f) { au.srcObject = f; if (f) { const p = au.play(); if (p && p.catch) p.catch(() => {}); } }
+    if (au.srcObject !== f) au.srcObject = f;
+    if (f) sonJouer(au);   // même flux, mais en pause (un refus d'avant) : on relance aussi
     if (v && v.srcObject !== f) { v.srcObject = f; if (f) { const p = v.play(); if (p && p.catch) p.catch(() => {}); } }
     /* « Réduire » se décide quand l'image JOUE (au branchement, elle n'a encore aucune image) — et se redécide quand la caméra de l'autre s'allume ou se coupe */
     if (v && !v.dataset.pipEcoute) { v.dataset.pipEcoute = '1'; for (const k of ['playing', 'loadeddata', 'emptied', 'resize']) v.addEventListener(k, majPip); }
@@ -11892,7 +11918,7 @@ a.menu-action { text-decoration: none; }
       const f = source.appelFlux(A.id, t.dataset.uid) || null, au = t.querySelector('audio'), v = t.querySelector('video');
       if (au.srcObject !== f) au.srcObject = f;
       if (v.srcObject !== f) v.srcObject = f;
-      if (f) { if (au.paused) lecture(au); if (v.paused) lecture(v); }
+      if (f) { if (au.paused) (window.opmSonJouer || lecture)(au); if (v.paused) lecture(v); }
     });
     if (prefMedias.sortie) appliquerSortie();
   }
@@ -12895,7 +12921,7 @@ a.menu-action { text-decoration: none; }
   window.addEventListener('resize', annotPlanifier);
 
   /* ── le partage d'écran : la piste d'écran REMPLACE la caméra chez les autres (même émetteur, aucune renégociation), et la caméra revient quand le partage s'arrête ── */
-  /* ⛔ LA CAPTURE DE L'ÉCRAN PARTAGÉ (Justin, 29 octobre 2026 : « la qualité de partage d'écran, c'est moche ») : demander une capture nette (jusqu'au
+  /* ⛔ LA CAPTURE DE L'ÉCRAN PARTAGÉ (le patron, 29 octobre 2026 : « la qualité de partage d'écran, c'est moche ») : demander une capture nette (jusqu'au
      1080p) et peu d'images par seconde — un écran est du texte, pas un film. `contentHint` « detail » dit au navigateur de garder la netteté quand le débit
      manque ; l'envoi (source-serveur.js, `qualiteEcran`) lui donne 2,5 Mbit/s. */
   const ECRAN_CAPTURE = { video: { width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 15, max: 30 } }, audio: false };
