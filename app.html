@@ -44290,7 +44290,7 @@ const DOCM_DEFS=[
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : ce n’est pas un document officiel.' },
 
- { id:'tva-reduite', metiers:['plomberie','menuiserie','multiservices'], ic:'🏠', court:'Certification TVA réduite', pdfTitre:'CERTIFICATION TVA',
+ { id:'tva-reduite', metiers:['chauffage','energies','plomberie','menuiserie','multiservices'], ic:'🏠', court:'Certification TVA réduite', pdfTitre:'CERTIFICATION TVA',
    titre:'Certification du client pour la TVA réduite (mention du devis ou de la facture)', portee:'client', droit:'ventes', prefixe:'TVR', envoi:true,
    aide:'Quand un taux réduit est appliqué, le client certifie que les conditions sont remplies. Le texte exact de la mention n’a pas été relu : colle ici celui de ton modèle, l’application n’invente aucune formule.',
    champs:[
@@ -45817,7 +45817,7 @@ function docmSauver(silencieux){ const W=docmW; if(!W) return null;
   save(); if(!silencieux) toast('Document enregistré'+(net.num?' — n° '+net.num:'')); return net.id; }
 
 /* ── Le taux réduit : une CERTIFICATION du client (plus d'attestation Cerfa depuis le 16 février 2025 — Eurex et KPMG, lus). Le conseil n'apparaît que si le métier a ce document
-   (la plomberie) et qu'un taux de 5,5 % ou de 10 % est choisi ; il ne dit JAMAIS ce que la mention doit contenir (le texte exact n'a pas été relu). ── */
+   (plomberie, chauffage / climatisation, énergies, menuiserie, multiservices) et qu'un taux de 5,5 % ou de 10 % est choisi ; il ne dit JAMAIS ce que la mention doit contenir (le texte exact n'a pas été relu). ── */
 function docmTauxReduit(t){ const n=docmNum(t); return n===5.5||n===10; }
 function docmNoteTauxReduit(taux,avecBouton){ try{ if(!docmDefsDuMetier().some(d=>d.id==='tva-reduite')||!docmTauxReduit(taux)) return '';
   return `<div id="docm-taux-reduit" style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:8px 11px;margin-top:8px;text-align:left">🏠 Taux réduit : le client certifie, par une mention portée sur le devis ou la facture, que les conditions sont remplies (plus d’attestation Cerfa depuis le 16 février 2025). Prépare sa certification${avecBouton?'':' depuis sa fiche, « ＋ Certification TVA réduite »'}.${avecBouton?' <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="docmCertifTva()">＋ Préparer la certification du client</button>':''}</div>`; }catch(e){ return ''; } }

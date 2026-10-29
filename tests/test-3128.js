@@ -75,13 +75,13 @@ console.log('\n── 3128 · 1. ⛔ une seule porte : metierGereDocs ──');
     vrai(m + ' : aucun formulaire ne s\'ouvre', W.__modals.length === 0, W.__modals.length);
     egal(m + ' : ni section client, ni carte d\'intervention, ni démonstration', [W.docmSectionClient(BASE().clients[0]), W.docmIntCard(BASE().interventions[0], true), (W.docmDemoPoser(['c1']), W.db.docsMetier.length)], ['', '', 0]); } }
 { const C = mk('chauffage'), P = mk('plomberie');
-  egal('chauffage : devis, note, suivi gaz, suivi de la vignette', C.docmDefsDuMetier().map(d => d.id), ['devis-depannage', 'note-depannage', 'suivi-gaz', 'suivi-vignette']);
+  egal('chauffage : devis, note, suivi gaz, suivi de la vignette, certification TVA réduite (la pose d\'une chaudière ou d\'une pompe à chaleur relève aussi du taux réduit — constat 2 de la relecture du 28 octobre)', C.docmDefsDuMetier().map(d => d.id), ['devis-depannage', 'note-depannage', 'suivi-gaz', 'suivi-vignette', 'tva-reduite']);
   egal('plomberie : devis, note, étanchéité, suivi gaz, certification TVA, amiante', P.docmDefsDuMetier().map(d => d.id), ['devis-depannage', 'note-depannage', 'rapport-etancheite', 'suivi-gaz', 'tva-reduite', 'suivi-amiante']);
   C.docmForm('rapport-etancheite', { cid: 'c1' }); P.docmForm('suivi-vignette', { cid: 'c1' });
   vrai('⛔ un document d\'un AUTRE métier ne s\'ouvre pas (étanchéité chez le chauffagiste, vignette chez le plombier)', C.__modals.length === 0 && P.__modals.length === 0); }
 
 console.log('\n── 3128 · 2. le modèle commun : un formulaire lu sur la définition ──');
-for (const [metier, defs] of [['plomberie', ['devis-depannage', 'note-depannage', 'rapport-etancheite', 'suivi-gaz', 'tva-reduite', 'suivi-amiante']], ['chauffage', ['devis-depannage', 'note-depannage', 'suivi-gaz', 'suivi-vignette']]]) {
+for (const [metier, defs] of [['plomberie', ['devis-depannage', 'note-depannage', 'rapport-etancheite', 'suivi-gaz', 'tva-reduite', 'suivi-amiante']], ['chauffage', ['devis-depannage', 'note-depannage', 'suivi-gaz', 'suivi-vignette', 'tva-reduite']]]) {
   for (const id of defs) {
     const def = DEFS_REEL.find(d => d.id === id), W = mk(metier);
     W.docmForm(id, { cid: 'c1', iid: def.portee === 'intervention' ? 'i1' : '' });
@@ -274,7 +274,10 @@ console.log('\n── 3128 · 7. les suivis (gaz, vignette, amiante) et la certi
   vrai('le texte que l\'entreprise colle est imprimé tel quel, rien d\'autre', /Texte du modèle de l’entreprise, collé tel quel\./.test(tout((await fabrique(W, id)).pdf)));
   W.docmW.v.taux = '20'; W.docmSauver(); vrai('un taux hors liste (20 %) n\'est pas rangé : la certification ne vaut que pour 5,5 ou 10', W.db.docsMetier[0].v.taux === '10'); }
 { const W = mk('plomberie'), C = mk('chauffage');
-  egal('le conseil « taux réduit » : 5,5 % et 10 % seulement, et seulement chez un métier qui a la certification (la plomberie)', [W.docmNoteTauxReduit('5.5', false) !== '', W.docmNoteTauxReduit('10', false) !== '', W.docmNoteTauxReduit('20', false), W.docmNoteTauxReduit('', false), C.docmNoteTauxReduit('10', false), mk('3d').docmNoteTauxReduit('10', false)], [true, true, '', '', '', '']);
+  egal('le conseil « taux réduit » : 5,5 % et 10 % seulement, et seulement chez un métier qui a la certification (la plomberie, le chauffage / la climatisation, les énergies, la menuiserie, le multiservices)', [W.docmNoteTauxReduit('5.5', false) !== '', W.docmNoteTauxReduit('10', false) !== '', W.docmNoteTauxReduit('20', false), W.docmNoteTauxReduit('', false), mk('3d').docmNoteTauxReduit('10', false), mk('froid').docmNoteTauxReduit('10', false)], [true, true, '', '', '', '']);
+  /* ⛔ Constat 2 : une entreprise de CLIMATISATION / CHAUFFAGE SEULE (sans « fait aussi : plomberie ») avait le conseil absent alors que sa facture à 10 % s'imprimait sans rien. */
+  vrai('⛔ chauffage seul : le conseil « taux réduit » paraît à 10 % et à 5,5 %, pas à 20 % ni sans taux — et la certification est dans sa liste', C.docmNoteTauxReduit('10', false) !== '' && C.docmNoteTauxReduit('5.5', false) !== '' && C.docmNoteTauxReduit('20', false) === '' && C.docmNoteTauxReduit('', false) === '' && C.docmDefsDuMetier().some(d => d.id === 'tva-reduite'));
+  { const E = mk('energies'); vrai('énergies (photovoltaïque, bornes) : le conseil paraît aussi, la certification est proposée', E.docmNoteTauxReduit('10', false) !== '' && E.docmDefsDuMetier().some(d => d.id === 'tva-reduite')); }
   const h = W.docmNoteTauxReduit('10', false);
   vrai('⛔ le conseil ne dit pas ce que la mention doit contenir (texte non relu) : il renvoie à la fiche du client', /Cerfa/.test(h) && /16 février 2025/.test(h) && /Certification TVA réduite/.test(h) && !/doit contenir|formule|atteste sur l.honneur/i.test(h), h);
   W.docmForm('devis-depannage', { cid: 'c1', iid: 'i1' }); remplit(W, DEFS_REEL[0], { tva: '10', nature: 'Remplacement de robinetterie' });

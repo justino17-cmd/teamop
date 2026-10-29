@@ -188,7 +188,7 @@ console.log('\n── 3129 · 3. les catalogues de départ et les fournisseurs :
 
 console.log('\n── 3129 · 4. ⛔ CHAQUE DOCUMENT DE CHAQUE MÉTIER : formulaire, enregistrement, PDF, mentions, envoi ──');
 const COMBOS = []; DEFS.forEach(d => d.metiers.filter(m => AUTRES.includes(m)).forEach(m => COMBOS.push([m, d])));
-vrai('(population) ' + COMBOS.length + ' couples métier / document à jouer', COMBOS.length === 73, COMBOS.length);
+vrai('(population) ' + COMBOS.length + ' couples métier / document à jouer', COMBOS.length === 74, COMBOS.length);
 { let nPdf = 0, nEnvoi = 0, nMentLue = 0, nMentNon = 0;
   for (const [metier, d] of COMBOS) {
     const etiq = metier + ' / ' + d.id, W = mk(metier);
@@ -224,7 +224,7 @@ vrai('(population) ' + COMBOS.length + ' couples métier / document à jouer', C
       vrai('   … ⛔ courriel refusé par le serveur : rien n\'est tracé comme envoyé', await (async () => { const W3 = mk(metier, { db: cdcDb(W.db) }); W3.__mailOk = false; W3.__n = 900; W3.docmForm(d.id, { cid: 'c1', iid }); remplit(W3, W3.docmDef(d.id), { lieuSignature: 'client' }); ouvre(W3); const i3 = W3.docmSauver(); await W3.docmEnvoyer(i3); const q3 = W3.db.docsMetier.find(k => k.id === i3); return !q3.envoyeLe && W3.__mails.length === 1; })());
     } else vrai('   … sans envoi : le document n\'a pas de bouton « Envoyer » et docmEnvoyer ne fait rien', h.indexOf('docmEnvoyer()') < 0 && await (async () => { const n0 = W.__mails.length; await W.docmEnvoyer(id); return W.__mails.length === n0; })());
   }
-  vrai('(population) ' + nPdf + ' PDF fabriqués et relus, ' + nEnvoi + ' envois, ' + nMentLue + ' mentions lues imprimées, ' + nMentNon + ' mentions « à confirmer » gardées dehors', nPdf === 73 && nEnvoi >= 40 && nMentLue >= 60 && nMentNon >= 60, [nPdf, nEnvoi, nMentLue, nMentNon]); }
+  vrai('(population) ' + nPdf + ' PDF fabriqués et relus, ' + nEnvoi + ' envois, ' + nMentLue + ' mentions lues imprimées, ' + nMentNon + ' mentions « à confirmer » gardées dehors', nPdf === 74 && nEnvoi >= 40 && nMentLue >= 60 && nMentNon >= 60, [nPdf, nEnvoi, nMentLue, nMentNon]); }
 function cdcDb(db) { return JSON.parse(JSON.stringify(db)); }
 
 console.log('\n── 3129 · 5. les droits, les clients qu\'on ne voit pas, les champs propres à un métier ──');
