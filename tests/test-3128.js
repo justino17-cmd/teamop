@@ -88,8 +88,8 @@ for (const [metier, defs] of [['plomberie', ['devis-depannage', 'note-depannage'
     const h = W.__modals[0] || '';
     vrai(metier + ' / ' + id + ' : le formulaire s\'ouvre, chaque champ visible y est (' + W.docmChamps(def).filter(c => !c.si).length + ')', W.__modals.length === 1 && W.docmChamps(def).filter(c => !c.si).every(c => h.indexOf('id="docm-' + c.k + '"') >= 0 || c.t === 'lignes' && h.indexOf('id="docm-lignes"') >= 0), def.champs.filter(c => !c.si && h.indexOf('id="docm-' + c.k + '"') < 0).map(c => c.k));
     vrai('   rien n\'est écrit à l\'ouverture, l\'aide du document et ses sources sont là, aucun mot d\'anti-nuisibles', W.__saves === 0 && W.db.docsMetier.length === 0 && h.indexOf(def.aide.slice(0, 40).replace(/&/g, '&amp;')) >= 0 && /Repères réglementaires et sources/.test(h) && !ANTI.test(h.replace(/Aqua/g, '')), h.match(ANTI));
-    const R = mk(metier, { droits: { [def.droit + '.ajouter']: false } }); R.docmForm(id, { cid: 'c1' });
-    vrai('   sans la case « ' + def.droit + ' · ajouter », le formulaire ne s\'ouvre pas et le dit', R.__modals.length === 0 && R.__toasts.some(t => /n.est pas autorisé/.test(t)));
+    const acte = W.docmActeCreer(def), R = mk(metier, { droits: { [def.droit + '.' + acte]: false } }); R.docmForm(id, { cid: 'c1' });
+    vrai('   sans la case « ' + def.droit + ' · ' + acte + ' », le formulaire ne s\'ouvre pas et le dit', R.__modals.length === 0 && R.__toasts.some(t => /n.est pas autorisé/.test(t)));
     const V = mk(metier, { clientsVisibles: ['c2'] }); V.docmForm(id, { cid: 'c1' });
     vrai('   un client qu\'on ne voit pas : refus', V.__modals.length === 0 && V.__toasts.some(t => /ne te concerne pas/.test(t))); } }
 { const W = mk('plomberie'); W.docmForm('devis-depannage', { cid: 'c1', iid: 'i2' });
@@ -166,6 +166,18 @@ console.log('\n── 3128 · 4. le devis de dépannage — totaux calculés, nu
       ouvre(F); const ctx = F.docmContexte(''); vrai('… l\'aperçu et l\'envoi (docmContexte) la refusent aussi', !!ctx.err && /Ligne douteuse/.test(ctx.err), ctx.err); }
     { const F = mk('plomberie'); F.docmForm('devis-depannage', { cid: 'c1' }); const w = F.docmW; w.lignes = [{ id: 'h1', d: 'Joint', pu: '12', u: '', q: '' }, { id: 'h2', d: 'Collier', pu: '', u: '', q: '1' }];
       vrai('une quantité vide (1) et un prix vide (0) ne sont pas des refus : aucun avertissement, l\'enregistrement passe', !/role="alert"/.test(F.docmTotHtml(F.docmDef('devis-depannage'))) && (w.v.tva = '10', w.v.nature = 'Joint', w.v.date = '2026-10-28', w.v.lieu = '1 rue A', !!F.docmSauver())); } }
+  /* ⛔ Constat 3 : le technicien n'a PAS « interventions · ajouter » mais a « modifier » : le rapport d'étanchéité (droit « int », rattaché à l'intervention) se crée avec « modifier » — c'est lui qui fait l'essai.
+     Un devis (droit « ventes ») garde « ajouter ». Le droit est lu à TOUTES les portes : la carte de l'intervention, la section du client, le formulaire, l'enregistrement. */
+  { const T = mk('plomberie', { droits: { 'int.ajouter': false } }), it = T.db.interventions[0];
+    vrai('⛔ technicien (int · ajouter refusé, modifier permis) : la carte d\'intervention offre le Rapport d\'étanchéité ET le devis (droit ventes)', /Test d’étanchéité/.test(T.docmIntCard(it, true)) && /Devis de dépannage/.test(T.docmIntCard(it, true)), T.docmIntCard(it, true).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 400));
+    T.docmForm('rapport-etancheite', { cid: 'c1', iid: 'i1' }); const okOuvre = !!T.docmW && T.docmW.doc === 'rapport-etancheite'; if (okOuvre) remplit(T, T.docmDef('rapport-etancheite'), {}); const idT = okOuvre && T.docmSauver();
+    vrai('… le formulaire s\'ouvre et s\'enregistre (un document, les relevés écrits sur l\'intervention)', okOuvre && !!idT && T.db.docsMetier.length === 1, T.__toasts.slice(-1));
+    vrai('… la section « Documents du métier » de la fiche client le propose aussi', /＋ Test d’étanchéité/.test(T.docmSectionClient(T.db.clients[0])));
+    const S = mk('plomberie', { droits: { 'int.modifier': false } });
+    vrai('… sans « interventions · modifier » (même avec « ajouter ») : ni carte ni formulaire pour le rapport — le droit lu est celui du geste', !/Test d’étanchéité/.test(S.docmIntCard(S.db.interventions[0], true)) && (S.docmForm('rapport-etancheite', { cid: 'c1', iid: 'i1' }), !S.docmW || S.docmW.doc !== 'rapport-etancheite'));
+    const V = mk('plomberie', { droits: { 'ventes.ajouter': false } });
+    vrai('… un devis garde « ventes · ajouter » : refusé sans elle, absent de la carte', !/Devis de dépannage/.test(V.docmIntCard(V.db.interventions[0], true)) && (V.docmForm('devis-depannage', { cid: 'c1', iid: 'i1' }), !V.docmW || V.docmW.doc !== 'devis-depannage'));
+    vrai('docmActeCreer : « modifier » seulement pour un document d\'intervention gardé par « int »', [['rapport-etancheite', 'modifier'], ['devis-depannage', 'ajouter'], ['suivi-gaz', 'ajouter']].every(([id, a]) => T.docmActeCreer(T.docmDef(id)) === a)); }
   const D = mk('plomberie', { droits: { 'ventes.modifier': false } }); D.docmForm('devis-depannage', { cid: 'c1' });
   vrai('sans la case « ventes · modifier/ajouter », docmSauver lit elle-même la case (sa première instruction)', (() => { const E = mk('plomberie', { droits: { 'ventes.ajouter': false } }); E.docmW = cdc(W.docmW); E.docmW.id = ''; return E.docmSauver() === null && E.db.docsMetier.length === 0; })());
   { const sans = BLOC_DOCM.slice(0, BLOC_DOCM.indexOf('function docmDemoPoser(')); vrai('une seule ligne de code pousse dans db.docsMetier hors de la démonstration (docmSauver)', (sans.match(/db\.docsMetier\.push\(/g) || []).length === 1, (sans.match(/db\.docsMetier\.push\(/g) || []).length); }

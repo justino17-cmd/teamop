@@ -230,9 +230,10 @@ function cdcDb(db) { return JSON.parse(JSON.stringify(db)); }
 console.log('\n── 3129 · 5. les droits, les clients qu\'on ne voit pas, les champs propres à un métier ──');
 { for (const d of DEFS.filter(x => !x.reglage)) {
     const metier = d.metiers.find(m => AUTRES.includes(m));
-    const A = mk(metier, { droits: { [d.droit + '.ajouter']: false } }); A.docmForm(d.id, { cid: 'c1' });
+    const acte = (d.portee === 'intervention' && d.droit === 'int') ? 'modifier' : 'ajouter';   // le geste qui CRÉE : le travail de l'intervention se crée avec « modifier » (constat 3, 28 octobre)
+    const A = mk(metier, { droits: { [d.droit + '.' + acte]: false } }); A.docmForm(d.id, { cid: 'c1' });
     const B = mk(metier, { clientsVisibles: ['c3'] }); B.docmForm(d.id, { cid: 'c1' });
-    vrai(d.id + ' : sans la case « ' + d.droit + ' · ajouter » le formulaire ne s\'ouvre pas et le dit ; un client qu\'on ne voit pas : refus', A.__modals.length === 0 && A.__toasts.some(t => /autoris/.test(t)) && B.__modals.length === 0 && B.__toasts.some(t => /ne te concerne pas/.test(t)), [A.__modals.length, B.__modals.length]); }
+    vrai(d.id + ' : sans la case « ' + d.droit + ' · ' + acte + ' » le formulaire ne s\'ouvre pas et le dit ; un client qu\'on ne voit pas : refus', A.__modals.length === 0 && A.__toasts.some(t => /autoris/.test(t)) && B.__modals.length === 0 && B.__toasts.some(t => /ne te concerne pas/.test(t)), [A.__modals.length, B.__modals.length]); }
   const O = mk('plomberie'); O.docmForm('rapport-verification', { cid: 'c1' }); vrai('un document d\'un AUTRE métier ne s\'ouvre pas (vérification électrique chez le plombier ; livret de portail chez l\'électricien)', O.__modals.length === 0 && (() => { const E = mk('electricite'); E.docmForm('livret-entretien-porte', { cid: 'c1' }); return E.__modals.length === 0; })());
   const g = id => mk('electricite').docmDef(id);
   const champsDe = (metier, id) => { const W = mk(metier); return W.docmChamps(W.docmDef(id)).map(c => c.k); };

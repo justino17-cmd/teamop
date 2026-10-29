@@ -45766,11 +45766,15 @@ function docmReprendre(){ const W=docmW, s=document.getElementById('docm-reprise
   W.lignes=L; if(DOCM_TVA.some(t=>t[0]===tva)) W.v.tva=tva;
   const def=docmDef(W.doc); Object.keys(extra).forEach(k=>{ if(extra[k]!==undefined&&extra[k]!==''&&def.champs.some(c=>c.k===k)) W.v[k]=String(extra[k]); });
   docmMaj(); toast('Lignes reprises — relis-les avant d’enregistrer'); }
+/* ⛔ Le geste qui CRÉE un document : un document rattaché à une intervention et gardé par le droit « interventions » (le rapport d'étanchéité, de vérification…) est le travail de CELUI QUI FAIT l'intervention : il se crée avec « modifier »,
+   que le technicien a, et non « ajouter » (créer une intervention), qu'il n'a pas par défaut — sinon le technicien, qui fait l'essai, ne voyait pas le document et un administrateur puis un technicien n'offraient pas la même carte
+   (constat 3 de la relecture du 28 octobre 2026). Un devis ou une note (droit « ventes ») garde « ajouter ». */
+function docmActeCreer(def){ return def&&def.portee==='intervention'&&def.droit==='int'?'modifier':'ajouter'; }
 function docmForm(defId,opt){ opt=opt||{}; if(!metierGereDocs()) return;
   const def=docmDef(defId); if(!def) return;
   const ex=opt.id?(db.docsMetier||[]).find(x=>x&&x.id===opt.id):null; if(opt.id&&!ex){ toast('Ce document n’existe plus'); return; }
   if(!ex&&!docmDefsDuMetier().some(d=>d.id===def.id)) return;
-  if(!permGarde(def.droit,ex?'modifier':'ajouter','un document')) return;
+  if(!permGarde(def.droit,ex?'modifier':docmActeCreer(def),'un document')) return;
   const cid=ex?ex.clientId:opt.cid, cl=docmClient(cid); if(!cl||!nettClientVisible(cid)){ toast('Cette fiche ne te concerne pas'); return; }
   let iid=ex?ex.interventionId:(opt.iid||''); const it=docmIntervention(iid); if(!it||it.clientId!==cid) iid='';
   docmW=ex?nettCdc(ex):docmVide(def,cid,iid);
@@ -45796,7 +45800,7 @@ function docmReleveEcrire(def,rec){ if(!def.releves||!rec.interventionId) return
   return true; }
 function docmSauver(silencieux){ const W=docmW; if(!W) return null;
   const def=docmDef(W.doc); if(!def) return null;
-  if(!permGarde(def.droit,W.id?'modifier':'ajouter','un document')) return null;
+  if(!permGarde(def.droit,W.id?'modifier':docmActeCreer(def),'un document')) return null;
   if(!nettClientVisible(W.clientId)){ toast('Ce client ne te concerne pas'); return null; }
   if(def.lignes){ const mal=(W.lignes||[]).find(l=>docmLigneRefusee(l)); if(mal){ toast('Ligne « '+nettTxt(mal.d,40)+' » : '+(docmLigneRefusee(mal)==='prix'?'un prix négatif ou trop grand n’est pas accepté (une remise ne se saisit pas ici) — corrige-le':'la quantité doit être positive')+' avant d’enregistrer',6000); return null; } }
   const net=docmNet(def,W);
@@ -45824,7 +45828,7 @@ function docmNoteTauxReduit(taux,avecBouton){ try{ if(!docmDefsDuMetier().some(d
 /* Depuis un devis ou une note : le document est enregistré D'ABORD (la certification cite son numéro), puis la certification s'ouvre avec le taux, la nature et le numéro. */
 function docmCertifTva(){ const W=docmW; if(!W||!metierGereDocs()) return;
   const d2=docmDef('tva-reduite'); if(!d2||!docmDefsDuMetier().some(d=>d.id===d2.id)||!docmTauxReduit((W.v||{}).tva)) return;
-  if(!permGarde(d2.droit,'ajouter','un document')) return;
+  if(!permGarde(d2.droit,docmActeCreer(d2),'un document')) return;
   const taux=String(docmNum(W.v.tva)), nature=W.v.nature||'', cid=W.clientId, iid=W.interventionId||'';
   const sid=docmSauver(true); if(!sid) return;
   const r=(db.docsMetier||[]).find(x=>x&&x.id===sid);
@@ -45921,12 +45925,12 @@ function docmLigneHtml(r){ const def=docmDef(r.doc), st=docmStatut(r), peutMod=c
     <div class="pl-meta" style="overflow-wrap:anywhere;white-space:normal">${esc(nettDateTxt(r.date))} <span class="st ${st.cls}">${esc(st.l)}</span></div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn ghost sm" onclick="closeModal();docmForm('${esc(def.id)}',{id:'${esc(r.id)}'})">${peutMod?'Ouvrir':'Voir'}</button><button type="button" class="btn ghost sm" onclick="nettDocApercu('doc','${esc(r.id)}')">PDF</button></div></div>`; }
 function docmSectionClient(c){ if(!metierGereDocs()||!c) return '';
-  const defs=docmDefsDuMetier().filter(d=>canCat(d.droit,'ajouter')), docs=docmDe(c.id);
+  const defs=docmDefsDuMetier().filter(d=>canCat(d.droit,docmActeCreer(d))), docs=docmDe(c.id);
   return `<div class="dt-lbl" id="docm-docs" style="margin:16px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">📄 Documents du métier</div>
     ${defs.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${defs.map(d=>`<button type="button" class="btn ghost sm" onclick="closeModal();docmForm('${esc(d.id)}',{cid:'${esc(c.id)}'})">＋ ${esc(d.court)}</button>`).join('')}</div>`:''}
     ${docs.length?docs.map(docmLigneHtml).join(''):'<div style="color:var(--t3);font-size:13px;padding:4px 0">Aucun document pour ce client : devis de dépannage, note avant paiement, suivis… chacun se prépare ici et part en PDF.</div>'}`; }
 function docmIntCard(i,edit){ if(!metierGereDocs()||!i) return '';
-  const defs=docmDefsDuMetier().filter(d=>d.portee==='intervention'&&canCat(d.droit,'ajouter')), docs=docmDeInt(i.id);
+  const defs=docmDefsDuMetier().filter(d=>d.portee==='intervention'&&canCat(d.droit,docmActeCreer(d))), docs=docmDeInt(i.id);
   if(!defs.length&&!docs.length) return '';
   return `<div class="card" id="docm-int-card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>📄 Documents de l’intervention</h3></div>
     ${docs.length?docs.map(docmLigneHtml).join(''):'<div style="font-size:13px;color:var(--t3);margin-bottom:8px">Aucun document pour cette intervention : le devis se fait avant, la note après, avant le paiement.</div>'}
