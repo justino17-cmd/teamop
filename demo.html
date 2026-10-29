@@ -43552,7 +43552,12 @@ async function nettDocApercu(kind,id,cid){
   const w=window.open('','_blank'); if(!w){ toast('Autorise les pop-ups pour voir le PDF'); return; }
   try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation du document…</p>'); w.document.close(); }catch(e){}
   const d=await nettDocFabriquer(kind,id,cid);
-  if(d.err){ try{ w.close(); }catch(e){} toast(d.err); return; }
+  /* v780 — Justin, 29 octobre 2026 : « quand je clique sur PDF, rien ne marche ». Un document incomplet (aucune ligne au décompte)
+     fermait la fenêtre avec un toast de deux secondes : on croyait que le bouton ne faisait rien. Le document s'OUVRE maintenant
+     sur ce qui manque, et le message reste. */
+  if(d.err){ try{ w.close(); }catch(e){} toast('⚠️ '+d.err,9000);
+    if(kind==='doc'){ const r=(db.docsMetier||[]).find(x=>x.id===id); if(r&&r.doc&&typeof docmForm==='function') try{ docmForm(r.doc,{id}); }catch(e){} }
+    return; }
   if(d.manque&&d.manque.length) toast('⚠️ Non joint au PDF : '+d.manque.join(', '),9000);
   const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
   const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
