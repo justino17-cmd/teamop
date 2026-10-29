@@ -13,6 +13,30 @@ de ligne du tout.
 
 ---
 
+# ➕ 28-29 OCTOBRE 2026 — MÉTIERS COMBINÉS (plomberie + clim…) : LE CODE EST PRÊT SUR LA BÊTA — UNE DÉCISION DE JUSTIN ATTEND AVANT TOUTE PUBLICATION
+Justin (28 octobre, 21 h 50) : « chauffage/clim, plomberie : on pourrait les associer… sans que ça fasse une surfacturation. » Branche `claude/multi-metiers` (partie de
+`claude/pack-nettoyage`, la bêta v778 ; **rien n'est poussé**, `main` et `app.html` public ne sont pas touchés). Le MÉCANISME seulement : les données des 21 packs sont
+réécrites en parallèle par `claude/packs-metiers`, la combinaison ne les lit qu'à travers `metierPackDe` / `metierPackCombine`.
+- **Fait** : `db.metiersAssocies` (dictionnaire daté `{ id: { on, _m } }`, dans `COLLS_DICT` : deux appareils qui ajoutent chacun un associé gardent les deux ; ajout contre
+  retrait, le plus récent gagne), `metierAssocSet` (administrateur seul, quatre associés au plus, journal, « Annuler »), Paramètres › Mon métier, le pack combiné (union sans
+  doublon, masque en intersection, relevés de même clé mais de mesure différente = deux champs), le jeu de démonstration, l'assistant devis (côté application ; le serveur est
+  sur `claude/devis-multi`). Rien ne s'écrit au chargement. **`test-3131`, 183 vérifications.**
+- **Le prix ne bouge pas** (vérifié, pas supposé) : la formule est celle de l'UTILISATEUR (`formulePayee`/`espacePaye`, côté serveur) ; ni `server/` ni la facturation de l'application ne
+  lisent `metiersAssocies` (`test-3131` le compte), et `test-3112` (branche `claude/devis-multi`) rejoue `/api/espaces/etat` avant et après une demande de devis avec deux associés :
+  formule, places, suspension et métier identiques.
+- ⛔ **Un relevé SAISI se relit sur la donnée, pas sur le pack du moment** (constat de la vérification) : retirer la clim faisait sortir « Teneur en CO : 12 ppm » de la fiche, du rapport
+  et du compte-rendu envoyés au client alors que `relevesMetier.co` restait en base. `metierRelevesLignes` lit désormais `i.relevesMetier` : le pack actif d'abord (même ordre), puis ce que
+  la donnée porte encore, retrouvé dans les relevés de TOUS les métiers (`k` ou `k~métier`). La 3D seule garde la lecture d'avant, octet pour octet.
+- ❓ **DÉCISION DE JUSTIN, OUVERTE — « ELAN ne change en rien » vaut pour les DONNÉES, le PACK et les DOCUMENTS, pas pour l'ÉCRAN Paramètres.** Mesuré en mode production, 3D seule, mêmes
+  données : 44 vues sur 45 identiques ; Paramètres › Mon métier gagne un bloc (« ➕ Métiers associés » : une phrase sur l'abonnement et 23 cases dont une grisée, la 3D), visible de
+  l'**administrateur** d'ELAN, production comprise (`BETA_ESSAI` n'y entre pas) ; il pourrait donc associer un métier demain. Un non-administrateur d'une entreprise 3D seule ne voit rien. Trois
+  issues, à lui de choisir : (1) **assumer le bloc pour ELAN** et le dire dans la note de publication ; (2) le **masquer tant que le principal est la 3D hors bêta** (une condition dans
+  `metiersAssociesBloc`, `test-3131` § 12 change avec elle) ; (3) le poser **derrière un réglage de la Tour**. Rien n'est tranché dans le code : `test-3131` § 12 mesure l'état actuel
+  (étiqueté « décision ouverte »). **Quelle que soit la réponse, la fiche de publication doit le dire.**
+- **Avant de publier** : phrase de Justin (la suspension du 23 septembre vaut toujours : rien en version publique tant que le serveur n'est pas séparé de Firebase) ; `beta.html` / `demo.html`
+  à régénérer (`test-731`, `test-2971`, `test-3086` tombent tant qu'ils ne le sont pas — mesuré identique sur `f4486da0`, avant les correctifs de ce lot) ; le serveur du devis (branche
+  `claude/devis-multi`) doit annoncer `metiers:true` pour que l'application hors 3D lui envoie un devis (`/api/devis/etat`).
+
 # 🧽 28 OCTOBRE 2026 (SOIR) — LE PACK NETTOYAGE EST INSTALLÉ DANS LA BÊTA v778 — RIEN SUR `main`, RIEN PUBLIÉ
 Justin : « demain, j'ai une entreprise, on a réunion avec elle, il faut que le pack nettoyage soit installé. » Branche `claude/pack-nettoyage` (source de la bêta,
 app.html y est en v778 ; `beta.html` et `demo.html` générés ; **rien n'est poussé**, `main` et `app.html` public (v773) ne sont pas touchés).

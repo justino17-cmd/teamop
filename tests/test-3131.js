@@ -388,6 +388,14 @@ console.log('\n══ 12. PARAMÈTRES › MON MÉTIER ══\n');
   const tech = rendu({ metier: 'plomberie', metiersAssocies: { chauffage: { on: 1, _m: 1 } } }, { id: 'u2', role: 'technicien' });
   vrai('un non-administrateur ne voit aucune case, seulement la liste', !/type="checkbox"/.test(tech) && /Chauffage/.test(tech));
   vrai('   et rien du tout quand il n\'y en a pas', rendu({ metier: 'plomberie' }, { id: 'u2', role: 'technicien' }) === '');
+  /* ⛔ DÉCISION DE JUSTIN OUVERTE (REPRISE.md, « Métiers combinés ») — ce que ce banc MESURE, il ne le tranche pas. « ELAN ne change en rien » vaut pour les
+     DONNÉES, le PACK et les DOCUMENTS (sections 1 à 11) ; l'écran Paramètres, lui, gagne ce bloc pour l'administrateur d'une entreprise 3D seule, en production
+     comme en bêta (`BETA_ESSAI` n'y entre pas). Si Justin le masque (3D principale hors bêta, ou un réglage de la Tour), ces trois contrôles changent avec sa phrase. */
+  const elan = rendu({}), elanTech = rendu({}, { id: 'u2', role: 'technicien' });
+  const cases = (elan.match(/<input[^>]*type="checkbox"[^>]*>/g) || []);
+  vrai('(décision ouverte) l\'administrateur d\'une entreprise 3D seule, en production, voit le bloc « Métiers associés » : ' + cases.length + ' cases, dont 1 grisée (la 3D)', /Métiers associés/.test(elan) && cases.length === 23 && cases.filter(c => /disabled/.test(c)).length === 1, [cases.length, elan.slice(0, 200)]);
+  vrai('(décision ouverte) …aucune n\'est cochée, et RIEN n\'est écrit à l\'affichage de l\'écran (la base reste telle quelle)', cases.every(c => !/\schecked[\s>]/.test(c)) && (() => { const g = monde({}); g.metiersAssociesBloc(); return g.sortie.saves === 0 && g.init.db.metiersAssocies === undefined; })());
+  vrai('(décision ouverte) …et un non-administrateur d\'une entreprise 3D seule ne voit rien', elanTech === '');
 }
 
 console.log('\n══ 13. L\'ASSISTANT DEVIS ET LE COMPTE RENDU : les associés partent, rien d\'autre ══\n');
