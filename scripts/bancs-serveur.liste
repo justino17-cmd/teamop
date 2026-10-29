@@ -79,7 +79,8 @@
 # 28 octobre 2026 au soir, la relecture adverse (`test-3124`, plus § 6 de 3121) : 177 suites, 11 002 vérifications mesurées par la commande de la porte, sortie 0 — plancher 10988 (le total moins 14).
 # 28 octobre 2026, soir : agents autonomes après fusion de main (photos, rôles, Camille) : 178 suites, 11 138 vérifications, sortie 0 — plancher 11124 (le total moins 14).
 # 28 octobre 2026 (soir) : 11 345 mesurés (180 suites, sortie 0) avec `test-3125` (102 vérifications : horaires 8 h – 24 h, maintenance de nuit, migration unique) — plancher relevé à 11331.
-#plancher 11331
+# 29 octobre 2026 (nuit) : 11 778 mesurés (186 suites, sortie 0) avec les bancs de la compta de Margaux, 3160 à 3164 (330 vérifications) — plancher relevé à 11764 (le total moins 14).
+#plancher 11764
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
