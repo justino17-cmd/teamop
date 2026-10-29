@@ -45613,9 +45613,18 @@ function docmEurPdf(n){ return docmArr(n).toFixed(2).replace('.',',')+' EUR'; }
 function docmEurEcran(n){ return (typeof eur==='function')?eur(n):docmArr(n).toFixed(2).replace('.',',')+' €'; }
 function docmNbTxt(n){ return isFinite(n)?String(docmArr(n)).replace('.',','):''; }
 /* Les totaux d'un document à lignes : tout est CALCULÉ (jamais saisi). Les prix unitaires sont hors taxes ; les frais de déplacement aussi. */
+/* ⛔ UNE SEULE ÉPURATION d'une ligne, lue par l'écran (docmTotaux) ET par l'enregistrement (docmNet) : un prix négatif, hors borne ou illisible vaut « pas de prix », une quantité vide, nulle, négative ou hors borne vaut 1, et les deux sont
+   arrondis au centime. Deux épurations écrites chacune de son côté ont donné « Total HT -15,00 € » à l'écran et « Total HT 35,00 EUR » dans le PDF que le client reçoit (28 octobre 2026). */
+function docmLigneNette(l){ const pu=docmNum(l&&l.pu), q=docmNum(l&&l.q), puN=isFinite(pu)&&pu>=0&&pu<=1e7?docmArr(pu):null, qN=isFinite(q)&&q>0&&q<=1e6&&docmArr(q)>0?docmArr(q):1;
+  return {pu:puN,q:qN}; }
+/* Une ligne que l'enregistrement VA changer en silence (prix négatif ou hors borne, quantité négative ou hors borne) : on la nomme, on ne l'efface pas sans le dire. */
+function docmLigneRefusee(l){ if(!l||!String(l.d||'').trim()) return ''; const pu=docmNum(l.pu), q=docmNum(l.q), vide=x=>String(x==null?'':x).trim()==='';
+  if(!vide(l.pu)&&!(isFinite(pu)&&pu>=0&&pu<=1e7)) return 'prix';
+  if(!vide(l.q)&&isFinite(q)&&(q<0||q>1e6)) return 'quantité';
+  return ''; }
 function docmTotaux(r){ const v=(r&&r.v)||{}, L=((r&&r.lignes)||[]).filter(l=>l&&String(l.d||'').trim());
-  const lignes=L.map(l=>{ const pu=docmNum(l.pu), q=docmNum(l.q); const qq=isFinite(q)&&q>0?q:1;   // une quantité vide ou nulle vaut 1, comme à l'enregistrement (docmNet) : l'écran et le document disent le même total
-    return {d:l.d,u:l.u||'',pu:isFinite(pu)?pu:0,q:qq,total:docmArr((isFinite(pu)?pu:0)*qq)}; });
+  const lignes=L.map(l=>{ const n=docmLigneNette(l), pu=n.pu==null?0:n.pu;   // la même épuration qu'à l'enregistrement (docmNet) : l'écran et le document disent le même total
+    return {d:l.d,u:l.u||'',pu,q:n.q,total:docmArr(pu*n.q)}; });
   const dep=docmNum(v.deplacement), depl=isFinite(dep)&&dep>0?dep:0;
   const ht=docmArr(lignes.reduce((s,l)=>s+l.total,0)+depl), taux=docmNum(v.tva), t=isFinite(taux)?taux:0, tva=docmArr(ht*t/100);
   const ttc=docmArr(ht+tva), ret=docmNum(v.retenue), ac=docmNum(v.acomptes), r0=isFinite(ret)&&ret>0?ret:0, a0=isFinite(ac)&&ac>0?ac:0;
@@ -45663,8 +45672,8 @@ function docmNet(def,W){ const v={}, src=W.v||{};
     else if(c.t==='appareil'){ if(!(db.appareils||[]).some(a=>a&&a.id===x&&a.clientId===W.clientId)) return; }
     else x=nettTxt(x,c.max||300);
     v[c.k]=x; });
-  const lignes=def.lignes?(W.lignes||[]).filter(l=>l&&nettTxt(l.d,160)).map(l=>{ const pu=docmNum(l.pu), q=docmNum(l.q);
-    return {id:l.id||uid(),d:nettTxt(l.d,160),pu:isFinite(pu)&&pu>=0&&pu<=1e7?String(docmArr(pu)):'',u:nettTxt(l.u,20),q:isFinite(q)&&q>0&&q<=1e6?String(docmArr(q)):'1'}; }):[];
+  const lignes=def.lignes?(W.lignes||[]).filter(l=>l&&nettTxt(l.d,160)).map(l=>{ const n=docmLigneNette(l);
+    return {id:l.id||uid(),d:nettTxt(l.d,160),pu:n.pu==null?'':String(n.pu),u:nettTxt(l.u,20),q:String(n.q)}; }):[];
   /* les tableaux (une ligne par appareil, par circuit, par réserve…) : bornés colonne par colonne, sans ligne vide, 60 lignes au plus, et seulement ceux de SA définition */
   const tab={}; champs.forEach(c=>{ if(c.t!=='tableau'||(c.si&&!docmSiOk(c.si,src))) return;
     const rows=(((W.tab||{})[c.k])||[]).map(r=>{ const cel=(c.cols||[]).map((col,j)=>nettTxt(r&&r.c&&r.c[j],col.max||120)); return cel.some(Boolean)?{id:(r&&r.id)||uid(),c:cel}:null; }).filter(Boolean).slice(0,c.maxRows||60);
@@ -45735,6 +45744,7 @@ function docmMentionsHtml(def){ const ML=(def.mentions||[]).filter(docmPourOk); 
     ${ML.map(m=>`<div style="font-size:12.5px;line-height:1.5;padding:7px 0;border-top:1px solid var(--brd);overflow-wrap:anywhere">${m.verifie?'<span class="st st-green">source lue</span>':'<span class="st st-org">à confirmer — jamais imprimé</span>'} ${esc(m.texte)}<div style="color:var(--t3)">Source : ${esc(m.source)}</div></div>`).join('')}</details>`; }
 function docmTotHtml(def){ const W=docmW; if(!W) return ''; let h='';
   if(def.lignes){ const T=docmTotaux(W); h+=`<div style="display:flex;justify-content:flex-end;gap:14px;flex-wrap:wrap;font-size:13.5px"><span>Total HT <b>${esc(docmEurEcran(T.ht))}</b></span><span>TVA ${esc(docmTauxTxt(T.taux))} <b>${esc(docmEurEcran(T.tva))}</b></span><span>Total TTC <b>${esc(docmEurEcran(T.ttc))}</b></span>${T.ded?`<span>Reste dû <b>${esc(docmEurEcran(T.ded.reste))}</b></span>`:''}</div>`;
+    const mal=(W.lignes||[]).filter(l=>docmLigneRefusee(l)); if(mal.length) h+=`<div role="alert" style="font-size:12.5px;color:var(--red);text-align:right;margin-top:4px">⚠ ${mal.length>1?mal.length+' lignes ont':'Une ligne a'} un prix ou une quantité refusé (négatif ou trop grand) : ${mal.length>1?'elles ne sont':'elle n’est'} pas comptée${mal.length>1?'s':''} comme saisie${mal.length>1?'s':''} et l’enregistrement sera refusé.</div>`;
     h+=docmNoteTauxReduit((W.v||{}).tva,true);
     if(def.id==='note-depannage'&&T.ht>0) h+=`<div style="font-size:12.5px;color:var(--t3);text-align:right;margin-top:4px">${T.ttc>=25?'À partir de 25 € TTC : la note est à remettre au client avant le paiement.':'Sous 25 € TTC : à remettre si le client la demande (à confirmer).'}</div>`; }
   if((def.calculs||[]).length){ const E=docmEcarts(W.v); if(E.length) h+=`<div style="font-size:13px;margin-top:6px">${E.map(e=>`${esc(e[0])} : <b>${esc(e[1])}</b>`).join(' · ')}</div>`; }
@@ -45788,6 +45798,7 @@ function docmSauver(silencieux){ const W=docmW; if(!W) return null;
   const def=docmDef(W.doc); if(!def) return null;
   if(!permGarde(def.droit,W.id?'modifier':'ajouter','un document')) return null;
   if(!nettClientVisible(W.clientId)){ toast('Ce client ne te concerne pas'); return null; }
+  if(def.lignes){ const mal=(W.lignes||[]).find(l=>docmLigneRefusee(l)); if(mal){ toast('Ligne « '+nettTxt(mal.d,40)+' » : '+(docmLigneRefusee(mal)==='prix'?'un prix négatif ou trop grand n’est pas accepté (une remise ne se saisit pas ici) — corrige-le':'la quantité doit être positive')+' avant d’enregistrer',6000); return null; } }
   const net=docmNet(def,W);
   for(const c of docmChamps(def)){ if(!c.requis||c.t==='lignes'||c.t==='tableau') continue; if(c.si&&!docmSiOk(c.si,net.v)) continue;
     if(net.v[c.k]==null||net.v[c.k]===''){ toast('À compléter : '+c.l.replace(/ \(.*\)$/,'')); return null; } }
@@ -45877,6 +45888,7 @@ function docmContexte(id){
   const def=docmDef(r.doc); if(!def) return {err:'Document inconnu.'};
   const cli=docmClient(r.clientId); if(!cli) return {err:'Client introuvable.'};
   if(def.lignes&&!docmTotaux(r).lignes.length) return {err:'Ajoute au moins une ligne au décompte.'};
+  if(ouvert&&def.lignes){ const mal=(docmW.lignes||[]).find(l=>docmLigneRefusee(l)); if(mal) return {err:'Ligne « '+nettTxt(mal.d,40)+' » : prix ou quantité refusés (négatif ou trop grand) — corrige-la avant l’aperçu ou l’envoi.'}; }
   const i=docmIntervention(r.interventionId);
   return {cli,soc:(i&&i.rapportModele)||socDuClient(cli.id),spec:E=>docmSpec(def,r,cli,E),date:r.date,pre:docmSlug(def.court),obj:r,coll:'docsMetier',def}; }
 function docmApercu(id){ const W=docmW; nettDocApercu('doc',id!==undefined?id:(W?W.id:''),W?W.clientId:''); }

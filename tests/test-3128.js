@@ -149,6 +149,23 @@ console.log('\n── 3128 · 4. le devis de dépannage — totaux calculés, nu
     w.lignes = [{ id: 'q1', d: 'Joint', pu: '12', u: '', q: '' }, { id: 'q2', d: 'Collier', pu: '3', u: '', q: '0' }];
     const E = W3.docmTotaux(w); const id3 = W3.docmSauver(); const r3 = W3.db.docsMetier.find(x => x.id === id3);
     egal('⛔ quantité vide ou nulle : 1 à l\'écran (12 + 3 = 15,00 HT) ET à l\'enregistrement (q = « 1 »), et le total relu sur le document rangé est le même', [E.ht, r3 && r3.lignes.map(l => l.q), r3 && W3.docmTotaux(r3).ht], [15, ['1', '1'], 15]); }
+  /* ⛔ Constat 1 de la relecture du 28 octobre 2026 : l'écran et le PDF disent le MÊME total. Une remise (prix négatif) affichait « Total HT -15,00 € » et le PDF imprimait 35,00 : deux épurations
+     écrites chacune de son côté. Une seule (`docmLigneNette`), un refus dit à l'enregistrement, un avertissement à l'écran. On compare le total AFFICHÉ au total IMPRIMÉ, sur des lignes qui passent. */
+  { const fmt = (n) => n.toFixed(2).replace('.', ',') + ' EUR';
+    for (const [nom, L] of [['quantité à trois décimales (0,333 × 10)', [{ id: 'f1', d: 'Joint', pu: '10', u: '', q: '0,333' }]], ['prix à trois décimales (10,005)', [{ id: 'f2', d: 'Joint', pu: '10,005', u: '', q: '3' }]], ['quantité minuscule (0,0004 vaut 1, pas 0)', [{ id: 'f3', d: 'Joint', pu: '2', u: '', q: '0,0004' }, { id: 'f4', d: 'Collier', pu: '4', u: '', q: '1' }]]]) {
+      const F = mk('plomberie'); F.docmForm('devis-depannage', { cid: 'c1' }); const w = F.docmW; w.v.tva = '20'; w.v.nature = 'Joint'; w.v.date = '2026-10-28'; w.v.lieu = '1 rue A'; w.lignes = L;
+      const vu = F.docmTotaux(w), idF = F.docmSauver(); const rF = idF && await fabrique(F, idF), tF = rF && !rF.err ? texte(rF.pdf) : [];
+      const imp = tF[tF.indexOf('Total HT :') + 1], impTtc = tF[tF.indexOf('Total TTC :') + 1];
+      vrai('⛔ ' + nom + ' : le total HT et le TTC AFFICHÉS (' + fmt(vu.ht) + ' · ' + fmt(vu.ttc) + ') sont ceux du PDF (' + imp + ' · ' + impTtc + ')', !!idF && imp === fmt(vu.ht) && impTtc === fmt(vu.ttc), [vu.ht, vu.ttc, imp, impTtc]); }
+    for (const [nom, pu, q, mot] of [['un prix négatif (remise)', '-50', '1', /prix négatif/], ['un prix trop grand', '20000000', '1', /prix négatif ou trop grand/], ['une quantité négative', '5', '-2', /quantité doit être positive/]]) {
+      const F = mk('plomberie'); F.docmForm('devis-depannage', { cid: 'c1' }); const w = F.docmW; w.v.tva = '20'; w.v.nature = 'Joint'; w.v.date = '2026-10-28'; w.v.lieu = '1 rue A';
+      w.lignes = [{ id: 'g1', d: 'Main-d’œuvre', pu: '100', u: '', q: '1' }, { id: 'g2', d: 'Ligne douteuse', pu, u: '', q }];
+      const vu = F.docmTotaux(w), html = F.docmTotHtml(F.docmDef('devis-depannage')), avant = F.db.docsMetier.length, n0 = F.__saves;
+      vrai('⛔ ' + nom + ' : l\'écran ne compte PAS la ligne (HT ' + vu.ht + '), le dit en rouge, et l\'enregistrement est REFUSÉ avec la raison — rien d\'écrit, aucun numéro consommé',
+        vu.ht >= 100 && vu.ht < 1e6 && /role="alert"/.test(html) && /Ligne douteuse|ligne a/.test(html) && F.docmSauver() === null && F.db.docsMetier.length === avant && F.__saves === n0 && F.__toasts.some(t => mot.test(t) && /Ligne douteuse/.test(t)), [vu.ht, F.__toasts.slice(-1)]);
+      ouvre(F); const ctx = F.docmContexte(''); vrai('… l\'aperçu et l\'envoi (docmContexte) la refusent aussi', !!ctx.err && /Ligne douteuse/.test(ctx.err), ctx.err); }
+    { const F = mk('plomberie'); F.docmForm('devis-depannage', { cid: 'c1' }); const w = F.docmW; w.lignes = [{ id: 'h1', d: 'Joint', pu: '12', u: '', q: '' }, { id: 'h2', d: 'Collier', pu: '', u: '', q: '1' }];
+      vrai('une quantité vide (1) et un prix vide (0) ne sont pas des refus : aucun avertissement, l\'enregistrement passe', !/role="alert"/.test(F.docmTotHtml(F.docmDef('devis-depannage'))) && (w.v.tva = '10', w.v.nature = 'Joint', w.v.date = '2026-10-28', w.v.lieu = '1 rue A', !!F.docmSauver())); } }
   const D = mk('plomberie', { droits: { 'ventes.modifier': false } }); D.docmForm('devis-depannage', { cid: 'c1' });
   vrai('sans la case « ventes · modifier/ajouter », docmSauver lit elle-même la case (sa première instruction)', (() => { const E = mk('plomberie', { droits: { 'ventes.ajouter': false } }); E.docmW = cdc(W.docmW); E.docmW.id = ''; return E.docmSauver() === null && E.db.docsMetier.length === 0; })());
   { const sans = BLOC_DOCM.slice(0, BLOC_DOCM.indexOf('function docmDemoPoser(')); vrai('une seule ligne de code pousse dans db.docsMetier hors de la démonstration (docmSauver)', (sans.match(/db\.docsMetier\.push\(/g) || []).length === 1, (sans.match(/db\.docsMetier\.push\(/g) || []).length); }
