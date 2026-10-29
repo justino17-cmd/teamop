@@ -69,7 +69,7 @@ function monde(opts) {
     function techName(id){ return id||''; }
     function docNum(kind){ var p=kind==='devis'?'DEV':'FAC'; return p+'-2026-'+String((db[kind]||[]).length+1).padStart(3,'0'); }
     function intRecurNext(){ return ''; }
-    function rapportSociete(){ return 'Entreprise'; } function docMailOpts(){ return undefined; }
+function docMentionsManquantes(){ return []; } function docMentionsGarde(){ return true; }     function rapportSociete(){ return 'Entreprise'; } function docMailOpts(){ return undefined; }
     async function docPdfChaine(){ return ''; }
     async function srvMail(to,sujet,corps){ __mails.push({to,sujet,corps}); return true; }
     function regMigration(){}

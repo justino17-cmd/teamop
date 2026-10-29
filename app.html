@@ -9256,7 +9256,7 @@ const REPORT_TEMPLATES = ["Modèle générique"];   /* Vidée le 5 sept. 2026 : 
    nom de l'entreprise (entNom), et « OP GESTION » n'en est plus que le tout dernier recours,
    pour une entreprise qui n'a aucun nom. */
 function socNom(m){ const s=String(m==null?'':m).trim(); return (!s||/g[ée]n[ée]rique|aucune/i.test(s))?'':s; }
-function rapportSociete(m){ return socNom(m)||entNom(); }
+function rapportSociete(m){ return socNom(m)||entNomDoc(); }
 /* ── Multi-sociétés : une entreprise peut déclarer SES sociétés (Paramètres → db.societes).
    Si déclarées, elles remplacent la liste générique ; une seule → sélecteur masqué et appliquée partout. ── */
 function entSocietes(){ const cust=((db&&db.societes)||[]).map(s=>String(s).trim()).filter(Boolean);
@@ -9346,16 +9346,77 @@ function socCoordSave(e,ix){ e.preventDefault(); if(!adminSeul()) return; const 
      de l'entreprise ; ceux d'une entreprise distincte, jamais — le client répondrait chez l'autre. */
 function docEntete(m,o){ o=o||{}; const s=socNom(m), E=(db&&db.entreprise)||{}, st=s?socStyle(s):{};
   const hex=v=>/^#[0-9a-fA-F]{6}$/.test(v||'')?v:'';
-  const estEnt=!s||s.toLowerCase()===String(entNom()).toLowerCase();
+  const estEnt=!s||s.toLowerCase()===String(entNomDoc()).toLowerCase();
   const propre=!!String(st.siret||'').trim(), L=propre?st:E;
   return { societe:s, generique:!s,
-    nom: s||(o.bon&&String(E.enteteBC||'').trim())||entNom(),
+    nom: s||(o.bon&&String(E.enteteBC||'').trim())||entNomDoc(),
     couleur: hex(st.couleur)||'#1E7A4E',
     logo: s?(st.logo||(estEnt?(E.logo||''):'')):(E.logo||''),
-    raison: propre?(String(st.raison||'').trim()||s):(String(E.nom||'').trim()||entNom()),
+    raison: propre?(String(st.raison||'').trim()||s):(String(E.nom||'').trim()||entNomDoc()),
     adresse:L.adresse||'', cp:L.cp||'', ville:L.ville||'', siret:L.siret||'', tvaIntra:L.tvaIntra||'',
     iban:L.iban||'', bic:L.bic||'', tel:st.tel||(propre?'':E.tel)||'', email:st.email||(propre?'':E.email)||'',
     coordsPropres:propre }; }
+/* ⛔ v780 — Justin, 29 octobre 2026 : « nous on n'est pas affichés sur les devis, on est juste la plate-forme ; tout ce
+   qui part au client doit être à l'entreprise ». Le nom d'un document client ne retombe JAMAIS sur « OP GESTION » (le
+   logiciel) : sans nom, l'en-tête reste vide, et la porte ci-dessous demande de le remplir avant que rien ne parte.
+   `entNom()` garde son repli : il nomme l'APPLICATION à l'écran (menu, sous-titres), pas un document. */
+function entNomDoc(){ return (((db&&db.entreprise)||{}).nom||'').trim() || (localStorage.getItem('elan_entreprise_nom')||'').trim(); }
+/* Les mentions sans lesquelles un document ne part pas, pour la société QUI ÉMET (celle du document, sinon
+   l'entreprise) : son nom, son adresse, son SIRET. Une facture sans elles n'est pas une facture (art. L441-9 du code
+   de commerce, art. 242 nonies A de l'annexe II du CGI). La TVA intracommunautaire et l'IBAN restent conseillés. */
+function docMentionsManquantes(m){ const H=docEntete(m), x=[];
+  if(!String(H.nom||'').trim()) x.push('le nom');
+  if(!String(H.adresse||'').trim()||!String(H.ville||'').trim()) x.push("l'adresse");
+  if(!String(H.siret||'').trim()) x.push('le SIRET');
+  return x; }
+/* La porte, à TOUS les gestes qui font partir un document client vers le client (aperçu imprimable, PDF, envoi) :
+   une facture s'arrête et ouvre « Ton entreprise » ; un devis prévient une fois par séance et passe. Rend vrai si on
+   peut continuer. `suite` est rejouée une fois les mentions complétées. */
+let _docMentionsAvertis={};
+function docMentionsGarde(kind,m,suite){ const x=docMentionsManquantes(m); if(!x.length) return true;
+  const facture=kind==='factures'||kind==='facture';
+  if(!facture){ const k=String(m||''); if(_docMentionsAvertis[k]) return true; _docMentionsAvertis[k]=1;
+    toast('⚠️ Ton devis part sans '+x.join(', ')+' : complète ton entreprise dans les Paramètres'); return true; }
+  entCompleterModal(m,suite,'Avant ta facture, complète '+x.join(', ')+' : ce sont des mentions obligatoires. Elles iront sur tous tes documents.');
+  return false; }
+/* « Ton entreprise » : le même enregistrement que la carte des Paramètres (`db.entreprise`, logo compris), en une
+   fenêtre. Une société qui a SON SIRET se complète dans « Mes sociétés » (ses coordonnées sont les siennes). */
+function entCompleterModal(m,suite,intro){ const s=socNom(m), st=s?socStyle(s):{};
+  if(s&&String(st.siret||'').trim()){ toast('Complète l’adresse de la société « '+s+' » dans Paramètres › Mes sociétés'); try{ go('parametres'); }catch(e){} return; }
+  const E=(db&&db.entreprise)||{}, v=k=>esc(E[k]||'');
+  window._entSuite=typeof suite==='function'?suite:null;
+  openModal(`<div class="modal-head"><h3>🏢 Ton entreprise</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+  <div style="padding:4px 2px 2px;font-size:14px;line-height:1.55;color:var(--t2)">${esc(intro||'Ces informations vont en haut de tes devis, factures, attestations et rapports : c’est ton entreprise que ton client voit.')}</div>
+  <form id="ent-completer" onsubmit="entCompleterSave(event)">
+    <div class="field" style="display:flex;align-items:center;gap:12px">${E.logo?`<img src="${esc(E.logo)}" alt="Logo" style="max-height:48px;max-width:120px;border-radius:8px">`:''}
+      <label class="btn sm" style="cursor:pointer">${E.logo?'Changer le logo':'＋ Ajouter ton logo'}<input type="file" accept="image/*" style="display:none" onchange="entLogoPick(event);setTimeout(()=>entCompleterModal(${JSON.stringify(String(m||''))},window._entSuite,${JSON.stringify(String(intro||''))}),400)"></label></div>
+    <div class="field"><label>Nom de l'entreprise *</label><input name="nom" required value="${v('nom')||esc(entNomDoc())}" autocomplete="organization"></div>
+    <div class="field"><label>Adresse *</label><input name="adresse" required value="${v('adresse')}" autocomplete="street-address"></div>
+    <div class="form-row"><div class="field"><label>Code postal *</label><input name="cp" required inputmode="numeric" value="${v('cp')}"></div>
+      <div class="field"><label>Ville *</label><input name="ville" required value="${v('ville')}"></div></div>
+    <div class="form-row"><div class="field"><label>SIRET *</label><input name="siret" required inputmode="numeric" value="${v('siret')}"></div>
+      <div class="field"><label>Téléphone</label><input name="tel" inputmode="tel" value="${v('tel')}"></div></div>
+    <div class="form-row"><div class="field"><label>N° TVA intracommunautaire</label><input name="tvaIntra" value="${v('tvaIntra')}"></div>
+      <div class="field"><label>IBAN (virements)</label><input name="iban" value="${v('iban')}"></div></div>
+    <div style="font-size:12.5px;color:var(--t3);line-height:1.5;margin:4px 0 10px">Plusieurs sociétés (clim, plomberie…) ? Ajoute-les ensuite dans Paramètres › <b>Mes sociétés</b>, chacune avec son logo et son SIRET.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" onclick="sessionStorage.setItem('elan_ent_plus_tard','1');closeModal()">Plus tard</button><button class="btn primary">Enregistrer</button></div>
+  </form>`); }
+function entCompleterSave(e){ e.preventDefault(); const f=Object.fromEntries(new FormData(e.target)), g=k=>String(f[k]||'').trim();
+  if(!/^\d{14}$/.test(g('siret').replace(/\s/g,''))){ toast('Le SIRET compte 14 chiffres'); return; }
+  db.entreprise={...(db.entreprise||{}),nom:g('nom'),adresse:g('adresse'),cp:g('cp'),ville:g('ville'),siret:g('siret'),tel:g('tel'),tvaIntra:g('tvaIntra'),iban:g('iban')};
+  try{ localStorage.setItem('elan_entreprise_nom',db.entreprise.nom); }catch(_e){}
+  logEvent('Entreprise complétée','','crud'); save(); applyBrand(); closeModal(); toast('🏢 Entreprise enregistrée — elle est sur tous tes documents');
+  const s=window._entSuite; window._entSuite=null; if(typeof s==='function') setTimeout(s,250); }
+/* Au premier lancement de l'administrateur : si l'entreprise n'a ni adresse ni SIRET, « Ton entreprise » s'ouvre une
+   fois par séance (« Plus tard » la ferme jusqu'à la prochaine). Rien ne s'écrit sans un tap ; on attend que les
+   données de l'équipe soient arrivées (sinon on la demanderait à une entreprise qui l'a déjà remplie). */
+function entAccueilCheck(n){ n=n||0; try{
+  if(!currentUser||currentUser.role!=='admin'||currentUser.essai&&!BETA_ESSAI) return;
+  if(sessionStorage.getItem('elan_ent_plus_tard')) return;
+  if((typeof syncEnabled==='function'&&syncEnabled()&&!_syncGotInitial)||document.querySelector('#overlay.open,.overlay.open')){ if(n<8) setTimeout(()=>entAccueilCheck(n+1),2500); return; }
+  if(!docMentionsManquantes('').length) return;
+  entCompleterModal('',null,'Bienvenue ! Une minute pour ton entreprise : son nom, son logo, son adresse et son SIRET iront en haut de tous tes devis, factures et attestations. C’est ton entreprise que ton client voit, jamais OP GESTION.');
+  }catch(e){} }
 /* Les lignes de coordonnées sous le nom, dans l'ordre de tous les documents */
 function docCoordLignes(h){ return [[h.adresse,[h.cp,h.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),
   [h.tel?'Tél. '+h.tel:'',h.email||''].filter(Boolean).join('  ·  '),
@@ -31978,7 +32039,7 @@ async function remisePdf(id){
   (r.lignes||[]).forEach(l=>{ const p=produit(l.produitId); if(y>790){ doc.addPage(); y=50; }
     doc.text(String(p.nom||'Produit').slice(0,60),40,y); doc.text(String(l.qte)+' '+(l.unite||'u'),480,y); y+=15; });
   y+=10; doc.setFont('helvetica','bold'); doc.text('TOTAL : '+(r.lignes||[]).length+' ligne(s) · '+remiseTotTxt(r),40,y);
-  doc.setFontSize(9); doc.setTextColor(150); doc.text(String(entNom()).slice(0,50)+' — genere le '+new Date().toLocaleDateString('fr-FR'),40,820);
+  doc.setFontSize(9); doc.setTextColor(150); doc.text(String(entNomDoc()).slice(0,50)+' — genere le '+new Date().toLocaleDateString('fr-FR'),40,820);
   doc.save((r.num||'bon-remise')+'.pdf');
 }
 function removeBoxProd(pid){ const b=db.boxes.find(x=>x.id===boxView); if(!b)return;
@@ -39774,6 +39835,10 @@ function factureMailPayee(f,it){
   const tvaR=(f.tva!=null&&f.tva!=='')?Number(f.tva):intTvaFacture();
   const c=(db.clients||[]).find(x=>x.id===it.clientId);
   if(c&&(c.email||'').trim()){
+    /* v780 : la facture automatique ne part pas sans les mentions obligatoires de SA société — elle reste dans
+       Factures, prête à renvoyer une fois l'entreprise complétée */
+    const manque=docMentionsManquantes(it.rapportModele);
+    if(manque.length){ toast('🧾 Facture '+f.num+' réglée — non envoyée : complète '+manque.join(', ')+' de ton entreprise, puis renvoie-la depuis Factures'); return; }
     const t=docTot(f), soc=rapportSociete(it.rapportModele);   // v740 : la signature nomme la société de l'intervention
     const corpsDe=joint=>'Bonjour,\n\n'+(joint?'Veuillez trouver ci-joint votre facture, réglée ce jour (le détail suit).':'Veuillez trouver ci-dessous votre facture, réglée ce jour.')+'\n\n'
       +'Facture '+f.num+' du '+fmtShort(f.date)+'\n'
@@ -41329,6 +41394,7 @@ function devisToFacture(id){ if(!permGarde('ventes','ajouter','une facture')) re
 function printDoc(kind,id){
   const cfg=DOC[kind], d=db[cfg.coll].find(x=>x.id===id);
   if(!d){ toast('Ce document n’existe plus'); return; }
+  if(!docMentionsGarde(kind,d.rapportModele,()=>printDoc(kind,id))) return;   // v780 : une facture ne sort pas sans nom, adresse, SIRET
   const c=db.clients.find(x=>x.id===d.clientId)||{}, t=docTot(d);
   /* v740 : nom, couleur, logo ET coordonnées (SIRET, TVA, IBAN) de la société DU document —
      une facture de la société B portait le SIRET et l'IBAN de l'entreprise principale. */
@@ -41447,6 +41513,7 @@ function genDocTexte(kind,d,joint){ const cfg=DOC[kind], c=db.clients.find(x=>x.
 }
 /* Envoi du document : email par défaut, SMS en exception */
 function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devis'?'un devis':'une facture')) return; const cfg=DOC[kind], d=db[cfg.coll].find(x=>x.id===id); if(!d)return; const c=db.clients.find(x=>x.id===d.clientId)||{};
+  if(!docMentionsGarde(kind,d.rapportModele,()=>envoiDoc(kind,id,canal))) return Promise.resolve(false);   // v780 : rien ne part sans les mentions
   const texte=genDocTexte(kind,d), soc=rapportSociete(d.rapportModele);
   /* v740 (relecture) : « Envoyé » se pose quand le document est PARTI, pas quand on a appuyé. Le
      courriel est asynchrone (PDF puis serveur) : le statut attend sa réponse. Un refus, ou un
@@ -46390,6 +46457,7 @@ function enterApp(u){ currentUser=u;
   if(secuAFaire(u)) setTimeout(forcePwdModal,600);                 // ⛔ mot de passe personnel + e-mail : sans les deux, l'accès n'est pas activé
   else if(!(u.email||'').trim()) setTimeout(emailRappelModal,1100); // ⛔ e-mail OBLIGATOIRE aussi : sans lui, « Mot de passe oublié » ne peut rien faire
   setTimeout(()=>{ try{ promoEssaiCheck(); }catch(e){} },1500);    // essai gratuit : rappels et fin
+  setTimeout(()=>{ try{ entAccueilCheck(); }catch(e){} },3800);     // v780 : « Ton entreprise » à l'administrateur tant que nom, adresse ou SIRET manquent
   try{ const pm=location.hash.match(/promo=([A-Za-z0-9_-]{2,40})/); if(pm){ const c=pm[1]; setTimeout(()=>{ try{ history.replaceState(null,'','#v='+current); promoAppliquer(c); }catch(e){} },1200); } }catch(e){}
   setTimeout(maybeProfilePhoto,900); setTimeout(avatarAccentSync,1600);
   setTimeout(()=>{ try{ if(pushSupported()&&Notification.permission==='granted') pushSubscribe(true); else setTimeout(pushPropose,1800); }catch(e){} },2400);

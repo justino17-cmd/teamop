@@ -84,7 +84,7 @@ function bouton() { const b = { nodeType: 1, innerHTML: '✉️ Envoyer', style:
     ctx.window = { event: { target: B } }; vm.createContext(ctx);
     vm.runInContext(`const DOC={devis:{coll:'devis',titre:'Devis'}}; var db={devis:[{id:'d1',num:'D-1',clientId:'c1',statut:'brouillon'}],clients:[{id:'c1',nom:'Dupont',email:'dupont@x.fr'}]};
       function permGarde(){ return true; } function save(){} function toast(m){ __toasts.push(String(m)); } function esc(s){ return String(s); } var current='', views={};
-      function rapportSociete(){ return 'Soc'; } function docMailOpts(){ return {}; } async function docPdfChaine(){ return '%PDF'; } function genDocTexte(){ return 'texte'; }
+function docMentionsManquantes(){ return []; } function docMentionsGarde(){ return true; }       function rapportSociete(){ return 'Soc'; } function docMailOpts(){ return {}; } async function docPdfChaine(){ return '%PDF'; } function genDocTexte(){ return 'texte'; }
       ${GARDE}\n${ENVOIDOC}`, ctx);
     ctx.srvMail = S.base;
     const p1 = ctx.envoiDoc('devis', 'd1', 'email'); await tic(); await tic();
