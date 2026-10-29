@@ -199,7 +199,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 /* ceux qui sont posés À LA FIN du document (l'annonce d'appel, les deux champs de photo) n'ont pas de `top` : leur place « naturelle » est après tout le reste, et leur bas dépassait de 1 px — la page défilait pour rien sur chaque écran, avec un ascenseur permanent sous Windows (17 octobre 2026) */
 body > .sr-seul { top: 0; left: 0; }
 /* le son de l'autre bloqué par le navigateur : un bouton qu'on ne peut pas manquer (sonJouer) */
-.son-bloque { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 2147483000; min-height: 48px; padding: 0 22px; border: 0; border-radius: 999px; background: #E5484D; color: #fff; font: 700 16px/1 -apple-system, system-ui, sans-serif; box-shadow: 0 8px 30px rgba(0,0,0,.35); cursor: pointer; }
+.son-bloque { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 16px; right: 16px; margin: 0 auto; width: max-content; max-width: calc(100% - 32px); z-index: 2147483000; min-height: 48px; padding: 0 22px; border: 0; border-radius: 999px; background: #E5484D; color: #fff; font: 700 16px/1 -apple-system, system-ui, sans-serif; box-shadow: 0 8px 30px rgba(0,0,0,.35); cursor: pointer; }
 .son-bloque[hidden] { display: none; }
 [hidden] { display: none !important; }
 
