@@ -103,6 +103,11 @@
   --base: #f2f2f7;
   --verre-reflet: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(255,255,255,.35), inset 0 0 0 .5px rgba(255,255,255,.55);
 }
+/* ⛔ Justin, 29 octobre 2026 (capture, Windows) : de nuit, la liste « Répétition » s'ouvrait blanche, texte blanc pâle — illisible.
+   La liste d'un <select> est peinte par le système ; sous Windows elle ignore le `color-scheme` de la page dès que la feuille colore
+   le champ. On donne aux options leurs propres couleurs, dans les deux thèmes. */
+select option, select optgroup { background-color: #ffffff; color: #0b1633; }
+@media (prefers-color-scheme: dark) { select { color-scheme: dark; } select option, select optgroup { background-color: #14213a; color: #eef2f8; } }
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #ffffff;
@@ -2341,9 +2346,8 @@ a.menu-action { text-decoration: none; }
 .lr-haut { margin: 0 0 16px; }
 .lr-nouvelle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; padding: 0 20px; border-radius: 24px; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; }
 .lr-nouvelle .ic { font-size: 20px; }
-.lr-haut .lr-nouvelle { max-width: 420px; }
 .lr-vide { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.lr-vide .lr-nouvelle { width: auto; min-width: 220px; }
+.lr-vide small { color: var(--sub-meta); font-size: 15px; }
 .reunion-li.avec-gestes { flex-wrap: wrap; }
 .reunion-li.avec-gestes > .reunion-gestes { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 12px; }
 .reunion-gestes > .reunion-rejoindre { min-height: 44px; padding: 0 18px; }

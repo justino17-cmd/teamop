@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'cf04eecbbe05';
+  const OPMSG_BUILD = '5ccd38f3ec90';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 287;
+  const OPMSG_VERSION = 288;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6985,7 +6985,8 @@
     const vus = avenir.slice(0, LR_MAX), vusP = passees.slice(0, LR_PASSEES_MAX);
     let h = groupes(vus, x => x.o.debut <= now ? -1 : minuitDe(x.o.debut), j => j === -1 ? 'En cours' : libelleJourBord(j));
     if (avenir.length > LR_MAX) h += '<li class="bord-plus"><button type="button" class="presse" data-lr="agenda">' + esc('Voir les ' + (avenir.length - LR_MAX) + ' autres dans l\'Agenda') + '</button></li>';
-    if (!h) h = '<li class="vide lr-vide"><span>Aucune réunion prévue.</span><button type="button" class="lr-nouvelle presse" data-lr="nouvelle">' + icone('i-plus') + 'Nouvelle réunion</button></li>';
+    /* (28 octobre 2026, capture du patron : deux « Nouvelle réunion » l'un sous l'autre, décalés) Le geste vit UNE fois, en tête de l'onglet : l'état vide le dit, il ne le répète pas. */
+    if (!h) h = '<li class="vide lr-vide"><span>Aucune réunion prévue.</span><small>Touchez « Nouvelle réunion » pour en planifier une.</small></li>';
     return { avenir: h, nAvenir: avenir.length, passees: groupes(vusP, x => minuitDe(x.o.debut), j => maj1(FMT_JOUR_LONG.format(j))), nPassees: passees.length };
   }
   function construireListeReunions() {
@@ -10030,6 +10031,10 @@
   window.addEventListener('resize', annotPlanifier);
 
   /* ── le partage d'écran : la piste d'écran REMPLACE la caméra chez les autres (même émetteur, aucune renégociation), et la caméra revient quand le partage s'arrête ── */
+  /* ⛔ LA CAPTURE DE L'ÉCRAN PARTAGÉ (Justin, 29 octobre 2026 : « la qualité de partage d'écran, c'est moche ») : demander une capture nette (jusqu'au
+     1080p) et peu d'images par seconde — un écran est du texte, pas un film. `contentHint` « detail » dit au navigateur de garder la netteté quand le débit
+     manque ; l'envoi (source-serveur.js, `qualiteEcran`) lui donne 2,5 Mbit/s. */
+  const ECRAN_CAPTURE = { video: { width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 15, max: 30 } }, audio: false };
   async function basculerPartage() {
     const A = etat.appelUI; if (!enSalle(A) || A.partageEnCours) return;
     if (A.ecran) { arreterPartage(A); return; }
@@ -10037,9 +10042,10 @@
     if (!s.partageOk && !s.moi.hote) { avisAppel('L\'hôte n\'autorise pas le partage d\'écran dans cette salle.'); return; }
     A.partageEnCours = true;
     try {
-      const f = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const f = await navigator.mediaDevices.getDisplayMedia(ECRAN_CAPTURE);   // net : jusqu'au 1080p, 15 images/s (« c'est moche », 29 octobre 2026)
       if (perime(A)) { f.getTracks().forEach(t => t.stop()); return; }
       const t = f.getVideoTracks()[0]; if (!t) return;
+      if (t) try { t.contentHint = 'detail'; } catch (e) { /* ancien navigateur : le réglage reste celui d'une caméra */ }   // du TEXTE : la résolution prime sur la fluidité
       A.ecran = t; A.pistes.push(t);
       t.addEventListener('ended', () => { if (A.ecran === t && !A.fini) arreterPartage(A); });
       pousserPistes(A); avisAppelEffacer(); rendreAppel(); annonceAppel('Partage d\'écran commencé');
@@ -10053,8 +10059,9 @@
     const A = etat.appelUI; if (!enSalle(A) || !A.ecran || A.partageEnCours) return;
     A.partageEnCours = true;
     try {
-      const f = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const f = await navigator.mediaDevices.getDisplayMedia(ECRAN_CAPTURE);   // net : jusqu'au 1080p, 15 images/s (« c'est moche », 29 octobre 2026)
       const t = f.getVideoTracks()[0];
+      if (t) try { t.contentHint = 'detail'; } catch (e) { /* ancien navigateur : le réglage reste celui d'une caméra */ }   // du TEXTE : la résolution prime sur la fluidité
       if (perime(A) || !A.ecran || !t) { f.getTracks().forEach(x => x.stop()); return; }
       const ancien = A.ecran;
       A.ecran = t; A.pistes = A.pistes.filter(x => x !== ancien); A.pistes.push(t);

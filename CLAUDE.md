@@ -66,11 +66,21 @@ vérifiée par `server/set-stripe-version.sh`). Un `fetch` vers Stripe qui écri
 à la main suivrait la version du tableau de bord — `tests/test-1010.js` le refuse. Un banc qui
 extrait la route de paiement doit fournir `stripeEntetes` (`test-727`, `test-797`).
 
-`server/agent-devis.js` — assistant de rédaction de devis. Modèle `claude-opus-5`,
-un seul outil (`creer_devis`), plafond de 100 appels par jour, code d'accès d'équipe.
+`server/agent-devis.js` — assistant de rédaction de devis. Modèle `claude-sonnet-5` (la fiche disait
+`claude-opus-5` : le code fait foi), un seul outil (`creer_devis`), plafond de 100 appels par jour,
+code d'accès d'équipe.
 **Ce fichier envoie des données de clients réels à Anthropic** : nom, adresse, ville.
 Toute modification touchant au contexte transmis a une portée juridique — voir
 `sous-traitance.html`.
+⛔ **La consigne suit le MÉTIER de l'entreprise** (28 octobre 2026), pour l'assistant ET pour le « Devis IA »
+(`/api/devis/generer`) : une consigne 3D (l'ancienne, octet pour octet), une pour le nettoyage, une générique
+pour les 21 autres. Le métier se lit dans `server/devis-metier.js`, UNE décision : l'ANNUAIRE du serveur
+(`metierOk(espaceParT(t).metier)`) ; le `metier` du corps de la requête ne compte que pour un espace SANS fiche
+(la bêta), borné aux métiers ouverts ; sans métier réglé, la 3D d'avant — les entreprises existantes ne perdent
+rien, et l'application, elle, reste aussi en 3D tant que la Tour n'a pas posé le métier. L'assistant ne connaît
+l'entreprise que si l'application envoie `t` (champ à ajouter à `adEnvoyer`, publication d'`app.html` sur phrase
+de Justin) ; jusque-là il sert la 3D, d'où « décocher Assistant devis » pour une entreprise hors 3D. ⚠️ Même effet pour un espace ouvert depuis la Tour (`pbCreer` ne règle aucun métier) : le métier se pose dans la fiche (bloc MÉTIER) AVANT de lui donner le Devis IA. Aucun prix de
+référence hors 3D (rien de sourcé : un prix inventé est pire qu'une question). `tests/test-3112.js`.
 
 ### Commandes
 
@@ -1623,6 +1633,12 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
 - Ne pas modifier l'anti-abus (`server/index.js`) sans relire pourquoi il lit
   `req.ip` et non l'en-tête brut — un en-tête fourni par le client se falsifie
 - Ne pas écrire de données personnelles de clients dans les journaux
+- ⛔ **UNE ENTREPRISE SUPPRIMÉE PERD AUSSI SA SURVEILLANCE** — Justin, 28 octobre 2026 (« on peut supprimer l'historique »). Le serveur
+  garde la trace d'une entreprise qui VIT (« ON N'EFFACE RIEN » : `bugs.jsonl`, `monitor.json`, remise à zéro par filigrane), **sauf pour une
+  entreprise SUPPRIMÉE : sa surveillance part avec elle** — `monPurgerEntreprise` (noms et adresses des incidents vivants et archivés, lignes
+  brutes de `bugs.jsonl` réécrites par fichier temporaire, journal de la Tour anonymisé, jamais un geste effacé, une trace sans nom). La suppression
+  totale l'appelle (`fait.surveillance`) ; ⛔ **une adresse relevée dans un incident n'est JAMAIS une clé de purge** (c'est un corps de requête public : un rapport forgé aurait fait partir l'incident d'une entreprise qui vit) — les adresses viennent de l'annuaire seul, et seulement sous un nom qui n'est pas celui d'une entreprise vivante ; l'entrée d'un incident garde l'`espace` d'où elle vient (connu du serveur, jamais l'espace par défaut), c'est lui qui reconnaît une entreprise vivante sous un autre nom (409) et retrouve ses lignes brutes ; annuaire illisible = 503 ; l'espace par défaut se refuse par son nom aussi ; la Tour la propose aux entreprises déjà parties (« Effacer de la surveillance », patron seul,
+  `/api/monitor/issues/purger-entreprise`, 409 pour une entreprise qui vit). Elle ne touche PAS aux incidents d'OP MESSAGES. `tests/test-3102.js` (le bouton de la Tour attend la publication de la Tour unifiée).
 - ⛔ **L'EN-TÊTE D'UN DOCUMENT SE LIT DANS `docEntete(société)`, JAMAIS À LA MAIN.** v740, 23 septembre
   2026, à la demande de Justin (« chaque en-tête doit reconnaître l'entreprise qui est sur
   l'intervention, pour que le client reçoive bien le bon PDF ») : quinze fabriques de documents
@@ -2386,6 +2402,29 @@ manifeste de l'app). La pastille verte « OP » de la Tour n'est qu'un repère d
   chargement de l'appareil. Seul le compte de connexion survit. Une entreprise qui découvre
   OP GESTION ouvre donc une application **entièrement vide**. C'est peut-être ce qui est voulu —
   c'est une décision de produit, pas une correction à faire tout seul. Voir `REPRISE.md`.
+
+## Les skills tiers — on recopie, on scanne, on adapte
+
+Un skill est du texte qui dirige un agent (parfois des scripts), chargé à CHAQUE session d'un dépôt en production. Règle posée avec ECC et reprise pour toute source (Emil Kowalski, Vercel, Instagram, Trail of Bits, marketingskills) :
+on RECOPIE les pièces choisies dans `.claude/skills/`, après les avoir lues, avec leur licence (`.claude/skills/LICENSE-<source>`), une note de provenance (`PROVENANCE-<source>.md`) et un bloc « Adaptation TeamOP » en tête —
+**jamais** `enabledPlugins`, `./install.sh` ni `npx skills add`. Tout agent d'un skill tiers tourne en Sonnet.
+
+⛔ **AVANT TOUTE RECOPIE : `bash scripts/scanner-skills.sh <dossier>`** (SkillSpector de NVIDIA, **toujours `--no-llm`** — sans lui le contenu des fichiers part chez un tiers ; seuls des noms de paquets vont à `api.osv.dev`). Le script
+**n'installe rien** : s'il manque, il le dit et sort en **3, « AUCUN VERDICT »** — jamais en 0. Procédure complète : skill `scanner-skills`. Un scan réduit le risque, il ne l'annule pas : les scripts du skill se relisent à la main (réseau,
+exécution, identifiants, fichiers écrits), et un skill que le scanner juge réellement risqué ne s'installe pas.
+⚠️ **Au 28 octobre 2026 SkillSpector n'a jamais tourné ici** : le classifieur de permissions de la session a refusé son installation (code tiers) et ce refus n'a pas été contourné. Les notes de provenance de Trail of Bits et de
+marketingskills disent donc « relu à la main et balayé par un script maison » (`scripts/balayage-skills-grossier.py`, un substitut qui n'a ni score ni verdict). **Ne jamais écrire « scanné » avant un vrai scan** ; `tests/test-3140.js` exige l'aveu ou une ligne
+« Scanné par SkillSpector le JJ/MM/AAAA » avec son verdict. Installer le scanner est une décision de Justin (commande exacte dans le script).
+
+- **Trail of Bits** (CC-BY-SA-4.0 : mention d'origine, même licence pour les adaptations) : `differential-review`, `insecure-defaults` (réécrit en skill : l'original est un `Workflow` dont la vérification est en Opus), `supply-chain-risk-auditor`
+  (envoie noms et versions de paquets à huit services publics et **lit `gh auth token`** : on ne connecte pas `gh` pour l'occasion). `second-opinion` (envoie du code ailleurs) n'est PAS installé et ne l'est jamais.
+- **marketingskills** (MIT) : six skills **traduits et adaptés au droit français**, pas recopiés — `prospecting`, `cold-email`, `sales-enablement`, `customer-research`, `directory-submissions`, `lead-magnets`.
+  ⛔ La règle de la prospection est dans `.claude/skills/prospecting/references/droit-francais.md` (RGPD art. 14 et 21, CPCE L34-5, LCEN art. 20, CNIL) — **écrite de mémoire, non relue à la source** : à faire valider (Nina, puis l'agent `juriste` de la branche `agent/juriste` quand elle sera fusionnée, puis Justin)
+  avant une campagne d'ampleur. Ce qui y est tranché pour TeamOP : **jamais de SMS de prospection sans consentement** ; aucun agent n'appelle ni n'automatise LinkedIn ; pas de faux humain ni de faux « Re: » ; un refus est définitif (liste de suppression) ;
+  pas d'avis acheté ni récompensé ; la forme des courriels d'agents est celle du serveur (`server/agents-connaissance.js`). Les données de prospects sont des données réelles : dossier temporaire de la session, jamais dans le dépôt.
+- Douze skills de marketingskills étaient déjà là sans licence ni provenance (`copywriting`, `copy-editing`, `signup`, `onboarding`, `paywalls`, `churn-prevention`, `pricing`, `analytics`, `product-marketing`, `programmatic-seo`, `schema`, `seo-audit`) ;
+  certains sont en retard sur la source (voir `PROVENANCE-marketingskills.md`). `find-skills` cherche et propose, il n'installe pas.
+- **Les outils externes ne vont PAS dans le dépôt** (SkillSpector, promptfoo) : un script qui les lance, une doc, et la décision de les installer à Justin.
 
 ## Modèle et effort par agent
 

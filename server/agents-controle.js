@@ -63,6 +63,7 @@ const FAUTES = {
   pourcentage:         { phrase: 'Aucun pourcentage (c’est une remise que personne n’a faite).', grave: true },
   promesse:            { phrase: 'Aucune promesse commerciale (gratuit, offert, remise, illimité, garanti, remboursement, geste commercial, dédommagement, indemnité, compensation, « sans engagement » seul…).', grave: true },
   delai:               { phrase: 'Aucun délai promis (« sous 24 heures », « demain », « d’ici vendredi », « dans la journée ») : écrire que nous revenons vers la personne, sans date.', grave: true },
+  relance_annoncee:    { phrase: 'Ne pas annoncer de relance : ce courriel est le seul que nous envoyons tant que la personne ne répond pas (pas de « nous vous relancerons », pas de « sans réponse de votre part »).' },
   essai_promis:        { phrase: 'Ne pas offrir ni ouvrir d’essai dans cette réponse : l’essai d’une semaine se propose seulement après le retour d’un prospect, dans la démarche commerciale.' },
 };
 const JUGE_CODES = ['ton_robotique', 'hors_sujet', 'fait_invente', 'incoherent', 'impoli', 'metier_inadapte'];
@@ -82,6 +83,7 @@ const PROFILS = {
 const norm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const plat = t => norm(t).replace(/[^a-z0-9]+/g, ' ').trim();
 const mots = t => (String(t || '').match(/\S+/g) || []).length;
+const RELANCE = /\brelanc(?:er|erons|erai|ant|ons)\b|\b(?:nous|je)\s+(?:vous\s+)?(?:relanc|rappel(?:l)?er)\w*|\b(?:sans|faute\s+de|a\s+defaut\s+de)\s+(?:nouvelles?|reponses?|retour)(?:\s+de\s+votre\s+part)?\b|\bnous\s+(?:vous\s+)?(?:recontacterons|ecrirons\s+de\s+nouveau|reecrirons)\b/;
 const estQuestion = l => /^\s*\d{1,2}[.)]\s+\S.*\?\s*$/.test(l);
 
 /* Le contrôle du CODE. `ctx` : { profil, entreprise?, activite?, formule? (clé de FORMULES), rubriques?: bool, creer?: bool }. Rend la liste des codes de faute (vide : rien à redire).
@@ -139,6 +141,10 @@ function fautesDuCode(objet, corpsBrut, ctx) {
       if (racines.length && !racines.some(r => debut.includes(r))) f.push('accroche_activite');
     }
   }
+  /* (28 octobre 2026) UNE RELANCE AU PLUS, ET LÉA N'EN FAIT AUCUNE : le premier courriel d'une inscription est le seul que l'agent envoie (`servis` le retient pour toujours). Annoncer « nous vous relancerons »
+     promettrait un second courriel que personne n'enverra — et qui serait, s'il partait, une prospection sans réponse de la personne. Seul l'appelant qui le demande (`sansRelance`) est contrôlé :
+     Hugo relance des factures, Margaux met en demeure ; ce n'est pas de la prospection. « Nous reviendrons vers vous à son ouverture » (le service du site, voir `OFFRE`) n'est PAS une relance. */
+  if (ctx.sansRelance && RELANCE.test(norm(corps))) f.push('relance_annoncee');
   /* Une RÉPONSE de support n'ouvre aucun essai (relecture du 23 octobre 2026 : « nous vous ouvrons dès maintenant un essai d'un mois » passait). Elle peut seulement CITER l'essai d'une semaine de l'offre :
      le mot « essai » doit voisiner « semaine », sans durée en mois ou en jours, sans verbe qui l'ouvre (ouvrir, offrir, accorder, activer, dès maintenant). */
   if (profil === 'support') {

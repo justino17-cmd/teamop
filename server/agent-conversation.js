@@ -54,6 +54,51 @@ const ADRESSE = /[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g;
 const TEL = /\+?\d[\d .\-()]{6,}\d/g;
 const sansTel = t => String(t || '').replace(TEL, m => (m.replace(/\D/g, '').length >= 9 ? '(numéro)' : m));
 
+/* ⛔ UN TEXTE LIBRE QUI VA S'AFFICHER DANS UN FIL (28 octobre 2026) — le résumé que le modèle écrit en terminant une tâche, le titre d'une consigne. `sansTel` et `ADRESSE` ne retirent que les
+   adresses électroniques et les téléphones : « Rappelé Mme Sophie Martin, 3 avenue Foch à Lyon, remboursement de 1 250 € sur la facture F-2026-0042 » passait tel quel dans « Équipe », dans le
+   registre et dans la copie du pont. `donneeClientProbable(t, connus)` dit VRAI dès qu'un nom propre, une adresse postale, un montant, une référence ou un lien y figure — et l'appelant n'affiche
+   alors RIEN de ce texte (la phrase fermée de la table reste). C'est une heuristique, sciemment prudente : elle refuse un titre légitime plutôt que de laisser passer un client.
+   `connus` : des mots qui peuvent s'écrire en majuscule sans désigner personne (les prénoms des agents). Un numéro de dossier (`DOS-nnnnnn`) est une forme fermée : il ne compte pas. */
+const MOTS_PROPRES_OK = new Set(['justin', 'teamop', 'team', 'op', 'gestion', 'messages', 'tour', 'equipe', 'stripe', 'firebase', 'gmail', 'google', 'anthropic', 'claude', 'github', 'vps', 'api', 'pdf', 'ia', 'tva', 'smtp', 'imap', 'dns', 'ssl', 'rgpd', 'sms', 'url', 'nginx', 'html', 'cgu', 'cgv']);
+const sansAccent = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const DEBUTS = new Set(['le', 'la', 'les', 'un', 'une', 'des', 'de', 'du', 'ce', 'cet', 'cette', 'ces', 'mon', 'ma', 'mes', 'son', 'sa', 'ses', 'notre', 'nos', 'votre', 'vos', 'leur', 'leurs', 'il', 'elle', 'on', 'nous', 'je', 'tu', 'vous', 'ils', 'elles',
+  'pas', 'plus', 'aucun', 'aucune', 'tout', 'toute', 'tous', 'toutes', 'rien', 'plusieurs', 'quelques', 'merci', 'oui', 'non', 'ok', 'fait', 'fini', 'fin', 'suite', 'pour', 'sans', 'avec', 'sur', 'dans', 'apres', 'avant', 'si', 'quand', 'car', 'mais', 'et', 'ou', 'puis', 'ensuite',
+  /* les noms qui OUVRENT un résumé de travail (« Plan rédigé », « Relance préparée ») : sans eux, la première lettre d'une phrase ne se distingue pas d'un nom de famille */
+  'plan', 'relance', 'relances', 'courriel', 'courriels', 'courrier', 'courriers', 'mail', 'mails', 'message', 'messages', 'devis', 'facture', 'factures', 'rapport', 'point', 'reponse', 'reponses', 'brouillon', 'brouillons', 'tache', 'taches', 'dossier', 'dossiers',
+  'sauvegarde', 'sauvegardes', 'verification', 'relecture', 'rendez-vous', 'creation', 'mise', 'envoi', 'reception', 'correction', 'classement', 'rappel', 'publication', 'bilan', 'synthese', 'liste', 'tableau', 'resume', 'compte', 'paiement', 'paiements',
+  'abonnement', 'abonnements', 'espace', 'espaces', 'acces', 'erreur', 'erreurs', 'incident', 'incidents', 'demande', 'demandes', 'question', 'questions', 'decision', 'arbitrage', 'reunion', 'agenda', 'planning', 'budget', 'etat', 'client', 'clients', 'prospect', 'prospects',
+  'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze', 'premier', 'premiere', 'dernier', 'derniere', 'seul', 'seule', 'nouveau', 'nouvelle', 'nouveaux', 'ancien', 'ancienne', 'hier', 'demain', 'aujourd', 'toujours', 'deja', 'bien', 'tres', 'tout',
+  'inscription', 'inscriptions', 'contrat', 'contrats', 'rien', 'ras', 'brouillon', 'document', 'documents', 'texte', 'note', 'notes']);
+function donneeClientProbable(t, connus) {
+  const brut = String(t == null ? '' : t).replace(/\bDOS-\d{6}\b/g, ' ');
+  if (!brut.trim()) return false;
+  if (/[€$£]|\b(euros?|eur|k€)\b/i.test(brut)) return true;                                   // un montant
+  if (/\d{3,}|\d[\s.,]\d{3}\b/.test(brut)) return true;                                          // un numéro, une référence, un code postal, « 1 250 »
+  if (/[A-Za-z]{1,6}[-_/]\d/.test(brut)) return true;                                           // F-2026, INV/12
+  if (/\d{1,4}\s*(?:bis|ter)?\s*,?\s*(?:avenue|av\.|rue|boulevard|bd|chemin|impasse|all[ée]e|place|route|quai|cours|square|r[ée]sidence|lotissement|rond-point)\b/i.test(brut)) return true;   // « 3 avenue Foch »
+  if (/\b(?:avenue|boulevard|impasse|all[ée]e|rue|chemin)\s+(?:de |du |des |d['’]|la |le |les )?\p{Lu}/u.test(brut)) return true;
+  if (/:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:fr|com|net|org|io|eu)\b/i.test(brut)) return true;      // un lien, un site
+  if (/\b(?:M\.|MM\.|Mme|Mlle|Mr|Monsieur|Madame|Mademoiselle|Docteur|Dr\.?|Ma[iî]tre|Me)(?=[\s.,;:]|$)/.test(brut)) return true;   // une civilité
+  const ok = connus instanceof Set ? connus : new Set(Array.isArray(connus) ? connus : []);
+  let debut = true;
+  for (const m of brut.split(/(\s+)/)) {
+    if (!m.trim()) continue;
+    const w = (m.match(/[\p{L}][\p{L}'’-]*/u) || [''])[0];
+    const premier = debut;
+    debut = /[.!?…:;]["»”)]*$/.test(m);
+    if (!w) continue;
+    const base = w.replace(/^[dlcjmnst][’']/i, '');     // « l'Équipe », « d'Hugo » : on regarde le mot
+    if (!/^\p{Lu}/u.test(base)) continue;
+    const k = sansAccent(base);
+    /* la majuscule d'une phrase n'est pas un nom — mais seulement pour un mot qui ressemble à un début de phrase français (un verbe à l'infinitif ou au participe, un petit mot) :
+       « Dupont », « Marie », « Sophie a rappelé » ne passent pas pour « la première lettre d'une phrase » */
+    if (premier && base.length > 1 && base !== base.toUpperCase() && (DEBUTS.has(k) || /(?:er|ir|dre|ire|ttre|oir|ant)$/.test(k) || /(?:é|ée|és|ées)$/i.test(base))) continue;
+    if (MOTS_PROPRES_OK.has(k) || ok.has(k)) continue;
+    return true;
+  }
+  return false;
+}
+
 /* ── Qui est qui. Une entrée par agent du registre, SAUF Hugo (son module). `faits` : les relevés que le rôle a le droit de voir.
       `rien` : la règle « tu ne peux rien faire » est répétée à part — l'argent et la sécurité sont ce qu'on ne veut pas voir promis. ── */
 const ROLES = {
@@ -69,7 +114,7 @@ const ROLES = {
     mission: 'Tu t’occupes de TOUT le courrier de contact@ et de support@ : tu réponds aux questions sur l’application, tu passes les factures à Margaux et les problèmes techniques à Jules, tu transmets les demandes d’arrêt à Hugo (une demande fermée, seulement si l’expéditeur est sûr), tu refuses poliment les remboursements et tu remontes les litiges à Justin. Tu n’écris et n’envoies aucun courriel dans cette conversation : tu rends compte de ce que tu as fait. ' +
       'Ta reprise de l’arriéré tourne SEULE toutes les 30 minutes pendant tes heures de travail (la moitié des plafonds du jour : les courriels du jour gardent l’autre) : le fait « reprise » dit où elle en est, et le fait « courrier » ce qui reste (aTraiter = personne n’y a touché, enCours = pris, classes = lus par toi sans réponse à faire). ' +
       'Tu n’as besoin d’aucun accès ni d’aucun « top départ » : tu lis déjà ces deux boîtes, depuis le début. Tu ne dis jamais « je démarre tout juste » ni « j’attends que Justin me le demande » quand reprise montre des courriels examinés aujourd’hui : tu cites les nombres, et la cause si elle s’est arrêtée. Si Justin te demande de traiter tout le courrier, l’outil reprendre_courriels_anciens lance la reprise tout de suite.' },
-  margaux: { faits: ['dossier'], rien: 'Tu ne peux RIEN faire sur l’argent : ni facture, ni remboursement, ni avoir, ni relance de paiement, ni écriture comptable. Tu expliques et tu proposes ; Justin décide.',
+  margaux: { faits: ['dossier'], rien: 'Dans cette conversation tu n’as AUCUN outil pour l’argent de TeamOP (le point, les factures Stripe, le calendrier de la loi passent par la messagerie des agents) et tu n’écris aucun de ses chiffres. Tu ne rembourses JAMAIS, tu ne fais JAMAIS d’avoir, tu n’annules JAMAIS rien, et tu ne relances personne toi-même. Tu expliques et tu proposes ; Justin décide.',
     mission: 'Tu t’occupes de la facturation et de la comptabilité : les factures, les paiements, ce que doit ou a payé un client.' },
   lea:     { faits: ['clients', 'dossier', 'commercial'],
     mission: 'Tu t’occupes de l’onboarding et de la fidélisation : à chaque nouvelle inscription tu te renseignes sur l’entreprise puis tu lui écris le premier courriel (il passe un contrôle qualité, puis part signé de ton prénom), et tu veilles à ce que les nouveaux clients démarrent bien dans l’application. Tu n’écris aucun courriel dans cette conversation : tu rends compte de ce que tu as fait.' },
@@ -114,6 +159,9 @@ function systemDe(agent, r) {
 const CAUSES = {
   plafond_agent: 'mon budget du mois est atteint',
   plafond_total: 'le budget des agents est atteint',
+  /* le budget du JOUR (28 octobre 2026, `cerveau.js`) : un agent qui travaille seul a dépensé sa part de la journée ; ou le filet de toute l'équipe est atteint. Il reprend demain matin. */
+  plafond_jour: 'mon budget du jour est atteint : je reprends demain matin',
+  filet_jour: 'le budget du jour de toute l’équipe est atteint : tout reprend demain matin',
   pas_de_cle: 'ma clé n’est pas posée',
   erreur_api: 'Claude ne répond pas',
   trop_long: 'ma réponse dépassait la longueur permise : pose-moi une question plus précise',
@@ -155,6 +203,8 @@ module.exports = function agentConversation(ctx) {
   function messagesDe(fil, id, texte) {
     const brut = [];
     for (const m of conversations.historique(fil, HISTORIQUE_N)) {
+      /* ⛔ Une ligne « système » n'est JAMAIS relue à Claude : c'est là que le serveur écrit les chiffres du point de Margaux (`agent-compta.js`). Ce repli (la messagerie des agents ne s'est pas montée) les aurait envoyés chez Anthropic. */
+      if (m.de === 'systeme') continue;
       const t = nettoyer(m.texte); if (!t) continue;
       if (m.de === id) brut.push({ role: 'assistant', texte: t });
       else if (m.de === 'justin') brut.push({ role: 'user', texte: t });
@@ -209,7 +259,7 @@ module.exports = function agentConversation(ctx) {
     if (!p.ok) return { saute: p.raison };          /* à l'arrêt : ni faits, ni Claude, ni mot */
     const messages = messagesDe(fil, id, texte);
     if (!messages.length) return { saute: 'vide' };
-    const system = SYSTEM[id] + memoire(id) + await blocFaits(id, fil);
+    const system = SYSTEM[id] + memoire(id) + (typeof agents.consigneNuit === 'function' ? agents.consigneNuit(id) : '') + await blocFaits(id, fil);
     const r = await cerveau.penser(id, system, messages, { maxTokens: JETONS });
     if (!r.ok) {
       if (Object.prototype.hasOwnProperty.call(CAUSES, r.raison)) dire(id, fil, 'Je ne peux pas te répondre pour l’instant (' + CAUSES[r.raison] + ').', 'important');
@@ -243,3 +293,4 @@ module.exports.sansTel = sansTel;
 module.exports.ADRESSE = ADRESSE;
 module.exports.CAUSES = CAUSES;
 module.exports.FORME_DOSSIER = FORME_DOSSIER;
+module.exports.donneeClientProbable = donneeClientProbable;

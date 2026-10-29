@@ -168,6 +168,8 @@ module.exports = function margaux(ctx) {
 
   /* Ce que Margaux sait de ses relances, pour la messagerie : des NOMBRES (jamais un nom ni un montant). */
   const etat = () => {
+    /* ⛔ Un registre illisible n'a pas « zéro relance » : on ne sait pas. `null` — l'appelant dit « je ne sais pas les lire », jamais trois zéros. */
+    if (fichier.illisible(F)) return null;
     const l = Object.values(reg.impayes).filter(x => !x.reglee);
     return { impayesSuivis: l.length, relancesParties: l.reduce((n, x) => n + envoyees(x), 0), misesEnDemeurePreparees: l.filter(x => x.demeure && x.demeure.ref).length };
   };

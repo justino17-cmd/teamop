@@ -44,7 +44,7 @@ function monde(claude, o) {
   const rq = m.recus[0];
   v('UN appel à Claude, celui de Hugo', [m.recus.length, nomDeRequete(rq)], [1, 'Hugo']);
   vrai('…avec les FAITS FERMÉS du dossier cité par Camille (un collègue) : le paiement, pas un nom', /dossier DOS-000002 \{.*"paiement":\{"etat":"paye","formule":"pro"\}/.test(rq.system));
-  vrai('⛔ rien d\'une personne ne part chez Claude : ni nom, ni adresse, ni montant', !/Beta|Alpha|exemple-2911|€/.test(JSON.stringify(rq)));
+  vrai('⛔ rien d\'une personne ne part chez Claude : ni nom, ni adresse, ni montant', !/Beta|Alpha|exemple-2911|€/.test(JSON.stringify(rq).replace(/- L’OFFRE DE TEAMOP[^\\]*?\\n/g, '')));
   vrai('…et la mission de Hugo dit « jamais un montant, jamais un nom », sans rembourser ni annuler tout de suite', /jamais un montant, jamais un nom/.test(rq.system) && /ne rembourses JAMAIS/.test(rq.system) && /n’annules jamais un abonnement tout de suite/.test(rq.system));
   v('la réponse est celle de HUGO, dans « Clients » (pas déléguée)', m.dit('clients').filter(x => x[0] === 'hugo').map(x => x[1]), ['Oui : le dossier DOS-000002 est à jour, il a payé.']);
   v('aucune tâche, aucune validation', [m.agents.charge().hugo, (await m.validations('en_attente')).length], [0, 0]);
@@ -56,7 +56,7 @@ function monde(claude, o) {
   const rm = m.recus[0];
   v('UN appel à Claude, celui de Margaux', [m.recus.length, nomDeRequete(rm)], [1, 'Margaux']);
   vrai('…les faits « facture » du dossier cité : statut, montant, jour — des nombres et une valeur de liste', /facture DOS-000001 \{"numero":"DOS-000001","nb":1,"factures":\[\{"statut":"paye","montantEur":15,"jour":1,"mois":10,"annee":2026\}\]\}/.test(rm.system));
-  vrai('…et sa mission : aucun remboursement, relancer, PRÉPARER la mise en demeure que seul Justin valide', /ne peux RIEN faire sur l’argent/.test(rm.system) && /on ne fera pas de remboursement/.test(rm.system) && /que seul Justin valide/.test(rm.system));
+  vrai('…et sa mission : aucun remboursement, relancer, PRÉPARER la mise en demeure que seul Justin valide', /ne rembourses JAMAIS/.test(rm.system) && /ne fais JAMAIS d’avoir/.test(rm.system) /* 28 octobre 2026 : la compta de la Tour — elle sait faire le point, jamais rembourser */ && /on ne fera pas de remboursement/.test(rm.system) && /que seul Justin valide/.test(rm.system));
   vrai('…Margaux répond elle-même', m.dit('clients').some(x => x[0] === 'margaux' && /payée, 15 €/.test(x[1])));
   m = monde(() => 'Je suis à jour.');
   await m.justin('margaux', 'Margaux, sur la compta, tu en es où ?');
@@ -78,7 +78,7 @@ function monde(claude, o) {
   m.conversations.parler('camille', 'clients', '@camille @lea @victor faites ça');
   await attendre(() => m.recus.length >= 3);
   await m.attendreRepos();
-  vrai('⛔ les outils propres ne sont offerts QU\'À LEUR AGENT : Camille, Léa, Victor n\'ont que les cinq communs', m.recus.every(q => outilsDe(q).join() === 'ecrire,prendre,passer,terminer,demander_justin'));
+  vrai('⛔ les outils propres ne sont offerts QU\'À LEUR AGENT : Camille, Léa n\'ont que les six communs (dont `demander`, 28 octobre 2026) et Victor, en plus, assigner (le chef répartit)', m.recus.every(q => outilsDe(q).join() === 'ecrire,prendre,passer,terminer,demander_justin,demander' || (/^Tu es Victor,/.test(q.system) && outilsDe(q).slice(0, 6).join() === 'ecrire,prendre,passer,terminer,demander_justin,demander' && outilsDe(q).slice(6).join() === 'assigner')));
   vrai('…et un outil qu\'un agent n\'a pas reçu, que le faux Claude « appelle » quand même, est ÉCARTÉ par le cerveau (rien d\'exécuté)', m.appelsStripe.length === 0 && (await m.validations('en_attente')).length === 0);
   m = monde((q) => (nomDeRequete(q) === 'Margaux' ? { texte: 'Je prépare.', actions: [{ id: 't1', nom: 'preparer_mise_en_demeure', entree: { dossier: 'DOS-000001' } }] } : 'ok'), { monde: { impayes: async () => ({ ok: true, liste: [{ cle: 't-alpha', slug: 'alpha-proprete', dossier: 'DOS-000001', aboId: 'sub_1', adresse: 'fact@exemple-2915.fr', entreprise: 'Alpha' }] }),
     facture: async () => ({ numero: 'AB-1', montantEur: 15, emiseMs: VENDREDI - 20 * 86400000, url: 'https://invoice.stripe.com/i/x' }) } });

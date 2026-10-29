@@ -70,7 +70,7 @@ const fil = (m, f) => m.liste().corps.fils.find(x => x.fil === f);
     const f = fil(m, 'clients');
     egal('la liste porte `perso` sur ce groupe', f.perso, r.corps.perso);
     egal('… seulement sur ce groupe : les trois autres et les agents n’en ont pas', m.liste().corps.fils.filter(x => x.fil !== 'clients' && 'perso' in x).length, 0);
-    egal('⛔ l’identifiant, les membres et le meneur du groupe sont inchangés', [f.fil, f.groupe, f.membres.map(x => x.id).join(), f.meneur], ['clients', true, 'lea,chloe,camille,hugo,margaux,emma', 'lea']);
+    egal('⛔ l’identifiant, les membres et le meneur du groupe sont inchangés', [f.fil, f.groupe, f.membres.map(x => x.id).join(), f.meneur], ['clients', true, 'victor,lea,chloe,camille,hugo,margaux,emma', 'victor']);   // Victor, membre et meneur depuis le 28 octobre 2026
     egal('⛔ `nom` de la liste reste le nom d’origine (le choix voyage dans `perso`)', f.nom, 'Clients');
     egal('⛔ `nom()` — celui des consignes des agents — rend le nom d’origine', [m.conv.nom('clients'), m.conv.nom('equipe')], ['Clients', 'Équipe']);
     const dur = JSON.parse(m.fichier());
@@ -233,14 +233,14 @@ const fil = (m, f) => m.liste().corps.fils.find(x => x.fil === f);
     m.groupe(avec({ fil: 'clients', nom: 'Équipe', icone: 'É', couleur: 'rouge' }));     // un nom qui IMITE un autre groupe, exprès
     m.groupe(avec({ fil: 'equipe', nom: 'Clients', icone: 'C', couleur: 'bleu' }));
     const tous = m.appel('post', '/api/monitor/conversations/envoyer', { body: { fil: 'clients', texte: '@tous un point, merci' } });
-    egal('« @tous » dans le groupe renommé « Équipe » désigne toujours les membres de `clients`', tous.corps.mentions, ['lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma']);
+    egal('« @tous » dans le groupe renommé « Équipe » désigne toujours les membres de `clients`', tous.corps.mentions, ['victor', 'lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma']);
     const eq = m.appel('post', '/api/monitor/conversations/envoyer', { body: { fil: 'equipe', texte: '@équipe bonjour' } });
     egal('« @équipe » dans le groupe renommé « Clients » désigne toujours tous les agents', eq.corps.mentions.length, AG.AGENTS.length);
     egal('… les mentions ne se lisent pas dans le nom choisi : « @Clients » ne cite personne', m.appel('post', '/api/monitor/conversations/envoyer', { body: { fil: 'equipe', texte: '@Clients et @Plateforme' } }).corps.mentions, []);
     egal('les identifiants servent toujours : le fil `clients` se lit, le nom choisi n’est pas un fil', [m.appel('get', '/api/monitor/conversations/:fil', { params: { fil: 'clients' } }).code, m.appel('get', '/api/monitor/conversations/:fil', { params: { fil: 'Équipe' } }).code], [200, 400]);
     const lecture = m.appel('get', '/api/monitor/conversations/:fil', { params: { fil: 'clients' } }).corps;
-    egal('⛔ la lecture d’un fil garde le nom d’origine et ses membres', [lecture.nom, lecture.meneur, lecture.membres.length], ['Clients', 'lea', 6]);
-    egal('les fonctions que les agents appellent n’ont pas bougé', [m.conv.nom('clients'), m.conv.nom('equipe'), m.conv.nom('plateforme'), m.conv.nom('reunions'), m.conv.meneur('clients'), m.conv.membres('plateforme').map(x => x.id).join(), m.conv.filValide('clients'), m.conv.filValide('Équipe')], ['Clients', 'Équipe', 'Plateforme', 'Réunions', 'lea', 'max,jules,theo,nina,ines', true, false]);
+    egal('⛔ la lecture d’un fil garde le nom d’origine et ses membres', [lecture.nom, lecture.meneur, lecture.membres.length], ['Clients', 'victor', 7]);
+    egal('les fonctions que les agents appellent n’ont pas bougé', [m.conv.nom('clients'), m.conv.nom('equipe'), m.conv.nom('plateforme'), m.conv.nom('reunions'), m.conv.meneur('clients'), m.conv.membres('plateforme').map(x => x.id).join(), m.conv.filValide('clients'), m.conv.filValide('Équipe')], ['Clients', 'Équipe', 'Plateforme', 'Réunions', 'victor', 'victor,max,jules,theo,nina,ines', true, false]);
     egal('un agent peut toujours parler dans son groupe, sous son identifiant', m.conv.parler('lea', 'clients', 'Bonjour, tout va bien.').ok, true);
     egal('… et le système écrit dans le fil par son identifiant', m.conv.systeme('clients', 'Camille a pris une tâche').ok, true);
     const SRC = sans(fs.readFileSync(path.join(RACINE, 'server', 'conversations.js'), 'utf8'));

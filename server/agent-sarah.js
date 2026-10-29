@@ -118,10 +118,12 @@ module.exports = function sarah(app, ctx) {
       input_schema: { type: 'object', properties: { type: { type: 'string', enum: TYPES } }, required: ['type'], additionalProperties: false } }],
     executer: async (nom, entree, c) => {
       if (nom !== 'rediger_annonce') return { ok: false, raison: 'outil_inconnu' };
-      if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: 'Sarah ne rédige une annonce que sur une demande de Justin.' };
+      /* (28 octobre 2026) …ou sur la demande de VICTOR quand Justin la lui a faite (`c.deChef`, calculé par `agent-equipe.js` d'après la table des outils délégables et la racine du message de Justin) : les notes
+         sont alors le message de JUSTIN (`c.texteRacine`), jamais celui de Victor. L'annonce reste DÉPOSÉE en validation : rien ne part sans lui. */
+      if (!c || (c.de !== 'justin' && c.deChef !== true)) return { ok: false, raison: 'pas_justin', ligne: 'Sarah ne rédige une annonce que sur une demande de Justin.' };
       const type = entree && entree.type;
       if (!TYPES.includes(type)) return { ok: false, raison: 'type', ligne: 'Sarah ne sait pas si c’est une version ou une maintenance.' };
-      const r = await rediger({ type, notes: c.texte });
+      const r = await rediger({ type, notes: c.de === 'justin' ? c.texte : c.texteRacine });
       return { ok: !!(r && r.ok), raison: r && r.saute, ligne: r && r.saute === 'notes' ? 'Sarah n’a pas assez de matière : dis-lui les points de l’annonce.' : '' };
     },
   };
