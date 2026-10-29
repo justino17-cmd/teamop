@@ -25,9 +25,11 @@ const mois = new Date().toISOString().slice(0, 7);
   const agentsMod = require(path.join(RACINE, 'server', 'agents.js')), cerveau = require(path.join(RACINE, 'server', 'cerveau.js'));
   const faux = { AGENTS: agentsMod.AGENTS, peutAgir: () => ({ ok: true }), noter: () => {} };
   let n = 0;
+  /* (28 octobre 2026) le budget du JOUR (`cerveau.js`, test-3119) a ses propres seuils ; ce banc joue le plafond du MOIS / TOTAL (10 $) : on lève le jour pour qu'il ne le masque pas */
+  const GRAND_JOUR = { agentMin: 1e9, nonRacine: 1e9, filet: 1e9 };
   /* un appel qui coûte 1 $ (sortie 57 143 jetons × 17,5 $ / million = 1,0000025 $) */
   const appeler = async () => { n++; return { texte: 'ok', entree: 0, sortie: 57143 }; };
-  const monter = (plafond, nom) => { const d = path.join(tmp, nom); fs.mkdirSync(d, { recursive: true }); return cerveau({ DATA_DIR: d, agents: faux, cleApi: 'k', appeler, plafondTotalUsd: plafond }); };
+  const monter = (plafond, nom) => { const d = path.join(tmp, nom); fs.mkdirSync(d, { recursive: true }); return cerveau({ DATA_DIR: d, agents: faux, cleApi: 'k', appeler, plafondTotalUsd: plafond, plafondsJour: GRAND_JOUR }); };
   const penser = (c, id) => c.penser(id || 'camille', 'système', [{ role: 'user', content: 'bonjour' }]);
 
   console.log('\n1. Le module');
@@ -38,7 +40,7 @@ const mois = new Date().toISOString().slice(0, 7);
   v('l\'état du budget le dit : plafond 10, total ≈ 10', [c.etatBudget().plafondTotal, Math.round(c.etatBudget().total)], [10, 10]);
   const autre = await penser(c, 'victor');
   v('⛔ le plafond est TOUS AGENTS CONFONDUS : un autre agent, qui n\'a rien dépensé, est refusé aussi', [autre.ok, autre.raison], [false, 'plafond_total']);
-  v('…et le fichier du budget l\'a retenu (un redémarrage ne rend pas les 10 $)', cerveau({ DATA_DIR: path.join(tmp, 'dix'), agents: faux, cleApi: 'k', appeler, plafondTotalUsd: 10 }).etatBudget().total > 9.99, true);
+  v('…et le fichier du budget l\'a retenu (un redémarrage ne rend pas les 10 $)', cerveau({ DATA_DIR: path.join(tmp, 'dix'), agents: faux, cleApi: 'k', appeler, plafondTotalUsd: 10, plafondsJour: GRAND_JOUR }).etatBudget().total > 9.99, true);
 
   c = monter(undefined, 'prod'); n = 0;
   const prod = []; for (let i = 0; i < 13; i++) prod.push((await penser(c)).ok);
