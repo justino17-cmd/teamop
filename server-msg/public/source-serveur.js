@@ -490,8 +490,25 @@
         const s = c.emetteurs[k], t = c.pistes[k] || null;
         if (!s || s.track === t) continue;
         try { await s.replaceTrack(t); } catch (e) { /* une piste que l'émetteur refuse ne coupe pas l'appel */ }
+        if (k === 'video') await qualiteEcran(s, t);
       }
     }
+    /* ⛔ LA QUALITÉ DU PARTAGE D'ÉCRAN (Justin, 29 octobre 2026 : « c'est moche ») : un écran partagé est du TEXTE. Le navigateur, par défaut, le traite
+       comme une caméra : quand le débit manque, il baisse la RÉSOLUTION et le texte devient flou. Pour une piste d'écran (`contentHint` « detail », posé par
+       la page), on garde la résolution et on cède sur les images par seconde, avec un débit à la hauteur d'un écran (2,5 Mbit/s). Une caméra garde ses réglages. */
+    async function qualiteEcran(s, t) {
+      try {
+        if (!s || typeof s.getParameters !== 'function' || typeof s.setParameters !== 'function') return;
+        const p = s.getParameters(); if (!p) return;
+        const ecran = !!(t && t.kind === 'video' && t.contentHint === 'detail');
+        if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+        if (ecran) { p.degradationPreference = 'maintain-resolution'; p.encodings[0].maxBitrate = 2500000; p.encodings[0].maxFramerate = 15; p.encodings[0].scaleResolutionDownBy = 1; }
+        else if (t && t.kind === 'video') { delete p.encodings[0].maxBitrate; delete p.encodings[0].maxFramerate; delete p.encodings[0].scaleResolutionDownBy; p.degradationPreference = 'balanced'; }
+        else return;
+        await s.setParameters(p);
+      } catch (e) { /* un navigateur qui refuse garde ses réglages : l'appel continue */ }
+    }
+
     function armerVeille(c) {
       if (c.minVeille || c.fini) return;
       c.minVeille = planifier(() => { c.minVeille = null; echec(c); }, T.veille);
@@ -1181,8 +1198,25 @@
         const s = pr.emetteurs[k], t = c.pistes[k] || null;
         if (!s || s.track === t) continue;
         try { await s.replaceTrack(t); } catch (e) { /* une piste que l'émetteur refuse ne coupe pas la liaison */ }
+        if (k === 'video') await qualiteEcran2(s, t);
       }
     }
+    /* ⛔ LA QUALITÉ DU PARTAGE D'ÉCRAN (même règle, liaison de réunion) : un écran partagé est du TEXTE. Le navigateur, par défaut, le traite
+       comme une caméra : quand le débit manque, il baisse la RÉSOLUTION et le texte devient flou. Pour une piste d'écran (`contentHint` « detail », posé par
+       la page), on garde la résolution et on cède sur les images par seconde, avec un débit à la hauteur d'un écran (2,5 Mbit/s). Une caméra garde ses réglages. */
+    async function qualiteEcran2(s, t) {
+      try {
+        if (!s || typeof s.getParameters !== 'function' || typeof s.setParameters !== 'function') return;
+        const p = s.getParameters(); if (!p) return;
+        const ecran = !!(t && t.kind === 'video' && t.contentHint === 'detail');
+        if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+        if (ecran) { p.degradationPreference = 'maintain-resolution'; p.encodings[0].maxBitrate = 2500000; p.encodings[0].maxFramerate = 15; p.encodings[0].scaleResolutionDownBy = 1; }
+        else if (t && t.kind === 'video') { delete p.encodings[0].maxBitrate; delete p.encodings[0].maxFramerate; delete p.encodings[0].scaleResolutionDownBy; p.degradationPreference = 'balanced'; }
+        else return;
+        await s.setParameters(p);
+      } catch (e) { /* un navigateur qui refuse garde ses réglages : l'appel continue */ }
+    }
+
     /* ⛔ LE DÉBIT, PAR FLUX : la voix à 32 kbit/s ; l'image à ce que la maille permet (800 kbit/s à deux, 600 à trois, 400 à quatre, jusqu'à 250) ; un écran partagé à 1,5 Mbit/s répartis. Appliqué à chaque
        changement du nombre de présents, d'une piste ou d'une liaison qui s'établit. Un navigateur qui refuse (`setParameters`) garde son débit libre — la liaison n'en est pas défaite. */
     async function plafonner(c) {
@@ -1501,7 +1535,11 @@
             else {
               if (P.video && P.video.track) await lp.unpublishTrack(P.video.track, false);
               P.video = null;
-              if (video) P.video = await lp.publishTrack(video, { source, name: source === LK.Track.Source.ScreenShare ? 'ecran' : 'camera', simulcast: true });
+              if (video) P.video = await lp.publishTrack(video, source === LK.Track.Source.ScreenShare
+                /* ⛔ l'écran partagé (« c'est moche », Justin, 29 octobre 2026) : une seule couche nette (pas de simulcast — le serveur servait la petite
+                   couche floue), 1080p, 2,5 Mbit/s, 15 images/s, résolution tenue quand le débit manque */
+                ? { source, name: 'ecran', simulcast: false, videoEncoding: { maxBitrate: 2500000, maxFramerate: 15 }, degradationPreference: 'maintain-resolution' }
+                : { source, name: 'camera', simulcast: true });
             }
             P.videoPiste = video; P.source = source;
           } catch (e) { P.video = null; P.videoPiste = null; P.source = null; }

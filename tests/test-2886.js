@@ -71,7 +71,7 @@ for (const nom of ['app.html', 'beta.html']) {
 
   /* 2. Le nouveau libellé, au menu, au titre de l'écran, dans la visite guidée ; la clé de rubrique ne bouge pas. */
   vrai("NAV : {k:'validations',…,l:'Validation des mouvements'} — la clé de rubrique reste 'validations'",
-    /\{k:'validations',ic:'✅',l:'Validation des mouvements',admin:true,aside:true\}/.test(code));
+    /\{k:'validations',ic:'✅',l:'Validation des mouvements',admin:true,aside:true(?:,cache:1)?\}/.test(code));   // v780 : rubrique regroupée (cache:1), clé inchangée
   vrai("l'écran : setHeader('Validation des mouvements', …)", /setHeader\('Validation des mouvements',/.test(code));
   vrai("la visite guidée : {v:'validations',…,t:'Validation des mouvements'}", /\{v:'validations',ic:'✅',t:'Validation des mouvements',/.test(code));
   vrai("le droit « Valider les mouvements de box et les demandes » ne porte plus « (rôle DR) » et renvoie à « Validation des mouvements »",
@@ -124,7 +124,7 @@ for (const nom of ['app.html', 'beta.html']) {
       { id: 'v', num: 'DC-2', statut: 'valide', drNom: 'Zoé Test', lignes: [], date: '2026-10-23' },
       { id: 'a', num: 'DC-3', statut: 'enAttente', lignes: [], date: '2026-10-23' } ] },
     openModal: (h) => { html = h; }, esc: (x) => String(x == null ? '' : x), badge: () => '', STATV: {}, boxLabel: () => '', userName: () => '', fmtShort: (x) => x,
-    demProduitNom: () => '', can: () => false };
+    demProduitNom: () => '', can: () => false, libBox: (a) => a };
   vm.createContext(bac); vm.runInContext(code.slice(i0, i1), bac);
   const libelles = (id) => { html = ''; bac.ficheDemande(id); return (html.match(/<div class="dt-lbl">[^<]*<\/div>/g) || []).map((x) => x.replace(/<[^>]+>/g, '')); };
   const lr = libelles('r'), lv = libelles('v'), la = libelles('a');
@@ -141,7 +141,7 @@ for (const nom of ['app.html', 'beta.html']) {
   const droit = (code.match(/\['validerDR','(Valider les mouvements[^']+)'/) || [])[1];
   vrai(nom + ' : le droit s’appelle « Valider les mouvements de box et les demandes »', droit === 'Valider les mouvements de box et les demandes', droit);
   const refus = code.match(/toast\('Validation réservée à qui a le droit « ([^»]+) »'\)/g) || [];
-  vrai(nom + ' : les deux refus (mouvement, demande) citent ce libellé exact (' + refus.length + ' lus)', refus.length === 2 && refus.every((x) => x.includes('« ' + droit + ' »')), refus);
+  vrai(nom + ' : les deux refus (mouvement, demande) citent ce libellé exact (' + refus.length + ' lus)', refus.length === 2 && refus.every((x) => x.includes('« ' + droit + ' »') || x.includes("capTxt('" + droit + "')")), refus);
 }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

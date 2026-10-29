@@ -37,12 +37,17 @@
  * Écrire (mode, pause, décision) : `monPatronStrict`. Les trois écritures sont aussi dans
  * `MON_GESTES` : `tests/test-1015.js` refuse une route POST de la Tour qui n'y est pas.
  *
- * ⛔ LES HEURES DE TRAVAIL (26 octobre 2026, `agents-horaires.js`) : l'équipe travaille comme une entreprise — par défaut du lundi au vendredi, 9 h – 18 h, heure de Paris, fermée les
- * jours fériés, réglable par Justin (entreprise, puis agent par agent). La garde est dans `peutAgir`, la porte commune, au même endroit que la pause : hors des heures, `hors_heures`.
- * L'ASTREINTE (Max, Théo) agit toujours mais le dit (`horsHeures`) et les portes qui écrivent à un client la refusent. Ce qui ARRIVE hors des heures (un courriel, une inscription) est mis
+ * ⛔ LES HEURES DE TRAVAIL (26 octobre 2026, `agents-horaires.js`) : l'équipe travaille comme une entreprise — par défaut TOUS LES JOURS, 8 h – 24 h, heure de Paris, jours fériés
+ * compris (Justin, 28 octobre 2026 ; avant : lundi – vendredi, 9 h – 18 h, fermée les fériés), réglable par Justin (entreprise, puis agent par agent). La garde est dans `peutAgir`, la porte commune, au même endroit que la pause : hors des heures, `hors_heures`.
+ * L'ASTREINTE — la MAINTENANCE DE NUIT, un agent par couche (Inès, Camille, Max, Théo, Louis, Noah) — agit toujours mais le dit (`horsHeures`), les portes qui écrivent à un client la refusent, et
+ * `consigneNuit` le dit au modèle (surveiller, vérifier, préparer, noter, prévenir Justin si c'est urgent). Ce qui ARRIVE hors des heures (un courriel, une inscription) est mis
  * de côté par l'agent (`differer`) et repris à l'ouverture, le plus ancien d'abord (`reprendreDifferes`) ; une tâche entre agents ne vieillit pas pendant que son destinataire est
  * fermé ; accepter une validation hors heures reste en attente (409) comme pendant la pause ; une réunion planifiée tient à son heure (`sousReunion`). Un registre d'horaires
  * illisible arrête TOUT LE MONDE. Les horaires sont INJECTÉS (`ctx.horaires`) : un module monté sans eux — l'examen de l'équipe, qui se lance le soir — n'a pas de garde horaire.
+ *
+ * ⛔ L'ANNONCE DE FIN DE TRAVAIL (28 octobre 2026) : `terminer`, `proposer`, `decider` (une validation exécutée), `fait` et l'expiration d'une tâche appellent `ctx.surFait` / `ctx.surExpiration` — `agent-faits.js` compose « Je viens de… », `conversations.annoncerFait`
+ * l'écrit dans « Équipe ». Aucune exception ne remonte : une annonce qui échoue ne défait pas le travail. `bilan` (le journal du jour de chacun, en nombres), `consigneOuverte` (le même travail ne se donne pas deux fois),
+ * `consignesEnRetard` / `suiviFait` (le suivi de Victor), `actesDepuis` (l'anti ping-pong), `sousRacine` / `ouvertA` (finir une réponse après la fermeture, sans ouvrir les portes qui écrivent à un client).
  *
  * Rien de ce fichier ne lit un courriel, ne parle à Stripe ni n'appelle Anthropic. Les agents
  * viendront, chacun dans son module, et trouveront ici `peutAgir`, `noter`, `proposer`,
@@ -53,10 +58,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { AsyncLocalStorage } = require('async_hooks');
+const { parisParties, tsParis } = require('./agents-horaires');
 
-/* Le registre. `plafondUsd` n'est PAS appliqué ici : il décrit le plafond mensuel qu'on pose sur le
-   workspace de l'agent dans la Console Anthropic, chaque workspace ayant sa propre clé. Les 195 $
-   laissent 5 $ de réserve sur les 200 $ du crédit mensuel. */
+/* Le registre. `plafondUsd` n'est pas appliqué PAR CE FICHIER, mais il l'est : `cerveau.js` (lignes `plafond_agent`) refuse tout appel d'un agent qui a dépensé son plafond du MOIS, et en dérive son
+   plafond du JOUR (max(1,50 $, 20 %) pour ce qu'il fait seul — le budget du jour, 28 octobre 2026). Il décrit aussi le plafond qu'on pose sur le workspace de l'agent dans la Console Anthropic,
+   chaque workspace ayant sa propre clé (l'ancien commentaire de cette ligne disait « n'est PAS appliqué » : faux depuis le 19 octobre). Les 195 $ laissent 5 $ de réserve sur les 200 $ du crédit mensuel. */
 const AGENTS = [
   { id: 'victor',  nom: 'Victor',  role: 'Chef d’orchestre',             couche: 'Coordination', vague: 2, plafondUsd: 15 },
   { id: 'ines',    nom: 'Inès',    role: 'Contrôle qualité',             couche: 'Coordination', vague: 2, plafondUsd: 5 },
@@ -147,6 +153,15 @@ const CONSIGNE_MAX = 500;
 const CONSIGNE_VIE_MS = 7 * 86400000;     // une consigne vit plus longtemps qu'une demande fermée : c'est du vrai travail, pas un relais
 const CONSIGNES_PAR_AGENT = 10;           // en cours, par agent : un agent qui s'emballe ne s'attribue pas la file
 const SANS_CONSIGNE_LIBRE = ['hugo', 'margaux'];   // l'argent et les accès : du texte libre ne leur vient QUE de Justin
+/* LES OUTILS PROPRES QUE LE CHEF PEUT DÉCLENCHER POUR JUSTIN (28 octobre 2026, « les agents doivent être autonomes de A à Z ») : un outil propre ne valait que d'un message de Justin LUI-MÊME
+   (`c.de === 'justin'`) ; Justin écrit désormais à Victor, qui répartit — il faut donc que « Victor, demande à Sarah d'écrire l'annonce » fonctionne. UNE table, UNE définition, et ELLE SEULE décide
+   (`agent-equipe.js` calcule `c.deChef` à partir d'elle, jamais à partir de ce que le modèle écrit) :
+     · sarah : rédiger l'annonce — elle est DÉPOSÉE en validation, rien ne part sans Justin ;
+     · victor : planifier / annuler une réunion — un effet interne, réversible ;
+     · camille : reprendre l'arriéré du courrier — des BROUILLONS que Justin valide (le module de Camille doit lire `c.deChef` et `c.texteRacine`) ;
+   ⛔ ET PAS : emma (`proposer_creneaux` ENVOIE un courriel à un prospect — un envoi à un client), hugo et margaux (l'argent et les accès : du texte libre ne leur vient que de Justin, jamais d'un
+   collègue, racine ou pas). Un outil ajouté ici ne doit être ni un envoi à un client, ni l'argent, ni un accès. */
+const OUTILS_PROPRES_DELEGABLES = { sarah: ['rediger_annonce'], victor: ['planifier_reunion', 'annuler_reunion'], camille: ['reprendre_courriels_anciens'] };
 
 /* Valide `params` contre le schéma de `type`. Rend les paramètres NETTOYÉS (uniquement les champs du
    schéma, rien d'autre ne passe) ou null. Un champ en trop, un champ manquant, une valeur hors forme,
@@ -193,6 +208,15 @@ module.exports = function monterAgents(app, ctx) {
      qui s'y passe, à travers les `await`, le sait sans qu'on le recopie dans chaque appel (`sousReunion`). Un registre d'horaires illisible, lui, arrête quand même. */
   const dansReunion = new AsyncLocalStorage();
   const sousReunion = fn => dansReunion.run(true, fn);
+  /* LA FERMETURE PENDANT UN ÉCHANGE (28 octobre 2026, Justin écrit à 17 h 52 et l'équipe ferme à 18 h) : un réveil d'une racine née AVANT la fermeture finit dans les 45 minutes qui suivent
+     (`agent-equipe.js` décide, `conversations.racine` valide). Comme `sousReunion`, mais SEULEMENT pour finir une réponse, et SANS la bascule qui compte : `peutAgir` rend `horsHeures:true` —
+     exactement ce que rend l'astreinte —, donc toute porte qui écrit à un client (`agents-brouillons.js`, `agents-documents.js`) la REFUSE encore. L'arrêt, la pause et le budget restent bloquants. */
+  /* L'ANNONCE DE FIN DE TRAVAIL (28 octobre 2026) : `ctx.surFait(f)` — branché par `index.js` sur `agent-faits.js` — compose « Je viens de… » et l'écrit dans « Équipe » (hors plafonds, sans réveiller
+     personne). Un module monté sans lui (un banc) n'annonce rien. Jamais une exception ne remonte : une annonce qui échoue ne défait pas le travail. */
+  const surFait = f => { if (typeof ctx.surFait !== 'function') return; try { ctx.surFait(f); } catch (e) { console.error('annonce :', e && e.message); } };
+  const surExpiration = x => { if (typeof ctx.surExpiration !== 'function') return; try { ctx.surExpiration(x); } catch (e) { console.error('expiration :', e && e.message); } };
+  const dansRacine = new AsyncLocalStorage();
+  const sousRacine = fn => dansRacine.run(true, fn);
 
   /* ── le rangement : un fichier JSON par sujet, écrit en entier par un fichier temporaire puis un renommage
         (la règle d'`espaces.json`), et JAMAIS par-dessus un fichier qu'on n'a pas pu lire ── */
@@ -243,10 +267,28 @@ module.exports = function monterAgents(app, ctx) {
        qui agit mais le dit (`horsHeures`) : les portes qui écrivent à un client la refusent. */
     if (hor) {
       const h = hor.peutAgir(id, maintenant());
+      if (!h.ok && h.raison === 'hors_heures' && dansRacine.getStore() === true && dansReunion.getStore() !== true) return { ok: true, mode: m, horsHeures: true, racine: true };
       if (!h.ok && !(h.raison === 'hors_heures' && dansReunion.getStore() === true)) return { ok: false, raison: h.raison };
       if (h.ok && h.horsHeures) return { ok: true, mode: m, horsHeures: true, astreinte: true };
     }
     return { ok: true, mode: m };
+  }
+  /* Cet agent travaillait-il à cet instant-là ? (la racine d'un échange est née AVANT la fermeture ?) Sans horaires branchés : oui. */
+  function ouvertA(id, ts) {
+    if (!hor) return true;
+    try { return hor.etatA(ts, id).ouvert === true; } catch (e) { return false; }
+  }
+  /* LA MAINTENANCE DE NUIT, DITE AU MODÈLE (Justin, 28 octobre 2026) : un agent d'astreinte qui agit hors des heures reçoit CE paragraphe en fin de prompt — le code lui refuse déjà d'écrire à un client
+     (`horsHeures`), mais un modèle qui ne sait pas pourquoi il est réveillé à 3 h propose du travail de jour. Vide pour tout autre agent et pour toute heure ouvrée : le texte est écrit ICI, jamais composé
+     d'après un message. */
+  function consigneNuit(id) {
+    let p; try { p = peutAgir(id); } catch (e) { return ''; }
+    if (!p || p.ok !== true || p.horsHeures !== true || p.astreinte !== true) return '';
+    const o = ouverture(id);
+    return '\nMAINTENANCE DE NUIT : il est hors des heures de travail et tu es d’astreinte — ta couche a un agent éveillé, c’est toi. Cette nuit tu fais de la MAINTENANCE : surveiller, vérifier, préparer, noter. ' +
+      'Tu prépares ce qui sera utile à l’ouverture' + (o && o.libelle ? ' (' + o.libelle + ')' : '') + ' et tu le notes ; tu ne lances aucun travail de jour. ' +
+      'Tu ne préviens Justin que si c’est URGENT (un service en panne, une sauvegarde manquée, une menace de litige) : sinon l’information l’attend, rangée, à l’ouverture. ' +
+      'Tu n’écris à AUCUN client, tu ne fais AUCUN geste d’argent ni d’accès, tu ne confies rien à un collègue qui dort : le serveur te le refuse de toute façon.';
   }
   /* Quand cet agent reprend-il ? { ouvert, prochaineOuverture, libelle } — pour une phrase dite à Justin. `null` sans horaires branchés. */
   function ouverture(id) {
@@ -273,6 +315,24 @@ module.exports = function monterAgents(app, ctx) {
     return ecrire(F_JOURNAL, journal);
   }
 
+  /* UN ACTE depuis `ts`, pour l'un de ces agents : une tâche prise, passée, terminée, une demande déposée ou proposée, une décision de Victor. Ce qui n'est PAS un acte : écrire, demander, répondre.
+     Sert à l'anti ping-pong (`agent-equipe.js`) : deux agents qui se répondent depuis quatre messages sans qu'aucun acte ait eu lieu ne produisent plus rien d'autre que des appels payés. */
+  const ACTE = /^(outil (prendre|passer|terminer|arbitrer|assigner|rediger_annonce|planifier_reunion|annuler_reunion|proposer_creneaux)|proposer|deposer|prendre une consigne|passer une consigne|validation acceptée|annonce)$/;
+  function actesDepuis(ids, ts) {
+    const liste = Array.isArray(ids) ? ids : [ids];
+    if (journal.some(e => e.ts >= ts && liste.includes(e.agent) && ACTE.test(e.action) && (e.resultat === 'ok' || e.resultat === 'propose'))) return true;
+    return taches.some(k => Number(k.finTs) >= ts && liste.includes(k.vers));
+  }
+
+  /* UN FAIT qui n'est pas une tâche (une sauvegarde vérifiée, un courriel classé) : `code` d'une table FERMÉE (`agent-faits.js` : un code inconnu n'écrit rien), `o` : { dossier, n, ref, issue, raison }.
+     Rend vrai si l'annonce a été demandée — pas si elle a été écrite (le journal des conversations le sait). */
+  function fait(id, code, o) {
+    if (!IDS.has(id) || typeof code !== 'string') return false;
+    o = o && typeof o === 'object' ? o : {};
+    surFait({ agent: id, code, issue: o.issue === 'echec' || o.issue === 'prepare' ? o.issue : 'fait', dossier: o.dossier, n: o.n, ref: o.ref, raison: o.raison, ts: maintenant() });
+    return true;
+  }
+
   function notifier(titre, corps) {
     if (!pousse) return;
     try { Promise.resolve(pousse(titre, corps, '/tour.html#agents')).catch(() => {}); } catch (e) {}
@@ -295,6 +355,8 @@ module.exports = function monterAgents(app, ctx) {
         if (hor.tempsOuvert(k.vers, k.ts, t) <= vie) continue;
       }
       k.statut = 'expiree'; touche = true;
+      /* elle ne disparaît plus en silence : une ligne dans « Équipe » (une fois par tâche) */
+      surExpiration({ id: k.id, vers: k.vers, type: k.type, texte: k.type === 'consigne' && k.params ? k.params.texte : '' });
     }
     if (touche) { ecrire(F_VALID, validations); ecrire(F_TACHES, taches); }
   }
@@ -318,6 +380,8 @@ module.exports = function monterAgents(app, ctx) {
     if (!ecrire(F_VALID, validations)) { validations.pop(); return { ok: false, raison: 'ecriture' }; }
     noter(id, 'proposer', { cible: type, resultat: 'propose', detail: v.resume });
     notifier('Validation demandée', AGENTS.find(a => a.id === id).nom + ' : ' + v.resume);
+    /* « Je viens de préparer… (en attente de ta validation) » : la phrase est celle du code, du TYPE fermé de la demande — jamais son résumé (qui peut porter un nom d'accès) */
+    surFait({ agent: id, code: 'valide:' + type, issue: 'prepare', ref: v.id, ts: maintenant() });
     return { ok: true, id: v.id };
   }
 
@@ -359,13 +423,17 @@ module.exports = function monterAgents(app, ctx) {
     if (!ecrire(F_TACHES, taches)) { k.statut = 'attente'; return null; }
     return { id: k.id, de: k.de, type: k.type, params: Object.assign({}, k.params) };
   }
-  function terminer(tacheId, id, resultat, resume) {
+  /* `opts.libre` : le RÉSUMÉ est celui du modèle (l'outil `terminer` de la messagerie) — il passe dans l'annonce SI il ne ressemble à aucune donnée de client (nom propre, adresse, montant, référence : `agent-faits.js`), sinon l'annonce reste celle de la table fermée ; il est toujours gardé ici, pour la Tour. Un module qui termine une tâche ne le
+     donne pas : l'annonce est alors celle de la table fermée (`agent-faits.js`). */
+  function terminer(tacheId, id, resultat, resume, opts) {
     const k = taches.find(x => x.id === tacheId && x.vers === id && x.statut === 'prise');
     if (!k) return false;
     const avant = { statut: k.statut, resume: k.resume };
     k.statut = resultat === 'ok' ? 'faite' : 'echec';
+    k.finTs = maintenant();
     if (typeof resume === 'string' && resume.trim()) k.resume = monStr(sansAdr(resume.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()), RESUME_MAX);
-    if (!ecrire(F_TACHES, taches)) { k.statut = avant.statut; if (avant.resume === undefined) delete k.resume; else k.resume = avant.resume; return false; }
+    if (!ecrire(F_TACHES, taches)) { k.statut = avant.statut; delete k.finTs; if (avant.resume === undefined) delete k.resume; else k.resume = avant.resume; return false; }
+    surFait({ agent: id, code: 'tache:' + k.type, issue: resultat === 'ok' ? 'fait' : 'echec', tache: k.id, demandeur: k.de, dossier: k.params && typeof k.params.dossier === 'string' ? k.params.dossier : '', titre: k.type === 'consigne' && k.params ? k.params.texte : '', libre: opts && opts.libre === true && resultat === 'ok' ? k.resume || '' : '', ts: maintenant() });
     return true;
   }
 
@@ -392,7 +460,7 @@ module.exports = function monterAgents(app, ctx) {
     const en = enCours(vers);
     if (en.length >= CONSIGNES_PAR_AGENT) return { ok: false, raison: 'trop_de_taches' };
     if (en.some(k => k.type === 'consigne' && k.params.texte === t)) return { ok: false, raison: 'doublon' };
-    const k = { id: nouvelId(), ts: maintenant(), de: demandeur, vers, type: 'consigne', params: { texte: t }, statut: 'prise' };
+    const k = { id: nouvelId(), ts: maintenant(), de: demandeur, vers, type: 'consigne', params: { texte: t }, statut: 'prise', majTs: maintenant() };
     taches.push(k);
     if (taches.length > TACHES_MAX) {
       const finies = taches.filter(x => x.statut !== 'attente' && x.statut !== 'prise');
@@ -419,16 +487,56 @@ module.exports = function monterAgents(app, ctx) {
     if (k.vers !== par && par !== 'victor') return refus('pas_le_tien');
     if (!IDS.has(vers) || vers === k.vers) return refus('destinataire');
     if (SANS_CONSIGNE_LIBRE.includes(vers)) return refus('jamais_hugo_margaux');
-    if (enCours(k.vers).length < 2) return refus('pas_charge');
-    if (enCours(vers).length > 0) return refus('occupe');
+    /* (28 octobre 2026) le CHEF répartit : le titulaire n'a plus besoin d'être chargé de deux tâches, et le destinataire peut en avoir jusqu'à deux (moins de trois). Les autres gardent la règle de
+       Justin du 23 octobre : « si une personne est occupée et qu'une autre ne fait rien et peut gérer ». Hugo et Margaux sont refusés plus haut, pour tout le monde. */
+    const chef = par === 'victor';
+    if (!chef && enCours(k.vers).length < 2) return refus('pas_charge');
+    if (enCours(vers).length >= (chef ? 3 : 1)) return refus('occupe');
     const p = peutAgir(vers);
     if (!p.ok) return refus(p.raison);
     if (!peutAgir(par).ok) return refus(peutAgir(par).raison);
     const ancien = k.vers;
-    k.vers = vers; k.passePar = (k.passePar || []).concat(ancien).slice(-5);
-    if (!ecrire(F_TACHES, taches)) { k.vers = ancien; k.passePar = k.passePar.slice(0, -1); if (!k.passePar.length) delete k.passePar; return { ok: false, raison: 'ecriture' }; }
+    const majAvant = k.majTs;
+    k.vers = vers; k.passePar = (k.passePar || []).concat(ancien).slice(-5); k.majTs = maintenant();
+    if (!ecrire(F_TACHES, taches)) { k.vers = ancien; k.passePar = k.passePar.slice(0, -1); if (!k.passePar.length) delete k.passePar; if (majAvant === undefined) delete k.majTs; else k.majTs = majAvant; return { ok: false, raison: 'ecriture' }; }
     noter(par, 'passer une consigne', { cible: ancien + ' → ' + vers, resultat: 'ok', detail: k.params.texte });
     return { ok: true, de: ancien, vers, texte: k.params.texte, demandePar: k.de };
+  }
+
+  /* LE MÊME TRAVAIL NE SE DONNE PAS DEUX FOIS (28 octobre 2026, Victor répartit) : y a-t-il déjà, EN COURS chez n'importe qui, une consigne qui dit la même chose ? Le texte est comparé sans accent, sans
+     casse, sans ponctuation. `{ id, vers }` ou `null`. */
+  const normTexte = t => String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  function consigneOuverte(texte) {
+    const n = normTexte(proprement(texte));
+    if (!n || illisibles.has(F_TACHES)) return null;
+    perimer();
+    const k = taches.find(x => x.type === 'consigne' && x.statut === 'prise' && normTexte(x.params && x.params.texte) === n);
+    return k ? { id: k.id, vers: k.vers } : null;
+  }
+  /* Le début du jour de Paris (ms) — « aujourd'hui » du journal de chacun. */
+  const debutDuJour = () => { const p = parisParties(maintenant()); return tsParis(p.annee, p.mois, p.jour, 0, 0); };
+  /* CE QU'UN AGENT A FAIT AUJOURD'HUI, en NOMBRES (28 octobre 2026 : « faites-moi un point de votre journée » — Emma, Sarah, Lola et Noah n'avaient aucun fait et répondaient « RAS » ou inventaient) :
+     tâches terminées / échouées, tâches en cours, demandes déposées en validation, refus. Des entiers — jamais un texte. */
+  function bilan(id) {
+    if (!IDS.has(id)) return null;
+    const t0 = debutDuJour();
+    const termine = taches.filter(k => k.vers === id && Number(k.finTs) >= t0);
+    return { terminees: termine.filter(k => k.statut === 'faite').length, echouees: termine.filter(k => k.statut === 'echec').length, enCours: illisibles.has(F_TACHES) ? null : enCours(id).length,
+      propositions: validations.filter(v => v.agent === id && v.ts >= t0).length, acceptees: validations.filter(v => v.agent === id && v.decideTs >= t0 && v.statut === 'accepte').length,
+      refus: journal.filter(e => e.agent === id && e.ts >= t0 && e.resultat === 'refuse').length };
+  }
+  /* Les consignes « prises » sans mouvement depuis `ageMs` et pas encore relancées : pour le point de suivi de Victor. Il ne relance qu'UNE fois chacune (`suiviFait`). */
+  function consignesEnRetard(ageMs) {
+    if (illisibles.has(F_TACHES)) return [];
+    perimer();
+    const t = maintenant();
+    return taches.filter(k => k.type === 'consigne' && k.statut === 'prise' && t - (Number(k.majTs) || k.ts) >= ageMs && !(Number(k.suiviTs) > 0)).map(k => ({ id: k.id, vers: k.vers, de: k.de, texte: k.params.texte, depuis: t - (Number(k.majTs) || k.ts) }));
+  }
+  function suiviFait(ids) {
+    const t = maintenant(); let n = 0;
+    for (const k of taches) if (ids.includes(k.id) && k.statut === 'prise') { k.suiviTs = t; n++; }
+    if (n && !ecrire(F_TACHES, taches)) return false;
+    return true;
   }
 
   /* Ce que chacun a en cours : des NOMBRES pour tous, le détail pour l'agent lui-même. `null` si la file est illisible (on ne sait pas : on ne répartit rien). */
@@ -579,6 +687,8 @@ module.exports = function monterAgents(app, ctx) {
         try { await fn(Object.assign({}, v.params), { id: v.id, agent: v.agent }); v.execution = 'ok'; }
         catch (e) { v.execution = 'echec'; noter(v.agent, 'exécution', { cible: v.type, resultat: 'erreur', detail: e && e.message }); }
         ecrire(F_VALID, validations);
+        /* ce que Justin a validé et que l'agent vient d'exécuter (ou n'a pas pu) : « Je viens d'envoyer le courriel que tu avais validé » */
+        surFait({ agent: v.agent, code: 'valide-fait:' + v.type, issue: v.execution === 'ok' ? 'fait' : 'echec', raison: v.execution === 'ok' ? '' : 'refus', ref: v.id, ts: maintenant() });
       } else if (fn) { v.execution = 'pause'; ecrire(F_VALID, validations); }
     }
     return { code: 200, validation: v };
@@ -703,7 +813,7 @@ module.exports = function monterAgents(app, ctx) {
   /* Les validations EN ATTENTE, à la lecture (23 octobre 2026 : Inès les voit vieillir, Victor les compte) : { agent, type, ts } — jamais le résumé ni les paramètres, qui sont des phrases de
      l'équipe. `null` si la file est illisible : « on ne sait pas » n'est pas « rien n'attend ». */
   const attentes = () => { perimer(); return illisibles.has(F_VALID) ? null : validations.filter(v => v.statut === 'en_attente').map(v => ({ agent: v.agent, type: v.type, ts: v.ts })); };
-  return { peutAgir, ouverture, sousReunion, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
+  return { peutAgir, consigneNuit, ouverture, ouvertA, sousReunion, sousRacine, actesDepuis, fait, consigneOuverte, bilan, consignesEnRetard, suiviFait, differer, surReprise, reprendreDifferes, differesEnAttente, noter, proposer, dejaPropose, deposer, prendre, terminer, executeur, garde, placeLibre, enPause, modeDe, AGENTS, lireJournal, journalIllisible, comptes, enAttentePour, consigner, passerConsigne, charge, tachesDe, attentes };
 };
 module.exports.AGENTS = AGENTS;
 module.exports.MODES = MODES;
@@ -714,3 +824,4 @@ module.exports.TYPES_TACHE = TYPES_TACHE;
 module.exports.paramsValides = paramsValides;
 module.exports.CONSIGNE_MAX = CONSIGNE_MAX;
 module.exports.SANS_CONSIGNE_LIBRE = SANS_CONSIGNE_LIBRE;
+module.exports.OUTILS_PROPRES_DELEGABLES = OUTILS_PROPRES_DELEGABLES;

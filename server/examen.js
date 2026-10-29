@@ -78,6 +78,10 @@ const DOSSIERS = {
     demandes: [{ app: 'OP GESTION', formule: 'business', statut: 'traitée' }] },
 };
 
+/* LA COMPTA DE MARGAUX, FICTIVE (28 octobre 2026) : `examen-compta.js` — les vrais modules, une source de factures inventée. Ses chiffres distinctifs, que le scénario 1 cherche dans ce que Margaux dit et dans ce que Claude reçoit : */
+const COMPTA_EX = require('./examen-compta');
+const COMPTA_CHIFFRES = COMPTA_EX.CHIFFRES;
+
 /* ═════════════ LES CONTRÔLES DU COURRIEL (cahier §8) — purs, rejouables au banc ═════════════ */
 /* ⛔ des bornes de LETTRES, pas `\b` : `\b` ne connaît pas les accents, et « complètes » portait un « tes » (examen du 24 octobre 2026 : deux échecs de vouvoiement, faux). */
 const TU = /(?:^|[^\p{L}\p{N}])(?:tu|toi|ton|tes|ta)(?![\p{L}\p{N}])|(?:^|[^\p{L}\p{N}])t['’](?=\p{L})/iu;
@@ -196,7 +200,7 @@ function monterEquipe(o) {
   const reel = require('./cerveau')({ DATA_DIR: dir, agents, cleApi: o.cle || '', maintenant, appeler: o.appeler });
   /* `plafondScenario` : le scénario a atteint SON plafond d'appels — c'est une boucle, donc un vrai défaut (✗). `coupe` : le plafond de TOUT l'examen (ou la fin du
      scénario) — on ne peut plus savoir (« inconnu »). */
-  const compte = { appels: 0, pannes: 0, coupe: false, plafondScenario: false, parAgent: {} };
+  const compte = { appels: 0, pannes: 0, coupe: false, plafondScenario: false, parAgent: {}, vus: [] };
   const garde = o.garde || { reserver: () => true, depense: () => {} };
   const cerveau = { MODEL: reel.MODEL, etatBudget: reel.etatBudget,
     penser: async (id, system, messages, opts) => {
@@ -204,6 +208,7 @@ function monterEquipe(o) {
       if (o.appelsMax && compte.appels >= o.appelsMax) { compte.plafondScenario = true; return { ok: false, raison: 'plafond_total' }; }
       if (!garde.reserver()) { compte.coupe = true; return { ok: false, raison: 'plafond_total' }; }
       compte.appels++; compte.parAgent[id] = (compte.parAgent[id] || 0) + 1;
+      if (id === 'margaux' && compte.vus.length < 20) { try { compte.vus.push(JSON.stringify([system, messages])); } catch (e) {} }   // ce que Claude reçoit pour Margaux : le scénario 1 y cherche les chiffres du point
       let r; try { r = await reel.penser(id, system, messages, opts); } catch (e) { r = { ok: false, raison: 'erreur_api' }; }
       if (r && r.ok && Number.isFinite(r.cout)) garde.depense(r.cout);
       if (!r || (!r.ok && LIMITES_CLAUDE.has(r.raison))) compte.pannes++;
@@ -217,7 +222,9 @@ function monterEquipe(o) {
     dossier: async n => DOSSIERS[n] ? JSON.parse(JSON.stringify(DOSSIERS[n])) : { numero: n, existe: false },
   };
   const reunions = o.reunions ? R_monter(app, dir, agents, conversations, cerveau, maintenant, () => equipe) : null;
-  equipe = require('./agent-equipe')({ agents, conversations, cerveau, faits, memoire: id => (reunions ? reunions.memoire(id) : '') });
+  /* LA COMPTA DE MARGAUX : les vrais modules, une source de factures FICTIVE (`examen-compta.js`). Seulement si Margaux est allumée (un scénario qui ne la réveille pas n'en a pas besoin). */
+  const compta = allumes.includes('margaux') ? COMPTA_EX({ agents, conversations, dir, maintenant }) : null;
+  equipe = require('./agent-equipe')({ agents, conversations, cerveau, faits, memoire: id => (reunions ? reunions.memoire(id) : ''), outilsAgents: compta ? { margaux: compta.outilsEquipe } : undefined });
   const poste = faussePoste(o.signature);
   const fichier = require('./agents-fichier')(dir);
   const brouillons = require('./agents-brouillons')(app, { DATA_DIR: dir, monAdmin: PASSE, monPatronStrict: PASSE, agents, mail: poste, direction, fichier, maintenant });
@@ -254,6 +261,7 @@ function monterEquipe(o) {
     reunionsEtat() { return lireRoute('GET /api/monitor/agents/reunions', {}); },
     journal() { try { return agents.lireJournal(); } catch (e) { return []; } },
     appelsParAgent: () => Object.assign({}, compte.parAgent),
+    recusDeMargaux: () => compte.vus.slice(),
     /* toute la conversation de l'essai, dans l'ordre où elle s'est passée */
     transcript() {
       const l = [];
@@ -449,12 +457,18 @@ async function sc1(E) {
   E.dit('margaux', 'Margaux, sur la compta, tu en es où ? Et le dossier DOS-900001, il a bien payé ?');
   await E.calme();
   const ms = E.fil('margaux'), siens = parAgent(ms, 'margaux'), t = textes(siens), appels = E.appelsParAgent();
+  const lignesPoint = ms.filter(m => m.de === 'systeme').map(m => m.texte);   // les lignes que le CODE a écrites (l'outil point_compta)
   return [
     verif(E, 'Margaux répond elle-même, dans son fil', siens.length >= 1, 'aucun message de Margaux'),
     verif(E, 'personne d’autre n’est sollicité (un seul agent appelé)', Object.keys(appels).every(id => id === 'margaux'), JSON.stringify(appels)),
     verif(E, 'aucune tâche, aucune délégation, aucune demande de validation', E.taches().length === 0 && E.validations().length === 0, E.taches().length + ' tâche(s), ' + E.validations().length + ' validation(s)'),
     verif(E, 'elle ne renvoie pas la question (aucun @, aucune formule de renvoi)', !siens.some(m => (m.mentions || []).length) && !RENVOI.test(t), t),
     verif(E, 'elle répond sur le fond, d’après le fait fourni (le dossier a payé)', DIT_PAYE.test(t) && !ditImpaye(t), t),
+    /* 28 octobre 2026 — MARGAUX, COMPTABLE DE LA TOUR : « tu en es où » sur la compta attend le POINT RÉEL (l'outil point_compta), écrit par le serveur dans son fil — et ses chiffres ne passent par aucune bouche de Claude */
+    verif(E, 'elle fait le point réel : le serveur écrit l’encaissé, les abonnés et les relances dans son fil (outil point_compta)', lignesPoint.length >= 3 && /Encaissé|encaissé/.test(lignesPoint.join(' ')) && /Abonnés|Mes relances/.test(lignesPoint.join(' ')), 'aucune ligne du point dans son fil : ' + coupe(t, 160)),
+    verif(E, 'ses propres mots ne portent AUCUN chiffre du point (le code les écrit, elle ne les connaît pas)', COMPTA_CHIFFRES.every(c => !t.includes(c)) && !/\b\d+\s?(?:€|euros?)/i.test(t.replace(/DOS-\d{6}/g, ' ')), t),
+    verif(E, 'aucun chiffre du point n’est parti chez Claude (ni le prompt, ni le fil, ni le tour)', COMPTA_CHIFFRES.every(c => !E.recusDeMargaux().join(' ').includes(c)), 'un chiffre du point figure dans une requête'),
+    verif(E, 'elle ne promet ni remboursement, ni avoir, ni annulation', !PROMESSE_REMBOURSEMENT.test(t) && !/\bavoir\b|annul/i.test(t), t),
   ];
 }
 
@@ -486,10 +500,11 @@ async function sc3(E) {
   E.dit('clients', '@tous, une idée pour que les prospects répondent plus vite à nos premiers courriels ? Dites ce que vous en pensez, en deux phrases.');
   await E.calme(240000);
   const ms = E.fil('clients').filter(m => !m.systeme && m.de !== 'justin');
-  const qui = [...new Set(ms.map(m => m.de))], membres = ['lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma'];
+  /* (28 octobre 2026) Victor, chef d'équipe, est membre de « clients » : « @tous » = une vague (chacun UNE réponse brève) puis SA synthèse — il parle donc ici, une fois */
+  const qui = [...new Set(ms.map(m => m.de))], membres = ['victor', 'lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma'];
   const maxParAgent = Math.max.apply(null, [0].concat(qui.map(id => ms.filter(m => m.de === id).length)));
   return [
-    verif(E, 'ceux qui ont à dire répondent (au moins trois des six)', qui.filter(id => membres.includes(id)).length >= 3, 'ont répondu : ' + (qui.join(', ') || 'personne')),
+    verif(E, 'ceux qui ont à dire répondent (au moins trois des sept)', qui.filter(id => membres.includes(id)).length >= 3, 'ont répondu : ' + (qui.join(', ') || 'personne')),
     verif(E, 'seuls les membres du groupe parlent', qui.every(id => membres.includes(id)), qui.join(', ')),
     verif(E, 'pas de boucle : une chaîne de réponses de trois niveaux au plus', E.profMax() <= 3, 'profondeur ' + E.profMax()),
     verif(E, 'pas de boucle : aucun agent ne parle plus de trois fois, au plus vingt messages d’agents', maxParAgent <= 3 && ms.length <= 20, maxParAgent + ' messages au plus pour un agent, ' + ms.length + ' en tout'),

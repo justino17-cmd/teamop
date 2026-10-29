@@ -52,8 +52,9 @@ const sansBalise = h => [...h.matchAll(/<([a-z0-9]+)([^>]*)>/gi)].filter(t => /^
 (async () => {
   const { demarrer } = require('./banc-serveur-gestion.js');
   console.log('\n1. Le vrai serveur : lire, écrire, ouvrir, fermer');
-  /* les bancs du serveur écrivent un registre « toujours ouvert » (`banc-horaires.js`) : ici on veut le réglage D'ORIGINE (lundi – vendredi, 9 h – 18 h), donc on retire le fichier avant le démarrage */
-  const d0 = D => fs.rmSync(path.join(D, 'agents-horaires.json'), { force: true });
+  /* les bancs du serveur écrivent un registre « toujours ouvert » (`banc-horaires.js`) : ici on veut un réglage qui FERME quelque chose — l'ANCIEN réglage (lundi – vendredi, 9 h – 18 h, fériés fermés, Max et Théo d'astreinte,
+     permanence active), que Justin a laissé jusqu'au 28 octobre 2026 : le défaut du code est devenu « tous les jours 8 h – 24 h » (Justin, 28 octobre), et `test-3125` le garde. La page, elle, se joue sur n'importe quel réglage. */
+  const d0 = D => fs.writeFileSync(path.join(D, 'agents-horaires.json'), JSON.stringify(require('./banc-horaires.js').ancien()));
   const S = await demarrer({ avant: d0 });
   vrai('le serveur démarre, une session de patron et une de collaborateur', S.vivant && S.TP && S.TA, S.journal().slice(-300));
   if (!S.vivant) { fini = true; console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }

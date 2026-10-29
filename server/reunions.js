@@ -740,10 +740,11 @@ module.exports = function monterReunions(app, ctx) {
     },
     executer: (nom, entree, c) => {
       if (nom !== 'planifier_reunion' && nom !== 'annuler_reunion') return { ok: false, raison: 'outil_inconnu' };
-      if (!c || c.de !== 'justin') return { ok: false, raison: 'pas_justin', ligne: MOTIFS_PLAN.pas_justin + '.' };
+      /* (28 octobre 2026) …ou VICTOR agissant sur ordre de Justin : `c.deChef` vient d'`agent-equipe.js` (table des outils délégables + racine = un message de Justin vivant), jamais du modèle */
+      if (!c || (c.de !== 'justin' && c.deChef !== true)) return { ok: false, raison: 'pas_justin', ligne: MOTIFS_PLAN.pas_justin + '.' };
       /* (relecture du gardien, 28 octobre 2026) `de` dit qui a RÉVEILLÉ Victor, pas qui a demandé la réunion : un texte piégé relayé plus haut dans le fil, puis un
          « merci » de Justin, et Victor planifiait sur la foi du texte piégé. Le message de Justin LUI-MÊME doit parler de réunion. */
-      if (!/r[ée]union|r[ée]unir|rendez-vous|\brdv\b/i.test(String(c.texte || ''))) return { ok: false, raison: 'pas_demande', ligne: MOTIFS_PLAN.pas_demande + '.' };
+      if (!/r[ée]union|r[ée]unir|rendez-vous|\brdv\b/i.test(String(c.de === 'justin' ? c.texte : c.texteRacine || ''))) return { ok: false, raison: 'pas_demande', ligne: MOTIFS_PLAN.pas_demande + '.' };
       if (nom === 'annuler_reunion') {
         const r = annuler(String(entree && entree.reunion || ''), 'Victor (demandé par Justin)');
         return r.ok ? { ok: true, ligne: 'Réunion annulée : « ' + r.plan.sujet + ' » (' + libellePlan(r.plan) + ').' } : { ok: false, raison: r.raison, ligne: 'Victor n’a pas pu annuler la réunion : ' + (MOTIFS_PLAN[r.raison] || r.raison) + '.' };

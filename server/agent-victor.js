@@ -12,6 +12,9 @@
  *     rangée dans sa mémoire et dite dans le fil, avec les deux agents cités. Ce qui dépasse la charte — l'argent, un contrat, un accès, une suppression, une mise en demeure — n'est pas à lui : il pose la
  *     QUESTION À JUSTIN (son fil privé, « important »), et le code le force : une décision qui touche à ces mots n'est jamais présentée comme tranchée.
  *
+ *  4. LE SUIVI (28 octobre 2026, Justin : « Tout le monde fait tout et rien en même temps ») — une tâche prise et sans mouvement depuis quatre heures est relancée UNE fois, dans UN message groupé qui cite trois titulaires au plus
+ *     (jamais Hugo ni Margaux par « @ »). Victor est aussi le CHEF dans la messagerie (`agent-equipe.js` : meneur des quatre groupes, `assigner`, `demander`) ; ce module-ci reste ce qu'il fait SEUL, sur la minuterie.
+ *
  * ⛔ VICTOR NE PREND AUCUNE DÉCISION D'ARGENT NI D'ACCÈS, ne change aucun mode, ne lève aucune pause, ne valide aucune demande : tout cela est à Justin (charte). Il redistribue du travail déjà pris et il arbitre
  *    entre collègues.
  * ⛔ CE QUI PART CHEZ CLAUDE : des NOMBRES, des prénoms d'agents (les clés de leur registre), des jours de la semaine ; pour l'équilibrage, le texte des tâches en cours (venu de Justin ou des agents, adresses et
@@ -37,6 +40,9 @@ const ARBITRAGE_MS = 10 * 60000;
 const COUPE_ATTENTE_MS = 3 * 60000;                 // une chaîne coupée par l'anti-boucle : on laisse trois minutes avant d'y toucher
 const PROF_COUPE = 3;                               // la profondeur où la messagerie arrête une chaîne (`agent-equipe.js`, PROF_MAX)
 const APPELS_MAX = { equilibre: 3, arbitrage: 3, point: 1 };
+/* LE SUIVI (28 octobre 2026, Justin : « Tout le monde fait tout et rien en même temps ») : une tâche prise et sans mouvement depuis quatre heures est relancée UNE fois, dans UN message groupé qui cite trois
+   titulaires au plus. Au plus un message de suivi par heure. */
+const SUIVI_MS = 4 * 3600000, SUIVI_ENTRE_MS = 3600000, SUIVI_TACHES_MAX = 3;
 const POINTS_MANUELS_GARDES = 5;       // les points forcés depuis la Tour qu'on garde : une famille à part, ils ne comptent pas dans les jours
 const DECISIONS_MAX = 50, POINTS_GARDES = 14, ESSAIS_POINT = 10;
 const TEXTE_TACHE = 100, DECISION_MAX = 300, RAISON_MAX = 200;
@@ -344,12 +350,41 @@ module.exports = function agentVictor(ctx) {
     return { saute: 'rien_a_arbitrer' };
   }
 
+  /* ═══ 4. LE SUIVI ══════════════════════════════════════════════════════════════════════════════════
+     Pas d'appel à Claude : le message est composé ICI, à partir des consignes (texte de Justin ou d'un collègue, adresses et numéros masqués), des noms et d'un nombre d'heures. Hugo et Margaux ne sont JAMAIS cités
+     par « @ » (du texte libre ne leur vient que de Justin) : leur tâche en retard est nommée sans être citée. Chaque consigne n'est relancée qu'une fois (`agents.suiviFait`). */
+  async function suivre() {
+    if (!agents.peutAgir(ID).ok) return { saute: agents.peutAgir(ID).raison };
+    if (etat.illisible()) return { saute: 'memoire_illisible' };
+    if (typeof agents.consignesEnRetard !== 'function' || typeof agents.suiviFait !== 'function') return { saute: 'pas_de_suivi' };
+    const m = memoire(), now = maintenant();
+    if (now - (Number(m.suiviTs) || 0) < SUIVI_ENTRE_MS) return { saute: 'trop_tot' };
+    const retard = agents.consignesEnRetard(SUIVI_MS).sort((a, b) => b.depuis - a.depuis);
+    if (!retard.length) return { saute: 'rien_a_suivre' };
+    /* une tâche par titulaire (la plus ancienne), trois au plus */
+    const vus = new Set(), choisies = [];
+    for (const k of retard) { if (vus.has(k.vers) || !IDS.has(k.vers) || k.vers === ID) continue; vus.add(k.vers); choisies.push(k); if (choisies.length >= SUIVI_TACHES_MAX) break; }
+    if (!choisies.length) return { saute: 'rien_a_suivre' };
+    const heures = k => Math.max(4, Math.floor(k.depuis / 3600000));
+    /* ⛔ pas de « @ » dans le titre recopié : `propre` ne masque que les adresses `x@y` (et doit le faire AVANT, sinon l'adresse ne se reconnaît plus), jamais un « @mot » — « @hugo », « @margaux » ou « @tous »
+       écrit dans une consigne réveillait l'agent cité, sous le nom de Victor, sans racine. Le nom reste lisible, ce n'est plus une citation. */
+    const morceau = k => (SANS_CONSIGNE_LIBRE.includes(k.vers) || !agents.peutAgir(k.vers).ok ? nomDe(k.vers) : '@' + k.vers) + ' « ' + propre(k.texte, 70).replace(/@/g, ' ').replace(/\s+/g, ' ').trim() + ' » (' + heures(k) + ' h sans mouvement)';
+    const texte = AC.raccourcir('À suivre : ' + choisies.map(morceau).join(' ; ') + '. Où en êtes-vous ? Si c’est fini, dites-le avec terminer ; si c’est bloqué, dites sur quoi.');
+    const d = parler('equipe', texte, 'info', 1);
+    if (!dit(d)) { note('suivi', { cible: 'équipe', resultat: 'refuse', detail: d.raison }); return { saute: d.raison }; }
+    agents.suiviFait(choisies.map(k => k.id));
+    m.suiviTs = now; etat.sauver();
+    note('suivi', { cible: 'équipe', resultat: 'ok', detail: choisies.length + ' tâche(s) relancée(s)' });
+    return { relancees: choisies.length };
+  }
+
   async function passer() {
     const out = {};
     try {
       out.point = await tic();
       out.equilibre = await equilibrer();
       out.arbitrage = await arbitrageur();
+      out.suivi = await suivre();
     } catch (e) { note('passage', { cible: 'équipe', resultat: 'erreur', detail: String((e && e.message) || e).slice(0, 100) }); }
     return out;
   }
@@ -362,7 +397,7 @@ module.exports = function agentVictor(ctx) {
       decisions: (Array.isArray(m.decisions) ? m.decisions : []).slice(-5).reverse().map(d => ({ id: d.id, ts: d.ts, entre: d.entre, decision: d.decision, raison: d.raison, statut: d.statut })),
       appelsAujourdhui: m.appels && m.appels.j === O.jourParis(maintenant()) ? { equilibre: m.appels.equilibre, arbitrage: m.appels.arbitrage, point: m.appels.point } : { equilibre: 0, arbitrage: 0, point: 0 } };
   };
-  return { tic, passer, pointDuMatin, equilibrer, arbitrageur, arbitrer, etat: resume, collecter, texteDuCode, fait, nombresSains };
+  return { tic, passer, pointDuMatin, equilibrer, arbitrageur, suivre, arbitrer, etat: resume, collecter, texteDuCode, fait, nombresSains };
 };
 module.exports.HORS_CHARTE = HORS_CHARTE;
 module.exports.POINT = POINT;

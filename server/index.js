@@ -55,6 +55,77 @@ function saveSubs() {
   }, 300);
 }
 
+/* ══ LES NOTIFICATIONS DE LA TOUR NE SE DEVINENT PAS (28 octobre 2026, revue Trail of Bits, B1) ══
+   Les envois de la Tour (courrier de support : nom, adresse et objet d'un vrai client ; agents ; conversations ; réunions ; examen ;
+   validations ; Pauline) visaient « tout abonnement dont le teamId COMMENCE par teamop-controle » — et `/api/subscribe` n'exige aucune preuve :
+   n'importe qui s'abonnait avec ce préfixe, qui est dans le code, et recevait le prochain courriel de support en clair.
+   Trois verrous, qui se tiennent les uns les autres :
+     1. le préfixe est RÉSERVÉ : `/api/subscribe` et `/api/notify` le refusent (400) ;
+     2. un abonnement de la Tour porte `tour: true`, posé par UNE route (`/api/monitor/push/abonner`, patron), jamais par le corps d'une requête publique ;
+     3. TOUS les envois de la Tour passent par `pousserALaTour` et ne lisent que `tour === true` — le teamId ne décide plus de rien.
+   (Le verrou 3 tient même si le 1 est contourné ; le 1 empêche d'écrire dans la table ce que le 3 ne lira jamais.)
+   ⚠️ Un nouvel envoi à la Tour passe par `pousserALaTour`, jamais par un nouveau `Object.values(subs).filter(…)` : `tests/test-3155.js` compte les filtres. */
+const PUSH_PREFIXE_TOUR = 'teamop-controle';
+function teamIdDeLaTour(t) {
+  /* insensible à la casse, espaces (et espaces de largeur nulle) retirés, formes de compatibilité Unicode repliées : on refuse large */
+  let x = '';
+  /* un objet à `toString` piégé ({"toString":1}) fait jeter String() : dans le doute on refuse (true), on ne plante pas la route */
+  try { x = String(t == null ? '' : t); } catch (e) { return true; }
+  try { x = x.normalize('NFKC'); } catch (e) {}
+  return x.replace(/[\s\u200b-\u200f\u2060\ufeff]/g, '').toLowerCase().startsWith(PUSH_PREFIXE_TOUR);
+}
+/* L'adresse d'un service de push, telle qu'un navigateur la donne (FCM, Apple, Mozilla, Windows…) : https seulement, port par défaut, un NOM de
+   machine public. Pas de liste blanche de services — on ne veut couper aucun navigateur —, mais ni IP littérale (v4 sous toutes ses écritures :
+   l'analyseur d'adresses les ramène à « a.b.c.d »), ni IPv6, ni « localhost », ni nom privé (sans point, .local, .internal, .lan…), ni identifiants
+   dans l'adresse. Rend l'adresse NORMALISÉE (`u.href`, celle qu'on stocke et qu'on appelle) ou null. ⚠️ Un nom public qui POINTE vers une adresse privée (nip.io…) n'est pas arrêté ici : il faudrait
+   résoudre le nom, et le résoudre une fois ne vaut rien contre un changement de réponse entre deux résolutions (voir le commit). */
+function endpointPushValide(ep) {
+  if (typeof ep !== 'string' || ep.length < 12 || ep.length > 2048) return null;
+  let u;
+  try { u = new URL(ep); } catch (e) { return null; }
+  if (u.protocol !== 'https:' || u.username || u.password) return null;
+  /* ⛔ web-push ne lit pas l'adresse comme `new URL` (il passe par l'analyseur historique `url.parse`) : « https://127.0.0.1%2epush.example.net/x »
+     est un nom public pour l'un et l'IP 127.0.0.1 pour l'autre. D'où DEUX gardes : le serveur stocke et appelle l'adresse NORMALISÉE (`u.href`, jamais le
+     texte brut), et la partie « machine » du texte brut ne porte ni « % », ni « \\ », ni « @ », ni espace — rien que les deux analyseurs liraient autrement. */
+  const brut = /^https:\/\/([^\/?#]*)/i.exec(ep);
+  if (!brut || /[%\\@\s]/.test(brut[1])) return null;
+  if (u.port && u.port !== '443') return null;
+  const h = u.hostname.replace(/\.$/, '').toLowerCase();
+  /* IPv4 sous toutes ses écritures (l'analyseur d'adresses les ramène à a.b.c.d ; un dernier segment tout en chiffres est une IP ou une erreur), IPv6 entre crochets */
+  if (!h || h.startsWith('[') || /^[0-9.]+$/.test(h) || /(^|\.)[0-9]+$/.test(h)) return null;
+  if (h.indexOf('.') < 0) return null;
+  if (/(^|\.)(localhost|local|localdomain|internal|intranet|lan|home|corp|private|arpa|onion)$/.test(h)) return null;
+  return u.href;
+}
+/* UNE définition de « qui reçoit les notifications de la Tour » et UNE façon d'y envoyer. Rend le nombre d'appareils visés. */
+/* Un appareil de la Tour n'est le « membre » d'aucune entreprise : ni envoi par teamId, ni preuve qu'un espace existe (c'est ce qui rendait « teamop-controle » « connu »). */
+function abonneEntreprise(s, teamId) { return !!s && s.tour !== true && s.teamId === teamId; }
+function abonnesDeLaTour() { return Object.values(subs).filter(x => x && x.tour === true && x.sub && x.sub.endpoint); }
+async function pousserALaTour(titre, corps, url, urlParDefaut) {
+  const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || urlParDefaut });
+  const cibles = abonnesDeLaTour();
+  for (const t of cibles) {
+    try { await webpush.sendNotification(t.sub, payload); }
+    catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } }
+  }
+  return cibles.length;
+}
+/* Au démarrage : les abonnements d'AVANT au préfixe réservé qui ne portent pas `tour: true` sont retirés. Aucune page du dépôt n'en pose
+   (tour.html n'a pas de code d'abonnement) : ce sont des abonnements posés à la main par quelqu'un qui connaissait le préfixe. Le journal dit leur
+   NOMBRE, jamais une adresse de push (c'est un secret : qui la connaît peut écrire à cet appareil). */
+{
+  let retires = 0, invalides = 0;
+  for (const ep of Object.keys(subs)) {
+    const x = subs[ep];
+    if (x && x.tour !== true && teamIdDeLaTour(x.teamId)) { delete subs[ep]; retires++; }
+    /* et les adresses d'avant le filtre (http, IP, nom privé, forme ambiguë) : le serveur ne les appellera plus. Une adresse qui s'écrit autrement une fois
+       normalisée reste (elle est valide) ; seules celles que le filtre refuse partent. */
+    else if (x && x.tour !== true && !endpointPushValide(ep)) { delete subs[ep]; invalides++; }
+  }
+  if (invalides) { console.log('notifications : ' + invalides + ' abonnement(s) à une adresse de push refusée par le filtre retiré(s)'); saveSubs(); }
+  if (retires) { console.log('notifications de la Tour : ' + retires + ' abonnement(s) au préfixe réservé retiré(s) (sans tour:true)'); saveSubs(); }
+}
+
 // ── e-mail (optionnel : rempli dans config.json → smtp)
 let mailer = null;
 const essaiCourriels = ESSAI ? essaisMod.depot({ dossier: DATA_DIR, origine: ESSAI_ORIGINE }) : null;
@@ -405,6 +476,39 @@ app.use((req, res, next) => {
 
 // ── codes de sécurité (actions sensibles : remise à zéro, etc.) ──
 const codes = new Map();
+/* ⛔ Revue Trail of Bits du 28 octobre 2026 (I3, la part qui ne change pas le parcours de l'application) : la table n'était JAMAIS élaguée et sa clé
+   (teamId|purpose) n'était bornée par rien — un anonyme la remplissait à volonté ; le code se tirait par Math.random ; l'erreur SMTP, nom d'hôte et
+   texte d'authentification compris, partait telle quelle à qui la provoquait. Ici : balayage des codes échus à chaque émission, plafond de taille,
+   clé bornée (teamId ≤ 80 signes, purpose = « reset » ou « mdp-<identifiant> », la forme que l'application envoie), tirage par `crypto.randomInt`,
+   réponse d'erreur sans le message du serveur de courriel (le code du refus va au journal du VPS, pas à l'appelant).
+   ⛔ CE QUI RESTE OUVERT, ET QUE CE CORRECTIF NE TOUCHE PAS : le code part à l'adresse que l'APPELANT donne, sans lien avec l'utilisateur visé
+   par `purpose: 'mdp-<id>'` (voir le commit et REPRISE.md). */
+const CODES_PLAFOND = 5000;
+const CODE_PURPOSE = /^(reset|email|pwd|mdp-[A-Za-z0-9_.-]{1,40})$/;   // `email` et `pwd` : le changement d'adresse et de mot de passe de « Mon espace » (espace.html)
+function codesBalayer() {
+  const now = Date.now();
+  for (const [k, c] of codes) { if (!c || now > c.exp) codes.delete(k); }
+}
+/* Place pour UN code de plus. À la saturation on ÉVINCE le plus ancien (celui qui échoit le plus tôt) au lieu de refuser : refuser, c'était offrir à qui
+   remplit la table un déni de service de dix minutes sur tous les codes de sécurité de tout le monde. Rend false seulement si la table ne peut rien perdre. */
+function codePlace(cle) {
+  codesBalayer();
+  if (codes.has(cle) || codes.size < CODES_PLAFOND) return true;
+  let plusAncien = null, exp = Infinity;
+  for (const [k, c] of codes) { if (c.exp < exp) { exp = c.exp; plusAncien = k; } }
+  if (plusAncien === null) return false;
+  codes.delete(plusAncien);
+  return true;
+}
+/* Rend la clé de la table, ou null (+ la raison pour la réponse) : une seule définition pour les deux routes qui écrivent et celle qui lit. */
+function codeCle(teamId, purpose) {
+  if (typeof teamId !== 'string' || !teamId || teamId.length > 80) return null;
+  const p = (purpose === undefined || purpose === null || purpose === '') ? 'reset' : purpose;
+  if (typeof p !== 'string' || !CODE_PURPOSE.test(p)) return null;
+  return teamId + '|' + p;
+}
+function codeTirer() { return String(crypto.randomInt(100000, 1000000)); }
+const CODE_ERREUR_ENVOI = "L'envoi du code a échoué — réessaie dans un instant.";
 // Mot de passe oublié : nous fabriquons le lien et nous envoyons l'e-mail.
 // La réponse est TOUJOURS la même, compte existant ou non — sinon cette route
 // deviendrait un moyen de savoir qui travaille dans quelle entreprise.
@@ -467,9 +571,13 @@ app.post('/api/mdp/lien', async (req, res) => {
 app.post('/api/sendcode', async (req, res) => {
   const { teamId, email, purpose } = req.body || {};
   if (!teamId || !email) return res.status(400).json({ error: 'teamId et email requis' });
+  const cleCode = codeCle(teamId, purpose);
+  if (!cleCode) return res.status(400).json({ error: 'teamId ou purpose invalide' });
+  if (typeof email !== 'string' || email.length > 200 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'email invalide' });
   if (!mailer) return res.status(503).json({ error: 'email_off' });
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  codes.set(teamId + '|' + (purpose || 'reset'), { code, email, exp: Date.now() + 10 * 60000, tries: 0 });
+  if (!codePlace(cleCode)) return res.status(503).json({ error: CODE_ERREUR_ENVOI });
+  const code = codeTirer();
+  codes.set(cleCode, { code, email, exp: Date.now() + 10 * 60000, tries: 0 });
   try {
     await mailerEnvoi({
       // le code ne voyage PAS dans l'objet : l'objet est conservé au journal, le corps ne l'est pas
@@ -482,21 +590,24 @@ app.post('/api/sendcode', async (req, res) => {
         blocHtml: MAIL_BLOCS.code(code) + '<div style="font-size:12.5px;color:#93A2BF;padding-top:14px">Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message et vérifiez la sécurité de votre compte.</div>' })
     });
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('sendcode envoi :', refusSmtp(e)); res.status(500).json({ error: CODE_ERREUR_ENVOI }); }
 });
 // le compte n'a pas d'e-mail : le code part à l'adresse de l'ENTREPRISE (l'annuaire),
 // et le responsable le transmet — jamais à une adresse tapée librement.
 app.post('/api/sendcode-entreprise', async (req, res) => {
   const { teamId, purpose, login } = req.body || {};
   if (!teamId) return res.status(400).json({ error: 'teamId requis' });
+  const cleCode = codeCle(teamId, purpose);
+  if (!cleCode) return res.status(400).json({ error: 'teamId ou purpose invalide' });
   if (!mailer) return res.status(503).json({ error: 'email_off' });
   const e = Object.values(espacesReg).find(x => {
     if (x.t) return x.t === teamId;
     try { return String(JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')).t || '') === teamId; } catch (err) { return false; }
   });
   if (!e || !e.email) return res.status(404).json({ error: 'entreprise_inconnue' });
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  codes.set(teamId + '|' + (purpose || 'reset'), { code, email: e.email, exp: Date.now() + 10 * 60000, tries: 0 });
+  if (!codePlace(cleCode)) return res.status(503).json({ error: CODE_ERREUR_ENVOI });
+  const code = codeTirer();
+  codes.set(cleCode, { code, email: e.email, exp: Date.now() + 10 * 60000, tries: 0 });
   try {
     const loginSafe = monStr(login, 40).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     await mailerEnvoi({
@@ -510,12 +621,12 @@ app.post('/api/sendcode-entreprise', async (req, res) => {
         blocHtml: MAIL_BLOCS.transmettre(loginSafe) + '<div style="height:14px"></div>' + MAIL_BLOCS.code(code) + '<div style="font-size:12.5px;color:#93A2BF;padding-top:14px">Si personne dans votre équipe n\'est à l\'origine de cette demande, ignorez ce message.</div>' }) });
     const masque = String(e.email).replace(/^(.{2})[^@]*(@.*)$/, '$1•••$2');
     res.json({ ok: true, envoye: masque });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error('sendcode-entreprise envoi :', refusSmtp(err)); res.status(500).json({ error: CODE_ERREUR_ENVOI }); }
 });
 app.post('/api/checkcode', (req, res) => {
   const { teamId, code, purpose } = req.body || {};
-  const k = (teamId || '') + '|' + (purpose || 'reset');
-  const c = codes.get(k);
+  const k = codeCle(teamId, purpose);
+  const c = k ? codes.get(k) : null;
   if (!c || Date.now() > c.exp) return res.status(400).json({ ok: false, error: 'expiré' });
   c.tries = (c.tries || 0) + 1;
   if (c.tries > 5) { codes.delete(k); return res.status(429).json({ ok: false, error: 'trop d\'essais' }); }
@@ -571,6 +682,9 @@ app.get('/health', (req, res) => res.json(santeCorps(true)));
 function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* LE PONT VERS OP MESSAGES (28 octobre 2026) : DEUX NOMBRES, présents SEULEMENT quand le pont est monté — les minutes d'échec d'affilée (la surveillance crie à 30) et la taille de la file (elle crie à 1 000 sur 2 000). Jamais un texte, un fil, un identifiant. */
   ...(pontMessages ? { pont: pontMessages.sante() } : {}),
+  /* Ce que la messagerie des agents a REFUSÉ dans la dernière heure, en deux NOMBRES (28 octobre 2026) : `horaire` — un agent qui travaille SEUL a buté sur ses plafonds horaires (12 messages par heure, 20 par
+     fil) : une alarme d'exploitation, jamais une ligne dans un fil — et `chaine` — une racine close ou un ping-pong coupé. Ni agent, ni fil, ni texte. Présent seulement quand la messagerie est montée. */
+  ...(agentEquipe && typeof agentEquipe.refus === 'function' ? { agentsRefus: agentEquipe.refus() } : {}),
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
      la suite se déciderait à l'aveugle : /api/mail/cles est protégée par une clé de
@@ -675,7 +789,9 @@ function ghJoursRestants() {
 //    et produit le PDF. Sans clé Anthropic dans config.json, la route répond 503
 //    et le reste du serveur fonctionne normalement.
 try {
-  require('./agent-devis').monterAgentDevis(app, config, DATA_DIR);
+  /* Les deux crochets sont des déclarations de fonction (remontées) qui lisent `metierOk` et le référentiel À LA REQUÊTE : à cet
+     endroit, ces constantes ne sont pas encore définies. Voir `devisMetierDe` (plus bas) et server/devis-metier.js. */
+  require('./agent-devis').monterAgentDevis(app, config, DATA_DIR, { metierDe: devisMetierDe, vocabulaire: devisVocabulaire });
 } catch (e) {
   console.error('assistant devis non monté :', e.message);
 }
@@ -973,6 +1089,8 @@ const BUGS_PATH = path.join(DATA_DIR, 'bugs.jsonl');
    compteur « à migrer », et ça a coûté une semaine.
    ⛔ ON N'EFFACE RIEN. `bugs.jsonl` est la trace, et une trace qu'on réécrit ne vaut plus
    rien : le jour où un incident ressort, on veut pouvoir remonter avant la remise à zéro.
+   (SAUF POUR UNE ENTREPRISE SUPPRIMÉE — Justin, 28 octobre 2026 : sa surveillance part avec elle, voir
+   `monPurgerEntreprise`. Ici on parle d'une entreprise qui VIT.)
    On pose donc un FILIGRANE — une date par espace — et les compteurs ne comptent que ce qui
    vient APRÈS. Conséquence voulue : un problème qui se reproduit réapparaît à la seconde, il
    n'est pas masqué ; seul le passé est mis de côté. */
@@ -1282,7 +1400,7 @@ app.post('/api/mailbox/connect', async (req, res) => {
      ligne suffisante : elle élève la marche, le quota au-dessus fait le vrai travail. */
   {
     const tCo = String((req.body || {}).teamId || '').slice(0, 80);
-    const connu = !!espaceParT(tCo) || Object.values(subs).some(x => x.teamId === tCo) || !!cnxData[tCo];
+    const connu = !!espaceParT(tCo) || Object.values(subs).some(x => abonneEntreprise(x, tCo)) || !!cnxData[tCo];
     if (!connu) {
       /* Pas de teamId ici non plus : /health est publique. */
       lastRefus = { ts: Date.now(), raison: 'mailbox/connect : espace inconnu' };
@@ -1434,7 +1552,7 @@ async function releveUneBoite(cfg, tag) {   // cfg = {host/port/user/pass} ; tag
         if (ferme) continue;
         if (teamId) {
           const payload = JSON.stringify({ title: '📥 Nouveau message' + (bonNum ? ' — ' + bonNum : ''), body: ((entry.fromName || fromAddr) + ' : ' + subj).slice(0, 240), url: '/app.html#v=boiteMail' });
-          const targets = Object.values(subs).filter(s => s.teamId === teamId);
+          const targets = Object.values(subs).filter(s => abonneEntreprise(s, teamId));
           for (const t of targets) { try { await webpush.sendNotification(t.sub, payload); } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } } }
         }
       }
@@ -1474,26 +1592,67 @@ app.get('/api/vapid', (req, res) => res.json({ key: config.vapidPublicKey }));
 app.post('/api/subscribe', (req, res) => {
   const { sub, teamId, userId, userName } = req.body || {};
   if (!sub || !sub.endpoint || !teamId) return res.status(400).json({ error: 'sub et teamId requis' });
+  /* Le préfixe de la Tour est réservé : l'abonnement de la Tour passe par `/api/monitor/push/abonner` (patron). Refusé AVANT tout le reste, et
+     avant `espaceFerme` qui répondrait « ok » à qui n'a rien écrit. */
+  if (teamIdDeLaTour(teamId)) return res.status(400).json({ error: 'teamId réservé' });
+  /* une adresse de push est une adresse que CE SERVEUR appellera : https, un nom public (voir endpointPushValide) */
+  const epNorm = endpointPushValide(sub.endpoint);
+  if (!epNorm) return res.status(400).json({ error: 'adresse de notification refusée' });
+  /* Un appareil de la Tour ne se réécrit pas par la porte publique : qui connaîtrait son adresse le rétrograderait en abonné d'entreprise. */
+  if ((subs[epNorm] && subs[epNorm].tour === true) || (typeof sub.endpoint === 'string' && subs[sub.endpoint] && subs[sub.endpoint].tour === true)) return res.status(400).json({ error: 'adresse de notification réservée' });
   /* Un espace supprimé ne se laisse pas ressusciter par un appareil resté hors ligne :
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
   if (espaceFerme(String(teamId).slice(0, 80))) return res.json({ ok: true, ferme: true });
-  subs[sub.endpoint] = { sub, teamId: String(teamId).slice(0, 80), userId: String(userId || '').slice(0, 80), userName: String(userName || '').slice(0, 80), ts: Date.now() };
+  /* on range et on appelle l'adresse NORMALISÉE, jamais le texte reçu (voir endpointPushValide : deux analyseurs, deux lectures) */
+  subs[epNorm] = { sub: { endpoint: epNorm, keys: sub.keys }, teamId: String(teamId).slice(0, 80), userId: String(userId || '').slice(0, 80), userName: String(userName || '').slice(0, 80), ts: Date.now() };
   saveSubs();
   res.json({ ok: true });
 });
 
 app.post('/api/unsubscribe', (req, res) => {
   const ep = req.body && req.body.endpoint;
-  if (ep && subs[ep]) { delete subs[ep]; saveSubs(); }
+  /* un abonnement de la Tour ne se retire pas par la porte publique (`/api/monitor/push/desabonner`) */
+  /* l'appareil redonne l'adresse qu'il a reçue de son navigateur : on cherche telle quelle ET normalisée (c'est sous cette forme qu'on l'a rangée) */
+  if (ep && typeof ep === 'string') {
+    let retire = false;
+    for (const k of [ep, endpointPushValide(ep)]) { if (k && subs[k] && subs[k].tour !== true) { delete subs[k]; retire = true; } }
+    if (retire) saveSubs();
+  }
   res.json({ ok: true });
+});
+
+/* L'abonnement de la Tour : patron seulement (`monPatronStrict`, la garde la plus stricte du fichier : jeton patron valide, compte actif, rôle relu).
+   Les notifications de la Tour portent des noms et des objets de courriels de clients ; un collaborateur n'a pas à les recevoir sur son téléphone
+   sans que le patron l'ait décidé. Le teamId est posé ICI, jamais lu du corps. La page de la Tour n'a pas encore de bouton : il viendra avec la
+   Tour unifiée — la route attend, rien d'existant n'en dépend. */
+app.post('/api/monitor/push/abonner', monPatronStrict, (req, res) => {
+  const sub = (req.body || {}).sub;
+  const ep = sub && typeof sub === 'object' ? endpointPushValide(sub.endpoint) : null;
+  if (!ep) return res.status(400).json({ error: 'adresse de notification refusée' });
+  const k = sub.keys;
+  if (!k || typeof k.p256dh !== 'string' || typeof k.auth !== 'string' || !k.p256dh || !k.auth || k.p256dh.length > 200 || k.auth.length > 200) return res.status(400).json({ error: 'clés de notification manquantes' });
+  subs[ep] = { sub: { endpoint: ep, keys: { p256dh: k.p256dh, auth: k.auth } }, teamId: PUSH_PREFIXE_TOUR, userId: String(req.tourUser.id || '').slice(0, 80), userName: String(req.tourUser.nom || '').slice(0, 80), ts: Date.now(), tour: true };
+  saveSubs();
+  res.json({ ok: true, appareils: abonnesDeLaTour().length });
+});
+app.post('/api/monitor/push/desabonner', monPatronStrict, (req, res) => {
+  const ep = (req.body || {}).endpoint;
+  let retire = false;
+  if (typeof ep === 'string') {
+    for (const k of [ep, endpointPushValide(ep)]) { if (k && subs[k] && subs[k].tour === true) { delete subs[k]; retire = true; } }
+    if (retire) saveSubs();
+  }
+  res.json({ ok: true, retire, appareils: abonnesDeLaTour().length });
 });
 
 // envoi d'une notification à une équipe (tous ses appareils abonnés)
 app.post('/api/notify', async (req, res) => {
   const { teamId, title, body, url, exceptUserId, userIds } = req.body || {};
   if (!teamId || !title) return res.status(400).json({ error: 'teamId et title requis' });
+  /* hameçonnage vers le patron : le préfixe de la Tour n'est la cible d'aucune notification d'entreprise */
+  if (teamIdDeLaTour(teamId)) return res.status(400).json({ error: 'teamId réservé' });
   const payload = JSON.stringify({
     title: String(title).slice(0, 120),
     body: String(body || '').slice(0, 300),
@@ -1523,7 +1682,7 @@ app.post('/api/notify', async (req, res) => {
     })()
   });
   const targets = Object.values(subs).filter(s =>
-    s.teamId === teamId &&
+    abonneEntreprise(s, teamId) &&
     (!exceptUserId || s.userId !== exceptUserId) &&
     (!Array.isArray(userIds) || userIds.length === 0 || userIds.includes(s.userId))
   );
@@ -1546,7 +1705,7 @@ const mailQuota = new Map();
 // (prefixe/max : un compteur à part, par ex. pour les e-mails d'accès, qui ne rogne pas celui des documents)
 function mailQuotaRefus(req, teamId, prefixe, max) {
   prefixe = prefixe || ''; max = max || 30;
-  const teamConnue = Object.values(subs).some(s => s.teamId === teamId);
+  const teamConnue = Object.values(subs).some(s => abonneEntreprise(s, teamId));
   const cle = prefixe + (teamConnue ? teamId : 'ip:' + (req.ip || '?'));   // req.ip, jamais l'en-tête brut : il se falsifie
   const q = mailQuota.get(cle) || { count: 0, reset: Date.now() + 3600000 };
   if (Date.now() > q.reset) { q.count = 0; q.reset = Date.now() + 3600000; }
@@ -1582,7 +1741,7 @@ app.post('/api/sendmail', async (req, res) => {
      épuiser l'heure d'envoi d'une entreprise par des requêtes toutes refusées. */
   {
     const tEnv = String(teamId).slice(0, 80);
-    const connu = !!espaceParT(tEnv) || Object.values(subs).some(x => x.teamId === tEnv) || !!cnxData[tEnv];
+    const connu = !!espaceParT(tEnv) || Object.values(subs).some(x => abonneEntreprise(x, tEnv)) || !!cnxData[tEnv];
     if (!connu) {
       /* Pas de teamId dans lastRefus : /health est publique, et un teamId est la seule clé
          d'accès aux routes de messagerie. Le motif suffit au diagnostic. La règle vaut pour TOUS les
@@ -1646,7 +1805,7 @@ app.post('/api/compte/identifiants', async (req, res) => {
   // Anti-hameçonnage : cette route envoie un e-mail officiel avec un lien d'espace → seulement pour un espace
   // que le serveur connaît (annuaire, ou appareils abonnés aux notifications), jamais pour un espace inventé.
   const esp = espaceParT(t);
-  const espaceConnu = !!esp || Object.values(subs).some(s => s.teamId === t);
+  const espaceConnu = !!esp || Object.values(subs).some(s => abonneEntreprise(s, t));
   if (!espaceConnu) { lastRefus = { ts: Date.now(), raison: 'accès : espace inconnu' }; return res.status(403).json({ error: 'espace inconnu du serveur — transmets les accès toi-même' }); }
   const refus = mailQuotaRefus(req, t, 'acces:', 20);
   if (refus) return res.status(429).json({ error: refus });
@@ -1815,11 +1974,21 @@ function mailPromoActive(teamT, code, finLe, formule) {
     }).catch(() => {});
   } catch (err) {}
 }
+function cleApiValide(fournie) {
+  if (typeof config.apiKey !== 'string' || config.apiKey.length < 32) return false;
+  if (typeof fournie !== 'string') return false;
+  const h = (x) => crypto.createHash('sha256').update(x).digest();
+  return crypto.timingSafeEqual(h(fournie), h(config.apiKey));
+}
 // envoi d'e-mail (rapports, avis de passage) — nécessite la config smtp
 app.post('/api/email', async (req, res) => {
   if (!mailer) return res.status(503).json({ error: "e-mail non configuré sur le serveur (config.json → smtp)" });
   const { key, to, subject, text, html } = req.body || {};
-  if (key !== config.apiKey) return res.status(403).json({ error: 'clé invalide' });
+  /* ⛔ Revue Trail of Bits, I1 : sans `config.apiKey` ET sans `key` dans la requête, `undefined !== undefined` est FAUX — la garde laissait passer, et
+     la route envoyait un courriel arbitraire depuis le SMTP de TeamOP. Une configuration reconstruite ou restaurée sans ce champ ouvrait un relais.
+     Une clé absente, vide ou courte FERME la route (même réponse que la clé fausse : on ne dit pas à un anonyme si la clé est posée) ; la comparaison
+     se fait sur deux empreintes, en temps constant. Aucun appelant dans le dépôt (vérifié le 28 octobre 2026). */
+  if (!cleApiValide(key)) return res.status(403).json({ error: 'clé invalide' });
   if (!to || !subject) return res.status(400).json({ error: 'to et subject requis' });
   try {
     await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to, subject: String(subject).slice(0, 200), text, html });
@@ -1875,13 +2044,159 @@ function monPurge() {
   }
 }
 let monSaveTimer = null;
+/* L'écriture elle-même, séparée de la minuterie : une purge d'entreprise supprimée doit l'écrire TOUT DE SUITE et savoir si elle a
+   réussi (voir `monPurgerEntreprise`) — la version différée ne rend rien, c'est son contrat. */
+function monEcrire() {
+  /* Fichier temporaire PUIS renommage (comme `espacesEcrire`) : monitor.json porte aussi les comptes de la Tour, et une coupure en
+     pleine écriture le tronquait, sans seconde copie. Le temporaire est enlevé si l'écriture échoue.
+     ⛔ SAUF LÀ OÙ LE DOSSIER N'EST PAS À NOUS : sur test.teamop.fr, l'unité (`server/install-test.sh`) est en ProtectSystem=strict et
+     ReadWritePaths ne nomme QUE le fichier monitor.json — le dossier refuse le temporaire (EROFS), et un fichier monté seul refuse
+     d'être remplacé par un renommage (EBUSY). Sans repli, plus rien ne s'écrivait : la Tour de test perdait ses comptes à chaque
+     redémarrage, le défaut exact que `tests/test-2989.js` garde. On écrit alors le fichier lui-même, comme avant ; toute AUTRE erreur
+     (un dossier à la place du temporaire, un disque plein) laisse l'ancien fichier entier et se dit. `tests/test-3102.js` joue les deux. */
+  const tmp = MONITOR_PATH + '.tmp';
+  try {
+    monPurge();
+    const json = JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions });
+    try { fs.writeFileSync(tmp, json, { mode: 0o600 }); fs.renameSync(tmp, MONITOR_PATH); }
+    catch (e) {
+      try { fs.rmSync(tmp, { force: true }); } catch (err) {}
+      if (!['EROFS', 'EACCES', 'EPERM', 'EBUSY'].includes(e && e.code)) throw e;
+      fs.writeFileSync(MONITOR_PATH, json, { mode: 0o600 });
+    }
+    return true;
+  } catch (e) { console.error('monitor save:', e.message); return false; }
+}
 function monSave() {
   clearTimeout(monSaveTimer);
-  monSaveTimer = setTimeout(() => {
-    try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions }), { mode: 0o600 }); } catch (e) { console.error('monitor save:', e.message); }
-  }, 500);
+  monSaveTimer = setTimeout(monEcrire, 500);
 }
 monPurge();
+
+/* ══ EFFACER LA SURVEILLANCE D'UNE ENTREPRISE SUPPRIMÉE — Justin, 28 octobre 2026 : « on peut supprimer l'historique » ══════
+   La suppression totale efface l'annuaire, les connexions, le socle, les sauvegardes, les boîtes… mais laissait `monitor.json`
+   (incidents, archive) et `bugs.jsonl` : les adresses e-mail des salariés d'une entreprise SUPPRIMÉE restaient dans la
+   Surveillance, et la Tour continuait d'afficher « ELAN · 45 problèmes » pour un client parti. La règle « ON N'EFFACE RIEN »
+   (compteurs-zero, plus haut) vaut pour une entreprise qui VIT : sa trace sert à remonter un incident. Une entreprise supprimée
+   n'a plus personne à qui rendre ce service, et ses données personnelles n'ont plus de raison d'être gardées.
+   Ce qui part : les entrées `entreprises[]` des incidents (vivants ET archivés) dont le NOM ou l'ADRESSE désigne l'entreprise ;
+   l'incident entier quand plus aucune entreprise ne le porte ; les lignes de `bugs.jsonl` de son identifiant et de ses noms d'accès.
+   Ce qui reste, exprès :
+   · les incidents d'OP MESSAGES (`monAppDeTag` = messages) : OP MESSAGES n'est pas touché par la suppression d'OP GESTION (décision
+     du 22 septembre 2026), et son nom d'entreprise y désigne autre chose qu'un espace de l'annuaire ;
+   · `appareils` d'un incident qui reste : c'est un dictionnaire « appareil → nombre », sans lien avec l'entreprise qui l'a envoyé
+     (ni nom ni adresse) — on ne peut ni l'attribuer ni le défaire, et il ne désigne personne ;
+   · les gestes du patron : ils sont ANONYMISÉS (le nom, l'identifiant ou l'adresse masquée de l'entreprise devient « entreprise
+     supprimée »), jamais effacés — qui a fait quoi doit rester lisible après une session volée ;
+   · une entreprise qui VIT : le nom ou l'adresse qu'une AUTRE entrée de l'annuaire porte encore n'est jamais purgé (deux entreprises
+     peuvent partager une adresse). Les identifiants techniques de l'espace par défaut (`ESPACES_INTOUCHABLES`) non plus.
+   Elle rend des NOMBRES (jamais un nom) : `issues` (incidents vivants retirés), `archive` (incidents archivés retirés),
+   `entreprises` (entrées retirées, partout), `bugs` (lignes brutes retirées, `null` si la réécriture a ÉCHOUÉ — un échec se voit,
+   zéro veut dire « rien trouvé »), `ecrit` (monitor.json écrit à l'instant). Une trace SANS donnée est notée pour le patron. */
+/* La clé de comparaison d'un NOM : sans accents ni casse, toute suite de signes qui ne sont ni lettre ni chiffre repliée en une espace — pour que
+   « Delta Propreté » (le nom que le téléphone envoie) et « delta-proprete » (son nom d'accès) se reconnaissent. */
+const monNomCle = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const MON_ANONYME = 'entreprise supprimée';
+/* Réécriture atomique de bugs.jsonl : fichier temporaire PUIS renommage, comme `espacesEcrire` (un journal tronqué n'a pas de
+   seconde copie). Rend le nombre de lignes retirées, ou NULL si elle a échoué (le temporaire est alors enlevé). */
+function monBugsRetirer(equipes) {
+  let n = 0;
+  const tmp = BUGS_PATH + '.tmp';
+  try {
+    if (!fs.existsSync(BUGS_PATH)) return 0;
+    const restant = fs.readFileSync(BUGS_PATH, 'utf8').split('\n').filter(l => {
+      if (!l.trim()) return false;
+      try { const b = JSON.parse(l); if (b && equipes.has(String(b.team || ''))) { n++; return false; } } catch (err) {}
+      return true;
+    });
+    if (!n) return 0;   // rien à retirer : on ne réécrit pas un journal pour rien
+    fs.writeFileSync(tmp, restant.length ? restant.join('\n') + '\n' : '');
+    fs.renameSync(tmp, BUGS_PATH);
+  } catch (e) { console.error('purge de bugs.jsonl :', e.message); try { fs.rmSync(tmp, { force: true }); } catch (err) {} return null; }
+  return n;
+}
+/* Un espace est-il VIVANT ? Connu du serveur (annuaire ou journal de connexions), non fermé, et ni l'entreprise qu'on purge (`sauf`)
+   ni l'espace par défaut (partagé : il ne désigne aucune entreprise). C'est ce qui relie une entrée d'incident à une entreprise qui VIT,
+   même quand le nom saisi dans l'application diffère de celui de l'annuaire. */
+function monEspaceVivant(x, sauf) {
+  x = String(x || '');
+  if (!x || ESPACES_INTOUCHABLES.includes(x) || (sauf && sauf.has(x)) || espaceFerme(x)) return false;
+  return Array.isArray(cnxData[x]) || !!espaceParT(x);
+}
+function monPurgerEntreprise(o) {
+  o = o || {};
+  const intouchable = x => ESPACES_INTOUCHABLES.includes(String(x || ''));
+  const t = intouchable(o.t) ? '' : String(o.t || '');
+  /* ⛔ Un annuaire qu'on n'a pas pu lire ne dit pas qui VIT : aucun nom, aucune adresse ne se purge sur son silence (`vivNoms` serait vide). */
+  const lisible = !espacesIllisible;
+  const slugs = lisible ? (o.slugs || []).map(String).filter(x => x && !intouchable(x)) : [];
+  /* Ce qu'une entreprise VIVANTE porte encore (autre identifiant que `t`) : jamais purgé. */
+  const vivNoms = new Set(), vivMails = new Set();
+  for (const k of ESPACES_INTOUCHABLES) vivNoms.add(monNomCle(k));   // le nom de l'espace par défaut non plus : il est partagé par toutes les entreprises sans clé propre
+  for (const [slug, e] of Object.entries(espacesReg)) {
+    if (!e || slugs.includes(slug) || (t && espaceT(e) === t)) continue;   // les entrées qu'on purge ne sont pas « vivantes »
+    vivNoms.add(monNomCle(slug)); const n = monNomCle(espNomPropre(e)); if (n) vivNoms.add(n);
+    if (e.email) vivMails.add(String(e.email).toLowerCase());
+  }
+  const noms = new Set(lisible ? [...(o.noms || []), ...slugs].map(monNomCle).filter(x => x && x !== 'inconnue' && !vivNoms.has(x)) : []);
+  /* ⛔ LES ADRESSES VIENNENT DE L'ANNUAIRE, JAMAIS DES INCIDENTS (l'appelant le garantit) : un incident naît d'un corps de requête public, et
+     une adresse qu'on y relèverait deviendrait une clé de purge pour TOUS les noms. */
+  const emails = new Set(lisible ? (o.emails || []).map(x => String(x || '').toLowerCase().trim()).filter(x => x && !vivMails.has(x)) : []);
+  /* les espaces de l'entreprise qu'on purge (pour les lignes brutes) et ceux des entrées qu'on retire — voir plus bas */
+  const siens = new Set([t, ...slugs].filter(Boolean));
+  const tMorts = new Set();
+  const r = { issues: 0, archive: 0, entreprises: 0, bugs: 0, ecrit: true };
+  if (!noms.size && !emails.size && !t && !slugs.length) return r;
+  /* Une entrée désigne l'entreprise par son NOM, ou par son ADRESSE — celle-ci seulement si le nom n'est pas celui d'une entreprise qui vit
+     (une adresse écrite dans un incident ne prouve rien). Et jamais une entrée venue d'un espace VIVANT autre que le sien : deux entreprises
+     peuvent se donner le même nom dans l'application. */
+  const vise = e => {
+    if (!e) return false;
+    if (Array.isArray(e.espaces) && e.espaces.some(x => monEspaceVivant(x, siens))) return false;
+    const n = monNomCle(e.nom || e.entreprise);
+    return noms.has(n) || (!!e.email && !vivNoms.has(n) && emails.has(String(e.email).toLowerCase()));
+  };
+  const trier = (liste, cle) => liste.filter(i => {
+    if (!i || monAppDeTag(i.app) === 'messages') return true;
+    const ents = Array.isArray(i.entreprises) ? i.entreprises : [];
+    const sortants = ents.filter(vise);
+    if (!sortants.length) return true;
+    r.entreprises += sortants.length;
+    for (const e of sortants) for (const x of (Array.isArray(e.espaces) ? e.espaces : [])) if (x && !intouchable(x)) tMorts.add(String(x));   // espaces désormais sans entreprise : leurs lignes brutes partent
+    const restants = ents.filter(e => !vise(e));
+    /* plus aucune entreprise : l'incident n'a plus de raison d'être — sauf si la liste avait atteint son plafond de 60
+       (`/api/monitor/report`) : d'autres entreprises, non listées, ont aussi compté, il reste alors avec ce qui est à elles. */
+    if (!restants.length && ents.length < 60) { r[cle]++; return false; }
+    i.entreprises = restants;
+    i.count = Math.max(restants.reduce((s, e) => s + (+e.count || 0), 0), (+i.count || 0) - sortants.reduce((s, e) => s + (+e.count || 0), 0));
+    return true;
+  });
+  monIssues = trier(monIssues, 'issues');
+  monArchive = trier(monArchive, 'archive');
+  /* les gestes et les connexions du journal : anonymisés, jamais effacés. Un champ qui désigne l'entreprise (son nom, son identifiant, une
+     adresse masquée) est remplacé EN ENTIER. `qui` n'est JAMAIS touché : c'est le compte de la Tour qui a agi, et un patron qui porte
+     le prénom d'un client resterait lisible. */
+  const marques = new Set([...noms, ...(t ? [monNomCle(t)] : []), ...[...emails].map(m => monNomCle(masqueMail(m)))]);
+  /* Un nom fait d'UN SEUL mot (« Gestion », « Nettoyage », « Test ») ne se reconnaît que tel quel : retrouvé comme mot d'un nom plus long, il
+     anonymiserait les gestes d'une AUTRE entreprise qui le contient. Un nom de plusieurs mots, lui, se reconnaît dans un texte. */
+  const cite = (v) => { const c = monNomCle(v); if (!c) return false; if (marques.has(c)) return true;
+    for (const m of marques) if (m.length >= 4 && m.includes(' ') && new RegExp('(^|[^a-z0-9])' + m + '([^a-z0-9]|$)').test(c)) return true; return false; };
+  for (const liste of [monJournal, monActions]) for (const x of liste) {
+    if (!x || typeof x !== 'object') continue;
+    for (const k of ['cible', 'motif', 'detail']) if (typeof x[k] === 'string' && cite(x[k])) x[k] = MON_ANONYME;
+  }
+  /* bugs.jsonl : par identifiant ET par noms d'accès — jamais l'espace par défaut, partagé par toutes les entreprises sans clé propre */
+  const equipes = new Set([...siens, ...(lisible ? tMorts : [])]);
+  r.bugs = equipes.size ? monBugsRetirer(equipes) : 0;
+  const brutes = (r.bugs || 0) + (+o.brutesDeja || 0);
+  if (r.issues || r.archive || r.entreprises || brutes || o.brutesDeja) {
+    monActions.push({ ts: Date.now(), qui: monStr(o.par || 'Tour', 60), geste: 'surveillance purgée : ' + (r.issues + r.archive) + ' incidents, ' + brutes + ' lignes brutes (' + MON_ANONYME + ')', cible: '', app: 'gestion' });
+    if (monActions.length > MON_ACTIONS_MAX) monActions = monActions.slice(-MON_ACTIONS_MAX);
+  }
+  clearTimeout(monSaveTimer);
+  r.ecrit = monEcrire();
+  return r;
+}
 
 const MON_TYPES = ['erreur', 'lenteur', 'reseau'];
 const monStr = (v, n) => String(v == null ? '' : v).slice(0, n);
@@ -1892,6 +2207,7 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = null; } }   // navigator.sendBeacon envoie en text/plain
     const reports = body && Array.isArray(body.reports) ? body.reports.slice(0, 40) : null;
     if (!reports || !reports.length) return res.status(400).json({ error: 'reports requis' });
+    let fermes = 0, ecrits = 0;   // rapports d'un espace fermé écartés / rapports écrits
     for (const r of reports) {
       if (!r || typeof r !== 'object') continue;
       const type = MON_TYPES.includes(r.type) ? r.type : 'erreur';
@@ -1917,6 +2233,13 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
          n'écrit RIEN : la Tour retombe sur la déduction, qu'elle sait déjà annoncer comme telle. */
       const qui = monStr(r.user, 40).toLowerCase().trim();
       const quiEspace = monStr(r.espace, 80).trim();
+      /* Un espace FERMÉ ou SUPPRIMÉ ne se laisse pas ressusciter par un téléphone resté sur l'ancienne application (Justin, 28 octobre
+         2026 : « ELAN · 45 problèmes · dernier il y a 1 j » après sa suppression) : on n'écrit RIEN, comme `/api/bug`. Le champ qui désigne
+         l'espace s'appelle `espace` dans ce corps (`tmQui`, app.html — l'identifiant d'équipe lu dans `elan_sync_team`) ; un rapport qui
+         n'en porte pas (une version d'avant la v683, la page d'inscription, OP MESSAGES) garde le comportement d'avant : le serveur ne
+         peut pas savoir de quelle entreprise il vient, donc il l'écrit. */
+      if (quiEspace && espaceFerme(quiEspace)) { fermes++; continue; }
+      ecrits++;
       const count = Math.min(500, Math.max(1, parseInt(r.count, 10) || 1));
       const now = Date.now();
       /* Tri à l'entrée : un « gel » de plus d'une minute n'est pas un gel.
@@ -1960,6 +2283,12 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       let ent = issue.entreprises.find(e => e.nom === entNom);
       if (!ent) { ent = { nom: entNom, email: entEmail, count: 0, lastTs: now }; if (issue.entreprises.length < 60) issue.entreprises.push(ent); }
       ent.count += count; ent.lastTs = now; if (entEmail && !ent.email) ent.email = entEmail;
+      /* ⛔ D'OÙ VIENT L'ENTRÉE : le nom que le téléphone envoie est celui qu'on a saisi dans l'application, pas celui de l'annuaire — le seul lien
+         sûr avec une entreprise est l'espace. On ne l'écrit que s'il est CONNU du serveur (annuaire ou journal de connexions : un inconnu ne
+         désigne personne) et jamais pour l'espace par défaut (partagé). Dix au plus, le plus ancien cède. La purge d'une entreprise
+         supprimée (`monPurgerEntreprise`) s'en sert pour ne pas toucher à une entreprise qui vit, et pour retrouver ses lignes brutes. */
+      if (quiEspace && !ESPACES_INTOUCHABLES.includes(quiEspace) && (Array.isArray(cnxData[quiEspace]) || espaceParT(quiEspace)))
+        ent.espaces = (Array.isArray(ent.espaces) ? ent.espaces : []).filter(x => x !== quiEspace).concat(quiEspace).slice(-10);
       /* Les personnes touchées, par entreprise. TROIS RÈGLES, et les trois viennent d'un
          défaut rejoué plutôt que supposé :
          1. ⛔ CORROBORÉ. On ne retient l'identifiant que si le journal des connexions de CET
@@ -1995,8 +2324,8 @@ app.post('/api/monitor/report', express.text({ type: 'text/plain', limit: '200kb
       }
       if (Object.keys(issue.appareils).length < 20 || issue.appareils[appareil]) issue.appareils[appareil] = (issue.appareils[appareil] || 0) + count;
     }
-    monSave();
-    res.json({ ok: true });
+    if (ecrits) monSave();
+    res.json(fermes && !ecrits ? { ok: true, ferme: true } : { ok: true });   // même forme que /api/bug : l'appareil n'a rien fait de mal
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
@@ -2130,6 +2459,7 @@ const MON_GESTES = {
   'users': 'a créé un compte de la Tour', 'users/toggle': 'a désactivé ou réactivé un compte de la Tour',
   'users/delete': 'a supprimé un compte de la Tour', 'users/apps': 'a changé les consoles d’un compte de la Tour',
   'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',
+  'push/abonner': 'a branché un appareil sur les notifications de la Tour', 'push/desabonner': 'a débranché un appareil des notifications de la Tour',
   'beta/toggle': 'a coupé ou rouvert un accès bêta', 'beta/delete': 'a supprimé un accès bêta',
   'espaces': 'a ouvert ou repris le lien de connexion d’une entreprise', 'espaces/lien-existant': null,
   'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/cats': 'a choisi les catégories d’OP GESTION d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
@@ -2146,6 +2476,7 @@ const MON_GESTES = {
   'version-min': 'a changé la version exigée d’OP GESTION', 'messages/version-min': 'a changé la version exigée d’OP MESSAGES',
   'messages/publier': 'a publié OP MESSAGES', 'clients/retirer': 'a demandé ou confirmé le retrait d’un client du site',
   'entreprise/apercu-suppression': null, 'entreprise/supprimer': 'a demandé ou confirmé la suppression d’une entreprise',
+  'issues/purger-entreprise': null,   // la fonction note elle-même « surveillance purgée : N incidents, M lignes brutes » — sans nom, avec les nombres
   'issues/tout-ignorer': 'a remis Surveillance à zéro', 'status': 'a changé le statut d’un incident',
   'expliquer': 'a demandé l’explication d’un incident', 'proposer': 'a demandé une correction pour un incident',
   'support/connect': 'a relié la boîte support', 'support/reply': 'a répondu à un courriel', 'support/envoyer': 'a envoyé un courriel',
@@ -4697,6 +5028,8 @@ function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
+let annonceurFaits = null;    // les annonces « Je viens de… » dans Équipe (`agent-faits.js`) : `null` = pas montées, les agents ne les écrivent pas — le travail, lui, se fait quand même
+let alertesBudgetJour = null; // ce que Justin voit quand un budget du jour se remplit (`agent-budget-jour.js`) : `null` = pas monté, le budget se tient quand même (`cerveau.js`)
 let pontMessages = null;     // le pont vers OP MESSAGES (`pont-messages.js`) : `null` = pas monté (rien dans la configuration, ou une configuration refusée) — les agents n'en dépendent jamais
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
@@ -4705,6 +5038,7 @@ let agentCamille = null;     // Camille (`agent-camille.js`) : la réponse à un
 let brouillonsMod = null;    // les brouillons de Léa et de Camille, et ce qui les fait partir (`agents-brouillons.js`)
 let docsAgentsMod = null;     // les courriels d'agents de gestion, la mise en demeure et l'annonce à tous, validés par Justin (`agents-documents.js`) : `null` = pas monté
 let agentMargaux = null;     // Margaux (`agent-margaux.js`) : les relances d'impayé et la mise en demeure préparée — `null` = pas montée
+let agentCompta = null;       // Margaux, comptable de la Tour (`agent-compta.js`, 28 octobre 2026) : le point de l'argent, les factures Stripe vérifiées, le calendrier de la loi, ses rappels — `null` = pas montée
 let agentEmma = null;        // Emma (`agent-emma.js`) : les rendez-vous avec les prospects — `null` = pas montée
 let agentSarah = null;       // Sarah (`agent-sarah.js`) : les annonces aux clients, rédigées pour la validation de Justin — `null` = pas montée
 let signaturesMod = null;    // la signature de chaque agent, posée par le serveur à l'envoi (`agents-signature.js`)
@@ -6054,7 +6388,9 @@ function cleEquipeVerdict(t, kh) {
    protégée ; il repart donc à zéro au redémarrage, ce qui suffit pour la mesure visée. */
 function cleEquipeObserve(req, res, next) {
   const src = (req.method === 'GET') ? (req.query || {}) : (req.body || {});
-  const t = String(src.teamId || src.t || '');
+  /* un `teamId` qui est un objet à `toString` piégé fait jeter String() : le point de passage compte et laisse passer, il ne fait pas tomber la route */
+  let t = '';
+  try { t = String(src.teamId || src.t || ''); } catch (e) {}
   /* Uniquement l'en-tête. Le lire aussi dans la requête (donc dans « ?kh= ») le ferait
      entrer dans les journaux d'accès nginx et dans l'historique du navigateur — exactement
      ce que le commentaire d'app.html jure d'éviter. Vérifié : l'application n'envoie que
@@ -6231,15 +6567,7 @@ try {
 try {
   /* `pousseNotif` : la notification au téléphone du patron (abonnements de la Tour), pour « un mail de Pauline attend ton accord ». Appelée bien après
      le démarrage : `subs` et `webpush` sont des déclarations de tête de fichier, initialisées depuis longtemps. */
-  const pousseNotifPauline = async (titre, corps, url) => {
-    const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || '/tour.html#messagerie' });
-    const cibles = Object.values(subs).filter(x => /^teamop-controle/.test(x.teamId || ''));
-    for (const t of cibles) {
-      try { await webpush.sendNotification(t.sub, payload); }
-      catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } }
-    }
-    return cibles.length;
-  };
+  const pousseNotifPauline = (titre, corps, url) => pousserALaTour(titre, corps, url, '/tour.html#messagerie');
   require('./pauline')(app, { config, DATA_DIR, monPatronStrict, pousseNotif: pousseNotifPauline });
 } catch (e) {
   console.error('pont de Pauline non monté :', e.message);
@@ -8761,6 +9089,8 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   retraitCodes.delete('t:' + t);
 
   const fait = {};
+  /* les noms de l'entreprise tels que ses téléphones les envoient : relevés tant que l'annuaire existe (voir 6 bis) */
+  const nomsEnt = [inv.nom, ...inv.slugs.map(sl => espNomPropre(espacesReg[sl]) || String((espacesReg[sl] || {}).nom || ''))].filter(x => x && !/@/.test(x));
 
   // ── 1. LE BLOCAGE D'ABORD. Sans lui, le premier appareil qui rouvre repousse toute sa
   //       base chiffrée et défait tout ce qui suit. Voir app.html vers la ligne 5131.
@@ -8869,6 +9199,15 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   fait.erreurs = purgeJournal(BUGS_PATH, b => !(b && b.team === t));
   fait.reponsesMail = purgeJournal(REPLIES_PATH, r => !(r && r.teamId === t));
   fait.bonsEnvoyes = purgeJournal(SENTMAP_PATH, x => !(x && x.teamId === t));
+  /* ── 6 bis. LA SURVEILLANCE (Justin, 28 octobre 2026 : « on peut supprimer l'historique »). Les incidents que les téléphones de CETTE
+     entreprise avaient remontés portent son nom et l'adresse de ses salariés ; `monPurgerEntreprise` les retire d'un coup (vivants,
+     archivés, lignes brutes restantes), anonymise le journal de la Tour et laisse une trace sans nom. Faite APRÈS le blocage (étape 1) : un
+     téléphone encore ouvert ne peut plus en réécrire (`/api/monitor/report` écarte un espace fermé). Les noms sont relevés ICI, avant que
+     l'annuaire ne soit vidé par l'étape suivante — plus haut, `inv` ne garde que le premier. */
+  try {
+    fait.surveillance = monPurgerEntreprise({ t, noms: nomsEnt, emails: inv.emails, slugs: inv.slugs, brutesDeja: fait.erreurs || 0, par: req.tourUser.nom });
+  } catch (e) { console.error('suppression : surveillance non purgée :', e.message); fait.surveillance = { issues: 0, archive: 0, entreprises: 0, bugs: null, ecrit: false }; }
+  req._gesteCible = MON_ANONYME;   // le geste « suppression d'une entreprise » ne garde ni son identifiant ni son nom dans le journal de la Tour
   /* Le même carnet vit AUSSI en mémoire : le purger sur disque sans le purger ici le
      laisserait servir jusqu'au prochain redémarrage. */
   try { sentMap = sentMap.filter(x => !(x && x.teamId === t)); } catch (e) {}
@@ -8949,7 +9288,8 @@ app.post('/api/monitor/entreprise/supprimer', monPatronStrict, async (req, res) 
   /* Une purge qui rend null a ÉCHOUÉ — ce n'est pas la même chose que « rien à purger ».
      Sans cette distinction, un journal trop gros pour être lu d'un coup faisait répondre
      « tout est propre ». */
-  const purgeRatee = fait.erreurs === null || fait.reponsesMail === null || fait.bonsEnvoyes === null;
+  const purgeRatee = fait.erreurs === null || fait.reponsesMail === null || fait.bonsEnvoyes === null
+    || !fait.surveillance || fait.surveillance.ecrit === false || fait.surveillance.bugs === null;
   if (purgeRatee) ecrit = false;
   /* ⛔ UNE COUPURE RATÉE EST UN AVERTISSEMENT, PAS UN DÉTAIL. Si les sessions Firebase n'ont
      pas pu être révoquées, les appareils déjà pourvus gardent l'accès aux données — et
@@ -8977,7 +9317,9 @@ app.get('/api/monitor/issues', monAdmin, (req, res) => {
   const compteurs = { nouveau: 0, encours: 0, corrige: 0, ignore: 0 };
   const entSet = new Set();
   for (const i of vis) { compteurs[i.statut] = (compteurs[i.statut] || 0) + 1; for (const e of i.entreprises || []) if (e.nom && e.nom !== 'inconnue') entSet.add(e.nom); }
-  res.json({ issues: vis.slice().sort((a, b) => (b.lastTs || 0) - (a.lastTs || 0)), compteurs, entreprises: entSet.size });
+  /* `espaces` (les identifiants d'équipe d'où viennent les entrées) sert la purge, pas l'écran : on ne le sert pas à la Tour. */
+  const sansEspaces = i => (i.entreprises || []).some(e => e && e.espaces) ? Object.assign({}, i, { entreprises: i.entreprises.map(e => { if (!e || !e.espaces) return e; const c = Object.assign({}, e); delete c.espaces; return c; }) }) : i;
+  res.json({ issues: vis.map(sansEspaces).sort((a, b) => (b.lastTs || 0) - (a.lastTs || 0)), compteurs, entreprises: entSet.size });
 });
 
 /* ══ TOUT REMETTRE À ZÉRO SUR SURVEILLANCE — 14 septembre 2026, demandé par Justin ═════════
@@ -9018,6 +9360,52 @@ app.post('/api/monitor/issues/tout-ignorer', monPatronStrict, (req, res) => {
   monSave();
   console.log('Tour :', req.tourUser.nom, 'remet Surveillance à zéro :', cibles.length, 'problème(s) ignoré(s)');
   res.json({ ok: true, classes: cibles.length });
+});
+/* ── EFFACER DE LA SURVEILLANCE UNE ENTREPRISE QUI N'EXISTE PLUS (Justin, 28 octobre 2026 : « on peut supprimer l'historique »).
+   La suppression totale le fait d'elle-même (`fait.surveillance`) ; cette route sert aux entreprises supprimées AVANT, dont la ligne
+   « Entreprises touchées » est restée (« ELAN · 45 problèmes · dernier il y a 1 j »). Corps : `{ nom }` — le nom EXACT que la liste affiche
+   (80 signes) — ou `{ t }`.
+   ⛔ UNE ENTREPRISE QUI VIT NE SE PURGE PAS : refus 409 tant qu'une entrée de l'annuaire porte ce nom (ou cet identifiant) sans être fermée,
+   ou qu'un espace connecté hors annuaire s'appelle ainsi. Ce qui part est écrit dans `monPurgerEntreprise` — les noms viennent de la demande et de l'annuaire, les
+   adresses de l'annuaire SEUL, et la réponse ne rend que des NOMBRES. Le geste est noté par la fonction (sans nom ni adresse),
+   donc `MON_GESTES` le laisse à `null` : une seconde ligne dirait la même chose. */
+app.post('/api/monitor/issues/purger-entreprise', monPatronStrict, (req, res) => {
+  const b = req.body || {};
+  const nom = monStr(b.nom, 80).trim(), t = monStr(b.t, 80).trim();
+  if (!nom && !t) return res.status(400).json({ error: 'nom ou identifiant d\'espace requis' });
+  if (t && ESPACES_INTOUCHABLES.includes(t)) return res.status(403).json({ error: REFUS_INTOUCHABLE });
+  const cle = monNomCle(nom);
+  if (!t && (!cle || cle === 'inconnue')) return res.status(400).json({ error: 'nom invalide' });
+  /* ⛔ L'ESPACE PAR DÉFAUT SE PROTÈGE PAR SON NOM COMME PAR SON IDENTIFIANT : c'est là que se signalent tous les appareils sans entreprise, et
+     « elan-gestion » est un nom qui paraît dans « Entreprises touchées ». */
+  if (cle && ESPACES_INTOUCHABLES.some(k => monNomCle(k) === cle)) return res.status(403).json({ error: REFUS_INTOUCHABLE });
+  /* ⛔ UN ANNUAIRE ILLISIBLE N'EST PAS UN ANNUAIRE VIDE : il ne dit pas qui vit, donc rien ne se purge (même règle que partout). */
+  if (espacesIllisible) return res.status(503).json({ error: 'L\'annuaire des entreprises n\'a pas pu être lu : on ne sait pas qui existe encore, rien n\'est effacé. Répare espaces.json, redémarre, puis réessaie.' });
+  const VIVANTE = { error: 'Cette entreprise existe encore dans l\'annuaire (ou s\'est connectée récemment) : sa surveillance ne s\'efface pas. Supprime d\'abord l\'entreprise.' };
+  /* l'annuaire : ce que l'entreprise porte encore (ses entrées), et si une est ouverte */
+  const entrees = Object.entries(espacesReg).filter(([slug, e]) => e && ((t && espaceT(e) === t)
+    || (cle && (monNomCle(slug) === cle || monNomCle(e.nom) === cle || monNomCle(espaceT(e)) === cle))));
+  if (entrees.some(([, e]) => !espaceFerme(espaceT(e)))) return res.status(409).json(VIVANTE);
+  if (t && !entrees.length && espaceParT(t) && !espaceFerme(t)) return res.status(409).json(VIVANTE);
+  if (t && cnxData[t] && !espaceFerme(t)) return res.status(409).json(VIVANTE);   // un espace hors annuaire qui se connecte encore
+  if (cle && Object.keys(cnxData).some(k => monNomCle(k) === cle && !espaceFerme(k) && !ESPACES_INTOUCHABLES.includes(k))) return res.status(409).json(VIVANTE);
+  const noms = new Set(nom ? [nom] : []), emails = new Set();
+  const dansIssues = [...monIssues, ...monArchive].filter(i => i && monAppDeTag(i.app) !== 'messages');
+  /* ⛔ L'espace d'où vient une entrée dit mieux qu'un nom : un téléphone envoie le nom saisi dans l'application, qui peut différer de celui de
+     l'annuaire (« Vivante Services SARL »). Si l'un des espaces portés par une entrée de ce nom VIT, c'est une entreprise qui vit. */
+  const sien = new Set([t, ...entrees.map(([, e]) => espaceT(e))].filter(Boolean));
+  if (cle) for (const i of dansIssues) for (const e of (i.entreprises || [])) {
+    if (!e || monNomCle(e.nom || e.entreprise) !== cle) continue;
+    noms.add(e.nom || e.entreprise);
+    if ((Array.isArray(e.espaces) ? e.espaces : []).some(x => monEspaceVivant(x, sien))) return res.status(409).json(VIVANTE);
+  }
+  /* ⛔ LES ADRESSES SORTENT DE L'ANNUAIRE SEUL, JAMAIS DES INCIDENTS : un rapport est un corps de requête public, et une adresse qu'on y lirait
+     deviendrait une clé de purge pour tous les noms (rejoué : l'incident d'une entreprise vivante partait avec celui d'un nom forgé). */
+  for (const [, e] of entrees) { const n = espNomPropre(e); if (n) noms.add(n); if (e.email) emails.add(String(e.email).toLowerCase()); }
+  const r = monPurgerEntreprise({ t, noms: [...noms], emails: [...emails], slugs: entrees.map(([slug]) => slug), par: req.tourUser.nom });
+  console.log('Tour :', req.tourUser.nom, 'efface la surveillance d\'une entreprise supprimée :', r.issues + r.archive, 'incident(s),', r.bugs, 'ligne(s) brute(s)');
+  if (!r.ecrit || r.bugs === null) return res.status(500).json(Object.assign({ error: 'L\'effacement n\'a pas pu être écrit entièrement — réessaie (disque plein ?).' }, r));
+  res.json(Object.assign({ ok: true }, r));
 });
 // changement de statut (admin) — « corrige » déclenche l'e-mail automatique aux entreprises touchées
 app.post('/api/monitor/status', monAdmin, async (req, res) => {
@@ -10511,15 +10899,7 @@ function adresseConnueGestion(adr) {
 }
 function adresseConnueMessages(adr) { return false; }
 try {
-  const pousseNotif = async (titre, corps, url) => {
-    const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || '/tour.html#support' });
-    const cibles = Object.values(subs).filter(x => /^teamop-controle/.test(x.teamId || ''));
-    for (const t of cibles) {
-      try { await webpush.sendNotification(t.sub, payload); }
-      catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } }
-    }
-    return cibles.length;
-  };
+  const pousseNotif = (titre, corps, url) => pousserALaTour(titre, corps, url, '/tour.html#support');
   /* `mailProtege` : les e-mails de sécurité que la Messagerie montre sans jamais les déplacer, les supprimer
      ni les marquer (voir plus haut). Et on garde ses boîtes (sans mot de passe) : `supprDestLisible` doit
      savoir si le code d'une suppression y atterrirait. */
@@ -10536,11 +10916,15 @@ try {
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
      emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
   try {
-    /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026) : lundi – vendredi, 9 h – 18 h, heure de Paris, fermé les jours fériés, sauf réglage de Justin. Montées DANS l'appel qui monte les
+    /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026) : tous les jours, 8 h – 24 h, heure de Paris, jours fériés compris (Justin, 28 octobre 2026 ; un registre déjà écrit est migré UNE fois au chargement, `REGLE`), un agent d'astreinte par couche la nuit (maintenance), sauf réglage de Justin. Montées DANS l'appel qui monte les
        agents, sous le même `try` : si le module ne se charge pas, les agents ne se montent pas non plus — jamais des agents ouverts parce que leur garde horaire a manqué. Elles entrent dans
        `peutAgir` (agents.js), la porte de tout geste d'agent ; l'examen de l'équipe, lui, monte sa propre équipe d'essai SANS elles (il se lance le soir). */
     agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif, horaires: require('./agents-horaires')({ DATA_DIR }),
-      cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
+      cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(config.agents && config.agents.cleApi),
+      /* L'ANNONCE DE FIN DE TRAVAIL (28 octobre 2026) : liaison TARDIVE — `agent-faits.js` se monte juste après les conversations. Une tâche terminée, une demande préparée, une validation exécutée, une tâche
+         qui expire : « Je viens de… » dans Équipe, hors plafonds, sans réveiller personne. */
+      surFait: f => { if (annonceurFaits) annonceurFaits.annoncer(f); },
+      surExpiration: x => { if (annonceurFaits) annonceurFaits.expiree(x); } });
     /* Ce qui est arrivé hors des heures (courriels, inscriptions) est repris à l'ouverture, le plus ancien d'abord : une vérification par minute. */
     setTimeout(() => { agentsMod.reprendreDifferes().catch(e => console.error('reprise des agents :', e && e.message)); }, 15000).unref();
     setInterval(() => { agentsMod.reprendreDifferes().catch(e => console.error('reprise des agents :', e && e.message)); }, 60000).unref();
@@ -10585,10 +10969,19 @@ try {
          `conversations.js` : une panne d'OP MESSAGES ne change rien à ce que les agents lisent et écrivent. */
       surAjout: (m) => { if (pontMessages) pontMessages.surAjout(m); },
       surRetrait: (x) => { if (pontMessages) pontMessages.surRetrait(x); },
+      /* les annonces d'une rafale (UNE ligne ×N sur 20 s) s'écrivent à la sortie du processus : un redémarrage ne les perd pas */
+      viderALaSortie: true,
       surMessage: (m) => agentEquipe ? agentEquipe.surMessage(m)
         : (m.de !== 'justin' ? null : (m.fil === 'hugo' ? (agentHugo ? agentHugo.repondre(m.texte) : null) : (agentsConversation ? agentsConversation.repondre(m.fil, m.texte) : null))) });
+    /* LES ANNONCES « Je viens de… » (`agent-faits.js`) : la phrase est composée par le code, jamais par Claude. */
+    annonceurFaits = require('./agent-faits')({ agents: agentsMod, conversations: conversationsMod });
+    /* CE QUE JUSTIN VOIT QUAND UN BUDGET DU JOUR SE REMPLIT : 80 % -> notification, 100 % -> une ligne dans le fil privé de l'agent, le filet -> une ligne dans Équipe et une notification urgente. */
+    alertesBudgetJour = require('./agent-budget-jour')({ agents: agentsMod, conversations: conversationsMod, pousseNotif });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
     const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '',
+      /* LE BUDGET DU JOUR (28 octobre 2026) : les seuils de `cerveau.js` se règlent ICI, sur le VPS (`config.agents.budgetJour = { agentMin, agentPct, nonRacine, filet, alerte }`), jamais dans le dépôt —
+         c'est le « relever aujourd'hui » de Justin : une valeur hors forme garde le défaut. */
+      plafondsJour: config.agents && typeof config.agents.budgetJour === 'object' ? config.agents.budgetJour : undefined, surBudget: x => alertesBudgetJour(x),
       /* espace de test seulement : le plafond du mois, tous agents confondus (10 $ chez Justin, y compris quand le réglage manque). Jamais lu hors `espaceTest`. */
       plafondTotalUsd: ESSAI ? essaisMod.plafondAgents(config.agents && config.agents.plafondMoisTotal) : undefined });
     console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
@@ -10700,7 +11093,9 @@ try {
       agentEquipe = require('./agent-equipe')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents,
         /* les outils propres à Hugo, Margaux, Emma et Sarah (fin d'abonnement, mise en demeure, créneaux, annonce) : liaison TARDIVE — leurs modules sont montés plus bas, et un
            agent non monté n'a simplement pas d'outil. Chacun ne vaut que d'un message de Justin (le module le vérifie, pas le prompt). */
-        outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; }, get margaux() { return agentMargaux && agentMargaux.outilsEquipe; },
+        outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; },
+          /* Margaux : la mise en demeure (`agent-margaux.js`) ET les quatre outils de la compta de la Tour (`agent-compta.js`), derrière UNE entrée — chacun ne vaut que d'un message de Justin dans son fil privé, le module le vérifie */
+          get margaux() { try { return require('./agent-compta').assembler(agentMargaux && agentMargaux.outilsEquipe, agentCompta && agentCompta.outilsEquipe); } catch (e) { return agentMargaux && agentMargaux.outilsEquipe; } },
           get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; },
           /* Victor planifie les réunions que Justin lui demande (`reunions.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
           get victor() { return reunionsMod && reunionsMod.outilsVictor; },
@@ -10967,6 +11362,27 @@ try {
         setInterval(() => { agentMargaux.passer().catch(e => console.error('margaux :', e.message)); }, 30 * 60000).unref();
       }
     } catch (e) { agentMargaux = null; console.error('Margaux indisponible :', e.message); }
+    /* MARGAUX, COMPTABLE DE LA TOUR — ÉTAPE 1 (28 octobre 2026, Justin : « un agent pro pour les devis, les factures et la compta — pour moi, pour la Tour »). Le point de l'argent, les factures Stripe vérifiées, le calendrier
+       de la loi, les réglages de Justin, et des rappels. ⛔ Ce bloc ne donne à `compta-stripe.js` qu'une fonction de LECTURE : un GET vers `/v1/invoices`, par la même `stripeMonGet` que les écrans de la Tour — ni la clé, ni un
+       autre verbe, ni une autre adresse. Les abonnés sont lus par le MÊME cache que l'écran Abonnements (`stripeCache`), jamais par la route (qui rend `mrr:0` quand Stripe tombe). Sous son propre `try` : s'il échoue, Margaux
+       garde ses relances et sa mise en demeure. Rien ne part chez un client, aucun document. */
+    try {
+      const cleCompta = () => (config.stripe && config.stripe.secretKey) || '';
+      const comptaStripeMod = require('./compta-stripe')({
+        lire: async (chemin) => {
+          const sk = cleCompta();
+          if (!sk) throw new Error('pas de clé Stripe');
+          if (typeof chemin !== 'string' || !/^\/v1\/invoices\?[A-Za-z0-9_=&.\-\[\]%]{0,400}$/.test(chemin)) throw new Error('chemin refusé');   // des FACTURES, en lecture : rien d'autre
+          return stripeMonGet('https://api.stripe.com' + chemin, sk);
+        },
+        convertir: stripePaiement,
+        abonnements: async () => stripeCache(stripeMonCache.abos, STRIPE_ABOS_VIDE, () => stripeAbosCalc(cleCompta()), 'stripe abos'),
+        configure: () => !!cleCompta() });
+      agentCompta = require('./agent-compta')({ agents: agentsMod, conversations: conversationsMod, fichier: fichierAgents, stripe: comptaStripeMod,
+        periodes: periodesOffertes, relances: () => (agentMargaux ? agentMargaux.etat() : null) });
+      setTimeout(() => { agentCompta.passer().catch(e => console.error('compta :', e.message)); }, 90 * 1000).unref();
+      setInterval(() => { agentCompta.passer().catch(e => console.error('compta :', e.message)); }, 60 * 60000).unref();
+    } catch (e) { agentCompta = null; console.error('compta de Margaux indisponible :', e.message); }
     /* EMMA : les rendez-vous avec les prospects qui veulent un appel (disponibilités réglées par Justin dans la Tour). L'adresse du prospect est celle de son DOSSIER. */
     try {
       if (docsAgentsMod && gestionClients) {
@@ -11053,6 +11469,8 @@ function devisCompte() { devisUtilises(); devisQuota.n++; try { fs.writeFileSync
 app.get('/api/devis/etat', (req, res) => {
   const team = String(req.query.team || '').trim().slice(0, 80);
   const rep = { ok: true, actif: devisActif(), quotaJour: devisQuotaJour(), utilises: devisUtilises(), restants: Math.max(0, devisQuotaJour() - devisUtilises()) };
+  /* Ce serveur lit le métier de l'entreprise (devisMetierDe) : l'application, hors 3D, n'envoie le Devis IA et l'assistant qu'à un serveur qui l'annonce — un serveur d'avant garde la consigne 3D. */
+  rep.metiers = true;
   if (team) rep.equipe = devisActif() && devisTeamOk(team);
   /* L'application n'affiche le second bouton que si l'entreprise y a droit. */
   if (team) { rep.offre = devisOffre(team); rep.approfondi = devisActif() && devisTeamOk(team) && rep.offre === 'deux'; }
@@ -11141,6 +11559,17 @@ const DEVIS_SCHEMA = {
   additionalProperties: false
 };
 
+/* ⛔ LE MÉTIER DES DEUX GÉNÉRATEURS DE DEVIS — UNE SEULE DÉCISION (server/devis-metier.js, qui dit où il se lit et pourquoi).
+   L'assistant (`/api/devis/agent`) et le « Devis IA » (`/api/devis/generer`) passent par ces deux fonctions : annuaire d'abord,
+   `metier` du corps seulement pour un espace sans fiche, borné aux métiers ouverts ; sinon la 3D d'avant. */
+const devisMetier = require('./devis-metier');
+function devisMetierDe(t, metierCorps) {
+  return devisMetier.resoudreMetier(t, metierCorps, { espaceDe: espaceParT, metierOk });
+}
+function devisVocabulaire(metier) {
+  return devisMetier.vocabulaireDe(metiersMod.ref, metiersMod.nom, metier);
+}
+
 app.post('/api/devis/generer', async (req, res) => {
   try {
     if (!devisActif()) return res.status(503).json({ error: 'Devis IA non configuré sur le serveur — sur le serveur : bash server/set-claude.sh' });
@@ -11155,7 +11584,9 @@ app.post('/api/devis/generer', async (req, res) => {
     if (!demande || String(demande).trim().length < 5) return res.status(400).json({ error: 'Décris la prestation à chiffrer' });
     if (devisUtilises() >= devisQuotaJour()) return res.status(429).json({ error: 'Quota du jour atteint (' + devisQuotaJour() + ' devis) — réessaie demain' });
 
-    const sys = "Tu prépares des devis pour une entreprise française de gestion de nuisibles (dératisation, désinsectisation, désinfection, dépigeonnage) et petits travaux associés. À partir de la demande, produis un devis réaliste et sobre : des lignes claires (désignation précise, quantité, prix unitaire HT en euros, cohérent avec le marché français), la main d'œuvre et le déplacement en lignes séparées quand c'est pertinent, TVA 20 par défaut (10 seulement pour des travaux d'amélioration d'un logement de plus de 2 ans). « remarque » : 1 ou 2 phrases utiles pour le client (garantie, nombre de passages, conditions). Pas de lignes de remplissage.";
+    /* La consigne suit le métier de l'ENTREPRISE (l'annuaire, jamais le corps pour qui y figure). Entreprise sans métier réglé : la 3D, mot pour mot. */
+    const metierDevis = devisMetierDe(teamKey, (req.body || {}).metier);
+    const sys = devisMetier.devisSysPour(metierDevis, devisMetier.est3D(metierDevis) ? null : devisVocabulaire(metierDevis));
     const devis = await claudeGenere(sys,
       'Demande : ' + String(demande).slice(0, 2000)
         + (contexte ? '\nContexte : ' + String(contexte).slice(0, 1000) : ''),
@@ -11536,6 +11967,21 @@ app.get('/api/monitor/promos', monAdmin, (req, res) => {
   }
   res.json({ codes, total: codes.length, actifsTotal: codes.reduce((n, c) => n + c.actifs, 0) });
 });
+
+/* Les entreprises EN PÉRIODE OFFERTE (un code promo qui court), pour le point de Margaux : le nombre d'ENTREPRISES (un identifiant compté une fois) et la prochaine fin — les mêmes lignes que `actifs` de la
+   route ci-dessus (finLe à venir, hors période reportée). Un registre illisible n'est PAS « zéro » : `ok:false`. */
+function periodesOffertes() {
+  if (promosIllisible) return { ok: false, raison: 'registre_illisible' };
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const fins = new Map();
+  for (const u of Object.values(promoUsages || {})) {
+    for (const [t, e] of Object.entries((u && u.equipes) || {})) {
+      if (!(e && e.finLe && e.finLe >= aujourdhui && !e.reporte)) continue;
+      if (!fins.has(t) || e.finLe < fins.get(t)) fins.set(t, e.finLe);
+    }
+  }
+  return { ok: true, nombre: fins.size, prochaine: [...fins.values()].sort()[0] || '' };
+}
 
 /* ⛔ LA MÊME PORTE QUE LE RELAIS DE /api/clients/sync, EN VERSION ANONYME — trouvée par
    `gardien` le 11 septembre 2026, le jour où l'autre a été refermée. Fermer une moitié d'un

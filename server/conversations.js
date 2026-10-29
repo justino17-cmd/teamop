@@ -25,6 +25,13 @@
  *  · « X écrit… » est un état EN MÉMOIRE (`ecrit`) : il ne se range pas, il ne survit pas à un redémarrage, et il expire seul.
  *  · Un message `systeme` dit ce qui s'est passé (« Camille a pris… », « X est à l'arrêt ») : il n'est jamais une consigne et personne n'y répond.
  *
+ * LES AGENTS AUTONOMES (28 octobre 2026) — Justin : « La limite de messages par heure, c'est pas normal. Je t'ai dit que je veux des agents qui soient autonomes de A à Z. » ; « je veux qu'à chaque fois qu'ils ont fini, ils
+ * mettent dans le groupe "je viens d'effectuer ça", comme ça moi je vois tout en temps réel. » Trois changements, tous dans ce fichier :
+ *  · LA RACINE (voir `RACINE_VIE_MS`) : un message de Justin est la racine de la chaîne qu'il lance ; sa borne est un budget par message (20 messages d'agents, 40 si @tous, 6 par agent, 8 pour Victor, 4 $), vérifié AVANT
+ *    l'appel payant par `peutParler` — plus l'heure. Sans racine valide (un agent qui s'emballe seul, un texte de client relayé), les plafonds d'avant tiennent, et se taisent pour Justin (journal + compteur).
+ *  · LES ANNONCES (`annoncerFait`) : « Je viens de… » dans « Équipe », écrit par le code (`agent-faits.js`), hors plafonds, sans réveiller personne, une clé stable par fait, copie au pont.
+ *  · VICTOR EST LE MENEUR DES QUATRE GROUPES et membre de « clients » et « plateforme » : il répond quand Justin ne cite personne et répartit (`assigner`, `demander`, `agent-equipe.js`).
+ *
  * LES GROUPES PERSONNALISÉS (25 octobre 2026) — Justin choisit pour chaque groupe un nom, une icône, une couleur, une description
  * (`POST /api/monitor/conversations/groupe`, registre `conversations-groupes.json`). ⛔ SEUL L'AFFICHAGE CHANGE : l'identifiant (equipe, clients,
  * plateforme, reunions) reste celui que les agents, les @mentions (« @tous ») et les réunions lisent, et `nom()` — que les agents mettent dans
@@ -42,23 +49,43 @@ const crypto = require('crypto');
 const F = 'agents-messages.json';
 const NIVEAUX = ['info', 'important', 'urgent'];
 const MOTIFS = { demande_humain: 'demande à parler à une vraie personne', litige: 'litige à traiter', sensible: 'sujet sensible', blocage: 'client bloqué', urgence: 'urgence' };
-const TEXTE_MAX = 600, TEXTE_PATRON_MAX = 1000, MESSAGES_MAX = 500, PAR_HEURE = 12, DOUBLON_MS = 24 * 3600 * 1000, LISTE_MAX = 100;
+/* (28 octobre 2026) 1000 et plus 500 : les chaînes de 40 messages et les annonces de fin de travail chassaient l'historique ET la mémoire du doublon (le fichier fait ~300 Ko et se réécrit entier). */
+const TEXTE_MAX = 600, TEXTE_PATRON_MAX = 1000, MESSAGES_MAX = 1000, PAR_HEURE = 12, DOUBLON_MS = 24 * 3600 * 1000, LISTE_MAX = 100;
 const PAR_HEURE_FIL = 20;          // messages d'AGENTS par heure et par fil, en plus des douze par agent : deux agents qui s'emballent s'arrêtent ici
 /* LES RÉUNIONS (`reunions.js`, 23 octobre 2026) ont leur plafond propre, et SEULEMENT dans le fil « reunions » : une ouverture, un tour de table de seize,
    une discussion bornée et une conclusion tiennent en moins de quarante messages. Elles réveillent personne par l'@mention (le déroulé donne la parole lui-même,
    une réponse après l'autre) et leur compte rendu peut dépasser les 600 caractères d'un message d'agent. Le tout par `o.reunion === true` ET fil « reunions ». */
 const PAR_HEURE_FIL_REUNION = 45, REUNION_TEXTE_MAX = 1500;
+/* ── LA RACINE D'UN MESSAGE DE JUSTIN (28 octobre 2026) ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Justin, capture de la Tour à l'appui : il écrit « @tous faites-moi un point de votre journée » et reçoit « Victor a atteint sa limite de messages par heure : sa prochaine réponse viendra dans
+   l'heure » — « la limite de messages par heure, c'est pas normal ». Le défaut était un seul choix de conception : le code traitait un message de JUSTIN comme du bavardage d'agents, le comptait dans
+   `PAR_HEURE` (12) et `PAR_HEURE_FIL` (20), et ne le contrôlait qu'APRÈS l'appel payé à Claude. Désormais chaque chaîne née d'un message de Justin porte un identifiant, la RACINE (l'identifiant de
+   ce message). Sa borne n'est plus l'heure : c'est un BUDGET par message de Justin (messages, messages par agent, dollars), vérifié AVANT l'appel payant (`peutParler`).
+   ⛔ UNE RACINE NE SE FABRIQUE QUE PAR UN MESSAGE DE JUSTIN, VALIDÉ AU REGISTRE : le message existe, il est de Justin, il a moins de deux heures, et son `racine` est son propre identifiant. Une racine
+   lue dans le corps d'une requête, celle d'un message d'agent, d'un client ou d'un message périmé n'est PAS reconnue : le message est alors traité comme avant (plafonds horaires). Et un jeton du pont
+   volé ne fabrique pas plus de 60 racines par heure — au-delà, un message de Justin n'est plus exempté (le filet du jour de `cerveau.js` coupe le reste).
+   ⛔ Les plafonds d'AVANT (12 par heure et par agent, 20 par fil, 45 en réunion, doublon de 24 h, profondeur 3) restent le régime de tout ce qui n'a PAS de racine : un agent qui s'emballe seul s'arrête là. */
+const RACINE_VIE_MS = 2 * 3600 * 1000;       // une racine ne vaut que deux heures
+const RACINE_MESSAGES = 20, RACINE_MESSAGES_VASTE = 40, VASTE_CITES = 6;   // 20 messages d'agents par racine ; 40 si Justin cite six agents ou « @tous »
+const RACINE_PAR_AGENT = 6, RACINE_PAR_VICTOR = 8;                          // et par agent (Victor, le chef, répartit : huit)
+const RACINE_USD = 4;                          // dollars par racine : la somme des `cout` rendus par `penser` (un @tous normal coûte ~0,5 $)
+const RACINES_PAR_HEURE = 60;                  // naissances par heure : au-delà, un message de Justin n'est plus une racine
+const HORS_HEURES_MS = 45 * 60 * 1000;         // un réveil d'une racine née AVANT la fermeture finit dans les 45 minutes qui suivent
+/* L'ANNONCE DE FIN DE TRAVAIL : les faits d'un même agent et d'un même code s'agrègent pendant cette fenêtre en UNE ligne « ×N ». */
+const FAITS_FENETRE_MS = 20000, FAIT_MAX = 300;
 const ECRIT_TTL_MS = 120000;       // « X écrit… » expire seul : un appel resté pendu ne laisse pas un agent « en train d'écrire » pour toujours
 const SYSTEME_MAX = 300;
 /* ── QUI EST DANS QUEL FIL — la seule définition. `'*'` : tous les agents du registre. Un fil privé n'a qu'un membre : son agent. ── */
 const MEMBRES = {
   equipe: '*',
-  clients: ['lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma'],
-  plateforme: ['max', 'jules', 'theo', 'nina', 'ines'],
+  clients: ['victor', 'lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma'],
+  plateforme: ['victor', 'max', 'jules', 'theo', 'nina', 'ines'],
   reunions: '*',
 };
-/* Qui répond quand Justin écrit dans un groupe sans citer personne. */
-const MENEUR = { equipe: 'victor', clients: 'lea', plateforme: 'max', reunions: 'victor' };
+/* Qui répond quand Justin écrit dans un groupe sans citer personne. (28 octobre 2026, Justin : « Qui gère tout ? » — VICTOR, chef d'équipe, dans les quatre groupes : il répond avec les faits et répartit
+   (`assigner`), Léa et Max répondent quand on les cite. Victor est donc membre de « clients » et « plateforme » : il y voit et y répartit. Pour revenir à Léa et Max, c'est cette table et la précédente ;
+   `test-2880` et `test-3117` la gardent.) */
+const MENEUR = { equipe: 'victor', clients: 'victor', plateforme: 'victor', reunions: 'victor' };
 const NOMS_GROUPES = { equipe: 'Équipe', clients: 'Clients', plateforme: 'Plateforme', reunions: 'Réunions' };
 const GROUPES = Object.keys(MEMBRES);
 
@@ -205,6 +232,9 @@ module.exports = function monterConversations(app, ctx) {
      l'ancienne forme `surMessagePatron(fil, texte)` (un seul agent, seulement pour Justin) reste servie tant que rien d'autre n'est branché. */
   function declencher(m) {
     const copie = { id: m.id, fil: m.fil, de: m.de, texte: m.texte, ts: m.ts, prof: m.prof || 0, mentions: (m.mentions || []).slice() };
+    /* la racine voyage avec le message ; l'équipe la REVALIDE (`racine(id)`) — ce qu'on lit ici n'est jamais cru tel quel */
+    if (m.racine) copie.racine = m.racine;
+    if (m.tous === true) copie.tous = true;
     try {
       if (typeof ctx.surMessage === 'function') Promise.resolve(ctx.surMessage(copie)).catch(e => console.error('réponse d’agent :', e && e.message));
       else if (m.de === 'justin' && typeof ctx.surMessagePatron === 'function') Promise.resolve(ctx.surMessagePatron(m.fil, m.texte)).catch(e => console.error('réponse d’agent :', e && e.message));
@@ -216,9 +246,32 @@ module.exports = function monterConversations(app, ctx) {
     try { Promise.resolve(pousse(m.niveau === 'urgent' ? '🔴 ' + nom : nom + ' te parle', m.texte, '/tour.html#agents')).catch(() => {}); } catch (e) {}
   }
 
-  /* Un agent parle. `{ok:true}` ou `{ok:false, raison}` — l'agent doit lire la réponse. */
-  function parler(de, fil, texte, o) {
-    o = o && typeof o === 'object' ? o : {};
+  /* ── LA RACINE : validée au registre, jamais crue ── */
+  /* Les dollars d'une racine : en mémoire (`racineDepense`), et à défaut — après un redémarrage — la somme des `cout` rangés sur les messages que la racine a produits. */
+  const usdRacine = new Map();
+  const naissancesHeure = now => messages.filter(x => x.de === 'justin' && x.racine && now - x.ts < 3600000).length;
+  /* `{id, ts, age, vaste, messages, parAgent, usd}` d'une racine VALIDE, sinon `null`. `id` vient d'un appelant : seul un message de Justin, vivant, de moins de deux heures, qui est SA propre racine passe. */
+  function racine(id) {
+    if (illisible || typeof id !== 'string' || !/^[a-f0-9]{6,32}$/.test(id)) return null;
+    const r = messages.find(x => x.id === id);
+    if (!r || r.de !== 'justin' || r.racine !== id) return null;
+    const now = maintenant();
+    if (!(now - r.ts >= 0 && now - r.ts < RACINE_VIE_MS)) return null;
+    const parAgent = {}; let n = 0, somme = 0;
+    for (const x of messages) if (x.racine === id && IDS.has(x.de) && x.fait !== true) { n++; parAgent[x.de] = (parAgent[x.de] || 0) + 1; somme += Number(x.cout) || 0; }
+    return { id, ts: r.ts, age: now - r.ts, vaste: r.vaste === true, messages: n, parAgent, usd: usdRacine.has(id) ? usdRacine.get(id) : somme, texte: r.texte };
+  }
+  /* L'argent dépensé pour cette racine, par `cerveau.penser` (`cout`) : à ajouter APRÈS chaque appel. Une racine inconnue ne compte rien. */
+  function racineDepense(id, usd) {
+    if (!racine(id) || typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) return false;
+    usdRacine.set(id, (usdRacine.has(id) ? usdRacine.get(id) : racine(id).usd) + usd);
+    if (usdRacine.size > 500) { const k = usdRacine.keys().next().value; usdRacine.delete(k); }
+    return true;
+  }
+
+  /* TOUS les refus de `parler`, sans rien écrire : `peutParler` les rend avant l'appel payant, `parler` les rejoue à l'écriture. `o.texte` (facultatif) : sans lui, les contrôles qui lisent le
+     texte (vide, doublon) sont sautés — on ne l'a pas encore. */
+  function controler(de, fil, texte, o) {
     if (illisible) return { ok: false, raison: 'registre_illisible' };
     if (!IDS.has(de)) return { ok: false, raison: 'inconnu' };
     const p = agents.peutAgir(de);
@@ -227,20 +280,51 @@ module.exports = function monterConversations(app, ctx) {
     if (typeof fil !== 'string' || !filValide(fil) || !estMembre(de, fil)) return { ok: false, raison: 'fil' };
     const reunion = o.reunion === true && fil === 'reunions';
     const max = reunion && Number.isInteger(o.max) ? Math.min(Math.max(o.max, TEXTE_MAX), REUNION_TEXTE_MAX) : TEXTE_MAX;
-    const t = propre(sansAdr(texte), max);
-    if (!t) return { ok: false, raison: 'texte' };
-    const niveau = NIVEAUX.includes(o.niveau) ? o.niveau : 'info';
+    let t = null;
+    if (texte !== undefined) { t = propre(sansAdr(texte), max); if (!t) return { ok: false, raison: 'texte' }; }
     const now = maintenant();
-    if (messages.filter(m => m.de === de && now - m.ts < 3600000).length >= PAR_HEURE) return { ok: false, raison: 'trop_de_messages' };
-    if (messages.filter(m => m.fil === fil && IDS.has(m.de) && now - m.ts < 3600000).length >= (reunion ? PAR_HEURE_FIL_REUNION : PAR_HEURE_FIL)) return { ok: false, raison: 'trop_de_messages_fil' };
-    if (messages.some(m => m.de === de && m.fil === fil && m.texte === t && now - m.ts < DOUBLON_MS)) return { ok: false, raison: 'doublon' };
+    const rac = o.racine ? racine(o.racine) : null;
+    if (rac && !reunion) {
+      /* LE BUDGET DE LA RACINE remplace les plafonds horaires : messages d'agents, messages de CET agent, dollars */
+      /* ⛔ les dollars d'AVANT ce réveil : `o.cout` est ce que la réponse qu'on écrit a elle-même coûté, déjà ajouté à la racine (`racineDepense`). Le dernier appel qui fait franchir les 4 $ n'est pas jeté
+         après avoir été payé — c'est le suivant qui n'a pas lieu (`peutParler`, avant l'appel, lui, voit la somme entière). */
+      const avantCeReveil = rac.usd - (typeof o.cout === 'number' && Number.isFinite(o.cout) && o.cout > 0 ? o.cout : 0);
+      if (rac.messages >= (rac.vaste ? RACINE_MESSAGES_VASTE : RACINE_MESSAGES) || avantCeReveil >= RACINE_USD) return { ok: false, raison: 'racine_close', racine: rac };
+      if ((rac.parAgent[de] || 0) >= (de === 'victor' ? RACINE_PAR_VICTOR : RACINE_PAR_AGENT)) return { ok: false, raison: 'racine_agent', racine: rac };
+    } else {
+      /* sans racine valide (ou en réunion, qui a son plafond) : les plafonds d'avant. N'y comptent NI une annonce de fin de travail (`fait`) NI un message écrit sous une racine : un @tous de Justin
+         ne doit pas saturer le plafond du fil et refuser, pendant une heure, ce qu'un agent dit de lui-même (le point du matin de Victor, une alerte de Max). */
+      if (messages.filter(m => m.de === de && m.fait !== true && !m.racine && now - m.ts < 3600000).length >= PAR_HEURE) return { ok: false, raison: 'trop_de_messages' };
+      if (messages.filter(m => m.fil === fil && IDS.has(m.de) && m.fait !== true && !m.racine && now - m.ts < 3600000).length >= (reunion ? PAR_HEURE_FIL_REUNION : PAR_HEURE_FIL)) return { ok: false, raison: 'trop_de_messages_fil' };
+    }
+    if (t !== null && messages.some(m => m.de === de && m.fil === fil && m.fait !== true && m.texte === t && now - m.ts < DOUBLON_MS)) return { ok: false, raison: 'doublon' };
+    return { ok: true, t, reunion, rac, now };
+  }
+  /* « Peut-il parler ? » AVANT de payer l'appel : `{ok:true}` ou `{ok:false, raison, racine?}`. N'écrit rien. */
+  function peutParler(de, fil, o) {
+    o = o && typeof o === 'object' ? o : {};
+    const c = controler(de, fil, typeof o.texte === 'string' ? o.texte : undefined, o);
+    return c.ok ? { ok: true } : (c.racine ? { ok: false, raison: c.raison, racine: c.racine } : { ok: false, raison: c.raison });
+  }
+
+  /* Un agent parle. `{ok:true}` ou `{ok:false, raison}` — l'agent doit lire la réponse.
+     `o.racine` : la racine de la chaîne (un message de Justin) — REVALIDÉE ici. `o.sansReveil` : le message ne réveille personne (la réponse à un @tous). `o.cout` : ce que la réponse a coûté. */
+  function parler(de, fil, texte, o) {
+    o = o && typeof o === 'object' ? o : {};
+    const c = controler(de, fil, texte, o);
+    if (!c.ok) return { ok: false, raison: c.raison };
+    const { t, reunion, rac, now } = c;
+    const niveau = NIVEAUX.includes(o.niveau) ? o.niveau : 'info';
     /* La profondeur : celle du message auquel l'agent répond + 1 (donnée par l'appelant) ; un message spontané en compte 1. */
     const prof = Number.isInteger(o.prof) && o.prof >= 1 && o.prof <= 20 ? o.prof : 1;
     const m = { id: crypto.randomBytes(6).toString('hex'), ts: now, fil, de, texte: t, niveau, lu: false, prof, mentions: mentionsDe(t, fil) };
+    if (rac && !reunion) m.racine = rac.id;
+    if (o.sansReveil === true) m.tous = true;
+    if (rac && !reunion && typeof o.cout === 'number' && Number.isFinite(o.cout) && o.cout > 0) m.cout = Math.round(o.cout * 1e6) / 1e6;
     if (!ajouter(m)) return { ok: false, raison: 'ecriture' };
     notifier(m);
-    if (!reunion && m.mentions.some(id => id !== de)) declencher(m);
-    return { ok: true, id: m.id, prof, mentions: m.mentions.slice() };
+    if (!reunion && o.sansReveil !== true && m.mentions.some(id => id !== de)) declencher(m);
+    return { ok: true, id: m.id, prof, mentions: m.mentions.slice(), racine: m.racine || '' };
   }
 
   /* Une ligne du SYSTÈME : ce qui vient de se passer (une tâche prise, passée, un agent à l'arrêt). `o.cle` + `o.parHeure` : ne se dit qu'une fois par
@@ -254,11 +338,64 @@ module.exports = function monterConversations(app, ctx) {
     const cle = typeof o.cle === 'string' ? o.cle.slice(0, 80) : '';
     const now = maintenant();
     if (cle && o.parHeure === true && messages.some(m => m.de === 'systeme' && m.fil === fil && m.cle === cle && now - m.ts < 3600000)) return { ok: false, raison: 'deja_dit' };
+    /* `o.unique` : une seule fois tant que la ligne est au registre (« l'échange lancé par ton message est clos » : une ligne par racine, pas une par heure) */
+    if (cle && o.unique === true && messages.some(m => m.de === 'systeme' && m.fil === fil && m.cle === cle)) return { ok: false, raison: 'deja_dit' };
     const m = { id: crypto.randomBytes(6).toString('hex'), ts: now, fil, de: 'systeme', texte: t, niveau: 'info', lu: true, prof: 0, mentions: [] };
     if (cle) m.cle = cle;
+    if (!ajouter(m, o.sansEcho === true)) return { ok: false, raison: 'ecriture' };
+    return { ok: true, id: m.id };
+  }
+
+  /* ── L'ANNONCE DE FIN DE TRAVAIL (28 octobre 2026) ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     Justin : « je veux qu'à chaque fois qu'ils ont fini, ils mettent dans le groupe "je viens d'effectuer ça", comme ça moi je vois tout en temps réel ». UNE voie d'écriture à part, qui n'est PAS `parler` :
+       · le message est de l'agent (`de`), marqué `fait:true`, sans analyse de mentions (`mentions: []`) — il ne réveille donc PERSONNE, et le demandeur y est NOMMÉ, jamais cité ;
+       · il ne passe pas par `peutAgir` (un agent qui ferme à 18 h annonce ce qu'il a fini à 17 h 59) et n'entre dans AUCUN plafond (`PAR_HEURE`, fil, racine, doublon de texte) : `controler` les écarte ;
+       · sa CLÉ (`fait:<tâche>`, `fait:<agent>:<code>:<dossier>:<jour>`) l'empêche de se répéter, même après un redémarrage — elle est rangée avec le message ;
+       · il passe par `ajouter`, donc le pont (`surAjout`) en reçoit une COPIE comme du reste du fil ; niveau `info`, sans notification ;
+       · le TEXTE est composé par le code (`agent-faits.js`) et passe encore par `sansAdr` ici ; il ne contient jamais de « @ ».
+     `o.groupe` : les faits d'un même agent et d'un même code s'agrègent pendant `FAITS_FENETRE_MS` en UNE ligne « ×N » (les 35 courriels d'un rattrapage donnent une ligne). Une perte est possible sur
+     un arrêt brutal dans cette fenêtre — le journal d'`agents.noter` garde la vérité ; `viderFaits()` écrit ce qui attend (à la sortie du processus, et dans les bancs). */
+  const rafales = new Map();
+  const faitDit = cle => messages.some(m => m.fait === true && (m.cle === cle || (Array.isArray(m.cles) && m.cles.includes(cle))));
+  function ecrireFait(agentId, texte, cle, cles) {
+    const m = { id: crypto.randomBytes(6).toString('hex'), ts: maintenant(), fil: 'equipe', de: agentId, texte, niveau: 'info', lu: false, prof: 0, mentions: [], fait: true, cle };
+    if (cles && cles.length > 1) m.cles = cles.slice(0, 100);
     if (!ajouter(m)) return { ok: false, raison: 'ecriture' };
     return { ok: true, id: m.id };
   }
+  function viderRafale(groupe) {
+    const r = rafales.get(groupe); if (!r) return null;
+    rafales.delete(groupe);
+    if (r.timer) clearTimeout(r.timer);
+    const n = r.cles.length;
+    return ecrireFait(r.agentId, n > 1 ? r.texteSeul + ' ×' + n : r.texte, r.cles[0], r.cles);
+  }
+  function viderFaits() { const r = []; for (const g of [...rafales.keys()]) r.push(viderRafale(g)); return r; }
+  function annoncerFait(agentId, texte, o) {
+    o = o && typeof o === 'object' ? o : {};
+    if (illisible) return { ok: false, raison: 'registre_illisible' };
+    if (!IDS.has(agentId)) return { ok: false, raison: 'inconnu' };
+    const cle = typeof o.cle === 'string' ? o.cle.slice(0, 120) : '';
+    if (!cle) return { ok: false, raison: 'cle' };
+    const t = propre(sansAdr(String(texte == null ? '' : texte)).replace(/@/g, ''), FAIT_MAX);
+    if (!t) return { ok: false, raison: 'texte' };
+    if (faitDit(cle)) return { ok: false, raison: 'deja_dit' };
+    const groupe = typeof o.groupe === 'string' ? o.groupe.slice(0, 80) : '';
+    if (!groupe) return ecrireFait(agentId, t, cle);
+    let r = rafales.get(groupe);
+    if (r && r.cles.includes(cle)) return { ok: false, raison: 'deja_dit' };
+    if (!r) {
+      /* « ×N » : la ligne de la rafale est la phrase SANS son point final ni son demandeur — le nombre s'ajoute au verbe, pas à un nom */
+      r = { agentId, texte: t, texteSeul: t.replace(/\s*\([^()]*demandé par[^()]*\)\.?$/, '').replace(/\.$/, ''), cles: [], timer: null };
+      rafales.set(groupe, r);
+      const fenetre = Number.isInteger(ctx.fenetreFaitsMs) && ctx.fenetreFaitsMs >= 0 ? ctx.fenetreFaitsMs : FAITS_FENETRE_MS;
+      r.timer = setTimeout(() => { try { viderRafale(groupe); } catch (e) { console.error('annonces :', e && e.message); } }, fenetre);
+      if (r.timer && typeof r.timer.unref === 'function') r.timer.unref();
+    }
+    r.cles.push(cle);
+    return { ok: true, groupe: true };
+  }
+  if (ctx.viderALaSortie === true) process.once('exit', () => { try { viderFaits(); } catch (e) {} });
 
   /* « Ce client veut parler à une vraie personne » : un numéro de dossier et un motif de la liste, rien d'autre. */
   function rappelClient(de, dossier, motif) {
@@ -281,7 +418,7 @@ module.exports = function monterConversations(app, ctx) {
   }
 
   const vue = m => ({ id: m.id, ts: m.ts, fil: m.fil, de: m.de, nom: m.de === 'justin' ? 'Toi' : m.de === 'systeme' ? 'Système' : (IDS.get(m.de) || m.de), texte: m.texte, niveau: m.niveau, lu: m.lu === true,
-    dossier: m.dossier || '', motif: m.motif || '', mentions: Array.isArray(m.mentions) ? m.mentions.slice() : [], prof: m.prof || 0, systeme: m.de === 'systeme' });
+    dossier: m.dossier || '', motif: m.motif || '', mentions: Array.isArray(m.mentions) ? m.mentions.slice() : [], prof: m.prof || 0, systeme: m.de === 'systeme', fait: m.fait === true });
   const nonLus = f => messages.filter(m => m.fil === f && m.de !== 'justin' && m.lu !== true).length;
   /* Un fil pour la liste : le dernier message, son heure, les non-lus de Justin, les membres, le meneur, qui écrit. */
   const resume = f => {
@@ -320,6 +457,9 @@ module.exports = function monterConversations(app, ctx) {
     const t = propre(texte, TEXTE_PATRON_MAX);
     if (!t) return { ok: false, statut: 400, error: 'Message vide' };
     const m = { id: crypto.randomBytes(6).toString('hex'), ts: maintenant(), fil, de: 'justin', texte: t, niveau: 'info', lu: true, prof: 0, mentions: mentionsDe(t, fil) };
+    /* ⛔ LA RACINE NAÎT ICI ET NULLE PART AILLEURS : l'identifiant du message lui-même — jamais une valeur du corps de la requête (`o` ne porte que `sansEcho`). Soixante naissances par heure : au-delà
+       (un jeton du pont volé), le message est écrit, mais il n'est plus une racine. */
+    if (naissancesHeure(m.ts) < RACINES_PAR_HEURE) { m.racine = m.id; if (m.mentions.length >= VASTE_CITES) m.vaste = true; }
     if (!ajouter(m, !!(o && o.sansEcho))) return { ok: false, statut: 503, error: 'Message non enregistré' };
     /* L'équipe peut répondre (le cité, l'agent du fil privé, ou le meneur du groupe) : sans attendre, et sans jamais faire échouer l'envoi. */
     declencher(m);
@@ -405,12 +545,13 @@ module.exports = function monterConversations(app, ctx) {
   function lire(fil, n) {
     if (illisible || !filValide(fil)) return [];
     const k = Math.min(Math.max(Math.floor(Number(n)) || 1, 1), 50);
-    return messages.filter(m => m.fil === fil).slice(-k).map(m => ({ id: m.id, de: m.de, texte: m.texte, ts: m.ts, prof: m.prof || 0, mentions: Array.isArray(m.mentions) ? m.mentions.slice() : [] }));
+    return messages.filter(m => m.fil === fil).slice(-k).map(m => ({ id: m.id, de: m.de, texte: m.texte, ts: m.ts, prof: m.prof || 0, mentions: Array.isArray(m.mentions) ? m.mentions.slice() : [], racine: m.racine || '', fait: m.fait === true }));
   }
 
   /* Une COPIE du registre, du plus ancien au plus récent : ce que le pont recopie dans OP MESSAGES (l'historique, et ce qu'une panne a laissé en arrière). Rien à écrire par-dessus. */
   const tous = () => messages.map(m => ({ id: m.id, ts: m.ts, fil: m.fil, de: m.de, texte: m.texte, niveau: m.niveau, lu: m.lu === true, dossier: m.dossier || '' }));
-  return { parler, systeme, rappelClient, historique, lire, ecrit, quiEcrit, membres: membresDe, meneur: meneurDe, estMembre, filValide, nom: nomDuFil, MOTIFS, estIllisible: () => illisible, justinEcrit, retirer, tous };
+  return { parler, peutParler, systeme, rappelClient, historique, lire, ecrit, quiEcrit, membres: membresDe, meneur: meneurDe, estMembre, filValide, nom: nomDuFil, MOTIFS, estIllisible: () => illisible, justinEcrit, retirer, tous,
+    racine, racineDepense, annoncerFait, viderFaits };
 };
 module.exports.MOTIFS = MOTIFS;
 module.exports.MEMBRES = MEMBRES;
@@ -419,3 +560,5 @@ module.exports.GROUPES = GROUPES;
 module.exports.COULEURS = COULEURS;
 module.exports.analyserMentions = analyserMentions;
 module.exports.PAR_HEURE_FIL = PAR_HEURE_FIL;
+module.exports.PAR_HEURE = PAR_HEURE;
+module.exports.RACINE = { VIE_MS: RACINE_VIE_MS, MESSAGES: RACINE_MESSAGES, MESSAGES_VASTE: RACINE_MESSAGES_VASTE, VASTE_CITES, PAR_AGENT: RACINE_PAR_AGENT, PAR_VICTOR: RACINE_PAR_VICTOR, USD: RACINE_USD, NAISSANCES_PAR_HEURE: RACINES_PAR_HEURE, HORS_HEURES_MS };

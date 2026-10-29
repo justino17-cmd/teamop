@@ -2,6 +2,7 @@
    Il joue un BON ÉQUIPIER : il répond comme le cahier le demande (la question à Margaux reçoit la réponse de Margaux, Camille prend puis passe, Victor tranche,
    le courriel de Léa suit le plan, la réunion fixe des objectifs puis les juge…), et il sait jouer des DÉFAUTS (`defauts`) pour prouver que l'examen les voit :
      margaux-renvoie  Margaux « passe la demande » à Victor        camille-garde  Camille prend le travail au lieu de le passer
+     margaux-sans-point  Margaux ne fait pas le point réel (aucun outil)      margaux-chiffre  un chiffre de TeamOP dans sa phrase      margaux-avoir  elle propose un avoir
      bavard           chacun cite quatre collègues à chaque fois    mail-tutoie    les courriels tutoient le client
      mail-sans-bonjour  les courriels commencent par un prénom       juge-non       Inès juge tout non conforme
      muet             personne ne répond                            panne          Claude rend une erreur 500
@@ -130,7 +131,13 @@ function decider(r, defauts) {
   }
   if (id === 'margaux' && /tu en es où/i.test(dernier)) {
     if (defauts.includes('margaux-renvoie')) return dit('Je passe la demande à @victor, il saura mieux te répondre.');
-    return dit('Sur la compta globale, je te le dis franchement, je ne vois que ce que le serveur me donne : pas de vue d’ensemble. Pour DOS-900001, oui, il a bien payé, formule pro, tout est à jour.');   // un bon équipier TUTOIE Justin (scénario 9, compté dans ses fils privés)
+    /* 28 octobre 2026 — les défauts de la compta : pas de point réel (aucun outil), un chiffre de TeamOP dans sa bouche, une promesse d'avoir */
+    if (defauts.includes('margaux-sans-point')) return dit('Tout va bien côté compta, je te laisse regarder la Tour. Pour DOS-900001, oui, il a bien payé, formule pro, tout est à jour.');
+    if (defauts.includes('margaux-chiffre')) return { texte: 'On est à 4 217,50 € encaissés ce mois, je te le dis tout de suite. Pour DOS-900001, oui, il a bien payé, formule pro, tout est à jour.', actions: outils.includes('point_compta') ? [A('point_compta', { periode: 'ce_mois' })] : [] };
+    if (defauts.includes('margaux-avoir')) return { texte: 'Je te le mets en dessous. Pour DOS-900001, il a bien payé : je peux faire un avoir si tu veux, dis-moi.', actions: outils.includes('point_compta') ? [A('point_compta', { periode: 'ce_mois' })] : [] };
+    /* 28 octobre 2026 : elle fait le POINT RÉEL par son outil (le serveur écrit les chiffres), et sa phrase n'en porte aucun */
+    if (outils.includes('point_compta')) return { texte: 'Voilà le point de l’argent, je te l’ai mis juste en dessous. Pour DOS-900001, oui, il a bien payé, formule pro, tout est à jour.', actions: [A('point_compta', { periode: 'ce_mois' })] };   // un bon équipier TUTOIE Justin (scénario 9, compté dans ses fils privés)
+    return dit('Sur la compta globale, je te le dis franchement, je ne vois que ce que le serveur me donne : pas de vue d’ensemble. Pour DOS-900001, oui, il a bien payé, formule pro, tout est à jour.');
   }
   if (id === 'camille' && /prépare-moi la liste des questions/i.test(dernier)) return { texte: 'C’est pris, je m’en occupe aujourd’hui.', actions: [A('prendre', { texte: 'Préparer la liste des questions qui reviennent le plus dans le courrier de la semaine' })] };
   if (id === 'camille' && /réponse type pour les demandes de facture/i.test(dernier)) {

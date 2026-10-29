@@ -122,7 +122,8 @@ const lignesDe = (html) => html.split('<li').slice(1).filter((x) => /class="reun
 
   console.log('\n4. L\'état vide dit quoi faire ; la liste est plafonnée');
   { const vide = monter().F.htmlListeReunions([], NOW);
-    vrai('⛔ « Aucune réunion prévue. » et « Nouvelle réunion » (le geste qui ouvre le formulaire)', /Aucune réunion prévue\./.test(vide.avenir) && /data-lr="nouvelle"[^>]*>[\s\S]*Nouvelle réunion/.test(vide.avenir) && vide.nAvenir === 0 && vide.nPassees === 0);
+    /* (28 octobre 2026, capture de Justin : deux boutons « Nouvelle réunion ») Le geste est UNE fois, en tête de l'onglet ; l'état vide renvoie vers lui sans le répéter. */
+    vrai('⛔ « Aucune réunion prévue. » dit quoi faire, SANS répéter le bouton du haut', /Aucune réunion prévue\./.test(vide.avenir) && /Nouvelle réunion/.test(vide.avenir) && !/data-lr="nouvelle"/.test(vide.avenir) && vide.nAvenir === 0 && vide.nPassees === 0);
     vrai('population : une liste qui a des réunions ne dit PAS « Aucune réunion prévue »', !/Aucune réunion prévue/.test(H1.avenir));
     const soixante = []; for (let i = 0; i < 70; i++) soixante.push(reunion(100 + i, 'Série ' + i, [dans((i + 1) * H)]));
     const g = monter().F.htmlListeReunions(soixante, NOW);

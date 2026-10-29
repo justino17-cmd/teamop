@@ -436,3 +436,5 @@ tests/test-3099.js
 tests/test-3126.js
 # 28 octobre 2026, relecture du cadre : la poignée de main de la page encadrée (`parent.postMessage({opmsg:'pret'},'https://teamop.fr')`, dans le fichier servi) et « Passer côté Pro » (la première arrivée ne tombe plus sur un Perso vide).
 tests/test-3128.js
+# 28 octobre 2026 : `test-3066` (l'écran partagé s'affiche chez l'invité sans compte : les vraies fonctions `tuile` et `rendreSalle` de `invite.js` dans un faux document, la feuille de `invite.html` ; la preuve aux pixels à trois navigateurs est `tests/sonde-opmessages-ecran.js`, hors porte).
+tests/test-3066.js

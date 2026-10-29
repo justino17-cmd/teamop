@@ -40,7 +40,7 @@ async function demarrer(o) {
   const IMAP = path.join(banc, 'faux-imap.json');
   fs.writeFileSync(IMAP, JSON.stringify({ boites: { 'contact@banc-gestion.fr': { messages: [], actions: [] } } }));
   const STRIPE = path.join(banc, 'stripe.json');
-  fs.writeFileSync(STRIPE, JSON.stringify({ abos: o.abos || [], factures: o.factures || {}, appels: [] }));
+  fs.writeFileSync(STRIPE, JSON.stringify(Object.assign({ abos: o.abos || [], factures: o.factures || {}, appels: [] }, o.liste ? { liste: o.liste } : {})));   // o.liste : une LISTE de factures que le faux Stripe sert à GET /v1/invoices?… (created[gte], created[lt], status, limit, starting_after, has_more) — test-3162, test-3163
   if (o.avant) o.avant(D);
 
   const PRE = path.join(banc, 'precharge.js'), TRACE = path.join(banc, 'recu.jsonl');
@@ -71,6 +71,16 @@ globalThis.fetch = async function (url, opts) {
       return sortie(200, /expand\\[\\]=latest_invoice/.test(u) ? avecFacture(a) : a);
     }
     if (u.startsWith('https://api.stripe.com/v1/subscriptions?')) { if (e.panneListe) return sortie(500, { error: { message: 'panne simulée de la liste' } }); return sortie(200, { data: e.abos, has_more: false }); }   // panneListe : la lecture de la liste échoue (test-2917 §8 bis)
+    /* LA LISTE DE FACTURES (compta de la Tour, 28 octobre 2026) : seulement si le banc en a posé une (o.liste) et que la requête n'est ni « d'un abonnement » ni « d'un client » (les lectures de Margaux et de Hugo gardent leur réponse) */
+    if (Array.isArray(e.liste) && u.startsWith('https://api.stripe.com/v1/invoices?') && !/[?&](subscription|customer)=/.test(u)) {
+      if (e.panneFactures) return sortie(500, { error: { message: 'panne simulée des factures' } });
+      const q = new URLSearchParams(u.slice(u.indexOf('?') + 1));
+      const gte = q.has('created[gte]') ? +q.get('created[gte]') : -Infinity, lt = q.has('created[lt]') ? +q.get('created[lt]') : Infinity, st = q.get('status') || '';
+      const limite = Math.min(100, +q.get('limit') || 10);
+      let l = e.liste.filter(f => f.created >= gte && f.created < lt && (!st || f.status === st)).sort((a, b) => b.created - a.created || (a.id < b.id ? 1 : -1));
+      const apres = q.get('starting_after'); if (apres) { const i = l.findIndex(f => f.id === apres); l = i >= 0 ? l.slice(i + 1) : []; }
+      return sortie(200, { object: 'list', data: l.slice(0, limite), has_more: l.length > limite });
+    }
     if ((x = /^https:\\/\\/api\\.stripe\\.com\\/v1\\/invoices\\?subscription=([^&]+)/.exec(u))) { const f = e.factures['open:' + decodeURIComponent(x[1])]; return sortie(200, { data: f ? [f] : [], has_more: false }); }
     if ((x = /^https:\\/\\/api\\.stripe\\.com\\/v1\\/invoices\\?customer=([^&]+)/.exec(u))) return sortie(200, { data: e.factures['cus:' + decodeURIComponent(x[1])] || [], has_more: false });
     return sortie(200, { data: [], has_more: false });
@@ -117,7 +127,7 @@ globalThis.fetch = async function (url, opts) {
   }
   S.get = (r, j) => http('GET', r, j === undefined ? S.TP : j);
   S.post = (r, c, j) => http('POST', r, j === undefined ? S.TP : j, c === undefined ? {} : c);
-  S.claudeRecus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
+  S.claudeRecus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean) : [];   // une ligne encore en cours d'écriture par le serveur n'est pas encore une requête (28 octobre 2026)
   S.stripe = () => JSON.parse(fs.readFileSync(STRIPE, 'utf8'));
   S.poserStripe = f => { const e = S.stripe(); f(e); fs.writeFileSync(STRIPE + '.tmp', JSON.stringify(e)); fs.renameSync(STRIPE + '.tmp', STRIPE); };
   S.fichier = nom => JSON.parse(fs.readFileSync(path.join(D, nom), 'utf8'));
