@@ -29910,7 +29910,11 @@ ${!estMetier3D()?'':`
 function renderProdFours(){ const el=$('prod-fours'); if(!el) return;
   const all=[...new Set([...(estMetier3D()?FOUR_PILLS:[]),...db.fournisseurs.map(f=>(f.nom||'').trim().toUpperCase()).filter(Boolean),...prodFours])];
   el.innerHTML=all.map(f=>{ const on=prodFours.has(f); const c=fourColor(f);
-    return `<button type="button" onclick="toggleProdFour('${f.replace(/'/g,"\\'")}')" style="cursor:pointer;font-size:11px;font-weight:700;padding:6px 12px;border-radius:14px;color:${on?aplatDe(c)[1]:encreDonnee(c)};background:${on?aplatDe(c)[0]:`color-mix(in srgb,${c} 12%,transparent)`};border:.5px solid ${c}">${esc(f)}</button>`;}).join(''); }
+    return `<button type="button" onclick="toggleProdFour('${f.replace(/'/g,"\\'")}')" style="cursor:pointer;font-size:11px;font-weight:700;padding:6px 12px;border-radius:14px;color:${on?aplatDe(c)[1]:encreDonnee(c)};background:${on?aplatDe(c)[0]:`color-mix(in srgb,${c} 12%,transparent)`};border:.5px solid ${c}">${esc(f)}</button>`;}).join('')
+    /* v780 — la campagne de tous les packs, 29 octobre 2026 : une entreprise SANS fournisseur (électricité, serrurerie…, dont le pack n'en pose
+       pas) ne pouvait pas créer de produit — « Au moins un fournisseur est requis » et rien pour en écrire un. On l'écrit ici, il devient une pastille. */
+    +`<span style="display:inline-flex;gap:6px;align-items:center"><input id="prod-four-neuf" placeholder="${all.length?'Autre fournisseur':'Nom du fournisseur'}" autocomplete="off" style="min-width:150px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();prodFourAjouter();}"><button type="button" class="btn ghost sm" onclick="prodFourAjouter()">＋ Ajouter</button></span>`; }
+function prodFourAjouter(){ const i=$('prod-four-neuf'); const v=String(i&&i.value||'').trim().toUpperCase(); if(!v){ if(i) i.focus(); return; } prodFours.add(v); renderProdFours(); const n=$('prod-four-neuf'); if(n) n.focus(); }
 function toggleProdFour(f){ if(prodFours.has(f)) prodFours.delete(f); else prodFours.add(f); renderProdFours(); }
 function saveProduit(e,id){ e.preventDefault(); if(!permGarde('stock',id?'modifier':'ajouter','un produit')) return; const f=e.target; const data=Object.fromEntries(new FormData(f));
   data.fournisseurs=[...prodFours];
