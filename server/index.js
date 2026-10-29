@@ -789,7 +789,9 @@ function ghJoursRestants() {
 //    et produit le PDF. Sans clé Anthropic dans config.json, la route répond 503
 //    et le reste du serveur fonctionne normalement.
 try {
-  require('./agent-devis').monterAgentDevis(app, config, DATA_DIR);
+  /* Les deux crochets sont des déclarations de fonction (remontées) qui lisent `metierOk` et le référentiel À LA REQUÊTE : à cet
+     endroit, ces constantes ne sont pas encore définies. Voir `devisMetierDe` (plus bas) et server/devis-metier.js. */
+  require('./agent-devis').monterAgentDevis(app, config, DATA_DIR, { metierDe: devisMetierDe, vocabulaire: devisVocabulaire });
 } catch (e) {
   console.error('assistant devis non monté :', e.message);
 }
@@ -11467,6 +11469,8 @@ function devisCompte() { devisUtilises(); devisQuota.n++; try { fs.writeFileSync
 app.get('/api/devis/etat', (req, res) => {
   const team = String(req.query.team || '').trim().slice(0, 80);
   const rep = { ok: true, actif: devisActif(), quotaJour: devisQuotaJour(), utilises: devisUtilises(), restants: Math.max(0, devisQuotaJour() - devisUtilises()) };
+  /* Ce serveur lit le métier de l'entreprise (devisMetierDe) : l'application, hors 3D, n'envoie le Devis IA et l'assistant qu'à un serveur qui l'annonce — un serveur d'avant garde la consigne 3D. */
+  rep.metiers = true;
   if (team) rep.equipe = devisActif() && devisTeamOk(team);
   /* L'application n'affiche le second bouton que si l'entreprise y a droit. */
   if (team) { rep.offre = devisOffre(team); rep.approfondi = devisActif() && devisTeamOk(team) && rep.offre === 'deux'; }
@@ -11555,6 +11559,17 @@ const DEVIS_SCHEMA = {
   additionalProperties: false
 };
 
+/* ⛔ LE MÉTIER DES DEUX GÉNÉRATEURS DE DEVIS — UNE SEULE DÉCISION (server/devis-metier.js, qui dit où il se lit et pourquoi).
+   L'assistant (`/api/devis/agent`) et le « Devis IA » (`/api/devis/generer`) passent par ces deux fonctions : annuaire d'abord,
+   `metier` du corps seulement pour un espace sans fiche, borné aux métiers ouverts ; sinon la 3D d'avant. */
+const devisMetier = require('./devis-metier');
+function devisMetierDe(t, metierCorps) {
+  return devisMetier.resoudreMetier(t, metierCorps, { espaceDe: espaceParT, metierOk });
+}
+function devisVocabulaire(metier) {
+  return devisMetier.vocabulaireDe(metiersMod.ref, metiersMod.nom, metier);
+}
+
 app.post('/api/devis/generer', async (req, res) => {
   try {
     if (!devisActif()) return res.status(503).json({ error: 'Devis IA non configuré sur le serveur — sur le serveur : bash server/set-claude.sh' });
@@ -11569,7 +11584,9 @@ app.post('/api/devis/generer', async (req, res) => {
     if (!demande || String(demande).trim().length < 5) return res.status(400).json({ error: 'Décris la prestation à chiffrer' });
     if (devisUtilises() >= devisQuotaJour()) return res.status(429).json({ error: 'Quota du jour atteint (' + devisQuotaJour() + ' devis) — réessaie demain' });
 
-    const sys = "Tu prépares des devis pour une entreprise française de gestion de nuisibles (dératisation, désinsectisation, désinfection, dépigeonnage) et petits travaux associés. À partir de la demande, produis un devis réaliste et sobre : des lignes claires (désignation précise, quantité, prix unitaire HT en euros, cohérent avec le marché français), la main d'œuvre et le déplacement en lignes séparées quand c'est pertinent, TVA 20 par défaut (10 seulement pour des travaux d'amélioration d'un logement de plus de 2 ans). « remarque » : 1 ou 2 phrases utiles pour le client (garantie, nombre de passages, conditions). Pas de lignes de remplissage.";
+    /* La consigne suit le métier de l'ENTREPRISE (l'annuaire, jamais le corps pour qui y figure). Entreprise sans métier réglé : la 3D, mot pour mot. */
+    const metierDevis = devisMetierDe(teamKey, (req.body || {}).metier);
+    const sys = devisMetier.devisSysPour(metierDevis, devisMetier.est3D(metierDevis) ? null : devisVocabulaire(metierDevis));
     const devis = await claudeGenere(sys,
       'Demande : ' + String(demande).slice(0, 2000)
         + (contexte ? '\nContexte : ' + String(contexte).slice(0, 1000) : ''),
