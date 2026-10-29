@@ -13,6 +13,50 @@ de ligne du tout.
 
 ---
 
+# 🔎 29 OCTOBRE 2026 — RELECTURE ADVERSE DES PACKS CLIM / PLOMBERIE ET DES 19 AUTRES : 13 CONSTATS REPRODUITS : 11 CORRIGÉS, 1 TRAITÉ (FUSION FAITE), 1 MESURÉ ET LAISSÉ — RIEN SUR `main`, RIEN PUBLIÉ
+Branche `claude/packs-metiers` (la fusion de `claude/pack-nettoyage` a été faite D'ABORD : `scripts/verifier-publication-bete.sh` y est, `beta.html` / `demo.html` regénérés par `node beta-build.js` /
+`node demo-build.js`). Un commit par constat, chacun gardé par un banc ET éprouvé par mutation (`git checkout` après).
+- **1 · total de l'écran ≠ total du PDF** : une remise (prix négatif) affichait « Total HT -15,00 € » et le PDF imprimait 35,00. Une seule épuration (`docmLigneNette`) lue par l'écran ET l'enregistrement
+  (arrondi au centime compris : 0,333 × 10 donnait 3,33 à l'écran et 3,30 au PDF) ; un prix ou une quantité refusés sont DITS (rouge à l'écran) et l'enregistrement, l'aperçu et l'envoi les refusent. On a
+  choisi de REFUSER la remise saisie en négatif (pas de ligne négative dans le PDF) : si Justin veut une ligne « remise », c'est une décision à part. `test-3128` compare le total affiché au total imprimé.
+- **2 · TVA réduite** : `tva-reduite` et son conseil existent maintenant pour `chauffage` et `energies` (en plus de plomberie, menuiserie, multiservices) — une facture à 10 % en climatisation seule était muette.
+- **3 · technicien et rapport d'étanchéité** : un document d'intervention gardé par le droit « interventions » (`portee:'intervention'`, `droit:'int'`) se crée avec « modifier » (`docmActeCreer`), que le technicien a ;
+  carte, section du client, formulaire et enregistrement lisent le même geste. Un devis (droit « ventes ») garde « ajouter ». Effet : 21 documents d'autres métiers changent de geste (même raison).
+- **4 · notes de fournisseurs** : « (le site refuse les accès automatiques : non relu) » et « (catégories à confirmer) » retirés (Cedeo ×2, Point.P, Pool Technologie) ; `test-3128` / `3129` refusent toute note de
+  développement dans les 23 listes. ⚠️ La réserve reste ICI : Cedeo et Point.P n'ont pas pu être relus (le site refuse les accès automatiques) — on ne dit pas ce qu'ils vendent au-delà de ce qui est écrit.
+- **5 · « Repères réglementaires et sources »** : en version publique le client ne lit que les mentions LUES (`docmMentionsVisibles`) ; les « à confirmer » ne se montrent que sur la bêta (`BETA_ESSAI`). Les 72 sources
+  des mentions lues sont des références publiques (texte, article, lien) : plus de « lu », « secondaire », « Recherche B §… ». La règle des 25 € TTC est LUE (INC, vérifié ce jour : « obligation… supérieur ou égal à
+  25 € », « en dessous de ce seuil, la délivrance est facultative… hormis le cas où le consommateur en fait expressément la demande ») : l'écran ne dit plus « (à confirmer) ».
+- **6 · en-tête des PDF** : un titre plus large que ses 215 points réservés passe à la ligne (corps 11) — mesuré sur 64 PDF (titres longs × noms de 25 à 45 signes), vérifié à l'œil sur `dop-fabricant`.
+- **7 · la branche ne va PAS sur `main` telle quelle** : `metiers.json` déclenche un déploiement du VPS (`deploiement.yml`) et est lu par `agent-chloe` ; `creer.html`, `metiers.html`, `apercu/site/*` sont des pages
+  publiques ; `app.html`, `sw.js` (cache v979 pour une app publique restée en v773) et `demo.html` sont interdits en public sans phrase de Justin. Pour la bêta : `bash scripts/verifier-publication-bete.sh origin/main HEAD`
+  refuse (`beta.html` et `REPRISE.md` seuls) — on reporte `beta.html` + `REPRISE.md` seulement. ⚠️ `metiers.json` a été modifié ICI (libellés de documents, amiante, périodicités) : il attend la phrase de Justin.
+- **8 · devis de dépannage** : la phrase « devis détaillé… quel que soit le montant » ne cite plus l'arrêté et, pour menuiserie / couverture / multiservices, ne s'imprime que si le devis est « dépannage,
+  réparation ou entretien chez un particulier » (nouveau champ obligatoire, comme `devis-autre`) ; la note avant paiement n'imprime plus « (arrêté du 24 janvier 2017 modifié) » (l'article sur la note n'a pas été lu) ;
+  les libellés de documents de plomberie, chauffage et multiservices ne citent plus l'arrêté (l'annexe n'est pas lue ; l'INC nomme serrurerie et électricité, qui le gardent). Une phrase portée par deux métiers
+  de l'entreprise ne s'imprime qu'une fois.
+- **9 · piscine** : l'« attestation de conformité » d'un dispositif ancien est devenue un SUIVI interne (sans envoi, sans signature, titre « SUIVI DE L'ATTESTATION », pied « ce n'est pas l'attestation »). **La phrase de
+  la nuit précédente (« rien de ce qui reste à trancher ne s'imprime ») était fausse pour ce document** : elle ne l'est plus. Le modèle du décret 2004-499 reste à lire pour fabriquer une vraie attestation.
+- **10 · amiante / plomb** : plus de « 1er janvier 1997 » ni « avant 1949 » dans un PDF ni dans un libellé (le critère réglementaire — date du permis de construire ou de livraison — n'est pas relu : Code du travail
+  R. 4412-97, arrêté du 16 juillet 2019) ; les deux mentions sont « à relire » (`verifie:false`, plus de phrase `pdf`) ; les libellés disent « si le bâtiment est concerné ». Les `obligations` de `metiers.json` qui
+  citent un permis d'avant 1997 (maçonnerie, peinture) sont sourcées et n'ont pas été touchées.
+- **11 · périodicités** : « (tous les dix ans) », « semestriel », « annuelle » retirés des types / prestations d'incendie, d'ascenseurs et d'eau ; banc par métier (`test-3129` § 4 sexies) : une périodicité que SEULES
+  les mentions « à confirmer » du métier citent ne s'écrit pas dans un libellé. (Froid garde « Vérification annuelle du système permanent de détection de fuite » : la mention lue correspondante la porte.)
+- **12 · relevés effacés en silence** : enregistrer un document supprimait les relevés d'intervention dont la valeur ne se retrouvait pas dans le formulaire (texte libre sur un champ à choix, « N/A », « > 500 »).
+  Reproduit sur le rapport d'étanchéité (3 relevés perdus). Maintenant un relevé ne part que si la personne a VIDÉ elle-même le champ (`docmReleveEcrire(def, rec, brut, depart)`). Banc : 38 relevés libres sur
+  7 documents + le rapport d'étanchéité rouvert.
+- **13 · poids d'`app.html`** (4 689 920 → 5 038 183 octets, gzip 1,42 → 1,51 Mo) : **MESURÉ, laissé tel quel**. Chromium piloté sur 127.0.0.1, `beta.html` avant / après, cache coupé, processeur ralenti ×4 puis ×6,
+  entre fin du téléchargement et événement `load` : ×4 (5 passages) 705 → 726 ms, ×6 (9 passages) 1 118 → 1 129 ms — l'écart (+11 à +21 ms, < 3 %) est dans le bruit (dispersion ±100 ms). Ce qui se voit, c'est le
+  TRANSFERT : +86 Ko gzip au premier chargement (puis le service worker garde la page). Découper `DOCM_DEFS` et les catalogues dans un fichier chargé à la demande demanderait de toucher au service worker et au
+  chargement des bancs (`test-3111` etc. découpent par bornes dans `app.html`) : pas la veille d'une démonstration. À reprendre si le fichier dépasse 5,5 Mo ou si un client en 4G se plaint du premier chargement.
+- **À dire à Justin avant la démonstration** : (a) une remise ne se saisit plus en prix négatif ; (b) le technicien crée maintenant les rapports d'intervention (étanchéité, vérification…) avec « modifier » ;
+  (c) pour menuiserie / couverture / multiservices le devis demande « dépannage chez un particulier ? » ; (d) sur la version publique le client ne voit plus les repères « à confirmer ».
+- **Suite complète** (`bash scripts/bancs-ci.sh`, 737 suites) : **43 313 vérifications**, une seule suite tombée — `test-2940` (les jeux de démonstration d'incendie et d'eau citaient les types renommés : `scripts/demo/scenarios.js`
+  corrigé, 148 ✓ 0 ✗) ; `test-1670` et `test-2705` sautent comme d'habitude (`server-courrier/node_modules` manque ici). `test-3128` : 307 ✓, `test-3129` : 1 360 ✓. Les `verifier-*.js` passent, sauf `verifier-version.js` :
+  `app.html` a changé sans que `APP_VERSION` (v779) ni le cache du service worker (v979) montent — même état qu'avant cette relecture, volontaire (rien en version publique) ; à monter le jour où `beta.html` part.
+  Mutations : 30 éprouvées (retour du défaut à la main, puis `git checkout`) ; la seule qui ne mord pas seule est « aide qui dit `relis-le` » du constat 9 (l'`envoi` retiré la neutralise — les deux gardes se couvrent).
+- **Non traité ici** : la demande relayée « un agent pro pour les devis, les factures et la comptabilité de notre application » (suivie ailleurs).
+
 # 🧰 28-29 OCTOBRE 2026 (NUIT) — LES 19 AUTRES PACKS MÉTIER SONT DANS LA BÊTA v779 (électricité à piscine) — RIEN SUR `main`, RIEN PUBLIÉ
 Justin : « les 21 packs, mets-les et corrige-les, et pour demain c'est clim et plomberie ». Suite de l'entrée ci-dessous, même branche `claude/packs-metiers` (commits `ee86aa0f`, `041f7f8e`,
 `419ce574`, `7258ecc7`) ; `APP_VERSION` reste 779, `app.html` public (v773) n'est pas touché, `PACK_METIER_AUTO` reste `false`, la 3D et ELAN ne changent pas.

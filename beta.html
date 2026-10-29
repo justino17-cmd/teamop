@@ -9452,12 +9452,11 @@ const METIERS={
       'Outillage consommable', 'EPI'
     ],
     documents:[
-      'Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017',
-      'Note détaillée avant paiement (à partir de 25 € TTC)', 'Rapport d’intervention avec photos',
-      'Rapport de test d’étanchéité daté',
+      'Devis de dépannage, réparation ou entretien', 'Note détaillée avant paiement (à partir de 25 € TTC)',
+      'Rapport d’intervention avec photos', 'Rapport de test d’étanchéité daté',
       'Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)',
       'Certification du client pour la TVA réduite (mention du devis ou de la facture)',
-      'Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)'
+      'Suivi du repérage amiante avant travaux (si le bâtiment est concerné)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
@@ -9569,8 +9568,7 @@ const METIERS={
       'Tuyauterie, liaisons frigorifiques et isolation', 'Outillage consommable', 'EPI'
     ],
     documents:[
-      'Devis de dépannage, réparation ou entretien (mentions de l’arrêté du 24 janvier 2017)',
-      'Note de dépannage remise avant paiement (à partir de 25 € TTC)',
+      'Devis de dépannage, réparation ou entretien', 'Note de dépannage remise avant paiement (à partir de 25 € TTC)',
       'Rapport d’intervention chauffage / climatisation',
       'Attestation d’entretien de chaudière (une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire)',
       'Attestation d’entretien de pompe à chaleur ou de climatisation (4 à 70 kW)',
@@ -9684,13 +9682,13 @@ const METIERS={
       'Nettoyage du chantier', 'Procès-verbal de réception signé',
       'Déclaration de travaux à proximité de réseaux (DT-DICT)', 'Démolition / dépose', 'Décoffrage et cure du béton',
       'Chaînage et raidisseurs', 'Étaiement', 'Chape',
-      'Vérification du repérage amiante avant travaux (bâtiment livré avant le 1er janvier 1997)'
+      'Vérification du repérage amiante avant travaux (si le bâtiment est concerné)'
     ],
     releves:[
       {k:'surface',l:'Surface réalisée',u:'m²'}, {k:'volume',l:'Béton coulé',u:'m³'},
       {k:'lineaire',l:'Linéaire de mur',u:'ml'}, {k:'tps',l:'Temps passé sur site',u:'h'},
       {k:'avancement',l:'Avancement du lot',u:'%'},
-      {k:'reperageAmiante',l:'Repérage amiante avant travaux (référence et date du rapport, bâtiment d’avant 1997)',u:'',txt:true},
+      {k:'reperageAmiante',l:'Repérage amiante avant travaux (référence et date du rapport, si le bâtiment est concerné)',u:'',txt:true},
       {k:'effectif',l:'Effectif sur chantier',u:'personnes'}, {k:'meteo',l:'Météo',u:'',txt:true},
       {k:'materiauxLivres',l:'Matériaux livrés',u:'',txt:true},
       {k:'aleas',l:'Aléas (amiante, réseaux, sol)',u:'',txt:true},
@@ -9727,7 +9725,7 @@ const METIERS={
       'Évacuation des déchets', 'Nettoyage du chantier', 'Croquis et plan joints à la prise de cotes',
       'Réception de la commande du fabricant vérifiée',
       'Déclaration des performances du fabricant demandée et rangée',
-      'Vérification du repérage amiante avant travaux (bâtiment livré avant le 1er janvier 1997)',
+      'Vérification du repérage amiante avant travaux (si le bâtiment est concerné)',
       'Procès-verbal de réception signé'
     ],
     releves:[
@@ -9767,7 +9765,7 @@ const METIERS={
       'Dépose des protections', 'Nettoyage du chantier', 'Fiche de teinte remise au client',
       'Relevé des supports et métré', 'Décapage de l’ancien revêtement', 'Enduit de lissage',
       'Pose de revêtement de sol', 'Raccords et retouches',
-      'Vérification du repérage amiante (bâtiment livré avant le 1er janvier 1997) ou du constat plomb (logement d’avant 1949) avant ponçage ou décapage',
+      'Vérification du repérage amiante ou du constat plomb avant ponçage ou décapage, si le bâtiment est concerné',
       'Contrôle final avec le client'
     ],
     releves:[
@@ -9844,7 +9842,7 @@ const METIERS={
       'Réfection des faîtages', 'Nettoyage des gouttières', 'Pose / soudure du zinc', 'Démoussage',
       'Application d’hydrofuge', 'Évacuation des déchets', 'Nettoyage du chantier',
       'Photos avant et après de la toiture', 'Contrôle des plaques fragiles',
-      'Contrôle du rapport de repérage amiante avant travaux (bâtiment livré avant 1997)', 'Bâchage provisoire',
+      'Contrôle du rapport de repérage amiante avant travaux (si le bâtiment est concerné)', 'Bâchage provisoire',
       'Pose d’écran de sous-toiture', 'Contrôle des solins, noues et rives', 'Pose de fenêtre de toit'
     ],
     releves:[
@@ -9863,7 +9861,7 @@ const METIERS={
       'Rapport d’intervention avec photos avant et après',
       'Fiche de mise en sécurité (échafaudage, protection contre les chutes)',
       'Procès-verbal de réception (avec ou sans réserves)', 'Devis de réparation ou de dépannage de toiture',
-      'Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)',
+      'Suivi du repérage amiante avant travaux (si le bâtiment est concerné)',
       'Suivi de l’attestation d’assurance décennale (document de l’assureur)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
@@ -9894,9 +9892,8 @@ const METIERS={
     ],
     documents:[
       'Bon d’intervention signé (ne remplace pas le devis de dépannage)',
-      'Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017',
-      'Note détaillée avant paiement (à partir de 25 € TTC)', 'Liste des pièces fournies',
-      'Contrat de maintenance avec rappel de reconduction',
+      'Devis de dépannage, réparation ou entretien', 'Note détaillée avant paiement (à partir de 25 € TTC)',
+      'Liste des pièces fournies', 'Contrat de maintenance avec rappel de reconduction',
       'Certification du client pour la TVA réduite (mention du devis ou de la facture)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
@@ -9935,11 +9932,11 @@ const METIERS={
       'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
-      'Vérification annuelle des extincteurs', 'Vérification du désenfumage',
+      'Vérification des extincteurs', 'Vérification du désenfumage',
       'Vérification des RIA (robinets d\'incendie armés)', 'Vérification de l\'alarme incendie',
       'Remplacement ou recharge', 'Installation', 'Dépannage urgent',
-      'Formation du personnel (extincteurs, évacuation)', 'Contrat de vérification annuelle',
-      'Visite technique / devis', 'Révision des extincteurs (tous les dix ans)'
+      'Formation du personnel (extincteurs, évacuation)', 'Contrat de vérification', 'Visite technique / devis',
+      'Révision des extincteurs'
     ],
     presta:[
       'Contrôle visuel', 'Test de fonctionnement', 'Vérification du manomètre', 'Remplacement du scellé', 'Recharge',
@@ -10038,9 +10035,9 @@ const METIERS={
     presta:[
       'Test de l\'interphone', 'Test de l\'arrêt d\'urgence', 'Contrôle des portes palières et de cabine',
       'Contrôle des câbles', 'Graissage', 'Remplacement d\'une pièce d\'usure', 'Remise en service après arrêt',
-      'Report dans le carnet d\'entretien', 'Vérification des serrures de portes palières',
-      'Examen semestriel des câbles', 'Vérification annuelle des parachutes',
-      'Nettoyage de la cuvette et du toit de cabine', 'Contrôle du local des machines', 'Déblocage de personnes'
+      'Report dans le carnet d\'entretien', 'Vérification des serrures de portes palières', 'Examen des câbles',
+      'Vérification des parachutes', 'Nettoyage de la cuvette et du toit de cabine', 'Contrôle du local des machines',
+      'Déblocage de personnes'
     ],
     releves:[
       {k:'appareil',l:'N° de l\'appareil',u:'',txt:true}, {k:'etages',l:'Étages desservis',u:''},
@@ -10253,10 +10250,10 @@ const METIERS={
       'pointage', 'vehicules', 'messagerie', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
-      'Installation', 'Entretien annuel', 'Régénération', 'Remplacement de cartouche', 'Désinfection de circuit',
-      'Dépannage', 'Contrat d\'entretien', 'Visite technique / devis', 'Prélèvement d’eau pour analyse (laboratoire)',
-      'Relevé de températures (carnet sanitaire)', 'Maintenance du réseau ECS (détartrage, vidange, bras morts)',
-      'Désinfection après traitement choc'
+      'Installation', 'Entretien de l’installation', 'Régénération', 'Remplacement de cartouche',
+      'Désinfection de circuit', 'Dépannage', 'Contrat d\'entretien', 'Visite technique / devis',
+      'Prélèvement d’eau pour analyse (laboratoire)', 'Relevé de températures (carnet sanitaire)',
+      'Maintenance du réseau ECS (détartrage, vidange, bras morts)', 'Désinfection après traitement choc'
     ],
     presta:[
       'Mesure de la dureté', 'Remplacement des cartouches', 'Régénération des résines', 'Remplissage en sel',
@@ -10321,7 +10318,7 @@ const METIERS={
     documents:[
       'Rapport de mesures de l’eau', 'Fiche d’ouverture ou d’hivernage', 'Note technique de sécurité',
       'Courrier de rappel au maître d’ouvrage (dispositif non choisi)',
-      'Attestation de conformité d’un dispositif installé avant le 8 juin 2004',
+      'Suivi de l’attestation d’un dispositif installé avant le 8 juin 2004 (document de l’entreprise)',
       'Suivi du contrôle sanitaire de l’eau (piscine à usage collectif)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] }
@@ -10470,7 +10467,7 @@ const CATALOGUE_CHAUF=[
   ['Lunettes de protection (pièce)','EPI',[],'']
 ];
 const FOURNISSEURS_CHAUF=[
-  {id:'four_cedeo',nom:'Cedeo',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : cedeo.fr · distributeur de plomberie, chauffage et climatisation (le site refuse les accès automatiques : non relu)'},
+  {id:'four_cedeo',nom:'Cedeo',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : cedeo.fr · distributeur de plomberie, chauffage et climatisation'},
   {id:'four_richardson',nom:'Richardson',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : richardson.fr · distributeur de matériel de chauffage, de climatisation et de plomberie'},
   {id:'four_chausson-materiaux',nom:'Chausson Matériaux',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : chausson.fr · négoce de matériaux : plomberie, chauffage, sanitaire'},
   {id:'four_climalife',nom:'Climalife',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : climalife.com/fr · fluides frigorigènes et solutions thermiques'},
@@ -10510,8 +10507,8 @@ const CATALOGUE_PLOMB=[
   ['Lunettes de protection (pièce)','EPI',[],'']
 ];
 const FOURNISSEURS_PLOMB=[
-  {id:'four_cedeo',nom:'Cedeo',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : cedeo.fr · distributeur de plomberie et de chauffage (le site refuse les accès automatiques : non relu)'},
-  {id:'four_point-p',nom:'Point.P',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : pointp.fr · matériaux et plomberie (le site refuse les accès automatiques : non relu)'},
+  {id:'four_cedeo',nom:'Cedeo',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : cedeo.fr · distributeur de plomberie et de chauffage'},
+  {id:'four_point-p',nom:'Point.P',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : pointp.fr · matériaux et plomberie'},
   {id:'four_richardson',nom:'Richardson',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : richardson.fr · distributeur de sanitaire et de plomberie'},
   {id:'four_chausson-materiaux',nom:'Chausson Matériaux',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : chausson.fr · négoce de matériaux : réseaux, plomberie'},
   {id:'four_foussier',nom:'Foussier',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : foussier.fr · quincaillerie et outillage consommable'}
@@ -11282,7 +11279,7 @@ const FOURNISSEURS_PISCINE=[
   {id:'four_zodiac-pool-care',nom:'Zodiac Pool Care',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : zodiac-poolcare.fr · robots, électrolyse'},
   {id:'four_hayward-france',nom:'Hayward France',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : hayward.fr · filtration, pompes, électrolyse'},
   {id:'four_bayrol-france',nom:'Bayrol France',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : bayrol.fr · produits de traitement'},
-  {id:'four_pool-technologie',nom:'Pool Technologie',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : pool-technologie.com · équipements (catégories à confirmer)'}
+  {id:'four_pool-technologie',nom:'Pool Technologie',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : pool-technologie.com · équipements'}
 ];
 METIERS['electricite'].catalogue=CATALOGUE_ELECTRICITE; METIERS['electricite'].fournisseurs=FOURNISSEURS_ELECTRICITE;
 METIERS['serrurerie'].catalogue=CATALOGUE_SERRURERIE; METIERS['serrurerie'].fournisseurs=FOURNISSEURS_SERRURERIE;
@@ -43698,12 +43695,15 @@ function nettPdf(sp,E,imgs){ E=E||{}; imgs=imgs||{};
   R(0,H-6,W,6,ACC); y=H-M-16;
   let nx=M; if(E.logo&&E.logo.b64){ const lh=34, lw=Math.round(E.logo.w*(lh/E.logo.h)); image('L1',M,y-9,lw,lh); nx=M+lw+12; }
   TW(nx,y,19,E.nom||'',1,ACC,RGT-215-nx);
-  TR(RGT,y+3,14,sp.titre||'',1,DARK);
-  if(sp.sous) TR(RGT,y-12,9,sp.sous,0,GREY);
-  if(sp.ref) TR(RGT,y-24,8.5,sp.ref,1,GREY);
+  /* ⛔ le titre tient dans les 215 points qu'on lui réserve à droite : un titre plus large (« SUIVI DES DÉCLARATIONS DE PERFORMANCES ») passait par-dessus le nom de l'entreprise dès que celui-ci faisait 25 signes ou plus. Il passe alors à la ligne (trois au plus, corps 11)
+     et ce qui se range dessous (date, référence) descend d'autant (constat 6 de la relecture du 28 octobre 2026). */
+  const tit0=net(sp.titre||''), titTient=larg(tit0,14,1)<=215, titL=titTient?[tit0]:lignes(tit0,11,1,215).slice(0,3), titSz=titTient?14:11, titPlus=(titL.length-1)*13;
+  titL.forEach((t,k)=>TR(RGT,y+3-k*13,titSz,t,1,DARK));
+  if(sp.sous) TR(RGT,y-12-titPlus,9,sp.sous,0,GREY);
+  if(sp.ref) TR(RGT,y-24-titPlus,8.5,sp.ref,1,GREY);
   const lgMax=RGT-235-nx; let ey=y-14;
   (E.lignes||[]).flatMap(t=>larg(t,8.3,0)<=lgMax?[t]:String(t).split(/\s+·\s+/)).forEach(t=>{ TW(nx,ey,8.3,t,0,GREY,lgMax); ey-=10.5; });
-  y=Math.min(y-(sp.ref?38:30),ey-6); R(M,y,L,1.4,ACC); y-=16;
+  y=Math.min(y-(sp.ref?38:30)-titPlus,ey-6); R(M,y,L,1.4,ACC); y-=16;
 
   (sp.blocs||[]).forEach(b=>{
     if(b.t==='titre') titre(b.texte,b.suite||20);
@@ -44155,6 +44155,7 @@ const DOCM_DEFS=[
      {k:'date',l:'Date de rédaction',t:'date',requis:true,pre:'auj',s:'Le devis'},
      {k:'lieu',l:'Lieu d’exécution des travaux',t:'texte',requis:true,pre:'adresse',max:200},
      {k:'nature',l:'Nature exacte de la prestation ou de la réparation',t:'long',requis:true,pre:'motif',max:800},
+     {k:'depannage',l:'Dépannage, réparation ou entretien chez un particulier',t:'choix',options:DOCM_OUI,requis:true,maj:true,pour:['menuiserie','couverture','multiservices']},
      {k:'installation',l:'Installation concernée : tension et puissance (information interne, jamais une mention légale)',t:'texte',max:160,pour:['electricite']},
      {k:'situation',l:'Situation constatée',t:'choix',options:[['claquee','Porte claquée'],['fermee','Porte fermée à clé'],['perdue','Clé perdue'],['forcee','Porte forcée']],pour:['serrurerie']},
      {k:'methodeOuverture',l:'Méthode annoncée : ouverture fine ou destructive, et ce que chacune peut coûter',t:'long',max:400,pour:['serrurerie']},
@@ -44174,14 +44175,17 @@ const DOCM_DEFS=[
      {k:'signeParNom',l:'Nom du signataire',t:'texte',max:120}],
    mentions:[
      {texte:'Devis détaillé remis au client avant toute prestation de dépannage, de réparation ou d’entretien, quel que soit le montant (arrêté du 24 janvier 2017 modifié).',
-      source:'https://www.inc-conso.fr/node/9603 (lu, Institut national de la consommation)',verifie:true,
-      pdf:'Devis détaillé remis avant toute prestation, quel que soit le montant (arrêté du 24 janvier 2017 modifié).'},
+      source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,pour:['chauffage','plomberie','electricite','serrurerie'],
+      pdf:'Devis détaillé remis avant toute prestation de dépannage, de réparation ou d’entretien, quel que soit le montant.'},
+     {texte:'Menuiserie, couverture, multiservices : le champ d’application de l’arrêté n’est pas établi pour toutes leurs prestations (annexe 1 non lue). La phrase ne s’imprime que si le devis est un dépannage, une réparation ou un entretien chez un particulier.',
+      source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,pour:['menuiserie','couverture','multiservices'],si:{k:'depannage',egal:'oui'},
+      pdf:'Devis détaillé remis avant toute prestation de dépannage, de réparation ou d’entretien, quel que soit le montant.'},
      {texte:'Droit de rétractation de 14 jours pour un devis signé au domicile du client ; aucun droit de rétractation pour un dépannage urgent expressément demandé par le client, hors pièces étrangères à l’urgence.',
-      source:'https://www.inc-conso.fr/node/9603 (lu)',verifie:true,si:{k:'lieuSignature',egal:'client'},
+      source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,si:{k:'lieuSignature',egal:'client'},
       pdf:'Devis signé au domicile du client : droit de rétractation de 14 jours. Aucun droit de rétractation pour un dépannage urgent expressément demandé par le client, hors pièces étrangères à l’urgence.'},
-     {texte:'Le client peut conserver les pièces, éléments ou appareils remplacés : case à cocher du devis.',source:'https://www.inc-conso.fr/node/9603 et fiche mémo de la CAPEB (lus)',verifie:true},
+     {texte:'Le client peut conserver les pièces, éléments ou appareils remplacés : case à cocher du devis.',source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603 ; fiche mémo de la CAPEB',verifie:true},
      {texte:'Ne pas utiliser pour un contrat d’entretien : l’arrêté ne s’applique pas aux contrats d’entretien, de garantie ou de service après-vente, ni aux prestations couvertes par un paiement forfaitaire à la signature ou au renouvellement du contrat.',
-      source:'https://www.inc-conso.fr/node/9603 (lu)',verifie:true},
+      source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true},
      {texte:'Le champ d’application de l’arrêté (chauffage, climatisation, ramonage ; plomberie, sanitaires, débouchage et curage) vient d’un recensement secondaire pour le chauffage : texte de l’annexe 1 non lu. À confirmer avant de dire « obligatoire » à un client.',
       source:'Recensement secondaire (macorpo.com) ; Légifrance non ouvert',verifie:false},
      {texte:'Majorations de nuit, de week-end et de jour férié : à faire figurer au devis comme tout autre prix. Texte de l’arrêté non lu.',source:'À confirmer',verifie:false},
@@ -44206,11 +44210,11 @@ const DOCM_DEFS=[
      {k:'piecesConservees',l:'Pièces remplacées conservées par le client',t:'choix',options:DOCM_OUI,reco:true},
      {k:'sansNom',l:'Le client s’oppose à ce que son nom figure sur la note',t:'choix',options:DOCM_OUI,def:'non'}],
    mentions:[
-     {texte:'Note remise après l’exécution et avant tout paiement, en deux exemplaires, dès 25 € TTC.',source:'https://www.inc-conso.fr/node/9603 (lu)',verifie:true,
-      pdf:'Note remise en deux exemplaires, avant tout paiement (arrêté du 24 janvier 2017 modifié).'},
+     {texte:'Note remise après l’exécution et avant tout paiement, en deux exemplaires, dès 25 € TTC.',source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,
+      pdf:'Note remise en deux exemplaires, avant tout paiement.'},
      {texte:'Contenu de la note : date, prestataire, client (sauf opposition de sa part), date et lieu d’exécution, décompte détaillé (sauf devis détaillé accepté et conforme), totaux HT et TTC.',
       source:'Recensement secondaire (macorpo.com) ; l’article sur la note n’a pas été lu dans l’arrêté',verifie:false},
-     {texte:'Sous 25 € TTC, la note ne serait remise que si le client la demande : non confirmé (question parlementaire ancienne). À confirmer avant de le dire à un client.',source:'Non confirmé',verifie:false}],
+     {texte:'Sous 25 € TTC, la délivrance de la note est facultative, sauf si le client la demande expressément.',source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true}],
    signatures:[{lbl:'Pour l’entreprise'},{lbl:'Le client — reçu avant paiement',sous:'Nom et date de remise'}],
    pied:'Document établi par {ENT} : c’est la note de l’entreprise, pas un formulaire officiel reproduit.',
    mail:(r,c)=>({sujet:'Note de dépannage'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre intervention'),
@@ -44265,7 +44269,7 @@ const DOCM_DEFS=[
      {k:'exception',l:'Cas d’exception éventuel',t:'texte',max:200}],
    mentions:[
      {texte:'Le certificat est rempli par l’installateur puis visé par un organisme habilité ; le distributeur l’exige avant d’alimenter l’installation.',
-      source:'https://www.ecologie.gouv.fr/politiques-publiques/appareils-materiels-gaz-installations-interieures-gaz (lu) ; FFB (lu, partiel)',verifie:true,
+      source:'Ministère de la Transition écologique : https://www.ecologie.gouv.fr/politiques-publiques/appareils-materiels-gaz-installations-interieures-gaz ; FFB',verifie:true,
       pdf:'Le certificat de conformité est rempli par l’installateur puis visé par un organisme habilité ; le distributeur l’exige avant d’alimenter l’installation.'},
      {texte:'Cerfa n° 16026 (modèle 2) ; arrêté du 23 février 2018, applicable depuis le 1er janvier 2020.',source:'service-public.fr (extrait seulement)',verifie:false},
      {texte:'Désignations CCG1 / CCG2 / CCG3 et liste des exceptions : sites secondaires seulement.',source:'À confirmer',verifie:false}],
@@ -44290,7 +44294,7 @@ const DOCM_DEFS=[
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : ce n’est pas un document officiel.' },
 
- { id:'tva-reduite', metiers:['plomberie','menuiserie','multiservices'], ic:'🏠', court:'Certification TVA réduite', pdfTitre:'CERTIFICATION TVA',
+ { id:'tva-reduite', metiers:['chauffage','energies','plomberie','menuiserie','multiservices'], ic:'🏠', court:'Certification TVA réduite', pdfTitre:'CERTIFICATION TVA',
    titre:'Certification du client pour la TVA réduite (mention du devis ou de la facture)', portee:'client', droit:'ventes', prefixe:'TVR', envoi:true,
    aide:'Quand un taux réduit est appliqué, le client certifie que les conditions sont remplies. Le texte exact de la mention n’a pas été relu : colle ici celui de ton modèle, l’application n’invente aucune formule.',
    champs:[
@@ -44304,7 +44308,7 @@ const DOCM_DEFS=[
      {k:'signeLe',l:'Certifié par le client le',t:'date',s:'Signature'},{k:'signeParNom',l:'Nom du client',t:'texte',max:120}],
    mentions:[
      {texte:'Depuis le 16 février 2025, plus d’attestation Cerfa : le client certifie, par une mention portée sur le devis ou la facture, que les conditions du taux réduit sont remplies ; sans mention complète, le taux normal s’applique.',
-      source:'Eurex (professionnelle, lue) ; KPMG (secondaire, lue)',verifie:true,
+      source:'Eurex ; KPMG (taux réduit de TVA depuis le 16 février 2025)',verifie:true,
       pdf:'Depuis le 16 février 2025, l’attestation Cerfa n’est plus demandée : le client certifie que les conditions du taux réduit sont remplies par une mention portée sur le devis ou la facture.'},
      {texte:'Texte exact de la mention de certification : modèles du BOFiP (BOI-TVA-LIQ-30-20-90-40) non ouverts. Ne pas inventer la formule.',source:'À confirmer',verifie:false},
      {texte:'Conservation de la mention jusqu’au 31 décembre de la 5e année : à reconfirmer sur le BOFiP.',source:'Eurex (lu), à reconfirmer',verifie:false}],
@@ -44314,8 +44318,8 @@ const DOCM_DEFS=[
      corps:'Bonjour,\n\nVous trouverez ci-joint la certification relative au taux réduit de TVA appliqué à nos travaux. Merci de la relire, de la signer et de nous la retourner.\n\nNous restons à votre disposition.'}) },
 
  { id:'suivi-amiante', metiers:['plomberie','couverture','peinture'], ic:'🧱', court:'Suivi du repérage amiante', pdfTitre:'SUIVI DU REPÉRAGE AMIANTE',
-   titre:'Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)', portee:'client', droit:'crm', interne:true, statutChamp:'reperage',
-   aide:'Le repérage est commandé par le donneur d’ordre à un opérateur certifié : cette fiche suit le rapport reçu, elle ne le produit pas. Le plomb (avant 1949) reste à confirmer.',
+   titre:'Suivi du repérage amiante avant travaux (si le bâtiment est concerné)', portee:'client', droit:'crm', interne:true, statutChamp:'reperage',
+   aide:'Le repérage est commandé par le donneur d’ordre à un opérateur certifié : cette fiche suit le rapport reçu, elle ne le produit pas. Le plomb reste à confirmer.',
    champs:[
      {k:'chantier',l:'Chantier (adresse)',t:'texte',max:200,pre:'adresse',s:'Le chantier'},
      {k:'piece',l:'Type de pièce',t:'choix',options:[['amiante','Repérage amiante avant travaux'],['plomb','Constat de risque d’exposition au plomb']],pour:['peinture']},
@@ -44326,9 +44330,8 @@ const DOCM_DEFS=[
      {k:'resultat',l:'Résultat',t:'choix',options:[['presence','Présence d’amiante'],['absence','Absence d’amiante'],['inconnu','Pas encore connu']]},
      {k:'transmisLe',l:'Transmis à l’entreprise le',t:'date'}],
    mentions:[
-     {texte:'Le repérage avant travaux vise les bâtiments livrés avant le 1er janvier 1997 ; il est commandé par le donneur d’ordre à un opérateur certifié.',
-      source:'FFB, repérage amiante (professionnelle, lue)',verifie:true,
-      pdf:'Le repérage amiante avant travaux vise les bâtiments livrés avant le 1er janvier 1997 ; il est commandé par le donneur d’ordre à un opérateur certifié.'},
+     {texte:'Le repérage amiante avant travaux est commandé par le donneur d’ordre à un opérateur certifié. Le critère d’application (date de livraison du bâtiment ou date du permis de construire) n’a pas été relu : Code du travail R. 4412-97 et arrêté du 16 juillet 2019 à ouvrir avant de l’imprimer.',
+      source:'FFB (professionnelle) ; texte réglementaire à relire',verifie:false},
      {texte:'Plomb (bâtiments d’avant 1949) : qui commande le constat de risque d’exposition avant travaux. Extrait OPPBTP coupé ; articles non lus.',source:'À confirmer',verifie:false}],
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : le rapport de repérage est celui de l’opérateur certifié.' },
@@ -44352,7 +44355,7 @@ const DOCM_DEFS=[
      {k:'verdict',l:'Verdict de la vérification (saisi par le technicien)',t:'choix',requis:true,options:[['conforme','Conforme'],['non','Non conforme']]},
      {k:'observations',l:'Observations de sécurité',t:'long',max:800}],
    mentions:[
-     {texte:'Ce rapport est celui de l’entreprise : il n’est pas une attestation de conformité du Consuel, qui est produite par le Consuel après sa propre visite.',source:'https://www.consuel.com/ (officielle, lu)',verifie:true,pdf:'Ce rapport est celui de l’entreprise. Il n’est pas une attestation de conformité du Consuel, qui est produite par le Consuel après sa propre visite.'},
+     {texte:'Ce rapport est celui de l’entreprise : il n’est pas une attestation de conformité du Consuel, qui est produite par le Consuel après sa propre visite.',source:'Consuel : https://www.consuel.com/',verifie:true,pdf:'Ce rapport est celui de l’entreprise. Il n’est pas une attestation de conformité du Consuel, qui est produite par le Consuel après sa propre visite.'},
 
      {texte:'Ce rapport n’est pas le rapport de vérification initiale d’un lieu de travail (R. 4226-14 du Code du travail, arrêté du 26 décembre 2011) : celui-là est établi par une personne qualifiée.',source:'arrêté du 26/12/2011 art. 1 et 2 (preventionbtp.fr, extrait seulement : à rouvrir avant d’écrire une règle)',verifie:false},
 
@@ -44382,9 +44385,9 @@ const DOCM_DEFS=[
      {k:'borne',l:'Puissance de la borne',t:'nombre',u:'kVA'},
      {k:'relance',l:'Relance prévue le',t:'date'}],
    mentions:[
-     {texte:'Quatre couleurs d’attestation et leurs Cerfa ; une attestation par point de livraison.',source:'https://www.consuel.com/ (officielle, lu)',verifie:true,pdf:'Une attestation de conformité par point de livraison : jaune (habitation), verte (hors habitation), bleue (production sans stockage), violette (production avec stockage).'},
+     {texte:'Quatre couleurs d’attestation et leurs Cerfa ; une attestation par point de livraison.',source:'Consuel : https://www.consuel.com/',verifie:true,pdf:'Une attestation de conformité par point de livraison : jaune (habitation), verte (hors habitation), bleue (production sans stockage), violette (production avec stockage).'},
 
-     {texte:'L’attestation est produite et visée par le Consuel après sa visite : l’application n’en fabrique aucune et suit seulement le statut.',source:'https://www.consuel.com/ (officielle, lu)',verifie:true,pdf:'L’attestation est produite et visée par le Consuel après sa visite : cette fiche en suit seulement l’état.'},
+     {texte:'L’attestation est produite et visée par le Consuel après sa visite : l’application n’en fabrique aucune et suit seulement le statut.',source:'Consuel : https://www.consuel.com/',verifie:true,pdf:'L’attestation est produite et visée par le Consuel après sa visite : cette fiche en suit seulement l’état.'},
 
      {texte:'Depuis le 1er janvier 2025, pour une première mise en service, le Consuel met l’attestation visée à disposition du gestionnaire de réseau (article D. 342-19 du Code de l’énergie).',source:'Page Consuel lue pour l’essentiel ; article de code non ouvert',verifie:false},
 
@@ -44432,7 +44435,7 @@ const DOCM_DEFS=[
      {k:'ancienne',l:'Ancienne serrure ou cylindre',t:'choix',options:[['remis','Remis au client'],['conserve','Conservé par l’entreprise']]},
      {k:'carte',l:'Carte de propriété remise',t:'choix',options:DOCM_OUI}],
    mentions:[
-     {texte:'Certification A2P délivrée par le CNPP après essais en laboratoire et audits.',source:'https://www.cnpp.com/certification-a2p (officielle, lu)',verifie:true,pdf:'Le niveau A2P indiqué est celui annoncé par la fiche du produit (certification délivrée par le CNPP).'},
+     {texte:'Certification A2P délivrée par le CNPP après essais en laboratoire et audits.',source:'CNPP, certification A2P : https://www.cnpp.com/certification-a2p',verifie:true,pdf:'Le niveau A2P indiqué est celui annoncé par la fiche du produit (certification délivrée par le CNPP).'},
 
      {texte:'Pratique de preuve de la remise, pas une obligation : aucun texte trouvé qui l’impose (absence de texte non démontrée exhaustivement).',source:'Recherche A §5.1',verifie:false},
 
@@ -44502,9 +44505,9 @@ const DOCM_DEFS=[
      {k:'tvaReduite',l:'Taux réduit : le client a certifié les conditions sur le devis ou la facture',t:'choix',options:DOCM_OUI},
      {k:'visaNom',l:'Visa du maître d’ouvrage ou d’œuvre (nom)',t:'texte',max:120}],
    mentions:[
-     {texte:'Facture : numéro unique et chronologique, date d’échéance, taux des pénalités de retard, indemnité forfaitaire de recouvrement de 40 € pour un client professionnel, mention « Escompte pour paiement anticipé : néant ».',source:'https://entreprendre.service-public.gouv.fr/vosdroits/F31808 (officielle, lue) ; FFB',verifie:true,pdf:'Pénalités de retard au taux indiqué ; indemnité forfaitaire de recouvrement de 40 EUR pour un client professionnel.'},
+     {texte:'Facture : numéro unique et chronologique, date d’échéance, taux des pénalités de retard, indemnité forfaitaire de recouvrement de 40 € pour un client professionnel, mention « Escompte pour paiement anticipé : néant ».',source:'Service-public.fr : https://entreprendre.service-public.gouv.fr/vosdroits/F31808 ; FFB',verifie:true,pdf:'Pénalités de retard au taux indiqué ; indemnité forfaitaire de recouvrement de 40 EUR pour un client professionnel.'},
 
-     {texte:'Taux réduit de TVA : certification du client portée sur le devis ou la facture (nom, date, signature), en double exemplaire ; sans mention complète, le taux normal s’applique.',source:'Eurex, taux réduit de TVA sur les travaux dans les logements, février 2026 (professionnelle, lue)',verifie:true,pdf:'Taux réduit de TVA : le client certifie par une mention portée sur le devis ou la facture que les conditions sont remplies ; sans mention complète, le taux normal s’applique.',si:{k:'tvaReduite',egal:'oui'}},
+     {texte:'Taux réduit de TVA : certification du client portée sur le devis ou la facture (nom, date, signature), en double exemplaire ; sans mention complète, le taux normal s’applique.',source:'Eurex, taux réduit de TVA sur les travaux dans les logements, février 2026',verifie:true,pdf:'Taux réduit de TVA : le client certifie par une mention portée sur le devis ou la facture que les conditions sont remplies ; sans mention complète, le taux normal s’applique.',si:{k:'tvaReduite',egal:'oui'}},
 
      {texte:'Facturation électronique : SIREN du client professionnel, adresse de livraison si différente, nature de l’opération, option pour la taxe d’après les débits, dès le 1er septembre 2026 (grandes entreprises) et le 1er septembre 2027 (PME).',source:'service-public F31808 (officielle, lue)',verifie:false},
 
@@ -44557,9 +44560,9 @@ const DOCM_DEFS=[
      {k:'chantier',l:'Chantier (adresse)',t:'texte',pre:'adresse',s:'Le chantier',max:200},
      {k:'pieces',l:'Pièces du dossier',t:'tableau',cols:[{l:'Pièce',w:0.3,opts:['Autorisation d’urbanisme','Repérage amiante avant travaux','Constat plomb','Plan de prévention','Déclaration de travaux près des réseaux (DT-DICT)','Assurance décennale','Responsabilité civile professionnelle','Plans et études']},{l:'Présente / absente',w:0.14,opts:['Présente','Absente','Non nécessaire']},{l:'Référence',w:0.22},{l:'Date',w:0.14},{l:'Échéance (assurance)',w:0.2}],maxRows:40}],
    mentions:[
-     {texte:'Repérage amiante avant travaux : bâtiments livrés avant le 1er janvier 1997, commandé par le donneur d’ordre à un opérateur certifié, rapport remis aux entreprises.',source:'FFB, repérage amiante (professionnelle, lue)',verifie:true,pdf:'Le repérage amiante avant travaux vise les bâtiments livrés avant le 1er janvier 1997 ; il est commandé par le donneur d’ordre à un opérateur certifié.'},
+     {texte:'Repérage amiante avant travaux : commandé par le donneur d’ordre à un opérateur certifié, rapport remis aux entreprises. Le critère d’application (date de livraison du bâtiment ou date du permis de construire) n’a pas été relu : Code du travail R. 4412-97 et arrêté du 16 juillet 2019 à ouvrir avant de l’imprimer.',source:'FFB (professionnelle) ; texte réglementaire à relire',verifie:false},
 
-     {texte:'Plan de prévention écrit dès 400 heures prévisibles sur 12 mois au plus (tous intervenants compris), ou pour un travail de la liste de l’arrêté du 19 mars 1993.',source:'OPPBTP, articles R. 4512-7 et R. 4512-8 du Code du travail (texte lu)',verifie:true,pdf:'Un plan de prévention écrit est établi dès 400 heures prévisibles sur 12 mois au plus (tous intervenants compris), ou pour un travail de la liste de l’arrêté du 19 mars 1993.'},
+     {texte:'Plan de prévention écrit dès 400 heures prévisibles sur 12 mois au plus (tous intervenants compris), ou pour un travail de la liste de l’arrêté du 19 mars 1993.',source:'OPPBTP, articles R. 4512-7 et R. 4512-8 du Code du travail',verifie:true,pdf:'Un plan de prévention écrit est établi dès 400 heures prévisibles sur 12 mois au plus (tous intervenants compris), ou pour un travail de la liste de l’arrêté du 19 mars 1993.'},
 
      {texte:'Constat de risque d’exposition au plomb : immeuble construit avant 1949 présumé à risque.',source:'OPPBTP, R. 1334-13 du Code de la santé publique (extrait, texte coupé)',verifie:false},
 
@@ -44624,11 +44627,11 @@ const DOCM_DEFS=[
      {k:'signeLe',l:'Bon pour accord signé le',t:'date',s:'Signature'},
      {k:'signeParNom',l:'Nom du signataire',t:'texte',max:120}],
    mentions:[
-     {texte:'Devis de travaux de bâtiment : nature exacte des prestations, décompte détaillé en quantité et en prix, déplacement, total HT et TTC avec taux de TVA, durée de validité, date de début et durée estimée, caractère gratuit ou payant.',source:'CAPEB, fiche mémo devis du 15/06/2021 (professionnelle, lue)',verifie:true,pdf:'Devis établi pour des travaux de bâtiment : prestations détaillées en quantité et en prix, total hors taxes et toutes taxes comprises, durée de validité.'},
+     {texte:'Devis de travaux de bâtiment : nature exacte des prestations, décompte détaillé en quantité et en prix, déplacement, total HT et TTC avec taux de TVA, durée de validité, date de début et durée estimée, caractère gratuit ou payant.',source:'CAPEB, fiche mémo « devis » du 15/06/2021',verifie:true,pdf:'Devis établi pour des travaux de bâtiment : prestations détaillées en quantité et en prix, total hors taxes et toutes taxes comprises, durée de validité.'},
 
-     {texte:'Réparation ou dépannage chez un particulier (la peinture figure dans la liste de l’arrêté du 24 janvier 2017 modifié) : devis remis et signé avant toute exécution, avec la possibilité de conserver les pièces remplacées.',source:'INC, tableau récapitulatif devis (officielle, lu)',verifie:true,pdf:'Réparation ou dépannage chez un particulier : devis remis et signé par le client avant toute exécution (arrêté du 24 janvier 2017 modifié).',si:{k:'reparation',egal:'oui'}},
+     {texte:'Réparation ou dépannage chez un particulier (la peinture figure dans la liste de l’arrêté du 24 janvier 2017 modifié) : devis remis et signé avant toute exécution, avec la possibilité de conserver les pièces remplacées.',source:'Institut national de la consommation, tableau récapitulatif des devis',verifie:true,pdf:'Réparation ou dépannage chez un particulier : devis remis et signé par le client avant toute exécution (arrêté du 24 janvier 2017 modifié).',si:{k:'reparation',egal:'oui'}},
 
-     {texte:'Taux réduit de TVA : le client certifie sur le devis ou la facture que le logement est achevé depuis plus de 2 ans ; sans mention complète, le taux normal s’applique.',source:'Eurex, taux réduit de TVA sur les travaux dans les logements, février 2026 (professionnelle, lue)',verifie:true,pdf:'Taux réduit de TVA : le client certifie par une mention portée sur le devis ou la facture que les conditions sont remplies ; sans mention complète, le taux normal s’applique.',si:{k:'tvaReduite',egal:'oui'}},
+     {texte:'Taux réduit de TVA : le client certifie sur le devis ou la facture que le logement est achevé depuis plus de 2 ans ; sans mention complète, le taux normal s’applique.',source:'Eurex, taux réduit de TVA sur les travaux dans les logements, février 2026',verifie:true,pdf:'Taux réduit de TVA : le client certifie par une mention portée sur le devis ou la facture que les conditions sont remplies ; sans mention complète, le taux normal s’applique.',si:{k:'tvaReduite',egal:'oui'}},
 
      {texte:'Amiante : pour un bâtiment livré avant le 1er janvier 1997, le donneur d’ordre fait réaliser un repérage avant travaux ; le rapport est joint à la consultation.',source:'FFB, repérage amiante avant travaux (professionnelle, lu)',verifie:false},
 
@@ -44715,7 +44718,7 @@ const DOCM_DEFS=[
      {k:'intervenants',l:'Intervenants',t:'tableau',cols:[{l:'N°',w:0.1},{l:'Nom et prénom',w:0.3},{l:'Heures de l’année',w:0.2},{l:'Prix horaire ou forfaitaire',w:0.2},{l:'Heures du mois (si demandé)',w:0.2}],maxRows:20},
      {k:'signataire',l:'Nom et qualité du signataire',t:'texte',max:120}],
    mentions:[
-     {texte:'À remettre à chaque client avant le 31 mars de l’année suivante, uniquement pour un organisme déclaré « services à la personne ».',source:'https://entreprendre.service-public.gouv.fr/vosdroits/R32522 (officielle, lue)',verifie:true,pdf:'Attestation fiscale annuelle à remettre avant le 31 mars de l’année suivante (organisme déclaré « services à la personne »).'},
+     {texte:'À remettre à chaque client avant le 31 mars de l’année suivante, uniquement pour un organisme déclaré « services à la personne ».',source:'Service-public.fr : https://entreprendre.service-public.gouv.fr/vosdroits/R32522',verifie:true,pdf:'Attestation fiscale annuelle à remettre avant le 31 mars de l’année suivante (organisme déclaré « services à la personne »).'},
 
      {texte:'Plafond de l’avantage fiscal du jardinage (5 000 € vu sur un site secondaire).',source:'Non confirmé : ne pas imprimer',verifie:false}],
    signatures:[{lbl:'L’organisme',sous:'Nom, qualité, date et signature'}],
@@ -44797,7 +44800,7 @@ const DOCM_DEFS=[
      {k:'signeParNom',l:'Nom du signataire',t:'texte',s:'Signature',max:120},
      {k:'signeLe',l:'Signé le',t:'date'}],
    mentions:[
-     {texte:'Ce bon trace ce qui a été demandé et fait : il ne remplace pas le devis de dépannage, remis et signé avant toute exécution quand l’arrêté le vise.',source:'https://www.inc-conso.fr/node/9603 (lu, Institut national de la consommation)',verifie:true,pdf:'Ce bon trace ce qui a été demandé et fait. Il ne remplace pas le devis de dépannage.'},
+     {texte:'Ce bon trace ce qui a été demandé et fait : il ne remplace pas le devis de dépannage, remis et signé avant toute exécution quand l’arrêté le vise.',source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,pdf:'Ce bon trace ce qui a été demandé et fait. Il ne remplace pas le devis de dépannage.'},
 
      {texte:'Aucune forme légale n’est imposée à ce bon : c’est un document de pratique du métier.',source:'Recherche A §12.1',verifie:false}],
    signatures:[{lbl:'Pour l’entreprise'},{lbl:'Le client',sous:'Nom, date et signature'}],
@@ -44814,7 +44817,7 @@ const DOCM_DEFS=[
      {k:'fournisseur',l:'Fournies par',t:'choix',s:'Précisions',options:[['entreprise','L’entreprise'],['client','Le client']]},
      {k:'piecesConservees',l:'Pièces remplacées conservées par le client',t:'choix',options:DOCM_OUI}],
    mentions:[
-     {texte:'Le client peut conserver les pièces remplacées : la liste reprend la case du devis.',source:'https://www.inc-conso.fr/node/9603 (lu, Institut national de la consommation)',verifie:true,pdf:'Le client peut conserver les pièces, éléments ou appareils remplacés.'},
+     {texte:'Le client peut conserver les pièces remplacées : la liste reprend la case du devis.',source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,pdf:'Le client peut conserver les pièces, éléments ou appareils remplacés.'},
 
      {texte:'Mention de la garantie légale de conformité sur la facture d’un consommateur.',source:'service-public F31808 (officielle)',verifie:false}],
    signatures:[],
@@ -44840,7 +44843,7 @@ const DOCM_DEFS=[
      {k:'resiliation',l:'Résiliation',t:'long',max:300},
      {k:'mediation',l:'Médiateur de la consommation',t:'texte',max:200}],
    mentions:[
-     {texte:'Les contrats d’entretien sont exclus de l’obligation de devis de dépannage (mais pas de l’information précontractuelle).',source:'https://www.inc-conso.fr/node/9603 (lu, Institut national de la consommation)',verifie:true,pdf:'Ce contrat est un contrat d’entretien : il n’est pas un devis de dépannage.'},
+     {texte:'Les contrats d’entretien sont exclus de l’obligation de devis de dépannage (mais pas de l’information précontractuelle).',source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,pdf:'Ce contrat est un contrat d’entretien : il n’est pas un devis de dépannage.'},
 
      {texte:'Contrat à reconduction tacite avec un consommateur : informer par lettre nominative ou courriel dédié entre 3 mois et 1 mois avant la fin de la période qui permet de refuser la reconduction, sinon résiliation gratuite possible après la reconduction.',source:'weblex ; lextens (secondaires, extraits) : à relire sur le texte consolidé',verifie:false},
 
@@ -44868,7 +44871,7 @@ const DOCM_DEFS=[
      {k:'signeLe',l:'Signé par le client le',t:'date',s:'Signature'},
      {k:'signeParNom',l:'Nom du signataire',t:'texte',max:120}],
    mentions:[
-     {texte:'Dépannage, réparation ou entretien chez un particulier (métiers de la liste de l’arrêté du 24 janvier 2017 modifié par celui du 28 février 2017) : devis écrit remis et signé avant toute exécution, quel que soit le montant.',source:'https://www.inc-conso.fr/node/9603 (lu, Institut national de la consommation)',verifie:true,pdf:'Devis remis avant toute prestation de dépannage, de réparation ou d’entretien chez un particulier, quel que soit le montant (arrêté du 24 janvier 2017 modifié).',si:{k:'depannage',egal:'oui'}},
+     {texte:'Dépannage, réparation ou entretien chez un particulier (métiers de la liste de l’arrêté du 24 janvier 2017 modifié par celui du 28 février 2017) : devis écrit remis et signé avant toute exécution, quel que soit le montant.',source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,pdf:'Devis remis avant toute prestation de dépannage, de réparation ou d’entretien chez un particulier, quel que soit le montant (arrêté du 24 janvier 2017 modifié).',si:{k:'depannage',egal:'oui'}},
 
      {texte:'Hors liste de l’arrêté : information précontractuelle de L. 111-1 et L. 111-2 du Code de la consommation ; sans durée de validité écrite, la jurisprudence retient en général 3 mois.',source:'CAPEB, fiche mémo devis (professionnelle, lue)',verifie:false},
 
@@ -44893,11 +44896,11 @@ const DOCM_DEFS=[
      {k:'anomalies',l:'Anomalies constatées et recommandations',t:'long',s:'Synthèse',max:800},
      {k:'nbVerifies',l:'Appareils vérifiés (nombre)',t:'texte',max:20}],
    mentions:[
-     {texte:'Relevé à annexer au registre de sécurité de l’établissement et à présenter à la commission de sécurité.',source:'Préfecture de l’Eure, relevé de vérification (officielle, lue)',verifie:true,pdf:'Relevé à annexer au registre de sécurité de l’établissement.'},
+     {texte:'Relevé à annexer au registre de sécurité de l’établissement et à présenter à la commission de sécurité.',source:'Préfecture de l’Eure, relevé de vérification',verifie:true,pdf:'Relevé à annexer au registre de sécurité de l’établissement.'},
 
-     {texte:'Le vérificateur date, signe et, si possible, appose son tampon sur le registre de sécurité.',source:'culture.gouv.fr (officielle, lue)',verifie:true,pdf:'Le vérificateur date et signe le registre de sécurité.'},
+     {texte:'Le vérificateur date, signe et, si possible, appose son tampon sur le registre de sécurité.',source:'Ministère de la Culture : culture.gouv.fr',verifie:true,pdf:'Le vérificateur date et signe le registre de sécurité.'},
 
-     {texte:'Les extincteurs sont maintenus en bon état de fonctionnement (R. 4227-29 du Code du travail) : cet article ne fixe aucune périodicité.',source:'OPPBTP, article R. 4227-29 (professionnelle, lue)',verifie:true,pdf:'Les extincteurs sont maintenus en bon état de fonctionnement (article R. 4227-29 du Code du travail).'},
+     {texte:'Les extincteurs sont maintenus en bon état de fonctionnement (R. 4227-29 du Code du travail) : cet article ne fixe aucune périodicité.',source:'OPPBTP, article R. 4227-29 du Code du travail',verifie:true,pdf:'Les extincteurs sont maintenus en bon état de fonctionnement (article R. 4227-29 du Code du travail).'},
 
      {texte:'Extincteurs d’ERP de 1re à 4e catégorie : GE 9, GE 10 et MS 73 §2 de l’arrêté du 25 juin 1980 ; ERP de 5e catégorie : PE 4 §2, PO 8, PO 1 §3 de l’arrêté du 22 juin 1990 (références citées par le relevé de la préfecture).',source:'Préfecture de l’Eure (lue) : à n’imprimer que comme référence',verifie:false},
 
@@ -44949,7 +44952,7 @@ const DOCM_DEFS=[
      {k:'formateur',l:'Formateur',t:'texte',pre:'technicien',max:160},
      {k:'stagiaires',l:'Stagiaires',t:'tableau',cols:[{l:'Nom',w:0.4},{l:'Prénom',w:0.4},{l:'Fonction',w:0.2}],maxRows:40}],
    mentions:[
-     {texte:'Le Code du travail impose de désigner et de former des personnes pour mettre en œuvre l’extinction, diriger l’évacuation et alerter les secours ; aucun modèle d’attestation ni mention imposée n’a été trouvé : rien n’est imprimé de plus.',source:'OPPBTP, R. 4227-38 du Code du travail (professionnelle, lu)',verifie:true}],
+     {texte:'Le Code du travail impose de désigner et de former des personnes pour mettre en œuvre l’extinction, diriger l’évacuation et alerter les secours ; aucun modèle d’attestation ni mention imposée n’a été trouvé : rien n’est imprimé de plus.',source:'OPPBTP, article R. 4227-38 du Code du travail',verifie:true}],
    signatures:[{lbl:'Le formateur',sous:'Nom, date et signature'}],
    pied:'Document établi par {ENT} : attestation de l’entreprise, sans valeur de certification.',
    mail:(r,c)=>({sujet:'Attestation de formation'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
@@ -44967,7 +44970,7 @@ const DOCM_DEFS=[
      {k:'attestation',l:'N° d’attestation de capacité de l’opérateur',t:'texte',max:60},
      {k:'operateur',l:'Opérateur et technicien',t:'texte',pre:'technicien',max:160}],
    mentions:[
-     {texte:'Disque bleu ou rouge d’au moins 4 cm, date limite de validité, n° d’attestation de capacité de l’opérateur dans le rectangle ; la nouvelle vignette remplace la précédente (arrêté du 29 février 2016, art. 6 et 7, annexe).',source:'AIDA/Ineris, arrêté du 29 février 2016 (lu)',verifie:true,pdf:'Ce document est un rappel de la pose du disque de contrôle d’étanchéité (arrêté du 29 février 2016) ; il ne remplace pas la vignette réglementaire.'},
+     {texte:'Disque bleu ou rouge d’au moins 4 cm, date limite de validité, n° d’attestation de capacité de l’opérateur dans le rectangle ; la nouvelle vignette remplace la précédente (arrêté du 29 février 2016, art. 6 et 7, annexe).',source:'Arrêté du 29 février 2016 (AIDA/Ineris)',verifie:true,pdf:'Ce document est un rappel de la pose du disque de contrôle d’étanchéité (arrêté du 29 février 2016) ; il ne remplace pas la vignette réglementaire.'},
 
      {texte:'Sans renouvellement du contrôle avant la date limite, aucune recharge n’est permise ; fuite non réparée sur-le-champ : vignette rouge et mesures dans les 4 jours ouvrés.',source:'AIDA/Ineris, arrêté du 29 février 2016 (lu)',verifie:false},
 
@@ -44990,9 +44993,9 @@ const DOCM_DEFS=[
      {k:'controles',l:'Contrôles d’étanchéité',t:'tableau',cols:[{l:'Date',w:0.15},{l:'Résultat',w:0.2,opts:['Sans fuite','Fuite constatée']},{l:'Vignette',w:0.15,opts:['Bleue','Rouge']},{l:'Prochaine échéance',w:0.2},{l:'Actions correctives',w:0.3}],maxRows:40},
      {k:'verifs',l:'Vérifications annuelles du système de détection',t:'tableau',cols:[{l:'Date',w:0.2},{l:'Résultat',w:0.4},{l:'Actions correctives',w:0.4}],maxRows:20}],
    mentions:[
-     {texte:'L’exploitant tient à jour un registre du système permanent de détection : fluides pour lesquels il est adapté, opérations d’entretien, résultat des vérifications au moins tous les douze mois, actions correctives (arrêté du 29 février 2016, art. 3 IV).',source:'AIDA/Ineris (lu)',verifie:true,pdf:'Registre du système permanent de détection de fuite (arrêté du 29 février 2016, article 3).'},
+     {texte:'L’exploitant tient à jour un registre du système permanent de détection : fluides pour lesquels il est adapté, opérations d’entretien, résultat des vérifications au moins tous les douze mois, actions correctives (arrêté du 29 février 2016, art. 3 IV).',source:'AIDA/Ineris (textes réglementaires)',verifie:true,pdf:'Registre du système permanent de détection de fuite (arrêté du 29 février 2016, article 3).'},
 
-     {texte:'Conservation des fiches d’intervention : cinq ans (R. 543-82).',source:'preventionbtp.fr, R. 543-82 (lu)',verifie:true,pdf:'Les fiches d’intervention sont conservées cinq ans (article R. 543-82 du Code de l’environnement).'},
+     {texte:'Conservation des fiches d’intervention : cinq ans (R. 543-82).',source:'preventionbtp.fr, article R. 543-82 du Code de l’environnement',verifie:true,pdf:'Les fiches d’intervention sont conservées cinq ans (article R. 543-82 du Code de l’environnement).'},
 
      {texte:'Registres par équipement du règlement (UE) 2024/573 : article et durée non confirmés, ne pas les afficher comme obligation.',source:'AIDA/Ineris',verifie:false}],
    signatures:[],
@@ -45011,7 +45014,7 @@ const DOCM_DEFS=[
      {k:'reference',l:'Référence du dépôt',t:'texte',max:100},
      {k:'statut',l:'Statut',t:'choix',requis:true,def:'preparer',options:[['preparer','À préparer'],['pret','Récapitulatif prêt'],['depose','Déposée']]}],
    mentions:[
-     {texte:'Pour chaque fluide : quantités acquises, chargées, récupérées, cédées, stocks au 1er janvier et au 31 décembre ; adressée avant le 31 janvier à l’organisme qui a délivré l’attestation de capacité (R. 543-100).',source:'preventionbtp.fr, R. 543-100 (lu)',verifie:true,pdf:'Déclaration annuelle adressée avant le 31 janvier à l’organisme qui a délivré l’attestation de capacité.'},
+     {texte:'Pour chaque fluide : quantités acquises, chargées, récupérées, cédées, stocks au 1er janvier et au 31 décembre ; adressée avant le 31 janvier à l’organisme qui a délivré l’attestation de capacité (R. 543-100).',source:'preventionbtp.fr, article R. 543-100 du Code de l’environnement',verifie:true,pdf:'Déclaration annuelle adressée avant le 31 janvier à l’organisme qui a délivré l’attestation de capacité.'},
 
      {texte:'Suspension de l’attestation tant que la déclaration manque (R. 543-101).',source:'Source secondaire : ne pas l’imprimer',verifie:false}],
    signatures:[],
@@ -45036,9 +45039,9 @@ const DOCM_DEFS=[
      {k:'anomalies',l:'Anomalies à signaler au propriétaire',t:'long',max:500},
      {k:'techniciens',l:'Technicien(s)',t:'texte',pre:'technicien',max:160}],
    mentions:[
-     {texte:'Le carnet d’entretien est complété par le technicien à chaque visite, opération et intervention du contrat.',source:'R. 125-2-1 du CCH ; ministère de la Transition écologique (officielle, lue)',verifie:true,pdf:'Le carnet d’entretien est complété par le technicien à chaque visite, opération et intervention du contrat (article R. 125-2-1 du Code de la construction et de l’habitation).'},
+     {texte:'Le carnet d’entretien est complété par le technicien à chaque visite, opération et intervention du contrat.',source:'Article R. 125-2-1 du CCH ; ministère de la Transition écologique',verifie:true,pdf:'Le carnet d’entretien est complété par le technicien à chaque visite, opération et intervention du contrat (article R. 125-2-1 du Code de la construction et de l’habitation).'},
 
-     {texte:'Date de visite, heures d’arrivée et de départ, noms et signatures des techniciens, nature des observations, interventions et remplacements, date et cause des incidents.',source:'arrêté du 18 novembre 2004, art. 11 (ANIL, lue)',verifie:true,pdf:'Entrée du carnet d’entretien : date, heures d’arrivée et de départ, techniciens, observations et interventions.'},
+     {texte:'Date de visite, heures d’arrivée et de départ, noms et signatures des techniciens, nature des observations, interventions et remplacements, date et cause des incidents.',source:'Arrêté du 18 novembre 2004, art. 11 (ANIL)',verifie:true,pdf:'Entrée du carnet d’entretien : date, heures d’arrivée et de départ, techniciens, observations et interventions.'},
 
      {texte:'Périodicité des opérations : visite au plus toutes les six semaines, examen des câbles chaque semestre, vérification des parachutes chaque année.',source:'ANIL et ministère ; annexe de l’arrêté du 18/11/2004 non relue : mention non imprimée',verifie:false}],
    signatures:[{lbl:'Le technicien'},{lbl:'Le client',sous:'Nom, date et signature'}],
@@ -45060,7 +45063,7 @@ const DOCM_DEFS=[
      {k:'miseADispo',l:'Forme et lieu de mise à disposition du carnet',t:'texte',max:200},
      {k:'rapportAnnuel',l:'Rapport annuel d’activité (renvoi)',t:'texte',max:200}],
    mentions:[
-     {texte:'Carnet tenu à disposition du contrôleur technique, au choix du propriétaire sur papier ou en version électronique.',source:'ANIL : arrêté du 18/11/2004 art. 3 et 11, décret n° 2012-674 art. 2',verifie:true,pdf:'Carnet d’entretien tenu à la disposition du contrôleur technique, sur papier ou en version électronique, au choix du propriétaire.'},
+     {texte:'Carnet tenu à disposition du contrôleur technique, au choix du propriétaire sur papier ou en version électronique.',source:'ANIL : arrêté du 18 novembre 2004, art. 3 et 11 ; décret n° 2012-674, art. 2',verifie:true,pdf:'Carnet d’entretien tenu à la disposition du contrôleur technique, sur papier ou en version électronique, au choix du propriétaire.'},
 
      {texte:'Contenu minimal du rapport annuel d’activité.',source:'Non trouvé',verifie:false}],
    signatures:[],
@@ -45079,7 +45082,7 @@ const DOCM_DEFS=[
      {k:'anomalies',l:'Anomalies relevées',t:'tableau',s:'Les anomalies',cols:[{l:'Point de contrôle',w:0.22},{l:'Description',w:0.36},{l:'Danger / mise à l’arrêt',w:0.2},{l:'Levée le',w:0.22}],maxRows:40},
      {k:'statut',l:'Statut',t:'choix',requis:true,def:'attendu',options:[['attendu','Rapport attendu'],['recu','Rapport reçu'],['encours','Levée des anomalies en cours'],['leve','Anomalies levées']]}],
    mentions:[
-     {texte:'Rapport établi par un contrôleur technique habilité tous les cinq ans, à la demande du propriétaire ; l’entreprise d’entretien ne l’établit pas.',source:'R. 125-2-5 et R. 125-2-6 du CCH ; ministère et ANIL (lus)',verifie:true,pdf:'Le contrôle technique est établi par un contrôleur technique habilité, tous les cinq ans, à la demande du propriétaire.'},
+     {texte:'Rapport établi par un contrôleur technique habilité tous les cinq ans, à la demande du propriétaire ; l’entreprise d’entretien ne l’établit pas.',source:'Articles R. 125-2-5 et R. 125-2-6 du CCH ; ministère et ANIL',verifie:true,pdf:'Le contrôle technique est établi par un contrôleur technique habilité, tous les cinq ans, à la demande du propriétaire.'},
 
      {texte:'Délai de remise du rapport (30 jours selon l’ANIL, dans le mois selon le ministère).',source:'Non imprimé tant que non relu',verifie:false}],
    signatures:[],
@@ -45099,11 +45102,11 @@ const DOCM_DEFS=[
      {k:'interventions',l:'Interventions',t:'tableau',s:'Le livret',cols:[{l:'Date',w:0.14},{l:'Nature',w:0.2,opts:['Visite périodique','Travaux','Dépannage']},{l:'Personne ou société intervenue',w:0.26},{l:'Anomalies et pièces changées',w:0.4}],maxRows:60},
      {k:'prochaine',l:'Date de la prochaine visite',t:'date'}],
    mentions:[
-     {texte:'L’arrêté du 21 décembre 1993 vise les portes et portails automatiques et semi-automatiques des lieux de travail.',source:'arrêté du 21 décembre 1993, art. 9 (preventionbtp.fr, lu)',verifie:true,pdf:'L’arrêté du 21 décembre 1993 vise les portes et portails automatiques et semi-automatiques des lieux de travail.'},
+     {texte:'L’arrêté du 21 décembre 1993 vise les portes et portails automatiques et semi-automatiques des lieux de travail.',source:'Arrêté du 21 décembre 1993, art. 9 (preventionbtp.fr)',verifie:true,pdf:'L’arrêté du 21 décembre 1993 vise les portes et portails automatiques et semi-automatiques des lieux de travail.'},
 
-     {texte:'Sur les lieux de travail, l’entretien et la vérification sont périodiques, au minimum tous les semestres, et ont lieu à la suite de toute défaillance.',source:'arrêté du 21 décembre 1993, art. 9 (lu)',verifie:true,pdf:'Sur les lieux de travail, l’entretien et la vérification sont périodiques, au minimum tous les semestres, et ont lieu à la suite de toute défaillance.'},
+     {texte:'Sur les lieux de travail, l’entretien et la vérification sont périodiques, au minimum tous les semestres, et ont lieu à la suite de toute défaillance.',source:'Arrêté du 21 décembre 1993, art. 9',verifie:true,pdf:'Sur les lieux de travail, l’entretien et la vérification sont périodiques, au minimum tous les semestres, et ont lieu à la suite de toute défaillance.'},
 
-     {texte:'Toutes les interventions sont consignées dans un livret d’entretien : nature, date, nom de la personne ou de la société intervenue.',source:'arrêté du 21 décembre 1993, art. 9 (lu)',verifie:true,pdf:'Les interventions sont consignées dans ce livret : nature de l’intervention, date, nom de la personne ou de la société.'},
+     {texte:'Toutes les interventions sont consignées dans un livret d’entretien : nature, date, nom de la personne ou de la société intervenue.',source:'Arrêté du 21 décembre 1993, art. 9',verifie:true,pdf:'Les interventions sont consignées dans ce livret : nature de l’intervention, date, nom de la personne ou de la société.'},
 
      {texte:'Le dossier de maintenance est remis à l’utilisateur par le maître d’ouvrage.',source:'arrêté du 21 décembre 1993, art. 8',verifie:false},
 
@@ -45133,7 +45136,7 @@ const DOCM_DEFS=[
      {k:'service',l:'Porte laissée en',t:'choix',options:[['service','Service'],['condamnee','Condamnée']]},
      {k:'prochaine',l:'Date de la prochaine visite',t:'date'}],
    mentions:[
-     {texte:'Les vérifications portent notamment sur le guidage, les articulations, les fixations, l’équilibrage et les équipements de sécurité.',source:'arrêté du 21 décembre 1993, art. 9 (preventionbtp.fr, lu)',verifie:true,pdf:'Contrôles portant sur le guidage, les articulations, les fixations, l’équilibrage et les équipements de sécurité (arrêté du 21 décembre 1993, article 9).'},
+     {texte:'Les vérifications portent notamment sur le guidage, les articulations, les fixations, l’équilibrage et les équipements de sécurité.',source:'Arrêté du 21 décembre 1993, art. 9 (preventionbtp.fr)',verifie:true,pdf:'Contrôles portant sur le guidage, les articulations, les fixations, l’équilibrage et les équipements de sécurité (arrêté du 21 décembre 1993, article 9).'},
 
      {texte:'Valeur de force de fermeture à ne pas dépasser : AUCUNE n’est imprimée (la mesure est un relevé, sans seuil de conformité).',source:'Recherche B §4.2 : aucune norme de sécurité d’utilisation lue',verifie:false},
 
@@ -45160,17 +45163,17 @@ const DOCM_DEFS=[
      {k:'prochain',l:'Date du prochain ramonage',t:'date'},
      {k:'conseils',l:'Conseils d’usage joints (appareils à combustible solide hors chaudières)',t:'choix',options:DOCM_OUI}],
    mentions:[
-     {texte:'Attestation remise au commanditaire dans les quinze jours ouvrés suivant l’achèvement de l’opération.',source:'R. 1331-23 ; AIDA/Ineris, décret n° 2023-641 (lu sur AIDA, pas sur Légifrance : à relire avant de l’imprimer comme une obligation)',verifie:true},
+     {texte:'Attestation remise au commanditaire dans les quinze jours ouvrés suivant l’achèvement de l’opération.',source:'Article R. 1331-23 du Code de l’environnement ; décret n° 2023-641 (AIDA/Ineris)',verifie:true},
 
-     {texte:'L’attestation précise le ou les conduits ramonés et atteste la vacuité du conduit sur toute sa longueur.',source:'R. 1331-23 ; AIDA/Ineris (lu)',verifie:true,pdf:'Conduit(s) ramoné(s) et vacuité du conduit constatée sur toute sa longueur.'},
+     {texte:'L’attestation précise le ou les conduits ramonés et atteste la vacuité du conduit sur toute sa longueur.',source:'Article R. 1331-23 du Code de l’environnement (AIDA/Ineris)',verifie:true,pdf:'Conduit(s) ramoné(s) et vacuité du conduit constatée sur toute sa longueur.'},
 
-     {texte:'Le commanditaire conserve l’attestation au moins deux ans, à disposition des agents de contrôle.',source:'R. 1331-23 ; AIDA/Ineris (lu sur AIDA, pas sur Légifrance : à relire avant de l’imprimer comme une obligation)',verifie:true},
+     {texte:'Le commanditaire conserve l’attestation au moins deux ans, à disposition des agents de contrôle.',source:'Article R. 1331-23 du Code de l’environnement (AIDA/Ineris)',verifie:true},
 
-     {texte:'Ramonage par action mécanique directe sur la paroi intérieure, tuyaux de raccordement compris ; l’emploi du feu ou d’explosifs est interdit.',source:'R. 1331-18 ; AIDA/Ineris (lu)',verifie:true,pdf:'Ramonage par action mécanique directe sur la paroi intérieure du conduit, tuyaux de raccordement compris.'},
+     {texte:'Ramonage par action mécanique directe sur la paroi intérieure, tuyaux de raccordement compris ; l’emploi du feu ou d’explosifs est interdit.',source:'Article R. 1331-18 du Code de l’environnement (AIDA/Ineris)',verifie:true,pdf:'Ramonage par action mécanique directe sur la paroi intérieure du conduit, tuyaux de raccordement compris.'},
 
-     {texte:'Ramonage au moins tous les 12 mois ; appareils collectifs tous les 6 mois, sauf gaz seul ; le règlement sanitaire départemental peut exiger davantage.',source:'R. 1331-19 ; AIDA/Ineris (lu sur AIDA, pas sur Légifrance : à relire avant de l’imprimer comme une obligation)',verifie:true},
+     {texte:'Ramonage au moins tous les 12 mois ; appareils collectifs tous les 6 mois, sauf gaz seul ; le règlement sanitaire départemental peut exiger davantage.',source:'Article R. 1331-19 du Code de l’environnement (AIDA/Ineris)',verifie:true},
 
-     {texte:'Appareils à combustible solide hors chaudières : conseils joints, valeur indicative, aucun investissement obligatoire.',source:'R. 1331-25 ; arrêté du 20 juillet 2023, annexe 2 (AIDA/Ineris, lu)',verifie:true,pdf:'Conseils d’usage joints : valeur indicative, aucun investissement n’est obligatoire.',si:{k:'conseils',egal:'oui'}},
+     {texte:'Appareils à combustible solide hors chaudières : conseils joints, valeur indicative, aucun investissement obligatoire.',source:'Article R. 1331-25 ; arrêté du 20 juillet 2023, annexe 2 (AIDA/Ineris)',verifie:true,pdf:'Conseils d’usage joints : valeur indicative, aucun investissement n’est obligatoire.',si:{k:'conseils',egal:'oui'}},
 
      {texte:'Document établi par l’entreprise, pas un formulaire officiel reproduit ; le décret ne fixe pas de modèle.',source:'Texte déjà imprimé par l’application',verifie:true,pdf:'Document établi par l’entreprise, ce n’est pas un formulaire officiel.'},
 
@@ -45195,7 +45198,7 @@ const DOCM_DEFS=[
      {k:'points',l:'Points contrôlés (nettoyage des surfaces d’échange, débouché du terminal, amenées d’air, ventilateur, pièces d’usure, organes de sécurité, alimentation en combustible, extracteur, connexions électriques, décendrage approfondi, circuit hydraulique le cas échéant)',t:'long',requis:true,s:'Les contrôles',max:800},
      {k:'conseils',l:'Conseils joints',t:'choix',options:DOCM_OUI}],
    mentions:[
-     {texte:'Contenu minimal de l’attestation d’entretien : commanditaire, installation, dispositif, dates connues, coordonnées de l’intervenant, date de visite, nom et signature, liste des points contrôlés, conseils joints.',source:'arrêté du 20 juillet 2023, annexes 1 à 3 ; AIDA/Ineris (lu)',verifie:true,pdf:'Attestation d’entretien établie d’après les rubriques des annexes de l’arrêté du 20 juillet 2023.'},
+     {texte:'Contenu minimal de l’attestation d’entretien : commanditaire, installation, dispositif, dates connues, coordonnées de l’intervenant, date de visite, nom et signature, liste des points contrôlés, conseils joints.',source:'Arrêté du 20 juillet 2023, annexes 1 à 3 (AIDA/Ineris)',verifie:true,pdf:'Attestation d’entretien établie d’après les rubriques des annexes de l’arrêté du 20 juillet 2023.'},
 
      {texte:'Plusieurs dispositifs : le détail est donné pour chacun ; le document ne doit pas pouvoir être confondu avec un autre.',source:'arrêté du 20 juillet 2023, annexe 3 (lu)',verifie:false},
 
@@ -45214,7 +45217,7 @@ const DOCM_DEFS=[
      {k:'reference',l:'Référence de l’attestation',t:'texte',max:100},
      {k:'statut',l:'Statut',t:'choix',requis:true,def:'demandee',options:[['demandee','Demandée'],['recue','Reçue'],['autorise','Usage du conduit autorisé']]}],
    mentions:[
-     {texte:'Après un feu de cheminée ou des travaux, l’usage du conduit est interdit jusqu’à l’examen par un installateur, qui établit une attestation.',source:'R. 1331-24 ; AIDA/Ineris (lu)',verifie:true,pdf:'Après un feu de cheminée ou des travaux, l’usage du conduit est interdit jusqu’à l’examen par un installateur, qui établit une attestation.'}],
+     {texte:'Après un feu de cheminée ou des travaux, l’usage du conduit est interdit jusqu’à l’examen par un installateur, qui établit une attestation.',source:'Article R. 1331-24 du Code de l’environnement (AIDA/Ineris)',verifie:true,pdf:'Après un feu de cheminée ou des travaux, l’usage du conduit est interdit jusqu’à l’examen par un installateur, qui établit une attestation.'}],
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : l’attestation est celle de l’installateur.' },
 
@@ -45239,9 +45242,9 @@ const DOCM_DEFS=[
      {k:'derogation',l:'Motif de dérogation au schéma départemental (si besoin)',t:'texte',max:300},
      {k:'etat',l:'État de l’ouvrage',t:'texte',max:300}],
    mentions:[
-     {texte:'Le bordereau comporte au minimum douze informations (numéro, personne agréée, agrément, fin de validité, véhicule, personne qui vidange, propriétaire, installation, date, sous-produits, quantité, lieu d’élimination).',source:'Arrêté du 7 septembre 2009 (agrément des vidangeurs), annexe II, via AIDA/Ineris',verifie:true,pdf:'Bordereau de suivi des matières de vidange (arrêté du 7 septembre 2009, annexe II).'},
+     {texte:'Le bordereau comporte au minimum douze informations (numéro, personne agréée, agrément, fin de validité, véhicule, personne qui vidange, propriétaire, installation, date, sous-produits, quantité, lieu d’élimination).',source:'Arrêté du 7 septembre 2009 (agrément des vidangeurs), annexe II,',verifie:true,pdf:'Bordereau de suivi des matières de vidange (arrêté du 7 septembre 2009, annexe II).'},
 
-     {texte:'Trois volets : propriétaire, personne agréée, responsable de la filière d’élimination ; signature du volet du propriétaire par lui et par la personne agréée, des deux autres par les trois parties.',source:'Arrêté du 7 septembre 2009, art. 9, via AIDA/Ineris',verifie:true,pdf:'Trois volets : propriétaire, personne agréée, filière d’élimination. Le volet du propriétaire est signé par lui et par la personne agréée.'},
+     {texte:'Trois volets : propriétaire, personne agréée, responsable de la filière d’élimination ; signature du volet du propriétaire par lui et par la personne agréée, des deux autres par les trois parties.',source:'Arrêté du 7 septembre 2009, art. 9,',verifie:true,pdf:'Trois volets : propriétaire, personne agréée, filière d’élimination. Le volet du propriétaire est signé par lui et par la personne agréée.'},
 
      {texte:'Le volet remis à la filière d’élimination ne porte ni les coordonnées du propriétaire ni celles de l’installation.',source:'Arrêté du 7 septembre 2009, art. 9, via AIDA/Ineris',verifie:false},
 
@@ -45257,7 +45260,7 @@ const DOCM_DEFS=[
      {k:'annee',l:'Année',t:'nombre',requis:true,s:'Le registre'},
      {k:'vidanges',l:'Vidanges',t:'tableau',cols:[{l:'N° de bordereau',w:0.14},{l:'Date',w:0.12},{l:'Client',w:0.18},{l:'Installation',w:0.2},{l:'Commune',w:0.12},{l:'Volume (m³)',w:0.1},{l:'Lieu d’élimination',w:0.14}],aide:'Une ligne par bordereau.',maxRows:60}],
    mentions:[
-     {texte:'Registre classé par dates, comportant les bordereaux, tenu à la disposition du préfet et conservé dix années.',source:'Arrêté du 7 septembre 2009, art. 9, via AIDA/Ineris (lu sur AIDA : à relire sur Légifrance avant de l’imprimer comme une obligation)',verifie:true}],
+     {texte:'Registre classé par dates, comportant les bordereaux, tenu à la disposition du préfet et conservé dix années.',source:'Arrêté du 7 septembre 2009, art. 9 (AIDA/Ineris)',verifie:true}],
    signatures:[],
    pied:'Registre établi par {ENT}.',
    mail:(r,c)=>({sujet:'Registre des vidanges'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
@@ -45273,7 +45276,7 @@ const DOCM_DEFS=[
      {k:'hors',l:'Vidanges hors schéma départemental',t:'long',max:500},
      {k:'annexes',l:'Attestations des filières jointes (nombre)',t:'texte',max:40}],
    mentions:[
-     {texte:'Bilan de l’année précédente adressé au préfet avant le 1er avril, avec en annexe l’attestation signée du responsable de chaque filière d’élimination ; conservé dix ans.',source:'Arrêté du 7 septembre 2009, art. 9, via AIDA/Ineris (lu sur AIDA : à relire sur Légifrance avant de l’imprimer comme une obligation)',verifie:true}],
+     {texte:'Bilan de l’année précédente adressé au préfet avant le 1er avril, avec en annexe l’attestation signée du responsable de chaque filière d’élimination ; conservé dix ans.',source:'Arrêté du 7 septembre 2009, art. 9 (AIDA/Ineris)',verifie:true}],
    signatures:[{lbl:'La personne agréée',sous:'Nom, date et signature'}],
    pied:'Bilan établi par {ENT}.',
    mail:(r,c)=>({sujet:'Bilan annuel'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
@@ -45291,9 +45294,9 @@ const DOCM_DEFS=[
      {k:'bordereau',l:'Numéro du bordereau associé',t:'texte',max:60},
      {k:'observations',l:'Observations sur l’état de l’ouvrage',t:'long',max:600}],
    mentions:[
-     {texte:'Le guide d’utilisation de l’installation prévoit une partie pour inscrire la date, la nature des prestations et le nom de la personne agréée.',source:'Arrêté du 7 septembre 2009 (prescriptions ANC), art. 16, via AIDA/Ineris',verifie:true,pdf:'La date, la nature des prestations et le nom de la personne agréée se reportent dans le guide d’utilisation de l’installation.'},
+     {texte:'Le guide d’utilisation de l’installation prévoit une partie pour inscrire la date, la nature des prestations et le nom de la personne agréée.',source:'Arrêté du 7 septembre 2009 (prescriptions ANC), art. 16,',verifie:true,pdf:'La date, la nature des prestations et le nom de la personne agréée se reportent dans le guide d’utilisation de l’installation.'},
 
-     {texte:'La périodicité de vidange est fixée par la hauteur de boues, qui ne doit pas dépasser 50 % du volume utile.',source:'Arrêté du 7 septembre 2009 (prescriptions ANC), art. 15, via AIDA/Ineris (lu sur AIDA : à relire avant de l’imprimer comme une obligation)',verifie:true},
+     {texte:'La périodicité de vidange est fixée par la hauteur de boues, qui ne doit pas dépasser 50 % du volume utile.',source:'Arrêté du 7 septembre 2009 (prescriptions ANC), art. 15 (AIDA/Ineris)',verifie:true},
 
      {texte:'Document remis à titre commercial ; la preuve réglementaire est le volet du bordereau remis au propriétaire.',source:'Recherche B 6.4 (aucun texte national sur ce document)',verifie:false}],
    signatures:[{lbl:'L’entreprise'},{lbl:'Le propriétaire',sous:'Nom, date et signature'}],
@@ -45311,7 +45314,7 @@ const DOCM_DEFS=[
      {k:'renouvellement',l:'Date de dépôt du renouvellement',t:'date'},
      {k:'statut',l:'Statut',t:'choix',requis:true,def:'valide',options:[['valide','En cours de validité'],['renouvellement','Renouvellement déposé'],['echu','Échu']]}],
    mentions:[
-     {texte:'Agrément délivré pour dix ans ; demande de renouvellement déposée au moins six mois avant la fin de validité.',source:'Arrêté du 7 septembre 2009 (agrément), art. 2 et 5, via AIDA/Ineris (lu sur AIDA : à relire avant de l’imprimer comme une obligation)',verifie:true}],
+     {texte:'Agrément délivré pour dix ans ; demande de renouvellement déposée au moins six mois avant la fin de validité.',source:'Arrêté du 7 septembre 2009 (agrément), art. 2 et 5 (AIDA/Ineris)',verifie:true}],
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : l’agrément est celui de la préfecture.' },
 
@@ -45324,7 +45327,7 @@ const DOCM_DEFS=[
      {k:'recueLe',l:'Date de réception',t:'date'},
      {k:'statut',l:'Statut',t:'choix',requis:true,def:'attendue',options:[['attendue','Attendue'],['recue','Reçue']]}],
    mentions:[
-     {texte:'Attestation signée du responsable de chaque filière d’élimination, jointe au bilan annuel.',source:'Arrêté du 7 septembre 2009 (agrément), art. 9, via AIDA/Ineris',verifie:true,pdf:'Attestation signée du responsable de chaque filière d’élimination, jointe au bilan annuel.'}],
+     {texte:'Attestation signée du responsable de chaque filière d’élimination, jointe au bilan annuel.',source:'Arrêté du 7 septembre 2009 (agrément), art. 9,',verifie:true,pdf:'Attestation signée du responsable de chaque filière d’élimination, jointe au bilan annuel.'}],
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : l’attestation est celle de la filière.' },
 
@@ -45350,7 +45353,7 @@ const DOCM_DEFS=[
      {k:'consuel',l:'N° de l’attestation du Consuel et date du visa',t:'texte',s:'Le dossier',max:160},
      {k:'formation',l:'Formation du client',t:'choix',options:DOCM_OUI}],
    mentions:[
-     {texte:'Cette fiche est celle de l’installateur ; la mise en service du réseau est assurée par le gestionnaire de réseau une fois les travaux de raccordement achevés et l’attestation du Consuel transmise.',source:'photovoltaique.info (lu)',verifie:true,pdf:'Cette fiche est celle de l’installateur. La mise en service du réseau est assurée par le gestionnaire de réseau, une fois les travaux de raccordement achevés et l’attestation du Consuel transmise.'}],
+     {texte:'Cette fiche est celle de l’installateur ; la mise en service du réseau est assurée par le gestionnaire de réseau une fois les travaux de raccordement achevés et l’attestation du Consuel transmise.',source:'photovoltaique.info',verifie:true,pdf:'Cette fiche est celle de l’installateur. La mise en service du réseau est assurée par le gestionnaire de réseau, une fois les travaux de raccordement achevés et l’attestation du Consuel transmise.'}],
    signatures:[{lbl:'Le technicien'},{lbl:'Le client',sous:'Nom, date et signature'}],
    pied:'Document établi par {ENT} : fiche de mise en service de l’installateur, pas une mise en service du réseau.',
    mail:(r,c)=>({sujet:'Fiche de mise en service'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
@@ -45372,9 +45375,9 @@ const DOCM_DEFS=[
      {k:'formation',l:'Formation du client (armement, désarmement, codes)',t:'choix',s:'La remise',options:DOCM_OUI},
      {k:'notices',l:'Notices et plan de l’installation remis',t:'choix',options:DOCM_OUI}],
    mentions:[
-     {texte:'Mention « installation selon la règle APSAD R81 » : imprimée seulement si l’entreprise est certifiée ; la règle est d’application volontaire.',source:'https://www.cnpp.com/blog/certification-nfa2p-regle-d-installation-detection-intrusion-r81 (lu)',verifie:true,pdf:'Installation réalisée selon la règle APSAD R81 (règle d’application volontaire).',si:{k:'certifie',egal:'oui'}},
+     {texte:'Mention « installation selon la règle APSAD R81 » : imprimée seulement si l’entreprise est certifiée ; la règle est d’application volontaire.',source:'CNPP : https://www.cnpp.com/blog/certification-nfa2p-regle-d-installation-detection-intrusion-r81',verifie:true,pdf:'Installation réalisée selon la règle APSAD R81 (règle d’application volontaire).',si:{k:'certifie',egal:'oui'}},
 
-     {texte:'Rappel au client, lieu de travail : les personnes filmées sont informées par un panneau visible (pictogramme de caméra, durée de conservation des images) ; durée en principe n’excédant pas un mois.',source:'https://www.cnil.fr/fr/la-videosurveillance-videoprotection-au-travail (lu)',verifie:true,pdf:'Lieu de travail : les personnes filmées sont informées par un panneau visible (pictogramme de caméra, durée de conservation des images, en principe un mois au plus).',si:{k:'cameras',egal:'ok'}},
+     {texte:'Rappel au client, lieu de travail : les personnes filmées sont informées par un panneau visible (pictogramme de caméra, durée de conservation des images) ; durée en principe n’excédant pas un mois.',source:'CNIL : https://www.cnil.fr/fr/la-videosurveillance-videoprotection-au-travail',verifie:true,pdf:'Lieu de travail : les personnes filmées sont informées par un panneau visible (pictogramme de caméra, durée de conservation des images, en principe un mois au plus).',si:{k:'cameras',egal:'ok'}},
 
      {texte:'Contenu du PV selon la règle R81 (documents N81, DC81, DI81, Q81).',source:'CNPP : contenu non lu (norme payante)',verifie:false},
 
@@ -45412,9 +45415,9 @@ const DOCM_DEFS=[
      {k:'analyses',l:'Analyses de légionelles',t:'tableau',cols:[{l:'Date',w:0.14},{l:'Point de prélèvement',w:0.3},{l:'Laboratoire',w:0.26},{l:'Résultat (UFC/L)',w:0.15},{l:'Suite donnée',w:0.15}],maxRows:30},
      {k:'traitement',l:'Traitement : produit, concentration, durée, analyses de contrôle',t:'long',s:'Le traitement',max:600}],
    mentions:[
-     {texte:'Le carnet sanitaire comprend les plans et éléments descriptifs des réseaux, les modalités de maintenance et de surveillance et tous les enregistrements s’y rapportant ; il est tenu à la disposition des autorités sanitaires.',source:'Fiche « Légionelles », préfecture de l’Allier (lue)',verifie:true,pdf:'Le carnet sanitaire comprend les plans du réseau, les modalités de maintenance et de surveillance et tous les enregistrements s’y rapportant ; il est tenu à la disposition des autorités sanitaires.'},
+     {texte:'Le carnet sanitaire comprend les plans et éléments descriptifs des réseaux, les modalités de maintenance et de surveillance et tous les enregistrements s’y rapportant ; il est tenu à la disposition des autorités sanitaires.',source:'Fiche « Légionelles », préfecture de l’Allier',verifie:true,pdf:'Le carnet sanitaire comprend les plans du réseau, les modalités de maintenance et de surveillance et tous les enregistrements s’y rapportant ; il est tenu à la disposition des autorités sanitaires.'},
 
-     {texte:'Ce carnet appartient au responsable de l’établissement ; l’entreprise y consigne ses interventions.',source:'Préfecture de l’Allier (lue)',verifie:true,pdf:'Ce carnet appartient au responsable de l’établissement ; l’entreprise y consigne ses interventions.'},
+     {texte:'Ce carnet appartient au responsable de l’établissement ; l’entreprise y consigne ses interventions.',source:'Fiche de la préfecture de l’Allier',verifie:true,pdf:'Ce carnet appartient au responsable de l’établissement ; l’entreprise y consigne ses interventions.'},
 
      {texte:'Surveillance de la température au moins une fois par mois ; analyses de légionelles au moins une fois par an par un laboratoire accrédité COFRAC ; après un traitement choc, deux séries d’analyses (48 h puis 2 à 8 semaines).',source:'Préfecture de l’Allier (lue) ; arrêté du 1er février 2010 non relu',verifie:false},
 
@@ -45440,7 +45443,7 @@ const DOCM_DEFS=[
      {k:'action',l:'Action déclenchée (nouvelle analyse, désinfection)',t:'texte',max:200},
      {k:'statut',l:'Statut',t:'choix',requis:true,def:'attendu',options:[['attendu','Rapport attendu'],['recu','Reçu'],['conforme','Conforme'],['non','Non conforme']]}],
    mentions:[
-     {texte:'Analyse de légionelles de l’eau chaude sanitaire : laboratoire accrédité COFRAC.',source:'Fiche « Légionelles », préfecture de l’Allier (lue)',verifie:true,pdf:'Analyse de légionelles de l’eau chaude sanitaire par un laboratoire accrédité COFRAC.'}],
+     {texte:'Analyse de légionelles de l’eau chaude sanitaire : laboratoire accrédité COFRAC.',source:'Fiche « Légionelles », préfecture de l’Allier',verifie:true,pdf:'Analyse de légionelles de l’eau chaude sanitaire par un laboratoire accrédité COFRAC.'}],
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : le rapport est celui du laboratoire.' },
 
@@ -45463,7 +45466,7 @@ const DOCM_DEFS=[
      {k:'observations',l:'Observations',t:'long',max:500},
      {k:'prochain',l:'Date du prochain entretien',t:'date'}],
    mentions:[
-     {texte:'Document commercial de l’entreprise : compte rendu de visite, pas un document réglementaire.',source:'Recherche B §9.3 : aucun texte national trouvé sur l’entretien des adoucisseurs',verifie:true,pdf:'Compte rendu de visite de l’entreprise : ce n’est pas un document réglementaire.'},
+     {texte:'Document commercial de l’entreprise : compte rendu de visite, pas un document réglementaire.',source:'Aucun texte national identifié sur l’entretien des adoucisseurs : document commercial',verifie:true,pdf:'Compte rendu de visite de l’entreprise : ce n’est pas un document réglementaire.'},
 
      {texte:'Visite annuelle, teneur en sodium de l’eau traitée à ne pas dépasser 200 mg/L, by-pass.',source:'Notices de fabricants (sources commerciales, non retenues comme obligation) : ne pas imprimer',verifie:false},
 
@@ -45495,7 +45498,7 @@ const DOCM_DEFS=[
      {k:'recommandations',l:'Recommandations',t:'long',max:600},
      {k:'prochaine',l:'Prochaine visite',t:'date'}],
    mentions:[
-     {texte:'Mesures faites sur site à titre indicatif ; ce document n’est pas une analyse du contrôle sanitaire.',source:'https://www.hauts-de-france.ars.sante.fr/les-eaux-de-piscines (officielle, lue)',verifie:true,pdf:'Mesures faites sur site à titre indicatif : ce document n’est pas une analyse du contrôle sanitaire.'},
+     {texte:'Mesures faites sur site à titre indicatif ; ce document n’est pas une analyse du contrôle sanitaire.',source:'ARS Hauts-de-France : https://www.hauts-de-france.ars.sante.fr/les-eaux-de-piscines',verifie:true,pdf:'Mesures faites sur site à titre indicatif : ce document n’est pas une analyse du contrôle sanitaire.'},
 
      {texte:'Aucun seuil réglementaire n’est imprimé.',source:'ARS Hauts-de-France ; arrêté du 19 décembre 2025, texte à relire',verifie:false}],
    signatures:[{lbl:'Le technicien'},{lbl:'Le client',sous:'Nom, date et signature'}],
@@ -45515,7 +45518,7 @@ const DOCM_DEFS=[
      {k:'produits',l:'Produits employés',t:'texte',max:300},
      {k:'observations',l:'Observations',t:'long',max:500}],
    mentions:[
-     {texte:'Document commercial de l’entreprise ; aucune mention légale (aucune obligation d’ouverture ou d’hivernage trouvée).',source:'Recherche B §10.2',verifie:true,pdf:'Document de l’entreprise : fiche de l’opération réalisée.'}],
+     {texte:'Document commercial de l’entreprise ; aucune mention légale (aucune obligation d’ouverture ou d’hivernage trouvée).',source:'Aucune obligation d’ouverture ou d’hivernage identifiée : document commercial',verifie:true,pdf:'Document de l’entreprise : fiche de l’opération réalisée.'}],
    signatures:[{lbl:'Le technicien'},{lbl:'Le client',sous:'Nom, date et signature'}],
    pied:'Document établi par {ENT} : fiche de l’opération réalisée.',
    mail:(r,c)=>({sujet:'Fiche d’ouverture ou d’hivernage'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
@@ -45534,9 +45537,9 @@ const DOCM_DEFS=[
      {k:'risques',l:'Information sur les risques de noyade, mesures générales de prévention, recommandations d’utilisation du dispositif',t:'long',max:800},
      {k:'signeLe',l:'Remise accusée par le maître d’ouvrage le',t:'date',s:'Signature'}],
    mentions:[
-     {texte:'Le constructeur ou l’installateur remet cette note technique au maître d’ouvrage au plus tard à la date de réception (loi n° 2003-9 du 3 janvier 2003, R. 128-1 du CCH).',source:'https://www.ecologie.gouv.fr/politiques-publiques/protection-piscines-portes-garages (officielle, lue)',verifie:true,pdf:'Note technique remise au maître d’ouvrage au plus tard à la date de réception (loi n° 2003-9 du 3 janvier 2003, article R. 128-1 du Code de la construction et de l’habitation).'},
+     {texte:'Le constructeur ou l’installateur remet cette note technique au maître d’ouvrage au plus tard à la date de réception (loi n° 2003-9 du 3 janvier 2003, R. 128-1 du CCH).',source:'Ministère de la Transition écologique : https://www.ecologie.gouv.fr/politiques-publiques/protection-piscines-portes-garages',verifie:true,pdf:'Note technique remise au maître d’ouvrage au plus tard à la date de réception (loi n° 2003-9 du 3 janvier 2003, article R. 128-1 du Code de la construction et de l’habitation).'},
 
-     {texte:'Quatre dispositifs possibles : barrière, alarme, couverture, abri ; le choix revient au maître d’ouvrage.',source:'ecologie.gouv.fr (officielle, lue)',verifie:true,pdf:'Quatre dispositifs sont possibles : barrière, alarme, couverture, abri ; le choix revient au maître d’ouvrage.'},
+     {texte:'Quatre dispositifs possibles : barrière, alarme, couverture, abri ; le choix revient au maître d’ouvrage.',source:'Ministère de la Transition écologique : ecologie.gouv.fr',verifie:true,pdf:'Quatre dispositifs sont possibles : barrière, alarme, couverture, abri ; le choix revient au maître d’ouvrage.'},
 
      {texte:'Références de normes (NF P 90-306 à 309).',source:'Statut actuel non vérifié : non imprimées',verifie:false}],
    signatures:[{lbl:'Le constructeur ou l’installateur'},{lbl:'Le maître d’ouvrage — accusé de réception',sous:'Nom, date et signature'}],
@@ -45551,30 +45554,32 @@ const DOCM_DEFS=[
      {k:'maitre',l:'Maître d’ouvrage',t:'texte',requis:true,max:160},
      {k:'piscine',l:'Adresse de la piscine',t:'texte',pre:'adresse',max:200}],
    mentions:[
-     {texte:'Pratique conseillée par le ministère lorsque le maître d’ouvrage n’a pas encore choisi ; aucune responsabilité particulière de l’installateur du dispositif n’est posée par la loi.',source:'ecologie.gouv.fr (officielle, lue)',verifie:true,pdf:'Il vous revient de sécuriser le bassin par l’un des quatre dispositifs possibles : barrière, alarme, couverture ou abri. Le choix vous appartient.'},
+     {texte:'Pratique conseillée par le ministère lorsque le maître d’ouvrage n’a pas encore choisi ; aucune responsabilité particulière de l’installateur du dispositif n’est posée par la loi.',source:'Ministère de la Transition écologique : ecologie.gouv.fr',verifie:true,pdf:'Il vous revient de sécuriser le bassin par l’un des quatre dispositifs possibles : barrière, alarme, couverture ou abri. Le choix vous appartient.'},
 
-     {texte:'Quatre dispositifs possibles : barrière, alarme, couverture, abri.',source:'ecologie.gouv.fr (officielle, lue)',verifie:true,pdf:'Dispositifs possibles : barrière, alarme, couverture, abri.'}],
+     {texte:'Quatre dispositifs possibles : barrière, alarme, couverture, abri.',source:'Ministère de la Transition écologique : ecologie.gouv.fr',verifie:true,pdf:'Dispositifs possibles : barrière, alarme, couverture, abri.'}],
    signatures:[{lbl:'Pour l’entreprise'}],
    pied:'Courrier établi par {ENT} : rappel au maître d’ouvrage.',
    mail:(r,c)=>({sujet:'Rappel : sécurité de votre piscine'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
      corps:'Bonjour,\n\nVous trouverez ci-joint un courrier de rappel au sujet de la sécurité de votre piscine.\n\nNous restons à votre disposition.'}) },
 
- { id:'attestation-piscine-ancienne', metiers:['piscine'], ic:'📜', court:'Attestation d’un dispositif ancien', pdfTitre:'ATTESTATION DE CONFORMITÉ', titre:'Attestation de conformité d’un dispositif installé avant le 8 juin 2004', portee:'client', droit:'ventes', prefixe:'AAP', envoi:true,
-   aide:'Pour un dispositif installé avant le 8 juin 2004, l’attestation est délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé ; le modèle est annexé au décret n° 2004-499. Ce modèle n’a PAS été lu : relis-le avant la mise en service de ce document.',
+ { id:'attestation-piscine-ancienne', metiers:['piscine'], ic:'📜', court:'Suivi de l’attestation d’un dispositif ancien', pdfTitre:'SUIVI DE L’ATTESTATION', titre:'Suivi de l’attestation d’un dispositif de sécurité installé avant le 8 juin 2004 (document de l’entreprise)', portee:'client', droit:'crm', prefixe:'AAP', interne:true, statutChamp:'statut',
+   aide:'Pour un dispositif installé avant le 8 juin 2004, l’attestation est délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé ; son modèle est annexé au décret n° 2004-499. Cette fiche en SUIT l’obtention : elle ne fabrique pas l’attestation, n’atteste rien et ne s’envoie pas — le modèle de l’annexe n’a PAS été lu.',
    champs:[
-     {k:'date',l:'Date',t:'date',requis:true,pre:'auj',s:'L’attestation'},
+     {k:'date',l:'Date',t:'date',requis:true,pre:'auj',s:'Le suivi'},
      {k:'proprietaire',l:'Propriétaire et adresse',t:'texte',requis:true,pre:'adresse',max:240},
      {k:'dispositif',l:'Dispositif concerné',t:'texte',requis:true,max:200},
      {k:'installation',l:'Date d’installation',t:'date'},
-     {k:'constat',l:'Constat de conformité',t:'long',max:600}],
+     {k:'statut',l:'Statut',t:'choix',requis:true,def:'a-demander',options:[['a-demander','À demander'],['demandee','Demandée'],['recue','Reçue'],['remise','Remise au propriétaire']],s:'L’attestation'},
+     {k:'delivreePar',l:'Délivrée par (fabricant, vendeur, installateur ou contrôleur technique agréé)',t:'texte',max:200},
+     {k:'delivreeLe',l:'Date de l’attestation',t:'date'},
+     {k:'fichier',l:'Attestation conservée (nom du fichier ou classement)',t:'texte',max:160},
+     {k:'constat',l:'Observations de l’entreprise',t:'long',max:600}],
    mentions:[
-     {texte:'Pour un dispositif installé avant le 8 juin 2004, attestation délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé ; modèle annexé au décret n° 2004-499 du 7 juin 2004.',source:'ecologie.gouv.fr (officielle, lue)',verifie:true,pdf:'Attestation relative à un dispositif installé avant le 8 juin 2004 (décret n° 2004-499 du 7 juin 2004).'},
+     {texte:'Pour un dispositif installé avant le 8 juin 2004, attestation délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé ; modèle annexé au décret n° 2004-499 du 7 juin 2004.',source:'Ministère de la Transition écologique : ecologie.gouv.fr',verifie:true,pdf:'Pour un dispositif installé avant le 8 juin 2004, l’attestation est délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé (décret n° 2004-499 du 7 juin 2004).'},
 
-     {texte:'Le modèle de l’annexe du décret n’a pas été lu : champs à relire sur ce modèle avant mise en service.',source:'ecologie.gouv.fr',verifie:false}],
-   signatures:[{lbl:'L’entreprise'}],
-   pied:'Document établi par {ENT}.',
-   mail:(r,c)=>({sujet:'Attestation de conformité'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
-     corps:'Bonjour,\n\nVous trouverez ci-joint l’attestation relative à votre dispositif de sécurité.\n\nNous restons à votre disposition.'}) },
+     {texte:'Le modèle de l’annexe du décret n’a pas été lu : champs à relire sur ce modèle avant de fabriquer une attestation.',source:'ecologie.gouv.fr',verifie:false}],
+   signatures:[],
+   pied:'Fiche de suivi établie par {ENT} pour son propre suivi : ce n’est pas l’attestation, dont le modèle officiel est annexé au décret n° 2004-499.' },
 
  { id:'controle-ars-piscine', metiers:['piscine'], ic:'🔬', court:'Suivi du contrôle sanitaire', pdfTitre:'SUIVI DU CONTRÔLE SANITAIRE', titre:'Suivi du contrôle sanitaire de l’eau (piscine à usage collectif) — document de l’ARS', portee:'client', droit:'crm', interne:true, statutChamp:'statut',
    aide:'Le contrôle sanitaire est fait par l’ARS avec un laboratoire agréé ; l’exploitant tient l’autosurveillance et un carnet sanitaire. Cette fiche suit les résultats reçus. Piscine privée (un seul foyer) : aucune obligation sanitaire d’analyse trouvée.',
@@ -45587,7 +45592,7 @@ const DOCM_DEFS=[
      {k:'action',l:'Action déclenchée',t:'texte',max:200},
      {k:'statut',l:'Statut',t:'choix',requis:true,def:'attendu',options:[['attendu','Résultat attendu'],['recu','Reçu'],['conforme','Conforme'],['non','Non conforme']]}],
    mentions:[
-     {texte:'Contrôle sanitaire fait par l’ARS avec un laboratoire agréé ; l’exploitant tient l’autosurveillance et un carnet sanitaire.',source:'https://www.hauts-de-france.ars.sante.fr/les-eaux-de-piscines (officielle, lue)',verifie:true,pdf:'Le contrôle sanitaire est fait par l’ARS avec un laboratoire agréé ; l’exploitant tient l’autosurveillance et un carnet sanitaire.'}],
+     {texte:'Contrôle sanitaire fait par l’ARS avec un laboratoire agréé ; l’exploitant tient l’autosurveillance et un carnet sanitaire.',source:'ARS Hauts-de-France : https://www.hauts-de-france.ars.sante.fr/les-eaux-de-piscines',verifie:true,pdf:'Le contrôle sanitaire est fait par l’ARS avec un laboratoire agréé ; l’exploitant tient l’autosurveillance et un carnet sanitaire.'}],
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} pour son propre suivi : le contrôle est celui de l’ARS.' }
 ];
@@ -45613,9 +45618,18 @@ function docmEurPdf(n){ return docmArr(n).toFixed(2).replace('.',',')+' EUR'; }
 function docmEurEcran(n){ return (typeof eur==='function')?eur(n):docmArr(n).toFixed(2).replace('.',',')+' €'; }
 function docmNbTxt(n){ return isFinite(n)?String(docmArr(n)).replace('.',','):''; }
 /* Les totaux d'un document à lignes : tout est CALCULÉ (jamais saisi). Les prix unitaires sont hors taxes ; les frais de déplacement aussi. */
+/* ⛔ UNE SEULE ÉPURATION d'une ligne, lue par l'écran (docmTotaux) ET par l'enregistrement (docmNet) : un prix négatif, hors borne ou illisible vaut « pas de prix », une quantité vide, nulle, négative ou hors borne vaut 1, et les deux sont
+   arrondis au centime. Deux épurations écrites chacune de son côté ont donné « Total HT -15,00 € » à l'écran et « Total HT 35,00 EUR » dans le PDF que le client reçoit (28 octobre 2026). */
+function docmLigneNette(l){ const pu=docmNum(l&&l.pu), q=docmNum(l&&l.q), puN=isFinite(pu)&&pu>=0&&pu<=1e7?docmArr(pu):null, qN=isFinite(q)&&q>0&&q<=1e6&&docmArr(q)>0?docmArr(q):1;
+  return {pu:puN,q:qN}; }
+/* Une ligne que l'enregistrement VA changer en silence (prix négatif ou hors borne, quantité négative ou hors borne) : on la nomme, on ne l'efface pas sans le dire. */
+function docmLigneRefusee(l){ if(!l||!String(l.d||'').trim()) return ''; const pu=docmNum(l.pu), q=docmNum(l.q), vide=x=>String(x==null?'':x).trim()==='';
+  if(!vide(l.pu)&&!(isFinite(pu)&&pu>=0&&pu<=1e7)) return 'prix';
+  if(!vide(l.q)&&isFinite(q)&&(q<0||q>1e6)) return 'quantité';
+  return ''; }
 function docmTotaux(r){ const v=(r&&r.v)||{}, L=((r&&r.lignes)||[]).filter(l=>l&&String(l.d||'').trim());
-  const lignes=L.map(l=>{ const pu=docmNum(l.pu), q=docmNum(l.q); const qq=isFinite(q)&&q>0?q:1;   // une quantité vide ou nulle vaut 1, comme à l'enregistrement (docmNet) : l'écran et le document disent le même total
-    return {d:l.d,u:l.u||'',pu:isFinite(pu)?pu:0,q:qq,total:docmArr((isFinite(pu)?pu:0)*qq)}; });
+  const lignes=L.map(l=>{ const n=docmLigneNette(l), pu=n.pu==null?0:n.pu;   // la même épuration qu'à l'enregistrement (docmNet) : l'écran et le document disent le même total
+    return {d:l.d,u:l.u||'',pu,q:n.q,total:docmArr(pu*n.q)}; });
   const dep=docmNum(v.deplacement), depl=isFinite(dep)&&dep>0?dep:0;
   const ht=docmArr(lignes.reduce((s,l)=>s+l.total,0)+depl), taux=docmNum(v.tva), t=isFinite(taux)?taux:0, tva=docmArr(ht*t/100);
   const ttc=docmArr(ht+tva), ret=docmNum(v.retenue), ac=docmNum(v.acomptes), r0=isFinite(ret)&&ret>0?ret:0, a0=isFinite(ac)&&ac>0?ac:0;
@@ -45631,7 +45645,7 @@ function docmOptionL(c,val){ const o=(c.options||[]).find(x=>x[0]===val); return
 /* Un champ dépend d'un autre (`si`) : il ne se montre, ne s'imprime et ne se range que si la condition tient. */
 function docmSiOk(si,v){ return !si||String((v||{})[si.k]==null?'':(v||{})[si.k])===si.egal; }
 /* ⛔ CE QUI S'IMPRIME : une mention exige verifie===true, une source et une phrase `pdf` — et sa condition. Rien d'autre ne sort chez le client. */
-function docmMentionsPdf(def,v){ return (def.mentions||[]).filter(m=>m&&m.verifie===true&&m.source&&typeof m.pdf==='string'&&m.pdf.trim()&&docmSiOk(m.si,v)&&docmPourOk(m)); }
+function docmMentionsPdf(def,v){ return (def.mentions||[]).filter(m=>m&&m.verifie===true&&m.source&&typeof m.pdf==='string'&&m.pdf.trim()&&docmSiOk(m.si,v)&&docmPourOk(m)).filter((m,k,a)=>a.findIndex(x=>x.pdf===m.pdf)===k); }   // une phrase imprimée une seule fois, même si deux métiers de l'entreprise la portent
 /* Les champs recommandés encore vides (on le DIT, on ne bloque pas) */
 function docmManques(def,r){ const v=(r&&r.v)||{}; return docmChamps(def).filter(c=>c.reco&&docmSiOk(c.si,v)&&String(v[c.k]==null?'':v[c.k]).trim()==='').map(c=>c.l.replace(/ \(.*\)$/,'')); }
 
@@ -45651,7 +45665,9 @@ function docmVide(def,cid,iid){ const cl=docmClient(cid)||{}, i=docmIntervention
   if(def.releves&&i&&i.relevesMetier) Object.keys(def.releves).forEach(k=>{ const x=i.relevesMetier[def.releves[k]], c=docmChamps(def).find(y=>y.k===k); if(x==null||x===''||!c) return;
     if(c.t==='choix'){ const o=(c.options||[]).find(y=>y[1]===x||y[0]===String(x).toLowerCase()); if(o) v[k]=o[0]; } else v[k]=String(x); });
   const tab={}; docmChamps(def).forEach(c=>{ if(c.t==='tableau') tab[c.k]=[{id:uid(),c:(c.cols||[]).map(()=>'')}]; });   // une ligne vide par tableau : à remplir, jamais écrite telle quelle (docmNet la retire)
-  return {id:'',doc:def.id,clientId:cid,interventionId:i?i.id:'',num:'',date:v.date||todayISO(),v,tab,lignes:def.lignes?[{id:uid(),d:'',pu:'',u:'',q:'1'}]:[]}; }
+  /* `repris` : les champs que le document a REPRIS des relevés de l'intervention — la seule raison, à l'enregistrement, de retirer un relevé quand on les vide (docmReleveEcrire) */
+  const repris=def.releves?Object.keys(def.releves).filter(k=>v[k]!==undefined&&v[k]!==''&&i&&i.relevesMetier&&i.relevesMetier[def.releves[k]]!=null):[];
+  return {id:'',doc:def.id,clientId:cid,interventionId:i?i.id:'',num:'',date:v.date||todayISO(),v,tab,repris,lignes:def.lignes?[{id:uid(),d:'',pu:'',u:'',q:'1'}]:[]}; }
 /* Le document tel qu'on le range : borné champ par champ, sans ligne vide, uniquement les champs de SA définition. */
 function docmNet(def,W){ const v={}, src=W.v||{};
   const champs=docmChamps(def);
@@ -45663,8 +45679,8 @@ function docmNet(def,W){ const v={}, src=W.v||{};
     else if(c.t==='appareil'){ if(!(db.appareils||[]).some(a=>a&&a.id===x&&a.clientId===W.clientId)) return; }
     else x=nettTxt(x,c.max||300);
     v[c.k]=x; });
-  const lignes=def.lignes?(W.lignes||[]).filter(l=>l&&nettTxt(l.d,160)).map(l=>{ const pu=docmNum(l.pu), q=docmNum(l.q);
-    return {id:l.id||uid(),d:nettTxt(l.d,160),pu:isFinite(pu)&&pu>=0&&pu<=1e7?String(docmArr(pu)):'',u:nettTxt(l.u,20),q:isFinite(q)&&q>0&&q<=1e6?String(docmArr(q)):'1'}; }):[];
+  const lignes=def.lignes?(W.lignes||[]).filter(l=>l&&nettTxt(l.d,160)).map(l=>{ const n=docmLigneNette(l);
+    return {id:l.id||uid(),d:nettTxt(l.d,160),pu:n.pu==null?'':String(n.pu),u:nettTxt(l.u,20),q:String(n.q)}; }):[];
   /* les tableaux (une ligne par appareil, par circuit, par réserve…) : bornés colonne par colonne, sans ligne vide, 60 lignes au plus, et seulement ceux de SA définition */
   const tab={}; champs.forEach(c=>{ if(c.t!=='tableau'||(c.si&&!docmSiOk(c.si,src))) return;
     const rows=(((W.tab||{})[c.k])||[]).map(r=>{ const cel=(c.cols||[]).map((col,j)=>nettTxt(r&&r.c&&r.c[j],col.max||120)); return cel.some(Boolean)?{id:(r&&r.id)||uid(),c:cel}:null; }).filter(Boolean).slice(0,c.maxRows||60);
@@ -45730,13 +45746,17 @@ function docmRepriseHtml(){ const W=docmW; if(!W) return '';
   const devis=(db.devis||[]).filter(d=>d&&d.clientId===W.clientId&&(d.lignes||[]).length);
   if(!docs.length&&!devis.length) return '';
   return `<select id="docm-reprise" aria-label="Reprendre les lignes d’un devis" style="width:auto;max-width:100%"><option value="">Reprendre les lignes d’un devis…</option>${docs.map(r=>`<option value="doc:${esc(r.id)}">${esc(docmTitreCourt(r))} — ${esc(nettDateTxt(r.date))}</option>`).join('')}${devis.map(d=>`<option value="devis:${esc(d.id)}">Devis ${esc(d.num||'')} — ${esc(nettDateTxt(d.date))}</option>`).join('')}</select><button type="button" class="btn ghost sm" onclick="docmReprendre()">Reprendre</button>`; }
-function docmMentionsHtml(def){ const ML=(def.mentions||[]).filter(docmPourOk); if(!ML.length) return '';
+/* ⛔ Les repères qu'on montre : chez un client, SEULES les mentions lues à leur source (avec une référence publique : texte, article, lien). Une mention « à confirmer » est une note de travail de l'équipe (« texte non relu », « Légifrance non ouvert ») : elle
+   ne se montre que sur la bêta, où l'on travaille — le client la lirait comme un aveu d'incertitude sur un document qu'il envoie (constat 5 de la relecture du 28 octobre 2026). Elle ne s'imprime de toute façon JAMAIS (docmMentionsPdf). */
+function docmMentionsVisibles(def){ const beta=(typeof BETA_ESSAI!=='undefined'&&BETA_ESSAI===true); return (def.mentions||[]).filter(m=>docmPourOk(m)&&(m.verifie===true||beta)); }
+function docmMentionsHtml(def){ const ML=docmMentionsVisibles(def); if(!ML.length) return '';
   return `<details style="margin:6px 0 12px"><summary style="cursor:pointer;font-size:13px;color:var(--t2)">Repères réglementaires et sources</summary>
     ${ML.map(m=>`<div style="font-size:12.5px;line-height:1.5;padding:7px 0;border-top:1px solid var(--brd);overflow-wrap:anywhere">${m.verifie?'<span class="st st-green">source lue</span>':'<span class="st st-org">à confirmer — jamais imprimé</span>'} ${esc(m.texte)}<div style="color:var(--t3)">Source : ${esc(m.source)}</div></div>`).join('')}</details>`; }
 function docmTotHtml(def){ const W=docmW; if(!W) return ''; let h='';
   if(def.lignes){ const T=docmTotaux(W); h+=`<div style="display:flex;justify-content:flex-end;gap:14px;flex-wrap:wrap;font-size:13.5px"><span>Total HT <b>${esc(docmEurEcran(T.ht))}</b></span><span>TVA ${esc(docmTauxTxt(T.taux))} <b>${esc(docmEurEcran(T.tva))}</b></span><span>Total TTC <b>${esc(docmEurEcran(T.ttc))}</b></span>${T.ded?`<span>Reste dû <b>${esc(docmEurEcran(T.ded.reste))}</b></span>`:''}</div>`;
+    const mal=(W.lignes||[]).filter(l=>docmLigneRefusee(l)); if(mal.length) h+=`<div role="alert" style="font-size:12.5px;color:var(--red);text-align:right;margin-top:4px">⚠ ${mal.length>1?mal.length+' lignes ont':'Une ligne a'} un prix ou une quantité refusé (négatif ou trop grand) : ${mal.length>1?'elles ne sont':'elle n’est'} pas comptée${mal.length>1?'s':''} comme saisie${mal.length>1?'s':''} et l’enregistrement sera refusé.</div>`;
     h+=docmNoteTauxReduit((W.v||{}).tva,true);
-    if(def.id==='note-depannage'&&T.ht>0) h+=`<div style="font-size:12.5px;color:var(--t3);text-align:right;margin-top:4px">${T.ttc>=25?'À partir de 25 € TTC : la note est à remettre au client avant le paiement.':'Sous 25 € TTC : à remettre si le client la demande (à confirmer).'}</div>`; }
+    if(def.id==='note-depannage'&&T.ht>0) h+=`<div style="font-size:12.5px;color:var(--t3);text-align:right;margin-top:4px">${T.ttc>=25?'À partir de 25 € TTC : la note est à remettre au client avant le paiement.':'Sous 25 € TTC : la note est facultative, à remettre si le client la demande.'}</div>`; }
   if((def.calculs||[]).length){ const E=docmEcarts(W.v); if(E.length) h+=`<div style="font-size:13px;margin-top:6px">${E.map(e=>`${esc(e[0])} : <b>${esc(e[1])}</b>`).join(' · ')}</div>`; }
   const M=docmManques(def,W); if(M.length) h+=`<div style="font-size:12.5px;color:var(--org);margin-top:6px">À compléter si possible : ${esc(M.join(', '))}</div>`;
   return h; }
@@ -45756,11 +45776,15 @@ function docmReprendre(){ const W=docmW, s=document.getElementById('docm-reprise
   W.lignes=L; if(DOCM_TVA.some(t=>t[0]===tva)) W.v.tva=tva;
   const def=docmDef(W.doc); Object.keys(extra).forEach(k=>{ if(extra[k]!==undefined&&extra[k]!==''&&def.champs.some(c=>c.k===k)) W.v[k]=String(extra[k]); });
   docmMaj(); toast('Lignes reprises — relis-les avant d’enregistrer'); }
+/* ⛔ Le geste qui CRÉE un document : un document rattaché à une intervention et gardé par le droit « interventions » (le rapport d'étanchéité, de vérification…) est le travail de CELUI QUI FAIT l'intervention : il se crée avec « modifier »,
+   que le technicien a, et non « ajouter » (créer une intervention), qu'il n'a pas par défaut — sinon le technicien, qui fait l'essai, ne voyait pas le document et un administrateur puis un technicien n'offraient pas la même carte
+   (constat 3 de la relecture du 28 octobre 2026). Un devis ou une note (droit « ventes ») garde « ajouter ». */
+function docmActeCreer(def){ return def&&def.portee==='intervention'&&def.droit==='int'?'modifier':'ajouter'; }
 function docmForm(defId,opt){ opt=opt||{}; if(!metierGereDocs()) return;
   const def=docmDef(defId); if(!def) return;
   const ex=opt.id?(db.docsMetier||[]).find(x=>x&&x.id===opt.id):null; if(opt.id&&!ex){ toast('Ce document n’existe plus'); return; }
   if(!ex&&!docmDefsDuMetier().some(d=>d.id===def.id)) return;
-  if(!permGarde(def.droit,ex?'modifier':'ajouter','un document')) return;
+  if(!permGarde(def.droit,ex?'modifier':docmActeCreer(def),'un document')) return;
   const cid=ex?ex.clientId:opt.cid, cl=docmClient(cid); if(!cl||!nettClientVisible(cid)){ toast('Cette fiche ne te concerne pas'); return; }
   let iid=ex?ex.interventionId:(opt.iid||''); const it=docmIntervention(iid); if(!it||it.clientId!==cid) iid='';
   docmW=ex?nettCdc(ex):docmVide(def,cid,iid);
@@ -45778,16 +45802,21 @@ function docmForm(defId,opt){ opt=opt||{}; if(!metierGereDocs()) return;
       ${ex&&canCat('crm','supprimer')?`<button type="button" class="btn ghost" style="color:var(--red)" onclick="closeModal();delItem('docsMetier','${esc(ex.id)}')">Supprimer</button>`:''}</div>`); }
 function docmFermer(){ const w=docmW; closeModal(); try{ if(w&&w.interventionId&&docmIntervention(w.interventionId)&&typeof renderIntDetail==='function') renderIntDetail(w.interventionId); else if(w) ficheClient(w.clientId); }catch(e){} }
 /* ── L'enregistrement : le SEUL endroit qui écrit dans `db.docsMetier` (hors démonstration), et le seul qui écrit les relevés de l'intervention ── */
-function docmReleveEcrire(def,rec){ if(!def.releves||!rec.interventionId) return false;
+/* ⛔ Enregistrer un document n'efface JAMAIS un relevé que la personne n'a pas vidé elle-même. Un relevé saisi en texte libre (« Oui, vérifiée » sur un champ à choix) ou un nombre illisible (« N/A », « > 500 ») ne se retrouve pas dans le formulaire : le champ est vide, mais ce n'est
+   pas la personne qui l'a vidé — le relevé de la fiche reste. On ne retire un relevé que si (1) le champ du formulaire est VIDE tel que saisi (`brut`, avant l'épuration de docmNet), et (2) le document était parti d'une valeur (`depart` : reprise des relevés à l'ouverture,
+   ou valeur déjà rangée dans le document). Constat 12 de la relecture du 28 octobre 2026 : trois relevés du technicien disparaissaient sans un mot. */
+function docmReleveEcrire(def,rec,brut,depart){ if(!def.releves||!rec.interventionId) return false;
   const i=docmIntervention(rec.interventionId); if(!i||i.clientId!==rec.clientId) return false;
-  i.relevesMetier=i.relevesMetier||{};
+  i.relevesMetier=i.relevesMetier||{}; brut=brut||{}; depart=depart||[];
   Object.keys(def.releves).forEach(k=>{ const rk=def.releves[k], c=def.champs.find(x=>x.k===k), x=rec.v[k];
-    if(x===undefined||x==='') delete i.relevesMetier[rk]; else i.relevesMetier[rk]=c&&c.t==='choix'?docmOptionL(c,x):String(x); });
+    if(x!==undefined&&x!=='') i.relevesMetier[rk]=c&&c.t==='choix'?docmOptionL(c,x):String(x);
+    else if(String(brut[k]==null?'':brut[k]).trim()===''&&depart.indexOf(k)>=0) delete i.relevesMetier[rk]; });
   return true; }
 function docmSauver(silencieux){ const W=docmW; if(!W) return null;
   const def=docmDef(W.doc); if(!def) return null;
-  if(!permGarde(def.droit,W.id?'modifier':'ajouter','un document')) return null;
+  if(!permGarde(def.droit,W.id?'modifier':docmActeCreer(def),'un document')) return null;
   if(!nettClientVisible(W.clientId)){ toast('Ce client ne te concerne pas'); return null; }
+  if(def.lignes){ const mal=(W.lignes||[]).find(l=>docmLigneRefusee(l)); if(mal){ toast('Ligne « '+nettTxt(mal.d,40)+' » : '+(docmLigneRefusee(mal)==='prix'?'un prix négatif ou trop grand n’est pas accepté (une remise ne se saisit pas ici) — corrige-le':'la quantité doit être positive')+' avant d’enregistrer',6000); return null; } }
   const net=docmNet(def,W);
   for(const c of docmChamps(def)){ if(!c.requis||c.t==='lignes'||c.t==='tableau') continue; if(c.si&&!docmSiOk(c.si,net.v)) continue;
     if(net.v[c.k]==null||net.v[c.k]===''){ toast('À compléter : '+c.l.replace(/ \(.*\)$/,'')); return null; } }
@@ -45795,25 +45824,25 @@ function docmSauver(silencieux){ const W=docmW; if(!W) return null;
   db.docsMetier=db.docsMetier||[];
   const ex=W.id?db.docsMetier.find(x=>x&&x.id===W.id):null; if(W.id&&!ex){ toast('Ce document n’existe plus'); return null; }
   net.titre=def.court;
-  if(ex){ net.num=ex.num||''; Object.assign(ex,net,{modifieLe:todayISO()});
-    docmReleveEcrire(def,ex); logEvent('Document modifié',docmTitreCourt(ex),'crud'); docmW=nettCdc(ex);
+  if(ex){ net.num=ex.num||''; const depart=Object.keys(ex.v||{}).filter(k=>String(ex.v[k]).trim()!==''); Object.assign(ex,net,{modifieLe:todayISO()});
+    docmReleveEcrire(def,ex,W.v,depart); logEvent('Document modifié',docmTitreCourt(ex),'crud'); docmW=nettCdc(ex);
     if(!silencieux) toast('Document enregistré'); save(); return ex.id; }
   net.num=def.prefixe?nextNum('docsMetier',def.prefixe,'num'):'';
   net.id=uid(); net.creePar=(currentUser&&currentUser.id)||''; net.creeLe=todayISO();
   db.docsMetier.push(net);
-  if(docmReleveEcrire(def,net)){ const i=docmIntervention(net.interventionId); intHisto(i,def.court+(net.num?' '+net.num:'')+' enregistré'); }
+  if(docmReleveEcrire(def,net,W.v,W.repris)){ const i=docmIntervention(net.interventionId); intHisto(i,def.court+(net.num?' '+net.num:'')+' enregistré'); }
   logEvent('Document créé',docmTitreCourt(net),'crud'); docmW=nettCdc(net);
   save(); if(!silencieux) toast('Document enregistré'+(net.num?' — n° '+net.num:'')); return net.id; }
 
 /* ── Le taux réduit : une CERTIFICATION du client (plus d'attestation Cerfa depuis le 16 février 2025 — Eurex et KPMG, lus). Le conseil n'apparaît que si le métier a ce document
-   (la plomberie) et qu'un taux de 5,5 % ou de 10 % est choisi ; il ne dit JAMAIS ce que la mention doit contenir (le texte exact n'a pas été relu). ── */
+   (plomberie, chauffage / climatisation, énergies, menuiserie, multiservices) et qu'un taux de 5,5 % ou de 10 % est choisi ; il ne dit JAMAIS ce que la mention doit contenir (le texte exact n'a pas été relu). ── */
 function docmTauxReduit(t){ const n=docmNum(t); return n===5.5||n===10; }
 function docmNoteTauxReduit(taux,avecBouton){ try{ if(!docmDefsDuMetier().some(d=>d.id==='tva-reduite')||!docmTauxReduit(taux)) return '';
   return `<div id="docm-taux-reduit" style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:8px 11px;margin-top:8px;text-align:left">🏠 Taux réduit : le client certifie, par une mention portée sur le devis ou la facture, que les conditions sont remplies (plus d’attestation Cerfa depuis le 16 février 2025). Prépare sa certification${avecBouton?'':' depuis sa fiche, « ＋ Certification TVA réduite »'}.${avecBouton?' <button type="button" class="btn ghost sm" style="margin-top:6px" onclick="docmCertifTva()">＋ Préparer la certification du client</button>':''}</div>`; }catch(e){ return ''; } }
 /* Depuis un devis ou une note : le document est enregistré D'ABORD (la certification cite son numéro), puis la certification s'ouvre avec le taux, la nature et le numéro. */
 function docmCertifTva(){ const W=docmW; if(!W||!metierGereDocs()) return;
   const d2=docmDef('tva-reduite'); if(!d2||!docmDefsDuMetier().some(d=>d.id===d2.id)||!docmTauxReduit((W.v||{}).tva)) return;
-  if(!permGarde(d2.droit,'ajouter','un document')) return;
+  if(!permGarde(d2.droit,docmActeCreer(d2),'un document')) return;
   const taux=String(docmNum(W.v.tva)), nature=W.v.nature||'', cid=W.clientId, iid=W.interventionId||'';
   const sid=docmSauver(true); if(!sid) return;
   const r=(db.docsMetier||[]).find(x=>x&&x.id===sid);
@@ -45877,6 +45906,7 @@ function docmContexte(id){
   const def=docmDef(r.doc); if(!def) return {err:'Document inconnu.'};
   const cli=docmClient(r.clientId); if(!cli) return {err:'Client introuvable.'};
   if(def.lignes&&!docmTotaux(r).lignes.length) return {err:'Ajoute au moins une ligne au décompte.'};
+  if(ouvert&&def.lignes){ const mal=(docmW.lignes||[]).find(l=>docmLigneRefusee(l)); if(mal) return {err:'Ligne « '+nettTxt(mal.d,40)+' » : prix ou quantité refusés (négatif ou trop grand) — corrige-la avant l’aperçu ou l’envoi.'}; }
   const i=docmIntervention(r.interventionId);
   return {cli,soc:(i&&i.rapportModele)||socDuClient(cli.id),spec:E=>docmSpec(def,r,cli,E),date:r.date,pre:docmSlug(def.court),obj:r,coll:'docsMetier',def}; }
 function docmApercu(id){ const W=docmW; nettDocApercu('doc',id!==undefined?id:(W?W.id:''),W?W.clientId:''); }
@@ -45909,12 +45939,12 @@ function docmLigneHtml(r){ const def=docmDef(r.doc), st=docmStatut(r), peutMod=c
     <div class="pl-meta" style="overflow-wrap:anywhere;white-space:normal">${esc(nettDateTxt(r.date))} <span class="st ${st.cls}">${esc(st.l)}</span></div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button type="button" class="btn ghost sm" onclick="closeModal();docmForm('${esc(def.id)}',{id:'${esc(r.id)}'})">${peutMod?'Ouvrir':'Voir'}</button><button type="button" class="btn ghost sm" onclick="nettDocApercu('doc','${esc(r.id)}')">PDF</button></div></div>`; }
 function docmSectionClient(c){ if(!metierGereDocs()||!c) return '';
-  const defs=docmDefsDuMetier().filter(d=>canCat(d.droit,'ajouter')), docs=docmDe(c.id);
+  const defs=docmDefsDuMetier().filter(d=>canCat(d.droit,docmActeCreer(d))), docs=docmDe(c.id);
   return `<div class="dt-lbl" id="docm-docs" style="margin:16px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">📄 Documents du métier</div>
     ${defs.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${defs.map(d=>`<button type="button" class="btn ghost sm" onclick="closeModal();docmForm('${esc(d.id)}',{cid:'${esc(c.id)}'})">＋ ${esc(d.court)}</button>`).join('')}</div>`:''}
     ${docs.length?docs.map(docmLigneHtml).join(''):'<div style="color:var(--t3);font-size:13px;padding:4px 0">Aucun document pour ce client : devis de dépannage, note avant paiement, suivis… chacun se prépare ici et part en PDF.</div>'}`; }
 function docmIntCard(i,edit){ if(!metierGereDocs()||!i) return '';
-  const defs=docmDefsDuMetier().filter(d=>d.portee==='intervention'&&canCat(d.droit,'ajouter')), docs=docmDeInt(i.id);
+  const defs=docmDefsDuMetier().filter(d=>d.portee==='intervention'&&canCat(d.droit,docmActeCreer(d))), docs=docmDeInt(i.id);
   if(!defs.length&&!docs.length) return '';
   return `<div class="card" id="docm-int-card" style="margin-bottom:12px"><div class="card-head" style="margin-bottom:8px"><h3>📄 Documents de l’intervention</h3></div>
     ${docs.length?docs.map(docmLigneHtml).join(''):'<div style="font-size:13px;color:var(--t3);margin-bottom:8px">Aucun document pour cette intervention : le devis se fait avant, la note après, avant le paiement.</div>'}
