@@ -193,6 +193,8 @@ module.exports = function agentCompta(ctx) {
       return siennes.length > 0 && CAL.estQuestionPlateforme(siennes[siennes.length - 1].texte);
     } catch (e) { return false; }
   }
+  function estQuestion(x) { const q = norm(x).replace(/[’‘]/g, '\'').trim();
+    return /\?\s*$/.test(q) || /^(c'?est quoi|c est quoi|qu'?est[- ]ce|quel(le)?s?\b|comment\b|pourquoi\b|combien\b|ou\b|est[- ]ce\b|ca veut dire|explique)/.test(q); }
   function reglerCompta(entree, c) {
     const g = porte(c); if (g) return g;
     const permis = ['regime', 'plateforme_reception', 'expert_comptable'];
@@ -200,6 +202,9 @@ module.exports = function agentCompta(ctx) {
     const cles = Object.keys(entree);
     if (!cles.length || cles.some(k => !permis.includes(k))) return { ok: false, raison: 'forme' };
     if (illisible()) return { ok: false, raison: 'registre_illisible', ligne: 'Mes réglages de compta sont illisibles : je ne note rien tant que le fichier n’est pas réparé.' };
+    /* ⛔ Justin, 29 octobre 2026 (capture) : « C'est quoi la plate-forme agréée ? » faisait écrire « Je ne note la plateforme que si… » —
+       une QUESTION n'est pas un réglage. On refuse sans un mot dans le fil : la réponse appartient à Margaux, pas au code. */
+    if (estQuestion(c.texte)) return { ok: false, raison: 'question' };
     const t = norm(c.texte).replace(/[’‘]/g, '\'');   // ce que JUSTIN a écrit, pas ce que le modèle croit (apostrophes droites)
     /* TOUT OU RIEN : on travaille sur une COPIE. Un seul champ refusé (la plateforme que Justin n'a pas dite) ne laisse pas le régime, accepté juste avant, dans la mémoire : un `sauve()` de rappel le ferait passer sur disque. */
     const avant = JSON.stringify(reg), cand = JSON.parse(avant);

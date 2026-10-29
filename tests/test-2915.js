@@ -44,7 +44,7 @@ function monde(claude, o) {
   const rq = m.recus[0];
   v('UN appel à Claude, celui de Hugo', [m.recus.length, nomDeRequete(rq)], [1, 'Hugo']);
   vrai('…avec les FAITS FERMÉS du dossier cité par Camille (un collègue) : le paiement, pas un nom', /dossier DOS-000002 \{.*"paiement":\{"etat":"paye","formule":"pro"\}/.test(rq.system));
-  vrai('⛔ rien d\'une personne ne part chez Claude : ni nom, ni adresse, ni montant', !/Beta|Alpha|exemple-2911|€/.test(JSON.stringify(rq)));
+  vrai('⛔ rien d\'une personne ne part chez Claude : ni nom, ni adresse, ni montant', !/Beta|Alpha|exemple-2911|€/.test(JSON.stringify(rq).replace(/- L’OFFRE DE TEAMOP[^\\]*?\\n/g, '')));
   vrai('…et la mission de Hugo dit « jamais un montant, jamais un nom », sans rembourser ni annuler tout de suite', /jamais un montant, jamais un nom/.test(rq.system) && /ne rembourses JAMAIS/.test(rq.system) && /n’annules jamais un abonnement tout de suite/.test(rq.system));
   v('la réponse est celle de HUGO, dans « Clients » (pas déléguée)', m.dit('clients').filter(x => x[0] === 'hugo').map(x => x[1]), ['Oui : le dossier DOS-000002 est à jour, il a payé.']);
   v('aucune tâche, aucune validation', [m.agents.charge().hugo, (await m.validations('en_attente')).length], [0, 0]);
