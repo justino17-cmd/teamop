@@ -18478,7 +18478,7 @@ async function suspensionVerifier(btn){
 function go(view){
   /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
   try{ multiCapturer(); }catch(e){}
-  if(!views[view] && VUES_RETIREES[view]) view=VUES_RETIREES[view];
+  if(VUES_RETIREES[view]) view=VUES_RETIREES[view];   // v780 : une vue retirée l'est même si son code est encore là (la messagerie)
   if(!views[view]) view='dashboard';
   /* ⛔ v767 — SUSPENDUE : toute rubrique mène à l'écran « Accès suspendu », sauf les Paramètres (l'administrateur y règle
      son abonnement, chacun y garde ses réglages et sa déconnexion). Le tableau de bord compris : la garde ci-dessous ne le
