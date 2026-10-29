@@ -288,6 +288,27 @@ console.log('\n── 3129 · 4 sexies. ⛔ UNE PÉRIODICITÉ NON RELUE NE S\'É
   vrai('(population) ' + nMetiers + ' métiers qui portent des mentions « à confirmer », ' + nJetons + ' périodicités non lues recensées', nMetiers > 10 && nJetons >= 4, [nMetiers, nJetons]);
   vrai('⛔ aucun type, aucune prestation, aucun document ne porte une périodicité que seule une mention « à confirmer » du même métier cite (extincteurs, câbles, parachutes…)', mal.length === 0, mal.slice(0, 6));
   vrai('contre-épreuve du banc : l\'ancien libellé « Révision des extincteurs (tous les dix ans) » serait refusé', NON_LUES.incendie && NON_LUES.incendie.has('dix ans') && norm('Révision des extincteurs (tous les dix ans)').includes('dix ans') && NON_LUES.ascenseurs && NON_LUES.ascenseurs.has('semestriel') && norm('Examen semestriel des câbles').includes('semestriel')); }
+console.log('\n── 3129 · 4 septies. ⛔ ENREGISTRER UN DOCUMENT N\'EFFACE JAMAIS UN RELEVÉ QUE LA PERSONNE N\'A PAS VIDÉ (constat 12 du 28 octobre) ──');
+{ const avecReleves = DEFS.filter(d => d.releves && !d.reglage); let nCles = 0, perdus = [], nOk = 0, nEff = 0, mauvais = [];
+  vrai('(population) ' + avecReleves.length + ' documents écrivent des relevés dans l\'intervention', avecReleves.length >= 7, avecReleves.map(d => d.id));
+  for (const d of avecReleves) { const metier = d.metiers.find(m => AUTRES.includes(m));
+    /* 1. des relevés saisis par le technicien que le formulaire ne sait pas reprendre : texte libre sur un champ à choix, « N/A » ou « > 500 » sur un nombre */
+    const db = BASE(); const rel = {}; const W0 = mk(metier); const def0 = W0.docmDef(d.id);
+    Object.keys(d.releves).forEach(k => { const c = def0.champs.find(x => x.k === k); if (!c || c.requis) return; rel[d.releves[k]] = c && c.t === 'choix' ? 'Oui, vérifié sur place (texte libre)' : (c && c.t === 'nombre' ? '> 500 (hors échelle)' : 'Valeur libre du technicien'); nCles++; });   // (les champs obligatoires sont hors de l'essai : on les remplit, leur relevé est alors réécrit par la personne)
+    db.interventions[0].relevesMetier = Object.assign({}, rel);
+    const W = mk(metier, { db }); W.docmForm(d.id, { cid: 'c1', iid: 'i1' }); remplit(W, W.docmDef(d.id), { lieuSignature: 'client' });
+    Object.keys(d.releves).forEach(k => { const c = W.docmDef(d.id).champs.find(x => x.k === k); if (c && !c.requis && (c.t === 'choix' || c.t === 'nombre')) delete W.docmW.v[k]; });   // ce que fait docmVide quand rien ne correspond
+    W.docmW.repris = [];
+    const id = W.docmSauver(); const apres = W.db.interventions[0].relevesMetier || {};
+    const manque = Object.keys(rel).filter(k => apres[k] !== rel[k]); if (!id || manque.length) perdus.push(d.id + ' : ' + (id ? manque.join(', ') : 'non enregistré (' + W.__toasts.slice(-1) + ')')); else nOk++;
+    /* 2. la personne VIDE elle-même un champ repris d'un relevé reconnu : là, et seulement là, le relevé part */
+    const k1 = Object.keys(d.releves).find(k => { const c = def0.champs.find(x => x.k === k); return c && !c.requis && c.t === 'texte'; }) || Object.keys(d.releves).find(k => { const c = def0.champs.find(x => x.k === k); return c && !c.requis && c.t === 'nombre'; });
+    if (k1) { const db2 = BASE(); const c1 = def0.champs.find(x => x.k === k1); const val = c1.t === 'nombre' ? '12' : 'Mesure du technicien'; db2.interventions[0].relevesMetier = { [d.releves[k1]]: val };
+      const V = mk(metier, { db: db2 }); V.docmForm(d.id, { cid: 'c1', iid: 'i1' }); const repris = V.docmW.v[k1] === val; remplit(V, V.docmDef(d.id), { lieuSignature: 'client' }); V.docmW.v[k1] = '';
+      V.docmSauver(); const parti = !(d.releves[k1] in (V.db.interventions[0].relevesMetier || {}));
+      nEff++; if (!repris || !parti) mauvais.push(d.id + '/' + k1 + ' repris=' + repris + ' parti=' + parti); } }
+  vrai('⛔ ' + nCles + ' relevés libres ou illisibles sur ' + avecReleves.length + ' documents : TOUS sont encore sur l\'intervention après l\'enregistrement (' + nOk + ' documents sans perte)', perdus.length === 0, perdus.slice(0, 4));
+  vrai('… et un champ que la personne VIDE elle-même retire son relevé (' + nEff + ' documents) : c\'est le seul cas', mauvais.length === 0 && nEff >= 5, mauvais.slice(0, 4)); }
 console.log('\n── 3129 · 5. les droits, les clients qu\'on ne voit pas, les champs propres à un métier ──');
 { for (const d of DEFS.filter(x => !x.reglage)) {
     const metier = d.metiers.find(m => AUTRES.includes(m));

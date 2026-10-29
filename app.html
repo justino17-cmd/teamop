@@ -45665,7 +45665,9 @@ function docmVide(def,cid,iid){ const cl=docmClient(cid)||{}, i=docmIntervention
   if(def.releves&&i&&i.relevesMetier) Object.keys(def.releves).forEach(k=>{ const x=i.relevesMetier[def.releves[k]], c=docmChamps(def).find(y=>y.k===k); if(x==null||x===''||!c) return;
     if(c.t==='choix'){ const o=(c.options||[]).find(y=>y[1]===x||y[0]===String(x).toLowerCase()); if(o) v[k]=o[0]; } else v[k]=String(x); });
   const tab={}; docmChamps(def).forEach(c=>{ if(c.t==='tableau') tab[c.k]=[{id:uid(),c:(c.cols||[]).map(()=>'')}]; });   // une ligne vide par tableau : à remplir, jamais écrite telle quelle (docmNet la retire)
-  return {id:'',doc:def.id,clientId:cid,interventionId:i?i.id:'',num:'',date:v.date||todayISO(),v,tab,lignes:def.lignes?[{id:uid(),d:'',pu:'',u:'',q:'1'}]:[]}; }
+  /* `repris` : les champs que le document a REPRIS des relevés de l'intervention — la seule raison, à l'enregistrement, de retirer un relevé quand on les vide (docmReleveEcrire) */
+  const repris=def.releves?Object.keys(def.releves).filter(k=>v[k]!==undefined&&v[k]!==''&&i&&i.relevesMetier&&i.relevesMetier[def.releves[k]]!=null):[];
+  return {id:'',doc:def.id,clientId:cid,interventionId:i?i.id:'',num:'',date:v.date||todayISO(),v,tab,repris,lignes:def.lignes?[{id:uid(),d:'',pu:'',u:'',q:'1'}]:[]}; }
 /* Le document tel qu'on le range : borné champ par champ, sans ligne vide, uniquement les champs de SA définition. */
 function docmNet(def,W){ const v={}, src=W.v||{};
   const champs=docmChamps(def);
@@ -45800,11 +45802,15 @@ function docmForm(defId,opt){ opt=opt||{}; if(!metierGereDocs()) return;
       ${ex&&canCat('crm','supprimer')?`<button type="button" class="btn ghost" style="color:var(--red)" onclick="closeModal();delItem('docsMetier','${esc(ex.id)}')">Supprimer</button>`:''}</div>`); }
 function docmFermer(){ const w=docmW; closeModal(); try{ if(w&&w.interventionId&&docmIntervention(w.interventionId)&&typeof renderIntDetail==='function') renderIntDetail(w.interventionId); else if(w) ficheClient(w.clientId); }catch(e){} }
 /* ── L'enregistrement : le SEUL endroit qui écrit dans `db.docsMetier` (hors démonstration), et le seul qui écrit les relevés de l'intervention ── */
-function docmReleveEcrire(def,rec){ if(!def.releves||!rec.interventionId) return false;
+/* ⛔ Enregistrer un document n'efface JAMAIS un relevé que la personne n'a pas vidé elle-même. Un relevé saisi en texte libre (« Oui, vérifiée » sur un champ à choix) ou un nombre illisible (« N/A », « > 500 ») ne se retrouve pas dans le formulaire : le champ est vide, mais ce n'est
+   pas la personne qui l'a vidé — le relevé de la fiche reste. On ne retire un relevé que si (1) le champ du formulaire est VIDE tel que saisi (`brut`, avant l'épuration de docmNet), et (2) le document était parti d'une valeur (`depart` : reprise des relevés à l'ouverture,
+   ou valeur déjà rangée dans le document). Constat 12 de la relecture du 28 octobre 2026 : trois relevés du technicien disparaissaient sans un mot. */
+function docmReleveEcrire(def,rec,brut,depart){ if(!def.releves||!rec.interventionId) return false;
   const i=docmIntervention(rec.interventionId); if(!i||i.clientId!==rec.clientId) return false;
-  i.relevesMetier=i.relevesMetier||{};
+  i.relevesMetier=i.relevesMetier||{}; brut=brut||{}; depart=depart||[];
   Object.keys(def.releves).forEach(k=>{ const rk=def.releves[k], c=def.champs.find(x=>x.k===k), x=rec.v[k];
-    if(x===undefined||x==='') delete i.relevesMetier[rk]; else i.relevesMetier[rk]=c&&c.t==='choix'?docmOptionL(c,x):String(x); });
+    if(x!==undefined&&x!=='') i.relevesMetier[rk]=c&&c.t==='choix'?docmOptionL(c,x):String(x);
+    else if(String(brut[k]==null?'':brut[k]).trim()===''&&depart.indexOf(k)>=0) delete i.relevesMetier[rk]; });
   return true; }
 function docmSauver(silencieux){ const W=docmW; if(!W) return null;
   const def=docmDef(W.doc); if(!def) return null;
@@ -45818,13 +45824,13 @@ function docmSauver(silencieux){ const W=docmW; if(!W) return null;
   db.docsMetier=db.docsMetier||[];
   const ex=W.id?db.docsMetier.find(x=>x&&x.id===W.id):null; if(W.id&&!ex){ toast('Ce document n’existe plus'); return null; }
   net.titre=def.court;
-  if(ex){ net.num=ex.num||''; Object.assign(ex,net,{modifieLe:todayISO()});
-    docmReleveEcrire(def,ex); logEvent('Document modifié',docmTitreCourt(ex),'crud'); docmW=nettCdc(ex);
+  if(ex){ net.num=ex.num||''; const depart=Object.keys(ex.v||{}).filter(k=>String(ex.v[k]).trim()!==''); Object.assign(ex,net,{modifieLe:todayISO()});
+    docmReleveEcrire(def,ex,W.v,depart); logEvent('Document modifié',docmTitreCourt(ex),'crud'); docmW=nettCdc(ex);
     if(!silencieux) toast('Document enregistré'); save(); return ex.id; }
   net.num=def.prefixe?nextNum('docsMetier',def.prefixe,'num'):'';
   net.id=uid(); net.creePar=(currentUser&&currentUser.id)||''; net.creeLe=todayISO();
   db.docsMetier.push(net);
-  if(docmReleveEcrire(def,net)){ const i=docmIntervention(net.interventionId); intHisto(i,def.court+(net.num?' '+net.num:'')+' enregistré'); }
+  if(docmReleveEcrire(def,net,W.v,W.repris)){ const i=docmIntervention(net.interventionId); intHisto(i,def.court+(net.num?' '+net.num:'')+' enregistré'); }
   logEvent('Document créé',docmTitreCourt(net),'crud'); docmW=nettCdc(net);
   save(); if(!silencieux) toast('Document enregistré'+(net.num?' — n° '+net.num:'')); return net.id; }
 
