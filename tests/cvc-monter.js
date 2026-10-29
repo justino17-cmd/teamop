@@ -70,6 +70,8 @@ function monter(opts) {
     async function srvMail(to,sub,body,okMsg,cat,box,opts){ __mails.push({to:to,sub:sub,body:body,opts:opts}); return __mailOk; }
     function intSocMailOpts(){ return {brandName:'Alpha Chauffage',societe:'Alpha Chauffage'}; }
     var window={open:function(){ var w={ecrit:'',location:{href:''},document:{write:function(t){w.ecrit+=t;},close:function(){}},close:function(){ w.ferme=true; }}; __windows.push(w); return __windows.length&&!__noPopup?w:null; }};
+    /* v780 : la fenêtre PDF commune (pdfFeuille, une couche du DOM) — ici on retient ce qu'elle reçoit et ce que sa fabrique rend. */
+    var __feuilles=[]; function pdfFeuille(o){ var f={o:o,d:null}; __feuilles.push(f); return Promise.resolve(o.fabrique()).then(function(d){ f.d=d; if(d&&d.err){ toast('⚠️ '+d.err); if(o.siErreur) o.siErreur(d); } else if(d&&d.manque&&d.manque.length) toast('⚠️ Non jointe au PDF : '+d.manque.join(', ')); }); }
     var URL={createObjectURL:function(b){ return 'blob:test'; },revokeObjectURL:function(){}}; var Blob=function(a,o){ this.parts=a; this.type=o&&o.type; };
     var navigator={};
   `, W);

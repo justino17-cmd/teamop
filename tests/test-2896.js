@@ -159,22 +159,21 @@ console.log('\n── 2896 · 5. un vrai PDF ──');
   vrai('le client très long est dit en entier ou coupé avec « … », jamais hors page', G.textes.some(t => /Établissements Dupont/.test(t.u)));
 }
 
-console.log('\n── 2896 · 6. l’aperçu : la fenêtre s’ouvre DANS le geste ──');
+console.log('\n── 2896 · 6. l’aperçu : la fenêtre PDF commune (v780) ──');
 (async () => {
   {
     const W = monter({ db: BASE, pack: PACK, jpeg: JPEG1 });
     W.__form = formulaire({ coAmbiant: '3', conseils: 'Bon état' });
     require('vm').runInContext("document.getElementById=function(id){ return id==='cvc-att'?__form:null; }", W);
     const p = W.cvcAttestationApercu('i1', 'a1');
-    vrai('⛔ la fenêtre est ouverte AVANT toute attente (synchrone)', W.__windows.length === 1 && /Préparation/.test(W.__windows[0].ecrit));
+    const F = require('vm').runInContext('__feuilles', W);
+    vrai('⛔ la fenêtre PDF s’ouvre AVANT toute attente (synchrone), avec l’envoi au client', F.length === 1 && typeof F[0].o.envoyer === 'function');
     await p;
-    vrai('le PDF s’y affiche (adresse blob), la fenêtre n’est pas fermée', W.__windows[0].location.href === 'blob:test' && !W.__windows[0].ferme);
+    vrai('sa fabrique rend un vrai PDF (la saisie EN COURS du formulaire)', !!(F[0].d && /^%PDF-/.test(F[0].d.pdf || '')), F[0].d && F[0].d.err);
+    vrai('⛔ aucun onglet ouvert d’office (un onglet ouvert après une attente, Safari le bloque) : Aperçu se touche dans la fenêtre', W.__windows.length === 0);
     vrai('⛔ un aperçu n’écrit RIEN (ni save, ni attestation)', W.__saves === 0 && !W.db.interventions[0].attestations);
-    const B = monter({ db: BASE, pack: PACK }); require('vm').runInContext('__noPopup=true', B);
-    await B.cvcAttestationApercu('i1', 'a1');
-    vrai('popup bloquée : on le dit, pas de PDF fabriqué', /pop-ups/.test(B.__toasts.join('|')));
     const S = monter({ db: BASE, pack: PACK }); await S.cvcAttestationApercu('i2', 'a1');
-    vrai('intervention non terminée : aucune fenêtre ouverte pour rien', S.__windows.length === 0);
+    vrai('intervention non terminée : aucune fenêtre ouverte pour rien', require('vm').runInContext('__feuilles', S).length === 0 && S.__windows.length === 0);
   }
 
   console.log('\n── 2896 · 7. l’envoi : un seul courriel, la trace après la réussite ──');

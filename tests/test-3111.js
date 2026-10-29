@@ -215,10 +215,9 @@ console.log('\n── 3111 · 6. LES TROIS PDF — structure, texte, en-tête, a
   vrai('un cahier de 14 zones se pagine (plusieurs pages, numérotées « Page k/n »), structure valide', lg.pages >= 3 && lg.pb.length === 0 && lg.textes.some(t => t.u === 'Page 1/' + lg.pages) && lg.textes.some(t => t.u === 'Page ' + lg.pages + '/' + lg.pages), [lg.pages, lg.pb]);
 
   console.log('\n── 3111 · 7. l\'aperçu et l\'envoi ──');
-  const A = monter({ db: base, entete }); await A.nettDocApercu('cahier', 'ca1', '');
-  vrai('l\'aperçu ouvre une fenêtre DANS le geste, et y met le PDF', A.__windows.length === 1 && /blob:test/.test(A.__windows[0].location.href) && !A.__toasts.some(t => /Autorise|Erreur/.test(t)), A.__windows.map(w => w.location.href));
-  const P = monter({ db: base, entete }); P.__noPopup = true; await P.nettDocApercu('cahier', 'ca1', '');
-  vrai('fenêtre bloquée : le dit, ne fabrique rien', P.__toasts.some(t => /pop-ups/.test(t)));
+  const A = monter({ db: base, entete }); await A.nettDocApercu('cahier', 'ca1', ''); const FA = require('vm').runInContext('__feuilles', A);
+  vrai('l\'aperçu ouvre la fenêtre PDF commune (v780) : un vrai PDF, l\'envoi au client à côté, rien dit d\'inquiétant', FA.length === 1 && /^%PDF-/.test((FA[0].d || {}).pdf || '') && typeof FA[0].o.envoyer === 'function' && !A.__toasts.some(t => /Autorise|Erreur/.test(t)), A.__toasts);
+  vrai('⛔ aucun onglet ouvert d\'office (Safari bloque un onglet ouvert après une attente) : Aperçu se touche dans la fenêtre', A.__windows.length === 0);
   const E1 = monter({ db: base, entete }); await E1.nettDocEnvoyer('cahier', 'ca1', '');
   vrai('envoi : UN courriel, au client, avec le PDF joint (un vrai %PDF) et la société en expéditeur', E1.__mails.length === 1 && E1.__mails[0].to === 'compta@dubreuil.test' && E1.__mails[0].opts.atts.length === 1
     && Buffer.from(E1.__mails[0].opts.atts[0].content, 'base64').toString('latin1').startsWith('%PDF-1.4') && E1.__mails[0].opts.brandName === 'Éclat Sud' && E1.__mails[0].opts.sansMailto === true, E1.__mails.map(m => [m.to, m.sub]));
@@ -487,8 +486,8 @@ async function suite3(N, METIERS) {
     const sans = { nom: '', couleur: '#1E7A4E', logo: '', adresse: '', cp: '', ville: '', siret: '', tel: '', email: '', societes: { 'Éclat Sud': { nom: 'Éclat Sud', raison: 'Éclat Sud SARL', siret: '999', adresse: '9 quai', couleur: '#2563EB' } } };
     const W0 = monter({ db: base, entete: sans }), R = await W0.nettDocFabriquer('cahier', 'k1', '');
     vrai('constat 6 : sans nom d\'entreprise (Paramètres) ni société, le document n\'est PAS fabriqué : « Renseigne le nom de ton entreprise »', !R.pdf && /Renseigne le nom de ton entreprise \(Paramètres\)/.test(R.err || ''), R.err);
-    const W1 = monter({ db: base, entete: sans }); await W1.nettDocApercu('cahier', 'k1', '');
-    vrai('… l\'aperçu : une fenêtre ouverte DANS le geste, refermée, le refus dit', W1.__windows.length === 1 && W1.__windows[0].ferme === true && W1.__toasts.some(t => /Renseigne le nom de ton entreprise/.test(t)));
+    const W1 = monter({ db: base, entete: sans }); await W1.nettDocApercu('cahier', 'k1', ''); const F1 = require('vm').runInContext('__feuilles', W1);
+    vrai('… l\'aperçu : la fenêtre PDF n\'a pas de PDF, et le refus est dit', F1.length === 1 && !(F1[0].d || {}).pdf && W1.__toasts.some(t => /Renseigne le nom de ton entreprise/.test(t)), W1.__toasts);
     const W2 = monter({ db: base, entete: sans }); await W2.nettDocEnvoyer('cahier', 'k1', '');
     vrai('⛔ … l\'envoi : AUCUN courriel, aucune trace d\'envoi', W2.__mails.length === 0 && !W2.db.cahiers[0].envoyeLe && W2.__toasts.some(t => /Renseigne le nom de ton entreprise/.test(t)), W2.__toasts);
     const W3 = monter({ db: base, entete: sans }), R3 = await W3.nettDocFabriquer('cahier', 'k2', '');
