@@ -250,6 +250,15 @@ console.log('\n── 3191 · la revue du week-end ──');
     } finally { H.nettoyer(); }
   }
 
+  {
+    /* un fichier qu'on ne SAIT PAS LIRE (autre chose qu'un fichier absent) : un dossier à sa place */
+    const H = monter({ mode: 'brouillon', sansReveil: true, t0: SAMEDI_10H_PARIS, avant: D => fs.mkdirSync(path.join(D, 'agents-revue.json')) });
+    try {
+      const R = RV({ get() {}, post() {}, use() {} }, { DATA_DIR: H.D, monPatronStrict() {}, agents: H.agents, conversations: H.conv, cerveau: H.cerveau, maintenant: () => H.horloge.t, equipe: () => H.eq });
+      v('⛔ un fichier présent mais impossible à lire est illisible (jamais « vide »), et la revue ne se lance pas', [R.estIllisible(), R.tic().saute, H.appels.length], [true, 'illisible', 0]);
+    } finally { H.nettoyer(); }
+  }
+
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
 })().catch(e => { console.log('  ✗ exception : ' + (e && e.stack || e)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });
