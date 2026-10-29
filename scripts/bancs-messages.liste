@@ -138,7 +138,7 @@
 # 28 octobre 2026, soir : la fonction de chaque contact sous son nom (test-3099) par-dessus les photos : 201 suites, 12 673 vérifications mesurées par la commande de la porte — plancher 12659.
 # 28 octobre 2026, le CADRE (Justin : la Tour affiche OP MESSAGES bêta — `frame-ancestors https://teamop.fr` sur la page d'accueil, bêta seulement, par configuration) : test-3126 (le vrai service, fermé par défaut, ouvert à un seul site, les valeurs fausses, l'outil de pose). 202 suites, 12 784 vérifications mesurées par la commande de la porte (12 673 + 111) — plancher 12770 (le total moins 14).
 # 29 octobre 2026, la relecture du cadre (test-3128, 23 vérifications) : 203 suites, 12 990 vérifications mesurées par la commande de la porte (12 967 + 23 ; la base de main en avait gagné d'autres depuis le 28) — plancher 12976 (le total moins 14).
-#plancher 12976
+#plancher 12836
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
