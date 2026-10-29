@@ -761,7 +761,7 @@
     "EPI"
    ],
    "documents": [
-    "Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017",
+    "Devis de dépannage, réparation ou entretien",
     "Note détaillée avant paiement (à partir de 25 € TTC)",
     "Rapport d’intervention avec photos",
     "Rapport de test d’étanchéité daté",
@@ -1394,7 +1394,7 @@
     "EPI"
    ],
    "documents": [
-    "Devis de dépannage, réparation ou entretien (mentions de l’arrêté du 24 janvier 2017)",
+    "Devis de dépannage, réparation ou entretien",
     "Note de dépannage remise avant paiement (à partir de 25 € TTC)",
     "Rapport d’intervention chauffage / climatisation",
     "Attestation d’entretien de chaudière (une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire)",
@@ -3299,7 +3299,7 @@
    ],
    "documents": [
     "Bon d’intervention signé (ne remplace pas le devis de dépannage)",
-    "Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017",
+    "Devis de dépannage, réparation ou entretien",
     "Note détaillée avant paiement (à partir de 25 € TTC)",
     "Liste des pièces fournies",
     "Contrat de maintenance avec rappel de reconduction",
@@ -3328,7 +3328,7 @@
    ],
    "obligations": [
     {
-     "texte": "Dépannage à domicile : information préalable, devis détaillé avant travaux, note détaillée au-delà de 25 € TTC (arrêté du 24 janvier 2017).",
+     "texte": "Dépannage, réparation ou entretien chez un particulier : l’arrêté du 24 janvier 2017 s’applique aux métiers de sa liste (information préalable, devis détaillé avant travaux, note détaillée au-delà de 25 € TTC) ; le multiservices n’y est pas nommé, la règle se vérifie prestation par prestation.",
      "source": "https://www.economie.gouv.fr/dgccrf/les-fiches-pratiques/plomberie-serrurerie-chauffage-choisir-le-bon-professionnel-pour-un-depannage-domicile",
      "fiabilite": "officielle"
     }

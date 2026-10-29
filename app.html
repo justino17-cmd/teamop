@@ -9452,9 +9452,8 @@ const METIERS={
       'Outillage consommable', 'EPI'
     ],
     documents:[
-      'Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017',
-      'Note détaillée avant paiement (à partir de 25 € TTC)', 'Rapport d’intervention avec photos',
-      'Rapport de test d’étanchéité daté',
+      'Devis de dépannage, réparation ou entretien', 'Note détaillée avant paiement (à partir de 25 € TTC)',
+      'Rapport d’intervention avec photos', 'Rapport de test d’étanchéité daté',
       'Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)',
       'Certification du client pour la TVA réduite (mention du devis ou de la facture)',
       'Suivi du repérage amiante avant travaux (bâtiments livrés avant le 1er janvier 1997)'
@@ -9569,8 +9568,7 @@ const METIERS={
       'Tuyauterie, liaisons frigorifiques et isolation', 'Outillage consommable', 'EPI'
     ],
     documents:[
-      'Devis de dépannage, réparation ou entretien (mentions de l’arrêté du 24 janvier 2017)',
-      'Note de dépannage remise avant paiement (à partir de 25 € TTC)',
+      'Devis de dépannage, réparation ou entretien', 'Note de dépannage remise avant paiement (à partir de 25 € TTC)',
       'Rapport d’intervention chauffage / climatisation',
       'Attestation d’entretien de chaudière (une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire)',
       'Attestation d’entretien de pompe à chaleur ou de climatisation (4 à 70 kW)',
@@ -9894,9 +9892,8 @@ const METIERS={
     ],
     documents:[
       'Bon d’intervention signé (ne remplace pas le devis de dépannage)',
-      'Devis de dépannage avec les mentions des arrêtés des 24 janvier et 28 février 2017',
-      'Note détaillée avant paiement (à partir de 25 € TTC)', 'Liste des pièces fournies',
-      'Contrat de maintenance avec rappel de reconduction',
+      'Devis de dépannage, réparation ou entretien', 'Note détaillée avant paiement (à partir de 25 € TTC)',
+      'Liste des pièces fournies', 'Contrat de maintenance avec rappel de reconduction',
       'Certification du client pour la TVA réduite (mention du devis ou de la facture)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
@@ -44158,6 +44155,7 @@ const DOCM_DEFS=[
      {k:'date',l:'Date de rédaction',t:'date',requis:true,pre:'auj',s:'Le devis'},
      {k:'lieu',l:'Lieu d’exécution des travaux',t:'texte',requis:true,pre:'adresse',max:200},
      {k:'nature',l:'Nature exacte de la prestation ou de la réparation',t:'long',requis:true,pre:'motif',max:800},
+     {k:'depannage',l:'Dépannage, réparation ou entretien chez un particulier',t:'choix',options:DOCM_OUI,requis:true,maj:true,pour:['menuiserie','couverture','multiservices']},
      {k:'installation',l:'Installation concernée : tension et puissance (information interne, jamais une mention légale)',t:'texte',max:160,pour:['electricite']},
      {k:'situation',l:'Situation constatée',t:'choix',options:[['claquee','Porte claquée'],['fermee','Porte fermée à clé'],['perdue','Clé perdue'],['forcee','Porte forcée']],pour:['serrurerie']},
      {k:'methodeOuverture',l:'Méthode annoncée : ouverture fine ou destructive, et ce que chacune peut coûter',t:'long',max:400,pour:['serrurerie']},
@@ -44177,8 +44175,11 @@ const DOCM_DEFS=[
      {k:'signeParNom',l:'Nom du signataire',t:'texte',max:120}],
    mentions:[
      {texte:'Devis détaillé remis au client avant toute prestation de dépannage, de réparation ou d’entretien, quel que soit le montant (arrêté du 24 janvier 2017 modifié).',
-      source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,
-      pdf:'Devis détaillé remis avant toute prestation, quel que soit le montant (arrêté du 24 janvier 2017 modifié).'},
+      source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,pour:['chauffage','plomberie','electricite','serrurerie'],
+      pdf:'Devis détaillé remis avant toute prestation de dépannage, de réparation ou d’entretien, quel que soit le montant.'},
+     {texte:'Menuiserie, couverture, multiservices : le champ d’application de l’arrêté n’est pas établi pour toutes leurs prestations (annexe 1 non lue). La phrase ne s’imprime que si le devis est un dépannage, une réparation ou un entretien chez un particulier.',
+      source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,pour:['menuiserie','couverture','multiservices'],si:{k:'depannage',egal:'oui'},
+      pdf:'Devis détaillé remis avant toute prestation de dépannage, de réparation ou d’entretien, quel que soit le montant.'},
      {texte:'Droit de rétractation de 14 jours pour un devis signé au domicile du client ; aucun droit de rétractation pour un dépannage urgent expressément demandé par le client, hors pièces étrangères à l’urgence.',
       source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,si:{k:'lieuSignature',egal:'client'},
       pdf:'Devis signé au domicile du client : droit de rétractation de 14 jours. Aucun droit de rétractation pour un dépannage urgent expressément demandé par le client, hors pièces étrangères à l’urgence.'},
@@ -44210,7 +44211,7 @@ const DOCM_DEFS=[
      {k:'sansNom',l:'Le client s’oppose à ce que son nom figure sur la note',t:'choix',options:DOCM_OUI,def:'non'}],
    mentions:[
      {texte:'Note remise après l’exécution et avant tout paiement, en deux exemplaires, dès 25 € TTC.',source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true,
-      pdf:'Note remise en deux exemplaires, avant tout paiement (arrêté du 24 janvier 2017 modifié).'},
+      pdf:'Note remise en deux exemplaires, avant tout paiement.'},
      {texte:'Contenu de la note : date, prestataire, client (sauf opposition de sa part), date et lieu d’exécution, décompte détaillé (sauf devis détaillé accepté et conforme), totaux HT et TTC.',
       source:'Recensement secondaire (macorpo.com) ; l’article sur la note n’a pas été lu dans l’arrêté',verifie:false},
      {texte:'Sous 25 € TTC, la délivrance de la note est facultative, sauf si le client la demande expressément.',source:'Institut national de la consommation : https://www.inc-conso.fr/node/9603',verifie:true}],
@@ -45643,7 +45644,7 @@ function docmOptionL(c,val){ const o=(c.options||[]).find(x=>x[0]===val); return
 /* Un champ dépend d'un autre (`si`) : il ne se montre, ne s'imprime et ne se range que si la condition tient. */
 function docmSiOk(si,v){ return !si||String((v||{})[si.k]==null?'':(v||{})[si.k])===si.egal; }
 /* ⛔ CE QUI S'IMPRIME : une mention exige verifie===true, une source et une phrase `pdf` — et sa condition. Rien d'autre ne sort chez le client. */
-function docmMentionsPdf(def,v){ return (def.mentions||[]).filter(m=>m&&m.verifie===true&&m.source&&typeof m.pdf==='string'&&m.pdf.trim()&&docmSiOk(m.si,v)&&docmPourOk(m)); }
+function docmMentionsPdf(def,v){ return (def.mentions||[]).filter(m=>m&&m.verifie===true&&m.source&&typeof m.pdf==='string'&&m.pdf.trim()&&docmSiOk(m.si,v)&&docmPourOk(m)).filter((m,k,a)=>a.findIndex(x=>x.pdf===m.pdf)===k); }   // une phrase imprimée une seule fois, même si deux métiers de l'entreprise la portent
 /* Les champs recommandés encore vides (on le DIT, on ne bloque pas) */
 function docmManques(def,r){ const v=(r&&r.v)||{}; return docmChamps(def).filter(c=>c.reco&&docmSiOk(c.si,v)&&String(v[c.k]==null?'':v[c.k]).trim()==='').map(c=>c.l.replace(/ \(.*\)$/,'')); }
 

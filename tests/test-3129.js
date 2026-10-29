@@ -240,6 +240,23 @@ console.log('\n── 3129 · 4 bis. ⛔ L\'EN-TÊTE : un titre long ne recouvre
   /* le titre qui passe à la ligne descend ce qu'il y a dessous : la date et le numéro ne le recouvrent pas non plus (déjà compté par chevauche) ; un titre COURT reste sur une ligne, au corps 14, comme avant */
   { const W = mk('plomberie'); W.docmForm('devis-depannage', { cid: 'c1', iid: 'i1' }); remplit(W, W.docmDef('devis-depannage'), { lieuSignature: 'client' }); const x = await fabrique(W, W.docmSauver());
     vrai('un titre court (DEVIS) reste sur UNE ligne, au corps 14, gras', /\/F2 14 Tf\n[\d.-]+ [\d.-]+ Td\n\(DEVIS\) Tj/.test(x.pdf), x.pdf.slice(0, 0)); } }
+console.log('\n── 3129 · 4 ter. ⛔ LE DEVIS DE DÉPANNAGE : la phrase « devis détaillé… quel que soit le montant » ne s\'imprime que là où elle est établie (constat 8 du 28 octobre) ──');
+{ const DD = DEFS_TOUS.find(d => d.id === 'devis-depannage'); const IMPR = 'Devis détaillé remis avant toute prestation de dépannage, de réparation ou d’entretien, quel que soit le montant.';
+  const phrase = async (metier, plus) => { const W = mk(metier); W.docmForm('devis-depannage', { cid: 'c1', iid: 'i1' }); remplit(W, W.docmDef('devis-depannage'), Object.assign({ lieuSignature: 'etablissement' }, plus || {})); const id = W.docmSauver(); if (!id) return { err: W.__toasts.slice(-1)[0] }; ouvre(W); const x = await fabrique(W, id); return { t: tout(x.pdf).replace(/ \| /g, ' '), W }; };
+  for (const m of ['menuiserie', 'couverture', 'multiservices']) {
+    const oui = await phrase(m, { depannage: 'oui' }), non = await phrase(m, { depannage: 'non' });
+    vrai(m + ' : « dépannage, réparation ou entretien chez un particulier » = oui → la phrase s\'imprime, UNE seule fois ; = non → elle ne s\'imprime PAS', !oui.err && oui.t.split(IMPR).length === 2 && !non.err && non.t.indexOf('Devis détaillé remis avant toute prestation') < 0, [oui.err, non.err]);
+    const W = mk(m); W.docmForm('devis-depannage', { cid: 'c1', iid: 'i1' }); remplit(W, W.docmDef('devis-depannage'), {}); delete W.docmW.v.depannage;
+    vrai(m + ' : le champ est obligatoire (sans lui, rien ne s\'enregistre et la raison est dite)', W.docmChamps(W.docmDef('devis-depannage')).some(c => c.k === 'depannage' && c.requis) && W.docmSauver() === null && W.__toasts.some(t => /Dépannage, réparation ou entretien chez un particulier/.test(t)), W.__toasts.slice(-1)); }
+  for (const m of ['plomberie', 'chauffage', 'electricite', 'serrurerie']) { const r = await phrase(m);
+    vrai(m + ' : pas de question « dépannage ? » (le devis de ce métier est un devis de dépannage), la phrase s\'imprime, sans citer l\'arrêté', !r.err && r.t.split(IMPR).length === 2 && !/arrêté du 24 janvier/.test(r.t) && !r.W.docmChamps(r.W.docmDef('devis-depannage')).some(c => c.k === 'depannage'), r.err); }
+  { const W = mk('multiservices'); vm.runInContext('function metierActifs(){ return ["multiservices","plomberie"]; }', W); W.docmForm('devis-depannage', { cid: 'c1', iid: 'i1' }); remplit(W, W.docmDef('devis-depannage'), { lieuSignature: 'etablissement', depannage: 'oui' }); const id = W.docmSauver(); ouvre(W); const x = await fabrique(W, id);
+    vrai('deux métiers (multiservices + plomberie) portent la même phrase : elle ne s\'imprime qu\'UNE fois', !!id && tout(x.pdf).replace(/ \| /g, ' ').split(IMPR).length === 2); }
+  { const N = await phrase('plomberie'); const Nn = mk('plomberie'); Nn.docmForm('note-depannage', { cid: 'c1', iid: 'i1' }); remplit(Nn, Nn.docmDef('note-depannage'), {}); const id = Nn.docmSauver(); ouvre(Nn); const x = await fabrique(Nn, id); const t = tout(x.pdf);
+    vrai('⛔ la note avant paiement : « Note remise en deux exemplaires, avant tout paiement. » SANS référence d\'arrêté (l\'article sur la note n\'a pas été lu dans l\'arrêté)', !!id && /Note remise en deux exemplaires, avant tout paiement\./.test(t) && !/arrêté/.test(t.replace(/ \| /g, ' ').replace(/Document établi[^|]*/, ''))); }
+  const METIERS_REF = evalue(litteral(N, 'const METIERS={'));
+  vrai('⛔ les libellés de documents de la plomberie, du chauffage et du multiservices ne citent plus l\'arrêté (annexe non lue) ; l\'électricité et la serrurerie, nommées par l\'INC, le gardent', ['plomberie', 'chauffage', 'multiservices'].every(k => !METIERS_REF[k].documents.some(d => /arrêtés? des? 24 janvier/.test(d))) && ['electricite', 'serrurerie'].every(k => METIERS_REF[k].documents.some(d => /24 janvier/.test(d))));
+}
 console.log('\n── 3129 · 5. les droits, les clients qu\'on ne voit pas, les champs propres à un métier ──');
 { for (const d of DEFS.filter(x => !x.reglage)) {
     const metier = d.metiers.find(m => AUTRES.includes(m));
