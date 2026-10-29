@@ -78,7 +78,7 @@ console.log('\n── 2881 · la messagerie des agents contre le vrai serveur �
     return { B, D, req, journal: () => journal, G: r => req('GET', r, null, jeton), P: (r, c) => req('POST', r, c, jeton), jeton, lire: f => { try { return JSON.parse(fs.readFileSync(path.join(D, f), 'utf8')); } catch (x) { return null; } },
       arreter: async () => { e.kill('SIGKILL'); await dormir(300); } };
   }
-  const recus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
+  const recus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean) : [];   // (28 octobre 2026) une ligne en cours d'écriture par le serveur (le prompt de Margaux a grossi : ~10 Ko) n'est pas encore une requête — `att` relit
   const parNom = b => (/^Tu es (\S+),/.exec(b.system) || [])[1];
 
   const S = await serveur('avec-cle', 'sk-ant-' + 'api03-banc-2881-xxxxxxxxxxxxxxxx');

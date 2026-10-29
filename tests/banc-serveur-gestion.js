@@ -127,7 +127,7 @@ globalThis.fetch = async function (url, opts) {
   }
   S.get = (r, j) => http('GET', r, j === undefined ? S.TP : j);
   S.post = (r, c, j) => http('POST', r, j === undefined ? S.TP : j, c === undefined ? {} : c);
-  S.claudeRecus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
+  S.claudeRecus = () => fs.existsSync(TRACE) ? fs.readFileSync(TRACE, 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean) : [];   // une ligne encore en cours d'écriture par le serveur n'est pas encore une requête (28 octobre 2026)
   S.stripe = () => JSON.parse(fs.readFileSync(STRIPE, 'utf8'));
   S.poserStripe = f => { const e = S.stripe(); f(e); fs.writeFileSync(STRIPE + '.tmp', JSON.stringify(e)); fs.renameSync(STRIPE + '.tmp', STRIPE); };
   S.fichier = nom => JSON.parse(fs.readFileSync(path.join(D, nom), 'utf8'));
