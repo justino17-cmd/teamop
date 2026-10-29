@@ -34,7 +34,7 @@ const monde = (opts) => {
   const init = { METIERS, db, BETA_ESSAI: opts.beta !== false, console, currentUser: { id: 'u1', role: 'admin' }, INT_TYPES: ['Dératisation'], CVC_METIERS: ['chauffage', 'froid', 'energies'], NETT_METIERS: ['nettoyage'],
     confirm: m => { confirms.push(m); return opts.refus ? false : true; }, toast: m => toasts.push(m), save: () => { saves++; }, logEvent: () => {}, renderNav: () => {}, toastAnnuler: m => toasts.push(m),
     views: { parametres() { rendus.push(1); } }, syncRetraitVoulu: () => { init.__retrait = true; }, localStorage: { removeItem() {} }, planJours: [], planTechM: null };
-  const b = bac('app.html', ['metierSet', 'metierResidu', 'metierResiduRetirer', 'metierPackDe', 'metierId', 'idCatalogue', 'slugNom'], init);
+  const b = bac('app.html', ['metierSet', 'metierResidu', 'metierResiduRetirer', 'metiersPlusDe', 'metierPackDe', 'metierId', 'idCatalogue', 'slugNom'], init);
   return { db, b, confirms, toasts, rendus, saves: () => saves, init };
 };
 const peupler = (W) => {
@@ -85,7 +85,7 @@ const charger = (metier, nom) => {
     currentUser: { id: 'u1', role: 'admin' }, planJours: [], CVC_METIERS: ['chauffage', 'froid', 'energies'], NETT_METIERS: ['nettoyage'], DEMO_PLOMB, DEMO_CHAUF, DEMO_NETT, DEMO_MONTANTS,
     DEMO_CLIENTS_3D: evalue(litteral(N, 'const DEMO_CLIENTS_3D=[')), DEMO_PLAN_3D: evalue(litteral(N, 'const DEMO_PLAN_3D=[')), entrepriseNom: () => nom === undefined ? '' : nom, localStorage: { removeItem() {} }, cvcDemoPoser: undefined };
   init.cvcDemoPoser = undefined; delete init.cvcDemoPoser;
-  const b = bac('app.html', ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'demoSemisDe', 'demoPlanGenerique', 'demoCompte', 'demoCharger'], init);
+  const b = bac('app.html', ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'demoSemisDe', 'demoPlanGenerique', 'demoCompte', 'demoCharger'], init);
   b.fn.demoCharger(); return { db, toasts };
 };
 for (const m of ['plomberie', 'chauffage', 'nettoyage', 'electricite']) {

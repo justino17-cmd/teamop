@@ -29,7 +29,9 @@
 const BETA_EN_AVANCE = {
   /* VIDÉE le 23 octobre 2026, au geste de publication de la v772 (Justin : « oui publie ») : les dix métiers sont ouverts dans
      `metiers.json`, « Validation des mouvements » est le titre public, et la Tour promet les catégories appliquées (`CATS_APPLIQUEES`). */
-  metiers: [],
+  /* 29 octobre 2026 (v780) : « climatisation » est séparée du chauffage (Justin : « sépare clim et chauffage ») — app.html la connaît, la version PUBLIQUE non : un client qui la choisirait y
+     recevrait le pack par défaut. Elle n'est donc PAS dans `ouverts` de metiers.json, ni chez le serveur, la Tour, le portail et le site, jusqu'au geste de publication. */
+  metiers: ['climatisation'],
   libelles: {},
   categoriesAppliquees: false,
 };

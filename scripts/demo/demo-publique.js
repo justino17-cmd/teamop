@@ -12,8 +12,9 @@
    · un produit naît par `produitCreer(…,{semis:true})`, jamais `db.produits.push` ;
    · aucun client n'a de courriel réel (« .invalid ») et aucun numéro n'est joignable (01 99 00 xx xx, réservé à la fiction) ;
    · tout ce que le semis pose porte `demo:1` ; « Recommencer » efface le préfixe elanD_ et resème.                               */
-// Vidée le 23 octobre 2026 avec la déclaration de tests/beta-en-avance.js : les dix nouveaux métiers ont leur exemple.
-const DEMO_METIERS_FERMES = [];
+// Vidée le 23 octobre 2026 avec la déclaration de tests/beta-en-avance.js : les dix nouveaux métiers ont leur exemple. Le 29 octobre, la climatisation (séparée du chauffage) rejoint la déclaration : app.html la connaît,
+// le site ne l'ouvre pas encore, la démonstration ne la propose donc pas — son exemple s'écrit le jour où la déclaration se vide.
+const DEMO_METIERS_FERMES = ['climatisation'];
 const DEMO_ETAT_CLE = 'elanD_demo_etat';
 const DEMO_ID_ADMIN = 'demo-admin';
 const DEMO_MSG = "Dans la démonstration, rien n'est envoyé.";

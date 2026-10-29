@@ -42,11 +42,14 @@ const LIT = appLitCats(APPN);
 const DRAPEAU = (/var CATS_APPLIQUEES=(true|false);/.exec(TOURN) || [])[1];
 const DRAPEAU_B = DRAPEAU === 'true' ? true : DRAPEAU === 'false' ? false : undefined;
 const D = BETA.BETA_EN_AVANCE;
-const PLEINE_ETAT = D.metiers.length === 10 && Object.keys(D.libelles).length === 1 && D.categoriesAppliquees === true;
-const VIDE_ETAT = D.metiers.length === 0 && Object.keys(D.libelles).length === 0 && D.categoriesAppliquees === false;
-vrai('(population) les fichiers se lisent (23 métiers dans app.html, ' + J.ouverts.length + ' ouverts, ' + Object.keys(libNav).length + ' rubriques au menu, app.html lit les catégories, drapeau de la Tour lu) — et la déclaration est ' + (VIDE_ETAT ? 'VIDÉE (publication faite)' : PLEINE_ETAT ? 'pleine (bêta en avance)' : 'dans un état inconnu'),
-  ORDRE_APP.length === 23 && Object.keys(libNav).length >= 40 && LIT === true && typeof DRAPEAU === 'string' && (PLEINE_ETAT || VIDE_ETAT), [ORDRE_APP.length, J.ouverts.length, DRAPEAU, D]);
+/* 29 octobre 2026 : la climatisation (séparée du chauffage) est connue d'app.html et pas encore ouverte au public — déclarée en avance EN PLUS des dix du 23 octobre, dans les deux états */
+const CLIM_DECLAREE = D.metiers.indexOf('climatisation') >= 0, DIX_DECL = D.metiers.filter(k => k !== 'climatisation');
+const PLEINE_ETAT = DIX_DECL.length === 10 && Object.keys(D.libelles).length === 1 && D.categoriesAppliquees === true;
+const VIDE_ETAT = DIX_DECL.length === 0 && Object.keys(D.libelles).length === 0 && D.categoriesAppliquees === false;
+vrai('(population) les fichiers se lisent (24 métiers dans app.html, ' + J.ouverts.length + ' ouverts, ' + Object.keys(libNav).length + ' rubriques au menu, app.html lit les catégories, drapeau de la Tour lu) — et la déclaration est ' + (VIDE_ETAT ? 'VIDÉE (publication faite)' : PLEINE_ETAT ? 'pleine (bêta en avance)' : 'dans un état inconnu'),
+  ORDRE_APP.length === 24 && Object.keys(libNav).length >= 40 && LIT === true && typeof DRAPEAU === 'string' && (PLEINE_ETAT || VIDE_ETAT), [ORDRE_APP.length, J.ouverts.length, DRAPEAU, D]);
 egal('⛔ métiers : chaque métier déclaré est connu d\'app.html et FERMÉ dans metiers.json', BETA.mensongesMetiers(ORDRE_APP, J.ouverts), []);
+egal('⛔ la climatisation : déclarée en avance TANT QUE metiers.json ne l\'ouvre pas (et seulement alors) — le geste de publication fait les deux ensemble', [CLIM_DECLAREE, J.ouverts.indexOf('climatisation') < 0], [true, true]);
 egal('⛔ libellés : chaque libellé déclaré est porté par app.html, et metiers.json (donc la grille du client) porte l\'ancien', BETA.mensongesLibelles(libNav, titresPublics), []);
 egal('⛔ catégories : si l\'avance est déclarée, app.html les lit et le drapeau de la Tour dit encore faux', BETA.mensongesCategories(LIT, DRAPEAU_B), []);
 egal('   et hors de la déclaration, le menu d\'app.html dit EXACTEMENT les titres de metiers.json (aucun autre écart toléré)',
@@ -60,7 +63,9 @@ egal('⛔ et ce que l\'application publique lit des catégories est ce que la To
 console.log('\n2. Les fonctions qui la jugent mordent (copies pleine et vide du vrai fichier, pièces fabriquées), et la tolérance ne dépasse pas la déclaration');
 const SRC_DECL = fs.readFileSync(path.join(__dirname, 'beta-en-avance.js'), 'utf8');
 const LITT = /const BETA_EN_AVANCE = \{[\s\S]*?\n\};/g;
-const DIX = ORDRE_APP.filter(k => ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine'].indexOf(k) >= 0);
+/* les scénarios fabriqués sont ceux de l'état d'AVANT la climatisation (les 23 métiers du 23 octobre) : la climatisation, déclarée en avance dans les deux états, n'y change rien — elle est jugée à part, plus bas */
+const APP23 = ORDRE_APP.filter(k => k !== 'climatisation');
+const DIX = APP23.filter(k => ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine'].indexOf(k) >= 0);
 const copie = (nom, litteralDecl) => {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'b2956' + nom + '-'));
   try { fs.writeFileSync(path.join(d, 'beta-en-avance.js'), SRC_DECL.replace(LITT, litteralDecl)); return require(path.join(d, 'beta-en-avance.js')); }
@@ -68,16 +73,16 @@ const copie = (nom, litteralDecl) => {
 };
 const P = copie('p', 'const BETA_EN_AVANCE = {\n  metiers: ' + JSON.stringify(DIX) + ",\n  libelles: { validations: { beta: 'Validation des mouvements', public: 'Validations DR' } },\n  categoriesAppliquees: true,\n};");
 const V = copie('v', 'const BETA_EN_AVANCE = { metiers: [], libelles: {}, categoriesAppliquees: false };');
-const OUVERTS_AVANT = ORDRE_APP.filter(k => DIX.indexOf(k) < 0);
+const OUVERTS_AVANT = APP23.filter(k => DIX.indexOf(k) < 0);
 const titresAvant = Object.assign({}, titresPublics, { validations: 'Validations DR' });
 const titresApres = Object.assign({}, titresPublics, { validations: 'Validation des mouvements' });
 vrai('(population) le littéral se trouve UNE fois dans le vrai fichier, les dix métiers sont dans app.html, et le menu dit « Validation des mouvements »',
   (SRC_DECL.match(LITT) || []).length === 1 && DIX.length === 10 && OUVERTS_AVANT.length === 13 && libNav.validations && libNav.validations.l === 'Validation des mouvements', [DIX, libNav.validations]);
 egal('(contre-épreuve) la copie pleine dit VRAI sur l\'état d\'avant la publication (13 ouverts, ancien titre, drapeau faux)',
-  [P.mensongesMetiers(ORDRE_APP, OUVERTS_AVANT), P.mensongesLibelles(libNav, titresAvant), P.mensongesCategories(true, false)], [[], [], []]);
-egal('un métier déclaré que metiers.json OUVRE → la déclaration est fausse', P.mensongesMetiers(ORDRE_APP, OUVERTS_AVANT.concat(['incendie'])).length, 1);
-egal('⛔ tous les métiers ouverts (le geste de publication) sans vider la déclaration → dix mensonges', P.mensongesMetiers(ORDRE_APP, ORDRE_APP).length, 10);
-egal('un métier déclaré qu\'app.html ne connaît plus → fausse', P.mensongesMetiers(ORDRE_APP.filter(k => k !== 'piscine'), OUVERTS_AVANT).length, 1);
+  [P.mensongesMetiers(APP23, OUVERTS_AVANT), P.mensongesLibelles(libNav, titresAvant), P.mensongesCategories(true, false)], [[], [], []]);
+egal('un métier déclaré que metiers.json OUVRE → la déclaration est fausse', P.mensongesMetiers(APP23, OUVERTS_AVANT.concat(['incendie'])).length, 1);
+egal('⛔ tous les métiers ouverts (le geste de publication) sans vider la déclaration → dix mensonges', P.mensongesMetiers(APP23, APP23).length, 10);
+egal('un métier déclaré qu\'app.html ne connaît plus → fausse', P.mensongesMetiers(APP23.filter(k => k !== 'piscine'), OUVERTS_AVANT).length, 1);
 egal('un libellé déclaré qu\'app.html ne porte plus → fausse', P.mensongesLibelles(Object.assign({}, libNav, { validations: { l: 'Validations DR' } }), titresAvant).length, 1);
 egal('un libellé que la pièce publique a déjà adopté (metiers.json dit « Validation des mouvements ») → fausse', P.mensongesLibelles(libNav, titresApres).length, 1);
 egal('une rubrique déclarée qui disparaît du menu → fausse', P.mensongesLibelles(Object.assign({}, libNav, { validations: undefined }), titresAvant).length >= 1, true);
@@ -89,12 +94,18 @@ egal('la tolérance de libellé est EXACTEMENT celle-là : le libellé déclaré
 egal('… un autre libellé de la même rubrique ne passe pas, un libellé déclaré posé sur une autre rubrique non plus',
   [P.libellePublic('validations', 'Validations'), P.libellePublic('clients', 'Validation des mouvements'), P.libellePublic('constructor', 'x'), P.libellePublic('__proto__', 'x')],
   ['Validations', 'Validation des mouvements', 'x', 'x']);
-egal('la tolérance de métiers retire EXACTEMENT les dix déclarés, ni un de plus ni un de moins', ORDRE_APP.filter(k => P.ordrePublic(ORDRE_APP).indexOf(k) < 0), DIX);
+egal('la tolérance de métiers retire EXACTEMENT les dix déclarés, ni un de plus ni un de moins', APP23.filter(k => P.ordrePublic(APP23).indexOf(k) < 0), DIX);
 egal('… et l\'application publique ne lit les catégories que si app.html les lit SANS l\'avance déclarée', [P.categoriesLuesParPublique(true), P.categoriesLuesParPublique(false)], [false, false]);
 egal('⛔ la déclaration VIDÉE ne tolère plus rien : aucun métier retiré, aucun libellé réécrit, les catégories lues comme app.html',
-  [V.ordrePublic(ORDRE_APP).length, V.libellePublic('validations', 'Validation des mouvements'), V.categoriesLuesParPublique(true), V.categoriesLuesParPublique(false)], [23, 'Validation des mouvements', true, false]);
+  [V.ordrePublic(APP23).length, V.libellePublic('validations', 'Validation des mouvements'), V.categoriesLuesParPublique(true), V.categoriesLuesParPublique(false)], [23, 'Validation des mouvements', true, false]);
 egal('   … donc un métier resté FERMÉ, l\'ancien titre gardé ou le drapeau resté faux se voient dans les comparaisons de la section 1',
-  [V.ordrePublic(ORDRE_APP).join() === OUVERTS_AVANT.join(), V.libellePublic('validations', libNav.validations.l) === titresAvant.validations, V.categoriesLuesParPublique(true) === false], [false, false, false]);
+  [V.ordrePublic(APP23).join() === OUVERTS_AVANT.join(), V.libellePublic('validations', libNav.validations.l) === titresAvant.validations, V.categoriesLuesParPublique(true) === false], [false, false, false]);
+
+const C = copie('c', "const BETA_EN_AVANCE = { metiers: ['climatisation'], libelles: {}, categoriesAppliquees: false };");
+egal('(contre-épreuve) la climatisation seule en avance : vraie tant que metiers.json ne l\'ouvre pas', [C.mensongesMetiers(ORDRE_APP, J.ouverts), C.ordrePublic(ORDRE_APP).length], [[], 23]);
+egal('… fausse le jour où metiers.json l\'ouvre sans vider la déclaration', C.mensongesMetiers(ORDRE_APP, J.ouverts.concat(['climatisation'])).length, 1);
+egal('… et fausse si app.html ne la connaît plus', C.mensongesMetiers(ORDRE_APP.filter(k => k !== 'climatisation'), J.ouverts).length, 1);
+egal('⛔ la tolérance retire EXACTEMENT la climatisation, ni un autre métier ni un libellé', [ORDRE_APP.filter(k => C.ordrePublic(ORDRE_APP).indexOf(k) < 0), C.libellePublic('validations', 'Validation des mouvements')], [['climatisation'], 'Validation des mouvements']);
 
 /* ══ 3. UN SEUL ENDROIT, LU PAR CHAQUE BANC ══ */
 console.log('\n3. Déclarée à un seul endroit, lue par chaque banc qui compare app.html à une pièce publique');

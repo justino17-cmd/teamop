@@ -23,7 +23,7 @@ const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b
 const BIOCIDE = /biocide|certibiocide|\bAMM\b|animaux domestiques/i;
 const HORS = ['plomberie', 'chauffage', 'incendie', 'piscine', 'autre'];
 const TOUS = ['3d'].concat(HORS);
-const NOMS_BASE = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'exemple', 'intTypes', 'libZones', 'mentionRegl', 'ammVisible', 'prodLineAmm', 'rapportProduitsLibres'];
+const NOMS_BASE = ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'exemple', 'intTypes', 'libZones', 'mentionRegl', 'ammVisible', 'prodLineAmm', 'rapportProduitsLibres'];
 
 (async () => {
 for (const fichier of ['app.html', 'beta.html']) {

@@ -269,7 +269,7 @@ async function suite() {
     const init = { METIERS, CATALOGUE: CATALOGUE_3D, db, BETA_ESSAI: false, PACK_METIER_AUTO: false, uid: () => 'u' + (++n), toast: () => {}, save: () => {}, confirm: () => true, console, CATFOUR,
       permGarde: () => true, canCat: () => true, currentUser: { id: 'u1', role: 'admin' }, logEvent: () => {}, views: { produits() {} }, current: 'x', STOCKAGE_ID: 'stockage', Date, JSON,
       norm: s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') };
-    const noms = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'slugNom', 'idCatalogue', 'produitCle', 'cataloguePoser', 'catalogueEnPlace', 'cataloguesFournisseurs', 'catalogueDepartPoser', 'catalogueDepartProposable'];
+    const noms = ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'slugNom', 'idCatalogue', 'produitCle', 'cataloguePoser', 'catalogueEnPlace', 'cataloguesFournisseurs', 'catalogueDepartPoser', 'catalogueDepartProposable'];
     const b = bac('app.html', noms, init); return { db, b, toasts: init.toast }; };
   const vide = monde('nettoyage');
   vrai('rien n\'est posé tout seul : une base neuve de nettoyage n\'a ni produit ni fournisseur', vide.db.produits.length === 0 && vide.db.fournisseurs.length === 0);
@@ -304,7 +304,7 @@ async function suite2(N, METIERS, CATALOGUE_3D) {
   const monde = (metier, beta) => { const db = { metier, clients: [], interventions: [], produits: [], boxes: [], techniciens: [], enveloppes: [], mouvements: [] };
     const init = { METIERS, INT_TYPES: ['Dératisation'], BETA_ESSAI: !!beta, db, STOCKAGE_ID: 'stockage', console, uid: (() => { let n = 0; return () => 'u' + (++n); })(), todayISO: () => '2026-10-28', shiftDay: (d, n) => d,
       toast: () => {}, save: () => {}, go: () => {}, confirm: () => true, currentUser: { id: 'u1', role: 'admin' }, views: { parametres() {} }, planJours: [], NETT_METIERS: ['nettoyage'], fullName: () => 'Test' };
-    const noms = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'sansBox', 'libBox', 'exemple', 'capTxt', 'demoSemisDe', 'demoPlanGenerique', 'demoCharger', 'demoRetirer', 'demoCompte',
+    const noms = ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'sansBox', 'libBox', 'exemple', 'capTxt', 'demoSemisDe', 'demoPlanGenerique', 'demoCharger', 'demoRetirer', 'demoCompte',
       'metierActifs', 'metierGereSites', 'nettDemoPoser', 'nettCahierModele', 'nettControleDepart', 'nettNoteTxt', 'nettNote', 'nettPlanVide', 'nettCahiersDe', 'nettClient', 'nettTxt'];
     const consts = { DEMO_CLIENTS_3D: 'const DEMO_CLIENTS_3D=[', DEMO_PLAN_3D: 'const DEMO_PLAN_3D=[', DEMO_NETT: 'const DEMO_NETT={', DEMO_PLOMB: 'const DEMO_PLOMB={', DEMO_CHAUF: 'const DEMO_CHAUF={' };
     Object.keys(consts).forEach(k => { init[k] = evalue(litteral(N, consts[k])); });
@@ -345,7 +345,7 @@ async function suite2(N, METIERS, CATALOGUE_3D) {
     vrai('un métier sans jeu écrit pour lui (électricité) : un planning bâti sur SES types, aucun mot d\'anti-nuisibles, aucun cahier', I.length === 14 && I.every(i => !i.type || METIERS.electricite.types.indexOf(i.type) >= 0) && !ANTI.test(JSON.stringify(I.map(i => [i.titre, i.type, i.checklist]))) && !mp.db.cahiers, I.slice(0, 3).map(i => i.titre)); }
 
   { const rap = (metier) => { const m = monde(metier, true); let html = ''; m.db.interventions = [{ id: 'i1', titre: 'Passage', clientId: 'c1' }]; m.db.clients = [{ id: 'c1', nom: 'Cabinet', email: 'a@b.test' }];
-      const b = bac('app.html', ['envoiRapportClient', 'metierId', 'metierPackDe', 'metierPack', 'estMetier3D'], Object.assign(m.init, { openModal: h => { html = h; }, esc: s => String(s == null ? '' : s), clientName: () => 'Cabinet' }));
+      const b = bac('app.html', ['envoiRapportClient', 'metierId', 'metiersPlusDe', 'metierPackDe', 'metierPack', 'estMetier3D'], Object.assign(m.init, { openModal: h => { html = h; }, esc: s => String(s == null ? '' : s), clientName: () => 'Cabinet' }));
       b.fn.envoiRapportClient('i1'); return html; };
     const hn = rap('nettoyage'), h3 = rap('3d');
     vrai('« Envoyer le rapport au client » : nettoyage « photos, plans et signatures », 3D « plan d\'appâtage » comme avant', /photos, plans et signatures compris/.test(hn) && !/appâtage/.test(hn) && /photos, plan d’appâtage et signatures compris/.test(h3), [hn.slice(-160), h3.slice(-160)]); }
@@ -398,7 +398,7 @@ async function suite3(N, METIERS) {
     return out; };
   const litteraux = (arg) => { const L = []; for (let i = 0; i < arg.length;) { const c = arg[i]; if (c === '\'' || c === '"' || c === '`') { const f = sauteChaine(arg, i); L.push(arg.slice(i + 1, f - 1)); i = f; } else i++; } return L; };
   const corpus = []; for (const nom of ['toast', 'confirm', 'emptyState', 'toastAnnuler']) appels(nom).forEach(a => litteraux(a).forEach(l => { if (BOXW.test(l)) corpus.push(l); }));
-  const mondeBox = (metier) => bac('app.html', ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'metierBloque', 'sansBox', 'libBox', 'boxTxt', 'mvtBoxActif'],
+  const mondeBox = (metier) => bac('app.html', ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'metierBloque', 'sansBox', 'libBox', 'boxTxt', 'mvtBoxActif'],
     { METIERS, BETA_ESSAI: false, db: { metier }, console, BOX_TXT: evalue(N.slice(N.indexOf('const BOX_TXT=[') + 'const BOX_TXT='.length, N.indexOf('\nfunction boxTxt(')).trim().replace(/;$/, '')), mvtFBox: 'stockage' });
   const bn = mondeBox('nettoyage'), b3 = mondeBox('3d');
   vrai('(population) ' + corpus.length + ' littéraux « box » dans les toasts, confirmations et états vides du fichier', corpus.length >= 60, corpus.length);
@@ -461,7 +461,7 @@ async function suite3(N, METIERS) {
     vrai('… la pastille « validé le … » porte la date COURTE (fmtShort), plus « mercredi 28 octobre 2026 »', /validé le 20\/10<\/span>/.test(sec) && !/validé le 20\/10\/2026/.test(sec) && /Plan de prévention du 20\/10(?!\/)/.test(sec), sec.match(/validé le [^<]*/)); }
 
   console.log('\n── 3111 · 13. relecture adverse : le moyen de paiement (11), le serveur du Devis IA (7, 10), la publication (12) ──');
-  { const monde = (metier) => bac('app.html', ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'moyensPaiement', 'moyensPaiementOptions', 'intMoyenPaiementOptions'],
+  { const monde = (metier) => bac('app.html', ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'moyensPaiement', 'moyensPaiementOptions', 'intMoyenPaiementOptions'],
       { METIERS, BETA_ESSAI: false, db: { metier }, console, esc: s => String(s == null ? '' : s), MOYENS_PAIEMENT: evalue(litteral(N, 'const MOYENS_PAIEMENT = [')), MOYENS_PAIEMENT_NEUTRES: evalue(litteral(N, 'const MOYENS_PAIEMENT_NEUTRES = [')) });
     const bn = monde('nettoyage'), b3 = monde('3d'), opts = h => [...h.matchAll(/<option[^>]*>([^<]*)<\/option>/g)].map(m => m[1]);
     const ELAN = ['A) Carte bancaire', 'B) Lien de paiement', 'C) Espèces', 'D) Chèque', 'E) Paiement en plusieurs fois - COFIDIS', 'F) Paiement en 2x - espèce + chèque', 'G) Paiement en 2x - CB + chèque', 'H) Virement'];
@@ -471,7 +471,7 @@ async function suite3(N, METIERS) {
     const regModeDe = bac('app.html', ['regModeDe'], {}).fn.regModeDe;
     egal('… chaque moyen neutre est reconnu par le registre des règlements (CB, ESP, CHQ, VIR, LDP)', ['Carte bancaire', 'Espèces', 'Chèque', 'Virement', 'Lien de paiement'].map(regModeDe), ['CB', 'ESP', 'CHQ', 'VIR', 'LDP']);
     vrai('… plus aucun formulaire ne lit MOYENS_PAIEMENT en direct (la liste du métier est la seule porte)', !/MOYENS_PAIEMENT\.map|MOYENS_PAIEMENT\.includes|concat\(MOYENS_PAIEMENT\)/.test(N) && (N.match(/moyensPaiementOptions\(i\.moyenPaiement\)/g) || []).length === 2); }
-  { const dev = (metier, etat) => { let appels = 0; const b = bac('app.html', ['devisMetierPret', 'estMetier3D', 'metierId', 'metierPackDe', 'metierPack'], { METIERS, BETA_ESSAI: false, db: { metier }, console, _devisMetierOk: null, PUSH_API: 'http://x', syncTeam: () => 't1',
+  { const dev = (metier, etat) => { let appels = 0; const b = bac('app.html', ['devisMetierPret', 'estMetier3D', 'metierId', 'metiersPlusDe', 'metierPackDe', 'metierPack'], { METIERS, BETA_ESSAI: false, db: { metier }, console, _devisMetierOk: null, PUSH_API: 'http://x', syncTeam: () => 't1',
         fetch: () => { appels++; return etat === 'panne' ? Promise.reject(new Error('réseau')) : Promise.resolve({ json: () => Promise.resolve(etat) }); } }); return { b, nb: () => appels }; };
     const a = dev('3d', {}); vrai('constat 7/10 : la 3D n\'attend rien (la consigne du serveur d\'avant, à l\'identique) et n\'appelle même pas le serveur', (await a.b.fn.devisMetierPret()) === true && a.nb() === 0);
     const n0 = dev('nettoyage', { ok: true }); vrai('⛔ nettoyage, serveur d\'AVANT (pas de « metiers ») : le Devis IA et l\'assistant ne partent pas', (await n0.b.fn.devisMetierPret()) === false);

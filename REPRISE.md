@@ -13,6 +13,22 @@ de ligne du tout.
 
 ---
 
+# ❄️ 29 OCTOBRE 2026 — CHAUFFAGE ET CLIMATISATION SÉPARÉS, ET LES PACKS COMBINÉS (bêta, branche `claude/metier-climatisation`)
+
+Justin : « un pack Clim et plomberie séparées » (il a choisi de SÉPARER la clim du chauffage), puis « des packs combinés, et des packs séparés de chaque chose ».
+- **Fait (bêta seulement)** : un 24ᵉ métier `climatisation` (« Climatisation / Pompes à chaleur », ❄️) ; `chauffage` s'appelle « Chauffage » (chaudières, ramonage, gaz). **Rien n'est perdu** : l'UNION des deux redonne exactement l'ancien
+  « Chauffage / Climatisation » (16 types, 30 prestations, 22 relevés, 12 catégories, catalogue de 39 articles) — `tests/test-3172.js` §3 et `test-3128.js` §10. Le catalogue (28 + 16, cinq consommables communs), les fournisseurs (5 + 5), les jeux de
+  démonstration (`DEMO_CHAUF` sans clim, `DEMO_CLIM`), le parc d'appareils de démonstration, les documents (`devis` et `note` pour les deux, la vignette aux deux, le suivi gaz au chauffage seul) suivent. Le code CVC (`CVC_METIERS`) sert les deux.
+- **Packs combinés** : quatre choix d'un geste (`METIERS_COMBOS`, liste « Tester un métier » de la bêta et cartes de « Mon métier » pour TEAM OP/bêta) — CVC, Plombier-chauffagiste, Plomberie + Climatisation, Plomberie + Chauffage + Climatisation. Ce NE sont PAS
+  des métiers de plus : un principal (`db.metier`) + jusqu'à deux associés (`db.metierPlus`, et `db.metierPlus2` NOUVEAU, synchronisé comme `metierPlus`). « Mon entreprise fait aussi… » a donc un second sélecteur. `metierSet('combo:cvc')` aiguille vers `metierComboSet`.
+- **⛔ La climatisation n'est PAS dans `ouverts`** (metiers.json) : la version publique ne la connaît pas, un client qui la choisirait recevrait le pack 3D. Elle est DÉCLARÉE EN AVANCE dans `tests/beta-en-avance.js` (comme les dix du 23 octobre) ;
+  la démonstration publique ne la propose pas (`DEMO_METIERS_FERMES`) et n'a pas son exemple. **Le geste de publication** : vider la déclaration ET ouvrir ensemble — `ouverts` de metiers.json, `MET_L` de la Tour (+ « Chauffage » au lieu de « Chauffage / Climatisation »),
+  `METIER_L` du portail (`espace.html`) et de `creer.html`, `DEMO_METIERS_FERMES` + un exemple `climatisation` dans `scripts/demo/scenarios.js`, le site. Les lignes « les libellés sont ceux … » de `test-2892` et `test-848` restent rouges jusque-là : elles gardent exactement ça.
+- **Reste, rien n'est commencé** : le choix d'un pack combiné AU DÉMARRAGE (demande d'application, Tour, portail) — le serveur ne porte qu'un `metier` ; `metierServeurAppliquer` ne lit pas d'associés. À décider avec Justin avant de toucher la demande.
+- Sonde au navigateur : `scratchpad/sonde-metier-clim.js` (70 ✓).
+
+---
+
 # 🔎 29 OCTOBRE 2026 — BÊTA v779 : QUATRE VÉRIFICATIONS AU NAVIGATEUR, UNE SUITE COMPLÈTE, UNE RELECTURE — CE QUI EST CORRIGÉ, CE QUI ATTEND
 
 La v779 (branche `claude/beta-v779-source`) réunit : nettoyage (v778), packs clim/plomberie et modèle des documents, corrections du pack 3D. **`app.html`, `sw.js` et `demo.html` ne partent PAS** (`scripts/verifier-publication-bete.sh`) : seule `beta.html` se publie. Le multi-métiers (`claude/multi-metiers`), la démonstration par métier et la compta lot 1a **ne sont pas dans cette branche** (fusion à faire après la réunion).

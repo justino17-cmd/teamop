@@ -425,7 +425,7 @@ function suite() {
   vrai('le fichier de scénarios est recopié TEL QUEL dans demo.html, comme le module et le pare-feu', DEMO.indexOf(SCEN) > 0 && DEMO.indexOf(MODULE) > 0 && DEMO.indexOf(PARE) > 0);
   egal('⛔ la liste des métiers FERMÉS de la démonstration est celle que tests/metiers-publics.js nomme « pas encore ouverts » (quand le site les ouvre, les deux se vident ensemble)', CONSTS.DEMO_METIERS_FERMES, PUBLICS.PAS_ENCORE_OUVERTS);
   const OUVERTS = ORDRE.filter(k => CONSTS.DEMO_METIERS_FERMES.indexOf(k) < 0);
-  vrai('(population) 23 métiers dans l\'application ; proposés + fermés = 23, et les fermés sont ceux que le site n\'ouvre pas', ORDRE.length === 23 && OUVERTS.length + CONSTS.DEMO_METIERS_FERMES.length === 23 && OUVERTS.length >= 13);
+  vrai('(population) 24 métiers dans l\'application ; proposés + fermés = 24, et les fermés sont ceux que le site n\'ouvre pas', ORDRE.length === 24 && OUVERTS.length + CONSTS.DEMO_METIERS_FERMES.length === 24 && OUVERTS.length >= 13);
   egal('chaque métier proposé a SON exemple ; aucun exemple pour un métier fermé (pas de donnée écrite pour rien)', [OUVERTS.filter(k => !DEMO_SCENARIOS[k]), Object.keys(DEMO_SCENARIOS).filter(k => OUVERTS.indexOf(k) < 0)], [[], []]);
 
   console.log('\n6. Le vrai semis, pour chaque métier (les vraies fonctions de l\'application et du module)');
@@ -439,7 +439,7 @@ function suite() {
   /* 28 depuis le chauffage / climatisation (`appareils`, le parc d'appareils par client), 31 depuis le modèle des documents du métier (`docsMetier`), 30 depuis le pack nettoyage (`cahiers`, `plansPrevention`) : le semis de la démonstration publique n'en pose pas encore */
   vrai('(population) 31 collections de données dans l\'application (appareils, cahiers, plans de prévention et documents du métier compris) et 8 catégories historiques', COLLECTIONS.length === 31 && COLLECTIONS.includes('appareils') && CAT_LIST.length === 8 && INT_TYPES.length >= 10);
   let c = 0; const uid = () => 'u' + (++c);
-  const NOMS = ['demoPubliqueSemer', 'metierServeurAppliquer', 'metierId', 'metierPack', 'metierPackDe', 'intTypes', 'categoriesProduit', 'produitCreer', 'idProduit', 'idCatalogue', 'slugNom', 'produitMemeNom', 'empreinteNom', 'produitCle', 'intNum', 'nextNum', 'numPlafond', 'shiftDay', 'demoTel', 'demoPubliqueJourOuvre'];
+  const NOMS = ['demoPubliqueSemer', 'metierServeurAppliquer', 'metierId', 'metierPack', 'metiersPlusDe', 'metierPackDe', 'intTypes', 'categoriesProduit', 'produitCreer', 'idProduit', 'idCatalogue', 'slugNom', 'produitMemeNom', 'empreinteNom', 'produitCle', 'intNum', 'nextNum', 'numPlafond', 'shiftDay', 'demoTel', 'demoPubliqueJourOuvre'];
   const monde = () => {
     const db = {}; COLLECTIONS.forEach(k => { db[k] = []; }); db.users = []; db.produits = [];
     const traces = { save: 0, journal: [] };
@@ -506,7 +506,7 @@ function suite() {
     egal((OUVERTS.indexOf(k) >= 0 ? 'métier proposé' : 'métier fermé (le semis tient aussi)') + ' « ' + k + ' » : ' + db.techniciens.length + ' techniciens, ' + db.clients.length + ' clients, ' + db.interventions.length + ' interventions, ' + db.produits.length + ' produits, '
       + db.devis.length + ' devis, ' + db.factures.length + ' factures — tous aux types, catégories et mots du métier', f, []);
   });
-  vrai('(population) 23 métiers semés, dont ' + OUVERTS.length + ' proposés', Object.keys(rapports).length === 23);
+  vrai('(population) 24 métiers semés, dont ' + OUVERTS.length + ' proposés', Object.keys(rapports).length === 24);
   /* la contre-épreuve du détecteur de mots : il VOIT l'anti-nuisibles quand on en pose un */
   { const { db, b } = monde(); b.fn.demoPubliqueSemer('plomberie'); db.interventions[0].titre = 'Dératisation'; vrai('(contre-épreuve) le détecteur de mots de l\'anti-nuisibles voit une dératisation posée chez un plombier', MOTS_3D.test(JSON.stringify(db.interventions))); }
   { const { db, b } = monde(); b.fn.demoPubliqueSemer('3d'); vrai('(contre-épreuve) la 3D, elle, garde ses types (Dératisation…) : le semis ne vide pas le métier d\'origine', db.interventions.some(i => /Dératisation|Désinsectisation/.test(i.type))); }

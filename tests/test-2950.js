@@ -67,16 +67,18 @@ function lire(fichier) {
     INT_TYPES: evalue(litteral(N, 'const INT_TYPES = [')), CAT_LIST: evalue(litteral(N, 'const CAT_LIST=[')), NAV: evalue(litteral(N, 'const NAV = [')) };
 }
 
-console.log('\n── 2900 · les 23 métiers de l\'application sont ceux du référentiel ──');
+console.log('\n── 2900 · les 24 métiers de l\'application sont ceux du référentiel ──');
 console.log('\n1. Le référentiel');
-vrai('(population) 23 métiers, 42 rubriques, dans l\'ordre du référentiel', REF.ordreMetiers.length === 23 && Object.keys(REF.rubriques).length === 42 && REF.ordreMetiers.every(k => REF.metiers[k]), REF.ordreMetiers.length);
-egal('les treize métiers d\'avant restent en tête, dans leur ordre', REF.ordreMetiers.slice(0, 13), ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre']);
-egal('les dix nouveaux, dans l\'ordre de la recherche', REF.ordreMetiers.slice(13), ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine']);
+vrai('(population) 24 métiers (la climatisation, séparée du chauffage le 29 octobre 2026, s\'ajoute aux 23), 42 rubriques, dans l\'ordre du référentiel', REF.ordreMetiers.length === 24 && Object.keys(REF.rubriques).length === 42 && REF.ordreMetiers.every(k => REF.metiers[k]), REF.ordreMetiers.length);
+const SANS_CLIM = REF.ordreMetiers.filter(k => k !== 'climatisation');   // la climatisation se range juste après le chauffage : les autres gardent leur ordre
+egal('la climatisation est juste après le chauffage', REF.ordreMetiers[REF.ordreMetiers.indexOf('chauffage') + 1], 'climatisation');
+egal('les treize métiers d\'avant restent en tête, dans leur ordre (la climatisation mise à part)', SANS_CLIM.slice(0, 13), ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre']);
+egal('les dix nouveaux, dans l\'ordre de la recherche', SANS_CLIM.slice(13), ['incendie', 'froid', 'ascenseurs', 'portails', 'ramonage', 'assainissement', 'energies', 'alarme', 'eau', 'piscine']);
 
 for (const fichier of ['app.html', 'beta.html']) {
   console.log('\n2. ' + fichier + ' — la copie embarquée dit la même chose');
   const A = lire(fichier);
-  vrai('(population) ' + fichier + ' : METIERS, METIERS_ORDRE, RUBRIQUES_INFO, INT_TYPES, CAT_LIST et NAV se lisent dans le CODE', Object.keys(A.METIERS).length === 23 && A.ORDRE.length === 23 && Object.keys(A.INFO).length === 42 && A.INT_TYPES.length > 10 && A.CAT_LIST.length === 8 && A.NAV.length > 5);
+  vrai('(population) ' + fichier + ' : METIERS, METIERS_ORDRE, RUBRIQUES_INFO, INT_TYPES, CAT_LIST et NAV se lisent dans le CODE', Object.keys(A.METIERS).length === 24 && A.ORDRE.length === 24 && Object.keys(A.INFO).length === 42 && A.INT_TYPES.length > 10 && A.CAT_LIST.length === 8 && A.NAV.length > 5);
   egal('METIERS_ORDRE = l\'ordre du référentiel', A.ORDRE, REF.ordreMetiers);
   egal('les clés de METIERS sont celles de METIERS_ORDRE, dans le même ordre', Object.keys(A.METIERS), A.ORDRE);
   const navCles = A.NAV.flatMap(g => g.items).map(it => it.k);
@@ -151,7 +153,7 @@ vrai('(population) l\'écart déclaré de titre est bien celui d\'app.html : ' +
 console.log('\n6. Les vraies fonctions, jouées pour chacun des 23 métiers');
 {
   const A = a1, N = A.N;
-  const NOMS = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'metierSet', 'metierServeurAppliquer', 'metierResidu', 'metierResiduRetirer', 'slugNom', 'idCatalogue'];
+  const NOMS = ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'intTypes', 'metierBloque', 'metierSet', 'metierServeurAppliquer', 'metierResidu', 'metierResiduRetirer', 'slugNom', 'idCatalogue'];
   const FN = NOMS.map(n => fonction(N, n));
   vrai('(population) les huit fonctions sont trouvées dans le fichier réel', FN.every(Boolean), NOMS.filter((n, i) => !FN[i]).join(', '));
   const monter = (beta, base) => {

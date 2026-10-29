@@ -23,7 +23,7 @@ const egal = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), [a, b
 /* Ce qu'aucun écran de saisie hors 3D ne doit dire. « sanitaire » seul n'y est pas (« Robinetterie & sanitaire » est un type de plomberie). */
 const ANTI = /nuisible|dératis|désinsect|rongeur|biocide|\bAMM\b|matière active|appât|xylophag|infestation|dossier sanitaire|registre sanitaire|\bTP ?1[48]\b|rodonticide|insecticide|virucide|répulsif|proofing|piégeage|glu\b/i;
 const METIERS_ESSAIS = ['plomberie', 'chauffage', 'incendie', 'piscine', 'autre'];
-const NOMS_BASE = ['metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'exemple', 'libZones', 'mentionRegl', 'prodLineAmm', 'intTypes', 'categoriesProduit', 'categorieListe'];
+const NOMS_BASE = ['metiersPlusDe', 'metierPackDe', 'metierId', 'metierPack', 'estMetier3D', 'exemple', 'libZones', 'mentionRegl', 'prodLineAmm', 'intTypes', 'categoriesProduit', 'categorieListe'];
 
 (async () => {
 for (const fichier of ['app.html', 'beta.html']) {
@@ -85,7 +85,7 @@ for (const fichier of ['app.html', 'beta.html']) {
     egal('⛔ hors 3D : aucune étape ne parle de nuisibles, d\'infestation, de méthodes, d\'AMM ni de registre', METIERS_ESSAIS.flatMap(m => etapes.filter(e => ANTI.test(R[m + e].html) || /Méthodes \/ actions|Phrases types|\(registre\)/.test(R[m + e].html)).map(e => m + ' étape ' + (e + 1) + ' : ' + (R[m + e].html.match(new RegExp(ANTI.source + '|Méthodes \\/ actions|Phrases types|\\(registre\\)', 'ig')) || []).slice(0, 3).join('/'))), []);
     vrai('   l\'étape « Constat » garde ce qui sert à tous : le champ d\'observations', METIERS_ESSAIS.every(m => /Constat \/ observations/.test(R[m + 0].html) && /Constat — qu'as-tu trouvé sur place/.test(R[m + 0].html)));
     vrai('⛔ la 3D garde la phrase du bas de l\'étape « Produits » À L\'IDENTIQUE (une box ou le stockage) ; les autres n\'y parlent ni de registre ni de box', /Noté sur le rapport et au registre \(n° AMM, traçabilité biocide\) — le stock ne bouge pas : il baisse quand on se sert dans une box ou le stockage\./.test(R['3d2'].html) && METIERS_ESSAIS.every(m => /Noté sur le rapport — le stock ne bouge pas : il baisse quand on se sert dans le stockage\./.test(R[m + 2].html)));
-    vrai('   l\'étape « Produits » reste (un plombier note ses pièces) : le menu propose les produits, sans AMM', METIERS_ESSAIS.every(m => /Raccord laiton 20\/27/.test(R[m + 2].html) && (m === 'plomberie' ? /Ajouter une pièce ou une fourniture/ : m === 'chauffage' ? /Ajouter une pièce ou un fluide/ : /Ajouter un produit ou une pièce/).test(R[m + 2].html))); /* v779 : la plomberie et le chauffage ont leurs propres exemples */
+    vrai('   l\'étape « Produits » reste (un plombier note ses pièces) : le menu propose les produits, sans AMM', METIERS_ESSAIS.every(m => /Raccord laiton 20\/27/.test(R[m + 2].html) && (m === 'plomberie' ? /Ajouter une pièce ou une fourniture/ : m === 'chauffage' ? /Ajouter une pièce —/ : /Ajouter un produit ou une pièce/).test(R[m + 2].html))); /* v779 : la plomberie et le chauffage ont leurs propres exemples ; v780 : le chauffage (sans fluides, séparé de la climatisation) dit « une pièce » */
     vrai('   les cinq étapes gardent leur zone et leur matériel (« Zones concernées »)', METIERS_ESSAIS.every(m => /Zones concernées/.test(R[m + 1].html)) && /Zones traitées/.test(R['3d1'].html)); }
 
   /* ── 3. Le compte-rendu complet, et son enregistrement ── */

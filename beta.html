@@ -9604,46 +9604,80 @@ const METIERS={
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
-  'chauffage':{ nom:'Chauffage / Climatisation', ic:'🔥', sous:'CVC · entretien · contrats annuels',
+  'chauffage':{ nom:'Chauffage', ic:'🔥', sous:'Chaudières · entretien · contrats annuels',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
       'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
-      'Entretien annuel chaudière', 'Entretien pompe à chaleur', 'Entretien climatisation', 'Dépannage chauffage',
-      'Dépannage climatisation', 'Désembouage', 'Ramonage', 'Installation', 'Contrat d’entretien',
-      'Visite technique / devis', 'Mise en service', 'Contrôle d\'étanchéité des fluides frigorigènes',
-      'Récupération de fluide / démantèlement', 'Entretien chaudière fioul ou bois', 'Entretien VMC / ventilation',
-      'Entretien chauffe-eau thermodynamique'
+      'Entretien annuel chaudière', 'Dépannage chauffage', 'Désembouage', 'Ramonage', 'Installation',
+      'Contrat d’entretien', 'Visite technique / devis', 'Mise en service', 'Entretien chaudière fioul ou bois',
+      'Entretien VMC / ventilation'
     ],
     presta:[
       'Nettoyage du corps de chauffe', 'Contrôle du brûleur', 'Analyse de combustion', 'Contrôle d’étanchéité gaz',
       'Vérification du vase d’expansion', 'Purge des radiateurs', 'Nettoyage des filtres',
-      'Contrôle de la charge de fluide', 'Contrôle des organes de sécurité', 'Mise en service et essai',
-      'Attestation d’entretien remise au client', 'Contrôle du calorifugeage des canalisations',
-      'Contrôle de la régulation automatique', 'Contrôle de l\'embouage du circuit', 'Mesure du tirage',
-      'Contrôle d\'étanchéité du circuit frigorifique (détecteur de fuite)', 'Récupération et pesée du fluide',
-      'Pose de la vignette de contrôle d\'étanchéité',
+      'Contrôle des organes de sécurité', 'Mise en service et essai', 'Attestation d’entretien remise au client',
+      'Contrôle du calorifugeage des canalisations', 'Contrôle de la régulation automatique',
+      'Contrôle de l\'embouage du circuit', 'Mesure du tirage',
       'Conseils d\'usage, d\'amélioration et de remplacement remis au client',
       'Mesure du CO ambiant dans le local de la chaudière', 'Évaluation du rendement de la chaudière',
       'Vérification du dimensionnement de la chaudière par rapport aux besoins',
-      'Contrôle de l’amenée d’air et de la ventilation du local',
-      'Relevé des températures des unités intérieure et extérieure',
-      'Nettoyage de l’unité intérieure et de son filtre',
-      'Contrôle et nettoyage de l’échangeur de l’unité extérieure', 'Contrôle de l’évacuation des condensats',
-      'Mesure des tensions électriques (statique et dynamique)', 'Contrôle du fonctionnement de l’inversion de cycle',
-      'Vérification du fonctionnement des circulateurs'
+      'Contrôle de l’amenée d’air et de la ventilation du local', 'Vérification du fonctionnement des circulateurs'
     ],
     releves:[
       {k:'coAmbiant',l:'CO ambiant (local de la chaudière, portes et fenêtres fermées)',u:'ppm'},
       {k:'co',l:'Teneur en CO des fumées',u:'ppm'}, {k:'co2',l:'CO₂ des fumées',u:'%'}, {k:'rdt',l:'Rendement',u:'%'},
       {k:'tfum',l:'Température des fumées',u:'°C'}, {k:'pcirc',l:'Pression du circuit',u:'bar'},
-      {k:'fluide',l:'Charge de fluide',u:'kg'}, {k:'tirage',l:'Tirage',u:'Pa'},
-      {k:'nox',l:'Émissions de NOx (valeur de l’analyseur)',u:''}, {k:'tdep',l:'Température de départ',u:'°C'},
-      {k:'tret',l:'Température de retour',u:'°C'}, {k:'pgaz',l:'Pression de gaz',u:'mbar'},
+      {k:'tirage',l:'Tirage',u:'Pa'}, {k:'nox',l:'Émissions de NOx (valeur de l’analyseur)',u:''},
+      {k:'tdep',l:'Température de départ',u:'°C'}, {k:'tret',l:'Température de retour',u:'°C'},
+      {k:'pgaz',l:'Pression de gaz',u:'mbar'},
       {k:'classe',l:'Classe énergétique (chaudière gaz ou fioul de moins de 70 kW)',u:'',txt:true},
-      {k:'instrument',l:'Marque et référence de l’analyseur utilisé',u:'',txt:true},
+      {k:'instrument',l:'Marque et référence de l’analyseur utilisé',u:'',txt:true}
+    ],
+    produits:[
+      'Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)', 'Filtres et cartouches',
+      'Radiateurs et robinets thermostatiques', 'Circulateurs et vases d\'expansion',
+      'Produits de désembouage et de traitement de l\'eau', 'Conduits et fumisterie', 'Régulation et thermostats',
+      'Outillage consommable', 'EPI'
+    ],
+    documents:[
+      'Devis de dépannage, réparation ou entretien (mentions de l’arrêté du 24 janvier 2017)',
+      'Note de dépannage remise avant paiement (à partir de 25 € TTC)', 'Rapport d’intervention chauffage',
+      'Attestation d’entretien de chaudière (une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire)',
+      'Attestation de ramonage', 'Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)',
+      'Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)'
+    ],
+    masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
+
+  'climatisation':{ nom:'Climatisation / Pompes à chaleur', ic:'❄️', sous:'Clim · PAC · fluides frigorigènes · contrats d\'entretien',
+    rubriques:[
+      'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+    ],
+    types:[
+      'Entretien pompe à chaleur', 'Entretien climatisation', 'Dépannage climatisation', 'Installation',
+      'Contrat d’entretien', 'Visite technique / devis', 'Mise en service',
+      'Contrôle d\'étanchéité des fluides frigorigènes', 'Récupération de fluide / démantèlement',
+      'Entretien VMC / ventilation', 'Entretien chauffe-eau thermodynamique'
+    ],
+    presta:[
+      'Nettoyage des filtres', 'Contrôle de la charge de fluide', 'Contrôle des organes de sécurité',
+      'Mise en service et essai', 'Attestation d’entretien remise au client', 'Contrôle de la régulation automatique',
+      'Contrôle d\'étanchéité du circuit frigorifique (détecteur de fuite)', 'Récupération et pesée du fluide',
+      'Pose de la vignette de contrôle d\'étanchéité',
+      'Conseils d\'usage, d\'amélioration et de remplacement remis au client',
+      'Relevé des températures des unités intérieure et extérieure',
+      'Nettoyage de l’unité intérieure et de son filtre',
+      'Contrôle et nettoyage de l’échangeur de l’unité extérieure', 'Contrôle de l’évacuation des condensats',
+      'Mesure des tensions électriques (statique et dynamique)', 'Contrôle du fonctionnement de l’inversion de cycle',
+      'Contrôle du calorifugeage des canalisations'
+    ],
+    releves:[
+      {k:'pcirc',l:'Pression du circuit',u:'bar'}, {k:'fluide',l:'Charge de fluide',u:'kg'},
+      {k:'tdep',l:'Température de départ',u:'°C'}, {k:'tret',l:'Température de retour',u:'°C'},
       {k:'fluideType',l:'Fluide frigorigène (ex. R32)',u:'',txt:true},
       {k:'prp',l:'PRP du fluide (plaque signalétique)',u:''},
       {k:'tco2',l:'Équivalent CO₂ de la charge (PRP × charge / 1000)',u:'t'},
@@ -9654,21 +9688,16 @@ const METIERS={
       {k:'fuite',l:'Fuite constatée (oui / non, localisation)',u:'',txt:true}
     ],
     produits:[
-      'Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)', 'Filtres et cartouches',
-      'Fluides frigorigènes (par type)', 'Radiateurs et robinets thermostatiques',
-      'Circulateurs et vases d\'expansion', 'Produits de désembouage et de traitement de l\'eau',
-      'Conduits et fumisterie', 'Régulation et thermostats', 'Pompes à chaleur et climatisation (unités et pièces)',
-      'Tuyauterie, liaisons frigorifiques et isolation', 'Outillage consommable', 'EPI'
+      'Filtres et cartouches', 'Fluides frigorigènes (par type)',
+      'Pompes à chaleur et climatisation (unités et pièces)', 'Tuyauterie, liaisons frigorifiques et isolation',
+      'Outillage consommable', 'EPI'
     ],
     documents:[
       'Devis de dépannage, réparation ou entretien (mentions de l’arrêté du 24 janvier 2017)',
-      'Note de dépannage remise avant paiement (à partir de 25 € TTC)',
-      'Rapport d’intervention chauffage / climatisation',
-      'Attestation d’entretien de chaudière (une par chaudière, établie dans les 15 jours suivant la visite et remise au commanditaire)',
+      'Note de dépannage remise avant paiement (à partir de 25 € TTC)', 'Rapport d’intervention climatisation',
       'Attestation d’entretien de pompe à chaleur ou de climatisation (4 à 70 kW)',
       'Fiche d’intervention fluides frigorigènes (rubriques du Cerfa 15497*04, sans remplacer le Cerfa officiel)',
-      'Attestation de ramonage', 'Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)',
-      'Suivi du certificat de conformité gaz (établi par l’installateur, visé par un organisme habilité)'
+      'Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] },
 
@@ -10282,7 +10311,7 @@ const METIERS={
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] }
 };
-const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','serrurerie','nettoyage','maconnerie','menuiserie','peinture','paysagiste','couverture','multiservices','autre','incendie','froid','ascenseurs','portails','ramonage','assainissement','energies','alarme','eau','piscine'];
+const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','climatisation','serrurerie','nettoyage','maconnerie','menuiserie','peinture','paysagiste','couverture','multiservices','autre','incendie','froid','ascenseurs','portails','ramonage','assainissement','energies','alarme','eau','piscine'];
 /* Le titre et l'explication de chaque rubrique : [titre, explication, toujours ouverte]. Les mêmes textes que la page d'abonnement et la Tour. */
 const RUBRIQUES_INFO={
   'dashboard':['Tableau de bord','Votre journée d\'un coup d\'œil : les interventions du jour, les devis en attente et les factures à encaisser.',1],
@@ -10377,7 +10406,10 @@ const FOURNISSEURS_NETT=[
   {id:'four_nilfisk',nom:'Nilfisk',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : nilfisk.com · machines de nettoyage'}
 ];
 METIERS['nettoyage'].catalogue=CATALOGUE_NETT; METIERS['nettoyage'].fournisseurs=FOURNISSEURS_NETT;
-/* ⛔ v779 — LES CATALOGUES DE DÉPART DU CHAUFFAGE / CLIMATISATION ET DE LA PLOMBERIE (Justin, 28 octobre 2026 : « les 21 packs, mets-les et corrige-les, et pour demain
+/* ⛔ v780 — LE CHAUFFAGE ET LA CLIMATISATION SONT DEUX MÉTIERS (Justin, 29 octobre 2026 : « sépare clim et chauffage »). Le catalogue d'avant (39 articles, 6 fournisseurs) est coupé en deux : les chaudières
+   et leurs pièces restent au chauffage, la climatisation, les pompes à chaleur et les fluides frigorigènes passent à `CATALOGUE_CLIM` ; les cinq consommables que les deux métiers emploient (détecteur de fuite, ruban PTFE,
+   brasure, gants, lunettes) sont dans les deux, et une fiche au même nom ne se pose qu'une fois. L'UNION des deux catalogues redonne exactement les 39 articles d'avant (un banc le vérifie).
+   ⛔ v779 — LES CATALOGUES DE DÉPART DU CHAUFFAGE / CLIMATISATION ET DE LA PLOMBERIE (Justin, 28 octobre 2026 : « les 21 packs, mets-les et corrige-les, et pour demain
    c'est clim et plomberie »). Même règle que le nettoyage, mot pour mot : les catégories sont celles du métier (jamais une catégorie hors liste), l'unité est dans le nom
    entre parenthèses (la fiche produit n'offre que huit unités), aucun prix ni aucune référence, et ils ne se posent JAMAIS tout seuls (`PACK_METIER_AUTO` reste faux) —
    « 📦 Catalogue de départ » (administrateur) ou « Remplir » de la bêta, rejouable sans doublon. Les fournisseurs ne portent qu'un NOM, un SITE public et ce qu'ils vendent :
@@ -10392,10 +10424,7 @@ const CATALOGUE_CHAUF=[
   ['Électrovanne gaz (pièce)','Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)',[],''],
   ['Joint de brûleur (pièce)','Pièces de chaudière (brûleurs, électrodes, thermocouples, vannes gaz)',[],''],
   ['Cartouche de filtre à fioul (pièce)','Filtres et cartouches',[],''],
-  ['Filtre à air de climatiseur (unité intérieure, pièce)','Filtres et cartouches',[],''],
   ['Filtre à tamis de circuit de chauffage (pièce)','Filtres et cartouches',[],''],
-  ['Fluide frigorigène R32 (bouteille)','Fluides frigorigènes (par type)',[],''],
-  ['Fluide frigorigène R410A (bouteille)','Fluides frigorigènes (par type)',[],''],
   ['Tête de robinet thermostatique (pièce)','Radiateurs et robinets thermostatiques',[],''],
   ['Corps de robinet de radiateur (droit ou équerre, pièce)','Radiateurs et robinets thermostatiques',[],''],
   ['Clé de purge de radiateur (pièce)','Radiateurs et robinets thermostatiques',[],''],
@@ -10411,6 +10440,16 @@ const CATALOGUE_CHAUF=[
   ['Collier de fixation de conduit (pièce)','Conduits et fumisterie',[],''],
   ['Thermostat d’ambiance programmable (pièce)','Régulation et thermostats',[],''],
   ['Sonde extérieure de régulation (pièce)','Régulation et thermostats',[],''],
+  ['Détecteur de fuite en aérosol (aérosol)','Outillage consommable',[],''],
+  ['Ruban PTFE (rouleau)','Outillage consommable',[],''],
+  ['Baguette de brasure (lot)','Outillage consommable',[],''],
+  ['Gants de protection (paire)','EPI',[],''],
+  ['Lunettes de protection (pièce)','EPI',[],'']
+];
+const CATALOGUE_CLIM=[
+  ['Filtre à air de climatiseur (unité intérieure, pièce)','Filtres et cartouches',[],''],
+  ['Fluide frigorigène R32 (bouteille)','Fluides frigorigènes (par type)',[],''],
+  ['Fluide frigorigène R410A (bouteille)','Fluides frigorigènes (par type)',[],''],
   ['Pompe de relevage de condensats (pièce)','Pompes à chaleur et climatisation (unités et pièces)',[],''],
   ['Condensateur de démarrage (pièce)','Pompes à chaleur et climatisation (unités et pièces)',[],''],
   ['Support d’unité extérieure (paire)','Pompes à chaleur et climatisation (unités et pièces)',[],''],
@@ -10429,6 +10468,12 @@ const FOURNISSEURS_CHAUF=[
   {id:'four_cedeo',nom:'Cedeo',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : cedeo.fr · distributeur de plomberie, chauffage et climatisation (le site refuse les accès automatiques : non relu)'},
   {id:'four_richardson',nom:'Richardson',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : richardson.fr · distributeur de matériel de chauffage, de climatisation et de plomberie'},
   {id:'four_chausson-materiaux',nom:'Chausson Matériaux',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : chausson.fr · négoce de matériaux : plomberie, chauffage, sanitaire'},
+  {id:'four_rexel',nom:'Rexel',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : rexel.fr · matériel électrique : chauffage électrique, climatisation, ventilation, régulation'},
+  {id:'four_wurth-france',nom:'Würth France',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : wurth.fr · outillage, visserie et consommables pour artisans'}
+];
+const FOURNISSEURS_CLIM=[
+  {id:'four_cedeo',nom:'Cedeo',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : cedeo.fr · distributeur de plomberie, chauffage et climatisation (le site refuse les accès automatiques : non relu)'},
+  {id:'four_richardson',nom:'Richardson',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : richardson.fr · distributeur de matériel de chauffage, de climatisation et de plomberie'},
   {id:'four_climalife',nom:'Climalife',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : climalife.com/fr · fluides frigorigènes et solutions thermiques'},
   {id:'four_rexel',nom:'Rexel',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : rexel.fr · matériel électrique : chauffage électrique, climatisation, ventilation, régulation'},
   {id:'four_wurth-france',nom:'Würth France',contact:'',telephone:'',email:'',adresse:'',codePostal:'',ville:'',notes:'Site : wurth.fr · outillage, visserie et consommables pour artisans'}
@@ -10474,6 +10519,7 @@ const FOURNISSEURS_PLOMB=[
 ];
 
 METIERS['chauffage'].catalogue=CATALOGUE_CHAUF; METIERS['chauffage'].fournisseurs=FOURNISSEURS_CHAUF;
+METIERS['climatisation'].catalogue=CATALOGUE_CLIM; METIERS['climatisation'].fournisseurs=FOURNISSEURS_CLIM;
 METIERS['plomberie'].catalogue=CATALOGUE_PLOMB; METIERS['plomberie'].fournisseurs=FOURNISSEURS_PLOMB;
 /* Le pack d'UNE base donnée (pas forcément db : load() et l'import travaillent sur un objet à part).
    Sans métier réglé, c'est la 3D — le métier historique, celui de toutes les entreprises d'avant le
@@ -10484,24 +10530,30 @@ METIERS['plomberie'].catalogue=CATALOGUE_PLOMB; METIERS['plomberie'].fournisseur
    le métier (`metier`) reste celui de la facturation, des exemples et du planning de démonstration. ⛔ La 3D n'en reçoit jamais (ni comme premier métier, ni comme second) :
    `metierPackDe` rend alors EXACTEMENT ce qu'il rendait. Le pack réuni est calculé une fois par couple et porte `_plusDe` (le métier de départ) : `metierPack()` ne le sert
    que si ce métier est bien celui de l'entreprise. */
-function metierPackDe(base){ const id=(base&&base.metier&&METIERS[base.metier])?base.metier:'3d', plus=base&&base.metierPlus;
-  if(id!=='3d'&&plus&&plus!==id&&plus!=='3d'&&Object.prototype.hasOwnProperty.call(METIERS,plus)){
-    const cache=metierPackDe._c||(metierPackDe._c={}), cle=id+'|'+plus; if(cache[cle]) return cache[cle];
-    const A=METIERS[id], B=METIERS[plus], uni=(x,y,nom)=>{ const out=(x||[]).slice(), vus=new Set(out.map(nom)); (y||[]).forEach(e=>{ const k=nom(e); if(!vus.has(k)){ vus.add(k); out.push(e); } }); return out; };
-    const s=e=>String(e==null?'':e).trim().toLowerCase(), cat=e=>s(e&&e[0]), four=e=>s(e&&e.nom), rel=e=>s(e&&e.k);
-    const M=Object.assign({},A,{ _plusDe:id, _plus:plus, types:uni(A.types,B.types,s), presta:uni(A.presta,B.presta,s), releves:uni(A.releves,B.releves,rel), produits:uni(A.produits,B.produits,s),
-      documents:uni(A.documents,B.documents,s), rubriques:uni(A.rubriques,B.rubriques,s), masque:(A.masque||[]).filter(k=>(B.masque||[]).indexOf(k)>=0),
-      catalogue:(A.catalogue||B.catalogue)?uni(A.catalogue,B.catalogue,cat):A.catalogue, fournisseurs:(A.fournisseurs||B.fournisseurs)?uni(A.fournisseurs,B.fournisseurs,four):A.fournisseurs });
+function metiersPlusDe(base){ const id=(base&&base.metier&&METIERS[base.metier])?base.metier:'3d', out=[]; if(id==='3d'||!base) return out;
+  [base.metierPlus,base.metierPlus2].forEach(p=>{ if(p&&typeof p==='string'&&p!==id&&p!=='3d'&&Object.prototype.hasOwnProperty.call(METIERS,p)&&out.indexOf(p)<0) out.push(p); });
+  return out; }
+function metierPackDe(base){ const id=(base&&base.metier&&METIERS[base.metier])?base.metier:'3d', plus=metiersPlusDe(base);
+  if(plus.length){
+    const cache=metierPackDe._c||(metierPackDe._c={}), cle=id+'|'+plus.join('|'); if(cache[cle]) return cache[cle];
+    const s=e=>String(e==null?'':e).trim().toLowerCase(), cat=e=>s(e&&e[0]), four=e=>s(e&&e.nom), rel=e=>s(e&&e.k),
+      uni=(x,y,nom)=>{ const out=(x||[]).slice(), vus=new Set(out.map(nom)); (y||[]).forEach(e=>{ const k=nom(e); if(!vus.has(k)){ vus.add(k); out.push(e); } }); return out; };
+    /* v780 : jusqu'à DEUX métiers associés (un plombier-chauffagiste-climaticien) — la réunion se fait pas à pas, le premier métier d'abord, un nom déjà présent jamais en double */
+    let M=METIERS[id];
+    plus.forEach(p=>{ const A=M, B=METIERS[p];
+      M=Object.assign({},A,{ _plusDe:id, _plus:plus[0], _plusTous:plus.slice(), types:uni(A.types,B.types,s), presta:uni(A.presta,B.presta,s), releves:uni(A.releves,B.releves,rel), produits:uni(A.produits,B.produits,s),
+        documents:uni(A.documents,B.documents,s), rubriques:uni(A.rubriques,B.rubriques,s), masque:(A.masque||[]).filter(k=>(B.masque||[]).indexOf(k)>=0),
+        catalogue:(A.catalogue||B.catalogue)?uni(A.catalogue,B.catalogue,cat):A.catalogue, fournisseurs:(A.fournisseurs||B.fournisseurs)?uni(A.fournisseurs,B.fournisseurs,four):A.fournisseurs }); });
     return (cache[cle]=M); }
   return METIERS[id]||{}; }
 function metierId(){ try{ return (db&&db.metier&&METIERS[db.metier])?db.metier:'3d'; }catch(e){ return '3d'; } }
 function metierPack(){ const id=metierId();
-  try{ if(db&&db.metierPlus){ const p=metierPackDe(db); if(p&&p._plusDe===id) return p; } }catch(e){}
+  try{ if(db&&(db.metierPlus||db.metierPlus2)){ const p=metierPackDe(db); if(p&&p._plusDe===id) return p; } }catch(e){}
   return METIERS[id]; }
 /* Les métiers de l'entreprise : le sien, puis son activité complémentaire s'il y en a une. Une seule fonction pour « ce métier est-il l'un des miens ? » (parc d'appareils,
    documents du métier, cahiers de nettoyage) — jamais `metierId()==='…'`. */
 function metierActifs(){ const id=metierId();
-  try{ const p=db&&db.metierPlus; if(id!=='3d'&&p&&p!==id&&p!=='3d'&&Object.prototype.hasOwnProperty.call(METIERS,p)) return [id,p]; }catch(e){}
+  try{ const p=metiersPlusDe(db); if(p.length) return [id].concat(p); }catch(e){}
   return [id]; }
 /* ⛔ v773 — HORS ANTI-NUISIBLES, PLUS RIEN DE L'ANTI-NUISIBLES (Justin, 22 octobre 2026, cahier des métiers, point 5). UNE
    seule fonction décide : `estMetier3D()`. Elle est lue par tout écran qui SAISIT quelque chose de propre à la 3D —
@@ -10577,7 +10629,7 @@ function exemple(cle){
       devis2:'« Remise en état après travaux, appartement 60 m², à 650 € »',
       devisIA:'Ex : nettoyage de bureaux de 120 m² chez un client à Strasbourg, produits et main-d’œuvre compris, 2 passages par semaine',
       materiel:'Ex : autolaveuse, mono-brosse, chariot, produits dosés…', produitsTitre:'Produits et consommables utilisés', produitsAjout:'— Ajouter un produit ou un consommable —' },
-    /* v779 : la plomberie et le chauffage / climatisation ont les leurs (28 octobre 2026) */
+    /* v779 : la plomberie et le chauffage ont les leurs (28 octobre 2026) ; la climatisation, séparée du chauffage le 29 (v780) */
     plomberie:{ entreprise:'Ex : Aqua Services SARL', societe:'Ex : Aqua Services SARL', siteBon:'Nom du site (ex : Résidence Les Lilas)', ville:'ex : 17000 La Rochelle',
       produit:'Ex : Mitigeur de lavabo (pièce)',
       liste:'Mitigeur de lavabo ; Cedeo ; 48,00\nFlexible inox de raccordement ; Cedeo\nGants de manutention',
@@ -10587,11 +10639,18 @@ function exemple(cle){
       materiel:'Ex : furet, pompe à main, manomètre, chalumeau, pince à sertir…', produitsTitre:'Pièces et fournitures utilisées', produitsAjout:'— Ajouter une pièce ou une fourniture —' },
     chauffage:{ entreprise:'Ex : Thermo Confort SARL', societe:'Ex : Thermo Confort SARL', siteBon:'Nom du site (ex : Copropriété Les Mimosas)', ville:'ex : 17000 La Rochelle',
       produit:'Ex : Thermocouple (pièce)',
-      liste:'Thermocouple ; Cedeo ; 8,90\nFiltre à air de climatiseur ; Cedeo\nGants de protection',
+      liste:'Thermocouple ; Cedeo ; 8,90\nCirculateur de chauffage ; Cedeo\nGants de protection',
       devis1:'« Entretien annuel de chaudière gaz chez Mme Martin, 12 rue des Lilas à Rochefort, 130 € TTC »',
-      devis2:'« Installation d’un split mural 2,5 kW, appartement de 60 m², La Rochelle, à 1 900 »',
+      devis2:'« Remplacement d’un circulateur de chauffage, maison de 90 m², La Rochelle, à 420 »',
       devisIA:'Ex : remplacement d’une chaudière gaz à condensation chez un particulier à Strasbourg, fourniture, pose et mise en service comprises',
-      materiel:'Ex : analyseur de combustion, manifold, pompe à vide, balance de charge, détecteur de fuite…', produitsTitre:'Pièces et fluides utilisés', produitsAjout:'— Ajouter une pièce ou un fluide —' } };
+      materiel:'Ex : analyseur de combustion, manomètre, détecteur de fuite gaz, clé de purge…', produitsTitre:'Pièces utilisées', produitsAjout:'— Ajouter une pièce —' },
+    climatisation:{ entreprise:'Ex : Clim Océan SARL', societe:'Ex : Clim Océan SARL', siteBon:'Nom du site (ex : Cabinet dentaire Martin)', ville:'ex : 17000 La Rochelle',
+      produit:'Ex : Fluide frigorigène R32 (bouteille)',
+      liste:'Filtre à air de climatiseur ; Cedeo ; 12,50\nFluide frigorigène R32 ; Climalife\nGants de protection',
+      devis1:'« Entretien d’un split mural chez Mme Martin, 12 rue des Lilas à Rochefort, 120 € TTC »',
+      devis2:'« Installation d’un split mural 2,5 kW, appartement de 60 m², La Rochelle, à 1 900 »',
+      devisIA:'Ex : pose d’une pompe à chaleur air/air bi-split chez un particulier à Strasbourg, fourniture, pose et mise en service comprises',
+      materiel:'Ex : manifold, pompe à vide, balance de charge, détecteur de fuite, station de récupération…', produitsTitre:'Pièces et fluides utilisés', produitsAjout:'— Ajouter une pièce ou un fluide —' } };
   const m=metierId(), s=EX_METIER[m]&&EX_METIER[m][cle]; if(s) return s;
   if(estMetier3D()) return EX_3D[cle]||'';
   if(EX_AUTRE[cle]) return EX_AUTRE[cle];
@@ -10653,6 +10712,7 @@ function metierResiduRetirer(r){
   try{ planTechM=null; planJours=[]; }catch(e){}
 }
 function metierSet(id){
+  if(String(id).indexOf('combo:')===0) return metierComboSet(String(id).slice(6));   // v780 : un pack combiné se choisit du même geste
   if(!METIERS[id]) return;
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
   const av=metierId(); if(av===id){ toast('C’est déjà ton métier'); return; }
@@ -10668,6 +10728,7 @@ function metierSet(id){
   /* audit apple-design, point 19 : le texte le disait déjà, « tu peux revenir en arrière à tout moment » — le geste se
      fait, et « ↩︎ Annuler » rend le métier d'avant. */
   db.metier=id; if(db.metierPlus===id||id==='3d') db.metierPlus='';   // le métier ne peut pas être aussi son complément ; la 3D n'en a pas
+  if(db.metierPlus2===id||id==='3d') db.metierPlus2='';
   /* v751 : `logJournal` n'a jamais existé — la ligne ne s'écrivait pas, en silence (ESLint, vérification de A à Z).
      v765 : et elle s'écrit AVANT le save() — logEvent ne range rien (voir metierServeurAppliquer). */
   try{ logEvent('Métier de l’entreprise',METIERS[id].nom,'admin'); }catch(e){}
@@ -10678,17 +10739,73 @@ function metierSet(id){
 }
 function metierPlusSet(id){
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
-  id=String(id||''); const av=db.metierPlus||'';
+  id=String(id||''); const av=db.metierPlus||'', av2=db.metierPlus2||'';
   if(metierId()==='3d'){ toast('Ce réglage ne concerne pas la 3D : elle garde son pack tel quel'); return; }
   if(id&&(!Object.prototype.hasOwnProperty.call(METIERS,id)||id==='3d'||id===metierId())) return;
   if(av===id) return;
   db.metierPlus=id;
+  /* v780 : le second associé ne peut pas être le premier (il le remplace), et retirer le premier fait remonter le second */
+  if(id&&db.metierPlus2===id) db.metierPlus2='';
+  if(!id&&db.metierPlus2){ db.metierPlus=db.metierPlus2; db.metierPlus2=''; }
   try{ logEvent('Activité complémentaire',id?METIERS[id].nom:'aucune','admin'); }catch(e){}
   save();
   try{ renderNav(); }catch(e){}
-  toastAnnuler(id?METIERS[id].ic+' L’entreprise fait aussi : '+METIERS[id].nom:'Activité complémentaire retirée',"metierPlusSet('"+av+"')");
+  toastAnnuler(id?METIERS[id].ic+' L’entreprise fait aussi : '+METIERS[id].nom:'Activité complémentaire retirée',(av2&&db.metierPlus2!==av2?"metiersAssociesPoser('"+av+"','"+av2+"')":"metierPlusSet('"+av+"')"));
   views.parametres();
 }
+/* v780 — LE SECOND MÉTIER ASSOCIÉ (`db.metierPlus2`, rangé comme `metierPlus`) : un plombier-chauffagiste qui fait aussi de la climatisation. Jamais sans le premier. */
+function metierPlus2Set(id){
+  if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
+  id=String(id||''); const av=db.metierPlus2||'';
+  if(metierId()==='3d'){ toast('Ce réglage ne concerne pas la 3D : elle garde son pack tel quel'); return; }
+  if(id&&(!db.metierPlus||!Object.prototype.hasOwnProperty.call(METIERS,id)||id==='3d'||id===metierId()||id===db.metierPlus)) return;
+  if(av===id) return;
+  db.metierPlus2=id;
+  try{ logEvent('Seconde activité complémentaire',id?METIERS[id].nom:'aucune','admin'); }catch(e){}
+  save();
+  try{ renderNav(); }catch(e){}
+  toastAnnuler(id?METIERS[id].ic+' L’entreprise fait aussi : '+METIERS[id].nom:'Seconde activité complémentaire retirée',"metierPlus2Set('"+av+"')");
+  views.parametres();
+}
+/* annuler un retrait qui a touché les deux associés */
+function metiersAssociesPoser(a,b){
+  if(!currentUser||currentUser.role!=='admin') return;
+  db.metierPlus=String(a||''); db.metierPlus2=String(b||''); save(); try{ renderNav(); }catch(e){} views.parametres(); }
+/* ⛔ v780 — LES PACKS COMBINÉS (Justin, 29 octobre 2026 : « fais des packs, combinés, et des packs séparés de chaque chose »). Un pack combiné N'EST PAS un métier de plus : c'est un métier principal
+   et ses métiers associés, posés d'un seul geste (`db.metier`, `db.metierPlus`, `db.metierPlus2` — le mécanisme de « Mon entreprise fait aussi… »). Le premier de la liste est le métier principal : il
+   donne le nom, la facturation, les exemples et la démonstration ; le pack servi est la RÉUNION (types, prestations, relevés, catégories, documents, catalogue, fournisseurs). Rien n'est écrit dans
+   `METIERS` ni dans le référentiel : la liste vit ici, et `tests/test-3172.js` la relit contre les deux. */
+const METIERS_COMBOS=[
+  {k:'cvc', nom:'Chauffage + Climatisation (CVC)', ic:'🌡️', liste:['chauffage','climatisation']},
+  {k:'plombier-chauffagiste', nom:'Plombier-chauffagiste (Plomberie + Chauffage)', ic:'🔧', liste:['plomberie','chauffage']},
+  {k:'plomberie-clim', nom:'Plomberie + Climatisation', ic:'💧', liste:['plomberie','climatisation']},
+  {k:'plomberie-chauffage-clim', nom:'Plomberie + Chauffage + Climatisation', ic:'🛠️', liste:['plomberie','chauffage','climatisation']}
+];
+function metierComboDe(k){ return METIERS_COMBOS.find(c=>c.k===k)||null; }
+/* le pack combiné que la base réalise EXACTEMENT (même principal, mêmes associés, dans l'ordre), ou '' */
+function metierComboCourant(){ try{ const a=[metierId()].concat(metiersPlusDe(db)).join('|'); const c=METIERS_COMBOS.find(x=>x.liste.join('|')===a); return c?c.k:''; }catch(e){ return ''; } }
+function metierResiduDemander(){
+  const rs=metierResidu();
+  if(rs&&rs.total){
+    if(!confirm('Changer de métier ?\n\nLa démonstration et le catalogue de l’ancien métier seront retirés pour ne rien en garder à l’écran :\n· '+rs.ints+' intervention(s) de démonstration\n· '+rs.clients+' client(s)\n· '+rs.techs+' technicien(s)\n· '+rs.produits+' produit(s) et '+rs.fours+' fournisseur(s) du catalogue\n\nTes saisies à toi ne sont pas touchées.')){ try{ views.parametres(); }catch(e){} return false; }
+    metierResiduRetirer(rs); }
+  return true; }
+function metierComboSet(k){
+  const c=metierComboDe(k); if(!c||c.liste.some(m=>!Object.prototype.hasOwnProperty.call(METIERS,m)||m==='3d')) return;
+  if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
+  const av=metierId(), av1=db.metierPlus||'', av2=db.metierPlus2||'', id=c.liste[0];
+  if(metierComboCourant()===k){ toast('C’est déjà ton pack'); return; }
+  if(av!==id&&!metierResiduDemander()) return;   // même métier principal : la démonstration reste celle du pack, le pack ne fait que s'étendre
+  db.metier=id; db.metierPlus=c.liste[1]||''; db.metierPlus2=c.liste[2]||'';
+  try{ logEvent('Pack de métiers',c.nom,'admin'); }catch(e){}
+  save();
+  try{ renderNav(); }catch(e){}
+  toastAnnuler(c.ic+' Pack « '+c.nom+' » activé',"metierPackRestaurer('"+av+"','"+av1+"','"+av2+"')");
+  views.parametres();
+}
+function metierPackRestaurer(m,a,b){
+  if(!currentUser||currentUser.role!=='admin'||!Object.prototype.hasOwnProperty.call(METIERS,m)) return;
+  db.metier=m; db.metierPlus=String(a||''); db.metierPlus2=String(b||''); save(); try{ renderNav(); }catch(e){} views.parametres(); }
 /* ⛔ v765 — LE MÉTIER VIENT DE TEAM OP (Justin, 29 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
    quand ils ont l'application, ça correspond à leur métier ; active tous les packs, pour tous »). Jusqu'à la v764, rien
    ne le portait jusqu'ici : `db.metier` ne s'écrivait que par `metierSet`, dont les cartes ne s'affichent qu'à l'équipe
@@ -10707,6 +10824,7 @@ function metierServeurAppliquer(j){
   /* la ligne de journal AVANT l'enregistrement : logEvent ne range rien, et une ligne écrite après le save() n'existait
      qu'en mémoire — mesuré au navigateur (scratchpad/sonde-metier-serveur.js) : elle disparaissait au rechargement */
   db.metier=m; if(db.metierPlus===m||m==='3d') db.metierPlus='';
+  if(db.metierPlus2===m||m==='3d') db.metierPlus2='';
   try{ logEvent('Métier de l’entreprise',METIERS[m].nom+' — réglé par TEAM OP','admin'); }catch(e){}
   save();
   try{ renderNav(); }catch(e){}
@@ -11479,7 +11597,7 @@ const OP_CLASSES = {
   forfait: 'reglage', forfaitEssai: 'reglage', forfaitQty: 'reglage', forfaitSrv: 'reglage',
   formuleAttente: 'reglage', foursEmailsV2: 'reglage', foursEmailsV3: 'reglage',
   foursSeeded: 'reglage', foursSeededV: 'reglage', mailFrom: 'reglage', mailReply: 'reglage',
-  metier: 'reglage', metierPlus: 'reglage', orgaCanal: 'reglage', orgaMarge: 'reglage', orgaMsg: 'reglage',
+  metier: 'reglage', metierPlus: 'reglage', metierPlus2: 'reglage', orgaCanal: 'reglage', orgaMarge: 'reglage', orgaMsg: 'reglage',
   permsRepris: 'reglage', prixSeededV: 'reglage', societes: 'reglage',
   validDRTous: 'reglage',
 };
@@ -37978,7 +38096,7 @@ const DEMO_NETT={
     [2,'14:30',60,'Remise en état urgente','Remise en état',2,2,'']
   ],
   checklist:['Aspiration des sols','Lavage des sols'], arepartir:['À répartir — contrôle qualité','Contrôle qualité chez le client'] };
-/* v779 : le chauffage / climatisation et la plomberie ont leur jeu (28 octobre 2026) — les types sont ceux de leur pack (un banc le vérifie). Les clients 0 à 3 reçoivent
+/* v779 : le chauffage et la plomberie ont leur jeu (28 octobre 2026) — les types sont ceux de leur pack (un banc le vérifie). Les clients 0 à 3 reçoivent
    les documents de démonstration (`docmDemoPoser`) et, pour le chauffage, un parc d'appareils (`cvcDemoPoser`). */
 const DEMO_PLOMB={
   clients:[
@@ -38016,20 +38134,46 @@ const DEMO_CHAUF={
     ['Camping Les Pins','route des Minimes','La Rochelle',46.1470,-1.1660,'pro'] ],
   planning:[
     [0,'08:30',90,'Entretien de la chaudière gaz','Entretien annuel chaudière',0,0,'terminee'],
-    [0,'11:00',60,'Entretien de la climatisation','Entretien climatisation',0,5,''],
+    [0,'11:00',60,'Entretien de la chaudière du cabinet','Entretien annuel chaudière',0,5,''],
     [0,'14:00',120,'Dépannage chauffage — plus d’eau chaude','Dépannage chauffage',0,2,''],
-    [0,'09:30',90,'Entretien de la climatisation du restaurant','Entretien climatisation',1,1,'terminee'],
+    [0,'09:30',90,'Entretien de la chaudière du restaurant','Entretien annuel chaudière',1,1,'terminee'],
     [0,'13:30',60,'Ramonage — poêle à granulés','Ramonage',1,3,''],
-    [0,'10:00',60,'Visite technique avant devis — pompe à chaleur','Visite technique / devis',2,4,''],
-    [1,'08:30',60,'Contrôle d’étanchéité — climatisation du restaurant',"Contrôle d'étanchéité des fluides frigorigènes",0,1,''],
+    [0,'10:00',60,'Visite technique avant devis — remplacement de chaudière','Visite technique / devis',2,4,''],
+    [1,'08:30',60,'Entretien d’une chaudière à granulés','Entretien chaudière fioul ou bois',0,1,''],
     [1,'10:30',60,'Désembouage du circuit de chauffage','Désembouage',1,2,''],
     [1,'14:00',90,'Mise en service — chaudière à condensation','Mise en service',0,0,''],
     [1,'15:00',60,'Entretien VMC','Entretien VMC / ventilation',2,5,''],
-    [2,'09:00',120,'Installation d’un split mural','Installation',1,4,''],
+    [2,'09:00',120,'Installation d’une chaudière à condensation','Installation',1,4,''],
     [2,'11:30',60,'Entretien d’une chaudière fioul','Entretien chaudière fioul ou bois',0,2,''],
-    [2,'14:30',60,'Dépannage climatisation — ne refroidit plus','Dépannage climatisation',2,6,'']
+    [2,'14:30',60,'Dépannage chauffage — circulateur bruyant','Dépannage chauffage',2,6,'']
   ],
   checklist:['Contrôle des organes de sécurité','Mise en service et essai'], arepartir:['À répartir — dépannage chauffage','Dépannage chauffage'] };
+/* v780 : la climatisation (séparée du chauffage le 29 octobre 2026) a son jeu — les types sont ceux de SON pack (un banc le vérifie), les mêmes clients localisés. */
+const DEMO_CLIM={
+  clients:[
+    ['M. et Mme Durand','3 allée des Chênes','Salles-sur-Mer',46.1012,-1.0571,'particulier'],
+    ['Restaurant Le Vieux Port','quai Valin','La Rochelle',46.1550,-1.1540,'pro'],
+    ['Copropriété Les Mimosas','12 rue des Mimosas','La Rochelle',46.1580,-1.1510,'pro'],
+    ['Hôtel de la Plage','avenue de la Plage','Châtelaillon',46.0730,-1.0870,'pro'],
+    ['Mme Roux','8 rue Chaudrier','La Rochelle',46.1593,-1.1519,'particulier'],
+    ['Cabinet dentaire Martin','21 rue Gargoulleau','La Rochelle',46.1600,-1.1480,'pro'],
+    ['Camping Les Pins','route des Minimes','La Rochelle',46.1470,-1.1660,'pro'] ],
+  planning:[
+    [0,'08:30',90,'Entretien de la climatisation','Entretien climatisation',0,0,'terminee'],
+    [0,'11:00',60,'Entretien de la climatisation du cabinet','Entretien climatisation',0,5,''],
+    [0,'14:00',120,'Dépannage climatisation — ne refroidit plus','Dépannage climatisation',0,2,''],
+    [0,'09:30',90,'Entretien de la climatisation du restaurant','Entretien climatisation',1,1,'terminee'],
+    [0,'13:30',60,'Entretien de la pompe à chaleur','Entretien pompe à chaleur',1,3,''],
+    [0,'10:00',60,'Visite technique avant devis — pompe à chaleur','Visite technique / devis',2,4,''],
+    [1,'08:30',60,'Contrôle d’étanchéité — climatisation du restaurant',"Contrôle d'étanchéité des fluides frigorigènes",0,1,''],
+    [1,'10:30',60,'Récupération du fluide d’un ancien split','Récupération de fluide / démantèlement',1,2,''],
+    [1,'14:00',90,'Mise en service — pompe à chaleur air/air','Mise en service',0,0,''],
+    [1,'15:00',60,'Entretien du chauffe-eau thermodynamique','Entretien chauffe-eau thermodynamique',2,5,''],
+    [2,'09:00',120,'Installation d’un split mural','Installation',1,4,''],
+    [2,'11:30',60,'Contrat d’entretien — climatisation de l’hôtel','Contrat d’entretien',0,3,''],
+    [2,'14:30',60,'Dépannage climatisation — fuite d’eau sur l’unité intérieure','Dépannage climatisation',2,6,'']
+  ],
+  checklist:['Contrôle de la charge de fluide','Mise en service et essai'], arepartir:['À répartir — dépannage climatisation','Dépannage climatisation'] };
 /* Un métier sans jeu écrit pour lui : les mêmes créneaux, les types de SON pack, la checklist tirée de SES prestations. */
 function demoPlanGenerique(){
   const T=intTypes(), pr=(metierPack().presta||[]).slice(0,2), tp=k=>T[k%T.length]||'Intervention';
@@ -38041,6 +38185,7 @@ function demoSemisDe(){
   if(metierId()==='nettoyage') return DEMO_NETT;
   if(metierId()==='plomberie') return DEMO_PLOMB;
   if(metierId()==='chauffage') return DEMO_CHAUF;
+  if(metierId()==='climatisation') return DEMO_CLIM;
   return demoPlanGenerique(); }
 const DEMO_MONTANTS=[150,90,240,120,180,95,320,140,210,420,110,260,130,170];
 function demoCharger(){
@@ -38254,7 +38399,7 @@ views.parametres=function(){
            « ↩︎ Annuler »). La bêta seule — une entreprise ne voit que SON métier (plus bas, « Mon métier »). -->
       <div class="field" style="margin:14px 0 0">
         <label for="beta-metier">🧰 Tester un métier</label>
-        <select id="beta-metier" onchange="metierSet(this.value)">${METIERS_ORDRE.map(k=>`<option value="${k}"${k===metierId()?' selected':''}>${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}</select>
+        <select id="beta-metier" onchange="metierSet(this.value)">${METIERS_ORDRE.map(k=>`<option value="${k}"${k===metierId()&&!metierComboCourant()?' selected':''}>${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}<optgroup label="Packs combinés (un métier principal + ses associés)">${METIERS_COMBOS.map(c=>`<option value="combo:${c.k}"${metierComboCourant()===c.k?' selected':''}>${c.ic} ${esc(c.nom)}</option>`).join('')}</optgroup></select>
       </div>
       <p style="color:var(--t3);font-size:11.5px;margin-top:6px">Change le pack de toute la bêta : catégories d'intervention, fiche de terrain, catégories de produits, rubriques conseillées. « Remplir » et « Remplir en grand nombre » suivent le métier choisi ; le planning de démonstration aussi (3 techniciens, 14 interventions).</p></div>`:''}
     ${equipeTeamOP()&&currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>🎬 Planning de démonstration</h3></div>
@@ -38433,7 +38578,7 @@ views.parametres=function(){
         return `<p style="color:var(--t3);font-size:12px;line-height:1.55;margin-bottom:9px"><b style="color:var(--t2)">Ton métier a été choisi lors de ta demande d'application</b> — il est déjà réglé ici. Il change les <b>catégories d'intervention</b>, la <b>fiche remplie sur le terrain</b> (prestations réalisées et relevés) et les <b>modules affichés</b>. Tes clients, ton planning et tes interventions ne sont jamais touchés.<br>Besoin d'autre chose pour ton métier ? Écris à <a href="mailto:support@teamop.fr?subject=Mon%20m%C3%A9tier%20sur%20TEAM%20OP" style="color:var(--acc-txt);font-weight:700">support@teamop.fr</a> — on ajoute au pack de ton métier, sans toucher aux autres.</p>
         <!-- une entreprise a choisi son métier à sa demande d'application : elle n'a pas à voir
              les cinq autres, qui ne la concernent pas et invitent à un changement risqué. -->
-        <div class="met-cards">${(equipeTeamOP()||BETA_ESSAI?METIERS_ORDRE:METIERS_ORDRE.filter(k=>k===cur)).map(k=>{ const m=METIERS[k]; const on=(k===cur);
+        <div class="met-cards">${(equipeTeamOP()||BETA_ESSAI?METIERS_ORDRE:METIERS_ORDRE.filter(k=>k===cur)).map(k=>{ const m=METIERS[k]; const on=(k===cur&&!((equipeTeamOP()||BETA_ESSAI)&&metierComboCourant()));   // v780 : sous un pack combiné, c'est la carte du pack qui est « Active »
           const nb=m.types?m.types.length:INT_TYPES.length;
           return `<div class="met-card${on?' on':''}" onclick="metierSet('${k}')">
             ${on?'<span class="bd">Actif</span>':''}
@@ -38441,9 +38586,17 @@ views.parametres=function(){
             <span class="nm">${esc(m.nom)}</span>
             <span class="ss">${esc(m.sous)}</span>
             <span class="nb">${nb} catégories${m.presta?' · '+m.presta.length+' prestations':' · registre sanitaire &amp; biocides'}</span>
-          </div>`; }).join('')}</div>
+          </div>`; }).join('')}${(equipeTeamOP()||BETA_ESSAI)?METIERS_COMBOS.map(c=>{ const on=(metierComboCourant()===c.k), pk=metierPackDe({metier:c.liste[0],metierPlus:c.liste[1]||'',metierPlus2:c.liste[2]||''});
+          return `<div class="met-card${on?' on':''}" onclick="metierSet('combo:${c.k}')">
+            ${on?'<span class="bd">Actif</span>':''}
+            <span class="ic">${c.ic}</span>
+            <span class="nm">${esc(c.nom)}</span>
+            <span class="ss">Pack combiné</span>
+            <span class="nb">${(pk.types||[]).length} catégories · ${(pk.presta||[]).length} prestations</span>
+          </div>`; }).join(''):''}</div>
         ${cur!=='3d'&&currentUser&&currentUser.role==='admin'?`<div class="field" style="margin:12px 0 4px"><label for="met-plus">Mon entreprise fait aussi…</label>
           <select id="met-plus" onchange="metierPlusSet(this.value)"><option value="">— rien d’autre —</option>${METIERS_ORDRE.filter(k=>k!=='3d'&&k!==cur).map(k=>`<option value="${k}"${db.metierPlus===k?' selected':''}>${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}</select>
+          ${db.metierPlus?`<select id="met-plus2" aria-label="Et aussi…" onchange="metierPlus2Set(this.value)" style="margin-top:6px"><option value="">— et rien d’autre —</option>${METIERS_ORDRE.filter(k=>k!=='3d'&&k!==cur&&k!==db.metierPlus).map(k=>`<option value="${k}"${db.metierPlus2===k?' selected':''}>${METIERS[k].ic} ${esc(METIERS[k].nom)}</option>`).join('')}</select>`:''}
           <div style="font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.5">Une entreprise de climatisation et de plomberie choisit ici le second métier : les types d’intervention, les prestations, les relevés, les catégories de produits, les documents et le catalogue de départ des deux sont réunis. Rien n’est retiré, et tu reviens en arrière quand tu veux.</div></div>`:''}
         ${(()=>{ const L=((metierPack()||{}).rubriques||[]).filter(k=>RUBRIQUES_INFO[k]); if(!L.length) return '';
           return `<details class="met-rub"><summary>📋 Les ${L.length} rubriques conseillées pour ton métier</summary>${L.map(k=>`<div class="met-rub-l"><b>${esc(RUBRIQUES_INFO[k][0])}</b><span>${esc(RUBRIQUES_INFO[k][1])}</span></div>`).join('')}</details>`; })()}`; })()}
@@ -41836,7 +41989,7 @@ function saveContrat(e,id){ e.preventDefault(); if(!permGarde('ventes',id?'modif
    règle de périodicité) ; aucune n'est rangée dans la base. Une donnée en deux exemplaires dont un seul est tenu à jour est
    la panne silencieuse type de ce dépôt — la « dernière intervention » d'un appareil est donc déduite des interventions qui
    le citent, jamais copiée sur sa fiche. */
-const CVC_METIERS=['chauffage','froid','energies'];
+const CVC_METIERS=['chauffage','climatisation','froid','energies'];
 function metierGereParc(){ try{ return (typeof metierActifs==='function'?metierActifs():[metierId()]).some(m=>CVC_METIERS.indexOf(m)>=0); }catch(e){ return false; } }
 /* Le type d'un appareil : de quoi il est fait (combustion → attestation d'entretien ; fluide → fiches fluides) et la
    périodicité d'entretien par défaut — UNE RÈGLE DE L'ENTREPRISE, pas une obligation écrite dans un document. Chaudières de 4 à 400 kW (gaz, fioul,
@@ -42856,11 +43009,14 @@ function cvcContratLire(f,d){ const z=f&&f.querySelector&&f.querySelector('#cvc-
 /* ── La démonstration (v779) : « Remplir » de la bêta pose, pour le chauffage, un parc de trois appareils chez les clients de démonstration (marqués `demo:1`, emportés par
    « Retirer la démonstration ») et les cite sur les interventions d'entretien — de quoi montrer l'attestation, la fiche fluides et l'attestation de ramonage sans rien saisir.
    Un geste de l'administrateur, jamais un chargement. Aucun PRP n'est posé : la recherche n'en a pas la source (le calcul du tonnage reste « on ne sait pas »). ── */
-function cvcDemoPoser(clientIds){ if(!metierGereParc()||metierId()!=='chauffage'||!Array.isArray(clientIds)) return;   // le jeu de démonstration est celui du premier métier
+function cvcDemoPoser(clientIds){ if(!metierGereParc()||(metierId()!=='chauffage'&&metierId()!=='climatisation')||!Array.isArray(clientIds)) return;   // le jeu de démonstration est celui du premier métier
   db.appareils=db.appareils||[];
-  const parc=[
-    {k:0,type:'chaudiere_gaz',marque:'Frisquet',modele:'Hydroconfort',serie:'HC-24-0412',puissance:24,miseEnService:'2019-09-14',emplacement:'Cuisine',periodeMois:12,re:/chaudi|entretien annuel|mise en service/i},
+  const parc=metierId()==='climatisation'?[
     {k:1,type:'clim_split',marque:'Daikin',modele:'FTXM25',serie:'DK-25-8841',puissance:2.5,fluide:'R32',charge:0.7,miseEnService:'2022-06-20',emplacement:'Salle du restaurant',re:/climatisation|étanch/i},
+    {k:3,type:'pac_air',marque:'Mitsubishi Electric',modele:'MSZ-AP35',serie:'MT-35-2190',puissance:3.5,fluide:'R32',charge:1,miseEnService:'2023-04-11',emplacement:'Hall d’accueil',re:/pompe à chaleur|mise en service|contrat/i},
+    {k:5,type:'clim_gainable',marque:'Carrier',modele:'42SMG',serie:'CR-42-7765',puissance:7,fluide:'R410A',charge:2.4,miseEnService:'2020-05-26',emplacement:'Salle de soins',re:/cabinet/i}]:[
+    {k:0,type:'chaudiere_gaz',marque:'Frisquet',modele:'Hydroconfort',serie:'HC-24-0412',puissance:24,miseEnService:'2019-09-14',emplacement:'Cuisine',periodeMois:12,re:/chaudi|entretien annuel|mise en service/i},
+    {k:1,type:'chaudiere_fioul',marque:'De Dietrich',modele:'GT 120',serie:'DD-120-5502',puissance:30,miseEnService:'2018-11-08',emplacement:'Local technique du restaurant',periodeMois:12,re:/restaurant/i},
     {k:3,type:'chaudiere_bois',marque:'Atlantic',modele:'Granulés 20',serie:'AT-20-3317',puissance:20,miseEnService:'2021-10-02',emplacement:'Local technique',periodeMois:12,re:/ramonage/i}];
   parc.forEach(p=>{ const cid=clientIds[p.k]; if(!cid||db.appareils.some(a=>a&&a.demo&&a.clientId===cid&&a.type===p.type)) return;
     const T=cvcType({type:p.type}), d={clientId:cid,type:p.type,marque:p.marque,modele:p.modele,serie:p.serie,puissance:p.puissance,emplacement:p.emplacement,miseEnService:p.miseEnService,periodeMois:p.periodeMois||'',note:'',
@@ -43515,7 +43671,7 @@ function nettDemoPoser(clientIds){ if(!metierGereSites()||!Array.isArray(clientI
 const DOCM_TVA=[['20','20 %'],['10','10 %'],['5.5','5,5 %'],['0','0 % (sans TVA)']];
 const DOCM_OUI=[['oui','Oui'],['non','Non']];
 const DOCM_DEFS=[
- { id:'devis-depannage', metiers:['chauffage','plomberie'], ic:'📝', court:'Devis de dépannage', pdfTitre:'DEVIS',
+ { id:'devis-depannage', metiers:['chauffage','climatisation','plomberie'], ic:'📝', court:'Devis de dépannage', pdfTitre:'DEVIS',
    titre:'Devis de dépannage, réparation ou entretien', portee:'intervention', droit:'ventes', prefixe:'DEP', envoi:true, lignes:true, essentiel:['nature','lignes'],
    aide:'À remettre au client AVANT la prestation, et à faire signer avant toute exécution. Les prix unitaires se saisissent hors taxes : les totaux se calculent.',
    champs:[
@@ -43553,7 +43709,7 @@ const DOCM_DEFS=[
    mail:(r,c)=>({sujet:'Devis'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dépannage'),
      corps:'Bonjour,\n\nVous trouverez ci-joint notre devis'+(r.num?' n° '+r.num:'')+'. Merci de le relire et de nous le retourner signé, précédé de la mention « lu et approuvé », avant toute intervention.\n\nNous restons à votre disposition.'}) },
 
- { id:'note-depannage', metiers:['chauffage','plomberie'], ic:'🧾', court:'Note avant paiement', pdfTitre:'NOTE DE DÉPANNAGE',
+ { id:'note-depannage', metiers:['chauffage','climatisation','plomberie'], ic:'🧾', court:'Note avant paiement', pdfTitre:'NOTE DE DÉPANNAGE',
    titre:'Note de dépannage remise avant paiement (à partir de 25 € TTC)', portee:'intervention', droit:'ventes', prefixe:'NOT', envoi:true, lignes:true, reprise:true, essentiel:['lignes'],
    aide:'À remettre au client après l’exécution, avant tout paiement, en deux exemplaires, dès 25 € TTC. Reprends le décompte du devis accepté s’il est conforme aux travaux, et note les écarts.',
    champs:[
@@ -43634,7 +43790,7 @@ const DOCM_DEFS=[
    signatures:[],
    pied:'Fiche de suivi établie par {ENT} : elle suit l’état du certificat de conformité gaz, elle ne le remplace pas.' },
 
- { id:'suivi-vignette', metiers:['chauffage'], ic:'🏷️', court:'Suivi de la vignette', pdfTitre:'SUIVI DE LA VIGNETTE',
+ { id:'suivi-vignette', metiers:['chauffage','climatisation'], ic:'🏷️', court:'Suivi de la vignette', pdfTitre:'SUIVI DE LA VIGNETTE',
    titre:'Suivi de la vignette de contrôle d’étanchéité (bleue ou rouge)', portee:'appareil', droit:'crm', interne:true, statutChamp:'couleur',
    aide:'Garde la trace de la vignette posée après un contrôle d’étanchéité et de la date du prochain contrôle. Les règles de périodicité ne sont PAS imprimées : elles restent à confirmer.',
    champs:[
@@ -44042,11 +44198,11 @@ function docmDemoPoser(clientIds){ if(!metierGereDocs()||!Array.isArray(clientId
     ajoute('suivi-gaz',c3,{},{usage:'Cuisson',appareil:'Plaque de cuisson gaz',modele:'2',motif:'neuve',installateur:'Notre entreprise',dateTravaux:todayISO(),statut:'envoye',relance:todayISO()});
     ajoute('tva-reduite',c0,{},{taux:'10',nature:'Remplacement de la robinetterie d’une cuisine',habitation:'oui'});
     ajoute('suivi-amiante',c3,{},{livraison:'1985',reperage:'requis',resultat:'inconnu'}); }
-  if(m==='chauffage'){
-    ajoute('devis-depannage',c0,{interventionId:iid(c0)},{nature:'Remplacement du circulateur de chauffage défectueux',tva:'10',tauxHoraire:'70',decompte:'Par quart d’heure',tempsEstime:'2 h',validite:'30 jours',devisPayant:'gratuit',piecesConservees:'oui',lieuSignature:'client',deplacement:'40'},
-      [['Circulateur de chauffage',185,'pièce',1],['Joints et raccords',14,'lot',1],['Main-d’œuvre',58,'h',2]]);
-    ajoute('note-depannage',c1,{interventionId:iid(c1)},{execLe:todayISO(),tva:'20',piecesConservees:'non',sansNom:'non'},[['Recharge en fluide R32',72,'pièce',1],['Main-d’œuvre',58,'h',1]]);
-    ajoute('suivi-gaz',c3,{},{usage:'Chauffage et eau chaude',appareil:'Chaudière gaz à condensation',modele:'2',motif:'remplacee',installateur:'Notre entreprise',dateTravaux:todayISO(),statut:'envoye',relance:todayISO()});
+  if(m==='chauffage'||m==='climatisation'){
+    ajoute('devis-depannage',c0,{interventionId:iid(c0)},{nature:m==='climatisation'?'Remplacement du condensateur de démarrage de l’unité extérieure':'Remplacement du circulateur de chauffage défectueux',tva:'10',tauxHoraire:'70',decompte:'Par quart d’heure',tempsEstime:'2 h',validite:'30 jours',devisPayant:'gratuit',piecesConservees:'oui',lieuSignature:'client',deplacement:'40'},
+      m==='climatisation'?[['Condensateur de démarrage',64,'pièce',1],['Main-d’œuvre',58,'h',1.5]]:[['Circulateur de chauffage',185,'pièce',1],['Joints et raccords',14,'lot',1],['Main-d’œuvre',58,'h',2]]);
+    ajoute('note-depannage',c1,{interventionId:iid(c1)},{execLe:todayISO(),tva:'20',piecesConservees:'non',sansNom:'non'},m==='climatisation'?[['Recharge en fluide R32',72,'pièce',1],['Main-d’œuvre',58,'h',1]]:[['Électrode d’allumage',46,'pièce',1],['Main-d’œuvre',58,'h',1]]);
+    if(m==='chauffage') ajoute('suivi-gaz',c3,{},{usage:'Chauffage et eau chaude',appareil:'Chaudière gaz à condensation',modele:'2',motif:'remplacee',installateur:'Notre entreprise',dateTravaux:todayISO(),statut:'envoye',relance:todayISO()});
     const ap=(db.appareils||[]).find(x=>x&&x.demo&&typeof cvcType==='function'&&cvcType(x).fluide);
     if(ap) ajoute('suivi-vignette',ap.clientId,{},{appareilId:ap.id,dernierControle:todayISO(),couleur:'bleue',fuite:'non'}); } }
 /* ═══════════════ fin du bloc DOCUMENTS DU MÉTIER ═══════════════ */
