@@ -401,14 +401,17 @@ function installerPont(H, ctx) {
         /* un VOCAL se dit `genre:'vocal'` (28 octobre 2026) : la Tour en demande la transcription (`POST /api/pont/transcrire`) puis la lit dans un événement `transcription`. Une Tour d'AVANT ne connaît pas
            ce genre et le traite comme « autre » (la note « ne lisent que le texte ») — un déploiement dans n'importe quel ordre reste juste. `dur` : des secondes, jamais l'identifiant de la pièce. */
         const texte = x.type === 'texte' && !x.meta;
-        const ev = { gid: e.gid, type: 'message', fil, seq: d.seq, genre: texte ? 'texte' : (x.type === 'vocal' ? 'vocal' : 'autre'), texte: texte && typeof x.texte === 'string' ? x.texte : null, ts: d.ts };
+        /* ⛔ un vocal TRANSFÉRÉ (`meta.tr`) est « autre » : `msg.transferer` recopie le vocal d'un autre membre SOUS L'AUTEUR de celui qui transfère, le contrôle d'auteur est donc vrai — sans regarder `tr`,
+           la voix d'un tiers deviendrait « 🎤 » de Justin pour des agents qui agissent. Même règle que le texte transféré, qui n'est pas `!x.meta` pour rien. */
+        const vocalDeJustin = x.type === 'vocal' && !(x.meta && x.meta.tr);
+        const ev = { gid: e.gid, type: 'message', fil, seq: d.seq, genre: texte ? 'texte' : (vocalDeJustin ? 'vocal' : 'autre'), texte: texte && typeof x.texte === 'string' ? x.texte : null, ts: d.ts };
         if (ev.genre === 'vocal') ev.dur = x.meta && Number.isFinite(x.meta.dur) ? x.meta.dur : 0;
         evenements.push(ev);
       } else if (e.event === 'transcription') {
         /* ⛔ seulement la transcription d'un vocal DE JUSTIN (les droits de lecture sont ceux de `materialiser` : il ne voit que ce qu'il voit). Le texte d'un vocal d'un autre — il n'y en a pas dans ces
            conversations, mais la règle ne repose pas sur ce constat — n'a aucun chemin jusqu'aux agents. */
         const x = stockage.messageATransferer(d.conv, d.seq, t.justin);
-        if (!x || x.type !== 'vocal' || x.auteur !== t.justin) continue;
+        if (!x || x.type !== 'vocal' || x.auteur !== t.justin || (x.meta && x.meta.tr)) continue;     // (un vocal TRANSFÉRÉ porte l'auteur de celui qui transfère : `meta.tr` le trahit)
         const ev = { gid: e.gid, type: 'transcription', fil, seq: d.seq, etat: d.etat === 'prete' || d.etat === 'vide' || d.etat === 'echec' ? d.etat : 'echec' };
         if (d.etat === 'prete') {
           let texte = typeof d.texte === 'string' ? d.texte : null;
@@ -440,6 +443,10 @@ function installerPont(H, ctx) {
     if (!tr || !tr.configure) return res.json({ ok: false, raison: 'absente' });
     const conv = t.fils[b.fil], moi = stockage.personneParId(t.justin);
     if (!moi) return res.json({ ok: false, raison: 'introuvable' });
+    /* ⛔ défense en profondeur : le pont ne demande le texte QUE d'un vocal DE Justin, enregistré par lui — pas celui d'un autre membre du groupe, pas une copie transférée (`meta.tr`, auteur = Justin).
+       `nouveaux` ne les rend déjà pas ; ici, le calcul lui-même ne part pas (la page, elle, reste libre de transcrire ce que Justin voit). Un 200 `introuvable`, comme tout refus de cette route. */
+    const cible = stockage.messageATransferer(conv, b.seq, t.justin);
+    if (!cible || cible.type !== 'vocal' || cible.auteur !== t.justin || (cible.meta && cible.meta.tr)) return res.json({ ok: false, raison: 'introuvable' });
     const acc = creerAccepteur({ tr, quotas, config, horloge }, t.justin, moi);
     let r;
     try { r = stockage.transcriptionDemander({ conv, seq: b.seq, uid: t.justin, essaisMax: tr.essais(), dureeMaxS: tr.dureeMaxS(), accepter: acc.accepter }); }

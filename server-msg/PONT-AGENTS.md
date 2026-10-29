@@ -165,6 +165,7 @@ une machine, où des mots peuvent être faux.
 | 15 minutes sans texte | « …délai dépassé : il n'a pas été transmis. » — et si le texte arrive plus tard, il est quand même transmis |
 
 * **Il ne dépend pas de l'ordre de déploiement** : une Tour d'avant lit le vocal comme « autre » (la note d'avant) ; un service d'avant n'envoie pas l'événement `transcription`.
+* **Seule la voix de Justin entre.** Un vocal qu'il a TRANSFÉRÉ (la copie porte son nom, `meta.tr`) ou celui d'un autre membre du groupe n'est jamais lu comme « 🎤 » : `nouveaux` le rend « autre » (la note « ne lisent que le texte »), sans événement `transcription`, et `transcrire` répond `introuvable`.
 * **Supprimer le vocal** dans OP MESSAGES retire aussi son texte du registre (le lien est posé comme pour un texte). Le texte de plus de 2 400 signes (≈ deux minutes de parole) est coupé à un mot et marqué « […] ».
 * **Les vocaux en attente sont rangés avec le curseur** (`pont-messages.json`, champ `vocaux`) : un redémarrage de la Tour ne les oublie pas.
 * ⚠️ **Le texte du vocal va aux agents, donc à Anthropic, comme un texte écrit** (`sous-traitance.html`). La transcription, elle, se calcule sur notre serveur : aucune voix ne sort.
