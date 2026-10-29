@@ -136,7 +136,9 @@
 # 28 octobre 2026, les photos du pont (3094 § 9 : la route `/api/pont/avatar` sur le vrai service ; 3095 : les 21 photos de bout en bout ; test-905 étendu) : 200 suites, 12 643 vérifications mesurées par la commande de la porte
 # (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 12629 (le total moins 14, jamais une addition).
 # 28 octobre 2026, soir : la fonction de chaque contact sous son nom (test-3099) par-dessus les photos : 201 suites, 12 673 vérifications mesurées par la commande de la porte — plancher 12659.
-#plancher 12659
+# 29 octobre 2026, les vocaux de Justin lus par les agents (3094 § 11, 3095 § 3 bis, 1000/1001 le filet des transcriptions orphelines, 905) et « Écouter » (test-3130 : les vraies fonctions de la page contre une synthèse simulée) : 202 suites, 12 923 vérifications mesurées par la commande de la porte
+# (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 12909 (le total moins 14, jamais une addition).
+#plancher 12909
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

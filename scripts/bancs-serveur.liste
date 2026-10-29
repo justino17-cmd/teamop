@@ -75,7 +75,9 @@
 # 28 octobre 2026, les photos du pont (3096 § 7 : les 21 images, les envois, les refus, les fichiers absents) : 165 suites, 10 642 vérifications mesurées par la commande de la porte (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 10628 (le total moins 14, jamais une addition).
 # 28 octobre 2026 (« 35 courriers à traiter ») : 166 suites, 10 702 vérifications mesurées par la commande de la porte, toutes vertes, `test-3101` compris (93, après les relectures du gardien et de l’adverse) — plancher 10688 (le total moins 14, jamais une addition).
 # 28 octobre 2026, l'outil des espaces orphelins (test-3100 : 105 vérifications) : 166 suites, 10 710 vérifications mesurées par la commande de la porte (13 min), toutes vertes — plancher 10696 (le total moins 14, comme avant).
-#plancher 10696
+# 29 octobre 2026, les vocaux de Justin lus par les agents (test-3096 § 8 : la Tour contre un faux service — le texte du vocal, les refus qui se retentent, chaque issue DITE ; les règles 🎤 des agents) : 167 suites, 10 884 vérifications mesurées par la commande de la porte
+# (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 10870 (le total moins 14, jamais une addition).
+#plancher 10870
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
