@@ -164,8 +164,8 @@ const installs = () => etat.requetes.filter(x => x.url === '/api/pont/installer'
   {
     const n0 = toutPauline().length;
     horloge = Date.UTC(2026, 9, 29, 15, 0);   // 16 h Paris : trop tôt
-    envoyerReleve(releveDe([], [])); await vider();
-    v('avant 18 h (Paris) : pas de bilan', toutPauline().length - n0, 0);
+    envoyerReleve(releveDe([], [], { date: '2026-10-29' })); await vider();
+    v('avant 18 h (Paris), le relevé étant bien d\'aujourd\'hui : pas de bilan', toutPauline().length - n0, 0);
     horloge = Date.UTC(2026, 9, 29, 17, 30);
     envoyerReleve(releveDe([], [], { date: '2026-10-28' })); await vider();
     v('⛔ un relevé de la VEILLE (le Mac dormait) : pas de bilan', toutPauline().length - n0, 0);
@@ -228,6 +228,14 @@ const installs = () => etat.requetes.filter(x => x.url === '/api/pont/installer'
     const d2 = paulineMod.lireDec(); d2.decisions.r2.etat = 'fait'; paulineMod.rangerDec(d2);
     await lire([evenement(3201, 'NON ' + num2)]);
     vrai('⛔ un mail déjà traité sur le Mac : « NON <n> » ne réécrit rien et Pauline dit pourquoi', paulineMod.lireDec().decisions.r2.etat === 'fait' && /déjà|n’attend plus/.test(toutPauline().pop().texte));
+    // un mail annoncé qui n'attend plus l'accord (parti entre-temps) : « NON <n> » ne décide pas dessus
+    const cf4 = mail('r4'); envoyerReleve(releveDe([cf4], [ent('r4')])); await vider();
+    const num4 = /n°(\d+)/.exec(dePauline().filter(x => x.texte.includes('📬')).pop().texte)[1];
+    envoyerReleve(releveDe([Object.assign({}, cf4, { etat: 'envoye' })], [ent('r4')])); await vider();
+    await lire([evenement(3250, 'NON ' + num4)]);
+    vrai('⛔ un mail PARTI depuis son annonce : « NON <n> » ne crée aucune décision, et le dit', !paulineMod.lireDec().decisions.r4 && /n’attend plus ton accord/.test(toutPauline().pop().texte));
+    const route4 = decisionRoute({ id: 'r4', action: 'refuser' });
+    v('…et la route de la Tour répond la même chose (409)', [route4.code, /n’attend plus ton accord/.test(route4.corps.error)], [409, true]);
     // OK n : jamais d'accord
     const cf3 = mail('r3'); envoyerReleve(releveDe([cf3], [ent('r3')])); await vider();
     const num3 = /n°(\d+)/.exec(dePauline().filter(x => x.texte.includes('📬')).pop().texte)[1];
