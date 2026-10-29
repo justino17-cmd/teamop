@@ -644,7 +644,10 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await toucher(B, geste('retirer-demander', id.dan));
       await verifier('Ben (co-hôte) demande à retirer Dan : une CONFIRMATION nomme ce que ça fait (« ne pourra plus y revenir »)', B, () => /ne pourra plus y revenir/.test(document.getElementById('salle-panneau-corps').textContent), null, 6000);
       await toucher(B, geste('retirer-confirmer', id.dan));
-      await verifier('⛔ Dan est RETIRÉ : sa salle se ferme, la phrase de l\'hôte est dite', D, () => !document.documentElement.dataset.salle && /t'a retiré/.test(document.getElementById('mot').textContent), null, 12000, async () => 'salle=' + (await salleOuverte(D)) + ' mot=«' + (await motVu(D)) + '»');
+      /* décision du 26 octobre 2026 (4fa63795, « salle@4 ») : une salle qui se termine sous nos yeux laisse un ÉCRAN DE SORTIE (titre + raison du service + « Retour »), pas une phrase de 2,4 s */
+      await verifier('⛔ Dan est RETIRÉ : son écran de sortie dit « Tu as été retiré » avec la phrase de l\'hôte, ses médias sont lâchés', D, () => document.documentElement.dataset.sortie === '1' && /Tu as été retiré/.test(document.getElementById('sortie-titre').textContent) && /t'a retiré/.test(document.getElementById('sortie-raison').textContent), null, 12000, async () => 'sortie=«' + (await lire(D, '#sortie-ecran')) + '» salle=' + (await salleOuverte(D)));
+      await toucher(D, '#sortie-bouton');
+      await verifier('… « Retour » ferme la salle de Dan', D, () => !document.documentElement.dataset.salle && !document.documentElement.dataset.sortie, null, 8000);
       await fermer(B);
       for (const S of [A, B, C]) await verifier(S.nom + ' : la vignette de Dan a disparu (deux autres personnes restent)', S, () => document.querySelectorAll('#salle-scene > .salle-tuile[data-uid]').length === 2, null, 12000);
       const dm = await maille(D);
@@ -682,7 +685,9 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await verifier('Ana : « Eve attend d\'être admis. » (bandeau) et la pastille « 1 » sur Participants', A, () => /Eve attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent) && document.getElementById('salle-participants-n').textContent.trim() === '1', null, 12000, async () => '«' + (await lire(A, '#salle-bandeaux')) + '»');
       await panneau(A, 'participants');
       await toucher(A, geste('refuser', id.eve));
-      await verifier('⛔ Ana REFUSE : Eve est renvoyée avec la phrase de l\'hôte', E, () => document.documentElement.dataset.salle !== '1' && /pas accepté ta demande/.test(document.getElementById('mot').textContent), null, 12000, async () => 'mot=«' + (await motVu(E)) + '» salle=' + (await salleOuverte(E)));
+      await verifier('⛔ Ana REFUSE : Eve voit l\'écran « Tu n\'es pas entré » avec la phrase de l\'hôte (écran de sortie du 26 octobre 2026)', E, () => document.documentElement.dataset.sortie === '1' && /pas accepté ta demande/.test(document.getElementById('sortie-raison').textContent), null, 12000, async () => 'sortie=«' + (await lire(E, '#sortie-ecran')) + '» salle=' + (await salleOuverte(E)));
+      await toucher(E, '#sortie-bouton');
+      await verifier('… « Retour » la ramène à la conversation', E, () => !document.documentElement.dataset.salle && !document.documentElement.dataset.sortie, null, 8000);
       await fermer(A);
       await toucher(E, '#conv-salle');
       await avantPuisEntrer(E);
@@ -806,7 +811,12 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       /* la fin, et la fiche de l'hôte : le lien se copie, se renouvelle */
       await toucher(B, '#salle-quitter');
       await toucher(B, '[data-sa="terminer-confirmer"]');
-      for (const S of [A, B, C, D]) await sansSalle(S.nom + ' : la réunion est terminée pour lui', S, 15000);
+      /* décision du 26 octobre 2026 (4fa63795, « salle@10 ») : une RÉUNION qui finit laisse l'écran « Réunion terminée » (durée, présents, « Revenir à la conversation ») — la couche se ferme par son bouton */
+      for (const S of [A, B, C, D]) {
+        await verifier(S.nom + ' : l\'écran « Réunion terminée » est là', S, () => document.documentElement.dataset.sortie === '1' && /Réunion terminée/.test(document.getElementById('sortie-titre').textContent), null, 15000, async () => 'sortie=«' + (await lire(S, '#sortie-ecran')) + '» statut=«' + (await lire(S, '#salle-statut')) + '»');
+        await toucher(S, '#sortie-bouton');
+        await sansSalle(S.nom + ' : la réunion est terminée pour lui', S, 15000);
+      }
       /* ⛔ une séance TERMINÉE ne s'ouvre plus depuis la liste (Justin, 8 octobre 2026 : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus ») : l'organisateur
          rouvre sa fiche par son adresse (le lien de la conversation de la réunion y mène) */
       await B.page.evaluate(id => { location.hash = '#reunions/' + id; }, r.id);
