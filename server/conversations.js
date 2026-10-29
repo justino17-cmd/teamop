@@ -342,7 +342,7 @@ module.exports = function monterConversations(app, ctx) {
     if (cle && o.unique === true && messages.some(m => m.de === 'systeme' && m.fil === fil && m.cle === cle)) return { ok: false, raison: 'deja_dit' };
     const m = { id: crypto.randomBytes(6).toString('hex'), ts: now, fil, de: 'systeme', texte: t, niveau: 'info', lu: true, prof: 0, mentions: [] };
     if (cle) m.cle = cle;
-    if (!ajouter(m)) return { ok: false, raison: 'ecriture' };
+    if (!ajouter(m, o.sansEcho === true)) return { ok: false, raison: 'ecriture' };
     return { ok: true, id: m.id };
   }
 

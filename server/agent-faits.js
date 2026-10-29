@@ -75,6 +75,12 @@ const CODES = {
   point_du_jour:        { fait: 'publier le point du jour', echec: 'publier le point du jour', groupe: false },
   reunion_tenue:        { fait: 'tenir la réunion', echec: 'tenir la réunion', groupe: false },
   base_enrichie:        { fait: 'proposer une entrée pour la base de connaissances', echec: 'proposer une entrée pour la base de connaissances' },
+  /* LA COMPTA DE LA TOUR (Margaux, 28 octobre 2026) : SANS MONTANT, jamais — l'annonce dit qu'un point a été fait, pas ce qu'il dit. Les chiffres ne s'écrivent que dans le fil privé de Margaux. */
+  point_compta:         { fait: 'faire le point de la compta', echec: 'faire le point de la compta' },
+  factures_verifiees:   { fait: 'vérifier les factures Stripe', echec: 'vérifier les factures Stripe' },
+  calendrier_compta:    { fait: 'relire le calendrier de la compta', echec: 'relire le calendrier de la compta' },
+  reglage_compta:       { fait: 'noter un réglage de la compta', echec: 'noter un réglage de la compta' },
+  rappel_compta:        { fait: 'rappeler une échéance de la compta', echec: 'rappeler une échéance de la compta' },
 };
 /* La raison d'un échec : une liste, jamais le message d'une exception. */
 const RAISONS = { indisponible: 'service indisponible', hors_heures: 'hors des heures de travail', refus: 'refusé par un contrôle', pas_de_cle: 'clé absente', budget: 'budget atteint',

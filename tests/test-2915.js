@@ -56,7 +56,7 @@ function monde(claude, o) {
   const rm = m.recus[0];
   v('UN appel à Claude, celui de Margaux', [m.recus.length, nomDeRequete(rm)], [1, 'Margaux']);
   vrai('…les faits « facture » du dossier cité : statut, montant, jour — des nombres et une valeur de liste', /facture DOS-000001 \{"numero":"DOS-000001","nb":1,"factures":\[\{"statut":"paye","montantEur":15,"jour":1,"mois":10,"annee":2026\}\]\}/.test(rm.system));
-  vrai('…et sa mission : aucun remboursement, relancer, PRÉPARER la mise en demeure que seul Justin valide', /ne peux RIEN faire sur l’argent/.test(rm.system) && /on ne fera pas de remboursement/.test(rm.system) && /que seul Justin valide/.test(rm.system));
+  vrai('…et sa mission : aucun remboursement, relancer, PRÉPARER la mise en demeure que seul Justin valide', /ne rembourses JAMAIS/.test(rm.system) && /ne fais JAMAIS d’avoir/.test(rm.system) /* 28 octobre 2026 : la compta de la Tour — elle sait faire le point, jamais rembourser */ && /on ne fera pas de remboursement/.test(rm.system) && /que seul Justin valide/.test(rm.system));
   vrai('…Margaux répond elle-même', m.dit('clients').some(x => x[0] === 'margaux' && /payée, 15 €/.test(x[1])));
   m = monde(() => 'Je suis à jour.');
   await m.justin('margaux', 'Margaux, sur la compta, tu en es où ?');
