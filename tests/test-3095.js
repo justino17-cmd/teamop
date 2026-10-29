@@ -142,7 +142,7 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
     /* ── 1 · la Tour d'abord (OP MESSAGES absent), puis l'accès de Justin, puis OP MESSAGES ── */
     console.log('\n1. L\'historique est importé : une fois, avec ses dates et son état lu');
     const portOpm = await T.portLibre(), urlOpm = 'http://127.0.0.1:' + portOpm;
-    const PONT = { url: urlOpm, secret: SECRET, pasLireMs: 60, pasEnvoiMs: 40, attenteMaxMs: 400, vocalPasMs: 100, vocalDelaiMs: 6000 };
+    const PONT = { url: urlOpm, secret: SECRET, pasLireMs: 60, pasEnvoiMs: 40, attenteMaxMs: 400, vocalPasMs: 600, vocalDelaiMs: 6000 };
     tour = await lancerTour({ pont: PONT });
     const santeAvant = await tour.sante();
     v('le pont est monté : /health porte `pont` (deux nombres), et OP MESSAGES n\'est pas encore là', [typeof santeAvant.pont.echecMin, typeof santeAvant.pont.file, Object.keys(santeAvant.pont).sort()], ['number', 'number', ['echecMin', 'file']]);
@@ -318,6 +318,26 @@ const MESSAGES_SEED = HISTO.map((m, i) => ({ id: ID(i + 1), ts: T0 + i * 3600000
       vrai('⛔ …et ses règles aussi disent que 🎤 est un vocal transcrit par une machine (des mots peuvent être faux)', /commence par 🎤/.test(appelsL[0].systeme) && /VOCAL/.test(appelsL[0].systeme));
       /* le flux garde tout ce qu'il a reçu, et la section 5 attend « le premier message_supprime » : celui du vocal de Justin ne doit pas passer pour celui qu'elle provoque */
       for (let i = fluxJ.evenements.length - 1; i >= 0; i--) if (fluxJ.evenements[i].event === 'message_supprime') fluxJ.evenements.splice(i, 1);
+
+      /* ⛔ L'ORDRE DES VOCAUX DE JUSTIN SE GARDE (28 octobre 2026) : le 4e vocal d'une rafale (3 places par personne ici) est refusé « mes_vocaux » et attend sa reprise ; le 5e, qu'on dicte pile quand une
+         place se libère, ne doit pas passer devant lui. Le texte de chaque vocal PORTE SON NOM (l'ouvrier répond d'après les octets reçus, pas d'après son rang de libération) : le registre des agents
+         doit les lire dans l'ordre où Justin les a dits — sinon l'agent répond à l'envers. (La reprise dure 600 ms dans ce banc, 20 s en vrai.) */
+      const nomDe = (t) => { const m = /VOCAL3091-(ordre[0-9])/.exec(t.octets.toString('latin1')); return m ? m[1] : null; };
+      const relacherSonNom = async () => { await att(() => OUV.enAttente.length > 0); const t = OUV.enAttente.shift(); const nom = nomDe(t); t.repondre(200, { ok: true, texte: 'Victor, MARQ-' + nom + ' note ceci', langue: 'fr' }); return nom; };
+      const ordre0 = OUV.travaux.length;
+      for (const k of [1, 2, 3, 4]) { const r = await envoyerVocal('ordre' + k, 5); vrai('(population) le vocal ' + k + ' de la rafale est parti (201)', r.code === 201); }
+      vrai('(population) l\'ouvrier prend le premier calcul (il n\'en prend qu\'un à la fois : les deux suivants attendent dans la file du service, le 4e est refusé « mes_vocaux » par le pont)', !!(await att(() => OUV.travaux.length === ordre0 + 1)));
+      await dort(250);
+      const premier = await relacherSonNom();                               // une place se libère
+      await dort(100);
+      const r5 = await envoyerVocal('ordre5', 5);                           // …et Justin dicte le 5e juste à ce moment
+      vrai('(population) le 5e vocal est parti pendant que le 4e attend sa reprise', r5.code === 201 && premier === 'ordre1');
+      const sortis = [premier]; for (let i = 0; i < 4; i++) sortis.push(await relacherSonNom());
+      const rang = (nom) => (/ordre([0-9])/.exec(nom) || [])[1] | 0;
+      v('⛔ les calculs arrivent à l\'ouvrier dans l\'ordre où Justin a dicté (le 4e AVANT le 5e)', sortis, ['ordre1', 'ordre2', 'ordre3', 'ordre4', 'ordre5']);
+      await att(async () => (await tour.fil('victor')).filter(m => m.de === 'justin' && /MARQ-ordre[0-9]/.test(m.texte)).length === 5, 20000);
+      v('⛔ …et le registre des agents reçoit leurs textes dans le même ordre (l\'agent répond à Justin dans l\'ordre où il a parlé)',
+        (await tour.fil('victor')).filter(m => m.de === 'justin' && /MARQ-ordre[0-9]/.test(m.texte)).map(m => rang(m.texte.replace(/^.*MARQ-/, ''))), [1, 2, 3, 4, 5]);
     }
 
     /* ── 4 · personne d'autre que Justin ── */

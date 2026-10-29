@@ -325,6 +325,10 @@ module.exports = function creerPontMessages(o) {
   }
   /* Demander les textes des vocaux en attente, un par un, à la boucle de lecture : le service répond `{ ok, etat }` ou `{ ok:false, raison }` (toujours un 200 : un refus passager n'est pas une panne). */
   async function demanderVocaux() {
+    /* ⛔ L'ORDRE D'UNE CONVERSATION SE GARDE (28 octobre 2026) : un vocal refusé passagèrement (occupée, « mes vocaux », budget, indisponible) ou qui attend sa reprise RETIENT les vocaux suivants DU MÊME
+       FIL dans cette passe. Sans ça, avec deux places par personne, le 3e vocal d'une rafale attendait VOCAL_PAS_MS pendant que le 4e — jamais demandé — passait devant dès qu'une place se libérait :
+       le registre des agents recevait le texte du 4e avant celui du 3e, et ils répondaient à Justin dans l'ordre inverse de ce qu'il avait dit. Un autre fil n'attend personne. */
+    const retenus = new Set();
     for (const v of vocaux.slice()) {
       if (arrete) return;
       if (horloge() - v.depuis > VOCAL_DELAI_MS) {
@@ -332,7 +336,9 @@ module.exports = function creerPontMessages(o) {
         noteSysteme(v.fil, 'Ton vocal n’a pas été transcrit à temps (délai dépassé) : il n’a pas été transmis. Touche « Voir la transcription » sous ton vocal pour réessayer, et je le transmettrai.'); sauver();
         continue;
       }
-      if (v.demande || v.prochain > horloge()) continue;
+      if (v.demande) continue;                                    // sa demande est acceptée : il n'a pas à retenir les suivants (l'ouvrier les prend dans l'ordre d'arrivée)
+      if (retenus.has(v.fil)) continue;
+      if (v.prochain > horloge()) { retenus.add(v.fil); continue; }
       const r = await appeler('POST', '/api/pont/transcrire', { fil: v.fil, seq: v.seq });
       if (!r) return;                                             // OP MESSAGES ne répond pas : la boucle suivante
       if (r.statut === 409) return;                               // pas installé : la boucle réinstalle
@@ -343,7 +349,7 @@ module.exports = function creerPontMessages(o) {
       if (raison === 'absente') { vocalRetirer(v); compte.vocauxSansTexte++; noteSysteme(v.fil, 'La transcription des vocaux n’est pas installée sur le serveur : ton vocal n’a pas été transmis.'); }
       else if (raison === 'trop_long') { vocalRetirer(v); compte.vocauxSansTexte++; noteSysteme(v.fil, 'Ton vocal est trop long pour être transcrit : il n’a pas été transmis.'); }
       else if (raison === 'introuvable') vocalRetirer(v);       // supprimé entre-temps : rien à transmettre
-      else { v.prochain = horloge() + Math.max(VOCAL_PAS_MS, Math.min(300000, (Number(r.j.attente) || 0) * 1000)); }   // indisponible, occupee, mes_vocaux, budget : on retentera, dans le délai de 15 minutes
+      else { v.prochain = horloge() + Math.max(VOCAL_PAS_MS, Math.min(300000, (Number(r.j.attente) || 0) * 1000)); retenus.add(v.fil); }   // indisponible, occupee, mes_vocaux, budget : on retentera, dans le délai de 15 minutes
       sauver();
     }
   }

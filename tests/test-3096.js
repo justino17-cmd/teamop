@@ -628,6 +628,35 @@ const messagesEnvoyes = () => posts().flatMap(x => x.corps.messages);
     await lire3([{ type: 'message', fil: 'victor', seq: 7020, genre: 'autre', texte: null, ts: 1 }]);
     v('⛔ une photo, un sondage : toujours la ligne « Les agents ne lisent que le texte » (et aucune demande de transcription)', [notes().length - ph0, /ne lisent que le texte/.test(dernierNote()), appels().filter(a => a.seq === 7020).length], [1, true, 0]);
     p3.arreter();
+
+    /* ⑩ ⛔ L'ORDRE D'UNE CONVERSATION SE GARDE (relecture, 28 octobre 2026). Avec deux places par personne, le 3e vocal d'une rafale est refusé "mes_vocaux" et attend VOCAL_PAS_MS ; le 4e, jamais encore
+       demandé, l'était aussitôt dans la MÊME passe — et prenait la place si elle venait de se libérer : le registre des agents recevait le texte du vocal 4 avant celui du vocal 3, et ils répondaient
+       dans l'ordre inverse de ce que Justin avait dit. Un vocal refusé (passagèrement) retient donc les suivants DU MÊME FIL ; un autre fil n'attend personne. Le service est ici un faux qui DIT ce que le
+       banc veut — la place « se libère » pile entre les deux demandes, ce que le vrai ouvrier ne fait qu'au hasard du moment. */
+    const p10 = await neuf('p10'); await p10._envoyer(); await p10._lire(); await p10._attendreFini();
+    const lire10 = async (evs) => { etat.evenements = evs.map(e => Object.assign({ gid: ++gid }, e)); etat.curseur = gid; await p10._lire(); await p10._envoyer(); };
+    const sequence = () => appels().map(a => a.fil + '#' + a.seq);
+    let place = 2;                                                   // les places de Justin : les deux premiers vocaux les prennent, le troisième est refusé, puis une place se libère
+    etat.transcrire = (j) => {
+      if (j.seq === 8003 && place === 0) { place = 1; return { corps: { ok: false, raison: 'mes_vocaux' } }; }            // refus de CE vocal-là, et la place se libère aussitôt après
+      if (place > 0) { place--; return { corps: { ok: true, etat: 'attente' } }; }
+      return { corps: { ok: false, raison: 'mes_vocaux' } };
+    };
+    etat.requetes.length = 0;
+    await lire10([vocal(8001), vocal(8002), vocal(8003), vocal(8004), vocal(8101, 'lea')]);
+    v('⛔ quatre vocaux en rafale dans UN fil : le 3e est refusé, le 4e n\'est PAS demandé dans la même passe (il ne passe pas devant) — un vocal d\'un AUTRE fil, lui, l\'est',
+      [sequence(), p10._etat().vocauxEnAttente, p10._etat().vocauxDemandes], [['victor#8001', 'victor#8002', 'victor#8003', 'lea#8101'], 5, 3]);
+    await p10._lire();
+    v('…et tant que le délai de reprise du 3e n\'est pas écoulé, le 4e attend toujours (aucune demande de plus)', sequence().length, 4);
+    horloge += 130000; etat.requetes.length = 0; place = 5;
+    await p10._lire();
+    v('⛔ le délai écoulé : le 3e est redemandé D\'ABORD, puis le 4e — l\'ordre de Justin', sequence(), ['victor#8003', 'victor#8004']);
+    v('…et plus rien n\'attend de demande', [p10._etat().vocauxDemandes, p10._etat().vocauxEnAttente], [5, 5]);
+    /* le texte de chaque vocal porte SON nom : le registre les reçoit dans l'ordre où ils ont été dits */
+    const rJ0 = registreJ().length;
+    await lire10([texteDe(8001, 'un-8001'), texteDe(8002, 'deux-8002'), texteDe(8003, 'trois-8003'), texteDe(8004, 'quatre-8004')]);
+    v('(contre-épreuve) les quatre textes entrent au registre dans l\'ordre des vocaux', registreJ().slice(rJ0).map(m => m.texte.replace('🎤 ', '')), ['un-8001', 'deux-8002', 'trois-8003', 'quatre-8004']);
+    p10.arreter();
   }
 
   /* ⑨ ⛔ la conversation GÉNÉRIQUE des agents (`agent-conversation.js`, servie quand la messagerie des agents n'est pas montée) porte, elle aussi, la règle « 🎤 = vocal transcrit par une machine »
