@@ -19,9 +19,10 @@ le relevé de Pauline (Tour) donne nos propres taux (envoyés, réponses, refus)
 - **Espacer** : la relance 1 après plusieurs jours ouvrés, la relance 2 une semaine plus tard. Éviter le lundi matin et le vendredi après-midi **[repère d'usage, à mesurer chez nous]**.
 - **Chaque message tient seul** (on n'a peut-être pas lu les précédents) et **n'ajoute qu'une seule idée neuve** : un autre angle, un exemple de rapport, une précision utile (par exemple le registre pour les anti-nuisibles).
 - Une relance ne rappelle pas le silence : pas de « je n'ai pas eu de nouvelles », « avez-vous vu mon message », « je me permets de relancer ». Ces formules culpabilisent et ne donnent aucune raison de répondre.
-- **La dernière relance, si elle existe, est un adieu** : une phrase qui reconnaît que ce n'est peut-être pas le moment, une précision utile, la porte laissée ouverte. Puis **plus rien**. Le tenir est une règle, pas une tactique.
+- **Les relances de Pauline rappellent l'offre** (29 octobre 2026) : 5 à 8 lignes, OP GESTION en une phrase, un bénéfice concret **différent** à chaque relance, `teamop.fr/tarifs.html` et `teamop.fr/demo.html`, la proposition de démonstration. Exemples dans `../../prospecting/references/exemples-courriels.md`.
+- **La dernière relance, si elle existe, rappelle l'offre une dernière fois et dit honnêtement que c'est la dernière** : pas de « nous en restons là » qui ne dit rien de l'offre, une précision utile (un bénéfice, les tarifs), la porte laissée ouverte. Puis **plus rien**. Le tenir est une règle, pas une tactique.
 
-Exemple de clôture (forme d'un courriel d'agent, sans lien ni signature) :
+Exemple de clôture d'un agent du serveur (forme brève, sans lien ni signature ; celle de Pauline est dans `exemples-courriels.md`) :
 ```
 Bonjour,
 

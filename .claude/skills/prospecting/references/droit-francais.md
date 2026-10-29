@@ -55,7 +55,7 @@ professionnel de l'entreprise ou dans son annuaire professionnel est une adresse
 5. **Le droit de s'y opposer, dit clairement et à part** (RGPD art. 21 §4 : « explicitement porté à l'attention de la personne […] présenté
    clairement et séparément de toute autre information ») : une ligne à elle, pas noyée dans la signature. Moyen **gratuit et simple** :
    répondre « stop » suffit **si quelqu'un traite vraiment la réponse** (aujourd'hui personne ne le fait automatiquement : voir §5) ; un lien de désinscription est préférable.
-6. **Un objet fidèle** et un message **court** (voir `cold-email`).
+6. **Un objet fidèle** et un message **utile** : complet pour un premier courriel de Pauline (présentation, détail, tarifs, démonstration), bref pour une relance (voir `cold-email`). La longueur n'est pas une exigence du droit ; l'identification, l'origine de l'adresse et l'opposition le sont.
 7. Pas de pièce jointe, pas de pixel de suivi (voir `cold-email/references/delivrabilite.md`).
 
 ## 4. Le téléphone (B2C seulement, et TeamOP n'en fait pas faire à un agent)

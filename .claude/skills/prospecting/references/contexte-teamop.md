@@ -36,6 +36,9 @@ brouillon que Justin valide (ou par la charte « repondre_client » qu'il a ouve
 
 ## La forme d'un courriel d'agent (déjà imposée par le serveur — ne pas la contredire)
 
+⚠️ **Valable pour Léa, Camille, Chloé (agents du serveur). PAULINE (Harvey) fait exception depuis le 29 octobre 2026** : son premier courriel est complet (présentation, fonctions du métier, tarifs publics, démonstration, appel à l'action,
+avec les liens `https://teamop.fr/tarifs.html` et `https://teamop.fr/demo.html`) ; ses relances rappellent l'offre. Voir `exemples-courriels.md` et `cold-email/SKILL.md`. Les règles de droit (§3 de `droit-francais.md`) restent entières.
+
 D'après `FORME` dans `server/agents-connaissance.js` :
 - au nom de l'entreprise (« nous »), **en français, au vouvoiement** ;
 - « **Bonjour,** » (jamais un prénom ni un nom : l'agent n'en connaît pas) ... « **Bien cordialement,** » ;

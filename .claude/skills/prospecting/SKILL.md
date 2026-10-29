@@ -1,6 +1,6 @@
 ---
 name: prospecting
-description: "Trouver, qualifier et préparer une liste d'entreprises à contacter pour TeamOP (artisans et entreprises de terrain : nettoyage, plomberie, électricité, chauffage-climatisation, anti-nuisibles…), dans le cadre du droit français (RGPD, CPCE L34-5, CNIL). À utiliser pour « prospecter », « construire une liste de prospects », « trouver des entreprises », « cibler un métier ou une ville », « qualifier ce prospect », « rechercher cette entreprise avant de lui écrire », « signaux d'achat », « revoir le travail de Pauline », « qui contacter en premier ». Toujours vérifier la base légale et la source avant d'écrire à quelqu'un ; ne jamais aspirer LinkedIn ni Google Maps en masse ; ne jamais deviner une adresse nominative. Pour rédiger le message lui-même, voir cold-email. EN: find, qualify and prepare a French B2B prospect list under French rules."
+description: "Trouver, qualifier et préparer une liste d'entreprises à contacter pour TeamOP (artisans et entreprises de terrain : nettoyage, plomberie, électricité, chauffage-climatisation, anti-nuisibles…), dans le cadre du droit français (RGPD, CPCE L34-5, CNIL). À utiliser pour « prospecter », « construire une liste de prospects », « trouver des entreprises », « cibler un métier ou une ville », « qualifier ce prospect », « rechercher cette entreprise avant de lui écrire », « signaux d'achat », « revoir le travail de Pauline », « qui contacter en premier ». Toujours vérifier la base légale et la source avant d'écrire à quelqu'un ; ne jamais aspirer LinkedIn ni Google Maps en masse ; ne jamais deviner une adresse nominative. Pour rédiger le message lui-même, voir cold-email et references/exemples-courriels.md. EN: find, qualify and prepare a French B2B prospect list under French rules."
 metadata:
   version: 1.5.0-teamop
   source: coreyhaines31/marketingskills v2.13.9 (MIT) — traduit et adapté, voir PROVENANCE-marketingskills.md
@@ -97,12 +97,17 @@ recherche** (branche, cible, zone, date) · **Ce que je n'ai pas pu vérifier**.
 8. **Se limiter soi-même** : espacer les requêtes, ne pas se faire passer pour un robot qu'on n'est pas.
 9. **Un refus est définitif** : toute entreprise ou personne qui a dit non est « Écarter » pour toujours (`references/droit-francais.md` §5).
 
+## Ce que Pauline écrit (29 octobre 2026)
+
+Le premier courriel de Pauline n'est pas une question : il **présente TeamOP et OP GESTION, détaille ce que l'application apporte au métier visé, donne les tarifs publics et propose une démonstration**. Ses relances rappellent l'offre avec un bénéfice
+différent à chaque fois. Deux exemples complets (nettoyage, plomberie) et leur grille de contrôle : `references/exemples-courriels.md`. Aucun contrôle du serveur ni de la relève ne borne la longueur ; la règle est dans `cold-email/SKILL.md`.
+
 ## Revoir le travail de Pauline
 
 Pauline (Harvey, sur le Mac de Justin) envoie à la Tour un relevé toutes les 15 minutes : recherches, entreprises trouvées, courriels, réponses, chiffres du jour.
 Quand Justin demande « qu'est-ce qu'elle a fait / est-ce que c'est bien » : lire ce relevé, puis vérifier **sur cinq entreprises prises au hasard** — la coordonnée
 est-elle publique et professionnelle ? la source est-elle datée ? l'entreprise est-elle dans la cible ? le texte dit-il d'où vient l'adresse et comment se
-désinscrire ? Rendre un constat chiffré (« 4 sur 5 conformes, la cinquième : adresse nominative sans source »), jamais « ça a l'air bien ».
+désinscrire ? présente-t-il TeamOP et OP GESTION, les fonctions du métier, les tarifs et la démonstration (grille de `references/exemples-courriels.md`) ? Rendre un constat chiffré (« 4 sur 5 conformes, la cinquième : adresse nominative sans source »), jamais « ça a l'air bien ».
 
 ## Erreurs fréquentes
 
