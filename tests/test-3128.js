@@ -87,7 +87,7 @@ for (const [metier, defs] of [['plomberie', ['devis-depannage', 'note-depannage'
     W.docmForm(id, { cid: 'c1', iid: def.portee === 'intervention' ? 'i1' : '' });
     const h = W.__modals[0] || '';
     vrai(metier + ' / ' + id + ' : le formulaire s\'ouvre, chaque champ visible y est (' + W.docmChamps(def).filter(c => !c.si).length + ')', W.__modals.length === 1 && W.docmChamps(def).filter(c => !c.si).every(c => h.indexOf('id="docm-' + c.k + '"') >= 0 || c.t === 'lignes' && h.indexOf('id="docm-lignes"') >= 0), def.champs.filter(c => !c.si && h.indexOf('id="docm-' + c.k + '"') < 0).map(c => c.k));
-    vrai('   rien n\'est écrit à l\'ouverture, l\'aide du document et ses sources sont là, aucun mot d\'anti-nuisibles', W.__saves === 0 && W.db.docsMetier.length === 0 && h.indexOf(def.aide.slice(0, 40).replace(/&/g, '&amp;')) >= 0 && /Repères réglementaires et sources/.test(h) && !ANTI.test(h.replace(/Aqua/g, '')), h.match(ANTI));
+    vrai('   rien n\'est écrit à l\'ouverture, l\'aide du document et ses sources sont là, aucun mot d\'anti-nuisibles', W.__saves === 0 && W.db.docsMetier.length === 0 && h.indexOf(def.aide.slice(0, 40).replace(/&/g, '&amp;')) >= 0 && (W.docmMentionsVisibles(def).length ? /Repères réglementaires et sources/.test(h) : !/Repères réglementaires et sources/.test(h)) && !/à confirmer — jamais imprimé|Recherche [AB] §|non relu|Légifrance non ouvert/.test(h) && !ANTI.test(h.replace(/Aqua/g, '')), h.match(ANTI));
     const acte = W.docmActeCreer(def), R = mk(metier, { droits: { [def.droit + '.' + acte]: false } }); R.docmForm(id, { cid: 'c1' });
     vrai('   sans la case « ' + def.droit + ' · ' + acte + ' », le formulaire ne s\'ouvre pas et le dit', R.__modals.length === 0 && R.__toasts.some(t => /n.est pas autorisé/.test(t)));
     const V = mk(metier, { clientsVisibles: ['c2'] }); V.docmForm(id, { cid: 'c1' });
@@ -237,7 +237,7 @@ console.log('\n── 3128 · 5. la note de dépannage — reprise du devis, opp
   vrai('⛔ à la demande du client, son nom et son adresse ne figurent pas sur la note', !r.err && !/M\. et Mme Durand/.test(t) && !/3 allée des Chênes/.test(t.replace(/Lieu d’exécution[^|]*\| [^|]*/, '')) && /non porté/.test(t), t.slice(0, 220));
   vrai('la note imprime sa mention lue (deux exemplaires, avant paiement) et pas celle de « sous 25 € » (non confirmée)', /deux exemplaires, avant tout paiement/.test(t) && !/sous 25/i.test(t) && !/si le client la demande/.test(t));
   W.docmForm('note-depannage', { cid: 'c1' }); W.docmW.lignes = [{ id: 'a', d: 'Joint', pu: '5', u: '', q: '1' }]; W.docmW.v.tva = '10';
-  vrai('l\'écran dit « à partir de 25 € TTC » à 25 € et plus, et ne l\'affirme pas en dessous', /À partir de 25 € TTC : la note est à remettre/.test((W.docmW.lignes[0].pu = '30', W.docmTotHtml(W.docmDef('note-depannage')))) && /à confirmer/.test((W.docmW.lignes[0].pu = '5', W.docmTotHtml(W.docmDef('note-depannage'))))); }
+  vrai('l\'écran dit « à partir de 25 € TTC » à 25 € et plus ; en dessous la note est facultative (source INC, lue : plus de « à confirmer »)', /À partir de 25 € TTC : la note est à remettre/.test((W.docmW.lignes[0].pu = '30', W.docmTotHtml(W.docmDef('note-depannage')))) && (t5 => /facultative, à remettre si le client la demande/.test(t5) && !/à confirmer/.test(t5))((W.docmW.lignes[0].pu = '5', W.docmTotHtml(W.docmDef('note-depannage'))))); }
 
 console.log('\n── 3128 · 6. le rapport d\'étanchéité — les relevés de l\'intervention s\'écrivent par la MÊME fonction ──');
 { const W = mk('plomberie'); W.docmForm('rapport-etancheite', { cid: 'c1', iid: 'i1' });

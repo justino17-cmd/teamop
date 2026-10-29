@@ -245,7 +245,7 @@ console.log('\n── 3129 · 5. les droits, les clients qu\'on ne voit pas, les
     const c = W.docmChamps(W.docmDef('devis-depannage')).map(x => x.k);
     vrai('⛔ deux métiers (serrurerie + électricité) : les champs des DEUX apparaissent, le devis est proposé une fois', c.includes('situation') && c.includes('installation') && W.docmDefsDuMetier().filter(x => x.id === 'devis-depannage').length === 1); }
   { const W = mk('multiservices'); W.docmForm('devis-depannage', { cid: 'c1' }); ouvre(W);
-    vrai('multiservices : la mise en garde « hors liste de l\'arrêté » est à l\'écran, étiquetée « à confirmer » ; chez l\'électricien elle n\'y est pas', /montage d’un meuble/.test(W.__modals[0]) && (() => { const E = mk('electricite'); E.docmForm('devis-depannage', { cid: 'c1' }); return !/montage d’un meuble/.test(E.__modals[0]); })()); }
+    vrai('multiservices : la mise en garde « hors liste de l\'arrêté » est à l\'écran de la bêta, étiquetée « à confirmer » ; chez l\'électricien elle n\'y est pas', (() => { const Bm = mk('multiservices', { beta: true }); Bm.docmForm('devis-depannage', { cid: 'c1' }); return /montage d’un meuble/.test(Bm.__modals[0]); })() && (() => { const E = mk('electricite', { beta: true }); E.docmForm('devis-depannage', { cid: 'c1' }); return !/montage d’un meuble/.test(E.__modals[0]); })()); }
   { const W = mk('paysagiste'); const ent = Object.assign({}, ENT);
     vrai('⛔ attestation fiscale : MASQUÉE tant que l\'entreprise n\'est pas déclarée « services à la personne » (ni bouton, ni formulaire, ni démonstration)', !W.docmDefsDuMetier().some(x => x.id === 'attestation-fiscale') && W.docmSectionClient(BASE().clients[0]).indexOf('attestation-fiscale') < 0 && (W.docmForm('attestation-fiscale', { cid: 'c1' }), W.__modals.length === 0));
     W.currentUser = { id: 'u1', role: 'technicien' }; vm.runInContext("currentUser={id:'u1',role:'technicien'}", W); W.docmReglageSet('servicesPersonne', true);
@@ -255,6 +255,25 @@ console.log('\n── 3129 · 5. les droits, les clients qu\'on ne voit pas, les
     vrai('… le réglage ne se propose qu\'aux métiers qui ont un tel document (le paysagiste oui, l\'électricien non)', W.docmReglages().length === 1 && mk('electricite').docmReglages().length === 0);
     vrai('… un réglage inconnu ne s\'écrit pas', (W.docmReglageSet('autreChose', true), !(W.db.entreprise && W.db.entreprise.autreChose))); } }
 
+console.log('\n── 3129 · 5 bis. ⛔ « Repères réglementaires et sources » : ce que le CLIENT lit (constat 5 du 28 octobre) ──');
+{ const MOTS_DE_TRAVAIL = /\blue?s?\b|\bnon (ouvert|lu|relu)|à relire|à (re)?confirmer|Recherche [AB]\b|Recensement|secondaire|Légifrance non|403|via AIDA/i;
+  const toutes = DEFS_TOUS.flatMap(d => (d.mentions || []).map(m => [d.id, m]));
+  vrai('(population) ' + toutes.length + ' mentions, dont des lues et des « à confirmer »', toutes.length > 150 && toutes.some(([, m]) => m.verifie === true) && toutes.some(([, m]) => !m.verifie), toutes.length);
+  const mal = toutes.filter(([, m]) => m.verifie === true && MOTS_DE_TRAVAIL.test(m.source)).map(([id, m]) => id + ' : ' + m.source);
+  vrai('⛔ aucune mention LUE ne porte un mot de travail dans sa source (« lu », « non relu », « Recherche B §… », « secondaire ») : une référence publique — texte, article, lien', mal.length === 0, mal.slice(0, 5));
+  vrai('… toutes les mentions lues ont une source non vide', toutes.filter(([, m]) => m.verifie === true).every(([, m]) => String(m.source || '').trim().length > 5));
+  let nProd = 0, nBeta = 0, fuites = [], manquent = [];
+  for (const d of DEFS.filter(x => !x.reglage)) { const metier = d.metiers.find(m => AUTRES.includes(m));
+    const P = mk(metier), B = mk(metier, { beta: true }); P.docmForm(d.id, { cid: 'c1', iid: d.portee === 'intervention' ? 'i1' : '' }); B.docmForm(d.id, { cid: 'c1', iid: d.portee === 'intervention' ? 'i1' : '' });
+    const sect = h => (/<details[\s\S]*?<\/details>/.exec(h) || [''])[0], hp = sect(P.__modals[0] || ''), hb = sect(B.__modals[0] || '');; /* la section des repères seulement : l'aide du document dit parfois la même phrase */ const non = (d.mentions || []).filter(m => !m.verifie && P.docmPourOk(m));
+    nProd++; if (non.length) nBeta++;
+    if (/à confirmer — jamais imprimé/.test(hp) || non.some(m => hp.indexOf(P.esc(m.texte).slice(0, 40)) >= 0)) fuites.push(d.id);
+    if (non.length && !/à confirmer — jamais imprimé/.test(hb)) manquent.push(d.id); }
+  vrai('⛔ en version publique (' + nProd + ' documents), AUCUNE mention « à confirmer » n\'est montrée au client', fuites.length === 0, fuites);
+  vrai('… sur la bêta (' + nBeta + ' documents qui en ont), elles restent visibles : c\'est l\'outil de l\'équipe', manquent.length === 0 && nBeta > 20, manquent);
+  const N = mk('plomberie'); N.docmForm('note-depannage', { cid: 'c1', iid: 'i1' });
+  vrai('⛔ la note avant paiement : la règle des 25 € TTC est une mention LUE (source INC) — facultative en dessous, sauf demande expresse', N.docmDef('note-depannage').mentions.some(m => m.verifie === true && /Sous 25 € TTC.*facultative/.test(m.texte) && /inc-conso\.fr/.test(m.source)) && !N.docmDef('note-depannage').mentions.some(m => /non confirmé|question parlementaire/.test(m.texte)));
+}
 console.log('\n── 3129 · 6. les tableaux, la situation de travaux, le chlore combiné, les relevés écrits par la même fonction ──');
 { const W = mk('incendie'); W.docmForm('rapport-incendie', { cid: 'c1', iid: 'i1' }); ouvre(W); const def = W.docmDef('rapport-incendie'), c = def.champs.find(x => x.k === 'appareils');
   vrai('tableau : une ligne vide à l\'ouverture (jamais écrite telle quelle), autant de colonnes que la définition', W.docmW.tab.appareils.length === 1 && W.docmW.tab.appareils[0].c.length === c.cols.length && W.docmW.tab.appareils[0].c.every(x => x === ''));

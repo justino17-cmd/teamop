@@ -40,6 +40,7 @@ function monter(opts) {
     __today: o.today || '2026-10-28', __visibles: o.clientsVisibles || null, __n: 0, setTimeout: () => 0, __mails: [], __windows: [], __mailOk: true,
     __forms: {}, __els: {}, __pack: o.pack || { presta: ['Aspiration des sols', 'Lavage des sols'] }, __noPopup: false, __confirm: true, __techs: o.techs || {},
     __logoOk: o.logo !== false, __entete: o.entete || { nom: 'Éclat Propreté', couleur: '#1E7A4E', logo: '', adresse: '4 rue du Port', cp: '17000', ville: 'La Rochelle', siret: '123 456 789 00012', tel: '05 46 00 00 00', email: 'contact@eclat.test' } };
+  if (o.beta !== undefined) W.BETA_ESSAI = !!o.beta;   // la bêta montre aussi les mentions « à confirmer » (docmMentionsVisibles)
   W.db = cdc(o.db || { clients: [], interventions: [], contrats: [], cahiers: [], plansPrevention: [] });
   vm.createContext(W);
   vm.runInContext(`
