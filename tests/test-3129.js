@@ -277,6 +277,17 @@ console.log('\n── 3129 · 4 quinquies. ⛔ AUCUN SEUIL DE DATE NON RELU dans
   vrai('⛔ aucun type, aucune prestation, aucun relevé, aucun document d\'aucun métier ne porte un seuil de date (« si le bâtiment est concerné »)', lib.length === 0, lib.slice(0, 5));
   const AM = DEFS_TOUS.filter(d => d.id === 'suivi-amiante' || d.id === 'dossier-chantier');
   vrai('les mentions du repérage amiante (suivi, dossier de chantier) sont « à relire » : le critère d\'application n\'est pas imprimé', AM.length === 2 && AM.every(d => (d.mentions || []).filter(m => /amiante/i.test(m.texte)).every(m => m.verifie === false && !m.pdf)), AM.map(d => d.id)); }
+console.log('\n── 3129 · 4 sexies. ⛔ UNE PÉRIODICITÉ NON RELUE NE S\'ÉCRIT PAS DANS UN LIBELLÉ (constat 11 du 28 octobre) ──');
+{ const norm = t => { const x = String(t).toLowerCase(), o = []; if (/annuel|chaque année|tous les ans|par an/.test(x)) o.push('annuel'); if (/semestr/.test(x)) o.push('semestriel'); if (/trimestr|tous les trois mois/.test(x)) o.push('trimestriel'); if (/mensuel|chaque mois/.test(x)) o.push('mensuel'); if (/dix ans|décennal/.test(x) && !/décennale/.test(x)) o.push('dix ans'); return o; };
+  const REF = evalue(litteral(N, 'const METIERS={')); const mal = []; let nMetiers = 0, nJetons = 0;
+  /* les périodicités que les mentions « à confirmer » d'un métier citent — et que PERSONNE n'a lues */
+  const NON_LUES = {}; DEFS_TOUS.forEach(d => d.metiers.forEach(k => (d.mentions || []).filter(m => !m.verifie).forEach(m => { NON_LUES[k] = (NON_LUES[k] || new Set()); norm(m.texte).forEach(j => NON_LUES[k].add(j)); })));
+  const LUES = {}; DEFS_TOUS.forEach(d => d.metiers.forEach(k => (d.mentions || []).filter(m => m.verifie === true).forEach(m => { LUES[k] = (LUES[k] || new Set()); norm(m.texte).forEach(j => LUES[k].add(j)); })));
+  Object.keys(NON_LUES).forEach(k => { if (!REF[k]) return; nMetiers++; nJetons += NON_LUES[k].size;
+    [['types', REF[k].types], ['presta', REF[k].presta], ['documents', REF[k].documents]].forEach(([f, L]) => (L || []).forEach(t => norm(t).forEach(j => { if (NON_LUES[k].has(j) && !(LUES[k] && LUES[k].has(j))) mal.push(k + '/' + f + ' : « ' + t + ' » (' + j + ' : non lu)'); }))); });
+  vrai('(population) ' + nMetiers + ' métiers qui portent des mentions « à confirmer », ' + nJetons + ' périodicités non lues recensées', nMetiers > 10 && nJetons >= 4, [nMetiers, nJetons]);
+  vrai('⛔ aucun type, aucune prestation, aucun document ne porte une périodicité que seule une mention « à confirmer » du même métier cite (extincteurs, câbles, parachutes…)', mal.length === 0, mal.slice(0, 6));
+  vrai('contre-épreuve du banc : l\'ancien libellé « Révision des extincteurs (tous les dix ans) » serait refusé', NON_LUES.incendie && NON_LUES.incendie.has('dix ans') && norm('Révision des extincteurs (tous les dix ans)').includes('dix ans') && NON_LUES.ascenseurs && NON_LUES.ascenseurs.has('semestriel') && norm('Examen semestriel des câbles').includes('semestriel')); }
 console.log('\n── 3129 · 5. les droits, les clients qu\'on ne voit pas, les champs propres à un métier ──');
 { for (const d of DEFS.filter(x => !x.reglage)) {
     const metier = d.metiers.find(m => AUTRES.includes(m));

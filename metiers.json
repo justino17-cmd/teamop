@@ -3548,7 +3548,7 @@
     "secteurs": "Pour répartir les zones de tournée entre vérificateurs."
    },
    "types": [
-    "Vérification annuelle des extincteurs",
+    "Vérification des extincteurs",
     "Vérification du désenfumage",
     "Vérification des RIA (robinets d'incendie armés)",
     "Vérification de l'alarme incendie",
@@ -3556,9 +3556,9 @@
     "Installation",
     "Dépannage urgent",
     "Formation du personnel (extincteurs, évacuation)",
-    "Contrat de vérification annuelle",
+    "Contrat de vérification",
     "Visite technique / devis",
-    "Révision des extincteurs (tous les dix ans)"
+    "Révision des extincteurs"
    ],
    "presta": [
     "Contrôle visuel",
@@ -4190,8 +4190,8 @@
     "Remise en service après arrêt",
     "Report dans le carnet d'entretien",
     "Vérification des serrures de portes palières",
-    "Examen semestriel des câbles",
-    "Vérification annuelle des parachutes",
+    "Examen des câbles",
+    "Vérification des parachutes",
     "Nettoyage de la cuvette et du toit de cabine",
     "Contrôle du local des machines",
     "Déblocage de personnes"
@@ -5518,7 +5518,7 @@
    },
    "types": [
     "Installation",
-    "Entretien annuel",
+    "Entretien de l’installation",
     "Régénération",
     "Remplacement de cartouche",
     "Désinfection de circuit",
