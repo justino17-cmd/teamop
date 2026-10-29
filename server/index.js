@@ -2503,7 +2503,7 @@ const MON_GESTES = {
   'conversations/groupe': 'a personnalisé ou remis par défaut un groupe de la messagerie des agents',
   /* Pauline (Harvey, Mac) : un accord qui fait partir un courriel vers un prospect laisse sa trace (relecture de gardien) — la cible est l'identifiant du courriel, jamais son texte */
   'pauline/decision': 'a accepté, modifié ou refusé un courriel de Pauline',
-  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/camille/arriere': 'a demandé à Camille de reprendre l’arriéré du courrier', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
+  'agents/reunions/lancer': 'a lancé une réunion de l’équipe d’agents', 'agents/revue/lancer': 'a lancé la revue du week-end de l’équipe d’agents', 'agents/revue/retirer': 'a retiré une règle de travail d’un agent', 'agents/reunions/annuler': 'a annulé une réunion prévue de l’équipe d’agents', 'agents/camille/arriere': 'a demandé à Camille de reprendre l’arriéré du courrier', 'agents/lecons/retirer': 'a retiré une leçon d’un agent',
   /* Hugo, Margaux, Emma, Sarah (23 octobre 2026) : le patron seul règle, déclenche et corrige */
   'agents/documents/modifier': 'a corrigé un courriel, une mise en demeure ou une annonce d’un agent avant de la valider', 'agents/margaux/passer': 'a fait passer Margaux (relances d’impayé)',
   'agents/emma/disponibilites': 'a réglé les disponibilités d’Emma', 'agents/emma/proposer': 'a demandé à Emma de proposer des créneaux à un prospect', 'agents/sarah/rediger': 'a demandé à Sarah de rédiger une annonce aux clients',
