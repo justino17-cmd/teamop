@@ -43,7 +43,7 @@ const peupler = (W) => {
   d.clients.push({ id: 'c1', nom: 'Client démo', demo: 1 }, { id: 'c2', nom: 'Mon vrai client' });
   d.techniciens.push({ id: 't1', nom: 'Démo', demo: 1 }, { id: 't2', nom: 'Vrai tech' });
   CATALOGUE.slice(0, 10).forEach(c => d.produits.push({ id: idCat(c[0]), nom: c[0], categorie: c[1] }));
-  d.produits.push({ id: 'p_perso', nom: 'Mon produit à moi', perso: true }, { id: 'p_libre', nom: 'Produit libre' });
+  d.produits.push({ id: 'p_perso', nom: 'Mon produit à moi', perso: true }, { id: 'p_libre', nom: 'Produit libre' }, { id: idCat(CATALOGUE[20][0]), nom: CATALOGUE[20][0], perso: true });   // le dernier porte le nom d'une référence du catalogue mais VIENT de la saisie (`perso`) : il reste
   FOURS_3D.slice(0, 3).forEach(f => d.fournisseurs.push({ id: 'f' + f.nom, nom: f.nom }));
   d.fournisseurs.push({ id: 'fperso', nom: 'Grossiste du coin' });
   d.cahiers.push({ id: 'ca1', demo: 1 }); d.docsMetier.push({ id: 'dm1', demo: 1 }, { id: 'dm2' }); d.appareils.push({ id: 'a1', demo: 1 }, { id: 'a2' });
@@ -57,8 +57,8 @@ const peupler = (W) => {
   vrai('⛔ UNE confirmation, qui NOMME ce qui part (chiffres) et dit que les saisies à soi restent', W.confirms.length === 1 && /1 intervention/.test(W.confirms[0]) && /10 produit/.test(W.confirms[0]) && /3 fournisseur/.test(W.confirms[0]) && /saisies à toi/.test(W.confirms[0]), W.confirms);
   egal('⛔ la démonstration et le catalogue 3D sont partis : seules restent la vraie intervention, la journée d\'essai, le vrai client, le vrai technicien',
     [W.db.interventions.map(x => x.id), W.db.clients.map(x => x.id), W.db.techniciens.map(x => x.id)], [['i2', 'i3'], ['c2'], ['t2']]);
-  egal('… aucun produit ni fournisseur de la 3D ne reste ; les saisies à soi (« perso », un produit libre, un grossiste) restent',
-    [W.db.produits.map(x => x.id).sort(), W.db.fournisseurs.map(x => x.id)], [['p_libre', 'p_perso'], ['fperso']]);
+  egal('… aucun produit ni fournisseur de la 3D ne reste ; les saisies à soi (« perso » — même au nom d’une référence du catalogue —, un produit libre, un grossiste) restent',
+    [W.db.produits.map(x => x.id).sort(), W.db.fournisseurs.map(x => x.id)], [[idCat(CATALOGUE[20][0]), 'p_libre', 'p_perso'].sort(), ['fperso']]);
   egal('… les autres fiches de démonstration (cahier, document, appareil) partent, les vraies restent', [W.db.cahiers.length, W.db.docsMetier.map(x => x.id), W.db.appareils.map(x => x.id)], [0, ['dm2'], ['a2']]);
   vrai('… et le métier a bien changé, enregistré une fois, la suppression annoncée à la synchro (retrait voulu)', W.db.metier === 'plomberie' && W.saves() === 1 && W.init.__retrait === true);
 }
@@ -70,7 +70,7 @@ const peupler = (W) => {
   vrai('base vide : aucune question, le métier change comme avant', W.confirms.length === 0 && W.db.metier === 'plomberie' && W.saves() === 1); }
 { const W = monde({ beta: false }); peupler(W);
   W.b.fn.metierSet('plomberie');
-  vrai('⛔ HORS BÊTA (`BETA_ESSAI` faux) : aucune question et rien ne se retire — les données d\'une entreprise ne partent jamais par ce geste', W.confirms.length === 0 && W.db.interventions.length === 3 && W.db.produits.length === 12 && W.db.metier === 'plomberie'); }
+  vrai('⛔ HORS BÊTA (`BETA_ESSAI` faux) : aucune question et rien ne se retire — les données d\'une entreprise ne partent jamais par ce geste', W.confirms.length === 0 && W.db.interventions.length === 3 && W.db.produits.length === 13 && W.db.metier === 'plomberie'); }
 { const W = monde(); peupler(W); W.db.metier = 'plomberie';
   const r = W.b.fn.metierResidu();
   vrai('le résidu se lit sur le pack du métier ACTUEL : sous « plomberie », les produits de la 3D ne sont pas ceux du catalogue (le cas se traite AVANT le changement)', r.produits === 0 && r.fours === 0); }
