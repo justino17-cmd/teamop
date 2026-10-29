@@ -76,11 +76,14 @@
 # 28 octobre 2026 (« 35 courriers à traiter ») : 166 suites, 10 702 vérifications mesurées par la commande de la porte, toutes vertes, `test-3101` compris (93, après les relectures du gardien et de l’adverse) — plancher 10688 (le total moins 14, jamais une addition).
 # 28 octobre 2026, l'outil des espaces orphelins (test-3100 : 105 vérifications) : 166 suites, 10 710 vérifications mesurées par la commande de la porte (13 min), toutes vertes — plancher 10696 (le total moins 14, comme avant).
 # 28 octobre 2026, l'assistant devis par métier (test-3112 : 90 vérifications), sur main a3d07bf : 168 suites, 10 936 vérifications mesurées par la commande de la porte (test-738, une mesure de temps, est tombée à 1 ✗ sous une charge de 10 sur la machine et rend 48 ✓ 0 ✗ seule, deux fois), toutes vertes — plancher 10922 (le total moins 14, jamais une addition ni le 10680 du commit d'origine).
-#plancher 11331
+#plancher 11802
 # 28 octobre 2026, les agents autonomes (racine, annonces « Je viens de… », Victor chef, budget du jour : `test-3113` à `test-3123`, dont 3123 contre le vrai serveur) : 176 suites, 10 937 vérifications mesurées par la commande de la porte, sortie 0 — plancher 10923 (le total moins 14, jamais une addition).
 # 28 octobre 2026 au soir, la relecture adverse (`test-3124`, plus § 6 de 3121) : 177 suites, 11 002 vérifications mesurées par la commande de la porte, sortie 0 — plancher 10988 (le total moins 14).
 # 28 octobre 2026, soir : agents autonomes après fusion de main (photos, rôles, Camille) : 178 suites, 11 138 vérifications, sortie 0 — plancher 11124 (le total moins 14).
 # 28 octobre 2026 (soir) : 11 345 mesurés (180 suites, sortie 0) avec `test-3125` (102 vérifications : horaires 8 h – 24 h, maintenance de nuit, migration unique) — plancher relevé à 11331.
+# 29 octobre 2026 (nuit) : 11 778 mesurés (186 suites, sortie 0) avec les bancs de la compta de Margaux, 3160 à 3164 (330 vérifications) — plancher relevé à 11764 (le total moins 14).
+# 29 octobre 2026 : 11 816 mesurés (187 suites, sortie 0) avec `test-3165` (38 vérifications : les correctifs de la relecture de `gardien` et `relecteur` sur la compta de Margaux) — plancher relevé à 11802 (le total moins 14).
+
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -414,6 +417,17 @@ tests/test-3125.js
 # `/api/monitor/issues/purger-entreprise`, la suppression totale qui purge d'elle-même (`fait.surveillance`), `bugs.jsonl` réécrit atomiquement,
 # `/api/monitor/report` qui n'écrit plus pour un espace fermé. Le vrai serveur, sans lire une page. (Le bouton de la Tour et son banc partent avec la Tour unifiée, sur la phrase de Justin.) 28 octobre 2026 : 10 670 vérifications (166 suites) — plancher relevé de 97, le nombre de `test-3102` (65 puis 32 : les points du gardien).
 tests/test-3102.js
+# ── Margaux, comptable de la Tour — ÉTAPE 1 (28 octobre 2026, Justin : « je veux un agent pro pour les devis, les factures et la compta — pour moi, pour la Tour ») : le point de l'argent, les factures Stripe vérifiées,
+# le calendrier de la loi, les réglages de Justin, des rappels. `server/compta-stripe.js` (les lectures : paginées, jamais un zéro pour un « je ne sais pas »), `server/compta-calendrier.js` (la table fermée et ses niveaux de preuve),
+# `server/agent-compta.js` (les quatre outils : seul Justin, seulement son fil privé, des chiffres écrits par le code et jamais relus par Claude). 3160 les lectures (période de Paris, pagination, troncature jetée, panne),
+# 3161 les outils sur la vraie messagerie, 3162 le VRAI serveur (Stripe simulé : que des GET), 3163 la PARITÉ avec les vraies fonctions de `tour.html`, 3164 les phrases de rôle, le texte des modules, le montage, l'examen.
+# Établi commun : `tests/banc-compta.js`. (3163 et 3164 lisent `tour.html` et `examen.js` : ils passent contre les pages de `main` comme contre celles de la branche.)
+tests/test-3160.js
+tests/test-3161.js
+tests/test-3162.js
+tests/test-3163.js
+tests/test-3164.js
+tests/test-3165.js
 # 28 octobre 2026 (revue Trail of Bits) : `test-3155` — les notifications de la Tour ne se devinent plus (préfixe `teamop-controle` réservé, `tour: true` posé par la route patron, UN filtre pour tous les envois, nettoyage au démarrage, adresse de push https/nom public),
 # `/api/email` fermé sans clé configurée, codes de sécurité durcis (randomInt, clé bornée, balayage, plafond, erreur sans le texte du serveur de courriel). Le vrai serveur contre un faux service de push (envois réels). 77 vérifications. 169 suites, 11 026 vérifications mesurées par la commande de la porte, toutes vertes (`test-2983` tombe parfois sous charge, même sur `main` : une suite qui tombe se relance seule) — plancher relevé de 10696 à 11012 (le total moins 14, jamais une addition).
 tests/test-3155.js

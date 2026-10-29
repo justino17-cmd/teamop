@@ -5038,6 +5038,7 @@ let agentCamille = null;     // Camille (`agent-camille.js`) : la réponse à un
 let brouillonsMod = null;    // les brouillons de Léa et de Camille, et ce qui les fait partir (`agents-brouillons.js`)
 let docsAgentsMod = null;     // les courriels d'agents de gestion, la mise en demeure et l'annonce à tous, validés par Justin (`agents-documents.js`) : `null` = pas monté
 let agentMargaux = null;     // Margaux (`agent-margaux.js`) : les relances d'impayé et la mise en demeure préparée — `null` = pas montée
+let agentCompta = null;       // Margaux, comptable de la Tour (`agent-compta.js`, 28 octobre 2026) : le point de l'argent, les factures Stripe vérifiées, le calendrier de la loi, ses rappels — `null` = pas montée
 let agentEmma = null;        // Emma (`agent-emma.js`) : les rendez-vous avec les prospects — `null` = pas montée
 let agentSarah = null;       // Sarah (`agent-sarah.js`) : les annonces aux clients, rédigées pour la validation de Justin — `null` = pas montée
 let signaturesMod = null;    // la signature de chaque agent, posée par le serveur à l'envoi (`agents-signature.js`)
@@ -11092,7 +11093,9 @@ try {
       agentEquipe = require('./agent-equipe')({ agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, faits: faitsAgents,
         /* les outils propres à Hugo, Margaux, Emma et Sarah (fin d'abonnement, mise en demeure, créneaux, annonce) : liaison TARDIVE — leurs modules sont montés plus bas, et un
            agent non monté n'a simplement pas d'outil. Chacun ne vaut que d'un message de Justin (le module le vérifie, pas le prompt). */
-        outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; }, get margaux() { return agentMargaux && agentMargaux.outilsEquipe; },
+        outilsAgents: { get hugo() { return agentHugo && agentHugo.outilsEquipe; },
+          /* Margaux : la mise en demeure (`agent-margaux.js`) ET les quatre outils de la compta de la Tour (`agent-compta.js`), derrière UNE entrée — chacun ne vaut que d'un message de Justin dans son fil privé, le module le vérifie */
+          get margaux() { try { return require('./agent-compta').assembler(agentMargaux && agentMargaux.outilsEquipe, agentCompta && agentCompta.outilsEquipe); } catch (e) { return agentMargaux && agentMargaux.outilsEquipe; } },
           get emma() { return agentEmma && agentEmma.outilsEquipe; }, get sarah() { return agentSarah && agentSarah.outilsEquipe; },
           /* Victor planifie les réunions que Justin lui demande (`reunions.js`, 28 octobre 2026) — sur un message de Justin seulement, le module le vérifie */
           get victor() { return reunionsMod && reunionsMod.outilsVictor; },
@@ -11359,6 +11362,27 @@ try {
         setInterval(() => { agentMargaux.passer().catch(e => console.error('margaux :', e.message)); }, 30 * 60000).unref();
       }
     } catch (e) { agentMargaux = null; console.error('Margaux indisponible :', e.message); }
+    /* MARGAUX, COMPTABLE DE LA TOUR — ÉTAPE 1 (28 octobre 2026, Justin : « un agent pro pour les devis, les factures et la compta — pour moi, pour la Tour »). Le point de l'argent, les factures Stripe vérifiées, le calendrier
+       de la loi, les réglages de Justin, et des rappels. ⛔ Ce bloc ne donne à `compta-stripe.js` qu'une fonction de LECTURE : un GET vers `/v1/invoices`, par la même `stripeMonGet` que les écrans de la Tour — ni la clé, ni un
+       autre verbe, ni une autre adresse. Les abonnés sont lus par le MÊME cache que l'écran Abonnements (`stripeCache`), jamais par la route (qui rend `mrr:0` quand Stripe tombe). Sous son propre `try` : s'il échoue, Margaux
+       garde ses relances et sa mise en demeure. Rien ne part chez un client, aucun document. */
+    try {
+      const cleCompta = () => (config.stripe && config.stripe.secretKey) || '';
+      const comptaStripeMod = require('./compta-stripe')({
+        lire: async (chemin) => {
+          const sk = cleCompta();
+          if (!sk) throw new Error('pas de clé Stripe');
+          if (typeof chemin !== 'string' || !/^\/v1\/invoices\?[A-Za-z0-9_=&.\-\[\]%]{0,400}$/.test(chemin)) throw new Error('chemin refusé');   // des FACTURES, en lecture : rien d'autre
+          return stripeMonGet('https://api.stripe.com' + chemin, sk);
+        },
+        convertir: stripePaiement,
+        abonnements: async () => stripeCache(stripeMonCache.abos, STRIPE_ABOS_VIDE, () => stripeAbosCalc(cleCompta()), 'stripe abos'),
+        configure: () => !!cleCompta() });
+      agentCompta = require('./agent-compta')({ agents: agentsMod, conversations: conversationsMod, fichier: fichierAgents, stripe: comptaStripeMod,
+        periodes: periodesOffertes, relances: () => (agentMargaux ? agentMargaux.etat() : null) });
+      setTimeout(() => { agentCompta.passer().catch(e => console.error('compta :', e.message)); }, 90 * 1000).unref();
+      setInterval(() => { agentCompta.passer().catch(e => console.error('compta :', e.message)); }, 60 * 60000).unref();
+    } catch (e) { agentCompta = null; console.error('compta de Margaux indisponible :', e.message); }
     /* EMMA : les rendez-vous avec les prospects qui veulent un appel (disponibilités réglées par Justin dans la Tour). L'adresse du prospect est celle de son DOSSIER. */
     try {
       if (docsAgentsMod && gestionClients) {
@@ -11943,6 +11967,21 @@ app.get('/api/monitor/promos', monAdmin, (req, res) => {
   }
   res.json({ codes, total: codes.length, actifsTotal: codes.reduce((n, c) => n + c.actifs, 0) });
 });
+
+/* Les entreprises EN PÉRIODE OFFERTE (un code promo qui court), pour le point de Margaux : le nombre d'ENTREPRISES (un identifiant compté une fois) et la prochaine fin — les mêmes lignes que `actifs` de la
+   route ci-dessus (finLe à venir, hors période reportée). Un registre illisible n'est PAS « zéro » : `ok:false`. */
+function periodesOffertes() {
+  if (promosIllisible) return { ok: false, raison: 'registre_illisible' };
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const fins = new Map();
+  for (const u of Object.values(promoUsages || {})) {
+    for (const [t, e] of Object.entries((u && u.equipes) || {})) {
+      if (!(e && e.finLe && e.finLe >= aujourdhui && !e.reporte)) continue;
+      if (!fins.has(t) || e.finLe < fins.get(t)) fins.set(t, e.finLe);
+    }
+  }
+  return { ok: true, nombre: fins.size, prochaine: [...fins.values()].sort()[0] || '' };
+}
 
 /* ⛔ LA MÊME PORTE QUE LE RELAIS DE /api/clients/sync, EN VERSION ANONYME — trouvée par
    `gardien` le 11 septembre 2026, le jour où l'autre a été refermée. Fermer une moitié d'un
