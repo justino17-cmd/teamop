@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3864b92fd84f';
+  const OPMSG_BUILD = 'e09efa619b21';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
   const OPMSG_VERSION = 293;
@@ -324,6 +324,12 @@
     voulus.forEach((n, i) => { if (el.childNodes[i] !== n) el.insertBefore(n, el.childNodes[i] || null); });
   }
   const cleLigne = li => { const b = li.querySelector && li.querySelector('[data-ouvrir],[data-choisir]'); return b ? (b.dataset.ouvrir || b.dataset.choisir || '') : ''; };
+  /* ⛔ « Aucune conversation Perso » ne dit pas qu'il n'y a RIEN : les agents, les canaux et les collègues sont rangés côté Pro (relecture du 28 octobre 2026 — la Tour encadre OP MESSAGES, et la première arrivée
+     tombait sur un Perso vide, au téléphone où la bascule est dans le Profil). La phrase nomme le côté, dit ce qu'il y a de l'autre, et mène à lui d'un geste. Rien ne change de côté tout seul. */
+  function versPro() {
+    const n = etat.conversations.filter(c => c.invitation !== 'recue' && !c.archive && coteDe(c) === 'pro').length;
+    return n ? ' Tu en as ' + n + ' côté Pro (tes agents, tes canaux, tes collègues).<span class="vide-cote"><button type="button" class="lien-texte presse" data-passer-cote="pro">Passer côté Pro</button></span>' : '';
+  }
   function rendreListe() {
     const q = norme(etat.recherche);
     const invits = etat.conversations.filter(c => c.invitation === 'recue' && dansMode(c));
@@ -352,7 +358,7 @@
     const toutesEnHaut = !vues.length && !tete && !pied && etat.conversations.some(enHaut);
     const htmlListe = tete + (toutesEnHaut ? '' : vues.length || tete || pied ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') + pied :
       (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>'
-        : !q && modesActifs() ? '<li class="vide">' + (etat.mode === 'pro' ? 'Aucune conversation Pro pour l\'instant : les canaux de ton entreprise, tes réunions et tes échanges avec tes collègues viennent ici.' : 'Aucune conversation Perso pour l\'instant.') + '</li>'
+        : !q && modesActifs() ? '<li class="vide">' + (etat.mode === 'pro' ? 'Aucune conversation Pro pour l\'instant : les canaux de ton entreprise, tes réunions et tes échanges avec tes collègues viennent ici.' : 'Aucune conversation Perso pour l\'instant.' + versPro()) + '</li>'
         : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
     sansSauter($('liste-conv'), cleLigne, () => peindreEnPlace($('liste-conv'), htmlListe, cleLigne));
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
@@ -585,7 +591,7 @@
   const duCote = cote => !modesActifs() || cote === etat.mode;
   /* (11 octobre 2026) plus de choix « Agenda : Perso | Pro » dans les fiches : un événement, une réunion qu'on crée est du côté où l'on est (`etat.mode`) — on le change ensuite par
      « Ranger dans » (son menu dans l'Agenda, ou les infos de la conversation) */
-  document.addEventListener('click', e => { const b = e.target.closest('[data-cote-seg] [data-cote]'); if (b) changerMode(b.dataset.cote); });
+  document.addEventListener('click', e => { const b = e.target.closest('[data-cote-seg] [data-cote], [data-passer-cote]'); if (b) changerMode(b.dataset.cote || b.dataset.passerCote); });
   /* ⛔ UN ÉCHEC DE CHARGEMENT SE DIT. Un 429 ou un 503 sur la liste faisait retomber la page de l'étape 1 sur son écran de connexion, sans un mot (relecture du gardien,
      remarque 2) : la liste reste celle d'avant, une phrase explique pourquoi elle n'est pas à jour et « Réessayer » la relit. Une réussite efface le refus d'avant. */
   function montrerErreurListe(e) { $('liste-erreur-texte').textContent = phrase(e, 'La liste n\'a pas pu être mise à jour.'); $('liste-erreur').hidden = false; }
@@ -10590,3 +10596,7 @@
   }
   demarrer();
 })();
+/* ⛔ LA POIGNÉE DE MAIN DU CADRE (28 octobre 2026, relecture) : la Tour affiche cette page dans un cadre et ne PEUT PAS savoir si le navigateur l'a refusée (un cadre refusé tire `load` comme un autre, rien de lui n'est lisible
+   de l'extérieur). Une page qui s'exécute ICI a donc été acceptée : elle le dit à la Tour, et à la Tour SEULE (l'origine cible est écrite en clair, jamais « * »). Hors d'un cadre (`window.parent === window`) : rien.
+   Dans un FICHIER (cette page ne porte aucun script en ligne : `script-src 'self'`). Placée APRÈS la fonction : si le démarrage jette, la poignée ne part pas. */
+try { if (window.parent !== window) window.parent.postMessage({ opmsg: 'pret' }, 'https://teamop.fr'); } catch (e) { /* rien : la Tour a ses autres signaux */ }

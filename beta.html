@@ -8248,6 +8248,20 @@ html[data-theme="dark"] select{ color-scheme:dark; }
 html[data-theme="dark"] select option, html[data-theme="dark"] select optgroup{ background-color:#14213A; color:#EEF2F8; }
 html[data-theme="light"] select{ color-scheme:light; }
 html[data-theme="light"] select option{ background-color:#FFFFFF; color:#14213A; }
+
+/* v780 — la fenêtre PDF commune (pdfFeuille) : une couche AU-DESSUS de #modal (300), SOUS le toast (415) : ses messages restent lisibles. */
+.pdff{position:fixed;inset:0;z-index:400;display:flex;align-items:flex-end;justify-content:center}
+.pdff-fond{position:absolute;inset:0;background:var(--scrim,rgba(0,0,0,.5))}
+.pdff-carte{position:relative;width:min(520px,100%);background:var(--card,#fff);color:var(--t1);border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+@media (min-width:700px){ .pdff{align-items:center} .pdff-carte{border-radius:22px} }
+.pdff-tete{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:17px;margin-bottom:6px}
+.pdff-etat{font-size:13.5px;color:var(--t2);margin-bottom:14px;line-height:1.45;overflow-wrap:anywhere}
+.pdff-fic{font-weight:700;color:var(--t1)}
+.pdff-gestes{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px}
+.pdff-gestes .pdff-b{min-height:48px;min-width:0!important;width:100%;justify-content:center;font-size:15px;white-space:normal!important;text-align:center;line-height:1.2}
+.pdff-gestes .pdff-b:first-child{grid-column:1/-1}
+.pdff-gestes .pdff-b[disabled]{opacity:.45}
+html[data-theme="dark"] .pdff-carte{background:#14213A}
 </style>
 </head>
 <body>
@@ -9483,7 +9497,8 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'registre', 'carteBox', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'devisXylo',
-      'produits', 'stock', 'mouvements', 'boxes', 'saisieConso', 'enveloppes', 'pointage', 'vehicules',       'fournisseurs', 'bons', 'brouillon', 'demandes', 'validations', 'commandes', 'secteurs', 'utilisateurs',
+      'produits', 'stock', 'mouvements', 'boxes', 'saisieConso', 'enveloppes', 'pointage', 'vehicules',
+      'fournisseurs', 'bons', 'brouillon', 'demandes', 'validations', 'commandes', 'secteurs', 'utilisateurs',
       'modulesElan', 'parametres'
     ],
     types:null, presta:null, releves:null, produits:null,
@@ -9496,9 +9511,8 @@ const METIERS={
   'plomberie':{ nom:'Plomberie', ic:'🔧', sous:'Dépannage · sanitaire · réseaux',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits',
-      'stock', 'mouvements', 'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs',
-      'modulesElan', 'parametres'
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Dépannage fuite', 'Dépannage urgent (nuit, week-end, jour férié)', 'Recherche de fuite', 'Débouchage / curage',
@@ -9546,9 +9560,8 @@ const METIERS={
   'electricite':{ nom:'Électricité', ic:'⚡', sous:'Installation · mise aux normes · dépannage',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits',
-      'stock', 'mouvements', 'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs',
-      'modulesElan', 'parametres'
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Dépannage / panne', 'Tableau électrique', 'Mise aux normes', 'Éclairage', 'Prises & circuits',
@@ -9651,9 +9664,8 @@ const METIERS={
   'serrurerie':{ nom:'Serrurerie', ic:'🔑', sous:'Ouverture · sécurité · contrôle d’accès',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits',
-      'stock', 'mouvements', 'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs',
-      'modulesElan', 'parametres'
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'stock', 'mouvements',
+      'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Ouverture de porte', 'Changement de serrure', 'Cylindre & clés', 'Blindage / porte blindée',
@@ -9730,7 +9742,8 @@ const METIERS={
   'maconnerie':{ nom:'Maçonnerie / Gros œuvre', ic:'🧱', sous:'Construction · rénovation · gros œuvre',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules',       'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules', 'fournisseurs',
+      'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Construction neuve', 'Rénovation', 'Extension / agrandissement', 'Dalle & fondations', 'Murs & cloisons',
@@ -9761,7 +9774,8 @@ const METIERS={
   'menuiserie':{ nom:'Menuiserie', ic:'🚪', sous:'Pose · agencement · fermetures',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage',       'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage', 'fournisseurs',
+      'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Pose de fenêtres', 'Pose de portes', 'Volets & fermetures', 'Agencement intérieur', 'Placards & dressings',
@@ -9793,7 +9807,8 @@ const METIERS={
   'peinture':{ nom:'Peinture / Revêtements', ic:'🖌️', sous:'Intérieur · extérieur · sols',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage',       'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'produits', 'pointage', 'fournisseurs',
+      'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Peinture intérieure', 'Peinture extérieure / façade', 'Revêtements muraux', 'Revêtements de sol',
@@ -9858,7 +9873,8 @@ const METIERS={
   'couverture':{ nom:'Couverture / Zinguerie', ic:'🏠', sous:'Toiture · gouttières · étanchéité',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules',       'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
+      'clients', 'devis', 'assistantDevis', 'factures', 'comptabilite', 'pointage', 'vehicules', 'fournisseurs',
+      'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Réparation de toiture', 'Recherche de fuite', 'Remplacement de tuiles / ardoises', 'Gouttières & descentes',
@@ -9892,7 +9908,8 @@ const METIERS={
   'multiservices':{ nom:'Multiservices / Maintenance', ic:'🛠️', sous:'Petits travaux · maintenance · contrats',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'pointage', 'vehicules',       'utilisateurs', 'modulesElan', 'parametres'
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'pointage', 'vehicules',
+      'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Petits travaux', 'Maintenance préventive', 'Dépannage', 'Plomberie simple', 'Électricité simple',
@@ -9920,8 +9937,7 @@ const METIERS={
   'autre':{ nom:'Autre métier de terrain', ic:'🧰', sous:'Interventions · entretien · dépannage',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'clients', 'devis', 'assistantDevis', 'factures', 'pointage', 'utilisateurs', 'modulesElan',
-      'parametres'
+      'clients', 'devis', 'assistantDevis', 'factures', 'pointage', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Intervention', 'Dépannage', 'Entretien', 'Installation', 'Contrôle / vérification', 'Réparation',
@@ -10081,8 +10097,8 @@ const METIERS={
   'ramonage':{ nom:'Ramonage', ic:'🧹', sous:'Cheminées · poêles · conduits · certificat de ramonage',
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
-      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite',       'produits', 'stock', 'pointage', 'vehicules', 'secteurs', 'utilisateurs', 'modulesElan',
-      'parametres'
+      'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'produits', 'stock',
+      'pointage', 'vehicules', 'secteurs', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Ramonage de cheminée', 'Ramonage de poêle', 'Ramonage de chaudière',
@@ -10228,8 +10244,7 @@ const METIERS={
     rubriques:[
       'dashboard', 'historique', 'planning', 'planningGeneral', 'taches', 'absences', 'interventions', 'rapports',
       'carteInt', 'clients', 'devis', 'assistantDevis', 'factures', 'contrats', 'comptabilite', 'produits', 'stock',
-      'mouvements', 'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan',
-      'parametres'
+      'mouvements', 'pointage', 'vehicules', 'fournisseurs', 'bons', 'utilisateurs', 'modulesElan', 'parametres'
     ],
     types:[
       'Ouverture de saison', 'Hivernage', 'Visite d\'entretien', 'Analyse d\'eau', 'Dépannage pompe ou filtration',
@@ -15953,7 +15968,7 @@ const NAV = [
     {k:'vehicules',ic:'🚐',l:'Véhicules',b:'veh'},
     {k:'conducteurs',ic:'🧑‍✈️',l:'Conducteurs',aside:true,cache:1},
   ]},
-  {g:'Fournisseurs & courrier', items:[
+  {g:'Communication / Fournisseurs', items:[
     {k:'messagerie',ic:'💬',l:'Messagerie',cache:1},
     {k:'boiteMail',ic:'📧',l:'Boîte mail',admin:true},
     {k:'fournisseurs',ic:'🏭',l:'Fournisseurs',b:'four',admin:true},
@@ -27163,7 +27178,7 @@ function renderIntDetail(id){
       <div style="display:flex;align-items:center;gap:12px;margin:4px 0"><div style="flex:1;height:1px;background:var(--brd)"></div><b style="font-size:16px">Rapports</b><div style="flex:1;height:1px;background:var(--brd)"></div></div>
       ${abtn(fic('send',18),"Envoyer l'avis de passage",`envoyerAvisPassage('${id}')`,!cliA.email)}
       ${abtn(fic('send',18),'Envoyer le rapport',`envoiRapportClient('${id}')`)}
-      ${abtn(fic('dl',18),'Télécharger le rapport',`printRapport('${id}')`)}
+      ${abtn(fic('dl',18),'Rapport PDF',`pdfRapport('${id}')`)}
       <div style="display:flex;align-items:center;gap:12px;margin:4px 0"><div style="flex:1;height:1px;background:var(--brd)"></div><b style="font-size:16px">Autres</b><div style="flex:1;height:1px;background:var(--brd)"></div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
         ${peutClore?`<button class="btn ghost sm" onclick="formRapport('${id}')">Rédiger le rapport</button>`:''}
@@ -35248,11 +35263,7 @@ async function docPdfBlob(kind,d){
   const s=await docPdfChaine(kind,d); const bytes=new Uint8Array(s.length);
   for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
   return new Blob([bytes],{type:'application/pdf'}); }
-async function devisPdfOpen(id){ const d=db.devis.find(x=>x.id===id); if(!d){ toast('Devis introuvable'); return; }
-  try{ const u=URL.createObjectURL(await devisPdfBlob(d));
-    const w=window.open(u,'_blank'); if(!w) toast('Autorise les pop-ups pour voir le PDF');
-    setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000);
-  }catch(e){ console.error(e); toast('Aperçu PDF impossible'); } }
+function devisPdfOpen(id){ return pdfDoc('devis',id); }   /* v780 : la fenêtre PDF commune */
 async function devisPdfDownload(id){ const d=db.devis.find(x=>x.id===id); if(!d){ toast('Devis introuvable'); return; }
   try{ const u=URL.createObjectURL(await devisPdfBlob(d));
     const a=document.createElement('a'); a.href=u; a.download=('devis-'+(d.num||'')).replace(/[^\w-]/g,'_')+'.pdf';
@@ -35260,12 +35271,7 @@ async function devisPdfDownload(id){ const d=db.devis.find(x=>x.id===id); if(!d)
     setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },60000);
   }catch(e){ console.error(e); toast('Téléchargement impossible'); } }
 
-function bonPdfOpen(id){ const b=db.bons.find(x=>x.id===id); if(!b)return;
-  try{ const s=bonPdfStr(b); const bytes=new Uint8Array(s.length); for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
-    const blob=new Blob([bytes],{type:'application/pdf'}); const u=URL.createObjectURL(blob);
-    const w=window.open(u,'_blank'); if(!w) toast('Autorise les pop-ups pour voir le PDF');
-    setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000);
-  }catch(e){ console.error(e); toast('Aperçu PDF impossible'); } }
+function bonPdfOpen(id){ return pdfBon(id); }   /* v780 : la fenêtre PDF commune */
 /* ⬇️ Télécharger le PDF du bon (fichier BC-xxxx.pdf dans les Téléchargements) */
 function bonPdfDownload(id){ const b=db.bons.find(x=>x.id===id); if(!b) return;
   try{ const s=bonPdfStr(b); const bytes=new Uint8Array(s.length); for(let i=0;i<s.length;i++) bytes[i]=s.charCodeAt(i)&255;
@@ -35275,6 +35281,65 @@ function bonPdfDownload(id){ const b=db.bons.find(x=>x.id===id); if(!b) return;
     setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },60000);
     toast('⬇️ PDF téléchargé : '+a.download);
   }catch(e){ console.error(e); toast('Téléchargement impossible'); } }
+/* ══ LA FENÊTRE PDF — UNE pour tous les documents (v780) ══════════════════════════════════════
+   Justin, 29 octobre 2026 : « règle tout le système de PDF : qu'on voie bien tous les PDF, qu'on puisse les
+   télécharger, les envoyer, les partager, voir l'aperçu ». Chaque bouton « PDF » ouvrait un onglet après un
+   aller-retour asynchrone — Safari le bloque, et rien ne se passait. Le PDF se fabrique d'ABORD, dans une
+   fenêtre posée PAR-DESSUS (la fiche d'en dessous reste ouverte, sa saisie aussi) ; chaque geste part
+   ensuite d'un toucher, donc le navigateur l'accepte. Une couche à part, jamais #modal : l'attestation ou
+   le document métier qu'on est en train de remplir ne doit pas disparaître pour un aperçu. */
+let _pdfF=null;
+function pdfOctets(s){ const b=new Uint8Array(s.length); for(let k=0;k<s.length;k++) b[k]=s.charCodeAt(k)&255; return b; }
+function pdfFeuilleFermer(){ const el=document.getElementById('pdff'); if(el) el.remove();
+  if(_pdfF&&_pdfF.url) setTimeout(((u)=>()=>{ try{URL.revokeObjectURL(u)}catch(e){} })(_pdfF.url),120000); _pdfF=null; }
+async function pdfFeuille(o){
+  pdfFeuilleFermer();
+  const jeton={}; _pdfF={o,jeton,blob:null,url:'',nom:''};
+  const el=document.createElement('div'); el.id='pdff'; el.className='pdff'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','PDF — '+(o.titre||'document'));
+  const b=(a,ic,lib,cls)=>`<button type="button" class="btn ${cls||'ghost'} pdff-b" data-a="${a}" onclick="pdfFAction('${a}')" disabled>${ic} ${lib}</button>`;
+  el.innerHTML=`<div class="pdff-fond" onclick="pdfFeuilleFermer()"></div><div class="pdff-carte">
+    <div class="pdff-tete"><b>📄 ${esc(o.titre||'Document')}</b><button type="button" class="btn ghost sm" onclick="pdfFeuilleFermer()" aria-label="Fermer">✕</button></div>
+    <div class="pdff-etat" id="pdff-etat">Préparation du PDF…</div>
+    <div class="pdff-gestes">${b('voir','👁','Aperçu','primary')}${b('dl','⬇️','Télécharger')}${b('partager','📤','Partager')}${o.envoyer?b('envoyer','✉️',o.envoyerLib||'Envoyer par e-mail'):''}${o.imprimer?b('imprimer','🖨️','Imprimer'):''}</div></div>`;
+  document.body.appendChild(el);
+  let d; try{ d=await o.fabrique(); }catch(e){ console.error(e); d={err:'Le PDF n’a pas pu être préparé.'}; }
+  if(!_pdfF||_pdfF.jeton!==jeton) return;   // fermée, ou une autre ouverte entre-temps
+  const etat=document.getElementById('pdff-etat');
+  if(!d||d.err){ if(d&&d.err) toast('⚠️ '+d.err,9000); if(etat) etat.textContent='⚠️ '+((d&&d.err)||'PDF indisponible');
+    if(o.siErreur) try{ pdfFeuilleFermer(); o.siErreur(d); }catch(e){} return; }
+  let octets; if(d.pdf) octets=pdfOctets(d.pdf); else if(d.b64){ octets=pdfOctets(atob(d.b64)); }
+  if(!octets){ if(etat) etat.textContent='⚠️ PDF indisponible'; return; }
+  const nom=String(d.nom||o.nom||'document').replace(/\.pdf$/i,'').replace(/[^\w\-À-ÿ]+/g,'_').replace(/^_+|_+$/g,'')+'.pdf';
+  _pdfF.blob=new Blob([octets],{type:'application/pdf'}); _pdfF.url=URL.createObjectURL(_pdfF.blob); _pdfF.nom=nom;
+  if(etat) etat.innerHTML=`<span class="pdff-fic">${esc(nom)}</span> · ${Math.max(1,Math.round(octets.length/1024))} Ko`+(d.manque&&d.manque.length?`<br><span style="color:var(--org)">⚠️ Non joint : ${esc(d.manque.join(', '))}</span>`:'');
+  if(d.manque&&d.manque.length) toast('⚠️ Non jointe au PDF : '+d.manque.join(', '),9000);   // dit aussi hors de la fenêtre : on la referme vite
+  el.querySelectorAll('.pdff-b').forEach(x=>{ x.disabled=false; });
+  if(!(navigator.canShare&&(()=>{ try{ return navigator.canShare({files:[new File([_pdfF.blob],nom,{type:'application/pdf'})]}); }catch(e){ return false; } })())){
+    const p=el.querySelector('[data-a="partager"]'); if(p) p.innerHTML='📤 Partager (télécharger)'; }
+}
+function pdfFTelecharger(){ const a=document.createElement('a'); a.href=_pdfF.url; a.download=_pdfF.nom; document.body.appendChild(a); a.click(); a.remove(); toast('⬇️ PDF téléchargé : '+_pdfF.nom); }
+async function pdfFAction(a){ const F=_pdfF; if(!F) return; const o=F.o;
+  if(a==='envoyer'||a==='imprimer'){ pdfFeuilleFermer(); try{ await (a==='envoyer'?o.envoyer():o.imprimer()); }catch(e){ console.error(e); toast('Envoi impossible'); } return; }
+  if(!F.blob) return;
+  if(a==='voir'){ const w=window.open(F.url,'_blank'); if(!w){ const l=document.createElement('a'); l.href=F.url; l.target='_blank'; l.rel='noopener'; document.body.appendChild(l); l.click(); l.remove(); } return; }
+  if(a==='dl'){ pdfFTelecharger(); return; }
+  if(a==='partager'){ const f=new File([F.blob],F.nom,{type:'application/pdf'});
+    try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:o.titre||F.nom}); return; } }
+    catch(e){ if(e&&e.name==='AbortError') return; }
+    pdfFTelecharger(); toast('Partage direct indisponible sur cet appareil : le PDF est dans tes Téléchargements',6000); }
+}
+/* Les cinq familles passent par elle. Chacune garde SA fabrique et SON envoi : la fenêtre n'invente rien. */
+function pdfDoc(kind,id){ const cfg=DOC[kind], d=cfg&&db[cfg.coll].find(x=>x.id===id); if(!d){ toast('Document introuvable'); return; }
+  if(!docMentionsGarde(kind,d.rapportModele,()=>pdfDoc(kind,id))) return;
+  const lib=kind==='devis'?'Devis':'Facture';
+  return pdfFeuille({titre:lib+' '+(d.num||''), nom:lib+'-'+(d.num||''), fabrique:async()=>({pdf:await docPdfChaine(kind,d)}),
+    envoyer:canCat('ventes','modifier')?()=>envoiDoc(kind,id,'mail'):null, envoyerLib:'Envoyer au client', imprimer:()=>printDoc(kind,id)}); }
+function pdfRapport(id){ if(!docNomGarde(()=>pdfRapport(id))) return; const i=(db.interventions||[]).find(x=>x.id===id); if(!i) return;
+  return pdfFeuille({titre:'Rapport '+(i.num||''), nom:'Rapport-'+(i.num||''), fabrique:()=>rapportDocument(id),
+    envoyer:()=>rapportVia(id,'mail'), envoyerLib:'Envoyer au client', imprimer:()=>printRapport(id)}); }
+function pdfBon(id){ const b=db.bons.find(x=>x.id===id); if(!b) return; if(!docNomGarde(()=>pdfBon(id))) return;
+  return pdfFeuille({titre:'Bon de commande '+(bonNum(b)||''), nom:bonNum(b)||'bon-de-commande', fabrique:async()=>({pdf:bonPdfStr(b)}),
+    envoyer:peutCommander()?()=>bonEnvoiChoix(id):null, envoyerLib:'Envoyer au fournisseur'}); }
 /* Aperçu avant envoi : à qui, quel message, et le PDF exact qui sera joint */
 /* Choisir la boîte d'envoi (si plusieurs connectées) puis envoyer le bon */
 async function bonEnvoiChoix(id){ if(!peutCommander()){ refusCommander(); return; } await loadMailboxes();
@@ -39587,9 +39652,7 @@ function docListView(kind,xyloOnly){
     <td class="cel-gestes" style="text-align:right;white-space:nowrap">
       ${vMod?`<button class="btn sm" onclick="envoiDoc('${kind}','${d.id}','mail')" title="Envoyer par email">📧</button>
       <button class="btn ghost sm" onclick="envoiDoc('${kind}','${d.id}','sms')" title="Envoyer par SMS (exception)">💬</button>`:''}
-      <button class="btn ghost sm" onclick="printDoc('${kind}','${d.id}')" title="Aperçu">👁</button>
-      ${kind==='devis'?`<button class="btn ghost sm" onclick="devisPdfOpen('${d.id}')" title="Voir le PDF">📄</button>
-      <button class="btn ghost sm" onclick="devisPdfDownload('${d.id}')" title="Télécharger le PDF">⬇️</button> `:''}
+      <button class="btn ghost sm" onclick="pdfDoc('${kind}','${d.id}')" title="PDF : aperçu, télécharger, partager, envoyer" aria-label="PDF">📄 PDF</button>
       ${kind==='devis'&&d.statut==='accepte'&&canCat('ventes','ajouter')?(devisFactureDe(d.id)?`<button class="btn ghost sm" onclick="devisToFacture('${d.id}')" title="Voir la facture ${esc(devisFactureDe(d.id).num||'')}">Voir la facture</button> `:`<button class="btn sm" onclick="devisToFacture('${d.id}')" title="Convertir en facture">→🧾</button> `):''}
       ${vMod?`<button class="btn ghost sm" onclick="formDoc('${kind}','${d.id}')">✎</button>`:''}
       ${canCat('ventes','supprimer')?`<button class="btn danger sm" onclick="delItem('${cfg.coll}','${d.id}')">🗑</button>`:''}</td></tr>`;}).join('');
@@ -39773,7 +39836,7 @@ views.factures=function(){
         <div class="pl-title">${esc(f.num||'—')} · <span style="white-space:nowrap">${eur(ttc(f))}</span></div>
         <div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)} · ${badge(FACT_ST,st)}${f.datePaiement?' · payée le '+fmtShort(f.datePaiement):''}${f.valideCompta?' · <span style="color:var(--acc-txt)">validée compta</span>':''}</div></div>
       <span class="lga-a" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
-        <button class="btn ghost sm" onclick="printDoc('factures','${f.id}')" title="Aperçu">Aperçu</button>
+        <button class="btn ghost sm" onclick="pdfDoc('factures','${f.id}')" title="PDF : aperçu, télécharger, partager, envoyer">📄 PDF</button>
         <button class="btn ghost sm" onclick="exportFacturX('${f.id}')" title="Export Factur-X (facturation électronique)">FX</button>
         ${vMod&&f.statut==='brouillon'?`<button class="btn sm" onclick="factEnvoyer('${f.id}')" title="Envoyer la facture au client par e-mail">📧 Envoyer</button><button class="btn ghost sm" onclick="factSetStatut('${f.id}','envoyee')" title="Marquer envoyée (si l'envoi a été fait autrement)">📤</button>`:''}
         ${vMod&&(f.statut==='envoyee')?`<button class="btn ghost sm" onclick="envoiDoc('factures','${f.id}','mail')" title="Relancer par email">📧</button>`:''}
@@ -42418,17 +42481,11 @@ async function cvcAttestationDocument(iid,aid,att){ if(!docNomGarde(null)) retur
       return {pdf,b64,nom,E,manque}; } }
   return {err:'L’attestation dépasse la taille qu’un courriel peut porter — rien n’est parti.'}; }
 /* Aperçu : le PDF qui partirait, avec ce qui est dans le formulaire, sans rien écrire. La fenêtre s'ouvre DANS le geste (avant tout await). */
-async function cvcAttestationApercu(iid,aid){
+function cvcAttestationApercu(iid,aid){   /* v780 : la fenêtre PDF commune — la saisie EN COURS du formulaire, pas la dernière enregistrée */
   const x=cvcAttestationCtx(iid,aid); if(!x) return;
   const f=document.getElementById('cvc-att'), att=f?cvcAttestationLire(f):cvcAttestationDe(x.i,aid)||{};
-  const w=window.open('','_blank'); if(!w){ toast('Autorise les pop-ups pour voir le PDF'); return; }
-  try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation de l’attestation…</p>'); w.document.close(); }catch(e){}
-  const d=await cvcAttestationDocument(iid,aid,att);
-  if(d.err){ try{ w.close(); }catch(e){} toast(d.err); return; }
-  if(d.manque&&d.manque.length) toast('⚠️ Non jointe au PDF : '+d.manque.join(', '),9000);
-  const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
-  const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-  w.location.href=u; setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000); }
+  return pdfFeuille({titre:'Attestation d’entretien', nom:'Attestation', fabrique:()=>cvcAttestationDocument(iid,aid,att),
+    envoyer:()=>cvcAttestationEnvoyer(iid,aid), envoyerLib:'Envoyer au client'}); }
 /* L'envoi : le formulaire est enregistré d'abord, le PDF fabriqué, le courriel part — et la trace s'écrit SEULEMENT s'il est parti. */
 const _cvcEnvoi={};
 async function cvcAttestationEnvoyer(iid,aid){
@@ -42522,17 +42579,11 @@ async function cvcRamonageDocument(iid,aid,r){ if(!docNomGarde(null)) return {er
       const manque=[]; if(H.logo&&!logo) manque.push('le logo'); if(i.signature&&!imgs.sigCli) manque.push('la signature du client'); if(i.signatureTech&&!imgs.sigTech) manque.push('la signature du technicien');
       return {pdf,b64,nom,E,manque}; } }
   return {err:'L’attestation dépasse la taille qu’un courriel peut porter — rien n’est parti.'}; }
-async function cvcRamonageApercu(iid,aid){
+function cvcRamonageApercu(iid,aid){   /* v780 : la fenêtre PDF commune */
   const x=cvcRamonageCtx(iid,aid); if(!x) return;
   const f=document.getElementById('cvc-ram'), r=f?cvcRamonageLire(f):cvcRamonageDe(x.i,aid)||{};
-  const w=window.open('','_blank'); if(!w){ toast('Autorise les pop-ups pour voir le PDF'); return; }
-  try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation de l’attestation…</p>'); w.document.close(); }catch(e){}
-  const d=await cvcRamonageDocument(iid,aid,r);
-  if(d.err){ try{ w.close(); }catch(e){} toast(d.err); return; }
-  if(d.manque&&d.manque.length) toast('⚠️ Non jointe au PDF : '+d.manque.join(', '),9000);
-  const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
-  const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-  w.location.href=u; setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000); }
+  return pdfFeuille({titre:'Attestation de ramonage', nom:'Ramonage', fabrique:()=>cvcRamonageDocument(iid,aid,r),
+    envoyer:()=>cvcRamonageEnvoyer(iid,aid), envoyerLib:'Envoyer au client'}); }
 /* L'envoi : enregistré d'abord (conduit et vacuité exigés), le PDF fabriqué, le courriel part — et la trace s'écrit SEULEMENT s'il est parti. */
 async function cvcRamonageEnvoyer(iid,aid){
   if(!permGarde('int','modifier','une intervention')) return;
@@ -43340,20 +43391,11 @@ async function nettDocFabriquer(kind,id,cid){ if(!docNomGarde(null)) return {err
   const manque=[]; if(H.logo&&!logo) manque.push('le logo');
   return {pdf,b64,nom:nettNomFichier(x.pre,x.cli,x.date),E,manque,cli:x.cli,soc:x.soc}; }
 /* Aperçu : le PDF qui partirait, sans rien écrire. La fenêtre s'ouvre DANS le geste (avant tout await). */
-async function nettDocApercu(kind,id,cid){
-  const w=window.open('','_blank'); if(!w){ toast('Autorise les pop-ups pour voir le PDF'); return; }
-  try{ w.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#555">Préparation du document…</p>'); w.document.close(); }catch(e){}
-  const d=await nettDocFabriquer(kind,id,cid);
-  /* v780 — Justin, 29 octobre 2026 : « quand je clique sur PDF, rien ne marche ». Un document incomplet (aucune ligne au décompte)
-     fermait la fenêtre avec un toast de deux secondes : on croyait que le bouton ne faisait rien. Le document s'OUVRE maintenant
-     sur ce qui manque, et le message reste. */
-  if(d.err){ try{ w.close(); }catch(e){} toast('⚠️ '+d.err,9000);
-    if(kind==='doc'){ const r=(db.docsMetier||[]).find(x=>x.id===id); if(r&&r.doc&&typeof docmForm==='function') try{ docmForm(r.doc,{id}); }catch(e){} }
-    return; }
-  if(d.manque&&d.manque.length) toast('⚠️ Non joint au PDF : '+d.manque.join(', '),9000);
-  const bytes=new Uint8Array(d.pdf.length); for(let k=0;k<d.pdf.length;k++) bytes[k]=d.pdf.charCodeAt(k)&255;
-  const u=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-  w.location.href=u; setTimeout(()=>{ try{URL.revokeObjectURL(u)}catch(e){} },120000); }
+function nettDocApercu(kind,id,cid){   /* v780 : la fenêtre PDF commune. Un document incomplet ne fait pas « rien » : le message reste et la saisie s'ouvre. */
+  return pdfFeuille({titre:kind==='doc'?(((db.docsMetier||[]).find(x=>x.id===id)||{}).titre||'Document'):({cahier:'Cahier des tâches',controle:'Contrôle qualité',plan:'Plan de prévention'})[kind]||'Document',
+    nom:'Document', fabrique:()=>nettDocFabriquer(kind,id,cid),
+    envoyer:()=>kind==='doc'?docmEnvoyer(id):nettDocEnvoyer(kind,id,cid), envoyerLib:'Envoyer au client',
+    siErreur:()=>{ if(kind==='doc'){ const r=(db.docsMetier||[]).find(x=>x.id===id); if(r&&r.doc&&typeof docmForm==='function') try{ docmForm(r.doc,{id}); }catch(e){} } } }); }
 const _nettEnvoi={};
 const NETT_MAILS={
   cahier:(d,o)=>({sujet:'Cahier des tâches — '+(o.site||d.cli.nom||'votre site')+' (version '+(o.version||1)+')',
@@ -44875,7 +44917,7 @@ function adCarteDevis(id){
     <div style="font-weight:700;font-size:14px;margin-bottom:2px">💰 ${esc(d.num)}</div>
     <div style="font-size:12px;color:var(--t2);margin-bottom:8px">${esc(clientName(d.clientId))} · ${eur(t.ttc)} TTC</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn sm" onclick="printDoc('devis','${d.id}')">Ouvrir le PDF</button>
+      <button class="btn sm" onclick="pdfDoc('devis','${d.id}')">📄 Ouvrir le PDF</button>
       <button class="btn ghost sm" onclick="go('devis');setTimeout(()=>{try{formDoc('devis','${d.id}')}catch(e){}},80)">Modifier</button>
     </div></div>`;
 }

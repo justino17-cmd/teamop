@@ -8,7 +8,8 @@
  * porte `Access-Control-*`, et une page d'un autre site ne peut rien lire. Une écriture exige
  * en plus l'en-tête `Origin` de l'application ET un en-tête maison (`X-OPM: 1`) — un formulaire
  * envoyé depuis un autre site ne peut pas poser l'en-tête, un script de ce site ne passe pas
- * l'origine. Le cookie est `SameSite=Strict` par-dessus.
+ * l'origine. Le cookie est `SameSite=Strict` par-dessus. (Dans le cadre de la Tour — voir `config.encadrement` plus bas —, la page parle toujours à SA propre origine, `Origin` = celle du service ;
+ * et `msg-beta.teamop.fr` / `teamop.fr` sont du MÊME SITE : un cookie Strict y est envoyé, sans que `SameSite` ni `__Host-` aient à changer.)
  * ⛔ `trust proxy 1` ET `req.ip` SEULEMENT. Un en-tête `X-Forwarded-For` lu à la main se falsifie :
  * avec `trust proxy 1`, Express ne retient que l'entrée posée par NOTRE proxy (la dernière).
  * ⛔ CORPS JSON ≤ 64 Ko. Les pièces (étape 4) passent en flux binaire, par `POST /api/pieces` (`routes-pieces.js`) : `express.json` ne lit que
@@ -67,11 +68,20 @@ function construireApp(ctx) {
      aucune autre, rejoignent `connect-src`. Sans visio, la politique est exactement celle d'avant. */
   const visioCfg = config.appels && config.appels.visio;
   const connectVisio = visioCfg ? ' ' + visioCfg.url + ' ' + visioCfg.url.replace(/^ws/, 'http') : '';
-  const CSP_PAGE = "default-src 'none'; script-src 'self'; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; frame-src blob:; connect-src 'self'" + connectVisio + "; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+  const cspPage = (ancetres) => "default-src 'none'; script-src 'self'; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; frame-src blob:; connect-src 'self'" + connectVisio + "; frame-ancestors " + ancetres + "; base-uri 'none'; form-action 'self'";
+  const CSP_PAGE = cspPage("'none'");
   const CSP_PIECE = "sandbox; default-src 'none'";
+  /* ⛔ L'ENCADREMENT (28 octobre 2026, `config.encadrement`) : la Tour AFFICHE cette page dans un cadre au lieu de la recoder. Il n'ouvre QUE ce qui est écrit ici :
+       · la PAGE D'ACCUEIL seulement (`/` et `/index.html`) — jamais l'API (JSON, flux, pièces), `/health`, la page de l'invité sans compte (`invite.html`), ni un 404 : ils gardent
+         `frame-ancestors 'none'`, à l'identique, qu'un cadre soit configuré ou non ;
+       · à la liste d'origines EXACTES de la configuration (`https://teamop.fr`, jamais un joker) — `config.js` ne laisse passer aucune autre ;
+       · sans configuration (production, ou bêta sans bloc), `CSP_PAGE_CADRE === CSP_PAGE` : le même texte, octet pour octet.
+     Les autres en-têtes ne bougent pas : `Permissions-Policy: camera=(self), microphone=(self)` nomme l'origine de la PAGE (celle du cadre), c'est la Tour qui lui délègue (`allow=`). */
+  const CSP_PAGE_CADRE = config.encadrement ? cspPage(config.encadrement.join(' ')) : CSP_PAGE;
+  const PAGE_ACCUEIL = /^\/(index\.html)?$/;
   app.use((req, res, next) => {
     res.set({
-      'Content-Security-Policy': /^\/api\/pieces/i.test(req.path) ? CSP_PIECE : CSP_PAGE,
+      'Content-Security-Policy': /^\/api\/pieces/i.test(req.path) ? CSP_PIECE : (PAGE_ACCUEIL.test(req.path) ? CSP_PAGE_CADRE : CSP_PAGE),
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
       /* le MICRO (le message vocal de l'étape 4, les appels) et la CAMÉRA (les appels vidéo, étape 7) sont permis à la page elle-même (`self`) et à personne d'autre : aucun cadre d'ailleurs ne les obtient */

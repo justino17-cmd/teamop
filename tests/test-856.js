@@ -240,7 +240,10 @@ function controler(PAGE, DOC, SRC) {
   /* ⛔ UNE EXCEPTION, NOMMÉE ET COMPTÉE (15 octobre 2026) : les deux adresses de « Y aller » (`liensGps`) — Google Maps et Waze. Ce sont des LIENS que la personne touche, vers
      l'application de guidage qu'elle choisit : jamais une feuille, une police, un script ni une image que la page chargerait. Ces deux préfixes exacts, une fois chacun, et rien d'autre. */
   const GPS = ['https://www.google.com/maps/dir/?api=1&destination=', 'https://waze.com/ul?q='];
-  v('⛔ aucune adresse http(s):// dans la page (feuille, police, script, image, lien) — hors les deux liens de « Y aller », une fois chacun',
+  /* ⛔ ET UNE SECONDE, NOMMÉE (29 octobre 2026, OP MESSAGES dans la Tour) : l'origine DESTINATAIRE du `postMessage` « prêt » envoyé à la Tour
+     qui encadre la page. Ce n'est rien qu'on charge : c'est le seul cadre à qui la page accepte de parler (jamais « * »). Une fois, et rien d'autre. */
+  GPS.push('https://teamop.fr');
+  v('⛔ aucune adresse http(s):// dans la page (feuille, police, script, image, lien) — hors les deux liens de « Y aller » et l\'origine de la Tour à qui parle `postMessage`, une fois chacun',
     [...new Set(entier.match(/https?:\/\/[^\s"'<>)]+/g) || [])].filter(a => !(GPS.includes(a) && entier.split(a).length - 1 === 1)), []);
   v('⛔ aucun <script src> autre que source.js, <link> autre que l\'icône locale, <iframe>, <img> distant, @import, url(http)',
     [(entier.match(/<script[^>]*\ssrc="(?!source\.js")/g) || []).length, (entier.match(/<link\b(?![^>]*rel="icon"[^>]*href="\.\.\/\.\.\/icons\/opmsg-favicon-32\.png")[^>]*>/g) || []).length, (entier.match(/<iframe|@import|url\(\s*["']?https?:/g) || []).length], [0, 0, 0]);
