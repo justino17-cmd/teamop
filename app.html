@@ -43698,12 +43698,15 @@ function nettPdf(sp,E,imgs){ E=E||{}; imgs=imgs||{};
   R(0,H-6,W,6,ACC); y=H-M-16;
   let nx=M; if(E.logo&&E.logo.b64){ const lh=34, lw=Math.round(E.logo.w*(lh/E.logo.h)); image('L1',M,y-9,lw,lh); nx=M+lw+12; }
   TW(nx,y,19,E.nom||'',1,ACC,RGT-215-nx);
-  TR(RGT,y+3,14,sp.titre||'',1,DARK);
-  if(sp.sous) TR(RGT,y-12,9,sp.sous,0,GREY);
-  if(sp.ref) TR(RGT,y-24,8.5,sp.ref,1,GREY);
+  /* ⛔ le titre tient dans les 215 points qu'on lui réserve à droite : un titre plus large (« SUIVI DES DÉCLARATIONS DE PERFORMANCES ») passait par-dessus le nom de l'entreprise dès que celui-ci faisait 25 signes ou plus. Il passe alors à la ligne (trois au plus, corps 11)
+     et ce qui se range dessous (date, référence) descend d'autant (constat 6 de la relecture du 28 octobre 2026). */
+  const tit0=net(sp.titre||''), titTient=larg(tit0,14,1)<=215, titL=titTient?[tit0]:lignes(tit0,11,1,215).slice(0,3), titSz=titTient?14:11, titPlus=(titL.length-1)*13;
+  titL.forEach((t,k)=>TR(RGT,y+3-k*13,titSz,t,1,DARK));
+  if(sp.sous) TR(RGT,y-12-titPlus,9,sp.sous,0,GREY);
+  if(sp.ref) TR(RGT,y-24-titPlus,8.5,sp.ref,1,GREY);
   const lgMax=RGT-235-nx; let ey=y-14;
   (E.lignes||[]).flatMap(t=>larg(t,8.3,0)<=lgMax?[t]:String(t).split(/\s+·\s+/)).forEach(t=>{ TW(nx,ey,8.3,t,0,GREY,lgMax); ey-=10.5; });
-  y=Math.min(y-(sp.ref?38:30),ey-6); R(M,y,L,1.4,ACC); y-=16;
+  y=Math.min(y-(sp.ref?38:30)-titPlus,ey-6); R(M,y,L,1.4,ACC); y-=16;
 
   (sp.blocs||[]).forEach(b=>{
     if(b.t==='titre') titre(b.texte,b.suite||20);

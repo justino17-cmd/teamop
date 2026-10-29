@@ -228,6 +228,18 @@ vrai('(population) ' + COMBOS.length + ' couples métier / document à jouer', C
   vrai('(population) ' + nPdf + ' PDF fabriqués et relus, ' + nEnvoi + ' envois, ' + nMentLue + ' mentions lues imprimées, ' + nMentNon + ' mentions « à confirmer » gardées dehors', nPdf === 74 && nEnvoi >= 40 && nMentLue >= 60 && nMentNon >= 60, [nPdf, nEnvoi, nMentLue, nMentNon]); }
 function cdcDb(db) { return JSON.parse(JSON.stringify(db)); }
 
+console.log('\n── 3129 · 4 bis. ⛔ L\'EN-TÊTE : un titre long ne recouvre jamais le nom de l\'entreprise (constat 6 du 28 octobre) ──');
+{ const NOMS = ['Entreprise Test Longue Durée', 'Société Générale du Bâtiment', 'Établissements Dupont-Martin & Fils', 'Compagnie Méditerranéenne de Travaux Publics']; let nTitres = 0, nPdf2 = 0; const mal = [];
+  const W0 = mk('plomberie'); const longs = DEFS.filter(d => !d.reglage && W0._pdfLarg(d.pdfTitre, 14, true) > 215);
+  vrai('(population) ' + longs.length + ' titres de document plus larges que les 215 points réservés à droite (au corps 14)', longs.length >= 5, longs.map(d => d.id));
+  for (const d of longs) { const metier = d.metiers.find(m => AUTRES.includes(m)); nTitres++;
+    for (const nom of NOMS) { const W = mk(metier, { entete: Object.assign({}, ENT, { nom }) }); W.docmForm(d.id, { cid: 'c1', iid: d.portee === 'intervention' ? 'i1' : '' }); remplit(W, W.docmDef(d.id), { lieuSignature: 'client' });
+      const id = W.docmSauver(); if (!id) { mal.push([d.id, 'non enregistré']); continue; } ouvre(W); const x = await fabrique(W, id); nPdf2++;
+      const ch = x.err ? [x.err] : chevauche(W, x.pdf).filter(c => /recouvrent|déborde/.test(c[0])); if (ch.length) mal.push([d.id, nom.length, ch[0]]); } }
+  vrai('⛔ ' + nPdf2 + ' PDF (titres longs × noms de 25 à 45 signes) : aucun recouvrement, aucun débordement de la page', mal.length === 0 && nPdf2 === longs.length * NOMS.length, mal.slice(0, 4));
+  /* le titre qui passe à la ligne descend ce qu'il y a dessous : la date et le numéro ne le recouvrent pas non plus (déjà compté par chevauche) ; un titre COURT reste sur une ligne, au corps 14, comme avant */
+  { const W = mk('plomberie'); W.docmForm('devis-depannage', { cid: 'c1', iid: 'i1' }); remplit(W, W.docmDef('devis-depannage'), { lieuSignature: 'client' }); const x = await fabrique(W, W.docmSauver());
+    vrai('un titre court (DEVIS) reste sur UNE ligne, au corps 14, gras', /\/F2 14 Tf\n[\d.-]+ [\d.-]+ Td\n\(DEVIS\) Tj/.test(x.pdf), x.pdf.slice(0, 0)); } }
 console.log('\n── 3129 · 5. les droits, les clients qu\'on ne voit pas, les champs propres à un métier ──');
 { for (const d of DEFS.filter(x => !x.reglage)) {
     const metier = d.metiers.find(m => AUTRES.includes(m));
