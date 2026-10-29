@@ -434,7 +434,7 @@ console.log('\n── 2884 · les réunions : l’heure de Paris, le déroulé, 
     const AC0 = AC({ agents: H.agents, conversations: H.conv, cerveau: { penser: async (id, system) => { prompts.push([id, system]); return { ok: true, texte: 'Réponse.' }; } }, faits: {} });
     await AC0.repondre('lea', 'Léa, encore ?');
     vrai('…sans fonction de mémoire (réunions non montées), rien n’est ajouté : le prompt d’avant', !/Ta mémoire/.test(prompts[2][1]));
-    vrai('⛔ la mémoire ne touche aucun outil : les outils de la messagerie sont toujours les cinq fermés', H.appels.slice(avant).filter(a => a.id === 'lea')[0].opts.outils.map(o => o.name).join() === 'ecrire,prendre,passer,terminer,demander_justin');
+    vrai('⛔ la mémoire ne touche aucun outil : les outils de la messagerie sont toujours les six fermés (`demander` en plus depuis le 28 octobre 2026)', H.appels.slice(avant).filter(a => a.id === 'lea')[0].opts.outils.map(o => o.name).join() === 'ecrire,prendre,passer,terminer,demander_justin,demander');
   }
 
   console.log('\n7. Les pannes');

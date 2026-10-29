@@ -8,12 +8,24 @@
  *    non écrit → pas d'appel (« on ne sait pas » = on ne dépense pas). Le vrai plafond reste celui du workspace de la Console.
  * ⛔ La clé est `agents.cleApi` (jamais celle du Devis IA). Pas de clé → pas d'appel, et la raison se dit.
  * ⛔ Rien d'une personne n'entre dans le prompt par ce module : l'appelant décide de ce qu'il envoie, et envoie des FORMES FERMÉES.
+ * ⛔ LE BUDGET DU JOUR (28 octobre 2026, Justin : « la limite des messages, ça va pas être possible » — l'heure était un mauvais garde-fou, le DOLLAR est le bon). `agents-budget.json` porte aussi
+ *    `jour: { j, parAgent, nonRacine, racine, alertes }` (même écriture atomique ; il repart à zéro à minuit, heure de Paris) :
+ *    · un appel SANS racine (un agent qui travaille seul : un courriel à traiter, une surveillance) est refusé (`plafond_jour`) quand l'agent a dépensé aujourd'hui max(1,50 $, 20 % de son plafond du
+ *      mois), ou quand tout ce qui est sans racine dépasse 25 $ — Camille traite l'arriéré de courriels sans racine, on ne l'arrête pas en pleine tâche pour un centime ;
+ *    · un appel AVEC racine (`opts.racine === true` : l'appelant l'a VALIDÉE contre un message de Justin, `conversations.racine`) n'a pas le plafond d'agent du jour : il est borné par les 4 $ de la
+ *      racine (`conversations.js`) ;
+ *    · UN FILET pour les deux : 60 $ par jour, tous appels confondus (`filet_jour`) — le jeton du pont volé fabrique au plus 60 racines par heure à 4 $, c'est ce filet qui le coupe ;
+ *    · une alerte à 80 % du plafond d'un agent (une par agent et par jour), une à 100 %, une au filet : `ctx.surBudget({type, …})` — l'appelant décide d'une notification ou d'une ligne ;
+ *    · le plafond mensuel de chaque agent et les 195 $ du total restent la dernière barrière, pour Justin aussi. Les seuils se règlent dans `config.agents.budgetJour` (jamais dans le dépôt).
  */
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const { parisParties } = require('./agents-horaires');
 
 const F = 'agents-budget.json';
+/* Les seuils du jour (28 octobre 2026) : voir l'en-tête. `ctx.plafondsJour` les remplace champ par champ ; une valeur qui n'est pas un nombre positif garde le défaut. */
+const JOUR_DEFAUT = { agentMin: 1.5, agentPct: 0.2, nonRacine: 25, filet: 60, alerte: 0.8 };
 const TOTAL_USD = 195;
 const MODEL = 'claude-sonnet-5';
 const USD_ENTREE_M = 3.5, USD_SORTIE_M = 17.5;   /* un peu au-dessus du tarif : on estime vers le haut */
@@ -91,13 +103,29 @@ module.exports = function cerveau(ctx) {
     try { const j = JSON.parse(brut); if (!j || typeof j.mois !== 'string' || !j.parAgent || typeof j.parAgent !== 'object' || Array.isArray(j.parAgent)) throw new Error('forme'); return j; }
     catch (e) { illisible = true; return { mois: mois(), parAgent: {} }; }
   }
+  /* ── LE BUDGET DU JOUR ── */
+  const P = Object.assign({}, JOUR_DEFAUT);
+  if (ctx.plafondsJour && typeof ctx.plafondsJour === 'object') for (const k of Object.keys(JOUR_DEFAUT)) { const x = ctx.plafondsJour[k]; if (typeof x === 'number' && Number.isFinite(x) && x > 0) P[k] = x; }
+  const surBudget = typeof ctx.surBudget === 'function' ? ctx.surBudget : null;
+  const dire = x => { if (!surBudget) return; try { Promise.resolve(surBudget(x)).catch(() => {}); } catch (e) {} };
+  const jourDe = () => { const p = parisParties(maintenant()); return p.annee + '-' + String(p.mois).padStart(2, '0') + '-' + String(p.jour).padStart(2, '0'); };
+  const jourNeuf = () => ({ j: jourDe(), parAgent: {}, nonRacine: 0, racine: 0, alertes: {} });
   let etat = charger();
+  if (!etat.jour || typeof etat.jour !== 'object' || Array.isArray(etat.jour) || typeof etat.jour.j !== 'string' || !etat.jour.parAgent || typeof etat.jour.parAgent !== 'object' || Array.isArray(etat.jour.parAgent)) etat.jour = jourNeuf();
+  if (!etat.jour.alertes || typeof etat.jour.alertes !== 'object' || Array.isArray(etat.jour.alertes)) etat.jour.alertes = {};
   function ecrire() {
     if (illisible) return false;
     try { const f = path.join(DATA_DIR, F), tmp = f + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(etat)); fs.renameSync(tmp, f); return true; }
     catch (e) { console.error(F + ' non écrit :', e.message); return false; }
   }
-  function moisCourant() { if (etat.mois !== mois()) etat = { mois: mois(), parAgent: {} }; }
+  function moisCourant() { if (etat.mois !== mois()) etat = { mois: mois(), parAgent: {}, jour: etat.jour }; }
+  /* minuit à Paris : le jour repart à zéro (les alertes aussi : une par agent et par jour) */
+  function jourCourant() { if (!etat.jour || etat.jour.j !== jourDe()) etat.jour = jourNeuf(); return etat.jour; }
+  const depenseJour = id => Number(jourCourant().parAgent[id]) || 0;
+  const totalJour = () => (Number(jourCourant().nonRacine) || 0) + (Number(jourCourant().racine) || 0);
+  /* le plafond d'un agent pour ses appels SANS racine, aujourd'hui */
+  const plafondJourDe = id => Math.max(P.agentMin, P.agentPct * plafond(id));
+  const alerte = (cle, x) => { const a = jourCourant().alertes; if (a[cle]) return; a[cle] = true; ecrire(); dire(x); };   // rangée tout de suite : un refus n'écrit pas de dépense, et un redémarrage ne redirait pas l'alerte
   const depense = id => Number(etat.parAgent[id]) || 0;
   const total = () => Object.values(etat.parAgent).reduce((s, x) => s + (Number(x) || 0), 0);
   const plafond = id => { const a = agents.AGENTS.find(x => x.id === id); return a ? a.plafondUsd : 0; };
@@ -111,10 +139,17 @@ module.exports = function cerveau(ctx) {
     if (!cle) return { ok: false, raison: 'pas_de_cle' };
     const p = agents.peutAgir(id);
     if (!p.ok) return { ok: false, raison: p.raison };
-    moisCourant();
+    moisCourant(); jourCourant();
     if (depense(id) >= plafond(id)) return { ok: false, raison: 'plafond_agent' };
     if (total() >= TOTAL) return { ok: false, raison: 'plafond_total' };
     if (typeof system !== 'string' || !Array.isArray(messages) || !messages.length) return { ok: false, raison: 'requete' };
+    /* ⛔ LE JOUR : `racine` n'est vrai que si l'appelant a validé la racine contre le registre (un message de Justin) ; le filet vaut pour tous, le plafond d'agent seulement sans racine */
+    const racine = !!(opts && typeof opts === 'object' && opts.racine === true);
+    if (totalJour() >= P.filet) { alerte('filet', { type: 'filet_jour', total: totalJour(), filet: P.filet }); return { ok: false, raison: 'filet_jour' }; }
+    if (!racine && (depenseJour(id) >= plafondJourDe(id) || (Number(jourCourant().nonRacine) || 0) >= P.nonRacine)) {
+      alerte('cent:' + id, { type: 'plafond_jour', agent: id, depense: depenseJour(id), plafond: plafondJourDe(id) });
+      return { ok: false, raison: 'plafond_jour' };
+    }
     let r;
     /* ⛔ `thinking: disabled`, EXPRÈS. Sans ce réglage, Claude Sonnet 5 réfléchit d'office (mode adaptatif) et cette réflexion est prise
        sur `max_tokens` : avec 600 jetons, elle pouvait manger toute la réponse, qui revenait VIDE — et un échec « vide » est tu par les
@@ -143,6 +178,12 @@ module.exports = function cerveau(ctx) {
     const recherches = recherche ? (Number.isInteger(r.recherches) && r.recherches >= 0 ? r.recherches : recherche.max_uses) : 0;
     const cout = ((Number(r.entree) || 0) * USD_ENTREE_M + (Number(r.sortie) || 0) * USD_SORTIE_M) / 1e6 + recherches * USD_RECHERCHE;
     moisCourant(); etat.parAgent[id] = depense(id) + (Number.isFinite(cout) ? cout : 0);
+    { /* le jour : la dépense va du côté « racine » ou « sans racine » ; une alerte à 80 % du plafond d'agent (sans racine) */
+      const j = jourCourant(), c = Number.isFinite(cout) ? cout : 0;
+      if (racine) j.racine = (Number(j.racine) || 0) + c; else { j.parAgent[id] = depenseJour(id) + c; j.nonRacine = (Number(j.nonRacine) || 0) + c; }
+      if (!racine && depenseJour(id) >= P.alerte * plafondJourDe(id)) alerte('quatrevingts:' + id, { type: 'alerte_jour', agent: id, depense: depenseJour(id), plafond: plafondJourDe(id) });
+      if (totalJour() >= P.alerte * P.filet) alerte('filet80', { type: 'alerte_filet', total: totalJour(), filet: P.filet });
+    }
     if (!ecrire()) { agents.noter(id, 'penser', { cible: 'budget', resultat: 'erreur', detail: 'dépense non écrite : plus d’appel avant réparation' }); illisible = true; }
     const texte = String(r.texte || '').trim();
     /* Les appels d'outils rendus par l'API : un nom, un objet. Une forme inattendue est écartée ici ; la VALIDATION est celle de l'appelant. */
@@ -164,7 +205,10 @@ module.exports = function cerveau(ctx) {
     if (recherche) sortie.recherches = recherches;
     return sortie;
   }
-  const etatBudget = () => ({ illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL, parAgent: Object.assign({}, etat.parAgent), cle: !!cle });
+  const etatBudget = () => { const j = jourCourant(); return { illisible, mois: etat.mois, total: total(), plafondTotal: TOTAL, parAgent: Object.assign({}, etat.parAgent), cle: !!cle,
+    /* le jour : de quoi dire à la Tour « aujourd'hui X $ / Y $ » — des nombres, jamais un texte */
+    jour: { j: j.j, total: totalJour(), racine: Number(j.racine) || 0, nonRacine: Number(j.nonRacine) || 0, parAgent: Object.assign({}, j.parAgent), filet: P.filet, plafondNonRacine: P.nonRacine,
+      plafondsAgent: Object.fromEntries(agents.AGENTS.map(a => [a.id, plafondJourDe(a.id)])) } }; };
   /* IMPUTER (l'examen de l'équipe, 23 octobre 2026) : une dépense faite ailleurs avec la MÊME clé — les appels de l'examen se font sur une équipe d'essai, avec son propre
      cerveau, donc hors de ce fichier de budget — compte pourtant dans les 195 $ du mois. Elle s'inscrit sous un nom qui n'est PAS celui d'un agent (« examen ») : aucun
      plafond d'agent n'en est entamé, seul le total du mois l'est. Rend faux (rien d'écrit) pour un nom d'agent, un montant hors forme, ou un budget illisible. */

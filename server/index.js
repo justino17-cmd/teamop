@@ -682,6 +682,9 @@ app.get('/health', (req, res) => res.json(santeCorps(true)));
 function santeCorps(vider) { return { ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* LE PONT VERS OP MESSAGES (28 octobre 2026) : DEUX NOMBRES, présents SEULEMENT quand le pont est monté — les minutes d'échec d'affilée (la surveillance crie à 30) et la taille de la file (elle crie à 1 000 sur 2 000). Jamais un texte, un fil, un identifiant. */
   ...(pontMessages ? { pont: pontMessages.sante() } : {}),
+  /* Ce que la messagerie des agents a REFUSÉ dans la dernière heure, en deux NOMBRES (28 octobre 2026) : `horaire` — un agent qui travaille SEUL a buté sur ses plafonds horaires (12 messages par heure, 20 par
+     fil) : une alarme d'exploitation, jamais une ligne dans un fil — et `chaine` — une racine close ou un ping-pong coupé. Ni agent, ni fil, ni texte. Présent seulement quand la messagerie est montée. */
+  ...(agentEquipe && typeof agentEquipe.refus === 'function' ? { agentsRefus: agentEquipe.refus() } : {}),
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
      la suite se déciderait à l'aveugle : /api/mail/cles est protégée par une clé de
@@ -5023,6 +5026,8 @@ function supprMailPret() { return !!(mailer && /@/.test(adrNue(supprDest()))); }
 let messagerieTour = null;   // posée au montage de la Messagerie (`mail.js`, plus bas) : ses boîtes, sans mot de passe
 let dossiersMod = null;     // les dossiers clients (`dossiers.js`) : `null` = pas monté
 let conversationsMod = null; // les conversations Tour ↔ agents (`conversations.js`) : `null` = pas monté
+let annonceurFaits = null;    // les annonces « Je viens de… » dans Équipe (`agent-faits.js`) : `null` = pas montées, les agents ne les écrivent pas — le travail, lui, se fait quand même
+let alertesBudgetJour = null; // ce que Justin voit quand un budget du jour se remplit (`agent-budget-jour.js`) : `null` = pas monté, le budget se tient quand même (`cerveau.js`)
 let pontMessages = null;     // le pont vers OP MESSAGES (`pont-messages.js`) : `null` = pas monté (rien dans la configuration, ou une configuration refusée) — les agents n'en dépendent jamais
 let agentHugo = null;       // Hugo (`agent-hugo.js`) : `null` = pas monté
 let agentsConversation = null; // la conversation des quinze autres agents (`agent-conversation.js`) : `null` = pas montée, ils ne répondent pas
@@ -10908,11 +10913,15 @@ try {
      que `pousseNotif` n'existe qu'ici (const de bloc), et sous son propre `try` : un socle qui refuse de se monter ne doit pas
      emporter la Messagerie avec lui — ni l'inverse. Aucun agent n'appelle Claude, ne lit un courriel ni ne parle à Stripe encore. */
   try {
-    /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026) : lundi – vendredi, 9 h – 18 h, heure de Paris, fermé les jours fériés, sauf réglage de Justin. Montées DANS l'appel qui monte les
+    /* LES HEURES DE TRAVAIL (`agents-horaires.js`, 26 octobre 2026) : tous les jours, 8 h – 24 h, heure de Paris, jours fériés compris (Justin, 28 octobre 2026 ; un registre déjà écrit est migré UNE fois au chargement, `REGLE`), un agent d'astreinte par couche la nuit (maintenance), sauf réglage de Justin. Montées DANS l'appel qui monte les
        agents, sous le même `try` : si le module ne se charge pas, les agents ne se montent pas non plus — jamais des agents ouverts parce que leur garde horaire a manqué. Elles entrent dans
        `peutAgir` (agents.js), la porte de tout geste d'agent ; l'examen de l'équipe, lui, monte sa propre équipe d'essai SANS elles (il se lance le soir). */
     agentsMod = require('./agents')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, masqueMail, sansAdresses, pousseNotif, horaires: require('./agents-horaires')({ DATA_DIR }),
-      cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(config.agents && config.agents.cleApi) });
+      cerveaux: require('./agents').AGENTS.map(a => a.id), cleCerveauPosee: !!(config.agents && config.agents.cleApi),
+      /* L'ANNONCE DE FIN DE TRAVAIL (28 octobre 2026) : liaison TARDIVE — `agent-faits.js` se monte juste après les conversations. Une tâche terminée, une demande préparée, une validation exécutée, une tâche
+         qui expire : « Je viens de… » dans Équipe, hors plafonds, sans réveiller personne. */
+      surFait: f => { if (annonceurFaits) annonceurFaits.annoncer(f); },
+      surExpiration: x => { if (annonceurFaits) annonceurFaits.expiree(x); } });
     /* Ce qui est arrivé hors des heures (courriels, inscriptions) est repris à l'ouverture, le plus ancien d'abord : une vérification par minute. */
     setTimeout(() => { agentsMod.reprendreDifferes().catch(e => console.error('reprise des agents :', e && e.message)); }, 15000).unref();
     setInterval(() => { agentsMod.reprendreDifferes().catch(e => console.error('reprise des agents :', e && e.message)); }, 60000).unref();
@@ -10957,10 +10966,19 @@ try {
          `conversations.js` : une panne d'OP MESSAGES ne change rien à ce que les agents lisent et écrivent. */
       surAjout: (m) => { if (pontMessages) pontMessages.surAjout(m); },
       surRetrait: (x) => { if (pontMessages) pontMessages.surRetrait(x); },
+      /* les annonces d'une rafale (UNE ligne ×N sur 20 s) s'écrivent à la sortie du processus : un redémarrage ne les perd pas */
+      viderALaSortie: true,
       surMessage: (m) => agentEquipe ? agentEquipe.surMessage(m)
         : (m.de !== 'justin' ? null : (m.fil === 'hugo' ? (agentHugo ? agentHugo.repondre(m.texte) : null) : (agentsConversation ? agentsConversation.repondre(m.fil, m.texte) : null))) });
+    /* LES ANNONCES « Je viens de… » (`agent-faits.js`) : la phrase est composée par le code, jamais par Claude. */
+    annonceurFaits = require('./agent-faits')({ agents: agentsMod, conversations: conversationsMod });
+    /* CE QUE JUSTIN VOIT QUAND UN BUDGET DU JOUR SE REMPLIT : 80 % -> notification, 100 % -> une ligne dans le fil privé de l'agent, le filet -> une ligne dans Équipe et une notification urgente. */
+    alertesBudgetJour = require('./agent-budget-jour')({ agents: agentsMod, conversations: conversationsMod, pousseNotif });
     /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
     const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '',
+      /* LE BUDGET DU JOUR (28 octobre 2026) : les seuils de `cerveau.js` se règlent ICI, sur le VPS (`config.agents.budgetJour = { agentMin, agentPct, nonRacine, filet, alerte }`), jamais dans le dépôt —
+         c'est le « relever aujourd'hui » de Justin : une valeur hors forme garde le défaut. */
+      plafondsJour: config.agents && typeof config.agents.budgetJour === 'object' ? config.agents.budgetJour : undefined, surBudget: x => alertesBudgetJour(x),
       /* espace de test seulement : le plafond du mois, tous agents confondus (10 $ chez Justin, y compris quand le réglage manque). Jamais lu hors `espaceTest`. */
       plafondTotalUsd: ESSAI ? essaisMod.plafondAgents(config.agents && config.agents.plafondMoisTotal) : undefined });
     console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));

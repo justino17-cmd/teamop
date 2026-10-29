@@ -35,6 +35,8 @@ console.log('\n── 2708 · le cerveau des agents ──');
   function monter(nom, o) {
     o = o || {}; const D = path.join(banc, nom); fs.mkdirSync(D, { recursive: true }); const appels = [];
     const c = cerv({ DATA_DIR: D, agents: { AGENTS: AG, peutAgir: () => peut, noter: (id, a, x) => notes.push([id, a, x && x.resultat]) }, cleApi: o.cle === undefined ? 'sk-ant-banc' : o.cle, maintenant: () => horloge,
+      /* (28 octobre 2026) le budget du JOUR (`cerveau.js`, test-3119) a ses propres seuils ; ce banc garde les plafonds du MOIS et du TOTAL, qu'il joue avec des appels à ≈ 87 $ : on lève le jour pour qu'il ne les masque pas */
+      plafondsJour: { agentMin: 1e9, nonRacine: 1e9, filet: 1e9 },
       appeler: o.appeler || (async (cle, req) => { appels.push({ cle, req }); return { texte: 'Bonjour Justin', entree: 1000, sortie: 500 }; }) });
     return { c, D, appels, lire: () => JSON.parse(fs.readFileSync(path.join(D, 'agents-budget.json'), 'utf8')) };
   }
