@@ -194,6 +194,9 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .sr-seul { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* ceux qui sont posés À LA FIN du document (l'annonce d'appel, les deux champs de photo) n'ont pas de `top` : leur place « naturelle » est après tout le reste, et leur bas dépassait de 1 px — la page défilait pour rien sur chaque écran, avec un ascenseur permanent sous Windows (17 octobre 2026) */
 body > .sr-seul { top: 0; left: 0; }
+/* le son de l'autre bloqué par le navigateur : un bouton qu'on ne peut pas manquer (sonJouer) */
+.son-bloque { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 2147483000; min-height: 48px; padding: 0 22px; border: 0; border-radius: 999px; background: #E5484D; color: #fff; font: 700 16px/1 -apple-system, system-ui, sans-serif; box-shadow: 0 8px 30px rgba(0,0,0,.35); cursor: pointer; }
+.son-bloque[hidden] { display: none; }
 [hidden] { display: none !important; }
 
 /* La réponse au toucher est IMMÉDIATE : l'état « pressé » se pose au doigt posé, pas au relâché (apple-design, §1). La transition
@@ -6325,11 +6328,34 @@ a.menu-action { text-decoration: none; }
   const majStatutAppel = () => { const A = etat.appelUI; if (!A) return; if (etat.appelReduit) majBarreAppel(); if (enSalle(A)) { majStatutSalle(A); return; } const t = statutAppel(A), e = $('appel-statut'); if (e.textContent !== t) e.textContent = t; };
   /* (version servie) la voix et l'image de l'AUTRE : le flux que le moteur tient est branché sur l'élément audio (la voix) et sur la vignette de l'autre (l'image, muette — son son passe déjà par l'élément audio).
      Rebranché à chaque rendu, mais seulement quand il a changé : une vignette refaite repart sans flux. */
+  /* ⛔ LE SON DE L'AUTRE NE RESTE JAMAIS MUET EN SILENCE. Justin, 29 octobre 2026, en réunion : « j'entends pas mon client ». Le
+     navigateur (Safari d'abord) refuse de lancer un son qui n'est pas né d'un toucher : l'appel ou la salle se branchent APRÈS des
+     attentes (jeton, connexion), donc `play()` était rejeté — et le rejet était avalé (`catch(() => {})`), le flux restait le même
+     objet, rien ne relançait jamais. Désormais : un refus se DIT (« Touchez pour entendre »), et le premier toucher, n'importe où,
+     relance chaque son en pause. */
+  const sonBloque = new Set();
+  function majSonBloque() {
+    for (const el of [...sonBloque]) if (!el.isConnected || !el.srcObject || !el.paused) sonBloque.delete(el);
+    let b = document.getElementById('son-bloque');
+    if (!sonBloque.size) { if (b) b.hidden = true; return; }
+    if (!b) { document.body.insertAdjacentHTML('beforeend', '<button id="son-bloque" class="son-bloque" type="button">🔊 Touchez pour entendre</button>'); b = document.getElementById('son-bloque'); b.addEventListener('click', sonRelancer); }
+    b.hidden = false;
+  }
+  function sonJouer(el) {
+    if (!el || !el.srcObject || !el.paused) return;
+    const p = el.play();
+    if (p && p.then) p.then(() => { sonBloque.delete(el); majSonBloque(); }, er => { if (er && er.name === 'NotAllowedError') { sonBloque.add(el); majSonBloque(); } });
+  }
+  function sonRelancer() { document.querySelectorAll('#appel-audio-distant, #salle-scene audio').forEach(sonJouer); majSonBloque(); }
+  document.addEventListener('pointerdown', sonRelancer, true);
+  document.addEventListener('keydown', sonRelancer, true);
+  window.opmSonJouer = sonJouer;
   function lierFluxDistant(A) {
     if (!CAP.appelsMedias || !A || typeof source.appelFlux !== 'function') return;
     if (enSalle(A)) { lierFluxSalle(A); return; }
     const f = source.appelFlux(A.id) || null, au = $('appel-audio-distant'), v = document.querySelector('#appel-scene .tuile:not(.vous) video');
-    if (au.srcObject !== f) { au.srcObject = f; if (f) { const p = au.play(); if (p && p.catch) p.catch(() => {}); } }
+    if (au.srcObject !== f) au.srcObject = f;
+    if (f) sonJouer(au);   // même flux, mais en pause (un refus d'avant) : on relance aussi
     if (v && v.srcObject !== f) { v.srcObject = f; if (f) { const p = v.play(); if (p && p.catch) p.catch(() => {}); } }
     /* « Réduire » se décide quand l'image JOUE (au branchement, elle n'a encore aucune image) — et se redécide quand la caméra de l'autre s'allume ou se coupe */
     if (v && !v.dataset.pipEcoute) { v.dataset.pipEcoute = '1'; for (const k of ['playing', 'loadeddata', 'emptied', 'resize']) v.addEventListener(k, majPip); }
@@ -11892,7 +11918,7 @@ a.menu-action { text-decoration: none; }
       const f = source.appelFlux(A.id, t.dataset.uid) || null, au = t.querySelector('audio'), v = t.querySelector('video');
       if (au.srcObject !== f) au.srcObject = f;
       if (v.srcObject !== f) v.srcObject = f;
-      if (f) { if (au.paused) lecture(au); if (v.paused) lecture(v); }
+      if (f) { if (au.paused) (window.opmSonJouer || lecture)(au); if (v.paused) lecture(v); }
     });
     if (prefMedias.sortie) appliquerSortie();
   }

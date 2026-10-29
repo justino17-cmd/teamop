@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e750f47dee4a';
+  const OPMSG_BUILD = '35542dd841a8';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 287;
+  const OPMSG_VERSION = 289;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3329,11 +3329,34 @@
   const majStatutAppel = () => { const A = etat.appelUI; if (!A) return; if (etat.appelReduit) majBarreAppel(); if (enSalle(A)) { majStatutSalle(A); return; } const t = statutAppel(A), e = $('appel-statut'); if (e.textContent !== t) e.textContent = t; };
   /* (version servie) la voix et l'image de l'AUTRE : le flux que le moteur tient est branché sur l'élément audio (la voix) et sur la vignette de l'autre (l'image, muette — son son passe déjà par l'élément audio).
      Rebranché à chaque rendu, mais seulement quand il a changé : une vignette refaite repart sans flux. */
+  /* ⛔ LE SON DE L'AUTRE NE RESTE JAMAIS MUET EN SILENCE. Justin, 29 octobre 2026, en réunion : « j'entends pas mon client ». Le
+     navigateur (Safari d'abord) refuse de lancer un son qui n'est pas né d'un toucher : l'appel ou la salle se branchent APRÈS des
+     attentes (jeton, connexion), donc `play()` était rejeté — et le rejet était avalé (`catch(() => {})`), le flux restait le même
+     objet, rien ne relançait jamais. Désormais : un refus se DIT (« Touchez pour entendre »), et le premier toucher, n'importe où,
+     relance chaque son en pause. */
+  const sonBloque = new Set();
+  function majSonBloque() {
+    for (const el of [...sonBloque]) if (!el.isConnected || !el.srcObject || !el.paused) sonBloque.delete(el);
+    let b = document.getElementById('son-bloque');
+    if (!sonBloque.size) { if (b) b.hidden = true; return; }
+    if (!b) { document.body.insertAdjacentHTML('beforeend', '<button id="son-bloque" class="son-bloque" type="button">🔊 Touchez pour entendre</button>'); b = document.getElementById('son-bloque'); b.addEventListener('click', sonRelancer); }
+    b.hidden = false;
+  }
+  function sonJouer(el) {
+    if (!el || !el.srcObject || !el.paused) return;
+    const p = el.play();
+    if (p && p.then) p.then(() => { sonBloque.delete(el); majSonBloque(); }, er => { if (er && er.name === 'NotAllowedError') { sonBloque.add(el); majSonBloque(); } });
+  }
+  function sonRelancer() { document.querySelectorAll('#appel-audio-distant, #salle-scene audio').forEach(sonJouer); majSonBloque(); }
+  document.addEventListener('pointerdown', sonRelancer, true);
+  document.addEventListener('keydown', sonRelancer, true);
+  window.opmSonJouer = sonJouer;
   function lierFluxDistant(A) {
     if (!CAP.appelsMedias || !A || typeof source.appelFlux !== 'function') return;
     if (enSalle(A)) { lierFluxSalle(A); return; }
     const f = source.appelFlux(A.id) || null, au = $('appel-audio-distant'), v = document.querySelector('#appel-scene .tuile:not(.vous) video');
-    if (au.srcObject !== f) { au.srcObject = f; if (f) { const p = au.play(); if (p && p.catch) p.catch(() => {}); } }
+    if (au.srcObject !== f) au.srcObject = f;
+    if (f) sonJouer(au);   // même flux, mais en pause (un refus d'avant) : on relance aussi
     if (v && v.srcObject !== f) { v.srcObject = f; if (f) { const p = v.play(); if (p && p.catch) p.catch(() => {}); } }
     /* « Réduire » se décide quand l'image JOUE (au branchement, elle n'a encore aucune image) — et se redécide quand la caméra de l'autre s'allume ou se coupe */
     if (v && !v.dataset.pipEcoute) { v.dataset.pipEcoute = '1'; for (const k of ['playing', 'loadeddata', 'emptied', 'resize']) v.addEventListener(k, majPip); }
@@ -8896,7 +8919,7 @@
       const f = source.appelFlux(A.id, t.dataset.uid) || null, au = t.querySelector('audio'), v = t.querySelector('video');
       if (au.srcObject !== f) au.srcObject = f;
       if (v.srcObject !== f) v.srcObject = f;
-      if (f) { if (au.paused) lecture(au); if (v.paused) lecture(v); }
+      if (f) { if (au.paused) (window.opmSonJouer || lecture)(au); if (v.paused) lecture(v); }
     });
     if (prefMedias.sortie) appliquerSortie();
   }
