@@ -9434,7 +9434,7 @@ function entCompleterModal(m,suite,intro,exige){ const s=socNom(m), st=s?socStyl
     <div class="form-row"><div class="field"><label>N° TVA intracommunautaire</label><input name="tvaIntra" value="${v('tvaIntra')}"></div>
       <div class="field"><label>IBAN (virements)</label><input name="iban" value="${v('iban')}"></div></div>
     <div style="font-size:12.5px;color:var(--t3);line-height:1.5;margin:4px 0 10px">Plusieurs sociétés (clim, plomberie…) ? Ajoute-les ensuite dans Paramètres › <b>Mes sociétés</b>, chacune avec son logo et son SIRET.</div>
-    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" onclick="sessionStorage.setItem('elanB_ent_plus_tard','1');closeModal()">Plus tard</button><button class="btn primary">Enregistrer</button></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" onclick="entPlusTard()">Plus tard</button><button class="btn primary">Enregistrer</button></div>
   </form>`); }
 function entCompleterSave(e){ e.preventDefault(); const f=Object.fromEntries(new FormData(e.target)), g=k=>String(f[k]||'').trim();
   if(!g('nom')){ toast('Le nom de l’entreprise est obligatoire'); return; }
@@ -9446,11 +9446,22 @@ function entCompleterSave(e){ e.preventDefault(); const f=Object.fromEntries(new
 /* Au premier lancement de l'administrateur : si l'entreprise n'a ni adresse ni SIRET, « Ton entreprise » s'ouvre une
    fois par séance (« Plus tard » la ferme jusqu'à la prochaine). Rien ne s'écrit sans un tap ; on attend que les
    données de l'équipe soient arrivées (sinon on la demanderait à une entreprise qui l'a déjà remplie). */
+/* « Plus tard » tient SEPT JOURS sur cet appareil (avant : la séance seulement — la fenêtre revenait à chaque ouverture) */
+const ENT_PLUS_TARD_JOURS=7;
+function entPlusTard(){ try{ localStorage.setItem('elanB_ent_plus_tard',String(Date.now())); }catch(e){} closeModal(); }
+function entPlusTardActif(){ try{ const t=+localStorage.getItem('elanB_ent_plus_tard')||0; return t>0&&Date.now()-t<ENT_PLUS_TARD_JOURS*864e5; }catch(e){ return false; } }
+/* l'entreprise de la bêta : INVENTÉE (nom, adresse, SIRET au bon format mais fictif) — aucune vraie entreprise n'y est imitée */
+const ENT_TEST_BETA={nom:'TeamOP Test',adresse:'12 rue de l’Essai',cp:'17000',ville:'La Rochelle',siret:'12345678900017',tel:'05 46 00 00 00',email:'test@exemple.fr'};
 function entAccueilCheck(n){ n=n||0; try{
   if(!currentUser||currentUser.role!=='admin'||currentUser.essai&&!BETA_ESSAI) return;
-  if(sessionStorage.getItem('elanB_ent_plus_tard')) return;
+  if(entPlusTardActif()) return;
   if((typeof syncEnabled==='function'&&syncEnabled()&&!_syncGotInitial)||document.querySelector('#overlay.open,.overlay.open')){ if(n<60) setTimeout(()=>entAccueilCheck(n+1),2500); return; }   // jusqu'à 2 min 30 : le choix de la langue, la photo de profil passent avant
   if(!docMentionsManquantes('').length) return;
+  /* v780 — le patron, 29 octobre 2026 : « remplis-le de base pour nous, pour qu'on puisse tester ; le message s'affiche tout le temps ».
+     La BÊTA n'a pas d'entreprise réelle : elle reçoit une entreprise de TEST (inventée, modifiable dans Paramètres), sans fenêtre. Jamais en
+     production : là, c'est le client qui écrit son nom. */
+  if(BETA_ESSAI&&docMentionsManquantes('').length){ db.entreprise=Object.assign({},ENT_TEST_BETA,db.entreprise||{}); for(const k in ENT_TEST_BETA) if(!String(db.entreprise[k]||'').trim()) db.entreprise[k]=ENT_TEST_BETA[k];
+    save(); try{ applyBrand&&applyBrand(); }catch(e){} toast('🏢 Entreprise de test posée sur la bêta — modifiable dans Paramètres',5000); return; }
   entCompleterModal('',null,'Bienvenue ! Une minute pour ton entreprise : son nom, son logo, son adresse et son SIRET iront en haut de tous tes devis, factures et attestations. C’est ton entreprise que ton client voit, jamais OP GESTION.');
   }catch(e){} }
 /* Les lignes de coordonnées sous le nom, dans l'ordre de tous les documents */
