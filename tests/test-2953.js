@@ -74,9 +74,12 @@ for (const fichier of ['app.html', 'beta.html']) {
   { const src = N.slice(N.indexOf('class="met-rub"') - 400, N.indexOf('class="met-rub"') + 700);
     vrai('(population) le bloc « rubriques conseillées » est dans le CODE de l\'écran', /Les \$\{L\.length\} rubriques conseillées pour ton métier/.test(src) && /RUBRIQUES_INFO\[k\]\[1\]/.test(src));
     /* on exécute vraiment le bloc : pour chaque métier, une ligne par rubrique conseillée, avec son titre et son explication */
-    const a = N.indexOf("${(()=>{ const L=((METIERS[cur]||{}).rubriques||[])"), z = N.indexOf("})()}", N.indexOf('</details>', a)) + 5;
+    /* v779 : la bêta lit `metierPack()` (le pack réuni d'une entreprise « qui fait aussi… ») ; app.html, encore `METIERS[cur]` */
+    const ancre = N.indexOf("${(()=>{ const L=((metierPack()||{}).rubriques||[])") >= 0 ? "${(()=>{ const L=((metierPack()||{}).rubriques||[])" : "${(()=>{ const L=((METIERS[cur]||{}).rubriques||[])";
+    vrai('   (population) l\'ancre du bloc est trouvée dans ' + fichier, N.indexOf(ancre) > 0);
+    const a = N.indexOf(ancre), z = N.indexOf("})()}", N.indexOf('</details>', a)) + 5;
     const expr = N.slice(a + 2, z - 1);
-    const rendre = cur => new Function('METIERS', 'RUBRIQUES_INFO', 'esc', 'cur', 'return ' + expr + ';')(METIERS, INFO, esc, cur);
+    const rendre = cur => new Function('METIERS', 'RUBRIQUES_INFO', 'esc', 'cur', 'metierPack', 'return ' + expr + ';')(METIERS, INFO, esc, cur, () => METIERS[cur]);
     const faux = [];
     for (const k of Object.keys(METIERS)) { const h = rendre(k), L = METIERS[k].rubriques.filter(r => INFO[r]);
       const lignes = (h.match(/class="met-rub-l"/g) || []).length;
