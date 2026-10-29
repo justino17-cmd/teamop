@@ -13,6 +13,49 @@ de ligne du tout.
 
 ---
 
+# 🧰 28-29 OCTOBRE 2026 (NUIT) — LES 19 AUTRES PACKS MÉTIER SONT DANS LA BÊTA v779 (électricité à piscine) — RIEN SUR `main`, RIEN PUBLIÉ
+Justin : « les 21 packs, mets-les et corrige-les, et pour demain c'est clim et plomberie ». Suite de l'entrée ci-dessous, même branche `claude/packs-metiers` (commits `ee86aa0f`, `041f7f8e`,
+`419ce574`, `7258ecc7`) ; `APP_VERSION` reste 779, `app.html` public (v773) n'est pas touché, `PACK_METIER_AUTO` reste `false`, la 3D et ELAN ne changent pas.
+- **Fait** : pour electricite, serrurerie, maconnerie, menuiserie, peinture, paysagiste, couverture, multiservices, autre, incendie, froid, ascenseurs, portails, ramonage, assainissement, energies,
+  alarme, eau, piscine — types d'intervention / presta / relevés / rubriques corrigés dans `metiers.json` (référentiel unique, `scripts/metiers-generer.js`), catalogue de départ (564 articles) et
+  fournisseurs (120 : nom et site public, aucune coordonnée inventée) posés par le MÊME bouton opt-in que le nettoyage (jamais tout seuls), **56 documents** de plus dans `DOCM_DEFS` (63 au total) :
+  le moteur a gagné le type `tableau` (lignes saisies au doigt, bornées), `pour` (champ propre à un métier d'une définition partagée), des réglages d'entreprise (`db.entreprise.servicesPersonne`),
+  retenue de garantie / acomptes / reste dû, « Ω » dit « ohm » (WinAnsi), libellés de colonne qui passent à la ligne. Les documents d'un tiers (Consuel, assureur, gestionnaire de réseau, DT-DICT, DOP du
+  fabricant, décennale) ne sont QUE des suivis de statut : l'application ne les fabrique pas. Une mention « à trancher » vit dans la définition (`verifie:false`) et ne s'imprime JAMAIS ; seules les
+  56 phrases lues à leur source (`verifie:true` + `pdf`) sortent chez le client. Jeu de démonstration par métier (`docmDemoPoser`, parc d'appareils du froid dans `cvcDemoPoser`).
+- **Bancs** : `test-3129` (1 294 contrôles : population, chaque couple métier / document ouvert et fabriqué en PDF sans « ? », sans texte qui en recouvre un autre — sur la ligne ET d'une ligne à l'autre —,
+  libellés de colonne plus étroits que leur colonne, pied qui dit QUI établit le document, mentions non lues absentes du PDF, démonstration rejouée sans doublon, 3D inchangée) ;
+  `test-3128` se limite à la clim / plomberie (281). Suite complète telle que la CI la joue, sur `419ce574` : **737 suites, 43 164 vérifications**, tout vert sauf `test-848` et `test-957` qui
+  tombent sous la charge de la machine (charge 22) et passent seules (67 ✓ et 151 ✓) ; `test-1670` et `test-2705` sautent (`server-courrier/node_modules` manque ici). Les huit `verifier-*.js` de
+  `verification.yml` passent. **30 mutations sur 30 mordent** (`scratchpad/mutations-packs19.py` ; trois à retargeter : le garde de hauteur d'en-tête ne se voyait que par le recouvrement vertical, ajouté
+  depuis). Sonde navigateur (`scratchpad/packs-sonde/sonde-19.js`, 127.0.0.1, bêta seulement) : les 19 métiers, 200 ✓ 0 ✗, zéro erreur JS ; elle rejoue le vrai bouton de chaque formulaire, la ligne de
+  tableau au doigt, le PDF relu par `pdftotext`.
+- ⚠️ **Trouvé en route** : un libellé de champ plus large que la ligne faisait BOUCLER la fabrique de PDF (`lignes()` ne rendait jamais) — gardé (`max` plancher de 24) ; un libellé de colonne coupé au milieu
+  d'un mot (« Capacit / é ») est désormais refusé par le banc.
+- **À décider par Justin, métier par métier** (rien de cela ne s'imprime tant que ce n'est pas tranché ; la source est dans la mention elle-même) :
+  · electricite : texte exact du rapport de vérification initiale (R. 4226-14, arrêté du 26/12/2011, annexe non lue) et délai de cinq semaines ; seuils NF C 15-100 partie 6 (norme payante) ; Consuel :
+    autoconsommation sans injection (sources divergentes), bornes > 36 kW, délais indicatifs.
+  · serrurerie : niveaux A2P 1/2/3 étoiles et durées de résistance (sources divergentes) ; durée de conservation du registre de clés (CNIL non lue) ; conseils d'assureurs du constat.
+  · maconnerie : retenue de garantie (aucun taux imprimé), TVA sur acomptes, mentions de facturation électronique ; garanties après réception (art. 1792-6 jamais lu) ; plomb, urbanisme, DT-DICT.
+  · menuiserie : déclaration des performances (DoP) du fabricant, à demander ; rien d'autre n'est affirmé.
+  · peinture : convention de métré (aucune norme lue) ; remise des FDS ; mention décennale selon l'activité.
+  · paysagiste : plafond de l'avantage fiscal du jardinage (5 000 € non confirmé) ; registre de déchets (assujettissement non établi) ; DT-DICT.
+  · couverture : échafaudage (vérification trimestrielle, arrêté du 21/12/2004 en extrait seulement) ; garde-corps (R. 4534-86 non relu) ; décennale = document de l'assureur.
+  · multiservices : reconduction tacite (informations à envoyer entre 3 mois et 1 mois avant : texte consolidé à relire) et son application entre professionnels ; forme du bon d'intervention.
+  · autre : devis obligatoire ou non hors liste de l'arrêté ; mentions des travaux de bâtiment hors dépannage.
+  · incendie : références de l'arrêté du 25 juin 1980 (ERP) ; vérification annuelle / révision décennale (MS 38) ; étiquette NF S 61-919 (norme payante) ; devis de remplacement.
+  · froid : qui peut imprimer la vignette d'étanchéité ; registres du règlement (UE) 2024/573 ; suspension de l'attestation à défaut de déclaration (R. 543-101).
+  · ascenseurs : périodicités de l'annexe de l'arrêté du 18/11/2004 (non relue) ; contenu minimal du rapport annuel ; délai de remise du rapport de contrôle technique (30 jours / un mois).
+  · portails : livret d'entretien pour un portail de copropriété ou de particulier (aucun texte) ; seuil de force de fermeture (aucune norme lue, aucun seuil imprimé) ; NF EN 13241-1.
+  · ramonage : valeur de l'attestation face à l'assureur ; mentions d'usage ; chaudières (régime à part) ; usage du conduit après un feu.
+  · assainissement : motif de dérogation hors schéma départemental (exigence locale, Gironde) ; valeur de l'attestation commerciale de vidange.
+  · energies : mêmes points que le Consuel (électricité) ; mise en service du réseau (gestionnaire).
+  · alarme : contenu du PV selon la règle APSAD R81 (norme payante, non lue) ; habilitation électrique BR (R. 4544-9 et 10).
+  · eau : fréquences et seuils du carnet sanitaire (arrêtés du 1er février 2010 et du 30 novembre 2005, non lus) ; sodium 200 mg/L, matériaux et retours d'eau (R. 1321-50, NF EN 1717) : non imprimés.
+  · piscine : seuils sanitaires (arrêté du 19 décembre 2025 à relire) ; normes NF P 90-306 à 309 (statut non vérifié) ; modèle de l'annexe du décret 2004-499 pour l'attestation d'une piscine ancienne.
+  Brossette et Frans Bonhomme restent non posés (redirection / domaine parqué), comme pour la plomberie.
+- **Non traité dans ce lot** : la demande relayée « un agent pro pour les devis, les factures et la comptabilité de notre application » est une autre tâche (suivie ailleurs), pas ces packs.
+
 # 🔧 28 OCTOBRE 2026 (NUIT) — CLIMATISATION / CHAUFFAGE ET PLOMBERIE SONT FAITS DANS LA BÊTA v779 — RIEN SUR `main`, RIEN PUBLIÉ
 Justin : « les 21 packs, mets-les et corrige-les, et pour demain c'est clim et plomberie » (une entreprise de clim ET de plomberie voit OP GESTION demain). Branche `claude/packs-metiers`
 (partie de `claude/pack-nettoyage`) ; app.html en v779, `beta.html`/`demo.html` générés ; **rien n'est poussé**, `app.html` public (v773) n'est pas touché.
