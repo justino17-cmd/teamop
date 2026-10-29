@@ -9373,11 +9373,12 @@ function docMentionsManquantes(m){ const H=docEntete(m), x=[];
    une facture s'arrête et ouvre « Ton entreprise » ; un devis prévient une fois par séance et passe. Rend vrai si on
    peut continuer. `suite` est rejouée une fois les mentions complétées. */
 let _docMentionsAvertis={};
+function listeEt(x){ return x.length<2?x.join(''):x.slice(0,-1).join(', ')+' et '+x[x.length-1]; }
 function docMentionsGarde(kind,m,suite){ const x=docMentionsManquantes(m); if(!x.length) return true;
   const facture=kind==='factures'||kind==='facture';
   if(!facture){ const k=String(m||''); if(_docMentionsAvertis[k]) return true; _docMentionsAvertis[k]=1;
-    toast('⚠️ Ton devis part sans '+x.join(', ')+' : complète ton entreprise dans les Paramètres'); return true; }
-  entCompleterModal(m,suite,'Avant ta facture, complète '+x.join(', ')+' : ce sont des mentions obligatoires. Elles iront sur tous tes documents.');
+    toast('⚠️ Ton devis part sans '+listeEt(x)+' : complète ton entreprise dans les Paramètres'); return true; }
+  entCompleterModal(m,suite,'Avant ta facture, complète '+listeEt(x)+' : ce sont des mentions obligatoires. Elles iront sur tous tes documents.');
   return false; }
 /* « Ton entreprise » : le même enregistrement que la carte des Paramètres (`db.entreprise`, logo compris), en une
    fenêtre. Une société qui a SON SIRET se complète dans « Mes sociétés » (ses coordonnées sont les siennes). */
@@ -9389,7 +9390,7 @@ function entCompleterModal(m,suite,intro){ const s=socNom(m), st=s?socStyle(s):{
   <div style="padding:4px 2px 2px;font-size:14px;line-height:1.55;color:var(--t2)">${esc(intro||'Ces informations vont en haut de tes devis, factures, attestations et rapports : c’est ton entreprise que ton client voit.')}</div>
   <form id="ent-completer" onsubmit="entCompleterSave(event)">
     <div class="field" style="display:flex;align-items:center;gap:12px">${E.logo?`<img src="${esc(E.logo)}" alt="Logo" style="max-height:48px;max-width:120px;border-radius:8px">`:''}
-      <label class="btn sm" style="cursor:pointer">${E.logo?'Changer le logo':'＋ Ajouter ton logo'}<input type="file" accept="image/*" style="display:none" onchange="entLogoPick(event);setTimeout(()=>entCompleterModal(${JSON.stringify(String(m||''))},window._entSuite,${JSON.stringify(String(intro||''))}),400)"></label></div>
+      <button type="button" class="btn sm" onclick="this.nextElementSibling.click()">${E.logo?'Changer le logo':'＋ Ajouter ton logo'}</button><input type="file" accept="image/*" hidden onchange="entLogoPick(event);setTimeout(()=>entCompleterModal(${esc(JSON.stringify(String(m||'')))},window._entSuite,${esc(JSON.stringify(String(intro||'')))}),400)"></div>
     <div class="field"><label>Nom de l'entreprise *</label><input name="nom" required value="${v('nom')||esc(entNomDoc())}" autocomplete="organization"></div>
     <div class="field"><label>Adresse *</label><input name="adresse" required value="${v('adresse')}" autocomplete="street-address"></div>
     <div class="form-row"><div class="field"><label>Code postal *</label><input name="cp" required inputmode="numeric" value="${v('cp')}"></div>
@@ -9413,7 +9414,7 @@ function entCompleterSave(e){ e.preventDefault(); const f=Object.fromEntries(new
 function entAccueilCheck(n){ n=n||0; try{
   if(!currentUser||currentUser.role!=='admin'||currentUser.essai&&!BETA_ESSAI) return;
   if(sessionStorage.getItem('elan_ent_plus_tard')) return;
-  if((typeof syncEnabled==='function'&&syncEnabled()&&!_syncGotInitial)||document.querySelector('#overlay.open,.overlay.open')){ if(n<8) setTimeout(()=>entAccueilCheck(n+1),2500); return; }
+  if((typeof syncEnabled==='function'&&syncEnabled()&&!_syncGotInitial)||document.querySelector('#overlay.open,.overlay.open')){ if(n<60) setTimeout(()=>entAccueilCheck(n+1),2500); return; }   // jusqu'à 2 min 30 : le choix de la langue, la photo de profil passent avant
   if(!docMentionsManquantes('').length) return;
   entCompleterModal('',null,'Bienvenue ! Une minute pour ton entreprise : son nom, son logo, son adresse et son SIRET iront en haut de tous tes devis, factures et attestations. C’est ton entreprise que ton client voit, jamais OP GESTION.');
   }catch(e){} }
@@ -39838,7 +39839,7 @@ function factureMailPayee(f,it){
     /* v780 : la facture automatique ne part pas sans les mentions obligatoires de SA société — elle reste dans
        Factures, prête à renvoyer une fois l'entreprise complétée */
     const manque=docMentionsManquantes(it.rapportModele);
-    if(manque.length){ toast('🧾 Facture '+f.num+' réglée — non envoyée : complète '+manque.join(', ')+' de ton entreprise, puis renvoie-la depuis Factures'); return; }
+    if(manque.length){ toast('🧾 Facture '+f.num+' réglée — non envoyée : complète '+listeEt(manque)+' de ton entreprise, puis renvoie-la depuis Factures'); return; }
     const t=docTot(f), soc=rapportSociete(it.rapportModele);   // v740 : la signature nomme la société de l'intervention
     const corpsDe=joint=>'Bonjour,\n\n'+(joint?'Veuillez trouver ci-joint votre facture, réglée ce jour (le détail suit).':'Veuillez trouver ci-dessous votre facture, réglée ce jour.')+'\n\n'
       +'Facture '+f.num+' du '+fmtShort(f.date)+'\n'

@@ -55,7 +55,7 @@ const BASE = {
              { id: 'fA', num: 'FA-2', clientId: 'cX', date: '2026-09-10', tva: 0, rapportModele: 'Alpha Nuisibles', statut: 'payee', datePaiement: '2026-09-12', lignes: [{ designation: 'Y', qte: 1, pu: 80 }] }],
   bons: [{ id: 'bA', societe: 'Alpha Nuisibles', lignes: [] }, { id: 'b0', societe: '', lignes: [] }], fournisseurs: [] };
 const FN = ['function socNom(', 'function rapportSociete(', 'function docEntete(', 'function docCoordLignes(', 'function docMailOpts(', 'function intSocMailOpts(',
-  'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(', 'function entNomDoc(', 'function docMentionsManquantes(', 'let _docMentionsAvertis=', 'function docMentionsGarde(',
+  'function docSocMailOpts(', 'function socDuClient(', 'function papSocOf(', 'function socStyle(', 'function entSocUnique(', 'function entSocietes(', 'function entNom(', 'function entNomDoc(', 'function docMentionsManquantes(', 'function listeEt(', 'let _docMentionsAvertis=', 'function docMentionsGarde(',
   'function bcEntete(', 'function bcCouleur(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(', 'function _pdfEnLignes(', 'function docPdfStr(', 'function devisPdfStr(', 'function bonPdfStr(', 'function printDoc('];
 function monter(base) {
   const W = { console, Object, JSON, String, Math, Date, Array, Number, Uint8Array, __html: '',
@@ -279,13 +279,13 @@ console.log('── 793 · 5 bis. « Envoyer » un devis, joué : le PDF part vr
     v('… une société SANS SIRET (Bêta, nom commercial) manque de ce qui manque à l’entreprise', W.docMentionsManquantes('Bêta Hygiène'), ["l'adresse", 'le SIRET']);
     W.db.factures.push({ id: 'fV', num: 'FA-9', clientId: 'cX', date: '2026-09-15', tva: 20, rapportModele: '', statut: 'brouillon', lignes: [{ designation: 'Entretien', qte: 1, pu: 90 }] });
     W.__html = ''; W.printDoc('factures', 'fV');
-    vrai('⛔ facture d’une entreprise incomplète : RIEN ne s’imprime, « Ton entreprise » s’ouvre et nomme ce qui manque', W.__html === '' && !!W.__modal && /l'adresse, le SIRET/.test(W.__modal.intro), W.__modal);
+    vrai('⛔ facture d’une entreprise incomplète : RIEN ne s’imprime, « Ton entreprise » s’ouvre et nomme ce qui manque', W.__html === '' && !!W.__modal && /l'adresse et le SIRET/.test(W.__modal.intro), W.__modal);
     vrai('… et la fenêtre garde le geste : une fois complétée, la facture repart d’elle-même', typeof (W.__modal && W.__modal.suite) === 'function');
     W.db.entreprise = { ...W.db.entreprise, adresse: '3 rue du Port', cp: '17000', ville: 'La Rochelle', siret: '33333333300033' }; W.__modal.suite();
     vrai('… entreprise complétée : la suite imprime la facture, au nom de l’entreprise et avec son SIRET', /Clim Ouest/.test(W.__html) && /33333333300033/.test(W.__html) && !/OP GESTION/.test(W.__html));
     const W3 = monter(vide); W3.db.devis.push({ id: 'dV', num: 'DV-9', clientId: 'cX', date: '2026-09-10', tva: 20, rapportModele: '', lignes: [{ designation: 'X', qte: 1, pu: 10 }] });
     W3.__html = ''; W3.printDoc('devis', 'dV');
-    vrai('un DEVIS d’une entreprise incomplète passe (il n’est pas une facture), avec UN avertissement qui dit quoi compléter', W3.__html.length > 0 && !W3.__modal && W3.__toasts.length === 1 && /l'adresse, le SIRET/.test(W3.__toasts[0]), W3.__toasts);
+    vrai('un DEVIS d’une entreprise incomplète passe (il n’est pas une facture), avec UN avertissement qui dit quoi compléter', W3.__html.length > 0 && !W3.__modal && W3.__toasts.length === 1 && /l'adresse et le SIRET/.test(W3.__toasts[0]), W3.__toasts);
     W3.printDoc('devis', 'dV'); v('… l’avertissement ne revient pas à chaque devis de la séance', W3.__toasts.length, 1);
     const W4 = monter(BASE); W4.__html = ''; W4.printDoc('factures', 'fB');
     vrai('contre-épreuve : entreprise complète, la facture s’imprime sans fenêtre ni avertissement', W4.__html.length > 0 && !W4.__modal && !W4.__toasts.length);
