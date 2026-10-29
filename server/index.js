@@ -55,6 +55,77 @@ function saveSubs() {
   }, 300);
 }
 
+/* ══ LES NOTIFICATIONS DE LA TOUR NE SE DEVINENT PAS (28 octobre 2026, revue Trail of Bits, B1) ══
+   Les envois de la Tour (courrier de support : nom, adresse et objet d'un vrai client ; agents ; conversations ; réunions ; examen ;
+   validations ; Pauline) visaient « tout abonnement dont le teamId COMMENCE par teamop-controle » — et `/api/subscribe` n'exige aucune preuve :
+   n'importe qui s'abonnait avec ce préfixe, qui est dans le code, et recevait le prochain courriel de support en clair.
+   Trois verrous, qui se tiennent les uns les autres :
+     1. le préfixe est RÉSERVÉ : `/api/subscribe` et `/api/notify` le refusent (400) ;
+     2. un abonnement de la Tour porte `tour: true`, posé par UNE route (`/api/monitor/push/abonner`, patron), jamais par le corps d'une requête publique ;
+     3. TOUS les envois de la Tour passent par `pousserALaTour` et ne lisent que `tour === true` — le teamId ne décide plus de rien.
+   (Le verrou 3 tient même si le 1 est contourné ; le 1 empêche d'écrire dans la table ce que le 3 ne lira jamais.)
+   ⚠️ Un nouvel envoi à la Tour passe par `pousserALaTour`, jamais par un nouveau `Object.values(subs).filter(…)` : `tests/test-3155.js` compte les filtres. */
+const PUSH_PREFIXE_TOUR = 'teamop-controle';
+function teamIdDeLaTour(t) {
+  /* insensible à la casse, espaces (et espaces de largeur nulle) retirés, formes de compatibilité Unicode repliées : on refuse large */
+  let x = '';
+  /* un objet à `toString` piégé ({"toString":1}) fait jeter String() : dans le doute on refuse (true), on ne plante pas la route */
+  try { x = String(t == null ? '' : t); } catch (e) { return true; }
+  try { x = x.normalize('NFKC'); } catch (e) {}
+  return x.replace(/[\s\u200b-\u200f\u2060\ufeff]/g, '').toLowerCase().startsWith(PUSH_PREFIXE_TOUR);
+}
+/* L'adresse d'un service de push, telle qu'un navigateur la donne (FCM, Apple, Mozilla, Windows…) : https seulement, port par défaut, un NOM de
+   machine public. Pas de liste blanche de services — on ne veut couper aucun navigateur —, mais ni IP littérale (v4 sous toutes ses écritures :
+   l'analyseur d'adresses les ramène à « a.b.c.d »), ni IPv6, ni « localhost », ni nom privé (sans point, .local, .internal, .lan…), ni identifiants
+   dans l'adresse. Rend l'adresse NORMALISÉE (`u.href`, celle qu'on stocke et qu'on appelle) ou null. ⚠️ Un nom public qui POINTE vers une adresse privée (nip.io…) n'est pas arrêté ici : il faudrait
+   résoudre le nom, et le résoudre une fois ne vaut rien contre un changement de réponse entre deux résolutions (voir le commit). */
+function endpointPushValide(ep) {
+  if (typeof ep !== 'string' || ep.length < 12 || ep.length > 2048) return null;
+  let u;
+  try { u = new URL(ep); } catch (e) { return null; }
+  if (u.protocol !== 'https:' || u.username || u.password) return null;
+  /* ⛔ web-push ne lit pas l'adresse comme `new URL` (il passe par l'analyseur historique `url.parse`) : « https://127.0.0.1%2epush.example.net/x »
+     est un nom public pour l'un et l'IP 127.0.0.1 pour l'autre. D'où DEUX gardes : le serveur stocke et appelle l'adresse NORMALISÉE (`u.href`, jamais le
+     texte brut), et la partie « machine » du texte brut ne porte ni « % », ni « \\ », ni « @ », ni espace — rien que les deux analyseurs liraient autrement. */
+  const brut = /^https:\/\/([^\/?#]*)/i.exec(ep);
+  if (!brut || /[%\\@\s]/.test(brut[1])) return null;
+  if (u.port && u.port !== '443') return null;
+  const h = u.hostname.replace(/\.$/, '').toLowerCase();
+  /* IPv4 sous toutes ses écritures (l'analyseur d'adresses les ramène à a.b.c.d ; un dernier segment tout en chiffres est une IP ou une erreur), IPv6 entre crochets */
+  if (!h || h.startsWith('[') || /^[0-9.]+$/.test(h) || /(^|\.)[0-9]+$/.test(h)) return null;
+  if (h.indexOf('.') < 0) return null;
+  if (/(^|\.)(localhost|local|localdomain|internal|intranet|lan|home|corp|private|arpa|onion)$/.test(h)) return null;
+  return u.href;
+}
+/* UNE définition de « qui reçoit les notifications de la Tour » et UNE façon d'y envoyer. Rend le nombre d'appareils visés. */
+/* Un appareil de la Tour n'est le « membre » d'aucune entreprise : ni envoi par teamId, ni preuve qu'un espace existe (c'est ce qui rendait « teamop-controle » « connu »). */
+function abonneEntreprise(s, teamId) { return !!s && s.tour !== true && s.teamId === teamId; }
+function abonnesDeLaTour() { return Object.values(subs).filter(x => x && x.tour === true && x.sub && x.sub.endpoint); }
+async function pousserALaTour(titre, corps, url, urlParDefaut) {
+  const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || urlParDefaut });
+  const cibles = abonnesDeLaTour();
+  for (const t of cibles) {
+    try { await webpush.sendNotification(t.sub, payload); }
+    catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } }
+  }
+  return cibles.length;
+}
+/* Au démarrage : les abonnements d'AVANT au préfixe réservé qui ne portent pas `tour: true` sont retirés. Aucune page du dépôt n'en pose
+   (tour.html n'a pas de code d'abonnement) : ce sont des abonnements posés à la main par quelqu'un qui connaissait le préfixe. Le journal dit leur
+   NOMBRE, jamais une adresse de push (c'est un secret : qui la connaît peut écrire à cet appareil). */
+{
+  let retires = 0, invalides = 0;
+  for (const ep of Object.keys(subs)) {
+    const x = subs[ep];
+    if (x && x.tour !== true && teamIdDeLaTour(x.teamId)) { delete subs[ep]; retires++; }
+    /* et les adresses d'avant le filtre (http, IP, nom privé, forme ambiguë) : le serveur ne les appellera plus. Une adresse qui s'écrit autrement une fois
+       normalisée reste (elle est valide) ; seules celles que le filtre refuse partent. */
+    else if (x && x.tour !== true && !endpointPushValide(ep)) { delete subs[ep]; invalides++; }
+  }
+  if (invalides) { console.log('notifications : ' + invalides + ' abonnement(s) à une adresse de push refusée par le filtre retiré(s)'); saveSubs(); }
+  if (retires) { console.log('notifications de la Tour : ' + retires + ' abonnement(s) au préfixe réservé retiré(s) (sans tour:true)'); saveSubs(); }
+}
+
 // ── e-mail (optionnel : rempli dans config.json → smtp)
 let mailer = null;
 const essaiCourriels = ESSAI ? essaisMod.depot({ dossier: DATA_DIR, origine: ESSAI_ORIGINE }) : null;
@@ -405,6 +476,39 @@ app.use((req, res, next) => {
 
 // ── codes de sécurité (actions sensibles : remise à zéro, etc.) ──
 const codes = new Map();
+/* ⛔ Revue Trail of Bits du 28 octobre 2026 (I3, la part qui ne change pas le parcours de l'application) : la table n'était JAMAIS élaguée et sa clé
+   (teamId|purpose) n'était bornée par rien — un anonyme la remplissait à volonté ; le code se tirait par Math.random ; l'erreur SMTP, nom d'hôte et
+   texte d'authentification compris, partait telle quelle à qui la provoquait. Ici : balayage des codes échus à chaque émission, plafond de taille,
+   clé bornée (teamId ≤ 80 signes, purpose = « reset » ou « mdp-<identifiant> », la forme que l'application envoie), tirage par `crypto.randomInt`,
+   réponse d'erreur sans le message du serveur de courriel (le code du refus va au journal du VPS, pas à l'appelant).
+   ⛔ CE QUI RESTE OUVERT, ET QUE CE CORRECTIF NE TOUCHE PAS : le code part à l'adresse que l'APPELANT donne, sans lien avec l'utilisateur visé
+   par `purpose: 'mdp-<id>'` (voir le commit et REPRISE.md). */
+const CODES_PLAFOND = 5000;
+const CODE_PURPOSE = /^(reset|email|pwd|mdp-[A-Za-z0-9_.-]{1,40})$/;   // `email` et `pwd` : le changement d'adresse et de mot de passe de « Mon espace » (espace.html)
+function codesBalayer() {
+  const now = Date.now();
+  for (const [k, c] of codes) { if (!c || now > c.exp) codes.delete(k); }
+}
+/* Place pour UN code de plus. À la saturation on ÉVINCE le plus ancien (celui qui échoit le plus tôt) au lieu de refuser : refuser, c'était offrir à qui
+   remplit la table un déni de service de dix minutes sur tous les codes de sécurité de tout le monde. Rend false seulement si la table ne peut rien perdre. */
+function codePlace(cle) {
+  codesBalayer();
+  if (codes.has(cle) || codes.size < CODES_PLAFOND) return true;
+  let plusAncien = null, exp = Infinity;
+  for (const [k, c] of codes) { if (c.exp < exp) { exp = c.exp; plusAncien = k; } }
+  if (plusAncien === null) return false;
+  codes.delete(plusAncien);
+  return true;
+}
+/* Rend la clé de la table, ou null (+ la raison pour la réponse) : une seule définition pour les deux routes qui écrivent et celle qui lit. */
+function codeCle(teamId, purpose) {
+  if (typeof teamId !== 'string' || !teamId || teamId.length > 80) return null;
+  const p = (purpose === undefined || purpose === null || purpose === '') ? 'reset' : purpose;
+  if (typeof p !== 'string' || !CODE_PURPOSE.test(p)) return null;
+  return teamId + '|' + p;
+}
+function codeTirer() { return String(crypto.randomInt(100000, 1000000)); }
+const CODE_ERREUR_ENVOI = "L'envoi du code a échoué — réessaie dans un instant.";
 // Mot de passe oublié : nous fabriquons le lien et nous envoyons l'e-mail.
 // La réponse est TOUJOURS la même, compte existant ou non — sinon cette route
 // deviendrait un moyen de savoir qui travaille dans quelle entreprise.
@@ -467,9 +571,13 @@ app.post('/api/mdp/lien', async (req, res) => {
 app.post('/api/sendcode', async (req, res) => {
   const { teamId, email, purpose } = req.body || {};
   if (!teamId || !email) return res.status(400).json({ error: 'teamId et email requis' });
+  const cleCode = codeCle(teamId, purpose);
+  if (!cleCode) return res.status(400).json({ error: 'teamId ou purpose invalide' });
+  if (typeof email !== 'string' || email.length > 200 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ error: 'email invalide' });
   if (!mailer) return res.status(503).json({ error: 'email_off' });
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  codes.set(teamId + '|' + (purpose || 'reset'), { code, email, exp: Date.now() + 10 * 60000, tries: 0 });
+  if (!codePlace(cleCode)) return res.status(503).json({ error: CODE_ERREUR_ENVOI });
+  const code = codeTirer();
+  codes.set(cleCode, { code, email, exp: Date.now() + 10 * 60000, tries: 0 });
   try {
     await mailerEnvoi({
       // le code ne voyage PAS dans l'objet : l'objet est conservé au journal, le corps ne l'est pas
@@ -482,21 +590,24 @@ app.post('/api/sendcode', async (req, res) => {
         blocHtml: MAIL_BLOCS.code(code) + '<div style="font-size:12.5px;color:#93A2BF;padding-top:14px">Si vous n\'êtes pas à l\'origine de cette demande, ignorez ce message et vérifiez la sécurité de votre compte.</div>' })
     });
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('sendcode envoi :', refusSmtp(e)); res.status(500).json({ error: CODE_ERREUR_ENVOI }); }
 });
 // le compte n'a pas d'e-mail : le code part à l'adresse de l'ENTREPRISE (l'annuaire),
 // et le responsable le transmet — jamais à une adresse tapée librement.
 app.post('/api/sendcode-entreprise', async (req, res) => {
   const { teamId, purpose, login } = req.body || {};
   if (!teamId) return res.status(400).json({ error: 'teamId requis' });
+  const cleCode = codeCle(teamId, purpose);
+  if (!cleCode) return res.status(400).json({ error: 'teamId ou purpose invalide' });
   if (!mailer) return res.status(503).json({ error: 'email_off' });
   const e = Object.values(espacesReg).find(x => {
     if (x.t) return x.t === teamId;
     try { return String(JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')).t || '') === teamId; } catch (err) { return false; }
   });
   if (!e || !e.email) return res.status(404).json({ error: 'entreprise_inconnue' });
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  codes.set(teamId + '|' + (purpose || 'reset'), { code, email: e.email, exp: Date.now() + 10 * 60000, tries: 0 });
+  if (!codePlace(cleCode)) return res.status(503).json({ error: CODE_ERREUR_ENVOI });
+  const code = codeTirer();
+  codes.set(cleCode, { code, email: e.email, exp: Date.now() + 10 * 60000, tries: 0 });
   try {
     const loginSafe = monStr(login, 40).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     await mailerEnvoi({
@@ -510,12 +621,12 @@ app.post('/api/sendcode-entreprise', async (req, res) => {
         blocHtml: MAIL_BLOCS.transmettre(loginSafe) + '<div style="height:14px"></div>' + MAIL_BLOCS.code(code) + '<div style="font-size:12.5px;color:#93A2BF;padding-top:14px">Si personne dans votre équipe n\'est à l\'origine de cette demande, ignorez ce message.</div>' }) });
     const masque = String(e.email).replace(/^(.{2})[^@]*(@.*)$/, '$1•••$2');
     res.json({ ok: true, envoye: masque });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error('sendcode-entreprise envoi :', refusSmtp(err)); res.status(500).json({ error: CODE_ERREUR_ENVOI }); }
 });
 app.post('/api/checkcode', (req, res) => {
   const { teamId, code, purpose } = req.body || {};
-  const k = (teamId || '') + '|' + (purpose || 'reset');
-  const c = codes.get(k);
+  const k = codeCle(teamId, purpose);
+  const c = k ? codes.get(k) : null;
   if (!c || Date.now() > c.exp) return res.status(400).json({ ok: false, error: 'expiré' });
   c.tries = (c.tries || 0) + 1;
   if (c.tries > 5) { codes.delete(k); return res.status(429).json({ ok: false, error: 'trop d\'essais' }); }
@@ -1284,7 +1395,7 @@ app.post('/api/mailbox/connect', async (req, res) => {
      ligne suffisante : elle élève la marche, le quota au-dessus fait le vrai travail. */
   {
     const tCo = String((req.body || {}).teamId || '').slice(0, 80);
-    const connu = !!espaceParT(tCo) || Object.values(subs).some(x => x.teamId === tCo) || !!cnxData[tCo];
+    const connu = !!espaceParT(tCo) || Object.values(subs).some(x => abonneEntreprise(x, tCo)) || !!cnxData[tCo];
     if (!connu) {
       /* Pas de teamId ici non plus : /health est publique. */
       lastRefus = { ts: Date.now(), raison: 'mailbox/connect : espace inconnu' };
@@ -1436,7 +1547,7 @@ async function releveUneBoite(cfg, tag) {   // cfg = {host/port/user/pass} ; tag
         if (ferme) continue;
         if (teamId) {
           const payload = JSON.stringify({ title: '📥 Nouveau message' + (bonNum ? ' — ' + bonNum : ''), body: ((entry.fromName || fromAddr) + ' : ' + subj).slice(0, 240), url: '/app.html#v=boiteMail' });
-          const targets = Object.values(subs).filter(s => s.teamId === teamId);
+          const targets = Object.values(subs).filter(s => abonneEntreprise(s, teamId));
           for (const t of targets) { try { await webpush.sendNotification(t.sub, payload); } catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } } }
         }
       }
@@ -1476,26 +1587,67 @@ app.get('/api/vapid', (req, res) => res.json({ key: config.vapidPublicKey }));
 app.post('/api/subscribe', (req, res) => {
   const { sub, teamId, userId, userName } = req.body || {};
   if (!sub || !sub.endpoint || !teamId) return res.status(400).json({ error: 'sub et teamId requis' });
+  /* Le préfixe de la Tour est réservé : l'abonnement de la Tour passe par `/api/monitor/push/abonner` (patron). Refusé AVANT tout le reste, et
+     avant `espaceFerme` qui répondrait « ok » à qui n'a rien écrit. */
+  if (teamIdDeLaTour(teamId)) return res.status(400).json({ error: 'teamId réservé' });
+  /* une adresse de push est une adresse que CE SERVEUR appellera : https, un nom public (voir endpointPushValide) */
+  const epNorm = endpointPushValide(sub.endpoint);
+  if (!epNorm) return res.status(400).json({ error: 'adresse de notification refusée' });
+  /* Un appareil de la Tour ne se réécrit pas par la porte publique : qui connaîtrait son adresse le rétrograderait en abonné d'entreprise. */
+  if ((subs[epNorm] && subs[epNorm].tour === true) || (typeof sub.endpoint === 'string' && subs[sub.endpoint] && subs[sub.endpoint].tour === true)) return res.status(400).json({ error: 'adresse de notification réservée' });
   /* Un espace supprimé ne se laisse pas ressusciter par un appareil resté hors ligne :
      sans ce garde-fou, il réapparaît avec les identifiants et les noms de ses salariés.
      On répond ok — l'appareil n'a rien fait de mal, et /api/espaces/etat lui dira de se
      vider — mais on n'écrit RIEN. */
   if (espaceFerme(String(teamId).slice(0, 80))) return res.json({ ok: true, ferme: true });
-  subs[sub.endpoint] = { sub, teamId: String(teamId).slice(0, 80), userId: String(userId || '').slice(0, 80), userName: String(userName || '').slice(0, 80), ts: Date.now() };
+  /* on range et on appelle l'adresse NORMALISÉE, jamais le texte reçu (voir endpointPushValide : deux analyseurs, deux lectures) */
+  subs[epNorm] = { sub: { endpoint: epNorm, keys: sub.keys }, teamId: String(teamId).slice(0, 80), userId: String(userId || '').slice(0, 80), userName: String(userName || '').slice(0, 80), ts: Date.now() };
   saveSubs();
   res.json({ ok: true });
 });
 
 app.post('/api/unsubscribe', (req, res) => {
   const ep = req.body && req.body.endpoint;
-  if (ep && subs[ep]) { delete subs[ep]; saveSubs(); }
+  /* un abonnement de la Tour ne se retire pas par la porte publique (`/api/monitor/push/desabonner`) */
+  /* l'appareil redonne l'adresse qu'il a reçue de son navigateur : on cherche telle quelle ET normalisée (c'est sous cette forme qu'on l'a rangée) */
+  if (ep && typeof ep === 'string') {
+    let retire = false;
+    for (const k of [ep, endpointPushValide(ep)]) { if (k && subs[k] && subs[k].tour !== true) { delete subs[k]; retire = true; } }
+    if (retire) saveSubs();
+  }
   res.json({ ok: true });
+});
+
+/* L'abonnement de la Tour : patron seulement (`monPatronStrict`, la garde la plus stricte du fichier : jeton patron valide, compte actif, rôle relu).
+   Les notifications de la Tour portent des noms et des objets de courriels de clients ; un collaborateur n'a pas à les recevoir sur son téléphone
+   sans que le patron l'ait décidé. Le teamId est posé ICI, jamais lu du corps. La page de la Tour n'a pas encore de bouton : il viendra avec la
+   Tour unifiée — la route attend, rien d'existant n'en dépend. */
+app.post('/api/monitor/push/abonner', monPatronStrict, (req, res) => {
+  const sub = (req.body || {}).sub;
+  const ep = sub && typeof sub === 'object' ? endpointPushValide(sub.endpoint) : null;
+  if (!ep) return res.status(400).json({ error: 'adresse de notification refusée' });
+  const k = sub.keys;
+  if (!k || typeof k.p256dh !== 'string' || typeof k.auth !== 'string' || !k.p256dh || !k.auth || k.p256dh.length > 200 || k.auth.length > 200) return res.status(400).json({ error: 'clés de notification manquantes' });
+  subs[ep] = { sub: { endpoint: ep, keys: { p256dh: k.p256dh, auth: k.auth } }, teamId: PUSH_PREFIXE_TOUR, userId: String(req.tourUser.id || '').slice(0, 80), userName: String(req.tourUser.nom || '').slice(0, 80), ts: Date.now(), tour: true };
+  saveSubs();
+  res.json({ ok: true, appareils: abonnesDeLaTour().length });
+});
+app.post('/api/monitor/push/desabonner', monPatronStrict, (req, res) => {
+  const ep = (req.body || {}).endpoint;
+  let retire = false;
+  if (typeof ep === 'string') {
+    for (const k of [ep, endpointPushValide(ep)]) { if (k && subs[k] && subs[k].tour === true) { delete subs[k]; retire = true; } }
+    if (retire) saveSubs();
+  }
+  res.json({ ok: true, retire, appareils: abonnesDeLaTour().length });
 });
 
 // envoi d'une notification à une équipe (tous ses appareils abonnés)
 app.post('/api/notify', async (req, res) => {
   const { teamId, title, body, url, exceptUserId, userIds } = req.body || {};
   if (!teamId || !title) return res.status(400).json({ error: 'teamId et title requis' });
+  /* hameçonnage vers le patron : le préfixe de la Tour n'est la cible d'aucune notification d'entreprise */
+  if (teamIdDeLaTour(teamId)) return res.status(400).json({ error: 'teamId réservé' });
   const payload = JSON.stringify({
     title: String(title).slice(0, 120),
     body: String(body || '').slice(0, 300),
@@ -1525,7 +1677,7 @@ app.post('/api/notify', async (req, res) => {
     })()
   });
   const targets = Object.values(subs).filter(s =>
-    s.teamId === teamId &&
+    abonneEntreprise(s, teamId) &&
     (!exceptUserId || s.userId !== exceptUserId) &&
     (!Array.isArray(userIds) || userIds.length === 0 || userIds.includes(s.userId))
   );
@@ -1548,7 +1700,7 @@ const mailQuota = new Map();
 // (prefixe/max : un compteur à part, par ex. pour les e-mails d'accès, qui ne rogne pas celui des documents)
 function mailQuotaRefus(req, teamId, prefixe, max) {
   prefixe = prefixe || ''; max = max || 30;
-  const teamConnue = Object.values(subs).some(s => s.teamId === teamId);
+  const teamConnue = Object.values(subs).some(s => abonneEntreprise(s, teamId));
   const cle = prefixe + (teamConnue ? teamId : 'ip:' + (req.ip || '?'));   // req.ip, jamais l'en-tête brut : il se falsifie
   const q = mailQuota.get(cle) || { count: 0, reset: Date.now() + 3600000 };
   if (Date.now() > q.reset) { q.count = 0; q.reset = Date.now() + 3600000; }
@@ -1584,7 +1736,7 @@ app.post('/api/sendmail', async (req, res) => {
      épuiser l'heure d'envoi d'une entreprise par des requêtes toutes refusées. */
   {
     const tEnv = String(teamId).slice(0, 80);
-    const connu = !!espaceParT(tEnv) || Object.values(subs).some(x => x.teamId === tEnv) || !!cnxData[tEnv];
+    const connu = !!espaceParT(tEnv) || Object.values(subs).some(x => abonneEntreprise(x, tEnv)) || !!cnxData[tEnv];
     if (!connu) {
       /* Pas de teamId dans lastRefus : /health est publique, et un teamId est la seule clé
          d'accès aux routes de messagerie. Le motif suffit au diagnostic. La règle vaut pour TOUS les
@@ -1648,7 +1800,7 @@ app.post('/api/compte/identifiants', async (req, res) => {
   // Anti-hameçonnage : cette route envoie un e-mail officiel avec un lien d'espace → seulement pour un espace
   // que le serveur connaît (annuaire, ou appareils abonnés aux notifications), jamais pour un espace inventé.
   const esp = espaceParT(t);
-  const espaceConnu = !!esp || Object.values(subs).some(s => s.teamId === t);
+  const espaceConnu = !!esp || Object.values(subs).some(s => abonneEntreprise(s, t));
   if (!espaceConnu) { lastRefus = { ts: Date.now(), raison: 'accès : espace inconnu' }; return res.status(403).json({ error: 'espace inconnu du serveur — transmets les accès toi-même' }); }
   const refus = mailQuotaRefus(req, t, 'acces:', 20);
   if (refus) return res.status(429).json({ error: refus });
@@ -1817,11 +1969,21 @@ function mailPromoActive(teamT, code, finLe, formule) {
     }).catch(() => {});
   } catch (err) {}
 }
+function cleApiValide(fournie) {
+  if (typeof config.apiKey !== 'string' || config.apiKey.length < 32) return false;
+  if (typeof fournie !== 'string') return false;
+  const h = (x) => crypto.createHash('sha256').update(x).digest();
+  return crypto.timingSafeEqual(h(fournie), h(config.apiKey));
+}
 // envoi d'e-mail (rapports, avis de passage) — nécessite la config smtp
 app.post('/api/email', async (req, res) => {
   if (!mailer) return res.status(503).json({ error: "e-mail non configuré sur le serveur (config.json → smtp)" });
   const { key, to, subject, text, html } = req.body || {};
-  if (key !== config.apiKey) return res.status(403).json({ error: 'clé invalide' });
+  /* ⛔ Revue Trail of Bits, I1 : sans `config.apiKey` ET sans `key` dans la requête, `undefined !== undefined` est FAUX — la garde laissait passer, et
+     la route envoyait un courriel arbitraire depuis le SMTP de TeamOP. Une configuration reconstruite ou restaurée sans ce champ ouvrait un relais.
+     Une clé absente, vide ou courte FERME la route (même réponse que la clé fausse : on ne dit pas à un anonyme si la clé est posée) ; la comparaison
+     se fait sur deux empreintes, en temps constant. Aucun appelant dans le dépôt (vérifié le 28 octobre 2026). */
+  if (!cleApiValide(key)) return res.status(403).json({ error: 'clé invalide' });
   if (!to || !subject) return res.status(400).json({ error: 'to et subject requis' });
   try {
     await mailerEnvoi({ from: config.smtp.from || config.smtp.user, to, subject: String(subject).slice(0, 200), text, html });
@@ -2292,6 +2454,7 @@ const MON_GESTES = {
   'users': 'a créé un compte de la Tour', 'users/toggle': 'a désactivé ou réactivé un compte de la Tour',
   'users/delete': 'a supprimé un compte de la Tour', 'users/apps': 'a changé les consoles d’un compte de la Tour',
   'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',
+  'push/abonner': 'a branché un appareil sur les notifications de la Tour', 'push/desabonner': 'a débranché un appareil des notifications de la Tour',
   'beta/toggle': 'a coupé ou rouvert un accès bêta', 'beta/delete': 'a supprimé un accès bêta',
   'espaces': 'a ouvert ou repris le lien de connexion d’une entreprise', 'espaces/lien-existant': null,
   'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/cats': 'a choisi les catégories d’OP GESTION d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
@@ -6217,7 +6380,9 @@ function cleEquipeVerdict(t, kh) {
    protégée ; il repart donc à zéro au redémarrage, ce qui suffit pour la mesure visée. */
 function cleEquipeObserve(req, res, next) {
   const src = (req.method === 'GET') ? (req.query || {}) : (req.body || {});
-  const t = String(src.teamId || src.t || '');
+  /* un `teamId` qui est un objet à `toString` piégé fait jeter String() : le point de passage compte et laisse passer, il ne fait pas tomber la route */
+  let t = '';
+  try { t = String(src.teamId || src.t || ''); } catch (e) {}
   /* Uniquement l'en-tête. Le lire aussi dans la requête (donc dans « ?kh= ») le ferait
      entrer dans les journaux d'accès nginx et dans l'historique du navigateur — exactement
      ce que le commentaire d'app.html jure d'éviter. Vérifié : l'application n'envoie que
@@ -6394,15 +6559,7 @@ try {
 try {
   /* `pousseNotif` : la notification au téléphone du patron (abonnements de la Tour), pour « un mail de Pauline attend ton accord ». Appelée bien après
      le démarrage : `subs` et `webpush` sont des déclarations de tête de fichier, initialisées depuis longtemps. */
-  const pousseNotifPauline = async (titre, corps, url) => {
-    const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || '/tour.html#messagerie' });
-    const cibles = Object.values(subs).filter(x => /^teamop-controle/.test(x.teamId || ''));
-    for (const t of cibles) {
-      try { await webpush.sendNotification(t.sub, payload); }
-      catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } }
-    }
-    return cibles.length;
-  };
+  const pousseNotifPauline = (titre, corps, url) => pousserALaTour(titre, corps, url, '/tour.html#messagerie');
   require('./pauline')(app, { config, DATA_DIR, monPatronStrict, pousseNotif: pousseNotifPauline });
 } catch (e) {
   console.error('pont de Pauline non monté :', e.message);
@@ -10734,15 +10891,7 @@ function adresseConnueGestion(adr) {
 }
 function adresseConnueMessages(adr) { return false; }
 try {
-  const pousseNotif = async (titre, corps, url) => {
-    const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || '/tour.html#support' });
-    const cibles = Object.values(subs).filter(x => /^teamop-controle/.test(x.teamId || ''));
-    for (const t of cibles) {
-      try { await webpush.sendNotification(t.sub, payload); }
-      catch (e) { if (e.statusCode === 404 || e.statusCode === 410) { delete subs[t.sub.endpoint]; saveSubs(); } }
-    }
-    return cibles.length;
-  };
+  const pousseNotif = (titre, corps, url) => pousserALaTour(titre, corps, url, '/tour.html#support');
   /* `mailProtege` : les e-mails de sécurité que la Messagerie montre sans jamais les déplacer, les supprimer
      ni les marquer (voir plus haut). Et on garde ses boîtes (sans mot de passe) : `supprDestLisible` doit
      savoir si le code d'une suppression y atterrirait. */

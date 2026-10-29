@@ -75,7 +75,7 @@
 # 28 octobre 2026, les photos du pont (3096 § 7 : les 21 images, les envois, les refus, les fichiers absents) : 165 suites, 10 642 vérifications mesurées par la commande de la porte (`LC_ALL=C.UTF-8 CHROME_MSG=/nonexistent`), toutes vertes — plancher 10628 (le total moins 14, jamais une addition).
 # 28 octobre 2026 (« 35 courriers à traiter ») : 166 suites, 10 702 vérifications mesurées par la commande de la porte, toutes vertes, `test-3101` compris (93, après les relectures du gardien et de l’adverse) — plancher 10688 (le total moins 14, jamais une addition).
 # 28 octobre 2026, l'outil des espaces orphelins (test-3100 : 105 vérifications) : 166 suites, 10 710 vérifications mesurées par la commande de la porte (13 min), toutes vertes — plancher 10696 (le total moins 14, comme avant).
-#plancher 10696
+#plancher 11036
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -390,3 +390,7 @@ tests/test-3100.js
 # `/api/monitor/issues/purger-entreprise`, la suppression totale qui purge d'elle-même (`fait.surveillance`), `bugs.jsonl` réécrit atomiquement,
 # `/api/monitor/report` qui n'écrit plus pour un espace fermé. Le vrai serveur, sans lire une page. (Le bouton de la Tour et son banc partent avec la Tour unifiée, sur la phrase de Justin.) 28 octobre 2026 : 10 670 vérifications (166 suites) — plancher relevé de 97, le nombre de `test-3102` (65 puis 32 : les points du gardien).
 tests/test-3102.js
+# 28 octobre 2026 (revue Trail of Bits) : `test-3155` — les notifications de la Tour ne se devinent plus (préfixe `teamop-controle` réservé, `tour: true` posé par la route patron, UN filtre pour tous les envois, nettoyage au démarrage, adresse de push https/nom public),
+# `/api/email` fermé sans clé configurée, codes de sécurité durcis (randomInt, clé bornée, balayage, plafond, erreur sans le texte du serveur de courriel). Le vrai serveur contre un faux service de push (envois réels). 77 vérifications. 169 suites, 11 026 vérifications mesurées par la commande de la porte, toutes vertes (`test-2983` tombe parfois sous charge, même sur `main` : une suite qui tombe se relance seule) — plancher relevé de 10696 à 11012 (le total moins 14, jamais une addition).
+tests/test-3155.js
+# 29 octobre 2026, revue de `gardien` sur la branche : `test-3155` passe de 77 à 101 vérifications (« email »/« pwd » rendus à Mon espace joués avec les vraies fonctions d'espace.html, adresse de push normalisée et ambiguïtés refusées, éviction à la saturation des codes, `toString` piégé, appareil de la Tour hors des envois par équipe). 169 suites, 11 050 vérifications mesurées par la commande de la porte, toutes vertes — plancher relevé de 11012 à 11036 (le total moins 14).
