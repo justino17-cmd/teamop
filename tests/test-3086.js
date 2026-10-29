@@ -24,7 +24,7 @@ function bloc(src, debut) {
 function contexte(SRC, beta) {
   const C = sansCom(SRC);
   const morceaux = [bloc(C, 'const METIERS={'), C.match(/const METIERS_ORDRE=\[[^\]]*\];/)[0],
-    bloc(C, 'function metierId('), bloc(C, 'function metierPack('), bloc(C, 'function intTypes('),
+    bloc(C, 'function metierId('), bloc(C, 'function metierPack('), bloc(C, 'function estMetier3D('), bloc(C, 'function intTypes('),
     bloc(C, 'function betaOutils('), bloc(C, 'function betaRemplir(')];
   const ctx = { BETA_ESSAI: beta, INT_TYPES: ['Dératisation', 'Désinsectisation'], CATALOGUE: [], FOURNISSEURS_3D: [], console,
     db: { metier: '3d', clients: [], interventions: [], techniciens: [{ id: 't1' }] }, uid: (() => { let n = 0; return () => 'id' + (++n); })(),
@@ -36,7 +36,7 @@ function contexte(SRC, beta) {
 
 console.log('\n── 3086 · 1. le sélecteur de la bêta ──');
 const B = contexte(BETA, true);
-vrai('les morceaux sont trouvés (7)', B.morceaux.every(m => m.length > 20), B.morceaux.map(m => m.length));
+vrai('les morceaux sont trouvés (8)', B.morceaux.every(m => m.length > 20), B.morceaux.map(m => m.length));
 vrai('23 métiers dans METIERS_ORDRE', B.ctx.METIERS_ORDRE.length === 23, B.ctx.METIERS_ORDRE.length);
 const PARAM = bloc(B.C, 'views.parametres=function(');
 vrai('views.parametres est trouvée', PARAM.length > 5000, PARAM.length);

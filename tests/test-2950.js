@@ -53,7 +53,8 @@ const evalue = txt => vm.runInNewContext('(' + txt + ')');
 
 const REF = JSON.parse(fs.readFileSync(path.join(RACINE, 'metiers.json'), 'utf8'));
 /* la bêta précède le public sur UN titre (« Validation des mouvements ») : l'écart est déclaré dans tests/beta-en-avance.js, et seulement là */
-const { libellePublic, LIBELLES } = require('./beta-en-avance.js');
+const { libellePublic, LIBELLES, referentielBeta, BETA_EN_AVANCE } = require('./beta-en-avance.js');
+const REF_PUBLIC = REF;
 
 /* ── ÉCARTS NOMMÉS (chacun est une décision, pas un oubli) ───────────────────────────────────────────────────────────────── */
 /* La 3D d'ELAN ne change pas d'un mot : ces deux types, que le référentiel propose pour la 3D, ne sont PAS dans INT_TYPES. */
@@ -76,6 +77,7 @@ egal('les dix nouveaux, dans l\'ordre de la recherche', REF.ordreMetiers.slice(1
 for (const fichier of ['app.html', 'beta.html']) {
   console.log('\n2. ' + fichier + ' — la copie embarquée dit la même chose');
   const A = lire(fichier);
+  const REF = fichier === 'beta.html' ? referentielBeta(REF_PUBLIC) : REF_PUBLIC;   // la bêta : le référentiel public, moins l'avance DÉCLARÉE (tests/beta-en-avance.js)
   vrai('(population) ' + fichier + ' : METIERS, METIERS_ORDRE, RUBRIQUES_INFO, INT_TYPES, CAT_LIST et NAV se lisent dans le CODE', Object.keys(A.METIERS).length === 23 && A.ORDRE.length === 23 && Object.keys(A.INFO).length === 42 && A.INT_TYPES.length > 10 && A.CAT_LIST.length === 8 && A.NAV.length > 5);
   egal('METIERS_ORDRE = l\'ordre du référentiel', A.ORDRE, REF.ordreMetiers);
   egal('les clés de METIERS sont celles de METIERS_ORDRE, dans le même ordre', Object.keys(A.METIERS), A.ORDRE);
@@ -143,7 +145,9 @@ console.log('\n5. Le générateur : app.html est à jour, et beta.html en porte 
 const gen = cp.spawnSync(process.execPath, [path.join(RACINE, 'scripts', 'metiers-generer.js'), '--verifier'], { encoding: 'utf8' });
 vrai('node scripts/metiers-generer.js --verifier → app.html est à jour avec le référentiel (sinon : relancer le script)', gen.status === 0, (gen.stdout + gen.stderr).trim());
 const a1 = lire('app.html'), b1 = lire('beta.html');
-egal('beta.html porte les mêmes METIERS, METIERS_ORDRE et RUBRIQUES_INFO qu\'app.html (beta-build.js les recopie)', [b1.METIERS, b1.ORDRE, b1.INFO], [a1.METIERS, a1.ORDRE, a1.INFO]);
+const sansAvance = M => Object.keys(M).filter(k => BETA_EN_AVANCE.metiersBeta.indexOf(k) < 0).map(k => [k, M[k]]);
+egal('beta.html porte les mêmes METIERS, METIERS_ORDRE et RUBRIQUES_INFO qu\'app.html (beta-build.js les recopie), hors les packs en avance déclarés : ' + (BETA_EN_AVANCE.metiersBeta.join(', ') || 'aucun'), [sansAvance(b1.METIERS), b1.ORDRE, b1.INFO], [sansAvance(a1.METIERS), a1.ORDRE, a1.INFO]);
+vrai('(population) les packs en avance déclarés existent dans les deux fichiers, et DIFFÈRENT bien d\'app.html (sinon la déclaration est périmée)', BETA_EN_AVANCE.metiersBeta.every(k => a1.METIERS[k] && b1.METIERS[k] && JSON.stringify(a1.METIERS[k]) !== JSON.stringify(b1.METIERS[k])));
 /* UNE SEULE SOURCE : l'ancienne copie du référentiel (design/) a été supprimée — deux copies d'un même fichier divergent toujours */
 vrai('il n\'existe pas de seconde copie du référentiel (design/metiers-referentiel.json supprimé)', !fs.existsSync(path.join(RACINE, 'design', 'metiers-referentiel.json')));
 vrai('(population) l\'écart déclaré de titre est bien celui d\'app.html : ' + Object.keys(LIBELLES).join(', '), Object.keys(LIBELLES).every(k => a1.INFO[k] && a1.INFO[k][0] === LIBELLES[k].beta && REF.rubriques[k].titre === LIBELLES[k].public));
