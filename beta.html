@@ -25823,7 +25823,7 @@ function papImplJpeg(src,max,q){
     im.onerror=()=>res(null); im.src=src; }); }
 /* Le document complet, prêt à partir : la même fabrique sert l'aperçu et l'envoi, donc ce que
    la personne regarde est ce que reçoit le client. Rend {pdf, b64, nom} ou {err}. */
-async function papImplDocument(cid,i,st){ const __a=arguments; if(!docNomGarde(()=>papImplDocument.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+async function papImplDocument(cid,i,st){ if(!docNomGarde(null)) return {err:'Indique d’abord le nom de ton entreprise : il va en haut du document.'};   /* v780 : aucun document sans le nom de l'entreprise — l'appelant lit d.err */
 
   const c=(db.clients||[]).find(x=>x.id===cid)||{};
   /* La société de CETTE intervention (Justin : « chaque en-tête doit reconnaître l'entreprise qui
@@ -42317,7 +42317,7 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
   out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
   return out; }
 /* Le document prêt à partir : en-tête de la société de CE passage, logo et signatures en JPEG. Rend {pdf,b64,nom} ou {err} — jamais une exception. */
-async function cvcAttestationDocument(iid,aid,att){ const __a=arguments; if(!docNomGarde(()=>cvcAttestationDocument.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+async function cvcAttestationDocument(iid,aid,att){ if(!docNomGarde(null)) return {err:'Indique d’abord le nom de ton entreprise : il va en haut du document.'};   /* v780 : aucun document sans le nom de l'entreprise — l'appelant lit d.err */
 
   const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
   if(!i||!a) return {err:'Intervention ou appareil introuvable.'};
@@ -42422,7 +42422,7 @@ function cvcRamonageSauver(iid,aid,silencieux){ if(!permGarde('int','modifier','
   x.i.ramonages[aid]=r; intHisto(x.i,'🧹 Attestation de ramonage établie — '+cvcLibelle(x.a));
   save(); if(!silencieux) toast('Attestation enregistrée'); return true; }
 /* Le document : la mise en page de l'attestation (genre « ramonage »), son nom de fichier à lui. Rend {pdf,b64,nom,manque} ou {err}. */
-async function cvcRamonageDocument(iid,aid,r){ const __a=arguments; if(!docNomGarde(()=>cvcRamonageDocument.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+async function cvcRamonageDocument(iid,aid,r){ if(!docNomGarde(null)) return {err:'Indique d’abord le nom de ton entreprise : il va en haut du document.'};   /* v780 : aucun document sans le nom de l'entreprise — l'appelant lit d.err */
 
   const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
   if(!i||!a) return {err:'Intervention ou appareil introuvable.'};
@@ -43243,7 +43243,7 @@ function nettDocContexte(kind,id,cid){
   return {err:'Document inconnu.'}; }
 function nettNomFichier(pre,cli,date){ return pre+'-'+String((cli&&cli.nom)||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)+'-'+String(date||todayISO())+'.pdf'; }
 /* Rend {pdf,b64,nom,E,manque} ou {err} — jamais une exception. */
-async function nettDocFabriquer(kind,id,cid){ const __a=arguments; if(!docNomGarde(()=>nettDocFabriquer.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+async function nettDocFabriquer(kind,id,cid){ if(!docNomGarde(null)) return {err:'Indique d’abord le nom de ton entreprise : il va en haut du document.'};   /* v780 : aucun document sans le nom de l'entreprise — l'appelant lit d.err */
 
   let x; try{ x=nettDocContexte(kind,id,cid); }catch(e){ return {err:'Le document n’a pas pu être préparé ('+(e&&e.message||e)+') — rien n’est parti.'}; }
   if(x.err) return {err:x.err};
