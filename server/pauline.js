@@ -439,6 +439,30 @@ module.exports = function pauline(app, ctx) {
     if (minuterie.unref) minuterie.unref();
   }
 
+  /* ⛔ LA SEULE FAÇON D'ENREGISTRER UNE DÉCISION DE JUSTIN (29 octobre 2026) : la route de la Tour ET les réponses « NON <n> » d'OP MESSAGES (`pont-messages.js`) passent ICI.
+     Un second chemin vers un courriel de prospect n'existe pas. Rend { statut, corps } ; ne jette jamais pour un corps hostile (validerDecision). */
+  function decider(brut) {
+    const v = validerDecision(brut);
+    if (!v.ok) return { statut: 400, corps: { error: v.motif } };
+    const r = lire();
+    if (r.etat !== 'ok') return { statut: 409, corps: { error: 'Le relevé de Pauline n’est pas lisible : on ne décide pas sur un mail qu’on ne voit pas.' } };
+    const c = r.releve.courriels.find(x => x.id === v.id);
+    if (!c) return { statut: 409, corps: { error: 'Ce mail n’est plus dans le relevé de Pauline.' } };
+    if (!attendAccord(c)) return { statut: 409, corps: { error: 'Ce mail n’attend plus ton accord (déjà accepté, envoyé ou refusé).' } };
+    if (v.decision.action === 'modifier' && c.genre === 'reponse') v.decision.objet = c.objet;
+    /* ⛔ (relecture de gardien) « accepter » vaut pour le texte LU : si Harvey l'a réécrit depuis, on ne l'accepte pas à l'aveugle */
+    if (v.decision.action === 'accepter' && c.maj && v.decision.maj && v.decision.maj !== c.maj) return { statut: 409, corps: { error: 'Ce mail a été réécrit depuis que tu l’as lu : relis-le avant de l’accepter.' } };
+    if (v.decision.action !== 'accepter') delete v.decision.maj; else if (c.maj) v.decision.maj = c.maj;   /* une réponse garde son objet : sinon elle sortirait du fil de la conversation */
+    const etat = lireDec();
+    if (!etat) return { statut: 503, corps: { error: 'Les décisions de Pauline sont illisibles sur le serveur : rien n’a été enregistré.' } };
+    const avant = etat.decisions[v.id];
+    if (avant && avant.etat === 'fait') return { statut: 409, corps: { error: 'Ce mail a déjà été traité sur le Mac.' } };
+    etat.decisions[v.id] = Object.assign({ etat: 'a_faire', le: new Date(now()).toISOString() }, v.decision);
+    if (!etat.vus.includes(v.id)) etat.vus.push(v.id);
+    try { rangerDec(etat); } catch (e) { console.error('pauline : décision non écrite (' + (e && e.code || 'erreur') + ')'); return { statut: 500, corps: { error: 'Décision non enregistrée.' } }; }
+    return { statut: 200, corps: { ok: true, id: v.id, action: v.decision.action, etat: 'a_faire' } };
+  }
+
   if (app) {
     const express = require('express');
     const json = express.json({ limit: CORPS_MAX });
@@ -455,6 +479,8 @@ module.exports = function pauline(app, ctx) {
       try { ranger(releve); }
       catch (e) { console.error('pauline : relevé non écrit (' + (e && e.code || 'erreur') + ')'); return res.status(500).json({ error: 'relevé non écrit' }); }
       try { signalerNouveaux(releve); } catch (e) { console.error('pauline : signalement impossible'); }
+      /* OP MESSAGES (bêta, 29 octobre 2026) : le même relevé, au même moment — sous son propre `try`, rien ne remonte */
+      if (typeof ctx.surReleve === 'function') { try { ctx.surReleve(releve, lireDec()); } catch (e) { console.error('pauline : pont OP MESSAGES impossible'); } }
       /* de la comptabilité, rien d'autre : ni nom, ni adresse, ni texte */
       res.json({ ok: true, recu: { entreprises: releve.entreprises.length, courriels: releve.courriels.length, recherches: releve.recherches.length, reponses: releve.reponses.length }, ecartes: v.ecartes });
     });
@@ -481,25 +507,8 @@ module.exports = function pauline(app, ctx) {
 
     /* La décision de Justin (Tour, patron seul). */
     app.post('/api/monitor/pauline/decision', monPatronStrict, express.json({ limit: DEC_CORPS_MAX }), (req, res) => {
-      const v = validerDecision(req.body);
-      if (!v.ok) return res.status(400).json({ error: v.motif });
-      const r = lire();
-      if (r.etat !== 'ok') return res.status(409).json({ error: 'Le relevé de Pauline n’est pas lisible : on ne décide pas sur un mail qu’on ne voit pas.' });
-      const c = r.releve.courriels.find(x => x.id === v.id);
-      if (!c) return res.status(409).json({ error: 'Ce mail n’est plus dans le relevé de Pauline.' });
-      if (!attendAccord(c)) return res.status(409).json({ error: 'Ce mail n’attend plus ton accord (déjà accepté, envoyé ou refusé).' });
-      if (v.decision.action === 'modifier' && c.genre === 'reponse') v.decision.objet = c.objet;
-      /* ⛔ (relecture de gardien) « accepter » vaut pour le texte LU : si Harvey l'a réécrit depuis, on ne l'accepte pas à l'aveugle */
-      if (v.decision.action === 'accepter' && c.maj && v.decision.maj && v.decision.maj !== c.maj) return res.status(409).json({ error: 'Ce mail a été réécrit depuis que tu l’as lu : relis-le avant de l’accepter.' });
-      if (v.decision.action !== 'accepter') delete v.decision.maj; else if (c.maj) v.decision.maj = c.maj;   /* une réponse garde son objet : sinon elle sortirait du fil de la conversation */
-      const etat = lireDec();
-      if (!etat) return res.status(503).json({ error: 'Les décisions de Pauline sont illisibles sur le serveur : rien n’a été enregistré.' });
-      const avant = etat.decisions[v.id];
-      if (avant && avant.etat === 'fait') return res.status(409).json({ error: 'Ce mail a déjà été traité sur le Mac.' });
-      etat.decisions[v.id] = Object.assign({ etat: 'a_faire', le: new Date(now()).toISOString() }, v.decision);
-      if (!etat.vus.includes(v.id)) etat.vus.push(v.id);
-      try { rangerDec(etat); } catch (e) { console.error('pauline : décision non écrite (' + (e && e.code || 'erreur') + ')'); return res.status(500).json({ error: 'Décision non enregistrée.' }); }
-      res.json({ ok: true, id: v.id, action: v.decision.action, etat: 'a_faire' });
+      const r = decider(req.body);
+      res.status(r.statut).json(r.corps);
     });
 
     /* Le Mac vient chercher ce qu'il doit appliquer (même porte que le relevé : empreinte, quota, jeton AVANT tout). */
@@ -539,7 +548,7 @@ module.exports = function pauline(app, ctx) {
       res.json({ ok: true, pris: n });
     });
   }
-  return { validerReleve, elaguer, lire, ranger, purger, lireDec, rangerDec, signalerNouveaux };
+  return { validerReleve, elaguer, lire, ranger, purger, lireDec, rangerDec, signalerNouveaux, decider };
 };
 module.exports.validerReleve = validerReleve;
 module.exports.validerDecision = validerDecision;
