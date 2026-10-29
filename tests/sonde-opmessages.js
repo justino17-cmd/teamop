@@ -1050,7 +1050,7 @@ async function etapeLiens(b, base, pf, nom) {
   S = await ouvrirPage(b, pf, { base, url: PAGE_URL + '#messages/zzz' });
   await dormir(700);
   const i = await S.page.evaluate(() => ({ conv: document.documentElement.dataset.conv || null, hash: location.hash, mot: document.getElementById('mot').classList.contains('on') ? document.getElementById('mot').textContent : null, liste: document.querySelectorAll('#liste-conv .conv').length }));
-  v(nom + ' : une conversation inconnue (#messages/zzz) retombe sur la liste et le DIT (« ' + i.mot + ' »)', !i.conv && i.hash === '#messages' && /n'existe plus/.test(i.mot || '') && i.liste === 6, i);
+  v(nom + ' : une conversation inconnue (#messages/zzz) retombe sur la liste et le DIT (« ' + i.mot + ' »)', !i.conv && i.hash === '#messages' && /n'existe plus/.test(i.mot || '') && i.liste === 2, i);
   v(nom + ' : conversation inconnue — 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
   await S.fermer();
 }
@@ -1126,7 +1126,7 @@ async function etapeRedimension(b, base) {
 /* ══ LA LISTE REVIENT À LA MÊME HAUTEUR ═════════════════════════════════════════════════════════════════════════════════════════ */
 async function etapeDefilement(b, base) {
   titre('la liste revient à la même position de défilement');
-  for (const [pf, h] of [[PROFILS.android360, 420], [{ nom: 'bureau 1024', w: 1024, h: 768, dpr: 1, mobile: false, insets: null }, 420]]) {
+  for (const [pf, h] of [[PROFILS.android360, 260], [{ nom: 'bureau 1024', w: 1024, h: 768, dpr: 1, mobile: false, insets: null }, 260]]) {
     const S = await ouvrirPage(b, pf, { base, h }); S.nom = pf.nom + ' (fenêtre de ' + h + ' px)';
     await S.page.evaluate(() => window.scrollTo(0, 99999)); await dormir(300);
     const y0 = await S.page.evaluate(() => ({ y: Math.round(scrollY), max: document.documentElement.scrollHeight - innerHeight }));
@@ -1288,7 +1288,7 @@ async function corrAdresses(b, base) {
   for (const h of cas) {
     const S = await nouvelle(b, base, PROFILS.bureau1440, { url: PAGE_URL + h, nom: 'bureau 1440 ' + h }); await dormir(500);
     const r = await S.page.evaluate(() => ({ vue: document.documentElement.dataset.vue, visibles: [...document.querySelectorAll('.vue')].filter(x => !x.hidden).map(x => x.id), titre: document.title, liste: document.querySelectorAll('#liste-conv .conv').length, hash: location.hash }));
-    const ok = r.vue === 'messages' && r.visibles.join() === 'vue-messages' && /^Messages/.test(r.titre) && r.liste === 6 && S.erreurs.length === 0 && S.console.length === 0;
+    const ok = r.vue === 'messages' && r.visibles.join() === 'vue-messages' && /^Messages/.test(r.titre) && r.liste === 2 && S.erreurs.length === 0 && S.console.length === 0;
     if (ok) bons++;
     v('adresse « ' + h + ' » → la liste des messages s\'affiche (vue « ' + r.vue + ' », ' + r.visibles.length + ' vue visible, titre « ' + r.titre + ' », ' + r.liste + ' conversations, adresse ' + r.hash + ')', ok, { r, e: S.erreurs });
     await S.fermer();
@@ -1437,7 +1437,7 @@ async function corrCollageEchap(b, base) {
   await S.page.keyboard.press('Escape'); await dormir(300);
   const e2 = await S.page.evaluate(() => ({ conv: document.documentElement.dataset.conv || null, titre: document.querySelector('.conv-titre-nom > span').textContent.trim() }));
   v(S.nom + ' : (population) la recherche « chantier » filtre la liste (' + e0.lignes + ' ligne), la conversation est ouverte à côté', e0.lignes === 1 && e0.conv === '1', e0);
-  v(S.nom + ' : Échap dans la recherche l\'EFFACE (' + e1.lignes + ' lignes, valeur « ' + e1.val + ' ») sans fermer la conversation ; un second Échap non plus (conversation « ' + e2.titre + ' » toujours ouverte)', e1.val === '' && e1.lignes === 6 && e1.conv === '1' && e2.conv === '1', { e1, e2 });
+  v(S.nom + ' : Échap dans la recherche l\'EFFACE (' + e1.lignes + ' lignes, valeur « ' + e1.val + ' ») sans fermer la conversation ; un second Échap non plus (conversation « ' + e2.titre + ' » toujours ouverte)', e1.val === '' && e1.lignes === 2 && e1.conv === '1' && e2.conv === '1', { e1, e2 });
   await geste(S, '#saisie'); await S.page.keyboard.press('Escape'); await attendreListe(S);
   v(S.nom + ' : Échap dans le champ de saisie, lui, ferme toujours la conversation', !(await S.page.evaluate(() => document.documentElement.dataset.conv)));
   v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
@@ -1475,7 +1475,7 @@ async function corrImages(b, base, F) {
 /* la liste garde sa position de défilement après un tour par une autre vue */
 async function corrDefilementVues(b, base) {
   titre('la liste retrouve sa position après un tour par Appels (retour système, puis onglet)');
-  for (const [pf, h] of [[PROFILS.android360, 420], [{ nom: 'bureau 1024', w: 1024, h: 768, dpr: 1, mobile: false, insets: null }, 420]]) {
+  for (const [pf, h] of [[PROFILS.android360, 260], [{ nom: 'bureau 1024', w: 1024, h: 768, dpr: 1, mobile: false, insets: null }, 260]]) {
     const S = await nouvelle(b, base, pf, { h }); S.nom = pf.nom + ' (fenêtre de ' + h + ' px)';
     await S.page.evaluate(() => window.scrollTo(0, 99999)); await dormir(300);
     const y0 = await S.page.evaluate(() => ({ y: Math.round(scrollY), max: document.documentElement.scrollHeight - innerHeight }));
@@ -1902,12 +1902,18 @@ async function etapeAppelsInfo(S) {
   v(nom + ' : « Appel vidéo » depuis les détails d\'un manqué AUDIO lance un appel vidéo (' + libPistes(pv) + '), la feuille est remplacée (n ' + hi3.n + ', pas d\'entrée en plus)', av.nom === 'Mathis Lambert' && av.mise === 'video' && pv.length === 2 && pv.every(x => x.s === 'live') && hi3.n === hi0.n + 1 && !hi3.feuille, { av, pv, hi3 });
   await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(600);
   const hi4 = await hist(S);
-  v(nom + ' : raccrocher revient à la liste (n ' + hi4.n + '), pistes arrêtées', hi4.n === hi0.n && hi4.vue === 'appels' && (await sansPiste(S, n0)), hi4);
+  /* décision du 26 octobre 2026 (« appels@6 », 4fa63795) : après un appel on revient D'OÙ L'ON EST PARTI — lancé depuis les détails d'un appel, raccrocher rouvre les détails (l'entrée d'historique de la feuille revient) */
+  const feuilleRouverte = () => S.page.evaluate(() => document.getElementById('feuille').dataset.mode === 'info' && document.documentElement.classList.contains('feuille-ouverte'));
+  v(nom + ' : raccrocher revient D\'OÙ L\'ON EST PARTI — les détails de l\'appel se rouvrent sur la liste (n ' + hi4.n + '), pistes arrêtées', hi4.n === hi0.n + 1 && hi4.vue === 'appels' && hi4.feuille === true && (await feuilleRouverte()) && (await sansPiste(S, n0)), hi4);
+  await geste(S, '#g-annuler'); await dormir(700);
+  const hi4b = await hist(S);
+  v(nom + ' : « Fermer » sur les détails rouverts rend la liste (n ' + hi4b.n + ')', hi4b.n === hi0.n && !hi4b.feuille && hi4b.vue === 'appels', hi4b);
   await geste(S, '#liste-appels .appel-item:has(.manque) [data-infos] >> nth=0'); await dormir(800);
   await geste(S, '[data-info-act="rappeler"]'); await attendreAppel(S); await dormir(400);
   const ra = await lireAppel(S);
   v(nom + ' : « Rappeler » depuis les détails d\'un manqué audio : appel AUDIO (mise « ' + ra.mise + ' »)', ra.mise === 'audio' && ra.nom === 'Mathis Lambert', ra);
-  await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(500);
+  await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(700);
+  if (await feuilleRouverte()) { await geste(S, '#g-annuler'); await dormir(700); }       // (même retour d'où l'on est parti)
   await geste(S, '#liste-appels .appel-item:has(.manque) [data-infos] >> nth=0'); await dormir(800);
   await geste(S, '[data-info-act="message"]'); await attendreConv(S, 'Mathis Lambert'); await dormir(500);
   const ms = await hist(S);
