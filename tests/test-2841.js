@@ -47,7 +47,7 @@ function monde() {
       users: [{ id: 'u2', prenom: 'Léa', nom: 'M', login: 'lea' }], metier: '3d', boxMvtAttente: [{ id: 'm1', boxId: 'b1', produitId: 'p1' }, { id: 'm2', boxId: 'b1', produitId: 'p2' }, { id: 'm3', boxId: 'b2', produitId: 'p3' }],
       vehicules: [{ id: 'v0', immat: 'AA-000-AA' }, { id: 'v1', immat: 'AB-123-CD' }, { id: 'v2', immat: 'ZZ-999-ZZ' }], mouvements: [{ id: 'x1' }, { id: 'x2' }] },
     current: 'planning', currentUser: { id: 'u1', role: 'admin' },
-    confirm: (m) => { J.confirms.push(String(m)); return true; }, alert: (m) => { J.confirms.push('ALERT ' + m); },
+    boxTxt: (s) => s, confirm: (m) => { J.confirms.push(String(m)); return true; }, alert: (m) => { J.confirms.push('ALERT ' + m); },
     toast: (m) => J.toasts.push(String(m)), toastAnnuler: (m, appel) => { J.toasts.push(String(m)); J.annuler.push(String(appel)); },
     save: () => { J.saves++; }, logEvent: (a) => J.journal.push(a), views: { absences() { J.vues++; }, planning() { J.vues++; }, parametres() { J.vues++; }, saisieConso() { J.vues++; } },
     go: () => { J.vues++; }, closeModal() {}, canPlan: () => true, absPeutValider: () => true, techName: () => 'Léa', fmtShort: (d) => d, fullName: (u) => (u && u.prenom) || '',

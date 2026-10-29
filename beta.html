@@ -11372,6 +11372,18 @@ function capTxt(s){
   if(sansBox()) CAP_SANS_BOX.forEach(([a,b])=>{ s=s.split(a).join(b); });
   return s; }
 function libBox(avecBox,sans){ return sansBox()?sans:avecBox; }
+/* v778 — `boxTxt(s)` : les messages écrits pour la 3D (toasts, confirmations, états vides) lus à travers cette table quand le métier n'a pas de
+   box. Hors 3D le stockage EST le seul lieu de stock : « dans les box » devient « dans le stockage ». L'ordre compte (le plus précis d'abord),
+   et il reste un filet — aucun « box » ne survit. Une phrase dont la grammaire ne suit pas (accord d'un participe, sujet) s'écrit à part
+   avec `libBox`. Sur la 3D la fonction rend le texte tel quel (un banc le prouve sur chaque littéral). */
+const BOX_TXT=[
+  [/\b(stock|quantités?) des box(?:es)?\b/g,'$1'],
+  [/\b(?:dans|sur|pour|vers) (?:toutes les|les|la|cette|chaque|ta|une|sa|ton|leur) box(?:es)?\b/g,m=>m.replace(/ (?:toutes les|les|la|chaque|ta|une|sa|ton|leur) box(?:es)?$/,' le stockage').replace(/ cette box$/,' ce stockage')],
+  [/(?<![\wà-ÿ])à (?:toutes les|les|la|chaque|ta|une|sa) box(?:es)?\b/g,'au stockage'], [/(?<![\wà-ÿ])à cette box\b/g,'à ce stockage'], [/\baux box(?:es)?\b/g,'au stockage'],
+  [/\b(?:de|d')(?:\s?)(?:toutes les|les|la|ta|une|sa|chaque) box(?:es)?\b/g,'du stockage'], [/\bdes box(?:es)?\b/g,'du stockage'], [/\bd[’']une box\b/g,'du stockage'], [/\bde cette box\b/g,'de ce stockage'],
+  [/\bde box\b/g,'de stock'], [/\bc(?:ette|e) box\b/g,'ce stockage'], [/\bCette box\b/g,'Ce stockage'], [/\b(?:toutes les|les|la|ta|une|chaque|ma|sa) box(?:es)?\b/g,'le stockage'],
+  [/\b(\d+) box(?:es)?\b/g,'le stockage'], [/\bBoxes\b/g,'Stockage'], [/\bBox\b/g,'Stockage'], [/\bboxes\b/g,'stockage'], [/\bbox\b/g,'stockage'] ];
+function boxTxt(s){ if(typeof s!=='string'||!sansBox()) return s; BOX_TXT.forEach(([re,b])=>{ s=s.replace(re,b); }); return s; }
 function exemple(cle){
   const EX_3D={
     tache:'Ex : Rappeler le client / Commander des postes', entreprise:'Ex : Pest Contrôle SARL', societe:'Ex : 3D Sud-Ouest SARL',
@@ -11637,15 +11649,23 @@ const NUIS_TRAIT = {
 };
 const METHODES = ['Appâtage','Piégeage mécanique','Plaques engluées','Pulvérisation','Gel insecticide','Fumigation / nébulisation','Poudrage','Bouchage d\'accès','Grillage / proofing','Contrôle / surveillance'];
 const MOYENS_PAIEMENT = ['A) Carte bancaire','B) Lien de paiement','C) Espèces','D) Chèque','E) Paiement en plusieurs fois - COFIDIS','F) Paiement en 2x - espèce + chèque','G) Paiement en 2x - CB + chèque','H) Virement'];
+/* ⛔ v778 — cette liste est celle d'UN client (ELAN : « COFIDIS », « espèce + chèque ») : une donnée de client figée dans le code. La 3D la garde À L'IDENTIQUE ; tout autre métier reçoit
+   la liste neutre ci-dessous. `regModeDe` lit ces libellés par mots (carte, espèces, chèque, virement, lien) : la neutre y entre sans changement. Une valeur déjà rangée hors liste reste
+   proposée et sélectionnée (intMoyenPaiementOptions), donc rien de saisi n'est perdu. */
+const MOYENS_PAIEMENT_NEUTRES = ['Carte bancaire','Espèces','Chèque','Virement','Lien de paiement'];
+function moyensPaiement(){ return estMetier3D()?MOYENS_PAIEMENT:MOYENS_PAIEMENT_NEUTRES; }
 /* ⛔ Les options du « Moyen de paiement » de la fiche (mode stylo) viennent de LA liste du formulaire
    (MOYENS_PAIEMENT), « Aucun » en tête — le testeur (interventions#12, 16 octobre 2026) lisait « Aucun » sur une
    intervention créée « C) Espèces » : le select avait SA liste (Espèces, Chèque, Carte bancaire, Virement) où aucune
    option ne portait la valeur de la base, et le premier toucher aurait effacé le moyen. Une valeur d'avant la liste
    (« Espèces ») reste proposée et sélectionnée plutôt que perdue. */
+/* les options des formulaires (« Choix » en tête, posé par l'appelant) : la liste du métier, et la valeur déjà rangée si elle n'y est plus — jamais effacée par un simple enregistrement */
+function moyensPaiementOptions(cur){ cur=cur||''; const L=moyensPaiement().slice(); if(cur&&!L.includes(cur)) L.unshift(cur);
+  return L.map(m=>`<option ${m===cur?'selected':''}>${esc(m)}</option>`).join(''); }
 function intMoyenPaiementOptions(cur){
   cur=cur||'';
-  const liste=['Aucun'].concat(MOYENS_PAIEMENT);
-  if(cur&&!MOYENS_PAIEMENT.includes(cur)) liste.splice(1,0,cur);
+  const L=moyensPaiement(), liste=['Aucun'].concat(L);
+  if(cur&&!L.includes(cur)) liste.splice(1,0,cur);
   return liste.map(m=>`<option ${(m==='Aucun'?!cur:m===cur)?'selected':''}>${esc(m)}</option>`).join(''); }
 const VISITE_TECH = ['Non','Oui','À prévoir'];
 /* Auto-remplissage : catégorie d'intervention -> nuisibles + méthodes par défaut (gain de temps sur le terrain) */
@@ -16161,7 +16181,7 @@ function utilisateurNettoyer(u){ if(!u) return;
 function techDoublons(){ const g={}; (db.techniciens||[]).forEach(t=>{ const k=nomNorm(t.nom); if(!k) return; (g[k]=g[k]||[]).push(t); }); return Object.values(g).filter(l=>l.length>1); }
 function techFusionnerDoublons(){ if(!permGarde('equipe','modifier','les fiches du personnel')) return;
   const grp=techDoublons(); if(!grp.length){ toast('Aucun doublon de technicien'); return; }
-  if(!confirm(grp.length+' nom(s) en double : '+grp.map(l=>l[0].nom+' ×'+l.length).join(', ')+'.\n\nFusionner ? Pour chaque nom, une seule fiche est gardée (celle reliée à un compte, sinon la plus ancienne) ; interventions, pointages, box et véhicules des doublons lui sont rattachés.')) return;
+  if(!confirm(boxTxt(grp.length+' nom(s) en double : '+grp.map(l=>l[0].nom+' ×'+l.length).join(', ')+'.\n\nFusionner ? Pour chaque nom, une seule fiche est gardée (celle reliée à un compte, sinon la plus ancienne) ; interventions, pointages, box et véhicules des doublons lui sont rattachés.'))) return;
   let fusions=0; const avantT=db.techniciens.slice(), gardes=[];
   grp.forEach(l=>{ const garde=l.find(t=>db.users.some(u=>u.techId===t.id))||l[0]; gardes.push(garde.id);
     l.filter(t=>t!==garde).forEach(t=>{ techRemap(t.id,garde.id); ['tel','email','departements','couleur','certibiocide','certibiocideExp'].forEach(f=>{ if(!garde[f]&&t[f]) garde[f]=t[f]; });
@@ -16245,10 +16265,11 @@ function toastCacher(t){ t.classList.remove('show'); clearTimeout(t._v);
 /* une erreur porte UN signe : la pastille « ! » (partie J) — l'émoji d'avertissement qui ouvrait le message (« ⚠️ Toutes les
    quantités sont à 0 », dix-neuf messages) faisait deux signes côte à côte ; il s'efface quand la pastille est posée
    (relecture des captures, partie X). 📶 reste : il dit « réseau », pas « attention ». */
-function toast(msg,ms,genre){ const t=$('toast'); if(!t) return; const err=toastHabiller(t,msg,genre);
+function toast(msg,ms,genre){ const t=$('toast'); if(!t) return; msg=boxTxt(msg); const err=toastHabiller(t,msg,genre);
   t.textContent=err?String(msg).replace(/^\s*(⚠️|⚠|❌|⛔️|⛔|🚫)\uFE0F?\s*/u,''):msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>toastCacher(t),ms||2200); }
 /* message avec une action : sert au « ↩︎ Annuler » d'un changement de technicien */
 function toastAnnuler(msg,appel,ms){
+  msg=boxTxt(msg);
   const t=$('toast'); if(!t){ toast(msg); return; }
   toastHabiller(t,msg,'ok');
   /* on CACHE d'abord, on agit ensuite : dans l'autre ordre, le toast que pose l'annulation (« Rétabli », « Décision rétablie »…)
@@ -16466,6 +16487,14 @@ const MULTI_MODELES = [
      l'ouverture, et le champ caché `duree` est la seule vérité */
   { id: 'dur-chips',     lire: () => { const d = document.querySelector('#modal [name="duree"]'); return d ? String(d.value) : null; },
                           ecrire: () => {}, rendre: v => { if (v != null && v !== '') intDureePose(parseInt(v) || 60); } },
+  /* v778 — le cahier des tâches et la fiche de contrôle (métier nettoyage) gardent TOUT leur état dans `nettCahW` / `nettCqW`, hors du
+     balisage : sans ces lignes la reprise rendait un cahier vide (le balisage date de l'ouverture), puis « Enregistrer » enregistrait
+     un objet que l'écran ne montrait pas — et après un rechargement la variable valait null. Le modèle est l'objet ENTIER ; les champs
+     du haut et du bas (site, accès, validation…) sont rejoués par la reprise ordinaire et remettent à jour le même objet. La fiche de
+     contrôle a deux conteneurs : le premier porte le modèle, le second n'est là que pour que ses champs ne soient pas capturés deux fois. */
+  { id: 'nett-cah-zones', lire: () => nettCahW,                          ecrire: v => { nettCahW = v; },                                    rendre: () => nettCahMaj() },
+  { id: 'nett-cq-zones',  lire: () => nettCqW,                           ecrire: v => { nettCqW = v; },                                     rendre: () => nettCqMaj() },
+  { id: 'nett-cq-actions', lire: () => undefined,                        ecrire: () => {},                                                 rendre: () => {} },
 ];
 function multiDansModele(x){ try{ return MULTI_MODELES.some(r => !!x.closest('#' + r.id)); }catch(e){ return false; } }
 /* Une puce ne se restitue que si SON clic ne fait que basculer une classe : une puce qui pilote un
@@ -19448,7 +19477,7 @@ function setHeader(title,sub,actions='',o){ title=t(title); $('page-title').text
         tb.style.display=''; tb.title='Revenir à '+l; tb.setAttribute('data-l',l); }
       else { tb.style.display='none'; tb.removeAttribute('data-l'); } } }catch(e){}
   try{ document.body.classList.toggle('ctx', current!=='dashboard' && !!(title||actions)); }catch(e){} }
-function emptyState(ico,txt,btn,fn){ return `<div class="empty"><div class="e-ico">${ico}</div><p>${txt}</p>${btn?(fn?`<button class="btn" onclick="${fn}">${btn}</button>`:`<p style="color:var(--t3);font-size:13px;max-width:360px;margin:4px auto 0;line-height:1.5">${btn}</p>`):''}</div>`; }
+function emptyState(ico,txt,btn,fn){ txt=boxTxt(txt); if(!fn) btn=boxTxt(btn); return `<div class="empty"><div class="e-ico">${ico}</div><p>${txt}</p>${btn?(fn?`<button class="btn" onclick="${fn}">${btn}</button>`:`<p style="color:var(--t3);font-size:13px;max-width:360px;margin:4px auto 0;line-height:1.5">${btn}</p>`):''}</div>`; }
 function tableCard(headers, rows){
   return `<div class="card"><div class="tbl-wrap"><table class="tbl list-tbl"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
@@ -26433,6 +26462,18 @@ function _pdfLarg(txt,sz,gras){ const t=_PDF_L[gras?1:0]; let w=0;
 /* Coupe un texte à une largeur donnée, avec « … » */
 function _pdfCoupe(txt,sz,gras,max){ let s=String(txt==null?'':txt); if(_pdfLarg(s,sz,gras)<=max) return s;
   while(s.length>1&&_pdfLarg(s+'…',sz,gras)>max) s=s.slice(0,-1); return s.replace(/\s+$/,'')+'…'; }
+/* v778 — passe un texte À LA LIGNE à une largeur donnée (mots entiers ; un mot plus long que la ligne se coupe) au lieu de le couper avec « … » : la désignation d'un devis de
+   nettoyage (« Nettoyage quotidien des locaux — contrat annuel, 2 passages… ») perdait sa fin dans le document que le client reçoit. Au-delà de `maxLignes`, la DERNIÈRE ligne se termine par « … ». */
+function _pdfEnLignes(txt,sz,gras,max,maxLignes){ const out=[];
+  String(txt==null?'':txt).split(/\r?\n/).forEach(par=>{ let cur='';
+    _pdfTranslit(par).replace(/[ \t]+/g,' ').trim().split(' ').filter(Boolean).forEach(m=>{
+      while(_pdfLarg(m,sz,gras)>max){ let k=m.length-1; while(k>1&&_pdfLarg(m.slice(0,k),sz,gras)>max) k--; if(cur){ out.push(cur); cur=''; } out.push(m.slice(0,k)); m=m.slice(k); }
+      const e=cur?cur+' '+m:m; if(_pdfLarg(e,sz,gras)<=max) cur=e; else { out.push(cur); cur=m; } });
+    out.push(cur); });
+  while(out.length&&!out[out.length-1]) out.pop();
+  if(!out.length) out.push('');
+  if(maxLignes&&out.length>maxLignes){ const r=out.slice(0,maxLignes); r[maxLignes-1]=_pdfCoupe(r[maxLignes-1]+' '+out.slice(maxLignes).join(' '),sz,gras,max); return r; }
+  return out; }
 /* ── Le PDF, écrit à la main comme le bon de commande et le devis ──
    Les plans « geo » et « rooms » se DESSINENT en vecteurs depuis la même géométrie que l'écran
    (papLL2F, papFrac, papMPerPx) : net, quelques Ko, et exécutable hors navigateur. Un plan photo
@@ -27087,7 +27128,7 @@ function formIntervention(id,preset){
           <div class="frow"><span class="frow-lbl">Contrat</span><div class="frow-val"><select name="contratId"><option value="">Aucun</option>${db.contrats.map(c=>`<option value="${c.id}" ${i.contratId===c.id?'selected':''}>${esc(c.num||'')} ${esc(c.titre||'')}</option>`).join('')}</select></div></div>
           <div class="frow"><span class="frow-lbl">Visite technique</span><div class="frow-val"><select name="visiteTechnique">${VISITE_TECH.map(v=>`<option ${(i.visiteTechnique||'Non')===v?'selected':''}>${v}</option>`).join('')}</select></div></div>
           <div class="frow"><span class="frow-lbl">Priorité</span><div class="frow-val"><select name="prio">${Object.entries(PRIO).map(([k,v])=>`<option value="${k}" ${(i.prio||'normale')===k?'selected':''}>${v.l}</option>`).join('')}</select></div></div>
-          <div class="frow"><span class="frow-lbl">Moyen de paiement</span><div class="frow-val"><select name="moyenPaiement"><option value="">Choix</option>${MOYENS_PAIEMENT.map(m=>`<option ${i.moyenPaiement===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div></div>
+          <div class="frow"><span class="frow-lbl">Moyen de paiement</span><div class="frow-val"><select name="moyenPaiement"><option value="">Choix</option>${moyensPaiementOptions(i.moyenPaiement)}</select></div></div>
           <div class="frow"><span class="frow-lbl">Prix (€)</span><div class="frow-val"><input name="montant" type="number" step="0.01" min="0" value="${i.montant!=null&&i.montant!==''?i.montant:''}" placeholder="Montant prévu" style="text-align:right"></div></div>
         </div></div>
 
@@ -29150,7 +29191,7 @@ ${!estMetier3D()?'':`
       </div>
       <div class="form-sec">Paiement encaissé</div>
       <div class="fgroup">
-        <div class="frow"><span class="frow-lbl">Moyen de paiement</span><div class="frow-val"><select name="moyenPaiement"><option value="">Choix</option>${MOYENS_PAIEMENT.map(m=>`<option ${i.moyenPaiement===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div></div>
+        <div class="frow"><span class="frow-lbl">Moyen de paiement</span><div class="frow-val"><select name="moyenPaiement"><option value="">Choix</option>${moyensPaiementOptions(i.moyenPaiement)}</select></div></div>
         <div class="frow"><span class="frow-lbl">Prix encaissé (€)</span><div class="frow-val"><input name="montant" type="number" step="0.01" min="0" value="${i.montant!=null&&i.montant!==''?i.montant:''}" placeholder="0,00" style="text-align:right"></div></div>
         <div class="frow"><span class="frow-lbl">Commentaire paiement</span><div class="frow-val"><input name="paiementNote" value="${esc(i.paiementNote)}" placeholder="ex : a payé en 2 fois, reste 30 € à venir…"></div></div>
       </div>
@@ -29970,7 +30011,7 @@ function prixPoses(){ return (db.produits||[]).filter(p=>p&&+p.prix>0).length; }
 function prixEffacer(){
   if(!caseGarde('effacerPrix','Effacer les prix pré-remplis du catalogue')) return;
   const n=prixPoses(); if(!n){ toast('Aucun prix n\'est renseigné'); return; }
-  if(!confirm('Effacer le prix de '+n+' produit'+(n>1?'s':'')+' ?\n\nCes tarifs viennent du catalogue fournisseur relevé en juillet 2026 : ils ne sont plus à jour et ne devraient pas faire foi. Le champ reste — vous pourrez y mettre vos propres prix négociés.\n\nLes quantités, les box et les mouvements ne bougent pas.')) return;
+  if(!confirm(boxTxt('Effacer le prix de '+n+' produit'+(n>1?'s':'')+' ?\n\nCes tarifs viennent du catalogue fournisseur relevé en juillet 2026 : ils ne sont plus à jour et ne devraient pas faire foi. Le champ reste — vous pourrez y mettre vos propres prix négociés.\n\nLes quantités, les box et les mouvements ne bougent pas.'))) return;
   (db.produits||[]).forEach(p=>{ if(p) p.prix=0; });
   logEvent('Prix effacés',n+' produit(s) — tarifs du catalogue retirés','crud');
   save(); toast('Prix effacés sur '+n+' produit(s)',4200); views.produits();
@@ -30283,7 +30324,7 @@ function produitsFusionnerDoublonsUI(boxId){ if(!permGarde('stock','modifier','u
   const cles=bx?new Set(gFus.map(l=>produitCle(l[0]))):null;
   const n=gFus.reduce((a,l)=>a+produitsFusionnables(l).length-1,0);
   const liste=gFus.slice(0,8).map(l=>'• '+(l[0].nom||'')+' ×'+produitsFusionnables(l).length).join('\n')+(gFus.length>8?'\n… et '+(gFus.length-8)+' autre(s)':'');
-  if(!confirm('Fusionner '+n+' fiche(s) en double en '+gFus.length+' produit(s) ?\n\n'+liste+'\n\nMême nom = même produit : si ce sont deux produits différents, touche plutôt « C\'est normal ». Le stock des box s\'additionne, rien d\'autre n\'est supprimé. Ça se propage à toute l\'équipe.')) return;
+  if(!confirm(boxTxt('Fusionner '+n+' fiche(s) en double en '+gFus.length+' produit(s) ?\n\n'+liste+'\n\nMême nom = même produit : si ce sont deux produits différents, touche plutôt « C\'est normal ». Le stock des box s\'additionne, rien d\'autre n\'est supprimé. Ça se propage à toute l\'équipe.'))) return;
   const r=produitsFusionnerDoublons(cles);
   toast(r.fiches+' fiche(s) fusionnée(s) — '+db.produits.length+' produits maintenant',4200);
   produitsDoublonsRafraichir();
@@ -30373,7 +30414,7 @@ function renderProduitsList(){
   const TOT=stockTotaux(), toutVu=stockVoitTout();
   let list=produitsVisibles();
   if(!list.length){ const vide=!(db.produits||[]).length&&!q;
-    el.innerHTML=(vide?catalogueDepartCarte():'')+prdCataloguePont(q,false)+`<div class="card">${emptyState('📦',vide?'Ton catalogue est vide. Ajoute tes produits un par un (＋ Produit) ou colle ta liste entière (＋ Liste) : ils serviront ensuite dans les box, les interventions et les bons de commande.':prdOnglet==='perso'?'Aucun produit à toi pour l\'instant — ajoute-les un par un (＋ Produit) ou colle ta liste entière (＋ Liste).':'Aucun produit trouvé.','Ajouter','formProduit()')}</div>`; return; }
+    el.innerHTML=(vide?catalogueDepartCarte():'')+prdCataloguePont(q,false)+`<div class="card">${emptyState('📦',vide?'Ton catalogue est vide. Ajoute tes produits un par un (＋ Produit) ou colle ta liste entière (＋ Liste) : ils serviront ensuite '+libBox('dans les box, les interventions et les bons de commande.','dans les interventions et les bons de commande.'):prdOnglet==='perso'?'Aucun produit à toi pour l\'instant — ajoute-les un par un (＋ Produit) ou colle ta liste entière (＋ Liste).':'Aucun produit trouvé.','Ajouter','formProduit()')}</div>`; return; }
   // Regroupé par catégorie, dans l'ordre officiel ELAN puis les autres
   const groups={}; list.forEach(p=>{ const c=p.categorie||'Sans catégorie'; (groups[c]=groups[c]||[]).push(p); });
   const LC=categoriesProduit();   // la liste du métier ; les catégories d'une base d'avant (hors liste) suivent, telles quelles
@@ -30447,9 +30488,9 @@ ${!estMetier3D()?'':`
       <div style="font-size:11.5px;color:var(--t3);margin:4px 2px 10px">Seuil d'alerte : quand le stock passe à ce niveau ou en dessous, une alerte apparaît dans la cloche. Laisser vide = pas d'alerte.</div>
       <div class="form-sec">Fournisseur(s) * <span style="font-weight:400;text-transform:none;letter-spacing:0">— multi-sélection</span></div>
       <div id="prod-fours" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-      ${visibleBoxes(db.boxes).length?`<div class="form-sec" style="margin-top:14px">Boxes</div>
-      <div class="fgroup"><label class="frow" style="justify-content:space-between;cursor:pointer"><span style="color:var(--t1)">Ajouter ce produit à toutes les box (${visibleBoxes(db.boxes).length})</span><input type="checkbox" name="allBoxes" style="width:22px;height:22px;accent-color:var(--acc);flex-shrink:0"></label></div>
-      <div style="font-size:11.5px;color:var(--t3);margin:6px 2px 0">Le produit apparaîtra dans chaque box avec une quantité à 0, prête à être renseignée.</div>`:''}
+      ${visibleBoxes(db.boxes).length?`<div class="form-sec" style="margin-top:14px">${libBox('Boxes','Stockage')}</div>
+      <div class="fgroup"><label class="frow" style="justify-content:space-between;cursor:pointer"><span style="color:var(--t1)">${libBox('Ajouter ce produit à toutes les box ('+visibleBoxes(db.boxes).length+')','Ajouter ce produit au stockage')}</span><input type="checkbox" name="allBoxes" style="width:22px;height:22px;accent-color:var(--acc);flex-shrink:0"></label></div>
+      <div style="font-size:11.5px;color:var(--t3);margin:6px 2px 0">${libBox('Le produit apparaîtra dans chaque box avec une quantité à 0, prête à être renseignée.','Le produit apparaîtra dans le stockage avec une quantité à 0, prête à être renseignée.')}</div>`:''}
     </form>`);
   renderProdFours();
 }
@@ -30474,7 +30515,7 @@ function saveProduit(e,id){ e.preventDefault(); if(!permGarde('stock',id?'modifi
        quelqu'un tape un nom et attend : le dire tout de suite ne coûte qu'une question, et évite
        deux fiches qui vivent chacune leur stock avant qu'on s'en aperçoive. */
     const jum=data.nom?db.produits.find(x=>produitCle(x)===produitCle({nom:data.nom})):null;
-    if(jum&&!confirm('« '+jum.nom+' » est déjà à ton catalogue.\n\nCréer une seconde fiche du même nom ? Les deux auront leur propre stock, dans les box comme au global.\n\nAnnule pour modifier la fiche existante à la place.')) return;
+    if(jum&&!confirm(boxTxt('« '+jum.nom+' » est déjà à ton catalogue.\n\nCréer une seconde fiche du même nom ? Les deux auront leur propre stock, dans les box comme au global.\n\nAnnule pour modifier la fiche existante à la place.'))) return;
     pid=produitCreer({unite:'unité',qte:0,perso:true,...data},{push:true}).id; logEvent('Nouveau produit',data.nom,'crud'); toast('Produit ajouté au catalogue'); }
   /* v738 : « toutes les box », ce sont celles qu'on VOIT — pas celles des autres équipes */
   if(allBoxes&&pid){ let n=0; visibleBoxes(db.boxes).forEach(b=>{ b.stock=b.stock||{}; if(!b.stock[pid]){ b.stock[pid]={ctn:0,u:0}; n++; } });
@@ -30947,6 +30988,8 @@ let mvtFType='', mvtFBox='', mvtFQ='', mvtFBoxQ='', mvtMenuOuvert='', mvtMoisOuv
 function mvtToggleBox(cle){ mvtBoxOuverts[cle]=!mvtBoxOuverts[cle]; views.mouvements(); }
 function mvtMenu(k){ mvtMenuOuvert=(mvtMenuOuvert===k?'':k); if(mvtMenuOuvert!=='box') mvtFBoxQ=''; views.mouvements(); if(mvtMenuOuvert==='box'){ const i=$('mvt-box-q'); if(i) i.focus(); } }
 function mvtChoisirType(t){ mvtFType=t; mvtMenuOuvert=''; views.mouvements(); }
+/* v778 — hors 3D le filtre par box n'existe pas à l'écran : un filtre posé avant (le journal du stockage) ne doit pas rester appliqué sans bouton pour le lever. */
+function mvtBoxActif(){ return sansBox()?'':mvtFBox; }
 function mvtChoisirBox(id){ mvtFBox=id; mvtMenuOuvert=''; mvtFBoxQ=''; views.mouvements(); }
 function mvtBoxQ(v){ mvtFBoxQ=v; views.mouvements(); const i=$('mvt-box-q'); if(i){ i.focus(); const n=i.value.length; try{ i.setSelectionRange(n,n); }catch(e){} } }
 let consoPersOuv={}, consoPersListe=[];
@@ -30989,7 +31032,7 @@ views.mouvements=function(){
     ${tuile('valide',icoT.dr,'var(--acc)','color-mix(in srgb,var(--acc) 16%,transparent)',nbVal,'Validés')}</div>`;
   // ── filtres : box + recherche d'abord (les compteurs des onglets en tiennent compte) ──
   let base=tout;
-  if(mvtFBox) base=base.filter(m=>m.boxId===mvtFBox);
+  if(mvtBoxActif()) base=base.filter(m=>m.boxId===mvtBoxActif());
   if(mvtFQ.trim()){ const q=mvtFQ.trim().toLowerCase();
     base=base.filter(m=>{ const p=produit(m.produitId);
       return [p.nom,p.ref,m.motif,m.technicien,m.validePar,m.donneA,boxNom(m.boxId),m.vehiculeId?vehName(m.vehiculeId):''].some(x=>String(x||'').toLowerCase().includes(q)); }); }
@@ -31009,17 +31052,17 @@ views.mouvements=function(){
   const nbMvtBox=id=>tout.filter(m=>m.boxId===id).length;
   const rangBox=(b,on,html)=>`<div class="ligne-choix teinte${on?' on':''}" onclick="mvtChoisirBox('${b?b.id:''}')" style="display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer">${html}<span style="flex:1"></span>${on?'<span style="color:var(--acc-txt);font-weight:800">✓</span>':''}</div>`;
   const menuBox=mvtMenuOuvert==='box'?`<div class="mvt-menu" style="position:absolute;top:calc(100% + 8px);right:0;z-index:60;width:305px;background:var(--card);border:1px solid var(--brd);border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden">
-    <div style="padding:12px 14px 4px;font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--t3);text-transform:uppercase">Filtrer par box</div>
-    <div style="padding:8px 12px 10px;border-bottom:1px solid color-mix(in srgb,var(--brd) 70%,transparent)"><div class="mvt-menu-q" style="display:flex;align-items:center;gap:8px;background:var(--bg1);border-radius:10px;padding:8px 11px"><span style="opacity:.55;font-size:12px">🔍</span><input id="mvt-box-q" value="${esc(mvtFBoxQ)}" oninput="mvtBoxQ(this.value)" placeholder="Chercher une box…" style="flex:1;min-width:0;border:none;background:transparent;color:var(--t1);font-size:12.5px;outline:none"></div></div>
+    <div style="padding:12px 14px 4px;font-size:11px;font-weight:800;letter-spacing:.8px;color:var(--t3);text-transform:uppercase">${libBox('Filtrer par box','Filtrer par lieu')}</div>
+    <div style="padding:8px 12px 10px;border-bottom:1px solid color-mix(in srgb,var(--brd) 70%,transparent)"><div class="mvt-menu-q" style="display:flex;align-items:center;gap:8px;background:var(--bg1);border-radius:10px;padding:8px 11px"><span style="opacity:.55;font-size:12px">🔍</span><input id="mvt-box-q" value="${esc(mvtFBoxQ)}" oninput="mvtBoxQ(this.value)" placeholder="${libBox('Chercher une box…','Chercher un lieu…')}" style="flex:1;min-width:0;border:none;background:transparent;color:var(--t1);font-size:12.5px;outline:none"></div></div>
     <div style="max-height:275px;overflow:auto;padding:5px 0">
-      ${rangBox(null,!mvtFBox,`<span style="width:26px;height:26px;flex:none;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--t2);background:color-mix(in srgb,var(--t3) 14%,transparent)">${ICO.box}</span><div><div style="font-size:13px;font-weight:700;color:var(--t1)">Toutes les box</div><div style="font-size:11px;color:var(--t3)">${tout.length} mouvement${tout.length>1?'s':''} au total</div></div>`)}
-      ${boxesFiltrees.map(b=>rangBox(b,mvtFBox===b.id,`${tuileBox(b)}<div style="min-width:0"><div style="font-size:13px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px">${esc(b.nom||b.numero||'Box')}</div><div style="font-size:11px;color:var(--t3)">${nbMvtBox(b.id)} mouvement${nbMvtBox(b.id)>1?'s':''}</div></div>`)).join('')||'<div style="padding:14px;font-size:12.5px;color:var(--t3);text-align:center">Aucune box ne correspond.</div>'}
+      ${rangBox(null,!mvtFBox,`<span style="width:26px;height:26px;flex:none;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--t2);background:color-mix(in srgb,var(--t3) 14%,transparent)">${ICO.box}</span><div><div style="font-size:13px;font-weight:700;color:var(--t1)">${libBox('Toutes les box','Tous les lieux')}</div><div style="font-size:11px;color:var(--t3)">${tout.length} mouvement${tout.length>1?'s':''} au total</div></div>`)}
+      ${boxesFiltrees.map(b=>rangBox(b,mvtFBox===b.id,`${tuileBox(b)}<div style="min-width:0"><div style="font-size:13px;font-weight:700;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px">${esc(b.nom||b.numero||'Box')}</div><div style="font-size:11px;color:var(--t3)">${nbMvtBox(b.id)} mouvement${nbMvtBox(b.id)>1?'s':''}</div></div>`)).join('')||'<div style="padding:14px;font-size:12.5px;color:var(--t3);text-align:center">'+libBox('Aucune box ne correspond.','Aucun lieu ne correspond.')+'</div>'}
     </div></div>`:'';
   const bSel=mvtFBox?(db.boxes||[]).find(x=>x.id===mvtFBox):null;
-  const btnBox=`<button type="button" onclick="mvtMenu('box')" style="cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:8px;height:37px;padding:0 15px ${bSel?'0 8px':'0 15px'};border-radius:100px;border:1px solid ${mvtFBox?'transparent':'var(--brd)'};background:${mvtFBox?'var(--acc)':'var(--card)'};color:${mvtFBox?'var(--on-acc)':'var(--t2)'};font-size:12.5px;font-weight:700;max-width:250px;box-shadow:${mvtFBox?'0 3px 12px color-mix(in srgb,var(--acc) 42%,transparent)':'0 1px 3px rgba(0,0,0,.07)'}">${bSel?tuileBox(bSel):ICO.box}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${bSel?esc(bSel.nom||bSel.numero||'Box'):'Toutes les box'}</span>${ICO.chev}</button>`;
+  const btnBox=`<button type="button" onclick="mvtMenu('box')" style="cursor:pointer;flex:none;display:inline-flex;align-items:center;gap:8px;height:37px;padding:0 15px ${bSel?'0 8px':'0 15px'};border-radius:100px;border:1px solid ${mvtFBox?'transparent':'var(--brd)'};background:${mvtFBox?'var(--acc)':'var(--card)'};color:${mvtFBox?'var(--on-acc)':'var(--t2)'};font-size:12.5px;font-weight:700;max-width:250px;box-shadow:${mvtFBox?'0 3px 12px color-mix(in srgb,var(--acc) 42%,transparent)':'0 1px 3px rgba(0,0,0,.07)'}">${bSel?tuileBox(bSel):ICO.box}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${bSel?esc(bSel.nom||bSel.numero||'Box'):libBox('Toutes les box','Tous les lieux')}</span>${ICO.chev}</button>`;
   const barre=`${voile}<div class="mvt-bar" style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 16px">
     ${chip('entree',ICO.entree,'Ajouts')}${chip('sortie',ICO.sortie,'Retirés')}${chip('donne',ICO.donne,'Produits donnés')}${chip('valide',ICO.dr,'Validés')}${chercheur}<span style="flex:1"></span>
-    <div class="mvt-dd" style="position:relative;flex:none;z-index:${mvtMenuOuvert==='box'?61:1}">${btnBox}${menuBox}</div></div>`;
+    ${sansBox()?'':`<div class="mvt-dd" style="position:relative;flex:none;z-index:${mvtMenuOuvert==='box'?61:1}">${btnBox}${menuBox}</div>`}</div>`;
   // ── bons de remise : construits plus bas, sur le même modèle que le journal ──
   // ── le journal, groupé par jour, avec les personnes bien visibles ──
   const ini=n=>String(n||'').trim().split(/\s+/).map(x=>x[0]||'').slice(0,2).join('').toUpperCase()||'?';
@@ -31072,7 +31115,7 @@ views.mouvements=function(){
     if(mvtFType==='entree') return;                                   // un bon = une sortie
     if(mvtFType==='valide'&&!r.valideDr) return;
     if(mvtFType==='donne'&&!r.pourQui) return;
-    if(mvtFBox&&r.boxId!==mvtFBox) return;
+    if(mvtBoxActif()&&r.boxId!==mvtBoxActif()) return;
     if(mvtFQ.trim()){ const q=mvtFQ.trim().toLowerCase();
       const ok=[r.num,r.par,r.pourQui,r.valideDr,boxNom(r.boxId)||r.boxNomTxt].concat((r.lignes||[]).map(l=>produit(l.produitId).nom)).some(x=>String(x||'').toLowerCase().includes(q));
       if(!ok) return; }
@@ -31093,7 +31136,7 @@ views.mouvements=function(){
         const bonsIci=brParCle[d+'|'+k]||[];
         const cle=d+'|'+k, ouvert=!!mvtBoxOuverts[cle];
         return `<div class="card" style="margin-bottom:10px;padding:0;overflow:hidden${ouvert?';border-color:color-mix(in srgb,var(--acc) 55%,transparent)':''}">
-          <div onclick="mvtToggleBox('${cle}')" title="${ouvert?'Replier':'Déplier'} cette box" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:17px 18px;cursor:pointer">
+          <div onclick="mvtToggleBox('${cle}')" title="${ouvert?'Replier':'Déplier'} ${libBox('cette box','ce groupe')}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:17px 18px;cursor:pointer">
             <span style="font-weight:800;font-size:15px;text-transform:capitalize">${jLbl(d)}</span>
             <span style="color:var(--t3)">·</span><span style="font-weight:800;font-size:15px">${grpLbl(k,g)}</span>
             <span style="color:var(--t3);font-weight:600;font-size:12.5px">· ${g.length} mouvement${g.length>1?'s':''}</span>
@@ -31449,7 +31492,7 @@ function renderBoxDetail(){
   const cli=b.clientId?(db.clients.find(x=>x.id===b.clientId)||{}):null;
   const pv=b.prochaineVisite||''; const late=pv && pv<todayISO();
   /* v741 : le stockage s'ouvre depuis Stock comme depuis Boxes — on revient d'où l'on vient. */
-  const stk=estStockage(b), retour=(stk&&current==='stock')?'stock':'boxes';
+  const stk=estStockage(b), retour=(stk&&(current==='stock'||sansBox()))?'stock':'boxes';   // hors 3D la rubrique « Boxes » n'existe pas : on revient au Stock
   const servir=stk&&!boxValidRequis()&&!db.bonsRemiseOff;
   $('content').innerHTML=`
     <div style="display:flex;align-items:center;gap:6px;margin:0">
@@ -31461,7 +31504,7 @@ function renderBoxDetail(){
     </div>
     <div style="font-size:17px;font-weight:600;color:var(--acc-txt);margin:2px 2px 3px;line-height:1.3">${esc(b.nom||b.numero||'Box')}</div>
     <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">${esc(b.ville||'')}${b.ville&&nbProd?' · ':''}${nbProd?nbProd+' produit'+(nbProd>1?'s':''):''}</div>
-    ${stk?`<div style="font-size:12.5px;color:var(--t2);line-height:1.55;margin:-4px 2px 12px;max-width:620px">Le stock de l’entreprise, hors des box. Il baisse quand quelqu’un s’y sert — une intervention ne déduit rien — et chaque sortie dit <b>qui a pris quoi</b>.</div>`:''}
+    ${stk?`<div style="font-size:12.5px;color:var(--t2);line-height:1.55;margin:-4px 2px 12px;max-width:620px">Le stock de l’entreprise${libBox(', hors des box','')}. Il baisse quand quelqu’un s’y sert — une intervention ne déduit rien — et chaque sortie dit <b>qui a pris quoi</b>.</div>`:''}
     <div style="max-width:620px">
     <div style="display:flex;gap:8px;margin:0 0 8px">
       <button class="btn" style="flex:1;justify-content:center;gap:8px;padding:12px;border-radius:100px;font-weight:800" onclick="openBoxScanner('${b.id}')">${fic('scan',17)} Scanner</button>
@@ -31506,7 +31549,7 @@ function renderBoxDetail(){
             ${sent&&x.statut!=='arrivageNote'?`<div style="font-size:12px;color:var(--t2);margin-top:8px;padding-top:8px;border-top:1px solid var(--brd);line-height:1.5">📦 <b>À la livraison :</b> touche <b>Arrivage</b> en haut de la box. La commande y est proposée, les quantités sont préremplies, et c'est là qu'on photographie le <b>bon de livraison</b>.</div>`:''}
           </div>
         </div>`; }).join('')+`</div>`; })()}
-    ${b.photo?`<div style="margin:4px 0 12px"><img src="${b.photo}" onclick="photoPlein(this,'Photo de la box')" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid var(--brd);cursor:pointer"></div>`:''}
+    ${b.photo?`<div style="margin:4px 0 12px"><img src="${b.photo}" onclick="photoPlein(this,'${boxTxt('Photo de la box')}')" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;border:1px solid var(--brd);cursor:pointer"></div>`:''}
     <div class="card" style="margin-top:4px;padding:4px 4px">
       ${stk&&!b.numero?'':`<div class="bdt-row"><span class="bdt-ic">🔢</span><span class="bdt-lbl">Numéro</span><span class="bdt-val mono">${esc(b.numero||'—')}</span></div>`}
       ${(()=>{ const r=b.respUserId?(db.users||[]).find(u=>u.id===b.respUserId):null;
@@ -31524,11 +31567,11 @@ function renderBoxDetail(){
         const hors=(b.userIdsExclus||[]).map(id=>(db.users||[]).find(x=>x&&x.id===id)).filter(Boolean);
         return hors.length?`<div class="bdt-row"><span class="bdt-ic">🚫</span><span class="bdt-lbl">Retirée à</span><span class="bdt-val" style="text-align:right;max-width:62%;color:var(--org,#e8a33d);font-weight:700">${esc(hors.map(x=>fullName(x)).join(', '))}</span></div>`:''; })()}
       ${(()=>{ const abs=boxDelegue(b); if(!abs) return ''; const d=delegationActive(abs);
-        return `<div class="bdt-row"><span class="bdt-ic">🌴</span><span class="bdt-lbl">Congés</span><span class="bdt-val" style="text-align:right;max-width:64%;color:var(--org,#e8a33d);font-weight:700">Vous voyez cette box pendant les congés de ${esc(fullName(abs))}${d&&d.au?`, jusqu'au ${fmtShort(d.au)}`:''}</span></div>`; })()}
+        return `<div class="bdt-row"><span class="bdt-ic">🌴</span><span class="bdt-lbl">Congés</span><span class="bdt-val" style="text-align:right;max-width:64%;color:var(--org,#e8a33d);font-weight:700">${boxTxt('Vous voyez cette box pendant les congés de')} ${esc(fullName(abs))}${d&&d.au?`, jusqu'au ${fmtShort(d.au)}`:''}</span></div>`; })()}
       ${b.notes?`<div class="bdt-row" style="border-bottom:none"><span class="bdt-ic">📝</span><span class="bdt-lbl">Notes</span><span class="bdt-val" style="text-align:right;max-width:60%">${esc(b.notes)}</span></div>`:''}
     </div>
     ${produitsDoublonsBandeau({boxId:b.id,replie:true})}
-    <div class="card-head bxp-head" style="margin:14px 2px 6px"><h3>Produits (${nbProd})</h3>${canCat('stock','modifier')?`<button type="button" class="btn sm bxp-btn" id="bxp-btn" title="Ajouter ou retirer des produits de cette box" onclick="openBoxProduits()">Ajouter / retirer${(()=>{ const nv=boxNouveautes(b).length; return nv?`<span class="bxp-pastille">+${nv>9?'9+':nv}</span>`:''; })()}</button>`:''}</div>
+    <div class="card-head bxp-head" style="margin:14px 2px 6px"><h3>Produits (${nbProd})</h3>${canCat('stock','modifier')?`<button type="button" class="btn sm bxp-btn" id="bxp-btn" title="${boxTxt('Ajouter ou retirer des produits de cette box')}" onclick="openBoxProduits()">Ajouter / retirer${(()=>{ const nv=boxNouveautes(b).length; return nv?`<span class="bxp-pastille">+${nv>9?'9+':nv}</span>`:''; })()}</button>`:''}</div>
     <!-- La liste en cours et le bandeau « en attente » vivent AU-DESSUS de la recherche :
          entre le champ et les produits, ils coupaient le geste — on cherche un produit, on
          tape, et on avait un pavé au milieu. Ils sont hors de #boxprod-list, donc dans leur
@@ -31634,7 +31677,7 @@ function openArrivage(boxId){ const b=db.boxes.find(x=>x.id===boxId); if(!b) ret
     <p style="font-size:12.5px;color:var(--t3);margin:0 0 8px;line-height:1.5">Le papier remis par le livreur. Il sera rangé <b>avec le bon de commande</b> : le valideur verra la photo à côté des quantités au moment de valider, et les deux resteront ensemble.</p>
     <input type="file" id="arr-file" accept="image/*" capture="environment" style="display:none" onchange="arrPhoto(event)">
     <div id="arr-photo-zone"><button type="button" class="btn ghost" style="width:100%;justify-content:center;padding:13px" onclick="document.getElementById('arr-file').click()">Prendre / choisir une photo</button></div>
-    <div style="font-size:11.5px;color:var(--t3);margin-top:12px">${boxValidRequis()?'À l\'enregistrement, l\'arrivage part <b>en validation</b> — le stock ne bougera qu\'après validation.':'À l\'enregistrement, les quantités sont ajoutées directement au stock de la box et l\'équipe reçoit une notification « Arrivage box ».'}</div>`);
+    <div style="font-size:11.5px;color:var(--t3);margin-top:12px">${boxValidRequis()?'À l\'enregistrement, l\'arrivage part <b>en validation</b> — le stock ne bougera qu\'après validation.':libBox('À l\'enregistrement, les quantités sont ajoutées directement au stock de la box et l\'équipe reçoit une notification « Arrivage box ».','À l\'enregistrement, les quantités sont ajoutées directement au stock et l\'équipe reçoit une notification « Arrivage ».')}</div>`);
   arrRender(); }
 /* ⛔ LE MINIMUM EST ZÉRO, PLUS UN. Un produit commandé qui n'est pas arrivé se note « 0 ».
    Avant, min="1" et Math.max(1,…) ramenaient la saisie à 1 SANS RIEN DIRE : le champ affichait
@@ -31702,7 +31745,7 @@ function saveArrivage(boxId){ const b=db.boxes.find(x=>x.id===boxId); if(!b) ret
       bonNum(bonLie)+' — arrivage en box '+(b.nom||b.numero||'')+(complet?'':' · reste dû : '+bonResteTxt(bonLie)),'commande'); }
   const resteAp=bonLie?bonResteTxt(bonLie):'';
   const tot=lignes.reduce((t,l)=>t+l.qte,0);
-  logEvent('Arrivage box',`${four} — ${tot} produit(s) → ${b.nom||b.numero||''}`,'stock');
+  logEvent(libBox('Arrivage box','Arrivage'),`${four} — ${tot} produit(s) → ${b.nom||b.numero||''}`,'stock');
   try{ pushNotify('📦 Arrivage — '+(b.nom||b.numero||'box'),four+' · +'+tot+' produit(s) · par '+fullName(currentUser),'/app.html#v=boxes'); }catch(e){}
   save(); closeModal(); renderBoxDetail();
   toast(resteAp
@@ -31810,7 +31853,7 @@ function boxCommandes(boxId){
       <button type="button" class="btn ghost sm" onclick="closeModal();renderBoxDetail()">Fermer</button>
       <h3>Commandes &amp; livraisons</h3><span style="width:62px"></span></div>
     <div style="font-size:13px;color:var(--t2);margin:10px 2px 12px;line-height:1.55">🧱 <b>${esc(b.nom||b.numero||'Box')}</b> — ${tout.length} ${tout.length>1?'entrées':'entrée'} depuis le début. Chaque commande est un <b>dossier</b> : le PDF du bon d'un côté, la photo du <b>bon de livraison</b> de l'autre.</div>
-    ${!tout.length?`<div class="card">${emptyState('📋','Rien pour cette box, pour l\'instant.','','')}<p style="font-size:12.5px;color:var(--t3);line-height:1.6;margin:0 2px">Une commande apparaît ici dès qu'elle est <b>rattachée à cette box</b> — c'est le cas de celles nées d'une demande faite depuis la box. Les livraisons notées en <b>Arrivage</b> s'y rangent aussi, même sans bon.</p></div>`:''}
+    ${!tout.length?`<div class="card">${emptyState('📋','Rien pour cette box, pour l\'instant.','','')}<p style="font-size:12.5px;color:var(--t3);line-height:1.6;margin:0 2px">${boxTxt(`Une commande apparaît ici dès qu'elle est <b>rattachée à cette box</b> — c'est le cas de celles nées d'une demande faite depuis la box. Les livraisons notées en <b>Arrivage</b> s'y rangent aussi, même sans bon.`)}</p></div>`:''}
     ${cles.map((k,i)=>{ const bs=mois[k], ouvert=(i===0);
       const arts=bs.reduce((t,x)=>t+(((x._arr?x._arr.lignes:x.lignes)||[]).length),0);
       return `<div class="dmo${ouvert?' on':''}" data-mois="${k}">
@@ -32743,7 +32786,7 @@ function boxDonneSave(){
     if(suite){ suite(); return; }
     try{ if(b&&boxView===b.id) renderBoxProdList(); }catch(e){}
     toast('Rien n’est sorti '+(estStockage(b)?'du stockage':'de la box')); return; }
-  if(!b||boxView!==b.id){ toast('Box fermée entre-temps — rien n’est sorti'); return; }
+  if(!b||boxView!==b.id){ toast(libBox('Box fermée entre-temps — rien n’est sorti','Stockage fermé entre-temps — rien n’est sorti')); return; }
   /* UN geste : un mouvement par produit (le journal dit « −3 », pas trois fois « −1 »), et UN bon
      de remise — `remiseAjoute` range sur le même bon tout ce qui part le même jour, de la même box,
      vers la même personne. Silencieux pendant la boucle : un seul rendu, un seul message. */
@@ -32830,12 +32873,12 @@ async function remisePdf(id){
 function removeBoxProd(pid){ const b=db.boxes.find(x=>x.id===boxView); if(!b)return;
   const s=(b.stock||{})[pid]||{ctn:0,u:0}; const p=produit(pid);
   if(boxValidRequis()){
-    if(!confirm('Demander le retrait de « '+(p.nom||'ce produit')+' » de la box ?\n\nLa demande partira en validation.')) return;
+    if(!confirm(boxTxt('Demander le retrait de « '+(p.nom||'ce produit')+' » de la box ?\n\nLa demande partira en validation.'))) return;
     const mR=boxMvtEnvoyer({type:'retrait',boxId:b.id,produitId:pid});
     closeModal(); renderBoxDetail(); toast('📨 Retrait envoyé en validation');
     if(mR&&!mR.pourQui&&!db.bonsRemiseOff) setTimeout(()=>remiseDestModal(mR.id),150);
     return; }
-  if(!confirm('Retirer « '+(p.nom||'ce produit')+' » de la box ?'+((s.u||s.ctn)?' La quantité restante ('+((s.u||0)+(s.ctn||0))+' u) sera sortie du stock.':''))) return;
+  if(!confirm(boxTxt('Retirer « '+(p.nom||'ce produit')+' » de la box ?'+((s.u||s.ctn)?' La quantité restante ('+((s.u||0)+(s.ctn||0))+' u) sera sortie du stock.':'')))) return;
   if(s.u){ traceBox(b,pid,-s.u,'u','Retiré de la box'); notifyDrBoxMove(b,pid,'sortie',s.u,'u'); }
   if(s.ctn){ traceBox(b,pid,-s.ctn,'ctn','Retiré de la box'); notifyDrBoxMove(b,pid,'sortie',s.ctn,'ctn'); }
   delete b.stock[pid]; boxDecider(b,[pid]);   // écarté : le catalogue ne le reposera pas tout seul
@@ -32893,7 +32936,7 @@ function openBoxProduits(){ if(!permGarde('stock','modifier','une box')) return;
 /* La feuille elle-même, sans remise à zéro : le choix des box passe par une seconde fenêtre, et en
    revenir ne doit rien décocher — on a coché cent produits AVANT de dire où les poser. */
 function bxpFeuille(){ const b=bxpBox(); if(!b) return;
-  openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm bxp-fermer" onclick="closeModal()">Fermer</button><h3 class="bxp-titre">Produits de la box<small>${esc(b.nom||b.numero||'')}</small></h3><span class="bxp-vide"></span></div>
+  openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm bxp-fermer" onclick="closeModal()">Fermer</button><h3 class="bxp-titre">${boxTxt('Produits de la box')}<small>${esc(b.nom||b.numero||'')}</small></h3><span class="bxp-vide"></span></div>
     <div id="bxp-doublons"></div>
     <div class="filters bxp-onglets" id="bxp-onglets"></div>
     <div id="bxp-corps"></div>`);
@@ -32932,7 +32975,7 @@ function bxpRendreAjout(b,c){ const el=$('bxp-corps'); const nouv=c.nouv; const 
       <div class="bxp-nouv-btns"><button type="button" class="btn sm" onclick="bxpNouvAjouter()" ${bxpNouvSel.size?'':'disabled'}>${bxpNouvSel.size>1?'Ajouter ces '+bxpNouvSel.size:(bxpNouvSel.size===1?'Ajouter ce produit':'Ajouter')}</button><button type="button" class="btn ghost sm" onclick="bxpNouvEcarter()">Pas dans cette box</button></div></div>`:'';
   const ecartesHtml=ecartes.length?`<div class="bxp-ecartes"><span>${ecartes.length} produit${ecartes.length>1?'s':''} écarté${ecartes.length>1?'s':''} pour cette box</span><button type="button" class="btn ghost sm" onclick="bxpEcartesVoir=!bxpEcartesVoir;bxpRendre()">${bxpEcartesVoir?'Masquer':'Revoir'}</button>
       ${bxpEcartesVoir?ecartes.map(pid=>`<div class="pl-row bxp-l bxp-garde" style="cursor:default"><div class="pl-info"><div class="pl-title">${esc(produit(pid).nom||'')}</div></div><button type="button" class="btn ghost sm" onclick="bxpProposerANouveau('${pid}')">Proposer à nouveau</button></div>`).join(''):''}</div>`:'';
-  el.innerHTML=bandePack+groupe+`<div class="abp-etat"><span><b>${deja}</b> déjà dans la box</span><span><b>${c.dispo.length}</b> à ajouter</span></div>
+  el.innerHTML=bandePack+groupe+`<div class="abp-etat"><span><b>${deja}</b> ${boxTxt('déjà dans la box')}</span><span><b>${c.dispo.length}</b> à ajouter</span></div>
     <div class="bxp-rech"><input class="search-inp" id="abp-search" placeholder="Rechercher un produit…" value="${esc(bxpQ)}" oninput="bxpQ=this.value;rechDiffere(renderAbpList)" autocomplete="off"><button type="button" class="btn ghost sm" id="abp-tout" onclick="abpToggleAll()">Tout cocher</button></div>
     <div id="abp-list"></div>${ecartesHtml}
     <div class="bl-pied bxp-pied" id="bxp-pose-pied"></div>`;
@@ -33010,7 +33053,7 @@ function abpVisibles(){ const c=bxpCache; if(!c) return []; const q=norm(bxpQ); 
 function renderAbpList(){ const el=$('abp-list'); if(!el||!bxpCache) return; const avail=abpVisibles(); const q=bxpQ||''; bxpMajPied();
   const t=$('abp-tout'); if(t){ const tous=avail.length>0&&avail.every(p=>abpSel.has(p.id)); t.textContent=tous?'Tout décocher':('Tout cocher'+(avail.length?' ('+avail.length+')':'')); t.disabled=!avail.length; }
   if(!avail.length){ const vide=!(db.produits||[]).length, cf=cataloguesFournisseurs()&&canCat('stock','ajouter'), cree=canCat('stock','ajouter');
-    el.innerHTML='<div class="bxp-vide-txt">'+(vide?'Ton catalogue est encore vide.':q?'Rien de plus dans le catalogue de l\'entreprise pour cette recherche.':'Tous les produits du catalogue de l\'entreprise sont déjà dans la box.')
+    el.innerHTML='<div class="bxp-vide-txt">'+(vide?'Ton catalogue est encore vide.':q?'Rien de plus dans le catalogue de l\'entreprise pour cette recherche.':boxTxt('Tous les produits du catalogue de l\'entreprise sont déjà dans la box.'))
       +'<br>'+(cf?'Touche l\'onglet <b>Fournisseurs</b> : '+CATFOUR.length+' références y attendent.':cree?'Un produit qui manque se crée dans <b>Produits</b> (＋ Produit, ou ＋ Liste pour une liste entière) : il apparaîtra ici.':'Un produit qui manque se crée dans <b>Produits</b>, par quelqu\'un qui en a le droit : il apparaîtra ici.')+'</div>'; return; }
   el.innerHTML=avail.map(p=>{ const on=abpSel.has(p.id); return `<div class="pl-row bxp-l" onclick="abpToggle('${p.id}')"><span class="bxp-coche" style="color:${on?'var(--acc-txt)':'var(--t3)'}">${on?'☑':'☐'}</span><div class="pl-info"><div class="pl-title">${esc(p.nom)}</div><div class="pl-meta">${esc(p.categorie||'')}${p.ref?' · '+esc(p.ref):''}</div></div></div>`; }).join(''); }
 function abpToggle(pid){ if(abpSel.has(pid)) abpSel.delete(pid); else abpSel.add(pid); renderAbpList(); }
@@ -33071,7 +33114,7 @@ function addBoxProd(){ if(!permGarde('stock','modifier','une box')) return; cons
 function bxpPoseEcrire(){ if(!permGarde('stock','modifier','une box')) return; const b=bxpBoxDite(); if(!b) return; bxpPosePhase=0;
   const fourIdx=cataloguesFournisseurs()?[...bxpFourSel].filter(i=>CATFOUR[i]):[];
   if(fourIdx.length&&!permGarde('stock','ajouter','un produit')) return;   // v737 : une référence fournisseur devient une FICHE
-  if(bxpCiblesSel.size<=1&&fourIdx.length>60&&!confirm('Ajouter '+fourIdx.length+' références fournisseur au catalogue de l\'entreprise et à cette box ?\n\nElles se poseront aussi dans les autres box, à zéro, à leur prochaine ouverture.')) return;
+  if(bxpCiblesSel.size<=1&&fourIdx.length>60&&!confirm(boxTxt('Ajouter '+fourIdx.length+' références fournisseur au catalogue de l\'entreprise et à cette box ?\n\nElles se poseront aussi dans les autres box, à zéro, à leur prochaine ouverture.'))) return;
   /* les références fournisseur entrent d'abord au catalogue (une fois par nom), puis tout se pose ensemble */
   const crees=[]; const parCle=new Map((db.produits||[]).map(p=>[produitCle(p),p])); const ids=[...abpSel];
   fourIdx.forEach(i=>{ const x=CATFOUR[i]; const k=produitCle({nom:x[0]}); let p=parCle.get(k);
@@ -33362,30 +33405,30 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
   boxFormStockDepart = JSON.parse(JSON.stringify(boxFormStock));   // valeurs, pas seulement les clés : saveBox compare les quantités
   boxFormId = id||'';
   boxFormCatOpen=false; boxLat=(b.lat!=null?b.lat:null); boxLng=(b.lng!=null?b.lng:null); boxAddrResults=[]; boxPhoto=b.photo||'';
-  openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>${id?'Modifier la box':'Nouvelle box'}</h3><button type="submit" form="boxform" class="btn sm">${id?'Enregistrer':'Créer'}</button></div>
+  openModal(`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Annuler</button><h3>${boxTxt(id?'Modifier la box':'Nouvelle box')}</h3><button type="submit" form="boxform" class="btn sm">${id?'Enregistrer':'Créer'}</button></div>
     <form id="boxform" onsubmit="saveBox(event,'${id||''}')">
       <div class="form-sec">Rechercher l'adresse</div>
       <div class="frow" style="display:block;background:var(--bg2);border:1px solid var(--brd);border-radius:12px;padding:12px;margin-bottom:6px">
         <input id="box-addr-search" class="soc-search" autocomplete="off" placeholder="Tape une adresse (rue, ville)…" oninput="boxAddrSearch(this.value)" onblur="setTimeout(()=>{const b=document.getElementById('box-addr-list');if(b)b.style.display='none'},200)">
         <div id="box-addr-list" class="soc-list" style="display:none"></div>
-        <div id="box-geo-hint" style="font-size:12px;color:${boxLat!=null?'var(--acc-txt)':'var(--t3)'};margin-top:7px">${boxLat!=null?'Box localisée — apparaît sur la carte des box.':'Choisis une adresse pour placer la box sur la carte.'}</div>
+        <div id="box-geo-hint" style="font-size:12px;color:${boxLat!=null?'var(--acc-txt)':'var(--t3)'};margin-top:7px">${boxLat!=null?libBox('Box localisée — apparaît sur la carte des box.','Adresse localisée.'):libBox('Choisis une adresse pour placer la box sur la carte.','Indique l’adresse du stockage (facultatif).')}</div>
       </div>
       <div class="form-sec">Identification</div>
       <div class="fgroup">
-        <div class="frow"${cache}><span class="frow-lbl mono" style="color:var(--acc-txt)">N°</span><input name="numero"${S?'':' required'} value="${esc(b.numero||b.ref)}" placeholder="Numéro (ex : BOX-0001)" class="mono" style="text-align:right;color:var(--acc-txt);text-transform:uppercase"></div>
+        <div class="frow"${cache}><span class="frow-lbl mono" style="color:var(--acc-txt)">N°</span><input name="numero"${S?'':' required'} value="${esc(b.numero||b.ref)}" placeholder="${libBox('Numéro (ex : BOX-0001)','Numéro (facultatif)')}" class="mono" style="text-align:right;color:var(--acc-txt);text-transform:uppercase"></div>
         <div class="frow"><input name="nom" value="${esc(b.nom)}" placeholder="Nom ou description"></div>
         <div class="frow"><input name="adresse" value="${esc(b.adresse)}" placeholder="Adresse" oninput="boxLat=null;boxLng=null"></div>
         <div class="frow"><input name="ville" value="${esc(b.ville)}" placeholder="Ville"></div>
         <div class="frow"><span class="frow-lbl">📞 Tél. sur place</span><input name="tel" inputmode="tel" value="${esc(b.tel||'')}" placeholder="Contact pour les livraisons" style="text-align:right"></div>
       </div>
-      <div class="detail-desc" style="margin:-2px 2px 10px">Le téléphone sur place est repris automatiquement dans le bloc <b>Livraison</b> des bons de commande adressés à cette box.</div>
+      <div class="detail-desc" style="margin:-2px 2px 10px">${boxTxt('Le téléphone sur place est repris automatiquement dans le bloc <b>Livraison</b> des bons de commande adressés à cette box.')}</div>
       <div class="form-sec">${S?'Code postal et responsable':'Classification'}</div>
       <div class="fgroup">
         <div class="frow"><input name="codePostal" value="${esc(b.codePostal)}" inputmode="numeric" placeholder="Code postal">${b.codePostal?'<span style="color:var(--acc-txt)">✓</span>':''}</div>
         <div class="frow"${cache}><span class="frow-lbl">Catégorie</span><input name="categorie" value="${esc(b.categorie||'')}" placeholder="ex : TP14 — Rodenticide"></div>
         <div class="frow"${cache}><span class="frow-lbl">Groupe</span><input name="groupe" value="${esc(b.groupe&&b.groupe!=='Sans groupe'?b.groupe:'')}" list="box-groupes" placeholder="ex : Agence Strasbourg"><datalist id="box-groupes">${[...new Set(db.boxes.map(x=>x.groupe).filter(g=>g&&g!=='Sans groupe'))].map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
         <div class="frow"${cache}><span class="frow-lbl">Secteur</span><input name="secteur" value="${esc(b.secteur||'')}" placeholder="ex : 67 Nord"></div>
-        <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Responsable</span><select name="respUserId" style="width:100%"><option value="">— Aucun —</option>${(db.users||[]).filter(u=>u.actif!==false&&u.role!=='admin'&&(stkLienOk(b,u)||b.respUserId===u.id)).map(u=>`<option value="${u.id}" ${b.respUserId===u.id?'selected':''}>${esc(fullName(u))} — ${esc(roleLbl(u.role)||u.role||'')}${stkLienOk(b,u)?'':' — sans la permission'}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">${estStockage(b)?`Parmi ceux qui ont la permission « Se servir dans le stockage » : il reçoit ses arrivages et ses alertes.`:`N'importe quel compte (technicien, chef d'équipe, DR…) : le responsable voit toujours cette box et reçoit ses alertes.`}</div></div>
+        <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Responsable</span><select name="respUserId" style="width:100%"><option value="">— Aucun —</option>${(db.users||[]).filter(u=>u.actif!==false&&u.role!=='admin'&&(stkLienOk(b,u)||b.respUserId===u.id)).map(u=>`<option value="${u.id}" ${b.respUserId===u.id?'selected':''}>${esc(fullName(u))} — ${esc(roleLbl(u.role)||u.role||'')}${stkLienOk(b,u)?'':' — sans la permission'}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">${estStockage(b)?`Parmi ceux qui ont la permission « Se servir dans le stockage » : il reçoit ses arrivages et ses alertes.`:`N'importe quel compte (technicien, chef d'équipe, DR…) : ${boxTxt('le responsable voit toujours cette box et reçoit ses alertes.')}`}</div></div>
       </div>
       <div class="form-sec">Accès</div>
       <div class="fgroup">
@@ -33393,27 +33436,27 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
       </div>
       <div id="box-codes"></div>
       <div class="fgroup"><div class="frow"><span class="frow-lbl">Étage</span><input name="etage" value="${esc(b.etage)}" placeholder="ex : 3ème" style="text-align:right"></div></div>
-      ${estStockage(b)?`<div class="form-sec">Qui peut s’y servir</div><div class="fgroup"><div class="frow" style="display:block;font-size:13px;color:var(--t2);line-height:1.55">C’est une <b>permission</b> : « Se servir dans le stockage », dans les droits de chaque personne (Utilisateurs), ou « Qui peut s’y servir » sur la carte du stockage. Les réglages de visibilité d’une box ne s’appliquent pas au stockage.</div></div><div style="display:none" aria-hidden="true">`:''}
-      <div class="form-sec">Qui peut voir ce box</div>
+      ${estStockage(b)?`<div class="form-sec">Qui peut s’y servir</div><div class="fgroup"><div class="frow" style="display:block;font-size:13px;color:var(--t2);line-height:1.55">C’est une <b>permission</b> : « Se servir dans le stockage », dans les droits de chaque personne (Utilisateurs), ou « Qui peut s’y servir » sur la carte du stockage. Les réglages de visibilité ${libBox('d’une box ne s’appliquent','ne s’appliquent')} pas au stockage.</div></div><div style="display:none" aria-hidden="true">`:''}
+      <div class="form-sec">${boxTxt('Qui peut voir ce box')}</div>
       <div class="fgroup">
         <div class="frow" style="cursor:pointer" onclick="toggleBoxVisibleTous()">
           <span id="box-vt-ic" style="font-size:20px;color:${boxVisibleTous?'var(--acc-txt)':'var(--t3)'}">${boxVisibleTous?'☑':'☐'}</span>
-          <div><div style="font-size:15px;color:var(--t1)">Visible par toute l'équipe</div><div style="font-size:11px;color:var(--t3)">Tout le monde voit ce box</div></div>
+          <div><div style="font-size:15px;color:var(--t1)">Visible par toute l'équipe</div><div style="font-size:11px;color:var(--t3)">${boxTxt('Tout le monde voit ce box')}</div></div>
         </div>
       </div>
       <div id="box-vt-hint" style="font-size:12px;color:var(--t3);margin:-6px 4px 8px"></div>
       <div class="form-sec">Sinon, techniciens autorisés (<span id="box-tech-count">${boxTechSel.size}</span>)</div>
-      <p style="font-size:12px;color:var(--t3);margin:-6px 4px 8px">Seuls les techniciens cochés verront ce box. (Les administrateurs, les DR et les personnes qui ont le droit « Tout voir » voient toujours toutes les box.)</p>
+      <p style="font-size:12px;color:var(--t3);margin:-6px 4px 8px">${boxTxt(`Seuls les techniciens cochés verront ce box. (Les administrateurs, les DR et les personnes qui ont le droit « Tout voir » voient toujours toutes les box.)`)}</p>
       <div class="fgroup" id="box-techs"></div>
       <div class="form-sec">Autres personnes autorisées (<span id="box-user-count">${boxUserSel.size}</span>)</div>
-      <p style="font-size:12px;color:var(--t3);margin:-6px 4px 8px">Comptes sans fiche technicien (DR, commercial, comptabilité…) : coche ceux qui doivent voir cette box quand ils n'ont pas « Tout voir ». Réglable aussi depuis leur fiche utilisateur et dans Permissions.</p>
+      <p style="font-size:12px;color:var(--t3);margin:-6px 4px 8px">Comptes sans fiche technicien (DR, commercial, comptabilité…) : ${boxTxt('coche ceux qui doivent voir cette box quand ils n\'ont pas « Tout voir ». Réglable aussi depuis leur fiche utilisateur et dans Permissions.')}</p>
       <div class="fgroup" id="box-users"></div>
       ${estStockage(b)?'</div>':''}
       <div class="form-sec">Produits (<span id="box-prod-count">0</span>)</div>
       <div class="fgroup" id="box-form-prods"></div>
       <button type="button" class="btn ghost sm" style="margin:-8px 0 8px" onclick="toggleBoxFormCat()">＋ Ajouter des produits</button>
       <div id="box-form-cat" style="margin-bottom:14px"></div>
-      <div class="form-sec">Photo ${S?'du stockage':'de la box'} <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour la reconnaître sur place</span></div>
+      <div class="form-sec">Photo ${S?'du stockage':boxTxt('de la box')} <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour la reconnaître sur place</span></div>
       <div class="fgroup"><div id="box-photo" style="margin:4px 0"></div>
         <input type="file" accept="image/*" capture="environment" id="box-photo-file" style="display:none" onchange="boxAddPhoto(event)">
         <button type="button" class="btn ghost" onclick="document.getElementById('box-photo-file').click()">Ajouter / changer la photo</button></div>
@@ -33422,7 +33465,7 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
         <div class="frow"${cache}><span class="frow-lbl">Date d'installation</span><div class="frow-val"><input type="date" name="dateInstallation" value="${b.dateInstallation?String(b.dateInstallation).slice(0,10):todayISO()}" style="width:auto"></div></div>
         <div class="frow"${cache}><span class="frow-lbl">Fréquence de passage</span><div class="frow-val"><select name="frequence">${['Aucune','Mensuel','Bimestriel','Trimestriel','Semestriel','Annuel'].map(o=>`<option ${(b.frequence||'Aucune')===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
         <div class="frow"${cache}><span class="frow-lbl">Prochaine visite</span><div class="frow-val"><input type="date" name="prochaineVisite" value="${b.prochaineVisite?String(b.prochaineVisite).slice(0,10):''}" style="width:auto"></div></div>
-        <div class="frow"><span class="frow-lbl">${estStockage(b)?'Stockage actif':'Box active'}</span><div class="frow-val"><input type="checkbox" name="actif" ${b.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div>
+        <div class="frow"><span class="frow-lbl">${estStockage(b)?'Stockage actif':boxTxt('Box active')}</span><div class="frow-val"><input type="checkbox" name="actif" ${b.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div>
         <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Notes</span><textarea name="notes" placeholder="Emplacement précis, consignes d'accès…">${esc(b.notes||'')}</textarea></div>
       </div>
     </form>`);
@@ -33480,7 +33523,7 @@ function bfcRetirable(pid){ const b=boxFormId?db.boxes.find(x=>x.id===boxFormId)
 function toggleBfc(pid){ if(boxFormStock[pid]){ if(!bfcRetirable(pid)) return; delete boxFormStock[pid]; } else boxFormStock[pid]={ctn:0,u:0}; renderBfcList(); renderBoxFormProds(); }
 function bfcRetirerUn(pid){ if(!bfcRetirable(pid)) return; delete boxFormStock[pid]; renderBoxFormProds(); }
 function renderBoxTechs(){ const el=$('box-techs'); if(!el)return;
-  const hint=$('box-vt-hint'); if(hint) hint.textContent = boxVisibleTous ? 'Ce box est visible par toute l\'équipe.' : (boxTechSel.size? '' : 'Aucun technicien coché : seuls les administrateurs et responsables verront ce box.');
+  const hint=$('box-vt-hint'); if(hint) hint.textContent = boxTxt(boxVisibleTous ? 'Ce box est visible par toute l\'équipe.' : (boxTechSel.size? '' : 'Aucun technicien coché : seuls les administrateurs et responsables verront ce box.'));
   el.style.opacity = boxVisibleTous ? .4 : 1; el.style.pointerEvents = boxVisibleTous ? 'none' : 'auto';
   try{ renderBoxUsers(); }catch(e){}
   if(!db.techniciens.length){ el.innerHTML='<div class="frow" style="color:var(--t3)">Aucun technicien.</div>'; return; }
@@ -33504,7 +33547,7 @@ function toggleBoxUser(id){ if(boxUserSel.has(id)) boxUserSel.delete(id); else b
 function toggleBoxVisibleTous(){ boxVisibleTous=!boxVisibleTous; const ic=$('box-vt-ic'); if(ic){ ic.textContent=boxVisibleTous?'☑':'☐'; ic.style.color=boxVisibleTous?'var(--acc-txt)':'var(--t3)'; } renderBoxTechs(); }
 function renderBoxCodes(){ const el=$('box-codes'); if(!el)return;
   el.innerHTML=boxCodes.map((c,i)=>`<div class="fgroup" style="padding:8px">
-    <div style="display:flex;gap:4px;margin-bottom:8px;background:var(--deep);border-radius:8px;padding:3px">${CODE_TYPES.map(t=>`<button type="button" onclick="boxCodes[${i}].type='${t}';renderBoxCodes()" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;${c.type===t?'background:var(--acc);color:var(--on-acc)':'background:transparent;color:var(--t2)'}">${t}</button>`).join('')}</div>
+    <div style="display:flex;gap:4px;margin-bottom:8px;background:var(--deep);border-radius:8px;padding:3px">${CODE_TYPES.map(t=>`<button type="button" onclick="boxCodes[${i}].type='${t}';renderBoxCodes()" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;${c.type===t?'background:var(--acc);color:var(--on-acc)':'background:transparent;color:var(--t2)'}">${boxTxt(t)}</button>`).join('')}</div>
     <div class="code-val" style="display:flex;gap:7px;align-items:center;padding:0 6px"><input style="flex:1;background:transparent;border:none;color:var(--t1);font-size:15px;outline:none" placeholder="Valeur…" value="${esc(c.valeur)}" oninput="boxCodes[${i}].valeur=this.value" autocapitalize="characters">
     ${boxCodes.length>1?`<button type="button" class="btn danger sm" onclick="boxCodes.splice(${i},1);renderBoxCodes()">✕</button>`:''}</div></div>`).join('')
     +`<button type="button" class="btn ghost sm" style="margin-bottom:14px" onclick="boxCodes.push({type:'Code entrée',valeur:''});renderBoxCodes()">＋ Ajouter un code</button>`;
@@ -33528,7 +33571,7 @@ function boxAddrPick(k){ const r=boxAddrResults[k]; if(!r)return; const a=r.addr
   boxLat=+r.lat; boxLng=+r.lon;
   const s=document.getElementById('box-addr-search'); if(s)s.value=rue+(ville?', '+ville:'');
   const box=document.getElementById('box-addr-list'); if(box)box.style.display='none';
-  const hint=document.getElementById('box-geo-hint'); if(hint){ hint.textContent='Box localisée — apparaîtra sur la carte des box.'; hint.style.color='var(--acc-txt)'; }
+  const hint=document.getElementById('box-geo-hint'); if(hint){ hint.textContent=libBox('Box localisée — apparaîtra sur la carte des box.','Adresse localisée.'); hint.style.color='var(--acc-txt)'; }
 }
 function saveBox(e,id){ e.preventDefault(); if(!boxGererGarde(id?'modifier':'ajouter')) return; const f=e.target; const data=Object.fromEntries(new FormData(f));
   const techIds=[...boxTechSel];
@@ -33584,8 +33627,8 @@ function saveBox(e,id){ e.preventDefault(); if(!boxGererGarde(id?'modifier':'ajo
     if(gardes.length) toast(gardes.slice(0,3).join(', ')+(gardes.length>3?' et '+(gardes.length-3)+' autre(s)':'')+' : gardé'+(gardes.length>1?'s':'')+' dans la box, il y reste du stock.',5200); }
   if(boxLat!=null){ obj.lat=boxLat; obj.lng=boxLng; } else { obj.lat=null; obj.lng=null; }   // adresse modifiée → on re-géolocalise
   let bid=id;
-  if(id){ const ix=db.boxes.findIndex(x=>x.id===id); db.boxes[ix]={...db.boxes[ix],...obj}; toast('Box mise à jour'); }
-  else{ bid=uid(); db.boxes.push({id:bid,...obj}); logEvent('Box créée',obj.numero,'crud'); toast('Box créée'); }
+  if(id){ const ix=db.boxes.findIndex(x=>x.id===id); db.boxes[ix]={...db.boxes[ix],...obj}; toast(libBox('Box mise à jour','Stockage mis à jour')); }
+  else{ bid=uid(); db.boxes.push({id:bid,...obj}); logEvent('Box créée',obj.numero,'crud'); toast(libBox('Box créée','Stockage créé')); }
   { const bb=db.boxes.find(x=>x.id===bid);
     traces.forEach(([pid,d,u])=>traceBox(bb,pid,d,u,id?'Quantité corrigée (fiche de la box)':'Stock à la création de la box',fullName(currentUser)));
     if(lignesDR.length){ boxMvtEnvoyer({type:'ajustementLot',boxId:bid,lignes:lignesDR,note:id?'Quantités corrigées (fiche de la box)':'Stock à la création de la box'});
@@ -33594,7 +33637,7 @@ function saveBox(e,id){ e.preventDefault(); if(!boxGererGarde(id?'modifier':'ajo
   // Géolocalisation automatique si pas de coordonnées mais une adresse est saisie
   const target=db.boxes.find(x=>x.id===bid);
   if(target && target.lat==null && (target.adresse||target.ville)){
-    geocode([target.adresse,target.codePostal,target.ville].filter(Boolean).join(' ')).then(g=>{ if(g){ target.lat=g.lat; target.lng=g.lng; save(); toast('Box placée sur la carte'); if(current==='carteBox') views.carteBox(); } });
+    geocode([target.adresse,target.codePostal,target.ville].filter(Boolean).join(' ')).then(g=>{ if(g){ target.lat=g.lat; target.lng=g.lng; save(); toast(libBox('Box placée sur la carte','Adresse enregistrée')); if(current==='carteBox') views.carteBox(); } });
   }
 }
 
@@ -35819,26 +35862,31 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
   docCoordLignes(h).forEach(t2=>{ T(nx,ey,8.5,cut(t2,58),0,GREY); ey-=11; });   // sous le nom, à droite du logo
   y=Math.min(y-(estFact?44:32),ey-8); R(M,y,W-2*M,1.6,GREEN); y-=16;
 
-  const cl=[cli.nom||'', cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '),
-            [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')].filter(Boolean);
+  /* v778 : le nom du client passe à la ligne (deux lignes au plus) au lieu d'être coupé à 52 signes (« Établissements Hospitaliers Universitaires de la Cô… ») */
+  const nomCl=_pdfEnLignes(cli.nom||'',10.5,1,W-2*M-20,2).filter(Boolean);
+  const cl=[].concat(nomCl, cli.adresse||'', [cli.cp,cli.ville].filter(Boolean).join(' '),
+            [cli.tel?'Tél. '+cli.tel:'', cli.email||''].filter(Boolean).join('  ·  ')).filter(Boolean);
   const ph=20+cl.length*13;
   R(M,y-ph+10,W-2*M,ph,GREENLT);
   T(M+10,y-4,8,estFact?'FACTURÉ À':'CLIENT',1,GREEN);
-  cl.forEach((t2,i)=>{ T(M+10,y-18-i*13,i===0?10.5:8.8,cut(t2,i===0?52:70),i===0?1:0,i===0?DARK:GREY); });
+  const nbNom=Math.max(1,nomCl.length);   // sans nom, la première ligne garde le style d'avant
+  cl.forEach((t2,i)=>{ T(M+10,y-18-i*13,i<nbNom?10.5:8.8,i<nbNom?t2:cut(t2,70),i<nbNom?1:0,i<nbNom?DARK:GREY); });
   y-=ph+14;
 
   tableHead();
 
   let totHT=0;
   (d.lignes||[]).forEach((l,i)=>{
-    if(y<150) newPage();
+    /* v778 : la désignation passe à la ligne (colonne de 237 pt, six lignes au plus) — plus de « … » qui mange la fin d'un devis descriptif */
+    const dl=_pdfEnLignes(l.designation||'',9.2,0,237,6), sup=(dl.length-1)*11;
+    if(y-sup<150) newPage();
     const q=Number(l.qte)||0, pu=Number(l.pu)||0, tot=ligTotLigne(l); totHT+=tot;   // même arrondi que l'écran et l'e-mail
-    if(i%2===1) R(M,y-6,W-2*M,17,'0.962 0.97 0.976');
-    T(M+8,y,9.2,cut(l.designation||'',48),0,DARK);
+    if(i%2===1) R(M,y-6-sup,W-2*M,17+sup,'0.962 0.97 0.976');
+    dl.forEach((t2,k)=>T(M+8,y-k*11,9.2,t2,0,DARK));
     TR(RGT-232,y,9.2,String(q).replace('.',','),0,DARK);
     TR(RGT-120,y,9.2,eur(pu),0,DARK);
     TR(RGT-8,y,9.2,eur(tot),1,DARK);
-    y-=17;
+    y-=17+sup;
   });
   R(M,y+11,W-2*M,0.8,LINE);
 
@@ -39444,7 +39492,7 @@ function delItem(coll,id){
     if(it){ if(it.groupId&&serieAutresActifs(it).length){ delSerieModal(id); return; }
       delIntModal(id); return; } }
   if(coll==='produits'){ const nb=db.boxes.filter(b=>b.stock&&b.stock[id]).length;
-    if(!confirm('Supprimer ce produit ?'+(nb?' Il est encore présent dans '+nb+' box — ses quantités seront retirées partout.':''))) return;
+    if(!confirm(boxTxt('Supprimer ce produit ?'+(nb?' Il est encore présent dans '+nb+' box — ses quantités seront retirées partout.':'')))) return;
     db.boxes.forEach(b=>{ if(b.stock) delete b.stock[id]; });
   } else if(coll==='boxes'){ const b=db.boxes.find(x=>x.id===id)||{};
     /* ⛔ v741 — LE STOCKAGE NE SE SUPPRIME PAS, IL SE DÉSACTIVE. Son identifiant est FIXE : sa pierre
@@ -39454,7 +39502,7 @@ function delItem(coll,id){
        (« Stockage actif », ✎), il quitte les écrans, garde son contenu, et « Créer le stockage » le rouvre. */
     if(id===STOCKAGE_ID||estStockage(b)){ toast('Le stockage ne se supprime pas : c’est le stock de l’entreprise. Pour ne plus t’en servir, décoche « Stockage actif » (✎) — il reviendra tel quel si tu le recrées.',6500); return; }
     const nAtt=boxDemandesAttente(id).length;
-    if(!confirm('Supprimer la box « '+(b.nom||b.numero||'')+' » ? Son stock et son historique disparaîtront.'+(nAtt?'\n\n'+liensPluriel(nAtt,'demande')+' de sortie en attente de validation '+(nAtt>1?'seront refusées':'sera refusée')+' (« box supprimée »).':''))) return;
+    if(!confirm(boxTxt('Supprimer la box « '+(b.nom||b.numero||'')+' » ? Son stock et son historique disparaîtront.'+(nAtt?'\n\n'+liensPluriel(nAtt,'demande')+' de sortie en attente de validation '+(nAtt>1?'seront refusées':'sera refusée')+' (« box supprimée »).':'')))) return;
     boxDemandesRetirer(id);   // refusées avec un motif lisible : sinon « Valider » les passait en silence à « refuse »
     /* APRÈS le confirm, jamais avant : ce filtre s'exécutait même quand on répondait « Annuler », et
        la box gardait alors une base sans ses écartés — le premier save() venu posait la tombe et la
@@ -39465,7 +39513,7 @@ function delItem(coll,id){
   } else if(coll==='techniciens'){ const t=db.techniciens.find(x=>x.id===id)||{}; const lu=db.users.find(u=>u.techId===id);
     if(lu){ if(lu.id===currentUser.id){ toast('Impossible de supprimer ta propre fiche'); return; }
       toast('Ce technicien a un compte (@'+(lu.login||'')+') : on supprime le compte, la fiche technicien part avec'); delUser(lu.id); return; }
-    if(!confirm('Supprimer le technicien « '+(t.nom||'')+' » ?\n\nIl est retiré des box, des véhicules et du planning à venir ; son historique garde son nom.')) return;
+    if(!confirm(boxTxt('Supprimer le technicien « '+(t.nom||'')+' » ?\n\nIl est retiré des box, des véhicules et du planning à venir ; son historique garde son nom.'))) return;
     techArchiver(id); logEvent('Technicien supprimé',t.nom||'','crud'); save(); closeModal(); toast('Technicien retiré partout'); go(current); return;
   } else if(coll==='clients'){ const c=db.clients.find(x=>x.id===id)||{}; const l=clientLiens(id);
     /* Le client part comme avant — la suppression n'est PAS refusée (delFacture supprime une facture avec le seul droit
@@ -39809,6 +39857,16 @@ function docNum(kind){ return nextNum(DOC[kind].coll, DOC[kind].prefix, 'num'); 
    aucune clé ni code ne circule. La permission « Utiliser Devis IA » règle ensuite
    qui, dans l'équipe, voit les boutons. (devisIACode : ancien code, gardé en dépannage) */
 function devisIACode(){ return String(db.devisIACode||localStorage.getItem('opB_devis_code')||'').trim(); }
+/* ⛔ v778 — LE SERVEUR DOIT SAVOIR LE MÉTIER, SINON IL CHIFFRE POUR LA 3D. L'application envoie `metier` aux deux générateurs de devis ; un serveur d'AVANT l'ignore et garde sa
+   consigne « gestion de nuisibles » : le devis d'une entreprise de nettoyage parlerait de dératisation. Le serveur annonce ce qu'il sait dans `/api/devis/etat` (`metiers:true`) ;
+   hors 3D, tant qu'il ne l'annonce pas, le Devis IA et l'assistant ne partent pas — et le disent. La 3D, elle, n'attend rien : c'est la consigne du serveur d'avant, à l'identique. */
+let _devisMetierOk=null;
+function devisMetierPret(){
+  if(estMetier3D()) return Promise.resolve(true);
+  if(_devisMetierOk!==null) return Promise.resolve(_devisMetierOk);
+  return fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(syncTeam())).then(r=>r.json()).then(j=>{ _devisMetierOk=!!(j&&j.metiers===true); return _devisMetierOk; }).catch(()=>false);
+}
+const DEVIS_METIER_ATTENTE='Le devis par IA de ton métier s’active avec la prochaine mise à jour du serveur. D’ici là il resterait réglé pour un autre métier : il est coupé, rien n’est parti.';
 function devisIAModal(){
   if(!can('devisIA')){ toast('Devis IA non autorisé pour ton compte — vois avec l\'administrateur'); return; }
   if(!permGarde('ventes','ajouter','un devis')) return;   // v738 : générer, c'est créer un devis
@@ -39836,6 +39894,7 @@ function devisIAModal(){
   // état en direct : le serveur dit si l'entreprise est activée et combien il reste de devis aujourd'hui
   fetch(PUSH_API+'/api/devis/etat?team='+encodeURIComponent(syncTeam())).then(r=>r.json()).then(j=>{
     const el=$('dia-etat'); if(!el||!j) return;
+    if(!estMetier3D()){ _devisMetierOk=(j.metiers===true); if(!_devisMetierOk){ el.textContent='⚠ '+DEVIS_METIER_ATTENTE; el.style.color='var(--org)'; ['dia-go','dia-go2'].forEach(id=>{ const b=$(id); if(b) b.disabled=true; }); return; } }
     if(j.approfondi){ const b2=$('dia-go2'); if(b2) b2.style.display=''; }
     if(j.equipe===false&&!devisIACode()){ el.innerHTML='⚠ <b>Devis IA n\'est pas encore activé pour ton entreprise.</b> Demande l\'activation à TeamOP (contact@teamop.fr) — c\'est immédiat et sans manipulation.'; el.style.color='var(--org)'; const b=$('dia-go'); if(b) b.disabled=true; const b2=$('dia-go2'); if(b2) b2.disabled=true; }
     else if(j.restants!=null) el.textContent='✓ Actif · '+j.restants+' génération(s) restante(s) aujourd\'hui';
@@ -39849,6 +39908,7 @@ async function devisIAGo(profond){
   if(!can('devisIA')||!permGarde('ventes','ajouter','un devis')) return;   // v738 : avant l'appel, qui consomme le quota du jour
   if(clientId&&!clientPropose(clientId)){ show('Ce client ne te concerne pas.'); return; }
   if(demande.trim().length<5){ show('Décris la prestation d\'abord.'); return; }
+  if(!(await devisMetierPret())){ show(DEVIS_METIER_ATTENTE); return; }
   if(btn){ btn.disabled=true; btn.textContent='⏳ Génération en cours… (jusqu\'à une minute)'; }
   try{
     /* Le client choisi sert à RANGER le devis, pas à le calculer : son nom et son
@@ -43520,19 +43580,19 @@ function nettCahierForm(id,cid){ if(!metierGereSites()) return;
   openModal(`<div class="modal-head"><h3>📋 Cahier des tâches</h3><button class="modal-close" onclick="closeModal();ficheClient('${esc(cl.id)}')">✕</button></div>
     <div style="font-size:13px;color:var(--t2);overflow-wrap:anywhere;margin:-4px 0 8px">Chez <b>${esc(cl.nom)}</b>${nettAdresseClient(cl)?' · '+esc(nettAdresseClient(cl)):''}</div>
     <div style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px">Le cahier dit <b>qui fait quoi, quand et avec quoi</b> sur ce site. Il sert de liste à cocher dans le compte rendu de chaque passage. Un cahier déjà validé qui change passe à la version suivante et est à valider de nouveau.</div>
-    <div class="field"><label>Site <span style="color:var(--t3);font-weight:400">(si différent de l’adresse du client)</span></label><input maxlength="120" value="${esc(W.site)}" oninput="nettCahW.site=this.value" placeholder="Ex : Siège — 2e étage"></div>
-    <div class="field"><label>Client référent (contact sur le site)</label><input maxlength="120" value="${esc(W.referent)}" oninput="nettCahW.referent=this.value"></div>
+    <div class="field"><label>Site <span style="color:var(--t3);font-weight:400">(si différent de l’adresse du client)</span></label><input maxlength="120" value="${esc(W.site)}" name="nettCah_site" oninput="nettCahW.site=this.value" placeholder="Ex : Siège — 2e étage"></div>
+    <div class="field"><label>Client référent (contact sur le site)</label><input maxlength="120" value="${esc(W.referent)}" name="nettCah_referent" oninput="nettCahW.referent=this.value"></div>
     <div style="font-size:12.5px;color:var(--t3);margin:-4px 0 10px">Version n° ${esc(W.version)} · ${esc(nettDateTxt(W.date))}</div>
     <div class="form-sec" style="margin-top:0">Zones et tâches</div>
     <div id="nett-cah-zones" class="field" style="margin:0">${nettCahZonesHtml()}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px"><button type="button" class="btn ghost sm" onclick="nettCahZoneAjout()">＋ Ajouter une zone</button><button type="button" class="btn ghost sm" onclick="nettCahModele()">Proposer des zones types</button></div>
     <div class="form-sec">Accès et sécurité</div>
-    <div class="field"><label>Consignes d’accès (clés, badges, alarme)</label><textarea rows="2" maxlength="600" oninput="nettCahW.acces=this.value">${esc(W.acces)}</textarea></div>
-    <div class="field"><label>Consignes de sécurité</label><textarea rows="2" maxlength="800" oninput="nettCahW.securite=this.value">${esc(W.securite)}</textarea></div>
-    <div class="field"><label>Produits à ne pas mélanger</label><textarea rows="2" maxlength="600" oninput="nettCahW.nePasMelanger=this.value" placeholder="Ex : javel et détartrant ; ammoniaque et javel">${esc(W.nePasMelanger)}</textarea></div>
+    <div class="field"><label>Consignes d’accès (clés, badges, alarme)</label><textarea rows="2" maxlength="600" name="nettCah_acces" oninput="nettCahW.acces=this.value">${esc(W.acces)}</textarea></div>
+    <div class="field"><label>Consignes de sécurité</label><textarea rows="2" maxlength="800" name="nettCah_securite" oninput="nettCahW.securite=this.value">${esc(W.securite)}</textarea></div>
+    <div class="field"><label>Produits à ne pas mélanger</label><textarea rows="2" maxlength="600" name="nettCah_nePasMelanger" oninput="nettCahW.nePasMelanger=this.value" placeholder="Ex : javel et détartrant ; ammoniaque et javel">${esc(W.nePasMelanger)}</textarea></div>
     <div class="form-sec">Validation par le client</div>
-    <div class="field-row"><div class="field"><label>Validé le</label><input type="date" value="${esc(W.valideLe)}" oninput="nettCahW.valideLe=this.value"></div>
-      <div class="field"><label>Par (nom du client)</label><input maxlength="120" value="${esc(W.valideParNom)}" oninput="nettCahW.valideParNom=this.value"></div></div>
+    <div class="field-row"><div class="field"><label>Validé le</label><input type="date" value="${esc(W.valideLe)}" name="nettCah_valideLe" oninput="nettCahW.valideLe=this.value"></div>
+      <div class="field"><label>Par (nom du client)</label><input maxlength="120" value="${esc(W.valideParNom)}" name="nettCah_valideParNom" oninput="nettCahW.valideParNom=this.value"></div></div>
     ${ex&&ex.envoyeLe?`<div style="font-size:12.5px;color:var(--t3);margin-bottom:8px">Déjà envoyé à ${esc(ex.envoyeA||'')} le ${esc(new Date(ex.envoyeLe).toLocaleDateString('fr-FR'))}.</div>`:''}
     <div class="modal-foot" style="flex-wrap:wrap"><button type="button" class="btn ghost" onclick="nettDocApercu('cahier','')">Aperçu PDF</button>
       <button type="button" class="btn ghost" onclick="nettCahierSauver()">Enregistrer</button>
@@ -43561,7 +43621,7 @@ function nettCahTacheSuppr(zi,ti){ if(!nettCahW||!nettCahW.zones[zi]) return; ne
 function nettCahModele(){ if(!nettCahW) return; if(nettCahW.zones.length&&!confirm('Ajouter les zones types à celles que tu as déjà saisies ?')) return; nettCahW.zones=nettCahW.zones.concat(nettCahierModele()); nettCahMaj(); }
 /* L'enregistrement : le SEUL endroit qui écrit dans `db.cahiers`. Un cahier déjà validé ou envoyé dont le contenu change passe à la version suivante
    et perd sa validation — sauf si la personne vient de poser elle-même une validation dans la même fenêtre. */
-function nettCahierSauver(silencieux){ const W=nettCahW; if(!W) return null;
+function nettCahierSauver(silencieux){ const W=nettCahW; if(!W){ if(!silencieux) toast('Cette fenêtre n’est plus à jour : ferme-la et rouvre le cahier'); return null; }
   if(!permGarde('crm',W.id?'modifier':'ajouter','un cahier des tâches')) return null;
   if(!nettClientVisible(W.clientId)){ toast('Ce client ne te concerne pas'); return null; }
   const net=nettCahierNet(W);
@@ -43746,16 +43806,16 @@ function nettControleForm(iid){ if(!metierGereSites()) return;
   openModal(`<div class="modal-head"><h3>🔎 Fiche de contrôle qualité</h3><button class="modal-close" onclick="closeModal();renderIntDetail('${esc(iid)}')">✕</button></div>
     <div style="font-size:13px;color:var(--t2);overflow-wrap:anywhere;margin:-4px 0 8px"><b>${esc(clientName(i.clientId))}</b> · contrôle du ${esc(fmtLong(i.date))}</div>
     <div style="font-size:12.5px;line-height:1.5;color:var(--t2);background:var(--card2);border:1px solid var(--brd);border-radius:10px;padding:9px 12px;margin-bottom:12px">Pour chaque point : <b>propre</b>, <b>à reprendre</b> ou <b>non conforme</b>. La note est le pourcentage de points propres parmi ceux que tu as évalués — c’est la grille de ton entreprise, aucun barème officiel n’est imposé.</div>
-    <div class="field-row"><div class="field"><label>Contrôleur</label><input maxlength="120" value="${esc(W.controleur)}" oninput="nettCqW.controleur=this.value"></div>
-      <div class="field"><label>Client présent ?</label><select onchange="nettCqW.clientPresent=this.value"><option value="">—</option><option value="oui"${W.clientPresent==='oui'?' selected':''}>Oui</option><option value="non"${W.clientPresent==='non'?' selected':''}>Non</option></select></div></div>
+    <div class="field-row"><div class="field"><label>Contrôleur</label><input maxlength="120" value="${esc(W.controleur)}" name="nettCq_controleur" oninput="nettCqW.controleur=this.value"></div>
+      <div class="field"><label>Client présent ?</label><select name="nettCq_clientPresent" onchange="nettCqW.clientPresent=this.value"><option value="">—</option><option value="oui"${W.clientPresent==='oui'?' selected':''}>Oui</option><option value="non"${W.clientPresent==='non'?' selected':''}>Non</option></select></div></div>
     <div id="nett-cq-note" style="font-weight:800;font-size:15px;margin:2px 0 10px"></div>
     <div id="nett-cq-zones" class="field" style="margin:0">${nettCqZonesHtml()}</div>
-    <div class="field"><label>Anomalies constatées</label><textarea rows="3" maxlength="1500" oninput="nettCqW.anomalies=this.value">${esc(W.anomalies)}</textarea></div>
+    <div class="field"><label>Anomalies constatées</label><textarea rows="3" maxlength="1500" name="nettCq_anomalies" oninput="nettCqW.anomalies=this.value">${esc(W.anomalies)}</textarea></div>
     <div class="form-sec">Actions correctives</div>
     <div id="nett-cq-actions" class="field" style="margin:0">${nettCqActionsHtml()}</div>
     <button type="button" class="btn ghost sm" style="margin:4px 0 12px" onclick="nettCqActionAjout()">＋ Action corrective</button>
-    <div class="field-row"><div class="field"><label>Contre-contrôle prévu le</label><input type="date" value="${esc(W.contreControle)}" oninput="nettCqW.contreControle=this.value"></div>
-      <div class="field"><label>Visa du client (nom)</label><input maxlength="120" value="${esc(W.visaClient)}" oninput="nettCqW.visaClient=this.value"></div></div>
+    <div class="field-row"><div class="field"><label>Contre-contrôle prévu le</label><input type="date" value="${esc(W.contreControle)}" name="nettCq_contreControle" oninput="nettCqW.contreControle=this.value"></div>
+      <div class="field"><label>Visa du client (nom)</label><input maxlength="120" value="${esc(W.visaClient)}" name="nettCq_visaClient" oninput="nettCqW.visaClient=this.value"></div></div>
     ${ex&&ex.envoyeLe?`<div style="font-size:12.5px;color:var(--t3);margin-bottom:8px">Déjà envoyée à ${esc(ex.envoyeA||'')} le ${esc(new Date(ex.envoyeLe).toLocaleDateString('fr-FR'))}.</div>`:''}
     <div class="modal-foot" style="flex-wrap:wrap"><button type="button" class="btn ghost" onclick="nettDocApercu('controle','${esc(iid)}')">Aperçu PDF</button>
       <button type="button" class="btn ghost" onclick="nettControleSauver()">Enregistrer</button>
@@ -43785,7 +43845,7 @@ function nettControleNet(W,ex){ return {controleur:nettTxt(W.controleur,120),cli
   anomalies:nettTxt(W.anomalies,1500),actions:(W.actions||[]).filter(a=>a&&nettTxt(a.t,200)).map(a=>({t:nettTxt(a.t,200),resp:nettTxt(a.resp,80),delai:nettIsoOk(a.delai)?a.delai:''})),
   contreControle:nettIsoOk(W.contreControle)?W.contreControle:'',visaClient:nettTxt(W.visaClient,120)}; }
 /* L'enregistrement : la grille ET le relevé « résultat du contrôle qualité » s'écrivent ICI, ensemble — la note n'existe jamais en deux exemplaires qui divergent. */
-function nettControleSauver(silencieux){ const W=nettCqW; if(!W) return false;
+function nettControleSauver(silencieux){ const W=nettCqW; if(!W){ if(!silencieux) toast('Cette fenêtre n’est plus à jour : ferme-la et rouvre la fiche'); return false; }
   if(!permGarde('int','modifier','une intervention')) return false;
   const i=nettControleCtx(W.iid); if(!i) return false;
   const net=nettControleNet(W);
@@ -43973,7 +44033,10 @@ function nettNomFichier(pre,cli,date){ return pre+'-'+String((cli&&cli.nom)||'cl
 async function nettDocFabriquer(kind,id,cid){
   let x; try{ x=nettDocContexte(kind,id,cid); }catch(e){ return {err:'Le document n’a pas pu être préparé ('+(e&&e.message||e)+') — rien n’est parti.'}; }
   if(x.err) return {err:x.err};
-  const H=docEntete(x.soc), E={nom:H.nom,raison:H.raison,couleur:H.couleur,lignes:docCoordLignes(H)};
+  const H=docEntete(x.soc);
+  /* ⛔ « OP GESTION » est le nom du LOGICIEL : jamais en tête d'un document que le client reçoit. Sans nom d'entreprise (Paramètres) et sans société choisie, `docEntete` retombe dessus — on refuse l'aperçu comme l'envoi, et on le dit. */
+  if((!H.societe&&!entrepriseNom())||/^op[\s-]*gestion$/i.test(String(H.nom||'').trim())) return {err:'Renseigne le nom de ton entreprise (Paramètres) : sans lui, le document partirait sous « OP GESTION », le nom du logiciel — rien n’est parti.'};
+  const E={nom:H.nom,raison:H.raison,couleur:H.couleur,lignes:docCoordLignes(H)};
   let logo=null; try{ logo=H.logo?await devisLogoJpeg(H.logo):null; }catch(e){}
   let pdf; try{ pdf=nettPdf(x.spec(E),Object.assign({},E,{logo}),{}); }
   catch(e){ return {err:'Le PDF n’a pas pu être construit ('+(e&&e.message||e)+') — rien n’est parti.'}; }
@@ -44026,12 +44089,13 @@ async function nettDocEnvoyer(kind,id,cid){
 function nettSectionClient(c){ if(!metierGereSites()||!c) return '';
   const cah=nettCahiersDe(c.id), plans=nettPlansDe(c.id), peutAj=canCat('crm','ajouter'), peutMod=canCat('crm','modifier');
   const h=nettHeures400(c.id,todayISO(),plans[0]||{});
-  const ligne=(ic,titre,meta,btns)=>`<div class="pl-row" style="cursor:default"><div class="pl-info"><div class="pl-title" style="overflow-wrap:anywhere">${ic} ${esc(titre)}</div><div class="pl-meta" style="overflow-wrap:anywhere;white-space:normal">${meta}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${btns}</div></div>`;
+  /* ⛔ la ligne PASSE À LA LIGNE : au téléphone (390 px) la colonne de texte tombait à 148 px — le titre sur 4 lignes, le résumé sur 5, et la pastille « validé le … » (insécable) recouvrait les boutons. Rien ne dépasse à droite, donc aucun contrôle de débordement ne le voit. Le texte garde 220 px au moins ; dessous, les boutons passent sous lui. */
+  const ligne=(ic,titre,meta,btns)=>`<div class="pl-row" style="cursor:default;flex-wrap:wrap;row-gap:8px"><div class="pl-info" style="flex:1 1 220px"><div class="pl-title" style="overflow-wrap:anywhere">${ic} ${esc(titre)}</div><div class="pl-meta" style="overflow-wrap:anywhere;white-space:normal">${meta}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto">${btns}</div></div>`;
   return `<div class="dt-lbl" id="nett-docs" style="margin:16px 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">📋 Documents du site<span style="flex:1"></span>${peutAj?`<button type="button" class="btn ghost sm" onclick="closeModal();nettCahierForm('','${esc(c.id)}')">＋ Cahier des tâches</button><button type="button" class="btn ghost sm" onclick="closeModal();nettPlanForm('','${esc(c.id)}')">＋ Plan de prévention</button>`:''}</div>`
-    +(cah.length?cah.map(k=>ligne('📋',nettCahierLibelle(k),k.valideLe?'<span class="st st-green">validé le '+esc(nettDateTxt(k.valideLe))+'</span>':'<span class="st st-org">à faire valider</span>',
+    +(cah.length?cah.map(k=>ligne('📋',nettCahierLibelle(k),k.valideLe?'<span class="st st-green">validé le '+esc(nettIsoOk(k.valideLe)?fmtShort(k.valideLe):'')+'</span>':'<span class="st st-org">à faire valider</span>',
         `<button type="button" class="btn ghost sm" onclick="closeModal();nettCahierForm('${esc(k.id)}')">${peutMod?'Ouvrir':'Voir'}</button><button type="button" class="btn ghost sm" onclick="nettDocApercu('cahier','${esc(k.id)}')">PDF</button>`)).join('')
       :'<div style="color:var(--t3);font-size:13px;padding:4px 0">Aucun cahier des tâches : il dit quelles zones, quelles tâches et à quelle fréquence — et ses tâches se cochent dans le compte rendu de chaque passage.</div>')
-    +(plans.length?plans.map(p=>ligne('🦺','Plan de prévention du '+(nettDateTxt(p.date)||''),esc(nettHeuresTxt(nettHeures400(c.id,todayISO(),p))),
+    +(plans.length?plans.map(p=>ligne('🦺','Plan de prévention du '+(nettIsoOk(p.date)?fmtShort(p.date):''),esc(nettHeuresTxt(nettHeures400(c.id,todayISO(),p))),
         `<button type="button" class="btn ghost sm" onclick="closeModal();nettPlanForm('${esc(p.id)}')">${peutMod?'Ouvrir':'Voir'}</button><button type="button" class="btn ghost sm" onclick="nettDocApercu('plan','${esc(p.id)}')">PDF</button>`)).join('')
       :`<div style="color:var(--t3);font-size:13px;padding:4px 0">Plan de prévention : ${h.total} h prévisibles sur 12 mois (seuil de ${h.seuil} h ${h.atteint?'<b style="color:var(--org)">atteint</b>':'non atteint'}).</div>`); }
 function nettIntCard(i,edit){ if(!metierGereSites()||!i) return '';
@@ -46573,7 +46637,7 @@ function consoRemiseZero(){
   if(!adminSeul()) return;
   const n=(db.mouvements||[]).length;
   if(!n){ toast('Aucun mouvement à effacer'); return; }
-  if(!confirm('Remettre la consommation à zéro ?\n\n'+n+' mouvement(s) de stock seront effacés — c\'est le même historique que l\'écran « Mouvements stock », il se videra aussi.\n\nLes quantités présentes dans les box ne changent PAS.\n\nIrréversible, et la synchro le propage à toute l\'équipe.')) return;
+  if(!confirm(boxTxt('Remettre la consommation à zéro ?\n\n'+n+' mouvement(s) de stock seront effacés — c\'est le même historique que l\'écran « Mouvements stock », il se videra aussi.\n\nLes quantités présentes dans les box ne changent PAS.\n\nIrréversible, et la synchro le propage à toute l\'équipe.'))) return;
   /* audit apple-design, point 19 : une seconde boîte qui redit la première dresse à taper « OK » sans lire — la première
      dit déjà tout (combien, quoi, irréversible) */
   db.mouvements=[];
@@ -46899,6 +46963,7 @@ async function adEnvoyer(){
   if(!can('devisIA')||!canCat('ventes','ajouter')){ toast('L\'assistant devis n\'est pas autorisé pour ton compte (Permissions)'); return; }
   const inp=$('ad-input'); const v=inp?inp.value.trim():'';
   if(!v) return;
+  if(!(await devisMetierPret())){ toast(DEVIS_METIER_ATTENTE,6000); return; }
   adFil.push({role:'user',content:v});
   adBusy=true; views.assistantDevis();
   try{
@@ -47199,7 +47264,7 @@ function donsRendre(){
     const coupe=!!db.bonsRemiseOff, admin=currentUser&&currentUser.role==='admin';
     el.innerHTML=`<div class="card">${coupe
       ? emptyState('🎁','La question « pour qui ? » est coupée : les bons de remise sont désactivés dans Paramètres, donc une sortie de box ne dit plus à qui vont les produits.',admin?'Réactiver':'',admin?'bonsRemiseSet(true);views.produitsDonnes()':'')
-      : emptyState('🎁','Rien n’a encore été donné. Quand quelqu’un sort des produits de sa box, il choisit « Pour moi » ou « Pour une autre personne » : ce qui est donné arrive ici, avec son bon de remise.','📦 Ouvrir les box',"go('boxes')")}</div>`;
+      : emptyState('🎁','Rien n’a encore été donné. Quand quelqu’un sort des produits de sa box, il choisit « Pour moi » ou « Pour une autre personne » : ce qui est donné arrive ici, avec son bon de remise.',sansBox()?'':'📦 Ouvrir les box',sansBox()?'':"go('boxes')")}</div>`;
     return; }
   const liste=q?tout.filter(r=>norm([r.par,r.pourQui,r.boxNom,r.num,r.notes].concat(r.lignes.map(l=>l.nom)).join(' ')).includes(q)):tout;
   if(!liste.length){ el.innerHTML=`<div class="card">${emptyState('🔍','Aucun don ne correspond à « '+esc(donsRecherche)+' ».','','')}</div>`; return; }
@@ -47441,7 +47506,7 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
   const vBox=notifVoitModule('boxes'), vStock=notifVoitModule('stock')||notifVoitModule('produits');
   if(vBox){ const recent=Date.now()-3*86400000;
     db.boxes.filter(notifBoxConcerne).forEach(b=>(b.arrivages||[]).filter(a=>(a.ts||0)>=recent&&!notifMoi(a.par)).forEach(a=>{ const tot=(a.lignes||[]).reduce((t,l)=>t+(l.qte||0),0);
-      out.push({id:'arr:'+a.id,ts:a.ts||0,ic:'📦',txt:`<b>Arrivage box</b> — ${esc(b.nom||b.numero||'Box')} par <b>${esc(a.par||'')}</b> : ${tot} produit(s) (${esc(a.fournisseur||'')})`,act:"openBox('"+b.id+"');cible('pid','"+(a.lignes||[]).map(function(l){return l.produitId;}).filter(Boolean).join(",")+"')"}); })); }
+      out.push({id:'arr:'+a.id,ts:a.ts||0,ic:'📦',txt:`<b>${libBox('Arrivage box','Arrivage')}</b> — ${esc(b.nom||b.numero||'Box')} par <b>${esc(a.par||'')}</b> : ${tot} produit(s) (${esc(a.fournisseur||'')})`,act:"openBox('"+b.id+"');cible('pid','"+(a.lignes||[]).map(function(l){return l.produitId;}).filter(Boolean).join(",")+"')"}); })); }
     /* Nouveaux produits au catalogue, à poser dans les box — UNE ligne par personne, pas une par box :
        même source que la pastille du bouton (boxNouveautes), et la ligne disparaît d'elle-même quand tout
        est décidé (ajouté ou écarté). Le créateur la voit aussi : c'est lui qui doit poser le produit. */

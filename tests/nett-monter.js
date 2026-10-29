@@ -64,6 +64,7 @@ function monter(opts) {
     function addMin(h,m){ var p=h.split(':'), t=(+p[0])*60+(+p[1])+m; return String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); }
     function metierPack(){ return __pack; }
     function socDuClient(cid){ var c=(db.clients||[]).find(function(x){return x.id===cid;}); return (c&&c.soc)||''; }
+    function entrepriseNom(){ return String((__entete&&__entete.nom)||'').trim(); }
     function docEntete(m){ var e=Object.assign({},__entete); if(m&&__entete.societes&&__entete.societes[m]) e=Object.assign(e,__entete.societes[m]); e.societe=m||''; return e; }
     function docCoordLignes(h){ return [[h.adresse,[h.cp,h.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '),[h.tel?'Tél. '+h.tel:'',h.email||''].filter(Boolean).join('  ·  '),[h.siret?'SIRET '+h.siret:''].filter(Boolean).join('  ·  ')].filter(Boolean); }
     async function devisLogoJpeg(){ return __logoOk?null:null; }

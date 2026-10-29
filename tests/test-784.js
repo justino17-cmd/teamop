@@ -44,7 +44,7 @@ function monde({ autre = false, nom = '', liste = [], suite = null, vue = 'bx' }
     appels: [], rendus: 0, sauves: 0, toasts: [], ferme: 0, suiteJouee: 0, silencePendant: [],
     fullName: u => u.prenom + ' ' + u.nom, produit: pid => ({ id: pid, nom: 'Produit ' + pid }),
     closeModal: () => { ctx.ferme++; }, save: () => { ctx.sauves++; }, renderBoxProdList: () => { ctx.rendus++; },
-    toast: m => { ctx.toasts.push(m); }, donListeRender: () => {}, donLigneMaj: () => {}, donPiedRender: () => {},
+    libBox: (a, b) => a, boxTxt: s => s, toast: m => { ctx.toasts.push(m); }, donListeRender: () => {}, donLigneMaj: () => {}, donPiedRender: () => {},
     document: { querySelector: () => ({ value: autre ? 'autre' : 'moi' }) },
     $: id => (id === 'bd-nom' ? { value: nom } : null),
   };
