@@ -88,7 +88,12 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
        configuration ne puisse pas en désigner une autre (il allume, il ne choisit pas). Deux occurrences, ou une dans un autre fichier, et c'est refusé. */
     const CADRE = "'https://teamop.fr'";
     if (nom === 'config.js') { const k = c.split(CADRE).length - 1; if (k !== 1) interdits.push(nom + ' : « ' + CADRE + ' » ' + k + ' fois (une seule, PARENTS_POSSIBLES)'); }
-    const cM = nom === 'invite.html' ? MENTION.reduce((y, [m]) => y.split(m).join(''), c) : (nom === 'config.js' ? c.split(CADRE).join('') : c);
+    /* ⛔ UNE DIXIÈME EXCEPTION, NOMMÉE ET COMPTÉE : `opmsg-ui.js` (la page) dit `https://teamop.fr` UNE fois, comme ORIGINE CIBLE de la poignée de main qu'elle envoie quand la Tour l'encadre
+       (`window.parent.postMessage({ opmsg: 'pret' }, 'https://teamop.fr')`, 28 octobre 2026 : la Tour ne peut pas savoir qu'un cadre a été refusé, seule la page le sait). Ce n'est pas une destination
+       de connexion — un `postMessage` ne sort pas de l'appareil — et l'origine y est ÉCRITE pour qu'aucun autre site qui encadrerait la page ne reçoive « prêt » (jamais « * »). Cette ligne exacte, UNE fois, et rien d'autre. */
+    const POIGNEE = "window.parent.postMessage({ opmsg: 'pret' }, 'https://teamop.fr')";
+    if (nom === 'opmsg-ui.js') { const k = c.split(POIGNEE).length - 1; if (k !== 1) interdits.push(nom + ' : « ' + POIGNEE + ' » ' + k + ' fois (une seule, la poignée du cadre)'); }
+    const cM = nom === 'invite.html' ? MENTION.reduce((y, [m]) => y.split(m).join(''), c) : (nom === 'config.js' ? c.split(CADRE).join('') : (nom === 'opmsg-ui.js' ? c.split(POIGNEE).join('') : c));
     for (const m of sansGps(cM).matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)) {
       if (/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(m[1])) continue;
       if (nom === 'sms-ovh.js' && /^(?:eu|ca)\.api\.ovh\.com$|^api\.us\.ovhcloud\.com$/.test(m[1])) continue;

@@ -164,8 +164,12 @@ remplacer le fichier de `icons/agents/` et déployer (l'empreinte change, la pho
   `configurer-cadre.js`, bêta seulement ; la production REFUSE ce bloc au démarrage). L'API, `/health`, la page de l'invité et les erreurs gardent `frame-ancestors 'none'` ; les pièces gardent leur `sandbox`. Cookies : `SameSite=Strict` passe (même SITE). Appels,
   vocaux et partage d'écran : la Tour délègue par `allow=` sur le cadre. **Ce qui ne marche pas dans un cadre :** demander la permission des notifications (refusé aux cadres d'une autre origine) — garder
   l'application sur le téléphone pour les notifications ; voir `tests/test-3126.js` pour ce qui est gardé.
+  **Deux ajouts de la relecture (même jour, `tests/test-3128.js`).** ① La page encadrée envoie la **poignée de main** `parent.postMessage({opmsg:'pret'},'https://teamop.fr')` (dans `opmsg-ui.js` ; hors d'un cadre, rien) :
+  c'est le seul moyen, pour la Tour, de savoir qu'un cadre n'a PAS été refusé — un cadre refusé tire `load` comme un autre. Tant que le geste du VPS (`configurer-cadre.js` + redémarrage) n'est pas fait, la page n'est pas encadrable
+  et la première ouverture de la Tour montre un cadre gris ou vide : la barre dit « Rien ne s'affiche ? » et propose « Ouvrir dans un nouvel onglet ». ② Un compte arrive par défaut côté **Perso**, où il n'y a rien : les agents,
+  les canaux et les collègues sont côté **Pro**. La liste vide dit maintenant « Tu en as N côté Pro » avec un bouton « Passer côté Pro » (le choix est ensuite retenu par le compte, d'un appareil à l'autre). Rien ne change de côté tout seul.
 - **Deux notifications possibles** sur le téléphone si la Tour et OP MESSAGES y sont toutes deux abonnées (même message important).
-- **Le bandeau « Vos agents sont maintenant dans OP MESSAGES » s'affiche toujours**, pont posé ou non.
+- **Le bandeau « Vos agents sont maintenant dans OP MESSAGES » n'existe plus** dans la Messagerie de la Tour depuis la v2.120 (de l'aperçu) : la Messagerie AFFICHE OP MESSAGES.
 
 ## Les alarmes
 
