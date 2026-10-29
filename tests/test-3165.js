@@ -134,6 +134,13 @@ const corpsRecus = H => JSON.stringify(H.appels.map(a => ({ s: a.system, m: a.me
     v('⛔ « oui » SEUL, sans que la question ait été posée : refusé (rien n’est noté)', (H.reglages() || {}).plateforme, undefined); H.nettoyer();
     H = await rejouer('oui', 'oui', async h => { await h.compta.passer(); h.conv.parler('margaux', 'margaux', 'Autre chose : ton expert-comptable ?', { niveau: 'info' }); });
     v('⛔ « oui » quand la DERNIÈRE parole de Margaux n’est plus la question : refusé', (H.reglages() || {}).plateforme, undefined); H.nettoyer();
+    /* la question se reconnaît à TROIS marques ; un leurre qui en porte deux sur trois ne doit pas ouvrir la porte (sinon retirer une marque ne ferait rien tomber) */
+    const LEURRES = [['début + « plateforme agréée », sans la question', '📅 Compta — depuis le 1er septembre 2026, la plateforme agréée est obligatoire.'], ['début + la question, sans « plateforme agréée »', '📅 Compta — depuis le 1er septembre 2026. En as-tu désigné une ?'], ['« plateforme agréée » + la question, sans le début', 'Depuis le 1er septembre 2026, une plateforme agréée est obligatoire. En as-tu désigné une ?']];
+    for (const [nom, texte] of LEURRES) {
+      H = await rejouer('oui', 'oui', async h => { h.conv.parler('margaux', 'margaux', texte, { niveau: 'info' }); });
+      vrai('(population) le leurre est bien la dernière parole de Margaux', (await H.messages('margaux')).filter(m => m.de === 'margaux' && m.texte === texte).length === 1);
+      v('⛔ « oui » après un leurre (' + nom + ') : refusé', (H.reglages() || {}).plateforme, undefined); H.nettoyer();
+    }
     H = await rejouer('oui mais je ne sais pas trop', 'oui', h => h.compta.passer());
     v('⛔ « oui, mais… » n’est pas une réponse sèche : refusé', (H.reglages() || {}).plateforme, undefined); H.nettoyer();
   }
