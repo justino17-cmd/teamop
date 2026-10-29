@@ -77,8 +77,19 @@ const OUTIL_DEVIS = {
   },
 };
 
-// ── Le cerveau : les règles métier du technicien hygiéniste 3D ────────────
-function construireSystem(ctx) {
+// ── Le cerveau : une consigne par métier ──────────────────────────────────
+//
+//  ⛔ CE QUI PART CHEZ ANTHROPIC NE CHANGE PAS : les sociétés, et pour chaque client
+//  son nom, son adresse, sa ville — 60 clients au plus. Seul le TEXTE DES CONSIGNES
+//  dépend du métier (voir sous-traitance.html). Les trois cerveaux partagent les
+//  mêmes deux blocs, construits à UN seul endroit : un contexte élargi pour un
+//  métier l'est pour tous, il ne peut pas l'être « par accident » dans un seul.
+//
+//  Le choix du métier est dans devis-metier.js (annuaire du serveur d'abord) ; le
+//  cerveau 3D est celui d'AVANT, octet pour octet (tests/test-3112.js l'exige).
+const { est3D, tvaParDefaut } = require('./devis-metier');
+
+function blocsContexte(ctx) {
   const societes = (ctx.societes || []).filter(Boolean);
   const clients = (ctx.clients || []).slice(0, 60);
 
@@ -89,6 +100,12 @@ function construireSystem(ctx) {
   const blocCli = clients.length
     ? clients.map(c => `- ${c.nom}${c.adresse ? ' — ' + c.adresse : ''}${c.ville ? ' ' + c.ville : ''}`).join('\n')
     : '- (aucun client enregistré)';
+  return { blocSoc, blocCli };
+}
+
+// ── 3D : les règles métier du technicien hygiéniste (la consigne d'origine) ──
+function cerveau3D(ctx) {
+  const { blocSoc, blocCli } = blocsContexte(ctx);
 
   return `Tu es l'assistant devis intégré à OP GESTION, pour un technicien hygiéniste 3D
 (dératisation, désinsectisation, désinfection) certifié Certibiocide.
@@ -129,6 +146,120 @@ RÈGLES MÉTIER ABSOLUES :
    prêt dans l'application.
 8. Enchaînements : « pareil pour Mme X » ou « refais-le à 450 € » réutilisent
    le contexte du devis précédent.`;
+}
+
+// ── Nettoyage / propreté ──────────────────────────────────────────────────
+//  Aucun prix de référence : les fourchettes de la 3D sont celles d'un autre métier, et
+//  rien de sourcé n'existe pour celui-ci — un prix inventé est pire qu'une question. Le
+//  modèle demande le tarif de l'entreprise (heure, m², forfait) ou chiffre heures × taux
+//  donné, À VALIDER. De même pour le droit : aucune norme, convention collective ni
+//  obligation dans les notes d'un devis que l'utilisateur n'a pas dites lui-même.
+function cerveauNettoyage(ctx) {
+  const { blocSoc, blocCli } = blocsContexte(ctx);
+
+  return `Tu es l'assistant devis intégré à OP GESTION, pour une entreprise de nettoyage et de
+propreté (bureaux, copropriétés, commerces, remise en état, vitrerie, fin de chantier,
+entretien des sols).
+
+SOCIÉTÉS ÉMETTRICES POSSIBLES :
+${blocSoc}
+
+CLIENTS DÉJÀ ENREGISTRÉS (réutilise la fiche si le nom correspond) :
+${blocCli}
+
+CHOIX DE LA SOCIÉTÉ :
+- Une seule société → utilise-la directement, sans jamais demander.
+- Plusieurs → si la demande en mentionne une, même partiellement, utilise-la.
+  Sinon pose UNE question courte listant les noms.
+
+RÈGLES MÉTIER ABSOLUES :
+1. Ne crée jamais un devis sans : nom du client, adresse du site, nature de la
+   prestation, surface en m² (ou nombre d'heures et d'agents), fréquence
+   (ponctuel, ou passages par semaine ou par mois), et montant TTC cible (ou
+   validation d'un tarif que tu proposes). S'il manque des informations, pose
+   UNE seule question groupée.
+2. TTC cible donné → compose 3 à 5 lignes HT réalistes (main-d'œuvre en heures
+   ou forfait au m², produits et consommables, machines si elles servent,
+   déplacement…) et passe le montant dans ttc_cible : l'ajustement au centime
+   est automatique. La DERNIÈRE ligne doit toujours avoir une quantité de 1.
+3. TVA : 20 % par défaut. Au moindre doute (client particulier, local
+   d'habitation), demande. Renseigne toujours tva_taux.
+4. Désignations sobres, sans marques : « Nettoyage des bureaux, passage
+   hebdomadaire », « Lavage mécanisé des sols », « Remise en état après
+   travaux », « Nettoyage des vitres intérieures et extérieures », « Fourniture
+   des produits et consommables ».
+5. N'invente AUCUNE fourchette de prix. Si aucun montant n'est donné, demande le
+   tarif habituel de l'entreprise (taux horaire, prix au m², forfait de
+   passage), ou propose « heures × taux » à partir d'un taux que l'utilisateur
+   a donné, présenté comme une proposition à valider — et ne crée pas le devis
+   avant sa validation.
+6. N'écris dans les notes aucune obligation réglementaire, norme, garantie ni
+   convention collective que l'utilisateur ne t'a pas donnée lui-même.
+7. Réponds en français, bref et direct. N'invente JAMAIS de numéro de devis :
+   c'est l'application qui l'attribue. Après création, annonce simplement le
+   client, le TTC, et que le devis est prêt dans l'application.
+8. Enchaînements : « pareil pour Mme X » ou « refais-le à 450 € » réutilisent
+   le contexte du devis précédent.`;
+}
+
+// ── Les autres métiers (21) : honnête plutôt que savant ───────────────────
+//  Le vocabulaire du métier vient du référentiel (`metiers.json`, via server/metiers.js) :
+//  ses types d'intervention et ses prestations — ce que l'application connaît déjà. Aucune
+//  règle propre au métier n'est écrite ici : ni prix, ni TVA particulière, ni norme.
+function cerveauGenerique(ctx, voc) {
+  const { blocSoc, blocCli } = blocsContexte(ctx);
+  const nom = (voc && voc.nom) || 'non précisé';
+  const liste = a => (a && a.length ? a.join(', ') : '');
+  const vocabulaire = [
+    liste(voc && voc.types) ? `Types d'intervention de ce métier : ${liste(voc.types)}.` : '',
+    liste(voc && voc.presta) ? `Prestations courantes : ${liste(voc.presta)}.` : '',
+  ].filter(Boolean).join('\n');
+
+  return `Tu es l'assistant devis intégré à OP GESTION, pour une entreprise de terrain,
+métier : ${nom}.
+${vocabulaire ? vocabulaire + '\n(Reprends ce vocabulaire dans les désignations quand il convient.)\n' : ''}
+SOCIÉTÉS ÉMETTRICES POSSIBLES :
+${blocSoc}
+
+CLIENTS DÉJÀ ENREGISTRÉS (réutilise la fiche si le nom correspond) :
+${blocCli}
+
+CHOIX DE LA SOCIÉTÉ :
+- Une seule société → utilise-la directement, sans jamais demander.
+- Plusieurs → si la demande en mentionne une, même partiellement, utilise-la.
+  Sinon pose UNE question courte listant les noms.
+
+RÈGLES MÉTIER ABSOLUES :
+1. Ne crée jamais un devis sans : nom du client, adresse d'intervention,
+   nature de la prestation, et montant TTC cible (ou validation d'un tarif que
+   tu proposes). S'il manque des informations, pose UNE seule question groupée.
+2. TTC cible donné → compose 3 à 5 lignes HT réalistes (main-d'œuvre,
+   fournitures ou matériel, déplacement…) et passe le montant dans ttc_cible :
+   l'ajustement au centime est automatique. La DERNIÈRE ligne doit toujours
+   avoir une quantité de 1.
+3. TVA : 20 % par défaut. Au moindre doute (client particulier, local
+   d'habitation), demande. Renseigne toujours tva_taux.
+4. Désignations sobres et précises, sans marques.
+5. N'invente AUCUNE fourchette de prix. Si aucun montant n'est donné, demande le
+   tarif habituel de l'entreprise (taux horaire, prix de l'unité, forfait), ou
+   propose « heures × taux » à partir d'un taux que l'utilisateur a donné,
+   présenté comme une proposition à valider — et ne crée pas le devis avant sa
+   validation.
+6. N'écris dans les notes aucune obligation réglementaire, norme, garantie ni
+   convention collective que l'utilisateur ne t'a pas donnée lui-même.
+7. Réponds en français, bref et direct. N'invente JAMAIS de numéro de devis :
+   c'est l'application qui l'attribue. Après création, annonce simplement le
+   client, le TTC, et que le devis est prêt dans l'application.
+8. Enchaînements : « pareil pour Mme X » ou « refais-le à 450 € » réutilisent
+   le contexte du devis précédent.`;
+}
+
+/* L'aiguillage. `metier` : '' ou '3d' → le cerveau d'avant ; 'nettoyage' → le sien ; tout autre métier ouvert → le
+   générique, avec `voc` ({nom, types, presta}, lu dans le référentiel). */
+function construireSystem(ctx, metier, voc) {
+  if (est3D(metier)) return cerveau3D(ctx);
+  if (metier === 'nettoyage') return cerveauNettoyage(ctx);
+  return cerveauGenerique(ctx, voc);
 }
 
 // ── Ajustement au centime : le cœur du calcul ─────────────────────────────
@@ -212,7 +343,17 @@ function memeSecret(a, b) {
 // ══════════════════════════════════════════════════════════════════════════
 //  Montage de la route sur l'application Express existante
 // ══════════════════════════════════════════════════════════════════════════
-function monterAgentDevis(app, config, dataDir) {
+function monterAgentDevis(app, config, dataDir, deps) {
+  /* Deux crochets, tous deux appelés À LA REQUÊTE — jamais lus au montage : ce module est monté ligne ~680 d'index.js,
+     bien avant la définition de `metierOk` et du référentiel (une valeur lue ici serait en zone morte temporelle).
+       · metierDe(t, metierCorps) → le métier de l'entreprise ('' = 3D) — voir devis-metier.js ;
+       · vocabulaire(metier) → {nom, types, presta} du référentiel, pour le cerveau générique ;
+       · creerClient(apiKey) → le client Anthropic (un banc y met un faux).
+     Sans crochet : le comportement d'avant, le cerveau 3D. */
+  deps = deps || {};
+  const metierDe = typeof deps.metierDe === 'function' ? deps.metierDe : () => '';
+  const vocabulaire = typeof deps.vocabulaire === 'function' ? deps.vocabulaire : () => null;
+  const creerClient = typeof deps.creerClient === 'function' ? deps.creerClient : (cle => new Anthropic({ apiKey: cle }));
   const conf = (config && config.anthropic) || {};
   // `cleApi` d'abord : c'est le nom qu'écrit set-claude.sh et que lit index.js
   // pour EXPLIQUE et PROPOSE. `apiKey` reste accepté pour les configurations
@@ -254,10 +395,17 @@ function monterAgentDevis(app, config, dataDir) {
     };
 
     try {
-      if (!client) client = new Anthropic({ apiKey });
+      if (!client) client = creerClient(apiKey);
       quota.consomme();
 
-      const system = construireSystem(contexte);
+      /* Le métier se lit APRÈS les contrôles d'accès : un refus ne coûte rien. Un crochet qui jette ne casse pas l'assistant :
+         on retombe sur le cerveau d'avant (les entreprises existantes ne perdent rien). */
+      let metier = '';
+      try { metier = String(metierDe(txt((req.body || {}).t, 80), txt((req.body || {}).metier, 40)) || ''); }
+      catch (e) { console.error('agent devis : métier illisible :', String((e && e.message) || e).slice(0, 200)); }
+      let voc = null;
+      if (!est3D(metier) && metier !== 'nettoyage') { try { voc = vocabulaire(metier); } catch (e) { voc = null; } }
+      const system = construireSystem(contexte, metier, voc);
       const fil = messages.slice();
       let reply = '';
       let devis = null;
@@ -296,7 +444,7 @@ function monterAgentDevis(app, config, dataDir) {
             continue;
           }
           const e = bloc.input || {};
-          const tvaTaux = [10, 20].includes(Number(e.tva_taux)) ? Number(e.tva_taux) : 10;
+          const tvaTaux = [10, 20].includes(Number(e.tva_taux)) ? Number(e.tva_taux) : tvaParDefaut(metier);
           const calc = ajusterLignes(e.lignes, tvaTaux, e.ttc_cible);
           if (!calc.lignes.length) {
             resultats.push({ type: 'tool_result', tool_use_id: bloc.id, content: 'Aucune ligne fournie.', is_error: true });
@@ -322,6 +470,7 @@ function monterAgentDevis(app, config, dataDir) {
             lignes: calc.lignes.length,
             ttc: calc.ttc,
             client: empreinte(devis.clientNom),
+            metier: metier || '3d',
           });
           resultats.push({
             type: 'tool_result',
@@ -343,4 +492,4 @@ function monterAgentDevis(app, config, dataDir) {
   });
 }
 
-module.exports = { monterAgentDevis, ajusterLignes };
+module.exports = { monterAgentDevis, ajusterLignes, construireSystem };
