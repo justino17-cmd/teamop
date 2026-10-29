@@ -10318,7 +10318,7 @@ const METIERS={
     documents:[
       'Rapport de mesures de l’eau', 'Fiche d’ouverture ou d’hivernage', 'Note technique de sécurité',
       'Courrier de rappel au maître d’ouvrage (dispositif non choisi)',
-      'Attestation de conformité d’un dispositif installé avant le 8 juin 2004',
+      'Suivi de l’attestation d’un dispositif installé avant le 8 juin 2004 (document de l’entreprise)',
       'Suivi du contrôle sanitaire de l’eau (piscine à usage collectif)'
     ],
     masque:['registre','carteBox','devisXylo','boxes','saisieConso','enveloppes'] }
@@ -45563,22 +45563,24 @@ const DOCM_DEFS=[
    mail:(r,c)=>({sujet:'Rappel : sécurité de votre piscine'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
      corps:'Bonjour,\n\nVous trouverez ci-joint un courrier de rappel au sujet de la sécurité de votre piscine.\n\nNous restons à votre disposition.'}) },
 
- { id:'attestation-piscine-ancienne', metiers:['piscine'], ic:'📜', court:'Attestation d’un dispositif ancien', pdfTitre:'ATTESTATION DE CONFORMITÉ', titre:'Attestation de conformité d’un dispositif installé avant le 8 juin 2004', portee:'client', droit:'ventes', prefixe:'AAP', envoi:true,
-   aide:'Pour un dispositif installé avant le 8 juin 2004, l’attestation est délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé ; le modèle est annexé au décret n° 2004-499. Ce modèle n’a PAS été lu : relis-le avant la mise en service de ce document.',
+ { id:'attestation-piscine-ancienne', metiers:['piscine'], ic:'📜', court:'Suivi de l’attestation d’un dispositif ancien', pdfTitre:'SUIVI DE L’ATTESTATION', titre:'Suivi de l’attestation d’un dispositif de sécurité installé avant le 8 juin 2004 (document de l’entreprise)', portee:'client', droit:'crm', prefixe:'AAP', interne:true, statutChamp:'statut',
+   aide:'Pour un dispositif installé avant le 8 juin 2004, l’attestation est délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé ; son modèle est annexé au décret n° 2004-499. Cette fiche en SUIT l’obtention : elle ne fabrique pas l’attestation, n’atteste rien et ne s’envoie pas — le modèle de l’annexe n’a PAS été lu.',
    champs:[
-     {k:'date',l:'Date',t:'date',requis:true,pre:'auj',s:'L’attestation'},
+     {k:'date',l:'Date',t:'date',requis:true,pre:'auj',s:'Le suivi'},
      {k:'proprietaire',l:'Propriétaire et adresse',t:'texte',requis:true,pre:'adresse',max:240},
      {k:'dispositif',l:'Dispositif concerné',t:'texte',requis:true,max:200},
      {k:'installation',l:'Date d’installation',t:'date'},
-     {k:'constat',l:'Constat de conformité',t:'long',max:600}],
+     {k:'statut',l:'Statut',t:'choix',requis:true,def:'a-demander',options:[['a-demander','À demander'],['demandee','Demandée'],['recue','Reçue'],['remise','Remise au propriétaire']],s:'L’attestation'},
+     {k:'delivreePar',l:'Délivrée par (fabricant, vendeur, installateur ou contrôleur technique agréé)',t:'texte',max:200},
+     {k:'delivreeLe',l:'Date de l’attestation',t:'date'},
+     {k:'fichier',l:'Attestation conservée (nom du fichier ou classement)',t:'texte',max:160},
+     {k:'constat',l:'Observations de l’entreprise',t:'long',max:600}],
    mentions:[
-     {texte:'Pour un dispositif installé avant le 8 juin 2004, attestation délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé ; modèle annexé au décret n° 2004-499 du 7 juin 2004.',source:'Ministère de la Transition écologique : ecologie.gouv.fr',verifie:true,pdf:'Attestation relative à un dispositif installé avant le 8 juin 2004 (décret n° 2004-499 du 7 juin 2004).'},
+     {texte:'Pour un dispositif installé avant le 8 juin 2004, attestation délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé ; modèle annexé au décret n° 2004-499 du 7 juin 2004.',source:'Ministère de la Transition écologique : ecologie.gouv.fr',verifie:true,pdf:'Pour un dispositif installé avant le 8 juin 2004, l’attestation est délivrée par un fabricant, vendeur ou installateur de dispositifs, ou par un contrôleur technique agréé (décret n° 2004-499 du 7 juin 2004).'},
 
-     {texte:'Le modèle de l’annexe du décret n’a pas été lu : champs à relire sur ce modèle avant mise en service.',source:'ecologie.gouv.fr',verifie:false}],
-   signatures:[{lbl:'L’entreprise'}],
-   pied:'Document établi par {ENT}.',
-   mail:(r,c)=>({sujet:'Attestation de conformité'+(r.num?' '+r.num:'')+' — '+(c.nom||'votre dossier'),
-     corps:'Bonjour,\n\nVous trouverez ci-joint l’attestation relative à votre dispositif de sécurité.\n\nNous restons à votre disposition.'}) },
+     {texte:'Le modèle de l’annexe du décret n’a pas été lu : champs à relire sur ce modèle avant de fabriquer une attestation.',source:'ecologie.gouv.fr',verifie:false}],
+   signatures:[],
+   pied:'Fiche de suivi établie par {ENT} pour son propre suivi : ce n’est pas l’attestation, dont le modèle officiel est annexé au décret n° 2004-499.' },
 
  { id:'controle-ars-piscine', metiers:['piscine'], ic:'🔬', court:'Suivi du contrôle sanitaire', pdfTitre:'SUIVI DU CONTRÔLE SANITAIRE', titre:'Suivi du contrôle sanitaire de l’eau (piscine à usage collectif) — document de l’ARS', portee:'client', droit:'crm', interne:true, statutChamp:'statut',
    aide:'Le contrôle sanitaire est fait par l’ARS avec un laboratoire agréé ; l’exploitant tient l’autosurveillance et un carnet sanitaire. Cette fiche suit les résultats reçus. Piscine privée (un seul foyer) : aucune obligation sanitaire d’analyse trouvée.',

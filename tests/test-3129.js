@@ -257,6 +257,13 @@ console.log('\n── 3129 · 4 ter. ⛔ LE DEVIS DE DÉPANNAGE : la phrase « d
   const METIERS_REF = evalue(litteral(N, 'const METIERS={'));
   vrai('⛔ les libellés de documents de la plomberie, du chauffage et du multiservices ne citent plus l\'arrêté (annexe non lue) ; l\'électricité et la serrurerie, nommées par l\'INC, le gardent', ['plomberie', 'chauffage', 'multiservices'].every(k => !METIERS_REF[k].documents.some(d => /arrêtés? des? 24 janvier/.test(d))) && ['electricite', 'serrurerie'].every(k => METIERS_REF[k].documents.some(d => /24 janvier/.test(d))));
 }
+console.log('\n── 3129 · 4 quater. ⛔ UN DOCUMENT QUI S\'ENVOIE N\'ATTESTE RIEN QUE SON MODÈLE N\'AIT ÉTÉ LU (constat 9 du 28 octobre) ──');
+{ const risque = DEFS_TOUS.filter(d => d.envoi && /mod[èe]le[^.]*n.a PAS été lu|relis-le avant la mise en service/i.test(d.aide || ''));
+  vrai('⛔ aucun document envoyable au client ne dit dans son aide que le modèle officiel qu\'il porte n\'a pas été lu (un procès-verbal de l\'entreprise qui dit ce qu\'il n\'affirme pas est autre chose)', risque.length === 0, risque.map(d => d.id));
+  const att = DEFS_TOUS.find(d => d.id === 'attestation-piscine-ancienne');
+  vrai('l\'attestation du dispositif ancien (piscine) est un SUIVI : interne, sans envoi, sans signature, titre « SUIVI », pied « ce n\'est pas l\'attestation » — elle n\'atteste rien', !!att && att.interne === true && !att.envoi && !att.mail && att.signatures.length === 0 && /^SUIVI/.test(att.pdfTitre) && !/CONFORMIT/i.test(att.pdfTitre) && /ce n’est pas l’attestation/.test(att.pied) && !att.champs.some(c => /conformité/i.test(c.l)));
+  { const W = mk('piscine'); W.docmForm('attestation-piscine-ancienne', { cid: 'c1' }); remplit(W, W.docmDef('attestation-piscine-ancienne'), {}); const id = W.docmSauver(); ouvre(W); const x = await fabrique(W, id); const t = tout(x.pdf).replace(/ \| /g, ' ');
+    vrai('son PDF dit SUIVI DE L\'ATTESTATION, jamais « attestation de conformité » ni « atteste », et le bouton « Envoyer au client » n\'existe pas', !!id && !x.err && /SUIVI DE L.ATTESTATION/.test(t) && !/ATTESTATION DE CONFORMIT|atteste/i.test(t) && !/docmEnvoyer/.test(W.__modals[0] || ''), t.slice(0, 200)); } }
 console.log('\n── 3129 · 5. les droits, les clients qu\'on ne voit pas, les champs propres à un métier ──');
 { for (const d of DEFS.filter(x => !x.reglage)) {
     const metier = d.metiers.find(m => AUTRES.includes(m));
