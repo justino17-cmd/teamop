@@ -59,12 +59,13 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 300 s'); console.lo
       v('⛔ « qui reçoit » : seulement tour === true (pas « true », pas 1, pas le préfixe seul) — a, c, d, g, h exclus', eps, ['b', 'f']);
       const cas = ['teamop-controle', 'TeamOP-Controle', '  teamop-controle', 'team op-controle', 'teamop-controle-2', 'teamop​-controle', '﻿teamop-controle', 'ｔｅａｍｏｐ-ｃｏｎｔｒｏｌｅ', 'TEAMOP-CONTROLE-x'];
       v('le préfixe réservé se reconnaît sous toutes ses écritures', cas.map(t => vm.runInContext('teamIdDeLaTour(' + JSON.stringify(t) + ')', bac)), cas.map(() => true));
+      v('⛔ S2 — un objet à `toString` piégé fait refuser (true), il ne fait pas jeter', ['{"toString":1}', '{"toString":null,"valueOf":null}'].map(o => vm.runInContext('teamIdDeLaTour(' + o + ')', bac)), [true, true]);
       const non = ['t-ent-3155', 'opmsg-user-abc', 'controle-teamop', 'xteamop-controle', '', null, undefined, 12];
       v('…et ne touche aucun autre identifiant (entreprises, OP MESSAGES)', non.map(t => vm.runInContext('teamIdDeLaTour(' + JSON.stringify(t === undefined ? null : t) + ')', bac)), non.map(() => false));
     }
     /* le balayage des codes et la forme de la clé, exécutés */
     const bac2 = { codes: new Map(), CODE_PURPOSE: null, crypto };
-    const src2 = tranche('codesBalayer') + '\n' + tranche('codeCle') + '\n' + tranche('codeTirer');
+    const src2 = tranche('codesBalayer') + '\n' + tranche('codePlace') + '\n' + tranche('codeCle') + '\n' + tranche('codeTirer');
     const rp = SRC_BRUT.match(/const CODE_PURPOSE = (\/[^\n]*\/);/);
     vrai('le balayage, la clé et le tirage réels sont retrouvés', src2.length > 200 && rp);
     if (rp) {
@@ -76,13 +77,21 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 300 s'); console.lo
       const sortie = cles.map(c => vm.runInContext('codeCle(' + JSON.stringify(c[0]) + ',' + (c[1] === undefined ? 'undefined' : JSON.stringify(c[1])) + ')', bac2));
       v('⛔ la clé d\'un code : « reset » ou « mdp-<identifiant> » seulement, teamId texte de 80 signes au plus',
         sortie, ['t|reset', 't|reset', 't|reset', 't|mdp-abc123', 't|mdp-a_b.c-D', null, null, null, null, null, null, null, null, null, null, null, null, null]);
+      ['email', 'pwd'].forEach(pp => v('⛔ D1 — « ' + pp + ' » (Mon espace) est une clé valide, avec l\'identifiant « acct-<uid> »', vm.runInContext('codeCle("acct-uid1","' + pp + '")', bac2), 'acct-uid1|' + pp));
+      /* S1 : la table pleine ÉVINCE le plus ancien au lieu de refuser */
+      vm.runInContext('const CODES_PLAFOND = 5000; codes.clear(); for (let i = 0; i < 5000; i++) codes.set("k" + i + "|reset", { code: "1", exp: Date.now() + 60000 + i });', bac2);
+      v('⛔ S1 — table pleine : une émission neuve trouve place, en évinçant le plus ancien (celui qui échoit le plus tôt)', vm.runInContext('[codePlace("neuf|reset"), codes.size, codes.has("k0|reset"), codes.has("k1|reset")]', bac2), [true, 4999, false, true]);
+      v('…réémettre une clé déjà présente n\'évince personne', vm.runInContext('[codePlace("k5|reset"), codes.size]', bac2), [true, 4999]);
+      vm.runInContext('codes.clear(); for (let i = 0; i < 5000; i++) codes.set("v" + i + "|reset", { code: "1", exp: Date.now() - 1 });', bac2);
+      v('…et la table pleine de codes échus se vide par le balayage, sans éviction', vm.runInContext('[codePlace("n|reset"), codes.size]', bac2), [true, 0]);
+      vm.runInContext('codes.clear()', bac2);
       const tirages = Array.from({ length: 300 }, () => vm.runInContext('codeTirer()', bac2));
       vrai('le tirage : toujours 6 chiffres, entre 100000 et 999999', tirages.every(x => /^[1-9]\d{5}$/.test(x)));
       vrai('…et il varie (300 tirages, plus de 250 valeurs distinctes)', new Set(tirages).size > 250, new Set(tirages).size);
     }
     vrai('aucun `Math.random` ne tire plus un code de confirmation', !/Math\.random\(\)\s*\*\s*900000/.test(SRC) && /function codeTirer\(\) \{ return String\(crypto\.randomInt\(100000, 1000000\)\); \}/.test(SRC));
-    v('le plafond de la table est vérifié aux DEUX émissions (code et code d\'entreprise)', (SRC.match(/!codes\.has\(cleCode\) && codes\.size >= CODES_PLAFOND/g) || []).length, 2);
-    v('les deux émissions balaient avant d\'écrire', (SRC.match(/codesBalayer\(\);\s*\n\s*if \(!codes\.has\(cleCode\)/g) || []).length, 2);
+    v('la place d\'un code (balayage, puis éviction du plus ancien à la saturation) est cherchée aux DEUX émissions (code et code d\'entreprise)', (SRC.match(/if \(!codePlace\(cleCode\)\) return res\.status\(503\)/g) || []).length, 2);
+    vrai('…et c\'est `codePlace` qui balaie, puis évince : la table ne refuse plus tout le monde quand elle est pleine', /function codePlace\(cle\) \{\s*codesBalayer\(\);[\s\S]*?codes\.delete\(plusAncien\);/.test(SRC));
     vrai('la lecture (checkcode) passe par la même clé bornée', /const k = codeCle\(teamId, purpose\);\s*\n\s*const c = k \? codes\.get\(k\) : null;/.test(SRC));
   }
 
@@ -116,6 +125,8 @@ https.request = function (o, cb) { if (o && typeof o === 'object' && /\\.banc315
     [EP('attaquant-casse')]: { sub: ABO('attaquant-casse'), teamId: '  TEAMOP-Controle-bis', userId: '', userName: '', ts: 1 },
     [EP('attaquant-faux-tour')]: { sub: ABO('attaquant-faux-tour'), teamId: 'teamop-controle', userId: '', userName: '', ts: 1, tour: 'true' },
     [EP('tour-ancien')]: { sub: ABO('tour-ancien'), teamId: 'teamop-controle', userId: 'u-patron', userName: 'Patron', ts: 1, tour: true },
+    ['http://push.banc3155.net/p/ancien-http']: { sub: { endpoint: 'http://push.banc3155.net/p/ancien-http', keys: CLES }, teamId: TEAM, userId: 'u9', userName: 'Vieux', ts: 1 },
+    ['https://127.0.0.1/p/ancien-ip']: { sub: { endpoint: 'https://127.0.0.1/p/ancien-ip', keys: CLES }, teamId: TEAM, userId: 'u9', userName: 'Vieux', ts: 1 },
     [EP('entreprise-ancienne')]: { sub: ABO('entreprise-ancienne'), teamId: TEAM, userId: 'u1', userName: 'Karim', ts: 1 } };
 
   /* ══════════ SERVEUR A : la clé d'API est posée, le jeton de Pauline aussi, des abonnements d'avant sont là ══════════ */
@@ -138,6 +149,7 @@ https.request = function (o, cb) { if (o && typeof o === 'object' && /\\.banc315
   await dormir(900);
   v('⛔ au démarrage, les trois abonnements au préfixe SANS tour:true sont retirés (casse et espaces compris, « tour: \'true\' » compris) ; la Tour (tour:true) et l\'entreprise restent',
     noms(), ['entreprise-ancienne', 'tour-ancien']);
+  vrai('⛔ D2 — les abonnements d\'avant à une adresse que le filtre refuse (http, IP) sont retirés aussi, et le journal en dit le nombre', /2 abonnement\(s\) à une adresse de push refusée/.test(A.journal()), A.journal().slice(-400));
   vrai('le journal du VPS dit le NOMBRE (3), jamais une adresse de push', /3 abonnement\(s\) au préfixe réservé retiré\(s\)/.test(A.journal()) && !/banc3155|attaquant-/.test(A.journal()), A.journal().slice(-300));
 
   console.log('\n── 3155 · 1. B1 : le préfixe est réservé ──');
@@ -206,11 +218,21 @@ await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-2') });
   await dormir(600);
   vrai('…il est toujours là', noms().includes('entreprise-ancienne') && !noms().includes('tour-neuf'), noms());
 
+  console.log('\n── 3155 · 1 bis. S2 / S3 ──');
+  v('⛔ S2 — un `teamId` à `toString` piégé : 400 « réservé », pas 500 (notify)', (await notif({ teamId: { toString: 1 }, title: 'x' })).s, 400);
+  v('…ni sur subscribe', (await sub({ sub: { endpoint: EP('piege'), keys: CLES }, teamId: { toString: 1 } })).s, 400);
+  const ident = (t) => brutA('POST', '/api/compte/identifiants', { teamId: t, to: 'dest@exemple-3155.fr', login: 'karim', mdp: 'Secret3155', prenom: 'Karim', entreprise: 'X' });
+  v('⛔ S3 — un appareil de la Tour est abonné, et « teamop-controle » n\'est PAS pour autant un espace connu (aucun courriel d\'accès officiel)', [(await ident('teamop-controle')).s, (await ident('teamop-controle-bis')).s], [403, 403]);
+  vrai('…l\'espace d\'une entreprise réellement abonnée, lui, reste connu (le garde ne coupe pas les vrais)', (await ident(TEAM)).s !== 403);
+  vrai('S3 — les deux filtres par équipe (relève du courrier, notify) et les quatre « espace connu » excluent l\'appareil de la Tour', (SRC.match(/abonneEntreprise\(/g) || []).length >= 7 && /function abonneEntreprise\(s, teamId\) \{ return !!s && s\.tour !== true && s\.teamId === teamId; \}/.test(SRC) && !/Object\.values\(subs\)\.(some|filter)\(\w+ => \w+\.teamId === /.test(SRC), (SRC.match(/Object\.values\(subs\)\.(some|filter)\([^\n]*/g) || []).join(' | '));
+
   console.log('\n── 3155 · 2. l\'adresse de push ──');
   const refus = [
     'http://push.banc3155.net/p/http', 'ftp://push.banc3155.net/x', 'https://127.0.0.1/p/ip', 'https://10.0.0.5/p/ip', 'https://192.168.1.10/p/ip', 'https://169.254.169.254/latest/meta-data/',
     'https://2130706433/p/ip-decimale', 'https://0x7f.1/p/ip-hexa', 'https://0177.0.0.1/p/ip-octale', 'https://[::1]/p/ip6', 'https://[::ffff:127.0.0.1]/p/ip6', 'https://localhost/p/l', 'https://LOCALHOST./p/l', 'https://api.localhost/p/l',
     'https://intranet/p/mono', 'https://serveur.local/p/l', 'https://base.internal/p/l', 'https://box.lan/p/l', 'https://x.home.arpa/p/l', 'https://user:pw@push.banc3155.net/p/id', 'https://push.banc3155.net:8443/p/port',
+    'https://127.0.0.1%2epush.banc3155.net/p/pct-ip', 'https://localhost%2epush.banc3155.net/p/pct-l', 'https://169.254.169.254%2epush.banc3155.net/p/pct-meta', 'https://push%2ebanc3155.net/p/pct',
+    'https://push.banc3155.net%40127.0.0.1/p/arobase', 'https://push.banc3155.net\\@127.0.0.1/p/antislash', 'https://push.banc3155.net /p/espace', ' https://push.banc3155.net/p/espace-tete', 'https:/push.banc3155.net/p/un-slash',
     'push.banc3155.net/p/sans-schema', '', 'https://', 'https://' + 'a'.repeat(3000) + '.net/', 42, null, { href: 'https://push.banc3155.net/' }, ['https://push.banc3155.net/p/x']];
   const tablePre = JSON.stringify(fichierSubs());
   const sorties = [];
@@ -221,6 +243,16 @@ await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-2') });
   v('⛔ la route de la Tour refuse les mêmes ' + refus.length + ' adresses', sortiesT, refus.map(() => 400));
   await dormir(600);
   v('…et rien n\'a été écrit', JSON.stringify(fichierSubs()), tablePre);
+  /* D2 — on range et on appelle l'adresse NORMALISÉE (celle que `new URL` lit), jamais le texte reçu */
+  const brutMaj = 'https://PUSH.Banc3155.NET:443/p/Maj-3155';
+  v('une adresse en majuscules / avec le port par défaut : acceptée', (await sub({ sub: { endpoint: brutMaj, keys: CLES }, teamId: TEAM })).s, 200);
+  await dormir(600);
+  vrai('⛔ D2 — …rangée sous sa forme normalisée (hôte en minuscules, sans port), pas sous le texte reçu', Object.keys(fichierSubs() || {}).includes('https://push.banc3155.net/p/Maj-3155') && !Object.keys(fichierSubs() || {}).includes(brutMaj), Object.keys(fichierSubs() || {}));
+  const rangee = (fichierSubs() || {})['https://push.banc3155.net/p/Maj-3155'];
+  vrai('…et l\'objet appelé porte la même adresse normalisée', rangee && rangee.sub.endpoint === 'https://push.banc3155.net/p/Maj-3155', JSON.stringify(rangee));
+  await brutA('POST', '/api/unsubscribe', { endpoint: brutMaj });
+  await dormir(600);
+  vrai('…et se désabonner avec le texte que le navigateur avait donné la retire', !Object.keys(fichierSubs() || {}).includes('https://push.banc3155.net/p/Maj-3155'), Object.keys(fichierSubs() || {}));
   const bons = ['https://fcm.googleapis.com/fcm/send/dXNlcjpmY20', 'https://web.push.apple.com/QGxT7aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'https://updates.push.services.mozilla.com/wpush/v2/gAAAAA', 'https://wns2-par02p.notify.windows.com/w/?token=BQYAAAA', 'https://fcm.googleapis.com./fcm/send/x'];
   const sb = [];
   for (const ep of bons) sb.push((await sub({ sub: { endpoint: ep, keys: CLES }, teamId: TEAM })).s);
@@ -242,6 +274,8 @@ await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-2') });
   /* ══ 4. I3 ══ */
   console.log('\n── 3155 · 4. I3 : les codes de sécurité ──');
   const lireCode = async (adr) => { let c = null; await A.attendre(async () => { for (const m of await A.courriels()) { if (!String(m.to || '').includes(adr)) continue; const x = /code de confirmation TeamOP : (\d+)/.exec(String(m.text || '')); if (x) { c = x[1]; return true; } } return false; }, 8000); return c; };
+  /* le DERNIER code arrivé à une adresse (deux envois à la même adresse : le premier courriel n'est plus bon) */
+  const lireDernier = async (adr) => { let c = null; await A.attendre(async () => { for (const m of (await A.courriels()).slice().reverse()) { if (!String(m.to || '').includes(adr)) continue; const x = /code de confirmation TeamOP : (\d+)/.exec(String(m.text || '')); if (x) { c = x[1]; return true; } } return false; }, 8000); return c; };
   const envoi = (c) => brutA('POST', '/api/sendcode', c);
   const verif = (c) => brutA('POST', '/api/checkcode', c);
   const mail1 = 'u1-3155@exemple-3155.fr';
@@ -271,6 +305,27 @@ await brutA('POST', '/api/unsubscribe', { endpoint: EP('ent-2') });
   v('⛔ purpose hors forme, teamId trop long ou pas du texte, adresse invalide : 400 partout', rm, mauvais.map(() => 400));
   v('…aucun courriel n\'est parti', nMail() - m0, 0);
   v('⛔ checkcode avec une clé hors forme : 400, jamais une erreur', [(await verif({ teamId: TEAM, code: '123456', purpose: 'x'.repeat(5000) })).s, (await verif({ teamId: ['a'], code: '123456' })).s, (await verif({})).s], [400, 400, 400]);
+  /* D1 — « Mon espace » (espace.html) change l'adresse et le mot de passe avec purpose « email » / « pwd » et teamId « acct-<uid> » : les VRAIES fonctions de la page, contre le vrai serveur */
+  {
+    const page = fs.readFileSync(path.join(RACINE, 'espace.html'), 'utf8');
+    const fS = /async function _sendCode\(purpose\)\{[^\n]*\n[^\n]*\n[^\n]*\}/.exec(page), fC = /async function _checkCode\(purpose,code\)\{[^\n]*\}[^\n]*\}/.exec(page);
+    vrai('D1 — les deux fonctions réelles d\'espace.html sont retrouvées', fS && fC, page.indexOf('_sendCode(purpose)'));
+    if (fS && fC) {
+      const compte = 'u-espace-3155@exemple-3155.fr';
+      const bacP = { auth: { currentUser: { email: compte } }, _myUid: 'uidABC123', fetch: (u, o) => fetch(String(u).replace('https://api.teamop.fr', A.B), Object.assign({}, o, { headers: Object.assign({}, o.headers, { 'X-Forwarded-For': '10.77.' + Math.floor(Math.random() * 250) + '.9' }) })), JSON, console };
+      vm.createContext(bacP);
+      vm.runInContext(fS[0] + '\n' + fC[0] + '\nthis._s = _sendCode; this._c = _checkCode;', bacP);
+      for (const pp of ['email', 'pwd']) {
+        let err = null, c = null;
+        try { await bacP._s(pp); c = await lireDernier(compte); } catch (e) { err = e; }
+        vrai('⛔ D1 — _sendCode(\'' + pp + '\') : le code part (aucune erreur) et il arrive à 6 chiffres', !err && /^[1-9]\d{5}$/.test(String(c)), String(err && (err.message || err)) + ' ' + c);
+        let ko1 = null; try { await bacP._c(pp, '000000'); } catch (e) { ko1 = e; }
+        let ko2 = null; try { await bacP._c(pp, c); } catch (e) { ko2 = e; }
+        vrai('…_checkCode(\'' + pp + '\') : un mauvais code est refusé, le bon passe', ko1 && /incorrect/i.test(ko1.message) && !ko2, JSON.stringify([ko1, ko2]));
+        await A.attendre(async () => true, 1);
+      }
+    }
+  }
   /* le code d'entreprise : même table, même forme */
   const se = await brutA('POST', '/api/sendcode-entreprise', { teamId: TEAM, purpose: 'mdp-abc123', login: 'karim' });
   v('sendcode-entreprise (purpose valide) : 200, adresse masquée', [se.s, se.j.ok, /•••/.test(se.j.envoye || '')], [200, true, true]);
