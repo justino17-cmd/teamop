@@ -114,9 +114,15 @@ module.exports = function agentTheo(ctx) {
     return 1;
   }
 
+  /* « Je viens de vérifier la sauvegarde hors site » : une fois par jour, quand la dernière archive est réussie. L'annonce est celle de la table fermée (`agent-faits.js`), sans poids ni clé du coffre. */
+  function sauvegardeVerifiee() {
+    const s = lireEtatSauvegarde(), der = s && s.derniere && typeof s.derniere === 'object' ? s.derniere : null;
+    if (der && der.ok === true && typeof agents.fait === 'function' && agents.peutAgir(ID).ok) agents.fait(ID, 'sauvegarde_verifiee', {});
+  }
+
   async function passer() {
     const r = await moteur.passer();
-    if (r && !r.saute) { try { r.motifs = suivreSauvegarde(); r.conservation = suivreConservation(); } catch (e) { note('passage', { cible: 'sauvegarde', resultat: 'erreur', detail: String((e && e.message) || e).slice(0, 100) }); } }
+    if (r && !r.saute) { try { r.motifs = suivreSauvegarde(); r.conservation = suivreConservation(); sauvegardeVerifiee(); } catch (e) { note('passage', { cible: 'sauvegarde', resultat: 'erreur', detail: String((e && e.message) || e).slice(0, 100) }); } }
     return r;
   }
 

@@ -99,38 +99,40 @@ console.log('\n── 2707 · conversations Tour ↔ agents ──');
       const marquerLu = fil => { let sortie = null; routes['/api/monitor/conversations/lire']({ body: { fil } }, { status() { return this; }, json(x) { sortie = x; } }); return sortie; };
       return { m, D, lire, marquerLu };
     };
+    /* 28 octobre 2026 (Justin : agents autonomes) : le registre garde 1000 messages et non plus 500 — les chaînes de 40 messages d'un @tous et les annonces « Je viens de… » chassaient l'historique ; la propriété gardée ici est la MÊME (borné, jamais un rappel non lu chassé), seul le chiffre a changé (conversations.js, MESSAGES_MAX). */
+    const REG = 1000;
     const inonde = (P, n, fil) => { for (let i = 0; i < n; i++) P.m.systeme(fil || 'max', 'ligne du système ' + i); };
     const rappel = P => P.lire().filter(x => x.dossier === 'DOS-000042' && x.lu !== true).length;
 
     let P = montePlafond('plafond-a');
     v('le rappel naît', P.m.rappelClient('hugo', 'DOS-000042', 'demande_humain').ok, true);
-    inonde(P, 600);
-    v('⛔ APRÈS 600 lignes du système, le rappel non lu est TOUJOURS au registre — et le registre reste borné à 500', [rappel(P), P.lire().length], [1, 500]);
+    inonde(P, REG + 100);
+    v('⛔ APRÈS ' + (REG + 100) + ' lignes du système, le rappel non lu est TOUJOURS au registre — et le registre reste borné à ' + REG, [rappel(P), P.lire().length], [1, REG]);
     vrai('…c\'est bien le BAVARDAGE qui est parti, du plus ancien : la première ligne gardée n\'est plus la ligne 0', P.lire().some(x => x.dossier === 'DOS-000042') && !P.lire().some(x => x.texte === 'ligne du système 0'));
 
     P = montePlafond('plafond-b');
     for (let i = 0; i < 3; i++) { P.m.parler('max', 'max', 'Alerte réelle ' + i, { niveau: 'urgent' }); }
-    inonde(P, 600);
+    inonde(P, REG + 100);
     v('⛔ un message « urgent » non lu d\'un agent est protégé de la même façon', P.lire().filter(x => x.niveau === 'urgent' && x.lu !== true).length, 3);
 
     P = montePlafond('plafond-c');
     P.m.rappelClient('hugo', 'DOS-000042', 'demande_humain');
-    inonde(P, 600);
+    inonde(P, REG + 100);
     const lu = P.marquerLu('hugo');
     v('(population) « lu » marque bien le rappel (un message du fil de Hugo)', lu && lu.lus, 1);
-    inonde(P, 600);
-    v('…LU, il n\'est plus protégé : le plafond l\'évince comme le reste', [P.lire().some(x => x.dossier === 'DOS-000042'), P.lire().length], [false, 500]);
+    inonde(P, REG + 100);
+    v('…LU, il n\'est plus protégé : le plafond l\'évince comme le reste', [P.lire().some(x => x.dossier === 'DOS-000042'), P.lire().length], [false, REG]);
 
     P = montePlafond('plafond-d');
-    for (let i = 0; i < 520; i++) { if (i && i % 12 === 0) horloge += 3700 * 1000; P.m.rappelClient('hugo', 'DOS-' + String(100000 + i), 'demande_humain'); }
+    for (let i = 0; i < REG + 20; i++) { if (i && i % 12 === 0) horloge += 3700 * 1000; P.m.rappelClient('hugo', 'DOS-' + String(100000 + i), 'demande_humain'); }
     const dos = P.lire().filter(x => x.dossier).map(x => x.dossier);
-    v('⛔ 520 rappels non lus : le registre reste BORNÉ (500), le plus récent est là, le plus ancien est parti — le fichier ne grossit pas sans borne', [P.lire().length, dos.includes('DOS-100519'), dos.includes('DOS-100000')], [500, true, false]);
+    v('⛔ ' + (REG + 20) + ' rappels non lus : le registre reste BORNÉ (' + REG + '), le plus récent est là, le plus ancien est parti — le fichier ne grossit pas sans borne', [P.lire().length, dos.includes('DOS-' + (100000 + REG + 19)), dos.includes('DOS-100000')], [REG, true, false]);
 
     P = montePlafond('plafond-e');
     P.m.rappelClient('hugo', 'DOS-000042', 'demande_humain');
     P.m.systeme('equipe', 'témoin-2707 : la plus ancienne ligne ordinaire');
-    inonde(P, 498);
-    v('(population) le registre est plein : 500 messages', P.lire().length, 500);
+    inonde(P, REG - 2);
+    v('(population) le registre est plein : ' + REG + ' messages', P.lire().length, REG);
     fs.rmSync(P.D, { recursive: true, force: true });
     v('une écriture qui échoue est refusée', P.m.systeme('max', 'ligne de trop').ok, false);
     v('⛔ …et le registre est rendu EXACTEMENT comme il était : la ligne que le plafond allait évincer est toujours là', P.m.historique('equipe', 5).map(x => x.texte), ['témoin-2707 : la plus ancienne ligne ordinaire']);

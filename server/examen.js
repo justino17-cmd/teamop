@@ -486,10 +486,11 @@ async function sc3(E) {
   E.dit('clients', '@tous, une idée pour que les prospects répondent plus vite à nos premiers courriels ? Dites ce que vous en pensez, en deux phrases.');
   await E.calme(240000);
   const ms = E.fil('clients').filter(m => !m.systeme && m.de !== 'justin');
-  const qui = [...new Set(ms.map(m => m.de))], membres = ['lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma'];
+  /* (28 octobre 2026) Victor, chef d'équipe, est membre de « clients » : « @tous » = une vague (chacun UNE réponse brève) puis SA synthèse — il parle donc ici, une fois */
+  const qui = [...new Set(ms.map(m => m.de))], membres = ['victor', 'lea', 'chloe', 'camille', 'hugo', 'margaux', 'emma'];
   const maxParAgent = Math.max.apply(null, [0].concat(qui.map(id => ms.filter(m => m.de === id).length)));
   return [
-    verif(E, 'ceux qui ont à dire répondent (au moins trois des six)', qui.filter(id => membres.includes(id)).length >= 3, 'ont répondu : ' + (qui.join(', ') || 'personne')),
+    verif(E, 'ceux qui ont à dire répondent (au moins trois des sept)', qui.filter(id => membres.includes(id)).length >= 3, 'ont répondu : ' + (qui.join(', ') || 'personne')),
     verif(E, 'seuls les membres du groupe parlent', qui.every(id => membres.includes(id)), qui.join(', ')),
     verif(E, 'pas de boucle : une chaîne de réponses de trois niveaux au plus', E.profMax() <= 3, 'profondeur ' + E.profMax()),
     verif(E, 'pas de boucle : aucun agent ne parle plus de trois fois, au plus vingt messages d’agents', maxParAgent <= 3 && ms.length <= 20, maxParAgent + ' messages au plus pour un agent, ' + ms.length + ' en tout'),
