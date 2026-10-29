@@ -24235,7 +24235,8 @@ function mailBoxTest(id){ const b=(db.mailBoxes||[]).find(x=>x.id===id); if(!b) 
   srvMail(to,'Test — '+(b.from||b.user),'E-mail de test envoyé depuis votre application.\n\nSi vous le recevez, cette adresse d\'envoi fonctionne parfaitement.','✉️ Test envoyé à '+to+' — vérifie la réception',null,b); }
 
 /* ── E-mails types (rappel / confirmation de RDV) ── */
-function mailClientRdv(intId,kind){ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
+function mailClientRdv(intId,kind){ const __a=arguments; if(!docNomGarde(()=>mailClientRdv.apply(null,__a))) return;   /* v780 : aucun message client sans le nom de l'entreprise */
+ const i=db.interventions.find(x=>x.id===intId); if(!i) return;
   const c=db.clients.find(x=>x.id===i.clientId)||{};
   if(!c.email){ toast('Ajoutez un e-mail à la fiche client d\'abord'); return; }
   const dt=i.date?new Date(i.date+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}):'(date à définir)';
@@ -26064,7 +26065,7 @@ function papImplJpeg(src,max,q){
     im.onerror=()=>res(null); im.src=src; }); }
 /* Le document complet, prêt à partir : la même fabrique sert l'aperçu et l'envoi, donc ce que
    la personne regarde est ce que reçoit le client. Rend {pdf, b64, nom} ou {err}. */
-async function papImplDocument(cid,i,st){ const __a=arguments; if(!docNomGarde(()=>papImplDocument.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+async function papImplDocument(cid,i,st){ if(!docNomGarde(null)) return {err:'Indique d’abord le nom de ton entreprise : il va en haut du document.'};   /* v780 : aucun document sans le nom de l'entreprise — l'appelant lit d.err */
 
   const c=(db.clients||[]).find(x=>x.id===cid)||{};
   /* La société de CETTE intervention (Justin : « chaque en-tête doit reconnaître l'entreprise qui
@@ -27115,7 +27116,7 @@ function renderIntDetail(id){
         <div style="display:flex;gap:10px;align-items:flex-start;margin:8px 0 2px"><span style="color:var(--t3)">${fic('pin',16)}</span><span style="font-size:13.5px;color:var(--t2)">${esc(i.adresse||cli.adresse||'')||'-'}</span></div>
       </div></details>
       <details open class="olsec"><summary><span class="olsec-ic">${fic('list',19)}</span>Éléments clés</summary><div class="olsec-b">
-        <div style="display:flex;align-items:center;gap:6px;padding:2px 0 10px"><b style="font-size:13.5px;white-space:nowrap">Société</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right">${esc(rapportSociete(i.rapportModele))}</span></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:2px 0 10px"><b style="font-size:13.5px;white-space:nowrap">Société</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span>${rapportSociete(i.rapportModele)?`<span style="font-size:12.5px;color:var(--t2);text-align:right">${esc(rapportSociete(i.rapportModele))}</span>`:`<button type="button" class="btn sm" style="color:var(--org)" onclick="entCompleterModal('',null,'','nom')">⚠️ Nom à renseigner</button>`}</div>
         <b style="font-size:13.5px">Intervenants</b>
         <div style="margin:6px 0 12px;border-left:3px solid var(--brd);padding-left:10px">${intTechsAff(i).length?intTechsAff(i).map((tid,k)=>`<div style="display:flex;gap:8px;align-items:center;padding:3px 0">${techPastille(tid,'g')}<span style="font-size:13.5px">${esc(techName(tid))}${k===0?' <span style="color:var(--t3)">(Leader)</span>':''}</span></div>`).join(''):'<span style="color:var(--t3);font-size:13px">Non assignée</span>'}</div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 0"><b style="font-size:13.5px;white-space:nowrap">Rapport personnalisé</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right;max-width:55%">${esc(i.rapportModele||'')||'Modèle générique'}</span></div>
@@ -27851,7 +27852,7 @@ function _avisTexte(i,c){
   const subj='Avis de passage — '+rapportSociete(i.rapportModele);
   const body='Bonjour'+(c.contact?' '+c.contact:'')+',\n\nNous sommes passés '+dt+(i.heure?' à '+i.heure:'')+' pour l\'intervention « '+(i.titre||'')+' »'+(i.adresse?' à l\'adresse : '+i.adresse:'')+'.\n\nEn votre absence, merci de nous recontacter pour convenir d\'un nouveau rendez-vous.\n\nCordialement,\n'+rapportSociete(i.rapportModele);
   return {subj,body}; }
-function envoyerAvisPassage(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return; const c=db.clients.find(x=>x.id===i.clientId)||{};
+function envoyerAvisPassage(id){ if(!docNomGarde(()=>envoyerAvisPassage(id))) return;   /* v780 : aucun message client sans le nom de l'entreprise */ const i=db.interventions.find(x=>x.id===id); if(!i) return; const c=db.clients.find(x=>x.id===i.clientId)||{};
   if(!c.email){ toast('Ajoutez un e-mail à la fiche client'); return; }
   const t=_avisTexte(i,c); intHisto(i,'Avis de passage envoyé par e-mail à '+c.email); save();
   srvMail(c.email,t.subj,t.body,'✉️ Avis de passage envoyé à '+c.email,'avis',null,intSocMailOpts(i)); }
@@ -27975,7 +27976,8 @@ function copierAdresse(id){ const i=db.interventions.find(x=>x.id===id); if(!i)r
   if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(adr).then(done).catch(()=>fallbackCopy(adr,done)); }
   else fallbackCopy(adr,done); }
 /* SMS « le technicien arrive dans X » — calcule le trajet depuis la position du téléphone */
-async function smsArrivee(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{};
+async function smsArrivee(id){ const __a=arguments; if(!docNomGarde(()=>smsArrivee.apply(null,__a))) return;   /* v780 : aucun message client sans le nom de l'entreprise */
+ const i=db.interventions.find(x=>x.id===id); if(!i)return; const c=db.clients.find(x=>x.id===i.clientId)||{};
   const tel=(c.tel||'').replace(/\s/g,''); if(!tel){ toast('Pas de numéro pour ce client'); return; }
   const soc=rapportSociete(i.rapportModele);
   toast('Calcul du trajet…');
@@ -42560,7 +42562,7 @@ function cvcAttestationPdfStr(i,a,att,E,imgs){ E=E||{}; imgs=imgs||{}; att=att||
   out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
   return out; }
 /* Le document prêt à partir : en-tête de la société de CE passage, logo et signatures en JPEG. Rend {pdf,b64,nom} ou {err} — jamais une exception. */
-async function cvcAttestationDocument(iid,aid,att){ const __a=arguments; if(!docNomGarde(()=>cvcAttestationDocument.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+async function cvcAttestationDocument(iid,aid,att){ if(!docNomGarde(null)) return {err:'Indique d’abord le nom de ton entreprise : il va en haut du document.'};   /* v780 : aucun document sans le nom de l'entreprise — l'appelant lit d.err */
 
   const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
   if(!i||!a) return {err:'Intervention ou appareil introuvable.'};
@@ -42665,7 +42667,7 @@ function cvcRamonageSauver(iid,aid,silencieux){ if(!permGarde('int','modifier','
   x.i.ramonages[aid]=r; intHisto(x.i,'🧹 Attestation de ramonage établie — '+cvcLibelle(x.a));
   save(); if(!silencieux) toast('Attestation enregistrée'); return true; }
 /* Le document : la mise en page de l'attestation (genre « ramonage »), son nom de fichier à lui. Rend {pdf,b64,nom,manque} ou {err}. */
-async function cvcRamonageDocument(iid,aid,r){ const __a=arguments; if(!docNomGarde(()=>cvcRamonageDocument.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+async function cvcRamonageDocument(iid,aid,r){ if(!docNomGarde(null)) return {err:'Indique d’abord le nom de ton entreprise : il va en haut du document.'};   /* v780 : aucun document sans le nom de l'entreprise — l'appelant lit d.err */
 
   const i=(db.interventions||[]).find(x=>x.id===iid), a=(db.appareils||[]).find(x=>x.id===aid);
   if(!i||!a) return {err:'Intervention ou appareil introuvable.'};
@@ -43486,7 +43488,7 @@ function nettDocContexte(kind,id,cid){
   return {err:'Document inconnu.'}; }
 function nettNomFichier(pre,cli,date){ return pre+'-'+String((cli&&cli.nom)||'client').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,40)+'-'+String(date||todayISO())+'.pdf'; }
 /* Rend {pdf,b64,nom,E,manque} ou {err} — jamais une exception. */
-async function nettDocFabriquer(kind,id,cid){ const __a=arguments; if(!docNomGarde(()=>nettDocFabriquer.apply(null,__a))) return;   /* v780 : aucun document sans le nom de l'entreprise */
+async function nettDocFabriquer(kind,id,cid){ if(!docNomGarde(null)) return {err:'Indique d’abord le nom de ton entreprise : il va en haut du document.'};   /* v780 : aucun document sans le nom de l'entreprise — l'appelant lit d.err */
 
   let x; try{ x=nettDocContexte(kind,id,cid); }catch(e){ return {err:'Le document n’a pas pu être préparé ('+(e&&e.message||e)+') — rien n’est parti.'}; }
   if(x.err) return {err:x.err};
